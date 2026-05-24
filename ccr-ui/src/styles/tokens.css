@@ -676,7 +676,7 @@
 
 
 /* --- Catppuccin Latte：浅色底色族 --- */
-[data-flavor="latte"] {
+[data-resolved-flavor="latte"] {
     --ctp-rosewater: #dc8a78;
     --ctp-rosewater-rgb: 220 138 120;
     --ctp-flamingo: #dd7878;
@@ -742,7 +742,7 @@
 }
 
 /* --- Catppuccin Frappé：柔和深色底色族 --- */
-[data-flavor="frappe"] {
+[data-resolved-flavor="frappe"] {
     --ctp-rosewater: #f2d5cf;
     --ctp-rosewater-rgb: 242 213 207;
     --ctp-flamingo: #eebebe;
@@ -800,15 +800,15 @@
     --ctp-shadow-sm-opacity: 30%;
     --ctp-shadow-md-opacity: 38%;
     --ctp-shadow-lg-opacity: 48%;
-    --ctp-glow-opacity: 16%;
-    --ctp-glass-light-opacity: 58%;
-    --ctp-glass-medium-opacity: 72%;
-    --ctp-glass-strong-opacity: 84%;
-    --ctp-stage-noise-opacity: 0.028;
+    --ctp-glow-opacity: 12%;
+    --ctp-glass-light-opacity: 46%;
+    --ctp-glass-medium-opacity: 58%;
+    --ctp-glass-strong-opacity: 70%;
+    --ctp-stage-noise-opacity: 0.024;
 }
 
 /* --- Catppuccin Macchiato：中等对比深色底色族 --- */
-[data-flavor="macchiato"] {
+[data-resolved-flavor="macchiato"] {
     --ctp-rosewater: #f4dbd6;
     --ctp-rosewater-rgb: 244 219 214;
     --ctp-flamingo: #f0c6c6;
@@ -866,15 +866,15 @@
     --ctp-shadow-sm-opacity: 30%;
     --ctp-shadow-md-opacity: 38%;
     --ctp-shadow-lg-opacity: 48%;
-    --ctp-glow-opacity: 16%;
-    --ctp-glass-light-opacity: 58%;
-    --ctp-glass-medium-opacity: 72%;
-    --ctp-glass-strong-opacity: 84%;
-    --ctp-stage-noise-opacity: 0.028;
+    --ctp-glow-opacity: 12%;
+    --ctp-glass-light-opacity: 46%;
+    --ctp-glass-medium-opacity: 58%;
+    --ctp-glass-strong-opacity: 70%;
+    --ctp-stage-noise-opacity: 0.024;
 }
 
 /* --- Catppuccin Mocha：高专注深色底色族 --- */
-[data-flavor="mocha"] {
+[data-resolved-flavor="mocha"] {
     --ctp-rosewater: #f5e0dc;
     --ctp-rosewater-rgb: 245 224 220;
     --ctp-flamingo: #f2cdcd;
@@ -932,17 +932,17 @@
     --ctp-shadow-sm-opacity: 30%;
     --ctp-shadow-md-opacity: 38%;
     --ctp-shadow-lg-opacity: 48%;
-    --ctp-glow-opacity: 16%;
-    --ctp-glass-light-opacity: 58%;
-    --ctp-glass-medium-opacity: 72%;
-    --ctp-glass-strong-opacity: 84%;
-    --ctp-stage-noise-opacity: 0.028;
+    --ctp-glow-opacity: 12%;
+    --ctp-glass-light-opacity: 44%;
+    --ctp-glass-medium-opacity: 56%;
+    --ctp-glass-strong-opacity: 68%;
+    --ctp-stage-noise-opacity: 0.024;
 }
 
-[data-flavor="latte"],
-[data-flavor="frappe"],
-[data-flavor="macchiato"],
-[data-flavor="mocha"] {
+[data-resolved-flavor="latte"],
+[data-resolved-flavor="frappe"],
+[data-resolved-flavor="macchiato"],
+[data-resolved-flavor="mocha"] {
     --color-bg-base: var(--ctp-base);
     --color-bg-base-rgb: var(--ctp-base-rgb);
     --color-bg-elevated: var(--ctp-mantle);
@@ -1009,10 +1009,10 @@
     --color-platform-codex-rgb: var(--ctp-green-rgb);
     --color-platform-gemini: var(--ctp-blue);
     --color-platform-gemini-rgb: var(--ctp-blue-rgb);
-    --color-premium-pink: var(--ctp-pink);
-    --color-premium-pink-rgb: var(--ctp-pink-rgb);
-    --color-premium-blue: var(--ctp-blue);
-    --color-premium-blue-rgb: var(--ctp-blue-rgb);
+    --color-premium-pink: var(--ctp-surface0);
+    --color-premium-pink-rgb: var(--ctp-surface0-rgb);
+    --color-premium-blue: var(--ctp-surface1);
+    --color-premium-blue-rgb: var(--ctp-surface1-rgb);
     --color-stage-text-primary: rgb(var(--ctp-text-rgb) / 98%);
     --color-stage-text-secondary: rgb(var(--ctp-subtext1-rgb) / 90%);
     --color-stage-text-muted: rgb(var(--ctp-subtext0-rgb) / 76%);
@@ -1029,13 +1029,13 @@
     --stage-bg-grid-opacity-dark: 0%;
     --stage-bg-noise-opacity: var(--ctp-stage-noise-opacity);
     --stage-bg-noise-opacity-dark: var(--ctp-stage-noise-opacity);
-    --stage-bg-mesh-primary-opacity: 8%;
-    --stage-bg-mesh-secondary-opacity: 6%;
-    --stage-bg-mesh-info-opacity: 5%;
-    --stage-bg-aurora-primary-opacity: 6%;
-    --stage-bg-aurora-secondary-opacity: 5%;
-    --stage-bg-orb-primary-opacity: 5%;
-    --stage-bg-orb-secondary-opacity: 4%;
+    --stage-bg-mesh-primary-opacity: 5%;
+    --stage-bg-mesh-secondary-opacity: 4%;
+    --stage-bg-mesh-info-opacity: 3%;
+    --stage-bg-aurora-primary-opacity: 4%;
+    --stage-bg-aurora-secondary-opacity: 3%;
+    --stage-bg-orb-primary-opacity: 3%;
+    --stage-bg-orb-secondary-opacity: 2%;
     --shadow-xs: 0 1px 2px rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-xs-opacity));
     --shadow-sm: 0 2px 8px rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-sm-opacity));
     --shadow-md: 0 16px 36px rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-md-opacity));
@@ -1053,10 +1053,10 @@
     --glass-shadow: 0 20px 44px rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-md-opacity));
     --glass-shadow-elevated: 0 32px 68px rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-lg-opacity));
     --glass-inner-glow: inset 0 1px 0 rgb(var(--ctp-text-rgb) / 8%);
-    --liquid-glass-bg: rgb(var(--ctp-mantle-rgb) / 78%);
+    --liquid-glass-bg: rgb(var(--ctp-mantle-rgb) / 68%);
     --liquid-glass-border: rgb(var(--ctp-surface2-rgb) / 20%);
-    --liquid-glass-highlight: inset 0 1px 0 rgb(var(--ctp-text-rgb) / 7%), inset 0 0 14px rgb(var(--ctp-lavender-rgb) / 5%);
-    --liquid-glass-shadow: 0 28px 56px rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-lg-opacity)), 0 6px 18px rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-sm-opacity));
+    --liquid-glass-highlight: inset 0 1px 0 rgb(var(--ctp-text-rgb) / 5%), inset 0 0 12px rgb(var(--ctp-lavender-rgb) / 3%);
+    --liquid-glass-shadow: 0 24px 50px rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-md-opacity)), 0 6px 16px rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-xs-opacity));
     --surface-shell-bg: var(--liquid-glass-bg);
     --surface-shell-blur: var(--liquid-glass-blur);
     --surface-shell-border: var(--liquid-glass-border);
@@ -1236,10 +1236,10 @@
 }
 
 /* Catppuccin flavor 下复用现有 8 个 accent 入口，但映射回 Catppuccin 色板。 */
-[data-flavor="latte"][data-accent="clay"],
-[data-flavor="frappe"][data-accent="clay"],
-[data-flavor="macchiato"][data-accent="clay"],
-[data-flavor="mocha"][data-accent="clay"] {
+[data-resolved-flavor="latte"][data-accent="clay"],
+[data-resolved-flavor="frappe"][data-accent="clay"],
+[data-resolved-flavor="macchiato"][data-accent="clay"],
+[data-resolved-flavor="mocha"][data-accent="clay"] {
     --color-accent-primary: var(--ctp-peach);
     --color-accent-primary-hover: var(--ctp-rosewater);
     --color-accent-primary-active: var(--ctp-maroon);
@@ -1248,14 +1248,14 @@
     --color-border-accent: rgb(var(--ctp-peach-rgb) / 28%);
 }
 
-[data-flavor="latte"][data-accent="sand"],
-[data-flavor="frappe"][data-accent="sand"],
-[data-flavor="macchiato"][data-accent="sand"],
-[data-flavor="mocha"][data-accent="sand"],
-[data-flavor="latte"][data-accent="amber"],
-[data-flavor="frappe"][data-accent="amber"],
-[data-flavor="macchiato"][data-accent="amber"],
-[data-flavor="mocha"][data-accent="amber"] {
+[data-resolved-flavor="latte"][data-accent="sand"],
+[data-resolved-flavor="frappe"][data-accent="sand"],
+[data-resolved-flavor="macchiato"][data-accent="sand"],
+[data-resolved-flavor="mocha"][data-accent="sand"],
+[data-resolved-flavor="latte"][data-accent="amber"],
+[data-resolved-flavor="frappe"][data-accent="amber"],
+[data-resolved-flavor="macchiato"][data-accent="amber"],
+[data-resolved-flavor="mocha"][data-accent="amber"] {
     --color-accent-primary: var(--ctp-yellow);
     --color-accent-primary-hover: var(--ctp-peach);
     --color-accent-primary-active: var(--ctp-rosewater);
@@ -1264,10 +1264,10 @@
     --color-border-accent: rgb(var(--ctp-yellow-rgb) / 28%);
 }
 
-[data-flavor="latte"][data-accent="sage"],
-[data-flavor="frappe"][data-accent="sage"],
-[data-flavor="macchiato"][data-accent="sage"],
-[data-flavor="mocha"][data-accent="sage"] {
+[data-resolved-flavor="latte"][data-accent="sage"],
+[data-resolved-flavor="frappe"][data-accent="sage"],
+[data-resolved-flavor="macchiato"][data-accent="sage"],
+[data-resolved-flavor="mocha"][data-accent="sage"] {
     --color-accent-primary: var(--ctp-green);
     --color-accent-primary-hover: var(--ctp-teal);
     --color-accent-primary-active: var(--ctp-green);
@@ -1276,10 +1276,10 @@
     --color-border-accent: rgb(var(--ctp-green-rgb) / 28%);
 }
 
-[data-flavor="latte"][data-accent="sky"],
-[data-flavor="frappe"][data-accent="sky"],
-[data-flavor="macchiato"][data-accent="sky"],
-[data-flavor="mocha"][data-accent="sky"] {
+[data-resolved-flavor="latte"][data-accent="sky"],
+[data-resolved-flavor="frappe"][data-accent="sky"],
+[data-resolved-flavor="macchiato"][data-accent="sky"],
+[data-resolved-flavor="mocha"][data-accent="sky"] {
     --color-accent-primary: var(--ctp-blue);
     --color-accent-primary-hover: var(--ctp-sky);
     --color-accent-primary-active: var(--ctp-sapphire);
@@ -1288,10 +1288,10 @@
     --color-border-accent: rgb(var(--ctp-blue-rgb) / 28%);
 }
 
-[data-flavor="latte"][data-accent="mauve"],
-[data-flavor="frappe"][data-accent="mauve"],
-[data-flavor="macchiato"][data-accent="mauve"],
-[data-flavor="mocha"][data-accent="mauve"] {
+[data-resolved-flavor="latte"][data-accent="mauve"],
+[data-resolved-flavor="frappe"][data-accent="mauve"],
+[data-resolved-flavor="macchiato"][data-accent="mauve"],
+[data-resolved-flavor="mocha"][data-accent="mauve"] {
     --color-accent-primary: var(--ctp-mauve);
     --color-accent-primary-hover: var(--ctp-pink);
     --color-accent-primary-active: var(--ctp-lavender);
@@ -1300,10 +1300,10 @@
     --color-border-accent: rgb(var(--ctp-mauve-rgb) / 28%);
 }
 
-[data-flavor="latte"][data-accent="rose"],
-[data-flavor="frappe"][data-accent="rose"],
-[data-flavor="macchiato"][data-accent="rose"],
-[data-flavor="mocha"][data-accent="rose"] {
+[data-resolved-flavor="latte"][data-accent="rose"],
+[data-resolved-flavor="frappe"][data-accent="rose"],
+[data-resolved-flavor="macchiato"][data-accent="rose"],
+[data-resolved-flavor="mocha"][data-accent="rose"] {
     --color-accent-primary: var(--ctp-red);
     --color-accent-primary-hover: var(--ctp-maroon);
     --color-accent-primary-active: var(--ctp-flamingo);
@@ -1312,10 +1312,10 @@
     --color-border-accent: rgb(var(--ctp-red-rgb) / 28%);
 }
 
-[data-flavor="latte"][data-accent="slate"],
-[data-flavor="frappe"][data-accent="slate"],
-[data-flavor="macchiato"][data-accent="slate"],
-[data-flavor="mocha"][data-accent="slate"] {
+[data-resolved-flavor="latte"][data-accent="slate"],
+[data-resolved-flavor="frappe"][data-accent="slate"],
+[data-resolved-flavor="macchiato"][data-accent="slate"],
+[data-resolved-flavor="mocha"][data-accent="slate"] {
     --color-accent-primary: var(--ctp-overlay1);
     --color-accent-primary-hover: var(--ctp-overlay2);
     --color-accent-primary-active: var(--ctp-overlay0);

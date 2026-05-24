@@ -1,4 +1,3 @@
-import { invoke } from '@tauri-apps/api/core'
 import { isTauriRuntime } from '@/utils/tauriRuntime'
 
 const SKIP_EXIT_CONFIRM_KEY = 'ccr_skip_exit_confirm'
@@ -50,6 +49,15 @@ export const getEnvironmentName = (): 'tauri' | 'web' => {
   return isTauriEnvironment() ? 'tauri' : 'web'
 }
 
+const invokeTauri = async <T>(command: string, args?: Record<string, unknown>): Promise<T> => {
+  if (!isTauriEnvironment()) {
+    throw new Error(`Tauri runtime is unavailable for ${command}`)
+  }
+
+  const { invoke } = await import('@tauri-apps/api/core')
+  return invoke<T>(command, args)
+}
+
 export const getTauriVersion = async (): Promise<string | null> => {
   if (!isTauriEnvironment()) {
     return null
@@ -64,55 +72,55 @@ export const getTauriVersion = async (): Promise<string | null> => {
 }
 
 export const listEnvironments = async (): Promise<EnvironmentInfo[]> => {
-  return invoke('list_environments')
+  return invokeTauri('list_environments')
 }
 
 export const getCurrentEnvironment = async (): Promise<EnvironmentInfo | null> => {
-  return invoke('get_current_environment')
+  return invokeTauri('get_current_environment')
 }
 
 export const switchEnvironment = async (envId: string): Promise<void> => {
-  await invoke('switch_environment', { envId })
+  await invokeTauri('switch_environment', { envId })
 }
 
 export const refreshEnvironments = async (): Promise<EnvironmentInfo[]> => {
-  return invoke('refresh_environments')
+  return invokeTauri('refresh_environments')
 }
 
 export const shellGetPreferences = async (): Promise<DesktopShellPreferences> => {
-  return invoke('shell_get_preferences')
+  return invokeTauri('shell_get_preferences')
 }
 
 export const shellSetPreferences = async (
   preferences: DesktopShellPreferences
 ): Promise<DesktopShellPreferences> => {
-  return invoke('shell_set_preferences', { preferences })
+  return invokeTauri('shell_set_preferences', { preferences })
 }
 
 export const shellShowMainWindow = async (targetRoute?: string): Promise<void> => {
-  await invoke('shell_show_main_window', { targetRoute })
+  await invokeTauri('shell_show_main_window', { targetRoute })
 }
 
 export const shellRequestQuit = async (): Promise<void> => {
-  await invoke('shell_request_quit')
+  await invokeTauri('shell_request_quit')
 }
 
 export const shellBeginTrayPanelDrag = async (): Promise<void> => {
-  await invoke('shell_begin_tray_panel_drag')
+  await invokeTauri('shell_begin_tray_panel_drag')
 }
 
 export const shellCompleteTrayPanelDrag = async (
   position?: TrayPanelManualPosition | null
 ): Promise<void> => {
-  await invoke('shell_complete_tray_panel_drag', { position: position ?? null })
+  await invokeTauri('shell_complete_tray_panel_drag', { position: position ?? null })
 }
 
 export const detectSkillportApp = async (): Promise<SkillportAppStatus> => {
-  return invoke('shell_detect_skillport_app')
+  return invokeTauri('shell_detect_skillport_app')
 }
 
 export const openSkillportApp = async (): Promise<void> => {
-  await invoke('shell_open_skillport_app')
+  await invokeTauri('shell_open_skillport_app')
 }
 
 // Legacy aliases kept for migration period.

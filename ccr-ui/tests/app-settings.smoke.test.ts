@@ -42,26 +42,40 @@ const flush = async () => {
 }
 
 const listeners: Array<(event: MediaQueryListEvent) => void> = []
+let mediaController: { setMatches: (matches: boolean) => void }
 
-const installMatchMedia = (matches: boolean) => {
+const installMatchMedia = (initialMatches: boolean) => {
+  let matches = initialMatches
   vi.stubGlobal('matchMedia', vi.fn().mockImplementation(() => ({
-    matches,
+    get matches() {
+      return matches
+    },
     media: '(prefers-color-scheme: dark)',
     addEventListener: (_event: string, listener: (event: MediaQueryListEvent) => void) => {
       listeners.push(listener)
     },
     removeEventListener: vi.fn(),
   })))
+
+  return {
+    setMatches(nextMatches: boolean) {
+      matches = nextMatches
+      const event = { matches: nextMatches } as MediaQueryListEvent
+      listeners.forEach((listener) => listener(event))
+    },
+  }
 }
 
-const mountView = async () => {
+const mountView = async ({ hydrateLocales = true } = {}) => {
   const [{ default: AppSettingsView }, i18nModule] = await Promise.all([
     import('@/views/AppSettingsView.vue'),
     import('@/i18n'),
   ])
 
-  await i18nModule.ensureLocaleLoaded('en-US')
-  await i18nModule.ensureLocaleLoaded('zh-CN')
+  if (hydrateLocales) {
+    await i18nModule.ensureLocaleLoaded('en-US')
+    await i18nModule.ensureLocaleLoaded('zh-CN')
+  }
 
   const el = document.createElement('div')
   document.body.appendChild(el)
@@ -88,10 +102,15 @@ const mountView = async () => {
 
 beforeEach(() => {
   document.body.innerHTML = ''
+  document.documentElement.className = ''
+  document.documentElement.removeAttribute('data-theme')
+  document.documentElement.removeAttribute('data-flavor')
+  document.documentElement.removeAttribute('data-resolved-flavor')
+  document.documentElement.removeAttribute('data-accent')
   localStorage.clear()
   listeners.length = 0
   vi.resetModules()
-  installMatchMedia(true)
+  mediaController = installMatchMedia(true)
 
   runtimeMocks.getEnvironmentName.mockReset()
   runtimeMocks.getTauriVersion.mockReset()
@@ -117,6 +136,23 @@ afterEach(() => {
 })
 
 describe('AppSettingsView smoke', () => {
+  it('renders the settings route from boot messages before full locale hydration', async () => {
+    localStorage.setItem('ccr-ui-locale', 'en-US')
+
+    const { el, unmount } = await mountView({ hydrateLocales: false })
+
+    try {
+      expect(el.textContent).toContain('Settings')
+      expect(el.textContent).toContain('Appearance')
+      expect(el.textContent).toContain('Surface tone')
+      expect(el.textContent).toContain('Workbench')
+      expect(el.textContent).toContain('Diagnostics')
+      expect(el.textContent).not.toContain('settings.')
+    } finally {
+      unmount()
+    }
+  })
+
   it('renders persisted shell preferences and applies updates immediately', async () => {
     localStorage.setItem('ccr-theme', 'system')
     localStorage.setItem('ccr-ui-locale', 'en-US')
@@ -158,6 +194,7 @@ describe('AppSettingsView smoke', () => {
 
       expect(localStorage.getItem('ccr-flavor')).toBe('mocha')
       expect(document.documentElement.getAttribute('data-flavor')).toBe('mocha')
+      expect(document.documentElement.getAttribute('data-resolved-flavor')).toBe('mocha')
       expect(mochaFlavorButton?.getAttribute('aria-pressed')).toBe('true')
 
       const chineseButton = el.querySelector<HTMLElement>('[data-testid="settings-language-zh-CN"]')
@@ -197,6 +234,46 @@ describe('AppSettingsView smoke', () => {
 
       expect(localStorage.getItem('ccr-ui:perf')).toBeNull()
       expect(perfToggle?.getAttribute('aria-checked')).toBe('false')
+    } finally {
+      unmount()
+    }
+  })
+
+  it('keeps system theme summary and resolved Catppuccin flavor in sync with OS preference changes', async () => {
+    localStorage.setItem('ccr-theme', 'system')
+    localStorage.setItem('ccr-flavor', 'latte')
+    localStorage.setItem('ccr-ui-locale', 'en-US')
+
+    const { el, unmount } = await mountView()
+
+    try {
+      expect(el.textContent).toContain('Follow system · Dark mode')
+      expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
+      expect(document.documentElement.getAttribute('data-flavor')).toBe('latte')
+      expect(document.documentElement.getAttribute('data-resolved-flavor')).toBe('frappe')
+
+      mediaController.setMatches(false)
+      await flush()
+
+      expect(el.textContent).toContain('Follow system · Light mode')
+      expect(document.documentElement.getAttribute('data-theme')).toBe('light')
+      expect(document.documentElement.getAttribute('data-flavor')).toBe('latte')
+      expect(document.documentElement.getAttribute('data-resolved-flavor')).toBe('latte')
+
+      const mochaFlavorButton = el.querySelector<HTMLElement>('[data-testid="settings-flavor-mocha"]')
+      mochaFlavorButton?.click()
+      await flush()
+
+      expect(document.documentElement.getAttribute('data-flavor')).toBe('mocha')
+      expect(document.documentElement.getAttribute('data-resolved-flavor')).toBe('latte')
+
+      mediaController.setMatches(true)
+      await flush()
+
+      expect(el.textContent).toContain('Follow system · Dark mode')
+      expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
+      expect(document.documentElement.getAttribute('data-flavor')).toBe('mocha')
+      expect(document.documentElement.getAttribute('data-resolved-flavor')).toBe('mocha')
     } finally {
       unmount()
     }

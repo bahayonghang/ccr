@@ -16,18 +16,26 @@ import {
 import { applyInitialTheme } from '@/utils/themeBootstrap'
 import { flushPerfTelemetryOnce, initPerfTelemetry, perfMark, perfMeasure } from '@/utils/perfTelemetry'
 import { getErrorMessage } from '@/types/api'
-import deferredInteractiveHref from './styles/deferred-interactive.css?url'
-import deferredDecorationsHref from './styles/deferred-decorations.css?url'
 import './styles/index.css'
 
 type DeferredStyleRel = 'preload' | 'stylesheet'
 
 const deferredFontStyles = [
+  '/fonts/maplebright/MapleBright-Regular/startup.css',
   '/fonts/maplebright/MapleBright-Regular/result.css',
   '/fonts/maplebright/MapleBright-Medium/result.css',
   '/fonts/maplebright/MapleBright-Italic/result.css',
   '/fonts/maplebright/MapleBright-MediumItalic/result.css',
 ] as const
+
+const deferredStyleLoaders = {
+  interactive: () => import('./styles/deferred-interactive.css?url'),
+  decorations: () => import('./styles/deferred-decorations.css?url'),
+} as const
+
+type DeferredStyleKey = keyof typeof deferredStyleLoaders
+
+const deferredStyleHrefCache: Partial<Record<DeferredStyleKey, string>> = {}
 
 const ensureDeferredStyleLink = (href: string, key: string, rel: DeferredStyleRel) => {
   if (typeof document === 'undefined') return null
@@ -50,11 +58,6 @@ const ensureDeferredStyleLink = (href: string, key: string, rel: DeferredStyleRe
   return link
 }
 
-const preloadDeferredStyles = () => {
-  ensureDeferredStyleLink(deferredInteractiveHref, 'deferred-interactive', 'preload')
-  ensureDeferredStyleLink(deferredDecorationsHref, 'deferred-decorations', 'preload')
-}
-
 const applyDeferredStyle = (href: string, key: string) => {
   if (typeof document === 'undefined') return
 
@@ -64,6 +67,17 @@ const applyDeferredStyle = (href: string, key: string) => {
   if (link.rel !== 'stylesheet') {
     link.rel = 'stylesheet'
     link.removeAttribute('as')
+  }
+}
+
+const applyDeferredStyleFromImport = async (key: DeferredStyleKey): Promise<void> => {
+  try {
+    const href = deferredStyleHrefCache[key]
+      ?? (await deferredStyleLoaders[key]()).default
+    deferredStyleHrefCache[key] = href
+    applyDeferredStyle(href, `deferred-${key}`)
+  } catch (error) {
+    logger.warn(`[startup] failed to load deferred ${key} styles`, error)
   }
 }
 
@@ -80,8 +94,6 @@ applyInitialTheme()
 perfMark('app:theme-applied')
 registerShellIcons()
 perfMark('app:icons-shell-registered')
-preloadDeferredStyles()
-perfMark('app:styles-preloaded')
 
 const configureAppErrorHandler = (app: ReturnType<typeof createApp>) => {
   // 全局错误处理：兜底未捕获的 Vue 组件异常
@@ -118,8 +130,9 @@ const scheduleDeferredStartupTasks = (disposeStartupErrorHandlers: () => void) =
   scheduleAfterPaint(() => {
     perfMark('app:after-paint')
 
-    applyDeferredStyle(deferredInteractiveHref, 'deferred-interactive')
-    perfMark('app:styles-deferred-interactive-applied')
+    void applyDeferredStyleFromImport('interactive').finally(() => {
+      perfMark('app:styles-deferred-interactive-applied')
+    })
 
     perfMark('app:i18n-hydrate-start')
     void hydratePreferredLocale().catch((error) => {
@@ -141,8 +154,9 @@ const scheduleDeferredStartupTasks = (disposeStartupErrorHandlers: () => void) =
     }, { timeout: 1800, fallbackDelay: 900 })
 
     scheduleWhenIdle(() => {
-      applyDeferredStyle(deferredDecorationsHref, 'deferred-decorations')
-      perfMark('app:styles-deferred-decorations-applied')
+      void applyDeferredStyleFromImport('decorations').finally(() => {
+        perfMark('app:styles-deferred-decorations-applied')
+      })
     }, { timeout: 1200, fallbackDelay: 320 })
 
     scheduleWhenIdle(() => {
@@ -193,7 +207,7 @@ const bootstrap = async (disposeStartupErrorHandlers: () => void) => {
 
   await prepareWindowRoute()
 
-  const routerReady = await awaitRouterReadyWithTimeout()
+  const routerReady = await awaitRouterReadyWithTimeout(10_000)
   if (!routerReady) {
     logger.warn('[router] initial navigation was not ready before timeout; mount app with current route state', {
       path: router.currentRoute.value.fullPath,
@@ -209,10 +223,13 @@ const bootstrap = async (disposeStartupErrorHandlers: () => void) => {
     })
   }
 
-  // bootMessages 已涵盖导航、Dashboard、首页、通用 key，DEV 也无需阻塞 mount；
-  // 完整语言包在 scheduleDeferredStartupTasks 中异步补齐。
+  // bootMessages 覆盖首屏需要的导航、Dashboard、Settings 和通用 key；
+  // 对显式标记可延迟的路由，完整语言包在首帧后异步补齐，避免 dev 冷路由被大 locale 阻塞。
   const routeName = String(router.currentRoute.value.name ?? '')
-  const shouldHydrateLocaleBeforeMount = routeName !== 'home' && routeName !== 'dashboard'
+  const shouldHydrateLocaleBeforeMount =
+    routeName !== 'home'
+    && routeName !== 'dashboard'
+    && router.currentRoute.value.meta.deferLocaleHydration !== true
 
   if (shouldHydrateLocaleBeforeMount) {
     perfMark('app:i18n-prehydrate-start')

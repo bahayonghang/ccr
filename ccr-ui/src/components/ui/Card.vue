@@ -231,7 +231,7 @@ const handleMouseLeave = (event: MouseEvent) => {
   background: var(--color-bg-elevated);
   box-shadow:
     var(--ui-card-shadow, var(--shadow-sm)),
-    inset 0 1px 0 rgb(255 251 245 / 60%);
+    var(--inner-glow);
 }
 
 .ui-card--elevated {
@@ -253,7 +253,7 @@ const handleMouseLeave = (event: MouseEvent) => {
   backdrop-filter: var(--surface-workspace-blur);
   box-shadow:
     var(--ui-card-shadow, var(--surface-workspace-shadow)),
-    inset 0 1px 0 rgb(255 251 245 / 12%);
+    var(--glass-inner-glow);
 }
 
 .ui-card--outline {

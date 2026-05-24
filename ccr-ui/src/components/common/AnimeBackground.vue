@@ -29,15 +29,15 @@
 
 .claude-background__base {
   background:
-    radial-gradient(circle at 14% 0%, rgb(var(--color-accent-primary-rgb) / 6%) 0%, transparent 30%),
-    radial-gradient(circle at 78% 14%, rgb(var(--color-accent-secondary-rgb) / 6%) 0%, transparent 22%),
-    linear-gradient(180deg, rgb(var(--color-premium-pink-rgb) / 40%), transparent 28%),
+    radial-gradient(circle at 14% 0%, rgb(var(--color-accent-primary-rgb) / 5%) 0%, transparent 30%),
+    radial-gradient(circle at 78% 14%, rgb(var(--color-accent-secondary-rgb) / 5%) 0%, transparent 22%),
+    linear-gradient(180deg, rgb(var(--color-premium-pink-rgb) / 30%), transparent 28%),
     linear-gradient(180deg, rgb(var(--color-bg-base-rgb) / 100%), rgb(var(--color-bg-base-rgb) / 95%));
 }
 
 .claude-background__halo {
   filter: blur(88px);
-  opacity: 0.68;
+  opacity: 0.54;
 }
 
 .claude-background__halo--left {
@@ -45,7 +45,7 @@
   width: 44vw;
   height: 44vw;
   border-radius: 50%;
-  background: rgb(var(--color-accent-primary-rgb) / 10%);
+  background: rgb(var(--color-accent-primary-rgb) / 8%);
 }
 
 .claude-background__halo--right {
@@ -53,7 +53,7 @@
   width: 38vw;
   height: 38vw;
   border-radius: 50%;
-  background: rgb(var(--color-premium-blue-rgb) / 52%);
+  background: rgb(var(--color-premium-blue-rgb) / 34%);
 }
 
 .claude-background__grain {
@@ -66,18 +66,18 @@
 
 [data-theme='dark'] .claude-background__base {
   background:
-    radial-gradient(circle at 16% 4%, rgb(var(--color-accent-primary-rgb) / 12%) 0%, transparent 30%),
-    radial-gradient(circle at 82% 10%, rgb(var(--color-accent-secondary-rgb) / 10%) 0%, transparent 28%),
-    linear-gradient(180deg, rgb(var(--color-premium-pink-rgb) / 26%), transparent 28%),
+    radial-gradient(circle at 16% 4%, rgb(var(--color-accent-primary-rgb) / 8%) 0%, transparent 30%),
+    radial-gradient(circle at 82% 10%, rgb(var(--color-accent-secondary-rgb) / 6%) 0%, transparent 28%),
+    linear-gradient(180deg, rgb(var(--color-premium-pink-rgb) / 16%), transparent 28%),
     linear-gradient(180deg, rgb(var(--color-bg-base-rgb) / 100%), rgb(var(--color-bg-base-rgb) / 93%));
 }
 
 [data-theme='dark'] .claude-background__halo--left {
-  background: rgb(var(--color-accent-primary-rgb) / 14%);
+  background: rgb(var(--color-accent-primary-rgb) / 9%);
 }
 
 [data-theme='dark'] .claude-background__halo--right {
-  background: rgb(var(--color-premium-blue-rgb) / 72%);
+  background: rgb(var(--color-premium-blue-rgb) / 34%);
 }
 
 [data-theme='dark'] .claude-background__grain {

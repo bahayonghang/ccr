@@ -25,6 +25,8 @@ declare module 'vue-router' {
     group?: string
     /** 隐藏侧边栏，启用全宽布局模式 */
     hideSidebar?: boolean
+    /** 允许首屏挂载后再补齐完整 locale，避免 dev 冷路由被大语言包阻塞。 */
+    deferLocaleHydration?: boolean
   }
 }
 
@@ -82,7 +84,7 @@ const routes: RouteRecordRaw[] = [
         path: 'settings',
         name: 'settings',
         component: () => import('@/views/AppSettingsView.vue'),
-        meta: { depth: 1, group: 'settings' },
+        meta: { depth: 1, group: 'settings', deferLocaleHydration: true },
       },
       // 主要模块 (depth: 1)
       {

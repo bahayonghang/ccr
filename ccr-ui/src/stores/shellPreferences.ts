@@ -22,10 +22,13 @@ import {
   readStoredAccent,
   readStoredFlavor,
   readStoredTheme,
+  resolveFlavorMode,
   resolveThemeMode,
+  THEME_RESOLUTION_CHANGE_EVENT,
   type AccentMode,
   type FlavorMode,
   type ResolvedThemeMode,
+  type ThemeResolutionChangeDetail,
   type ThemeMode,
 } from '@/utils/themeBootstrap'
 
@@ -67,6 +70,7 @@ export const useShellPreferencesStore = defineStore('shellPreferences', () => {
   const theme = ref<ThemeMode>(readStoredTheme())
   const effectiveTheme = ref<ResolvedThemeMode>(resolveThemeMode(theme.value))
   const flavor = ref<FlavorMode>(readStoredFlavor())
+  const resolvedFlavor = ref<FlavorMode>(resolveFlavorMode(effectiveTheme.value, flavor.value))
   const accent = ref<AccentMode>(readStoredAccent())
   const locale = ref<SupportedLocale>(readStoredLocale())
   const sidebarWidth = ref<number>(readStoredSidebarWidth())
@@ -82,15 +86,16 @@ export const useShellPreferencesStore = defineStore('shellPreferences', () => {
     theme.value = readStoredTheme()
     flavor.value = readStoredFlavor()
     accent.value = readStoredAccent()
-    effectiveTheme.value = applyThemeToDocument(theme.value)
-    applyFlavorToDocument(flavor.value)
+    effectiveTheme.value = applyThemeToDocument(theme.value, flavor.value)
+    resolvedFlavor.value = resolveFlavorMode(effectiveTheme.value, flavor.value)
     applyAccentToDocument(accent.value)
   }
 
   const setThemePreference = (nextTheme: ThemeMode): void => {
     theme.value = nextTheme
     persistTheme(nextTheme)
-    effectiveTheme.value = applyThemeToDocument(nextTheme)
+    effectiveTheme.value = applyThemeToDocument(nextTheme, flavor.value)
+    resolvedFlavor.value = resolveFlavorMode(effectiveTheme.value, flavor.value)
   }
 
   const toggleThemePreference = (): void => {
@@ -101,7 +106,8 @@ export const useShellPreferencesStore = defineStore('shellPreferences', () => {
   const setFlavorPreference = (nextFlavor: FlavorMode): void => {
     flavor.value = nextFlavor
     persistFlavor(nextFlavor)
-    applyFlavorToDocument(nextFlavor)
+    applyFlavorToDocument(nextFlavor, theme.value)
+    resolvedFlavor.value = resolveFlavorMode(effectiveTheme.value, nextFlavor)
   }
 
   const setAccentPreference = (nextAccent: AccentMode): void => {
@@ -109,6 +115,27 @@ export const useShellPreferencesStore = defineStore('shellPreferences', () => {
     persistAccent(nextAccent)
     applyAccentToDocument(nextAccent)
   }
+
+  const syncThemeResolution = (detail: ThemeResolutionChangeDetail): void => {
+    if (theme.value === 'system' || detail.theme === theme.value) {
+      effectiveTheme.value = detail.resolvedTheme
+    }
+
+    if (detail.flavor === flavor.value) {
+      resolvedFlavor.value = detail.resolvedFlavor
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener(THEME_RESOLUTION_CHANGE_EVENT, ((event: Event) => {
+      const detail = (event as CustomEvent<ThemeResolutionChangeDetail>).detail
+      if (detail) {
+        syncThemeResolution(detail)
+      }
+    }) as EventListener)
+  }
+
+  initializeTheme()
 
   const setLocalePreference = async (nextLocale: string): Promise<SupportedLocale> => {
     const normalized = normalizeLocale(nextLocale)
@@ -199,6 +226,7 @@ export const useShellPreferencesStore = defineStore('shellPreferences', () => {
     theme,
     effectiveTheme,
     flavor,
+    resolvedFlavor,
     accent,
     locale,
     localeLabel,

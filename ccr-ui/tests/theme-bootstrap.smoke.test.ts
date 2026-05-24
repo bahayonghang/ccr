@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { readFile } from 'node:fs/promises'
+import { runInThisContext } from 'node:vm'
 
 interface MatchMediaController {
   setMatches: (matches: boolean) => void
@@ -45,6 +47,7 @@ beforeEach(() => {
   document.documentElement.className = ''
   document.documentElement.removeAttribute('data-theme')
   document.documentElement.removeAttribute('data-flavor')
+  document.documentElement.removeAttribute('data-resolved-flavor')
   document.documentElement.removeAttribute('data-accent')
   vi.resetModules()
 })
@@ -82,6 +85,7 @@ describe('themeBootstrap smoke', () => {
     await flushAsyncImport()
 
     expect(document.documentElement.getAttribute('data-theme')).toBe('light')
+    expect(document.documentElement.getAttribute('data-resolved-flavor')).toBe('clay')
     expect(document.documentElement.classList.contains('dark')).toBe(false)
     themeBootstrap.__resetThemeBootstrapForTests()
   })
@@ -98,6 +102,7 @@ describe('themeBootstrap smoke', () => {
     await flushAsyncImport()
 
     expect(document.documentElement.getAttribute('data-flavor')).toBe('clay')
+    expect(document.documentElement.getAttribute('data-resolved-flavor')).toBe('clay')
     expect(document.documentElement.getAttribute('data-accent')).toBe('clay')
     themeBootstrap.__resetThemeBootstrapForTests()
   })
@@ -118,12 +123,14 @@ describe('themeBootstrap smoke', () => {
 
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
     expect(document.documentElement.getAttribute('data-flavor')).toBe('mocha')
+    expect(document.documentElement.getAttribute('data-resolved-flavor')).toBe('mocha')
     expect(document.documentElement.getAttribute('data-accent')).toBe('sage')
 
     themeBootstrap.persistFlavor('latte')
     themeBootstrap.applyFlavorToDocument('latte')
     expect(localStorage.getItem('ccr-flavor')).toBe('latte')
     expect(document.documentElement.getAttribute('data-flavor')).toBe('latte')
+    expect(document.documentElement.getAttribute('data-resolved-flavor')).toBe('frappe')
 
     themeBootstrap.persistAccent('amber')
     themeBootstrap.applyAccentToDocument('amber')
@@ -144,6 +151,65 @@ describe('themeBootstrap smoke', () => {
     }
 
     themeBootstrap.__resetThemeBootstrapForTests()
+  })
+
+  it('resolves Catppuccin flavors from the final light or dark theme instead of raw storage flavor', async () => {
+    localStorage.setItem('ccr-theme', 'system')
+    localStorage.setItem('ccr-flavor', 'latte')
+    const controller = installMatchMediaController(true)
+
+    const themeBootstrap = await import('@/utils/themeBootstrap')
+
+    themeBootstrap.applyInitialTheme()
+    await flushAsyncImport()
+
+    expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
+    expect(document.documentElement.getAttribute('data-flavor')).toBe('latte')
+    expect(document.documentElement.getAttribute('data-resolved-flavor')).toBe('frappe')
+    expect(themeBootstrap.resolveFlavorMode('dark', 'latte')).toBe('frappe')
+    expect(themeBootstrap.resolveFlavorMode('dark', 'frappe')).toBe('frappe')
+    expect(themeBootstrap.resolveFlavorMode('dark', 'macchiato')).toBe('macchiato')
+    expect(themeBootstrap.resolveFlavorMode('dark', 'mocha')).toBe('mocha')
+    expect(themeBootstrap.resolveFlavorMode('light', 'mocha')).toBe('latte')
+
+    controller.setMatches(false)
+    await flushAsyncImport()
+
+    expect(document.documentElement.getAttribute('data-theme')).toBe('light')
+    expect(document.documentElement.getAttribute('data-flavor')).toBe('latte')
+    expect(document.documentElement.getAttribute('data-resolved-flavor')).toBe('latte')
+
+    themeBootstrap.__resetThemeBootstrapForTests()
+  })
+
+  it('targets Catppuccin CSS through resolved flavor so system dark plus stored Latte cannot apply Latte surfaces', async () => {
+    const source = await readFile('src/styles/tokens.css', 'utf8')
+
+    expect(source).toMatch(/\[data-resolved-flavor="latte"\]/)
+    expect(source).toMatch(/\[data-resolved-flavor="frappe"\]/)
+    expect(source).not.toMatch(/\[data-flavor="latte"\]/)
+    expect(source).not.toMatch(/\[data-flavor="frappe"\]/)
+    expect(source).not.toMatch(/\[data-flavor="macchiato"\]/)
+    expect(source).not.toMatch(/\[data-flavor="mocha"\]/)
+  })
+
+  it('pre-initializes first paint with resolved theme and flavor attributes', async () => {
+    localStorage.setItem('ccr-theme', 'system')
+    localStorage.setItem('ccr-flavor', 'latte')
+    localStorage.setItem('ccr-accent', 'sage')
+    installMatchMediaController(true)
+
+    const source = await readFile('index.html', 'utf8')
+    const script = source.match(/<!-- 主题预初始化[\s\S]*?<script>\s*([\s\S]*?)\s*<\/script>/)?.[1]
+
+    expect(script).toBeTruthy()
+    runInThisContext(script ?? '')
+
+    expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
+    expect(document.documentElement.getAttribute('data-flavor')).toBe('latte')
+    expect(document.documentElement.getAttribute('data-resolved-flavor')).toBe('frappe')
+    expect(document.documentElement.getAttribute('data-accent')).toBe('sage')
+    expect(document.documentElement.classList.contains('dark')).toBe(true)
   })
 
   it('rejects unknown flavor and accent values from storage and falls back to clay', async () => {

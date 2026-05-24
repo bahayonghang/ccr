@@ -436,7 +436,7 @@ onBeforeUnmount(() => {
 .layout-shell--theme-stage {
   background:
     radial-gradient(circle at top left, rgb(var(--color-accent-primary-rgb) / 6%) 0%, transparent 24%),
-    radial-gradient(circle at bottom right, rgb(var(--color-premium-blue-rgb) / 52%) 0%, transparent 30%),
+    radial-gradient(circle at bottom right, rgb(var(--color-premium-blue-rgb) / 28%) 0%, transparent 30%),
     linear-gradient(180deg, rgb(var(--color-bg-base-rgb) / 100%), rgb(var(--color-bg-base-rgb) / 96%));
 }
 
@@ -449,8 +449,8 @@ onBeforeUnmount(() => {
   border-right: 1px solid var(--surface-shell-border);
   box-shadow:
     var(--surface-shell-shadow),
-    inset -1px 0 0 rgb(255 251 245 / 8%),
-    inset 0 1px 0 rgb(255 251 245 / 6%);
+    inset -1px 0 0 rgb(var(--color-border-default-rgb) / 10%),
+    var(--glass-inner-glow);
 }
 
 .topbar-glass {
@@ -458,7 +458,7 @@ onBeforeUnmount(() => {
   backdrop-filter: var(--surface-status-blur);
   box-shadow:
     inset 0 -1px 0 rgb(var(--color-border-default-rgb) / 18%),
-    inset 0 1px 0 rgb(255 251 245 / 10%),
+    var(--glass-inner-glow),
     var(--surface-status-shadow);
 }
 
@@ -499,7 +499,7 @@ onBeforeUnmount(() => {
 .content-main--theme-stage {
   background:
     radial-gradient(circle at top right, rgb(var(--color-accent-primary-rgb) / 8%) 0%, transparent 24%),
-    radial-gradient(circle at top left, rgb(var(--color-premium-blue-rgb) / 42%) 0%, transparent 24%),
+    radial-gradient(circle at top left, rgb(var(--color-premium-blue-rgb) / 22%) 0%, transparent 24%),
     linear-gradient(180deg, rgb(var(--color-bg-base-rgb) / 98%), rgb(var(--color-bg-base-rgb) / 94%));
 }
 
@@ -528,8 +528,8 @@ onBeforeUnmount(() => {
     linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 92%), rgb(var(--color-bg-surface-rgb) / 82%));
   border-color: rgb(var(--color-border-default-rgb) / 54%);
   box-shadow:
-    0 12px 24px rgb(73 54 40 / 8%),
-    inset 0 1px 0 rgb(255 251 245 / 12%);
+    var(--shadow-md),
+    var(--glass-inner-glow);
 }
 
 .nav-item.router-link-active:not(.nav-item--root),
@@ -538,7 +538,7 @@ onBeforeUnmount(() => {
 
   box-shadow:
     0 14px 28px rgb(var(--color-accent-primary-rgb) / 10%),
-    inset 0 1px 0 rgb(255 251 245 / 14%);
+    var(--glass-inner-glow);
   background:
     linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 94%), rgb(var(--color-bg-surface-rgb) / 86%));
   border-color: rgb(var(--color-accent-primary-rgb) / 14%);
@@ -561,29 +561,29 @@ onBeforeUnmount(() => {
   backdrop-filter: blur(14px) saturate(116%);
   border: 1px solid rgb(var(--color-border-default-rgb) / 18%);
   box-shadow:
-    0 18px 36px rgb(73 54 40 / 10%),
-    inset 0 1px 0 rgb(255 251 245 / 14%);
+    var(--surface-card-shadow),
+    var(--glass-inner-glow);
 }
 
 .settings-dock:hover {
   border-color: rgb(var(--color-accent-primary-rgb) / 16%);
   box-shadow:
     0 20px 40px rgb(var(--color-accent-primary-rgb) / 10%),
-    0 8px 18px rgb(73 54 40 / 12%),
-    inset 0 1px 0 rgb(255 251 245 / 14%);
+    var(--shadow-md),
+    var(--glass-inner-glow);
 }
 
 .settings-dock--active {
   border-color: rgb(var(--color-accent-primary-rgb) / 18%);
   box-shadow:
     0 22px 42px rgb(var(--color-accent-primary-rgb) / 12%),
-    inset 0 1px 0 rgb(255 251 245 / 16%);
+    var(--glass-inner-glow);
 }
 
 .settings-dock-accent-mesh {
   background:
     radial-gradient(ellipse at top right, rgb(var(--color-accent-primary-rgb) / 10%), transparent 54%),
-    radial-gradient(ellipse at bottom left, rgb(var(--color-premium-blue-rgb) / 54%), transparent 52%);
+    radial-gradient(ellipse at bottom left, rgb(var(--color-premium-blue-rgb) / 24%), transparent 52%);
 }
 
 .settings-dock-pill {
@@ -600,12 +600,12 @@ onBeforeUnmount(() => {
   backdrop-filter: blur(16px) saturate(120%);
   border: 1px solid rgb(var(--color-border-default-rgb) / 18%);
   box-shadow:
-    0 18px 34px rgb(73 54 40 / 10%),
-    inset 0 1px 0 rgb(255 251 245 / 78%);
+    var(--surface-card-shadow),
+    var(--glass-inner-glow);
 }
 
 [data-theme="light"] .settings-dock:hover {
-  box-shadow: 0 20px 36px rgb(73 54 40 / 12%);
+  box-shadow: var(--shadow-lg);
 }
 
 </style>

@@ -1,5 +1,4 @@
 /* eslint-disable no-console -- This is a logger utility, console output is expected */
-import { invoke } from '@tauri-apps/api/core'
 import { isTauriRuntime } from '@/utils/tauriRuntime'
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error'
@@ -132,6 +131,7 @@ class Logger {
     this.nativeBridgeInFlight = true
 
     try {
+      const { invoke } = await import('@tauri-apps/api/core')
       await invoke('append_frontend_logs', { entries })
       this.nativeBridgeStatus = 'ready'
     } catch (error) {

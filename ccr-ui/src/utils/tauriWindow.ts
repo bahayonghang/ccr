@@ -6,31 +6,11 @@ export const CODEX_TRAY_PANEL_WINDOW_LABEL = 'codex-tray-panel'
 
 let windowPromise: Promise<TauriWindow | null> | null = null
 
-const waitForTauriRuntime = async (timeoutMs = 3000): Promise<boolean> => {
-  if (isTauriRuntime()) {
-    return true
-  }
-
-  if (typeof window === 'undefined') {
-    return false
-  }
-
-  const start = Date.now()
-
-  while (Date.now() - start < timeoutMs) {
-    await new Promise((resolve) => window.setTimeout(resolve, 50))
-
-    if (isTauriRuntime()) {
-      return true
-    }
-  }
-
-  return false
-}
-
 export const getCurrentWindowSafe = async (): Promise<TauriWindow | null> => {
-  const tauriReady = await waitForTauriRuntime()
-  if (!tauriReady) {
+  // The Tauri bridge is injected synchronously in the desktop webview. In plain
+  // web dev, waiting for a bridge that will never appear delays first mount by
+  // seconds on every cold navigation.
+  if (!isTauriRuntime()) {
     return null
   }
 

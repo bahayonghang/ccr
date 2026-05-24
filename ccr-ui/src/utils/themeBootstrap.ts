@@ -22,6 +22,14 @@ const THEME_STORAGE_KEY = 'ccr-theme'
 const FLAVOR_STORAGE_KEY = 'ccr-flavor'
 const ACCENT_STORAGE_KEY = 'ccr-accent'
 const THEME_MEDIA_QUERY = '(prefers-color-scheme: dark)'
+export const THEME_RESOLUTION_CHANGE_EVENT = 'ccr-theme-resolution-change'
+
+export interface ThemeResolutionChangeDetail {
+  theme: ThemeMode
+  resolvedTheme: ResolvedThemeMode
+  flavor: FlavorMode
+  resolvedFlavor: FlavorMode
+}
 
 export const FLAVOR_MODES: readonly FlavorMode[] = [
   'clay',
@@ -45,6 +53,12 @@ export const ACCENT_MODES: readonly AccentMode[] = [
 
 export const DEFAULT_FLAVOR: FlavorMode = 'clay'
 export const DEFAULT_ACCENT: AccentMode = 'clay'
+export const CATPPUCCIN_FLAVORS: readonly FlavorMode[] = [
+  'latte',
+  'frappe',
+  'macchiato',
+  'mocha',
+] as const
 
 let systemThemeMediaQuery: MediaQueryList | null = null
 let systemThemeListenerRegistered = false
@@ -61,11 +75,46 @@ export const resolveThemeMode = (theme: ThemeMode): ResolvedThemeMode => {
   return theme === 'system' ? resolveSystemTheme() : theme
 }
 
+export const isCatppuccinFlavor = (flavor: FlavorMode): boolean => {
+  return CATPPUCCIN_FLAVORS.includes(flavor)
+}
+
+export const resolveFlavorMode = (
+  resolvedTheme: ResolvedThemeMode,
+  flavor: FlavorMode,
+): FlavorMode => {
+  if (!isCatppuccinFlavor(flavor)) {
+    return flavor
+  }
+
+  if (resolvedTheme === 'light') {
+    return 'latte'
+  }
+
+  return flavor === 'macchiato' || flavor === 'mocha' ? flavor : 'frappe'
+}
+
+const notifyThemeResolutionChange = (detail: ThemeResolutionChangeDetail): void => {
+  if (typeof window === 'undefined' || typeof window.dispatchEvent !== 'function') return
+
+  window.dispatchEvent(new CustomEvent<ThemeResolutionChangeDetail>(
+    THEME_RESOLUTION_CHANGE_EVENT,
+    { detail },
+  ))
+}
+
 const syncResolvedTheme = (theme: ResolvedThemeMode): void => {
   if (typeof document === 'undefined') return
 
   document.documentElement.classList.toggle('dark', theme === 'dark')
   document.documentElement.setAttribute('data-theme', theme)
+
+  // Avoid pulling the Tauri/window module graph into plain web dev startup.
+  // The native bridge exists synchronously when this code runs in the desktop
+  // shell, so a simple feature check is enough to preserve native syncing.
+  if (!('__TAURI__' in window) && !('__TAURI_INTERNALS__' in window)) {
+    return
+  }
 
   void import('@/utils/nativeWindowAppearance')
     .then(({ syncNativeWindowAppearance }) => syncNativeWindowAppearance(theme))
@@ -74,9 +123,30 @@ const syncResolvedTheme = (theme: ResolvedThemeMode): void => {
     })
 }
 
+const syncResolvedFlavor = (theme: ResolvedThemeMode, flavor: FlavorMode): FlavorMode => {
+  const resolvedFlavor = resolveFlavorMode(theme, flavor)
+
+  if (typeof document !== 'undefined') {
+    document.documentElement.setAttribute('data-flavor', flavor)
+    document.documentElement.setAttribute('data-resolved-flavor', resolvedFlavor)
+  }
+
+  return resolvedFlavor
+}
+
 const handleSystemThemeChange = (): void => {
   if (readStoredTheme() !== 'system') return
-  syncResolvedTheme(resolveSystemTheme())
+
+  const resolvedTheme = resolveSystemTheme()
+  const flavor = readStoredFlavor()
+  syncResolvedTheme(resolvedTheme)
+  const resolvedFlavor = syncResolvedFlavor(resolvedTheme, flavor)
+  notifyThemeResolutionChange({
+    theme: 'system',
+    resolvedTheme,
+    flavor,
+    resolvedFlavor,
+  })
 }
 
 const ensureSystemThemeListener = (): void => {
@@ -94,11 +164,21 @@ const ensureSystemThemeListener = (): void => {
   systemThemeListenerRegistered = true
 }
 
-export const applyThemeToDocument = (theme: ThemeMode): ResolvedThemeMode => {
+export const applyThemeToDocument = (
+  theme: ThemeMode,
+  flavor = readStoredFlavor(),
+): ResolvedThemeMode => {
   ensureSystemThemeListener()
 
   const resolvedTheme = resolveThemeMode(theme)
   syncResolvedTheme(resolvedTheme)
+  const resolvedFlavor = syncResolvedFlavor(resolvedTheme, flavor)
+  notifyThemeResolutionChange({
+    theme,
+    resolvedTheme,
+    flavor,
+    resolvedFlavor,
+  })
   return resolvedTheme
 }
 
@@ -179,10 +259,20 @@ export const persistAccent = (accent: AccentMode): void => {
   }
 }
 
-export const applyFlavorToDocument = (flavor: FlavorMode): FlavorMode => {
-  if (typeof document !== 'undefined') {
-    document.documentElement.setAttribute('data-flavor', flavor)
-  }
+export const applyFlavorToDocument = (
+  flavor: FlavorMode,
+  theme = readStoredTheme(),
+): FlavorMode => {
+  ensureSystemThemeListener()
+
+  const resolvedTheme = resolveThemeMode(theme)
+  const resolvedFlavor = syncResolvedFlavor(resolvedTheme, flavor)
+  notifyThemeResolutionChange({
+    theme,
+    resolvedTheme,
+    flavor,
+    resolvedFlavor,
+  })
   return flavor
 }
 
@@ -195,8 +285,8 @@ export const applyAccentToDocument = (accent: AccentMode): AccentMode => {
 
 export const applyInitialTheme = (): ThemeMode => {
   const theme = readStoredTheme()
-  applyThemeToDocument(theme)
-  applyFlavorToDocument(readStoredFlavor())
+  const flavor = readStoredFlavor()
+  applyThemeToDocument(theme, flavor)
   applyAccentToDocument(readStoredAccent())
   return theme
 }

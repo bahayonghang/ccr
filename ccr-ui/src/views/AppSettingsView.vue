@@ -162,7 +162,7 @@
                     </span>
                   </div>
                   <span class="app-settings-option__status">
-                    {{ flavor === option.value ? t('settings.active') : option.badge }}
+                    {{ flavorStatusLabel(option) }}
                   </span>
                 </button>
               </div>
@@ -486,7 +486,7 @@ import { useI18n } from 'vue-i18n'
 import { getEnvironmentName, getTauriVersion, isTauriEnvironment } from '@/api/runtime/environment'
 import { translateWithFallback } from '@/i18n/formatMessage'
 import { useShellPreferencesStore } from '@/stores/shellPreferences'
-import type { AccentMode, FlavorMode, ThemeMode } from '@/utils/themeBootstrap'
+import { isCatppuccinFlavor, type AccentMode, type FlavorMode, type ThemeMode } from '@/utils/themeBootstrap'
 
 type SectionKey = 'appearance' | 'language' | 'shell' | 'diagnostics'
 
@@ -501,6 +501,7 @@ const {
   locale,
   openPanelOnTrayClick,
   perfTelemetryEnabled,
+  resolvedFlavor,
   sidebarWidth,
   theme,
 } =
@@ -630,31 +631,55 @@ const flavorOptions = computed<FlavorOption[]>(() => [
     value: 'latte',
     label: t('settings.appearance.flavor.latte'),
     description: t('settings.appearance.flavor.latteDescription'),
-    badge: t('settings.appearance.dayBadge'),
+    badge: t('settings.appearance.autoBadge'),
     preview: 'linear-gradient(135deg, #eff1f5 0%, #e6e9ef 58%, #7287fd 100%)',
   },
   {
     value: 'frappe',
     label: t('settings.appearance.flavor.frappe'),
     description: t('settings.appearance.flavor.frappeDescription'),
-    badge: t('settings.appearance.nightBadge'),
+    badge: t('settings.appearance.autoBadge'),
     preview: 'linear-gradient(135deg, #303446 0%, #414559 58%, #babbf1 100%)',
   },
   {
     value: 'macchiato',
     label: t('settings.appearance.flavor.macchiato'),
     description: t('settings.appearance.flavor.macchiatoDescription'),
-    badge: t('settings.appearance.nightBadge'),
+    badge: t('settings.appearance.autoBadge'),
     preview: 'linear-gradient(135deg, #24273a 0%, #363a4f 58%, #b7bdf8 100%)',
   },
   {
     value: 'mocha',
     label: t('settings.appearance.flavor.mocha'),
     description: t('settings.appearance.flavor.mochaDescription'),
-    badge: t('settings.appearance.nightBadge'),
+    badge: t('settings.appearance.autoBadge'),
     preview: 'linear-gradient(135deg, #1e1e2e 0%, #313244 58%, #b4befe 100%)',
   },
 ])
+
+const flavorLabelMap = computed<Record<FlavorMode, string>>(() => ({
+  clay: t('settings.appearance.flavor.clay'),
+  paper: t('settings.appearance.flavor.paper'),
+  graphite: t('settings.appearance.flavor.graphite'),
+  latte: t('settings.appearance.flavor.latte'),
+  frappe: t('settings.appearance.flavor.frappe'),
+  macchiato: t('settings.appearance.flavor.macchiato'),
+  mocha: t('settings.appearance.flavor.mocha'),
+}))
+
+const resolvedFlavorLabel = computed(() => flavorLabelMap.value[resolvedFlavor.value])
+
+const flavorStatusLabel = (option: FlavorOption): string => {
+  if (flavor.value !== option.value) {
+    return option.badge
+  }
+
+  if (isCatppuccinFlavor(option.value) && resolvedFlavor.value !== option.value) {
+    return `${t('settings.active')} · ${resolvedFlavorLabel.value}`
+  }
+
+  return t('settings.active')
+}
 
 const accentOptions = computed<AccentOption[]>(() => [
   { value: 'clay', label: t('settings.appearance.accent.clay'), preview: '#d97757' },
@@ -763,8 +788,8 @@ onMounted(async () => {
     linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 94%), rgb(var(--color-bg-surface-rgb) / 88%));
   border-color: rgb(var(--color-border-default-rgb) / 48%);
   box-shadow:
-    0 24px 48px rgb(73 54 40 / 10%),
-    inset 0 1px 0 rgb(255 251 245 / 14%);
+    var(--surface-card-shadow),
+    var(--glass-inner-glow);
 }
 
 .app-settings-hero__intro {
@@ -909,7 +934,7 @@ onMounted(async () => {
 .app-settings-option:hover {
   transform: translateY(-1px);
   border-color: rgb(var(--color-accent-primary-rgb) / 18%);
-  box-shadow: 0 18px 32px rgb(73 54 40 / 10%);
+  box-shadow: var(--shadow-md);
 }
 
 .app-settings-option--active {
@@ -951,7 +976,7 @@ onMounted(async () => {
   @apply flex h-10 w-10 flex-none items-center justify-center rounded-2xl border;
 
   border-color: rgb(var(--color-border-default-rgb) / 46%);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 12%);
+  box-shadow: var(--inner-glow);
 }
 
 .app-settings-card--tight {
@@ -968,7 +993,7 @@ onMounted(async () => {
   background: var(--accent-swatch-color);
   border-color: rgb(var(--color-border-default-rgb) / 46%);
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 14%),
+    var(--inner-glow),
     0 1px 2px rgb(0 0 0 / 6%);
 }
 
@@ -980,7 +1005,7 @@ onMounted(async () => {
 .app-settings-accent-swatch:focus-visible {
   outline: none;
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 14%),
+    var(--inner-glow),
     0 0 0 3px rgb(var(--color-accent-primary-rgb) / 30%);
 }
 
@@ -988,7 +1013,7 @@ onMounted(async () => {
   transform: scale(1.12);
   border-color: var(--color-accent-primary);
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 14%),
+    var(--inner-glow),
     0 0 0 2px var(--color-bg-elevated),
     0 0 0 4px var(--color-accent-primary);
 }
