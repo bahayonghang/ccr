@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { spawn } from 'node:child_process'
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 
 const ANSI_ESCAPE_PATTERN = new RegExp(String.raw`\x1b\[[0-9;]*[a-zA-Z]`, 'g')
@@ -30,30 +30,26 @@ if (strictPort) {
   viteArgs.push('--strictPort')
 }
 
+const warmTargetsPath = path.join(process.cwd(), 'scripts', 'dev-warm-targets.json')
+const warmTargets = JSON.parse(readFileSync(warmTargetsPath, 'utf8'))
+const probeUrls = Array.isArray(warmTargets.probeUrls) ? warmTargets.probeUrls : ['/']
+const requestUrls = Array.isArray(warmTargets.requestUrls) ? warmTargets.requestUrls : []
 const warmUrls = [
-  '/',
-  '/src/main.ts',
-  '/src/App.vue',
-  '/src/components/MainLayout.vue',
-  '/src/views/DashboardView.vue',
-  '/src/views/dashboard/dashboardPresentation.ts',
-  '/src/router/index.ts',
-  '/src/api/index.ts',
-  '/src/api/tauri.ts',
-  '/src/stores/usage.ts',
-  '/src/stores/usageDashboardPayload.ts',
-  '/src/stores/usageImportNormalization.ts',
-  '/src/views/CodexAuthView.vue',
-  '/src/views/codex/codexAuthAccounts.ts',
-  '/src/views/UsageDashboardView.vue',
-  '/src/views/usage/useUsageDashboardState.ts',
-  '/src/views/usage/usageChartOptions.ts',
-  '/src/views/usage/usageDiagnostics.ts',
-  '/src/views/usage/usageOverviewInsights.ts',
-  '/src/views/usage/usageSummaryCards.ts',
-  '/src/components/usage/UsageOverviewTab.vue',
-  '/src/components/usage/UsageMetricCard.vue',
+  ...probeUrls,
+  ...requestUrls,
+  ...warmTargets.clientFiles.map((file) => file.replace(/^\./, '')),
 ]
+const requestedWarmConcurrency = Number(process.env.CCR_DEV_WARM_CONCURRENCY || 4)
+const warmConcurrency = Number.isFinite(requestedWarmConcurrency)
+  ? Math.max(1, Math.min(16, Math.round(requestedWarmConcurrency)))
+  : 4
+const browserNavigationHeaders = {
+  accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+  'sec-fetch-dest': 'document',
+  'sec-fetch-mode': 'navigate',
+  'sec-fetch-site': 'none',
+  'upgrade-insecure-requests': '1',
+}
 
 const server = spawn(command, viteArgs, {
   stdio: ['inherit', 'pipe', 'pipe'],
@@ -97,16 +93,45 @@ async function warmDevServer() {
   const base = `http://${host}:${port}`
   const startedAt = Date.now()
 
+  const warmUrl = async (url, init = undefined) => {
+    try {
+      const response = await fetch(`${base}${url}`, init)
+      await response.arrayBuffer()
+      if (!response.ok) {
+        process.stderr.write(`[dev:web] warm request ${url} returned ${response.status}\n`)
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      process.stderr.write(`[dev:web] warm request ${url} failed: ${message}\n`)
+    }
+  }
+
+  for (let index = 0; index < warmUrls.length; index += warmConcurrency) {
+    await Promise.all(
+      warmUrls.slice(index, index + warmConcurrency).map(async (url) => {
+        await warmUrl(url, probeUrls.includes(url) ? { headers: browserNavigationHeaders } : undefined)
+      }),
+    )
+  }
+
+  // A final route probe keeps the "warmed" signal honest: Vite may still be
+  // draining transform work after individual module responses complete,
+  // especially when Tailwind CSS and Vue SFC style blocks are cold on Windows.
   await Promise.all(
-    warmUrls.map(async (url) => {
+    probeUrls.map(async (url) => {
       try {
-        const response = await fetch(`${base}${url}`)
+        const probeStartedAt = Date.now()
+        const response = await fetch(`${base}${url}`, { headers: browserNavigationHeaders })
+        await response.arrayBuffer()
         if (!response.ok) {
-          process.stderr.write(`[dev:web] warm request ${url} returned ${response.status}\n`)
+          process.stderr.write(`[dev:web] probe request ${url} returned ${response.status}\n`)
+        } else {
+          const elapsed = Date.now() - probeStartedAt
+          process.stderr.write(`[dev:web] probe ${url} ${elapsed}ms\n`)
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
-        process.stderr.write(`[dev:web] warm request ${url} failed: ${message}\n`)
+        process.stderr.write(`[dev:web] probe request ${url} failed: ${message}\n`)
       }
     }),
   )

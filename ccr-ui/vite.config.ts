@@ -5,6 +5,7 @@ import { fileURLToPath, URL } from 'node:url';
 import path from 'node:path';
 import { storybookTest } from '@storybook/addon-vitest/vitest-plugin';
 import { playwright } from '@vitest/browser-playwright';
+import devWarmTargets from './scripts/dev-warm-targets.json';
 
 const dirname = typeof __dirname !== 'undefined' ? __dirname : path.dirname(fileURLToPath(import.meta.url));
 
@@ -49,29 +50,7 @@ export default defineConfig(({ command }) => {
       port: 15173,
       strictPort: true,
       warmup: {
-        clientFiles: [
-          './src/main.ts',
-          './src/App.vue',
-          './src/components/MainLayout.vue',
-          './src/views/DashboardView.vue',
-          './src/views/dashboard/dashboardPresentation.ts',
-          './src/api/index.ts',
-          './src/api/tauri.ts',
-          './src/router/index.ts',
-          './src/stores/usage.ts',
-          './src/stores/usageDashboardPayload.ts',
-          './src/stores/usageImportNormalization.ts',
-          './src/views/UsageDashboardView.vue',
-          './src/views/usage/useUsageDashboardState.ts',
-          './src/views/usage/usageChartOptions.ts',
-          './src/views/usage/usageDiagnostics.ts',
-          './src/views/usage/usageOverviewInsights.ts',
-          './src/views/usage/usageSummaryCards.ts',
-          './src/views/CodexAuthView.vue',
-          './src/views/codex/codexAuthAccounts.ts',
-          './src/components/usage/UsageOverviewTab.vue',
-          './src/components/usage/UsageMetricCard.vue',
-        ],
+        clientFiles: devWarmTargets.clientFiles,
       },
       hmr: {
         overlay: true
