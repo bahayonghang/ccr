@@ -261,288 +261,300 @@
           </Card>
         </aside>
 
-        <Card
-          surface="card"
-          :elevation="3"
-          motion="standard"
-          class="commands-panel commands-composer"
-          body-class="!h-auto"
-        >
-          <div class="commands-panel__header commands-panel__header--wide">
-            <div>
-              <p class="commands-panel__eyebrow">
-                {{ t('commands.composerEyebrow') }}
-              </p>
-              <h2 class="commands-panel__title commands-panel__title--large">
-                {{ selectedCommandInfo?.name || t('commands.selectCommand') }}
-              </h2>
-              <p class="commands-panel__subtitle">
-                {{ selectedCommandInfo?.description || t('commands.selectCommandHint') }}
-              </p>
-            </div>
-            <div class="commands-composer__actions">
-              <Button
-                variant="ghost"
-                density="compact"
-                surface="card"
-                motion="subtle"
-                :disabled="!canFavoriteSelected"
-                @click="handleToggleFavorite"
-              >
-                <template #leading>
-                  <SIcon
-                    :name="isSelectedFavorite ? 'StarOff' : 'Star'"
-                    size="w-4 h-4"
-                  />
-                </template>
-                {{ isSelectedFavorite ? t('commands.removeFavorite') : t('commands.addFavorite') }}
-              </Button>
-              <Button
-                v-if="isRunning"
-                variant="danger"
-                density="compact"
-                surface="card"
-                motion="standard"
-                :disabled="!currentSnapshot"
-                @click="handleCancel"
-              >
-                <template #leading>
-                  <SIcon
-                    name="Square"
-                    size="w-4 h-4"
-                  />
-                </template>
-                {{ t('commands.cancelJob') }}
-              </Button>
-              <Button
-                variant="primary"
-                density="compact"
-                surface="card"
-                motion="standard"
-                :disabled="!canExecuteSelected"
-                :loading="isRunning"
-                @click="handleExecute"
-              >
-                <template #leading>
-                  <SIcon
-                    name="Play"
-                    size="w-4 h-4"
-                  />
-                </template>
-                {{ isRunning ? t('commands.executing') : t('commands.run') }}
-              </Button>
-            </div>
-          </div>
-
-          <div
-            v-if="runtimeUnavailable"
-            class="commands-notice commands-notice--neutral commands-runtime-panel"
-            role="status"
-            aria-live="polite"
+        <section class="commands-workbench__main">
+          <Card
+            surface="card"
+            :elevation="3"
+            motion="standard"
+            class="commands-panel commands-composer"
+            body-class="!h-auto"
           >
-            <SIcon
-              name="MonitorOff"
-              size="w-5 h-5"
-            />
-            <div>
-              <strong>{{ runtimeCopy.title }}</strong>
-              <p>{{ t('commands.webUnavailableDetail') }}</p>
-            </div>
-          </div>
-
-          <div
-            v-else-if="selectedClient !== 'ccr'"
-            class="commands-notice commands-notice--warning"
-          >
-            <SIcon
-              name="Lock"
-              size="w-5 h-5"
-            />
-            <div>
-              <strong>{{ t('commands.clientUnavailableTitle') }}</strong>
-              <p>
-                {{ t('commands.clientUnavailableDescription', { client: selectedClientLabel }) }}
-              </p>
-            </div>
-          </div>
-
-          <div
-            v-else-if="selectedCommandInfo && !selectedCommandInfo.executable"
-            class="commands-notice commands-notice--warning"
-          >
-            <SIcon
-              name="Shield"
-              size="w-5 h-5"
-            />
-            <div>
-              <strong>{{ t('commands.commandBlockedTitle') }}</strong>
-              <p>{{ t('commands.commandBlockedDescription') }}</p>
-            </div>
-          </div>
-
-          <div class="command-preview">
-            <div class="command-preview__label">
-              {{ t('commands.previewLabel') }}
-            </div>
-            <div class="command-preview__body">
-              <span class="command-preview__prompt">➜</span>
-              <span class="command-preview__binary">{{ commandPreview }}</span>
-              <span
-                v-if="args.trim()"
-                class="command-preview__args"
-              >{{ args }}</span>
-            </div>
-          </div>
-
-          <div class="commands-form-grid">
-            <label class="commands-field">
-              <span>{{ t('commands.args') }}</span>
-              <select
-                v-if="selectedCommand === 'switch'"
-                v-model="args"
-                :disabled="!canEditArgs"
-              >
-                <option value="">
-                  {{ t('commands.selectConfig') }}
-                </option>
-                <option
-                  v-for="config in configs"
-                  :key="config.name"
-                  :value="config.name"
+            <div class="commands-panel__header commands-panel__header--wide">
+              <div>
+                <p class="commands-panel__eyebrow">
+                  {{ t('commands.composerEyebrow') }}
+                </p>
+                <h2 class="commands-panel__title commands-panel__title--large">
+                  {{ selectedCommandInfo?.name || t('commands.selectCommand') }}
+                </h2>
+                <p class="commands-panel__subtitle">
+                  {{ selectedCommandInfo?.description || t('commands.selectCommandHint') }}
+                </p>
+              </div>
+              <div class="commands-composer__actions">
+                <Button
+                  variant="ghost"
+                  density="compact"
+                  surface="card"
+                  motion="subtle"
+                  :disabled="!canFavoriteSelected"
+                  @click="handleToggleFavorite"
                 >
-                  {{ config.name }}
-                </option>
-              </select>
-              <input
-                v-else
-                v-model="args"
-                type="text"
-                :disabled="!canEditArgs"
-                :placeholder="
-                  selectedCommandInfo?.requiresArgs
-                    ? t('commands.requiredArgsPlaceholder')
-                    : t('commands.argsPlaceholder')
-                "
-                @keydown.enter="canExecuteSelected && handleExecute()"
-              >
-            </label>
-
-            <label
-              v-if="selectedCommandInfo?.dangerous"
-              class="commands-danger-confirm"
-            >
-              <input
-                v-model="dangerAccepted"
-                type="checkbox"
-                :disabled="runtimeUnavailable || isRunning"
-              >
-              <span>
-                <strong>{{ t('commands.dangerConfirmTitle') }}</strong>
-                {{ t('commands.dangerConfirmDescription') }}
-              </span>
-            </label>
-          </div>
-        </Card>
-
-        <Card
-          surface="workspace"
-          :elevation="2"
-          motion="subtle"
-          class="commands-panel commands-ledger"
-          body-class="!h-auto"
-        >
-          <div class="commands-panel__header commands-panel__header--wide">
-            <div>
-              <p class="commands-panel__eyebrow">
-                {{ t('commands.ledgerEyebrow') }}
-              </p>
-              <h2 class="commands-panel__title">
-                {{ t('commands.output') }}
-              </h2>
-              <p class="commands-panel__subtitle">
-                {{ ledgerSubtitle }}
-              </p>
+                  <template #leading>
+                    <SIcon
+                      :name="isSelectedFavorite ? 'StarOff' : 'Star'"
+                      size="w-4 h-4"
+                    />
+                  </template>
+                  {{ isSelectedFavorite ? t('commands.removeFavorite') : t('commands.addFavorite') }}
+                </Button>
+                <Button
+                  v-if="isRunning"
+                  variant="danger"
+                  density="compact"
+                  surface="card"
+                  motion="standard"
+                  :disabled="!currentSnapshot"
+                  @click="handleCancel"
+                >
+                  <template #leading>
+                    <SIcon
+                      name="Square"
+                      size="w-4 h-4"
+                    />
+                  </template>
+                  {{ t('commands.cancelJob') }}
+                </Button>
+                <Button
+                  variant="primary"
+                  density="compact"
+                  surface="card"
+                  motion="standard"
+                  :disabled="!canExecuteSelected"
+                  :loading="isRunning"
+                  @click="handleExecute"
+                >
+                  <template #leading>
+                    <SIcon
+                      name="Play"
+                      size="w-4 h-4"
+                    />
+                  </template>
+                  {{ isRunning ? t('commands.executing') : t('commands.run') }}
+                </Button>
+              </div>
             </div>
-            <div class="commands-panel__actions">
-              <Button
-                variant="ghost"
-                density="compact"
-                surface="status"
-                motion="subtle"
-                :disabled="!hasLedgerOutput"
-                @click="handleCopyOutput"
-              >
-                {{ t('commands.copy') }}
-              </Button>
-              <Button
-                variant="ghost"
-                density="compact"
-                surface="status"
-                motion="subtle"
-                :disabled="!currentSnapshot"
-                @click="handleClearOutput"
-              >
-                {{ t('commands.clear') }}
-              </Button>
-            </div>
-          </div>
 
-          <div
-            v-if="currentSnapshot"
-            class="commands-ledger__meta"
-          >
-            <span>{{ t('commands.jobStatus') }}
-              <strong :class="statusClass(currentSnapshot.status)">{{
-                statusLabel(currentSnapshot.status)
-              }}</strong></span>
-            <span>{{ t('commands.duration') }}
-              <strong>{{ formatDuration(currentSnapshot.duration_ms) }}</strong></span>
-            <span>{{ t('commands.exitCode') }}
-              <strong>{{ currentSnapshot.exit_code ?? '—' }}</strong></span>
-            <span>{{ t('commands.linesCount', { count: outputLineCount }) }}</span>
-          </div>
-
-          <div
-            v-if="isRunning"
-            class="commands-output commands-output--running"
-          >
-            <SIcon
-              name="Loader2"
-              size="w-5 h-5"
-              class="animate-spin text-accent-secondary"
-            />
-            <span>{{ t('commands.processing') }}</span>
-          </div>
-
-          <div
-            v-if="hasLedgerOutput"
-            class="commands-output"
-          >
             <div
-              v-for="line in ledgerLines"
-              :key="`${line.channel}-${line.index}-${line.text}`"
-              class="commands-output__line"
-              :class="`commands-output__line--${line.channel}`"
+              v-if="runtimeUnavailable"
+              class="commands-notice commands-notice--neutral commands-runtime-panel"
+              role="status"
+              aria-live="polite"
             >
-              <span>{{ line.channel }}</span>
-              <code>{{ line.text }}</code>
+              <SIcon
+                name="MonitorOff"
+                size="w-5 h-5"
+              />
+              <div>
+                <strong>{{ runtimeCopy.title }}</strong>
+                <p>{{ t('commands.webUnavailableDetail') }}</p>
+              </div>
             </div>
-          </div>
 
-          <div
-            v-else-if="!isRunning"
-            class="commands-ledger-empty"
-            role="status"
-            aria-live="polite"
+            <div
+              v-else-if="selectedClient !== 'ccr'"
+              class="commands-notice commands-notice--warning"
+            >
+              <SIcon
+                name="Lock"
+                size="w-5 h-5"
+              />
+              <div>
+                <strong>{{ t('commands.clientUnavailableTitle') }}</strong>
+                <p>
+                  {{ t('commands.clientUnavailableDescription', { client: selectedClientLabel }) }}
+                </p>
+              </div>
+            </div>
+
+            <div
+              v-else-if="selectedCommandInfo && !selectedCommandInfo.executable"
+              class="commands-notice commands-notice--warning"
+            >
+              <SIcon
+                name="Shield"
+                size="w-5 h-5"
+              />
+              <div>
+                <strong>{{ t('commands.commandBlockedTitle') }}</strong>
+                <p>{{ t('commands.commandBlockedDescription') }}</p>
+              </div>
+            </div>
+
+            <div class="command-strip">
+              <div class="command-strip__label">
+                {{ t('commands.previewLabel') }}
+              </div>
+              <div class="command-strip__body">
+                <span class="command-strip__prompt">➜</span>
+                <span class="command-strip__binary">{{ commandPreview }}</span>
+                <span
+                  v-if="args.trim()"
+                  class="command-strip__args"
+                >{{ args }}</span>
+              </div>
+            </div>
+
+            <div class="commands-form-grid">
+              <label class="commands-field">
+                <span>{{ t('commands.args') }}</span>
+                <select
+                  v-if="selectedCommand === 'switch'"
+                  v-model="args"
+                  :disabled="!canEditArgs"
+                >
+                  <option value="">
+                    {{ t('commands.selectConfig') }}
+                  </option>
+                  <option
+                    v-for="config in configs"
+                    :key="config.name"
+                    :value="config.name"
+                  >
+                    {{ config.name }}
+                  </option>
+                </select>
+                <input
+                  v-else
+                  v-model="args"
+                  type="text"
+                  :disabled="!canEditArgs"
+                  :placeholder="
+                    selectedCommandInfo?.requiresArgs
+                      ? t('commands.requiredArgsPlaceholder')
+                      : t('commands.argsPlaceholder')
+                  "
+                  @keydown.enter="canExecuteSelected && handleExecute()"
+                >
+              </label>
+
+              <label
+                v-if="selectedCommandInfo?.dangerous"
+                class="commands-danger-confirm"
+              >
+                <input
+                  v-model="dangerAccepted"
+                  type="checkbox"
+                  :disabled="runtimeUnavailable || isRunning"
+                >
+                <span>
+                  <strong>{{ t('commands.dangerConfirmTitle') }}</strong>
+                  {{ t('commands.dangerConfirmDescription') }}
+                </span>
+              </label>
+            </div>
+          </Card>
+
+          <Card
+            surface="workspace"
+            :elevation="2"
+            motion="subtle"
+            class="commands-panel commands-ledger"
+            body-class="!h-auto"
           >
-            <SIcon
-              name="FileX"
-              size="w-6 h-6"
-            />
-            <strong>{{ t('commands.readyTitle') }}</strong>
-            <p>{{ t('commands.readyDescription') }}</p>
-          </div>
-        </Card>
+            <div class="commands-panel__header commands-panel__header--wide">
+              <div>
+                <p class="commands-panel__eyebrow">
+                  {{ t('commands.ledgerEyebrow') }}
+                </p>
+                <h2 class="commands-panel__title">
+                  {{ t('commands.output') }}
+                </h2>
+                <p class="commands-panel__subtitle">
+                  {{ ledgerSubtitle }}
+                </p>
+              </div>
+              <div class="commands-panel__actions">
+                <Button
+                  variant="ghost"
+                  density="compact"
+                  surface="status"
+                  motion="subtle"
+                  :disabled="!hasLedgerOutput"
+                  @click="handleCopyOutput"
+                >
+                  {{ t('commands.copy') }}
+                </Button>
+                <Button
+                  variant="ghost"
+                  density="compact"
+                  surface="status"
+                  motion="subtle"
+                  :disabled="!currentSnapshot"
+                  @click="handleClearOutput"
+                >
+                  {{ t('commands.clear') }}
+                </Button>
+              </div>
+            </div>
+
+            <div
+              v-if="currentSnapshot"
+              class="commands-ledger__metrics"
+            >
+              <div class="commands-ledger__metric">
+                <span>{{ t('commands.jobStatus') }}</span>
+                <strong :class="statusClass(currentSnapshot.status)">{{
+                  statusLabel(currentSnapshot.status)
+                }}</strong>
+              </div>
+              <div class="commands-ledger__metric">
+                <span>{{ t('commands.duration') }}</span>
+                <strong>{{ formatDuration(currentSnapshot.duration_ms) }}</strong>
+              </div>
+              <div class="commands-ledger__metric">
+                <span>{{ t('commands.exitCode') }}</span>
+                <strong>{{ currentSnapshot.exit_code ?? '—' }}</strong>
+              </div>
+              <div class="commands-ledger__metric">
+                <span>{{ t('commands.terminalOutput') }}</span>
+                <strong>{{ t('commands.linesCount', { count: outputLineCount }) }}</strong>
+              </div>
+            </div>
+
+            <div
+              v-if="isRunning"
+              class="commands-ledger__status-strip"
+              role="status"
+              aria-live="polite"
+            >
+              <span class="commands-ledger__pulse" />
+              <span>{{ t('commands.processing') }}</span>
+            </div>
+
+            <div
+              v-if="hasLedgerOutput"
+              class="commands-terminal"
+            >
+              <div
+                v-for="line in ledgerLines"
+                :key="`${line.channel}-${line.index}-${line.text}`"
+                class="commands-terminal__line"
+                :class="`commands-terminal__line--${line.channel}`"
+              >
+                <span class="commands-terminal__channel">{{ line.channel }}</span>
+                <code
+                  class="commands-terminal__text"
+                  v-html="line.safeHtml"
+                />
+              </div>
+            </div>
+
+            <div
+              v-else-if="!isRunning"
+              class="commands-ledger-empty"
+              role="status"
+              aria-live="polite"
+            >
+              <SIcon
+                name="FileX"
+                size="w-6 h-6"
+              />
+              <strong>{{ t('commands.readyTitle') }}</strong>
+              <p>{{ t('commands.readyDescription') }}</p>
+            </div>
+          </Card>
+        </section>
       </div>
     </div>
   </div>
@@ -567,6 +579,7 @@ import {
 } from '@/api/domains/uiState'
 import type { CommandInfo, CommandJobSnapshot, CommandJobStatus, ConfigItem } from '@/types'
 import { normalizeCliClient, type CliClient } from '@/types/router'
+import { createAnsiRenderer } from '@/utils/ansiRenderer'
 import { logger } from '@/utils/logger'
 import { getRuntimeUnavailableCopy } from '@/utils/runtimeState'
 import { isTauriRuntime } from '@/utils/tauriRuntime'
@@ -637,6 +650,7 @@ const historyItems = ref<CommandHistoryItem[]>([])
 const preserveArgsOnNextCommandChange = ref(false)
 const unlisteners: UnlistenFn[] = []
 const recordedJobIds = new Set<string>()
+const ansiRenderer = createAnsiRenderer()
 
 const fallbackCommandRegistry: Record<CliClient, CommandInfo[]> = {
   ccr: [
@@ -833,7 +847,12 @@ const ledgerLines = computed(() => {
   const snapshot = currentSnapshot.value
   if (!snapshot) return []
   const build = (channel: LedgerChannel, lines: string[]) =>
-    lines.map((text, index) => ({ channel, text, index }))
+    lines.map((text, index) => ({
+      channel,
+      text,
+      index,
+      safeHtml: ansiRenderer.renderLine(text),
+    }))
   return [
     ...build('system', snapshot.system_lines),
     ...build('stdout', snapshot.stdout_lines),
@@ -1145,6 +1164,7 @@ const handleCopyOutput = async () => {
 }
 
 const handleClearOutput = () => {
+  ansiRenderer.clear()
   currentSnapshot.value = null
 }
 
@@ -1206,19 +1226,19 @@ const formatDuration = (duration?: number | null) => (duration == null ? '—' :
 }
 
 .commands-run-strip {
-  @apply flex flex-col gap-4 p-4 lg:flex-row lg:items-center lg:justify-between;
+  @apply flex flex-col gap-3 p-3 md:flex-row md:items-center md:justify-between;
 }
 
 .commands-run-strip__identity {
-  @apply flex min-w-0 flex-1 items-start gap-4;
+  @apply flex min-w-0 flex-1 items-center gap-3;
 }
 
 .commands-run-strip__identity h1 {
-  @apply text-xl font-semibold tracking-[-0.02em] text-text-primary;
+  @apply text-lg font-semibold tracking-[-0.02em] text-text-primary;
 }
 
 .commands-run-strip__identity p:not(.commands-panel__eyebrow) {
-  @apply mt-1 max-w-3xl text-sm leading-relaxed text-text-secondary;
+  @apply mt-0.5 max-w-2xl text-xs leading-relaxed text-text-secondary;
 }
 
 .commands-run-strip__signals,
@@ -1227,8 +1247,12 @@ const formatDuration = (duration?: number | null) => (duration == null ? '—' :
   @apply flex flex-wrap items-center gap-2;
 }
 
+.commands-composer__actions {
+  @apply ml-auto justify-end;
+}
+
 .commands-chip {
-  @apply inline-flex items-center gap-1.5 rounded-full border border-border-default/55 px-3 py-1 text-xs font-medium text-text-secondary;
+  @apply inline-flex items-center gap-1.5 rounded-full border border-border-default/55 px-2.5 py-1 text-[11px] font-medium text-text-secondary;
 
   background-color: rgb(var(--color-bg-elevated-rgb) / 72%);
 }
@@ -1247,23 +1271,34 @@ const formatDuration = (duration?: number | null) => (duration == null ? '—' :
 
 .commands-workbench {
   display: grid;
-  grid-template-columns: minmax(240px, 0.72fr) minmax(280px, 1fr) minmax(300px, 1.05fr);
+  grid-template-columns: minmax(260px, 360px) minmax(0, 1fr);
   gap: 1rem;
-  align-items: stretch;
+  align-items: start;
+}
+
+.commands-workbench__main {
+  @apply grid min-w-0 gap-4;
 }
 
 .commands-panel {
-  @apply p-4;
+  @apply p-3.5;
 }
 
 .commands-panel--palette,
-.commands-ledger,
+.commands-ledger {
+  min-height: clamp(420px, calc(100vh - 460px), 560px);
+}
+
+.commands-panel--palette {
+  min-height: clamp(580px, calc(100vh - 190px), 820px);
+}
+
 .commands-composer {
-  min-height: clamp(420px, calc(100vh - 370px), 540px);
+  min-height: auto;
 }
 
 .commands-panel__header {
-  @apply mb-4 flex items-start justify-between gap-4;
+  @apply mb-3 flex items-start justify-between gap-3;
 }
 
 .commands-panel__header--wide {
@@ -1275,11 +1310,11 @@ const formatDuration = (duration?: number | null) => (duration == null ? '—' :
 }
 
 .commands-panel__title--large {
-  @apply text-2xl;
+  @apply text-xl;
 }
 
 .commands-panel__subtitle {
-  @apply mt-1 max-w-2xl text-sm leading-relaxed text-text-secondary;
+  @apply mt-1 max-w-2xl text-xs leading-relaxed text-text-secondary;
 }
 
 .commands-client-switcher,
@@ -1382,13 +1417,13 @@ const formatDuration = (duration?: number | null) => (duration == null ? '—' :
 
 .commands-runtime-panel,
 .commands-notice,
-.command-preview,
+.command-strip,
 .commands-form-grid {
   @apply mt-4;
 }
 
 .commands-notice {
-  @apply flex items-start gap-3 rounded-2xl border border-accent-warning/25 bg-accent-warning/10 p-4 text-sm text-accent-warning;
+  @apply flex items-start gap-3 rounded-2xl border border-accent-warning/25 bg-accent-warning/10 p-3 text-sm text-accent-warning;
 }
 
 .commands-notice p {
@@ -1399,35 +1434,38 @@ const formatDuration = (duration?: number | null) => (duration == null ? '—' :
   @apply border-border-default/55 bg-bg-surface/70 text-text-secondary;
 }
 
-.command-preview {
-  @apply rounded-2xl border border-border-default/55 p-4;
+.command-strip {
+  @apply grid items-center gap-2 rounded-2xl border border-border-default/55 p-3;
 
   background-color: rgb(var(--color-bg-base-rgb) / 86%);
+  grid-template-columns: auto minmax(0, 1fr);
 }
 
-.command-preview__label {
-  @apply mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted;
+.command-strip__label {
+  @apply text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted;
 }
 
-.command-preview__body {
-  @apply flex flex-wrap items-center gap-2 font-mono text-sm;
+.command-strip__body {
+  @apply flex min-w-0 items-center gap-2 overflow-x-auto whitespace-nowrap rounded-xl border border-border-default/35 px-3 py-2 font-mono text-sm;
+
+  background-color: rgb(var(--color-bg-elevated-rgb) / 48%);
 }
 
-.command-preview__prompt {
+.command-strip__prompt {
   @apply font-semibold text-accent-success;
 }
 
-.command-preview__binary,
-.command-preview__command {
+.command-strip__binary,
+.command-strip__command {
   @apply font-semibold text-text-primary;
 }
 
-.command-preview__args {
+.command-strip__args {
   @apply text-text-secondary;
 }
 
 .commands-form-grid {
-  @apply grid gap-4;
+  @apply grid gap-3;
 }
 
 .commands-field {
@@ -1436,7 +1474,7 @@ const formatDuration = (duration?: number | null) => (duration == null ? '—' :
 
 .commands-field input,
 .commands-field select {
-  @apply min-h-[46px] rounded-2xl border border-border-default/60 px-3 py-2 text-sm text-text-primary outline-none transition-colors duration-200 placeholder:text-text-muted;
+  @apply min-h-[40px] rounded-2xl border border-border-default/60 px-3 py-2 text-sm text-text-primary outline-none transition-colors duration-200 placeholder:text-text-muted;
 
   background-color: rgb(var(--color-bg-elevated-rgb) / 62%);
 }
@@ -1463,13 +1501,24 @@ const formatDuration = (duration?: number | null) => (duration == null ? '—' :
   @apply mr-1 text-accent-danger;
 }
 
-.commands-ledger__meta {
-  @apply mb-4 flex flex-wrap gap-3 rounded-2xl border border-border-default/45 px-3 py-2 text-xs text-text-secondary;
+.commands-ledger__metrics {
+  @apply mb-3 grid gap-2 rounded-2xl border border-border-default/45 p-2;
 
   background-color: rgb(var(--color-bg-elevated-rgb) / 46%);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
-.commands-ledger__meta strong {
+.commands-ledger__metric {
+  @apply rounded-xl border border-border-default/25 px-3 py-2;
+
+  background-color: rgb(var(--color-bg-base-rgb) / 44%);
+}
+
+.commands-ledger__metric span {
+  @apply block text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted;
+}
+
+.commands-ledger__metric strong {
   @apply font-semibold text-text-primary;
 }
 
@@ -1488,34 +1537,124 @@ const formatDuration = (duration?: number | null) => (duration == null ? '—' :
   @apply text-accent-info;
 }
 
-.commands-output {
-  @apply flex max-h-[420px] min-h-[260px] flex-col gap-1 overflow-y-auto rounded-2xl border border-border-default/50 p-4 font-mono text-xs;
+.commands-ledger__status-strip {
+  @apply mb-3 flex items-center gap-2 rounded-2xl border border-accent-info/20 px-3 py-2 text-sm text-text-secondary;
 
-  background-color: rgb(var(--color-bg-base-rgb) / 74%);
+  background-color: rgb(var(--color-info-rgb) / 8%);
 }
 
-.commands-output--running {
-  @apply mb-3 min-h-0 flex-row items-center gap-2 py-3 font-sans text-sm text-text-secondary;
+.commands-ledger__pulse {
+  @apply h-2 w-2 rounded-full bg-accent-info;
+
+  animation: ledger-pulse 1.8s ease-in-out infinite;
 }
 
-.commands-output__line {
-  @apply grid grid-cols-[64px_minmax(0,1fr)] gap-3 rounded-xl px-2 py-1.5;
+.commands-terminal {
+  @apply max-h-[460px] min-h-[270px] overflow-auto rounded-2xl border border-border-default/50 p-3 font-mono text-xs;
+
+  background-color: rgb(var(--color-bg-base-rgb) / 82%);
+  scrollbar-gutter: stable both-edges;
 }
 
-.commands-output__line span {
+.commands-terminal__line {
+  display: grid;
+  grid-template-columns: 4.5rem max-content;
+  gap: 0.75rem;
+  min-width: max-content;
+  border-radius: 0.7rem;
+  padding: 0.32rem 0.5rem;
+}
+
+.commands-terminal__channel {
   @apply text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted;
 }
 
-.commands-output__line code {
-  @apply whitespace-pre-wrap break-words text-text-primary;
+.commands-terminal__text {
+  @apply whitespace-pre text-text-primary;
 }
 
-.commands-output__line--stderr code {
+.commands-terminal__line--stderr .commands-terminal__text {
   @apply text-accent-danger;
 }
 
-.commands-output__line--system code {
+.commands-terminal__line--system .commands-terminal__text {
   @apply text-text-secondary;
+}
+
+.commands-terminal__text :deep(.ansi-black-fg) {
+  color: rgb(var(--color-text-muted-rgb));
+}
+
+.commands-terminal__text :deep(.ansi-red-fg),
+.commands-terminal__text :deep(.ansi-bright-red-fg) {
+  color: rgb(var(--color-danger-rgb));
+}
+
+.commands-terminal__text :deep(.ansi-green-fg),
+.commands-terminal__text :deep(.ansi-bright-green-fg) {
+  color: rgb(var(--color-success-rgb));
+}
+
+.commands-terminal__text :deep(.ansi-yellow-fg),
+.commands-terminal__text :deep(.ansi-bright-yellow-fg) {
+  color: rgb(var(--color-warning-rgb));
+}
+
+.commands-terminal__text :deep(.ansi-blue-fg),
+.commands-terminal__text :deep(.ansi-bright-blue-fg),
+.commands-terminal__text :deep(.ansi-cyan-fg),
+.commands-terminal__text :deep(.ansi-bright-cyan-fg) {
+  color: rgb(var(--color-info-rgb));
+}
+
+.commands-terminal__text :deep(.ansi-magenta-fg),
+.commands-terminal__text :deep(.ansi-bright-magenta-fg) {
+  color: rgb(var(--color-accent-secondary-rgb));
+}
+
+.commands-terminal__text :deep(.ansi-white-fg),
+.commands-terminal__text :deep(.ansi-bright-white-fg) {
+  color: rgb(var(--color-text-primary-rgb));
+}
+
+.commands-terminal__text :deep(.ansi-red-bg) {
+  background-color: rgb(var(--color-danger-rgb) / 18%);
+}
+
+.commands-terminal__text :deep(.ansi-green-bg) {
+  background-color: rgb(var(--color-success-rgb) / 18%);
+}
+
+.commands-terminal__text :deep(.ansi-yellow-bg) {
+  background-color: rgb(var(--color-warning-rgb) / 18%);
+}
+
+.commands-terminal__text :deep(.ansi-blue-bg),
+.commands-terminal__text :deep(.ansi-cyan-bg) {
+  background-color: rgb(var(--color-info-rgb) / 18%);
+}
+
+.commands-terminal__text :deep(.ansi-magenta-bg) {
+  background-color: rgb(var(--color-accent-secondary-rgb) / 18%);
+}
+
+@keyframes ledger-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(0.86);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .commands-ledger__pulse {
+    animation: none;
+  }
 }
 
 .commands-ledger-empty {
@@ -1562,24 +1701,13 @@ const formatDuration = (duration?: number | null) => (duration == null ? '—' :
   .commands-list {
     @apply max-h-[220px];
   }
-}
-
-@media (width <= 1120px) {
-  .commands-workbench {
-    grid-template-columns: minmax(280px, 320px) minmax(0, 1fr);
-  }
-
-  .commands-palette {
-    grid-row: 1 / span 2;
-  }
-
-  .commands-composer {
-    min-height: 340px;
-  }
 
   .commands-ledger {
-    grid-column: 2;
     min-height: 320px;
+  }
+
+  .commands-ledger__metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -1597,9 +1725,12 @@ const formatDuration = (duration?: number | null) => (duration == null ? '—' :
   }
 
   .commands-panel--palette,
-  .commands-ledger,
-  .commands-composer {
+  .commands-ledger {
     min-height: auto;
+  }
+
+  .commands-ledger__metrics {
+    grid-template-columns: 1fr;
   }
 }
 </style>

@@ -131,7 +131,7 @@ const runningSnapshot: CommandJobSnapshot = {
   finished_at: null,
   duration_ms: null,
   exit_code: null,
-  stdout_lines: ['status ok'],
+  stdout_lines: ['\u001B[32mstatus ok\u001B[0m', '| profile | active | source |'],
   stderr_lines: [],
   system_lines: ['Process started'],
   error: null,
@@ -211,6 +211,7 @@ describe('CommandsView smoke', () => {
     const { el, unmount } = await mountView()
 
     try {
+      expect(el.querySelector('.commands-workbench__main .commands-composer + .commands-ledger')).toBeTruthy()
       expect(el.textContent).toContain('commands.runtimeReady')
       expect(eventMocks.listen).toHaveBeenCalledWith('commands:job-progress', expect.any(Function))
       expect(eventMocks.listen).toHaveBeenCalledWith('commands:job-finished', expect.any(Function))
@@ -225,6 +226,9 @@ describe('CommandsView smoke', () => {
 
       expect(apiMocks.startCcrCommandJob).toHaveBeenCalledWith({ command: 'status', args: [] })
       expect(el.textContent).toContain('status ok')
+      expect(el.querySelector('.commands-ledger__metrics')).toBeTruthy()
+      expect(el.querySelector('.commands-terminal')).toBeTruthy()
+      expect(el.querySelector('.commands-terminal__text .ansi-green-fg')).toBeTruthy()
 
       eventMocks.handlers.get('commands:job-finished')?.({
         payload: {
@@ -233,7 +237,7 @@ describe('CommandsView smoke', () => {
           finished_at: '2026-05-18T08:00:02.000Z',
           duration_ms: 2000,
           exit_code: 0,
-          stdout_lines: ['status ok', 'done'],
+          stdout_lines: ['\u001B[32mstatus ok\u001B[0m', '| profile | active | source |', 'done'],
         },
       })
       await flush()

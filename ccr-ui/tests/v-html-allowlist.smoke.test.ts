@@ -69,6 +69,10 @@ describe('v-html safety allowlist', () => {
         file: 'src/components/usage/LlmusageInstallDialog.vue',
         binding: 'descriptionHtml',
       },
+      {
+        file: 'src/views/CommandsView.vue',
+        binding: 'line.safeHtml',
+      },
     ])
   })
 
@@ -78,16 +82,19 @@ describe('v-html safety allowlist', () => {
       ansiRenderer,
       claudeProfiles,
       installDialog,
+      commandsView,
     ] = await Promise.all([
       readFile('src/composables/useMarkdownRender.ts', 'utf8'),
       readFile('src/utils/ansiRenderer.ts', 'utf8'),
       readFile('src/utils/claudeProfiles.ts', 'utf8'),
       readFile('src/components/usage/LlmusageInstallDialog.vue', 'utf8'),
+      readFile('src/views/CommandsView.vue', 'utf8'),
     ])
 
     expect(markdownRender).toMatch(/sanitizeMarkdown/)
     expect(ansiRenderer).toMatch(/sanitizeTerminal/)
     expect(claudeProfiles).toMatch(/escapeHtml/)
     expect(installDialog).toMatch(/只渲染 i18n 文案，无用户输入/)
+    expect(commandsView).toMatch(/createAnsiRenderer/)
   })
 })
