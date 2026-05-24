@@ -1,12 +1,21 @@
 import { createApp, nextTick, ref } from 'vue'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { CommandJobSnapshot } from '@/types'
+import type { CommandInfo, CommandJobSnapshot } from '@/types'
 
 const apiMocks = vi.hoisted(() => ({
   cancelCcrCommandJob: vi.fn(),
   listCommands: vi.fn(),
   listConfigs: vi.fn(),
   startCcrCommandJob: vi.fn(),
+}))
+
+const uiStateMocks = vi.hoisted(() => ({
+  addFavorite: vi.fn(),
+  addRecentItem: vi.fn(),
+  clearRecentItems: vi.fn(),
+  getFavorites: vi.fn(),
+  getRecentItems: vi.fn(),
+  removeFavorite: vi.fn(),
 }))
 
 const eventMocks = vi.hoisted(() => ({
@@ -28,6 +37,8 @@ const routerMocks = vi.hoisted(() => ({
 }))
 
 vi.mock('@/api', () => apiMocks)
+
+vi.mock('@/api/domains/uiState', () => uiStateMocks)
 
 vi.mock('@tauri-apps/api/event', () => ({
   listen: eventMocks.listen,
@@ -79,13 +90,15 @@ const flush = async () => {
   await nextTick()
 }
 
-const baseCommands = [
+const baseCommands: CommandInfo[] = [
   {
     name: 'status',
     description: 'Show current status',
     usage: 'ccr status',
     examples: ['ccr status'],
     category: 'read',
+    risk: 'safe',
+    executable: true,
   },
   {
     name: 'delete',
@@ -93,6 +106,19 @@ const baseCommands = [
     usage: 'ccr delete <name>',
     examples: ['ccr delete old'],
     category: 'danger',
+    risk: 'destructive',
+    executable: true,
+    requiresConfirmation: true,
+    args: [
+      {
+        name: 'config_name',
+        label: 'Config name',
+        type: 'text',
+        required: true,
+        source: 'configs',
+        description: 'Config to delete',
+      },
+    ],
   },
 ]
 
@@ -151,6 +177,27 @@ const resetMocks = () => {
     duration_ms: 1000,
     error: 'Command cancelled',
   })
+  uiStateMocks.getFavorites.mockResolvedValue([])
+  uiStateMocks.getRecentItems.mockResolvedValue([])
+  uiStateMocks.addFavorite.mockResolvedValue({
+    id: 'favorite-status',
+    command: 'status',
+    args: [],
+    display_name: 'status',
+    module: 'commands',
+    created_at: '2026-05-18T08:00:00.000Z',
+  })
+  uiStateMocks.removeFavorite.mockResolvedValue(true)
+  uiStateMocks.addRecentItem.mockResolvedValue({
+    id: 'history-status',
+    full_command: 'ccr status',
+    command: 'status',
+    args: [],
+    success: true,
+    executed_at: '2026-05-18T08:00:02.000Z',
+    duration_ms: 2000,
+  })
+  uiStateMocks.clearRecentItems.mockResolvedValue('History cleared successfully')
 }
 
 describe('CommandsView smoke', () => {
@@ -193,6 +240,7 @@ describe('CommandsView smoke', () => {
 
       expect(el.textContent).toContain('done')
       expect(el.textContent).toContain('commands.status.success')
+      expect(uiStateMocks.addRecentItem).toHaveBeenCalledWith('status', [], true, 2000)
     } finally {
       unmount()
     }
@@ -247,6 +295,151 @@ describe('CommandsView smoke', () => {
       args!.value = 'old'
       args!.dispatchEvent(new Event('input'))
       await flush()
+
+      run?.click()
+      await flush()
+
+      expect(apiMocks.startCcrCommandJob).toHaveBeenCalledWith({ command: 'delete', args: ['old'] })
+    } finally {
+      unmount()
+    }
+  })
+
+  it('uses backend metadata instead of a frontend hardcoded command allowlist', async () => {
+    apiMocks.listCommands.mockResolvedValue([
+      {
+        name: 'status',
+        description: 'Show current status',
+        usage: 'ccr status',
+        examples: ['ccr status'],
+        category: 'read',
+        risk: 'safe',
+        executable: true,
+      },
+      {
+        name: 'purge-cache',
+        description: 'Metadata-only destructive command',
+        usage: 'ccr purge-cache <target>',
+        examples: ['ccr purge-cache temp'],
+        category: 'danger',
+        risk: 'destructive',
+        executable: true,
+        requiresConfirmation: true,
+        args: [
+          {
+            name: 'target',
+            label: 'Target',
+            type: 'text',
+            required: true,
+            description: 'Target cache',
+          },
+        ],
+      },
+      {
+        name: 'platform',
+        description: 'Preview-only command',
+        usage: 'ccr platform list',
+        examples: ['ccr platform list'],
+        category: 'preview',
+        risk: 'preview_only',
+        executable: false,
+      },
+    ] satisfies CommandInfo[])
+
+    const { el, unmount } = await mountView()
+
+    try {
+      const purgeCommand = Array.from(el.querySelectorAll<HTMLButtonElement>('.command-row'))
+        .find((button) => button.textContent?.includes('purge-cache'))
+      purgeCommand?.click()
+      await flush()
+
+      const run = Array.from(el.querySelectorAll<HTMLButtonElement>('button'))
+        .find((button) => button.textContent?.includes('commands.run'))
+      expect(run?.disabled).toBe(true)
+
+      const confirm = el.querySelector<HTMLInputElement>('.commands-danger-confirm input')
+      expect(confirm).toBeTruthy()
+      confirm!.checked = true
+      confirm!.dispatchEvent(new Event('change'))
+      await flush()
+
+      const args = el.querySelector<HTMLInputElement>('.commands-field input')
+      expect(args).toBeTruthy()
+      args!.value = 'temp'
+      args!.dispatchEvent(new Event('input'))
+      await flush()
+
+      run?.click()
+      await flush()
+
+      expect(apiMocks.startCcrCommandJob).toHaveBeenCalledWith({
+        command: 'purge-cache',
+        args: ['temp'],
+      })
+
+      const previewCommand = Array.from(el.querySelectorAll<HTMLButtonElement>('.command-row'))
+        .find((button) => button.textContent?.includes('platform'))
+      expect(previewCommand?.className).toContain('command-row--disabled')
+    } finally {
+      unmount()
+    }
+  })
+
+  it('loads favorites and history into the composer instead of executing directly', async () => {
+    uiStateMocks.getFavorites.mockResolvedValue([
+      {
+        id: 'favorite-delete-old',
+        command: 'delete',
+        args: ['old'],
+        display_name: 'Delete old config',
+        module: 'commands',
+        created_at: '2026-05-18T08:00:00.000Z',
+      },
+    ])
+    uiStateMocks.getRecentItems.mockResolvedValue([
+      {
+        id: 'history-delete-old',
+        full_command: 'ccr delete old',
+        command: 'delete',
+        args: ['old'],
+        success: false,
+        executed_at: '2026-05-18T08:00:00.000Z',
+        duration_ms: 42,
+      },
+    ])
+
+    const { el, unmount } = await mountView()
+
+    try {
+      const favoritesTab = Array.from(el.querySelectorAll<HTMLButtonElement>('.commands-source-tabs__item'))
+        .find((button) => button.textContent?.includes('commands.favorites'))
+      favoritesTab?.click()
+      await flush()
+
+      const favorite = Array.from(el.querySelectorAll<HTMLButtonElement>('.command-row'))
+        .find((button) => button.textContent?.includes('Delete old config'))
+      favorite?.click()
+      await flush()
+
+      const composerTitle = el.querySelector('.commands-composer .commands-panel__title--large')
+      expect(composerTitle?.textContent).toContain('delete')
+
+      expect(apiMocks.startCcrCommandJob).not.toHaveBeenCalled()
+      expect(el.textContent).toContain('commands.dangerConfirmTitle')
+
+      const run = Array.from(el.querySelectorAll<HTMLButtonElement>('button'))
+        .find((button) => button.textContent?.includes('commands.run'))
+      expect(run?.disabled).toBe(true)
+
+      const confirm = el.querySelector<HTMLInputElement>('.commands-danger-confirm input')
+      confirm!.checked = true
+      confirm!.dispatchEvent(new Event('change'))
+      await flush()
+
+      const args = el.querySelector<HTMLInputElement>('.commands-field input')
+      expect(args?.value).toBe('old')
+      expect(run?.disabled).toBe(false)
 
       run?.click()
       await flush()

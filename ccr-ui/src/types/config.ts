@@ -17,10 +17,48 @@ export interface CommandResponse {
 
 export interface CommandInfo {
   name: string;
+  path?: string[];
+  title?: string;
   description: string;
   usage: string;
   examples: string[];
-  category?: string;
+  category?: CommandCategory;
+  risk?: CommandRisk;
+  executable?: boolean;
+  requiresConfirmation?: boolean;
+  args?: CommandArgSchema[];
+  flags?: CommandFlagSchema[];
+  aliases?: string[];
+  relatedRoute?: string | null;
+}
+
+export type CommandCategory = 'read' | 'write' | 'danger' | 'diagnostic' | 'preview' | 'blocked' | string;
+
+export type CommandRisk =
+  | 'safe'
+  | 'writes_config'
+  | 'destructive'
+  | 'interactive'
+  | 'preview_only'
+  | string;
+
+export interface CommandArgSchema {
+  name: string;
+  label: string;
+  type: 'text' | 'path' | 'select' | 'number' | 'boolean' | string;
+  required: boolean;
+  placeholder?: string | null;
+  source?: string | null;
+  description?: string;
+}
+
+export interface CommandFlagSchema {
+  name: string;
+  label: string;
+  description?: string;
+  type: 'boolean' | 'text' | 'path' | 'number' | string;
+  takesValue: boolean;
+  defaultValue?: string | null;
 }
 
 export type CommandJobStatus = 'queued' | 'running' | 'success' | 'failed' | 'cancelled' | 'unavailable';

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { mainLayoutNavSections, mainLayoutRouteTitleMap } from '@/config/mainLayoutShell'
 import router from '@/router'
 
 describe('router smoke', () => {
@@ -34,6 +35,25 @@ describe('router smoke', () => {
     const statsRoute = router.getRoutes().find((route) => route.path === '/stats')
 
     expect(statsRoute?.redirect).toBe('/usage')
+  })
+
+  it('redirects the legacy CCR control entrypoint to the unified command center', () => {
+    const ccrControlRoute = router.getRoutes().find((route) => route.path === '/ccr-control')
+
+    expect(ccrControlRoute?.redirect).toBe('/commands/ccr')
+    expect(ccrControlRoute?.components).toBeUndefined()
+    expect(mainLayoutRouteTitleMap['ccr-control']).toBe('nav.commands')
+  })
+
+  it('shows only one CCR command entry in the tools navigation', () => {
+    const toolsSection = mainLayoutNavSections.find((section) => section.id === 'tools')
+    const commandLikeItems = toolsSection?.items.filter((item) =>
+      [item.to, item.labelKey].some((value) => /ccr-control|nav\.ccrControl|\/commands/.test(value))
+    )
+
+    expect(commandLikeItems).toEqual([
+      expect.objectContaining({ to: '/commands', labelKey: 'nav.commands' }),
+    ])
   })
 
   it('keeps the root route registered as the cached dashboard', () => {

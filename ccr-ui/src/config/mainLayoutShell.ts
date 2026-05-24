@@ -62,7 +62,6 @@ export const mainLayoutNavSections: MainLayoutNavSection[] = [
     id: 'tools',
     titleKey: 'nav.toolsCenter',
     items: [
-      { to: '/ccr-control', labelKey: 'nav.ccrControl', icon: 'Terminal' },
       { to: '/commands', labelKey: 'nav.commands', icon: 'Terminal' },
       { to: '/checkin', labelKey: 'nav.checkin', icon: 'ClipboardList' },
       { to: '/sync', labelKey: 'nav.sync', icon: 'Cloud' },
@@ -103,7 +102,7 @@ export const mainLayoutRouteTitleMap: Record<string, string> = {
   'opencode-skills': 'nav.skillsMigration',
   'opencode-plugins': 'nav.plugins',
   'opencode-settings': 'common.settings',
-  'ccr-control': 'nav.ccrControl',
+  'ccr-control': 'nav.commands',
   commands: 'nav.commands',
   converter: 'nav.converter',
   sync: 'nav.sync',

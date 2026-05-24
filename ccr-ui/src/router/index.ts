@@ -131,8 +131,8 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'ccr-control',
         name: 'ccr-control',
-        component: () => import('@/views/CcrControlView.vue'),
-        meta: { cache: true, cacheKey: 'CcrControlView', depth: 1, group: 'tools' },
+        redirect: '/commands/ccr',
+        meta: { depth: 1, group: 'tools' },
       },
       {
         path: 'commands/:client?',

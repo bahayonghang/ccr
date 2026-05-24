@@ -1,14 +1,23 @@
 <template>
   <div class="commands-page">
     <div class="commands-shell">
-      <PageHeaderCard
-        :title="t('commands.title')"
-        :description="t('commands.description')"
-        :badge="t('commands.operatorBadge')"
-        icon="Terminal"
-        tone="secondary"
+      <Card
+        surface="workspace"
+        :elevation="2"
+        motion="subtle"
+        class="commands-run-strip"
       >
-        <div class="commands-header-meta">
+        <div class="commands-run-strip__identity">
+          <p class="commands-panel__eyebrow">
+            {{ t('commands.operatorBadge') }}
+          </p>
+          <div>
+            <h1>{{ t('commands.title') }}</h1>
+            <p>{{ t('commands.description') }}</p>
+          </div>
+        </div>
+
+        <div class="commands-run-strip__signals">
           <span
             class="commands-chip"
             :class="canRun ? 'commands-chip--success' : 'commands-chip--warning'"
@@ -33,36 +42,15 @@
             />
             {{ t('commands.whitelistBadge', { count: executableCommandCount }) }}
           </span>
-        </div>
-      </PageHeaderCard>
-
-      <section class="commands-status-grid">
-        <Card
-          v-for="item in readinessCards"
-          :key="item.key"
-          surface="workspace"
-          :elevation="1"
-          motion="subtle"
-          class="commands-status-card"
-        >
-          <div
-            class="commands-status-card__icon"
-            :class="`commands-status-card__icon--${item.tone}`"
-          >
+          <span class="commands-chip">
             <SIcon
-              :name="item.icon"
-              size="w-4 h-4"
+              name="Activity"
+              size="w-3.5 h-3.5"
             />
-          </div>
-          <div>
-            <p class="commands-status-card__label">
-              {{ item.label }}
-            </p>
-            <strong>{{ item.value }}</strong>
-            <span>{{ item.detail }}</span>
-          </div>
-        </Card>
-      </section>
+            {{ currentSnapshot ? statusLabel(currentSnapshot.status) : t('commands.cardJobIdle') }}
+          </span>
+        </div>
+      </Card>
 
       <div class="commands-workbench">
         <aside class="commands-palette">
@@ -71,6 +59,7 @@
             :elevation="2"
             motion="subtle"
             class="commands-panel commands-panel--palette"
+            body-class="!h-auto"
           >
             <div class="commands-panel__header">
               <div>
@@ -80,6 +69,21 @@
                 <p class="commands-panel__subtitle">
                   {{ t('commands.paletteSubtitle') }}
                 </p>
+              </div>
+              <div
+                v-if="activeCollection === 'history'"
+                class="commands-panel__actions"
+              >
+                <Button
+                  variant="ghost"
+                  density="compact"
+                  surface="status"
+                  motion="subtle"
+                  :disabled="historyItems.length === 0 || runtimeUnavailable"
+                  @click="handleClearHistory"
+                >
+                  {{ t('commands.clearHistory') }}
+                </Button>
               </div>
             </div>
 
@@ -104,6 +108,19 @@
               </button>
             </div>
 
+            <div class="commands-source-tabs">
+              <button
+                v-for="collection in collectionTabs"
+                :key="collection"
+                type="button"
+                class="commands-source-tabs__item"
+                :class="{ 'commands-source-tabs__item--active': activeCollection === collection }"
+                @click="activeCollection = collection"
+              >
+                {{ collectionLabel(collection) }}
+              </button>
+            </div>
+
             <label
               for="commands-search"
               class="commands-search"
@@ -120,7 +137,10 @@
               >
             </label>
 
-            <div class="commands-category-tabs">
+            <div
+              v-if="activeCollection === 'catalog'"
+              class="commands-category-tabs"
+            >
               <button
                 v-for="category in categoryTabs"
                 :key="category"
@@ -133,7 +153,10 @@
               </button>
             </div>
 
-            <div class="commands-list">
+            <div
+              v-if="activeCollection === 'catalog'"
+              class="commands-list"
+            >
               <button
                 v-for="cmd in filteredCommands"
                 :key="cmd.name"
@@ -159,262 +182,367 @@
                 <p>{{ cmd.description }}</p>
               </button>
             </div>
+
+            <div
+              v-else-if="activeCollection === 'favorites'"
+              class="commands-list"
+            >
+              <button
+                v-for="favorite in filteredFavorites"
+                :key="favorite.id"
+                type="button"
+                class="command-row"
+                :class="{
+                  'command-row--active': selectedCommand === resolvedCommandName(favorite.command),
+                  'command-row--disabled': !canLoadPersistedCommand(favorite.command),
+                }"
+                @click="loadFavorite(favorite)"
+              >
+                <div class="command-row__topline">
+                  <strong>{{ favorite.display_name || favorite.command }}</strong>
+                  <span
+                    v-if="!canLoadPersistedCommand(favorite.command)"
+                    class="command-badge command-badge--blocked"
+                  >
+                    {{ t('commands.stale') }}
+                  </span>
+                </div>
+                <p>{{ persistedCommandSummary(favorite.command, favorite.args) }}</p>
+              </button>
+
+              <div
+                v-if="filteredFavorites.length === 0"
+                class="commands-list-empty"
+              >
+                {{ t('commands.noFavorites') }}
+              </div>
+            </div>
+
+            <div
+              v-else
+              class="commands-list"
+            >
+              <button
+                v-for="item in filteredHistory"
+                :key="item.id"
+                type="button"
+                class="command-row"
+                :class="{
+                  'command-row--active': selectedCommand === resolvedCommandName(item.command),
+                  'command-row--disabled': !canLoadPersistedCommand(item.command),
+                }"
+                @click="loadHistoryItem(item)"
+              >
+                <div class="command-row__topline">
+                  <strong>{{ item.full_command || `ccr ${item.command}` }}</strong>
+                  <span
+                    class="command-badge"
+                    :class="item.success ? 'command-badge--readonly' : 'command-badge--danger'"
+                  >
+                    {{ item.success ? t('commands.historySuccess') : t('commands.historyFailed') }}
+                  </span>
+                  <span
+                    v-if="!canLoadPersistedCommand(item.command)"
+                    class="command-badge command-badge--blocked"
+                  >
+                    {{ t('commands.stale') }}
+                  </span>
+                </div>
+                <p>{{ persistedCommandSummary(item.command, item.args) }} · {{ formatDuration(item.duration_ms) }}</p>
+              </button>
+
+              <div
+                v-if="filteredHistory.length === 0"
+                class="commands-list-empty"
+              >
+                {{ t('commands.noHistory') }}
+              </div>
+            </div>
           </Card>
         </aside>
 
-        <main class="commands-main-grid">
-          <Card
-            surface="card"
-            :elevation="3"
-            motion="standard"
-            class="commands-panel commands-composer"
-          >
-            <div class="commands-panel__header commands-panel__header--wide">
-              <div>
-                <p class="commands-panel__eyebrow">
-                  {{ t('commands.composerEyebrow') }}
-                </p>
-                <h2 class="commands-panel__title commands-panel__title--large">
-                  {{ selectedCommandInfo?.name || t('commands.selectCommand') }}
-                </h2>
-                <p class="commands-panel__subtitle">
-                  {{ selectedCommandInfo?.description || t('commands.selectCommandHint') }}
-                </p>
-              </div>
-              <div class="commands-composer__actions">
-                <Button
-                  v-if="isRunning"
-                  variant="danger"
-                  density="compact"
-                  surface="card"
-                  motion="standard"
-                  :disabled="!currentSnapshot"
-                  @click="handleCancel"
-                >
-                  <template #leading>
-                    <SIcon
-                      name="Square"
-                      size="w-4 h-4"
-                    />
-                  </template>
-                  {{ t('commands.cancelJob') }}
-                </Button>
-                <Button
-                  variant="primary"
-                  density="compact"
-                  surface="card"
-                  motion="standard"
-                  :disabled="!canExecuteSelected"
-                  :loading="isRunning"
-                  @click="handleExecute"
-                >
-                  <template #leading>
-                    <SIcon
-                      name="Play"
-                      size="w-4 h-4"
-                    />
-                  </template>
-                  {{ isRunning ? t('commands.executing') : t('commands.run') }}
-                </Button>
-              </div>
+        <Card
+          surface="card"
+          :elevation="3"
+          motion="standard"
+          class="commands-panel commands-composer"
+          body-class="!h-auto"
+        >
+          <div class="commands-panel__header commands-panel__header--wide">
+            <div>
+              <p class="commands-panel__eyebrow">
+                {{ t('commands.composerEyebrow') }}
+              </p>
+              <h2 class="commands-panel__title commands-panel__title--large">
+                {{ selectedCommandInfo?.name || t('commands.selectCommand') }}
+              </h2>
+              <p class="commands-panel__subtitle">
+                {{ selectedCommandInfo?.description || t('commands.selectCommandHint') }}
+              </p>
             </div>
-
-            <AsyncStatePanel
-              v-if="runtimeUnavailable"
-              state="runtime-unavailable"
-              :title="runtimeCopy.title"
-              :description="t('commands.webUnavailableDetail')"
-              compact
-              class="commands-runtime-panel"
-            />
-
-            <div
-              v-else-if="selectedClient !== 'ccr'"
-              class="commands-notice commands-notice--warning"
-            >
-              <SIcon
-                name="Lock"
-                size="w-5 h-5"
-              />
-              <div>
-                <strong>{{ t('commands.clientUnavailableTitle') }}</strong>
-                <p>
-                  {{ t('commands.clientUnavailableDescription', { client: selectedClientLabel }) }}
-                </p>
-              </div>
-            </div>
-
-            <div
-              v-else-if="selectedCommandInfo && !selectedCommandInfo.executable"
-              class="commands-notice commands-notice--warning"
-            >
-              <SIcon
-                name="Shield"
-                size="w-5 h-5"
-              />
-              <div>
-                <strong>{{ t('commands.commandBlockedTitle') }}</strong>
-                <p>{{ t('commands.commandBlockedDescription') }}</p>
-              </div>
-            </div>
-
-            <div class="command-preview">
-              <div class="command-preview__label">
-                {{ t('commands.previewLabel') }}
-              </div>
-              <div class="command-preview__body">
-                <span class="command-preview__prompt">➜</span>
-                <span class="command-preview__binary">{{ commandPreview }}</span>
-                <span
-                  v-if="args.trim()"
-                  class="command-preview__args"
-                >{{ args }}</span>
-              </div>
-            </div>
-
-            <div class="commands-form-grid">
-              <label class="commands-field">
-                <span>{{ t('commands.args') }}</span>
-                <select
-                  v-if="selectedCommand === 'switch'"
-                  v-model="args"
-                  :disabled="!canEditArgs"
-                >
-                  <option value="">
-                    {{ t('commands.selectConfig') }}
-                  </option>
-                  <option
-                    v-for="config in configs"
-                    :key="config.name"
-                    :value="config.name"
-                  >
-                    {{ config.name }}
-                  </option>
-                </select>
-                <input
-                  v-else
-                  v-model="args"
-                  type="text"
-                  :disabled="!canEditArgs"
-                  :placeholder="
-                    selectedCommandInfo?.requiresArgs
-                      ? t('commands.requiredArgsPlaceholder')
-                      : t('commands.argsPlaceholder')
-                  "
-                  @keydown.enter="canExecuteSelected && handleExecute()"
-                >
-              </label>
-
-              <label
-                v-if="selectedCommandInfo?.dangerous"
-                class="commands-danger-confirm"
+            <div class="commands-composer__actions">
+              <Button
+                variant="ghost"
+                density="compact"
+                surface="card"
+                motion="subtle"
+                :disabled="!canFavoriteSelected"
+                @click="handleToggleFavorite"
               >
-                <input
-                  v-model="dangerAccepted"
-                  type="checkbox"
-                  :disabled="runtimeUnavailable || isRunning"
-                >
-                <span>
-                  <strong>{{ t('commands.dangerConfirmTitle') }}</strong>
-                  {{ t('commands.dangerConfirmDescription') }}
-                </span>
-              </label>
-            </div>
-          </Card>
-
-          <Card
-            surface="workspace"
-            :elevation="2"
-            motion="subtle"
-            class="commands-panel commands-ledger"
-          >
-            <div class="commands-panel__header commands-panel__header--wide">
-              <div>
-                <p class="commands-panel__eyebrow">
-                  {{ t('commands.ledgerEyebrow') }}
-                </p>
-                <h2 class="commands-panel__title">
-                  {{ t('commands.output') }}
-                </h2>
-                <p class="commands-panel__subtitle">
-                  {{ ledgerSubtitle }}
-                </p>
-              </div>
-              <div class="commands-panel__actions">
-                <Button
-                  variant="ghost"
-                  density="compact"
-                  surface="status"
-                  motion="subtle"
-                  :disabled="!hasLedgerOutput"
-                  @click="handleCopyOutput"
-                >
-                  {{ t('commands.copy') }}
-                </Button>
-                <Button
-                  variant="ghost"
-                  density="compact"
-                  surface="status"
-                  motion="subtle"
-                  :disabled="!currentSnapshot"
-                  @click="handleClearOutput"
-                >
-                  {{ t('commands.clear') }}
-                </Button>
-              </div>
-            </div>
-
-            <div
-              v-if="currentSnapshot"
-              class="commands-ledger__meta"
-            >
-              <span>{{ t('commands.jobStatus') }}
-                <strong :class="statusClass(currentSnapshot.status)">{{
-                  statusLabel(currentSnapshot.status)
-                }}</strong></span>
-              <span>{{ t('commands.duration') }}
-                <strong>{{ formatDuration(currentSnapshot.duration_ms) }}</strong></span>
-              <span>{{ t('commands.exitCode') }}
-                <strong>{{ currentSnapshot.exit_code ?? '—' }}</strong></span>
-              <span>{{ t('commands.linesCount', { count: outputLineCount }) }}</span>
-            </div>
-
-            <div
-              v-if="isRunning"
-              class="commands-output commands-output--running"
-            >
-              <SIcon
-                name="Loader2"
-                size="w-5 h-5"
-                class="animate-spin text-accent-secondary"
-              />
-              <span>{{ t('commands.processing') }}</span>
-            </div>
-
-            <div
-              v-if="hasLedgerOutput"
-              class="commands-output"
-            >
-              <div
-                v-for="line in ledgerLines"
-                :key="`${line.channel}-${line.index}-${line.text}`"
-                class="commands-output__line"
-                :class="`commands-output__line--${line.channel}`"
+                <template #leading>
+                  <SIcon
+                    :name="isSelectedFavorite ? 'StarOff' : 'Star'"
+                    size="w-4 h-4"
+                  />
+                </template>
+                {{ isSelectedFavorite ? t('commands.removeFavorite') : t('commands.addFavorite') }}
+              </Button>
+              <Button
+                v-if="isRunning"
+                variant="danger"
+                density="compact"
+                surface="card"
+                motion="standard"
+                :disabled="!currentSnapshot"
+                @click="handleCancel"
               >
-                <span>{{ line.channel }}</span>
-                <code>{{ line.text }}</code>
-              </div>
+                <template #leading>
+                  <SIcon
+                    name="Square"
+                    size="w-4 h-4"
+                  />
+                </template>
+                {{ t('commands.cancelJob') }}
+              </Button>
+              <Button
+                variant="primary"
+                density="compact"
+                surface="card"
+                motion="standard"
+                :disabled="!canExecuteSelected"
+                :loading="isRunning"
+                @click="handleExecute"
+              >
+                <template #leading>
+                  <SIcon
+                    name="Play"
+                    size="w-4 h-4"
+                  />
+                </template>
+                {{ isRunning ? t('commands.executing') : t('commands.run') }}
+              </Button>
             </div>
+          </div>
 
-            <AsyncStatePanel
-              v-else-if="!isRunning"
-              state="empty"
-              :title="t('commands.readyTitle')"
-              :description="t('commands.readyDescription')"
-              compact
+          <div
+            v-if="runtimeUnavailable"
+            class="commands-notice commands-notice--neutral commands-runtime-panel"
+            role="status"
+            aria-live="polite"
+          >
+            <SIcon
+              name="MonitorOff"
+              size="w-5 h-5"
             />
-          </Card>
-        </main>
+            <div>
+              <strong>{{ runtimeCopy.title }}</strong>
+              <p>{{ t('commands.webUnavailableDetail') }}</p>
+            </div>
+          </div>
+
+          <div
+            v-else-if="selectedClient !== 'ccr'"
+            class="commands-notice commands-notice--warning"
+          >
+            <SIcon
+              name="Lock"
+              size="w-5 h-5"
+            />
+            <div>
+              <strong>{{ t('commands.clientUnavailableTitle') }}</strong>
+              <p>
+                {{ t('commands.clientUnavailableDescription', { client: selectedClientLabel }) }}
+              </p>
+            </div>
+          </div>
+
+          <div
+            v-else-if="selectedCommandInfo && !selectedCommandInfo.executable"
+            class="commands-notice commands-notice--warning"
+          >
+            <SIcon
+              name="Shield"
+              size="w-5 h-5"
+            />
+            <div>
+              <strong>{{ t('commands.commandBlockedTitle') }}</strong>
+              <p>{{ t('commands.commandBlockedDescription') }}</p>
+            </div>
+          </div>
+
+          <div class="command-preview">
+            <div class="command-preview__label">
+              {{ t('commands.previewLabel') }}
+            </div>
+            <div class="command-preview__body">
+              <span class="command-preview__prompt">➜</span>
+              <span class="command-preview__binary">{{ commandPreview }}</span>
+              <span
+                v-if="args.trim()"
+                class="command-preview__args"
+              >{{ args }}</span>
+            </div>
+          </div>
+
+          <div class="commands-form-grid">
+            <label class="commands-field">
+              <span>{{ t('commands.args') }}</span>
+              <select
+                v-if="selectedCommand === 'switch'"
+                v-model="args"
+                :disabled="!canEditArgs"
+              >
+                <option value="">
+                  {{ t('commands.selectConfig') }}
+                </option>
+                <option
+                  v-for="config in configs"
+                  :key="config.name"
+                  :value="config.name"
+                >
+                  {{ config.name }}
+                </option>
+              </select>
+              <input
+                v-else
+                v-model="args"
+                type="text"
+                :disabled="!canEditArgs"
+                :placeholder="
+                  selectedCommandInfo?.requiresArgs
+                    ? t('commands.requiredArgsPlaceholder')
+                    : t('commands.argsPlaceholder')
+                "
+                @keydown.enter="canExecuteSelected && handleExecute()"
+              >
+            </label>
+
+            <label
+              v-if="selectedCommandInfo?.dangerous"
+              class="commands-danger-confirm"
+            >
+              <input
+                v-model="dangerAccepted"
+                type="checkbox"
+                :disabled="runtimeUnavailable || isRunning"
+              >
+              <span>
+                <strong>{{ t('commands.dangerConfirmTitle') }}</strong>
+                {{ t('commands.dangerConfirmDescription') }}
+              </span>
+            </label>
+          </div>
+        </Card>
+
+        <Card
+          surface="workspace"
+          :elevation="2"
+          motion="subtle"
+          class="commands-panel commands-ledger"
+          body-class="!h-auto"
+        >
+          <div class="commands-panel__header commands-panel__header--wide">
+            <div>
+              <p class="commands-panel__eyebrow">
+                {{ t('commands.ledgerEyebrow') }}
+              </p>
+              <h2 class="commands-panel__title">
+                {{ t('commands.output') }}
+              </h2>
+              <p class="commands-panel__subtitle">
+                {{ ledgerSubtitle }}
+              </p>
+            </div>
+            <div class="commands-panel__actions">
+              <Button
+                variant="ghost"
+                density="compact"
+                surface="status"
+                motion="subtle"
+                :disabled="!hasLedgerOutput"
+                @click="handleCopyOutput"
+              >
+                {{ t('commands.copy') }}
+              </Button>
+              <Button
+                variant="ghost"
+                density="compact"
+                surface="status"
+                motion="subtle"
+                :disabled="!currentSnapshot"
+                @click="handleClearOutput"
+              >
+                {{ t('commands.clear') }}
+              </Button>
+            </div>
+          </div>
+
+          <div
+            v-if="currentSnapshot"
+            class="commands-ledger__meta"
+          >
+            <span>{{ t('commands.jobStatus') }}
+              <strong :class="statusClass(currentSnapshot.status)">{{
+                statusLabel(currentSnapshot.status)
+              }}</strong></span>
+            <span>{{ t('commands.duration') }}
+              <strong>{{ formatDuration(currentSnapshot.duration_ms) }}</strong></span>
+            <span>{{ t('commands.exitCode') }}
+              <strong>{{ currentSnapshot.exit_code ?? '—' }}</strong></span>
+            <span>{{ t('commands.linesCount', { count: outputLineCount }) }}</span>
+          </div>
+
+          <div
+            v-if="isRunning"
+            class="commands-output commands-output--running"
+          >
+            <SIcon
+              name="Loader2"
+              size="w-5 h-5"
+              class="animate-spin text-accent-secondary"
+            />
+            <span>{{ t('commands.processing') }}</span>
+          </div>
+
+          <div
+            v-if="hasLedgerOutput"
+            class="commands-output"
+          >
+            <div
+              v-for="line in ledgerLines"
+              :key="`${line.channel}-${line.index}-${line.text}`"
+              class="commands-output__line"
+              :class="`commands-output__line--${line.channel}`"
+            >
+              <span>{{ line.channel }}</span>
+              <code>{{ line.text }}</code>
+            </div>
+          </div>
+
+          <div
+            v-else-if="!isRunning"
+            class="commands-ledger-empty"
+            role="status"
+            aria-live="polite"
+          >
+            <SIcon
+              name="FileX"
+              size="w-6 h-6"
+            />
+            <strong>{{ t('commands.readyTitle') }}</strong>
+            <p>{{ t('commands.readyDescription') }}</p>
+          </div>
+        </Card>
       </div>
     </div>
   </div>
@@ -425,12 +553,18 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { listen, type Event, type UnlistenFn } from '@tauri-apps/api/event'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
-import AsyncStatePanel from '@/components/ui/AsyncStatePanel.vue'
 import Button from '@/components/ui/Button.vue'
 import Card from '@/components/ui/Card.vue'
-import PageHeaderCard from '@/components/PageHeaderCard.vue'
 import SIcon from '@/components/ui/SIcon.vue'
 import { cancelCcrCommandJob, listCommands, listConfigs, startCcrCommandJob } from '@/api'
+import {
+  addFavorite as addFavoriteItem,
+  addRecentItem,
+  clearRecentItems,
+  getFavorites,
+  getRecentItems,
+  removeFavorite as removeFavoriteItem,
+} from '@/api/domains/uiState'
 import type { CommandInfo, CommandJobSnapshot, CommandJobStatus, ConfigItem } from '@/types'
 import { normalizeCliClient, type CliClient } from '@/types/router'
 import { logger } from '@/utils/logger'
@@ -454,6 +588,26 @@ interface CommandUiInfo extends CommandInfo {
 
 type CommandBadge = 'safe' | 'danger' | 'readonly' | 'args' | 'blocked'
 type LedgerChannel = 'stdout' | 'stderr' | 'system'
+type CommandCollection = 'catalog' | 'favorites' | 'history'
+
+interface FavoriteCommand {
+  id: string
+  command: string
+  args: string[]
+  display_name?: string | null
+  module: string
+  created_at: string
+}
+
+interface CommandHistoryItem {
+  id: string
+  full_command: string
+  command: string
+  args: string[]
+  success: boolean
+  executed_at: string
+  duration_ms: number
+}
 
 const { t } = useI18n({ useScope: 'global' })
 const route = useRoute()
@@ -468,59 +622,21 @@ const CLI_CLIENTS: CommandClient[] = [
   { id: 'gemini', name: 'Antigravity CLI', icon: 'Sparkles', executable: false },
 ]
 
-const dangerousCommands = new Set(['delete', 'import', 'restore'])
-const writeCommands = new Set([
-  'switch',
-  'add',
-  'delete',
-  'rename',
-  'duplicate',
-  'import',
-  'backup',
-  'restore',
-])
-const argsCommands = new Set([
-  'switch',
-  'add',
-  'delete',
-  'rename',
-  'duplicate',
-  'show',
-  'export',
-  'import',
-  'restore',
-  'diff',
-])
-const allowedCommands = new Set([
-  'list',
-  'switch',
-  'add',
-  'delete',
-  'rename',
-  'duplicate',
-  'show',
-  'validate',
-  'export',
-  'import',
-  'history',
-  'version',
-  'help',
-  'backup',
-  'restore',
-  'diff',
-  'status',
-])
-
 const selectedClient = ref<CliClient>('ccr')
 const commands = ref<CommandUiInfo[]>([])
 const selectedCommand = ref('')
 const args = ref('')
 const searchQuery = ref('')
 const activeCategory = ref('all')
+const activeCollection = ref<CommandCollection>('catalog')
 const dangerAccepted = ref(false)
 const currentSnapshot = ref<CommandJobSnapshot | null>(null)
 const configs = ref<ConfigItem[]>([])
+const favorites = ref<FavoriteCommand[]>([])
+const historyItems = ref<CommandHistoryItem[]>([])
+const preserveArgsOnNextCommandChange = ref(false)
 const unlisteners: UnlistenFn[] = []
+const recordedJobIds = new Set<string>()
 
 const fallbackCommandRegistry: Record<CliClient, CommandInfo[]> = {
   ccr: [
@@ -530,6 +646,8 @@ const fallbackCommandRegistry: Record<CliClient, CommandInfo[]> = {
       usage: 'ccr status',
       examples: ['ccr status'],
       category: 'read',
+      risk: 'safe',
+      executable: true,
     },
     {
       name: 'switch',
@@ -537,6 +655,18 @@ const fallbackCommandRegistry: Record<CliClient, CommandInfo[]> = {
       usage: 'ccr switch <name>',
       examples: ['ccr switch default'],
       category: 'write',
+      risk: 'writes_config',
+      executable: true,
+      args: [
+        {
+          name: 'config_name',
+          label: 'Configuration',
+          type: 'select',
+          required: true,
+          source: 'configs',
+          description: 'Configuration name from the CCR config list.',
+        },
+      ],
     },
     {
       name: 'version',
@@ -544,6 +674,8 @@ const fallbackCommandRegistry: Record<CliClient, CommandInfo[]> = {
       usage: 'ccr version',
       examples: ['ccr version'],
       category: 'read',
+      risk: 'safe',
+      executable: true,
     },
   ],
   claude: [
@@ -618,6 +750,7 @@ const readinessLabel = computed(() => {
   if (isRunning.value) return t('commands.runtimeRunning')
   return t('commands.runtimeReady')
 })
+const collectionTabs: CommandCollection[] = ['catalog', 'favorites', 'history']
 const canEditArgs = computed(
   () => canRun.value && Boolean(selectedCommandInfo.value?.executable) && !isRunning.value
 )
@@ -628,6 +761,21 @@ const canExecuteSelected = computed(() => {
   if (command.requiresArgs && args.value.trim().length === 0) return false
   return true
 })
+const selectedCommandArgs = computed(() => splitArgs(args.value))
+const selectedFavorite = computed(() =>
+  favorites.value.find(
+    (item) =>
+      item.command === selectedCommand.value &&
+      JSON.stringify(item.args) === JSON.stringify(selectedCommandArgs.value)
+  ) ?? null
+)
+const isSelectedFavorite = computed(() => Boolean(selectedFavorite.value))
+const canFavoriteSelected = computed(
+  () =>
+    selectedClient.value === 'ccr' &&
+    Boolean(selectedCommandInfo.value) &&
+    Boolean(selectedCommandInfo.value?.executable)
+)
 
 const categoryTabs = computed(() => {
   const categories = Array.from(
@@ -646,6 +794,30 @@ const filteredCommands = computed(() => {
       command.name.toLowerCase().includes(query) ||
       command.description.toLowerCase().includes(query)
     return matchesCategory && matchesQuery
+  })
+})
+
+const filteredFavorites = computed(() => {
+  const query = searchQuery.value.trim().toLowerCase()
+  return favorites.value.filter((item) => {
+    if (!query) return true
+    return (
+      item.command.toLowerCase().includes(query) ||
+      item.display_name?.toLowerCase().includes(query) ||
+      item.args.some((arg) => arg.toLowerCase().includes(query))
+    )
+  })
+})
+
+const filteredHistory = computed(() => {
+  const query = searchQuery.value.trim().toLowerCase()
+  return historyItems.value.filter((item) => {
+    if (!query) return true
+    return (
+      item.command.toLowerCase().includes(query) ||
+      item.full_command.toLowerCase().includes(query) ||
+      item.args.some((arg) => arg.toLowerCase().includes(query))
+    )
   })
 })
 
@@ -680,49 +852,18 @@ const ledgerSubtitle = computed(() => {
 
 const statusLabel = (status: CommandJobStatus) => t(`commands.status.${status}`)
 
-const readinessCards = computed(() => [
-  {
-    key: 'runtime',
-    icon: runtimeUnavailable.value ? 'MonitorOff' : 'CheckCircle2',
-    tone: runtimeUnavailable.value ? 'warning' : 'success',
-    label: t('commands.cardRuntimeLabel'),
-    value: runtimeUnavailable.value ? t('commands.runtimeWeb') : t('commands.runtimeDesktop'),
-    detail: runtimeUnavailable.value
-      ? t('commands.cardRuntimeWebDetail')
-      : t('commands.cardRuntimeDesktopDetail'),
-  },
-  {
-    key: 'job',
-    icon: isRunning.value ? 'Loader2' : 'Clock',
-    tone: isRunning.value ? 'info' : 'neutral',
-    label: t('commands.cardJobLabel'),
-    value: currentSnapshot.value
-      ? statusLabel(currentSnapshot.value.status)
-      : t('commands.cardJobIdle'),
-    detail: currentSnapshot.value
-      ? `ccr ${currentSnapshot.value.command}`
-      : t('commands.cardJobIdleDetail'),
-  },
-  {
-    key: 'trust',
-    icon: 'ShieldCheck',
-    tone: 'success',
-    label: t('commands.cardTrustLabel'),
-    value: t('commands.cardTrustValue'),
-    detail: t('commands.cardTrustDetail', { count: executableCommandCount.value }),
-  },
-])
-
 const normalizeCommand = (command: CommandInfo, client: CliClient): CommandUiInfo => {
   const name = command.name
-  const executable = client === 'ccr' && allowedCommands.has(name)
-  const dangerous = dangerousCommands.has(name)
-  const readOnly = !writeCommands.has(name)
-  const category = command.category || (dangerous ? 'danger' : readOnly ? 'read' : 'write')
+  const risk = command.risk ?? (command.category === 'danger' ? 'destructive' : 'safe')
+  const executable = client === 'ccr' ? command.executable ?? true : false
+  const dangerous = Boolean(command.requiresConfirmation) || risk === 'destructive'
+  const category = command.category || (dangerous ? 'danger' : risk === 'writes_config' ? 'write' : 'read')
+  const readOnly = risk === 'safe' || category === 'read' || category === 'diagnostic'
+  const requiresArgs = command.args?.some((arg) => arg.required) ?? false
   const clientLabel = CLI_CLIENTS.find((item) => item.id === client)?.name ?? client
   const description =
-    client === 'ccr'
-      ? t(`commands.catalog.${name}`)
+    client === 'ccr' && command.description
+      ? command.description
       : t('commands.clientPreviewCommandDescription', { client: clientLabel })
   return {
     ...command,
@@ -732,7 +873,7 @@ const normalizeCommand = (command: CommandInfo, client: CliClient): CommandUiInf
     category,
     dangerous,
     readOnly,
-    requiresArgs: argsCommands.has(name),
+    requiresArgs,
     executable,
   }
 }
@@ -764,6 +905,25 @@ const loadConfigs = async () => {
   }
 }
 
+const loadPersistedState = async () => {
+  if (runtimeUnavailable.value) {
+    favorites.value = []
+    historyItems.value = []
+    return
+  }
+
+  try {
+    const [favoriteData, historyData] = await Promise.all([
+      getFavorites<FavoriteCommand[]>(),
+      getRecentItems<CommandHistoryItem[]>(20),
+    ])
+    favorites.value = favoriteData
+    historyItems.value = historyData
+  } catch (error) {
+    logger.error('Failed to load command favorites/history:', error)
+  }
+}
+
 const loadCommands = async () => {
   if (runtimeUnavailable.value || selectedClient.value !== 'ccr') {
     applyCommandList(selectedClient.value)
@@ -785,11 +945,30 @@ const installJobListeners = async () => {
     if (!currentSnapshot.value || event.payload.job_id === currentSnapshot.value.job_id) {
       currentSnapshot.value = event.payload
     }
+    void maybeRecordHistory(event.payload)
   }
 
   unlisteners.push(await listen<CommandJobSnapshot>('commands:job-progress', handleSnapshot))
   unlisteners.push(await listen<CommandJobSnapshot>('commands:job-finished', handleSnapshot))
   unlisteners.push(await listen<CommandJobSnapshot>('commands:job-cancelled', handleSnapshot))
+}
+
+const maybeRecordHistory = async (snapshot: CommandJobSnapshot) => {
+  if (recordedJobIds.has(snapshot.job_id)) return
+  if (!['success', 'failed', 'cancelled'].includes(snapshot.status)) return
+
+  recordedJobIds.add(snapshot.job_id)
+  try {
+    await addRecentItem<CommandHistoryItem>(
+      snapshot.command,
+      snapshot.args,
+      snapshot.status === 'success',
+      snapshot.duration_ms ?? 0
+    )
+    historyItems.value = await getRecentItems<CommandHistoryItem[]>(20)
+  } catch (error) {
+    logger.error('Failed to persist command history:', error)
+  }
 }
 
 onMounted(() => {
@@ -799,6 +978,7 @@ onMounted(() => {
   }
   void loadCommands()
   void loadConfigs()
+  void loadPersistedState()
   void installJobListeners()
 })
 
@@ -823,6 +1003,7 @@ watch(selectedClient, () => {
   args.value = ''
   dangerAccepted.value = false
   currentSnapshot.value = null
+  activeCollection.value = 'catalog'
   void loadCommands()
 
   const current = normalizeCliClient(route.params.client) || 'ccr'
@@ -831,8 +1012,11 @@ watch(selectedClient, () => {
   }
 })
 
-watch(selectedCommand, () => {
-  args.value = ''
+watch(selectedCommand, (command, previousCommand) => {
+  if (command !== previousCommand && !preserveArgsOnNextCommandChange.value) {
+    args.value = ''
+  }
+  preserveArgsOnNextCommandChange.value = false
   dangerAccepted.value = false
 })
 
@@ -841,6 +1025,7 @@ const setSelectedClient = (client: CliClient) => {
 }
 
 const setSelectedCommand = (command: string) => {
+  activeCollection.value = 'catalog'
   selectedCommand.value = command
 }
 
@@ -849,6 +1034,35 @@ const splitArgs = (value: string): string[] =>
     .split(' ')
     .map((arg) => arg.trim())
     .filter((arg) => arg.length > 0)
+
+const resolvedCommandName = (command: string) => command.trim().split(/\s+/)[0] ?? ''
+
+const canLoadPersistedCommand = (command: string) =>
+  commands.value.some((item) => item.name === resolvedCommandName(command))
+
+const persistedCommandSummary = (command: string, persistedArgs: string[]) =>
+  persistedArgs.length > 0 ? `ccr ${command} ${persistedArgs.join(' ')}` : `ccr ${command}`
+
+const loadPersistedCommand = (command: string, persistedArgs: string[]) => {
+  const nextCommand = resolvedCommandName(command)
+  if (!canLoadPersistedCommand(command)) return
+
+  if (selectedCommand.value !== nextCommand) {
+    preserveArgsOnNextCommandChange.value = true
+    selectedCommand.value = nextCommand
+  }
+  args.value = persistedArgs.join(' ')
+  activeCollection.value = 'catalog'
+  dangerAccepted.value = false
+}
+
+const loadFavorite = (favorite: FavoriteCommand) => {
+  loadPersistedCommand(favorite.command, favorite.args)
+}
+
+const loadHistoryItem = (item: CommandHistoryItem) => {
+  loadPersistedCommand(item.command, item.args)
+}
 
 const handleExecute = async () => {
   if (!canExecuteSelected.value || !selectedCommandInfo.value) return
@@ -882,8 +1096,41 @@ const handleCancel = async () => {
   if (!currentSnapshot.value) return
   try {
     currentSnapshot.value = await cancelCcrCommandJob(currentSnapshot.value.job_id)
+    await maybeRecordHistory(currentSnapshot.value)
   } catch (error) {
     logger.error('Failed to cancel command job:', error)
+  }
+}
+
+const handleToggleFavorite = async () => {
+  if (!selectedCommandInfo.value) return
+
+  try {
+    if (selectedFavorite.value) {
+      const favoriteId = selectedFavorite.value.id
+      await removeFavoriteItem(favoriteId)
+      favorites.value = favorites.value.filter((item) => item.id !== favoriteId)
+      return
+    }
+
+    const favorite = await addFavoriteItem<FavoriteCommand>(
+      selectedCommandInfo.value.name,
+      selectedCommandArgs.value,
+      selectedCommandInfo.value.title || selectedCommandInfo.value.name,
+      'commands'
+    )
+    favorites.value = [favorite, ...favorites.value]
+  } catch (error) {
+    logger.error('Failed to toggle favorite:', error)
+  }
+}
+
+const handleClearHistory = async () => {
+  try {
+    await clearRecentItems()
+    historyItems.value = []
+  } catch (error) {
+    logger.error('Failed to clear recent history:', error)
   }
 }
 
@@ -907,10 +1154,21 @@ const categoryLabel = (category: string) => {
     read: t('commands.categoryRead'),
     write: t('commands.categoryWrite'),
     danger: t('commands.categoryDanger'),
+    diagnostic: t('commands.categoryRead'),
+    preview: t('commands.categoryBlocked'),
     blocked: t('commands.categoryBlocked'),
     other: t('commands.categoryOther'),
   }
   return labels[category] || category
+}
+
+const collectionLabel = (collection: CommandCollection) => {
+  const labels: Record<CommandCollection, string> = {
+    catalog: t('commands.catalogTab'),
+    favorites: t('commands.favorites'),
+    history: t('commands.history'),
+  }
+  return labels[collection]
 }
 
 const commandBadges = (command: CommandUiInfo): CommandBadge[] => {
@@ -944,10 +1202,26 @@ const formatDuration = (duration?: number | null) => (duration == null ? '—' :
 }
 
 .commands-shell {
-  @apply mx-auto flex max-w-[1480px] flex-col gap-5;
+  @apply mx-auto flex max-w-[1480px] flex-col gap-4;
 }
 
-.commands-header-meta,
+.commands-run-strip {
+  @apply flex flex-col gap-4 p-4 lg:flex-row lg:items-center lg:justify-between;
+}
+
+.commands-run-strip__identity {
+  @apply flex min-w-0 flex-1 items-start gap-4;
+}
+
+.commands-run-strip__identity h1 {
+  @apply text-xl font-semibold tracking-[-0.02em] text-text-primary;
+}
+
+.commands-run-strip__identity p:not(.commands-panel__eyebrow) {
+  @apply mt-1 max-w-3xl text-sm leading-relaxed text-text-secondary;
+}
+
+.commands-run-strip__signals,
 .commands-panel__actions,
 .commands-composer__actions {
   @apply flex flex-wrap items-center gap-2;
@@ -967,63 +1241,25 @@ const formatDuration = (duration?: number | null) => (duration == null ? '—' :
   @apply border-accent-warning/25 bg-accent-warning/10 text-accent-warning;
 }
 
-.commands-status-grid {
-  @apply grid gap-3 md:grid-cols-3;
-}
-
-.commands-status-card {
-  @apply flex items-start gap-3 p-4;
-}
-
-.commands-status-card__icon {
-  @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border;
-}
-
-.commands-status-card__icon--success {
-  @apply border-accent-success/20 bg-accent-success/10 text-accent-success;
-}
-
-.commands-status-card__icon--warning {
-  @apply border-accent-warning/20 bg-accent-warning/10 text-accent-warning;
-}
-
-.commands-status-card__icon--info {
-  @apply border-accent-info/20 bg-accent-info/10 text-accent-info;
-}
-
-.commands-status-card__icon--neutral {
-  @apply border-border-default/50 bg-bg-surface text-text-secondary;
-}
-
-.commands-status-card__label,
 .commands-panel__eyebrow {
   @apply text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted;
 }
 
-.commands-status-card strong {
-  @apply mt-1 block text-sm font-semibold text-text-primary;
-}
-
-.commands-status-card span {
-  @apply mt-1 block text-xs leading-relaxed text-text-secondary;
-}
-
 .commands-workbench {
-  @apply grid gap-5 xl:grid-cols-[360px_minmax(0,1fr)];
-}
-
-.commands-main-grid {
-  @apply grid gap-5 2xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)];
+  display: grid;
+  grid-template-columns: minmax(240px, 0.72fr) minmax(280px, 1fr) minmax(300px, 1.05fr);
+  gap: 1rem;
+  align-items: stretch;
 }
 
 .commands-panel {
-  @apply p-5;
+  @apply p-4;
 }
 
 .commands-panel--palette,
 .commands-ledger,
 .commands-composer {
-  @apply min-h-[620px];
+  min-height: clamp(420px, calc(100vh - 370px), 540px);
 }
 
 .commands-panel__header {
@@ -1047,11 +1283,13 @@ const formatDuration = (duration?: number | null) => (duration == null ? '—' :
 }
 
 .commands-client-switcher,
+.commands-source-tabs,
 .commands-category-tabs {
   @apply mb-4 flex flex-wrap gap-2;
 }
 
 .commands-client-pill,
+.commands-source-tabs__item,
 .commands-category-tabs__item {
   @apply inline-flex items-center gap-2 rounded-full border border-border-default/50 px-3 py-2 text-xs font-medium text-text-secondary transition-colors duration-200;
 
@@ -1059,7 +1297,9 @@ const formatDuration = (duration?: number | null) => (duration == null ? '—' :
 }
 
 .commands-client-pill:hover,
+.commands-source-tabs__item:hover,
 .commands-category-tabs__item:hover,
+.commands-source-tabs__item--active,
 .commands-category-tabs__item--active,
 .commands-client-pill--active {
   @apply border-accent-primary/25 bg-accent-primary/10 text-text-primary;
@@ -1080,7 +1320,13 @@ const formatDuration = (duration?: number | null) => (duration == null ? '—' :
 }
 
 .commands-list {
-  @apply flex max-h-[440px] flex-col gap-2 overflow-y-auto pr-1;
+  @apply flex max-h-[470px] flex-col gap-2 overflow-y-auto pr-1;
+}
+
+.commands-list-empty {
+  @apply rounded-2xl border border-dashed border-border-default/60 px-4 py-6 text-center text-sm text-text-secondary;
+
+  background-color: rgb(var(--color-bg-base-rgb) / 56%);
 }
 
 .command-row {
@@ -1142,11 +1388,15 @@ const formatDuration = (duration?: number | null) => (duration == null ? '—' :
 }
 
 .commands-notice {
-  @apply flex gap-3 rounded-2xl border border-accent-warning/25 bg-accent-warning/10 p-4 text-sm text-accent-warning;
+  @apply flex items-start gap-3 rounded-2xl border border-accent-warning/25 bg-accent-warning/10 p-4 text-sm text-accent-warning;
 }
 
 .commands-notice p {
   @apply mt-1 text-xs leading-relaxed text-text-secondary;
+}
+
+.commands-notice--neutral {
+  @apply border-border-default/55 bg-bg-surface/70 text-text-secondary;
 }
 
 .command-preview {
@@ -1239,7 +1489,7 @@ const formatDuration = (duration?: number | null) => (duration == null ? '—' :
 }
 
 .commands-output {
-  @apply flex max-h-[520px] min-h-[320px] flex-col gap-1 overflow-y-auto rounded-2xl border border-border-default/50 p-4 font-mono text-xs;
+  @apply flex max-h-[420px] min-h-[260px] flex-col gap-1 overflow-y-auto rounded-2xl border border-border-default/50 p-4 font-mono text-xs;
 
   background-color: rgb(var(--color-bg-base-rgb) / 74%);
 }
@@ -1266,5 +1516,90 @@ const formatDuration = (duration?: number | null) => (duration == null ? '—' :
 
 .commands-output__line--system code {
   @apply text-text-secondary;
+}
+
+.commands-ledger-empty {
+  @apply flex min-h-[190px] flex-col items-center justify-center rounded-2xl border border-border-default/50 p-5 text-center text-sm text-text-secondary;
+
+  background-color: rgb(var(--color-bg-base-rgb) / 70%);
+}
+
+.commands-ledger-empty svg {
+  @apply mb-3 text-text-muted;
+}
+
+.commands-ledger-empty strong {
+  @apply text-base font-semibold text-text-primary;
+}
+
+.commands-ledger-empty p {
+  @apply mt-2 max-w-[240px] text-xs leading-relaxed text-text-secondary;
+}
+
+@media (width <= 1240px) {
+  .commands-panel--palette .commands-panel__subtitle {
+    @apply hidden;
+  }
+
+  .commands-panel--palette .commands-panel__header,
+  .commands-client-switcher,
+  .commands-source-tabs,
+  .commands-category-tabs,
+  .commands-search {
+    @apply mb-3;
+  }
+
+  .commands-client-pill,
+  .commands-source-tabs__item,
+  .commands-category-tabs__item {
+    @apply px-2.5 py-1.5;
+  }
+
+  .commands-client-pill--disabled small {
+    @apply hidden;
+  }
+
+  .commands-list {
+    @apply max-h-[220px];
+  }
+}
+
+@media (width <= 1120px) {
+  .commands-workbench {
+    grid-template-columns: minmax(280px, 320px) minmax(0, 1fr);
+  }
+
+  .commands-palette {
+    grid-row: 1 / span 2;
+  }
+
+  .commands-composer {
+    min-height: 340px;
+  }
+
+  .commands-ledger {
+    grid-column: 2;
+    min-height: 320px;
+  }
+}
+
+@media (width <= 900px) {
+  .commands-workbench {
+    grid-template-columns: 1fr;
+  }
+
+  .commands-ledger {
+    grid-column: auto;
+  }
+
+  .commands-palette {
+    grid-row: auto;
+  }
+
+  .commands-panel--palette,
+  .commands-ledger,
+  .commands-composer {
+    min-height: auto;
+  }
 }
 </style>

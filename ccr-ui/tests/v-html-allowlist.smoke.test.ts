@@ -69,10 +69,6 @@ describe('v-html safety allowlist', () => {
         file: 'src/components/usage/LlmusageInstallDialog.vue',
         binding: 'descriptionHtml',
       },
-      {
-        file: 'src/views/ccr-control/CcrOutputConsole.vue',
-        binding: "renderedOutputLines[idx] ?? ''",
-      },
     ])
   })
 
