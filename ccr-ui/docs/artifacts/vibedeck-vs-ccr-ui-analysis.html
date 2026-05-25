@@ -1,0 +1,1168 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VibeDeck vs ccr-ui：usage 后端与前端对比分析</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f5f1e8;
+      --bg-2: #efe7da;
+      --surface: rgba(255, 252, 246, 0.9);
+      --surface-strong: rgba(255, 250, 242, 0.98);
+      --surface-muted: rgba(98, 74, 46, 0.06);
+      --text: #231c15;
+      --text-muted: #625b54;
+      --border: rgba(90, 69, 43, 0.18);
+      --border-strong: rgba(90, 69, 43, 0.34);
+      --accent: #8d5a2b;
+      --accent-2: #36666d;
+      --success: #156b52;
+      --warning: #a05a16;
+      --danger: #b03c2f;
+      --shadow: 0 22px 60px rgba(69, 47, 26, 0.1);
+      --radius: 22px;
+      --radius-sm: 12px;
+      --font-sans: "Segoe UI", "PingFang SC", "Noto Sans SC", "Microsoft YaHei", system-ui, sans-serif;
+      --font-mono: "Cascadia Mono", "JetBrains Mono", Consolas, monospace;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #14110d;
+        --bg-2: #1d1712;
+        --surface: rgba(30, 24, 19, 0.9);
+        --surface-strong: rgba(35, 28, 22, 0.96);
+        --surface-muted: rgba(232, 219, 204, 0.06);
+        --text: #f3ede5;
+        --text-muted: #c3b7aa;
+        --border: rgba(232, 219, 204, 0.14);
+        --border-strong: rgba(232, 219, 204, 0.3);
+        --accent: #d8a26d;
+        --accent-2: #8cc6ce;
+        --success: #6fd1af;
+        --warning: #f2b36e;
+        --danger: #f08e82;
+        --shadow: 0 24px 64px rgba(0, 0, 0, 0.35);
+      }
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font-sans);
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(141, 90, 43, 0.13), transparent 32rem),
+        radial-gradient(circle at top right, rgba(54, 102, 109, 0.12), transparent 30rem),
+        linear-gradient(180deg, var(--bg), var(--bg-2));
+      line-height: 1.6;
+    }
+
+    .skip-link {
+      position: fixed;
+      left: 1rem;
+      top: 1rem;
+      z-index: 30;
+      transform: translateY(-150%);
+      padding: 0.7rem 1rem;
+      border-radius: 999px;
+      background: var(--text);
+      color: var(--bg);
+      text-decoration: none;
+      font-weight: 700;
+    }
+
+    .skip-link:focus { transform: translateY(0); }
+    :focus-visible {
+      outline: 3px solid rgba(141, 90, 43, 0.45);
+      outline-offset: 3px;
+    }
+
+    .shell {
+      width: min(1380px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 28px 0 56px;
+      display: grid;
+      grid-template-columns: 280px minmax(0, 1fr);
+      gap: 24px;
+    }
+
+    .toc {
+      position: sticky;
+      top: 20px;
+      align-self: start;
+      padding: 18px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+    }
+
+    .toc h2 {
+      margin: 0 0 12px;
+      font-size: 0.9rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .toc a {
+      display: block;
+      padding: 10px 12px;
+      margin: 4px 0;
+      border-radius: 12px;
+      color: var(--text-muted);
+      text-decoration: none;
+    }
+
+    .toc a:hover,
+    .toc a:focus-visible {
+      background: var(--surface-muted);
+      color: var(--text);
+    }
+
+    .panel,
+    .hero,
+    .card,
+    .callout,
+    .table-wrap,
+    .summary-grid article,
+    .roadmap-item,
+    details {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .hero {
+      padding: 32px;
+      background:
+        linear-gradient(135deg, rgba(141, 90, 43, 0.08), transparent 45%),
+        linear-gradient(135deg, rgba(54, 102, 109, 0.08), transparent 65%),
+        var(--surface-strong);
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0 0 14px;
+      color: var(--accent);
+      font-size: 0.82rem;
+      font-weight: 800;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 16px;
+      height: 2px;
+      border-radius: 999px;
+      background: currentColor;
+    }
+
+    h1, h2, h3, h4 {
+      margin: 0;
+      line-height: 1.15;
+    }
+
+    h1 {
+      font-size: clamp(2rem, 4vw, 3.8rem);
+      letter-spacing: -0.05em;
+      max-width: 13ch;
+    }
+
+    h2 {
+      font-size: clamp(1.45rem, 2vw, 2rem);
+      margin-bottom: 14px;
+    }
+
+    h3 {
+      font-size: 1.05rem;
+      margin-bottom: 8px;
+    }
+
+    p { margin: 0 0 12px; }
+    p:last-child { margin-bottom: 0; }
+    code {
+      font-family: var(--font-mono);
+      font-size: 0.92em;
+      padding: 0.1rem 0.35rem;
+      border-radius: 8px;
+      background: var(--surface-muted);
+    }
+
+    .lede {
+      max-width: 72ch;
+      margin-top: 16px;
+      font-size: 1.05rem;
+      color: var(--text-muted);
+    }
+
+    .hero-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .pill,
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0.34rem 0.7rem;
+      border-radius: 999px;
+      border: 1px solid currentColor;
+      font-size: 0.84rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .pill-neutral { color: var(--text-muted); background: var(--surface-muted); }
+    .pill-accent { color: var(--accent); background: rgba(141, 90, 43, 0.1); }
+    .pill-info { color: var(--accent-2); background: rgba(54, 102, 109, 0.12); }
+    .pill-success { color: var(--success); background: rgba(21, 107, 82, 0.1); }
+    .pill-warning { color: var(--warning); background: rgba(160, 90, 22, 0.1); }
+    .pill-danger { color: var(--danger); background: rgba(176, 60, 47, 0.1); }
+
+    .main {
+      display: grid;
+      gap: 24px;
+    }
+
+    section { display: grid; gap: 16px; }
+
+    .summary-grid,
+    .feature-grid,
+    .recommendation-grid,
+    .matrix-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+    }
+
+    .summary-grid article,
+    .card,
+    .roadmap-item {
+      padding: 18px;
+    }
+
+    .metric {
+      font-size: 1.6rem;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      margin: 8px 0 6px;
+    }
+
+    .muted { color: var(--text-muted); }
+
+    .callout {
+      padding: 18px 18px 18px 20px;
+      border-left: 6px solid var(--accent);
+    }
+
+    .callout.warning { border-left-color: var(--warning); }
+    .callout.success { border-left-color: var(--success); }
+
+    .table-wrap {
+      overflow-x: auto;
+      padding: 6px 0;
+    }
+
+    table {
+      width: 100%;
+      min-width: 780px;
+      border-collapse: collapse;
+    }
+
+    caption {
+      padding: 10px 18px;
+      text-align: left;
+      color: var(--text-muted);
+      font-size: 0.92rem;
+    }
+
+    th,
+    td {
+      padding: 12px 16px;
+      border-top: 1px solid var(--border);
+      vertical-align: top;
+      text-align: left;
+    }
+
+    th {
+      background: var(--surface-muted);
+      font-size: 0.9rem;
+    }
+
+    .list-tight {
+      margin: 0;
+      padding-left: 18px;
+      display: grid;
+      gap: 6px;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    button.filter-chip,
+    button.copy-button {
+      appearance: none;
+      border: 1px solid var(--border-strong);
+      background: var(--surface-strong);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 0.55rem 0.9rem;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    button.filter-chip.is-active {
+      color: var(--accent);
+      border-color: var(--accent);
+      background: rgba(141, 90, 43, 0.08);
+    }
+
+    .recommendation-card[data-track="backend"] .track-badge {
+      color: var(--accent-2);
+      border-color: var(--accent-2);
+      background: rgba(54, 102, 109, 0.08);
+    }
+
+    .recommendation-card[data-track="frontend"] .track-badge {
+      color: var(--accent);
+      border-color: var(--accent);
+      background: rgba(141, 90, 43, 0.08);
+    }
+
+    .recommendation-card {
+      padding: 18px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .recommendation-card h3 { margin-bottom: 0; }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    details {
+      padding: 14px 16px;
+      background: var(--surface-strong);
+    }
+
+    summary {
+      cursor: pointer;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .roadmap {
+      display: grid;
+      gap: 12px;
+    }
+
+    .roadmap-item {
+      display: grid;
+      gap: 8px;
+      border-left: 5px solid var(--accent);
+    }
+
+    .roadmap-item.phase-2 { border-left-color: var(--accent-2); }
+    .roadmap-item.phase-3 { border-left-color: var(--warning); }
+
+    .footer-note {
+      padding: 18px;
+      color: var(--text-muted);
+      font-size: 0.92rem;
+    }
+
+    [hidden] { display: none !important; }
+
+    @media (max-width: 980px) {
+      .shell {
+        grid-template-columns: 1fr;
+      }
+      .toc {
+        position: static;
+      }
+      table {
+        min-width: 640px;
+      }
+    }
+
+    @media print {
+      body { background: #fff; }
+      .shell { width: 100%; display: block; padding: 0; }
+      .toc, .toolbar, .copy-button { display: none !important; }
+      .hero, .panel, .card, .callout, .table-wrap, details { box-shadow: none; }
+      section, .roadmap-item, .recommendation-card { break-inside: avoid; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="shell">
+    <nav class="toc" aria-label="报告目录">
+      <h2>目录</h2>
+      <a href="#summary">执行摘要</a>
+      <a href="#vibedeck">VibeDeck 主要特色</a>
+      <a href="#comparison">对比矩阵</a>
+      <a href="#backend">后端：llmusage / usage 实现</a>
+      <a href="#frontend">前端：app 信息架构与交互</a>
+      <a href="#roadmap">建议路线图</a>
+      <a href="#sources">证据来源</a>
+    </nav>
+
+    <main id="main" class="main">
+      <header class="hero">
+        <p class="eyebrow">Evidence Dossier + Decision Matrix</p>
+        <h1>VibeDeck vs ccr-ui：从 usage 后端与 app 前端看优化方向</h1>
+        <p class="lede">
+          核心结论：VibeDeck 的真正优势不是“图表更多”，而是它把 usage 这件事做成了一个<strong>统一、实时、可追责的域模型</strong>：
+          active session → provider → repo / worktree / branch → canonical ledger → live operations。
+          ccr-ui 已经拥有更广的多工具 control plane，但 usage 子系统目前仍偏“报表聚合 + 双链路拼装 + 弱实时”。
+          最值得借鉴的不是照搬页面，而是把 <strong>usage 变成可操作的工作台</strong>。
+        </p>
+        <div class="hero-meta" aria-label="报告元数据">
+          <span class="pill pill-accent">范围：VibeDeck 本地代码快照 vs ccr-ui 当前实现</span>
+          <span class="pill pill-info">方法：代码证据优先，推断单独标记</span>
+          <span class="pill pill-success">结论可信度：高</span>
+          <span class="pill pill-warning">注意：VibeDeck 并不基于 llmusage，上下文是“本地 usage intelligence 模式对比”</span>
+        </div>
+      </header>
+
+      <section id="summary" aria-labelledby="summary-title">
+        <h2 id="summary-title">执行摘要</h2>
+        <div class="summary-grid">
+          <article>
+            <h3>VibeDeck 最强优势</h3>
+            <div class="metric">统一 usage 主线</div>
+            <p class="muted">
+              后端有 canonical ledger，前端有 live / branches / usage 连续叙事，诊断、stale、override 都围绕同一条主线展开。
+            </p>
+          </article>
+          <article>
+            <h3>ccr-ui 当前长板</h3>
+            <div class="metric">更强的多工具控制面</div>
+            <p class="muted">
+              不只看 usage，还覆盖 CLI 管理、配置、监控、配额、session、插件与平台操作；能力面比 VibeDeck 更宽。
+            </p>
+          </article>
+          <article>
+            <h3>后端最高 ROI</h3>
+            <div class="metric">加一层 usage snapshot / source health 投影</div>
+            <p class="muted">
+              把现有按请求重算的 overview / trends / model / project / diagnostics 汇总成可缓存投影，并用导入事件失效。
+            </p>
+          </article>
+          <article>
+            <h3>前端最高 ROI</h3>
+            <div class="metric">把 usage 页改成 ops cockpit</div>
+            <p class="muted">
+              先回答“是否可用、数据新不新、哪一路坏了、下一步做什么”，再展开趋势、模型、项目和日志明细。
+            </p>
+          </article>
+        </div>
+
+        <div class="callout">
+          <strong>关键判断：</strong>
+          ccr-ui 不应该把自己变成另一个 VibeDeck。正确方向是：保留“多工具 control plane”的产品定位，
+          但把 usage 子系统升级到更像 VibeDeck 那样<strong>强主线、强实时、强健康度、强 drilldown</strong>。
+        </div>
+      </section>
+
+      <section id="vibedeck" aria-labelledby="vibedeck-title">
+        <h2 id="vibedeck-title">VibeDeck 的主要特色</h2>
+        <div class="feature-grid">
+          <article class="card">
+            <div class="badge-row"><span class="status-pill pill-accent">特色 1</span></div>
+            <h3>Local-first + canonical ledger</h3>
+            <p>
+              README 与 PROJECT 明确把 SQLite canonical store 当成产品中心，而不是临时缓存。多 provider 数据被吸收到一套稳定读模型里。
+            </p>
+            <p class="muted">
+              证据：<code>ref/repo/VibeDeck/README.md</code>、<code>PROJECT.md</code>、<code>src/lib/usage-read-models.js</code>
+            </p>
+          </article>
+          <article class="card">
+            <div class="badge-row"><span class="status-pill pill-info">特色 2</span></div>
+            <h3>Live workbench，不是静态报表</h3>
+            <p>
+              首页默认就是 live workbench，前端通过 SSE + last-good cache 持续显示 live sessions、workstreams、stale / reconnecting 状态。
+            </p>
+            <p class="muted">
+              证据：<code>dashboard/src/pages/LivePage.jsx</code>、<code>dashboard/src/hooks/use-vibedeck-live-sessions.ts</code>、<code>src/lib/local-api.js</code>
+            </p>
+          </article>
+          <article class="card">
+            <div class="badge-row"><span class="status-pill pill-success">特色 3</span></div>
+            <h3>Branch / repo / worktree 归因深度更强</h3>
+            <p>
+              VibeDeck 把 usage 归因一路钻到 repo、branch、session，还提供 branch override，明显不是“按平台 / 模型看统计”就结束。
+            </p>
+            <p class="muted">
+              证据：<code>dashboard/src/pages/BranchesPage.jsx</code>、<code>dashboard/src/pages/LivePage.jsx</code>、<code>src/lib/sessions/*</code>
+            </p>
+          </article>
+          <article class="card">
+            <div class="badge-row"><span class="status-pill pill-warning">特色 4</span></div>
+            <h3>Honest unknowns + diagnostics first</h3>
+            <p>
+              它明确保留 unknown / historical unknown，不伪造精度；同时把 sync freshness、canonical completeness、source 状态当作一等信息。
+            </p>
+            <p class="muted">
+              证据：<code>PROJECT.md</code> 的 release audit，<code>src/lib/local-api.js</code>，<code>dashboard/src/lib/sync-freshness*</code>
+            </p>
+          </article>
+          <article class="card">
+            <div class="badge-row"><span class="status-pill pill-danger">特色 5</span></div>
+            <h3>所有 surface 讲同一个故事</h3>
+            <p>
+              web dashboard、CLI、Mac app、widgets 都围绕同一条 usage narrative 展开，不会出现“首页说一个世界，明细页说另一个世界”。
+            </p>
+            <p class="muted">
+              证据：<code>README.md</code>、<code>dashboard/src/App.jsx</code> 路由、<code>src/commands/serve.js</code>
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section id="comparison" aria-labelledby="comparison-title">
+        <h2 id="comparison-title">VibeDeck 与 ccr-ui 对比矩阵</h2>
+        <div class="table-wrap">
+          <table>
+            <caption>从产品焦点、数据模型、实时性与健康度几个维度比较两者的 usage 体系。</caption>
+            <thead>
+              <tr>
+                <th scope="col">维度</th>
+                <th scope="col">VibeDeck</th>
+                <th scope="col">ccr-ui 当前状态</th>
+                <th scope="col">对 ccr-ui 的含义</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>产品焦点</td>
+                <td>单点聚焦 usage intelligence</td>
+                <td>更宽的 AI CLI control plane</td>
+                <td>不该照抄 IA，而该抽取 usage workbench 模式。</td>
+              </tr>
+              <tr>
+                <td>后端主线</td>
+                <td>canonical ledger + provider-specific ingest</td>
+                <td><code>llmusage</code> 只读 DB + <code>ccr_db</code> session archive 双链路</td>
+                <td>当前“usage / session”并非单一真相源，首页需要临时拼装。</td>
+              </tr>
+              <tr>
+                <td>实时性</td>
+                <td>SSE live session stream + stale fallback</td>
+                <td>导入任务事件 + 前端缓存刷新；无 usage live stream</td>
+                <td>当前更像“导入完成后看报表”，不是“边运行边感知”。</td>
+              </tr>
+              <tr>
+                <td>归因深度</td>
+                <td>provider → repo / worktree / branch / session</td>
+                <td>provider / model / project / logs / source diagnostics</td>
+                <td>project 已有，下一步该做 session / repo / branch drilldown。</td>
+              </tr>
+              <tr>
+                <td>健康度与诚实性</td>
+                <td>freshness、unknown、canonical completeness 都前置</td>
+                <td>capabilities / unsupported states 做得不错，但 source health 没被提到最前面</td>
+                <td>ccr-ui 已有底层诚实性基础，差的是展示优先级。</td>
+              </tr>
+              <tr>
+                <td>退化体验</td>
+                <td>last-good cache + reconnecting / stale banner</td>
+                <td>前端 store 有 dashboard cache，但用户可见 stale 状态不够显眼</td>
+                <td>缓存存在，退化 UX 还可以更产品化。</td>
+              </tr>
+              <tr>
+                <td>信息架构</td>
+                <td>live / usage / branches 连成一条主线</td>
+                <td>首页、usage、monitoring、budget 各自强，但连贯性一般</td>
+                <td>可把 usage / monitoring / quota 用同一语言重新编排。</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="backend" aria-labelledby="backend-title">
+        <h2 id="backend-title">后端：ccr-ui 的 llmusage / usage 实现分析</h2>
+
+        <div class="callout success">
+          <strong>先说优点：</strong>
+          ccr-ui 的 usage 后端边界其实很健康。
+          <code>src-tauri/src/llmusage_adapter/mod.rs</code> 明确坚持 crate-free、只读 SQLite、只调已安装 CLI；
+          <code>capabilities.rs</code> 有 typed unsupported reason；
+          <code>commands/usage.rs</code> 也已经把 overview / trends / model / project / source / heatmap 聚合成单个 dashboard API。
+          这说明基础边界比“随手绑一个三方库”成熟得多。
+        </div>
+
+        <div class="matrix-cards">
+          <article class="card">
+            <h3>已验证的强项</h3>
+            <ul class="list-tight">
+              <li>强约束：不链接 llmusage crate，不写 llmusage DB。</li>
+              <li>feature capability 明确，unsupported 状态可解释。</li>
+              <li>导入任务有 <code>recent_ready</code> / <code>finished</code> 阶段。</li>
+              <li>home overview 已能把 usage 与 session 数串起来。</li>
+            </ul>
+          </article>
+          <article class="card">
+            <h3>主要结构性缺口</h3>
+            <ul class="list-tight">
+              <li>首页依赖 llmusage usage + ccr session archive 双链路拼装。</li>
+              <li>dashboard 每次查询仍现算多个投影。</li>
+              <li>缺少 live usage summary channel。</li>
+              <li>project 之下没有 repo / branch / session drilldown。</li>
+            </ul>
+          </article>
+          <article class="card">
+            <h3>与 VibeDeck 的本质差距</h3>
+            <p>
+              不是 SQL 少几张表，而是缺少一个“usage 运行态事实层”。
+              VibeDeck 先建 canonical model，再做页面；ccr-ui 目前更像先有页面需求，再从两个本地数据源现拼 payload。
+            </p>
+          </article>
+        </div>
+
+        <div class="toolbar" aria-label="推荐筛选">
+          <button type="button" class="filter-chip is-active" data-filter="all" aria-pressed="true">全部建议</button>
+          <button type="button" class="filter-chip" data-filter="backend" aria-pressed="false">只看后端</button>
+          <button type="button" class="filter-chip" data-filter="frontend" aria-pressed="false">只看前端</button>
+          <button type="button" class="copy-button" data-copy-target="#summary-copy">复制执行摘要</button>
+          <span id="copy-status" class="muted" aria-live="polite"></span>
+        </div>
+
+        <div id="summary-copy" hidden>
+          VibeDeck 的优势是 usage 域模型统一、实时、可追责；ccr-ui 的优势是多工具 control plane 更强。最高 ROI 的优化是：后端加 usage snapshot 与 source health 投影，前端把 usage 页改成先讲可用性与健康度的 ops cockpit。
+        </div>
+
+        <div class="recommendation-grid">
+          <article class="recommendation-card card" data-track="backend">
+            <div class="badge-row">
+              <span class="track-badge status-pill">后端 P1</span>
+              <span class="pill pill-success">影响：高</span>
+              <span class="pill pill-neutral">成本：低到中</span>
+            </div>
+            <h3>1. 在 Tauri 后端补一层 usage snapshot cache</h3>
+            <p>
+              把 <code>get_usage_dashboard_v2</code> 的 summary / trends / model / project / source / archive / heatmap 聚合结果按
+              <code>platform + start + end + include_heatmap</code> 做短 TTL 缓存，并在导入事件后失效。
+            </p>
+            <details>
+              <summary>为什么这是最高 ROI</summary>
+              <p>
+                现在前端 <code>stores/usage.ts</code> 有 30 秒缓存，但后端没有同级 snapshot。
+                这意味着同一窗口内重新进页、跨组件取数、后台 warmup 后主动刷新，都会再次触发阻塞查询。
+                这是最容易补的一层“像产品而不是像 demo”的稳定器。
+              </p>
+            </details>
+          </article>
+
+          <article class="recommendation-card card" data-track="backend">
+            <div class="badge-row">
+              <span class="track-badge status-pill">后端 P1</span>
+              <span class="pill pill-success">影响：高</span>
+              <span class="pill pill-neutral">成本：中</span>
+            </div>
+            <h3>2. 把 source health 变成一等投影，而不是附带诊断</h3>
+            <p>
+              你已经在 <code>llmusage_adapter/db.rs</code> 里有 <code>diagnostics()</code> 与 per-source live / missing / deleted / recent_completed_at /
+              history_completed_at；下一步应该把它折进 dashboard payload 顶部结构，而不是只作为 warning 或日志背景信息。
+            </p>
+            <details>
+              <summary>建议的最小 contract</summary>
+              <p>
+                建议返回：source、最近成功同步时间、history 完成时间、live 文件数、missing 文件数、deleted 文件数、当前导入阶段、是否 capability unsupported。
+                前端就能直接画 source health strip，不必再从多个 warning 文本推导。
+              </p>
+            </details>
+          </article>
+
+          <article class="recommendation-card card" data-track="backend">
+            <div class="badge-row">
+              <span class="track-badge status-pill">后端 P1</span>
+              <span class="pill pill-warning">影响：中到高</span>
+              <span class="pill pill-neutral">成本：中</span>
+            </div>
+            <h3>3. 降低首页双链路拼装的临时性</h3>
+            <p>
+              <code>get_home_usage_overview_v2</code> 当前在请求时动态合并 llmusage usage 与 <code>ccr_db</code> session archive。
+              这在过渡期是合理的，但长期会让首页的“真相源”越来越难解释。
+            </p>
+            <details>
+              <summary>建议做法</summary>
+              <p>
+                不是立刻重写 schema，而是在本地先做一个 <code>home_usage_snapshot</code> 级别的缓存投影：
+                usage truth 仍来自 llmusage，session truth 仍来自 ccr_db，但输出成为一份有时间戳、可失效、可解释的稳定快照。
+              </p>
+            </details>
+          </article>
+
+          <article class="recommendation-card card" data-track="backend">
+            <div class="badge-row">
+              <span class="track-badge status-pill">后端 P2</span>
+              <span class="pill pill-warning">影响：高</span>
+              <span class="pill pill-neutral">成本：中到高</span>
+            </div>
+            <h3>4. 用 Tauri 事件补“live usage summary”而不是只靠导入后刷新</h3>
+            <p>
+              ccr-ui 已经有 usage job progress 事件，但还没有一个“当前 usage 总览正在变动”的稳定前端消费模型。
+              可以不学 VibeDeck 的 SSE，而是利用 Tauri <code>emit</code> 推送增量 summary / freshness / source-state 变化。
+            </p>
+          </article>
+
+          <article class="recommendation-card card" data-track="backend">
+            <div class="badge-row">
+              <span class="track-badge status-pill">后端 P2</span>
+              <span class="pill pill-warning">影响：高</span>
+              <span class="pill pill-neutral">成本：高</span>
+            </div>
+            <h3>5. 规划 repo / branch / session 级 drilldown，而不止 project</h3>
+            <p>
+              VibeDeck 最有辨识度的不是 provider 数量，而是把 usage 和真实工程结构绑定。ccr-ui 已经有 session index 与 project_path，
+              下一阶段可先做到 <strong>project → session</strong>，再追求 repo / branch。
+            </p>
+          </article>
+
+          <article class="recommendation-card card" data-track="backend">
+            <div class="badge-row">
+              <span class="track-badge status-pill">后端 P3</span>
+              <span class="pill pill-danger">影响：中</span>
+              <span class="pill pill-neutral">成本：低</span>
+            </div>
+            <h3>6. 修复“unknown 默认归到 Claude”的诚实性瑕疵</h3>
+            <p>
+              <code>src-tauri/src/stats_snapshot.rs</code> 的 <code>normalize_usage_platform()</code> 对未知值默认回落到 <code>claude</code>。
+              这与 VibeDeck 在 unknown bucket 上的诚实策略相反，建议改成独立 unknown 桶。
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section id="frontend" aria-labelledby="frontend-title">
+        <h2 id="frontend-title">前端：ccr-ui app 的 usage 体验与工作台设计</h2>
+
+        <div class="callout warning">
+          <strong>我对前端的判断：</strong>
+          ccr-ui 的 usage 页面已经不弱，甚至在“多 tab 分析能力”上比很多工具更完整；
+          但它目前更像一个<strong>分析 dashboard</strong>，还不是一个<strong>usage operations cockpit</strong>。
+          VibeDeck 的启发是：把“数据是否可信、系统现在处于什么状态、下一步做什么”放到第一屏。
+        </div>
+
+        <div class="matrix-cards">
+          <article class="card">
+            <h3>ccr-ui 已有的前端优点</h3>
+            <ul class="list-tight">
+              <li><code>DashboardView.vue</code> 已是 task-oriented，而非纯装饰首页。</li>
+              <li><code>UsageDashboardView.vue</code> 覆盖 overview / tokens / cost / models / projects / logs。</li>
+              <li><code>useUsageDashboardState.ts</code> 做了 locale gating、idle hydration、chart lazy load。</li>
+              <li><code>MonitoringView.vue</code> 已有可用的健康日志工作台。</li>
+            </ul>
+          </article>
+          <article class="card">
+            <h3>相比 VibeDeck 的主要缺口</h3>
+            <ul class="list-tight">
+              <li>usage 第一屏缺乏“新鲜度 / 健康度 / 当前任务”强反馈。</li>
+              <li>source 诊断存在，但不够前置。</li>
+              <li>页面是 tab-first，而不是 state-first。</li>
+              <li>usage、monitoring、quota/budget 之间联系不够紧。</li>
+            </ul>
+          </article>
+          <article class="card">
+            <h3>一句话方向</h3>
+            <p>
+              把 usage 页从“统计图入口”升级成“当前 AI CLI usage 运行台”：
+              先讲 readiness、freshness、source health、active import，再展开趋势、模型、项目和日志。
+            </p>
+          </article>
+        </div>
+
+        <div class="recommendation-grid">
+          <article class="recommendation-card card" data-track="frontend">
+            <div class="badge-row">
+              <span class="track-badge status-pill">前端 P1</span>
+              <span class="pill pill-success">影响：高</span>
+              <span class="pill pill-neutral">成本：中</span>
+            </div>
+            <h3>1. 重写 usage 页首屏：先状态，再分析</h3>
+            <p>
+              建议把当前 toolbar + meta + warning 堆叠，改成一个 Usage Ops Header：
+              <strong>freshness、当前导入阶段、source health、archive 状态、下一步 CTA</strong>。
+            </p>
+            <details>
+              <summary>推荐首屏信息顺序</summary>
+              <ol class="list-tight">
+                <li>数据新鲜吗？最后一次 recent / history 完成时间是什么。</li>
+                <li>现在是否正在导入或回填？</li>
+                <li>哪一路 source 正常、缺失或脏。</li>
+                <li>如果坏了，用户该点哪里：导入、修复、看日志、去平台页。</li>
+              </ol>
+            </details>
+          </article>
+
+          <article class="recommendation-card card" data-track="frontend">
+            <div class="badge-row">
+              <span class="track-badge status-pill">前端 P1</span>
+              <span class="pill pill-success">影响：高</span>
+              <span class="pill pill-neutral">成本：中</span>
+            </div>
+            <h3>2. 把“warning 文本块”替换成结构化状态卡</h3>
+            <p>
+              当前页面中 importJobBanner、unsupportedSyncMessage、warningMessage 都是文本驱动。
+              更建议做成结构化卡片：状态、来源、最近时间、影响范围、CTA。
+            </p>
+          </article>
+
+          <article class="recommendation-card card" data-track="frontend">
+            <div class="badge-row">
+              <span class="track-badge status-pill">前端 P1</span>
+              <span class="pill pill-warning">影响：中到高</span>
+              <span class="pill pill-neutral">成本：低到中</span>
+            </div>
+            <h3>3. 把 stale / cached / background refresh 做成明确体验</h3>
+            <p>
+              你已经在 store 里做了 dashboard cache，但用户未必知道自己看到的是新结果还是旧缓存。
+              可以借鉴 VibeDeck 的 reconnecting / stale banner，把“这是上次可用数据”说清楚。
+            </p>
+          </article>
+
+          <article class="recommendation-card card" data-track="frontend">
+            <div class="badge-row">
+              <span class="track-badge status-pill">前端 P2</span>
+              <span class="pill pill-warning">影响：高</span>
+              <span class="pill pill-neutral">成本：中</span>
+            </div>
+            <h3>4. 从 tab-first 改成 split-view：概览 + 操作</h3>
+            <p>
+              现在 overview / tokens / cost / models / projects / logs 的 tab 切换很完整，但第一屏过于“分析工具感”。
+              更好的结构是左侧主图表与 summary，右侧固定 operations / diagnostics / source health。
+            </p>
+          </article>
+
+          <article class="recommendation-card card" data-track="frontend">
+            <div class="badge-row">
+              <span class="track-badge status-pill">前端 P2</span>
+              <span class="pill pill-warning">影响：中到高</span>
+              <span class="pill pill-neutral">成本：中</span>
+            </div>
+            <h3>5. 把 monitoring 与 usage 关联起来，而不是平行存在</h3>
+            <p>
+              <code>MonitoringView.vue</code> 很强，但 usage 页只在 logs tab 末端触达问题。
+              建议在 usage 页直接显示最近 usage import 失败、最近 source 缺失、最近 repair 建议，并深链到 monitoring。
+            </p>
+          </article>
+
+          <article class="recommendation-card card" data-track="frontend">
+            <div class="badge-row">
+              <span class="track-badge status-pill">前端 P2</span>
+              <span class="pill pill-warning">影响：中</span>
+              <span class="pill pill-neutral">成本：中</span>
+            </div>
+            <h3>6. 用 usage 统一 budget / quota / platform health 的语言</h3>
+            <p>
+              ccr-ui 里预算、Codex quota、平台 readiness、usage 分析目前分布在不同页面。
+              用户会把它们理解为同一件事：<em>这台机器上的 AI 工具现在还能不能继续跑，成本是否健康</em>。
+            </p>
+          </article>
+
+          <article class="recommendation-card card" data-track="frontend">
+            <div class="badge-row">
+              <span class="track-badge status-pill">前端 P3</span>
+              <span class="pill pill-danger">影响：中</span>
+              <span class="pill pill-neutral">成本：中</span>
+            </div>
+            <h3>7. 做 project → session → raw log 的渐进钻取</h3>
+            <p>
+              在后端尚未完全 branch-aware 前，前端也可以先支持 project 卡片进入 session 列表，再进入日志明细。
+              这会比继续堆 tab 更接近真实工作流。
+            </p>
+          </article>
+
+          <article class="recommendation-card card" data-track="frontend">
+            <div class="badge-row">
+              <span class="track-badge status-pill">前端 P3</span>
+              <span class="pill pill-danger">影响：中</span>
+              <span class="pill pill-neutral">成本：低到中</span>
+            </div>
+            <h3>8. 视觉层面再收敛：更少“提示块”，更强“编辑部式层级”</h3>
+            <p>
+              ccr-ui 的整体设计方向已经是 calm / precise / editorial。
+              usage 页可以进一步减少重复容器和杂讯，把状态胶囊、关键数字、下一步操作做得更像同一套工作台语言。
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section id="roadmap" aria-labelledby="roadmap-title">
+        <h2 id="roadmap-title">建议路线图</h2>
+        <div class="roadmap">
+          <article class="roadmap-item">
+            <div class="badge-row">
+              <span class="status-pill pill-accent">Phase 1 · 1–2 次迭代</span>
+              <span class="pill pill-success">以低风险高收益为主</span>
+            </div>
+            <h3>先把“状态是否可信”做扎实</h3>
+            <ul class="list-tight">
+              <li>后端增加 usage dashboard snapshot cache。</li>
+              <li>dashboard payload 加入 source health / freshness。</li>
+              <li>usage 页首屏改为 readiness + freshness + import state + CTA。</li>
+              <li>显式 stale / cached banner。</li>
+            </ul>
+          </article>
+
+          <article class="roadmap-item phase-2">
+            <div class="badge-row">
+              <span class="status-pill pill-info">Phase 2 · 2–4 次迭代</span>
+              <span class="pill pill-warning">把 usage 做成可操作工作台</span>
+            </div>
+            <h3>建立 usage ops cockpit</h3>
+            <ul class="list-tight">
+              <li>usage 页 split-view：左分析，右操作 / 健康度。</li>
+              <li>monitoring 深链与最近失败项前置。</li>
+              <li>home overview 与 usage 页共用同一套状态语言。</li>
+              <li>补 Tauri 事件驱动的 live summary / freshness 更新。</li>
+            </ul>
+          </article>
+
+          <article class="roadmap-item phase-3">
+            <div class="badge-row">
+              <span class="status-pill pill-warning">Phase 3 · 中期能力建设</span>
+              <span class="pill pill-danger">需要后端维度扩展</span>
+            </div>
+            <h3>把 usage 从“按平台统计”推进到“按工程结构归因”</h3>
+            <ul class="list-tight">
+              <li>先做 project → session drilldown。</li>
+              <li>再规划 repo / branch / worktree 级归因。</li>
+              <li>逐步减少首页的双链路拼装感。</li>
+            </ul>
+          </article>
+        </div>
+
+        <div class="callout">
+          <strong>优先级建议：</strong>
+          如果你只能先做一件事，我建议先做<strong>后端 source health + snapshot cache</strong>，再做<strong>usage 页首屏重构</strong>。
+          原因很简单：没有稳定且可解释的状态层，前端再好看也只是把不确定性包装得更漂亮。
+        </div>
+      </section>
+
+      <section id="sources" aria-labelledby="sources-title">
+        <h2 id="sources-title">证据来源</h2>
+        <div class="table-wrap">
+          <table>
+            <caption>本报告仅使用本地仓库文件作为证据；所有建议均基于这些文件的当前快照。</caption>
+            <thead>
+              <tr>
+                <th scope="col">文件</th>
+                <th scope="col">类型</th>
+                <th scope="col">置信度</th>
+                <th scope="col">用于支持的判断</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>ref/repo/VibeDeck/README.md</code></td>
+                <td>产品说明</td>
+                <td><span class="status-pill pill-success">高</span></td>
+                <td>VibeDeck 的 local-first、多 provider、branch-aware 产品定位。</td>
+              </tr>
+              <tr>
+                <td><code>ref/repo/VibeDeck/PROJECT.md</code></td>
+                <td>架构 / release audit</td>
+                <td><span class="status-pill pill-success">高</span></td>
+                <td>canonical branch facts、unknown bucket、rebuild honesty、性能目标。</td>
+              </tr>
+              <tr>
+                <td><code>ref/repo/VibeDeck/src/lib/local-api.js</code></td>
+                <td>后端本地 API</td>
+                <td><span class="status-pill pill-success">高</span></td>
+                <td>SSE live、route 设计、local auth、live snapshot/freshness 机制。</td>
+              </tr>
+              <tr>
+                <td><code>ref/repo/VibeDeck/src/lib/usage-read-models.js</code></td>
+                <td>读模型</td>
+                <td><span class="status-pill pill-success">高</span></td>
+                <td>canonical usage read model 存在且有 completeness guard。</td>
+              </tr>
+              <tr>
+                <td><code>ref/repo/VibeDeck/dashboard/src/pages/LivePage.jsx</code></td>
+                <td>前端页面</td>
+                <td><span class="status-pill pill-success">高</span></td>
+                <td>VibeDeck 默认把 usage 做成 live workbench，而不是单纯报表。</td>
+              </tr>
+              <tr>
+                <td><code>ref/repo/VibeDeck/dashboard/src/pages/BranchesPage.jsx</code></td>
+                <td>前端页面</td>
+                <td><span class="status-pill pill-success">高</span></td>
+                <td>branch-aware drilldown 与 cached fallback 体验。</td>
+              </tr>
+              <tr>
+                <td><code>ref/repo/VibeDeck/dashboard/src/hooks/use-vibedeck-live-sessions.ts</code></td>
+                <td>前端 hook</td>
+                <td><span class="status-pill pill-success">高</span></td>
+                <td>EventSource + stale / reconnecting / last-good cache 设计。</td>
+              </tr>
+              <tr>
+                <td><code>src-tauri/src/llmusage_adapter/mod.rs</code></td>
+                <td>后端边界</td>
+                <td><span class="status-pill pill-success">高</span></td>
+                <td>ccr-ui 的 crate-free、只读 DB、只调 CLI 约束。</td>
+              </tr>
+              <tr>
+                <td><code>src-tauri/src/llmusage_adapter/capabilities.rs</code></td>
+                <td>后端能力探测</td>
+                <td><span class="status-pill pill-success">高</span></td>
+                <td>unsupported states 与 feature gating 已较成熟。</td>
+              </tr>
+              <tr>
+                <td><code>src-tauri/src/llmusage_adapter/db.rs</code></td>
+                <td>后端查询层</td>
+                <td><span class="status-pill pill-success">高</span></td>
+                <td>source breakdown、diagnostics、home overview、logs 的现有粒度。</td>
+              </tr>
+              <tr>
+                <td><code>src-tauri/src/commands/usage.rs</code></td>
+                <td>后端命令</td>
+                <td><span class="status-pill pill-success">高</span></td>
+                <td>dashboard 聚合、双链路 home overview、import job 生命周期。</td>
+              </tr>
+              <tr>
+                <td><code>src-tauri/src/stats_snapshot.rs</code></td>
+                <td>后端辅助</td>
+                <td><span class="status-pill pill-warning">中</span></td>
+                <td>legacy stats 中 unknown → Claude 的回落行为，支撑“诚实性瑕疵”判断。</td>
+              </tr>
+              <tr>
+                <td><code>src/views/UsageDashboardView.vue</code></td>
+                <td>前端页面</td>
+                <td><span class="status-pill pill-success">高</span></td>
+                <td>当前 usage 页是 tab-heavy analytics dashboard，而非 ops cockpit。</td>
+              </tr>
+              <tr>
+                <td><code>src/views/usage/useUsageDashboardState.ts</code></td>
+                <td>前端状态</td>
+                <td><span class="status-pill pill-success">高</span></td>
+                <td>lazy hydration / chart gating / runtime-unavailable 处理是现有强项。</td>
+              </tr>
+              <tr>
+                <td><code>src/stores/usage.ts</code></td>
+                <td>前端 store</td>
+                <td><span class="status-pill pill-success">高</span></td>
+                <td>已有前端缓存与 job orchestration，但后端 snapshot 仍缺位。</td>
+              </tr>
+              <tr>
+                <td><code>src/stores/homeUsageOverview.ts</code></td>
+                <td>前端 store</td>
+                <td><span class="status-pill pill-success">高</span></td>
+                <td>首页 warmup 与后台任务策略，说明首页已具备变成 usage cockpit 的土壤。</td>
+              </tr>
+              <tr>
+                <td><code>src/views/DashboardView.vue</code>、<code>src/views/MonitoringView.vue</code></td>
+                <td>前端页面</td>
+                <td><span class="status-pill pill-success">高</span></td>
+                <td>ccr-ui 的多工具 workbench 与 monitoring 已经成熟，可与 usage 更紧耦合。</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <details>
+          <summary>证据 vs 推断</summary>
+          <div style="margin-top: 12px; display: grid; gap: 12px;">
+            <div class="card">
+              <h3>已验证事实</h3>
+              <ul class="list-tight">
+                <li>VibeDeck 使用 canonical SQLite usage ledger 与 live SSE。</li>
+                <li>ccr-ui 的 llmusage 边界是 crate-free + read-only。</li>
+                <li>ccr-ui 首页 overview 由 llmusage usage 与 ccr session archive 现场合并。</li>
+                <li>ccr-ui usage 页已有完整 tab、缓存、日志分页与后台导入任务。</li>
+              </ul>
+            </div>
+            <div class="card">
+              <h3>推断与建议</h3>
+              <ul class="list-tight">
+                <li>用户会把 source health / freshness 理解为 usage 页的头号信息，而不是附属 diagnostics。</li>
+                <li>如果 usage 页首屏先展示状态与下一步，再展示图表，任务完成效率会比当前 tab-first 更高。</li>
+                <li>branch / session drilldown 是 ccr-ui usage 差异化的下一个关键增量，但不应早于 snapshot / health 基础层。</li>
+              </ul>
+            </div>
+          </div>
+        </details>
+      </section>
+
+      <footer class="footer-note">
+        报告生成时间：2026-05-25。此报告是本地离线 HTML artifact，可直接在浏览器中打开审阅。
+      </footer>
+    </main>
+  </div>
+
+  <script>
+    (function () {
+      const chips = Array.from(document.querySelectorAll('[data-filter]'));
+      const cards = Array.from(document.querySelectorAll('.recommendation-card'));
+      const copyButton = document.querySelector('[data-copy-target]');
+      const copyStatus = document.getElementById('copy-status');
+
+      function setFilter(next) {
+        chips.forEach((chip) => {
+          const active = chip.getAttribute('data-filter') === next;
+          chip.classList.toggle('is-active', active);
+          chip.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
+        cards.forEach((card) => {
+          const track = card.getAttribute('data-track');
+          card.hidden = !(next === 'all' || track === next);
+        });
+      }
+
+      chips.forEach((chip) => {
+        chip.addEventListener('click', function () {
+          setFilter(chip.getAttribute('data-filter') || 'all');
+        });
+      });
+
+      if (copyButton && copyStatus) {
+        copyButton.addEventListener('click', async function () {
+          const target = document.querySelector(copyButton.getAttribute('data-copy-target') || '');
+          const text = target ? target.textContent.trim() : '';
+          try {
+            await navigator.clipboard.writeText(text);
+            copyStatus.textContent = '已复制执行摘要。';
+          } catch (_error) {
+            copyStatus.textContent = '剪贴板不可用，请手动复制。';
+          }
+        });
+      }
+    })();
+  </script>
+</body>
+</html>
