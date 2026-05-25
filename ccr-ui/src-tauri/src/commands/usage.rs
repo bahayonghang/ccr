@@ -28,11 +28,12 @@
 //! 都属于这条旁路，不是漏迁。usage events 链路里出现 `usage_repo` 引用才是 bug。
 
 use std::collections::BTreeMap;
+use std::sync::Arc;
 use std::time::Instant;
 
 use ccr_config::Platform;
 use ccr_store::sessions::{SessionIndexer, parser::SessionParser};
-use chrono::{Duration, Local, Utc};
+use chrono::{DateTime, Duration, Local, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tauri::{AppHandle, Emitter, Manager, State};
@@ -45,9 +46,9 @@ use crate::llmusage_adapter::{
     platform_scope_label, queries,
 };
 use crate::monitoring::{emit_and_record_monitoring_event, should_persist, usage_import_entry};
-use crate::session_index_jobs::SessionIndexJobSnapshot;
-use crate::state::AppState;
-use crate::usage_jobs::{UsageImportJobSnapshot, UsageImportJobStage};
+use crate::session_index_jobs::{SessionIndexJobSnapshot, SessionIndexJobStatus};
+use crate::state::{AppState, CacheFillRegistration};
+use crate::usage_jobs::{UsageImportJobSnapshot, UsageImportJobStage, UsageImportJobStatus};
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "lowercase")]
@@ -108,6 +109,110 @@ pub struct ImportAllUsageResponse {
     pub summary: UsageImportSummary,
 }
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Default, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum UsageFreshnessState {
+    Fresh,
+    Stale,
+    #[default]
+    Missing,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
+pub struct UsageFreshnessProjection {
+    pub state: UsageFreshnessState,
+    pub latest_completed_at: Option<String>,
+    pub age_seconds: Option<i64>,
+    pub stale_after_seconds: i64,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Default, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum UsageSourceHealthState {
+    Live,
+    Degraded,
+    #[default]
+    Missing,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
+pub struct UsageSourceHealth {
+    pub source: String,
+    pub state: UsageSourceHealthState,
+    pub live_sources: u64,
+    pub missing_sources: u64,
+    pub deleted_sources: u64,
+    pub recent_completed_at: Option<String>,
+    pub history_completed_at: Option<String>,
+    pub freshness: UsageFreshnessProjection,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Default, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum UsageReadinessState {
+    Ready,
+    Syncing,
+    Stale,
+    Degraded,
+    NeedsImport,
+    NeedsSessionIndex,
+    #[default]
+    Empty,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
+pub struct UsageReadinessProjection {
+    pub state: UsageReadinessState,
+    pub next_action: Option<String>,
+    pub detail: String,
+    pub has_live_sources: bool,
+    pub has_missing_sources: bool,
+    pub has_deleted_sources: bool,
+    pub active_usage_import: bool,
+    pub active_session_index: bool,
+    pub recent_completed_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct UsageDrilldownProjection {
+    pub dimensions: Vec<String>,
+    pub supports_logs: bool,
+    pub supports_projects: bool,
+    pub supports_sessions: bool,
+}
+
+impl Default for UsageDrilldownProjection {
+    fn default() -> Self {
+        Self {
+            dimensions: vec![
+                "source".to_string(),
+                "project_path".to_string(),
+                "model".to_string(),
+                "session_id".to_string(),
+                "cwd".to_string(),
+                "branch".to_string(),
+                "worktree".to_string(),
+            ],
+            supports_logs: true,
+            supports_projects: true,
+            supports_sessions: true,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
+pub struct UsageSnapshotProjection {
+    pub generated_at: String,
+    pub platform_scope: String,
+    pub start_date: Option<String>,
+    pub end_date: Option<String>,
+    pub cache_ttl_seconds: u64,
+    pub freshness: UsageFreshnessProjection,
+    pub readiness: UsageReadinessProjection,
+    pub source_health: Vec<UsageSourceHealth>,
+    pub drilldown: UsageDrilldownProjection,
+}
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct UsageArchiveDiagnostics {
     pub archive_root: String,
@@ -117,6 +222,21 @@ pub struct UsageArchiveDiagnostics {
     pub archived_sessions: u64,
     pub recent_completed_at: Option<String>,
     pub history_completed_at: Option<String>,
+    #[serde(default)]
+    pub source_health: Vec<UsageSourceHealth>,
+    #[serde(default)]
+    pub freshness: UsageFreshnessProjection,
+    #[serde(default)]
+    pub readiness: UsageReadinessProjection,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct UsageSnapshotUpdatedPayload {
+    pub reason: String,
+    pub platform_scope: String,
+    pub job_id: Option<String>,
+    pub imported_records: usize,
+    pub generated_at: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -137,6 +257,9 @@ pub async fn get_usage_capabilities_v2(state: State<'_, AppState>) -> Result<Val
 }
 
 const HOME_USAGE_PLATFORMS: [&str; 4] = ["claude", "codex", "gemini", "opencode"];
+const USAGE_SNAPSHOT_CACHE_PREFIX: &str = "usage:snapshot:";
+const USAGE_SNAPSHOT_CACHE_TTL_SECS: u64 = 30;
+const USAGE_FRESHNESS_STALE_AFTER_SECS: i64 = 24 * 60 * 60;
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct HomeOverviewPlatformStats {
@@ -183,6 +306,7 @@ pub struct HomeUsageOverviewResponse {
     pub series: Vec<HomeOverviewSeriesItem>,
     pub bootstrap: HomeOverviewBootstrap,
     pub archive: UsageArchiveDiagnostics,
+    pub snapshot: UsageSnapshotProjection,
     pub empty_reason: Option<String>,
     pub last_updated: String,
 }
@@ -212,6 +336,201 @@ fn record_command_duration(state: &AppState, command_started: Instant) {
 
 fn record_db_duration(state: &AppState, db_ms: f64) {
     state.record_db_query_duration_ms(db_ms);
+}
+
+fn usage_dashboard_cache_key(
+    platform: Option<&str>,
+    start_date: Option<&str>,
+    end_date: Option<&str>,
+    heatmap_days: u32,
+    include_heatmap: bool,
+) -> String {
+    format!(
+        "{}dashboard:platform={}:start={}:end={}:heatmap_days={}:include_heatmap={}",
+        USAGE_SNAPSHOT_CACHE_PREFIX,
+        platform.unwrap_or("all"),
+        start_date.unwrap_or(""),
+        end_date.unwrap_or(""),
+        heatmap_days,
+        include_heatmap
+    )
+}
+
+async fn invalidate_usage_snapshot_cache(app_handle: &AppHandle) {
+    app_handle
+        .state::<AppState>()
+        .cache_remove_prefix(USAGE_SNAPSHOT_CACHE_PREFIX)
+        .await;
+}
+
+async fn emit_usage_snapshot_updated(
+    app_handle: &AppHandle,
+    reason: impl Into<String>,
+    platform: Option<&str>,
+    job_id: Option<String>,
+    imported_records: usize,
+) {
+    let payload = UsageSnapshotUpdatedPayload {
+        reason: reason.into(),
+        platform_scope: platform_scope_label(platform),
+        job_id,
+        imported_records,
+        generated_at: Utc::now().to_rfc3339(),
+    };
+
+    if let Err(error) = app_handle.emit("usage:snapshot-updated", payload) {
+        tracing::warn!(?error, "Failed to emit usage:snapshot-updated");
+    }
+}
+
+fn is_active_usage_import_job(job: Option<&UsageImportJobSnapshot>) -> bool {
+    job.is_some_and(|job| {
+        !matches!(
+            job.status,
+            UsageImportJobStatus::Finished
+                | UsageImportJobStatus::Failed
+                | UsageImportJobStatus::Cancelled
+        )
+    })
+}
+
+fn is_active_session_index_job(job: Option<&SessionIndexJobSnapshot>) -> bool {
+    job.is_some_and(|job| {
+        !matches!(
+            job.status,
+            SessionIndexJobStatus::Finished | SessionIndexJobStatus::Failed
+        )
+    })
+}
+
+fn usage_freshness_from_completed_at(
+    latest_completed_at: Option<String>,
+    now: DateTime<Utc>,
+) -> UsageFreshnessProjection {
+    let age_seconds = latest_completed_at
+        .as_deref()
+        .and_then(|value| DateTime::parse_from_rfc3339(value).ok())
+        .map(|completed_at| {
+            now.signed_duration_since(completed_at.with_timezone(&Utc))
+                .num_seconds()
+                .max(0)
+        });
+    let state = match age_seconds {
+        Some(age) if age <= USAGE_FRESHNESS_STALE_AFTER_SECS => UsageFreshnessState::Fresh,
+        Some(_) => UsageFreshnessState::Stale,
+        None => UsageFreshnessState::Missing,
+    };
+
+    UsageFreshnessProjection {
+        state,
+        latest_completed_at,
+        age_seconds,
+        stale_after_seconds: USAGE_FRESHNESS_STALE_AFTER_SECS,
+    }
+}
+
+fn usage_source_health_state(
+    live_sources: u64,
+    missing_sources: u64,
+    deleted_sources: u64,
+    freshness: UsageFreshnessState,
+) -> UsageSourceHealthState {
+    if live_sources == 0 && missing_sources == 0 && deleted_sources == 0 {
+        return UsageSourceHealthState::Missing;
+    }
+
+    if missing_sources > 0 || deleted_sources > 0 || freshness != UsageFreshnessState::Fresh {
+        UsageSourceHealthState::Degraded
+    } else {
+        UsageSourceHealthState::Live
+    }
+}
+
+fn build_usage_readiness(
+    archive: &UsageArchiveDiagnostics,
+    total_requests: u64,
+    total_sessions: u64,
+    needs_session_index: bool,
+    active_usage_import: bool,
+    active_session_index: bool,
+) -> UsageReadinessProjection {
+    let has_live_sources = archive.live_sources > 0 || total_requests > 0 || total_sessions > 0;
+    let has_missing_sources = archive.missing_sources > 0;
+    let has_deleted_sources = archive.deleted_sources > 0;
+    let (state, next_action, detail) = if active_usage_import || active_session_index {
+        (
+            UsageReadinessState::Syncing,
+            None,
+            "Usage import or session indexing is running.".to_string(),
+        )
+    } else if total_requests == 0 && archive.live_sources == 0 {
+        (
+            UsageReadinessState::NeedsImport,
+            Some("import_usage".to_string()),
+            "No imported usage source is available yet.".to_string(),
+        )
+    } else if needs_session_index {
+        (
+            UsageReadinessState::NeedsSessionIndex,
+            Some("index_sessions".to_string()),
+            "Raw sessions exist but the session archive is not indexed.".to_string(),
+        )
+    } else if archive.freshness.state == UsageFreshnessState::Stale {
+        (
+            UsageReadinessState::Stale,
+            Some("refresh_usage".to_string()),
+            "Imported usage data is older than the freshness window.".to_string(),
+        )
+    } else if has_missing_sources || has_deleted_sources {
+        (
+            UsageReadinessState::Degraded,
+            Some("inspect_sources".to_string()),
+            "Some usage sources are missing or deleted.".to_string(),
+        )
+    } else if total_requests == 0 && total_sessions == 0 {
+        (
+            UsageReadinessState::Empty,
+            Some("import_usage".to_string()),
+            "Usage sources are reachable but this window has no records.".to_string(),
+        )
+    } else {
+        (
+            UsageReadinessState::Ready,
+            None,
+            "Usage read model is ready.".to_string(),
+        )
+    };
+
+    UsageReadinessProjection {
+        state,
+        next_action,
+        detail,
+        has_live_sources,
+        has_missing_sources,
+        has_deleted_sources,
+        active_usage_import,
+        active_session_index,
+        recent_completed_at: archive.recent_completed_at.clone(),
+    }
+}
+
+fn build_usage_snapshot_projection(
+    platform_scope: String,
+    start_date: Option<String>,
+    end_date: Option<String>,
+    archive: &UsageArchiveDiagnostics,
+) -> UsageSnapshotProjection {
+    UsageSnapshotProjection {
+        generated_at: Utc::now().to_rfc3339(),
+        platform_scope,
+        start_date,
+        end_date,
+        cache_ttl_seconds: USAGE_SNAPSHOT_CACHE_TTL_SECS,
+        freshness: archive.freshness.clone(),
+        readiness: archive.readiness.clone(),
+        source_health: archive.source_health.clone(),
+        drilldown: UsageDrilldownProjection::default(),
+    }
 }
 
 fn source_import_result(source: SourceKind, stats: &SourceSyncStats) -> UsageImportResultV2 {
@@ -644,6 +963,15 @@ async fn bridge_llmusage_import_event(
             {
                 emit_usage_import_job_snapshot(app_handle, "usage:job-recent-ready", &snapshot)
                     .await;
+                invalidate_usage_snapshot_cache(app_handle).await;
+                emit_usage_snapshot_updated(
+                    app_handle,
+                    "job-recent-ready",
+                    platform,
+                    Some(job_id.to_string()),
+                    snapshot.records_imported,
+                )
+                .await;
             }
         }
         JobEvent::SourceFinished { source, stats } => {
@@ -771,6 +1099,15 @@ async fn finish_llmusage_import_job(
     )
     .await;
 
+    invalidate_usage_snapshot_cache(app_handle).await;
+    emit_usage_snapshot_updated(
+        app_handle,
+        "job-finished",
+        platform,
+        Some(job_id.to_string()),
+        summary.imported_records,
+    )
+    .await;
     emit_usage_import_job_snapshot(app_handle, "usage:job-finished", &final_snapshot).await;
 
     // 步骤N: 流式 usage 导入任务收尾时，触发 claude_observer 增量解析。
@@ -993,6 +1330,15 @@ async fn run_session_index_job(app_handle: AppHandle, job_id: String) {
             &final_snapshot,
         )
         .await;
+        invalidate_usage_snapshot_cache(&app_handle).await;
+        emit_usage_snapshot_updated(
+            &app_handle,
+            "session-index-finished",
+            None,
+            Some(job_id.clone()),
+            0,
+        )
+        .await;
         Ok::<(), String>(())
     };
 
@@ -1159,17 +1505,47 @@ fn load_llmusage_archive_diagnostics(
     let mut live_sources = 0u64;
     let mut missing_sources = 0u64;
     let mut deleted_sources = 0u64;
+    let mut source_health = Vec::new();
+    let now = Utc::now();
 
     for source in diagnostics.by_source {
+        let source_recent_completed_at = source.recent_completed_at.clone();
+        let source_history_completed_at = source.history_completed_at.clone();
         live_sources = live_sources.saturating_add(source.live_files);
         missing_sources = missing_sources.saturating_add(source.missing_files);
         deleted_sources = deleted_sources.saturating_add(source.deleted_files);
-        recent_completed_at = queries::max_rfc3339(recent_completed_at, source.recent_completed_at);
+        recent_completed_at =
+            queries::max_rfc3339(recent_completed_at, source_recent_completed_at.clone());
         history_completed_at =
-            queries::max_rfc3339(history_completed_at, source.history_completed_at);
+            queries::max_rfc3339(history_completed_at, source_history_completed_at.clone());
+
+        let latest_completed_at = queries::max_rfc3339(
+            source_recent_completed_at.clone(),
+            source_history_completed_at.clone(),
+        );
+        let freshness = usage_freshness_from_completed_at(latest_completed_at, now);
+        source_health.push(UsageSourceHealth {
+            source: source.source,
+            state: usage_source_health_state(
+                source.live_files,
+                source.missing_files,
+                source.deleted_files,
+                freshness.state,
+            ),
+            live_sources: source.live_files,
+            missing_sources: source.missing_files,
+            deleted_sources: source.deleted_files,
+            recent_completed_at: source_recent_completed_at,
+            history_completed_at: source_history_completed_at,
+            freshness,
+        });
     }
 
-    Ok(UsageArchiveDiagnostics {
+    let freshness = usage_freshness_from_completed_at(
+        queries::max_rfc3339(recent_completed_at.clone(), history_completed_at.clone()),
+        now,
+    );
+    let mut archive = UsageArchiveDiagnostics {
         archive_root: diagnostics.archive_root,
         live_sources,
         missing_sources,
@@ -1177,7 +1553,12 @@ fn load_llmusage_archive_diagnostics(
         archived_sessions,
         recent_completed_at,
         history_completed_at,
-    })
+        source_health,
+        freshness,
+        readiness: UsageReadinessProjection::default(),
+    };
+    archive.readiness = build_usage_readiness(&archive, 0, archived_sessions, false, false, false);
+    Ok(archive)
 }
 
 fn count_archived_sessions(pool: &ccr_db::database::pool::DbPool) -> Result<u64, String> {
@@ -1448,24 +1829,23 @@ pub async fn get_usage_logs_v2(
     serde_json::to_value(logs).map_err(|e| format!("Serialize error: {e}"))
 }
 
-/// 获取用量仪表盘数据，聚合汇总、趋势、模型与项目统计
-#[tauri::command]
-pub async fn get_usage_dashboard_v2(
-    state: State<'_, AppState>,
+async fn compute_usage_dashboard_payload(
+    llmusage: Arc<crate::llmusage_adapter::LlmusageRuntime>,
+    usage_db_pool: ccr_db::database::pool::DbPool,
     platform: Option<String>,
     start_date: Option<String>,
     end_date: Option<String>,
-    heatmap_days: Option<i64>,
-    include_heatmap: Option<bool>,
-) -> Result<Value, String> {
-    let command_started = Instant::now();
-    let llmusage = state.llmusage.clone();
-    let usage_db_pool = state.usage_db_pool.clone();
-    let heatmap_days = heatmap_days.unwrap_or(365).clamp(1, 366) as u32;
-    let include_heatmap = include_heatmap.unwrap_or(false);
-    let result = tokio::task::spawn_blocking(move || {
+    heatmap_days: u32,
+    include_heatmap: bool,
+    active_usage_import: bool,
+    active_session_index: bool,
+) -> Result<(Value, f64), String> {
+    tokio::task::spawn_blocking(move || {
         let db_started = Instant::now();
-        let filter = build_filter(platform, None, start_date, end_date)?;
+        let platform_scope = platform_scope_label(platform.as_deref());
+        let snapshot_start_date = start_date.clone();
+        let snapshot_end_date = end_date.clone();
+        let filter = build_filter(platform.clone(), None, start_date.clone(), end_date.clone())?;
         let dashboard = llmusage
             .dashboard()
             .map_err(|e| format!("Dashboard open error: {e}"))?;
@@ -1489,10 +1869,26 @@ pub async fn get_usage_dashboard_v2(
         let source_stats = dashboard
             .source_breakdown(&filter)
             .map_err(|e| format!("Source stats query error: {e}"))?;
-        let archive = load_llmusage_archive_diagnostics(
+        let mut archive = load_llmusage_archive_diagnostics(
             &dashboard,
             count_archived_sessions(&usage_db_pool)?,
         )?;
+        let needs_session_index = archive.archived_sessions == 0 && has_any_raw_sessions();
+        archive.readiness = build_usage_readiness(
+            &archive,
+            non_negative_i64(summary.total_requests),
+            archive.archived_sessions,
+            needs_session_index,
+            active_usage_import,
+            active_session_index,
+        );
+        let snapshot = build_usage_snapshot_projection(
+            platform_scope,
+            snapshot_start_date,
+            snapshot_end_date,
+            &archive,
+        );
+        let generated_at = snapshot.generated_at.clone();
         let heatmap = if include_heatmap {
             Some(
                 dashboard
@@ -1511,14 +1907,105 @@ pub async fn get_usage_dashboard_v2(
             "project_stats": project_stats,
             "source_stats": source_stats,
             "archive": archive,
+            "snapshot": snapshot,
             "heatmap": heatmap,
-            "generated_at": queries::generated_at(),
+            "generated_at": generated_at,
         }))
         .map(|payload| (payload, elapsed_ms(db_started)))
     })
     .await
-    .map_err(|e| format!("Task join error: {e}"))?;
+    .map_err(|e| format!("Task join error: {e}"))?
+}
 
+/// 获取用量仪表盘数据，聚合汇总、趋势、模型、项目统计与 usage snapshot 投影。
+#[tauri::command]
+pub async fn get_usage_dashboard_v2(
+    state: State<'_, AppState>,
+    platform: Option<String>,
+    start_date: Option<String>,
+    end_date: Option<String>,
+    heatmap_days: Option<i64>,
+    include_heatmap: Option<bool>,
+) -> Result<Value, String> {
+    let command_started = Instant::now();
+    let heatmap_days = heatmap_days.unwrap_or(365).clamp(1, 366) as u32;
+    let include_heatmap = include_heatmap.unwrap_or(false);
+    let active_usage_job = state.get_active_usage_import_job().await;
+    let active_session_job = state.get_active_session_index_job().await;
+    let active_usage_import = is_active_usage_import_job(active_usage_job.as_ref());
+    let active_session_index = is_active_session_index_job(active_session_job.as_ref());
+    let cacheable = !active_usage_import && !active_session_index;
+    let cache_key = usage_dashboard_cache_key(
+        platform.as_deref(),
+        start_date.as_deref(),
+        end_date.as_deref(),
+        heatmap_days,
+        include_heatmap,
+    );
+
+    if cacheable {
+        if let Some(cached) = state.cache_get(&cache_key).await {
+            record_command_duration(&state, command_started);
+            return Ok(cached);
+        }
+
+        match state.begin_cache_fill(&cache_key).await {
+            CacheFillRegistration::Wait(notify) => {
+                notify.notified().await;
+                if let Some(cached) = state.cache_get(&cache_key).await {
+                    record_command_duration(&state, command_started);
+                    return Ok(cached);
+                }
+            }
+            CacheFillRegistration::Leader => {
+                let result = compute_usage_dashboard_payload(
+                    state.llmusage.clone(),
+                    state.usage_db_pool.clone(),
+                    platform.clone(),
+                    start_date.clone(),
+                    end_date.clone(),
+                    heatmap_days,
+                    include_heatmap,
+                    active_usage_import,
+                    active_session_index,
+                )
+                .await;
+                record_command_duration(&state, command_started);
+
+                match result {
+                    Ok((dashboard, db_ms)) => {
+                        state
+                            .cache_set(
+                                cache_key.clone(),
+                                dashboard.clone(),
+                                USAGE_SNAPSHOT_CACHE_TTL_SECS,
+                            )
+                            .await;
+                        state.finish_cache_fill(&cache_key).await;
+                        record_db_duration(&state, db_ms);
+                        return Ok(dashboard);
+                    }
+                    Err(error) => {
+                        state.finish_cache_fill(&cache_key).await;
+                        return Err(error);
+                    }
+                }
+            }
+        }
+    }
+
+    let result = compute_usage_dashboard_payload(
+        state.llmusage.clone(),
+        state.usage_db_pool.clone(),
+        platform,
+        start_date,
+        end_date,
+        heatmap_days,
+        include_heatmap,
+        active_usage_import,
+        active_session_index,
+    )
+    .await;
     record_command_duration(&state, command_started);
     let (dashboard, db_ms) = result?;
     record_db_duration(&state, db_ms);
@@ -1547,6 +2034,8 @@ pub async fn get_home_usage_overview_v2(
         .as_ref()
         .map(|job| job.sessions_added + job.sessions_updated)
         .unwrap_or(0);
+    let active_usage_import = is_active_usage_import_job(active_usage_job.as_ref());
+    let active_session_index = is_active_session_index_job(active_session_job.as_ref());
 
     let result = tokio::task::spawn_blocking(move || {
         let db_started = Instant::now();
@@ -1560,7 +2049,7 @@ pub async fn get_home_usage_overview_v2(
         let has_any_usage = load_home_usage_presence(&dashboard)?;
         let mut usage_snapshot = load_home_usage_snapshot(&dashboard, &filter)?;
         let session_snapshot = load_home_session_snapshot(&pool, &start_date, &end_date)?;
-        let archive =
+        let mut archive =
             load_llmusage_archive_diagnostics(&dashboard, count_archived_sessions(&pool)?)?;
         let has_any_sessions = session_snapshot.has_any_sessions;
         let needs_usage_import = !has_any_usage;
@@ -1606,6 +2095,20 @@ pub async fn get_home_usage_overview_v2(
         let total_sessions = session_snapshot.total_sessions;
         let total_requests = usage_snapshot.total_requests;
         let total_tokens = usage_snapshot.total_tokens;
+        archive.readiness = build_usage_readiness(
+            &archive,
+            total_requests,
+            total_sessions,
+            needs_session_index,
+            active_usage_import,
+            active_session_index,
+        );
+        let snapshot = build_usage_snapshot_projection(
+            "all".to_string(),
+            Some(start_date.clone()),
+            Some(end_date.clone()),
+            &archive,
+        );
         let platforms = usage_snapshot
             .by_platform
             .values()
@@ -1635,6 +2138,7 @@ pub async fn get_home_usage_overview_v2(
             series,
             bootstrap,
             archive,
+            snapshot,
             empty_reason: detect_home_empty_reason(
                 total_requests,
                 total_sessions,
@@ -1717,6 +2221,15 @@ pub async fn import_usage_v2(
         persist,
     )
     .await;
+    invalidate_usage_snapshot_cache(&app_handle).await;
+    emit_usage_snapshot_updated(
+        &app_handle,
+        "import-usage",
+        Some(result.platform.as_str()),
+        None,
+        summary.imported_records,
+    )
+    .await;
 
     // 步骤N: 单平台导入完成后，仅当目标平台是 claude 时跑一次 claude_observer 增量解析。
     // 其他平台（codex / gemini / opencode / droid）的 JSONL 不在
@@ -1749,6 +2262,15 @@ pub async fn import_all_usage_v2(
         &payload,
         entry,
         persist,
+    )
+    .await;
+    invalidate_usage_snapshot_cache(&app_handle).await;
+    emit_usage_snapshot_updated(
+        &app_handle,
+        "import-all-usage",
+        None,
+        None,
+        summary.imported_records,
     )
     .await;
 
@@ -2065,5 +2587,132 @@ mod tests {
 
         assert!(!result.completed);
         assert_eq!(result.error.as_deref(), Some("no such table: message"));
+    }
+
+    #[test]
+    fn usage_freshness_classifies_missing_fresh_and_stale_sources() {
+        let now = DateTime::parse_from_rfc3339("2026-05-25T12:00:00Z")
+            .expect("valid test date")
+            .with_timezone(&Utc);
+
+        let missing = usage_freshness_from_completed_at(None, now);
+        assert_eq!(missing.state, UsageFreshnessState::Missing);
+        assert_eq!(missing.age_seconds, None);
+
+        let fresh =
+            usage_freshness_from_completed_at(Some("2026-05-25T11:55:00Z".to_string()), now);
+        assert_eq!(fresh.state, UsageFreshnessState::Fresh);
+        assert_eq!(fresh.age_seconds, Some(300));
+
+        let stale =
+            usage_freshness_from_completed_at(Some("2026-05-23T11:55:00Z".to_string()), now);
+        assert_eq!(stale.state, UsageFreshnessState::Stale);
+    }
+
+    #[test]
+    fn usage_source_health_promotes_missing_and_degraded_state() {
+        assert_eq!(
+            usage_source_health_state(0, 0, 0, UsageFreshnessState::Missing),
+            UsageSourceHealthState::Missing
+        );
+        assert_eq!(
+            usage_source_health_state(4, 0, 0, UsageFreshnessState::Fresh),
+            UsageSourceHealthState::Live
+        );
+        assert_eq!(
+            usage_source_health_state(4, 1, 0, UsageFreshnessState::Fresh),
+            UsageSourceHealthState::Degraded
+        );
+        assert_eq!(
+            usage_source_health_state(4, 0, 0, UsageFreshnessState::Stale),
+            UsageSourceHealthState::Degraded
+        );
+    }
+
+    #[test]
+    fn usage_readiness_prioritizes_syncing_then_actions() {
+        let mut archive = UsageArchiveDiagnostics {
+            live_sources: 2,
+            archived_sessions: 3,
+            recent_completed_at: Some("2026-05-25T11:55:00Z".to_string()),
+            freshness: UsageFreshnessProjection {
+                state: UsageFreshnessState::Fresh,
+                latest_completed_at: Some("2026-05-25T11:55:00Z".to_string()),
+                age_seconds: Some(300),
+                stale_after_seconds: USAGE_FRESHNESS_STALE_AFTER_SECS,
+            },
+            ..UsageArchiveDiagnostics::default()
+        };
+
+        let syncing = build_usage_readiness(&archive, 10, 3, false, true, false);
+        assert_eq!(syncing.state, UsageReadinessState::Syncing);
+        assert_eq!(syncing.next_action, None);
+
+        archive.freshness.state = UsageFreshnessState::Stale;
+        let stale = build_usage_readiness(&archive, 10, 3, false, false, false);
+        assert_eq!(stale.state, UsageReadinessState::Stale);
+        assert_eq!(stale.next_action.as_deref(), Some("refresh_usage"));
+
+        archive.freshness.state = UsageFreshnessState::Fresh;
+        archive.missing_sources = 1;
+        let degraded = build_usage_readiness(&archive, 10, 3, false, false, false);
+        assert_eq!(degraded.state, UsageReadinessState::Degraded);
+        assert_eq!(degraded.next_action.as_deref(), Some("inspect_sources"));
+
+        archive.missing_sources = 0;
+        let ready = build_usage_readiness(&archive, 10, 3, false, false, false);
+        assert_eq!(ready.state, UsageReadinessState::Ready);
+        assert_eq!(ready.next_action, None);
+    }
+
+    #[test]
+    fn usage_snapshot_projection_serializes_stable_drilldown_contract() {
+        let archive = UsageArchiveDiagnostics {
+            live_sources: 1,
+            freshness: UsageFreshnessProjection {
+                state: UsageFreshnessState::Fresh,
+                latest_completed_at: Some("2026-05-25T11:55:00Z".to_string()),
+                age_seconds: Some(300),
+                stale_after_seconds: USAGE_FRESHNESS_STALE_AFTER_SECS,
+            },
+            readiness: UsageReadinessProjection {
+                state: UsageReadinessState::Ready,
+                detail: "ready".to_string(),
+                has_live_sources: true,
+                ..UsageReadinessProjection::default()
+            },
+            source_health: vec![UsageSourceHealth {
+                source: "codex".to_string(),
+                state: UsageSourceHealthState::Live,
+                live_sources: 1,
+                freshness: UsageFreshnessProjection {
+                    state: UsageFreshnessState::Fresh,
+                    latest_completed_at: Some("2026-05-25T11:55:00Z".to_string()),
+                    age_seconds: Some(300),
+                    stale_after_seconds: USAGE_FRESHNESS_STALE_AFTER_SECS,
+                },
+                ..UsageSourceHealth::default()
+            }],
+            ..UsageArchiveDiagnostics::default()
+        };
+
+        let snapshot = build_usage_snapshot_projection(
+            "codex".to_string(),
+            Some("2026-05-01".to_string()),
+            Some("2026-05-25".to_string()),
+            &archive,
+        );
+        let value = serde_json::to_value(snapshot).expect("snapshot should serialize");
+
+        assert_eq!(value["platform_scope"], "codex");
+        assert_eq!(value["readiness"]["state"], "ready");
+        assert_eq!(value["source_health"][0]["source"], "codex");
+        assert!(
+            value["drilldown"]["dimensions"]
+                .as_array()
+                .expect("dimensions")
+                .iter()
+                .any(|dimension| dimension == "branch")
+        );
     }
 }

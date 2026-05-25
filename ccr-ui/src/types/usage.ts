@@ -123,6 +123,71 @@ export interface UsageArchiveDiagnostics {
   archived_sessions: number
   recent_completed_at?: string | null
   history_completed_at?: string | null
+  source_health?: UsageSourceHealth[]
+  freshness?: UsageFreshnessProjection
+  readiness?: UsageReadinessProjection
+}
+
+export type UsageFreshnessState = 'fresh' | 'stale' | 'missing'
+
+export interface UsageFreshnessProjection {
+  state: UsageFreshnessState
+  latest_completed_at?: string | null
+  age_seconds?: number | null
+  stale_after_seconds: number
+}
+
+export type UsageSourceHealthState = 'live' | 'degraded' | 'missing'
+
+export interface UsageSourceHealth {
+  source: string
+  state: UsageSourceHealthState
+  live_sources: number
+  missing_sources: number
+  deleted_sources: number
+  recent_completed_at?: string | null
+  history_completed_at?: string | null
+  freshness: UsageFreshnessProjection
+}
+
+export type UsageReadinessState =
+  | 'ready'
+  | 'syncing'
+  | 'stale'
+  | 'degraded'
+  | 'needs_import'
+  | 'needs_session_index'
+  | 'empty'
+
+export interface UsageReadinessProjection {
+  state: UsageReadinessState
+  next_action?: string | null
+  detail: string
+  has_live_sources: boolean
+  has_missing_sources: boolean
+  has_deleted_sources: boolean
+  active_usage_import: boolean
+  active_session_index: boolean
+  recent_completed_at?: string | null
+}
+
+export interface UsageDrilldownProjection {
+  dimensions: string[]
+  supports_logs: boolean
+  supports_projects: boolean
+  supports_sessions: boolean
+}
+
+export interface UsageSnapshotProjection {
+  generated_at: string
+  platform_scope: string
+  start_date?: string | null
+  end_date?: string | null
+  cache_ttl_seconds: number
+  freshness: UsageFreshnessProjection
+  readiness: UsageReadinessProjection
+  source_health: UsageSourceHealth[]
+  drilldown: UsageDrilldownProjection
 }
 
 /** 仪表盘聚合响应 */
@@ -133,6 +198,7 @@ export interface UsageDashboardResponse {
   project_stats: ProjectStat[]
   source_stats: SourceBreakdown[]
   archive: UsageArchiveDiagnostics
+  snapshot: UsageSnapshotProjection
   heatmap: HeatmapResponse
   generated_at: string
 }
@@ -211,8 +277,17 @@ export interface HomeUsageOverviewResponse {
   series: HomeOverviewSeriesItem[]
   bootstrap: HomeOverviewBootstrap
   archive: UsageArchiveDiagnostics
+  snapshot: UsageSnapshotProjection
   empty_reason?: 'no_usage_logs' | 'no_session_index' | 'no_usage_and_sessions'
   last_updated: string
+}
+
+export interface UsageSnapshotUpdatedPayload {
+  reason: string
+  platform_scope: string
+  job_id?: string | null
+  imported_records: number
+  generated_at: string
 }
 
 /** 导入结果 */

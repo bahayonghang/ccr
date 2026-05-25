@@ -1119,14 +1119,22 @@ mod tests {
             .expect("source breakdown should query");
 
         assert_eq!(
-            stats.iter().map(|row| row.source.as_str()).collect::<Vec<_>>(),
+            stats
+                .iter()
+                .map(|row| row.source.as_str())
+                .collect::<Vec<_>>(),
             vec!["gemini", "codex", "claude"]
         );
         assert_eq!(stats.iter().map(|row| row.total_tokens).sum::<i64>(), 105);
-        assert_eq!(stats.iter().find(|row| row.source == "codex").unwrap().event_count, 2);
-        assert!(
-            (stats.iter().map(|row| row.share_tokens).sum::<f64>() - 1.0).abs() < f64::EPSILON
+        assert_eq!(
+            stats
+                .iter()
+                .find(|row| row.source == "codex")
+                .unwrap()
+                .event_count,
+            2
         );
+        assert!((stats.iter().map(|row| row.share_tokens).sum::<f64>() - 1.0).abs() < f64::EPSILON);
         assert!(
             stats
                 .iter()

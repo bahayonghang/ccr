@@ -465,6 +465,26 @@ impl AppState {
         self.cache.invalidate(key).await;
     }
 
+    /// 删除指定前缀的缓存值，用于一类 read model 在后台导入后整体失效。
+    pub async fn cache_remove_prefix(&self, prefix: &str) {
+        let keys: Vec<String> = self
+            .cache
+            .iter()
+            .filter_map(|(key, _entry)| {
+                if key.starts_with(prefix) {
+                    Some((*key).clone())
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        for key in keys {
+            self.cache.invalidate(&key).await;
+        }
+        self.cache.run_pending_tasks().await;
+    }
+
     /// 注册缓存填充任务；已存在时返回等待中的 notifier。
     pub async fn begin_cache_fill(&self, key: &str) -> CacheFillRegistration {
         let mut inflight = self.inflight_cache_keys.write().await;

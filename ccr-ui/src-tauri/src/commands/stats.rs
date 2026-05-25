@@ -327,7 +327,7 @@ async fn compute_daily_stats(days: usize) -> Result<serde_json::Value, String> {
             let mut day_item = serde_json::Map::new();
             day_item.insert("date".to_string(), serde_json::Value::String(date.clone()));
 
-            for platform_name in &["claude", "codex", "gemini"] {
+            for platform_name in &["claude", "codex", "gemini", "opencode", "unknown"] {
                 let stats = if let Some(acc) = platforms.get(*platform_name) {
                     let sessions = acc.session_ids.len() + acc.anonymous_count;
                     let duration_s = acc.duration_ms / 1000;

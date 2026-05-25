@@ -80,6 +80,7 @@ export interface DailyStatsItem {
   codex: PlatformDailyStats;
   gemini: PlatformDailyStats;
   opencode?: PlatformDailyStats;
+  unknown?: PlatformDailyStats;
 }
 
 /** 使用统计汇总 */

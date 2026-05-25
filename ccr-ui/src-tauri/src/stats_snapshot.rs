@@ -17,7 +17,8 @@ pub(crate) fn normalize_usage_platform(raw: &str) -> &'static str {
         "claude" | "claude-code" | "claude code" => "claude",
         "codex" | "openai-codex" | "openai codex" => "codex",
         "gemini" | "google-gemini" | "google gemini" => "gemini",
-        _ => "claude",
+        "opencode" | "open-code" | "open code" => "opencode",
+        _ => "unknown",
     }
 }
 
@@ -75,7 +76,8 @@ mod tests {
     }
 
     #[test]
-    fn normalize_usage_platform_keeps_unknown_data_in_legacy_bucket() {
-        assert_eq!(normalize_usage_platform("unknown"), "claude");
+    fn normalize_usage_platform_keeps_unknown_data_honest() {
+        assert_eq!(normalize_usage_platform("unknown"), "unknown");
+        assert_eq!(normalize_usage_platform("legacy-cli"), "unknown");
     }
 }
