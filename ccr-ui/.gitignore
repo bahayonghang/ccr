@@ -71,3 +71,6 @@ storybook-static
 skills_response.json
 
 tests/artifacts
+
+.planning/
+.plannings/
