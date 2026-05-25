@@ -303,16 +303,16 @@ describe('DashboardView smoke', () => {
       import('@/i18n/bootMessages'),
     ])
 
-    expect(zhCN.nav.dashboard).toBe('Dashboard')
-    expect(zhCN.dashboard.title).toBe('运行态势工作台')
-    expect(zhCN.dashboard.signals.title).toBe('事件信号')
+    expect(zhCN.nav.dashboard).toBe('运行概览')
+    expect(zhCN.dashboard.title).toBe('运行概览')
+    expect(zhCN.dashboard.signals.title).toBe('事件流')
     expect(zhCN.dashboard.platforms.untracked).toBe('未追踪')
-    expect(enUS.nav.dashboard).toBe('Dashboard')
-    expect(enUS.dashboard.title).toBe('Operations Dashboard')
-    expect(enUS.dashboard.signals.title).toBe('Signal stream')
+    expect(enUS.nav.dashboard).toBe('Overview')
+    expect(enUS.dashboard.title).toBe('Operations Overview')
+    expect(enUS.dashboard.signals.title).toBe('Event stream')
     expect(enUS.dashboard.platforms.untracked).toBe('Untracked')
-    expect(bootLocaleMessages['zh-CN'].dashboard.title).toBe('运行态势工作台')
-    expect(bootLocaleMessages['en-US'].dashboard.title).toBe('Operations Dashboard')
+    expect(bootLocaleMessages['zh-CN'].dashboard.title).toBe('运行概览')
+    expect(bootLocaleMessages['en-US'].dashboard.title).toBe('Operations Overview')
 
     const dashboardCopy = [
       ...collectStrings(zhCN.dashboard),

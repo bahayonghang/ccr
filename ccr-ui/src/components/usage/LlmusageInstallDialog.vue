@@ -126,8 +126,11 @@
         v-if="terminalOutcome === 'succeeded'"
         class="text-center py-4"
       >
-        <div class="text-4xl mb-3">
-          ✅
+        <div class="mb-3 flex justify-center text-accent-success">
+          <SIcon
+            name="Check"
+            size="w-10 h-10"
+          />
         </div>
         <p class="text-sm font-medium text-text-primary">
           {{ t('usage.install.dialog.succeeded') }}
@@ -149,8 +152,11 @@
         class="space-y-3"
       >
         <div class="text-center">
-          <div class="text-4xl mb-3">
-            ❌
+          <div class="mb-3 flex justify-center text-accent-danger">
+            <SIcon
+              name="X"
+              size="w-10 h-10"
+            />
           </div>
           <p class="text-sm font-medium text-text-primary">
             {{ t('usage.install.dialog.failed') }}
@@ -274,6 +280,7 @@ import { ref, computed, watch, nextTick, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import BaseModal from '@/components/common/BaseModal.vue'
+import SIcon from '@/components/ui/SIcon.vue'
 import { logger } from '@/utils/logger'
 import {
   llmusageInstallCheck,

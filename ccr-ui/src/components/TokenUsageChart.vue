@@ -5,7 +5,11 @@
     <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
       <div class="flex items-center gap-4">
         <h3 class="text-xl font-bold text-text-primary flex items-center gap-2">
-          <span class="text-2xl">📈</span>
+          <SIcon
+            name="TrendingUp"
+            size="w-6 h-6"
+            class="text-accent-primary"
+          />
           <span>Token 使用趋势</span>
         </h3>
         <!-- Filter Status Badge -->
@@ -344,6 +348,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import SIcon from '@/components/ui/SIcon.vue'
 import type { UsageRecord, TimeRange } from '@/types'
 
 interface Props {

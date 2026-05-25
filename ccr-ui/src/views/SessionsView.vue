@@ -3,8 +3,13 @@
     <!-- 页面标题 -->
     <div class="sessions-header flex items-center justify-between gap-4">
       <div>
-        <h1 class="text-3xl font-bold text-text-primary">
-          📚 Sessions
+        <h1 class="text-3xl font-bold text-text-primary inline-flex items-center gap-3">
+          <SIcon
+            name="BookOpen"
+            size="w-8 h-8"
+            class="text-accent-primary"
+          />
+          <span>Sessions</span>
         </h1>
         <p class="mt-2 text-sm text-text-secondary">
           管理和浏览 AI CLI 会话记录
@@ -126,7 +131,10 @@
             class="p-3 rounded-full"
             :class="getPlatformColor(platform)"
           >
-            <span class="text-2xl">{{ getPlatformIcon(platform) }}</span>
+            <SIcon
+              :name="getPlatformIconName(platform)"
+              size="w-7 h-7"
+            />
           </div>
         </div>
       </div>
@@ -201,7 +209,10 @@
             @click="showSessionDetail(session)"
           >
             <td class="px-6 py-4 whitespace-nowrap">
-              <span class="text-2xl">{{ getPlatformIcon(session.platform) }}</span>
+              <SIcon
+                :name="getPlatformIconName(session.platform)"
+                size="w-6 h-6"
+              />
             </td>
             <td class="px-6 py-4">
               <div class="text-sm font-medium text-text-primary">
@@ -303,6 +314,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import BaseModal from '@/components/common/BaseModal.vue'
+import SIcon from '@/components/ui/SIcon.vue'
 import { logger } from '@/utils/logger'
 
 interface SessionSummary {
@@ -382,13 +394,13 @@ const handleSessionModalChange = (isOpen: boolean) => {
   }
 }
 
-const getPlatformIcon = (platform: string): string => {
+const getPlatformIconName = (platform: string): string => {
   const icons: Record<string, string> = {
-    Claude: '🔮',
-    Codex: '🐙',
-    Gemini: '💎',
+    Claude: 'Bot',
+    Codex: 'Terminal',
+    Gemini: 'Gem',
   }
-  return icons[platform] || '📦'
+  return icons[platform] || 'Package'
 }
 
 const getPlatformColor = (platform: string): string => {

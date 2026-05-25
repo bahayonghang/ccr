@@ -62,9 +62,13 @@
           </span>
           <span
             v-if="preset.requires_api_key"
-            class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-accent-warning/10 text-accent-warning"
+            class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-accent-warning/10 text-accent-warning"
           >
-            🔑 API Key
+            <SIcon
+              name="KeyRound"
+              size="w-3 h-3"
+            />
+            API Key
           </span>
         </div>
 
@@ -147,7 +151,10 @@
                 : 'bg-bg-surface text-text-muted border-transparent hover:border-border-default'"
               @click="togglePlatform(platform.id)"
             >
-              <span>{{ platform.icon }}</span>
+              <SIcon
+                :name="platform.icon"
+                size="w-3.5 h-3.5"
+              />
               <span>{{ platform.name }}</span>
             </button>
           </div>
@@ -276,9 +283,9 @@ const installing = ref(false)
 
 // Available platforms
 const platforms = [
-  { id: 'claude', name: 'Claude', icon: '🤖' },
-  { id: 'codex', name: 'Codex', icon: '💻' },
-  { id: 'gemini', name: 'Antigravity CLI', icon: '✨' },
+  { id: 'claude', name: 'Claude', icon: 'Bot' },
+  { id: 'codex', name: 'Codex', icon: 'Terminal' },
+  { id: 'gemini', name: 'Antigravity CLI', icon: 'Sparkles' },
 ]
 
 // Load presets

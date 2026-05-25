@@ -1,49 +1,50 @@
 export interface ModuleSubnavItem {
   label: string
+  labelKey?: string
   href: string
   icon: string
 }
 
 const moduleSubnavMap: Record<string, ModuleSubnavItem[]> = {
   'claude-code': [
-    { label: 'Configs', href: '/configs', icon: 'Settings' },
-    { label: 'Auth', href: '/claude-code/auth', icon: 'KeyRound' },
-    { label: 'Profiles 配置', href: '/claude-code/profiles', icon: 'Settings' },
-    { label: '云同步', href: '/sync', icon: 'Cloud' },
-    { label: 'MCP', href: '/mcp-manager', icon: 'Server' },
-    { label: 'Slash Commands', href: '/slash-commands', icon: 'Command' },
-    { label: 'Agents', href: '/agents', icon: 'Bot' },
-    { label: 'Plugins', href: '/plugins', icon: 'Puzzle' },
+    { label: 'Configurations', labelKey: 'nav.configs', href: '/configs', icon: 'Settings' },
+    { label: 'Auth', labelKey: 'nav.auth', href: '/claude-code/auth', icon: 'KeyRound' },
+    { label: 'Profiles', labelKey: 'nav.profiles', href: '/claude-code/profiles', icon: 'Settings' },
+    { label: 'Sync', labelKey: 'nav.sync', href: '/sync', icon: 'Cloud' },
+    { label: 'MCP', labelKey: 'nav.mcp', href: '/mcp-manager', icon: 'Server' },
+    { label: 'Slash Commands', labelKey: 'nav.slashCommands', href: '/slash-commands', icon: 'Command' },
+    { label: 'Agents', labelKey: 'nav.agents', href: '/agents', icon: 'Bot' },
+    { label: 'Plugins', labelKey: 'nav.plugins', href: '/plugins', icon: 'Puzzle' },
   ],
   codex: [
-    { label: 'Auth', href: '/codex/auth', icon: 'KeyRound' },
-    { label: 'Profiles', href: '/codex/profiles', icon: 'Folders' },
-    { label: 'Settings', href: '/codex/settings', icon: 'SlidersHorizontal' },
-    { label: 'MCP', href: '/codex/mcp', icon: 'Server' },
-    { label: 'Agents', href: '/codex/agents', icon: 'Bot' },
-    { label: 'Sessions', href: '/codex/sessions', icon: 'MessagesSquare' },
+    { label: 'Auth', labelKey: 'nav.auth', href: '/codex/auth', icon: 'KeyRound' },
+    { label: 'Profiles', labelKey: 'nav.profiles', href: '/codex/profiles', icon: 'Folders' },
+    { label: 'Settings', labelKey: 'common.settings', href: '/codex/settings', icon: 'SlidersHorizontal' },
+    { label: 'MCP', labelKey: 'nav.mcp', href: '/codex/mcp', icon: 'Server' },
+    { label: 'Agents', labelKey: 'nav.agents', href: '/codex/agents', icon: 'Bot' },
+    { label: 'Sessions', labelKey: 'nav.sessions', href: '/codex/sessions', icon: 'MessagesSquare' },
   ],
   antigravity: [
-    { label: 'MCP', href: '/antigravity/mcp', icon: 'Server' },
-    { label: 'Agents', href: '/antigravity/agents', icon: 'Bot' },
-    { label: 'Slash Commands', href: '/antigravity/slash-commands', icon: 'Command' },
-    { label: 'Plugins', href: '/antigravity/plugins', icon: 'Puzzle' },
+    { label: 'MCP', labelKey: 'nav.mcp', href: '/antigravity/mcp', icon: 'Server' },
+    { label: 'Agents', labelKey: 'nav.agents', href: '/antigravity/agents', icon: 'Bot' },
+    { label: 'Slash Commands', labelKey: 'nav.slashCommands', href: '/antigravity/slash-commands', icon: 'Command' },
+    { label: 'Plugins', labelKey: 'nav.plugins', href: '/antigravity/plugins', icon: 'Puzzle' },
   ],
   'gemini-cli': [
-    { label: 'MCP', href: '/antigravity/mcp', icon: 'Server' },
-    { label: 'Agents', href: '/antigravity/agents', icon: 'Bot' },
-    { label: 'Slash Commands', href: '/antigravity/slash-commands', icon: 'Command' },
-    { label: 'Plugins', href: '/antigravity/plugins', icon: 'Puzzle' },
+    { label: 'MCP', labelKey: 'nav.mcp', href: '/antigravity/mcp', icon: 'Server' },
+    { label: 'Agents', labelKey: 'nav.agents', href: '/antigravity/agents', icon: 'Bot' },
+    { label: 'Slash Commands', labelKey: 'nav.slashCommands', href: '/antigravity/slash-commands', icon: 'Command' },
+    { label: 'Plugins', labelKey: 'nav.plugins', href: '/antigravity/plugins', icon: 'Puzzle' },
   ],
   opencode: [
-    { label: 'Providers', href: '/opencode/providers', icon: 'Layers' },
-    { label: 'MCP', href: '/opencode/mcp', icon: 'Server' },
-    { label: 'Agents', href: '/opencode/agents', icon: 'Bot' },
-    { label: 'Commands', href: '/opencode/commands', icon: 'Command' },
-    { label: 'Plugins', href: '/opencode/plugins', icon: 'Puzzle' },
-    { label: 'Settings', href: '/opencode/settings', icon: 'SlidersHorizontal' },
+    { label: 'Providers', labelKey: 'nav.providers', href: '/opencode/providers', icon: 'Layers' },
+    { label: 'MCP', labelKey: 'nav.mcp', href: '/opencode/mcp', icon: 'Server' },
+    { label: 'Agents', labelKey: 'nav.agents', href: '/opencode/agents', icon: 'Bot' },
+    { label: 'Commands', labelKey: 'nav.commands', href: '/opencode/commands', icon: 'Command' },
+    { label: 'Plugins', labelKey: 'nav.plugins', href: '/opencode/plugins', icon: 'Puzzle' },
+    { label: 'Settings', labelKey: 'common.settings', href: '/opencode/settings', icon: 'SlidersHorizontal' },
   ],
-  converter: [{ label: 'CLI 配置转换', href: '/converter', icon: 'ArrowLeftRight' }],
+  converter: [{ label: 'Converter', labelKey: 'nav.converter', href: '/converter', icon: 'ArrowLeftRight' }],
 }
 
 export const getModuleSubnavItems = (module: string): ModuleSubnavItem[] => {

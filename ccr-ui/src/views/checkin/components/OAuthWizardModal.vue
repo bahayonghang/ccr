@@ -167,7 +167,11 @@
       >
         <div class="oauth-wizard__panel oauth-wizard__panel--info">
           <p class="oauth-wizard__panel-title oauth-wizard__panel-title--info">
-            🔗 请在浏览器中打开以下链接完成授权：
+            <SIcon
+              name="ExternalLink"
+              size="w-4 h-4"
+            />
+            请在浏览器中打开以下链接完成授权：
           </p>
           <div class="oauth-wizard__url-row">
             <input
@@ -199,7 +203,7 @@
         <!-- 引导说明 -->
         <div class="oauth-wizard__panel oauth-wizard__panel--neutral">
           <p class="oauth-wizard__panel-title oauth-wizard__panel-title--neutral">
-            📋 操作步骤：
+            操作步骤：
           </p>
           <ol class="oauth-wizard__guide-list">
             <li

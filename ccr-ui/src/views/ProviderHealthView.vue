@@ -3,8 +3,13 @@
     <!-- 页面标题 -->
     <div class="provider-health-header flex items-center justify-between gap-4">
       <div>
-        <h1 class="text-3xl font-bold text-text-primary">
-          🏥 Provider 健康检查
+        <h1 class="text-3xl font-bold text-text-primary inline-flex items-center gap-3">
+          <SIcon
+            name="ShieldCheck"
+            size="w-8 h-8"
+            class="text-accent-primary"
+          />
+          <span>Provider 健康检查</span>
         </h1>
         <p class="mt-2 text-sm text-text-secondary">
           检测 API 端点连通性和 Key 有效性
@@ -197,10 +202,14 @@
           >
             <td class="px-6 py-4 whitespace-nowrap">
               <span
-                class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full"
+                class="px-2 py-1 inline-flex items-center gap-1 text-xs leading-5 font-semibold rounded-full"
                 :class="getStatusClass(result.status)"
               >
-                {{ getStatusIcon(result.status) }} {{ getStatusText(result.status) }}
+                <SIcon
+                  :name="getStatusIconName(result.status)"
+                  size="w-3.5 h-3.5"
+                />
+                {{ getStatusText(result.status) }}
               </span>
             </td>
             <td class="px-6 py-4 whitespace-nowrap">
@@ -311,6 +320,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import SIcon from '@/components/ui/SIcon.vue'
 import { healthCheck } from '@/api/runtime/system'
 import { logger } from '@/utils/logger'
 
@@ -405,16 +415,16 @@ const getStatusClass = (status: string): string => {
   }
 }
 
-const getStatusIcon = (status: string): string => {
+const getStatusIconName = (status: string): string => {
   switch (status) {
     case 'healthy':
-      return '✓'
+      return 'Check'
     case 'degraded':
-      return '⚠'
+      return 'AlertTriangle'
     case 'unhealthy':
-      return '✗'
+      return 'X'
     default:
-      return '?'
+      return 'HelpCircle'
   }
 }
 

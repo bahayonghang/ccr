@@ -30,10 +30,13 @@
         {{ preset.name }}
         <span
           v-if="preset.isPartner"
-          class="ml-0.5 text-amber-400 text-[10px]"
+          class="ml-0.5 inline-flex align-middle text-amber-400"
           title="Partner"
         >
-          ★
+          <SIcon
+            name="Star"
+            size="w-3 h-3"
+          />
         </span>
       </button>
     </div>
@@ -50,6 +53,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import SIcon from '@/components/ui/SIcon.vue'
 import type { PlatformPresets, ProviderPreset, PresetCategory } from '@/types/providerPresets'
 
 const props = defineProps<{

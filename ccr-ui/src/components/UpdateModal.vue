@@ -123,7 +123,13 @@
                   class="text-sm font-semibold"
                   :style="{ color: 'var(--text-secondary)' }"
                 >
-                  ⚠️ 注意事项：
+                  <span class="inline-flex items-center gap-1.5">
+                    <SIcon
+                      name="AlertTriangle"
+                      size="w-4 h-4"
+                    />
+                    注意事项：
+                  </span>
                 </p>
                 <ul
                   class="text-sm space-y-1.5 ml-6 list-disc"

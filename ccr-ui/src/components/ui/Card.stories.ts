@@ -8,7 +8,7 @@ const meta = {
   argTypes: {
     variant: {
       control: 'select',
-      options: ['default', 'base', 'elevated', 'glass', 'outline', 'neko'],
+      options: ['default', 'base', 'elevated', 'glass', 'outline'],
     },
     padding: {
       control: 'select',
@@ -78,29 +78,4 @@ export const Glass: Story = {
   parameters: {
     backgrounds: { default: 'dark' },
   },
-}
-
-export const LegacyDecorative: Story = {
-  args: {
-    variant: 'neko',
-    pattern: true,
-    glowEffect: true,
-  },
-  render: (args) => ({
-    components: { Card },
-    setup() {
-      return { args }
-    },
-    template: `
-      <div class="pt-4">
-        <Card v-bind="args" class="w-72 min-h-44">
-          <div class="space-y-3">
-            <p class="text-xs uppercase tracking-[0.25em] text-text-muted">Legacy Accent</p>
-            <h3 class="text-xl font-bold text-text-primary">Deprecated shell chrome</h3>
-            <p class="text-sm text-text-secondary">This variant is legacy-only and should not define new Anthropic-like surfaces.</p>
-          </div>
-        </Card>
-      </div>
-    `,
-  }),
 }

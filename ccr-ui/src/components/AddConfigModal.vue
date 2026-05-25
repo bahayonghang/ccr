@@ -83,7 +83,11 @@
               :placeholder="$t('configs.addConfig.descriptionPlaceholder')"
             >
               <template #leading>
-                <span class="text-lg">📝</span>
+                <SIcon
+                  name="FileText"
+                  size="w-4 h-4"
+                  class="text-text-muted"
+                />
               </template>
             </Input>
 
@@ -95,7 +99,11 @@
               class="md:col-span-2"
             >
               <template #leading>
-                <span class="text-lg">🌐</span>
+                <SIcon
+                  name="Globe"
+                  size="w-4 h-4"
+                  class="text-text-muted"
+                />
               </template>
             </Input>
 
@@ -108,7 +116,11 @@
               class="md:col-span-2"
             >
               <template #leading>
-                <span class="text-lg">🔑</span>
+                <SIcon
+                  name="KeyRound"
+                  size="w-4 h-4"
+                  class="text-text-muted"
+                />
               </template>
             </Input>
 
@@ -118,7 +130,11 @@
               :placeholder="$t('configs.addConfig.modelPlaceholder')"
             >
               <template #leading>
-                <span class="text-lg">🤖</span>
+                <SIcon
+                  name="Bot"
+                  size="w-4 h-4"
+                  class="text-text-muted"
+                />
               </template>
             </Input>
 
@@ -128,7 +144,11 @@
               :placeholder="$t('configs.addConfig.smallModelPlaceholder')"
             >
               <template #leading>
-                <span class="text-lg">⚡</span>
+                <SIcon
+                  name="Zap"
+                  size="w-4 h-4"
+                  class="text-text-muted"
+                />
               </template>
             </Input>
 
@@ -152,7 +172,10 @@
                   </option>
                 </select>
                 <div class="absolute inset-y-0 right-3 flex items-center pointer-events-none text-text-muted">
-                  ▼
+                  <SIcon
+                    name="ChevronDown"
+                    size="w-4 h-4"
+                  />
                 </div>
               </div>
             </div>
@@ -164,7 +187,11 @@
               :hint="$t('configs.addConfig.providerNameHint')"
             >
               <template #leading>
-                <span class="text-lg">🏢</span>
+                <SIcon
+                  name="Building2"
+                  size="w-4 h-4"
+                  class="text-text-muted"
+                />
               </template>
             </Input>
 
@@ -175,7 +202,11 @@
               :hint="$t('configs.addConfig.accountHint')"
             >
               <template #leading>
-                <span class="text-lg">👤</span>
+                <SIcon
+                  name="User"
+                  size="w-4 h-4"
+                  class="text-text-muted"
+                />
               </template>
             </Input>
 
@@ -186,7 +217,11 @@
               :hint="$t('configs.addConfig.tagsHint')"
             >
               <template #leading>
-                <span class="text-lg">🏷️</span>
+                <SIcon
+                  name="Tags"
+                  size="w-4 h-4"
+                  class="text-text-muted"
+                />
               </template>
             </Input>
           </div>

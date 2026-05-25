@@ -460,7 +460,11 @@
                     class="converter-stat__value"
                     :style="{ color: 'var(--accent-primary)' }"
                   >
-                    {{ result.stats?.base_config ? '✓' : '✗' }}
+                    <SIcon
+                      :name="result.stats?.base_config ? 'Check' : 'X'"
+                      size="w-6 h-6"
+                      class="mx-auto"
+                    />
                   </div>
                   <div
                     class="converter-stat__label"

@@ -16,13 +16,14 @@
         :name="item.icon"
         size="w-4 h-4"
       />
-      <span>{{ item.label }}</span>
+      <span>{{ item.labelKey ? t(item.labelKey) : item.label }}</span>
     </RouterLink>
   </nav>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import SIcon from '@/components/ui/SIcon.vue'
 import { getModuleSubnavItems } from '@/config/moduleSubnav'
@@ -33,6 +34,7 @@ interface Props {
 
 const props = defineProps<Props>()
 const route = useRoute()
+const { t } = useI18n()
 
 const items = computed(() => getModuleSubnavItems(props.module))
 const activeHref = computed(() => {

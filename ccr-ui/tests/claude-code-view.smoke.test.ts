@@ -101,9 +101,9 @@ describe('ClaudeCodeView smoke', () => {
     try {
       const text = el.textContent ?? ''
       expect(text).toContain('Profiles')
-      expect(text).toContain('Auth')
-      expect(text).toContain('Settings')
-      expect(text).toContain('MCP Servers')
+      expect(text).toContain('认证')
+      expect(text).toContain('本地设置')
+      expect(text).toContain('MCP 服务器')
       expect(text).toContain('Agents')
       expect(text).toContain('Plugins')
       expect(text).toContain('Slash Commands')

@@ -67,7 +67,10 @@
             : 'bg-bg-surface text-text-muted border-transparent hover:border-border-default'"
           @click="togglePlatform(platform.id)"
         >
-          <span>{{ platform.icon }}</span>
+          <SIcon
+            :name="platform.icon"
+            size="w-3.5 h-3.5"
+          />
           <span>{{ platform.name }}</span>
         </button>
       </div>
@@ -212,8 +215,8 @@ const syncResults = ref<Record<string, SyncResult[]>>({})
 
 // Available platforms (excluding Claude as it's the source)
 const platforms = [
-  { id: 'codex', name: 'Codex', icon: '💻' },
-  { id: 'gemini', name: 'Antigravity CLI', icon: '✨' },
+  { id: 'codex', name: 'Codex', icon: 'Terminal' },
+  { id: 'gemini', name: 'Antigravity CLI', icon: 'Sparkles' },
 ]
 
 // Toggle platform selection

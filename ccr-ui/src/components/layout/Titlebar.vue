@@ -61,9 +61,9 @@
       data-tauri-drag-region
       class="titlebar-drag-region titlebar-title absolute left-1/2 -translate-x-1/2 flex items-center space-x-2 text-xs font-medium tracking-wider"
     >
-      <span class="opacity-50">✦</span>
+      <span class="opacity-50">·</span>
       <span>{{ windowTitle }}</span>
-      <span class="opacity-50">✦</span>
+      <span class="opacity-50">·</span>
     </div>
 
     <!-- Right: Window Controls -->

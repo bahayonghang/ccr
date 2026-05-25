@@ -22,7 +22,12 @@
             class="text-lg font-bold flex items-center gap-2"
             :style="{ color: 'var(--text-primary)' }"
           >
-            <span>🏢 {{ $t('configs.provider.stats') }}</span>
+            <SIcon
+              name="Building2"
+              size="w-5 h-5"
+              :style="{ color: 'var(--accent-primary)' }"
+            />
+            <span>{{ $t('configs.provider.stats') }}</span>
           </h2>
           <p
             class="mt-1 text-xs"

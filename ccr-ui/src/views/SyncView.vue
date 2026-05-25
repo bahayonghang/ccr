@@ -273,10 +273,10 @@ const applySelection = async () => {
       }
     }
 
-    operationOutput.value = '✓ 同步配置已应用'
+    operationOutput.value = '同步配置已应用'
     await refreshFolders()
   } catch (err: unknown) {
-    operationOutput.value = `✗ 应用失败: ${toErrorMessage(err)}`
+    operationOutput.value = `应用失败：${toErrorMessage(err)}`
   } finally {
     applying.value = false
   }

@@ -86,10 +86,14 @@
 
     <div
       v-if="updateInfo && !updateInfo.has_update"
-      class="mb-3 text-xs text-center py-1.5"
+      class="mb-3 text-xs text-center py-1.5 inline-flex w-full items-center justify-center gap-1.5"
       :style="{ color: 'var(--text-muted)' }"
     >
-      ✓ 已是最新版本
+      <SIcon
+        name="Check"
+        size="w-3.5 h-3.5"
+      />
+      <span>已是最新版本</span>
     </div>
 
     <!-- 操作按钮 -->
@@ -106,10 +110,8 @@
       >
         <SIcon
           name="RefreshCw"
-          size="h-3.5',"
-          class="['w-3.5 { 'animate-spin': isCheckingUpdate }]"
+          size="w-3.5 h-3.5"
           :class="['w-3.5 h-3.5', { 'animate-spin': isCheckingUpdate }]"
-          :
         />
         <span>{{ isCheckingUpdate ? '检查中' : '检查更新' }}</span>
       </button>

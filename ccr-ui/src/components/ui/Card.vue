@@ -78,7 +78,7 @@
 import { computed } from 'vue'
 import type { CSSProperties } from 'vue'
 
-type CardVariant = 'default' | 'base' | 'elevated' | 'glass' | 'outline' | 'neko'
+type CardVariant = 'default' | 'base' | 'elevated' | 'glass' | 'outline'
 type PaddingSize = 'none' | 'sm' | 'md' | 'lg'
 type GlowColor = 'primary' | 'secondary' | 'success' | 'warning' | 'danger'
 type SurfaceKind = 'workspace' | 'card' | 'modal' | 'status'
@@ -111,7 +111,6 @@ const surfaceByVariant: Record<Exclude<CardVariant, 'default'>, SurfaceKind> = {
   elevated: 'card',
   glass: 'workspace',
   outline: 'status',
-  neko: 'card',
 }
 
 const variantBySurface: Record<SurfaceKind, Exclude<CardVariant, 'default'>> = {
@@ -126,7 +125,6 @@ const elevationByVariant: Record<Exclude<CardVariant, 'default'>, ElevationLevel
   elevated: 3,
   glass: 2,
   outline: 0,
-  neko: 4,
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -161,7 +159,7 @@ const resolvedSurface = computed<SurfaceKind>(() => props.surface ?? surfaceByVa
 const resolvedElevation = computed<ElevationLevel>(() => props.elevation ?? elevationByVariant[normalizedVariant.value])
 const resolvedMotion = computed<MotionKind>(() => props.motion ?? (isInteractive.value ? 'standard' : 'subtle'))
 const resolvedDensity = computed<DensityKind>(() => props.density ?? 'default')
-const showGlow = computed(() => props.glow || props.glowEffect || normalizedVariant.value === 'neko')
+const showGlow = computed(() => props.glow || props.glowEffect)
 
 const paddingClasses = computed(() => {
   const map: Record<PaddingSize, string> = {
@@ -262,18 +260,6 @@ const handleMouseLeave = (event: MouseEvent) => {
   border: 1px solid var(--surface-status-border);
   backdrop-filter: var(--surface-status-blur);
   box-shadow: var(--ui-card-shadow, none);
-}
-
-.ui-card--neko {
-  @apply rounded-2xl;
-
-  background: var(--surface-card-bg);
-  border: 1px solid rgb(var(--color-accent-primary-rgb) / 12%);
-  backdrop-filter: var(--surface-card-blur);
-  box-shadow:
-    var(--ui-card-shadow, var(--surface-card-shadow)),
-    var(--glass-inner-glow),
-    0 14px 30px rgb(var(--color-accent-primary-rgb) / 10%);
 }
 
 .ui-card--surface-modal.ui-card--elevated,

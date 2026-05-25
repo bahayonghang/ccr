@@ -3,7 +3,10 @@
     <div class="stats-grid">
       <div class="stat-card consecutive">
         <div class="stat-icon">
-          🔥
+          <SIcon
+            name="Flame"
+            size="w-6 h-6"
+          />
         </div>
         <div class="stat-content">
           <div class="stat-value">
@@ -17,7 +20,10 @@
 
       <div class="stat-card total">
         <div class="stat-icon">
-          📅
+          <SIcon
+            name="Calendar"
+            size="w-6 h-6"
+          />
         </div>
         <div class="stat-content">
           <div class="stat-value">
@@ -31,7 +37,10 @@
 
       <div class="stat-card longest">
         <div class="stat-icon">
-          🏆
+          <SIcon
+            name="Trophy"
+            size="w-6 h-6"
+          />
         </div>
         <div class="stat-content">
           <div class="stat-value">
@@ -45,7 +54,10 @@
 
       <div class="stat-card rate">
         <div class="stat-icon">
-          📈
+          <SIcon
+            name="TrendingUp"
+            size="w-6 h-6"
+          />
         </div>
         <div class="stat-content">
           <div class="stat-value">
@@ -70,6 +82,7 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import SIcon from '@/components/ui/SIcon.vue'
 import { useCheckinStore } from '@/stores/checkin'
 
 const { t } = useI18n()

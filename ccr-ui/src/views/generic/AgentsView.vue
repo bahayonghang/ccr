@@ -179,7 +179,11 @@
                   <div class="flex items-start justify-between mb-3">
                     <div class="flex items-center gap-3 overflow-hidden">
                       <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-accent-primary/10 to-accent-info/10 flex items-center justify-center text-lg shadow-sm border border-border-default/25 group-hover:scale-110 transition-transform duration-300">
-                        🤖
+                        <SIcon
+                          name="Bot"
+                          size="w-5 h-5"
+                          class="text-accent-primary"
+                        />
                       </div>
                       <div class="min-w-0">
                         <h3 class="text-base font-bold text-text-primary group-hover:text-accent-primary transition-colors truncate">
