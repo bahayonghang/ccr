@@ -35,6 +35,10 @@ import {
   type UsageDiagnosticsSummary,
 } from './usageDiagnostics'
 import {
+  buildUsageOpsCockpit,
+  type UsageOpsAction,
+} from './usageOpsCockpit'
+import {
   formatCost,
   formatTokens,
 } from './usageSummaryCards'
@@ -786,6 +790,39 @@ export const useUsageDashboardState = () => {
       : t('usage.dashboard.importJobBanner.running', params)
   })
   const importJobWarnings = computed(() => store.currentImportJob?.warnings ?? [])
+  const opsCockpit = computed(() =>
+    buildUsageOpsCockpit({
+      archive: store.archive,
+      importDetails: importDetails.value,
+      importing: store.importing,
+      importJobBanner: importJobBanner.value,
+      importJobWarnings: importJobWarnings.value,
+      lastUpdatedAt: store.lastUpdated?.toISOString() ?? null,
+      loading: store.loading,
+      locale: locale.value,
+      selectedPlatformLabel: selectedPlatformLabel.value,
+      selectedWindowLabel: selectedWindowLabel.value,
+      snapshot: store.snapshot,
+      translate: translateDashboardText,
+      unsupportedSyncMessage: unsupportedSyncMessage.value,
+      warningMessage: warningMessage.value,
+    })
+  )
+  const handleOpsPrimaryAction = async (action: UsageOpsAction) => {
+    if (action === 'import') {
+      await doImport()
+      return
+    }
+
+    if (action === 'diagnostics') {
+      activeTab.value = 'logs'
+      await loadLogs('reset')
+    }
+  }
+  const openDiagnostics = async () => {
+    activeTab.value = 'logs'
+    await loadLogs('same')
+  }
   const showEmptyState = computed(() => store.hasNoUsageData)
 
   const emptyStateTitle = computed(() => {
@@ -919,6 +956,7 @@ export const useUsageDashboardState = () => {
     logModelFilter,
     onFilterChange,
     overviewHighlights,
+    opsCockpit,
     pieColors,
     pieOptions,
     pieSeries,
@@ -953,6 +991,8 @@ export const useUsageDashboardState = () => {
     modelTokenPieOptions,
     modelTokenPieSeries,
     updateLogModelFilter,
+    handleOpsPrimaryAction,
+    openDiagnostics,
     warningMessage,
   }
 }

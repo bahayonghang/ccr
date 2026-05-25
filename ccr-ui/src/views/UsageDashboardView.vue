@@ -39,6 +39,13 @@
       />
 
       <template v-else>
+        <UsageOpsCockpit
+          v-if="dashboardReady"
+          :presentation="opsCockpit"
+          @primary-action="handleOpsPrimaryAction"
+          @secondary-action="openDiagnostics"
+        />
+
         <section
           v-if="dashboardReady && summaryCards.length > 0"
           class="usage-summary-grid"
@@ -110,38 +117,6 @@
           v-else
           class="usage-content"
         >
-          <div
-            v-if="importJobBanner"
-            class="usage-warning"
-          >
-            <div class="font-medium">
-              {{ importJobBanner }}
-            </div>
-            <div
-              v-for="detail in importJobWarnings"
-              :key="detail"
-              class="usage-warning__detail"
-            >
-              {{ detail }}
-            </div>
-          </div>
-
-          <div
-            v-if="unsupportedSyncMessage || warningMessage"
-            class="usage-warning"
-          >
-            <div class="font-medium">
-              {{ unsupportedSyncMessage || warningMessage }}
-            </div>
-            <div
-              v-for="detail in importDetails"
-              :key="detail"
-              class="usage-warning__detail"
-            >
-              {{ detail }}
-            </div>
-          </div>
-
           <AsyncStatePanel
             v-if="showEmptyState"
             state="empty"
@@ -270,6 +245,7 @@ import UsageDashboardToolbar from '@/components/usage/UsageDashboardToolbar.vue'
 import UsageLogsTab from '@/components/usage/UsageLogsTab.vue'
 import UsageMetricCard from '@/components/usage/UsageMetricCard.vue'
 import UsageModelsTab from '@/components/usage/UsageModelsTab.vue'
+import UsageOpsCockpit from '@/components/usage/UsageOpsCockpit.vue'
 import UsageOverviewTab from '@/components/usage/UsageOverviewTab.vue'
 import UsageProjectsTab from '@/components/usage/UsageProjectsTab.vue'
 import UsageSourceSummaryCard from '@/components/usage/UsageSourceSummaryCard.vue'
@@ -314,17 +290,17 @@ const {
   formatCost,
   formatTokens,
   importButtonLabel,
-  importDetails,
-  importJobBanner,
-  importJobWarnings,
   diagnosticsEmptyDetail,
   diagnosticsEmptyMessage,
   diagnosticsSummary,
   hasRenderableTrendData,
+  handleOpsPrimaryAction,
   loadLogs,
   logsRecords,
   logModelFilter,
   onFilterChange,
+  openDiagnostics,
+  opsCockpit,
   overviewHighlights,
   pieColors,
   pieOptions,
@@ -359,8 +335,6 @@ const {
   updateLogModelFilter,
   unsupportedStateDescription,
   unsupportedStateTitle,
-  unsupportedSyncMessage,
-  warningMessage,
 } = useUsageDashboardState()
 
 const runtimeCopy = computed(() => getRuntimeUnavailableCopy('usage'))
@@ -493,21 +467,6 @@ const updateSelectedRange = (value: UsageRangePreset) => {
   display: flex;
   flex-direction: column;
   gap: 0.9rem;
-}
-
-.usage-warning {
-  border-radius: 1.35rem;
-  border: 1px solid rgb(var(--color-warning-rgb) / 18%);
-  background: linear-gradient(180deg, rgb(var(--color-warning-rgb) / 12%), rgb(var(--color-bg-elevated-rgb) / 90%));
-  padding: 0.9rem 1rem;
-  color: var(--color-text-primary);
-  box-shadow: var(--elevation-1), inset 0 1px 0 rgb(255 255 255 / 12%);
-}
-
-.usage-warning__detail {
-  margin-top: 0.3rem;
-  color: var(--color-text-secondary);
-  font-size: 0.78rem;
 }
 
 td {

@@ -23,6 +23,8 @@ import type {
   UsageCapabilityReport,
   UsageImportJobSnapshot,
   UsageImportSummary,
+  UsageSnapshotProjection,
+  UsageSnapshotUpdatedPayload,
   UsageSummary,
 } from '@/types/usage'
 import {
@@ -118,6 +120,7 @@ export const useUsageStore = defineStore('usage', () => {
   const heatmap = ref<HeatmapResponse | null>(null)
   const logs = ref<PaginatedLogs | null>(null)
   const archive = ref<UsageArchiveDiagnostics | null>(null)
+  const snapshot = ref<UsageSnapshotProjection | null>(null)
   const usageCapabilities = ref<UsageCapabilityReport | null>(null)
 
   const loading = ref(true)
@@ -141,9 +144,11 @@ export const useUsageStore = defineStore('usage', () => {
 
   let filterDebounceTimer: ReturnType<typeof setTimeout> | null = null
   let importJobUnlisteners: UnlistenFn[] = []
+  let usageSnapshotUnlistener: UnlistenFn | null = null
   let activeImportReason: 'manual' | 'bootstrap' | null = null
   let lastProgressRefreshAt = 0
   let lastProgressRefreshRecords = 0
+  let snapshotRefreshPromise: Promise<void> | null = null
 
   let requestSerial = 0
   let inFlightKey: string | null = null
@@ -195,6 +200,7 @@ export const useUsageStore = defineStore('usage', () => {
     projectStats.value = normalized.projectStats
     sourceStats.value = normalized.sourceStats
     archive.value = normalized.archive
+    snapshot.value = normalized.snapshot
     if (normalized.heatmap !== undefined) {
       heatmap.value = normalized.heatmap
     }
@@ -209,6 +215,7 @@ export const useUsageStore = defineStore('usage', () => {
     heatmap.value = null
     logs.value = null
     archive.value = null
+    snapshot.value = null
   }
 
   const refreshUsageCapabilities = async (force = false) => {
@@ -325,6 +332,29 @@ export const useUsageStore = defineStore('usage', () => {
     })
   }
 
+  const ensureUsageSnapshotListener = async () => {
+    if (!isTauriRuntime() || usageSnapshotUnlistener) return
+
+    usageSnapshotUnlistener = await listen<UsageSnapshotUpdatedPayload>(
+      'usage:snapshot-updated',
+      (event) => {
+        dashboardCache.clear()
+        if (!lastUpdated.value && !summary.value) return
+        if (snapshotRefreshPromise) return
+
+        snapshotRefreshPromise = fetchAll({
+          background: true,
+          includeHeatmap: false,
+          force: true,
+          reason: `snapshot-updated:${event.payload.reason}`,
+          preserveError: true,
+        }).finally(() => {
+          snapshotRefreshPromise = null
+        })
+      },
+    )
+  }
+
   const handleImportJobSnapshot = async (
     job: UsageImportJobSnapshot,
     trigger: 'progress' | 'recent-ready' | 'finished' | 'failed',
@@ -419,6 +449,7 @@ export const useUsageStore = defineStore('usage', () => {
 
   /** 拉取汇总、趋势、模型、项目和热力图 */
   async function fetchAll(options: FetchOptions = {}) {
+    await ensureUsageSnapshotListener()
     const includeHeatmap = options.includeHeatmap ?? !LAZY_HEATMAP_LOAD
     const reason = options.reason ?? 'manual'
     const preserveError = options.preserveError ?? false
@@ -517,6 +548,7 @@ export const useUsageStore = defineStore('usage', () => {
               projectStats: projectData ?? [],
               sourceStats: [],
               archive: archive.value,
+              snapshot: snapshot.value,
               heatmap: heatmap.value,
               includeHeatmap,
             }),
@@ -845,6 +877,7 @@ export const useUsageStore = defineStore('usage', () => {
     heatmap,
     logs,
     archive,
+    snapshot,
     usageCapabilities,
     loading,
     logsLoading,

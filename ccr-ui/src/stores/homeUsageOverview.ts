@@ -18,6 +18,7 @@ import type {
   StartSessionIndexJobResponse,
   StartUsageImportJobResponse,
   UsageImportJobSnapshot,
+  UsageSnapshotUpdatedPayload,
 } from '@/types/usage'
 
 const OVERVIEW_CACHE_TTL_MS = 30_000
@@ -46,6 +47,7 @@ export const useHomeUsageOverviewStore = defineStore('homeUsageOverview', () => 
   let activeSessionJobId: string | null = null
   let usageJobUnlisteners: UnlistenFn[] = []
   let sessionJobUnlisteners: UnlistenFn[] = []
+  let usageSnapshotUnlistener: UnlistenFn | null = null
   let usageWarmupLastAttemptAt = 0
   let sessionWarmupLastAttemptAt = 0
   let retryProbeTimer: ReturnType<typeof setTimeout> | null = null
@@ -78,6 +80,21 @@ export const useHomeUsageOverviewStore = defineStore('homeUsageOverview', () => 
       return
     }
     overviewCache.delete(days)
+  }
+
+  const ensureUsageSnapshotListener = async () => {
+    if (!isTauriRuntime() || usageSnapshotUnlistener) return
+
+    usageSnapshotUnlistener = await listen<UsageSnapshotUpdatedPayload>(
+      'usage:snapshot-updated',
+      () => {
+        invalidate()
+        if (!overview.value) return
+        void loadOverview(activeDays.value, { force: true, background: true }).catch((loadError) => {
+          logger.error('[home-usage-overview] snapshot refresh failed', loadError)
+        })
+      },
+    )
   }
 
   const refreshActiveOverview = async () => {
@@ -253,6 +270,7 @@ export const useHomeUsageOverviewStore = defineStore('homeUsageOverview', () => 
   }
 
   async function loadOverview(days: number, options: LoadOptions = {}) {
+    await ensureUsageSnapshotListener()
     activeDays.value = days
     const force = options.force ?? false
     const background = options.background ?? false
@@ -304,6 +322,10 @@ export const useHomeUsageOverviewStore = defineStore('homeUsageOverview', () => 
     clearRetryProbe()
     await clearUsageJobListeners()
     await clearSessionJobListeners()
+    if (usageSnapshotUnlistener) {
+      await usageSnapshotUnlistener()
+      usageSnapshotUnlistener = null
+    }
   }
 
   return {

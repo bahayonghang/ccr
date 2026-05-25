@@ -1,5 +1,5 @@
 import { createApp, defineComponent, h, KeepAlive, nextTick, reactive, ref } from 'vue'
-import type { DailyTrend, UsageSummary } from '@/types/usage'
+import type { DailyTrend, UsageSnapshotProjection, UsageSummary } from '@/types/usage'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 let localeHydrated = false
@@ -29,6 +29,7 @@ const usageStore = reactive({
     recent_completed_at?: string | null
     history_completed_at?: string | null
   },
+  snapshot: null as UsageSnapshotProjection | null,
   logsModelFilter: undefined as string | undefined,
   lastImportResults: [] as Array<{ platform: string; error?: string }>,
   warning: '',
@@ -128,6 +129,38 @@ const translationTemplates: Record<string, string> = {
   'usage.dashboard.meta.window': 'Window',
   'usage.dashboard.meta.models': 'Models',
   'usage.dashboard.meta.projects': 'Projects',
+  'usage.dashboard.ops.eyebrow': 'Usage operations cockpit',
+  'usage.dashboard.ops.states.ready.label': 'Ready',
+  'usage.dashboard.ops.states.ready.title': 'Usage data is ready',
+  'usage.dashboard.ops.states.ready.detail': 'The local read model is fresh enough for cost and token decisions.',
+  'usage.dashboard.ops.states.stale.label': 'Stale',
+  'usage.dashboard.ops.states.stale.title': 'Usage data is stale',
+  'usage.dashboard.ops.states.stale.detail': 'Refresh the local usage archive before making budget or quota decisions.',
+  'usage.dashboard.ops.health.readiness': 'Readiness',
+  'usage.dashboard.ops.health.nextAction': 'Next action: {action}',
+  'usage.dashboard.ops.health.noAction': 'No blocking action',
+  'usage.dashboard.ops.health.freshness': 'Freshness',
+  'usage.dashboard.ops.health.sourceHealth': 'Source health',
+  'usage.dashboard.ops.health.archivedSessions': '{count} archived sessions',
+  'usage.dashboard.ops.health.snapshotCache': 'Snapshot cache',
+  'usage.dashboard.ops.health.cacheTtl': '{count}s TTL',
+  'usage.dashboard.ops.health.generatedAt': 'Generated {time}',
+  'usage.dashboard.ops.health.scope': 'Scope',
+  'usage.dashboard.ops.health.drilldown': 'Drilldown',
+  'usage.dashboard.ops.health.dimensions': '{count} dimensions',
+  'usage.dashboard.ops.health.noDrilldown': 'No dimensions yet',
+  'usage.dashboard.ops.freshness.fresh': 'fresh',
+  'usage.dashboard.ops.freshness.stale': 'stale',
+  'usage.dashboard.ops.freshness.missing': 'missing',
+  'usage.dashboard.ops.sourceStates.live': 'live',
+  'usage.dashboard.ops.sourceStates.degraded': 'degraded',
+  'usage.dashboard.ops.sourceStates.missing': 'missing',
+  'usage.dashboard.ops.actions.import_usage': 'Import usage',
+  'usage.dashboard.ops.actions.refresh_usage': 'Refresh usage',
+  'usage.dashboard.ops.actions.diagnostics': 'Inspect diagnostics',
+  'usage.dashboard.ops.age.unknown': 'age unknown',
+  'usage.dashboard.ops.age.days': '{count}d ago',
+  'usage.dashboard.ops.missingTimestamp': 'No completed import yet',
   'usage.dashboard.diagnostics.noRecentRecord': 'No recent record',
   'usage.dashboard.diagnostics.repairNeeded': 'Codex history should be repaired',
   'usage.dashboard.diagnostics.codexRepairHint': 'Detected {unknown} broken records',
@@ -257,6 +290,7 @@ beforeEach(() => {
   usageStore.logs = null
   usageStore.logsLoading = false
   usageStore.archive = null
+  usageStore.snapshot = null
   usageStore.logsModelFilter = undefined
   usageStore.lastImportResults = []
   usageStore.warning = ''
@@ -581,6 +615,82 @@ describe('usage dashboard state smoke', () => {
       ])
       expect(state.topModelRankings.value[0]?.label).toBe('claude-opus')
       expect(state.topProjectRankings.value[0]?.title).toBe('D:/workspace/heavy-project')
+    } finally {
+      unmount()
+    }
+  })
+
+  it('exposes usage ops cockpit from backend snapshot readiness', async () => {
+    tauriRuntime = true
+    usageStore.summary = {
+      total_requests: 1,
+      total_tokens: 100,
+      total_input_tokens: 50,
+      total_output_tokens: 25,
+      total_cache_read_tokens: 25,
+      total_cost_usd: 0.1,
+      cache_efficiency: 0.25,
+    }
+    usageStore.archive = {
+      archive_root: 'C:/Users/test/.ccr/analytics/usage.db',
+      live_sources: 1,
+      missing_sources: 1,
+      deleted_sources: 0,
+      archived_sessions: 8,
+      recent_completed_at: '2026-05-25T08:00:00Z',
+      history_completed_at: '2026-05-25T09:00:00Z',
+    }
+    usageStore.snapshot = {
+      generated_at: '2026-05-25T09:10:00Z',
+      platform_scope: 'all',
+      cache_ttl_seconds: 30,
+      freshness: {
+        state: 'stale',
+        latest_completed_at: '2026-05-24T00:00:00Z',
+        age_seconds: 90_000,
+        stale_after_seconds: 86_400,
+      },
+      readiness: {
+        state: 'stale',
+        next_action: 'refresh_usage',
+        detail: 'stale',
+        has_live_sources: true,
+        has_missing_sources: true,
+        has_deleted_sources: false,
+        active_usage_import: false,
+        active_session_index: false,
+        recent_completed_at: '2026-05-25T08:00:00Z',
+      },
+      source_health: [
+        {
+          source: 'codex',
+          state: 'degraded',
+          live_sources: 1,
+          missing_sources: 1,
+          deleted_sources: 0,
+          freshness: {
+            state: 'stale',
+            latest_completed_at: '2026-05-24T00:00:00Z',
+            age_seconds: 90_000,
+            stale_after_seconds: 86_400,
+          },
+        },
+      ],
+      drilldown: {
+        dimensions: ['source', 'project_path', 'session_id', 'branch'],
+        supports_logs: true,
+        supports_projects: true,
+        supports_sessions: true,
+      },
+    }
+
+    const { state, unmount } = await mountComposable()
+
+    try {
+      expect(state.opsCockpit.value.state).toBe('stale')
+      expect(state.opsCockpit.value.primaryAction).toBe('import')
+      expect(state.opsCockpit.value.primaryActionLabel).toBe('Refresh usage')
+      expect(state.opsCockpit.value.sourceItems[0]?.label).toBe('Codex')
     } finally {
       unmount()
     }

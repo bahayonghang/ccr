@@ -213,10 +213,12 @@ const getMetricLabel = (metric: DashboardUsageMetric) => {
   }
 }
 
+const isInitialLoading = computed(() => props.loading && !props.overview)
+
 const snapshotDescription = computed(() => {
   if (props.error) return t('dashboard.usage.error')
-  if (props.loading) return t('dashboard.metrics.usagePreparing')
   if (props.overview?.empty_reason) return getEmptyReasonDescription()
+  if (isInitialLoading.value) return t('dashboard.metrics.usagePreparing')
   return t('dashboard.usage.description')
 })
 
@@ -274,7 +276,7 @@ const hoveredPoint = computed(() => {
 
 const emptyTitle = computed(() => {
   if (props.error) return t('dashboard.usage.unavailableTitle')
-  if (props.loading) return t('dashboard.metrics.usagePreparing')
+  if (isInitialLoading.value) return t('dashboard.metrics.usagePreparing')
   return t('dashboard.usage.emptyTitle')
 })
 
@@ -293,7 +295,8 @@ const getEmptyReasonDescription = () => {
 
 const emptyDescription = computed(() => {
   if (props.error) return props.error
-  if (props.loading) return t('dashboard.usage.loadingDescription')
+  if (props.overview?.empty_reason) return getEmptyReasonDescription()
+  if (isInitialLoading.value) return t('dashboard.usage.loadingDescription')
   return getEmptyReasonDescription()
 })
 
@@ -665,4 +668,3 @@ const lastUpdatedLabel = computed(() => (
   }
 }
 </style>
-

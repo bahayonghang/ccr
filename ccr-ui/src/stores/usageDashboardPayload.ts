@@ -10,15 +10,17 @@ import type {
   UsageDashboardResponse,
   UsageFeatureCapability,
   UsageLogsQuery,
+  UsageSnapshotProjection,
   UsageSummary,
 } from '@/types/usage'
 
 export type UsageDashboardPayload = Omit<
   UsageDashboardResponse,
-  'summary' | 'heatmap' | 'generated_at' | 'archive' | 'source_stats'
+  'summary' | 'heatmap' | 'generated_at' | 'archive' | 'source_stats' | 'snapshot'
 > & {
   summary?: UsageSummary | null
   archive?: UsageArchiveDiagnostics | null
+  snapshot?: UsageSnapshotProjection | null
   heatmap?: HeatmapResponse
   by_model?: ModelStat[]
   by_project?: ProjectStat[]
@@ -37,6 +39,7 @@ export type NormalizedUsageDashboardPayload = {
   projectStats: ProjectStat[]
   sourceStats: SourceBreakdown[]
   archive: UsageArchiveDiagnostics | null
+  snapshot: UsageSnapshotProjection | null
   heatmap: HeatmapResponse | null | undefined
 }
 
@@ -68,6 +71,7 @@ export const normalizeDashboardPayload = (
   projectStats: data.project_stats ?? data.by_project ?? [],
   sourceStats: data.source_stats ?? [],
   archive: data.archive ?? null,
+  snapshot: data.snapshot ?? null,
   heatmap: includeHeatmap ? data.heatmap ?? null : undefined,
 })
 
@@ -78,6 +82,7 @@ export const buildDashboardCachePayload = ({
   projectStats,
   sourceStats = [],
   archive,
+  snapshot,
   heatmap,
   includeHeatmap,
 }: {
@@ -87,6 +92,7 @@ export const buildDashboardCachePayload = ({
   projectStats: ProjectStat[]
   sourceStats?: SourceBreakdown[]
   archive: UsageArchiveDiagnostics | null
+  snapshot?: UsageSnapshotProjection | null
   heatmap: HeatmapResponse | null
   includeHeatmap: boolean
 }): UsageDashboardPayload => ({
@@ -96,6 +102,7 @@ export const buildDashboardCachePayload = ({
   project_stats: projectStats,
   source_stats: sourceStats,
   archive: archive ?? undefined,
+  snapshot: snapshot ?? undefined,
   heatmap: includeHeatmap ? heatmap ?? undefined : undefined,
 })
 
