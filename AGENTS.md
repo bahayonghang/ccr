@@ -1,7 +1,7 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-`crates/` is the Rust workspace. `crates/ccr` is the installable CLI/TUI entry point, while shared logic lives in crates such as `ccr-core`, `ccr-config`, `ccr-codex`, `ccr-db`, and `ccr-types`. `ccr-ui/` contains the Vue 3 + Tauri app (`src/`, `src-tauri/`, `tests/`). `ccr-vscode/` contains the VS Code extension (`src/providers`, `src/services`). `docs/` holds VitePress docs. `scripts/` and `tests/scripts/` hold repo automation and version-sync checks. Usage analytics depend on the external [`llmusage`](https://github.com/bahayonghang/llmuasage) crate, declared as a pinned `rev` git dependency in `ccr-ui/src-tauri/Cargo.toml` and wrapped by `ccr-ui/src-tauri/src/llmusage_adapter/`.
+`crates/` is the Rust workspace. `crates/ccr` is the installable CLI/TUI entry point, while shared logic lives in crates such as `ccr-core`, `ccr-config`, `ccr-codex`, `ccr-db`, and `ccr-types`. `ccr-ui/` contains the Vue 3 + Tauri app (`src/`, `src-tauri/`, `tests/`). `ccr-vscode/` contains the VS Code extension (`src/providers`, `src/services`). `docs/` holds VitePress docs. `scripts/` holds repo automation and version-sync checks. Usage analytics depend on the external [`llmusage`](https://github.com/bahayonghang/llmuasage) crate, declared as a pinned `rev` git dependency in `ccr-ui/src-tauri/Cargo.toml` and wrapped by `ccr-ui/src-tauri/src/llmusage_adapter/`.
 
 ## Build, Test, and Development Commands
 - `just build` — build the Rust CLI in debug mode.

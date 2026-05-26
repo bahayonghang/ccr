@@ -1,6 +1,6 @@
 # ccr-vscode Agent Notes
 
-These notes apply to everything under `ccr-vscode/` and supplement the repository-level `AGENTS.md`.
+These notes apply to everything under `ccr-vscode/` and supplement the repository-level `AGENTS.md`. Read `./code_map.md` before broad grep or repo-wide code search inside `ccr-vscode/`.
 
 ## Structure And Ownership
 - `src/extension.ts` is the VS Code extension entry point.
