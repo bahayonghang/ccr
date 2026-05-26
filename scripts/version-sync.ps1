@@ -1,4 +1,4 @@
-# 版本同步脚本（PowerShell 版本）
+﻿# 版本同步脚本（PowerShell 版本）
 # 以 crates/ccr/Cargo.toml 为主，同步到各目标文件
 
 param(

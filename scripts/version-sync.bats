@@ -88,7 +88,7 @@ EOF
 EOF
 
   # 复制脚本到测试目录
-  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && cd ../.. && pwd)"
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && cd .. && pwd)"
   cp "$SCRIPT_DIR/scripts/version-sync.sh" "$TEST_DIR/"
   chmod +x "$TEST_DIR/version-sync.sh"
 }

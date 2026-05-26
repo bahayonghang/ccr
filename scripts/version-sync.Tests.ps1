@@ -3,7 +3,7 @@
 
 BeforeAll {
     $ScriptDir = Split-Path -Parent $PSCommandPath
-    $RootDir = Split-Path -Parent (Split-Path -Parent $ScriptDir)
+    $RootDir = Split-Path -Parent $ScriptDir
     $TestDir = Join-Path $env:TEMP "ccr-ps-test-$(Get-Random)"
     
     # 创建测试目录结构
@@ -15,6 +15,7 @@ BeforeAll {
     New-Item -Path "$root/ccr-ui/src/components" -ItemType Directory -Force | Out-Null
     New-Item -Path "$root/ccr-ui/src/layouts" -ItemType Directory -Force | Out-Null
     New-Item -Path "$root/ccr-vscode" -ItemType Directory -Force | Out-Null
+    New-Item -Path "$root/scripts" -ItemType Directory -Force | Out-Null
 
     # 创建测试文件
     @'
@@ -83,7 +84,7 @@ edition = "2021"
 '@ | Set-Content -Path "$root/ccr-vscode/package.json" -Encoding UTF8
 
     # 复制脚本
-    Copy-Item "$RootDir/scripts/version-sync.ps1" "$TestDir/"
+    Copy-Item "$RootDir/scripts/version-sync.ps1" "$root/scripts/"
 }
 
 AfterAll {
@@ -100,7 +101,7 @@ Describe "version-sync.ps1 基础功能测试" {
     }
 
     It "版本一致时 --check 应返回 0" {
-        $scriptPath = Join-Path $TestDir "version-sync.ps1"
+        $scriptPath = Join-Path $root "scripts\version-sync.ps1"
         # 注意：需要修改脚本中的 ROOT_DIR 或使用环境变量
         # 这里假设脚本支持测试模式
         $result = & powershell -File $scriptPath -Check -Verbose 2>&1
@@ -117,7 +118,7 @@ Describe "version-sync.ps1 基础功能测试" {
 }
 '@ | Set-Content -Path "$root/ccr-ui/package.json" -Encoding UTF8
 
-        $scriptPath = Join-Path $TestDir "version-sync.ps1"
+        $scriptPath = Join-Path $root "scripts\version-sync.ps1"
         $result = & powershell -File $scriptPath -Check 2>&1
         $LASTEXITCODE | Should -Be 1
     }
@@ -132,7 +133,7 @@ Describe "version-sync.ps1 基础功能测试" {
 }
 '@ | Set-Content -Path "$root/ccr-ui/package.json" -Encoding UTF8
 
-        $scriptPath = Join-Path $TestDir "version-sync.ps1"
+        $scriptPath = Join-Path $root "scripts\version-sync.ps1"
         $result = & powershell -File $scriptPath -Verbose 2>&1
         $LASTEXITCODE | Should -Be 0
 
@@ -144,7 +145,7 @@ Describe "version-sync.ps1 基础功能测试" {
     It "文件不存在时应报错退出" {
         Remove-Item "$root/ccr-vscode/package.json" -Force
 
-        $scriptPath = Join-Path $TestDir "version-sync.ps1"
+        $scriptPath = Join-Path $root "scripts\version-sync.ps1"
         $result = & powershell -File $scriptPath 2>&1
         $LASTEXITCODE | Should -Be 1
     }
@@ -158,7 +159,7 @@ version.workspace = true
 edition = "2021"
 '@ | Set-Content -Path "$root/crates/ccr-types/Cargo.toml" -Encoding UTF8
 
-        $scriptPath = Join-Path $TestDir "version-sync.ps1"
+        $scriptPath = Join-Path $root "scripts\version-sync.ps1"
         $result = & powershell -File $scriptPath -Verbose 2>&1
         
         # 检查 ccr-types 是否保持 workspace 继承

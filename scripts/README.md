@@ -56,6 +56,10 @@
 .\scripts\version-sync.ps1 -Check -Verbose
 ```
 
+### `version-sync.Tests.ps1` / `version-sync.bats`
+
+`version-sync` 的 Windows / Bash 测试套件，与脚本本体同目录维护，便于同步更新路径和测试入口。
+
 ## 推荐流程
 
 ```bash

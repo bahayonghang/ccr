@@ -187,7 +187,7 @@ extract_frontend_version() {
   ver="$(jq -r '.version // empty' "$FRONTEND_PKG" 2>/dev/null || true)"
   if [[ -z "$ver" || "$ver" == "null" ]]; then
     # 兼容没有 jq 的环境：用 sed 粗略解析
-    ver="$(sed -nE 's/"version"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p' "$FRONTEND_PKG" | head -n1)"
+    ver="$(sed -nE 's/.*"version"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p' "$FRONTEND_PKG" | head -n1)"
   fi
   [[ -n "$ver" ]] || die "前端 package.json 缺少 version 字段或解析失败"
   ver="$(printf "%s" "$ver" | tr -d '\r' | sed -e 's/^\s\+//' -e 's/\s\+$//')"
@@ -223,7 +223,7 @@ extract_tauri_conf_version() {
   ver="$(jq -r '.version // empty' "$TAURI_CONF" 2>/dev/null || true)"
   if [[ -z "$ver" || "$ver" == "null" ]]; then
     # 兼容没有 jq 的环境：用 sed 粗略解析
-    ver="$(sed -nE 's/"version"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p' "$TAURI_CONF" | head -n1)"
+    ver="$(sed -nE 's/.*"version"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p' "$TAURI_CONF" | head -n1)"
   fi
   [[ -n "$ver" ]] || die "Tauri tauri.conf.json 缺少 version 字段或解析失败"
   ver="$(printf "%s" "$ver" | tr -d '\r' | sed -e 's/^\s\+//' -e 's/\s\+$//')"
@@ -261,7 +261,7 @@ extract_vscode_version() {
   ver="$(jq -r '.version // empty' "$VSCODE_PKG" 2>/dev/null || true)"
   if [[ -z "$ver" || "$ver" == "null" ]]; then
     # 兼容没有 jq 的环境：用 sed 粗略解析
-    ver="$(sed -nE 's/"version"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p' "$VSCODE_PKG" | head -n1)"
+    ver="$(sed -nE 's/.*"version"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p' "$VSCODE_PKG" | head -n1)"
   fi
   [[ -n "$ver" ]] || die "VSCode package.json 缺少 version 字段或解析失败"
   ver="$(printf "%s" "$ver" | tr -d '\r' | sed -e 's/^\s\+//' -e 's/\s\+$//')"
