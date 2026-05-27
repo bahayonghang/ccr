@@ -486,11 +486,49 @@ const copyCommand = (cmd: string) => {
 }
 
 .claude-hero__button {
-  @apply border border-accent-warning/25 bg-accent-warning/15 text-accent-warning hover:border-accent-warning/40;
+  color: var(--color-text-inverted);
+  border-color: rgb(var(--color-warning-rgb) / 46%);
+  background:
+    linear-gradient(180deg, rgb(255 251 245 / 16%), transparent 42%),
+    linear-gradient(180deg, var(--color-warning-hover), var(--color-warning));
+  box-shadow:
+    0 16px 34px rgb(var(--color-warning-rgb) / 18%),
+    0 1px 0 rgb(255 251 245 / 28%) inset;
+
+  @apply px-5 font-semibold shadow-sm;
+}
+
+.claude-hero__button:hover:not(:disabled) {
+  color: var(--color-text-inverted);
+  border-color: rgb(var(--color-warning-rgb) / 66%);
+  background:
+    linear-gradient(180deg, rgb(255 251 245 / 20%), transparent 44%),
+    linear-gradient(180deg, var(--color-warning-hover), rgb(var(--color-warning-rgb) / 92%));
+  box-shadow:
+    0 18px 38px rgb(var(--color-warning-rgb) / 22%),
+    0 1px 0 rgb(255 251 245 / 32%) inset;
+}
+
+.claude-hero__button :deep(svg) {
+  filter: drop-shadow(0 1px 0 rgb(255 251 245 / 18%));
 }
 
 .claude-hero__button--ghost {
-  @apply border-border-subtle bg-transparent text-text-secondary;
+  color: var(--stage-text-secondary);
+  background: rgb(var(--color-bg-surface-rgb) / 42%);
+  border-color: var(--stage-border-medium);
+  box-shadow: none;
+}
+
+.claude-hero__button--ghost:hover:not(:disabled) {
+  color: var(--stage-text-primary);
+  background: rgb(var(--color-bg-surface-rgb) / 66%);
+  border-color: rgb(var(--color-border-strong-rgb) / 24%);
+  box-shadow: none;
+}
+
+.claude-hero__button--ghost :deep(svg) {
+  filter: none;
 }
 
 .claude-hero__console {
