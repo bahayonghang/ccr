@@ -420,18 +420,11 @@
                 placeholder="12345"
               >
               <p class="checkin-accounts-tab__hint">
-                <i18n-t
-                  keypath="checkin.accounts.fields.apiUserHint"
-                  scope="global"
-                  tag="span"
-                >
-                  <template #userId>
-                    <code>user.id</code>
-                  </template>
-                  <template #header>
-                    <code>new-api-user</code>
-                  </template>
-                </i18n-t>
+                {{ t('checkin.accounts.fields.apiUserHintPrefix') }}
+                <code>user.id</code>
+                {{ t('checkin.accounts.fields.apiUserHintMiddle') }}
+                <code>new-api-user</code>
+                {{ t('checkin.accounts.fields.apiUserHintSuffix') }}
               </p>
             </div>
           </section>

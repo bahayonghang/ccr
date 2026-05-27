@@ -354,7 +354,9 @@ export default {
         leaveBlank: '(leave blank to keep unchanged)',
         sessionPlaceholder: 'Paste a session value or full cookies JSON',
         sessionHint: 'Paste a session value directly; the backend wraps it as cookies JSON automatically. If you already have full cookies JSON, you can paste that instead.',
-        apiUserHint: 'Required for session / cookies login. Prefer {userId} from Local Storage, or find {header} in request headers.',
+        apiUserHintPrefix: 'Required for session / cookies login. Prefer ',
+        apiUserHintMiddle: ' from Local Storage, or find ',
+        apiUserHintSuffix: ' in request headers.',
         enabled: 'Enable this account',
       },
       waf: {

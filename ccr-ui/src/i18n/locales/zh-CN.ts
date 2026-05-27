@@ -354,7 +354,9 @@ export default {
         leaveBlank: '(留空不修改)',
         sessionPlaceholder: '可直接粘贴 session 值，或完整 cookies JSON',
         sessionHint: '可直接粘贴 session 值，后台会自动包装为 cookies JSON；如果你已经拿到完整 cookies JSON，也可以直接粘贴',
-        apiUserHint: '使用 session / cookies 登录时必须填写。优先从 Local Storage 的 {userId} 获取，也可从请求头里的 {header} 找到',
+        apiUserHintPrefix: '使用 session / cookies 登录时必须填写。优先从 Local Storage 的 ',
+        apiUserHintMiddle: ' 获取，也可从请求头里的 ',
+        apiUserHintSuffix: ' 找到',
         enabled: '启用此账号',
       },
       waf: {

@@ -50,6 +50,7 @@ vi.mock('@/api', () => ({
 }))
 
 const mockedGetCheckinAccountCookies = checkinApi.getCheckinAccountCookies as ReturnType<typeof vi.fn>
+const mockedUpdateCheckinAccount = checkinApi.updateCheckinAccount as ReturnType<typeof vi.fn>
 
 const providers: CheckinProvider[] = [
   {
@@ -119,7 +120,10 @@ const getCookiesTextarea = (el: HTMLElement) =>
 const getApiUserInput = (el: HTMLElement) =>
   el.querySelector<HTMLInputElement>('input[placeholder="12345"]')
 
-const mountTab = async (locale: 'en-US' | 'zh-CN' = 'en-US') => {
+const mountTab = async (
+  locale: 'en-US' | 'zh-CN' = 'en-US',
+  accountList: AccountInfo[] = accounts
+) => {
   const el = document.createElement('div')
   document.body.appendChild(el)
 
@@ -129,7 +133,7 @@ const mountTab = async (locale: 'en-US' | 'zh-CN' = 'en-US') => {
         return () =>
           h(CheckinAccountsTab, {
             providers,
-            accounts,
+            accounts: accountList,
             builtinProviders: [],
             checkinLoading: false,
             onRefresh: () => {},
@@ -252,6 +256,76 @@ describe('CheckinAccountsTab smoke', () => {
       expect(cookiesTextarea).not.toBeNull()
       expect(apiUserInput?.value).toBe('67890')
       expect(cookiesTextarea?.value).toBe('abc123')
+    } finally {
+      unmount()
+    }
+  })
+
+  it('opens the editor with a plain API User hint that avoids i18n-t vnode interpolation', async () => {
+    mockedGetCheckinAccountCookies.mockResolvedValue({
+      cookies_json: '{"session":"abc123"}',
+      api_user: '67890',
+    })
+
+    const { el, unmount } = await mountTab()
+
+    try {
+      await expect(openAccountEditor(el)).resolves.toBeUndefined()
+
+      expect(document.body.textContent).toContain('Required for session / cookies login. Prefer')
+      expect(document.body.textContent).toContain('from Local Storage, or find')
+      expect(document.body.textContent).toContain('in request headers.')
+
+      const hintCodes = Array.from(
+        document.body.querySelectorAll<HTMLElement>('.checkin-accounts-tab__hint code')
+      ).map(code => code.textContent)
+
+      expect(hintCodes).toContain('user.id')
+      expect(hintCodes).toContain('new-api-user')
+    } finally {
+      unmount()
+    }
+  })
+
+  it('submits enabled true when enabling an existing account from the editor', async () => {
+    mockedGetCheckinAccountCookies.mockResolvedValue({
+      cookies_json: '{"session":"abc123"}',
+      api_user: '67890',
+    })
+
+    const disabledAccounts = [
+      {
+        ...accounts[0],
+        enabled: false,
+      },
+    ] as AccountInfo[]
+
+    const { el, unmount } = await mountTab('en-US', disabledAccounts)
+
+    try {
+      await openAccountEditor(el)
+
+      const enabledCheckbox = document.body.querySelector<HTMLInputElement>('#account-enabled')
+      expect(enabledCheckbox).not.toBeNull()
+      expect(enabledCheckbox?.checked).toBe(false)
+
+      enabledCheckbox!.checked = true
+      enabledCheckbox!.dispatchEvent(new Event('change', { bubbles: true }))
+      await nextTick()
+
+      const form = document.body.querySelector<HTMLFormElement>('#checkin-account-form')
+      expect(form).not.toBeNull()
+      form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+      await Promise.resolve()
+      await nextTick()
+
+      expect(mockedUpdateCheckinAccount).toHaveBeenCalledWith(
+        'account-1',
+        expect.objectContaining({
+          enabled: true,
+          api_user: '67890',
+        })
+      )
     } finally {
       unmount()
     }
