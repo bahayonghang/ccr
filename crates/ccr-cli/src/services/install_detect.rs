@@ -2,6 +2,7 @@
 //!
 //! Pure PATH scan + version probe. No side effects on disk or environment.
 
+use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
 use crate::services::install_types::{
@@ -64,13 +65,82 @@ pub async fn detect() -> Result<DetectionResult, InstallFlowError> {
 /// Probe the host for available package managers and platform info.
 pub fn probe_host_capabilities() -> HostCapabilities {
     let platform = Platform::current();
+    let cargo_path = resolve_executable("cargo", cargo_hint_dirs());
+    let homebrew_path = if matches!(platform, Platform::Macos) {
+        resolve_executable(
+            "brew",
+            vec![
+                PathBuf::from("/opt/homebrew/bin"),
+                PathBuf::from("/usr/local/bin"),
+            ],
+        )
+    } else {
+        None
+    };
+
     HostCapabilities {
         platform,
-        has_cargo: which_on_path("cargo").is_some(),
-        has_homebrew: which_on_path("brew").is_some(),
+        has_cargo: cargo_path.is_some(),
+        cargo_path,
+        has_homebrew: homebrew_path.is_some(),
+        homebrew_path,
         has_scoop: which_on_path("scoop").is_some(),
         has_winget: which_on_path("winget").is_some(),
     }
+}
+
+/// Resolve an executable path from PATH first, then fallback directories.
+fn resolve_executable(name: &str, hint_dirs: Vec<PathBuf>) -> Option<PathBuf> {
+    if let Some(path) = which_on_path(name) {
+        return Some(path);
+    }
+
+    for dir in hint_dirs {
+        for exe_name in executable_names(name) {
+            let candidate = dir.join(&exe_name);
+            if is_executable(&candidate) {
+                return Some(candidate);
+            }
+        }
+    }
+    None
+}
+
+fn cargo_hint_dirs() -> Vec<PathBuf> {
+    let mut dirs = Vec::<PathBuf>::new();
+    let mut unique = BTreeSet::<PathBuf>::new();
+
+    let push_dir = |path: PathBuf, dirs: &mut Vec<PathBuf>, unique: &mut BTreeSet<PathBuf>| {
+        if unique.insert(path.clone()) {
+            dirs.push(path);
+        }
+    };
+
+    if let Some(cargo_home) = std::env::var_os("CARGO_HOME") {
+        push_dir(
+            PathBuf::from(cargo_home).join("bin"),
+            &mut dirs,
+            &mut unique,
+        );
+    }
+    if let Some(home) = std::env::var_os("HOME") {
+        push_dir(
+            PathBuf::from(home).join(".cargo").join("bin"),
+            &mut dirs,
+            &mut unique,
+        );
+    }
+
+    #[cfg(windows)]
+    if let Some(profile) = std::env::var_os("USERPROFILE") {
+        push_dir(
+            PathBuf::from(profile).join(".cargo").join("bin"),
+            &mut dirs,
+            &mut unique,
+        );
+    }
+
+    dirs
 }
 
 /// Search for a binary on PATH without spawning a process.
@@ -167,6 +237,16 @@ fn is_executable(path: &Path) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Mutex;
+    use std::sync::MutexGuard;
+
+    static ENV_TEST_LOCK: Mutex<()> = Mutex::new(());
+
+    fn env_test_lock() -> MutexGuard<'static, ()> {
+        ENV_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
 
     #[test]
     fn which_on_path_finds_common_binary() {
@@ -228,4 +308,165 @@ mod tests {
         #[cfg(target_os = "windows")]
         assert_eq!(caps.platform, Platform::Windows);
     }
+
+    #[test]
+    fn resolve_executable_uses_path_before_hints() {
+        let _guard = env_test_lock();
+
+        let fixture = tempfile::tempdir().expect("tempdir");
+        let bin_dir = fixture.path().join("bin");
+        std::fs::create_dir_all(&bin_dir).expect("create bin dir");
+
+        let name = executable_names("brew")[0].clone();
+        let path_on_hint = bin_dir.join(name.clone());
+        std::fs::write(&path_on_hint, "payload").expect("write fake executable");
+        set_executable_mode_if_needed(&path_on_hint);
+
+        let path_in_hint = std::env::var_os("PATH");
+        if path_in_hint.is_none() {
+            unsafe {
+                std::env::remove_var("PATH");
+            }
+        } else {
+            unsafe {
+                std::env::set_var("PATH", "");
+            }
+        }
+
+        let result = resolve_executable("brew", vec![bin_dir]);
+        assert_eq!(result, Some(path_on_hint));
+
+        if let Some(path) = path_in_hint {
+            unsafe {
+                std::env::set_var("PATH", path);
+            }
+        } else {
+            unsafe {
+                std::env::remove_var("PATH");
+            }
+        }
+    }
+
+    #[test]
+    fn resolve_executable_uses_cargo_hints() {
+        let _guard = env_test_lock();
+
+        let fixture = tempfile::tempdir().expect("tempdir");
+        let cwd = fixture.path();
+        let bin_dir = cwd.join("bin");
+        std::fs::create_dir_all(&bin_dir).expect("create cargo bin dir");
+
+        let exe_names = executable_names("cargo");
+        let path_on_hint = bin_dir.join(&exe_names[0]);
+        std::fs::write(&path_on_hint, "payload").expect("write fake executable");
+        set_executable_mode_if_needed(&path_on_hint);
+
+        let old_cargo_home = std::env::var_os("CARGO_HOME");
+        let old_home = std::env::var_os("HOME");
+        let old_path = std::env::var_os("PATH");
+
+        unsafe {
+            std::env::set_var("CARGO_HOME", cwd);
+            std::env::set_var("PATH", "/_ccr_nonexistent_path_for_tests");
+            std::env::remove_var("HOME");
+        }
+        let result = probe_host_capabilities();
+        assert!(result.has_cargo);
+        assert_eq!(result.cargo_path, Some(path_on_hint.clone()));
+
+        if let Some(value) = old_cargo_home {
+            unsafe {
+                std::env::set_var("CARGO_HOME", value);
+            }
+        } else {
+            unsafe {
+                std::env::remove_var("CARGO_HOME");
+            }
+        }
+        if let Some(value) = old_home {
+            unsafe {
+                std::env::set_var("HOME", value);
+            }
+        } else {
+            unsafe {
+                std::env::remove_var("HOME");
+            }
+        }
+        if let Some(value) = old_path {
+            unsafe {
+                std::env::set_var("PATH", value);
+            }
+        } else {
+            unsafe {
+                std::env::remove_var("PATH");
+            }
+        }
+    }
+
+    #[test]
+    fn cargo_path_in_probe_host_capabilities_comes_from_hint_dirs() {
+        let _guard = env_test_lock();
+
+        let fixture = tempfile::tempdir().expect("tempdir");
+        let home = fixture.path().join("home");
+        let cargo_bin = home.join(".cargo").join("bin");
+        std::fs::create_dir_all(&cargo_bin).expect("create cargo bin dir");
+
+        let exe_names = executable_names("cargo");
+        let exe_path = cargo_bin.join(&exe_names[0]);
+        std::fs::write(&exe_path, "payload").expect("write fake executable");
+        set_executable_mode_if_needed(&exe_path);
+
+        let old_home = std::env::var_os("HOME");
+        let old_path = std::env::var_os("PATH");
+        let old_cargo_home = std::env::var_os("CARGO_HOME");
+        unsafe {
+            std::env::remove_var("CARGO_HOME");
+            std::env::set_var("HOME", &home);
+            std::env::set_var("PATH", "/_ccr_nonexistent_path_for_tests");
+        }
+        let result = probe_host_capabilities();
+
+        assert!(result.has_cargo);
+        assert_eq!(result.cargo_path, Some(exe_path));
+
+        if let Some(old_path) = old_path {
+            unsafe {
+                std::env::set_var("PATH", old_path);
+            }
+        } else {
+            unsafe {
+                std::env::remove_var("PATH");
+            }
+        }
+        if let Some(home) = old_home {
+            unsafe {
+                std::env::set_var("HOME", home);
+            }
+        } else {
+            unsafe {
+                std::env::remove_var("HOME");
+            }
+        }
+        if let Some(cargo_home) = old_cargo_home {
+            unsafe {
+                std::env::set_var("CARGO_HOME", cargo_home);
+            }
+        } else {
+            unsafe {
+                std::env::remove_var("CARGO_HOME");
+            }
+        }
+    }
+
+    #[cfg(unix)]
+    fn set_executable_mode_if_needed(path: &Path) {
+        use std::os::unix::fs::PermissionsExt;
+        let mut perms = std::fs::metadata(path).expect("stat").permissions();
+        perms.set_mode(0o755);
+        std::fs::set_permissions(path, perms).expect("chmod");
+    }
+
+    #[cfg(windows)]
+    fn set_executable_mode_if_needed(_path: &Path) {}
 }

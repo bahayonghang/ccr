@@ -184,6 +184,8 @@ mod tests {
             has_homebrew: false,
             has_scoop: false,
             has_winget: false,
+            cargo_path: None,
+            homebrew_path: None,
         };
         let result = svc.plan(&detection, &caps).expect("should not error");
         assert!(matches!(result, PlanOutcome::Unsupported { .. }));

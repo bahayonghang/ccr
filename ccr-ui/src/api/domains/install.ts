@@ -31,6 +31,8 @@ export interface HostCapabilities {
   has_homebrew: boolean
   has_scoop: boolean
   has_winget: boolean
+  cargo_path: string | null
+  homebrew_path: string | null
 }
 
 export interface DataRootWarning {

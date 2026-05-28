@@ -43,16 +43,16 @@ pub fn generate_plan(
 }
 
 fn plan_macos(caps: &HostCapabilities) -> PlanOutcome {
-    if caps.has_homebrew {
+    if let Some(homebrew_path) = caps.homebrew_path.as_deref() {
         PlanOutcome::Plan(make_plan(
             Platform::Macos,
             PackageManager::Homebrew,
-            "brew",
+            &homebrew_path.to_string_lossy(),
             &["install", LLMUSAGE_CRATE_NAME],
             DurationClass::Medium,
         ))
-    } else if caps.has_cargo {
-        PlanOutcome::Plan(make_cargo_plan(Platform::Macos))
+    } else if let Some(cargo_path) = caps.cargo_path.as_deref() {
+        PlanOutcome::Plan(make_cargo_plan_with_path(Platform::Macos, cargo_path))
     } else {
         PlanOutcome::Unsupported {
             reason: UnsupportedReason::NoPackageManager,
@@ -61,8 +61,8 @@ fn plan_macos(caps: &HostCapabilities) -> PlanOutcome {
 }
 
 fn plan_linux(caps: &HostCapabilities) -> PlanOutcome {
-    if caps.has_cargo {
-        PlanOutcome::Plan(make_cargo_plan(Platform::Linux))
+    if let Some(cargo_path) = caps.cargo_path.as_deref() {
+        PlanOutcome::Plan(make_cargo_plan_with_path(Platform::Linux, cargo_path))
     } else {
         PlanOutcome::Unsupported {
             reason: UnsupportedReason::NoPackageManager,
@@ -87,8 +87,8 @@ fn plan_windows(caps: &HostCapabilities) -> PlanOutcome {
             &["install", LLMUSAGE_CRATE_NAME],
             DurationClass::Fast,
         ))
-    } else if caps.has_cargo {
-        PlanOutcome::Plan(make_cargo_plan(Platform::Windows))
+    } else if let Some(cargo_path) = caps.cargo_path.as_deref() {
+        PlanOutcome::Plan(make_cargo_plan_with_path(Platform::Windows, cargo_path))
     } else {
         PlanOutcome::Unsupported {
             reason: UnsupportedReason::NoPackageManager,
@@ -96,11 +96,11 @@ fn plan_windows(caps: &HostCapabilities) -> PlanOutcome {
     }
 }
 
-fn make_cargo_plan(platform: Platform) -> InstallPlan {
+fn make_cargo_plan_with_path(platform: Platform, command: &std::path::Path) -> InstallPlan {
     InstallPlan {
         platform,
         package_manager: PackageManager::Cargo,
-        command: "cargo".to_string(),
+        command: command.to_string_lossy().to_string(),
         args: vec![
             "install".to_string(),
             "--locked".to_string(),
@@ -174,6 +174,7 @@ fn validate_command_safety(command: &str, args: &[String]) -> Result<(), Install
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::path::PathBuf;
 
     fn caps(
         platform: Platform,
@@ -181,6 +182,8 @@ mod tests {
         brew: bool,
         scoop: bool,
         winget: bool,
+        cargo_path: Option<&'static str>,
+        homebrew_path: Option<&'static str>,
     ) -> HostCapabilities {
         HostCapabilities {
             platform,
@@ -188,6 +191,8 @@ mod tests {
             has_homebrew: brew,
             has_scoop: scoop,
             has_winget: winget,
+            cargo_path: cargo_path.map(PathBuf::from),
+            homebrew_path: homebrew_path.map(PathBuf::from),
         }
     }
 
@@ -202,12 +207,23 @@ mod tests {
 
     #[test]
     fn macos_prefers_homebrew() {
-        let result = generate_plan(&absent(), &caps(Platform::Macos, true, true, false, false))
-            .expect("should not error");
+        let result = generate_plan(
+            &absent(),
+            &caps(
+                Platform::Macos,
+                true,
+                true,
+                false,
+                false,
+                Some("/Users/example/.cargo/bin/cargo"),
+                Some("/opt/homebrew/bin/brew"),
+            ),
+        )
+        .expect("should not error");
         match result {
             PlanOutcome::Plan(plan) => {
                 assert_eq!(plan.package_manager, PackageManager::Homebrew);
-                assert_eq!(plan.command, "brew");
+                assert_eq!(plan.command, "/opt/homebrew/bin/brew");
                 assert!(!plan.elevation_required);
             }
             _ => panic!("expected Plan"),
@@ -215,12 +231,40 @@ mod tests {
     }
 
     #[test]
+    fn macos_ignores_homebrew_bool_without_resolved_path() {
+        let result = generate_plan(
+            &absent(),
+            &caps(Platform::Macos, false, true, false, false, None, None),
+        )
+        .expect("should not error");
+
+        assert_eq!(
+            result,
+            PlanOutcome::Unsupported {
+                reason: UnsupportedReason::NoPackageManager
+            }
+        );
+    }
+
+    #[test]
     fn macos_falls_back_to_cargo() {
-        let result = generate_plan(&absent(), &caps(Platform::Macos, true, false, false, false))
-            .expect("should not error");
+        let result = generate_plan(
+            &absent(),
+            &caps(
+                Platform::Macos,
+                true,
+                false,
+                false,
+                false,
+                Some("/Users/example/.cargo/bin/cargo"),
+                None,
+            ),
+        )
+        .expect("should not error");
         match result {
             PlanOutcome::Plan(plan) => {
                 assert_eq!(plan.package_manager, PackageManager::Cargo);
+                assert_eq!(plan.command, "/Users/example/.cargo/bin/cargo");
                 assert_eq!(plan.duration_class, DurationClass::Slow);
             }
             _ => panic!("expected Plan"),
@@ -228,10 +272,26 @@ mod tests {
     }
 
     #[test]
+    fn macos_ignores_cargo_bool_without_resolved_path() {
+        let result = generate_plan(
+            &absent(),
+            &caps(Platform::Macos, true, false, false, false, None, None),
+        )
+        .expect("should not error");
+
+        assert_eq!(
+            result,
+            PlanOutcome::Unsupported {
+                reason: UnsupportedReason::NoPackageManager
+            }
+        );
+    }
+
+    #[test]
     fn macos_unsupported_no_pm() {
         let result = generate_plan(
             &absent(),
-            &caps(Platform::Macos, false, false, false, false),
+            &caps(Platform::Macos, false, false, false, false, None, None),
         )
         .expect("should not error");
         assert_eq!(
@@ -246,8 +306,19 @@ mod tests {
 
     #[test]
     fn linux_uses_cargo() {
-        let result = generate_plan(&absent(), &caps(Platform::Linux, true, true, false, false))
-            .expect("should not error");
+        let result = generate_plan(
+            &absent(),
+            &caps(
+                Platform::Linux,
+                true,
+                true,
+                false,
+                false,
+                Some("/usr/bin/cargo"),
+                None,
+            ),
+        )
+        .expect("should not error");
         match result {
             PlanOutcome::Plan(plan) => {
                 assert_eq!(plan.package_manager, PackageManager::Cargo);
@@ -259,8 +330,11 @@ mod tests {
 
     #[test]
     fn linux_unsupported_no_cargo() {
-        let result = generate_plan(&absent(), &caps(Platform::Linux, false, true, false, false))
-            .expect("should not error");
+        let result = generate_plan(
+            &absent(),
+            &caps(Platform::Linux, false, true, false, false, None, None),
+        )
+        .expect("should not error");
         assert_eq!(
             result,
             PlanOutcome::Unsupported {
@@ -273,8 +347,19 @@ mod tests {
 
     #[test]
     fn windows_prefers_winget() {
-        let result = generate_plan(&absent(), &caps(Platform::Windows, true, false, true, true))
-            .expect("should not error");
+        let result = generate_plan(
+            &absent(),
+            &caps(
+                Platform::Windows,
+                true,
+                false,
+                true,
+                true,
+                Some("C:\\Users\\user\\.cargo\\bin\\cargo"),
+                None,
+            ),
+        )
+        .expect("should not error");
         match result {
             PlanOutcome::Plan(plan) => {
                 assert_eq!(plan.package_manager, PackageManager::Winget);
@@ -288,7 +373,15 @@ mod tests {
     fn windows_falls_back_to_scoop() {
         let result = generate_plan(
             &absent(),
-            &caps(Platform::Windows, true, false, true, false),
+            &caps(
+                Platform::Windows,
+                true,
+                false,
+                true,
+                false,
+                Some("C:\\Users\\user\\.cargo\\bin\\cargo"),
+                None,
+            ),
         )
         .expect("should not error");
         match result {
@@ -303,7 +396,15 @@ mod tests {
     fn windows_falls_back_to_cargo() {
         let result = generate_plan(
             &absent(),
-            &caps(Platform::Windows, true, false, false, false),
+            &caps(
+                Platform::Windows,
+                true,
+                false,
+                false,
+                false,
+                Some("C:\\Users\\user\\.cargo\\bin\\cargo"),
+                None,
+            ),
         )
         .expect("should not error");
         match result {
@@ -318,7 +419,7 @@ mod tests {
     fn windows_unsupported_no_pm() {
         let result = generate_plan(
             &absent(),
-            &caps(Platform::Windows, false, false, false, false),
+            &caps(Platform::Windows, false, false, false, false, None, None),
         )
         .expect("should not error");
         assert_eq!(
@@ -356,12 +457,60 @@ mod tests {
     #[test]
     fn all_generated_plans_non_elevated() {
         let platforms = [
-            caps(Platform::Macos, true, true, false, false),
-            caps(Platform::Macos, true, false, false, false),
-            caps(Platform::Linux, true, false, false, false),
-            caps(Platform::Windows, true, false, false, true),
-            caps(Platform::Windows, true, false, true, false),
-            caps(Platform::Windows, true, false, false, false),
+            caps(
+                Platform::Macos,
+                true,
+                true,
+                false,
+                false,
+                Some("/opt/homebrew/bin/brew"),
+                Some("/opt/homebrew/bin/brew"),
+            ),
+            caps(
+                Platform::Macos,
+                true,
+                false,
+                false,
+                false,
+                Some("/usr/bin/cargo"),
+                None,
+            ),
+            caps(
+                Platform::Linux,
+                true,
+                false,
+                false,
+                false,
+                Some("/usr/bin/cargo"),
+                None,
+            ),
+            caps(
+                Platform::Windows,
+                true,
+                false,
+                false,
+                true,
+                Some("C:\\Users\\user\\.cargo\\bin\\cargo"),
+                None,
+            ),
+            caps(
+                Platform::Windows,
+                true,
+                false,
+                true,
+                false,
+                Some("C:\\Users\\user\\.cargo\\bin\\cargo"),
+                None,
+            ),
+            caps(
+                Platform::Windows,
+                true,
+                false,
+                false,
+                false,
+                Some("C:\\Users\\user\\.cargo\\bin\\cargo"),
+                None,
+            ),
         ];
 
         for c in &platforms {

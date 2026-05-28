@@ -100,6 +100,10 @@ pub struct HostCapabilities {
     pub has_homebrew: bool,
     pub has_scoop: bool,
     pub has_winget: bool,
+    #[serde(default)]
+    pub cargo_path: Option<PathBuf>,
+    #[serde(default)]
+    pub homebrew_path: Option<PathBuf>,
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
