@@ -83,6 +83,14 @@ pub(crate) fn configure_main_window_chrome<R: tauri::Runtime>(
     Ok(())
 }
 
+#[cfg(debug_assertions)]
+pub(crate) fn open_devtools_in_debug<R: tauri::Runtime>(window: &tauri::WebviewWindow<R>) {
+    window.open_devtools();
+}
+
+#[cfg(not(debug_assertions))]
+pub(crate) fn open_devtools_in_debug<R: tauri::Runtime>(_window: &tauri::WebviewWindow<R>) {}
+
 fn main() {
     ccr_core::init_logger();
 
@@ -98,6 +106,7 @@ fn main() {
                 if let Err(error) = configure_main_window_chrome(&window) {
                     tracing::warn!("[app] failed to configure main window chrome: {error}");
                 } else {
+                    open_devtools_in_debug(&window);
                     #[cfg(target_os = "macos")]
                     tracing::info!("[app] macOS native window chrome enabled for main window");
                     #[cfg(not(target_os = "macos"))]

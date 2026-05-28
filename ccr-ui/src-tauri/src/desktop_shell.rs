@@ -12,10 +12,10 @@ use ccr_codex::CodexAuthService;
 use crate::commands::codex::{
     CodexTraySnapshot, compute_codex_tray_snapshot, invalidate_codex_dashboard_overview_cache,
 };
-use crate::configure_main_window_chrome;
 use crate::state::{
     AppState, DesktopShellPreferences, TrayAnchor, TrayPanelManualPosition, TrayPanelPlacementMode,
 };
+use crate::{configure_main_window_chrome, open_devtools_in_debug};
 
 pub const TRAY_ICON_ID: &str = "ccr-tray";
 pub const TRAY_PANEL_WINDOW_LABEL: &str = "codex-tray-panel";
@@ -595,6 +595,7 @@ fn ensure_main_window<R: Runtime>(app: &AppHandle<R>) -> Result<WebviewWindow<R>
         .map_err(|e| format!("重建主窗口失败: {e}"))?;
 
     configure_main_window_chrome(&window).map_err(|e| format!("初始化主窗口 chrome 失败: {e}"))?;
+    open_devtools_in_debug(&window);
 
     Ok(window)
 }
