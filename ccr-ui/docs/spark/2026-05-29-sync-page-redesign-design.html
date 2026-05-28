@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sync Page Redesign Design Spec</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f7f2ea;
+      --surface: #fffaf3;
+      --surface-2: #f2eadf;
+      --text: #27231f;
+      --muted: #6f655b;
+      --line: #ddd0bf;
+      --accent: #4d4338;
+      --accent-soft: #eadfce;
+      --accent-contrast: #fff9f0;
+      --good: #586b43;
+      --warn: #8b6339;
+      --danger: #9a4a3d;
+      --shadow: 0 24px 70px rgba(45, 36, 24, 0.11);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #15120f;
+        --surface: #211c17;
+        --surface-2: #2a241e;
+        --text: #f2e9dc;
+        --muted: #c3b6a6;
+        --line: #43382e;
+        --accent: #d5c6b4;
+        --accent-soft: #342c24;
+        --accent-contrast: #1b1713;
+        --good: #bdd39a;
+        --warn: #e0b178;
+        --danger: #e39184;
+        --shadow: none;
+      }
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at top left, color-mix(in srgb, var(--accent-soft) 70%, transparent), transparent 34rem),
+        var(--bg);
+      color: var(--text);
+      line-height: 1.68;
+    }
+    a { color: inherit; text-decoration-thickness: 0.08em; text-underline-offset: 0.18em; }
+    .page {
+      display: grid;
+      grid-template-columns: minmax(15rem, 18rem) minmax(0, 1fr);
+      gap: 2rem;
+      max-width: 1220px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+    .toc {
+      position: sticky;
+      top: 1rem;
+      align-self: start;
+      padding: 1.25rem;
+      border: 1px solid var(--line);
+      border-radius: 1.25rem;
+      background: color-mix(in srgb, var(--surface) 94%, transparent);
+      box-shadow: var(--shadow);
+    }
+    .toc strong {
+      display: block;
+      margin-bottom: 0.75rem;
+      font-size: 0.78rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .toc ul { display: grid; gap: 0.35rem; margin: 0; padding: 0; list-style: none; }
+    .toc a { display: block; padding: 0.36rem 0.5rem; border-radius: 0.65rem; color: var(--text); text-decoration: none; }
+    .toc a:hover, .toc a:focus-visible { background: var(--accent-soft); outline: none; }
+    main {
+      min-width: 0;
+      padding: 2.4rem;
+      border: 1px solid var(--line);
+      border-radius: 1.6rem;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+    header { padding-bottom: 1.4rem; border-bottom: 1px solid var(--line); margin-bottom: 1.8rem; }
+    h1 { margin: 0 0 0.75rem; font-size: clamp(2rem, 4.5vw, 3.7rem); line-height: 1.05; letter-spacing: -0.045em; }
+    .meta { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0; padding: 0; list-style: none; color: var(--muted); font-size: 0.92rem; }
+    .meta li { padding: 0.22rem 0.65rem; border: 1px solid var(--line); border-radius: 999px; }
+    section { padding: 1.45rem 0; border-top: 1px solid var(--line); }
+    section:first-of-type { border-top: 0; }
+    h2 { margin: 0 0 0.75rem; font-size: clamp(1.35rem, 2.7vw, 1.95rem); line-height: 1.2; letter-spacing: -0.02em; }
+    h3 { margin: 1.25rem 0 0.55rem; font-size: 1.05rem; }
+    p, ul, ol, dl { margin-top: 0; }
+    li + li { margin-top: 0.32rem; }
+    code {
+      padding: 0.12rem 0.32rem;
+      border-radius: 0.35rem;
+      background: color-mix(in srgb, var(--text) 8%, transparent);
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      font-size: 0.92em;
+    }
+    table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.94rem; }
+    th, td { padding: 0.72rem; border: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { background: var(--accent-soft); }
+    .callout {
+      padding: 1rem 1.15rem;
+      border-left: 0.35rem solid var(--accent);
+      border-radius: 0.9rem;
+      background: var(--accent-soft);
+    }
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.35rem 0.7rem;
+      border-radius: 999px;
+      background: var(--accent);
+      color: var(--accent-contrast);
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+    .grid { display: grid; gap: 0.85rem; }
+    .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .card {
+      padding: 1rem;
+      border: 1px solid var(--line);
+      border-radius: 1rem;
+      background: color-mix(in srgb, var(--surface) 84%, var(--surface-2));
+    }
+    .eyebrow { font-size: 0.76rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+    .mockup {
+      margin: 1rem 0;
+      border: 1px solid var(--line);
+      border-radius: 1.25rem;
+      overflow: hidden;
+      background: var(--surface-2);
+    }
+    .mockup-header { padding: 0.72rem 1rem; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 0.84rem; }
+    .mockup-body { padding: 1rem; }
+    .mini-shell { border: 1px solid var(--line); border-radius: 1rem; background: var(--surface); padding: 1rem; }
+    .mini-title { display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-bottom: 1px solid var(--line); padding-bottom: 0.8rem; margin-bottom: 0.9rem; }
+    .button { display: inline-block; border: 1px solid var(--line); border-radius: 999px; padding: 0.42rem 0.7rem; font-weight: 700; font-size: 0.82rem; }
+    .button.primary { background: var(--accent); color: var(--accent-contrast); border-color: var(--accent); }
+    .asset-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.8rem; align-items: center; padding: 0.75rem; border: 1px solid var(--line); border-radius: 0.85rem; background: color-mix(in srgb, var(--surface) 88%, var(--surface-2)); }
+    .actions { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+    .source-list a { word-break: break-word; }
+    @media (max-width: 900px) {
+      .page { display: block; padding: 1rem; }
+      .toc { position: static; margin-bottom: 1rem; }
+      .toc ul { grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); }
+      main { padding: 1.2rem; }
+      .grid-3 { grid-template-columns: 1fr; }
+      .asset-row { grid-template-columns: 1fr; }
+    }
+    @media print {
+      :root { --bg: #fff; --surface: #fff; --surface-2: #fff; --text: #000; --muted: #333; --line: #ccc; --accent: #000; --accent-soft: #f3f3f3; --accent-contrast: #fff; }
+      body { background: #fff; }
+      .page { display: block; max-width: none; padding: 0; }
+      .toc { display: none; }
+      main { padding: 0; border: 0; box-shadow: none; }
+      a { color: inherit; }
+      section, .card, .mockup { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <nav class="toc" aria-label="Spec sections">
+      <strong>Contents</strong>
+      <ul>
+        <li><a href="#summary">Summary</a></li>
+        <li><a href="#goals">Goals</a></li>
+        <li><a href="#non-goals">Non-goals</a></li>
+        <li><a href="#context">Context</a></li>
+        <li><a href="#recommended-approach">Recommended Approach</a></li>
+        <li><a href="#alternatives">Alternatives</a></li>
+        <li><a href="#design-details">Design Details</a></li>
+        <li><a href="#risks">Risks</a></li>
+        <li><a href="#test-acceptance-criteria">Test/Acceptance Criteria</a></li>
+        <li><a href="#review-status">Review Status</a></li>
+      </ul>
+    </nav>
+
+    <main id="main">
+      <header>
+        <h1>Sync Page Redesign Design Spec</h1>
+        <ul class="meta" aria-label="Spec metadata">
+          <li>Date: 2026-05-29</li>
+          <li>Topic: CCR UI WebDAV sync redesign</li>
+          <li>Status: Written spec for user review</li>
+        </ul>
+      </header>
+
+      <section id="summary" aria-labelledby="summary-heading">
+        <h2 id="summary-heading">Summary</h2>
+        <p>Redesign the sync page from a generic folder-selection tool into an editorial, high-density configuration asset console. The sync surface should focus on a fixed manifest of allowed CCR, Claude Code, and Codex configuration assets; remove Gemini and Antigravity from this page; and support both single-item synchronization and one-shot all-item synchronization.</p>
+        <div class="callout">
+          <strong>Chosen direction:</strong> “Editorial Control Desk” with warm neutral surfaces, compact asset cards, clear risk copy, and direct per-item operations. This matches the ccr-ui design guidance for a calm, precise, Anthropic-like workbench rather than a dark/glassy operations terminal.
+        </div>
+      </section>
+
+      <section id="goals" aria-labelledby="goals-heading">
+        <h2 id="goals-heading">Goals</h2>
+        <ul>
+          <li>Synchronize all CCR platform configuration content under <code>~/.ccr/platforms/</code>, especially Claude and Codex auth, base URL, provider routing, and key-related fields already represented by CCR platform configs.</li>
+          <li>Synchronize only the Claude Code user config files <code>~/.claude/settings.json</code> and <code>~/.claude/CLAUDE.md</code>; do not synchronize the full <code>~/.claude</code> directory.</li>
+          <li>Synchronize only the Codex user config files <code>~/.codex/config.toml</code> and <code>~/.codex/AGENTS.md</code>; do not synchronize the full <code>~/.codex</code> directory.</li>
+          <li>Use canonical Markdown names in the product model: <code>CLAUDE.md</code> and <code>AGENTS.md</code>. On Windows, locate case-insensitive variants such as <code>claude.md</code>, <code>Agents.md</code>, or <code>agents.md</code> and normalize the remote item display to the canonical names.</li>
+          <li>Allow each asset to be pushed, pulled, or synchronized independently, and allow a single “sync all once” operation that runs the fixed manifest in a predictable order.</li>
+          <li>Display sensitive config content only as masked summaries or field categories; never expose raw auth tokens, API keys, or bearer tokens in list rows, logs, or status summaries.</li>
+        </ul>
+      </section>
+
+      <section id="non-goals" aria-labelledby="non-goals-heading">
+        <h2 id="non-goals-heading">Non-goals</h2>
+        <ul>
+          <li>No Gemini or Antigravity sync entry in this page. Existing Gemini/Antigravity features elsewhere are outside this spec.</li>
+          <li>No generalized arbitrary folder backup redesign. Custom folders may remain a later feature, but the primary sync page for this cycle is fixed configuration assets.</li>
+          <li>No automatic background sync, file watching, scheduled sync, or cross-device merge editor in this cycle.</li>
+          <li>No full-directory restore of <code>~/.claude</code> or <code>~/.codex</code>, because these directories contain caches, sessions, credentials, tool state, agents, plugins, and other data outside the requested scope.</li>
+          <li>No new sync transport beyond the existing WebDAV direction unless implementation later proves WebDAV-client limitations block the acceptance criteria.</li>
+        </ul>
+      </section>
+
+      <section id="context" aria-labelledby="context-heading">
+        <h2 id="context-heading">Context</h2>
+        <p>Current ccr-ui sync is centered on <code>src/views/SyncView.vue</code> and a set of folder-oriented components such as <code>SyncSelectionPanel.vue</code>, <code>SyncEnabledFoldersPanel.vue</code>, <code>SyncBatchOperationsPanel.vue</code>, and <code>SyncOperationOutputPanel.vue</code>. The page currently treats CCR platforms as a required folder, offers Claude as a whole <code>~/.claude/</code> folder, and includes an Antigravity-branded Gemini item. The Tauri sync commands support all-folder push/pull and per-folder push/pull, while <code>ccr-sync</code> already has a directory push path that can filter uploads with <code>allowed_paths</code>, but the current Tauri folder push path calls it without an allowlist.</p>
+        <p>External references support the requested file boundaries. Anthropic documents <code>~/.claude/settings.json</code> as the user-level Claude Code settings file and identifies <code>CLAUDE.md</code> files as memory/instruction files loaded by Claude Code. OpenAI documents <code>~/.codex/config.toml</code> as the Codex user-level configuration file and <code>~/.codex/AGENTS.md</code> as global persistent Codex guidance. WebDAV RFC 4918 states that PUT to an existing resource replaces the resource and recommends conditional mechanisms such as entity tags to avoid lost updates, which informs the spec’s explicit overwrite, backup, and conflict-status requirements.</p>
+        <ul class="source-list">
+          <li><a href="https://docs.anthropic.com/en/docs/claude-code/settings">Anthropic Claude Code settings</a></li>
+          <li><a href="https://docs.anthropic.com/en/docs/claude-code/memory">Anthropic Claude Code memory</a></li>
+          <li><a href="https://developers.openai.com/codex/config-basic">OpenAI Codex config basics</a></li>
+          <li><a href="https://developers.openai.com/codex/guides/agents-md">OpenAI Codex AGENTS.md guide</a></li>
+          <li><a href="https://datatracker.ietf.org/doc/html/rfc4918">RFC 4918 WebDAV</a></li>
+        </ul>
+      </section>
+
+      <section id="recommended-approach" aria-labelledby="recommended-approach-heading">
+        <h2 id="recommended-approach-heading">Recommended Approach</h2>
+        <p>Implement a manifest-based sync model and render it as a configuration asset console. Each asset has a stable id, product group, local path resolver, remote path, display metadata, sensitivity policy, and operation state. The UI reads this manifest, displays grouped asset cards, and calls Tauri commands that sync either one manifest item or the full manifest once.</p>
+        <table>
+          <thead>
+            <tr>
+              <th>Manifest item</th>
+              <th>Local target</th>
+              <th>Remote target</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>ccr-platforms</code></td>
+              <td><code>~/.ccr/platforms/</code></td>
+              <td><code>platforms/</code></td>
+              <td>Directory item. Includes all CCR platform configs and must preserve Claude/Codex provider auth, URL, and key-related settings.</td>
+            </tr>
+            <tr>
+              <td><code>claude-settings</code></td>
+              <td><code>~/.claude/settings.json</code></td>
+              <td><code>claude/settings.json</code></td>
+              <td>File item. Mask sensitive env/auth values in summaries and operation output.</td>
+            </tr>
+            <tr>
+              <td><code>claude-memory</code></td>
+              <td><code>~/.claude/CLAUDE.md</code></td>
+              <td><code>claude/CLAUDE.md</code></td>
+              <td>File item. Case-insensitive local lookup on Windows; canonical display and remote name remain uppercase.</td>
+            </tr>
+            <tr>
+              <td><code>codex-config</code></td>
+              <td><code>~/.codex/config.toml</code></td>
+              <td><code>codex/config.toml</code></td>
+              <td>File item. Treat auth/provider fields as sensitive and avoid raw log output.</td>
+            </tr>
+            <tr>
+              <td><code>codex-agents</code></td>
+              <td><code>~/.codex/AGENTS.md</code></td>
+              <td><code>codex/AGENTS.md</code></td>
+              <td>File item. Case-insensitive local lookup on Windows; canonical display and remote name remain uppercase.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="alternatives" aria-labelledby="alternatives-heading">
+        <h2 id="alternatives-heading">Alternatives</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Option</th>
+              <th>Why not chosen</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Keep the folder model and add include/exclude filters</td>
+              <td>This is less disruptive but keeps the mental model as “sync folders,” which conflicts with the safety requirement to avoid whole <code>.claude</code> and <code>.codex</code> directories. It also makes per-file status and copywriting weaker.</td>
+            </tr>
+            <tr>
+              <td>Archive each group into a bundle before upload</td>
+              <td>Bundles make remote storage tidy, but they make single-file pull/push, status checks, conflict display, and local backup behavior more opaque.</td>
+            </tr>
+            <tr>
+              <td>Retain the current dark/glassy operations UI and only change item definitions</td>
+              <td>It would satisfy part of the data-scope request but misses the requested page redesign and conflicts with the project’s calm editorial visual direction.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="design-details" aria-labelledby="design-details-heading">
+        <h2 id="design-details-heading">Design Details</h2>
+        <h3>Page structure</h3>
+        <div class="mockup" aria-label="Sync page structural preview">
+          <div class="mockup-header">Editorial Control Desk layout</div>
+          <div class="mockup-body">
+            <div class="mini-shell">
+              <div class="mini-title">
+                <div>
+                  <div class="eyebrow">WebDAV Configuration Sync</div>
+                  <strong>配置资产同步</strong>
+                </div>
+                <div class="actions"><span class="button">检查状态</span><span class="button primary">全部同步一次</span></div>
+              </div>
+              <div class="grid">
+                <div class="card">
+                  <div class="eyebrow">CCR Platforms</div>
+                  <div class="asset-row"><span><strong>所有 platform 配置</strong><br><small>auth / base URL / key / provider routing</small></span><span class="actions"><span class="button">Push</span><span class="button">Pull</span><span class="button primary">Sync</span></span></div>
+                </div>
+                <div class="card">
+                  <div class="eyebrow">Claude Code</div>
+                  <div class="asset-row"><span><strong>settings.json</strong><br><small>user settings and environment policy</small></span><span class="actions"><span class="button">Push</span><span class="button">Pull</span></span></div>
+                  <div class="asset-row"><span><strong>CLAUDE.md</strong><br><small>global user memory and instructions</small></span><span class="actions"><span class="button">Push</span><span class="button">Pull</span></span></div>
+                </div>
+                <div class="card">
+                  <div class="eyebrow">Codex</div>
+                  <div class="asset-row"><span><strong>config.toml</strong><br><small>model, provider, sandbox, MCP, profile settings</small></span><span class="actions"><span class="button">Push</span><span class="button">Pull</span></span></div>
+                  <div class="asset-row"><span><strong>AGENTS.md</strong><br><small>global Codex working agreements</small></span><span class="actions"><span class="button">Push</span><span class="button">Pull</span></span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <ul>
+          <li>Header: title, short scope statement, WebDAV connection badge, “check status,” and “sync all once.”</li>
+          <li>Main column: grouped cards for CCR Platforms, Claude Code, and Codex. Each card lists only the manifest assets in scope.</li>
+          <li>Side column or lower responsive panel: WebDAV endpoint health, last run summary, conflict count, backup location hint, and compact operation output.</li>
+          <li>Visual style: warm neutrals, charcoal text, subtle borders, editorial spacing, minimal accent colors for status only, no purple-led gradients, no heavy glassmorphism.</li>
+        </ul>
+
+        <h3>Frontend responsibilities</h3>
+        <ul>
+          <li>Replace the platform-selection panel with a manifest-driven <code>SyncAssetConsole</code> or equivalent page-level composition.</li>
+          <li>Render asset groups and actions from typed data rather than hardcoded “optional platform” cards.</li>
+          <li>Show item state: local exists, remote exists, last operation, modified hint if available, disabled/missing state, and conflict/force warning.</li>
+          <li>Keep operation output terse and masked. Logs should name item ids and file names, not raw config values.</li>
+          <li>Remove Gemini/Antigravity strings and routes from the sync page copy and selection state.</li>
+        </ul>
+
+        <h3>Tauri and sync responsibilities</h3>
+        <ul>
+          <li>Add manifest-aware commands such as <code>sync_list_assets</code>, <code>sync_push_asset(id, force)</code>, <code>sync_pull_asset(id, force)</code>, <code>sync_sync_asset(id, force)</code>, and <code>sync_sync_all_once(force)</code>. Exact names can follow existing API naming conventions during implementation.</li>
+          <li>Expose a safe path resolver that expands <code>~</code>, validates fixed allowed roots, handles Windows case-insensitive canonical Markdown lookup, and rejects ids outside the manifest.</li>
+          <li>Use single-file push/pull for Claude and Codex file assets. Use directory push/pull for <code>ccr-platforms</code>, preferably with explicit directory identity rather than a generic user-added folder.</li>
+          <li>Before pull overwrite, create a timestamped backup of the local file or directory. For file assets, back up the existing file next to the target using the same style as current directory backups.</li>
+          <li>Use remote-exists checks and force semantics consistently. When practical with the WebDAV client, capture ETag/modified metadata for conflict warnings before replacing remote content.</li>
+        </ul>
+
+        <h3>Control flow</h3>
+        <ol>
+          <li>Page load requests manifest asset status from Tauri.</li>
+          <li>Tauri resolves local canonical paths, checks local existence, checks remote existence, and returns masked metadata.</li>
+          <li>User triggers Push, Pull, Sync, or Sync All Once.</li>
+          <li>Frontend disables only the affected item or all items for global operation, streams or appends concise progress, and updates status after completion.</li>
+          <li>On conflict or overwrite risk, UI shows an explicit force action and describes the backup path before retrying.</li>
+        </ol>
+      </section>
+
+      <section id="risks" aria-labelledby="risks-heading">
+        <h2 id="risks-heading">Risks</h2>
+        <ul>
+          <li><strong>Secret leakage in UI or logs:</strong> mitigate with masking utilities, no raw JSON/TOML dumps in operation output, and tests that reject common secret-like patterns in rendered summaries.</li>
+          <li><strong>Unexpected overwrite through WebDAV PUT:</strong> mitigate with remote-exists checks, explicit force copy, local backups before pull, and ETag/modified metadata when available from the WebDAV client.</li>
+          <li><strong>Case-sensitive filename mismatch across systems:</strong> mitigate with canonical display names and platform-aware lookup that accepts case-insensitive variants on Windows while preserving canonical remote names.</li>
+          <li><strong>Migration from existing folder config:</strong> existing users may have old <code>claude</code> or <code>gemini</code> sync folders. The page should ignore Gemini/Antigravity for the new manifest and avoid deleting old config silently; cleanup can be explicit in a later migration step.</li>
+          <li><strong>CCR platforms directory contains sensitive provider data:</strong> this is in scope by user request, so the UI must clearly mark it as sensitive and avoid previews that reveal values.</li>
+        </ul>
+      </section>
+
+      <section id="test-acceptance-criteria" aria-labelledby="test-acceptance-criteria-heading">
+        <h2 id="test-acceptance-criteria-heading">Test/Acceptance Criteria</h2>
+        <ol>
+          <li>The sync page displays only CCR Platforms, Claude Code, and Codex sync groups; Gemini and Antigravity do not appear on the page.</li>
+          <li>Claude sync status and operations include only <code>settings.json</code> and <code>CLAUDE.md</code>; a fixture with extra files under <code>~/.claude</code> proves they are not pushed or pulled.</li>
+          <li>Codex sync status and operations include only <code>config.toml</code> and <code>AGENTS.md</code>; a fixture with extra files under <code>~/.codex</code> proves they are not pushed or pulled.</li>
+          <li>Windows case-insensitive lookup recognizes <code>claude.md</code>, <code>Agents.md</code>, and <code>agents.md</code> while presenting canonical remote names.</li>
+          <li>Each manifest item can run independently and update only its own loading/result state.</li>
+          <li>“Sync all once” runs the complete manifest in a stable order and reports per-item success/failure without stopping the UI from showing partial results.</li>
+          <li>Pull overwrite creates a local backup before replacing an existing local target, and the backup path is visible in the operation result.</li>
+          <li>Operation summaries and visual cards mask auth, token, API key, bearer, and base-url-with-key patterns.</li>
+          <li>Frontend verification for the implementation phase should include focused component tests, i18n checks for added strings, <code>bun run type-check</code>, and <code>bun run test</code>; if backend commands change, add targeted Rust tests and run the relevant Tauri check command.</li>
+          <li>Visual acceptance: the page follows the warm editorial direction, supports light and dark themes, remains readable at narrow widths, and avoids the previous heavy glass/purple styling.</li>
+        </ol>
+      </section>
+
+      <section id="review-status" aria-labelledby="review-status-heading">
+        <h2 id="review-status-heading">Review Status</h2>
+        <p><span class="status">Ready for user review</span></p>
+        <p>User approved the A layout direction and the manifest-based approach during the Spark session. This document is the committed offline design spec. Implementation should not start until the user reviews this file and asks to proceed.</p>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
