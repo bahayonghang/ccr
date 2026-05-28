@@ -259,6 +259,8 @@ export {
 export {
   pushSync,
   pullSync,
+  pushSyncFolder,
+  pullSyncFolder,
   getSyncStatus,
   getSyncInfo,
   listSyncFolders,

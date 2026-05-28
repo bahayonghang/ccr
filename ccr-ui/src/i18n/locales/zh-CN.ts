@@ -2071,7 +2071,7 @@ export default {
       refresh: '刷新',
       refreshing: '刷新中...',
       noFolders: '暂无启用的同步文件夹',
-      noFoldersHint: '请在上方选择要同步的平台',
+      noFoldersHint: '如果已配置 WebDAV，请先在上方应用必选的 Platforms 文件夹。',
       enabled: '已启用',
       disabled: '已禁用',
       localPath: '本地路径',

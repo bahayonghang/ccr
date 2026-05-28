@@ -75,7 +75,7 @@
           <!-- Batch operations card -->
           <SyncBatchOperationsPanel
             :batch-operating="batchOperating"
-            :folders-count="enabledFolders.length"
+            :folders-count="enabledFolderCount"
             :get-all-folders-status="getAllFoldersStatus"
             :pull-all-folders="pullAllFolders"
             :push-all-folders="pushAllFolders"
@@ -112,6 +112,8 @@ import {
   deleteSyncFolder,
   pushSync,
   pullSync,
+  pushSyncFolder,
+  pullSyncFolder,
 } from '@/api'
 import SyncBatchOperationsPanel from '@/components/sync/SyncBatchOperationsPanel.vue'
 import SyncEnabledFoldersPanel from '@/components/sync/SyncEnabledFoldersPanel.vue'
@@ -119,20 +121,12 @@ import SyncInfoSidebar from '@/components/sync/SyncInfoSidebar.vue'
 import SyncOperationOutputPanel from '@/components/sync/SyncOperationOutputPanel.vue'
 import SyncSelectionPanel from '@/components/sync/SyncSelectionPanel.vue'
 import { logger } from '@/utils/logger'
-import type { CustomSyncFolderForm, SyncManagedFolder, SyncSelectableItem, SyncStatusView } from '@/types/syncSelection'
+import type { CustomSyncFolderForm, SyncManagedFolder, SyncManagedFolderRaw, SyncOperationResult, SyncSelectableItem, SyncStatusView } from '@/types/syncSelection'
 
 const { t } = useI18n()
 
 // 使用 Tauri invoke API
 
-interface CommandResultLike {
-  success?: boolean
-  message?: string
-  output?: string
-  data?: {
-    output?: string
-  }
-}
 
 const asRecord = (value: unknown): Record<string, unknown> => {
   return typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : {}
@@ -150,6 +144,39 @@ const toErrorMessage = (error: unknown, fallback = 'unknown error'): string => {
     return String((message as Record<string, unknown>).message)
   }
   return fallback
+}
+
+const normalizeManagedFolder = (entry: SyncManagedFolder | SyncManagedFolderRaw): SyncManagedFolder => {
+  const raw = entry as SyncManagedFolderRaw
+  return {
+    name: raw.name || '',
+    enabled: raw.enabled ?? true,
+    description: raw.description,
+    localPath: raw.localPath ?? raw.local_path ?? '',
+    remotePath: raw.remotePath ?? raw.remote_path ?? '',
+  }
+}
+
+const foldersEquivalent = (folder: SyncManagedFolder | undefined, item: SyncSelectableItem): boolean => {
+  if (!folder) return false
+  return folder.localPath === item.localPath
+    && (item.remotePath.trim() === '' || folder.remotePath === item.remotePath)
+    && folder.enabled
+}
+
+const formatOperationResult = (result: SyncOperationResult, fallback: string): string => {
+  const output = result?.data?.output || result?.output
+  if (output) return output
+
+  const lines = [result?.message || fallback]
+  if (typeof result?.total === 'number') {
+    const successCount = result.successCount ?? result.success_count ?? 0
+    lines.push(`${successCount}/${result.total} succeeded`)
+  }
+  for (const failure of result?.failed || []) {
+    lines.push(`- ${failure.folder}: ${failure.message}`)
+  }
+  return lines.join('\n')
 }
 
 // 状态
@@ -172,7 +199,7 @@ const presetItems = ref<{ config: SyncSelectableItem }>({
     name: 'Platforms 平台配置',
     description: 'CCR 供应商配置（API地址、密钥等）',
     localPath: '~/.ccr/platforms/',
-    remotePath: '',
+    remotePath: 'platforms',
     selected: true, // 必选
     required: true
   }
@@ -209,12 +236,17 @@ const customFolder = ref<CustomSyncFolderForm>({
 })
 
 // 计算是否有变更
+const enabledFolderCount = computed(() => enabledFolders.value.filter(folder => folder.enabled).length)
+
 const hasChanges = computed(() => {
-  // 检查预设项目是否有选择
-  if (optionalItems.value.some(item => item.selected)) {
+  if (!foldersEquivalent(enabledFolders.value.find(folder => folder.name === presetItems.value.config.key), presetItems.value.config)) {
     return true
   }
-  return false
+
+  return optionalItems.value.some((item) => {
+    if (!item.selected) return false
+    return !foldersEquivalent(enabledFolders.value.find(folder => folder.name === item.key), item)
+  })
 })
 
 // 切换选项
@@ -251,9 +283,12 @@ const clearOperationOutput = () => {
   operationOutput.value = ''
 }
 
-// 应用选择 - 将选中的项目注册为同步文件夹
+// 应用选择 - 将选中的项目注册或更新为同步文件夹
 const applySelection = async () => {
   applying.value = true
+  const failed: string[] = []
+  let appliedCount = 0
+
   try {
     const selectedItems = [
       presetItems.value.config,
@@ -262,19 +297,24 @@ const applySelection = async () => {
 
     for (const item of selectedItems) {
       const existingFolder = enabledFolders.value.find(f => f.name === item.key)
-      if (existingFolder) {
-        continue
-      }
 
       try {
-        await addSyncFolder(item.key, item.localPath, item.remotePath || '')
+        if (existingFolder) {
+          await updateSyncFolder(item.key, undefined, true, item.localPath, item.remotePath || '', item.description)
+        } else {
+          await addSyncFolder(item.key, item.localPath, item.remotePath || '', item.description)
+        }
+        appliedCount += 1
       } catch (err: unknown) {
-        logger.error(`添加文件夹 ${item.name} 失败:`, err)
+        failed.push(`${item.name}: ${toErrorMessage(err)}`)
+        logger.error(`同步文件夹 ${item.name} 应用失败:`, err)
       }
     }
 
-    operationOutput.value = '同步配置已应用'
     await refreshFolders()
+    operationOutput.value = failed.length > 0
+      ? `同步配置部分应用：${appliedCount} 个成功\n${failed.map(item => `- ${item}`).join('\n')}`
+      : '同步配置已应用'
   } catch (err: unknown) {
     operationOutput.value = `应用失败：${toErrorMessage(err)}`
   } finally {
@@ -291,7 +331,8 @@ const addCustomFolder = async () => {
     await addSyncFolder(
       customFolder.value.name,
       customFolder.value.localPath,
-      customFolder.value.remotePath || ''
+      customFolder.value.remotePath || '',
+      customFolder.value.description || undefined
     )
     operationOutput.value = `${t('sync.messages.addSuccess')}: ${customFolder.value.name}`
     customFolder.value = { name: '', localPath: '', remotePath: '', description: '' }
@@ -315,9 +356,9 @@ const fetchSyncStatus = async () => {
 // 获取文件夹列表
 const fetchFolders = async () => {
   try {
-    const response = await listSyncFolders<SyncManagedFolder[] | { output?: string; data?: { output?: string } }>()
+    const response = await listSyncFolders<(SyncManagedFolder | SyncManagedFolderRaw)[] | { output?: string; data?: { output?: string } }>()
     if (Array.isArray(response)) {
-      enabledFolders.value = response
+      enabledFolders.value = response.map(normalizeManagedFolder).filter(folder => folder.name)
       return
     }
 
@@ -372,7 +413,7 @@ const removeFolder = async (name: string) => {
   }
 
   try {
-    const result = await deleteSyncFolder<CommandResultLike>(name)
+    const result = await deleteSyncFolder<SyncOperationResult>(name)
     if (result?.success === false) {
       operationOutput.value = `${t('sync.messages.deleteFailed')}: ${result?.message || 'unknown error'}`
       return
@@ -389,7 +430,7 @@ const removeFolder = async (name: string) => {
 const toggleFolder = async (name: string, currentEnabled: boolean) => {
   const actionText = currentEnabled ? t('sync.messages.disabled') : t('sync.messages.enabled')
   try {
-    const result = await updateSyncFolder<CommandResultLike>(name, undefined, !currentEnabled)
+    const result = await updateSyncFolder<SyncOperationResult>(name, undefined, !currentEnabled)
     if (result?.success === false) {
       operationOutput.value = `${t('sync.messages.toggleFailed')}: ${result?.message || 'unknown error'}`
       return
@@ -405,10 +446,8 @@ const toggleFolder = async (name: string, currentEnabled: boolean) => {
 // Upload folder
 const pushFolder = async (name: string) => {
   try {
-    // TODO: 当前 Tauri API 仅支持全局 pushSync，尚无按文件夹推送命令
-    const result = await pushSync<CommandResultLike>(false)
-    const output = result?.data?.output || result?.output || result?.message || '操作已执行（全局）'
-    operationOutput.value = `[${name}] ${output}`
+    const result = await pushSyncFolder<SyncOperationResult>(name, false)
+    operationOutput.value = `[${name}] ${formatOperationResult(result, '上传完成')}`
   } catch (err: unknown) {
     operationOutput.value = `${t('sync.messages.uploadFailed')}: ${toErrorMessage(err)}`
   }
@@ -417,10 +456,8 @@ const pushFolder = async (name: string) => {
 // Download folder
 const pullFolder = async (name: string) => {
   try {
-    // TODO: 当前 Tauri API 仅支持全局 pullSync，尚无按文件夹拉取命令
-    const result = await pullSync<CommandResultLike>(false)
-    const output = result?.data?.output || result?.output || result?.message || '操作已执行（全局）'
-    operationOutput.value = `[${name}] ${output}`
+    const result = await pullSyncFolder<SyncOperationResult>(name, false)
+    operationOutput.value = `[${name}] ${formatOperationResult(result, '下载完成')}`
   } catch (err: unknown) {
     operationOutput.value = `${t('sync.messages.downloadFailed')}: ${toErrorMessage(err)}`
   }
@@ -441,13 +478,8 @@ const getFolderStatus = async (name: string) => {
 const pushAllFolders = async () => {
   batchOperating.value = true
   try {
-    const result = await pushSync<CommandResultLike>(false)
-    if (result?.success === false) {
-      operationOutput.value = `${t('sync.messages.batchUploadFailed')}: ${result?.message || 'unknown error'}`
-      return
-    }
-
-    operationOutput.value = result?.data?.output || result?.output || result?.message || '批量上传完成'
+    const result = await pushSync<SyncOperationResult>(false)
+    operationOutput.value = formatOperationResult(result, '批量上传完成')
   } catch (err: unknown) {
     operationOutput.value = `${t('sync.messages.batchUploadFailed')}: ${toErrorMessage(err)}`
   } finally {
@@ -459,13 +491,8 @@ const pushAllFolders = async () => {
 const pullAllFolders = async () => {
   batchOperating.value = true
   try {
-    const result = await pullSync<CommandResultLike>(false)
-    if (result?.success === false) {
-      operationOutput.value = `${t('sync.messages.batchDownloadFailed')}: ${result?.message || 'unknown error'}`
-      return
-    }
-
-    operationOutput.value = result?.data?.output || result?.output || result?.message || '批量下载完成'
+    const result = await pullSync<SyncOperationResult>(false)
+    operationOutput.value = formatOperationResult(result, '批量下载完成')
   } catch (err: unknown) {
     operationOutput.value = `${t('sync.messages.batchDownloadFailed')}: ${toErrorMessage(err)}`
   } finally {

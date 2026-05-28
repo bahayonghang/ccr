@@ -24,6 +24,38 @@ export interface SyncManagedFolder {
   remotePath: string
 }
 
+export interface SyncManagedFolderRaw {
+  name?: string
+  enabled?: boolean
+  description?: string
+  localPath?: string
+  local_path?: string
+  remotePath?: string
+  remote_path?: string
+  autoSync?: boolean
+  auto_sync?: boolean
+}
+
+export interface SyncOperationFailure {
+  folder: string
+  message: string
+}
+
+export interface SyncOperationResult {
+  success?: boolean
+  message?: string
+  durationMs?: number
+  duration_ms?: number
+  total?: number
+  successCount?: number
+  success_count?: number
+  failed?: SyncOperationFailure[]
+  output?: string
+  data?: {
+    output?: string
+  }
+}
+
 /**
  * 与后端 SyncStatusInfo（commands/sync.rs）保持字段同名 snake_case
  */

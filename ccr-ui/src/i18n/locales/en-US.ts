@@ -2079,7 +2079,7 @@ export default {
       refresh: 'Refresh',
       refreshing: 'Refreshing...',
       noFolders: 'No enabled sync folders',
-      noFoldersHint: 'Please select platforms above to sync',
+      noFoldersHint: 'If WebDAV is configured, apply the required Platforms folder above first.',
       enabled: 'Enabled',
       disabled: 'Disabled',
       localPath: 'Local Path',
