@@ -1,0 +1,80 @@
+{
+  "desktop": {
+    "viewport": {
+      "width": 1440,
+      "height": 1100
+    },
+    "pageHeading": "配置资产同步",
+    "assetCards": 5,
+    "groupHeadings": [
+      "CCR Platforms",
+      "Claude Code 配置",
+      "Codex 配置"
+    ],
+    "bodyIncludesGemini": false,
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflowX": false,
+    "outsideViewport": [],
+    "clipped": [],
+    "actionGrid": [
+      "none",
+      "none"
+    ]
+  },
+  "mobile": {
+    "viewport": {
+      "width": 375,
+      "height": 1000
+    },
+    "pageHeading": "配置资产同步",
+    "assetCards": 5,
+    "groupHeadings": [
+      "CCR Platforms",
+      "Claude Code 配置",
+      "Codex 配置"
+    ],
+    "bodyIncludesGemini": false,
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "overflowX": false,
+    "outsideViewport": [],
+    "clipped": [
+      {
+        "tag": "DD",
+        "cls": "",
+        "text": "C:/Users/test/.claude/settings.json",
+        "left": 84,
+        "right": 291,
+        "width": 207,
+        "scrollWidth": 243,
+        "clientWidth": 207
+      },
+      {
+        "tag": "DD",
+        "cls": "",
+        "text": "C:/Users/test/.claude/CLAUDE.md",
+        "left": 84,
+        "right": 291,
+        "width": 207,
+        "scrollWidth": 215,
+        "clientWidth": 207
+      },
+      {
+        "tag": "DD",
+        "cls": "",
+        "text": "C:/Users/test/.codex/config.toml",
+        "left": 84,
+        "right": 291,
+        "width": 207,
+        "scrollWidth": 222,
+        "clientWidth": 207
+      }
+    ],
+    "actionGrid": [
+      "112.5px 112.5px",
+      "112.5px 112.5px"
+    ]
+  },
+  "consoleEntries": []
+}

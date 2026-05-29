@@ -1,0 +1,54 @@
+{
+  "timestamp": "2026-05-29T02:04:27.026Z",
+  "desktop": {
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflowX": false,
+    "cardCount": 5,
+    "groupHeadings": [
+      "CCR Platforms",
+      "Claude Code 配置",
+      "Codex 配置"
+    ],
+    "actionButtonCount": 15,
+    "hasGeminiInSyncMain": false,
+    "hasAntigravityInSyncMain": false,
+    "hasLegacySelectText": false,
+    "hasPlatforms": true,
+    "hasClaudeSettings": true,
+    "hasClaudeMd": true,
+    "hasCodexConfig": true,
+    "hasAgents": true,
+    "appErrorCount": 0
+  },
+  "mobile": {
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "overflowX": false,
+    "cardCount": 5,
+    "hasGeminiInSyncMain": false,
+    "hasAntigravityInSyncMain": false,
+    "hasSyncAll": true,
+    "outsideViewport": [],
+    "clippedPaths": [],
+    "appErrorCount": 0
+  },
+  "consoleMessages": [
+    {
+      "type": "warning",
+      "text": "[2026-05-29T02:04:25.483Z] [WARN] [tauriWindow] failed to get current window TypeError: Cannot read properties of undefined (reading 'currentWindow')\n    at T (http://127.0.0.1:4173/assets/tauri-vendor-0yW09e94.js:1:5168)\n    at http://127.0.0.1:4173/assets/index-D0wCWqK3.js:2:5136\n    at async dn (http://127.0.0.1:4173/assets/index-D0wCWqK3.js:4:6073)\n    at async un (http://127.0.0.1:4173/assets/index-D0wCWqK3.js:4:6264)"
+    },
+    {
+      "type": "warning",
+      "text": "[2026-05-29T02:04:25.650Z] [WARN] [tauriWindow] failed to get current window TypeError: Cannot read properties of undefined (reading 'currentWindow')\n    at T (http://127.0.0.1:4173/assets/tauri-vendor-0yW09e94.js:1:5168)\n    at http://127.0.0.1:4173/assets/index-D0wCWqK3.js:2:5136"
+    },
+    {
+      "type": "warning",
+      "text": "[2026-05-29T02:04:26.325Z] [WARN] [tauriWindow] failed to get current window TypeError: Cannot read properties of undefined (reading 'currentWindow')\n    at T (http://127.0.0.1:4173/assets/tauri-vendor-0yW09e94.js:1:5168)\n    at http://127.0.0.1:4173/assets/index-D0wCWqK3.js:2:5136\n    at async dn (http://127.0.0.1:4173/assets/index-D0wCWqK3.js:4:6073)\n    at async un (http://127.0.0.1:4173/assets/index-D0wCWqK3.js:4:6264)"
+    },
+    {
+      "type": "warning",
+      "text": "[2026-05-29T02:04:26.371Z] [WARN] [tauriWindow] failed to get current window TypeError: Cannot read properties of undefined (reading 'currentWindow')\n    at T (http://127.0.0.1:4173/assets/tauri-vendor-0yW09e94.js:1:5168)\n    at http://127.0.0.1:4173/assets/index-D0wCWqK3.js:2:5136"
+    }
+  ]
+}
