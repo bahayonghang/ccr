@@ -43,7 +43,7 @@ thiserror = "2.0.18"
 # HTTP client
 # Note: default-features = false disables rustls + aws-lc-rs (needs cmake/C build).
 # native-tls uses the OS TLS stack (SChannel on Windows), much faster to compile.
-reqwest = { version = "0.13.3", default-features = false, features = [
+reqwest = { version = "0.13.4", default-features = false, features = [
     "json",
     "native-tls",
     "cookies",
@@ -52,7 +52,7 @@ reqwest = { version = "0.13.3", default-features = false, features = [
 
 # Serialization
 serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.149"
+serde_json = "1.0.150"
 toml = "1.1.2"
 
 # Time
@@ -78,7 +78,7 @@ rand = "0.10.1"
 sha2 = "0.11.0"
 base64 = "0.22.1"
 blake3 = "1.8.5"
-rpassword = "7.5.2"
+rpassword = "7.5.3"
 
 # Extra utilities
 indexmap = { version = "2.14.0", features = ["serde"] }
@@ -97,7 +97,7 @@ axum = { version = "0.8.6", default-features = false, features = [
     "tokio",
 ] }
 tower = { version = "0.5.3", default-features = false }
-tower-http = { version = "0.6.10", default-features = false, features = [
+tower-http = { version = "0.6.11", default-features = false, features = [
     "cors",
 ] }
 
