@@ -423,16 +423,18 @@ impl CodexHistorySyncService {
         }
 
         let current = self.current_provider()?;
-        let bridge = normalize_bridge_option(options.bridge.as_deref())?;
+        let mut bridge = normalize_bridge_option(options.bridge.as_deref())?;
         let explicit_provider = options
             .provider
             .as_deref()
             .map(str::trim)
             .filter(|value| !value.is_empty());
+        // 官方 auth 登录会有意清空 config.toml 的根级 model_provider（隐式 openai）。
+        // 此时若既未显式 --provider 也未显式 --bridge，则默认走 official-custom bridge，
+        // 把 openai/custom/缺失 provider 的历史桥接到当前 runtime provider，
+        // 使 url/key 登录产生的历史在当前 auth 会话中可见。
         if explicit_provider.is_none() && bridge.is_none() && current.implicit {
-            return Err(CcrError::ValidationError(
-                "sync-history requires --provider when config.toml has no root model_provider; use --provider openai or --provider custom".to_string(),
-            ));
+            bridge = Some(BRIDGE_OFFICIAL_CUSTOM.to_string());
         }
 
         let target_provider = if bridge.is_some() {
@@ -2963,15 +2965,30 @@ mod tests {
     }
 
     #[test]
-    fn sync_rejects_implicit_openai_without_provider() {
+    fn sync_defaults_to_bridge_when_provider_implicit_without_args() {
         let dir = tempdir().unwrap();
         let service = create_service(dir.path());
         write_config(&service.codex_home, None);
+        write_global_state(
+            &service.codex_home,
+            r#"{"electron-saved-workspace-roots":[],"project-order":[],"thread-workspace-root-hints":{}}"#,
+        );
+        let session_path = service
+            .codex_home
+            .join("sessions/2026/04/09/rollout-implicit-default.jsonl");
+        write_rollout(&session_path, "thread-implicit-default", "custom");
+        write_state_db(
+            &service.codex_home,
+            &[("thread-implicit-default", "custom", false, r"E:\Repo")],
+        );
 
-        let err = service
-            .sync(CodexHistorySyncOptions::default())
-            .unwrap_err();
-        assert!(err.to_string().contains("--provider"));
+        let result = service.sync(CodexHistorySyncOptions::default()).unwrap();
+
+        assert_eq!(result.bridge.as_deref(), Some(BRIDGE_OFFICIAL_CUSTOM));
+        assert_eq!(result.target_provider, "openai");
+        assert_eq!(result.changed_rollout_files, 1);
+        let rollout = fs::read_to_string(&session_path).unwrap();
+        assert!(rollout.contains(r#""model_provider":"openai""#));
     }
 
     #[test]

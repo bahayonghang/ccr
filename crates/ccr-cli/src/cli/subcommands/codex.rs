@@ -78,7 +78,8 @@ pub enum CodexAction {
     ///       ccr codex sync-history --max-age-days 30
     ///       ccr codex sync-history status
     SyncHistory {
-        /// 显式指定历史同步目标 provider；省略时使用当前 ~/.codex/config.toml 的根级 model_provider
+        /// 显式指定历史同步目标 provider；省略时使用当前 ~/.codex/config.toml 的根级 model_provider。
+        /// 若根级 model_provider 缺失（典型为官方 auth 登录），无参调用将自动按 official-custom bridge 同步。
         #[arg(long, conflicts_with = "bridge")]
         provider: Option<String>,
 
