@@ -6,14 +6,11 @@ import enUS from '@/i18n/locales/en-US'
 
 const apiMocks = vi.hoisted(() => ({
   getSyncStatus: vi.fn(),
-  listSyncFolders: vi.fn(),
-  addSyncFolder: vi.fn(),
-  updateSyncFolder: vi.fn(),
-  deleteSyncFolder: vi.fn(),
-  pushSync: vi.fn(),
-  pullSync: vi.fn(),
-  pushSyncFolder: vi.fn(),
-  pullSyncFolder: vi.fn(),
+  listSyncAssets: vi.fn(),
+  pushSyncAsset: vi.fn(),
+  pullSyncAsset: vi.fn(),
+  syncSingleAsset: vi.fn(),
+  syncAllAssets: vi.fn(),
 }))
 
 vi.mock('@/api', () => apiMocks)
@@ -43,7 +40,10 @@ vi.mock('@/components/ui/SIcon.vue', () => ({
 vi.mock('@/components/PageHeaderCard.vue', () => ({
   default: defineComponent({
     setup(_props, { slots }) {
-      return () => h('section', { 'data-stub': 'PageHeaderCard' }, slots.default?.())
+      return () => h('section', { 'data-stub': 'PageHeaderCard' }, [
+        h('div', { 'data-slot': 'actions' }, slots.actions?.()),
+        h('div', { 'data-slot': 'default' }, slots.default?.()),
+      ])
     },
   }),
 }))
@@ -75,53 +75,6 @@ vi.mock('@/components/sync/SyncOperationOutputPanel.vue', () => ({
   }),
 }))
 
-const lastSelectionProps = vi.hoisted(() => ({ value: null as null | Record<string, unknown> }))
-const lastBatchProps = vi.hoisted(() => ({ value: null as null | Record<string, unknown> }))
-const lastFoldersProps = vi.hoisted(() => ({ value: null as null | Record<string, unknown> }))
-
-vi.mock('@/components/sync/SyncSelectionPanel.vue', () => ({
-  default: defineComponent({
-    props: [
-      'addCustomFolder', 'addingCustom', 'applying', 'applySelection', 'customFolder', 'hasChanges',
-      'optionalItems', 'presetConfig', 'toggleItem', 'updateCustomField', 'updateOptionalLocalPath',
-      'updateOptionalRemotePath', 'updatePresetLocalPath',
-    ],
-    setup(props) {
-      return () => {
-        lastSelectionProps.value = props as unknown as Record<string, unknown>
-        return h('section', { 'data-stub': 'SyncSelectionPanel' }, String(props.hasChanges))
-      }
-    },
-  }),
-}))
-
-vi.mock('@/components/sync/SyncEnabledFoldersPanel.vue', () => ({
-  default: defineComponent({
-    props: [
-      'folders', 'getFolderStatus', 'pullFolder', 'pushFolder', 'refreshFolders', 'refreshingFolders',
-      'removeFolder', 'toggleFolder',
-    ],
-    setup(props) {
-      return () => {
-        lastFoldersProps.value = props as unknown as Record<string, unknown>
-        return h('section', { 'data-stub': 'SyncEnabledFoldersPanel' }, JSON.stringify(props.folders))
-      }
-    },
-  }),
-}))
-
-vi.mock('@/components/sync/SyncBatchOperationsPanel.vue', () => ({
-  default: defineComponent({
-    props: ['batchOperating', 'foldersCount', 'getAllFoldersStatus', 'pullAllFolders', 'pushAllFolders'],
-    setup(props) {
-      return () => {
-        lastBatchProps.value = props as unknown as Record<string, unknown>
-        return h('section', { 'data-stub': 'SyncBatchOperationsPanel' }, String(props.foldersCount))
-      }
-    },
-  }),
-}))
-
 const i18n = createI18n({
   legacy: false,
   locale: 'en-US',
@@ -130,6 +83,51 @@ const i18n = createI18n({
   fallbackWarn: false,
   messages: { 'en-US': enUS },
 })
+
+const assetFixtures = [
+  {
+    id: 'ccr-platforms',
+    group: 'ccr',
+    name: 'CCR Platforms',
+    description: 'All platform configuration',
+    kind: 'directory',
+    sensitive: true,
+    local_path: '~/.ccr/platforms/',
+    resolved_local_path: 'C:/Users/test/.ccr/platforms',
+    remote_path: '/ccr/platforms/',
+    local_exists: true,
+    remote_exists: false,
+    canonical_name: null,
+  },
+  {
+    id: 'claude-memory',
+    group: 'claude',
+    name: 'CLAUDE.md',
+    description: 'Claude global memory',
+    kind: 'file',
+    sensitive: false,
+    localPath: '~/.claude/CLAUDE.md',
+    resolvedLocalPath: 'C:/Users/test/.claude/CLAUDE.md',
+    remotePath: '/ccr/claude/CLAUDE.md',
+    localExists: true,
+    remoteExists: true,
+    canonicalName: 'CLAUDE.md',
+  },
+  {
+    id: 'codex-config',
+    group: 'codex',
+    name: 'config.toml',
+    description: 'Codex user config',
+    kind: 'file',
+    sensitive: true,
+    localPath: '~/.codex/config.toml',
+    resolvedLocalPath: 'C:/Users/test/.codex/config.toml',
+    remotePath: '/ccr/codex/config.toml',
+    localExists: false,
+    remoteExists: null,
+    canonicalName: 'config.toml',
+  },
+]
 
 const flushAsync = async () => {
   await Promise.resolve()
@@ -156,19 +154,20 @@ const mountView = async () => {
   }
 }
 
+const findButton = (el: Element, label: string): HTMLButtonElement => {
+  const button = [...el.querySelectorAll('button')]
+    .find(item => item.textContent?.includes(label)) as HTMLButtonElement | undefined
+  expect(button).toBeTruthy()
+  return button as HTMLButtonElement
+}
+
 beforeEach(() => {
-  apiMocks.getSyncStatus.mockResolvedValue({ configured: true, enabled: true })
-  apiMocks.listSyncFolders.mockResolvedValue([])
-  apiMocks.addSyncFolder.mockResolvedValue({ name: 'config', local_path: '~/.ccr/platforms/', remote_path: '/ccr/platforms', enabled: true })
-  apiMocks.updateSyncFolder.mockResolvedValue({ name: 'config', local_path: '~/.ccr/platforms/', remote_path: '/ccr/platforms', enabled: true })
-  apiMocks.deleteSyncFolder.mockResolvedValue({ success: true, message: 'deleted' })
-  apiMocks.pushSync.mockResolvedValue({ success: true, message: 'pushed', total: 1, successCount: 1, failed: [] })
-  apiMocks.pullSync.mockResolvedValue({ success: true, message: 'pulled', total: 1, successCount: 1, failed: [] })
-  apiMocks.pushSyncFolder.mockResolvedValue({ success: true, message: 'folder pushed', total: 1, successCount: 1, failed: [] })
-  apiMocks.pullSyncFolder.mockResolvedValue({ success: true, message: 'folder pulled', total: 1, successCount: 1, failed: [] })
-  lastSelectionProps.value = null
-  lastBatchProps.value = null
-  lastFoldersProps.value = null
+  apiMocks.getSyncStatus.mockResolvedValue({ configured: true, enabled: true, webdav_url: 'https://dav.example.com', username: 'tester' })
+  apiMocks.listSyncAssets.mockResolvedValue(assetFixtures)
+  apiMocks.pushSyncAsset.mockResolvedValue({ success: true, message: 'pushed', total: 1, successCount: 1, failed: [] })
+  apiMocks.pullSyncAsset.mockResolvedValue({ success: true, message: 'pulled', total: 1, successCount: 1, failed: [] })
+  apiMocks.syncSingleAsset.mockResolvedValue({ success: true, message: 'synced', total: 1, successCount: 1, failed: [] })
+  apiMocks.syncAllAssets.mockResolvedValue({ success: true, message: 'synced all', total: 3, successCount: 3, failed: [] })
 })
 
 afterEach(() => {
@@ -176,61 +175,129 @@ afterEach(() => {
   vi.clearAllMocks()
 })
 
-describe('SyncView WebDAV folder selection flow', () => {
-  it('enables apply selection when WebDAV is configured but no default folder exists', async () => {
-    const { unmount } = await mountView()
+describe('SyncView configuration asset console', () => {
+  it('loads the fixed manifest assets and excludes legacy folder-selection panels', async () => {
+    const { el, unmount } = await mountView()
 
     try {
-      expect(lastSelectionProps.value?.hasChanges).toBe(true)
-      expect(lastBatchProps.value?.foldersCount).toBe(0)
+      expect(apiMocks.listSyncAssets).toHaveBeenCalledTimes(1)
+      expect(el.textContent).toContain('Configuration Asset Console')
+      expect(el.textContent).toContain('CCR Platforms')
+      expect(el.textContent).toContain('CLAUDE.md')
+      expect(el.textContent).toContain('config.toml')
+      expect(el.textContent).toContain('Local missing')
+      expect(el.textContent).not.toContain('Select Sync Platforms')
+      expect(el.textContent).not.toContain('Custom Folder')
+      expect(el.textContent).not.toContain('Gemini')
+      expect(el.textContent).not.toContain('Antigravity')
+    } finally {
+      unmount()
+    }
+  })
 
-      await (lastSelectionProps.value?.applySelection as () => Promise<void>)()
+  it('runs per-asset push, pull, sync and whole-manifest sync commands', async () => {
+    const { el, unmount } = await mountView()
+
+    try {
+      const firstCard = [...el.querySelectorAll('.sync-asset-card')]
+        .find(card => card.textContent?.includes('CCR Platforms')) as HTMLElement
+      expect(firstCard).toBeTruthy()
+
+      findButton(firstCard, 'Push').click()
+      await flushAsync()
+      expect(apiMocks.pushSyncAsset).toHaveBeenCalledWith('ccr-platforms', false)
+
+      findButton(firstCard, 'Pull').click()
+      await flushAsync()
+      expect(apiMocks.pullSyncAsset).toHaveBeenCalledWith('ccr-platforms', false)
+
+      findButton(firstCard, 'Sync').click()
+      await flushAsync()
+      expect(apiMocks.syncSingleAsset).toHaveBeenCalledWith('ccr-platforms', false)
+
+      findButton(el, 'Sync all once').click()
+      await flushAsync()
+      expect(apiMocks.syncAllAssets).toHaveBeenCalledWith(false)
+    } finally {
+      unmount()
+    }
+  })
+
+  it('allows sync for remote-only assets so missing local config can be restored', async () => {
+    const { el, unmount } = await mountView()
+
+    try {
+      const missingCard = [...el.querySelectorAll('.sync-asset-card')]
+        .find(card => card.textContent?.includes('config.toml')) as HTMLElement
+      expect(missingCard).toBeTruthy()
+
+      const syncButton = findButton(missingCard, 'Sync')
+      expect(syncButton.disabled).toBe(false)
+
+      syncButton.click()
+      await flushAsync()
+
+      expect(apiMocks.syncSingleAsset).toHaveBeenCalledWith('codex-config', false)
+    } finally {
+      unmount()
+    }
+  })
+
+  it('offers force retry for overwrite conflicts and masks operation output secrets', async () => {
+    apiMocks.pushSyncAsset
+      .mockRejectedValueOnce('Remote asset already exists; rerun with force to overwrite. api_key=sk-testsecret123456')
+      .mockResolvedValueOnce({ success: true, message: 'forced api_key=sk-testsecret123456', total: 1, successCount: 1, failed: [] })
+
+    const { el, unmount } = await mountView()
+
+    try {
+      const firstCard = [...el.querySelectorAll('.sync-asset-card')]
+        .find(card => card.textContent?.includes('CCR Platforms')) as HTMLElement
+      findButton(firstCard, 'Push').click()
       await flushAsync()
       await nextTick()
 
-      expect(apiMocks.addSyncFolder).toHaveBeenCalledWith(
-        'config',
-        '~/.ccr/platforms/',
-        'platforms',
-        'CCR 供应商配置（API地址、密钥等）',
-      )
+      expect(el.textContent).toContain('Force retry')
+      expect(el.querySelector('[data-output]')?.textContent).toContain('api_key=••••••')
+      expect(el.querySelector('[data-output]')?.textContent).not.toContain('sk-testsecret')
+
+      findButton(firstCard, 'Force retry').click()
+      await flushAsync()
+      expect(apiMocks.pushSyncAsset).toHaveBeenLastCalledWith('ccr-platforms', true)
     } finally {
       unmount()
     }
   })
 
-  it('normalizes snake_case folders and counts only enabled folders for batch actions', async () => {
-    apiMocks.listSyncFolders.mockResolvedValue([
-      { name: 'config', local_path: '~/.ccr/platforms/', remote_path: 'platforms', enabled: false },
-      { name: 'claude', local_path: '~/.claude/', remote_path: '/ccr/claude', enabled: true },
-    ])
+  it('offers force retry when sync finds both local and remote assets', async () => {
+    apiMocks.syncAllAssets
+      .mockResolvedValueOnce({
+        success: false,
+        message: 'Completed sync for 2/3 sync asset(s); 1 failed.',
+        total: 3,
+        successCount: 2,
+        failed: [
+          {
+            folder: 'claude-settings',
+            message: 'Remote asset already exists; rerun with force to overwrite.',
+          },
+        ],
+      })
+      .mockResolvedValueOnce({ success: true, message: 'forced sync all', total: 3, successCount: 3, failed: [] })
 
-    const { unmount } = await mountView()
-
-    try {
-      expect(lastFoldersProps.value?.folders).toEqual([
-        { name: 'config', enabled: false, description: undefined, localPath: '~/.ccr/platforms/', remotePath: 'platforms' },
-        { name: 'claude', enabled: true, description: undefined, localPath: '~/.claude/', remotePath: '/ccr/claude' },
-      ])
-      expect(lastBatchProps.value?.foldersCount).toBe(1)
-    } finally {
-      unmount()
-    }
-  })
-
-  it('uses single-folder sync commands for per-folder upload and download', async () => {
-    apiMocks.listSyncFolders.mockResolvedValue([
-      { name: 'config', localPath: '~/.ccr/platforms/', remotePath: 'platforms', enabled: true },
-    ])
-
-    const { unmount } = await mountView()
+    const { el, unmount } = await mountView()
 
     try {
-      await (lastFoldersProps.value?.pushFolder as (name: string) => Promise<void>)('config')
-      await (lastFoldersProps.value?.pullFolder as (name: string) => Promise<void>)('config')
+      findButton(el, 'Sync all once').click()
+      await flushAsync()
+      await nextTick()
 
-      expect(apiMocks.pushSyncFolder).toHaveBeenCalledWith('config', false)
-      expect(apiMocks.pullSyncFolder).toHaveBeenCalledWith('config', false)
+      expect(apiMocks.syncAllAssets).toHaveBeenCalledWith(false)
+      expect(el.textContent).toContain('Force sync all')
+
+      findButton(el, 'Force sync all').click()
+      await flushAsync()
+      expect(apiMocks.syncAllAssets).toHaveBeenLastCalledWith(true)
     } finally {
       unmount()
     }

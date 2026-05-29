@@ -24,6 +24,40 @@ export const pullSync = async <T = UnknownRecord>(force?: boolean): Promise<T> =
   return invoke('sync_pull', { force })
 }
 
+/** 列出固定配置同步资产 */
+export const listSyncAssets = async <T = UnknownRecord>(): Promise<T> => {
+  return invoke('list_sync_assets')
+}
+
+/** 推送单个配置资产 */
+export const pushSyncAsset = async <T = UnknownRecord>(
+  id: string,
+  force?: boolean,
+): Promise<T> => {
+  return invoke('sync_push_asset', { id, force })
+}
+
+/** 拉取单个配置资产 */
+export const pullSyncAsset = async <T = UnknownRecord>(
+  id: string,
+  force?: boolean,
+): Promise<T> => {
+  return invoke('sync_pull_asset', { id, force })
+}
+
+/** 同步单个配置资产（默认上传本地资产；本地缺失且远端存在时拉取补齐） */
+export const syncSingleAsset = async <T = UnknownRecord>(
+  id: string,
+  force?: boolean,
+): Promise<T> => {
+  return invoke('sync_asset', { id, force })
+}
+
+/** 对固定配置资产执行一次全量同步 */
+export const syncAllAssets = async <T = UnknownRecord>(force?: boolean): Promise<T> => {
+  return invoke('sync_all_assets', { force })
+}
+
 /** 推送单个同步文件夹 */
 export const pushSyncFolder = async <T = UnknownRecord>(
   id: string,

@@ -259,6 +259,11 @@ export {
 export {
   pushSync,
   pullSync,
+  listSyncAssets,
+  pushSyncAsset,
+  pullSyncAsset,
+  syncSingleAsset,
+  syncAllAssets,
   pushSyncFolder,
   pullSyncFolder,
   getSyncStatus,

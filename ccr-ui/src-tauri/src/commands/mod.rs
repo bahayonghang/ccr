@@ -51,6 +51,11 @@ macro_rules! generate_handler_common {
         // —— 同步 ——
         sync::sync_push,
         sync::sync_pull,
+        sync::list_sync_assets,
+        sync::sync_push_asset,
+        sync::sync_pull_asset,
+        sync::sync_asset,
+        sync::sync_all_assets,
         sync::sync_push_folder,
         sync::sync_pull_folder,
         sync::sync_status,

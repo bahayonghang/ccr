@@ -2032,9 +2032,9 @@ export default {
   },
   sync: {
     // Page header
-    title: 'WebDAV Sync',
-    subtitle: 'Preset Platform Selection · One-Click Sync · Smart Management',
-    description: 'WebDAV cloud backup with multi-platform configuration sync',
+    title: 'Configuration Asset Sync',
+    subtitle: 'Sync only approved CCR, Claude, and Codex configuration assets with per-item and all-at-once controls.',
+    description: 'WebDAV cloud backup focused on high-value configuration assets',
     breadcrumb: {
       home: 'Home',
       claudeCode: 'Claude Code',
@@ -2047,63 +2047,68 @@ export default {
     loadFailed: 'Load Failed',
     error: 'Error',
 
-    // Platform selection section
-    platformSelection: {
-      title: 'Select Sync Platforms',
-      applyButton: 'Apply Selection',
-      applying: 'Applying...',
-      configRequired: 'Platforms Configuration',
-      configRequiredBadge: 'Required',
-      configDescription:
-        'CCR provider configuration (API URLs, keys, etc.), mandatory sync for consistency',
-      claudeCode: 'Claude Code',
-      claudeDescription: 'Anthropic Claude Code CLI configuration and data',
-      gemini: 'Antigravity CLI',
-      geminiDescription: 'Google Antigravity CLI configuration and data (legacy key: gemini)',
+    // Manifest asset console
+    assets: {
+      badge: 'Assets',
+      refresh: 'Refresh status',
+      syncAll: 'Sync all once',
+      syncingAll: 'Syncing…',
+      forceRetryAll: 'Force sync all',
+      eyebrow: 'Manifest Allowlist',
+      title: 'Configuration Asset Console',
+      description: 'This page shows only the fixed sync manifest to avoid syncing full directories, caches, or runtime state.',
+      total: '{count} assets',
+      sensitiveHint: 'Sensitive values are masked',
+      sensitive: 'Sensitive',
+      itemCount: '{count} items',
+      kindDirectory: 'Directory',
+      kindFile: 'File',
+      localPath: 'Local',
+      remotePath: 'Remote',
+      canonical: 'Canonical {name}',
+      scopeCcrLabel: 'CCR',
+      scopeCcrValue: 'All platform configs',
+      scopeClaudeLabel: 'Claude',
+      scopeClaudeValue: 'settings.json + CLAUDE.md',
+      scopeCodexLabel: 'Codex',
+      scopeCodexValue: 'config.toml + AGENTS.md',
+      safetyTitle: 'Safety boundary',
+      safetyAllowlist: 'Only fixed allowlist items sync; never the full ~/.claude or ~/.codex directories.',
+      safetyBackup: 'Pull creates a timestamped backup before replacing an existing local target.',
+      safetyMask: 'API keys, tokens, passwords, and similar secrets are never shown in summaries.',
     },
-
-    // Custom folder section
-    customFolder: {
-      title: 'Custom Folder',
-      namePlaceholder: 'Folder name',
-      localPathPlaceholder: 'Local path',
-      remotePathPlaceholder: 'Remote path (optional)',
-      descriptionPlaceholder: 'Description (optional)',
-      addButton: 'Add Custom Folder',
-      adding: 'Adding...',
+    assetGroups: {
+      ccr: {
+        label: 'Required',
+        title: 'CCR Platforms',
+        description: 'Sync all platform configs under ~/.ccr/platforms/, including Claude/Codex auth, URL, key, and provider routing fields.',
+      },
+      claude: {
+        label: 'Claude Code',
+        title: 'Claude Code Config',
+        description: 'Sync only settings.json and CLAUDE.md; sessions, cache, plugins, and the rest of ~/.claude stay out of scope.',
+      },
+      codex: {
+        label: 'Codex',
+        title: 'Codex Config',
+        description: 'Sync only config.toml and AGENTS.md; sessions, logs, plugins, and the rest of ~/.codex stay out of scope.',
+      },
     },
-
-    // Enabled folders section
-    enabledFolders: {
-      title: 'Enabled Folders',
-      refresh: 'Refresh',
-      refreshing: 'Refreshing...',
-      noFolders: 'No enabled sync folders',
-      noFoldersHint: 'If WebDAV is configured, apply the required Platforms folder above first.',
-      enabled: 'Enabled',
-      disabled: 'Disabled',
-      localPath: 'Local Path',
-      remotePath: 'Remote Path',
+    assetActions: {
+      push: 'Push',
+      pull: 'Pull',
+      sync: 'Sync',
+      pushing: 'Pushing…',
+      pulling: 'Pulling…',
+      syncing: 'Syncing…',
+      forceRetry: 'Force retry',
     },
-
-    // Folder operations
-    operations: {
-      enable: 'Enable',
-      disable: 'Disable',
-      upload: 'Upload',
-      download: 'Download',
-      status: 'Status',
-      delete: 'Delete',
-      toggle: 'Toggle Status',
-    },
-
-    // Batch operations
-    batchOperations: {
-      title: 'Batch Operations',
-      description: 'Perform batch sync operations on all enabled folders',
-      uploadAll: 'Upload All',
-      downloadAll: 'Download All',
-      viewStatus: 'View Status',
+    assetStatus: {
+      localReady: 'Local exists',
+      localMissing: 'Local missing',
+      remoteReady: 'Remote exists',
+      remoteMissing: 'Remote missing',
+      remoteUnknown: 'Remote untested',
     },
 
     // Operation output
@@ -2171,16 +2176,17 @@ export default {
     // Features section
     features: {
       title: 'Features',
-      presetPlatform: 'Preset Platform Selection',
+      presetPlatform: 'Fixed Configuration Assets',
       presetPlatformDesc:
-        'Config required, Claude/Gemini optional, one-click setup for common platforms',
-      independentManagement: 'Independent Folder Management',
+        'Sync CCR platforms, Claude settings/CLAUDE.md, and Codex config/AGENTS.md.',
+      independentManagement: 'Independent Asset Management',
       independentManagementDesc:
-        'Each folder syncs independently, can be enabled/disabled and operated individually',
-      smartFiltering: 'Smart Filtering',
-      smartFilteringDesc: 'Automatically excludes backups/, .locks/, *.tmp, *.bak files',
-      batchOperations: 'Batch Operations',
-      batchOperationsDesc: 'One-click upload/download for all enabled folders, improve efficiency',
+        'Each configuration asset can be pushed, pulled, or synced independently.',
+      smartFiltering: 'Allowlist Boundary',
+      smartFilteringDesc: 'Claude/Codex sync only the approved files, never the whole config directory.',
+      sensitiveMasking: 'Sensitive Field Masking',
+      sensitiveMaskingDesc:
+        'Operation summaries mask API keys, tokens, passwords, and similar sensitive values.',
     },
 
     // Supported services
@@ -2194,25 +2200,11 @@ export default {
 
     // Messages
     messages: {
-      applySuccess: 'Sync configuration applied',
-      applyFailed: 'Application failed',
-      addSuccess: 'Custom folder added successfully',
-      addFailed: 'Addition failed',
-      deleteConfirm:
-        'Are you sure you want to delete folder "{name}"?\n\nNote: This will only remove the sync configuration, not delete local files.',
-      deleteSuccess: 'Folder deleted successfully',
-      deleteFailed: 'Deletion failed',
-      toggleSuccess: 'Successfully {action} folder',
-      toggleFailed: 'Operation failed',
-      uploadSuccess: 'Upload successful',
-      uploadFailed: 'Upload failed',
-      downloadSuccess: 'Download successful',
-      downloadFailed: 'Download failed',
       statusFailed: 'Failed to get status',
-      batchUploadFailed: 'Batch upload failed',
-      batchDownloadFailed: 'Batch download failed',
-      enabled: 'enabled',
-      disabled: 'disabled',
+      batchSyncFailed: 'Sync all failed',
+      batchSyncComplete: 'Sync all complete',
+      operationComplete: 'Operation complete',
+      operationFailed: 'Operation failed',
     },
   },
   errors: {

@@ -2,8 +2,10 @@
 
 use ccr_sync::{
     SyncConfig, SyncConfigManager, SyncFolder, SyncFolderManager, SyncService, WebDavConfig,
+    expand_path,
 };
 use serde::{Deserialize, Serialize};
+use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
@@ -54,6 +56,120 @@ pub struct WebDavTestResult {
     pub ok: bool,
     pub message: String,
 }
+
+/// 固定同步资产类型。
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum SyncAssetKind {
+    Directory,
+    File,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum SyncAssetGroup {
+    Ccr,
+    Claude,
+    Codex,
+}
+
+impl SyncAssetGroup {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Ccr => "ccr",
+            Self::Claude => "claude",
+            Self::Codex => "codex",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+struct SyncAssetDefinition {
+    id: &'static str,
+    group: SyncAssetGroup,
+    name: &'static str,
+    description: &'static str,
+    kind: SyncAssetKind,
+    sensitive: bool,
+    local_path: &'static str,
+    remote_segment: &'static str,
+    canonical_name: Option<&'static str>,
+}
+
+/// 同步资产状态信息（前端 camelCase）。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SyncAssetInfo {
+    pub id: String,
+    pub group: String,
+    pub name: String,
+    pub description: String,
+    pub kind: SyncAssetKind,
+    pub sensitive: bool,
+    pub local_path: String,
+    pub resolved_local_path: String,
+    pub remote_path: String,
+    pub local_exists: bool,
+    pub remote_exists: Option<bool>,
+    pub canonical_name: Option<String>,
+}
+
+const SYNC_ASSETS: &[SyncAssetDefinition] = &[
+    SyncAssetDefinition {
+        id: "ccr-platforms",
+        group: SyncAssetGroup::Ccr,
+        name: "CCR Platforms",
+        description: "All CCR platform configuration, including auth, URL, key, and provider routing fields.",
+        kind: SyncAssetKind::Directory,
+        sensitive: true,
+        local_path: "~/.ccr/platforms/",
+        remote_segment: "platforms/",
+        canonical_name: None,
+    },
+    SyncAssetDefinition {
+        id: "claude-settings",
+        group: SyncAssetGroup::Claude,
+        name: "settings.json",
+        description: "Claude Code user settings only; the rest of ~/.claude is intentionally excluded.",
+        kind: SyncAssetKind::File,
+        sensitive: true,
+        local_path: "~/.claude/settings.json",
+        remote_segment: "claude/settings.json",
+        canonical_name: Some("settings.json"),
+    },
+    SyncAssetDefinition {
+        id: "claude-memory",
+        group: SyncAssetGroup::Claude,
+        name: "CLAUDE.md",
+        description: "Claude Code global memory and instructions file.",
+        kind: SyncAssetKind::File,
+        sensitive: false,
+        local_path: "~/.claude/CLAUDE.md",
+        remote_segment: "claude/CLAUDE.md",
+        canonical_name: Some("CLAUDE.md"),
+    },
+    SyncAssetDefinition {
+        id: "codex-config",
+        group: SyncAssetGroup::Codex,
+        name: "config.toml",
+        description: "Codex user configuration only; the rest of ~/.codex is intentionally excluded.",
+        kind: SyncAssetKind::File,
+        sensitive: true,
+        local_path: "~/.codex/config.toml",
+        remote_segment: "codex/config.toml",
+        canonical_name: Some("config.toml"),
+    },
+    SyncAssetDefinition {
+        id: "codex-agents",
+        group: SyncAssetGroup::Codex,
+        name: "AGENTS.md",
+        description: "Codex global instructions file.",
+        kind: SyncAssetKind::File,
+        sensitive: false,
+        local_path: "~/.codex/AGENTS.md",
+        remote_segment: "codex/AGENTS.md",
+        canonical_name: Some("AGENTS.md"),
+    },
+];
 
 /// 同步文件夹信息
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -171,9 +287,7 @@ fn sync_config_for_folder(
     manager: &SyncFolderManager,
     folder: &SyncFolder,
 ) -> Result<SyncConfig, String> {
-    let webdav = manager
-        .get_webdav_config()
-        .map_err(|e| format!("Failed to load WebDAV config: {e}"))?;
+    let webdav = load_webdav_config(manager)?;
 
     if webdav.url.trim().is_empty()
         || webdav.username.trim().is_empty()
@@ -183,6 +297,334 @@ fn sync_config_for_folder(
     }
 
     Ok(sync_config_from_webdav(&webdav, &folder.remote_path))
+}
+
+fn asset_by_id(id: &str) -> Result<&'static SyncAssetDefinition, String> {
+    SYNC_ASSETS
+        .iter()
+        .find(|asset| asset.id == id)
+        .ok_or_else(|| format!("Unknown sync asset: {id}"))
+}
+
+fn asset_remote_path(asset: &SyncAssetDefinition, webdav: &WebDavConfig) -> String {
+    let base = normalize_remote_base(&webdav.base_remote_path);
+    let segment = asset.remote_segment.trim_start_matches('/');
+    let joined = format!("{}/{}", base, segment).replace('\\', "/");
+    if asset.kind == SyncAssetKind::Directory && !joined.ends_with('/') {
+        format!("{joined}/")
+    } else {
+        joined
+    }
+}
+
+fn sync_config_for_asset(
+    manager: &SyncFolderManager,
+    asset: &SyncAssetDefinition,
+) -> Result<SyncConfig, String> {
+    let webdav = load_webdav_config(manager)?;
+
+    if webdav.url.trim().is_empty()
+        || webdav.username.trim().is_empty()
+        || webdav.password.trim().is_empty()
+    {
+        return Err("WebDAV account is incomplete. Please configure WebDAV first.".to_string());
+    }
+
+    Ok(sync_config_from_webdav(
+        &webdav,
+        &asset_remote_path(asset, &webdav),
+    ))
+}
+
+fn webdav_is_complete(webdav: &WebDavConfig) -> bool {
+    !webdav.url.trim().is_empty()
+        && !webdav.username.trim().is_empty()
+        && !webdav.password.trim().is_empty()
+}
+
+fn sync_config_is_complete(config: &SyncConfig) -> bool {
+    config.enabled
+        && !config.webdav_url.trim().is_empty()
+        && !config.username.trim().is_empty()
+        && !config.password.trim().is_empty()
+}
+
+fn load_legacy_sync_config() -> Result<SyncConfig, String> {
+    SyncConfigManager::with_default()
+        .and_then(|manager| manager.load())
+        .map_err(|e| format!("Failed to load legacy WebDAV config: {e}"))
+}
+
+fn load_webdav_config(manager: &SyncFolderManager) -> Result<WebDavConfig, String> {
+    load_webdav_config_with_legacy(manager, load_legacy_sync_config)
+}
+
+fn load_webdav_config_with_legacy(
+    manager: &SyncFolderManager,
+    load_legacy: impl Fn() -> Result<SyncConfig, String>,
+) -> Result<WebDavConfig, String> {
+    let folder_webdav = manager.get_webdav_config();
+    if let Ok(webdav) = &folder_webdav
+        && webdav_is_complete(webdav)
+    {
+        return Ok(webdav.clone());
+    }
+
+    let legacy_config = load_legacy();
+    if let Ok(config) = legacy_config
+        && sync_config_is_complete(&config)
+    {
+        return Ok(webdav_from_sync_config(&config));
+    }
+    if let Ok(config) = load_legacy() {
+        return Ok(webdav_from_sync_config(&config));
+    }
+
+    match folder_webdav {
+        Ok(mut webdav) => {
+            if webdav.base_remote_path == WebDavConfig::default().base_remote_path {
+                webdav.base_remote_path = normalize_remote_base(&SyncConfig::default().remote_path);
+            }
+            Ok(webdav)
+        }
+        Err(e) => Err(format!("Failed to load WebDAV config: {e}")),
+    }
+}
+
+fn resolve_asset_local_path(
+    asset: &SyncAssetDefinition,
+) -> Result<(PathBuf, Option<String>), String> {
+    let expanded = match asset.group {
+        SyncAssetGroup::Ccr => resolve_ccr_asset_local_path(asset),
+        SyncAssetGroup::Claude | SyncAssetGroup::Codex => expand_path(asset.local_path),
+    }
+    .map_err(|e| format!("Failed to expand asset path {}: {e}", asset.local_path))?;
+
+    if asset.kind == SyncAssetKind::Directory || expanded.exists() {
+        return Ok((expanded, asset.canonical_name.map(str::to_string)));
+    }
+
+    let Some(canonical_name) = asset.canonical_name else {
+        return Ok((expanded, None));
+    };
+
+    let Some(parent) = expanded.parent() else {
+        return Ok((expanded, Some(canonical_name.to_string())));
+    };
+
+    if let Some(found) = find_case_insensitive_child(parent, canonical_name) {
+        return Ok((found, Some(canonical_name.to_string())));
+    }
+
+    Ok((expanded, Some(canonical_name.to_string())))
+}
+
+fn resolve_ccr_asset_local_path(
+    asset: &SyncAssetDefinition,
+) -> ccr_core::core::error::Result<PathBuf> {
+    let root = std::env::var_os("CCR_ROOT").map(PathBuf::from);
+    resolve_ccr_asset_local_path_with_root(asset, root.as_deref())
+}
+
+fn resolve_ccr_asset_local_path_with_root(
+    asset: &SyncAssetDefinition,
+    root: Option<&Path>,
+) -> ccr_core::core::error::Result<PathBuf> {
+    if asset.id == "ccr-platforms"
+        && let Some(root) = root
+    {
+        return Ok(root.join("platforms"));
+    }
+
+    expand_path(asset.local_path)
+}
+
+fn find_case_insensitive_child(parent: &Path, canonical_name: &str) -> Option<PathBuf> {
+    let entries = fs::read_dir(parent).ok()?;
+    for entry in entries.flatten() {
+        let file_name = entry.file_name();
+        if file_name
+            .to_string_lossy()
+            .eq_ignore_ascii_case(canonical_name)
+        {
+            return Some(entry.path());
+        }
+    }
+    None
+}
+
+fn backup_existing_path(local_path: &Path) -> Result<Option<PathBuf>, String> {
+    if !local_path.exists() {
+        return Ok(None);
+    }
+
+    let backup_path = backup_path_for(local_path);
+    fs::rename(local_path, &backup_path)
+        .map_err(|e| format!("Failed to back up local content: {e}"))?;
+    Ok(Some(backup_path))
+}
+
+async fn asset_info(
+    manager: &SyncFolderManager,
+    asset: &SyncAssetDefinition,
+) -> Result<SyncAssetInfo, String> {
+    let (local_path, canonical_name) = resolve_asset_local_path(asset)?;
+    let local_exists = tokio::fs::try_exists(&local_path).await.unwrap_or(false);
+    let webdav = load_webdav_config(manager)?;
+    let remote_path = asset_remote_path(asset, &webdav);
+    let remote_exists = if webdav.url.trim().is_empty()
+        || webdav.username.trim().is_empty()
+        || webdav.password.trim().is_empty()
+    {
+        None
+    } else {
+        let config = sync_config_from_webdav(&webdav, &remote_path);
+        match SyncService::new(&config).await {
+            Ok(service) => service.remote_exists().await.ok(),
+            Err(_) => None,
+        }
+    };
+
+    Ok(SyncAssetInfo {
+        id: asset.id.to_string(),
+        group: asset.group.as_str().to_string(),
+        name: asset.name.to_string(),
+        description: asset.description.to_string(),
+        kind: asset.kind,
+        sensitive: asset.sensitive,
+        local_path: asset.local_path.to_string(),
+        resolved_local_path: local_path.display().to_string(),
+        remote_path,
+        local_exists,
+        remote_exists,
+        canonical_name,
+    })
+}
+
+async fn push_asset_config(
+    manager: &SyncFolderManager,
+    asset: &SyncAssetDefinition,
+    force: bool,
+) -> Result<(), String> {
+    let (local_path, _) = resolve_asset_local_path(asset)?;
+    if !tokio::fs::try_exists(&local_path).await.unwrap_or(false) {
+        return Err(format!(
+            "Local asset does not exist: {}",
+            local_path.display()
+        ));
+    }
+
+    let sync_config = sync_config_for_asset(manager, asset)?;
+    let service = SyncService::new(&sync_config)
+        .await
+        .map_err(|e| format!("Failed to create SyncService: {e}"))?;
+
+    if !force {
+        let exists = service
+            .remote_exists()
+            .await
+            .map_err(|e| format!("Failed to check remote path: {e}"))?;
+        if exists {
+            return Err("Remote asset already exists; rerun with force to overwrite.".to_string());
+        }
+    }
+
+    service
+        .push(&local_path, None)
+        .await
+        .map_err(|e| format!("Push failed: {e}"))
+}
+
+async fn pull_asset_config(
+    manager: &SyncFolderManager,
+    asset: &SyncAssetDefinition,
+    force: bool,
+) -> Result<Option<PathBuf>, String> {
+    let (local_path, _) = resolve_asset_local_path(asset)?;
+    let sync_config = sync_config_for_asset(manager, asset)?;
+    let service = SyncService::new(&sync_config)
+        .await
+        .map_err(|e| format!("Failed to create SyncService: {e}"))?;
+
+    let remote_exists = service
+        .remote_exists()
+        .await
+        .map_err(|e| format!("Failed to check remote path: {e}"))?;
+    if !remote_exists {
+        return Err("Remote asset does not exist. Upload this asset first.".to_string());
+    }
+
+    let local_exists = tokio::fs::try_exists(&local_path)
+        .await
+        .map_err(|e| format!("Failed to check local path: {e}"))?;
+    if local_exists && !force {
+        return Err(
+            "Local asset already exists; rerun with force to overwrite and create a backup."
+                .to_string(),
+        );
+    }
+
+    let backup_path = if local_exists {
+        tokio::task::spawn_blocking({
+            let local_path = local_path.clone();
+            move || backup_existing_path(&local_path)
+        })
+        .await
+        .map_err(|e| format!("Task join error: {e}"))??
+    } else {
+        None
+    };
+
+    service
+        .pull(&local_path)
+        .await
+        .map_err(|e| format!("Pull failed: {e}"))?;
+
+    Ok(backup_path)
+}
+
+async fn sync_asset_config(
+    manager: &SyncFolderManager,
+    asset: &SyncAssetDefinition,
+    force: bool,
+) -> Result<Option<PathBuf>, String> {
+    let (local_path, _) = resolve_asset_local_path(asset)?;
+    let local_exists = tokio::fs::try_exists(&local_path)
+        .await
+        .map_err(|e| format!("Failed to check local path: {e}"))?;
+
+    let sync_config = sync_config_for_asset(manager, asset)?;
+    let service = SyncService::new(&sync_config)
+        .await
+        .map_err(|e| format!("Failed to create SyncService: {e}"))?;
+    let remote_exists = service
+        .remote_exists()
+        .await
+        .map_err(|e| format!("Failed to check remote path: {e}"))?;
+
+    match (local_exists, remote_exists) {
+        (true, true) if !force && SyncAssetDirection::Sync.is_upload_preferred() => {
+            push_asset_config(manager, asset, false).await.map(|_| None)
+        }
+        (true, _) => {
+            service
+                .push(&local_path, None)
+                .await
+                .map_err(|e| format!("Sync upload failed: {e}"))?;
+            Ok(None)
+        }
+        (false, true) => {
+            service
+                .pull(&local_path)
+                .await
+                .map_err(|e| format!("Sync download failed: {e}"))?;
+            Ok(None)
+        }
+        (false, false) => Err(format!(
+            "Neither local nor remote asset exists: {}",
+            local_path.display()
+        )),
+    }
 }
 
 fn save_webdav_to_managers(
@@ -355,15 +797,12 @@ async fn pull_folder_config(
     }
 
     if local_exists {
-        let backup_path = backup_path_for(&local_path);
-        if tokio::fs::try_exists(&backup_path).await.unwrap_or(false) {
-            tokio::fs::remove_dir_all(&backup_path)
-                .await
-                .map_err(|e| format!("Failed to remove old backup: {e}"))?;
-        }
-        tokio::fs::rename(&local_path, &backup_path)
-            .await
-            .map_err(|e| format!("Failed to back up local content: {e}"))?;
+        tokio::task::spawn_blocking({
+            let local_path = local_path.clone();
+            move || backup_existing_path(&local_path)
+        })
+        .await
+        .map_err(|e| format!("Task join error: {e}"))??;
     }
 
     service
@@ -374,10 +813,163 @@ async fn pull_folder_config(
 
 fn backup_path_for(local_path: &Path) -> PathBuf {
     let timestamp = chrono::Local::now().format("%Y%m%d_%H%M%S");
-    PathBuf::from(format!("{}.{}.bak", local_path.display(), timestamp))
+    let base = format!("{}.{}", local_path.display(), timestamp);
+    let first = PathBuf::from(format!("{base}.bak"));
+    if !first.exists() {
+        return first;
+    }
+
+    for counter in 1.. {
+        let candidate = PathBuf::from(format!("{base}.{counter}.bak"));
+        if !candidate.exists() {
+            return candidate;
+        }
+    }
+
+    unreachable!("backup counter loop should always return")
+}
+
+fn asset_operation_label(direction: SyncAssetDirection) -> &'static str {
+    match direction {
+        SyncAssetDirection::Push => "upload",
+        SyncAssetDirection::Pull => "download",
+        SyncAssetDirection::Sync => "sync",
+    }
 }
 
 // ── 命令实现 ──
+
+#[tauri::command]
+pub async fn list_sync_assets() -> Result<Vec<SyncAssetInfo>, String> {
+    let manager = SyncFolderManager::with_default()
+        .map_err(|e| format!("Failed to create SyncFolderManager: {e}"))?;
+    let mut assets = Vec::with_capacity(SYNC_ASSETS.len());
+    for asset in SYNC_ASSETS {
+        assets.push(asset_info(&manager, asset).await?);
+    }
+    Ok(assets)
+}
+
+#[tauri::command]
+pub async fn sync_push_asset(
+    id: String,
+    force: Option<bool>,
+) -> Result<SyncOperationResult, String> {
+    sync_one_asset(id, SyncAssetDirection::Push, force.unwrap_or(false)).await
+}
+
+#[tauri::command]
+pub async fn sync_pull_asset(
+    id: String,
+    force: Option<bool>,
+) -> Result<SyncOperationResult, String> {
+    sync_one_asset(id, SyncAssetDirection::Pull, force.unwrap_or(false)).await
+}
+
+#[tauri::command]
+pub async fn sync_asset(id: String, force: Option<bool>) -> Result<SyncOperationResult, String> {
+    sync_one_asset(id, SyncAssetDirection::Sync, force.unwrap_or(false)).await
+}
+
+#[tauri::command]
+pub async fn sync_all_assets(force: Option<bool>) -> Result<SyncOperationResult, String> {
+    let start = Instant::now();
+    let manager = SyncFolderManager::with_default()
+        .map_err(|e| format!("Failed to create SyncFolderManager: {e}"))?;
+    run_asset_syncs(
+        &manager,
+        SYNC_ASSETS.iter().collect(),
+        SyncAssetDirection::Sync,
+        force.unwrap_or(false),
+        start,
+    )
+    .await
+}
+
+#[derive(Clone, Copy)]
+enum SyncAssetDirection {
+    Push,
+    Pull,
+    Sync,
+}
+
+impl SyncAssetDirection {
+    fn is_upload_preferred(self) -> bool {
+        matches!(self, Self::Push | Self::Sync)
+    }
+}
+
+async fn sync_one_asset(
+    id: String,
+    direction: SyncAssetDirection,
+    force: bool,
+) -> Result<SyncOperationResult, String> {
+    let start = Instant::now();
+    let manager = SyncFolderManager::with_default()
+        .map_err(|e| format!("Failed to create SyncFolderManager: {e}"))?;
+    let asset = asset_by_id(&id)?;
+    run_asset_syncs(&manager, vec![asset], direction, force, start).await
+}
+
+async fn run_asset_syncs(
+    manager: &SyncFolderManager,
+    assets: Vec<&SyncAssetDefinition>,
+    direction: SyncAssetDirection,
+    force: bool,
+    start: Instant,
+) -> Result<SyncOperationResult, String> {
+    let total = assets.len();
+    let mut success_count = 0usize;
+    let mut failed = Vec::new();
+    let mut backup_lines = Vec::new();
+
+    for asset in assets {
+        let result = match direction {
+            SyncAssetDirection::Push => {
+                push_asset_config(manager, asset, force).await.map(|_| None)
+            }
+            SyncAssetDirection::Pull => pull_asset_config(manager, asset, force).await,
+            SyncAssetDirection::Sync => sync_asset_config(manager, asset, force).await,
+        };
+
+        match result {
+            Ok(backup) => {
+                success_count += 1;
+                if let Some(path) = backup {
+                    backup_lines.push(format!("{} backup: {}", asset.id, path.display()));
+                }
+            }
+            Err(message) => failed.push(SyncOperationFailure {
+                folder: asset.id.to_string(),
+                message,
+            }),
+        }
+    }
+
+    let label = asset_operation_label(direction);
+    let success = failed.is_empty();
+    let mut message = if success {
+        format!("Completed {label} for {success_count}/{total} sync asset(s).")
+    } else {
+        format!(
+            "Completed {label} for {success_count}/{total} sync asset(s); {} failed.",
+            failed.len()
+        )
+    };
+    if !backup_lines.is_empty() {
+        message.push('\n');
+        message.push_str(&backup_lines.join("\n"));
+    }
+
+    Ok(operation_result(
+        success,
+        message,
+        start.elapsed().as_millis() as u64,
+        total,
+        success_count,
+        failed,
+    ))
+}
 
 #[tauri::command]
 pub async fn sync_push(force: Option<bool>) -> Result<SyncOperationResult, String> {
@@ -843,5 +1435,129 @@ mod tests {
 
         let persisted = folder_manager.get_folder("config").unwrap();
         assert_eq!(persisted, updated);
+    }
+
+    #[test]
+    fn sync_asset_manifest_contains_expected_ids() {
+        let ids = SYNC_ASSETS.iter().map(|asset| asset.id).collect::<Vec<_>>();
+        assert_eq!(
+            ids,
+            vec![
+                "ccr-platforms",
+                "claude-settings",
+                "claude-memory",
+                "codex-config",
+                "codex-agents",
+            ]
+        );
+    }
+
+    #[test]
+    fn asset_remote_path_uses_base_and_canonical_segments() {
+        let webdav = WebDavConfig {
+            url: "https://dav.example.com".to_string(),
+            username: "user".to_string(),
+            password: "secret".to_string(),
+            base_remote_path: "/ccr/".to_string(),
+        };
+
+        assert_eq!(
+            asset_remote_path(&SYNC_ASSETS[0], &webdav),
+            "/ccr/platforms/"
+        );
+        assert_eq!(
+            asset_remote_path(&SYNC_ASSETS[2], &webdav),
+            "/ccr/claude/CLAUDE.md"
+        );
+        assert_eq!(
+            asset_remote_path(&SYNC_ASSETS[4], &webdav),
+            "/ccr/codex/AGENTS.md"
+        );
+    }
+
+    #[test]
+    fn load_webdav_config_uses_legacy_default_base_for_unconfigured_folder_defaults() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let sync_path = temp_dir.path().join("missing-sync.toml");
+        let folders_path = temp_dir.path().join("missing-folders.toml");
+        let sync_manager = SyncConfigManager::new(&sync_path);
+        let folder_manager = SyncFolderManager::new(&folders_path);
+
+        let webdav = load_webdav_config_with_legacy(&folder_manager, || {
+            sync_manager
+                .load()
+                .map_err(|e| format!("Failed to load legacy WebDAV config: {e}"))
+        })
+        .expect("default WebDAV config should still be returned");
+
+        assert_eq!(webdav.base_remote_path, "/ccr");
+    }
+
+    #[test]
+    fn find_case_insensitive_child_matches_markdown_variants() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let file = temp_dir.path().join("Agents.md");
+        std::fs::write(&file, "rules").unwrap();
+
+        let found = find_case_insensitive_child(temp_dir.path(), "AGENTS.md")
+            .expect("case-insensitive variant should be found");
+
+        assert_eq!(found.file_name().unwrap().to_string_lossy(), "Agents.md");
+    }
+
+    #[test]
+    fn ccr_asset_path_honors_environment_root_when_set() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let ccr_root = temp_dir.path().join(".ccr");
+        std::fs::create_dir_all(ccr_root.join("platforms")).unwrap();
+
+        let resolved =
+            resolve_ccr_asset_local_path_with_root(&SYNC_ASSETS[0], Some(&ccr_root)).unwrap();
+
+        assert_eq!(resolved, ccr_root.join("platforms"));
+    }
+
+    #[test]
+    fn backup_existing_path_handles_files() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let file = temp_dir.path().join("config.toml");
+        std::fs::write(&file, "model = 'x'").unwrap();
+
+        let backup = backup_existing_path(&file).unwrap().expect("backup path");
+
+        assert!(!file.exists());
+        assert!(backup.exists());
+        assert_eq!(std::fs::read_to_string(backup).unwrap(), "model = 'x'");
+    }
+
+    #[test]
+    fn backup_existing_path_handles_directories() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let dir = temp_dir.path().join("platforms");
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("claude.json"), "{}").unwrap();
+
+        let backup = backup_existing_path(&dir).unwrap().expect("backup path");
+
+        assert!(!dir.exists());
+        assert!(backup.is_dir());
+        assert_eq!(
+            std::fs::read_to_string(backup.join("claude.json")).unwrap(),
+            "{}"
+        );
+    }
+
+    #[test]
+    fn sync_asset_direction_labels_distinguish_push_pull_and_sync() {
+        assert_eq!(asset_operation_label(SyncAssetDirection::Push), "upload");
+        assert_eq!(asset_operation_label(SyncAssetDirection::Pull), "download");
+        assert_eq!(asset_operation_label(SyncAssetDirection::Sync), "sync");
+    }
+
+    #[test]
+    fn sync_asset_direction_defaults_to_upload_when_local_exists() {
+        assert!(SyncAssetDirection::Push.is_upload_preferred());
+        assert!(SyncAssetDirection::Sync.is_upload_preferred());
+        assert!(!SyncAssetDirection::Pull.is_upload_preferred());
     }
 }

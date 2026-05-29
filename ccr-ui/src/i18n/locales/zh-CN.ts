@@ -2025,9 +2025,9 @@ export default {
   },
   sync: {
     // Page header
-    title: 'WebDAV 云同步',
-    subtitle: '预设平台选择 · 一键同步 · 智能管理',
-    description: 'WebDAV 云端备份，支持多平台配置同步',
+    title: '配置资产同步',
+    subtitle: '只同步明确允许的 CCR、Claude 与 Codex 配置资产，支持单项和全量同步。',
+    description: 'WebDAV 云端备份，聚焦高价值配置资产同步',
     breadcrumb: {
       home: '首页',
       claudeCode: 'Claude Code',
@@ -2040,62 +2040,68 @@ export default {
     loadFailed: '加载失败',
     error: '错误',
 
-    // Platform selection section
-    platformSelection: {
-      title: '选择同步平台',
-      applyButton: '应用选择',
-      applying: '应用中...',
-      configRequired: 'Platforms 平台配置',
-      configRequiredBadge: '必选',
-      configDescription: 'CCR 供应商配置（API地址、密钥等），强制同步保证配置一致性',
-      claudeCode: 'Claude Code',
-      claudeDescription: 'Anthropic Claude Code CLI 配置和数据',
-      gemini: 'Antigravity CLI',
-      geminiDescription: 'Google Antigravity CLI 配置和数据（保留 gemini key 兼容）',
+    // Manifest asset console
+    assets: {
+      badge: 'Assets',
+      refresh: '刷新状态',
+      syncAll: '全部同步一次',
+      syncingAll: '同步中…',
+      forceRetryAll: '强制全部同步',
+      eyebrow: 'Manifest Allowlist',
+      title: '配置资产控制台',
+      description: '页面只展示固定同步清单，避免误同步整目录、缓存或运行时状态。',
+      total: '{count} 项资产',
+      sensitiveHint: '敏感值已遮罩',
+      sensitive: '敏感',
+      itemCount: '{count} 项',
+      kindDirectory: '目录',
+      kindFile: '文件',
+      localPath: '本地',
+      remotePath: '远端',
+      canonical: '规范名 {name}',
+      scopeCcrLabel: 'CCR',
+      scopeCcrValue: '所有 platform 配置',
+      scopeClaudeLabel: 'Claude',
+      scopeClaudeValue: 'settings.json + CLAUDE.md',
+      scopeCodexLabel: 'Codex',
+      scopeCodexValue: 'config.toml + AGENTS.md',
+      safetyTitle: '安全边界',
+      safetyAllowlist: '只同步固定 allowlist，不同步整个 ~/.claude 或 ~/.codex。',
+      safetyBackup: 'Pull 覆盖本地文件前会创建时间戳备份。',
+      safetyMask: 'API key、token、password 等敏感值不会在摘要中明文展示。',
     },
-
-    // Custom folder section
-    customFolder: {
-      title: '自定义文件夹',
-      namePlaceholder: '文件夹名称',
-      localPathPlaceholder: '本地路径',
-      remotePathPlaceholder: '远程路径 (可选)',
-      descriptionPlaceholder: '描述 (可选)',
-      addButton: '添加自定义文件夹',
-      adding: '添加中...',
+    assetGroups: {
+      ccr: {
+        label: 'Required',
+        title: 'CCR Platforms',
+        description: '同步 ~/.ccr/platforms/ 下所有 platform 配置，包含 Claude/Codex 的 auth、url、key 与 provider routing。',
+      },
+      claude: {
+        label: 'Claude Code',
+        title: 'Claude Code 配置',
+        description: '只同步 settings.json 与 CLAUDE.md；不会同步 sessions、cache、plugins 或整个 ~/.claude。',
+      },
+      codex: {
+        label: 'Codex',
+        title: 'Codex 配置',
+        description: '只同步 config.toml 与 AGENTS.md；不会同步 sessions、logs、plugins 或整个 ~/.codex。',
+      },
     },
-
-    // Enabled folders section
-    enabledFolders: {
-      title: '已启用的文件夹',
-      refresh: '刷新',
-      refreshing: '刷新中...',
-      noFolders: '暂无启用的同步文件夹',
-      noFoldersHint: '如果已配置 WebDAV，请先在上方应用必选的 Platforms 文件夹。',
-      enabled: '已启用',
-      disabled: '已禁用',
-      localPath: '本地路径',
-      remotePath: '远程路径',
+    assetActions: {
+      push: 'Push',
+      pull: 'Pull',
+      sync: 'Sync',
+      pushing: 'Pushing…',
+      pulling: 'Pulling…',
+      syncing: 'Syncing…',
+      forceRetry: 'Force retry',
     },
-
-    // Folder operations
-    operations: {
-      enable: '启用',
-      disable: '禁用',
-      upload: '上传',
-      download: '下载',
-      status: '状态',
-      delete: '删除',
-      toggle: '切换状态',
-    },
-
-    // Batch operations
-    batchOperations: {
-      title: '批量操作',
-      description: '对所有启用的文件夹执行批量同步操作',
-      uploadAll: '全部上传',
-      downloadAll: '全部下载',
-      viewStatus: '查看状态',
+    assetStatus: {
+      localReady: '本地存在',
+      localMissing: '本地缺失',
+      remoteReady: '远端存在',
+      remoteMissing: '远端缺失',
+      remoteUnknown: '远端未测试',
     },
 
     // Operation output
@@ -2163,14 +2169,14 @@ export default {
     // Features section
     features: {
       title: '功能说明',
-      presetPlatform: '预设平台选择',
-      presetPlatformDesc: 'Config 必选，Claude/Gemini 可选，一键配置常用平台',
-      independentManagement: '独立文件夹管理',
-      independentManagementDesc: '每个文件夹独立同步，可单独启用/禁用和操作',
-      smartFiltering: '智能过滤',
-      smartFilteringDesc: '自动排除 backups/、.locks/、*.tmp、*.bak 等文件',
-      batchOperations: '批量操作',
-      batchOperationsDesc: '一键上传/下载所有启用的文件夹，提高效率',
+      presetPlatform: '固定配置资产',
+      presetPlatformDesc: '同步 CCR platforms、Claude settings/CLAUDE.md、Codex config/AGENTS.md。',
+      independentManagement: '单项资产管理',
+      independentManagementDesc: '每个配置资产都能独立 Push、Pull 或 Sync。',
+      smartFiltering: 'Allowlist 边界',
+      smartFilteringDesc: 'Claude/Codex 只同步指定文件，不同步整个配置目录。',
+      sensitiveMasking: '敏感字段遮罩',
+      sensitiveMaskingDesc: '操作摘要会遮罩 API key、token、password 等敏感值。',
     },
 
     // Supported services
@@ -2184,25 +2190,11 @@ export default {
 
     // Messages
     messages: {
-      applySuccess: '同步配置已应用',
-      applyFailed: '应用失败',
-      addSuccess: '成功添加自定义文件夹',
-      addFailed: '添加失败',
-      deleteConfirm:
-        '确定要删除文件夹 "{name}" 吗？\n\n注意：这只会移除同步配置，不会删除本地文件。',
-      deleteSuccess: '成功删除文件夹',
-      deleteFailed: '删除失败',
-      toggleSuccess: '成功{action}文件夹',
-      toggleFailed: '操作失败',
-      uploadSuccess: '上传成功',
-      uploadFailed: '上传失败',
-      downloadSuccess: '下载成功',
-      downloadFailed: '下载失败',
       statusFailed: '获取状态失败',
-      batchUploadFailed: '批量上传失败',
-      batchDownloadFailed: '批量下载失败',
-      enabled: '启用',
-      disabled: '禁用',
+      batchSyncFailed: '全量同步失败',
+      batchSyncComplete: '全量同步完成',
+      operationComplete: '操作完成',
+      operationFailed: '操作失败',
     },
   },
   theme: {

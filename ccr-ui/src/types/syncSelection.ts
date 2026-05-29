@@ -1,41 +1,3 @@
-export interface SyncSelectableItem {
-  key: string
-  name: string
-  description: string
-  localPath: string
-  remotePath: string
-  selected: boolean
-  icon?: string
-  required?: boolean
-}
-
-export interface CustomSyncFolderForm {
-  name: string
-  localPath: string
-  remotePath: string
-  description: string
-}
-
-export interface SyncManagedFolder {
-  name: string
-  enabled: boolean
-  description?: string
-  localPath: string
-  remotePath: string
-}
-
-export interface SyncManagedFolderRaw {
-  name?: string
-  enabled?: boolean
-  description?: string
-  localPath?: string
-  local_path?: string
-  remotePath?: string
-  remote_path?: string
-  autoSync?: boolean
-  auto_sync?: boolean
-}
-
 export interface SyncOperationFailure {
   folder: string
   message: string
@@ -54,6 +16,37 @@ export interface SyncOperationResult {
   data?: {
     output?: string
   }
+}
+
+export type SyncAssetKind = 'directory' | 'file'
+export type SyncAssetOperation = 'push' | 'pull' | 'sync'
+
+export interface SyncAssetInfo {
+  id: string
+  group: 'ccr' | 'claude' | 'codex' | string
+  name: string
+  description: string
+  kind: SyncAssetKind
+  sensitive: boolean
+  localPath: string
+  local_path?: string
+  resolvedLocalPath: string
+  resolved_local_path?: string
+  remotePath: string
+  remote_path?: string
+  localExists: boolean
+  local_exists?: boolean
+  remoteExists?: boolean | null
+  remote_exists?: boolean | null
+  canonicalName?: string | null
+  canonical_name?: string | null
+}
+
+export interface SyncAssetGroup {
+  key: string
+  title: string
+  description: string
+  assets: SyncAssetInfo[]
 }
 
 /**

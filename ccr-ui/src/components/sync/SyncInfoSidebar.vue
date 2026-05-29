@@ -199,9 +199,9 @@
             class="mb-2 font-bold"
             :style="{ color: 'var(--text-primary)' }"
           >
-            {{ $t('sync.features.batchOperations') }}
+            {{ $t('sync.features.sensitiveMasking') }}
           </h4>
-          <p>{{ $t('sync.features.batchOperationsDesc') }}</p>
+          <p>{{ $t('sync.features.sensitiveMaskingDesc') }}</p>
         </div>
       </div>
     </div>
