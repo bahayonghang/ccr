@@ -598,7 +598,7 @@ fn draw_footer_strip(f: &mut Frame, area: Rect, app: &ClaudeAuthApp) {
         Some(Overlay::Input { .. }) => "输入账号名 | Enter 保存 | Esc 取消",
         Some(Overlay::RenameInput { .. }) => "输入新名称 | Enter 保存 | Esc 取消",
         None => {
-            "Tab switch  │  ←→/hl page  │  ↑↓/jk select  │  Enter switch  │  s save  │  d delete  │  r refresh  │  q quit"
+            "Tab/Shift+Tab switch  │  ←→/hl page  │  ↑↓/jk select  │  Enter switch  │  s save  │  d delete  │  r refresh  │  q quit"
         }
     };
 

@@ -345,28 +345,9 @@ fn render_header(f: &mut Frame, app: &App, area: Rect) {
         .tabs
         .iter()
         .enumerate()
-        .map(|(i, tab)| {
-            let is_active = i == app.active_tab;
-            let indicator = if is_active { "▸ " } else { "  " };
-            let label = if compact_tabs {
-                compact_tab_label(&tab.label)
-            } else {
-                tab.label.as_str()
-            };
-            let style = if is_active {
-                theme::platform_style_for(tab.platform)
-            } else {
-                theme::tab_normal_style()
-            };
-            Line::from(vec![
-                Span::styled(indicator, style),
-                Span::raw(format!("{} ", tab.platform.icon())),
-                Span::styled(label.to_string(), style),
-            ])
-        })
+        .map(|(i, tab)| tab_title_line(tab, i == app.active_tab, compact_tabs))
         .collect();
 
-    let border_color = theme::platform_color_for(app.current_platform());
     let current_label = format!(
         " {} {} ",
         app.current_platform().icon(),
@@ -378,10 +359,10 @@ fn render_header(f: &mut Frame, app: &App, area: Rect) {
             Block::default()
                 .borders(Borders::ALL)
                 .border_set(symbols::border::ROUNDED)
-                .border_style(Style::default().fg(border_color))
+                .border_style(Style::default().fg(theme::BORDER))
                 .title(" 🚀 CCR - Configuration Switcher ")
                 .title_alignment(Alignment::Center)
-                .title_style(theme::platform_style_for(app.current_platform()))
+                .title_style(theme::primary_text_emphasis_style())
                 .title_bottom(
                     Line::from(Span::styled(
                         current_label,
@@ -392,10 +373,34 @@ fn render_header(f: &mut Frame, app: &App, area: Rect) {
         )
         .select(app.active_tab)
         .style(theme::tab_normal_style())
-        .highlight_style(theme::tab_highlight_style())
+        .highlight_style(theme::tab_highlight_style_for(app.current_platform()))
         .divider(Span::styled("  │  ", Style::default().fg(theme::BORDER)));
 
     f.render_widget(tabs, area);
+}
+
+fn tab_title_line(
+    tab: &crate::tui::app::PlatformTab,
+    is_active: bool,
+    compact: bool,
+) -> Line<'static> {
+    let label = if compact {
+        compact_tab_label(&tab.label)
+    } else {
+        tab.label.as_str()
+    };
+    let style = if is_active {
+        theme::tab_active_style_for(tab.platform)
+    } else {
+        theme::tab_inactive_style()
+    };
+    let title = if is_active {
+        format!(" {} {} ", tab.platform.icon(), label)
+    } else {
+        format!("  {} {} ", tab.platform.icon(), label)
+    };
+
+    Line::from(Span::styled(title, style))
 }
 
 fn compact_tab_label(label: &str) -> &str {
@@ -1034,7 +1039,7 @@ fn profile_meta_strings(
             total_pages.max(1)
         ),
         "Legend: ● current · ▶ selected".to_string(),
-        "Enter apply · r reload · Tab switch".to_string(),
+        "Enter apply · r reload · Tab/Shift+Tab switch".to_string(),
     ]
 }
 
@@ -1229,7 +1234,7 @@ fn footer_text(app: &App) -> String {
     };
 
     let shortcuts = format!(
-        "Tab switch  │  {page_hint}↑↓/jk select  │  PgUp/PgDn details  │  Enter apply  │  r reload  │  q quit"
+        "Tab/Shift+Tab switch  │  {page_hint}↑↓/jk select  │  PgUp/PgDn details  │  Enter apply  │  r reload  │  q quit"
     );
 
     if let Some(toast) = app.toasts.active() {
@@ -1333,6 +1338,67 @@ mod tests {
             profile_detail_scroll: 0,
             task_executor: crate::tui::runtime::AsyncTaskExecutor::from_current_or_test(),
         }
+    }
+
+    fn empty_platform_tab(platform: Platform, variant: TabVariant, label: &str) -> PlatformTab {
+        PlatformTab {
+            platform,
+            variant,
+            label: label.to_string(),
+            profiles: Vec::new(),
+            profile_configs: IndexMap::new(),
+            profile_load_error: None,
+            current_profile_error: None,
+            claude_runtime_summary: None,
+            codex_runtime_summary: None,
+            instance: None,
+        }
+    }
+
+    #[test]
+    fn active_tab_title_uses_platform_filled_chip() {
+        let tab = empty_platform_tab(Platform::Codex, TabVariant::Profile, "Codex Profile");
+        let line = tab_title_line(&tab, true, false);
+
+        assert_eq!(line.spans.len(), 1);
+        assert_eq!(line.spans[0].style.fg, Some(theme::BG_PRIMARY));
+        assert_eq!(
+            line.spans[0].style.bg,
+            Some(theme::platform_selection_color_for(Platform::Codex))
+        );
+        assert_ne!(
+            line.spans[0].style.bg,
+            Some(theme::platform_selection_color_for(Platform::Claude))
+        );
+        assert!(line.spans[0].style.add_modifier.contains(Modifier::BOLD));
+    }
+
+    #[test]
+    fn inactive_tab_title_stays_dim_without_fill() {
+        let tab = empty_platform_tab(Platform::Claude, TabVariant::Profile, "Claude Code");
+        let line = tab_title_line(&tab, false, false);
+
+        assert_eq!(line.spans.len(), 1);
+        assert_eq!(line.spans[0].style.fg, None);
+        assert_eq!(line.spans[0].style.bg, None);
+        assert!(line.spans[0].style.add_modifier.contains(Modifier::DIM));
+    }
+
+    #[test]
+    fn footer_hint_mentions_reverse_tab_switching() {
+        let profile = ProfileItem {
+            name: "default".to_string(),
+            description: Some("Default profile".to_string()),
+            is_current: false,
+        };
+        let app = sample_profile_app(profile, ProfileConfig::new());
+
+        assert!(footer_text(&app).contains("Tab/Shift+Tab switch"));
+        assert!(
+            profile_meta_strings(1, 0, 1, app.selected_profile())
+                .iter()
+                .any(|line| line.contains("Tab/Shift+Tab switch"))
+        );
     }
 
     #[test]
@@ -1448,7 +1514,7 @@ mod tests {
             .content()
             .iter()
             .find(|cell| cell.symbol() == "T")
-            .expect("footer should render Tab switch shortcut");
+            .expect("footer should render Tab/Shift+Tab switch shortcut");
 
         assert_eq!(footer_cell.fg, ratatui::style::Color::Reset);
         assert_ne!(footer_cell.fg, theme::FG_PRIMARY);

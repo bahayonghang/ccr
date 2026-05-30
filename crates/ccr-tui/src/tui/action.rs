@@ -12,6 +12,8 @@ pub enum Action {
     SwitchTab(usize),
     /// Cycle to the next tab
     NextTab,
+    /// Cycle to the previous tab
+    PrevTab,
     /// Move selection cursor up
     SelectPrev,
     /// Move selection cursor down

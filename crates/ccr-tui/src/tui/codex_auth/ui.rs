@@ -1306,11 +1306,11 @@ fn draw_account_snapshot_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
 fn draw_footer_strip(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
     let message = if let Some(toast) = app.toasts.active() {
         format!(
-            "{}  │  Tab switch  │  ↑↓/jk select  │  Enter switch  │  s save  │  b quota  │  r refresh  │  q quit",
+            "{}  │  Tab/Shift+Tab switch  │  ↑↓/jk select  │  Enter switch  │  s save  │  b quota  │  r refresh  │  q quit",
             toast.message
         )
     } else {
-        "Tab switch  │  ↑↓/jk select  │  Enter switch  │  s save  │  d delete  │  b quota  │  r refresh  │  q quit"
+        "Tab/Shift+Tab switch  │  ↑↓/jk select  │  Enter switch  │  s save  │  d delete  │  b quota  │  r refresh  │  q quit"
             .to_string()
     };
 

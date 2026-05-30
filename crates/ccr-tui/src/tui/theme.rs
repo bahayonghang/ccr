@@ -185,16 +185,27 @@ pub fn title_style() -> Style {
     primary_text_emphasis_style()
 }
 
-/// Tab highlight style (for selected tab)
-pub fn tab_highlight_style() -> Style {
+/// Filled chip style for the active tab.
+pub fn tab_active_style_for(platform: Platform) -> Style {
     Style::default()
-        .fg(CLAUDE_PRIMARY)
-        .add_modifier(Modifier::BOLD | Modifier::UNDERLINED)
+        .fg(BG_PRIMARY)
+        .bg(platform_selection_color_for(platform))
+        .add_modifier(Modifier::BOLD)
+}
+
+/// Tab highlight style (for selected tab)
+pub fn tab_highlight_style_for(platform: Platform) -> Style {
+    tab_active_style_for(platform)
 }
 
 /// Tab normal style
 pub fn tab_normal_style() -> Style {
     secondary_text_style()
+}
+
+/// Unfilled style for inactive tabs.
+pub fn tab_inactive_style() -> Style {
+    tab_normal_style()
 }
 
 /// List item selected style (default fallback with Codex accent)
@@ -332,5 +343,22 @@ mod tests {
         assert!(secondary_text_style().add_modifier.contains(Modifier::DIM));
         assert!(muted_style().add_modifier.contains(Modifier::DIM));
         assert!(muted_style().add_modifier.contains(Modifier::ITALIC));
+    }
+
+    #[test]
+    fn tab_highlight_style_is_platform_aware_filled_chip() {
+        let codex = tab_highlight_style_for(Platform::Codex);
+
+        assert_eq!(codex.fg, Some(BG_PRIMARY));
+        assert_eq!(
+            codex.bg,
+            Some(platform_selection_color_for(Platform::Codex))
+        );
+        assert_ne!(
+            codex.bg,
+            Some(platform_selection_color_for(Platform::Claude))
+        );
+        assert!(codex.add_modifier.contains(Modifier::BOLD));
+        assert!(!codex.add_modifier.contains(Modifier::UNDERLINED));
     }
 }

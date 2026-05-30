@@ -1113,11 +1113,11 @@ fn draw_help_bar(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp) {
 fn draw_footer_strip(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp) {
     let message = if let Some(toast) = app.toasts.active() {
         format!(
-            "{}  │  Tab switch  │  ↑↓/jk select  │  Enter switch  │  s save  │  i import  │  d delete  │  r refresh  │  q quit",
+            "{}  │  Tab/Shift+Tab switch  │  ↑↓/jk select  │  Enter switch  │  s save  │  i import  │  d delete  │  r refresh  │  q quit",
             toast.message
         )
     } else {
-        "Tab switch  │  ↑↓/jk select  │  Enter switch  │  s save  │  i import  │  d delete  │  r refresh  │  q quit"
+        "Tab/Shift+Tab switch  │  ↑↓/jk select  │  Enter switch  │  s save  │  i import  │  d delete  │  r refresh  │  q quit"
             .to_string()
     };
 

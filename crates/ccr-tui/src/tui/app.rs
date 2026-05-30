@@ -500,15 +500,27 @@ impl App {
 
     // -- Key to Action mapping (pure logic, no side effects) --
 
+    fn tab_key_action(key: KeyEvent) -> Option<Action> {
+        match key.code {
+            KeyCode::BackTab => Some(Action::PrevTab),
+            KeyCode::Tab if key.modifiers.contains(KeyModifiers::SHIFT) => Some(Action::PrevTab),
+            KeyCode::Tab => Some(Action::NextTab),
+            _ => None,
+        }
+    }
+
     fn map_key(&self, key: KeyEvent) -> Action {
         // Ctrl+C always quits
         if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('c') {
             return Action::Quit;
         }
 
+        if let Some(action) = Self::tab_key_action(key) {
+            return action;
+        }
+
         match key.code {
             KeyCode::Char('q') | KeyCode::Esc => Action::Quit,
-            KeyCode::Tab => Action::NextTab,
             KeyCode::Left | KeyCode::Char('h') => Action::PrevPage,
             KeyCode::Right | KeyCode::Char('l') => Action::NextPage,
             KeyCode::PageUp => Action::ScrollDetailsUp,
@@ -532,6 +544,19 @@ impl App {
                 if self.tabs.len() > 1 {
                     self.remember_selected_profile();
                     self.active_tab = (self.active_tab + 1) % self.tabs.len();
+                    self.sync_selection_to_profile_name();
+                    self.reset_profile_detail_scroll();
+                    self.notify_tab_activated();
+                }
+            }
+            Action::PrevTab => {
+                if self.tabs.len() > 1 {
+                    self.remember_selected_profile();
+                    self.active_tab = if self.active_tab == 0 {
+                        self.tabs.len() - 1
+                    } else {
+                        self.active_tab - 1
+                    };
                     self.sync_selection_to_profile_name();
                     self.reset_profile_detail_scroll();
                     self.notify_tab_activated();
@@ -935,10 +960,11 @@ impl TuiApp for App {
             return Ok(true);
         }
 
+        if let Some(action) = Self::tab_key_action(key) {
+            return self.dispatch(action);
+        }
+
         if self.is_claude_auth_tab() {
-            if key.code == KeyCode::Tab {
-                return self.dispatch(Action::NextTab);
-            }
             if let Some(claude_app) = self.claude_auth_app_mut() {
                 let quit = claude_app.handle_key(key)?;
                 if quit {
@@ -948,10 +974,6 @@ impl TuiApp for App {
             }
             Ok(false)
         } else if self.is_codex_auth_tab() {
-            // Tab key: switch to next tab (intercepted before CodexAuthApp)
-            if key.code == KeyCode::Tab {
-                return self.dispatch(Action::NextTab);
-            }
             // Delegate all other keys to CodexAuthApp
             if let Some(codex_app) = self.codex_auth_app_mut() {
                 let quit = codex_app.handle_key(key)?;
@@ -962,9 +984,6 @@ impl TuiApp for App {
             }
             Ok(false)
         } else if self.is_opencode_auth_tab() {
-            if key.code == KeyCode::Tab {
-                return self.dispatch(Action::NextTab);
-            }
             if let Some(opencode_app) = self.opencode_auth_app_mut() {
                 let quit = opencode_app.handle_key(key)?;
                 if quit {
@@ -1258,6 +1277,95 @@ mod tests {
             profile_detail_scroll: 0,
             task_executor: AsyncTaskExecutor::from_current_or_test(),
         }
+    }
+
+    fn empty_tab(platform: Platform, variant: TabVariant, label: &str) -> PlatformTab {
+        PlatformTab {
+            platform,
+            variant,
+            label: label.to_string(),
+            profiles: Vec::new(),
+            profile_configs: IndexMap::<String, ProfileConfig>::new(),
+            profile_load_error: None,
+            current_profile_error: None,
+            claude_runtime_summary: None,
+            codex_runtime_summary: None,
+            instance: None,
+        }
+    }
+
+    fn tab_switching_app(active_tab: usize) -> App {
+        App {
+            tabs: vec![
+                empty_tab(Platform::Claude, TabVariant::Profile, "Claude Code"),
+                empty_tab(Platform::Codex, TabVariant::Profile, "Codex Profile"),
+                empty_tab(Platform::Codex, TabVariant::Profile, "OpenCode Profile"),
+            ],
+            active_tab,
+            selected_index: 0,
+            current_page: 0,
+            page_size: DEFAULT_PAGE_SIZE,
+            selected_profile_name: None,
+            toasts: ToastManager::new(),
+            last_applied: None,
+            claude_auth_app: None,
+            claude_auth_error: None,
+            last_claude_action: None,
+            codex_auth_app: None,
+            codex_auth_error: None,
+            last_codex_action: None,
+            opencode_auth_app: None,
+            opencode_auth_error: None,
+            last_opencode_action: None,
+            header_area: Cell::new(None),
+            list_area: Cell::new(None),
+            detail_area: Cell::new(None),
+            profile_detail_scroll: 0,
+            task_executor: AsyncTaskExecutor::from_current_or_test(),
+        }
+    }
+
+    fn key_with_modifiers(code: KeyCode, modifiers: KeyModifiers) -> KeyEvent {
+        KeyEvent::new(code, modifiers)
+    }
+
+    #[test]
+    fn profile_tab_key_navigation_supports_forward_and_reverse_cycles() {
+        let mut app = tab_switching_app(0);
+
+        app.handle_key(key_with_modifiers(KeyCode::Tab, KeyModifiers::NONE))
+            .unwrap();
+        assert_eq!(app.active_tab, 1);
+
+        app.handle_key(key_with_modifiers(KeyCode::Tab, KeyModifiers::SHIFT))
+            .unwrap();
+        assert_eq!(app.active_tab, 0);
+
+        app.handle_key(key_with_modifiers(KeyCode::Tab, KeyModifiers::SHIFT))
+            .unwrap();
+        assert_eq!(app.active_tab, 2);
+    }
+
+    #[test]
+    fn backtab_keycode_reverse_cycles_profile_tabs() {
+        let mut app = tab_switching_app(0);
+
+        app.handle_key(key_with_modifiers(KeyCode::BackTab, KeyModifiers::NONE))
+            .unwrap();
+
+        assert_eq!(app.active_tab, 2);
+    }
+
+    #[test]
+    fn auth_tab_shift_tab_is_intercepted_before_embedded_app_dispatch() {
+        let mut app = tab_switching_app(1);
+        app.tabs[1] = empty_tab(Platform::Claude, TabVariant::ClaudeAuth, "Claude Auth");
+
+        app.handle_key(key_with_modifiers(KeyCode::Tab, KeyModifiers::SHIFT))
+            .unwrap();
+
+        assert_eq!(app.active_tab, 0);
+        assert!(app.claude_auth_app.is_none());
     }
 
     #[test]
