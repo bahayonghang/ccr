@@ -3,6 +3,31 @@ export interface SyncOperationFailure {
   message: string
 }
 
+export type SyncOperationOutputStatus = 'success' | 'partial' | 'failed'
+
+export interface SyncOperationOutputFailure {
+  assetId?: string
+  assetName: string
+  message: string
+  reason: string
+  localPath?: string
+  remotePath?: string
+  advice?: string
+}
+
+export interface SyncOperationOutput {
+  status: SyncOperationOutputStatus
+  title: string
+  summary: string
+  total?: number
+  successCount?: number
+  failedCount: number
+  durationMs?: number
+  failures: SyncOperationOutputFailure[]
+  suggestions: string[]
+  rawLog: string
+}
+
 export interface SyncOperationResult {
   success?: boolean
   message?: string

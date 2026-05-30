@@ -3,6 +3,7 @@ import { createApp, defineComponent, h, nextTick } from 'vue'
 import { createI18n } from 'vue-i18n'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import enUS from '@/i18n/locales/en-US'
+import zhCN from '@/i18n/locales/zh-CN'
 
 const apiMocks = vi.hoisted(() => ({
   getSyncStatus: vi.fn(),
@@ -66,24 +67,6 @@ vi.mock('@/components/sync/SyncInfoSidebar.vue', () => ({
   }),
 }))
 
-vi.mock('@/components/sync/SyncOperationOutputPanel.vue', () => ({
-  default: defineComponent({
-    props: { output: { type: String, default: '' } },
-    setup(props) {
-      return () => h('pre', { 'data-output': '' }, props.output)
-    },
-  }),
-}))
-
-const i18n = createI18n({
-  legacy: false,
-  locale: 'en-US',
-  fallbackLocale: 'en-US',
-  missingWarn: false,
-  fallbackWarn: false,
-  messages: { 'en-US': enUS },
-})
-
 const assetFixtures = [
   {
     id: 'ccr-platforms',
@@ -134,11 +117,19 @@ const flushAsync = async () => {
   await new Promise(resolve => setTimeout(resolve, 0))
 }
 
-const mountView = async () => {
+const mountView = async (locale: 'en-US' | 'zh-CN' = 'en-US') => {
   const { default: SyncView } = await import('@/views/SyncView.vue')
   const el = document.createElement('div')
   document.body.appendChild(el)
   const app = createApp(SyncView)
+  const i18n = createI18n({
+    legacy: false,
+    locale,
+    fallbackLocale: 'en-US',
+    missingWarn: false,
+    fallbackWarn: false,
+    messages: { 'en-US': enUS, 'zh-CN': zhCN },
+  })
   app.use(i18n)
   app.mount(el)
   await nextTick()
@@ -258,12 +249,136 @@ describe('SyncView configuration asset console', () => {
       await nextTick()
 
       expect(el.textContent).toContain('Force retry')
-      expect(el.querySelector('[data-output]')?.textContent).toContain('api_key=••••••')
-      expect(el.querySelector('[data-output]')?.textContent).not.toContain('sk-testsecret')
+      expect(el.textContent).toContain('api_key=••••••')
+      expect(el.textContent).not.toContain('sk-testsecret')
 
       findButton(firstCard, 'Force retry').click()
       await flushAsync()
       expect(apiMocks.pushSyncAsset).toHaveBeenLastCalledWith('ccr-platforms', true)
+    } finally {
+      unmount()
+    }
+  })
+
+  it('renders structured partial-failure output with readable WebDAV ancestor guidance', async () => {
+    apiMocks.syncAllAssets.mockResolvedValueOnce({
+      success: false,
+      message: 'Completed sync for 2/3 sync asset(s); 1 failed.',
+      durationMs: 1534,
+      total: 3,
+      successCount: 2,
+      failed: [
+        {
+          folder: 'codex-config',
+          message: '409 AncestorNotFound: remote path /ccr/codex/config.toml cannot be checked; token=secret-token',
+        },
+      ],
+    })
+
+    const { el, unmount } = await mountView()
+
+    try {
+      findButton(el, 'Sync all once').click()
+      await flushAsync()
+      await nextTick()
+
+      expect(el.textContent).toContain('Partial success')
+      expect(el.textContent).toContain('2/3 succeeded')
+      expect(el.textContent).toContain('config.toml')
+      expect(el.textContent).toContain('Remote parent directory is missing')
+      expect(el.textContent).toContain('/ccr/codex/config.toml')
+      expect(el.textContent).toContain('token=••••••')
+      expect(el.textContent).not.toContain('secret-token')
+    } finally {
+      unmount()
+    }
+  })
+
+  it('treats success false without failed entries as a failed output card', async () => {
+    apiMocks.syncAllAssets.mockResolvedValueOnce({
+      success: false,
+      message: 'Sync failed before folder-level diagnostics were returned.',
+      total: 3,
+      successCount: 0,
+      failed: [],
+    })
+
+    const { el, unmount } = await mountView()
+
+    try {
+      findButton(el, 'Sync all once').click()
+      await flushAsync()
+      await nextTick()
+
+      expect(el.textContent).toContain('Action needed')
+      expect(el.textContent).toContain('Sync failed before folder-level diagnostics were returned.')
+      expect(el.textContent).toContain('Sync operation')
+    } finally {
+      unmount()
+    }
+  })
+
+  it('explains AncestorNotFound in Chinese when the UI locale is Chinese', async () => {
+    apiMocks.syncAllAssets.mockResolvedValueOnce({
+      success: false,
+      message: 'Completed sync for 2/3 sync asset(s); 1 failed.',
+      total: 3,
+      successCount: 2,
+      failed: [
+        {
+          folder: 'codex-config',
+          message: '409 AncestorNotFound: remote parent not found for /ccr/codex/config.toml',
+        },
+      ],
+    })
+
+    const { el, unmount } = await mountView('zh-CN')
+
+    try {
+      findButton(el, '全部同步一次').click()
+      await flushAsync()
+      await nextTick()
+
+      expect(el.textContent).toContain('远端父目录不存在')
+      expect(el.textContent).toContain('请先在 WebDAV 中创建 /ccr/')
+    } finally {
+      unmount()
+    }
+  })
+
+  it('masks JSON-like secret fields in raw sync output details', async () => {
+    apiMocks.syncAllAssets.mockResolvedValueOnce({
+      success: false,
+      message: 'Completed sync for 2/3 sync asset(s); 1 failed.',
+      total: 3,
+      successCount: 2,
+      failed: [
+        {
+          folder: 'codex-config',
+          message: '409 AncestorNotFound: remote path /ccr/codex/config.toml cannot be checked.',
+        },
+      ],
+      output: JSON.stringify({
+        token: 'secret-token',
+        password: 'hidden-pass',
+        api_key: 'sk-testsecret123456',
+      }, null, 2),
+    })
+
+    const { el, unmount } = await mountView()
+
+    try {
+      findButton(el, 'Sync all once').click()
+      await flushAsync()
+      await nextTick()
+
+      expect(el.textContent).toContain('token')
+      expect(el.textContent).toContain('password')
+      expect(el.textContent).toContain('api_key')
+      expect(el.textContent).toContain('••••••')
+      expect(el.textContent).not.toContain('secret-token')
+      expect(el.textContent).not.toContain('hidden-pass')
+      expect(el.textContent).not.toContain('sk-testsecret123456')
     } finally {
       unmount()
     }

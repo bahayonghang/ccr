@@ -289,6 +289,7 @@ import type {
   SyncAssetInfo,
   SyncAssetKind,
   SyncAssetOperation,
+  SyncOperationOutput,
   SyncOperationResult,
   SyncStatusView,
 } from '@/types/syncSelection'
@@ -311,6 +312,13 @@ const toErrorMessage = (error: unknown, fallback = 'unknown error'): string => {
   return fallback
 }
 
+const maskSecrets = (value: string): string => {
+  return value
+    .replace(/((?:api[_-]?key|token|password|secret)["']?\s*[=:]\s*["']?)([^"',\s;}]+)(["']?)/gi, '$1••••••$3')
+    .replace(/\b(Bearer\s+)([A-Za-z0-9._~+/-]+=*)/gi, '$1••••••')
+    .replace(/(sk-[A-Za-z0-9_-]{8,})/g, 'sk-••••••')
+}
+
 const normalizeAsset = (asset: SyncAssetInfo): SyncAssetInfo => {
   const raw = asset as SyncAssetInfo
   return {
@@ -324,32 +332,152 @@ const normalizeAsset = (asset: SyncAssetInfo): SyncAssetInfo => {
   }
 }
 
-const formatOperationResult = (result: SyncOperationResult, fallback: string): string => {
-  const output = result?.data?.output || result?.output
-  if (output) return maskSecrets(output)
-
-  const lines = [result?.message || fallback]
-  if (typeof result?.total === 'number') {
-    const successCount = result.successCount ?? result.success_count ?? 0
-    lines.push(`${successCount}/${result.total} succeeded`)
-  }
-  for (const failure of result?.failed || []) {
-    lines.push(`- ${failure.folder}: ${failure.message}`)
-  }
-  return maskSecrets(lines.join('\n'))
+const isAncestorNotFound = (message: string): boolean => {
+  return /AncestorNotFound|ancestor\s+not\s+found|ancestor.*not.*found/i.test(message)
 }
 
-const maskSecrets = (value: string): string => {
-  return value
-    .replace(/(api[_-]?key|token|password|secret|bearer)(\s*[=:]\s*)([^\s,;}]+)/gi, '$1$2••••••')
-    .replace(/(sk-[A-Za-z0-9_-]{8,})/g, 'sk-••••••')
+const normalizeRemoteParentPath = (remotePath: string): string => {
+  const trimmed = remotePath.trim().replace(/\/+$/u, '')
+  if (!trimmed) return '/ccr/'
+  const segments = trimmed.split('/').filter(Boolean)
+  if (segments.length <= 1) return '/'
+  return `/${segments[0]}/`
+}
+
+const extractRemotePathFromMessage = (message: string): string | undefined => {
+  const match = message.match(/(?:remote\s+path|for)\s+(\/[^\s,;}]+)/i)
+    ?? message.match(/(\/ccr\/[^\s,;}]+)/i)
+  return match?.[1]?.replace(/[.)'"]+$/u, '')
+}
+
+const getOperationStatusLabel = (status: SyncOperationOutput['status']): string => {
+  if (status === 'success') return t('sync.output.statusSuccess')
+  if (status === 'partial') return t('sync.output.statusPartial')
+  return t('sync.output.statusFailed')
+}
+
+const buildOperationOutput = (
+  result: SyncOperationResult,
+  fallback: string,
+  targetAsset?: SyncAssetInfo,
+): SyncOperationOutput => {
+  const resultFailures = result.failed || []
+  const fallbackFailure = result.success === false && resultFailures.length === 0
+    ? [{ folder: targetAsset?.id ?? t('sync.output.unknownAsset'), message: result.message || fallback }]
+    : null
+  const outputFailures = fallbackFailure ?? resultFailures
+  const total = result.total ?? (typeof result.successCount === 'number' || typeof result.success_count === 'number'
+    ? (result.successCount ?? result.success_count ?? 0) + outputFailures.length
+    : undefined)
+  const successCount = result.successCount ?? result.success_count ?? (result.success ? total : undefined)
+  const failedCount = outputFailures.length
+  const status: SyncOperationOutput['status'] = failedCount > 0
+    ? ((successCount ?? 0) > 0 ? 'partial' : 'failed')
+    : 'success'
+  const title = targetAsset ? `${targetAsset.name} · ${getOperationStatusLabel(status)}` : getOperationStatusLabel(status)
+  const summary = maskSecrets(result.message || fallback)
+  const failures = outputFailures.map((failure) => {
+    const asset = assets.value.find(item => item.id === failure.folder || item.name === failure.folder || item.canonicalName === failure.folder)
+      ?? targetAsset
+    const maskedMessage = maskSecrets(failure.message)
+    const ancestorFailure = isAncestorNotFound(failure.message)
+    const remotePath = asset?.remotePath || extractRemotePathFromMessage(failure.message)
+    const advice = ancestorFailure
+      ? t('sync.output.ancestorAdvice', { path: normalizeRemoteParentPath(remotePath ?? failure.folder) })
+      : ''
+
+    return {
+      assetId: asset?.id,
+      assetName: asset?.name ?? failure.folder,
+      message: maskedMessage,
+      reason: ancestorFailure ? t('sync.output.ancestorReason') : maskedMessage,
+      localPath: asset?.resolvedLocalPath || asset?.localPath,
+      remotePath,
+      advice,
+    }
+  })
+  const suggestions = [...new Set(failures.map(item => item.advice).filter((item): item is string => Boolean(item)))]
+  const output = result?.data?.output || result?.output
+  const rawLog = maskSecrets(output || JSON.stringify({
+    title,
+    summary,
+    total,
+    successCount,
+    failedCount,
+    failures: outputFailures.map(failure => ({
+      folder: failure.folder,
+      message: failure.message,
+    })),
+    durationMs: result.durationMs ?? result.duration_ms,
+  }, null, 2))
+
+  return {
+    status,
+    title,
+    summary,
+    total,
+    successCount,
+    failedCount,
+    durationMs: result.durationMs ?? result.duration_ms,
+    failures,
+    suggestions,
+    rawLog,
+  }
+}
+
+const buildErrorOutput = (
+  message: string,
+  fallback: string,
+  targetAsset?: SyncAssetInfo,
+): SyncOperationOutput => {
+  const maskedMessage = maskSecrets(message)
+  const ancestorFailure = isAncestorNotFound(message)
+  const title = targetAsset
+    ? `${targetAsset.name} · ${t('sync.output.statusFailed')}`
+    : t('sync.output.statusFailed')
+  const failure = {
+    assetId: targetAsset?.id,
+    assetName: targetAsset?.name ?? t('sync.output.unknownAsset'),
+    message: maskedMessage,
+    reason: ancestorFailure ? t('sync.output.ancestorReason') : maskedMessage,
+    localPath: targetAsset?.resolvedLocalPath || targetAsset?.localPath,
+    remotePath: targetAsset?.remotePath,
+    advice: ancestorFailure
+      ? t('sync.output.ancestorAdvice', { path: normalizeRemoteParentPath(targetAsset?.remotePath ?? '') })
+      : '',
+  }
+
+  return {
+    status: 'failed',
+    title,
+    summary: `${fallback}: ${maskedMessage}`,
+    total: targetAsset ? 1 : undefined,
+    successCount: 0,
+    failedCount: 1,
+    durationMs: undefined,
+    failures: [failure],
+    suggestions: failure.advice ? [failure.advice] : [],
+    rawLog: maskSecrets(JSON.stringify({
+      title,
+      summary: `${fallback}: ${maskedMessage}`,
+      error: message,
+      asset: targetAsset
+        ? {
+            id: targetAsset.id,
+            name: targetAsset.name,
+            localPath: targetAsset.resolvedLocalPath || targetAsset.localPath,
+            remotePath: targetAsset.remotePath,
+          }
+        : null,
+    }, null, 2)),
+  }
 }
 
 const loading = ref(true)
 const error = ref('')
 const syncStatus = ref<SyncStatusView | null>(null)
 const assets = ref<SyncAssetInfo[]>([])
-const operationOutput = ref('')
+const operationOutput = ref<SyncOperationOutput | null>(null)
 const refreshingAssets = ref(false)
 const globalOperating = ref(false)
 const busyAssetId = ref<string | null>(null)
@@ -390,14 +518,14 @@ const refreshAll = async () => {
   try {
     await Promise.all([fetchSyncStatus(), fetchAssets()])
   } catch (err: unknown) {
-    operationOutput.value = `${t('sync.messages.statusFailed')}: ${toErrorMessage(err)}`
+    operationOutput.value = buildErrorOutput(toErrorMessage(err), t('sync.messages.statusFailed'))
   } finally {
     refreshingAssets.value = false
   }
 }
 
 const clearOperationOutput = () => {
-  operationOutput.value = ''
+  operationOutput.value = null
   forceRetry.value = null
   forceRetryAll.value = false
 }
@@ -414,14 +542,14 @@ const runAsset = async (asset: SyncAssetInfo, operation: SyncAssetOperation, for
         ? await pullSyncAsset<SyncOperationResult>(asset.id, force)
         : await syncSingleAsset<SyncOperationResult>(asset.id, force)
 
-    operationOutput.value = `[${asset.name}] ${formatOperationResult(result, t('sync.messages.operationComplete'))}`
+    operationOutput.value = buildOperationOutput(result, t('sync.messages.operationComplete'), asset)
     if (result?.success === false) {
-      maybeOfferForce(asset.id, operation, operationOutput.value)
+      maybeOfferForce(asset.id, operation, `${result.message || ''}\n${(result.failed || []).map(failure => failure.message).join('\n')}`)
     }
     await fetchAssets()
   } catch (err: unknown) {
     const message = toErrorMessage(err)
-    operationOutput.value = `[${asset.name}] ${t('sync.messages.operationFailed')}: ${maskSecrets(message)}`
+    operationOutput.value = buildErrorOutput(message, t('sync.messages.operationFailed'), asset)
     maybeOfferForce(asset.id, operation, message)
     await fetchAssets()
   } finally {
@@ -436,14 +564,14 @@ const runAllAssets = async (force: boolean) => {
   forceRetryAll.value = false
   try {
     const result = await syncAllAssets<SyncOperationResult>(force)
-    operationOutput.value = formatOperationResult(result, t('sync.messages.batchSyncComplete'))
+    operationOutput.value = buildOperationOutput(result, t('sync.messages.batchSyncComplete'))
     if (result?.success === false) {
-      maybeOfferForceAll(operationOutput.value)
+      maybeOfferForceAll(`${result.message || ''}\n${(result.failed || []).map(failure => failure.message).join('\n')}`)
     }
     await fetchAssets()
   } catch (err: unknown) {
     const message = toErrorMessage(err)
-    operationOutput.value = `${t('sync.messages.batchSyncFailed')}: ${maskSecrets(message)}`
+    operationOutput.value = buildErrorOutput(message, t('sync.messages.batchSyncFailed'))
     maybeOfferForceAll(message)
   } finally {
     globalOperating.value = false

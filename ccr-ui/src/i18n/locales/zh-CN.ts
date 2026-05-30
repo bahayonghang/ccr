@@ -2108,6 +2108,22 @@ export default {
     output: {
       title: '操作输出',
       close: '关闭',
+      statusSuccess: '已完成',
+      statusPartial: '部分成功',
+      statusFailed: '需要处理',
+      successMetric: '成功',
+      successRatio: '成功 {success}/{total}',
+      successCountText: '成功 {success}',
+      failedMetric: '失败',
+      durationMetric: '耗时',
+      suggestionsTitle: '建议操作',
+      failuresTitle: '失败资产（{count}）',
+      rawDetails: '原始详情',
+      copyRaw: '复制原始详情',
+      copied: '已复制',
+      unknownAsset: '同步操作',
+      ancestorReason: '远端父目录不存在',
+      ancestorAdvice: '远端父目录不存在。请先在 WebDAV 中创建 {path}，或重新保存 WebDAV 远程路径后重试。',
     },
 
     // WebDAV configuration

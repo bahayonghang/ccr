@@ -2115,6 +2115,22 @@ export default {
     output: {
       title: 'Operation Output',
       close: 'Close',
+      statusSuccess: 'Completed',
+      statusPartial: 'Partial success',
+      statusFailed: 'Action needed',
+      successMetric: 'Succeeded',
+      successRatio: '{success}/{total} succeeded',
+      successCountText: '{success} succeeded',
+      failedMetric: 'Failed',
+      durationMetric: 'Duration',
+      suggestionsTitle: 'Suggested next step',
+      failuresTitle: 'Failed assets ({count})',
+      rawDetails: 'Raw details',
+      copyRaw: 'Copy raw details',
+      copied: 'Copied',
+      unknownAsset: 'Sync operation',
+      ancestorReason: 'Remote parent directory is missing',
+      ancestorAdvice: 'Remote parent directory is missing. Create {path} in WebDAV, or save the WebDAV remote path again, then retry.',
     },
 
     // WebDAV configuration
