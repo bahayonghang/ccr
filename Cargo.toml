@@ -17,7 +17,7 @@ default-members = ["crates/ccr"]
 resolver = "3"
 
 [workspace.package]
-version = "6.2.8"
+version = "6.2.9"
 
 [workspace.dependencies]
 # Async runtime
@@ -71,7 +71,7 @@ r2d2_sqlite = "0.34.0"
 tracing = "0.1.43"
 
 # Identity & Crypto
-uuid = { version = "1.23.1", features = ["serde", "v4"] }
+uuid = { version = "1.23.2", features = ["serde", "v4"] }
 aes-gcm = "0.10"
 argon2 = "0.5"
 rand = "0.10.1"
