@@ -27,4 +27,5 @@ name = "ccr_sync"
 path = "src/lib.rs"
 
 [dev-dependencies]
+proptest = "=1.11.0"
 tempfile = { workspace = true }

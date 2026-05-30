@@ -464,6 +464,19 @@ fn backup_existing_path(local_path: &Path) -> Result<Option<PathBuf>, String> {
     Ok(Some(backup_path))
 }
 
+/// `asset_info` 的远端存在性三态映射（**Property 5: Preservation**，保持不变）。
+///
+/// 把 `remote_exists()` 的 `Result<bool, E>` 映射为前端响应的 `Option<bool>`：
+/// - `Ok(true)` → `Some(true)`（present / 远端就绪）
+/// - `Ok(false)` → `Some(false)`（missing / 远端缺失）
+/// - `Err(_)` → `None`（unknown / 「未测试」）
+///
+/// 语义与原内联的 `service.remote_exists().await.ok()` 完全一致，抽出仅为
+/// 可在无 WebDAV 服务器的情况下对三态映射做单元测试。
+fn asset_remote_exists_state<E>(result: Result<bool, E>) -> Option<bool> {
+    result.ok()
+}
+
 async fn asset_info(
     manager: &SyncFolderManager,
     asset: &SyncAssetDefinition,
@@ -480,7 +493,7 @@ async fn asset_info(
     } else {
         let config = sync_config_from_webdav(&webdav, &remote_path);
         match SyncService::new(&config).await {
-            Ok(service) => service.remote_exists().await.ok(),
+            Ok(service) => asset_remote_exists_state(service.remote_exists().await),
             Err(_) => None,
         }
     };
@@ -1115,6 +1128,33 @@ async fn run_folder_syncs(
     ))
 }
 
+/// 把 legacy 同步根的 `remote_path` 规范为目录型路径（确保以 `/` 结尾）。
+///
+/// legacy 同步根（如 `/ccr`）始终是目录，但其存储路径经
+/// `normalize_remote_base` 去掉了尾斜杠，会误走 `remote_exists()` 的文件
+/// （GET）分支。补尾斜杠后即可走目录（PROPFIND）分支。空路径回退为 `/`。
+fn directory_remote_path(remote_path: &str) -> String {
+    let trimmed = remote_path.trim();
+    if trimmed.is_empty() {
+        return "/".to_string();
+    }
+    if trimmed.ends_with('/') {
+        trimmed.to_string()
+    } else {
+        format!("{trimmed}/")
+    }
+}
+
+/// 以目录型路径检查 legacy 同步根是否存在（走 PROPFIND 目录分支）。
+async fn directory_remote_exists(config: &SyncConfig) -> Option<bool> {
+    let mut dir_config = config.clone();
+    dir_config.remote_path = directory_remote_path(&config.remote_path);
+    match SyncService::new(&dir_config).await {
+        Ok(service) => service.remote_exists().await.ok(),
+        Err(_) => None,
+    }
+}
+
 #[tauri::command]
 pub async fn sync_status() -> Result<SyncStatusInfo, String> {
     // 1. 加载配置
@@ -1136,7 +1176,10 @@ pub async fn sync_status() -> Result<SyncStatusInfo, String> {
             Ok(service) => {
                 let accessible = service.test_connection().await.is_ok();
                 let exists = if accessible {
-                    service.remote_exists().await.ok()
+                    // legacy 同步根（如 `/ccr`）始终是目录。其存储的 remote_path 经
+                    // `normalize_remote_base` 去掉了尾斜杠，会误走文件（GET）分支。
+                    // 这里为目录型目标补尾斜杠，确保走 PROPFIND 目录分支。
+                    directory_remote_exists(&config).await
                 } else {
                     Some(false)
                 };
@@ -1559,5 +1602,43 @@ mod tests {
         assert!(SyncAssetDirection::Push.is_upload_preferred());
         assert!(SyncAssetDirection::Sync.is_upload_preferred());
         assert!(!SyncAssetDirection::Pull.is_upload_preferred());
+    }
+
+    /// **Property 4: Routing** — legacy `sync_status` 的目录型目标必须走
+    /// PROPFIND（目录）分支。`remote_exists()` 依据 `remote_path.ends_with('/')`
+    /// 选择目录/文件分支，因此目录型路径规范化后必须以 `/` 结尾。
+    ///
+    /// 覆盖无尾斜杠（`/ccr`）与有尾斜杠（`/ccr/`）两种目录型目标。
+    #[test]
+    fn directory_remote_path_normalizes_directory_targets_with_trailing_slash() {
+        // 无尾斜杠目录目标（normalize_remote_base 的产物）→ 补尾斜杠 → 走 PROPFIND。
+        assert_eq!(directory_remote_path("/ccr"), "/ccr/");
+        // 已有尾斜杠 → 保持不变 → 仍走 PROPFIND。
+        assert_eq!(directory_remote_path("/ccr/"), "/ccr/");
+        // 嵌套目录路径同样适用。
+        assert_eq!(directory_remote_path("/ccr/platforms"), "/ccr/platforms/");
+        // 两种形式都必须以 `/` 结尾（路由到目录分支的充要条件）。
+        assert!(directory_remote_path("/ccr").ends_with('/'));
+        assert!(directory_remote_path("/ccr/").ends_with('/'));
+    }
+
+    /// 空路径回退为根目录 `/`（仍是目录型，走 PROPFIND 分支）。
+    #[test]
+    fn directory_remote_path_empty_falls_back_to_root() {
+        assert_eq!(directory_remote_path(""), "/");
+        assert_eq!(directory_remote_path("   "), "/");
+        assert!(directory_remote_path("").ends_with('/'));
+    }
+
+    /// **Property 5: Preservation** — `asset_info` 的远端存在性三态映射保持不变：
+    /// `Ok(true)`→present、`Ok(false)`→missing、`Err`→unknown（「未测试」）。
+    #[test]
+    fn asset_remote_exists_state_maps_three_states() {
+        assert_eq!(asset_remote_exists_state::<String>(Ok(true)), Some(true));
+        assert_eq!(asset_remote_exists_state::<String>(Ok(false)), Some(false));
+        assert_eq!(
+            asset_remote_exists_state(Err("check could not be completed".to_string())),
+            None
+        );
     }
 }
