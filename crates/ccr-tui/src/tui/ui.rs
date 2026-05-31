@@ -159,9 +159,9 @@ fn render_codex_runtime_banner(
             Line::from(vec![
                 Span::styled(" Profile: ", theme::secondary_text_style()),
                 Span::styled(profile_label, theme::primary_text_style()),
-                Span::styled("  │  ", Style::default().fg(theme::BORDER)),
+                Span::styled("  │  ", Style::default().fg(theme::border())),
                 Span::styled("Auth: ", theme::secondary_text_style()),
-                Span::styled(auth_label, Style::default().fg(theme::FG_SUCCESS)),
+                Span::styled(auth_label, Style::default().fg(theme::success())),
             ]),
         ]
     };
@@ -171,7 +171,7 @@ fn render_codex_runtime_banner(
             Block::default()
                 .borders(Borders::ALL)
                 .border_set(symbols::border::ROUNDED)
-                .border_style(Style::default().fg(theme::CODEX_PRIMARY))
+                .border_style(Style::default().fg(theme::codex()))
                 .title(" 当前控制面 ")
                 .title_style(theme::codex_style()),
         )
@@ -286,14 +286,10 @@ fn pad_text(text: &str, width: usize) -> String {
 fn profile_list_row(
     profile: &crate::tui::app::ProfileItem,
     is_selected: bool,
-    accent: ratatui::style::Color,
     name_width: usize,
     desc_width: usize,
 ) -> Line<'static> {
-    let selected_style = Style::default()
-        .fg(theme::BG_PRIMARY)
-        .bg(accent)
-        .add_modifier(Modifier::BOLD);
+    let selected_style = theme::selected_row_style();
     let selector = if is_selected { "▶ " } else { "  " };
     let current_marker = if profile.is_current { "●" } else { "○" };
     let desc = profile.description.as_deref().unwrap_or("").trim();
@@ -323,7 +319,7 @@ fn profile_list_row(
         };
         vec![
             Span::styled(name_cell, name_style),
-            Span::styled("  ", Style::default().fg(theme::BORDER)),
+            Span::styled("  ", Style::default().fg(theme::border())),
             Span::styled(desc_cell, desc_style),
         ]
     } else {
@@ -359,7 +355,7 @@ fn render_header(f: &mut Frame, app: &App, area: Rect) {
             Block::default()
                 .borders(Borders::ALL)
                 .border_set(symbols::border::ROUNDED)
-                .border_style(Style::default().fg(theme::BORDER))
+                .border_style(Style::default().fg(theme::border()))
                 .title(" 🚀 CCR - Configuration Switcher ")
                 .title_alignment(Alignment::Center)
                 .title_style(theme::primary_text_emphasis_style())
@@ -374,7 +370,7 @@ fn render_header(f: &mut Frame, app: &App, area: Rect) {
         .select(app.active_tab)
         .style(theme::tab_normal_style())
         .highlight_style(theme::tab_highlight_style_for(app.current_platform()))
-        .divider(Span::styled("  │  ", Style::default().fg(theme::BORDER)));
+        .divider(Span::styled("  │  ", Style::default().fg(theme::border())));
 
     f.render_widget(tabs, area);
 }
@@ -521,7 +517,6 @@ fn render_profile_list_panel(f: &mut Frame, app: &mut App, area: Rect) {
             ListItem::new(profile_list_row(
                 profile,
                 i == app.selected_index,
-                accent,
                 name_width,
                 desc_width,
             ))
@@ -536,7 +531,7 @@ fn render_profile_meta_panel(f: &mut Frame, app: &App, area: Rect) {
     let block = Block::default()
         .borders(Borders::ALL)
         .border_set(symbols::border::ROUNDED)
-        .border_style(Style::default().fg(theme::BORDER))
+        .border_style(Style::default().fg(theme::border()))
         .title(" Selection ")
         .title_style(theme::secondary_text_emphasis_style())
         .padding(Padding::horizontal(1));
@@ -728,7 +723,7 @@ fn render_profile_summary_block(
 fn render_profile_status_strip(f: &mut Frame, app: &App, area: Rect, profile_name: &str) {
     let block = Block::default()
         .borders(Borders::TOP)
-        .border_style(Style::default().fg(theme::BORDER))
+        .border_style(Style::default().fg(theme::border()))
         .title(" Status ")
         .title_style(theme::secondary_text_emphasis_style());
 
@@ -1214,7 +1209,7 @@ fn render_footer(f: &mut Frame, app: &App, area: Rect) {
             Block::default()
                 .borders(Borders::TOP)
                 .border_set(symbols::border::ROUNDED)
-                .border_style(Style::default().fg(theme::BORDER))
+                .border_style(Style::default().fg(theme::border()))
                 .title(" Keys ")
                 .title_alignment(Alignment::Center)
                 .title_style(theme::muted_style()),
@@ -1361,7 +1356,7 @@ mod tests {
         let line = tab_title_line(&tab, true, false);
 
         assert_eq!(line.spans.len(), 1);
-        assert_eq!(line.spans[0].style.fg, Some(theme::BG_PRIMARY));
+        assert_eq!(line.spans[0].style.fg, Some(theme::selection_fg()));
         assert_eq!(
             line.spans[0].style.bg,
             Some(theme::platform_selection_color_for(Platform::Codex))
@@ -1374,14 +1369,13 @@ mod tests {
     }
 
     #[test]
-    fn inactive_tab_title_stays_dim_without_fill() {
+    fn inactive_tab_title_uses_subtext_without_fill() {
         let tab = empty_platform_tab(Platform::Claude, TabVariant::Profile, "Claude Code");
         let line = tab_title_line(&tab, false, false);
 
         assert_eq!(line.spans.len(), 1);
-        assert_eq!(line.spans[0].style.fg, None);
+        assert_eq!(line.spans[0].style.fg, Some(theme::subtext()));
         assert_eq!(line.spans[0].style.bg, None);
-        assert!(line.spans[0].style.add_modifier.contains(Modifier::DIM));
     }
 
     #[test]
@@ -1452,47 +1446,36 @@ mod tests {
             is_current: false,
         };
 
-        let rendered = plain_line_text(&profile_list_row(
-            &profile,
-            true,
-            theme::CLAUDE_PRIMARY,
-            20,
-            32,
-        ));
+        let rendered = plain_line_text(&profile_list_row(&profile, true, 20, 32));
 
         assert!(rendered.contains("anyrouter_temp"), "{rendered}");
         assert!(rendered.contains("AnyRouter temp profile"), "{rendered}");
     }
 
     #[test]
-    fn unselected_profile_row_inherits_terminal_foreground_for_plain_text() {
+    fn unselected_profile_row_uses_explicit_palette_foreground() {
         let profile = ProfileItem {
             name: "default".to_string(),
             description: Some("Default profile".to_string()),
             is_current: false,
         };
 
-        let line = profile_list_row(&profile, false, theme::CLAUDE_PRIMARY, 18, 24);
+        let line = profile_list_row(&profile, false, 18, 24);
 
-        assert_eq!(line.spans[0].style.fg, None);
+        assert_eq!(line.spans[0].style.fg, Some(theme::text()));
         assert_eq!(line.spans[0].style.bg, None);
-        assert_ne!(line.spans[0].style.fg, Some(theme::FG_PRIMARY));
-        assert_eq!(line.spans[2].style.fg, None);
-        assert_eq!(line.spans[2].style.bg, None);
-        assert_ne!(line.spans[2].style.fg, Some(theme::FG_MUTED));
+        assert_eq!(line.spans[2].style.fg, Some(theme::muted()));
     }
 
     #[test]
-    fn summary_and_detail_plain_values_inherit_terminal_foreground() {
+    fn summary_and_detail_plain_values_use_explicit_palette_foreground() {
         let summary = profile_summary_line("Name: fovts".to_string());
-        assert_eq!(summary.spans[0].style.fg, None);
-        assert_eq!(summary.spans[1].style.fg, None);
-        assert_ne!(summary.spans[1].style.fg, Some(theme::FG_PRIMARY));
+        assert_eq!(summary.spans[0].style.fg, Some(theme::subtext()));
+        assert_eq!(summary.spans[1].style.fg, Some(theme::text()));
 
         let detail = detail_line("usage_count", "42".to_string());
-        assert_eq!(detail.spans[0].style.fg, None);
-        assert_eq!(detail.spans[1].style.fg, None);
-        assert_ne!(detail.spans[1].style.fg, Some(theme::FG_PRIMARY));
+        assert_eq!(detail.spans[0].style.fg, Some(theme::subtext()));
+        assert_eq!(detail.spans[1].style.fg, Some(theme::text()));
     }
 
     #[test]
@@ -1516,8 +1499,8 @@ mod tests {
             .find(|cell| cell.symbol() == "T")
             .expect("footer should render Tab/Shift+Tab switch shortcut");
 
-        assert_eq!(footer_cell.fg, ratatui::style::Color::Reset);
-        assert_ne!(footer_cell.fg, theme::FG_PRIMARY);
+        assert_eq!(footer_cell.fg, theme::subtext());
+        assert_ne!(footer_cell.fg, theme::text());
     }
 
     #[test]

@@ -148,7 +148,7 @@ pub fn draw_loading_placeholder(
         .block(
             Block::default()
                 .borders(Borders::ALL)
-                .border_style(Style::default().fg(theme::CLAUDE_PRIMARY))
+                .border_style(Style::default().fg(theme::claude()))
                 .title(" 🔐 Claude Auth ")
                 .title_style(theme::claude_style()),
         )
@@ -175,7 +175,7 @@ pub fn draw_loading_placeholder(
         .block(
             Block::default()
                 .borders(Borders::TOP)
-                .border_style(Style::default().fg(theme::BORDER))
+                .border_style(Style::default().fg(theme::border()))
                 .title(" Keys ")
                 .title_style(theme::claude_style()),
         );
@@ -192,7 +192,7 @@ fn draw_title(f: &mut Frame, area: Rect, app: &ClaudeAuthApp) {
     .block(
         Block::default()
             .borders(Borders::ALL)
-            .border_style(Style::default().fg(theme::BORDER))
+            .border_style(Style::default().fg(theme::border()))
             .title(" CCR ")
             .title_style(theme::claude_style()),
     )
@@ -209,7 +209,7 @@ fn draw_account_list_with_status(f: &mut Frame, area: Rect, app: &mut ClaudeAuth
 fn render_account_list_panel(f: &mut Frame, area: Rect, app: &mut ClaudeAuthApp, title: String) {
     let block = Block::default()
         .borders(Borders::ALL)
-        .border_style(Style::default().fg(theme::CLAUDE_PRIMARY))
+        .border_style(Style::default().fg(theme::claude()))
         .title(title)
         .title_style(theme::claude_style())
         .padding(Padding::horizontal(1));
@@ -265,7 +265,7 @@ fn account_list_footer_line(app: &ClaudeAuthApp) -> Line<'static> {
                 theme::info_style()
             } else {
                 Style::default()
-                    .fg(theme::FG_PRIMARY)
+                    .fg(theme::text())
                     .add_modifier(Modifier::BOLD)
             }
         })
@@ -367,7 +367,7 @@ fn render_account_list_header(f: &mut Frame, area: Rect, layout: &AccountTableLa
     .column_spacing(ACCOUNT_COLUMN_SPACING)
     .style(
         Style::default()
-            .fg(theme::FG_SECONDARY)
+            .fg(theme::subtext())
             .add_modifier(Modifier::BOLD),
     );
 
@@ -380,10 +380,7 @@ fn render_account_list_rows(
     app: &ClaudeAuthApp,
     layout: &AccountTableLayout,
 ) {
-    let selected_style = Style::default()
-        .fg(theme::BG_PRIMARY)
-        .bg(theme::CLAUDE_PRIMARY)
-        .add_modifier(Modifier::BOLD);
+    let selected_style = theme::selected_row_style();
 
     let rows =
         app.current_page_accounts()
@@ -435,7 +432,7 @@ fn account_cell(
                 "○".to_string()
             },
             if is_selected {
-                Style::default().fg(theme::FG_PRIMARY)
+                theme::selected_row_style()
             } else if account.is_current {
                 theme::success_style()
             } else if account.is_logged_in {
@@ -454,7 +451,7 @@ fn account_cell(
                 layout.text_width(AccountColumn::Email),
             ),
             if is_selected {
-                Style::default().fg(theme::FG_PRIMARY)
+                theme::selected_row_style()
             } else {
                 theme::info_style()
             },
@@ -465,7 +462,7 @@ fn account_cell(
                 layout.text_width(AccountColumn::Plan),
             ),
             if is_selected {
-                Style::default().fg(theme::FG_PRIMARY)
+                theme::selected_row_style()
             } else {
                 theme::muted_style()
             },
@@ -473,7 +470,7 @@ fn account_cell(
         AccountColumn::ExpiresAt => Cell::from(Line::from(Span::styled(
             format_compact_datetime(account.expires_at),
             if is_selected {
-                Style::default().fg(theme::FG_PRIMARY)
+                theme::selected_row_style()
             } else {
                 theme::info_style()
             },
@@ -483,15 +480,13 @@ fn account_cell(
 
 fn account_name_style(account: &ClaudeAuthItem, is_selected: bool) -> Style {
     if is_selected {
-        Style::default()
-            .fg(theme::FG_PRIMARY)
-            .add_modifier(Modifier::BOLD)
+        theme::selected_row_style()
     } else if account.is_current {
         theme::success_style()
     } else if account.is_logged_in {
         theme::info_style()
     } else {
-        Style::default().fg(theme::FG_PRIMARY)
+        Style::default().fg(theme::text())
     }
 }
 
@@ -516,7 +511,7 @@ fn draw_focus_panel(f: &mut Frame, area: Rect, app: &ClaudeAuthApp) {
         .block(
             Block::default()
                 .borders(Borders::ALL)
-                .border_style(Style::default().fg(theme::CLAUDE_PRIMARY))
+                .border_style(Style::default().fg(theme::claude()))
                 .title(" Focus ")
                 .title_style(theme::claude_style()),
         )
@@ -527,11 +522,11 @@ fn draw_focus_panel(f: &mut Frame, area: Rect, app: &ClaudeAuthApp) {
 fn draw_context_panel(f: &mut Frame, area: Rect, app: &ClaudeAuthApp) {
     let block = Block::default()
         .borders(Borders::ALL)
-        .border_style(Style::default().fg(theme::BORDER))
+        .border_style(Style::default().fg(theme::border()))
         .title(" Context ")
         .title_style(
             Style::default()
-                .fg(theme::FG_SECONDARY)
+                .fg(theme::subtext())
                 .add_modifier(Modifier::BOLD),
         )
         .padding(Padding::horizontal(1));
@@ -576,7 +571,7 @@ fn focus_lines(app: &ClaudeAuthApp) -> Vec<Line<'static>> {
         detail_optional_line(
             "Plan:",
             account.subscription_type.as_deref(),
-            Style::default().fg(theme::FG_PRIMARY),
+            Style::default().fg(theme::text()),
         ),
         detail_line(
             "Saved at:",
@@ -626,7 +621,7 @@ fn draw_footer_strip(f: &mut Frame, area: Rect, app: &ClaudeAuthApp) {
         .block(
             Block::default()
                 .borders(Borders::TOP)
-                .border_style(Style::default().fg(theme::BORDER))
+                .border_style(Style::default().fg(theme::border()))
                 .title(" Keys ")
                 .title_style(theme::claude_style()),
         )
@@ -656,20 +651,16 @@ fn context_lines(app: &ClaudeAuthApp) -> Vec<Line<'static>> {
         lines.push(kv_line(
             "mode",
             summary.mode.label().to_string(),
-            theme::FG_PRIMARY,
+            theme::text(),
         ));
-        lines.push(kv_line(
-            "profile",
-            summary.profile_label(),
-            theme::FG_PRIMARY,
-        ));
+        lines.push(kv_line("profile", summary.profile_label(), theme::text()));
         lines.push(kv_line(
             "auth_mode",
             summary
                 .current_profile_auth_mode
                 .map(|mode| mode.as_str().to_string())
                 .unwrap_or_else(|| "-".to_string()),
-            theme::FG_WARNING,
+            theme::warning(),
         ));
         lines.push(kv_line(
             "auth_source",
@@ -677,17 +668,17 @@ fn context_lines(app: &ClaudeAuthApp) -> Vec<Line<'static>> {
                 .current_profile_auth_source
                 .clone()
                 .unwrap_or_else(|| "-".to_string()),
-            theme::FG_INFO,
+            theme::info(),
         ));
         lines.push(kv_line(
             "login",
             summary.official_login_label(),
-            theme::FG_INFO,
+            theme::info(),
         ));
         lines.push(kv_line(
             "effective_auth",
             summary.auth_label(),
-            theme::FG_SUCCESS,
+            theme::success(),
         ));
         lines.push(kv_line(
             "current_auth",
@@ -695,7 +686,7 @@ fn context_lines(app: &ClaudeAuthApp) -> Vec<Line<'static>> {
                 .current_auth_name
                 .clone()
                 .unwrap_or_else(|| "-".to_string()),
-            theme::FG_SUCCESS,
+            theme::success(),
         ));
     } else {
         lines.push(Line::from("  未能读取 Claude 运行时摘要"));
@@ -707,31 +698,31 @@ fn context_lines(app: &ClaudeAuthApp) -> Vec<Line<'static>> {
         lines.push(kv_line(
             "email",
             info.email.clone().unwrap_or_else(|| "-".to_string()),
-            theme::FG_PRIMARY,
+            theme::text(),
         ));
         lines.push(kv_line(
             "billing",
             info.billing_type.clone().unwrap_or_else(|| "-".to_string()),
-            theme::FG_PRIMARY,
+            theme::text(),
         ));
         lines.push(kv_line(
             "subscription",
             info.subscription_type
                 .clone()
                 .unwrap_or_else(|| "-".to_string()),
-            theme::FG_PRIMARY,
+            theme::text(),
         ));
         lines.push(kv_line(
             "tier",
             info.rate_limit_tier
                 .clone()
                 .unwrap_or_else(|| "-".to_string()),
-            theme::FG_PRIMARY,
+            theme::text(),
         ));
         lines.push(kv_line(
             "expires",
             format_datetime(info.expires_at),
-            theme::FG_INFO,
+            theme::info(),
         ));
     } else {
         lines.push(Line::from(
@@ -746,18 +737,18 @@ fn context_lines(app: &ClaudeAuthApp) -> Vec<Line<'static>> {
             "current",
             if account.is_current { "yes" } else { "no" }.to_string(),
             if account.is_current {
-                theme::FG_SUCCESS
+                theme::success()
             } else {
-                theme::FG_MUTED
+                theme::muted()
             },
         ));
         lines.push(kv_line(
             "logged_in",
             if account.is_logged_in { "yes" } else { "no" }.to_string(),
             if account.is_logged_in {
-                theme::FG_INFO
+                theme::info()
             } else {
-                theme::FG_MUTED
+                theme::muted()
             },
         ));
         lines.push(kv_line(
@@ -766,7 +757,7 @@ fn context_lines(app: &ClaudeAuthApp) -> Vec<Line<'static>> {
                 .billing_type
                 .clone()
                 .unwrap_or_else(|| "-".to_string()),
-            theme::FG_PRIMARY,
+            theme::text(),
         ));
         lines.push(kv_line(
             "subscription",
@@ -774,7 +765,7 @@ fn context_lines(app: &ClaudeAuthApp) -> Vec<Line<'static>> {
                 .subscription_type
                 .clone()
                 .unwrap_or_else(|| "-".to_string()),
-            theme::FG_PRIMARY,
+            theme::text(),
         ));
         lines.push(kv_line(
             "tier",
@@ -782,22 +773,22 @@ fn context_lines(app: &ClaudeAuthApp) -> Vec<Line<'static>> {
                 .rate_limit_tier
                 .clone()
                 .unwrap_or_else(|| "-".to_string()),
-            theme::FG_PRIMARY,
+            theme::text(),
         ));
         lines.push(kv_line(
             "saved_at",
             format_datetime(Some(account.saved_at)),
-            theme::FG_INFO,
+            theme::info(),
         ));
         lines.push(kv_line(
             "last_used",
             format_datetime(account.last_used),
-            theme::FG_INFO,
+            theme::info(),
         ));
         lines.push(kv_line(
             "expires",
             format_datetime(account.expires_at),
-            theme::FG_INFO,
+            theme::info(),
         ));
     } else {
         lines.push(Line::from("  当前没有选中的已保存账号"));
@@ -810,7 +801,7 @@ fn detail_label_span(label: &str) -> Span<'static> {
     Span::styled(
         format!("{label:<DETAIL_LABEL_WIDTH$}"),
         Style::default()
-            .fg(theme::FG_SECONDARY)
+            .fg(theme::subtext())
             .add_modifier(Modifier::BOLD),
     )
 }
@@ -836,7 +827,7 @@ fn section_title(title: &str) -> Line<'static> {
     Line::from(Span::styled(
         format!("  {title}"),
         Style::default()
-            .fg(theme::FG_SECONDARY)
+            .fg(theme::subtext())
             .add_modifier(Modifier::BOLD | Modifier::UNDERLINED),
     ))
 }
@@ -845,7 +836,7 @@ fn kv_line(key: &str, value: String, color: ratatui::style::Color) -> Line<'stat
     Line::from(vec![
         Span::styled(
             format!("  {:<12}", key),
-            Style::default().fg(theme::FG_MUTED),
+            Style::default().fg(theme::muted()),
         ),
         Span::styled(value, Style::default().fg(color)),
     ])
@@ -880,7 +871,7 @@ fn login_status_style(state: &ClaudeLoginState) -> Style {
         ClaudeLoginState::LoggedInUnsaved => theme::info_style(),
         ClaudeLoginState::LoggedInSaved { .. } => theme::success_style(),
         ClaudeLoginState::ApiKeyActive => Style::default()
-            .fg(theme::FG_WARNING)
+            .fg(theme::warning())
             .add_modifier(Modifier::BOLD),
     }
 }

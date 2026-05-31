@@ -4,7 +4,7 @@
 use ccr_core::core::error::{CcrError, Result};
 use crossterm::{
     cursor::{MoveTo, Show},
-    event::{DisableMouseCapture, EnableMouseCapture},
+    event::{DisableMouseCapture, EnableMouseCapture, KeyCode, KeyModifiers},
     execute,
     terminal::{
         Clear, ClearType, EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode,
@@ -180,6 +180,8 @@ impl TerminalGuard {
     /// Create a new guard using the detected terminal session mode.
     pub fn new() -> Result<Self> {
         let mode = TerminalSessionMode::detect()?;
+        // 在进入 raw mode / 备用屏之前完成主题探测,使终端背景查询能干净往返。
+        super::theme::init_theme();
         let backend = CrosstermBackend::new(io::stdout());
         let mut terminal = Terminal::new(backend)
             .map_err(|e| ccr_core::core::error::CcrError::IoError(io::Error::other(e)))?;
@@ -280,6 +282,14 @@ pub fn run_loop<A: TuiApp>(
     loop {
         match event_handler.poll_event()? {
             Event::Key(key) => {
+                // Ctrl+T 中央拦截: 切换 Mocha/Latte 主题并重绘,避免与各页小写键位冲突。
+                if key.modifiers.contains(KeyModifiers::CONTROL)
+                    && matches!(key.code, KeyCode::Char('t') | KeyCode::Char('T'))
+                {
+                    super::theme::toggle_theme();
+                    draw_frame(guard, app)?;
+                    continue;
+                }
                 if app.handle_key(key)? {
                     return Ok(());
                 }

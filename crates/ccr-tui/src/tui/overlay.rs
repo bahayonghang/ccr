@@ -1,6 +1,7 @@
 // Shared overlay system for modal dialogs
 // Provides centered overlays with dark backdrop for both main TUI and Codex Auth TUI
 
+use crate::tui::theme;
 use ratatui::{
     Frame,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -129,10 +130,30 @@ impl Overlay {
 // Rendering
 // ═══════════════════════════════════════════════════════════
 
-/// Render a dark backdrop over the entire screen area
+// 在整屏铺一层 Mantle 暗化层,使对话框从背景中凸显。
 fn render_backdrop(f: &mut Frame, area: Rect) {
-    let backdrop = Block::default().style(Style::default().bg(Color::Rgb(10, 10, 20)));
+    let backdrop = Block::default().style(Style::default().bg(theme::palette().bg_secondary));
     f.render_widget(backdrop, area);
+}
+
+// 统一对话框外观: surface 底 + 强调色边框/标题 + text 正文,明暗主题下都保证对比。
+fn style_dialog<'a>(paragraph: Paragraph<'a>, title: &str, accent: Color) -> Paragraph<'a> {
+    paragraph
+        .alignment(Alignment::Center)
+        .wrap(Wrap { trim: true })
+        .style(
+            Style::default()
+                .bg(theme::palette().surface)
+                .fg(theme::text()),
+        )
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(accent))
+                .title(format!(" {title} "))
+                .title_style(Style::default().fg(accent).add_modifier(Modifier::BOLD))
+                .style(Style::default().bg(theme::palette().surface)),
+        )
 }
 
 /// Render an overlay dialog centered on screen with dark backdrop
@@ -150,7 +171,7 @@ pub fn render_overlay(f: &mut Frame, overlay: &Overlay) {
                 Line::from(Span::styled(
                     "⚠️ 确认删除",
                     Style::default()
-                        .fg(Color::Yellow)
+                        .fg(theme::error())
                         .add_modifier(Modifier::BOLD),
                 )),
                 Line::from(""),
@@ -163,21 +184,13 @@ pub fn render_overlay(f: &mut Frame, overlay: &Overlay) {
             lines.push(Line::from(""));
             lines.push(Line::from(Span::styled(
                 "按 y 确认 | 按 n 或 Esc 取消",
-                Style::default().fg(Color::DarkGray),
+                Style::default().fg(theme::muted()),
             )));
 
-            let popup = Paragraph::new(lines)
-                .alignment(Alignment::Center)
-                .wrap(Wrap { trim: true })
-                .block(
-                    Block::default()
-                        .borders(Borders::ALL)
-                        .border_style(Style::default().fg(Color::Yellow))
-                        .title(format!(" {} ", title))
-                        .title_style(Style::default().fg(Color::Yellow)),
-                );
-
-            f.render_widget(popup, area);
+            f.render_widget(
+                style_dialog(Paragraph::new(lines), title, theme::error()),
+                area,
+            );
         }
         Overlay::ImportCodexConfirm { title, message } => {
             let area = centered_rect(56, 36, full_area);
@@ -188,7 +201,7 @@ pub fn render_overlay(f: &mut Frame, overlay: &Overlay) {
                 Line::from(Span::styled(
                     "⇄ 导入 Codex 账号",
                     Style::default()
-                        .fg(Color::Cyan)
+                        .fg(theme::info())
                         .add_modifier(Modifier::BOLD),
                 )),
                 Line::from(""),
@@ -201,21 +214,13 @@ pub fn render_overlay(f: &mut Frame, overlay: &Overlay) {
             lines.push(Line::from(""));
             lines.push(Line::from(Span::styled(
                 "按 y 确认导入 | 按 n 或 Esc 取消",
-                Style::default().fg(Color::DarkGray),
+                Style::default().fg(theme::muted()),
             )));
 
-            let popup = Paragraph::new(lines)
-                .alignment(Alignment::Center)
-                .wrap(Wrap { trim: true })
-                .block(
-                    Block::default()
-                        .borders(Borders::ALL)
-                        .border_style(Style::default().fg(Color::Cyan))
-                        .title(format!(" {} ", title))
-                        .title_style(Style::default().fg(Color::Cyan)),
-                );
-
-            f.render_widget(popup, area);
+            f.render_widget(
+                style_dialog(Paragraph::new(lines), title, theme::info()),
+                area,
+            );
         }
         Overlay::Input {
             title,
@@ -231,42 +236,34 @@ pub fn render_overlay(f: &mut Frame, overlay: &Overlay) {
                 Line::from(Span::styled(
                     "💾 保存当前登录",
                     Style::default()
-                        .fg(Color::Cyan)
+                        .fg(theme::info())
                         .add_modifier(Modifier::BOLD),
                 )),
                 Line::from(""),
                 Line::from(prompt.as_str()),
                 Line::from(""),
                 Line::from(Span::styled(
-                    format!("▶ {}_", buffer),
+                    format!("▶ {buffer}_"),
                     Style::default()
-                        .fg(Color::White)
+                        .fg(theme::text())
                         .add_modifier(Modifier::BOLD),
                 )),
                 Line::from(""),
                 Line::from(Span::styled(
                     hint.as_str(),
-                    Style::default().fg(Color::DarkGray),
+                    Style::default().fg(theme::muted()),
                 )),
                 Line::from(""),
                 Line::from(Span::styled(
                     "按 Enter 确认 | 按 Esc 取消",
-                    Style::default().fg(Color::DarkGray),
+                    Style::default().fg(theme::muted()),
                 )),
             ];
 
-            let popup = Paragraph::new(lines)
-                .alignment(Alignment::Center)
-                .wrap(Wrap { trim: true })
-                .block(
-                    Block::default()
-                        .borders(Borders::ALL)
-                        .border_style(Style::default().fg(Color::Cyan))
-                        .title(format!(" {} ", title))
-                        .title_style(Style::default().fg(Color::Cyan)),
-                );
-
-            f.render_widget(popup, area);
+            f.render_widget(
+                style_dialog(Paragraph::new(lines), title, theme::info()),
+                area,
+            );
         }
         Overlay::RenameInput {
             title,
@@ -282,43 +279,35 @@ pub fn render_overlay(f: &mut Frame, overlay: &Overlay) {
                 Line::from(Span::styled(
                     "✏️ 重命名已保存账号",
                     Style::default()
-                        .fg(Color::Magenta)
+                        .fg(theme::selection_bg())
                         .add_modifier(Modifier::BOLD),
                 )),
                 Line::from(""),
-                Line::from(format!("当前名称: {}", source)),
+                Line::from(format!("当前名称: {source}")),
                 Line::from(""),
                 Line::from("新名称:"),
                 Line::from(Span::styled(
-                    format!("▶ {}_", buffer),
+                    format!("▶ {buffer}_"),
                     Style::default()
-                        .fg(Color::White)
+                        .fg(theme::text())
                         .add_modifier(Modifier::BOLD),
                 )),
                 Line::from(""),
                 Line::from(Span::styled(
                     hint.as_str(),
-                    Style::default().fg(Color::DarkGray),
+                    Style::default().fg(theme::muted()),
                 )),
                 Line::from(""),
                 Line::from(Span::styled(
                     "Enter 确认 · Ctrl+F 强制覆盖 · Esc 取消",
-                    Style::default().fg(Color::DarkGray),
+                    Style::default().fg(theme::muted()),
                 )),
             ];
 
-            let popup = Paragraph::new(lines)
-                .alignment(Alignment::Center)
-                .wrap(Wrap { trim: true })
-                .block(
-                    Block::default()
-                        .borders(Borders::ALL)
-                        .border_style(Style::default().fg(Color::Magenta))
-                        .title(format!(" {} ", title))
-                        .title_style(Style::default().fg(Color::Magenta)),
-                );
-
-            f.render_widget(popup, area);
+            f.render_widget(
+                style_dialog(Paragraph::new(lines), title, theme::selection_bg()),
+                area,
+            );
         }
     }
 }

@@ -22,6 +22,7 @@ dirs = { workspace = true }
 indexmap = { workspace = true }
 ratatui = "0.30.0"
 serde_json = { workspace = true }
+termbg = "0.6.2"
 tokio = { workspace = true }
 tracing = { workspace = true }
 unicode-width = "0.2.2"

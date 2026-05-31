@@ -67,7 +67,7 @@ fn draw_title(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
         Span::styled(
             " 🔐 Codex 账号管理 ",
             Style::default()
-                .fg(theme::ACCENT)
+                .fg(theme::codex())
                 .add_modifier(Modifier::BOLD),
         ),
         Span::raw(" | "),
@@ -76,9 +76,9 @@ fn draw_title(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
     .block(
         Block::default()
             .borders(Borders::ALL)
-            .border_style(Style::default().fg(theme::BORDER))
+            .border_style(Style::default().fg(theme::border()))
             .title(" CCR ")
-            .title_style(Style::default().fg(theme::ACCENT)),
+            .title_style(Style::default().fg(theme::codex())),
     )
     .alignment(Alignment::Center);
 
@@ -191,7 +191,7 @@ fn detail_label_span(label: &str) -> Span<'static> {
     Span::styled(
         format!("{label:<DETAIL_LABEL_WIDTH$}"),
         Style::default()
-            .fg(theme::FG_SECONDARY)
+            .fg(theme::subtext())
             .add_modifier(Modifier::BOLD),
     )
 }
@@ -303,9 +303,9 @@ fn detail_spans_line(label: &str, mut spans: Vec<Span<'static>>) -> Line<'static
 fn render_account_list_panel(f: &mut Frame, area: Rect, app: &mut CodexAuthApp, title: String) {
     let block = Block::default()
         .borders(Borders::ALL)
-        .border_style(Style::default().fg(theme::BORDER))
+        .border_style(Style::default().fg(theme::codex()))
         .title(title)
-        .title_style(Style::default().fg(theme::ACCENT));
+        .title_style(theme::codex_style());
 
     let inner = block.inner(area);
     if !app.accounts.is_empty() && inner.height >= 2 {
@@ -354,7 +354,7 @@ fn account_list_footer_line(app: &CodexAuthApp) -> Line<'static> {
                 theme::success_style()
             } else {
                 Style::default()
-                    .fg(theme::FG_PRIMARY)
+                    .fg(theme::text())
                     .add_modifier(Modifier::BOLD)
             }
         })
@@ -457,7 +457,7 @@ fn render_account_list_header(f: &mut Frame, area: Rect, layout: &AccountTableLa
         .column_spacing(ACCOUNT_COLUMN_SPACING)
         .style(
             Style::default()
-                .fg(theme::FG_SECONDARY)
+                .fg(theme::subtext())
                 .add_modifier(Modifier::BOLD),
         );
 
@@ -518,15 +518,13 @@ fn account_cell(
     match column {
         AccountColumn::Account => {
             let name_style = if is_selected {
-                Style::default()
-                    .fg(theme::FG_PRIMARY)
-                    .add_modifier(Modifier::BOLD)
+                theme::selected_row_style()
             } else if account.is_virtual {
                 theme::warning_style().add_modifier(Modifier::ITALIC)
             } else if account.is_current {
                 theme::success_style()
             } else {
-                Style::default().fg(theme::FG_PRIMARY)
+                Style::default().fg(theme::text())
             };
 
             let account_name = truncate_text(&account.name, layout.account_name_width(account));
@@ -549,7 +547,7 @@ fn account_cell(
             Cell::from(Line::from(Span::styled(
                 email,
                 if is_selected {
-                    Style::default().fg(theme::FG_PRIMARY)
+                    theme::selected_row_style()
                 } else {
                     theme::info_style()
                 },
@@ -561,7 +559,7 @@ fn account_cell(
             Cell::from(Line::from(Span::styled(
                 property,
                 if is_selected {
-                    Style::default().fg(theme::FG_PRIMARY)
+                    theme::selected_row_style()
                 } else {
                     property_style
                 },
@@ -604,7 +602,7 @@ fn account_cell(
             Cell::from(Line::from(Span::styled(
                 text,
                 if is_selected {
-                    Style::default().fg(theme::FG_PRIMARY)
+                    theme::selected_row_style()
                 } else {
                     style
                 },
@@ -655,9 +653,7 @@ fn preview_summary_style(
     is_selected: bool,
 ) -> Style {
     if is_selected {
-        return Style::default()
-            .fg(theme::FG_PRIMARY)
-            .add_modifier(Modifier::BOLD);
+        return theme::selected_row_style();
     }
 
     match (left.state, right.state) {
@@ -674,7 +670,7 @@ fn preview_summary_style(
             if left.text == "ERR" || right.text == "ERR" {
                 theme::error_style()
             } else {
-                Style::default().fg(theme::FG_PRIMARY)
+                Style::default().fg(theme::text())
             }
         }
         _ => theme::muted_style(),
@@ -683,9 +679,7 @@ fn preview_summary_style(
 
 fn preview_cell_style(cell: &super::app::QuotaPreviewCell, is_selected: bool) -> Style {
     if is_selected {
-        return Style::default()
-            .fg(theme::FG_PRIMARY)
-            .add_modifier(Modifier::BOLD);
+        return theme::selected_row_style();
     }
 
     match cell.state {
@@ -696,7 +690,7 @@ fn preview_cell_style(cell: &super::app::QuotaPreviewCell, is_selected: bool) ->
                 .parse::<i32>()
                 .ok()
                 .map(theme::quota_color)
-                .unwrap_or(theme::FG_PRIMARY);
+                .unwrap_or(theme::text());
             Style::default().fg(percentage)
         }
         QuotaPreviewCellState::Waiting => theme::warning_style(),
@@ -794,9 +788,9 @@ fn draw_status_bar(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
     let status = Paragraph::new(message).style(style).block(
         Block::default()
             .borders(Borders::ALL)
-            .border_style(Style::default().fg(theme::BORDER))
+            .border_style(Style::default().fg(theme::border()))
             .title(" 状态 ")
-            .title_style(Style::default().fg(theme::ACCENT)),
+            .title_style(Style::default().fg(theme::codex())),
     );
 
     f.render_widget(status, area);
@@ -809,7 +803,7 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
         Span::styled(
             "Usage & Quota",
             Style::default()
-                .fg(theme::FG_PRIMARY)
+                .fg(theme::text())
                 .add_modifier(Modifier::BOLD),
         ),
     ]);
@@ -888,7 +882,7 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
                         .map(|t| format!("  重置: {}", CodexQuotaService::format_reset_duration(t)))
                         .unwrap_or_default();
                     content.push(Line::from(vec![
-                        Span::styled("  5h限额: ", Style::default().fg(theme::FG_PRIMARY)),
+                        Span::styled("  5h限额: ", Style::default().fg(theme::text())),
                         Span::styled(h_bar, Style::default().fg(h_color)),
                         Span::styled(
                             format!(" {}%", quota.hourly_percentage),
@@ -913,7 +907,7 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
                         })
                         .unwrap_or_default();
                     content.push(Line::from(vec![
-                        Span::styled("  周限额: ", Style::default().fg(theme::FG_PRIMARY)),
+                        Span::styled("  周限额: ", Style::default().fg(theme::text())),
                         Span::styled(w_bar, Style::default().fg(w_color)),
                         Span::styled(
                             format!(" {}%", quota.weekly_percentage),
@@ -927,7 +921,7 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
                             .and_then(|account| account.plan_type.as_deref())
                     }) {
                         content.push(Line::from(vec![
-                            Span::styled("  订阅: ", Style::default().fg(theme::FG_PRIMARY)),
+                            Span::styled("  订阅: ", Style::default().fg(theme::text())),
                             Span::styled(plan.to_string(), theme::info_style()),
                         ]));
                     }
@@ -1003,9 +997,9 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
         .block(
             Block::default()
                 .borders(Borders::ALL)
-                .border_style(Style::default().fg(theme::BORDER))
+                .border_style(Style::default().fg(theme::border()))
                 .title(title)
-                .title_style(Style::default().fg(theme::ACCENT)),
+                .title_style(Style::default().fg(theme::codex())),
         )
         .alignment(Alignment::Left)
         .wrap(Wrap { trim: true });
@@ -1036,7 +1030,7 @@ fn account_snapshot_lines(
         theme::warning_style().add_modifier(Modifier::ITALIC)
     } else {
         Style::default()
-            .fg(theme::FG_PRIMARY)
+            .fg(theme::text())
             .add_modifier(Modifier::BOLD)
     };
     let state_style = if account.is_current {
@@ -1044,7 +1038,7 @@ fn account_snapshot_lines(
     } else if account.is_virtual {
         theme::warning_style()
     } else {
-        Style::default().fg(theme::FG_PRIMARY)
+        Style::default().fg(theme::text())
     };
     let (refresh_text, refresh_style) = format_expires_at(account);
     let preview_five = app.preview_cell_for_account(&account.name, PreviewMetricWindow::FiveHour);
@@ -1093,7 +1087,7 @@ fn account_snapshot_lines(
         detail_line(
             "Saved at:",
             format_saved_at(account),
-            Style::default().fg(theme::FG_PRIMARY),
+            Style::default().fg(theme::text()),
         ),
         detail_line("Last refresh:", refresh_text, refresh_style),
         preview_reset_detail_line("5h:", preview_five.text, preview_five_style, hourly_reset),
@@ -1238,9 +1232,9 @@ pub fn draw_loading_placeholder(
         .block(
             Block::default()
                 .borders(Borders::ALL)
-                .border_style(Style::default().fg(theme::BORDER))
+                .border_style(Style::default().fg(theme::border()))
                 .title(" 🔐 Codex Auth ")
-                .title_style(Style::default().fg(theme::ACCENT)),
+                .title_style(Style::default().fg(theme::codex())),
         )
         .alignment(Alignment::Center)
         .wrap(Wrap { trim: true });
@@ -1266,9 +1260,9 @@ pub fn draw_loading_placeholder(
         let status = Paragraph::new(status_text).style(status_style).block(
             Block::default()
                 .borders(Borders::TOP)
-                .border_style(Style::default().fg(theme::BORDER))
+                .border_style(Style::default().fg(theme::border()))
                 .title(" Keys ")
-                .title_style(Style::default().fg(theme::ACCENT)),
+                .title_style(Style::default().fg(theme::codex())),
         );
         f.render_widget(status, footer_area);
     }
@@ -1294,7 +1288,7 @@ fn draw_account_snapshot_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
         .block(
             Block::default()
                 .borders(Borders::ALL)
-                .border_style(Style::default().fg(theme::CODEX_PRIMARY))
+                .border_style(Style::default().fg(theme::codex()))
                 .title(" Focus ")
                 .title_style(theme::codex_style()),
         )
@@ -1318,9 +1312,9 @@ fn draw_footer_strip(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
         .block(
             Block::default()
                 .borders(Borders::TOP)
-                .border_style(Style::default().fg(theme::BORDER))
+                .border_style(Style::default().fg(theme::border()))
                 .title(" Keys ")
-                .title_style(Style::default().fg(theme::FG_MUTED)),
+                .title_style(Style::default().fg(theme::muted())),
         )
         .alignment(Alignment::Center)
         .wrap(Wrap { trim: true });
@@ -1547,10 +1541,10 @@ mod tests {
         assert!(plain_line_text(&lines[7]).contains("33%"));
         assert!(plain_line_text(&lines[7]).contains("Reset"));
         assert!(plain_line_text(&lines[7]).contains("m"));
-        assert_eq!(lines[0].spans[0].style.fg, Some(theme::FG_SECONDARY));
-        assert_eq!(lines[0].spans[1].style.fg, Some(theme::FG_SUCCESS));
-        assert_eq!(lines[2].spans[1].style.fg, Some(theme::FG_INFO));
-        assert_eq!(lines[3].spans[1].style.fg, Some(theme::FG_INFO));
+        assert_eq!(lines[0].spans[0].style.fg, Some(theme::subtext()));
+        assert_eq!(lines[0].spans[1].style.fg, Some(theme::success()));
+        assert_eq!(lines[2].spans[1].style.fg, Some(theme::info()));
+        assert_eq!(lines[3].spans[1].style.fg, Some(theme::info()));
     }
 
     #[test]

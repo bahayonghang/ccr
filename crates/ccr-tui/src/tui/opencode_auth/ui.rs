@@ -115,9 +115,9 @@ pub fn draw_loading_placeholder(
         .block(
             Block::default()
                 .borders(Borders::ALL)
-                .border_style(Style::default().fg(theme::BORDER))
+                .border_style(Style::default().fg(theme::border()))
                 .title(" 🔐 OpenCode Auth ")
-                .title_style(Style::default().fg(theme::ACCENT)),
+                .title_style(Style::default().fg(theme::opencode())),
         )
         .alignment(Alignment::Center)
         .wrap(Wrap { trim: true });
@@ -142,9 +142,9 @@ pub fn draw_loading_placeholder(
         .block(
             Block::default()
                 .borders(Borders::TOP)
-                .border_style(Style::default().fg(theme::BORDER))
+                .border_style(Style::default().fg(theme::border()))
                 .title(" Keys ")
-                .title_style(Style::default().fg(theme::ACCENT)),
+                .title_style(Style::default().fg(theme::opencode())),
         );
         f.render_widget(status, footer_area);
     }
@@ -155,7 +155,7 @@ fn draw_title(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp) {
         Span::styled(
             " 🔐 OpenCode 账号管理 ",
             Style::default()
-                .fg(theme::ACCENT)
+                .fg(theme::opencode())
                 .add_modifier(Modifier::BOLD),
         ),
         Span::raw(" | "),
@@ -164,9 +164,9 @@ fn draw_title(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp) {
     .block(
         Block::default()
             .borders(Borders::ALL)
-            .border_style(Style::default().fg(theme::BORDER))
+            .border_style(Style::default().fg(theme::border()))
             .title(" CCR ")
-            .title_style(Style::default().fg(theme::ACCENT)),
+            .title_style(Style::default().fg(theme::opencode())),
     )
     .alignment(Alignment::Center);
 
@@ -235,9 +235,9 @@ struct AccountListRegions {
 fn render_account_list_panel(f: &mut Frame, area: Rect, app: &mut OpenCodeAuthApp, title: String) {
     let block = Block::default()
         .borders(Borders::ALL)
-        .border_style(Style::default().fg(theme::BORDER))
+        .border_style(Style::default().fg(theme::opencode()))
         .title(title)
-        .title_style(Style::default().fg(theme::ACCENT));
+        .title_style(theme::opencode_style());
     let inner = block.inner(area);
     if !app.accounts.is_empty() && inner.height >= 2 {
         let regions = account_list_regions(inner);
@@ -285,7 +285,7 @@ fn account_list_footer_line(app: &OpenCodeAuthApp) -> Line<'static> {
                 theme::success_style()
             } else {
                 Style::default()
-                    .fg(theme::FG_PRIMARY)
+                    .fg(theme::text())
                     .add_modifier(Modifier::BOLD)
             }
         })
@@ -390,7 +390,7 @@ fn render_account_list_header(f: &mut Frame, area: Rect, layout: &AccountTableLa
     .column_spacing(ACCOUNT_COLUMN_SPACING)
     .style(
         Style::default()
-            .fg(theme::FG_SECONDARY)
+            .fg(theme::subtext())
             .add_modifier(Modifier::BOLD),
     );
 
@@ -451,15 +451,13 @@ fn account_cell(
     match column {
         AccountColumn::Account => {
             let name_style = if is_selected {
-                Style::default()
-                    .fg(theme::FG_PRIMARY)
-                    .add_modifier(Modifier::BOLD)
+                theme::selected_row_style()
             } else if account.is_virtual {
                 theme::warning_style().add_modifier(Modifier::ITALIC)
             } else if account.is_current {
                 theme::success_style()
             } else {
-                Style::default().fg(theme::FG_PRIMARY)
+                Style::default().fg(theme::text())
             };
 
             let mut spans = vec![Span::styled(
@@ -482,7 +480,7 @@ fn account_cell(
                 layout.text_width(AccountColumn::Email),
             ),
             if is_selected {
-                Style::default().fg(theme::FG_PRIMARY)
+                theme::selected_row_style()
             } else {
                 theme::info_style()
             },
@@ -493,7 +491,7 @@ fn account_cell(
                 layout.text_width(AccountColumn::Plan),
             ),
             if is_selected {
-                Style::default().fg(theme::FG_PRIMARY)
+                theme::selected_row_style()
             } else {
                 theme::muted_style()
             },
@@ -535,7 +533,7 @@ fn account_cell(
             Cell::from(Line::from(Span::styled(
                 text,
                 if is_selected {
-                    Style::default().fg(theme::FG_PRIMARY)
+                    theme::selected_row_style()
                 } else {
                     style
                 },
@@ -586,9 +584,7 @@ fn preview_summary_style(
     is_selected: bool,
 ) -> Style {
     if is_selected {
-        return Style::default()
-            .fg(theme::FG_PRIMARY)
-            .add_modifier(Modifier::BOLD);
+        return theme::selected_row_style();
     }
 
     match (left.state, right.state) {
@@ -605,7 +601,7 @@ fn preview_summary_style(
             if left.text == "ERR" || right.text == "ERR" {
                 theme::error_style()
             } else {
-                Style::default().fg(theme::FG_PRIMARY)
+                Style::default().fg(theme::text())
             }
         }
         _ => theme::muted_style(),
@@ -614,9 +610,7 @@ fn preview_summary_style(
 
 fn preview_cell_style(cell: &super::app::QuotaPreviewCell, is_selected: bool) -> Style {
     if is_selected {
-        return Style::default()
-            .fg(theme::FG_PRIMARY)
-            .add_modifier(Modifier::BOLD);
+        return theme::selected_row_style();
     }
 
     match cell.state {
@@ -627,7 +621,7 @@ fn preview_cell_style(cell: &super::app::QuotaPreviewCell, is_selected: bool) ->
                 .parse::<i32>()
                 .ok()
                 .map(theme::quota_color)
-                .unwrap_or(theme::FG_PRIMARY);
+                .unwrap_or(theme::text());
             Style::default().fg(percentage)
         }
         QuotaPreviewCellState::Waiting => theme::warning_style(),
@@ -651,9 +645,9 @@ fn draw_account_snapshot_panel(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp)
         .block(
             Block::default()
                 .borders(Borders::ALL)
-                .border_style(Style::default().fg(theme::CODEX_PRIMARY))
+                .border_style(Style::default().fg(theme::opencode()))
                 .title(" Focus ")
-                .title_style(theme::codex_style()),
+                .title_style(theme::opencode_style()),
         )
         .wrap(Wrap { trim: true });
 
@@ -667,7 +661,7 @@ fn account_snapshot_lines(app: &OpenCodeAuthApp, account: &OpenCodeAuthItem) -> 
         theme::warning_style().add_modifier(Modifier::ITALIC)
     } else {
         Style::default()
-            .fg(theme::FG_PRIMARY)
+            .fg(theme::text())
             .add_modifier(Modifier::BOLD)
     };
     let state_style = if account.is_current {
@@ -675,7 +669,7 @@ fn account_snapshot_lines(app: &OpenCodeAuthApp, account: &OpenCodeAuthItem) -> 
     } else if account.is_virtual {
         theme::warning_style()
     } else {
-        Style::default().fg(theme::FG_PRIMARY)
+        Style::default().fg(theme::text())
     };
     let (expires_text, expires_style) = format_expires_at(account);
     let preview_five = app.preview_cell_for_account(&account.name, PreviewMetricWindow::FiveHour);
@@ -712,7 +706,7 @@ fn account_snapshot_lines(app: &OpenCodeAuthApp, account: &OpenCodeAuthItem) -> 
         detail_line(
             "Saved at:",
             format_saved_at(account),
-            Style::default().fg(theme::FG_PRIMARY),
+            Style::default().fg(theme::text()),
         ),
         detail_line("Expires:", expires_text, expires_style),
         preview_reset_detail_line(
@@ -748,7 +742,7 @@ fn detail_label_span(label: &str) -> Span<'static> {
     Span::styled(
         format!("{label:<DETAIL_LABEL_WIDTH$}"),
         Style::default()
-            .fg(theme::FG_SECONDARY)
+            .fg(theme::subtext())
             .add_modifier(Modifier::BOLD),
     )
 }
@@ -802,9 +796,9 @@ fn draw_status_bar(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp) {
     let status = Paragraph::new(message).style(style).block(
         Block::default()
             .borders(Borders::ALL)
-            .border_style(Style::default().fg(theme::BORDER))
+            .border_style(Style::default().fg(theme::border()))
             .title(" 状态 ")
-            .title_style(Style::default().fg(theme::ACCENT)),
+            .title_style(Style::default().fg(theme::opencode())),
     );
 
     f.render_widget(status, area);
@@ -816,7 +810,7 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp) {
         Span::styled(
             "Usage & Quota",
             Style::default()
-                .fg(theme::FG_PRIMARY)
+                .fg(theme::text())
                 .add_modifier(Modifier::BOLD),
         ),
     ]);
@@ -885,7 +879,7 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp) {
                         })
                         .unwrap_or_default();
                     content.push(Line::from(vec![
-                        Span::styled("  5h限额: ", Style::default().fg(theme::FG_PRIMARY)),
+                        Span::styled("  5h限额: ", Style::default().fg(theme::text())),
                         Span::styled(h_bar, Style::default().fg(h_color)),
                         Span::styled(
                             format!(" {}%", quota.hourly_percentage),
@@ -910,7 +904,7 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp) {
                         })
                         .unwrap_or_default();
                     content.push(Line::from(vec![
-                        Span::styled("  周限额: ", Style::default().fg(theme::FG_PRIMARY)),
+                        Span::styled("  周限额: ", Style::default().fg(theme::text())),
                         Span::styled(w_bar, Style::default().fg(w_color)),
                         Span::styled(
                             format!(" {}%", quota.weekly_percentage),
@@ -924,7 +918,7 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp) {
                             .and_then(|account| account.plan_type.as_deref())
                     }) {
                         content.push(Line::from(vec![
-                            Span::styled("  订阅: ", Style::default().fg(theme::FG_PRIMARY)),
+                            Span::styled("  订阅: ", Style::default().fg(theme::text())),
                             Span::styled(plan.to_string(), theme::info_style()),
                         ]));
                     }
@@ -997,9 +991,9 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp) {
         .block(
             Block::default()
                 .borders(Borders::ALL)
-                .border_style(Style::default().fg(theme::BORDER))
+                .border_style(Style::default().fg(theme::border()))
                 .title(title)
-                .title_style(Style::default().fg(theme::ACCENT)),
+                .title_style(Style::default().fg(theme::opencode())),
         )
         .alignment(Alignment::Left)
         .wrap(Wrap { trim: true });
@@ -1125,9 +1119,9 @@ fn draw_footer_strip(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp) {
         .block(
             Block::default()
                 .borders(Borders::TOP)
-                .border_style(Style::default().fg(theme::BORDER))
+                .border_style(Style::default().fg(theme::border()))
                 .title(" Keys ")
-                .title_style(Style::default().fg(theme::FG_MUTED)),
+                .title_style(Style::default().fg(theme::muted())),
         )
         .alignment(Alignment::Center)
         .wrap(Wrap { trim: true });
