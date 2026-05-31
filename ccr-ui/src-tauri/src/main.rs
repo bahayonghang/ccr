@@ -14,6 +14,8 @@ mod session_index_jobs;
 mod ssh;
 mod state;
 mod stats_snapshot;
+#[cfg(test)]
+mod test_support;
 mod usage_jobs;
 
 use std::sync::Arc;

@@ -265,9 +265,6 @@ mod update_tests {
     use ccr_config::{PlatformConfig, get_current_profile_from_registry, load_profiles_from_toml};
     use serde_json::json;
     use std::path::Path;
-    use std::sync::{LazyLock, Mutex};
-
-    static ENV_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
 
     fn restore_env_var(key: &str, previous: Option<String>) {
         unsafe {
@@ -316,7 +313,7 @@ mod update_tests {
 
     #[test]
     fn codex_update_profile_rename_migrates_profile_secret_and_current_profile() {
-        let _guard = ENV_LOCK.lock().unwrap();
+        let _guard = crate::test_support::lock_env();
         let temp_dir = tempfile::tempdir().unwrap();
         let ccr_root = temp_dir.path().join("ccr-root");
         let codex_dir = temp_dir.path().join("codex-home");
@@ -406,7 +403,7 @@ mod update_tests {
 
     #[test]
     fn codex_update_profile_rename_rejects_conflicting_target_without_writing_partial_state() {
-        let _guard = ENV_LOCK.lock().unwrap();
+        let _guard = crate::test_support::lock_env();
         let temp_dir = tempfile::tempdir().unwrap();
         let ccr_root = temp_dir.path().join("ccr-root");
         let codex_dir = temp_dir.path().join("codex-home");
@@ -466,7 +463,7 @@ mod update_tests {
 
     #[test]
     fn codex_update_profile_same_target_name_updates_in_place() {
-        let _guard = ENV_LOCK.lock().unwrap();
+        let _guard = crate::test_support::lock_env();
         let temp_dir = tempfile::tempdir().unwrap();
         let ccr_root = temp_dir.path().join("ccr-root");
         let codex_dir = temp_dir.path().join("codex-home");
@@ -523,7 +520,7 @@ mod update_tests {
 
     #[test]
     fn codex_update_profile_rejects_blank_target_name() {
-        let _guard = ENV_LOCK.lock().unwrap();
+        let _guard = crate::test_support::lock_env();
         let temp_dir = tempfile::tempdir().unwrap();
         let ccr_root = temp_dir.path().join("ccr-root");
         let codex_dir = temp_dir.path().join("codex-home");

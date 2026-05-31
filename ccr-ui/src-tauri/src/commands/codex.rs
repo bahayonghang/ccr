@@ -1735,9 +1735,6 @@ fn parse_mcp_server(v: &Value) -> Result<CodexMcpServer, String> {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
-    use std::sync::{LazyLock, Mutex};
-
-    static ENV_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
 
     fn restore_env_var(key: &str, previous: Option<String>) {
         unsafe {
@@ -2012,7 +2009,7 @@ mod tests {
 
     #[tokio::test]
     async fn codex_list_profiles_reads_only_ccr_profiles_source() {
-        let _guard = ENV_LOCK.lock().unwrap();
+        let _guard = crate::test_support::lock_env();
         let temp_dir = tempfile::tempdir().unwrap();
         let ccr_root = temp_dir.path().join("ccr-root");
         let codex_dir = temp_dir.path().join("official-codex");
