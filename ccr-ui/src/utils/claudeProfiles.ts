@@ -18,12 +18,42 @@ export interface ProviderColorConfig {
 
 /** provider 关键词 → 平台色彩映射表 */
 const PROVIDER_COLOR_MAP: Record<string, ProviderColorConfig> = {
-  anthropic: { key: 'claude', cssVar: '--color-platform-claude', rgbVar: '--color-platform-claude-rgb', tailwindClass: 'platform-claude' },
-  claude: { key: 'claude', cssVar: '--color-platform-claude', rgbVar: '--color-platform-claude-rgb', tailwindClass: 'platform-claude' },
-  openai: { key: 'codex', cssVar: '--color-platform-codex', rgbVar: '--color-platform-codex-rgb', tailwindClass: 'platform-codex' },
-  codex: { key: 'codex', cssVar: '--color-platform-codex', rgbVar: '--color-platform-codex-rgb', tailwindClass: 'platform-codex' },
-  google: { key: 'gemini', cssVar: '--color-platform-gemini', rgbVar: '--color-platform-gemini-rgb', tailwindClass: 'platform-gemini' },
-  gemini: { key: 'gemini', cssVar: '--color-platform-gemini', rgbVar: '--color-platform-gemini-rgb', tailwindClass: 'platform-gemini' },
+  anthropic: {
+    key: 'claude',
+    cssVar: '--color-platform-claude',
+    rgbVar: '--color-platform-claude-rgb',
+    tailwindClass: 'platform-claude',
+  },
+  claude: {
+    key: 'claude',
+    cssVar: '--color-platform-claude',
+    rgbVar: '--color-platform-claude-rgb',
+    tailwindClass: 'platform-claude',
+  },
+  openai: {
+    key: 'codex',
+    cssVar: '--color-platform-codex',
+    rgbVar: '--color-platform-codex-rgb',
+    tailwindClass: 'platform-codex',
+  },
+  codex: {
+    key: 'codex',
+    cssVar: '--color-platform-codex',
+    rgbVar: '--color-platform-codex-rgb',
+    tailwindClass: 'platform-codex',
+  },
+  google: {
+    key: 'gemini',
+    cssVar: '--color-platform-gemini',
+    rgbVar: '--color-platform-gemini-rgb',
+    tailwindClass: 'platform-gemini',
+  },
+  gemini: {
+    key: 'gemini',
+    cssVar: '--color-platform-gemini',
+    rgbVar: '--color-platform-gemini-rgb',
+    tailwindClass: 'platform-gemini',
+  },
 }
 
 /** 默认回退色彩 (accent-secondary 紫) */
@@ -120,7 +150,7 @@ export interface ProviderGroup {
 
 export const groupProfilesByProvider = (
   profiles: ClaudeProfile[],
-  unsetLabel = 'Other',
+  unsetLabel = 'Other'
 ): ProviderGroup[] => {
   const groupMap = new Map<string, ProviderGroup>()
 
@@ -157,23 +187,6 @@ export interface ClaudeProfileSection {
   profiles: ClaudeProfile[]
 }
 
-export interface ClaudeProfilesOverviewSummary {
-  totalProfiles: number
-  enabledProfilesCount: number
-  disabledProfilesCount: number
-  providerSectionsCount: number
-  unsetProviderProfilesCount: number
-  configuredModelProfilesCount: number
-  configuredFastModelProfilesCount: number
-  subscriptionProfilesCount: number
-  apiKeyProfilesCount: number
-  accountProfilesCount: number
-  customBaseUrlProfilesCount: number
-  taggedProfilesCount: number
-  missingModelProfilesCount: number
-  missingAccountProfilesCount: number
-}
-
 export interface NormalizedClaudeProfilesState {
   currentProfile: string | null
   profiles: ClaudeProfile[]
@@ -189,7 +202,8 @@ const OFFICIAL_CLAUDE_BASE_URLS = new Set([
   'https://api.anthropic.com/v1',
 ])
 
-const normalizeBaseUrl = (baseUrl?: string | null): string => normalizeOptionalValue(baseUrl).replace(/\/+$/, '')
+const normalizeBaseUrl = (baseUrl?: string | null): string =>
+  normalizeOptionalValue(baseUrl).replace(/\/+$/, '')
 
 export const isCustomClaudeProfileBaseUrl = (baseUrl?: string | null): boolean => {
   const normalized = normalizeBaseUrl(baseUrl)
@@ -237,19 +251,19 @@ export const normalizeClaudeProfilesState = (
   currentProfile: string | null | undefined
 ): NormalizedClaudeProfilesState => {
   const warnings: string[] = []
-  const profileNames = new Set(profiles.map(profile => profile.name))
+  const profileNames = new Set(profiles.map((profile) => profile.name))
   const trimmedCurrentProfile = currentProfile?.trim() || null
   const flaggedCurrentProfiles = profiles
-    .filter(profile => profile.is_current)
-    .map(profile => profile.name)
+    .filter((profile) => profile.is_current)
+    .map((profile) => profile.name)
 
   let canonicalCurrentProfile =
-    trimmedCurrentProfile && profileNames.has(trimmedCurrentProfile)
-      ? trimmedCurrentProfile
-      : null
+    trimmedCurrentProfile && profileNames.has(trimmedCurrentProfile) ? trimmedCurrentProfile : null
 
   if (trimmedCurrentProfile && !canonicalCurrentProfile) {
-    warnings.push(`Unknown current_profile "${trimmedCurrentProfile}" returned by Claude profiles API`)
+    warnings.push(
+      `Unknown current_profile "${trimmedCurrentProfile}" returned by Claude profiles API`
+    )
   }
 
   if (!canonicalCurrentProfile && flaggedCurrentProfiles.length > 0) {
@@ -261,9 +275,9 @@ export const normalizeClaudeProfilesState = (
   }
 
   if (
-    canonicalCurrentProfile
-    && flaggedCurrentProfiles.length > 0
-    && (flaggedCurrentProfiles.length !== 1 || flaggedCurrentProfiles[0] !== canonicalCurrentProfile)
+    canonicalCurrentProfile &&
+    flaggedCurrentProfiles.length > 0 &&
+    (flaggedCurrentProfiles.length !== 1 || flaggedCurrentProfiles[0] !== canonicalCurrentProfile)
   ) {
     warnings.push(
       `Current profile mismatch between current_profile and row flags; normalized to "${canonicalCurrentProfile}"`
@@ -272,7 +286,7 @@ export const normalizeClaudeProfilesState = (
 
   return {
     currentProfile: canonicalCurrentProfile,
-    profiles: profiles.map(profile => ({
+    profiles: profiles.map((profile) => ({
       ...profile,
       is_current: canonicalCurrentProfile === profile.name,
     })),
@@ -280,10 +294,7 @@ export const normalizeClaudeProfilesState = (
   }
 }
 
-export const filterClaudeProfiles = (
-  profiles: ClaudeProfile[],
-  query: string
-): ClaudeProfile[] => {
+export const filterClaudeProfiles = (profiles: ClaudeProfile[], query: string): ClaudeProfile[] => {
   const normalizedQuery = normalizeSearchValue(query)
 
   if (!normalizedQuery) {
@@ -303,7 +314,7 @@ export const filterClaudeProfiles = (
       ...(profile.tags ?? []),
     ]
 
-    return fields.some(field => normalizeSearchValue(field).includes(normalizedQuery))
+    return fields.some((field) => normalizeSearchValue(field).includes(normalizedQuery))
   })
 }
 
@@ -341,10 +352,10 @@ export const createClaudeProfileSections = (
   }
 
   return Array.from(sectionMap.values())
-    .map(section => ({
+    .map((section) => ({
       ...section,
       count: section.profiles.length,
-      enabledCount: section.profiles.filter(profile => profile.enabled !== false).length,
+      enabledCount: section.profiles.filter((profile) => profile.enabled !== false).length,
       profiles: [...section.profiles].sort(compareProfiles),
     }))
     .sort((left, right) => {
@@ -354,37 +365,4 @@ export const createClaudeProfileSections = (
 
       return left.title.localeCompare(right.title, undefined, { sensitivity: 'base' })
     })
-}
-
-export const createClaudeProfilesOverviewSummary = (
-  profiles: ClaudeProfile[],
-  unsetLabel = 'Unspecified Provider'
-): ClaudeProfilesOverviewSummary => {
-  const providerSectionsCount = createClaudeProfileSections(profiles, unsetLabel).length
-
-  const enabledProfilesCount = profiles.filter(profile => profile.enabled !== false).length
-  const configuredModelProfilesCount = profiles.filter(profile => normalizeOptionalValue(profile.model).length > 0).length
-  const configuredFastModelProfilesCount = profiles.filter(profile => normalizeOptionalValue(profile.small_fast_model).length > 0).length
-  const subscriptionProfilesCount = profiles.filter(profile => (profile.auth_mode ?? 'subscription') === 'subscription').length
-  const apiKeyProfilesCount = profiles.filter(profile => profile.auth_mode === 'api_key').length
-  const accountProfilesCount = profiles.filter(profile => normalizeOptionalValue(profile.account).length > 0).length
-  const customBaseUrlProfilesCount = profiles.filter(profile => isCustomClaudeProfileBaseUrl(profile.base_url)).length
-  const taggedProfilesCount = profiles.filter(profile => (profile.tags?.length ?? 0) > 0).length
-
-  return {
-    totalProfiles: profiles.length,
-    enabledProfilesCount,
-    disabledProfilesCount: Math.max(profiles.length - enabledProfilesCount, 0),
-    providerSectionsCount,
-    unsetProviderProfilesCount: profiles.filter(profile => getClaudeProfileProviderKey(profile.provider) === CLAUDE_PROFILE_UNSET_PROVIDER_KEY).length,
-    configuredModelProfilesCount,
-    configuredFastModelProfilesCount,
-    subscriptionProfilesCount,
-    apiKeyProfilesCount,
-    accountProfilesCount,
-    customBaseUrlProfilesCount,
-    taggedProfilesCount,
-    missingModelProfilesCount: Math.max(profiles.length - configuredModelProfilesCount, 0),
-    missingAccountProfilesCount: Math.max(profiles.length - accountProfilesCount, 0),
-  }
 }

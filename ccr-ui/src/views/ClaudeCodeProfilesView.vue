@@ -1,526 +1,380 @@
 <template>
   <div class="claude-profiles-view">
-    <div class="claude-profiles-view__shell">
-      <div class="claude-profiles-view__breadcrumb animate-slide-up">
-        <RouterLink
-          to="/claude-code"
-          class="claude-profiles-view__breadcrumb-link"
-        >
-          Claude Code
-        </RouterLink>
-        <SIcon
-          name="ChevronRight"
-          size="w-3 h-3"
+    <ModuleSubnav module="claude-code" />
+
+    <main class="cp-shell">
+      <div class="cp-main">
+        <ClaudeProfilesHeader
+          :loading="loading || isRefreshing"
+          :exporting="isExporting"
+          @add="openAddForm"
+          @export="handleExportProfiles"
+          @reload="refreshProfiles"
         />
-        <span class="claude-profiles-view__breadcrumb-current">{{ $t('claudeProfiles.breadcrumbProfiles') }}</span>
-      </div>
 
-      <PageHeaderCard
-        class="animate-slide-up"
-        icon="Layers"
-        tone="secondary"
-        :title="$t('claudeProfiles.title')"
-        :description="$t('claudeProfiles.subtitle')"
-      >
-        <template #meta>
-          <span class="claude-profiles-view__eyebrow">
-            {{ $t('claudeProfiles.consoleEyebrow') }}
-          </span>
-          <span
-            v-if="showNavigation"
-            class="claude-profiles-view__meta-chip"
-          >
-            {{ providerSectionsCountLabel }}
-          </span>
-        </template>
+        <ClaudeProfilesStatStrip
+          :current="currentProfileName"
+          :total="profiles.length"
+          :enabled="enabledProfilesCount"
+          :subscription-count="subscriptionCount"
+          :api-key-count="apiKeyCount"
+          :last-write="lastWriteHint"
+        />
 
-        <template #actions>
-          <RouterLink
-            to="/claude-code"
-            class="claude-profiles-view__header-button claude-profiles-view__header-button--secondary"
-          >
-            <SIcon
-              name="ArrowLeft"
-              size="w-4 h-4"
-            />
-            {{ $t('claudeProfiles.back') }}
-          </RouterLink>
+        <ClaudeProfilesToolbar
+          ref="toolbarRef"
+          :query="searchQuery"
+          :status-filter="statusFilter"
+          :tag-filter="tagFilter"
+          :provider-filter="providerFilter"
+          :sort-by="sortBy"
+          :view-mode="viewMode"
+          :result-count="filtered.length"
+          :total="profiles.length"
+          :all-tags="allTags"
+          :all-providers="allProviders"
+          @update:query="searchQuery = $event"
+          @update:status-filter="statusFilter = $event"
+          @update:tag-filter="tagFilter = $event"
+          @update:provider-filter="providerFilter = $event"
+          @update:sort-by="sortBy = $event"
+          @update:view-mode="viewMode = $event"
+        />
 
+        <div
+          v-if="loading"
+          class="cp-state"
+        >
+          <div class="cp-state__spinner" />
+        </div>
+
+        <div
+          v-else-if="loadError"
+          class="cp-state cp-state--error"
+        >
+          <SIcon
+            name="AlertTriangle"
+            size="w-6 h-6"
+          />
+          <div class="cp-state__title">
+            {{ $t('claudeProfiles.loadFailedTitle') }}
+          </div>
+          <div class="cp-state__hint">
+            {{ loadError }}
+          </div>
           <button
             type="button"
-            class="claude-profiles-view__header-button claude-profiles-view__header-button--secondary"
-            :disabled="loading || isRefreshing || isSaving"
+            class="cp-state__btn"
             @click="refreshProfiles()"
           >
-            <SIcon
-              name="RefreshCw"
-              size="w-4 h-4"
-              :class="{ 'animate-spin': loading || isRefreshing }"
-            />
-            {{ $t('common.refresh') }}
+            {{ $t('claudeProfiles.retry') }}
           </button>
+        </div>
 
+        <div
+          v-else-if="refreshError"
+          class="cp-state cp-state--warn"
+        >
+          <SIcon
+            name="AlertCircle"
+            size="w-5 h-5"
+          />
+          <div class="cp-state__title">
+            {{ $t('claudeProfiles.refreshFailedTitle') }}
+          </div>
+          <div class="cp-state__hint">
+            {{ refreshError }} · {{ $t('claudeProfiles.refreshFailedHint') }}
+          </div>
           <button
             type="button"
-            class="claude-profiles-view__header-button claude-profiles-view__header-button--secondary"
-            :disabled="loading || isRefreshing || isSaving || isExporting"
-            @click="handleExportProfiles()"
+            class="cp-state__btn"
+            :disabled="isRefreshing"
+            @click="refreshProfiles()"
           >
-            <SIcon
-              name="Download"
-              size="w-4 h-4"
-            />
-            {{ $t('common.export') }}
+            {{ $t('claudeProfiles.retry') }}
           </button>
+        </div>
 
+        <div
+          v-else-if="profiles.length === 0"
+          class="cp-state"
+        >
+          <SIcon
+            name="FolderOpen"
+            size="w-7 h-7"
+          />
+          <div class="cp-state__title">
+            {{ $t('claudeProfiles.emptyTitle') }}
+          </div>
+          <div class="cp-state__hint">
+            {{ $t('claudeProfiles.emptyDesc') }}
+          </div>
           <button
             type="button"
-            class="claude-profiles-view__header-button claude-profiles-view__header-button--primary"
-            :disabled="isSaving"
+            class="cp-state__btn cp-state__btn--primary"
             @click="openAddForm()"
           >
             <SIcon
               name="Plus"
-              size="w-4 h-4"
+              size="w-3.5 h-3.5"
             />
-            {{ $t('claudeProfiles.addProfile') }}
+            {{ $t('claudeProfiles.createProfile') }}
           </button>
-        </template>
-
-        <ClaudeProfilesOverview
-          :current-profile="currentProfileRecord"
-          :provider-unset-label="providerUnsetLabel"
-          :summary="overviewSummary"
-        />
-      </PageHeaderCard>
-
-      <section
-        v-if="showSearchRail"
-        class="claude-profiles-view__search-rail animate-slide-up"
-        style="animation-delay: 120ms"
-      >
-        <div class="claude-profiles-view__search-grid">
-          <div class="claude-profiles-view__search-input-shell">
-            <Input
-              v-model="searchQuery"
-              type="text"
-              surface="status"
-              :elevation="1"
-              motion="subtle"
-              density="compact"
-              :full-width="true"
-              :placeholder="$t('claudeProfiles.searchPlaceholder')"
-            >
-              <template #leading>
-                <SIcon
-                  name="Search"
-                  size="w-4 h-4"
-                />
-              </template>
-            </Input>
-          </div>
-
-          <div class="claude-profiles-view__search-meta">
-            <span class="claude-profiles-view__search-chip">
-              {{ searchProfilesCountLabel }}
-            </span>
-            <span class="claude-profiles-view__search-chip">
-              {{ searchProvidersCountLabel }}
-            </span>
-            <button
-              v-if="hasActiveSearch"
-              type="button"
-              class="claude-profiles-view__search-clear"
-              @click="clearSearch()"
-            >
-              <SIcon
-                name="RotateCcw"
-                size="w-3.5 h-3.5"
-              />
-              {{ $t('claudeProfiles.clearSearch') }}
-            </button>
-          </div>
         </div>
 
-        <p class="claude-profiles-view__search-hint">
-          {{ $t('claudeProfiles.searchHint') }}
-        </p>
-
-        <section
-          v-if="filteredProfiles.length > 0"
-          class="claude-profiles-view__command-strip"
+        <div
+          v-else-if="filtered.length === 0"
+          class="cp-state"
         >
-          <div class="claude-profiles-view__command-strip-head">
-            <div>
-              <p class="claude-profiles-view__command-strip-title">
-                {{ $t('claudeProfiles.quickSwitchStripTitle') }}
-              </p>
-              <p class="claude-profiles-view__command-strip-hint">
-                {{ $t('claudeProfiles.quickSwitchStripHint') }}
-              </p>
-            </div>
-            <span class="claude-profiles-view__command-strip-count">
-              {{ quickSwitchStripCountLabel }}
-            </span>
-          </div>
-
-          <div
-            class="claude-profiles-view__command-strip-scroll"
-            role="toolbar"
-            :aria-label="$t('claudeProfiles.quickSwitch')"
-          >
-            <button
-              v-for="profile in filteredProfiles"
-              :key="profile.name"
-              type="button"
-              :disabled="profile.is_current || profile.enabled === false"
-              class="claude-profiles-view__command-pill"
-              :class="profile.is_current
-                ? 'claude-profiles-view__command-pill--current'
-                : (profile.enabled === false
-                  ? 'claude-profiles-view__command-pill--disabled'
-                  : 'claude-profiles-view__command-pill--idle')"
-              :title="profile.provider?.trim() || providerUnsetLabel"
-              @click="handleApply(profile.name)"
-            >
-              <span
-                class="claude-profiles-view__command-pill-dot"
-                :class="profile.is_current
-                  ? 'claude-profiles-view__command-pill-dot--current'
-                  : (profile.enabled === false
-                    ? 'claude-profiles-view__command-pill-dot--disabled'
-                    : 'claude-profiles-view__command-pill-dot--enabled')"
-              />
-              <span class="truncate">{{ profile.name }}</span>
-            </button>
-          </div>
-        </section>
-      </section>
-
-      <div
-        :class="[
-          'claude-profiles-view__layout',
-          showNavigation ? 'claude-profiles-view__layout--with-nav' : '',
-        ]"
-      >
-        <aside
-          v-if="showNavigation"
-          class="claude-profiles-view__sidebar"
-        >
-          <ClaudeProfilesProviderNav
-            :sections="visibleProviderSections"
-            :active-section-id="currentSectionId"
-            :provider-unset-label="providerUnsetLabel"
-            @navigate="scrollToSection"
+          <SIcon
+            name="SearchX"
+            size="w-7 h-7"
           />
-        </aside>
-
-        <main class="claude-profiles-view__main">
-          <ClaudeProfilesProviderNav
-            v-if="showNavigation"
-            mobile
-            :sections="visibleProviderSections"
-            :active-section-id="currentSectionId"
-            :provider-unset-label="providerUnsetLabel"
-            class="claude-profiles-view__mobile-nav"
-            @navigate="scrollToSection"
-          />
-
-          <div
-            v-if="loading"
-            class="flex items-center justify-center py-20"
-          >
-            <div class="h-8 w-8 rounded-full border-2 border-accent-secondary/30 border-t-accent-secondary animate-spin" />
+          <div class="cp-state__title">
+            {{ $t('claudeProfiles.searchEmptyTitle') }}
           </div>
-
-          <div
-            v-else-if="loadError"
-            class="rounded-[28px] border border-accent-danger/20 bg-accent-danger/5 p-6 animate-slide-up"
-            style="animation-delay: 180ms"
-          >
-            <div class="flex items-start gap-4">
-              <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-accent-danger/10 text-accent-danger">
-                <SIcon
-                  name="AlertTriangle"
-                  size="w-5 h-5"
-                />
-              </div>
-              <div class="min-w-0 flex-1">
-                <h3 class="text-lg font-semibold text-text-primary">
-                  {{ $t('claudeProfiles.loadFailedTitle') }}
-                </h3>
-                <p class="mt-1 break-words text-sm text-text-secondary">
-                  {{ loadError }}
-                </p>
-              </div>
-              <button
-                type="button"
-                class="rounded-2xl border border-accent-danger/25 bg-accent-danger/10 px-4 py-2 text-sm font-medium text-accent-danger transition-colors hover:bg-accent-danger/15"
-                @click="refreshProfiles()"
-              >
-                {{ $t('claudeProfiles.retry') }}
-              </button>
-            </div>
+          <div class="cp-state__hint">
+            {{ $t('claudeProfiles.searchEmptyDesc') }}
           </div>
-
-          <div
-            v-else-if="refreshError"
-            class="rounded-[24px] border border-accent-warning/20 bg-accent-warning/6 p-5 animate-slide-up"
-            style="animation-delay: 160ms"
+          <button
+            type="button"
+            class="cp-state__btn"
+            @click="resetFilters()"
           >
-            <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div class="flex items-start gap-3">
-                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-accent-warning/10 text-accent-warning">
-                  <SIcon
-                    name="AlertCircle"
-                    size="w-5 h-5"
-                  />
-                </div>
-                <div class="min-w-0">
-                  <h3 class="text-sm font-semibold text-text-primary">
-                    {{ $t('claudeProfiles.refreshFailedTitle') }}
-                  </h3>
-                  <p class="mt-1 text-sm text-text-secondary">
-                    {{ refreshError }}
-                  </p>
-                  <p class="mt-2 text-xs text-text-muted">
-                    {{ $t('claudeProfiles.refreshFailedHint') }}
-                  </p>
-                </div>
-              </div>
+            {{ $t('claudeProfiles.clearSearch') }}
+          </button>
+        </div>
 
-              <button
-                type="button"
-                class="self-start rounded-2xl border border-accent-warning/25 bg-accent-warning/10 px-4 py-2 text-sm font-medium text-accent-warning transition-colors hover:bg-accent-warning/15 disabled:cursor-not-allowed disabled:opacity-60"
-                :disabled="isRefreshing"
-                @click="refreshProfiles()"
-              >
-                <span class="inline-flex items-center gap-2">
-                  <SIcon
-                    name="RefreshCw"
-                    size="w-4 h-4"
-                    :class="{ 'animate-spin': isRefreshing }"
-                  />
-                  {{ $t('claudeProfiles.retry') }}
-                </span>
-              </button>
-            </div>
-          </div>
-
-          <div
-            v-if="!loadError && profiles.length === 0"
-            class="py-20 text-center animate-slide-up"
-            style="animation-delay: 200ms"
+        <template v-else>
+          <ProfilesSection
+            v-if="enabledList.length > 0"
+            :title="$t('claudeProfiles.groups.enabled')"
+            :count="enabledList.length"
           >
-            <div class="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-[28px] border border-border-default/50 bg-bg-surface/75 shadow-lg shadow-black/5">
-              <SIcon
-                name="FolderOpen"
-                size="w-10 h-10"
-                class="text-text-muted"
-              />
-            </div>
-            <h3 class="mb-2 text-xl font-semibold text-text-primary">
-              {{ $t('claudeProfiles.emptyTitle') }}
-            </h3>
-            <p class="mx-auto mb-6 max-w-xl text-text-secondary">
-              {{ $t('claudeProfiles.emptyDesc') }}
-            </p>
-            <button
-              type="button"
-              class="inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-accent-secondary/30 bg-accent-secondary/10 px-6 py-3 text-sm font-medium text-accent-secondary transition-colors hover:bg-accent-secondary/15 focus:outline-none focus:ring-2 focus:ring-accent-secondary/20"
-              @click="openAddForm()"
+            <div
+              v-if="viewMode === 'list'"
+              class="cp-list"
             >
-              <SIcon
-                name="Plus"
-                size="w-4 h-4"
-                class="mr-2"
-              />
-              {{ $t('claudeProfiles.createProfile') }}
-            </button>
-          </div>
-
-          <div
-            v-else-if="filteredProfiles.length === 0"
-            class="py-20 text-center animate-slide-up"
-            style="animation-delay: 200ms"
-          >
-            <div class="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-[28px] border border-border-default/50 bg-bg-surface/75 shadow-lg shadow-black/5">
-              <SIcon
-                name="SearchX"
-                size="w-10 h-10"
-                class="text-text-muted"
+              <div class="cp-list-head">
+                <span />
+                <span>{{ $t('claudeProfiles.fields.name') }}</span>
+                <span>{{ $t('claudeProfiles.descLabel') }}</span>
+                <span>{{ $t('claudeProfiles.fields.baseUrl') }}</span>
+                <span>{{ $t('claudeProfiles.fields.model') }}</span>
+                <span>{{ $t('claudeProfiles.fields.authMode') }}</span>
+                <span>{{ $t('claudeProfiles.fields.tags') }}</span>
+                <span class="cp-list-head__right">{{ $t('claudeProfiles.toolbar.actionsLabel') }}</span>
+              </div>
+              <ClaudeProfileListRow
+                v-for="profile in enabledList"
+                :key="profile.name"
+                :profile="profile"
+                :is-current="profile.is_current"
+                :disabled="loading || isRefreshing || isSaving"
+                @apply="handleApply"
+                @edit="openEditForm(findProfile($event))"
+                @delete="handleDelete"
               />
             </div>
-            <h3 class="mb-2 text-xl font-semibold text-text-primary">
-              {{ $t('claudeProfiles.searchEmptyTitle') }}
-            </h3>
-            <p class="mx-auto mb-6 max-w-xl text-text-secondary">
-              {{ $t('claudeProfiles.searchEmptyDesc') }}
-            </p>
-            <button
-              type="button"
-              class="inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-accent-secondary/30 bg-accent-secondary/10 px-6 py-3 text-sm font-medium text-accent-secondary transition-colors hover:bg-accent-secondary/15 focus:outline-none focus:ring-2 focus:ring-accent-secondary/20"
-              @click="clearSearch()"
+            <div
+              v-else
+              class="cp-grid"
             >
-              <SIcon
-                name="RotateCcw"
-                size="w-4 h-4"
-                class="mr-2"
+              <ClaudeProfileRow
+                v-for="profile in enabledList"
+                :key="profile.name"
+                :profile="profile"
+                :provider-color="resolveProviderColor(profile.provider)"
+                :search-query="trimmedSearchQuery"
+                @apply="handleApply(profile.name)"
+                @edit="openEditForm(profile)"
+                @delete="handleDelete(profile.name)"
               />
-              {{ $t('claudeProfiles.clearSearch') }}
-            </button>
-          </div>
+            </div>
+          </ProfilesSection>
 
-          <ClaudeProfilesSectionList
-            v-else
-            :provider-sections="visibleProviderSections"
-            :provider-unset-label="providerUnsetLabel"
-            :register-section-ref="registerSectionRef"
-            :search-query="trimmedSearchQuery"
-            @apply="handleApply"
-            @delete="handleDelete"
-            @edit="openEditForm"
-          />
-        </main>
+          <ProfilesSection
+            v-if="disabledList.length > 0"
+            :title="$t('claudeProfiles.groups.disabled')"
+            :count="disabledList.length"
+          >
+            <div
+              v-if="viewMode === 'list'"
+              class="cp-list"
+            >
+              <ClaudeProfileListRow
+                v-for="profile in disabledList"
+                :key="profile.name"
+                :profile="profile"
+                :is-current="profile.is_current"
+                :disabled="loading || isRefreshing || isSaving"
+                @apply="handleApply"
+                @edit="openEditForm(findProfile($event))"
+                @delete="handleDelete"
+              />
+            </div>
+            <div
+              v-else
+              class="cp-grid"
+            >
+              <ClaudeProfileRow
+                v-for="profile in disabledList"
+                :key="profile.name"
+                :profile="profile"
+                :provider-color="resolveProviderColor(profile.provider)"
+                :search-query="trimmedSearchQuery"
+                @apply="handleApply(profile.name)"
+                @edit="openEditForm(profile)"
+                @delete="handleDelete(profile.name)"
+              />
+            </div>
+          </ProfilesSection>
+        </template>
       </div>
 
-      <BaseModal
-        v-model="showForm"
-        :persistent="isSaving"
-        :show-close="false"
-        size="xl"
-        content-class="claude-profile-editor-modal !max-w-[980px] !max-h-[90vh] rounded-[32px]"
-      >
-        <template #header="{ titleId }">
-          <div class="editor-shell-header flex items-start justify-between gap-4">
-            <div class="flex min-w-0 items-start gap-4">
-              <div class="editor-hero-icon flex h-14 w-14 shrink-0 items-center justify-center rounded-[20px]">
-                <SIcon
-                  name="Layers"
-                  size="w-7 h-7"
-                />
-              </div>
-              <div class="min-w-0">
-                <p class="editor-shell-eyebrow text-xs font-semibold uppercase tracking-[0.26em]">
-                  {{ modalEyebrow }}
-                </p>
-                <div class="mt-2 flex flex-wrap items-center gap-2">
-                  <h2
-                    :id="titleId"
-                    class="editor-shell-title text-2xl font-semibold tracking-tight"
-                  >
-                    {{ modalTitle }}
-                  </h2>
-                  <span
-                    class="editor-pill px-3 py-1 text-xs font-medium"
-                    :class="modalStatusClass"
-                  >
-                    {{ modalStatus }}
-                  </span>
-                </div>
-                <p class="editor-shell-description mt-2 max-w-3xl text-sm leading-6">
-                  {{ modalDescription }}
-                </p>
-              </div>
-            </div>
+      <ClaudeProfilesContextRail
+        :profiles="profiles"
+        :current="currentProfileName"
+        :active-profile="activeProfile"
+        @edit="openEditForm(findProfile($event))"
+      />
+    </main>
 
+    <BaseModal
+      v-model="showForm"
+      :persistent="isSaving"
+      :show-close="false"
+      size="xl"
+      content-class="claude-profile-editor-modal !max-w-[980px] !max-h-[90vh] rounded-[32px]"
+    >
+      <template #header="{ titleId }">
+        <div class="editor-shell-header flex items-start justify-between gap-4">
+          <div class="flex min-w-0 items-start gap-4">
+            <div class="editor-hero-icon flex h-14 w-14 shrink-0 items-center justify-center rounded-[20px]">
+              <SIcon
+                name="Layers"
+                size="w-7 h-7"
+              />
+            </div>
+            <div class="min-w-0">
+              <p class="editor-shell-eyebrow text-xs font-semibold uppercase tracking-[0.26em]">
+                {{ modalEyebrow }}
+              </p>
+              <div class="mt-2 flex flex-wrap items-center gap-2">
+                <h2
+                  :id="titleId"
+                  class="editor-shell-title text-2xl font-semibold tracking-tight"
+                >
+                  {{ modalTitle }}
+                </h2>
+                <span
+                  class="editor-pill px-3 py-1 text-xs font-medium"
+                  :class="modalStatusClass"
+                >
+                  {{ modalStatus }}
+                </span>
+              </div>
+              <p class="editor-shell-description mt-2 max-w-3xl text-sm leading-6">
+                {{ modalDescription }}
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            class="editor-close-button inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+            :aria-label="$t('claudeProfiles.closeModal')"
+            :disabled="isSaving"
+            @click="closeForm"
+          >
+            <SIcon
+              name="X"
+              size="w-4 h-4"
+            />
+          </button>
+        </div>
+      </template>
+
+      <div class="flex max-h-[calc(90vh-8rem)] flex-col overflow-hidden">
+        <div class="editor-nav-rail mb-4 flex flex-wrap gap-2 border-b border-border-default/35 pb-4">
+          <button
+            v-for="section in modalSectionItems"
+            :key="section.id"
+            type="button"
+            class="editor-nav-button inline-flex min-h-[40px] items-center gap-2 rounded-full px-3.5 py-2 text-sm transition-[background-color,border-color,transform] duration-200 hover:-translate-y-px"
+            :class="activeFormSectionId === section.id
+              ? 'editor-nav-button--active'
+              : 'editor-nav-button--idle'"
+            @click="scrollToFormSection(section.id)"
+          >
+            <span class="editor-nav-button__icon flex h-7 w-7 items-center justify-center rounded-full">
+              <SIcon
+                :name="section.icon"
+                size="w-3.5 h-3.5"
+              />
+            </span>
+            {{ section.title }}
+          </button>
+        </div>
+
+        <div
+          ref="modalScrollRef"
+          class="editor-scroll-area min-h-0 flex-1 overflow-y-auto pr-1"
+          @scroll="syncActiveFormSection"
+        >
+          <ClaudeProfileEditorSections
+            :editing-name="editingName"
+            :form="form"
+            :is-editing="isEditing"
+            :monospace-field-class="monospaceFieldClass"
+            :parsed-form-tags="parsedFormTags"
+            :register-modal-section-ref="registerModalSectionRef"
+            :save-error="saveError"
+            :textarea-class="textareaClass"
+            :text-field-class="textFieldClass"
+            :update-form-field="updateFormField"
+          />
+        </div>
+
+        <div class="editor-footer mt-5 flex flex-col gap-3 pt-4 sm:flex-row sm:items-center sm:justify-between">
+          <p class="text-sm text-text-secondary">
+            {{ $t('claudeProfiles.modalFooterHint') }}
+          </p>
+          <div class="flex items-center justify-end gap-3">
             <button
               type="button"
-              class="editor-close-button inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-              :aria-label="$t('claudeProfiles.closeModal')"
+              class="editor-button editor-button--secondary min-h-[44px] rounded-2xl px-5 py-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-50"
               :disabled="isSaving"
               @click="closeForm"
             >
-              <SIcon
-                name="X"
-                size="w-4 h-4"
-              />
+              {{ $t('claudeProfiles.cancel') }}
             </button>
-          </div>
-        </template>
-
-        <div class="flex max-h-[calc(90vh-8rem)] flex-col overflow-hidden">
-          <div class="editor-nav-rail mb-4 flex flex-wrap gap-2 border-b border-border-default/35 pb-4">
             <button
-              v-for="section in modalSectionItems"
-              :key="section.id"
               type="button"
-              class="editor-nav-button inline-flex min-h-[40px] items-center gap-2 rounded-full px-3.5 py-2 text-sm transition-[background-color,border-color,transform] duration-200 hover:-translate-y-px"
-              :class="activeFormSectionId === section.id
-                ? 'editor-nav-button--active'
-                : 'editor-nav-button--idle'"
-              @click="scrollToFormSection(section.id)"
+              class="editor-button editor-button--primary min-h-[44px] rounded-2xl px-5 py-2.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
+              :disabled="!form.name.trim() || isSaving"
+              @click="handleSave()"
             >
-              <span class="editor-nav-button__icon flex h-7 w-7 items-center justify-center rounded-full">
+              <span class="inline-flex items-center gap-2">
                 <SIcon
-                  :name="section.icon"
-                  size="w-3.5 h-3.5"
+                  v-if="isSaving"
+                  name="RefreshCw"
+                  size="w-4 h-4"
+                  class="animate-spin"
                 />
+                {{ isEditing ? $t('claudeProfiles.save') : $t('claudeProfiles.create') }}
               </span>
-              {{ section.title }}
             </button>
-          </div>
-
-          <div
-            ref="modalScrollRef"
-            class="editor-scroll-area min-h-0 flex-1 overflow-y-auto pr-1"
-            @scroll="syncActiveFormSection"
-          >
-            <ClaudeProfileEditorSections
-              :editing-name="editingName"
-              :form="form"
-              :is-editing="isEditing"
-              :monospace-field-class="monospaceFieldClass"
-              :parsed-form-tags="parsedFormTags"
-              :register-modal-section-ref="registerModalSectionRef"
-              :save-error="saveError"
-              :textarea-class="textareaClass"
-              :text-field-class="textFieldClass"
-              :update-form-field="updateFormField"
-            />
-          </div>
-
-          <div class="editor-footer mt-5 flex flex-col gap-3 pt-4 sm:flex-row sm:items-center sm:justify-between">
-            <p class="text-sm text-text-secondary">
-              {{ $t('claudeProfiles.modalFooterHint') }}
-            </p>
-            <div class="flex items-center justify-end gap-3">
-              <button
-                type="button"
-                class="editor-button editor-button--secondary min-h-[44px] rounded-2xl px-5 py-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-50"
-                :disabled="isSaving"
-                @click="closeForm"
-              >
-                {{ $t('claudeProfiles.cancel') }}
-              </button>
-              <button
-                type="button"
-                class="editor-button editor-button--primary min-h-[44px] rounded-2xl px-5 py-2.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
-                :disabled="!form.name.trim() || isSaving"
-                @click="handleSave()"
-              >
-                <span class="inline-flex items-center gap-2">
-                  <SIcon
-                    v-if="isSaving"
-                    name="RefreshCw"
-                    size="w-4 h-4"
-                    class="animate-spin"
-                  />
-                  {{ isEditing ? $t('claudeProfiles.save') : $t('claudeProfiles.create') }}
-                </span>
-              </button>
-            </div>
           </div>
         </div>
-      </BaseModal>
-    </div>
+      </div>
+    </BaseModal>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch, type ComponentPublicInstance } from 'vue'
+import { computed, h, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { RouterLink } from 'vue-router'
 import {
   addClaudeProfile,
   applyClaudeProfile,
@@ -530,12 +384,14 @@ import {
   updateClaudeProfile,
 } from '@/api'
 import ClaudeProfileEditorSections from '@/components/claude/ClaudeProfileEditorSections.vue'
-import ClaudeProfilesOverview from '@/components/claude/ClaudeProfilesOverview.vue'
-import ClaudeProfilesProviderNav from '@/components/claude/ClaudeProfilesProviderNav.vue'
-import ClaudeProfilesSectionList from '@/components/claude/ClaudeProfilesSectionList.vue'
+import ClaudeProfileRow from '@/components/claude/ClaudeProfileRow.vue'
+import ClaudeProfilesContextRail from '@/components/claude/profiles/ClaudeProfilesContextRail.vue'
+import ClaudeProfilesHeader from '@/components/claude/profiles/ClaudeProfilesHeader.vue'
+import ClaudeProfileListRow from '@/components/claude/profiles/ClaudeProfileListRow.vue'
+import ClaudeProfilesStatStrip from '@/components/claude/profiles/ClaudeProfilesStatStrip.vue'
+import ClaudeProfilesToolbar, { type ClaudeProfilesViewMode } from '@/components/claude/profiles/ClaudeProfilesToolbar.vue'
 import BaseModal from '@/components/common/BaseModal.vue'
-import PageHeaderCard from '@/components/PageHeaderCard.vue'
-import Input from '@/components/ui/Input.vue'
+import ModuleSubnav from '@/components/ModuleSubnav.vue'
 import SIcon from '@/components/ui/SIcon.vue'
 import { translateWithFallback } from '@/i18n/formatMessage'
 import type { ClaudeProfile, ClaudeProfileRequest, ClaudeProfilesResponse } from '@/types'
@@ -546,11 +402,14 @@ import type {
 } from '@/types/claudeProfileEditor'
 import { getErrorMessage } from '@/types/api'
 import {
-  createClaudeProfilesOverviewSummary,
-  createClaudeProfileSections,
-  filterClaudeProfiles,
   normalizeClaudeProfilesState,
+  resolveProviderColor,
 } from '@/utils/claudeProfiles'
+import {
+  useClaudeProfilesFilter,
+  type ClaudeProfilesSortBy,
+  type ClaudeProfilesStatusFilter,
+} from '@/composables/useClaudeProfilesFilter'
 import { logger } from '@/utils/logger'
 import { CLAUDE_PROFILE_FORM_SECTION_IDS } from '@/types/claudeProfileEditor'
 import { downloadTextFile } from '@/utils/download'
@@ -575,10 +434,14 @@ const isEditing = ref(false)
 const isSaving = ref(false)
 const saveError = ref<string | null>(null)
 const editingName = ref('')
-const currentSectionId = ref<string | null>(null)
 const searchQuery = ref('')
-const sectionRefs = ref<Record<string, HTMLElement | null>>({})
-const sectionObserver = ref<IntersectionObserver | null>(null)
+const statusFilter = ref<ClaudeProfilesStatusFilter>('all')
+const tagFilter = ref<string | null>(null)
+const providerFilter = ref<string | null>(null)
+const sortBy = ref<ClaudeProfilesSortBy>('recent')
+const viewMode = ref<ClaudeProfilesViewMode>('card')
+const lastWriteHint = ref<string | null>(null)
+const toolbarRef = ref<InstanceType<typeof ClaudeProfilesToolbar> | null>(null)
 const modalScrollRef = ref<HTMLElement | null>(null)
 const activeFormSectionId = ref<ClaudeProfileFormSectionId>('basic')
 const modalSectionRefs = ref<Record<ClaudeProfileFormSectionId, HTMLElement | null>>({
@@ -606,47 +469,68 @@ const form = reactive<ClaudeProfileEditorForm>({
   enabled: true,
 })
 
-const trimmedSearchQuery = computed(() => searchQuery.value.trim())
-const hasActiveSearch = computed(() => trimmedSearchQuery.value.length > 0)
 const currentProfileRecord = computed(() => profiles.value.find(profile => profile.is_current) ?? null)
+const currentProfileName = computed(() => currentProfileRecord.value?.name ?? null)
 const providerUnsetLabel = computed(() => t('claudeProfiles.providerUnset'))
-const providerSections = computed(() => createClaudeProfileSections(profiles.value, providerUnsetLabel.value))
-const filteredProfiles = computed(() => filterClaudeProfiles(profiles.value, trimmedSearchQuery.value))
-const visibleProviderSections = computed(() => createClaudeProfileSections(filteredProfiles.value, providerUnsetLabel.value))
-const overviewSummary = computed(() => createClaudeProfilesOverviewSummary(profiles.value, providerUnsetLabel.value))
-const showSearchRail = computed(() => !loading.value && !loadError.value && profiles.value.length > 0)
-const showNavigation = computed(() => !loading.value && !loadError.value && visibleProviderSections.value.length > 1)
 const isEditingCurrent = computed(() => isEditing.value && editingName.value === currentProfileRecord.value?.name)
-const providerSectionsCountLabel = computed(() => translateWithFallback(
-  t,
-  'claudeProfiles.providerSectionsCount',
-  'Provider 分组 {count}',
-  { count: providerSections.value.length },
-))
-const searchProfilesCountLabel = computed(() => translateWithFallback(
-  t,
-  'claudeProfiles.searchProfilesCount',
-  '{matched} / {total} Profiles',
-  {
-    matched: filteredProfiles.value.length,
-    total: profiles.value.length,
-  },
-))
-const searchProvidersCountLabel = computed(() => translateWithFallback(
-  t,
-  'claudeProfiles.searchProvidersCount',
-  '{matched} / {total} Providers',
-  {
-    matched: visibleProviderSections.value.length,
-    total: providerSections.value.length,
-  },
-))
-const quickSwitchStripCountLabel = computed(() => translateWithFallback(
-  t,
-  'claudeProfiles.quickSwitchStripCount',
-  '{matched} 个候选',
-  { matched: filteredProfiles.value.length },
-))
+
+// 过滤/排序/分组逻辑下沉到 composable
+const {
+  allTags,
+  allProviders,
+  filtered,
+  enabledList,
+  disabledList,
+  activeProfile,
+} = useClaudeProfilesFilter({
+  profiles,
+  currentProfile: currentProfileName,
+  query: searchQuery,
+  statusFilter,
+  tagFilter,
+  providerFilter,
+  sortBy,
+  providerUnsetLabel,
+})
+
+// 认证分布（喂统计条）
+const subscriptionCount = computed(
+  () => profiles.value.filter(profile => (profile.auth_mode ?? 'subscription') === 'subscription').length,
+)
+const apiKeyCount = computed(
+  () => profiles.value.filter(profile => profile.auth_mode === 'api_key').length,
+)
+const enabledProfilesCount = computed(
+  () => profiles.value.filter(profile => profile.enabled !== false).length,
+)
+
+const trimmedSearchQuery = computed(() => searchQuery.value.trim())
+
+// 列表行只发 name，编辑需要完整 profile 记录
+const findProfile = (name: string): ClaudeProfile => {
+  const profile = profiles.value.find(item => item.name === name)
+  if (!profile) {
+    throw new Error(`Claude profile "${name}" not found`)
+  }
+  return profile
+}
+
+// 简易分组容器：标题 + 计数 + 内容插槽（functional component）
+const ProfilesSection = (
+  props: { title: string, count: number },
+  { slots }: { slots: { default?: () => unknown } },
+) => {
+  const children = (slots.default?.() ?? []) as never
+  return h('section', { class: 'cp-section' }, [
+    h('div', { class: 'cp-section__head' }, [
+      h(SIcon, { name: 'Folder', size: 'w-3.5 h-3.5', class: 'cp-section__icon' }),
+      h('span', { class: 'cp-section__title' }, props.title),
+      h('span', { class: 'cp-section__count' }, String(props.count)),
+    ]),
+    h('div', { class: 'cp-section__body' }, children),
+  ])
+}
+;(ProfilesSection as unknown as { props: string[] }).props = ['title', 'count']
 
 const modalEyebrow = computed(() => (
   isEditing.value
@@ -824,7 +708,9 @@ const closeForm = () => {
   activeFormSectionId.value = 'basic'
 }
 
-const resolveSectionElement = (target: Element | ComponentPublicInstance | null): HTMLElement | null => {
+type SectionRefTarget = Element | { $el?: unknown } | null
+
+const resolveSectionElement = (target: SectionRefTarget): HTMLElement | null => {
   if (!target) return null
   if (target instanceof HTMLElement) return target
 
@@ -836,80 +722,35 @@ const resolveSectionElement = (target: Element | ComponentPublicInstance | null)
   return null
 }
 
-const registerSectionRef = (sectionId: string, target: Element | ComponentPublicInstance | null) => {
-  const resolvedElement = resolveSectionElement(target)
-
-  if (resolvedElement) {
-    sectionRefs.value[sectionId] = resolvedElement
-    return
-  }
-
-  delete sectionRefs.value[sectionId]
-}
-
-const registerModalSectionRef = (sectionId: ClaudeProfileFormSectionId, target: Element | ComponentPublicInstance | null) => {
+const registerModalSectionRef = (sectionId: ClaudeProfileFormSectionId, target: SectionRefTarget) => {
   const resolvedElement = resolveSectionElement(target)
 
   modalSectionRefs.value[sectionId] = resolvedElement
 }
 
-const teardownSectionObserver = () => {
-  sectionObserver.value?.disconnect()
-  sectionObserver.value = null
-}
-
-const setupSectionObserver = () => {
-  teardownSectionObserver()
-
-  if (!showNavigation.value || typeof IntersectionObserver === 'undefined') return
-
-  const elements = visibleProviderSections.value
-    .map(section => sectionRefs.value[section.id])
-    .filter((element): element is HTMLElement => !!element)
-
-  if (elements.length === 0) return
-
-  sectionObserver.value = new IntersectionObserver((entries) => {
-    const visibleEntries = entries
-      .filter(entry => entry.isIntersecting)
-      .sort((left, right) => left.boundingClientRect.top - right.boundingClientRect.top)
-
-    if (visibleEntries.length > 0) {
-      currentSectionId.value = visibleEntries[0]?.target.id ?? currentSectionId.value
-      return
-    }
-
-    const nearestPassedEntry = entries
-      .filter(entry => entry.boundingClientRect.top <= 180)
-      .sort((left, right) => right.boundingClientRect.top - left.boundingClientRect.top)[0]
-
-    if (nearestPassedEntry) {
-      currentSectionId.value = nearestPassedEntry.target.id
-    }
-  }, {
-    rootMargin: '-18% 0px -58% 0px',
-    threshold: [0.1, 0.45, 0.75],
-  })
-
-  elements.forEach(element => sectionObserver.value?.observe(element))
-}
-
-const scrollToSection = (sectionId: string) => {
-  currentSectionId.value = sectionId
-  sectionRefs.value[sectionId]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-}
-
-const clearSearch = () => {
+const resetFilters = () => {
   searchQuery.value = ''
+  statusFilter.value = 'all'
+  tagFilter.value = null
+  providerFilter.value = null
 }
 
-// Ctrl/Cmd+K 聚焦搜索框快捷键
+const isEditableTarget = (el: EventTarget | null): boolean => {
+  if (!(el instanceof HTMLElement)) return false
+  const tag = el.tagName
+  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable
+}
+
+// 快捷键：⌘K / 聚焦搜索框
 const handleGlobalKeydown = (event: KeyboardEvent) => {
   if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
     event.preventDefault()
-    // 聚焦搜索区域内的 input 元素
-    const searchEl = document.querySelector('.claude-profiles-view__search-input-shell input') as HTMLInputElement | null
-    searchEl?.focus()
+    toolbarRef.value?.focusSearch()
+    return
+  }
+  if (event.key === '/' && !isEditableTarget(event.target)) {
+    event.preventDefault()
+    toolbarRef.value?.focusSearch()
   }
 }
 
@@ -963,6 +804,7 @@ const loadProfiles = async (options: { preserveData?: boolean } = {}) => {
     profiles.value = normalized.profiles
     loadError.value = null
     refreshError.value = null
+    lastWriteHint.value = new Date().toLocaleTimeString()
 
     if (normalized.warnings.length > 0) {
       logger.warn('Normalized inconsistent Claude profiles response', {
@@ -1095,19 +937,13 @@ const handleApply = async (name: string) => {
   }
 }
 
-watch(visibleProviderSections, async (sections) => {
-  const validSectionIds = new Set(sections.map(section => section.id))
-  Object.keys(sectionRefs.value).forEach((sectionId) => {
-    if (!validSectionIds.has(sectionId)) {
-      delete sectionRefs.value[sectionId]
-    }
-  })
-
-  currentSectionId.value = sections.find(section => section.id === currentSectionId.value)?.id ?? sections[0]?.id ?? null
-
-  await nextTick()
-  setupSectionObserver()
-}, { flush: 'post' })
+// 当前激活的标签/Provider 若因数据变化而失效，自动回退到"全部"
+watch([allTags, tagFilter], ([tags, tag]) => {
+  if (tag && !tags.includes(tag)) tagFilter.value = null
+})
+watch([allProviders, providerFilter], ([providers, provider]) => {
+  if (provider && !providers.some(item => item.key === provider)) providerFilter.value = null
+})
 
 watch(showForm, (isOpen) => {
   if (isOpen) return
@@ -1121,7 +957,6 @@ onMounted(() => {
   document.addEventListener('keydown', handleGlobalKeydown)
 })
 onBeforeUnmount(() => {
-  teardownSectionObserver()
   document.removeEventListener('keydown', handleGlobalKeydown)
 })
 </script>
@@ -1486,428 +1321,245 @@ onBeforeUnmount(() => {
   background: linear-gradient(180deg, rgb(var(--color-accent-primary-rgb) / 24%), rgb(var(--color-accent-primary-rgb) / 16%));
 }
 
+
+/* ===========================================================
+   作用域设计令牌：仅在本视图内生效，子组件靠继承解析 --cp-*
+   主色用暖中性 accent-secondary（与统一身份色系统一致）
+   =========================================================== */
 .claude-profiles-view {
-  position: relative;
+  /* 背景层 → 全局 token */
+  --cp-bg-0: var(--color-bg-base);
+  --cp-bg-1: var(--color-bg-elevated);
+  --cp-bg-2: var(--color-bg-surface);
+  --cp-bg-3: var(--color-bg-overlay);
+  --cp-bg-4: rgb(var(--color-bg-overlay-rgb) / 88%);
+
+  /* 边框 → 全局 token */
+  --cp-line: var(--color-border-subtle);
+  --cp-line-2: var(--color-border-default);
+
+  /* 文字阶 → 全局 token */
+  --cp-ink-0: var(--color-text-primary);
+  --cp-ink-1: var(--color-text-secondary);
+  --cp-ink-2: var(--color-text-muted);
+  --cp-ink-3: var(--color-text-ghost);
+  --cp-ink-4: var(--color-text-disabled);
+
+  /* 主色 → 暖中性 accent-secondary */
+  --cp-accent: var(--color-accent-secondary);
+  --cp-accent-soft: rgb(var(--color-accent-secondary-rgb) / 14%);
+  --cp-accent-line: rgb(var(--color-accent-secondary-rgb) / 35%);
+  --cp-on-accent: var(--color-text-inverted);
+
+  /* 状态色 → 全局 token */
+  --cp-good: var(--color-success);
+  --cp-warn: var(--color-warning);
+  --cp-danger: var(--color-danger);
+  --cp-info: var(--color-info);
+  --cp-mono: var(--font-mono, 'MapleBright', monospace);
+
   min-height: 100%;
-  overflow: hidden;
-  padding: 1.5rem;
+  padding: 24px;
+  background: var(--color-bg-base);
+  color: var(--cp-ink-1);
+  font-size: 13px;
+  line-height: 1.5;
 }
 
-.claude-profiles-view::before,
-.claude-profiles-view::after {
-  content: '';
-  position: absolute;
-  inset: auto;
-  pointer-events: none;
-  filter: blur(64px);
-  opacity: 0.9;
-}
-
-.claude-profiles-view::before {
-  top: -4rem;
-  right: -2rem;
-  width: 18rem;
-  height: 18rem;
-  background: radial-gradient(circle, rgb(var(--color-accent-secondary-rgb) / 16%), transparent 70%);
-}
-
-.claude-profiles-view::after {
-  bottom: 8rem;
-  left: -4rem;
-  width: 22rem;
-  height: 22rem;
-  background: radial-gradient(circle, rgb(var(--color-platform-claude-rgb) / 10%), transparent 72%);
-}
-
-.claude-profiles-view__shell,
-.claude-profiles-view__main {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.claude-profiles-view__shell {
-  max-width: 1680px;
-  margin: 0 auto;
-  gap: 1.6rem;
-}
-
-.claude-profiles-view__search-rail {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.875rem;
-  padding: 1rem 1.125rem;
-  border: 1px solid rgb(var(--color-border-default-rgb) / 48%);
-  border-radius: 1.5rem;
-  background:
-    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 78%), rgb(var(--color-bg-surface-rgb) / 72%));
-  box-shadow:
-    0 18px 34px rgb(8 10 20 / 8%),
-    inset 0 1px 0 rgb(255 255 255 / 8%);
-  backdrop-filter: blur(18px) saturate(135%);
-}
-
-.claude-profiles-view__search-grid {
+.cp-shell {
+  max-width: 1440px;
+  margin: 16px auto 0;
   display: grid;
-  gap: 0.875rem;
-}
-
-.claude-profiles-view__search-input-shell {
-  min-width: 0;
-}
-
-.claude-profiles-view__search-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.625rem;
-  align-items: center;
-}
-
-.claude-profiles-view__search-chip,
-.claude-profiles-view__search-clear {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  min-height: 2.25rem;
-  padding: 0.45rem 0.85rem;
-  border-radius: 9999px;
-  border: 1px solid rgb(var(--color-border-default-rgb) / 48%);
-  background: rgb(var(--color-bg-elevated-rgb) / 64%);
-  font-size: 0.78rem;
-  line-height: 1rem;
-  font-weight: 600;
-  color: var(--color-text-secondary);
-}
-
-.claude-profiles-view__search-clear {
-  border-color: rgb(var(--color-accent-secondary-rgb) / 26%);
-  background: rgb(var(--color-accent-secondary-rgb) / 10%);
-  color: rgb(var(--color-accent-secondary-rgb) / 100%);
-  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
-}
-
-.claude-profiles-view__search-clear:hover {
-  border-color: rgb(var(--color-accent-secondary-rgb) / 34%);
-  background: rgb(var(--color-accent-secondary-rgb) / 14%);
-  transform: translateY(-1px);
-}
-
-.claude-profiles-view__search-hint {
-  font-size: 0.82rem;
-  line-height: 1.4;
-  color: var(--color-text-muted);
-}
-
-.claude-profiles-view__command-strip {
-  display: flex;
-  flex-direction: column;
-  gap: 0.7rem;
-  padding-top: 0.15rem;
-}
-
-.claude-profiles-view__command-strip-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-}
-
-.claude-profiles-view__command-strip-title {
-  font-size: 0.72rem;
-  line-height: 1rem;
-  font-weight: 700;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-}
-
-.claude-profiles-view__command-strip-hint {
-  margin-top: 0.18rem;
-  font-size: 0.8rem;
-  line-height: 1.3;
-  color: var(--color-text-secondary);
-}
-
-.claude-profiles-view__command-strip-count {
-  display: inline-flex;
-  align-items: center;
-  min-height: 1.9rem;
-  padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
-  border: 1px solid rgb(var(--color-border-default-rgb) / 45%);
-  background: rgb(var(--color-bg-elevated-rgb) / 68%);
-  font-size: 0.76rem;
-  font-weight: 600;
-  color: var(--color-text-secondary);
-}
-
-.claude-profiles-view__command-strip-scroll {
-  display: flex;
-  gap: 0.55rem;
-  overflow-x: auto;
-  padding-bottom: 0.15rem;
-  scrollbar-width: thin;
-}
-
-.claude-profiles-view__command-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.55rem;
-  flex: 0 0 auto;
-  min-height: 2rem;
-  max-width: 15rem;
-  padding: 0.38rem 0.8rem;
-  border: 1px solid rgb(var(--color-border-default-rgb) / 45%);
-  border-radius: 9999px;
-  font-size: 0.8rem;
-  line-height: 1rem;
-  font-weight: 600;
-  transition:
-    background-color 0.2s ease,
-    border-color 0.2s ease,
-    color 0.2s ease,
-    transform 0.2s ease;
-}
-
-.claude-profiles-view__command-pill--idle {
-  background: rgb(var(--color-bg-elevated-rgb) / 68%);
-  color: var(--color-text-secondary);
-}
-
-.claude-profiles-view__command-pill--idle:hover {
-  border-color: rgb(var(--color-border-default-rgb) / 75%);
-  background: rgb(var(--color-bg-elevated-rgb) / 94%);
-  color: var(--color-text-primary);
-  transform: translateY(-1px);
-}
-
-.claude-profiles-view__command-pill--current {
-  border-color: rgb(var(--color-accent-secondary-rgb) / 28%);
-  background: rgb(var(--color-accent-secondary-rgb) / 12%);
-  color: rgb(var(--color-accent-secondary-rgb) / 100%);
-}
-
-.claude-profiles-view__command-pill--disabled {
-  cursor: not-allowed;
-  opacity: 0.58;
-  background: rgb(var(--color-bg-elevated-rgb) / 44%);
-  color: var(--color-text-muted);
-}
-
-.claude-profiles-view__command-pill-dot {
-  width: 0.42rem;
-  height: 0.42rem;
-  flex-shrink: 0;
-  border-radius: 9999px;
-}
-
-.claude-profiles-view__command-pill-dot--current {
-  background: rgb(var(--color-accent-secondary-rgb) / 100%);
-}
-
-.claude-profiles-view__command-pill-dot--enabled {
-  background: rgb(var(--color-success-rgb) / 100%);
-}
-
-.claude-profiles-view__command-pill-dot--disabled {
-  background: rgb(var(--color-danger-rgb) / 100%);
-}
-
-.claude-profiles-view__breadcrumb,
-.claude-profiles-view__header-button {
-  display: flex;
-  align-items: center;
-}
-
-.claude-profiles-view__breadcrumb {
-  width: fit-content;
-  gap: 0.5rem;
-  font-size: 0.875rem;
-  line-height: 1.25rem;
-  color: var(--color-text-secondary);
-}
-
-.claude-profiles-view__breadcrumb-link {
-  transition: color 0.2s ease;
-}
-
-.claude-profiles-view__breadcrumb-link:hover {
-  color: var(--color-text-primary);
-}
-
-.claude-profiles-view__breadcrumb-current {
-  color: var(--color-text-primary);
-}
-
-.claude-profiles-view__eyebrow {
-  display: inline-flex;
-  align-items: center;
-  min-height: 1.75rem;
-  padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
-  border: 1px solid rgb(var(--color-platform-claude-rgb) / 22%);
-  background: rgb(var(--color-platform-claude-rgb) / 8%);
-  color: rgb(var(--color-platform-claude-rgb));
-  font-size: 0.72rem;
-  line-height: 1rem;
-  font-weight: 700;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-}
-
-.claude-profiles-view__meta-chip {
-  display: inline-flex;
-  align-items: center;
-  min-height: 1.75rem;
-  padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
-  border: 1px solid rgb(var(--color-border-default-rgb) / 45%);
-  background: rgb(var(--color-bg-elevated-rgb) / 72%);
-  color: var(--color-text-secondary);
-  font-size: 0.75rem;
-  font-weight: 500;
-}
-
-.claude-profiles-view__header-button {
-  gap: 0.5rem;
-  min-height: 44px;
-  border: 1px solid;
-  border-radius: 1rem;
-  padding: 0.625rem 1rem;
-  font-size: 0.875rem;
-  line-height: 1.25rem;
-  font-weight: 500;
-  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.claude-profiles-view__header-button--secondary {
-  border-color: rgb(var(--color-border-default-rgb) / 60%);
-  background: rgb(var(--color-bg-surface-rgb) / 75%);
-  color: var(--color-text-secondary);
-}
-
-.claude-profiles-view__header-button--secondary:hover {
-  background: rgb(var(--color-bg-elevated-rgb) / 92%);
-  color: var(--color-text-primary);
-}
-
-.claude-profiles-view__header-button--primary {
-  border-color: rgb(var(--color-accent-secondary-rgb) / 35%);
-  background: linear-gradient(180deg, rgb(var(--color-accent-secondary-rgb) / 14%), rgb(var(--color-accent-secondary-rgb) / 10%));
-  color: rgb(var(--color-accent-secondary-rgb) / 100%);
-  box-shadow: 0 12px 24px rgb(var(--color-accent-secondary-rgb) / 12%);
-}
-
-.claude-profiles-view__header-button--primary:hover {
-  background: linear-gradient(180deg, rgb(var(--color-accent-secondary-rgb) / 20%), rgb(var(--color-accent-secondary-rgb) / 14%));
-}
-
-.claude-profiles-view__header-button--primary:focus-visible {
-  outline: 2px solid rgb(var(--color-accent-secondary-rgb) / 20%);
-  outline-offset: 2px;
-}
-
-.claude-profiles-view__layout {
-  display: grid;
-  gap: 1.5rem;
-}
-
-.claude-profiles-view__main {
-  min-width: 0;
-  gap: 1.5rem;
-}
-
-.claude-profiles-view__sidebar {
-  display: none;
-}
-
-.claude-profiles-view__mobile-nav {
-  display: block;
-}
-
-@media (width >= 1024px) {
-  .claude-profiles-view {
-    padding: 2.5rem;
-  }
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
 }
 
 @media (width >= 1280px) {
-  .claude-profiles-view__layout--with-nav {
-    grid-template-columns: 18rem minmax(0, 1fr);
+  .cp-shell {
+    grid-template-columns: minmax(0, 1fr) 320px;
   }
+}
 
-  .claude-profiles-view__sidebar {
-    display: block;
-  }
+.cp-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
 
-  .claude-profiles-view__mobile-nav {
+/* 分组容器 */
+.cp-section {
+  margin-bottom: 18px;
+}
+
+.cp-section__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.cp-section__icon {
+  color: var(--cp-ink-3);
+}
+
+.cp-section__title {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--cp-ink-2);
+}
+
+.cp-section__count {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--cp-bg-3);
+  border: 1px solid var(--cp-line-2);
+  color: var(--cp-ink-3);
+  font-family: var(--cp-mono);
+  font-size: 10.5px;
+}
+
+.cp-section__body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* 卡片视图栅格 */
+.cp-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+}
+
+/* 列表视图 */
+.cp-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cp-list-head {
+  display: grid;
+  grid-template-columns: 12px minmax(120px, 160px) minmax(0, 1.2fr) minmax(0, 1.5fr) minmax(
+      80px,
+      110px
+    ) minmax(80px, 120px) minmax(60px, 1fr) auto;
+  gap: 12px;
+  padding: 2px 14px 4px;
+  font-family: var(--cp-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--cp-ink-3);
+}
+
+.cp-list-head__right {
+  text-align: right;
+}
+
+@media (width <= 1024px) {
+  .cp-list-head {
     display: none;
   }
 }
 
-@media (width >= 960px) {
-  .claude-profiles-view__search-grid {
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: center;
-  }
-
-  .claude-profiles-view__search-meta {
-    justify-content: flex-end;
-  }
+/* 加载/空/错误三态 */
+.cp-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  padding: 48px 16px;
+  border-radius: 12px;
+  border: 1px dashed var(--cp-line-2);
+  background: var(--cp-bg-2);
+  color: var(--cp-ink-3);
 }
 
-@media (width < 768px) {
-  .claude-profiles-view__meta-chip {
-    display: none;
-  }
-
-  .claude-profiles-view__search-rail {
-    padding: 0.9rem;
-  }
-
-  .claude-profiles-view__command-strip-head {
-    align-items: flex-start;
-  }
+.cp-state--error {
+  border-style: solid;
+  border-color: rgb(var(--color-danger-rgb) / 30%);
+  color: var(--cp-danger);
 }
 
-/* ── Overview 与列表的视觉分隔 ── */
-.claude-profiles-view .page-header-card__body {
-  padding-top: 1rem;
-  border-top: 1px solid rgb(var(--color-border-default-rgb) / 18%);
+.cp-state--warn {
+  border-style: solid;
+  border-color: rgb(var(--color-warning-rgb) / 30%);
+  color: var(--cp-warn);
 }
 
-/* ── 搜索高亮样式 ── */
-.profile-search-highlight {
-  background: rgb(var(--color-accent-secondary-rgb) / 18%);
-  color: inherit;
-  border-radius: 2px;
-  padding: 0 1px;
+.cp-state__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--cp-ink-0);
 }
 
-/* ── 键盘快捷键提示 ── */
-.claude-profiles-view__search-hint kbd {
+.cp-state__hint {
+  font-size: 12px;
+  color: var(--cp-ink-2);
+  max-width: 420px;
+}
+
+.cp-state__btn {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  min-width: 1.5em;
-  padding: 0.1em 0.35em;
-  border: 1px solid rgb(var(--color-border-default-rgb) / 45%);
-  border-radius: 4px;
-  background: rgb(var(--color-bg-elevated-rgb) / 60%);
-  font-family: var(--font-mono);
-  font-size: 0.72em;
-  line-height: 1.3;
-  color: var(--color-text-muted);
-  box-shadow: 0 1px 0 rgb(0 0 0 / 8%);
+  gap: 6px;
+  margin-top: 4px;
+  padding: 7px 14px;
+  border-radius: 7px;
+  border: 1px solid var(--cp-line-2);
+  background: var(--cp-bg-3);
+  color: var(--cp-ink-1);
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    color 120ms ease;
 }
 
-/* ── reduced motion 降级 ── */
+.cp-state__btn:hover:not(:disabled) {
+  background: var(--cp-accent-soft);
+  border-color: var(--cp-accent-line);
+  color: var(--cp-accent);
+}
+
+.cp-state__btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.cp-state__btn--primary {
+  background: var(--cp-accent);
+  border-color: var(--cp-accent);
+  color: var(--cp-on-accent);
+}
+
+.cp-state__spinner {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: 2px solid var(--cp-line-2);
+  border-top-color: var(--cp-accent);
+  animation: cp-state-spin 1s linear infinite;
+}
+
+@keyframes cp-state-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .profile-search-highlight {
+  .cp-state__spinner {
+    animation: none;
+  }
+
+  .cp-state__btn {
     transition: none;
   }
 }

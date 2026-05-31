@@ -23,6 +23,9 @@ vi.mock('@/api', () => ({
 }))
 
 vi.mock('vue-router', () => ({
+  useRoute: () => ({
+    path: '/claude-code/profiles',
+  }),
   RouterLink: defineComponent({
     props: {
       to: { type: [String, Object], required: true },
@@ -103,6 +106,15 @@ vi.mock('@/components/claude/ClaudeProfileEditorSections.vue', () => ({
     },
   }),
 }))
+
+const RouterLinkStub = defineComponent({
+  props: {
+    to: { type: [String, Object], required: true },
+  },
+  setup(_props, { slots }) {
+    return () => h('a', {}, slots.default?.())
+  },
+})
 
 const flushPromises = async () => {
   await Promise.resolve()
@@ -186,6 +198,7 @@ const mountView = async () => {
     },
   }))
   app.use(createPinia())
+  app.component('RouterLink', RouterLinkStub)
 
   app.mount(el)
   await flushPromises()
@@ -199,16 +212,30 @@ const mountView = async () => {
   }
 }
 
-const findQuickSwitchButtons = (el: HTMLElement) =>
-  Array.from(el.querySelectorAll<HTMLButtonElement>('button')).filter((button) =>
-    sampleProfiles.some((profile) => button.textContent?.includes(profile.name)),
-  )
+const findSearchInput = (el: HTMLElement) =>
+  el.querySelector<HTMLInputElement>('.cp-search__input')
 
-const findQuickSwitchButton = (el: HTMLElement, name: string) =>
-  findQuickSwitchButtons(el).find(button => button.textContent?.includes(name)) ?? null
+const findToolbarMeta = (el: HTMLElement) =>
+  el.querySelector<HTMLElement>('.cp-toolbar__meta')
+
+const findButtonByText = (el: HTMLElement, text: string) =>
+  Array.from(el.querySelectorAll<HTMLButtonElement>('button'))
+    .find(button => button.textContent?.includes(text)) ?? null
+
+const findProfileCards = (el: HTMLElement) =>
+  Array.from(el.querySelectorAll<HTMLElement>('.cp-grid > article'))
+
+const findProfileCardNames = (el: HTMLElement) =>
+  findProfileCards(el)
+    .map(card => sampleProfiles.find(profile => card.textContent?.includes(profile.name))?.name)
+    .filter((name): name is string => Boolean(name))
 
 const findProfileCard = (el: HTMLElement, name: string) =>
-  Array.from(el.querySelectorAll<HTMLElement>('article')).find((article) => article.textContent?.includes(name)) ?? null
+  findProfileCards(el).find((article) => article.textContent?.includes(name)) ?? null
+
+const findApplyButton = (card: HTMLElement | null) =>
+  Array.from(card?.querySelectorAll<HTMLButtonElement>('button') ?? [])
+    .find(button => button.textContent?.includes('应用此 Profile')) ?? null
 
 beforeEach(() => {
   apiMocks.listClaudeProfiles.mockReset()
@@ -246,51 +273,56 @@ afterEach(() => {
 })
 
 describe('ClaudeCodeProfilesView smoke', () => {
-  it('renders overview statistics for profile density and config coverage', async () => {
+  it('renders the redesigned stat strip, filters, and context rail insights', async () => {
     const { el, unmount } = await mountView()
 
     try {
       expect(el.textContent).toContain('Profiles')
-      expect(el.textContent).toContain('3 已启用 · 1 已停用')
-      expect(el.textContent).toContain('3 个分组 · 1 未设置 Provider')
-      expect(el.textContent).toContain('2 主模型 · 2 快速模型')
-      expect(el.textContent).toContain('4 订阅 · 0 API Key · 2 账号')
-      expect(el.textContent).toContain('自定义 Endpoint')
-      expect(el.textContent).toContain('带标签')
-      expect(el.textContent).toContain('缺少主模型')
-      expect(el.textContent).toContain('缺少账号')
+      expect(el.textContent).toContain('当前 Profile')
+      expect(el.textContent).toContain('zeta-current')
+      expect(el.textContent).toContain('总数')
+      expect(el.textContent).toContain('3 启用 · 1 停用')
+      expect(el.textContent).toContain('认证分布')
+      expect(el.textContent).toContain('订阅 4 · API Key 0')
+      expect(el.textContent).toContain('全部 Provider')
+      expect(el.textContent).toContain('分布洞察')
+      expect(el.textContent).toContain('Anthropic')
+      expect(el.textContent).toContain('Zeta Relay')
+      expect(el.textContent).toContain('健康审计')
+      expect(el.textContent).toContain('anthropic-disabled')
+      expect(el.textContent).toContain('missing-provider')
+      expect(el.textContent).toContain('缺少模型 · 缺少账号')
+      expect(findToolbarMeta(el)?.textContent).toBe('4/4')
     } finally {
       unmount()
     }
   })
 
-  it('limits quick-switch actions to the filtered profile set', async () => {
+  it('filters the profile card set without stale untranslated labels', async () => {
     const { el, unmount } = await mountView()
 
     try {
       expect(el.textContent).toContain('未设置 Provider')
       expect(el.textContent).not.toContain('Unspecified Provider')
       expect(el.textContent).not.toContain('Other')
-      expect(el.textContent).toContain('4 个候选')
+      expect(findToolbarMeta(el)?.textContent).toBe('4/4')
 
-      expect(findQuickSwitchButtons(el).map(button => button.textContent?.trim())).toEqual([
+      expect(findProfileCardNames(el)).toEqual([
         'zeta-current',
         'anthropic-a',
-        'anthropic-disabled',
         'missing-provider',
+        'anthropic-disabled',
       ])
 
-      const searchInput = el.querySelector<HTMLInputElement>('input[placeholder="搜索名称 / provider / model / tag"]')
+      const searchInput = findSearchInput(el)
       expect(searchInput).not.toBeNull()
 
       searchInput!.value = 'local'
       searchInput!.dispatchEvent(new Event('input', { bubbles: true }))
       await flushPromises()
 
-      expect(findQuickSwitchButtons(el).map(button => button.textContent?.trim())).toEqual([
-        'missing-provider',
-      ])
-      expect(el.textContent).toContain('1 个候选')
+      expect(findProfileCardNames(el)).toEqual(['missing-provider'])
+      expect(findToolbarMeta(el)?.textContent).toBe('1/4')
       expect(el.textContent).not.toContain('{count}')
       expect(el.textContent).not.toContain('{enabled}')
     } finally {
@@ -298,11 +330,11 @@ describe('ClaudeCodeProfilesView smoke', () => {
     }
   })
 
-  it('shows the search empty state without leaving stale quick-switch actions behind', async () => {
+  it('shows the search empty state without leaving stale profile cards behind', async () => {
     const { el, unmount } = await mountView()
 
     try {
-      const searchInput = el.querySelector<HTMLInputElement>('input[placeholder="搜索名称 / provider / model / tag"]')
+      const searchInput = findSearchInput(el)
       expect(searchInput).not.toBeNull()
 
       searchInput!.value = 'no-such-profile'
@@ -311,13 +343,14 @@ describe('ClaudeCodeProfilesView smoke', () => {
 
       expect(el.textContent).toContain('没有匹配的 Claude Profile')
       expect(el.textContent).not.toContain('claudeProfiles.')
-      expect(findQuickSwitchButtons(el)).toHaveLength(0)
+      expect(findProfileCards(el)).toHaveLength(0)
+      expect(findToolbarMeta(el)?.textContent).toBe('0/4')
     } finally {
       unmount()
     }
   })
 
-  it('normalizes current profile state across overview, provider nav, quick switch, and row cards', async () => {
+  it('normalizes current profile state across stat strip, context rail, and row cards', async () => {
     apiMocks.listClaudeProfiles.mockResolvedValue({
       profiles: cloneProfiles(),
       current_profile: 'anthropic-a',
@@ -331,36 +364,30 @@ describe('ClaudeCodeProfilesView smoke', () => {
 
       const anthropicCard = findProfileCard(el, 'anthropic-a')
       const zetaCard = findProfileCard(el, 'zeta-current')
-      const anthropicQuickSwitch = findQuickSwitchButton(el, 'anthropic-a')
-      const zetaQuickSwitch = findQuickSwitchButton(el, 'zeta-current')
-      const anthropicProviderButtons = Array.from(el.querySelectorAll<HTMLButtonElement>('nav button'))
-        .filter(button => button.textContent?.includes('Anthropic'))
+      const anthropicApplyButton = findApplyButton(anthropicCard)
+      const zetaApplyButton = findApplyButton(zetaCard)
 
       expect(anthropicCard?.textContent).toContain('当前已激活')
       expect(zetaCard?.textContent).not.toContain('当前已激活')
-      expect(anthropicQuickSwitch?.disabled).toBe(true)
-      expect(zetaQuickSwitch?.disabled).toBe(false)
-      expect(anthropicProviderButtons.some(button => button.querySelector('[aria-label="当前 Provider"]'))).toBe(true)
+      expect(anthropicApplyButton).toBeNull()
+      expect(zetaApplyButton).not.toBeNull()
+      expect(zetaApplyButton?.disabled).toBe(false)
       expect(el.textContent).not.toContain('claudeProfiles.')
     } finally {
       unmount()
     }
   })
 
-  it('prevents disabled profiles from applying through quick switch or row actions', async () => {
+  it('prevents disabled profiles from applying through row actions', async () => {
     const { el, unmount } = await mountView()
 
     try {
-      const disabledQuickSwitch = findQuickSwitchButton(el, 'anthropic-disabled')
       const disabledCard = findProfileCard(el, 'anthropic-disabled')
-      const disabledRowApply = Array.from(disabledCard?.querySelectorAll<HTMLButtonElement>('button') ?? [])
-        .find(button => button.textContent?.includes('应用此 Profile'))
+      const disabledRowApply = findApplyButton(disabledCard)
 
-      expect(disabledQuickSwitch).not.toBeNull()
-      expect(disabledQuickSwitch?.disabled).toBe(true)
+      expect(disabledCard).not.toBeNull()
       expect(disabledRowApply?.disabled).toBe(true)
 
-      disabledQuickSwitch?.click()
       disabledRowApply?.click()
       await flushPromises()
 
@@ -374,9 +401,8 @@ describe('ClaudeCodeProfilesView smoke', () => {
     const { el, unmount } = await mountView()
 
     try {
-      const searchInput = el.querySelector<HTMLInputElement>('input[placeholder="搜索名称 / provider / model / tag"]')
-      const refreshButton = Array.from(el.querySelectorAll<HTMLButtonElement>('button'))
-        .find(button => button.textContent?.includes('刷新'))
+      const searchInput = findSearchInput(el)
+      const refreshButton = findButtonByText(el, '重载')
 
       expect(searchInput).not.toBeNull()
       expect(refreshButton).not.toBeNull()
@@ -408,8 +434,10 @@ describe('ClaudeCodeProfilesView smoke', () => {
 
       expect(apiMocks.listClaudeProfiles).toHaveBeenCalledTimes(2)
       expect(searchInput!.value).toBe('local')
-      expect(el.textContent).toContain('missing-provider-refreshed')
-      expect(el.textContent).not.toContain('Temporary local sandbox')
+      expect(findProfileCards(el).map(card => card.textContent)).toEqual([
+        expect.stringContaining('missing-provider-refreshed'),
+      ])
+      expect(findProfileCards(el).map(card => card.textContent).join('')).not.toContain('Temporary local sandbox')
     } finally {
       unmount()
     }
@@ -439,8 +467,7 @@ describe('ClaudeCodeProfilesView smoke', () => {
     const { el, unmount } = await mountView()
 
     try {
-      const refreshButton = Array.from(el.querySelectorAll<HTMLButtonElement>('button'))
-        .find(button => button.textContent?.includes('刷新'))
+      const refreshButton = findButtonByText(el, '重载')
 
       expect(refreshButton).not.toBeNull()
       expect(el.textContent).toContain('zeta-current')
@@ -453,6 +480,7 @@ describe('ClaudeCodeProfilesView smoke', () => {
       expect(apiMocks.listClaudeProfiles).toHaveBeenCalledTimes(2)
       expect(el.textContent).toContain('刷新 Claude Profiles 失败')
       expect(el.textContent).toContain('refresh exploded')
+      expect(el.textContent).toContain('当前列表已保留')
       expect(el.textContent).toContain('zeta-current')
       expect(el.textContent).not.toContain('加载 Claude Profiles 失败')
     } finally {
@@ -465,8 +493,7 @@ describe('ClaudeCodeProfilesView smoke', () => {
 
     try {
       const targetCard = findProfileCard(el, 'anthropic-a')
-      const applyButton = Array.from(targetCard?.querySelectorAll<HTMLButtonElement>('button') ?? [])
-        .find(button => button.textContent?.includes('应用此 Profile'))
+      const applyButton = findApplyButton(targetCard)
 
       expect(applyButton).not.toBeNull()
 

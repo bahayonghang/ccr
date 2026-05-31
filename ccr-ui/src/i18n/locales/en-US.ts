@@ -68,7 +68,8 @@ export default {
     about: {
       menu: 'About {name}',
       title: 'About {name}',
-      description: 'A unified workbench for Claude Code, Codex, Gemini, and other AI CLIs. The UI follows an Anthropic-like editorial direction with warm neutral surfaces, restrained depth, and high-contrast typography for dense operational workflows.',
+      description:
+        'A unified workbench for Claude Code, Codex, Gemini, and other AI CLIs. The UI follows an Anthropic-like editorial direction with warm neutral surfaces, restrained depth, and high-contrast typography for dense operational workflows.',
       owner: 'Owner',
       engine: 'Engine',
       close: 'Got it',
@@ -112,14 +113,17 @@ export default {
     confirmToExecute: 'Confirm to execute',
     executable: 'Executable',
     unsupported: 'Unsupported',
-    unsupportedHint: 'This command is visible in the catalog, but the local Rust allowlist does not permit it. It is disabled until the frontend catalog and backend allowlist are updated together.',
-    dangerConfirmHint: ' Confirm that you understand this command may write files, modify configuration, or change installed state.',
+    unsupportedHint:
+      'This command is visible in the catalog, but the local Rust allowlist does not permit it. It is disabled until the frontend catalog and backend allowlist are updated together.',
+    dangerConfirmHint:
+      ' Confirm that you understand this command may write files, modify configuration, or change installed state.',
     output: 'Execution result',
     clearOutput: 'Clear Output',
     noOutput: 'Command output will appear here',
     systemReady: 'CCR workspace ready',
     readyForResult: 'No result yet',
-    nonStreamingHint: 'Commands run in non-streaming result mode. Output appears after the process exits; reliable cancellation is not available yet.',
+    nonStreamingHint:
+      'Commands run in non-streaming result mode. Output appears after the process exits; reliable cancellation is not available yet.',
     lineCount: '{count} lines',
     exited: 'Exit: {code}',
     status: {
@@ -290,7 +294,8 @@ export default {
       addProviderFailed: 'Failed to add provider: {error}',
       hints: {
         cookie_expired: 'Suggestion: update the cookie',
-        waf_blocked: 'Suggestion: fetch the WAF cookie first, then confirm browser login and check-in requests use the same proxy or network exit',
+        waf_blocked:
+          'Suggestion: fetch the WAF cookie first, then confirm browser login and check-in requests use the same proxy or network exit',
         cf_blocked: 'Suggestion: fetch cf_clearance in a GUI environment, then retry',
         network_error: 'Suggestion: check the network connection',
         timeout: 'Suggestion: retry later',
@@ -337,7 +342,8 @@ export default {
         createEyebrow: 'Create a new check-in account entry',
         editEyebrow: 'Update check-in credentials and extended configuration',
         createSubtitle: 'Enter a single Session value directly, or paste full cookies JSON.',
-        editSubtitle: 'Blank Session will not overwrite existing credentials; use this for name, toggle, or extra config changes.',
+        editSubtitle:
+          'Blank Session will not overwrite existing credentials; use this for name, toggle, or extra config changes.',
         requiresWaf: 'Requires WAF',
         introSession: 'Session accepts single value / JSON',
         introApiUser: 'API User is required',
@@ -353,7 +359,8 @@ export default {
         accountNamePlaceholder: 'Example: Main account',
         leaveBlank: '(leave blank to keep unchanged)',
         sessionPlaceholder: 'Paste a session value or full cookies JSON',
-        sessionHint: 'Paste a session value directly; the backend wraps it as cookies JSON automatically. If you already have full cookies JSON, you can paste that instead.',
+        sessionHint:
+          'Paste a session value directly; the backend wraps it as cookies JSON automatically. If you already have full cookies JSON, you can paste that instead.',
         apiUserHintPrefix: 'Required for session / cookies login. Prefer ',
         apiUserHintMiddle: ' from Local Storage, or find ',
         apiUserHintSuffix: ' in request headers.',
@@ -363,7 +370,8 @@ export default {
         title: '{provider} requires an extra WAF step',
         stepSave: 'Save session / cookies and api_user first',
         stepProviders: 'Return to Providers and click “Get Cookie” for {provider}',
-        stepProxy: 'The browser login used to fetch the WAF cookie must share the same proxy or network exit as the check-in request',
+        stepProxy:
+          'The browser login used to fetch the WAF cookie must share the same proxy or network exit as the check-in request',
       },
       cdk: {
         title: 'CDK recharge configuration',
@@ -480,7 +488,8 @@ export default {
     // Quick Tips
     quickTipsTitle: 'Quick tips',
     tip1Title: 'Multi-config management',
-    tip1Desc: 'Create dedicated configurations for different projects and switch work contexts quickly',
+    tip1Desc:
+      'Create dedicated configurations for different projects and switch work contexts quickly',
     tip2Title: 'MCP servers',
     tip2Desc: 'Extend AI capabilities by connecting external tools and data sources',
     tip3Title: 'Cloud sync',
@@ -532,8 +541,10 @@ export default {
     workbenchDescription: 'Check host health, CLI readiness, recent events, and the next step.',
     posterEyebrow: 'Console Overview',
     posterTitle: 'CCR Desktop',
-    posterLead: 'Bring commands, configuration, and platform readiness into one focused control console.',
-    posterDescription: 'Use the home view to check key CLI availability, jump to common actions, and scan the workspace overview before opening a module.',
+    posterLead:
+      'Bring commands, configuration, and platform readiness into one focused control console.',
+    posterDescription:
+      'Use the home view to check key CLI availability, jump to common actions, and scan the workspace overview before opening a module.',
     statusReadyLabel: 'System status',
     statusCliLabel: 'Available CLI',
     usageMetricLabel: 'Local usage',
@@ -553,14 +564,17 @@ export default {
     usagePreviewTitle: 'Scroll for the full usage report',
     actionsEyebrow: 'Quick Access',
     actionsTitle: 'Common entries',
-    actionsDescription: 'Keep high-frequency tasks visible so routine work does not require drilling into each module first.',
+    actionsDescription:
+      'Keep high-frequency tasks visible so routine work does not require drilling into each module first.',
     platformsEyebrow: 'Platform Overview',
     platformsTitle: 'Platform state',
-    platformsDescription: 'Highlight primary platforms so version and availability stay easy to scan.',
+    platformsDescription:
+      'Highlight primary platforms so version and availability stay easy to scan.',
     platformFeatureLabel: 'Core Platform',
     systemActivity: 'System Activity',
     usageSectionTitle: 'Usage Overview',
-    usageSectionDescription: 'The full dashboard still loads on demand below, while the first screen surfaces a lightweight activity summary.',
+    usageSectionDescription:
+      'The full dashboard still loads on demand below, while the first screen surfaces a lightweight activity summary.',
     fullReport: 'Open full report',
     operational: 'Operational',
     moduleStateReady: 'Ready',
@@ -572,7 +586,8 @@ export default {
     activityTitle: 'Event Stream',
     activityOpenMonitoring: 'Open monitoring',
     activityEmptyTitle: 'No recent events',
-    activityEmptyDescription: 'Monitoring is quiet. New local events will appear here as the app records them.',
+    activityEmptyDescription:
+      'Monitoring is quiet. New local events will appear here as the app records them.',
     activityUnknownTime: 'Unknown time',
     activityFilterAll: 'All',
     activityFilterWarn: 'Warn+',
@@ -586,10 +601,12 @@ export default {
     platformUsageUntracked: 'Untracked',
     usageSnapshotEyebrow: 'Usage snapshot',
     usageSnapshotTitle: 'Local usage summary',
-    usageSnapshotDescription: 'Sessions, requests, and tokens are summarized from the local usage archive only.',
+    usageSnapshotDescription:
+      'Sessions, requests, and tokens are summarized from the local usage archive only.',
     usageSnapshotError: 'Local usage summary could not be loaded.',
     usageSnapshotEmptyTitle: 'No local usage yet',
-    usageSnapshotEmptyDescription: 'No local sessions or usage records are available for this window.',
+    usageSnapshotEmptyDescription:
+      'No local sessions or usage records are available for this window.',
     usageSnapshotUnavailableTitle: 'Usage unavailable',
     usageSnapshotLoadingDescription: 'Loading local usage records and session index data.',
     usageRangeLabel: 'Usage time range',
@@ -636,7 +653,8 @@ export default {
       readyDescription: 'Backend, runtime CLIs, local usage, and recent signals are ready.',
       attentionDescription: 'At least one signal needs attention. Follow the action queue.',
       warmingDescription: 'Reading host state, CLI versions, and local usage.',
-      webPreviewDescription: 'Browser preview cannot call the Tauri backend; it only proves frontend structure.',
+      webPreviewDescription:
+        'Browser preview cannot call the Tauri backend; it only proves frontend structure.',
       unknownDescription: 'Current evidence is not strong enough to prove the workbench is ready.',
       reasons: {
         backendOk: 'Desktop backend is connected.',
@@ -680,7 +698,8 @@ export default {
       title: 'Next step',
       description: 'Sorted by risk, with only the most useful entries visible.',
       webPreviewTitle: 'Confirm web limits',
-      webPreviewDesc: 'Browser mode cannot prove local backend readiness; use the desktop shell for full validation.',
+      webPreviewDesc:
+        'Browser mode cannot prove local backend readiness; use the desktop shell for full validation.',
       backendTitle: 'Check backend',
       backendDesc: 'Open monitoring to inspect why backend or host metrics failed to load.',
       installCliTitle: 'Repair CLI',
@@ -729,7 +748,8 @@ export default {
     usage: {
       eyebrow: 'Usage trend',
       title: 'Usage trend',
-      description: 'Sessions, requests, and tokens are summarized from the local usage archive only.',
+      description:
+        'Sessions, requests, and tokens are summarized from the local usage archive only.',
       error: 'Local usage summary could not be loaded.',
       emptyTitle: 'No local usage yet',
       emptyDescription: 'No local sessions or usage records are available for this window.',
@@ -755,7 +775,8 @@ export default {
       filterWarn: 'Warn+',
       filterError: 'Error',
       emptyTitle: 'No recent events',
-      emptyDescription: 'Monitoring is quiet. New local events will appear here as the app records them.',
+      emptyDescription:
+        'Monitoring is quiet. New local events will appear here as the app records them.',
       unknownTime: 'Unknown time',
       viewAll: 'Open monitoring view',
       openMonitoring: 'Open monitoring',
@@ -765,13 +786,15 @@ export default {
   claudeCode: {
     // ClaudeCodeView - Overview page
     title: 'Claude Code',
-    subtitle: 'A focused configuration cockpit for Claude Code profiles, credentials, MCP, agents, plugins, slash commands, and local runtime settings.',
+    subtitle:
+      'A focused configuration cockpit for Claude Code profiles, credentials, MCP, agents, plugins, slash commands, and local runtime settings.',
     backToHome: 'Back to Home',
     hero: {
       eyebrow: 'Claude Code Setup Cockpit',
       primaryAction: 'Open Auth',
       secondaryAction: 'Manage Profiles',
-      consoleStatus: 'Local profile routing, credentials, and workspace settings are ready to inspect before launching Claude Code.',
+      consoleStatus:
+        'Local profile routing, credentials, and workspace settings are ready to inspect before launching Claude Code.',
     },
     features: {
       mcpSupport: 'MCP Servers',
@@ -825,7 +848,8 @@ export default {
     quickActions: {
       title: 'Quick Actions',
       commonCommands: 'Terminal Commands',
-      commonCommandsDesc: 'Copy local CCR commands that help inspect and switch Claude Code profile state.',
+      commonCommandsDesc:
+        'Copy local CCR commands that help inspect and switch Claude Code profile state.',
       viewCurrentConfig: 'View current profile',
       switchConfig: 'Switch profile',
       listAllConfigs: 'List profiles',
@@ -846,7 +870,8 @@ export default {
       eyebrow: 'Usage Insight',
       title: 'Usage Insight',
       subtitle: 'Token usage converted to USD at Anthropic API list price.',
-      subtitleWithVersion: 'Token usage converted to USD at Anthropic API list price (pricing version {version}).',
+      subtitleWithVersion:
+        'Token usage converted to USD at Anthropic API list price (pricing version {version}).',
       loading: 'Loading usage insight…',
       errorTitle: 'Failed to load usage insight',
       fullDashboardLink: 'Open full dashboard',
@@ -905,10 +930,12 @@ export default {
       },
       tokenDetail: {
         cacheWriteExplainTitle: 'Why cache_write also costs you',
-        cacheWriteExplain: 'Writing to the prompt cache is billed once at a higher unit price. It only pays off when cache_read hits keep coming; if a large context is written once and never reused, cache_write can push the total higher instead.',
+        cacheWriteExplain:
+          'Writing to the prompt cache is billed once at a higher unit price. It only pays off when cache_read hits keep coming; if a large context is written once and never reused, cache_write can push the total higher instead.',
       },
       behavior: {
-        sourceNote: 'Counted by tool-call events; source differs from the 30-minute aggregation used above.',
+        sourceNote:
+          'Counted by tool-call events; source differs from the 30-minute aggregation used above.',
         efficiencyTitle: 'Session efficiency',
         efficiencySub: 'Top 10 sessions by cost and tool-call count.',
         colSession: 'Session',
@@ -939,19 +966,23 @@ export default {
     quickSwitch: 'Quick Switch',
     quickSwitchHint: 'Apply a target profile without leaving the current control surface.',
     quickSwitchStripTitle: 'Quick Switch Strip',
-    quickSwitchStripHint: 'Apply a target profile from the current filtered set without resetting your search context.',
+    quickSwitchStripHint:
+      'Apply a target profile from the current filtered set without resetting your search context.',
     quickSwitchStripCount: '{matched} candidates',
     searchPlaceholder: 'Search name / provider / model / tag',
-    searchHint: 'Filter by name, provider, model, account, endpoint, or tags while keeping provider grouping intact.',
+    searchHint:
+      'Filter by name, provider, model, account, endpoint, or tags while keeping provider grouping intact.',
     searchProfilesCount: '{matched} / {total} Profiles',
     searchProvidersCount: '{matched} / {total} Providers',
     clearSearch: 'Clear Search',
     searchEmptyTitle: 'No matching Claude Profiles',
-    searchEmptyDesc: 'Try a shorter keyword or clear the search to browse every provider section again.',
+    searchEmptyDesc:
+      'Try a shorter keyword or clear the search to browse every provider section again.',
     providerSectionsCount: '{count} provider groups',
     providerUnset: 'Unspecified Provider',
     providerNavTitle: 'Provider Navigation',
-    providerNavHint: 'Jump between provider sections quickly when you manage many runtime profiles.',
+    providerNavHint:
+      'Jump between provider sections quickly when you manage many runtime profiles.',
     providerNavCount: '{count} profiles',
     providerSectionEyebrow: 'Provider Section',
     currentProviderBadge: 'Current Provider',
@@ -980,8 +1011,10 @@ export default {
     metricsSecondaryTaggedLabel: 'TAGGED',
     metricsSecondaryNoModelLabel: 'NO MODEL',
     metricsSecondaryNoAccountLabel: 'NO ACCT',
-    currentProfileMissingHint: 'There is no active Claude profile yet. Choose one from the list below or create a new entry.',
-    currentProfileSummaryFallback: 'This profile has no description yet. Add one so the control surface stays easier to scan.',
+    currentProfileMissingHint:
+      'There is no active Claude profile yet. Choose one from the list below or create a new entry.',
+    currentProfileSummaryFallback:
+      'This profile has no description yet. Add one so the control surface stays easier to scan.',
     authModeSubscription: 'Subscription',
     authModeApiKey: 'API Key',
     emptyTitle: 'No Claude Profiles Yet',
@@ -998,15 +1031,19 @@ export default {
     nameLabel: 'Name *',
     namePlaceholder: 'e.g. work-config',
     nameHelper: 'The name is the stable identifier stored in profiles.toml.',
-    readonlyNameHint: 'Existing profile names stay read-only during edit to avoid breaking references.',
+    readonlyNameHint:
+      'Existing profile names stay read-only during edit to avoid breaking references.',
     descLabel: 'Description',
     descPlaceholder: 'Optional description',
-    descriptionHelper: 'Use a short sentence to describe the environment, account, or routing purpose.',
+    descriptionHelper:
+      'Use a short sentence to describe the environment, account, or routing purpose.',
     baseUrlLabel: 'Base URL',
     baseUrlPlaceholder: 'e.g. https://api.anthropic.com',
-    baseUrlHelper: 'Claude-compatible endpoint for this profile; keep the default for the official path.',
+    baseUrlHelper:
+      'Claude-compatible endpoint for this profile; keep the default for the official path.',
     advancedModelsTitle: 'Advanced model overrides',
-    advancedModelsDescription: 'Maps to ANTHROPIC_DEFAULT_*_MODEL and CLAUDE_CODE_*; values write to ~/.claude/settings.json.',
+    advancedModelsDescription:
+      'Maps to ANTHROPIC_DEFAULT_*_MODEL and CLAUDE_CODE_*; values write to ~/.claude/settings.json.',
     defaultOpusModelLabel: 'Opus default model',
     defaultOpusModelPlaceholder: 'e.g. deepseek-v4-pro',
     defaultOpusModelHelper: 'Sets ANTHROPIC_DEFAULT_OPUS_MODEL.',
@@ -1027,9 +1064,11 @@ export default {
     effortLevelOptionHigh: 'high — multi-file refactors / API default',
     effortLevelOptionXhigh: 'xhigh — Opus 4.7 long autonomous runs',
     effortLevelOptionMax: 'max — highest effort, no token cap',
-    renameWarningHint: 'Changing the name renames the profile; if it is currently active, the active pointer follows the new name automatically.',
+    renameWarningHint:
+      'Changing the name renames the profile; if it is currently active, the active pointer follows the new name automatically.',
     renameConfirmTitle: 'Confirm profile rename',
-    renameConfirmBody: 'Rename "{old}" to "{new}". The old name will be removed; if the profile is active, the active pointer moves to the new name.',
+    renameConfirmBody:
+      'Rename "{old}" to "{new}". The old name will be removed; if the profile is active, the active pointer moves to the new name.',
     renameConfirmCta: 'Confirm rename',
     renameConflict: 'The name "{name}" is already used by another profile. Pick a different one.',
     providerLabel: 'Provider',
@@ -1037,9 +1076,11 @@ export default {
     providerHelper: 'This value drives provider grouping and the in-page navigation order.',
     providerTypeLabel: 'Provider Type',
     providerTypePlaceholder: 'e.g. official',
-    providerTypeHelper: 'Describe whether the route is official, relay, self-hosted, or another access mode.',
+    providerTypeHelper:
+      'Describe whether the route is official, relay, self-hosted, or another access mode.',
     authModeLabel: 'Authentication mode',
-    authModeHelper: 'subscription mode clears ANTHROPIC_* and falls back to local official login; api_key mode writes ANTHROPIC_* overrides.',
+    authModeHelper:
+      'subscription mode clears ANTHROPIC_* and falls back to local official login; api_key mode writes ANTHROPIC_* overrides.',
     authModeOptionSubscription: 'subscription — Official Subscription',
     authModeOptionApiKey: 'api_key — Third-party / ANTHROPIC_*',
     accountLabel: 'Account',
@@ -1059,7 +1100,8 @@ export default {
     tagsPlaceholder: 'e.g. work, production',
     tagsHelper: 'Separate multiple tags with commas so the row stays easy to scan.',
     enabledProfile: 'Enable this profile',
-    enabledHelper: 'Disabled profiles stay visible for reference but should not be treated as active options.',
+    enabledHelper:
+      'Disabled profiles stay visible for reference but should not be treated as active options.',
     enabledText: 'Enabled',
     disabledText: 'Disabled',
     smallFastModelBadge: 'Fast model',
@@ -1073,45 +1115,113 @@ export default {
     modalFooterHint: 'Saving writes the profile config immediately and refreshes the visible list.',
     modalEditEyebrow: 'Editing Existing Profile',
     modalNewEyebrow: 'Creating New Profile',
-    modalEditDescription: 'Fields are grouped by intent so you can adjust routing, auth, and state without losing context.',
-    modalNewDescription: 'Start with the profile identity, then fill in connection and auth details for easier provider-level navigation later.',
+    modalEditDescription:
+      'Fields are grouped by intent so you can adjust routing, auth, and state without losing context.',
+    modalNewDescription:
+      'Start with the profile identity, then fill in connection and auth details for easier provider-level navigation later.',
     modalStatusCurrent: 'Currently Active',
     modalStatusEditing: 'Editing',
     modalStatusDisabled: 'Disabled',
     modalStatusDraft: 'Draft',
     editorSummaryTitle: 'Profile Snapshot',
     editorSectionsTitle: 'Edit Sections',
-    editorSectionsHint: 'Jump to the part you want to adjust first instead of scrolling the full form.',
-    tagsPreviewEmpty: 'Tags will preview here so you can confirm naming and grouping before saving.',
+    editorSectionsHint:
+      'Jump to the part you want to adjust first instead of scrolling the full form.',
+    tagsPreviewEmpty:
+      'Tags will preview here so you can confirm naming and grouping before saving.',
     sections: {
       basic: {
         title: 'Basic Information',
-        description: 'Define the profile name and its scan-friendly description.'
+        description: 'Define the profile name and its scan-friendly description.',
       },
       connection: {
         title: 'Connection & Models',
-        description: 'Configure endpoint, model defaults, and provider ownership.'
+        description: 'Configure endpoint, model defaults, and provider ownership.',
       },
       auth: {
         title: 'Account & Auth',
-        description: 'Track account identity, provider type, and runtime credentials.'
+        description: 'Track account identity, provider type, and runtime credentials.',
       },
-    status: {
+      status: {
         title: 'Status & Tags',
-        description: 'Keep the profile operational state and tags readable at a glance.'
-      }
+        description: 'Keep the profile operational state and tags readable at a glance.',
+      },
     },
     loadFailedTitle: 'Failed to load Claude profiles',
     loadFailed: 'Unable to read Claude profiles',
     refreshFailedTitle: 'Failed to refresh Claude profiles',
-    refreshFailedHint: 'The current list is still available, so you can retry later or keep working with the visible data.',
+    refreshFailedHint:
+      'The current list is still available, so you can retry later or keep working with the visible data.',
     exportSuccess: 'Claude Profiles exported',
     exportFailed: 'Failed to export Claude Profiles',
     deleteConfirm: 'Are you sure you want to delete Profile "{name}"?',
-    confirmApply: 'Are you sure you want to apply Profile "{name}"? This will sync the active Claude configuration.',
+    confirmApply:
+      'Are you sure you want to apply Profile "{name}"? This will sync the active Claude configuration.',
     operationFailed: 'Operation failed',
     deleteFailed: 'Delete failed',
     applyFailed: 'Apply failed',
+    officialBaseUrl: 'Official direct (api.anthropic.com)',
+    reloadAction: 'Reload',
+    groups: {
+      enabled: 'Enabled',
+      disabled: 'Disabled',
+    },
+    statStrip: {
+      profileSubtitle: 'claude default runtime',
+      totalHint: '{enabled} enabled · {disabled} disabled',
+      authTitle: 'Auth split',
+      authSplit: 'Subscription {subscription} · API Key {apiKey}',
+      lastWrite: 'Last write',
+      lastWriteHint: 'Auto backup · multiple kept',
+    },
+    toolbar: {
+      searchPlaceholder: 'Search name · base_url · model · tag …',
+      statusGroupLabel: 'Status filter',
+      tagGroupLabel: 'Tag filter',
+      providerLabel: 'Provider filter',
+      providerAll: 'All providers',
+      statusAll: 'All',
+      statusActive: 'Current',
+      statusEnabled: 'Enabled',
+      statusDisabled: 'Disabled',
+      sortLabel: 'Sort by',
+      sortRecent: 'Recently used',
+      sortName: 'Name',
+      sortRequests: 'Usage count',
+      sortEnabled: 'Enabled first',
+      viewLabel: 'View mode',
+      viewCard: 'Card view',
+      viewList: 'List view',
+      actionsLabel: 'Actions',
+    },
+    fields: {
+      name: 'Name',
+      baseUrl: 'BASE URL',
+      model: 'MODEL',
+      authMode: 'Auth mode',
+      tags: 'Tags',
+    },
+    contextRail: {
+      ariaLabel: 'Profile context rail',
+      activeTitle: 'Current Profile',
+      activeEmpty: 'No active Profile',
+      activeEmptyHint: 'Select or create a Profile to see its details here.',
+      editAction: 'Edit this Profile',
+      distributionTitle: 'Distribution insights',
+      providerSection: 'PROVIDER breakdown',
+      authSection: 'AUTH mode',
+      tagsSection: 'Top TAGs',
+      unknownProvider: 'Unset',
+      noTags: 'No tags',
+      auditTitle: 'Health audit',
+      auditClean: 'No configuration issues found',
+      issues: {
+        missingBaseUrl: 'Missing Base URL',
+        missingModel: 'Missing model',
+        missingAccount: 'Missing account',
+        duplicateRuntime: 'Duplicate runtime · {count} Profiles',
+      },
+    },
   },
   claudeSettings: {
     title: 'Claude Code Global Settings',
@@ -1264,7 +1374,8 @@ export default {
       hero: {
         eyebrow: 'Claude Code / MCP workbench',
         title: 'MCP Manager',
-        subtitle: 'Audit effective servers, scope precedence, and project approval state without hiding overridden configuration.',
+        subtitle:
+          'Audit effective servers, scope precedence, and project approval state without hiding overridden configuration.',
       },
       actions: {
         addServer: 'Add server',
@@ -1324,7 +1435,8 @@ export default {
       confirm: {
         projectScopeWrite: 'Project scope writes to .mcp.json in this repository. Continue?',
         deleteGroup: 'Delete all {count} instance(s) of "{name}" across visible scopes?',
-        projectScopeImport: 'Project scope import writes to .mcp.json in this repository. Continue?',
+        projectScopeImport:
+          'Project scope import writes to .mcp.json in this repository. Continue?',
       },
       messages: {
         deletedSelected: 'Deleted selected servers',
@@ -1391,7 +1503,8 @@ export default {
   monitoring: {
     eyebrow: 'Operations Monitor',
     title: 'Operations Monitoring',
-    subtitle: 'Combine the local event stream, usage archive summary, and recent warnings so operators can judge CCR UI runtime state quickly.',
+    subtitle:
+      'Combine the local event stream, usage archive summary, and recent warnings so operators can judge CCR UI runtime state quickly.',
     connected: 'Event stream connected',
     disconnected: 'Event stream disconnected',
     refresh: 'Refresh',
@@ -1834,12 +1947,14 @@ export default {
   },
   commands: {
     title: 'Command Center',
-    description: 'An editable CCR command console for whitelisted commands, parameters, background jobs, and live output trust.',
+    description:
+      'An editable CCR command console for whitelisted commands, parameters, background jobs, and live output trust.',
     operatorBadge: 'Command Center',
     selectClient: 'Select CLI Command',
     availableCommands: 'Available Commands',
     selectCommand: 'Select Command',
-    selectCommandHint: 'Pick a whitelisted CCR command from the palette before composing arguments.',
+    selectCommandHint:
+      'Pick a whitelisted CCR command from the palette before composing arguments.',
     executeCommand: 'Run Command',
     commandOutput: 'Command Output',
     output: 'Live run ledger',
@@ -1859,7 +1974,8 @@ export default {
     terminalOutput: 'Terminal Output',
     linesCount: '{count} lines',
     executing: 'Running...',
-    processing: 'Background job is running; stdout, stderr, and system messages will stream into this ledger.',
+    processing:
+      'Background job is running; stdout, stderr, and system messages will stream into this ledger.',
     executeSuccess: 'Success',
     executeError: 'Failed',
     outputCopied: 'Copied!',
@@ -1885,7 +2001,8 @@ export default {
     client: 'Client',
     whitelistBadge: '{count} CCR whitelist commands',
     paletteTitle: 'Command palette',
-    paletteSubtitle: 'Search, classify, and inspect risk. Non-CCR clients are shown as entry points only.',
+    paletteSubtitle:
+      'Search, classify, and inspect risk. Non-CCR clients are shown as entry points only.',
     clientPreview: 'Preview',
     searchPlaceholder: 'Search command, description, or category',
     runtimeWeb: 'Web preview cannot execute',
@@ -1901,24 +2018,31 @@ export default {
     cardJobIdleDetail: 'No command has started; select a command and review arguments.',
     cardTrustLabel: 'Can I trust the result?',
     cardTrustValue: 'Whitelist + channelized output',
-    cardTrustDetail: 'Only {count} CCR subcommands can run; non-zero exit codes fail but keep full output.',
+    cardTrustDetail:
+      'Only {count} CCR subcommands can run; non-zero exit codes fail but keep full output.',
     composerEyebrow: 'Command composer',
     cancelJob: 'Cancel job',
-    webUnavailableDetail: 'This is the Web preview runtime, so Tauri background jobs cannot start; use it only to inspect layout and copy.',
+    webUnavailableDetail:
+      'This is the Web preview runtime, so Tauri background jobs cannot start; use it only to inspect layout and copy.',
     clientUnavailableTitle: 'This client is not wired to the execution whitelist',
-    clientUnavailableDescription: '{client} is shown as a capability entry point only; execution remains limited to CCR whitelist commands.',
+    clientUnavailableDescription:
+      '{client} is shown as a capability entry point only; execution remains limited to CCR whitelist commands.',
     commandBlockedTitle: 'Command is not executable',
-    commandBlockedDescription: 'The catalog may show this command, but the backend whitelist must allow it before a process can start.',
+    commandBlockedDescription:
+      'The catalog may show this command, but the backend whitelist must allow it before a process can start.',
     previewLabel: 'Full command preview',
     selectConfig: 'Select configuration',
     dangerConfirmTitle: 'Dangerous command confirmation',
-    dangerConfirmDescription: 'I understand this command may modify or restore configuration and want to continue.',
+    dangerConfirmDescription:
+      'I understand this command may modify or restore configuration and want to continue.',
     ledgerEyebrow: 'Live run ledger',
-    ledgerSubtitleIdle: 'stdout, stderr, and system messages are separated by channel; copy or clear the current ledger anytime.',
+    ledgerSubtitleIdle:
+      'stdout, stderr, and system messages are separated by channel; copy or clear the current ledger anytime.',
     ledgerSubtitleActive: '{job} · {command}',
     jobStatus: 'Status',
     readyTitle: 'Ready to run commands',
-    readyDescription: 'Choose a CCR command and enter arguments; background job status and output will appear here.',
+    readyDescription:
+      'Choose a CCR command and enter arguments; background job status and output will appear here.',
     categoryAll: 'All',
     categoryRead: 'Read',
     categoryWrite: 'Write',
@@ -1930,7 +2054,8 @@ export default {
     badgeReadOnly: 'Read-only',
     badgeArgs: 'Args',
     badgeBlocked: 'Blocked',
-    clientPreviewCommandDescription: '{client} is shown as a capability entry point only and is not executable here yet.',
+    clientPreviewCommandDescription:
+      '{client} is shown as a capability entry point only and is not executable here yet.',
     catalog: {
       list: 'List all configurations.',
       switch: 'Switch to a saved configuration.',
@@ -2033,7 +2158,8 @@ export default {
   sync: {
     // Page header
     title: 'Configuration Asset Sync',
-    subtitle: 'Sync only approved CCR, Claude, and Codex configuration assets with per-item and all-at-once controls.',
+    subtitle:
+      'Sync only approved CCR, Claude, and Codex configuration assets with per-item and all-at-once controls.',
     description: 'WebDAV cloud backup focused on high-value configuration assets',
     breadcrumb: {
       home: 'Home',
@@ -2056,7 +2182,8 @@ export default {
       forceRetryAll: 'Force sync all',
       eyebrow: 'Manifest Allowlist',
       title: 'Configuration Asset Console',
-      description: 'This page shows only the fixed sync manifest to avoid syncing full directories, caches, or runtime state.',
+      description:
+        'This page shows only the fixed sync manifest to avoid syncing full directories, caches, or runtime state.',
       total: '{count} assets',
       sensitiveHint: 'Sensitive values are masked',
       sensitive: 'Sensitive',
@@ -2073,7 +2200,8 @@ export default {
       scopeCodexLabel: 'Codex',
       scopeCodexValue: 'config.toml + AGENTS.md',
       safetyTitle: 'Safety boundary',
-      safetyAllowlist: 'Only fixed allowlist items sync; never the full ~/.claude or ~/.codex directories.',
+      safetyAllowlist:
+        'Only fixed allowlist items sync; never the full ~/.claude or ~/.codex directories.',
       safetyBackup: 'Pull creates a timestamped backup before replacing an existing local target.',
       safetyMask: 'API keys, tokens, passwords, and similar secrets are never shown in summaries.',
     },
@@ -2081,17 +2209,20 @@ export default {
       ccr: {
         label: 'Required',
         title: 'CCR Platforms',
-        description: 'Sync all platform configs under ~/.ccr/platforms/, including Claude/Codex auth, URL, key, and provider routing fields.',
+        description:
+          'Sync all platform configs under ~/.ccr/platforms/, including Claude/Codex auth, URL, key, and provider routing fields.',
       },
       claude: {
         label: 'Claude Code',
         title: 'Claude Code Config',
-        description: 'Sync only settings.json and CLAUDE.md; sessions, cache, plugins, and the rest of ~/.claude stay out of scope.',
+        description:
+          'Sync only settings.json and CLAUDE.md; sessions, cache, plugins, and the rest of ~/.claude stay out of scope.',
       },
       codex: {
         label: 'Codex',
         title: 'Codex Config',
-        description: 'Sync only config.toml and AGENTS.md; sessions, logs, plugins, and the rest of ~/.codex stay out of scope.',
+        description:
+          'Sync only config.toml and AGENTS.md; sessions, logs, plugins, and the rest of ~/.codex stay out of scope.',
       },
     },
     assetActions: {
@@ -2130,7 +2261,8 @@ export default {
       copied: 'Copied',
       unknownAsset: 'Sync operation',
       ancestorReason: 'Remote parent directory is missing',
-      ancestorAdvice: 'Remote parent directory is missing. Create {path} in WebDAV, or save the WebDAV remote path again, then retry.',
+      ancestorAdvice:
+        'Remote parent directory is missing. Create {path} in WebDAV, or save the WebDAV remote path again, then retry.',
     },
 
     // WebDAV configuration
@@ -2182,7 +2314,8 @@ export default {
       editBtn: 'Edit account',
       disconnectBtn: 'Disconnect',
       disconnectConfirmTitle: 'Disconnect WebDAV account',
-      disconnectConfirmBody: 'This will delete local ~/.ccr/sync.toml. Remote files are untouched. Continue?',
+      disconnectConfirmBody:
+        'This will delete local ~/.ccr/sync.toml. Remote files are untouched. Continue?',
       disconnectConfirmBtn: 'Confirm disconnect',
       cliHint: 'Or run `ccr sync config` in your terminal for interactive setup',
       nutstoreHint: 'Nutstore requires an "app password" instead of your account password',
@@ -2199,7 +2332,8 @@ export default {
       independentManagementDesc:
         'Each configuration asset can be pushed, pulled, or synced independently.',
       smartFiltering: 'Allowlist Boundary',
-      smartFilteringDesc: 'Claude/Codex sync only the approved files, never the whole config directory.',
+      smartFilteringDesc:
+        'Claude/Codex sync only the approved files, never the whole config directory.',
       sensitiveMasking: 'Sensitive Field Masking',
       sensitiveMaskingDesc:
         'Operation summaries mask API keys, tokens, passwords, and similar sensitive values.',
@@ -2245,7 +2379,8 @@ export default {
   settings: {
     eyebrow: 'Shell Preferences',
     title: 'Settings',
-    description: 'Manage CCR UI appearance, language, and shell-level preferences from one quiet, dependable place.',
+    description:
+      'Manage CCR UI appearance, language, and shell-level preferences from one quiet, dependable place.',
     active: 'Active',
     enabled: 'Enabled',
     disabled: 'Disabled',
@@ -2259,11 +2394,13 @@ export default {
     appearance: {
       eyebrow: 'Appearance',
       title: 'Appearance',
-      description: 'Choose how the workbench should feel across lighting conditions without leaving the editorial surface language.',
+      description:
+        'Choose how the workbench should feel across lighting conditions without leaving the editorial surface language.',
       navCaption: 'Theme and visual tone',
       lightDescription: 'Bright, warm-neutral surfaces for daytime scanning.',
       darkDescription: 'Higher contrast surfaces for focused low-light work.',
-      systemDescription: 'Follow the OS appearance and sync the resolved window theme automatically.',
+      systemDescription:
+        'Follow the OS appearance and sync the resolved window theme automatically.',
       dayBadge: 'Day',
       nightBadge: 'Night',
       autoBadge: 'Auto',
@@ -2271,7 +2408,8 @@ export default {
       flavor: {
         eyebrow: 'Flavor',
         title: 'Surface tone',
-        description: 'Pick the underlying neutral family. Catppuccin follows the resolved light or dark theme: light uses Latte; dark maps Latte/Frappé to Frappé and keeps Macchiato or Mocha dark.',
+        description:
+          'Pick the underlying neutral family. Catppuccin follows the resolved light or dark theme: light uses Latte; dark maps Latte/Frappé to Frappé and keeps Macchiato or Mocha dark.',
         clay: 'Clay',
         clayDescription: 'Default warm-neutral, matches the Anthropic editorial baseline.',
         paper: 'Paper',
@@ -2279,18 +2417,23 @@ export default {
         graphite: 'Graphite',
         graphiteDescription: 'Cooler neutral axis, easier on long focus sessions.',
         latte: 'Catppuccin Latte',
-        latteDescription: 'Adaptive Catppuccin family; light resolves to Latte and dark resolves to Frappé.',
+        latteDescription:
+          'Adaptive Catppuccin family; light resolves to Latte and dark resolves to Frappé.',
         frappe: 'Catppuccin Frappé',
-        frappeDescription: 'Adaptive Catppuccin family; light resolves to Latte and dark resolves to Frappé.',
+        frappeDescription:
+          'Adaptive Catppuccin family; light resolves to Latte and dark resolves to Frappé.',
         macchiato: 'Catppuccin Macchiato',
-        macchiatoDescription: 'Adaptive Catppuccin family; light resolves to Latte and dark keeps Macchiato.',
+        macchiatoDescription:
+          'Adaptive Catppuccin family; light resolves to Latte and dark keeps Macchiato.',
         mocha: 'Catppuccin Mocha',
-        mochaDescription: 'Adaptive Catppuccin family; light resolves to Latte and dark keeps Mocha.',
+        mochaDescription:
+          'Adaptive Catppuccin family; light resolves to Latte and dark keeps Mocha.',
       },
       accent: {
         eyebrow: 'Accent',
         title: 'Accent color',
-        description: 'Recolor primary actions and highlights only. Functional colors stay the same.',
+        description:
+          'Recolor primary actions and highlights only. Functional colors stay the same.',
         clay: 'Clay',
         sand: 'Sand',
         sage: 'Sage',
@@ -2313,16 +2456,20 @@ export default {
     shell: {
       eyebrow: 'Shell',
       title: 'Workbench',
-      description: 'Keep exit behavior and layout density in one shell-level control surface instead of scattering them across the UI.',
+      description:
+        'Keep exit behavior and layout density in one shell-level control surface instead of scattering them across the UI.',
       navCaption: 'Exit behavior and layout size',
       exitConfirmTitle: 'Confirm before exit',
       exitConfirmDescription: 'Require an extra confirmation before closing the desktop window.',
       closeToTrayTitle: 'Close to tray',
-      closeToTrayDescription: 'When enabled, the close button hides the main window. When disabled, it exits the desktop runtime.',
+      closeToTrayDescription:
+        'When enabled, the close button hides the main window. When disabled, it exits the desktop runtime.',
       openPanelOnTrayClickTitle: 'Open panel on tray click',
-      openPanelOnTrayClickDescription: 'Use left click on the tray icon to toggle the compact Codex panel instead of reopening the full window.',
+      openPanelOnTrayClickDescription:
+        'Use left click on the tray icon to toggle the compact Codex panel instead of reopening the full window.',
       sidebarWidthTitle: 'Sidebar width',
-      sidebarWidthDescription: 'Tune the main navigation width for the information density you prefer.',
+      sidebarWidthDescription:
+        'Tune the main navigation width for the information density you prefer.',
       resetLayoutTitle: 'Reset layout',
       resetLayoutDescription: 'Restore the sidebar width to the default workbench proportion.',
       resetLayoutAction: 'Reset to default',
@@ -2330,11 +2477,14 @@ export default {
     diagnostics: {
       eyebrow: 'Diagnostics',
       title: 'Diagnostics',
-      description: 'Keep performance instrumentation available for investigation without turning it into everyday noise.',
+      description:
+        'Keep performance instrumentation available for investigation without turning it into everyday noise.',
       navCaption: 'Performance and runtime observation',
       perfTitle: 'Performance telemetry',
-      perfDescription: 'Write startup and navigation timing samples into local debug logs for troubleshooting.',
-      restartNote: 'This toggle only updates a local preference. Refresh the page or restart the desktop app before relying on new telemetry output.',
+      perfDescription:
+        'Write startup and navigation timing samples into local debug logs for troubleshooting.',
+      restartNote:
+        'This toggle only updates a local preference. Refresh the page or restart the desktop app before relying on new telemetry output.',
     },
   },
   notifications: {
@@ -2408,31 +2558,38 @@ export default {
     unsupported: {
       cli_missing: {
         title: 'llmusage command not found',
-        description: 'Usage import requires the llmusage CLI to be installed and available on PATH. Install it, then import again or refresh this page.',
+        description:
+          'Usage import requires the llmusage CLI to be installed and available on PATH. Install it, then import again or refresh this page.',
       },
       db_missing: {
         title: 'Waiting for the llmusage database',
-        description: 'No llmusage database was found yet. Run llmusage sync, or start an import from this page before viewing usage stats.',
+        description:
+          'No llmusage database was found yet. Run llmusage sync, or start an import from this page before viewing usage stats.',
       },
       db_unreadable: {
         title: 'Cannot read the llmusage database',
-        description: 'CCR UI only opens the llmusage database read-only. Check that the database path exists and is readable by the current user.',
+        description:
+          'CCR UI only opens the llmusage database read-only. Check that the database path exists and is readable by the current user.',
       },
       schema_unsupported: {
         title: 'Unsupported llmusage database schema',
-        description: 'The current llmusage database schema is older than the minimum version CCR UI supports. Upgrade llmusage and sync again.',
+        description:
+          'The current llmusage database schema is older than the minimum version CCR UI supports. Upgrade llmusage and sync again.',
       },
       missing_table: {
         title: 'llmusage table missing',
-        description: 'The current llmusage database does not expose a table required by this view yet. Upgrade or resync llmusage.',
+        description:
+          'The current llmusage database does not expose a table required by this view yet. Upgrade or resync llmusage.',
       },
       missing_column: {
         title: 'llmusage column missing',
-        description: 'The current llmusage database does not expose a field required by this view yet. Upgrade or resync llmusage.',
+        description:
+          'The current llmusage database does not expose a field required by this view yet. Upgrade or resync llmusage.',
       },
       waiting_for_llmusage: {
         title: 'Waiting for llmusage support',
-        description: 'This feature needs a stable llmusage CLI or database contract. CCR UI keeps the entry visible but will not fabricate data.',
+        description:
+          'This feature needs a stable llmusage CLI or database contract. CCR UI keeps the entry visible but will not fabricate data.',
       },
     },
 
@@ -2440,8 +2597,10 @@ export default {
       dialog: {
         title: 'llmusage Not Installed',
         detecting: 'Detecting llmusage installation status...',
-        description: 'llmusage is the core dependency for CCR usage analytics. It parses and aggregates token usage data from each AI platform (Claude Code, Codex, Gemini, OpenCode).',
-        detectedAbsent: 'llmusage was not found on this system, so import cannot proceed. Choose how to install it:',
+        description:
+          'llmusage is the core dependency for CCR usage analytics. It parses and aggregates token usage data from each AI platform (Claude Code, Codex, Gemini, OpenCode).',
+        detectedAbsent:
+          'llmusage was not found on this system, so import cannot proceed. Choose how to install it:',
         detectedPlatform: 'Detected platform:',
         recommend: 'Recommended:',
         autoInstall: 'Auto install',
@@ -2497,8 +2656,10 @@ export default {
       importing: 'Importing...',
       bootstrapping: 'Bootstrapping...',
       importJobBanner: {
-        recent: 'Recent data is ready. Historical data is still backfilling in the background. Scanned {scanned}/{total} files and imported {records} records so far.',
-        running: 'Usage import is running in the background. Scanned {scanned}/{total} files and imported {records} records so far; you can keep navigating.',
+        recent:
+          'Recent data is ready. Historical data is still backfilling in the background. Scanned {scanned}/{total} files and imported {records} records so far.',
+        running:
+          'Usage import is running in the background. Scanned {scanned}/{total} files and imported {records} records so far; you can keep navigating.',
       },
       toolbar: {
         eyebrow: 'llmusage read-only dashboard',
@@ -2537,12 +2698,14 @@ export default {
         output: 'Output',
         cacheRead: 'Cache Read',
         cacheCreation: 'Cache Creation',
-        outputReasoningNote: 'Output keeps the backend-compatible total; the Tokens tab separates assistant output and reasoning for detailed review.',
+        outputReasoningNote:
+          'Output keeps the backend-compatible total; the Tokens tab separates assistant output and reasoning for detailed review.',
       },
       sources: {
         eyebrow: 'Source Mix',
         title: 'Usage by source',
-        subtitle: 'Compare Claude, Codex, Antigravity, and OpenCode in the current window. Selecting a source applies the dashboard filter.',
+        subtitle:
+          'Compare Claude, Codex, Antigravity, and OpenCode in the current window. Selecting a source applies the dashboard filter.',
         sources: 'sources',
         requests: 'requests',
         activeDays: 'active days',
@@ -2566,7 +2729,8 @@ export default {
           syncing: {
             label: 'Syncing',
             title: 'Usage import is running',
-            detail: 'CCR is updating the local usage snapshot; current analytics may refresh in the background.',
+            detail:
+              'CCR is updating the local usage snapshot; current analytics may refresh in the background.',
           },
           stale: {
             label: 'Stale',
@@ -2576,7 +2740,8 @@ export default {
           degraded: {
             label: 'Degraded',
             title: 'Some usage sources need attention',
-            detail: 'One or more usage sources are missing, deleted, or older than the freshness window.',
+            detail:
+              'One or more usage sources are missing, deleted, or older than the freshness window.',
           },
           needs_import: {
             label: 'Needs import',
@@ -2640,7 +2805,8 @@ export default {
       cost: {
         eyebrow: 'Cost Ledger',
         title: 'Cost concentration',
-        subtitle: 'Use daily spend plus source/model rankings to find the drivers behind the current window.',
+        subtitle:
+          'Use daily spend plus source/model rankings to find the drivers behind the current window.',
         totalCost: 'Total Cost',
         trendEyebrow: 'Daily Spend',
         trendTitle: 'Daily cost trend',
@@ -2676,10 +2842,12 @@ export default {
         preparingDistribution: 'Preparing distribution chart…',
         costByModel: 'Cost by Model',
         tokensByModel: 'Token Usage by Model',
-        distributionSubtitle: 'Showing the top {visible} models; the remaining {total} are grouped into Others',
+        distributionSubtitle:
+          'Showing the top {visible} models; the remaining {total} are grouped into Others',
         distributionAllVisible: '{total} models are visible in this window',
         modelTableSubtitle: 'Sorted by request volume to surface the models you lean on most',
-        projectTableSubtitle: 'Focus on the heaviest project paths to spot expensive workspaces quickly',
+        projectTableSubtitle:
+          'Focus on the heaviest project paths to spot expensive workspaces quickly',
         others: 'Others',
         bucket: {
           day: 'Daily',
@@ -2701,10 +2869,12 @@ export default {
       rankings: {
         modelsEyebrow: 'Cost Leaders',
         modelsTitle: 'Model Cost Ranking',
-        modelsSubtitle: 'Sort the highest-cost models to see where the working set is really concentrated.',
+        modelsSubtitle:
+          'Sort the highest-cost models to see where the working set is really concentrated.',
         projectsEyebrow: 'Workspace Focus',
         projectsTitle: 'Project Cost Ranking',
-        projectsSubtitle: 'Review the heaviest project paths first so the expensive workspaces are obvious at a glance.',
+        projectsSubtitle:
+          'Review the heaviest project paths first so the expensive workspaces are obvious at a glance.',
       },
       models: {
         title: 'Model Workspace',
@@ -2719,7 +2889,8 @@ export default {
       tokens: {
         eyebrow: 'Token Ledger',
         title: 'Daily token composition',
-        subtitle: 'Split assistant output from reasoning without changing the backend-compatible output total.',
+        subtitle:
+          'Split assistant output from reasoning without changing the backend-compatible output total.',
         tableEyebrow: 'Daily Rows',
         tableTitle: 'Token ledger',
         totalSeries: 'Total Tokens',
@@ -2732,7 +2903,8 @@ export default {
       },
       projects: {
         title: 'Project Workspace',
-        subtitle: 'Track cost, tokens, and request volume by workspace path to spot durable hotspots.',
+        subtitle:
+          'Track cost, tokens, and request volume by workspace path to spot durable hotspots.',
         shareProgress: 'Project cost share',
       },
       meta: {
@@ -2771,7 +2943,8 @@ export default {
       },
       logs: {
         title: 'Raw Records & Diagnostics',
-        subtitle: 'Inspect individual usage records, import results, and repair platform history when needed.',
+        subtitle:
+          'Inspect individual usage records, import results, and repair platform history when needed.',
         filterLabel: 'Model Search',
         filterPlaceholder: 'Filter by model...',
         search: 'Search',
@@ -2781,39 +2954,42 @@ export default {
         noLogs: 'No raw records found',
       },
 
-        diagnostics: {
-          totalRecords: 'Total Records',
-          latestRecord: 'Latest Record',
-          dataHealth: 'Data Health',
-          noRecentRecord: 'No recent record',
-          healthy: 'Raw records look healthy',
-          rawLogsHint: 'Use this area to debug imports and archive quality; deleting raw sessions does not remove archived history.',
-          ready: 'Ready',
-          needsAction: 'Needs action',
-          repairNeeded: 'Codex history should be repaired',
-          codexRepairHint: 'Detected {unknown} Codex records with missing model metadata or broken cost values. Rebuild the imported history first.',
-          repairTitle: 'Codex history needs rebuilding',
-          repairCodex: 'Rebuild Codex archive index',
-          repairingCodex: 'Rebuilding Codex archive...',
-          emptyHint: 'No raw usage records have been imported for the current scope yet. Run an import first, then return here for diagnostics.',
-          filteredNoResults: 'No raw records match the current filter',
-          filteredNoResultsHint: 'Clear the model filter or widen the time window to verify whether raw records exist.',
-          unknownModel: 'unknown',
-        },
-    status: {
+      diagnostics: {
+        totalRecords: 'Total Records',
+        latestRecord: 'Latest Record',
+        dataHealth: 'Data Health',
+        noRecentRecord: 'No recent record',
+        healthy: 'Raw records look healthy',
+        rawLogsHint:
+          'Use this area to debug imports and archive quality; deleting raw sessions does not remove archived history.',
+        ready: 'Ready',
+        needsAction: 'Needs action',
+        repairNeeded: 'Codex history should be repaired',
+        codexRepairHint:
+          'Detected {unknown} Codex records with missing model metadata or broken cost values. Rebuild the imported history first.',
+        repairTitle: 'Codex history needs rebuilding',
+        repairCodex: 'Rebuild Codex archive index',
+        repairingCodex: 'Rebuilding Codex archive...',
+        emptyHint:
+          'No raw usage records have been imported for the current scope yet. Run an import first, then return here for diagnostics.',
+        filteredNoResults: 'No raw records match the current filter',
+        filteredNoResultsHint:
+          'Clear the model filter or widen the time window to verify whether raw records exist.',
+        unknownModel: 'unknown',
+      },
+      status: {
         noLogsTitle: 'No usage logs found',
         noLogs: 'No local usage logs were found',
       },
     },
-
   },
-
 
   pricing: {
     eyebrow: 'Pricing source of truth',
     title: 'Legacy CCR Pricing',
     legacyBadge: 'Legacy CCR pricing',
-    subtitle: 'Maintain the CCR pricing table without pretending it recalculates llmusage dashboard costs.',
+    subtitle:
+      'Maintain the CCR pricing table without pretending it recalculates llmusage dashboard costs.',
     unitPerMtok: 'USD / MTok',
     unitShort: '/MTok',
     actions: {
@@ -2830,12 +3006,15 @@ export default {
     boundary: {
       title: 'Pricing boundary',
       sourceLabel: 'Source file',
-      sourceCopy: 'This page writes the legacy CCR pricing configuration through the existing pricing manager.',
+      sourceCopy:
+        'This page writes the legacy CCR pricing configuration through the existing pricing manager.',
       effectLabel: 'Effect',
       effectTitle: 'Legacy CCR consumers',
-      effectCopy: 'Changes do not recalculate llmusage dashboard costs; /usage still reads stored llmusage aggregates.',
+      effectCopy:
+        'Changes do not recalculate llmusage dashboard costs; /usage still reads stored llmusage aggregates.',
       unitLabel: 'Unit',
-      unitCopy: 'Rust ModelPricing stores prices as dollars per million tokens, so every editable value is shown as /MTok.',
+      unitCopy:
+        'Rust ModelPricing stores prices as dollars per million tokens, so every editable value is shown as /MTok.',
     },
     fields: {
       input: 'Input',
@@ -2866,7 +3045,8 @@ export default {
     operations: {
       eyebrow: 'Safe operations',
       title: 'Legacy table maintenance',
-      subtitle: 'Reset only restores the CCR pricing table to built-in defaults. It is not a usage cost recalculation.',
+      subtitle:
+        'Reset only restores the CCR pricing table to built-in defaults. It is not a usage cost recalculation.',
     },
     empty: {
       title: 'No configured pricing rows',
@@ -2879,9 +3059,11 @@ export default {
     confirm: {
       eyebrow: 'Confirm local pricing change',
       deleteTitle: 'Remove {model}?',
-      deleteCopy: 'This removes the configured row from ~/.claude/pricing.toml. It does not touch llmusage aggregate history.',
+      deleteCopy:
+        'This removes the configured row from ~/.claude/pricing.toml. It does not touch llmusage aggregate history.',
       resetTitle: 'Reset the legacy CCR pricing table?',
-      resetCopy: 'This rewrites the CCR pricing table with built-in defaults. Existing llmusage dashboard costs stay unchanged.',
+      resetCopy:
+        'This rewrites the CCR pricing table with built-in defaults. Existing llmusage dashboard costs stay unchanged.',
       confirm: 'Confirm',
     },
     messages: {
@@ -3047,7 +3229,8 @@ export default {
       header: {
         eyebrow: 'Codex Command Center',
         workflow: 'task-first',
-        subtitle: 'Answer whether Codex is ready, what to do next, and whether the key safety settings are safe before opening details.',
+        subtitle:
+          'Answer whether Codex is ready, what to do next, and whether the key safety settings are safe before opening details.',
         refresh: 'Refresh',
         authConfig: 'Auth config',
         profileConfig: 'Profile config',
@@ -3104,7 +3287,8 @@ export default {
       actions: {
         login: {
           title: 'Sign in first',
-          description: 'Open account management and add an account via OAuth, API key, token JSON, or local import.',
+          description:
+            'Open account management and add an account via OAuth, API key, token JSON, or local import.',
         },
         createProfile: {
           title: 'Create the first profile',
@@ -3112,7 +3296,8 @@ export default {
         },
         selectProfile: {
           title: 'Select the current profile',
-          description: 'Profiles exist but none is active. Switch to the default work profile first.',
+          description:
+            'Profiles exist but none is active. Switch to the default work profile first.',
         },
         completeSettings: {
           title: 'Complete CLI safety settings',
@@ -3124,7 +3309,8 @@ export default {
         },
         openSessions: {
           title: 'Return to recent sessions',
-          description: 'Session history is available. Continue, inspect context, or export records.',
+          description:
+            'Session history is available. Continue, inspect context, or export records.',
         },
         ready: {
           title: 'Workflow is ready',
@@ -3166,7 +3352,8 @@ export default {
         },
         sessions: {
           title: 'Sessions',
-          description: 'Open the Codex session workbench to inspect context, export, and copy sessions.',
+          description:
+            'Open the Codex session workbench to inspect context, export, and copy sessions.',
           badge: '{count} sessions',
         },
       },
@@ -3185,14 +3372,14 @@ export default {
         actionsTitle: 'Preparing next actions',
         actionsDescription: 'Overview data is not available yet. Refresh once to retry.',
         managementTitle: 'No management data yet',
-        managementDescription: 'Refresh once, or open Auth / Profiles to complete the base configuration.',
+        managementDescription:
+          'Refresh once, or open Auth / Profiles to complete the base configuration.',
       },
       error: {
         title: 'Dashboard overview failed to load',
         usageTitle: 'Usage summary failed to load',
       },
     },
-
 
     // Common actions
     actions: {
@@ -3310,7 +3497,8 @@ export default {
       globalContext: 'Global Agents',
       currentContext: 'Current context',
       projectContext: 'Project Agents',
-      projectContextDescription: 'Manage only the selected project root’s .codex/agents/ directory.',
+      projectContextDescription:
+        'Manage only the selected project root’s .codex/agents/ directory.',
       globalContextDescription: 'Manage real TOML custom agents from ~/.codex/agents/.',
       projectSwitched: 'Switched to project agents context',
       returnedToGlobal: 'Returned to global agents management',
@@ -3328,8 +3516,10 @@ export default {
       editorEmptyHint: 'The editor appears here when you select an agent or start a new one.',
       structuredEditor: 'Structured editor',
       rawEditor: 'Raw TOML',
-      structuredEditorDescription: 'Edit common Codex fields directly while preserving unknown TOML keys.',
-      rawEditorDescription: 'Edit the full TOML document directly for advanced or malformed agent files.',
+      structuredEditorDescription:
+        'Edit common Codex fields directly while preserving unknown TOML keys.',
+      rawEditorDescription:
+        'Edit the full TOML document directly for advanced or malformed agent files.',
       otherJsonMustBeObject: 'Advanced JSON must be an object.',
       diagnosticsBadge: 'diagnostics',
       disabledBadge: 'Disabled',
@@ -3346,7 +3536,8 @@ export default {
       mcpServersLabel: 'mcp_servers JSON',
       rawTomlLabel: 'Raw TOML',
       rawTomlMode: 'Enable raw TOML editing',
-      rawTomlHint: 'When enabled, raw TOML is saved directly while structured fields still override matching keys.',
+      rawTomlHint:
+        'When enabled, raw TOML is saved directly while structured fields still override matching keys.',
       unknownFieldsHint: 'Structured editing will not silently drop unknown TOML fields.',
       targetContextLabel: 'Target context',
       targetNameLabel: 'Target name',
@@ -3403,7 +3594,8 @@ export default {
       currentBadge: 'Current',
       extraHint:
         'Extra JSON is for uncommon platform_data fields that do not have dedicated inputs.',
-      modalFooterHint: 'Saving overwrites the editable profile fields and clears removed legacy hidden settings.',
+      modalFooterHint:
+        'Saving overwrites the editable profile fields and clears removed legacy hidden settings.',
       nameCreateHint:
         'Use a stable profile key for this runtime. You can rename it later from Edit without creating a second profile.',
       nameRenameHint:
@@ -3473,10 +3665,14 @@ export default {
         no_auth: 'Leave this blank for profiles that do not need runtime auth.',
       },
       customModelOption: 'Custom model…',
-      customModelHint: 'The model will be written to a dedicated custom-models.toml for reuse by future profiles.',
-      modelPresetHint: 'Use the conservative built-in presets first; choose custom for anything else.',
-      reasoningEffortHint: 'Optional values are minimal / low / medium / high / xhigh. Leave unset to use the default runtime behavior.',
-      deprecatedAuthModeHint: 'This profile is still using a legacy auth mode: {mode}. You can inspect it and migrate on save.',
+      customModelHint:
+        'The model will be written to a dedicated custom-models.toml for reuse by future profiles.',
+      modelPresetHint:
+        'Use the conservative built-in presets first; choose custom for anything else.',
+      reasoningEffortHint:
+        'Optional values are minimal / low / medium / high / xhigh. Leave unset to use the default runtime behavior.',
+      deprecatedAuthModeHint:
+        'This profile is still using a legacy auth mode: {mode}. You can inspect it and migrate on save.',
       officialBaseUrl: 'Official OpenAI runtime',
       notAvailable: 'N/A',
       openAiAuthOn: 'Uses OpenAI auth',
@@ -3486,7 +3682,8 @@ export default {
       baseUrlOptionalHint:
         'Optional for OpenAI-auth profiles. Leave blank for the official ChatGPT login runtime.',
       envKeyHint: 'This env var name is written to the runtime export and auth store.',
-      enabledHint: 'Disabled profiles stay listed for reference, but should not be treated as default runtime options.',
+      enabledHint:
+        'Disabled profiles stay listed for reference, but should not be treated as default runtime options.',
       sections: {
         identity: 'Identity',
         authentication: 'Authentication',
@@ -3496,7 +3693,8 @@ export default {
       sectionHints: {
         identity: 'Define the profile name and intent so it stays easy to scan from the list view.',
         authentication: 'Confirm auth mode, base URL, and how credentials reach the runtime.',
-        runtime: 'Choose the primary model, reasoning effort, and wire API to keep runtime behavior explicit.',
+        runtime:
+          'Choose the primary model, reasoning effort, and wire API to keep runtime behavior explicit.',
         metadata: 'Keep provider, type, tags, and enabled state readable at a glance.',
       },
       tokenActions: {
@@ -3602,7 +3800,8 @@ export default {
         ariaLabel: 'Codex Profiles context sidebar',
         activeTitle: 'Active Profile',
         activeEmpty: 'No active profile',
-        activeEmptyHint: 'Pick one from the quick switch row or press ⌘K to open the command palette',
+        activeEmptyHint:
+          'Pick one from the quick switch row or press ⌘K to open the command palette',
         editAction: 'Edit this profile',
         credentialStore: 'Credential store',
         distributionTitle: 'Distribution',
@@ -3787,7 +3986,7 @@ export default {
         supportedProfile:
           'Current profile "{name}" uses "{authMode}". Auth account save/switch is available.',
       },
-    status: {
+      status: {
         loginState: 'Login State',
         totalAccounts: 'Total Accounts',
         currentAccount: 'Current Account',
@@ -3884,7 +4083,8 @@ export default {
         sortLabel: 'Sort',
         resultsCount: '{shown} / {total} accounts',
         noResultsTitle: 'No matching accounts',
-        noResultsHint: 'Try a different keyword, relax the filters, or clear them to review every account again.',
+        noResultsHint:
+          'Try a different keyword, relax the filters, or clear them to review every account again.',
         statusOptions: {
           all: 'All',
           current: 'Current',
@@ -4042,19 +4242,24 @@ export default {
       modules: {
         eyebrow: 'Capability map',
         title: 'High-frequency modules',
-        subtitle: 'Editable Antigravity capabilities stay up front while Gemini legacy/import-compatible boundaries remain explicit.',
+        subtitle:
+          'Editable Antigravity capabilities stay up front while Gemini legacy/import-compatible boundaries remain explicit.',
         supportedBadge: 'Connected',
         boundaryBadge: 'Boundary',
-        mcpDescription: 'Manage Antigravity CLI MCP servers in mcp_config.json with serverUrl semantics for remote servers.',
+        mcpDescription:
+          'Manage Antigravity CLI MCP servers in mcp_config.json with serverUrl semantics for remote servers.',
         mcpHint: 'Config file entry',
         mcpStatus: 'Editable',
-        commandsDescription: 'Browse and maintain project-level and user-level slash commands for faster local workflows.',
+        commandsDescription:
+          'Browse and maintain project-level and user-level slash commands for faster local workflows.',
         commandsHint: 'Command templates',
         commandsStatus: 'Editable',
-        agentsDescription: 'Keep the Antigravity Agents entrypoint visible; session/log import and unconfirmed formats remain marked as pending.',
+        agentsDescription:
+          'Keep the Antigravity Agents entrypoint visible; session/log import and unconfirmed formats remain marked as pending.',
         agentsHint: 'Platform placeholder',
         agentsStatus: 'Awaiting backend',
-        pluginsDescription: 'Expose the Plugins management entrypoint with its real support boundary, ready for a future stable backend contract.',
+        pluginsDescription:
+          'Expose the Plugins management entrypoint with its real support boundary, ready for a future stable backend contract.',
         pluginsHint: 'Extension ecosystem',
         pluginsStatus: 'Awaiting backend',
       },
@@ -4063,17 +4268,23 @@ export default {
         pathsTitle: 'Fast routes',
         pathMcp: 'MCP: open the server list to add, edit, disable, or remove configuration.',
         pathCommands: 'Commands: manage safe local command templates without executing them.',
-        pathSkills: 'Capabilities: Agents / Plugins stay visible without pretending full backend support exists.',
+        pathSkills:
+          'Capabilities: Agents / Plugins stay visible without pretending full backend support exists.',
         configKicker: 'Config map',
         configTitle: 'Configuration locations',
         configSettings: 'Antigravity settings live at ~/.gemini/antigravity-cli/settings.json.',
-        configProjectCommands: 'Workspace MCP and skills use .agents/mcp_config.json and .agents/skills.',
-        configUserCommands: 'Old .gemini/commands and ~/.gemini/skills remain Gemini legacy/shared sources.',
+        configProjectCommands:
+          'Workspace MCP and skills use .agents/mcp_config.json and .agents/skills.',
+        configUserCommands:
+          'Old .gemini/commands and ~/.gemini/skills remain Gemini legacy/shared sources.',
         tipsKicker: 'Operator notes',
         tipsTitle: 'Usage tips',
-        tipSafeCommands: 'Terminal previews only copy safe inspection commands; they never execute automatically.',
-        tipBoundaries: 'Unsupported areas are explained in status copy instead of hidden or fabricated.',
-        tipNoBackendChange: 'The internal platform key and Tauri invokes remain gemini to preserve history, usage, and sync data.',
+        tipSafeCommands:
+          'Terminal previews only copy safe inspection commands; they never execute automatically.',
+        tipBoundaries:
+          'Unsupported areas are explained in status copy instead of hidden or fabricated.',
+        tipNoBackendChange:
+          'The internal platform key and Tauri invokes remain gemini to preserve history, usage, and sync data.',
       },
     },
 
@@ -4318,23 +4529,29 @@ export default {
       codex: {
         label: 'Codex',
         title: 'Codex usage insight',
-        description: 'Track local Codex requests, token volume, pricing coverage, and project/model attribution without blocking readiness checks.',
+        description:
+          'Track local Codex requests, token volume, pricing coverage, and project/model attribution without blocking readiness checks.',
         emptyTitle: 'No Codex usage logs yet',
-        emptyDescription: 'Import usage from the full Usage dashboard when local Codex logs are available. The homepage will not show synthetic zeroes.',
+        emptyDescription:
+          'Import usage from the full Usage dashboard when local Codex logs are available. The homepage will not show synthetic zeroes.',
       },
       antigravity: {
         label: 'Antigravity CLI',
         title: 'Antigravity usage insight',
-        description: 'Reads the legacy gemini usage key while presenting the current Antigravity CLI brand and compatibility boundary.',
+        description:
+          'Reads the legacy gemini usage key while presenting the current Antigravity CLI brand and compatibility boundary.',
         emptyTitle: 'No Antigravity usage imported',
-        emptyDescription: 'Antigravity still uses the legacy gemini platform key; import usage logs from the Usage dashboard when available.',
+        emptyDescription:
+          'Antigravity still uses the legacy gemini platform key; import usage logs from the Usage dashboard when available.',
       },
       opencode: {
         label: 'OpenCode',
         title: 'OpenCode usage insight',
-        description: 'Keep token/cost analytics separate from live provider and MCP counts so optional source gaps never hide operational state.',
+        description:
+          'Keep token/cost analytics separate from live provider and MCP counts so optional source gaps never hide operational state.',
         emptyTitle: 'No OpenCode usage source yet',
-        emptyDescription: 'OpenCode usage data is optional. Provider, MCP, agent, command, and plugin counts remain visible even when usage import is absent.',
+        emptyDescription:
+          'OpenCode usage data is optional. Provider, MCP, agent, command, and plugin counts remain visible even when usage import is absent.',
       },
     },
   },
@@ -4347,9 +4564,11 @@ export default {
     noDataTitle: 'No overview data yet',
     noData: 'No statistics available',
     noUsageLogs: 'No local usage logs were found. Home overview tried one automatic import.',
-    noUsageLogsPending: 'No local usage logs were found. Home overview is importing them in the background.',
+    noUsageLogsPending:
+      'No local usage logs were found. Home overview is importing them in the background.',
     noSessionIndex: 'No session index was found. Home overview tried one automatic reindex.',
-    noSessionIndexPending: 'No session index was found. Home overview is rebuilding it in the background.',
+    noSessionIndexPending:
+      'No session index was found. Home overview is rebuilding it in the background.',
     noUsageAndSessions: 'No usage logs or session index data were found.',
     fullReportHint: 'Open the full report to import manually and inspect diagnostics.',
     viewModes: {
@@ -4369,7 +4588,8 @@ export default {
     warmingUsage: 'Background usage import in progress',
     warmingUsageProgress: 'Background usage import: {scanned}/{total} files · {records} records',
     warmingSessions: 'Background session indexing in progress',
-    warmingSessionsProgress: 'Background session indexing: {done}/{total} platforms · {files} files · current {current}',
+    warmingSessionsProgress:
+      'Background session indexing: {done}/{total} platforms · {files} files · current {current}',
     bootstrapImported: 'Auto-imported {count} usage records',
     bootstrapIndexed: 'Auto-indexed {count} sessions',
   },
