@@ -19,6 +19,7 @@ export default [
       '**/dist-ssr/**',
       '**/storybook-static/**',
       '**/coverage/**',
+      '**/.tmp/**',
       '**/node_modules/**',
       '**/ref/**',
       '**/src-tauri/target/**',
