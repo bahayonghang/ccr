@@ -102,6 +102,12 @@ pub(crate) mod test_support {
 
     impl Drop for TestHome {
         fn drop(&mut self) {
+            self.restore_env_vars();
+        }
+    }
+
+    impl TestHome {
+        fn restore_env_vars(&mut self) {
             for (key, previous) in self.previous_vars.drain(..).rev() {
                 restore_env_var(key, previous);
             }
@@ -144,27 +150,35 @@ pub(crate) mod test_support {
     #[cfg(test)]
     mod tests {
         use super::TestHome;
+        use std::ffi::OsString;
 
         #[test]
         fn test_home_sets_and_restores_common_ccr_env() {
-            let previous_root = std::env::var_os("CCR_ROOT");
-            let previous_config_path = std::env::var_os("CCR_CONFIG_PATH");
+            let mut home = TestHome::new();
+            let previous_root = captured_previous(&home, "CCR_ROOT");
+            let previous_config_path = captured_previous(&home, "CCR_CONFIG_PATH");
 
-            {
-                let home = TestHome::new();
-                assert_eq!(
-                    std::env::var_os("CCR_ROOT").as_deref(),
-                    Some(home.root().as_os_str())
-                );
-                assert!(std::env::var_os("CCR_CONFIG_PATH").is_none());
-                assert!(home.settings_path().starts_with(home.home()));
-                assert!(home.backup_dir().starts_with(home.home()));
-                assert!(home.lock_dir().starts_with(home.home()));
-                assert!(home.codex_dir().starts_with(home.home()));
-            }
+            assert_eq!(
+                std::env::var_os("CCR_ROOT").as_deref(),
+                Some(home.root().as_os_str())
+            );
+            assert!(std::env::var_os("CCR_CONFIG_PATH").is_none());
+            assert!(home.settings_path().starts_with(home.home()));
+            assert!(home.backup_dir().starts_with(home.home()));
+            assert!(home.lock_dir().starts_with(home.home()));
+            assert!(home.codex_dir().starts_with(home.home()));
+
+            home.restore_env_vars();
 
             assert_eq!(std::env::var_os("CCR_ROOT"), previous_root);
             assert_eq!(std::env::var_os("CCR_CONFIG_PATH"), previous_config_path);
+        }
+
+        fn captured_previous(home: &TestHome, key: &'static str) -> Option<OsString> {
+            home.previous_vars
+                .iter()
+                .find_map(|(captured_key, value)| (*captured_key == key).then(|| value.clone()))
+                .flatten()
         }
     }
 }

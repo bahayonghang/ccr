@@ -789,57 +789,31 @@ impl ClaudeAuthService {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
+    use crate::test_support::TestHome;
     use chrono::Duration;
     use serde_json::json;
-    use std::sync::MutexGuard;
-    use tempfile::TempDir;
-
-    fn restore_env_var(key: &str, previous: Option<String>) {
-        // SAFETY: 仅在测试中恢复当前进程环境变量，调用方保证作用域内串行使用。
-        unsafe {
-            match previous {
-                Some(value) => std::env::set_var(key, value),
-                None => std::env::remove_var(key),
-            }
-        }
-    }
 
     struct TestEnv {
-        _root: TempDir,
-        _env_guard: MutexGuard<'static, ()>,
-        previous_ccr_root: Option<String>,
-        previous_lock_dir: Option<String>,
+        _home: TestHome,
         service: ClaudeAuthService,
     }
 
     impl TestEnv {
         fn new() -> Self {
-            let env_guard = crate::test_support::env_lock();
-            let root = tempfile::tempdir().unwrap();
-            let home = root.path().join("home");
-            let ccr_claude_dir = home.join(".ccr").join("platforms").join("claude");
-            let claude_dir = home.join(".claude");
-            let claude_json_path = home.join(".claude.json");
+            let home = TestHome::new();
+            let ccr_claude_dir = home.root().join("platforms").join("claude");
+            let claude_dir = home.home().join(".claude");
+            let claude_json_path = home.home().join(".claude.json");
             fs::create_dir_all(&ccr_claude_dir).unwrap();
             fs::create_dir_all(&claude_dir).unwrap();
-            let previous_ccr_root = std::env::var("CCR_ROOT").ok();
-            let previous_lock_dir = std::env::var("CCR_LOCK_DIR").ok();
-            // SAFETY: 测试需要临时指向隔离的 CCR 根目录，结束后会恢复原值。
-            unsafe {
-                std::env::set_var("CCR_ROOT", home.join(".ccr"));
-                std::env::set_var("CCR_LOCK_DIR", home.join(".locks"));
-            }
 
             Self {
-                _env_guard: env_guard,
-                previous_ccr_root,
-                previous_lock_dir,
                 service: ClaudeAuthService::from_parts(
                     ccr_claude_dir,
                     claude_dir,
                     claude_json_path,
                 ),
-                _root: root,
+                _home: home,
             }
         }
 
@@ -904,13 +878,6 @@ mod tests {
                 serde_json::to_string_pretty(&value).unwrap(),
             )
             .unwrap();
-        }
-    }
-
-    impl Drop for TestEnv {
-        fn drop(&mut self) {
-            restore_env_var("CCR_ROOT", self.previous_ccr_root.clone());
-            restore_env_var("CCR_LOCK_DIR", self.previous_lock_dir.clone());
         }
     }
 
