@@ -77,6 +77,8 @@ export interface CommandJobSnapshot {
   stdout_lines: string[];
   stderr_lines: string[];
   system_lines: string[];
+  truncated?: boolean;
+  dropped_lines?: number;
   error?: string | null;
 }
 

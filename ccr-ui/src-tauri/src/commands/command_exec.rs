@@ -7,7 +7,7 @@ use std::sync::LazyLock;
 use std::time::Instant;
 
 use crate::process::tokio_command;
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tauri::{AppHandle, Emitter};
@@ -19,6 +19,11 @@ use uuid::Uuid;
 const EVENT_COMMAND_JOB_PROGRESS: &str = "commands:job-progress";
 const EVENT_COMMAND_JOB_FINISHED: &str = "commands:job-finished";
 const EVENT_COMMAND_JOB_CANCELLED: &str = "commands:job-cancelled";
+
+const COMMAND_JOB_MAX_JOBS: usize = 64;
+const COMMAND_JOB_TTL_SECS: u64 = 30 * 60;
+const COMMAND_JOB_MAX_LINES_PER_CHANNEL: usize = 500;
+const COMMAND_JOB_MAX_BYTES_PER_CHANNEL: usize = 512 * 1024;
 
 /// 允许执行的 CCR 子命令白名单
 const ALLOWED_COMMANDS: &[&str] = &[
@@ -190,10 +195,7 @@ impl CommandPolicy {
             if raw_arg.starts_with('-') {
                 let (flag_name, value_kind) = split_flag_arg(raw_arg)?;
                 let flag = self.find_flag(flag_name).ok_or_else(|| {
-                    format!(
-                        "命令 '{}' 不允许参数 '{}'。",
-                        self.info.name, flag_name
-                    )
+                    format!("命令 '{}' 不允许参数 '{}'。", self.info.name, flag_name)
                 })?;
 
                 if flag.takes_value {
@@ -207,10 +209,7 @@ impl CommandPolicy {
                         }
                         None => {
                             let value = args.get(index + 1).ok_or_else(|| {
-                                format!(
-                                    "命令 '{}' 的参数 '{}' 缺少值。",
-                                    self.info.name, flag_name
-                                )
+                                format!("命令 '{}' 的参数 '{}' 缺少值。", self.info.name, flag_name)
                             })?;
                             if value.starts_with('-') {
                                 return Err(format!(
@@ -974,6 +973,8 @@ pub struct CommandJobSnapshot {
     pub stdout_lines: Vec<String>,
     pub stderr_lines: Vec<String>,
     pub system_lines: Vec<String>,
+    pub truncated: bool,
+    pub dropped_lines: usize,
     pub error: Option<String>,
 }
 
@@ -1012,6 +1013,94 @@ fn elapsed_ms(started: Instant) -> u64 {
     started.elapsed().as_millis().min(u128::from(u64::MAX)) as u64
 }
 
+fn sorted_prune_candidates(
+    jobs: &HashMap<String, CommandJobSnapshot>,
+    include_terminal_only: bool,
+) -> Vec<String> {
+    let mut candidates = jobs
+        .values()
+        .filter(|job| !include_terminal_only || job.is_terminal())
+        .map(|job| {
+            (
+                job.finished_datetime()
+                    .or_else(|| job.started_datetime())
+                    .unwrap_or_else(Utc::now),
+                job.job_id.clone(),
+            )
+        })
+        .collect::<Vec<_>>();
+    candidates.sort_by(|left, right| left.0.cmp(&right.0).then_with(|| left.1.cmp(&right.1)));
+    candidates.into_iter().map(|(_, job_id)| job_id).collect()
+}
+
+fn prune_expired_jobs_locked(
+    jobs: &mut HashMap<String, CommandJobSnapshot>,
+    now: DateTime<Utc>,
+) -> Vec<String> {
+    let expired = jobs
+        .iter()
+        .filter_map(|(job_id, snapshot)| snapshot.is_expired(now).then(|| job_id.clone()))
+        .collect::<Vec<_>>();
+    for job_id in &expired {
+        jobs.remove(job_id);
+    }
+    expired
+}
+
+fn prune_to_capacity_locked(
+    jobs: &mut HashMap<String, CommandJobSnapshot>,
+    capacity: usize,
+) -> Vec<String> {
+    let mut removed = Vec::new();
+    if capacity == 0 {
+        removed.extend(jobs.keys().cloned().collect::<Vec<_>>());
+        jobs.clear();
+        return removed;
+    }
+
+    if jobs.len() <= capacity {
+        return removed;
+    }
+
+    for job_id in sorted_prune_candidates(jobs, true) {
+        if jobs.len() <= capacity {
+            break;
+        }
+        if jobs.remove(&job_id).is_some() {
+            removed.push(job_id);
+        }
+    }
+
+    removed
+}
+
+async fn remove_cancel_tokens(job_ids: &[String]) {
+    if job_ids.is_empty() {
+        return;
+    }
+
+    let mut cancel_tokens = COMMAND_JOBS.cancel_tokens.lock().await;
+    for job_id in job_ids {
+        cancel_tokens.remove(job_id);
+    }
+}
+
+async fn prune_jobs_by_policy() -> usize {
+    let removed = {
+        let mut jobs = COMMAND_JOBS.jobs.lock().await;
+        let mut removed = prune_expired_jobs_locked(&mut jobs, Utc::now());
+        removed.extend(prune_to_capacity_locked(&mut jobs, COMMAND_JOB_MAX_JOBS));
+        removed
+    };
+
+    remove_cancel_tokens(&removed).await;
+    removed.len()
+}
+
+pub(crate) async fn prune_command_jobs() -> usize {
+    prune_jobs_by_policy().await
+}
+
 impl CommandJobSnapshot {
     fn queued(job_id: String, command: String, args: Vec<String>) -> Self {
         Self {
@@ -1026,20 +1115,37 @@ impl CommandJobSnapshot {
             stdout_lines: Vec::new(),
             stderr_lines: Vec::new(),
             system_lines: vec!["Job queued".to_string()],
+            truncated: false,
+            dropped_lines: 0,
             error: None,
         }
     }
 
     fn mark_running(&mut self) {
         self.status = CommandJobStatus::Running;
-        self.system_lines.push("Process started".to_string());
+        self.push_line(OutputChannel::System, "Process started".to_string());
     }
 
     fn push_line(&mut self, channel: OutputChannel, line: String) {
         match channel {
-            OutputChannel::Stdout => self.stdout_lines.push(line),
-            OutputChannel::Stderr => self.stderr_lines.push(line),
-            OutputChannel::System => self.system_lines.push(line),
+            OutputChannel::Stdout => push_capped_line(
+                &mut self.stdout_lines,
+                &mut self.truncated,
+                &mut self.dropped_lines,
+                line,
+            ),
+            OutputChannel::Stderr => push_capped_line(
+                &mut self.stderr_lines,
+                &mut self.truncated,
+                &mut self.dropped_lines,
+                line,
+            ),
+            OutputChannel::System => push_capped_line(
+                &mut self.system_lines,
+                &mut self.truncated,
+                &mut self.dropped_lines,
+                line,
+            ),
         }
     }
 
@@ -1055,6 +1161,89 @@ impl CommandJobSnapshot {
         self.duration_ms = Some(elapsed_ms(started));
         self.exit_code = exit_code;
         self.error = error;
+    }
+
+    fn is_terminal(&self) -> bool {
+        matches!(
+            self.status,
+            CommandJobStatus::Success
+                | CommandJobStatus::Failed
+                | CommandJobStatus::Cancelled
+                | CommandJobStatus::Unavailable
+        )
+    }
+
+    fn finished_datetime(&self) -> Option<DateTime<Utc>> {
+        DateTime::parse_from_rfc3339(self.finished_at.as_deref()?)
+            .ok()
+            .map(|value| value.with_timezone(&Utc))
+    }
+
+    fn started_datetime(&self) -> Option<DateTime<Utc>> {
+        DateTime::parse_from_rfc3339(&self.started_at)
+            .ok()
+            .map(|value| value.with_timezone(&Utc))
+    }
+
+    fn is_expired(&self, now: DateTime<Utc>) -> bool {
+        if !self.is_terminal() {
+            return false;
+        }
+
+        self.finished_datetime().is_some_and(|finished_at| {
+            now.signed_duration_since(finished_at).num_seconds() >= COMMAND_JOB_TTL_SECS as i64
+        })
+    }
+}
+
+fn channel_size_bytes(lines: &[String]) -> usize {
+    lines.iter().map(|line| line.len()).sum()
+}
+
+fn truncate_line_to_bytes(line: String) -> (String, bool) {
+    if line.len() <= COMMAND_JOB_MAX_BYTES_PER_CHANNEL {
+        return (line, false);
+    }
+
+    const MARKER: &str = "…";
+    let budget = COMMAND_JOB_MAX_BYTES_PER_CHANNEL.saturating_sub(MARKER.len());
+    let mut end = 0usize;
+    for (index, ch) in line.char_indices() {
+        let next = index + ch.len_utf8();
+        if next > budget {
+            break;
+        }
+        end = next;
+    }
+
+    let mut truncated = line[..end].to_string();
+    if COMMAND_JOB_MAX_BYTES_PER_CHANNEL >= MARKER.len() {
+        truncated.push_str(MARKER);
+    }
+    (truncated, true)
+}
+
+fn push_capped_line(
+    lines: &mut Vec<String>,
+    truncated: &mut bool,
+    dropped_lines: &mut usize,
+    line: String,
+) {
+    let (line, line_was_truncated) = truncate_line_to_bytes(line);
+    if line_was_truncated {
+        *truncated = true;
+    }
+
+    lines.push(line);
+    while lines.len() > COMMAND_JOB_MAX_LINES_PER_CHANNEL
+        || channel_size_bytes(lines) > COMMAND_JOB_MAX_BYTES_PER_CHANNEL
+    {
+        if lines.is_empty() {
+            break;
+        }
+        lines.remove(0);
+        *truncated = true;
+        *dropped_lines += 1;
     }
 }
 
@@ -1094,7 +1283,10 @@ fn split_flag_arg(raw_arg: &str) -> Result<(&str, Option<ParsedFlagValue>), Stri
             }),
         ))
     } else if raw_arg.ends_with('=') {
-        Ok((raw_arg.trim_end_matches('='), Some(ParsedFlagValue::NextArg)))
+        Ok((
+            raw_arg.trim_end_matches('='),
+            Some(ParsedFlagValue::NextArg),
+        ))
     } else {
         Ok((raw_arg, None))
     }
@@ -1125,17 +1317,37 @@ fn split_output_lines(output: &str) -> Vec<String> {
         .collect()
 }
 
-async fn insert_job(snapshot: CommandJobSnapshot, cancel_token: CancellationToken) {
-    COMMAND_JOBS
-        .jobs
-        .lock()
-        .await
-        .insert(snapshot.job_id.clone(), snapshot.clone());
+async fn insert_job(
+    snapshot: CommandJobSnapshot,
+    cancel_token: CancellationToken,
+) -> Result<(), String> {
+    let removed = {
+        let mut jobs = COMMAND_JOBS.jobs.lock().await;
+        let mut removed = prune_expired_jobs_locked(&mut jobs, Utc::now());
+        if jobs.len() >= COMMAND_JOB_MAX_JOBS {
+            removed.extend(prune_to_capacity_locked(
+                &mut jobs,
+                COMMAND_JOB_MAX_JOBS.saturating_sub(1),
+            ));
+        }
+
+        if jobs.len() >= COMMAND_JOB_MAX_JOBS {
+            return Err(format!(
+                "后台命令任务已达到上限（{} 个），请等待正在运行的任务完成后重试。",
+                COMMAND_JOB_MAX_JOBS
+            ));
+        }
+
+        jobs.insert(snapshot.job_id.clone(), snapshot.clone());
+        removed
+    };
+    remove_cancel_tokens(&removed).await;
     COMMAND_JOBS
         .cancel_tokens
         .lock()
         .await
         .insert(snapshot.job_id, cancel_token);
+    Ok(())
 }
 
 async fn update_job<F>(job_id: &str, updater: F) -> Option<CommandJobSnapshot>
@@ -1149,6 +1361,7 @@ where
 }
 
 async fn get_job(job_id: &str) -> Option<CommandJobSnapshot> {
+    prune_jobs_by_policy().await;
     COMMAND_JOBS.jobs.lock().await.get(job_id).cloned()
 }
 
@@ -1376,13 +1589,9 @@ pub async fn start_ccr_command_job(
     validate_command_request(&request)?;
 
     let job_id = format!("ccr-command-{}", Uuid::new_v4());
-    let snapshot = CommandJobSnapshot::queued(
-        job_id.clone(),
-        request.command,
-        request.args,
-    );
+    let snapshot = CommandJobSnapshot::queued(job_id.clone(), request.command, request.args);
     let cancel_token = CancellationToken::new();
-    insert_job(snapshot.clone(), cancel_token.clone()).await;
+    insert_job(snapshot.clone(), cancel_token.clone()).await?;
 
     tauri::async_runtime::spawn(run_command_job(app_handle, job_id.clone(), cancel_token));
 
@@ -1527,8 +1736,7 @@ mod tests {
     fn command_policy_rejects_missing_required_arg() {
         let request = CommandExecutionRequest::foreground("delete".to_string(), Some(vec![]), None);
 
-        let error =
-            validate_command_request(&request).expect_err("required args must be enforced");
+        let error = validate_command_request(&request).expect_err("required args must be enforced");
         assert!(error.contains("需要桌面确认") || error.contains("缺少必需位置参数"));
     }
 
@@ -1609,7 +1817,11 @@ mod tests {
     fn command_policy_accepts_short_aliases_declared_in_catalog() {
         let request = CommandExecutionRequest::foreground(
             "history".to_string(),
-            Some(vec!["-l".to_string(), "5".to_string(), "-t=switch".to_string()]),
+            Some(vec![
+                "-l".to_string(),
+                "5".to_string(),
+                "-t=switch".to_string(),
+            ]),
             None,
         );
 
@@ -1674,6 +1886,8 @@ mod tests {
         assert!(value["stdout_lines"].is_array());
         assert!(value["stderr_lines"].is_array());
         assert!(value["system_lines"].is_array());
+        assert_eq!(value["truncated"], false);
+        assert_eq!(value["dropped_lines"], 0);
     }
 
     #[test]
@@ -1697,5 +1911,103 @@ mod tests {
         assert_eq!(snapshot.stderr_lines, vec!["validation failed"]);
         assert!(snapshot.duration_ms.is_some());
         assert!(snapshot.error.as_deref().unwrap_or_default().contains('2'));
+    }
+
+    #[test]
+    fn command_job_snapshot_caps_output_lines_per_channel() {
+        let mut snapshot =
+            CommandJobSnapshot::queued("job-lines".to_string(), "status".to_string(), Vec::new());
+
+        for index in 0..=COMMAND_JOB_MAX_LINES_PER_CHANNEL {
+            snapshot.push_line(OutputChannel::Stdout, format!("line {index}"));
+        }
+
+        assert_eq!(
+            snapshot.stdout_lines.len(),
+            COMMAND_JOB_MAX_LINES_PER_CHANNEL
+        );
+        assert_eq!(snapshot.stdout_lines[0], "line 1");
+        assert!(snapshot.truncated);
+        assert_eq!(snapshot.dropped_lines, 1);
+    }
+
+    #[test]
+    fn command_job_snapshot_caps_single_line_bytes() {
+        let mut snapshot =
+            CommandJobSnapshot::queued("job-bytes".to_string(), "status".to_string(), Vec::new());
+        let long_line = "x".repeat(COMMAND_JOB_MAX_BYTES_PER_CHANNEL + 64);
+
+        snapshot.push_line(OutputChannel::Stderr, long_line);
+
+        assert_eq!(snapshot.stderr_lines.len(), 1);
+        assert!(snapshot.stderr_lines[0].ends_with('…'));
+        assert!(snapshot.stderr_lines[0].len() <= COMMAND_JOB_MAX_BYTES_PER_CHANNEL);
+        assert!(snapshot.truncated);
+        assert_eq!(snapshot.dropped_lines, 0);
+    }
+
+    #[test]
+    fn command_job_ttl_prunes_only_terminal_jobs() {
+        let now = Utc::now();
+        let old_finished_at =
+            (now - chrono::Duration::seconds(COMMAND_JOB_TTL_SECS as i64 + 1)).to_rfc3339();
+        let mut jobs = HashMap::new();
+        let mut terminal =
+            CommandJobSnapshot::queued("terminal".to_string(), "status".to_string(), Vec::new());
+        terminal.status = CommandJobStatus::Success;
+        terminal.finished_at = Some(old_finished_at.clone());
+        let mut running =
+            CommandJobSnapshot::queued("running".to_string(), "status".to_string(), Vec::new());
+        running.status = CommandJobStatus::Running;
+        running.finished_at = Some(old_finished_at);
+        jobs.insert(terminal.job_id.clone(), terminal);
+        jobs.insert(running.job_id.clone(), running);
+
+        let removed = prune_expired_jobs_locked(&mut jobs, now);
+
+        assert_eq!(removed, vec!["terminal".to_string()]);
+        assert!(!jobs.contains_key("terminal"));
+        assert!(jobs.contains_key("running"));
+    }
+
+    #[test]
+    fn command_job_capacity_prunes_oldest_terminal_snapshots_first() {
+        let mut jobs = HashMap::new();
+        for index in 0..3 {
+            let mut snapshot = CommandJobSnapshot::queued(
+                format!("job-{index}"),
+                "status".to_string(),
+                Vec::new(),
+            );
+            snapshot.status = CommandJobStatus::Success;
+            snapshot.finished_at =
+                Some((Utc::now() + chrono::Duration::seconds(index as i64)).to_rfc3339());
+            jobs.insert(snapshot.job_id.clone(), snapshot);
+        }
+
+        let removed = prune_to_capacity_locked(&mut jobs, 1);
+
+        assert_eq!(removed, vec!["job-0".to_string(), "job-1".to_string()]);
+        assert_eq!(jobs.len(), 1);
+        assert!(jobs.contains_key("job-2"));
+    }
+
+    #[test]
+    fn command_job_capacity_keeps_active_snapshots() {
+        let mut jobs = HashMap::new();
+        for index in 0..3 {
+            let mut snapshot = CommandJobSnapshot::queued(
+                format!("active-{index}"),
+                "status".to_string(),
+                Vec::new(),
+            );
+            snapshot.status = CommandJobStatus::Running;
+            jobs.insert(snapshot.job_id.clone(), snapshot);
+        }
+
+        let removed = prune_to_capacity_locked(&mut jobs, 1);
+
+        assert!(removed.is_empty());
+        assert_eq!(jobs.len(), 3);
     }
 }

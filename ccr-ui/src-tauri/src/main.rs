@@ -441,7 +441,7 @@ mod tests {
 }
 
 /// 后台维护任务循环：60s 基础 tick，按 tick 数分频执行不同粒度的清理。
-/// - 每 60s  : cache_cleanup
+/// - 每 60s  : cache_cleanup + command job TTL/capacity prune
 /// - 每 300s : ssh 运行时状态 + 密码缓存 cleanup（tick % 5 == 0）
 /// - 每 600s : 监控日志 cleanup + usage import probe（tick % 10 == 0）
 ///   shutdown 信号到达时，最多等 60s 退出（tick 粒度）。
@@ -465,6 +465,12 @@ async fn run_background_tasks(app_handle: tauri::AppHandle, shutdown: Arc<Notify
 
                 // 每 60s：LRU 缓存过期清理
                 state.cache_cleanup().await;
+                let pruned_command_jobs = crate::commands::command_exec::prune_command_jobs().await;
+                if pruned_command_jobs > 0 {
+                    tracing::debug!(
+                        "[background] pruned {pruned_command_jobs} command job snapshot(s)"
+                    );
+                }
 
                 // 每 5min：SSH 运行时状态与密码缓存清理
                 if tick.is_multiple_of(5) {
