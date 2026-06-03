@@ -5,6 +5,7 @@
 export interface CommandRequest {
   command: string;
   args: string[];
+  confirmationToken?: string | null;
 }
 
 export interface CommandResponse {
@@ -54,6 +55,7 @@ export interface CommandArgSchema {
 
 export interface CommandFlagSchema {
   name: string;
+  aliases?: string[];
   label: string;
   description?: string;
   type: 'boolean' | 'text' | 'path' | 'number' | string;

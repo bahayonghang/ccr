@@ -776,6 +776,11 @@ const canExecuteSelected = computed(() => {
   return true
 })
 const selectedCommandArgs = computed(() => splitArgs(args.value))
+const selectedConfirmationToken = computed(() => {
+  const command = selectedCommandInfo.value
+  if (!command?.dangerous || !dangerAccepted.value) return undefined
+  return `desktop-confirm:${command.name}`
+})
 const selectedFavorite = computed(() =>
   favorites.value.find(
     (item) =>
@@ -1090,6 +1095,7 @@ const handleExecute = async () => {
     const response = await startCcrCommandJob({
       command: selectedCommandInfo.value.name,
       args: splitArgs(args.value),
+      confirmationToken: selectedConfirmationToken.value,
     })
     currentSnapshot.value = response.snapshot
   } catch (error) {

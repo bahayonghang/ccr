@@ -655,12 +655,14 @@ export {
 
 /** 执行 CCR 命令 */
 export const executeCommand = async (
-  commandOrPayload: string | { command: string; args?: string[] },
+  commandOrPayload: string | { command: string; args?: string[]; confirmationToken?: string | null },
   args?: string[]
 ): Promise<unknown> => {
   const command = typeof commandOrPayload === 'string' ? commandOrPayload : commandOrPayload.command
   const resolvedArgs = typeof commandOrPayload === 'string' ? args : commandOrPayload.args
-  return invoke('execute_ccr_command', { command, args: resolvedArgs })
+  const confirmationToken =
+    typeof commandOrPayload === 'string' ? undefined : commandOrPayload.confirmationToken
+  return invoke('execute_ccr_command', { command, args: resolvedArgs, confirmationToken })
 }
 
 /** 列出可用命令 */
@@ -675,11 +677,12 @@ export const getCommandHelp = async <T = UnknownRecord>(command: string): Promis
 
 /** 启动 CCR 命令后台任务 */
 export const startCcrCommandJob = async (
-  payload: { command: string; args?: string[] },
+  payload: { command: string; args?: string[]; confirmationToken?: string | null },
 ): Promise<StartCommandJobResponse> => {
   return invoke('start_ccr_command_job', {
     command: payload.command,
     args: payload.args,
+    confirmationToken: payload.confirmationToken,
   })
 }
 

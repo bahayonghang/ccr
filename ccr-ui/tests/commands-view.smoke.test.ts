@@ -303,7 +303,11 @@ describe('CommandsView smoke', () => {
       run?.click()
       await flush()
 
-      expect(apiMocks.startCcrCommandJob).toHaveBeenCalledWith({ command: 'delete', args: ['old'] })
+      expect(apiMocks.startCcrCommandJob).toHaveBeenCalledWith({
+        command: 'delete',
+        args: ['old'],
+        confirmationToken: 'desktop-confirm:delete',
+      })
     } finally {
       unmount()
     }
@@ -380,6 +384,7 @@ describe('CommandsView smoke', () => {
       expect(apiMocks.startCcrCommandJob).toHaveBeenCalledWith({
         command: 'purge-cache',
         args: ['temp'],
+        confirmationToken: 'desktop-confirm:purge-cache',
       })
 
       const previewCommand = Array.from(el.querySelectorAll<HTMLButtonElement>('.command-row'))
@@ -448,7 +453,11 @@ describe('CommandsView smoke', () => {
       run?.click()
       await flush()
 
-      expect(apiMocks.startCcrCommandJob).toHaveBeenCalledWith({ command: 'delete', args: ['old'] })
+      expect(apiMocks.startCcrCommandJob).toHaveBeenCalledWith({
+        command: 'delete',
+        args: ['old'],
+        confirmationToken: 'desktop-confirm:delete',
+      })
     } finally {
       unmount()
     }

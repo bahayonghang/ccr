@@ -58,6 +58,8 @@ pub struct CommandArgSchema {
 #[serde(rename_all = "camelCase")]
 pub struct CommandFlagSchema {
     pub name: &'static str,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub aliases: Vec<&'static str>,
     pub label: &'static str,
     pub description: &'static str,
     #[serde(rename = "type")]
@@ -83,6 +85,177 @@ pub struct CommandInfo {
     pub flags: Vec<CommandFlagSchema>,
     pub aliases: Vec<&'static str>,
     pub related_route: Option<&'static str>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct CommandExecutionRequest {
+    command: String,
+    args: Vec<String>,
+    confirmation_token: Option<String>,
+    background_job: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct CommandPolicy {
+    info: CommandInfo,
+    allow_background_job: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ParsedFlagValue {
+    Inline,
+    NextArg,
+}
+
+impl CommandExecutionRequest {
+    fn foreground(
+        command: String,
+        args: Option<Vec<String>>,
+        confirmation_token: Option<String>,
+    ) -> Self {
+        Self {
+            command,
+            args: args.unwrap_or_default(),
+            confirmation_token,
+            background_job: false,
+        }
+    }
+
+    fn background(
+        command: String,
+        args: Option<Vec<String>>,
+        confirmation_token: Option<String>,
+    ) -> Self {
+        Self {
+            command,
+            args: args.unwrap_or_default(),
+            confirmation_token,
+            background_job: true,
+        }
+    }
+}
+
+impl CommandPolicy {
+    fn from_command(command: &str) -> Result<Self, String> {
+        let catalog = command_catalog();
+        let info = catalog
+            .into_iter()
+            .find(|entry| entry.name == command)
+            .ok_or_else(|| command_not_allowed_error(command))?;
+
+        if !info.executable || !ALLOWED_COMMANDS.contains(&info.name) {
+            return Err(command_not_allowed_error(command));
+        }
+
+        Ok(Self {
+            allow_background_job: true,
+            info,
+        })
+    }
+
+    fn validate(&self, request: &CommandExecutionRequest) -> Result<(), String> {
+        if request.background_job && !self.allow_background_job {
+            return Err(format!(
+                "命令 '{}' 不允许作为后台任务执行。",
+                request.command
+            ));
+        }
+
+        self.validate_confirmation(request)?;
+        self.validate_args(&request.args)
+    }
+
+    fn validate_confirmation(&self, request: &CommandExecutionRequest) -> Result<(), String> {
+        if !self.info.requires_confirmation {
+            return Ok(());
+        }
+
+        let expected = confirmation_token_for(&self.info);
+        match request.confirmation_token.as_deref() {
+            Some(token) if token == expected => Ok(()),
+            _ => Err(format!(
+                "命令 '{}' 需要桌面确认后才能执行。",
+                self.info.name
+            )),
+        }
+    }
+
+    fn validate_args(&self, args: &[String]) -> Result<(), String> {
+        let required_positional_count = self.info.args.iter().filter(|arg| arg.required).count();
+        let max_positional_count = self.info.args.len();
+        let mut positional_count = 0usize;
+        let mut index = 0usize;
+
+        while let Some(raw_arg) = args.get(index) {
+            if raw_arg.starts_with('-') {
+                let (flag_name, value_kind) = split_flag_arg(raw_arg)?;
+                let flag = self.find_flag(flag_name).ok_or_else(|| {
+                    format!(
+                        "命令 '{}' 不允许参数 '{}'。",
+                        self.info.name, flag_name
+                    )
+                })?;
+
+                if flag.takes_value {
+                    match value_kind {
+                        Some(ParsedFlagValue::Inline) => {}
+                        Some(ParsedFlagValue::NextArg) => {
+                            return Err(format!(
+                                "命令 '{}' 的参数 '{}' 缺少值。",
+                                self.info.name, flag_name
+                            ));
+                        }
+                        None => {
+                            let value = args.get(index + 1).ok_or_else(|| {
+                                format!(
+                                    "命令 '{}' 的参数 '{}' 缺少值。",
+                                    self.info.name, flag_name
+                                )
+                            })?;
+                            if value.starts_with('-') {
+                                return Err(format!(
+                                    "命令 '{}' 的参数 '{}' 缺少值。",
+                                    self.info.name, flag_name
+                                ));
+                            }
+                            index += 1;
+                        }
+                    }
+                } else if value_kind.is_some() {
+                    return Err(format!(
+                        "命令 '{}' 的布尔参数 '{}' 不接受值。",
+                        self.info.name, flag_name
+                    ));
+                }
+            } else {
+                positional_count += 1;
+                if positional_count > max_positional_count {
+                    return Err(format!(
+                        "命令 '{}' 不接受额外位置参数 '{}'。",
+                        self.info.name, raw_arg
+                    ));
+                }
+            }
+
+            index += 1;
+        }
+
+        if positional_count < required_positional_count {
+            return Err(format!(
+                "命令 '{}' 缺少必需位置参数。需要 {} 个，收到 {} 个。",
+                self.info.name, required_positional_count, positional_count
+            ));
+        }
+
+        Ok(())
+    }
+
+    fn find_flag(&self, name: &str) -> Option<&CommandFlagSchema> {
+        self.info
+            .flags
+            .iter()
+            .find(|flag| flag.name == name || flag.aliases.contains(&name))
+    }
 }
 
 fn text_arg(
@@ -127,8 +300,18 @@ fn bool_flag(
     label: &'static str,
     description: &'static str,
 ) -> CommandFlagSchema {
+    bool_flag_with_aliases(name, vec![], label, description)
+}
+
+fn bool_flag_with_aliases(
+    name: &'static str,
+    aliases: Vec<&'static str>,
+    label: &'static str,
+    description: &'static str,
+) -> CommandFlagSchema {
     CommandFlagSchema {
         name,
+        aliases,
         label,
         description,
         flag_type: "boolean",
@@ -137,8 +320,9 @@ fn bool_flag(
     }
 }
 
-fn value_flag(
+fn value_flag_with_aliases(
     name: &'static str,
+    aliases: Vec<&'static str>,
     label: &'static str,
     description: &'static str,
     value_type: &'static str,
@@ -146,6 +330,7 @@ fn value_flag(
 ) -> CommandFlagSchema {
     CommandFlagSchema {
         name,
+        aliases,
         label,
         description,
         flag_type: value_type,
@@ -228,15 +413,17 @@ fn command_catalog() -> Vec<CommandInfo> {
             requires_confirmation: false,
             args: vec![],
             flags: vec![
-                value_flag(
+                value_flag_with_aliases(
                     "--limit",
+                    vec!["-l"],
                     "Limit",
                     "Maximum number of history entries.",
                     "number",
                     Some("20"),
                 ),
-                value_flag(
+                value_flag_with_aliases(
                     "--type",
+                    vec!["-t"],
                     "Operation type",
                     "Filter by operation type.",
                     "text",
@@ -351,8 +538,9 @@ fn command_catalog() -> Vec<CommandInfo> {
             requires_confirmation: false,
             args: vec![],
             flags: vec![
-                value_flag(
+                value_flag_with_aliases(
                     "--output",
+                    vec!["-o"],
                     "Output file",
                     "Destination TOML file path.",
                     "path",
@@ -491,8 +679,9 @@ fn command_catalog() -> Vec<CommandInfo> {
                 Some("configs"),
                 "Configuration name to delete.",
             )],
-            flags: vec![bool_flag(
+            flags: vec![bool_flag_with_aliases(
                 "--force",
+                vec!["-f"],
                 "Skip CLI confirmation",
                 "Run non-interactively after UI confirmation.",
             )],
@@ -518,18 +707,21 @@ fn command_catalog() -> Vec<CommandInfo> {
                 "TOML file to import.",
             )],
             flags: vec![
-                bool_flag(
+                bool_flag_with_aliases(
                     "--merge",
+                    vec!["-m"],
                     "Merge",
                     "Merge imported configs into existing configs.",
                 ),
-                bool_flag(
+                bool_flag_with_aliases(
                     "--backup",
+                    vec!["-b"],
                     "Backup first",
                     "Create a backup before importing.",
                 ),
-                bool_flag(
+                bool_flag_with_aliases(
                     "--force",
+                    vec!["-f"],
                     "Skip CLI confirmation",
                     "Run non-interactively after UI confirmation.",
                 ),
@@ -866,27 +1058,61 @@ impl CommandJobSnapshot {
     }
 }
 
-/// 校验子命令是否允许从桌面命令面板直接执行。
-fn validate_command(command: &str) -> Result<(), String> {
-    let catalog = command_catalog();
-    let executable = catalog.iter().any(|entry| {
-        entry.name == command && entry.executable && ALLOWED_COMMANDS.contains(&command)
-    });
+fn confirmation_token_for(command: &CommandInfo) -> String {
+    format!("desktop-confirm:{}", command.name)
+}
 
-    if executable {
-        Ok(())
-    } else {
-        let allowed = catalog
-            .iter()
-            .filter(|entry| entry.executable)
-            .map(|entry| entry.name)
-            .collect::<Vec<_>>()
-            .join(", ");
-        Err(format!(
-            "命令 '{}' 不允许从桌面命令面板直接执行。可直接执行的命令: {}",
-            command, allowed
-        ))
+fn command_not_allowed_error(command: &str) -> String {
+    let catalog = command_catalog();
+    let allowed = catalog
+        .iter()
+        .filter(|entry| entry.executable)
+        .map(|entry| entry.name)
+        .collect::<Vec<_>>()
+        .join(", ");
+    format!(
+        "命令 '{}' 不允许从桌面命令面板直接执行。可直接执行的命令: {}",
+        command, allowed
+    )
+}
+
+fn split_flag_arg(raw_arg: &str) -> Result<(&str, Option<ParsedFlagValue>), String> {
+    if !raw_arg.starts_with('-') || raw_arg == "-" {
+        return Err(format!("无效参数 '{}'", raw_arg));
     }
+
+    if let Some((flag, value)) = raw_arg.split_once('=') {
+        if flag.is_empty() || flag == "-" || flag == "--" {
+            return Err(format!("无效参数 '{}'", raw_arg));
+        }
+        Ok((
+            flag,
+            Some(if value.is_empty() {
+                ParsedFlagValue::NextArg
+            } else {
+                ParsedFlagValue::Inline
+            }),
+        ))
+    } else if raw_arg.ends_with('=') {
+        Ok((raw_arg.trim_end_matches('='), Some(ParsedFlagValue::NextArg)))
+    } else {
+        Ok((raw_arg, None))
+    }
+}
+
+/// 校验子命令请求是否允许从桌面命令面板直接执行。
+fn validate_command_request(request: &CommandExecutionRequest) -> Result<(), String> {
+    let policy = CommandPolicy::from_command(&request.command)?;
+    policy.validate(request)
+}
+
+#[cfg(test)]
+fn validate_command(command: &str) -> Result<(), String> {
+    validate_command_request(&CommandExecutionRequest::foreground(
+        command.to_string(),
+        None,
+        None,
+    ))
 }
 
 #[cfg(test)]
@@ -1106,15 +1332,14 @@ async fn run_command_job(app_handle: AppHandle, job_id: String, cancel_token: Ca
 pub async fn execute_ccr_command(
     command: String,
     args: Option<Vec<String>>,
+    confirmation_token: Option<String>,
 ) -> Result<Value, String> {
-    validate_command(&command)?;
+    let request = CommandExecutionRequest::foreground(command, args, confirmation_token);
+    validate_command_request(&request)?;
 
     let started = Instant::now();
     let mut cmd = tokio_command("ccr");
-    cmd.arg(&command);
-    if let Some(extra_args) = args {
-        cmd.args(&extra_args);
-    }
+    cmd.arg(&request.command).args(&request.args);
 
     let output = cmd.output().await.map_err(|e| {
         if e.kind() == std::io::ErrorKind::NotFound {
@@ -1145,11 +1370,17 @@ pub async fn start_ccr_command_job(
     app_handle: AppHandle,
     command: String,
     args: Option<Vec<String>>,
+    confirmation_token: Option<String>,
 ) -> Result<Value, String> {
-    validate_command(&command)?;
+    let request = CommandExecutionRequest::background(command, args, confirmation_token);
+    validate_command_request(&request)?;
 
     let job_id = format!("ccr-command-{}", Uuid::new_v4());
-    let snapshot = CommandJobSnapshot::queued(job_id.clone(), command, args.unwrap_or_default());
+    let snapshot = CommandJobSnapshot::queued(
+        job_id.clone(),
+        request.command,
+        request.args,
+    );
     let cancel_token = CancellationToken::new();
     insert_job(snapshot.clone(), cancel_token.clone()).await;
 
@@ -1215,7 +1446,7 @@ pub async fn list_ccr_commands() -> Result<Value, String> {
 /// 执行 `ccr help <command>` 并返回帮助文本
 #[tauri::command]
 pub async fn get_ccr_command_help(command: String) -> Result<Value, String> {
-    validate_command(&command)?;
+    CommandPolicy::from_command(&command)?;
 
     let output = tokio_command("ccr")
         .args(["help", &command])
@@ -1253,6 +1484,136 @@ mod tests {
             validate_command("add").is_err(),
             "interactive commands must stay blocked"
         );
+    }
+
+    #[test]
+    fn command_policy_allows_safe_command_with_declared_flag() {
+        let request = CommandExecutionRequest::foreground(
+            "status".to_string(),
+            Some(vec!["--json".to_string()]),
+            None,
+        );
+
+        assert!(validate_command_request(&request).is_ok());
+    }
+
+    #[test]
+    fn command_policy_rejects_unknown_flag_before_process_spawn() {
+        let request = CommandExecutionRequest::foreground(
+            "status".to_string(),
+            Some(vec!["--delete-everything".to_string()]),
+            None,
+        );
+
+        let error = validate_command_request(&request).expect_err("unknown flags are blocked");
+        assert!(error.contains("不允许参数"));
+        assert!(error.contains("--delete-everything"));
+    }
+
+    #[test]
+    fn command_policy_rejects_extra_positional_args() {
+        let request = CommandExecutionRequest::foreground(
+            "status".to_string(),
+            Some(vec!["surprise".to_string()]),
+            None,
+        );
+
+        let error =
+            validate_command_request(&request).expect_err("extra positional args are blocked");
+        assert!(error.contains("不接受额外位置参数"));
+    }
+
+    #[test]
+    fn command_policy_rejects_missing_required_arg() {
+        let request = CommandExecutionRequest::foreground("delete".to_string(), Some(vec![]), None);
+
+        let error =
+            validate_command_request(&request).expect_err("required args must be enforced");
+        assert!(error.contains("需要桌面确认") || error.contains("缺少必需位置参数"));
+    }
+
+    #[test]
+    fn command_policy_rejects_destructive_command_without_confirmation() {
+        let request = CommandExecutionRequest::foreground(
+            "delete".to_string(),
+            Some(vec!["old".to_string()]),
+            None,
+        );
+
+        let error =
+            validate_command_request(&request).expect_err("destructive commands need confirmation");
+        assert!(error.contains("需要桌面确认"));
+    }
+
+    #[test]
+    fn command_policy_allows_destructive_command_with_confirmation_and_declared_force_flag() {
+        let request = CommandExecutionRequest::foreground(
+            "delete".to_string(),
+            Some(vec!["old".to_string(), "--force".to_string()]),
+            Some("desktop-confirm:delete".to_string()),
+        );
+
+        assert!(validate_command_request(&request).is_ok());
+    }
+
+    #[test]
+    fn command_policy_rejects_force_flag_without_confirmation() {
+        let request = CommandExecutionRequest::foreground(
+            "delete".to_string(),
+            Some(vec!["old".to_string(), "--force".to_string()]),
+            None,
+        );
+
+        let error = validate_command_request(&request).expect_err("--force must stay gated");
+        assert!(error.contains("需要桌面确认"));
+    }
+
+    #[test]
+    fn command_policy_applies_same_checks_to_background_jobs() {
+        let request = CommandExecutionRequest::background(
+            "import".to_string(),
+            Some(vec![
+                "ccr-config.toml".to_string(),
+                "--merge".to_string(),
+                "--backup".to_string(),
+                "-f".to_string(),
+            ]),
+            Some("desktop-confirm:import".to_string()),
+        );
+
+        assert!(validate_command_request(&request).is_ok());
+
+        let missing_confirmation = CommandExecutionRequest::background(
+            "import".to_string(),
+            Some(vec!["ccr-config.toml".to_string(), "--merge".to_string()]),
+            None,
+        );
+        let error = validate_command_request(&missing_confirmation)
+            .expect_err("job path cannot be looser than sync path");
+        assert!(error.contains("需要桌面确认"));
+    }
+
+    #[test]
+    fn command_policy_rejects_value_flags_without_values() {
+        let request = CommandExecutionRequest::foreground(
+            "history".to_string(),
+            Some(vec!["--limit".to_string()]),
+            None,
+        );
+
+        let error = validate_command_request(&request).expect_err("value flags need values");
+        assert!(error.contains("缺少值"));
+    }
+
+    #[test]
+    fn command_policy_accepts_short_aliases_declared_in_catalog() {
+        let request = CommandExecutionRequest::foreground(
+            "history".to_string(),
+            Some(vec!["-l".to_string(), "5".to_string(), "-t=switch".to_string()]),
+            None,
+        );
+
+        assert!(validate_command_request(&request).is_ok());
     }
 
     #[test]
