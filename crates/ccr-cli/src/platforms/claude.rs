@@ -330,70 +330,22 @@ mod tests {
     use super::*;
     use crate::managers::PlatformConfigManager;
     use crate::managers::{PlatformConfigEntry, UnifiedConfig};
+    use crate::test_support::TestHome;
     use std::fs;
-    use std::sync::MutexGuard;
-
-    fn restore_env_var(key: &str, previous: Option<String>) {
-        // SAFETY: 仅在测试中恢复当前进程环境变量，调用方保证作用域内串行使用。
-        unsafe {
-            match previous {
-                Some(value) => std::env::set_var(key, value),
-                None => std::env::remove_var(key),
-            }
-        }
-    }
 
     struct TestEnv {
-        root: tempfile::TempDir,
-        previous_root: Option<String>,
-        previous_settings: Option<String>,
-        previous_backup: Option<String>,
-        previous_lock: Option<String>,
-        _env_guard: MutexGuard<'static, ()>,
+        home: TestHome,
     }
 
     impl TestEnv {
         fn new() -> Self {
-            let env_guard = crate::test_support::env_lock();
-            let root = tempfile::tempdir().unwrap();
-            let settings_path = root.path().join("claude").join("settings.json");
-            let backup_dir = root.path().join("claude").join("backups");
-            let lock_dir = root.path().join("locks");
-
-            let previous_root = std::env::var("CCR_ROOT").ok();
-            let previous_settings = std::env::var("CCR_SETTINGS_PATH").ok();
-            let previous_backup = std::env::var("CCR_BACKUP_DIR").ok();
-            let previous_lock = std::env::var("CCR_LOCK_DIR").ok();
-
-            // SAFETY: 测试需要临时覆写 Claude 平台相关环境变量，结束后会恢复原值。
-            unsafe {
-                std::env::set_var("CCR_ROOT", root.path());
-                std::env::set_var("CCR_SETTINGS_PATH", &settings_path);
-                std::env::set_var("CCR_BACKUP_DIR", &backup_dir);
-                std::env::set_var("CCR_LOCK_DIR", &lock_dir);
-            }
-
             Self {
-                root,
-                previous_root,
-                previous_settings,
-                previous_backup,
-                previous_lock,
-                _env_guard: env_guard,
+                home: TestHome::new(),
             }
         }
 
         fn root_path(&self) -> &std::path::Path {
-            self.root.path()
-        }
-    }
-
-    impl Drop for TestEnv {
-        fn drop(&mut self) {
-            restore_env_var("CCR_ROOT", self.previous_root.take());
-            restore_env_var("CCR_SETTINGS_PATH", self.previous_settings.take());
-            restore_env_var("CCR_BACKUP_DIR", self.previous_backup.take());
-            restore_env_var("CCR_LOCK_DIR", self.previous_lock.take());
+            self.home.root()
         }
     }
 
