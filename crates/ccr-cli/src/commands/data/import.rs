@@ -229,27 +229,15 @@ fn print_import_summary(result: &ImportResult) {
 mod tests {
     use super::*;
     use crate::managers::config::ConfigSection;
+    use crate::test_support::TestHome;
     use ccr_core::core::lock::CONFIG_LOCK;
-    use std::env;
-    use tempfile::tempdir;
 
     #[test]
     fn test_merge_configs() {
-        let _env_guard = crate::test_support::env_lock();
         let _guard = CONFIG_LOCK
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
-        let temp_dir = tempdir().unwrap();
-        let temp_root = temp_dir.path().to_path_buf();
-
-        let prev_root = env::var("CCR_ROOT").ok();
-        let prev_config_path = env::var("CCR_CONFIG_PATH").ok();
-
-        // SAFETY: 测试仅在当前进程临时覆写导入目标路径，结束后会按原值恢复。
-        unsafe {
-            env::set_var("CCR_ROOT", &temp_root);
-            env::remove_var("CCR_CONFIG_PATH");
-        }
+        let _test_home = TestHome::new();
 
         let mut current = CcsConfig {
             default_config: "old_default".to_string(),
@@ -327,17 +315,5 @@ mod tests {
         assert_eq!(result.added, 1);
         assert_eq!(result.updated, 1);
         assert_eq!(current.default_config, "new_default");
-
-        // SAFETY: 恢复当前测试先前保存的环境变量，避免污染其他测试用例。
-        unsafe {
-            match prev_root {
-                Some(val) => env::set_var("CCR_ROOT", val),
-                None => env::remove_var("CCR_ROOT"),
-            }
-            match prev_config_path {
-                Some(val) => env::set_var("CCR_CONFIG_PATH", val),
-                None => env::remove_var("CCR_CONFIG_PATH"),
-            }
-        }
     }
 }
