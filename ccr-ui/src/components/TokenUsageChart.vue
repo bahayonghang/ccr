@@ -61,7 +61,7 @@
     <div
       ref="chartContainer"
       class="relative w-full bg-gradient-to-br from-gray-50/50 to-gray-100/50 dark:from-gray-900/30 dark:to-gray-800/30 rounded-xl p-6"
-      style="height: 500px;"
+      :style="{ height: '500px' }"
     >
       <svg
         ref="chartSvg"
@@ -82,11 +82,13 @@
           >
             <stop
               offset="0%"
-              style="stop-color:#3b82f6;stop-opacity:0.6"
+              stop-color="#3b82f6"
+              stop-opacity="0.6"
             />
             <stop
               offset="100%"
-              style="stop-color:#3b82f6;stop-opacity:0.05"
+              stop-color="#3b82f6"
+              stop-opacity="0.05"
             />
           </linearGradient>
           <linearGradient
@@ -98,11 +100,13 @@
           >
             <stop
               offset="0%"
-              style="stop-color:#10b981;stop-opacity:0.6"
+              stop-color="#10b981"
+              stop-opacity="0.6"
             />
             <stop
               offset="100%"
-              style="stop-color:#10b981;stop-opacity:0.05"
+              stop-color="#10b981"
+              stop-opacity="0.05"
             />
           </linearGradient>
           <linearGradient
@@ -114,11 +118,13 @@
           >
             <stop
               offset="0%"
-              style="stop-color:#f59e0b;stop-opacity:0.6"
+              stop-color="#f59e0b"
+              stop-opacity="0.6"
             />
             <stop
               offset="100%"
-              style="stop-color:#f59e0b;stop-opacity:0.05"
+              stop-color="#f59e0b"
+              stop-opacity="0.05"
             />
           </linearGradient>
         </defs>

@@ -83,7 +83,7 @@
             v-else
             type="button"
             :disabled="profile.enabled === false"
-            class="inline-flex min-h-[36px] items-center justify-center gap-2 rounded-xl px-3.5 py-2 text-sm font-medium transition-all duration-200 hover:shadow-lg active:scale-[0.97] focus:outline-none focus:ring-2 focus:ring-offset-1"
+            class="inline-flex min-h-[36px] items-center justify-center gap-2 rounded-xl border px-3.5 py-2 text-sm font-medium transition-all duration-200 hover:shadow-lg active:scale-[0.97] focus:outline-none focus:ring-2 focus:ring-offset-1"
             :class="profile.enabled === false ? 'cursor-not-allowed opacity-55 hover:shadow-none active:scale-100' : ''"
             :style="{
               background: `linear-gradient(to bottom, rgb(var(${providerColor.rgbVar}) / 0.14), rgb(var(${providerColor.rgbVar}) / 0.08))`,
@@ -91,7 +91,6 @@
               color: `rgb(var(${providerColor.rgbVar}))`,
               '--tw-ring-color': `rgb(var(${providerColor.rgbVar}) / 0.2)`,
             }"
-            style="border-width: 1px; border-style: solid"
             @click="$emit('apply')"
           >
             <SIcon

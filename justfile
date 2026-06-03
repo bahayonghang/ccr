@@ -435,11 +435,11 @@ lint: fmt clippy
     @just header "代码质量检查"
     @just success "代码质量检查全部通过"
 
-# 🔒 安全审计 (cargo audit) - 若未安装则跳过
+# 🔒 安全审计 (cargo audit) - 若未安装则失败
 audit:
     @just header "🔒 运行安全审计"
     @just info "📌 使用 cargo-audit (需要安装: cargo install cargo-audit)"
-    -cargo audit || just warn "cargo-audit 未安装，跳过安全审计 (安装: cargo install cargo-audit)"
+    cargo audit
     @just success "安全审计步骤完成"
 
 # ═══════════════════════════════════════════════════════════

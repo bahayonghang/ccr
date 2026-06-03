@@ -160,7 +160,7 @@
 
       <section
         class="gemini-module-section animate-slide-up"
-        style="animation-delay: 120ms"
+        :style="{ animationDelay: '120ms' }"
       >
         <div class="gemini-section-heading">
           <div>
@@ -228,7 +228,7 @@
 
       <section
         class="gemini-quick-dock animate-slide-up"
-        style="animation-delay: 220ms"
+        :style="{ animationDelay: '220ms' }"
       >
         <Card
           v-for="card in quickInfoCards"

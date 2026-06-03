@@ -78,7 +78,7 @@
 
       <section
         class="claude-section animate-slide-up claude-section--observer"
-        style="animation-delay: 80ms"
+        :style="{ animationDelay: '80ms' }"
         aria-label="Claude Code usage insight"
       >
         <UsageInsightPanel />
@@ -86,7 +86,7 @@
 
       <section
         class="claude-tag-row animate-slide-up"
-        style="animation-delay: 100ms"
+        :style="{ animationDelay: '100ms' }"
         aria-label="Claude Code capabilities"
       >
         <span
@@ -105,7 +105,7 @@
 
       <section
         class="claude-section animate-slide-up"
-        style="animation-delay: 180ms"
+        :style="{ animationDelay: '180ms' }"
       >
         <div class="claude-section-heading">
           <SIcon
@@ -168,7 +168,7 @@
 
       <section
         class="claude-section animate-slide-up"
-        style="animation-delay: 260ms"
+        :style="{ animationDelay: '260ms' }"
       >
         <div class="claude-section-heading">
           <SIcon
@@ -226,7 +226,7 @@
 
       <section
         class="claude-bottom-grid animate-slide-up"
-        style="animation-delay: 340ms"
+        :style="{ animationDelay: '340ms' }"
       >
         <Card
           variant="glass"
