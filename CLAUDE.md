@@ -5,8 +5,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Build and verification
 
 - Prefer root `just` recipes over ad-hoc commands so local checks stay aligned with CI.
-- Standard repo verification is `just lint-strict`, `just test`, and `just frontend-check`; use `just ci` for the full pipeline.
-- `just ci` pipeline: version-sync → fmt → fmt-check → lint-strict → workspace-check → test → release → audit → frontend-check → vscode-ci.
+- Standard fast path is `just version-check` → `just fmt-check` → the relevant subsystem check.
+- Use `just lint-strict` and `just test` for Rust changes, `just frontend-check-quick` for frontend fast feedback, `just ui-check` or `just frontend-check` for full UI/frontend coverage, and `just vscode-ci` for extension work.
+- `just frontend-check-quick` runs frontend typecheck, lint, and smoke tests; it intentionally omits build and docs checks.
+- Use `just ci` as the full heavy gate for final acceptance. Current pipeline: version-sync → fmt → fmt-check → lint-strict → check-workspace → test → release → audit → frontend-check → vscode-ci.
+- `just version-sync` and `just fmt` are repair-oriented steps that may modify files; after running them, inspect the diff before continuing.
 - If you run Rust tests directly instead of `just test`, include `-- --test-threads=1` to avoid concurrent-conflict flakes.
 - Set `CCR_LOG_LEVEL=debug` (or `trace|info|warn|error`) for runtime debug output.
 
