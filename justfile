@@ -949,16 +949,19 @@ _version-sync-macos:
 _version-check-windows:
     @just info "🔍 检查版本号一致性"
     @.\scripts\version-sync.ps1 -Check -Verbose
+    @.\scripts\check-doc-drift.ps1 -Verbose
 
 [private]
 _version-check-linux:
     @just info "🔍 检查版本号一致性"
     bash scripts/version-sync.sh --check --verbose
+    bash scripts/check-doc-drift.sh --verbose
 
 [private]
 _version-check-macos:
     @just info "🔍 检查版本号一致性"
     bash scripts/version-sync.sh --check --verbose
+    bash scripts/check-doc-drift.sh --verbose
 
 # 🧪 运行脚本测试 (Bats + Pester)
 test-scripts:
