@@ -60,6 +60,41 @@
 
 `version-sync` 的 Windows / Bash 测试套件，与脚本本体同目录维护，便于同步更新路径和测试入口。
 
+### `check-doc-drift.ps1` / `check-doc-drift.sh`
+
+用于检查 `ccr-ui/README.md`、Bun lock 策略和 Tauri manifest 事实是否继续一致。该脚本已接入根 `just version-check`，会阻断以下漂移：
+
+- `ccr-ui/package-lock.json` 回归；
+- README 中的前端版本、Bun-only 策略、Rust MSRV / Edition、运行模式与 manifest 不一致；
+- README 保留旧 HTTP/Axios 双模式、旧 TypeScript/Rust/Tokio 版本或旧命令数量描述。
+
+```bash
+bash scripts/check-doc-drift.sh --verbose
+```
+
+```powershell
+.\scripts\check-doc-drift.ps1 -Verbose
+```
+
+### `check-dependency-drift.ps1` / `check-dependency-drift.sh`
+
+用于比较根 `Cargo.toml` 的 `[workspace.dependencies]` 与独立 Tauri manifest `ccr-ui/src-tauri/Cargo.toml` 中重复声明的依赖版本。该脚本已接入根 `just version-check`。
+
+治理规则：
+
+- 相同依赖重复声明且版本一致时通过；
+- 非豁免版本漂移会阻断门禁；
+- 豁免项必须在脚本内带有明确原因；
+- 如果豁免项对应依赖消失，或版本已经对齐但豁免未删除，脚本会视为 stale allowlist 并失败。
+
+```bash
+bash scripts/check-dependency-drift.sh --verbose
+```
+
+```powershell
+.\scripts\check-dependency-drift.ps1 -Verbose
+```
+
 ## 推荐流程
 
 ```bash
