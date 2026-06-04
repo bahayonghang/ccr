@@ -250,6 +250,7 @@ export {
   duplicateConfig,
   validateConfigs,
   importConfig,
+  restoreConfig,
   exportConfig,
   getHistory,
   clearHistory,

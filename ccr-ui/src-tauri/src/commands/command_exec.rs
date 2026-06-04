@@ -32,18 +32,15 @@ const ALLOWED_COMMANDS: &[&str] = &[
     "list",
     "switch",
     "add",
-    "delete",
     "rename",
     "duplicate",
     "show",
     "validate",
     "export",
-    "import",
     "history",
     "version",
     "help",
     "backup",
-    "restore",
     "diff",
     "status",
 ];
@@ -665,13 +662,13 @@ fn command_catalog() -> Vec<CommandInfo> {
             name: "delete",
             path: vec!["delete"],
             title: "Delete configuration",
-            description: "Delete a saved CCR configuration. Requires explicit confirmation in the UI.",
-            usage: "ccr delete <config>",
-            examples: vec!["ccr delete old-config --force"],
+            description: "Use the typed desktop configuration API to delete a saved CCR configuration.",
+            usage: "Config domain: delete_config(name)",
+            examples: vec!["delete_config({ name: 'old-config' })"],
             category: "danger",
-            risk: "destructive",
-            executable: true,
-            requires_confirmation: true,
+            risk: "typed_only",
+            executable: false,
+            requires_confirmation: false,
             args: vec![text_arg(
                 "config_name",
                 "Configuration",
@@ -693,13 +690,13 @@ fn command_catalog() -> Vec<CommandInfo> {
             name: "import",
             path: vec!["import"],
             title: "Import configuration",
-            description: "Import configuration from a TOML file. Replace mode can overwrite existing data.",
-            usage: "ccr import <file> --merge --backup",
-            examples: vec!["ccr import ccr-config.toml --merge --backup"],
+            description: "Use the typed desktop configuration API to import TOML content.",
+            usage: "Config domain: import_config(content, mode, backup)",
+            examples: vec!["import_config({ content, mode: 'merge', backup: true })"],
             category: "danger",
-            risk: "destructive",
-            executable: true,
-            requires_confirmation: true,
+            risk: "typed_only",
+            executable: false,
+            requires_confirmation: false,
             args: vec![path_arg(
                 "input",
                 "Input file",
@@ -734,13 +731,13 @@ fn command_catalog() -> Vec<CommandInfo> {
             name: "restore",
             path: vec!["restore"],
             title: "Restore backup",
-            description: "Restore configuration from a backup. Requires explicit confirmation in the UI.",
-            usage: "ccr restore <backup>",
-            examples: vec!["ccr restore ccr-backup-20260524"],
+            description: "Restore is not exposed through generic desktop command passthrough.",
+            usage: "Dedicated restore command pending typed service boundary",
+            examples: vec![],
             category: "danger",
-            risk: "destructive",
-            executable: true,
-            requires_confirmation: true,
+            risk: "typed_only",
+            executable: false,
+            requires_confirmation: false,
             args: vec![text_arg(
                 "backup",
                 "Backup id/path",
@@ -1875,72 +1872,39 @@ mod tests {
     }
 
     #[test]
-    fn command_policy_rejects_missing_required_arg() {
-        let request = CommandExecutionRequest::foreground("delete".to_string(), Some(vec![]), None);
+    fn command_policy_rejects_destructive_passthrough_commands_even_with_confirmation() {
+        for command in ["delete", "import", "restore"] {
+            let request = CommandExecutionRequest::foreground(
+                command.to_string(),
+                Some(vec!["target".to_string(), "--force".to_string()]),
+                Some(format!("desktop-confirm:{command}")),
+            );
 
-        let error = validate_command_request(&request).expect_err("required args must be enforced");
-        assert!(error.contains("需要桌面确认") || error.contains("缺少必需位置参数"));
+            let error = validate_command_request(&request)
+                .expect_err("destructive commands must use typed Tauri APIs");
+            assert!(
+                error.contains("不允许"),
+                "{command} should be rejected by the generic process policy: {error}"
+            );
+        }
     }
 
     #[test]
-    fn command_policy_rejects_destructive_command_without_confirmation() {
-        let request = CommandExecutionRequest::foreground(
-            "delete".to_string(),
-            Some(vec!["old".to_string()]),
-            None,
-        );
+    fn command_policy_rejects_destructive_passthrough_for_background_jobs() {
+        for command in ["delete", "import", "restore"] {
+            let request = CommandExecutionRequest::background(
+                command.to_string(),
+                Some(vec!["target".to_string()]),
+                Some(format!("desktop-confirm:{command}")),
+            );
 
-        let error =
-            validate_command_request(&request).expect_err("destructive commands need confirmation");
-        assert!(error.contains("需要桌面确认"));
-    }
-
-    #[test]
-    fn command_policy_allows_destructive_command_with_confirmation_and_declared_force_flag() {
-        let request = CommandExecutionRequest::foreground(
-            "delete".to_string(),
-            Some(vec!["old".to_string(), "--force".to_string()]),
-            Some("desktop-confirm:delete".to_string()),
-        );
-
-        assert!(validate_command_request(&request).is_ok());
-    }
-
-    #[test]
-    fn command_policy_rejects_force_flag_without_confirmation() {
-        let request = CommandExecutionRequest::foreground(
-            "delete".to_string(),
-            Some(vec!["old".to_string(), "--force".to_string()]),
-            None,
-        );
-
-        let error = validate_command_request(&request).expect_err("--force must stay gated");
-        assert!(error.contains("需要桌面确认"));
-    }
-
-    #[test]
-    fn command_policy_applies_same_checks_to_background_jobs() {
-        let request = CommandExecutionRequest::background(
-            "import".to_string(),
-            Some(vec![
-                "ccr-config.toml".to_string(),
-                "--merge".to_string(),
-                "--backup".to_string(),
-                "-f".to_string(),
-            ]),
-            Some("desktop-confirm:import".to_string()),
-        );
-
-        assert!(validate_command_request(&request).is_ok());
-
-        let missing_confirmation = CommandExecutionRequest::background(
-            "import".to_string(),
-            Some(vec!["ccr-config.toml".to_string(), "--merge".to_string()]),
-            None,
-        );
-        let error = validate_command_request(&missing_confirmation)
-            .expect_err("job path cannot be looser than sync path");
-        assert!(error.contains("需要桌面确认"));
+            let error = validate_command_request(&request)
+                .expect_err("job path cannot re-enable destructive passthrough");
+            assert!(
+                error.contains("不允许"),
+                "{command} should be rejected by the generic job policy: {error}"
+            );
+        }
     }
 
     #[test]
@@ -1977,9 +1941,9 @@ mod tests {
             .iter()
             .find(|command| command.name == "delete")
             .expect("delete metadata exists");
-        assert_eq!(delete.risk, "destructive");
-        assert!(delete.executable);
-        assert!(delete.requires_confirmation);
+        assert_eq!(delete.risk, "typed_only");
+        assert!(!delete.executable);
+        assert!(!delete.requires_confirmation);
         assert!(
             delete
                 .args
@@ -2000,6 +1964,22 @@ mod tests {
                 ALLOWED_COMMANDS.contains(&command.name),
                 "{} is executable but missing from the process whitelist",
                 command.name
+            );
+        }
+
+        for command_name in ["delete", "import", "restore"] {
+            let command = catalog
+                .iter()
+                .find(|entry| entry.name == command_name)
+                .expect("destructive command metadata exists");
+            assert_eq!(command.risk, "typed_only");
+            assert!(
+                !command.executable,
+                "{command_name} must use typed config commands instead of process passthrough"
+            );
+            assert!(
+                !ALLOWED_COMMANDS.contains(&command.name),
+                "{command_name} must not be in the generic process whitelist"
             );
         }
     }

@@ -102,23 +102,13 @@ const baseCommands: CommandInfo[] = [
   },
   {
     name: 'delete',
-    description: 'Delete a config',
-    usage: 'ccr delete <name>',
-    examples: ['ccr delete old'],
+    description: 'Use the typed desktop configuration API to delete a saved CCR configuration.',
+    usage: 'Config domain: delete_config(name)',
+    examples: ["delete_config({ name: 'old-config' })"],
     category: 'danger',
-    risk: 'destructive',
-    executable: true,
-    requiresConfirmation: true,
-    args: [
-      {
-        name: 'config_name',
-        label: 'Config name',
-        type: 'text',
-        required: true,
-        source: 'configs',
-        description: 'Config to delete',
-      },
-    ],
+    risk: 'typed_only',
+    executable: false,
+    requiresConfirmation: false,
   },
 ]
 
@@ -274,13 +264,60 @@ describe('CommandsView smoke', () => {
     }
   })
 
-  it('requires explicit confirmation before dangerous commands can run', async () => {
+  it('blocks typed-only destructive catalog commands from generic execution', async () => {
     const { el, unmount } = await mountView()
 
     try {
       const deleteCommand = Array.from(el.querySelectorAll<HTMLButtonElement>('.command-row'))
         .find((button) => button.textContent?.includes('delete'))
+      expect(deleteCommand?.className).toContain('command-row--disabled')
       deleteCommand?.click()
+      await flush()
+
+      expect(el.textContent).toContain('commands.commandBlockedTitle')
+
+      const run = Array.from(el.querySelectorAll<HTMLButtonElement>('button'))
+        .find((button) => button.textContent?.includes('commands.run'))
+      expect(run?.disabled).toBe(true)
+      run?.click()
+      await flush()
+
+      expect(apiMocks.startCcrCommandJob).not.toHaveBeenCalled()
+    } finally {
+      unmount()
+    }
+  })
+
+  it('requires explicit confirmation before metadata-only dangerous commands can run', async () => {
+    apiMocks.listCommands.mockResolvedValue([
+      baseCommands[0],
+      {
+        name: 'purge-cache',
+        description: 'Metadata-only destructive command',
+        usage: 'ccr purge-cache <target>',
+        examples: ['ccr purge-cache temp'],
+        category: 'danger',
+        risk: 'destructive',
+        executable: true,
+        requiresConfirmation: true,
+        args: [
+          {
+            name: 'target',
+            label: 'Target',
+            type: 'text',
+            required: true,
+            description: 'Target cache',
+          },
+        ],
+      },
+    ] satisfies CommandInfo[])
+
+    const { el, unmount } = await mountView()
+
+    try {
+      const purgeCommand = Array.from(el.querySelectorAll<HTMLButtonElement>('.command-row'))
+        .find((button) => button.textContent?.includes('purge-cache'))
+      purgeCommand?.click()
       await flush()
 
       expect(el.textContent).toContain('commands.dangerConfirmTitle')
@@ -296,7 +333,7 @@ describe('CommandsView smoke', () => {
 
       const args = el.querySelector<HTMLInputElement>('.commands-field input')
       expect(args).toBeTruthy()
-      args!.value = 'old'
+      args!.value = 'temp'
       args!.dispatchEvent(new Event('input'))
       await flush()
 
@@ -304,9 +341,9 @@ describe('CommandsView smoke', () => {
       await flush()
 
       expect(apiMocks.startCcrCommandJob).toHaveBeenCalledWith({
-        command: 'delete',
-        args: ['old'],
-        confirmationToken: 'desktop-confirm:delete',
+        command: 'purge-cache',
+        args: ['temp'],
+        confirmationToken: 'desktop-confirm:purge-cache',
       })
     } finally {
       unmount()
@@ -396,22 +433,44 @@ describe('CommandsView smoke', () => {
   })
 
   it('loads favorites and history into the composer instead of executing directly', async () => {
+    apiMocks.listCommands.mockResolvedValue([
+      baseCommands[0],
+      {
+        name: 'purge-cache',
+        description: 'Metadata-only destructive command',
+        usage: 'ccr purge-cache <target>',
+        examples: ['ccr purge-cache temp'],
+        category: 'danger',
+        risk: 'destructive',
+        executable: true,
+        requiresConfirmation: true,
+        args: [
+          {
+            name: 'target',
+            label: 'Target',
+            type: 'text',
+            required: true,
+            description: 'Target cache',
+          },
+        ],
+      },
+    ] satisfies CommandInfo[])
     uiStateMocks.getFavorites.mockResolvedValue([
       {
-        id: 'favorite-delete-old',
-        command: 'delete',
-        args: ['old'],
-        display_name: 'Delete old config',
+        id: 'favorite-purge-cache',
+        command: 'purge-cache',
+        args: ['temp'],
+        display_name: 'Purge temp cache',
         module: 'commands',
         created_at: '2026-05-18T08:00:00.000Z',
       },
     ])
     uiStateMocks.getRecentItems.mockResolvedValue([
       {
-        id: 'history-delete-old',
-        full_command: 'ccr delete old',
-        command: 'delete',
-        args: ['old'],
+        id: 'history-purge-cache',
+        full_command: 'ccr purge-cache temp',
+        command: 'purge-cache',
+        args: ['temp'],
         success: false,
         executed_at: '2026-05-18T08:00:00.000Z',
         duration_ms: 42,
@@ -427,12 +486,12 @@ describe('CommandsView smoke', () => {
       await flush()
 
       const favorite = Array.from(el.querySelectorAll<HTMLButtonElement>('.command-row'))
-        .find((button) => button.textContent?.includes('Delete old config'))
+        .find((button) => button.textContent?.includes('Purge temp cache'))
       favorite?.click()
       await flush()
 
       const composerTitle = el.querySelector('.commands-composer .commands-panel__title--large')
-      expect(composerTitle?.textContent).toContain('delete')
+      expect(composerTitle?.textContent).toContain('purge-cache')
 
       expect(apiMocks.startCcrCommandJob).not.toHaveBeenCalled()
       expect(el.textContent).toContain('commands.dangerConfirmTitle')
@@ -447,16 +506,16 @@ describe('CommandsView smoke', () => {
       await flush()
 
       const args = el.querySelector<HTMLInputElement>('.commands-field input')
-      expect(args?.value).toBe('old')
+      expect(args?.value).toBe('temp')
       expect(run?.disabled).toBe(false)
 
       run?.click()
       await flush()
 
       expect(apiMocks.startCcrCommandJob).toHaveBeenCalledWith({
-        command: 'delete',
-        args: ['old'],
-        confirmationToken: 'desktop-confirm:delete',
+        command: 'purge-cache',
+        args: ['temp'],
+        confirmationToken: 'desktop-confirm:purge-cache',
       })
     } finally {
       unmount()

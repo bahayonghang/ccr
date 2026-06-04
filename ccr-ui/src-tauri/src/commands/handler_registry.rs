@@ -66,6 +66,7 @@ define_command_registry! {
         super::config::duplicate_config,
         super::config::validate_configs,
         super::config::import_config,
+        super::config::restore_config,
         super::config::export_config,
         super::config::get_history,
         super::config::clear_history,
@@ -493,10 +494,10 @@ mod tests {
         assert_eq!(COMMAND_MODULES.len(), 30);
 
         #[cfg(target_os = "windows")]
-        assert_eq!(registered_command_count(), 317);
+        assert_eq!(registered_command_count(), 318);
 
         #[cfg(not(target_os = "windows"))]
-        assert_eq!(registered_command_count(), 309);
+        assert_eq!(registered_command_count(), 310);
     }
 
     #[test]

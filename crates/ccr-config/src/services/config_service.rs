@@ -357,6 +357,16 @@ impl ConfigService {
         self.config_manager.backup(tag)
     }
 
+    /// 🔄 从已解析的配置备份恢复
+    ///
+    /// 🔐 **并发安全**: 在同一个跨进程锁 + CONFIG_LOCK 内完成“备份当前配置 + 保存恢复配置”，
+    /// 避免调用方分两次进入 service 造成恢复窗口中配置被其他写入打断。
+    pub fn restore_config_from_backup(&self, backup_config: &CcsConfig) -> Result<()> {
+        let (_file_lock, _guard) = self.lock_config()?;
+        self.config_manager.backup(Some("pre_restore"))?;
+        self.config_manager.save(backup_config)
+    }
+
     /// 📤 导出配置
     ///
     /// 返回配置的 TOML 字符串
@@ -595,5 +605,47 @@ mod tests {
         let info = service.get_config("new_config").unwrap();
         assert_eq!(info.name, "new_config");
         assert_eq!(info.description, "Test config");
+    }
+
+    #[test]
+    fn restore_config_from_backup_replaces_config_and_creates_pre_restore_backup() {
+        let env = TestCcrEnv::new();
+        let config_path = env.root().join("config.toml");
+
+        let mut current = CcsConfig {
+            default_config: "current".into(),
+            current_config: "current".into(),
+            settings: crate::managers::config::GlobalSettings::default(),
+            sections: indexmap::IndexMap::new(),
+        };
+        current.set_section("current".into(), create_test_section());
+
+        let mut backup = CcsConfig {
+            default_config: "restored".into(),
+            current_config: "restored".into(),
+            settings: crate::managers::config::GlobalSettings::default(),
+            sections: indexmap::IndexMap::new(),
+        };
+        backup.set_section("restored".into(), create_test_section());
+
+        let manager = Arc::new(ConfigManager::new(&config_path));
+        manager.save(&current).unwrap();
+
+        let service = ConfigService::new(manager.clone());
+        service.restore_config_from_backup(&backup).unwrap();
+
+        let restored = manager.load().unwrap();
+        assert_eq!(restored.current_config, "restored");
+        assert!(restored.sections.contains_key("restored"));
+
+        let backups = manager.list_backups().unwrap();
+        assert_eq!(backups.len(), 1);
+        assert!(
+            backups[0]
+                .file_name()
+                .and_then(|name| name.to_str())
+                .unwrap()
+                .contains("pre_restore")
+        );
     }
 }
