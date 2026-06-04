@@ -270,41 +270,19 @@ pub fn init_file_only_logger() {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
-
-    fn set_env_var(key: &str, value: &str) {
-        // SAFETY: 这里仅在测试中临时修改进程环境变量，用例串行运行并会在结束前恢复原值。
-        unsafe {
-            std::env::set_var(key, value);
-        }
-    }
-
-    fn remove_env_var(key: &str) {
-        // SAFETY: 这里仅在测试中临时修改进程环境变量，用例串行运行并会在结束前恢复原值。
-        unsafe {
-            std::env::remove_var(key);
-        }
-    }
+    use crate::test_support::TestLogEnv;
+    use std::ffi::OsStr;
 
     #[test]
     fn test_resolve_log_filter_precedence() {
-        let old_ccr = std::env::var("CCR_LOG_LEVEL").ok();
-        let old_rust = std::env::var("RUST_LOG").ok();
+        let mut env = TestLogEnv::new();
 
-        set_env_var("RUST_LOG", "warn");
-        remove_env_var("CCR_LOG_LEVEL");
+        env.set_env("RUST_LOG", OsStr::new("warn"));
+        env.remove_env("CCR_LOG_LEVEL");
         assert_eq!(resolve_log_filter(), "warn");
 
-        set_env_var("CCR_LOG_LEVEL", "debug");
+        env.set_env("CCR_LOG_LEVEL", OsStr::new("debug"));
         assert_eq!(resolve_log_filter(), "debug");
-
-        match old_ccr {
-            Some(value) => set_env_var("CCR_LOG_LEVEL", &value),
-            None => remove_env_var("CCR_LOG_LEVEL"),
-        }
-        match old_rust {
-            Some(value) => set_env_var("RUST_LOG", &value),
-            None => remove_env_var("RUST_LOG"),
-        }
     }
 
     #[test]
