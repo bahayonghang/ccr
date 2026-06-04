@@ -2,6 +2,13 @@ use std::mem::size_of;
 
 #[test]
 fn legacy_public_paths_remain_available() {
+    // Compatibility contract: the root re-export bridge is legacy-only, but
+    // existing downstream imports must remain warning-free until a documented
+    // next-major breaking plan exists.
+    let _legacy_switch_platform = ccr::application::switch_platform;
+    assert!(size_of::<ccr::application::SwitchPlatformRequest>() > 0);
+    assert!(size_of::<ccr::commands::ImportMode>() > 0);
+    assert!(size_of::<ccr::managers::ConfigManager>() > 0);
     let _ = ccr::models::OpenAiAuthMethod::Api;
 
     assert!(size_of::<ccr::models::prompt::PromptPreset>() > 0);
@@ -45,6 +52,11 @@ fn stable_prelude_paths_remain_available() {
 fn crate_root_public_reexport_snapshot_is_intentional() {
     const EXPECTED_PUBLIC_SURFACE: &[&str] = &[
         "pub mod cli;",
+        "/// Compatibility-only bridge for historical root imports.",
+        "///",
+        "/// Keep this broad `ccr_cli` re-export available for existing consumers, but",
+        "/// route new stable API through [`crate::prelude`] unless a breaking-release",
+        "/// plan intentionally widens the crate root surface.",
         "pub use ccr_cli::{application, commands, managers, models, platforms, services, sync};",
         "#[cfg(feature = \"tui\")]",
         "pub use ccr_tui::tui;",
@@ -134,6 +146,29 @@ fn collect_public_surface(source: &str) -> Vec<&str> {
         if trimmed.is_empty() {
             pending_attributes.clear();
             line_index += 1;
+            continue;
+        }
+
+        if trimmed.starts_with("//!") {
+            line_index += 1;
+            continue;
+        }
+
+        if trimmed.starts_with("/// Compatibility-only bridge") {
+            pending_attributes.push(trimmed);
+            line_index += 1;
+
+            while line_index < lines.len() {
+                let doc_line = lines[line_index].trim();
+
+                if !doc_line.starts_with("///") {
+                    break;
+                }
+
+                pending_attributes.push(doc_line);
+                line_index += 1;
+            }
+
             continue;
         }
 
