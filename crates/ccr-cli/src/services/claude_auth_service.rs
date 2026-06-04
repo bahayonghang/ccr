@@ -399,7 +399,7 @@ impl ClaudeAuthService {
         let metadata = self.read_optional_json::<ClaudeMetadataDocument>(&self.claude_json_path);
         let info = credentials
             .as_ref()
-            .map(|doc| self.build_current_info(doc, metadata.as_ref()));
+            .and_then(|doc| self.build_current_info(doc, metadata.as_ref()));
         let usable = info.is_some();
 
         RuntimeAuthRead { info, usable }
@@ -409,22 +409,19 @@ impl ClaudeAuthService {
         &self,
         credentials: &ClaudeCredentialsDocument,
         metadata: Option<&ClaudeMetadataDocument>,
-    ) -> ClaudeCurrentAuthInfo {
-        let oauth = credentials
-            .claude_ai_oauth
-            .as_ref()
-            .expect("runtime auth info requires claudeAiOauth");
+    ) -> Option<ClaudeCurrentAuthInfo> {
+        let oauth = credentials.claude_ai_oauth.as_ref()?;
         let oauth_account = metadata.and_then(|meta| meta.oauth_account.as_ref());
         let expires_at = oauth.expires_at.to_datetime();
 
-        ClaudeCurrentAuthInfo {
+        Some(ClaudeCurrentAuthInfo {
             account_uuid: oauth_account.and_then(|account| account.account_uuid.clone()),
             email: oauth_account.and_then(|account| account.email_address.clone()),
             billing_type: oauth_account.and_then(|account| account.billing_type.clone()),
             subscription_type: oauth.subscription_type.clone(),
             rate_limit_tier: oauth.rate_limit_tier.clone(),
             expires_at,
-        }
+        })
     }
 
     fn build_registry_account(
@@ -583,7 +580,13 @@ impl ClaudeAuthService {
         }
 
         let metadata = self.read_optional_json::<ClaudeMetadataDocument>(&self.claude_json_path);
-        let info = self.build_current_info(&credentials, metadata.as_ref());
+        let info = self
+            .build_current_info(&credentials, metadata.as_ref())
+            .ok_or_else(|| {
+                CcrError::ValidationError(
+                    "未检测到 Claude 官方订阅登录，请先运行 `claude login`".into(),
+                )
+            })?;
 
         let mut registry = self.load_registry()?;
         if registry.accounts.contains_key(name) && !force {

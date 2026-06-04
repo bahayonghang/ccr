@@ -498,12 +498,10 @@ fn test_invalid_platform_name() {
 
     let result = Platform::from_str("invalid-platform");
     assert!(result.is_err());
-
-    if let Err(CcrError::PlatformNotFound(name)) = result {
-        assert_eq!(name, "invalid-platform");
-    } else {
-        panic!("Expected PlatformNotFound error");
-    }
+    assert!(matches!(
+        result,
+        Err(CcrError::PlatformNotFound(name)) if name == "invalid-platform"
+    ));
 }
 
 #[test]

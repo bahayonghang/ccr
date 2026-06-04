@@ -121,14 +121,20 @@ impl MutableClock {
     }
 
     pub fn advance_to(&self, t: DateTime<Utc>) {
-        let mut g = self.inner.lock().expect("MutableClock mutex poisoned");
+        let mut g = self
+            .inner
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         *g = t;
     }
 }
 
 impl Clock for MutableClock {
     fn now(&self) -> DateTime<Utc> {
-        *self.inner.lock().expect("MutableClock mutex poisoned")
+        *self
+            .inner
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
 }
 

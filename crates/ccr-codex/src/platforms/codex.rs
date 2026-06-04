@@ -682,20 +682,13 @@ impl CodexPlatform {
         }
     }
 
-    fn providers_table_mut(
+    fn ensure_providers_table_mut(
         root: &mut toml::map::Map<String, toml::Value>,
-        create: bool,
-    ) -> Result<Option<&mut toml::map::Map<String, toml::Value>>> {
-        if create {
-            let providers = root
-                .entry("model_providers")
-                .or_insert_with(|| toml::Value::Table(toml::map::Map::new()));
-            return Self::ensure_toml_table(providers).map(Some);
-        }
-
-        root.get_mut("model_providers")
-            .map(Self::ensure_toml_table)
-            .transpose()
+    ) -> Result<&mut toml::map::Map<String, toml::Value>> {
+        let providers = root
+            .entry("model_providers")
+            .or_insert_with(|| toml::Value::Table(toml::map::Map::new()));
+        Self::ensure_toml_table(providers)
     }
 
     fn cleanup_model_providers(root: &mut toml::map::Map<String, toml::Value>) {
@@ -905,7 +898,7 @@ impl CodexPlatform {
                     toml::Value::String(THIRD_PARTY_RUNTIME_PROVIDER_KEY.into()),
                 );
 
-                let providers = Self::providers_table_mut(root, true)?.expect("providers table");
+                let providers = Self::ensure_providers_table_mut(root)?;
                 providers.remove(OPENAI_PROVIDER_KEY);
 
                 let mut provider_table = toml::map::Map::new();
@@ -940,7 +933,7 @@ impl CodexPlatform {
                     toml::Value::String(THIRD_PARTY_RUNTIME_PROVIDER_KEY.into()),
                 );
 
-                let providers = Self::providers_table_mut(root, true)?.expect("providers table");
+                let providers = Self::ensure_providers_table_mut(root)?;
                 providers.remove(OPENAI_PROVIDER_KEY);
 
                 let mut provider_table = toml::map::Map::new();
@@ -1145,7 +1138,7 @@ impl CodexPlatform {
                     toml::Value::String(THIRD_PARTY_RUNTIME_PROVIDER_KEY.into()),
                 );
 
-                let providers = Self::providers_table_mut(root, true)?.expect("providers table");
+                let providers = Self::ensure_providers_table_mut(root)?;
                 providers.remove(OPENAI_PROVIDER_KEY);
 
                 let mut provider_table = toml::map::Map::new();

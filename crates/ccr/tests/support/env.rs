@@ -1,3 +1,5 @@
+#![allow(clippy::unwrap_used)]
+
 use std::ffi::{OsStr, OsString};
 use std::path::Path;
 use std::sync::{Mutex, MutexGuard};
@@ -15,12 +17,12 @@ impl CcrIntegrationTestEnv {
     pub(crate) fn new() -> Self {
         let guard = TEST_ENV_LOCK
             .lock()
-            .expect("CCR integration test env lock should not be poisoned");
-        let temp_dir = TempDir::new().expect("CCR integration test temp dir should be created");
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let temp_dir = TempDir::new().unwrap();
         let lock_dir = temp_dir.path().join(".locks");
 
-        std::fs::create_dir_all(temp_dir.path()).expect("CCR integration temp dir should exist");
-        std::fs::create_dir_all(&lock_dir).expect("CCR integration lock dir should be created");
+        std::fs::create_dir_all(temp_dir.path()).unwrap();
+        std::fs::create_dir_all(&lock_dir).unwrap();
 
         let mut previous_vars = Vec::new();
         set_env_var(&mut previous_vars, "CCR_ROOT", temp_dir.path().as_os_str());

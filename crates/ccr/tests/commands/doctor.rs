@@ -58,8 +58,7 @@ impl DoctorFixture {
     fn run_json(&self, args: &[&str]) -> (Output, Value) {
         let output = self.command().args(args).output().unwrap();
         let stdout = String::from_utf8_lossy(&output.stdout);
-        let json = serde_json::from_str::<Value>(&stdout)
-            .unwrap_or_else(|error| panic!("failed to parse stdout as json: {error}\n{stdout}"));
+        let json = serde_json::from_str::<Value>(&stdout).unwrap();
         (output, json)
     }
 
