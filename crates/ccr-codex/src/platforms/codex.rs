@@ -1617,11 +1617,13 @@ impl PlatformConfig for CodexPlatform {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
+    use crate::test_support::TestCodexEnv;
     use serde_json::json;
+    use std::path::Path;
 
-    fn write_file_store_config(temp_dir: &tempfile::TempDir) {
+    fn write_file_store_config(codex_dir: &Path) {
         std::fs::write(
-            temp_dir.path().join("config.toml"),
+            codex_dir.join("config.toml"),
             "cli_auth_credentials_store = \"file\"\n",
         )
         .unwrap();
@@ -1878,19 +1880,11 @@ requires_openai_auth = true
 
     #[test]
     fn test_apply_switch_spec_syncs_oauth_tokens_before_clearing() {
-        let temp_dir = tempfile::tempdir().unwrap();
-        let ccr_root = temp_dir.path().join("ccr");
-        let codex_dir = temp_dir.path().join("codex");
-
-        // SAFETY: 测试仅在当前进程临时设置 Codex 相关环境变量，结束后会显式清理。
-        unsafe {
-            std::env::set_var("CCR_ROOT", ccr_root.to_str().unwrap());
-            std::env::set_var("CCR_DATA_DIR", ccr_root.to_str().unwrap());
-            std::env::set_var("CCR_CODEX_DIR", codex_dir.to_str().unwrap());
-        }
+        let env = TestCodexEnv::new();
+        let codex_dir = env.codex_dir();
 
         // CCR auth registry + snapshot
-        let ccr_codex_dir = ccr_root.join("platforms/codex");
+        let ccr_codex_dir = env.ccr_codex_dir();
         std::fs::create_dir_all(ccr_codex_dir.join("auth")).unwrap();
 
         let registry = crate::models::CodexAuthRegistry {
@@ -1937,7 +1931,7 @@ requires_openai_auth = true
         .unwrap();
 
         // Codex runtime auth.json contains OAuth tokens (will be cleared)
-        std::fs::create_dir_all(&codex_dir).unwrap();
+        std::fs::create_dir_all(codex_dir).unwrap();
         std::fs::write(
             codex_dir.join("config.toml"),
             "cli_auth_credentials_store = \"file\"\n",
@@ -1996,26 +1990,12 @@ requires_openai_auth = true
             updated.tokens.unwrap().refresh_token.as_deref().unwrap(),
             "rt_latest"
         );
-
-        // SAFETY: 仅清理当前测试设置的环境变量，避免影响其他测试。
-        unsafe {
-            std::env::remove_var("CCR_ROOT");
-            std::env::remove_var("CCR_DATA_DIR");
-            std::env::remove_var("CCR_CODEX_DIR");
-        }
     }
 
     #[test]
     fn test_save_profile_scrubs_secret_and_restores_on_load() {
-        let temp_dir = tempfile::tempdir().unwrap();
-        let ccr_root = temp_dir.path().join("ccr");
-        let codex_dir = temp_dir.path().join("codex");
-
-        // SAFETY: 测试仅在当前进程临时设置 Codex 相关环境变量，结束后会显式清理。
-        unsafe {
-            std::env::set_var("CCR_ROOT", ccr_root.to_str().unwrap());
-            std::env::set_var("CCR_CODEX_DIR", codex_dir.to_str().unwrap());
-        }
+        let env = TestCodexEnv::new();
+        let ccr_root = env.root();
 
         let platform = CodexPlatform::new().unwrap();
         let mut profile = ProfileConfig {
@@ -2064,21 +2044,11 @@ requires_openai_auth = true
             loaded.get("mistral").unwrap().auth_token.as_deref(),
             Some("mistral-key-123")
         );
-
-        // SAFETY: 仅清理当前测试设置的环境变量，避免影响其他测试。
-        unsafe {
-            std::env::remove_var("CCR_ROOT");
-            std::env::remove_var("CCR_CODEX_DIR");
-        }
     }
 
     #[test]
     fn test_official_resets_config() {
-        let temp_dir = tempfile::tempdir().unwrap();
-        // SAFETY: 测试仅在当前进程临时设置 CCR_CODEX_DIR，结束后会显式清理。
-        unsafe {
-            std::env::set_var("CCR_CODEX_DIR", temp_dir.path().to_str().unwrap());
-        }
+        let _env = TestCodexEnv::new();
 
         let config_manager = CodexConfigManager::with_default().unwrap();
 
@@ -2102,21 +2072,12 @@ requires_openai_auth = true
         // 验证已重置
         let after = config_manager.load_config().unwrap();
         assert!(after.as_table().unwrap().is_empty());
-
-        // SAFETY: 仅清理当前测试设置的 CCR_CODEX_DIR，避免影响其他测试。
-        unsafe {
-            std::env::remove_var("CCR_CODEX_DIR");
-        }
     }
 
     #[test]
     fn test_apply_official_profile_overlays_managed_fields() {
-        let temp_dir = tempfile::tempdir().unwrap();
-        // SAFETY: 测试仅在当前进程临时设置 CCR_CODEX_DIR，结束后会显式清理。
-        unsafe {
-            std::env::set_var("CCR_CODEX_DIR", temp_dir.path().to_str().unwrap());
-        }
-        write_file_store_config(&temp_dir);
+        let env = TestCodexEnv::new();
+        write_file_store_config(env.codex_dir());
 
         let config_manager = CodexConfigManager::with_default().unwrap();
         let initial_config: toml::Value = toml::from_str(
@@ -2219,20 +2180,11 @@ env_key = "MISTRAL_API_KEY"
             auth.contains_key("legacy_key"),
             "official switch should preserve non-auth metadata"
         );
-
-        // SAFETY: 仅清理当前测试设置的 CCR_CODEX_DIR，避免影响其他测试。
-        unsafe {
-            std::env::remove_var("CCR_CODEX_DIR");
-        }
     }
 
     #[test]
     fn test_apply_third_party_profile_succeeds_on_non_file_store() {
-        let temp_dir = tempfile::tempdir().unwrap();
-        // SAFETY: 测试仅在当前进程临时设置 CCR_CODEX_DIR，结束后会显式清理。
-        unsafe {
-            std::env::set_var("CCR_CODEX_DIR", temp_dir.path().to_str().unwrap());
-        }
+        let _env = TestCodexEnv::new();
 
         let platform = CodexPlatform::new().unwrap();
         let mut profile = ProfileConfig {
@@ -2264,20 +2216,11 @@ env_key = "MISTRAL_API_KEY"
             "第三方 env_key profile 在非 file 存储下应成功切换: {:?}",
             result.err()
         );
-
-        // SAFETY: 仅清理当前测试设置的 CCR_CODEX_DIR，避免影响其他测试。
-        unsafe {
-            std::env::remove_var("CCR_CODEX_DIR");
-        }
     }
 
     #[test]
     fn test_third_party_preserves_fields() {
-        let temp_dir = tempfile::tempdir().unwrap();
-        // SAFETY: 测试仅在当前进程临时设置 CCR_CODEX_DIR，结束后会显式清理。
-        unsafe {
-            std::env::set_var("CCR_CODEX_DIR", temp_dir.path().to_str().unwrap());
-        }
+        let _env = TestCodexEnv::new();
 
         let config_manager = CodexConfigManager::with_default().unwrap();
 
@@ -2317,21 +2260,12 @@ env_key = "MISTRAL_API_KEY"
             after_table.get("model_provider").and_then(|v| v.as_str()),
             Some("test-provider")
         );
-
-        // SAFETY: 仅清理当前测试设置的 CCR_CODEX_DIR，避免影响其他测试。
-        unsafe {
-            std::env::remove_var("CCR_CODEX_DIR");
-        }
     }
 
     #[test]
     fn test_apply_third_party_writes_config() {
-        let temp_dir = tempfile::tempdir().unwrap();
-        // SAFETY: 测试仅在当前进程临时设置 CCR_CODEX_DIR，结束后会显式清理。
-        unsafe {
-            std::env::set_var("CCR_CODEX_DIR", temp_dir.path().to_str().unwrap());
-        }
-        write_file_store_config(&temp_dir);
+        let env = TestCodexEnv::new();
+        write_file_store_config(env.codex_dir());
 
         let platform = CodexPlatform::new().unwrap();
         let mut profile = ProfileConfig {
@@ -2362,7 +2296,7 @@ env_key = "MISTRAL_API_KEY"
             "third-party profile should apply successfully"
         );
         if result.is_ok() {
-            let config_path = temp_dir.path().join("config.toml");
+            let config_path = env.codex_dir().join("config.toml");
             if config_path.exists() {
                 let content = std::fs::read_to_string(&config_path).unwrap();
 
@@ -2403,7 +2337,7 @@ env_key = "MISTRAL_API_KEY"
                 );
             }
 
-            let auth_path = temp_dir.path().join("auth.json");
+            let auth_path = env.codex_dir().join("auth.json");
             assert!(
                 auth_path.exists(),
                 "auth.json should be written after auto-promote"
@@ -2417,21 +2351,12 @@ env_key = "MISTRAL_API_KEY"
                 "auto-promote should write auth_token as OPENAI_API_KEY, got: {auth:?}"
             );
         }
-
-        // SAFETY: 仅清理当前测试设置的 CCR_CODEX_DIR，避免影响其他测试。
-        unsafe {
-            std::env::remove_var("CCR_CODEX_DIR");
-        }
     }
 
     #[test]
     fn test_third_party_writes_env_key() {
-        let temp_dir = tempfile::tempdir().unwrap();
-        // SAFETY: 测试仅在当前进程临时设置 CCR_CODEX_DIR，结束后会显式清理。
-        unsafe {
-            std::env::set_var("CCR_CODEX_DIR", temp_dir.path().to_str().unwrap());
-        }
-        write_file_store_config(&temp_dir);
+        let env = TestCodexEnv::new();
+        write_file_store_config(env.codex_dir());
 
         let platform = CodexPlatform::new().unwrap();
         let mut profile = ProfileConfig {
@@ -2463,7 +2388,7 @@ env_key = "MISTRAL_API_KEY"
         assert!(result.is_ok(), "provider env-key profile should apply");
         if result.is_ok() {
             // 验证 config.toml 包含 env_key
-            let config_path = temp_dir.path().join("config.toml");
+            let config_path = env.codex_dir().join("config.toml");
             if config_path.exists() {
                 let content = std::fs::read_to_string(&config_path).unwrap();
                 assert!(
@@ -2486,7 +2411,7 @@ env_key = "MISTRAL_API_KEY"
             }
 
             // provider env key 不再写入 auth.json
-            let auth_path = temp_dir.path().join("auth.json");
+            let auth_path = env.codex_dir().join("auth.json");
             if auth_path.exists() {
                 let content = std::fs::read_to_string(&auth_path).unwrap();
                 assert!(
@@ -2501,21 +2426,12 @@ env_key = "MISTRAL_API_KEY"
                 );
             }
         }
-
-        // SAFETY: 仅清理当前测试设置的 CCR_CODEX_DIR，避免影响其他测试。
-        unsafe {
-            std::env::remove_var("CCR_CODEX_DIR");
-        }
     }
 
     #[test]
     fn test_switching_from_openai_auth_to_provider_env_key_clears_openai_key() {
-        let temp_dir = tempfile::tempdir().unwrap();
-        // SAFETY: 测试仅在当前进程临时设置 CCR_CODEX_DIR，结束后会显式清理。
-        unsafe {
-            std::env::set_var("CCR_CODEX_DIR", temp_dir.path().to_str().unwrap());
-        }
-        write_file_store_config(&temp_dir);
+        let env = TestCodexEnv::new();
+        write_file_store_config(env.codex_dir());
 
         let config_manager = CodexConfigManager::with_default().unwrap();
 
@@ -2593,21 +2509,12 @@ env_key = "MISTRAL_API_KEY"
             provider.get("env_key").and_then(|v| v.as_str()),
             Some("MISTRAL_API_KEY")
         );
-
-        // SAFETY: 仅清理当前测试设置的 CCR_CODEX_DIR，避免影响其他测试。
-        unsafe {
-            std::env::remove_var("CCR_CODEX_DIR");
-        }
     }
 
     #[test]
     fn test_third_party_default_auth_key() {
-        let temp_dir = tempfile::tempdir().unwrap();
-        // SAFETY: 测试仅在当前进程临时设置 CCR_CODEX_DIR，结束后会显式清理。
-        unsafe {
-            std::env::set_var("CCR_CODEX_DIR", temp_dir.path().to_str().unwrap());
-        }
-        write_file_store_config(&temp_dir);
+        let env = TestCodexEnv::new();
+        write_file_store_config(env.codex_dir());
 
         let platform = CodexPlatform::new().unwrap();
         let mut profile = ProfileConfig {
@@ -2638,7 +2545,7 @@ env_key = "MISTRAL_API_KEY"
         if result.is_ok() {
             // 自动提升：有 auth_token 但无传递路径 → requires_openai_auth=true
             // auth.json 应包含 OPENAI_API_KEY
-            let auth_path = temp_dir.path().join("auth.json");
+            let auth_path = env.codex_dir().join("auth.json");
             assert!(
                 auth_path.exists(),
                 "auth.json should be written after auto-promote"
@@ -2653,7 +2560,7 @@ env_key = "MISTRAL_API_KEY"
             );
 
             // 验证 config.toml 不包含 env_key（因为未设置）
-            let config_path = temp_dir.path().join("config.toml");
+            let config_path = env.codex_dir().join("config.toml");
             if config_path.exists() {
                 let content = std::fs::read_to_string(&config_path).unwrap();
                 let parsed: toml::Value = toml::from_str(&content).unwrap();
@@ -2675,21 +2582,12 @@ env_key = "MISTRAL_API_KEY"
                 );
             }
         }
-
-        // SAFETY: 仅清理当前测试设置的 CCR_CODEX_DIR，避免影响其他测试。
-        unsafe {
-            std::env::remove_var("CCR_CODEX_DIR");
-        }
     }
 
     #[test]
     fn test_third_party_default_auth_key_clears_stale_chatgpt_auth_metadata() {
-        let temp_dir = tempfile::tempdir().unwrap();
-        // SAFETY: 测试仅在当前进程临时设置 CCR_CODEX_DIR，结束后会显式清理。
-        unsafe {
-            std::env::set_var("CCR_CODEX_DIR", temp_dir.path().to_str().unwrap());
-        }
-        write_file_store_config(&temp_dir);
+        let env = TestCodexEnv::new();
+        write_file_store_config(env.codex_dir());
 
         let config_manager = CodexConfigManager::with_default().unwrap();
         let mut auth = serde_json::Map::new();
@@ -2728,7 +2626,7 @@ env_key = "MISTRAL_API_KEY"
             .apply_third_party_profile("proxy", &profile)
             .unwrap();
 
-        let auth_path = temp_dir.path().join("auth.json");
+        let auth_path = env.codex_dir().join("auth.json");
         let content = std::fs::read_to_string(&auth_path).unwrap();
         let auth: serde_json::Map<String, serde_json::Value> =
             serde_json::from_str(&content).unwrap();
@@ -2751,21 +2649,12 @@ env_key = "MISTRAL_API_KEY"
             root.get("forced_login_method").and_then(|v| v.as_str()),
             Some("api")
         );
-
-        // SAFETY: 仅清理当前测试设置的 CCR_CODEX_DIR，避免影响其他测试。
-        unsafe {
-            std::env::remove_var("CCR_CODEX_DIR");
-        }
     }
 
     #[test]
     fn test_provider_model_explicit_is_ignored() {
-        let temp_dir = tempfile::tempdir().unwrap();
-        // SAFETY: 测试仅在当前进程临时设置 CCR_CODEX_DIR，结束后会显式清理。
-        unsafe {
-            std::env::set_var("CCR_CODEX_DIR", temp_dir.path().to_str().unwrap());
-        }
-        write_file_store_config(&temp_dir);
+        let env = TestCodexEnv::new();
+        write_file_store_config(env.codex_dir());
 
         let platform = CodexPlatform::new().unwrap();
         let mut profile = ProfileConfig {
@@ -2797,7 +2686,7 @@ env_key = "MISTRAL_API_KEY"
             "profile with legacy provider_model should still apply"
         );
         if result.is_ok() {
-            let config_path = temp_dir.path().join("config.toml");
+            let config_path = env.codex_dir().join("config.toml");
             if config_path.exists() {
                 let content = std::fs::read_to_string(&config_path).unwrap();
                 let parsed: toml::Value = toml::from_str(&content).unwrap();
@@ -2831,21 +2720,12 @@ env_key = "MISTRAL_API_KEY"
                 );
             }
         }
-
-        // SAFETY: 仅清理当前测试设置的 CCR_CODEX_DIR，避免影响其他测试。
-        unsafe {
-            std::env::remove_var("CCR_CODEX_DIR");
-        }
     }
 
     #[test]
     fn test_third_party_clears_stale_optional_provider_fields() {
-        let temp_dir = tempfile::tempdir().unwrap();
-        // SAFETY: 测试仅在当前进程临时设置 CCR_CODEX_DIR，结束后会显式清理。
-        unsafe {
-            std::env::set_var("CCR_CODEX_DIR", temp_dir.path().to_str().unwrap());
-        }
-        write_file_store_config(&temp_dir);
+        let env = TestCodexEnv::new();
+        write_file_store_config(env.codex_dir());
 
         let config_manager = CodexConfigManager::with_default().unwrap();
 
@@ -2939,21 +2819,12 @@ env_key = "MISTRAL_API_KEY"
             "stale provider model should be removed, got: {:?}",
             provider
         );
-
-        // SAFETY: 仅清理当前测试设置的 CCR_CODEX_DIR，避免影响其他测试。
-        unsafe {
-            std::env::remove_var("CCR_CODEX_DIR");
-        }
     }
 
     #[test]
     fn test_requires_openai_auth_ignores_env_key_and_clears_provider_token() {
-        let temp_dir = tempfile::tempdir().unwrap();
-        // SAFETY: 测试仅在当前进程临时设置 CCR_CODEX_DIR，结束后会显式清理。
-        unsafe {
-            std::env::set_var("CCR_CODEX_DIR", temp_dir.path().to_str().unwrap());
-        }
-        write_file_store_config(&temp_dir);
+        let env = TestCodexEnv::new();
+        write_file_store_config(env.codex_dir());
 
         let config_manager = CodexConfigManager::with_default().unwrap();
 
@@ -3046,10 +2917,5 @@ env_key = "MISTRAL_API_KEY"
             provider.get("env_key").is_none(),
             "env_key should be ignored/removed when requires_openai_auth=true"
         );
-
-        // SAFETY: 仅清理当前测试设置的 CCR_CODEX_DIR，避免影响其他测试。
-        unsafe {
-            std::env::remove_var("CCR_CODEX_DIR");
-        }
     }
 }
