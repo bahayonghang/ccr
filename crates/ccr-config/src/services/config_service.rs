@@ -545,8 +545,8 @@ fn merge_configs(
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
+    use crate::test_support::TestCcrEnv;
     use indexmap::IndexMap;
-    use tempfile::tempdir;
 
     fn create_test_section() -> ConfigSection {
         ConfigSection {
@@ -568,12 +568,8 @@ mod tests {
 
     #[test]
     fn test_config_service_add_get() {
-        let temp_dir = tempdir().unwrap();
-        let config_path = temp_dir.path().join("config.toml");
-        let previous_lock_dir = std::env::var("CCR_LOCK_DIR").ok();
-        unsafe {
-            std::env::set_var("CCR_LOCK_DIR", temp_dir.path().join(".locks"));
-        }
+        let env = TestCcrEnv::new();
+        let config_path = env.root().join("config.toml");
 
         // 创建初始配置
         let mut config = CcsConfig {
@@ -591,22 +587,13 @@ mod tests {
         let service = ConfigService::new(manager);
 
         // 添加新配置
-        let result = service.add_config("new_config".into(), create_test_section());
-        restore_env_var("CCR_LOCK_DIR", previous_lock_dir);
-        result.unwrap();
+        service
+            .add_config("new_config".into(), create_test_section())
+            .unwrap();
 
         // 获取配置
         let info = service.get_config("new_config").unwrap();
         assert_eq!(info.name, "new_config");
         assert_eq!(info.description, "Test config");
-    }
-
-    fn restore_env_var(key: &str, previous: Option<String>) {
-        unsafe {
-            match previous {
-                Some(value) => std::env::set_var(key, value),
-                None => std::env::remove_var(key),
-            }
-        }
     }
 }

@@ -569,19 +569,7 @@ pub fn get_current_profile_from_registry(platform_name: &str) -> Result<Option<S
 mod tests {
     use super::*;
     use crate::managers::{PlatformConfigEntry, UnifiedConfig};
-    use std::sync::{LazyLock, Mutex};
-
-    static ENV_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
-
-    fn restore_env_var(key: &str, previous: Option<String>) {
-        // SAFETY: 仅在测试中恢复当前进程环境变量，调用方保证作用域内串行使用。
-        unsafe {
-            match previous {
-                Some(value) => std::env::set_var(key, value),
-                None => std::env::remove_var(key),
-            }
-        }
-    }
+    use crate::test_support::TestCcrEnv;
 
     #[test]
     fn test_section_to_profile_roundtrip() {
@@ -634,81 +622,56 @@ mod tests {
 
     #[test]
     fn test_reconcile_registry_current_profile_after_delete_repoints_to_first_remaining() {
-        let _guard = ENV_LOCK.lock().unwrap();
-        let temp_dir = tempfile::tempdir().unwrap();
-        let previous_root = std::env::var("CCR_ROOT").ok();
-        let previous_lock_dir = std::env::var("CCR_LOCK_DIR").ok();
+        let _env = TestCcrEnv::new();
+        let manager = PlatformConfigManager::with_default().unwrap();
+        let mut unified_config = UnifiedConfig::default();
+        unified_config
+            .register_platform("codex".into(), PlatformConfigEntry::default())
+            .unwrap();
+        unified_config
+            .set_platform_profile("codex", "obsolete")
+            .unwrap();
+        manager.save(&unified_config).unwrap();
 
-        // SAFETY: 测试需要临时覆写进程环境变量来隔离 CCR 根目录，作用域结束后会恢复。
-        unsafe {
-            std::env::set_var("CCR_ROOT", temp_dir.path());
-            std::env::set_var("CCR_LOCK_DIR", temp_dir.path().join(".locks"));
-        }
+        let mut remaining_profiles = IndexMap::new();
+        remaining_profiles.insert("replacement".to_string(), ProfileConfig::new());
 
-        let result = (|| -> Result<()> {
-            let manager = PlatformConfigManager::with_default()?;
-            let mut unified_config = UnifiedConfig::default();
-            unified_config.register_platform("codex".into(), PlatformConfigEntry::default())?;
-            unified_config.set_platform_profile("codex", "obsolete")?;
-            manager.save(&unified_config)?;
+        reconcile_registry_current_profile_after_delete("codex", "obsolete", &remaining_profiles)
+            .unwrap();
 
-            let mut remaining_profiles = IndexMap::new();
-            remaining_profiles.insert("replacement".to_string(), ProfileConfig::new());
-
-            reconcile_registry_current_profile_after_delete(
-                "codex",
-                "obsolete",
-                &remaining_profiles,
-            )?;
-
-            let reloaded = manager.load()?;
-            assert_eq!(
-                reloaded.get_platform("codex")?.current_profile.as_deref(),
-                Some("replacement")
-            );
-            Ok(())
-        })();
-
-        restore_env_var("CCR_ROOT", previous_root);
-        restore_env_var("CCR_LOCK_DIR", previous_lock_dir);
-        result.unwrap();
+        let reloaded = manager.load().unwrap();
+        assert_eq!(
+            reloaded
+                .get_platform("codex")
+                .unwrap()
+                .current_profile
+                .as_deref(),
+            Some("replacement")
+        );
     }
 
     #[test]
     fn test_reconcile_registry_current_profile_after_delete_clears_when_empty() {
-        let _guard = ENV_LOCK.lock().unwrap();
-        let temp_dir = tempfile::tempdir().unwrap();
-        let previous_root = std::env::var("CCR_ROOT").ok();
-        let previous_lock_dir = std::env::var("CCR_LOCK_DIR").ok();
+        let _env = TestCcrEnv::new();
+        let manager = PlatformConfigManager::with_default().unwrap();
+        let mut unified_config = UnifiedConfig::default();
+        unified_config
+            .register_platform("gemini".into(), PlatformConfigEntry::default())
+            .unwrap();
+        unified_config
+            .set_platform_profile("gemini", "obsolete")
+            .unwrap();
+        manager.save(&unified_config).unwrap();
 
-        // SAFETY: 测试需要临时覆写进程环境变量来隔离 CCR 根目录，作用域结束后会恢复。
-        unsafe {
-            std::env::set_var("CCR_ROOT", temp_dir.path());
-            std::env::set_var("CCR_LOCK_DIR", temp_dir.path().join(".locks"));
-        }
+        let remaining_profiles = IndexMap::new();
+        reconcile_registry_current_profile_after_delete("gemini", "obsolete", &remaining_profiles)
+            .unwrap();
 
-        let result = (|| -> Result<()> {
-            let manager = PlatformConfigManager::with_default()?;
-            let mut unified_config = UnifiedConfig::default();
-            unified_config.register_platform("gemini".into(), PlatformConfigEntry::default())?;
-            unified_config.set_platform_profile("gemini", "obsolete")?;
-            manager.save(&unified_config)?;
-
-            let remaining_profiles = IndexMap::new();
-            reconcile_registry_current_profile_after_delete(
-                "gemini",
-                "obsolete",
-                &remaining_profiles,
-            )?;
-
-            let reloaded = manager.load()?;
-            assert_eq!(reloaded.get_platform("gemini")?.current_profile, None);
-            Ok(())
-        })();
-
-        restore_env_var("CCR_ROOT", previous_root);
-        restore_env_var("CCR_LOCK_DIR", previous_lock_dir);
-        result.unwrap();
+        let reloaded = manager.load().unwrap();
+        assert_eq!(
+            reloaded.get_platform("gemini").unwrap().current_profile,
+            None
+        );
     }
 
     #[test]
