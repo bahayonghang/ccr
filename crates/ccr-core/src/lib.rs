@@ -95,9 +95,9 @@ pub(crate) mod test_support {
 
         #[test]
         fn test_log_env_sets_removes_and_restores_log_vars() {
+            let mut env = TestLogEnv::new();
             let previous_ccr_log_level = std::env::var_os("CCR_LOG_LEVEL");
             let previous_rust_log = std::env::var_os("RUST_LOG");
-            let mut env = TestLogEnv::new();
 
             env.set_env("CCR_LOG_LEVEL", OsStr::new("debug"));
             env.remove_env("RUST_LOG");
