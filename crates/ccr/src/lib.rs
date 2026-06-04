@@ -132,6 +132,20 @@ pub use ccr_cli::{application, commands, managers, models, platforms, services, 
 #[cfg(feature = "tui")]
 pub use ccr_tui::tui;
 
+/// Stable import surface for application and integration consumers.
+///
+/// The crate root still keeps legacy re-exports for compatibility, but new
+/// consumers should prefer this prelude when they only need CCR's public error,
+/// platform, configuration, and service contracts.
+pub mod prelude {
+    pub use crate::{
+        BackupService, CcrError, ConfigManager, ConfigService, HistoryManager, HistoryService,
+        Platform, PlatformConfig, PlatformConfigEntry, PlatformConfigManager, PlatformPaths,
+        ProfileConfig, Result, SettingsManager, SettingsService, UnifiedConfig, ValidateService,
+        create_platform,
+    };
+}
+
 // ═══════════════════════════════════════════════════════════
 // 核心类型导出
 // ═══════════════════════════════════════════════════════════
