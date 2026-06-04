@@ -2294,6 +2294,7 @@ impl UsageImportService {
 mod tests {
     use super::*;
     use crate::database;
+    use crate::test_support::TestOpenCodeEnv;
     use std::io::Write;
     use std::sync::{Mutex, MutexGuard, OnceLock};
     use tempfile::TempDir;
@@ -3207,8 +3208,8 @@ mod tests {
         let _guard = setup();
         reset_usage_tables();
 
-        let temp_dir = TempDir::new().unwrap();
-        let db_path = temp_dir.path().join("opencode.db");
+        let env = TestOpenCodeEnv::new();
+        let db_path = env.opencode_dir().join("opencode.db");
         let conn = rusqlite::Connection::open(&db_path).unwrap();
         create_opencode_message_table(&conn);
         let now = Utc
@@ -3228,25 +3229,9 @@ mod tests {
         );
         drop(conn);
 
-        let previous_opencode_dir = std::env::var("CCR_OPENCODE_DIR").ok();
-        let result = {
-            // SAFETY: Usage import tests are serialized by `setup()` before mutating process
-            // environment used by OpenCode path discovery.
-            unsafe {
-                std::env::set_var("CCR_OPENCODE_DIR", temp_dir.path());
-            }
-            let result = UsageImportService::new(ImportConfig::default()).import_platform("all");
-            match previous_opencode_dir {
-                Some(value) => unsafe {
-                    std::env::set_var("CCR_OPENCODE_DIR", value);
-                },
-                None => unsafe {
-                    std::env::remove_var("CCR_OPENCODE_DIR");
-                },
-            }
-            result
-        }
-        .unwrap();
+        let result = UsageImportService::new(ImportConfig::default())
+            .import_platform("all")
+            .unwrap();
         assert_eq!(result.platform, "all");
         assert!(result.records_imported >= 1);
 
