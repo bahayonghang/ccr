@@ -1,0 +1,189 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-06-05T00:00:00+08:00",
+  "title": "Design System: CCR UI",
+  "extensions": {
+    "colorMeta": {
+      "clay-accent": {
+        "role": "primary",
+        "displayName": "Clay Accent",
+        "canonical": "#d97757",
+        "tonalRamp": ["#3f1d12", "#6e3320", "#9d4f35", "#c96c4d", "#d97757", "#e9a58b", "#f4cab9", "#fff1e8"]
+      },
+      "sand-accent": {
+        "role": "secondary",
+        "displayName": "Warm Sand",
+        "canonical": "#b99666",
+        "tonalRamp": ["#342514", "#5c4122", "#835f36", "#a98658", "#b99666", "#d2b88f", "#ead9bf", "#fff4e0"]
+      },
+      "neutral-base": {
+        "role": "neutral",
+        "displayName": "Editorial Base",
+        "canonical": "#f4ede3",
+        "tonalRamp": ["#17120f", "#342b26", "#5f4d3f", "#9a8373", "#ede2d4", "#f4ede3", "#fbf6ee", "#fffaf3"]
+      },
+      "ink-primary": {
+        "role": "neutral",
+        "displayName": "Charcoal Ink",
+        "canonical": "#31241c",
+        "tonalRamp": ["#17120f", "#211915", "#31241c", "#5f4d3f", "#7f6a5b", "#b4a08f", "#dacbbc", "#f3eadf"]
+      },
+      "success": {
+        "role": "semantic",
+        "displayName": "Sage Success",
+        "canonical": "#5b8a62",
+        "tonalRamp": ["#142419", "#27452d", "#3f6847", "#5b8a62", "#7cab82", "#a9c9ad", "#d4e4d6", "#f1f8f2"]
+      },
+      "danger": {
+        "role": "semantic",
+        "displayName": "Clay Danger",
+        "canonical": "#c76953",
+        "tonalRamp": ["#35140f", "#65291f", "#954535", "#c76953", "#db8a73", "#edb8a9", "#f8dcd4", "#fff1ed"]
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "Workbench Headline",
+        "purpose": "Page and panel-level headings with compact editorial authority."
+      },
+      "title": {
+        "displayName": "Panel Title",
+        "purpose": "Dense section and card titles."
+      },
+      "body": {
+        "displayName": "Operational Body",
+        "purpose": "Descriptions, hints, and readable workflow copy."
+      },
+      "label": {
+        "displayName": "Control Label",
+        "purpose": "Forms, metadata, and compact UI labels."
+      }
+    },
+    "shadows": [
+      {
+        "name": "subtle-rest",
+        "value": "0 2px 8px rgb(73 54 40 / 6%)",
+        "purpose": "Low surface separation."
+      },
+      {
+        "name": "structural-card",
+        "value": "0 14px 34px rgb(73 54 40 / 8%)",
+        "purpose": "Interactive workbench panels."
+      },
+      {
+        "name": "modal-depth",
+        "value": "0 24px 54px rgb(73 54 40 / 10%)",
+        "purpose": "Dialogs and overlays."
+      }
+    ],
+    "motion": [
+      {
+        "name": "motion-subtle",
+        "value": "100ms cubic-bezier(0, 0, 0.2, 1)",
+        "purpose": "Small hover and focus changes."
+      },
+      {
+        "name": "motion-standard",
+        "value": "200ms cubic-bezier(0.4, 0, 0.2, 1)",
+        "purpose": "Normal product state transitions."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "mobile-sidebar",
+        "value": "lg"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The next meaningful command on a product surface.",
+      "html": "<button class=\"ds-btn-primary\">Save changes</button>",
+      "css": ".ds-btn-primary { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; padding: 0.625rem 1rem; border-radius: 9999px; border: 1px solid rgb(var(--color-accent-primary-rgb) / 16%); background: linear-gradient(180deg, var(--color-accent-primary), var(--color-accent-primary-active)); color: var(--color-text-inverted); font: 560 0.875rem/1.24 var(--font-sans); letter-spacing: var(--tracking-normal); box-shadow: 0 14px 28px rgb(var(--color-accent-primary-rgb) / 16%), inset 0 1px 0 rgb(255 251 245 / 18%); transition: transform var(--motion-standard-duration) var(--motion-standard-ease), box-shadow var(--motion-standard-duration) var(--motion-standard-ease), background-color var(--motion-standard-duration) var(--motion-standard-ease); } .ds-btn-primary:hover { transform: translateY(-0.5px); box-shadow: 0 16px 32px rgb(var(--color-accent-primary-rgb) / 18%), inset 0 1px 0 rgb(255 251 245 / 22%); } .ds-btn-primary:focus-visible { outline: 2px solid rgb(var(--color-accent-primary-rgb) / 50%); outline-offset: 2px; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Neutral action beside a primary command.",
+      "html": "<button class=\"ds-btn-secondary\">Open details</button>",
+      "css": ".ds-btn-secondary { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; padding: 0.625rem 1rem; border-radius: 9999px; border: 1px solid var(--surface-status-border); background: linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 98%), rgb(var(--color-bg-surface-rgb) / 88%)); color: var(--color-text-primary); font: 560 0.875rem/1.24 var(--font-sans); letter-spacing: var(--tracking-normal); box-shadow: var(--surface-status-shadow), inset 0 1px 0 rgb(255 251 245 / 14%); transition: border-color var(--motion-standard-duration) var(--motion-standard-ease), background-color var(--motion-standard-duration) var(--motion-standard-ease); } .ds-btn-secondary:hover { border-color: rgb(var(--color-accent-primary-rgb) / 18%); } .ds-btn-secondary:focus-visible { outline: 2px solid rgb(var(--color-accent-primary-rgb) / 50%); outline-offset: 2px; }"
+    },
+    {
+      "name": "Input Field",
+      "kind": "input",
+      "refersTo": "input-default",
+      "description": "Readable configuration input with explicit focus and error hooks.",
+      "html": "<label class=\"ds-field\"><span>Profile name</span><input class=\"ds-input\" placeholder=\"Default profile\" /></label>",
+      "css": ".ds-field { display: grid; gap: 0.375rem; color: var(--color-text-muted); font: 560 0.75rem/1.24 var(--font-sans); letter-spacing: var(--tracking-wide); } .ds-input { min-height: 44px; border-radius: 16px; border: 1px solid rgb(var(--color-border-default-rgb) / 70%); background: var(--surface-workspace-bg); color: var(--color-text-primary); padding: 0.625rem 1rem; font: 400 0.875rem/1.56 var(--font-sans); box-shadow: var(--shadow-sm), inset 0 1px 0 rgb(255 255 255 / 14%); transition: border-color var(--motion-subtle-duration) var(--motion-subtle-ease), box-shadow var(--motion-subtle-duration) var(--motion-subtle-ease); } .ds-input::placeholder { color: rgb(var(--color-text-muted-rgb) / 80%); } .ds-input:focus-visible { outline: 2px solid rgb(var(--color-accent-primary-rgb) / 14%); outline-offset: 2px; border-color: rgb(var(--color-accent-primary-rgb) / 28%); }"
+    },
+    {
+      "name": "Elevated Card",
+      "kind": "card",
+      "refersTo": "card-elevated",
+      "description": "Primary dense workbench panel for grouped configuration or state.",
+      "html": "<section class=\"ds-card\"><h3>Runtime status</h3><p>Backend connected. Usage importer ready.</p></section>",
+      "css": ".ds-card { border-radius: 16px; border: 1px solid var(--surface-card-border); background: var(--surface-card-bg); color: var(--color-text-primary); padding: 1.5rem; box-shadow: var(--surface-card-shadow), var(--glass-inner-glow); } .ds-card h3 { margin: 0 0 0.5rem; font: 560 1.3125rem/1.24 var(--font-sans); letter-spacing: var(--tracking-normal); } .ds-card p { margin: 0; color: var(--color-text-secondary); font: 400 0.875rem/1.56 var(--font-sans); }"
+    },
+    {
+      "name": "Active Navigation Item",
+      "kind": "nav",
+      "refersTo": "nav-item-active",
+      "description": "Current route state in the persistent operational sidebar.",
+      "html": "<a class=\"ds-nav-active\" href=\"#\"><span class=\"ds-nav-icon\"></span><span>Usage</span></a>",
+      "css": ".ds-nav-active { min-height: 36px; display: inline-flex; align-items: center; gap: 0.625rem; padding: 0.5rem 0.75rem; border-radius: 12px; background: rgb(var(--color-bg-surface-rgb) / 82%); color: var(--color-text-primary); font: 560 0.875rem/1.24 var(--font-sans); text-decoration: none; box-shadow: inset 0 0 0 1px rgb(var(--color-accent-primary-rgb) / 14%); } .ds-nav-icon { width: 0.5rem; height: 0.5rem; border-radius: 9999px; background: var(--color-accent-primary); box-shadow: 0 0 0 4px rgb(var(--color-accent-primary-rgb) / 10%); } .ds-nav-active:focus-visible { outline: 2px solid rgb(var(--color-accent-primary-rgb) / 50%); outline-offset: 2px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Editorial Control Room",
+    "overview": "CCR UI is a dense operational workbench with an editorial surface system: quiet shell, precise labels, warm clay accent, and structured panels that help expert users see state quickly. The interface should feel trusted during configuration, sync, command execution, and usage analysis, where unclear state can cost real local data.",
+    "keyCharacteristics": [
+      "Dense but organized workbench layouts.",
+      "Warm clay accent used sparingly for primary action and active state.",
+      "Charcoal or high-contrast ink over neutral surfaces.",
+      "Consistent rounded product controls, usually 6px to 16px, with pill buttons where actions need strong hit targets.",
+      "Motion limited to state change, feedback, route continuity, and loading."
+    ],
+    "rules": [
+      {
+        "name": "The Accent Scarcity Rule",
+        "body": "Clay accent should occupy less than 10% of a normal screen. If it appears everywhere, nothing reads as active.",
+        "section": "colors"
+      },
+      {
+        "name": "The Legacy Branch Rule",
+        "body": "Do not add new purple-tech, guofeng, anime, catgirl, or NEKO color variants. Existing traces are migration debt, not optional themes.",
+        "section": "colors"
+      },
+      {
+        "name": "The Product Type Rule",
+        "body": "Do not use fluid hero typography inside app surfaces. Fixed rem scales serve this tool better than viewport-driven display type.",
+        "section": "typography"
+      },
+      {
+        "name": "The Structural Glass Rule",
+        "body": "Existing glass tokens may define shell, workspace, card, modal, and status layers. Do not add decorative glass cards for visual novelty.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do keep expert density and explicit operational scope visible.",
+      "Do use clay accent for primary action, active navigation, focus, and critical emphasis.",
+      "Do preserve light and dark contrast for body text, placeholders, labels, and status text.",
+      "Do use structural surface roles: shell, workspace, card, modal, and status.",
+      "Do keep motion between 100ms and 300ms for product state changes, with reduced-motion alternatives.",
+      "Do treat Tauri-only failures in web preview as runtime limitations when the task is not web compatibility."
+    ],
+    "donts": [
+      "Don't add generic SaaS admin styling, purple or purple-blue gradients, or marketing hero patterns.",
+      "Don't add heavy Liquid Glass or glassmorphism as decoration.",
+      "Don't add guofeng, neko, anime, catgirl, or mascot-heavy variants.",
+      "Don't hide operational risk behind beginner-friendly simplification.",
+      "Don't create nested cards or identical decorative card grids.",
+      "Don't use side-stripe accent borders, gradient text, or 32px plus radii on product cards."
+    ]
+  }
+}
