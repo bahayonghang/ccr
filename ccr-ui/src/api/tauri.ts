@@ -1,10 +1,13 @@
 /**
- * Tauri API Client for CCR Desktop
+ * Tauri API compatibility facade for CCR Desktop.
  *
- * 通过 Tauri invoke() 调用 Rust 后端命令的完整封装。
- * 所有函数名与原 api/modules/ 导出保持一致，以确保 Store 层无缝切换。
+ * Compatibility-only: keep this file stable for legacy imports from `@/api` or
+ * `@/api/tauri`. Do not add new business API wrappers or direct `invoke()` calls
+ * here. New APIs must live in `src/api/domains/*` (or a generated typed client)
+ * and be exposed from `src/api/index.ts` through a domain namespace or an
+ * explicit compatibility re-export.
  *
- * 分组顺序：
+ * 分组顺序（历史兼容导出）：
  *   1. 环境检测 & 工具函数
  *   2. 配置管理 (Config)
  *   3. 同步 (Sync / WebDAV)
