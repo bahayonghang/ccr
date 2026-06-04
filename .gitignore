@@ -90,3 +90,5 @@ ccr-ui/src-tauri/bin/
 # Local learning logs
 .learnings/
 .understand-anything/
+.codegraph/
+.planning/
