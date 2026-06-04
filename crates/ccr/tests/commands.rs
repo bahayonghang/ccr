@@ -27,3 +27,9 @@ mod validate;
 
 #[path = "commands/sync_content.rs"]
 mod sync_content;
+
+#[path = "support/env.rs"]
+mod env;
+pub(crate) fn setup_ccr_test_env() -> env::CcrIntegrationTestEnv {
+    env::CcrIntegrationTestEnv::new()
+}

@@ -1,8 +1,8 @@
 #![allow(clippy::unwrap_used)]
 // 🧪 CCR 多平台功能集成测试
 //
-// ⚠️ **重要提示**: 这些测试修改全局环境变量 CCR_ROOT，因此必须串行运行
-// 运行方式: `cargo test --test platform_tests -- --test-threads=1`
+// ⚠️ **重要提示**: 环境相关测试通过共享 fixture 锁临时修改 CCR_ROOT / CCR_LOCK_DIR；
+// 全局串行测试策略会在 Phase 5 后续切片统一评估，不在本测试目标内直接移除。
 //
 // 测试内容:
 // - Platform 初始化
@@ -29,12 +29,6 @@ type TempDir = PlatformTestEnv;
 fn setup_test_env() -> TempDir {
     let temp_dir = setup_platform_test_env();
 
-    // 设置环境变量指向临时目录
-    // SAFETY: 测试仅在当前进程临时设置 CCR_ROOT，清理函数会恢复干净状态。
-    unsafe {
-        std::env::set_var("CCR_ROOT", temp_dir.path().to_str().unwrap());
-    }
-
     // 确保根目录存在
     std::fs::create_dir_all(temp_dir.path()).ok();
 
@@ -43,10 +37,6 @@ fn setup_test_env() -> TempDir {
 
 /// 清理测试环境
 fn cleanup_test_env(temp_dir: TempDir) {
-    // SAFETY: 仅清理本测试设置的 CCR_ROOT，避免污染后续测试。
-    unsafe {
-        std::env::remove_var("CCR_ROOT");
-    }
     drop(temp_dir);
 }
 
