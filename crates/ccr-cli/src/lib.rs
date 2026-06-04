@@ -35,6 +35,12 @@ pub(crate) mod test_support {
         _env_guard: MutexGuard<'static, ()>,
     }
 
+    pub(crate) struct TestHostEnv {
+        temp_dir: TempDir,
+        previous_vars: Vec<(&'static str, Option<OsString>)>,
+        _env_guard: MutexGuard<'static, ()>,
+    }
+
     impl TestHome {
         pub(crate) fn new() -> Self {
             let env_guard = env_lock();
@@ -112,13 +118,52 @@ pub(crate) mod test_support {
         }
     }
 
+    impl TestHostEnv {
+        pub(crate) fn new() -> Self {
+            let env_guard = env_lock();
+            let temp_dir = tempfile::tempdir().expect("test host env temp dir should be created");
+
+            Self {
+                temp_dir,
+                previous_vars: Vec::new(),
+                _env_guard: env_guard,
+            }
+        }
+
+        pub(crate) fn home(&self) -> &Path {
+            self.temp_dir.path()
+        }
+
+        pub(crate) fn set_env(&mut self, key: &'static str, value: &OsStr) {
+            set_env_var(&mut self.previous_vars, key, value);
+        }
+
+        pub(crate) fn remove_env(&mut self, key: &'static str) {
+            remove_env_var(&mut self.previous_vars, key);
+        }
+    }
+
     impl Drop for TestHome {
         fn drop(&mut self) {
             self.restore_env_vars();
         }
     }
 
+    impl Drop for TestHostEnv {
+        fn drop(&mut self) {
+            self.restore_env_vars();
+        }
+    }
+
     impl TestHome {
+        fn restore_env_vars(&mut self) {
+            for (key, previous) in self.previous_vars.drain(..).rev() {
+                restore_env_var(key, previous);
+            }
+        }
+    }
+
+    impl TestHostEnv {
         fn restore_env_vars(&mut self) {
             for (key, previous) in self.previous_vars.drain(..).rev() {
                 restore_env_var(key, previous);
@@ -161,7 +206,7 @@ pub(crate) mod test_support {
 
     #[cfg(test)]
     mod tests {
-        use super::TestHome;
+        use super::{TestHome, TestHostEnv};
         use std::ffi::OsString;
 
         #[test]
@@ -205,6 +250,37 @@ pub(crate) mod test_support {
 
             assert_eq!(std::env::var_os("HOME"), previous_home);
             assert_eq!(std::env::var_os("USERPROFILE"), previous_userprofile);
+        }
+
+        #[test]
+        fn test_host_env_scopes_path_cargo_home_and_home() {
+            let mut env = TestHostEnv::new();
+            let previous_path = std::env::var_os("PATH");
+            let previous_cargo_home = std::env::var_os("CARGO_HOME");
+            let previous_home = std::env::var_os("HOME");
+
+            let path = env.home().join("bin");
+            std::fs::create_dir_all(&path).expect("host env bin dir should be created");
+            let home_path = env.home().as_os_str().to_owned();
+            env.set_env("PATH", path.as_os_str());
+            env.set_env("CARGO_HOME", home_path.as_os_str());
+            env.set_env("HOME", home_path.as_os_str());
+
+            assert_eq!(std::env::var_os("PATH").as_deref(), Some(path.as_os_str()));
+            assert_eq!(
+                std::env::var_os("CARGO_HOME").as_deref(),
+                Some(env.home().as_os_str())
+            );
+            assert_eq!(
+                std::env::var_os("HOME").as_deref(),
+                Some(env.home().as_os_str())
+            );
+
+            env.restore_env_vars();
+
+            assert_eq!(std::env::var_os("PATH"), previous_path);
+            assert_eq!(std::env::var_os("CARGO_HOME"), previous_cargo_home);
+            assert_eq!(std::env::var_os("HOME"), previous_home);
         }
 
         fn captured_previous(home: &TestHome, key: &'static str) -> Option<OsString> {
