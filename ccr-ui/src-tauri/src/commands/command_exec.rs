@@ -2,9 +2,10 @@
 
 use std::collections::HashMap;
 use std::io;
+use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::sync::LazyLock;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use crate::process::tokio_command;
 use chrono::{DateTime, Utc};
@@ -24,6 +25,7 @@ const COMMAND_JOB_MAX_JOBS: usize = 64;
 const COMMAND_JOB_TTL_SECS: u64 = 30 * 60;
 const COMMAND_JOB_MAX_LINES_PER_CHANNEL: usize = 500;
 const COMMAND_JOB_MAX_BYTES_PER_CHANNEL: usize = 512 * 1024;
+const CCR_CLI_VERSION_PROBE_TIMEOUT_SECS: u64 = 3;
 
 /// 允许执行的 CCR 子命令白名单
 const ALLOWED_COMMANDS: &[&str] = &[
@@ -1039,7 +1041,8 @@ fn prune_expired_jobs_locked(
 ) -> Vec<String> {
     let expired = jobs
         .iter()
-        .filter_map(|(job_id, snapshot)| snapshot.is_expired(now).then(|| job_id.clone()))
+        .filter(|(_, snapshot)| snapshot.is_expired(now))
+        .map(|(job_id, _)| job_id.clone())
         .collect::<Vec<_>>();
     for job_id in &expired {
         jobs.remove(job_id);
@@ -1292,6 +1295,138 @@ fn split_flag_arg(raw_arg: &str) -> Result<(&str, Option<ParsedFlagValue>), Stri
     }
 }
 
+fn ccr_executable_name() -> &'static str {
+    if cfg!(windows) { "ccr.exe" } else { "ccr" }
+}
+
+fn ccr_path_candidate_from_current_exe(current_exe: &Path) -> Option<PathBuf> {
+    let dir = current_exe.parent()?;
+    Some(dir.join(ccr_executable_name()))
+}
+
+fn ccr_dev_path_candidates_from_manifest(manifest_dir: &Path) -> Vec<PathBuf> {
+    let Some(repo_root) = manifest_dir.parent().and_then(Path::parent) else {
+        return Vec::new();
+    };
+    let exe_name = ccr_executable_name();
+    vec![
+        repo_root.join("target").join("debug").join(exe_name),
+        repo_root.join("target").join("release").join(exe_name),
+    ]
+}
+
+fn is_executable_file(path: &Path) -> bool {
+    path.is_file()
+}
+
+fn resolve_ccr_binary_candidate<F>(
+    current_exe: Option<&Path>,
+    manifest_dir: &Path,
+    exists: F,
+) -> String
+where
+    F: Fn(&Path) -> bool,
+{
+    let candidates = current_exe
+        .and_then(ccr_path_candidate_from_current_exe)
+        .into_iter()
+        .chain(ccr_dev_path_candidates_from_manifest(manifest_dir));
+
+    for candidate in candidates {
+        if exists(&candidate) {
+            return candidate.to_string_lossy().into_owned();
+        }
+    }
+
+    "ccr".to_string()
+}
+
+fn resolve_ccr_binary() -> String {
+    let current_exe = std::env::current_exe().ok();
+    resolve_ccr_binary_candidate(
+        current_exe.as_deref(),
+        Path::new(env!("CARGO_MANIFEST_DIR")),
+        is_executable_file,
+    )
+}
+
+fn ccr_binary_not_found_message(binary: &str) -> String {
+    if binary == "ccr" {
+        "CCR 二进制未找到，请确认已安装并在 PATH 中".to_string()
+    } else {
+        format!(
+            "CCR 二进制未找到，已尝试使用 '{}'。请确认桌面应用同目录存在 ccr 可执行文件，或已安装并在 PATH 中。",
+            binary
+        )
+    }
+}
+
+fn build_ccr_command(binary: &str) -> tokio::process::Command {
+    tokio_command(binary)
+}
+
+async fn probe_ccr_binary_version(binary: &str) -> Result<Option<String>, String> {
+    let mut command = build_ccr_command(binary);
+    command.arg("--version");
+    let output = tokio::time::timeout(
+        Duration::from_secs(CCR_CLI_VERSION_PROBE_TIMEOUT_SECS),
+        command.output(),
+    )
+    .await
+    .map_err(|_| {
+        format!(
+            "CCR 二进制版本探测超时（{} 秒）：{}",
+            CCR_CLI_VERSION_PROBE_TIMEOUT_SECS, binary
+        )
+    })?
+    .map_err(|error| {
+        if error.kind() == io::ErrorKind::NotFound {
+            ccr_binary_not_found_message(binary)
+        } else {
+            format!("CCR 二进制版本探测失败: {error}")
+        }
+    })?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        let suffix = if stderr.is_empty() {
+            String::new()
+        } else {
+            format!("：{stderr}")
+        };
+        return Err(format!(
+            "CCR 二进制版本探测失败，退出码 {:?}{suffix}",
+            output.status.code()
+        ));
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    Ok(parse_ccr_version_output(&stdout))
+}
+
+async fn resolve_checked_ccr_binary() -> Result<String, String> {
+    let binary = resolve_ccr_binary();
+    let actual_version = probe_ccr_binary_version(&binary).await?;
+    let expected_version = env!("CARGO_PKG_VERSION");
+
+    match actual_version.as_deref() {
+        Some(version) if version == expected_version => Ok(binary),
+        Some(version) => Err(format!(
+            "CCR 二进制版本不匹配：桌面版本 {expected_version}，CLI 版本 {version}（{binary}）。请使用同版本 ccr 可执行文件。"
+        )),
+        None => Err(format!(
+            "无法解析 CCR 二进制版本输出（{binary}）。请确认该可执行文件是有效的 ccr CLI。"
+        )),
+    }
+}
+
+fn parse_ccr_version_output(output: &str) -> Option<String> {
+    output
+        .split_whitespace()
+        .find(|part| part.chars().next().is_some_and(|ch| ch.is_ascii_digit()))
+        .map(ToOwned::to_owned)
+}
+
 /// 校验子命令请求是否允许从桌面命令面板直接执行。
 fn validate_command_request(request: &CommandExecutionRequest) -> Result<(), String> {
     let policy = CommandPolicy::from_command(&request.command)?;
@@ -1419,7 +1554,20 @@ async fn run_command_job(app_handle: AppHandle, job_id: String, cancel_token: Ca
     })
     .await;
 
-    let mut cmd = tokio_command("ccr");
+    let binary = match resolve_checked_ccr_binary().await {
+        Ok(binary) => binary,
+        Err(message) => {
+            update_and_emit(&app_handle, EVENT_COMMAND_JOB_FINISHED, &job_id, |job| {
+                job.push_line(OutputChannel::System, message.clone());
+                job.mark_terminal(CommandJobStatus::Unavailable, started, None, Some(message));
+            })
+            .await;
+            remove_cancel_token(&job_id).await;
+            return;
+        }
+    };
+
+    let mut cmd = build_ccr_command(&binary);
     cmd.arg(&initial.command)
         .args(&initial.args)
         .stdout(Stdio::piped())
@@ -1431,7 +1579,7 @@ async fn run_command_job(app_handle: AppHandle, job_id: String, cancel_token: Ca
             let (status, message) = if error.kind() == io::ErrorKind::NotFound {
                 (
                     CommandJobStatus::Unavailable,
-                    "CCR 二进制未找到，请确认已安装并在 PATH 中".to_string(),
+                    ccr_binary_not_found_message(&binary),
                 )
             } else {
                 (CommandJobStatus::Failed, format!("执行失败: {error}"))
@@ -1514,12 +1662,7 @@ async fn run_command_job(app_handle: AppHandle, job_id: String, cancel_token: Ca
 
     let exit_code = final_code.unwrap_or(-1);
     let success = exit_code == 0;
-    let event = if success {
-        EVENT_COMMAND_JOB_FINISHED
-    } else {
-        EVENT_COMMAND_JOB_FINISHED
-    };
-    update_and_emit(&app_handle, event, &job_id, |job| {
+    update_and_emit(&app_handle, EVENT_COMMAND_JOB_FINISHED, &job_id, |job| {
         job.mark_terminal(
             if success {
                 CommandJobStatus::Success
@@ -1551,12 +1694,13 @@ pub async fn execute_ccr_command(
     validate_command_request(&request)?;
 
     let started = Instant::now();
-    let mut cmd = tokio_command("ccr");
+    let binary = resolve_checked_ccr_binary().await?;
+    let mut cmd = build_ccr_command(&binary);
     cmd.arg(&request.command).args(&request.args);
 
     let output = cmd.output().await.map_err(|e| {
         if e.kind() == std::io::ErrorKind::NotFound {
-            "CCR 二进制未找到，请确认已安装并在 PATH 中".to_string()
+            ccr_binary_not_found_message(&binary)
         } else {
             format!("执行失败: {e}")
         }
@@ -1657,17 +1801,15 @@ pub async fn list_ccr_commands() -> Result<Value, String> {
 pub async fn get_ccr_command_help(command: String) -> Result<Value, String> {
     CommandPolicy::from_command(&command)?;
 
-    let output = tokio_command("ccr")
-        .args(["help", &command])
-        .output()
-        .await
-        .map_err(|e| {
-            if e.kind() == std::io::ErrorKind::NotFound {
-                "CCR 二进制未找到，请确认已安装并在 PATH 中".to_string()
-            } else {
-                format!("执行失败: {e}")
-            }
-        })?;
+    let binary = resolve_checked_ccr_binary().await?;
+    let mut cmd = build_ccr_command(&binary);
+    let output = cmd.args(["help", &command]).output().await.map_err(|e| {
+        if e.kind() == std::io::ErrorKind::NotFound {
+            ccr_binary_not_found_message(&binary)
+        } else {
+            format!("执行失败: {e}")
+        }
+    })?;
 
     let stdout = String::from_utf8_lossy(&output.stdout).into_owned();
     let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
@@ -1860,6 +2002,65 @@ mod tests {
                 command.name
             );
         }
+    }
+
+    #[test]
+    fn ccr_binary_resolver_prefers_same_directory_sidecar() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        let app_dir = temp.path().join("app");
+        std::fs::create_dir_all(&app_dir).expect("app dir");
+        let sidecar = app_dir.join(ccr_executable_name());
+        std::fs::write(&sidecar, "fake ccr").expect("sidecar");
+        let current_exe = app_dir.join(if cfg!(windows) {
+            "ccr-desktop.exe"
+        } else {
+            "ccr-desktop"
+        });
+        let manifest_dir = temp.path().join("ccr-ui").join("src-tauri");
+
+        let resolved =
+            resolve_ccr_binary_candidate(Some(&current_exe), &manifest_dir, is_executable_file);
+
+        assert_eq!(resolved, sidecar.to_string_lossy());
+    }
+
+    #[test]
+    fn ccr_binary_resolver_uses_repo_debug_binary_before_path_fallback() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        let manifest_dir = temp.path().join("ccr-ui").join("src-tauri");
+        let debug_binary = temp
+            .path()
+            .join("target")
+            .join("debug")
+            .join(ccr_executable_name());
+        std::fs::create_dir_all(debug_binary.parent().expect("debug parent"))
+            .expect("debug parent dir");
+        std::fs::create_dir_all(&manifest_dir).expect("manifest dir");
+        std::fs::write(&debug_binary, "fake ccr").expect("debug ccr");
+
+        let resolved = resolve_ccr_binary_candidate(None, &manifest_dir, is_executable_file);
+
+        assert_eq!(resolved, debug_binary.to_string_lossy());
+    }
+
+    #[test]
+    fn ccr_binary_resolver_falls_back_to_path_name_when_no_candidate_exists() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        let manifest_dir = temp.path().join("ccr-ui").join("src-tauri");
+
+        let resolved = resolve_ccr_binary_candidate(None, &manifest_dir, |_| false);
+
+        assert_eq!(resolved, "ccr");
+    }
+
+    #[test]
+    fn parse_ccr_version_output_extracts_semver_token() {
+        assert_eq!(
+            parse_ccr_version_output("ccr 6.3.0\n"),
+            Some("6.3.0".to_string())
+        );
+        assert_eq!(parse_ccr_version_output("6.3.0"), Some("6.3.0".to_string()));
+        assert_eq!(parse_ccr_version_output("ccr"), None);
     }
 
     #[test]
