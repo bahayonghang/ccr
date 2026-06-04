@@ -1389,10 +1389,10 @@ mod tests {
         CcsConfig, ConfigManager, ConfigSection, GlobalSettings, PlatformConfigEntry,
         PlatformConfigManager,
     };
+    use crate::test_support::TestHome;
     use indexmap::IndexMap;
     use std::collections::HashMap;
     use std::sync::atomic::{AtomicUsize, Ordering};
-    use tempfile::tempdir;
 
     struct CountingProbe {
         calls: Arc<AtomicUsize>,
@@ -1431,68 +1431,27 @@ mod tests {
     }
 
     struct TestEnv {
-        _guard: std::sync::MutexGuard<'static, ()>,
-        root: std::path::PathBuf,
-        home: std::path::PathBuf,
-        previous_env: Vec<(String, Option<String>)>,
-        _temp_dir: tempfile::TempDir,
+        home: TestHome,
     }
 
     impl TestEnv {
         fn new() -> Self {
-            let guard = crate::test_support::env_lock();
-            let temp_dir = tempdir().unwrap();
-            let home = temp_dir.path().join("home");
-            let root = home.join(".ccr");
-            fs::create_dir_all(&home).unwrap();
-            fs::create_dir_all(&root).unwrap();
-
-            let mut env = Self {
-                _guard: guard,
-                root,
-                home,
-                previous_env: Vec::new(),
-                _temp_dir: temp_dir,
-            };
-            env.set_env("CCR_ROOT", env.root.display().to_string());
-            env.set_env(
-                "CCR_SETTINGS_PATH",
-                env.home
-                    .join(".claude")
-                    .join("settings.json")
-                    .display()
-                    .to_string(),
-            );
-            env.set_env(
-                "CCR_BACKUP_DIR",
-                env.home
-                    .join(".claude")
-                    .join("backups")
-                    .display()
-                    .to_string(),
-            );
-            env.set_env(
-                "CCR_CODEX_DIR",
-                env.home.join(".codex").display().to_string(),
-            );
-            env.set_env(
-                "CLAUDE_CONFIG_DIR",
-                env.home.join(".claude").display().to_string(),
-            );
-            env.set_env("HOME", env.home.display().to_string());
-            env.set_env("USERPROFILE", env.home.display().to_string());
-            env
+            let mut home = TestHome::new_with_home_env();
+            let claude_dir = home.home().join(".claude");
+            home.set_env("CLAUDE_CONFIG_DIR", claude_dir.as_os_str());
+            Self { home }
         }
 
-        fn set_env(&mut self, key: &str, value: String) {
-            self.previous_env
-                .push((key.to_string(), std::env::var(key).ok()));
-            // SAFETY: 诊断测试仅在当前进程临时覆写环境变量，Drop 中会恢复原值。
-            unsafe { std::env::set_var(key, value) };
+        fn root(&self) -> &Path {
+            self.home.root()
+        }
+
+        fn home(&self) -> &Path {
+            self.home.home()
         }
 
         fn write_unified_config(&self, current_platform: &str, current_profile: &str) {
-            let manager = PlatformConfigManager::new(self.root.join("config.toml"));
+            let manager = PlatformConfigManager::new(self.root().join("config.toml"));
             let mut unified = UnifiedConfig {
                 default_platform: current_platform.to_string(),
                 current_platform: current_platform.to_string(),
@@ -1516,7 +1475,7 @@ mod tests {
             current_profile: &str,
         ) {
             fs::write(
-                self.root.join("config.toml"),
+                self.root().join("config.toml"),
                 format!(
                     r#"
 [{platform}]
@@ -1530,7 +1489,7 @@ current_profile = "{current_profile}"
 
         fn write_claude_profile(&self, name: &str) {
             let manager = ConfigManager::new(
-                self.root
+                self.root()
                     .join("platforms")
                     .join("claude")
                     .join("profiles.toml"),
@@ -1563,7 +1522,7 @@ current_profile = "{current_profile}"
         }
 
         fn write_claude_settings(&self) {
-            let settings_path = self.home.join(".claude").join("settings.json");
+            let settings_path = self.home().join(".claude").join("settings.json");
             if let Some(parent) = settings_path.parent() {
                 fs::create_dir_all(parent).unwrap();
             }
@@ -1586,20 +1545,6 @@ current_profile = "{current_profile}"
                 .unwrap(),
             )
             .unwrap();
-        }
-    }
-
-    impl Drop for TestEnv {
-        fn drop(&mut self) {
-            while let Some((key, previous)) = self.previous_env.pop() {
-                // SAFETY: 仅恢复当前测试期间保存的环境变量快照，避免泄漏到后续测试。
-                unsafe {
-                    match previous {
-                        Some(value) => std::env::set_var(key, value),
-                        None => std::env::remove_var(key),
-                    }
-                }
-            }
         }
     }
 

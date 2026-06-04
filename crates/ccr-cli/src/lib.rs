@@ -75,6 +75,14 @@ pub(crate) mod test_support {
             }
         }
 
+        pub(crate) fn new_with_home_env() -> Self {
+            let mut home = Self::new();
+            let home_path = home.home().as_os_str().to_owned();
+            home.set_env("HOME", home_path.as_os_str());
+            home.set_env("USERPROFILE", home_path.as_os_str());
+            home
+        }
+
         pub(crate) fn home(&self) -> &Path {
             self.temp_dir.path()
         }
@@ -97,6 +105,10 @@ pub(crate) mod test_support {
 
         pub(crate) fn codex_dir(&self) -> &Path {
             &self.codex_dir
+        }
+
+        pub(crate) fn set_env(&mut self, key: &'static str, value: &OsStr) {
+            set_env_var(&mut self.previous_vars, key, value);
         }
     }
 
@@ -172,6 +184,27 @@ pub(crate) mod test_support {
 
             assert_eq!(std::env::var_os("CCR_ROOT"), previous_root);
             assert_eq!(std::env::var_os("CCR_CONFIG_PATH"), previous_config_path);
+        }
+
+        #[test]
+        fn test_home_can_scope_host_home_env() {
+            let mut home = TestHome::new_with_home_env();
+            let previous_home = captured_previous(&home, "HOME");
+            let previous_userprofile = captured_previous(&home, "USERPROFILE");
+
+            assert_eq!(
+                std::env::var_os("HOME").as_deref(),
+                Some(home.home().as_os_str())
+            );
+            assert_eq!(
+                std::env::var_os("USERPROFILE").as_deref(),
+                Some(home.home().as_os_str())
+            );
+
+            home.restore_env_vars();
+
+            assert_eq!(std::env::var_os("HOME"), previous_home);
+            assert_eq!(std::env::var_os("USERPROFILE"), previous_userprofile);
         }
 
         fn captured_previous(home: &TestHome, key: &'static str) -> Option<OsString> {
