@@ -330,9 +330,8 @@ impl SyncContentSelector {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
-    use ccr_core::core::lock::CONFIG_LOCK;
+    use crate::test_support::TestSyncEnv;
     use std::fs;
-    use tempfile::tempdir;
 
     #[test]
     fn test_sync_content_type_display() {
@@ -366,87 +365,41 @@ mod tests {
 
     #[test]
     fn test_sync_content_selection_to_paths() {
-        let _guard = CONFIG_LOCK
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        let temp_dir = tempdir().unwrap();
-        let ccr_root = temp_dir.path().join(".ccr");
-        // SAFETY: 仅在测试中覆写 CCR_ROOT，作用域结束前会显式清理。
-        unsafe {
-            std::env::set_var("CCR_ROOT", ccr_root.to_str().unwrap());
-        }
+        let env = TestSyncEnv::new();
+        let ccr_root = env.root();
 
         // 创建测试文件和平台目录
-        fs::create_dir_all(&ccr_root).unwrap();
         fs::write(ccr_root.join("config.toml"), "test").unwrap();
 
-        let platforms_dir = ccr_root.join("platforms");
-        fs::create_dir_all(&platforms_dir).unwrap();
-        fs::create_dir_all(platforms_dir.join("claude")).unwrap();
+        fs::create_dir_all(env.platforms_dir().join("claude")).unwrap();
 
         let selection =
             SyncContentSelection::custom(vec![SyncContentType::Config, SyncContentType::Claude]);
 
         let paths = selection.to_paths();
         assert!(paths.contains(&"config.toml".to_string()));
-
-        // 清理环境变量
-        // SAFETY: 仅清理当前测试设置的 CCR_ROOT，避免影响其他测试。
-        unsafe {
-            std::env::remove_var("CCR_ROOT");
-        }
     }
 
     #[test]
     fn test_sync_content_type_exists() {
-        let _guard = CONFIG_LOCK
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        let temp_dir = tempdir().unwrap();
-        let ccr_root = temp_dir.path().join(".ccr");
-        // SAFETY: 仅在测试中覆写 CCR_ROOT，作用域结束前会显式清理。
-        unsafe {
-            std::env::set_var("CCR_ROOT", ccr_root.to_str().unwrap());
-        }
+        let env = TestSyncEnv::new();
+        let ccr_root = env.root();
 
-        fs::create_dir_all(&ccr_root).unwrap();
         fs::write(ccr_root.join("config.toml"), "test").unwrap();
 
         assert!(SyncContentType::Config.exists());
         // Claude 默认不存在，因为我们没有创建对应的目录或文件
-
-        // 清理环境变量
-        // SAFETY: 仅清理当前测试设置的 CCR_ROOT，避免影响其他测试。
-        unsafe {
-            std::env::remove_var("CCR_ROOT");
-        }
     }
 
     #[test]
     fn test_sync_content_selector_new() {
-        let _guard = CONFIG_LOCK
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        let temp_dir = tempdir().unwrap();
-        let ccr_root = temp_dir.path().join(".ccr");
+        let env = TestSyncEnv::new();
+        let ccr_root = env.root();
 
-        // 确保清理任何现有的CCR_ROOT
-        // SAFETY: 仅清理测试进程中的 CCR_ROOT，随后会设置测试专用目录。
-        unsafe {
-            std::env::remove_var("CCR_ROOT");
-        }
-
-        // SAFETY: 仅在测试中覆写 CCR_ROOT，作用域结束前会显式清理。
-        unsafe {
-            std::env::set_var("CCR_ROOT", ccr_root.to_str().unwrap());
-        }
-
-        fs::create_dir_all(&ccr_root).unwrap();
         fs::write(ccr_root.join("config.toml"), "test").unwrap();
 
         // 创建 Claude 平台目录，以便在选择器中可用并默认选中
-        let platforms_dir = ccr_root.join("platforms");
-        fs::create_dir_all(platforms_dir.join("claude")).unwrap();
+        fs::create_dir_all(env.platforms_dir().join("claude")).unwrap();
 
         // 验证文件和平台目录确实被创建
         assert!(
@@ -481,11 +434,5 @@ mod tests {
                 .copied()
                 .unwrap_or(false)
         );
-
-        // 清理环境变量
-        // SAFETY: 仅清理当前测试设置的 CCR_ROOT，避免影响其他测试。
-        unsafe {
-            std::env::remove_var("CCR_ROOT");
-        }
     }
 }

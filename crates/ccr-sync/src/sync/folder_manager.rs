@@ -521,6 +521,7 @@ impl SyncFolderManager {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
+    use crate::test_support::TestSyncEnv;
 
     #[test]
     fn test_sync_folder_manager_load_save() {
@@ -717,16 +718,7 @@ mod tests {
 
     #[test]
     fn test_sync_folder_manager_migration() {
-        let temp_dir = tempfile::tempdir().unwrap();
-        let sync_folders_path = temp_dir.path().join("sync_folders.toml");
-        let sync_config_path = temp_dir.path().join("sync.toml");
-
-        // 设置环境变量指向临时目录
-        // SAFETY: 仅在测试中覆写当前进程的 sync 配置路径，测试结束后立即清理。
-        unsafe {
-            std::env::set_var("CCR_SYNC_FOLDERS_CONFIG", &sync_folders_path);
-            std::env::set_var("CCR_SYNC_CONFIG_PATH", &sync_config_path);
-        }
+        let env = TestSyncEnv::new();
 
         // 创建旧版 sync.toml
         let old_config = crate::sync::config::SyncConfig {
@@ -738,11 +730,11 @@ mod tests {
             auto_sync: false,
         };
 
-        let sync_config_manager = SyncConfigManager::new(&sync_config_path);
+        let sync_config_manager = SyncConfigManager::new(env.sync_config_path());
         sync_config_manager.save(&old_config).unwrap();
 
         // 执行迁移
-        let mut manager = SyncFolderManager::new(&sync_folders_path);
+        let mut manager = SyncFolderManager::new(env.sync_folders_path());
         let migrated = manager.migrate_from_legacy().unwrap();
 
         assert!(migrated, "应该执行了迁移");
@@ -766,12 +758,5 @@ mod tests {
         // 再次调用迁移应该返回 false（已存在）
         let migrated_again = manager.migrate_from_legacy().unwrap();
         assert!(!migrated_again, "第二次迁移应该跳过");
-
-        // 清理环境变量
-        // SAFETY: 仅清理本测试先前设置的进程环境变量，避免污染后续用例。
-        unsafe {
-            std::env::remove_var("CCR_SYNC_FOLDERS_CONFIG");
-            std::env::remove_var("CCR_SYNC_CONFIG_PATH");
-        }
     }
 }
