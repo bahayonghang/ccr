@@ -9,7 +9,7 @@ edition = "2024"
 rust-version = "1.88"
 
 [build-dependencies]
-tauri-build = { version = "=2.5.6", features = [] }
+tauri-build = { version = "=2.6.2", features = [] }
 
 [dependencies]
 # CCR 核心库 - 配置管理与平台适配
@@ -29,7 +29,7 @@ ccr-types = { path = "../../crates/ccr-types" }
 ccr-db = { path = "../../crates/ccr-db" }
 
 # Tauri framework
-tauri = { version = "=2.10.3", features = ["tray-icon"] }
+tauri = { version = "=2.11.2", features = ["tray-icon"] }
 tauri-plugin-dialog = "2"
 
 # Serialization
@@ -63,7 +63,7 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # System info
-sysinfo = "0.38.4"
+sysinfo = "0.39.3"
 
 # Encryption (for checkin account credentials)
 aes-gcm = "0.10"
@@ -95,7 +95,7 @@ tempfile = "3.27.0"
 
 # Error handling
 thiserror = "2"
-lru = "0.16.3"
+lru = "0.18.0"
 notify = "8.2.0"
 
 # Lock-free 配置快照（供同步 tray/回调读取 AppState 偏好）
@@ -105,11 +105,11 @@ arc-swap = "1"
 moka = { version = "0.12", features = ["future"] }
 
 # File locking for cache
-fs4 = "0.13"
+fs4 = "1.1.0"
 
 # Platform detection
 [target.'cfg(windows)'.dependencies]
-winreg = "0.55"
+winreg = "0.56.0"
 
 # SSH 远程支持（Phase C2，暂未启用：russh 0.57 的 rand_core 预发布版与 ccr-db 冲突）
 # russh = "0.57.1"

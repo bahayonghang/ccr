@@ -9,7 +9,7 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
 use chrono::{DateTime, Utc};
-use fs4::fs_std::FileExt;
+use fs4::FileExt;
 use walkdir::WalkDir;
 
 use crate::process::std_command;
@@ -171,7 +171,7 @@ fn write_disk_cache(cache: &WslDistrosCache) -> Result<(), EnvError> {
         let mut file = File::create(&tmp_path)
             .map_err(|e| EnvError::Other(format!("创建临时文件失败: {e}")))?;
 
-        file.lock_exclusive()
+        FileExt::lock(&file)
             .map_err(|e| EnvError::Other(format!("获取文件锁失败: {e}")))?;
 
         file.write_all(content.as_bytes())
