@@ -18,6 +18,7 @@ export interface OpenCodeProviderOptions {
   apiKey?: string
   baseURL?: string
   timeout?: number | false
+  headerTimeout?: number
   chunkTimeout?: number
   setCacheKey?: boolean
   [key: string]: unknown
@@ -28,15 +29,26 @@ export interface OpenCodeModelLimit {
   output?: number
 }
 
+export interface OpenCodeModelProviderOverride {
+  npm?: string
+  api?: string
+  [key: string]: unknown
+}
+
 export interface OpenCodeModelConfig {
-  name: string
+  name?: string
   limit?: OpenCodeModelLimit
+  options?: Record<string, unknown>
+  headers?: Record<string, string>
+  variants?: Record<string, Record<string, unknown>>
+  provider?: OpenCodeModelProviderOverride
   [key: string]: unknown
 }
 
 export interface OpenCodeProviderConfig {
   id: string
   name?: string
+  npm?: string
   options?: OpenCodeProviderOptions
   models?: Record<string, OpenCodeModelConfig>
   enabled?: boolean
@@ -47,10 +59,12 @@ export interface OpenCodeProviderConfig {
 export interface OpenCodeProviderRequest {
   id: string
   name?: string
+  npm?: string
   options?: OpenCodeProviderOptions
   models?: Record<string, OpenCodeModelConfig>
   enabled?: boolean
   disabled?: boolean
+  [key: string]: unknown
 }
 
 export interface OpenCodeMcpServer {
@@ -206,8 +220,10 @@ export interface OpenCodeConfig {
 
 export interface OpenCodeProviderPreset {
   id: string
+  providerId?: string
   label: string
   description: string
+  npm?: string
 }
 
 export const OPENCODE_PROVIDER_PRESETS: OpenCodeProviderPreset[] = [
@@ -228,8 +244,10 @@ export const OPENCODE_PROVIDER_PRESETS: OpenCodeProviderPreset[] = [
   },
   {
     id: 'openai-compatible',
+    providerId: 'openai',
     label: 'OpenAI Compatible',
-    description: 'Proxy or custom OpenAI-compatible endpoint',
+    description: 'Proxy or custom OpenAI-compatible endpoint via @ai-sdk/openai-compatible',
+    npm: '@ai-sdk/openai-compatible',
   },
   {
     id: 'amazon-bedrock',

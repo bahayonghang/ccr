@@ -175,6 +175,27 @@ const mountView = async (component: unknown) => {
   }
 }
 
+const flushView = async () => {
+  await Promise.resolve()
+  await nextTick()
+  await Promise.resolve()
+  await nextTick()
+}
+
+const setControlValue = async (
+  control: HTMLInputElement | HTMLTextAreaElement,
+  value: string,
+) => {
+  control.value = value
+  control.dispatchEvent(new Event('input', { bubbles: true }))
+  await nextTick()
+}
+
+const findButtonByText = (root: ParentNode, text: string) => {
+  return Array.from(root.querySelectorAll<HTMLButtonElement>('button'))
+    .find((button) => button.textContent?.includes(text)) ?? null
+}
+
 beforeEach(() => {
   apiMocks.listCodexProfiles.mockReset()
   apiMocks.listCodexAuthAccounts.mockReset()
@@ -332,6 +353,133 @@ describe('legacy shell pages smoke', () => {
     try {
       expect(el.textContent).toContain('Provider')
       expect(el.textContent).toContain('暂无 Provider')
+    } finally {
+      unmount()
+    }
+  })
+
+  it('creates OpenCode OpenAI-compatible providers with root npm config', async () => {
+    apiMocks.addOpenCodeProvider.mockResolvedValue({ id: 'openai' })
+    apiMocks.updateOpenCodeConfig.mockResolvedValue({ disabled_providers: [] })
+
+    const { default: OpenCodeProvidersView } = await import('@/views/OpenCodeProvidersView.vue')
+    const { el, unmount } = await mountView(OpenCodeProvidersView)
+
+    try {
+      findButtonByText(el, 'OpenAI Compatible')?.click()
+      await flushView()
+
+      const textInputs = Array.from(el.querySelectorAll<HTMLInputElement>('input:not([type="checkbox"])'))
+      expect(textInputs[0]?.value).toBe('openai')
+      expect(textInputs[1]?.value).toBe('OpenAI Compatible')
+      expect(textInputs[2]?.value).toBe('@ai-sdk/openai-compatible')
+
+      await setControlValue(textInputs[3], '<YOUR_API_KEY>')
+      await setControlValue(textInputs[4], 'https://api.example.com/v1')
+
+      const textareas = Array.from(el.querySelectorAll<HTMLTextAreaElement>('textarea'))
+      await setControlValue(textareas[0], JSON.stringify({
+        'gpt-5.2': {
+          name: 'GPT-5.2',
+          limit: {
+            context: 400000,
+            output: 128000,
+          },
+          options: {
+            store: false,
+          },
+          variants: {
+            low: {},
+            medium: {},
+            high: {},
+            xhigh: {},
+          },
+        },
+      }))
+
+      findButtonByText(el, '保存')?.click()
+      await flushView()
+
+      expect(apiMocks.addOpenCodeProvider).toHaveBeenCalledWith('openai', {
+        name: 'OpenAI Compatible',
+        npm: '@ai-sdk/openai-compatible',
+        options: {
+          apiKey: '<YOUR_API_KEY>',
+          baseURL: 'https://api.example.com/v1',
+        },
+        models: {
+          'gpt-5.2': {
+            name: 'GPT-5.2',
+            limit: {
+              context: 400000,
+              output: 128000,
+            },
+            options: {
+              store: false,
+            },
+            variants: {
+              low: {},
+              medium: {},
+              high: {},
+              xhigh: {},
+            },
+          },
+        },
+      })
+    } finally {
+      unmount()
+    }
+  })
+
+  it('preserves OpenCode provider root extras when saving edits', async () => {
+    apiMocks.listOpenCodeProviders.mockResolvedValue([
+      {
+        id: 'openai',
+        name: 'OpenAI Compatible',
+        npm: '@ai-sdk/openai-compatible',
+        api: 'chat',
+        whitelist: ['gpt-5.2'],
+        options: {
+          apiKey: '{env:OPENAI_API_KEY}',
+          baseURL: 'https://api.example.com/v1',
+          timeout: 600000,
+        },
+        models: {
+          'gpt-5.2': {
+            name: 'GPT-5.2',
+          },
+        },
+      },
+    ])
+    apiMocks.addOpenCodeProvider.mockResolvedValue({ id: 'openai' })
+    apiMocks.updateOpenCodeConfig.mockResolvedValue({ disabled_providers: [] })
+
+    const { default: OpenCodeProvidersView } = await import('@/views/OpenCodeProvidersView.vue')
+    const { el, unmount } = await mountView(OpenCodeProvidersView)
+
+    try {
+      findButtonByText(el, '编辑')?.click()
+      await flushView()
+
+      findButtonByText(el, '保存')?.click()
+      await flushView()
+
+      expect(apiMocks.addOpenCodeProvider).toHaveBeenCalledWith('openai', {
+        name: 'OpenAI Compatible',
+        npm: '@ai-sdk/openai-compatible',
+        api: 'chat',
+        whitelist: ['gpt-5.2'],
+        options: {
+          timeout: 600000,
+          apiKey: '{env:OPENAI_API_KEY}',
+          baseURL: 'https://api.example.com/v1',
+        },
+        models: {
+          'gpt-5.2': {
+            name: 'GPT-5.2',
+          },
+        },
+      })
     } finally {
       unmount()
     }

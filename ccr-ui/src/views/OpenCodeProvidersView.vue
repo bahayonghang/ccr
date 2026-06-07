@@ -173,7 +173,7 @@
       :title="editingId ? '编辑 Provider' : '添加 Provider'"
       description="直接编辑 OpenCode provider 配置。"
       size="lg"
-      content-class="max-w-2xl"
+      content-class="max-w-2xl max-h-[90vh] overflow-y-auto"
     >
       <div class="space-y-4">
         <div class="grid gap-4 md:grid-cols-2">
@@ -192,6 +192,14 @@
               v-model="form.name"
               class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 text-sm text-text-primary"
               placeholder="Anthropic"
+            >
+          </div>
+          <div class="md:col-span-2">
+            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">npm package</label>
+            <input
+              v-model="form.npm"
+              class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 text-sm text-text-primary"
+              placeholder="@ai-sdk/openai-compatible"
             >
           </div>
         </div>
@@ -243,6 +251,16 @@
           />
         </div>
 
+        <div>
+          <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">root extra JSON</label>
+          <textarea
+            v-model="form.rootExtraJson"
+            rows="5"
+            class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 font-mono text-sm text-text-primary"
+            placeholder="{&#10;  &quot;api&quot;: &quot;chat&quot;&#10;}"
+          />
+        </div>
+
         <div class="flex justify-end gap-3 border-t border-border-default/55 pt-4">
           <Button
             variant="secondary"
@@ -285,9 +303,16 @@ import SIcon from '@/components/ui/SIcon.vue'
 import BaseModal from '@/components/common/BaseModal.vue'
 import OpenCodePageShell from '@/components/opencode/OpenCodePageShell.vue'
 import { useUIStore } from '@/stores/ui'
-import { addOpenCodeProvider, deleteOpenCodeProvider, getOpenCodeConfig, listOpenCodeProviders, updateOpenCodeConfig, updateOpenCodeProvider } from '@/api'
+import { addOpenCodeProvider, deleteOpenCodeProvider, getOpenCodeConfig, listOpenCodeProviders, updateOpenCodeConfig } from '@/api'
 import { OPENCODE_PROVIDER_PRESETS } from '@/types/opencode'
-import type { OpenCodeConfig, OpenCodeProviderConfig, OpenCodeProviderOptions } from '@/types'
+import type {
+  OpenCodeConfig,
+  OpenCodeModelConfig,
+  OpenCodeProviderConfig,
+  OpenCodeProviderOptions,
+  OpenCodeProviderPreset,
+  OpenCodeProviderRequest,
+} from '@/types'
 import { formatJsonInput, maskSecret, parseJsonInput } from '@/utils/opencode'
 
 const uiStore = useUIStore()
@@ -301,12 +326,22 @@ const configState = ref<OpenCodeConfig>({})
 const form = reactive({
   id: '',
   name: '',
+  npm: '',
   apiKey: '',
   baseURL: '',
   enabled: true,
   modelsJson: '{}',
   extraOptionsJson: '{}',
+  rootExtraJson: '{}',
 })
+
+const providerManagedRootKeys = new Set([
+  'id',
+  'name',
+  'npm',
+  'options',
+  'models',
+])
 
 const disabledProviders = computed(() => new Set(configState.value.disabled_providers || []))
 const enabledProviders = computed(() => configState.value.enabled_providers || [])
@@ -315,6 +350,10 @@ function providerEnabled(id: string) {
   if (disabledProviders.value.has(id)) return false
   if (enabledProviders.value.length > 0) return enabledProviders.value.includes(id)
   return true
+}
+
+function findPreset(presetId: string): OpenCodeProviderPreset | undefined {
+  return OPENCODE_PROVIDER_PRESETS.find((preset) => preset.id === presetId)
 }
 
 async function loadProviders() {
@@ -334,14 +373,17 @@ async function loadProviders() {
 }
 
 function openCreate(presetId = '') {
+  const preset = findPreset(presetId)
   editingId.value = ''
-  form.id = presetId
-  form.name = ''
+  form.id = preset?.providerId || preset?.id || ''
+  form.name = preset?.label || ''
+  form.npm = preset?.npm || ''
   form.apiKey = ''
   form.baseURL = ''
   form.enabled = true
   form.modelsJson = '{}'
   form.extraOptionsJson = '{}'
+  form.rootExtraJson = '{}'
   showModal.value = true
 }
 
@@ -349,6 +391,7 @@ function openEdit(provider: OpenCodeProviderConfig) {
   editingId.value = provider.id
   form.id = provider.id
   form.name = provider.name || ''
+  form.npm = provider.npm || ''
   form.apiKey = String(provider.options?.apiKey || '')
   form.baseURL = String(provider.options?.baseURL || '')
   form.enabled = providerEnabled(provider.id)
@@ -357,7 +400,14 @@ function openEdit(provider: OpenCodeProviderConfig) {
   delete extraOptions.apiKey
   delete extraOptions.baseURL
   form.extraOptionsJson = formatJsonInput(extraOptions)
+  form.rootExtraJson = formatJsonInput(rootExtraFields(provider))
   showModal.value = true
+}
+
+function rootExtraFields(provider: OpenCodeProviderConfig) {
+  return Object.fromEntries(
+    Object.entries(provider).filter(([key]) => !providerManagedRootKeys.has(key)),
+  )
 }
 
 async function syncProviderVisibility(id: string, enabled: boolean) {
@@ -390,25 +440,25 @@ async function saveProvider() {
   saving.value = true
   try {
     const extraOptions = parseJsonInput<Record<string, unknown>>(form.extraOptionsJson, {})
-    const models = parseJsonInput<Record<string, unknown>>(form.modelsJson, {})
+    const rootExtra = parseJsonInput<Record<string, unknown>>(form.rootExtraJson, {})
+    const models = parseJsonInput<Record<string, OpenCodeModelConfig>>(form.modelsJson, {})
     const options: OpenCodeProviderOptions = { ...extraOptions }
     if (form.apiKey.trim()) options.apiKey = form.apiKey.trim()
     if (form.baseURL.trim()) options.baseURL = form.baseURL.trim()
 
-    const request = {
+    const request: OpenCodeProviderRequest = {
+      ...rootExtra,
       id: form.id.trim(),
       name: form.name.trim() || undefined,
+      npm: form.npm.trim() || undefined,
       options,
       models,
     }
+    const { id, ...providerConfig } = request
 
-    if (editingId.value) {
-      await updateOpenCodeProvider(request.id, request)
-    } else {
-      await addOpenCodeProvider(request)
-    }
+    await addOpenCodeProvider(id, providerConfig)
 
-    await syncProviderVisibility(request.id, form.enabled)
+    await syncProviderVisibility(id, form.enabled)
     uiStore.showSuccess(editingId.value ? 'Provider 已更新' : 'Provider 已创建')
     showModal.value = false
     await loadProviders()
