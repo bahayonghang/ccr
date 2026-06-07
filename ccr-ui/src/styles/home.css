@@ -66,6 +66,25 @@
   --home-border-hairline: rgb(var(--color-border-default-rgb) / 20%);
 }
 
+[data-resolved-flavor='mocha'] {
+  --home-surface-card: rgb(var(--color-bg-elevated-rgb) / 96%);
+  --home-surface-card-hover: rgb(var(--color-bg-surface-rgb) / 98%);
+  --home-surface-sunk: rgb(var(--color-bg-surface-rgb) / 74%);
+  --home-border-card: rgb(var(--color-border-default-rgb) / 32%);
+  --home-border-card-hover: rgb(var(--color-accent-primary-rgb) / 42%);
+  --home-border-hairline: rgb(var(--color-border-default-rgb) / 28%);
+  --home-elevation-raised:
+    0 18px 38px rgb(0 0 0 / 38%),
+    inset 0 1px 0 rgb(var(--color-text-primary-rgb) / 6%);
+  --home-elevation-sunk:
+    inset 0 1px 0 rgb(var(--color-text-primary-rgb) / 5%),
+    0 1px 0 rgb(0 0 0 / 18%);
+  --home-focus-ring:
+    0 0 0 2px var(--color-bg-base),
+    0 0 0 4px rgb(var(--color-accent-primary-rgb) / 62%);
+  --home-mono-feature: 'tnum' 1, 'zero' 1, 'ss01' 1;
+}
+
 @media (prefers-reduced-motion: reduce) {
   :root {
     --home-motion-duration: 0ms;

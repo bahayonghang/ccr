@@ -1079,6 +1079,62 @@
     --surface-status-shadow: var(--shadow-sm);
 }
 
+html:root[data-resolved-flavor="mocha"] {
+    --font-brand: 'SF Pro Display', 'Segoe UI Variable Display', 'MapleBright', 'PingFang SC', 'Microsoft YaHei UI', 'Microsoft YaHei', sans-serif;
+    --font-mono: 'Cascadia Code', 'Cascadia Mono', 'SFMono-Regular', ui-monospace, 'Consolas', 'MapleBright', monospace;
+    --color-bg-base: var(--ctp-crust);
+    --color-bg-base-rgb: var(--ctp-crust-rgb);
+    --color-bg-elevated: var(--ctp-base);
+    --color-bg-elevated-rgb: var(--ctp-base-rgb);
+    --color-bg-surface: var(--ctp-surface0);
+    --color-bg-surface-rgb: var(--ctp-surface0-rgb);
+    --color-bg-overlay: var(--ctp-surface1);
+    --color-bg-overlay-rgb: var(--ctp-surface1-rgb);
+    --color-border-subtle: rgb(var(--ctp-surface2-rgb) / 28%);
+    --color-border-default: rgb(var(--ctp-overlay0-rgb) / 44%);
+    --color-border-strong: rgb(var(--ctp-overlay1-rgb) / 68%);
+    --color-border-accent: rgb(var(--ctp-lavender-rgb) / 34%);
+    --color-text-secondary: rgb(var(--ctp-subtext1-rgb) / 96%);
+    --color-text-muted: rgb(var(--ctp-subtext0-rgb) / 86%);
+    --color-text-ghost: rgb(var(--ctp-overlay1-rgb) / 78%);
+    --color-stage-surface-soft: rgb(var(--ctp-surface0-rgb) / 72%);
+    --color-stage-surface-medium: rgb(var(--ctp-base-rgb) / 88%);
+    --color-stage-surface-strong: rgb(var(--ctp-base-rgb) / 96%);
+    --color-stage-border-soft: rgb(var(--ctp-surface2-rgb) / 24%);
+    --color-stage-border-medium: rgb(var(--ctp-overlay0-rgb) / 32%);
+    --color-stage-chip-neutral-bg: rgb(var(--ctp-surface0-rgb) / 72%);
+    --color-stage-chip-neutral-border: rgb(var(--ctp-surface2-rgb) / 32%);
+    --shadow-xs: 0 1px 2px rgb(0 0 0 / 34%);
+    --shadow-sm: 0 2px 10px rgb(0 0 0 / 38%);
+    --shadow-md: 0 18px 42px rgb(0 0 0 / 44%);
+    --shadow-lg: 0 30px 66px rgb(0 0 0 / 52%);
+    --shadow-xl: 0 40px 86px rgb(0 0 0 / 58%);
+    --shadow-2xl: 0 52px 108px rgb(0 0 0 / 62%);
+    --glass-bg-light: rgb(var(--ctp-base-rgb) / 84%);
+    --glass-bg-medium: rgb(var(--ctp-base-rgb) / 90%);
+    --glass-bg-strong: rgb(var(--ctp-surface0-rgb) / 92%);
+    --glass-border-light: rgb(var(--ctp-surface2-rgb) / 24%);
+    --glass-border-medium: rgb(var(--ctp-overlay0-rgb) / 30%);
+    --glass-border-strong: rgb(var(--ctp-overlay1-rgb) / 40%);
+    --glass-shadow: 0 22px 48px rgb(0 0 0 / 46%);
+    --glass-shadow-elevated: 0 34px 74px rgb(0 0 0 / 56%);
+    --glass-inner-glow: inset 0 1px 0 rgb(var(--ctp-text-rgb) / 10%);
+    --liquid-glass-bg: rgb(var(--ctp-base-rgb) / 88%);
+    --liquid-glass-border: rgb(var(--ctp-surface2-rgb) / 26%);
+    --liquid-glass-highlight: inset 0 1px 0 rgb(var(--ctp-text-rgb) / 7%), inset 0 0 12px rgb(var(--ctp-lavender-rgb) / 4%);
+    --liquid-glass-shadow: 0 26px 58px rgb(0 0 0 / 52%), 0 8px 20px rgb(0 0 0 / 34%);
+    --surface-shell-bg: rgb(var(--ctp-crust-rgb) / 94%);
+    --surface-shell-border: rgb(var(--ctp-surface2-rgb) / 24%);
+    --surface-shell-shadow: 0 26px 60px rgb(0 0 0 / 54%), inset -1px 0 0 rgb(var(--ctp-text-rgb) / 5%);
+    --surface-workspace-bg: rgb(var(--ctp-base-rgb) / 90%);
+    --surface-workspace-border: rgb(var(--ctp-surface2-rgb) / 26%);
+    --surface-card-bg: rgb(var(--ctp-surface0-rgb) / 94%);
+    --surface-card-border: rgb(var(--ctp-overlay0-rgb) / 34%);
+    --surface-card-shadow: 0 22px 46px rgb(0 0 0 / 46%), inset 0 1px 0 rgb(var(--ctp-text-rgb) / 7%);
+    --surface-status-bg: rgb(var(--ctp-base-rgb) / 92%);
+    --surface-status-border: rgb(var(--ctp-surface2-rgb) / 24%);
+}
+
 /* ========== Accent：强调色覆盖（仅 primary 家族 + border-accent） ========== */
 
 /* 每个 accent 提供 light/dark 两套覆盖。clay 显式声明以便从其他 accent 切回时恢复。 */
