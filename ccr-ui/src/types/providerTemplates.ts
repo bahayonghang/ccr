@@ -27,6 +27,10 @@ export interface CodexProviderTemplateOverride {
   websiteUrl?: string
   apiKeyUrl?: string
   modelCatalog?: string[]
+  model?: string
+  provider?: string
+  providerType?: string
+  description?: string
   protocol?: string
 }
 
@@ -129,6 +133,15 @@ export interface CodexProviderTemplatePatch {
 export interface CodexApiAccountTemplatePatch {
   providerName?: string
   apiBaseUrl?: string
+}
+
+export interface CodexProfileTemplatePatch {
+  base_url?: string
+  provider?: string
+  provider_type?: string
+  description?: string
+  model?: string
+  suggestedName?: string
 }
 
 export interface OpenCodeProviderTemplatePatch {

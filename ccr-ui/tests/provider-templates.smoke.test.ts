@@ -9,6 +9,7 @@ import {
   CUSTOM_PROVIDER_TEMPLATES_STORAGE_KEY,
   mapTemplateToClaudeProfilePatch,
   mapTemplateToCodexApiAccountPatch,
+  mapTemplateToCodexProfilePatch,
   mapTemplateToCodexProviderPatch,
   mapTemplateToOpenCodeProviderPatch,
   readCustomProviderTemplates,
@@ -96,6 +97,13 @@ describe('provider template mapping', () => {
     expect(codexApiAccountPatch.providerName).toBe('OpenRouter')
     expect(codexApiAccountPatch.apiBaseUrl).toBe('https://openrouter.ai/api/v1')
     expect(JSON.stringify(codexApiAccountPatch)).not.toMatch(/apiKey":|api_key":|auth_token/i)
+
+    const codexProfilePatch = mapTemplateToCodexProfilePatch(openrouter!)
+    expect(codexProfilePatch.base_url).toBe('https://openrouter.ai/api/v1')
+    expect(codexProfilePatch.provider).toBe('OpenRouter')
+    expect(codexProfilePatch.model).toBe('anthropic/claude-sonnet-4.6')
+    expect(codexProfilePatch.suggestedName).toBe('openrouter')
+    expect(JSON.stringify(codexProfilePatch)).not.toMatch(/apiKey":|api_key":|auth_token|password/i)
 
     const opencodePatch = mapTemplateToOpenCodeProviderPatch(local!)
     expect(opencodePatch.id).toBe('openai')

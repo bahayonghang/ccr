@@ -3669,6 +3669,12 @@ export default {
         'The model will be written to a dedicated custom-models.toml for reuse by future profiles.',
       modelPresetHint:
         'Use the conservative built-in presets first; choose custom for anything else.',
+      templateSelector: {
+        label: 'Provider template',
+        helper:
+          'Fill non-secret provider, endpoint, and model defaults from a reusable Codex template.',
+        placeholder: 'Choose a Codex provider template',
+      },
       reasoningEffortHint:
         'Optional values are minimal / low / medium / high / xhigh. Leave unset to use the default runtime behavior.',
       deprecatedAuthModeHint:

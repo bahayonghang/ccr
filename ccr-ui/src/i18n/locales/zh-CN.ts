@@ -3536,6 +3536,11 @@ export default {
       customModelOption: '自定义模型…',
       customModelHint: '输入后会写入独立 custom-models.toml，供后续 profile 复用。',
       modelPresetHint: '优先使用保守预置模型；如需其他模型，请选择自定义。',
+      templateSelector: {
+        label: 'Provider 模板',
+        helper: '从可复用的 Codex 模板填入非敏感的 Provider、端点和默认模型。',
+        placeholder: '选择 Codex Provider 模板',
+      },
       reasoningEffortHint:
         '可选值为 minimal / low / medium / high / xhigh，留空表示使用默认推理强度。',
       deprecatedAuthModeHint:

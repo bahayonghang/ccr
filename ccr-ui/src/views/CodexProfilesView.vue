@@ -237,9 +237,14 @@
       :is-deprecated-auth-mode="isDeprecatedAuthMode(form.auth_mode)"
       :display-open-ai-login-method="displayOpenAiLoginMethod"
       :auth-mode-label="authModeLabel"
+      :selected-provider-template="selectedProviderTemplate"
+      :selected-provider-endpoint="selectedProviderEndpoint"
+      :provider-template-draft="codexProfileTemplateDraft"
       @update:model-value="handleFormModelValue"
       @update:selected-model-option="selectedModelOption = $event"
       @update:custom-model-input="customModelInput = $event"
+      @select-template="applyCodexProfileTemplate"
+      @manual-template="useManualProviderTemplate"
       @save="handleSave"
     />
 
@@ -295,6 +300,7 @@ import type {
   CodexProfileAuthMode,
   CodexProfilesResponse,
 } from '@/types'
+import type { ProviderTemplateDraftContext, ProviderTemplateSelection } from '@/types/providerTemplates'
 import { copyToClipboard } from '@/utils/codexHelpers'
 import {
   AVAILABLE_AUTH_MODES,
@@ -311,6 +317,7 @@ import {
 } from '@/utils/codexProfileEditor'
 import { downloadTextFile } from '@/utils/download'
 import { logger } from '@/utils/logger'
+import { mapTemplateToCodexProfilePatch } from '@/utils/providerTemplates'
 
 defineOptions({ name: 'CodexProfilesView' })
 
@@ -331,6 +338,8 @@ const codexBuiltinModels = ref<string[]>([])
 const codexCustomModels = ref<string[]>([])
 const selectedModelOption = ref<string>('')
 const customModelInput = ref('')
+const selectedProviderTemplate = ref<string | null>(null)
+const selectedProviderEndpoint = ref('')
 
 // ===== 编辑表单与确认弹窗 =====
 const showForm = ref(false)
@@ -419,6 +428,21 @@ const resolvedModelValue = computed(() =>
     ? normalizeModelName(customModelInput.value)
     : normalizeModelName(selectedModelOption.value),
 )
+const codexProfileTemplateDraft = computed<ProviderTemplateDraftContext>(() => ({
+  platform: 'codex',
+  defaultName: form.provider || form.name || 'Codex profile provider',
+  name: form.provider || form.name,
+  category: 'third_party',
+  baseUrls: form.base_url.trim() ? [form.base_url.trim()] : [],
+  modelCatalog: resolvedModelValue.value ? [resolvedModelValue.value] : [],
+  platformOverride: {
+    baseUrl: form.base_url,
+    provider: form.provider,
+    providerType: form.provider_type,
+    description: form.description,
+    modelCatalog: resolvedModelValue.value ? [resolvedModelValue.value] : [],
+  },
+}))
 const authTokenHint = computed(() => {
   if (form.auth_mode === 'openai_chatgpt')   return t('codex.profiles.authTokenHints.openai_chatgpt')
   if (form.auth_mode === 'openai_api_key')   return t('codex.profiles.authTokenHints.openai_api_key')
@@ -539,6 +563,8 @@ const resetForm = () => {
   Object.assign(form, createCodexProfileEditorForm())
   selectedModelOption.value = modelCatalog.value[0] || CUSTOM_MODEL_OPTION
   customModelInput.value = ''
+  selectedProviderTemplate.value = null
+  selectedProviderEndpoint.value = ''
 }
 
 const applyProfileToForm = (profile: CodexProfile) => {
@@ -546,6 +572,8 @@ const applyProfileToForm = (profile: CodexProfile) => {
   const selection = resolveModelSelection(profile.model, modelCatalog.value)
   selectedModelOption.value = selection.selectedModelOption
   customModelInput.value = selection.customModelInput
+  selectedProviderTemplate.value = null
+  selectedProviderEndpoint.value = ''
 }
 
 const openFormModal = async (name?: string) => {
@@ -604,6 +632,33 @@ const handleCloseForm = () => {
 const handleFormModelValue = (value: boolean) => {
   showForm.value = value
   if (!value) editingName.value = null
+}
+
+const useManualProviderTemplate = () => {
+  selectedProviderTemplate.value = null
+  selectedProviderEndpoint.value = ''
+}
+
+const applyCodexProfileTemplate = (selection: ProviderTemplateSelection) => {
+  const patch = mapTemplateToCodexProfilePatch(selection.template, selection.endpoint)
+
+  selectedProviderTemplate.value = selection.template.id
+  selectedProviderEndpoint.value = selection.endpoint || ''
+  form.base_url = patch.base_url || ''
+  form.provider = patch.provider || selection.template.name
+  form.provider_type = patch.provider_type || ''
+
+  if (!form.name.trim()) {
+    form.name = patch.suggestedName || selection.template.id
+  }
+  if (!form.description.trim() && patch.description) {
+    form.description = patch.description
+  }
+  if (patch.model) {
+    const modelSelection = resolveModelSelection(patch.model, modelCatalog.value)
+    selectedModelOption.value = modelSelection.selectedModelOption
+    customModelInput.value = modelSelection.customModelInput
+  }
 }
 
 const syncDerivedAuthFields = () => {

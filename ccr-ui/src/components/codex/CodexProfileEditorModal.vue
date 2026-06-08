@@ -85,6 +85,20 @@
         class="editor-scroll-area min-h-0 flex-1 overflow-y-auto pr-1"
         @scroll="syncActiveSection"
       >
+        <ProviderTemplateSelector
+          v-if="providerTemplateDraft"
+          class="mb-4"
+          platform="codex"
+          :selected-template-id="selectedProviderTemplate"
+          :selected-endpoint="selectedProviderEndpoint"
+          :draft-context="providerTemplateDraft"
+          :label="$t('codex.profiles.templateSelector.label')"
+          :helper="$t('codex.profiles.templateSelector.helper')"
+          :placeholder="$t('codex.profiles.templateSelector.placeholder')"
+          @select="$emit('select-template', $event)"
+          @manual="$emit('manual-template')"
+        />
+
         <section
           id="identity"
           ref="identityRef"
@@ -570,10 +584,12 @@
 import { computed, nextTick, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import BaseModal from '@/components/common/BaseModal.vue'
+import ProviderTemplateSelector from '@/components/provider-templates/ProviderTemplateSelector.vue'
 import SIcon from '@/components/ui/SIcon.vue'
 import { copyToClipboard } from '@/utils/codexHelpers'
 import { useUIStore } from '@/stores/ui'
 import type { CodexProfileAuthMode } from '@/types'
+import type { ProviderTemplateDraftContext, ProviderTemplateSelection } from '@/types/providerTemplates'
 import type { CodexProfileEditorForm } from '@/utils/codexProfileEditor'
 import {
   CUSTOM_MODEL_OPTION,
@@ -604,6 +620,9 @@ interface Props {
   isDeprecatedAuthMode: boolean
   displayOpenAiLoginMethod: string
   authModeLabel: (mode: CodexProfileAuthMode) => string
+  selectedProviderTemplate?: string | null
+  selectedProviderEndpoint?: string
+  providerTemplateDraft?: ProviderTemplateDraftContext | null
 }
 
 const props = defineProps<Props>()
@@ -614,6 +633,8 @@ const emit = defineEmits<{
   'update:customModelInput': [value: string]
   close: []
   save: []
+  'select-template': [selection: ProviderTemplateSelection]
+  'manual-template': []
 }>()
 
 const { t } = useI18n()
