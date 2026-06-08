@@ -413,6 +413,77 @@ describe('CodexAuthView smoke', () => {
     }
   })
 
+  it('applies a Codex provider template in the API key add flow without pre-filling secrets', async () => {
+    apiMocks.codexAddAuthWithApiKey.mockResolvedValue({
+      success: true,
+      account_name: 'openrouter_api',
+      switched: false,
+    })
+
+    const { el, unmount } = await mountView()
+
+    try {
+      const openButton = Array.from(el.querySelectorAll<HTMLButtonElement>('button')).find(
+        (button) => button.textContent?.includes('Add account')
+      )
+      expect(openButton).not.toBeNull()
+      openButton!.click()
+      await flush()
+
+      const apiTab = Array.from(el.querySelectorAll<HTMLButtonElement>('button')).find((button) =>
+        button.textContent?.includes('API Key')
+      )
+      expect(apiTab).not.toBeNull()
+      apiTab!.click()
+      await flush()
+
+      const trigger = el.querySelector<HTMLButtonElement>('[data-testid="provider-template-trigger"]')
+      expect(trigger).not.toBeNull()
+      trigger!.click()
+      await flush()
+
+      const searchInput = document.body.querySelector<HTMLInputElement>('[data-testid="provider-template-search"]')
+      expect(searchInput).not.toBeNull()
+      searchInput!.value = 'openrouter'
+      searchInput!.dispatchEvent(new Event('input', { bubbles: true }))
+      await flush()
+
+      const option = Array.from(
+        document.body.querySelectorAll<HTMLButtonElement>('[data-testid="provider-template-option"]')
+      ).find((button) => button.textContent?.includes('OpenRouter'))
+      expect(option).not.toBeNull()
+      option!.click()
+      await flush()
+
+      const apiKeyInput = Array.from(el.querySelectorAll<HTMLInputElement>('input')).find(
+        (input) => input.placeholder === 'sk-...'
+      )
+      expect(apiKeyInput).not.toBeNull()
+      expect(apiKeyInput!.value).toBe('')
+
+      apiKeyInput!.value = 'sk-user-entered'
+      apiKeyInput!.dispatchEvent(new Event('input', { bubbles: true }))
+      await flush()
+
+      const saveButton = Array.from(el.querySelectorAll<HTMLButtonElement>('button')).find(
+        (button) => button.textContent?.includes('Save API account')
+      )
+      expect(saveButton).not.toBeNull()
+      saveButton!.click()
+      await flush()
+
+      expect(apiMocks.codexAddAuthWithApiKey).toHaveBeenCalledWith(
+        expect.objectContaining({
+          apiKey: 'sk-user-entered',
+          apiBaseUrl: 'https://openrouter.ai/api/v1',
+          providerName: 'OpenRouter',
+        })
+      )
+    } finally {
+      unmount()
+    }
+  })
+
   it('passes preferredAccountName for single JSON imports and locks naming for bundles', async () => {
     apiMocks.codexImportAuthPayload.mockResolvedValue({
       success: true,

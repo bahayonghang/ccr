@@ -1541,6 +1541,23 @@
                         </div>
                       </div>
 
+                      <ProviderTemplateSelector
+                        class="mb-4"
+                        platform="codex"
+                        :selected-template-id="selectedApiProviderTemplate"
+                        :selected-endpoint="selectedApiProviderEndpoint"
+                        :draft-context="codexApiTemplateDraft"
+                        :label="tf('codex.auth.api.templateLabel', 'Provider template')"
+                        :helper="
+                          tf(
+                            'codex.auth.api.templateHelper',
+                            'Fill the non-secret provider name and base URL from a reusable Codex template.'
+                          )
+                        "
+                        @select="applyCodexApiProviderTemplate"
+                        @manual="useManualApiProviderTemplate"
+                      />
+
                       <div class="codex-auth-view__provider-form">
                         <label class="codex-auth-view__input-group">
                           <span class="codex-auth-view__input-label">{{
@@ -1985,7 +2002,10 @@ import type { ProviderTemplateDraftContext, ProviderTemplateSelection } from '@/
 import { logger } from '@/utils/logger'
 import { isTauriRuntime } from '@/utils/tauriRuntime'
 import { useUIStore } from '@/stores/ui'
-import { mapTemplateToCodexProviderPatch } from '@/utils/providerTemplates'
+import {
+  mapTemplateToCodexApiAccountPatch,
+  mapTemplateToCodexProviderPatch,
+} from '@/utils/providerTemplates'
 
 defineOptions({ name: 'CodexAuthView' })
 
@@ -2085,6 +2105,8 @@ const providerForm = reactive({
 })
 const selectedProviderTemplate = ref<string | null>(null)
 const selectedProviderEndpoint = ref('')
+const selectedApiProviderTemplate = ref<string | null>(null)
+const selectedApiProviderEndpoint = ref('')
 
 const codexTemplateDraft = computed<ProviderTemplateDraftContext>(() => ({
   platform: 'codex',
@@ -2098,6 +2120,17 @@ const codexTemplateDraft = computed<ProviderTemplateDraftContext>(() => ({
     baseUrl: providerForm.baseUrl,
     websiteUrl: providerForm.websiteUrl,
     apiKeyUrl: providerForm.apiKeyUrl,
+  },
+}))
+
+const codexApiTemplateDraft = computed<ProviderTemplateDraftContext>(() => ({
+  platform: 'codex',
+  defaultName: apiKeyForm.providerName || 'Codex API provider',
+  name: apiKeyForm.providerName,
+  category: 'third_party',
+  baseUrls: apiKeyForm.apiBaseUrl.trim() ? [apiKeyForm.apiBaseUrl.trim()] : [],
+  platformOverride: {
+    baseUrl: apiKeyForm.apiBaseUrl,
   },
 }))
 
@@ -2767,6 +2800,7 @@ const openAddAccountModal = async (method: AddMethod = 'oauth') => {
   addAccountNotice.value = null
   oauthTimeoutMessage.value = null
   resetAddAccountDraft()
+  useManualApiProviderTemplate()
   await refreshOauthPortStatus()
 }
 
@@ -2790,6 +2824,9 @@ const switchAddMethod = async (method: AddMethod) => {
   activeAddMethod.value = method
   addAccountError.value = null
   addAccountNotice.value = null
+  if (method !== 'api') {
+    useManualApiProviderTemplate()
+  }
   if (method === 'oauth') {
     await refreshOauthPortStatus()
   }
@@ -3088,11 +3125,27 @@ const applyCodexProviderTemplate = (selection: ProviderTemplateSelection) => {
   providerError.value = null
 }
 
+const useManualApiProviderTemplate = () => {
+  selectedApiProviderTemplate.value = null
+  selectedApiProviderEndpoint.value = ''
+}
+
+const applyCodexApiProviderTemplate = (selection: ProviderTemplateSelection) => {
+  const patch = mapTemplateToCodexApiAccountPatch(selection.template, selection.endpoint)
+
+  selectedApiProviderTemplate.value = selection.template.id
+  selectedApiProviderEndpoint.value = selection.endpoint || ''
+  apiKeyForm.providerName = patch.providerName || selection.template.name
+  apiKeyForm.apiBaseUrl = patch.apiBaseUrl || ''
+  addAccountError.value = null
+}
+
 const applyProviderToApiForm = (provider: CodexModelProviderRecord) => {
   apiKeyForm.providerName = provider.name
   apiKeyForm.apiBaseUrl = provider.base_url
   apiKeyForm.apiKey = provider.api_keys[0]?.api_key || apiKeyForm.apiKey
   apiKeyForm.saveProvider = false
+  useManualApiProviderTemplate()
   showAddAccountModal.value = true
   activeAddMethod.value = 'api'
   addAccountNotice.value = tf(

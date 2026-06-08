@@ -1,6 +1,7 @@
 import type {
   ClaudeLegacyConfigTemplatePatch,
   ClaudeProfileTemplatePatch,
+  CodexApiAccountTemplatePatch,
   CodexProviderTemplatePatch,
   CodexProviderTemplateOverride,
   OpenCodeProviderTemplatePatch,
@@ -438,6 +439,18 @@ export function mapTemplateToCodexProviderPatch(
     baseUrl: endpoint || override.baseUrl || resolveTemplateEndpoint(template, 'codex'),
     websiteUrl: override.websiteUrl || template.websiteUrl,
     apiKeyUrl: override.apiKeyUrl || template.apiKeyUrl,
+  }
+}
+
+export function mapTemplateToCodexApiAccountPatch(
+  template: ProviderTemplate,
+  endpoint?: string,
+): CodexApiAccountTemplatePatch {
+  const providerPatch = mapTemplateToCodexProviderPatch(template, endpoint)
+
+  return {
+    providerName: providerPatch.name,
+    apiBaseUrl: providerPatch.baseUrl,
   }
 }
 

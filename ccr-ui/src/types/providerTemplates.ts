@@ -126,6 +126,11 @@ export interface CodexProviderTemplatePatch {
   apiKeyUrl?: string
 }
 
+export interface CodexApiAccountTemplatePatch {
+  providerName?: string
+  apiBaseUrl?: string
+}
+
 export interface OpenCodeProviderTemplatePatch {
   id?: string
   name?: string

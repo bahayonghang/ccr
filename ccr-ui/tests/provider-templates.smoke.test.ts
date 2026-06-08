@@ -8,6 +8,7 @@ import {
   createCustomProviderTemplateFromDraft,
   CUSTOM_PROVIDER_TEMPLATES_STORAGE_KEY,
   mapTemplateToClaudeProfilePatch,
+  mapTemplateToCodexApiAccountPatch,
   mapTemplateToCodexProviderPatch,
   mapTemplateToOpenCodeProviderPatch,
   readCustomProviderTemplates,
@@ -90,6 +91,11 @@ describe('provider template mapping', () => {
     expect(codexPatch.baseUrl).toBe('https://openrouter.ai/api/v1')
     expect(codexPatch.apiKeyUrl).toBe('https://openrouter.ai/keys')
     expect(JSON.stringify(codexPatch)).not.toMatch(/apiKey":|api_key":|auth_token/i)
+
+    const codexApiAccountPatch = mapTemplateToCodexApiAccountPatch(openrouter!)
+    expect(codexApiAccountPatch.providerName).toBe('OpenRouter')
+    expect(codexApiAccountPatch.apiBaseUrl).toBe('https://openrouter.ai/api/v1')
+    expect(JSON.stringify(codexApiAccountPatch)).not.toMatch(/apiKey":|api_key":|auth_token/i)
 
     const opencodePatch = mapTemplateToOpenCodeProviderPatch(local!)
     expect(opencodePatch.id).toBe('openai')
