@@ -322,6 +322,18 @@
           class="editor-scroll-area min-h-0 flex-1 overflow-y-auto pr-1"
           @scroll="syncActiveFormSection"
         >
+          <ProviderTemplateSelector
+            class="mb-4"
+            platform="claude"
+            :selected-template-id="selectedProviderTemplate"
+            :selected-endpoint="selectedProviderEndpoint"
+            :draft-context="claudeTemplateDraft"
+            label="Provider template"
+            helper="Fill non-secret provider, endpoint, and model defaults from a reusable template."
+            @select="applyClaudeProviderTemplate"
+            @manual="useManualProviderTemplate"
+          />
+
           <ClaudeProfileEditorSections
             :editing-name="editingName"
             :form="form"
@@ -392,6 +404,7 @@ import ClaudeProfilesStatStrip from '@/components/claude/profiles/ClaudeProfiles
 import ClaudeProfilesToolbar, { type ClaudeProfilesViewMode } from '@/components/claude/profiles/ClaudeProfilesToolbar.vue'
 import BaseModal from '@/components/common/BaseModal.vue'
 import ModuleSubnav from '@/components/ModuleSubnav.vue'
+import ProviderTemplateSelector from '@/components/provider-templates/ProviderTemplateSelector.vue'
 import SIcon from '@/components/ui/SIcon.vue'
 import { translateWithFallback } from '@/i18n/formatMessage'
 import type { ClaudeProfile, ClaudeProfileRequest, ClaudeProfilesResponse } from '@/types'
@@ -400,6 +413,7 @@ import type {
   ClaudeProfileEditorSectionItem,
   ClaudeProfileFormSectionId,
 } from '@/types/claudeProfileEditor'
+import type { ProviderTemplateDraftContext, ProviderTemplateSelection } from '@/types/providerTemplates'
 import { getErrorMessage } from '@/types/api'
 import {
   normalizeClaudeProfilesState,
@@ -414,6 +428,7 @@ import { logger } from '@/utils/logger'
 import { CLAUDE_PROFILE_FORM_SECTION_IDS } from '@/types/claudeProfileEditor'
 import { downloadTextFile } from '@/utils/download'
 import { useUIStore } from '@/stores/ui'
+import { mapTemplateToClaudeProfilePatch } from '@/utils/providerTemplates'
 
 interface ProfilesExportResponse {
   content: string
@@ -438,6 +453,8 @@ const searchQuery = ref('')
 const statusFilter = ref<ClaudeProfilesStatusFilter>('all')
 const tagFilter = ref<string | null>(null)
 const providerFilter = ref<string | null>(null)
+const selectedProviderTemplate = ref<string | null>(null)
+const selectedProviderEndpoint = ref('')
 const sortBy = ref<ClaudeProfilesSortBy>('recent')
 const viewMode = ref<ClaudeProfilesViewMode>('card')
 const lastWriteHint = ref<string | null>(null)
@@ -578,6 +595,29 @@ const parseTags = (input: string): string[] | undefined => {
 }
 
 const parsedFormTags = computed(() => parseTags(form.tagsInput) ?? [])
+const claudeTemplateDraft = computed<ProviderTemplateDraftContext>(() => ({
+  platform: 'claude',
+  defaultName: form.provider || form.name || 'Claude provider',
+  name: form.provider || form.name,
+  category: 'third_party',
+  baseUrls: form.base_url.trim() ? [form.base_url.trim()] : [],
+  modelCatalog: [
+    form.default_opus_model,
+    form.default_sonnet_model,
+    form.default_haiku_model,
+    form.subagent_model,
+  ].filter(Boolean),
+  platformOverride: {
+    baseUrl: form.base_url,
+    provider: form.provider,
+    providerType: form.provider_type,
+    defaultOpusModel: form.default_opus_model,
+    defaultSonnetModel: form.default_sonnet_model,
+    defaultHaikuModel: form.default_haiku_model,
+    subagentModel: form.subagent_model,
+    description: form.description,
+  },
+}))
 const modalSectionItems = computed<ClaudeProfileEditorSectionItem[]>(() => ([
   {
     id: 'basic' as const,
@@ -655,6 +695,8 @@ const resetForm = () => {
   form.account = ''
   form.tagsInput = ''
   form.enabled = true
+  selectedProviderTemplate.value = null
+  selectedProviderEndpoint.value = ''
 }
 
 const prepareFormWorkspace = () => {
@@ -694,6 +736,8 @@ const openEditForm = (profile: ClaudeProfile) => {
   form.account = profile.account || ''
   form.tagsInput = (profile.tags || []).join(', ')
   form.enabled = profile.enabled !== false
+  selectedProviderTemplate.value = null
+  selectedProviderEndpoint.value = ''
   isEditing.value = true
   editingName.value = profile.name
   showForm.value = true
@@ -706,6 +750,34 @@ const closeForm = () => {
   showForm.value = false
   saveError.value = null
   activeFormSectionId.value = 'basic'
+}
+
+const useManualProviderTemplate = () => {
+  selectedProviderTemplate.value = null
+  selectedProviderEndpoint.value = ''
+}
+
+const applyClaudeProviderTemplate = (selection: ProviderTemplateSelection) => {
+  const patch = mapTemplateToClaudeProfilePatch(selection.template, selection.endpoint)
+
+  selectedProviderTemplate.value = selection.template.id
+  selectedProviderEndpoint.value = selection.endpoint || ''
+  form.base_url = patch.base_url || ''
+  form.provider = patch.provider || selection.template.name
+  form.provider_type = patch.provider_type || ''
+  form.default_opus_model = patch.default_opus_model || ''
+  form.default_sonnet_model = patch.default_sonnet_model || ''
+  form.default_haiku_model = patch.default_haiku_model || ''
+  form.subagent_model = patch.subagent_model || ''
+
+  if (!form.name.trim()) {
+    form.name = patch.suggestedName || selection.template.id
+  }
+  if (!form.description.trim() && patch.description) {
+    form.description = patch.description
+  }
+
+  activeFormSectionId.value = 'connection'
 }
 
 type SectionRefTarget = Element | { $el?: unknown } | null

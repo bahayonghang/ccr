@@ -148,23 +148,23 @@
         class="p-5"
       >
         <h2 class="text-lg font-semibold text-text-primary">
-          推荐预设
+          Provider templates
         </h2>
         <p class="mt-2 text-sm text-text-secondary">
-          先选 provider id，再填认证与 baseURL。更多 provider-specific options 走 JSON 扩展位。
+          搜索内置或自定义的非敏感模板，一次性填写 provider id、npm、baseURL 和模型 JSON。
         </p>
 
-        <div class="mt-4 space-y-3">
-          <button
-            v-for="preset in OPENCODE_PROVIDER_PRESETS"
-            :key="preset.id"
-            class="w-full rounded-2xl border border-border-default/55 bg-bg-base/35 p-3 text-left transition-colors hover:border-lime-300/35 hover:bg-lime-300/10"
-            @click="openCreate(preset.id)"
-          >
-            <strong class="block text-sm text-text-primary">{{ preset.label }}</strong>
-            <span class="mt-1 block text-xs leading-6 text-text-secondary">{{ preset.description }}</span>
-          </button>
-        </div>
+        <ProviderTemplateSelector
+          class="mt-4"
+          platform="opencode"
+          :selected-template-id="selectedProviderTemplate"
+          :selected-endpoint="selectedProviderEndpoint"
+          :draft-context="openCodeTemplateDraft"
+          label="Template"
+          helper="Templates never store apiKey; credentials stay in this provider form."
+          @select="handleOpenCodeTemplateSelect"
+          @manual="useManualOpenCodeTemplate"
+        />
       </Card>
     </div>
 
@@ -176,6 +176,18 @@
       content-class="max-w-2xl max-h-[90vh] overflow-y-auto"
     >
       <div class="space-y-4">
+        <ProviderTemplateSelector
+          v-if="!editingId"
+          platform="opencode"
+          :selected-template-id="selectedProviderTemplate"
+          :selected-endpoint="selectedProviderEndpoint"
+          :draft-context="openCodeTemplateDraft"
+          label="Provider template"
+          helper="Apply another non-secret template before saving this provider."
+          @select="applyOpenCodeProviderTemplate"
+          @manual="useManualOpenCodeTemplate"
+        />
+
         <div class="grid gap-4 md:grid-cols-2">
           <div>
             <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">provider id *</label>
@@ -302,18 +314,19 @@ import Button from '@/components/ui/Button.vue'
 import SIcon from '@/components/ui/SIcon.vue'
 import BaseModal from '@/components/common/BaseModal.vue'
 import OpenCodePageShell from '@/components/opencode/OpenCodePageShell.vue'
+import ProviderTemplateSelector from '@/components/provider-templates/ProviderTemplateSelector.vue'
 import { useUIStore } from '@/stores/ui'
 import { addOpenCodeProvider, deleteOpenCodeProvider, getOpenCodeConfig, listOpenCodeProviders, updateOpenCodeConfig } from '@/api'
-import { OPENCODE_PROVIDER_PRESETS } from '@/types/opencode'
 import type {
   OpenCodeConfig,
   OpenCodeModelConfig,
   OpenCodeProviderConfig,
   OpenCodeProviderOptions,
-  OpenCodeProviderPreset,
   OpenCodeProviderRequest,
 } from '@/types'
+import type { ProviderTemplateDraftContext, ProviderTemplateSelection } from '@/types/providerTemplates'
 import { formatJsonInput, maskSecret, parseJsonInput } from '@/utils/opencode'
+import { mapTemplateToOpenCodeProviderPatch } from '@/utils/providerTemplates'
 
 const uiStore = useUIStore()
 const loading = ref(false)
@@ -322,6 +335,8 @@ const showModal = ref(false)
 const editingId = ref('')
 const providers = ref<OpenCodeProviderConfig[]>([])
 const configState = ref<OpenCodeConfig>({})
+const selectedProviderTemplate = ref<string | null>(null)
+const selectedProviderEndpoint = ref('')
 
 const form = reactive({
   id: '',
@@ -343,17 +358,38 @@ const providerManagedRootKeys = new Set([
   'models',
 ])
 
+function parseJsonInputSafe<T>(value: string, fallback: T): T {
+  try {
+    return parseJsonInput<T>(value, fallback)
+  } catch {
+    return fallback
+  }
+}
+
 const disabledProviders = computed(() => new Set(configState.value.disabled_providers || []))
 const enabledProviders = computed(() => configState.value.enabled_providers || [])
+const openCodeTemplateDraft = computed<ProviderTemplateDraftContext>(() => ({
+  platform: 'opencode',
+  defaultName: form.name || form.id || 'OpenCode provider',
+  name: form.name || form.id,
+  category: form.baseURL.trim() ? 'third_party' : 'official',
+  baseUrls: form.baseURL.trim() ? [form.baseURL.trim()] : [],
+  modelCatalog: Object.keys(parseJsonInputSafe<Record<string, unknown>>(form.modelsJson, {})),
+  platformOverride: {
+    id: form.id,
+    name: form.name,
+    npm: form.npm,
+    baseURL: form.baseURL,
+    models: parseJsonInputSafe<Record<string, unknown>>(form.modelsJson, {}),
+    extraOptions: parseJsonInputSafe<Record<string, unknown>>(form.extraOptionsJson, {}),
+    rootExtra: parseJsonInputSafe<Record<string, unknown>>(form.rootExtraJson, {}),
+  },
+}))
 
 function providerEnabled(id: string) {
   if (disabledProviders.value.has(id)) return false
   if (enabledProviders.value.length > 0) return enabledProviders.value.includes(id)
   return true
-}
-
-function findPreset(presetId: string): OpenCodeProviderPreset | undefined {
-  return OPENCODE_PROVIDER_PRESETS.find((preset) => preset.id === presetId)
 }
 
 async function loadProviders() {
@@ -372,18 +408,53 @@ async function loadProviders() {
   }
 }
 
-function openCreate(presetId = '') {
-  const preset = findPreset(presetId)
+function resetCreateForm() {
   editingId.value = ''
-  form.id = preset?.providerId || preset?.id || ''
-  form.name = preset?.label || ''
-  form.npm = preset?.npm || ''
+  form.id = ''
+  form.name = ''
+  form.npm = ''
   form.apiKey = ''
   form.baseURL = ''
   form.enabled = true
   form.modelsJson = '{}'
   form.extraOptionsJson = '{}'
   form.rootExtraJson = '{}'
+  selectedProviderTemplate.value = null
+  selectedProviderEndpoint.value = ''
+}
+
+function openCreate() {
+  resetCreateForm()
+  showModal.value = true
+}
+
+function useManualOpenCodeTemplate() {
+  selectedProviderTemplate.value = null
+  selectedProviderEndpoint.value = ''
+  if (!showModal.value) {
+    openCreate()
+  }
+}
+
+function applyOpenCodeProviderTemplate(selection: ProviderTemplateSelection) {
+  const patch = mapTemplateToOpenCodeProviderPatch(selection.template, selection.endpoint)
+
+  selectedProviderTemplate.value = selection.template.id
+  selectedProviderEndpoint.value = selection.endpoint || ''
+  form.id = patch.id || ''
+  form.name = patch.name || selection.template.name
+  form.npm = patch.npm || ''
+  form.baseURL = patch.baseURL || ''
+  form.modelsJson = patch.modelsJson || '{}'
+  form.extraOptionsJson = patch.extraOptionsJson || '{}'
+  form.rootExtraJson = patch.rootExtraJson || '{}'
+  form.apiKey = ''
+  form.enabled = true
+}
+
+function handleOpenCodeTemplateSelect(selection: ProviderTemplateSelection) {
+  resetCreateForm()
+  applyOpenCodeProviderTemplate(selection)
   showModal.value = true
 }
 
@@ -401,6 +472,8 @@ function openEdit(provider: OpenCodeProviderConfig) {
   delete extraOptions.baseURL
   form.extraOptionsJson = formatJsonInput(extraOptions)
   form.rootExtraJson = formatJsonInput(rootExtraFields(provider))
+  selectedProviderTemplate.value = null
+  selectedProviderEndpoint.value = ''
   showModal.value = true
 }
 

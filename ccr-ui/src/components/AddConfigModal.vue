@@ -52,10 +52,15 @@
 
       <div class="p-6">
         <!-- Preset Provider Selection -->
-        <ProviderPresetSelector
-          :presets="claudePresets"
-          :selected-id="selectedTemplate"
-          @select="applyPreset"
+        <ProviderTemplateSelector
+          platform="claude"
+          :selected-template-id="selectedTemplate"
+          :selected-endpoint="selectedEndpoint"
+          :draft-context="claudeLegacyTemplateDraft"
+          label="Provider template"
+          helper="Search built-in and custom non-secret templates, then fill provider fields in one step."
+          @select="applyTemplate"
+          @manual="applyManualTemplate"
         />
 
         <div class="h-px bg-border-subtle mb-8" />
@@ -258,11 +263,11 @@ import { addConfig } from '@/api'
 import Card from '@/components/ui/Card.vue'
 import Button from '@/components/ui/Button.vue'
 import Input from '@/components/ui/Input.vue'
-import ProviderPresetSelector from '@/components/configs/ProviderPresetSelector.vue'
+import ProviderTemplateSelector from '@/components/provider-templates/ProviderTemplateSelector.vue'
 import { useUIStore } from '@/stores/ui'
 import type { UpdateConfigRequest } from '@/types'
-import type { ProviderPreset } from '@/types/providerPresets'
-import { claudePresets } from '@/configs/providerPresets'
+import type { ProviderTemplateDraftContext, ProviderTemplateSelection } from '@/types/providerTemplates'
+import { mapTemplateToClaudeLegacyConfigPatch } from '@/utils/providerTemplates'
 
 const props = defineProps<{ isOpen: boolean }>()
 const emit = defineEmits(['close', 'saved'])
@@ -283,6 +288,7 @@ watch(isOpenRef, val => val && setTimeout(() => focusFirstElement(), 100))
 const uiStore = useUIStore()
 const saving = ref(false)
 const selectedTemplate = ref<string | null>(null)
+const selectedEndpoint = ref('')
 const tagsInput = ref('')
 const formData = ref<UpdateConfigRequest>({
   name: '', description: '', base_url: '', auth_token: '',
@@ -294,30 +300,50 @@ const isFormValid = computed(() =>
   formData.value.name.trim() && formData.value.base_url.trim() && formData.value.auth_token.trim()
 )
 
-const applyPreset = (preset: ProviderPreset | null) => {
-  if (!preset) {
-    // 自定义配置 - 清空所有字段
-    selectedTemplate.value = null
-    formData.value = {
-      name: '', description: '', base_url: '', auth_token: '',
-      model: '', small_fast_model: '', provider: '',
-      provider_type: '', account: '', tags: [],
-    }
-    return
+const claudeLegacyTemplateDraft = computed<ProviderTemplateDraftContext>(() => ({
+  platform: 'claude',
+  defaultName: formData.value.provider || formData.value.name || 'Claude provider',
+  name: formData.value.provider || formData.value.name,
+  category: 'third_party',
+  baseUrls: formData.value.base_url.trim() ? [formData.value.base_url.trim()] : [],
+  modelCatalog: [formData.value.model, formData.value.small_fast_model].filter(Boolean) as string[],
+  platformOverride: {
+    baseUrl: formData.value.base_url,
+    provider: formData.value.provider,
+    providerType: formData.value.provider_type,
+    model: formData.value.model,
+    smallFastModel: formData.value.small_fast_model,
+    description: formData.value.description,
+  },
+}))
+
+const applyManualTemplate = () => {
+  selectedTemplate.value = null
+  selectedEndpoint.value = ''
+  formData.value = {
+    name: '', description: '', base_url: '', auth_token: '',
+    model: '', small_fast_model: '', provider: '',
+    provider_type: '', account: '', tags: [],
   }
-  selectedTemplate.value = preset.id
+}
+
+const applyTemplate = (selection: ProviderTemplateSelection) => {
+  const patch = mapTemplateToClaudeLegacyConfigPatch(selection.template, selection.endpoint)
+
+  selectedTemplate.value = selection.template.id
+  selectedEndpoint.value = selection.endpoint || ''
   formData.value = {
     ...formData.value,
-    base_url: preset.base_url,
-    model: preset.model || '',
-    small_fast_model: preset.small_fast_model || '',
-    provider: preset.provider || preset.name,
-    provider_type: preset.provider_type || '',
-    description: preset.description || '',
+    base_url: patch.base_url || '',
+    model: patch.model || '',
+    small_fast_model: patch.small_fast_model || '',
+    provider: patch.provider || selection.template.name,
+    provider_type: patch.provider_type || '',
+    description: patch.description || formData.value.description,
   }
-  // 自动填充 name 建议（用户可修改）
+
   if (!formData.value.name) {
-    formData.value.name = preset.id
+    formData.value.name = patch.suggestedName || selection.template.id
   }
 }
 
@@ -340,6 +366,7 @@ const resetForm = () => {
   formData.value = { name: '', description: '', base_url: '', auth_token: '', model: '', small_fast_model: '', provider: '', provider_type: '', account: '', tags: [] }
   tagsInput.value = ''
   selectedTemplate.value = null
+  selectedEndpoint.value = ''
 }
 
 watch(() => props.isOpen, val => val && resetForm())

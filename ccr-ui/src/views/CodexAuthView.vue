@@ -582,13 +582,13 @@
                     />
                     <div>
                       <h3 class="codex-auth-view__section-title">
-                        {{ tf('codex.auth.providers.formTitle', 'Provider preset') }}
+                        {{ tf('codex.auth.providers.formTitle', 'Saved provider') }}
                       </h3>
                       <p class="codex-auth-view__section-copy">
                         {{
                           tf(
                             'codex.auth.providers.formHint',
-                            'Save reusable base URLs and optional API keys for non-default OpenAI-compatible providers.'
+                            'Save reusable base URLs and optional API keys. Provider templates only fill non-secret metadata.'
                           )
                         }}
                       </p>
@@ -610,6 +610,18 @@
                     {{ tf('codex.auth.providers.resetForm', 'Reset form') }}
                   </Button>
                 </div>
+
+                <ProviderTemplateSelector
+                  class="codex-auth-view__template-selector"
+                  platform="codex"
+                  :selected-template-id="selectedProviderTemplate"
+                  :selected-endpoint="selectedProviderEndpoint"
+                  :draft-context="codexTemplateDraft"
+                  label="Provider template"
+                  helper="Search non-secret templates by name, host, tag, or model. API keys stay in the saved provider form."
+                  @select="applyCodexProviderTemplate"
+                  @manual="useManualProviderTemplate"
+                />
 
                 <div class="codex-auth-view__provider-form">
                   <label class="codex-auth-view__input-group">
@@ -763,7 +775,7 @@
                         {{
                           tf(
                             'codex.auth.providers.listHint',
-                            'Presets saved here can be injected directly into the API key account flow.'
+                            'Saved providers can include API keys and can be injected directly into the API key account flow.'
                           )
                         }}
                       </p>
@@ -811,13 +823,13 @@
                     />
                   </div>
                   <p class="text-text-primary">
-                    {{ tf('codex.auth.providers.emptyState', 'No provider presets yet') }}
+                    {{ tf('codex.auth.providers.emptyState', 'No saved providers yet') }}
                   </p>
                   <p class="text-sm text-text-muted mt-2">
                     {{
                       tf(
                         'codex.auth.providers.emptyHint',
-                        'Create a preset if you often switch between OpenAI-compatible gateways.'
+                        'Create a saved provider if you often switch between OpenAI-compatible gateways.'
                       )
                     }}
                   </p>
@@ -1522,7 +1534,7 @@
                             {{
                               tf(
                                 'codex.auth.api.hint',
-                                'Store one API key as a named Codex account, optionally attaching it to a reusable provider preset.'
+                                'Store one API key as a named Codex account, optionally attaching it to a reusable saved provider.'
                               )
                             }}
                           </p>
@@ -1584,7 +1596,7 @@
                             type="checkbox"
                           >
                           <span>{{
-                            tf('codex.auth.api.saveProvider', 'Also save/update provider preset')
+                            tf('codex.auth.api.saveProvider', 'Also save/update saved provider')
                           }}</span>
                         </label>
                         <label class="codex-auth-view__checkbox-label">
@@ -1643,13 +1655,13 @@
                         />
                         <div>
                           <h3 class="codex-auth-view__section-title">
-                            {{ tf('codex.auth.api.presetsTitle', 'Provider presets') }}
+                            {{ tf('codex.auth.api.presetsTitle', 'Saved providers') }}
                           </h3>
                           <p class="codex-auth-view__section-copy">
                             {{
                               tf(
                                 'codex.auth.api.presetsHint',
-                                'Click one preset to fill the API key form with its stored base URL and the latest saved key.'
+                                'Click one saved provider to fill the API key form with its stored base URL and the latest saved key.'
                               )
                             }}
                           </p>
@@ -1661,13 +1673,13 @@
                         class="empty-state rounded-2xl border border-border-default/10 bg-bg-surface/40"
                       >
                         <p class="text-text-primary">
-                          {{ tf('codex.auth.api.noPresets', 'No provider presets yet') }}
+                          {{ tf('codex.auth.api.noPresets', 'No saved providers yet') }}
                         </p>
                         <p class="text-sm text-text-muted mt-2">
                           {{
                             tf(
                               'codex.auth.api.noPresetsHint',
-                              'Create presets in the Model providers tab if you want reusable third-party endpoints.'
+                              'Create saved providers in the Model providers tab if you want reusable third-party endpoints.'
                             )
                           }}
                         </p>
@@ -1909,6 +1921,7 @@ import Button from '@/components/ui/Button.vue'
 import Card from '@/components/ui/Card.vue'
 import CodexAccountCard from '@/components/codex/CodexAccountCard.vue'
 import ConfirmModal from '@/components/ConfirmModal.vue'
+import ProviderTemplateSelector from '@/components/provider-templates/ProviderTemplateSelector.vue'
 import { translateWithFallback } from '@/i18n/formatMessage'
 import {
   listCodexProfiles,
@@ -1968,9 +1981,11 @@ import type {
   CodexProfilesResponse,
   LoginState,
 } from '@/types'
+import type { ProviderTemplateDraftContext, ProviderTemplateSelection } from '@/types/providerTemplates'
 import { logger } from '@/utils/logger'
 import { isTauriRuntime } from '@/utils/tauriRuntime'
 import { useUIStore } from '@/stores/ui'
+import { mapTemplateToCodexProviderPatch } from '@/utils/providerTemplates'
 
 defineOptions({ name: 'CodexAuthView' })
 
@@ -2068,6 +2083,23 @@ const providerForm = reactive({
   apiKeyName: 'API Key',
   apiKey: '',
 })
+const selectedProviderTemplate = ref<string | null>(null)
+const selectedProviderEndpoint = ref('')
+
+const codexTemplateDraft = computed<ProviderTemplateDraftContext>(() => ({
+  platform: 'codex',
+  defaultName: providerForm.name || 'Codex provider',
+  name: providerForm.name,
+  websiteUrl: providerForm.websiteUrl,
+  apiKeyUrl: providerForm.apiKeyUrl,
+  category: 'third_party',
+  baseUrls: providerForm.baseUrl.trim() ? [providerForm.baseUrl.trim()] : [],
+  platformOverride: {
+    baseUrl: providerForm.baseUrl,
+    websiteUrl: providerForm.websiteUrl,
+    apiKeyUrl: providerForm.apiKeyUrl,
+  },
+}))
 
 const searchQuery = ref('')
 const statusFilter = ref<AccountStatusFilter>('all')
@@ -2442,7 +2474,7 @@ const loadProviders = async () => {
     logger.error('Failed to load codex providers:', error)
     providerError.value =
       extractErrorMessage(error) ||
-      tf('codex.auth.providers.loadFailed', 'Failed to load provider presets.')
+      tf('codex.auth.providers.loadFailed', 'Failed to load saved providers.')
   } finally {
     providerLoading.value = false
   }
@@ -3022,6 +3054,8 @@ const resetProviderForm = () => {
   providerForm.apiKeyName = 'API Key'
   providerForm.apiKey = ''
   providerError.value = null
+  selectedProviderTemplate.value = null
+  selectedProviderEndpoint.value = ''
 }
 
 const editProvider = (provider: CodexModelProviderRecord) => {
@@ -3032,7 +3066,26 @@ const editProvider = (provider: CodexModelProviderRecord) => {
   providerForm.apiKeyUrl = provider.api_key_url || ''
   providerForm.apiKeyName = provider.api_keys[0]?.name || 'API Key'
   providerForm.apiKey = provider.api_keys[0]?.api_key || ''
+  selectedProviderTemplate.value = null
+  selectedProviderEndpoint.value = ''
   activeManagerTab.value = 'providers'
+}
+
+const useManualProviderTemplate = () => {
+  selectedProviderTemplate.value = null
+  selectedProviderEndpoint.value = ''
+}
+
+const applyCodexProviderTemplate = (selection: ProviderTemplateSelection) => {
+  const patch = mapTemplateToCodexProviderPatch(selection.template, selection.endpoint)
+
+  selectedProviderTemplate.value = selection.template.id
+  selectedProviderEndpoint.value = selection.endpoint || ''
+  providerForm.name = patch.name || selection.template.name
+  providerForm.baseUrl = patch.baseUrl || ''
+  providerForm.websiteUrl = patch.websiteUrl || ''
+  providerForm.apiKeyUrl = patch.apiKeyUrl || ''
+  providerError.value = null
 }
 
 const applyProviderToApiForm = (provider: CodexModelProviderRecord) => {
@@ -3044,7 +3097,7 @@ const applyProviderToApiForm = (provider: CodexModelProviderRecord) => {
   activeAddMethod.value = 'api'
   addAccountNotice.value = tf(
     'codex.auth.api.presetApplied',
-    'Loaded provider preset "{name}" into the API key form.',
+    'Loaded saved provider "{name}" into the API key form.',
     { name: provider.name }
   )
 }
@@ -3080,19 +3133,19 @@ const handleSaveProvider = async () => {
     await loadProviders()
     resetProviderForm()
     uiStore.showSuccess(
-      tf('codex.auth.providers.saveSuccess', 'Provider preset saved successfully.')
+      tf('codex.auth.providers.saveSuccess', 'Saved provider saved successfully.')
     )
     if (showAddAccountModal.value) {
       addAccountNotice.value = tf(
         'codex.auth.providers.savedAndReady',
-        'Provider preset "{name}" is now ready in the API key flow.',
+        'Saved provider "{name}" is now ready in the API key flow.',
         { name: result.provider.name }
       )
     }
   } catch (error) {
     providerError.value =
       extractErrorMessage(error) ||
-      tf('codex.auth.providers.saveFailed', 'Failed to save the provider preset.')
+      tf('codex.auth.providers.saveFailed', 'Failed to save the saved provider.')
   } finally {
     providerSaving.value = false
   }
@@ -3100,10 +3153,10 @@ const handleSaveProvider = async () => {
 
 const requestDeleteProvider = (provider: CodexModelProviderRecord) => {
   openConfirmDialog({
-    title: tf('codex.auth.providers.deleteTitle', 'Delete provider preset'),
+    title: tf('codex.auth.providers.deleteTitle', 'Delete saved provider'),
     message: tf(
       'codex.auth.providers.deleteMessage',
-      'Delete provider preset "{name}"? Stored API keys under this preset will also be removed.',
+      'Delete saved provider "{name}"? Stored API keys under this saved provider will also be removed.',
       { name: provider.name }
     ),
     confirmText: t('codex.actions.delete'),
@@ -3113,12 +3166,12 @@ const requestDeleteProvider = (provider: CodexModelProviderRecord) => {
         await codexDeleteModelProvider(provider.id)
         await loadProviders()
         uiStore.showSuccess(
-          tf('codex.auth.providers.deleteSuccess', 'Provider preset deleted successfully.')
+          tf('codex.auth.providers.deleteSuccess', 'Saved provider deleted successfully.')
         )
       } catch (error) {
         providerError.value =
           extractErrorMessage(error) ||
-          tf('codex.auth.providers.deleteFailed', 'Failed to delete the provider preset.')
+          tf('codex.auth.providers.deleteFailed', 'Failed to delete the saved provider.')
       }
     },
   })
@@ -3656,6 +3709,10 @@ onBeforeUnmount(() => {
 
 .codex-auth-view__provider-form {
   grid-template-columns: repeat(1, minmax(0, 1fr));
+  margin-top: 1rem;
+}
+
+.codex-auth-view__template-selector {
   margin-top: 1rem;
 }
 

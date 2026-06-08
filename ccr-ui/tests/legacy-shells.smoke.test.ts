@@ -366,16 +366,28 @@ describe('legacy shell pages smoke', () => {
     const { el, unmount } = await mountView(OpenCodeProvidersView)
 
     try {
-      findButtonByText(el, 'OpenAI Compatible')?.click()
+      el.querySelector<HTMLButtonElement>('[data-testid="provider-template-trigger"]')?.click()
+      await flushView()
+
+      const searchInput = el.querySelector<HTMLInputElement>('[data-testid="provider-template-search"]')
+      expect(searchInput).not.toBeNull()
+      await setControlValue(searchInput!, 'openai compatible')
+
+      const option = Array.from(el.querySelectorAll<HTMLButtonElement>('[data-testid="provider-template-option"]'))
+        .find(button => button.textContent?.includes('OpenAI Compatible'))
+      expect(option).not.toBeNull()
+
+      option!.click()
       await flushView()
 
       const textInputs = Array.from(el.querySelectorAll<HTMLInputElement>('input:not([type="checkbox"])'))
-      expect(textInputs[0]?.value).toBe('openai')
-      expect(textInputs[1]?.value).toBe('OpenAI Compatible')
-      expect(textInputs[2]?.value).toBe('@ai-sdk/openai-compatible')
+      const providerInputs = textInputs.slice(-5)
+      expect(providerInputs[0]?.value).toBe('openai')
+      expect(providerInputs[1]?.value).toBe('OpenAI Compatible')
+      expect(providerInputs[2]?.value).toBe('@ai-sdk/openai-compatible')
 
-      await setControlValue(textInputs[3], '<YOUR_API_KEY>')
-      await setControlValue(textInputs[4], 'https://api.example.com/v1')
+      await setControlValue(providerInputs[3], '<YOUR_API_KEY>')
+      await setControlValue(providerInputs[4], 'https://api.example.com/v1')
 
       const textareas = Array.from(el.querySelectorAll<HTMLTextAreaElement>('textarea'))
       await setControlValue(textareas[0], JSON.stringify({

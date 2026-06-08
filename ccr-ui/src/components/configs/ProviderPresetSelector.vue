@@ -1,62 +1,21 @@
 <template>
-  <section class="mb-8">
-    <label class="block text-xs font-bold uppercase tracking-wider text-text-muted mb-4">
-      {{ $t('configs.addConfig.presetProviders') }}
-    </label>
-
-    <!-- 预设按钮网格 -->
-    <div class="flex flex-wrap gap-2">
-      <!-- 自定义配置按钮 (固定在最前) -->
-      <button
-        class="relative px-4 py-2 rounded-xl border text-sm font-medium transition-all duration-200"
-        :class="selectedId === null
-          ? 'bg-accent-primary/15 border-accent-primary text-accent-primary ring-1 ring-accent-primary/50'
-          : 'glass-surface border-border-default/15 text-text-secondary hover:border-accent-primary/30 hover:text-white'"
-        @click="handleSelect(null)"
-      >
-        {{ $t('configs.addConfig.customConfig') }}
-      </button>
-
-      <!-- 供应商预设按钮 -->
-      <button
-        v-for="preset in sortedPresets"
-        :key="preset.id"
-        class="relative px-4 py-2 rounded-xl border text-sm font-medium transition-all duration-200"
-        :class="selectedId === preset.id
-          ? 'bg-accent-primary/15 border-accent-primary text-accent-primary ring-1 ring-accent-primary/50'
-          : 'glass-surface border-border-default/15 text-text-secondary hover:border-accent-primary/30 hover:text-white'"
-        @click="handleSelect(preset)"
-      >
-        {{ preset.name }}
-        <span
-          v-if="preset.isPartner"
-          class="ml-0.5 inline-flex align-middle text-amber-400"
-          title="Partner"
-        >
-          <SIcon
-            name="Star"
-            size="w-3 h-3"
-          />
-        </span>
-      </button>
-    </div>
-
-    <!-- 底部提示文字 -->
-    <p class="mt-3 text-xs text-text-ghost">
-      {{ selectedId === null
-        ? $t('configs.addConfig.customConfigHint')
-        : $t('configs.addConfig.presetHint')
-      }}
-    </p>
-  </section>
+  <ProviderTemplateSelector
+    platform="claude"
+    :selected-template-id="selectedId"
+    label="Provider template"
+    helper="Search built-in and custom provider templates."
+    @select="handleSelect"
+    @manual="emit('select', null)"
+  />
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import SIcon from '@/components/ui/SIcon.vue'
-import type { PlatformPresets, ProviderPreset, PresetCategory } from '@/types/providerPresets'
+import ProviderTemplateSelector from '@/components/provider-templates/ProviderTemplateSelector.vue'
+import type { PlatformPresets, ProviderPreset } from '@/types/providerPresets'
+import type { ProviderTemplateSelection } from '@/types/providerTemplates'
+import { mapTemplateToClaudeLegacyConfigPatch } from '@/utils/providerTemplates'
 
-const props = defineProps<{
+defineProps<{
   presets: PlatformPresets
   selectedId: string | null
 }>()
@@ -65,20 +24,22 @@ const emit = defineEmits<{
   select: [preset: ProviderPreset | null]
 }>()
 
-// 按分类排序: official → cn_official → aggregator → third_party
-const categoryOrder: Record<PresetCategory, number> = {
-  official: 0,
-  cn_official: 1,
-  aggregator: 2,
-  third_party: 3,
-}
+function handleSelect(selection: ProviderTemplateSelection) {
+  const patch = mapTemplateToClaudeLegacyConfigPatch(selection.template, selection.endpoint)
 
-const sortedPresets = computed(() =>
-  [...props.presets.presets].sort((a, b) => categoryOrder[a.category] - categoryOrder[b.category])
-)
-
-const handleSelect = (preset: ProviderPreset | null) => {
-  emit('select', preset)
+  emit('select', {
+    id: selection.template.id,
+    name: selection.template.name,
+    category: selection.template.category === 'local' ? 'third_party' : selection.template.category,
+    websiteUrl: selection.template.websiteUrl,
+    apiKeyUrl: selection.template.apiKeyUrl,
+    isPartner: selection.template.isPartner,
+    base_url: patch.base_url || '',
+    model: patch.model,
+    small_fast_model: patch.small_fast_model,
+    provider: patch.provider,
+    provider_type: patch.provider_type as ProviderPreset['provider_type'],
+    description: patch.description,
+  })
 }
 </script>
-
