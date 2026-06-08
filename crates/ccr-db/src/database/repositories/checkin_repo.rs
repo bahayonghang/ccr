@@ -1,7 +1,7 @@
 // Checkin Repository - SQLite data access layer for checkin module
 // Replaces JSON file storage for providers, accounts, records, and balances
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, NaiveTime, Utc};
 use rusqlite::{Connection, OptionalExtension, params};
 use tracing::debug;
 
@@ -11,6 +11,14 @@ use crate::models::checkin::{
     provider::CheckinProvider,
     record::{CheckinRecord, CheckinStatus},
 };
+
+fn today_start_utc_rfc3339() -> String {
+    Utc::now()
+        .date_naive()
+        .and_time(NaiveTime::MIN)
+        .and_utc()
+        .to_rfc3339()
+}
 
 // ═══════════════════════════════════════════════════════════
 // Provider Operations
@@ -579,11 +587,7 @@ pub fn get_today_status_counts(
         return Ok((0, 0));
     }
 
-    let today_start = Utc::now()
-        .date_naive()
-        .and_hms_opt(0, 0, 0)
-        .expect("Invalid time: 00:00:00");
-    let today_start_str = today_start.and_utc().to_rfc3339();
+    let today_start_str = today_start_utc_rfc3339();
 
     let placeholders = (0..account_ids.len())
         .map(|idx| format!("?{}", idx + 2))
@@ -634,11 +638,7 @@ pub fn get_today_records(
     conn: &Connection,
     account_id: &str,
 ) -> Result<Vec<CheckinRecord>, rusqlite::Error> {
-    let today_start = Utc::now()
-        .date_naive()
-        .and_hms_opt(0, 0, 0)
-        .expect("Invalid time: 00:00:00");
-    let today_start_str = today_start.and_utc().to_rfc3339();
+    let today_start_str = today_start_utc_rfc3339();
 
     let mut stmt = conn.prepare_cached(
         "SELECT id, account_id, status, message, error_code, reward, balance_before, balance_after, checked_in_at

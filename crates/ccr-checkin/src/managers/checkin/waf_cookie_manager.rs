@@ -93,7 +93,9 @@ impl WafCookieManager {
         _provider_id: &str,
         _url: &str,
     ) -> Result<std::collections::HashMap<String, String>> {
-        todo!("Will be reimplemented with Tauri WebView")
+        Err(WafCookieError::ParseError(
+            "Browser WAF cookie fetch is not implemented in this build".to_string(),
+        ))
     }
 }
 
@@ -163,5 +165,19 @@ mod tests {
                     .is_none()
             );
         });
+    }
+
+    #[test]
+    fn test_fetch_via_browser_returns_error_until_implemented() {
+        let manager = WafCookieManager::new();
+
+        let err = manager
+            .fetch_via_browser("provider-1", "https://example.com")
+            .unwrap_err();
+
+        assert!(
+            err.to_string()
+                .contains("Browser WAF cookie fetch is not implemented")
+        );
     }
 }
