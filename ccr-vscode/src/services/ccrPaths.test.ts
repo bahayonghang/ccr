@@ -46,6 +46,13 @@ describe("ccrPaths", () => {
     const result = getProfilesPath("claude");
     assert.equal(result, path.join("/tmp/test-ccr", "platforms", "claude", "profiles.toml"));
   });
+
+  it("keeps the surfaced platform list in sync with the extension metadata", async () => {
+    const { SUPPORTED_PLATFORMS, getPlatformDisplayName } = await import("../services/ccrPaths.js");
+
+    assert.deepEqual(SUPPORTED_PLATFORMS, ["claude", "codex", "gemini", "qwen", "droid"]);
+    assert.equal(getPlatformDisplayName("gemini"), "Antigravity CLI");
+  });
 });
 
 describe("tomlReader", () => {
@@ -90,6 +97,34 @@ last_used = "2026-05-06T10:00:00Z"
       assert.equal(result!.platforms[0].name, "claude");
       assert.equal(result!.platforms[1].name, "codex");
       assert.equal("currentPlatform" in result!, false);
+    });
+
+    it("includes newly surfaced platform entries when they exist", async () => {
+      const configToml = `
+[gemini]
+enabled = true
+current_profile = "flash"
+last_used = "2026-05-05T10:00:00Z"
+
+[qwen]
+enabled = true
+current_profile = "qwen-main"
+
+[droid]
+enabled = false
+last_used = "2026-05-04T10:00:00Z"
+`;
+      fs.writeFileSync(path.join(tmpDir, "config.toml"), configToml, "utf-8");
+
+      const { readRegistry } = await import("../services/tomlReader.js");
+      const result = await readRegistry();
+
+      assert.notEqual(result, null);
+      assert.deepEqual(
+        result!.platforms.map((platform) => platform.name),
+        ["gemini", "qwen", "droid"],
+      );
+      assert.equal(result!.platforms[0].displayName, "Antigravity CLI");
     });
   });
 

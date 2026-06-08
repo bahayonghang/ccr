@@ -11,6 +11,7 @@ import {
   formatCodexAuthDescription,
   formatQuotaReset,
   getCodexPlatformDescription,
+  getSectionInfo,
 } from "./profileTreePresentation";
 
 const codexPlatform: PlatformInfo = {
@@ -201,5 +202,18 @@ describe("profileTreePresentation", () => {
     assert.equal(details[3]?.description, "Runtime API Key active");
     assert.equal(details[4]?.description, "Local fallback");
     assert.match(details[4]?.tooltip ?? "", /does not support `codex auth current --json`/);
+  });
+
+  it("formats non-Claude/Codex sections as browse-only surfaces", () => {
+    const profiles = getSectionInfo("gemini", "profiles");
+    const auth = getSectionInfo("qwen", "auth");
+    const runtime = getSectionInfo("droid", "runtime");
+
+    assert.equal(profiles.label, "Antigravity CLI Profiles");
+    assert.equal(profiles.description, "Browse and inspect Antigravity CLI profiles");
+    assert.equal(auth.label, "Qwen CLI Auth");
+    assert.equal(auth.description, "Inspect saved Qwen CLI auth accounts");
+    assert.equal(runtime.label, "Factory Droid Runtime");
+    assert.equal(runtime.description, "Current control mode, profile route, and auth identity");
   });
 });

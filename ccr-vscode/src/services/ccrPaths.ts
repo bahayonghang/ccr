@@ -65,7 +65,7 @@ export function getProfilesGlob(): string {
 }
 
 /** Supported platforms exposed by the VSCode extension */
-export const SUPPORTED_PLATFORMS = ["claude", "codex"] as const;
+export const SUPPORTED_PLATFORMS = ["claude", "codex", "gemini", "qwen", "droid"] as const;
 
 /** Known platform metadata — aligned with Rust Platform enum */
 export const PLATFORM_META: Record<
@@ -83,6 +83,24 @@ export const PLATFORM_META: Record<
     icon: "\u{1F4BB}",
     shortName: "codex",
     codiconId: "terminal",
+  },
+  gemini: {
+    displayName: "Antigravity CLI",
+    icon: "\u2728",
+    shortName: "gemini",
+    codiconId: "sparkle",
+  },
+  qwen: {
+    displayName: "Qwen CLI",
+    icon: "\u{1F31F}",
+    shortName: "qwen",
+    codiconId: "package",
+  },
+  droid: {
+    displayName: "Factory Droid",
+    icon: "\u{1F3ED}",
+    shortName: "droid",
+    codiconId: "server",
   },
 };
 
