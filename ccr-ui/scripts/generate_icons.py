@@ -9,7 +9,7 @@ from __future__ import annotations
 from io import BytesIO
 from pathlib import Path
 
-from PIL import Image, ImageChops, ImageDraw, ImageFilter
+from PIL import Image, ImageDraw
 
 try:
     from cairosvg import svg2png as cairosvg_svg2png
@@ -27,10 +27,11 @@ APP_ICON_SVG = BRANDING_DIR / "app-icon.svg"
 DISPLAY_LOGO_SVG = BRANDING_DIR / "display-logo.svg"
 VSCODE_ICON_SVG = BRANDING_DIR / "vscode-icon.svg"
 
-APP_START = (0xF2, 0x9A, 0x68, 0xFF)
-APP_END = (0xD9, 0x65, 0x43, 0xFF)
-APP_STROKE = (0xFF, 0xF8, 0xF2, 0xFF)
-SHADOW_COLOR = (0xA9, 0x4A, 0x2D, 0xFF)
+BRAND_BACKGROUND = (0xFF, 0xFF, 0xFF, 0xFF)
+BRAND_DARK = (0x13, 0x22, 0x35, 0xFF)
+BRAND_SIDE = (0x11, 0x20, 0x31, 0xFF)
+BRAND_BLUE = (0x0E, 0x9F, 0xF3, 0xFF)
+BRAND_ORANGE = (0xFF, 0x58, 0x00, 0xFF)
 
 
 def ensure_parent(path: Path) -> None:
@@ -43,7 +44,7 @@ def copy_text_asset(source: Path, target: Path) -> None:
     print(f"Updated {target.relative_to(REPO_ROOT)}")
 
 
-def scale(value: float, size: int, base_size: int = 512) -> int:
+def scale(value: float, size: int, base_size: int = 1024) -> int:
     return int(round(value * size / base_size))
 
 
@@ -51,11 +52,34 @@ def scale_points(points: list[tuple[float, float]], size: int) -> list[tuple[int
     return [(scale(x, size), scale(y, size)) for x, y in points]
 
 
-def diagonal_gradient(size: int, start: tuple[int, int, int, int], end: tuple[int, int, int, int]) -> Image.Image:
-    mask = Image.linear_gradient("L").rotate(-45, expand=True).resize((size, size), Image.Resampling.BICUBIC)
-    start_layer = Image.new("RGBA", (size, size), start)
-    end_layer = Image.new("RGBA", (size, size), end)
-    return Image.composite(end_layer, start_layer, mask)
+def scale_box(box: tuple[float, float, float, float], size: int) -> tuple[int, int, int, int]:
+    return tuple(scale(value, size) for value in box)
+
+
+def append_cubic(
+    points: list[tuple[float, float]],
+    control_1: tuple[float, float],
+    control_2: tuple[float, float],
+    end: tuple[float, float],
+    steps: int = 24,
+) -> None:
+    start = points[-1]
+    for step in range(1, steps + 1):
+        t = step / steps
+        inverse = 1 - t
+        x = (
+            inverse**3 * start[0]
+            + 3 * inverse**2 * t * control_1[0]
+            + 3 * inverse * t**2 * control_2[0]
+            + t**3 * end[0]
+        )
+        y = (
+            inverse**3 * start[1]
+            + 3 * inverse**2 * t * control_1[1]
+            + 3 * inverse * t**2 * control_2[1]
+            + t**3 * end[1]
+        )
+        points.append((x, y))
 
 
 def rounded_line(
@@ -70,55 +94,92 @@ def rounded_line(
         draw.ellipse((x - radius, y - radius, x + radius, y + radius), fill=color)
 
 
+def draw_ring(
+    draw: ImageDraw.ImageDraw,
+    center: tuple[float, float],
+    radius: float,
+    width: float,
+    color: tuple[int, int, int, int],
+    size: int,
+) -> None:
+    cx, cy = center
+    half_width = width / 2
+    draw.ellipse(
+        scale_box((cx - radius - half_width, cy - radius - half_width, cx + radius + half_width, cy + radius + half_width), size),
+        outline=color,
+        width=scale(width, size),
+    )
+
+
 def render_native_brand_icon(size: int, variant: str = "app") -> Image.Image:
-    render_size = size * 2 if size < 512 else size
-    canvas = Image.new("RGBA", (render_size, render_size), (0, 0, 0, 0))
+    del variant
 
-    badge_mask = Image.new("L", (render_size, render_size), 0)
-    badge_draw = ImageDraw.Draw(badge_mask)
-    inset = scale(88, render_size)
-    badge_draw.rounded_rectangle(
-        (inset, inset, render_size - inset, render_size - inset),
-        radius=scale(122, render_size),
-        fill=255,
-    )
+    render_size = 1024 if size < 512 else size
+    canvas = Image.new("RGBA", (render_size, render_size), BRAND_BACKGROUND)
+    draw = ImageDraw.Draw(canvas)
 
-    shadow = Image.new("RGBA", (render_size, render_size), SHADOW_COLOR)
-    shadow_alpha = badge_mask.filter(ImageFilter.GaussianBlur(scale(22, render_size)))
-    shadow_alpha = shadow_alpha.point(lambda alpha: min(255, int(alpha * 0.22)))
-    shadow.putalpha(shadow_alpha)
-    canvas.alpha_composite(shadow, (0, scale(18 if variant == "app" else 22, render_size)))
+    left_side = [(426, 258), (323, 258)]
+    append_cubic(left_side, (221, 258), (148, 335), (148, 443))
+    append_cubic(left_side, (148, 551), (221, 628), (323, 628))
+    left_side.extend([(426, 628), (359, 561), (322, 561)])
+    append_cubic(left_side, (256, 561), (211, 512), (211, 443))
+    append_cubic(left_side, (211, 374), (256, 325), (322, 325))
+    left_side.extend([(359, 325)])
 
-    badge = diagonal_gradient(render_size, APP_START, APP_END)
-    badge.putalpha(badge_mask)
-    canvas.alpha_composite(badge)
+    right_top = [(598, 258), (701, 258)]
+    append_cubic(right_top, (803, 258), (876, 335), (876, 443))
+    right_top.append((813, 443))
+    append_cubic(right_top, (813, 374), (768, 325), (702, 325))
+    right_top.extend([(665, 325)])
 
-    highlight = Image.new("RGBA", (render_size, render_size), (255, 255, 255, 0))
-    highlight_draw = ImageDraw.Draw(highlight)
-    highlight_draw.ellipse(
-        (
-            scale(112, render_size),
-            scale(102, render_size),
-            scale(392, render_size),
-            scale(270, render_size),
-        ),
-        fill=(255, 255, 255, 84 if variant == "app" else 96),
-    )
-    highlight = highlight.filter(ImageFilter.GaussianBlur(scale(18, render_size)))
-    highlight.putalpha(ImageChops.multiply(highlight.getchannel("A"), badge_mask))
-    canvas.alpha_composite(highlight)
+    right_bottom = [(665, 561), (702, 561)]
+    append_cubic(right_bottom, (768, 561), (813, 512), (813, 443))
+    right_bottom.append((876, 443))
+    append_cubic(right_bottom, (876, 551), (803, 628), (701, 628))
+    right_bottom.extend([(598, 628)])
 
-    outer_points = scale_points(
-        [(164, 292), (236, 190), (332, 190), (388, 258), (318, 356), (216, 356), (164, 292)],
-        render_size,
-    )
-    inner_points = scale_points([(236, 190), (294, 258), (216, 356)], render_size)
+    for shape in (left_side, right_top, right_bottom):
+        draw.polygon(scale_points(shape, render_size), fill=BRAND_SIDE)
 
-    monogram = Image.new("RGBA", (render_size, render_size), (0, 0, 0, 0))
-    monogram_draw = ImageDraw.Draw(monogram)
-    monogram_draw.line(outer_points, fill=APP_STROKE, width=scale(32, render_size), joint="curve")
-    rounded_line(monogram_draw, inner_points, width=scale(28, render_size), color=APP_STROKE)
-    canvas.alpha_composite(monogram)
+    blue_width = scale(31, render_size)
+    orange_width = scale(31, render_size)
+
+    draw_ring(draw, (512, 197), 30, 20, BRAND_BLUE, render_size)
+    draw_ring(draw, (293, 443), 24, 20, BRAND_BLUE, render_size)
+
+    blue_left = [(512, 227), (512, 275)]
+    append_cubic(blue_left, (512, 296), (500, 305), (482, 316))
+    append_cubic(blue_left, (435, 342), (405, 383), (405, 433))
+    blue_left.extend([(405, 604), (430, 631)])
+    rounded_line(draw, scale_points(blue_left, render_size), blue_width, BRAND_BLUE)
+
+    blue_right = [(512, 275)]
+    append_cubic(blue_right, (589, 303), (632, 358), (632, 429))
+    append_cubic(blue_right, (632, 478), (603, 508), (558, 542))
+    append_cubic(blue_right, (535, 559), (522, 579), (522, 603))
+    rounded_line(draw, scale_points(blue_right, render_size), blue_width, BRAND_BLUE)
+    rounded_line(draw, scale_points([(317, 443), (405, 443)], render_size), blue_width, BRAND_BLUE)
+
+    draw_ring(draw, (735, 443), 24, 20, BRAND_ORANGE, render_size)
+    draw_ring(draw, (522, 666), 24, 20, BRAND_ORANGE, render_size)
+    rounded_line(draw, scale_points([(632, 443), (711, 443)], render_size), orange_width, BRAND_ORANGE)
+    rounded_line(draw, scale_points([(522, 604), (522, 642)], render_size), orange_width, BRAND_ORANGE)
+    rounded_line(draw, scale_points([(522, 604), (656, 734)], render_size), orange_width, BRAND_ORANGE)
+
+    draw.polygon(scale_points([(449, 443), (501, 404), (501, 482)], render_size), fill=BRAND_DARK)
+    draw.polygon(scale_points([(575, 443), (523, 404), (523, 482)], render_size), fill=BRAND_DARK)
+
+    for offset in (0, 168):
+        draw.rectangle(scale_box((286 + offset, 740, 418 + offset, 762), render_size), fill=BRAND_DARK)
+        draw.rectangle(scale_box((286 + offset, 740, 306 + offset, 850), render_size), fill=BRAND_DARK)
+        draw.rectangle(scale_box((286 + offset, 828, 418 + offset, 850), render_size), fill=BRAND_DARK)
+
+    draw.rectangle(scale_box((622, 740, 652, 850), render_size), fill=BRAND_DARK)
+    draw.rectangle(scale_box((622, 740, 712, 762), render_size), fill=BRAND_DARK)
+    draw.rectangle(scale_box((622, 801, 716, 823), render_size), fill=BRAND_DARK)
+    draw.rectangle(scale_box((704, 740, 754, 801), render_size), fill=BRAND_DARK)
+    draw.polygon(scale_points([(674, 823), (718, 823), (760, 850), (712, 850)], render_size), fill=BRAND_DARK)
+    draw.rectangle(scale_box((652, 762, 704, 801), render_size), fill=BRAND_BACKGROUND)
 
     if render_size != size:
         canvas = canvas.resize((size, size), Image.Resampling.LANCZOS)
@@ -215,6 +276,7 @@ def export_brand_sources() -> None:
     copy_text_asset(DISPLAY_LOGO_SVG, REPO_ROOT / "docs" / "public" / "logo.svg")
     copy_text_asset(APP_ICON_SVG, REPO_ROOT / "docs" / "public" / "favicon.svg")
     copy_text_asset(VSCODE_ICON_SVG, REPO_ROOT / "ccr-vscode" / "resources" / "icons" / "ccr.svg")
+    copy_text_asset(APP_ICON_SVG, REPO_ROOT / "ccr-vscode" / "icon.svg")
 
 
 def export_runtime_assets() -> None:
@@ -287,7 +349,7 @@ def export_android_assets() -> None:
         foreground = render_with_padding(APP_ICON_SVG, size, padding_ratio=0.14, fallback_image=app_fallback)
         save_png(foreground, android_root / bucket / "ic_launcher_foreground.png")
 
-    background_xml = """<resources>\n  <color name=\"ic_launcher_background\">#E67E58</color>\n</resources>\n"""
+    background_xml = """<resources>\n  <color name=\"ic_launcher_background\">#FFFFFF</color>\n</resources>\n"""
     background_path = android_root / "values" / "ic_launcher_background.xml"
     ensure_parent(background_path)
     background_path.write_text(background_xml, encoding="utf-8")

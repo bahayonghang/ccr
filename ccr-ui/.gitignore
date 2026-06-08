@@ -75,3 +75,4 @@ tests/artifacts
 .planning/
 .plannings/
 target/
+output/
