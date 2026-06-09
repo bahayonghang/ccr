@@ -143,3 +143,39 @@ Completed a crates-only Brooks full sweep, applied two safe Rust fixes, verified
 ### Next Steps
 
 - None - task complete
+
+
+## Session 5: Bootstrap Trellis backend guidelines
+
+**Date**: 2026-06-09
+**Task**: Bootstrap Trellis backend guidelines
+**Package**: ccr
+**Branch**: `dev`
+
+### Summary
+
+Populated backend Trellis guidelines for the Rust workspace, verified spec links and placeholder cleanup, then archived 00-bootstrap-guidelines.
+
+### Main Changes
+
+- Replaced empty backend scaffold specs with source-backed package guidelines for the 12 Rust crates covered by the bootstrap task.
+- Preserved existing specialized spec files and updated backend indexes to point at the final guideline set.
+- Archived `.trellis/tasks/00-bootstrap-guidelines` after verifying the PRD checklist.
+
+### Git Commits
+
+(No commits - planning session)
+
+### Testing
+
+- [OK] Verified all expected backend spec `index.md` and `backend-guidelines.md` files exist.
+- [OK] Checked for placeholder/template text and old scaffold links.
+- [OK] Verified Markdown relative links and referenced `crates/...` paths.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
