@@ -75,3 +75,71 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 3: Brooks sweep crates optimization
+
+**Date**: 2026-06-09
+**Task**: Brooks sweep crates optimization
+**Package**: ccr
+**Branch**: `dev`
+
+### Summary
+
+Completed a crates-only Brooks full sweep, applied two safe Rust fixes, verified with targeted checks plus repo gates, and archived the task.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `0c7f821d` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
+
+
+## Session 4: Codex 会话可见性与恢复
+
+**Date**: 2026-06-09
+**Task**: Codex 会话可见性与恢复
+**Package**: ccr
+**Branch**: `dev`
+
+### Summary
+
+实现 sync-history 会话索引诊断修复，并新增 Codex 会话 trash/list/restore 恢复入口。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `bb84237c` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

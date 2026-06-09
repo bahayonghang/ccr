@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 2
-- **Last Active**: 2026-06-08
+- **Total Sessions**: 4
+- **Last Active**: 2026-06-09
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~77 | Active |
+| `journal-1.md` | ~145 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,8 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 4 | 2026-06-09 | Codex 会话可见性与恢复 | `bb84237c` | `dev` |
+| 3 | 2026-06-09 | Brooks sweep crates optimization | `0c7f821d` | `dev` |
 | 2 | 2026-06-08 | Codex Profile 模板选择器与图标资产收尾 | `6d41a1a9`, `78a1eaa7` | `dev` |
 | 1 | 2026-06-08 | brainstorm: ccr-vscode update and optimization | `ba423b86`, `d559ab00` | `dev` |
 <!-- @@@/auto:session-history -->
