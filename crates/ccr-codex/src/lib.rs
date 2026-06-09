@@ -20,8 +20,9 @@ pub use services::{
     CodexHistorySyncStatus, CodexHistoryVisibilityDiagnostics, CodexModelProviderStoreService,
     CodexOAuthTokenService, CodexQuotaService, CodexRegistryStore, CodexRollingUsage,
     CodexRuntimeCommitPlan, CodexRuntimeService, CodexSessionDetail, CodexSessionExport,
-    CodexSessionMessage, CodexSessionService, CodexSessionSummary, CodexUsageRecord,
-    CodexUsageService, CodexUsageStats, OAuthRepairOutcome, OpenCodeAuthService,
+    CodexSessionMessage, CodexSessionRestoreSummary, CodexSessionService, CodexSessionSummary,
+    CodexSessionTrashService, CodexSessionTrashSummary, CodexTrashedSessionRecord,
+    CodexUsageRecord, CodexUsageService, CodexUsageStats, OAuthRepairOutcome, OpenCodeAuthService,
     OpenCodeQuotaService, OpenCodeRollingUsage, OpenCodeUsageRecord, OpenCodeUsageService,
     OpenCodeUsageStats,
 };

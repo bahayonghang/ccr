@@ -68,6 +68,9 @@ pub async fn restore_command(
         "Provider at backup time: {}",
         result.target_provider
     ));
+    if result.restored_session_index {
+        ColorOutput::info("Restored session_index.jsonl state captured by this backup.");
+    }
     if result.restored_state {
         ColorOutput::warning(
             "Restored state_5.sqlite and global state; this can overwrite metadata created after the backup.",
@@ -161,6 +164,20 @@ fn print_status(status: &CodexHistorySyncStatus) {
     println!(
         "Rollout / SQLite difference: {}",
         format_bucket_diff(&status.rollout_counts, status.sqlite_counts.as_ref())
+    );
+    println!();
+    println!("Session index:");
+    println!(
+        "  session_index.jsonl: {}",
+        if status.session_index_present {
+            "found"
+        } else {
+            "not found"
+        }
+    );
+    println!(
+        "  missing entries: {}",
+        status.missing_session_index_entries
     );
     println!();
     println!("Visibility diagnostics:");
@@ -274,6 +291,25 @@ fn print_sync_result(result: &CodexHistorySyncResult) {
     };
     println!("{}: {}", rollout_label, result.changed_rollout_files);
     println!("{}: {}", sidebar_label, result.added_sidebar_projects);
+    println!(
+        "Session index file: {}",
+        if result.session_index_present {
+            "found"
+        } else {
+            "not found"
+        }
+    );
+    if result.dry_run {
+        println!(
+            "Session index entries to add: {}",
+            result.missing_session_index_entries
+        );
+    } else {
+        println!(
+            "Added session index entries: {}",
+            result.added_session_index_entries
+        );
+    }
     if result.sqlite_present {
         let sqlite_label = if result.dry_run {
             "SQLite rows to update/insert"

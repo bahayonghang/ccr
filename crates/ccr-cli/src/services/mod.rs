@@ -43,10 +43,11 @@ pub use ccr_codex::{
     CodexHistorySyncOptions, CodexHistorySyncResult, CodexHistorySyncService,
     CodexHistorySyncStatus, CodexHistoryVisibilityDiagnostics, CodexOAuthTokenService,
     CodexQuotaService, CodexRollingUsage, CodexRuntimeCommitPlan, CodexRuntimeService,
-    CodexSessionDetail, CodexSessionExport, CodexSessionMessage, CodexSessionService,
-    CodexSessionSummary, CodexUsageRecord, CodexUsageService, CodexUsageStats, OpenCodeAuthService,
-    OpenCodeQuotaService, OpenCodeReadSnapshot, OpenCodeRollingUsage, OpenCodeUsageRecord,
-    OpenCodeUsageService, OpenCodeUsageStats,
+    CodexSessionDetail, CodexSessionExport, CodexSessionMessage, CodexSessionRestoreSummary,
+    CodexSessionService, CodexSessionSummary, CodexSessionTrashService, CodexSessionTrashSummary,
+    CodexTrashedSessionRecord, CodexUsageRecord, CodexUsageService, CodexUsageStats,
+    OpenCodeAuthService, OpenCodeQuotaService, OpenCodeReadSnapshot, OpenCodeRollingUsage,
+    OpenCodeUsageRecord, OpenCodeUsageService, OpenCodeUsageStats,
 };
 #[allow(unused_imports)]
 pub use claude_auth_service::{ClaudeAuthItem, ClaudeAuthReadSnapshot, ClaudeAuthService};

@@ -364,7 +364,7 @@ impl CommandDispatcher {
     async fn dispatch_codex(
         action: &Option<crate::cli::subcommands::CodexAction>,
     ) -> Result<(), CcrError> {
-        use crate::cli::subcommands::codex::CodexSyncHistoryAction;
+        use crate::cli::subcommands::codex::{CodexSessionsAction, CodexSyncHistoryAction};
         use crate::cli::subcommands::{CodexAction, CodexAuthAction, CodexProfileAction};
 
         match action {
@@ -429,6 +429,31 @@ impl CommandDispatcher {
                 crate::commands::codex::quota::quota_command(account.as_deref(), *json, *refresh)
                     .await
             }
+            Some(CodexAction::Sessions { action }) => match action {
+                CodexSessionsAction::Trash {
+                    session_ids,
+                    codex_home,
+                } => {
+                    crate::commands::codex::sessions::trash_command(
+                        session_ids.clone(),
+                        codex_home.clone(),
+                    )
+                    .await
+                }
+                CodexSessionsAction::TrashList { codex_home } => {
+                    crate::commands::codex::sessions::list_command(codex_home.clone()).await
+                }
+                CodexSessionsAction::Restore {
+                    session_ids,
+                    codex_home,
+                } => {
+                    crate::commands::codex::sessions::restore_command(
+                        session_ids.clone(),
+                        codex_home.clone(),
+                    )
+                    .await
+                }
+            },
             Some(CodexAction::SyncHistory {
                 provider,
                 bridge,

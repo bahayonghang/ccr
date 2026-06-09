@@ -66,6 +66,16 @@ pub enum CodexAction {
         refresh: bool,
     },
 
+    /// Codex 会话垃圾箱与恢复
+    ///
+    /// 示例: ccr codex sessions trash <session-id>
+    ///       ccr codex sessions trash-list
+    ///       ccr codex sessions restore <session-id>
+    Sessions {
+        #[command(subcommand)]
+        action: CodexSessionsAction,
+    },
+
     /// 同步 Codex 历史会话的 provider 元数据
     ///
     /// 修复官方/第三方 provider 切换后历史会话不可见的问题。
@@ -193,6 +203,40 @@ pub enum CodexSyncHistoryAction {
         /// 保留最近 N 份备份
         #[arg(long, default_value_t = 5)]
         keep: usize,
+
+        /// 指定 Codex home 目录（默认使用 ~/.codex 或 CCR_CODEX_DIR）
+        #[arg(long)]
+        codex_home: Option<String>,
+    },
+}
+
+/// Codex 会话垃圾箱子命令
+#[derive(Subcommand)]
+#[command(disable_help_subcommand = true)]
+pub enum CodexSessionsAction {
+    /// 将会话移动到 CCR 管理的垃圾箱
+    Trash {
+        /// 要移动的 session id（可传多个）
+        #[arg(required = true)]
+        session_ids: Vec<String>,
+
+        /// 指定 Codex home 目录（默认使用 ~/.codex 或 CCR_CODEX_DIR）
+        #[arg(long)]
+        codex_home: Option<String>,
+    },
+
+    /// 列出可恢复的已删除会话
+    TrashList {
+        /// 指定 Codex home 目录（默认使用 ~/.codex 或 CCR_CODEX_DIR）
+        #[arg(long)]
+        codex_home: Option<String>,
+    },
+
+    /// 从 CCR 管理的垃圾箱恢复会话
+    Restore {
+        /// 要恢复的 session id（可传多个）
+        #[arg(required = true)]
+        session_ids: Vec<String>,
 
         /// 指定 Codex home 目录（默认使用 ~/.codex 或 CCR_CODEX_DIR）
         #[arg(long)]

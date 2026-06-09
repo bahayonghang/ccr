@@ -754,4 +754,84 @@ mod tests {
 
         assert_eq!(err.kind(), clap::error::ErrorKind::ArgumentConflict);
     }
+
+    #[test]
+    fn codex_sessions_trash_restore_flags_parse() {
+        let cli = Cli::try_parse_from([
+            "ccr",
+            "codex",
+            "sessions",
+            "trash",
+            "thread-a",
+            "thread-b",
+            "--codex-home",
+            "D:/tmp/.codex",
+        ])
+        .unwrap();
+
+        match cli.command {
+            Some(Commands::Codex {
+                action:
+                    Some(CodexAction::Sessions {
+                        action:
+                            crate::cli::subcommands::codex::CodexSessionsAction::Trash {
+                                session_ids,
+                                codex_home,
+                            },
+                    }),
+            }) => {
+                assert_eq!(session_ids, vec!["thread-a", "thread-b"]);
+                assert_eq!(codex_home.as_deref(), Some("D:/tmp/.codex"));
+            }
+            other => panic!("unexpected command: {:?}", other.map(|_| "other")),
+        }
+
+        let cli = Cli::try_parse_from([
+            "ccr",
+            "codex",
+            "sessions",
+            "restore",
+            "thread-a",
+            "--codex-home",
+            "D:/tmp/.codex",
+        ])
+        .unwrap();
+
+        match cli.command {
+            Some(Commands::Codex {
+                action:
+                    Some(CodexAction::Sessions {
+                        action:
+                            crate::cli::subcommands::codex::CodexSessionsAction::Restore {
+                                session_ids,
+                                codex_home,
+                            },
+                    }),
+            }) => {
+                assert_eq!(session_ids, vec!["thread-a"]);
+                assert_eq!(codex_home.as_deref(), Some("D:/tmp/.codex"));
+            }
+            other => panic!("unexpected command: {:?}", other.map(|_| "other")),
+        }
+    }
+
+    #[test]
+    fn codex_sessions_trash_list_parses() {
+        let cli = Cli::try_parse_from(["ccr", "codex", "sessions", "trash-list"]).unwrap();
+
+        match cli.command {
+            Some(Commands::Codex {
+                action:
+                    Some(CodexAction::Sessions {
+                        action:
+                            crate::cli::subcommands::codex::CodexSessionsAction::TrashList {
+                                codex_home,
+                            },
+                    }),
+            }) => {
+                assert!(codex_home.is_none());
+            }
+            other => panic!("unexpected command: {:?}", other.map(|_| "other")),
+        }
+    }
 }

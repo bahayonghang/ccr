@@ -19,7 +19,6 @@ use std::fs::{self, File};
 use std::io::{BufRead, BufReader, Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, UNIX_EPOCH};
-#[cfg(not(windows))]
 use tempfile::NamedTempFile;
 use walkdir::WalkDir;
 
@@ -31,6 +30,7 @@ const BACKUP_NAMESPACE: &str = "codex_sync_history";
 const BACKUP_DIR_NAME: &str = "sync-history";
 const GLOBAL_STATE_FILE_NAME: &str = ".codex-global-state.json";
 const SQLITE_FILE_NAME: &str = "state_5.sqlite";
+const SESSION_INDEX_FILE: &str = "session_index.jsonl";
 const SESSION_MANIFEST_FILE_NAME: &str = "rollout-manifest.json";
 const METADATA_FILE_NAME: &str = "metadata.json";
 const DEFAULT_KEEP_COUNT: usize = 5;
@@ -63,6 +63,8 @@ pub struct CodexHistorySyncStatus {
     pub codex_home: PathBuf,
     pub current_provider: String,
     pub current_provider_implicit: bool,
+    pub session_index_present: bool,
+    pub missing_session_index_entries: usize,
     pub rollout_counts: CodexHistoryProviderBuckets,
     pub recent_rollout_counts: CodexHistoryProviderBuckets,
     pub encrypted_counts: CodexHistoryProviderBuckets,
@@ -114,6 +116,9 @@ pub struct CodexHistorySyncResult {
     pub sqlite_counts: Option<CodexHistoryProviderBuckets>,
     pub changed_rollout_files: usize,
     pub added_sidebar_projects: usize,
+    pub session_index_present: bool,
+    pub missing_session_index_entries: usize,
+    pub added_session_index_entries: usize,
     pub skipped_locked_rollout_files: Vec<PathBuf>,
     pub sqlite_rows_updated: usize,
     pub sqlite_present: bool,
@@ -125,6 +130,7 @@ pub struct CodexHistoryRestoreResult {
     pub codex_home: PathBuf,
     pub backup_dir: PathBuf,
     pub target_provider: String,
+    pub restored_session_index: bool,
     pub restored_state: bool,
 }
 
@@ -264,7 +270,9 @@ struct ThreadDbRow {
     model_provider: String,
     archived: bool,
     cwd: String,
+    title: String,
     preview: String,
+    first_user_message: String,
     has_user_event: bool,
     updated_at: i64,
 }
@@ -294,6 +302,35 @@ struct SidebarSyncPlan {
     added_projects: Vec<String>,
 }
 
+#[derive(Debug, Clone)]
+struct SessionIndexPlan {
+    file_path: PathBuf,
+    existed: bool,
+    original_text: Option<String>,
+    entries_to_add: Vec<JsonValue>,
+}
+
+#[derive(Debug, Clone)]
+struct SessionIndexSnapshot {
+    file_path: PathBuf,
+    existed: bool,
+    original_text: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+struct SessionIndexUpdateResult {
+    snapshot: Option<SessionIndexSnapshot>,
+    added_entries: usize,
+}
+
+#[derive(Debug, Clone)]
+struct SessionIndexState {
+    file_path: PathBuf,
+    existed: bool,
+    original_text: Option<String>,
+    entries_by_id: BTreeMap<String, JsonValue>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct BackupMetadata {
     version: u32,
@@ -303,6 +340,10 @@ struct BackupMetadata {
     created_at: DateTime<Utc>,
     state_db_present: bool,
     global_state_present: bool,
+    #[serde(default)]
+    session_index_present: Option<bool>,
+    #[serde(default)]
+    session_index_backed_up: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -378,11 +419,17 @@ impl CodexHistorySyncService {
         let recent_rollout_counts = self
             .scan_session_changes("__status_only__", Some(recent_cutoff), None)?
             .provider_counts;
+        let sqlite_rows = self.read_sqlite_thread_rows()?;
         let sqlite_counts = self.read_sqlite_provider_counts()?;
         let visibility = self.read_visibility_diagnostics(
             &canonical_runtime_provider(&current),
             &scan.thread_candidates,
             self.load_workspace_root_keys_for_diagnostics(),
+        )?;
+        let session_index_plan = self.prepare_session_index_repair(
+            &scan.thread_candidates,
+            sqlite_rows.as_deref(),
+            None,
         )?;
         let backup_summary = self.backup_summary()?;
 
@@ -390,6 +437,8 @@ impl CodexHistorySyncService {
             codex_home: self.codex_home.clone(),
             current_provider: current.provider,
             current_provider_implicit: current.implicit,
+            session_index_present: session_index_plan.existed,
+            missing_session_index_entries: session_index_plan.entries_to_add.len(),
             rollout_counts,
             recent_rollout_counts,
             encrypted_counts: scan.encrypted_counts,
@@ -460,8 +509,14 @@ impl CodexHistorySyncService {
         let full_scan = self.scan_session_changes("__status_only__", None, None)?;
         let scan =
             self.scan_session_changes(&target_provider, cutoff, rewrite_provider_keys.as_ref())?;
+        let sqlite_rows = self.read_sqlite_thread_rows()?;
         let sidebar_plan = self.prepare_sidebar_sync(
             self.read_sqlite_project_paths(options.sqlite_busy_timeout, &scan.thread_candidates)?,
+        )?;
+        let session_index_plan = self.prepare_session_index_repair(
+            &scan.thread_candidates,
+            sqlite_rows.as_deref(),
+            Some(&sqlite_policy),
         )?;
         let sqlite_preview = self.preview_sqlite_provider_update(
             &target_provider,
@@ -488,6 +543,9 @@ impl CodexHistorySyncService {
                 sqlite_counts,
                 changed_rollout_files: scan.changes.len(),
                 added_sidebar_projects: sidebar_plan.added_projects.len(),
+                session_index_present: session_index_plan.existed,
+                missing_session_index_entries: session_index_plan.entries_to_add.len(),
+                added_session_index_entries: 0,
                 skipped_locked_rollout_files: Vec::new(),
                 sqlite_rows_updated: sqlite_preview.updated_rows,
                 sqlite_present: sqlite_preview.database_present,
@@ -497,11 +555,13 @@ impl CodexHistorySyncService {
 
         self.assert_sqlite_writable(options.sqlite_busy_timeout)?;
 
-        let backup_dir = self.create_backup(&target_provider, &sidebar_plan)?;
+        let backup_dir =
+            self.create_backup(&target_provider, &sidebar_plan, &session_index_plan)?;
         let mut applied_rollout_entries = Vec::new();
         let mut global_state_snapshot = None;
+        let mut session_index_snapshot = None;
 
-        let sync_result = (|| -> Result<(SessionApplyResult, SqliteUpdateResult)> {
+        let sync_result = (|| -> Result<(SessionApplyResult, SessionIndexUpdateResult, SqliteUpdateResult)> {
             let apply_result = self.apply_session_changes(&scan.changes)?;
             applied_rollout_entries = apply_result.applied_changes.clone();
             self.write_session_manifest(&backup_dir, &applied_rollout_entries)?;
@@ -510,17 +570,22 @@ impl CodexHistorySyncService {
                 global_state_snapshot = Some(snapshot);
             }
 
+            let session_index_result = self.apply_session_index_repair(&session_index_plan)?;
+            if let Some(snapshot) = session_index_result.snapshot.clone() {
+                session_index_snapshot = Some(snapshot);
+            }
+
             let sqlite_result = self.update_sqlite_provider(
                 &target_provider,
                 options.sqlite_busy_timeout,
                 &scan.thread_candidates,
                 &sqlite_policy,
             )?;
-            Ok((apply_result, sqlite_result))
+            Ok((apply_result, session_index_result, sqlite_result))
         })();
 
         match sync_result {
-            Ok((apply_result, sqlite_result)) => {
+            Ok((apply_result, session_index_result, sqlite_result)) => {
                 let backup_cleanup = Some(self.prune_backups_inner(options.keep_count)?);
                 Ok(CodexHistorySyncResult {
                     codex_home: self.codex_home.clone(),
@@ -539,6 +604,9 @@ impl CodexHistorySyncService {
                     sqlite_counts,
                     changed_rollout_files: apply_result.applied_changes.len(),
                     added_sidebar_projects: sidebar_plan.added_projects.len(),
+                    session_index_present: session_index_plan.existed,
+                    missing_session_index_entries: session_index_plan.entries_to_add.len(),
+                    added_session_index_entries: session_index_result.added_entries,
                     skipped_locked_rollout_files: apply_result.skipped_locked_paths,
                     sqlite_rows_updated: sqlite_result.updated_rows,
                     sqlite_present: sqlite_result.database_present,
@@ -551,6 +619,9 @@ impl CodexHistorySyncService {
                 }
                 if let Some(snapshot) = &global_state_snapshot {
                     self.restore_global_state_snapshot(snapshot)?;
+                }
+                if let Some(snapshot) = &session_index_snapshot {
+                    self.restore_session_index_snapshot(snapshot)?;
                 }
                 Err(err)
             }
@@ -581,6 +652,8 @@ impl CodexHistorySyncService {
         let metadata = self.read_backup_metadata(&backup_dir)?;
         let session_entries = self.read_session_manifest(&backup_dir)?;
         self.restore_session_entries(&session_entries)?;
+        let restored_session_index =
+            self.restore_session_index_from_backup(&backup_dir, &metadata)?;
         if restore_state {
             self.restore_global_state_from_backup(&backup_dir, &metadata)?;
             self.restore_sqlite_from_backup(&backup_dir, &metadata)?;
@@ -590,6 +663,7 @@ impl CodexHistorySyncService {
             codex_home: self.codex_home.clone(),
             backup_dir,
             target_provider: metadata.target_provider,
+            restored_session_index,
             restored_state: restore_state,
         })
     }
@@ -862,6 +936,18 @@ impl CodexHistorySyncService {
         }
 
         Ok(Some(counts))
+    }
+
+    fn read_sqlite_thread_rows(&self) -> Result<Option<Vec<ThreadDbRow>>> {
+        let db_path = self.codex_home.join(SQLITE_FILE_NAME);
+        if !db_path.exists() {
+            return Ok(None);
+        }
+
+        let conn = Connection::open(&db_path)
+            .map_err(|err| CcrError::DatabaseError(format!("打开 state_5.sqlite 失败: {}", err)))?;
+        let columns = load_thread_columns(&conn)?;
+        Ok(Some(load_thread_rows(&conn, &columns)?))
     }
 
     fn load_workspace_root_keys_for_diagnostics(&self) -> BTreeSet<String> {
@@ -1230,10 +1316,130 @@ impl CodexHistorySyncService {
         Ok(())
     }
 
+    fn prepare_session_index_repair(
+        &self,
+        thread_candidates: &[RolloutThreadCandidate],
+        sqlite_rows: Option<&[ThreadDbRow]>,
+        repair_policy: Option<&SqliteRepairPolicy>,
+    ) -> Result<SessionIndexPlan> {
+        let state = self.read_session_index_state()?;
+        let mut seen_ids = state
+            .entries_by_id
+            .keys()
+            .cloned()
+            .collect::<BTreeSet<String>>();
+        let mut entries_to_add = Vec::new();
+        let candidates_by_id = thread_candidates
+            .iter()
+            .map(|candidate| (candidate.id.as_str(), candidate))
+            .collect::<BTreeMap<_, _>>();
+
+        if let Some(rows) = sqlite_rows {
+            for row in rows {
+                if !session_index_row_allowed(
+                    row,
+                    candidates_by_id.get(row.id.as_str()).copied(),
+                    repair_policy,
+                ) {
+                    continue;
+                }
+                if !seen_ids.insert(row.id.clone()) {
+                    continue;
+                }
+                entries_to_add.push(build_session_index_entry_from_sqlite_row(row));
+            }
+        }
+
+        for candidate in thread_candidates {
+            if !session_index_candidate_allowed(candidate, repair_policy) {
+                continue;
+            }
+            if !seen_ids.insert(candidate.id.clone()) {
+                continue;
+            }
+            entries_to_add.push(build_session_index_entry(candidate)?);
+        }
+
+        Ok(SessionIndexPlan {
+            file_path: state.file_path,
+            existed: state.existed,
+            original_text: state.original_text,
+            entries_to_add,
+        })
+    }
+
+    fn read_session_index_state(&self) -> Result<SessionIndexState> {
+        let file_path = self.codex_home.join(SESSION_INDEX_FILE);
+        let original_text = if file_path.exists() {
+            Some(fs::read_to_string(&file_path)?)
+        } else {
+            None
+        };
+        let entries_by_id = parse_session_index_entries(original_text.as_deref())?;
+
+        Ok(SessionIndexState {
+            file_path,
+            existed: original_text.is_some(),
+            original_text,
+            entries_by_id,
+        })
+    }
+
+    fn apply_session_index_repair(
+        &self,
+        plan: &SessionIndexPlan,
+    ) -> Result<SessionIndexUpdateResult> {
+        if plan.entries_to_add.is_empty() {
+            return Ok(SessionIndexUpdateResult {
+                snapshot: None,
+                added_entries: 0,
+            });
+        }
+
+        let mut lines = plan
+            .original_text
+            .as_deref()
+            .unwrap_or_default()
+            .lines()
+            .map(str::to_string)
+            .collect::<Vec<_>>();
+        while lines.last().is_some_and(|line| line.trim().is_empty()) {
+            lines.pop();
+        }
+
+        for entry in &plan.entries_to_add {
+            lines.push(serde_json::to_string(entry).map_err(|err| {
+                CcrError::ConfigError(format!("序列化 session_index 条目失败: {}", err))
+            })?);
+        }
+
+        let mut output = lines.join("\n");
+        output.push('\n');
+        write_text_atomic(&plan.file_path, &output)?;
+
+        Ok(SessionIndexUpdateResult {
+            snapshot: Some(SessionIndexSnapshot {
+                file_path: plan.file_path.clone(),
+                existed: plan.existed,
+                original_text: plan.original_text.clone(),
+            }),
+            added_entries: plan.entries_to_add.len(),
+        })
+    }
+
+    fn restore_session_index_snapshot(&self, snapshot: &SessionIndexSnapshot) -> Result<()> {
+        restore_text_snapshot(
+            &snapshot.file_path,
+            snapshot.existed,
+            snapshot.original_text.as_deref(),
+        )
+    }
+
     fn create_backup(
         &self,
         target_provider: &str,
         sidebar_plan: &SidebarSyncPlan,
+        session_index_plan: &SessionIndexPlan,
     ) -> Result<PathBuf> {
         let backup_dir = self
             .backup_root()
@@ -1244,6 +1450,8 @@ impl CodexHistorySyncService {
         let global_state_path = self.codex_home.join(GLOBAL_STATE_FILE_NAME);
         let state_db_present = db_path.exists();
         let global_state_present = sidebar_plan.existed || global_state_path.exists();
+        let session_index_present = session_index_plan.existed;
+        let session_index_backed_up = !session_index_plan.entries_to_add.is_empty();
 
         if state_db_present {
             let target = backup_dir.join("db").join(SQLITE_FILE_NAME);
@@ -1261,14 +1469,25 @@ impl CodexHistorySyncService {
             fs::copy(&global_state_path, &target)?;
         }
 
+        if session_index_backed_up && session_index_present && session_index_plan.file_path.exists()
+        {
+            let target = backup_dir.join("session-index").join(SESSION_INDEX_FILE);
+            if let Some(parent) = target.parent() {
+                fs::create_dir_all(parent)?;
+            }
+            fs::copy(&session_index_plan.file_path, &target)?;
+        }
+
         let metadata = BackupMetadata {
-            version: 1,
+            version: 2,
             namespace: BACKUP_NAMESPACE.to_string(),
             codex_home: self.codex_home.display().to_string(),
             target_provider: target_provider.to_string(),
             created_at: Utc::now(),
             state_db_present,
             global_state_present,
+            session_index_present: session_index_backed_up.then_some(session_index_present),
+            session_index_backed_up,
         };
         fs::write(
             backup_dir.join(METADATA_FILE_NAME),
@@ -1569,6 +1788,31 @@ impl CodexHistorySyncService {
         }
         Ok(())
     }
+
+    fn restore_session_index_from_backup(
+        &self,
+        backup_dir: &Path,
+        metadata: &BackupMetadata,
+    ) -> Result<bool> {
+        if !metadata.session_index_backed_up {
+            return Ok(false);
+        }
+        let Some(session_index_present) = metadata.session_index_present else {
+            return Ok(false);
+        };
+
+        let current = self.codex_home.join(SESSION_INDEX_FILE);
+        let backup_file = backup_dir.join("session-index").join(SESSION_INDEX_FILE);
+
+        if session_index_present {
+            if backup_file.exists() {
+                fs::copy(backup_file, current)?;
+            }
+        } else if current.exists() {
+            fs::remove_file(current)?;
+        }
+        Ok(true)
+    }
 }
 
 fn collect_rollout_files(root: &Path) -> Vec<PathBuf> {
@@ -1642,6 +1886,132 @@ fn parse_session_meta_record(
         .cloned()
         .ok_or_else(|| CcrError::ConfigError("session_meta.payload 不是 JSON object".into()))?;
     Ok(Some((parsed, payload)))
+}
+
+fn parse_session_index_entries(content: Option<&str>) -> Result<BTreeMap<String, JsonValue>> {
+    let mut entries = BTreeMap::new();
+    let Some(content) = content else {
+        return Ok(entries);
+    };
+
+    for (index, line) in content.lines().enumerate() {
+        let trimmed = line.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        let entry: JsonValue = serde_json::from_str(trimmed).map_err(|err| {
+            CcrError::ConfigError(format!(
+                "解析 {} 第 {} 行失败: {}",
+                SESSION_INDEX_FILE,
+                index + 1,
+                err
+            ))
+        })?;
+        let Some(id) = entry.get("id").and_then(JsonValue::as_str) else {
+            continue;
+        };
+        if id.trim().is_empty() {
+            continue;
+        }
+        entries.insert(id.to_string(), entry);
+    }
+
+    Ok(entries)
+}
+
+fn session_index_candidate_allowed(
+    candidate: &RolloutThreadCandidate,
+    repair_policy: Option<&SqliteRepairPolicy>,
+) -> bool {
+    repair_policy
+        .filter(|policy| policy.broad_provider_repair)
+        .map(|policy| {
+            policy
+                .allowed_provider_keys
+                .contains(candidate.provider_key.as_str())
+        })
+        .unwrap_or(true)
+}
+
+fn session_index_row_allowed(
+    row: &ThreadDbRow,
+    candidate: Option<&RolloutThreadCandidate>,
+    repair_policy: Option<&SqliteRepairPolicy>,
+) -> bool {
+    repair_policy
+        .filter(|policy| policy.broad_provider_repair)
+        .map(|policy| {
+            policy
+                .allowed_provider_keys
+                .contains(row.model_provider.as_str())
+                && candidate
+                    .map(|candidate| {
+                        policy
+                            .allowed_provider_keys
+                            .contains(candidate.provider_key.as_str())
+                    })
+                    .unwrap_or(true)
+        })
+        .unwrap_or(true)
+}
+
+fn build_session_index_entry_from_sqlite_row(row: &ThreadDbRow) -> JsonValue {
+    let thread_name = [&row.title, &row.preview, &row.first_user_message]
+        .into_iter()
+        .map(|value| value.trim())
+        .find(|value| !value.is_empty())
+        .unwrap_or("Untitled");
+    serde_json::json!({
+        "id": row.id.clone(),
+        "thread_name": thread_name,
+        "updated_at": format_session_index_updated_at(row.updated_at),
+    })
+}
+
+fn build_session_index_entry(candidate: &RolloutThreadCandidate) -> Result<JsonValue> {
+    let record = build_rollout_thread_insert(candidate, DEFAULT_PROVIDER)?;
+    let thread_name = if record.title.trim().is_empty() {
+        "Untitled".to_string()
+    } else {
+        record.title
+    };
+    Ok(serde_json::json!({
+        "id": candidate.id.clone(),
+        "thread_name": thread_name,
+        "updated_at": format_session_index_updated_at(record.updated_at),
+    }))
+}
+
+fn format_session_index_updated_at(updated_at: i64) -> String {
+    chrono::DateTime::<Utc>::from_timestamp(updated_at, 0)
+        .unwrap_or_else(Utc::now)
+        .to_rfc3339_opts(chrono::SecondsFormat::Micros, true)
+}
+
+fn write_text_atomic(path: &Path, content: &str) -> Result<()> {
+    let temp_file = if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+        NamedTempFile::new_in(parent)
+    } else {
+        NamedTempFile::new()
+    }
+    .map_err(|err| CcrError::FileIoError(format!("创建临时文件失败: {}", err)))?;
+
+    fs::write(temp_file.path(), content)
+        .map_err(|err| CcrError::FileIoError(format!("写入临时文件失败: {}", err)))?;
+    temp_file
+        .persist(path)
+        .map_err(|err| CcrError::FileIoError(format!("原子替换文件失败: {}", err)))?;
+    Ok(())
+}
+
+fn restore_text_snapshot(path: &Path, existed: bool, original_text: Option<&str>) -> Result<()> {
+    if existed {
+        write_text_atomic(path, original_text.unwrap_or_default())?;
+    } else if path.exists() {
+        fs::remove_file(path)?;
+    }
+    Ok(())
 }
 
 fn insert_thread_row(conn: &Connection, record: &RolloutThreadInsert) -> Result<usize> {
@@ -1857,8 +2227,18 @@ fn load_thread_rows(conn: &Connection, columns: &BTreeSet<String>) -> Result<Vec
     } else {
         "''"
     };
+    let title_expr = if columns.contains("title") {
+        "COALESCE(title, '')"
+    } else {
+        "''"
+    };
     let preview_expr = if columns.contains("preview") {
         "COALESCE(preview, '')"
+    } else {
+        "''"
+    };
+    let first_user_message_expr = if columns.contains("first_user_message") {
+        "COALESCE(first_user_message, '')"
     } else {
         "''"
     };
@@ -1873,7 +2253,7 @@ fn load_thread_rows(conn: &Connection, columns: &BTreeSet<String>) -> Result<Vec
         "0"
     };
     let sql = format!(
-        "SELECT id, {model_provider_expr}, {archived_expr}, {cwd_expr}, {preview_expr}, {has_user_event_expr}, {updated_at_expr} FROM threads"
+        "SELECT id, {model_provider_expr}, {archived_expr}, {cwd_expr}, {title_expr}, {preview_expr}, {first_user_message_expr}, {has_user_event_expr}, {updated_at_expr} FROM threads"
     );
     let mut stmt = conn
         .prepare(&sql)
@@ -1885,9 +2265,11 @@ fn load_thread_rows(conn: &Connection, columns: &BTreeSet<String>) -> Result<Vec
                 model_provider: row.get::<_, String>(1)?.trim().to_string(),
                 archived: row.get::<_, i64>(2)? != 0,
                 cwd: row.get(3)?,
-                preview: row.get(4)?,
-                has_user_event: row.get::<_, i64>(5)? != 0,
-                updated_at: row.get(6)?,
+                title: row.get(4)?,
+                preview: row.get(5)?,
+                first_user_message: row.get(6)?,
+                has_user_event: row.get::<_, i64>(7)? != 0,
+                updated_at: row.get(8)?,
             })
         })
         .map_err(|err| CcrError::DatabaseError(format!("查询 threads 行失败: {}", err)))?;
@@ -2858,6 +3240,10 @@ mod tests {
         fs::write(codex_home.join(GLOBAL_STATE_FILE_NAME), content).unwrap();
     }
 
+    fn write_session_index(codex_home: &Path, content: &str) {
+        fs::write(codex_home.join(SESSION_INDEX_FILE), content).unwrap();
+    }
+
     fn write_state_db(codex_home: &Path, rows: &[(&str, &str, bool, &str)]) {
         let conn = Connection::open(codex_home.join(SQLITE_FILE_NAME)).unwrap();
         conn.execute_batch(
@@ -3094,6 +3480,171 @@ mod tests {
         assert_eq!(result.changed_rollout_files, 1);
         let rollout = fs::read_to_string(&session_path).unwrap();
         assert!(rollout.contains(r#""model_provider":"custom""#));
+    }
+
+    #[test]
+    fn status_reports_missing_session_index_entries() {
+        let dir = tempdir().unwrap();
+        let service = create_service(dir.path());
+        write_config(&service.codex_home, Some("openai"));
+        let session_path = service
+            .codex_home
+            .join("sessions/2026/04/09/rollout-index-missing.jsonl");
+        write_rollout(&session_path, "thread-index-missing", "openai");
+
+        let status = service.status().unwrap();
+
+        assert!(!status.session_index_present);
+        assert_eq!(status.missing_session_index_entries, 1);
+    }
+
+    #[test]
+    fn status_skips_existing_session_index_entry() {
+        let dir = tempdir().unwrap();
+        let service = create_service(dir.path());
+        write_config(&service.codex_home, Some("openai"));
+        let session_path = service
+            .codex_home
+            .join("sessions/2026/04/09/rollout-index-existing.jsonl");
+        write_rollout(&session_path, "thread-index-existing", "openai");
+        write_session_index(
+            &service.codex_home,
+            "{\"id\":\"thread-index-existing\",\"thread_name\":\"Existing\",\"updated_at\":\"2026-04-09T00:00:00.000000Z\"}\n",
+        );
+
+        let status = service.status().unwrap();
+
+        assert!(status.session_index_present);
+        assert_eq!(status.missing_session_index_entries, 0);
+    }
+
+    #[test]
+    fn sync_dry_run_reports_session_index_without_writing() {
+        let dir = tempdir().unwrap();
+        let service = create_service(dir.path());
+        write_config(&service.codex_home, Some("openai"));
+        let session_path = service
+            .codex_home
+            .join("sessions/2026/04/09/rollout-index-dry-run.jsonl");
+        write_rollout(&session_path, "thread-index-dry-run", "openai");
+
+        let result = service
+            .sync(CodexHistorySyncOptions {
+                dry_run: true,
+                ..Default::default()
+            })
+            .unwrap();
+
+        assert!(!result.session_index_present);
+        assert_eq!(result.missing_session_index_entries, 1);
+        assert_eq!(result.added_session_index_entries, 0);
+        assert!(!service.codex_home.join(SESSION_INDEX_FILE).exists());
+        assert!(result.backup_dir.is_none());
+    }
+
+    #[test]
+    fn sync_appends_missing_session_index_entries() {
+        let dir = tempdir().unwrap();
+        let service = create_service(dir.path());
+        write_config(&service.codex_home, Some("openai"));
+        let session_path = service
+            .codex_home
+            .join("sessions/2026/04/09/rollout-index-write.jsonl");
+        write_rollout(&session_path, "thread-index-write", "openai");
+
+        let result = service.sync(CodexHistorySyncOptions::default()).unwrap();
+
+        assert_eq!(result.missing_session_index_entries, 1);
+        assert_eq!(result.added_session_index_entries, 1);
+        let index = fs::read_to_string(service.codex_home.join(SESSION_INDEX_FILE)).unwrap();
+        assert!(index.contains(r#""id":"thread-index-write""#));
+        assert!(index.contains(r#""thread_name":"hello""#));
+        assert!(index.contains(r#""updated_at":"#));
+    }
+
+    #[test]
+    fn sync_appends_missing_session_index_entries_from_sqlite_threads() {
+        let dir = tempdir().unwrap();
+        let service = create_service(dir.path());
+        write_config(&service.codex_home, Some("openai"));
+        write_state_db_with_visibility_columns(
+            &service.codex_home,
+            &[(
+                "thread-index-sqlite",
+                "openai",
+                false,
+                r"E:\Repo",
+                "SQLite preview",
+                true,
+                1_775_000_000,
+            )],
+        );
+
+        let status = service.status().unwrap();
+        assert_eq!(status.missing_session_index_entries, 1);
+
+        let dry_run = service
+            .sync(CodexHistorySyncOptions {
+                dry_run: true,
+                ..Default::default()
+            })
+            .unwrap();
+        assert_eq!(dry_run.missing_session_index_entries, 1);
+        assert!(!service.codex_home.join(SESSION_INDEX_FILE).exists());
+
+        let result = service.sync(CodexHistorySyncOptions::default()).unwrap();
+
+        assert_eq!(result.added_session_index_entries, 1);
+        let index = fs::read_to_string(service.codex_home.join(SESSION_INDEX_FILE)).unwrap();
+        assert!(index.contains(r#""id":"thread-index-sqlite""#));
+        assert!(index.contains(r#""thread_name":"SQLite preview""#));
+    }
+
+    #[test]
+    fn restore_removes_session_index_created_by_sync() {
+        let dir = tempdir().unwrap();
+        let service = create_service(dir.path());
+        write_config(&service.codex_home, Some("openai"));
+        let session_path = service
+            .codex_home
+            .join("sessions/2026/04/09/rollout-index-restore-created.jsonl");
+        write_rollout(&session_path, "thread-index-restore-created", "openai");
+
+        let result = service.sync(CodexHistorySyncOptions::default()).unwrap();
+        assert!(service.codex_home.join(SESSION_INDEX_FILE).exists());
+
+        let restore = service
+            .restore(result.backup_dir.as_ref().unwrap())
+            .unwrap();
+
+        assert!(restore.restored_session_index);
+        assert!(!service.codex_home.join(SESSION_INDEX_FILE).exists());
+    }
+
+    #[test]
+    fn restore_reverts_existing_session_index_content() {
+        let dir = tempdir().unwrap();
+        let service = create_service(dir.path());
+        write_config(&service.codex_home, Some("openai"));
+        let original_index = "{\"id\":\"thread-index-kept\",\"thread_name\":\"Kept\",\"updated_at\":\"2026-04-09T00:00:00.000000Z\"}\n";
+        write_session_index(&service.codex_home, original_index);
+        let session_path = service
+            .codex_home
+            .join("sessions/2026/04/09/rollout-index-restore-existing.jsonl");
+        write_rollout(&session_path, "thread-index-restore-existing", "openai");
+
+        let result = service.sync(CodexHistorySyncOptions::default()).unwrap();
+        assert_eq!(result.added_session_index_entries, 1);
+
+        let restore = service
+            .restore(result.backup_dir.as_ref().unwrap())
+            .unwrap();
+
+        assert!(restore.restored_session_index);
+        assert_eq!(
+            fs::read_to_string(service.codex_home.join(SESSION_INDEX_FILE)).unwrap(),
+            original_index
+        );
     }
 
     #[test]
@@ -3747,6 +4298,8 @@ mod tests {
                 created_at: Utc::now(),
                 state_db_present: false,
                 global_state_present: false,
+                session_index_present: None,
+                session_index_backed_up: false,
             };
             fs::write(
                 path.join(METADATA_FILE_NAME),

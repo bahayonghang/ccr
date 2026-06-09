@@ -10,4 +10,5 @@ pub mod auth;
 pub mod env;
 pub mod profile;
 pub mod quota;
+pub mod sessions;
 pub mod sync_history;
