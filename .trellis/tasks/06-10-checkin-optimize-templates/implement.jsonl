@@ -1,0 +1,7 @@
+{"file": ".trellis/spec/ccr-checkin/backend/backend-guidelines.md", "reason": "签到后端总契约（错误分类、WAF 恢复、加密/脱敏、测试命令），所有子任务共同约束"}
+{"file": ".trellis/spec/ccr-ui/frontend/provider-template-contracts.md", "reason": "Provider 模板契约，目录打通子任务的前端约束"}
+{"file": ".trellis/tasks/06-10-checkin-optimize-templates/research/internal-checkin-architecture.md", "reason": "内部架构全景与全部问题定位（file:line），子任务拆分依据"}
+{"file": ".trellis/tasks/06-10-checkin-optimize-templates/research/all-api-hub.md", "reason": "类型/实例分离、JSON 目录、4 态契约、节流队列参考"}
+{"file": ".trellis/tasks/06-10-checkin-optimize-templates/research/metapi.md", "reason": "纯数据文件单源与签到工程细节参考"}
+{"file": ".trellis/tasks/06-10-checkin-optimize-templates/research/newapi-checkin.md", "reason": "运行时检测与宽容判定参考"}
+{"file": ".trellis/tasks/06-10-checkin-optimize-templates/research/anyrouter-check-in.md", "reason": "请求指纹与 WAF cookie 策略参考"}

@@ -1,0 +1,6 @@
+{"file": ".trellis/spec/ccr-checkin/backend/backend-guidelines.md", "reason": "WAF policy 契约（required cookies 留后端）与 ccr-db 模型边界"}
+{"file": ".trellis/spec/ccr-ui/frontend/provider-template-contracts.md", "reason": "模板选择器非敏感约束、平台可见性规则、mapper 白名单测试要求"}
+{"file": ".trellis/spec/ccr-db/backend/backend-guidelines.md", "reason": "CheckinProvider 增加 builtin_id 需要 SQLite migration 规范"}
+{"file": ".trellis/tasks/06-10-checkin-optimize-templates/research/internal-checkin-architecture.md", "reason": "两套目录逐字段对比表、name-join 四处定位、可复用机制（include_str!/platforms override/PROVIDERS.json 先例）"}
+{"file": ".trellis/tasks/06-10-checkin-optimize-templates/research/metapi.md", "reason": "预设(数据)+实例(DB) 分层与跨语言纯数据文件单源模式"}
+{"file": ".trellis/tasks/06-10-checkin-optimize-templates/research/all-api-hub.md", "reason": "bundled JSON + schemaVersion 严格校验 + 类型/实例分离（sponsor-catalog 模式）"}

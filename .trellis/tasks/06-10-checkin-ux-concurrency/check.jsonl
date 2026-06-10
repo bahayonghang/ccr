@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/ccr-checkin/backend/backend-guidelines.md", "reason": "校验后端改动合规与测试命令"}
+{"file": ".trellis/tasks/06-10-checkin-optimize-templates/research/internal-checkin-architecture.md", "reason": "校验轮询删除、并发上限、alert 清零等验收点"}
