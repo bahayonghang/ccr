@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/guides/index.md", "reason": "Shared quality thinking guide index for cross-layer changes"}
+{"file": ".trellis/spec/ccr-checkin/backend/index.md", "reason": "Check-in backend spec index for validation"}
+{"file": ".trellis/spec/ccr-checkin/backend/backend-guidelines.md", "reason": "Check-in backend quality, logging, and verification rules"}
+{"file": ".trellis/tasks/06-10-ccr-ui-checkin-waf-cookie-flow/research/waf-cookie-recovery.md", "reason": "Research-backed acceptance criteria and risk guardrails"}

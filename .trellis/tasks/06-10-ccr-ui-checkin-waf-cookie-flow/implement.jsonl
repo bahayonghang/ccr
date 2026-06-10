@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/guides/index.md", "reason": "Shared thinking guides for cross-layer check-in flow changes"}
+{"file": ".trellis/spec/ccr-checkin/backend/index.md", "reason": "Check-in backend spec index and required backend guidance"}
+{"file": ".trellis/spec/ccr-checkin/backend/backend-guidelines.md", "reason": "Check-in service boundaries, crypto, errors, logging, and verification requirements"}
+{"file": ".trellis/tasks/06-10-ccr-ui-checkin-waf-cookie-flow/research/waf-cookie-recovery.md", "reason": "External WAF/AnyRouter/Tauri research and recommended implementation approach"}
