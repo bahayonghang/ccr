@@ -74,4 +74,3 @@ std::fs::write(env.path().join("config.toml"), "default_platform = 'claude'").un
 let temp_dir = setup_platform_test_env();
 std::fs::create_dir_all(temp_dir.path()).unwrap();
 ```
-

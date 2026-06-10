@@ -62,4 +62,3 @@ unsafe { std::env::remove_var("CCR_ROOT") };
 let env = crate::test_support::TestSyncEnv::new();
 std::fs::write(env.root().join("config.toml"), "test").unwrap();
 ```
-
