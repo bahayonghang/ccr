@@ -179,3 +179,39 @@ Populated backend Trellis guidelines for the Rust workspace, verified spec links
 ### Next Steps
 
 - None - task complete
+
+
+## Session 6: 完成 ccr-ui 签到 WAF Cookie 恢复优化
+
+**Date**: 2026-06-10
+**Task**: 完成 ccr-ui 签到 WAF Cookie 恢复优化
+**Package**: ccr
+**Branch**: `dev`
+
+### Summary
+
+实现 provider-aware Tauri WAF Cookie 恢复：AnyRouter required cookie 校验、WebView cookie store 读取、恢复后验证再重试，并补充前端状态、测试与 ccr-checkin 规范。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `447bad66` | (see git log) |
+| `8261e382` | (see git log) |
+| `8c775d4f` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
