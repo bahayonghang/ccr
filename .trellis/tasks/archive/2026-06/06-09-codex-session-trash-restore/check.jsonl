@@ -1,0 +1,4 @@
+{"file":".trellis/spec/guides/index.md","reason":"Shared quality thinking guides for review."}
+{"file":".trellis/spec/ccr-codex/backend/index.md","reason":"ccr-codex backend spec index for verification."}
+{"file":".trellis/spec/ccr-codex/backend/test-fixtures.md","reason":"Ensure tests follow process-wide env fixture rules."}
+{"file":".trellis/tasks/06-09-codex-session-trash-restore/research/codebase-notes.md","reason":"Task-specific acceptance criteria and risk boundaries."}

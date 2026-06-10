@@ -1,0 +1,4 @@
+{"file":"ccr-ui/AGENTS.md","reason":"Scoped UI workflow, verification commands, visual/design constraints, and generated-output boundaries for ccr-ui changes."}
+{"file":"ccr-ui/code_map.md","reason":"Route implementation to OpenCode views, types, API wrappers, and smoke tests before broad searches."}
+{"file":".trellis/tasks/06-07-ccr-ui-opencode-provider-custom-config/research/opencode-custom-provider-config.md","reason":"Official OpenCode provider/schema evidence for the required config shape."}
+{"file":".trellis/tasks/06-07-ccr-ui-opencode-provider-custom-config/prd.md","reason":"Approved task contract, requirements, acceptance criteria, and implementation plan."}
