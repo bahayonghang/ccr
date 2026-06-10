@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 6
+- **Total Sessions**: 7
 - **Last Active**: 2026-06-10
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~217 | Active |
+| `journal-1.md` | ~252 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 7 | 2026-06-10 | 签到报错链路修复收尾 | `0febbbb4`, `941f1fc2` | `dev` |
 | 6 | 2026-06-10 | 完成 ccr-ui 签到 WAF Cookie 恢复优化 | `447bad66`, `8261e382`, `8c775d4f` | `dev` |
 | 5 | 2026-06-09 | Bootstrap Trellis backend guidelines | - | `dev` |
 | 4 | 2026-06-09 | Codex 会话可见性与恢复 | `bb84237c` | `dev` |
