@@ -69,7 +69,6 @@ cmake-build-*/
 .kiro/
 .workflow/
 .opencode/
-.trellis/
 .antigravitycli/
 
 
