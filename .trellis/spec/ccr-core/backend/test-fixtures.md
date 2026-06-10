@@ -62,4 +62,3 @@ assert_eq!(resolve_log_filter(), "warn");
 env.set_env("CCR_LOG_LEVEL", std::ffi::OsStr::new("debug"));
 assert_eq!(resolve_log_filter(), "debug");
 ```
-
