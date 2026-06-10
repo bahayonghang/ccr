@@ -1,10 +1,9 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import {
-  addBuiltinProvider as apiAddBuiltinProvider,
-  queryCheckinBalance,
-} from '@/api'
+import { addBuiltinProvider as apiAddBuiltinProvider, queryCheckinBalance } from '@/api'
 import { logger } from '@/utils/logger'
+import { getErrorMessage } from '@/types/api'
+import { useUIStore } from '@/stores/ui'
 import type {
   BalanceSnapshot,
   CheckinProvider,
@@ -41,8 +40,7 @@ export {
  */
 export function useCheckinState() {
   const { t, locale } = useI18n()
-  const getErrorMessage = (error: unknown, fallback: string) =>
-    error instanceof Error ? error.message : fallback
+  const uiStore = useUIStore()
 
   // ═══════════════════════════════════════════════════════════
   // 状态
@@ -221,10 +219,22 @@ export function useCheckinState() {
       const results = await Promise.allSettled(
         enabledAccs.map((account) => queryCheckinBalance<BalanceSnapshot>(account.id))
       )
-      for (const result of results) {
+      const failedNames: string[] = []
+      results.forEach((result, index) => {
         if (result.status === 'fulfilled') {
           applyBalanceSnapshot(result.value)
+        } else {
+          failedNames.push(enabledAccs[index].name)
+          logger.error(`Failed to refresh balance for ${enabledAccs[index].name}`, result.reason)
         }
+      })
+      if (failedNames.length > 0) {
+        uiStore.showError(
+          t('checkin.errors.batchRefreshBalanceFailed', {
+            count: failedNames.length,
+            names: failedNames.join(', '),
+          })
+        )
       }
       await refreshCheckinData({
         reloadAccounts: false,
@@ -249,7 +259,11 @@ export function useCheckinState() {
         reloadStats: true,
       })
     } catch (e: unknown) {
-      alert(t('checkin.errors.refreshBalanceFailed', { error: getErrorMessage(e, t('checkin.errors.unknown')) }))
+      alert(
+        t('checkin.errors.refreshBalanceFailed', {
+          error: getErrorMessage(e, t('checkin.errors.unknown')),
+        })
+      )
     }
   }
 
@@ -262,7 +276,11 @@ export function useCheckinState() {
       await apiAddBuiltinProvider(builtinId)
       await loadAllData()
     } catch (e: unknown) {
-      alert(t('checkin.errors.addProviderFailed', { error: getErrorMessage(e, t('checkin.errors.unknown')) }))
+      alert(
+        t('checkin.errors.addProviderFailed', {
+          error: getErrorMessage(e, t('checkin.errors.unknown')),
+        })
+      )
       logger.error('Failed to add builtin provider', e)
     }
   }

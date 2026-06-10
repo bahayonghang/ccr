@@ -405,6 +405,7 @@ import type {
   WafCookieStatus,
 } from '@/types/checkin'
 import { logger } from '@/utils/logger'
+import { getErrorMessage } from '@/types/api'
 
 const props = defineProps<{
   providers: CheckinProvider[]
@@ -416,9 +417,6 @@ const emit = defineEmits<{
   (e: 'refresh'): void
 }>()
 const uiStore = useUIStore()
-
-const getErrorMessage = (error: unknown, fallback: string) =>
-  error instanceof Error ? error.message : fallback
 
 const formatWafRecoveryResult = (result: WafCookieRecoveryResult) => {
   if (result.missing_cookie_names.length > 0) {

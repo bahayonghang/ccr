@@ -18,8 +18,8 @@ use ccr_checkin::managers::checkin::{
     WafCookieManager, get_checkin_dir,
 };
 use ccr_checkin::models::checkin::{
-    CheckinStatus, CreateAccountRequest, CreateProviderRequest, ExportOptions,
-    UpdateAccountRequest, UpdateProviderRequest,
+    CheckinRecordsResponse, CheckinStatus, CreateAccountRequest, CreateProviderRequest,
+    ExportOptions, UpdateAccountRequest, UpdateProviderRequest,
 };
 use ccr_checkin::services::cdk_service::{CdkExtraConfig, CdkService};
 use ccr_checkin::services::checkin_service::{CheckinExecutionResult, CheckinService};
@@ -81,13 +81,6 @@ struct CheckinJobAccountMeta {
     account_id: String,
     account_name: String,
     provider_name: String,
-}
-
-fn build_failed_checkin_result(
-    meta: &CheckinJobAccountMeta,
-    message: impl Into<String>,
-) -> CheckinExecutionResult {
-    build_failed_checkin_result_with_code(meta, message, "task_error")
 }
 
 fn build_failed_checkin_result_with_code(
@@ -232,9 +225,13 @@ async fn execute_checkin_job_accounts(
             let result =
                 match timeout(Duration::from_secs(90), service.checkin(&meta.account_id)).await {
                     Ok(Ok(result)) => result,
-                    Ok(Err(error)) => {
-                        build_failed_checkin_result(&meta, format!("Checkin failed: {}", error))
-                    }
+                    // 透传服务层错误分类（waf_blocked/cookie_expired/crypto_error/...），
+                    // task_error 仅保留给 spawn/JoinSet 等基础设施失败
+                    Ok(Err(error)) => build_failed_checkin_result_with_code(
+                        &meta,
+                        format!("Checkin failed: {}", error),
+                        error.error_code(),
+                    ),
                     Err(_) => build_failed_checkin_result_with_code(&meta, "签到超时", "timeout"),
                 };
 
@@ -692,15 +689,45 @@ pub async fn get_checkin_job_status(
 }
 
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub async fn get_checkin_records(
     _state: State<'_, AppState>,
     account_id: Option<String>,
     limit: Option<usize>,
+    status: Option<String>,
+    provider_id: Option<String>,
+    keyword: Option<String>,
+    page: Option<usize>,
+    page_size: Option<usize>,
 ) -> Result<Value, String> {
     run_blocking(move || {
         let record_manager = RecordManager::new();
 
-        let response = if let Some(aid) = account_id.as_deref() {
+        // 任一高级过滤/分页参数出现即走 SQL 级过滤；否则保留旧 limit 语义（兼容存量调用）
+        let use_advanced = status.is_some()
+            || provider_id.is_some()
+            || keyword.is_some()
+            || page.is_some()
+            || page_size.is_some();
+
+        let response = if use_advanced {
+            let page = page.unwrap_or(1).max(1);
+            let page_size = page_size.or(limit).unwrap_or(20).clamp(1, 500);
+            let (records, total) = record_manager
+                .get_paginated_advanced(
+                    status.as_deref(),
+                    account_id.as_deref(),
+                    provider_id.as_deref(),
+                    keyword.as_deref(),
+                    page,
+                    page_size,
+                )
+                .map_err(|e| format!("Failed to get records: {}", e))?;
+            CheckinRecordsResponse {
+                records: records.into_iter().map(Into::into).collect(),
+                total,
+            }
+        } else if let Some(aid) = account_id.as_deref() {
             record_manager
                 .get_by_account(aid, limit)
                 .map_err(|e| format!("Failed to get records: {}", e))?
@@ -1209,4 +1236,48 @@ pub async fn get_account_dashboard(
         serde_json::to_value(dashboard).map_err(|e| format!("Serialization error: {}", e))
     })
     .await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ccr_checkin::core::error::CheckinServiceError;
+
+    fn test_meta() -> CheckinJobAccountMeta {
+        CheckinJobAccountMeta {
+            account_id: "acc-1".to_string(),
+            account_name: "test-account".to_string(),
+            provider_name: "TestProvider".to_string(),
+        }
+    }
+
+    // Job 路径 Ok(Err(error)) 分支必须透传服务层 error_code，不得覆盖为 task_error
+    #[test]
+    fn job_failure_preserves_crypto_error_code() {
+        let error = CheckinServiceError::Crypto("decrypt failed".to_string());
+        let result = build_failed_checkin_result_with_code(
+            &test_meta(),
+            format!("Checkin failed: {}", error),
+            error.error_code(),
+        );
+
+        assert_eq!(result.status, CheckinStatus::Failed);
+        assert_eq!(result.error_code.as_deref(), Some("crypto_error"));
+        assert_eq!(
+            result.message.as_deref(),
+            Some("Checkin failed: Crypto error: decrypt failed")
+        );
+    }
+
+    #[test]
+    fn job_failure_preserves_waf_blocked_error_code() {
+        let error = CheckinServiceError::Api("检测到 WAF 挑战页面（响应为 HTML）".to_string());
+        let result = build_failed_checkin_result_with_code(
+            &test_meta(),
+            format!("Checkin failed: {}", error),
+            error.error_code(),
+        );
+
+        assert_eq!(result.error_code.as_deref(), Some("waf_blocked"));
+    }
 }

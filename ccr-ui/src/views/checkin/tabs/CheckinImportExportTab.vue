@@ -101,6 +101,7 @@ import {
   importCheckinConfig,
 } from '@/api'
 import type { ExportData, ImportPreviewResponse, ImportResult } from '@/types/checkin'
+import { getErrorMessage } from '@/types/api'
 
 const emit = defineEmits<{
   (e: 'refresh'): void
@@ -116,8 +117,6 @@ const exportOptions = ref({
 const importData = ref<ExportData | null>(null)
 const importPreview = ref<ImportPreviewResponse | null>(null)
 const importConflictStrategy = ref<'skip' | 'overwrite'>('skip')
-const getErrorMessage = (error: unknown, fallback: string) =>
-  error instanceof Error ? error.message : fallback
 
 // 导出操作
 const handleExport = async () => {

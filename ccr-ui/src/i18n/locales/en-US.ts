@@ -291,6 +291,7 @@ export default {
       unknown: 'Unknown error',
       unknownReason: 'Unknown reason',
       refreshBalanceFailed: 'Failed to refresh balance: {error}',
+      batchRefreshBalanceFailed: 'Failed to refresh balance for {count} account(s): {names}',
       addProviderFailed: 'Failed to add provider: {error}',
       hints: {
         cookie_expired: 'Suggestion: update the cookie',

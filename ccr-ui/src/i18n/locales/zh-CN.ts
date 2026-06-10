@@ -287,6 +287,7 @@ export default {
       unknown: '未知错误',
       unknownReason: '未知原因',
       refreshBalanceFailed: '刷新余额失败: {error}',
+      batchRefreshBalanceFailed: '{count} 个账号余额刷新失败: {names}',
       addProviderFailed: '添加失败: {error}',
       hints: {
         cookie_expired: '建议：请更新 Cookie',

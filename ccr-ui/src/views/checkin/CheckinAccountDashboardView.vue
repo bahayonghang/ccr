@@ -343,6 +343,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { checkinAccount, getCheckinAccountDashboard, queryCheckinBalance } from '@/api'
 import type { BalanceSnapshot, CheckinAccountDashboardResponse } from '@/types/checkin'
 import { extractStringParam } from '@/types/router'
+import { getErrorMessage } from '@/types/api'
 import { useUIStore } from '@/stores/ui'
 import AccountDashboardCalendar from './components/AccountDashboardCalendar.vue'
 import AccountDashboardTrend from './components/AccountDashboardTrend.vue'
@@ -365,8 +366,6 @@ const trendDays = ref(30)
 const trendOptions = [7, 30, 90]
 
 const accountEnabled = computed(() => dashboard.value?.account.enabled ?? false)
-const getErrorMessage = (currentError: unknown, fallback: string) =>
-  currentError instanceof Error ? currentError.message : fallback
 
 const loadDashboard = async () => {
   if (!accountId.value) return

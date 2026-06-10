@@ -296,6 +296,7 @@ import type {
   CheckinRecordsResponse,
 } from '@/types/checkin'
 import { logger } from '@/utils/logger'
+import { getErrorMessage } from '@/types/api'
 
 interface CheckinRecordsExportResponse {
   blob: Blob
@@ -322,8 +323,6 @@ const failedHistoryPage = ref(1)
 const failedHistoryPageSize = ref(5)
 const failedHistoryProviderFilter = ref<string>('all')
 const failedHistoryKeyword = ref('')
-const getErrorMessage = (error: unknown, fallback: string) =>
-  error instanceof Error ? error.message : fallback
 
 const failedHistoryTotalPages = computed(() => {
   const total = Math.ceil(failedHistoryTotal.value / failedHistoryPageSize.value)

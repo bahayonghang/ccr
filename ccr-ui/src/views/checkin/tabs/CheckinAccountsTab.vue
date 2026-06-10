@@ -603,6 +603,7 @@ import {
 import type { CheckinProvider, AccountInfo, BuiltinProvider, CdkExtraConfig } from '@/types/checkin'
 import { useUIStore } from '@/stores/ui'
 import { logger } from '@/utils/logger'
+import { getErrorMessage } from '@/types/api'
 
 const props = defineProps<{
   providers: CheckinProvider[]
@@ -728,9 +729,6 @@ const getProviderName = (providerId: string) => {
 const formatDate = (dateStr: string) => {
   return new Date(dateStr).toLocaleString(locale.value)
 }
-
-const getErrorMessage = (error: unknown, fallback: string) =>
-  error instanceof Error ? error.message : fallback
 
 // 切换账号菜单
 const closeAccountMenu = () => {
