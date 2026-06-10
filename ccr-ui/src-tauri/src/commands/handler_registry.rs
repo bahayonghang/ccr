@@ -280,6 +280,7 @@ define_command_registry! {
     waf: "WAF" => [
         super::waf::open_waf_login,
         super::waf::get_waf_cookie_status,
+        super::waf::validate_waf_cookie_for_account,
         super::waf::waf_deliver_cookie,
     ],
     unified_mcp: "统一 MCP" => [
@@ -494,10 +495,10 @@ mod tests {
         assert_eq!(COMMAND_MODULES.len(), 30);
 
         #[cfg(target_os = "windows")]
-        assert_eq!(registered_command_count(), 318);
+        assert_eq!(registered_command_count(), 319);
 
         #[cfg(not(target_os = "windows"))]
-        assert_eq!(registered_command_count(), 310);
+        assert_eq!(registered_command_count(), 311);
     }
 
     #[test]

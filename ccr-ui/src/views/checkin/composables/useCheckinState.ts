@@ -23,12 +23,14 @@ import { createCheckinJobRuntime } from './checkinJobRuntime'
 import {
   applyRecoveryFailureToLogs,
   createCheckinWafRecovery,
+  formatWafCookieRecoveryFailure,
   mapCheckinJobLogEntry,
   mergeRetryLogsIntoProgress,
 } from './checkinWafRecovery'
 
 export {
   applyRecoveryFailureToLogs,
+  formatWafCookieRecoveryFailure,
   mergeRetryLogsIntoProgress,
   mapCheckinJobLogEntry,
 }

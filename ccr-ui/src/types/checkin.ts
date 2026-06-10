@@ -252,6 +252,30 @@ export interface WafCookieStatus {
   provider_id: string
   has_cookie: boolean
   expires_at?: string
+  cookie_names?: string[]
+  required_cookie_names?: string[]
+  missing_cookie_names?: string[]
+}
+
+export interface WafCookieRecoveryResult {
+  provider_id: string
+  provider_name: string
+  found_cookie_names: string[]
+  missing_cookie_names: string[]
+  required_cookie_names: string[]
+  persisted: boolean
+  source: string
+  message: string
+}
+
+export interface WafCookieValidationResult {
+  account_id: string
+  provider_id: string
+  provider_name: string
+  success: boolean
+  status_code?: number
+  challenge: string
+  message: string
 }
 
 // ═══════════════════════════════════════════════════════════

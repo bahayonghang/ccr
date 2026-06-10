@@ -1,4 +1,9 @@
-import { openWafLogin, startCheckinJob, getCheckinJobStatus } from '@/api'
+import {
+  openWafLogin,
+  startCheckinJob,
+  getCheckinJobStatus,
+  validateWafCookieForAccount,
+} from '@/api'
 import type {
   CheckinProvider,
   CheckinDisplayResponse,
@@ -9,6 +14,8 @@ import type {
   CheckinJobSnapshot,
   CheckinLogEntry,
   StartCheckinJobResponse,
+  WafCookieRecoveryResult,
+  WafCookieValidationResult,
 } from '@/types/checkin'
 import type { Ref } from 'vue'
 import type { CheckinRefreshOptions } from './checkinDataState'
@@ -32,6 +39,19 @@ interface WafRecoveryRefs {
 type RefreshCheckinData = (options?: CheckinRefreshOptions) => Promise<void>
 
 const CHECKIN_RECOVERY_MISSING_LOG = '自动重试未返回日志'
+
+export const formatWafCookieRecoveryFailure = (result: WafCookieRecoveryResult): string => {
+  if (result.missing_cookie_names.length > 0) {
+    return `缺少 WAF Cookie: ${result.missing_cookie_names.join(', ')}`
+  }
+  return result.message || 'WAF Cookie 未获取完整'
+}
+
+export const formatWafCookieValidationFailure = (
+  result: WafCookieValidationResult
+): string => {
+  return result.message || 'WAF Cookie 验证失败'
+}
 
 export const mapCheckinJobLogEntry = (entry: CheckinJobLogEntryPayload): CheckinLogEntry => ({
   accountId: entry.account_id,
@@ -241,8 +261,12 @@ export const createCheckinWafRecovery = (
 
         refs.wafRecoveryMessage.value = `正在为 ${group.providerName} 获取 WAF Cookie（${index + 1}/${groups.length}）`
 
+        let recoveryResult: WafCookieRecoveryResult
         try {
-          await openWafLogin<string>(getProviderLoginUrl(group.provider), group.provider.id)
+          recoveryResult = await openWafLogin<WafCookieRecoveryResult>(
+            getProviderLoginUrl(group.provider),
+            group.provider.id
+          )
         } catch (error: unknown) {
           const recoveryError = `自动获取 WAF Cookie 失败：${getErrorMessage(error, '未知错误')}`
           mergedResult = markWafRecoveryFailure(mergedResult, group.accountIds, recoveryError)
@@ -255,7 +279,48 @@ export const createCheckinWafRecovery = (
           continue
         }
 
-        refs.wafRecoveryMessage.value = `已获取 ${group.providerName} 的 WAF Cookie，正在重试 ${group.accountIds.length} 个账号`
+        if (!recoveryResult.persisted) {
+          const recoveryError = `自动获取 WAF Cookie 失败：${formatWafCookieRecoveryFailure(recoveryResult)}`
+          mergedResult = markWafRecoveryFailure(mergedResult, group.accountIds, recoveryError)
+          refs.checkinResult.value = mergedResult
+          refs.checkinLogs.value = applyRecoveryFailureToLogs(
+            refs.checkinLogs.value,
+            group.accountIds,
+            recoveryError
+          )
+          continue
+        }
+
+        refs.wafRecoveryMessage.value = `已获取 ${group.providerName} 的 WAF Cookie，正在验证`
+
+        try {
+          const validation = await validateWafCookieForAccount<WafCookieValidationResult>(
+            group.accountIds[0]
+          )
+          if (!validation.success) {
+            const recoveryError = `WAF Cookie 已获取但验证失败：${formatWafCookieValidationFailure(validation)}`
+            mergedResult = markWafRecoveryFailure(mergedResult, group.accountIds, recoveryError)
+            refs.checkinResult.value = mergedResult
+            refs.checkinLogs.value = applyRecoveryFailureToLogs(
+              refs.checkinLogs.value,
+              group.accountIds,
+              recoveryError
+            )
+            continue
+          }
+        } catch (error: unknown) {
+          const recoveryError = `WAF Cookie 已获取但验证失败：${getErrorMessage(error, '未知错误')}`
+          mergedResult = markWafRecoveryFailure(mergedResult, group.accountIds, recoveryError)
+          refs.checkinResult.value = mergedResult
+          refs.checkinLogs.value = applyRecoveryFailureToLogs(
+            refs.checkinLogs.value,
+            group.accountIds,
+            recoveryError
+          )
+          continue
+        }
+
+        refs.wafRecoveryMessage.value = `已验证 ${group.providerName} 的 WAF Cookie，正在重试 ${group.accountIds.length} 个账号`
 
         try {
           const retrySnapshot = await retryAccountsAfterWaf(group.accountIds)

@@ -604,7 +604,7 @@ export {
 // ════════════════════════════════════════════════════════════
 // 16. WAF —— 实现已迁移至 ./domains/waf
 // ════════════════════════════════════════════════════════════
-export { openWafLogin, getWafCookieStatus } from './domains/waf'
+export { openWafLogin, getWafCookieStatus, validateWafCookieForAccount } from './domains/waf'
 
 // ════════════════════════════════════════════════════════════
 // 17. 统一 MCP (Unified MCP) —— 实现已迁移至 ./domains/unifiedMcp

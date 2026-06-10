@@ -21,4 +21,6 @@ pub use models::checkin::*;
 pub use services::cdk_service::{
     CdkError, CdkExtraConfig, CdkRedeemError, CdkService, CdkTopupResult,
 };
-pub use services::checkin_service::{CheckinExecutionResult, CheckinService, TodayCheckinStats};
+pub use services::checkin_service::{
+    CheckinExecutionResult, CheckinService, TodayCheckinStats, WafCookieValidationResult,
+};

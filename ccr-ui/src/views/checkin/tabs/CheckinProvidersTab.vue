@@ -398,7 +398,12 @@ import {
   openWafLogin,
   getWafCookieStatus,
 } from '@/api'
-import type { CheckinProvider, BuiltinProvider, WafCookieStatus } from '@/types/checkin'
+import type {
+  CheckinProvider,
+  BuiltinProvider,
+  WafCookieRecoveryResult,
+  WafCookieStatus,
+} from '@/types/checkin'
 import { logger } from '@/utils/logger'
 
 const props = defineProps<{
@@ -414,6 +419,13 @@ const uiStore = useUIStore()
 
 const getErrorMessage = (error: unknown, fallback: string) =>
   error instanceof Error ? error.message : fallback
+
+const formatWafRecoveryResult = (result: WafCookieRecoveryResult) => {
+  if (result.missing_cookie_names.length > 0) {
+    return `缺少 WAF Cookie: ${result.missing_cookie_names.join(', ')}`
+  }
+  return result.message || 'WAF Cookie 未获取完整'
+}
 
 // 计算属性：过滤出尚未添加的内置提供商
 const availableBuiltinProviders = computed(() => {
@@ -473,9 +485,16 @@ const startWafLogin = async (provider: CheckinProvider) => {
   }
 
   try {
-    await openWafLogin<string>(getProviderLoginUrl(provider), provider.id)
+    const result = await openWafLogin<WafCookieRecoveryResult>(
+      getProviderLoginUrl(provider),
+      provider.id
+    )
     await loadWafStatus(provider.id)
-    uiStore.showSuccess(`${provider.name} 的 WAF Cookie 已更新，现在可以回到签到页重试。`)
+    if (result.persisted) {
+      uiStore.showSuccess(`${provider.name} 的 WAF Cookie 已更新，现在可以回到签到页重试。`)
+    } else {
+      uiStore.showError(`获取 WAF Cookie 失败: ${formatWafRecoveryResult(result)}`)
+    }
   } catch (error: unknown) {
     uiStore.showError('获取 WAF Cookie 失败: ' + getErrorMessage(error, '未知错误'))
   } finally {

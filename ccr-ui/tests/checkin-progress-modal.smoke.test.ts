@@ -117,7 +117,7 @@ describe('CheckinProgressModal smoke', () => {
         message: 'API error: 检测到 WAF 挑战页面',
         wafRecoveryAttempted: true,
         wafRecovered: false,
-        wafRecoveryError: '自动重试失败：仍返回 HTML 挑战页',
+        wafRecoveryError: '自动获取 WAF Cookie 失败：缺少 WAF Cookie: acw_sc__v2',
         timestamp: new Date('2026-03-23T09:00:05.000Z'),
       },
     ]
@@ -128,7 +128,7 @@ describe('CheckinProgressModal smoke', () => {
       expect(el.textContent).toContain('签到完成')
       expect(el.textContent).toContain('全部任务执行完毕')
       expect(el.textContent).toContain('自动补救失败')
-      expect(el.textContent).toContain('自动重试失败：仍返回 HTML 挑战页')
+      expect(el.textContent).toContain('自动获取 WAF Cookie 失败：缺少 WAF Cookie: acw_sc__v2')
       expect(el.textContent).toContain('确定')
     } finally {
       unmount()

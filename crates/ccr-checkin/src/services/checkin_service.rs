@@ -47,6 +47,18 @@ pub struct CheckinExecutionResult {
     pub balance: Option<f64>,
 }
 
+/// WAF Cookie 只读验证结果。
+#[derive(Debug, Clone, Serialize)]
+pub struct WafCookieValidationResult {
+    pub account_id: String,
+    pub provider_id: String,
+    pub provider_name: String,
+    pub success: bool,
+    pub status_code: Option<u16>,
+    pub challenge: String,
+    pub message: String,
+}
+
 /// 签到服务
 pub struct CheckinService {
     /// 签到数据目录
@@ -1600,6 +1612,111 @@ impl CheckinService {
         }
 
         Ok(status.is_success() && !is_waf_challenge(&body) && !is_cf_challenge(status, &body))
+    }
+
+    /// 使用已缓存的 WAF cookies 访问用户信息接口，验证 cookie 是否真实可用。
+    ///
+    /// 该方法不刷新 cookies，不写入余额历史，也不更新账号时间戳；用于 UI 自动补救重试前的轻量验证。
+    pub async fn validate_cached_waf_access(
+        &self,
+        account_id: &str,
+    ) -> Result<WafCookieValidationResult> {
+        let provider_manager = ProviderManager::new();
+        let account_manager = AccountManager::new(&self.checkin_dir);
+        let crypto = CryptoManager::new(&self.checkin_dir)
+            .map_err(|e| CheckinServiceError::Crypto(e.to_string()))?;
+
+        let account = account_manager
+            .get(account_id)
+            .map_err(|e| CheckinServiceError::Account(e.to_string()))?;
+
+        let provider = provider_manager
+            .get(&account.provider_id)
+            .map_err(|e| CheckinServiceError::Provider(e.to_string()))?;
+
+        let cached_waf_cookies = self.get_cached_waf_cookies(&provider.id)?;
+        if cached_waf_cookies
+            .as_ref()
+            .map(|cookies| cookies.is_empty())
+            .unwrap_or(true)
+        {
+            return Ok(WafCookieValidationResult {
+                account_id: account.id,
+                provider_id: provider.id,
+                provider_name: provider.name,
+                success: false,
+                status_code: None,
+                challenge: "none".to_string(),
+                message: "没有可用的 WAF Cookie 缓存".to_string(),
+            });
+        }
+
+        let cookies_json = crypto
+            .decrypt(&account.cookies_json_encrypted)
+            .map_err(|e| CheckinServiceError::Crypto(e.to_string()))?;
+
+        let credentials = CookieCredentials::from_json(&cookies_json, account.api_user.clone())
+            .map_err(|e| CheckinServiceError::Crypto(format!("Invalid cookies JSON: {}", e)))?;
+
+        let validation_path = WafCookieManager::policy_for_provider(&provider)
+            .and_then(|policy| policy.validation_path)
+            .unwrap_or_else(|| provider.user_info_path.clone());
+        let url = format!(
+            "{}{}",
+            provider.base_url.trim_end_matches('/'),
+            validation_path
+        );
+        let domain = provider.base_url.trim_end_matches('/');
+
+        let mut cookies = credentials.cookies.clone();
+        if let Some(waf_cookies) = cached_waf_cookies {
+            cookies = merge_cookies(&cookies, &waf_cookies);
+        }
+        if let Some(cf_cookies) = self.get_cached_cf_cookies(&provider.id)? {
+            cookies = merge_cookies(&cookies, &cf_cookies);
+        }
+        let cookie_string = cookie_header_string(&cookies);
+
+        let (status, body) = self
+            .send_balance_request(&url, domain, &credentials, &cookie_string)
+            .await?;
+
+        let challenge = response_challenge_classification(status, &body);
+        let success = status.is_success()
+            && !is_waf_challenge(&body)
+            && !is_cf_challenge(status, &body)
+            && response_content_kind(&body) != "html";
+        let message = if success {
+            "WAF Cookie 验证通过".to_string()
+        } else if challenge == "waf" {
+            "仍返回 WAF 挑战页，请确认网页登录与签到请求使用同一代理/出口".to_string()
+        } else if challenge == "cf" {
+            "仍返回 Cloudflare 挑战页，请在有 GUI 的环境中获取 cf_clearance".to_string()
+        } else if !status.is_success() {
+            format!("验证接口返回 HTTP {}", status.as_u16())
+        } else {
+            "验证接口返回非预期响应".to_string()
+        };
+
+        tracing::info!(
+            provider_id = %provider.id,
+            account_id = %account.id,
+            status = %status.as_u16(),
+            challenge,
+            success,
+            body_chars = response_body_chars(&body),
+            "WAF Cookie 验证完成"
+        );
+
+        Ok(WafCookieValidationResult {
+            account_id: account.id,
+            provider_id: provider.id,
+            provider_name: provider.name,
+            success,
+            status_code: Some(status.as_u16()),
+            challenge: challenge.to_string(),
+            message,
+        })
     }
 }
 

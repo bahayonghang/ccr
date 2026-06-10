@@ -4,10 +4,31 @@
 
 use crate::core::error::DbError;
 use crate::database::{self, repositories::checkin_repo};
+use crate::models::checkin::CheckinProvider;
 use chrono::{Duration, Utc};
 use std::collections::HashMap;
 
 const DEFAULT_CACHE_HOURS: i64 = 24;
+pub const ANYROUTER_REQUIRED_WAF_COOKIE_NAMES: &[&str] = &["acw_tc", "cdn_sec_tc", "acw_sc__v2"];
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WafCookiePolicy {
+    pub required_cookie_names: Vec<String>,
+    pub validation_path: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WafCookieSelection {
+    pub cookies: HashMap<String, String>,
+    pub found_cookie_names: Vec<String>,
+    pub missing_cookie_names: Vec<String>,
+}
+
+impl WafCookieSelection {
+    pub fn is_complete(&self) -> bool {
+        self.missing_cookie_names.is_empty() && !self.cookies.is_empty()
+    }
+}
 
 #[derive(Debug, thiserror::Error)]
 #[allow(clippy::enum_variant_names)]
@@ -48,6 +69,92 @@ impl WafCookieManager {
                 Ok(Some(cookies))
             }
             None => Ok(None),
+        }
+    }
+
+    pub fn policy_for_provider(provider: &CheckinProvider) -> Option<WafCookiePolicy> {
+        Self::policy_for_provider_parts(&provider.id, Some(&provider.name), &provider.base_url)
+    }
+
+    pub fn policy_for_provider_parts(
+        provider_id: &str,
+        provider_name: Option<&str>,
+        base_url: &str,
+    ) -> Option<WafCookiePolicy> {
+        let provider_id = provider_id.to_ascii_lowercase();
+        let provider_name = provider_name.unwrap_or_default().to_ascii_lowercase();
+        let base_url = base_url.to_ascii_lowercase();
+
+        let is_anyrouter = provider_id == "builtin-anyrouter"
+            || provider_name == "anyrouter"
+            || base_url.contains("anyrouter.top");
+
+        if !is_anyrouter {
+            return None;
+        }
+
+        Some(WafCookiePolicy {
+            required_cookie_names: ANYROUTER_REQUIRED_WAF_COOKIE_NAMES
+                .iter()
+                .map(|name| (*name).to_string())
+                .collect(),
+            validation_path: Some("/api/user/self".to_string()),
+        })
+    }
+
+    pub fn parse_cookie_pairs(cookie_str: &str) -> HashMap<String, String> {
+        let mut cookies = HashMap::new();
+
+        for pair in cookie_str.split(';') {
+            let pair = pair.trim();
+            if pair.is_empty() {
+                continue;
+            }
+
+            if let Some((key, value)) = pair.split_once('=') {
+                let key = key.trim();
+                let value = value.trim();
+                if !key.is_empty() && !value.is_empty() {
+                    cookies.insert(key.to_string(), value.to_string());
+                }
+            }
+        }
+
+        cookies
+    }
+
+    pub fn select_required_cookies(
+        cookies: &HashMap<String, String>,
+        required_cookie_names: &[String],
+    ) -> WafCookieSelection {
+        if required_cookie_names.is_empty() {
+            let mut found_cookie_names: Vec<String> = cookies.keys().cloned().collect();
+            found_cookie_names.sort();
+            return WafCookieSelection {
+                cookies: cookies.clone(),
+                found_cookie_names,
+                missing_cookie_names: Vec::new(),
+            };
+        }
+
+        let mut selected = HashMap::new();
+        let mut found_cookie_names = Vec::new();
+        let mut missing_cookie_names = Vec::new();
+
+        for required_name in required_cookie_names {
+            match cookies.get(required_name) {
+                Some(value) if !value.trim().is_empty() => {
+                    selected.insert(required_name.clone(), value.clone());
+                    found_cookie_names.push(required_name.clone());
+                }
+                _ => missing_cookie_names.push(required_name.clone()),
+            }
+        }
+
+        WafCookieSelection {
+            cookies: selected,
+            found_cookie_names,
+            missing_cookie_names,
         }
     }
 
@@ -179,5 +286,60 @@ mod tests {
             err.to_string()
                 .contains("Browser WAF cookie fetch is not implemented")
         );
+    }
+
+    #[test]
+    fn test_anyrouter_policy_matches_builtin_and_domain() {
+        let provider =
+            CheckinProvider::new("AnyRouter".to_string(), "https://anyrouter.top".to_string());
+
+        let policy = WafCookieManager::policy_for_provider(&provider).unwrap();
+
+        assert_eq!(
+            policy.required_cookie_names,
+            vec![
+                "acw_tc".to_string(),
+                "cdn_sec_tc".to_string(),
+                "acw_sc__v2".to_string()
+            ]
+        );
+        assert_eq!(policy.validation_path.as_deref(), Some("/api/user/self"));
+    }
+
+    #[test]
+    fn test_parse_cookie_pairs_ignores_empty_segments() {
+        let cookies = WafCookieManager::parse_cookie_pairs(
+            "acw_tc=tc-value; ; cdn_sec_tc=cdn-value; no-value; acw_sc__v2=v2-value",
+        );
+
+        assert_eq!(cookies.get("acw_tc"), Some(&"tc-value".to_string()));
+        assert_eq!(cookies.get("cdn_sec_tc"), Some(&"cdn-value".to_string()));
+        assert_eq!(cookies.get("acw_sc__v2"), Some(&"v2-value".to_string()));
+        assert!(!cookies.contains_key("no-value"));
+    }
+
+    #[test]
+    fn test_select_required_cookies_reports_missing_names_without_values() {
+        let mut cookies = HashMap::new();
+        cookies.insert("acw_tc".to_string(), "secret-tc".to_string());
+        cookies.insert("cdn_sec_tc".to_string(), "secret-cdn".to_string());
+        cookies.insert("session".to_string(), "secret-session".to_string());
+        let required = ANYROUTER_REQUIRED_WAF_COOKIE_NAMES
+            .iter()
+            .map(|name| (*name).to_string())
+            .collect::<Vec<_>>();
+
+        let selection = WafCookieManager::select_required_cookies(&cookies, &required);
+
+        assert!(!selection.is_complete());
+        assert_eq!(
+            selection.found_cookie_names,
+            vec!["acw_tc".to_string(), "cdn_sec_tc".to_string()]
+        );
+        assert_eq!(
+            selection.missing_cookie_names,
+            vec!["acw_sc__v2".to_string()]
+        );
+        assert!(!selection.cookies.contains_key("session"));
     }
 }
