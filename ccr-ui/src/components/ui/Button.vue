@@ -120,7 +120,7 @@ const classes = computed(() => {
 
 <style scoped>
 .ui-button {
-  @apply inline-flex min-h-[44px] items-center justify-center rounded-full font-medium;
+  @apply inline-flex min-h-[44px] items-center justify-center rounded-lg font-medium;
   @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/30 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-base;
 
   transform: translateZ(0);
@@ -132,7 +132,7 @@ const classes = computed(() => {
 }
 
 .ui-button:active {
-  transform: scale(var(--ui-button-active-scale, 0.95));
+  transform: translateY(1px) scale(var(--ui-button-active-scale, 0.985));
 }
 
 .ui-button:disabled {
@@ -167,16 +167,16 @@ const classes = computed(() => {
   border-color: rgb(var(--color-accent-primary-rgb) / 16%);
   background: linear-gradient(180deg, var(--color-accent-primary), var(--color-accent-primary-active));
   box-shadow:
-    var(--ui-button-shadow, 0 14px 28px rgb(var(--color-accent-primary-rgb) / 16%)),
-    inset 0 1px 0 rgb(255 251 245 / 18%);
+    var(--ui-button-shadow, 0 8px 16px rgb(var(--color-accent-primary-rgb) / 12%)),
+    inset 0 1px 0 rgb(255 251 245 / 12%);
 }
 
 .ui-button--primary:hover:not(:disabled) {
   background: linear-gradient(180deg, var(--color-accent-primary-hover), var(--color-accent-primary));
   box-shadow:
-    0 16px 32px rgb(var(--color-accent-primary-rgb) / 18%),
-    inset 0 1px 0 rgb(255 251 245 / 22%);
-  transform: translateY(-0.5px);
+    0 10px 20px rgb(var(--color-accent-primary-rgb) / 14%),
+    inset 0 1px 0 rgb(255 251 245 / 14%);
+  transform: translateY(-1px);
 }
 
 .ui-button--secondary {
@@ -199,7 +199,7 @@ const classes = computed(() => {
 
   border-color: rgb(var(--color-accent-secondary-rgb) / 16%);
   background: linear-gradient(180deg, var(--color-accent-secondary), rgb(var(--color-accent-secondary-rgb) / 88%));
-  box-shadow: 0 14px 28px rgb(var(--color-accent-secondary-rgb) / 14%);
+  box-shadow: 0 8px 16px rgb(var(--color-accent-secondary-rgb) / 12%);
 }
 
 .ui-button--accent:hover:not(:disabled) {
@@ -250,7 +250,7 @@ const classes = computed(() => {
 
   border-color: rgb(var(--color-danger-rgb) / 16%);
   background: linear-gradient(180deg, var(--color-danger), rgb(var(--color-danger-rgb) / 88%));
-  box-shadow: var(--ui-button-shadow, 0 14px 28px rgb(var(--color-danger-rgb) / 14%));
+  box-shadow: var(--ui-button-shadow, 0 8px 16px rgb(var(--color-danger-rgb) / 12%));
 }
 
 .ui-button--danger:hover:not(:disabled) {
@@ -262,13 +262,13 @@ const classes = computed(() => {
 
   border-color: rgb(var(--color-success-rgb) / 16%);
   background: linear-gradient(180deg, var(--color-success), rgb(var(--color-success-rgb) / 88%));
-  box-shadow: var(--ui-button-shadow, 0 14px 28px rgb(var(--color-success-rgb) / 14%));
+  box-shadow: var(--ui-button-shadow, 0 8px 16px rgb(var(--color-success-rgb) / 12%));
 }
 
 .ui-button--success:hover:not(:disabled) {
   background: linear-gradient(180deg, var(--color-success-hover), var(--color-success));
-  box-shadow: var(--ui-button-shadow, 0 16px 30px rgb(var(--color-success-rgb) / 18%));
-  transform: translateY(-0.5px);
+  box-shadow: var(--ui-button-shadow, 0 10px 20px rgb(var(--color-success-rgb) / 14%));
+  transform: translateY(-1px);
 }
 
 .ui-button--surface-workspace.ui-button--glass {
@@ -320,6 +320,6 @@ const classes = computed(() => {
 .ui-button--motion-standard {
   --ui-button-duration: var(--motion-standard-duration);
   --ui-button-ease: var(--motion-standard-ease);
-  --ui-button-active-scale: 0.95;
+  --ui-button-active-scale: 0.985;
 }
 </style>

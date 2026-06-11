@@ -110,7 +110,7 @@
                         size="w-4 h-4"
                       />
                     </span>
-                    <span>
+                    <span class="app-settings-option__copy">
                       <span class="app-settings-option__title">{{ option.label }}</span>
                       <span class="app-settings-option__caption">{{ option.description }}</span>
                     </span>
@@ -156,7 +156,7 @@
                       class="app-settings-option__swatch"
                       :style="{ background: option.preview }"
                     />
-                    <span>
+                    <span class="app-settings-option__copy">
                       <span class="app-settings-option__title">{{ option.label }}</span>
                       <span class="app-settings-option__caption">{{ option.description }}</span>
                     </span>
@@ -243,7 +243,7 @@
                     <span class="app-settings-option__icon app-settings-option__icon--plain">
                       {{ option.flag }}
                     </span>
-                    <span>
+                    <span class="app-settings-option__copy">
                       <span class="app-settings-option__title">{{ option.label }}</span>
                       <span class="app-settings-option__caption">{{ option.description }}</span>
                     </span>
@@ -778,18 +778,15 @@ onMounted(async () => {
 }
 
 .app-settings-shell {
-  @apply mx-auto flex max-w-[1440px] flex-col gap-6;
+  @apply mx-auto flex max-w-[1440px] flex-col gap-5;
 }
 
 .app-settings-hero {
-  @apply flex flex-col gap-5 rounded-[2rem] border px-6 py-6 lg:flex-row lg:items-end lg:justify-between;
+  @apply flex flex-col gap-4 rounded-lg border px-5 py-5 lg:flex-row lg:items-center lg:justify-between;
 
-  background:
-    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 94%), rgb(var(--color-bg-surface-rgb) / 88%));
-  border-color: rgb(var(--color-border-default-rgb) / 48%);
-  box-shadow:
-    var(--surface-card-shadow),
-    var(--glass-inner-glow);
+  background: var(--surface-card-bg);
+  border-color: var(--surface-card-border);
+  box-shadow: var(--shadow-sm);
 }
 
 .app-settings-hero__intro {
@@ -797,24 +794,22 @@ onMounted(async () => {
 }
 
 .app-settings-hero__icon {
-  @apply flex h-14 w-14 items-center justify-center rounded-[1.4rem] border shadow-sm;
+  @apply flex h-12 w-12 items-center justify-center rounded-lg border;
 
   color: var(--color-accent-primary);
-  border-color: rgb(var(--color-accent-primary-rgb) / 18%);
-  background:
-    radial-gradient(circle at top, rgb(var(--color-accent-primary-rgb) / 20%), transparent 65%),
-    rgb(var(--color-bg-base-rgb) / 78%);
+  border-color: rgb(var(--color-accent-primary-rgb) / 24%);
+  background: rgb(var(--color-accent-primary-rgb) / 10%);
 }
 
 .app-settings-hero__eyebrow,
 .app-settings-card__eyebrow {
-  @apply text-[11px] font-semibold uppercase tracking-[0.22em];
+  @apply text-[11px] font-semibold tracking-[0.08em];
 
   color: var(--color-text-muted);
 }
 
 .app-settings-hero__title {
-  @apply text-[2rem] font-semibold tracking-[-0.06em] sm:text-[2.4rem];
+  @apply text-[1.7rem] font-semibold tracking-[-0.03em] sm:text-[2rem];
 
   color: var(--color-text-primary);
 }
@@ -831,7 +826,7 @@ onMounted(async () => {
 }
 
 .app-settings-summary__pill {
-  @apply inline-flex items-center rounded-full border px-3 py-1.5 text-[11px] font-semibold tracking-[0.14em] uppercase;
+  @apply inline-flex items-center rounded-md border px-2.5 py-1.5 text-[11px] font-semibold;
 
   border-color: rgb(var(--color-border-default-rgb) / 56%);
   background: rgb(var(--color-bg-base-rgb) / 72%);
@@ -839,11 +834,11 @@ onMounted(async () => {
 }
 
 .app-settings-summary__pill--mono {
-  @apply font-mono tracking-[0.08em];
+  @apply font-mono tracking-normal;
 }
 
 .app-settings-layout {
-  @apply grid gap-5 xl:grid-cols-[260px_minmax(0,1fr)];
+  @apply grid min-w-0 grid-cols-1 gap-5 xl:grid-cols-[260px_minmax(0,1fr)];
 }
 
 .app-settings-nav {
@@ -851,11 +846,11 @@ onMounted(async () => {
 }
 
 .app-settings-nav__inner {
-  @apply flex gap-2 overflow-x-auto pb-1 xl:flex-col xl:overflow-visible;
+  @apply flex min-w-0 gap-2 overflow-x-auto pb-1 xl:flex-col xl:overflow-visible;
 }
 
 .app-settings-nav__button {
-  @apply flex min-h-[72px] min-w-[220px] items-start gap-3 rounded-[1.4rem] border px-4 py-3 text-left transition-[border-color,background-color,box-shadow,transform] duration-200 xl:min-w-0;
+  @apply flex min-h-[64px] min-w-[220px] items-start gap-3 rounded-lg border px-3.5 py-3 text-left transition-[border-color,background-color,box-shadow,transform] duration-200 xl:min-w-0;
 
   border-color: rgb(var(--color-border-default-rgb) / 44%);
   background: rgb(var(--color-bg-elevated-rgb) / 72%);
@@ -864,20 +859,19 @@ onMounted(async () => {
 
 .app-settings-nav__button:hover {
   transform: translateY(-1px);
-  border-color: rgb(var(--color-accent-primary-rgb) / 16%);
-  background: rgb(var(--color-bg-surface-rgb) / 84%);
+  border-color: rgb(var(--color-accent-primary-rgb) / 18%);
+  background: rgb(var(--color-bg-surface-rgb) / 82%);
 }
 
 .app-settings-nav__button--active {
-  border-color: rgb(var(--color-accent-primary-rgb) / 22%);
-  background:
-    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 96%), rgb(var(--color-bg-surface-rgb) / 88%));
-  box-shadow: 0 16px 30px rgb(var(--color-accent-primary-rgb) / 8%);
+  border-color: rgb(var(--color-accent-primary-rgb) / 30%);
+  background: rgb(var(--color-accent-primary-rgb) / 10%);
+  box-shadow: inset 2px 0 0 var(--color-accent-primary);
   color: var(--color-text-primary);
 }
 
 .app-settings-nav__icon {
-  @apply mt-0.5 flex h-9 w-9 flex-none items-center justify-center rounded-2xl border;
+  @apply mt-0.5 flex h-8 w-8 flex-none items-center justify-center rounded-md border;
 
   border-color: rgb(var(--color-border-default-rgb) / 46%);
   background: rgb(var(--color-bg-base-rgb) / 78%);
@@ -897,26 +891,27 @@ onMounted(async () => {
   @apply mt-1 block text-xs leading-5;
 
   color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
 }
 
 .app-settings-content {
-  @apply flex flex-col gap-5;
+  @apply flex min-w-0 flex-col gap-5;
 }
 
 .app-settings-content > section {
-  @apply flex flex-col gap-4;
+  @apply flex min-w-0 flex-col gap-4;
 }
 
 .app-settings-card {
-  @apply p-5 sm:p-6;
+  @apply min-w-0 p-4 sm:p-5;
 }
 
 .app-settings-card__header {
-  @apply flex flex-col gap-3 border-b border-border-default/40 pb-5 lg:flex-row lg:items-end lg:justify-between;
+  @apply flex max-w-[72ch] flex-col gap-2 border-b border-border-default/40 pb-4;
 }
 
 .app-settings-option-grid {
-  @apply mt-5 grid gap-3 xl:grid-cols-3;
+  @apply mt-4 grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3;
 }
 
 .app-settings-option-grid--compact {
@@ -924,30 +919,34 @@ onMounted(async () => {
 }
 
 .app-settings-option {
-  @apply flex min-h-[136px] flex-col justify-between rounded-[1.4rem] border p-4 text-left transition-[border-color,background-color,box-shadow,transform] duration-200;
+  @apply flex min-h-[112px] min-w-0 flex-col justify-between rounded-lg border p-3.5 text-left transition-[border-color,background-color,box-shadow,transform] duration-200;
 
   border-color: rgb(var(--color-border-default-rgb) / 44%);
-  background:
-    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 82%), rgb(var(--color-bg-surface-rgb) / 72%));
+  background: rgb(var(--color-bg-elevated-rgb) / 82%);
 }
 
 .app-settings-option:hover {
   transform: translateY(-1px);
   border-color: rgb(var(--color-accent-primary-rgb) / 18%);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-sm);
 }
 
 .app-settings-option--active {
-  border-color: rgb(var(--color-accent-primary-rgb) / 24%);
-  box-shadow: 0 18px 34px rgb(var(--color-accent-primary-rgb) / 10%);
+  border-color: rgb(var(--color-accent-primary-rgb) / 34%);
+  background: rgb(var(--color-accent-primary-rgb) / 8%);
+  box-shadow: inset 0 0 0 1px rgb(var(--color-accent-primary-rgb) / 12%);
 }
 
 .app-settings-option__meta {
-  @apply flex items-start gap-3;
+  @apply flex min-w-0 items-start gap-3;
+}
+
+.app-settings-option__copy {
+  @apply min-w-0;
 }
 
 .app-settings-option__icon {
-  @apply flex h-10 w-10 flex-none items-center justify-center rounded-2xl border;
+  @apply flex h-9 w-9 flex-none items-center justify-center rounded-md border;
 
   border-color: rgb(var(--color-border-default-rgb) / 46%);
   background: rgb(var(--color-bg-base-rgb) / 82%);
@@ -955,11 +954,11 @@ onMounted(async () => {
 }
 
 .app-settings-option__icon--plain {
-  @apply text-sm font-semibold tracking-[0.18em];
+  @apply text-sm font-semibold tracking-normal;
 }
 
 .app-settings-option__status {
-  @apply inline-flex w-fit items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em];
+  @apply inline-flex w-fit items-center rounded-md border px-2 py-1 text-[10px] font-semibold;
 
   border-color: rgb(var(--color-border-default-rgb) / 52%);
   background: rgb(var(--color-bg-base-rgb) / 68%);
@@ -973,10 +972,10 @@ onMounted(async () => {
 }
 
 .app-settings-option__swatch {
-  @apply flex h-10 w-10 flex-none items-center justify-center rounded-2xl border;
+  @apply flex h-9 w-9 flex-none items-center justify-center rounded-md border;
 
   border-color: rgb(var(--color-border-default-rgb) / 46%);
-  box-shadow: var(--inner-glow);
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 8%);
 }
 
 .app-settings-card--tight {
@@ -984,11 +983,11 @@ onMounted(async () => {
 }
 
 .app-settings-accent-grid {
-  @apply mt-5 flex flex-wrap gap-3;
+  @apply mt-4 flex flex-wrap gap-2.5;
 }
 
 .app-settings-accent-swatch {
-  @apply relative h-9 w-9 cursor-pointer rounded-full border transition-[transform,border-color,box-shadow] duration-200;
+  @apply relative h-9 w-9 cursor-pointer rounded-md border transition-[transform,border-color,box-shadow] duration-200;
 
   background: var(--accent-swatch-color);
   border-color: rgb(var(--color-border-default-rgb) / 46%);
@@ -998,7 +997,7 @@ onMounted(async () => {
 }
 
 .app-settings-accent-swatch:hover {
-  transform: scale(1.08);
+  transform: translateY(-1px);
   border-color: rgb(var(--color-border-default-rgb) / 72%);
 }
 
@@ -1010,20 +1009,19 @@ onMounted(async () => {
 }
 
 .app-settings-accent-swatch--active {
-  transform: scale(1.12);
+  transform: translateY(-1px);
   border-color: var(--color-accent-primary);
   box-shadow:
-    var(--inner-glow),
-    0 0 0 2px var(--color-bg-elevated),
-    0 0 0 4px var(--color-accent-primary);
+    inset 0 0 0 1px rgb(0 0 0 / 12%),
+    0 0 0 2px rgb(var(--color-accent-primary-rgb) / 34%);
 }
 
 .app-settings-stack {
-  @apply mt-5 flex flex-col gap-4;
+  @apply mt-5 flex min-w-0 flex-col gap-4;
 }
 
 .app-settings-row {
-  @apply flex flex-col gap-4 rounded-[1.4rem] border px-4 py-4 lg:flex-row lg:items-center lg:justify-between;
+  @apply flex min-w-0 flex-col gap-4 rounded-lg border px-4 py-4 lg:flex-row lg:items-center lg:justify-between;
 
   border-color: rgb(var(--color-border-default-rgb) / 44%);
   background: rgb(var(--color-bg-elevated-rgb) / 72%);
@@ -1045,7 +1043,7 @@ onMounted(async () => {
 }
 
 .app-settings-switch {
-  @apply inline-flex items-center gap-3 rounded-full border px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] transition-[border-color,background-color,box-shadow] duration-200;
+  @apply relative inline-flex items-center gap-3 rounded-lg border px-3 py-2 text-xs font-semibold transition-[border-color,background-color,box-shadow] duration-200;
 
   border-color: rgb(var(--color-border-default-rgb) / 56%);
   background: rgb(var(--color-bg-base-rgb) / 78%);
@@ -1069,15 +1067,15 @@ onMounted(async () => {
 }
 
 .app-settings-switch__thumb {
-  @apply absolute ml-0.5 h-5 w-5 rounded-full border transition-transform duration-200;
+  @apply absolute left-3 top-1/2 h-5 w-5 rounded-full border transition-transform duration-200;
 
-  transform: translateX(0);
+  transform: translateY(-50%);
   border-color: rgb(var(--color-border-default-rgb) / 62%);
   background: rgb(var(--color-bg-elevated-rgb) / 100%);
 }
 
 .app-settings-switch--active .app-settings-switch__thumb {
-  transform: translateX(16px);
+  transform: translate(16px, -50%);
   border-color: rgb(var(--color-accent-primary-rgb) / 24%);
 }
 
@@ -1086,7 +1084,7 @@ onMounted(async () => {
 }
 
 .app-settings-slider {
-  @apply w-full max-w-[360px] rounded-[1.2rem] border px-4 py-3;
+  @apply w-full max-w-[360px] rounded-lg border px-4 py-3;
 
   border-color: rgb(var(--color-border-default-rgb) / 46%);
   background: rgb(var(--color-bg-base-rgb) / 74%);
@@ -1107,7 +1105,7 @@ onMounted(async () => {
 }
 
 .app-settings-callout {
-  @apply flex items-start gap-2 rounded-[1.2rem] border px-4 py-3;
+  @apply flex items-start gap-2 rounded-lg border px-4 py-3;
 
   border-color: rgb(var(--color-accent-primary-rgb) / 18%);
   background: rgb(var(--color-accent-primary-rgb) / 6%);
@@ -1119,15 +1117,25 @@ onMounted(async () => {
   }
 
   .app-settings-nav__inner {
-    @apply rounded-[1.4rem] border p-2;
+    @apply rounded-lg border p-2;
 
     border-color: rgb(var(--color-border-default-rgb) / 44%);
     background: rgb(var(--color-bg-base-rgb) / 86%);
-    backdrop-filter: blur(12px);
+    backdrop-filter: var(--surface-status-blur);
   }
 
   .app-settings-nav__button {
     @apply min-h-[64px] min-w-[180px];
+  }
+}
+
+@media (width <= 479px) {
+  .app-settings-nav__inner {
+    @apply grid grid-cols-2 overflow-visible;
+  }
+
+  .app-settings-nav__button {
+    @apply min-w-0;
   }
 }
 </style>

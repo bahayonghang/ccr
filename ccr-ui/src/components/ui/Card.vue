@@ -45,27 +45,6 @@
     </div>
 
     <div
-      v-if="isInteractive"
-      class="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-interactive duration-300 translate-x-1 group-hover:translate-x-0 pointer-events-none"
-    >
-      <div class="rounded-full bg-bg-elevated/80 p-1.5 backdrop-blur-md text-text-primary">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path d="M7 17L17 7M17 7H7M17 7V17" />
-        </svg>
-      </div>
-    </div>
-
-    <div
       class="relative z-10 h-full"
       :class="[paddingClasses, props.bodyClass]"
     >
@@ -183,7 +162,7 @@ const glowColors: Record<GlowColor, string> = {
 const glowStyle = computed<CSSProperties>(() => ({
   background: `radial-gradient(circle at center, ${glowColors[props.glowColor]} 0%, transparent 70%)`,
   mixBlendMode: 'overlay' as const,
-  filter: 'blur(20px)',
+  filter: 'blur(10px)',
 }))
 
 const gradientBorderStyle = computed(() => ({
@@ -224,7 +203,7 @@ const handleMouseLeave = (event: MouseEvent) => {
 }
 
 .ui-card--base {
-  @apply rounded-xl border shadow-sm;
+  @apply rounded-lg border shadow-sm;
 
   background: var(--color-bg-elevated);
   box-shadow:
@@ -233,7 +212,7 @@ const handleMouseLeave = (event: MouseEvent) => {
 }
 
 .ui-card--elevated {
-  @apply rounded-2xl;
+  @apply rounded-lg;
 
   background: var(--surface-card-bg);
   border: 1px solid var(--surface-card-border);
@@ -244,7 +223,7 @@ const handleMouseLeave = (event: MouseEvent) => {
 }
 
 .ui-card--glass {
-  @apply rounded-2xl;
+  @apply rounded-lg;
 
   background: var(--surface-workspace-bg);
   border: 1px solid var(--surface-workspace-border);
@@ -255,7 +234,7 @@ const handleMouseLeave = (event: MouseEvent) => {
 }
 
 .ui-card--outline {
-  @apply rounded-xl bg-transparent;
+  @apply rounded-lg bg-transparent;
 
   border: 1px solid var(--surface-status-border);
   backdrop-filter: var(--surface-status-blur);
@@ -274,11 +253,11 @@ const handleMouseLeave = (event: MouseEvent) => {
 }
 
 .ui-card--interactive:hover {
-  transform: translateY(var(--ui-card-hover-translate, -0.12rem));
+  transform: translateY(var(--ui-card-hover-translate, -1px));
   box-shadow:
     var(--ui-card-hover-shadow, var(--ui-card-shadow, var(--surface-card-shadow))),
-    0 14px 28px rgb(var(--color-accent-primary-rgb) / 8%);
-  border-color: rgb(var(--color-accent-primary-rgb) / 14%);
+    0 0 0 1px rgb(var(--color-accent-primary-rgb) / 8%);
+  border-color: rgb(var(--color-accent-primary-rgb) / 18%);
 }
 
 .ui-card--elevation-0 {
@@ -320,7 +299,7 @@ const handleMouseLeave = (event: MouseEvent) => {
 .ui-card--motion-standard {
   --ui-card-duration: var(--motion-standard-duration);
   --ui-card-ease: var(--motion-standard-ease);
-  --ui-card-hover-translate: -0.12rem;
+  --ui-card-hover-translate: -1px;
 }
 
 .ui-card-pattern {

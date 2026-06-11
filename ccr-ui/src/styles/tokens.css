@@ -390,12 +390,12 @@
 /* ========== 圆角系统 ========== */
 :root:where(:root):where(:root):where(:root) {
     --radius-none: 0;
-    --radius-sm: 6px;
-    --radius-md: 8px;
-    --radius-lg: 12px;
-    --radius-xl: 16px;
-    --radius-2xl: 20px;
-    --radius-3xl: 28px;
+    --radius-sm: 4px;
+    --radius-md: 6px;
+    --radius-lg: 8px;
+    --radius-xl: 10px;
+    --radius-2xl: 12px;
+    --radius-3xl: 16px;
     --radius-full: 9999px;
 }
 
@@ -403,12 +403,12 @@
 :root:where(:root):where(:root):where(:root):where(:root) {
     /* --- 标准阴影 --- */
     --shadow-xs: 0 1px 2px rgb(73 54 40 / 4%);
-    --shadow-sm: 0 2px 8px rgb(73 54 40 / 6%);
-    --shadow-md: 0 14px 34px rgb(73 54 40 / 8%);
-    --shadow-lg: 0 24px 54px rgb(73 54 40 / 10%);
-    --shadow-xl: 0 34px 72px rgb(73 54 40 / 14%);
-    --shadow-2xl: 0 42px 90px rgb(73 54 40 / 16%);
-    --shadow-inner: inset 0 1px 0 rgb(255 251 245 / 76%);
+    --shadow-sm: 0 2px 6px rgb(73 54 40 / 5%);
+    --shadow-md: 0 10px 24px rgb(73 54 40 / 7%);
+    --shadow-lg: 0 18px 38px rgb(73 54 40 / 9%);
+    --shadow-xl: 0 26px 54px rgb(73 54 40 / 12%);
+    --shadow-2xl: 0 34px 72px rgb(73 54 40 / 14%);
+    --shadow-inner: inset 0 1px 0 rgb(255 251 245 / 46%);
 
     /* --- 柔和交互光晕 --- */
     --glow-primary: 0 0 0 1px rgb(var(--color-accent-primary-rgb) / 10%), 0 14px 30px var(--color-accent-primary-glow);
@@ -419,7 +419,7 @@
     --glow-info: 0 0 0 1px rgb(var(--color-info-rgb) / 10%), 0 12px 24px var(--color-info-glow);
 
     /* --- 内发光 --- */
-    --inner-glow: inset 0 1px 0 rgb(255 251 245 / 62%);
+    --inner-glow: inset 0 1px 0 rgb(255 251 245 / 38%);
 
     /* --- 品牌渐变（仅用于少量强调） --- */
     --gradient-border: linear-gradient(135deg, rgb(var(--color-accent-primary-rgb) / 72%) 0%, rgb(var(--color-accent-secondary-rgb) / 72%) 100%);
@@ -435,22 +435,22 @@
 
 /* 暗色主题阴影调整 */
 [data-theme="dark"]:where([data-theme="dark"]) {
-    --shadow-xs: 0 1px 2px rgb(0 0 0 / 24%);
-    --shadow-sm: 0 2px 8px rgb(0 0 0 / 28%);
-    --shadow-md: 0 16px 36px rgb(0 0 0 / 34%);
-    --shadow-lg: 0 26px 56px rgb(0 0 0 / 42%);
-    --shadow-xl: 0 34px 74px rgb(0 0 0 / 50%);
-    --shadow-2xl: 0 44px 96px rgb(0 0 0 / 56%);
-    --shadow-inner: inset 0 1px 0 rgb(255 248 240 / 7%);
-    --inner-glow: inset 0 1px 0 rgb(255 248 240 / 6%);
+    --shadow-xs: 0 1px 2px rgb(0 0 0 / 22%);
+    --shadow-sm: 0 2px 6px rgb(0 0 0 / 26%);
+    --shadow-md: 0 12px 28px rgb(0 0 0 / 30%);
+    --shadow-lg: 0 20px 44px rgb(0 0 0 / 36%);
+    --shadow-xl: 0 28px 60px rgb(0 0 0 / 44%);
+    --shadow-2xl: 0 36px 78px rgb(0 0 0 / 50%);
+    --shadow-inner: inset 0 1px 0 rgb(255 248 240 / 5%);
+    --inner-glow: inset 0 1px 0 rgb(255 248 240 / 4%);
 }
 
 /* ========== 玻璃效果系统 ========== */
 :root:where(:root):where(:root):where(:root):where(:root):where(:root) {
     /* --- 玻璃背景 (Apple-style frosted surfaces) --- */
-    --glass-bg-light: rgb(255 250 243 / 72%);
-    --glass-bg-medium: rgb(251 246 238 / 84%);
-    --glass-bg-strong: rgb(255 250 243 / 92%);
+    --glass-bg-light: rgb(255 250 243 / 86%);
+    --glass-bg-medium: rgb(251 246 238 / 92%);
+    --glass-bg-strong: rgb(255 250 243 / 96%);
 
     /* --- 玻璃边框 --- */
     --glass-border-light: rgb(70 53 41 / 8%);
@@ -458,22 +458,22 @@
     --glass-border-strong: rgb(70 53 41 / 16%);
 
     /* --- 玻璃模糊 --- */
-    --glass-blur-sm: blur(6px) saturate(112%);
-    --glass-blur-md: blur(10px) saturate(116%);
-    --glass-blur-lg: blur(14px) saturate(118%);
-    --glass-blur-xl: blur(18px) saturate(120%);
+    --glass-blur-sm: blur(2px) saturate(104%);
+    --glass-blur-md: blur(3px) saturate(106%);
+    --glass-blur-lg: blur(4px) saturate(108%);
+    --glass-blur-xl: blur(6px) saturate(110%);
 
     /* --- 玻璃阴影 (亮色模式增强可见性) --- */
-    --glass-shadow: 0 18px 42px rgb(73 54 40 / 10%);
-    --glass-shadow-elevated: 0 28px 58px rgb(73 54 40 / 14%);
-    --glass-inner-glow: inset 0 1px 0 rgb(255 251 245 / 72%);
+    --glass-shadow: 0 10px 24px rgb(73 54 40 / 7%);
+    --glass-shadow-elevated: 0 18px 40px rgb(73 54 40 / 10%);
+    --glass-inner-glow: inset 0 1px 0 rgb(255 251 245 / 36%);
 
     /* --- 液态玻璃效果 --- */
-    --liquid-glass-bg: rgb(251 246 238 / 78%);
-    --liquid-glass-blur: blur(12px) saturate(118%);
+    --liquid-glass-bg: rgb(251 246 238 / 92%);
+    --liquid-glass-blur: blur(4px) saturate(106%);
     --liquid-glass-border: rgb(70 53 41 / 10%);
-    --liquid-glass-highlight: inset 0 1px 0 rgb(255 251 245 / 84%), inset 0 0 12px rgb(217 119 87 / 3%);
-    --liquid-glass-shadow: 0 22px 48px rgb(73 54 40 / 11%), 0 6px 18px rgb(73 54 40 / 5%);
+    --liquid-glass-highlight: inset 0 1px 0 rgb(255 251 245 / 38%);
+    --liquid-glass-shadow: 0 12px 30px rgb(73 54 40 / 8%);
 
     /* --- 语义化 Surface Contract --- */
     --surface-shell-bg: var(--liquid-glass-bg);
@@ -500,22 +500,35 @@
 
 /* 暗色主题玻璃效果 */
 [data-theme="dark"]:where([data-theme="dark"]):where([data-theme="dark"]) {
-    --glass-bg-light: rgb(42 34 30 / 58%);
-    --glass-bg-medium: rgb(34 27 24 / 72%);
-    --glass-bg-strong: rgb(42 34 30 / 84%);
-    --glass-border-light: rgb(243 234 223 / 8%);
-    --glass-border-medium: rgb(243 234 223 / 12%);
-    --glass-border-strong: rgb(243 234 223 / 16%);
-    --glass-shadow: 0 20px 44px rgb(0 0 0 / 42%);
-    --glass-shadow-elevated: 0 32px 68px rgb(0 0 0 / 52%);
-    --glass-inner-glow: inset 0 1px 0 rgb(255 248 240 / 9%);
+    --glass-bg-light: rgb(34 27 24 / 92%);
+    --glass-bg-medium: rgb(34 27 24 / 96%);
+    --glass-bg-strong: rgb(42 34 30 / 98%);
+    --glass-border-light: rgb(243 234 223 / 10%);
+    --glass-border-medium: rgb(243 234 223 / 14%);
+    --glass-border-strong: rgb(243 234 223 / 20%);
+    --glass-shadow: 0 12px 28px rgb(0 0 0 / 34%);
+    --glass-shadow-elevated: 0 20px 46px rgb(0 0 0 / 42%);
+    --glass-inner-glow: inset 0 1px 0 rgb(255 248 240 / 5%);
 
     /* --- 液态玻璃效果 --- */
-    --liquid-glass-bg: rgb(34 27 24 / 78%);
-    --liquid-glass-blur: blur(16px) saturate(120%);
-    --liquid-glass-border: rgb(243 234 223 / 10%);
-    --liquid-glass-highlight: inset 0 1px 0 rgb(255 248 240 / 7%), inset 0 0 14px rgb(231 154 119 / 5%);
-    --liquid-glass-shadow: 0 28px 56px rgb(0 0 0 / 48%), 0 6px 18px rgb(0 0 0 / 28%);
+    --liquid-glass-bg: rgb(34 27 24 / 96%);
+    --liquid-glass-blur: blur(4px) saturate(106%);
+    --liquid-glass-border: rgb(243 234 223 / 12%);
+    --liquid-glass-highlight: inset 0 1px 0 rgb(255 248 240 / 5%);
+    --liquid-glass-shadow: 0 16px 36px rgb(0 0 0 / 38%);
+    --surface-shell-bg: rgb(var(--color-bg-base-rgb) / 98%);
+    --surface-workspace-bg: rgb(var(--color-bg-elevated-rgb) / 98%);
+    --surface-workspace-blur: none;
+    --surface-workspace-border: rgb(var(--color-border-default-rgb) / 14%);
+    --surface-workspace-shadow: 0 8px 20px rgb(0 0 0 / 26%);
+    --surface-card-bg: rgb(var(--color-bg-surface-rgb) / 98%);
+    --surface-card-blur: none;
+    --surface-card-border: rgb(var(--color-border-default-rgb) / 16%);
+    --surface-card-shadow: 0 10px 24px rgb(0 0 0 / 30%);
+    --surface-status-bg: rgb(var(--color-bg-elevated-rgb) / 96%);
+    --surface-status-blur: none;
+    --surface-status-border: rgb(var(--color-border-default-rgb) / 14%);
+    --surface-status-shadow: 0 2px 8px rgb(0 0 0 / 22%);
 }
 
 @media (prefers-reduced-transparency: reduce) {
@@ -1037,36 +1050,36 @@
     --stage-bg-orb-primary-opacity: 3%;
     --stage-bg-orb-secondary-opacity: 2%;
     --shadow-xs: 0 1px 2px rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-xs-opacity));
-    --shadow-sm: 0 2px 8px rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-sm-opacity));
-    --shadow-md: 0 16px 36px rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-md-opacity));
-    --shadow-lg: 0 26px 56px rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-lg-opacity));
-    --shadow-xl: 0 34px 74px rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-lg-opacity));
-    --shadow-2xl: 0 44px 96px rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-lg-opacity));
-    --shadow-inner: inset 0 1px 0 rgb(var(--ctp-text-rgb) / 7%);
-    --inner-glow: inset 0 1px 0 rgb(var(--ctp-text-rgb) / 6%);
+    --shadow-sm: 0 2px 6px rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-sm-opacity));
+    --shadow-md: 0 10px 24px rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-md-opacity));
+    --shadow-lg: 0 18px 38px rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-lg-opacity));
+    --shadow-xl: 0 26px 54px rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-lg-opacity));
+    --shadow-2xl: 0 34px 72px rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-lg-opacity));
+    --shadow-inner: inset 0 1px 0 rgb(var(--ctp-text-rgb) / 4%);
+    --inner-glow: inset 0 1px 0 rgb(var(--ctp-text-rgb) / 4%);
     --glass-bg-light: rgb(var(--ctp-mantle-rgb) / var(--ctp-glass-light-opacity));
     --glass-bg-medium: rgb(var(--ctp-mantle-rgb) / var(--ctp-glass-medium-opacity));
     --glass-bg-strong: rgb(var(--ctp-mantle-rgb) / var(--ctp-glass-strong-opacity));
     --glass-border-light: rgb(var(--ctp-surface2-rgb) / 18%);
     --glass-border-medium: rgb(var(--ctp-surface2-rgb) / 24%);
     --glass-border-strong: rgb(var(--ctp-overlay0-rgb) / 30%);
-    --glass-shadow: 0 20px 44px rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-md-opacity));
-    --glass-shadow-elevated: 0 32px 68px rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-lg-opacity));
-    --glass-inner-glow: inset 0 1px 0 rgb(var(--ctp-text-rgb) / 8%);
-    --liquid-glass-bg: rgb(var(--ctp-mantle-rgb) / 68%);
+    --glass-shadow: 0 10px 24px rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-md-opacity));
+    --glass-shadow-elevated: 0 18px 40px rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-lg-opacity));
+    --glass-inner-glow: inset 0 1px 0 rgb(var(--ctp-text-rgb) / 4%);
+    --liquid-glass-bg: rgb(var(--ctp-mantle-rgb) / 92%);
     --liquid-glass-border: rgb(var(--ctp-surface2-rgb) / 20%);
-    --liquid-glass-highlight: inset 0 1px 0 rgb(var(--ctp-text-rgb) / 5%), inset 0 0 12px rgb(var(--ctp-lavender-rgb) / 3%);
-    --liquid-glass-shadow: 0 24px 50px rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-md-opacity)), 0 6px 16px rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-xs-opacity));
+    --liquid-glass-highlight: inset 0 1px 0 rgb(var(--ctp-text-rgb) / 4%);
+    --liquid-glass-shadow: 0 12px 30px rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-md-opacity));
     --surface-shell-bg: var(--liquid-glass-bg);
     --surface-shell-blur: var(--liquid-glass-blur);
     --surface-shell-border: var(--liquid-glass-border);
     --surface-shell-shadow: var(--liquid-glass-shadow);
     --surface-workspace-bg: var(--glass-bg-medium);
-    --surface-workspace-blur: var(--glass-blur-md);
+    --surface-workspace-blur: none;
     --surface-workspace-border: var(--glass-border-medium);
     --surface-workspace-shadow: var(--glass-shadow);
     --surface-card-bg: var(--glass-bg-strong);
-    --surface-card-blur: var(--glass-blur-lg);
+    --surface-card-blur: none;
     --surface-card-border: var(--glass-border-medium);
     --surface-card-shadow: var(--glass-shadow);
     --surface-modal-bg: var(--glass-bg-strong);
@@ -1074,7 +1087,7 @@
     --surface-modal-border: var(--glass-border-strong);
     --surface-modal-shadow: var(--glass-shadow-elevated);
     --surface-status-bg: var(--glass-bg-light);
-    --surface-status-blur: var(--glass-blur-md);
+    --surface-status-blur: none;
     --surface-status-border: var(--glass-border-light);
     --surface-status-shadow: var(--shadow-sm);
 }
@@ -1105,33 +1118,36 @@ html:root[data-resolved-flavor="mocha"] {
     --color-stage-chip-neutral-bg: rgb(var(--ctp-surface0-rgb) / 72%);
     --color-stage-chip-neutral-border: rgb(var(--ctp-surface2-rgb) / 32%);
     --shadow-xs: 0 1px 2px rgb(0 0 0 / 34%);
-    --shadow-sm: 0 2px 10px rgb(0 0 0 / 38%);
-    --shadow-md: 0 18px 42px rgb(0 0 0 / 44%);
-    --shadow-lg: 0 30px 66px rgb(0 0 0 / 52%);
-    --shadow-xl: 0 40px 86px rgb(0 0 0 / 58%);
-    --shadow-2xl: 0 52px 108px rgb(0 0 0 / 62%);
-    --glass-bg-light: rgb(var(--ctp-base-rgb) / 84%);
-    --glass-bg-medium: rgb(var(--ctp-base-rgb) / 90%);
-    --glass-bg-strong: rgb(var(--ctp-surface0-rgb) / 92%);
+    --shadow-sm: 0 2px 6px rgb(0 0 0 / 34%);
+    --shadow-md: 0 10px 24px rgb(0 0 0 / 38%);
+    --shadow-lg: 0 18px 38px rgb(0 0 0 / 44%);
+    --shadow-xl: 0 26px 54px rgb(0 0 0 / 50%);
+    --shadow-2xl: 0 34px 72px rgb(0 0 0 / 56%);
+    --glass-bg-light: rgb(var(--ctp-base-rgb) / 94%);
+    --glass-bg-medium: rgb(var(--ctp-base-rgb) / 96%);
+    --glass-bg-strong: rgb(var(--ctp-surface0-rgb) / 98%);
     --glass-border-light: rgb(var(--ctp-surface2-rgb) / 24%);
     --glass-border-medium: rgb(var(--ctp-overlay0-rgb) / 30%);
     --glass-border-strong: rgb(var(--ctp-overlay1-rgb) / 40%);
-    --glass-shadow: 0 22px 48px rgb(0 0 0 / 46%);
-    --glass-shadow-elevated: 0 34px 74px rgb(0 0 0 / 56%);
-    --glass-inner-glow: inset 0 1px 0 rgb(var(--ctp-text-rgb) / 10%);
-    --liquid-glass-bg: rgb(var(--ctp-base-rgb) / 88%);
+    --glass-shadow: 0 10px 24px rgb(0 0 0 / 38%);
+    --glass-shadow-elevated: 0 18px 40px rgb(0 0 0 / 48%);
+    --glass-inner-glow: inset 0 1px 0 rgb(var(--ctp-text-rgb) / 4%);
+    --liquid-glass-bg: rgb(var(--ctp-base-rgb) / 96%);
     --liquid-glass-border: rgb(var(--ctp-surface2-rgb) / 26%);
-    --liquid-glass-highlight: inset 0 1px 0 rgb(var(--ctp-text-rgb) / 7%), inset 0 0 12px rgb(var(--ctp-lavender-rgb) / 4%);
-    --liquid-glass-shadow: 0 26px 58px rgb(0 0 0 / 52%), 0 8px 20px rgb(0 0 0 / 34%);
-    --surface-shell-bg: rgb(var(--ctp-crust-rgb) / 94%);
+    --liquid-glass-highlight: inset 0 1px 0 rgb(var(--ctp-text-rgb) / 4%);
+    --liquid-glass-shadow: 0 14px 32px rgb(0 0 0 / 42%);
+    --surface-shell-bg: rgb(var(--ctp-crust-rgb) / 98%);
     --surface-shell-border: rgb(var(--ctp-surface2-rgb) / 24%);
     --surface-shell-shadow: 0 26px 60px rgb(0 0 0 / 54%), inset -1px 0 0 rgb(var(--ctp-text-rgb) / 5%);
-    --surface-workspace-bg: rgb(var(--ctp-base-rgb) / 90%);
+    --surface-workspace-bg: rgb(var(--ctp-base-rgb) / 98%);
+    --surface-workspace-blur: none;
     --surface-workspace-border: rgb(var(--ctp-surface2-rgb) / 26%);
-    --surface-card-bg: rgb(var(--ctp-surface0-rgb) / 94%);
+    --surface-card-bg: rgb(var(--ctp-surface0-rgb) / 98%);
+    --surface-card-blur: none;
     --surface-card-border: rgb(var(--ctp-overlay0-rgb) / 34%);
-    --surface-card-shadow: 0 22px 46px rgb(0 0 0 / 46%), inset 0 1px 0 rgb(var(--ctp-text-rgb) / 7%);
-    --surface-status-bg: rgb(var(--ctp-base-rgb) / 92%);
+    --surface-card-shadow: 0 10px 24px rgb(0 0 0 / 38%);
+    --surface-status-bg: rgb(var(--ctp-base-rgb) / 96%);
+    --surface-status-blur: none;
     --surface-status-border: rgb(var(--ctp-surface2-rgb) / 24%);
 }
 
