@@ -15,11 +15,22 @@ export interface CheckinProvider {
   auth_header: string
   auth_prefix: string
   enabled: boolean
+  /** 关联的内置站 ID（builtin-* 前缀；自定义站缺省。改名安全的反查键，优先于 name 匹配） */
+  builtin_id?: string
   created_at: string
   updated_at?: string
 }
 
-/** 内置提供商定义 */
+/**
+ * 内置提供商定义。
+ *
+ * 手工镜像（snake_case wire format），来源：
+ * - 数据源: crates/ccr-checkin/data/providers-catalog.json（双端共享单一目录）
+ * - Rust struct: crates/ccr-checkin/src/managers/checkin/builtin_providers.rs 的 BuiltinProvider
+ *   （由 catalog 条目投影，经 list_builtin_providers 命令 serde 全字段序列化）
+ *
+ * 字段集合一致性由 tests/providers-catalog.smoke.test.ts 防漂移测试守护。
+ */
 export interface BuiltinProvider {
   id: string
   name: string

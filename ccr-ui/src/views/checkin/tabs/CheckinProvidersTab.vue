@@ -406,6 +406,10 @@ import type {
 } from '@/types/checkin'
 import { logger } from '@/utils/logger'
 import { getErrorMessage } from '@/types/api'
+import {
+  filterAvailableBuiltinProviders,
+  resolveBuiltinProvider,
+} from '../composables/builtinProviderLookup'
 
 const props = defineProps<{
   providers: CheckinProvider[]
@@ -425,21 +429,17 @@ const formatWafRecoveryResult = (result: WafCookieRecoveryResult) => {
   return result.message || 'WAF Cookie 未获取完整'
 }
 
-// 计算属性：过滤出尚未添加的内置提供商
-const availableBuiltinProviders = computed(() => {
-  const addedNames = new Set(props.providers.map(p => p.name))
-  return props.builtinProviders.filter(bp => !addedNames.has(bp.name))
-})
-
-const builtinProviderMap = computed(() => {
-  return new Map(props.builtinProviders.map((provider) => [provider.name, provider]))
-})
+// 计算属性：过滤出尚未添加的内置提供商（builtin_id 优先判定，name 回退兼容旧数据）
+const availableBuiltinProviders = computed(() =>
+  filterAvailableBuiltinProviders(props.builtinProviders, props.providers)
+)
 
 const wafStatusMap = ref<Record<string, WafCookieStatus | undefined>>({})
 const wafLoadingMap = ref<Record<string, boolean>>({})
 
+// builtin_id 优先反查内置站（改名安全），旧数据无 builtin_id 时回退 name 匹配
 const getBuiltinProvider = (provider: CheckinProvider): BuiltinProvider | undefined => {
-  return builtinProviderMap.value.get(provider.name)
+  return resolveBuiltinProvider(props.builtinProviders, provider)
 }
 
 const requiresWafBypass = (provider: CheckinProvider) => {

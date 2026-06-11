@@ -604,6 +604,7 @@ import type { CheckinProvider, AccountInfo, BuiltinProvider, CdkExtraConfig } fr
 import { useUIStore } from '@/stores/ui'
 import { logger } from '@/utils/logger'
 import { getErrorMessage } from '@/types/api'
+import { resolveBuiltinProvider } from '../composables/builtinProviderLookup'
 
 const props = defineProps<{
   providers: CheckinProvider[]
@@ -669,20 +670,17 @@ const accountForm = ref({
   x666_access_token: '',
 })
 
-// CDK 配置：根据选中的提供商查找对应的内置 CDK 配置
-const selectedProviderCdkConfig = computed(() => {
-  if (!accountForm.value.provider_id) return null
-  const provider = props.providers.find((p) => p.id === accountForm.value.provider_id)
-  if (!provider) return null
-  const builtin = props.builtinProviders.find((bp) => bp.name === provider.name)
-  return builtin?.cdk_config || null
-})
-
+// 选中提供商对应的内置站（builtin_id 优先反查，name 回退兼容旧数据）
 const selectedBuiltinProvider = computed(() => {
   if (!accountForm.value.provider_id) return null
   const provider = props.providers.find((p) => p.id === accountForm.value.provider_id)
   if (!provider) return null
-  return props.builtinProviders.find((bp) => bp.name === provider.name) || null
+  return resolveBuiltinProvider(props.builtinProviders, provider) || null
+})
+
+// CDK 配置：取自选中提供商对应的内置站
+const selectedProviderCdkConfig = computed(() => {
+  return selectedBuiltinProvider.value?.cdk_config || null
 })
 
 const modalProviderLabel = computed(() => {

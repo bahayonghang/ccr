@@ -19,6 +19,7 @@ import type {
 } from '@/types/checkin'
 import { createCheckinDataState } from './checkinDataState'
 import { createCheckinJobRuntime } from './checkinJobRuntime'
+import { filterAvailableBuiltinProviders } from './builtinProviderLookup'
 import {
   applyRecoveryFailureToLogs,
   createCheckinWafRecovery,
@@ -130,11 +131,10 @@ export function useCheckinState() {
   // 计算属性
   // ═══════════════════════════════════════════════════════════
 
-  // 过滤出尚未添加的内置提供商
-  const availableBuiltinProviders = computed(() => {
-    const addedNames = new Set(providers.value.map((p) => p.name))
-    return builtinProviders.value.filter((bp) => !addedNames.has(bp.name))
-  })
+  // 过滤出尚未添加的内置提供商（builtin_id 优先判定，name 回退兼容旧数据）
+  const availableBuiltinProviders = computed(() =>
+    filterAvailableBuiltinProviders(builtinProviders.value, providers.value)
+  )
 
   // 汇总统计数据
   const totalStatistics = computed(() => {
