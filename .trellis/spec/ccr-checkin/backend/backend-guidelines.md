@@ -166,6 +166,70 @@ const bp = builtinProviders.find((bp) => bp.name === provider.name);
 const bp = resolveBuiltinProvider(builtinProviders, provider);
 ```
 
+## Scenario: Check-in Engine Hardening Contracts
+
+### 1. Scope / Trigger
+
+- Trigger: changing check-in/balance request construction, WAF/CF challenge detection, check-in response interpretation, result status semantics, or reward computation.
+- Scope: `crates/ccr-checkin/src/services/checkin_service.rs` (fingerprint builders, detection, unified interpretation, skip gate, reward fallback), `ccr-db` `CheckinStatus`/`CheckinRecord`, and the Tauri job layer (`ccr-ui/src-tauri/src/checkin_jobs.rs`, `commands/checkin.rs`).
+
+### 2. Signatures
+
+- `apply_browser_headers(builder, base_url) -> RequestBuilder` — shared fingerprint header set; `build_balance_request(...)` (GET) and `build_checkin_request(...)` (POST) are the only request constructors for user-info/balance/check-in calls.
+- `is_cf_challenge(status: reqwest::StatusCode, body: &str) -> bool` / `is_waf_challenge(text: &str) -> bool` — runtime detection, evaluated on every response for every provider.
+- `interpret_checkin_json(status, &serde_json::Value) -> CheckinOutcome` (`Success` / `AlreadyCheckedIn` / `Failed`) — the single exit for all JSON check-in responses.
+- `evaluate_skip_reason(&CheckinAccount, &CheckinProvider) -> Option<(String, String)>` — skip gate before any HTTP is sent.
+- `parse_user_info_probe(&Value) -> UserInfoProbe` + `infer_reward_from_probes(before, after) -> Option<String>` — reward balance-diff fallback (`QUOTA_TOKENS_PER_USD = 500_000`).
+- `CheckinExecutionResult.skip_reason: Option<String>`; `CheckinStatus::{Success, AlreadyCheckedIn, Failed, Skipped}` (serde snake_case, DB TEXT, no migration — `skip_reason` persists through the `error_code` column).
+
+### 3. Contracts
+
+- Both reqwest clients (AppState shared client and ccr-checkin self-built path) must keep the `http2` cargo feature so ALPN can negotiate h2; request headers include modern Chrome UA, `Accept`, `Accept-Language`, `Referer`/`Origin` (= provider base_url), `Sec-Fetch-Dest: empty`, `Sec-Fetch-Mode: cors`, `Sec-Fetch-Site: same-origin`; check-in POST adds `Content-Type: application/json` + `X-Requested-With: XMLHttpRequest`.
+- CF detection = Newapi-checkin four signatures (403+"Just a moment" / 403+DOCTYPE+cloudflare / 503+cloudflare+challenge|checking your browser / non-JSON+DOCTYPE+challenge markers at **any** status code) plus legacy CF markers on non-success statuses. Catalog `requiresCfClearance`/WAF flags are UI hints only — never gate detection on them.
+- Success = `success==true || status=="success" || ret==1 || code==0 || code==200`; message = `message || msg || data || error`; already-checked-in keyword normalization (`已签到/已经签到/重复签到/签到过/already checked/already signed/already`) takes priority over every failure branch, including HTTP 4xx. No `[ALREADY_CHECKED_IN]` string-prefix passing — status is typed.
+- Skipped results (`skip_reason`: `account_disabled` / `provider_disabled` / `provider_unsupported`) must not send HTTP, must not update check-in timestamps, and are not counted as failures in job summaries (`CheckinJobSummary.skipped` is a separate counter; AlreadyCheckedIn is also never a failure).
+- When a successful check-in response carries no reward, infer it from before/after `/api/user/self` probes: `(after_quota+after_used)-(before_quota+before_used)`, label the value as inferred (`余额差推断`), and backfill `balance_before`/`balance_after` on the record.
+
+### 4. Validation & Error Matrix
+
+- CF challenge body (any of the four signatures) -> error message contains "Cloudflare" -> `error_code() == "cf_blocked"`.
+- WAF HTML body -> `error_code() == "waf_blocked"` (recovery contract above still applies, unchanged).
+- Already-checked-in message in any response shape -> `CheckinStatus::AlreadyCheckedIn`, never `Failed`.
+- Disabled account/provider or balance-only builtin (or explicitly empty `checkin_path`) -> `Skipped` record with `skip_reason`; default `checkin_path` (`/api/user/checkin`) must NOT be treated as unsupported.
+- Unknown DB status TEXT -> falls back to `Failed` on read, never panics.
+
+### 5. Good/Base/Bad Cases
+
+- Good: an unmarked provider returns a 200 HTML Cloudflare interstitial — runtime detection classifies it `cf_blocked` and the WAF/CF recovery flow can engage.
+- Base: a `ret==1` style response with message "签到过了" is normalized to AlreadyCheckedIn and excluded from failure counts.
+- Bad: re-introducing per-provider `requires_*` gating for detection, branching success on a single response style, or passing already-checked-in state via message-string prefixes.
+
+### 6. Tests Required
+
+- Interpretation matrix in `checkin_service.rs`: 5 success styles × already-checked-in variants (incl. HTTP 4xx shape) × CF four signatures (positive and negative) × non-JSON bodies.
+- Fingerprint header assertions on built requests (UA/Sec-Fetch-\*/Content-Type/X-Requested-With) and the `http2_prior_knowledge` compile-time feature guard.
+- `evaluate_skip_reason` matrix + end-to-end skip paths asserting a `skipped` record is persisted and no HTTP is sent.
+- Job-layer 4-state counting (`checkin_jobs.rs`) and `CheckinStatus::Skipped` DB roundtrip (`ccr-db`).
+- Error-message wording changes must update the `error_code()` keyword classification tests in `core/error.rs` in the same change.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```rust
+// 仅静态标记站点才检测挑战页；已签到靠字符串前缀传递
+if provider.requires_cf_clearance && is_cf_challenge(status, &text) { ... }
+return Ok(format!("[ALREADY_CHECKED_IN]{}", message));
+```
+
+#### Correct
+
+```rust
+// 检测对所有响应运行时生效；状态用类型表达
+if is_cf_challenge(status, &text) { /* -> cf_blocked */ }
+CheckinOutcome::AlreadyCheckedIn { message } // 统一出口归一
+```
+
 ## Testing
 
 Use `TempDir` plus `database::initialize_for_test()` for service tests. Prefer deterministic timestamps for calendar/stat logic, following existing `checkin_service.rs` tests.
