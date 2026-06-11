@@ -95,6 +95,7 @@ fn build_failed_checkin_result_with_code(
         status: CheckinStatus::Failed,
         message: Some(message.into()),
         error_code: Some(error_code.to_string()),
+        skip_reason: None,
         reward: None,
         balance: None,
     }
@@ -612,6 +613,7 @@ pub async fn batch_checkin(
     let mut success = 0usize;
     let mut already_checked_in = 0usize;
     let mut failed = 0usize;
+    let mut skipped = 0usize;
 
     for result in &results {
         match result.status {
@@ -620,6 +622,7 @@ pub async fn batch_checkin(
                 already_checked_in += 1
             }
             ccr_checkin::models::checkin::CheckinStatus::Failed => failed += 1,
+            ccr_checkin::models::checkin::CheckinStatus::Skipped => skipped += 1,
         }
     }
 
@@ -629,7 +632,8 @@ pub async fn batch_checkin(
             "total": results.len(),
             "success": success,
             "already_checked_in": already_checked_in,
-            "failed": failed
+            "failed": failed,
+            "skipped": skipped
         }
     });
 

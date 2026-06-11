@@ -313,6 +313,8 @@ impl AppState {
         usage_db_pool: DbPool,
         llmusage: LlmusageRuntime,
     ) -> Result<Self, String> {
+        // HTTP/2 经 reqwest "http2" feature + native-tls ALPN 自动协商（见 Cargo.toml），
+        // 签到等外部请求的指纹更接近真实浏览器；ccr-checkin 自建 client 同样受益于该 feature。
         let http_client = reqwest::Client::builder()
             .cookie_store(true)
             .timeout(Duration::from_secs(30))

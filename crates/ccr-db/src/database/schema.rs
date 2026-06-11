@@ -90,7 +90,7 @@ CREATE INDEX IF NOT EXISTS idx_checkin_accounts_enabled
 CREATE TABLE IF NOT EXISTS checkin_records (
     id TEXT PRIMARY KEY,
     account_id TEXT NOT NULL,
-    status TEXT NOT NULL,  -- success|failed|already_checked_in
+    status TEXT NOT NULL,  -- success|failed|already_checked_in|skipped
     message TEXT,
     error_code TEXT,
     reward TEXT,

@@ -51,11 +51,13 @@ tokio = { version = "1.49", features = [
 tokio-util = { version = "0.7", features = ["rt"] }
 
 # HTTP client
+# http2: AppState.http_client 与 ccr-checkin 共用该依赖，通过 ALPN 协商 HTTP/2（native-tls 已内置 alpn）
 reqwest = { version = "0.13.2", default-features = false, features = [
     "json",
     "cookies",
     "gzip",
     "native-tls",
+    "http2",
 ] }
 
 # Logging

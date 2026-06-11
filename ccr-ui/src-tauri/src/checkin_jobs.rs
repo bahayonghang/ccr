@@ -20,6 +20,7 @@ pub enum CheckinJobLogStatus {
     Success,
     AlreadyCheckedIn,
     Failed,
+    Skipped,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -32,6 +33,9 @@ pub struct CheckinJobLogEntry {
     pub message: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error_code: Option<String>,
+    /// 跳过原因（仅 status == Skipped 时有值，透传自 CheckinExecutionResult）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub skip_reason: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reward: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -45,6 +49,7 @@ pub struct CheckinJobSummary {
     pub success: usize,
     pub already_checked_in: usize,
     pub failed: usize,
+    pub skipped: usize,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -92,6 +97,7 @@ impl CheckinJobLogEntry {
             status: CheckinJobLogStatus::Pending,
             message: None,
             error_code: None,
+            skip_reason: None,
             reward: None,
             balance: None,
             timestamp: Utc::now().to_rfc3339(),
@@ -165,9 +171,13 @@ impl CheckinJobSnapshot {
                     CheckinJobLogStatus::AlreadyCheckedIn
                 }
                 ccr_checkin::models::checkin::CheckinStatus::Failed => CheckinJobLogStatus::Failed,
+                ccr_checkin::models::checkin::CheckinStatus::Skipped => {
+                    CheckinJobLogStatus::Skipped
+                }
             };
             log.message = result.message.clone();
             log.error_code = result.error_code.clone();
+            log.skip_reason = result.skip_reason.clone();
             log.reward = result.reward.clone();
             log.balance = result.balance;
             log.timestamp = Utc::now().to_rfc3339();
@@ -180,6 +190,7 @@ impl CheckinJobSnapshot {
                 self.summary.already_checked_in += 1
             }
             ccr_checkin::models::checkin::CheckinStatus::Failed => self.summary.failed += 1,
+            ccr_checkin::models::checkin::CheckinStatus::Skipped => self.summary.skipped += 1,
         }
         self.results.push(result);
 
@@ -220,6 +231,7 @@ impl CheckinJobSnapshot {
                     status: ccr_checkin::models::checkin::CheckinStatus::Failed,
                     message: Some(message.to_string()),
                     error_code: Some("task_error".to_string()),
+                    skip_reason: None,
                     reward: None,
                     balance: None,
                 });
@@ -258,6 +270,7 @@ impl CheckinJobSnapshot {
                     status: ccr_checkin::models::checkin::CheckinStatus::Failed,
                     message: Some("签到超时".to_string()),
                     error_code: Some("timeout".to_string()),
+                    skip_reason: None,
                     reward: None,
                     balance: None,
                 });
@@ -268,5 +281,94 @@ impl CheckinJobSnapshot {
         self.results.extend(timeout_results);
         self.completed = self.total;
         self.mark_finished(CheckinJobStatus::TimedOut);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ccr_checkin::models::checkin::CheckinStatus;
+
+    fn result_with_status(
+        account_id: &str,
+        status: CheckinStatus,
+        skip_reason: Option<&str>,
+    ) -> CheckinExecutionResult {
+        CheckinExecutionResult {
+            account_id: account_id.to_string(),
+            account_name: format!("name-{account_id}"),
+            provider_name: "Provider".to_string(),
+            status,
+            message: Some("msg".to_string()),
+            error_code: None,
+            skip_reason: skip_reason.map(|s| s.to_string()),
+            reward: None,
+            balance: None,
+        }
+    }
+
+    fn snapshot_with_accounts(ids: &[&str]) -> CheckinJobSnapshot {
+        let logs = ids
+            .iter()
+            .map(|id| {
+                CheckinJobLogEntry::pending(
+                    id.to_string(),
+                    format!("name-{id}"),
+                    "Provider".to_string(),
+                )
+            })
+            .collect();
+        CheckinJobSnapshot::new("job-1".to_string(), logs)
+    }
+
+    // 4 态契约：Skipped 结果透传 skip_reason 且 summary 单独计数（不计入 failed）
+    #[test]
+    fn apply_result_counts_skipped_separately_and_propagates_skip_reason() {
+        let mut snapshot = snapshot_with_accounts(&["a", "b", "c", "d"]);
+
+        snapshot.apply_result(result_with_status("a", CheckinStatus::Success, None));
+        snapshot.apply_result(result_with_status(
+            "b",
+            CheckinStatus::Skipped,
+            Some("provider_unsupported"),
+        ));
+        snapshot.apply_result(result_with_status(
+            "c",
+            CheckinStatus::AlreadyCheckedIn,
+            None,
+        ));
+        snapshot.apply_result(result_with_status("d", CheckinStatus::Failed, None));
+
+        assert_eq!(snapshot.summary.success, 1);
+        assert_eq!(snapshot.summary.skipped, 1);
+        assert_eq!(snapshot.summary.already_checked_in, 1);
+        assert_eq!(snapshot.summary.failed, 1);
+        assert_eq!(snapshot.completed, 4);
+        assert_eq!(snapshot.status, CheckinJobStatus::Finished);
+
+        let skipped_log = snapshot
+            .logs
+            .iter()
+            .find(|log| log.account_id == "b")
+            .unwrap();
+        assert_eq!(skipped_log.status, CheckinJobLogStatus::Skipped);
+        assert_eq!(
+            skipped_log.skip_reason.as_deref(),
+            Some("provider_unsupported")
+        );
+    }
+
+    // 已签到不计入失败统计（保持现状）
+    #[test]
+    fn already_checked_in_is_not_counted_as_failure() {
+        let mut snapshot = snapshot_with_accounts(&["a"]);
+        snapshot.apply_result(result_with_status(
+            "a",
+            CheckinStatus::AlreadyCheckedIn,
+            None,
+        ));
+
+        assert_eq!(snapshot.summary.failed, 0);
+        assert_eq!(snapshot.summary.already_checked_in, 1);
     }
 }

@@ -43,6 +43,9 @@ pub struct CheckinExecutionResult {
     pub message: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error_code: Option<String>,
+    /// 跳过原因（仅 status == Skipped 时有值：provider_unsupported / provider_disabled / account_disabled）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub skip_reason: Option<String>,
     pub reward: Option<String>,
     pub balance: Option<f64>,
 }
@@ -285,16 +288,151 @@ fn is_waf_challenge(text: &str) -> bool {
         || text.contains("acw_tc")
 }
 
-/// 检测 Cloudflare 挑战页面
+/// 检测 Cloudflare 挑战页面。
+///
+/// 综合 Newapi-checkin 四签名 + 既有标记，对所有站点的每个响应运行时生效
+/// （catalog 的 requires_cf_clearance 静态标记仅作 UI 预期提示，不参与行为判定）：
+/// 1. 403 + "Just a moment"
+/// 2. 403 + DOCTYPE + "cloudflare"
+/// 3. 503 + "cloudflare" + ("challenge" | "checking your browser")
+/// 4. 非 JSON 响应 + DOCTYPE + ("just a moment" | "challenge-platform" | "cf-challenge")，任意状态码
 fn is_cf_challenge(status: reqwest::StatusCode, body: &str) -> bool {
-    let is_cf_status =
-        status == reqwest::StatusCode::FORBIDDEN || status.as_u16() == 503 || !status.is_success();
+    let lower = body.to_lowercase();
+    let code = status.as_u16();
+
+    if code == 403
+        && (lower.contains("just a moment")
+            || (lower.contains("<!doctype") && lower.contains("cloudflare")))
+    {
+        return true;
+    }
+
+    if code == 503
+        && lower.contains("cloudflare")
+        && (lower.contains("challenge") || lower.contains("checking your browser"))
+    {
+        return true;
+    }
+
+    let is_json = serde_json::from_str::<serde_json::Value>(body.trim()).is_ok();
+    if !is_json
+        && lower.contains("<!doctype")
+        && (lower.contains("just a moment")
+            || lower.contains("challenge-platform")
+            || lower.contains("cf-challenge"))
+    {
+        return true;
+    }
+
+    // 既有标记（向后兼容）：非成功状态 + CF 特征字符串
     let has_cf_markers = body.contains("Just a moment")
         || body.contains("cf-browser-verification")
         || body.contains("_cf_chl")
         || body.contains("cf-challenge-running")
         || body.contains("cf_clearance");
-    is_cf_status && has_cf_markers
+    !status.is_success() && has_cf_markers
+}
+
+/// 已签到消息关键词（与 PRD 契约一致的中英文变体清单，归一为 AlreadyCheckedIn）
+const ALREADY_CHECKED_IN_KEYWORDS: [&str; 7] = [
+    "已签到",
+    "已经签到",
+    "重复签到",
+    "签到过",
+    "already checked",
+    "already signed",
+    "already",
+];
+
+/// 判断签到响应消息是否表示「今日已签到」
+fn is_already_checked_in_message(message: &str) -> bool {
+    let lower = message.to_lowercase();
+    ALREADY_CHECKED_IN_KEYWORDS
+        .iter()
+        .any(|keyword| lower.contains(keyword))
+}
+
+/// 签到 JSON 响应的统一判定结果
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum CheckinOutcome {
+    /// 签到成功
+    Success {
+        message: String,
+        reward: Option<String>,
+    },
+    /// 今日已签到（关键词归一，不计入失败）
+    AlreadyCheckedIn { message: String },
+    /// 业务失败（消息进入 CheckinServiceError::Api 的 error_code 分类）
+    Failed { message: String },
+}
+
+/// `do_checkin` 的成功侧结果（status 仅为 Success / AlreadyCheckedIn；
+/// 失败经由 `Err(CheckinServiceError)` 返回以保留 error_code 分类）
+#[derive(Debug, Clone)]
+struct CheckinSuccessOutcome {
+    status: CheckinStatus,
+    message: String,
+    reward: Option<String>,
+}
+
+/// 宽容解析签到 JSON 响应（统一出口，所有 JSON 路径都经过这里）。
+///
+/// 成功 = `success == true || status == "success" || ret == 1 || code == 0 || code == 200`；
+/// message 取 `message || msg || data`（字符串时）；
+/// 已签到关键词无论 HTTP 状态/成功标志一律归一为 AlreadyCheckedIn，
+/// 消灭「其实已签到却报失败」（Newapi-checkin 直连路径漏归一的教训）。
+fn interpret_checkin_json(status: reqwest::StatusCode, data: &serde_json::Value) -> CheckinOutcome {
+    let success = data["success"].as_bool() == Some(true)
+        || data["status"].as_str() == Some("success")
+        || data["ret"].as_i64() == Some(1)
+        || data["code"].as_i64() == Some(0)
+        || data["code"].as_i64() == Some(200);
+
+    let message = data["message"]
+        .as_str()
+        .or(data["msg"].as_str())
+        .or(data["data"].as_str())
+        .or(data["error"].as_str())
+        .map(|s| s.to_string());
+
+    // 已签到关键词归一优先于一切失败分支（统一出口的关键约束）
+    if let Some(msg) = message.as_deref()
+        && is_already_checked_in_message(msg)
+    {
+        return CheckinOutcome::AlreadyCheckedIn {
+            message: msg.to_string(),
+        };
+    }
+
+    if !status.is_success() {
+        return CheckinOutcome::Failed {
+            message: format!(
+                "HTTP {}: {}",
+                status.as_u16(),
+                message.as_deref().unwrap_or("签到失败")
+            ),
+        };
+    }
+
+    if success {
+        let reward = data["data"].as_object().and_then(|d| {
+            if let Some(reward_str) = d.get("reward").and_then(|v| v.as_str()) {
+                Some(reward_str.to_string())
+            } else {
+                d.get("points")
+                    .and_then(|v| v.as_i64())
+                    .map(|points| format!("+{} 积分", points))
+            }
+        });
+        CheckinOutcome::Success {
+            message: message.unwrap_or_else(|| "签到成功".to_string()),
+            reward,
+        }
+    } else {
+        CheckinOutcome::Failed {
+            message: message.unwrap_or_else(|| "签到失败".to_string()),
+        }
+    }
 }
 
 fn merge_cookies(
@@ -314,6 +452,157 @@ fn cookie_header_string(cookies: &HashMap<String, String>) -> String {
         .map(|(k, v)| format!("{}={}", k, v))
         .collect::<Vec<_>>()
         .join("; ")
+}
+
+/// 额度换算汇率：500000 tokens = $1（与余额查询逻辑一致）
+const QUOTA_TOKENS_PER_USD: f64 = 500_000.0;
+
+/// `/api/user/self` 预查解析结果（签到状态 + 余额取样，签到前后各取一次供奖励兜底）
+#[derive(Debug, Clone, Copy, Default)]
+struct UserInfoProbe {
+    /// 远程已签到标记（站点未提供相关字段时为 None）
+    checked_in_today: Option<bool>,
+    /// 剩余额度（token 数）
+    quota: Option<f64>,
+    /// 已用额度（token 数）
+    used_quota: Option<f64>,
+}
+
+/// 解析用户信息响应为预查样本（兼容 check_in_today / is_checked_in / checkin_status 三种字段）
+fn parse_user_info_probe(json: &serde_json::Value) -> UserInfoProbe {
+    let data = json.get("data").unwrap_or(json);
+
+    let checked_in_today = data
+        .get("check_in_today")
+        .and_then(|v| v.as_bool())
+        .or_else(|| data.get("is_checked_in").and_then(|v| v.as_bool()))
+        .or_else(|| {
+            data.get("checkin_status")
+                .and_then(|v| v.as_str())
+                .map(|s| s.contains("checked") && !s.contains("not"))
+        });
+
+    UserInfoProbe {
+        checked_in_today,
+        quota: data.get("quota").and_then(|v| v.as_f64()),
+        used_quota: data.get("used_quota").and_then(|v| v.as_f64()),
+    }
+}
+
+/// 提取预查样本的剩余额度（USD，两位小数）
+fn probe_remaining_usd(probe: &UserInfoProbe) -> Option<f64> {
+    probe
+        .quota
+        .map(|q| (q / QUOTA_TOKENS_PER_USD * 100.0).round() / 100.0)
+}
+
+/// 余额差奖励推断：`(after_quota + after_used) - (before_quota + before_used)`。
+///
+/// 用总额差而非剩余差，排除签到期间消耗的干扰（anyrouter-check-in / metapi 模式）；
+/// 返回的 reward 字串标注推断来源，便于记录/UI 区分「响应解析」与「余额差推断」。
+fn infer_reward_from_probes(before: &UserInfoProbe, after: &UserInfoProbe) -> Option<String> {
+    let before_total = before.quota? + before.used_quota?;
+    let after_total = after.quota? + after.used_quota?;
+    let diff_usd = ((after_total - before_total) / QUOTA_TOKENS_PER_USD * 100.0).round() / 100.0;
+    if diff_usd <= 0.0 {
+        return None;
+    }
+    Some(format!("+${:.2}（余额差推断）", diff_usd))
+}
+
+/// 评估账号/提供商是否应跳过签到，返回 `(skip_reason, 展示消息)`。
+///
+/// skip_reason 枚举值：`account_disabled` / `provider_disabled` / `provider_unsupported`。
+fn evaluate_skip_reason(
+    account: &crate::models::checkin::CheckinAccount,
+    provider: &CheckinProvider,
+) -> Option<(String, String)> {
+    if !account.enabled {
+        return Some((
+            "account_disabled".to_string(),
+            "账号已禁用，跳过签到".to_string(),
+        ));
+    }
+    if !provider.enabled {
+        return Some((
+            "provider_disabled".to_string(),
+            "提供商已禁用，跳过签到".to_string(),
+        ));
+    }
+
+    // 内置站标记为不支持签到（balance_only 等），或自定义站清空了签到路径
+    let builtin_unsupported =
+        crate::managers::checkin::builtin_providers::resolve_builtin_for_provider(provider)
+            .map(|bp| !bp.supports_checkin)
+            .unwrap_or(false);
+    if builtin_unsupported || provider.checkin_path.trim().is_empty() {
+        return Some((
+            "provider_unsupported".to_string(),
+            "该站点不支持签到（仅余额查询），跳过".to_string(),
+        ));
+    }
+
+    None
+}
+
+/// 补齐浏览器指纹头：现代 Chrome UA / Accept / Accept-Language / Referer / Origin / Sec-Fetch-*。
+///
+/// 参考 anyrouter-check-in 的请求构造，降低被 WAF/CF 按 bot 特征拦截的概率；
+/// 对共享 AppState 客户端与自建客户端两条路径统一生效（UA 按请求设置而非依赖 client 默认值）。
+fn apply_browser_headers(
+    request: reqwest::RequestBuilder,
+    origin: &str,
+) -> reqwest::RequestBuilder {
+    request
+        .header("User-Agent", DEFAULT_USER_AGENT)
+        .header("Accept", "application/json, text/plain, */*")
+        .header("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8")
+        .header("Referer", origin)
+        .header("Origin", origin)
+        .header("Sec-Fetch-Dest", "empty")
+        .header("Sec-Fetch-Mode", "cors")
+        .header("Sec-Fetch-Site", "same-origin")
+}
+
+/// 构造余额/用户信息 GET 请求（含完整浏览器指纹头）
+fn build_balance_request(
+    client: &Client,
+    url: &str,
+    origin: &str,
+    credentials: &CookieCredentials,
+    cookie_string: &str,
+) -> reqwest::RequestBuilder {
+    let mut request =
+        apply_browser_headers(client.get(url), origin).header("X-Requested-With", "XMLHttpRequest");
+
+    if !cookie_string.is_empty() {
+        request = request.header("Cookie", cookie_string);
+    }
+    if credentials.has_api_user() {
+        request = request.header("new-api-user", &credentials.api_user);
+    }
+    request
+}
+
+/// 构造签到 POST 请求（含完整浏览器指纹头 + Content-Type + X-Requested-With）
+fn build_checkin_request(
+    client: &Client,
+    url: &str,
+    origin: &str,
+    credentials: &CookieCredentials,
+    cookie_string: &str,
+) -> reqwest::RequestBuilder {
+    let mut request = apply_browser_headers(client.post(url), origin)
+        .header("Content-Type", "application/json")
+        .header("X-Requested-With", "XMLHttpRequest");
+
+    if !cookie_string.is_empty() {
+        request = request.header("Cookie", cookie_string);
+    }
+    if credentials.has_api_user() {
+        request = request.header("new-api-user", &credentials.api_user);
+    }
+    request
 }
 
 impl CheckinService {
@@ -433,22 +722,7 @@ impl CheckinService {
         credentials: &CookieCredentials,
         cookie_string: &str,
     ) -> Result<(reqwest::StatusCode, String)> {
-        let mut request = self
-            .client
-            .get(url)
-            .header("Accept", "application/json, text/plain, */*")
-            .header("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8")
-            .header("X-Requested-With", "XMLHttpRequest")
-            .header("Referer", domain)
-            .header("Origin", domain);
-
-        if !cookie_string.is_empty() {
-            request = request.header("Cookie", cookie_string);
-        }
-
-        if credentials.has_api_user() {
-            request = request.header("new-api-user", &credentials.api_user);
-        }
+        let request = build_balance_request(&self.client, url, domain, credentials, cookie_string);
 
         let response = request
             .send()
@@ -472,22 +746,7 @@ impl CheckinService {
         credentials: &CookieCredentials,
         cookie_string: &str,
     ) -> Result<(reqwest::StatusCode, String)> {
-        let mut request = self
-            .client
-            .post(url)
-            .header("Content-Type", "application/json")
-            .header("Accept", "application/json, text/plain, */*")
-            .header("X-Requested-With", "XMLHttpRequest")
-            .header("Referer", domain)
-            .header("Origin", domain);
-
-        if !cookie_string.is_empty() {
-            request = request.header("Cookie", cookie_string);
-        }
-
-        if credentials.has_api_user() {
-            request = request.header("new-api-user", &credentials.api_user);
-        }
+        let request = build_checkin_request(&self.client, url, domain, credentials, cookie_string);
 
         let response = request
             .send()
@@ -529,6 +788,37 @@ impl CheckinService {
             account_id
         );
 
+        // 跳过判定：账号/提供商禁用或站点不支持签到 → Skipped（4 态契约，不计入失败）
+        if let Some((skip_reason, skip_message)) = evaluate_skip_reason(&account, &provider) {
+            tracing::info!(
+                "[跳过签到] 账号: {} | 提供商: {} | 原因: {}",
+                account.name,
+                provider.name,
+                skip_reason
+            );
+
+            let record = CheckinRecord::skipped(
+                account_id.to_string(),
+                Some(skip_message.clone()),
+                skip_reason.clone(),
+            );
+            record_manager
+                .add(record)
+                .map_err(|e| CheckinServiceError::Record(e.to_string()))?;
+
+            return Ok(CheckinExecutionResult {
+                account_id: account_id.to_string(),
+                account_name: account.name.clone(),
+                provider_name: provider.name.clone(),
+                status: CheckinStatus::Skipped,
+                message: Some(skip_message),
+                error_code: None,
+                skip_reason: Some(skip_reason),
+                reward: None,
+                balance: None,
+            });
+        }
+
         // 检查今日是否已签到
         let already_checked = record_manager
             .has_checked_in_today(account_id)
@@ -556,6 +846,7 @@ impl CheckinService {
                 status: CheckinStatus::AlreadyCheckedIn,
                 message: Some("今日已签到".to_string()),
                 error_code: None,
+                skip_reason: None,
                 reward: None,
                 balance: None,
             });
@@ -569,11 +860,12 @@ impl CheckinService {
         let credentials = CookieCredentials::from_json(&cookies_json, account.api_user.clone())
             .map_err(|e| CheckinServiceError::Crypto(format!("Invalid cookies JSON: {}", e)))?;
 
-        // 签到前远程状态预查：通过 /api/user/self 检查是否已签到
-        if let Some(true) = self
-            .check_remote_checkin_status(&provider, &credentials, &account.name)
-            .await
-        {
+        // 签到前远程预查：检查是否已签到，同时取一次余额样本（供奖励兜底）
+        let probe_before = self
+            .fetch_user_info_probe(&provider, &credentials, &account.name)
+            .await;
+
+        if probe_before.and_then(|p| p.checked_in_today) == Some(true) {
             tracing::info!(
                 "[远程预查] 账号: {} | 提供商: {} | 状态: 远程已签到，跳过",
                 account.name,
@@ -598,8 +890,9 @@ impl CheckinService {
                 status: CheckinStatus::AlreadyCheckedIn,
                 message: Some("今日已签到（远程预查）".to_string()),
                 error_code: None,
+                skip_reason: None,
                 reward: None,
-                balance: None,
+                balance: probe_before.as_ref().and_then(probe_remaining_usd),
             };
 
             // 即使已签到，仍尝试 CDK 充值
@@ -613,47 +906,58 @@ impl CheckinService {
             .do_checkin(&provider, &credentials, account_id, &account.name)
             .await;
 
-        // 记录签到结果
+        // 记录签到结果（统一出口：已签到归一已在 do_checkin/interpret_checkin_json 内完成）
         let (record, result) = match checkin_result {
-            Ok((message, reward)) => {
-                // 检查 do_checkin 返回的"已签到"标记
-                let (actual_status, actual_message) =
-                    if let Some(stripped) = message.strip_prefix("[ALREADY_CHECKED_IN]") {
-                        (CheckinStatus::AlreadyCheckedIn, stripped.to_string())
-                    } else {
-                        (CheckinStatus::Success, message)
-                    };
+            Ok(outcome) => {
+                // 奖励兜底：响应未携带 reward 时，用签到前后两次用户信息的余额总额差推断
+                let mut reward = outcome.reward.clone();
+                let balance_before_usd = probe_before.as_ref().and_then(probe_remaining_usd);
+                let mut balance_after_usd = None;
+
+                if outcome.status == CheckinStatus::Success
+                    && reward.is_none()
+                    && let Some(probe_after) = self
+                        .fetch_user_info_probe(&provider, &credentials, &account.name)
+                        .await
+                {
+                    balance_after_usd = probe_remaining_usd(&probe_after);
+                    if let Some(before) = probe_before.as_ref() {
+                        reward = infer_reward_from_probes(before, &probe_after);
+                    }
+                }
 
                 tracing::info!(
                     "[签到结果] 账号: {} | 提供商: {} | 状态: {} | 消息: {} | 奖励: {}",
                     account.name,
                     provider.name,
-                    actual_status,
-                    actual_message,
+                    outcome.status,
+                    outcome.message,
                     reward.as_deref().unwrap_or("-")
                 );
 
-                let record = match actual_status {
+                let record = match outcome.status {
                     CheckinStatus::AlreadyCheckedIn => CheckinRecord::already_checked_in(
                         account_id.to_string(),
-                        Some(actual_message.clone()),
+                        Some(outcome.message.clone()),
                     ),
                     _ => CheckinRecord::success(
                         account_id.to_string(),
-                        Some(actual_message.clone()),
+                        Some(outcome.message.clone()),
                         reward.clone(),
-                    ),
+                    )
+                    .with_balance(balance_before_usd, balance_after_usd),
                 };
 
                 let result = CheckinExecutionResult {
                     account_id: account_id.to_string(),
                     account_name: account.name.clone(),
                     provider_name: provider.name.clone(),
-                    status: actual_status,
-                    message: Some(actual_message),
+                    status: outcome.status,
+                    message: Some(outcome.message),
                     error_code: None,
+                    skip_reason: None,
                     reward,
-                    balance: None,
+                    balance: balance_after_usd,
                 };
 
                 (record, result)
@@ -682,6 +986,7 @@ impl CheckinService {
                     status: CheckinStatus::Failed,
                     message: Some(error_msg),
                     error_code: Some(error_code),
+                    skip_reason: None,
                     reward: None,
                     balance: None,
                 };
@@ -708,13 +1013,16 @@ impl CheckinService {
         Ok(result)
     }
 
-    /// 远程签到状态预查：通过 /api/user/self 检查账号是否今天已签到
-    async fn check_remote_checkin_status(
+    /// 用户信息预查：拉取 `/api/user/self`，解析签到状态与余额样本。
+    ///
+    /// 请求失败/非 JSON 响应时返回 None，不阻塞签到主流程；
+    /// 余额样本用于签到响应缺失 reward 时的余额差推断兜底。
+    async fn fetch_user_info_probe(
         &self,
         provider: &CheckinProvider,
         credentials: &CookieCredentials,
         account_name: &str,
-    ) -> Option<bool> {
+    ) -> Option<UserInfoProbe> {
         let url = format!(
             "{}{}",
             provider.base_url.trim_end_matches('/'),
@@ -739,53 +1047,23 @@ impl CheckinService {
         let (_status, body) = match result {
             Ok(r) => r,
             Err(e) => {
-                tracing::debug!(
-                    "[{}] Remote checkin status pre-check failed: {}",
-                    account_name,
-                    e
-                );
+                tracing::debug!("[{}] User info pre-check failed: {}", account_name, e);
                 return None;
             }
         };
 
         let json: serde_json::Value = serde_json::from_str(&body).ok()?;
-
-        let data = json.get("data").unwrap_or(&json);
-
-        if let Some(checked) = data.get("check_in_today").and_then(|v| v.as_bool()) {
-            tracing::debug!(
-                "[{}] Remote pre-check: check_in_today = {}",
-                account_name,
-                checked
-            );
-            return Some(checked);
-        }
-
-        if let Some(checked) = data.get("is_checked_in").and_then(|v| v.as_bool()) {
-            tracing::debug!(
-                "[{}] Remote pre-check: is_checked_in = {}",
-                account_name,
-                checked
-            );
-            return Some(checked);
-        }
-
-        if let Some(status_str) = data.get("checkin_status").and_then(|v| v.as_str()) {
-            let checked = status_str.contains("checked") && !status_str.contains("not");
-            tracing::debug!(
-                "[{}] Remote pre-check: checkin_status = {} -> {}",
-                account_name,
-                status_str,
-                checked
-            );
-            return Some(checked);
-        }
+        let probe = parse_user_info_probe(&json);
 
         tracing::debug!(
-            "[{}] Remote pre-check: no checkin status field found in user info",
-            account_name
+            "[{}] User info probe: checked_in_today={:?}, quota={:?}, used_quota={:?}",
+            account_name,
+            probe.checked_in_today,
+            probe.quota,
+            probe.used_quota
         );
-        None
+
+        Some(probe)
     }
 
     /// 尝试执行 CDK 充值（签到后自动触发）
@@ -809,7 +1087,7 @@ impl CheckinService {
         credentials: &CookieCredentials,
         account_id: &str,
         account_name: &str,
-    ) -> Result<(String, Option<String>)> {
+    ) -> Result<CheckinSuccessOutcome> {
         let url = format!(
             "{}{}",
             provider.base_url.trim_end_matches('/'),
@@ -938,73 +1216,20 @@ impl CheckinService {
                 "签到响应解析为 JSON"
             );
 
-            // HTTP 错误但返回了 JSON（API 级别的错误响应）
-            if !status.is_success() {
-                let message = data["msg"]
-                    .as_str()
-                    .or(data["message"].as_str())
-                    .or(data["error"].as_str())
-                    .unwrap_or("签到失败")
-                    .to_string();
-                return Err(CheckinServiceError::Api(format!(
-                    "HTTP {}: {}",
-                    status.as_u16(),
-                    message
-                )));
-            }
-
-            let ret_value = data["ret"].as_i64();
-            let code_value = data["code"].as_i64();
-            let success_value = data["success"].as_bool();
-
-            tracing::debug!(
-                "Success indicators - ret: {:?}, code: {:?}, success: {:?}",
-                ret_value,
-                code_value,
-                success_value
-            );
-
-            let success = ret_value == Some(1)
-                || code_value == Some(0)
-                || code_value == Some(200)
-                || success_value == Some(true);
-
-            let message = if success {
-                data["msg"]
-                    .as_str()
-                    .or(data["message"].as_str())
-                    .or(data["data"].as_str())
-                    .unwrap_or("签到成功")
-                    .to_string()
-            } else {
-                data["msg"]
-                    .as_str()
-                    .or(data["message"].as_str())
-                    .or(data["error"].as_str())
-                    .unwrap_or("签到失败")
-                    .to_string()
+            // 统一判定出口：宽容成功判定 + 已签到关键词归一（替代 [ALREADY_CHECKED_IN] 前缀 hack）
+            return match interpret_checkin_json(status, &data) {
+                CheckinOutcome::Success { message, reward } => Ok(CheckinSuccessOutcome {
+                    status: CheckinStatus::Success,
+                    message,
+                    reward,
+                }),
+                CheckinOutcome::AlreadyCheckedIn { message } => Ok(CheckinSuccessOutcome {
+                    status: CheckinStatus::AlreadyCheckedIn,
+                    message,
+                    reward: None,
+                }),
+                CheckinOutcome::Failed { message } => Err(CheckinServiceError::Api(message)),
             };
-
-            if !success && (message.contains("已") || message.contains("already")) {
-                // 返回特殊标记，让 caller 识别为 AlreadyCheckedIn
-                return Ok((format!("[ALREADY_CHECKED_IN]{}", message), None));
-            }
-
-            if !success {
-                return Err(CheckinServiceError::Api(message));
-            }
-
-            let reward = data["data"].as_object().and_then(|d| {
-                if let Some(reward_str) = d.get("reward").and_then(|v| v.as_str()) {
-                    Some(reward_str.to_string())
-                } else {
-                    d.get("points")
-                        .and_then(|v| v.as_i64())
-                        .map(|points| format!("+{} 积分", points))
-                }
-            });
-
-            return Ok((message, reward));
         }
 
         // JSON 解析失败：响应不是合法 JSON，检查是否为 WAF/CF 挑战页面
@@ -1047,8 +1272,20 @@ impl CheckinService {
             ));
         }
 
+        // 运行时 CF 检测对成功状态码同样生效（200 + HTML 挑战页，Newapi-checkin 签名 4）
+        if is_cf_challenge(status, &body) {
+            return Err(CheckinServiceError::Api(
+                "检测到 Cloudflare 挑战页面（响应为 HTML），已尝试自动获取 cf_clearance 但仍失败。请检查网络环境，或在有 GUI 的环境中重试。"
+                    .to_string(),
+            ));
+        }
+
         if body.to_lowercase().contains("success") || body.contains("成功") {
-            Ok(("签到成功".to_string(), None))
+            Ok(CheckinSuccessOutcome {
+                status: CheckinStatus::Success,
+                message: "签到成功".to_string(),
+                reward: None,
+            })
         } else {
             Err(CheckinServiceError::Api(
                 "无法解析响应: 返回非 JSON 响应".to_string(),
@@ -1245,6 +1482,14 @@ impl CheckinService {
             ));
         }
 
+        // 运行时 CF 检测对成功状态码同样生效（200 + HTML 挑战页）
+        if is_cf_challenge(status, &body) {
+            return Err(CheckinServiceError::Api(
+                "检测到 Cloudflare 挑战页面（响应为 HTML），已尝试自动获取 cf_clearance 但仍失败。请检查网络环境，或在有 GUI 的环境中重试。"
+                    .to_string(),
+            ));
+        }
+
         let data: serde_json::Value = serde_json::from_str(&body).map_err(|e| {
             tracing::warn!(
                 provider_id = %provider.id,
@@ -1380,6 +1625,7 @@ impl CheckinService {
                             status: CheckinStatus::Failed,
                             message: Some(e.to_string()),
                             error_code: Some(e.error_code().to_string()),
+                            skip_reason: None,
                             reward: None,
                             balance: None,
                         },
@@ -2293,5 +2539,561 @@ mod tests {
         assert_eq!(target_day.reward_amount, Some(2.0));
         assert!(calendar.month_stats.checked_in_days >= 1);
         assert!(calendar.month_stats.check_in_rate > 0.0);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // 请求指纹（浏览器头 + HTTP/2）
+    // ═══════════════════════════════════════════════════════════
+
+    fn test_credentials(api_user: &str) -> CookieCredentials {
+        CookieCredentials {
+            cookies: HashMap::new(),
+            api_user: api_user.to_string(),
+        }
+    }
+
+    #[test]
+    fn test_checkin_request_browser_fingerprint_headers() {
+        let client = Client::new();
+        let request = build_checkin_request(
+            &client,
+            "https://api.example.com/api/user/checkin",
+            "https://api.example.com",
+            &test_credentials("123"),
+            "session=abc",
+        )
+        .build()
+        .unwrap();
+
+        assert_eq!(request.method(), &reqwest::Method::POST);
+        let headers = request.headers();
+        assert_eq!(headers.get("User-Agent").unwrap(), DEFAULT_USER_AGENT);
+        assert_eq!(
+            headers.get("Accept").unwrap(),
+            "application/json, text/plain, */*"
+        );
+        assert_eq!(
+            headers.get("Accept-Language").unwrap(),
+            "zh-CN,zh;q=0.9,en;q=0.8"
+        );
+        assert_eq!(headers.get("Referer").unwrap(), "https://api.example.com");
+        assert_eq!(headers.get("Origin").unwrap(), "https://api.example.com");
+        assert_eq!(headers.get("Sec-Fetch-Dest").unwrap(), "empty");
+        assert_eq!(headers.get("Sec-Fetch-Mode").unwrap(), "cors");
+        assert_eq!(headers.get("Sec-Fetch-Site").unwrap(), "same-origin");
+        assert_eq!(headers.get("Content-Type").unwrap(), "application/json");
+        assert_eq!(headers.get("X-Requested-With").unwrap(), "XMLHttpRequest");
+        assert_eq!(headers.get("Cookie").unwrap(), "session=abc");
+        assert_eq!(headers.get("new-api-user").unwrap(), "123");
+    }
+
+    #[test]
+    fn test_balance_request_browser_fingerprint_headers() {
+        let client = Client::new();
+        let request = build_balance_request(
+            &client,
+            "https://api.example.com/api/user/self",
+            "https://api.example.com",
+            &test_credentials(""),
+            "",
+        )
+        .build()
+        .unwrap();
+
+        assert_eq!(request.method(), &reqwest::Method::GET);
+        let headers = request.headers();
+        assert_eq!(headers.get("User-Agent").unwrap(), DEFAULT_USER_AGENT);
+        assert_eq!(headers.get("Sec-Fetch-Dest").unwrap(), "empty");
+        assert_eq!(headers.get("Sec-Fetch-Mode").unwrap(), "cors");
+        assert_eq!(headers.get("Sec-Fetch-Site").unwrap(), "same-origin");
+        assert_eq!(headers.get("Referer").unwrap(), "https://api.example.com");
+        assert_eq!(headers.get("Origin").unwrap(), "https://api.example.com");
+        // 空 cookie / 空 api_user 不应产生对应请求头
+        assert!(!headers.contains_key("Cookie"));
+        assert!(!headers.contains_key("new-api-user"));
+    }
+
+    #[test]
+    fn test_http2_feature_enabled() {
+        // 编译期守卫：http2_prior_knowledge 仅在 reqwest "http2" feature 开启时存在；
+        // 若依赖声明回退（default-features=false 且缺少 http2），此测试将无法编译。
+        let client = Client::builder().http2_prior_knowledge().build();
+        assert!(client.is_ok());
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // 宽容响应判定矩阵（统一出口）
+    // ═══════════════════════════════════════════════════════════
+
+    #[test]
+    fn test_interpret_checkin_json_success_styles() {
+        let ok = reqwest::StatusCode::OK;
+        let cases = [
+            serde_json::json!({"success": true, "message": "签到成功"}),
+            serde_json::json!({"status": "success", "msg": "done"}),
+            serde_json::json!({"ret": 1, "msg": "签到成功"}),
+            serde_json::json!({"code": 0, "message": "签到成功"}),
+            serde_json::json!({"code": 200, "message": "签到成功"}),
+        ];
+
+        for data in &cases {
+            match interpret_checkin_json(ok, data) {
+                CheckinOutcome::Success { .. } => {}
+                other => panic!("expected Success for {data}, got {other:?}"),
+            }
+        }
+    }
+
+    #[test]
+    fn test_interpret_checkin_json_message_fallback_chain() {
+        let ok = reqwest::StatusCode::OK;
+
+        // message || msg || data（字符串）
+        let data = serde_json::json!({"success": true, "data": "获得 10000 额度"});
+        match interpret_checkin_json(ok, &data) {
+            CheckinOutcome::Success { message, .. } => assert_eq!(message, "获得 10000 额度"),
+            other => panic!("expected Success, got {other:?}"),
+        }
+
+        // 全部缺失时回落到默认文案
+        let data = serde_json::json!({"ret": 1});
+        match interpret_checkin_json(ok, &data) {
+            CheckinOutcome::Success { message, .. } => assert_eq!(message, "签到成功"),
+            other => panic!("expected Success, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_interpret_checkin_json_reward_extraction() {
+        let ok = reqwest::StatusCode::OK;
+
+        let data = serde_json::json!({"ret": 1, "msg": "ok", "data": {"reward": "+$2"}});
+        match interpret_checkin_json(ok, &data) {
+            CheckinOutcome::Success { reward, .. } => assert_eq!(reward.as_deref(), Some("+$2")),
+            other => panic!("expected Success, got {other:?}"),
+        }
+
+        let data = serde_json::json!({"success": true, "data": {"points": 10}});
+        match interpret_checkin_json(ok, &data) {
+            CheckinOutcome::Success { reward, .. } => {
+                assert_eq!(reward.as_deref(), Some("+10 积分"))
+            }
+            other => panic!("expected Success, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_interpret_checkin_json_already_checked_in_variants() {
+        let ok = reqwest::StatusCode::OK;
+        let variants = [
+            "今日已签到",
+            "已经签到了",
+            "请勿重复签到",
+            "今天签到过了",
+            "Already checked in today",
+            "already signed in",
+            "You have already attended",
+        ];
+
+        for msg in variants {
+            let data = serde_json::json!({"success": false, "message": msg});
+            match interpret_checkin_json(ok, &data) {
+                CheckinOutcome::AlreadyCheckedIn { message } => assert_eq!(message, msg),
+                other => panic!("expected AlreadyCheckedIn for {msg}, got {other:?}"),
+            }
+        }
+
+        // success=true 但消息表示已签到 → 同样归一
+        let data = serde_json::json!({"success": true, "message": "今日已签到"});
+        assert!(matches!(
+            interpret_checkin_json(ok, &data),
+            CheckinOutcome::AlreadyCheckedIn { .. }
+        ));
+
+        // HTTP 4xx + 已签到消息 → 仍归一（统一出口，不受状态码影响）
+        let data = serde_json::json!({"success": false, "message": "已签到"});
+        assert!(matches!(
+            interpret_checkin_json(reqwest::StatusCode::BAD_REQUEST, &data),
+            CheckinOutcome::AlreadyCheckedIn { .. }
+        ));
+    }
+
+    #[test]
+    fn test_interpret_checkin_json_failures() {
+        // 业务失败：消息原样透传（供 error_code 关键词分类）
+        let data = serde_json::json!({"success": false, "message": "cookie 无效"});
+        match interpret_checkin_json(reqwest::StatusCode::OK, &data) {
+            CheckinOutcome::Failed { message } => assert_eq!(message, "cookie 无效"),
+            other => panic!("expected Failed, got {other:?}"),
+        }
+
+        // HTTP 错误 + JSON 错误体：HTTP 状态码进入消息
+        let data = serde_json::json!({"message": "未登录"});
+        match interpret_checkin_json(reqwest::StatusCode::UNAUTHORIZED, &data) {
+            CheckinOutcome::Failed { message } => assert_eq!(message, "HTTP 401: 未登录"),
+            other => panic!("expected Failed, got {other:?}"),
+        }
+
+        // 空对象：无成功标志 → 失败默认文案
+        let data = serde_json::json!({});
+        match interpret_checkin_json(reqwest::StatusCode::OK, &data) {
+            CheckinOutcome::Failed { message } => assert_eq!(message, "签到失败"),
+            other => panic!("expected Failed, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_is_already_checked_in_message_keywords() {
+        for msg in [
+            "已签到",
+            "已经签到",
+            "重复签到",
+            "签到过",
+            "ALREADY CHECKED IN",
+            "Already Signed",
+            "already",
+        ] {
+            assert!(is_already_checked_in_message(msg), "message: {msg}");
+        }
+
+        for msg in ["签到成功", "余额不足", "checkin ok", "您已成功签到"] {
+            assert!(!is_already_checked_in_message(msg), "message: {msg}");
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // 运行时 WAF/CF 检测（Newapi-checkin 四签名）
+    // ═══════════════════════════════════════════════════════════
+
+    #[test]
+    fn test_is_cf_challenge_four_signatures() {
+        use reqwest::StatusCode;
+
+        // 签名 1：403 + Just a moment
+        assert!(is_cf_challenge(
+            StatusCode::FORBIDDEN,
+            "<html>Just a moment...</html>"
+        ));
+        // 签名 2：403 + DOCTYPE + cloudflare
+        assert!(is_cf_challenge(
+            StatusCode::FORBIDDEN,
+            "<!DOCTYPE html><body>cloudflare protection</body>"
+        ));
+        // 签名 3：503 + cloudflare + challenge / checking your browser
+        assert!(is_cf_challenge(
+            StatusCode::SERVICE_UNAVAILABLE,
+            "cloudflare challenge in progress"
+        ));
+        assert!(is_cf_challenge(
+            StatusCode::SERVICE_UNAVAILABLE,
+            "cloudflare is checking your browser"
+        ));
+        // 签名 4：非 JSON HTML 拦截页（200 也要命中——运行时检测对所有响应生效）
+        assert!(is_cf_challenge(
+            StatusCode::OK,
+            "<!DOCTYPE html><script src=\"/cdn-cgi/challenge-platform/x.js\"></script>"
+        ));
+        assert!(is_cf_challenge(
+            StatusCode::OK,
+            "<!doctype html>Just a moment"
+        ));
+        // 既有标记（向后兼容）：非成功状态 + _cf_chl
+        assert!(is_cf_challenge(
+            StatusCode::FORBIDDEN,
+            "<html>_cf_chl test</html>"
+        ));
+    }
+
+    #[test]
+    fn test_is_cf_challenge_not_triggered_by_normal_responses() {
+        use reqwest::StatusCode;
+
+        // 正常 JSON 响应
+        assert!(!is_cf_challenge(StatusCode::OK, r#"{"success":true}"#));
+        // 200 JSON 中包含 cf_clearance 字样 → 不是挑战
+        assert!(!is_cf_challenge(
+            StatusCode::OK,
+            r#"{"message":"cf_clearance ok"}"#
+        ));
+        // 200 普通 HTML，无 CF 标记
+        assert!(!is_cf_challenge(
+            StatusCode::OK,
+            "<!DOCTYPE html><body>hello</body>"
+        ));
+        // 403 普通 JSON 错误（无 CF 标记）
+        assert!(!is_cf_challenge(
+            StatusCode::FORBIDDEN,
+            r#"{"message":"forbidden"}"#
+        ));
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // 用户信息预查与奖励兜底
+    // ═══════════════════════════════════════════════════════════
+
+    #[test]
+    fn test_parse_user_info_probe_variants() {
+        // data 包裹 + check_in_today + quota/used_quota
+        let probe = parse_user_info_probe(&serde_json::json!({
+            "data": {"check_in_today": true, "quota": 5_000_000.0, "used_quota": 1_000_000.0}
+        }));
+        assert_eq!(probe.checked_in_today, Some(true));
+        assert_eq!(probe.quota, Some(5_000_000.0));
+        assert_eq!(probe.used_quota, Some(1_000_000.0));
+
+        // 扁平结构 + is_checked_in
+        let probe = parse_user_info_probe(&serde_json::json!({"is_checked_in": false}));
+        assert_eq!(probe.checked_in_today, Some(false));
+
+        // checkin_status 字符串
+        let probe =
+            parse_user_info_probe(&serde_json::json!({"data": {"checkin_status": "not_checked"}}));
+        assert_eq!(probe.checked_in_today, Some(false));
+        let probe =
+            parse_user_info_probe(&serde_json::json!({"data": {"checkin_status": "checked"}}));
+        assert_eq!(probe.checked_in_today, Some(true));
+
+        // 无相关字段
+        let probe = parse_user_info_probe(&serde_json::json!({"data": {"id": 1}}));
+        assert_eq!(probe.checked_in_today, None);
+        assert_eq!(probe.quota, None);
+    }
+
+    #[test]
+    fn test_infer_reward_from_probes() {
+        let before = UserInfoProbe {
+            checked_in_today: None,
+            quota: Some(2_500_000.0),
+            used_quota: Some(500_000.0),
+        };
+        let after = UserInfoProbe {
+            checked_in_today: Some(true),
+            quota: Some(7_000_000.0),
+            used_quota: Some(1_000_000.0),
+        };
+
+        // 总额差 = (7M+1M)-(2.5M+0.5M) = 5M tokens = $10，标注推断来源
+        assert_eq!(
+            infer_reward_from_probes(&before, &after).as_deref(),
+            Some("+$10.00（余额差推断）")
+        );
+
+        // 无变化 → None
+        assert_eq!(infer_reward_from_probes(&before, &before), None);
+
+        // 字段缺失 → None
+        assert_eq!(
+            infer_reward_from_probes(&UserInfoProbe::default(), &after),
+            None
+        );
+
+        // 期间消耗不影响推断（quota 减少但 used 等量增加 → 总额不变 → None）
+        let consumed = UserInfoProbe {
+            checked_in_today: None,
+            quota: Some(2_000_000.0),
+            used_quota: Some(1_000_000.0),
+        };
+        assert_eq!(infer_reward_from_probes(&before, &consumed), None);
+    }
+
+    #[test]
+    fn test_probe_remaining_usd() {
+        let probe = UserInfoProbe {
+            checked_in_today: None,
+            quota: Some(2_500_000.0),
+            used_quota: None,
+        };
+        assert_eq!(probe_remaining_usd(&probe), Some(5.0));
+        assert_eq!(probe_remaining_usd(&UserInfoProbe::default()), None);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // 4 态契约：skip_reason 路径
+    // ═══════════════════════════════════════════════════════════
+
+    fn skip_test_provider(builtin_id: Option<&str>) -> CheckinProvider {
+        let mut provider = CheckinProvider::new(
+            "SkipTest".to_string(),
+            "https://api.example.com".to_string(),
+        );
+        provider.builtin_id = builtin_id.map(|s| s.to_string());
+        provider
+    }
+
+    fn skip_test_account(enabled: bool) -> crate::models::checkin::CheckinAccount {
+        let mut account = crate::models::checkin::CheckinAccount::new(
+            "provider-1".to_string(),
+            "acct".to_string(),
+            "encrypted".to_string(),
+            String::new(),
+        );
+        account.enabled = enabled;
+        account
+    }
+
+    #[test]
+    fn test_evaluate_skip_reason_matrix() {
+        // 账号禁用优先
+        let (reason, _) =
+            evaluate_skip_reason(&skip_test_account(false), &skip_test_provider(None)).unwrap();
+        assert_eq!(reason, "account_disabled");
+
+        // 提供商禁用
+        let mut provider = skip_test_provider(None);
+        provider.enabled = false;
+        let (reason, _) = evaluate_skip_reason(&skip_test_account(true), &provider).unwrap();
+        assert_eq!(reason, "provider_disabled");
+
+        // balance_only 内置站（builtin-coderouter 不支持签到）
+        let provider = skip_test_provider(Some("builtin-coderouter"));
+        let (reason, message) = evaluate_skip_reason(&skip_test_account(true), &provider).unwrap();
+        assert_eq!(reason, "provider_unsupported");
+        assert!(message.contains("不支持签到"));
+
+        // 自定义站清空签到路径
+        let mut provider = skip_test_provider(None);
+        provider.checkin_path = "  ".to_string();
+        let (reason, _) = evaluate_skip_reason(&skip_test_account(true), &provider).unwrap();
+        assert_eq!(reason, "provider_unsupported");
+
+        // 正常启用站点 → 不跳过
+        assert!(
+            evaluate_skip_reason(&skip_test_account(true), &skip_test_provider(None)).is_none()
+        );
+
+        // 支持签到的内置站 → 不跳过
+        assert!(
+            evaluate_skip_reason(
+                &skip_test_account(true),
+                &skip_test_provider(Some("builtin-anyrouter"))
+            )
+            .is_none()
+        );
+    }
+
+    fn cleanup_checkin_tables() {
+        database::with_connection(|conn| {
+            conn.execute("DELETE FROM checkin_records", [])?;
+            conn.execute("DELETE FROM checkin_accounts", [])?;
+            conn.execute("DELETE FROM checkin_providers", [])?;
+            Ok(())
+        })
+        .unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_checkin_skips_balance_only_builtin_provider() {
+        use crate::managers::checkin::ProviderManager;
+        use crate::models::checkin::{CreateAccountRequest, CreateProviderRequest};
+
+        let (_temp_dir, service) = {
+            database::initialize_for_test().unwrap();
+            let temp_dir = TempDir::new().unwrap();
+            let service = CheckinService::new(temp_dir.path().to_path_buf());
+            (temp_dir, service)
+        };
+
+        // 共享全局测试库（--test-threads=1），先后清场避免污染其它用例
+        cleanup_checkin_tables();
+
+        let provider_manager = ProviderManager::new();
+        let provider = provider_manager
+            .create(CreateProviderRequest {
+                name: "CodeRouter".to_string(),
+                base_url: "https://api.codemirror.codes".to_string(),
+                checkin_path: None,
+                balance_path: None,
+                user_info_path: None,
+                auth_header: None,
+                auth_prefix: None,
+                builtin_id: Some("builtin-coderouter".to_string()),
+            })
+            .unwrap();
+
+        let account_manager = AccountManager::new(_temp_dir.path());
+        let account = account_manager
+            .create(CreateAccountRequest {
+                provider_id: provider.id.clone(),
+                name: "acct".to_string(),
+                cookies_json: r#"{"session":"abc"}"#.to_string(),
+                api_user: String::new(),
+                extra_config: "{}".to_string(),
+            })
+            .unwrap();
+
+        // balance_only 站点：不发任何 HTTP 请求即返回 Skipped(provider_unsupported)
+        let result = service.checkin(&account.id).await.unwrap();
+        assert_eq!(result.status, CheckinStatus::Skipped);
+        assert_eq!(result.skip_reason.as_deref(), Some("provider_unsupported"));
+        assert!(result.error_code.is_none());
+
+        // 跳过会落一条 skipped 记录（skip_reason 持久化在 error_code 字段）
+        let records = RecordManager::new()
+            .get_by_account(&account.id, None)
+            .unwrap();
+        assert_eq!(records.records.len(), 1);
+        assert_eq!(records.records[0].status, CheckinStatus::Skipped);
+        assert_eq!(
+            records.records[0].error_code.as_deref(),
+            Some("provider_unsupported")
+        );
+
+        cleanup_checkin_tables();
+    }
+
+    #[tokio::test]
+    async fn test_checkin_skips_disabled_account() {
+        use crate::managers::checkin::ProviderManager;
+        use crate::models::checkin::{
+            CreateAccountRequest, CreateProviderRequest, UpdateAccountRequest,
+        };
+
+        database::initialize_for_test().unwrap();
+        let temp_dir = TempDir::new().unwrap();
+        let service = CheckinService::new(temp_dir.path().to_path_buf());
+
+        cleanup_checkin_tables();
+
+        let provider = ProviderManager::new()
+            .create(CreateProviderRequest {
+                name: "CustomSite".to_string(),
+                base_url: "https://custom.example.com".to_string(),
+                checkin_path: None,
+                balance_path: None,
+                user_info_path: None,
+                auth_header: None,
+                auth_prefix: None,
+                builtin_id: None,
+            })
+            .unwrap();
+
+        let account_manager = AccountManager::new(temp_dir.path());
+        let account = account_manager
+            .create(CreateAccountRequest {
+                provider_id: provider.id.clone(),
+                name: "disabled-acct".to_string(),
+                cookies_json: r#"{"session":"abc"}"#.to_string(),
+                api_user: String::new(),
+                extra_config: "{}".to_string(),
+            })
+            .unwrap();
+        account_manager
+            .update(
+                &account.id,
+                UpdateAccountRequest {
+                    name: None,
+                    cookies_json: None,
+                    api_user: None,
+                    enabled: Some(false),
+                    extra_config: None,
+                },
+            )
+            .unwrap();
+
+        let result = service.checkin(&account.id).await.unwrap();
+        assert_eq!(result.status, CheckinStatus::Skipped);
+        assert_eq!(result.skip_reason.as_deref(), Some("account_disabled"));
+
+        cleanup_checkin_tables();
     }
 }

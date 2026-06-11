@@ -162,8 +162,8 @@ export interface AccountsResponse {
 // 签到操作类型
 // ═══════════════════════════════════════════════════════════
 
-/** 签到状态 */
-export type CheckinStatus = 'success' | 'already_checked_in' | 'failed'
+/** 签到状态（4 态契约：skipped = 不支持签到/禁用等跳过，不计入失败） */
+export type CheckinStatus = 'success' | 'already_checked_in' | 'failed' | 'skipped'
 
 /** 签到执行结果 */
 export interface CheckinExecutionResult {
@@ -173,6 +173,8 @@ export interface CheckinExecutionResult {
   status: CheckinStatus
   message?: string
   error_code?: string
+  /** 跳过原因（仅 status === 'skipped'）：provider_unsupported / provider_disabled / account_disabled */
+  skip_reason?: string
   reward?: string
   balance?: number
 }
@@ -188,6 +190,8 @@ export interface CheckinSummary {
   success: number
   already_checked_in: number
   failed: number
+  /** 跳过数（旧后端载荷可能缺失，做可选兼容） */
+  skipped?: number
 }
 
 /** 签到响应 */
@@ -220,6 +224,8 @@ export interface CheckinJobLogEntryPayload {
   status: CheckinLogStatus
   message?: string
   error_code?: string
+  /** 跳过原因（仅 status === 'skipped'） */
+  skip_reason?: string
   reward?: string
   balance?: number
   timestamp: string
@@ -553,6 +559,7 @@ export type CheckinLogStatus =
   | 'success'
   | 'already_checked_in'
   | 'failed'
+  | 'skipped'
 
 /** 签到日志条目 */
 export interface CheckinLogEntry {

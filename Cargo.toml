@@ -43,11 +43,13 @@ thiserror = "2.0.18"
 # HTTP client
 # Note: default-features = false disables rustls + aws-lc-rs (needs cmake/C build).
 # native-tls uses the OS TLS stack (SChannel on Windows), much faster to compile.
+# http2: 签到等外部请求通过 ALPN 协商 HTTP/2，贴近真实浏览器指纹（native-tls 已内置 alpn）。
 reqwest = { version = "0.13.4", default-features = false, features = [
     "json",
     "native-tls",
     "cookies",
     "gzip",
+    "http2",
 ] }
 
 # Serialization

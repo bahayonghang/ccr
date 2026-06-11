@@ -315,6 +315,7 @@ pub fn insert_record(conn: &Connection, record: &CheckinRecord) -> Result<(), ru
         CheckinStatus::Success => "success",
         CheckinStatus::AlreadyCheckedIn => "already_checked_in",
         CheckinStatus::Failed => "failed",
+        CheckinStatus::Skipped => "skipped",
     };
 
     conn.execute(
@@ -999,6 +1000,7 @@ fn row_to_record(row: &rusqlite::Row) -> Result<CheckinRecord, rusqlite::Error> 
     let status = match status_str.as_str() {
         "success" => CheckinStatus::Success,
         "already_checked_in" => CheckinStatus::AlreadyCheckedIn,
+        "skipped" => CheckinStatus::Skipped,
         _ => CheckinStatus::Failed,
     };
 
@@ -1144,6 +1146,33 @@ mod tests {
         // Delete by account
         let deleted = delete_records_by_account(&conn, "account-1").unwrap();
         assert_eq!(deleted, 1);
+    }
+
+    #[test]
+    fn test_skipped_record_roundtrip() {
+        // skipped 状态以 TEXT 落库，无需 migration；读取必须还原为 Skipped 而非 Failed
+        let conn = setup_test_db();
+
+        let record = CheckinRecord::skipped(
+            "account-1".to_string(),
+            Some("该站点不支持签到".to_string()),
+            "provider_unsupported".to_string(),
+        );
+        insert_record(&conn, &record).unwrap();
+
+        let records = get_records_by_account(&conn, "account-1", 10).unwrap();
+        assert_eq!(records.len(), 1);
+        assert_eq!(records[0].status, CheckinStatus::Skipped);
+        assert_eq!(
+            records[0].error_code.as_deref(),
+            Some("provider_unsupported")
+        );
+
+        // skipped 不计入今日 checked_in/failed 统计
+        let (checked_in, failed) =
+            get_today_status_counts(&conn, &["account-1".to_string()]).unwrap();
+        assert_eq!(checked_in, 0);
+        assert_eq!(failed, 0);
     }
 
     #[test]
