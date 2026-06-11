@@ -30,6 +30,9 @@ pub struct CheckinProvider {
     /// 是否启用
     #[serde(default = "default_enabled")]
     pub enabled: bool,
+    /// 关联的内置站 ID (builtin-* 前缀；自定义站为 None)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub builtin_id: Option<String>,
     /// 创建时间
     pub created_at: DateTime<Utc>,
     /// 更新时间
@@ -74,6 +77,7 @@ impl CheckinProvider {
             auth_header: default_auth_header(),
             auth_prefix: default_auth_prefix(),
             enabled: true,
+            builtin_id: None,
             created_at: Utc::now(),
             updated_at: None,
         }
@@ -142,6 +146,9 @@ pub struct CreateProviderRequest {
     /// 认证前缀 (可选)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub auth_prefix: Option<String>,
+    /// 关联的内置站 ID (可选，仅从内置目录添加时填写)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub builtin_id: Option<String>,
 }
 
 impl CreateProviderRequest {
@@ -164,6 +171,7 @@ impl CreateProviderRequest {
         if let Some(prefix) = self.auth_prefix {
             provider.auth_prefix = prefix;
         }
+        provider.builtin_id = self.builtin_id;
 
         provider
     }

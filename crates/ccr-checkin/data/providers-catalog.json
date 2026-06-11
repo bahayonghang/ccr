@@ -1,0 +1,629 @@
+{
+  "schemaVersion": 1,
+  "providers": [
+    {
+      "id": "builtin-anyrouter",
+      "name": "AnyRouter",
+      "description": "主流 AI 中转站，支持多模型，需要 WAF 绕过",
+      "domain": "anyrouter.top",
+      "websiteUrl": "https://anyrouter.top",
+      "icon": "🌐",
+      "bizCategory": "community",
+      "checkinCategory": "waf_required",
+      "checkin": {
+        "baseUrl": "https://anyrouter.top",
+        "checkinPath": "/api/user/sign_in",
+        "balancePath": "/api/user/self",
+        "userInfoPath": "/api/user/self",
+        "authHeader": "Authorization",
+        "authPrefix": "Bearer",
+        "supportsCheckin": true,
+        "requiresWafBypass": true,
+        "requiresCfClearance": false,
+        "checkinBugged": false,
+        "wafCookieNames": ["acw_tc", "cdn_sec_tc", "acw_sc__v2"],
+        "oauth": {
+          "oauthStatePath": "/api/oauth/state"
+        }
+      }
+    },
+    {
+      "id": "builtin-agentrouter",
+      "name": "AgentRouter",
+      "description": "AI 代理路由站，查询用户信息时自动签到",
+      "domain": "agentrouter.org",
+      "websiteUrl": "https://agentrouter.org",
+      "icon": "🤖",
+      "bizCategory": "community",
+      "checkinCategory": "special",
+      "checkin": {
+        "baseUrl": "https://agentrouter.org",
+        "checkinPath": null,
+        "balancePath": "/api/user/self",
+        "userInfoPath": "/api/user/self",
+        "authHeader": "Authorization",
+        "authPrefix": "Bearer",
+        "supportsCheckin": true,
+        "requiresWafBypass": false,
+        "requiresCfClearance": false,
+        "checkinBugged": true,
+        "oauth": {
+          "oauthStatePath": "/api/oauth/state"
+        }
+      }
+    },
+    {
+      "id": "builtin-coderouter",
+      "name": "CodeRouter",
+      "description": "代码镜像 AI 中转站，仅支持余额查询",
+      "domain": "api.codemirror.codes",
+      "websiteUrl": "https://api.codemirror.codes",
+      "icon": "💻",
+      "bizCategory": "community",
+      "checkinCategory": "balance_only",
+      "checkin": {
+        "baseUrl": "https://api.codemirror.codes",
+        "checkinPath": null,
+        "balancePath": "/api/user/self",
+        "userInfoPath": "/api/user/self",
+        "authHeader": "Authorization",
+        "authPrefix": "Bearer",
+        "supportsCheckin": false,
+        "requiresWafBypass": false,
+        "requiresCfClearance": false,
+        "checkinBugged": false
+      }
+    },
+    {
+      "id": "builtin-runawaytime",
+      "name": "RunAnytime",
+      "description": "公益 AI 中转站，需要 Cloudflare 绕过，支持 CDK 充值",
+      "domain": "runanytime.hxi.me",
+      "websiteUrl": "https://runanytime.hxi.me",
+      "icon": "⏱️",
+      "bizCategory": "community",
+      "checkinCategory": "cf_required",
+      "checkin": {
+        "baseUrl": "https://runanytime.hxi.me",
+        "checkinPath": null,
+        "balancePath": "/api/user/self",
+        "userInfoPath": "/api/user/self",
+        "authHeader": "Authorization",
+        "authPrefix": "Bearer",
+        "supportsCheckin": false,
+        "requiresWafBypass": false,
+        "requiresCfClearance": true,
+        "checkinBugged": false,
+        "cdk": {
+          "cdkType": "runawaytime",
+          "cdkSourceUrl": "https://fuli.hxi.me",
+          "topupPath": "/api/user/topup",
+          "requiresCdkCookies": true,
+          "requiresAccessToken": false
+        }
+      }
+    },
+    {
+      "id": "builtin-elysiver",
+      "name": "Elysiver",
+      "description": "公益 AI 中转站，需要 Cloudflare 绕过",
+      "domain": "elysiver.h-e.top",
+      "websiteUrl": "https://elysiver.h-e.top",
+      "icon": "🌸",
+      "bizCategory": "community",
+      "checkinCategory": "cf_required",
+      "checkin": {
+        "baseUrl": "https://elysiver.h-e.top",
+        "checkinPath": "/api/user/checkin",
+        "balancePath": "/api/user/self",
+        "userInfoPath": "/api/user/self",
+        "authHeader": "Authorization",
+        "authPrefix": "Bearer",
+        "supportsCheckin": true,
+        "requiresWafBypass": false,
+        "requiresCfClearance": true,
+        "checkinBugged": false
+      }
+    },
+    {
+      "id": "builtin-hotaru",
+      "name": "Hotaru",
+      "description": "公益 AI 中转站，需要 Cloudflare 绕过",
+      "domain": "hotaruapi.com",
+      "websiteUrl": "https://hotaruapi.com",
+      "icon": "🔥",
+      "bizCategory": "community",
+      "checkinCategory": "cf_required",
+      "checkin": {
+        "baseUrl": "https://hotaruapi.com",
+        "checkinPath": "/api/user/checkin",
+        "balancePath": "/api/user/self",
+        "userInfoPath": "/api/user/self",
+        "authHeader": "Authorization",
+        "authPrefix": "Bearer",
+        "supportsCheckin": true,
+        "requiresWafBypass": false,
+        "requiresCfClearance": true,
+        "checkinBugged": false
+      }
+    },
+    {
+      "id": "builtin-b4u",
+      "name": "B4U",
+      "description": "公益 AI 中转站，需要 Cloudflare 绕过，支持 CDK 充值",
+      "domain": "b4u.qzz.io",
+      "websiteUrl": "https://b4u.qzz.io",
+      "icon": "🎲",
+      "bizCategory": "community",
+      "checkinCategory": "cf_required",
+      "checkin": {
+        "baseUrl": "https://b4u.qzz.io",
+        "checkinPath": null,
+        "balancePath": "/api/user/self",
+        "userInfoPath": "/api/user/self",
+        "authHeader": "Authorization",
+        "authPrefix": "Bearer",
+        "supportsCheckin": false,
+        "requiresWafBypass": false,
+        "requiresCfClearance": true,
+        "checkinBugged": false,
+        "cdk": {
+          "cdkType": "b4u",
+          "cdkSourceUrl": "https://tw.b4u.qzz.io",
+          "topupPath": "/api/user/topup",
+          "requiresCdkCookies": true,
+          "requiresAccessToken": false
+        }
+      }
+    },
+    {
+      "id": "builtin-x666",
+      "name": "x666",
+      "description": "公益 AI 中转站，通过 up.x666.me 抽奖获取额度",
+      "domain": "x666.me",
+      "websiteUrl": "https://x666.me",
+      "icon": "🎰",
+      "bizCategory": "community",
+      "checkinCategory": "cdk",
+      "checkin": {
+        "baseUrl": "https://x666.me",
+        "checkinPath": null,
+        "balancePath": "/api/user/self",
+        "userInfoPath": "/api/user/self",
+        "authHeader": "Authorization",
+        "authPrefix": "Bearer",
+        "supportsCheckin": false,
+        "requiresWafBypass": false,
+        "requiresCfClearance": false,
+        "checkinBugged": false,
+        "cdk": {
+          "cdkType": "x666",
+          "cdkSourceUrl": "https://up.x666.me",
+          "requiresCdkCookies": false,
+          "requiresAccessToken": true
+        }
+      }
+    },
+    {
+      "id": "builtin-codex-cab",
+      "name": "Codex.cab",
+      "description": "Codex.cab 公益 AI 中转站",
+      "domain": "codex.cab",
+      "websiteUrl": "https://codex.cab",
+      "icon": "📝",
+      "bizCategory": "community",
+      "checkinCategory": "standard",
+      "checkin": {
+        "baseUrl": "https://codex.cab",
+        "checkinPath": "/api/user/checkin",
+        "balancePath": "/api/user/self",
+        "userInfoPath": "/api/user/self",
+        "authHeader": "Authorization",
+        "authPrefix": "Bearer",
+        "supportsCheckin": true,
+        "requiresWafBypass": false,
+        "requiresCfClearance": false,
+        "checkinBugged": false,
+        "oauth": {
+          "linuxdoClientId": "nYxyCYi7VDrfjNn2rBM8VkPaKNKxWEx1",
+          "oauthStatePath": "/api/oauth/state"
+        }
+      },
+      "platforms": {
+        "claude": { "baseUrl": "https://codex.cab" },
+        "codex": { "baseUrl": "https://codex.cab" }
+      }
+    },
+    {
+      "id": "builtin-clove",
+      "name": "Clove",
+      "description": "Clove 公益 AI 中转站",
+      "domain": "clove.cc.cd",
+      "websiteUrl": "https://clove.cc.cd",
+      "icon": "🍀",
+      "bizCategory": "community",
+      "checkinCategory": "standard",
+      "checkin": {
+        "baseUrl": "https://clove.cc.cd",
+        "checkinPath": "/api/user/checkin",
+        "balancePath": "/api/user/self",
+        "userInfoPath": "/api/user/self",
+        "authHeader": "Authorization",
+        "authPrefix": "Bearer",
+        "supportsCheckin": true,
+        "requiresWafBypass": false,
+        "requiresCfClearance": false,
+        "checkinBugged": false,
+        "oauth": {
+          "linuxdoClientId": "Lr8C2Ny7JPr7c4YqysaDtVEqkO1a9eL7",
+          "oauthStatePath": "/api/oauth/state"
+        }
+      },
+      "platforms": {
+        "claude": { "baseUrl": "https://clove.cc.cd" },
+        "codex": { "baseUrl": "https://clove.cc.cd" }
+      }
+    },
+    {
+      "id": "builtin-npcodex",
+      "name": "NPCodex",
+      "description": "NPCodex 公益 AI 中转站",
+      "domain": "npcodex.kiroxubei.tech",
+      "websiteUrl": "https://npcodex.kiroxubei.tech",
+      "icon": "🔮",
+      "bizCategory": "community",
+      "checkinCategory": "standard",
+      "checkin": {
+        "baseUrl": "https://npcodex.kiroxubei.tech",
+        "checkinPath": "/api/user/checkin",
+        "balancePath": "/api/user/self",
+        "userInfoPath": "/api/user/self",
+        "authHeader": "Authorization",
+        "authPrefix": "Bearer",
+        "supportsCheckin": true,
+        "requiresWafBypass": false,
+        "requiresCfClearance": false,
+        "checkinBugged": false,
+        "oauth": {
+          "linuxdoClientId": "APUcB3LChvSGi3FmkODZx6Ij2038mkHY",
+          "oauthStatePath": "/api/oauth/state"
+        }
+      },
+      "platforms": {
+        "claude": { "baseUrl": "https://npcodex.kiroxubei.tech" },
+        "codex": { "baseUrl": "https://npcodex.kiroxubei.tech" }
+      }
+    },
+    {
+      "id": "builtin-muapi",
+      "name": "MuAPI",
+      "description": "MuAPI 公益 AI 中转站",
+      "domain": "ai.muapi.cn",
+      "websiteUrl": "https://ai.muapi.cn",
+      "icon": "🎵",
+      "bizCategory": "community",
+      "checkinCategory": "standard",
+      "checkin": {
+        "baseUrl": "https://ai.muapi.cn",
+        "checkinPath": "/api/user/checkin",
+        "balancePath": "/api/user/self",
+        "userInfoPath": "/api/user/self",
+        "authHeader": "Authorization",
+        "authPrefix": "Bearer",
+        "supportsCheckin": true,
+        "requiresWafBypass": false,
+        "requiresCfClearance": false,
+        "checkinBugged": false,
+        "oauth": {
+          "linuxdoClientId": "WKD07GTaaAQcPi15BAfmIHMMCg1BG95t",
+          "oauthStatePath": "/api/oauth/state"
+        }
+      },
+      "platforms": {
+        "claude": { "baseUrl": "https://ai.muapi.cn" },
+        "codex": { "baseUrl": "https://ai.muapi.cn" }
+      }
+    },
+    {
+      "id": "builtin-feisakura",
+      "name": "Feisakura",
+      "description": "Feisakura 公益 AI 中转站",
+      "domain": "api.feisakura.fun",
+      "websiteUrl": "https://api.feisakura.fun",
+      "icon": "🌸",
+      "bizCategory": "community",
+      "checkinCategory": "standard",
+      "checkin": {
+        "baseUrl": "https://api.feisakura.fun",
+        "checkinPath": "/api/user/checkin",
+        "balancePath": "/api/user/self",
+        "userInfoPath": "/api/user/self",
+        "authHeader": "Authorization",
+        "authPrefix": "Bearer",
+        "supportsCheckin": true,
+        "requiresWafBypass": false,
+        "requiresCfClearance": false,
+        "checkinBugged": false,
+        "oauth": {
+          "linuxdoClientId": "XPXmWksr3NcH2aiz0MgqK5jtEmfdfZ0Q",
+          "oauthStatePath": "/api/oauth/state"
+        }
+      },
+      "platforms": {
+        "claude": { "baseUrl": "https://api.feisakura.fun" },
+        "codex": { "baseUrl": "https://api.feisakura.fun" }
+      }
+    },
+    {
+      "id": "builtin-xionger",
+      "name": "Xionger",
+      "description": "Xionger 公益 AI 中转站",
+      "domain": "api.xionger.ccwu.cc",
+      "websiteUrl": "https://api.xionger.ccwu.cc",
+      "icon": "🐻",
+      "bizCategory": "community",
+      "checkinCategory": "standard",
+      "checkin": {
+        "baseUrl": "https://api.xionger.ccwu.cc",
+        "checkinPath": "/api/user/checkin",
+        "balancePath": "/api/user/self",
+        "userInfoPath": "/api/user/self",
+        "authHeader": "Authorization",
+        "authPrefix": "Bearer",
+        "supportsCheckin": true,
+        "requiresWafBypass": false,
+        "requiresCfClearance": false,
+        "checkinBugged": false,
+        "oauth": {
+          "linuxdoClientId": "SYU8YV8Dd0PHmBnNCcjmGIhYfDnmPtBc",
+          "oauthStatePath": "/api/oauth/state"
+        }
+      },
+      "platforms": {
+        "claude": { "baseUrl": "https://api.xionger.ccwu.cc" },
+        "codex": { "baseUrl": "https://api.xionger.ccwu.cc" }
+      }
+    },
+    {
+      "id": "builtin-einzieg",
+      "name": "Einzieg",
+      "description": "Einzieg 公益 AI 中转站",
+      "domain": "api.einzieg.site",
+      "websiteUrl": "https://api.einzieg.site",
+      "icon": "⚡",
+      "bizCategory": "community",
+      "checkinCategory": "standard",
+      "checkin": {
+        "baseUrl": "https://api.einzieg.site",
+        "checkinPath": "/api/user/checkin",
+        "balancePath": "/api/user/self",
+        "userInfoPath": "/api/user/self",
+        "authHeader": "Authorization",
+        "authPrefix": "Bearer",
+        "supportsCheckin": true,
+        "requiresWafBypass": false,
+        "requiresCfClearance": false,
+        "checkinBugged": false,
+        "oauth": {
+          "linuxdoClientId": "aBambSqvDqCgTW8fCarJBeQji8M5RATf",
+          "oauthStatePath": "/api/oauth/state"
+        }
+      },
+      "platforms": {
+        "claude": { "baseUrl": "https://api.einzieg.site" },
+        "codex": { "baseUrl": "https://api.einzieg.site" }
+      }
+    },
+    {
+      "id": "builtin-2020111",
+      "name": "2020111",
+      "description": "2020111 公益 AI 中转站",
+      "domain": "api.2020111.xyz",
+      "websiteUrl": "https://api.2020111.xyz",
+      "icon": "🔢",
+      "bizCategory": "community",
+      "checkinCategory": "standard",
+      "checkin": {
+        "baseUrl": "https://api.2020111.xyz",
+        "checkinPath": "/api/user/checkin",
+        "balancePath": "/api/user/self",
+        "userInfoPath": "/api/user/self",
+        "authHeader": "Authorization",
+        "authPrefix": "Bearer",
+        "supportsCheckin": true,
+        "requiresWafBypass": false,
+        "requiresCfClearance": false,
+        "checkinBugged": false,
+        "oauth": {
+          "linuxdoClientId": "gnyvfmAfXrnYrt9ierq3Onj1ADvdVmmm",
+          "oauthStatePath": "/api/oauth/state"
+        }
+      },
+      "platforms": {
+        "claude": { "baseUrl": "https://api.2020111.xyz" },
+        "codex": { "baseUrl": "https://api.2020111.xyz" }
+      }
+    },
+    {
+      "id": "builtin-361888",
+      "name": "361888",
+      "description": "361888 公益 AI 中转站",
+      "domain": "api.361888.xyz",
+      "websiteUrl": "https://api.361888.xyz",
+      "icon": "🎰",
+      "bizCategory": "community",
+      "checkinCategory": "standard",
+      "checkin": {
+        "baseUrl": "https://api.361888.xyz",
+        "checkinPath": "/api/user/checkin",
+        "balancePath": "/api/user/self",
+        "userInfoPath": "/api/user/self",
+        "authHeader": "Authorization",
+        "authPrefix": "Bearer",
+        "supportsCheckin": true,
+        "requiresWafBypass": false,
+        "requiresCfClearance": false,
+        "checkinBugged": false,
+        "oauth": {
+          "linuxdoClientId": "ze9QLEoERDgCdFnlBJeB0uASPwOTVyfM",
+          "oauthStatePath": "/api/oauth/state"
+        }
+      },
+      "platforms": {
+        "claude": { "baseUrl": "https://api.361888.xyz" },
+        "codex": { "baseUrl": "https://api.361888.xyz" }
+      }
+    },
+    {
+      "id": "builtin-yyds",
+      "name": "YYDS",
+      "description": "YYDS 公益 AI 中转站",
+      "domain": "yyds.215.im",
+      "websiteUrl": "https://yyds.215.im",
+      "icon": "🏆",
+      "bizCategory": "community",
+      "checkinCategory": "standard",
+      "checkin": {
+        "baseUrl": "https://yyds.215.im",
+        "checkinPath": "/api/user/checkin",
+        "balancePath": "/api/user/self",
+        "userInfoPath": "/api/user/self",
+        "authHeader": "Authorization",
+        "authPrefix": "Bearer",
+        "supportsCheckin": true,
+        "requiresWafBypass": false,
+        "requiresCfClearance": false,
+        "checkinBugged": false,
+        "oauth": {
+          "linuxdoClientId": "BvCzH7KoNBVpQIfdWCgUMIGaPMOpgbwI",
+          "oauthStatePath": "/api/oauth/state"
+        }
+      },
+      "platforms": {
+        "claude": { "baseUrl": "https://yyds.215.im" },
+        "codex": { "baseUrl": "https://yyds.215.im" }
+      }
+    },
+    {
+      "id": "builtin-anthorpic",
+      "name": "Anthorpic",
+      "description": "Anthorpic 公益 AI 中转站",
+      "domain": "anthorpic.us.ci",
+      "websiteUrl": "https://anthorpic.us.ci",
+      "icon": "🤖",
+      "bizCategory": "community",
+      "checkinCategory": "standard",
+      "checkin": {
+        "baseUrl": "https://anthorpic.us.ci",
+        "checkinPath": "/api/user/checkin",
+        "balancePath": "/api/user/self",
+        "userInfoPath": "/api/user/self",
+        "authHeader": "Authorization",
+        "authPrefix": "Bearer",
+        "supportsCheckin": true,
+        "requiresWafBypass": false,
+        "requiresCfClearance": false,
+        "checkinBugged": false,
+        "oauth": {
+          "linuxdoClientId": "nNzrggkmAew2bJYxCgC2iaU6IYcaWt8S",
+          "oauthStatePath": "/api/oauth/state"
+        }
+      },
+      "platforms": {
+        "claude": { "baseUrl": "https://anthorpic.us.ci" },
+        "codex": { "baseUrl": "https://anthorpic.us.ci" }
+      }
+    },
+    {
+      "id": "builtin-nanohajimi",
+      "name": "Nanohajimi",
+      "description": "Nanohajimi 公益 AI 中转站",
+      "domain": "free.nanohajimi.mom",
+      "websiteUrl": "https://free.nanohajimi.mom",
+      "icon": "🌟",
+      "bizCategory": "community",
+      "checkinCategory": "standard",
+      "checkin": {
+        "baseUrl": "https://free.nanohajimi.mom",
+        "checkinPath": "/api/user/checkin",
+        "balancePath": "/api/user/self",
+        "userInfoPath": "/api/user/self",
+        "authHeader": "Authorization",
+        "authPrefix": "Bearer",
+        "supportsCheckin": true,
+        "requiresWafBypass": false,
+        "requiresCfClearance": false,
+        "checkinBugged": false,
+        "oauth": {
+          "linuxdoClientId": "svkUqtRyhOJMULQ1Zfnfhvv9ALSnANhf",
+          "oauthStatePath": "/api/oauth/state"
+        }
+      },
+      "platforms": {
+        "claude": { "baseUrl": "https://free.nanohajimi.mom" },
+        "codex": { "baseUrl": "https://free.nanohajimi.mom" }
+      }
+    },
+    {
+      "id": "builtin-zapi-aicc0",
+      "name": "ZAPI",
+      "description": "ZAPI 公益 AI 中转站",
+      "domain": "zapi.aicc0.com",
+      "websiteUrl": "https://zapi.aicc0.com",
+      "icon": "🧩",
+      "bizCategory": "community",
+      "checkinCategory": "standard",
+      "checkin": {
+        "baseUrl": "https://zapi.aicc0.com",
+        "checkinPath": "/api/user/checkin",
+        "balancePath": "/api/user/self",
+        "userInfoPath": "/api/user/self",
+        "authHeader": "Authorization",
+        "authPrefix": "Bearer",
+        "supportsCheckin": true,
+        "requiresWafBypass": false,
+        "requiresCfClearance": false,
+        "checkinBugged": false,
+        "oauth": {
+          "githubClientId": "Ov23linrAuNoCCMoztG7",
+          "linuxdoClientId": "Tm30iXRcGTM9oyVreW3edvCNGO5kPEWX",
+          "oauthStatePath": "/api/oauth/state"
+        }
+      },
+      "platforms": {
+        "claude": { "baseUrl": "https://zapi.aicc0.com" },
+        "codex": { "baseUrl": "https://zapi.aicc0.com" }
+      }
+    },
+    {
+      "id": "builtin-llmapi-vhuds",
+      "name": "LLMAPI",
+      "description": "LLMAPI 公益 AI 中转站",
+      "domain": "llmapi.vhuds.com",
+      "websiteUrl": "https://llmapi.vhuds.com",
+      "icon": "💡",
+      "bizCategory": "community",
+      "checkinCategory": "standard",
+      "checkin": {
+        "baseUrl": "https://llmapi.vhuds.com",
+        "checkinPath": "/api/user/checkin",
+        "balancePath": "/api/user/self",
+        "userInfoPath": "/api/user/self",
+        "authHeader": "Authorization",
+        "authPrefix": "Bearer",
+        "supportsCheckin": true,
+        "requiresWafBypass": false,
+        "requiresCfClearance": false,
+        "checkinBugged": false,
+        "oauth": {
+          "linuxdoClientId": "aiepRPewQgwTPbUIq8Z4muSYw76NFSUZ",
+          "oauthStatePath": "/api/oauth/state"
+        }
+      },
+      "platforms": {
+        "claude": { "baseUrl": "https://llmapi.vhuds.com" },
+        "codex": { "baseUrl": "https://llmapi.vhuds.com" }
+      }
+    }
+  ]
+}

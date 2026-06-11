@@ -345,6 +345,10 @@ async fn run_checkin_job(
 pub async fn list_providers(_state: State<'_, AppState>) -> Result<Value, String> {
     run_blocking(|| {
         let manager = ProviderManager::new();
+        // 旧数据兼容：按 name/base_url 回填缺失的 builtin_id（幂等，仅影响 NULL 行）
+        if let Err(e) = manager.backfill_builtin_ids() {
+            tracing::warn!("Failed to backfill provider builtin_id: {}", e);
+        }
         let response = manager
             .list()
             .map_err(|e| format!("Failed to list providers: {}", e))?;
@@ -862,15 +866,10 @@ pub async fn execute_cdk_recharge(
             .map_err(|e| format!("Provider not found: {}", e))?;
 
         // Look up builtin provider CDK config
-        use ccr_checkin::managers::checkin::builtin_providers::get_builtin_providers;
-        let builtin_providers = get_builtin_providers();
-        let cdk_config = builtin_providers
-            .iter()
-            .find(|bp| {
-                bp.name == provider.name
-                    || bp.id == format!("builtin-{}", provider.name.to_lowercase())
-            })
-            .and_then(|bp| bp.cdk_config.as_ref())
+        // 优先 builtin_id 精确反查 catalog（改名安全），旧数据（NULL）回退 name 匹配
+        use ccr_checkin::managers::checkin::builtin_providers::resolve_builtin_for_provider;
+        let cdk_config = resolve_builtin_for_provider(&provider)
+            .and_then(|bp| bp.cdk_config)
             .ok_or_else(|| format!("Provider {} does not support CDK recharge", provider.name))?;
 
         // Parse account extra_config for CDK credentials
@@ -1119,6 +1118,8 @@ pub async fn add_builtin_provider(provider_id: String) -> Result<Value, String> 
             user_info_path: Some(checkin_provider.user_info_path),
             auth_header: Some(checkin_provider.auth_header),
             auth_prefix: Some(checkin_provider.auth_prefix),
+            // 落库记录内置站来源，后续 CDK/WAF 反查不再依赖 name
+            builtin_id: checkin_provider.builtin_id,
         };
         let provider = manager
             .create(req)

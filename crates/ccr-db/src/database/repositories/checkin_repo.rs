@@ -35,8 +35,8 @@ pub fn insert_provider(
 
     conn.execute(
         "INSERT INTO checkin_providers (id, name, base_url, checkin_path, balance_path,
-         user_info_path, auth_header, auth_prefix, enabled, created_at, updated_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+         user_info_path, auth_header, auth_prefix, enabled, created_at, updated_at, builtin_id)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
         params![
             provider.id,
             provider.name,
@@ -49,6 +49,7 @@ pub fn insert_provider(
             if provider.enabled { 1 } else { 0 },
             created_at,
             updated_at,
+            provider.builtin_id,
         ],
     )?;
 
@@ -61,7 +62,7 @@ pub fn insert_provider(
 pub fn get_all_providers(conn: &Connection) -> Result<Vec<CheckinProvider>, rusqlite::Error> {
     let mut stmt = conn.prepare_cached(
         "SELECT id, name, base_url, checkin_path, balance_path, user_info_path,
-                auth_header, auth_prefix, enabled, created_at, updated_at
+                auth_header, auth_prefix, enabled, created_at, updated_at, builtin_id
          FROM checkin_providers
          ORDER BY name ASC",
     )?;
@@ -81,7 +82,7 @@ pub fn get_provider_by_id(
 ) -> Result<Option<CheckinProvider>, rusqlite::Error> {
     conn.query_row(
         "SELECT id, name, base_url, checkin_path, balance_path, user_info_path,
-                auth_header, auth_prefix, enabled, created_at, updated_at
+                auth_header, auth_prefix, enabled, created_at, updated_at, builtin_id
          FROM checkin_providers WHERE id = ?1",
         params![id],
         row_to_provider,
@@ -100,8 +101,9 @@ pub fn update_provider(
     let affected = conn.execute(
         "UPDATE checkin_providers SET
          name = ?1, base_url = ?2, checkin_path = ?3, balance_path = ?4,
-         user_info_path = ?5, auth_header = ?6, auth_prefix = ?7, enabled = ?8, updated_at = ?9
-         WHERE id = ?10",
+         user_info_path = ?5, auth_header = ?6, auth_prefix = ?7, enabled = ?8, updated_at = ?9,
+         builtin_id = ?10
+         WHERE id = ?11",
         params![
             provider.name,
             provider.base_url,
@@ -112,10 +114,25 @@ pub fn update_provider(
             provider.auth_prefix,
             if provider.enabled { 1 } else { 0 },
             updated_at,
+            provider.builtin_id,
             provider.id,
         ],
     )?;
 
+    Ok(affected > 0)
+}
+
+/// Backfill builtin_id for a provider row only when it is still NULL
+#[allow(dead_code)]
+pub fn set_provider_builtin_id_if_missing(
+    conn: &Connection,
+    provider_id: &str,
+    builtin_id: &str,
+) -> Result<bool, rusqlite::Error> {
+    let affected = conn.execute(
+        "UPDATE checkin_providers SET builtin_id = ?1 WHERE id = ?2 AND builtin_id IS NULL",
+        params![builtin_id, provider_id],
+    )?;
     Ok(affected > 0)
 }
 
@@ -888,6 +905,7 @@ fn row_to_provider(row: &rusqlite::Row) -> Result<CheckinProvider, rusqlite::Err
     let enabled: i32 = row.get(8)?;
     let created_at_str: String = row.get(9)?;
     let updated_at_str: Option<String> = row.get(10)?;
+    let builtin_id: Option<String> = row.get(11)?;
 
     let created_at = DateTime::parse_from_rfc3339(&created_at_str)
         .map(|dt| dt.with_timezone(&Utc))
@@ -909,6 +927,7 @@ fn row_to_provider(row: &rusqlite::Row) -> Result<CheckinProvider, rusqlite::Err
         auth_header,
         auth_prefix,
         enabled: enabled != 0,
+        builtin_id,
         created_at,
         updated_at,
     })

@@ -58,7 +58,8 @@ CREATE TABLE IF NOT EXISTS checkin_providers (
     auth_prefix TEXT NOT NULL,
     enabled INTEGER NOT NULL,  -- 0/1
     created_at TEXT NOT NULL,
-    updated_at TEXT
+    updated_at TEXT,
+    builtin_id TEXT  -- builtin-* catalog id, NULL for custom providers
 );
 
 CREATE INDEX IF NOT EXISTS idx_checkin_providers_name
