@@ -49,6 +49,11 @@ export default defineConfig(({ command }) => {
       host: '127.0.0.1',
       port: 15173,
       strictPort: true,
+      fs: {
+        // providers-catalog.json 位于仓库根 crates/ 下（前后端共享单一数据源），
+        // dev server 默认只放行 ccr-ui 根目录，这里显式放行 catalog 数据目录
+        allow: [dirname, path.resolve(dirname, '../crates/ccr-checkin/data')]
+      },
       warmup: {
         clientFiles: devWarmTargets.clientFiles,
       },

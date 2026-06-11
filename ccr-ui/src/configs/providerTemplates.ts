@@ -1,4 +1,5 @@
 import { claudePresets } from '@/configs/providerPresets'
+import { CHECKIN_CATALOG_PROVIDER_TEMPLATES } from '@/configs/providersCatalog'
 import { OPENCODE_PROVIDER_PRESETS } from '@/types/opencode'
 import type {
   ClaudeProviderTemplateOverride,
@@ -21,15 +22,13 @@ const hostFromUrl = (url?: string) => {
   try {
     return new URL(url).host
   } catch {
-    return url
-      .replace(/^https?:\/\//, '')
-      .replace(/\/.*$/, '')
+    return url.replace(/^https?:\/\//, '').replace(/\/.*$/, '')
   }
 }
 
-const dedupe = (values: Array<string | undefined>) => (
-  [...new Set(values.map(value => value?.trim()).filter(Boolean) as string[])]
-)
+const dedupe = (values: Array<string | undefined>) => [
+  ...new Set(values.map((value) => value?.trim()).filter(Boolean) as string[]),
+]
 
 const commonAliases: Record<string, string[]> = {
   'claude-official': ['anthropic', 'claude', 'claude code'],
@@ -220,7 +219,9 @@ const extraCodexTemplates: ProviderTemplate[] = [
   },
 ]
 
-const claudeTemplateFromPreset = (preset: (typeof claudePresets.presets)[number]): ProviderTemplate => {
+const claudeTemplateFromPreset = (
+  preset: (typeof claudePresets.presets)[number]
+): ProviderTemplate => {
   const claudeOverride: ClaudeProviderTemplateOverride = {
     baseUrl: preset.base_url,
     provider: preset.provider || preset.name,
@@ -233,10 +234,7 @@ const claudeTemplateFromPreset = (preset: (typeof claudePresets.presets)[number]
     description: preset.description,
   }
   const codexOverride = codexOverrides[preset.id]
-  const baseUrls = dedupe([
-    preset.base_url,
-    codexOverride?.baseUrl,
-  ])
+  const baseUrls = dedupe([preset.base_url, codexOverride?.baseUrl])
   const modelCatalog = dedupe([
     preset.model,
     preset.small_fast_model,
@@ -274,7 +272,7 @@ const claudeTemplateFromPreset = (preset: (typeof claudePresets.presets)[number]
 }
 
 const opencodeTemplateFromPreset = (
-  preset: (typeof OPENCODE_PROVIDER_PRESETS)[number],
+  preset: (typeof OPENCODE_PROVIDER_PRESETS)[number]
 ): ProviderTemplate => {
   const override: OpenCodeProviderTemplateOverride = {
     id: preset.providerId || preset.id,
@@ -325,4 +323,6 @@ export const BUILT_IN_PROVIDER_TEMPLATES: ProviderTemplate[] = mergeTemplates([
   ...claudePresets.presets.map(claudeTemplateFromPreset),
   ...extraCodexTemplates,
   ...OPENCODE_PROVIDER_PRESETS.map(opencodeTemplateFromPreset),
+  // 共享站点目录（providers-catalog.json）中带 platforms 块的签到公益站
+  ...CHECKIN_CATALOG_PROVIDER_TEMPLATES,
 ])

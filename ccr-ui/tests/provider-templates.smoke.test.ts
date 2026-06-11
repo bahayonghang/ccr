@@ -112,6 +112,37 @@ describe('provider template mapping', () => {
     expect(JSON.stringify(opencodePatch)).not.toMatch(/apiKey|authToken|secret|password/i)
   })
 
+  it('exposes catalog check-in community sites with non-secret claude/codex patches', () => {
+    const claudeOptions = buildProviderTemplateOptions(BUILT_IN_PROVIDER_TEMPLATES, 'claude')
+    const codexOptions = buildProviderTemplateOptions(BUILT_IN_PROVIDER_TEMPLATES, 'codex')
+    const opencodeOptions = buildProviderTemplateOptions(BUILT_IN_PROVIDER_TEMPLATES, 'opencode')
+
+    // catalog 标准签到站投影模板出现在 Claude/Codex 选择器；无 opencode override 则不出现
+    expect(claudeOptions.some(option => option.template.id === 'builtin-codex-cab')).toBe(true)
+    expect(codexOptions.some(option => option.template.id === 'builtin-codex-cab')).toBe(true)
+    expect(opencodeOptions.some(option => option.template.id === 'builtin-codex-cab')).toBe(false)
+
+    // 无 platforms 块的特殊签到站（如 AnyRouter）不进入模板目录
+    expect(BUILT_IN_PROVIDER_TEMPLATES.some(template => template.id === 'builtin-anyrouter')).toBe(false)
+
+    const codexCab = BUILT_IN_PROVIDER_TEMPLATES.find(template => template.id === 'builtin-codex-cab')
+    expect(codexCab?.source).toBe('built_in')
+    expect(codexCab?.aliases).toContain('codex.cab')
+
+    const claudePatch = mapTemplateToClaudeProfilePatch(codexCab!)
+    expect(claudePatch.base_url).toBe('https://codex.cab')
+    expect(JSON.stringify(claudePatch)).not.toMatch(/auth_token|apiKey|api_key|secret|password/i)
+
+    const codexPatch = mapTemplateToCodexProviderPatch(codexCab!)
+    expect(codexPatch.baseUrl).toBe('https://codex.cab')
+    expect(JSON.stringify(codexPatch)).not.toMatch(/apiKey":|api_key":|auth_token|secret|password/i)
+
+    // 投影模板整体不携带 OAuth client id / 密钥类字段
+    const catalogTemplates = BUILT_IN_PROVIDER_TEMPLATES.filter(template => template.id.startsWith('builtin-'))
+    expect(catalogTemplates.length).toBeGreaterThan(0)
+    expect(JSON.stringify(catalogTemplates)).not.toMatch(/client_?id|auth_?token|secret|password|cookie/i)
+  })
+
   it('persists custom templates separately from saved providers and strips secret fields across platform overrides', () => {
     const [next] = upsertCustomProviderTemplate([], {
       id: 'custom-router',
