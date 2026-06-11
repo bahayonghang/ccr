@@ -1,7 +1,7 @@
 <template>
   <div class="checkin-account-dashboard">
     <div class="dashboard-shell">
-      <section class="dashboard-header dashboard-surface">
+      <section class="dashboard-header checkin-surface-card">
         <div class="header-left">
           <button
             type="button"
@@ -96,7 +96,7 @@
 
       <div
         v-if="error"
-        class="state-card dashboard-surface state-error"
+        class="state-card checkin-surface-card state-error"
       >
         <p>{{ error }}</p>
         <button
@@ -110,7 +110,7 @@
 
       <div
         v-else-if="loading"
-        class="state-card dashboard-surface state-loading"
+        class="state-card checkin-surface-card state-loading"
       >
         <div class="loader" />
         加载中...
@@ -121,7 +121,7 @@
         class="dashboard-stack"
       >
         <div class="dashboard-main-grid">
-          <section class="stats-card-vertical dashboard-surface">
+          <section class="stats-card-vertical checkin-surface-card">
             <div class="card-lead">
               <div class="stats-icon accent">
                 <SIcon
@@ -185,7 +185,7 @@
             </div>
           </section>
 
-          <section class="stats-card-vertical dashboard-surface">
+          <section class="stats-card-vertical checkin-surface-card">
             <div class="card-lead">
               <div class="stats-icon warning">
                 <SIcon
@@ -267,7 +267,7 @@
             </div>
           </section>
 
-          <section class="calendar-card dashboard-surface">
+          <section class="calendar-card checkin-surface-card">
             <div class="card-header">
               <div class="card-copy">
                 <p class="card-overline">
@@ -301,7 +301,7 @@
           </section>
         </div>
 
-        <section class="trend-card dashboard-surface">
+        <section class="trend-card checkin-surface-card">
           <div class="trend-header">
             <div class="card-copy">
               <p class="card-overline">
@@ -489,14 +489,6 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
-}
-
-.dashboard-surface {
-  border: 1px solid rgb(255 255 255 / 20%);
-  border-radius: 1.5rem;
-  background: var(--glass-bg, rgb(255 255 255 / 8%));
-  box-shadow: 0 10px 30px rgb(15 23 42 / 10%);
-  backdrop-filter: blur(20px);
 }
 
 .dashboard-header {

@@ -30,7 +30,7 @@
                   <h3 class="checkin-providers__builtin-card-title">
                     {{ bp.name }}
                   </h3>
-                  <span class="checkin-providers__builtin-badge">
+                  <span class="checkin-providers__builtin-badge checkin-badge-pill">
                     内置
                   </span>
                 </div>
@@ -65,7 +65,7 @@
           <div class="checkin-providers__tag-list">
             <span
               v-if="bp.supports_checkin"
-              class="checkin-providers__tag"
+              class="checkin-providers__tag checkin-badge-pill"
               :class="bp.checkin_bugged
                 ? 'checkin-providers__tag--warning'
                 : 'checkin-providers__tag--success'"
@@ -79,7 +79,7 @@
             </span>
             <span
               v-else
-              class="checkin-providers__tag checkin-providers__tag--muted"
+              class="checkin-providers__tag checkin-badge-pill checkin-providers__tag--muted"
             >
               <SIcon
                 name="XCircle"
@@ -89,7 +89,7 @@
             </span>
             <span
               v-if="bp.requires_waf_bypass"
-              class="checkin-providers__tag checkin-providers__tag--warning"
+              class="checkin-providers__tag checkin-badge-pill checkin-providers__tag--warning"
             >
               <SIcon
                 name="Shield"
@@ -239,7 +239,7 @@
                     WAF 验证
                   </p>
                   <span
-                    class="checkin-providers__tag"
+                    class="checkin-providers__tag checkin-badge-pill"
                     :class="hasCachedWafCookie(provider.id)
                       ? 'checkin-providers__tag--success'
                       : 'checkin-providers__tag--warning'"
@@ -612,8 +612,7 @@ const deleteProvider = async (id: string) => {
 .checkin-providers__primary-button,
 .checkin-providers__secondary-button,
 .checkin-providers__modal-overlay,
-.checkin-providers__modal-actions,
-.checkin-providers__tag {
+.checkin-providers__modal-actions {
   display: flex;
   align-items: center;
 }
@@ -712,11 +711,10 @@ const deleteProvider = async (id: string) => {
   color: var(--text-primary);
 }
 
+/* 形状配方由全局 .checkin-badge-pill 提供，这里保留尺寸差异 */
 .checkin-providers__builtin-badge,
 .checkin-providers__tag {
-  border-radius: 9999px;
   padding: 0.125rem 0.5rem;
-  font-size: 0.75rem;
   line-height: 1rem;
 }
 

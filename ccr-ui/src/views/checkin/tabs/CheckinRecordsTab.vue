@@ -181,7 +181,7 @@
                 </td>
                 <td class="checkin-records__table-cell checkin-records__table-cell--nowrap">
                   <span
-                    class="checkin-records__status-badge"
+                    class="checkin-records__status-badge checkin-badge-pill"
                     :class="getStatusClass(record.status)"
                   >
                     {{ getStatusText(record.status) }}
@@ -804,12 +804,9 @@ onMounted(() => {
   white-space: nowrap;
 }
 
+/* 形状配方由全局 .checkin-badge-pill 提供，这里保留尺寸差异 */
 .checkin-records__status-badge {
-  display: inline-flex;
-  align-items: center;
-  border-radius: 9999px;
   padding: 0.25rem 0.5rem;
-  font-size: 0.75rem;
   line-height: 1rem;
   font-weight: 500;
 }

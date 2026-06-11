@@ -1,0 +1,23 @@
+/* ============================================
+   签到模块共享样式层
+   仅承载跨组件重复的「结构/表面配方」，颜色语义与
+   尺寸差异保留在各组件 scoped 样式中（视觉零变化）。
+   ============================================ */
+
+/* 玻璃面板卡片：签到 Tab 面板/表格外壳/空状态 与 账号仪表盘 dashboard-surface 共用 */
+.checkin-surface-card {
+  border: 1px solid rgb(255 255 255 / 20%);
+  border-radius: 1.5rem;
+  background: var(--glass-bg, rgb(255 255 255 / 8%));
+  box-shadow: 0 10px 30px rgb(15 23 42 / 10%);
+  backdrop-filter: blur(20px);
+}
+
+/* 徽章 pill 形状配方：Providers 标签/内置徽章、Records 状态徽章、Accounts 弹窗徽章共用。
+   padding/line-height/配色由各组件 scoped 修饰类提供。 */
+.checkin-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+}
