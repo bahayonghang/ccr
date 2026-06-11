@@ -396,3 +396,38 @@ CheckinAccountsTab 2082 行拆为 AccountFormModal/AccountActionsMenu/AccountsTa
 ### Next Steps
 
 - None - task complete
+
+
+## Session 12: ccr-ui appearance system redesign
+
+**Date**: 2026-06-11
+**Task**: ccr-ui appearance system redesign
+**Package**: ccr
+**Branch**: `dev`
+
+### Summary
+
+重塑 ccr-ui 外观系统为更克制的深色工作台，并同步 6.3.2 版本号
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `ed1827fd` | (see git log) |
+| `a7cc8718` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 11
+- **Total Sessions**: 12
 - **Last Active**: 2026-06-11
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~398 | Active |
+| `journal-1.md` | ~433 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 12 | 2026-06-11 | ccr-ui appearance system redesign | `ed1827fd`, `a7cc8718` | `dev` |
 | 11 | 2026-06-11 | 签到组件拆分与死代码清理（06-10-checkin-component-split） | `58cffeba`, `30afd76e` | `dev` |
 | 10 | 2026-06-11 | 完成签到前端并发治理与 4 态展示（06-10-checkin-ux-concurrency） | `d012d4f0`, `f369fb0e`, `7f5175c5`, `0da107e4` | `dev` |
 | 9 | 2026-06-11 | 完成签到引擎强化（指纹/运行时检测/宽容判定/4 态契约） | `89ba13f9`, `3e119ff2`, `22c1a6a3` | `dev` |
