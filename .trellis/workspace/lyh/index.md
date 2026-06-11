@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 9
+- **Total Sessions**: 10
 - **Last Active**: 2026-06-11
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~326 | Active |
+| `journal-1.md` | ~362 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 10 | 2026-06-11 | 完成签到前端并发治理与 4 态展示（06-10-checkin-ux-concurrency） | `d012d4f0`, `f369fb0e`, `7f5175c5`, `0da107e4` | `dev` |
 | 9 | 2026-06-11 | 完成签到引擎强化（指纹/运行时检测/宽容判定/4 态契约） | `89ba13f9`, `3e119ff2`, `22c1a6a3` | `dev` |
 | 8 | 2026-06-11 | 完成 providers catalog 单源目录 | `f51ee337`, `49965958`, `a632178d`, `039d3103`, `fe1713b2` | `dev` |
 | 7 | 2026-06-10 | 签到报错链路修复收尾 | `0febbbb4`, `941f1fc2` | `dev` |

@@ -324,3 +324,40 @@ Populated backend Trellis guidelines for the Rust workspace, verified spec links
 ### Next Steps
 
 - None - task complete
+
+
+## Session 10: 完成签到前端并发治理与 4 态展示（06-10-checkin-ux-concurrency）
+
+**Date**: 2026-06-11
+**Task**: 完成签到前端并发治理与 4 态展示（06-10-checkin-ux-concurrency）
+**Package**: ccr
+**Branch**: `dev`
+
+### Summary
+
+实施 06-10-checkin-ux-concurrency：余额批量刷新 per-origin 串行队列（上限 5 对齐后端 Semaphore）+ 30s minInterval 节流 + 跳过数 toast；WAF 补救重试删除 500ms 轮询改用 checkin:job-finished/timeout 事件 + 一次对账；结果面板/记录页 4 态分组渲染与 skip_reason zh/en 文案，前端 summary 单独计 skipped；签到相关 alert 清零统一 uiStore toast；cookie_expired 失败卡片/记录行一键直达账号编辑弹窗并聚焦 cookies；AccountManager 列表路径去逐账号解密。验证全绿（cargo test ccr-checkin 86、bun i18n 23 + smoke 337、frontend-check-quick、clippy）。契约沉淀至 checkin-ux-contracts.md。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `d012d4f0` | (see git log) |
+| `f369fb0e` | (see git log) |
+| `7f5175c5` | (see git log) |
+| `0da107e4` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
