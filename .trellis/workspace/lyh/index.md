@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 7
-- **Last Active**: 2026-06-10
+- **Total Sessions**: 8
+- **Last Active**: 2026-06-11
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~252 | Active |
+| `journal-1.md` | ~290 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 8 | 2026-06-11 | 完成 providers catalog 单源目录 | `f51ee337`, `49965958`, `a632178d`, `039d3103`, `fe1713b2` | `dev` |
 | 7 | 2026-06-10 | 签到报错链路修复收尾 | `0febbbb4`, `941f1fc2` | `dev` |
 | 6 | 2026-06-10 | 完成 ccr-ui 签到 WAF Cookie 恢复优化 | `447bad66`, `8261e382`, `8c775d4f` | `dev` |
 | 5 | 2026-06-09 | Bootstrap Trellis backend guidelines | - | `dev` |

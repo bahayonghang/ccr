@@ -250,3 +250,41 @@ Populated backend Trellis guidelines for the Rust workspace, verified spec links
 ### Next Steps
 
 - None - task complete
+
+
+## Session 8: 完成 providers catalog 单源目录
+
+**Date**: 2026-06-11
+**Task**: 完成 providers catalog 单源目录
+**Package**: ccr
+**Branch**: `dev`
+
+### Summary
+
+实现 providers-catalog.json 单源目录、builtin_id 改名安全关联、前端模板投影，并补充双端契约与验证记录。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f51ee337` | (see git log) |
+| `49965958` | (see git log) |
+| `a632178d` | (see git log) |
+| `039d3103` | (see git log) |
+| `fe1713b2` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
