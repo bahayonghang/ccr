@@ -361,3 +361,38 @@ Populated backend Trellis guidelines for the Rust workspace, verified spec links
 ### Next Steps
 
 - None - task complete
+
+
+## Session 11: 签到组件拆分与死代码清理（06-10-checkin-component-split）
+
+**Date**: 2026-06-11
+**Task**: 签到组件拆分与死代码清理（06-10-checkin-component-split）
+**Package**: ccr
+**Branch**: `dev`
+
+### Summary
+
+CheckinAccountsTab 2082 行拆为 AccountFormModal/AccountActionsMenu/AccountsTable 三组件，主文件降至 408 行，BEM 类名与对外契约不变；新增 styles/checkin-shared.css 公共层（checkin-surface-card 玻璃面板 + checkin-badge-pill 徽章配方）去重 Providers/Records/Accounts/Dashboard 重复样式；删除无路由引用的 CheckinManageView 及 4 个子组件与 stores/checkin.ts（925 行）。验证：bun run test 337 smoke 用例零修改全绿 + type-check + lint + just frontend-check-quick。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `58cffeba` | (see git log) |
+| `30afd76e` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
