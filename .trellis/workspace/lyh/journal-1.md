@@ -288,3 +288,39 @@ Populated backend Trellis guidelines for the Rust workspace, verified spec links
 ### Next Steps
 
 - None - task complete
+
+
+## Session 9: 完成签到引擎强化（指纹/运行时检测/宽容判定/4 态契约）
+
+**Date**: 2026-06-11
+**Task**: 完成签到引擎强化（指纹/运行时检测/宽容判定/4 态契约）
+**Package**: ccr
+**Branch**: `dev`
+
+### Summary
+
+实施 06-10-checkin-engine-hardening：reqwest 双端启用 HTTP/2 + 浏览器指纹头；CF 四签名运行时检测对所有站点生效；interpret_checkin_json 宽容判定统一出口 + 已签到归一（删除 [ALREADY_CHECKED_IN] hack）；CheckinStatus 增 Skipped + skip_reason 贯穿 DB/Job/summary（无需 migration）；奖励余额差兜底回填 balance_before/after；新增约 20 个测试。全部验证绿（ccr-checkin+ccr-db 199、src-tauri 198、lint-strict、bun 327）。契约已沉淀至 backend-guidelines.md。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `89ba13f9` | (see git log) |
+| `3e119ff2` | (see git log) |
+| `22c1a6a3` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
