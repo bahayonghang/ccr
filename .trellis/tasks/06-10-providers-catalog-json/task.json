@@ -3,7 +3,7 @@
   "name": "providers-catalog-json",
   "title": "providers-catalog.json 共享站点目录（双端单源 + name-join 消除）",
   "description": "",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": null,
   "scope": null,
   "package": "ccr",
