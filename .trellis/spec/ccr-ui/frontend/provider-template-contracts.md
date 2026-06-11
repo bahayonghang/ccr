@@ -7,11 +7,14 @@
 ## Scenario: Shared provider templates
 
 ### 1. Scope / Trigger
+
 - Trigger: adding or changing provider template data, custom template persistence, template selectors, or template-to-form mappers for Claude Code, Codex, or OpenCode.
 - Applies to `ccr-ui/src/types/providerTemplates.ts`, `ccr-ui/src/configs/providerTemplates.ts`, `ccr-ui/src/utils/providerTemplates.ts`, `ccr-ui/src/composables/useProviderTemplates.ts`, `ccr-ui/src/components/provider-templates/ProviderTemplateSelector.vue`, and the platform views that consume them.
 
 ### 2. Signatures
+
 - Built-in catalog: `BUILT_IN_PROVIDER_TEMPLATES: ProviderTemplate[]`
+- Check-in catalog merge source: `CHECKIN_CATALOG_PROVIDER_TEMPLATES` from `ccr-ui/src/configs/providersCatalog.ts` (build-time import of `crates/ccr-checkin/data/providers-catalog.json`, projected entries with a `platforms` block only)
 - Custom storage key: `ccr.providerTemplates.custom.v1`
 - Platform overrides: `ProviderTemplate.platforms.claude`, `ProviderTemplate.platforms.codex`, `ProviderTemplate.platforms.opencode`
 - Mappers:
@@ -23,7 +26,9 @@
   - `mapTemplateToOpenCodeProviderPatch(template, endpoint?)`
 
 ### 3. Contracts
+
 - Templates are global non-secret metadata. They must not store or prefill API keys, auth tokens, bearer tokens, secrets, passwords, authorization headers, or `x-api-key` style header values.
+- Catalog-derived templates (`CHECKIN_CATALOG_PROVIDER_TEMPLATES`) are produced by whitelist projection: only `ProviderTemplate`-declared non-secret fields are extracted per platform; check-in-only data (OAuth client ids, `wafCookieNames`, auth headers) must stay structurally unreachable. The module validates `schemaVersion === 1` at import and throws an explicit error on mismatch.
 - A template is visible on a platform only when the matching `platforms.<platform>` override exists.
 - Platform differences belong under `platforms.<platform>`. Do not write Claude-specific fields into Codex or OpenCode form state through shared core fields.
 - Custom templates persist in `ccr.providerTemplates.custom.v1`, separate from Codex saved providers, saved accounts, and API key stores.
@@ -34,6 +39,7 @@
 - Multiple endpoint templates become multiple selectable options. Selection may set a non-secret base URL, but must not modify user credential fields.
 
 ### 4. Validation & Error Matrix
+
 - Custom override JSON is invalid or not an object -> show an editor error and do not write the custom template.
 - Template or override includes sensitive keys such as `apiKey`, `authToken`, `authorization`, `x-api-key`, `secret`, or `password` -> strip them before persistence or mapper output.
 - Template lacks `platforms.opencode` -> it must not appear in the OpenCode selector.
@@ -45,6 +51,7 @@
 - Applying an OpenCode template -> fill `id`, `name`, `npm`, `baseURL`, and non-secret JSON fields; leave `apiKey` untouched.
 
 ### 5. Good/Base/Bad Cases
+
 - Good: one custom "Gateway" template with `platforms.codex.baseUrl` and `platforms.opencode.baseURL` overrides.
 - Good: strip `extraOptions.apiKey` and `rootExtra.headers.authorization` before storing an OpenCode custom template.
 - Base: a built-in Claude-only template is only shown in Claude Code flows.
@@ -53,11 +60,16 @@
 - Bad: store OpenCode `npm` under `options.npm` instead of the provider root.
 
 ### 6. Tests Required
+
 - `cd ccr-ui && bun run test:smoke -- tests/provider-templates.smoke.test.ts`
   - Assert search indexes name, aliases, hosts, model names, and platform override fields.
   - Assert platform filtering respects `platforms.<platform>`.
   - Assert custom template persistence strips sensitive fields across all platform overrides.
   - Assert invalid override JSON does not persist.
+- `cd ccr-ui && bun run test:smoke -- tests/providers-catalog.smoke.test.ts` when changing the catalog JSON, its projection, or builtin provider lookups.
+  - Assert schemaVersion mismatch raises an explicit error.
+  - Assert projected templates and their mapper patches contain no secret fields.
+  - Assert `BuiltinProvider` mirror fields stay consistent with the catalog `checkin` block.
 - `cd ccr-ui && bun run test:smoke -- tests/codex-auth-view.smoke.test.ts` when adding or changing Codex account-form template entry points.
   - Assert the API key add flow can apply a Codex provider template.
   - Assert template application does not prefill or overwrite the API key.
@@ -71,28 +83,34 @@
 ### 7. Wrong vs Correct
 
 #### Wrong
+
 ```typescript
 const template = {
-  id: 'gateway',
+  id: "gateway",
   apiKey: providerForm.apiKey,
   platforms: {
     codex: { baseUrl: providerForm.baseUrl },
   },
-}
+};
 ```
 
 #### Correct
+
 ```typescript
-const template = createCustomProviderTemplateFromDraft(draft, ['codex', 'opencode'], {
-  name: 'Gateway',
-  category: 'third_party',
-  platformOverrides: {
-    codex: { baseUrl: 'https://codex.gateway.example.com/v1' },
-    opencode: {
-      id: 'openai',
-      npm: '@ai-sdk/openai-compatible',
-      baseURL: 'https://opencode.gateway.example.com/v1',
+const template = createCustomProviderTemplateFromDraft(
+  draft,
+  ["codex", "opencode"],
+  {
+    name: "Gateway",
+    category: "third_party",
+    platformOverrides: {
+      codex: { baseUrl: "https://codex.gateway.example.com/v1" },
+      opencode: {
+        id: "openai",
+        npm: "@ai-sdk/openai-compatible",
+        baseURL: "https://opencode.gateway.example.com/v1",
+      },
     },
   },
-})
+);
 ```

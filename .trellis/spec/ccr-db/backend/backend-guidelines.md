@@ -32,6 +32,14 @@ Usage archive storage lives under `~/.ccr/analytics/usage.db`, honoring `CCR_DAT
 
 For read-only upstream usage databases, open with `SQLITE_OPEN_READ_ONLY` as `UsageImportService` does. Do not migrate or mutate upstream tool databases.
 
+### Convention: Additive column migrations
+
+**What**: Adding a column to an existing table requires updating both `schema.rs` `CREATE_TABLES_SQL` (so fresh databases get the column directly) and a guarded migration in `migrations.rs` (`is_migration_applied` + `table_has_column` guard around `ALTER TABLE ... ADD COLUMN`, so existing databases upgrade idempotently).
+
+**Why**: Either half alone diverges fresh-install schema from upgraded schema; the `table_has_column` guard keeps the migration safe to re-run and safe against fresh databases that already carry the column.
+
+**Example**: migration v15 `checkin_providers_builtin_id` adds `checkin_providers.builtin_id TEXT NULL` — a nullable link to the providers-catalog entry id. Old rows stay NULL (consumers fall back to name matching); `set_provider_builtin_id_if_missing` writes only NULL rows and never overwrites an existing value.
+
 ## Error Handling
 
 Use `DbError`, `MigrationError`, and `ExecutorError`. Convert `rusqlite`, IO, and serialization errors at the database boundary and include operation context.

@@ -59,7 +59,8 @@ Use `tracing` for provider progress, proxy mode, balance/check-in milestones, an
 
 ### 3. Contracts
 
-- AnyRouter WAF recovery requires `acw_tc`, `cdn_sec_tc`, and `acw_sc__v2`; keep these names in backend policy, not duplicated as frontend-only constants.
+- AnyRouter WAF recovery requires `acw_tc`, `cdn_sec_tc`, and `acw_sc__v2`; these names are data-sourced from `providers-catalog.json` `wafCookieNames` and consumed only through backend `WafCookiePolicy`, never duplicated as frontend-only constants.
+- Policy resolution prefers `CheckinProvider.builtin_id`; id/name/domain matching against the catalog is the fallback for legacy rows without `builtin_id`.
 - `open_waf_login` may read cookie values from the WebView runtime cookie store and `document.cookie`, but its response must expose only cookie names, missing names, status, source, provider id/name, and a diagnostic message.
 - Cache writes are allowed only after `WafCookieSelection::is_complete()` is true for the provider policy.
 - Retry must be gated by `validate_cached_waf_access` using merged account cookies plus cached WAF cookies, and the validation method must not update balance history or account timestamps.
@@ -104,6 +105,65 @@ let selection = WafCookieManager::select_required_cookies(&cookies, &policy.requ
 if selection.is_complete() {
     waf_cookie_manager.save(provider_id, selection.cookies)?;
 }
+```
+
+## Scenario: Providers Catalog Single Source
+
+### 1. Scope / Trigger
+
+- Trigger: adding/renaming/changing a built-in check-in provider, its WAF cookie policy, CDK/OAuth metadata, or platform template data; or changing how either end parses `providers-catalog.json`.
+- Scope: `crates/ccr-checkin/data/providers-catalog.json` (single source of truth), `managers/checkin/builtin_providers.rs`, `managers/checkin/waf_cookie_manager.rs`, `ccr-ui/src/configs/providersCatalog.ts`, and `checkin_providers.builtin_id` consumers.
+
+### 2. Signatures
+
+- Data file: `crates/ccr-checkin/data/providers-catalog.json` — `{ "schemaVersion": 1, "providers": [...] }`, all keys camelCase.
+- `get_providers_catalog() -> &'static [CatalogProviderEntry]` — `include_str!` + `LazyLock`; parse errors surface as a clear message at first access.
+- `get_builtin_providers() -> Vec<BuiltinProvider>` / `get_builtin_provider_by_id(&str)` — unchanged public API; entries are projected from the catalog, wire format stays snake_case for the frontend mirror.
+- `resolve_builtin_for_provider(&CheckinProvider) -> Option<...>` — `builtin_id` first, name fallback for legacy rows.
+- `ProviderManager::backfill_builtin_ids()` — idempotent; fills only NULL `builtin_id` rows by name/base_url match (triggered from the `list_providers` Tauri command).
+- DB: `checkin_providers.builtin_id TEXT NULL` (ccr-db migration v15).
+
+### 3. Contracts
+
+- A catalog entry = common metadata (`id`/`name`/`description`/`domain`/`icon`/`bizCategory`/`checkinCategory`/`aliases?`/`tags?`) + optional `checkin` block (field set equivalent to `BuiltinProvider`) + optional `platforms` block (claude/codex/opencode template overrides).
+- `builtin_providers.rs` must not contain provider data literals (golden-test fixtures excepted). All provider data edits happen in the JSON file.
+- The `platforms` block must never contain secrets or check-in-only data (`wafCookieNames`, OAuth client ids); template projection on the frontend is whitelist-based.
+- Runtime lookups (WAF policy, CDK redemption, frontend WAF badge/CDK form, available-builtin filtering) resolve by `builtin_id` first; name matching exists only as a fallback for rows created before v15.
+- Both ends validate `schemaVersion === 1` and must fail loudly on mismatch.
+
+### 4. Validation & Error Matrix
+
+- `schemaVersion` != 1 -> explicit parse error naming the expected/actual version (Rust and TS).
+- Malformed JSON -> explicit error with context at first catalog access; never a silent empty list.
+- Provider row with NULL `builtin_id` -> name/base_url fallback matching; backfilled lazily on `list_providers`.
+- `builtin_id` set but unknown in catalog -> treated as non-builtin (no panic, no policy).
+
+### 5. Good/Base/Bad Cases
+
+- Good: a new community site is added only to `providers-catalog.json` (checkin block + optional platforms block) and the golden tests are updated; it appears in both the check-in built-in list and the template selector.
+- Base: the user renames a provider — WAF policy, CDK form, and CDK redemption still resolve through `builtin_id`.
+- Bad: reintroducing a hardcoded provider vec in Rust, hardcoding WAF cookie names in the frontend, or putting credentials into the `platforms` block.
+
+### 6. Tests Required
+
+- `cargo test -p ccr-checkin -- --test-threads=1` — golden tests (22-site identity table with order, standard-site invariants, special-site full-field equality), serde roundtrip, schemaVersion rejection, platforms secret scan.
+- `cargo test -p ccr-db -- --test-threads=1` — migration v15 guard/idempotency, NULL-row compat, `set_provider_builtin_id_if_missing` only fills NULL.
+- `cd ccr-ui && bun run test:smoke -- tests/providers-catalog.smoke.test.ts` — schemaVersion rejection, `BuiltinProvider` mirror-field consistency against the same JSON, secret scan, builtin_id rename scenarios.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```typescript
+// name-join 断链：用户改名 provider 后查不到内置站元数据
+const bp = builtinProviders.find((bp) => bp.name === provider.name);
+```
+
+#### Correct
+
+```typescript
+// builtin_id 优先，name 仅作为旧行回退
+const bp = resolveBuiltinProvider(builtinProviders, provider);
 ```
 
 ## Testing
