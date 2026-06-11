@@ -4,6 +4,7 @@ import {
   getCheckinJobStatus,
   validateWafCookieForAccount,
 } from '@/api'
+import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import type {
   CheckinProvider,
   CheckinDisplayResponse,
@@ -47,9 +48,7 @@ export const formatWafCookieRecoveryFailure = (result: WafCookieRecoveryResult):
   return result.message || 'WAF Cookie 未获取完整'
 }
 
-export const formatWafCookieValidationFailure = (
-  result: WafCookieValidationResult
-): string => {
+export const formatWafCookieValidationFailure = (result: WafCookieValidationResult): string => {
   return result.message || 'WAF Cookie 验证失败'
 }
 
@@ -127,12 +126,14 @@ const buildCheckinSummary = (results: CheckinDisplayResult[]) => {
         summary.success += 1
       } else if (item.status === 'already_checked_in') {
         summary.already_checked_in += 1
+      } else if (item.status === 'skipped') {
+        summary.skipped += 1
       } else {
         summary.failed += 1
       }
       return summary
     },
-    { total: 0, success: 0, already_checked_in: 0, failed: 0 }
+    { total: 0, success: 0, already_checked_in: 0, failed: 0, skipped: 0 }
   )
 }
 
@@ -207,19 +208,58 @@ const mergeRetryResults = (
   )
 }
 
-const waitForCheckinJobResult = async (
+const isTerminalJobSnapshot = (snapshot: CheckinJobSnapshot) =>
+  snapshot.status === 'finished' || snapshot.status === 'timed_out'
+
+/**
+ * 等待补救重试任务结束：复用 checkin:job-finished / checkin:job-timeout 事件，
+ * 监听挂载后再用 getCheckinJobStatus 对账一次，覆盖事件先于监听到达的窗口（无轮询）。
+ */
+export const waitForCheckinJobResult = async (
   jobId: string,
   initialSnapshot: CheckinJobSnapshot
 ): Promise<CheckinJobSnapshot> => {
-  let snapshot = initialSnapshot
-  for (let attempt = 0; attempt < 240; attempt += 1) {
-    if (snapshot.status === 'finished' || snapshot.status === 'timed_out') {
-      return snapshot
-    }
-    await new Promise((resolve) => setTimeout(resolve, 500))
-    snapshot = await getCheckinJobStatus<CheckinJobSnapshot>(jobId)
+  if (isTerminalJobSnapshot(initialSnapshot)) {
+    return initialSnapshot
   }
-  throw new Error('自动重试等待超时')
+
+  return new Promise<CheckinJobSnapshot>((resolve, reject) => {
+    const unlisteners: UnlistenFn[] = []
+    let settled = false
+
+    const cleanup = () => {
+      void Promise.all(unlisteners.splice(0).map((unlisten) => unlisten()))
+    }
+
+    const settle = (snapshot: CheckinJobSnapshot) => {
+      if (settled || snapshot.job_id !== jobId || !isTerminalJobSnapshot(snapshot)) return
+      settled = true
+      cleanup()
+      resolve(snapshot)
+    }
+
+    const setup = async () => {
+      unlisteners.push(
+        await listen<CheckinJobSnapshot>('checkin:job-finished', (event) => {
+          settle(event.payload)
+        })
+      )
+      unlisteners.push(
+        await listen<CheckinJobSnapshot>('checkin:job-timeout', (event) => {
+          settle(event.payload)
+        })
+      )
+      const latest = await getCheckinJobStatus<CheckinJobSnapshot>(jobId)
+      settle(latest)
+    }
+
+    setup().catch((error: unknown) => {
+      if (settled) return
+      settled = true
+      cleanup()
+      reject(error instanceof Error ? error : new Error(String(error)))
+    })
+  })
 }
 
 const retryAccountsAfterWaf = async (accountIds: string[]): Promise<CheckinJobSnapshot> => {
@@ -233,7 +273,9 @@ export const createCheckinWafRecovery = (
   getErrorMessage: (error: unknown, fallback: string) => string,
   getProviderLoginUrl: (provider: CheckinProvider) => string
 ) => {
-  const runWafRecovery = async (initialResult: CheckinDisplayResponse): Promise<CheckinDisplayResponse> => {
+  const runWafRecovery = async (
+    initialResult: CheckinDisplayResponse
+  ): Promise<CheckinDisplayResponse> => {
     const groups = detectWafBlockedGroups(refs.providers.value, initialResult)
     if (groups.length === 0 || refs.wafRecoveryRunning.value) {
       return initialResult

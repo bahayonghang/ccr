@@ -229,6 +229,7 @@ export default {
       oauthLoginTitle: 'Start secure OAuth login',
       oauthLoginUnavailable: 'No OAuth-enabled provider is available',
       openProviders: 'Open providers',
+      updateCookie: 'Update Cookie',
     },
     tabs: {
       accounts: 'Account Management',
@@ -262,11 +263,13 @@ export default {
       summarySuccess: 'Success {count}',
       summaryAlready: 'Already checked in {count}',
       summaryFailed: 'Failed {count}',
+      summarySkipped: 'Skipped {count}',
       summaryTotal: 'Total {count}',
       currentProvider: 'Current provider: {provider}',
       successTitle: 'Successful results ({count})',
       failedTitle: 'Failed results ({count})',
       alreadyTitle: 'Already checked in ({count})',
+      skippedTitle: 'Skipped ({count})',
       reward: 'Reward {reward}',
       recoverySuccess: 'Succeeded after auto-recovery',
       recoveryStillFailed: 'Still failed after auto-recovery',
@@ -285,6 +288,15 @@ export default {
       balance: 'Balance: {balance}',
       checkinSuccess: 'Check-in succeeded',
       todayAlreadyCheckedIn: 'Already checked in today',
+      skipped: 'Skipped; no check-in request was sent',
+    },
+    skipReasons: {
+      account_disabled: 'Account disabled',
+      provider_disabled: 'Provider disabled',
+      provider_unsupported: 'Provider does not support check-in (balance only)',
+    },
+    info: {
+      balanceRefreshSkipped: '{count} account(s) refreshed within the last 30s were skipped',
     },
     errors: {
       loadFailed: 'Failed to load',
@@ -293,6 +305,7 @@ export default {
       refreshBalanceFailed: 'Failed to refresh balance: {error}',
       batchRefreshBalanceFailed: 'Failed to refresh balance for {count} account(s): {names}',
       addProviderFailed: 'Failed to add provider: {error}',
+      checkinFailed: 'Check-in failed: {error}',
       hints: {
         cookie_expired: 'Suggestion: update the cookie',
         waf_blocked:
@@ -443,6 +456,7 @@ export default {
       success: 'Success',
       already_checked_in: 'Already Checked In',
       failed: 'Failed',
+      skipped: 'Skipped',
     },
   },
   home: {

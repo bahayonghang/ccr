@@ -383,6 +383,7 @@
                 >{{ t('checkin.accounts.fields.leaveBlank') }}</span>
               </label>
               <textarea
+                ref="sessionTextareaRef"
                 v-model="accountForm.session"
                 :required="!editingAccount"
                 rows="7"
@@ -592,7 +593,7 @@
 <script setup lang="ts">
 import BaseModal from '@/components/common/BaseModal.vue'
 import SIcon from '@/components/ui/SIcon.vue'
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, nextTick, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   createCheckinAccount,
@@ -611,6 +612,8 @@ const props = defineProps<{
   accounts: AccountInfo[]
   builtinProviders: BuiltinProvider[]
   checkinLoading: boolean
+  /** 待打开编辑弹窗的账号 ID（cookie_expired 快捷修复入口），消费后 emit pending-edit-consumed */
+  pendingEditAccountId?: string | null
 }>()
 
 const emit = defineEmits<{
@@ -619,6 +622,7 @@ const emit = defineEmits<{
   (e: 'refresh-balance', accountId: string): void
   (e: 'navigate', accountId: string): void
   (e: 'show-oauth-wizard'): void
+  (e: 'pending-edit-consumed'): void
 }>()
 
 const uiStore = useUIStore()
@@ -647,6 +651,7 @@ const ACCOUNT_MENU_GAP = 8
 // 本地状态
 const showAccountModal = ref(false)
 const editingAccount = ref<AccountInfo | null>(null)
+const sessionTextareaRef = ref<HTMLTextAreaElement | null>(null)
 const openMenuAccountId = ref<string | null>(null)
 const accountMenuPosition = ref<AccountMenuPosition>({
   top: ACCOUNT_MENU_MARGIN,
@@ -994,10 +999,29 @@ const closeMenuOnClickOutside = (e: MouseEvent) => {
   }
 }
 
+// cookie_expired 快捷修复：按账号 ID 直达编辑弹窗并聚焦 cookies 输入
+const consumePendingEditAccount = async (accountId: string | null | undefined) => {
+  if (!accountId) return
+  const account = props.accounts.find((a) => a.id === accountId)
+  emit('pending-edit-consumed')
+  if (!account) return
+  await openAccountModal(account)
+  await nextTick()
+  sessionTextareaRef.value?.focus()
+}
+
+watch(
+  () => props.pendingEditAccountId,
+  (accountId) => {
+    void consumePendingEditAccount(accountId)
+  }
+)
+
 onMounted(() => {
   document.addEventListener('click', closeMenuOnClickOutside)
   window.addEventListener('resize', closeAccountMenu)
   window.addEventListener('scroll', closeAccountMenu, true)
+  void consumePendingEditAccount(props.pendingEditAccountId)
 })
 
 onUnmounted(() => {

@@ -186,6 +186,16 @@
               />
               {{ t('checkin.result.summaryFailed', { count: checkinResult.summary.failed }) }}
             </span>
+            <span
+              v-if="(checkinResult.summary.skipped ?? 0) > 0"
+              class="checkin-view__result-badge checkin-view__result-badge--muted"
+            >
+              <SIcon
+                name="Circle"
+                size="w-3.5 h-3.5"
+              />
+              {{ t('checkin.result.summarySkipped', { count: checkinResult.summary.skipped }) }}
+            </span>
             <span class="checkin-view__result-badge checkin-view__result-badge--neutral">
               {{ t('checkin.result.summaryTotal', { count: checkinResult.summary.total }) }}
             </span>
@@ -329,9 +339,52 @@
                       >
                         {{ t('checkin.result.recoveryStillFailed') }}
                       </span>
+                      <button
+                        v-if="item.error_code === 'cookie_expired'"
+                        type="button"
+                        class="checkin-view__result-fix-button"
+                        @click="openAccountCookieFix(item.account_id)"
+                      >
+                        {{ t('checkin.actions.updateCookie') }}
+                      </button>
                     </div>
                     <p class="checkin-view__result-message checkin-view__result-message--danger">
                       {{ getFailedDetail(item) }}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- 跳过结果（4 态：不计入失败） -->
+            <div
+              v-if="skippedCheckinResults.length > 0"
+              class="checkin-view__result-section"
+            >
+              <p class="checkin-view__result-section-title checkin-view__result-section-title--muted">
+                {{ t('checkin.result.skippedTitle', { count: skippedCheckinResults.length }) }}
+              </p>
+              <div class="checkin-view__result-list">
+                <div
+                  v-for="item in skippedCheckinResults"
+                  :key="item.account_id"
+                  class="checkin-view__result-item checkin-view__result-item--muted"
+                >
+                  <SIcon
+                    name="Circle"
+                    size="w-4 h-4"
+                    class="checkin-view__result-item-icon checkin-view__result-item-icon--muted"
+                  />
+                  <div class="checkin-view__result-item-body">
+                    <div class="checkin-view__result-item-meta">
+                      <span class="checkin-view__result-item-name checkin-view__result-item-name--muted">
+                        {{ item.account_name }}
+                      </span>
+                      <span class="checkin-view__result-tag checkin-view__result-tag--muted">
+                        {{ item.provider_name }}
+                      </span>
+                    </div>
+                    <p class="checkin-view__result-message checkin-view__result-message--muted">
+                      {{ getSkippedDetail(item) }}
                     </p>
                   </div>
                 </div>
@@ -528,11 +581,13 @@
         :checkin-loading="checkinLoading"
         :providers="providers"
         :builtin-providers="builtinProviders"
+        :pending-edit-account-id="pendingEditAccountId"
         @refresh="loadAllData"
         @checkin="executeCheckinSingle"
         @refresh-balance="refreshAccountBalance"
         @navigate="openAccountDashboard"
         @show-oauth-wizard="showOAuthWizard = true"
+        @pending-edit-consumed="clearPendingEditAccount"
       />
       <CheckinRecordsTab
         v-if="activeTab === 'records'"
@@ -540,6 +595,7 @@
         :providers="providers"
         :accounts="accounts"
         :today-stats="todayStats"
+        @update-cookie="openAccountCookieFix"
       />
       <CheckinImportExportTab
         v-if="activeTab === 'import-export'"
@@ -635,6 +691,7 @@ const {
   failedCheckinResults,
   successCheckinResults,
   alreadyCheckedInResults,
+  skippedCheckinResults,
   // Tab 配置
   tabs,
   // 数据加载
@@ -644,6 +701,10 @@ const {
   handleCheckinConfirm,
   closeCheckinModal,
   handleOAuthSuccess,
+  // Cookie 快捷修复
+  pendingEditAccountId,
+  openAccountCookieFix,
+  clearPendingEditAccount,
   // 余额操作
   refreshAllBalances,
   refreshAccountBalance,
@@ -653,6 +714,7 @@ const {
   getSuccessDetail,
   getAlreadyCheckedInDetail,
   getFailedDetail,
+  getSkippedDetail,
   getErrorLabel,
 } = useCheckinState()
 
@@ -1022,6 +1084,16 @@ const openAccountDashboard = (accountId: string) => {
   color: rgb(226 232 240 / 100%);
 }
 
+.checkin-view__result-badge--muted {
+  background: rgb(241 245 249 / 100%);
+  color: rgb(100 116 139 / 100%);
+}
+
+.dark .checkin-view__result-badge--muted {
+  background: rgb(30 41 59 / 100%);
+  color: rgb(148 163 184 / 100%);
+}
+
 .checkin-view__result-grid {
   margin-top: 1rem;
   display: grid;
@@ -1200,6 +1272,14 @@ const openAccountDashboard = (accountId: string) => {
   color: rgb(147 197 253 / 100%);
 }
 
+.checkin-view__result-section-title--muted {
+  color: rgb(100 116 139 / 100%);
+}
+
+.dark .checkin-view__result-section-title--muted {
+  color: rgb(148 163 184 / 100%);
+}
+
 .checkin-view__result-list {
   gap: 0.375rem;
 }
@@ -1243,6 +1323,16 @@ const openAccountDashboard = (accountId: string) => {
   background: rgb(30 58 138 / 20%);
 }
 
+.checkin-view__result-item--muted {
+  border-color: rgb(226 232 240 / 100%);
+  background: rgb(248 250 252 / 100%);
+}
+
+.dark .checkin-view__result-item--muted {
+  border-color: rgb(51 65 85 / 100%);
+  background: rgb(30 41 59 / 30%);
+}
+
 .checkin-view__result-item-icon {
   margin-top: 0.125rem;
   flex-shrink: 0;
@@ -1258,6 +1348,10 @@ const openAccountDashboard = (accountId: string) => {
 
 .checkin-view__result-item-icon--info {
   color: rgb(59 130 246 / 100%);
+}
+
+.checkin-view__result-item-icon--muted {
+  color: rgb(148 163 184 / 100%);
 }
 
 .checkin-view__result-item-body {
@@ -1300,6 +1394,14 @@ const openAccountDashboard = (accountId: string) => {
 
 .dark .checkin-view__result-item-name--info {
   color: rgb(191 219 254 / 100%);
+}
+
+.checkin-view__result-item-name--muted {
+  color: rgb(71 85 105 / 100%);
+}
+
+.dark .checkin-view__result-item-name--muted {
+  color: rgb(203 213 225 / 100%);
 }
 
 .checkin-view__result-tag {
@@ -1372,6 +1474,35 @@ const openAccountDashboard = (accountId: string) => {
   color: rgb(224 242 254 / 100%);
 }
 
+.checkin-view__result-tag--muted {
+  background: rgb(241 245 249 / 100%);
+  color: rgb(100 116 139 / 100%);
+}
+
+.dark .checkin-view__result-tag--muted {
+  background: rgb(51 65 85 / 100%);
+  color: rgb(203 213 225 / 100%);
+}
+
+/* cookie_expired 快捷修复入口：直达账号编辑弹窗 */
+.checkin-view__result-fix-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 0.375rem;
+  background: rgb(220 38 38 / 100%);
+  padding: 0.2rem 0.55rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 600;
+  color: rgb(255 255 255 / 100%);
+  transition: background-color 0.2s ease;
+}
+
+.checkin-view__result-fix-button:hover {
+  background: rgb(185 28 28 / 100%);
+}
+
 .checkin-view__result-message {
   margin-top: 0.125rem;
   word-break: break-all;
@@ -1399,6 +1530,14 @@ const openAccountDashboard = (accountId: string) => {
 
 .dark .checkin-view__result-message--info {
   color: rgb(147 197 253 / 100%);
+}
+
+.checkin-view__result-message--muted {
+  color: rgb(100 116 139 / 100%);
+}
+
+.dark .checkin-view__result-message--muted {
+  color: rgb(148 163 184 / 100%);
 }
 
 .checkin-view__result-close {

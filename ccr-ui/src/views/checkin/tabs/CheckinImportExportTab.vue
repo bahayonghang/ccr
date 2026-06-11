@@ -102,10 +102,13 @@ import {
 } from '@/api'
 import type { ExportData, ImportPreviewResponse, ImportResult } from '@/types/checkin'
 import { getErrorMessage } from '@/types/api'
+import { useUIStore } from '@/stores/ui'
 
 const emit = defineEmits<{
   (e: 'refresh'): void
 }>()
+
+const uiStore = useUIStore()
 
 // 导出选项
 const exportOptions = ref({
@@ -130,7 +133,7 @@ const handleExport = async () => {
     a.click()
     URL.revokeObjectURL(url)
   } catch (e: unknown) {
-    alert('导出失败: ' + getErrorMessage(e, '未知错误'))
+    uiStore.showError('导出失败: ' + getErrorMessage(e, '未知错误'))
   }
 }
 
@@ -145,7 +148,7 @@ const handleFileSelect = async (event: Event) => {
     importData.value = data
     importPreview.value = await previewCheckinImport<ImportPreviewResponse>(data)
   } catch (e: unknown) {
-    alert('解析文件失败: ' + getErrorMessage(e, '未知错误'))
+    uiStore.showError('解析文件失败: ' + getErrorMessage(e, '未知错误'))
     importData.value = null
     importPreview.value = null
   }
@@ -160,12 +163,14 @@ const handleImport = async () => {
       importData.value,
       { conflict_strategy: importConflictStrategy.value },
     )
-    alert(`导入完成: 提供商 ${result.providers_imported} 个, 账号 ${result.accounts_imported} 个`)
+    uiStore.showSuccess(
+      `导入完成: 提供商 ${result.providers_imported} 个, 账号 ${result.accounts_imported} 个`
+    )
     importData.value = null
     importPreview.value = null
     emit('refresh')
   } catch (e: unknown) {
-    alert('导入失败: ' + getErrorMessage(e, '未知错误'))
+    uiStore.showError('导入失败: ' + getErrorMessage(e, '未知错误'))
   }
 }
 </script>

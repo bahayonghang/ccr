@@ -67,8 +67,10 @@ import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { deleteCheckinAccount } from '@/api'
 import { useCheckinStore } from '@/stores/checkin'
+import { useUIStore } from '@/stores/ui'
 
 const store = useCheckinStore()
+const uiStore = useUIStore()
 const router = useRouter()
 const { t } = useI18n()
 
@@ -87,7 +89,7 @@ const deleteAccount = async (id: string) => {
     store.accounts = store.accounts.filter(account => account.id !== id)
     store.invalidate()
   } catch (err) {
-    alert(t('checkin.account_manager.delete_fail'))
+    uiStore.showError(t('checkin.account_manager.delete_fail'))
   }
 }
 

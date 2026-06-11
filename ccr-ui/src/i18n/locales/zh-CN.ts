@@ -225,6 +225,7 @@ export default {
       oauthLoginTitle: '启动 OAuth 登录',
       oauthLoginUnavailable: '当前没有支持 OAuth 的提供商',
       openProviders: '前往提供商页',
+      updateCookie: '更新 Cookie',
     },
     tabs: {
       accounts: '账号管理',
@@ -258,11 +259,13 @@ export default {
       summarySuccess: '成功 {count}',
       summaryAlready: '已签到 {count}',
       summaryFailed: '失败 {count}',
+      summarySkipped: '跳过 {count}',
       summaryTotal: '总计 {count}',
       currentProvider: '当前提供商：{provider}',
       successTitle: '成功结果（{count}）',
       failedTitle: '失败结果（{count}）',
       alreadyTitle: '已签到（{count}）',
+      skippedTitle: '跳过（{count}）',
       reward: '奖励 {reward}',
       recoverySuccess: '自动补救后成功',
       recoveryStillFailed: '自动补救后仍失败',
@@ -281,6 +284,15 @@ export default {
       balance: '余额: {balance}',
       checkinSuccess: '签到成功',
       todayAlreadyCheckedIn: '今日已签到',
+      skipped: '已跳过，未发起签到请求',
+    },
+    skipReasons: {
+      account_disabled: '账号已禁用',
+      provider_disabled: '提供商已禁用',
+      provider_unsupported: '该提供商不支持签到（仅余额查询）',
+    },
+    info: {
+      balanceRefreshSkipped: '{count} 个账号 30 秒内已刷新，本次跳过',
     },
     errors: {
       loadFailed: '加载失败',
@@ -289,6 +301,7 @@ export default {
       refreshBalanceFailed: '刷新余额失败: {error}',
       batchRefreshBalanceFailed: '{count} 个账号余额刷新失败: {names}',
       addProviderFailed: '添加失败: {error}',
+      checkinFailed: '签到失败: {error}',
       hints: {
         cookie_expired: '建议：请更新 Cookie',
         waf_blocked: '建议：先获取 WAF Cookie，再确认网页登录与签到请求的代理/出口一致',
@@ -434,6 +447,7 @@ export default {
       success: '成功',
       already_checked_in: '已签到',
       failed: '失败',
+      skipped: '跳过',
     },
   },
   home: {

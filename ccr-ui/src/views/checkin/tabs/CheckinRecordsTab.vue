@@ -106,6 +106,14 @@
               <div class="checkin-records__history-item-reason">
                 原因: {{ getRecordReason(record) }}
               </div>
+              <button
+                v-if="record.error_code === 'cookie_expired'"
+                type="button"
+                class="checkin-records__history-button checkin-records__fix-button"
+                @click="emit('update-cookie', record.account_id)"
+              >
+                更新 Cookie
+              </button>
             </div>
             <div class="checkin-records__history-pagination">
               <span>
@@ -189,23 +197,33 @@
                   {{ getRecordReason(record) }}
                 </td>
                 <td class="checkin-records__table-cell checkin-records__table-cell--right">
-                  <button
-                    class="checkin-records__detail-toggle"
-                    :aria-expanded="isRecordExpanded(record.id)"
-                    @click="toggleRecordExpanded(record.id)"
-                  >
-                    <SIcon
-                      v-if="isRecordExpanded(record.id)"
-                      name="ChevronUp"
-                      size="w-4 h-4"
-                    />
-                    <SIcon
-                      v-else
-                      name="ChevronDown"
-                      size="w-4 h-4"
-                    />
-                    详情
-                  </button>
+                  <div class="checkin-records__row-actions">
+                    <button
+                      v-if="record.error_code === 'cookie_expired'"
+                      type="button"
+                      class="checkin-records__detail-toggle checkin-records__fix-button"
+                      @click="emit('update-cookie', record.account_id)"
+                    >
+                      更新 Cookie
+                    </button>
+                    <button
+                      class="checkin-records__detail-toggle"
+                      :aria-expanded="isRecordExpanded(record.id)"
+                      @click="toggleRecordExpanded(record.id)"
+                    >
+                      <SIcon
+                        v-if="isRecordExpanded(record.id)"
+                        name="ChevronUp"
+                        size="w-4 h-4"
+                      />
+                      <SIcon
+                        v-else
+                        name="ChevronDown"
+                        size="w-4 h-4"
+                      />
+                      详情
+                    </button>
+                  </div>
                 </td>
               </tr>
               <tr
@@ -310,6 +328,11 @@ const props = defineProps<{
   todayStats: TodayCheckinStats | null
 }>()
 
+const emit = defineEmits<{
+  /** cookie_expired 快捷修复：请求打开对应账号的编辑弹窗 */
+  (e: 'update-cookie', accountId: string): void
+}>()
+
 const uiStore = useUIStore()
 
 // 记录展开状态
@@ -350,6 +373,8 @@ const getStatusClass = (status: string) => {
       return 'checkin-records__status-badge--warning'
     case 'failed':
       return 'checkin-records__status-badge--danger'
+    case 'skipped':
+      return 'checkin-records__status-badge--neutral'
     default:
       return 'checkin-records__status-badge--neutral'
   }
@@ -363,6 +388,8 @@ const getStatusText = (status: string) => {
       return '已签到'
     case 'failed':
       return '失败'
+    case 'skipped':
+      return '跳过'
     default:
       return status
   }
@@ -374,6 +401,13 @@ const getRecordProviderName = (record: CheckinRecordInfo) => {
   return account?.provider_id ? getProviderName(account.provider_id) : '-'
 }
 
+// skipped 记录的 skip_reason 经由 error_code 列持久化（4 态契约）
+const skipReasonText: Record<string, string> = {
+  account_disabled: '账号已禁用',
+  provider_disabled: '提供商已禁用',
+  provider_unsupported: '该提供商不支持签到（仅余额查询）',
+}
+
 const getRecordReason = (record: CheckinRecordInfo) => {
   if (record.message) return record.message
   switch (record.status) {
@@ -383,6 +417,8 @@ const getRecordReason = (record: CheckinRecordInfo) => {
       return '今日已签到'
     case 'failed':
       return '未知原因'
+    case 'skipped':
+      return (record.error_code && skipReasonText[record.error_code]) || '已跳过'
     default:
       return '-'
   }
@@ -836,6 +872,33 @@ onMounted(() => {
 
 .dark .checkin-records__detail-toggle:hover {
   color: rgb(191 219 254 / 100%);
+}
+
+.checkin-records__row-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* cookie_expired 快捷修复入口（直达账号编辑弹窗） */
+.checkin-records__fix-button {
+  color: rgb(220 38 38 / 100%);
+}
+
+.checkin-records__fix-button:hover {
+  color: rgb(185 28 28 / 100%);
+}
+
+.dark .checkin-records__fix-button {
+  color: rgb(252 165 165 / 100%);
+}
+
+.dark .checkin-records__fix-button:hover {
+  color: rgb(254 202 202 / 100%);
+}
+
+.checkin-records__history-item .checkin-records__fix-button {
+  margin-top: 0.5rem;
 }
 
 .checkin-records__detail-row {

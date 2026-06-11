@@ -48,15 +48,11 @@ impl AccountManager {
         CryptoManager::new(&self.checkin_dir).map_err(|e| AccountError::CryptoError(e.to_string()))
     }
 
-    /// 获取所有账号 (API Key 已遮罩)
+    /// 获取所有账号 (列表路径不解密 Cookies，掩码为占位符)
     pub fn list(&self) -> Result<AccountsResponse> {
         let accounts = database::with_connection(checkin_repo::get_all_accounts)?;
-        let crypto = self.get_crypto()?;
 
-        let account_infos: Vec<AccountInfo> = accounts
-            .iter()
-            .map(|a| self.to_account_info(a, &crypto))
-            .collect();
+        let account_infos: Vec<AccountInfo> = accounts.iter().map(Self::to_account_info).collect();
 
         let total = account_infos.len();
         Ok(AccountsResponse {
@@ -70,12 +66,8 @@ impl AccountManager {
         let accounts = database::with_connection(|conn| {
             checkin_repo::get_accounts_by_provider(conn, provider_id)
         })?;
-        let crypto = self.get_crypto()?;
 
-        Ok(accounts
-            .iter()
-            .map(|a| self.to_account_info(a, &crypto))
-            .collect())
+        Ok(accounts.iter().map(Self::to_account_info).collect())
     }
 
     /// 检查提供商是否有关联账号
@@ -86,14 +78,14 @@ impl AccountManager {
         Ok(!accounts.is_empty())
     }
 
-    /// 转换为账号信息 (遮罩 Cookies)
-    fn to_account_info(&self, account: &CheckinAccount, crypto: &CryptoManager) -> AccountInfo {
-        // 尝试解密 Cookies JSON 以生成遮罩
-        let cookies_masked = match crypto.decrypt(&account.cookies_json_encrypted) {
-            Ok(plaintext) => mask_cookies_json(&plaintext),
-            Err(_) => "****".to_string(), // 解密失败时显示占位符
-        };
+    /// 转换为账号信息（列表路径专用：不解密 Cookies，掩码用占位符；
+    /// 真实掩码通过 `get_info` 单账号惰性生成，避免列表逐账号解密）
+    fn to_account_info(account: &CheckinAccount) -> AccountInfo {
+        Self::build_account_info(account, "****".to_string())
+    }
 
+    /// 用给定掩码组装账号信息
+    fn build_account_info(account: &CheckinAccount, cookies_masked: String) -> AccountInfo {
         AccountInfo {
             id: account.id.clone(),
             provider_id: account.provider_id.clone(),
@@ -119,11 +111,15 @@ impl AccountManager {
             .ok_or_else(|| AccountError::NotFound(id.to_string()))
     }
 
-    /// 根据 ID 获取账号信息 (遮罩 Cookies)
+    /// 根据 ID 获取账号信息（单账号惰性路径：解密生成真实掩码）
     pub fn get_info(&self, id: &str) -> Result<AccountInfo> {
         let account = self.get(id)?;
         let crypto = self.get_crypto()?;
-        Ok(self.to_account_info(&account, &crypto))
+        let cookies_masked = match crypto.decrypt(&account.cookies_json_encrypted) {
+            Ok(plaintext) => mask_cookies_json(&plaintext),
+            Err(_) => "****".to_string(), // 解密失败时显示占位符
+        };
+        Ok(Self::build_account_info(&account, cookies_masked))
     }
 
     /// 获取解密后的 Cookies JSON 和 API User
@@ -349,6 +345,26 @@ mod tests {
             let accounts = checkin_repo::get_all_accounts(conn).unwrap();
             assert_eq!(accounts.len(), 1);
         });
+    }
+
+    #[test]
+    fn test_list_path_conversion_does_not_decrypt_cookies() {
+        // 列表路径转换不接收 CryptoManager（签名级保证不解密），
+        // 即使 cookies 密文是任意垃圾内容也能产出占位掩码。
+        let account = CheckinAccount::new(
+            "provider-1".to_string(),
+            "Masked Account".to_string(),
+            "not-a-valid-ciphertext".to_string(),
+            "12345".to_string(),
+        );
+
+        let info = AccountManager::to_account_info(&account);
+
+        assert_eq!(info.cookies_masked, "****");
+        assert_eq!(info.name, "Masked Account");
+        assert_eq!(info.api_user, "12345");
+        // 占位掩码不应泄露任何密文片段
+        assert!(!info.cookies_masked.contains("not-a-valid"));
     }
 
     #[test]

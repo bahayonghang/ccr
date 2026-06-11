@@ -20,6 +20,7 @@ import type {
 import { createCheckinDataState } from './checkinDataState'
 import { createCheckinJobRuntime } from './checkinJobRuntime'
 import { filterAvailableBuiltinProviders } from './builtinProviderLookup'
+import { runPerKeySequential, shouldSkipBalanceRefresh } from './balanceRefreshQueue'
 import {
   applyRecoveryFailureToLogs,
   createCheckinWafRecovery,
@@ -124,7 +125,13 @@ export function useCheckinState() {
       },
       refreshCheckinData,
       runWafRecovery,
-      getErrorMessage
+      (jobError) => {
+        uiStore.showError(
+          t('checkin.errors.checkinFailed', {
+            error: getErrorMessage(jobError, t('checkin.errors.unknown')),
+          })
+        )
+      }
     )
 
   // ═══════════════════════════════════════════════════════════
@@ -178,6 +185,12 @@ export function useCheckinState() {
     return checkinResult.value.results.filter((r) => r.status === 'already_checked_in')
   })
 
+  // 跳过结果（4 态契约：不支持签到/禁用等，不计入失败）
+  const skippedCheckinResults = computed(() => {
+    if (!checkinResult.value) return []
+    return checkinResult.value.results.filter((r) => r.status === 'skipped')
+  })
+
   // ═══════════════════════════════════════════════════════════
   // Tab 配置
   // ═══════════════════════════════════════════════════════════
@@ -209,23 +222,70 @@ export function useCheckinState() {
     await loadAllData()
   }
 
+  // ═══════════════════════════════════════════════════════════
+  // Cookie 过期快捷修复入口
+  // ═══════════════════════════════════════════════════════════
+
+  // 待打开编辑弹窗的账号 ID（由 CheckinAccountsTab 消费后清空）
+  const pendingEditAccountId = ref<string | null>(null)
+
+  // 失败卡片/记录行点击「更新 Cookie」：切到账号 Tab 并直达编辑弹窗
+  const openAccountCookieFix = (accountId: string) => {
+    activeTab.value = 'accounts'
+    pendingEditAccountId.value = accountId
+  }
+
+  const clearPendingEditAccount = () => {
+    pendingEditAccountId.value = null
+  }
+
+  // 提供商 origin 作为串行 key：同站请求串行、异站并行（解析失败回退 provider_id）
+  const getAccountOriginKey = (account: AccountInfo) => {
+    const provider = providers.value.find((p) => p.id === account.provider_id)
+    if (!provider) return account.provider_id
+    try {
+      return new URL(provider.base_url).origin
+    } catch {
+      return account.provider_id
+    }
+  }
+
   const refreshAllBalances = async () => {
     if (accounts.value.length === 0) return
 
     balanceRefreshing.value = true
     const enabledAccs = accounts.value.filter((a) => a.enabled)
+    // 30s 内已刷新的账号跳过（单账号手动刷新不受此限制）
+    const now = Date.now()
+    const skippedAccs = enabledAccs.filter((a) =>
+      shouldSkipBalanceRefresh(a.last_balance_check_at, now)
+    )
+    const accountsToRefresh = enabledAccs.filter(
+      (a) => !shouldSkipBalanceRefresh(a.last_balance_check_at, now)
+    )
 
     try {
-      const results = await Promise.allSettled(
-        enabledAccs.map((account) => queryCheckinBalance<BalanceSnapshot>(account.id))
+      if (skippedAccs.length > 0) {
+        uiStore.showInfo(t('checkin.info.balanceRefreshSkipped', { count: skippedAccs.length }))
+      }
+      if (accountsToRefresh.length === 0) return
+
+      const results = await runPerKeySequential(
+        accountsToRefresh.map((account) => ({
+          key: getAccountOriginKey(account),
+          run: () => queryCheckinBalance<BalanceSnapshot>(account.id),
+        }))
       )
       const failedNames: string[] = []
       results.forEach((result, index) => {
         if (result.status === 'fulfilled') {
           applyBalanceSnapshot(result.value)
         } else {
-          failedNames.push(enabledAccs[index].name)
-          logger.error(`Failed to refresh balance for ${enabledAccs[index].name}`, result.reason)
+          failedNames.push(accountsToRefresh[index].name)
+          logger.error(
+            `Failed to refresh balance for ${accountsToRefresh[index].name}`,
+            result.reason
+          )
         }
       })
       if (failedNames.length > 0) {
@@ -248,7 +308,7 @@ export function useCheckinState() {
     }
   }
 
-  // 刷新单个账号余额
+  // 刷新单个账号余额（手动 force 路径：不受 30s 节流限制）
   const refreshAccountBalance = async (accountId: string) => {
     try {
       const snapshot = await queryCheckinBalance<BalanceSnapshot>(accountId)
@@ -259,7 +319,7 @@ export function useCheckinState() {
         reloadStats: true,
       })
     } catch (e: unknown) {
-      alert(
+      uiStore.showError(
         t('checkin.errors.refreshBalanceFailed', {
           error: getErrorMessage(e, t('checkin.errors.unknown')),
         })
@@ -276,7 +336,7 @@ export function useCheckinState() {
       await apiAddBuiltinProvider(builtinId)
       await loadAllData()
     } catch (e: unknown) {
-      alert(
+      uiStore.showError(
         t('checkin.errors.addProviderFailed', {
           error: getErrorMessage(e, t('checkin.errors.unknown')),
         })
@@ -309,6 +369,8 @@ export function useCheckinState() {
         return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
       case 'failed':
         return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
+      case 'skipped':
+        return 'bg-slate-100 text-slate-600 dark:bg-slate-800/60 dark:text-slate-300'
       default:
         return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400'
     }
@@ -322,6 +384,8 @@ export function useCheckinState() {
         return t('checkin.status.already_checked_in')
       case 'failed':
         return t('checkin.status.failed')
+      case 'skipped':
+        return t('checkin.status.skipped')
       default:
         return status
     }
@@ -346,6 +410,23 @@ export function useCheckinState() {
 
   const getAlreadyCheckedInDetail = (item: CheckinDisplayResult) =>
     buildCheckinDetail(item, t('checkin.detail.todayAlreadyCheckedIn'))
+
+  // skip_reason → i18n 文案（未知原因回退 message 或通用文案）
+  const getSkipReasonText = (skipReason?: string): string | null => {
+    if (!skipReason) return null
+    const reasons: Record<string, string> = {
+      account_disabled: t('checkin.skipReasons.account_disabled'),
+      provider_disabled: t('checkin.skipReasons.provider_disabled'),
+      provider_unsupported: t('checkin.skipReasons.provider_unsupported'),
+    }
+    return reasons[skipReason] ?? skipReason
+  }
+
+  const getSkippedDetail = (item: CheckinDisplayResult) => {
+    const reason = getSkipReasonText(item.skip_reason)
+    if (reason) return reason
+    return item.message || t('checkin.detail.skipped')
+  }
 
   const getErrorHint = (code?: string): string | null => {
     if (!code) return null
@@ -438,6 +519,7 @@ export function useCheckinState() {
     failedCheckinResults,
     successCheckinResults,
     alreadyCheckedInResults,
+    skippedCheckinResults,
 
     // Tab 配置
     tabs,
@@ -453,6 +535,11 @@ export function useCheckinState() {
     handleCheckinConfirm,
     closeCheckinModal,
     handleOAuthSuccess,
+
+    // Cookie 快捷修复
+    pendingEditAccountId,
+    openAccountCookieFix,
+    clearPendingEditAccount,
 
     // 余额操作
     refreshAllBalances,
@@ -471,6 +558,8 @@ export function useCheckinState() {
     getSuccessDetail,
     getAlreadyCheckedInDetail,
     getFailedDetail,
+    getSkipReasonText,
+    getSkippedDetail,
     getErrorHint,
     getErrorLabel,
   }
