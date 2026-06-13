@@ -62,7 +62,7 @@
               <!-- 提供商选择 -->
               <div class="checkin-accounts-tab__field">
                 <label class="checkin-accounts-tab__label">
-                  <span class="text-red-500">*</span> {{ t('checkin.accounts.fields.provider') }}
+                  <span class="text-accent-danger">*</span> {{ t('checkin.accounts.fields.provider') }}
                 </label>
                 <select
                   v-model="accountForm.provider_id"
@@ -86,7 +86,7 @@
               <!-- 账号名称 -->
               <div class="checkin-accounts-tab__field">
                 <label class="checkin-accounts-tab__label">
-                  <span class="text-red-500">*</span> {{ t('checkin.accounts.fields.accountName') }}
+                  <span class="text-accent-danger">*</span> {{ t('checkin.accounts.fields.accountName') }}
                 </label>
                 <input
                   v-model="accountForm.name"
@@ -105,7 +105,7 @@
               <label class="checkin-accounts-tab__label">
                 <span
                   v-if="!editingAccount"
-                  class="text-red-500"
+                  class="text-accent-danger"
                 >*</span> Session / Cookies
                 <span
                   v-if="editingAccount"
@@ -141,7 +141,7 @@
             <!-- API User -->
             <div class="checkin-accounts-tab__field">
               <label class="checkin-accounts-tab__label">
-                <span class="text-red-500">*</span> API User
+                <span class="text-accent-danger">*</span> API User
               </label>
               <input
                 v-model="accountForm.api_user"
@@ -603,23 +603,8 @@ defineExpose({ open })
   flex-wrap: wrap;
   justify-content: space-between;
   gap: 1rem;
-  border-bottom: 1px solid rgb(var(--color-border-default-rgb) / 72%);
-  background:
-    radial-gradient(
-      circle at top right,
-      rgb(var(--color-accent-secondary-rgb) / 18%),
-      transparent 42%
-    ),
-    radial-gradient(
-      circle at left center,
-      rgb(var(--color-accent-primary-rgb) / 20%),
-      transparent 36%
-    ),
-    linear-gradient(
-      135deg,
-      rgb(var(--color-bg-surface-rgb) / 98%),
-      rgb(var(--color-bg-elevated-rgb) / 98%)
-    );
+  border-bottom: 1px solid var(--color-border-default);
+  background: var(--color-bg-elevated);
   padding: 1.1rem 1.5rem 1rem;
 }
 
@@ -666,8 +651,8 @@ defineExpose({ open })
 .checkin-accounts-tab__modal-badge,
 .checkin-accounts-tab__modal-intro-pill {
   gap: 0.35rem;
-  border: 1px solid rgb(var(--color-border-default-rgb) / 72%);
-  background: rgb(var(--color-bg-elevated-rgb) / 72%);
+  border: 1px solid var(--color-border-default);
+  background: var(--color-bg-elevated);
   padding: 0.4rem 0.75rem;
   font-weight: 600;
   color: var(--text-secondary);
@@ -686,17 +671,14 @@ defineExpose({ open })
 .checkin-accounts-tab__modal-intro {
   flex-wrap: wrap;
   gap: 0.55rem;
-  border: 1px solid rgb(var(--color-border-default-rgb) / 58%);
-  border-radius: 1rem;
-  background:
-    linear-gradient(135deg, rgb(var(--color-bg-surface-rgb) / 72%), transparent),
-    rgb(var(--color-bg-elevated-rgb) / 54%);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-surface);
   padding: 0.75rem;
 }
 
 .checkin-accounts-tab__modal-intro-pill {
-  background: rgb(var(--color-bg-surface-rgb) / 82%);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 9%);
+  background: var(--color-bg-surface);
 }
 
 .checkin-accounts-tab__modal-scroll {
@@ -710,18 +692,11 @@ defineExpose({ open })
   width: 100%;
   justify-content: flex-end;
   gap: 0.75rem;
-  border: 1px solid rgb(var(--color-border-default-rgb) / 58%);
-  border-radius: 1rem;
-  background:
-    linear-gradient(
-      180deg,
-      rgb(var(--color-bg-elevated-rgb) / 88%),
-      rgb(var(--color-bg-surface-rgb) / 72%)
-    );
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-elevated);
   padding: 0.65rem;
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 9%),
-    0 14px 30px rgb(15 23 42 / 10%);
+  box-shadow: var(--shadow-sm);
 }
 
 .checkin-accounts-tab__form {
@@ -731,21 +706,16 @@ defineExpose({ open })
 
 .checkin-accounts-tab__form-section {
   gap: 0.9rem;
-  border: 1px solid rgb(var(--color-border-default-rgb) / 54%);
-  border-radius: 1.1rem;
-  background:
-    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 78%), rgb(var(--color-bg-surface-rgb) / 58%));
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-elevated);
   padding: 1rem;
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 8%),
-    0 12px 28px rgb(15 23 42 / 7%);
+  box-shadow: var(--shadow-sm);
 }
 
 .checkin-accounts-tab__form-section--credentials {
   border-color: rgb(var(--color-accent-primary-rgb) / 24%);
-  background:
-    radial-gradient(circle at 100% 0%, rgb(var(--color-accent-primary-rgb) / 10%), transparent 32%),
-    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 84%), rgb(var(--color-bg-surface-rgb) / 60%));
+  background: var(--color-bg-elevated);
 }
 
 .checkin-accounts-tab__form-grid {
@@ -766,10 +736,8 @@ defineExpose({ open })
   width: min(calc(100vw - 2rem), 54rem);
   max-width: min(calc(100vw - 2rem), 54rem);
   max-height: min(92vh, 920px);
-  border-color: rgb(var(--color-border-strong-rgb) / 72%);
-  box-shadow:
-    0 28px 80px rgb(15 23 42 / 28%),
-    0 0 0 1px rgb(var(--color-accent-primary-rgb) / 10%);
+  border-color: var(--color-border-strong);
+  box-shadow: var(--shadow-xl);
 }
 
 :deep(.checkin-accounts-tab__account-modal > div:nth-child(2)) {
@@ -778,9 +746,8 @@ defineExpose({ open })
 }
 
 :deep(.checkin-accounts-tab__account-modal > div:last-child) {
-  border-top-color: rgb(var(--color-border-strong-rgb) / 58%);
-  background:
-    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 96%), rgb(var(--color-bg-surface-rgb) / 92%));
+  border-top-color: var(--color-border-default);
+  background: var(--color-bg-elevated);
 }
 
 .checkin-accounts-tab__label {
@@ -790,16 +757,12 @@ defineExpose({ open })
 }
 
 .checkin-accounts-tab__label--amber {
-  color: rgb(146 64 14);
-}
-
-.dark .checkin-accounts-tab__label--amber {
-  color: rgb(252 211 77);
+  color: var(--color-warning);
 }
 
 .checkin-accounts-tab__control {
-  border-radius: 0.75rem;
-  border: 1px solid rgb(var(--color-border-default-rgb) / 72%);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-default);
   color: var(--text-primary);
   transition:
     border-color 0.2s ease,
@@ -808,15 +771,9 @@ defineExpose({ open })
     transform 0.2s ease;
   display: block;
   width: 100%;
-  background: linear-gradient(
-    180deg,
-    rgb(var(--color-bg-elevated-rgb) / 96%),
-    rgb(var(--color-bg-surface-rgb) / 92%)
-  );
+  background: var(--color-bg-surface);
   padding: 0.72rem 0.85rem;
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 10%),
-    0 10px 24px rgb(15 23 42 / 8%);
+  box-shadow: var(--shadow-xs);
 }
 
 .checkin-accounts-tab__control::placeholder {
@@ -868,11 +825,7 @@ defineExpose({ open })
 
 .checkin-accounts-tab__control--mono {
   font-family: var(--font-mono);
-  background: linear-gradient(
-    180deg,
-    rgb(var(--color-bg-base-rgb) / 94%),
-    rgb(var(--color-bg-elevated-rgb) / 92%)
-  );
+  background: var(--color-bg-base);
   letter-spacing: 0.01em;
 }
 
@@ -904,7 +857,7 @@ defineExpose({ open })
 
 .checkin-accounts-tab__hint--credential {
   align-items: flex-start;
-  border-radius: 0.85rem;
+  border-radius: var(--radius-lg);
   background: rgb(var(--color-bg-base-rgb) / 38%);
   padding: 0.6rem 0.7rem;
 }
@@ -916,56 +869,31 @@ defineExpose({ open })
 }
 
 .checkin-accounts-tab__hint--amber {
-  color: rgb(202 138 4);
-}
-
-.dark .checkin-accounts-tab__hint--amber {
-  color: rgb(252 211 77);
+  color: var(--color-warning);
 }
 
 .checkin-accounts-tab__notice {
   gap: 1rem;
-  border-radius: 0.9rem;
+  border-radius: var(--radius-lg);
   border: 1px solid;
   padding: 1rem;
 }
 
-.checkin-accounts-tab__notice--warning {
-  border-color: rgb(253 186 116);
-  background: linear-gradient(to right, rgb(255 247 237), rgb(255 251 235));
-}
-
-.dark .checkin-accounts-tab__notice--warning {
-  border-color: rgb(154 52 18 / 50%);
-  background: linear-gradient(to right, rgb(154 52 18 / 20%), rgb(120 53 15 / 20%));
-}
-
+.checkin-accounts-tab__notice--warning,
 .checkin-accounts-tab__notice--amber {
-  border-color: rgb(252 211 77);
-  background: linear-gradient(to right, rgb(255 251 235), rgb(255 247 237));
-}
-
-.dark .checkin-accounts-tab__notice--amber {
-  border-color: rgb(146 64 14 / 50%);
-  background: linear-gradient(to right, rgb(146 64 14 / 20%), rgb(120 53 15 / 20%));
+  border-color: rgb(var(--color-warning-rgb) / 40%);
+  background: rgb(var(--color-warning-rgb) / 12%);
 }
 
 .checkin-accounts-tab__notice--info {
-  border-color: rgb(191 219 254);
-  background: linear-gradient(to right, rgb(239 246 255), rgb(224 231 255));
-}
-
-.dark .checkin-accounts-tab__notice--info {
-  border-color: rgb(30 64 175 / 50%);
-  background: linear-gradient(to right, rgb(30 64 175 / 20%), rgb(55 48 163 / 20%));
+  border-color: rgb(var(--color-info-rgb) / 40%);
+  background: rgb(var(--color-info-rgb) / 12%);
 }
 
 .checkin-accounts-tab__notice--help {
   gap: 0.7rem;
-  border-color: rgb(var(--color-border-default-rgb) / 54%);
-  background:
-    linear-gradient(135deg, rgb(var(--color-accent-primary-rgb) / 8%), transparent),
-    rgb(var(--color-bg-elevated-rgb) / 44%);
+  border-color: var(--color-border-default);
+  background: var(--color-bg-elevated);
 }
 
 .checkin-accounts-tab__notice-title {
@@ -974,48 +902,24 @@ defineExpose({ open })
   font-weight: 500;
 }
 
-.checkin-accounts-tab__notice-title--warning {
-  color: rgb(154 52 18);
-}
-
-.dark .checkin-accounts-tab__notice-title--warning {
-  color: rgb(253 186 116);
-}
-
+.checkin-accounts-tab__notice-title--warning,
 .checkin-accounts-tab__notice-title--amber {
-  color: rgb(146 64 14);
-}
-
-.dark .checkin-accounts-tab__notice-title--amber {
-  color: rgb(252 211 77);
+  color: var(--color-warning);
 }
 
 .checkin-accounts-tab__notice-title--info {
-  color: rgb(30 64 175);
-}
-
-.dark .checkin-accounts-tab__notice-title--info {
-  color: rgb(147 197 253);
+  color: var(--color-info);
 }
 
 .checkin-accounts-tab__notice-title-meta {
   font-size: 0.75rem;
   font-weight: 400;
-  color: rgb(217 119 6);
-}
-
-.dark .checkin-accounts-tab__notice-title-meta {
-  color: rgb(251 191 36);
+  color: rgb(var(--color-warning-rgb) / 86%);
 }
 
 .checkin-accounts-tab__notice-copy,
 .checkin-accounts-tab__notice-list--warning {
-  color: rgb(180 83 9);
-}
-
-.dark .checkin-accounts-tab__notice-copy,
-.dark .checkin-accounts-tab__notice-list--warning {
-  color: rgb(253 230 138);
+  color: rgb(var(--color-warning-rgb) / 92%);
 }
 
 .checkin-accounts-tab__notice-list {
@@ -1025,11 +929,7 @@ defineExpose({ open })
 
 .checkin-accounts-tab__notice-list--info {
   margin-left: 0.125rem;
-  color: rgb(29 78 216);
-}
-
-.dark .checkin-accounts-tab__notice-list--info {
-  color: rgb(191 219 254);
+  color: rgb(var(--color-info-rgb) / 92%);
 }
 
 .checkin-accounts-tab__toggle {
@@ -1040,8 +940,8 @@ defineExpose({ open })
   width: 1rem;
   height: 1rem;
   cursor: pointer;
-  border-radius: 0.25rem;
-  border: 1px solid rgb(209 213 219);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-default);
   accent-color: rgb(var(--color-accent-primary-rgb) / 100%);
 }
 
@@ -1055,7 +955,7 @@ defineExpose({ open })
 
 .checkin-accounts-tab__form-button {
   min-height: 42px;
-  border-radius: 0.9rem;
+  border-radius: var(--radius-md);
   padding: 0.6rem 1.05rem;
   font-size: 0.875rem;
   font-weight: 650;
@@ -1071,36 +971,26 @@ defineExpose({ open })
 }
 
 .checkin-accounts-tab__form-button--secondary {
-  border: 1px solid rgb(var(--color-border-default-rgb) / 82%);
-  background: rgb(var(--color-bg-surface-rgb) / 78%);
+  border: 1px solid var(--color-border-default);
+  background: var(--color-bg-surface);
   color: var(--text-secondary);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 10%);
+  box-shadow: var(--shadow-xs);
 }
 
 .checkin-accounts-tab__form-button--secondary:hover {
-  background: rgb(var(--color-bg-elevated-rgb) / 90%);
+  background: var(--color-bg-elevated);
   color: var(--text-primary);
 }
 
 .checkin-accounts-tab__form-button--primary {
   min-width: 9.5rem;
   color: white;
-  background: linear-gradient(
-    135deg,
-    rgb(var(--color-accent-primary-rgb) / 96%),
-    rgb(var(--color-accent-secondary-rgb) / 92%)
-  );
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 16%),
-    0 16px 28px rgb(var(--color-accent-primary-rgb) / 24%);
+  background: var(--color-accent-primary);
+  box-shadow: var(--shadow-sm);
 }
 
 .checkin-accounts-tab__form-button--primary:hover {
-  background: linear-gradient(
-    135deg,
-    rgb(var(--color-accent-primary-rgb) / 100%),
-    rgb(var(--color-accent-secondary-rgb) / 100%)
-  );
+  background: var(--color-accent-primary-hover);
   transform: translateY(-1px);
 }
 

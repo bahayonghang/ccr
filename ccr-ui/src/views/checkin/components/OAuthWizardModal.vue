@@ -655,15 +655,15 @@ async function createAccount() {
 }
 
 .oauth-wizard__step--complete {
-  color: rgb(34 197 94 / 100%);
+  color: var(--color-success);
 }
 
 .oauth-wizard__step--current {
-  color: rgb(59 130 246 / 100%);
+  color: var(--color-info);
 }
 
 .oauth-wizard__step--inactive {
-  color: rgb(161 161 170 / 100%);
+  color: var(--text-muted);
 }
 
 .oauth-wizard__step-circle {
@@ -679,21 +679,21 @@ async function createAccount() {
 }
 
 .oauth-wizard__step-circle--complete {
-  border-color: rgb(34 197 94 / 100%);
-  background: rgb(34 197 94 / 20%);
-  color: rgb(34 197 94 / 100%);
+  border-color: var(--color-success);
+  background: rgb(var(--color-success-rgb) / 20%);
+  color: var(--color-success);
 }
 
 .oauth-wizard__step-circle--current {
-  border-color: rgb(59 130 246 / 100%);
-  background: rgb(59 130 246 / 20%);
-  color: rgb(59 130 246 / 100%);
+  border-color: var(--color-info);
+  background: rgb(var(--color-info-rgb) / 20%);
+  color: var(--color-info);
 }
 
 .oauth-wizard__step-circle--inactive {
-  border-color: rgb(82 82 91 / 100%);
-  background: rgb(39 39 42 / 100%);
-  color: rgb(113 113 122 / 100%);
+  border-color: var(--color-border-strong);
+  background: var(--color-bg-surface);
+  color: var(--text-ghost);
 }
 
 .oauth-wizard__step-icon {
@@ -713,7 +713,7 @@ async function createAccount() {
 }
 
 .oauth-wizard__step-divider {
-  color: rgb(82 82 91 / 100%);
+  color: var(--text-disabled);
 }
 
 .oauth-wizard__section {
@@ -736,22 +736,22 @@ async function createAccount() {
   font-size: 0.875rem;
   line-height: 1.25rem;
   font-weight: 500;
-  color: rgb(212 212 216 / 100%);
+  color: var(--text-secondary);
 }
 
 .oauth-wizard__input {
   width: 100%;
-  border: 1px solid rgb(63 63 70 / 100%);
+  border: 1px solid var(--color-border-default);
   border-radius: 0.5rem;
-  background: rgb(39 39 42 / 100%);
+  background: var(--color-bg-surface);
   padding: 0.5rem 0.75rem;
   font-size: 0.875rem;
   line-height: 1.25rem;
-  color: rgb(228 228 231 / 100%);
+  color: var(--text-primary);
 }
 
 .oauth-wizard__input:focus {
-  outline: 2px solid rgb(59 130 246 / 100%);
+  outline: 2px solid var(--color-info);
   outline-offset: 0;
 }
 
@@ -781,24 +781,24 @@ async function createAccount() {
 }
 
 .oauth-wizard__choice--active {
-  border-color: rgb(59 130 246 / 100%);
-  background: rgb(59 130 246 / 10%);
-  color: rgb(96 165 250 / 100%);
+  border-color: var(--color-info);
+  background: rgb(var(--color-info-rgb) / 10%);
+  color: var(--color-info);
 }
 
 .oauth-wizard__choice--inactive {
-  border-color: rgb(63 63 70 / 100%);
-  background: rgb(39 39 42 / 100%);
-  color: rgb(212 212 216 / 100%);
+  border-color: var(--color-border-default);
+  background: var(--color-bg-surface);
+  color: var(--text-secondary);
 }
 
 .oauth-wizard__choice--inactive:hover {
-  border-color: rgb(113 113 122 / 100%);
+  border-color: var(--text-ghost);
 }
 
 .oauth-wizard__warning {
   margin-top: 0.5rem;
-  color: rgb(251 191 36 / 100%);
+  color: var(--color-warning);
 }
 
 .oauth-wizard__state {
@@ -809,11 +809,11 @@ async function createAccount() {
 }
 
 .oauth-wizard__state-icon--loading {
-  color: rgb(59 130 246 / 100%);
+  color: var(--color-info);
 }
 
 .oauth-wizard__state-icon--success {
-  color: rgb(34 197 94 / 100%);
+  color: var(--color-success);
 }
 
 .oauth-wizard__state-text,
@@ -825,18 +825,18 @@ async function createAccount() {
 }
 
 .oauth-wizard__state-text {
-  color: rgb(161 161 170 / 100%);
+  color: var(--text-muted);
 }
 
 .oauth-wizard__state-text--success {
   font-weight: 500;
-  color: rgb(74 222 128 / 100%);
+  color: var(--color-success);
 }
 
 .oauth-wizard__state-subtitle {
   font-size: 0.75rem;
   line-height: 1rem;
-  color: rgb(113 113 122 / 100%);
+  color: var(--text-ghost);
 }
 
 .oauth-wizard__panel {
@@ -846,17 +846,17 @@ async function createAccount() {
 }
 
 .oauth-wizard__panel--error {
-  border-color: rgb(239 68 68 / 20%);
-  background: rgb(239 68 68 / 10%);
+  border-color: rgb(var(--color-danger-rgb) / 20%);
+  background: rgb(var(--color-danger-rgb) / 10%);
 }
 
 .oauth-wizard__panel--info {
-  border-color: rgb(59 130 246 / 20%);
-  background: rgb(59 130 246 / 10%);
+  border-color: rgb(var(--color-info-rgb) / 20%);
+  background: rgb(var(--color-info-rgb) / 10%);
 }
 
 .oauth-wizard__panel--neutral {
-  background: rgb(39 39 42 / 50%);
+  background: rgb(var(--color-bg-surface-rgb) / 50%);
 }
 
 .oauth-wizard__panel-title {
@@ -865,22 +865,22 @@ async function createAccount() {
 }
 
 .oauth-wizard__panel-title--info {
-  color: rgb(147 197 253 / 100%);
+  color: var(--color-info);
 }
 
 .oauth-wizard__panel-title--neutral {
-  color: rgb(212 212 216 / 100%);
+  color: var(--text-secondary);
 }
 
 .oauth-wizard__error-text {
   font-size: 0.875rem;
   line-height: 1.25rem;
-  color: rgb(248 113 113 / 100%);
+  color: var(--color-danger);
 }
 
 .oauth-wizard__link-button,
 .oauth-wizard__external-link {
-  color: rgb(96 165 250 / 100%);
+  color: var(--color-info);
 }
 
 .oauth-wizard__link-button {
@@ -901,14 +901,14 @@ async function createAccount() {
 
 .oauth-wizard__url-input {
   flex: 1 1 auto;
-  border: 1px solid rgb(63 63 70 / 100%);
+  border: 1px solid var(--color-border-default);
   border-radius: 0.25rem;
-  background: rgb(24 24 27 / 100%);
+  background: var(--color-bg-base);
   padding: 0.375rem 0.75rem;
   font-family: var(--font-mono);
   font-size: 0.75rem;
   line-height: 1rem;
-  color: rgb(212 212 216 / 100%);
+  color: var(--text-secondary);
 }
 
 .oauth-wizard__button {
@@ -932,38 +932,38 @@ async function createAccount() {
 }
 
 .oauth-wizard__button--ghost {
-  color: rgb(161 161 170 / 100%);
+  color: var(--text-muted);
 }
 
 .oauth-wizard__button--ghost:hover {
-  color: rgb(228 228 231 / 100%);
+  color: var(--text-primary);
 }
 
 .oauth-wizard__button--secondary {
-  border: 1px solid rgb(63 63 70 / 100%);
-  color: rgb(161 161 170 / 100%);
+  border: 1px solid var(--color-border-default);
+  color: var(--text-muted);
 }
 
 .oauth-wizard__button--secondary:hover {
-  color: rgb(228 228 231 / 100%);
+  color: var(--text-primary);
 }
 
 .oauth-wizard__button--primary {
-  background: rgb(37 99 235 / 100%);
+  background: var(--color-accent-primary);
   color: white;
 }
 
 .oauth-wizard__button--primary:hover:not(:disabled) {
-  background: rgb(29 78 216 / 100%);
+  background: var(--color-accent-primary-hover);
 }
 
 .oauth-wizard__button--success {
-  background: rgb(22 163 74 / 100%);
+  background: var(--color-success);
   color: white;
 }
 
 .oauth-wizard__button--success:hover:not(:disabled) {
-  background: rgb(21 128 61 / 100%);
+  background: var(--color-success-hover);
 }
 
 .oauth-wizard__external-link {
@@ -985,13 +985,13 @@ async function createAccount() {
   padding-left: 1rem;
   font-size: 0.75rem;
   line-height: 1rem;
-  color: rgb(161 161 170 / 100%);
+  color: var(--text-muted);
 }
 
 .oauth-wizard__guide-item::before {
   position: absolute;
   left: 0;
-  color: rgb(113 113 122 / 100%);
+  color: var(--text-ghost);
   content: attr(data-index);
 }
 
@@ -1007,11 +1007,11 @@ async function createAccount() {
 }
 
 .oauth-wizard__summary-label {
-  color: rgb(161 161 170 / 100%);
+  color: var(--text-muted);
 }
 
 .oauth-wizard__summary-value {
-  color: rgb(228 228 231 / 100%);
+  color: var(--text-primary);
 }
 
 @media (width >= 640px) {
