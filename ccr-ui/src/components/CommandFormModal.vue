@@ -1,201 +1,173 @@
 <template>
-  <div
-    v-if="visible"
-    class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 backdrop-blur-md"
+  <BaseModal
+    :model-value="visible"
+    size="md"
+    scrollable
+    surface="solid"
+    :title="isEditing ? $t('common.edit') : $t('common.add')"
+    @close="close"
   >
-    <div
-      ref="modalRef"
-      role="dialog"
-      aria-modal="true"
-      :aria-labelledby="titleId"
-      class="rounded-2xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto"
-      :style="{
-        background: 'var(--color-bg-elevated)',
-        border: '1px solid var(--color-border-strong)',
-        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
-      }"
-    >
-      <!-- 模态框标题 -->
-      <div
-        class="flex items-center justify-between p-6"
-        :style="{ borderBottom: '1px solid var(--color-border-default)' }"
+    <!-- 模态框标题 -->
+    <template #header="{ titleId }">
+      <h3
+        :id="titleId"
+        class="text-lg font-semibold text-text-primary"
       >
-        <h3
-          :id="titleId"
-          class="text-lg font-semibold"
-          :style="{ color: 'var(--color-text-primary)' }"
-        >
-          {{ isEditing ? $t('common.edit') : $t('common.add') }}
-        </h3>
-        <button
-          class="p-1 rounded-lg transition-colors hover:opacity-80"
-          :style="{ color: 'var(--color-text-muted)' }"
-          :aria-label="$t('common.close')"
-          @click="close"
-        >
-          <SIcon
-            name="X"
-            size="w-5 h-5"
+        {{ isEditing ? $t('common.edit') : $t('common.add') }}
+      </h3>
+    </template>
+
+    <!-- 表单内容 -->
+    <form @submit.prevent="handleSubmit">
+      <div class="space-y-4">
+        <!-- 名称 -->
+        <div>
+          <label
+            class="block text-sm font-medium mb-1"
+            :style="{ color: 'var(--color-text-primary)' }"
+          >
+            {{ $t('common.name') }}
+          </label>
+          <input
+            v-model="form.name"
+            type="text"
+            required
+            :disabled="isEditing"
+            class="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2"
+            :style="{
+              border: '1px solid var(--color-border-default)',
+              background: 'var(--color-bg-surface)',
+              color: 'var(--color-text-primary)',
+              '--tw-ring-color': 'var(--color-accent-primary)'
+            }"
+            :placeholder="$t('slashCommands.namePlaceholder')"
+          >
+        </div>
+
+        <!-- 命令 -->
+        <div>
+          <label
+            class="block text-sm font-medium mb-1"
+            :style="{ color: 'var(--color-text-primary)' }"
+          >
+            {{ $t('common.command') }}
+          </label>
+          <input
+            v-model="form.command"
+            type="text"
+            required
+            class="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2"
+            :style="{
+              border: '1px solid var(--color-border-default)',
+              background: 'var(--color-bg-surface)',
+              color: 'var(--color-text-primary)',
+              '--tw-ring-color': 'var(--color-accent-primary)'
+            }"
+            :placeholder="$t('slashCommands.commandPlaceholder')"
+          >
+        </div>
+
+        <!-- 描述 -->
+        <div>
+          <label
+            class="block text-sm font-medium mb-1"
+            :style="{ color: 'var(--color-text-primary)' }"
+          >
+            {{ $t('common.description') }}
+          </label>
+          <textarea
+            v-model="form.description"
+            rows="3"
+            required
+            class="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 resize-y min-h-[80px]"
+            :style="{
+              border: '1px solid var(--color-border-default)',
+              background: 'var(--color-bg-surface)',
+              color: 'var(--color-text-primary)',
+              '--tw-ring-color': 'var(--color-accent-primary)'
+            }"
+            :placeholder="$t('slashCommands.descriptionPlaceholder')"
           />
-        </button>
+        </div>
+
+        <!-- 文件夹 -->
+        <div>
+          <label
+            class="block text-sm font-medium mb-1"
+            :style="{ color: 'var(--color-text-primary)' }"
+          >
+            {{ $t('common.folder') }}
+          </label>
+          <select
+            v-model="form.folder"
+            required
+            class="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2"
+            :style="{
+              border: '1px solid var(--color-border-default)',
+              background: 'var(--color-bg-surface)',
+              color: 'var(--color-text-primary)',
+              '--tw-ring-color': 'var(--color-accent-primary)'
+            }"
+          >
+            <option
+              value=""
+              disabled
+            >
+              {{ $t('slashCommands.selectFolder') }}
+            </option>
+            <option
+              v-for="folder in folders"
+              :key="folder"
+              :value="folder"
+            >
+              {{ folder }}
+            </option>
+          </select>
+        </div>
       </div>
 
-      <!-- 表单内容 -->
-      <form
-        class="p-6"
-        @submit.prevent="handleSubmit"
-      >
-        <div class="space-y-4">
-          <!-- 名称 -->
-          <div>
-            <label
-              class="block text-sm font-medium mb-1"
-              :style="{ color: 'var(--color-text-primary)' }"
-            >
-              {{ $t('common.name') }}
-            </label>
-            <input
-              v-model="form.name"
-              type="text"
-              required
-              :disabled="isEditing"
-              class="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2"
-              :style="{
-                border: '1px solid var(--color-border-default)',
-                background: 'var(--color-bg-surface)',
-                color: 'var(--color-text-primary)',
-                '--tw-ring-color': 'var(--color-accent-primary)'
-              }"
-              :placeholder="$t('slashCommands.namePlaceholder')"
-            >
-          </div>
-
-          <!-- 命令 -->
-          <div>
-            <label
-              class="block text-sm font-medium mb-1"
-              :style="{ color: 'var(--color-text-primary)' }"
-            >
-              {{ $t('common.command') }}
-            </label>
-            <input
-              v-model="form.command"
-              type="text"
-              required
-              class="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2"
-              :style="{
-                border: '1px solid var(--color-border-default)',
-                background: 'var(--color-bg-surface)',
-                color: 'var(--color-text-primary)',
-                '--tw-ring-color': 'var(--color-accent-primary)'
-              }"
-              :placeholder="$t('slashCommands.commandPlaceholder')"
-            >
-          </div>
-
-          <!-- 描述 -->
-          <div>
-            <label
-              class="block text-sm font-medium mb-1"
-              :style="{ color: 'var(--color-text-primary)' }"
-            >
-              {{ $t('common.description') }}
-            </label>
-            <textarea
-              v-model="form.description"
-              rows="3"
-              required
-              class="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 resize-y min-h-[80px]"
-              :style="{
-                border: '1px solid var(--color-border-default)',
-                background: 'var(--color-bg-surface)',
-                color: 'var(--color-text-primary)',
-                '--tw-ring-color': 'var(--color-accent-primary)'
-              }"
-              :placeholder="$t('slashCommands.descriptionPlaceholder')"
-            />
-          </div>
-
-          <!-- 文件夹 -->
-          <div>
-            <label
-              class="block text-sm font-medium mb-1"
-              :style="{ color: 'var(--color-text-primary)' }"
-            >
-              {{ $t('common.folder') }}
-            </label>
-            <select
-              v-model="form.folder"
-              required
-              class="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2"
-              :style="{
-                border: '1px solid var(--color-border-default)',
-                background: 'var(--color-bg-surface)',
-                color: 'var(--color-text-primary)',
-                '--tw-ring-color': 'var(--color-accent-primary)'
-              }"
-            >
-              <option
-                value=""
-                disabled
-              >
-                {{ $t('slashCommands.selectFolder') }}
-              </option>
-              <option
-                v-for="folder in folders"
-                :key="folder"
-                :value="folder"
-              >
-                {{ folder }}
-              </option>
-            </select>
-          </div>
-        </div>
-
-        <!-- 表单按钮 -->
-        <div class="flex justify-end gap-3 mt-6">
-          <button
-            type="button"
-            class="px-4 py-2 rounded-lg transition-colors hover:opacity-80"
-            :style="{
-              background: 'var(--color-bg-surface)',
-              color: 'var(--color-text-secondary)',
-              border: '1px solid var(--color-border-default)'
-            }"
-            @click="close"
-          >
-            {{ $t('common.cancel') }}
-          </button>
-          <button
-            type="submit"
-            :disabled="loading"
-            class="px-4 py-2 rounded-lg inline-flex items-center transition-colors hover:opacity-90"
-            :style="{
-              background: 'var(--color-accent-primary)',
-              color: '#fff',
-              opacity: loading ? 0.7 : 1,
-              cursor: loading ? 'not-allowed' : 'pointer'
-            }"
-          >
-            <SIcon
-              v-if="loading"
-              name="RefreshCw"
-              size="w-4 h-4"
-              class="animate-spin mr-2"
-            />
-            {{ isEditing ? $t('common.update') : $t('common.create') }}
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
+      <!-- 表单按钮 -->
+      <div class="flex justify-end gap-3 mt-6">
+        <button
+          type="button"
+          class="px-4 py-2 rounded-lg transition-colors hover:opacity-80"
+          :style="{
+            background: 'var(--color-bg-surface)',
+            color: 'var(--color-text-secondary)',
+            border: '1px solid var(--color-border-default)'
+          }"
+          @click="close"
+        >
+          {{ $t('common.cancel') }}
+        </button>
+        <button
+          type="submit"
+          :disabled="loading"
+          class="px-4 py-2 rounded-lg inline-flex items-center transition-colors hover:opacity-90"
+          :style="{
+            background: 'var(--color-accent-primary)',
+            color: '#fff',
+            opacity: loading ? 0.7 : 1,
+            cursor: loading ? 'not-allowed' : 'pointer'
+          }"
+        >
+          <SIcon
+            v-if="loading"
+            name="RefreshCw"
+            size="w-4 h-4"
+            class="animate-spin mr-2"
+          />
+          {{ isEditing ? $t('common.update') : $t('common.create') }}
+        </button>
+      </div>
+    </form>
+  </BaseModal>
 </template>
 
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, watch } from 'vue'
-import { useFocusTrap, useEscapeKey, useUniqueId } from '@/composables/useAccessibility'
-import { MODAL_FOCUS_DELAY_MS } from '@/config/constants'
+import BaseModal from '@/components/common/BaseModal.vue'
 import type { SlashCommand, SlashCommandRequest } from '@/types/platform'
 
 // Props
@@ -228,30 +200,12 @@ const form = ref<SlashCommandRequest>({
 // 计算属性
 const isEditing = computed(() => !!props.editingCommand)
 
-// Accessibility enhancements
-const titleId = useUniqueId('command-form-title')
-const modalRef = ref<HTMLElement | null>(null)
-const visibleRef = ref(props.visible)
-
-watch(() => props.visible, (newValue) => {
-  visibleRef.value = newValue
-})
-
 // Close handler
 const close = () => {
   emit('update:visible', false)
   emit('update:editingCommand', null)
   resetForm()
 }
-
-const { focusFirstElement } = useFocusTrap(modalRef, visibleRef)
-useEscapeKey(close, visibleRef)
-
-watch(visibleRef, (isOpen) => {
-  if (isOpen) {
-    setTimeout(() => focusFirstElement(), MODAL_FOCUS_DELAY_MS)
-  }
-})
 
 // 方法
 const resetForm = () => {
