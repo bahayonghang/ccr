@@ -31,6 +31,10 @@ const styleLockedPaths = [
   '../src/views/checkin/components/OAuthWizardModal.vue',
   '../src/components/CheckinProgressModal.vue',
   '../src/components/MainLayout.vue',
+  // WS6 批次④：收口到 BaseModal 的表单弹窗（扁平语言已锁定）。
+  '../src/components/AddConfigModal.vue',
+  '../src/components/EditConfigModal.vue',
+  '../src/components/CommandFormModal.vue',
 ]
 
 const forbiddenLegacyUtilities = /\btext-white(?:\/|\b)|\bbg-white\/|\bborder-white\//
