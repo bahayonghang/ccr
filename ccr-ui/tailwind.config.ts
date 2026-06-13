@@ -185,6 +185,8 @@ export default {
       }
 
       addComponents({
+        // 规范工具类为 .surface-*。下列 glass-* / liquid-glass 为旧玻璃语言别名，
+        // @deprecated 勿在新代码使用；存量随设计语言推广（WS6）逐批替换为对应 .surface-*。
         '.surface-shell': surfaceShell,
         '.liquid-glass': surfaceShell,
 

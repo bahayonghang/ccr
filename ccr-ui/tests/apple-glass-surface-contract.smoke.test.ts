@@ -30,6 +30,7 @@ const styleLockedPaths = [
   '../src/views/checkin/components/AccountsTable.vue',
   '../src/views/checkin/components/OAuthWizardModal.vue',
   '../src/components/CheckinProgressModal.vue',
+  '../src/components/MainLayout.vue',
 ]
 
 const forbiddenLegacyUtilities = /\btext-white(?:\/|\b)|\bbg-white\/|\bborder-white\//
@@ -39,6 +40,9 @@ const forbiddenPaletteUtilities =
   /\b(?:bg|text|border|ring|from|to|via|fill|stroke|divide|outline|decoration|caret|accent)-(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|fuchsia|rose)-(?:50|100|200|300|400|500|600|700|800|900|950)\b/
 // raw rgb/rgba 三元组（纯黑阴影/遮罩除外）；token 形式 rgb(var(--x-rgb) / α) 不匹配。
 const forbiddenRawRgbPalette = /rgba?\(\s*(?!0[\s,]+0[\s,]+0\b)\d{1,3}[\s,]/
+// 旧玻璃语言别名（tailwind.config 中已 @deprecated）；已锁定表面禁止新增使用。
+const forbiddenGlassAliases =
+  /\b(?:glass-effect(?:-strong)?|glass-surface|glass-elevated|glass-modal|liquid-glass)\b/
 const forbiddenLegacyFontStacks =
   /JetBrains Mono|Fira Code|Maple Mono|Cascadia Code|SFMono-Regular|ui-monospace|Menlo|Monaco|Consolas|Liberation Mono|Courier New/
 const mochaOverridePattern = /html:root\[data-resolved-flavor=["']mocha["']\]\s*{[\s\S]*?^}/m
@@ -79,6 +83,7 @@ describe('claude editorial surface contract', () => {
       expect(source).not.toMatch(forbiddenLegacyBranding)
       expect(source).not.toMatch(forbiddenPaletteUtilities)
       expect(source).not.toMatch(forbiddenRawRgbPalette)
+      expect(source).not.toMatch(forbiddenGlassAliases)
     }
   )
 

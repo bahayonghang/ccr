@@ -21,13 +21,16 @@
         "src/styles/checkin-shared.css",
         "src/views/CheckinView.vue",
         "src/views/checkin/**/*.vue",
-        "src/components/CheckinProgressModal.vue"
+        "src/components/CheckinProgressModal.vue",
+        "src/components/MainLayout.vue",
+        "src/components/ui/Button.vue",
+        "src/components/ui/Card.vue"
       ],
       "rules": {
         "color-no-hex": true,
         "declaration-property-value-disallowed-list": {
-          "backdrop-filter": ["/blur/"],
-          "-webkit-backdrop-filter": ["/blur/"]
+          "backdrop-filter": ["/blur\\(/"],
+          "-webkit-backdrop-filter": ["/blur\\(/"]
         },
         "selector-disallowed-list": ["/\\.dark\\s/"]
       }

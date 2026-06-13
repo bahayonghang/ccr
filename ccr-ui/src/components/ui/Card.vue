@@ -73,10 +73,15 @@ interface Props {
   density?: DensityKind
   hover?: boolean
   interactive?: boolean
+  /** @deprecated 发光装饰层与「深色工作台」扁平语言冲突；默认关闭，勿在新代码使用。 */
   glow?: boolean
+  /** @deprecated glow 的旧别名；默认关闭，勿在新代码使用。 */
   glowEffect?: boolean
+  /** @deprecated 仅配合已废弃的 glow 生效；勿在新代码使用。 */
   glowColor?: GlowColor
+  /** @deprecated 渐变描边与扁平语言冲突；默认关闭，勿在新代码使用。 */
   gradientBorder?: boolean
+  /** @deprecated 圆点纹理装饰层；默认关闭，勿在新代码使用。 */
   pattern?: boolean
   padding?: PaddingSize
   disabled?: boolean
