@@ -55,7 +55,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onActivated, onBeforeUnmount, onDeactivated, onMounted, ref } from 'vue'
 import { getErrorMessage } from '@/utils/errorHandler'
 import { useI18n } from 'vue-i18n'
 import { storeToRefs } from 'pinia'
@@ -81,7 +81,10 @@ import type { CliVersionEntry, CliVersionsResponse, SystemInfo } from '@/types'
 const { t } = useI18n()
 const usageOverviewStore = useHomeUsageOverviewStore()
 const { overview, loading: usageLoading, error: usageError, activeDays } = storeToRefs(usageOverviewStore)
-const { logs } = useMonitoringFeed({ initialCount: 6, maxEntries: 24 })
+const { logs, pause: pauseFeed, resume: resumeFeed } = useMonitoringFeed({
+  initialCount: 6,
+  maxEntries: 24,
+})
 
 const systemInfo = ref<SystemInfo | null>(null)
 const systemInfoError = ref<string | null>(null)
@@ -209,6 +212,16 @@ onBeforeUnmount(() => {
   cancelDashboardDeferredTasks?.()
   cancelDashboardDeferredTasks = null
   void usageOverviewStore.teardown()
+})
+
+// 本视图被 keep-alive 缓存：onBeforeUnmount 在导航离开时不触发，改由 deactivated 暂停
+// 监控事件源、activated 恢复，避免切走后仍在后台持续合并事件。
+onDeactivated(() => {
+  pauseFeed()
+})
+
+onActivated(() => {
+  resumeFeed()
 })
 
 const backendStatus = computed<DashboardBackendStatus>(() => {

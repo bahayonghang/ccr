@@ -258,6 +258,7 @@ export function useMonitoringFeed(options: MonitoringFeedOptions = {}) {
   const seenEntries = new Set<string>()
   const unlisteners: UnlistenFn[] = []
   let unsubscribeLogger: (() => void) | null = null
+  let listening = false
 
   const mergeEntries = (entries: MonitoringEntry[]) => {
     if (entries.length === 0) {
@@ -351,6 +352,18 @@ export function useMonitoringFeed(options: MonitoringFeedOptions = {}) {
   }
 
   onMounted(() => {
+    start()
+  })
+
+  onUnmounted(() => {
+    stop()
+  })
+
+  // start/stop 幂等：缓存视图（keep-alive）可通过 pause/resume 在 deactivated/activated
+  // 间断开/重连事件源，避免切走后仍在后台持续合并事件；重复调用 start 不会重复挂监听。
+  function start() {
+    if (listening) return
+    listening = true
     mergeEntries(logger.getHistory().map(normalizeLoggerEntry))
     unsubscribeLogger = logger.subscribe((entry) => {
       mergeEntries([normalizeLoggerEntry(entry)])
@@ -358,9 +371,11 @@ export function useMonitoringFeed(options: MonitoringFeedOptions = {}) {
 
     void loadInitialFeed()
     void setupNativeListeners()
-  })
+  }
 
-  onUnmounted(() => {
+  function stop() {
+    if (!listening) return
+    listening = false
     for (const unlisten of unlisteners) {
       void unlisten()
     }
@@ -368,7 +383,7 @@ export function useMonitoringFeed(options: MonitoringFeedOptions = {}) {
 
     unsubscribeLogger?.()
     unsubscribeLogger = null
-  })
+  }
 
   return {
     isConnected,
@@ -376,5 +391,9 @@ export function useMonitoringFeed(options: MonitoringFeedOptions = {}) {
     tokenStats,
     clearLogs,
     refresh: loadInitialFeed,
+    /** 暂停事件消费（缓存视图 onDeactivated 调用） */
+    pause: stop,
+    /** 恢复事件消费并重新拉取初始快照（缓存视图 onActivated 调用） */
+    resume: start,
   }
 }
