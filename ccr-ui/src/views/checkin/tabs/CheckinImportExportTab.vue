@@ -32,7 +32,7 @@
             </span>
           </label>
           <button
-            class="w-full px-4 py-2 bg-accent-primary hover:bg-accent-primary/90 text-white rounded-lg transition-colors"
+            class="w-full px-4 py-2 bg-accent-primary hover:bg-accent-primary/90 text-text-inverted rounded-lg transition-colors"
             @click="handleExport"
           >
             导出 JSON
@@ -82,7 +82,7 @@
           </select>
           <button
             :disabled="!importData"
-            class="w-full px-4 py-2 bg-accent-success hover:bg-accent-success/90 text-white rounded-lg transition-colors disabled:opacity-50"
+            class="w-full px-4 py-2 bg-accent-success hover:bg-accent-success/90 text-text-inverted rounded-lg transition-colors disabled:opacity-50"
             @click="handleImport"
           >
             执行导入

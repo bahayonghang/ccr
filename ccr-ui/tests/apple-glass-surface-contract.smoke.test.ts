@@ -11,8 +11,34 @@ const migratedViewPaths = [
   '../src/views/CodexView.vue',
 ]
 
+// 已完成设计语言迁移并锁定的表面（随 WS6 批次扩充，防止回退）。
+// 批次①（签到主题迁移 = WS1.2/1.3）：锁定 Tailwind 调色板（工具类 + raw rgb 三元组）。
+// 注意：圆角收敛属于 WS6 批次④（全局），本批不锁 border-radius 字面量；
+//      backdrop-filter blur / hex / `.dark ` 后代选择器由 stylelint overrides 精确锁定。
+const styleLockedPaths = [
+  '../src/styles/checkin-shared.css',
+  '../src/views/CheckinView.vue',
+  '../src/views/checkin/CheckinAccountDashboardView.vue',
+  '../src/views/checkin/tabs/CheckinAccountsTab.vue',
+  '../src/views/checkin/tabs/CheckinImportExportTab.vue',
+  '../src/views/checkin/tabs/CheckinProvidersTab.vue',
+  '../src/views/checkin/tabs/CheckinRecordsTab.vue',
+  '../src/views/checkin/components/AccountActionsMenu.vue',
+  '../src/views/checkin/components/AccountDashboardCalendar.vue',
+  '../src/views/checkin/components/AccountDashboardTrend.vue',
+  '../src/views/checkin/components/AccountFormModal.vue',
+  '../src/views/checkin/components/AccountsTable.vue',
+  '../src/views/checkin/components/OAuthWizardModal.vue',
+  '../src/components/CheckinProgressModal.vue',
+]
+
 const forbiddenLegacyUtilities = /\btext-white(?:\/|\b)|\bbg-white\/|\bborder-white\//
 const forbiddenLegacyBranding = /pink-|purple-|neko-|cyber-grid/
+// Tailwind 默认调色板工具类（带数字档位），语义 token 工具类（surface/primary/accent…）不在其列。
+const forbiddenPaletteUtilities =
+  /\b(?:bg|text|border|ring|from|to|via|fill|stroke|divide|outline|decoration|caret|accent)-(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|fuchsia|rose)-(?:50|100|200|300|400|500|600|700|800|900|950)\b/
+// raw rgb/rgba 三元组（纯黑阴影/遮罩除外）；token 形式 rgb(var(--x-rgb) / α) 不匹配。
+const forbiddenRawRgbPalette = /rgba?\(\s*(?!0[\s,]+0[\s,]+0\b)\d{1,3}[\s,]/
 const forbiddenLegacyFontStacks =
   /JetBrains Mono|Fira Code|Maple Mono|Cascadia Code|SFMono-Regular|ui-monospace|Menlo|Monaco|Consolas|Liberation Mono|Courier New/
 const mochaOverridePattern = /html:root\[data-resolved-flavor=["']mocha["']\]\s*{[\s\S]*?^}/m
@@ -42,6 +68,19 @@ describe('claude editorial surface contract', () => {
     expect(source).not.toMatch(forbiddenLegacyUtilities)
     expect(source).not.toMatch(forbiddenLegacyBranding)
   })
+
+  it.each(styleLockedPaths)(
+    'keeps locked surface %s on semantic palette tokens',
+    async (relativePath) => {
+      const absolutePath = fileURLToPath(new URL(relativePath, import.meta.url))
+      const source = await readFile(absolutePath, 'utf8')
+
+      expect(source).not.toMatch(forbiddenLegacyUtilities)
+      expect(source).not.toMatch(forbiddenLegacyBranding)
+      expect(source).not.toMatch(forbiddenPaletteUtilities)
+      expect(source).not.toMatch(forbiddenRawRgbPalette)
+    }
+  )
 
   it('maps global font tokens to MapleBright so visible copy stays consistent', async () => {
     const source = await readFile('src/styles/tokens.css', 'utf8')

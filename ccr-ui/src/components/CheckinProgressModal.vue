@@ -262,7 +262,7 @@ watch(
         class="pt-2"
       >
         <button
-          class="flex w-full items-center justify-center gap-2 rounded-lg bg-accent-primary px-4 py-2.5 font-medium text-white transition-colors hover:bg-accent-primary/90"
+          class="flex w-full items-center justify-center gap-2 rounded-lg bg-accent-primary px-4 py-2.5 font-medium text-text-inverted transition-colors hover:bg-accent-primary/90"
           @click="emit('close')"
         >
           <SIcon
