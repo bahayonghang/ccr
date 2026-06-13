@@ -56,6 +56,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { getErrorMessage } from '@/utils/errorHandler'
 import { useI18n } from 'vue-i18n'
 import { storeToRefs } from 'pinia'
 import DashboardNextActions from '@/components/dashboard/DashboardNextActions.vue'
@@ -129,7 +130,7 @@ const loadSystemInfo = async () => {
     systemInfoError.value = null
     perfMark('dashboard:system-ready')
   } catch (error) {
-    systemInfoError.value = error instanceof Error ? error.message : String(error)
+    systemInfoError.value = getErrorMessage(error)
     logger.error('[DashboardView] failed to load system info', error)
   }
 }

@@ -11,7 +11,7 @@ import { invoke } from '@tauri-apps/api/core'
 // Types
 // ──────────────────────────────────────────────────────────────────────────────
 
-export type Platform = 'macos' | 'linux' | 'windows'
+export type InstallOs = 'macos' | 'linux' | 'windows'
 export type PackageManager = 'cargo' | 'homebrew' | 'scoop' | 'winget'
 export type DurationClass = 'fast' | 'medium' | 'slow'
 export type LogStream = 'stdout' | 'stderr'
@@ -26,7 +26,7 @@ export interface AttemptId {
 }
 
 export interface HostCapabilities {
-  platform: Platform
+  platform: InstallOs
   has_cargo: boolean
   has_homebrew: boolean
   has_scoop: boolean
@@ -58,7 +58,7 @@ export type AbsentReason =
   | { kind: 'not_executable'; exit_code: number | null; stderr_excerpt: string }
 
 export interface InstallPlan {
-  platform: Platform
+  platform: InstallOs
   package_manager: PackageManager
   command: string
   args: string[]
@@ -92,7 +92,7 @@ export interface RingBufferSnapshot {
 }
 
 export interface ManualCommand {
-  platform: Platform
+  platform: InstallOs
   package_manager: PackageManager | null
   title: string
   command_line: string

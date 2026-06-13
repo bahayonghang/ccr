@@ -299,6 +299,7 @@ import {
   type ManualCatalog,
   type ProgressStage,
 } from '@/api/domains/install'
+import { copyText } from '@/utils/clipboard'
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Props & Emits
@@ -503,7 +504,7 @@ async function recheckInstallation() {
 
 async function copyCommand(cmd: string) {
   try {
-    await navigator.clipboard.writeText(cmd)
+    if (!(await copyText(cmd))) throw new Error('clipboard copy failed')
     copiedCommand.value = cmd
     if (copiedTimer) clearTimeout(copiedTimer)
     copiedTimer = setTimeout(() => {

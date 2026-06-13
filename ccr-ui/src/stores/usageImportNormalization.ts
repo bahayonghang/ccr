@@ -1,15 +1,15 @@
 import type {
   ImportAllUsageResponse,
-  ImportResult,
-  Platform,
+  UsageImportResult,
+  UsagePlatform,
   UsageImportJobSnapshot,
   UsageImportSummary,
 } from '@/types/usage'
 
-export const isOptionalAbsentImportResult = (result: ImportResult): boolean =>
+export const isOptionalAbsentImportResult = (result: UsageImportResult): boolean =>
   result.is_optional_absent === true
 
-export const toUserVisibleImportResult = (result: ImportResult): ImportResult => {
+export const toUserVisibleImportResult = (result: UsageImportResult): UsageImportResult => {
   if (!isOptionalAbsentImportResult(result)) return result
 
   return {
@@ -19,7 +19,7 @@ export const toUserVisibleImportResult = (result: ImportResult): ImportResult =>
   }
 }
 
-export const normalizeUserVisibleImportResults = (results: ImportResult[]): ImportResult[] =>
+export const normalizeUserVisibleImportResults = (results: UsageImportResult[]): UsageImportResult[] =>
   results.map(toUserVisibleImportResult)
 
 export const normalizeUserVisibleImportJob = (
@@ -33,7 +33,7 @@ export const normalizeUserVisibleImportJob = (
   }
 }
 
-export const buildImportSummary = (results: ImportResult[]): UsageImportSummary => {
+export const buildImportSummary = (results: UsageImportResult[]): UsageImportSummary => {
   const successCount = results.filter(result => !result.error).length
   const failureCount = results.length - successCount
   const importedRecords = results.reduce((sum, result) => sum + result.records_imported, 0)
@@ -54,14 +54,14 @@ export const buildImportSummary = (results: ImportResult[]): UsageImportSummary 
 }
 
 export const isImportAllUsageResponse = (
-  payload: ImportResult | ImportAllUsageResponse,
+  payload: UsageImportResult | ImportAllUsageResponse,
 ): payload is ImportAllUsageResponse => {
   return 'results' in payload && Array.isArray(payload.results)
 }
 
 export const normalizeImportResponse = (
-  payload: ImportResult | ImportAllUsageResponse,
-  platformOverride?: Platform,
+  payload: UsageImportResult | ImportAllUsageResponse,
+  platformOverride?: UsagePlatform,
 ): ImportAllUsageResponse => {
   if (isImportAllUsageResponse(payload)) {
     const results = normalizeUserVisibleImportResults(payload.results)
@@ -72,7 +72,7 @@ export const normalizeImportResponse = (
     }
   }
 
-  const result: ImportResult = platformOverride
+  const result: UsageImportResult = platformOverride
     ? { ...payload, platform: platformOverride }
     : payload
   const results = normalizeUserVisibleImportResults([result])

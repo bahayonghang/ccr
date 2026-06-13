@@ -2,7 +2,7 @@ import { computed, onActivated, onDeactivated, onMounted, onUnmounted, ref, watc
 import { useI18n } from 'vue-i18n'
 import { useUsageStore } from '@/stores/usage'
 import { ensureLocaleLoaded } from '@/i18n'
-import type { Platform, UsageFeatureCapability, UsageUnsupportedReason } from '@/types/usage'
+import type { UsagePlatform, UsageFeatureCapability, UsageUnsupportedReason } from '@/types/usage'
 import { isTauriRuntime } from '@/utils/tauriRuntime'
 import { perfMark, perfMeasure } from '@/utils/perfTelemetry'
 import {
@@ -226,7 +226,7 @@ export const useUsageDashboardState = () => {
   const onFilterChange = () => {
     const { start, end } = getTimeRange(selectedRange.value)
     store.setFilters({
-      platform: (selectedPlatform.value || undefined) as Platform | undefined,
+      platform: (selectedPlatform.value || undefined) as UsagePlatform | undefined,
       start,
       end,
     })
@@ -660,7 +660,7 @@ export const useUsageDashboardState = () => {
   const logsTotalCount = computed(() => store.logs?.total ?? logsRecords.value.length)
   const diagnosticsSummary = computed<UsageDiagnosticsSummary>(() =>
     buildUsageDiagnosticsSummary({
-      selectedPlatform: selectedPlatform.value as Platform | '',
+      selectedPlatform: selectedPlatform.value as UsagePlatform | '',
       summary: store.summary,
       logsRecords: logsRecords.value,
       logsTotalCount: logsTotalCount.value,
@@ -901,7 +901,7 @@ export const useUsageDashboardState = () => {
 
     const { start, end } = getTimeRange(selectedRange.value)
     await store.initializeDashboard({
-      platform: (selectedPlatform.value || undefined) as Platform | undefined,
+      platform: (selectedPlatform.value || undefined) as UsagePlatform | undefined,
       start,
       end,
     })

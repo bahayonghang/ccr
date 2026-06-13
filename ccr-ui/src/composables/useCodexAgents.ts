@@ -25,7 +25,7 @@ import type {
 const LAST_PROJECT_ROOT_KEY = 'ccr.codexAgents.lastProjectRoot'
 
 function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : String(error)
+  return getErrorMessage(error)
 }
 
 function readLastProjectRoot(): string | null {

@@ -206,6 +206,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { getErrorMessage } from '@/utils/errorHandler'
 import { useI18n } from 'vue-i18n'
 import MasterDetailLayout from '@/components/common/MasterDetailLayout.vue'
 import BulkDeleteDialog from '@/components/common/BulkDeleteDialog.vue'
@@ -320,7 +321,7 @@ async function confirmBulkDelete() {
     showBulkDeleteDialog.value = false
     uiStore.showSuccess(t('mcp.manager.messages.deletedSelected'))
   } catch (err) {
-    uiStore.showError(err instanceof Error ? err.message : String(err))
+    uiStore.showError(getErrorMessage(err))
   } finally {
     bulkDeleting.value = false
   }
@@ -336,7 +337,7 @@ async function handleDeleteGroup(group: McpGroup) {
     await deleteGroup(group)
     uiStore.showSuccess(t('mcp.manager.messages.deletedServer', { name: group.name }))
   } catch (err) {
-    uiStore.showError(err instanceof Error ? err.message : String(err))
+    uiStore.showError(getErrorMessage(err))
   }
 }
 

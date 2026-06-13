@@ -268,6 +268,7 @@ import { useUIStore } from '@/stores/ui'
 import type { UpdateConfigRequest } from '@/types'
 import type { ProviderTemplateDraftContext, ProviderTemplateSelection } from '@/types/providerTemplates'
 import { mapTemplateToClaudeLegacyConfigPatch } from '@/utils/providerTemplates'
+import { MODAL_FOCUS_DELAY_MS } from '@/config/constants'
 
 const props = defineProps<{ isOpen: boolean }>()
 const emit = defineEmits(['close', 'saved'])
@@ -282,7 +283,7 @@ watch(() => props.isOpen, val => isOpenRef.value = val)
 const handleClose = () => emit('close')
 const { focusFirstElement } = useFocusTrap(modalRef, isOpenRef)
 useEscapeKey(handleClose, isOpenRef)
-watch(isOpenRef, val => val && setTimeout(() => focusFirstElement(), 100))
+watch(isOpenRef, val => val && setTimeout(() => focusFirstElement(), MODAL_FOCUS_DELAY_MS))
 
 // Form Logic
 const uiStore = useUIStore()

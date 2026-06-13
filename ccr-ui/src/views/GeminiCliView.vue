@@ -282,6 +282,7 @@ import {
   buildPlatformUsageI18nLabels,
   buildPlatformUsageSpec,
 } from '@/views/platform-usage/platformUsageSpecs'
+import { copyText } from '@/utils/clipboard'
 
 type ModuleTone = 'gemini' | 'command' | 'capability' | 'plugin'
 type TagTone = 'gemini' | 'command' | 'neutral' | 'capability'
@@ -479,9 +480,8 @@ const quickInfoCards = computed<QuickInfoCard[]>(() => [
 ])
 
 const copyCommand = async (command: string) => {
-  if (!navigator.clipboard?.writeText) return
-
-  await navigator.clipboard.writeText(command)
+  const ok = await copyText(command)
+  if (!ok) return
   copiedCommand.value = command
 
   if (copyResetTimer) {

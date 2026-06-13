@@ -3,7 +3,7 @@
  * 用于修复 client.ts 中的 any 类型问题
  */
 
-import type { Agent, SlashCommand } from './mcp'
+import type { Agent, McpSlashCommand } from './mcp'
 
 // ============ MCP Preset Types ============
 
@@ -218,7 +218,7 @@ export interface PlatformAgentsResponse {
 
 /** 通用 SlashCommands 响应（用于未实现的平台） */
 export interface PlatformSlashCommandsResponse {
-  commands: SlashCommand[]
+  commands: McpSlashCommand[]
   folders: string[]
 }
 
@@ -231,7 +231,7 @@ export interface PlatformAgentRequest {
   disabled?: boolean
 }
 
-/** 通用 SlashCommand 请求（用于未实现的平台） */
+/** 通用 McpSlashCommand 请求（用于未实现的平台） */
 export interface PlatformSlashCommandRequest {
   name: string
   description?: string

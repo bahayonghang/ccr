@@ -137,7 +137,7 @@
 <script setup lang="ts">
 import { computed, type Component } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { DailyTrend, ModelStat, Platform, SourceBreakdown, UsageSummary } from '@/types/usage'
+import type { DailyTrend, ModelStat, UsagePlatform, SourceBreakdown, UsageSummary } from '@/types/usage'
 import { formatPercent } from '@/views/usage/usageSummaryCards'
 import { buildChartTheme, type ChartThemeState } from '@/views/usage/usageChartOptions'
 
@@ -153,7 +153,7 @@ const props = defineProps<{
 
 const { t } = useI18n()
 
-const sourceLabels: Record<Platform, string> = {
+const sourceLabels: Record<UsagePlatform, string> = {
   claude: 'Claude',
   codex: 'Codex',
   gemini: 'Antigravity',
@@ -241,7 +241,7 @@ const modelRankings = computed(() =>
     .slice(0, 10)
 )
 
-const sourceLabel = (source: Platform) => sourceLabels[source] ?? source
+const sourceLabel = (source: UsagePlatform) => sourceLabels[source] ?? source
 const modelCost = (model: ModelStat) => model.cost_with_cache ?? model.total_cost
 const modelShare = (model: ModelStat) =>
   totalCost.value > 0 ? modelCost(model) / totalCost.value : 0

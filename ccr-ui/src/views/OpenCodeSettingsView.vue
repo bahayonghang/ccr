@@ -218,6 +218,7 @@
 
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
+import { getErrorMessage } from '@/utils/errorHandler'
 import Card from '@/components/ui/Card.vue'
 import Button from '@/components/ui/Button.vue'
 import SIcon from '@/components/ui/SIcon.vue'
@@ -276,7 +277,7 @@ async function loadSettings() {
 
     themes.value = themeList
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   }
 }
 
@@ -313,7 +314,7 @@ async function saveAll() {
     uiStore.showSuccess('OpenCode 设置已保存')
     await loadSettings()
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   } finally {
     saving.value = false
   }

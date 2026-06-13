@@ -5,7 +5,9 @@
  * 外部业务代码不应直接 import 此模块。
  */
 
-export type UnknownRecord = Record<string, unknown>
+import type { UnknownRecord } from '@/types/common'
+
+export type { UnknownRecord }
 
 export const isRecord = (value: unknown): value is UnknownRecord => {
   return typeof value === 'object' && value !== null

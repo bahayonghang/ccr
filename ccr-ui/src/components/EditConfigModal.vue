@@ -357,6 +357,7 @@ import { useUIStore } from '@/stores/ui'
 
 // typed
 import type { UpdateConfigRequest, ConfigItem } from '@/types'
+import { MODAL_FOCUS_DELAY_MS } from '@/config/constants'
 
 interface Props {
   isOpen: boolean
@@ -383,7 +384,7 @@ const handleClose = () => emit('close')
 const { focusFirstElement } = useFocusTrap(modalRef, isOpenRef)
 useEscapeKey(handleClose, isOpenRef)
 
-watch(isOpenRef, (open) => { if(open) setTimeout(() => focusFirstElement(), 100) })
+watch(isOpenRef, (open) => { if(open) setTimeout(() => focusFirstElement(), MODAL_FOCUS_DELAY_MS) })
 
 const uiStore = useUIStore()
 

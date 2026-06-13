@@ -2,7 +2,7 @@ import { ref, onUnmounted } from 'vue'
 import { logger } from '@/utils/logger'
 
 function getErrorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err)
+  return getErrorMessage(err)
 }
 
 function isAbortError(err: unknown): boolean {

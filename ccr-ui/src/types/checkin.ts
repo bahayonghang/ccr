@@ -443,7 +443,7 @@ export interface CheckinImportRequest {
 }
 
 /** 导入结果 */
-export interface ImportResult {
+export interface CheckinImportResult {
   success: boolean
   message: string
   providers_imported: number
@@ -652,4 +652,16 @@ export interface OAuthStateResponse {
   message?: string
   /** 引导用户提取 cookies 的说明 */
   extraction_guide: string[]
+}
+
+export interface OAuthAuthorizeUrlResponse {
+  success: boolean
+  authorize_url?: string
+  extraction_guide?: string[]
+  message?: string
+}
+
+export interface OAuthAuthorizeUrlRequest {
+  provider_id: string
+  oauth_type: 'github' | 'linuxdo'
 }

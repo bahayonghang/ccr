@@ -1,4 +1,5 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { getErrorMessage } from '@/utils/errorHandler'
 import { getCodexTraySnapshot, switchCodexAuth } from '@/api/tauri'
 import {
   shellBeginTrayPanelDrag,
@@ -54,7 +55,7 @@ export function useCodexTrayPanel() {
       snapshot.value = await getCodexTraySnapshot<CodexTraySnapshot>(force)
     } catch (loadError) {
       logger.error('Failed to load Codex tray snapshot:', loadError)
-      error.value = loadError instanceof Error ? loadError.message : String(loadError)
+      error.value = getErrorMessage(loadError)
     } finally {
       loading.value = false
     }
@@ -70,7 +71,7 @@ export function useCodexTrayPanel() {
       screen.value = 'overview'
     } catch (switchError) {
       logger.error('Failed to switch Codex tray account:', switchError)
-      error.value = switchError instanceof Error ? switchError.message : String(switchError)
+      error.value = getErrorMessage(switchError)
     } finally {
       busyAccount.value = null
     }

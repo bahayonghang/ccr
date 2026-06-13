@@ -301,6 +301,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { getErrorMessage } from '@/utils/errorHandler'
 import { RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import Card from '@/components/ui/Card.vue'
@@ -462,7 +463,7 @@ const commandScopePreview = computed(() => {
 })
 
 function errorMessage(error: unknown) {
-  return error instanceof Error ? error.message : String(error)
+  return getErrorMessage(error)
 }
 
 async function loadOverview() {

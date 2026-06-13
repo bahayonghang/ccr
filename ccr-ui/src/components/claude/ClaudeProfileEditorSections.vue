@@ -518,7 +518,7 @@ import { useI18n } from 'vue-i18n'
 import SIcon from '@/components/ui/SIcon.vue'
 import { useUIStore } from '@/stores/ui'
 import type { ClaudeProfileEditorForm, ClaudeProfileFormSectionId } from '@/types/claudeProfileEditor'
-import { copyToClipboard } from '@/utils/codexHelpers'
+import { copyText } from '@/utils/clipboard'
 
 const props = defineProps<{
   editingName: string
@@ -553,7 +553,7 @@ async function copyAuthToken() {
   const token = props.form.auth_token.trim()
   if (!token) return
 
-  const ok = await copyToClipboard(token)
+  const ok = await copyText(token)
   if (ok) {
     uiStore.showSuccess(t('claudeProfiles.authTokenCopied'))
   } else {

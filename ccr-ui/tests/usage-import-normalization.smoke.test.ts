@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { ImportAllUsageResponse, ImportResult, UsageImportJobSnapshot } from '@/types/usage'
+import type { ImportAllUsageResponse, UsageImportResult, UsageImportJobSnapshot } from '@/types/usage'
 import {
   buildImportSummary,
   normalizeImportResponse,
@@ -7,7 +7,7 @@ import {
   toUserVisibleImportResult,
 } from '@/stores/usageImportNormalization'
 
-const result = (overrides: Partial<ImportResult> = {}): ImportResult => ({
+const result = (overrides: Partial<UsageImportResult> = {}): UsageImportResult => ({
   platform: 'codex',
   files_processed: 1,
   records_imported: 1,

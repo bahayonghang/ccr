@@ -168,3 +168,10 @@ export interface SetPricingRequest {
   cache_read_price?: number
   cache_write_price?: number
 }
+
+export interface HeatmapData {
+  data: Record<string, number>
+  max_value: number
+  total_tokens: number
+  active_days: number
+}

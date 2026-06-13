@@ -303,6 +303,7 @@
 
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
+import { getErrorMessage } from '@/utils/errorHandler'
 import Card from '@/components/ui/Card.vue'
 import Button from '@/components/ui/Button.vue'
 import SIcon from '@/components/ui/SIcon.vue'
@@ -311,7 +312,8 @@ import OpenCodePageShell from '@/components/opencode/OpenCodePageShell.vue'
 import { useUIStore } from '@/stores/ui'
 import { addOpenCodeMcpServer, deleteOpenCodeMcpServer, listOpenCodeMcpServers, updateOpenCodeMcpServer } from '@/api'
 import type { OpenCodeMcpServer } from '@/types'
-import { copyText, formatJsonInput, parseJsonInput, splitCommandInput, stringifyCommandInput } from '@/utils/opencode'
+import { formatJsonInput, parseJsonInput, splitCommandInput, stringifyCommandInput } from '@/utils/opencode'
+import { copyText } from '@/utils/clipboard'
 
 const uiStore = useUIStore()
 const loading = ref(false)
@@ -335,7 +337,7 @@ async function loadServers() {
   try {
     servers.value = await listOpenCodeMcpServers<OpenCodeMcpServer[]>()
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   } finally {
     loading.value = false
   }
@@ -393,7 +395,7 @@ async function saveServer() {
     showModal.value = false
     await loadServers()
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   } finally {
     saving.value = false
   }
@@ -405,7 +407,7 @@ async function removeServer(id: string) {
     uiStore.showSuccess('MCP 服务器已删除')
     await loadServers()
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   }
 }
 
@@ -414,7 +416,7 @@ async function copyCli(command: string) {
     await copyText(command)
     uiStore.showSuccess(`已复制: ${command}`)
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   }
 }
 

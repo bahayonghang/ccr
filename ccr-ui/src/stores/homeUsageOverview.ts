@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { getErrorMessage } from '@/utils/errorHandler'
 import { ref } from 'vue'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import {
@@ -304,7 +305,7 @@ export const useHomeUsageOverviewStore = defineStore('homeUsageOverview', () => 
       return data
     } catch (loadError) {
       if (!background || !hadData) {
-        error.value = loadError instanceof Error ? loadError.message : String(loadError)
+        error.value = getErrorMessage(loadError)
       }
       throw loadError
     } finally {

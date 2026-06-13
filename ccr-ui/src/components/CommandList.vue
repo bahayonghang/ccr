@@ -133,14 +133,7 @@
 
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
-interface SlashCommand {
-  name: string
-  command: string
-  description: string
-  folder: string
-  enabled: boolean
-}
-
+import type { SlashCommand } from '@/types/platform'
 // Props - 简化后只保留必要的属性
 interface Props {
   commands: SlashCommand[]

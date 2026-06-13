@@ -366,53 +366,7 @@ import { EmptyState } from '@/components/ui'
 import ModuleSubnav from './ModuleSubnav.vue'
 import CommandList from './CommandList.vue'
 import CommandFormModal from './CommandFormModal.vue'
-
-// 类型定义
-interface SlashCommand {
-  name: string
-  command: string
-  description: string
-  folder: string
-  enabled: boolean
-}
-
-interface SlashCommandRequest {
-  name: string
-  command: string
-  description: string
-  folder: string
-}
-
-interface PlatformConfig {
-  api: {
-    list: () => Promise<{ commands: SlashCommand[], folders: string[] }>
-    add: (cmd: SlashCommandRequest) => Promise<void>
-    update: (name: string, cmd: SlashCommandRequest) => Promise<void>
-    delete: (name: string) => Promise<void>
-    toggle: (name: string) => Promise<void>
-  }
-  i18n: {
-    prefix: string
-    breadcrumb?: {
-      home: string
-      platform: string
-      current: string
-    }
-  }
-  theme: 'claude-code' | 'css-variable'
-  route: {
-    homePath: string
-    module: string
-  }
-  platform: {
-    name: string
-    displayName: string
-  }
-  features: {
-    breadcrumb: boolean
-    glassEffect: boolean
-  }
-}
+import type { SlashCommand, SlashCommandRequest, PlatformConfig } from '@/types/platform'
 
 // Props
 interface Props {

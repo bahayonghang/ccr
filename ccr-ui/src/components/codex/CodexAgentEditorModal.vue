@@ -201,6 +201,7 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
+import { getErrorMessage } from '@/utils/errorHandler'
 import BaseModal from '@/components/common/BaseModal.vue'
 import type { CodexAgent, CodexAgentRequest } from '@/types'
 
@@ -271,7 +272,7 @@ function parseOptionalJson(label: string, value: string) {
   try {
     return JSON.parse(value)
   } catch (error) {
-    throw new Error(`${label} must be valid JSON: ${error instanceof Error ? error.message : String(error)}`)
+    throw new Error(`${label} must be valid JSON: ${getErrorMessage(error)}`)
   }
 }
 
@@ -308,7 +309,7 @@ function handleSubmit() {
       mcpServers: parseOptionalJson('mcp_servers JSON', mcpServersJson.value) ?? null,
     })
   } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : String(error)
+    errorMessage.value = getErrorMessage(error)
   }
 }
 </script>

@@ -336,6 +336,7 @@ import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
 import Button from '@/components/ui/Button.vue'
 import Card from '@/components/ui/Card.vue'
 import SIcon from '@/components/ui/SIcon.vue'
+import { copyText } from '@/utils/clipboard'
 
 // 用量洞察面板较重，按需异步加载，避免拖慢 Claude Code 首屏
 const UsageInsightPanel = defineAsyncComponent({
@@ -433,7 +434,7 @@ const resources = computed(() => [
 ])
 
 const copyCommand = (cmd: string) => {
-  navigator.clipboard.writeText(cmd)
+  void copyText(cmd)
 }
 </script>
 

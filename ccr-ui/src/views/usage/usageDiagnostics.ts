@@ -1,4 +1,4 @@
-import type { ModelStat, Platform, UsageArchiveDiagnostics, UsageRecordV2, UsageSummary } from '@/types/usage'
+import type { ModelStat, UsagePlatform, UsageArchiveDiagnostics, UsageRecordV2, UsageSummary } from '@/types/usage'
 
 export type UsageDiagnosticsSummary = {
   totalRecords: string
@@ -49,7 +49,7 @@ export const buildUsageDiagnosticsSummary = ({
   locale,
   messages,
 }: {
-  selectedPlatform: Platform | ''
+  selectedPlatform: UsagePlatform | ''
   summary: UsageSummary | null | undefined
   logsRecords: UsageRecordV2[]
   logsTotalCount: number

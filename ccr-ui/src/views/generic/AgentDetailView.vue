@@ -358,6 +358,7 @@ import type { Agent, AgentRequest } from '@/types'
 import { extractStringParam } from '@/types/router'
 import { getErrorMessage } from '@/utils/errorHandler'
 import { logger } from '@/utils/logger'
+import { copyText } from '@/utils/clipboard'
 
 const route = useRoute()
 const router = useRouter()
@@ -476,7 +477,7 @@ const copySystemPrompt = async () => {
   if (!agent.value?.system_prompt) return
 
   try {
-    await navigator.clipboard.writeText(agent.value.system_prompt)
+    if (!(await copyText(agent.value.system_prompt))) throw new Error('clipboard copy failed')
     copied.value = true
     setTimeout(() => {
       copied.value = false

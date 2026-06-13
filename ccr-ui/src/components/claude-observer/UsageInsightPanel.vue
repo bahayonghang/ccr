@@ -211,6 +211,7 @@ import CostAttributionTab from './CostAttributionTab.vue'
 import TokenDetailTab from './TokenDetailTab.vue'
 import BehaviorAnalysisTab from './BehaviorAnalysisTab.vue'
 import { useClaudeObserverStore } from '@/stores/claudeObserver'
+import { formatTokens } from './formatters'
 
 // 订阅对话框比较重，按需异步加载
 const SubscriptionDialog = defineAsyncComponent({
@@ -383,14 +384,6 @@ const formatUsd = (value: number) => {
   if (value >= 1000) return `$${value.toFixed(0)}`
   if (value >= 1) return `$${value.toFixed(2)}`
   return `$${value.toFixed(4)}`
-}
-
-const formatTokens = (value: number) => {
-  if (!Number.isFinite(value) || value <= 0) return '0'
-  if (value >= 1e9) return `${(value / 1e9).toFixed(2)}B`
-  if (value >= 1e6) return `${(value / 1e6).toFixed(2)}M`
-  if (value >= 1e3) return `${(value / 1e3).toFixed(1)}k`
-  return value.toLocaleString()
 }
 
 const formatRoi = (roi: number | null) => {

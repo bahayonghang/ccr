@@ -638,10 +638,11 @@
 
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
-import { ref, computed } from 'vue'
+import { ref, computed, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
 import { convertConfig } from '@/api'
+import { copyText } from '@/utils/clipboard'
 import type { ConverterRequest, ConverterResponse, CliType } from '@/types'
 import ModuleSubnav from '@/components/ModuleSubnav.vue'
 
@@ -671,6 +672,21 @@ const result = ref<ConverterResponse | null>(null)
 const error = ref<string | null>(null)
 const successMessage = ref<string | null>(null)
 
+// 成功提示自动消失：复用单个定时器，避免散落的裸 setTimeout 在卸载后回写已销毁的 ref
+const SUCCESS_MESSAGE_MS = 2000
+const LOAD_MESSAGE_MS = 3000
+let successMessageTimer: ReturnType<typeof setTimeout> | null = null
+const flashSuccess = (message: string, duration = SUCCESS_MESSAGE_MS) => {
+  successMessage.value = message
+  if (successMessageTimer) clearTimeout(successMessageTimer)
+  successMessageTimer = setTimeout(() => {
+    successMessage.value = null
+  }, duration)
+}
+onBeforeUnmount(() => {
+  if (successMessageTimer) clearTimeout(successMessageTimer)
+})
+
 const handleFileUpload = (event: Event) => {
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
@@ -679,8 +695,7 @@ const handleFileUpload = (event: Event) => {
     reader.onload = (e) => {
       const content = e.target?.result as string
       configData.value = content
-      successMessage.value = t('converter.fileLoaded', { name: file.name })
-      setTimeout(() => (successMessage.value = null), 3000)
+      flashSuccess(t('converter.fileLoaded', { name: file.name }), LOAD_MESSAGE_MS)
     }
     reader.onerror = () => {
       error.value = t('converter.fileLoadFailed')
@@ -728,9 +743,8 @@ const handleConvert = async () => {
 
 const handleCopyResult = () => {
   if (result.value?.converted_data) {
-    navigator.clipboard.writeText(result.value.converted_data)
-    successMessage.value = t('converter.copied')
-    setTimeout(() => (successMessage.value = null), 2000)
+    void copyText(result.value.converted_data)
+    flashSuccess(t('converter.copied'))
   }
 }
 
@@ -754,8 +768,7 @@ const handleDownloadResult = () => {
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
 
-    successMessage.value = t('converter.fileDownloaded')
-    setTimeout(() => (successMessage.value = null), 2000)
+    flashSuccess(t('converter.fileDownloaded'))
   }
 }
 
@@ -777,8 +790,7 @@ const handleLoadExample = () => {
 }`
   configData.value = exampleJson
   sourceFormat.value = 'claude-code'
-  successMessage.value = t('converter.exampleLoaded')
-  setTimeout(() => (successMessage.value = null), 3000)
+  flashSuccess(t('converter.exampleLoaded'), LOAD_MESSAGE_MS)
 }
 </script>
 

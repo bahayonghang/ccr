@@ -100,7 +100,7 @@ import {
   previewCheckinImport,
   importCheckinConfig,
 } from '@/api'
-import type { ExportData, ImportPreviewResponse, ImportResult } from '@/types/checkin'
+import type { ExportData, ImportPreviewResponse, CheckinImportResult } from '@/types/checkin'
 import { getErrorMessage } from '@/types/api'
 import { useUIStore } from '@/stores/ui'
 
@@ -159,7 +159,7 @@ const handleImport = async () => {
   if (!importData.value) return
 
   try {
-    const result = await importCheckinConfig<ImportResult>(
+    const result = await importCheckinConfig<CheckinImportResult>(
       importData.value,
       { conflict_strategy: importConflictStrategy.value },
     )

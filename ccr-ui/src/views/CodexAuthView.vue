@@ -1940,6 +1940,7 @@ import CodexAccountCard from '@/components/codex/CodexAccountCard.vue'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import ProviderTemplateSelector from '@/components/provider-templates/ProviderTemplateSelector.vue'
 import { translateWithFallback } from '@/i18n/formatMessage'
+import { useTf } from '@/composables/useTf'
 import {
   listCodexProfiles,
   listCodexAuthAccounts,
@@ -2006,6 +2007,7 @@ import {
   mapTemplateToCodexApiAccountPatch,
   mapTemplateToCodexProviderPatch,
 } from '@/utils/providerTemplates'
+import { REFRESH_TTL_MS } from '@/config/constants'
 
 defineOptions({ name: 'CodexAuthView' })
 
@@ -2068,8 +2070,6 @@ const confirmDialog = reactive<{
 })
 let confirmedAction: (() => Promise<void>) | null = null
 let oauthUnlisteners: UnlistenFn[] = []
-
-const REFRESH_TTL_MS = 30_000
 
 const saveForm = reactive({
   name: '',
@@ -2139,11 +2139,7 @@ const statusFilter = ref<AccountStatusFilter>('all')
 const planFilter = ref<AccountPlanFilter>('all')
 const sortBy = ref<AccountSort>('saved_desc')
 
-const tf = (
-  key: string,
-  fallback: string,
-  values: Record<string, string | number | boolean | null | undefined> = {}
-) => translateWithFallback(t, key, fallback, values)
+const tf = useTf()
 
 const extractErrorMessage = (error: unknown) => {
   if (typeof error === 'string') {

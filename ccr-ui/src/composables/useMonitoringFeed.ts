@@ -1,4 +1,5 @@
 import { onMounted, onUnmounted, ref, type Ref } from 'vue'
+import type { UnknownRecord } from '@/types/common'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import { getMonitoringFeed, getRecentEvents, type MonitoringFeedQuery } from '@/api'
 import { logger, type LoggerEntry, type LogLevel } from '@/utils/logger'
@@ -18,7 +19,7 @@ export interface MonitoringEntry {
   fields?: unknown
 }
 
-export interface TokenStats {
+export interface MonitoringTokenStats {
   input_tokens: number
   output_tokens: number
   cache_tokens: number
@@ -31,8 +32,6 @@ interface MonitoringFeedOptions {
   initialCount?: number
   maxEntries?: number
 }
-
-type UnknownRecord = Record<string, unknown>
 
 const MONITORING_EVENT_NAME = 'app:monitoring'
 const DEFAULT_INITIAL_COUNT = 100
@@ -254,7 +253,7 @@ export function useMonitoringFeed(options: MonitoringFeedOptions = {}) {
 
   const isConnected: Ref<boolean> = ref(true)
   const logs: Ref<MonitoringEntry[]> = ref([])
-  const tokenStats: Ref<TokenStats | null> = ref(null)
+  const tokenStats: Ref<MonitoringTokenStats | null> = ref(null)
 
   const seenEntries = new Set<string>()
   const unlisteners: UnlistenFn[] = []
@@ -340,7 +339,7 @@ export function useMonitoringFeed(options: MonitoringFeedOptions = {}) {
       })
       unlisteners.push(unMonitoring)
 
-      const unStats = await listen<TokenStats>('token-stats', (event) => {
+      const unStats = await listen<MonitoringTokenStats>('token-stats', (event) => {
         tokenStats.value = event.payload
       })
       unlisteners.push(unStats)

@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import { getErrorMessage } from '@/utils/errorHandler'
 import { isTauriEnvironment } from '@/api/runtime/environment'
 import { healthCheck } from '@/api/runtime/system'
 import { usePolledData } from '@/composables/usePolledData'
@@ -37,7 +38,7 @@ const checkHealth = async () => {
     lastCheckedAt.value = new Date()
   } catch (error) {
     status.value = 'error'
-    errorMessage.value = error instanceof Error ? error.message : String(error)
+    errorMessage.value = getErrorMessage(error)
     lastCheckedAt.value = new Date()
     throw error
   }

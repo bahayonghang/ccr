@@ -114,10 +114,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, defineAsyncComponent } from 'vue'
-import type { Component } from 'vue'
+import { computed } from 'vue'
+import { ApexChartAsync as apexchart } from './apexChart'
 import type { BreakdownRow, DailyPoint } from '@/types/claudeObserver'
 import { buildChartTheme } from '@/views/usage/usageChartOptions'
+import { formatUsd } from './formatters'
 
 /*
  * ========================================================================
@@ -134,11 +135,6 @@ interface Props {
 }
 
 const props = defineProps<Props>()
-
-const apexchart = defineAsyncComponent(async () => {
-  const module = await import('vue3-apexcharts')
-  return module.default as unknown as Component
-})
 
 /*
  * ========================================================================
@@ -232,13 +228,6 @@ const dailyOptions = computed(() => {
  * 工具：格式化与路径裁剪
  * ========================================================================
  */
-const formatUsd = (value: number) => {
-  if (!Number.isFinite(value)) return '$0.00'
-  if (value >= 100) return `$${value.toFixed(0)}`
-  if (value >= 1) return `$${value.toFixed(2)}`
-  return `$${value.toFixed(4)}`
-}
-
 const shortenPath = (raw: string) => {
   if (!raw) return ''
   if (raw.length <= 42) return raw

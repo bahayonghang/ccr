@@ -406,6 +406,7 @@
 import SIcon from '@/components/ui/SIcon.vue'
 import { ref, watch } from 'vue'
 import { useFocusTrap, useEscapeKey, useUniqueId } from '@/composables/useAccessibility'
+import { MODAL_FOCUS_DELAY_MS } from '@/config/constants'
 
 interface Props {
   isOpen: boolean
@@ -445,7 +446,7 @@ useEscapeKey(handleClose, isOpenRef)
 
 watch(isOpenRef, (isOpen) => {
   if (isOpen) {
-    setTimeout(() => focusFirstElement(), 100)
+    setTimeout(() => focusFirstElement(), MODAL_FOCUS_DELAY_MS)
   }
 })
 

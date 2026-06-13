@@ -195,21 +195,8 @@
 import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, watch } from 'vue'
 import { useFocusTrap, useEscapeKey, useUniqueId } from '@/composables/useAccessibility'
-
-interface SlashCommand {
-  name: string
-  command: string
-  description: string
-  folder: string
-  enabled: boolean
-}
-
-interface SlashCommandRequest {
-  name: string
-  command: string
-  description: string
-  folder: string
-}
+import { MODAL_FOCUS_DELAY_MS } from '@/config/constants'
+import type { SlashCommand, SlashCommandRequest } from '@/types/platform'
 
 // Props
 interface Props {
@@ -262,7 +249,7 @@ useEscapeKey(close, visibleRef)
 
 watch(visibleRef, (isOpen) => {
   if (isOpen) {
-    setTimeout(() => focusFirstElement(), 100)
+    setTimeout(() => focusFirstElement(), MODAL_FOCUS_DELAY_MS)
   }
 })
 

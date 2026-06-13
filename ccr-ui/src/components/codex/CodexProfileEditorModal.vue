@@ -586,7 +586,7 @@ import { useI18n } from 'vue-i18n'
 import BaseModal from '@/components/common/BaseModal.vue'
 import ProviderTemplateSelector from '@/components/provider-templates/ProviderTemplateSelector.vue'
 import SIcon from '@/components/ui/SIcon.vue'
-import { copyToClipboard } from '@/utils/codexHelpers'
+import { copyText } from '@/utils/clipboard'
 import { useUIStore } from '@/stores/ui'
 import type { CodexProfileAuthMode } from '@/types'
 import type { ProviderTemplateDraftContext, ProviderTemplateSelection } from '@/types/providerTemplates'
@@ -742,7 +742,7 @@ const copyToken = async () => {
   const token = props.form.auth_token.trim()
   if (!token) return
 
-  const ok = await copyToClipboard(token)
+  const ok = await copyText(token)
   if (ok) {
     uiStore.showSuccess(t('codex.profiles.messages.tokenCopied'))
   } else {

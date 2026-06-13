@@ -585,6 +585,7 @@ import { createAnsiRenderer } from '@/utils/ansiRenderer'
 import { logger } from '@/utils/logger'
 import { getRuntimeUnavailableCopy } from '@/utils/runtimeState'
 import { isTauriRuntime } from '@/utils/tauriRuntime'
+import { copyText } from '@/utils/clipboard'
 
 interface CommandClient {
   id: CliClient
@@ -1165,7 +1166,7 @@ const handleCopyOutput = async () => {
   if (!currentSnapshot.value) return
   const text = ledgerLines.value.map((line) => `[${line.channel}] ${line.text}`).join('\n')
   try {
-    await navigator.clipboard.writeText(text)
+    if (!(await copyText(text))) throw new Error('clipboard copy failed')
   } catch (error) {
     logger.error('Failed to copy:', error)
   }

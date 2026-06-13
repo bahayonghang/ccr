@@ -19,7 +19,7 @@ import {
   toggleGeminiSlashCommand,
 } from '@/api'
 
-type UnknownRecord = Record<string, unknown>
+import type { UnknownRecord } from '@/types/common'
 
 function asRecord(value: unknown): UnknownRecord {
   return typeof value === 'object' && value !== null ? (value as UnknownRecord) : {}

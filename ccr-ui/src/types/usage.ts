@@ -57,7 +57,7 @@ export interface ProjectStat {
 
 /** Source/platform 聚合统计 */
 export interface SourceBreakdown {
-  source: Platform
+  source: UsagePlatform
   event_count: number
   total_tokens: number
   total_cost: number
@@ -291,7 +291,7 @@ export interface UsageSnapshotUpdatedPayload {
 }
 
 /** 导入结果 */
-export interface ImportResult {
+export interface UsageImportResult {
   platform: string
   files_processed: number
   records_imported: number
@@ -319,7 +319,7 @@ export interface UsageImportSummary {
 
 /** 全量导入响应 */
 export interface ImportAllUsageResponse {
-  results: ImportResult[]
+  results: UsageImportResult[]
   summary: UsageImportSummary
 }
 
@@ -345,7 +345,7 @@ export interface UsageImportJobSnapshot {
   current_file?: string | null
   warnings: string[]
   error?: string | null
-  results: ImportResult[]
+  results: UsageImportResult[]
   summary?: UsageImportSummary | null
   history_cursor_hit?: boolean
   live_sources?: number
@@ -387,4 +387,4 @@ export interface StartSessionIndexJobResponse {
 }
 
 /** 平台类型 */
-export type Platform = 'claude' | 'codex' | 'gemini' | 'opencode'
+export type UsagePlatform = 'claude' | 'codex' | 'gemini' | 'opencode'

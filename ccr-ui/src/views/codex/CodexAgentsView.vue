@@ -586,6 +586,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { getErrorMessage } from '@/utils/errorHandler'
 import { useI18n } from 'vue-i18n'
 import BaseModal from '@/components/common/BaseModal.vue'
 import Card from '@/components/ui/Card.vue'
@@ -725,7 +726,7 @@ async function handleChooseProject() {
       resetSelection()
     }
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   }
 }
 
@@ -736,7 +737,7 @@ async function handleSwitchToSavedProject() {
       resetSelection()
     }
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   }
 }
 
@@ -746,7 +747,7 @@ async function handleBackToGlobal() {
     uiStore.showSuccess('Returned to global agents')
     resetSelection()
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   }
 }
 
@@ -774,7 +775,7 @@ async function handleSaveAgent(payload: CodexAgentUpsertRequest) {
     editingAgent.value = null
     resetSelection()
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   }
 }
 
@@ -796,7 +797,7 @@ async function handleRenameAgent() {
     renameTarget.value = null
     resetSelection()
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   }
 }
 
@@ -839,7 +840,7 @@ async function handleCopyAgent() {
     copyModalOpen.value = false
     copyTarget.value = null
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   }
 }
 
@@ -860,7 +861,7 @@ async function handleBulkRename() {
     uiStore.showSuccess(`Renamed ${selectedAgents.value.length} agent${selectedAgents.value.length > 1 ? 's' : ''}`)
     resetSelection()
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   }
 }
 
@@ -881,7 +882,7 @@ async function handleDeleteAgent(agent: CodexAgentRecord) {
     uiStore.showSuccess('Agent deleted')
     resetSelection()
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   }
 }
 
@@ -908,7 +909,7 @@ async function handleBulkDelete() {
     uiStore.showSuccess('Selected agents deleted')
     resetSelection()
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   }
 }
 
@@ -917,7 +918,7 @@ async function handleValidateAgent(agent: CodexAgentRecord) {
     await validateAgentRecord(agent.name)
     uiStore.showSuccess(`Validated ${agent.name}`)
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   }
 }
 
@@ -928,7 +929,7 @@ async function handleBulkValidate() {
     }
     uiStore.showSuccess(`Validated ${selectedAgents.value.length} agent${selectedAgents.value.length > 1 ? 's' : ''}`)
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   }
 }
 
@@ -971,7 +972,7 @@ async function handleImportFiles(event: Event) {
 
     uiStore.showSuccess('Import completed')
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   } finally {
     if (input) {
       input.value = ''

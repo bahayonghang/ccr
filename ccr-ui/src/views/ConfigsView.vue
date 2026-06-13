@@ -208,6 +208,7 @@
 
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
+import { getErrorMessage } from '@/utils/errorHandler'
 import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
@@ -367,7 +368,7 @@ const loadConfigs = async () => {
     const data = await listConfigs<ConfigListResponse>()
     configs.value = data.configs
   } catch (e: unknown) {
-    const message = e instanceof Error ? e.message : String(e)
+    const message = getErrorMessage(e)
     error.value = message
     uiStore.showError(`${t('configs.operationFailed')}: ${message}`)
   }
@@ -381,7 +382,7 @@ const loadHistory = async () => {
     historyEntries.value = data.entries
   } catch (e: unknown) {
     logger.error('Failed to load history', e)
-    const message = e instanceof Error ? e.message : String(e)
+    const message = getErrorMessage(e)
     uiStore.showError(`Failed to load history: ${message}`)
   }
   finally { historyLoading.value = false }
@@ -392,7 +393,7 @@ const loadProviderUsage = async () => {
   try {
     providerUsage.value = (await getProviderUsage<Record<string, number>>()) || {}
   } catch (e: unknown) {
-    providerError.value = e instanceof Error ? e.message : String(e)
+    providerError.value = getErrorMessage(e)
   }
   finally { providerLoading.value = false }
 }

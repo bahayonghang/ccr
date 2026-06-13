@@ -468,6 +468,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { getErrorMessage } from '@/utils/errorHandler'
 import BaseModal from '@/components/common/BaseModal.vue'
 import Card from '@/components/ui/Card.vue'
 import SIcon from '@/components/ui/SIcon.vue'
@@ -563,7 +564,7 @@ async function handleAddSource() {
     sourceUrl.value = ''
     uiStore.showSuccess('Source added and scanned')
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   }
 }
 
@@ -571,7 +572,7 @@ async function handleSelectSource(sourceId: string) {
   try {
     await loadCatalog(sourceId)
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   }
 }
 
@@ -580,7 +581,7 @@ async function handleSyncSource(sourceId: string) {
     await syncSource(sourceId)
     uiStore.showSuccess('Source rescanned')
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   }
 }
 
@@ -600,7 +601,7 @@ async function handleRemoveSource(sourceId: string) {
     await removeSource(sourceId)
     uiStore.showSuccess('Source removed')
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   }
 }
 
@@ -632,7 +633,7 @@ async function handleInstall() {
     emit('refreshInstalled')
     uiStore.showSuccess('Remote agent installed')
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   }
 }
 
@@ -642,7 +643,7 @@ async function handleSyncInstall(installId: string) {
     emit('refreshInstalled')
     uiStore.showSuccess('Tracked install synced')
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   }
 }
 
@@ -663,7 +664,7 @@ async function handleForceSyncInstall(installId: string) {
     emit('refreshInstalled')
     uiStore.showSuccess('Upstream version applied')
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   }
 }
 
@@ -673,7 +674,7 @@ async function handleAcceptLocalInstall(installId: string) {
     emit('refreshInstalled')
     uiStore.showSuccess('Local changes accepted as baseline')
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   }
 }
 
@@ -694,7 +695,7 @@ async function handleUntrackInstall(installId: string) {
     emit('refreshInstalled')
     uiStore.showSuccess('Tracking removed')
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   }
 }
 </script>

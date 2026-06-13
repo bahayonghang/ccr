@@ -60,7 +60,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { Platform, SourceBreakdown } from '@/types/usage'
+import type { UsagePlatform, SourceBreakdown } from '@/types/usage'
 import { formatPercent } from '@/views/usage/usageSummaryCards'
 
 const props = defineProps<{
@@ -71,10 +71,10 @@ const props = defineProps<{
 }>()
 
 defineEmits<{
-  'select-source': [source: Platform]
+  'select-source': [source: UsagePlatform]
 }>()
 
-const sourceLabels: Record<Platform, string> = {
+const sourceLabels: Record<UsagePlatform, string> = {
   claude: 'Claude',
   codex: 'Codex',
   gemini: 'Antigravity',
@@ -91,7 +91,7 @@ const visibleSources = computed(() =>
     )
 )
 
-const sourceLabel = (source: Platform) => sourceLabels[source] ?? source
+const sourceLabel = (source: UsagePlatform) => sourceLabels[source] ?? source
 const barWidth = (share: number) => Math.min(100, Math.max(share * 100, share > 0 ? 4 : 0))
 </script>
 

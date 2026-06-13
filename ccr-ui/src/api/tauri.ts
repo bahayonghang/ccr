@@ -31,7 +31,7 @@ import { invoke } from '@tauri-apps/api/core'
 import { isTauriRuntime } from '@/utils/tauriRuntime'
 import type { CommandJobSnapshot, StartCommandJobResponse } from '@/types'
 
-type UnknownRecord = Record<string, unknown>
+import type { UnknownRecord } from '@/types/common'
 
 const isRecord = (value: unknown): value is UnknownRecord => {
   return typeof value === 'object' && value !== null
@@ -56,120 +56,23 @@ const pickArray = (value: unknown, key: string): unknown[] => {
 // 类型导出（兼容历史 `@/api` 类型导入）
 // ════════════════════════════════════════════════════════════
 
-export interface HeatmapData {
-  data: Record<string, number>
-  max_value: number
-  total_tokens: number
-  active_days: number
-}
+export type { HeatmapData } from '@/types/stats'
 
-export interface BuiltinPrompt {
-  id: string
-  name: string
-  description: string
-  category: string
-  tags: string[]
-  content: string
-}
+export type { BuiltinPrompt } from '@/types/claude'
 
-export interface ClaudeSettingsData {
-  model?: string
-  availableModels?: string[]
-  alwaysThinkingEnabled?: boolean
-  maxThinkingTokens?: number
-  maxOutputTokens?: number
-  effortLevel?: string
-  skipDangerousModePermissionPrompt?: boolean
-  theme?: string
-  language?: string
-  showTurnDuration?: boolean
-  prefersReducedMotion?: boolean
-  spinnerTipsEnabled?: boolean
-  terminalProgressBarEnabled?: boolean
-  showSpinnerTree?: boolean
-  includeCoAuthoredBy?: boolean
-  autoUpdates?: boolean
-  autoUpdatesChannel?: string
-  cleanupPeriodDays?: number
-  respectGitignore?: boolean
-  env?: Record<string, string>
-  permissions?: {
-    allow?: string[]
-    deny?: string[]
-    defaultMode?: string
-    additionalDirectories?: string[]
-  }
-  sandbox?: {
-    enabled?: boolean
-    autoAllowBashIfSandboxed?: boolean
-    network?: {
-      allowLocalBinding?: boolean
-      allowedDomains?: string[]
-    }
-    excludedCommands?: string[]
-  }
-  attribution?: {
-    commit?: string
-    pr?: string
-  }
-  [key: string]: unknown
-}
+export type { ClaudeSettingsData } from '@/types/claude'
 
-export interface SyncResult {
-  platform: string
-  success: boolean
-  message?: string
-}
+export type { SyncResult } from '@/types/sync'
 
-export interface OAuthAuthorizeUrlResponse {
-  success: boolean
-  authorize_url?: string
-  extraction_guide?: string[]
-  message?: string
-}
+export type { OAuthAuthorizeUrlResponse } from '@/types/checkin'
 
-export interface OAuthAuthorizeUrlRequest {
-  provider_id: string
-  oauth_type: 'github' | 'linuxdo'
-}
+export type { OAuthAuthorizeUrlRequest } from '@/types/checkin'
 
-export interface SyncFolderItem {
-  name: string
-  enabled: boolean
-  localPath: string
-  remotePath: string
-  description?: string
-}
+export type { SyncFolderItem } from '@/types/sync'
 
-export interface SyncStatusResponse {
-  configured?: boolean
-  config?: {
-    webdav_url?: string
-    username?: string
-    remote_path?: string
-  }
-  [key: string]: unknown
-}
+export type { CommandResultLike } from '@/types/common'
 
-export interface CommandResultLike {
-  success?: boolean
-  message?: string
-  output?: string
-  data?: {
-    output?: string
-  }
-}
-
-export interface VersionInfoResponse {
-  current_version?: string
-  build_time?: string
-  git_commit?: string
-  latest_version?: string
-  has_update?: boolean
-  release_url?: string
-  release_notes?: string
-  published_at?: string
-}
+export type { VersionInfoResponse } from '@/types/common'
 
 // resolveNameAndConfig / resolveName helper 已外移到 ./_shared，供各 domain 共享使用。
 

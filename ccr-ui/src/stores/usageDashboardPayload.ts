@@ -3,7 +3,7 @@ import type {
   HeatmapResponse,
   ModelStat,
   PaginatedLogs,
-  Platform,
+  UsagePlatform,
   ProjectStat,
   SourceBreakdown,
   UsageArchiveDiagnostics,
@@ -54,7 +54,7 @@ export const buildDashboardFetchKey = ({
   end,
   includeHeatmap,
 }: {
-  platform?: Platform
+  platform?: UsagePlatform
   start?: string
   end?: string
   includeHeatmap: boolean
@@ -116,7 +116,7 @@ export const buildUsageLogsQuery = ({
   cursor,
   includeTotal,
 }: {
-  platform?: Platform
+  platform?: UsagePlatform
   model?: string
   startDate?: string
   endDate?: string

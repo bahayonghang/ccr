@@ -403,6 +403,7 @@ import { ref, computed, watch } from 'vue'
 import BaseModal from '@/components/common/BaseModal.vue'
 import { getOAuthAuthorizeUrl, createCheckinAccount } from '@/api'
 import type { BuiltinProvider } from '@/types/checkin'
+import { copyText } from '@/utils/clipboard'
 
 const props = defineProps<{
   isOpen: boolean
@@ -534,7 +535,7 @@ async function goToStep1() {
 
 async function copyUrl() {
   try {
-    await navigator.clipboard.writeText(authorizeUrl.value)
+    if (!(await copyText(authorizeUrl.value))) throw new Error('clipboard copy failed')
     copied.value = true
     setTimeout(() => {
       copied.value = false

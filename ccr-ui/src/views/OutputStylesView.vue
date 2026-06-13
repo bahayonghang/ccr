@@ -381,6 +381,7 @@ import {
 import { useUIStore } from '@/stores/ui'
 import type { OutputStyle } from '@/types'
 import { logger } from '@/utils/logger'
+import { copyText } from '@/utils/clipboard'
 
 const { t } = useI18n()
 const uiStore = useUIStore()
@@ -501,7 +502,7 @@ const copyContent = async () => {
   if (!viewingStyle.value) return
 
   try {
-    await navigator.clipboard.writeText(viewingStyle.value.content)
+    if (!(await copyText(viewingStyle.value.content))) throw new Error('clipboard copy failed')
     copied.value = true
     setTimeout(() => {
       copied.value = false

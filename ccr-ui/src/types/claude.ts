@@ -170,3 +170,55 @@ export interface ClaudeAuthSaveRequest {
   description?: string | null
   force?: boolean
 }
+
+export interface BuiltinPrompt {
+  id: string
+  name: string
+  description: string
+  category: string
+  tags: string[]
+  content: string
+}
+
+export interface ClaudeSettingsData {
+  model?: string
+  availableModels?: string[]
+  alwaysThinkingEnabled?: boolean
+  maxThinkingTokens?: number
+  maxOutputTokens?: number
+  effortLevel?: string
+  skipDangerousModePermissionPrompt?: boolean
+  theme?: string
+  language?: string
+  showTurnDuration?: boolean
+  prefersReducedMotion?: boolean
+  spinnerTipsEnabled?: boolean
+  terminalProgressBarEnabled?: boolean
+  showSpinnerTree?: boolean
+  includeCoAuthoredBy?: boolean
+  autoUpdates?: boolean
+  autoUpdatesChannel?: string
+  cleanupPeriodDays?: number
+  respectGitignore?: boolean
+  env?: Record<string, string>
+  permissions?: {
+    allow?: string[]
+    deny?: string[]
+    defaultMode?: string
+    additionalDirectories?: string[]
+  }
+  sandbox?: {
+    enabled?: boolean
+    autoAllowBashIfSandboxed?: boolean
+    network?: {
+      allowLocalBinding?: boolean
+      allowedDomains?: string[]
+    }
+    excludedCommands?: string[]
+  }
+  attribution?: {
+    commit?: string
+    pr?: string
+  }
+  [key: string]: unknown
+}

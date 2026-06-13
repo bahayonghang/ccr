@@ -414,6 +414,7 @@
 
 <script setup lang="ts">
 import { computed, onActivated, onMounted, ref } from 'vue'
+import { getErrorMessage } from '@/utils/errorHandler'
 import Button from '@/components/ui/Button.vue'
 import Card from '@/components/ui/Card.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
@@ -428,7 +429,8 @@ import {
   listCodexSessions,
 } from '@/api'
 import { useUIStore } from '@/stores/ui'
-import { copyToClipboard, formatRelativeTime, formatTimestamp } from '@/utils/codexHelpers'
+import { formatRelativeTime, formatTimestamp } from '@/utils/codexHelpers'
+import { copyText } from '@/utils/clipboard'
 import { logger } from '@/utils/logger'
 import type {
   CodexCloneSessionResponse,
@@ -497,7 +499,7 @@ function formatAbsolute(value?: string | null): string {
 }
 
 function extractErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
+  return getErrorMessage(error)
 }
 
 async function loadSessionDetail(filePath: string) {
@@ -644,7 +646,7 @@ async function handleDelete() {
 
 async function copyFilePath() {
   if (!selectedSession.value) return
-  const success = await copyToClipboard(selectedSession.value.file_path)
+  const success = await copyText(selectedSession.value.file_path)
   if (success) {
     uiStore.showSuccess('已复制 session 文件路径')
   } else {
@@ -654,7 +656,7 @@ async function copyFilePath() {
 
 async function copyCwd() {
   if (!selectedSession.value?.cwd) return
-  const success = await copyToClipboard(selectedSession.value.cwd)
+  const success = await copyText(selectedSession.value.cwd)
   if (success) {
     uiStore.showSuccess('已复制工作目录')
   } else {

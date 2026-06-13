@@ -24,7 +24,7 @@ import type {
 export type PlatformType = GenericPlatformId
 
 /** 统一的 MCP 服务器类型（合并各平台差异） */
-export interface UnifiedMcpServer {
+export interface PlatformMcpServer {
     name: string
     command?: string
     url?: string
@@ -52,11 +52,11 @@ export interface UnifiedMcpServerRequest {
 }
 
 /** 平台配置 */
-interface PlatformConfig {
+interface PlatformMcpConfig {
     color: string
     i18nPrefix: string
     parentPath: string
-    listApi: () => Promise<UnifiedMcpServer[]>
+    listApi: () => Promise<PlatformMcpServer[]>
     addApi: (req: UnifiedMcpServerRequest) => Promise<string>
     updateApi: (name: string, req: UnifiedMcpServerRequest) => Promise<string>
     deleteApi: (name: string) => Promise<string>
@@ -66,7 +66,7 @@ interface PlatformConfig {
 
 const platformApiMap: Record<
   PlatformType,
-  Pick<PlatformConfig, 'listApi' | 'addApi' | 'updateApi' | 'deleteApi'>
+  Pick<PlatformMcpConfig, 'listApi' | 'addApi' | 'updateApi' | 'deleteApi'>
 > = {
     gemini: {
         listApi: async () => {
@@ -105,7 +105,7 @@ const platformApiMap: Record<
     },
 }
 
-const platformConfigs: Record<PlatformType, PlatformConfig> = {
+const platformConfigs: Record<PlatformType, PlatformMcpConfig> = {
     gemini: {
         color: genericPlatformDescriptors.gemini.color,
         i18nPrefix: genericPlatformDescriptors.gemini.mcp.i18nPrefix,
@@ -117,7 +117,7 @@ const platformConfigs: Record<PlatformType, PlatformConfig> = {
 // ============ 辅助函数 ============
 
 /** 统一各平台服务器数据结构 */
-function normalizeServer(server: GeminiMcpServer): UnifiedMcpServer {
+function normalizeServer(server: GeminiMcpServer): PlatformMcpServer {
     return {
         name: server.name,
         command: server.command,
@@ -133,7 +133,7 @@ function normalizeServer(server: GeminiMcpServer): UnifiedMcpServer {
 }
 
 /** 获取服务器标识符（用于编辑/删除） */
-export function getServerIdentifier(server: UnifiedMcpServer): string {
+export function getServerIdentifier(server: PlatformMcpServer): string {
     return server.name || server.command || server.url || ''
 }
 
@@ -147,13 +147,13 @@ export function usePlatformMcp(platform: PlatformType) {
     const config = computed(() => platformConfigs[platform])
 
     // 响应式状态
-    const servers = ref<UnifiedMcpServer[]>([])
+    const servers = ref<PlatformMcpServer[]>([])
     const loading = ref(false)
     const error = ref<string | null>(null)
 
     // 表单状态
     const showForm = ref(false)
-    const editingServer = ref<UnifiedMcpServer | null>(null)
+    const editingServer = ref<PlatformMcpServer | null>(null)
     const isHttpServer = ref(false)
     const formData = ref<UnifiedMcpServerRequest>(createEmptyFormData())
     const argInput = ref('')
@@ -216,7 +216,7 @@ export function usePlatformMcp(platform: PlatformType) {
     }
 
     /** 删除服务器 */
-    async function deleteServer(server: UnifiedMcpServer): Promise<boolean> {
+    async function deleteServer(server: PlatformMcpServer): Promise<boolean> {
         const name = getServerIdentifier(server)
         if (!confirm(t(`${config.value.i18nPrefix}.deleteConfirm`, { name }))) {
             return false
@@ -248,7 +248,7 @@ export function usePlatformMcp(platform: PlatformType) {
     }
 
     /** 打开编辑表单 */
-    function openEditForm(server: UnifiedMcpServer): void {
+    function openEditForm(server: PlatformMcpServer): void {
         editingServer.value = server
         isHttpServer.value = !!server.url
         formData.value = { ...server }

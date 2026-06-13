@@ -304,6 +304,7 @@
 
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
+import { getErrorMessage } from '@/utils/errorHandler'
 import Card from '@/components/ui/Card.vue'
 import Button from '@/components/ui/Button.vue'
 import SIcon from '@/components/ui/SIcon.vue'
@@ -346,7 +347,7 @@ async function loadAgents() {
   try {
     agents.value = await listOpenCodeAgents<OpenCodeAgent[]>()
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   } finally {
     loading.value = false
   }
@@ -414,7 +415,7 @@ async function saveAgent() {
     showModal.value = false
     await loadAgents()
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   } finally {
     saving.value = false
   }
@@ -426,7 +427,7 @@ async function removeAgent(agent: OpenCodeAgent) {
     uiStore.showSuccess('Agent 已删除')
     await loadAgents()
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   }
 }
 

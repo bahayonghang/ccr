@@ -94,10 +94,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, defineAsyncComponent } from 'vue'
-import type { Component } from 'vue'
+import { computed } from 'vue'
+import { ApexChartAsync as apexchart } from './apexChart'
 import type { CacheStatsDto, DailyPoint } from '@/types/claudeObserver'
 import { buildChartTheme } from '@/views/usage/usageChartOptions'
+import { formatTokens } from './formatters'
 
 interface Props {
   stats: CacheStatsDto | null
@@ -107,11 +108,6 @@ interface Props {
 }
 
 const props = defineProps<Props>()
-
-const apexchart = defineAsyncComponent(async () => {
-  const module = await import('vue3-apexcharts')
-  return module.default as unknown as Component
-})
 
 const hasDaily = computed(() => props.daily.length > 0)
 
@@ -197,14 +193,6 @@ const stackedOptions = computed(() => {
 const formatPercent = (rate: number) => {
   const pct = Math.max(0, Math.min(1, rate)) * 100
   return `${pct.toFixed(1)}%`
-}
-
-const formatTokens = (value: number) => {
-  if (!Number.isFinite(value) || value <= 0) return '0'
-  if (value >= 1e9) return `${(value / 1e9).toFixed(2)}B`
-  if (value >= 1e6) return `${(value / 1e6).toFixed(2)}M`
-  if (value >= 1e3) return `${(value / 1e3).toFixed(1)}k`
-  return value.toLocaleString()
 }
 </script>
 

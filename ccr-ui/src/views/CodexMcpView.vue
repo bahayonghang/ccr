@@ -659,6 +659,7 @@
 
 <script setup lang="ts">
 import { computed, onActivated, onMounted, reactive, ref } from 'vue'
+import { getErrorMessage } from '@/utils/errorHandler'
 import { RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { addCodexMcpServer, deleteCodexMcpServer, listCodexMcpServers, updateCodexMcpServer } from '@/api'
@@ -669,6 +670,7 @@ import SIcon from '@/components/ui/SIcon.vue'
 import { useUIStore } from '@/stores/ui'
 import { logger } from '@/utils/logger'
 import type { CodexMcpServer, CodexMcpServerRequest, CodexMcpServersResponse } from '@/types'
+import { REFRESH_TTL_MS } from '@/config/constants'
 
 type Transport = 'stdio' | 'http'
 type TransportFilter = 'all' | Transport
@@ -713,8 +715,6 @@ interface Draft {
   disabledToolsText: string
   bearer_token_env_var: string
 }
-
-const REFRESH_TTL_MS = 30_000
 
 const { locale } = useI18n()
 const uiStore = useUIStore()
@@ -981,7 +981,7 @@ async function loadServers(force = false) {
     servers.value = Array.isArray(data.servers) ? data.servers.map(normalizeServer) : []
     lastLoadedAt.value = Date.now()
   } catch (reason) {
-    const message = reason instanceof Error ? reason.message : String(reason)
+    const message = getErrorMessage(reason)
     logger.error('Failed to load Codex MCP servers', reason)
     error.value = message
     uiStore.showError(`${tt('加载 Codex MCP 服务器失败', 'Failed to load Codex MCP servers')}: ${message}`)
@@ -1031,7 +1031,7 @@ async function saveDraft() {
       if (refreshed) selectServer(refreshed)
     }
   } catch (reason) {
-    uiStore.showError(reason instanceof Error ? reason.message : String(reason))
+    uiStore.showError(getErrorMessage(reason))
   } finally {
     submitting.value = false
   }
@@ -1049,7 +1049,7 @@ async function toggleServer(server: ServerRecord) {
       if (refreshed) selectServer(refreshed)
     }
   } catch (reason) {
-    uiStore.showError(reason instanceof Error ? reason.message : String(reason))
+    uiStore.showError(getErrorMessage(reason))
   }
 }
 
@@ -1066,7 +1066,7 @@ async function armOrDeleteSelected() {
     cancelEditor()
     await loadServers(true)
   } catch (reason) {
-    uiStore.showError(reason instanceof Error ? reason.message : String(reason))
+    uiStore.showError(getErrorMessage(reason))
   } finally {
     submitting.value = false
     deleteArmed.value = false

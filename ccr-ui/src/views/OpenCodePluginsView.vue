@@ -217,6 +217,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { getErrorMessage } from '@/utils/errorHandler'
 import Card from '@/components/ui/Card.vue'
 import Button from '@/components/ui/Button.vue'
 import SIcon from '@/components/ui/SIcon.vue'
@@ -244,7 +245,7 @@ async function loadPlugins() {
     packages.value = packageNames.map((name) => ({ name }))
     localPlugins.value = localPluginList
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   } finally {
     loading.value = false
   }
@@ -264,7 +265,7 @@ async function savePackage() {
     showModal.value = false
     await loadPlugins()
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   } finally {
     saving.value = false
   }
@@ -276,7 +277,7 @@ async function removePackage(name: string) {
     uiStore.showSuccess('npm 插件已删除')
     await loadPlugins()
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   }
 }
 

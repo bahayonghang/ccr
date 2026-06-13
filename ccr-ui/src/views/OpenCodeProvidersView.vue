@@ -309,6 +309,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
+import { getErrorMessage } from '@/utils/errorHandler'
 import Card from '@/components/ui/Card.vue'
 import Button from '@/components/ui/Button.vue'
 import SIcon from '@/components/ui/SIcon.vue'
@@ -402,7 +403,7 @@ async function loadProviders() {
     providers.value = providerList
     configState.value = config
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   } finally {
     loading.value = false
   }
@@ -536,7 +537,7 @@ async function saveProvider() {
     showModal.value = false
     await loadProviders()
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   } finally {
     saving.value = false
   }
@@ -548,7 +549,7 @@ async function toggleEnabled(provider: OpenCodeProviderConfig) {
     uiStore.showSuccess(providerEnabled(provider.id) ? 'Provider 已启用' : 'Provider 已停用')
     await loadProviders()
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   }
 }
 
@@ -562,7 +563,7 @@ async function removeProvider(provider: OpenCodeProviderConfig) {
     uiStore.showSuccess('Provider 已删除')
     await loadProviders()
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   }
 }
 

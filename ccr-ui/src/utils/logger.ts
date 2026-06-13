@@ -1,5 +1,6 @@
 /* eslint-disable no-console -- This is a logger utility, console output is expected */
 import { isTauriRuntime } from '@/utils/tauriRuntime'
+import { getErrorMessage } from '@/utils/errorHandler'
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error'
 
@@ -113,7 +114,7 @@ class Logger {
   }
 
   private shouldDisableNativeBridge(error: unknown): boolean {
-    const message = error instanceof Error ? error.message : String(error)
+    const message = getErrorMessage(error)
     return /append_frontend_logs/i.test(message) || /unknown command|not found|unsupported/i.test(message)
   }
 

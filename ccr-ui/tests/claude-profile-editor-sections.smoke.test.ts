@@ -5,11 +5,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ClaudeProfileEditorForm } from '@/types/claudeProfileEditor'
 
 const helperMocks = vi.hoisted(() => ({
-  copyToClipboard: vi.fn(),
+  copyText: vi.fn(),
 }))
 
-vi.mock('@/utils/codexHelpers', () => ({
-  copyToClipboard: helperMocks.copyToClipboard,
+vi.mock('@/utils/clipboard', () => ({
+  copyText: helperMocks.copyText,
 }))
 
 vi.mock('@/components/ui/SIcon.vue', () => ({
@@ -196,8 +196,8 @@ const mountSections = async (form = createForm()) => {
 }
 
 beforeEach(() => {
-  helperMocks.copyToClipboard.mockReset()
-  helperMocks.copyToClipboard.mockResolvedValue(true)
+  helperMocks.copyText.mockReset()
+  helperMocks.copyText.mockResolvedValue(true)
 })
 
 afterEach(() => {
@@ -237,7 +237,7 @@ describe('ClaudeProfileEditorSections token controls', () => {
       copyButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
       await Promise.resolve()
 
-      expect(helperMocks.copyToClipboard).toHaveBeenCalledWith('sk-ant-test-123')
+      expect(helperMocks.copyText).toHaveBeenCalledWith('sk-ant-test-123')
       expect(uiStore.toasts.at(-1)?.message).toBe('Auth token copied')
     } finally {
       unmount()

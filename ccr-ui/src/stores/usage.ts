@@ -6,6 +6,7 @@
  */
 
 import { defineStore } from 'pinia'
+import { getErrorMessage } from '@/utils/errorHandler'
 import { computed, ref } from 'vue'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import type {
@@ -13,10 +14,10 @@ import type {
   DailyTrend,
   HeatmapResponse,
   ImportAllUsageResponse,
-  ImportResult,
+  UsageImportResult,
   ModelStat,
   PaginatedLogs,
-  Platform,
+  UsagePlatform,
   ProjectStat,
   SourceBreakdown,
   StartUsageImportJobResponse,
@@ -132,11 +133,11 @@ export const useUsageStore = defineStore('usage', () => {
   const isBootstrapping = ref(false)
   const bootstrapAttempted = ref(false)
   const lastImportSummary = ref<UsageImportSummary | null>(null)
-  const lastImportResults = ref<ImportResult[]>([])
+  const lastImportResults = ref<UsageImportResult[]>([])
   const currentImportJob = ref<UsageImportJobSnapshot | null>(null)
 
   // 筛选条件
-  const platform = ref<Platform | undefined>(undefined)
+  const platform = ref<UsagePlatform | undefined>(undefined)
   const timeRange = ref<{ start?: string; end?: string }>({})
   const logsPage = ref(1)
   const logsPageSize = ref(50)
@@ -231,7 +232,7 @@ export const useUsageStore = defineStore('usage', () => {
     return usageCapabilities.value
   }
 
-  const applyFilters = (opts: { platform?: Platform; start?: string; end?: string }) => {
+  const applyFilters = (opts: { platform?: UsagePlatform; start?: string; end?: string }) => {
     platform.value = opts.platform
     timeRange.value = { start: opts.start, end: opts.end }
   }
@@ -566,7 +567,7 @@ export const useUsageStore = defineStore('usage', () => {
         recordPerfMetric('usage_requests_per_refresh', requestCount, { reason })
       } catch (e) {
         if (requestId !== requestSerial) return
-        error.value = e instanceof Error ? e.message : String(e)
+        error.value = getErrorMessage(e)
       } finally {
         if (requestId === requestSerial && !background) {
           loading.value = false
@@ -623,7 +624,7 @@ export const useUsageStore = defineStore('usage', () => {
       }))
       logs.value = normalizePaginatedLogs(result, targetPage, logsPageSize.value, previousTotal)
     } catch (e) {
-      error.value = e instanceof Error ? e.message : String(e)
+      error.value = getErrorMessage(e)
     } finally {
       logsLoading.value = false
     }
@@ -640,7 +641,7 @@ export const useUsageStore = defineStore('usage', () => {
   }
 
   async function triggerImport(
-    requestedPlatform?: Platform,
+    requestedPlatform?: UsagePlatform,
     reason: 'manual' | 'bootstrap' = 'manual',
   ): Promise<ImportAllUsageResponse> {
     importing.value = true
@@ -650,7 +651,7 @@ export const useUsageStore = defineStore('usage', () => {
     try {
       const response = requestedPlatform
         ? normalizeImportResponse(
-          await importUsageV2<ImportResult>(requestedPlatform),
+          await importUsageV2<UsageImportResult>(requestedPlatform),
           requestedPlatform,
         )
         : normalizeImportResponse(await importAllUsageV2<ImportAllUsageResponse>())
@@ -687,7 +688,7 @@ export const useUsageStore = defineStore('usage', () => {
 
       return response
     } catch (e) {
-      const message = e instanceof Error ? e.message : String(e)
+      const message = getErrorMessage(e)
       const fallback = normalizeImportResponse({
         results: [{
           platform: requestedPlatform ?? 'all',
@@ -720,7 +721,7 @@ export const useUsageStore = defineStore('usage', () => {
   }
 
   async function startImportJob(opts: {
-    platform?: Platform
+    platform?: UsagePlatform
     recentDays?: number
     reason?: 'manual' | 'bootstrap'
     resetSources?: boolean
@@ -744,7 +745,7 @@ export const useUsageStore = defineStore('usage', () => {
       await ensureImportJobListeners(response.job_id)
       return response.snapshot
     } catch (e) {
-      const message = e instanceof Error ? e.message : String(e)
+      const message = getErrorMessage(e)
       error.value = message
       importing.value = false
       isBootstrapping.value = false
@@ -754,7 +755,7 @@ export const useUsageStore = defineStore('usage', () => {
   }
 
   /** 初始化仪表盘并在空库时做一次自举导入 */
-  async function initializeDashboard(opts: { platform?: Platform; start?: string; end?: string }) {
+  async function initializeDashboard(opts: { platform?: UsagePlatform; start?: string; end?: string }) {
     applyFilters(opts)
     await fetchAll({ includeHeatmap: !LAZY_HEATMAP_LOAD, reason: 'initialize' })
 
@@ -785,7 +786,7 @@ export const useUsageStore = defineStore('usage', () => {
   }
 
   /** 设置筛选条件并刷新（300ms 防抖） */
-  function setFilters(opts: { platform?: Platform; start?: string; end?: string }) {
+  function setFilters(opts: { platform?: UsagePlatform; start?: string; end?: string }) {
     applyFilters(opts)
 
     if (filterDebounceTimer) {
