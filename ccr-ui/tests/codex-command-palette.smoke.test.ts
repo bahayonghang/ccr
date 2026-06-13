@@ -10,15 +10,16 @@ vi.mock('@/components/ui/SIcon.vue', () => ({
       size: { type: String, default: '' },
     },
     setup(props) {
-      return () => h('span', {
-        'data-icon': props.name,
-        class: props.size,
-      })
+      return () =>
+        h('span', {
+          'data-icon': props.name,
+          class: props.size,
+        })
     },
   }),
 }))
 
-import CommandPalette from '@/components/codex/profiles/CommandPalette.vue'
+import CommandPalette from '@/components/codex/CommandPalette.vue'
 
 const messages = {
   en: {
@@ -55,11 +56,13 @@ const flush = async () => {
 }
 
 const dispatchKey = (element: Element, key: string) => {
-  element.dispatchEvent(new KeyboardEvent('keydown', {
-    key,
-    bubbles: true,
-    cancelable: true,
-  }))
+  element.dispatchEvent(
+    new KeyboardEvent('keydown', {
+      key,
+      bubbles: true,
+      cancelable: true,
+    })
+  )
 }
 
 const profiles: CodexProfile[] = [
@@ -100,21 +103,24 @@ const mountPalette = async () => {
     messages,
   })
 
-  const app = createApp(defineComponent({
-    setup() {
-      return () => h(CommandPalette, {
-        open: state.open,
-        profiles,
-        'onUpdate:open': (value: boolean) => {
-          state.open = value
-        },
-        onApply: events.apply,
-        onAdd: events.add,
-        onExport: events.export,
-        onReload: events.reload,
-      })
-    },
-  }))
+  const app = createApp(
+    defineComponent({
+      setup() {
+        return () =>
+          h(CommandPalette, {
+            open: state.open,
+            profiles,
+            'onUpdate:open': (value: boolean) => {
+              state.open = value
+            },
+            onApply: events.apply,
+            onAdd: events.add,
+            onExport: events.export,
+            onReload: events.reload,
+          })
+      },
+    })
+  )
 
   app.use(i18n)
   app.mount(el)

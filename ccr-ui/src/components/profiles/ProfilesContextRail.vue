@@ -1,14 +1,15 @@
 <!--
-  Codex Profiles 右侧上下文侧栏：
+  Profiles 右侧上下文侧栏：
   1) 当前 Profile 详情
   2) 分布洞察 (Provider / Auth 模式 / Tag)
-  3) 健康审计 (已弃用 auth / 缺失字段 / 重复运行时)
+  3) 健康审计 (已弃用 auth〔Codex〕/ 缺失字段 / 重复运行时)
   仅 ≥1280px 视口可见；窄屏自动隐藏，不影响主列。
+  平台差异通过 i18nPrefix + descriptor（洞察来源 / 字段列表 / 文案 / 图标）注入；样式靠视图 --cp-* 继承换肤。
 -->
 <template>
   <aside
     class="cp-rail"
-    :aria-label="$t('codex.profiles.contextRail.ariaLabel')"
+    :aria-label="t(`${i18nPrefix}.ariaLabel`)"
   >
     <!-- ========================================================
          面板 1：当前 Profile 详情
@@ -27,7 +28,7 @@
           :id="activeHeadingId"
           class="cp-rail-card__title"
         >
-          {{ $t('codex.profiles.contextRail.activeTitle') }}
+          {{ t(`${i18nPrefix}.activeTitle`) }}
         </h3>
       </header>
 
@@ -46,90 +47,22 @@
         </p>
 
         <dl class="cp-rail-fields">
-          <div class="cp-rail-field">
-            <dt class="cp-rail-field__label">
-              {{ $t('codex.profiles.fields.baseUrl') }}
-            </dt>
-            <dd class="cp-rail-field__value">
-              {{ activeBaseUrlText }}
-            </dd>
-          </div>
-
-          <div class="cp-rail-field">
-            <dt class="cp-rail-field__label">
-              {{ $t('codex.profiles.fields.model') }}
-            </dt>
-            <dd class="cp-rail-field__value cp-rail-field__value--accent">
-              {{ activeProfile.model || '—' }}
-            </dd>
-          </div>
-
-          <div class="cp-rail-field">
-            <dt class="cp-rail-field__label">
-              {{ $t('codex.profiles.fields.authMode') }}
-            </dt>
-            <dd class="cp-rail-field__value cp-rail-field__value--muted">
-              {{ activeAuthModeLabel }}
-            </dd>
-          </div>
-
           <div
-            v-if="activeProfile.openai_login_method"
+            v-for="field in activeFields"
+            :key="field.label"
             class="cp-rail-field"
           >
             <dt class="cp-rail-field__label">
-              {{ $t('codex.profiles.fields.openAiLoginMethod') }}
+              {{ field.label }}
             </dt>
-            <dd class="cp-rail-field__value cp-rail-field__value--muted">
-              {{ activeProfile.openai_login_method }}
-            </dd>
-          </div>
-
-          <div
-            v-if="activeProfile.account"
-            class="cp-rail-field"
-          >
-            <dt class="cp-rail-field__label">
-              {{ $t('codex.profiles.fields.account') }}
-            </dt>
-            <dd class="cp-rail-field__value">
-              {{ activeProfile.account }}
-            </dd>
-          </div>
-
-          <div
-            v-if="activeProfile.provider"
-            class="cp-rail-field"
-          >
-            <dt class="cp-rail-field__label">
-              {{ $t('codex.profiles.fields.provider') }}
-            </dt>
-            <dd class="cp-rail-field__value cp-rail-field__value--muted">
-              {{ activeProfile.provider }}
-            </dd>
-          </div>
-
-          <div
-            v-if="activeProfile.credential_store"
-            class="cp-rail-field"
-          >
-            <dt class="cp-rail-field__label">
-              {{ $t('codex.profiles.contextRail.credentialStore') }}
-            </dt>
-            <dd class="cp-rail-field__value cp-rail-field__value--muted">
-              {{ activeProfile.credential_store }}
-            </dd>
-          </div>
-
-          <div
-            v-if="activeProfile.env_key"
-            class="cp-rail-field"
-          >
-            <dt class="cp-rail-field__label">
-              {{ $t('codex.profiles.fields.envKey') }}
-            </dt>
-            <dd class="cp-rail-field__value">
-              {{ activeProfile.env_key }}
+            <dd
+              class="cp-rail-field__value"
+              :class="{
+                'cp-rail-field__value--accent': field.variant === 'accent',
+                'cp-rail-field__value--muted': field.variant === 'muted',
+              }"
+            >
+              {{ field.value }}
             </dd>
           </div>
         </dl>
@@ -151,10 +84,10 @@
           @click="onEdit(activeProfile.name)"
         >
           <SIcon
-            name="Edit2"
+            :name="descriptor.editIcon"
             size="w-3.5 h-3.5"
           />
-          <span>{{ $t('codex.profiles.contextRail.editAction') }}</span>
+          <span>{{ t(`${i18nPrefix}.editAction`) }}</span>
         </button>
       </div>
 
@@ -167,10 +100,10 @@
           size="w-4 h-4"
         />
         <div class="cp-rail-empty__title">
-          {{ $t('codex.profiles.contextRail.activeEmpty') }}
+          {{ t(`${i18nPrefix}.activeEmpty`) }}
         </div>
         <div class="cp-rail-empty__hint">
-          {{ $t('codex.profiles.contextRail.activeEmptyHint') }}
+          {{ t(`${i18nPrefix}.activeEmptyHint`) }}
         </div>
       </div>
     </section>
@@ -192,14 +125,14 @@
           :id="distributionHeadingId"
           class="cp-rail-card__title"
         >
-          {{ $t('codex.profiles.contextRail.distributionTitle') }}
+          {{ t(`${i18nPrefix}.distributionTitle`) }}
         </h3>
       </header>
 
       <!-- 2.1 Provider -->
       <div class="cp-rail-section">
         <div class="cp-rail-section__head">
-          {{ $t('codex.profiles.contextRail.providerSection') }}
+          {{ t(`${i18nPrefix}.providerSection`) }}
         </div>
         <ul
           v-if="providerBreakdown.length > 0"
@@ -214,7 +147,7 @@
             <div class="cp-rail-bar__label">
               {{
                 item.provider === 'Unknown'
-                  ? $t('codex.profiles.contextRail.unknownProvider')
+                  ? t(`${i18nPrefix}.unknownProvider`)
                   : item.provider
               }}
             </div>
@@ -240,7 +173,7 @@
       <!-- 2.2 Auth 模式 -->
       <div class="cp-rail-section">
         <div class="cp-rail-section__head">
-          {{ $t('codex.profiles.contextRail.authSection') }}
+          {{ t(`${i18nPrefix}.authSection`) }}
         </div>
         <ul
           class="cp-rail-bars"
@@ -253,14 +186,12 @@
             :class="{ 'cp-rail-bar--zero': item.count === 0 }"
           >
             <div class="cp-rail-bar__label">
-              {{ $t(`codex.profiles.authModes.${item.mode}`) }}
+              {{ descriptor.authModeLabel(item.mode) }}
             </div>
             <div class="cp-rail-bar__track">
               <div
                 class="cp-rail-bar__fill"
-                :class="{
-                  'cp-rail-bar__fill--warn': isDeprecatedMode(item.mode),
-                }"
+                :class="{ 'cp-rail-bar__fill--warn': descriptor.isDeprecatedMode(item.mode) }"
                 :style="{ width: `${item.count === 0 ? 0 : Math.max(item.pct, 4)}%` }"
               />
             </div>
@@ -274,7 +205,7 @@
       <!-- 2.3 Top Tags -->
       <div class="cp-rail-section">
         <div class="cp-rail-section__head">
-          {{ $t('codex.profiles.contextRail.tagsSection') }}
+          {{ t(`${i18nPrefix}.tagsSection`) }}
         </div>
         <div
           v-if="topTags.length > 0"
@@ -293,7 +224,7 @@
           v-else
           class="cp-rail-section__empty"
         >
-          {{ $t('codex.profiles.contextRail.noTags') }}
+          {{ t(`${i18nPrefix}.noTags`) }}
         </div>
       </div>
     </section>
@@ -315,7 +246,7 @@
           :id="auditHeadingId"
           class="cp-rail-card__title"
         >
-          {{ $t('codex.profiles.contextRail.auditTitle') }}
+          {{ t(`${i18nPrefix}.auditTitle`) }}
         </h3>
         <span
           class="cp-rail-card__count"
@@ -333,13 +264,14 @@
           name="CheckCircle"
           size="w-4 h-4"
         />
-        <span>{{ $t('codex.profiles.contextRail.auditClean') }}</span>
+        <span>{{ t(`${i18nPrefix}.auditClean`) }}</span>
       </div>
 
       <ul
         v-else
         class="cp-rail-issues"
       >
+        <!-- 已弃用 auth（Codex 专属；Claude deprecatedAuthIssues 恒空 → 不渲染） -->
         <li
           v-for="profile in deprecatedAuthIssues"
           :key="`dep-${profile.name}`"
@@ -359,19 +291,11 @@
                 {{ profile.name }}
               </div>
               <div class="cp-rail-issue__msg">
-                {{
-                  tf(
-                    'codex.profiles.contextRail.issues.deprecatedAuth',
-                    '使用已弃用模式：{mode}',
-                    {
-                      mode: $t(`codex.profiles.authModes.${profile.auth_mode ?? 'no_auth'}`),
-                    },
-                  )
-                }}
+                {{ descriptor.deprecatedMessage?.(profile) }}
               </div>
             </div>
             <SIcon
-              name="Edit2"
+              :name="descriptor.editIcon"
               size="w-3.5 h-3.5"
               class="cp-rail-issue__edit"
             />
@@ -397,11 +321,11 @@
                 {{ issue.profile.name }}
               </div>
               <div class="cp-rail-issue__msg">
-                {{ formatMissingMessage(issue.missing) }}
+                {{ descriptor.missingMessage(issue.missing) }}
               </div>
             </div>
             <SIcon
-              name="Edit2"
+              :name="descriptor.editIcon"
               size="w-3.5 h-3.5"
               class="cp-rail-issue__edit"
             />
@@ -422,7 +346,7 @@
             <span>
               {{
                 tf(
-                  'codex.profiles.contextRail.issues.duplicateRuntime',
+                  `${i18nPrefix}.issues.duplicateRuntime`,
                   '运行时重复 · {count} 个 Profile',
                   { count: group.profiles.length },
                 )
@@ -441,11 +365,11 @@
                 {{ profile.name }}
               </div>
               <div class="cp-rail-issue__msg cp-rail-issue__msg--mono">
-                {{ profile.model }} · {{ profile.base_url }}
+                {{ descriptor.runtimeSummary(profile) }}
               </div>
             </div>
             <SIcon
-              name="Edit2"
+              :name="descriptor.editIcon"
               size="w-3.5 h-3.5"
               class="cp-rail-issue__edit"
             />
@@ -456,37 +380,65 @@
   </aside>
 </template>
 
-<script setup lang="ts">
-import { computed } from 'vue'
+<script setup lang="ts" generic="T extends ContextRailProfile">
+import { computed, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SIcon from '@/components/ui/SIcon.vue'
-import { translateWithFallback } from '@/i18n/formatMessage'
-import {
-  useCodexProfilesInsights,
-  type MissingField,
-} from '@/composables/useCodexProfilesInsights'
-import type { CodexProfile, CodexProfileAuthMode } from '@/types'
+import { useTf } from '@/composables/useTf'
+import type { ProfilesInsights } from '@/composables/useProfilesInsights'
+
+/** ContextRail 直接读取的最小 profile 形状（两平台共有字段） */
+export interface ContextRailProfile {
+  name: string
+  description?: string | null
+  tags?: string[] | null
+}
+
+/** 当前 profile 详情面板的单个字段（平台决定字段集合/顺序/样式） */
+export interface ContextRailActiveField {
+  label: string
+  value: string
+  variant?: 'accent' | 'muted'
+}
+
+/** 平台注入的侧栏策略：洞察来源 + 字段列表 + 文案 + 图标 */
+export interface ContextRailDescriptor<P extends ContextRailProfile> {
+  /** 编辑按钮图标：Claude 'Pencil' / Codex 'Edit2' */
+  editIcon: string
+  /** 平台洞察 composable（在组件 setup 内调用一次） */
+  useInsights: (profiles: Ref<P[]>) => ProfilesInsights<P, string, string>
+  /** 当前 profile 的字段列表（activeProfile 非空时调用） */
+  activeFields: (profile: P) => ContextRailActiveField[]
+  /** auth 分布条标签 */
+  authModeLabel: (mode: string) => string
+  /** 该 auth 模式是否弃用（Claude 恒 false → 不加 warn 类） */
+  isDeprecatedMode: (mode: string) => boolean
+  /** 缺失字段消息（已 join） */
+  missingMessage: (missing: string[]) => string
+  /** 重复运行时条目摘要 */
+  runtimeSummary: (profile: P) => string
+  /** 已弃用 auth 条目消息（Codex 提供；Claude 无弃用概念，可省略） */
+  deprecatedMessage?: (profile: P) => string
+}
 
 interface Props {
-  profiles: CodexProfile[]
+  profiles: T[]
   current: string | null
-  activeProfile: CodexProfile | null
+  activeProfile: T | null
+  /** i18n key 前缀，例如 'claudeProfiles.contextRail' / 'codex.profiles.contextRail' */
+  i18nPrefix: string
+  descriptor: ContextRailDescriptor<T>
 }
 
 const props = defineProps<Props>()
 
 const emit = defineEmits<{
-  (e: 'apply', name: string): void
   (e: 'edit', name: string): void
 }>()
 
 const { t } = useI18n()
 
-const tf = (
-  key: string,
-  fallback: string,
-  values: Record<string, string | number | boolean | null | undefined> = {},
-) => translateWithFallback(t, key, fallback, values)
+const tf = useTf()
 
 const profilesRef = computed(() => props.profiles)
 
@@ -498,35 +450,17 @@ const {
   missingFieldIssues,
   duplicateRuntimeIssues,
   totalIssueCount,
-} = useCodexProfilesInsights(profilesRef)
+} = props.descriptor.useInsights(profilesRef)
 
 const activeHeadingId = 'cp-rail-active-heading'
 const distributionHeadingId = 'cp-rail-distribution-heading'
 const auditHeadingId = 'cp-rail-audit-heading'
 
-const activeBaseUrlText = computed(() => {
-  const raw = props.activeProfile?.base_url?.trim()
-  return raw && raw.length > 0 ? raw : t('codex.profiles.officialBaseUrl')
-})
-
-const activeAuthModeLabel = computed(() => {
-  const mode = props.activeProfile?.auth_mode ?? 'no_auth'
-  return t(`codex.profiles.authModes.${mode}`)
-})
+const activeFields = computed<ContextRailActiveField[]>(() =>
+  props.activeProfile ? props.descriptor.activeFields(props.activeProfile) : [],
+)
 
 const activeTags = computed(() => props.activeProfile?.tags ?? [])
-
-const isDeprecatedMode = (mode: CodexProfileAuthMode): boolean =>
-  mode === 'openai_chatgpt' || mode === 'provider_env_key'
-
-const formatMissingMessage = (missing: MissingField[]): string => {
-  const parts = missing.map(field =>
-    field === 'base_url'
-      ? t('codex.profiles.contextRail.issues.missingBaseUrl')
-      : t('codex.profiles.contextRail.issues.missingModel'),
-  )
-  return parts.join(' · ')
-}
 
 const onEdit = (name: string) => emit('edit', name)
 </script>

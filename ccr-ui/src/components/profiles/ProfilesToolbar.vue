@@ -1,4 +1,5 @@
-<!-- 粘性工具条：搜索 / 状态pill / 标签pill / 排序 / 视图 / 结果数 -->
+<!-- 粘性工具条：搜索 / 状态pill / 标签pill / (可选)Provider下拉 / 排序 / 视图 / 结果数。
+     平台差异通过 i18nPrefix + 可选 provider 维度注入；样式靠视图的 --cp-* 继承换肤。 -->
 <template>
   <div class="cp-toolbar surface-workspace">
     <div class="cp-search">
@@ -10,8 +11,8 @@
       <input
         ref="searchRef"
         :value="query"
-        :placeholder="$t('codex.profiles.toolbar.searchPlaceholder')"
-        :aria-label="$t('codex.profiles.toolbar.searchPlaceholder')"
+        :placeholder="t(`${i18nPrefix}.searchPlaceholder`)"
+        :aria-label="t(`${i18nPrefix}.searchPlaceholder`)"
         class="cp-search__input"
         @input="onQueryInput"
       >
@@ -23,7 +24,7 @@
     <div
       class="cp-pill-row"
       role="group"
-      :aria-label="$t('codex.profiles.toolbar.statusGroupLabel')"
+      :aria-label="t(`${i18nPrefix}.statusGroupLabel`)"
     >
       <button
         v-for="opt in statusOptions"
@@ -47,7 +48,7 @@
       v-if="allTags.length > 0"
       class="cp-pill-row"
       role="group"
-      :aria-label="$t('codex.profiles.toolbar.tagGroupLabel')"
+      :aria-label="t(`${i18nPrefix}.tagGroupLabel`)"
     >
       <button
         v-for="tag in allTags"
@@ -66,35 +67,54 @@
       <span class="cp-toolbar__meta">{{ resultCount }}/{{ total }}</span>
 
       <select
+        v-if="allProviders && allProviders.length > 1"
+        :value="providerFilter ?? ''"
+        class="cp-toolbar__sort"
+        :aria-label="t(`${i18nPrefix}.providerLabel`)"
+        @change="onProviderChange"
+      >
+        <option value="">
+          {{ t(`${i18nPrefix}.providerAll`) }}
+        </option>
+        <option
+          v-for="provider in allProviders"
+          :key="provider.key"
+          :value="provider.key"
+        >
+          {{ provider.label }}
+        </option>
+      </select>
+
+      <select
         :value="sortBy"
         class="cp-toolbar__sort"
-        :aria-label="$t('codex.profiles.toolbar.sortLabel')"
+        :aria-label="t(`${i18nPrefix}.sortLabel`)"
         @change="onSortChange"
       >
         <option value="recent">
-          {{ $t('codex.profiles.toolbar.sortRecent') }}
+          {{ t(`${i18nPrefix}.sortRecent`) }}
         </option>
         <option value="name">
-          {{ $t('codex.profiles.toolbar.sortName') }}
+          {{ t(`${i18nPrefix}.sortName`) }}
         </option>
         <option value="requests">
-          {{ $t('codex.profiles.toolbar.sortRequests') }}
+          {{ t(`${i18nPrefix}.sortRequests`) }}
         </option>
         <option value="enabled">
-          {{ $t('codex.profiles.toolbar.sortEnabled') }}
+          {{ t(`${i18nPrefix}.sortEnabled`) }}
         </option>
       </select>
 
       <div
         class="cp-seg"
         role="group"
-        :aria-label="$t('codex.profiles.toolbar.viewLabel')"
+        :aria-label="t(`${i18nPrefix}.viewLabel`)"
       >
         <button
           type="button"
           class="cp-seg__btn"
           :class="{ 'cp-seg__btn--active': viewMode === 'card' }"
-          :title="$t('codex.profiles.toolbar.viewCard')"
+          :title="t(`${i18nPrefix}.viewCard`)"
           :aria-pressed="viewMode === 'card'"
           @click="emit('update:viewMode', 'card')"
         >
@@ -107,7 +127,7 @@
           type="button"
           class="cp-seg__btn"
           :class="{ 'cp-seg__btn--active': viewMode === 'list' }"
-          :title="$t('codex.profiles.toolbar.viewList')"
+          :title="t(`${i18nPrefix}.viewList`)"
           :aria-pressed="viewMode === 'list'"
           @click="emit('update:viewMode', 'list')"
         >
@@ -126,41 +146,48 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SIcon from '@/components/ui/SIcon.vue'
 import type {
-  CodexProfilesSortBy,
-  CodexProfilesStatusFilter,
-} from '@/composables/useCodexProfilesFilter'
+  ProfilesSortBy,
+  ProfilesStatusFilter,
+  ProviderOption,
+} from '@/composables/useProfilesFilter'
 
-export type CodexProfilesViewMode = 'card' | 'list'
+export type ProfilesViewMode = 'card' | 'list'
 
 interface Props {
   query: string
-  statusFilter: CodexProfilesStatusFilter
+  statusFilter: ProfilesStatusFilter
   tagFilter: string | null
-  sortBy: CodexProfilesSortBy
-  viewMode: CodexProfilesViewMode
+  sortBy: ProfilesSortBy
+  viewMode: ProfilesViewMode
   resultCount: number
   total: number
   allTags: string[]
+  /** i18n key 前缀，例如 'claudeProfiles.toolbar' / 'codex.profiles.toolbar' */
+  i18nPrefix: string
+  /** provider 维度（Claude 用，Codex 省略 → 不渲染 provider 下拉） */
+  providerFilter?: string | null
+  allProviders?: ProviderOption[]
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 
 const emit = defineEmits<{
   (e: 'update:query', value: string): void
-  (e: 'update:statusFilter', value: CodexProfilesStatusFilter): void
+  (e: 'update:statusFilter', value: ProfilesStatusFilter): void
   (e: 'update:tagFilter', value: string | null): void
-  (e: 'update:sortBy', value: CodexProfilesSortBy): void
-  (e: 'update:viewMode', value: CodexProfilesViewMode): void
+  (e: 'update:providerFilter', value: string | null): void
+  (e: 'update:sortBy', value: ProfilesSortBy): void
+  (e: 'update:viewMode', value: ProfilesViewMode): void
 }>()
 
 const { t } = useI18n()
 const searchRef = ref<HTMLInputElement | null>(null)
 
-const statusOptions = computed<{ id: CodexProfilesStatusFilter; label: string }[]>(() => [
-  { id: 'all',      label: t('codex.profiles.toolbar.statusAll') },
-  { id: 'active',   label: t('codex.profiles.toolbar.statusActive') },
-  { id: 'enabled',  label: t('codex.profiles.toolbar.statusEnabled') },
-  { id: 'disabled', label: t('codex.profiles.toolbar.statusDisabled') },
+const statusOptions = computed<{ id: ProfilesStatusFilter; label: string }[]>(() => [
+  { id: 'all', label: t(`${props.i18nPrefix}.statusAll`) },
+  { id: 'active', label: t(`${props.i18nPrefix}.statusActive`) },
+  { id: 'enabled', label: t(`${props.i18nPrefix}.statusEnabled`) },
+  { id: 'disabled', label: t(`${props.i18nPrefix}.statusDisabled`) },
 ])
 
 const onQueryInput = (event: Event) => {
@@ -168,7 +195,12 @@ const onQueryInput = (event: Event) => {
 }
 
 const onSortChange = (event: Event) => {
-  emit('update:sortBy', (event.target as HTMLSelectElement).value as CodexProfilesSortBy)
+  emit('update:sortBy', (event.target as HTMLSelectElement).value as ProfilesSortBy)
+}
+
+const onProviderChange = (event: Event) => {
+  const value = (event.target as HTMLSelectElement).value
+  emit('update:providerFilter', value ? value : null)
 }
 
 const focusSearch = () => searchRef.value?.focus()
@@ -296,6 +328,7 @@ defineExpose({ focusSearch })
   color: var(--cp-ink-1);
   font-family: var(--cp-mono);
   font-size: 12px;
+  max-width: 160px;
 }
 
 .cp-seg {

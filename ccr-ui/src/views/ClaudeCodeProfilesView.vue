@@ -4,7 +4,17 @@
 
     <main class="cp-shell">
       <div class="cp-main">
-        <ClaudeProfilesHeader
+        <ProfilesHeader
+          icon="Layers"
+          back-to="/claude-code"
+          :labels="{
+            title: $t('claudeProfiles.title'),
+            subtitle: $t('claudeProfiles.subtitle'),
+            back: $t('claudeProfiles.back'),
+            reload: $t('claudeProfiles.reloadAction'),
+            export: $t('common.export'),
+            add: $t('claudeProfiles.addProfile'),
+          }"
           :loading="loading || isRefreshing"
           :exporting="isExporting"
           @add="openAddForm"
@@ -12,17 +22,31 @@
           @reload="refreshProfiles"
         />
 
-        <ClaudeProfilesStatStrip
+        <ProfilesStatStrip
           :current="currentProfileName"
           :total="profiles.length"
-          :enabled="enabledProfilesCount"
-          :subscription-count="subscriptionCount"
-          :api-key-count="apiKeyCount"
+          :labels="{
+            current: $t('claudeProfiles.currentProfile'),
+            notSet: $t('claudeProfiles.notSet'),
+            currentHint: $t('claudeProfiles.statStrip.profileSubtitle'),
+            total: $t('claudeProfiles.totalCount'),
+            totalHint: $t('claudeProfiles.statStrip.totalHint', { enabled: enabledProfilesCount, disabled: profiles.length - enabledProfilesCount }),
+            lastWrite: $t('claudeProfiles.statStrip.lastWrite'),
+            lastWriteHint: $t('claudeProfiles.statStrip.lastWriteHint'),
+          }"
+          :secondary="{
+            icon: 'ShieldCheck',
+            title: $t('claudeProfiles.statStrip.authTitle'),
+            value: `${subscriptionCount} · ${apiKeyCount}`,
+            hint: $t('claudeProfiles.statStrip.authSplit', { subscription: subscriptionCount, apiKey: apiKeyCount }),
+            mono: true,
+          }"
           :last-write="lastWriteHint"
         />
 
-        <ClaudeProfilesToolbar
+        <ProfilesToolbar
           ref="toolbarRef"
+          i18n-prefix="claudeProfiles.toolbar"
           :query="searchQuery"
           :status-filter="statusFilter"
           :tag-filter="tagFilter"
@@ -165,10 +189,11 @@
                 <span>{{ $t('claudeProfiles.fields.tags') }}</span>
                 <span class="cp-list-head__right">{{ $t('claudeProfiles.toolbar.actionsLabel') }}</span>
               </div>
-              <ClaudeProfileListRow
+              <ProfileListRow
                 v-for="profile in enabledList"
                 :key="profile.name"
                 :profile="profile"
+                :descriptor="rowDescriptor"
                 :is-current="profile.is_current"
                 :disabled="loading || isRefreshing || isSaving"
                 @apply="handleApply"
@@ -202,10 +227,11 @@
               v-if="viewMode === 'list'"
               class="cp-list"
             >
-              <ClaudeProfileListRow
+              <ProfileListRow
                 v-for="profile in disabledList"
                 :key="profile.name"
                 :profile="profile"
+                :descriptor="rowDescriptor"
                 :is-current="profile.is_current"
                 :disabled="loading || isRefreshing || isSaving"
                 @apply="handleApply"
@@ -232,10 +258,12 @@
         </template>
       </div>
 
-      <ClaudeProfilesContextRail
+      <ProfilesContextRail
         :profiles="profiles"
         :current="currentProfileName"
         :active-profile="activeProfile"
+        i18n-prefix="claudeProfiles.contextRail"
+        :descriptor="railDescriptor"
         @edit="openEditForm(findProfile($event))"
       />
     </main>
@@ -385,7 +413,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, h, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { computed, h, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch, type FunctionalComponent } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   addClaudeProfile,
@@ -397,11 +425,12 @@ import {
 } from '@/api'
 import ClaudeProfileEditorSections from '@/components/claude/ClaudeProfileEditorSections.vue'
 import ClaudeProfileRow from '@/components/claude/ClaudeProfileRow.vue'
-import ClaudeProfilesContextRail from '@/components/claude/profiles/ClaudeProfilesContextRail.vue'
-import ClaudeProfilesHeader from '@/components/claude/profiles/ClaudeProfilesHeader.vue'
-import ClaudeProfileListRow from '@/components/claude/profiles/ClaudeProfileListRow.vue'
-import ClaudeProfilesStatStrip from '@/components/claude/profiles/ClaudeProfilesStatStrip.vue'
-import ClaudeProfilesToolbar, { type ClaudeProfilesViewMode } from '@/components/claude/profiles/ClaudeProfilesToolbar.vue'
+import ProfilesContextRail, { type ContextRailDescriptor, type ContextRailActiveField } from '@/components/profiles/ProfilesContextRail.vue'
+import { useClaudeProfilesInsights } from '@/composables/useClaudeProfilesInsights'
+import ProfilesHeader from '@/components/profiles/ProfilesHeader.vue'
+import ProfileListRow, { type ProfileRowDescriptor } from '@/components/profiles/ProfileListRow.vue'
+import ProfilesStatStrip from '@/components/profiles/ProfilesStatStrip.vue'
+import ProfilesToolbar, { type ProfilesViewMode } from '@/components/profiles/ProfilesToolbar.vue'
 import BaseModal from '@/components/common/BaseModal.vue'
 import ModuleSubnav from '@/components/ModuleSubnav.vue'
 import ProviderTemplateSelector from '@/components/provider-templates/ProviderTemplateSelector.vue'
@@ -456,9 +485,90 @@ const providerFilter = ref<string | null>(null)
 const selectedProviderTemplate = ref<string | null>(null)
 const selectedProviderEndpoint = ref('')
 const sortBy = ref<ClaudeProfilesSortBy>('recent')
-const viewMode = ref<ClaudeProfilesViewMode>('card')
+const viewMode = ref<ProfilesViewMode>('card')
 const lastWriteHint = ref<string | null>(null)
-const toolbarRef = ref<InstanceType<typeof ClaudeProfilesToolbar> | null>(null)
+
+// 列表行平台策略：base_url/model/authMode 解析 + 操作文案 + 编辑图标
+const rowDescriptor = computed<ProfileRowDescriptor<ClaudeProfile>>(() => ({
+  baseUrl: (profile) => {
+    const raw = profile.base_url?.trim()
+    return raw && raw.length > 0 ? raw : t('claudeProfiles.officialBaseUrl')
+  },
+  // Claude 多模型：优先主模型，回退 sonnet/opus/haiku/subagent 映射
+  model: (profile) =>
+    profile.model?.trim()
+    || profile.default_sonnet_model?.trim()
+    || profile.default_opus_model?.trim()
+    || profile.default_haiku_model?.trim()
+    || profile.subagent_model?.trim()
+    || '—',
+  authMode: (profile) =>
+    profile.auth_mode === 'api_key'
+      ? t('claudeProfiles.authModeApiKey')
+      : t('claudeProfiles.authModeSubscription'),
+  editIcon: 'Pencil',
+  labels: {
+    apply: t('claudeProfiles.applyProfile'),
+    edit: t('claudeProfiles.editTooltip'),
+    delete: t('claudeProfiles.deleteTooltip'),
+  },
+}))
+
+const claudeAuthModeLabel = (mode: string): string =>
+  mode === 'api_key' ? t('claudeProfiles.authModeApiKey') : t('claudeProfiles.authModeSubscription')
+
+// 上下文侧栏平台策略：洞察来源 + 当前 profile 字段列表 + 文案/图标
+const railDescriptor: ContextRailDescriptor<ClaudeProfile> = {
+  editIcon: 'Pencil',
+  useInsights: useClaudeProfilesInsights,
+  activeFields: (profile) => {
+    const baseUrl = profile.base_url?.trim() || t('claudeProfiles.officialBaseUrl')
+    // Claude 多模型：优先主模型，回退 sonnet/opus/haiku/subagent 映射
+    const model = profile.model?.trim()
+      || profile.default_sonnet_model?.trim()
+      || profile.default_opus_model?.trim()
+      || profile.default_haiku_model?.trim()
+      || profile.subagent_model?.trim()
+      || '—'
+    const fields: ContextRailActiveField[] = [
+      { label: t('claudeProfiles.fields.baseUrl'), value: baseUrl },
+      { label: t('claudeProfiles.fields.model'), value: model, variant: 'accent' },
+      {
+        label: t('claudeProfiles.fields.authMode'),
+        value: claudeAuthModeLabel(profile.auth_mode ?? 'subscription'),
+        variant: 'muted',
+      },
+    ]
+    if (profile.provider) {
+      fields.push({ label: t('claudeProfiles.providerLabel'), value: profile.provider, variant: 'muted' })
+    }
+    if (profile.account) {
+      fields.push({ label: t('claudeProfiles.accountLabel'), value: profile.account })
+    }
+    return fields
+  },
+  authModeLabel: claudeAuthModeLabel,
+  isDeprecatedMode: () => false,
+  missingMessage: missing =>
+    missing
+      .map(field =>
+        field === 'base_url'
+          ? t('claudeProfiles.contextRail.issues.missingBaseUrl')
+          : field === 'model'
+            ? t('claudeProfiles.contextRail.issues.missingModel')
+            : t('claudeProfiles.contextRail.issues.missingAccount'),
+      )
+      .join(' · '),
+  runtimeSummary: (profile) => {
+    const model = profile.model?.trim()
+      || profile.default_sonnet_model?.trim()
+      || profile.default_opus_model?.trim()
+      || '—'
+    const baseUrl = profile.base_url?.trim() || '—'
+    return `${model} · ${baseUrl}`
+  },
+}
+const toolbarRef = ref<InstanceType<typeof ProfilesToolbar> | null>(null)
 const modalScrollRef = ref<HTMLElement | null>(null)
 const activeFormSectionId = ref<ClaudeProfileFormSectionId>('basic')
 const modalSectionRefs = ref<Record<ClaudeProfileFormSectionId, HTMLElement | null>>({
@@ -533,9 +643,9 @@ const findProfile = (name: string): ClaudeProfile => {
 }
 
 // 简易分组容器：标题 + 计数 + 内容插槽（functional component）
-const ProfilesSection = (
-  props: { title: string, count: number },
-  { slots }: { slots: { default?: () => unknown } },
+const ProfilesSection: FunctionalComponent<{ title: string, count: number }> = (
+  props,
+  { slots },
 ) => {
   const children = (slots.default?.() ?? []) as never
   return h('section', { class: 'cp-section' }, [
@@ -547,7 +657,7 @@ const ProfilesSection = (
     h('div', { class: 'cp-section__body' }, children),
   ])
 }
-;(ProfilesSection as unknown as { props: string[] }).props = ['title', 'count']
+ProfilesSection.props = ['title', 'count']
 
 const modalEyebrow = computed(() => (
   isEditing.value
@@ -1421,6 +1531,7 @@ onBeforeUnmount(() => {
   --cp-accent: var(--color-accent-secondary);
   --cp-accent-soft: rgb(var(--color-accent-secondary-rgb) / 14%);
   --cp-accent-line: rgb(var(--color-accent-secondary-rgb) / 35%);
+  --cp-accent-hover: var(--color-accent-secondary-hover);
   --cp-on-accent: var(--color-text-inverted);
 
   /* 状态色 → 全局 token */

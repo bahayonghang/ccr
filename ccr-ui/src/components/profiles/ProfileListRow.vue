@@ -1,4 +1,5 @@
-<!-- 列表密度备选行：紧凑显示，支持单列卡片之外的"列表"视图 -->
+<!-- 列表密度行：紧凑显示。平台差异（base_url/model/authMode 解析、编辑图标、操作文案）
+     通过 descriptor 注入；busyAction 驱动 apply/delete 的加载态。样式靠视图 --cp-* 继承换肤。 -->
 <template>
   <div
     class="cp-row surface-status"
@@ -11,13 +12,19 @@
       class="cp-row__dot"
       :class="{ 'cp-row__dot--good': isCurrent }"
     />
-    <span class="cp-row__name">{{ profile.name }}</span>
+    <span
+      class="cp-row__name"
+      :title="profile.name"
+    >{{ profile.name }}</span>
     <span class="cp-row__label">{{ profile.description || '—' }}</span>
     <span
       class="cp-row__url"
       :title="baseUrlText"
     >{{ baseUrlText }}</span>
-    <span class="cp-row__model">{{ profile.model || '—' }}</span>
+    <span
+      class="cp-row__model"
+      :title="modelText"
+    >{{ modelText }}</span>
     <span class="cp-row__meta">{{ authModeText }}</span>
     <div class="cp-row__tags">
       <span
@@ -31,8 +38,8 @@
         v-if="!isCurrent && isEnabled"
         type="button"
         class="cp-icon-btn cp-icon-btn--accent"
-        :title="$t('codex.profiles.apply')"
-        :aria-label="$t('codex.profiles.apply')"
+        :title="descriptor.labels.apply"
+        :aria-label="descriptor.labels.apply"
         :disabled="disabled"
         @click="emit('apply', profile.name)"
       >
@@ -45,21 +52,21 @@
       <button
         type="button"
         class="cp-icon-btn"
-        :title="$t('codex.actions.edit')"
-        :aria-label="$t('codex.actions.edit')"
+        :title="descriptor.labels.edit"
+        :aria-label="descriptor.labels.edit"
         :disabled="disabled"
         @click="emit('edit', profile.name)"
       >
         <SIcon
-          name="Edit2"
+          :name="descriptor.editIcon"
           size="w-3 h-3"
         />
       </button>
       <button
         type="button"
         class="cp-icon-btn cp-icon-btn--danger"
-        :title="$t('codex.actions.delete')"
-        :aria-label="$t('codex.actions.delete')"
+        :title="descriptor.labels.delete"
+        :aria-label="descriptor.labels.delete"
         :disabled="disabled"
         @click="emit('delete', profile.name)"
       >
@@ -73,22 +80,43 @@
   </div>
 </template>
 
-<script setup lang="ts">
+<script setup lang="ts" generic="T extends ProfileRowProfile">
 import { computed } from 'vue'
-import { useI18n } from 'vue-i18n'
 import SIcon from '@/components/ui/SIcon.vue'
-import type { CodexProfile, CodexProfileAuthMode } from '@/types'
+
+/** Row 渲染所需的最小 profile 形状（两平台共有字段） */
+export interface ProfileRowProfile {
+  name: string
+  description?: string | null
+  enabled?: boolean | null
+  tags?: string[] | null
+}
+
+/** 平台注入的行渲染策略：解析展示字段 + 操作文案 + 编辑图标 */
+export interface ProfileRowDescriptor<P> {
+  /** 解析展示用 base_url（空回退官方文案） */
+  baseUrl: (profile: P) => string
+  /** 解析展示用主模型（Claude 多模型回退；Codex 单 model） */
+  model: (profile: P) => string
+  /** 解析展示用 auth 模式标签 */
+  authMode: (profile: P) => string
+  /** 编辑按钮图标：Claude 'Pencil' / Codex 'Edit2' */
+  editIcon: string
+  labels: { apply: string; edit: string; delete: string }
+}
 
 interface Props {
-  profile: CodexProfile
+  profile: T
+  descriptor: ProfileRowDescriptor<T>
   isCurrent: boolean
-  busyAction?: 'apply' | 'delete' | null
   disabled?: boolean
+  /** 进行中的操作（Codex 用，驱动图标转圈）；Claude 省略 → 恒 null */
+  busyAction?: 'apply' | 'delete' | null
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  busyAction: null,
   disabled: false,
+  busyAction: null,
 })
 
 const emit = defineEmits<{
@@ -97,20 +125,11 @@ const emit = defineEmits<{
   (e: 'delete', name: string): void
 }>()
 
-const { t } = useI18n()
-
 const isEnabled = computed(() => props.profile.enabled !== false)
 const tagList = computed(() => props.profile.tags ?? [])
-
-const baseUrlText = computed(() => {
-  const raw = props.profile.base_url?.trim()
-  return raw && raw.length > 0 ? raw : t('codex.profiles.officialBaseUrl')
-})
-
-const authModeText = computed(() => {
-  const mode = props.profile.auth_mode as CodexProfileAuthMode | undefined
-  return t(`codex.profiles.authModes.${mode || 'no_auth'}`)
-})
+const baseUrlText = computed(() => props.descriptor.baseUrl(props.profile))
+const modelText = computed(() => props.descriptor.model(props.profile))
+const authModeText = computed(() => props.descriptor.authMode(props.profile))
 </script>
 
 <style scoped>

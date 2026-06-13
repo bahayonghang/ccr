@@ -1,26 +1,27 @@
-<!-- Codex Profiles 页面顶部标题区：标题/副标题 + 命令/重载/导出/添加 -->
+<!-- Profiles 页面顶部标题区：标题/副标题 + （可选命令面板）/重载/导出/添加。
+     平台差异通过 icon + backTo + labels + 可选 palette 注入；样式靠视图的 --cp-* 继承换肤。 -->
 <template>
   <div class="cp-header">
     <div class="cp-header__intro">
       <div class="cp-header__icon">
         <SIcon
-          name="Folder"
+          :name="icon"
           size="w-5 h-5"
         />
       </div>
       <div class="cp-header__text">
         <h1 class="cp-header__title">
-          {{ $t('codex.profiles.title') }}
+          {{ labels.title }}
         </h1>
         <p class="cp-header__subtitle">
-          {{ $t('codex.profiles.subtitle') }}
+          {{ labels.subtitle }}
         </p>
       </div>
     </div>
 
     <div class="cp-header__actions">
       <RouterLink
-        to="/codex"
+        :to="backTo"
         class="cp-header__back"
       >
         <button
@@ -31,26 +32,27 @@
             name="ArrowLeft"
             size="w-3.5 h-3.5"
           />
-          <span>{{ $t('codex.profiles.backToCodex') }}</span>
+          <span>{{ labels.back }}</span>
         </button>
       </RouterLink>
 
       <button
+        v-if="palette"
         type="button"
         class="cp-btn cp-btn--ghost"
         :class="{ 'cp-btn--palette-open': paletteOpen }"
         :disabled="loading"
         :aria-pressed="paletteOpen"
         aria-haspopup="dialog"
-        :title="$t('codex.profiles.commandPaletteShortcut')"
+        :title="palette.title"
         @click="emit('openPalette')"
       >
         <SIcon
           name="Command"
           size="w-3.5 h-3.5"
         />
-        <span>{{ $t('codex.profiles.commandPaletteButton') }}</span>
-        <kbd class="cp-btn__kbd">⌘K</kbd>
+        <span>{{ palette.label }}</span>
+        <kbd class="cp-btn__kbd">{{ palette.shortcut }}</kbd>
       </button>
 
       <button
@@ -64,7 +66,7 @@
           size="w-3.5 h-3.5"
           :class="{ 'cp-spin': loading }"
         />
-        <span>{{ $t('codex.profiles.reloadAction') }}</span>
+        <span>{{ labels.reload }}</span>
       </button>
 
       <button
@@ -77,7 +79,7 @@
           name="Download"
           size="w-3.5 h-3.5"
         />
-        <span>{{ $t('common.export') }}</span>
+        <span>{{ labels.export }}</span>
       </button>
 
       <button
@@ -90,7 +92,7 @@
           name="Plus"
           size="w-3.5 h-3.5"
         />
-        <span>{{ $t('codex.profiles.addProfile') }}</span>
+        <span>{{ labels.add }}</span>
       </button>
     </div>
   </div>
@@ -100,15 +102,36 @@
 import SIcon from '@/components/ui/SIcon.vue'
 import { RouterLink } from 'vue-router'
 
+export interface ProfilesHeaderLabels {
+  title: string
+  subtitle: string
+  back: string
+  reload: string
+  export: string
+  add: string
+}
+
+/** 命令面板按钮（Codex 用，Claude 省略 → 不渲染） */
+export interface ProfilesHeaderPalette {
+  label: string
+  shortcut: string
+  title: string
+}
+
 interface Props {
+  icon: string
+  backTo: string
+  labels: ProfilesHeaderLabels
   loading?: boolean
   exporting?: boolean
+  palette?: ProfilesHeaderPalette | null
   paletteOpen?: boolean
 }
 
 withDefaults(defineProps<Props>(), {
   loading: false,
   exporting: false,
+  palette: null,
   paletteOpen: false,
 })
 
@@ -175,6 +198,7 @@ const emit = defineEmits<{
 
 .cp-header__back { display: inline-flex; }
 
+/* 共享按钮样式：靠 --cp-* 令牌着色，每个视图各自设定 accent（Claude 暖中性次色 / Codex 主色） */
 .cp-btn {
   display: inline-flex;
   align-items: center;
@@ -228,8 +252,8 @@ const emit = defineEmits<{
 }
 
 .cp-btn--primary:hover:not(:disabled) {
-  background: var(--color-accent-primary-hover);
-  border-color: var(--color-accent-primary-hover);
+  background: var(--cp-accent-hover);
+  border-color: var(--cp-accent-hover);
 }
 
 .cp-btn__kbd {

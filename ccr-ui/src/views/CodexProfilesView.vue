@@ -11,6 +11,21 @@
     <main class="cp-shell">
       <div class="cp-main">
         <ProfilesHeader
+          icon="Folder"
+          back-to="/codex"
+          :labels="{
+            title: $t('codex.profiles.title'),
+            subtitle: $t('codex.profiles.subtitle'),
+            back: $t('codex.profiles.backToCodex'),
+            reload: $t('codex.profiles.reloadAction'),
+            export: $t('common.export'),
+            add: $t('codex.profiles.addProfile'),
+          }"
+          :palette="{
+            label: $t('codex.profiles.commandPaletteButton'),
+            shortcut: '⌘K',
+            title: $t('codex.profiles.commandPaletteShortcut'),
+          }"
           :loading="loading"
           :exporting="exporting"
           :palette-open="paletteOpen"
@@ -23,9 +38,25 @@
         <ProfilesStatStrip
           :current="currentProfile"
           :total="profiles.length"
-          :enabled="enabledCount"
-          :mode="currentConfigMode"
+          :labels="{
+            current: $t('codex.status.currentConfig'),
+            notSet: $t('codex.status.notSet'),
+            currentHint: $t('codex.profiles.statStrip.profileSubtitle'),
+            total: $t('codex.status.totalProfiles'),
+            totalHint: $t('codex.profiles.statStrip.totalHint', { enabled: enabledCount, disabled: profiles.length - enabledCount }),
+            lastWrite: $t('codex.profiles.statStrip.lastWrite'),
+            lastWriteHint: $t('codex.profiles.statStrip.lastWriteHint'),
+          }"
+          :secondary="{
+            icon: currentConfigMode === 'official' ? 'Globe' : 'Server',
+            title: $t('codex.status.configMode'),
+            value: currentConfigMode === 'official' ? $t('codex.profiles.officialConfig') : $t('codex.profiles.customRelay'),
+            hint: 'profiles.toml',
+            mono: false,
+          }"
           :last-write="lastWriteHint"
+          :total-spark="[3, 5, 4, 6, 7, 8, 7]"
+          :recent-spark="[2, 4, 3, 5, 4, 6, 5]"
         />
 
         <ProfilesQuickRail
@@ -38,6 +69,7 @@
 
         <ProfilesToolbar
           ref="toolbarRef"
+          i18n-prefix="codex.profiles.toolbar"
           :query="query"
           :status-filter="statusFilter"
           :tag-filter="tagFilter"
@@ -123,10 +155,11 @@
               <span>{{ $t('codex.profiles.fields.tags') }}</span>
               <span class="cp-list-head__right">{{ $t('codex.profiles.toolbar.actionsLabel') }}</span>
             </div>
-            <ProfileRow
+            <ProfileListRow
               v-for="profile in enabledList"
               :key="profile.name"
               :profile="profile"
+              :descriptor="rowDescriptor"
               :is-current="profile.name === currentProfile"
               :busy-action="busyProfileName === profile.name ? busyAction : null"
               :disabled="actionLoading"
@@ -141,10 +174,11 @@
             :title="$t('codex.profiles.groups.disabled')"
             :count="disabledList.length"
           >
-            <ProfileRow
+            <ProfileListRow
               v-for="profile in disabledList"
               :key="profile.name"
               :profile="profile"
+              :descriptor="rowDescriptor"
               :is-current="profile.name === currentProfile"
               :busy-action="busyProfileName === profile.name ? busyAction : null"
               :disabled="actionLoading"
@@ -204,7 +238,8 @@
         :profiles="profiles"
         :current="currentProfile"
         :active-profile="activeProfile"
-        @apply="handleApply"
+        i18n-prefix="codex.profiles.contextRail"
+        :descriptor="railDescriptor"
         @edit="handleEdit"
       />
     </main>
@@ -261,7 +296,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, h, onActivated, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { computed, h, onActivated, onBeforeUnmount, onMounted, reactive, ref, type FunctionalComponent } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   addCodexCustomModel,
@@ -275,14 +310,15 @@ import {
   updateCodexProfile,
 } from '@/api'
 import CodexProfileEditorModal from '@/components/codex/CodexProfileEditorModal.vue'
-import CommandPalette from '@/components/codex/profiles/CommandPalette.vue'
-import ProfileCard from '@/components/codex/profiles/ProfileCard.vue'
-import ProfileRow from '@/components/codex/profiles/ProfileRow.vue'
-import ProfilesContextRail from '@/components/codex/profiles/ProfilesContextRail.vue'
-import ProfilesHeader from '@/components/codex/profiles/ProfilesHeader.vue'
-import ProfilesQuickRail from '@/components/codex/profiles/ProfilesQuickRail.vue'
-import ProfilesStatStrip from '@/components/codex/profiles/ProfilesStatStrip.vue'
-import ProfilesToolbar, { type CodexProfilesViewMode } from '@/components/codex/profiles/ProfilesToolbar.vue'
+import CommandPalette from '@/components/codex/CommandPalette.vue'
+import ProfileCard from '@/components/codex/ProfileCard.vue'
+import ProfileListRow, { type ProfileRowDescriptor } from '@/components/profiles/ProfileListRow.vue'
+import ProfilesContextRail, { type ContextRailDescriptor, type ContextRailActiveField } from '@/components/profiles/ProfilesContextRail.vue'
+import { useCodexProfilesInsights } from '@/composables/useCodexProfilesInsights'
+import ProfilesHeader from '@/components/profiles/ProfilesHeader.vue'
+import ProfilesQuickRail from '@/components/codex/ProfilesQuickRail.vue'
+import ProfilesStatStrip from '@/components/profiles/ProfilesStatStrip.vue'
+import ProfilesToolbar, { type ProfilesViewMode } from '@/components/profiles/ProfilesToolbar.vue'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import ModuleSubnav from '@/components/ModuleSubnav.vue'
 import SIcon from '@/components/ui/SIcon.vue'
@@ -301,7 +337,7 @@ import type {
   CodexProfilesResponse,
 } from '@/types'
 import type { ProviderTemplateDraftContext, ProviderTemplateSelection } from '@/types/providerTemplates'
-import { copyToClipboard } from '@/utils/codexHelpers'
+import { copyText } from '@/utils/clipboard'
 import {
   AVAILABLE_AUTH_MODES,
   CUSTOM_MODEL_OPTION,
@@ -318,6 +354,7 @@ import {
 import { downloadTextFile } from '@/utils/download'
 import { logger } from '@/utils/logger'
 import { mapTemplateToCodexProfilePatch } from '@/utils/providerTemplates'
+import { REFRESH_TTL_MS } from '@/config/constants'
 
 defineOptions({ name: 'CodexProfilesView' })
 
@@ -357,15 +394,80 @@ const confirmDialog = reactive<{
 }>({ title: '', message: '', confirmText: '', type: 'warning' })
 let confirmedAction: (() => Promise<void>) | null = null
 
-const REFRESH_TTL_MS = 30_000
-
 // ===== 列表筛选状态 =====
 const query = ref('')
 const statusFilter = ref<CodexProfilesStatusFilter>('all')
 const tagFilter = ref<string | null>(null)
 const sortBy = ref<CodexProfilesSortBy>('recent')
-const viewMode = ref<CodexProfilesViewMode>('card')
+const viewMode = ref<ProfilesViewMode>('card')
 const paletteOpen = ref(false)
+
+// 列表行平台策略：base_url/model/authMode 解析 + 操作文案 + 编辑图标
+const rowDescriptor = computed<ProfileRowDescriptor<CodexProfile>>(() => ({
+  baseUrl: (profile) => {
+    const raw = profile.base_url?.trim()
+    return raw && raw.length > 0 ? raw : t('codex.profiles.officialBaseUrl')
+  },
+  model: (profile) => profile.model || '—',
+  authMode: (profile) => t(`codex.profiles.authModes.${profile.auth_mode || 'no_auth'}`),
+  editIcon: 'Edit2',
+  labels: {
+    apply: t('codex.profiles.apply'),
+    edit: t('codex.actions.edit'),
+    delete: t('codex.actions.delete'),
+  },
+}))
+
+const codexAuthModeLabel = (mode: string): string => t(`codex.profiles.authModes.${mode}`)
+
+// 上下文侧栏平台策略：洞察来源 + 当前 profile 字段列表 + 文案/图标
+const railDescriptor: ContextRailDescriptor<CodexProfile> = {
+  editIcon: 'Edit2',
+  useInsights: useCodexProfilesInsights,
+  activeFields: (profile) => {
+    const baseUrl = profile.base_url?.trim() || t('codex.profiles.officialBaseUrl')
+    const fields: ContextRailActiveField[] = [
+      { label: t('codex.profiles.fields.baseUrl'), value: baseUrl },
+      { label: t('codex.profiles.fields.model'), value: profile.model || '—', variant: 'accent' },
+      {
+        label: t('codex.profiles.fields.authMode'),
+        value: codexAuthModeLabel(profile.auth_mode ?? 'no_auth'),
+        variant: 'muted',
+      },
+    ]
+    if (profile.openai_login_method) {
+      fields.push({ label: t('codex.profiles.fields.openAiLoginMethod'), value: profile.openai_login_method, variant: 'muted' })
+    }
+    if (profile.account) {
+      fields.push({ label: t('codex.profiles.fields.account'), value: profile.account })
+    }
+    if (profile.provider) {
+      fields.push({ label: t('codex.profiles.fields.provider'), value: profile.provider, variant: 'muted' })
+    }
+    if (profile.credential_store) {
+      fields.push({ label: t('codex.profiles.contextRail.credentialStore'), value: profile.credential_store, variant: 'muted' })
+    }
+    if (profile.env_key) {
+      fields.push({ label: t('codex.profiles.fields.envKey'), value: profile.env_key })
+    }
+    return fields
+  },
+  authModeLabel: codexAuthModeLabel,
+  isDeprecatedMode: mode => mode === 'openai_chatgpt' || mode === 'provider_env_key',
+  missingMessage: missing =>
+    missing
+      .map(field =>
+        field === 'base_url'
+          ? t('codex.profiles.contextRail.issues.missingBaseUrl')
+          : t('codex.profiles.contextRail.issues.missingModel'),
+      )
+      .join(' · '),
+  runtimeSummary: profile => `${profile.model} · ${profile.base_url}`,
+  deprecatedMessage: profile =>
+    translateWithFallback(t, 'codex.profiles.contextRail.issues.deprecatedAuth', '使用已弃用模式：{mode}', {
+      mode: codexAuthModeLabel(profile.auth_mode ?? 'no_auth'),
+    }),
+}
 const toolbarRef = ref<InstanceType<typeof ProfilesToolbar> | null>(null)
 
 const { allTags, filtered, enabledList, disabledList, activeProfile } = useCodexProfilesFilter({
@@ -473,7 +575,7 @@ const copyProfileEnv = async (profile: CodexProfile) => {
   const script = profile.shell_export_script || buildShellExportFallback(profile)
   if (!script) return
   try {
-    const ok = await copyToClipboard(script)
+    const ok = await copyText(script)
     if (!ok) throw new Error('copy failed')
     uiStore.showSuccess(t('codex.profiles.messages.envExportCopied'))
   } catch (error) {
@@ -764,9 +866,9 @@ const resetFilters = () => {
 }
 
 // ===== 简易分组容器：标题 + 计数 + 内容插槽（functional component） =====
-const ProfilesSection = (
-  props: { title: string, count: number },
-  { slots }: { slots: { default?: () => unknown } },
+const ProfilesSection: FunctionalComponent<{ title: string, count: number }> = (
+  props,
+  { slots },
 ) => {
   // children 由父组件 v-slot 传入，运行时已是 VNode[]；TS 推断收紧到 VNodeChild
   // 这里跳过 h() 第三参的严格签名检查，等价于直接挂载子节点
@@ -780,7 +882,7 @@ const ProfilesSection = (
     h('div', { class: 'cp-section__body' }, children),
   ])
 }
-;(ProfilesSection as unknown as { props: string[] }).props = ['title', 'count']
+ProfilesSection.props = ['title', 'count']
 
 // ===== 键盘快捷键：/ ⌘K ⌘1-9 Esc =====
 const isEditableTarget = (el: EventTarget | null): boolean => {
@@ -852,6 +954,7 @@ onActivated(() => { void ensureLoaded(false) })
   --cp-accent: var(--color-accent-primary);
   --cp-accent-soft: rgb(var(--color-accent-primary-rgb) / 14%);
   --cp-accent-line: rgb(var(--color-accent-primary-rgb) / 35%);
+  --cp-accent-hover: var(--color-accent-primary-hover);
   --cp-on-accent: var(--color-text-inverted);
 
   /* 状态色 → 全局 token */

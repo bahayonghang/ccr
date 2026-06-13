@@ -1,4 +1,5 @@
-<!-- 4 列统计条：当前 profile / 配置总数 / 认证分布 / 最近写入 -->
+<!-- 4 列统计条：当前 profile / 配置总数 / 平台特定列 / 最近写入。
+     平台差异通过 labels + secondary 列 + 可选 sparkline 注入；样式靠视图的 --cp-* 继承换肤。 -->
 <template>
   <div class="cp-stats">
     <div class="cp-stat surface-status">
@@ -7,13 +8,13 @@
           class="cp-stat__dot"
           :class="{ 'cp-stat__dot--good': Boolean(current) }"
         />
-        {{ $t('claudeProfiles.currentProfile') }}
+        {{ labels.current }}
       </div>
       <div class="cp-stat__value cp-stat__value--mono">
-        {{ current || $t('claudeProfiles.notSet') }}
+        {{ current || labels.notSet }}
       </div>
       <div class="cp-stat__hint">
-        {{ $t('claudeProfiles.statStrip.profileSubtitle') }}
+        {{ labels.currentHint }}
       </div>
     </div>
 
@@ -23,29 +24,38 @@
           name="Folder"
           size="w-3 h-3"
         />
-        {{ $t('claudeProfiles.totalCount') }}
+        {{ labels.total }}
       </div>
       <div class="cp-stat__value cp-stat__value--mono">
         {{ total }}
       </div>
       <div class="cp-stat__hint">
-        {{ $t('claudeProfiles.statStrip.totalHint', { enabled, disabled: total - enabled }) }}
+        {{ labels.totalHint }}
       </div>
+      <Sparkline
+        v-if="totalSpark"
+        :values="totalSpark"
+        color="var(--cp-info)"
+        class="cp-stat__spark"
+      />
     </div>
 
     <div class="cp-stat surface-status">
       <div class="cp-stat__head">
         <SIcon
-          name="ShieldCheck"
+          :name="secondary.icon"
           size="w-3 h-3"
         />
-        {{ $t('claudeProfiles.statStrip.authTitle') }}
+        {{ secondary.title }}
       </div>
-      <div class="cp-stat__value cp-stat__value--mono">
-        {{ subscriptionCount }} · {{ apiKeyCount }}
+      <div
+        class="cp-stat__value"
+        :class="{ 'cp-stat__value--mono': secondary.mono }"
+      >
+        {{ secondary.value }}
       </div>
       <div class="cp-stat__hint">
-        {{ $t('claudeProfiles.statStrip.authSplit', { subscription: subscriptionCount, apiKey: apiKeyCount }) }}
+        {{ secondary.hint }}
       </div>
     </div>
 
@@ -55,32 +65,63 @@
           name="RefreshCw"
           size="w-3 h-3"
         />
-        {{ $t('claudeProfiles.statStrip.lastWrite') }}
+        {{ labels.lastWrite }}
       </div>
       <div class="cp-stat__value cp-stat__value--mono">
         {{ lastWrite || '—' }}
       </div>
       <div class="cp-stat__hint">
-        {{ $t('claudeProfiles.statStrip.lastWriteHint') }}
+        {{ labels.lastWriteHint }}
       </div>
+      <Sparkline
+        v-if="recentSpark"
+        :values="recentSpark"
+        color="var(--cp-good)"
+        class="cp-stat__spark"
+      />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
+import Sparkline from './Sparkline.vue'
+
+export interface ProfilesStatStripLabels {
+  current: string
+  notSet: string
+  currentHint: string
+  total: string
+  totalHint: string
+  lastWrite: string
+  lastWriteHint: string
+}
+
+/** 第三列（平台特定）：Claude=认证分布；Codex=配置模式 */
+export interface ProfilesStatStripSecondary {
+  icon: string
+  title: string
+  value: string
+  hint: string
+  /** value 是否用等宽字体（Claude 计数用 mono，Codex 文案不用） */
+  mono?: boolean
+}
 
 interface Props {
   current: string | null
   total: number
-  enabled: number
-  subscriptionCount: number
-  apiKeyCount: number
+  labels: ProfilesStatStripLabels
+  secondary: ProfilesStatStripSecondary
   lastWrite?: string | null
+  /** 列 2/4 的装饰 sparkline（Codex 用，Claude 省略 → 不渲染） */
+  totalSpark?: number[] | null
+  recentSpark?: number[] | null
 }
 
 withDefaults(defineProps<Props>(), {
   lastWrite: null,
+  totalSpark: null,
+  recentSpark: null,
 })
 </script>
 
@@ -136,6 +177,13 @@ withDefaults(defineProps<Props>(), {
 .cp-stat__hint {
   color: var(--cp-ink-3);
   font-size: 11px;
+}
+
+.cp-stat__spark {
+  position: absolute;
+  right: 10px;
+  top: 12px;
+  opacity: 0.6;
 }
 
 @media (width <= 1024px) {
