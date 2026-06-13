@@ -167,19 +167,12 @@ defineExpose({ openAccountId, toggle, close })
 
 <style scoped>
 .checkin-accounts-tab__menu {
-  z-index: 60;
+  z-index: var(--z-popover);
   padding: 0.35rem;
-  border-radius: 1rem;
-  border: 1px solid rgb(var(--color-border-strong-rgb) / 48%);
-  background: linear-gradient(
-    180deg,
-    rgb(var(--color-bg-elevated-rgb) / 94%),
-    rgb(var(--color-bg-surface-rgb) / 92%)
-  );
-  box-shadow:
-    0 20px 40px rgb(15 23 42 / 18%),
-    inset 0 1px 0 rgb(255 255 255 / 16%);
-  backdrop-filter: blur(18px) saturate(165%);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border-default);
+  background: var(--color-bg-elevated);
+  box-shadow: var(--shadow-lg);
   overflow-y: auto;
 }
 
@@ -198,15 +191,15 @@ defineExpose({ openAccountId, toggle, close })
 
 .checkin-accounts-tab__menu-item {
   width: 100%;
-  border-radius: 0.8rem;
+  border-radius: var(--radius-md);
   padding: 0.625rem 0.75rem;
   text-align: left;
-  font-size: 0.8125rem;
+  font-size: var(--text-sm);
   font-weight: 600;
   color: var(--text-secondary);
   transition:
-    background-color 0.2s ease,
-    color 0.2s ease;
+    background-color var(--duration-normal) var(--ease-out),
+    color var(--duration-normal) var(--ease-out);
 }
 
 .checkin-accounts-tab__menu-item:hover {

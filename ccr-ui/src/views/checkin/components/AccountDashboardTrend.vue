@@ -258,11 +258,10 @@ const formatReward = (amount: number) => {
   position: absolute;
   min-width: 11rem;
   padding: 0.75rem 0.85rem;
-  border-radius: 0.85rem;
-  background: rgb(var(--color-bg-base-rgb) / 96%);
-  border: 1px solid rgb(var(--color-border-default-rgb) / 82%);
-  box-shadow: 0 14px 32px rgb(15 23 42 / 18%);
-  backdrop-filter: blur(14px) saturate(135%);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-default);
+  box-shadow: var(--shadow-lg);
   pointer-events: none;
   z-index: 5;
 }
@@ -300,12 +299,6 @@ const formatReward = (amount: number) => {
 
 .tooltip-value.tooltip-missed {
   color: var(--text-muted);
-}
-
-:global(.dark) .chart-tooltip {
-  background: rgb(var(--color-bg-surface-rgb) / 96%);
-  border-color: rgb(var(--color-border-default-rgb) / 88%);
-  box-shadow: 0 18px 36px rgb(0 0 0 / 34%);
 }
 
 @media (width <= 768px) {

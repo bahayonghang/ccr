@@ -191,7 +191,7 @@ const buildTitle = (cell: CheckinDashboardDay) => {
 .cell-checked {
   background: rgb(var(--color-accent-primary-rgb) / 12%);
   border-color: rgb(var(--color-accent-primary-rgb) / 34%);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 20%);
+  box-shadow: var(--shadow-inner);
 }
 
 .cell-unchecked {

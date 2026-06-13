@@ -228,8 +228,8 @@ watch(
                 v-if="getRecoveryBadgeLabel(log)"
                 class="ml-2 inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium"
                 :class="log.wafRecovered
-                  ? 'bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-200'
-                  : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-200'"
+                  ? 'bg-accent-info/15 text-accent-info'
+                  : 'bg-accent-warning/15 text-accent-warning'"
               >
                 {{ getRecoveryBadgeLabel(log) }}
               </span>
@@ -242,7 +242,7 @@ watch(
               </p>
               <p
                 v-if="log.wafRecoveryAttempted && log.wafRecovered === false && log.wafRecoveryError"
-                class="mt-0.5 break-all text-xs text-amber-700 dark:text-amber-300"
+                class="mt-0.5 break-all text-xs text-accent-warning"
               >
                 {{ log.wafRecoveryError }}
               </p>

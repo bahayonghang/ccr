@@ -349,39 +349,27 @@ onMounted(() => {
 }
 
 .checkin-accounts-tab__action-button--secondary {
-  border-color: rgb(125 211 252 / 32%);
-  background:
-    radial-gradient(circle at 16% 0%, rgb(56 189 248 / 22%), transparent 34%),
-    linear-gradient(135deg, rgb(15 23 42 / 94%), rgb(17 24 39 / 86%));
-  color: rgb(236 253 245 / 96%);
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 12%),
-    0 0 0 1px rgb(20 184 166 / 10%),
-    0 14px 28px rgb(15 23 42 / 18%),
-    0 0 22px rgb(20 184 166 / 10%);
+  border-color: var(--color-border-default);
+  background: var(--color-bg-surface);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-sm);
 }
 
 .checkin-accounts-tab__action-button--secondary:hover:not(:disabled) {
-  border-color: rgb(94 234 212 / 48%);
-  color: white;
+  border-color: var(--color-border-accent);
   transform: translateY(-1px);
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 16%),
-    0 0 0 1px rgb(20 184 166 / 18%),
-    0 18px 36px rgb(15 23 42 / 24%),
-    0 0 28px rgb(20 184 166 / 18%);
+  box-shadow: var(--shadow-md);
 }
 
 .checkin-accounts-tab__action-button--secondary:disabled {
   border-color: rgb(var(--color-border-default-rgb) / 54%);
-  background:
-    linear-gradient(135deg, rgb(var(--color-bg-elevated-rgb) / 54%), rgb(var(--color-bg-surface-rgb) / 48%));
+  background: var(--color-bg-elevated);
   color: var(--text-muted);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 8%);
+  box-shadow: none;
 }
 
 .checkin-accounts-tab__action-button-icon {
-  filter: drop-shadow(0 0 8px rgb(20 184 166 / 36%));
+  filter: none;
 }
 
 .checkin-accounts-tab__empty {

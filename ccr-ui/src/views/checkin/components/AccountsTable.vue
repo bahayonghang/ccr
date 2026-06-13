@@ -198,8 +198,7 @@ const formatDate = (dateStr: string) => {
 .checkin-accounts-tab__table-head {
   position: sticky;
   top: 0;
-  background: rgb(255 255 255 / 10%);
-  backdrop-filter: blur(16px);
+  background: var(--color-bg-surface);
 }
 
 .checkin-accounts-tab__table-body {
@@ -208,7 +207,7 @@ const formatDate = (dateStr: string) => {
 
 .checkin-accounts-tab__table-head tr,
 .checkin-accounts-tab__table-body tr + tr td {
-  border-top: 1px solid rgb(148 163 184 / 20%);
+  border-top: 1px solid var(--color-border-subtle);
 }
 
 .checkin-accounts-tab__th,
@@ -241,7 +240,7 @@ const formatDate = (dateStr: string) => {
 }
 
 .checkin-accounts-tab__row:hover {
-  background: rgb(255 255 255 / 4%);
+  background: rgb(var(--color-accent-primary-rgb) / 6%);
 }
 
 .checkin-accounts-tab__account {
@@ -275,8 +274,8 @@ const formatDate = (dateStr: string) => {
 
 .checkin-accounts-tab__provider-chip {
   width: fit-content;
-  border-radius: 0.375rem;
-  background: rgb(255 255 255 / 8%);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-overlay);
   padding: 0.125rem 0.5rem;
   font-size: 0.75rem;
   color: var(--text-muted);
@@ -293,11 +292,7 @@ const formatDate = (dateStr: string) => {
 }
 
 .checkin-accounts-tab__metric--balance {
-  color: rgb(22 163 74);
-}
-
-.dark .checkin-accounts-tab__metric--balance {
-  color: rgb(74 222 128);
+  color: var(--accent-success);
 }
 
 .checkin-accounts-tab__metric--quota {
@@ -305,11 +300,7 @@ const formatDate = (dateStr: string) => {
 }
 
 .checkin-accounts-tab__metric--consumed {
-  color: rgb(234 88 12);
-}
-
-.dark .checkin-accounts-tab__metric--consumed {
-  color: rgb(251 146 60);
+  color: var(--accent-warning);
 }
 
 .checkin-accounts-tab__placeholder,
@@ -330,20 +321,16 @@ const formatDate = (dateStr: string) => {
   gap: 0.35rem;
   min-width: 5.75rem;
   min-height: 36px;
-  border-radius: 0.75rem;
-  border: 1px solid rgb(45 212 191 / 32%);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-default);
   padding: 0.375rem 0.7rem;
   font-size: 0.75rem;
   font-weight: 700;
   line-height: 1rem;
-  color: rgb(236 253 245);
+  color: var(--text-primary);
   white-space: nowrap;
-  background:
-    radial-gradient(circle at 20% 0%, rgb(94 234 212 / 24%), transparent 36%),
-    linear-gradient(135deg, rgb(15 118 110 / 94%), rgb(22 163 74 / 88%));
-  box-shadow:
-    inset 0 1px 0 rgb(236 253 245 / 14%),
-    0 10px 22px rgb(15 118 110 / 18%);
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-sm);
   transition:
     background-color 0.2s ease,
     border-color 0.2s ease,
@@ -354,11 +341,9 @@ const formatDate = (dateStr: string) => {
 }
 
 .checkin-accounts-tab__mini-button:hover:not(:disabled) {
-  border-color: rgb(94 234 212 / 54%);
+  border-color: var(--color-border-accent);
   transform: translateY(-1px);
-  box-shadow:
-    inset 0 1px 0 rgb(236 253 245 / 18%),
-    0 14px 26px rgb(15 118 110 / 26%);
+  box-shadow: var(--shadow-md);
 }
 
 .checkin-accounts-tab__mini-button:disabled {
@@ -366,9 +351,9 @@ const formatDate = (dateStr: string) => {
   opacity: 0.62;
   filter: grayscale(0.35);
   border-color: rgb(var(--color-border-default-rgb) / 44%);
-  background: rgb(var(--color-bg-elevated-rgb) / 42%);
+  background: var(--color-bg-elevated);
   color: var(--text-muted);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 8%);
+  box-shadow: none;
 }
 
 .checkin-accounts-tab__mini-button-icon {
@@ -387,7 +372,7 @@ const formatDate = (dateStr: string) => {
 .checkin-accounts-tab__menu-trigger {
   min-width: 40px;
   min-height: 40px;
-  border-radius: 0.85rem;
+  border-radius: var(--radius-lg);
   border: 1px solid transparent;
   color: var(--text-muted);
   background: rgb(var(--color-bg-elevated-rgb) / 20%);
@@ -403,7 +388,7 @@ const formatDate = (dateStr: string) => {
   border-color: rgb(var(--color-accent-primary-rgb) / 30%);
   background: rgb(var(--color-bg-elevated-rgb) / 52%);
   color: var(--text-primary);
-  box-shadow: 0 12px 28px rgb(15 23 42 / 14%);
+  box-shadow: var(--shadow-md);
 }
 
 @media (width <= 900px) {

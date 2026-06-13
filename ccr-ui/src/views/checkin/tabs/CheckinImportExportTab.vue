@@ -6,7 +6,7 @@
     </h2>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       <!-- 导出 -->
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+      <div class="bg-bg-surface border border-border-default rounded-lg shadow-sm p-6">
         <h3 class="text-lg font-semibold text-text-primary mb-4">
           导出配置
         </h3>
@@ -15,7 +15,7 @@
             <input
               v-model="exportOptions.include_plaintext_keys"
               type="checkbox"
-              class="w-4 h-4 text-blue-600 border-gray-300 rounded"
+              class="w-4 h-4 text-accent-primary border-border-default rounded"
             >
             <span class="ml-2 text-sm text-text-secondary">
               包含明文 API Key (危险)
@@ -25,14 +25,14 @@
             <input
               v-model="exportOptions.providers_only"
               type="checkbox"
-              class="w-4 h-4 text-blue-600 border-gray-300 rounded"
+              class="w-4 h-4 text-accent-primary border-border-default rounded"
             >
             <span class="ml-2 text-sm text-text-secondary">
               仅导出提供商
             </span>
           </label>
           <button
-            class="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+            class="w-full px-4 py-2 bg-accent-primary hover:bg-accent-primary/90 text-white rounded-lg transition-colors"
             @click="handleExport"
           >
             导出 JSON
@@ -41,12 +41,12 @@
       </div>
 
       <!-- 导入 -->
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+      <div class="bg-bg-surface border border-border-default rounded-lg shadow-sm p-6">
         <h3 class="text-lg font-semibold text-text-primary mb-4">
           导入配置
         </h3>
         <div class="space-y-4">
-          <div class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4">
+          <div class="border-2 border-dashed border-border-default rounded-lg p-4">
             <input
               ref="importFileInput"
               type="file"
@@ -71,7 +71,7 @@
           </div>
           <select
             v-model="importConflictStrategy"
-            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            class="w-full px-3 py-2 border border-border-default rounded-lg bg-bg-surface text-text-primary"
           >
             <option value="skip">
               跳过冲突项
@@ -82,7 +82,7 @@
           </select>
           <button
             :disabled="!importData"
-            class="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50"
+            class="w-full px-4 py-2 bg-accent-success hover:bg-accent-success/90 text-white rounded-lg transition-colors disabled:opacity-50"
             @click="handleImport"
           >
             执行导入

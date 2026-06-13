@@ -999,7 +999,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 .trend-btn.active {
   background: rgb(var(--color-bg-elevated-rgb) / 92%);
   color: var(--accent-primary);
-  box-shadow: 0 2px 6px rgb(15 23 42 / 8%);
+  box-shadow: var(--shadow-sm);
 }
 
 .trend-body {
