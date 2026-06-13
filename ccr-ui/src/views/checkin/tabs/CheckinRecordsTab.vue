@@ -549,14 +549,9 @@ onMounted(() => {
 
 .checkin-records__history {
   overflow: hidden;
-  border: 1px solid rgb(254 226 226 / 100%);
+  border: 1px solid rgb(var(--color-danger-rgb) / 30%);
   border-radius: 0.5rem;
-  background: rgb(254 242 242 / 100%);
-}
-
-.dark .checkin-records__history {
-  border-color: rgb(153 27 27 / 60%);
-  background: rgb(127 29 29 / 20%);
+  background: rgb(var(--color-danger-rgb) / 8%);
 }
 
 .checkin-records__history-summary,
@@ -578,11 +573,7 @@ onMounted(() => {
   font-size: 0.875rem;
   line-height: 1.25rem;
   font-weight: 500;
-  color: rgb(185 28 28 / 100%);
-}
-
-.dark .checkin-records__history-summary {
-  color: rgb(254 202 202 / 100%);
+  color: var(--color-danger);
 }
 
 .checkin-records__history-summary-label {
@@ -599,18 +590,7 @@ onMounted(() => {
 .checkin-records__history-button {
   font-size: 0.75rem;
   line-height: 1rem;
-  color: rgb(220 38 38 / 80%);
-}
-
-.dark .checkin-records__history-summary-hint,
-.dark .checkin-records__history-state,
-.dark .checkin-records__history-item-time,
-.dark .checkin-records__history-item-meta,
-.dark .checkin-records__history-item-reason,
-.dark .checkin-records__history-pagination,
-.dark .checkin-records__history-input,
-.dark .checkin-records__history-button {
-  color: rgb(252 165 165 / 80%);
+  color: rgb(var(--color-danger-rgb) / 82%);
 }
 
 .checkin-records__history-body {
@@ -625,16 +605,10 @@ onMounted(() => {
 
 .checkin-records__history-input,
 .checkin-records__history-button {
-  border: 1px solid rgb(254 202 202 / 100%);
+  border: 1px solid rgb(var(--color-danger-rgb) / 30%);
   border-radius: 0.375rem;
-  background: rgb(255 255 255 / 80%);
+  background: rgb(var(--color-bg-surface-rgb) / 80%);
   padding: 0.25rem 0.5rem;
-}
-
-.dark .checkin-records__history-input,
-.dark .checkin-records__history-button {
-  border-color: rgb(153 27 27 / 100%);
-  background: rgb(69 10 10 / 30%);
 }
 
 .checkin-records__history-button {
@@ -642,11 +616,7 @@ onMounted(() => {
 }
 
 .checkin-records__history-button:hover:not(:disabled) {
-  background: rgb(254 226 226 / 100%);
-}
-
-.dark .checkin-records__history-button:hover:not(:disabled) {
-  background: rgb(127 29 29 / 30%);
+  background: rgb(var(--color-danger-rgb) / 14%);
 }
 
 .checkin-records__history-button:disabled {
@@ -658,15 +628,10 @@ onMounted(() => {
 }
 
 .checkin-records__history-item {
-  border: 1px solid rgb(254 202 202 / 100%);
+  border: 1px solid rgb(var(--color-danger-rgb) / 30%);
   border-radius: 0.375rem;
-  background: rgb(255 255 255 / 70%);
+  background: rgb(var(--color-bg-surface-rgb) / 70%);
   padding: 0.75rem;
-}
-
-.dark .checkin-records__history-item {
-  border-color: rgb(153 27 27 / 100%);
-  background: rgb(69 10 10 / 30%);
 }
 
 .checkin-records__history-item-head,
@@ -683,11 +648,7 @@ onMounted(() => {
   font-size: 0.875rem;
   line-height: 1.25rem;
   font-weight: 500;
-  color: rgb(153 27 27 / 100%);
-}
-
-.dark .checkin-records__history-item-name {
-  color: rgb(254 202 202 / 100%);
+  color: var(--color-danger);
 }
 
 .checkin-records__history-item-meta {
@@ -710,12 +671,8 @@ onMounted(() => {
 .checkin-records__table-shell {
   overflow: hidden;
   border-radius: 0.5rem;
-  background: white;
-  box-shadow: 0 1px 2px rgb(15 23 42 / 8%);
-}
-
-.dark .checkin-records__table-shell {
-  background: rgb(31 41 55 / 100%);
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-xs);
 }
 
 .checkin-records__table {
@@ -725,11 +682,7 @@ onMounted(() => {
 }
 
 .checkin-records__table-head {
-  background: rgb(249 250 251 / 100%);
-}
-
-.dark .checkin-records__table-head {
-  background: rgb(55 65 81 / 50%);
+  background: var(--color-bg-elevated);
 }
 
 .checkin-records__table-heading,
@@ -753,11 +706,7 @@ onMounted(() => {
 }
 
 .checkin-records__table-body > tr + tr > td {
-  border-top: 1px solid rgb(229 231 235 / 100%);
-}
-
-.dark .checkin-records__table-body > tr + tr > td {
-  border-top-color: rgb(55 65 81 / 100%);
+  border-top: 1px solid var(--color-border-subtle);
 }
 
 .checkin-records__table-row {
@@ -765,11 +714,7 @@ onMounted(() => {
 }
 
 .checkin-records__table-row:hover {
-  background: rgb(249 250 251 / 100%);
-}
-
-.dark .checkin-records__table-row:hover {
-  background: rgb(55 65 81 / 50%);
+  background: rgb(var(--color-accent-primary-rgb) / 6%);
 }
 
 .checkin-records__table-cell {
@@ -786,11 +731,7 @@ onMounted(() => {
 }
 
 .checkin-records__table-cell--success {
-  color: rgb(22 163 74 / 100%);
-}
-
-.dark .checkin-records__table-cell--success {
-  color: rgb(74 222 128 / 100%);
+  color: var(--color-success);
 }
 
 .checkin-records__table-cell--nowrap {
@@ -812,63 +753,35 @@ onMounted(() => {
 }
 
 .checkin-records__status-badge--success {
-  background: rgb(220 252 231 / 100%);
-  color: rgb(22 101 52 / 100%);
-}
-
-.dark .checkin-records__status-badge--success {
-  background: rgb(20 83 45 / 20%);
-  color: rgb(74 222 128 / 100%);
+  background: rgb(var(--color-success-rgb) / 15%);
+  color: var(--color-success);
 }
 
 .checkin-records__status-badge--warning {
-  background: rgb(254 249 195 / 100%);
-  color: rgb(161 98 7 / 100%);
-}
-
-.dark .checkin-records__status-badge--warning {
-  background: rgb(113 63 18 / 30%);
-  color: rgb(250 204 21 / 100%);
+  background: rgb(var(--color-warning-rgb) / 15%);
+  color: var(--color-warning);
 }
 
 .checkin-records__status-badge--danger {
-  background: rgb(254 226 226 / 100%);
-  color: rgb(153 27 27 / 100%);
-}
-
-.dark .checkin-records__status-badge--danger {
-  background: rgb(127 29 29 / 20%);
-  color: rgb(248 113 113 / 100%);
+  background: rgb(var(--color-danger-rgb) / 15%);
+  color: var(--color-danger);
 }
 
 .checkin-records__status-badge--neutral {
-  background: rgb(243 244 246 / 100%);
-  color: rgb(31 41 55 / 100%);
-}
-
-.dark .checkin-records__status-badge--neutral {
-  background: rgb(55 65 81 / 100%);
-  color: rgb(156 163 175 / 100%);
+  background: var(--color-bg-overlay);
+  color: var(--text-secondary);
 }
 
 .checkin-records__detail-toggle {
   gap: 0.25rem;
   font-size: 0.75rem;
   line-height: 1rem;
-  color: rgb(37 99 235 / 100%);
+  color: var(--color-info);
   transition: color 0.2s ease;
 }
 
 .checkin-records__detail-toggle:hover {
-  color: rgb(29 78 216 / 100%);
-}
-
-.dark .checkin-records__detail-toggle {
-  color: rgb(147 197 253 / 100%);
-}
-
-.dark .checkin-records__detail-toggle:hover {
-  color: rgb(191 219 254 / 100%);
+  color: var(--color-info-hover);
 }
 
 .checkin-records__row-actions {
@@ -879,19 +792,11 @@ onMounted(() => {
 
 /* cookie_expired 快捷修复入口（直达账号编辑弹窗） */
 .checkin-records__fix-button {
-  color: rgb(220 38 38 / 100%);
+  color: var(--color-danger);
 }
 
 .checkin-records__fix-button:hover {
-  color: rgb(185 28 28 / 100%);
-}
-
-.dark .checkin-records__fix-button {
-  color: rgb(252 165 165 / 100%);
-}
-
-.dark .checkin-records__fix-button:hover {
-  color: rgb(254 202 202 / 100%);
+  color: var(--color-danger-hover);
 }
 
 .checkin-records__history-item .checkin-records__fix-button {
@@ -899,11 +804,7 @@ onMounted(() => {
 }
 
 .checkin-records__detail-row {
-  background: rgb(249 250 251 / 70%);
-}
-
-.dark .checkin-records__detail-row {
-  background: rgb(31 41 55 / 60%);
+  background: rgb(var(--color-bg-elevated-rgb) / 70%);
 }
 
 .checkin-records__detail-cell {

@@ -641,7 +641,7 @@ const deleteProvider = async (id: string) => {
   font-size: 1.125rem;
   line-height: 1.75rem;
   font-weight: 600;
-  color: white;
+  color: var(--text-primary);
 }
 
 .checkin-providers__section-count {
@@ -676,19 +676,14 @@ const deleteProvider = async (id: string) => {
 }
 
 .checkin-providers__builtin-card {
-  border: 1px solid rgb(191 219 254 / 100%);
-  background: linear-gradient(135deg, rgb(239 246 255 / 100%), rgb(238 242 255 / 100%));
-  box-shadow: 0 1px 2px rgb(15 23 42 / 6%);
+  border: 1px solid var(--color-border-default);
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-xs);
   transition: box-shadow 0.2s ease;
 }
 
 .checkin-providers__builtin-card:hover {
-  box-shadow: 0 10px 24px rgb(15 23 42 / 12%);
-}
-
-.dark .checkin-providers__builtin-card {
-  border-color: rgb(75 85 99 / 100%);
-  background: linear-gradient(135deg, rgb(31 41 55 / 100%), rgb(55 65 81 / 100%));
+  box-shadow: var(--shadow-md);
 }
 
 .checkin-providers__builtin-card-main {
@@ -719,13 +714,8 @@ const deleteProvider = async (id: string) => {
 }
 
 .checkin-providers__builtin-badge {
-  background: rgb(219 234 254 / 100%);
-  color: rgb(29 78 216 / 100%);
-}
-
-.dark .checkin-providers__builtin-badge {
-  background: rgb(30 64 175 / 100%);
-  color: rgb(147 197 253 / 100%);
+  background: rgb(var(--color-info-rgb) / 15%);
+  color: var(--color-info);
 }
 
 .checkin-providers__builtin-domain,
@@ -758,33 +748,18 @@ const deleteProvider = async (id: string) => {
 }
 
 .checkin-providers__tag--success {
-  background: rgb(220 252 231 / 100%);
-  color: rgb(21 128 61 / 100%);
-}
-
-.dark .checkin-providers__tag--success {
-  background: rgb(20 83 45 / 40%);
-  color: rgb(187 247 208 / 100%);
+  background: rgb(var(--color-success-rgb) / 15%);
+  color: var(--color-success);
 }
 
 .checkin-providers__tag--warning {
-  background: rgb(254 243 199 / 100%);
-  color: rgb(161 98 7 / 100%);
-}
-
-.dark .checkin-providers__tag--warning {
-  background: rgb(113 63 18 / 100%);
-  color: rgb(253 224 71 / 100%);
+  background: rgb(var(--color-warning-rgb) / 15%);
+  color: var(--color-warning);
 }
 
 .checkin-providers__tag--muted {
-  background: rgb(243 244 246 / 100%);
+  background: var(--color-bg-overlay);
   color: var(--text-secondary);
-}
-
-.dark .checkin-providers__tag--muted {
-  background: rgb(55 65 81 / 100%);
-  color: rgb(156 163 175 / 100%);
 }
 
 .checkin-providers__primary-button,
@@ -797,12 +772,12 @@ const deleteProvider = async (id: string) => {
 }
 
 .checkin-providers__primary-button {
-  background: rgb(37 99 235 / 100%);
+  background: var(--color-accent-primary);
   color: white;
 }
 
 .checkin-providers__primary-button:hover {
-  background: rgb(29 78 216 / 100%);
+  background: var(--color-accent-primary-hover);
 }
 
 .checkin-providers__primary-button--compact {
@@ -812,14 +787,10 @@ const deleteProvider = async (id: string) => {
 
 .checkin-providers__empty-state {
   border-radius: 0.5rem;
-  background: rgb(249 250 251 / 100%);
+  background: var(--color-bg-surface);
   padding: 3rem 1rem;
   text-align: center;
   color: var(--text-muted);
-}
-
-.dark .checkin-providers__empty-state {
-  background: rgb(31 41 55 / 50%);
 }
 
 .checkin-providers__empty-icon {
@@ -829,25 +800,21 @@ const deleteProvider = async (id: string) => {
 
 .checkin-providers__empty-icon-symbol {
   margin-inline: auto;
-  color: rgb(255 255 255 / 50%);
+  color: var(--text-disabled);
 }
 
 .checkin-providers__provider-card {
   border-left: 4px solid;
-  background: rgb(255 255 255 / 100%);
-  box-shadow: 0 1px 2px rgb(15 23 42 / 8%);
-}
-
-.dark .checkin-providers__provider-card {
-  background: rgb(31 41 55 / 100%);
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-xs);
 }
 
 .checkin-providers__provider-card--enabled {
-  border-left-color: rgb(34 197 94 / 100%);
+  border-left-color: var(--color-success);
 }
 
 .checkin-providers__provider-card--disabled {
-  border-left-color: rgb(156 163 175 / 100%);
+  border-left-color: var(--text-disabled);
 }
 
 .checkin-providers__provider-url {
@@ -862,19 +829,11 @@ const deleteProvider = async (id: string) => {
 }
 
 .checkin-providers__icon-button--edit {
-  color: rgb(37 99 235 / 100%);
-}
-
-.dark .checkin-providers__icon-button--edit {
-  color: rgb(96 165 250 / 100%);
+  color: var(--color-info);
 }
 
 .checkin-providers__icon-button--delete {
-  color: rgb(220 38 38 / 100%);
-}
-
-.dark .checkin-providers__icon-button--delete {
-  color: rgb(248 113 113 / 100%);
+  color: var(--color-danger);
 }
 
 .checkin-providers__provider-meta {
@@ -886,14 +845,9 @@ const deleteProvider = async (id: string) => {
 .checkin-providers__waf-card {
   margin-top: 1rem;
   border-radius: 0.5rem;
-  border: 1px solid rgb(254 215 170 / 100%);
-  background: rgb(255 247 237 / 90%);
+  border: 1px solid rgb(var(--color-warning-rgb) / 40%);
+  background: rgb(var(--color-warning-rgb) / 12%);
   padding: 0.75rem;
-}
-
-.dark .checkin-providers__waf-card {
-  border-color: rgb(154 52 18 / 100%);
-  background: rgb(124 45 18 / 20%);
 }
 
 .checkin-providers__waf-card-layout {
@@ -911,21 +865,13 @@ const deleteProvider = async (id: string) => {
 }
 
 .checkin-providers__waf-icon {
-  color: rgb(234 88 12 / 100%);
-}
-
-.dark .checkin-providers__waf-icon {
-  color: rgb(253 186 116 / 100%);
+  color: var(--color-warning);
 }
 
 .checkin-providers__waf-title {
   font-size: 0.875rem;
   font-weight: 500;
-  color: rgb(124 45 18 / 100%);
-}
-
-.dark .checkin-providers__waf-title {
-  color: rgb(255 237 213 / 100%);
+  color: var(--color-warning);
 }
 
 .checkin-providers__waf-message,
@@ -936,29 +882,21 @@ const deleteProvider = async (id: string) => {
 
 .checkin-providers__waf-message {
   margin-top: 0.5rem;
-  color: rgb(154 52 18 / 100%);
+  color: rgb(var(--color-warning-rgb) / 92%);
 }
 
 .checkin-providers__waf-hint {
   margin-top: 0.25rem;
-  color: rgb(194 65 12 / 100%);
-}
-
-.dark .checkin-providers__waf-message {
-  color: rgb(254 215 170 / 100%);
-}
-
-.dark .checkin-providers__waf-hint {
-  color: rgb(253 186 116 / 100%);
+  color: rgb(var(--color-warning-rgb) / 82%);
 }
 
 .checkin-providers__waf-action {
-  background: rgb(234 88 12 / 100%);
+  background: var(--color-warning);
   color: white;
 }
 
 .checkin-providers__waf-action:hover:not(:disabled) {
-  background: rgb(194 65 12 / 100%);
+  background: var(--color-warning-hover);
 }
 
 .checkin-providers__waf-action:disabled {
@@ -979,13 +917,9 @@ const deleteProvider = async (id: string) => {
   width: 100%;
   max-width: 32rem;
   border-radius: 0.5rem;
-  background: white;
+  background: var(--color-bg-elevated);
   padding: 1.5rem;
-  box-shadow: 0 24px 48px rgb(15 23 42 / 24%);
-}
-
-.dark .checkin-providers__modal-panel {
-  background: rgb(31 41 55 / 100%);
+  box-shadow: var(--shadow-xl);
 }
 
 .checkin-providers__modal-title {
@@ -1012,17 +946,11 @@ const deleteProvider = async (id: string) => {
   display: block;
   width: 100%;
   margin-top: 0.25rem;
-  border: 1px solid rgb(209 213 219 / 100%);
+  border: 1px solid var(--color-border-default);
   border-radius: 0.5rem;
-  background: white;
+  background: var(--color-bg-surface);
   padding: 0.5rem 0.75rem;
-  color: rgb(17 24 39 / 100%);
-}
-
-.dark .checkin-providers__field-input {
-  border-color: rgb(75 85 99 / 100%);
-  background: rgb(55 65 81 / 100%);
-  color: white;
+  color: var(--text-primary);
 }
 
 .checkin-providers__modal-actions {
@@ -1031,20 +959,12 @@ const deleteProvider = async (id: string) => {
 }
 
 .checkin-providers__secondary-button {
-  border: 1px solid rgb(209 213 219 / 100%);
+  border: 1px solid var(--color-border-default);
   color: var(--text-secondary);
 }
 
 .checkin-providers__secondary-button:hover {
-  background: rgb(249 250 251 / 100%);
-}
-
-.dark .checkin-providers__secondary-button {
-  border-color: rgb(75 85 99 / 100%);
-}
-
-.dark .checkin-providers__secondary-button:hover {
-  background: rgb(55 65 81 / 100%);
+  background: var(--color-bg-elevated);
 }
 
 @media (width >= 768px) {
