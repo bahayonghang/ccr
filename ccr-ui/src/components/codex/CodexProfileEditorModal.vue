@@ -7,13 +7,13 @@
     :close-on-backdrop="!saving"
     :close-on-escape="!saving"
     :persistent="saving"
-    content-class="codex-profile-editor-modal !max-w-[980px] !max-h-[90vh] rounded-[32px]"
+    content-class="codex-profile-editor-modal !max-w-[980px] !max-h-[90vh] rounded-2xl"
     @update:model-value="handleModalModelValue"
   >
     <template #header="{ titleId }">
       <div class="editor-shell-header flex items-start justify-between gap-4">
         <div class="flex min-w-0 items-start gap-4">
-          <div class="editor-hero-icon flex h-14 w-14 shrink-0 items-center justify-center rounded-[20px]">
+          <div class="editor-hero-icon flex h-14 w-14 shrink-0 items-center justify-center rounded-lg">
             <SIcon
               name="Settings"
               size="w-7 h-7"
@@ -121,7 +121,7 @@
             </div>
           </div>
 
-          <div class="editor-panel editor-panel-muted rounded-[28px] p-5">
+          <div class="editor-panel editor-panel-muted rounded-xl p-5">
             <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
                 <label
@@ -135,7 +135,7 @@
                   data-testid="codex-profile-name-input"
                   :value="form.name"
                   type="text"
-                  class="editor-input w-full rounded-[20px] px-4 py-3 text-sm"
+                  class="editor-input w-full rounded-lg px-4 py-3 text-sm"
                   :placeholder="$t('codex.profiles.placeholders.name')"
                   @input="updateTextField('name', $event)"
                 >
@@ -155,7 +155,7 @@
                   id="codex-profile-description"
                   :value="form.description"
                   type="text"
-                  class="editor-input w-full rounded-[20px] px-4 py-3 text-sm"
+                  class="editor-input w-full rounded-lg px-4 py-3 text-sm"
                   :placeholder="$t('codex.profiles.placeholders.description')"
                   @input="updateTextField('description', $event)"
                 >
@@ -186,7 +186,7 @@
             </div>
           </div>
 
-          <div class="editor-panel rounded-[28px] p-5">
+          <div class="editor-panel rounded-xl p-5">
             <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <div>
                 <label
@@ -198,7 +198,7 @@
                 <select
                   id="codex-profile-auth-mode"
                   :value="form.auth_mode"
-                  class="editor-input w-full rounded-[20px] px-4 py-3 text-sm"
+                  class="editor-input w-full rounded-lg px-4 py-3 text-sm"
                   @change="updateSelectField('auth_mode', $event)"
                 >
                   <option
@@ -217,7 +217,7 @@
                 </p>
               </div>
 
-              <div class="editor-panel-muted rounded-[20px] p-4">
+              <div class="editor-panel-muted rounded-lg p-4">
                 <p class="text-xs font-semibold uppercase tracking-[0.24em] text-text-muted">
                   {{ $t('codex.profiles.fields.openAiLoginMethod') }}
                 </p>
@@ -247,7 +247,7 @@
                 id="codex-profile-base-url"
                 :value="form.base_url"
                 type="text"
-                class="editor-input editor-input--mono w-full rounded-[20px] px-4 py-3 text-sm"
+                class="editor-input editor-input--mono w-full rounded-lg px-4 py-3 text-sm"
                 :placeholder="$t('codex.profiles.placeholders.baseUrl')"
                 @input="updateTextField('base_url', $event)"
               >
@@ -273,7 +273,7 @@
                   :value="form.auth_token"
                   data-testid="codex-auth-token-input"
                   :type="showToken ? 'text' : 'password'"
-                  class="editor-input editor-input--mono w-full rounded-[20px] px-4 py-3 pr-24 text-sm"
+                  class="editor-input editor-input--mono w-full rounded-lg px-4 py-3 pr-24 text-sm"
                   :placeholder="$t('codex.profiles.placeholders.authToken')"
                   @input="updateTextField('auth_token', $event)"
                 >
@@ -324,7 +324,7 @@
                 id="codex-profile-env-key"
                 :value="form.env_key"
                 type="text"
-                class="editor-input editor-input--mono w-full rounded-[20px] px-4 py-3 text-sm"
+                class="editor-input editor-input--mono w-full rounded-lg px-4 py-3 text-sm"
                 :placeholder="$t('codex.profiles.placeholders.envKey')"
                 @input="updateTextField('env_key', $event)"
               >
@@ -357,7 +357,7 @@
             </div>
           </div>
 
-          <div class="editor-panel rounded-[28px] p-5">
+          <div class="editor-panel rounded-xl p-5">
             <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
                 <label
@@ -369,7 +369,7 @@
                 <select
                   id="codex-profile-model"
                   :value="selectedModelOption"
-                  class="editor-input editor-input--mono w-full rounded-[20px] px-4 py-3 text-sm"
+                  class="editor-input editor-input--mono w-full rounded-lg px-4 py-3 text-sm"
                   @change="emitSelectedModelOption"
                 >
                   <option
@@ -387,7 +387,7 @@
                   v-if="selectedModelOption === CUSTOM_MODEL_OPTION"
                   :value="customModelInput"
                   type="text"
-                  class="editor-input editor-input--mono mt-3 w-full rounded-[20px] px-4 py-3 text-sm"
+                  class="editor-input editor-input--mono mt-3 w-full rounded-lg px-4 py-3 text-sm"
                   :placeholder="$t('codex.profiles.placeholders.customModel')"
                   @input="emitCustomModelInput"
                 >
@@ -407,7 +407,7 @@
                   id="codex-profile-reasoning-effort"
                   :value="form.model_reasoning_effort"
                   data-testid="codex-reasoning-effort-select"
-                  class="editor-input w-full rounded-[20px] px-4 py-3 text-sm"
+                  class="editor-input w-full rounded-lg px-4 py-3 text-sm"
                   @change="updateSelectField('model_reasoning_effort', $event)"
                 >
                   <option value="">
@@ -438,7 +438,7 @@
                 id="codex-profile-wire-api"
                 :value="form.wire_api"
                 type="text"
-                class="editor-input editor-input--mono w-full rounded-[20px] px-4 py-3 text-sm"
+                class="editor-input editor-input--mono w-full rounded-lg px-4 py-3 text-sm"
                 :placeholder="$t('codex.profiles.placeholders.wireApi')"
                 @input="updateTextField('wire_api', $event)"
               >
@@ -468,7 +468,7 @@
             </div>
           </div>
 
-          <div class="editor-panel rounded-[28px] p-5">
+          <div class="editor-panel rounded-xl p-5">
             <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
               <div>
                 <label
@@ -481,7 +481,7 @@
                   id="codex-profile-provider"
                   :value="form.provider"
                   type="text"
-                  class="editor-input w-full rounded-[20px] px-4 py-3 text-sm"
+                  class="editor-input w-full rounded-lg px-4 py-3 text-sm"
                   :placeholder="$t('codex.profiles.placeholders.provider')"
                   @input="updateTextField('provider', $event)"
                 >
@@ -497,7 +497,7 @@
                   id="codex-profile-provider-type"
                   :value="form.provider_type"
                   type="text"
-                  class="editor-input w-full rounded-[20px] px-4 py-3 text-sm"
+                  class="editor-input w-full rounded-lg px-4 py-3 text-sm"
                   :placeholder="$t('codex.profiles.placeholders.providerType')"
                   @input="updateTextField('provider_type', $event)"
                 >
@@ -513,14 +513,14 @@
                   id="codex-profile-tags"
                   :value="form.tags_input"
                   type="text"
-                  class="editor-input w-full rounded-[20px] px-4 py-3 text-sm"
+                  class="editor-input w-full rounded-lg px-4 py-3 text-sm"
                   :placeholder="$t('codex.profiles.placeholders.tags')"
                   @input="updateTextField('tags_input', $event)"
                 >
               </div>
             </div>
 
-            <div class="mt-5 flex items-center justify-between rounded-[20px] border border-border-default/35 bg-bg-elevated/34 px-4 py-3">
+            <div class="mt-5 flex items-center justify-between rounded-lg border border-border-default/35 bg-bg-elevated/34 px-4 py-3">
               <div>
                 <p class="text-sm font-semibold text-text-primary">
                   {{ $t('codex.profiles.fields.enabled') }}
@@ -912,7 +912,6 @@ watch(() => props.modelValue, (isOpen) => {
   border: 1px solid var(--editor-hairline);
   background: var(--editor-panel-bg);
   box-shadow: var(--editor-panel-shadow);
-  backdrop-filter: blur(20px) saturate(135%);
 }
 
 .codex-profile-editor-modal .editor-panel-muted {

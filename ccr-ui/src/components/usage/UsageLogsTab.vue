@@ -1,5 +1,5 @@
 <template>
-  <section class="diagnostics-tab glass-panel rounded-[26px] p-4">
+  <section class="diagnostics-tab glass-panel rounded-xl p-4">
     <div class="diagnostics-tab__head">
       <div>
         <h3 class="diagnostics-tab__title">

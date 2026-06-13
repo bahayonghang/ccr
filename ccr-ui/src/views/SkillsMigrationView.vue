@@ -299,7 +299,7 @@ onMounted(() => {
 }
 
 .skills-migration-view__hero {
-  @apply rounded-[32px] border border-border-default/60 bg-bg-elevated/70 p-8;
+  @apply rounded-2xl border border-border-default/60 bg-bg-elevated/70 p-8;
 }
 
 .skills-migration-view__badge {
@@ -323,7 +323,7 @@ onMounted(() => {
 }
 
 .skills-migration-view__status {
-  @apply mt-6 flex flex-col gap-3 rounded-[24px] border border-border-default/50 bg-bg-surface/70 p-4;
+  @apply mt-6 flex flex-col gap-3 rounded-xl border border-border-default/50 bg-bg-surface/70 p-4;
 }
 
 .skills-migration-view__status-pill {
@@ -397,7 +397,7 @@ onMounted(() => {
 }
 
 .skills-migration-view__card {
-  @apply rounded-[28px] border border-border-default/50 bg-bg-surface/70 p-5;
+  @apply rounded-xl border border-border-default/50 bg-bg-surface/70 p-5;
 }
 
 .skills-migration-view__card h2 {

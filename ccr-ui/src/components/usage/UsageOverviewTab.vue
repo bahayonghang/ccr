@@ -1,7 +1,7 @@
 <template>
   <div class="overview-tab">
     <section class="overview-tab__canvas overview-tab__hero">
-      <div class="overview-tab__trend glass-panel rounded-[30px] p-4">
+      <div class="overview-tab__trend glass-panel rounded-2xl p-4">
         <div class="overview-tab__panel-head">
           <div class="overview-tab__trend-copy">
             <p class="overview-tab__eyebrow">
@@ -64,7 +64,7 @@
         </div>
       </div>
 
-      <aside class="overview-tab__distribution glass-panel rounded-[28px] p-4">
+      <aside class="overview-tab__distribution glass-panel rounded-xl p-4">
         <UsageModelDistributionCard
           :chart-component="chartComponent"
           :format-cost="formatCost"
@@ -81,7 +81,7 @@
       </aside>
     </section>
 
-    <section class="overview-tab__insights-strip glass-panel rounded-[26px] p-4">
+    <section class="overview-tab__insights-strip glass-panel rounded-xl p-4">
       <div class="overview-tab__panel-head overview-tab__panel-head--strip">
         <div>
           <p class="overview-tab__eyebrow">
@@ -133,7 +133,7 @@
     </section>
 
     <section class="overview-tab__rankings">
-      <div class="overview-tab__rank-panel glass-panel rounded-[26px] p-4">
+      <div class="overview-tab__rank-panel glass-panel rounded-xl p-4">
         <div class="overview-tab__panel-head">
           <div>
             <p class="overview-tab__eyebrow">
@@ -188,7 +188,7 @@
         </div>
       </div>
 
-      <div class="overview-tab__rank-panel glass-panel rounded-[26px] p-4">
+      <div class="overview-tab__rank-panel glass-panel rounded-xl p-4">
         <div class="overview-tab__panel-head">
           <div>
             <p class="overview-tab__eyebrow">

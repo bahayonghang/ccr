@@ -1,9 +1,10 @@
 <template>
   <section class="page-header-card">
-    <div
+    <!-- Glow 装饰层已移除：与「深色工作台」扁平语言冲突（WS6 批次③） -->
+    <!-- <div
       class="page-header-card__glow"
       :class="toneClasses.glow"
-    />
+    /> -->
 
     <div class="page-header-card__content">
       <div class="page-header-card__top">

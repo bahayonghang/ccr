@@ -341,7 +341,6 @@ function formatScopeList(scopes: string[]): string {
   border-radius: 0.75rem;
   border: 1px solid var(--surface-card-border, rgb(var(--color-border-default-rgb) / 45%));
   background: var(--surface-card-bg, rgb(var(--color-bg-elevated-rgb) / 95%));
-  backdrop-filter: blur(20px) saturate(1.3);
   box-shadow: var(--elevation-2);
 }
 

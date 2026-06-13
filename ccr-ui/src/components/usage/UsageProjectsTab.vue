@@ -1,5 +1,5 @@
 <template>
-  <section class="projects-tab glass-panel rounded-[26px] p-4">
+  <section class="projects-tab glass-panel rounded-xl p-4">
     <div class="projects-tab__table-head">
       <div>
         <h3 class="projects-tab__title">

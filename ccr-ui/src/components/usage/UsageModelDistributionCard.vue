@@ -1,6 +1,6 @@
 <template>
   <div
-    class="distribution-card rounded-[28px]"
+    class="distribution-card rounded-xl"
     :class="[
       variant === 'panel'
         ? 'distribution-card--panel glass-panel p-5'

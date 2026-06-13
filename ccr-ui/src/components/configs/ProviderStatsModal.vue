@@ -6,11 +6,8 @@
     @click.self="$emit('close')"
   >
     <div
-      class="w-full max-w-5xl mx-4 rounded-3xl p-6"
+      class="w-full max-w-5xl mx-4 rounded-3xl p-6 surface-modal"
       :style="{
-        background: 'var(--glass-bg-strong)',
-        backdropFilter: 'blur(24px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(24px) saturate(180%)',
         border: '1px solid var(--border-color)',
         boxShadow: 'var(--shadow-xl)'
       }"

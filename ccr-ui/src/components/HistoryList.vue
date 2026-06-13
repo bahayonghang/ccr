@@ -226,14 +226,14 @@ const getOperationIcon = (op: string) => ({
 }[op] || 'GitBranch')
 
 const getOperationColor = (op: string) => ({
-  'switch': '#8b5cf6',
-  'init': '#10b981',
-  'update': '#3b82f6',
-  'delete': '#ef4444',
-  'validate': '#f59e0b',
-  'clean': '#6366f1',
-  'import': '#06b6d4',
-  'export': '#ec4899'
-}[op] || '#64748b')
+  'switch': 'var(--chart-color-0)',    // #8b5cf6 → primary accent
+  'init': 'var(--chart-color-1)',      // #10b981 → secondary accent
+  'update': 'var(--chart-color-3)',    // #3b82f6 → tertiary accent
+  'delete': 'var(--chart-color-4)',    // #ef4444 → danger accent
+  'validate': 'var(--chart-color-2)',  // #f59e0b → warning accent
+  'clean': 'var(--chart-color-3)',     // #6366f1 → tertiary accent
+  'import': 'var(--chart-color-1)',    // #06b6d4 → secondary accent
+  'export': 'var(--chart-color-0)'     // #ec4899 → primary accent
+}[op] || 'var(--color-text-muted)')
 </script>
 

@@ -14,7 +14,7 @@
       :title="$t('usage.dashboard.chart.tokensByModel')"
     />
 
-    <section class="models-tab__workspace glass-panel rounded-[26px] p-4">
+    <section class="models-tab__workspace glass-panel rounded-xl p-4">
       <div class="models-tab__table-head">
         <div>
           <h3 class="models-tab__title">

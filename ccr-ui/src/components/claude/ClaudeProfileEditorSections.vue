@@ -2,7 +2,7 @@
   <div class="space-y-5">
     <div
       v-if="saveError"
-      class="editor-banner editor-banner--error rounded-[24px] px-5 py-4"
+      class="editor-banner editor-banner--error rounded-xl px-5 py-4"
     >
       <div class="flex items-start gap-3">
         <div class="editor-banner__icon flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl">
@@ -24,7 +24,7 @@
 
     <section
       :ref="target => registerModalSectionRef('basic', target)"
-      class="editor-panel editor-panel--section rounded-[28px] p-5 lg:p-6"
+      class="editor-panel editor-panel--section rounded-xl p-5 lg:p-6"
     >
       <div class="mb-5 flex items-start gap-3">
         <div class="editor-section-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl">
@@ -88,7 +88,7 @@
 
     <section
       :ref="target => registerModalSectionRef('connection', target)"
-      class="editor-panel editor-panel--section rounded-[28px] p-5 lg:p-6"
+      class="editor-panel editor-panel--section rounded-xl p-5 lg:p-6"
     >
       <div class="mb-5 flex items-start gap-3">
         <div class="editor-section-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl">
@@ -149,7 +149,7 @@
         </div>
       </div>
 
-      <div class="mt-5 editor-panel-muted rounded-[24px] p-4">
+      <div class="mt-5 editor-panel-muted rounded-xl p-4">
         <div class="flex items-start gap-3">
           <span class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center">
             <SIcon
@@ -290,7 +290,7 @@
 
     <section
       :ref="target => registerModalSectionRef('auth', target)"
-      class="editor-panel editor-panel--section rounded-[28px] p-5 lg:p-6"
+      class="editor-panel editor-panel--section rounded-xl p-5 lg:p-6"
     >
       <div class="mb-5 flex items-start gap-3">
         <div class="editor-section-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl">
@@ -431,7 +431,7 @@
 
     <section
       :ref="target => registerModalSectionRef('status', target)"
-      class="editor-panel editor-panel--section rounded-[28px] p-5 lg:p-6"
+      class="editor-panel editor-panel--section rounded-xl p-5 lg:p-6"
     >
       <div class="mb-5 flex items-start gap-3">
         <div class="editor-section-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl">
@@ -484,7 +484,7 @@
           </div>
         </div>
 
-        <div class="editor-panel-muted rounded-[24px] p-4">
+        <div class="editor-panel-muted rounded-xl p-4">
           <label
             for="claude-profile-enabled"
             class="flex cursor-pointer items-start gap-3"

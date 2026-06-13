@@ -273,12 +273,12 @@
       :persistent="isSaving"
       :show-close="false"
       size="xl"
-      content-class="claude-profile-editor-modal !max-w-[980px] !max-h-[90vh] rounded-[32px]"
+      content-class="claude-profile-editor-modal !max-w-[980px] !max-h-[90vh] rounded-2xl"
     >
       <template #header="{ titleId }">
         <div class="editor-shell-header flex items-start justify-between gap-4">
           <div class="flex min-w-0 items-start gap-4">
-            <div class="editor-hero-icon flex h-14 w-14 shrink-0 items-center justify-center rounded-[20px]">
+            <div class="editor-hero-icon flex h-14 w-14 shrink-0 items-center justify-center rounded-lg">
               <SIcon
                 name="Layers"
                 size="w-7 h-7"
@@ -686,7 +686,7 @@ const modalStatusClass = computed(() => {
   return 'editor-pill--neutral'
 })
 
-const textFieldClass = 'editor-input w-full rounded-[20px] px-4 py-3 text-sm'
+const textFieldClass = 'editor-input w-full rounded-lg px-4 py-3 text-sm'
 const monospaceFieldClass = `${textFieldClass} editor-input--mono`
 const textareaClass = `${textFieldClass} editor-input--textarea min-h-[116px] resize-y`
 
@@ -1306,7 +1306,6 @@ onBeforeUnmount(() => {
   border: 1px solid var(--editor-hairline);
   background: var(--editor-panel-bg);
   box-shadow: var(--editor-panel-shadow);
-  backdrop-filter: blur(20px) saturate(135%);
 }
 
 .claude-profile-editor-modal .editor-panel-head {

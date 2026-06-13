@@ -1,6 +1,6 @@
 <template>
   <article
-    class="relative overflow-hidden rounded-[24px] border bg-bg-elevated/88 px-4 py-3.5 shadow-[0_14px_24px_rgba(0,0,0,0.08),inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-xl transition-[border-color,transform,box-shadow,background-color] duration-200 hover:-translate-y-0.5 hover:border-border-strong hover:shadow-[0_18px_30px_rgba(0,0,0,0.1)]"
+    class="relative overflow-hidden rounded-xl border bg-bg-elevated/88 px-4 py-3.5 shadow-[0_14px_24px_rgba(0,0,0,0.08),inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-xl transition-[border-color,transform,box-shadow,background-color] duration-200 hover:-translate-y-0.5 hover:border-border-strong hover:shadow-[0_18px_30px_rgba(0,0,0,0.1)]"
     :class="profile.is_current
       ? 'border-transparent'
       : 'border-border-default/65'"
