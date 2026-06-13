@@ -1,10 +1,18 @@
-import { ref, watch, onMounted, onBeforeUnmount, getCurrentInstance, type Ref, type WatchSource } from 'vue'
+import {
+  ref,
+  watch,
+  onMounted,
+  onBeforeUnmount,
+  getCurrentInstance,
+  type Ref,
+  type WatchSource,
+} from 'vue'
 
 export interface UsePolledDataOptions {
   /** 去重 key；相同 key 的轮询请求共用同一个 in-flight Promise */
   key?: string
-  /** 轮询间隔（毫秒） */
-  intervalMs: number
+  /** 轮询间隔（毫秒）；传函数则每轮重新求值，用于健康/异常自适应退避 */
+  intervalMs: number | (() => number)
   /** 页面隐藏时暂停轮询（默认 true） */
   pauseWhenHidden?: boolean
   /** 自定义暂停条件（Ref<boolean> 或返回 boolean 的函数） */
@@ -56,6 +64,10 @@ export function usePolledData<T>(
   let timer: ReturnType<typeof setInterval> | null = null
   let inFlight = false
   let visibilityListenerAttached = false
+  // 间隔为函数时走递归 setTimeout（每轮重新求值），需用 clearTimeout 取消
+  const dynamicInterval = typeof intervalMs === 'function'
+  const resolveInterval = (): number =>
+    typeof intervalMs === 'function' ? intervalMs() : intervalMs
 
   const inFlightByKey = usePolledDataInflightMap
 
@@ -106,16 +118,33 @@ export function usePolledData<T>(
 
   const startTimer = (): void => {
     if (timer) return
+    if (dynamicInterval) {
+      // 递归 setTimeout：每轮按最新间隔重新调度，停止时由 stopTimer 走 clearTimeout
+      const tick = (): void => {
+        timer = setTimeout(() => {
+          if (!shouldPause()) {
+            void doFetch()
+          }
+          tick()
+        }, resolveInterval())
+      }
+      tick()
+      return
+    }
     timer = setInterval(() => {
       if (!shouldPause()) {
         void doFetch()
       }
-    }, intervalMs)
+    }, resolveInterval())
   }
 
   const stopTimer = (): void => {
     if (timer) {
-      clearInterval(timer)
+      if (dynamicInterval) {
+        clearTimeout(timer)
+      } else {
+        clearInterval(timer)
+      }
       timer = null
     }
   }

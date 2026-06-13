@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { getErrorMessage } from '@/utils/errorHandler'
-import { ref } from 'vue'
+import { ref, shallowRef } from 'vue'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import {
   ensureSessionIndexV2,
@@ -31,7 +31,7 @@ type LoadOptions = {
 }
 
 export const useHomeUsageOverviewStore = defineStore('homeUsageOverview', () => {
-  const overview = ref<HomeUsageOverviewResponse | null>(null)
+  const overview = shallowRef<HomeUsageOverviewResponse | null>(null)
   const loading = ref(false)
   const error = ref<string | null>(null)
   const activeDays = ref(30)
@@ -91,10 +91,12 @@ export const useHomeUsageOverviewStore = defineStore('homeUsageOverview', () => 
       () => {
         invalidate()
         if (!overview.value) return
-        void loadOverview(activeDays.value, { force: true, background: true }).catch((loadError) => {
-          logger.error('[home-usage-overview] snapshot refresh failed', loadError)
-        })
-      },
+        void loadOverview(activeDays.value, { force: true, background: true }).catch(
+          (loadError) => {
+            logger.error('[home-usage-overview] snapshot refresh failed', loadError)
+          }
+        )
+      }
     )
   }
 
@@ -119,13 +121,20 @@ export const useHomeUsageOverviewStore = defineStore('homeUsageOverview', () => 
     if (snapshot.job_id !== activeUsageJobId) return
 
     currentUsageJob.value = snapshot
-    usageWarmupRunning.value = snapshot.status !== 'finished' && snapshot.status !== 'failed' && snapshot.status !== 'cancelled'
+    usageWarmupRunning.value =
+      snapshot.status !== 'finished' &&
+      snapshot.status !== 'failed' &&
+      snapshot.status !== 'cancelled'
 
     if (snapshot.status === 'recent_ready' || snapshot.status === 'finished') {
       await refreshActiveOverview()
     }
 
-    if (snapshot.status === 'finished' || snapshot.status === 'failed' || snapshot.status === 'cancelled') {
+    if (
+      snapshot.status === 'finished' ||
+      snapshot.status === 'failed' ||
+      snapshot.status === 'cancelled'
+    ) {
       usageWarmupRunning.value = false
       activeUsageJobId = null
       await clearUsageJobListeners()
@@ -234,7 +243,7 @@ export const useHomeUsageOverviewStore = defineStore('homeUsageOverview', () => 
         const response = await startUsageImportJobV2<StartUsageImportJobResponse>(
           undefined,
           days,
-          undefined,
+          undefined
         )
         await trackUsageImportJob(response.job_id)
       } catch (warmupError) {
@@ -261,8 +270,8 @@ export const useHomeUsageOverviewStore = defineStore('homeUsageOverview', () => 
     }
 
     if (
-      (data.bootstrap.needs_usage_import && !usageWarmupRunning.value)
-      || (data.bootstrap.needs_session_index && !sessionWarmupRunning.value)
+      (data.bootstrap.needs_usage_import && !usageWarmupRunning.value) ||
+      (data.bootstrap.needs_session_index && !sessionWarmupRunning.value)
     ) {
       scheduleRetryProbe()
     } else {

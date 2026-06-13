@@ -1,4 +1,4 @@
-import { onMounted, onUnmounted, ref, type Ref } from 'vue'
+import { onMounted, onUnmounted, ref, shallowRef, type Ref } from 'vue'
 import type { UnknownRecord } from '@/types/common'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import { getMonitoringFeed, getRecentEvents, type MonitoringFeedQuery } from '@/api'
@@ -252,7 +252,7 @@ export function useMonitoringFeed(options: MonitoringFeedOptions = {}) {
   const { initialCount = DEFAULT_INITIAL_COUNT, maxEntries = DEFAULT_MAX_ENTRIES } = options
 
   const isConnected: Ref<boolean> = ref(true)
-  const logs: Ref<MonitoringEntry[]> = ref([])
+  const logs = shallowRef<MonitoringEntry[]>([])
   const tokenStats: Ref<MonitoringTokenStats | null> = ref(null)
 
   const seenEntries = new Set<string>()

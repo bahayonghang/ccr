@@ -563,7 +563,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue'
 import { listen, type Event, type UnlistenFn } from '@tauri-apps/api/event'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
@@ -646,7 +646,7 @@ const searchQuery = ref('')
 const activeCategory = ref('all')
 const activeCollection = ref<CommandCollection>('catalog')
 const dangerAccepted = ref(false)
-const currentSnapshot = ref<CommandJobSnapshot | null>(null)
+const currentSnapshot = shallowRef<CommandJobSnapshot | null>(null)
 const configs = ref<ConfigItem[]>([])
 const favorites = ref<FavoriteCommand[]>([])
 const historyItems = ref<CommandHistoryItem[]>([])
