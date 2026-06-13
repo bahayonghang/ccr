@@ -52,6 +52,7 @@ export const useHomeUsageOverviewStore = defineStore('homeUsageOverview', () => 
   let usageWarmupLastAttemptAt = 0
   let sessionWarmupLastAttemptAt = 0
   let retryProbeTimer: ReturnType<typeof setTimeout> | null = null
+  let snapshotRefreshPromise: Promise<void | HomeUsageOverviewResponse> | null = null
 
   const shouldRetryWarmup = (lastAttemptAt: number) =>
     Date.now() - lastAttemptAt >= HOME_WARMUP_RETRY_COOLDOWN_MS
@@ -91,11 +92,17 @@ export const useHomeUsageOverviewStore = defineStore('homeUsageOverview', () => 
       () => {
         invalidate()
         if (!overview.value) return
-        void loadOverview(activeDays.value, { force: true, background: true }).catch(
-          (loadError) => {
+
+        // 防止重复刷新：如果已有刷新请求在飞行中，跳过
+        if (snapshotRefreshPromise) return
+
+        snapshotRefreshPromise = loadOverview(activeDays.value, { force: true, background: true })
+          .catch((loadError) => {
             logger.error('[home-usage-overview] snapshot refresh failed', loadError)
-          }
-        )
+          })
+          .finally(() => {
+            snapshotRefreshPromise = null
+          })
       }
     )
   }
