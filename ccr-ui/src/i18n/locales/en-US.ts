@@ -1798,6 +1798,7 @@ export default {
     noOutput: 'No output generated',
     terminalOutput: 'Terminal Output',
     linesCount: '{count} lines',
+    ledgerTruncated: 'Output too long; showing only the most recent {count} lines',
     executing: 'Running...',
     processing:
       'Background job is running; stdout, stderr, and system messages will stream into this ledger.',

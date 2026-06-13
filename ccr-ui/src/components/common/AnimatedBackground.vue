@@ -192,12 +192,12 @@ const spotlightColorClass = computed(() => `background-layer__spotlight--${props
 @keyframes ambient-drift {
   0%,
   100% {
-    transform: translate3d(0, 0, 0) scale(1);
+    transform: translate3d(0, 0, 0);
     opacity: 0.8;
   }
 
   50% {
-    transform: translate3d(18px, -18px, 0) scale(1.08);
+    transform: translate3d(18px, -18px, 0);
     opacity: 1;
   }
 }

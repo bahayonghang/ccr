@@ -1751,6 +1751,7 @@ export default {
     noOutput: '暂无输出',
     terminalOutput: '终端输出',
     linesCount: '{count} 行',
+    ledgerTruncated: '输出过长，仅显示最近 {count} 行',
     outputCopied: '已复制！',
     developingFeature: '{client} 命令执行功能正在开发中...',
     developingMessage: '该功能将支持 {client} 相关命令。',

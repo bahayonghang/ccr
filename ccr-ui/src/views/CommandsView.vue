@@ -527,8 +527,14 @@
               class="commands-terminal"
             >
               <div
+                v-if="ledgerTruncated"
+                class="commands-terminal__truncated"
+              >
+                {{ t('commands.ledgerTruncated', { count: MAX_LEDGER_LINES }) }}
+              </div>
+              <div
                 v-for="line in ledgerLines"
-                :key="`${line.channel}-${line.index}-${line.text}`"
+                :key="`${line.channel}-${line.index}`"
                 class="commands-terminal__line"
                 :class="`commands-terminal__line--${line.channel}`"
               >
@@ -605,6 +611,9 @@ interface CommandUiInfo extends CommandInfo {
 type CommandBadge = 'safe' | 'danger' | 'readonly' | 'args' | 'blocked'
 type LedgerChannel = 'stdout' | 'stderr' | 'system'
 type CommandCollection = 'catalog' | 'favorites' | 'history'
+
+// 账本最大渲染行数，与 useStream 默认上限对齐，超出部分仅保留最近行
+const MAX_LEDGER_LINES = 2000
 
 interface FavoriteCommand {
   id: string
@@ -861,12 +870,16 @@ const ledgerLines = computed(() => {
       index,
       safeHtml: ansiRenderer.renderLine(text),
     }))
-  return [
+  const all = [
     ...build('system', snapshot.system_lines),
     ...build('stdout', snapshot.stdout_lines),
     ...build('stderr', snapshot.stderr_lines),
   ]
+  // 环形截断：与 useStream 对齐，仅渲染最近 MAX_LEDGER_LINES 行，避免长输出 DOM 膨胀
+  return all.length > MAX_LEDGER_LINES ? all.slice(-MAX_LEDGER_LINES) : all
 })
+
+const ledgerTruncated = computed(() => outputLineCount.value > MAX_LEDGER_LINES)
 
 const ledgerSubtitle = computed(() => {
   const snapshot = currentSnapshot.value
@@ -1576,6 +1589,12 @@ const formatDuration = (duration?: number | null) => (duration == null ? '—' :
 
 .commands-terminal__channel {
   @apply text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted;
+}
+
+.commands-terminal__truncated {
+  @apply mb-2 rounded-lg border border-border-default/50 px-2 py-1 text-[11px] text-text-muted;
+
+  background-color: rgb(var(--color-bg-elevated-rgb) / 60%);
 }
 
 .commands-terminal__text {
