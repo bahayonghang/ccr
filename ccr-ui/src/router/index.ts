@@ -203,10 +203,11 @@ const routes: RouteRecordRaw[] = [
         meta: { depth: 1, group: 'data' },
       },
       {
+        // SessionsView 已下线：旧实现依赖 legacy HTTP /api/sessions，
+        // Tauri 运行时无该服务（页面必然加载失败）。保留 redirect 兜底旧书签。
         path: 'sessions',
         name: 'sessions',
-        component: () => import('@/views/SessionsView.vue'),
-        meta: { depth: 1, group: 'data' },
+        redirect: '/monitoring',
       },
       // MCP 管理
       {
