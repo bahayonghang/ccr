@@ -488,7 +488,7 @@ onBeforeUnmount(() => {
 
 /* Content area compositing fix:
  * Force main + scroll container onto GPU compositing layers so that
- * children's backdrop-filter can blur through to the fixed AnimeBackground.
+ * children's backdrop-filter can blur through to the fixed StageBackground.
  * Using backface-visibility instead of transform to avoid creating a
  * containing block for fixed-positioned descendants. */
 .content-main,

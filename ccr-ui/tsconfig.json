@@ -44,6 +44,5 @@
     "tests/**/*.mts",
     "vitest.shims.d.ts"
   ],
-  "exclude": ["src/**/*.stories.ts", "src/**/*.stories.tsx", "**/.storybook/**"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

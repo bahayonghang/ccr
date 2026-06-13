@@ -1,17 +1,16 @@
 /// <reference types="vitest/config" />
-import { defineConfig } from 'vite';
-import vue from '@vitejs/plugin-vue';
-import { fileURLToPath, URL } from 'node:url';
-import path from 'node:path';
-import { storybookTest } from '@storybook/addon-vitest/vitest-plugin';
-import { playwright } from '@vitest/browser-playwright';
-import devWarmTargets from './scripts/dev-warm-targets.json';
+import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+import { fileURLToPath, URL } from 'node:url'
+import path from 'node:path'
+import devWarmTargets from './scripts/dev-warm-targets.json'
 
-const dirname = typeof __dirname !== 'undefined' ? __dirname : path.dirname(fileURLToPath(import.meta.url));
+const dirname =
+  typeof __dirname !== 'undefined' ? __dirname : path.dirname(fileURLToPath(import.meta.url))
 
 // https://vitejs.dev/config/
 export default defineConfig(({ command }) => {
-  const useRuntimeOnlyI18n = command === 'build';
+  const useRuntimeOnlyI18n = command === 'build'
 
   return {
     plugins: [vue()],
@@ -22,8 +21,8 @@ export default defineConfig(({ command }) => {
         // build 继续使用 runtime-only，避免桌面壳 CSP 与 runtime compiler 冲突。
         'vue-i18n': useRuntimeOnlyI18n
           ? 'vue-i18n/dist/vue-i18n.runtime.esm-bundler.js'
-          : 'vue-i18n/dist/vue-i18n.esm-bundler.js'
-      }
+          : 'vue-i18n/dist/vue-i18n.esm-bundler.js',
+      },
     },
     build: {
       outDir: 'dist',
@@ -35,15 +34,15 @@ export default defineConfig(({ command }) => {
             'ui-vendor': ['@iconify/vue'],
             'charts-vendor': ['apexcharts', 'vue3-apexcharts'],
             'i18n-vendor': ['vue-i18n'],
-            'markdown-vendor': ['marked', 'dompurify', 'highlight.js'],
+            'markdown-vendor': ['dompurify'],
             'search-vendor': ['fuse.js'],
             'tauri-vendor': ['@tauri-apps/api'],
             'virtual-vendor': ['@tanstack/vue-virtual'],
-            'term-vendor': ['ansi_up']
-          }
-        }
+            'term-vendor': ['ansi_up'],
+          },
+        },
       },
-      chunkSizeWarningLimit: 500
+      chunkSizeWarningLimit: 500,
     },
     server: {
       host: '127.0.0.1',
@@ -52,14 +51,14 @@ export default defineConfig(({ command }) => {
       fs: {
         // providers-catalog.json 位于仓库根 crates/ 下（前后端共享单一数据源），
         // dev server 默认只放行 ccr-ui 根目录，这里显式放行 catalog 数据目录
-        allow: [dirname, path.resolve(dirname, '../crates/ccr-checkin/data')]
+        allow: [dirname, path.resolve(dirname, '../crates/ccr-checkin/data')],
       },
       warmup: {
         clientFiles: devWarmTargets.clientFiles,
       },
       hmr: {
-        overlay: true
-      }
+        overlay: true,
+      },
     },
     optimizeDeps: {
       noDiscovery: true,
@@ -69,24 +68,9 @@ export default defineConfig(({ command }) => {
         'pinia',
         '@iconify/vue',
         'vue-i18n',
-        'highlight.js/lib/core',
-        'highlight.js/lib/languages/javascript',
-        'highlight.js/lib/languages/typescript',
-        'highlight.js/lib/languages/python',
-        'highlight.js/lib/languages/bash',
-        'highlight.js/lib/languages/json',
-        'highlight.js/lib/languages/yaml',
-        'highlight.js/lib/languages/xml',
-        'highlight.js/lib/languages/css',
-        'highlight.js/lib/languages/rust',
-        'highlight.js/lib/languages/go',
-        'highlight.js/lib/languages/sql',
-        'highlight.js/lib/languages/markdown',
-        'highlight.js/lib/languages/diff',
         // 重量级依赖：避免 noDiscovery 下运行时逐个转译，大幅缩短 dev 首屏加载
         'apexcharts',
         'vue3-apexcharts',
-        'marked',
         'dompurify',
         'ansi_up',
         '@tauri-apps/api',
@@ -95,28 +79,7 @@ export default defineConfig(({ command }) => {
         '@tauri-apps/api/event',
         '@tauri-apps/api/window',
         '@tanstack/vue-virtual',
-      ]
+      ],
     },
-    test: {
-      projects: [{
-        extends: true,
-        plugins: [
-          storybookTest({
-            configDir: path.join(dirname, '.storybook')
-          })],
-        test: {
-          name: 'storybook',
-          browser: {
-            enabled: true,
-            headless: true,
-            provider: playwright({}),
-            instances: [{
-              browser: 'chromium'
-            }]
-          },
-          setupFiles: ['.storybook/vitest.setup.ts']
-        },
-      }]
-    }
-  };
-});
+  }
+})

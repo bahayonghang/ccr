@@ -19,12 +19,12 @@ export function maskToken(token: string): string {
  */
 export function getProviderColor(provider: string): string {
   const colors: Record<string, string> = {
-    'GitHub': '#6366f1',
-    'Azure': '#0078d4',
-    'OpenAI': '#10a37f',
-    'Anthropic': '#d97706',
-    'Custom': '#ec4899',
-    'Google': '#4285f4'
+    GitHub: '#6366f1',
+    Azure: '#0078d4',
+    OpenAI: '#10a37f',
+    Anthropic: '#d97706',
+    Custom: '#ec4899',
+    Google: '#4285f4',
   }
   return colors[provider] || '#8b5cf6'
 }
@@ -94,7 +94,7 @@ export function formatRelativeTime(timestamp: string | number | Date): string {
       month: '2-digit',
       day: '2-digit',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     })
   }
 }
@@ -140,7 +140,7 @@ export function getModelDisplayName(modelId: string): string {
     'claude-3-5-haiku-20241022': 'Claude 3.5 Haiku',
     'gemini-2.0-flash-exp': 'Gemini 2.0 Flash',
     'gemini-1.5-flash': 'Gemini 1.5 Flash',
-    'gemini-1.5-pro': 'Gemini 1.5 Pro'
+    'gemini-1.5-pro': 'Gemini 1.5 Pro',
   }
   return modelNames[modelId] || modelId
 }
@@ -154,14 +154,14 @@ export const CodexCardStyles = {
     border: '1px solid rgba(var(--color-accent-primary-rgb), 0.12)',
     borderRadius: '12px',
     padding: '20px',
-    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
   },
   hover: {
     background: 'var(--glass-bg-strong)',
     borderColor: 'rgba(var(--color-accent-primary-rgb), 0.3)',
     boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)',
-    transform: 'translateY(-4px)'
-  }
+    transform: 'translateY(-4px)',
+  },
 }
 
 /**
@@ -175,7 +175,7 @@ export const CodexTheme = {
   danger: '#ef4444',
   info: '#3b82f6',
   muted: '#9ca3af',
-  
+
   // Provider colors
   providers: {
     github: '#6366f1',
@@ -183,15 +183,15 @@ export const CodexTheme = {
     openai: '#10a37f',
     anthropic: '#d97706',
     google: '#4285f4',
-    custom: '#ec4899'
+    custom: '#ec4899',
   },
-  
+
   // Status colors
   status: {
     enabled: '#10b981',
     disabled: '#f59e0b',
-    error: '#ef4444'
-  }
+    error: '#ef4444',
+  },
 }
 
 /**
@@ -228,49 +228,4 @@ export async function copyToClipboard(text: string): Promise<boolean> {
  */
 export function generateId(prefix = 'codex'): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-}
-
-/**
- * 防抖函数
- * @param fn - 要防抖的函数
- * @param delay - 延迟时间（毫秒）
- * @returns 防抖后的函数
- */
-export function debounce<T extends (...args: unknown[]) => unknown>(
-  fn: T,
-  delay: number
-): (...args: Parameters<T>) => void {
-  let timeoutId: ReturnType<typeof setTimeout> | null = null
-  
-  return function (this: unknown, ...args: Parameters<T>) {
-    if (timeoutId) {
-      clearTimeout(timeoutId)
-    }
-    
-    timeoutId = setTimeout(() => {
-      fn.apply(this, args)
-    }, delay)
-  }
-}
-
-/**
- * 节流函数
- * @param fn - 要节流的函数
- * @param delay - 延迟时间（毫秒）
- * @returns 节流后的函数
- */
-export function throttle<T extends (...args: unknown[]) => unknown>(
-  fn: T,
-  delay: number
-): (...args: Parameters<T>) => void {
-  let lastCall = 0
-  
-  return function (this: unknown, ...args: Parameters<T>) {
-    const now = Date.now()
-    
-    if (now - lastCall >= delay) {
-      lastCall = now
-      fn.apply(this, args)
-    }
-  }
 }

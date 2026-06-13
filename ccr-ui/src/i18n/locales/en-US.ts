@@ -2957,16 +2957,6 @@ export default {
   },
 
   // Activity Heatmap
-  activityHeatmap: {
-    title: 'Activity Heatmap',
-    less: 'Less',
-    more: 'More',
-    activeDays: 'Active Days',
-    totalTokens: 'Total Tokens',
-    mon: 'Mon',
-    wed: 'Wed',
-    fri: 'Fri',
-  },
 
   // Codex Module
   codex: {

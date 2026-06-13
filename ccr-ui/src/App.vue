@@ -1,5 +1,5 @@
 <template>
-  <AnimeBackground v-if="showGlobalBackground" />
+  <StageBackground v-if="showGlobalBackground" />
   <Titlebar v-if="showCustomTitlebar" />
   <div
     class="flex h-screen w-screen flex-col overflow-hidden bg-bg-base"
@@ -27,8 +27,8 @@ const ToastContainer = defineAsyncComponent({
   suspensible: false,
 })
 
-const AnimeBackground = defineAsyncComponent({
-  loader: () => import('@/components/common/AnimeBackground.vue'),
+const StageBackground = defineAsyncComponent({
+  loader: () => import('@/components/common/StageBackground.vue'),
   suspensible: false,
 })
 

@@ -34,7 +34,7 @@ const mountAppWithChrome = async (showCustomTitlebar: boolean) => {
     getWindowChromeTopInset: () => (showCustomTitlebar ? 36 : 0),
   }))
   vi.doMock('@/components/layout/Titlebar.vue', () => stub('Titlebar'))
-  vi.doMock('@/components/common/AnimeBackground.vue', () => stub('AnimeBackground'))
+  vi.doMock('@/components/common/StageBackground.vue', () => stub('StageBackground'))
   vi.doMock('@/components/common/ToastContainer.vue', () => stub('ToastContainer'))
   vi.doMock('@/components/common/GlobalConfirmDialog.vue', () => stub('GlobalConfirmDialog'))
 

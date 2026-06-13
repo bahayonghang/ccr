@@ -2848,16 +2848,6 @@ export default {
   },
 
   // Activity Heatmap
-  activityHeatmap: {
-    title: '活动热力图',
-    less: '较少',
-    more: '较多',
-    activeDays: '活跃天数',
-    totalTokens: '总 Token 数',
-    mon: '一',
-    wed: '三',
-    fri: '五',
-  },
 
   // Codex Module
   codex: {
