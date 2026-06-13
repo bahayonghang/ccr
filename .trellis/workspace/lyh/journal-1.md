@@ -431,3 +431,44 @@ CheckinAccountsTab 2082 行拆为 AccountFormModal/AccountActionsMenu/AccountsTa
 ### Next Steps
 
 - None - task complete
+
+
+## Session 13: ccr-ui 优化：恢复前序提交 + WS6 批次④ modal 收口 + 死代码补漏
+
+**Date**: 2026-06-13
+**Task**: ccr-ui 优化：恢复前序提交 + WS6 批次④ modal 收口 + 死代码补漏
+**Package**: ccr
+**Branch**: `dev`
+
+### Summary
+
+验证并提交 429 中断遗留的 WS4.5(CodexAuth 拆分)/WS5.4(snapshot 去重)/WS6③④(图表色·去玻璃·圆角) 工作；删除 WS2 遗漏的 UnifiedMcp* 孤儿组件簇(1485 行)；将 AddConfig/EditConfig/CommandForm 三个表单弹窗收口到 BaseModal(加性增强 size 2xl-5xl + scrollable)并 web 预览实测打开/Esc 关闭；合同测试锁定三弹窗扁平语言(WS7.2)。UpdateModal/ProviderStatsModal 评估为 bespoke 不宜强行收口；z-index Tailwind 类与动效时长 token 化评估为低收益暂缓。任务整体仍 in_progress，未归档。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `d0c4c5f0` | (see git log) |
+| `916632f4` | (see git log) |
+| `a75c5346` | (see git log) |
+| `be03d869` | (see git log) |
+| `544f2945` | (see git log) |
+| `a18a937f` | (see git log) |
+| `6949e59c` | (see git log) |
+| `82c760db` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
