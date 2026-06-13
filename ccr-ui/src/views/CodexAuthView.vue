@@ -258,675 +258,62 @@
             </div>
           </Card>
 
-          <template v-if="activeManagerTab === 'accounts'">
-            <Card
-              v-if="currentInfo"
-              surface="workspace"
-              :elevation="2"
-              motion="subtle"
-              padding="lg"
-            >
-              <div class="codex-auth-view__section-header">
-                <SIcon
-                  name="Info"
-                  size="w-5 h-5"
-                  class="codex-auth-view__section-icon"
-                />
-                <h3 class="codex-auth-view__section-title">
-                  {{ $t('codex.auth.currentSession') }}
-                </h3>
-              </div>
-              <div class="codex-auth-view__session-grid">
-                <div class="codex-auth-view__session-field">
-                  <span class="codex-auth-view__field-label">
-                    {{ $t('codex.auth.fields.accountId') }}
-                  </span>
-                  <code class="codex-auth-view__field-code">
-                    {{ currentInfo.account_id }}
-                  </code>
-                </div>
-                <div class="codex-auth-view__session-field">
-                  <span class="codex-auth-view__field-label">
-                    {{ $t('codex.auth.fields.email') }}
-                  </span>
-                  <span class="codex-auth-view__field-value codex-auth-view__field-value--truncate">
-                    {{ currentInfo.email || $t('codex.auth.status.notAvailable') }}
-                  </span>
-                </div>
-                <div class="codex-auth-view__session-field">
-                  <span class="codex-auth-view__field-label">
-                    {{ tf('codex.auth.fields.authMethod', 'Auth method') }}
-                  </span>
-                  <span class="codex-auth-view__field-value codex-auth-view__field-value--muted">
-                    {{ formatAuthMethod(currentInfo.auth_method) }}
-                  </span>
-                </div>
-                <div class="codex-auth-view__session-field">
-                  <span class="codex-auth-view__field-label">
-                    {{ tf('codex.auth.fields.planType', 'Plan') }}
-                  </span>
-                  <span class="codex-auth-view__field-value codex-auth-view__field-value--muted">
-                    {{ currentInfo.plan_type || $t('codex.auth.status.notAvailable') }}
-                  </span>
-                </div>
-                <div class="codex-auth-view__session-field">
-                  <span class="codex-auth-view__field-label">
-                    {{ $t('codex.auth.fields.lastRefresh') }}
-                  </span>
-                  <span class="codex-auth-view__field-value codex-auth-view__field-value--muted">
-                    {{ currentInfo.last_refresh || $t('codex.auth.status.notAvailable') }}
-                  </span>
-                </div>
-              </div>
-            </Card>
 
-            <Card
-              surface="workspace"
-              :elevation="2"
-              motion="subtle"
-              padding="lg"
-              :glow-color="canManageAuthAccounts ? 'success' : 'warning'"
-            >
-              <div class="codex-auth-view__guard">
-                <div
-                  class="codex-auth-view__guard-icon-shell"
-                  :class="
-                    canManageAuthAccounts
-                      ? 'bg-emerald-500/10 text-emerald-400'
-                      : 'bg-yellow-500/10 text-yellow-400'
-                  "
-                >
-                  <SIcon
-                    name="AlertTriangle"
-                    size="w-5 h-5"
-                  />
-                </div>
-                <div class="codex-auth-view__guard-body">
-                  <p class="codex-auth-view__guard-title">
-                    {{ $t('codex.auth.profileGuard.title') }}
-                  </p>
-                  <p class="codex-auth-view__guard-message">
-                    {{ profileGuardMessage }}
-                  </p>
-                  <p
-                    v-if="authActionError"
-                    class="codex-auth-view__guard-error"
-                  >
-                    {{ authActionError }}
-                  </p>
-                </div>
-              </div>
-            </Card>
+          <CodexAuthAccountsTab
+            v-if="activeManagerTab === 'accounts'"
+            v-model:search-query="searchQuery"
+            v-model:status-filter="statusFilter"
+            v-model:plan-filter="planFilter"
+            v-model:sort-by="sortBy"
+            :loading="loading"
+            :accounts="accounts"
+            :current-info="currentInfo"
+            :can-manage-auth-accounts="canManageAuthAccounts"
+            :profile-guard-message="profileGuardMessage"
+            :auth-action-error="authActionError"
+            :status-options="statusOptions"
+            :plan-options="planOptions"
+            :sort-options="sortOptions"
+            :filtered-accounts="filteredAccounts"
+            :filters-results-count="filtersResultsCount"
+            :has-active-filters="hasActiveFilters"
+            :quota-map="quotaMap"
+            :quota-loading="quotaLoading"
+            :busy-name="busyName"
+            :busy-action="busyAction"
+            :action-loading="actionLoading"
+            :format-auth-method="formatAuthMethod"
+            @clear-filters="clearFilters"
+            @open-add-account="openAddAccountModal()"
+            @switch="handleSwitch"
+            @delete="handleDelete"
+            @refresh="handleRefreshSingle"
+            @tag="handleTag"
+            @export="handleExport"
+            @rename="handleRename"
+          />
 
-            <Card
-              v-if="!loading && accounts.length > 0"
-              surface="workspace"
-              :elevation="2"
-              motion="subtle"
-              padding="lg"
-              class="codex-auth-view__filters-card"
-            >
-              <div class="codex-auth-view__filters-grid">
-                <label class="codex-auth-view__search-box">
-                  <SIcon
-                    name="Search"
-                    size="w-4 h-4"
-                  />
-                  <input
-                    v-model="searchQuery"
-                    type="text"
-                    :placeholder="$t('codex.auth.filters.searchPlaceholder')"
-                  >
-                </label>
-
-                <div class="codex-auth-view__filter-group">
-                  <p class="codex-auth-view__filter-label">
-                    {{ $t('codex.auth.filters.statusLabel') }}
-                  </p>
-                  <div class="codex-auth-view__filter-row">
-                    <button
-                      v-for="option in statusOptions"
-                      :key="option.value"
-                      type="button"
-                      class="codex-auth-view__filter-pill"
-                      :class="{
-                        'codex-auth-view__filter-pill--active': statusFilter === option.value,
-                      }"
-                      @click="statusFilter = option.value"
-                    >
-                      {{ option.label }}
-                    </button>
-                  </div>
-                </div>
-
-
-                <div class="codex-auth-view__filter-group">
-                  <label
-                    class="codex-auth-view__filter-label"
-                    for="codex-auth-plan-filter"
-                  >
-                    {{ $t('codex.auth.filters.planLabel') }}
-                  </label>
-                  <select
-                    id="codex-auth-plan-filter"
-                    v-model="planFilter"
-                    class="codex-auth-view__filter-select"
-                  >
-                    <option
-                      v-for="option in planOptions"
-                      :key="option.value"
-                      :value="option.value"
-                    >
-                      {{ option.label }}
-                    </option>
-                  </select>
-                </div>
-
-                <div class="codex-auth-view__filter-group">
-                  <label
-                    class="codex-auth-view__filter-label"
-                    for="codex-auth-sort"
-                  >
-                    {{ $t('codex.auth.filters.sortLabel') }}
-                  </label>
-                  <select
-                    id="codex-auth-sort"
-                    v-model="sortBy"
-                    class="codex-auth-view__filter-select"
-                  >
-                    <option
-                      v-for="option in sortOptions"
-                      :key="option.value"
-                      :value="option.value"
-                    >
-                      {{ option.label }}
-                    </option>
-                  </select>
-                </div>
-              </div>
-
-              <div class="codex-auth-view__filters-footer">
-                <p class="codex-auth-view__filters-summary">
-                  {{ filtersResultsCount }}
-                </p>
-                <Button
-                  v-if="hasActiveFilters"
-                  variant="secondary"
-                  surface="status"
-                  density="compact"
-                  motion="subtle"
-                  @click="clearFilters"
-                >
-                  {{ $t('common.clearFilters') }}
-                </Button>
-              </div>
-            </Card>
-
-            <div
-              v-if="loading"
-              class="flex justify-center py-20"
-            >
-              <div
-                class="w-12 h-12 rounded-full border-4 border-transparent border-t-accent-primary border-r-accent-secondary animate-spin"
-              />
-            </div>
-
-            <div
-              v-else-if="accounts.length === 0"
-              class="empty-state glass-effect rounded-2xl border border-border-default/10"
-            >
-              <div class="p-4 rounded-full glass-surface mb-4">
-                <SIcon
-                  name="KeyRound"
-                  size="w-8 h-8"
-                  class="text-text-muted"
-                />
-              </div>
-              <p class="text-text-primary">
-                {{ $t('codex.auth.emptyState') }}
-              </p>
-              <p class="text-sm text-text-muted mt-2">
-                {{
-                  tf(
-                    'codex.auth.emptyStateHintV2',
-                    'Add a new account through OAuth, API key, token JSON, or import the local runtime snapshot.'
-                  )
-                }}
-              </p>
-              <Button
-                variant="primary"
-                surface="card"
-                density="compact"
-                motion="standard"
-                class="mt-4"
-                @click="openAddAccountModal()"
-              >
-                <template #leading>
-                  <SIcon
-                    name="Plus"
-                    size="w-4 h-4"
-                  />
-                </template>
-                {{ tf('codex.auth.actions.addAccount', 'Add account') }}
-              </Button>
-            </div>
-
-            <div
-              v-else-if="filteredAccounts.length === 0"
-              class="empty-state glass-effect rounded-2xl border border-border-default/10"
-            >
-              <div class="p-4 rounded-full glass-surface mb-4">
-                <SIcon
-                  name="Search"
-                  size="w-8 h-8"
-                  class="text-text-muted"
-                />
-              </div>
-              <p class="text-text-primary">
-                {{ $t('codex.auth.filters.noResultsTitle') }}
-              </p>
-              <p class="text-sm text-text-muted mt-2">
-                {{ $t('codex.auth.filters.noResultsHint') }}
-              </p>
-              <Button
-                variant="secondary"
-                surface="status"
-                density="compact"
-                motion="subtle"
-                class="mt-4"
-                @click="clearFilters"
-              >
-                {{ $t('common.clearFilters') }}
-              </Button>
-            </div>
-
-            <div
-              v-else
-              class="grid grid-cols-1 xl:grid-cols-2 gap-4"
-            >
-              <CodexAccountCard
-                v-for="account in filteredAccounts"
-                :key="account.name"
-                :account="account"
-                :quota="quotaMap.get(account.name) ?? null"
-                :quota-loading="quotaLoading"
-                :is-current="account.is_current"
-                :busy-action="busyName === account.name ? busyAction : null"
-                :disabled="actionLoading"
-                @switch="handleSwitch"
-                @delete="handleDelete"
-                @refresh="handleRefreshSingle"
-                @tag="handleTag"
-                @export="handleExport"
-                @rename="handleRename"
-              />
-            </div>
-          </template>
-
-          <template v-else>
-            <div class="codex-auth-view__providers-grid">
-              <Card
-                surface="workspace"
-                :elevation="2"
-                motion="subtle"
-                padding="lg"
-              >
-                <div
-                  class="codex-auth-view__section-header codex-auth-view__section-header--spread"
-                >
-                  <div class="codex-auth-view__title-inline">
-                    <SIcon
-                      name="Blocks"
-                      size="w-5 h-5"
-                      class="codex-auth-view__section-icon"
-                    />
-                    <div>
-                      <h3 class="codex-auth-view__section-title">
-                        {{ tf('codex.auth.providers.formTitle', 'Saved provider') }}
-                      </h3>
-                      <p class="codex-auth-view__section-copy">
-                        {{
-                          tf(
-                            'codex.auth.providers.formHint',
-                            'Save reusable base URLs and optional API keys. Provider templates only fill non-secret metadata.'
-                          )
-                        }}
-                      </p>
-                    </div>
-                  </div>
-                  <Button
-                    v-if="
-                      providerForm.id ||
-                        providerForm.name ||
-                        providerForm.baseUrl ||
-                        providerForm.apiKey
-                    "
-                    variant="secondary"
-                    surface="status"
-                    density="compact"
-                    motion="subtle"
-                    @click="resetProviderForm"
-                  >
-                    {{ tf('codex.auth.providers.resetForm', 'Reset form') }}
-                  </Button>
-                </div>
-
-                <ProviderTemplateSelector
-                  class="codex-auth-view__template-selector"
-                  platform="codex"
-                  :selected-template-id="selectedProviderTemplate"
-                  :selected-endpoint="selectedProviderEndpoint"
-                  :draft-context="codexTemplateDraft"
-                  label="Provider template"
-                  helper="Search non-secret templates by name, host, tag, or model. API keys stay in the saved provider form."
-                  @select="applyCodexProviderTemplate"
-                  @manual="useManualProviderTemplate"
-                />
-
-                <div class="codex-auth-view__provider-form">
-                  <label class="codex-auth-view__input-group">
-                    <span class="codex-auth-view__input-label">{{
-                      tf('codex.auth.providers.fields.name', 'Provider name')
-                    }}</span>
-                    <input
-                      v-model="providerForm.name"
-                      type="text"
-                      class="input"
-                      :placeholder="
-                        tf(
-                          'codex.auth.providers.placeholders.name',
-                          'e.g. OpenRouter / Azure OpenAI / Local gateway'
-                        )
-                      "
-                    >
-                  </label>
-                  <label class="codex-auth-view__input-group">
-                    <span class="codex-auth-view__input-label">{{
-                      tf('codex.auth.providers.fields.baseUrl', 'Base URL')
-                    }}</span>
-                    <input
-                      v-model="providerForm.baseUrl"
-                      type="url"
-                      class="input"
-                      placeholder="https://..."
-                    >
-                  </label>
-                  <label class="codex-auth-view__input-group">
-                    <span class="codex-auth-view__input-label">{{
-                      tf('codex.auth.providers.fields.websiteUrl', 'Website URL')
-                    }}</span>
-                    <input
-                      v-model="providerForm.websiteUrl"
-                      type="url"
-                      class="input"
-                      :placeholder="
-                        tf(
-                          'codex.auth.providers.placeholders.websiteUrl',
-                          'Optional reference link'
-                        )
-                      "
-                    >
-                  </label>
-                  <label class="codex-auth-view__input-group">
-                    <span class="codex-auth-view__input-label">{{
-                      tf('codex.auth.providers.fields.apiKeyUrl', 'API key docs URL')
-                    }}</span>
-                    <input
-                      v-model="providerForm.apiKeyUrl"
-                      type="url"
-                      class="input"
-                      :placeholder="
-                        tf(
-                          'codex.auth.providers.placeholders.apiKeyUrl',
-                          'Optional onboarding link'
-                        )
-                      "
-                    >
-                  </label>
-                  <label class="codex-auth-view__input-group">
-                    <span class="codex-auth-view__input-label">{{
-                      tf('codex.auth.providers.fields.apiKeyName', 'Stored key label')
-                    }}</span>
-                    <input
-                      v-model="providerForm.apiKeyName"
-                      type="text"
-                      class="input"
-                      :placeholder="
-                        tf('codex.auth.providers.placeholders.apiKeyName', 'Default: API Key')
-                      "
-                    >
-                  </label>
-                  <label class="codex-auth-view__input-group">
-                    <span class="codex-auth-view__input-label">{{
-                      tf('codex.auth.providers.fields.apiKey', 'Stored API key')
-                    }}</span>
-                    <input
-                      v-model="providerForm.apiKey"
-                      type="password"
-                      class="input"
-                      :placeholder="
-                        tf(
-                          'codex.auth.providers.placeholders.apiKey',
-                          'Optional. Leave empty to keep existing keys unchanged.'
-                        )
-                      "
-                    >
-                  </label>
-                </div>
-
-                <div
-                  v-if="providerError"
-                  class="codex-auth-view__inline-error"
-                >
-                  {{ providerError }}
-                </div>
-
-                <div class="codex-auth-view__provider-actions">
-                  <Button
-                    variant="primary"
-                    surface="card"
-                    density="compact"
-                    motion="standard"
-                    :disabled="
-                      providerSaving || !providerForm.name.trim() || !providerForm.baseUrl.trim()
-                    "
-                    @click="handleSaveProvider"
-                  >
-                    <template #leading>
-                      <span
-                        v-if="providerSaving"
-                        class="w-4 h-4 border-2 border-border-default/30 border-t-white rounded-full animate-spin"
-                      />
-                      <SIcon
-                        v-else
-                        :name="providerForm.id ? 'Save' : 'Plus'"
-                        size="w-4 h-4"
-                      />
-                    </template>
-                    {{
-                      providerForm.id
-                        ? tf('codex.auth.providers.actions.update', 'Update provider')
-                        : tf('codex.auth.providers.actions.create', 'Save provider')
-                    }}
-                  </Button>
-                </div>
-              </Card>
-
-              <Card
-                surface="workspace"
-                :elevation="2"
-                motion="subtle"
-                padding="lg"
-              >
-                <div
-                  class="codex-auth-view__section-header codex-auth-view__section-header--spread"
-                >
-                  <div class="codex-auth-view__title-inline">
-                    <SIcon
-                      name="Globe"
-                      size="w-5 h-5"
-                      class="codex-auth-view__section-icon"
-                    />
-                    <div>
-                      <h3 class="codex-auth-view__section-title">
-                        {{ tf('codex.auth.providers.listTitle', 'Saved providers') }}
-                      </h3>
-                      <p class="codex-auth-view__section-copy">
-                        {{
-                          tf(
-                            'codex.auth.providers.listHint',
-                            'Saved providers can include API keys and can be injected directly into the API key account flow.'
-                          )
-                        }}
-                      </p>
-                    </div>
-                  </div>
-                  <Button
-                    variant="secondary"
-                    surface="status"
-                    density="compact"
-                    motion="subtle"
-                    :disabled="providerLoading"
-                    @click="loadProviders"
-                  >
-                    <template #leading>
-                      <SIcon
-                        name="RefreshCw"
-                        size="w-4 h-4"
-                        :class="{ 'animate-spin': providerLoading }"
-                      />
-                    </template>
-                    {{ $t('codex.auth.refresh') }}
-                  </Button>
-                </div>
-
-                <div
-                  v-if="providerLoading"
-                  class="space-y-3"
-                >
-                  <div
-                    v-for="index in 3"
-                    :key="index"
-                    class="h-24 rounded-2xl bg-bg-surface/70 animate-pulse"
-                  />
-                </div>
-
-                <div
-                  v-else-if="providers.length === 0"
-                  class="empty-state rounded-2xl border border-border-default/10 bg-bg-surface/40"
-                >
-                  <div class="p-4 rounded-full glass-surface mb-4">
-                    <SIcon
-                      name="Blocks"
-                      size="w-8 h-8"
-                      class="text-text-muted"
-                    />
-                  </div>
-                  <p class="text-text-primary">
-                    {{ tf('codex.auth.providers.emptyState', 'No saved providers yet') }}
-                  </p>
-                  <p class="text-sm text-text-muted mt-2">
-                    {{
-                      tf(
-                        'codex.auth.providers.emptyHint',
-                        'Create a saved provider if you often switch between OpenAI-compatible gateways.'
-                      )
-                    }}
-                  </p>
-                </div>
-
-                <div
-                  v-else
-                  class="codex-auth-view__provider-list"
-                >
-                  <article
-                    v-for="provider in providers"
-                    :key="provider.id"
-                    class="codex-auth-view__provider-card"
-                  >
-                    <div class="codex-auth-view__provider-head">
-                      <div>
-                        <h4 class="codex-auth-view__provider-title">
-                          {{ provider.name }}
-                        </h4>
-                        <p class="codex-auth-view__provider-url">
-                          {{ provider.base_url }}
-                        </p>
-                      </div>
-                      <div class="codex-auth-view__provider-badges">
-                        <span class="codex-auth-view__provider-badge">
-                          {{ provider.api_keys.length }}
-                          {{ tf('codex.auth.providers.badges.keys', 'keys') }}
-                        </span>
-                        <span
-                          class="codex-auth-view__provider-badge codex-auth-view__provider-badge--muted"
-                        >
-                          {{ formatProviderUpdatedAt(provider.updated_at) }}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div class="codex-auth-view__provider-meta">
-                      <a
-                        v-if="provider.website_url"
-                        :href="provider.website_url"
-                        target="_blank"
-                        rel="noreferrer"
-                        class="codex-auth-view__provider-link"
-                      >
-                        {{ tf('codex.auth.providers.links.website', 'Website') }}
-                      </a>
-                      <a
-                        v-if="provider.api_key_url"
-                        :href="provider.api_key_url"
-                        target="_blank"
-                        rel="noreferrer"
-                        class="codex-auth-view__provider-link"
-                      >
-                        {{ tf('codex.auth.providers.links.apiKeyDocs', 'API key docs') }}
-                      </a>
-                    </div>
-
-                    <div class="codex-auth-view__provider-footer">
-                      <div class="codex-auth-view__provider-copy">
-                        <span>{{ tf('codex.auth.providers.updatedAt', 'Updated') }}
-                          {{ formatProviderUpdatedAt(provider.updated_at, true) }}</span>
-                      </div>
-                      <div class="codex-auth-view__provider-actions-inline">
-                        <Button
-                          variant="secondary"
-                          surface="status"
-                          density="compact"
-                          motion="subtle"
-                          @click="applyProviderToApiForm(provider)"
-                        >
-                          {{ tf('codex.auth.providers.actions.useInApiForm', 'Use in API form') }}
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          surface="status"
-                          density="compact"
-                          motion="subtle"
-                          @click="editProvider(provider)"
-                        >
-                          {{ tf('common.edit', 'Edit') }}
-                        </Button>
-                        <Button
-                          variant="danger"
-                          surface="status"
-                          density="compact"
-                          motion="subtle"
-                          @click="requestDeleteProvider(provider)"
-                        >
-                          {{ $t('codex.actions.delete') }}
-                        </Button>
-                      </div>
-                    </div>
-                  </article>
-                </div>
-              </Card>
-            </div>
-          </template>
+          <CodexAuthProvidersTab
+            v-else
+            :provider-form="providerForm"
+            :provider-error="providerError"
+            :provider-saving="providerSaving"
+            :provider-loading="providerLoading"
+            :providers="providers"
+            :selected-provider-template="selectedProviderTemplate"
+            :selected-provider-endpoint="selectedProviderEndpoint"
+            :codex-template-draft="codexTemplateDraft"
+            :format-provider-updated-at="formatProviderUpdatedAt"
+            @update:provider-form="(val) => Object.assign(providerForm, val)"
+            @reset-form="resetProviderForm"
+            @apply-template="applyCodexProviderTemplate"
+            @use-manual-template="useManualProviderTemplate"
+            @save-provider="handleSaveProvider"
+            @load-providers="loadProviders"
+            @use-in-api-form="applyProviderToApiForm"
+            @edit-provider="editProvider"
+            @delete-provider="requestDeleteProvider"
+          />
 
           <BaseModal
             :model-value="showSaveForm"
@@ -1926,7 +1313,6 @@
     </div>
   </div>
 </template>
-
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
 import { computed, onActivated, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
@@ -1936,7 +1322,8 @@ import ModuleSubnav from '@/components/ModuleSubnav.vue'
 import BaseModal from '@/components/common/BaseModal.vue'
 import Button from '@/components/ui/Button.vue'
 import Card from '@/components/ui/Card.vue'
-import CodexAccountCard from '@/components/codex/CodexAccountCard.vue'
+import CodexAuthAccountsTab from './codex/tabs/CodexAuthAccountsTab.vue'
+import CodexAuthProvidersTab from './codex/tabs/CodexAuthProvidersTab.vue'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import ProviderTemplateSelector from '@/components/provider-templates/ProviderTemplateSelector.vue'
 import { translateWithFallback } from '@/i18n/formatMessage'
