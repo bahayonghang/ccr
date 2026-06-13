@@ -125,7 +125,9 @@ interface Props {
   /** 描述文本 (用于 ARIA) */
   description?: string
   /** 尺寸变体 */
-  size?: 'sm' | 'md' | 'lg' | 'xl' | 'full'
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | 'full'
+  /** 内容超高时是否启用「头/脚固定 + 主体滚动」布局（适配长表单） */
+  scrollable?: boolean
   /** 是否显示关闭按钮 */
   showClose?: boolean
   /** 点击遮罩是否关闭 */
@@ -157,6 +159,7 @@ const props = withDefaults(defineProps<Props>(), {
   title: undefined,
   description: undefined,
   size: 'md',
+  scrollable: false,
   showClose: true,
   closeOnBackdrop: true,
   closeOnEscape: true,
@@ -198,6 +201,10 @@ const sizeClasses = {
   md: 'max-w-md',
   lg: 'max-w-lg',
   xl: 'max-w-xl',
+  '2xl': 'max-w-2xl',
+  '3xl': 'max-w-3xl',
+  '4xl': 'max-w-4xl',
+  '5xl': 'max-w-5xl',
   full: 'max-w-[calc(100vw-2rem)] max-h-[calc(100vh-2rem)]',
 }
 
@@ -218,6 +225,8 @@ const backdropClasses = computed(() => [
 const modalClasses = computed(() => [
   // 基础样式
   'relative w-full overflow-hidden rounded-2xl',
+  // 滚动布局：固定头/脚 + 主体滚动
+  props.scrollable ? 'flex flex-col max-h-[90vh]' : '',
   // 玻璃态效果
   'bg-white/80 dark:bg-bg-elevated/90 backdrop-blur-xl backdrop-saturate-150',
   'border border-border-color/50',
@@ -236,6 +245,7 @@ const modalClasses = computed(() => [
 const headerClasses = computed(() => [
   'relative px-6 pt-6 pb-4',
   props.showClose ? 'pr-12' : '',
+  props.scrollable ? 'shrink-0' : '',
 ])
 
 // Body 类
@@ -243,6 +253,8 @@ const bodyClasses = computed(() => [
   'px-6 py-2',
   // 如果有 footer，减少底部 padding
   slots.footer ? 'pb-4' : 'pb-6',
+  // 滚动布局：主体占据剩余空间并滚动
+  props.scrollable ? 'flex-1 overflow-y-auto min-h-0' : '',
 ])
 
 // Footer 类
@@ -250,6 +262,7 @@ const footerClasses = computed(() => [
   'px-6 py-4',
   'border-t border-border-default',
   'flex items-center justify-end gap-3',
+  props.scrollable ? 'shrink-0' : '',
 ])
 
 // 事件处理
