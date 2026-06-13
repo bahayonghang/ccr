@@ -907,7 +907,7 @@ const deleteProvider = async (id: string) => {
 .checkin-providers__modal-overlay {
   position: fixed;
   inset: 0;
-  z-index: 50;
+  z-index: var(--layer-popover);
   justify-content: center;
   background: rgb(0 0 0 / 50%);
   padding: 1rem;

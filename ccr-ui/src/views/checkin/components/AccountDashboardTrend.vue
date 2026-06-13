@@ -263,7 +263,7 @@ const formatReward = (amount: number) => {
   border: 1px solid var(--color-border-default);
   box-shadow: var(--shadow-lg);
   pointer-events: none;
-  z-index: 5;
+  z-index: var(--layer-raised);
 }
 
 .tooltip-date {

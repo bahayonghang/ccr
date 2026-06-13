@@ -170,7 +170,7 @@ const emit = defineEmits<{
   content: '';
   position: absolute;
   inset: 0 auto 0 0;
-  z-index: -1;
+  z-index: var(--z-behind);
   width: 4px;
   background: linear-gradient(180deg, rgb(var(--usage-ops-rgb) / 86%), transparent);
 }

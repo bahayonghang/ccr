@@ -109,7 +109,7 @@ defineProps<Props>()
   content: '';
   position: absolute;
   inset: 0 auto 0 0;
-  z-index: -1;
+  z-index: var(--z-behind);
   width: 3px;
   background: linear-gradient(180deg, rgb(var(--usage-metric-rgb) / 82%), transparent);
 }
@@ -118,7 +118,7 @@ defineProps<Props>()
   content: '';
   position: absolute;
   inset: auto -16% -36% auto;
-  z-index: -1;
+  z-index: var(--z-behind);
   width: 9rem;
   height: 9rem;
   border-radius: 9999px;

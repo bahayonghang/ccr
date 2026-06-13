@@ -334,7 +334,7 @@ function formatScopeList(scopes: string[]): string {
   position: absolute;
   top: 100%;
   right: 0;
-  z-index: 20;
+  z-index: var(--layer-dropdown);
   margin-top: 0.25rem;
   min-width: 11rem;
   padding: 0.25rem;

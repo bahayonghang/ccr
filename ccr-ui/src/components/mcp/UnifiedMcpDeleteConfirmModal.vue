@@ -67,7 +67,7 @@ defineProps<{
 .modal-overlay {
   position: fixed;
   inset: 0;
-  z-index: 50;
+  z-index: var(--layer-popover);
   display: flex;
   align-items: center;
   justify-content: center;

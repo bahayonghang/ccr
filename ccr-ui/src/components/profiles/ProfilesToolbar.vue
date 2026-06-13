@@ -212,7 +212,7 @@ defineExpose({ focusSearch })
 .cp-toolbar {
   position: sticky;
   top: 0;
-  z-index: 5;
+  z-index: var(--layer-raised);
   display: flex;
   align-items: center;
   gap: 10px;

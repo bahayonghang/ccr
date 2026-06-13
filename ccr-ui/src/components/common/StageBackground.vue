@@ -16,7 +16,7 @@
   inset: 0;
   overflow: hidden;
   pointer-events: none;
-  z-index: -50;
+  z-index: var(--layer-background);
   background: var(--color-bg-base);
 }
 

@@ -739,7 +739,7 @@ onActivated(() => {
   justify-content: center;
   background: rgb(15 23 42 / 55%);
   padding: 1rem;
-  z-index: 50;
+  z-index: var(--layer-popover);
 }
 
 .claude-auth-view__modal {

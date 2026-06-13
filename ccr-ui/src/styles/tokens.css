@@ -592,7 +592,9 @@
 
 /* ========== Z-Index 层级系统 ========== */
 :root:where(:root):where(:root):where(:root):where(:root):where(:root):where(:root):where(:root) {
+  --layer-background: -50;
   --layer-base: 0;
+  --layer-raised: 5;
   --layer-sticky: 10;
   --layer-dropdown: 20;
   --layer-modal-backdrop: 30;

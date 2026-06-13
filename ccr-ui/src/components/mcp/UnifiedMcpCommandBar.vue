@@ -134,7 +134,7 @@ const emit = defineEmits<{
 .command-bar {
   position: sticky;
   top: 0;
-  z-index: 20;
+  z-index: var(--layer-dropdown);
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
