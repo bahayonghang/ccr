@@ -91,3 +91,4 @@ ccr-ui/src-tauri/bin/
 .understand-anything/
 .codegraph/
 .planning/
+.playwright-mcp/
