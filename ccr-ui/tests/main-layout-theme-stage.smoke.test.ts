@@ -7,12 +7,13 @@ vi.mock('vue', async () => {
 
   return {
     ...actual,
-    defineAsyncComponent: () => actual.defineComponent({
-      name: 'AsyncComponentStub',
-      setup() {
-        return () => actual.h('div', { 'data-async-stub': 'true' })
-      },
-    }),
+    defineAsyncComponent: () =>
+      actual.defineComponent({
+        name: 'AsyncComponentStub',
+        setup() {
+          return () => actual.h('div', { 'data-async-stub': 'true' })
+        },
+      }),
     Suspense: actual.defineComponent({
       name: 'SuspenseStub',
       setup(_props, { slots }) {
@@ -26,7 +27,7 @@ const routeState = reactive({
   name: 'claude-code',
   fullPath: '/claude-code',
   meta: {
-    group: 'claude-code',
+    group: 'claude-code' as string | undefined,
     hideGlobalBackground: true,
     hideSidebar: false,
   },
@@ -122,11 +123,13 @@ const mountLayout = async () => {
   const el = document.createElement('div')
   document.body.appendChild(el)
 
-  const app = createApp(defineComponent({
-    setup() {
-      return () => h(MainLayout)
-    },
-  }))
+  const app = createApp(
+    defineComponent({
+      setup() {
+        return () => h(MainLayout)
+      },
+    })
+  )
 
   app.use(createPinia())
   app.config.globalProperties.$t = (key: string) => key
@@ -150,7 +153,7 @@ const mountLayout = async () => {
           return h('a', {}, slots.default?.())
         }
       },
-    }),
+    })
   )
 
   app.component(
@@ -166,7 +169,7 @@ const mountLayout = async () => {
 
         return () => slots.default?.({ Component: DummyRouteComponent })
       },
-    }),
+    })
   )
 
   app.mount(el)
@@ -264,7 +267,9 @@ describe('MainLayout theme stage smoke', () => {
       await nextTick()
       await nextTick()
 
-      const button = el.querySelector('[data-testid="main-scroll-to-top"]') as HTMLButtonElement | null
+      const button = el.querySelector(
+        '[data-testid="main-scroll-to-top"]'
+      ) as HTMLButtonElement | null
       expect(button).not.toBeNull()
 
       button?.click()

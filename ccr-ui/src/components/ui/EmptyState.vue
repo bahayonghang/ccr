@@ -21,7 +21,7 @@
     </p>
     <button
       v-if="actionText && onAction"
-      class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full border border-accent-primary/15 bg-accent-primary px-5 py-2.5 text-base font-medium text-text-inverted transition-[background-color,transform,box-shadow] duration-200 ease-out hover:-translate-y-px hover:bg-accent-primary-hover hover:shadow-glow-primary active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/30"
+      class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full border border-accent-primary/15 bg-accent-primary px-5 py-2.5 text-base font-medium text-text-inverted transition-[background-color,transform] duration-200 ease-out hover:-translate-y-px hover:bg-accent-primary-hover active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/30"
       @click="onAction"
     >
       <SIcon

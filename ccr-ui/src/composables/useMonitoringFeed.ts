@@ -1,6 +1,6 @@
 import { onMounted, onUnmounted, ref, type Ref } from 'vue'
-import { invoke } from '@tauri-apps/api/core'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
+import { getMonitoringFeed, getRecentEvents, type MonitoringFeedQuery } from '@/api'
 import { logger, type LoggerEntry, type LogLevel } from '@/utils/logger'
 import { isTauriRuntime } from '@/utils/tauriRuntime'
 
@@ -25,12 +25,6 @@ export interface TokenStats {
   request_count: number
   estimated_cost_cents: number
   last_updated: string
-}
-
-interface MonitoringFeedQuery {
-  count?: number
-  level?: MonitoringLevel
-  channel?: string
 }
 
 interface MonitoringFeedOptions {
@@ -101,7 +95,10 @@ const buildLegacyMessage = (type: string, data: UnknownRecord): string => {
   switch (type) {
     case 'CheckinCompleted':
     case 'CheckinFailed':
-      return readString(data, 'message') ?? `Checkin ${type === 'CheckinCompleted' ? 'completed' : 'failed'}`
+      return (
+        readString(data, 'message') ??
+        `Checkin ${type === 'CheckinCompleted' ? 'completed' : 'failed'}`
+      )
     case 'SyncStatusChanged':
       return readString(data, 'message') ?? 'Sync status changed'
     case 'TaskProgress':
@@ -133,11 +130,12 @@ const normalizeLegacyEvent = (record: UnknownRecord): MonitoringEntry | null => 
   }
 
   const data = event && isRecord(event.data) ? event.data : {}
-  const level = type === 'CheckinFailed'
-    ? 'error'
-    : type === 'Notification'
-      ? normalizeLevel(readString(data, 'level'))
-      : 'info'
+  const level =
+    type === 'CheckinFailed'
+      ? 'error'
+      : type === 'Notification'
+        ? normalizeLevel(readString(data, 'level'))
+        : 'info'
 
   return {
     id: readString(record, 'id') ?? createFallbackId('legacy-monitoring'),
@@ -221,7 +219,10 @@ const trimEntries = (entries: MonitoringEntry[], maxEntries: number): Monitoring
   return entries.length > maxEntries ? entries.slice(-maxEntries) : entries
 }
 
-const insertEntryByTimestamp = (entries: MonitoringEntry[], entry: MonitoringEntry): MonitoringEntry[] => {
+const insertEntryByTimestamp = (
+  entries: MonitoringEntry[],
+  entry: MonitoringEntry
+): MonitoringEntry[] => {
   if (entries.length === 0) {
     return [entry]
   }
@@ -299,8 +300,12 @@ export function useMonitoringFeed(options: MonitoringFeedOptions = {}) {
     const query: MonitoringFeedQuery = { count: initialCount }
 
     try {
-      const entries = await invoke<unknown[]>('get_monitoring_feed', { query })
-      mergeEntries(entries.map(normalizeMonitoringEntry).filter((entry): entry is MonitoringEntry => entry !== null))
+      const entries = await getMonitoringFeed(query)
+      mergeEntries(
+        entries
+          .map(normalizeMonitoringEntry)
+          .filter((entry): entry is MonitoringEntry => entry !== null)
+      )
       isConnected.value = true
       return
     } catch {
@@ -308,8 +313,12 @@ export function useMonitoringFeed(options: MonitoringFeedOptions = {}) {
     }
 
     try {
-      const entries = await invoke<unknown[]>('get_recent_events', { count: initialCount })
-      mergeEntries(entries.map(normalizeMonitoringEntry).filter((entry): entry is MonitoringEntry => entry !== null))
+      const entries = await getRecentEvents<unknown[]>(initialCount)
+      mergeEntries(
+        entries
+          .map(normalizeMonitoringEntry)
+          .filter((entry): entry is MonitoringEntry => entry !== null)
+      )
       isConnected.value = true
     } catch {
       isConnected.value = false

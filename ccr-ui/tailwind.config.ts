@@ -86,7 +86,8 @@ export default {
         },
       },
       backgroundImage: {
-        'premium-gradient': 'linear-gradient(135deg, var(--color-premium-pink) 0%, var(--color-premium-blue) 100%)',
+        'premium-gradient':
+          'linear-gradient(135deg, var(--color-premium-pink) 0%, var(--color-premium-blue) 100%)',
       },
       spacing: {
         px: '1px',
@@ -108,18 +109,13 @@ export default {
         lg: 'var(--radius-lg)',
         xl: 'var(--radius-xl)',
       },
-      boxShadow: {
-        'glow-primary': 'var(--shadow-glow-primary)',
-        'glow-success': 'var(--shadow-glow-success)',
-        'glow-danger': 'var(--shadow-glow-danger)',
-      },
       transitionDuration: {
         fast: 'var(--duration-fast)',
         normal: 'var(--duration-normal)',
         slow: 'var(--duration-slow)',
       },
       transitionTimingFunction: {
-        DEFAULT: 'var(--ease-default)',
+        DEFAULT: 'var(--ease-in-out)',
         in: 'var(--ease-in)',
         out: 'var(--ease-out)',
         spring: 'var(--ease-spring)',
@@ -163,7 +159,7 @@ export default {
         'neko-press': 'neko-press 0.4s ease-out',
         'neko-ear-wiggle': 'neko-ear-wiggle 0.6s ease-in-out',
         'neko-breathe': 'neko-breathe 3s ease-in-out infinite',
-      }
+      },
     },
   },
   plugins: [

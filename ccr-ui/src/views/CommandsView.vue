@@ -533,10 +533,12 @@
                 :class="`commands-terminal__line--${line.channel}`"
               >
                 <span class="commands-terminal__channel">{{ line.channel }}</span>
+                <!-- eslint-disable vue/no-v-html -- ANSI 输出经 ansiRenderer(DOMPurify) 消毒 -->
                 <code
                   class="commands-terminal__text"
                   v-html="line.safeHtml"
                 />
+                <!-- eslint-enable vue/no-v-html -->
               </div>
             </div>
 

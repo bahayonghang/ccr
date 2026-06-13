@@ -26,10 +26,12 @@
       class="space-y-4"
     >
       <div class="bg-bg-surface rounded-lg p-4 border border-border-default">
+        <!-- eslint-disable vue/no-v-html -- 仅渲染 i18n 文案中的 <strong>，无用户输入 -->
         <p
           class="text-sm text-text-primary leading-relaxed"
           v-html="descriptionHtml"
         />
+        <!-- eslint-enable vue/no-v-html -->
         <p class="text-sm text-text-secondary mt-2">
           {{ t('usage.install.dialog.detectedAbsent') }}
         </p>

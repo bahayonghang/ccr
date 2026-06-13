@@ -33,8 +33,11 @@ const createForm = (): ClaudeProfileEditorForm => ({
   auth_mode: 'api_key',
   base_url: 'https://api.anthropic.com',
   auth_token: 'sk-ant-test-123',
-  model: 'claude-sonnet-4-5',
-  small_fast_model: '',
+  default_opus_model: 'claude-opus-4-5',
+  default_sonnet_model: 'claude-sonnet-4-5',
+  default_haiku_model: 'claude-haiku-4-5',
+  subagent_model: '',
+  effort_level: '',
   provider: 'anthropic',
   provider_type: 'official',
   account: 'work',
@@ -148,29 +151,33 @@ const mountSections = async (form = createForm()) => {
   })
   const registerModalSectionRef = vi.fn()
 
-  const app = createApp(defineComponent({
-    setup() {
-      return () => h(ClaudeProfileEditorSections, {
-        editingName: state.name,
-        form: state,
-        isEditing: true,
-        monospaceFieldClass: 'editor-input editor-input--mono w-full',
-        parsedFormTags: ['free'],
-        registerModalSectionRef,
-        saveError: null,
-        textareaClass: 'editor-input w-full',
-        textFieldClass: 'editor-input w-full',
-        updateFormField: (field: keyof ClaudeProfileEditorForm, value: string | boolean) => {
-          if (field === 'enabled') {
-            state.enabled = Boolean(value)
-            return
-          }
+  const app = createApp(
+    defineComponent({
+      setup() {
+        return () =>
+          h(ClaudeProfileEditorSections, {
+            editingName: state.name,
+            form: state,
+            isEditing: true,
+            monospaceFieldClass: 'editor-input editor-input--mono w-full',
+            parsedFormTags: ['free'],
+            registerModalSectionRef,
+            saveError: null,
+            textareaClass: 'editor-input w-full',
+            textFieldClass: 'editor-input w-full',
+            updateFormField: (field: keyof ClaudeProfileEditorForm, value: string | boolean) => {
+              if (field === 'enabled') {
+                state.enabled = Boolean(value)
+                return
+              }
 
-          state[field] = String(value) as ClaudeProfileEditorForm[typeof field]
-        },
-      })
-    },
-  }))
+              const target = state as Record<string, string | boolean>
+              target[field] = String(value)
+            },
+          })
+      },
+    })
+  )
 
   app.use(pinia)
   app.use(i18n)
@@ -203,7 +210,9 @@ describe('ClaudeProfileEditorSections token controls', () => {
 
     try {
       const input = el.querySelector<HTMLInputElement>('[data-testid="claude-auth-token-input"]')
-      const toggle = el.querySelector<HTMLButtonElement>('[data-testid="claude-auth-token-visibility"]')
+      const toggle = el.querySelector<HTMLButtonElement>(
+        '[data-testid="claude-auth-token-visibility"]'
+      )
 
       expect(input?.type).toBe('password')
       expect(toggle?.title).toBe('Show Auth Token')
@@ -222,7 +231,9 @@ describe('ClaudeProfileEditorSections token controls', () => {
     const { el, uiStore, unmount } = await mountSections()
 
     try {
-      const copyButton = el.querySelector<HTMLButtonElement>('[data-testid="claude-auth-token-copy"]')
+      const copyButton = el.querySelector<HTMLButtonElement>(
+        '[data-testid="claude-auth-token-copy"]'
+      )
       copyButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
       await Promise.resolve()
 

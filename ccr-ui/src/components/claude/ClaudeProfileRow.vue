@@ -17,11 +17,13 @@
       <div class="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
         <div class="min-w-0 space-y-2 pl-1">
           <div class="flex flex-wrap items-center gap-2">
+            <!-- eslint-disable vue/no-v-html -- highlightedName 由 claudeProfiles 转义后仅注入 <mark> -->
             <h3
               class="max-w-full truncate text-[1.12rem] font-semibold tracking-tight text-text-primary"
               :title="profile.name"
               v-html="highlightedName"
             />
+            <!-- eslint-enable vue/no-v-html -->
 
             <span
               class="inline-flex min-h-[26px] items-center rounded-full px-2.5 py-1 text-[11px] font-medium"
@@ -133,11 +135,13 @@
           <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-text-muted">
             {{ $t('claudeProfiles.descLabel') }}
           </p>
+          <!-- eslint-disable vue/no-v-html -- highlightedDescription 由 claudeProfiles 转义后仅注入 <mark> -->
           <p
             class="mt-1 line-clamp-2 text-sm leading-5"
             :class="profile.description ? 'text-text-secondary' : 'text-text-muted'"
             v-html="highlightedDescription"
           />
+          <!-- eslint-enable vue/no-v-html -->
         </div>
 
         <div

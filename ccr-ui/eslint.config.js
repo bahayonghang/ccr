@@ -25,7 +25,6 @@ export default [
       '**/src-tauri/target/**',
       '**/src-tauri/gen/**',
       '**/.vite/**',
-      '**/tests/**',
       '**/docs/**',
     ],
   },
@@ -64,13 +63,14 @@ export default [
     rules: {
       // Vue rules
       'vue/multi-word-component-names': 'off',
-      'vue/no-v-html': 'off', // Disabled because v-html is legitimately used for rendering ANSI terminal output
+      // v-html 仅允许在有 DOMPurify/escapeHtml 防护的渲染点使用，逐行 eslint-disable 豁免
+      'vue/no-v-html': 'error',
       'vue/require-default-prop': 'off',
       'vue/require-explicit-emits': 'error',
       'vue/one-component-per-file': 'off',
 
       // TypeScript rules - 严格类型检查
-      '@typescript-eslint/no-explicit-any': 'warn', // TODO: 升级为 'error' - 需要先修复所有 any 类型
+      '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-unused-vars': [
         'warn',
         {
@@ -84,12 +84,27 @@ export default [
       '@typescript-eslint/no-require-imports': 'off',
 
       // General rules - 安全检查
-      // 生产环境禁止 console，开发环境允许
-      'no-console': process.env.NODE_ENV === 'production' ? 'error' : 'warn',
+      // console 全量收口到 utils/logger.ts，源码中禁止直用
+      'no-console': 'error',
       'no-debugger': process.env.NODE_ENV === 'production' ? 'error' : 'warn',
       'prefer-const': 'warn',
       'no-var': 'error',
       'no-undef': 'off', // TypeScript handles this
+    },
+  },
+  {
+    // 测试代码纳入 lint 质量门；放宽 console 与部分仅影响生产代码的规则
+    name: 'app/tests',
+    files: ['tests/**/*.{ts,mts,cjs,js}'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.browser,
+      },
+    },
+    rules: {
+      'no-console': 'off',
+      '@typescript-eslint/no-require-imports': 'off',
     },
   },
   ...storybook.configs['flat/recommended'],

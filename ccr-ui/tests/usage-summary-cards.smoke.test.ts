@@ -10,7 +10,7 @@ import {
 
 const buildBucket = (
   startDate: string,
-  overrides: Partial<UsageTrendBucket>,
+  overrides: Partial<UsageTrendBucket>
 ): UsageTrendBucket => ({
   id: startDate,
   startDate,
@@ -18,6 +18,7 @@ const buildBucket = (
   requestCount: 0,
   inputTokens: 0,
   outputTokens: 0,
+  reasoningOutputTokens: 0,
   totalTokens: 0,
   cacheReadTokens: 0,
   cacheCreationTokens: 0,
@@ -39,16 +40,21 @@ const buildSummary = (overrides: Partial<UsageSummary> = {}): UsageSummary => ({
 const translate = (
   _key: string,
   _values: Record<string, number | string> | undefined,
-  fallback: string,
+  fallback: string
 ) => fallback
 
 describe('usage summary card helpers', () => {
   it('builds metric stats with average, peak, positive delta, and tone', () => {
-    expect(buildMetricStats([
-      { label: '2026-05-01', value: 10 },
-      { label: '2026-05-02', value: 20 },
-      { label: '2026-05-03', value: 40 },
-    ], (value) => value.toFixed(0))).toEqual({
+    expect(
+      buildMetricStats(
+        [
+          { label: '2026-05-01', value: 10 },
+          { label: '2026-05-02', value: 20 },
+          { label: '2026-05-03', value: 40 },
+        ],
+        (value) => value.toFixed(0)
+      )
+    ).toEqual({
       averageLabel: '23',
       peakLabel: '40',
       deltaLabel: '+300%',

@@ -82,13 +82,13 @@ const cliEntry = (platform: string, overrides: Partial<CliVersionEntry> = {}): C
   ...overrides,
 })
 
-const createCliMap = (entries: CliVersionEntry[] = [
-  cliEntry('claude-code'),
-  cliEntry('codex'),
-  cliEntry('antigravity'),
-]) => new Map(entries.map((entry) => [entry.platform, entry]))
+const createCliMap = (
+  entries: CliVersionEntry[] = [cliEntry('claude-code'), cliEntry('codex'), cliEntry('antigravity')]
+) => new Map(entries.map((entry) => [entry.platform, entry]))
 
-const overview = (overrides: Partial<HomeUsageOverviewResponse> = {}): HomeUsageOverviewResponse => ({
+const overview = (
+  overrides: Partial<HomeUsageOverviewResponse> = {}
+): HomeUsageOverviewResponse => ({
   summary: {
     total_sessions: 18,
     total_requests: 1240,
@@ -122,6 +122,33 @@ const overview = (overrides: Partial<HomeUsageOverviewResponse> = {}): HomeUsage
     needs_usage_import: false,
     needs_session_index: false,
     is_warm: true,
+  },
+  snapshot: {
+    generated_at: '2026-04-29T09:00:00Z',
+    platform_scope: 'all',
+    cache_ttl_seconds: 30,
+    freshness: {
+      state: 'fresh',
+      latest_completed_at: '2026-04-29T08:00:00Z',
+      age_seconds: 3600,
+      stale_after_seconds: 86_400,
+    },
+    readiness: {
+      state: 'ready',
+      detail: 'ready',
+      has_live_sources: true,
+      has_missing_sources: false,
+      has_deleted_sources: false,
+      active_usage_import: false,
+      active_session_index: false,
+    },
+    source_health: [],
+    drilldown: {
+      dimensions: [],
+      supports_logs: true,
+      supports_projects: true,
+      supports_sessions: true,
+    },
   },
   empty_reason: undefined,
   last_updated: '2026-04-29T09:00:00Z',
@@ -159,7 +186,9 @@ describe('dashboard presentation', () => {
     expect(presentation.installedCliCount).toBe(3)
     expect(presentation.runtimeCliCount).toBe(3)
     expect(presentation.actions[0]?.id).toBe('command-runner')
-    expect(presentation.platformRows.every((row) => row.state === 'ready' || row.state === 'managed')).toBe(true)
+    expect(
+      presentation.platformRows.every((row) => row.state === 'ready' || row.state === 'managed')
+    ).toBe(true)
   })
 
   it('prioritizes web-preview capability boundaries outside native runtime', () => {
@@ -223,4 +252,3 @@ describe('dashboard presentation', () => {
     expect(presentation.actions[0]?.id).toBe('open-monitoring')
   })
 })
-

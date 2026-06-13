@@ -622,6 +622,7 @@ export {
 // 18. 事件 (Events) —— 实现已迁移至 ./domains/events
 // ════════════════════════════════════════════════════════════
 export { getRecentEvents, getRuntimeMetrics } from './domains/events'
+export { getMonitoringFeed, type MonitoringFeedQuery } from './domains/monitoring'
 
 // ════════════════════════════════════════════════════════════
 // 19. 环境管理 (Environment) —— 实现已迁移至 ./domains/environment
@@ -659,7 +660,9 @@ export {
 
 /** 执行 CCR 命令 */
 export const executeCommand = async (
-  commandOrPayload: string | { command: string; args?: string[]; confirmationToken?: string | null },
+  commandOrPayload:
+    | string
+    | { command: string; args?: string[]; confirmationToken?: string | null },
   args?: string[]
 ): Promise<unknown> => {
   const command = typeof commandOrPayload === 'string' ? commandOrPayload : commandOrPayload.command
@@ -680,9 +683,11 @@ export const getCommandHelp = async <T = UnknownRecord>(command: string): Promis
 }
 
 /** 启动 CCR 命令后台任务 */
-export const startCcrCommandJob = async (
-  payload: { command: string; args?: string[]; confirmationToken?: string | null },
-): Promise<StartCommandJobResponse> => {
+export const startCcrCommandJob = async (payload: {
+  command: string
+  args?: string[]
+  confirmationToken?: string | null
+}): Promise<StartCommandJobResponse> => {
   return invoke('start_ccr_command_job', {
     command: payload.command,
     args: payload.args,
@@ -867,7 +872,7 @@ export const claudeObserver = {
   costBreakdown: async (
     dim: 'project' | 'model',
     days?: number,
-    limit?: number,
+    limit?: number
   ): Promise<ClaudeObserverBreakdownRow[]> => {
     return invoke('claude_observer_cost_breakdown', { dim, days, limit })
   },
@@ -880,7 +885,7 @@ export const claudeObserver = {
   /** Top sessions（来自 claude_tool_calls，by ∈ cost | calls） */
   topSessions: async (
     limit?: number,
-    by?: 'cost' | 'calls',
+    by?: 'cost' | 'calls'
   ): Promise<ClaudeObserverSessionRow[]> => {
     return invoke('claude_observer_top_sessions', { limit, by })
   },
@@ -904,7 +909,7 @@ export const claudeObserver = {
   subscriptionSet: async (
     mode: string,
     plan: string,
-    monthlyUsd: number,
+    monthlyUsd: number
   ): Promise<ClaudeObserverSubscriptionDto> => {
     return invoke('claude_observer_subscription_set', {
       mode,

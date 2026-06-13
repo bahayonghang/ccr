@@ -10,18 +10,21 @@ const installMatchMediaController = (initialMatches: boolean): MatchMediaControl
   let matches = initialMatches
   const listeners = new Set<(event: MediaQueryListEvent) => void>()
 
-  vi.stubGlobal('matchMedia', vi.fn().mockImplementation(() => ({
-    get matches() {
-      return matches
-    },
-    media: '(prefers-color-scheme: dark)',
-    addEventListener: (_event: string, listener: (event: MediaQueryListEvent) => void) => {
-      listeners.add(listener)
-    },
-    removeEventListener: (_event: string, listener: (event: MediaQueryListEvent) => void) => {
-      listeners.delete(listener)
-    },
-  })))
+  vi.stubGlobal(
+    'matchMedia',
+    vi.fn().mockImplementation(() => ({
+      get matches() {
+        return matches
+      },
+      media: '(prefers-color-scheme: dark)',
+      addEventListener: (_event: string, listener: (event: MediaQueryListEvent) => void) => {
+        listeners.add(listener)
+      },
+      removeEventListener: (_event: string, listener: (event: MediaQueryListEvent) => void) => {
+        listeners.delete(listener)
+      },
+    }))
+  )
 
   return {
     setMatches(nextMatches: boolean) {
@@ -185,12 +188,12 @@ describe('themeBootstrap smoke', () => {
   it('targets Catppuccin CSS through resolved flavor so system dark plus stored Latte cannot apply Latte surfaces', async () => {
     const source = await readFile('src/styles/tokens.css', 'utf8')
 
-    expect(source).toMatch(/\[data-resolved-flavor="latte"\]/)
-    expect(source).toMatch(/\[data-resolved-flavor="frappe"\]/)
-    expect(source).not.toMatch(/\[data-flavor="latte"\]/)
-    expect(source).not.toMatch(/\[data-flavor="frappe"\]/)
-    expect(source).not.toMatch(/\[data-flavor="macchiato"\]/)
-    expect(source).not.toMatch(/\[data-flavor="mocha"\]/)
+    expect(source).toMatch(/\[data-resolved-flavor=["']latte["']\]/)
+    expect(source).toMatch(/\[data-resolved-flavor=["']frappe["']\]/)
+    expect(source).not.toMatch(/\[data-flavor=["']latte["']\]/)
+    expect(source).not.toMatch(/\[data-flavor=["']frappe["']\]/)
+    expect(source).not.toMatch(/\[data-flavor=["']macchiato["']\]/)
+    expect(source).not.toMatch(/\[data-flavor=["']mocha["']\]/)
   })
 
   it('pre-initializes first paint with resolved theme and flavor attributes', async () => {

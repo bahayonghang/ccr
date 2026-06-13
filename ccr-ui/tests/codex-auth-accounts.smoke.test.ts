@@ -14,23 +14,19 @@ import {
   usesOpenAiAuthMode,
 } from '@/views/codex/codexAuthAccounts'
 
-const account = (overrides: Partial<CodexAuthAccountItem> & { name: string }): CodexAuthAccountItem => ({
-  name: overrides.name,
-  description: null,
-  email: null,
+const account = (
+  overrides: Partial<CodexAuthAccountItem> & { name: string }
+): CodexAuthAccountItem => ({
   is_current: false,
   is_virtual: false,
-  saved_at: null,
-  last_used: null,
-  last_refresh: null,
   ...overrides,
 })
 
 const quota = (planType?: string, error?: string): CodexAccountQuota => ({
   account_name: 'unused',
   fetched_at: '2026-05-19T00:00:00Z',
-  quota: planType ? { plan_type: planType } : null,
-  error: error ?? null,
+  quota: planType ? { hourly_percentage: 0, weekly_percentage: 0, plan_type: planType } : undefined,
+  error,
 })
 
 describe('codex auth account helpers', () => {
@@ -46,10 +42,14 @@ describe('codex auth account helpers', () => {
   it('detects token payload naming states without coupling to the Vue component', () => {
     expect(detectImportPayloadNamingState('')).toBe('empty')
     expect(detectImportPayloadNamingState('{')).toBe('invalid')
-    expect(detectImportPayloadNamingState(JSON.stringify({ OPENAI_API_KEY: 'sk-test' }))).toBe('single')
+    expect(detectImportPayloadNamingState(JSON.stringify({ OPENAI_API_KEY: 'sk-test' }))).toBe(
+      'single'
+    )
     expect(detectImportPayloadNamingState(JSON.stringify([{ id: 1 }]))).toBe('single')
     expect(detectImportPayloadNamingState(JSON.stringify([{ id: 1 }, { id: 2 }]))).toBe('multiple')
-    expect(detectImportPayloadNamingState(JSON.stringify({ accounts: { alpha: {} } }))).toBe('bundle')
+    expect(detectImportPayloadNamingState(JSON.stringify({ accounts: { alpha: {} } }))).toBe(
+      'bundle'
+    )
     expect(canCustomizeAccountName('token', 'bundle')).toBe(false)
     expect(canCustomizeAccountName('token', 'single')).toBe(true)
     expect(canCustomizeAccountName('api', 'bundle')).toBe(true)
@@ -57,9 +57,20 @@ describe('codex auth account helpers', () => {
 
   it('filters by search/status/plan and preserves sort semantics', () => {
     const accounts = [
-      account({ name: 'alpha-pro', email: 'alpha@example.com', is_current: true, saved_at: '2026-05-01T00:00:00Z', last_used: '2026-05-02T00:00:00Z' }),
-      account({ name: 'beta-plus', description: 'backup', saved_at: '2026-05-03T00:00:00Z', last_used: '2026-05-04T00:00:00Z' }),
-      account({ name: 'runtime', is_virtual: true, saved_at: null, last_used: null }),
+      account({
+        name: 'alpha-pro',
+        email: 'alpha@example.com',
+        is_current: true,
+        saved_at: '2026-05-01T00:00:00Z',
+        last_used: '2026-05-02T00:00:00Z',
+      }),
+      account({
+        name: 'beta-plus',
+        description: 'backup',
+        saved_at: '2026-05-03T00:00:00Z',
+        last_used: '2026-05-04T00:00:00Z',
+      }),
+      account({ name: 'runtime', is_virtual: true }),
       account({ name: 'needs-attention', saved_at: '2026-05-05T00:00:00Z' }),
     ]
     const quotas = new Map<string, CodexAccountQuota>([
@@ -69,45 +80,55 @@ describe('codex auth account helpers', () => {
     ])
 
     expect(resolveAccountPlanType(accounts[0], quotas)).toBe('pro')
-    expect(filterAndSortCodexAccounts({
-      accounts,
-      quotaMap: quotas,
-      searchQuery: 'backup',
-      statusFilter: 'all',
-      planFilter: 'plus',
-      sortBy: 'saved_desc',
-    }).map((item) => item.name)).toEqual(['beta-plus'])
-    expect(filterAndSortCodexAccounts({
-      accounts,
-      quotaMap: quotas,
-      searchQuery: '',
-      statusFilter: 'attention',
-      planFilter: 'all',
-      sortBy: 'saved_desc',
-    }).map((item) => item.name)).toEqual(['needs-attention'])
-    expect(filterAndSortCodexAccounts({
-      accounts,
-      quotaMap: quotas,
-      searchQuery: '',
-      statusFilter: 'all',
-      planFilter: 'all',
-      sortBy: 'used_desc',
-    }).map((item) => item.name)).toEqual(['beta-plus', 'alpha-pro', 'runtime', 'needs-attention'])
+    expect(
+      filterAndSortCodexAccounts({
+        accounts,
+        quotaMap: quotas,
+        searchQuery: 'backup',
+        statusFilter: 'all',
+        planFilter: 'plus',
+        sortBy: 'saved_desc',
+      }).map((item) => item.name)
+    ).toEqual(['beta-plus'])
+    expect(
+      filterAndSortCodexAccounts({
+        accounts,
+        quotaMap: quotas,
+        searchQuery: '',
+        statusFilter: 'attention',
+        planFilter: 'all',
+        sortBy: 'saved_desc',
+      }).map((item) => item.name)
+    ).toEqual(['needs-attention'])
+    expect(
+      filterAndSortCodexAccounts({
+        accounts,
+        quotaMap: quotas,
+        searchQuery: '',
+        statusFilter: 'all',
+        planFilter: 'all',
+        sortBy: 'used_desc',
+      }).map((item) => item.name)
+    ).toEqual(['beta-plus', 'alpha-pro', 'runtime', 'needs-attention'])
   })
 
   it('keeps OpenAI auth-mode support explicit', () => {
     expect(usesOpenAiAuthMode('openai_chatgpt')).toBe(true)
     expect(usesOpenAiAuthMode('openai_api_key')).toBe(true)
-    expect(usesOpenAiAuthMode('none')).toBe(false)
+    expect(usesOpenAiAuthMode('no_auth')).toBe(false)
     expect(usesOpenAiAuthMode(null)).toBe(false)
   })
 
   it('keeps login state presentation and rename eligibility outside the Vue component', () => {
     expect(getLoginStateTone({ type: 'LoggedInSaved', account_name: 'alpha' })).toBe('success')
     expect(getLoginStateTone({ type: 'LoggedInUnsaved' })).toBe('warning')
-    expect(getLoginStateTone({ type: 'ProviderKeyActive', env_key: 'OPENAI_API_KEY' })).toBe('primary')
+    expect(getLoginStateTone({ type: 'ProviderKeyActive', env_key: 'OPENAI_API_KEY' })).toBe(
+      'primary'
+    )
     expect(getLoginStateTone({ type: 'NotLoggedIn' })).toBe('danger')
-    expect(getLoginStateIcon({ type: 'Unknown', raw_type: 'mystery', raw: {} })).toBe('AlertTriangle')
+    expect(getLoginStateIcon({ type: 'Unknown', raw_type: 'mystery', raw: {} })).toBe(
+      'AlertTriangle'
+    )
     expect(getLoginStateIconClass({ type: 'ApiKeyActive' })).toContain('text-blue-500')
 
     expect(canSubmitAccountRename('old', ' new_name ')).toBe(true)

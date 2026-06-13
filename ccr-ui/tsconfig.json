@@ -36,7 +36,14 @@
   "vueCompilerOptions": {
     "strictTemplates": true
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"],
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/**/*.vue",
+    "tests/**/*.ts",
+    "tests/**/*.mts",
+    "vitest.shims.d.ts"
+  ],
   "exclude": ["src/**/*.stories.ts", "src/**/*.stories.tsx", "**/.storybook/**"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

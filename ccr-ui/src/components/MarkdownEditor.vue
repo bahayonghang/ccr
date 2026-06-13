@@ -68,10 +68,12 @@
         class="flex-1 p-4 rounded-xl bg-bg-surface border border-border-default overflow-auto"
         :class="{ 'md:w-1/2': currentMode === 'split' }"
       >
+        <!-- eslint-disable vue/no-v-html -- renderedHtml 经 useMarkdownRender(DOMPurify) 消毒 -->
         <div
           class="prose prose-invert prose-sm max-w-none"
           v-html="renderedHtml"
         />
+        <!-- eslint-enable vue/no-v-html -->
       </div>
     </div>
   </div>

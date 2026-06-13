@@ -24,6 +24,7 @@ const baseData: PlatformUsageDashboardData = {
       total_tokens: 2_000,
       input_tokens: 800,
       output_tokens: 900,
+      reasoning_output_tokens: 0,
       cache_read_tokens: 300,
       cache_creation_tokens: 0,
       cost_usd: 0.7,
@@ -34,6 +35,7 @@ const baseData: PlatformUsageDashboardData = {
       total_tokens: 7_000,
       input_tokens: 2_200,
       output_tokens: 3_100,
+      reasoning_output_tokens: 0,
       cache_read_tokens: 1_700,
       cache_creation_tokens: 0,
       cost_usd: 1.7,
@@ -125,7 +127,9 @@ describe('platform usage presentation smoke', () => {
       },
     })
 
-    expect(hasPlatformUsageData(result.summary, result.trends, result.modelStats, result.projectStats)).toBe(false)
+    expect(
+      hasPlatformUsageData(result.summary, result.trends, result.modelStats, result.projectStats)
+    ).toBe(false)
     expect(result.empty).toBe(true)
     expect(result.cards).toEqual([])
   })

@@ -15,7 +15,7 @@ const forbiddenLegacyUtilities = /\btext-white(?:\/|\b)|\bbg-white\/|\bborder-wh
 const forbiddenLegacyBranding = /pink-|purple-|neko-|cyber-grid/
 const forbiddenLegacyFontStacks =
   /JetBrains Mono|Fira Code|Maple Mono|Cascadia Code|SFMono-Regular|ui-monospace|Menlo|Monaco|Consolas|Liberation Mono|Courier New/
-const mochaOverridePattern = /html:root\[data-resolved-flavor="mocha"\]\s*{[\s\S]*?^}/m
+const mochaOverridePattern = /html:root\[data-resolved-flavor=["']mocha["']\]\s*{[\s\S]*?^}/m
 
 async function collectSourceFiles(root: string): Promise<string[]> {
   const entries = await readdir(root, { withFileTypes: true })
@@ -51,8 +51,8 @@ describe('claude editorial surface contract', () => {
     expect(source).toMatch(/--font-mono:\s*'MapleBright'/)
     const mochaOverride = source.match(mochaOverridePattern)?.[0] ?? ''
 
-    expect(mochaOverride).toContain("--font-brand: 'SF Pro Display'")
-    expect(mochaOverride).toContain("--font-mono: 'Cascadia Code'")
+    expect(mochaOverride).toMatch(/--font-brand:\s*'SF Pro Display'/)
+    expect(mochaOverride).toMatch(/--font-mono:\s*'Cascadia Code'/)
     expect(mochaOverride).toContain('--color-bg-base: var(--ctp-crust)')
     expect(source).not.toMatch(/#0071E3|#2997FF/)
   })

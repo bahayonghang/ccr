@@ -1,5 +1,11 @@
 import { createApp, defineComponent, h, KeepAlive, nextTick, reactive, ref } from 'vue'
-import type { DailyTrend, UsageSnapshotProjection, UsageSummary } from '@/types/usage'
+import type {
+  DailyTrend,
+  ModelStat,
+  ProjectStat,
+  UsageSnapshotProjection,
+  UsageSummary,
+} from '@/types/usage'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 let localeHydrated = false
@@ -8,8 +14,8 @@ const perfMarks: string[] = []
 const usageStore = reactive({
   summary: null as UsageSummary | null,
   trends: [] as DailyTrend[],
-  modelStats: [],
-  projectStats: [],
+  modelStats: [] as ModelStat[],
+  projectStats: [] as ProjectStat[],
   sourceStats: [],
   logs: null as null | {
     records: unknown[]
@@ -132,10 +138,12 @@ const translationTemplates: Record<string, string> = {
   'usage.dashboard.ops.eyebrow': 'Usage operations cockpit',
   'usage.dashboard.ops.states.ready.label': 'Ready',
   'usage.dashboard.ops.states.ready.title': 'Usage data is ready',
-  'usage.dashboard.ops.states.ready.detail': 'The local read model is fresh enough for cost and token decisions.',
+  'usage.dashboard.ops.states.ready.detail':
+    'The local read model is fresh enough for cost and token decisions.',
   'usage.dashboard.ops.states.stale.label': 'Stale',
   'usage.dashboard.ops.states.stale.title': 'Usage data is stale',
-  'usage.dashboard.ops.states.stale.detail': 'Refresh the local usage archive before making budget or quota decisions.',
+  'usage.dashboard.ops.states.stale.detail':
+    'Refresh the local usage archive before making budget or quota decisions.',
   'usage.dashboard.ops.health.readiness': 'Readiness',
   'usage.dashboard.ops.health.nextAction': 'Next action: {action}',
   'usage.dashboard.ops.health.noAction': 'No blocking action',
@@ -420,7 +428,14 @@ describe('usage dashboard state smoke', () => {
     const { state, unmount } = await mountComposable()
 
     try {
-      expect([...state.tabKeys]).toEqual(['overview', 'tokens', 'cost', 'models', 'projects', 'logs'])
+      expect([...state.tabKeys]).toEqual([
+        'overview',
+        'tokens',
+        'cost',
+        'models',
+        'projects',
+        'logs',
+      ])
     } finally {
       unmount()
     }
@@ -841,8 +856,9 @@ describe('usage dashboard state smoke', () => {
 
     try {
       expect(state.dashboardReady.value).toBe(true)
-      expect(state.summaryCards.value.find((card) => card.id === 'requests')?.detail)
-        .toBe('2 models · 1 projects')
+      expect(state.summaryCards.value.find((card) => card.id === 'requests')?.detail).toBe(
+        '2 models · 1 projects'
+      )
       expect(state.trendSubtitle.value).toBe('Last 30 Days, aggregated by Daily, 1 key points')
       expect(state.overviewHighlights.value[0]?.detail).toBe('1 key points across Last 30 Days')
 
@@ -871,10 +887,10 @@ describe('usage dashboard state smoke', () => {
       const { state, unmount } = await mountComposable()
 
       try {
-      state.selectedRange.value = 'this_week'
-      state.onFilterChange()
+        state.selectedRange.value = 'this_week'
+        state.onFilterChange()
 
-      expect(usageStore.setFilters).toHaveBeenLastCalledWith(
+        expect(usageStore.setFilters).toHaveBeenLastCalledWith(
           expect.objectContaining({
             start: '2026-05-04',
             end: '2026-05-10',
@@ -905,7 +921,7 @@ describe('usage dashboard state smoke', () => {
 
       expect(tokenCard?.value).toBe('195')
       expect(tokenCard?.detail).toContain('30 cache read')
-      expect(state.summaryCards.value.some((card) => card.id === 'cache')).toBe(false)
+      expect(state.summaryCards.value.some((card) => (card.id as string) === 'cache')).toBe(false)
     } finally {
       unmount()
     }

@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import type { DailyTrend, ModelStat, PaginatedLogs, ProjectStat, SourceBreakdown, UsageArchiveDiagnostics, UsageSummary } from '@/types/usage'
+import type {
+  DailyTrend,
+  ModelStat,
+  PaginatedLogs,
+  ProjectStat,
+  SourceBreakdown,
+  UsageArchiveDiagnostics,
+  UsageSummary,
+} from '@/types/usage'
 import {
   buildDashboardCachePayload,
   buildDashboardFetchKey,
@@ -72,16 +80,19 @@ describe('usage dashboard payload helpers', () => {
     expect(parseEnvFlag('', false)).toBe(false)
     expect(parseEnvFlag('YES', false)).toBe(true)
     expect(parseEnvFlag('0', true)).toBe(false)
-    expect(buildDashboardFetchKey({
-      platform: 'codex',
-      start: '2026-05-01',
-      end: '2026-05-19',
-      includeHeatmap: false,
-    })).toBe('codex|2026-05-01|2026-05-19|core')
+    expect(
+      buildDashboardFetchKey({
+        platform: 'codex',
+        start: '2026-05-01',
+        end: '2026-05-19',
+        includeHeatmap: false,
+      })
+    ).toBe('codex|2026-05-01|2026-05-19|core')
   })
 
   it('normalizes aggregated dashboard payload aliases and heatmap inclusion', () => {
-    const payload: UsageDashboardPayload = {
+    // 模拟仅带 by_model/by_project 别名的后端载荷（缺少 model_stats/project_stats），用断言绕过必填字段。
+    const payload = {
       summary,
       trends: [trend],
       by_model: [model],
@@ -89,7 +100,7 @@ describe('usage dashboard payload helpers', () => {
       source_stats: [source],
       archive,
       heatmap: { data: { '2026-05-19': 1 } },
-    }
+    } as unknown as UsageDashboardPayload
 
     expect(normalizeDashboardPayload(payload, true)).toMatchObject({
       summary,
@@ -104,16 +115,18 @@ describe('usage dashboard payload helpers', () => {
   })
 
   it('builds cache payloads without leaking omitted heatmap fetches', () => {
-    expect(buildDashboardCachePayload({
-      summary,
-      trends: [trend],
-      modelStats: [model],
-      projectStats: [project],
-      sourceStats: [source],
-      archive,
-      heatmap: { data: { '2026-05-19': 1 } },
-      includeHeatmap: false,
-    })).toMatchObject({
+    expect(
+      buildDashboardCachePayload({
+        summary,
+        trends: [trend],
+        modelStats: [model],
+        projectStats: [project],
+        sourceStats: [source],
+        archive,
+        heatmap: { data: { '2026-05-19': 1 } },
+        includeHeatmap: false,
+      })
+    ).toMatchObject({
       summary,
       trends: [trend],
       model_stats: [model],
@@ -125,16 +138,18 @@ describe('usage dashboard payload helpers', () => {
   })
 
   it('builds cursor log queries and normalizes paginated log responses', () => {
-    expect(buildUsageLogsQuery({
-      platform: 'claude',
-      model: 'opus',
-      startDate: '2026-05-01',
-      endDate: '2026-05-19',
-      page: 2,
-      pageSize: 25,
-      cursor: null,
-      includeTotal: false,
-    })).toEqual({
+    expect(
+      buildUsageLogsQuery({
+        platform: 'claude',
+        model: 'opus',
+        startDate: '2026-05-01',
+        endDate: '2026-05-19',
+        page: 2,
+        pageSize: 25,
+        cursor: null,
+        includeTotal: false,
+      })
+    ).toEqual({
       platform: 'claude',
       model: 'opus',
       start_date: '2026-05-01',
