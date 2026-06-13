@@ -1,0 +1,5 @@
+{"file": ".trellis/tasks/06-12-ccr-ui-arch-quality-perf-style-optimization/research/style-analysis.md", "reason": "验收签到模块主题切换与悬空 token 修复时核对原始统计与位置"}
+{"file": ".trellis/tasks/06-12-ccr-ui-arch-quality-perf-style-optimization/research/performance-analysis.md", "reason": "验收 SessionsView/CommandsView/keep-alive 修复时核对原始行号与复现条件"}
+{"file": ".trellis/spec/ccr-ui/frontend/api-facade-boundary.md", "reason": "检查 invoke 守卫扩面与 domains 迁移是否符合边界契约"}
+{"file": ".trellis/spec/ccr-ui/frontend/theme-token-contracts.md", "reason": "检查样式改动是否符合 token 分层契约与视觉验证流程"}
+{"file": ".trellis/spec/ccr-ui/frontend/checkin-ux-contracts.md", "reason": "检查签到样式迁移未破坏并发/展示/错误呈现契约"}
