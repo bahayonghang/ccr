@@ -48,9 +48,11 @@ script 逻辑全部保留在主视图，故仍远超 ≤1000。
 > - step2 `SaveCodexSessionModal`（09e57a84）
 > - step3 `useCodexOAuthFlow` composable（ab4e6adf）
 > - step4 `AddCodexAccountModal` 整子系统（67084f04）→ 主文件 3320 → **982 行（≤1000，AC#8 达成）**
+> - step5 `useCodexProviders` composable（5d6ffedf）→ 把残余 Provider CRUD 子系统下沉，主文件
+>   **982 → 826 行（≤1000 余量 18 → 174）**。沿用 useCodexOAuthFlow 的 deps 注入，仅向 composable
+>   注入主视图持有的 `openConfirmDialog`（共享 ConfirmModal）与 `activeManagerTab`；机械迁出、零业务改动。
+>   主视图最终收敛为「编排 + 数据加载 + 共享 confirm」。
 >
-> step5（把残余 provider/data 处理再下沉到 composable）未执行：≤1000 已在 step4 达成，主视图已收敛为
-> 「编排 + 数据加载 + Provider CRUD + 共享 confirm」，按「简洁优先 / 外科手术式改动」未追加大重构。
-> 全程验证：type-check 0 · eslint 0 error（866 warn 债务基线不变）· stylelint 0 · smoke 351/351 · i18n 23/23。
+> 全程验证：type-check 0 · eslint 0 error（866 warn 债务基线不变）· stylelint 0 · smoke 351/351 · i18n 3362/3362。
 > 偏离记录：PRD 原列 OAuth composable 与 Add 弹窗为两步，实施时仍分两步提交；Add 弹窗账号变更改为可
 > await 的 `refreshOnMutation` 回调（替代 emit），保持「刷新完成→关闭」时序、零回归通过 smoke。

@@ -15,7 +15,7 @@
   "branch": "dev",
   "base_branch": "dev",
   "worktree_path": null,
-  "commit": "67084f04",
+  "commit": "5d6ffedf",
   "pr_url": null,
   "subtasks": [],
   "children": [],
@@ -26,8 +26,9 @@
     "ccr-ui/src/views/codex/components/SaveCodexSessionModal.vue",
     "ccr-ui/src/views/codex/components/RenameCodexAccountModal.vue",
     "ccr-ui/src/composables/useCodexOAuthFlow.ts",
+    "ccr-ui/src/composables/useCodexProviders.ts",
     "ccr-ui/src/styles/codex-auth-shared.css"
   ],
-  "notes": "完成（982 行 ≤ 1000，AC#8 达成）。step0 全局样式层 274171db · step1 Rename 89e3e060 · step2 Save 09e57a84 · step3 useCodexOAuthFlow ab4e6adf · step4 AddAccount 67084f04。step5（残余 provider/data 进一步抽 composable）非必要：≤1000 已在 step4 达成，按简洁优先未做额外大重构。验证：type-check 0 / eslint 0 err(866 warn 基线) / stylelint 0 / smoke 351 / i18n 23。",
+  "notes": "完成。step0 全局样式层 274171db · step1 Rename 89e3e060 · step2 Save 09e57a84 · step3 useCodexOAuthFlow ab4e6adf · step4 AddAccount 67084f04（982 行 ≤ 1000，AC#8 达成）· step5 useCodexProviders 5d6ffedf（残余 Provider CRUD 下沉，982→826，≤1000 余量 18→174）。验证：type-check 0 / eslint 0 err(866 warn 基线) / stylelint 0 / smoke 351 / i18n 3362。",
   "meta": {}
 }
