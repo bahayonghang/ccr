@@ -3,7 +3,7 @@
   "name": "ccr-ui-arch-quality-perf-style-optimization",
   "title": "ccr-ui architecture quality performance and style optimization",
   "description": "",
-  "status": "in_progress",
+  "status": "completed",
   "dev_type": null,
   "scope": null,
   "package": "ccr",
@@ -11,8 +11,8 @@
   "creator": "lyh",
   "assignee": "lyh",
   "createdAt": "2026-06-12",
-  "completedAt": null,
-  "branch": null,
+  "completedAt": "2026-06-14",
+  "branch": "dev",
   "base_branch": "dev",
   "worktree_path": null,
   "commit": null,
@@ -27,6 +27,6 @@
   ],
   "parent": null,
   "relatedFiles": [],
-  "notes": "",
+  "notes": "完成（5/5 子任务结案）。ws42-73 门面深挖回收 + no-raw-text 防回归 fa063f7a · ws45 CodexAuthView 深拆 step0-5（3320→826）67084f04/5d6ffedf · ws6-batch4 孤岛扁平化 + BaseModal 收口 edc99b77 · ws44 泛型机械删除评估后否决（前提不成立，改荐运行时收窄）b13f3ad7 · ws46 OpenCode generic 迁移 WONTFIX（迁移将致双回归）c9123251。WS4 架构线 + WS6 视觉线收口；AC#7/AC#8 偏离项均已在子任务 prd.md 留档。",
   "meta": {}
 }

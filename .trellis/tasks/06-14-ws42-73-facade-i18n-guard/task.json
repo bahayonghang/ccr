@@ -3,7 +3,7 @@
   "name": "ws42-73-facade-i18n-guard",
   "title": "WS4.2/7.3 收尾：门面深挖回收 + no-raw-text 防回归",
   "description": "将 claudeObserver.ts / useCodexTrayPanel.ts 两处 @/api/tauri 深挖导入改回 @/api 入口（AC#6 门面双轨消除收尾）；安装并接入 @intlify/eslint-plugin-vue-i18n 的 no-raw-text（warn 起步，AC#11 i18n 防回归）。验收：无 @/api/tauri 深挖；lint 通过；no-raw-text 在 CI 生效。",
-  "status": "planning",
+  "status": "completed",
   "dev_type": null,
   "scope": null,
   "package": "ccr",
@@ -11,16 +11,18 @@
   "creator": "lyh",
   "assignee": "lyh",
   "createdAt": "2026-06-14",
-  "completedAt": null,
-  "branch": null,
+  "completedAt": "2026-06-14",
+  "branch": "dev",
   "base_branch": "dev",
   "worktree_path": null,
-  "commit": null,
+  "commit": "fa063f7a",
   "pr_url": null,
   "subtasks": [],
   "children": [],
   "parent": "06-12-ccr-ui-arch-quality-perf-style-optimization",
-  "relatedFiles": [],
-  "notes": "",
+  "relatedFiles": [
+    "ccr-ui/eslint.config.js"
+  ],
+  "notes": "完成（fa063f7a）。claudeObserver.ts / useCodexTrayPanel.ts 的 @/api/tauri 深挖导入改回 @/api 入口（符号经 export * 透传、行为不变，门面双轨消除 AC#6 收尾）；安装 @intlify/eslint-plugin-vue-i18n 启用 no-raw-text（warn，ignorePattern 跳过纯符号/数字/标点，存量 866 处作债务基线，AC#11 防回归）。未配 localeDir（locale 为 .ts 模块、静态解析会崩）。验证：type-check 0 / eslint 0 err·866 warn / stylelint 0 / api-facade-boundary smoke 3/3。",
   "meta": {}
 }
