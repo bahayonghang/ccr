@@ -472,3 +472,37 @@ CheckinAccountsTab 2082 行拆为 AccountFormModal/AccountActionsMenu/AccountsTa
 ### Next Steps
 
 - None - task complete
+
+
+## Session 14: fix just ci version-sync target drift
+
+**Date**: 2026-06-14
+**Task**: fix just ci version-sync target drift
+**Package**: ccr
+**Branch**: `dev`
+
+### Summary
+
+Removed the stale legacy MainLayout version-sync target from PowerShell/Bash scripts, aligned tests/docs/spec guidance, and verified just ci passes.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `5d63b7a6` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
