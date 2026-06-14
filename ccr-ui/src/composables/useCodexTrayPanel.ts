@@ -1,6 +1,6 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { getErrorMessage } from '@/utils/errorHandler'
-import { getCodexTraySnapshot, switchCodexAuth } from '@/api/tauri'
+import { getCodexTraySnapshot, switchCodexAuth } from '@/api'
 import {
   shellBeginTrayPanelDrag,
   shellCompleteTrayPanelDrag,
@@ -115,9 +115,7 @@ export function useCodexTrayPanel() {
       const afterPosition = await win.outerPosition()
       const moved = shouldPersistTrayPanelManualPosition(beforePosition, afterPosition)
 
-      await shellCompleteTrayPanelDrag(
-        moved ? { x: afterPosition.x, y: afterPosition.y } : null
-      )
+      await shellCompleteTrayPanelDrag(moved ? { x: afterPosition.x, y: afterPosition.y } : null)
     } catch (dragError) {
       logger.error('Failed to drag Codex tray panel:', dragError)
       try {

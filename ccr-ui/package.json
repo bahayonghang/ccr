@@ -59,6 +59,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
+    "@intlify/eslint-plugin-vue-i18n": "^4.5.1",
     "@tauri-apps/cli": "2.11.2",
     "@types/node": "^22.19.19",
     "@typescript-eslint/parser": "^8.60.1",

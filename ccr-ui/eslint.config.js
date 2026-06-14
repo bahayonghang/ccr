@@ -3,6 +3,7 @@ import pluginVue from 'eslint-plugin-vue'
 import * as parserVue from 'vue-eslint-parser'
 import tseslint from 'typescript-eslint'
 import globals from 'globals'
+import vueI18n from '@intlify/eslint-plugin-vue-i18n'
 
 export default [
   {
@@ -102,6 +103,29 @@ export default [
     rules: {
       'no-console': 'off',
       '@typescript-eslint/no-require-imports': 'off',
+    },
+  },
+  {
+    // i18n 防回归（WS7.3）：模板硬编码文案锁死为 warn，记录债务但不阻断 CI；新增项应走 t()/tf()
+    name: 'app/i18n-no-raw-text',
+    files: ['**/*.vue'],
+    plugins: { '@intlify/vue-i18n': vueI18n },
+    settings: {
+      'vue-i18n': {
+        // 不配置 localeDir：locale 为 .ts 模块，插件无法静态解析以生成「建议 key」（会崩溃）；
+        // no-raw-text 仅需检测能力，不需要 key 建议。
+        messageSyntaxVersion: '^9.0.0',
+      },
+    },
+    rules: {
+      '@intlify/vue-i18n/no-raw-text': [
+        'warn',
+        {
+          // 忽略纯符号/数字/标点（如 ':' '*' '%' '·' '|'）——这些不是需要翻译的文案，
+          // 仅锁死真正的硬编码词句。
+          ignorePattern: '^[\\s\\d\\-–—:：*%·•|/\\\\()\\[\\]{}.,，。、；;!！?？#&+=<>"\'“”‘’~@]+$',
+        },
+      ],
     },
   },
 ]

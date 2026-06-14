@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
-import { claudeObserver as api } from '@/api/tauri'
+import { claudeObserver as api } from '@/api'
 import type {
   BreakdownRow,
   CacheStatsDto,
