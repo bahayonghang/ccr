@@ -18,7 +18,13 @@
   "commit": null,
   "pr_url": null,
   "subtasks": [],
-  "children": [],
+  "children": [
+    "06-14-ws42-73-facade-i18n-guard",
+    "06-14-ws46-opencode-generic-migration",
+    "06-14-ws45-codexauth-deep-split",
+    "06-14-ws44-invoke-generic-escape",
+    "06-14-ws6-batch4-finish"
+  ],
   "parent": null,
   "relatedFiles": [],
   "notes": "",

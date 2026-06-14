@@ -318,7 +318,7 @@ CheckinView 100KB JS + 67KB CSS、CodexAuthView 75.6KB、CodexProfilesView 69.4K
 5. Profiles 双胞胎合并，净删 ≥ 2,000 行，双平台功能等价。
 6. invoke 守卫覆盖全 src，存量穿透归零；API 门面双轨消除（spec 同步）。
 7. 8 组同名类型重复归零；`<T = Default>` 逃逸按 4.4 短期方案收敛。
-8. CodexAuthView ≤ 1,000 行；至少 OpenCodeMcpView + OpenCodeCommandsView 完成 generic 迁移（CodexMcp/Agents 可顺延为 subtask）。
+8. CodexAuthView ≤ 1,000 行；~~至少 OpenCodeMcpView + OpenCodeCommandsView 完成 generic 迁移~~（**2026-06-14 决断：OpenCode 迁移放弃**——generic 基建为旧玻璃语言+gemini 专属模型，OpenCode 两页已是新设计系统且功能更全，强迁=双回归；理由见 subtask `06-14-ws46-opencode-generic-migration`）。
 9. CommandsView 5,000 行输出场景无可感知卡顿；AnimatedBackground 无 scale 动画；keep-alive 白名单 ≤ 4。
 10. WS6 批次①② 完成且 stylelint + 合同测试锁定；批次③④ 至少完成图表 token 接入与 z-index token 化。
 11. eslint 三项收紧生效；tests/ 进 lint + type-check；`no-raw-text` 与 stylelint 规则在 CI 生效。
