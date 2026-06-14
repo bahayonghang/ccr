@@ -41,4 +41,16 @@ script 逻辑全部保留在主视图，故仍远超 ≤1000。
 
 主文件 ≤1000 行；smoke 6/6；OAuth / 4 种添加 / Provider CRUD / 配额手工回归通过。
 
-> 状态（2026-06-14）：结构分析完成，留待独立专注会话执行步骤 1-5。本会话优先交付 WS4.4 / WS6④ 等可确定完成项。
+> 状态（2026-06-14）：✅ 已完成。专注会话按 step0-4 执行（step0 全局样式层先行，规避 Vue scoped
+> 不作用于子组件嵌套节点的潜在断样）：
+> - step0 抽 `codex-auth-shared.css` 全局层（274171db）
+> - step1 `RenameCodexAccountModal`（89e3e060）
+> - step2 `SaveCodexSessionModal`（09e57a84）
+> - step3 `useCodexOAuthFlow` composable（ab4e6adf）
+> - step4 `AddCodexAccountModal` 整子系统（67084f04）→ 主文件 3320 → **982 行（≤1000，AC#8 达成）**
+>
+> step5（把残余 provider/data 处理再下沉到 composable）未执行：≤1000 已在 step4 达成，主视图已收敛为
+> 「编排 + 数据加载 + Provider CRUD + 共享 confirm」，按「简洁优先 / 外科手术式改动」未追加大重构。
+> 全程验证：type-check 0 · eslint 0 error（866 warn 债务基线不变）· stylelint 0 · smoke 351/351 · i18n 23/23。
+> 偏离记录：PRD 原列 OAuth composable 与 Add 弹窗为两步，实施时仍分两步提交；Add 弹窗账号变更改为可
+> await 的 `refreshOnMutation` 回调（替代 emit），保持「刷新完成→关闭」时序、零回归通过 smoke。
