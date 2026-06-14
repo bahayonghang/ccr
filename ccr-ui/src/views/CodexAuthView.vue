@@ -1086,13 +1086,7 @@ import {
   switchCodexAuth,
   deleteCodexAuth,
   getCodexAllQuotas,
-  codexOAuthLoginStart,
-  codexOAuthLoginCompleted,
   codexOAuthLoginCancel,
-  codexOAuthSubmitCallbackUrl,
-  codexIsOAuthPortInUse,
-  codexReleaseOAuthPort,
-  codexOpenExternalUrl,
   codexImportAuthPayload,
   codexImportAuthFromLocal,
   codexAddAuthWithApiKey,
@@ -1126,15 +1120,14 @@ import type {
   CodexImportAuthPayload,
   CodexModelProviderRecord,
   CodexModelProvidersResponse,
-  CodexOAuthStartResponse,
   CodexProfile,
   CodexProfilesResponse,
   LoginState,
 } from '@/types'
 import type { ProviderTemplateDraftContext, ProviderTemplateSelection } from '@/types/providerTemplates'
 import { logger } from '@/utils/logger'
-import { isTauriRuntime } from '@/utils/tauriRuntime'
 import { extractErrorMessage } from '@/utils/errorHandler'
+import { useCodexOAuthFlow } from '@/composables/useCodexOAuthFlow'
 import { useUIStore } from '@/stores/ui'
 import {
   mapTemplateToCodexApiAccountPatch,
@@ -1149,14 +1142,12 @@ const uiStore = useUIStore()
 
 type ManagerTab = 'accounts' | 'providers'
 type AddMethod = 'oauth' | 'token' | 'api' | 'local'
-type UnlistenFn = () => void | Promise<void>
 
 const loading = ref(false)
 const actionLoading = ref(false)
 const quotaLoading = ref(false)
 const providerLoading = ref(false)
 const providerSaving = ref(false)
-const oauthBusy = ref(false)
 const importBusy = ref(false)
 const apiKeyBusy = ref(false)
 const localImportBusy = ref(false)
@@ -1181,13 +1172,6 @@ const busyAction = ref<'switch' | 'delete' | null>(null)
 const showConfirmModal = ref(false)
 const lastLoadedAt = ref(0)
 
-const oauthLoginId = ref('')
-const oauthAuthUrl = ref('')
-const oauthCallbackUrl = ref('')
-const oauthPending = ref(false)
-const oauthPortBusy = ref(false)
-const oauthTimeoutMessage = ref<string | null>(null)
-
 const confirmDialog = reactive<{
   title: string
   message: string
@@ -1200,7 +1184,6 @@ const confirmDialog = reactive<{
   type: 'warning',
 })
 let confirmedAction: (() => Promise<void>) | null = null
-let oauthUnlisteners: UnlistenFn[] = []
 
 const importForm = reactive({
   content: '',
@@ -1760,25 +1743,33 @@ const handleRename = (name: string) => {
   showRenameDialog.value = true
 }
 
-const resetOauthState = () => {
-  oauthLoginId.value = ''
-  oauthAuthUrl.value = ''
-  oauthCallbackUrl.value = ''
-  oauthPending.value = false
-}
-
-const refreshOauthPortStatus = async () => {
-  if (!isTauriRuntime()) {
-    oauthPortBusy.value = false
-    return
-  }
-  try {
-    oauthPortBusy.value = await codexIsOAuthPortInUse<boolean>()
-  } catch (error) {
-    logger.error('Failed to check oauth port:', error)
-    oauthPortBusy.value = false
-  }
-}
+// OAuth 子流程（端口探测/启动/回调/完成/取消 + tauri 事件监听）抽至 useCodexOAuthFlow，
+// 与添加账号弹窗共享命名草稿与成功收尾回调
+const {
+  oauthLoginId,
+  oauthAuthUrl,
+  oauthCallbackUrl,
+  oauthPending,
+  oauthPortBusy,
+  oauthBusy,
+  oauthTimeoutMessage,
+  resetOauthState,
+  refreshOauthPortStatus,
+  handleReleaseOauthPort,
+  handleStartOauth,
+  handleSubmitOauthCallback,
+  handleFinalizeOauth,
+  cancelOauthFlow,
+  installOauthListeners,
+  cleanupOauthListeners,
+} = useCodexOAuthFlow({
+  effectivePreferredAccountName,
+  ensurePreferredAccountNameIsValid,
+  applyMutationSuccess,
+  addAccountError,
+  addAccountNotice,
+  showAddAccountModal,
+})
 
 const openAddAccountModal = async (method: AddMethod = 'oauth') => {
   showAddAccountModal.value = true
@@ -1819,148 +1810,14 @@ const switchAddMethod = async (method: AddMethod) => {
   }
 }
 
-const applyMutationSuccess = async (result: CodexAuthMutationResponse, successMessage: string) => {
+// 函数声明（hoisted）以便上方 useCodexOAuthFlow 在初始化时按名引用
+async function applyMutationSuccess(result: CodexAuthMutationResponse, successMessage: string) {
   await handleRefresh()
   uiStore.showSuccess(successMessage)
   addAccountNotice.value = result.account_name
     ? tf('codex.auth.feedback.savedAs', 'Saved as {name}.', { name: result.account_name })
     : successMessage
   resetOauthState()
-}
-
-const handleReleaseOauthPort = async () => {
-  try {
-    oauthBusy.value = true
-    const killed = await codexReleaseOAuthPort<number>()
-    await refreshOauthPortStatus()
-    uiStore.showSuccess(
-      tf(
-        'codex.auth.oauth.releasePortSuccess',
-        'Released the callback port ({count} process(es)).',
-        { count: killed }
-      )
-    )
-  } catch (error) {
-    addAccountError.value =
-      extractErrorMessage(error) ||
-      tf('codex.auth.oauth.releasePortFailed', 'Failed to release port 1455.')
-  } finally {
-    oauthBusy.value = false
-  }
-}
-
-const handleStartOauth = async () => {
-  addAccountError.value = null
-  addAccountNotice.value = null
-  oauthTimeoutMessage.value = null
-  if (!ensurePreferredAccountNameIsValid()) {
-    return
-  }
-  try {
-    oauthBusy.value = true
-    await refreshOauthPortStatus()
-    if (oauthPortBusy.value && !oauthPending.value) {
-      addAccountError.value = tf(
-        'codex.auth.oauth.portBusyError',
-        'Port 1455 is busy. Release it first, then retry the OAuth flow.'
-      )
-      return
-    }
-
-    const result = await codexOAuthLoginStart<CodexOAuthStartResponse>()
-    oauthLoginId.value = result.loginId
-    oauthAuthUrl.value = result.authUrl
-    oauthPending.value = true
-    await codexOpenExternalUrl(result.authUrl)
-    addAccountNotice.value = tf(
-      'codex.auth.oauth.started',
-      'Browser authorization started. After the callback arrives, CCR will finish the login automatically.'
-    )
-  } catch (error) {
-    addAccountError.value =
-      extractErrorMessage(error) ||
-      tf('codex.auth.oauth.startFailed', 'Failed to start OAuth authorization.')
-  } finally {
-    oauthBusy.value = false
-  }
-}
-
-const handleSubmitOauthCallback = async () => {
-  addAccountError.value = null
-  if (!oauthLoginId.value || !oauthCallbackUrl.value.trim()) {
-    addAccountError.value = tf(
-      'codex.auth.oauth.callbackRequired',
-      'Paste the callback URL before submitting it.'
-    )
-    return
-  }
-
-  try {
-    oauthBusy.value = true
-    await codexOAuthSubmitCallbackUrl(oauthLoginId.value, oauthCallbackUrl.value.trim())
-    addAccountNotice.value = tf(
-      'codex.auth.oauth.callbackSubmitted',
-      'Callback received. Finalizing the OAuth account now...'
-    )
-  } catch (error) {
-    addAccountError.value =
-      extractErrorMessage(error) ||
-      tf('codex.auth.oauth.callbackSubmitFailed', 'Failed to submit the callback URL.')
-  } finally {
-    oauthBusy.value = false
-  }
-}
-
-const finalizeOauthLoginById = async (loginId: string) => {
-  if (!ensurePreferredAccountNameIsValid()) {
-    return
-  }
-  try {
-    oauthBusy.value = true
-    const result = await codexOAuthLoginCompleted<CodexAuthMutationResponse>(
-      loginId,
-      effectivePreferredAccountName.value
-    )
-    await applyMutationSuccess(
-      result,
-      tf('codex.auth.oauth.success', 'OAuth account added successfully.')
-    )
-    showAddAccountModal.value = false
-  } catch (error) {
-    addAccountError.value =
-      extractErrorMessage(error) ||
-      tf('codex.auth.oauth.completeFailed', 'Failed to complete the OAuth login.')
-  } finally {
-    oauthBusy.value = false
-  }
-}
-
-const handleFinalizeOauth = async () => {
-  if (!oauthLoginId.value) {
-    addAccountError.value = tf(
-      'codex.auth.oauth.notStarted',
-      'Start the OAuth flow before finalizing it.'
-    )
-    return
-  }
-  await finalizeOauthLoginById(oauthLoginId.value)
-}
-
-const cancelOauthFlow = async () => {
-  try {
-    oauthBusy.value = true
-    if (oauthLoginId.value) {
-      await codexOAuthLoginCancel(oauthLoginId.value)
-    }
-    resetOauthState()
-    await refreshOauthPortStatus()
-  } catch (error) {
-    addAccountError.value =
-      extractErrorMessage(error) ||
-      tf('codex.auth.oauth.cancelFailed', 'Failed to cancel the OAuth flow.')
-  } finally {
-    oauthBusy.value = false
-  }
 }
 
 const handleImportPayload = async () => {
@@ -2215,44 +2072,6 @@ const requestDeleteProvider = (provider: CodexModelProviderRecord) => {
       }
     },
   })
-}
-
-const installOauthListeners = async () => {
-  if (!isTauriRuntime()) return
-  try {
-    const { listen } = await import('@tauri-apps/api/event')
-    const completed = await listen<{ loginId?: string }>(
-      'codex-oauth-login-completed',
-      async (event) => {
-        const loginId = event.payload?.loginId
-        if (!loginId || loginId !== oauthLoginId.value) return
-        await finalizeOauthLoginById(loginId)
-      }
-    )
-    const timeout = await listen<{ loginId?: string; timeoutSeconds?: number }>(
-      'codex-oauth-login-timeout',
-      async (event) => {
-        const loginId = event.payload?.loginId
-        if (!loginId || loginId !== oauthLoginId.value) return
-        oauthTimeoutMessage.value = tf(
-          'codex.auth.oauth.timeoutMessage',
-          'No callback arrived within {seconds} seconds. You can restart the flow or paste the manual callback URL.',
-          { seconds: event.payload?.timeoutSeconds ?? 300 }
-        )
-        resetOauthState()
-        await refreshOauthPortStatus()
-      }
-    )
-    oauthUnlisteners.push(completed, timeout)
-  } catch (error) {
-    logger.error('Failed to install oauth listeners:', error)
-  }
-}
-
-const cleanupOauthListeners = async () => {
-  const pending = [...oauthUnlisteners]
-  oauthUnlisteners = []
-  await Promise.allSettled(pending.map((unlisten) => Promise.resolve(unlisten())))
 }
 
 onMounted(async () => {
