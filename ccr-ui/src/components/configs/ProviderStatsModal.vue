@@ -222,16 +222,9 @@
                     class="w-full rounded-t-lg transition-all duration-300 group-hover:brightness-110 relative overflow-hidden"
                     :style="{
                       height: Math.max((count / (maxCount || 1)) * 100, 4) + '%',
-                      background: chartColors[index % chartColors.length],
-                      boxShadow: `0 4px 12px ${chartColors[index % chartColors.length]}40`
+                      background: chartColors[index % chartColors.length]
                     }"
-                  >
-                    <!-- 玻璃光泽效果 -->
-                    <div
-                      class="absolute inset-0 opacity-50"
-                      :style="{ background: 'linear-gradient(to bottom, rgba(255,255,255,0.3), transparent)' }"
-                    />
-                  </div>
+                  />
                 </div>
 
                 <!-- 标签 -->

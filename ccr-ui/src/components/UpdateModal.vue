@@ -33,7 +33,7 @@
                 ? 'var(--accent-danger)'
                 : stage === 'success'
                   ? 'var(--accent-success)'
-                  : 'linear-gradient(90deg, var(--accent-primary), var(--accent-secondary))'
+                  : 'var(--accent-primary)'
             }"
           />
 
@@ -186,7 +186,7 @@
                 <div
                   class="h-full progress-bar-animation"
                   :style="{
-                    background: 'linear-gradient(90deg, var(--accent-primary), var(--accent-secondary))'
+                    background: 'var(--accent-primary)'
                   }"
                 />
               </div>
@@ -352,8 +352,7 @@
               <button
                 class="px-5 py-2.5 rounded-lg font-semibold text-sm transition-transform text-white hover:scale-105"
                 :style="{
-                  background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))',
-                  boxShadow: '0 0 20px var(--glow-primary)'
+                  background: 'var(--accent-primary)'
                 }"
                 @click="$emit('confirm')"
               >
@@ -387,8 +386,7 @@
                 v-if="stage === 'success'"
                 class="px-5 py-2.5 rounded-lg font-semibold text-sm transition-transform text-white hover:scale-105"
                 :style="{
-                  background: 'linear-gradient(135deg, var(--accent-success), var(--accent-primary))',
-                  boxShadow: '0 0 20px var(--glow-success)'
+                  background: 'var(--accent-success)'
                 }"
                 @click="handleRefresh"
               >
