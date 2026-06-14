@@ -25,7 +25,6 @@
 - `ccr-ui/src-tauri/Cargo.toml`
 - `ccr-ui/src-tauri/tauri.conf.json`
 - `ccr-ui/src/components/MainLayout.vue`
-- `ccr-ui/src/layouts/MainLayout.vue`
 
 #### 用法
 

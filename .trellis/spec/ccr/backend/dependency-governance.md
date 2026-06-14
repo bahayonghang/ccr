@@ -4,6 +4,53 @@
 
 ---
 
+## Scenario: Version sync target registry
+
+### 1. Scope / Trigger
+- Trigger: changing version surfaces, UI shell version labels, `scripts/version-sync.ps1`, `scripts/version-sync.sh`, or paths listed in either script's `SYNC_TARGETS`.
+- Applies because `just ci` starts with `just version-sync`; stale required paths fail the full gate before Rust or frontend checks run.
+
+### 2. Signatures
+- Windows sync: `scripts/version-sync.ps1 [-Check] [-Verbose]`
+- Unix sync: `bash scripts/version-sync.sh [--check|-c] [--verbose|-v]`
+- Root gate: `just version-sync` and `just version-check`
+
+### 3. Contracts
+- `SYNC_TARGETS` must list only current canonical version targets that exist in the working tree.
+- If a UI file that used to carry a version label is deleted, moved, or replaced by a package-driven label such as `APP_VERSION_LABEL`, remove the stale target instead of recreating an unused compatibility file.
+- Keep PowerShell and Bash target lists behaviorally aligned.
+- Keep `scripts/version-sync.Tests.ps1`, `scripts/version-sync.bats`, and `scripts/README.md` aligned with the active target list.
+
+### 4. Validation & Error Matrix
+- Target path listed but missing -> fail in `just version-sync`.
+- Target path exists but has neither `CCR UI v...` nor package-driven version marker -> fail while extracting UI version.
+- Bash and PowerShell target lists differ -> cross-platform CI drift risk; update both before accepting the change.
+- Tests or README still create/document a removed target -> stale contract; update them with the script change.
+
+### 5. Good/Base/Bad Cases
+- Good: `ccr-ui/src/components/MainLayout.vue` is the only MainLayout version target after the legacy `src/layouts/MainLayout.vue` file is removed.
+- Base: a Vue component uses `APP_VERSION_LABEL`; the script accepts it as package-version-backed and does not rewrite the component.
+- Bad: leaving `ccr-ui/src/layouts/MainLayout.vue` in `SYNC_TARGETS` after the file is deleted.
+
+### 6. Tests Required
+- Run `./scripts/version-sync.ps1 -Check -Verbose` after editing Windows sync behavior.
+- Run `bash -n scripts/version-sync.sh` after editing Bash sync behavior.
+- Run `just version-sync` to prove the first `just ci` step no longer fails.
+- Run final `just ci` for release-ready version-sync changes.
+
+### 7. Wrong vs Correct
+#### Wrong
+```powershell
+@{ Name = "ui-legacy"; Path = "ccr-ui\src\layouts\MainLayout.vue"; Type = "vue" }
+Test-RequiredFile $LEGACY_MAIN_LAYOUT
+```
+
+#### Correct
+```powershell
+@{ Name = "ui-component"; Path = "ccr-ui\src\components\MainLayout.vue"; Type = "vue" }
+Test-RequiredFile $COMPONENT_MAIN_LAYOUT
+```
+
 ## Scenario: Root/Tauri dependency drift gate
 
 ### 1. Scope / Trigger
