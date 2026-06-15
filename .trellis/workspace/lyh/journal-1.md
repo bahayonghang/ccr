@@ -506,3 +506,37 @@ Removed the stale legacy MainLayout version-sync target from PowerShell/Bash scr
 ### Next Steps
 
 - None - task complete
+
+
+## Session 15: Codex 配置通知兼容修复
+
+**Date**: 2026-06-15
+**Task**: Codex 配置通知兼容修复
+**Package**: ccr
+**Branch**: `dev`
+
+### Summary
+
+修复 Codex 新版 tui.notifications 事件数组导致 ccr-ui 仪表盘和设置页加载失败的问题，补充后端回归测试并同步前端类型与展示。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `22cbae05` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

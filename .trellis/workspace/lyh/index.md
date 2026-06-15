@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 14
-- **Last Active**: 2026-06-14
+- **Total Sessions**: 15
+- **Last Active**: 2026-06-15
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~508 | Active |
+| `journal-1.md` | ~542 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 15 | 2026-06-15 | Codex 配置通知兼容修复 | `22cbae05` | `dev` |
 | 14 | 2026-06-14 | fix just ci version-sync target drift | `5d63b7a6` | `dev` |
 | 13 | 2026-06-13 | ccr-ui 优化：恢复前序提交 + WS6 批次④ modal 收口 + 死代码补漏 | `d0c4c5f0`, `916632f4`, `a75c5346`, `be03d869`, `544f2945`, `a18a937f`, `6949e59c`, `82c760db` | `dev` |
 | 12 | 2026-06-11 | ccr-ui appearance system redesign | `ed1827fd`, `a7cc8718` | `dev` |
