@@ -27,6 +27,10 @@
             :options="heatmapOptions"
             :series="heatmapSeries"
           />
+          <ChartPreparingState
+            v-else-if="hasHeatmap"
+            :label="$t('claudeCode.observer.chart.preparingHeatmap')"
+          />
           <div
             v-else
             class="behavior-tab__empty"
@@ -151,6 +155,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { ApexChartAsync as apexchart } from './apexChart'
+import ChartPreparingState from './ChartPreparingState.vue'
 import type { HeatmapCell, SessionRow, TopToolRow } from '@/types/claudeObserver'
 import { buildChartTheme } from '@/views/usage/usageChartOptions'
 import { formatUsd } from './formatters'

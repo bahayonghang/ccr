@@ -21,6 +21,10 @@
           :options="dailyOptions"
           :series="dailySeries"
         />
+        <ChartPreparingState
+          v-else-if="hasDaily"
+          :label="$t('claudeCode.observer.chart.preparingTrend')"
+        />
         <div
           v-else
           class="cost-tab__empty"
@@ -116,6 +120,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { ApexChartAsync as apexchart } from './apexChart'
+import ChartPreparingState from './ChartPreparingState.vue'
 import type { BreakdownRow, DailyPoint } from '@/types/claudeObserver'
 import { buildChartTheme } from '@/views/usage/usageChartOptions'
 import { formatUsd } from './formatters'
