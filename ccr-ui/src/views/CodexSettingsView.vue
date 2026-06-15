@@ -460,9 +460,27 @@
                 :label="$t('codex.settings.ui.animations')"
               />
               <ToggleField
+                v-if="!isTuiNotificationEventsConfig"
                 v-model="tuiNotifications"
                 :label="$t('codex.settings.ui.notifications')"
               />
+              <div
+                v-else
+                class="space-y-2"
+              >
+                <label class="block text-sm font-semibold text-text-primary">{{
+                  $t('codex.settings.ui.notifications')
+                }}</label>
+                <div class="flex flex-wrap gap-2">
+                  <span
+                    v-for="event in tuiNotificationEvents"
+                    :key="event"
+                    class="codex-settings-chip"
+                  >
+                    {{ event }}
+                  </span>
+                </div>
+              </div>
               <ToggleField
                 v-model="tuiShowTooltips"
                 :label="$t('codex.settings.ui.showTooltips')"
@@ -682,8 +700,12 @@ const tuiAnimations = computed({
     form.tui.animations = v
   },
 })
+const tuiNotificationEvents = computed(() =>
+  Array.isArray(form.tui?.notifications) ? form.tui.notifications : [],
+)
+const isTuiNotificationEventsConfig = computed(() => Array.isArray(form.tui?.notifications))
 const tuiNotifications = computed({
-  get: () => form.tui?.notifications,
+  get: () => (typeof form.tui?.notifications === 'boolean' ? form.tui.notifications : undefined),
   set: (v: boolean | undefined) => {
     if (!form.tui) form.tui = {}
     form.tui.notifications = v
@@ -940,6 +962,14 @@ export default { components: { ToggleField } }
   box-shadow: 0 0 0 1px var(--color-accent-primary);
 }
 
+.codex-settings-chip {
+  @apply rounded-md px-2 py-1 text-xs font-medium;
+
+  background: var(--stage-chip-neutral-bg);
+  border: 1px solid var(--stage-chip-neutral-border);
+  color: var(--stage-chip-neutral-text);
+}
+
 .codex-settings-toast {
   @apply fixed bottom-6 right-6 z-50 px-5 py-3 rounded-xl shadow-lg text-sm font-medium text-white;
 }
@@ -962,5 +992,3 @@ export default { components: { ToggleField } }
   opacity: 0;
 }
 </style>
-
-

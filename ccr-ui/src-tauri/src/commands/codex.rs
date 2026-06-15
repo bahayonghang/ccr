@@ -182,6 +182,13 @@ struct CodexToolsConfig {
     pub other: HashMap<String, toml::Value>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(untagged)]
+enum CodexTuiNotificationsConfig {
+    Enabled(bool),
+    Events(Vec<String>),
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 struct CodexTuiConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -189,7 +196,7 @@ struct CodexTuiConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub animations: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub notifications: Option<bool>,
+    pub notifications: Option<CodexTuiNotificationsConfig>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub show_tooltips: Option<bool>,
     #[serde(flatten)]
@@ -906,6 +913,29 @@ fn parse_bool_field(raw: &Value, field_name: &str) -> Result<Option<bool>, Strin
     }
 }
 
+fn parse_tui_notifications_field(
+    raw: &Value,
+) -> Result<Option<CodexTuiNotificationsConfig>, String> {
+    match raw {
+        Value::Null => Ok(None),
+        Value::Bool(flag) => Ok(Some(CodexTuiNotificationsConfig::Enabled(*flag))),
+        Value::Array(items) => {
+            let mut events = Vec::new();
+            for item in items {
+                let Value::String(event) = item else {
+                    return Err("字段 'tui.notifications' 必须是字符串数组".to_string());
+                };
+                let trimmed = event.trim();
+                if !trimmed.is_empty() {
+                    events.push(trimmed.to_string());
+                }
+            }
+            Ok(Some(CodexTuiNotificationsConfig::Events(events)))
+        }
+        _ => Err("字段 'tui.notifications' 必须是布尔值或字符串数组".to_string()),
+    }
+}
+
 fn parse_i64_field(raw: &Value, field_name: &str) -> Result<Option<i64>, String> {
     match raw {
         Value::Null => Ok(None),
@@ -1138,7 +1168,7 @@ fn apply_tui_setting(config: &mut CodexConfig, raw: &Value) -> Result<(), String
         nested.animations = parse_bool_field(value, "tui.animations")?;
     }
     if let Some(value) = obj.get("notifications") {
-        nested.notifications = parse_bool_field(value, "tui.notifications")?;
+        nested.notifications = parse_tui_notifications_field(value)?;
     }
     if let Some(value) = obj.get("show_tooltips") {
         nested.show_tooltips = parse_bool_field(value, "tui.show_tooltips")?;
@@ -1956,6 +1986,102 @@ mod tests {
                 .and_then(|value| value.get("multi_agent"))
                 .copied(),
             Some(true)
+        );
+    }
+
+    #[test]
+    fn read_codex_config_accepts_tui_notifications_event_array() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let path = temp_dir.path().join("config.toml");
+        fs::write(
+            &path,
+            r#"[tui]
+notification_condition = "always"
+notification_method = "auto"
+notifications = ["agent-turn-complete", "approval-requested"]
+status_line = ["model-with-reasoning"]
+"#,
+        )
+        .unwrap();
+
+        let config = read_codex_config(&path).unwrap();
+        let tui = config.tui.as_ref().unwrap();
+
+        assert_eq!(
+            tui.notifications,
+            Some(CodexTuiNotificationsConfig::Events(vec![
+                "agent-turn-complete".into(),
+                "approval-requested".into(),
+            ]))
+        );
+        assert_eq!(
+            tui.other.get("notification_condition"),
+            Some(&toml::Value::String("always".to_string()))
+        );
+
+        let payload = codex_settings_to_json(&config);
+        assert_eq!(
+            payload
+                .get("tui")
+                .and_then(Value::as_object)
+                .and_then(|nested| nested.get("notifications")),
+            Some(&json!(["agent-turn-complete", "approval-requested"]))
+        );
+    }
+
+    #[test]
+    fn apply_codex_settings_update_preserves_tui_notifications_event_array() {
+        let mut config: CodexConfig = toml::from_str(
+            r#"[tui]
+notification_condition = "always"
+notification_method = "auto"
+notifications = ["agent-turn-complete", "approval-requested"]
+status_line = ["model-with-reasoning"]
+"#,
+        )
+        .unwrap();
+
+        apply_codex_settings_update(
+            &mut config,
+            &json!({
+                "tui": {
+                    "animations": false
+                }
+            }),
+        )
+        .unwrap();
+
+        let output = toml::to_string_pretty(&config).unwrap();
+
+        assert!(output.contains("animations = false"));
+        assert!(output.contains("notifications = ["));
+        assert!(output.contains("\"agent-turn-complete\""));
+        assert!(output.contains("\"approval-requested\""));
+        assert!(output.contains("notification_condition = \"always\""));
+        assert!(output.contains("notification_method = \"auto\""));
+        assert!(output.contains("status_line = ["));
+    }
+
+    #[test]
+    fn apply_codex_settings_update_accepts_boolean_tui_notifications() {
+        let mut config = CodexConfig::default();
+
+        apply_codex_settings_update(
+            &mut config,
+            &json!({
+                "tui": {
+                    "notifications": true
+                }
+            }),
+        )
+        .unwrap();
+
+        assert_eq!(
+            config
+                .tui
+                .as_ref()
+                .and_then(|value| value.notifications.clone()),
+            Some(CodexTuiNotificationsConfig::Enabled(true))
         );
     }
 
