@@ -27,8 +27,16 @@ const circumference = 2 * Math.PI * radius
 const isRecovering = computed(() => props.phase === 'recovering')
 const isFinished = computed(() => props.phase === 'finished')
 
+// 终态诚实化：仍有账号被 WAF 拦截且未恢复时，区别于"全部成功"的绿色终态
+const unresolvedWafCount = computed(
+  () =>
+    props.logs.filter((log) => log.status === 'failed' && log.errorCode === 'waf_blocked').length
+)
+const needsManualWaf = computed(() => isFinished.value && unresolvedWafCount.value > 0)
+
 const modalTitle = computed(() => {
   if (isRecovering.value) return '正在自动处理 WAF'
+  if (needsManualWaf.value) return '签到完成 · 需手动处理 WAF'
   return isFinished.value ? '签到完成' : '正在执行签到'
 })
 
@@ -116,9 +124,9 @@ watch(
           <span class="absolute text-2xl font-bold text-text-primary">
             <template v-if="isFinished">
               <SIcon
-                name="CheckCircle"
+                :name="needsManualWaf ? 'AlertTriangle' : 'CheckCircle'"
                 size="h-10 w-10"
-                class="text-accent-success"
+                :class="needsManualWaf ? 'text-accent-warning' : 'text-accent-success'"
               />
             </template>
             <template v-else-if="isRecovering">
@@ -152,9 +160,14 @@ watch(
           </p>
           <p
             v-else-if="isFinished"
-            class="text-sm font-medium text-accent-success"
+            class="text-sm font-medium"
+            :class="needsManualWaf ? 'text-accent-warning' : 'text-accent-success'"
           >
-            全部任务执行完毕
+            {{
+              needsManualWaf
+                ? `${unresolvedWafCount} 个账号仍被 WAF 拦截，请前往「提供商」页手动获取 Cookie`
+                : '全部任务执行完毕'
+            }}
           </p>
           <p
             v-if="isRecovering && recoveryProviderName"

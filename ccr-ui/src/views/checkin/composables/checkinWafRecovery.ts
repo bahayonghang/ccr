@@ -273,6 +273,11 @@ export const createCheckinWafRecovery = (
   getErrorMessage: (error: unknown, fallback: string) => string,
   getProviderLoginUrl: (provider: CheckinProvider) => string
 ) => {
+  // provider 级补救冷却：避免快速连点为同一站点反复开 WebView 取 cookie。
+  // 失败后保留 60s 冷却；完整跑完一轮（含重试）后清除，不阻塞用户主动重试。
+  const RECOVERY_COOLDOWN_MS = 60_000
+  const recoveryAttemptAt = new Map<string, number>()
+
   const runWafRecovery = async (
     initialResult: CheckinDisplayResponse
   ): Promise<CheckinDisplayResponse> => {
@@ -300,6 +305,21 @@ export const createCheckinWafRecovery = (
           )
           continue
         }
+
+        const providerId = group.provider.id
+        const lastAttemptAt = recoveryAttemptAt.get(providerId)
+        if (lastAttemptAt && Date.now() - lastAttemptAt < RECOVERY_COOLDOWN_MS) {
+          const recoveryError = '刚刚已尝试自动获取 WAF Cookie，请稍后重试或前往“提供商”页手动获取'
+          mergedResult = markWafRecoveryFailure(mergedResult, group.accountIds, recoveryError)
+          refs.checkinResult.value = mergedResult
+          refs.checkinLogs.value = applyRecoveryFailureToLogs(
+            refs.checkinLogs.value,
+            group.accountIds,
+            recoveryError
+          )
+          continue
+        }
+        recoveryAttemptAt.set(providerId, Date.now())
 
         refs.wafRecoveryMessage.value = `正在为 ${group.providerName} 获取 WAF Cookie（${index + 1}/${groups.length}）`
 
@@ -378,6 +398,8 @@ export const createCheckinWafRecovery = (
             reloadRecords: true,
             reloadStats: true,
           })
+          // 完整跑完一轮补救（含重试），清除冷却以便用户主动重试
+          recoveryAttemptAt.delete(providerId)
         } catch (error: unknown) {
           const recoveryError = `自动重试失败：${getErrorMessage(error, '未知错误')}`
           mergedResult = markWafRecoveryFailure(mergedResult, group.accountIds, recoveryError)

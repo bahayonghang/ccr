@@ -134,4 +134,32 @@ describe('CheckinProgressModal smoke', () => {
       unmount()
     }
   })
+
+  it('renders manual-WAF terminal state when waf_blocked failures remain', async () => {
+    const logs: CheckinLogEntry[] = [
+      {
+        accountId: 'acc-1',
+        accountName: 'anyrouter_stumail',
+        providerName: 'AnyRouter',
+        status: 'failed',
+        message: 'API error: 检测到 WAF 挑战页面',
+        errorCode: 'waf_blocked',
+        wafRecoveryAttempted: true,
+        wafRecovered: false,
+        timestamp: new Date('2026-03-23T09:00:05.000Z'),
+      },
+    ]
+
+    const { el, unmount } = await mountModal('finished', logs)
+
+    try {
+      // 仍有 WAF 未恢复时，终态应区别于绿色"全部完成"，引导用户手动处理
+      expect(el.textContent).toContain('需手动处理 WAF')
+      expect(el.textContent).toContain('仍被 WAF 拦截')
+      expect(el.textContent).not.toContain('全部任务执行完毕')
+      expect(el.textContent).toContain('确定')
+    } finally {
+      unmount()
+    }
+  })
 })
