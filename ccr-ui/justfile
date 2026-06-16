@@ -785,15 +785,15 @@ check-frontend-lint:
 
 _check-frontend-lint-linux:
     @echo "🔍 检查前端代码 (ESLint)..."
-    bun run lint
+    bun run lint:ci
 
 _check-frontend-lint-macos:
     @echo "🔍 检查前端代码 (ESLint)..."
-    bun run lint
+    bun run lint:ci
 
 _check-frontend-lint-windows:
     @Write-Output '🔍 检查前端代码 (ESLint)...'
-    @bun run lint
+    @bun run lint:ci
 
 # 检查前端代码 - TypeScript 类型
 check-frontend-types:

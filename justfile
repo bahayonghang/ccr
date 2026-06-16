@@ -664,7 +664,7 @@ frontend-typecheck:
 # 🎨 前端 Lint 检查
 frontend-lint:
     @just header "🎨 前端 Lint 检查"
-    cd ccr-ui && bun install --frozen-lockfile && bun run lint
+    cd ccr-ui && bun install --frozen-lockfile && bun run lint:ci
     @just success "前端 Lint 检查通过"
 
 # 🧪 前端 Smoke Tests
