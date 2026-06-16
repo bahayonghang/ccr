@@ -23,4 +23,5 @@ pub use services::cdk_service::{
 };
 pub use services::checkin_service::{
     CheckinExecutionResult, CheckinService, TodayCheckinStats, WafCookieValidationResult,
+    resolve_checkin_proxy_url,
 };

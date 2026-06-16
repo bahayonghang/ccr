@@ -14,13 +14,11 @@ use crate::models::checkin::{
     CheckinRecordsResponse, CheckinStatus, CookieCredentials,
 };
 use chrono::{Datelike, Duration as ChronoDuration, Local, NaiveDate};
-use once_cell::sync::Lazy;
 use reqwest::{Client, Proxy};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap};
 use std::path::PathBuf;
 use std::time::Duration;
-use tokio::sync::Mutex;
 
 pub type Result<T> = std::result::Result<T, CheckinServiceError>;
 
@@ -131,12 +129,6 @@ fn json_object_keys(value: &serde_json::Value) -> Vec<String> {
 
 /// 默认 User-Agent
 pub(crate) const DEFAULT_USER_AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36";
-
-/// WAF cookies 刷新锁（避免并发触发多次浏览器启动）
-static WAF_REFRESH_LOCK: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
-
-/// CF cookies 刷新锁（避免并发触发多次浏览器启动）
-static CF_REFRESH_LOCK: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
 
 fn get_proxy_url_from_env() -> Option<String> {
     for key in [
@@ -278,6 +270,14 @@ fn get_proxy_settings_from_windows_registry() -> Option<(ProxySource, String)> {
 
 fn get_proxy_settings() -> Option<(ProxySource, String)> {
     get_proxy_settings_from_env().or_else(get_proxy_settings_from_windows_registry)
+}
+
+/// 解析签到/WAF 统一出口代理 URL（env → Windows 注册表，与签到 HTTP 客户端同源）。
+///
+/// 供 ccr-ui 同时配置共享 reqwest client 与 WAF WebView，保证两端出口一致：
+/// 阿里云 WAF cookie 与来源 IP 绑定，出口不一致会导致 WebView 取到的 cookie 重放失败。
+pub fn resolve_checkin_proxy_url() -> Option<String> {
+    get_proxy_settings().map(|(_, url)| url)
 }
 
 fn is_waf_challenge(text: &str) -> bool {
@@ -669,22 +669,6 @@ impl CheckinService {
             .map_err(|e| CheckinServiceError::Balance(e.to_string()))
     }
 
-    async fn refresh_waf_cookies(
-        &self,
-        provider: &CheckinProvider,
-        _account_name: &str,
-    ) -> Result<HashMap<String, String>> {
-        let _guard = WAF_REFRESH_LOCK.lock().await;
-
-        let manager = WafCookieManager::new();
-        let _ = manager.delete(&provider.id);
-
-        // WAF bypass 尚未在当前版本实现，返回错误让调用方优雅降级
-        Err(CheckinServiceError::Api(
-            "WAF 绕过功能尚未在当前版本实现，请检查是否有可用的缓存 WAF cookies".to_string(),
-        ))
-    }
-
     /// CF cookies 缓存 key：使用 `cf-` 前缀区分 WAF cookies
     fn cf_cache_key(provider_id: &str) -> String {
         format!("cf-{}", provider_id)
@@ -695,24 +679,6 @@ impl CheckinService {
         manager
             .get_valid(&Self::cf_cache_key(provider_id))
             .map_err(|e| CheckinServiceError::Balance(e.to_string()))
-    }
-
-    async fn refresh_cf_cookies(
-        &self,
-        provider: &CheckinProvider,
-        _account_name: &str,
-    ) -> Result<HashMap<String, String>> {
-        let _guard = CF_REFRESH_LOCK.lock().await;
-
-        let manager = WafCookieManager::new();
-        let cache_key = Self::cf_cache_key(&provider.id);
-        let _ = manager.delete(&cache_key);
-
-        // Cloudflare 绕过尚未在当前版本实现，返回错误让调用方优雅降级
-        Err(CheckinServiceError::Api(
-            "Cloudflare 绕过功能尚未在当前版本实现，请在有 GUI 的环境中手动获取 cf_clearance"
-                .to_string(),
-        ))
     }
 
     async fn send_balance_request(
@@ -1103,9 +1069,9 @@ impl CheckinService {
         if let Some(cf_cookies) = self.get_cached_cf_cookies(&provider.id)? {
             cookies = merge_cookies(&cookies, &cf_cookies);
         }
-        let mut cookie_string = cookie_header_string(&cookies);
+        let cookie_string = cookie_header_string(&cookies);
 
-        let (mut status, mut body) = self
+        let (status, body) = self
             .send_checkin_request(&url, domain, credentials, &cookie_string)
             .await?;
 
@@ -1120,89 +1086,9 @@ impl CheckinService {
             "签到响应已接收"
         );
 
-        // 检测 WAF 挑战页面：尝试刷新 WAF cookies 后重试（软失败模式）
-        if is_waf_challenge(&body) {
-            tracing::warn!(
-                "[{}] Detected WAF challenge, attempting auto bypass...",
-                account_name
-            );
-
-            match self.refresh_waf_cookies(provider, account_name).await {
-                Ok(waf_cookies) => {
-                    let merged = merge_cookies(&credentials.cookies, &waf_cookies);
-                    cookie_string = cookie_header_string(&merged);
-
-                    let (retry_status, retry_body) = self
-                        .send_checkin_request(&url, domain, credentials, &cookie_string)
-                        .await?;
-
-                    status = retry_status;
-                    body = retry_body;
-
-                    tracing::info!(
-                        provider_id = %provider.id,
-                        account_id,
-                        account_name,
-                        status = %status.as_u16(),
-                        content_kind = response_content_kind(&body),
-                        challenge = response_challenge_classification(status, &body),
-                        body_chars = response_body_chars(&body),
-                        "WAF 重试后的签到响应已接收"
-                    );
-                }
-                Err(e) => {
-                    tracing::warn!(
-                        "[{}] WAF cookie refresh failed: {}, continuing with original response",
-                        account_name,
-                        e
-                    );
-                }
-            }
-        }
-
-        // 检测 Cloudflare 挑战页面：尝试获取 cf_clearance 后重试（软失败模式）
-        if is_cf_challenge(status, &body) {
-            tracing::warn!(
-                "[{}] Detected CF challenge, attempting auto bypass...",
-                account_name
-            );
-
-            match self.refresh_cf_cookies(provider, account_name).await {
-                Ok(cf_cookies) => {
-                    let mut merged = merge_cookies(&credentials.cookies, &cf_cookies);
-                    // 同时保留 WAF cookies（如有）
-                    if let Some(waf_cookies) = self.get_cached_waf_cookies(&provider.id)? {
-                        merged = merge_cookies(&merged, &waf_cookies);
-                    }
-                    cookie_string = cookie_header_string(&merged);
-
-                    let (retry_status, retry_body) = self
-                        .send_checkin_request(&url, domain, credentials, &cookie_string)
-                        .await?;
-
-                    status = retry_status;
-                    body = retry_body;
-
-                    tracing::info!(
-                        provider_id = %provider.id,
-                        account_id,
-                        account_name,
-                        status = %status.as_u16(),
-                        content_kind = response_content_kind(&body),
-                        challenge = response_challenge_classification(status, &body),
-                        body_chars = response_body_chars(&body),
-                        "Cloudflare 重试后的签到响应已接收"
-                    );
-                }
-                Err(e) => {
-                    tracing::warn!(
-                        "[{}] CF cookie refresh failed: {}, continuing with original response",
-                        account_name,
-                        e
-                    );
-                }
-            }
-        }
+        // WAF/CF cookie 的获取由前端 WebView 补救（open_waf_login）独占负责；
+        // 此处仅复用已合并的缓存 cookie 直连，挑战仍在则下方映射为 waf_blocked/cf_blocked
+        // 错误，由前端触发 WebView 补救并重试。务必与签到出口同代理（见 state.rs）。
 
         // 优先尝试 JSON 解析：真正的 WAF 挑战页面是 HTML，不是 JSON。
         // 如果响应是合法 JSON，即使包含 WAF 特征字符串也应按 API 响应处理。
@@ -1354,9 +1240,9 @@ impl CheckinService {
         if let Some(cf_cookies) = self.get_cached_cf_cookies(&provider.id)? {
             cookies = merge_cookies(&cookies, &cf_cookies);
         }
-        let mut cookie_string = cookie_header_string(&cookies);
+        let cookie_string = cookie_header_string(&cookies);
 
-        let (mut status, mut body) = self
+        let (status, body) = self
             .send_balance_request(&url, domain, credentials, &cookie_string)
             .await?;
 
@@ -1371,88 +1257,8 @@ impl CheckinService {
             "余额响应已接收"
         );
 
-        // 检测 WAF 挑战页面：尝试刷新 WAF cookies 后重试（软失败模式）
-        if is_waf_challenge(&body) {
-            tracing::warn!(
-                "[{}] Detected WAF challenge, attempting auto bypass...",
-                account_name
-            );
-
-            match self.refresh_waf_cookies(provider, account_name).await {
-                Ok(waf_cookies) => {
-                    let merged = merge_cookies(&credentials.cookies, &waf_cookies);
-                    cookie_string = cookie_header_string(&merged);
-
-                    let (retry_status, retry_body) = self
-                        .send_balance_request(&url, domain, credentials, &cookie_string)
-                        .await?;
-
-                    status = retry_status;
-                    body = retry_body;
-
-                    tracing::info!(
-                        provider_id = %provider.id,
-                        account_id,
-                        account_name,
-                        status = %status.as_u16(),
-                        content_kind = response_content_kind(&body),
-                        challenge = response_challenge_classification(status, &body),
-                        body_chars = response_body_chars(&body),
-                        "WAF 重试后的余额响应已接收"
-                    );
-                }
-                Err(e) => {
-                    tracing::warn!(
-                        "[{}] WAF cookie refresh failed: {}, continuing with original response",
-                        account_name,
-                        e
-                    );
-                }
-            }
-        }
-
-        // 检测 Cloudflare 挑战页面：尝试获取 cf_clearance 后重试（软失败模式）
-        if is_cf_challenge(status, &body) {
-            tracing::warn!(
-                "[{}] Detected CF challenge in balance query, attempting auto bypass...",
-                account_name
-            );
-
-            match self.refresh_cf_cookies(provider, account_name).await {
-                Ok(cf_cookies) => {
-                    let mut merged = merge_cookies(&credentials.cookies, &cf_cookies);
-                    if let Some(waf_cookies) = self.get_cached_waf_cookies(&provider.id)? {
-                        merged = merge_cookies(&merged, &waf_cookies);
-                    }
-                    cookie_string = cookie_header_string(&merged);
-
-                    let (retry_status, retry_body) = self
-                        .send_balance_request(&url, domain, credentials, &cookie_string)
-                        .await?;
-
-                    status = retry_status;
-                    body = retry_body;
-
-                    tracing::info!(
-                        provider_id = %provider.id,
-                        account_id,
-                        account_name,
-                        status = %status.as_u16(),
-                        content_kind = response_content_kind(&body),
-                        challenge = response_challenge_classification(status, &body),
-                        body_chars = response_body_chars(&body),
-                        "Cloudflare 重试后的余额响应已接收"
-                    );
-                }
-                Err(e) => {
-                    tracing::warn!(
-                        "[{}] CF cookie refresh failed: {}, continuing with original response",
-                        account_name,
-                        e
-                    );
-                }
-            }
-        }
+        // WAF/CF cookie 的获取由前端 WebView 补救（open_waf_login）独占负责；
+        // 此处仅复用已合并的缓存 cookie 直连，挑战仍在则下方映射为错误。
 
         if !status.is_success() {
             if is_waf_challenge(&body) {
@@ -1820,43 +1626,13 @@ impl CheckinService {
         if let Some(cf_cookies) = self.get_cached_cf_cookies(&provider.id)? {
             cookies = merge_cookies(&cookies, &cf_cookies);
         }
-        let mut cookie_string = cookie_header_string(&cookies);
+        let cookie_string = cookie_header_string(&cookies);
 
-        let (mut status, mut body) = self
+        let (status, body) = self
             .send_balance_request(&url, domain, &credentials, &cookie_string)
             .await?;
 
-        // WAF 挑战检测与自动绕过
-        if is_waf_challenge(&body) {
-            let waf_cookies = self.refresh_waf_cookies(&provider, &account.name).await?;
-            let merged = merge_cookies(&credentials.cookies, &waf_cookies);
-            cookie_string = cookie_header_string(&merged);
-
-            let (retry_status, retry_body) = self
-                .send_balance_request(&url, domain, &credentials, &cookie_string)
-                .await?;
-
-            status = retry_status;
-            body = retry_body;
-        }
-
-        // CF 挑战检测与自动绕过
-        if is_cf_challenge(status, &body) {
-            let cf_cookies = self.refresh_cf_cookies(&provider, &account.name).await?;
-            let mut merged = merge_cookies(&credentials.cookies, &cf_cookies);
-            if let Some(waf_cookies) = self.get_cached_waf_cookies(&provider.id)? {
-                merged = merge_cookies(&merged, &waf_cookies);
-            }
-            cookie_string = cookie_header_string(&merged);
-
-            let (retry_status, retry_body) = self
-                .send_balance_request(&url, domain, &credentials, &cookie_string)
-                .await?;
-
-            status = retry_status;
-            body = retry_body;
-        }
-
+        // WAF/CF cookie 由前端 WebView 补救获取；此处仅用缓存 cookie 测试连通性。
         Ok(status.is_success() && !is_waf_challenge(&body) && !is_cf_challenge(status, &body))
     }
 

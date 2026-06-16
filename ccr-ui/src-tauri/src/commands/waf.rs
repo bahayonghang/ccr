@@ -227,7 +227,7 @@ fn build_recovery_result(
             selection.missing_cookie_names.join(", ")
         )
     } else {
-        "60 秒内未检测到可保存的 WAF Cookie".to_string()
+        "等待超时，未检测到可保存的 WAF Cookie".to_string()
     };
 
     WafCookieRecoveryResult {
@@ -279,18 +279,37 @@ pub async fn open_waf_login(
 
     // 创建 WebView 窗口
     // initialization_script 确保脚本在页面 JS 执行前已注入
-    let webview_window =
+    //
+    // 代理出口对齐：WAF cookie 与来源 IP 绑定，WebView 必须与签到 reqwest 走同一出口
+    // （见 state.rs 共享 http_client 的代理配置），统一来源 env→Windows 注册表。
+    let mut builder =
         WebviewWindowBuilder::new(&app, &window_label, tauri::WebviewUrl::External(url))
             .title("WAF 登录")
             .inner_size(900.0, 700.0)
             .resizable(true)
             .visible(false) // 默认隐藏，实现无感绕过
-            .initialization_script(&init_script)
-            .build()
-            .map_err(|e| {
-                clear_delivered_cookie(&provider_id);
-                format!("创建 WebView 窗口失败: {}", e)
-            })?;
+            .initialization_script(&init_script);
+    if let Some(proxy_url) = ccr_checkin::resolve_checkin_proxy_url() {
+        match proxy_url.parse::<tauri::Url>() {
+            // Tauri WebView 仅支持 http/socks5 代理；其余 scheme 跳过以免 build 失败，回退系统出口
+            Ok(parsed) if matches!(parsed.scheme(), "http" | "socks5") => {
+                builder = builder.proxy_url(parsed)
+            }
+            Ok(parsed) => {
+                tracing::warn!(
+                    scheme = parsed.scheme(),
+                    "WAF WebView 不支持该代理协议，回退系统默认出口"
+                )
+            }
+            Err(e) => {
+                tracing::warn!(error = %e, "WAF WebView 代理 URL 无效，回退系统默认出口")
+            }
+        }
+    }
+    let webview_window = builder.build().map_err(|e| {
+        clear_delivered_cookie(&provider_id);
+        format!("创建 WebView 窗口失败: {}", e)
+    })?;
 
     // 如果 3 秒后仍未完成（可能需要真人点按或滑块），则显示窗口
     let window_clone = webview_window.clone();
@@ -300,7 +319,8 @@ pub async fn open_waf_login(
         let _ = window_clone.show();
     });
 
-    let timeout_duration = Duration::from_secs(60);
+    // 给 WebView2 冷启动 + WAF JS 挑战 + 可能的人工介入留足时间（旧值 60s 偏紧）
+    let timeout_duration = Duration::from_secs(120);
     let started_at = Instant::now();
 
     loop {
@@ -390,11 +410,9 @@ pub async fn get_waf_cookie_status(provider_id: String) -> Result<WafCookieStatu
         let policy = provider
             .as_ref()
             .and_then(WafCookieManager::policy_for_provider)
-            .or_else(|| WafCookieManager::policy_for_provider_parts(
-                &provider_id_for_query,
-                None,
-                "",
-            ));
+            .or_else(|| {
+                WafCookieManager::policy_for_provider_parts(&provider_id_for_query, None, "")
+            });
         let required_cookie_names = policy
             .as_ref()
             .map(|policy| policy.required_cookie_names.clone())
