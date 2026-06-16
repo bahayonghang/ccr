@@ -128,10 +128,15 @@ pub async fn claude_observer_get_insight(
     let llmusage = state.llmusage.clone();
     let db_pool = state.db_pool.clone();
     tokio::task::spawn_blocking(move || -> Result<InsightDto, String> {
+        debug!("[claude_observer] get_insight: fetching total overview");
         let total = overview_in_window(&llmusage, None, None)?;
+
         let (today_s, today_e) = today_window();
+        debug!("[claude_observer] get_insight: fetching today overview ({} to {})", today_s, today_e);
         let today = overview_in_window(&llmusage, Some(today_s), Some(today_e))?;
+
         let (month_s, month_e) = month_window();
+        debug!("[claude_observer] get_insight: fetching month overview ({} to {})", month_s, month_e);
         let month = overview_in_window(&llmusage, Some(month_s), Some(month_e))?;
 
         /* 步骤2：从 llmusage 拉项目数（distinct 项目维度）*/
@@ -167,6 +172,11 @@ pub async fn claude_observer_get_insight(
             None
         };
 
+        debug!(
+            "[claude_observer] get_insight result: today=${:.2}, month=${:.2}, total=${:.2}, projects={}, sessions={}",
+            today_value, month_value, total_value, total_projects, total_sessions
+        );
+
         Ok(InsightDto {
             today_value_usd: today_value,
             month_value_usd: month_value,
@@ -194,20 +204,41 @@ pub async fn claude_observer_daily_trend(
     let days = days.unwrap_or(30).clamp(1, 365);
 
     tokio::task::spawn_blocking(move || -> Result<Vec<DailyPoint>, String> {
+        debug!("[claude_observer] daily_trend: days={}", days);
+
         let today = Local::now().date_naive();
         let start = today - chrono::Duration::days(days - 1);
+        debug!("[claude_observer] daily_trend: date range {} to {}", start, today);
+
         let filter = build_filter(
             Some("claude".to_string()),
             None,
             Some(start.format("%Y-%m-%d").to_string()),
             Some(today.format("%Y-%m-%d").to_string()),
         )?;
+
+        debug!("[claude_observer] daily_trend: DB path {:?}", llmusage.paths().db_path);
         let dashboard = llmusage
             .dashboard()
-            .map_err(|e| format!("Dashboard open error: {e}"))?;
+            .map_err(|e| {
+                let err = format!("Dashboard open error: {e}");
+                tracing::error!("[claude_observer] {}", err);
+                err
+            })?;
+
         let trends = dashboard
             .trends_daily(&filter)
-            .map_err(|e| format!("Trends query error: {e}"))?;
+            .map_err(|e| {
+                let err = format!("Trends query error: {e}");
+                tracing::error!("[claude_observer] {}", err);
+                err
+            })?;
+
+        debug!("[claude_observer] daily_trend result: {} points", trends.len());
+        if trends.is_empty() {
+            tracing::warn!("[claude_observer] daily_trend returned empty array");
+        }
+
         Ok(trends
             .into_iter()
             .map(|t| DailyPoint {
@@ -237,6 +268,8 @@ pub async fn claude_observer_cost_breakdown(
     let days = days.unwrap_or(30).clamp(1, 365);
 
     tokio::task::spawn_blocking(move || -> Result<Vec<BreakdownRow>, String> {
+        debug!("[claude_observer] cost_breakdown: dim={}, days={}, limit={}", dim, days, limit);
+
         let today = Local::now().date_naive();
         let start = today - chrono::Duration::days(days - 1);
         let filter = build_filter(
@@ -247,13 +280,21 @@ pub async fn claude_observer_cost_breakdown(
         )?;
         let dashboard = llmusage
             .dashboard()
-            .map_err(|e| format!("Dashboard open error: {e}"))?;
+            .map_err(|e| {
+                let err = format!("Dashboard open error: {e}");
+                tracing::error!("[claude_observer] {}", err);
+                err
+            })?;
 
         let rows: Vec<BreakdownRow> = match dim.as_str() {
             "project" => {
                 let mut list = dashboard
                     .project_breakdown(&filter)
-                    .map_err(|e| format!("Project breakdown error: {e}"))?;
+                    .map_err(|e| {
+                        let err = format!("Project breakdown error: {e}");
+                        tracing::error!("[claude_observer] {}", err);
+                        err
+                    })?;
                 list.sort_by(|a, b| b.total_cost_usd.total_cmp(&a.total_cost_usd));
                 list.into_iter()
                     .take(limit)
@@ -278,7 +319,11 @@ pub async fn claude_observer_cost_breakdown(
             "model" => {
                 let mut list = dashboard
                     .model_breakdown(&filter)
-                    .map_err(|e| format!("Model breakdown error: {e}"))?;
+                    .map_err(|e| {
+                        let err = format!("Model breakdown error: {e}");
+                        tracing::error!("[claude_observer] {}", err);
+                        err
+                    })?;
                 list.sort_by(|a, b| b.cost_with_cache_usd.total_cmp(&a.cost_with_cache_usd));
                 list.into_iter()
                     .take(limit)
@@ -292,6 +337,12 @@ pub async fn claude_observer_cost_breakdown(
             }
             other => return Err(format!("Unsupported breakdown dim: {other}")),
         };
+
+        debug!("[claude_observer] cost_breakdown result: {} rows", rows.len());
+        if rows.is_empty() {
+            tracing::warn!("[claude_observer] cost_breakdown returned empty array for dim={}", dim);
+        }
+
         Ok(rows)
     })
     .await
@@ -305,19 +356,39 @@ pub async fn claude_observer_cache_stats(
 ) -> Result<CacheStatsDto, String> {
     let llmusage = state.llmusage.clone();
     tokio::task::spawn_blocking(move || -> Result<CacheStatsDto, String> {
+        debug!("[claude_observer] cache_stats: fetching");
+
         let filter = build_filter(Some("claude".to_string()), None, None, None)?;
         let dashboard = llmusage
             .dashboard()
-            .map_err(|e| format!("Dashboard open error: {e}"))?;
+            .map_err(|e| {
+                let err = format!("Dashboard open error: {e}");
+                tracing::error!("[claude_observer] {}", err);
+                err
+            })?;
         let overview = dashboard
             .overview(&filter)
-            .map_err(|e| format!("Overview query error: {e}"))?;
+            .map_err(|e| {
+                let err = format!("Overview query error: {e}");
+                tracing::error!("[claude_observer] {}", err);
+                err
+            })?;
 
         // cache_write_tokens 来自 trends_daily 的 cache_creation_tokens 维度汇总
         let trends = dashboard
             .trends_daily(&filter)
-            .map_err(|e| format!("Trends query error: {e}"))?;
+            .map_err(|e| {
+                let err = format!("Trends query error: {e}");
+                tracing::error!("[claude_observer] {}", err);
+                err
+            })?;
         let total_cache_write_tokens: i64 = trends.iter().map(|t| t.cache_creation_tokens).sum();
+
+        debug!(
+            "[claude_observer] cache_stats result: hit_rate={:.2}%, write_tokens={}",
+            overview.cache_efficiency * 100.0,
+            total_cache_write_tokens
+        );
 
         Ok(CacheStatsDto {
             hit_rate: overview.cache_efficiency,
@@ -345,10 +416,20 @@ pub async fn claude_observer_top_sessions(
     let by_calls = matches!(by.as_deref(), Some("calls"));
 
     tokio::task::spawn_blocking(move || -> Result<Vec<SessionRow>, String> {
-        let conn = db_pool.get().map_err(|e| format!("DB pool error: {e}"))?;
+        debug!("[claude_observer] top_sessions: limit={}, by={:?}", limit, by);
+
+        let conn = db_pool.get().map_err(|e| {
+            let err = format!("DB pool error: {e}");
+            tracing::error!("[claude_observer] {}", err);
+            err
+        })?;
         // 用 efficiency_sessions 拉全量，再按需重排
         let mut rows = claude_tool_calls_repo::efficiency_sessions(&conn, 30, 0.0, 1000)
-            .map_err(|e| format!("Efficiency query error: {e}"))?;
+            .map_err(|e| {
+                let err = format!("Efficiency query error: {e}");
+                tracing::error!("[claude_observer] {}", err);
+                err
+            })?;
         if by_calls {
             // 用 sort_by_key 替换 sort_by 的 (a,b) 反向比较，clippy 偏好
             rows.sort_by_key(|r| std::cmp::Reverse(r.call_count));
@@ -369,6 +450,12 @@ pub async fn claude_observer_top_sessions(
                 started_at: None,
             })
             .collect();
+
+        debug!("[claude_observer] top_sessions result: {} sessions", out.len());
+        if out.is_empty() {
+            tracing::warn!("[claude_observer] top_sessions returned empty (ccr-db may be empty)");
+        }
+
         Ok(out)
     })
     .await
@@ -385,9 +472,26 @@ pub async fn claude_observer_tool_heatmap(
     let days = days.unwrap_or(30).clamp(1, 365);
 
     tokio::task::spawn_blocking(move || -> Result<Vec<HeatmapCell>, String> {
-        let conn = db_pool.get().map_err(|e| format!("DB pool error: {e}"))?;
-        claude_tool_calls_repo::heatmap(&conn, days)
-            .map_err(|e| format!("Heatmap query error: {e}"))
+        debug!("[claude_observer] tool_heatmap: days={}", days);
+
+        let conn = db_pool.get().map_err(|e| {
+            let err = format!("DB pool error: {e}");
+            tracing::error!("[claude_observer] {}", err);
+            err
+        })?;
+        let result = claude_tool_calls_repo::heatmap(&conn, days)
+            .map_err(|e| {
+                let err = format!("Heatmap query error: {e}");
+                tracing::error!("[claude_observer] {}", err);
+                err
+            })?;
+
+        debug!("[claude_observer] tool_heatmap result: {} cells", result.len());
+        if result.is_empty() {
+            tracing::warn!("[claude_observer] tool_heatmap returned empty (ccr-db may be empty)");
+        }
+
+        Ok(result)
     })
     .await
     .map_err(|e| format!("Task join error: {e}"))?
@@ -405,9 +509,26 @@ pub async fn claude_observer_top_tools(
     let limit = limit.unwrap_or(15).clamp(1, 200);
 
     tokio::task::spawn_blocking(move || -> Result<Vec<TopToolRow>, String> {
-        let conn = db_pool.get().map_err(|e| format!("DB pool error: {e}"))?;
-        claude_tool_calls_repo::top_tools(&conn, days, limit)
-            .map_err(|e| format!("Top tools query error: {e}"))
+        debug!("[claude_observer] top_tools: days={}, limit={}", days, limit);
+
+        let conn = db_pool.get().map_err(|e| {
+            let err = format!("DB pool error: {e}");
+            tracing::error!("[claude_observer] {}", err);
+            err
+        })?;
+        let result = claude_tool_calls_repo::top_tools(&conn, days, limit)
+            .map_err(|e| {
+                let err = format!("Top tools query error: {e}");
+                tracing::error!("[claude_observer] {}", err);
+                err
+            })?;
+
+        debug!("[claude_observer] top_tools result: {} tools", result.len());
+        if result.is_empty() {
+            tracing::warn!("[claude_observer] top_tools returned empty (ccr-db may be empty)");
+        }
+
+        Ok(result)
     })
     .await
     .map_err(|e| format!("Task join error: {e}"))?

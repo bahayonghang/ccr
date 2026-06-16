@@ -92,7 +92,7 @@
       v-else-if="state === 'empty'"
       state="empty"
       :title="$t('claudeCode.observer.empty.noUsage')"
-      :description="$t('claudeCode.observer.empty.noUsageDesc')"
+      :description="emptyDescription"
       icon="Database"
       :action-label="$t('claudeCode.observer.empty.openFullDashboard')"
       action-icon="ArrowUpRight"
@@ -311,6 +311,15 @@ const pricingNote = computed(() => {
     return t('claudeCode.observer.subtitle')
   }
   return t('claudeCode.observer.subtitleWithVersion', { version })
+})
+
+const emptyDescription = computed(() => {
+  // 如果有错误，显示错误信息
+  if (loadError.value) {
+    return `${t('claudeCode.observer.empty.loadError')}: ${loadError.value}`
+  }
+  // 否则显示友好提示
+  return t('claudeCode.observer.empty.noUsageDesc')
 })
 
 /*
