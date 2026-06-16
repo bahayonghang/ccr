@@ -540,3 +540,38 @@ Removed the stale legacy MainLayout version-sync target from PowerShell/Bash scr
 ### Next Steps
 
 - None - task complete
+
+
+## Session 16: WAF 签到补救出口与终态提示
+
+**Date**: 2026-06-16
+**Task**: WAF 签到补救出口与终态提示
+**Package**: ccr
+**Branch**: `dev`
+
+### Summary
+
+提交 WAF 补救代理出口对齐和未恢复终态提示改动；用户已完成 just ci 与 just install 验证。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `ab568f94` | (see git log) |
+| `d7251b58` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

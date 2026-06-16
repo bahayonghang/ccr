@@ -1,0 +1,30 @@
+{
+  "id": "claude-code-apexcharts-node-error",
+  "name": "claude-code-apexcharts-node-error",
+  "title": "修复 Claude Code 页面 ApexCharts node 报错",
+  "description": "Claude Code 页面打开即弹「应用错误: TypeError: Cannot read properties of undefined (reading 'node')」，每日费用面积图空白。根因为 CostAttributionTab 的 ApexCharts(area) 在 vue3-apexcharts 异步 init + 动画 的生命周期窗口里解引用已移除 SVG 元素的 .node，未捕获异常冒泡到 main.ts 全局 errorHandler。修复收口在共享 apexChart.ts：错误边界兜底 + 稳定挂载。",
+  "status": "checking",
+  "dev_type": "bugfix",
+  "scope": "ccr-ui",
+  "package": null,
+  "priority": "P1",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-06-16",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "dev",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [
+    "ccr-ui/src/components/claude-observer/ChartErrorBoundary.vue",
+    "ccr-ui/src/components/claude-observer/apexChart.ts",
+    "ccr-ui/tests/chart-error-boundary.smoke.test.ts"
+  ],
+  "notes": "实施完成（未提交）。自愈式错误边界 ChartErrorBoundary.vue + apexChart.ts 收口；三 Tab 与 /usage 未改。验证：bun run type-check ✓ / bun run lint ✓(0 error) / smoke 357✓(含新增 2 例边界回归)。剩余仅 Tauri dev 人工目检 /claude-code 无吐司+出图。",
+  "meta": {}
+}
