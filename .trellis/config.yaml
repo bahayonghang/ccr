@@ -77,6 +77,26 @@ max_journal_lines: 2000
 # default_package: frontend
 
 #-------------------------------------------------------------------------------
+# Channel worker OOM guard
+#-------------------------------------------------------------------------------
+# Default safeguards for `trellis channel spawn` workers. The guard runs
+# at spawn time (cleans expired idle workers, then enforces the live-worker
+# budget) and inside each supervisor (self-terminates a worker that stays
+# continuously idle past `idle_timeout`).
+#
+# Precedence: CLI flag > env var (TRELLIS_CHANNEL_WORKER_IDLE_TIMEOUT /
+# TRELLIS_CHANNEL_MAX_LIVE_WORKERS) > this config > built-in default.
+#
+# `idle_timeout: 0` disables idle cleanup (workers can sit idle forever
+# unless explicitly killed or given `--timeout`).
+# `max_live_workers: 0` disables the spawn-time budget check.
+#
+channel:
+  worker_guard:
+    idle_timeout: 5m
+    max_live_workers: 6
+
+#-------------------------------------------------------------------------------
 # Codex (dispatch behavior)
 #-------------------------------------------------------------------------------
 # Codex-only knob; other platforms ignore it. Default ("inline") makes the
@@ -88,31 +108,3 @@ max_journal_lines: 2000
 #
 # codex:
 #   dispatch_mode: inline  # or "sub-agent" to dispatch trellis-* sub-agents
-
-# Auto-detected monorepo packages
-packages:
-  ccr:
-    path: crates/ccr
-  ccr-core:
-    path: crates/ccr-core
-  ccr-config:
-    path: crates/ccr-config
-  ccr-sync:
-    path: crates/ccr-sync
-  ccr-skills:
-    path: crates/ccr-skills
-  ccr-store:
-    path: crates/ccr-store
-  ccr-codex:
-    path: crates/ccr-codex
-  ccr-db:
-    path: crates/ccr-db
-  ccr-checkin:
-    path: crates/ccr-checkin
-  ccr-cli:
-    path: crates/ccr-cli
-  ccr-tui:
-    path: crates/ccr-tui
-  ccr-types:
-    path: crates/ccr-types
-default_package: ccr
