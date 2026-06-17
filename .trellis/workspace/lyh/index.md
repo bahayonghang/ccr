@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 16
-- **Last Active**: 2026-06-16
+- **Total Sessions**: 17
+- **Last Active**: 2026-06-17
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~577 | Active |
+| `journal-1.md` | ~611 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 17 | 2026-06-17 | Muyuan checkin and Trellis cleanup | `e9b820fe`, `4461c313` | `dev` |
 | 16 | 2026-06-16 | WAF 签到补救出口与终态提示 | `ab568f94`, `d7251b58` | `dev` |
 | 15 | 2026-06-15 | Codex 配置通知兼容修复 | `22cbae05` | `dev` |
 | 14 | 2026-06-14 | fix just ci version-sync target drift | `5d63b7a6` | `dev` |

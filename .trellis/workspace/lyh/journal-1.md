@@ -575,3 +575,37 @@ Removed the stale legacy MainLayout version-sync target from PowerShell/Bash scr
 ### Next Steps
 
 - None - task complete
+
+
+## Session 17: Muyuan checkin and Trellis cleanup
+
+**Date**: 2026-06-17
+**Task**: Muyuan checkin and Trellis cleanup
+**Branch**: `dev`
+
+### Summary
+
+Added the new muyuan.do provider, archived completed Trellis tasks, and removed two planning task directories.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `e9b820fe` | (see git log) |
+| `4461c313` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
