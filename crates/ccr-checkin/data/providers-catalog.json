@@ -624,6 +624,39 @@
         "claude": { "baseUrl": "https://llmapi.vhuds.com" },
         "codex": { "baseUrl": "https://llmapi.vhuds.com" }
       }
+    },
+    {
+      "id": "builtin-muyuan",
+      "name": "Muyuan",
+      "description": "Muyuan 公益 AI 中转站",
+      "domain": "muyuan.do",
+      "websiteUrl": "https://muyuan.do",
+      "icon": "🎌",
+      "bizCategory": "community",
+      "checkinCategory": "waf_required",
+      "checkin": {
+        "baseUrl": "https://muyuan.do",
+        "checkinPath": "/api/user/checkin",
+        "balancePath": "/api/user/self",
+        "userInfoPath": "/api/user/self",
+        "authHeader": "Authorization",
+        "authPrefix": "Bearer",
+        "supportsCheckin": true,
+        "requiresWafBypass": true,
+        "requiresCfClearance": false,
+        "checkinBugged": false,
+        "oauth": {
+          "oauthStatePath": "/api/oauth/state"
+        }
+      },
+      "platforms": {
+        "claude": {
+          "baseUrl": "https://muyuan.do"
+        },
+        "codex": {
+          "baseUrl": "https://muyuan.do"
+        }
+      }
     }
   ]
 }

@@ -579,12 +579,22 @@ mod tests {
             None,
             Some("aiepRPewQgwTPbUIq8Z4muSYw76NFSUZ"),
         ),
+        (
+            "builtin-muyuan",
+            "Muyuan",
+            "muyuan.do",
+            "https://muyuan.do",
+            "🎌",
+            "waf_required",
+            None,
+            None,
+        ),
     ];
 
     #[test]
     fn test_get_builtin_providers() {
         let providers = get_builtin_providers();
-        assert_eq!(providers.len(), 22);
+        assert_eq!(providers.len(), 23);
         assert_eq!(
             providers
                 .iter()
