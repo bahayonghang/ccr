@@ -609,3 +609,40 @@ Added the new muyuan.do provider, archived completed Trellis tasks, and removed 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 18: TUI Tab Order Configuration
+
+**Date**: 2026-06-18
+**Task**: TUI Tab Order Configuration
+**Branch**: `dev`
+
+### Summary
+
+Implemented configurable TUI tab ordering via ~/.ccr/tui.toml, fixed the main TUI default selected tab, repaired CI smoke tests, synced version metadata, and documented the Trellis/spec contracts.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b9501428` | (see git log) |
+| `38fdc4f3` | (see git log) |
+| `0949ca1b` | (see git log) |
+| `896480cc` | (see git log) |
+| `e4676860` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
