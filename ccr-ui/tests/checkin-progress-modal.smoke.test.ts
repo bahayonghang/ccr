@@ -1,6 +1,7 @@
 import { createApp, defineComponent, h, nextTick } from 'vue'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { CheckinFlowPhase, CheckinLogEntry } from '@/types/checkin'
+import { createI18nStub } from './helpers/i18n-stub'
 
 vi.mock('@/components/common/BaseModal.vue', () => ({
   default: defineComponent({
@@ -58,6 +59,7 @@ const mountModal = async (
     },
   }))
 
+  app.use(createI18nStub('zh-CN'))
   app.mount(el)
   await nextTick()
 
@@ -129,7 +131,7 @@ describe('CheckinProgressModal smoke', () => {
       expect(el.textContent).toContain('全部任务执行完毕')
       expect(el.textContent).toContain('自动补救失败')
       expect(el.textContent).toContain('自动获取 WAF Cookie 失败：缺少 WAF Cookie: acw_sc__v2')
-      expect(el.textContent).toContain('确定')
+      expect(el.textContent).toContain('确认')
     } finally {
       unmount()
     }
@@ -157,7 +159,7 @@ describe('CheckinProgressModal smoke', () => {
       expect(el.textContent).toContain('需手动处理 WAF')
       expect(el.textContent).toContain('仍被 WAF 拦截')
       expect(el.textContent).not.toContain('全部任务执行完毕')
-      expect(el.textContent).toContain('确定')
+      expect(el.textContent).toContain('确认')
     } finally {
       unmount()
     }

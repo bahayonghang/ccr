@@ -263,7 +263,7 @@ describe('CodexAgentSourcesPanel smoke', () => {
     try {
       expect(el.textContent).toContain('private-repo')
       expect(el.textContent).toContain('GitHub access denied or authentication is required')
-      expect(el.textContent).toContain('access-denied')
+      expect(el.textContent).toContain('access denied')
     } finally {
       unmount()
     }

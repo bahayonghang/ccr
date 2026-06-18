@@ -1,6 +1,7 @@
 import { createApp, defineComponent, h, nextTick } from 'vue'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { createI18nStub } from './helpers/i18n-stub'
 
 const systemMocks = vi.hoisted(() => ({
   detectSkillportApp: vi.fn(),
@@ -48,6 +49,7 @@ const mountView = async (component: unknown) => {
   }))
 
   app.use(router)
+  app.use(createI18nStub('zh-CN'))
   await router.push('/skills')
   await router.isReady()
   app.mount(el)

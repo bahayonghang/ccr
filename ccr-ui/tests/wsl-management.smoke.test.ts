@@ -1,5 +1,6 @@
 import { createApp, defineComponent, h, nextTick } from 'vue'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { createI18nStub } from './helpers/i18n-stub'
 
 const clearWslCacheMock = vi.fn()
 const detectWslCliMock = vi.fn()
@@ -85,6 +86,7 @@ const mountView = async () => {
     },
   }))
 
+  app.use(createI18nStub('zh-CN'))
   app.mount(el)
   await flush()
 

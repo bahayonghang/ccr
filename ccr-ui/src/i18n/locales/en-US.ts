@@ -597,7 +597,7 @@ export default {
       openInNewTab: 'Open in new tab',
       guideTitle: 'Steps:',
       credentialsLabel: 'Paste Cookies JSON or a document.cookie string',
-      credentialsPlaceholder: '{"session":"xxx","token":"yyy"} or session=xxx; token=yyy',
+      credentialsPlaceholder: "{'{'}\"session\":\"xxx\",\"token\":\"yyy\"{'}'} or session=xxx; token=yyy",
       apiUserLabel: 'API User (optional, usually a numeric ID)',
       apiUserPlaceholder: 'Get it from localStorage, or leave empty to fetch automatically',
       accountNameLabel: 'Account note name',

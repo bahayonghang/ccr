@@ -586,7 +586,7 @@ export default {
       openInNewTab: '在新标签页打开',
       guideTitle: '操作步骤：',
       credentialsLabel: '粘贴 Cookies JSON 或 document.cookie 字符串',
-      credentialsPlaceholder: '{"session":"xxx","token":"yyy"} 或 session=xxx; token=yyy',
+      credentialsPlaceholder: "{'{'}\"session\":\"xxx\",\"token\":\"yyy\"{'}'} 或 session=xxx; token=yyy",
       apiUserLabel: 'API User（可选，通常为数字 ID）',
       apiUserPlaceholder: '从 localStorage 中获取，留空则自动获取',
       accountNameLabel: '账号备注名称',

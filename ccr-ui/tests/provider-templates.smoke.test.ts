@@ -3,6 +3,7 @@ import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest'
 import { BUILT_IN_PROVIDER_TEMPLATES } from '@/configs/providerTemplates'
 import ProviderTemplateSelector from '@/components/provider-templates/ProviderTemplateSelector.vue'
 import type { ProviderTemplateDraftContext, ProviderTemplateSelection } from '@/types/providerTemplates'
+import { createI18nStub } from './helpers/i18n-stub'
 import {
   buildProviderTemplateOptions,
   createCustomProviderTemplateFromDraft,
@@ -273,6 +274,7 @@ describe('ProviderTemplateSelector smoke', () => {
       },
     }))
 
+    app.use(createI18nStub('en-US'))
     app.mount(el)
     await flush()
 

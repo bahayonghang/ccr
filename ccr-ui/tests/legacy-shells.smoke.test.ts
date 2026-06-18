@@ -352,7 +352,7 @@ describe('legacy shell pages smoke', () => {
 
     try {
       expect(el.textContent).toContain('Provider')
-      expect(el.textContent).toContain('暂无 Provider')
+      expect(el.textContent).toContain('No providers yet')
     } finally {
       unmount()
     }
@@ -409,7 +409,7 @@ describe('legacy shell pages smoke', () => {
         },
       }))
 
-      findButtonByText(el, '保存')?.click()
+      findButtonByText(el, 'Save')?.click()
       await flushView()
 
       expect(apiMocks.addOpenCodeProvider).toHaveBeenCalledWith('openai', {
@@ -470,10 +470,10 @@ describe('legacy shell pages smoke', () => {
     const { el, unmount } = await mountView(OpenCodeProvidersView)
 
     try {
-      findButtonByText(el, '编辑')?.click()
+      findButtonByText(el, 'Edit')?.click()
       await flushView()
 
-      findButtonByText(el, '保存')?.click()
+      findButtonByText(el, 'Save')?.click()
       await flushView()
 
       expect(apiMocks.addOpenCodeProvider).toHaveBeenCalledWith('openai', {
@@ -503,7 +503,7 @@ describe('legacy shell pages smoke', () => {
 
     try {
       expect(el.textContent).toContain('MCP')
-      expect(el.textContent).toContain('暂无 MCP 服务器')
+      expect(el.textContent).toContain('No MCP servers yet')
     } finally {
       unmount()
     }
@@ -515,7 +515,7 @@ describe('legacy shell pages smoke', () => {
 
     try {
       expect(el.textContent).toContain('Built-in layout')
-      expect(el.textContent).toContain('暂无自定义 Agent')
+      expect(el.textContent).toContain('No custom agents yet')
     } finally {
       unmount()
     }
@@ -527,7 +527,7 @@ describe('legacy shell pages smoke', () => {
 
     try {
       expect(el.textContent).toContain('Built-in behavior')
-      expect(el.textContent).toContain('暂无自定义 Command')
+      expect(el.textContent).toContain('No custom commands yet')
     } finally {
       unmount()
     }
@@ -539,7 +539,7 @@ describe('legacy shell pages smoke', () => {
 
     try {
       expect(el.textContent).toContain('Plugins')
-      expect(el.textContent).toContain('暂无 npm 插件配置')
+      expect(el.textContent).toContain('No npm plugin packages configured.')
     } finally {
       unmount()
     }
