@@ -36,6 +36,8 @@ pub use ccr_config::managers::platform_config::{
     PlatformConfigEntry, PlatformConfigManager, UnifiedConfig,
 };
 #[allow(unused_imports)]
+pub use ccr_config::managers::{TuiConfig, TuiConfigManager, TuiTabId};
+#[allow(unused_imports)]
 pub use ccr_store::history::{
     EnvChange, HistoryEntry, HistoryManager, HistoryStats, OperationDetails, OperationResult,
     OperationType,

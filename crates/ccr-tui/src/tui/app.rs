@@ -5,6 +5,7 @@ use crate::models::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};
 use crate::platforms::create_platform;
 use crate::tui::action::Action;
 use crate::tui::toast::{Toast, ToastManager};
+use ccr_cli::managers::{TuiConfigManager, TuiTabId};
 use ccr_core::core::error::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use indexmap::IndexMap;
@@ -89,6 +90,46 @@ fn current_profile_source_path(platform: Platform) -> String {
 
 fn format_issue(location: String, error: &dyn std::fmt::Display) -> String {
     format!("Where: {location}\nWhat: {error}")
+}
+
+fn tab_config_id(tab: &PlatformTab) -> Option<TuiTabId> {
+    match (tab.platform, tab.variant) {
+        (Platform::Codex, TabVariant::Profile) => Some(TuiTabId::CodexProfile),
+        (Platform::Claude, TabVariant::Profile) => Some(TuiTabId::ClaudeProfile),
+        (_, TabVariant::CodexAuth) => Some(TuiTabId::CodexAuth),
+        (_, TabVariant::ClaudeAuth) => Some(TuiTabId::ClaudeAuth),
+        (_, TabVariant::OpenCodeAuth) => Some(TuiTabId::OpencodeAuth),
+        (_, TabVariant::Profile) => None,
+    }
+}
+
+fn load_tab_order() -> Vec<TuiTabId> {
+    match TuiConfigManager::with_default() {
+        Ok(manager) => manager.load_or_default().tab_order,
+        Err(error) => {
+            tracing::warn!(
+                "Failed to resolve TUI config path: {}. Falling back to default tab order.",
+                error
+            );
+            TuiTabId::default_order()
+        }
+    }
+}
+
+fn reorder_tabs(mut tabs: Vec<PlatformTab>, tab_order: &[TuiTabId]) -> Vec<PlatformTab> {
+    let mut reordered = Vec::with_capacity(tabs.len());
+
+    for tab_id in tab_order {
+        if let Some(index) = tabs
+            .iter()
+            .position(|tab| tab_config_id(tab) == Some(*tab_id))
+        {
+            reordered.push(tabs.remove(index));
+        }
+    }
+
+    reordered.extend(tabs);
+    reordered
 }
 
 /// Main TUI application state
@@ -422,6 +463,7 @@ impl App {
                 instance: None,
             });
         }
+        tabs = reorder_tabs(tabs, &load_tab_order());
 
         let mut app = Self {
             tabs,
@@ -1294,6 +1336,20 @@ mod tests {
         }
     }
 
+    fn configured_tabs_in_original_order() -> Vec<PlatformTab> {
+        vec![
+            empty_tab(Platform::Claude, TabVariant::ClaudeAuth, "Claude Auth"),
+            empty_tab(Platform::Claude, TabVariant::Profile, "Claude Code"),
+            empty_tab(Platform::Codex, TabVariant::CodexAuth, "Codex Auth"),
+            empty_tab(Platform::Codex, TabVariant::OpenCodeAuth, "OpenCode Auth"),
+            empty_tab(Platform::Codex, TabVariant::Profile, "Codex Profile"),
+        ]
+    }
+
+    fn tab_order_ids(tabs: &[PlatformTab]) -> Vec<TuiTabId> {
+        tabs.iter().filter_map(tab_config_id).collect()
+    }
+
     fn tab_switching_app(active_tab: usize) -> App {
         App {
             tabs: vec![
@@ -1354,6 +1410,87 @@ mod tests {
             .unwrap();
 
         assert_eq!(app.active_tab, 2);
+    }
+
+    #[test]
+    fn reorder_tabs_uses_default_profile_first_order() {
+        let tabs = reorder_tabs(
+            configured_tabs_in_original_order(),
+            &TuiTabId::default_order(),
+        );
+
+        assert_eq!(
+            tab_order_ids(&tabs),
+            vec![
+                TuiTabId::CodexProfile,
+                TuiTabId::ClaudeProfile,
+                TuiTabId::CodexAuth,
+                TuiTabId::ClaudeAuth,
+                TuiTabId::OpencodeAuth,
+            ]
+        );
+    }
+
+    #[test]
+    fn reorder_tabs_honors_custom_full_order() {
+        let tabs = reorder_tabs(
+            configured_tabs_in_original_order(),
+            &[
+                TuiTabId::ClaudeAuth,
+                TuiTabId::CodexAuth,
+                TuiTabId::OpencodeAuth,
+                TuiTabId::ClaudeProfile,
+                TuiTabId::CodexProfile,
+            ],
+        );
+
+        assert_eq!(
+            tab_order_ids(&tabs),
+            vec![
+                TuiTabId::ClaudeAuth,
+                TuiTabId::CodexAuth,
+                TuiTabId::OpencodeAuth,
+                TuiTabId::ClaudeProfile,
+                TuiTabId::CodexProfile,
+            ]
+        );
+    }
+
+    #[test]
+    fn default_order_selects_codex_profile_first() {
+        let app = App {
+            tabs: reorder_tabs(
+                configured_tabs_in_original_order(),
+                &TuiTabId::default_order(),
+            ),
+            active_tab: 0,
+            selected_index: 0,
+            current_page: 0,
+            page_size: DEFAULT_PAGE_SIZE,
+            selected_profile_name: None,
+            toasts: ToastManager::new(),
+            last_applied: None,
+            claude_auth_app: None,
+            claude_auth_error: None,
+            last_claude_action: None,
+            codex_auth_app: None,
+            codex_auth_error: None,
+            last_codex_action: None,
+            opencode_auth_app: None,
+            opencode_auth_error: None,
+            last_opencode_action: None,
+            header_area: Cell::new(None),
+            list_area: Cell::new(None),
+            detail_area: Cell::new(None),
+            profile_detail_scroll: 0,
+            task_executor: AsyncTaskExecutor::from_current_or_test(),
+        };
+
+        assert_eq!(
+            tab_config_id(app.current_tab()),
+            Some(TuiTabId::CodexProfile)
+        );
+        assert_eq!(app.current_tab().label, "Codex Profile");
     }
 
     #[test]
@@ -1547,6 +1684,41 @@ mod tests {
 
         assert_eq!(app.active_tab, 1);
         assert!(app.is_claude_auth_tab());
+    }
+
+    #[test]
+    fn with_codex_tab_selects_codex_auth_variant_after_reordering() {
+        let app = App {
+            tabs: reorder_tabs(
+                configured_tabs_in_original_order(),
+                &TuiTabId::default_order(),
+            ),
+            active_tab: 0,
+            selected_index: 0,
+            current_page: 0,
+            page_size: DEFAULT_PAGE_SIZE,
+            selected_profile_name: None,
+            toasts: ToastManager::new(),
+            last_applied: None,
+            claude_auth_app: None,
+            claude_auth_error: None,
+            last_claude_action: None,
+            codex_auth_app: None,
+            codex_auth_error: None,
+            last_codex_action: None,
+            opencode_auth_app: None,
+            opencode_auth_error: None,
+            last_opencode_action: None,
+            header_area: Cell::new(None),
+            list_area: Cell::new(None),
+            detail_area: Cell::new(None),
+            profile_detail_scroll: 0,
+            task_executor: AsyncTaskExecutor::from_current_or_test(),
+        }
+        .with_codex_tab();
+
+        assert_eq!(app.active_tab, 2);
+        assert!(app.is_codex_auth_tab());
     }
 
     #[test]
