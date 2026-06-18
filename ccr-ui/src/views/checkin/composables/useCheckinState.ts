@@ -51,6 +51,7 @@ export function useCheckinState() {
   const checkinLoading = ref(false)
   const balanceRefreshing = ref(false)
   const error = ref<string | null>(null)
+  const recordsLoadError = ref<string | null>(null)
   const checkinResultRef = ref<HTMLElement | null>(null)
   const activeTab = ref<'providers' | 'accounts' | 'records' | 'import-export'>('accounts')
   const showCheckinConfirm = ref(false)
@@ -83,6 +84,7 @@ export function useCheckinState() {
     {
       loading,
       error,
+      recordsLoadError,
       providers,
       accounts,
       records,
@@ -508,6 +510,7 @@ export function useCheckinState() {
     providers,
     accounts,
     records,
+    recordsLoadError,
     todayStats,
     checkinResult,
     builtinProviders,

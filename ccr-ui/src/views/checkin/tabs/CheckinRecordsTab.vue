@@ -1,13 +1,23 @@
 <template>
   <div class="checkin-records">
     <h2 class="checkin-records__title">
-      签到记录
+      {{ t('checkin.records.title') }}
     </h2>
     <div
-      v-if="records.length === 0"
+      v-if="recordsLoadError"
+      class="checkin-records__error"
+    >
+      <SIcon
+        name="AlertCircle"
+        size="w-4 h-4"
+      />
+      <span>{{ recordsLoadError }}</span>
+    </div>
+    <div
+      v-else-if="records.length === 0"
       class="checkin-records__empty"
     >
-      暂无签到记录
+      {{ t('checkin.records.empty') }}
     </div>
     <div
       v-else
@@ -20,10 +30,10 @@
               name="XCircle"
               size="w-4 h-4"
             />
-            失败历史记录 ({{ failedHistoryTotal }})
+            {{ t('checkin.records.failedHistoryTitle', { count: failedHistoryTotal }) }}
           </div>
           <span class="checkin-records__history-summary-hint">
-            点击展开详情
+            {{ t('checkin.records.failedHistoryHint') }}
           </span>
         </summary>
         <div class="checkin-records__history-body">
@@ -33,7 +43,7 @@
               class="checkin-records__history-input"
             >
               <option value="all">
-                全部提供商
+                {{ t('checkin.records.allProviders') }}
               </option>
               <option
                 v-for="provider in providers"
@@ -46,7 +56,7 @@
             <input
               v-model="failedHistoryKeyword"
               type="text"
-              placeholder="账号 / ID / 消息"
+              :placeholder="t('checkin.records.keywordPlaceholder')"
               class="checkin-records__history-input"
             >
             <button
@@ -54,34 +64,34 @@
               :disabled="failedHistoryLoading"
               @click="applyFailedHistoryFilters"
             >
-              筛选
+              {{ t('checkin.records.filter') }}
             </button>
             <button
               class="checkin-records__history-button"
               :disabled="failedHistoryLoading"
               @click="resetFailedHistoryFilters"
             >
-              重置
+              {{ t('checkin.records.reset') }}
             </button>
             <button
               class="checkin-records__history-button"
               :disabled="failedHistoryLoading"
               @click="exportFailedHistory"
             >
-              导出
+              {{ t('checkin.records.export') }}
             </button>
           </div>
           <div
             v-if="failedHistoryLoading"
             class="checkin-records__history-state"
           >
-            加载中...
+            {{ t('checkin.records.loading') }}
           </div>
           <div
             v-else-if="failedHistoryTotal === 0"
             class="checkin-records__history-state"
           >
-            暂无失败记录
+            {{ t('checkin.records.emptyFailed') }}
           </div>
           <div
             v-else
@@ -101,10 +111,11 @@
                 </div>
               </div>
               <div class="checkin-records__history-item-meta">
-                提供商: {{ getRecordProviderName(record) }} · 账号ID: {{ record.account_id }}
+                {{ t('checkin.records.providerLabel', { name: getRecordProviderName(record) }) }}
+                {{ t('checkin.records.accountIdLabel', { id: record.account_id }) }}
               </div>
               <div class="checkin-records__history-item-reason">
-                原因: {{ getRecordReason(record) }}
+                {{ t('checkin.records.reasonLabel', { reason: getRecordReason(record) }) }}
               </div>
               <button
                 v-if="record.error_code === 'cookie_expired'"
@@ -112,12 +123,12 @@
                 class="checkin-records__history-button checkin-records__fix-button"
                 @click="emit('update-cookie', record.account_id)"
               >
-                更新 Cookie
+                {{ t('checkin.records.cookieExpiredFix') }}
               </button>
             </div>
             <div class="checkin-records__history-pagination">
               <span>
-                第 {{ failedHistoryPage }} / {{ failedHistoryTotalPages }} 页
+                {{ t('checkin.records.pageLabel', { page: failedHistoryPage, total: failedHistoryTotalPages }) }}
               </span>
               <div class="checkin-records__history-pagination-actions">
                 <button
@@ -125,14 +136,14 @@
                   :disabled="failedHistoryPage === 1"
                   @click="goToFailedHistoryPage(failedHistoryPage - 1)"
                 >
-                  上一页
+                  {{ t('checkin.records.previousPage') }}
                 </button>
                 <button
                   class="checkin-records__history-button"
                   :disabled="failedHistoryPage === failedHistoryTotalPages"
                   @click="goToFailedHistoryPage(failedHistoryPage + 1)"
                 >
-                  下一页
+                  {{ t('checkin.records.nextPage') }}
                 </button>
               </div>
             </div>
@@ -145,25 +156,25 @@
           <thead class="checkin-records__table-head">
             <tr>
               <th class="checkin-records__table-heading">
-                时间
+                {{ t('checkin.records.time') }}
               </th>
               <th class="checkin-records__table-heading">
-                账号
+                {{ t('checkin.records.account') }}
               </th>
               <th class="checkin-records__table-heading">
-                状态
+                {{ t('checkin.records.status') }}
               </th>
               <th class="checkin-records__table-heading">
-                奖励
+                {{ t('checkin.records.reward') }}
               </th>
               <th class="checkin-records__table-heading">
-                余额
+                {{ t('checkin.records.balance') }}
               </th>
               <th class="checkin-records__table-heading">
-                原因
+                {{ t('checkin.records.reason') }}
               </th>
               <th class="checkin-records__table-heading checkin-records__table-heading--right">
-                详情
+                {{ t('checkin.records.details') }}
               </th>
             </tr>
           </thead>
@@ -204,7 +215,7 @@
                       class="checkin-records__detail-toggle checkin-records__fix-button"
                       @click="emit('update-cookie', record.account_id)"
                     >
-                      更新 Cookie
+                      {{ t('checkin.records.cookieExpiredFix') }}
                     </button>
                     <button
                       class="checkin-records__detail-toggle"
@@ -221,7 +232,7 @@
                         name="ChevronDown"
                         size="w-4 h-4"
                       />
-                      详情
+                      {{ t('checkin.records.details') }}
                     </button>
                   </div>
                 </td>
@@ -237,7 +248,7 @@
                   <div class="checkin-records__detail-grid">
                     <div class="checkin-records__detail-item">
                       <div class="checkin-records__detail-label">
-                        提供商
+                        {{ t('checkin.records.provider') }}
                       </div>
                       <div class="checkin-records__detail-value">
                         {{ getRecordProviderName(record) }}
@@ -245,7 +256,7 @@
                     </div>
                     <div class="checkin-records__detail-item">
                       <div class="checkin-records__detail-label">
-                        账号ID
+                        {{ t('checkin.records.accountId') }}
                       </div>
                       <div class="checkin-records__detail-value checkin-records__detail-value--break">
                         {{ record.account_id }}
@@ -253,7 +264,7 @@
                     </div>
                     <div class="checkin-records__detail-item">
                       <div class="checkin-records__detail-label">
-                        原因
+                        {{ t('checkin.records.reason') }}
                       </div>
                       <div class="checkin-records__detail-value checkin-records__detail-value--break">
                         {{ getRecordReason(record) }}
@@ -261,7 +272,7 @@
                     </div>
                     <div class="checkin-records__detail-item">
                       <div class="checkin-records__detail-label">
-                        原始消息
+                        {{ t('checkin.records.rawMessage') }}
                       </div>
                       <div class="checkin-records__detail-value checkin-records__detail-value--break">
                         {{ getRecordRawMessage(record) }}
@@ -269,7 +280,7 @@
                     </div>
                     <div class="checkin-records__detail-item">
                       <div class="checkin-records__detail-label">
-                        奖励 / 余额变化
+                        {{ t('checkin.records.rewardAndBalance') }}
                       </div>
                       <div class="checkin-records__detail-value">
                         {{ record.reward || '-' }} ·
@@ -278,11 +289,11 @@
                     </div>
                     <div class="checkin-records__detail-item">
                       <div class="checkin-records__detail-label">
-                        余额前 / 后
+                        {{ t('checkin.records.balanceBeforeAfter') }}
                       </div>
                       <div class="checkin-records__detail-value">
                         {{ record.balance_before !== undefined && record.balance_before !== null ? `$${record.balance_before.toFixed(2)}` : '-' }}
-                        →
+                        {{ t('checkin.records.balanceSeparator') }}
                         {{ record.balance_after !== undefined && record.balance_after !== null ? `$${record.balance_after.toFixed(2)}` : '-' }}
                       </div>
                     </div>
@@ -300,6 +311,7 @@
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, onMounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useUIStore } from '@/stores/ui'
 import {
   listCheckinRecords,
@@ -323,6 +335,7 @@ interface CheckinRecordsExportResponse {
 
 const props = defineProps<{
   records: CheckinRecordInfo[]
+  recordsLoadError: string | null
   providers: CheckinProvider[]
   accounts: AccountInfo[]
   todayStats: TodayCheckinStats | null
@@ -333,6 +346,7 @@ const emit = defineEmits<{
   (e: 'update-cookie', accountId: string): void
 }>()
 
+const { t, locale } = useI18n()
 const uiStore = useUIStore()
 
 // 记录展开状态
@@ -362,7 +376,7 @@ const getAccountName = (accountId: string) => {
 }
 
 const formatDate = (dateStr: string) => {
-  return new Date(dateStr).toLocaleString('zh-CN')
+  return new Date(dateStr).toLocaleString(locale.value)
 }
 
 const getStatusClass = (status: string) => {
@@ -383,13 +397,13 @@ const getStatusClass = (status: string) => {
 const getStatusText = (status: string) => {
   switch (status) {
     case 'success':
-      return '成功'
+      return t('checkin.status.success')
     case 'already_checked_in':
-      return '已签到'
+      return t('checkin.status.already_checked_in')
     case 'failed':
-      return '失败'
+      return t('checkin.status.failed')
     case 'skipped':
-      return '跳过'
+      return t('checkin.status.skipped')
     default:
       return status
   }
@@ -403,22 +417,24 @@ const getRecordProviderName = (record: CheckinRecordInfo) => {
 
 // skipped 记录的 skip_reason 经由 error_code 列持久化（4 态契约）
 const skipReasonText: Record<string, string> = {
-  account_disabled: '账号已禁用',
-  provider_disabled: '提供商已禁用',
-  provider_unsupported: '该提供商不支持签到（仅余额查询）',
+  account_disabled: t('checkin.skipReasons.account_disabled'),
+  provider_disabled: t('checkin.skipReasons.provider_disabled'),
+  provider_unsupported: t('checkin.skipReasons.provider_unsupported'),
 }
 
 const getRecordReason = (record: CheckinRecordInfo) => {
   if (record.message) return record.message
   switch (record.status) {
     case 'success':
-      return record.reward ? `签到成功 · 奖励 ${record.reward}` : '签到成功'
+      return record.reward
+        ? `${t('checkin.detail.checkinSuccess')} · ${t('checkin.detail.reward', { reward: record.reward })}`
+        : t('checkin.detail.checkinSuccess')
     case 'already_checked_in':
-      return '今日已签到'
+      return t('checkin.detail.todayAlreadyCheckedIn')
     case 'failed':
-      return '未知原因'
+      return t('checkin.errors.unknownReason')
     case 'skipped':
-      return (record.error_code && skipReasonText[record.error_code]) || '已跳过'
+      return (record.error_code && skipReasonText[record.error_code]) || t('checkin.detail.skipped')
     default:
       return '-'
   }
@@ -499,7 +515,9 @@ const exportFailedHistory = async () => {
     link.remove()
     URL.revokeObjectURL(url)
   } catch (e: unknown) {
-    uiStore.showError('导出失败: ' + getErrorMessage(e, '未知错误'))
+    uiStore.showError(t('checkin.records.exportFailed', {
+      error: getErrorMessage(e, t('checkin.errors.unknown')),
+    }))
   }
 }
 
@@ -541,6 +559,17 @@ onMounted(() => {
   padding: 3rem 0;
   text-align: center;
   color: var(--text-muted);
+}
+
+.checkin-records__error {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1rem;
+  border: 1px solid rgb(var(--color-warning-rgb) / 30%);
+  border-radius: 0.5rem;
+  background: rgb(var(--color-warning-rgb) / 10%);
+  color: var(--color-warning);
 }
 
 .checkin-records__content {

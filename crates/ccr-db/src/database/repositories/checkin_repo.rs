@@ -506,7 +506,7 @@ pub fn get_records_paginated_advanced(
 
     let offset = (page.saturating_sub(1)) * page_size;
     let select_sql = format!(
-        "SELECT r.id, r.account_id, r.status, r.message, r.reward, r.balance_before, r.balance_after, r.checked_in_at
+        "SELECT r.id, r.account_id, r.status, r.message, r.error_code, r.reward, r.balance_before, r.balance_after, r.checked_in_at
          {} {}
          ORDER BY r.checked_in_at DESC
          LIMIT ?{} OFFSET ?{}",
@@ -578,7 +578,7 @@ pub fn get_records_filtered_advanced(
         format!("WHERE {}", conditions.join(" AND "))
     };
     let sql = format!(
-        "SELECT r.id, r.account_id, r.status, r.message, r.reward, r.balance_before, r.balance_after, r.checked_in_at
+        "SELECT r.id, r.account_id, r.status, r.message, r.error_code, r.reward, r.balance_before, r.balance_after, r.checked_in_at
          {} {}
          ORDER BY r.checked_in_at DESC",
         from_clause, where_clause
@@ -1173,6 +1173,93 @@ mod tests {
             get_today_status_counts(&conn, &["account-1".to_string()]).unwrap();
         assert_eq!(checked_in, 0);
         assert_eq!(failed, 0);
+    }
+
+    #[test]
+    fn test_get_records_paginated_advanced_preserves_column_order() {
+        let conn = setup_test_db();
+
+        let provider =
+            CheckinProvider::new("Provider".to_string(), "https://api.test.com".to_string());
+        insert_provider(&conn, &provider).unwrap();
+
+        let account = CheckinAccount::new(
+            provider.id.clone(),
+            "Test Account".to_string(),
+            "encrypted-cookies".to_string(),
+            "12345".to_string(),
+        );
+        insert_account(&conn, &account).unwrap();
+
+        let record = CheckinRecord::failed(
+            account.id.clone(),
+            "Cookie 已过期".to_string(),
+            Some("cookie_expired".to_string()),
+        )
+        .with_balance(Some(100.0), Some(80.0));
+        insert_record(&conn, &record).unwrap();
+
+        let (records, total) = get_records_paginated_advanced(
+            &conn,
+            Some("failed"),
+            Some(&account.id),
+            Some(&provider.id),
+            Some("Cookie"),
+            1,
+            10,
+        )
+        .unwrap();
+
+        assert_eq!(total, 1);
+        assert_eq!(records.len(), 1);
+        assert_eq!(records[0].status, CheckinStatus::Failed);
+        assert_eq!(records[0].message.as_deref(), Some("Cookie 已过期"));
+        assert_eq!(records[0].error_code.as_deref(), Some("cookie_expired"));
+        assert_eq!(records[0].reward.as_deref(), None);
+        assert_eq!(records[0].balance_before, Some(100.0));
+        assert_eq!(records[0].balance_after, Some(80.0));
+    }
+
+    #[test]
+    fn test_get_records_filtered_advanced_preserves_column_order() {
+        let conn = setup_test_db();
+
+        let provider =
+            CheckinProvider::new("Provider".to_string(), "https://api.test.com".to_string());
+        insert_provider(&conn, &provider).unwrap();
+
+        let account = CheckinAccount::new(
+            provider.id.clone(),
+            "Test Account".to_string(),
+            "encrypted-cookies".to_string(),
+            "12345".to_string(),
+        );
+        insert_account(&conn, &account).unwrap();
+
+        let record = CheckinRecord::success(
+            account.id.clone(),
+            Some("签到成功".to_string()),
+            Some("+10".to_string()),
+        )
+        .with_balance(Some(100.0), Some(110.0));
+        insert_record(&conn, &record).unwrap();
+
+        let records = get_records_filtered_advanced(
+            &conn,
+            Some("success"),
+            Some(&account.id),
+            Some(&provider.id),
+            Some("签到"),
+        )
+        .unwrap();
+
+        assert_eq!(records.len(), 1);
+        assert_eq!(records[0].status, CheckinStatus::Success);
+        assert_eq!(records[0].message.as_deref(), Some("签到成功"));
+        assert_eq!(records[0].error_code.as_deref(), None);
+        assert_eq!(records[0].reward.as_deref(), Some("+10"));
+        assert_eq!(records[0].balance_before, Some(100.0));
+        assert_eq!(records[0].balance_after, Some(110.0));
     }
 
     #[test]

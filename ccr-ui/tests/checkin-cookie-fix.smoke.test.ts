@@ -169,6 +169,26 @@ describe('checkin cookie_expired quick fix smoke', () => {
     }
   })
 
+  it('shows a records load error instead of an empty state when records fail to load', async () => {
+    mockedListCheckinRecords.mockResolvedValue({ records: [], total: 0 })
+
+    const { el, unmount } = await mountComponent(CheckinRecordsTab, {
+      records: [],
+      recordsLoadError: '加载签到记录失败',
+      providers,
+      accounts,
+      todayStats: null,
+    })
+
+    try {
+      expect(el.querySelector('.checkin-records__error')).not.toBeNull()
+      expect(el.querySelector('.checkin-records__empty')).toBeNull()
+      expect(el.textContent).toContain('加载签到记录失败')
+    } finally {
+      unmount()
+    }
+  })
+
   it('opens the account editor with focused cookies field when pendingEditAccountId is set', async () => {
     mockedGetCheckinAccountCookies.mockResolvedValue({
       cookies_json: '{"session":"expired-session"}',

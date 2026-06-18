@@ -40,6 +40,7 @@ interface BalanceSnapshotLike {
 interface CheckinDataRefs {
   loading: Ref<boolean>
   error: Ref<string | null>
+  recordsLoadError: Ref<string | null>
   providers: Ref<CheckinProvider[]>
   accounts: Ref<AccountInfo[]>
   records: Ref<CheckinRecordInfo[]>
@@ -54,6 +55,7 @@ export const createCheckinDataState = (
   const loadAllData = async () => {
     refs.loading.value = true
     refs.error.value = null
+    refs.recordsLoadError.value = null
 
     try {
       const results = await Promise.allSettled([
@@ -72,6 +74,12 @@ export const createCheckinDataState = (
       }
       if (results[2].status === 'fulfilled') {
         refs.records.value = results[2].value.records ?? []
+        refs.recordsLoadError.value = null
+      } else {
+        refs.recordsLoadError.value = getErrorMessage(
+          results[2].reason,
+          '加载签到记录失败'
+        )
       }
       if (results[3].status === 'fulfilled') {
         refs.todayStats.value = results[3].value
@@ -132,9 +140,15 @@ export const createCheckinDataState = (
     }
     if (reloadRecords) {
       tasks.push(
-        listCheckinRecords<CheckinRecordsResponse>({ page: 1, page_size: 100 }).then((response) => {
-          refs.records.value = response.records
-        })
+        listCheckinRecords<CheckinRecordsResponse>({ page: 1, page_size: 100 })
+          .then((response) => {
+            refs.records.value = response.records
+            refs.recordsLoadError.value = null
+          })
+          .catch((error: unknown) => {
+            refs.recordsLoadError.value = getErrorMessage(error, '加载签到记录失败')
+            logger.error('Failed to load checkin records', error)
+          })
       )
     }
     if (reloadStats) {

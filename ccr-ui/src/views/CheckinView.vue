@@ -592,6 +592,7 @@
       <CheckinRecordsTab
         v-if="activeTab === 'records'"
         :records="records"
+        :records-load-error="recordsLoadError"
         :providers="providers"
         :accounts="accounts"
         :today-stats="todayStats"
@@ -667,6 +668,7 @@ const {
   checkinLoading,
   balanceRefreshing,
   error,
+  recordsLoadError,
   checkinResultRef,
   activeTab,
   showCheckinConfirm,
