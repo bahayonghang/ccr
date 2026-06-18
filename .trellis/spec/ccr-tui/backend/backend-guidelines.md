@@ -36,6 +36,22 @@ Maintain stable tab/profile selection across refreshes where possible. Use expli
 
 Preserve pagination helpers and page-size behavior when changing list rendering.
 
+### TUI Tab Startup Contract
+
+The main `run_tui()` entry should construct `App::with_task_executor(...)` and leave `active_tab = 0`, so the configured tab order controls the first visible tab. Do not chain auth-tab preselection helpers from the main entry.
+
+Auth shortcut entries may still use explicit preselection helpers:
+
+```rust
+App::with_task_executor(task_executor)?.with_claude_auth_tab();
+```
+
+When changing tab ordering, add or keep regression tests that assert:
+
+- default ordering places `Codex Profile` first
+- `active_tab = 0` selects the first configured tab
+- auth shortcut helpers still select their matching auth variant after reordering
+
 ## Logging
 
 Use `tracing::warn!` for recoverable loading failures and diagnostics. Do not print directly from TUI code during active terminal rendering.
