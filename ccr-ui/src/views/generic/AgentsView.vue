@@ -50,7 +50,7 @@
           <div class="glass-effect rounded-2xl p-5 border border-border-default/25 shadow-sm relative overflow-hidden group">
             <div class="absolute top-0 right-0 w-24 h-24 bg-accent-primary/10 rounded-full blur-2xl -mr-8 -mt-8 transition-colors group-hover:bg-accent-primary/20" />
             <h4 class="text-sm font-bold text-text-primary mb-1">
-              Agent Status
+              {{ agentStatusLabel }}
             </h4>
             <div class="flex items-center gap-2 mt-3">
               <div class="flex-1 bg-bg-surface rounded-lg p-2 text-center">
@@ -58,7 +58,7 @@
                   {{ stats.active }}
                 </div>
                 <div class="text-[10px] text-text-muted uppercase">
-                  Active
+                  {{ statsActiveLabel }}
                 </div>
               </div>
               <div class="flex-1 bg-bg-surface rounded-lg p-2 text-center">
@@ -66,7 +66,7 @@
                   {{ stats.disabled }}
                 </div>
                 <div class="text-[10px] text-text-muted uppercase">
-                  Disabled
+                  {{ statsDisabledLabel }}
                 </div>
               </div>
             </div>
@@ -84,10 +84,10 @@
           >
             <template #meta>
               <span class="inline-flex items-center gap-2 rounded-full border border-accent-primary/20 bg-accent-primary/10 px-3 py-1 text-sm font-medium text-accent-primary">
-                {{ stats.active }} Active
+                {{ stats.active }} {{ statsActiveLabel }}
               </span>
               <span class="inline-flex items-center gap-2 rounded-full border border-border-default/50 bg-bg-surface/70 px-3 py-1 text-sm font-medium text-text-secondary">
-                {{ stats.disabled }} Disabled
+                {{ stats.disabled }} {{ statsDisabledLabel }}
               </span>
             </template>
 
@@ -275,7 +275,7 @@
                         v-else
                         class="text-xs text-text-muted italic pl-3"
                       >
-                        No system prompt configured
+                        {{ noSystemPromptLabel }}
                       </div>
                     </div>
                    
@@ -381,14 +381,12 @@
                   v-model="formData.model"
                   class="w-full px-4 py-3 rounded-xl bg-bg-surface/700 border border-border-default focus:border-accent-primary focus:ring-4 focus:ring-accent-primary/10 outline-none transition-colors appearance-none"
                 >
-                  <option value="claude-sonnet-4-5-20250929">
-                    Claude Sonnet 4.5
-                  </option>
-                  <option value="claude-opus-4-20250514">
-                    Claude Opus 4
-                  </option>
-                  <option value="claude-3-5-sonnet-20241022">
-                    Claude 3.5 Sonnet
+                  <option
+                    v-for="option in defaultAgentModelOptions"
+                    :key="option.value"
+                    :value="option.value"
+                  >
+                    {{ option.label }}
                   </option>
                 </select>
                 <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-text-muted">
@@ -422,7 +420,7 @@
               <span
                 v-if="!formData.tools || formData.tools.length === 0"
                 class="text-sm text-text-muted italic w-full text-center py-2"
-              >No tools added</span>
+              >{{ noToolsLabel }}</span>
               <span
                 v-for="tool in (formData.tools || [])"
                 :key="tool"
@@ -488,9 +486,21 @@ const props = defineProps<{
   module: 'gemini' | 'agents'
 }>()
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const router = useRouter()
 const uiStore = useUIStore()
+const isZh = computed(() => locale.value.startsWith('zh'))
+const tt = (zh: string, en: string) => (isZh.value ? zh : en)
+const agentStatusLabel = computed(() => tt('智能体状态', 'Agent Status'))
+const statsActiveLabel = computed(() => tt('启用', 'Active'))
+const statsDisabledLabel = computed(() => tt('禁用', 'Disabled'))
+const noSystemPromptLabel = computed(() => tt('未配置 system prompt', 'No system prompt configured'))
+const noToolsLabel = computed(() => tt('尚未添加工具', 'No tools added'))
+const defaultAgentModelOptions = [
+  { value: 'claude-sonnet-4-5-20250929', label: 'Claude Sonnet 4.5' },
+  { value: 'claude-opus-4-20250514', label: 'Claude Opus 4' },
+  { value: 'claude-3-5-sonnet-20241022', label: 'Claude 3.5 Sonnet' },
+]
 const tPrefix = computed(() => props.module === 'agents' ? 'agents' : `${props.module}.agents`)
 const {
   agents,
@@ -715,4 +725,3 @@ const navigateToDetail = (agent: Agent) => {
   background: rgb(0 0 0 / 20%);
 }
 </style>
-

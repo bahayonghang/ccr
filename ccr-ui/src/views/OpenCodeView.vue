@@ -20,16 +20,16 @@
               </div>
               <div>
                 <div class="opencode-eyebrow">
-                  OpenCode operator deck
+                  {{ tt('OpenCode 操作台', 'OpenCode operator deck') }}
                 </div>
                 <h1 class="opencode-title">
-                  Operational console
+                  {{ tt('操作总台', 'Operational console') }}
                 </h1>
               </div>
             </div>
 
             <p class="opencode-subtitle">
-              高密度收敛 provider、MCP、agents、commands、plugins 与 runtime 配置；首屏直接进入可操作状态。
+              {{ tt('高密度收敛 provider、MCP、agents、commands、plugins 与 runtime 配置；首屏直接进入可操作状态。', 'Bring providers, MCP, agents, commands, plugins, and runtime config into one dense surface that is actionable on first load.') }}
             </p>
 
             <div class="opencode-path-stack">
@@ -49,7 +49,7 @@
             aria-label="OpenCode live metrics"
           >
             <div class="opencode-panel-kicker">
-              Live metrics
+              {{ tt('实时指标', 'Live metrics') }}
             </div>
             <div class="opencode-live-grid">
               <div
@@ -83,7 +83,7 @@
             <div class="opencode-actions-panel__head">
               <div>
                 <div class="opencode-panel-kicker">
-                  Next actions
+                  {{ tt('下一步动作', 'Next actions') }}
                 </div>
                 <p>{{ overviewStatusLabel }}</p>
               </div>
@@ -98,7 +98,7 @@
                   size="w-4 h-4"
                   :class="{ 'animate-spin': loading }"
                 />
-                <span>{{ loading ? 'Loading' : 'Refresh' }}</span>
+                <span>{{ loading ? tt('加载中', 'Loading') : tt('刷新', 'Refresh') }}</span>
               </button>
             </div>
 
@@ -124,7 +124,7 @@
                 :key="warning.key"
                 class="opencode-warning-chip"
               >
-                {{ warning.label }} warning
+                {{ `${warning.label} ${tt('警告', 'warning')}` }}
               </span>
             </div>
           </aside>
@@ -198,9 +198,9 @@
         <div class="opencode-inspector__head">
           <div>
             <div class="opencode-panel-kicker">
-              Compact inspector
+              {{ tt('精简巡检', 'Compact inspector') }}
             </div>
-            <h2>Runtime intelligence</h2>
+            <h2>{{ tt('运行态情报', 'Runtime intelligence') }}</h2>
           </div>
           <div
             class="opencode-inspector-tabs"
@@ -279,17 +279,17 @@
           role="tabpanel"
         >
           <div class="opencode-discovery-card">
-            <span>Local plugins</span>
+            <span>{{ tt('本地插件', 'Local plugins') }}</span>
             <strong>{{ localPlugins.length }}</strong>
             <p>{{ localPluginPreview }}</p>
           </div>
           <div class="opencode-discovery-card">
-            <span>Agents</span>
+            <span>{{ tt('Agents', 'Agents') }}</span>
             <strong>{{ agents.length }}</strong>
             <p>{{ agentModePreview }}</p>
           </div>
           <div class="opencode-discovery-card">
-            <span>Commands</span>
+            <span>{{ tt('Commands', 'Commands') }}</span>
             <strong>{{ commands.length }}</strong>
             <p>{{ commandScopePreview }}</p>
           </div>
@@ -339,7 +339,9 @@ import {
   buildPlatformUsageSpec,
 } from '@/views/platform-usage/platformUsageSpecs'
 
-const { t } = useI18n({ useScope: 'global' })
+const { t, locale } = useI18n({ useScope: 'global' })
+const isZh = computed(() => locale.value.startsWith('zh'))
+const tt = (zh: string, en: string) => (isZh.value ? zh : en)
 
 const loading = ref(false)
 const loadedOnce = ref(false)

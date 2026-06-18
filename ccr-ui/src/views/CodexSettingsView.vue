@@ -19,7 +19,7 @@
                 {{ $t('codex.settings.title') }}
               </h1>
               <p class="codex-settings-subtitle">
-                Codex 全局配置：模型、安全、工具链、界面与功能开关。
+                {{ t('codex.settings.subtitle') }}
               </p>
             </div>
           </div>

@@ -85,7 +85,7 @@
           </div>
           <p class="tray-switch__row-subtitle">
             {{ account.name }}<template v-if="account.last_refresh">
-              · 最近刷新 {{ account.last_refresh }}
+              {{ t('codex.auth.tray.lastRefreshInline', { time: account.last_refresh }) }}
             </template>
           </p>
         </div>

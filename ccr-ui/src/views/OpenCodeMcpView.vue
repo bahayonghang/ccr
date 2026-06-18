@@ -1,7 +1,7 @@
 <template>
   <OpenCodePageShell
-    title="MCP servers"
-    description="管理 local / remote MCP 定义，并提供官方 CLI auth / debug / logout 动作。"
+    :title="tt('MCP 服务器', 'MCP servers')"
+    :description="tt('管理 local / remote MCP 定义，并提供官方 CLI auth / debug / logout 动作。', 'Manage local / remote MCP definitions and keep the official CLI auth / debug / logout actions close by.')"
     icon="Server"
     tone="cyan"
     badge="mcp"
@@ -20,7 +20,7 @@
             size="w-4 h-4"
           />
         </template>
-        添加服务器
+        {{ tt('添加服务器', 'Add server') }}
       </Button>
     </template>
 
@@ -40,10 +40,10 @@
           class="p-8 text-center"
         >
           <h2 class="text-lg font-semibold text-text-primary">
-            暂无 MCP 服务器
+            {{ tt('暂无 MCP 服务器', 'No MCP servers yet') }}
           </h2>
           <p class="mt-2 text-sm text-text-secondary">
-            可添加本地命令型 server，或远程 HTTP/SSE server。
+            {{ tt('可添加本地命令型 server，或远程 HTTP/SSE server。', 'Add a local command-based server or a remote HTTP/SSE server.') }}
           </p>
         </Card>
 
@@ -66,21 +66,21 @@
                   class="rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em]"
                   :class="server.enabled === false ? 'bg-amber-300/10 text-amber-200' : 'bg-emerald-300/10 text-emerald-200'"
                 >
-                  {{ server.enabled === false ? 'disabled' : 'enabled' }}
+                  {{ server.enabled === false ? tt('已禁用', 'Disabled') : tt('已启用', 'Enabled') }}
                 </span>
               </div>
 
               <div class="grid gap-3 md:grid-cols-3">
                 <div class="rounded-2xl border border-border-default/55 bg-bg-base/35 p-3 md:col-span-2">
-                  <span class="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-muted">entrypoint</span>
+                  <span class="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('入口', 'Entrypoint') }}</span>
                   <p class="mt-2 break-all font-mono text-sm text-text-primary">
-                    {{ server.type === 'local' ? stringifyCommandInput(server.command) || 'missing command' : server.url || 'missing url' }}
+                    {{ server.type === 'local' ? stringifyCommandInput(server.command) || tt('缺少 command', 'Missing command') : server.url || tt('缺少 URL', 'Missing URL') }}
                   </p>
                 </div>
                 <div class="rounded-2xl border border-border-default/55 bg-bg-base/35 p-3">
-                  <span class="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-muted">extras</span>
+                  <span class="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('附加项', 'Extras') }}</span>
                   <p class="mt-2 text-sm text-text-primary">
-                    env {{ Object.keys(server.environment || {}).length }} · headers {{ Object.keys(server.headers || {}).length }}
+                    {{ `${tt('环境变量', 'Env')} ${Object.keys(server.environment || {}).length} · ${tt('请求头', 'Headers')} ${Object.keys(server.headers || {}).length}` }}
                   </p>
                 </div>
               </div>
@@ -96,7 +96,7 @@
                   motion="subtle"
                   @click="copyCli(`opencode mcp auth ${server.id}`)"
                 >
-                  Auth
+                  {{ tt('授权', 'Auth') }}
                 </Button>
                 <Button
                   variant="secondary"
@@ -105,7 +105,7 @@
                   motion="subtle"
                   @click="copyCli(`opencode mcp debug ${server.id}`)"
                 >
-                  Debug
+                  {{ tt('调试', 'Debug') }}
                 </Button>
                 <Button
                   variant="secondary"
@@ -114,7 +114,7 @@
                   motion="subtle"
                   @click="copyCli(`opencode mcp logout ${server.id}`)"
                 >
-                  Logout
+                  {{ tt('登出', 'Logout') }}
                 </Button>
               </div>
             </div>
@@ -133,7 +133,7 @@
                     size="w-4 h-4"
                   />
                 </template>
-                编辑
+                {{ tt('编辑', 'Edit') }}
               </Button>
               <Button
                 variant="danger"
@@ -148,7 +148,7 @@
                     size="w-4 h-4"
                   />
                 </template>
-                删除
+                {{ tt('删除', 'Delete') }}
               </Button>
             </div>
           </div>
@@ -160,28 +160,28 @@
         class="p-5"
       >
         <h2 class="text-lg font-semibold text-text-primary">
-          CLI handoff
+          {{ tt('CLI handoff', 'CLI handoff') }}
         </h2>
         <p class="mt-2 text-sm text-text-secondary">
-          OpenCode 的 MCP OAuth 与调试动作本质上还是 CLI 能力，这里直接给你可执行命令。
+          {{ tt('OpenCode 的 MCP OAuth 与调试动作本质上还是 CLI 能力，这里直接给你可执行命令。', 'OpenCode still handles MCP OAuth and debugging through the CLI, so this panel gives you the exact commands.') }}
         </p>
         <div class="mt-4 space-y-3">
           <div class="rounded-2xl border border-border-default/55 bg-bg-base/35 p-3">
-            <strong class="font-mono text-sm text-text-primary">opencode mcp add</strong>
+            <strong class="font-mono text-sm text-text-primary">{{ opencodeMcpAddCommand }}</strong>
             <p class="mt-2 text-sm text-text-secondary">
-              交互式添加 local 或 remote server。
+              {{ tt('交互式添加 local 或 remote server。', 'Interactively add a local or remote server.') }}
             </p>
           </div>
           <div class="rounded-2xl border border-border-default/55 bg-bg-base/35 p-3">
-            <strong class="font-mono text-sm text-text-primary">opencode mcp auth &lt;name&gt;</strong>
+            <strong class="font-mono text-sm text-text-primary">{{ opencodeMcpAuthCommand }}</strong>
             <p class="mt-2 text-sm text-text-secondary">
-              OAuth-enabled remote server 登录。
+              {{ tt('OAuth-enabled remote server 登录。', 'Sign in to an OAuth-enabled remote server.') }}
             </p>
           </div>
           <div class="rounded-2xl border border-border-default/55 bg-bg-base/35 p-3">
-            <strong class="font-mono text-sm text-text-primary">opencode mcp debug &lt;name&gt;</strong>
+            <strong class="font-mono text-sm text-text-primary">{{ opencodeMcpDebugCommand }}</strong>
             <p class="mt-2 text-sm text-text-secondary">
-              排查 OAuth / transport 连接问题。
+              {{ tt('排查 OAuth / transport 连接问题。', 'Troubleshoot OAuth or transport connection issues.') }}
             </p>
           </div>
         </div>
@@ -190,15 +190,15 @@
 
     <BaseModal
       v-model="showModal"
-      :title="editingId ? '编辑 MCP 服务器' : '添加 MCP 服务器'"
-      description="OpenCode `mcp` 配置使用 `local / remote` 两种形态。"
+      :title="editingId ? tt('编辑 MCP 服务器', 'Edit MCP server') : tt('添加 MCP 服务器', 'Add MCP server')"
+      :description="tt('OpenCode `mcp` 配置使用 `local / remote` 两种形态。', 'OpenCode `mcp` settings use `local / remote` server shapes.')"
       size="lg"
       content-class="max-w-2xl"
     >
       <div class="space-y-4">
         <div class="grid gap-4 md:grid-cols-2">
           <div>
-            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">server id *</label>
+            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('服务器 ID *', 'Server ID *') }}</label>
             <input
               v-model="form.id"
               :disabled="Boolean(editingId)"
@@ -207,16 +207,16 @@
             >
           </div>
           <div>
-            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">type</label>
+            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('类型', 'Type') }}</label>
             <select
               v-model="form.type"
               class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 text-sm text-text-primary"
             >
               <option value="local">
-                local
+                {{ tt('本地', 'local') }}
               </option>
               <option value="remote">
-                remote
+                {{ tt('远程', 'remote') }}
               </option>
             </select>
           </div>
@@ -227,11 +227,11 @@
             v-model="form.enabled"
             type="checkbox"
           >
-          启用该 MCP server
+          {{ tt('启用该 MCP server', 'Enable this MCP server') }}
         </label>
 
         <div v-if="form.type === 'local'">
-          <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">command</label>
+          <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('命令', 'Command') }}</label>
           <input
             v-model="form.command"
             class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 font-mono text-sm text-text-primary"
@@ -240,7 +240,7 @@
         </div>
 
         <div v-else>
-          <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">url</label>
+          <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('URL', 'URL') }}</label>
           <input
             v-model="form.url"
             class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 font-mono text-sm text-text-primary"
@@ -250,7 +250,7 @@
 
         <div class="grid gap-4 md:grid-cols-2">
           <div>
-            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">environment JSON</label>
+            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('环境变量 JSON', 'Environment JSON') }}</label>
             <textarea
               v-model="form.environmentJson"
               rows="6"
@@ -258,7 +258,7 @@
             />
           </div>
           <div>
-            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">headers JSON</label>
+            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('请求头 JSON', 'Headers JSON') }}</label>
             <textarea
               v-model="form.headersJson"
               rows="6"
@@ -275,7 +275,7 @@
             motion="subtle"
             @click="showModal = false"
           >
-            取消
+            {{ tt('取消', 'Cancel') }}
           </Button>
           <Button
             variant="primary"
@@ -293,7 +293,7 @@
                 class="animate-spin"
               />
             </template>
-            保存
+            {{ tt('保存', 'Save') }}
           </Button>
         </div>
       </div>
@@ -302,7 +302,8 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { getErrorMessage } from '@/utils/errorHandler'
 import Card from '@/components/ui/Card.vue'
 import Button from '@/components/ui/Button.vue'
@@ -315,12 +316,18 @@ import type { OpenCodeMcpServer } from '@/types'
 import { formatJsonInput, parseJsonInput, splitCommandInput, stringifyCommandInput } from '@/utils/opencode'
 import { copyText } from '@/utils/clipboard'
 
+const { locale } = useI18n()
 const uiStore = useUIStore()
+const isZh = computed(() => locale.value.startsWith('zh'))
+const tt = (zh: string, en: string) => (isZh.value ? zh : en)
 const loading = ref(false)
 const saving = ref(false)
 const showModal = ref(false)
 const editingId = ref('')
 const servers = ref<OpenCodeMcpServer[]>([])
+const opencodeMcpAddCommand = 'opencode mcp add'
+const opencodeMcpAuthCommand = 'opencode mcp auth <name>'
+const opencodeMcpDebugCommand = 'opencode mcp debug <name>'
 
 const form = reactive({
   id: '',
@@ -369,7 +376,7 @@ function openEdit(server: OpenCodeMcpServer) {
 
 async function saveServer() {
   if (!form.id.trim()) {
-    uiStore.showError('Server id 不能为空')
+    uiStore.showError(tt('Server id 不能为空', 'Server ID is required'))
     return
   }
 
@@ -391,7 +398,7 @@ async function saveServer() {
       await addOpenCodeMcpServer(request)
     }
 
-    uiStore.showSuccess(editingId.value ? 'MCP 服务器已更新' : 'MCP 服务器已创建')
+    uiStore.showSuccess(editingId.value ? tt('MCP 服务器已更新', 'MCP server updated') : tt('MCP 服务器已创建', 'MCP server created'))
     showModal.value = false
     await loadServers()
   } catch (error) {
@@ -404,7 +411,7 @@ async function saveServer() {
 async function removeServer(id: string) {
   try {
     await deleteOpenCodeMcpServer(id)
-    uiStore.showSuccess('MCP 服务器已删除')
+    uiStore.showSuccess(tt('MCP 服务器已删除', 'MCP server deleted'))
     await loadServers()
   } catch (error) {
     uiStore.showError(getErrorMessage(error))
@@ -414,7 +421,7 @@ async function removeServer(id: string) {
 async function copyCli(command: string) {
   try {
     await copyText(command)
-    uiStore.showSuccess(`已复制: ${command}`)
+    uiStore.showSuccess(`${tt('已复制', 'Copied')}: ${command}`)
   } catch (error) {
     uiStore.showError(getErrorMessage(error))
   }

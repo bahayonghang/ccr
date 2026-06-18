@@ -57,7 +57,7 @@
             </div>
             <div class="claude-terminal-card__body">
               <p class="claude-terminal-card__line">
-                <span>$</span> ccr current
+                <span>$</span> {{ currentConfigCommand }}
               </p>
               <p class="claude-terminal-card__status">
                 {{ $t('claudeCode.hero.consoleStatus') }}
@@ -345,6 +345,9 @@ const UsageInsightPanel = defineAsyncComponent({
 })
 
 const { t } = useI18n()
+const currentConfigCommand = 'ccr current'
+const switchConfigCommand = 'ccr switch'
+const listConfigsCommand = 'ccr list'
 
 const heroChips = computed(() => [
   t('claudeCode.features.configManagement'),
@@ -422,9 +425,9 @@ const extensionModules = computed(() => [
 ])
 
 const commonCommands = computed(() => [
-  { label: t('claudeCode.quickActions.viewCurrentConfig'), cmd: 'ccr current' },
-  { label: t('claudeCode.quickActions.switchConfig'), cmd: 'ccr switch' },
-  { label: t('claudeCode.quickActions.listAllConfigs'), cmd: 'ccr list' },
+  { label: t('claudeCode.quickActions.viewCurrentConfig'), cmd: currentConfigCommand },
+  { label: t('claudeCode.quickActions.switchConfig'), cmd: switchConfigCommand },
+  { label: t('claudeCode.quickActions.listAllConfigs'), cmd: listConfigsCommand },
 ])
 
 const resources = computed(() => [

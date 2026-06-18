@@ -113,7 +113,7 @@
                       >{{ server.command }}</code>
                     </div>
                     <div v-if="server.url">
-                      <span :style="{ color: 'var(--color-text-muted)' }">URL:</span>
+                      <span :style="{ color: 'var(--color-text-muted)' }">{{ $t('common.url') }}:</span>
                       <code
                         class="ml-2 px-2 py-1 rounded font-mono"
                         :style="{ background: 'var(--color-bg-elevated)', color: 'var(--color-accent-primary)' }"

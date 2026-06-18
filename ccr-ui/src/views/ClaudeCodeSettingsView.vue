@@ -47,7 +47,7 @@
         class="claude-settings-loading"
       >
         <div class="loading-spinner claude-settings-loading__spinner" />
-        <span>Loading...</span>
+        <span>{{ loadingLabel }}</span>
       </div>
 
       <template v-else>
@@ -225,14 +225,12 @@
                   <option value="">
                     {{ $t('claudeSettings.model.noOverride') }}
                   </option>
-                  <option value="default">
-                    default
-                  </option>
-                  <option value="plan">
-                    plan
-                  </option>
-                  <option value="bypassPermissions">
-                    bypassPermissions
+                  <option
+                    v-for="mode in permissionModeOptions"
+                    :key="mode"
+                    :value="mode"
+                  >
+                    {{ mode }}
                   </option>
                 </select>
               </div>
@@ -533,11 +531,12 @@
                     <option value="">
                       {{ $t('claudeSettings.model.noOverride') }}
                     </option>
-                    <option value="stable">
-                      stable
-                    </option>
-                    <option value="latest">
-                      latest
+                    <option
+                      v-for="channel in updateChannelOptions"
+                      :key="channel"
+                      :value="channel"
+                    >
+                      {{ channel }}
                     </option>
                   </select>
                 </div>
@@ -719,14 +718,12 @@
                     <option value="">
                       {{ $t('claudeSettings.model.noOverride') }}
                     </option>
-                    <option value="none">
-                      none
-                    </option>
-                    <option value="co-authored-by">
-                      co-authored-by
-                    </option>
-                    <option value="authored-by">
-                      authored-by
+                    <option
+                      v-for="option in attributionOptions"
+                      :key="option"
+                      :value="option"
+                    >
+                      {{ option }}
                     </option>
                   </select>
                 </div>
@@ -739,14 +736,12 @@
                     <option value="">
                       {{ $t('claudeSettings.model.noOverride') }}
                     </option>
-                    <option value="none">
-                      none
-                    </option>
-                    <option value="co-authored-by">
-                      co-authored-by
-                    </option>
-                    <option value="authored-by">
-                      authored-by
+                    <option
+                      v-for="option in attributionOptions"
+                      :key="option"
+                      :value="option"
+                    >
+                      {{ option }}
                     </option>
                   </select>
                 </div>
@@ -777,8 +772,9 @@ import { getClaudeSettings, updateClaudeSettings } from '@/api'
 import type { ClaudeSettingsData } from '@/api'
 import { useUIStore } from '@/stores/ui'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const uiStore = useUIStore()
+const loadingLabel = computed(() => locale.value.startsWith('zh') ? '加载中...' : 'Loading...')
 
 const loading = ref(true)
 const saving = ref(false)
@@ -794,6 +790,9 @@ const tabs = computed(() => [
 ])
 
 const modelOptions = ['opus', 'sonnet', 'haiku', 'claude-opus-4-6', 'claude-sonnet-4-5-20250929', 'claude-haiku-4-5-20251001']
+const permissionModeOptions = ['default', 'plan', 'bypassPermissions']
+const updateChannelOptions = ['stable', 'latest']
+const attributionOptions = ['none', 'co-authored-by', 'authored-by']
 
 // --- Form state ---
 const form = reactive<{

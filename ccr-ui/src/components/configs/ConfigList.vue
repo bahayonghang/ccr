@@ -9,7 +9,7 @@
         size="xl"
         class="text-accent-primary mb-4"
       />
-      <span class="text-sm font-mono animate-pulse">Loading configurations...</span>
+      <span class="text-sm font-mono animate-pulse">{{ $t('common.loading') }}</span>
     </div>
 
     <!-- Error State -->
@@ -79,4 +79,3 @@ defineEmits<{
   disable: [name: string]
 }>()
 </script>
-

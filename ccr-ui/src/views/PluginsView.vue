@@ -20,7 +20,7 @@
                     {{ $t('plugins.title') }}
                   </h1>
                   <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-accent-secondary/10 text-accent-secondary border border-accent-secondary/20">
-                    Claude Code
+                    {{ t('plugins.backToModule') }}
                   </span>
                   <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-accent-secondary text-white shadow-sm">
                     {{ plugins.length }}
@@ -448,4 +448,3 @@ const handleToggle = async (id: string) => {
   border-color: rgb(var(--color-accent-secondary-rgb) / 28%);
 }
 </style>
-

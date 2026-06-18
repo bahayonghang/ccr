@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
 import { computed, ref, watch, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
 import BaseModal from '@/components/common/BaseModal.vue'
 import type { CheckinFlowPhase, CheckinLogEntry } from '@/types/checkin'
 
@@ -19,6 +20,7 @@ const props = defineProps<Props>()
 const emit = defineEmits<{
   close: []
 }>()
+const { t } = useI18n()
 
 const logContainerRef = ref<HTMLElement | null>(null)
 
@@ -35,9 +37,9 @@ const unresolvedWafCount = computed(
 const needsManualWaf = computed(() => isFinished.value && unresolvedWafCount.value > 0)
 
 const modalTitle = computed(() => {
-  if (isRecovering.value) return '正在自动处理 WAF'
-  if (needsManualWaf.value) return '签到完成 · 需手动处理 WAF'
-  return isFinished.value ? '签到完成' : '正在执行签到'
+  if (isRecovering.value) return t('checkin.result.recoveringTitle')
+  if (needsManualWaf.value) return t('checkin.progress.manualWafTitle')
+  return isFinished.value ? t('checkin.result.completed') : t('checkin.progress.runningTitle')
 })
 
 const progressPercent = computed(() => {
@@ -68,9 +70,11 @@ const getLogTextClass = (status: CheckinLogEntry['status']) => {
 const getRecoveryBadgeLabel = (log: CheckinLogEntry) => {
   if (!log.wafRecoveryAttempted) return null
   if (log.wafRecovered) {
-    return log.status === 'already_checked_in' ? '自动补救后完成' : '自动补救后成功'
+    return log.status === 'already_checked_in'
+      ? t('checkin.result.recoveryCompleted')
+      : t('checkin.result.recoverySuccess')
   }
-  return '自动补救失败'
+  return t('checkin.progress.recoveryFailed')
 }
 
 watch(
@@ -144,13 +148,13 @@ watch(
 
         <div class="space-y-1">
           <p class="text-sm text-text-secondary">
-            {{ current }} / {{ total }} 个账号
+            {{ t('checkin.progress.accountProgress', { current, total }) }}
           </p>
           <p
             v-if="currentAccountName && !isFinished && !isRecovering"
             class="text-sm font-medium text-accent-primary"
           >
-            正在签到：{{ currentAccountName }}
+            {{ t('checkin.progress.currentAccount', { account: currentAccountName }) }}
           </p>
           <p
             v-else-if="isRecovering && recoveryMessage"
@@ -165,15 +169,15 @@ watch(
           >
             {{
               needsManualWaf
-                ? `${unresolvedWafCount} 个账号仍被 WAF 拦截，请前往「提供商」页手动获取 Cookie`
-                : '全部任务执行完毕'
+                ? t('checkin.progress.manualWafSummary', { count: unresolvedWafCount })
+                : t('checkin.progress.allTasksCompleted')
             }}
           </p>
           <p
             v-if="isRecovering && recoveryProviderName"
             class="text-xs text-text-secondary"
           >
-            当前提供商：{{ recoveryProviderName }}
+            {{ t('checkin.result.currentProvider', { provider: recoveryProviderName }) }}
           </p>
         </div>
       </div>
@@ -184,7 +188,7 @@ watch(
             name="FileText"
             size="h-4 w-4"
           />
-          签到日志
+          {{ t('checkin.progress.logTitle') }}
         </h4>
         <div
           ref="logContainerRef"
@@ -265,7 +269,7 @@ watch(
             v-if="logs.length === 0"
             class="flex h-full items-center justify-center text-sm text-text-muted"
           >
-            等待开始签到...
+            {{ t('checkin.progress.waiting') }}
           </div>
         </div>
       </div>
@@ -282,7 +286,7 @@ watch(
             name="CheckCircle"
             size="h-5 w-5"
           />
-          确定
+          {{ t('common.confirm') }}
         </button>
       </div>
     </div>

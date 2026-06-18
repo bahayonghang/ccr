@@ -21,7 +21,7 @@
               </div>
               <div>
                 <h1 class="codex-title">
-                  Codex
+                  {{ t('codex.overview.title') }}
                 </h1>
                 <p class="codex-subtitle">
                   {{ $t('codex.dashboard.header.subtitle') }}

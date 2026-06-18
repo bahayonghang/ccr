@@ -20,14 +20,13 @@
 
             <div class="codex-slash-hero__copy">
               <p class="codex-slash-kicker">
-                Compatibility Only
+                {{ tt('仅兼容入口', 'Compatibility Only') }}
               </p>
               <h1 class="codex-slash-title">
-                Codex 目前没有可管理的 Slash Commands
+                {{ tt('Codex 目前没有可管理的 Slash Commands', 'Codex currently has no manageable slash commands') }}
               </h1>
               <p class="codex-slash-subtitle">
-                这个页面保留为兼容入口，用来解释为什么 Codex 模块没有接入 Slash Commands 管理。
-                当前工作流重点已经切到 Sessions、Agents、Profiles 和 MCP。
+                {{ tt('这个页面保留为兼容入口，用来解释为什么 Codex 模块没有接入 Slash Commands 管理。 当前工作流重点已经切到 Sessions、Agents、Profiles 和 MCP。', 'This page remains as a compatibility entry so it can explain why the Codex module does not expose slash-command management. The active workflow focus has shifted to Sessions, Agents, Profiles, and MCP.') }}
               </p>
             </div>
 
@@ -40,7 +39,7 @@
                   name="MessagesSquare"
                   size="w-4 h-4"
                 />
-                <span>打开 Sessions</span>
+                <span>{{ tt('打开 Sessions', 'Open Sessions') }}</span>
               </RouterLink>
               <RouterLink
                 to="/codex/agents"
@@ -50,7 +49,7 @@
                   name="Bot"
                   size="w-4 h-4"
                 />
-                <span>管理 Agents</span>
+                <span>{{ tt('管理 Agents', 'Manage Agents') }}</span>
               </RouterLink>
             </div>
           </div>
@@ -70,22 +69,20 @@
               </div>
               <div>
                 <h2 class="codex-slash-panel__title">
-                  当前状态
+                  {{ tt('当前状态', 'Current state') }}
                 </h2>
                 <p class="codex-slash-panel__subtitle">
-                  后端没有对应的 Slash Commands 命令集
+                  {{ tt('后端没有对应的 Slash Commands 命令集', 'The backend has no matching slash-command command set') }}
                 </p>
               </div>
             </div>
 
             <div class="codex-slash-note">
               <p class="codex-slash-note__title">
-                为什么不继续沿用通用页面
+                {{ tt('为什么不继续沿用通用页面', 'Why not keep the generic page') }}
               </p>
               <p class="codex-slash-note__body">
-                Codex 在 CCR 中没有对应的 slash command CRUD
-                能力，之前的页面只是复用通用容器后返回“平台不支持”。
-                现在把它降级成说明页，避免把一个不存在的能力放进主导航。
+                {{ tt('Codex 在 CCR 中没有对应的 slash command CRUD 能力，之前的页面只是复用通用容器后返回“平台不支持”。现在把它降级成说明页，避免把一个不存在的能力放进主导航。', 'CCR does not expose slash-command CRUD for Codex. The old page only reused the generic container and returned “platform not supported”. It is now downgraded into an explainer page so a nonexistent capability does not stay in the main navigation.') }}
               </p>
             </div>
           </Card>
@@ -103,10 +100,10 @@
               </div>
               <div>
                 <h2 class="codex-slash-panel__title">
-                  推荐入口
+                  {{ tt('推荐入口', 'Recommended entries') }}
                 </h2>
                 <p class="codex-slash-panel__subtitle">
-                  真实可用的 Codex 工作面板
+                  {{ tt('真实可用的 Codex 工作面板', 'The Codex surfaces that actually work') }}
                 </p>
               </div>
             </div>
@@ -147,28 +144,33 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import Card from '@/components/ui/Card.vue'
 import ModuleSubnav from '@/components/ModuleSubnav.vue'
 import SIcon from '@/components/ui/SIcon.vue'
 
 defineOptions({ name: 'CodexSlashCommandsView' })
+const { locale } = useI18n()
+const isZh = computed(() => locale.value.startsWith('zh'))
+const tt = (zh: string, en: string) => (isZh.value ? zh : en)
 
 const shortcuts = [
   {
-    title: 'Sessions',
-    description: '查看最近会话、导出上下文、克隆或删除本地 session 记录。',
+    title: tt('Sessions', 'Sessions'),
+    description: tt('查看最近会话、导出上下文、克隆或删除本地 session 记录。', 'Inspect recent sessions, export context, and clone or delete local session records.'),
     to: '/codex/sessions',
     icon: 'MessagesSquare',
   },
   {
-    title: 'Agents',
-    description: '管理 Codex 专用 agents，复用现有 agent 配置能力。',
+    title: tt('Agents', 'Agents'),
+    description: tt('管理 Codex 专用 agents，复用现有 agent 配置能力。', 'Manage Codex-specific agents while reusing the existing agent configuration flow.'),
     to: '/codex/agents',
     icon: 'Bot',
   },
   {
     title: 'MCP',
-    description: '继续扩展本地工具链，把 Codex 接到更多外部能力上。',
+    description: tt('继续扩展本地工具链，把 Codex 接到更多外部能力上。', 'Keep extending the local toolchain and connect Codex to more external capabilities.'),
     to: '/codex/mcp',
     icon: 'Server',
   },
@@ -292,5 +294,4 @@ const shortcuts = [
   @apply mt-1 text-sm leading-6 text-text-muted;
 }
 </style>
-
 

@@ -162,7 +162,7 @@
       <!-- CLI 二级折叠 -->
       <details class="cli-hint">
         <summary>{{ t('sync.account.cliHint') }}</summary>
-        <code class="cli-command">ccr sync config</code>
+        <code class="cli-command">{{ t('sync.webdav.configureCommand') }}</code>
       </details>
     </div>
 

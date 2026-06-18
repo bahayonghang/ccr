@@ -123,7 +123,7 @@ export default [
         {
           // 忽略纯符号/数字/标点（如 ':' '*' '%' '·' '|'）——这些不是需要翻译的文案，
           // 仅锁死真正的硬编码词句。
-          ignorePattern: '^[\\s\\d\\-–—:：*%·•|/\\\\()\\[\\]{}.,，。、；;!！?？#&+=<>"\'“”‘’~@]+$',
+          ignorePattern: '^[\\s\\d\\-–—:：*%·•|/\\\\()\\[\\]{}.,，。、；;!！?？#&+=<>"\'“”‘’~@]+$|^(?:\\$|v|ms|HTTP|STDIO|Esc|↑↓|↵|…|\\.?mcp\\.json|mcpServers|api_user|session|TOML|JSON|URL|ID:?|px|s|low|medium|high|xhigh)$',
         },
       ],
     },

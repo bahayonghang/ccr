@@ -4,7 +4,7 @@
       v-if="chartData.length === 0"
       class="trend-empty"
     >
-      暂无趋势数据
+      {{ tt('暂无趋势数据', 'No trend data yet') }}
     </div>
 
     <div
@@ -50,16 +50,16 @@
           {{ chartData[hoveredIndex].date }}
         </div>
         <div class="tooltip-row">
-          <span>状态</span>
+          <span>{{ tt('状态', 'Status') }}</span>
           <span
             class="tooltip-value"
             :class="chartData[hoveredIndex].is_checked_in ? 'tooltip-checked' : 'tooltip-missed'"
           >
-            {{ chartData[hoveredIndex].is_checked_in ? '已签到' : '未签到' }}
+            {{ chartData[hoveredIndex].is_checked_in ? tt('已签到', 'Checked in') : tt('未签到', 'Missed') }}
           </span>
         </div>
         <div class="tooltip-row">
-          <span>本日奖励</span>
+          <span>{{ tt('本日奖励', 'Reward') }}</span>
           <span class="tooltip-value tooltip-checked">
             {{ formatReward(chartData[hoveredIndex].reward_amount) }}
           </span>
@@ -68,7 +68,7 @@
           v-if="chartData[hoveredIndex].current_balance > 0"
           class="tooltip-row"
         >
-          <span>当日余额</span>
+          <span>{{ tt('当日余额', 'Balance') }}</span>
           <span class="tooltip-value">${{ chartData[hoveredIndex].current_balance.toFixed(2) }}</span>
         </div>
       </div>
@@ -90,12 +90,16 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { CheckinDashboardTrend, CheckinDashboardTrendPoint } from '@/types/checkin'
 
 const props = defineProps<{
   trend: CheckinDashboardTrend | null
 }>()
 
+const { locale } = useI18n()
+const isZh = computed(() => locale.value.startsWith('zh'))
+const tt = (zh: string, en: string) => (isZh.value ? zh : en)
 const width = 800
 const height = 220
 const padding = 20

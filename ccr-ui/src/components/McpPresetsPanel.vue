@@ -68,7 +68,7 @@
               name="KeyRound"
               size="w-3 h-3"
             />
-            API Key
+            {{ t('mcp.presets.apiKeyBadge') }}
           </span>
         </div>
 
@@ -377,4 +377,3 @@ onMounted(() => {
   loadPresets()
 })
 </script>
-

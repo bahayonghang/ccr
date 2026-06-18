@@ -1,7 +1,6 @@
 <!-- -->
 <template>
   <div class="checkin-providers">
-    <!-- 内置中转站区域 -->
     <div v-if="availableBuiltinProviders.length > 0">
       <div class="checkin-providers__section-header">
         <SIcon
@@ -10,7 +9,7 @@
           class="checkin-providers__section-icon checkin-providers__section-icon--primary"
         />
         <h2 class="checkin-providers__section-title">
-          内置中转站
+          {{ t('checkin.providers.builtinTitle') }}
         </h2>
         <span class="checkin-providers__section-count">
           ({{ availableBuiltinProviders.length }})
@@ -31,7 +30,7 @@
                     {{ bp.name }}
                   </h3>
                   <span class="checkin-providers__builtin-badge checkin-badge-pill">
-                    内置
+                    {{ t('checkin.providers.builtInBadge') }}
                   </span>
                 </div>
                 <p class="checkin-providers__builtin-domain">
@@ -56,7 +55,7 @@
                   d="M12 4v16m8-8H4"
                 />
               </svg>
-              <span>添加</span>
+              <span>{{ t('common.add') }}</span>
             </button>
           </div>
           <p class="checkin-providers__builtin-description">
@@ -75,7 +74,7 @@
                 size="w-3 h-3"
                 class="mr-1 inline"
               />
-              {{ bp.checkin_bugged ? '自动签到' : '支持签到' }}
+              {{ bp.checkin_bugged ? t('checkin.providers.autoCheckin') : t('checkin.providers.supportsCheckin') }}
             </span>
             <span
               v-else
@@ -85,7 +84,7 @@
                 name="XCircle"
                 size="w-3 h-3"
                 class="mr-1"
-              /> 无签到
+              /> {{ t('checkin.providers.noCheckin') }}
             </span>
             <span
               v-if="bp.requires_waf_bypass"
@@ -95,14 +94,13 @@
                 name="Shield"
                 size="w-3 h-3"
                 class="mr-1"
-              /> 需要 WAF 绕过
+              /> {{ t('checkin.providers.requiresWafBypass') }}
             </span>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 已添加的提供商 -->
     <div>
       <div class="checkin-providers__section-header checkin-providers__section-header--split">
         <div class="checkin-providers__section-heading">
@@ -112,7 +110,7 @@
             class="checkin-providers__section-icon checkin-providers__section-icon--secondary"
           />
           <h2 class="checkin-providers__section-title">
-            已添加的提供商
+            {{ t('checkin.providers.addedTitle') }}
           </h2>
           <span class="checkin-providers__section-count">
             ({{ providers.length }})
@@ -135,11 +133,10 @@
               d="M12 4v16m8-8H4"
             />
           </svg>
-          <span>自定义添加</span>
+          <span>{{ t('checkin.providers.customAdd') }}</span>
         </button>
       </div>
 
-      <!-- 提供商列表 -->
       <div
         v-if="providers.length === 0"
         class="checkin-providers__empty-state"
@@ -151,9 +148,9 @@
             class="checkin-providers__empty-icon-symbol"
           />
         </p>
-        <p>暂无提供商配置</p>
+        <p>{{ t('checkin.providers.emptyTitle') }}</p>
         <p class="checkin-providers__empty-subtitle">
-          点击上方内置中转站快速添加，或自定义添加
+          {{ t('checkin.providers.emptyHint') }}
         </p>
       </div>
       <div
@@ -182,7 +179,7 @@
             <div class="checkin-providers__provider-actions">
               <button
                 class="checkin-providers__icon-button checkin-providers__icon-button--edit"
-                title="编辑"
+                :title="t('common.edit')"
                 @click="openProviderModal(provider)"
               >
                 <svg
@@ -201,7 +198,7 @@
               </button>
               <button
                 class="checkin-providers__icon-button checkin-providers__icon-button--delete"
-                title="删除"
+                :title="t('common.delete')"
                 @click="deleteProvider(provider.id)"
               >
                 <svg
@@ -221,7 +218,7 @@
             </div>
           </div>
           <div class="checkin-providers__provider-meta">
-            <span>签到路径: {{ provider.checkin_path }}</span>
+            <span>{{ t('checkin.providers.checkinPath', { path: provider.checkin_path }) }}</span>
           </div>
           <div
             v-if="requiresWafBypass(provider)"
@@ -236,7 +233,7 @@
                     class="checkin-providers__waf-icon"
                   />
                   <p class="checkin-providers__waf-title">
-                    WAF 验证
+                    {{ t('checkin.providers.wafTitle') }}
                   </p>
                   <span
                     class="checkin-providers__tag checkin-badge-pill"
@@ -244,14 +241,14 @@
                       ? 'checkin-providers__tag--success'
                       : 'checkin-providers__tag--warning'"
                   >
-                    {{ hasCachedWafCookie(provider.id) ? '已缓存 Cookie' : '未缓存 Cookie' }}
+                    {{ hasCachedWafCookie(provider.id) ? t('checkin.providers.cachedCookie') : t('checkin.providers.uncachedCookie') }}
                   </span>
                 </div>
                 <p class="checkin-providers__waf-message">
-                  AnyRouter 这类站点签到前需要先获取 WAF Cookie，且网页登录与签到请求必须使用同一代理/出口。
+                  {{ t('checkin.providers.wafMessage') }}
                 </p>
                 <p class="checkin-providers__waf-hint">
-                  参考流程：先保存 <code>session</code> 和 <code>api_user</code>，再打开登录页完成挑战，最后回到签到页重试。
+                  {{ t('checkin.providers.wafHint') }}
                 </p>
               </div>
               <button
@@ -267,10 +264,10 @@
                 <span>
                   {{
                     wafLoadingMap[provider.id] === true
-                      ? '获取中...'
+                      ? t('checkin.providers.loading')
                       : hasCachedWafCookie(provider.id)
-                        ? '重新获取'
-                        : '获取 Cookie'
+                        ? t('checkin.providers.reloadCookie')
+                        : t('checkin.providers.getCookie')
                   }}
                 </span>
               </button>
@@ -289,7 +286,7 @@
   >
     <div class="checkin-providers__modal-panel">
       <h3 class="checkin-providers__modal-title">
-        {{ editingProvider ? '编辑提供商' : '添加提供商' }}
+        {{ editingProvider ? t('checkin.providers.editProvider') : t('checkin.providers.addProvider') }}
       </h3>
       <form
         class="checkin-providers__modal-form"
@@ -297,19 +294,19 @@
       >
         <div>
           <label class="checkin-providers__field-label">
-            名称 *
+            {{ t('checkin.providers.nameLabel') }}
           </label>
           <input
             v-model="providerForm.name"
             type="text"
             required
             class="checkin-providers__field-input"
-            placeholder="例如: OpenRouter"
+            placeholder="OpenRouter"
           >
         </div>
         <div>
           <label class="checkin-providers__field-label">
-            Base URL *
+            {{ t('checkin.providers.baseUrlLabel') }}
           </label>
           <input
             v-model="providerForm.base_url"
@@ -322,7 +319,7 @@
         <div class="checkin-providers__field-grid">
           <div>
             <label class="checkin-providers__field-label">
-              签到路径
+              {{ t('checkin.providers.checkinPathLabel') }}
             </label>
             <input
               v-model="providerForm.checkin_path"
@@ -333,7 +330,7 @@
           </div>
           <div>
             <label class="checkin-providers__field-label">
-              余额路径
+              {{ t('checkin.providers.balancePathLabel') }}
             </label>
             <input
               v-model="providerForm.balance_path"
@@ -346,7 +343,7 @@
         <div class="checkin-providers__field-grid">
           <div>
             <label class="checkin-providers__field-label">
-              认证 Header
+              {{ t('checkin.providers.authHeaderLabel') }}
             </label>
             <input
               v-model="providerForm.auth_header"
@@ -357,7 +354,7 @@
           </div>
           <div>
             <label class="checkin-providers__field-label">
-              认证前缀
+              {{ t('checkin.providers.authPrefixLabel') }}
             </label>
             <input
               v-model="providerForm.auth_prefix"
@@ -373,13 +370,13 @@
             class="checkin-providers__secondary-button"
             @click="showProviderModal = false"
           >
-            取消
+            {{ t('common.cancel') }}
           </button>
           <button
             type="submit"
             class="checkin-providers__primary-button"
           >
-            保存
+            {{ t('common.save') }}
           </button>
         </div>
       </form>
@@ -390,6 +387,7 @@
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useUIStore } from '@/stores/ui'
 import {
   createCheckinProvider,
@@ -420,13 +418,14 @@ const emit = defineEmits<{
   (e: 'add-builtin', builtinId: string): void
   (e: 'refresh'): void
 }>()
+const { t } = useI18n()
 const uiStore = useUIStore()
 
 const formatWafRecoveryResult = (result: WafCookieRecoveryResult) => {
   if (result.missing_cookie_names.length > 0) {
     return `缺少 WAF Cookie: ${result.missing_cookie_names.join(', ')}`
   }
-  return result.message || 'WAF Cookie 未获取完整'
+  return result.message || t('checkin.providers.uncachedCookie')
 }
 
 // 计算属性：过滤出尚未添加的内置提供商（builtin_id 优先判定，name 回退兼容旧数据）
@@ -489,7 +488,9 @@ const startWafLogin = async (provider: CheckinProvider) => {
     )
     await loadWafStatus(provider.id)
     if (result.persisted) {
-      uiStore.showSuccess(`${provider.name} 的 WAF Cookie 已更新，现在可以回到签到页重试。`)
+      uiStore.showSuccess(
+        `${provider.name} ${t('checkin.providers.cachedCookie')}，${t('checkin.providers.emptyHint')}`
+      )
     } else {
       uiStore.showError(`获取 WAF Cookie 失败: ${formatWafRecoveryResult(result)}`)
     }

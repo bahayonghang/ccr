@@ -21,10 +21,10 @@
             </div>
             <div>
               <h1 class="budget-title text-text-primary">
-                预算管理
+                {{ tt('预算管理', 'Budget Management') }}
               </h1>
               <p class="budget-subtitle text-text-secondary">
-                管理成本预算限制和警告阈值
+                {{ tt('管理成本预算限制和警告阈值', 'Manage spending limits and warning thresholds') }}
               </p>
             </div>
           </div>
@@ -49,7 +49,7 @@
               d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
             />
           </svg>
-          <span>刷新</span>
+          <span>{{ tt('刷新', 'Refresh') }}</span>
         </button>
       </div>
     </div>
@@ -62,7 +62,7 @@
       <div class="budget-loading">
         <div class="budget-loading__spinner animate-spin" />
         <p class="budget-loading__text text-text-secondary">
-          正在加载预算数据...
+          {{ tt('正在加载预算数据...', 'Loading budget data...') }}
         </p>
       </div>
     </div>
@@ -86,7 +86,7 @@
         </svg>
         <div>
           <h2 class="budget-error__title">
-            加载失败
+            {{ tt('加载失败', 'Load failed') }}
           </h2>
           <p class="budget-error__message">
             {{ error }}
@@ -103,10 +103,10 @@
         <div class="budget-section-header">
           <div>
             <h2 class="budget-section-title text-text-primary">
-              预算状态
+              {{ tt('预算状态', 'Budget status') }}
             </h2>
             <p class="budget-section-copy text-text-secondary">
-              当前预算开关与各周期成本总览
+              {{ tt('当前预算开关与各周期成本总览', 'Current budget switch plus period cost overview') }}
             </p>
           </div>
 
@@ -114,14 +114,14 @@
             class="budget-status-pill"
             :class="budgetStatus.enabled ? 'border-accent-success/30 bg-accent-success/10 text-accent-success' : 'border-border-default bg-bg-surface text-text-secondary'"
           >
-            {{ budgetStatus.enabled ? '已启用' : '已禁用' }}
+            {{ budgetStatus.enabled ? tt('已启用', 'Enabled') : tt('已禁用', 'Disabled') }}
           </span>
         </div>
 
         <div class="budget-overview-grid">
           <div class="budget-overview-card">
             <p class="budget-overview-card__label text-text-secondary">
-              今日成本
+              {{ tt('今日成本', 'Today cost') }}
             </p>
             <p class="budget-overview-card__value text-text-primary">
               ${{ budgetStatus.current_costs.today.toFixed(4) }}
@@ -129,7 +129,7 @@
           </div>
           <div class="budget-overview-card">
             <p class="budget-overview-card__label text-text-secondary">
-              本周成本
+              {{ tt('本周成本', 'This week cost') }}
             </p>
             <p class="budget-overview-card__value text-text-primary">
               ${{ budgetStatus.current_costs.this_week.toFixed(4) }}
@@ -137,7 +137,7 @@
           </div>
           <div class="budget-overview-card">
             <p class="budget-overview-card__label text-text-secondary">
-              本月成本
+              {{ tt('本月成本', 'This month cost') }}
             </p>
             <p class="budget-overview-card__value text-text-primary">
               ${{ budgetStatus.current_costs.this_month.toFixed(4) }}
@@ -147,7 +147,7 @@
 
         <div class="budget-limits">
           <h3 class="budget-subsection-title text-text-primary">
-            预算限制
+            {{ tt('预算限制', 'Budget limits') }}
           </h3>
           <div class="budget-limit-grid">
             <div
@@ -159,7 +159,7 @@
                 {{ period }}
               </span>
               <span class="budget-limit-row__value text-text-primary">
-                {{ (limit !== null && limit !== undefined) ? `$${limit.toFixed(2)}` : '无限制' }}
+                {{ formatLimitValue(limit) }}
               </span>
             </div>
           </div>
@@ -170,7 +170,7 @@
           class="budget-warning-group"
         >
           <h3 class="budget-subsection-title text-accent-danger">
-            预算警告
+            {{ tt('预算警告', 'Budget warnings') }}
           </h3>
           <div
             v-for="(warning, index) in budgetStatus.warnings"
@@ -178,10 +178,7 @@
             class="budget-warning-card"
           >
             <p class="budget-warning-card__text">
-              <strong class="budget-warning-card__period">{{ warning.period }}</strong>:
-              当前成本 ${{ warning.current_cost.toFixed(2) }}
-              / 限制 ${{ warning.limit.toFixed(2) }}
-              ({{ warning.usage_percent.toFixed(1) }}%)
+              {{ formatWarningSummary(warning) }}
             </p>
           </div>
         </div>
@@ -191,10 +188,10 @@
         <div class="budget-section-header budget-section-header--compact">
           <div>
             <h2 class="budget-section-title text-text-primary">
-              配置预算
+              {{ tt('配置预算', 'Configure budget') }}
             </h2>
             <p class="budget-section-copy text-text-secondary">
-              调整预算开关、上限以及告警阈值
+              {{ tt('调整预算开关、上限以及告警阈值', 'Adjust the budget switch, hard limits, and warning threshold') }}
             </p>
           </div>
         </div>
@@ -216,10 +213,10 @@
               >
               <div>
                 <p class="budget-toggle__title text-text-primary">
-                  启用预算控制
+                  {{ tt('启用预算控制', 'Enable budget control') }}
                 </p>
                 <p class="budget-toggle__copy text-text-secondary">
-                  开启后将根据下方限制进行预算提醒
+                  {{ tt('开启后将根据下方限制进行预算提醒', 'Enable reminders based on the limits below') }}
                 </p>
               </div>
             </label>
@@ -231,7 +228,7 @@
                 for="daily_limit"
                 class="budget-label text-text-secondary"
               >
-                每日限制 ($)
+                {{ tt('每日限制 ($)', 'Daily limit ($)') }}
               </label>
               <input
                 id="daily_limit"
@@ -249,7 +246,7 @@
                 for="weekly_limit"
                 class="budget-label text-text-secondary"
               >
-                每周限制 ($)
+                {{ tt('每周限制 ($)', 'Weekly limit ($)') }}
               </label>
               <input
                 id="weekly_limit"
@@ -267,7 +264,7 @@
                 for="monthly_limit"
                 class="budget-label text-text-secondary"
               >
-                每月限制 ($)
+                {{ tt('每月限制 ($)', 'Monthly limit ($)') }}
               </label>
               <input
                 id="monthly_limit"
@@ -286,7 +283,7 @@
               for="warn_threshold"
               class="budget-label text-text-secondary"
             >
-              警告阈值 (%)
+              {{ tt('警告阈值 (%)', 'Warning threshold (%)') }}
             </label>
             <input
               id="warn_threshold"
@@ -304,7 +301,7 @@
               :disabled="saving"
               class="budget-primary-button budget-primary-button--wide"
             >
-              {{ saving ? '保存中...' : '保存配置' }}
+              {{ saving ? tt('保存中...', 'Saving...') : tt('保存配置', 'Save settings') }}
             </button>
             <button
               type="button"
@@ -312,7 +309,7 @@
               class="budget-secondary-button"
               @click="handleReset"
             >
-              重置所有限制
+              {{ tt('重置所有限制', 'Reset all limits') }}
             </button>
           </div>
         </form>
@@ -323,13 +320,17 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { getBudgetStatus, setBudget, resetBudget } from '@/api'
 import { useUIStore } from '@/stores/ui'
 import type { BudgetStatus, SetBudgetRequest } from '@/types'
 import { getErrorMessage } from '@/utils/errorHandler'
 import { logger } from '@/utils/logger'
 
+const { locale } = useI18n()
 const uiStore = useUIStore()
+const isZh = computed(() => locale.value.startsWith('zh'))
+const tt = (zh: string, en: string) => (isZh.value ? zh : en)
 const budgetStatus = ref<BudgetStatus | null>(null)
 const loading = ref(false)
 const saving = ref(false)
@@ -352,11 +353,21 @@ const form = ref<{
 const budgetLimits = computed(() => {
   if (!budgetStatus.value) return {}
   return {
-    '每日': budgetStatus.value.daily_limit,
-    '每周': budgetStatus.value.weekly_limit,
-    '每月': budgetStatus.value.monthly_limit,
+    [tt('每日', 'Daily')]: budgetStatus.value.daily_limit,
+    [tt('每周', 'Weekly')]: budgetStatus.value.weekly_limit,
+    [tt('每月', 'Monthly')]: budgetStatus.value.monthly_limit,
   }
 })
+
+const formatLimitValue = (limit: number | null | undefined) => (
+  limit !== null && limit !== undefined ? `$${limit.toFixed(2)}` : tt('无限制', 'Unlimited')
+)
+
+const formatWarningSummary = (warning: BudgetStatus['warnings'][number]) => (
+  isZh.value
+    ? `${warning.period}: 当前成本 $${warning.current_cost.toFixed(2)} / 限制 $${warning.limit.toFixed(2)} (${warning.usage_percent.toFixed(1)}%)`
+    : `${warning.period}: current cost $${warning.current_cost.toFixed(2)} / limit $${warning.limit.toFixed(2)} (${warning.usage_percent.toFixed(1)}%)`
+)
 
 const loadData = async () => {
   loading.value = true
@@ -372,7 +383,7 @@ const loadData = async () => {
     form.value.monthly_limit = status.monthly_limit
     form.value.warn_threshold = status.warn_threshold
   } catch (e: unknown) {
-    error.value = getErrorMessage(e) || '加载失败'
+    error.value = getErrorMessage(e) || tt('加载失败', 'Load failed')
     logger.error('Failed to load budget:', e)
   } finally {
     loading.value = false
@@ -394,9 +405,9 @@ const saveBudget = async () => {
     await setBudget(request)
     await loadData()
 
-    uiStore.showSuccess('配置已保存')
+    uiStore.showSuccess(tt('配置已保存', 'Configuration saved'))
   } catch (e: unknown) {
-    uiStore.showError(`保存失败: ${getErrorMessage(e) || '未知错误'}`)
+    uiStore.showError(`${tt('保存失败', 'Save failed')}: ${getErrorMessage(e) || tt('未知错误', 'Unknown error')}`)
     logger.error('Failed to save budget:', e)
   } finally {
     saving.value = false
@@ -405,10 +416,10 @@ const saveBudget = async () => {
 
 const handleReset = async () => {
   const confirmed = await uiStore.requestConfirm({
-    title: '重置预算限制',
-    message: '确定要重置所有预算限制吗？',
-    confirmText: '重置',
-    cancelText: '取消',
+    title: tt('重置预算限制', 'Reset budget limits'),
+    message: tt('确定要重置所有预算限制吗？', 'Are you sure you want to reset all budget limits?'),
+    confirmText: tt('重置', 'Reset'),
+    cancelText: tt('取消', 'Cancel'),
     type: 'danger'
   })
   if (!confirmed) return
@@ -419,9 +430,9 @@ const handleReset = async () => {
     await resetBudget()
     await loadData()
 
-    uiStore.showSuccess('预算限制已重置')
+    uiStore.showSuccess(tt('预算限制已重置', 'Budget limits reset'))
   } catch (e: unknown) {
-    uiStore.showError(`重置失败: ${getErrorMessage(e) || '未知错误'}`)
+    uiStore.showError(`${tt('重置失败', 'Reset failed')}: ${getErrorMessage(e) || tt('未知错误', 'Unknown error')}`)
     logger.error('Failed to reset budget:', e)
   } finally {
     saving.value = false

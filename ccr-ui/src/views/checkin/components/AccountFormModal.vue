@@ -106,7 +106,7 @@
                 <span
                   v-if="!editingAccount"
                   class="text-accent-danger"
-                >*</span> Session / Cookies
+                >*</span> {{ sessionCookiesLabel }}
                 <span
                   v-if="editingAccount"
                   class="text-text-muted font-normal"
@@ -141,7 +141,7 @@
             <!-- API User -->
             <div class="checkin-accounts-tab__field">
               <label class="checkin-accounts-tab__label">
-                <span class="text-accent-danger">*</span> API User
+                <span class="text-accent-danger">*</span> {{ apiUserLabel }}
               </label>
               <input
                 v-model="accountForm.api_user"
@@ -152,9 +152,9 @@
               >
               <p class="checkin-accounts-tab__hint">
                 {{ t('checkin.accounts.fields.apiUserHintPrefix') }}
-                <code>user.id</code>
+                <code>{{ apiUserSourceField }}</code>
                 {{ t('checkin.accounts.fields.apiUserHintMiddle') }}
-                <code>new-api-user</code>
+                <code>{{ apiUserResponseField }}</code>
                 {{ t('checkin.accounts.fields.apiUserHintSuffix') }}
               </p>
             </div>
@@ -195,7 +195,7 @@
               class="checkin-accounts-tab__field"
             >
               <label class="checkin-accounts-tab__label checkin-accounts-tab__label--amber">
-                fuli.hxi.me Cookies
+                {{ fuliCookiesLabel }}
               </label>
               <textarea
                 v-model="accountForm.fuli_cookies"
@@ -214,7 +214,7 @@
               class="checkin-accounts-tab__field"
             >
               <label class="checkin-accounts-tab__label checkin-accounts-tab__label--amber">
-                tw.b4u.qzz.io Cookies
+                {{ b4uCookiesLabel }}
               </label>
               <textarea
                 v-model="accountForm.b4u_cdk_cookies"
@@ -233,7 +233,7 @@
               class="checkin-accounts-tab__field"
             >
               <label class="checkin-accounts-tab__label checkin-accounts-tab__label--amber">
-                Access Token (JWT)
+                {{ accessTokenLabel }}
               </label>
               <input
                 v-model="accountForm.x666_access_token"
@@ -346,7 +346,16 @@ const emit = defineEmits<{
 }>()
 
 const uiStore = useUIStore()
-const { t } = useI18n()
+const { t, locale } = useI18n()
+const isZh = computed(() => locale.value.startsWith('zh'))
+const tt = (zh: string, en: string) => (isZh.value ? zh : en)
+const sessionCookiesLabel = computed(() => tt('Session / Cookies', 'Session / Cookies'))
+const apiUserLabel = computed(() => tt('API 用户', 'API User'))
+const accessTokenLabel = computed(() => tt('访问令牌 (JWT)', 'Access Token (JWT)'))
+const apiUserSourceField = 'user.id'
+const apiUserResponseField = 'new-api-user'
+const fuliCookiesLabel = 'fuli.hxi.me Cookies'
+const b4uCookiesLabel = 'tw.b4u.qzz.io Cookies'
 
 interface CheckinAccountCookiesResponse {
   cookies_json: string

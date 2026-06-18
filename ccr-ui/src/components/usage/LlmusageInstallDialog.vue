@@ -191,7 +191,7 @@
         class="text-center py-4"
       >
         <div class="text-4xl mb-3">
-          ⏹️
+          {{ cancelledOutcomeGlyph }}
         </div>
         <p class="text-sm font-medium text-text-primary">
           {{ t('usage.install.dialog.cancelled') }}
@@ -344,6 +344,7 @@ const autoRetryFired = ref<Set<string>>(new Set())
 // Manual install state
 const copiedCommand = ref<string | null>(null)
 const recheckLoading = ref(false)
+const cancelledOutcomeGlyph = '⏹️'
 
 // Log container ref for auto-scroll
 const logContainer = ref<HTMLElement | null>(null)

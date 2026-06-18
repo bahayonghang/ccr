@@ -2,7 +2,7 @@
   <section class="provider-template-selector">
     <div class="provider-template-selector__head">
       <div class="provider-template-selector__copy">
-        <span class="provider-template-selector__label">{{ label }}</span>
+        <span class="provider-template-selector__label">{{ selectedLabel }}</span>
         <span
           v-if="helper"
           class="provider-template-selector__helper"
@@ -25,7 +25,7 @@
         </span>
         <span class="provider-template-selector__trigger-main">
           <span class="provider-template-selector__trigger-label">
-            {{ selectedTemplate?.name || placeholder }}
+            {{ selectedTemplate?.name || selectedPlaceholder }}
           </span>
           <span class="provider-template-selector__trigger-sub">
             {{ selectedTemplateSummary }}
@@ -45,7 +45,7 @@
       data-testid="provider-template-selected-summary"
     >
       <span class="provider-template-selector__summary-badge">
-        {{ selectedTemplate.source === 'custom' ? 'Custom' : 'Built-in' }}
+        {{ selectedTemplate.source === 'custom' ? tt('自定义', 'Custom') : tt('内置', 'Built-in') }}
       </span>
       <span class="provider-template-selector__summary-text">
         {{ selectedTemplate.name }}
@@ -57,8 +57,8 @@
 
     <BaseModal
       :model-value="selectorOpen"
-      title="Provider templates"
-      :description="`${platformLabel} provider template selector`"
+      :title="tt('Provider templates', 'Provider templates')"
+      :description="isZh ? `${platformLabel} 提供商模板选择器` : `${platformLabel} provider template selector`"
       size="full"
       surface="solid"
       content-class="provider-template-modal"
@@ -73,11 +73,11 @@
               :id="titleId"
               class="provider-template-modal__title"
             >
-              Provider templates
+              {{ tt('Provider templates', 'Provider templates') }}
             </h2>
           </div>
           <span class="provider-template-modal__count">
-            {{ results.length }} matches
+            {{ isZh ? `${results.length} 条匹配` : `${results.length} matches` }}
           </span>
         </div>
       </template>
@@ -87,7 +87,7 @@
           class="sr-only"
           :for="searchInputId"
         >
-          Search provider templates
+          {{ tt('搜索 provider templates', 'Search provider templates') }}
         </label>
         <div class="provider-template-modal__search">
           <SIcon
@@ -101,7 +101,7 @@
             v-model="query"
             class="provider-template-modal__search-input"
             data-testid="provider-template-search"
-            placeholder="Search by provider, host, model, tag..."
+            :placeholder="tt('按 provider、host、model、tag 搜索...', 'Search by provider, host, model, tag...')"
             :aria-activedescendant="activeOptionId"
             aria-controls="provider-template-listbox"
             @keydown="handleKeyDown"
@@ -113,7 +113,7 @@
           ref="listRef"
           class="provider-template-modal__list"
           role="listbox"
-          aria-label="Provider template results"
+          :aria-label="tt('Provider template 结果', 'Provider template results')"
         >
           <button
             :id="optionId(0)"
@@ -134,10 +134,10 @@
               />
             </span>
             <span class="provider-template-modal__row-main">
-              <span class="provider-template-modal__row-title">Manual provider</span>
-              <span class="provider-template-modal__row-sub">Keep editing fields without applying a template.</span>
+              <span class="provider-template-modal__row-title">{{ tt('手动填写 provider', 'Manual provider') }}</span>
+              <span class="provider-template-modal__row-sub">{{ tt('不套用模板，继续直接编辑字段。', 'Keep editing fields without applying a template.') }}</span>
             </span>
-            <span class="provider-template-modal__pill">Manual</span>
+            <span class="provider-template-modal__pill">{{ tt('手动', 'Manual') }}</span>
           </button>
 
           <template v-if="results.length > 0">
@@ -179,7 +179,7 @@
                     type="button"
                     class="provider-template-modal__icon-button"
                     data-testid="provider-template-edit-custom"
-                    title="Edit custom template"
+                    :title="tt('编辑自定义模板', 'Edit custom template')"
                     @click.stop="openCustomEditor(option.template)"
                   >
                     <SIcon
@@ -191,7 +191,7 @@
                     type="button"
                     class="provider-template-modal__icon-button provider-template-modal__icon-button--danger"
                     data-testid="provider-template-delete-custom"
-                    title="Delete custom template"
+                    :title="tt('删除自定义模板', 'Delete custom template')"
                     @click.stop="deleteCustom(option.template.id)"
                   >
                     <SIcon
@@ -209,7 +209,7 @@
             class="provider-template-modal__empty"
             data-testid="provider-template-empty"
           >
-            No template matched the current keywords.
+            {{ tt('当前关键词下没有匹配模板。', 'No template matched the current keywords.') }}
           </div>
         </div>
       </div>
@@ -217,9 +217,9 @@
       <template #footer>
         <div class="provider-template-modal__footer">
           <div class="provider-template-modal__keys">
-            <span><kbd>Enter</kbd> apply</span>
-            <span><kbd>↑↓</kbd> select</span>
-            <span><kbd>Esc</kbd> close</span>
+            <span><kbd>{{ tt('回车', 'Enter') }}</kbd> {{ tt('应用', 'apply') }}</span>
+            <span><kbd>↑↓</kbd> {{ tt('选择', 'select') }}</span>
+            <span><kbd>Esc</kbd> {{ tt('关闭', 'close') }}</span>
           </div>
           <div class="provider-template-modal__footer-actions">
             <button
@@ -228,7 +228,7 @@
               data-testid="provider-template-new-custom"
               @click="openCustomEditor()"
             >
-              New template
+              {{ tt('新建模板', 'New template') }}
             </button>
             <button
               v-if="draftContext"
@@ -237,7 +237,7 @@
               data-testid="provider-template-save-current"
               @click="openCustomEditor(undefined, true)"
             >
-              Save current
+              {{ tt('保存当前内容', 'Save current') }}
             </button>
           </div>
         </div>
@@ -246,8 +246,8 @@
 
     <BaseModal
       :model-value="customEditorOpen"
-      :title="editingCustomId ? 'Edit template' : 'Custom template'"
-      description="Store non-secret provider metadata for later reuse."
+      :title="editingCustomId ? tt('编辑模板', 'Edit template') : tt('自定义模板', 'Custom template')"
+      :description="tt('保存不含密钥的 provider 元数据，方便后续复用。', 'Store non-secret provider metadata for later reuse.')"
       size="full"
       surface="solid"
       content-class="provider-template-editor-modal"
@@ -263,7 +263,7 @@
 
         <div class="provider-template-editor__grid">
           <label class="provider-template-editor__field">
-            <span>Name</span>
+            <span>{{ tt('名称', 'Name') }}</span>
             <input
               v-model="customForm.name"
               class="provider-template-editor__input"
@@ -280,30 +280,30 @@
             >
           </label>
           <label class="provider-template-editor__field">
-            <span>Category</span>
+            <span>{{ tt('分类', 'Category') }}</span>
             <select
               v-model="customForm.category"
               class="provider-template-editor__input"
             >
               <option value="official">
-                Official
+                {{ tt('官方', 'Official') }}
               </option>
               <option value="cn_official">
-                CN official
+                {{ tt('国内官方', 'CN official') }}
               </option>
               <option value="aggregator">
-                Aggregator
+                {{ tt('聚合商', 'Aggregator') }}
               </option>
               <option value="third_party">
-                Third party
+                {{ tt('第三方', 'Third party') }}
               </option>
               <option value="local">
-                Local
+                {{ tt('本地', 'Local') }}
               </option>
             </select>
           </label>
           <label class="provider-template-editor__field">
-            <span>Website URL</span>
+            <span>{{ tt('网站 URL', 'Website URL') }}</span>
             <input
               v-model="customForm.websiteUrl"
               class="provider-template-editor__input"
@@ -311,7 +311,7 @@
             >
           </label>
           <label class="provider-template-editor__field">
-            <span>API key docs URL</span>
+            <span>{{ tt('API key 文档 URL', 'API key docs URL') }}</span>
             <input
               v-model="customForm.apiKeyUrl"
               class="provider-template-editor__input"
@@ -319,7 +319,7 @@
             >
           </label>
           <fieldset class="provider-template-editor__field provider-template-editor__field--platforms">
-            <legend>Platforms</legend>
+            <legend>{{ tt('平台', 'Platforms') }}</legend>
             <label
               v-for="item in platformItems"
               :key="item.id"
@@ -337,39 +337,39 @@
 
         <div class="provider-template-editor__stack">
           <label class="provider-template-editor__field">
-            <span>Base URLs</span>
+            <span>{{ tt('基础 URL', 'Base URLs') }}</span>
             <textarea
               v-model="customForm.baseUrlsInput"
               class="provider-template-editor__textarea"
               rows="4"
-              placeholder="One URL per line"
+              :placeholder="tt('每行一个 URL', 'One URL per line')"
             />
           </label>
           <label class="provider-template-editor__field">
-            <span>Model catalog</span>
+            <span>{{ tt('模型目录', 'Model catalog') }}</span>
             <textarea
               v-model="customForm.modelCatalogInput"
               class="provider-template-editor__textarea"
               rows="4"
-              placeholder="One model per line"
+              :placeholder="tt('每行一个模型', 'One model per line')"
             />
           </label>
           <label class="provider-template-editor__field">
-            <span>Aliases</span>
+            <span>{{ tt('别名', 'Aliases') }}</span>
             <textarea
               v-model="customForm.aliasesInput"
               class="provider-template-editor__textarea"
               rows="3"
-              placeholder="Search aliases, one per line"
+              :placeholder="tt('搜索别名，每行一个', 'Search aliases, one per line')"
             />
           </label>
           <label class="provider-template-editor__field">
-            <span>Tags</span>
+            <span>{{ tt('标签', 'Tags') }}</span>
             <textarea
               v-model="customForm.tagsInput"
               class="provider-template-editor__textarea"
               rows="3"
-              placeholder="Tags, one per line"
+              :placeholder="tt('标签，每行一个', 'Tags, one per line')"
             />
           </label>
         </div>
@@ -383,7 +383,7 @@
             :key="item.id"
             class="provider-template-editor__field"
           >
-            <span>{{ item.label }} override JSON</span>
+            <span>{{ isZh ? `${item.label} override JSON` : `${item.label} override JSON` }}</span>
             <textarea
               v-model="customForm.platformOverrideInputs[item.id]"
               class="provider-template-editor__textarea provider-template-editor__textarea--json"
@@ -402,7 +402,7 @@
           class="provider-template-modal__secondary"
           @click="customEditorOpen = false"
         >
-          Cancel
+          {{ tt('取消', 'Cancel') }}
         </button>
         <button
           type="button"
@@ -410,7 +410,7 @@
           data-testid="provider-template-save-custom"
           @click="saveCustom"
         >
-          Save template
+          {{ tt('保存模板', 'Save template') }}
         </button>
       </template>
     </BaseModal>
@@ -419,6 +419,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, reactive, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import BaseModal from '@/components/common/BaseModal.vue'
 import SIcon from '@/components/ui/SIcon.vue'
 import { useFuzzySearch } from '@/composables/useFuzzySearch'
@@ -454,9 +455,9 @@ const props = withDefaults(defineProps<{
 }>(), {
   selectedTemplateId: null,
   selectedEndpoint: '',
-  label: 'Provider template',
+  label: '',
   helper: '',
-  placeholder: 'Choose a template',
+  placeholder: '',
   disabled: false,
   draftContext: null,
 })
@@ -465,6 +466,9 @@ const emit = defineEmits<{
   select: [selection: ProviderTemplateSelection]
   manual: []
 }>()
+const { locale } = useI18n()
+const isZh = computed(() => locale.value.startsWith('zh'))
+const tt = (zh: string, en: string) => (isZh.value ? zh : en)
 
 const {
   templates,
@@ -483,6 +487,8 @@ const customError = ref('')
 const searchInputId = computed(() => `provider-template-search-${props.platform}`)
 const platformLabel = computed(() => PROVIDER_TEMPLATE_PLATFORM_LABELS[props.platform])
 const allOptions = computed(() => buildProviderTemplateOptions(templates.value, props.platform))
+const selectedLabel = computed(() => props.label || tt('Provider template', 'Provider template'))
+const selectedPlaceholder = computed(() => props.placeholder || tt('选择模板', 'Choose a template'))
 const { query, results } = useFuzzySearch<ProviderTemplateOption>(
   allOptions,
   [
@@ -505,8 +511,14 @@ const selectedTemplate = computed(() => (
 const selectedEndpoint = computed(() => props.selectedEndpoint?.trim())
 
 const selectedTemplateSummary = computed(() => {
-  if (!selectedTemplate.value) return `${allOptions.value.length} reusable templates`
-  const source = selectedTemplate.value.source === 'custom' ? 'Custom' : 'Built-in'
+  if (!selectedTemplate.value) {
+    return isZh.value
+      ? `${allOptions.value.length} 个可复用模板`
+      : `${allOptions.value.length} reusable templates`
+  }
+  const source = selectedTemplate.value.source === 'custom'
+    ? tt('自定义', 'Custom')
+    : tt('内置', 'Built-in')
   return [source, selectedEndpoint.value].filter(Boolean).join(' · ')
 })
 
@@ -680,7 +692,7 @@ function saveCustom() {
   customError.value = ''
   const name = customForm.name.trim()
   if (!name) {
-    customError.value = 'Template name is required.'
+    customError.value = tt('模板名称不能为空。', 'Template name is required.')
     return
   }
 
@@ -689,7 +701,7 @@ function saveCustom() {
     : undefined
   const draft = draftForCustomSave(existing)
   if (!draft) {
-    customError.value = 'Open a provider form before saving a template.'
+    customError.value = tt('请先打开一个 provider 表单，再保存模板。', 'Open a provider form before saving a template.')
     return
   }
 
@@ -697,7 +709,7 @@ function saveCustom() {
     .filter(item => customForm.platforms[item.id])
     .map(item => item.id)
   if (selectedPlatforms.length === 0) {
-    customError.value = 'Select at least one platform.'
+    customError.value = tt('至少选择一个平台。', 'Select at least one platform.')
     return
   }
 
@@ -709,8 +721,10 @@ function saveCustom() {
         platformOverrides[platform] = override as never
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Invalid JSON.'
-      customError.value = `${PROVIDER_TEMPLATE_PLATFORM_LABELS[platform]} override JSON is invalid. ${message}`
+      const message = error instanceof Error ? error.message : tt('JSON 无效。', 'Invalid JSON.')
+      customError.value = isZh.value
+        ? `${PROVIDER_TEMPLATE_PLATFORM_LABELS[platform]} override JSON 无效。${message}`
+        : `${PROVIDER_TEMPLATE_PLATFORM_LABELS[platform]} override JSON is invalid. ${message}`
       return
     }
   }

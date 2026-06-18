@@ -6,14 +6,14 @@
       <header class="claude-auth-view__header">
         <div>
           <p class="claude-auth-view__eyebrow">
-            Claude Official Subscription
+            {{ tt('Claude 官方订阅', 'Claude Official Subscription') }}
           </p>
           <h1 class="claude-auth-view__title">
-            官方账号管理
+            {{ tt('官方账号管理', 'Official account management') }}
           </h1>
           <p class="claude-auth-view__subtitle">
-            保存、切换、删除 Claude Code 官方订阅账号快照；切换只会改写
-            <code>~/.claude/.credentials.json</code>。
+            {{ tt('保存、切换、删除 Claude Code 官方订阅账号快照；切换只会改写', 'Save, switch, or delete Claude Code official subscription snapshots. Switching only rewrites') }}
+            <code>{{ credentialsFile }}</code>{{ tt('。', '.') }}
           </p>
         </div>
 
@@ -22,7 +22,7 @@
             to="/claude-code"
             class="claude-auth-view__ghost-button"
           >
-            返回 Claude Code
+            {{ tt('返回 Claude Code', 'Back to Claude Code') }}
           </RouterLink>
           <button
             type="button"
@@ -30,7 +30,7 @@
             :disabled="loading"
             @click="refreshAll"
           >
-            刷新
+            {{ tt('刷新', 'Refresh') }}
           </button>
           <button
             type="button"
@@ -38,7 +38,7 @@
             :disabled="saving"
             @click="showSaveForm = true"
           >
-            保存当前登录
+            {{ tt('保存当前登录', 'Save current login') }}
           </button>
         </div>
       </header>
@@ -53,7 +53,7 @@
       <section class="claude-auth-view__stats">
         <article class="claude-auth-view__stat-card">
           <p class="claude-auth-view__stat-label">
-            登录状态
+            {{ tt('登录状态', 'Login state') }}
           </p>
           <p class="claude-auth-view__stat-value">
             {{ loginStateLabel }}
@@ -61,7 +61,7 @@
         </article>
         <article class="claude-auth-view__stat-card">
           <p class="claude-auth-view__stat-label">
-            运行时模式
+            {{ tt('运行时模式', 'Runtime mode') }}
           </p>
           <p class="claude-auth-view__stat-value">
             {{ runtimeModeLabel }}
@@ -69,7 +69,7 @@
         </article>
         <article class="claude-auth-view__stat-card">
           <p class="claude-auth-view__stat-label">
-            当前 Profile
+            {{ tt('当前 Profile', 'Current profile') }}
           </p>
           <p class="claude-auth-view__stat-value">
             {{ currentProfileLabel }}
@@ -77,7 +77,7 @@
         </article>
         <article class="claude-auth-view__stat-card">
           <p class="claude-auth-view__stat-label">
-            已保存账号
+            {{ tt('已保存账号', 'Saved accounts') }}
           </p>
           <p class="claude-auth-view__stat-value">
             {{ accounts.length }}
@@ -91,14 +91,14 @@
       >
         <div class="claude-auth-view__panel-header">
           <h2 class="claude-auth-view__panel-title">
-            当前运行时官方登录
+            {{ tt('当前运行时官方登录', 'Current runtime official login') }}
           </h2>
         </div>
 
         <div class="claude-auth-view__detail-grid">
           <div>
             <p class="claude-auth-view__detail-label">
-              邮箱
+              {{ tt('邮箱', 'Email') }}
             </p>
             <p class="claude-auth-view__detail-value">
               {{ currentInfo.email || '-' }}
@@ -106,7 +106,7 @@
           </div>
           <div>
             <p class="claude-auth-view__detail-label">
-              账号 UUID
+              {{ tt('账号 UUID', 'Account UUID') }}
             </p>
             <p class="claude-auth-view__detail-value">
               {{ currentInfo.account_uuid || '-' }}
@@ -114,7 +114,7 @@
           </div>
           <div>
             <p class="claude-auth-view__detail-label">
-              订阅类型
+              {{ tt('订阅类型', 'Subscription type') }}
             </p>
             <p class="claude-auth-view__detail-value">
               {{ currentInfo.subscription_type || '-' }}
@@ -122,7 +122,7 @@
           </div>
           <div>
             <p class="claude-auth-view__detail-label">
-              计费类型
+              {{ tt('计费类型', 'Billing type') }}
             </p>
             <p class="claude-auth-view__detail-value">
               {{ currentInfo.billing_type || '-' }}
@@ -130,7 +130,7 @@
           </div>
           <div>
             <p class="claude-auth-view__detail-label">
-              速率档位
+              {{ tt('速率档位', 'Rate tier') }}
             </p>
             <p class="claude-auth-view__detail-value">
               {{ currentInfo.rate_limit_tier || '-' }}
@@ -138,7 +138,7 @@
           </div>
           <div>
             <p class="claude-auth-view__detail-label">
-              Access Token 到期
+              {{ tt('Access Token 到期', 'Access token expiry') }}
             </p>
             <p class="claude-auth-view__detail-value">
               {{ currentInfo.expires_at ? formatDate(currentInfo.expires_at) : '-' }}
@@ -151,11 +151,11 @@
         <div class="claude-auth-view__panel-header">
           <div>
             <h2 class="claude-auth-view__panel-title">
-              已保存账号快照
+              {{ tt('已保存账号快照', 'Saved account snapshots') }}
             </h2>
             <p class="claude-auth-view__panel-subtitle">
-              每个快照都保存当前 `claudeAiOauth`，切换时不会改写
-              <code>~/.claude.json</code>。
+              {{ tt('每个快照都保存当前 `claudeAiOauth`，切换时不会改写', 'Each snapshot keeps the current `claudeAiOauth`, and switching will not rewrite') }}
+              <code>{{ claudeJsonFile }}</code>{{ tt('。', '.') }}
             </p>
           </div>
         </div>
@@ -164,14 +164,14 @@
           v-if="loading"
           class="claude-auth-view__empty"
         >
-          正在加载账号信息…
+          {{ tt('正在加载账号信息…', 'Loading account details...') }}
         </div>
 
         <div
           v-else-if="accounts.length === 0"
           class="claude-auth-view__empty"
         >
-          尚未保存任何官方账号快照。
+          {{ tt('尚未保存任何官方账号快照。', 'No official account snapshots saved yet.') }}
         </div>
 
         <div
@@ -181,12 +181,12 @@
           <table class="claude-auth-view__table">
             <thead>
               <tr>
-                <th>名称</th>
-                <th>邮箱</th>
-                <th>订阅</th>
-                <th>到期</th>
-                <th>状态</th>
-                <th>操作</th>
+                <th>{{ tt('名称', 'Name') }}</th>
+                <th>{{ tt('邮箱', 'Email') }}</th>
+                <th>{{ tt('订阅', 'Subscription') }}</th>
+                <th>{{ tt('到期', 'Expiry') }}</th>
+                <th>{{ tt('状态', 'State') }}</th>
+                <th>{{ tt('操作', 'Actions') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -201,7 +201,7 @@
                       v-if="account.is_current"
                       class="claude-auth-view__pill"
                     >
-                      当前
+                      {{ tt('当前', 'Current') }}
                     </span>
                   </div>
                   <p
@@ -217,7 +217,7 @@
                   {{ account.expires_at ? formatDate(account.expires_at) : '-' }}
                 </td>
                 <td>
-                  {{ account.is_current ? '当前生效' : account.is_logged_in ? '已登录' : '已保存' }}
+                  {{ account.is_current ? tt('当前生效', 'Active now') : account.is_logged_in ? tt('已登录', 'Logged in') : tt('已保存', 'Saved') }}
                 </td>
                 <td>
                   <div class="claude-auth-view__row-actions">
@@ -227,7 +227,7 @@
                       :disabled="busyName === account.name"
                       @click="handleSwitch(account.name)"
                     >
-                      切换
+                      {{ tt('切换', 'Switch') }}
                     </button>
                     <button
                       type="button"
@@ -235,7 +235,7 @@
                       :disabled="busyName === account.name"
                       @click="handleDelete(account.name)"
                     >
-                      删除
+                      {{ tt('删除', 'Delete') }}
                     </button>
                   </div>
                 </td>
@@ -252,27 +252,27 @@
       >
         <div class="claude-auth-view__modal">
           <h3 class="claude-auth-view__modal-title">
-            保存当前官方登录
+            {{ tt('保存当前官方登录', 'Save current official login') }}
           </h3>
           <p class="claude-auth-view__modal-subtitle">
-            当前必须已经通过 `claude login` 拿到官方登录，CCR 只负责保存快照和切换。
+            {{ tt('当前必须已经通过 `claude login` 拿到官方登录，CCR 只负责保存快照和切换。', 'You must already have an official login from `claude login`. CCR only saves and switches snapshots.') }}
           </p>
 
           <label class="claude-auth-view__field">
-            <span>账号名称</span>
+            <span>{{ tt('账号名称', 'Account name') }}</span>
             <input
               v-model="saveForm.name"
               type="text"
-              placeholder="例如 work / personal"
+              :placeholder="tt('例如 work / personal', 'e.g. work / personal')"
             >
           </label>
 
           <label class="claude-auth-view__field">
-            <span>描述（可选）</span>
+            <span>{{ tt('描述（可选）', 'Description (optional)') }}</span>
             <input
               v-model="saveForm.description"
               type="text"
-              placeholder="例如 公司订阅 / 个人订阅"
+              :placeholder="tt('例如 公司订阅 / 个人订阅', 'e.g. company plan / personal plan')"
             >
           </label>
 
@@ -281,7 +281,7 @@
               v-model="saveForm.force"
               type="checkbox"
             >
-            <span>覆盖同名账号</span>
+            <span>{{ tt('覆盖同名账号', 'Overwrite same-name account') }}</span>
           </label>
 
           <div class="claude-auth-view__modal-actions">
@@ -290,7 +290,7 @@
               class="claude-auth-view__ghost-button"
               @click="showSaveForm = false"
             >
-              取消
+              {{ tt('取消', 'Cancel') }}
             </button>
             <button
               type="button"
@@ -298,7 +298,7 @@
               :disabled="saving"
               @click="handleSave"
             >
-              {{ saving ? '保存中…' : '保存' }}
+              {{ saving ? tt('保存中…', 'Saving...') : tt('保存', 'Save') }}
             </button>
           </div>
         </div>
@@ -309,6 +309,7 @@
 
 <script setup lang="ts">
 import { computed, onActivated, onMounted, reactive, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import ModuleSubnav from '@/components/ModuleSubnav.vue'
 import {
   deleteClaudeAuth,
@@ -331,7 +332,12 @@ import { useUIStore } from '@/stores/ui'
 
 defineOptions({ name: 'ClaudeAuthView' })
 
+const { locale } = useI18n()
 const uiStore = useUIStore()
+const isZh = computed(() => locale.value.startsWith('zh'))
+const tt = (zh: string, en: string) => (isZh.value ? zh : en)
+const credentialsFile = '~/.claude/.credentials.json'
+const claudeJsonFile = '~/.claude.json'
 
 const loading = ref(false)
 const saving = ref(false)
@@ -353,43 +359,43 @@ const saveForm = reactive({
 const extractErrorMessage = (error: unknown): string => {
   if (error instanceof Error && error.message) return error.message
   if (typeof error === 'string') return error
-  return '请求失败'
+  return tt('请求失败', 'Request failed')
 }
 
 const loginStateLabel = computed(() => {
   switch (loginState.value.type) {
     case 'LoggedInSaved':
-      return `已登录（已保存为 ${loginState.value.account_name}）`
+      return tt(`已登录（已保存为 ${loginState.value.account_name}）`, `Logged in (saved as ${loginState.value.account_name})`)
     case 'LoggedInUnsaved':
-      return '已登录（未保存）'
+      return tt('已登录（未保存）', 'Logged in (unsaved)')
     case 'ApiKeyActive':
-      return '当前由 API key profile 控制'
+      return tt('当前由 API key profile 控制', 'Currently controlled by the API key profile')
     case 'NotLoggedIn':
     default:
-      return '未登录'
+      return tt('未登录', 'Not logged in')
   }
 })
 
 const runtimeModeLabel = computed(() => {
   switch (runtimeSummary.value?.mode) {
     case 'profile_with_auth':
-      return 'Profile + 官方订阅'
+      return tt('Profile + 官方订阅', 'Profile + official subscription')
     case 'profile_pending_auth':
-      return 'Profile 等待官方订阅'
+      return tt('Profile 等待官方订阅', 'Profile waiting for official subscription')
     case 'profile_only':
-      return 'Profile 驱动（API key）'
+      return tt('Profile 驱动（API key）', 'Profile-driven (API key)')
     case 'runtime_only':
-      return '仅官方订阅运行时'
+      return tt('仅官方订阅运行时', 'Official subscription runtime only')
     case 'unresolved':
     default:
-      return '未解析'
+      return tt('未解析', 'Unresolved')
   }
 })
 
 const currentProfileLabel = computed(() => {
   const summary = runtimeSummary.value
   if (!summary?.current_profile_name) {
-    return '未绑定'
+    return tt('未绑定', 'Unbound')
   }
 
   const authMode = summary.current_profile_auth_mode
@@ -400,7 +406,7 @@ const currentProfileLabel = computed(() => {
 
 const formatDate = (date: string) => {
   try {
-    return new Date(date).toLocaleString()
+    return new Date(date).toLocaleString(isZh.value ? 'zh-CN' : 'en-US')
   } catch {
     return date
   }
@@ -431,7 +437,7 @@ const refreshAll = async () => {
 
 const handleSave = async () => {
   if (!saveForm.name.trim()) {
-    uiStore.showError('账号名称不能为空')
+    uiStore.showError(tt('账号名称不能为空', 'Account name is required'))
     return
   }
 
@@ -446,7 +452,7 @@ const handleSave = async () => {
     }
 
     await saveClaudeAuth(payload)
-    uiStore.showSuccess('Claude 官方账号已保存')
+    uiStore.showSuccess(tt('Claude 官方账号已保存', 'Claude official account saved'))
     showSaveForm.value = false
     saveForm.name = ''
     saveForm.description = ''
@@ -462,13 +468,13 @@ const handleSave = async () => {
 }
 
 const handleSwitch = async (name: string) => {
-  if (!window.confirm(`确定切换到官方账号 "${name}" 吗？`)) return
+  if (!window.confirm(tt(`确定切换到官方账号 "${name}" 吗？`, `Switch to official account "${name}"?`))) return
 
   try {
     busyName.value = name
     authActionError.value = null
     await switchClaudeAuth(name)
-    uiStore.showSuccess(`已切换到 ${name}`)
+    uiStore.showSuccess(tt(`已切换到 ${name}`, `Switched to ${name}`))
     await refreshAll()
   } catch (error) {
     logger.error('Failed to switch Claude auth:', error)
@@ -480,13 +486,13 @@ const handleSwitch = async (name: string) => {
 }
 
 const handleDelete = async (name: string) => {
-  if (!window.confirm(`确定删除官方账号 "${name}" 吗？`)) return
+  if (!window.confirm(tt(`确定删除官方账号 "${name}" 吗？`, `Delete official account "${name}"?`))) return
 
   try {
     busyName.value = name
     authActionError.value = null
     await deleteClaudeAuth(name)
-    uiStore.showSuccess(`已删除 ${name}`)
+    uiStore.showSuccess(tt(`已删除 ${name}`, `Deleted ${name}`))
     await refreshAll()
   } catch (error) {
     logger.error('Failed to delete Claude auth:', error)

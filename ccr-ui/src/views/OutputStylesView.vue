@@ -170,7 +170,7 @@
                 <p class="text-xs text-text-muted mb-1 font-semibold">
                   {{ $t('outputStyles.preview') }}:
                 </p>
-                <pre class="text-xs font-mono text-text-secondary line-clamp-4 whitespace-pre-wrap break-words">{{ style.content.slice(0, 300) }}{{ style.content.length > 300 ? '...' : '' }}</pre>
+                <pre class="text-xs font-mono text-text-secondary line-clamp-4 whitespace-pre-wrap break-words">{{ previewContent(style.content) }}</pre>
               </div>
 
               <div class="mt-3 flex items-center justify-between text-xs text-text-muted">
@@ -413,6 +413,9 @@ const filteredStyles = computed(() => {
   )
 })
 
+const previewContent = (content: string) =>
+  content.length > 300 ? `${content.slice(0, 300)}...` : content
+
 onMounted(async () => {
   await loadStyles()
 })
@@ -558,4 +561,3 @@ const handleEditModalFocusTrap = (e: KeyboardEvent) => {
   }
 }
 </script>
-

@@ -43,7 +43,7 @@
     >
       <article class="pricing-boundary__item">
         <span>{{ t('pricing.boundary.sourceLabel') }}</span>
-        <strong>~/.claude/pricing.toml</strong>
+        <strong>{{ legacyPricingSourcePath }}</strong>
         <p>{{ t('pricing.boundary.sourceCopy') }}</p>
       </article>
       <article class="pricing-boundary__item">
@@ -357,6 +357,7 @@ type PendingAction =
   | { type: 'reset' }
 
 const { t } = useI18n()
+const legacyPricingSourcePath = '~/.claude/pricing.toml'
 
 const pricingData = ref<RawPricingListResponse | null>(null)
 const loading = ref(false)

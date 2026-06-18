@@ -213,7 +213,7 @@
                     color: 'var(--text-primary)'
                   }"
                 >
-                  {{ count }}次 ({{ maxCount ? ((count / totalUsage) * 100).toFixed(1) : 0 }}%)
+                  {{ formatUsageShare(count) }}
                 </div>
 
                 <!-- 柱子 -->
@@ -276,7 +276,8 @@ interface Emits {
 
 defineEmits<Emits>()
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
+const isZh = computed(() => locale.value.startsWith('zh'))
 
 // 图表颜色配置
 const chartColors = [
@@ -334,6 +335,11 @@ const yTicks = computed(() => {
     value: Math.round((max * percent) / 100),
   }))
 })
+
+const formatUsageShare = (count: number) => {
+  const percent = maxCount.value ? ((count / totalUsage.value) * 100).toFixed(1) : '0'
+  return isZh.value ? `${count}次 (${percent}%)` : `${count} calls (${percent}%)`
+}
 </script>
 
 <style scoped>

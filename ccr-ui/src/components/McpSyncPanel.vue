@@ -80,7 +80,7 @@
     <div>
       <div class="flex items-center justify-between mb-3">
         <label class="text-xs font-bold text-text-secondary uppercase tracking-wider">
-          {{ $t('mcp.sync.sourceServers') }} (Claude)
+          {{ sourceServersLabel }}
         </label>
         <span class="text-xs text-text-muted">
           {{ sourceServers.length }} {{ $t('mcp.sync.servers') }}
@@ -130,7 +130,7 @@
                   {{ server.name }}
                 </h4>
                 <span class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-accent-primary/10 text-accent-primary">
-                  Claude
+                  {{ sourcePlatformName }}
                 </span>
               </div>
               <div class="flex items-center gap-1.5 text-xs font-mono text-text-muted bg-bg-surface rounded-lg px-2 py-1 overflow-hidden">
@@ -186,7 +186,7 @@
 
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
-import { ref, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useUIStore } from '@/stores/ui'
 import {
@@ -212,6 +212,8 @@ const syncingServer = ref<string | null>(null)
 const sourceServers = ref<McpServerInfo[]>([])
 const selectedPlatforms = ref<string[]>(['codex', 'gemini'])
 const syncResults = ref<Record<string, SyncResult[]>>({})
+const sourcePlatformName = 'Claude'
+const sourceServersLabel = computed(() => `${t('mcp.sync.sourceServers')} (${sourcePlatformName})`)
 
 // Available platforms (excluding Claude as it's the source)
 const platforms = [
@@ -293,4 +295,3 @@ onMounted(() => {
   loadSourceServers()
 })
 </script>
-

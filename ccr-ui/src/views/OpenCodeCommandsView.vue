@@ -1,7 +1,7 @@
 <template>
   <OpenCodePageShell
-    title="Commands"
-    description="管理 markdown / JSON 形式的自定义命令模板，并展示 built-in command 覆盖语义。"
+    :title="tt('命令', 'Commands')"
+    :description="tt('管理 markdown / JSON 形式的自定义命令模板，并展示 built-in command 覆盖语义。', 'Manage custom command templates in markdown / JSON form and show how they override built-in commands.')"
     icon="Command"
     tone="amber"
     badge="command"
@@ -20,7 +20,7 @@
             size="w-4 h-4"
           />
         </template>
-        添加 Command
+        {{ tt('添加 Command', 'Add command') }}
       </Button>
     </template>
 
@@ -30,23 +30,23 @@
         class="p-5"
       >
         <h2 class="text-lg font-semibold text-text-primary">
-          Built-in behavior
+          {{ tt('Built-in behavior', 'Built-in behavior') }}
         </h2>
         <p class="mt-2 text-sm text-text-secondary">
-          自定义命令可以覆盖 `/init`、`/undo`、`/redo`、`/share`、`/help` 等内置命令。Agent / subtask / model 都可在 frontmatter 指定。
+          {{ tt('自定义命令可以覆盖 `/init`、`/undo`、`/redo`、`/share`、`/help` 等内置命令。Agent / subtask / model 都可在 frontmatter 指定。', 'Custom commands can override built-in entries like `/init`, `/undo`, `/redo`, `/share`, and `/help`. Agent / subtask / model can all be set in frontmatter.') }}
         </p>
 
         <div class="mt-4 space-y-3">
           <div class="rounded-2xl border border-border-default/55 bg-bg-base/35 p-4">
-            <strong class="font-mono text-sm text-text-primary">/review &lt;target&gt;</strong>
+            <strong class="font-mono text-sm text-text-primary">{{ reviewCommandExample }}</strong>
             <p class="mt-2 text-sm text-text-secondary">
-              配合 `agent: plan` 或 `subtask: true`，让命令直接走分析链路。
+              {{ tt('配合 `agent: plan` 或 `subtask: true`，让命令直接走分析链路。', 'Pair it with `agent: plan` or `subtask: true` so the command enters the analysis path directly.') }}
             </p>
           </div>
           <div class="rounded-2xl border border-border-default/55 bg-bg-base/35 p-4">
-            <strong class="font-mono text-sm text-text-primary">!`command` + @file</strong>
+            <strong class="font-mono text-sm text-text-primary">{{ shellInjectionExample }}</strong>
             <p class="mt-2 text-sm text-text-secondary">
-              OpenCode 命令模板支持注入 shell 输出与文件内容。
+              {{ tt('OpenCode 命令模板支持注入 shell 输出与文件内容。', 'OpenCode command templates can inject shell output and file contents.') }}
             </p>
           </div>
         </div>
@@ -67,10 +67,10 @@
           class="p-8 text-center"
         >
           <h2 class="text-lg font-semibold text-text-primary">
-            暂无自定义 Command
+            {{ tt('暂无自定义 Command', 'No custom commands yet') }}
           </h2>
           <p class="mt-2 text-sm text-text-secondary">
-            从测试、review、scaffold 这类高频动作开始封装。
+            {{ tt('从测试、review、scaffold 这类高频动作开始封装。', 'Start by packaging common actions like tests, review, or scaffold.') }}
           </p>
         </Card>
 
@@ -96,7 +96,7 @@
                   v-if="command.subtask"
                   class="rounded-full bg-violet-300/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-violet-200"
                 >
-                  subtask
+                  {{ tt('subtask', 'subtask') }}
                 </span>
               </div>
 
@@ -114,7 +114,7 @@
                 motion="subtle"
                 @click="openEdit(command)"
               >
-                编辑
+                {{ tt('编辑', 'Edit') }}
               </Button>
               <Button
                 variant="danger"
@@ -123,7 +123,7 @@
                 motion="subtle"
                 @click="removeCommand(command)"
               >
-                删除
+                {{ tt('删除', 'Delete') }}
               </Button>
             </div>
           </div>
@@ -133,15 +133,15 @@
 
     <BaseModal
       v-model="showModal"
-      :title="editingName ? '编辑 Command' : '添加 Command'"
-      description="命令模板支持 $ARGUMENTS、位置参数、shell 输出和文件引用。"
+      :title="editingName ? tt('编辑 Command', 'Edit command') : tt('添加 Command', 'Add command')"
+      :description="tt('命令模板支持 $ARGUMENTS、位置参数、shell 输出和文件引用。', 'Command templates support $ARGUMENTS, positional args, shell output, and file references.')"
       size="lg"
       content-class="max-w-3xl"
     >
       <div class="space-y-4">
         <div class="grid gap-4 md:grid-cols-2">
           <div>
-            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">command name *</label>
+            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('command name *', 'command name *') }}</label>
             <input
               v-model="form.name"
               :disabled="Boolean(editingName)"
@@ -150,7 +150,7 @@
             >
           </div>
           <div>
-            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">agent</label>
+            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('agent', 'agent') }}</label>
             <input
               v-model="form.agent"
               class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 text-sm text-text-primary"
@@ -161,7 +161,7 @@
 
         <div class="grid gap-4 md:grid-cols-2">
           <div>
-            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">description *</label>
+            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('description *', 'description *') }}</label>
             <input
               v-model="form.description"
               class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 text-sm text-text-primary"
@@ -169,7 +169,7 @@
             >
           </div>
           <div>
-            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">model</label>
+            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('model', 'model') }}</label>
             <input
               v-model="form.model"
               class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 text-sm text-text-primary"
@@ -183,11 +183,11 @@
             v-model="form.subtask"
             type="checkbox"
           >
-          强制以 subtask 方式执行
+          {{ tt('强制以 subtask 方式执行', 'Force execution as a subtask') }}
         </label>
 
         <div>
-          <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">template</label>
+          <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('template', 'template') }}</label>
           <textarea
             v-model="form.template"
             rows="12"
@@ -203,7 +203,7 @@
             motion="subtle"
             @click="showModal = false"
           >
-            取消
+            {{ tt('取消', 'Cancel') }}
           </Button>
           <Button
             variant="primary"
@@ -221,7 +221,7 @@
                 class="animate-spin"
               />
             </template>
-            保存
+            {{ tt('保存', 'Save') }}
           </Button>
         </div>
       </div>
@@ -230,7 +230,8 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { getErrorMessage } from '@/utils/errorHandler'
 import Card from '@/components/ui/Card.vue'
 import Button from '@/components/ui/Button.vue'
@@ -241,12 +242,17 @@ import { useUIStore } from '@/stores/ui'
 import { addOpenCodeCommand, deleteOpenCodeCommand, listOpenCodeCommands, updateOpenCodeCommand } from '@/api'
 import type { OpenCodeCommand, OpenCodeCommandRequest } from '@/types'
 
+const { locale } = useI18n()
 const uiStore = useUIStore()
+const isZh = computed(() => locale.value.startsWith('zh'))
+const tt = (zh: string, en: string) => (isZh.value ? zh : en)
 const loading = ref(false)
 const saving = ref(false)
 const showModal = ref(false)
 const editingName = ref('')
 const commands = ref<OpenCodeCommand[]>([])
+const reviewCommandExample = '/review <target>'
+const shellInjectionExample = '!`command` + @file'
 
 const form = reactive({
   name: '',
@@ -292,7 +298,7 @@ function openEdit(command: OpenCodeCommand) {
 
 async function saveCommand() {
   if (!form.name.trim() || !form.description.trim()) {
-    uiStore.showError('Command name 和 description 为必填项')
+    uiStore.showError(tt('Command name 和 description 为必填项', 'Command name and description are required'))
     return
   }
 
@@ -314,7 +320,7 @@ async function saveCommand() {
       await addOpenCodeCommand(request)
     }
 
-    uiStore.showSuccess(editingName.value ? 'Command 已更新' : 'Command 已创建')
+    uiStore.showSuccess(editingName.value ? tt('Command 已更新', 'Command updated') : tt('Command 已创建', 'Command created'))
     showModal.value = false
     await loadCommands()
   } catch (error) {
@@ -327,7 +333,7 @@ async function saveCommand() {
 async function removeCommand(command: OpenCodeCommand) {
   try {
     await deleteOpenCodeCommand(command.name, { scope: command.scope })
-    uiStore.showSuccess('Command 已删除')
+    uiStore.showSuccess(tt('Command 已删除', 'Command deleted'))
     await loadCommands()
   } catch (error) {
     uiStore.showError(getErrorMessage(error))

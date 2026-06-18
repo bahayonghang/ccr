@@ -256,14 +256,12 @@
                   v-model="formData.model"
                   class="w-full px-4 py-3 rounded-xl bg-bg-surface/700 border border-border-default focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 outline-none transition-colors appearance-none"
                 >
-                  <option value="claude-sonnet-4-5-20250929">
-                    Claude Sonnet 4.5
-                  </option>
-                  <option value="claude-opus-4-20250514">
-                    Claude Opus 4
-                  </option>
-                  <option value="claude-3-5-sonnet-20241022">
-                    Claude 3.5 Sonnet
+                  <option
+                    v-for="option in defaultAgentModelOptions"
+                    :key="option.value"
+                    :value="option.value"
+                  >
+                    {{ option.label }}
                   </option>
                 </select>
                 <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-text-muted">
@@ -363,6 +361,11 @@ import { copyText } from '@/utils/clipboard'
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
+const defaultAgentModelOptions = [
+  { value: 'claude-sonnet-4-5-20250929', label: 'Claude Sonnet 4.5' },
+  { value: 'claude-opus-4-20250514', label: 'Claude Opus 4' },
+  { value: 'claude-3-5-sonnet-20241022', label: 'Claude 3.5 Sonnet' },
+]
 
 // 使用 agents module (Claude Code)
 const { getAgent, updateAgent, deleteAgent, toggleAgent, loading } = useAgents('agents')
@@ -487,4 +490,3 @@ const copySystemPrompt = async () => {
   }
 }
 </script>
-

@@ -18,7 +18,7 @@
             </div>
             <div>
               <h1 class="gemini-title">
-                Antigravity CLI
+                {{ t('gemini.overview.breadcrumb') }}
               </h1>
               <p class="gemini-subtitle">
                 {{ t('gemini.overview.hero.subtitle') }}

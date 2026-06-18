@@ -4,7 +4,7 @@
     size="4xl"
     scrollable
     surface="solid"
-    title="Edit Configuration"
+    :title="modalTitle"
     @update:model-value="(value: boolean) => { if (!value) handleClose() }"
     @close="handleClose"
   >
@@ -22,7 +22,7 @@
             :id="titleId"
             class="text-xl font-bold text-text-primary"
           >
-            Edit Configuration
+            {{ modalTitle }}
           </h2>
           <p class="text-xs text-text-secondary font-mono flex items-center gap-1">
             <span>ID:</span> {{ configName }}
@@ -57,7 +57,7 @@
             class="text-text-muted"
           />
           <h3 class="text-xs font-bold uppercase tracking-wider text-text-muted">
-            Basic Info
+            {{ tt('基本信息', 'Basic Info') }}
           </h3>
           <div class="h-px flex-1 bg-border-default" />
         </div>
@@ -85,7 +85,7 @@
             class="text-text-muted"
           />
           <h3 class="text-xs font-bold uppercase tracking-wider text-text-muted">
-            Connection
+            {{ tt('连接', 'Connection') }}
           </h3>
           <div class="h-px flex-1 bg-border-default" />
         </div>
@@ -149,7 +149,7 @@
             class="text-text-muted"
           />
           <h3 class="text-xs font-bold uppercase tracking-wider text-text-muted">
-            Models
+            {{ tt('模型', 'Models') }}
           </h3>
           <div class="h-px flex-1 bg-border-default" />
         </div>
@@ -194,7 +194,7 @@
             class="text-text-muted"
           />
           <h3 class="text-xs font-bold uppercase tracking-wider text-text-muted">
-            Provider
+            {{ tt('提供商', 'Provider') }}
           </h3>
           <div class="h-px flex-1 bg-border-default" />
         </div>
@@ -202,7 +202,7 @@
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <!-- Provider Type Select -->
           <div class="w-full">
-            <label class="block text-xs font-bold uppercase tracking-wider text-text-muted mb-1.5 ml-1">Provider Type</label>
+            <label class="block text-xs font-bold uppercase tracking-wider text-text-muted mb-1.5 ml-1">{{ tt('提供商类型', 'Provider Type') }}</label>
             <div class="relative">
               <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <SIcon
@@ -215,14 +215,12 @@
                 v-model="formData.provider_type"
                 class="w-full bg-bg-elevated border border-border-default rounded-lg pl-10 pr-8 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary appearance-none transition-[border-color,box-shadow] duration-300 hover:border-border-strong"
               >
-                <option value="">
-                  Uncategorized
-                </option>
-                <option value="official_relay">
-                  Official Relay
-                </option>
-                <option value="third_party_model">
-                  Third Party
+                <option
+                  v-for="option in providerTypeOptions"
+                  :key="option.value || 'uncategorized'"
+                  :value="option.value"
+                >
+                  {{ option.label }}
                 </option>
               </select>
               <div class="absolute inset-y-0 right-3 flex items-center pointer-events-none">
@@ -276,7 +274,7 @@
             class="text-text-muted"
           />
           <h3 class="text-xs font-bold uppercase tracking-wider text-text-muted">
-            Tags
+            {{ tt('标签', 'Tags') }}
           </h3>
           <div class="h-px flex-1 bg-border-default" />
         </div>
@@ -305,7 +303,7 @@
         class="flex-1"
         @click="handleClose"
       >
-        Cancel
+        {{ tt('取消', 'Cancel') }}
       </Button>
       <Button
         variant="primary"
@@ -313,7 +311,7 @@
         :loading="saving"
         @click="handleSave"
       >
-        Save Changes
+        {{ tt('保存更改', 'Save Changes') }}
       </Button>
     </template>
   </BaseModal>
@@ -321,7 +319,8 @@
 
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { getConfig, updateConfig } from '@/api'
 import BaseModal from '@/components/common/BaseModal.vue'
 import Button from '@/components/ui/Button.vue'
@@ -339,6 +338,15 @@ interface Props {
 
 const props = defineProps<Props>()
 const emit = defineEmits(['close', 'saved'])
+const { locale } = useI18n()
+const isZh = computed(() => locale.value.startsWith('zh'))
+const tt = (zh: string, en: string) => (isZh.value ? zh : en)
+const modalTitle = computed(() => tt('编辑配置', 'Edit Configuration'))
+const providerTypeOptions = computed(() => [
+  { value: '', label: tt('未分类', 'Uncategorized') },
+  { value: 'official_relay', label: tt('官方中转', 'Official Relay') },
+  { value: 'third_party_model', label: tt('第三方', 'Third Party') },
+])
 
 // Auth token visibility toggle
 const showToken = ref(true)
@@ -395,4 +403,3 @@ const handleSave = async () => {
 
 watch(() => props.isOpen, (val) => { if(val) loadConfig() })
 </script>
-

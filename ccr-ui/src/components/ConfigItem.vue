@@ -50,13 +50,13 @@
           v-if="config.is_current"
           class="px-1.5 py-0.5 rounded text-[8px] font-bold bg-emerald-500/15 text-emerald-400 ring-1 ring-emerald-500/20"
         >
-          当前
+          {{ currentLabel }}
         </span>
         <span
           v-if="config.is_default"
           class="px-1.5 py-0.5 rounded text-[8px] font-bold bg-amber-500/15 text-amber-400 ring-1 ring-amber-500/20"
         >
-          默认
+          {{ defaultLabel }}
         </span>
         <SIcon
           name="ChevronRight"
@@ -71,6 +71,7 @@
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { ConfigItem } from '@/types'
 
 interface Props {
@@ -78,6 +79,11 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+const { locale } = useI18n()
+const isZh = computed(() => locale.value.startsWith('zh'))
+const tt = (zh: string, en: string) => (isZh.value ? zh : en)
+const currentLabel = computed(() => tt('当前', 'Current'))
+const defaultLabel = computed(() => tt('默认', 'Default'))
 
 defineEmits<{
   click: []

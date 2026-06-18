@@ -22,17 +22,12 @@
           <option value="">
             {{ $t('usage.dashboard.allPlatforms') }}
           </option>
-          <option value="claude">
-            Claude
-          </option>
-          <option value="codex">
-            Codex
-          </option>
-          <option value="gemini">
-            Antigravity CLI
-          </option>
-          <option value="opencode">
-            OpenCode
+          <option
+            v-for="option in platformOptions"
+            :key="option.value"
+            :value="option.value"
+          >
+            {{ option.label }}
           </option>
         </select>
       </label>
@@ -101,6 +96,12 @@ const rangeOptions: Array<{ value: UsageRangePreset; key: string }> = [
   { value: 'this_month', key: 'usage.dashboard.range.thisMonth' },
   { value: 'last_30d', key: 'usage.dashboard.range.last30' },
   { value: 'all_time', key: 'usage.dashboard.range.allTime' },
+]
+const platformOptions = [
+  { value: 'claude', label: 'Claude' },
+  { value: 'codex', label: 'Codex' },
+  { value: 'gemini', label: 'Antigravity CLI' },
+  { value: 'opencode', label: 'OpenCode' },
 ]
 
 const emitPlatform = (value: string) => {

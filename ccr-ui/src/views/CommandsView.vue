@@ -386,7 +386,7 @@
                 {{ t('commands.previewLabel') }}
               </div>
               <div class="command-strip__body">
-                <span class="command-strip__prompt">➜</span>
+                <span class="command-strip__prompt">{{ commandPromptSymbol }}</span>
                 <span class="command-strip__binary">{{ commandPreview }}</span>
                 <span
                   v-if="args.trim()"
@@ -637,6 +637,7 @@ interface CommandHistoryItem {
 const { t } = useI18n({ useScope: 'global' })
 const route = useRoute()
 const router = useRouter()
+const commandPromptSymbol = '➜'
 
 const runtimeUnavailable = computed(() => !isTauriRuntime())
 const runtimeCopy = computed(() => getRuntimeUnavailableCopy('commands'))

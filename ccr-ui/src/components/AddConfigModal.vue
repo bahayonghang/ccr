@@ -219,7 +219,7 @@
         variant="ghost"
         @click="handleClose"
       >
-        Cancel
+        {{ $t('common.cancel') }}
       </Button>
       <Button
         variant="primary"
@@ -340,4 +340,3 @@ const resetForm = () => {
 
 watch(() => props.isOpen, val => val && resetForm())
 </script>
-

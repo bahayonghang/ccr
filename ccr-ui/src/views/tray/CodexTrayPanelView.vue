@@ -18,10 +18,10 @@
           </span>
           <div class="codex-tray-panel__header-copy">
             <p class="codex-tray-panel__eyebrow">
-              CCR Desktop
+              {{ desktopProductLabel }}
             </p>
             <h1 class="codex-tray-panel__title">
-              Codex Tray
+              {{ trayTitle }}
             </h1>
           </div>
         </div>
@@ -86,7 +86,7 @@
           name="Clock3"
           size="w-4 h-4"
         />
-        <p>{{ loading ? 'Loading Codex tray…' : 'No tray snapshot yet.' }}</p>
+        <p>{{ snapshotStatusLabel }}</p>
       </div>
     </section>
   </main>
@@ -94,9 +94,17 @@
 
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
+import { computed } from 'vue'
 import { useCodexTrayPanel } from '@/composables/useCodexTrayPanel'
+import { useI18n } from 'vue-i18n'
 import TrayAccountSwitchScreen from '@/views/tray/components/TrayAccountSwitchScreen.vue'
 import TrayOverview from '@/views/tray/components/TrayOverview.vue'
+
+const { locale } = useI18n()
+const isZh = computed(() => locale.value.startsWith('zh'))
+const tt = (zh: string, en: string) => (isZh.value ? zh : en)
+const desktopProductLabel = 'CCR Desktop'
+const trayTitle = 'Codex Tray'
 
 const {
   accounts,
@@ -118,6 +126,10 @@ const {
   startPanelDrag,
   switchAccount,
 } = useCodexTrayPanel()
+
+const snapshotStatusLabel = computed(() =>
+  loading.value ? tt('正在加载 Codex 托盘…', 'Loading Codex tray…') : tt('暂时还没有托盘快照。', 'No tray snapshot yet.'),
+)
 </script>
 
 <style scoped>
