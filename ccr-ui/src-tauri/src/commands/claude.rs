@@ -357,6 +357,13 @@ fn patch_profile_with_config(profile: &mut ProfileConfig, config: &Value) -> Res
     if let Some(raw) = obj.get("subagent_model") {
         profile.subagent_model = parse_string_field(raw, "subagent_model")?;
     }
+    if let Some(raw) = obj.get("custom_model_option") {
+        profile.custom_model_option = parse_string_field(raw, "custom_model_option")?;
+    }
+    if let Some(raw) = obj.get("custom_model_option_name") {
+        profile.custom_model_option_name =
+            parse_string_field(raw, "custom_model_option_name")?;
+    }
     if let Some(raw) = obj.get("effort_level") {
         profile.effort_level = parse_string_field(raw, "effort_level")?;
     }
@@ -424,6 +431,8 @@ fn profile_to_json(current_profile: Option<&str>, name: String, profile: Profile
         "default_sonnet_model": profile.default_sonnet_model,
         "default_haiku_model": profile.default_haiku_model,
         "subagent_model": profile.subagent_model,
+        "custom_model_option": profile.custom_model_option,
+        "custom_model_option_name": profile.custom_model_option_name,
         "effort_level": profile.effort_level,
         "provider": profile.provider,
         "provider_type": profile.provider_type,

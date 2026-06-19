@@ -774,6 +774,42 @@ impl ClaudeAuthService {
         }
     }
 
+    /// 🔎 判定 profile 是否为「API-key 形态」(第三方/中转必然形态)
+    ///
+    /// 保守规则: `provider_type == third_party_model`, 或 `base_url` 与
+    /// `auth_token` 同时非空。
+    ///
+    /// 刻意**不**把「模型映射字段非空」纳入判定: `ANTHROPIC_DEFAULT_*_MODEL`
+    /// 在官方订阅下也可用于钉某个快照, 以此判 api_key 会误伤合法的
+    /// 「订阅 + 快照钉选」profile, 并触发 `section.validate()` 失败。
+    /// 真实第三方必然带 base_url + auth_token, 已被覆盖。
+    pub fn is_api_key_shaped(profile: &ProfileConfig) -> bool {
+        fn filled(value: &Option<String>) -> bool {
+            value.as_deref().is_some_and(|raw| !raw.trim().is_empty())
+        }
+
+        profile.provider_type.as_deref() == Some("third_party_model")
+            || (filled(&profile.base_url) && filled(&profile.auth_token))
+    }
+
+    /// 🩹 在 `resolve_profile_auth_mode` 之上叠加自愈
+    ///
+    /// 当 profile 解析为 subscription 但实为 API-key 形态时, 纠正为 api_key。
+    /// 这避免「base_url + auth_token 齐全却被标成 subscription」的 profile 在
+    /// apply 时被 `clear_managed_vars()` 静默清空。
+    ///
+    /// 纯函数、不打日志: warn 由实际纠正点 (`apply_profile` / `normalize_profile`)
+    /// 发出, 以免只读渲染路径 (如 `profile_to_json`) 刷屏。
+    pub fn effective_auth_mode(profile: &ProfileConfig) -> ClaudeProfileAuthMode {
+        let resolved = Self::resolve_profile_auth_mode(profile);
+        if matches!(resolved, ClaudeProfileAuthMode::Subscription)
+            && Self::is_api_key_shaped(profile)
+        {
+            return ClaudeProfileAuthMode::ApiKey;
+        }
+        resolved
+    }
+
     fn profile_auth_source(profile: &ProfileConfig, auth_mode: ClaudeProfileAuthMode) -> String {
         match auth_mode {
             ClaudeProfileAuthMode::Subscription => "subscription".to_string(),
@@ -1048,5 +1084,48 @@ auth_mode = "api_key"
         );
         assert_eq!(summary.current_auth_name.as_deref(), Some("work"));
         assert_eq!(summary.auth_label(), "Official / work");
+    }
+
+    #[test]
+    fn test_effective_auth_mode_corrects_mismarked_third_party() {
+        let mut profile = ProfileConfig::new()
+            .with_base_url("https://chy.example.com".to_string())
+            .with_auth_token("sk-chy".to_string());
+        profile
+            .platform_data
+            .insert("auth_mode".into(), json!("subscription"));
+
+        // 字面解析仍是 subscription, 但 effective 纠正为 api_key
+        assert_eq!(
+            ClaudeAuthService::resolve_profile_auth_mode(&profile),
+            ClaudeProfileAuthMode::Subscription
+        );
+        assert_eq!(
+            ClaudeAuthService::effective_auth_mode(&profile),
+            ClaudeProfileAuthMode::ApiKey
+        );
+    }
+
+    #[test]
+    fn test_effective_auth_mode_keeps_subscription_snapshot_pin() {
+        // 官方订阅 + 仅模型映射 (无 base_url/token): 不应被误纠正为 api_key
+        let mut profile = ProfileConfig::new();
+        profile.default_opus_model = Some("claude-opus-4-5-20251101".to_string());
+        profile
+            .platform_data
+            .insert("auth_mode".into(), json!("subscription"));
+
+        assert!(!ClaudeAuthService::is_api_key_shaped(&profile));
+        assert_eq!(
+            ClaudeAuthService::effective_auth_mode(&profile),
+            ClaudeProfileAuthMode::Subscription
+        );
+    }
+
+    #[test]
+    fn test_is_api_key_shaped_detects_third_party_provider_type() {
+        let mut profile = ProfileConfig::new();
+        profile.provider_type = Some("third_party_model".to_string());
+        assert!(ClaudeAuthService::is_api_key_shaped(&profile));
     }
 }

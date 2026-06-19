@@ -36,6 +36,21 @@ Command handlers should return `ccr_core::Result<T>` or `anyhow::Result<T>` wher
 
 Do not use panics for invalid user input. Clap validation, typed command enums, and `CcrError` should carry invalid states.
 
+## Claude Profile Auth Mode Contract
+
+`ClaudePlatform::apply_profile` branches on auth mode: `Subscription` calls `clear_managed_vars()` and writes **no** `ANTHROPIC_*` / `CLAUDE_CODE_*`; `ApiKey` calls `update_from_config` and writes the overrides. A third-party profile therefore **only works under `api_key`**.
+
+Auth mode has two layers — keep them separate:
+
+- `ClaudeAuthService::resolve_profile_auth_mode` — literal/stored resolution (explicit `platform_data.auth_mode` wins over inference). Do not change this; tests depend on its literal semantics.
+- `ClaudeAuthService::effective_auth_mode` — normalization layer on top of resolve: if resolved is `Subscription` **and** `is_api_key_shaped`, return `ApiKey`. `ClaudePlatform::profile_auth_mode` delegates here so apply / validate / `profile_to_json` stay consistent.
+
+`is_api_key_shaped` is intentionally conservative: `provider_type == "third_party_model"`, or `base_url` and `auth_token` both non-empty. **Do not** include model-mapping fields — `ANTHROPIC_DEFAULT_*_MODEL` is valid on official subscription (snapshot pinning), so that would false-positive and fail `section.validate()`.
+
+Correction happens at two points and must stay idempotent: `normalize_profile` (save — persists the corrected `auth_mode`) and `apply_profile` (defensive — self-heals stale on-disk profiles). Each emits a `tracing::warn` on correction; never log `auth_token` / full `base_url`.
+
+Model-mapping fields are typed on `ProfileConfig` / `ConfigSection` and mapped in `ClaudeSettings::update_from_config`; `custom_model_option`(`_name`) → `ANTHROPIC_CUSTOM_MODEL_OPTION`(`_NAME`). New env keys must also be registered in `ClaudePlatform::get_env_var_names`. Typing a previously-untyped key auto-migrates existing TOML (serde captures it into the typed slot instead of `other`/`platform_data`).
+
 ## Testing
 
 Use crate-local `test_support::TestHome` and `TestHostEnv` for env/path-sensitive command tests. These fixtures serialize process env mutation and restore variables on Drop.

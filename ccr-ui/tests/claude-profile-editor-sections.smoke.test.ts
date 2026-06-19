@@ -37,6 +37,8 @@ const createForm = (): ClaudeProfileEditorForm => ({
   default_sonnet_model: 'claude-sonnet-4-5',
   default_haiku_model: 'claude-haiku-4-5',
   subagent_model: '',
+  custom_model_option: '',
+  custom_model_option_name: '',
   effort_level: '',
   provider: 'anthropic',
   provider_type: 'official',

@@ -12,6 +12,8 @@ export interface ClaudeProfileEditorForm {
   default_sonnet_model: string
   default_haiku_model: string
   subagent_model: string
+  custom_model_option: string
+  custom_model_option_name: string
   effort_level: string
   provider: string
   provider_type: string

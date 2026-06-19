@@ -137,6 +137,8 @@ pub fn section_to_profile(section: &ConfigSection) -> ProfileConfig {
         default_sonnet_model: section.default_sonnet_model.clone(),
         default_haiku_model: section.default_haiku_model.clone(),
         subagent_model: section.subagent_model.clone(),
+        custom_model_option: section.custom_model_option.clone(),
+        custom_model_option_name: section.custom_model_option_name.clone(),
         effort_level: section.effort_level.clone(),
         provider: section.provider.clone(),
         provider_type: section
@@ -173,6 +175,8 @@ pub fn profile_to_section(profile: &ProfileConfig) -> Result<ConfigSection> {
         default_sonnet_model: profile.default_sonnet_model.clone(),
         default_haiku_model: profile.default_haiku_model.clone(),
         subagent_model: profile.subagent_model.clone(),
+        custom_model_option: profile.custom_model_option.clone(),
+        custom_model_option_name: profile.custom_model_option_name.clone(),
         effort_level: profile.effort_level.clone(),
         provider: profile.provider.clone(),
         provider_type,

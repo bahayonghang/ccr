@@ -588,6 +588,8 @@ const form = reactive<ClaudeProfileEditorForm>({
   default_sonnet_model: '',
   default_haiku_model: '',
   subagent_model: '',
+  custom_model_option: '',
+  custom_model_option_name: '',
   effort_level: '',
   provider: '',
   provider_type: '',
@@ -781,6 +783,8 @@ const buildRequest = (): ClaudeProfileRequest => ({
   default_sonnet_model: normalizeOptional(form.default_sonnet_model) ?? null,
   default_haiku_model: normalizeOptional(form.default_haiku_model) ?? null,
   subagent_model: normalizeOptional(form.subagent_model) ?? null,
+  custom_model_option: normalizeOptional(form.custom_model_option) ?? null,
+  custom_model_option_name: normalizeOptional(form.custom_model_option_name) ?? null,
   effort_level: normalizeOptional(form.effort_level) ?? null,
   provider: normalizeOptional(form.provider),
   provider_type: normalizeOptional(form.provider_type),
@@ -799,6 +803,8 @@ const resetForm = () => {
   form.default_sonnet_model = ''
   form.default_haiku_model = ''
   form.subagent_model = ''
+  form.custom_model_option = ''
+  form.custom_model_option_name = ''
   form.effort_level = ''
   form.provider = ''
   form.provider_type = ''
@@ -839,6 +845,8 @@ const openEditForm = (profile: ClaudeProfile) => {
   form.default_sonnet_model = profile.default_sonnet_model || ''
   form.default_haiku_model = profile.default_haiku_model || ''
   form.subagent_model = profile.subagent_model || ''
+  form.custom_model_option = profile.custom_model_option || ''
+  form.custom_model_option_name = profile.custom_model_option_name || ''
   const rawEffort = profile.effort_level || ''
   form.effort_level = (VALID_EFFORT_LEVELS as readonly string[]).includes(rawEffort) ? rawEffort : ''
   form.provider = profile.provider || ''
@@ -879,6 +887,12 @@ const applyClaudeProviderTemplate = (selection: ProviderTemplateSelection) => {
   form.default_sonnet_model = patch.default_sonnet_model || ''
   form.default_haiku_model = patch.default_haiku_model || ''
   form.subagent_model = patch.subagent_model || ''
+
+  // 选用 provider 模板即意味着走第三方/中转端点 → 默认 api_key 鉴权，
+  // 避免落到 subscription 被后端清空。
+  if (patch.base_url) {
+    form.auth_mode = 'api_key'
+  }
 
   if (!form.name.trim()) {
     form.name = patch.suggestedName || selection.template.id
@@ -1373,6 +1387,17 @@ onBeforeUnmount(() => {
 .claude-profile-editor-modal .editor-banner__icon {
   background: rgb(var(--color-danger-rgb) / 12%);
   color: rgb(var(--color-danger-rgb) / 100%);
+}
+
+.claude-profile-editor-modal .editor-banner--warn {
+  border-color: rgb(var(--color-warning-rgb) / 28%);
+  background: linear-gradient(180deg, rgb(var(--color-warning-rgb) / 12%), rgb(var(--color-warning-rgb) / 6%));
+  box-shadow: 0 18px 40px rgb(var(--color-warning-rgb) / 8%);
+}
+
+.claude-profile-editor-modal .editor-banner--warn .editor-banner__icon {
+  background: rgb(var(--color-warning-rgb) / 14%);
+  color: rgb(var(--color-warning-rgb) / 100%);
 }
 
 .claude-profile-editor-modal .editor-input {

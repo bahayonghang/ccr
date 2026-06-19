@@ -32,6 +32,8 @@ const ANTHROPIC_SMALL_FAST_MODEL: &str = "ANTHROPIC_SMALL_FAST_MODEL";
 const ANTHROPIC_DEFAULT_OPUS_MODEL: &str = "ANTHROPIC_DEFAULT_OPUS_MODEL";
 const ANTHROPIC_DEFAULT_SONNET_MODEL: &str = "ANTHROPIC_DEFAULT_SONNET_MODEL";
 const ANTHROPIC_DEFAULT_HAIKU_MODEL: &str = "ANTHROPIC_DEFAULT_HAIKU_MODEL";
+const ANTHROPIC_CUSTOM_MODEL_OPTION: &str = "ANTHROPIC_CUSTOM_MODEL_OPTION";
+const ANTHROPIC_CUSTOM_MODEL_OPTION_NAME: &str = "ANTHROPIC_CUSTOM_MODEL_OPTION_NAME";
 const CLAUDE_CODE_SUBAGENT_MODEL: &str = "CLAUDE_CODE_SUBAGENT_MODEL";
 const CLAUDE_CODE_EFFORT_LEVEL: &str = "CLAUDE_CODE_EFFORT_LEVEL";
 
@@ -150,6 +152,20 @@ impl ClaudeSettings {
         if let Some(value) = &section.subagent_model {
             self.env
                 .insert(CLAUDE_CODE_SUBAGENT_MODEL.to_string(), value.clone());
+        }
+
+        // 🧩 设置 custom_model_option
+        if let Some(value) = &section.custom_model_option {
+            self.env
+                .insert(ANTHROPIC_CUSTOM_MODEL_OPTION.to_string(), value.clone());
+        }
+
+        // 🧩 设置 custom_model_option_name
+        if let Some(value) = &section.custom_model_option_name {
+            self.env.insert(
+                ANTHROPIC_CUSTOM_MODEL_OPTION_NAME.to_string(),
+                value.clone(),
+            );
         }
 
         // 🎚️ 设置 effort_level
@@ -1029,6 +1045,34 @@ mod tests {
         assert_eq!(
             settings.env.get("CLAUDE_CODE_EFFORT_LEVEL"),
             Some(&"max".to_string())
+        );
+    }
+
+    #[test]
+    fn test_update_from_config_writes_custom_model_option() {
+        let mut settings = ClaudeSettings::new();
+        let mut config = create_test_config_section();
+        config.custom_model_option = Some("glm-5.2[1m]".into());
+        config.custom_model_option_name = Some("GLM 5.2 (1M)".into());
+
+        settings.update_from_config(&config);
+
+        assert_eq!(
+            settings.env.get("ANTHROPIC_CUSTOM_MODEL_OPTION"),
+            Some(&"glm-5.2[1m]".to_string())
+        );
+        assert_eq!(
+            settings.env.get("ANTHROPIC_CUSTOM_MODEL_OPTION_NAME"),
+            Some(&"GLM 5.2 (1M)".to_string())
+        );
+
+        // clear_managed_vars 应能清掉 (ANTHROPIC_ 前缀)
+        settings.clear_managed_vars();
+        assert!(!settings.env.contains_key("ANTHROPIC_CUSTOM_MODEL_OPTION"));
+        assert!(
+            !settings
+                .env
+                .contains_key("ANTHROPIC_CUSTOM_MODEL_OPTION_NAME")
         );
     }
 

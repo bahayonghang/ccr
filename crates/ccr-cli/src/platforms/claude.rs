@@ -156,7 +156,9 @@ impl ClaudePlatform {
     }
 
     pub fn profile_auth_mode(profile: &ProfileConfig) -> ClaudeProfileAuthMode {
-        crate::services::ClaudeAuthService::resolve_profile_auth_mode(profile)
+        // 走 effective_auth_mode: 在字面解析之上叠加「API-key 形态 + subscription
+        // → api_key」的自愈, 保证 apply / validate / UI 回显口径一致。
+        crate::services::ClaudeAuthService::effective_auth_mode(profile)
     }
 
     pub fn profile_auth_source(profile: &ProfileConfig) -> String {
@@ -173,7 +175,17 @@ impl ClaudePlatform {
     }
 
     fn normalize_profile(profile: &mut ProfileConfig) {
+        let resolved = crate::services::ClaudeAuthService::resolve_profile_auth_mode(profile);
         let auth_mode = Self::profile_auth_mode(profile);
+        if resolved != auth_mode {
+            // 保存时权威纠正: 落盘存储态即为 api_key, UI 刷新随之一致。
+            tracing::warn!(
+                provider = ?profile.provider,
+                "保存 Claude profile: auth_mode={} 与第三方/API-key 形态冲突，自动纠正为 {}",
+                resolved.as_str(),
+                auth_mode.as_str()
+            );
+        }
         profile
             .platform_data
             .insert(Self::AUTH_MODE_FIELD.to_string(), json!(auth_mode.as_str()));
@@ -267,6 +279,17 @@ impl PlatformConfig for ClaudePlatform {
         let section = Self::profile_to_section(profile)?;
 
         let auth_mode = Self::profile_auth_mode(profile);
+        let literal_mode = crate::services::ClaudeAuthService::resolve_profile_auth_mode(profile);
+        if literal_mode != auth_mode {
+            // 应用时防御自愈: 既有 profile (如旧 chy) 无需重存即可正确生效。
+            tracing::warn!(
+                profile = %name,
+                provider = ?profile.provider,
+                "应用 Claude profile: auth_mode={} 与第三方/API-key 形态冲突，自动纠正为 {}",
+                literal_mode.as_str(),
+                auth_mode.as_str()
+            );
+        }
         self.validate_profile(profile)?;
 
         // 加载当前设置
@@ -319,6 +342,8 @@ impl PlatformConfig for ClaudePlatform {
             "ANTHROPIC_DEFAULT_SONNET_MODEL".into(),
             "ANTHROPIC_DEFAULT_HAIKU_MODEL".into(),
             "CLAUDE_CODE_SUBAGENT_MODEL".into(),
+            "ANTHROPIC_CUSTOM_MODEL_OPTION".into(),
+            "ANTHROPIC_CUSTOM_MODEL_OPTION_NAME".into(),
             "CLAUDE_CODE_EFFORT_LEVEL".into(),
         ]
     }
@@ -628,6 +653,180 @@ mod tests {
             Ok(())
         })();
 
+        result.unwrap();
+    }
+
+    /// 构造一个「字面标成 subscription, 实则第三方 (base_url+token+模型映射)」的 profile
+    fn make_mismarked_third_party_profile() -> ProfileConfig {
+        let mut profile = ProfileConfig::new()
+            .with_base_url("https://chy.example.com".to_string())
+            .with_auth_token("sk-chy".to_string());
+        profile.default_opus_model = Some("glm-5.2[1m]".to_string());
+        profile.provider = Some("chy".to_string());
+        profile.platform_data.insert(
+            ClaudePlatform::AUTH_MODE_FIELD.to_string(),
+            json!("subscription"),
+        );
+        profile
+    }
+
+    // AC2: 保存时应把 subscription 纠正为 api_key 落盘
+    #[test]
+    fn test_save_corrects_mismarked_subscription_to_api_key() {
+        let env = TestEnv::new();
+
+        let result = (|| -> Result<()> {
+            let platform = ClaudePlatform::new()?;
+            platform.save_profile("chy", &make_mismarked_third_party_profile())?;
+
+            let config = read_profiles_config(env.root_path());
+            let section = config.sections.get("chy").expect("chy section 应存在");
+            assert_eq!(
+                section.other.get("auth_mode").and_then(|v| v.as_str()),
+                Some("api_key"),
+                "保存时应把 subscription 纠正为 api_key"
+            );
+
+            Ok(())
+        })();
+
+        drop(env);
+        result.unwrap();
+    }
+
+    // AC1: 误标 subscription 的第三方 profile, save + apply 后覆盖项不被清空
+    #[test]
+    fn test_apply_mismarked_subscription_third_party_writes_overrides() {
+        let _env = TestEnv::new();
+
+        let result = (|| -> Result<()> {
+            let platform = ClaudePlatform::new()?;
+            platform.save_profile("chy", &make_mismarked_third_party_profile())?;
+            platform.apply_profile("chy")?;
+
+            let settings = SettingsManager::with_default()?.load()?;
+            assert_eq!(
+                settings.env.get("ANTHROPIC_BASE_URL").map(String::as_str),
+                Some("https://chy.example.com")
+            );
+            assert_eq!(
+                settings.env.get("ANTHROPIC_AUTH_TOKEN").map(String::as_str),
+                Some("sk-chy")
+            );
+            assert_eq!(
+                settings
+                    .env
+                    .get("ANTHROPIC_DEFAULT_OPUS_MODEL")
+                    .map(String::as_str),
+                Some("glm-5.2[1m]")
+            );
+
+            Ok(())
+        })();
+
+        result.unwrap();
+    }
+
+    // AC1(防御自愈): 存量 profile 直接落盘为 subscription, 未经 save 也能在 apply 时正确生效
+    #[test]
+    fn test_apply_defensively_heals_stale_subscription_profile() {
+        let env = TestEnv::new();
+
+        let result = (|| -> Result<()> {
+            let platform = ClaudePlatform::new()?;
+            let profiles_path = env
+                .root_path()
+                .join("platforms")
+                .join("claude")
+                .join("profiles.toml");
+            fs::create_dir_all(profiles_path.parent().unwrap()).unwrap();
+            fs::write(
+                &profiles_path,
+                r#"default_config = "chy"
+current_config = "chy"
+
+[chy]
+base_url = "https://chy.example.com"
+auth_token = "sk-chy"
+default_opus_model = "glm-5.2[1m]"
+provider = "chy"
+auth_mode = "subscription"
+"#,
+            )
+            .unwrap();
+
+            platform.apply_profile("chy")?;
+
+            let settings = SettingsManager::with_default()?.load()?;
+            assert_eq!(
+                settings.env.get("ANTHROPIC_BASE_URL").map(String::as_str),
+                Some("https://chy.example.com")
+            );
+            assert_eq!(
+                settings
+                    .env
+                    .get("ANTHROPIC_DEFAULT_OPUS_MODEL")
+                    .map(String::as_str),
+                Some("glm-5.2[1m]")
+            );
+
+            Ok(())
+        })();
+
+        drop(env);
+        result.unwrap();
+    }
+
+    // AC4: TOML 内的 custom_model_option 自动迁移到 typed 字段 (不残留 platform_data), 且 apply 写出 env
+    #[test]
+    fn test_custom_model_option_migrates_from_toml_and_writes_env() {
+        let env = TestEnv::new();
+
+        let result = (|| -> Result<()> {
+            let platform = ClaudePlatform::new()?;
+            let profiles_path = env
+                .root_path()
+                .join("platforms")
+                .join("claude")
+                .join("profiles.toml");
+            fs::create_dir_all(profiles_path.parent().unwrap()).unwrap();
+            fs::write(
+                &profiles_path,
+                r#"default_config = "chy"
+current_config = "chy"
+
+[chy]
+base_url = "https://chy.example.com"
+auth_token = "sk-chy"
+custom_model_option = "glm-5.2[1m]"
+custom_model_option_name = "glm-5.2[1m]"
+provider = "chy"
+auth_mode = "api_key"
+"#,
+            )
+            .unwrap();
+
+            // typed 化后, custom_model_option 落在 typed 字段, 不再残留 platform_data
+            let profiles = platform.load_profiles()?;
+            let chy = profiles.get("chy").expect("chy profile 应存在");
+            assert_eq!(chy.custom_model_option.as_deref(), Some("glm-5.2[1m]"));
+            assert!(!chy.platform_data.contains_key("custom_model_option"));
+            assert!(!chy.platform_data.contains_key("custom_model_option_name"));
+
+            platform.apply_profile("chy")?;
+            let settings = SettingsManager::with_default()?.load()?;
+            assert_eq!(
+                settings
+                    .env
+                    .get("ANTHROPIC_CUSTOM_MODEL_OPTION")
+                    .map(String::as_str),
+                Some("glm-5.2[1m]")
+            );
+
+            Ok(())
+        })();
+
+        drop(env);
         result.unwrap();
     }
 }

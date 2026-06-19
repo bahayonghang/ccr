@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/ccr-cli/backend/backend-guidelines.md", "reason": "校验 apply/auth 改动是否符合 CLI 输出/日志/错误规约，token 不泄露"}
+{"file": ".trellis/spec/ccr-config/backend/backend-guidelines.md", "reason": "校验新字段 TOML 序列化兼容、原子写/备份未回退"}
+{"file": ".trellis/spec/ccr-ui/frontend/provider-template-contracts.md", "reason": "校验第三方模板仅含非密字段、平台覆盖规则正确"}
+{"file": ".trellis/spec/ccr-ui/frontend/api-facade-boundary.md", "reason": "校验前端字段贯通未越过 facade 边界"}

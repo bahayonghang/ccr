@@ -248,6 +248,46 @@
             </p>
           </div>
 
+          <div>
+            <label
+              for="claude-profile-custom-model-option"
+              class="mb-2 block text-sm font-medium text-text-secondary"
+            >
+              {{ $t('claudeProfiles.customModelOptionLabel') }}
+            </label>
+            <input
+              id="claude-profile-custom-model-option"
+              :value="form.custom_model_option"
+              type="text"
+              :placeholder="$t('claudeProfiles.customModelOptionPlaceholder')"
+              :class="monospaceFieldClass"
+              @input="updateTextField('custom_model_option', $event)"
+            >
+            <p class="mt-1.5 text-xs text-text-muted">
+              {{ $t('claudeProfiles.customModelOptionHelper') }}
+            </p>
+          </div>
+
+          <div>
+            <label
+              for="claude-profile-custom-model-option-name"
+              class="mb-2 block text-sm font-medium text-text-secondary"
+            >
+              {{ $t('claudeProfiles.customModelOptionNameLabel') }}
+            </label>
+            <input
+              id="claude-profile-custom-model-option-name"
+              :value="form.custom_model_option_name"
+              type="text"
+              :placeholder="$t('claudeProfiles.customModelOptionNamePlaceholder')"
+              :class="monospaceFieldClass"
+              @input="updateTextField('custom_model_option_name', $event)"
+            >
+            <p class="mt-1.5 text-xs text-text-muted">
+              {{ $t('claudeProfiles.customModelOptionNameHelper') }}
+            </p>
+          </div>
+
           <div class="lg:col-span-2">
             <label
               for="claude-profile-effort-level"
@@ -333,6 +373,23 @@
           <p class="mt-1.5 text-xs text-text-muted">
             {{ $t('claudeProfiles.authModeHelper') }}
           </p>
+
+          <div
+            v-if="showAuthModeMismatch"
+            class="editor-banner editor-banner--warn mt-3 rounded-xl px-4 py-3"
+          >
+            <div class="flex items-start gap-3">
+              <div class="editor-banner__icon flex h-8 w-8 shrink-0 items-center justify-center rounded-xl">
+                <SIcon
+                  name="AlertTriangle"
+                  size="w-4 h-4"
+                />
+              </div>
+              <p class="min-w-0 break-words text-xs leading-5 text-text-secondary">
+                {{ $t('claudeProfiles.authModeMismatchWarning') }}
+              </p>
+            </div>
+          </div>
         </div>
 
         <div>
@@ -513,7 +570,7 @@
 
 <script setup lang="ts">
 import type { ComponentPublicInstance } from 'vue'
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SIcon from '@/components/ui/SIcon.vue'
 import { useUIStore } from '@/stores/ui'
@@ -536,6 +593,18 @@ const props = defineProps<{
 const { t } = useI18n()
 const uiStore = useUIStore()
 const showAuthToken = ref(false)
+
+// 「API-key 形态」判定，与后端 is_api_key_shaped 对齐：
+// provider_type=third_party_model，或 base_url 与 auth_token 同时非空。
+const isApiKeyShaped = computed(() =>
+  props.form.provider_type.trim() === 'third_party_model'
+  || (props.form.base_url.trim() !== '' && props.form.auth_token.trim() !== ''),
+)
+
+// 第三方/API-key 形态却仍选了 subscription：apply 时会被清空，给出内联警告。
+const showAuthModeMismatch = computed(() =>
+  isApiKeyShaped.value && props.form.auth_mode === 'subscription',
+)
 
 function updateTextField(field: keyof ClaudeProfileEditorForm, event: Event) {
   props.updateFormField(field, (event.target as HTMLInputElement).value)

@@ -1,0 +1,6 @@
+{"file": ".trellis/spec/ccr-cli/backend/backend-guidelines.md", "reason": "apply_profile/normalize_profile/auth-service 改动须遵守 CLI 命令边界、错误与日志规约"}
+{"file": ".trellis/spec/ccr-cli/backend/test-fixtures.md", "reason": "新增 apply/save 单测会改 home/env，需用进程级 fixture 规约"}
+{"file": ".trellis/spec/ccr-config/backend/backend-guidelines.md", "reason": "ProfileConfig/ConfigSection 新字段与 TOML 持久化、原子写边界"}
+{"file": ".trellis/spec/ccr-config/backend/test-fixtures.md", "reason": "config 测试涉及 CCR_ROOT/锁目录的进程级 fixture"}
+{"file": ".trellis/spec/ccr-ui/frontend/provider-template-contracts.md", "reason": "第三方模型 provider 模板预置 auth_mode/provider_type 须符合模板契约"}
+{"file": ".trellis/spec/ccr-ui/frontend/api-facade-boundary.md", "reason": "前端 profile 保存/字段贯通经 API facade，遵守 domain-first 边界"}

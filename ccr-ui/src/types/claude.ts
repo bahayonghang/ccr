@@ -59,6 +59,8 @@ export interface ClaudeProfile {
   default_sonnet_model?: string | null
   default_haiku_model?: string | null
   subagent_model?: string | null
+  custom_model_option?: string | null
+  custom_model_option_name?: string | null
   effort_level?: string | null
   provider?: string | null
   provider_type?: string | null
@@ -84,6 +86,8 @@ export interface ClaudeProfileRequest {
   default_sonnet_model?: string | null
   default_haiku_model?: string | null
   subagent_model?: string | null
+  custom_model_option?: string | null
+  custom_model_option_name?: string | null
   effort_level?: string | null
   provider?: string
   provider_type?: string

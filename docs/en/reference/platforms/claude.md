@@ -18,6 +18,32 @@ ccr claude profile off
 - `ccr claude profile ...`: apply a saved profile into `~/.claude/settings.json`
 - `ccr claude profile off`: leave profile mode and return to the official-auth runtime
 
+## Third-party models (GLM / DeepSeek / Kimi, etc.)
+
+To run a third-party model in Claude Code, the profile must use **api_key** mode (not subscription):
+
+- `auth_mode = "api_key"`: writes `ANTHROPIC_BASE_URL` / `ANTHROPIC_AUTH_TOKEN` plus the model mappings.
+- `auth_mode = "subscription"`: clears all `ANTHROPIC_*` on apply and falls back to official login — the third-party config is discarded.
+
+To prevent misconfiguration, any profile that has both `base_url` and `auth_token`, or `provider_type = third_party_model`, is automatically corrected to `auth_mode = api_key` on save and on apply (ccr-ui also shows an inline warning).
+
+Model-mapping fields → environment variables:
+
+| Profile field              | Environment variable                 |
+| -------------------------- | ------------------------------------ |
+| `default_opus_model`       | `ANTHROPIC_DEFAULT_OPUS_MODEL`       |
+| `default_sonnet_model`     | `ANTHROPIC_DEFAULT_SONNET_MODEL`     |
+| `default_haiku_model`      | `ANTHROPIC_DEFAULT_HAIKU_MODEL`      |
+| `subagent_model`           | `CLAUDE_CODE_SUBAGENT_MODEL`         |
+| `custom_model_option`      | `ANTHROPIC_CUSTOM_MODEL_OPTION`      |
+| `custom_model_option_name` | `ANTHROPIC_CUSTOM_MODEL_OPTION_NAME` |
+| `effort_level`             | `CLAUDE_CODE_EFFORT_LEVEL`           |
+
+Notes:
+
+- The Claude Code `/model` picker still shows the Opus/Sonnet/Haiku labels — it does not rename built-in aliases to third-party IDs, but the model you mapped is used under the hood.
+- Suffixes like `[1m]` in `glm-5.2[1m]` require a recent Claude Code version.
+
 ## Key paths
 
 - Runtime settings: `~/.claude/settings.json`

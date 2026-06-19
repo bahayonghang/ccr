@@ -78,6 +78,14 @@ pub struct ConfigSection {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub subagent_model: Option<String>,
 
+    /// 🧩 自定义模型选项 (ANTHROPIC_CUSTOM_MODEL_OPTION)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub custom_model_option: Option<String>,
+
+    /// 🧩 自定义模型选项显示名 (ANTHROPIC_CUSTOM_MODEL_OPTION_NAME)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub custom_model_option_name: Option<String>,
+
     /// 🎚️ 思考强度 (CLAUDE_CODE_EFFORT_LEVEL)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub effort_level: Option<String>,

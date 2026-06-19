@@ -597,7 +597,8 @@ export default {
       openInNewTab: 'Open in new tab',
       guideTitle: 'Steps:',
       credentialsLabel: 'Paste Cookies JSON or a document.cookie string',
-      credentialsPlaceholder: "{'{'}\"session\":\"xxx\",\"token\":\"yyy\"{'}'} or session=xxx; token=yyy",
+      credentialsPlaceholder:
+        '{\'{\'}"session":"xxx","token":"yyy"{\'}\'} or session=xxx; token=yyy',
       apiUserLabel: 'API User (optional, usually a numeric ID)',
       apiUserPlaceholder: 'Get it from localStorage, or leave empty to fetch automatically',
       accountNameLabel: 'Account note name',
@@ -1045,7 +1046,7 @@ export default {
       'Claude-compatible endpoint for this profile; keep the default for the official path.',
     advancedModelsTitle: 'Advanced model overrides',
     advancedModelsDescription:
-      'Maps to ANTHROPIC_DEFAULT_*_MODEL and CLAUDE_CODE_*; values write to ~/.claude/settings.json.',
+      'Maps to ANTHROPIC_DEFAULT_*_MODEL and CLAUDE_CODE_*; values write to ~/.claude/settings.json. Note: the /model picker still shows Opus/Sonnet/Haiku labels (Claude Code does not rename built-in aliases), but your third-party model is used under the hood; suffixes like [1m] require a recent Claude Code version.',
     defaultOpusModelLabel: 'Opus default model',
     defaultOpusModelPlaceholder: 'e.g. deepseek-v4-pro',
     defaultOpusModelHelper: 'Sets ANTHROPIC_DEFAULT_OPUS_MODEL.',
@@ -1058,6 +1059,14 @@ export default {
     subagentModelLabel: 'Subagent model',
     subagentModelPlaceholder: 'e.g. deepseek-v4-flash',
     subagentModelHelper: 'Sets CLAUDE_CODE_SUBAGENT_MODEL.',
+    customModelOptionLabel: 'Custom model option',
+    customModelOptionPlaceholder: 'e.g. glm-5.2[1m]',
+    customModelOptionHelper:
+      'Sets ANTHROPIC_CUSTOM_MODEL_OPTION, adding an extra selectable entry to /model.',
+    customModelOptionNameLabel: 'Custom model option name',
+    customModelOptionNamePlaceholder: 'e.g. GLM 5.2 (1M)',
+    customModelOptionNameHelper:
+      'Sets ANTHROPIC_CUSTOM_MODEL_OPTION_NAME; only takes effect via an LLM gateway.',
     effortLevelLabel: 'Effort level',
     effortLevelHelper: 'Sets CLAUDE_CODE_EFFORT_LEVEL. xhigh is Opus 4.7 only.',
     effortLevelOptionDefault: 'Use model default',
@@ -1083,6 +1092,8 @@ export default {
     authModeLabel: 'Authentication mode',
     authModeHelper:
       'subscription mode clears ANTHROPIC_* and falls back to local official login; api_key mode writes ANTHROPIC_* overrides.',
+    authModeMismatchWarning:
+      'This profile looks like a third-party / API-key setup (Base URL + Auth Token filled, or Provider Type is third_party_model) but auth mode is subscription. subscription mode clears ANTHROPIC_* on apply, so the third-party model will not take effect. It will be auto-corrected to api_key on save.',
     authModeOptionSubscription: 'subscription — Official Subscription',
     authModeOptionApiKey: 'api_key — Third-party / ANTHROPIC_*',
     accountLabel: 'Account',
@@ -3572,7 +3583,8 @@ export default {
         conflictPolicy: 'Conflict policy',
         conflictAbort: 'Abort if same-name target exists',
         conflictReplace: 'Replace existing tracked remote install',
-        staleCatalogHint: 'This catalog is being served from cache and may be stale. Use Rescan to force a fresh GitHub scan.',
+        staleCatalogHint:
+          'This catalog is being served from cache and may be stale. Use Rescan to force a fresh GitHub scan.',
         freshness: {
           staleCache: 'stale cache',
           complete: 'complete',
@@ -3908,7 +3920,8 @@ export default {
     // Settings module
     settings: {
       title: 'Codex Settings',
-      subtitle: 'Global Codex configuration for model, security, toolchain, interface, and feature toggles.',
+      subtitle:
+        'Global Codex configuration for model, security, toolchain, interface, and feature toggles.',
       saving: 'Saving...',
       tabs: {
         model: 'Model & Reasoning',
