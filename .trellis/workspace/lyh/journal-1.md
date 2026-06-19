@@ -646,3 +646,37 @@ Implemented configurable TUI tab ordering via ~/.ccr/tui.toml, fixed the main TU
 ### Next Steps
 
 - None - task complete
+
+
+## Session 19: Claude 第三方模型 Profile auth_mode 自愈
+
+**Date**: 2026-06-19
+**Task**: Claude 第三方模型 Profile auth_mode 自愈
+**Branch**: `feature/claude-third-party-authmode`
+
+### Summary
+
+定位并修复第三方模型(GLM via chy)配置静默失效: auth_mode=subscription 在 apply 时清空 ANTHROPIC_* 覆盖。新增 ClaudeAuthService::{is_api_key_shaped,effective_auth_mode} 叠加层(保守规则: provider_type=third_party_model 或 base_url+auth_token), 保存权威纠正 + 应用防御自愈; custom_model_option(_name) typed 化映射 ANTHROPIC_CUSTOM_MODEL_OPTION(_NAME) 并自动迁移残留键; 前端字段贯通 + 模板默认 api_key + 内联校验; docs/spec 更新。全量 gate 绿。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `98869fe7` | (see git log) |
+| `ea5d149d` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

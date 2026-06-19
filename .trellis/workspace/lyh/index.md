@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 18
-- **Last Active**: 2026-06-18
+- **Total Sessions**: 19
+- **Last Active**: 2026-06-19
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~648 | Active |
+| `journal-1.md` | ~682 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 19 | 2026-06-19 | Claude 第三方模型 Profile auth_mode 自愈 | `98869fe7`, `ea5d149d` | `feature/claude-third-party-authmode` |
 | 18 | 2026-06-18 | TUI Tab Order Configuration | `b9501428`, `38fdc4f3`, `0949ca1b`, `896480cc`, `e4676860` | `dev` |
 | 17 | 2026-06-17 | Muyuan checkin and Trellis cleanup | `e9b820fe`, `4461c313` | `dev` |
 | 16 | 2026-06-16 | WAF 签到补救出口与终态提示 | `ab568f94`, `d7251b58` | `dev` |
