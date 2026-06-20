@@ -55,6 +55,16 @@ pub struct PlatformTab {
     pub claude_runtime_summary: Option<ClaudeRuntimeSummary>,
     pub codex_runtime_summary: Option<CodexRuntimeSummary>,
     pub instance: Option<Arc<dyn PlatformConfig>>,
+    /// 离开该 tab 时保存的选中快照；None = 从未访问过（per-tab 会话级记忆）
+    pub saved_selection: Option<TabSelection>,
+}
+
+/// 单个 tab 的选中状态快照，用于 per-tab 记忆光标位置
+#[derive(Clone)]
+pub struct TabSelection {
+    pub selected_index: usize,
+    pub current_page: usize,
+    pub selected_profile_name: Option<String>,
 }
 
 struct ProfileTabData {
@@ -340,6 +350,74 @@ impl App {
         self.reset_profile_detail_scroll();
     }
 
+    /// 把光标定位到当前 tab 的已启用项（is_current）；无已启用项则定位第 0 项。所有平台统一。
+    fn focus_current_profile(&mut self) {
+        let total = self.current_profiles().len();
+        if total == 0 {
+            self.current_page = 0;
+            self.selected_index = 0;
+            self.selected_profile_name = None;
+            self.reset_profile_detail_scroll();
+            return;
+        }
+        let target = self.current_profile_global_index().unwrap_or(0);
+        self.current_page = page_for_index(target, self.page_size);
+        self.selected_index = super::pagination::index_in_page(target, self.page_size);
+        self.remember_selected_profile();
+        self.reset_profile_detail_scroll();
+    }
+
+    /// 离开 tab：把当前工作副本写入该 tab 的选中快照（per-tab 记忆）
+    fn save_active_tab_selection(&mut self) {
+        self.remember_selected_profile();
+        self.tabs[self.active_tab].saved_selection = Some(TabSelection {
+            selected_index: self.selected_index,
+            current_page: self.current_page,
+            selected_profile_name: self.selected_profile_name.clone(),
+        });
+    }
+
+    /// 进入 tab：有快照则恢复并按名对齐（防 reload 后越界）；无快照则定位已启用项
+    fn restore_active_tab_selection(&mut self) {
+        match self.tabs[self.active_tab].saved_selection.clone() {
+            Some(saved) => {
+                self.current_page = saved.current_page;
+                self.selected_index = saved.selected_index;
+                self.selected_profile_name = saved.selected_profile_name;
+                self.align_selection_by_name();
+            }
+            None => self.focus_current_profile(),
+        }
+    }
+
+    /// 按 selected_profile_name 在当前 tab 重新对齐光标（无平台差异；name 失效则按残留索引 clamp）。
+    /// 与 sync_selection_to_profile_name 的差异：本方法不让 Codex 的 is_current 抢占已恢复的快照位置。
+    fn align_selection_by_name(&mut self) {
+        let total = self.current_profiles().len();
+        if total == 0 {
+            self.current_page = 0;
+            self.selected_index = 0;
+            self.selected_profile_name = None;
+            self.reset_profile_detail_scroll();
+            return;
+        }
+        let target = self
+            .selected_profile_name
+            .as_ref()
+            .and_then(|name| {
+                self.current_profiles()
+                    .iter()
+                    .position(|profile| profile.name == *name)
+            })
+            .or_else(|| self.selected_profile_global_index())
+            .unwrap_or(0)
+            .min(total - 1);
+        self.current_page = page_for_index(target, self.page_size);
+        self.selected_index = super::pagination::index_in_page(target, self.page_size);
+        self.remember_selected_profile();
+        self.reset_profile_detail_scroll();
+    }
+
     /// Build the app with Claude + Codex tabs only.
     #[allow(dead_code)]
     pub fn new() -> Result<Self> {
@@ -372,6 +450,7 @@ impl App {
                                 claude_runtime_summary: tab_data.claude_runtime_summary.clone(),
                                 codex_runtime_summary: None,
                                 instance: Some(Arc::clone(&instance)),
+                                saved_selection: None,
                             });
                             tabs.push(PlatformTab {
                                 platform,
@@ -384,6 +463,7 @@ impl App {
                                 claude_runtime_summary: tab_data.claude_runtime_summary,
                                 codex_runtime_summary: tab_data.codex_runtime_summary,
                                 instance: Some(instance),
+                                saved_selection: None,
                             });
                         }
                         Platform::Codex => {
@@ -399,6 +479,7 @@ impl App {
                                 claude_runtime_summary: None,
                                 codex_runtime_summary: None,
                                 instance: Some(Arc::clone(&instance)),
+                                saved_selection: None,
                             });
                             // OpenCode Auth tab (manual OpenCode openai switching)
                             tabs.push(PlatformTab {
@@ -412,6 +493,7 @@ impl App {
                                 claude_runtime_summary: None,
                                 codex_runtime_summary: None,
                                 instance: Some(Arc::clone(&instance)),
+                                saved_selection: None,
                             });
                             // Codex Profile tab (profile switching)
                             tabs.push(PlatformTab {
@@ -425,6 +507,7 @@ impl App {
                                 claude_runtime_summary: None,
                                 codex_runtime_summary: tab_data.codex_runtime_summary,
                                 instance: Some(instance),
+                                saved_selection: None,
                             });
                         }
                         _ => {}
@@ -449,6 +532,7 @@ impl App {
                 claude_runtime_summary: None,
                 codex_runtime_summary: None,
                 instance: None,
+                saved_selection: None,
             });
             tabs.push(PlatformTab {
                 platform: Platform::Claude,
@@ -461,6 +545,7 @@ impl App {
                 claude_runtime_summary: None,
                 codex_runtime_summary: None,
                 instance: None,
+                saved_selection: None,
             });
         }
         tabs = reorder_tabs(tabs, &load_tab_order());
@@ -489,7 +574,7 @@ impl App {
             profile_detail_scroll: 0,
             task_executor,
         };
-        app.sync_selection_to_profile_name();
+        app.focus_current_profile();
         Ok(app)
     }
 
@@ -584,31 +669,31 @@ impl App {
             Action::Quit => return Ok(true),
             Action::NextTab => {
                 if self.tabs.len() > 1 {
-                    self.remember_selected_profile();
+                    self.save_active_tab_selection();
                     self.active_tab = (self.active_tab + 1) % self.tabs.len();
-                    self.sync_selection_to_profile_name();
+                    self.restore_active_tab_selection();
                     self.reset_profile_detail_scroll();
                     self.notify_tab_activated();
                 }
             }
             Action::PrevTab => {
                 if self.tabs.len() > 1 {
-                    self.remember_selected_profile();
+                    self.save_active_tab_selection();
                     self.active_tab = if self.active_tab == 0 {
                         self.tabs.len() - 1
                     } else {
                         self.active_tab - 1
                     };
-                    self.sync_selection_to_profile_name();
+                    self.restore_active_tab_selection();
                     self.reset_profile_detail_scroll();
                     self.notify_tab_activated();
                 }
             }
             Action::SwitchTab(idx) => {
                 if idx < self.tabs.len() {
-                    self.remember_selected_profile();
+                    self.save_active_tab_selection();
                     self.active_tab = idx;
-                    self.sync_selection_to_profile_name();
+                    self.restore_active_tab_selection();
                     self.reset_profile_detail_scroll();
                     self.notify_tab_activated();
                 }
@@ -891,7 +976,7 @@ impl App {
         let is_opencode_auth = self.is_opencode_auth_tab();
 
         if !is_claude_auth && !is_codex_auth && !is_opencode_auth {
-            self.sync_selection_to_profile_name();
+            // profile tab 的选中定位已由切 tab 时的 restore/focus 完成，无需再 sync
             return;
         }
 
@@ -1296,6 +1381,7 @@ mod tests {
                 claude_runtime_summary: None,
                 codex_runtime_summary: None,
                 instance: None,
+                saved_selection: None,
             }],
             active_tab: 0,
             selected_index,
@@ -1333,6 +1419,7 @@ mod tests {
             claude_runtime_summary: None,
             codex_runtime_summary: None,
             instance: None,
+            saved_selection: None,
         }
     }
 
@@ -1379,6 +1466,156 @@ mod tests {
             profile_detail_scroll: 0,
             task_executor: AsyncTaskExecutor::from_current_or_test(),
         }
+    }
+
+    fn profile_tab(
+        platform: Platform,
+        label: &str,
+        names: &[&str],
+        current: Option<&str>,
+    ) -> PlatformTab {
+        let profiles = names
+            .iter()
+            .map(|name| ProfileItem {
+                name: (*name).to_string(),
+                description: None,
+                is_current: current == Some(*name),
+            })
+            .collect();
+        PlatformTab {
+            platform,
+            variant: TabVariant::Profile,
+            label: label.to_string(),
+            profiles,
+            profile_configs: IndexMap::<String, ProfileConfig>::new(),
+            profile_load_error: None,
+            current_profile_error: None,
+            claude_runtime_summary: None,
+            codex_runtime_summary: None,
+            instance: None,
+            saved_selection: None,
+        }
+    }
+
+    fn app_with_profile_tabs(tabs: Vec<PlatformTab>) -> App {
+        App {
+            tabs,
+            active_tab: 0,
+            selected_index: 0,
+            current_page: 0,
+            page_size: DEFAULT_PAGE_SIZE,
+            selected_profile_name: None,
+            toasts: ToastManager::new(),
+            last_applied: None,
+            claude_auth_app: None,
+            claude_auth_error: None,
+            last_claude_action: None,
+            codex_auth_app: None,
+            codex_auth_error: None,
+            last_codex_action: None,
+            opencode_auth_app: None,
+            opencode_auth_error: None,
+            last_opencode_action: None,
+            header_area: Cell::new(None),
+            list_area: Cell::new(None),
+            detail_area: Cell::new(None),
+            profile_detail_scroll: 0,
+            task_executor: AsyncTaskExecutor::from_current_or_test(),
+        }
+    }
+
+    #[test]
+    fn switching_to_tab_first_time_focuses_current_profile() {
+        let mut app = app_with_profile_tabs(vec![
+            profile_tab(
+                Platform::Codex,
+                "Codex Profile",
+                &["c1", "c2", "c3"],
+                Some("c1"),
+            ),
+            profile_tab(
+                Platform::Claude,
+                "Claude Code",
+                &["a1", "a2", "a3", "a4", "a5"],
+                Some("a4"),
+            ),
+        ]);
+        // 模拟构造后的初始定位（with_task_executor 会调 focus_current_profile）
+        app.focus_current_profile();
+        // 用户在 Codex tab 把光标移到非启用项，制造跨 tab 残留索引
+        app.dispatch(Action::SelectNext).unwrap();
+        app.dispatch(Action::SelectNext).unwrap();
+        assert_eq!(app.selected_profile().unwrap().name, "c3");
+
+        // 首次切到 Claude Code（无快照）：应定位已启用项 a4，而非继承索引 2
+        app.dispatch(Action::SwitchTab(1)).unwrap();
+        assert_eq!(app.selected_profile().unwrap().name, "a4");
+    }
+
+    #[test]
+    fn revisiting_tab_restores_saved_selection() {
+        let mut app = app_with_profile_tabs(vec![
+            profile_tab(
+                Platform::Codex,
+                "Codex Profile",
+                &["c1", "c2", "c3"],
+                Some("c1"),
+            ),
+            profile_tab(
+                Platform::Claude,
+                "Claude Code",
+                &["a1", "a2", "a3", "a4", "a5"],
+                Some("a4"),
+            ),
+        ]);
+        app.focus_current_profile();
+
+        // 进入 Claude tab：首次定位已启用项 a4
+        app.dispatch(Action::SwitchTab(1)).unwrap();
+        assert_eq!(app.selected_profile().unwrap().name, "a4");
+        // 移动到非启用项 a5
+        app.dispatch(Action::SelectNext).unwrap();
+        assert_eq!(app.selected_profile().unwrap().name, "a5");
+
+        // 切回 Codex，再切回 Claude：应恢复上次离开位置 a5（per-tab 记忆）
+        app.dispatch(Action::SwitchTab(0)).unwrap();
+        app.dispatch(Action::SwitchTab(1)).unwrap();
+        assert_eq!(app.selected_profile().unwrap().name, "a5");
+    }
+
+    #[test]
+    fn tabs_keep_independent_selection() {
+        let mut app = app_with_profile_tabs(vec![
+            profile_tab(
+                Platform::Codex,
+                "Codex Profile",
+                &["c1", "c2", "c3"],
+                Some("c1"),
+            ),
+            profile_tab(
+                Platform::Claude,
+                "Claude Code",
+                &["a1", "a2", "a3"],
+                Some("a1"),
+            ),
+        ]);
+        app.focus_current_profile();
+
+        // Codex tab 选到 c3（非启用项）
+        app.dispatch(Action::SelectNext).unwrap();
+        app.dispatch(Action::SelectNext).unwrap();
+        assert_eq!(app.selected_profile().unwrap().name, "c3");
+
+        // 切到 Claude tab，选到 a2
+        app.dispatch(Action::SwitchTab(1)).unwrap();
+        app.dispatch(Action::SelectNext).unwrap();
+        assert_eq!(app.selected_profile().unwrap().name, "a2");
+
+        // 来回切换：两 tab 各自保持选中，互不串扰
+        app.dispatch(Action::SwitchTab(0)).unwrap();
+        assert_eq!(app.selected_profile().unwrap().name, "c3");
+        app.dispatch(Action::SwitchTab(1)).unwrap();
+        assert_eq!(app.selected_profile().unwrap().name, "a2");
     }
 
     fn key_with_modifiers(code: KeyCode, modifiers: KeyModifiers) -> KeyEvent {
@@ -1599,6 +1836,7 @@ mod tests {
                 claude_runtime_summary: None,
                 codex_runtime_summary: None,
                 instance: None,
+                saved_selection: None,
             }],
             active_tab: 0,
             selected_index: 0,
@@ -1644,6 +1882,7 @@ mod tests {
                     claude_runtime_summary: None,
                     codex_runtime_summary: None,
                     instance: None,
+                    saved_selection: None,
                 },
                 PlatformTab {
                     platform: Platform::Claude,
@@ -1656,6 +1895,7 @@ mod tests {
                     claude_runtime_summary: None,
                     codex_runtime_summary: None,
                     instance: None,
+                    saved_selection: None,
                 },
             ],
             active_tab: 0,
@@ -1736,6 +1976,7 @@ mod tests {
                     claude_runtime_summary: None,
                     codex_runtime_summary: None,
                     instance: None,
+                    saved_selection: None,
                 },
                 PlatformTab {
                     platform: Platform::Codex,
@@ -1748,6 +1989,7 @@ mod tests {
                     claude_runtime_summary: None,
                     codex_runtime_summary: None,
                     instance: None,
+                    saved_selection: None,
                 },
             ],
             active_tab: 0,

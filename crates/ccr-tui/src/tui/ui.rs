@@ -1310,6 +1310,7 @@ mod tests {
                 claude_runtime_summary: None,
                 codex_runtime_summary: None,
                 instance: None,
+                saved_selection: None,
             }],
             active_tab: 0,
             selected_index: 0,
@@ -1347,6 +1348,7 @@ mod tests {
             claude_runtime_summary: None,
             codex_runtime_summary: None,
             instance: None,
+            saved_selection: None,
         }
     }
 
