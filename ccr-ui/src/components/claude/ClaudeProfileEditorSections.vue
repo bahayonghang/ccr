@@ -230,6 +230,106 @@
 
           <div>
             <label
+              for="claude-profile-default-fable-model"
+              class="mb-2 block text-sm font-medium text-text-secondary"
+            >
+              {{ $t('claudeProfiles.defaultFableModelLabel') }}
+            </label>
+            <input
+              id="claude-profile-default-fable-model"
+              :value="form.default_fable_model"
+              type="text"
+              :placeholder="$t('claudeProfiles.defaultFableModelPlaceholder')"
+              :class="monospaceFieldClass"
+              @input="updateTextField('default_fable_model', $event)"
+            >
+            <p class="mt-1.5 text-xs text-text-muted">
+              {{ $t('claudeProfiles.defaultFableModelHelper') }}
+            </p>
+          </div>
+
+          <div>
+            <label
+              for="claude-profile-default-opus-model-name"
+              class="mb-2 block text-sm font-medium text-text-secondary"
+            >
+              {{ $t('claudeProfiles.defaultOpusModelNameLabel') }}
+            </label>
+            <input
+              id="claude-profile-default-opus-model-name"
+              :value="form.default_opus_model_name"
+              type="text"
+              :placeholder="$t('claudeProfiles.defaultModelNamePlaceholder')"
+              :class="monospaceFieldClass"
+              @input="updateTextField('default_opus_model_name', $event)"
+            >
+            <p class="mt-1.5 text-xs text-text-muted">
+              {{ $t('claudeProfiles.defaultModelNameHelper') }}
+            </p>
+          </div>
+
+          <div>
+            <label
+              for="claude-profile-default-sonnet-model-name"
+              class="mb-2 block text-sm font-medium text-text-secondary"
+            >
+              {{ $t('claudeProfiles.defaultSonnetModelNameLabel') }}
+            </label>
+            <input
+              id="claude-profile-default-sonnet-model-name"
+              :value="form.default_sonnet_model_name"
+              type="text"
+              :placeholder="$t('claudeProfiles.defaultModelNamePlaceholder')"
+              :class="monospaceFieldClass"
+              @input="updateTextField('default_sonnet_model_name', $event)"
+            >
+            <p class="mt-1.5 text-xs text-text-muted">
+              {{ $t('claudeProfiles.defaultModelNameHelper') }}
+            </p>
+          </div>
+
+          <div>
+            <label
+              for="claude-profile-default-haiku-model-name"
+              class="mb-2 block text-sm font-medium text-text-secondary"
+            >
+              {{ $t('claudeProfiles.defaultHaikuModelNameLabel') }}
+            </label>
+            <input
+              id="claude-profile-default-haiku-model-name"
+              :value="form.default_haiku_model_name"
+              type="text"
+              :placeholder="$t('claudeProfiles.defaultModelNamePlaceholder')"
+              :class="monospaceFieldClass"
+              @input="updateTextField('default_haiku_model_name', $event)"
+            >
+            <p class="mt-1.5 text-xs text-text-muted">
+              {{ $t('claudeProfiles.defaultModelNameHelper') }}
+            </p>
+          </div>
+
+          <div>
+            <label
+              for="claude-profile-default-fable-model-name"
+              class="mb-2 block text-sm font-medium text-text-secondary"
+            >
+              {{ $t('claudeProfiles.defaultFableModelNameLabel') }}
+            </label>
+            <input
+              id="claude-profile-default-fable-model-name"
+              :value="form.default_fable_model_name"
+              type="text"
+              :placeholder="$t('claudeProfiles.defaultModelNamePlaceholder')"
+              :class="monospaceFieldClass"
+              @input="updateTextField('default_fable_model_name', $event)"
+            >
+            <p class="mt-1.5 text-xs text-text-muted">
+              {{ $t('claudeProfiles.defaultModelNameHelper') }}
+            </p>
+          </div>
+
+          <div>
+            <label
               for="claude-profile-subagent-model"
               class="mb-2 block text-sm font-medium text-text-secondary"
             >

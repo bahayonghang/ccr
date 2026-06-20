@@ -58,6 +58,11 @@ export interface ClaudeProfile {
   default_opus_model?: string | null
   default_sonnet_model?: string | null
   default_haiku_model?: string | null
+  default_fable_model?: string | null
+  default_opus_model_name?: string | null
+  default_sonnet_model_name?: string | null
+  default_haiku_model_name?: string | null
+  default_fable_model_name?: string | null
   subagent_model?: string | null
   custom_model_option?: string | null
   custom_model_option_name?: string | null
@@ -85,6 +90,11 @@ export interface ClaudeProfileRequest {
   default_opus_model?: string | null
   default_sonnet_model?: string | null
   default_haiku_model?: string | null
+  default_fable_model?: string | null
+  default_opus_model_name?: string | null
+  default_sonnet_model_name?: string | null
+  default_haiku_model_name?: string | null
+  default_fable_model_name?: string | null
   subagent_model?: string | null
   custom_model_option?: string | null
   custom_model_option_name?: string | null

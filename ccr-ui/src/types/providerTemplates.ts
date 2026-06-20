@@ -18,6 +18,7 @@ export interface ClaudeProviderTemplateOverride {
   defaultOpusModel?: string
   defaultSonnetModel?: string
   defaultHaikuModel?: string
+  defaultFableModel?: string
   subagentModel?: string
   description?: string
 }
@@ -79,9 +80,7 @@ export interface ProviderTemplateDraftContext {
   aliases?: string[]
   tags?: string[]
   category?: ProviderTemplateCategory
-  platformOverride: NonNullable<
-    ProviderTemplatePlatformOverrides[ProviderTemplatePlatform]
-  >
+  platformOverride: NonNullable<ProviderTemplatePlatformOverrides[ProviderTemplatePlatform]>
 }
 
 export interface ProviderTemplateSelection {
@@ -108,6 +107,7 @@ export interface ClaudeProfileTemplatePatch {
   default_opus_model?: string
   default_sonnet_model?: string
   default_haiku_model?: string
+  default_fable_model?: string
   subagent_model?: string
   description?: string
   suggestedName?: string

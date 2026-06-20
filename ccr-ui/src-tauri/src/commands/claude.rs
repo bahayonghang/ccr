@@ -354,6 +354,24 @@ fn patch_profile_with_config(profile: &mut ProfileConfig, config: &Value) -> Res
     if let Some(raw) = obj.get("default_haiku_model") {
         profile.default_haiku_model = parse_string_field(raw, "default_haiku_model")?;
     }
+    if let Some(raw) = obj.get("default_fable_model") {
+        profile.default_fable_model = parse_string_field(raw, "default_fable_model")?;
+    }
+    if let Some(raw) = obj.get("default_opus_model_name") {
+        profile.default_opus_model_name = parse_string_field(raw, "default_opus_model_name")?;
+    }
+    if let Some(raw) = obj.get("default_sonnet_model_name") {
+        profile.default_sonnet_model_name =
+            parse_string_field(raw, "default_sonnet_model_name")?;
+    }
+    if let Some(raw) = obj.get("default_haiku_model_name") {
+        profile.default_haiku_model_name =
+            parse_string_field(raw, "default_haiku_model_name")?;
+    }
+    if let Some(raw) = obj.get("default_fable_model_name") {
+        profile.default_fable_model_name =
+            parse_string_field(raw, "default_fable_model_name")?;
+    }
     if let Some(raw) = obj.get("subagent_model") {
         profile.subagent_model = parse_string_field(raw, "subagent_model")?;
     }
@@ -430,6 +448,11 @@ fn profile_to_json(current_profile: Option<&str>, name: String, profile: Profile
         "default_opus_model": profile.default_opus_model,
         "default_sonnet_model": profile.default_sonnet_model,
         "default_haiku_model": profile.default_haiku_model,
+        "default_fable_model": profile.default_fable_model,
+        "default_opus_model_name": profile.default_opus_model_name,
+        "default_sonnet_model_name": profile.default_sonnet_model_name,
+        "default_haiku_model_name": profile.default_haiku_model_name,
+        "default_fable_model_name": profile.default_fable_model_name,
         "subagent_model": profile.subagent_model,
         "custom_model_option": profile.custom_model_option,
         "custom_model_option_name": profile.custom_model_option_name,

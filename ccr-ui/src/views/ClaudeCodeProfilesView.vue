@@ -587,6 +587,11 @@ const form = reactive<ClaudeProfileEditorForm>({
   default_opus_model: '',
   default_sonnet_model: '',
   default_haiku_model: '',
+  default_fable_model: '',
+  default_opus_model_name: '',
+  default_sonnet_model_name: '',
+  default_haiku_model_name: '',
+  default_fable_model_name: '',
   subagent_model: '',
   custom_model_option: '',
   custom_model_option_name: '',
@@ -717,6 +722,7 @@ const claudeTemplateDraft = computed<ProviderTemplateDraftContext>(() => ({
     form.default_opus_model,
     form.default_sonnet_model,
     form.default_haiku_model,
+    form.default_fable_model,
     form.subagent_model,
   ].filter(Boolean),
   platformOverride: {
@@ -726,6 +732,7 @@ const claudeTemplateDraft = computed<ProviderTemplateDraftContext>(() => ({
     defaultOpusModel: form.default_opus_model,
     defaultSonnetModel: form.default_sonnet_model,
     defaultHaikuModel: form.default_haiku_model,
+    defaultFableModel: form.default_fable_model,
     subagentModel: form.subagent_model,
     description: form.description,
   },
@@ -782,6 +789,11 @@ const buildRequest = (): ClaudeProfileRequest => ({
   default_opus_model: normalizeOptional(form.default_opus_model) ?? null,
   default_sonnet_model: normalizeOptional(form.default_sonnet_model) ?? null,
   default_haiku_model: normalizeOptional(form.default_haiku_model) ?? null,
+  default_fable_model: normalizeOptional(form.default_fable_model) ?? null,
+  default_opus_model_name: normalizeOptional(form.default_opus_model_name) ?? null,
+  default_sonnet_model_name: normalizeOptional(form.default_sonnet_model_name) ?? null,
+  default_haiku_model_name: normalizeOptional(form.default_haiku_model_name) ?? null,
+  default_fable_model_name: normalizeOptional(form.default_fable_model_name) ?? null,
   subagent_model: normalizeOptional(form.subagent_model) ?? null,
   custom_model_option: normalizeOptional(form.custom_model_option) ?? null,
   custom_model_option_name: normalizeOptional(form.custom_model_option_name) ?? null,
@@ -802,6 +814,11 @@ const resetForm = () => {
   form.default_opus_model = ''
   form.default_sonnet_model = ''
   form.default_haiku_model = ''
+  form.default_fable_model = ''
+  form.default_opus_model_name = ''
+  form.default_sonnet_model_name = ''
+  form.default_haiku_model_name = ''
+  form.default_fable_model_name = ''
   form.subagent_model = ''
   form.custom_model_option = ''
   form.custom_model_option_name = ''
@@ -844,6 +861,11 @@ const openEditForm = (profile: ClaudeProfile) => {
   form.default_opus_model = profile.default_opus_model || ''
   form.default_sonnet_model = profile.default_sonnet_model || ''
   form.default_haiku_model = profile.default_haiku_model || ''
+  form.default_fable_model = profile.default_fable_model || ''
+  form.default_opus_model_name = profile.default_opus_model_name || ''
+  form.default_sonnet_model_name = profile.default_sonnet_model_name || ''
+  form.default_haiku_model_name = profile.default_haiku_model_name || ''
+  form.default_fable_model_name = profile.default_fable_model_name || ''
   form.subagent_model = profile.subagent_model || ''
   form.custom_model_option = profile.custom_model_option || ''
   form.custom_model_option_name = profile.custom_model_option_name || ''
@@ -886,6 +908,7 @@ const applyClaudeProviderTemplate = (selection: ProviderTemplateSelection) => {
   form.default_opus_model = patch.default_opus_model || ''
   form.default_sonnet_model = patch.default_sonnet_model || ''
   form.default_haiku_model = patch.default_haiku_model || ''
+  form.default_fable_model = patch.default_fable_model || ''
   form.subagent_model = patch.subagent_model || ''
 
   // 选用 provider 模板即意味着走第三方/中转端点 → 默认 api_key 鉴权，

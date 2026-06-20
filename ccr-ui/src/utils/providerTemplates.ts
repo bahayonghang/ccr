@@ -42,13 +42,11 @@ export const PROVIDER_TEMPLATE_PLATFORM_LABELS: Record<ProviderTemplatePlatform,
 const SECRET_KEY_PATTERN =
   /^(api[_-]?key|x[_-]?api[_-]?key|auth[_-]?token|bearer[_-]?token|authorization|proxy[_-]?authorization|token|secret|password)$/i
 
-export const compactString = (value: unknown) => (
-  typeof value === 'string' ? value.trim() : ''
-)
+export const compactString = (value: unknown) => (typeof value === 'string' ? value.trim() : '')
 
-export const compactList = (values: Array<string | undefined | null>) => (
-  [...new Set(values.map(compactString).filter(Boolean))]
-)
+export const compactList = (values: Array<string | undefined | null>) => [
+  ...new Set(values.map(compactString).filter(Boolean)),
+]
 
 export function parseListInput(input: string): string[] {
   return compactList(input.split(/[\n,]/))
@@ -79,9 +77,7 @@ function hostFromUrl(url?: string) {
   try {
     return new URL(text).host
   } catch {
-    return text
-      .replace(/^https?:\/\//, '')
-      .replace(/\/.*$/, '')
+    return text.replace(/^https?:\/\//, '').replace(/\/.*$/, '')
   }
 }
 
@@ -90,23 +86,24 @@ function stripSecretKeys(value: unknown): unknown {
   if (!value || typeof value !== 'object') return value
 
   return Object.fromEntries(
-    Object
-      .entries(value as Record<string, unknown>)
+    Object.entries(value as Record<string, unknown>)
       .filter(([key]) => !SECRET_KEY_PATTERN.test(key))
-      .map(([key, entry]) => [key, stripSecretKeys(entry)]),
+      .map(([key, entry]) => [key, stripSecretKeys(entry)])
   )
 }
 
 export function sanitizeProviderTemplate(template: ProviderTemplate): ProviderTemplate {
   const platforms: ProviderTemplatePlatformOverrides = {
     claude: template.platforms.claude
-      ? stripSecretKeys(template.platforms.claude) as ProviderTemplatePlatformOverrides['claude']
+      ? (stripSecretKeys(template.platforms.claude) as ProviderTemplatePlatformOverrides['claude'])
       : undefined,
     codex: template.platforms.codex
-      ? stripSecretKeys(template.platforms.codex) as ProviderTemplatePlatformOverrides['codex']
+      ? (stripSecretKeys(template.platforms.codex) as ProviderTemplatePlatformOverrides['codex'])
       : undefined,
     opencode: template.platforms.opencode
-      ? stripSecretKeys(template.platforms.opencode) as ProviderTemplatePlatformOverrides['opencode']
+      ? (stripSecretKeys(
+          template.platforms.opencode
+        ) as ProviderTemplatePlatformOverrides['opencode'])
       : undefined,
   }
 
@@ -127,19 +124,19 @@ export function sanitizeProviderTemplate(template: ProviderTemplate): ProviderTe
 
 export function mergeProviderTemplates(
   builtInTemplates: ProviderTemplate[],
-  customTemplates: ProviderTemplate[],
+  customTemplates: ProviderTemplate[]
 ): ProviderTemplate[] {
-  const customById = new Map(customTemplates.map(template => [template.id, template]))
-  const mergedBuiltIns = builtInTemplates.map(template => (
-    customById.has(template.id)
-      ? { ...template, id: `${template.id}-built-in` }
-      : template
-  ))
+  const customById = new Map(customTemplates.map((template) => [template.id, template]))
+  const mergedBuiltIns = builtInTemplates.map((template) =>
+    customById.has(template.id) ? { ...template, id: `${template.id}-built-in` } : template
+  )
 
   return [...mergedBuiltIns, ...customTemplates]
 }
 
-export function readCustomProviderTemplates(storage: Storage | undefined = globalThis.localStorage): ProviderTemplate[] {
+export function readCustomProviderTemplates(
+  storage: Storage | undefined = globalThis.localStorage
+): ProviderTemplate[] {
   if (!storage) return []
 
   try {
@@ -149,8 +146,10 @@ export function readCustomProviderTemplates(storage: Storage | undefined = globa
     if (!Array.isArray(parsed)) return []
 
     return parsed
-      .map(item => sanitizeProviderTemplate(item as ProviderTemplate))
-      .filter(template => template.id && template.name && Object.keys(template.platforms).length > 0)
+      .map((item) => sanitizeProviderTemplate(item as ProviderTemplate))
+      .filter(
+        (template) => template.id && template.name && Object.keys(template.platforms).length > 0
+      )
   } catch {
     return []
   }
@@ -158,25 +157,25 @@ export function readCustomProviderTemplates(storage: Storage | undefined = globa
 
 export function writeCustomProviderTemplates(
   templates: ProviderTemplate[],
-  storage: Storage | undefined = globalThis.localStorage,
+  storage: Storage | undefined = globalThis.localStorage
 ) {
   if (!storage) return
   storage.setItem(
     CUSTOM_PROVIDER_TEMPLATES_STORAGE_KEY,
-    JSON.stringify(templates.map(sanitizeProviderTemplate)),
+    JSON.stringify(templates.map(sanitizeProviderTemplate))
   )
 }
 
 export function deleteCustomProviderTemplate(
   templates: ProviderTemplate[],
-  id: string,
+  id: string
 ): ProviderTemplate[] {
-  return templates.filter(template => template.id !== id)
+  return templates.filter((template) => template.id !== id)
 }
 
 export function upsertCustomProviderTemplate(
   templates: ProviderTemplate[],
-  template: ProviderTemplate,
+  template: ProviderTemplate
 ): ProviderTemplate[] {
   const sanitized = sanitizeProviderTemplate({
     ...template,
@@ -184,12 +183,15 @@ export function upsertCustomProviderTemplate(
     updatedAt: new Date().toISOString(),
     createdAt: template.createdAt || new Date().toISOString(),
   })
-  const next = templates.filter(item => item.id !== sanitized.id)
+  const next = templates.filter((item) => item.id !== sanitized.id)
 
   return [...next, sanitized].sort((a, b) => a.name.localeCompare(b.name))
 }
 
-export function providerTemplateSearchText(template: ProviderTemplate, platform?: ProviderTemplatePlatform) {
+export function providerTemplateSearchText(
+  template: ProviderTemplate,
+  platform?: ProviderTemplatePlatform
+) {
   const platformOverride = platform ? template.platforms[platform] : null
 
   return [
@@ -218,10 +220,10 @@ export function providerTemplateSearchText(template: ProviderTemplate, platform?
 
 export function getTemplatesForPlatform(
   templates: ProviderTemplate[],
-  platform: ProviderTemplatePlatform,
+  platform: ProviderTemplatePlatform
 ): ProviderTemplate[] {
   return templates
-    .filter(template => Boolean(template.platforms[platform]))
+    .filter((template) => Boolean(template.platforms[platform]))
     .sort((a, b) => {
       const categoryDelta =
         PROVIDER_TEMPLATE_CATEGORY_ORDER[a.category] - PROVIDER_TEMPLATE_CATEGORY_ORDER[b.category]
@@ -235,14 +237,15 @@ export function getTemplatesForPlatform(
 
 export function resolveTemplateBaseUrls(
   template: ProviderTemplate,
-  platform: ProviderTemplatePlatform,
+  platform: ProviderTemplatePlatform
 ): string[] {
   const override = template.platforms[platform]
-  const platformBase = override && 'baseUrl' in override
-    ? override.baseUrl
-    : override && 'baseURL' in override
-      ? override.baseURL
-      : undefined
+  const platformBase =
+    override && 'baseUrl' in override
+      ? override.baseUrl
+      : override && 'baseURL' in override
+        ? override.baseURL
+        : undefined
 
   return compactList([platformBase, ...(template.baseUrls || [])])
 }
@@ -250,7 +253,7 @@ export function resolveTemplateBaseUrls(
 export function resolveTemplateEndpoint(
   template: ProviderTemplate,
   platform: ProviderTemplatePlatform,
-  endpoint?: string,
+  endpoint?: string
 ): string | undefined {
   const endpoints = resolveTemplateBaseUrls(template, platform)
   const selected = compactString(endpoint)
@@ -261,7 +264,7 @@ export function resolveTemplateEndpoint(
 
 export function buildProviderTemplateOptions(
   templates: ProviderTemplate[],
-  platform: ProviderTemplatePlatform,
+  platform: ProviderTemplatePlatform
 ): ProviderTemplateOption[] {
   return getTemplatesForPlatform(templates, platform).flatMap((template) => {
     const endpoints = resolveTemplateBaseUrls(template, platform)
@@ -292,8 +295,11 @@ export function buildProviderTemplateOptions(
 }
 
 function fallbackPlatformOverride(
-  template: Pick<ProviderTemplate, 'name' | 'baseUrls' | 'websiteUrl' | 'apiKeyUrl' | 'modelCatalog'>,
-  platform: ProviderTemplatePlatform,
+  template: Pick<
+    ProviderTemplate,
+    'name' | 'baseUrls' | 'websiteUrl' | 'apiKeyUrl' | 'modelCatalog'
+  >,
+  platform: ProviderTemplatePlatform
 ): NonNullable<ProviderTemplatePlatformOverrides[ProviderTemplatePlatform]> {
   const baseUrl = template.baseUrls?.[0]
 
@@ -340,7 +346,7 @@ export function createCustomProviderTemplateFromDraft(
     modelCatalog?: string[]
     existing?: ProviderTemplate
     platformOverrides?: ProviderTemplatePlatformOverrides
-  },
+  }
 ): ProviderTemplate {
   const template: ProviderTemplate = {
     id: slugifyTemplateId(values.id || values.name || draft.defaultName || 'custom-provider'),
@@ -371,7 +377,7 @@ export function createCustomProviderTemplateFromDraft(
 
     template.platforms[platform] =
       values.existing?.platforms[platform] ||
-      fallbackPlatformOverride(template, platform) as never
+      (fallbackPlatformOverride(template, platform) as never)
   }
 
   return sanitizeProviderTemplate(template)
@@ -379,7 +385,7 @@ export function createCustomProviderTemplateFromDraft(
 
 export function mapTemplateToClaudeProfilePatch(
   template: ProviderTemplate,
-  endpoint?: string,
+  endpoint?: string
 ): ClaudeProfileTemplatePatch {
   const override = template.platforms.claude
   if (!override) return {}
@@ -395,6 +401,7 @@ export function mapTemplateToClaudeProfilePatch(
     default_opus_model: override.defaultOpusModel,
     default_sonnet_model: override.defaultSonnetModel || model,
     default_haiku_model: override.defaultHaikuModel || smallFastModel,
+    default_fable_model: override.defaultFableModel || model,
     subagent_model: override.subagentModel || smallFastModel,
     description: override.description,
     suggestedName: template.id,
@@ -403,7 +410,7 @@ export function mapTemplateToClaudeProfilePatch(
 
 export function mapTemplateToClaudeLegacyConfigPatch(
   template: ProviderTemplate,
-  endpoint?: string,
+  endpoint?: string
 ): ClaudeLegacyConfigTemplatePatch {
   const override = template.platforms.claude
   if (!override) return {}
@@ -430,7 +437,7 @@ export function mapTemplateToClaudeLegacyConfigPatch(
 
 export function mapTemplateToCodexProviderPatch(
   template: ProviderTemplate,
-  endpoint?: string,
+  endpoint?: string
 ): CodexProviderTemplatePatch {
   const override = template.platforms.codex
   if (!override) return {}
@@ -445,7 +452,7 @@ export function mapTemplateToCodexProviderPatch(
 
 export function mapTemplateToCodexApiAccountPatch(
   template: ProviderTemplate,
-  endpoint?: string,
+  endpoint?: string
 ): CodexApiAccountTemplatePatch {
   const providerPatch = mapTemplateToCodexProviderPatch(template, endpoint)
 
@@ -457,7 +464,7 @@ export function mapTemplateToCodexApiAccountPatch(
 
 export function mapTemplateToCodexProfilePatch(
   template: ProviderTemplate,
-  endpoint?: string,
+  endpoint?: string
 ): CodexProfileTemplatePatch {
   const override = template.platforms.codex
   if (!override) return {}
@@ -476,7 +483,7 @@ export function mapTemplateToCodexProfilePatch(
 
 export function mapTemplateToOpenCodeProviderPatch(
   template: ProviderTemplate,
-  endpoint?: string,
+  endpoint?: string
 ): OpenCodeProviderTemplatePatch {
   const override = template.platforms.opencode
   if (!override) return {}
