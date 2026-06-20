@@ -1,0 +1,29 @@
+{
+  "id": "claude-fable-and-glm-profile",
+  "name": "claude-fable-and-glm-profile",
+  "title": "Claude profile fable 层支持与官方 GLM profile",
+  "description": "为 ccr 的 Claude profile 补齐 fable 模型层与各层显示名支持，并基于 GLM 官方配置创建官方 profile（写入 ~/.ccr + 仓库内置预设）",
+  "status": "planning",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-06-20",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "dev",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "06-20-fable-model-support",
+    "06-20-official-glm-profile"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}
