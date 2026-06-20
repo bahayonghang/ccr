@@ -1,0 +1,1 @@
+{"file": ".trellis/spec/ccr-tui/backend/backend-guidelines.md", "reason": "校验项：跨刷新选择稳定、page-size 保持全局、active_tab=0 启动契约不破坏、state-transition 单测、按规定命令验证"}
