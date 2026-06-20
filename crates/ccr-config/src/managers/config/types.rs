@@ -74,6 +74,26 @@ pub struct ConfigSection {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub default_haiku_model: Option<String>,
 
+    /// 📖 Fable 默认模型映射 (ANTHROPIC_DEFAULT_FABLE_MODEL)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub default_fable_model: Option<String>,
+
+    /// 🏷️ Opus 层显示名 (ANTHROPIC_DEFAULT_OPUS_MODEL_NAME)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub default_opus_model_name: Option<String>,
+
+    /// 🏷️ Sonnet 层显示名 (ANTHROPIC_DEFAULT_SONNET_MODEL_NAME)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub default_sonnet_model_name: Option<String>,
+
+    /// 🏷️ Haiku 层显示名 (ANTHROPIC_DEFAULT_HAIKU_MODEL_NAME)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub default_haiku_model_name: Option<String>,
+
+    /// 🏷️ Fable 层显示名 (ANTHROPIC_DEFAULT_FABLE_MODEL_NAME)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub default_fable_model_name: Option<String>,
+
     /// 🤖 子代理模型 (CLAUDE_CODE_SUBAGENT_MODEL)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub subagent_model: Option<String>,

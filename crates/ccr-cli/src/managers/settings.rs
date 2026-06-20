@@ -32,6 +32,11 @@ const ANTHROPIC_SMALL_FAST_MODEL: &str = "ANTHROPIC_SMALL_FAST_MODEL";
 const ANTHROPIC_DEFAULT_OPUS_MODEL: &str = "ANTHROPIC_DEFAULT_OPUS_MODEL";
 const ANTHROPIC_DEFAULT_SONNET_MODEL: &str = "ANTHROPIC_DEFAULT_SONNET_MODEL";
 const ANTHROPIC_DEFAULT_HAIKU_MODEL: &str = "ANTHROPIC_DEFAULT_HAIKU_MODEL";
+const ANTHROPIC_DEFAULT_FABLE_MODEL: &str = "ANTHROPIC_DEFAULT_FABLE_MODEL";
+const ANTHROPIC_DEFAULT_OPUS_MODEL_NAME: &str = "ANTHROPIC_DEFAULT_OPUS_MODEL_NAME";
+const ANTHROPIC_DEFAULT_SONNET_MODEL_NAME: &str = "ANTHROPIC_DEFAULT_SONNET_MODEL_NAME";
+const ANTHROPIC_DEFAULT_HAIKU_MODEL_NAME: &str = "ANTHROPIC_DEFAULT_HAIKU_MODEL_NAME";
+const ANTHROPIC_DEFAULT_FABLE_MODEL_NAME: &str = "ANTHROPIC_DEFAULT_FABLE_MODEL_NAME";
 const ANTHROPIC_CUSTOM_MODEL_OPTION: &str = "ANTHROPIC_CUSTOM_MODEL_OPTION";
 const ANTHROPIC_CUSTOM_MODEL_OPTION_NAME: &str = "ANTHROPIC_CUSTOM_MODEL_OPTION_NAME";
 const CLAUDE_CODE_SUBAGENT_MODEL: &str = "CLAUDE_CODE_SUBAGENT_MODEL";
@@ -146,6 +151,36 @@ impl ClaudeSettings {
         if let Some(value) = &section.default_haiku_model {
             self.env
                 .insert(ANTHROPIC_DEFAULT_HAIKU_MODEL.to_string(), value.clone());
+        }
+
+        // 📖 设置 default_fable_model
+        if let Some(value) = &section.default_fable_model {
+            self.env
+                .insert(ANTHROPIC_DEFAULT_FABLE_MODEL.to_string(), value.clone());
+        }
+
+        // 🏷️ 设置各层显示名 (*_MODEL_NAME)
+        if let Some(value) = &section.default_opus_model_name {
+            self.env
+                .insert(ANTHROPIC_DEFAULT_OPUS_MODEL_NAME.to_string(), value.clone());
+        }
+        if let Some(value) = &section.default_sonnet_model_name {
+            self.env.insert(
+                ANTHROPIC_DEFAULT_SONNET_MODEL_NAME.to_string(),
+                value.clone(),
+            );
+        }
+        if let Some(value) = &section.default_haiku_model_name {
+            self.env.insert(
+                ANTHROPIC_DEFAULT_HAIKU_MODEL_NAME.to_string(),
+                value.clone(),
+            );
+        }
+        if let Some(value) = &section.default_fable_model_name {
+            self.env.insert(
+                ANTHROPIC_DEFAULT_FABLE_MODEL_NAME.to_string(),
+                value.clone(),
+            );
         }
 
         // 🤖 设置 subagent_model
@@ -1073,6 +1108,88 @@ mod tests {
             !settings
                 .env
                 .contains_key("ANTHROPIC_CUSTOM_MODEL_OPTION_NAME")
+        );
+    }
+
+    // 📖 fable 层与各层显示名应写出对应 env
+    #[test]
+    fn test_update_from_config_writes_fable_and_model_names() {
+        let mut settings = ClaudeSettings::new();
+        let mut config = create_test_config_section();
+        config.default_fable_model = Some("glm-5.2[1m]".into());
+        config.default_opus_model_name = Some("GLM-5.2".into());
+        config.default_sonnet_model_name = Some("GLM-5.2".into());
+        config.default_haiku_model_name = Some("GLM-5.2".into());
+        config.default_fable_model_name = Some("GLM-5.2".into());
+
+        settings.update_from_config(&config);
+
+        assert_eq!(
+            settings.env.get("ANTHROPIC_DEFAULT_FABLE_MODEL"),
+            Some(&"glm-5.2[1m]".to_string())
+        );
+        assert_eq!(
+            settings.env.get("ANTHROPIC_DEFAULT_OPUS_MODEL_NAME"),
+            Some(&"GLM-5.2".to_string())
+        );
+        assert_eq!(
+            settings.env.get("ANTHROPIC_DEFAULT_SONNET_MODEL_NAME"),
+            Some(&"GLM-5.2".to_string())
+        );
+        assert_eq!(
+            settings.env.get("ANTHROPIC_DEFAULT_HAIKU_MODEL_NAME"),
+            Some(&"GLM-5.2".to_string())
+        );
+        assert_eq!(
+            settings.env.get("ANTHROPIC_DEFAULT_FABLE_MODEL_NAME"),
+            Some(&"GLM-5.2".to_string())
+        );
+    }
+
+    // 🏷️ 显示名字段为空时不写出
+    #[test]
+    fn test_update_from_config_skips_empty_model_names() {
+        let mut settings = ClaudeSettings::new();
+        let config = create_test_config_section();
+
+        settings.update_from_config(&config);
+
+        assert!(!settings.env.contains_key("ANTHROPIC_DEFAULT_FABLE_MODEL"));
+        assert!(
+            !settings
+                .env
+                .contains_key("ANTHROPIC_DEFAULT_OPUS_MODEL_NAME")
+        );
+        assert!(
+            !settings
+                .env
+                .contains_key("ANTHROPIC_DEFAULT_FABLE_MODEL_NAME")
+        );
+    }
+
+    // 🔁 切换 profile (update_from_config 先 clear) 时, 上一档的 fable env 不残留 (防串档)
+    #[test]
+    fn test_fable_env_cleared_on_profile_switch() {
+        let mut settings = ClaudeSettings::new();
+
+        let mut with_fable = create_test_config_section();
+        with_fable.default_fable_model = Some("glm-5.2[1m]".into());
+        with_fable.default_fable_model_name = Some("GLM-5.2".into());
+        settings.update_from_config(&with_fable);
+        assert!(settings.env.contains_key("ANTHROPIC_DEFAULT_FABLE_MODEL"));
+
+        // 切到不含 fable 的 profile
+        let without_fable = create_test_config_section();
+        settings.update_from_config(&without_fable);
+        assert!(
+            !settings.env.contains_key("ANTHROPIC_DEFAULT_FABLE_MODEL"),
+            "切换后旧 fable 模型映射必须被清掉"
+        );
+        assert!(
+            !settings
+                .env
+                .contains_key("ANTHROPIC_DEFAULT_FABLE_MODEL_NAME"),
+            "切换后旧 fable 显示名必须被清掉"
         );
     }
 

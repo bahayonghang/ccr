@@ -341,6 +341,11 @@ impl PlatformConfig for ClaudePlatform {
             "ANTHROPIC_DEFAULT_OPUS_MODEL".into(),
             "ANTHROPIC_DEFAULT_SONNET_MODEL".into(),
             "ANTHROPIC_DEFAULT_HAIKU_MODEL".into(),
+            "ANTHROPIC_DEFAULT_FABLE_MODEL".into(),
+            "ANTHROPIC_DEFAULT_OPUS_MODEL_NAME".into(),
+            "ANTHROPIC_DEFAULT_SONNET_MODEL_NAME".into(),
+            "ANTHROPIC_DEFAULT_HAIKU_MODEL_NAME".into(),
+            "ANTHROPIC_DEFAULT_FABLE_MODEL_NAME".into(),
             "CLAUDE_CODE_SUBAGENT_MODEL".into(),
             "ANTHROPIC_CUSTOM_MODEL_OPTION".into(),
             "ANTHROPIC_CUSTOM_MODEL_OPTION_NAME".into(),
@@ -821,6 +826,82 @@ auth_mode = "api_key"
                     .get("ANTHROPIC_CUSTOM_MODEL_OPTION")
                     .map(String::as_str),
                 Some("glm-5.2[1m]")
+            );
+
+            Ok(())
+        })();
+
+        drop(env);
+        result.unwrap();
+    }
+
+    // 📖 TOML 内的 default_fable_model 与各层 *_model_name 自动迁移到 typed 字段, 且 apply 写出 env
+    #[test]
+    fn test_fable_and_model_names_migrate_from_toml_and_write_env() {
+        let env = TestEnv::new();
+
+        let result = (|| -> Result<()> {
+            let platform = ClaudePlatform::new()?;
+            let profiles_path = env
+                .root_path()
+                .join("platforms")
+                .join("claude")
+                .join("profiles.toml");
+            fs::create_dir_all(profiles_path.parent().unwrap()).unwrap();
+            fs::write(
+                &profiles_path,
+                r#"default_config = "glm"
+current_config = "glm"
+
+[glm]
+base_url = "https://open.bigmodel.cn/api/anthropic"
+auth_token = "sk-glm"
+default_opus_model = "glm-5.2[1m]"
+default_sonnet_model = "glm-5.2[1m]"
+default_haiku_model = "glm-5.2[1m]"
+default_fable_model = "glm-5.2[1m]"
+default_opus_model_name = "GLM-5.2"
+default_sonnet_model_name = "GLM-5.2"
+default_haiku_model_name = "GLM-5.2"
+default_fable_model_name = "GLM-5.2"
+provider = "glm"
+auth_mode = "api_key"
+"#,
+            )
+            .unwrap();
+
+            // typed 化后, fable / *_model_name 落在 typed 字段, 不再残留 platform_data
+            let profiles = platform.load_profiles()?;
+            let glm = profiles.get("glm").expect("glm profile 应存在");
+            assert_eq!(glm.default_fable_model.as_deref(), Some("glm-5.2[1m]"));
+            assert_eq!(glm.default_fable_model_name.as_deref(), Some("GLM-5.2"));
+            assert_eq!(glm.default_opus_model_name.as_deref(), Some("GLM-5.2"));
+            assert!(!glm.platform_data.contains_key("default_fable_model"));
+            assert!(!glm.platform_data.contains_key("default_fable_model_name"));
+            assert!(!glm.platform_data.contains_key("default_opus_model_name"));
+
+            platform.apply_profile("glm")?;
+            let settings = SettingsManager::with_default()?.load()?;
+            assert_eq!(
+                settings
+                    .env
+                    .get("ANTHROPIC_DEFAULT_FABLE_MODEL")
+                    .map(String::as_str),
+                Some("glm-5.2[1m]")
+            );
+            assert_eq!(
+                settings
+                    .env
+                    .get("ANTHROPIC_DEFAULT_FABLE_MODEL_NAME")
+                    .map(String::as_str),
+                Some("GLM-5.2")
+            );
+            assert_eq!(
+                settings
+                    .env
+                    .get("ANTHROPIC_DEFAULT_OPUS_MODEL_NAME")
+                    .map(String::as_str),
+                Some("GLM-5.2")
             );
 
             Ok(())
