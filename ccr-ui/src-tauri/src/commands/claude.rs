@@ -385,6 +385,17 @@ fn patch_profile_with_config(profile: &mut ProfileConfig, config: &Value) -> Res
     if let Some(raw) = obj.get("effort_level") {
         profile.effort_level = parse_string_field(raw, "effort_level")?;
     }
+    if let Some(raw) = obj.get("claude_code_auto_compact_window") {
+        profile.claude_code_auto_compact_window =
+            parse_string_field(raw, "claude_code_auto_compact_window")?;
+    }
+    if let Some(raw) = obj.get("api_timeout_ms") {
+        profile.api_timeout_ms = parse_string_field(raw, "api_timeout_ms")?;
+    }
+    if let Some(raw) = obj.get("claude_code_disable_nonessential_traffic") {
+        profile.claude_code_disable_nonessential_traffic =
+            parse_string_field(raw, "claude_code_disable_nonessential_traffic")?;
+    }
     if let Some(raw) = obj.get("provider") {
         profile.provider = parse_string_field(raw, "provider")?;
     }
@@ -457,6 +468,9 @@ fn profile_to_json(current_profile: Option<&str>, name: String, profile: Profile
         "custom_model_option": profile.custom_model_option,
         "custom_model_option_name": profile.custom_model_option_name,
         "effort_level": profile.effort_level,
+        "claude_code_auto_compact_window": profile.claude_code_auto_compact_window,
+        "api_timeout_ms": profile.api_timeout_ms,
+        "claude_code_disable_nonessential_traffic": profile.claude_code_disable_nonessential_traffic,
         "provider": profile.provider,
         "provider_type": profile.provider_type,
         "account": profile.account,

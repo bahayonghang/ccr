@@ -110,6 +110,18 @@ pub struct ConfigSection {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub effort_level: Option<String>,
 
+    /// 📏 自动压缩上下文窗口 (CLAUDE_CODE_AUTO_COMPACT_WINDOW)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub claude_code_auto_compact_window: Option<String>,
+
+    /// ⏱️ API 超时时间 (API_TIMEOUT_MS)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub api_timeout_ms: Option<String>,
+
+    /// 🚦 禁用非必要流量 (CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub claude_code_disable_nonessential_traffic: Option<String>,
+
     /// 🏢 提供商名称（如 "anyrouter", "glm", "moonshot"）
     #[serde(skip_serializing_if = "Option::is_none")]
     pub provider: Option<String>,

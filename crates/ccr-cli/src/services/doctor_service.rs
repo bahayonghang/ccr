@@ -15,7 +15,7 @@ use ccr_core::Validatable;
 use futures::future::BoxFuture;
 use serde::Serialize;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -934,8 +934,33 @@ impl DoctorService {
                 };
 
                 match validation {
-                    Ok(_) => DoctorCheck::ok(id, "Claude settings file is valid.")
-                        .with_path(settings_path.display().to_string()),
+                    Ok(_) => {
+                        if let Some(profile) = current_profile {
+                            let warnings =
+                                Self::claude_profile_settings_warnings(profile, &settings);
+                            let mut warnings = warnings;
+                            if ClaudePlatform::profile_auth_mode(profile)
+                                == crate::models::ClaudeProfileAuthMode::ApiKey
+                                && let Some(warning) = Self::claude_onboarding_warning()
+                            {
+                                warnings.push(warning);
+                            }
+                            if !warnings.is_empty() {
+                                return DoctorCheck::warn(
+                                    id,
+                                    "Claude settings file is readable, but the active profile has runtime warnings.",
+                                )
+                                .with_path(settings_path.display().to_string())
+                                .with_detail(warnings.join(" | "))
+                                .with_recommendation(
+                                    "Fill real credentials if needed, then re-apply the active Claude profile.",
+                                );
+                            }
+                        }
+
+                        DoctorCheck::ok(id, "Claude settings file is valid.")
+                            .with_path(settings_path.display().to_string())
+                    }
                     Err(error) => DoctorCheck::fail(id, "Claude settings file is invalid.")
                         .with_path(settings_path.display().to_string())
                         .with_detail(error.to_string())
@@ -1023,6 +1048,264 @@ impl DoctorService {
                 }
             }
             Platform::Qwen => DoctorCheck::skip(id, "Qwen settings validation is skipped."),
+        }
+    }
+
+    fn claude_profile_settings_warnings(
+        profile: &ProfileConfig,
+        settings: &ClaudeSettings,
+    ) -> Vec<String> {
+        if ClaudePlatform::profile_auth_mode(profile)
+            != crate::models::ClaudeProfileAuthMode::ApiKey
+        {
+            return Vec::new();
+        }
+
+        let mut warnings = Vec::new();
+        if profile
+            .auth_token
+            .as_deref()
+            .is_some_and(Self::looks_like_placeholder_token)
+        {
+            warnings.push(
+                "auth_token looks like a placeholder; Claude Code will not authenticate until a real key is configured.".to_string(),
+            );
+        }
+
+        for (field, env_key, expected) in Self::claude_expected_profile_env(profile) {
+            match settings.env.get(env_key) {
+                Some(actual) if actual == expected => {}
+                Some(_) => {
+                    warnings.push(format!("{env_key} does not match profile field {field}."))
+                }
+                None => warnings.push(format!(
+                    "{env_key} is missing from settings.json env for profile field {field}."
+                )),
+            }
+        }
+
+        if Self::profile_uses_glm_1m(profile)
+            && profile
+                .claude_code_auto_compact_window
+                .as_deref()
+                .map(str::trim)
+                .is_none_or(str::is_empty)
+        {
+            warnings.push(
+                "GLM 1M profile is missing claude_code_auto_compact_window; set CLAUDE_CODE_AUTO_COMPACT_WINDOW to 1000000.".to_string(),
+            );
+        }
+
+        warnings
+    }
+
+    fn claude_json_path() -> Option<PathBuf> {
+        if let Some(path) = std::env::var_os("CLAUDE_JSON_PATH") {
+            return Some(PathBuf::from(path));
+        }
+
+        dirs::home_dir().map(|home| home.join(".claude.json"))
+    }
+
+    fn claude_onboarding_warning() -> Option<String> {
+        let path = Self::claude_json_path()?;
+        if !path.exists() {
+            return Some(format!(
+                "{} is missing; Claude Code onboarding state has not been confirmed.",
+                path.display()
+            ));
+        }
+
+        let content = match fs::read_to_string(&path) {
+            Ok(content) => content,
+            Err(error) => {
+                return Some(format!(
+                    "{} could not be read to verify hasCompletedOnboarding: {error}",
+                    path.display()
+                ));
+            }
+        };
+
+        let value = match serde_json::from_str::<serde_json::Value>(&content) {
+            Ok(value) => value,
+            Err(error) => {
+                return Some(format!(
+                    "{} could not be parsed to verify hasCompletedOnboarding: {error}",
+                    path.display()
+                ));
+            }
+        };
+
+        if value
+            .get("hasCompletedOnboarding")
+            .and_then(serde_json::Value::as_bool)
+            == Some(true)
+        {
+            return None;
+        }
+
+        Some(format!(
+            "{} is missing hasCompletedOnboarding = true; re-apply the active Claude API-key profile.",
+            path.display()
+        ))
+    }
+
+    fn looks_like_placeholder_token(token: &str) -> bool {
+        let normalized = token.trim().to_ascii_lowercase();
+        normalized.is_empty()
+            || normalized.contains("placeholder")
+            || normalized.contains("your_")
+            || normalized.contains("your-")
+            || normalized.contains("<")
+            || normalized.contains(">")
+            || normalized == "sk-xxx"
+            || normalized == "sk-xxxx"
+            || normalized == "sk-test"
+            || normalized == "test"
+    }
+
+    fn profile_uses_glm_1m(profile: &ProfileConfig) -> bool {
+        [
+            profile.model.as_deref(),
+            profile.small_fast_model.as_deref(),
+            profile.default_opus_model.as_deref(),
+            profile.default_sonnet_model.as_deref(),
+            profile.default_haiku_model.as_deref(),
+            profile.default_fable_model.as_deref(),
+            profile.custom_model_option.as_deref(),
+        ]
+        .into_iter()
+        .flatten()
+        .any(|model| {
+            let model = model.to_ascii_lowercase();
+            model.contains("glm") && model.contains("[1m]")
+        })
+    }
+
+    fn claude_expected_profile_env(
+        profile: &ProfileConfig,
+    ) -> Vec<(&'static str, &'static str, &String)> {
+        let mut expected = Vec::new();
+        Self::push_expected_env(
+            &mut expected,
+            "base_url",
+            "ANTHROPIC_BASE_URL",
+            &profile.base_url,
+        );
+        Self::push_expected_env(
+            &mut expected,
+            "auth_token",
+            "ANTHROPIC_AUTH_TOKEN",
+            &profile.auth_token,
+        );
+        Self::push_expected_env(&mut expected, "model", "ANTHROPIC_MODEL", &profile.model);
+        Self::push_expected_env(
+            &mut expected,
+            "small_fast_model",
+            "ANTHROPIC_SMALL_FAST_MODEL",
+            &profile.small_fast_model,
+        );
+        Self::push_expected_env(
+            &mut expected,
+            "default_opus_model",
+            "ANTHROPIC_DEFAULT_OPUS_MODEL",
+            &profile.default_opus_model,
+        );
+        Self::push_expected_env(
+            &mut expected,
+            "default_sonnet_model",
+            "ANTHROPIC_DEFAULT_SONNET_MODEL",
+            &profile.default_sonnet_model,
+        );
+        Self::push_expected_env(
+            &mut expected,
+            "default_haiku_model",
+            "ANTHROPIC_DEFAULT_HAIKU_MODEL",
+            &profile.default_haiku_model,
+        );
+        Self::push_expected_env(
+            &mut expected,
+            "default_fable_model",
+            "ANTHROPIC_DEFAULT_FABLE_MODEL",
+            &profile.default_fable_model,
+        );
+        Self::push_expected_env(
+            &mut expected,
+            "default_opus_model_name",
+            "ANTHROPIC_DEFAULT_OPUS_MODEL_NAME",
+            &profile.default_opus_model_name,
+        );
+        Self::push_expected_env(
+            &mut expected,
+            "default_sonnet_model_name",
+            "ANTHROPIC_DEFAULT_SONNET_MODEL_NAME",
+            &profile.default_sonnet_model_name,
+        );
+        Self::push_expected_env(
+            &mut expected,
+            "default_haiku_model_name",
+            "ANTHROPIC_DEFAULT_HAIKU_MODEL_NAME",
+            &profile.default_haiku_model_name,
+        );
+        Self::push_expected_env(
+            &mut expected,
+            "default_fable_model_name",
+            "ANTHROPIC_DEFAULT_FABLE_MODEL_NAME",
+            &profile.default_fable_model_name,
+        );
+        Self::push_expected_env(
+            &mut expected,
+            "subagent_model",
+            "CLAUDE_CODE_SUBAGENT_MODEL",
+            &profile.subagent_model,
+        );
+        Self::push_expected_env(
+            &mut expected,
+            "custom_model_option",
+            "ANTHROPIC_CUSTOM_MODEL_OPTION",
+            &profile.custom_model_option,
+        );
+        Self::push_expected_env(
+            &mut expected,
+            "custom_model_option_name",
+            "ANTHROPIC_CUSTOM_MODEL_OPTION_NAME",
+            &profile.custom_model_option_name,
+        );
+        Self::push_expected_env(
+            &mut expected,
+            "effort_level",
+            "CLAUDE_CODE_EFFORT_LEVEL",
+            &profile.effort_level,
+        );
+        Self::push_expected_env(
+            &mut expected,
+            "claude_code_auto_compact_window",
+            "CLAUDE_CODE_AUTO_COMPACT_WINDOW",
+            &profile.claude_code_auto_compact_window,
+        );
+        Self::push_expected_env(
+            &mut expected,
+            "api_timeout_ms",
+            "API_TIMEOUT_MS",
+            &profile.api_timeout_ms,
+        );
+        Self::push_expected_env(
+            &mut expected,
+            "claude_code_disable_nonessential_traffic",
+            "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC",
+            &profile.claude_code_disable_nonessential_traffic,
+        );
+        expected
+    }
+
+    fn push_expected_env<'a>(
+        expected: &mut Vec<(&'static str, &'static str, &'a String)>,
+        field: &'static str,
+        env_key: &'static str,
+        value: &'a Option<String>,
+    ) {
+        if let Some(value) = value.as_ref().filter(|value| !value.trim().is_empty()) {
+            expected.push((field, env_key, value));
         }
     }
 

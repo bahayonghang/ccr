@@ -41,9 +41,18 @@ const ANTHROPIC_CUSTOM_MODEL_OPTION: &str = "ANTHROPIC_CUSTOM_MODEL_OPTION";
 const ANTHROPIC_CUSTOM_MODEL_OPTION_NAME: &str = "ANTHROPIC_CUSTOM_MODEL_OPTION_NAME";
 const CLAUDE_CODE_SUBAGENT_MODEL: &str = "CLAUDE_CODE_SUBAGENT_MODEL";
 const CLAUDE_CODE_EFFORT_LEVEL: &str = "CLAUDE_CODE_EFFORT_LEVEL";
+const CLAUDE_CODE_AUTO_COMPACT_WINDOW: &str = "CLAUDE_CODE_AUTO_COMPACT_WINDOW";
+const API_TIMEOUT_MS: &str = "API_TIMEOUT_MS";
+const CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: &str = "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC";
 
 /// 🧹 不带 ANTHROPIC_ 前缀但同样由 ccr 托管的 env key 列表
-const NON_ANTHROPIC_MANAGED_KEYS: &[&str] = &[CLAUDE_CODE_SUBAGENT_MODEL, CLAUDE_CODE_EFFORT_LEVEL];
+const NON_ANTHROPIC_MANAGED_KEYS: &[&str] = &[
+    CLAUDE_CODE_SUBAGENT_MODEL,
+    CLAUDE_CODE_EFFORT_LEVEL,
+    CLAUDE_CODE_AUTO_COMPACT_WINDOW,
+    API_TIMEOUT_MS,
+    CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC,
+];
 
 /// 🎨 Claude Code 设置结构
 ///
@@ -209,6 +218,25 @@ impl ClaudeSettings {
                 .insert(CLAUDE_CODE_EFFORT_LEVEL.to_string(), value.clone());
         }
 
+        // 📏 设置 auto compact window
+        if let Some(value) = &section.claude_code_auto_compact_window {
+            self.env
+                .insert(CLAUDE_CODE_AUTO_COMPACT_WINDOW.to_string(), value.clone());
+        }
+
+        // ⏱️ 设置 API timeout
+        if let Some(value) = &section.api_timeout_ms {
+            self.env.insert(API_TIMEOUT_MS.to_string(), value.clone());
+        }
+
+        // 🚦 设置 disable nonessential traffic
+        if let Some(value) = &section.claude_code_disable_nonessential_traffic {
+            self.env.insert(
+                CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC.to_string(),
+                value.clone(),
+            );
+        }
+
         tracing::info!("✅ 环境变量已从配置更新");
     }
 
@@ -225,6 +253,14 @@ impl ClaudeSettings {
             ANTHROPIC_DEFAULT_OPUS_MODEL,
             ANTHROPIC_DEFAULT_SONNET_MODEL,
             ANTHROPIC_DEFAULT_HAIKU_MODEL,
+            ANTHROPIC_DEFAULT_FABLE_MODEL,
+            ANTHROPIC_DEFAULT_OPUS_MODEL_NAME,
+            ANTHROPIC_DEFAULT_SONNET_MODEL_NAME,
+            ANTHROPIC_DEFAULT_HAIKU_MODEL_NAME,
+            ANTHROPIC_DEFAULT_FABLE_MODEL_NAME,
+            CLAUDE_CODE_AUTO_COMPACT_WINDOW,
+            API_TIMEOUT_MS,
+            CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC,
         ];
 
         for var in vars {
@@ -1111,6 +1147,52 @@ mod tests {
         );
     }
 
+    #[test]
+    fn test_update_from_config_writes_runtime_envs() {
+        let mut settings = ClaudeSettings::new();
+        let mut config = create_test_config_section();
+        config.claude_code_auto_compact_window = Some("1000000".into());
+        config.api_timeout_ms = Some("3000000".into());
+        config.claude_code_disable_nonessential_traffic = Some("1".into());
+
+        settings.update_from_config(&config);
+
+        assert_eq!(
+            settings.env.get("CLAUDE_CODE_AUTO_COMPACT_WINDOW"),
+            Some(&"1000000".to_string())
+        );
+        assert_eq!(
+            settings.env.get("API_TIMEOUT_MS"),
+            Some(&"3000000".to_string())
+        );
+        assert_eq!(
+            settings.env.get("CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC"),
+            Some(&"1".to_string())
+        );
+    }
+
+    #[test]
+    fn test_runtime_envs_cleared_on_profile_switch() {
+        let mut settings = ClaudeSettings::new();
+
+        let mut with_runtime_envs = create_test_config_section();
+        with_runtime_envs.claude_code_auto_compact_window = Some("1000000".into());
+        with_runtime_envs.api_timeout_ms = Some("3000000".into());
+        with_runtime_envs.claude_code_disable_nonessential_traffic = Some("1".into());
+        settings.update_from_config(&with_runtime_envs);
+
+        let without_runtime_envs = create_test_config_section();
+        settings.update_from_config(&without_runtime_envs);
+
+        assert!(!settings.env.contains_key("CLAUDE_CODE_AUTO_COMPACT_WINDOW"));
+        assert!(!settings.env.contains_key("API_TIMEOUT_MS"));
+        assert!(
+            !settings
+                .env
+                .contains_key("CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC")
+        );
+    }
+
     // 📖 fable 层与各层显示名应写出对应 env
     #[test]
     fn test_update_from_config_writes_fable_and_model_names() {
@@ -1205,6 +1287,16 @@ mod tests {
         settings
             .env
             .insert("CLAUDE_CODE_EFFORT_LEVEL".into(), "max".into());
+        settings
+            .env
+            .insert("CLAUDE_CODE_AUTO_COMPACT_WINDOW".into(), "1000000".into());
+        settings
+            .env
+            .insert("API_TIMEOUT_MS".into(), "3000000".into());
+        settings.env.insert(
+            "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC".into(),
+            "1".into(),
+        );
         settings.env.insert("OTHER_VAR".into(), "keep".into());
 
         settings.clear_managed_vars();
@@ -1212,6 +1304,13 @@ mod tests {
         assert!(!settings.env.contains_key("ANTHROPIC_BASE_URL"));
         assert!(!settings.env.contains_key("CLAUDE_CODE_SUBAGENT_MODEL"));
         assert!(!settings.env.contains_key("CLAUDE_CODE_EFFORT_LEVEL"));
+        assert!(!settings.env.contains_key("CLAUDE_CODE_AUTO_COMPACT_WINDOW"));
+        assert!(!settings.env.contains_key("API_TIMEOUT_MS"));
+        assert!(
+            !settings
+                .env
+                .contains_key("CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC")
+        );
         assert!(settings.env.contains_key("OTHER_VAR"));
     }
 

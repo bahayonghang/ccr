@@ -145,6 +145,11 @@ pub fn section_to_profile(section: &ConfigSection) -> ProfileConfig {
         custom_model_option: section.custom_model_option.clone(),
         custom_model_option_name: section.custom_model_option_name.clone(),
         effort_level: section.effort_level.clone(),
+        claude_code_auto_compact_window: section.claude_code_auto_compact_window.clone(),
+        api_timeout_ms: section.api_timeout_ms.clone(),
+        claude_code_disable_nonessential_traffic: section
+            .claude_code_disable_nonessential_traffic
+            .clone(),
         provider: section.provider.clone(),
         provider_type: section
             .provider_type
@@ -188,6 +193,11 @@ pub fn profile_to_section(profile: &ProfileConfig) -> Result<ConfigSection> {
         custom_model_option: profile.custom_model_option.clone(),
         custom_model_option_name: profile.custom_model_option_name.clone(),
         effort_level: profile.effort_level.clone(),
+        claude_code_auto_compact_window: profile.claude_code_auto_compact_window.clone(),
+        api_timeout_ms: profile.api_timeout_ms.clone(),
+        claude_code_disable_nonessential_traffic: profile
+            .claude_code_disable_nonessential_traffic
+            .clone(),
         provider: profile.provider.clone(),
         provider_type,
         account: profile.account.clone(),

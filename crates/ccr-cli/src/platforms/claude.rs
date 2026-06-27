@@ -19,6 +19,7 @@ use crate::models::{
 };
 use ccr_config::platforms::base;
 use ccr_core::Validatable;
+use ccr_core::core::AtomicWriter;
 use ccr_core::core::error::{CcrError, Result};
 use indexmap::IndexMap;
 use serde_json::json;
@@ -72,6 +73,47 @@ impl ClaudePlatform {
     /// 📋 从 ProfileConfig 转换为 ConfigSection
     fn profile_to_section(profile: &ProfileConfig) -> Result<ConfigSection> {
         base::profile_to_section(profile)
+    }
+
+    fn claude_json_path() -> Result<PathBuf> {
+        if let Some(path) = std::env::var_os("CLAUDE_JSON_PATH") {
+            return Ok(PathBuf::from(path));
+        }
+
+        let home =
+            dirs::home_dir().ok_or_else(|| CcrError::ConfigError("无法获取用户主目录".into()))?;
+        Ok(home.join(".claude.json"))
+    }
+
+    fn ensure_onboarding_completed() -> Result<bool> {
+        let path = Self::claude_json_path()?;
+        let mut document = if path.exists() {
+            let content = fs::read_to_string(&path)
+                .map_err(|e| CcrError::ConfigError(format!("读取 Claude 状态文件失败: {e}")))?;
+            serde_json::from_str::<serde_json::Value>(&content)
+                .map_err(|e| CcrError::ConfigError(format!("解析 Claude 状态文件失败: {e}")))?
+        } else {
+            json!({})
+        };
+
+        let Some(object) = document.as_object_mut() else {
+            return Err(CcrError::ConfigError(
+                "Claude 状态文件必须是 JSON object".into(),
+            ));
+        };
+
+        if matches!(
+            object.get("hasCompletedOnboarding"),
+            Some(serde_json::Value::Bool(true))
+        ) {
+            return Ok(false);
+        }
+
+        object.insert("hasCompletedOnboarding".to_string(), json!(true));
+        let content = serde_json::to_string_pretty(&document)
+            .map_err(|e| CcrError::ConfigError(format!("序列化 Claude 状态文件失败: {e}")))?;
+        AtomicWriter::new(&path).write_string(&content)?;
+        Ok(true)
     }
 
     /// 💾 保存 profiles 到 TOML 文件
@@ -304,6 +346,12 @@ impl PlatformConfig for ClaudePlatform {
             }
             ClaudeProfileAuthMode::ApiKey => {
                 settings.update_from_config(&section);
+                if let Err(error) = Self::ensure_onboarding_completed() {
+                    tracing::warn!(
+                        error = %error,
+                        "应用 Claude API-key profile 时无法补写 Claude Code onboarding 标记"
+                    );
+                }
             }
         }
 
@@ -350,6 +398,9 @@ impl PlatformConfig for ClaudePlatform {
             "ANTHROPIC_CUSTOM_MODEL_OPTION".into(),
             "ANTHROPIC_CUSTOM_MODEL_OPTION_NAME".into(),
             "CLAUDE_CODE_EFFORT_LEVEL".into(),
+            "CLAUDE_CODE_AUTO_COMPACT_WINDOW".into(),
+            "API_TIMEOUT_MS".into(),
+            "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC".into(),
         ]
     }
 }
@@ -643,6 +694,16 @@ mod tests {
                 .env
                 .insert("ANTHROPIC_AUTH_TOKEN".into(), "sk-old".into());
             settings.env.insert("KEEP_ME".into(), "value".into());
+            settings
+                .env
+                .insert("CLAUDE_CODE_AUTO_COMPACT_WINDOW".into(), "1000000".into());
+            settings
+                .env
+                .insert("API_TIMEOUT_MS".into(), "3000000".into());
+            settings.env.insert(
+                "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC".into(),
+                "1".into(),
+            );
             SettingsManager::with_default()?.save_atomic(&settings)?;
 
             platform.apply_profile("official")?;
@@ -650,6 +711,13 @@ mod tests {
             let settings = SettingsManager::with_default()?.load()?;
             assert!(!settings.env.contains_key("ANTHROPIC_BASE_URL"));
             assert!(!settings.env.contains_key("ANTHROPIC_AUTH_TOKEN"));
+            assert!(!settings.env.contains_key("CLAUDE_CODE_AUTO_COMPACT_WINDOW"));
+            assert!(!settings.env.contains_key("API_TIMEOUT_MS"));
+            assert!(
+                !settings
+                    .env
+                    .contains_key("CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC")
+            );
             assert_eq!(
                 settings.env.get("KEEP_ME").map(String::as_str),
                 Some("value")
@@ -729,6 +797,88 @@ mod tests {
             Ok(())
         })();
 
+        result.unwrap();
+    }
+
+    #[test]
+    fn test_api_key_profile_apply_marks_onboarding_complete() {
+        let env = TestEnv::new();
+
+        let result = (|| -> Result<()> {
+            fs::write(
+                env.home.claude_json_path(),
+                serde_json::to_string_pretty(&json!({
+                    "oauthAccount": {
+                        "accountUuid": "account-123",
+                        "emailAddress": "user@example.com"
+                    }
+                }))
+                .unwrap(),
+            )
+            .unwrap();
+
+            let platform = ClaudePlatform::new()?;
+            platform.save_profile("glm", &make_profile("glm"))?;
+            platform.apply_profile("glm")?;
+
+            let claude_json: serde_json::Value =
+                serde_json::from_str(&fs::read_to_string(env.home.claude_json_path()).unwrap())
+                    .unwrap();
+            assert_eq!(claude_json["hasCompletedOnboarding"], json!(true));
+            assert_eq!(
+                claude_json["oauthAccount"]["emailAddress"],
+                json!("user@example.com")
+            );
+
+            Ok(())
+        })();
+
+        drop(env);
+        result.unwrap();
+    }
+
+    #[test]
+    fn test_api_key_profile_apply_creates_missing_claude_json() {
+        let env = TestEnv::new();
+
+        let result = (|| -> Result<()> {
+            let platform = ClaudePlatform::new()?;
+            platform.save_profile("glm", &make_profile("glm"))?;
+            platform.apply_profile("glm")?;
+
+            let claude_json: serde_json::Value =
+                serde_json::from_str(&fs::read_to_string(env.home.claude_json_path()).unwrap())
+                    .unwrap();
+            assert_eq!(claude_json["hasCompletedOnboarding"], json!(true));
+
+            Ok(())
+        })();
+
+        drop(env);
+        result.unwrap();
+    }
+
+    #[test]
+    fn test_api_key_profile_apply_keeps_settings_when_claude_json_is_invalid() {
+        let env = TestEnv::new();
+
+        let result = (|| -> Result<()> {
+            fs::write(env.home.claude_json_path(), "{invalid json").unwrap();
+
+            let platform = ClaudePlatform::new()?;
+            platform.save_profile("glm", &make_profile("glm"))?;
+            platform.apply_profile("glm")?;
+
+            let settings = SettingsManager::with_default()?.load()?;
+            assert_eq!(
+                settings.env.get("ANTHROPIC_BASE_URL").map(String::as_str),
+                Some("https://glm.example.com")
+            );
+
+            Ok(())
+        })();
+
+        drop(env);
         result.unwrap();
     }
 
@@ -902,6 +1052,88 @@ auth_mode = "api_key"
                     .get("ANTHROPIC_DEFAULT_OPUS_MODEL_NAME")
                     .map(String::as_str),
                 Some("GLM-5.2")
+            );
+
+            Ok(())
+        })();
+
+        drop(env);
+        result.unwrap();
+    }
+
+    #[test]
+    fn test_runtime_envs_migrate_from_toml_and_write_env() {
+        let env = TestEnv::new();
+
+        let result = (|| -> Result<()> {
+            let platform = ClaudePlatform::new()?;
+            let profiles_path = env
+                .root_path()
+                .join("platforms")
+                .join("claude")
+                .join("profiles.toml");
+            fs::create_dir_all(profiles_path.parent().unwrap()).unwrap();
+            fs::write(
+                &profiles_path,
+                r#"default_config = "glm"
+current_config = "glm"
+
+[glm]
+base_url = "https://api.z.ai/api/anthropic"
+auth_token = "sk-glm"
+default_opus_model = "glm-5.2[1m]"
+default_sonnet_model = "glm-5.2[1m]"
+default_haiku_model = "glm-5.2[1m]"
+default_fable_model = "glm-5.2[1m]"
+claude_code_auto_compact_window = "1000000"
+api_timeout_ms = "3000000"
+claude_code_disable_nonessential_traffic = "1"
+provider = "glm"
+auth_mode = "api_key"
+"#,
+            )
+            .unwrap();
+
+            let profiles = platform.load_profiles()?;
+            let glm = profiles.get("glm").expect("glm profile 应存在");
+            assert_eq!(
+                glm.claude_code_auto_compact_window.as_deref(),
+                Some("1000000")
+            );
+            assert_eq!(glm.api_timeout_ms.as_deref(), Some("3000000"));
+            assert_eq!(
+                glm.claude_code_disable_nonessential_traffic.as_deref(),
+                Some("1")
+            );
+            assert!(
+                !glm.platform_data
+                    .contains_key("claude_code_auto_compact_window")
+            );
+            assert!(!glm.platform_data.contains_key("api_timeout_ms"));
+            assert!(
+                !glm.platform_data
+                    .contains_key("claude_code_disable_nonessential_traffic")
+            );
+
+            platform.apply_profile("glm")?;
+            let settings = SettingsManager::with_default()?.load()?;
+            assert_eq!(
+                settings
+                    .env
+                    .get("CLAUDE_CODE_AUTO_COMPACT_WINDOW")
+                    .map(String::as_str),
+                Some("1000000")
+            );
+            assert_eq!(
+                settings.env.get("API_TIMEOUT_MS").map(String::as_str),
+                Some("3000000")
+            );
+            assert_eq!(
+                settings
+                    .env
+                    .get("CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC")
+                    .map(String::as_str),
+                Some("1")
             );
 
             Ok(())

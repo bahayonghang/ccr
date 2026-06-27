@@ -159,6 +159,31 @@ fn claude_api_key_section() -> ConfigSection {
     }
 }
 
+fn claude_glm_placeholder_section() -> ConfigSection {
+    let mut section = ConfigSection {
+        description: Some("GLM placeholder".to_string()),
+        base_url: Some("https://api.z.ai/api/anthropic".to_string()),
+        auth_token: Some("sk-xxx".to_string()),
+        default_opus_model: Some("glm-5.2[1m]".to_string()),
+        default_sonnet_model: Some("glm-5.2[1m]".to_string()),
+        default_haiku_model: Some("glm-4.7".to_string()),
+        default_fable_model: Some("glm-5.2[1m]".to_string()),
+        provider: Some("glm".to_string()),
+        provider_type: Some(ccr::managers::ProviderType::ThirdPartyModel),
+        account: None,
+        tags: None,
+        usage_count: Some(0),
+        enabled: Some(true),
+        other: IndexMap::new(),
+        ..Default::default()
+    };
+    section.other.insert(
+        "auth_mode".to_string(),
+        toml::Value::String("api_key".to_string()),
+    );
+    section
+}
+
 fn claude_subscription_section() -> ConfigSection {
     let mut other = IndexMap::new();
     other.insert(
@@ -273,6 +298,62 @@ fn doctor_fails_when_claude_subscription_is_missing() {
     assert!(json["checks"].as_array().unwrap().iter().any(|check| {
         check["id"] == "platform.claude.runtime_auth" && check["status"] == "fail"
     }));
+}
+
+#[test]
+fn doctor_warns_for_glm_placeholder_and_missing_runtime_envs() {
+    let fixture = DoctorFixture::new();
+    fixture.write_unified_config("claude", &[("claude", "glm")]);
+    fixture.write_profile("claude", "glm", claude_glm_placeholder_section());
+    fs::write(
+        &fixture.claude_settings_path,
+        serde_json::to_string_pretty(&ClaudeSettings {
+            env: HashMap::from([
+                (
+                    "ANTHROPIC_BASE_URL".to_string(),
+                    "https://api.z.ai/api/anthropic".to_string(),
+                ),
+                ("ANTHROPIC_AUTH_TOKEN".to_string(), "sk-xxx".to_string()),
+                (
+                    "ANTHROPIC_DEFAULT_OPUS_MODEL".to_string(),
+                    "glm-5.2[1m]".to_string(),
+                ),
+                (
+                    "ANTHROPIC_DEFAULT_SONNET_MODEL".to_string(),
+                    "glm-5.2[1m]".to_string(),
+                ),
+                (
+                    "ANTHROPIC_DEFAULT_HAIKU_MODEL".to_string(),
+                    "glm-4.7".to_string(),
+                ),
+                (
+                    "ANTHROPIC_DEFAULT_FABLE_MODEL".to_string(),
+                    "glm-5.2[1m]".to_string(),
+                ),
+            ]),
+            other: HashMap::new(),
+        })
+        .unwrap(),
+    )
+    .unwrap();
+
+    let (output, json) = fixture.run_json(&["doctor", "--json"]);
+
+    assert!(output.status.success(), "{:?}", output.status);
+    assert!(json["summary"]["warnings"].as_u64().unwrap() >= 1);
+    let settings_check = json["checks"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|check| check["id"] == "platform.claude.settings_file")
+        .expect("settings_file check should exist");
+    assert_eq!(settings_check["status"], "warn");
+    let detail = settings_check["detail"].as_str().unwrap();
+    assert!(detail.contains("placeholder"), "{detail}");
+    assert!(
+        detail.contains("CLAUDE_CODE_AUTO_COMPACT_WINDOW"),
+        "{detail}"
+    );
 }
 
 #[test]

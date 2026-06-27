@@ -27,6 +27,8 @@ pub(crate) mod test_support {
     pub(crate) struct TestHome {
         temp_dir: TempDir,
         root: PathBuf,
+        claude_dir: PathBuf,
+        claude_json_path: PathBuf,
         settings_path: PathBuf,
         backup_dir: PathBuf,
         lock_dir: PathBuf,
@@ -48,6 +50,7 @@ pub(crate) mod test_support {
             let home = temp_dir.path();
             let root = home.join(".ccr");
             let claude_dir = home.join(".claude");
+            let claude_json_path = home.join(".claude.json");
             let settings_path = claude_dir.join("settings.json");
             let backup_dir = claude_dir.join("backups");
             let lock_dir = home.join(".locks");
@@ -62,6 +65,16 @@ pub(crate) mod test_support {
             set_env_var(&mut previous_vars, "CCR_LOCK_DIR", lock_dir.as_os_str());
             set_env_var(
                 &mut previous_vars,
+                "CLAUDE_CONFIG_DIR",
+                claude_dir.as_os_str(),
+            );
+            set_env_var(
+                &mut previous_vars,
+                "CLAUDE_JSON_PATH",
+                claude_json_path.as_os_str(),
+            );
+            set_env_var(
+                &mut previous_vars,
                 "CCR_SETTINGS_PATH",
                 settings_path.as_os_str(),
             );
@@ -72,6 +85,8 @@ pub(crate) mod test_support {
             Self {
                 temp_dir,
                 root,
+                claude_dir,
+                claude_json_path,
                 settings_path,
                 backup_dir,
                 lock_dir,
@@ -95,6 +110,14 @@ pub(crate) mod test_support {
 
         pub(crate) fn root(&self) -> &Path {
             &self.root
+        }
+
+        pub(crate) fn claude_dir(&self) -> &Path {
+            &self.claude_dir
+        }
+
+        pub(crate) fn claude_json_path(&self) -> &Path {
+            &self.claude_json_path
         }
 
         pub(crate) fn settings_path(&self) -> &Path {
@@ -220,6 +243,14 @@ pub(crate) mod test_support {
                 Some(home.root().as_os_str())
             );
             assert!(std::env::var_os("CCR_CONFIG_PATH").is_none());
+            assert_eq!(
+                std::env::var_os("CLAUDE_CONFIG_DIR").as_deref(),
+                Some(home.claude_dir().as_os_str())
+            );
+            assert_eq!(
+                std::env::var_os("CLAUDE_JSON_PATH").as_deref(),
+                Some(home.claude_json_path().as_os_str())
+            );
             assert!(home.settings_path().starts_with(home.home()));
             assert!(home.backup_dir().starts_with(home.home()));
             assert!(home.lock_dir().starts_with(home.home()));
