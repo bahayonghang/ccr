@@ -680,3 +680,39 @@ Implemented configurable TUI tab ordering via ~/.ccr/tui.toml, fixed the main TU
 ### Next Steps
 
 - None - task complete
+
+
+## Session 20: Claude 第三方 profile 切换修复
+
+**Date**: 2026-06-27
+**Task**: Claude 第三方 profile 切换修复
+**Branch**: `dev`
+
+### Summary
+
+实现 Claude 第三方 profile 运行时 env、onboarding、doctor 诊断、GLM/Z.AI UI 模板和中英文文档更新，并完成 Trellis 任务记录。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `7d717090` | (see git log) |
+| `5e5a5966` | (see git log) |
+| `c7d3f397` | (see git log) |
+| `57e32544` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
