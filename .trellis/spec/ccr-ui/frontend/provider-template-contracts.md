@@ -35,6 +35,7 @@
 - Codex saved providers may include API keys, but provider templates never do. UI copy must keep "provider template" separate from "saved provider".
 - Codex templates can be applied in both the saved provider form and the API key account form. The API key account mapper may only fill `providerName` and `apiBaseUrl`; the API key, save-provider checkbox, and switch-after-add checkbox remain user-controlled.
 - Codex templates can be applied in the Codex Profile editor modal. The profile mapper may only fill `base_url`, `provider`, optional `provider_type`, `description`, `model`, and `suggestedName`; `auth_token`, `env_key`, `auth_mode`, and other credential fields remain user-controlled.
+- Claude templates may fill non-secret profile and runtime fields such as `base_url`, model mappings, `provider`, `provider_type`, `claude_code_auto_compact_window`, `api_timeout_ms`, and `claude_code_disable_nonessential_traffic`. They must leave `auth_token` user-controlled.
 - OpenCode template application must preserve the OpenCode settings contract: provider ID is the map key, `npm` is a provider root field, credentials stay under the provider form, and root extras remain explicit JSON.
 - Multiple endpoint templates become multiple selectable options. Selection may set a non-secret base URL, but must not modify user credential fields.
 
@@ -48,22 +49,26 @@
 - Applying a Codex template in the API key account flow -> fill `providerName` and `apiBaseUrl`; leave `apiKey` untouched.
 - Applying a Codex template in the Profile editor -> fill profile metadata and selected model state; leave `auth_token`, `env_key`, and `auth_mode` untouched.
 - Applying a Codex Profile template whose model is absent from the current model catalog -> select the custom model path and seed the custom model input.
+- Applying a Claude GLM template -> fill non-secret model/runtime env fields, including compact window and timeout, but leave `auth_token` untouched.
 - Applying an OpenCode template -> fill `id`, `name`, `npm`, `baseURL`, and non-secret JSON fields; leave `apiKey` untouched.
 
 ### 5. Good/Base/Bad Cases
 
 - Good: one custom "Gateway" template with `platforms.codex.baseUrl` and `platforms.opencode.baseURL` overrides.
+- Good: a Claude GLM template with `base_url = https://api.z.ai/api/anthropic`, model mappings, `claude_code_auto_compact_window = 1000000`, and no API key.
 - Good: strip `extraOptions.apiKey` and `rootExtra.headers.authorization` before storing an OpenCode custom template.
 - Base: a built-in Claude-only template is only shown in Claude Code flows.
 - Bad: store a custom template in Codex `model_providers.json`.
 - Bad: call a Codex saved provider a "template" when it can contain API keys.
 - Bad: store OpenCode `npm` under `options.npm` instead of the provider root.
+- Bad: prefill `auth_token` from a Claude provider template.
 
 ### 6. Tests Required
 
 - `cd ccr-ui && bun run test:smoke -- tests/provider-templates.smoke.test.ts`
   - Assert search indexes name, aliases, hosts, model names, and platform override fields.
   - Assert platform filtering respects `platforms.<platform>`.
+  - Assert Claude template patches include non-secret runtime fields and no credential fields.
   - Assert custom template persistence strips sensitive fields across all platform overrides.
   - Assert invalid override JSON does not persist.
 - `cd ccr-ui && bun run test:smoke -- tests/providers-catalog.smoke.test.ts` when changing the catalog JSON, its projection, or builtin provider lookups.

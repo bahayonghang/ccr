@@ -51,6 +51,81 @@ Correction happens at two points and must stay idempotent: `normalize_profile` (
 
 Model-mapping fields are typed on `ProfileConfig` / `ConfigSection` and mapped in `ClaudeSettings::update_from_config`; `custom_model_option`(`_name`) → `ANTHROPIC_CUSTOM_MODEL_OPTION`(`_NAME`). New env keys must also be registered in `ClaudePlatform::get_env_var_names`. Typing a previously-untyped key auto-migrates existing TOML (serde captures it into the typed slot instead of `other`/`platform_data`).
 
+## Scenario: Claude API-Key Profile Runtime Env
+
+### 1. Scope / Trigger
+
+- Trigger: adding or changing Claude profile fields that write Claude Code environment variables, profile apply behavior, doctor diagnostics, or onboarding state.
+- Applies to `ProfileConfig`, `ConfigSection`, `ccr_config::profile_to_section`, `ccr_config::section_to_profile`, `ClaudeSettings`, `ClaudePlatform`, Tauri Claude profile JSON, and command integration tests.
+
+### 2. Signatures
+
+- `ConfigSection::{default_fable_model, default_*_model_name, claude_code_auto_compact_window, api_timeout_ms, claude_code_disable_nonessential_traffic}`
+- `ProfileConfig::{default_fable_model, default_*_model_name, claude_code_auto_compact_window, api_timeout_ms, claude_code_disable_nonessential_traffic}`
+- `ClaudeSettings::update_from_config(&ConfigSection)`
+- `ClaudeSettings::clear_managed_vars()`
+- `ClaudePlatform::get_env_var_names()`
+- `ClaudePlatform::apply_profile(name)`
+- Test fixtures: `TestHome` must isolate `CLAUDE_CONFIG_DIR`, `CLAUDE_JSON_PATH`, `CCR_SETTINGS_PATH`, and `CCR_BACKUP_DIR`.
+
+### 3. Contracts
+
+- API-key Claude profiles write only typed, managed env keys into `~/.claude/settings.json.env`; do not add ad hoc env writes in command handlers.
+- Subscription profiles call `clear_managed_vars()` and must remove both `ANTHROPIC_*` keys and non-Anthropic CCR-managed Claude Code keys such as `CLAUDE_CODE_AUTO_COMPACT_WINDOW`, `API_TIMEOUT_MS`, and `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC`.
+- Every new typed env field must be added to both `ProfileConfig` and `ConfigSection`, both conversion directions, `ClaudeSettings::update_from_config`, `clear_managed_vars`, `ClaudePlatform::get_env_var_names`, Tauri JSON parse/serialize, UI form state, and provider template mappers when templates can fill it.
+- API-key profile apply should try to set `hasCompletedOnboarding = true` in `~/.claude.json` or `CLAUDE_JSON_PATH`. This helper preserves unknown JSON fields. Failure to read/parse/write `.claude.json` is logged as a warning and must not prevent `settings.json` from being saved.
+- `ccr doctor` checks API-key profiles for placeholder-looking tokens, active-profile env mismatches, GLM 1M profiles missing compact-window configuration, and missing/corrupt onboarding state.
+
+### 4. Validation & Error Matrix
+
+- Profile token is placeholder-like -> `doctor` warning; do not print or infer a real token.
+- Profile expected env differs from `settings.json.env` -> `doctor` warning recommending re-apply.
+- GLM model contains `[1m]` and `claude_code_auto_compact_window` is empty -> `doctor` warning recommending `1000000`.
+- `.claude.json` missing, unparsable, unreadable, or lacking `hasCompletedOnboarding = true` -> `doctor` warning.
+- `.claude.json` is corrupt during API-key apply -> keep applying `settings.json`, emit `tracing::warn`, and let `doctor` surface the onboarding state.
+- A new env key is written but not cleared on subscription/off switch -> regression; add a switch-cleanup test before merging.
+
+### 5. Good/Base/Bad Cases
+
+- Good: typed GLM profile writes `ANTHROPIC_DEFAULT_FABLE_MODEL`, all `*_MODEL_NAME` vars, `CLAUDE_CODE_AUTO_COMPACT_WINDOW`, `API_TIMEOUT_MS`, and `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC`, then switching to subscription clears them.
+- Good: `.claude.json` with `oauthAccount` keeps that object and only adds `hasCompletedOnboarding = true`.
+- Base: missing `.claude.json` becomes a minimal JSON object with `hasCompletedOnboarding = true` during API-key apply.
+- Bad: writing `hasCompletedOnboarding` into `~/.claude/settings.json`.
+- Bad: storing runtime env keys only in `platform_data` or UI-only state, because apply and doctor cannot round-trip them reliably.
+
+### 6. Tests Required
+
+- `cargo test -p ccr-cli platforms::claude -- --test-threads=1`
+  - Assert API-key apply writes expected env and onboarding state.
+  - Assert corrupt `.claude.json` does not block `settings.json` apply.
+  - Assert subscription apply clears non-Anthropic managed keys.
+- `cargo test -p ccr-cli managers::settings -- --test-threads=1`
+  - Assert each typed field maps to the correct env key and is cleared on profile switch.
+- `cargo test -p ccr --test commands doctor -- --test-threads=1`
+  - Assert placeholder, mismatch, compact-window, and onboarding warnings.
+- `cargo test -p ccr --test commands claude_profile -- --test-threads=1`
+  - Assert command-level switch/off behavior remains compatible.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```rust
+settings.env.insert("API_TIMEOUT_MS".into(), "3000000".into());
+```
+
+This one-off write skips typed TOML migration, UI round-trip, doctor comparison, and cleanup.
+
+#### Correct
+
+```rust
+profile.api_timeout_ms = Some("3000000".into());
+let section = ClaudePlatform::profile_to_section(&profile)?;
+settings.update_from_config(&section);
+```
+
+This keeps persistence, apply, diagnostics, and cleanup on the same typed contract.
+
 ## Testing
 
 Use crate-local `test_support::TestHome` and `TestHostEnv` for env/path-sensitive command tests. These fixtures serialize process env mutation and restore variables on Drop.
