@@ -388,6 +388,66 @@
             </p>
           </div>
 
+          <div>
+            <label
+              for="claude-profile-auto-compact-window"
+              class="mb-2 block text-sm font-medium text-text-secondary"
+            >
+              {{ $t('claudeProfiles.autoCompactWindowLabel') }}
+            </label>
+            <input
+              id="claude-profile-auto-compact-window"
+              :value="form.claude_code_auto_compact_window"
+              type="text"
+              :placeholder="$t('claudeProfiles.autoCompactWindowPlaceholder')"
+              :class="monospaceFieldClass"
+              @input="updateTextField('claude_code_auto_compact_window', $event)"
+            >
+            <p class="mt-1.5 text-xs text-text-muted">
+              {{ $t('claudeProfiles.autoCompactWindowHelper') }}
+            </p>
+          </div>
+
+          <div>
+            <label
+              for="claude-profile-api-timeout-ms"
+              class="mb-2 block text-sm font-medium text-text-secondary"
+            >
+              {{ $t('claudeProfiles.apiTimeoutMsLabel') }}
+            </label>
+            <input
+              id="claude-profile-api-timeout-ms"
+              :value="form.api_timeout_ms"
+              type="text"
+              :placeholder="$t('claudeProfiles.apiTimeoutMsPlaceholder')"
+              :class="monospaceFieldClass"
+              @input="updateTextField('api_timeout_ms', $event)"
+            >
+            <p class="mt-1.5 text-xs text-text-muted">
+              {{ $t('claudeProfiles.apiTimeoutMsHelper') }}
+            </p>
+          </div>
+
+          <div>
+            <label
+              for="claude-profile-disable-nonessential-traffic"
+              class="mb-2 block text-sm font-medium text-text-secondary"
+            >
+              {{ $t('claudeProfiles.disableNonessentialTrafficLabel') }}
+            </label>
+            <input
+              id="claude-profile-disable-nonessential-traffic"
+              :value="form.claude_code_disable_nonessential_traffic"
+              type="text"
+              :placeholder="$t('claudeProfiles.disableNonessentialTrafficPlaceholder')"
+              :class="monospaceFieldClass"
+              @input="updateTextField('claude_code_disable_nonessential_traffic', $event)"
+            >
+            <p class="mt-1.5 text-xs text-text-muted">
+              {{ $t('claudeProfiles.disableNonessentialTrafficHelper') }}
+            </p>
+          </div>
+
           <div class="lg:col-span-2">
             <label
               for="claude-profile-effort-level"

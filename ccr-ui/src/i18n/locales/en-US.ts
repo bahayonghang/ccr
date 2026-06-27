@@ -1077,6 +1077,17 @@ export default {
     customModelOptionNamePlaceholder: 'e.g. GLM 5.2 (1M)',
     customModelOptionNameHelper:
       'Sets ANTHROPIC_CUSTOM_MODEL_OPTION_NAME; only takes effect via an LLM gateway.',
+    autoCompactWindowLabel: 'Auto compact window',
+    autoCompactWindowPlaceholder: 'e.g. 1000000',
+    autoCompactWindowHelper:
+      'Sets CLAUDE_CODE_AUTO_COMPACT_WINDOW. GLM 1M profiles usually use 1000000.',
+    apiTimeoutMsLabel: 'API timeout (ms)',
+    apiTimeoutMsPlaceholder: 'e.g. 3000000',
+    apiTimeoutMsHelper: 'Sets API_TIMEOUT_MS for long-context requests.',
+    disableNonessentialTrafficLabel: 'Disable nonessential traffic',
+    disableNonessentialTrafficPlaceholder: 'e.g. 1',
+    disableNonessentialTrafficHelper:
+      'Sets CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC as a string environment value.',
     effortLevelLabel: 'Effort level',
     effortLevelHelper: 'Sets CLAUDE_CODE_EFFORT_LEVEL. xhigh is Opus 4.7 only.',
     effortLevelOptionDefault: 'Use model default',

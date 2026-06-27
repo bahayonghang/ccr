@@ -19,6 +19,9 @@ export interface ProviderPreset {
   base_url: string
   model?: string
   small_fast_model?: string
+  claude_code_auto_compact_window?: string
+  api_timeout_ms?: string
+  claude_code_disable_nonessential_traffic?: string
   provider?: string                   // 供应商名 (如 'DeepSeek')
   provider_type?: 'official_relay' | 'third_party_model'
   description?: string

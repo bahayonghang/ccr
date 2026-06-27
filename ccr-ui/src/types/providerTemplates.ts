@@ -20,6 +20,9 @@ export interface ClaudeProviderTemplateOverride {
   defaultHaikuModel?: string
   defaultFableModel?: string
   subagentModel?: string
+  claudeCodeAutoCompactWindow?: string
+  apiTimeoutMs?: string
+  claudeCodeDisableNonessentialTraffic?: string
   description?: string
 }
 
@@ -109,6 +112,9 @@ export interface ClaudeProfileTemplatePatch {
   default_haiku_model?: string
   default_fable_model?: string
   subagent_model?: string
+  claude_code_auto_compact_window?: string
+  api_timeout_ms?: string
+  claude_code_disable_nonessential_traffic?: string
   description?: string
   suggestedName?: string
 }

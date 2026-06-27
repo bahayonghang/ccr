@@ -89,6 +89,16 @@ describe('provider template mapping', () => {
     expect(claudePatch.provider).toBe('DeepSeek')
     expect(JSON.stringify(claudePatch)).not.toMatch(/auth_token|apiKey|api_key/i)
 
+    const zhipu = BUILT_IN_PROVIDER_TEMPLATES.find(template => template.id === 'zhipu-glm')
+    const zhipuPatch = mapTemplateToClaudeProfilePatch(zhipu!)
+    expect(zhipuPatch.base_url).toBe('https://api.z.ai/api/anthropic')
+    expect(zhipuPatch.default_sonnet_model).toBe('glm-5.2[1m]')
+    expect(zhipuPatch.default_haiku_model).toBe('glm-4.7')
+    expect(zhipuPatch.claude_code_auto_compact_window).toBe('1000000')
+    expect(zhipuPatch.api_timeout_ms).toBe('3000000')
+    expect(zhipuPatch.claude_code_disable_nonessential_traffic).toBe('1')
+    expect(JSON.stringify(zhipuPatch)).not.toMatch(/auth_token|apiKey|api_key/i)
+
     const codexPatch = mapTemplateToCodexProviderPatch(openrouter!)
     expect(codexPatch.baseUrl).toBe('https://openrouter.ai/api/v1')
     expect(codexPatch.apiKeyUrl).toBe('https://openrouter.ai/keys')

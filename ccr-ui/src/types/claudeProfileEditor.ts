@@ -20,6 +20,9 @@ export interface ClaudeProfileEditorForm {
   custom_model_option: string
   custom_model_option_name: string
   effort_level: string
+  claude_code_auto_compact_window: string
+  api_timeout_ms: string
+  claude_code_disable_nonessential_traffic: string
   provider: string
   provider_type: string
   account: string

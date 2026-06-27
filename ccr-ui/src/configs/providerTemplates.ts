@@ -231,6 +231,10 @@ const claudeTemplateFromPreset = (
     defaultSonnetModel: preset.model,
     defaultHaikuModel: preset.small_fast_model || preset.model,
     subagentModel: preset.small_fast_model || preset.model,
+    claudeCodeAutoCompactWindow: preset.claude_code_auto_compact_window,
+    apiTimeoutMs: preset.api_timeout_ms,
+    claudeCodeDisableNonessentialTraffic:
+      preset.claude_code_disable_nonessential_traffic,
     description: preset.description,
   }
   const codexOverride = codexOverrides[preset.id]

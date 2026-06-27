@@ -596,6 +596,9 @@ const form = reactive<ClaudeProfileEditorForm>({
   custom_model_option: '',
   custom_model_option_name: '',
   effort_level: '',
+  claude_code_auto_compact_window: '',
+  api_timeout_ms: '',
+  claude_code_disable_nonessential_traffic: '',
   provider: '',
   provider_type: '',
   account: '',
@@ -734,6 +737,9 @@ const claudeTemplateDraft = computed<ProviderTemplateDraftContext>(() => ({
     defaultHaikuModel: form.default_haiku_model,
     defaultFableModel: form.default_fable_model,
     subagentModel: form.subagent_model,
+    claudeCodeAutoCompactWindow: form.claude_code_auto_compact_window,
+    apiTimeoutMs: form.api_timeout_ms,
+    claudeCodeDisableNonessentialTraffic: form.claude_code_disable_nonessential_traffic,
     description: form.description,
   },
 }))
@@ -798,6 +804,11 @@ const buildRequest = (): ClaudeProfileRequest => ({
   custom_model_option: normalizeOptional(form.custom_model_option) ?? null,
   custom_model_option_name: normalizeOptional(form.custom_model_option_name) ?? null,
   effort_level: normalizeOptional(form.effort_level) ?? null,
+  claude_code_auto_compact_window:
+    normalizeOptional(form.claude_code_auto_compact_window) ?? null,
+  api_timeout_ms: normalizeOptional(form.api_timeout_ms) ?? null,
+  claude_code_disable_nonessential_traffic:
+    normalizeOptional(form.claude_code_disable_nonessential_traffic) ?? null,
   provider: normalizeOptional(form.provider),
   provider_type: normalizeOptional(form.provider_type),
   account: normalizeOptional(form.account),
@@ -823,6 +834,9 @@ const resetForm = () => {
   form.custom_model_option = ''
   form.custom_model_option_name = ''
   form.effort_level = ''
+  form.claude_code_auto_compact_window = ''
+  form.api_timeout_ms = ''
+  form.claude_code_disable_nonessential_traffic = ''
   form.provider = ''
   form.provider_type = ''
   form.account = ''
@@ -871,6 +885,10 @@ const openEditForm = (profile: ClaudeProfile) => {
   form.custom_model_option_name = profile.custom_model_option_name || ''
   const rawEffort = profile.effort_level || ''
   form.effort_level = (VALID_EFFORT_LEVELS as readonly string[]).includes(rawEffort) ? rawEffort : ''
+  form.claude_code_auto_compact_window = profile.claude_code_auto_compact_window || ''
+  form.api_timeout_ms = profile.api_timeout_ms || ''
+  form.claude_code_disable_nonessential_traffic =
+    profile.claude_code_disable_nonessential_traffic || ''
   form.provider = profile.provider || ''
   form.provider_type = profile.provider_type || ''
   form.account = profile.account || ''
@@ -910,6 +928,10 @@ const applyClaudeProviderTemplate = (selection: ProviderTemplateSelection) => {
   form.default_haiku_model = patch.default_haiku_model || ''
   form.default_fable_model = patch.default_fable_model || ''
   form.subagent_model = patch.subagent_model || ''
+  form.claude_code_auto_compact_window = patch.claude_code_auto_compact_window || ''
+  form.api_timeout_ms = patch.api_timeout_ms || ''
+  form.claude_code_disable_nonessential_traffic =
+    patch.claude_code_disable_nonessential_traffic || ''
 
   // 选用 provider 模板即意味着走第三方/中转端点 → 默认 api_key 鉴权，
   // 避免落到 subscription 被后端清空。

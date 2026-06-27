@@ -67,6 +67,9 @@ export interface ClaudeProfile {
   custom_model_option?: string | null
   custom_model_option_name?: string | null
   effort_level?: string | null
+  claude_code_auto_compact_window?: string | null
+  api_timeout_ms?: string | null
+  claude_code_disable_nonessential_traffic?: string | null
   provider?: string | null
   provider_type?: string | null
   account?: string | null
@@ -99,6 +102,9 @@ export interface ClaudeProfileRequest {
   custom_model_option?: string | null
   custom_model_option_name?: string | null
   effort_level?: string | null
+  claude_code_auto_compact_window?: string | null
+  api_timeout_ms?: string | null
+  claude_code_disable_nonessential_traffic?: string | null
   provider?: string
   provider_type?: string
   account?: string

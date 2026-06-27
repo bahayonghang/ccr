@@ -403,6 +403,10 @@ export function mapTemplateToClaudeProfilePatch(
     default_haiku_model: override.defaultHaikuModel || smallFastModel,
     default_fable_model: override.defaultFableModel || model,
     subagent_model: override.subagentModel || smallFastModel,
+    claude_code_auto_compact_window: override.claudeCodeAutoCompactWindow,
+    api_timeout_ms: override.apiTimeoutMs,
+    claude_code_disable_nonessential_traffic:
+      override.claudeCodeDisableNonessentialTraffic,
     description: override.description,
     suggestedName: template.id,
   }
