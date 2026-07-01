@@ -479,6 +479,11 @@ pub fn update_registry_current_profile(platform_name: &str, profile_name: &str) 
         unified_config.set_platform_profile(platform_name, profile_name)
     })?;
 
+    // 📈 记录 provider 激活时间线（尽力而为，失败不影响切换）
+    if let Some(root) = crate::managers::provider_activation::default_ccr_root() {
+        crate::managers::provider_activation::record_activation(&root, platform_name, profile_name);
+    }
+
     tracing::debug!("✅ 已更新注册表 current_profile: {}", profile_name);
     Ok(())
 }
@@ -505,8 +510,39 @@ pub fn update_registry_current_profile_with_paths(
         },
     )?;
 
+    // 📈 记录 provider 激活时间线（根目录取自 registry_path 的父目录，兼容测试隔离）
+    if let Some(root) = registry_path.parent() {
+        crate::managers::provider_activation::record_activation(root, platform_name, profile_name);
+    }
+
     tracing::debug!("✅ 已更新注册表 current_profile: {}", profile_name);
     Ok(())
+}
+
+/// 🔀 删除当前 profile 后的重定向结果（用于记录激活时间线）
+enum ReconcileOutcome {
+    Activate(String),
+    Clear,
+}
+
+/// 把 reconcile 结果写入 provider 激活时间线（尽力而为）
+fn record_reconcile_outcome(
+    root: Option<&Path>,
+    platform_name: &str,
+    outcome: Option<ReconcileOutcome>,
+) {
+    let Some(root) = root else {
+        return;
+    };
+    match outcome {
+        Some(ReconcileOutcome::Activate(next)) => {
+            crate::managers::provider_activation::record_activation(root, platform_name, &next);
+        }
+        Some(ReconcileOutcome::Clear) => {
+            crate::managers::provider_activation::record_clear(root, platform_name);
+        }
+        None => {}
+    }
 }
 
 /// 🔍 获取当前 profile (从注册表)
@@ -517,6 +553,7 @@ pub fn reconcile_registry_current_profile_after_delete(
     deleted_profile_name: &str,
     remaining_profiles: &IndexMap<String, ProfileConfig>,
 ) -> Result<()> {
+    let mut outcome: Option<ReconcileOutcome> = None;
     save_platform_registry(|unified_config| {
         let current_profile = match unified_config.get_platform(platform_name) {
             Ok(entry) => entry.current_profile.clone(),
@@ -529,14 +566,21 @@ pub fn reconcile_registry_current_profile_after_delete(
 
         if let Some(next_profile_name) = remaining_profiles.keys().next().cloned() {
             unified_config.set_platform_profile(platform_name, &next_profile_name)?;
+            outcome = Some(ReconcileOutcome::Activate(next_profile_name));
         } else {
             let registry = unified_config.get_platform_mut(platform_name)?;
             registry.current_profile = None;
             registry.last_used = Some(chrono::Utc::now().to_rfc3339());
+            outcome = Some(ReconcileOutcome::Clear);
         }
 
         Ok(())
     })?;
+    record_reconcile_outcome(
+        crate::managers::provider_activation::default_ccr_root().as_deref(),
+        platform_name,
+        outcome,
+    );
     Ok(())
 }
 
@@ -547,6 +591,7 @@ pub fn reconcile_registry_current_profile_after_delete_with_paths(
     deleted_profile_name: &str,
     remaining_profiles: &IndexMap<String, ProfileConfig>,
 ) -> Result<()> {
+    let mut outcome: Option<ReconcileOutcome> = None;
     save_platform_registry_with_paths(
         registry_path.to_path_buf(),
         lock_dir.to_path_buf(),
@@ -562,15 +607,18 @@ pub fn reconcile_registry_current_profile_after_delete_with_paths(
 
             if let Some(next_profile_name) = remaining_profiles.keys().next().cloned() {
                 unified_config.set_platform_profile(platform_name, &next_profile_name)?;
+                outcome = Some(ReconcileOutcome::Activate(next_profile_name));
             } else {
                 let registry = unified_config.get_platform_mut(platform_name)?;
                 registry.current_profile = None;
                 registry.last_used = Some(chrono::Utc::now().to_rfc3339());
+                outcome = Some(ReconcileOutcome::Clear);
             }
 
             Ok(())
         },
     )?;
+    record_reconcile_outcome(registry_path.parent(), platform_name, outcome);
     Ok(())
 }
 
