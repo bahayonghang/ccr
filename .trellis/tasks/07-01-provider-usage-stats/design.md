@@ -32,19 +32,23 @@ provider dimension.
 ## §2 llmusage upstream contract (the "missing content" — user implements)
 
 Target repo: `bahayonghang/llmuasage` (currently 0.5.3 @ `9bdac14`). Three
-additions. **Agree a new `schema_version = N` (N ≥ 11; current min supported by
-CCR adapter is 10).**
+additions. **Target `schema_version = 14`** — verified against the real llmusage
+tree: current is 13 (migrations 1..13), the new migration is v14; CCR adapter's
+current min-supported is 10. (Grounded llmusage task:
+`D:\Documents\Code\CLI\llmusage` → `07-01-provider-label-dimension`.)
 
 ### 2.1 Schema
 
-- Add nullable column `provider_label TEXT` to **both** `usage_event` and
-  `usage_bucket_30m`.
-- **Critical:** the `usage_bucket_30m` aggregation key MUST include
-  `provider_label` (alongside source/hour_start/model/project). Otherwise two
-  providers active within the same 30-minute window collapse into one bucket and
-  per-provider sums are wrong.
-- Bump the stored `meta.schema_version` to `N`. Existing rows keep
-  `provider_label = NULL` (→ "unattributed").
+- Add column `provider_label TEXT NOT NULL DEFAULT ''` to **both** `usage_event`
+  and `usage_bucket_30m`; `''` = **unattributed**.
+- **Critical:** the `usage_bucket_30m` PRIMARY KEY MUST include `provider_label`
+  (alongside source/model/hour_start/project_hash). Otherwise two providers active
+  within the same 30-minute window collapse into one bucket and per-provider sums
+  are wrong. Use `NOT NULL DEFAULT ''`, **not** NULL: a NULL PK column compares as
+  distinct in SQLite and would silently break the upsert dedup (mirrors the
+  existing `project_hash NOT NULL DEFAULT ''`).
+- Bump the stored `meta.schema_version` to `14`. Existing rows backfill to
+  `provider_label = ''` (→ "unattributed").
 
 ### 2.2 Ingest input — the provider-map (activation timeline)
 
@@ -64,7 +68,7 @@ activated_at_{i+1})`; the last window extends to `+∞`. `platform` maps to
   llmusage `source` (`claude`→claude, `codex`→codex).
 - **Stamping:** for each usage event, set `provider_label = window.provider` where
   `event.source == window.platform` and `event.event_at ∈ window`. A `clear`
-  window and any event before the first window → `provider_label = NULL`.
+  window and any event before the first window → `provider_label = ''`.
 - **Idempotent / rebuildable:** stamping is a pure function of (events, map), so
   `llmusage sync --rebuild` re-derives labels. Times are **UTC RFC3339** on both
   sides (matches existing `event_at`).
@@ -124,13 +128,13 @@ cli.rs,source.rs}`, `ccr-ui/src-tauri/src/commands/usage.rs`,
 
 - **db.rs:** add a `provider_breakdown(&QueryFilter) -> Vec<ProviderBreakdownDto>`
   mirroring the existing `source_breakdown` (GROUP BY `provider_label` over
-  `usage_bucket_30m`; `NULL → unattributed`). Add `provider_label` to required
+  `usage_bucket_30m`; `'' → unattributed`). Add `provider_label` to required
   columns for the new feature; add a `provider` predicate to the filter builder.
 - **queries.rs:** `ProviderBreakdownDto { provider: Option<String>, input_tokens,
 output_tokens, cache_read_tokens, cache_creation_tokens, reasoning_tokens,
 requests, cost_with_cache_usd, cost_without_cache_usd }`.
 - **capabilities.rs:** add `FeatureKey::ProviderBreakdown`, gated on
-  `schema_version >= N` AND presence of `provider_label`. Reuse the existing
+  `schema_version >= 14` AND presence of `provider_label`. Reuse the existing
   `ensure_feature` degrade path (NFR3/AC3).
 - **cli.rs:** extend `SyncCommandOptions` (`:47-52`) with
   `provider_map: Option<PathBuf>` → append `--provider-map <path>` to the sync
@@ -183,7 +187,7 @@ Add a tab via the existing system:
   / `~/.codex/config.toml`, so at any instant exactly one provider is active per
   platform; concurrent sessions share it. Wall-clock window attribution is
   therefore correct for CCR's model (R1).
-- **Pre-timeline data:** events before the first activation window → NULL →
+- **Pre-timeline data:** events before the first activation window → `''` →
   "unattributed" bucket. Expected and surfaced, not an error.
 - **Manual env override** (user exports `ANTHROPIC_BASE_URL` etc. outside CCR):
   attribution will be wrong — documented limitation, out of scope.

@@ -12,23 +12,26 @@ Tauri command — schema-gated so old DBs degrade gracefully.
 ## Requirements
 
 ### Upstream llmusage (user implements per parent design §2)
-- `provider_label TEXT` (nullable) on `usage_event` **and** `usage_bucket_30m`;
-  bump `schema_version` to agreed `N` (≥ 11).
+
+- `provider_label TEXT NOT NULL DEFAULT ''` on `usage_event` **and**
+  `usage_bucket_30m` (`''` = unattributed); bump `schema_version` to `14`
+  (real llmusage is at 13).
 - `usage_bucket_30m` aggregation key **includes** `provider_label` (else
   per-provider bucket sums are wrong).
 - `sync --provider-map <path>` builds per-platform half-open intervals from the
   timeline and stamps `provider_label` by `(source == platform, event_at ∈
-  window)`; unmatched/`clear`/pre-first-window → NULL. Rebuildable via `--rebuild`.
+window)`; unmatched/`clear`/pre-first-window → `''`. Rebuildable via `--rebuild`.
   UTC RFC3339 on both sides.
 
 ### CCR adapter + wiring (this repo)
+
 - `llmusage_adapter/db.rs`: `provider_breakdown(&QueryFilter)` (GROUP BY
-  `provider_label`, NULL→unattributed); add `provider` predicate to the filter;
+  `provider_label`, `''`→unattributed); add `provider` predicate to the filter;
   add `provider_label` to the new feature's required columns.
 - `queries.rs`: `ProviderBreakdownDto` (provider + token splits + requests +
   cost_with/without_cache_usd).
-- `capabilities.rs`: `FeatureKey::ProviderBreakdown`, gated on `schema_version ≥ N`
-  + column presence; reuse `ensure_feature` degrade path.
+- `capabilities.rs`: `FeatureKey::ProviderBreakdown`, gated on `schema_version ≥ 14`
+  - column presence; reuse `ensure_feature` degrade path.
 - `cli.rs`: `SyncCommandOptions.provider_map` → `--provider-map`; import commands
   in `commands/usage.rs` pass `$CCR_ROOT/analytics/provider_activation.jsonl`.
 - New command `get_usage_by_provider_v2(platform?, start?, end?)` +
