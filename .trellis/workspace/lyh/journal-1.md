@@ -784,3 +784,36 @@ Completed C2 llmusage provider ingest adapter: fixed ccr-ui README version drift
 ### Next Steps
 
 - None - task complete
+
+
+## Session 23: ccr-ui Provider usage view
+
+**Date**: 2026-07-02
+**Task**: ccr-ui Provider usage view
+**Branch**: `dev`
+
+### Summary
+
+Implemented the ccr-ui Providers usage tab with provider_stats store exposure, official-equivalent cost labels, unsupported-state handling, and focused smoke coverage.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f9ffe588` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
