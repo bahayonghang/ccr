@@ -11,6 +11,7 @@ members = [
     "crates/ccr-checkin",
     "crates/ccr-cli",
     "crates/ccr-tui",
+    "crates/ccr-usage",
     "crates/ccr-types",
 ]
 default-members = ["crates/ccr"]

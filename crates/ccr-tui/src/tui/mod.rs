@@ -15,6 +15,7 @@ mod selection;
 pub mod theme;
 pub mod toast;
 mod ui;
+pub mod usage;
 
 pub use app::App;
 pub use event::EventHandler;

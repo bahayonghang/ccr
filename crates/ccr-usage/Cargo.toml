@@ -1,0 +1,20 @@
+[package]
+name = "ccr-usage"
+version.workspace = true
+edition = "2024"
+rust-version = "1.90"
+authors = ["Yonghang Li"]
+description = "CCR read-only llmusage projections"
+license = "MIT"
+repository = "https://github.com/bahayonghang/ccr"
+
+[dependencies]
+chrono = { workspace = true }
+dirs = { workspace = true }
+rusqlite = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }

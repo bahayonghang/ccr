@@ -7,6 +7,7 @@ use super::codex_auth;
 use super::opencode_auth;
 use super::theme;
 use super::toast::ToastKind;
+use super::usage;
 use crate::models::{CodexRuntimeSummary, OpenAiAuthMethod, Platform, ProfileConfig};
 use ccr_codex::CodexPlatform;
 use ratatui::{
@@ -41,7 +42,10 @@ pub fn draw(f: &mut Frame, app: &mut App) {
 
     render_header(f, app, chunks[0]);
 
-    let content_area = if app.current_platform() == Platform::Codex && !app.is_opencode_auth_tab() {
+    let content_area = if app.current_platform() == Platform::Codex
+        && !app.is_opencode_auth_tab()
+        && !app.is_usage_tab()
+    {
         let runtime_chunks = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
@@ -113,6 +117,21 @@ pub fn draw(f: &mut Frame, app: &mut App) {
                 chunks[2],
                 mode,
                 app.opencode_auth_error.as_deref(),
+            );
+        }
+    } else if app.is_usage_tab() {
+        app.header_area.set(Some(chunks[0]));
+        app.ensure_usage_app();
+
+        if let Some(ref mut usage_app) = app.usage_app {
+            usage::ui::draw_embedded(f, usage_app, content_area, chunks[2], mode);
+        } else {
+            usage::ui::draw_loading_placeholder(
+                f,
+                content_area,
+                chunks[2],
+                mode,
+                app.usage_error.as_deref(),
             );
         }
     } else {
@@ -406,6 +425,7 @@ fn compact_tab_label(label: &str) -> &str {
         "Codex Auth" => "CxAuth",
         "OpenCode Auth" => "Open",
         "Codex Profile" => "Codex",
+        "Usage" => "Usage",
         _ => label,
     }
 }
@@ -1328,6 +1348,8 @@ mod tests {
             opencode_auth_app: None,
             opencode_auth_error: None,
             last_opencode_action: None,
+            usage_app: None,
+            usage_error: None,
             header_area: Cell::new(None),
             list_area: Cell::new(None),
             detail_area: Cell::new(None),

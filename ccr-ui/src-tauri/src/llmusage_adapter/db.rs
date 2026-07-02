@@ -408,43 +408,12 @@ impl Dashboard {
         filter: &QueryFilter,
     ) -> Result<Vec<ProviderBreakdownDto>, LlmusageAdapterError> {
         self.ensure_feature_for_filter(FeatureKey::ProviderBreakdown, filter)?;
-        let sql_filter = filter.bucket_filter(None);
-        let sql = format!(
-            r#"
-            SELECT
-                provider_label,
-                COALESCE(SUM(event_count), 0),
-                COALESCE(SUM(input_tokens), 0),
-                COALESCE(SUM(cache_read_tokens), 0),
-                COALESCE(SUM(cache_creation_tokens), 0),
-                COALESCE(SUM(output_tokens), 0),
-                COALESCE(SUM(reasoning_output_tokens), 0),
-                COALESCE(SUM(total_tokens), 0),
-                COALESCE(SUM(cost_with_cache_usd), 0.0),
-                COALESCE(SUM(cost_without_cache_usd), 0.0)
-            FROM usage_bucket_30m
-            {}
-            GROUP BY provider_label
-            ORDER BY SUM(total_tokens) DESC, provider_label ASC
-        "#,
-            sql_filter.where_sql()
-        );
-        let mut stmt = self.conn.prepare(&sql)?;
-        let rows = stmt.query_map(params_from_iter(sql_filter.param_refs()), |row| {
-            Ok(ProviderBreakdownDto {
-                provider: non_empty(row.get(0)?),
-                request_count: row.get(1)?,
-                input_tokens: row.get(2)?,
-                cache_read_tokens: row.get(3)?,
-                cache_creation_tokens: row.get(4)?,
-                output_tokens: row.get(5)?,
-                reasoning_output_tokens: row.get(6)?,
-                total_tokens: row.get(7)?,
-                cost_with_cache_usd: row.get(8)?,
-                cost_without_cache_usd: row.get(9)?,
-            })
-        })?;
-        Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
+        let shared_paths = ccr_usage::AppPaths::from_root(self.paths.root_dir.clone());
+        let dashboard = ccr_usage::open_dashboard(shared_paths).map_err(shared_usage_error)?;
+        dashboard
+            .provider_breakdown(&shared_provider_filter(filter))
+            .map(|rows| rows.into_iter().map(provider_breakdown_from_shared).collect())
+            .map_err(shared_usage_error)
     }
 
     pub fn project_breakdown(
@@ -880,6 +849,55 @@ impl Dashboard {
             &sql_filter.param_refs(),
         )
         .map_err(Into::into)
+    }
+}
+
+fn shared_provider_filter(filter: &QueryFilter) -> ccr_usage::QueryFilter {
+    ccr_usage::QueryFilter {
+        source: filter.source.and_then(|source| match source {
+            SourceKind::Claude => Some(ccr_usage::SourceKind::Claude),
+            SourceKind::Codex => Some(ccr_usage::SourceKind::Codex),
+            SourceKind::Gemini => Some(ccr_usage::SourceKind::Gemini),
+            SourceKind::Opencode => Some(ccr_usage::SourceKind::Opencode),
+        }),
+        provider: filter.provider.clone(),
+        since: filter.since,
+        until: filter.until,
+        timezone: match filter.timezone {
+            ReportTimezone::Local => ccr_usage::ReportTimezone::Local,
+            ReportTimezone::Utc => ccr_usage::ReportTimezone::Utc,
+        },
+    }
+}
+
+fn provider_breakdown_from_shared(row: ccr_usage::ProviderBreakdownDto) -> ProviderBreakdownDto {
+    ProviderBreakdownDto {
+        provider: row.provider,
+        request_count: row.request_count,
+        input_tokens: row.input_tokens,
+        cache_read_tokens: row.cache_read_tokens,
+        cache_creation_tokens: row.cache_creation_tokens,
+        output_tokens: row.output_tokens,
+        reasoning_output_tokens: row.reasoning_output_tokens,
+        total_tokens: row.total_tokens,
+        cost_with_cache_usd: row.cost_with_cache_usd,
+        cost_without_cache_usd: row.cost_without_cache_usd,
+    }
+}
+
+fn shared_usage_error(error: ccr_usage::UsageError) -> LlmusageAdapterError {
+    match error {
+        ccr_usage::UsageError::DbMissing(path) => LlmusageAdapterError::DbMissing(path),
+        ccr_usage::UsageError::DbUnreadable(message) => {
+            LlmusageAdapterError::DbUnreadable(message)
+        }
+        ccr_usage::UsageError::SchemaUnsupported { expected, actual } => {
+            LlmusageAdapterError::SchemaUnsupported { expected, actual }
+        }
+        ccr_usage::UsageError::FeatureUnavailable { feature, reason } => {
+            LlmusageAdapterError::FeatureUnavailable { feature, reason }
+        }
+        ccr_usage::UsageError::Query(message) => LlmusageAdapterError::Query(message),
     }
 }
 

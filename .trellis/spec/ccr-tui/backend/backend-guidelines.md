@@ -58,6 +58,36 @@ When changing tab ordering, add or keep regression tests that assert:
 - `active_tab = 0` selects the first configured tab
 - auth shortcut helpers still select their matching auth variant after reordering
 
+### Synthetic read-only tabs
+
+Use a synthetic `PlatformTab` only when a tab is not a profile/auth surface but still needs to live in the configured tab bar, such as `TabVariant::Usage`.
+
+Contract:
+
+- Add a matching `TuiTabId` in `crates/ccr-config` and include it in the complete-list default order.
+- Give the synthetic tab an empty `profiles` list and route it before profile selection/apply behavior in `handle_key`, mouse handlers, activation, ticks, and `ui::draw`.
+- Lazily initialize the embedded app from `App::with_task_executor(...)`; load external data with `AsyncTaskExecutor::spawn_blocking()` and a message channel so the terminal render loop never blocks on filesystem or SQLite work.
+- Keep the tab read-only unless the PRD explicitly asks for mutations. For usage/statistics views, show unsupported, missing-data, empty, and query-error states inside the tab rather than panicking or falling back to profile UI.
+
+Wrong:
+
+```rust
+// Synthetic tab reaches profile apply/select handling.
+let action = self.map_key(key);
+self.handle_profile_action(action)
+```
+
+Correct:
+
+```rust
+if self.is_usage_tab() {
+    if let Some(usage_app) = self.usage_app_mut() {
+        return usage_app.handle_key(key);
+    }
+    return Ok(false);
+}
+```
+
 ## Logging
 
 Use `tracing::warn!` for recoverable loading failures and diagnostics. Do not print directly from TUI code during active terminal rendering.
@@ -74,3 +104,4 @@ For TUI changes, run:
 - `cargo test -p ccr-tui -- --test-threads=1`
 - `cargo test -p ccr -- --test-threads=1` when the binary/TUI feature surface changes
 - `just lint-strict`
+- For usage/statistics tabs, also run `cargo test -p ccr-usage`

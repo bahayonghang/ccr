@@ -5,9 +5,10 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
-const DEFAULT_TAB_ORDER: [TuiTabId; 5] = [
+const DEFAULT_TAB_ORDER: [TuiTabId; 6] = [
     TuiTabId::CodexProfile,
     TuiTabId::ClaudeProfile,
+    TuiTabId::Usage,
     TuiTabId::CodexAuth,
     TuiTabId::ClaudeAuth,
     TuiTabId::OpencodeAuth,
@@ -18,6 +19,7 @@ const DEFAULT_TAB_ORDER: [TuiTabId; 5] = [
 pub enum TuiTabId {
     CodexProfile,
     ClaudeProfile,
+    Usage,
     CodexAuth,
     ClaudeAuth,
     OpencodeAuth,
@@ -28,6 +30,7 @@ impl TuiTabId {
         match self {
             TuiTabId::CodexProfile => "codex_profile",
             TuiTabId::ClaudeProfile => "claude_profile",
+            TuiTabId::Usage => "usage",
             TuiTabId::CodexAuth => "codex_auth",
             TuiTabId::ClaudeAuth => "claude_auth",
             TuiTabId::OpencodeAuth => "opencode_auth",
@@ -183,6 +186,7 @@ mod tests {
   "claude_auth",
   "codex_profile",
   "claude_profile",
+  "usage",
   "codex_auth",
   "opencode_auth",
 ]
@@ -197,6 +201,7 @@ mod tests {
                 TuiTabId::ClaudeAuth,
                 TuiTabId::CodexProfile,
                 TuiTabId::ClaudeProfile,
+                TuiTabId::Usage,
                 TuiTabId::CodexAuth,
                 TuiTabId::OpencodeAuth,
             ]
@@ -213,6 +218,7 @@ mod tests {
             r#"tab_order = [
   "codex_profile",
   "claude_profile",
+  "usage",
   "codex_auth",
   "claude_auth",
   "claude_auth",
@@ -235,6 +241,7 @@ mod tests {
             r#"tab_order = [
   "codex_profile",
   "claude_profile",
+  "usage",
   "codex_auth",
   "claude_auth",
 ]
@@ -256,6 +263,7 @@ mod tests {
             r#"tab_order = [
   "codex_profile",
   "claude_profile",
+  "usage",
   "codex_auth",
   "claude_auth",
   "claude_runtime"

@@ -724,6 +724,7 @@ dependencies = [
  "ccr-store",
  "ccr-sync",
  "ccr-types",
+ "ccr-usage",
  "chrono",
  "dirs",
  "fs4 1.1.0",
@@ -820,6 +821,18 @@ dependencies = [
  "serde",
  "serde_json",
  "uuid",
+]
+
+[[package]]
+name = "ccr-usage"
+version = "6.4.3"
+dependencies = [
+ "chrono",
+ "dirs",
+ "rusqlite",
+ "serde",
+ "thiserror 2.0.18",
+ "tracing",
 ]
 
 [[package]]

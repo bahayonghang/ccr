@@ -637,6 +637,7 @@ dependencies = [
  "ccr-cli",
  "ccr-codex",
  "ccr-core",
+ "ccr-usage",
  "chrono",
  "crossterm 0.29.0",
  "dirs",
@@ -659,6 +660,19 @@ dependencies = [
  "serde",
  "serde_json",
  "uuid",
+]
+
+[[package]]
+name = "ccr-usage"
+version = "6.4.3"
+dependencies = [
+ "chrono",
+ "dirs",
+ "rusqlite",
+ "serde",
+ "tempfile",
+ "thiserror 2.0.18",
+ "tracing",
 ]
 
 [[package]]

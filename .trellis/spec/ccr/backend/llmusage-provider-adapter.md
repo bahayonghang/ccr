@@ -6,8 +6,8 @@
 
 ### 1. Scope / Trigger
 - Trigger: changing provider usage attribution, sync import wiring, usage dashboard filters, or the llmusage read-only adapter.
-- Applies to `ccr-ui/src-tauri/src/llmusage_adapter/**`, `ccr-ui/src-tauri/src/commands/usage.rs`, and the matching frontend usage API/types.
-- CCR must keep the no-crate boundary: invoke the installed `llmusage` CLI for sync and read the SQLite DB read-only; do not link the upstream `llmusage` Rust crate.
+- Applies to `crates/ccr-usage/**`, `ccr-ui/src-tauri/src/llmusage_adapter/**`, `ccr-ui/src-tauri/src/commands/usage.rs`, TUI usage readers, and the matching frontend usage API/types.
+- CCR must keep the upstream no-crate boundary: invoke the installed `llmusage` CLI for sync and read the SQLite DB read-only; do not link the upstream `llmusage` Rust crate. The local `ccr-usage` crate is allowed and is the shared read-only projection owner.
 
 ### 2. Signatures
 - Sync options:
@@ -19,15 +19,36 @@
   ```
 - Adapter filter and projection:
   ```rust
-  pub struct QueryFilter {
-      pub provider: Option<String>,
-      // existing fields omitted
+  // crates/ccr-usage
+  pub struct AppPaths {
+      pub root_dir: PathBuf,
+      pub db_path: PathBuf,
   }
+
+  pub enum SourceKind {
+      Claude,
+      Codex,
+      Gemini,
+      Opencode,
+  }
+
+  pub struct QueryFilter {
+      pub source: Option<SourceKind>,
+      pub provider: Option<String>,
+      pub since: Option<NaiveDate>,
+      pub until: Option<NaiveDate>,
+      pub timezone: ReportTimezone,
+  }
+
+  pub fn open_dashboard(paths: AppPaths) -> Result<Dashboard, UsageError>;
 
   pub fn provider_breakdown(
       &self,
       filter: &QueryFilter,
-  ) -> Result<Vec<ProviderBreakdownDto>, LlmusageAdapterError>;
+  ) -> Result<Vec<ProviderBreakdownDto>, UsageError>;
+
+  // ccr-ui/src-tauri/src/llmusage_adapter keeps its own DTO/error types and
+  // maps to/from ccr_usage at the adapter boundary.
   ```
 - Tauri commands:
   ```rust
@@ -43,10 +64,13 @@
 ### 3. Contracts
 - Provider data comes from llmusage schema 14 columns: `usage_event.provider_label` and `usage_bucket_30m.provider_label`.
 - `FeatureKey::ProviderBreakdown` requires schema `>= 14` and both provider columns. Existing non-provider features keep their existing minimum schema unless a provider filter is supplied.
-- `Dashboard::provider_breakdown` groups `usage_bucket_30m` by `provider_label`, returns token splits and both cache-aware/cache-free costs, and maps empty provider labels to `provider = null`.
+- `crates/ccr-usage` owns `Dashboard::provider_breakdown` and the provider SQL for all CCR surfaces. Tauri and TUI code must delegate to this crate instead of duplicating the provider aggregation query.
+- `Dashboard::provider_breakdown` opens `llmusage.db` read-only, groups `usage_bucket_30m` by `provider_label`, returns token splits and both cache-aware/cache-free costs, and maps empty provider labels to `provider = null`.
+- `AppPaths::discover()` honors `LLMUSAGE_HOME`, otherwise uses `<home>/.llmusage`; Tauri may use `AppPaths::from_root(existing_root)` to preserve its existing path contract.
 - A provider filter must apply to overview, daily trends, model breakdown, source breakdown, project breakdown, heatmap, and logs through the shared `QueryFilter`.
 - `get_usage_dashboard_v2` includes `provider_stats` and its cache key must include the provider filter.
 - When no provider filter is supplied and provider capability is unavailable, dashboard payloads degrade to `provider_stats: []`; an explicit provider filter must surface the unsupported error.
+- TUI usage views should load the shared projection on a background task, request `SourceKind::Claude` and `SourceKind::Codex` separately when rendering those platform sections, and display `provider = null` as `unattributed`.
 - Only pass `--provider-map <path>` when `$CCR_ROOT/analytics/provider_activation.jsonl` exists. The installed llmusage CLI treats an explicit missing provider-map path as a hard sync error.
 - New frontend business wrappers belong in `src/api/domains/*`; `src/api/tauri.ts` remains a compatibility facade.
 
@@ -55,18 +79,25 @@
 - Schema 14 without `provider_label` on either required table -> `FeatureUnavailable { feature: "provider_breakdown", ... }`.
 - Dashboard without provider filter on an old DB -> success with `provider_stats: []`.
 - Dashboard with explicit provider filter on an old DB -> error; do not silently return unfiltered data.
+- `ccr-usage::open_dashboard` missing DB -> `UsageError::DbMissing`.
+- `ccr-usage::open_dashboard` unreadable DB/home resolution failure -> `UsageError::DbUnreadable`.
+- `ccr-usage::provider_breakdown` missing provider table/column -> `UsageError::FeatureUnavailable`.
 - Missing activation log file -> omit `--provider-map`; sync should still run.
 - Existing activation log file -> pass `--provider-map <path>` after other sync options.
 
 ### 5. Good / Base / Bad Cases
 - Good: schema 14 fixture with `openai`, `anthropic`, and empty labels; provider totals sum to source totals and empty labels serialize as `null`.
 - Good: `provider = "openai"` narrows overview/model/source totals to only OpenAI-attributed rows.
+- Good: Tauri provider dashboard and TUI Usage tab both call `ccr-usage` and differ only in DTO/error mapping and presentation.
 - Base: old llmusage DB still renders the dashboard, but provider stats are empty until the user upgrades/syncs.
 - Bad: adding provider filtering only to `provider_breakdown`; dashboard cards would show mixed-provider totals.
+- Bad: copying the provider breakdown SQL into `ccr-ui` and `ccr-tui`; future schema/capability fixes would diverge.
 - Bad: always passing `--provider-map` even when the activation log file is absent.
 - Bad: adding a new direct `invoke()` wrapper in `src/api/tauri.ts`.
 
 ### 6. Tests Required
+- `cargo test -p ccr-usage`
+- `cargo test -p ccr-tui -- --test-threads=1` when adding or changing the TUI Usage tab
 - `cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml llmusage_adapter -- --nocapture`
 - `cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml commands::handler_registry -- --nocapture`
 - `cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml --test llmusage_no_crate_guard -- --nocapture`
@@ -97,3 +128,22 @@ let options = SyncCommandOptions {
 ```
 
 Gate provider analytics by schema capability, preserve old-dashboard behavior, and keep sync tolerant when CCR has not yet written an activation log.
+
+#### Wrong
+```rust
+// In a Tauri or TUI surface:
+let mut stmt = conn.prepare("SELECT provider_label, SUM(total_tokens) FROM usage_bucket_30m GROUP BY provider_label")?;
+```
+
+This creates a second provider projection with separate schema gates, filtering semantics, and unattributed-row handling.
+
+#### Correct
+```rust
+let dashboard = ccr_usage::open_dashboard(ccr_usage::AppPaths::from_root(root_dir))?;
+let rows = dashboard.provider_breakdown(&ccr_usage::QueryFilter {
+    source: Some(ccr_usage::SourceKind::Codex),
+    ..ccr_usage::QueryFilter::default()
+})?;
+```
+
+Keep provider attribution in `crates/ccr-usage`; presentation layers only map DTOs, errors, and UI labels.
