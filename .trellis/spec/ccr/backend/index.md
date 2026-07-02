@@ -9,6 +9,7 @@
 | [Backend Guidelines](./backend-guidelines.md) | Root CLI/library facade boundaries, logging, errors, and verification | Complete |
 | [Desktop Command Policy](./desktop-command-policy.md) | Request-level validation for desktop command passthrough | Complete |
 | [Dependency Governance](./dependency-governance.md) | Root/Tauri dependency drift gates | Complete |
+| [llmusage Provider Adapter Contract](./llmusage-provider-adapter.md) | Provider-scoped llmusage sync/read-only SQLite/Tauri dashboard contract | Complete |
 | [Public API Boundary](./public-api-boundary.md) | Stable prelude and root re-export compatibility guards | Complete |
 | [Tauri Handler Registry](./tauri-handler-registry.md) | Domain command registry for the desktop invoke handler | Complete |
 | [Test Fixtures](./test-fixtures.md) | Root `ccr` integration test environment fixtures | Complete |
@@ -20,3 +21,4 @@
 - Read [Test Fixtures](./test-fixtures.md) before adding root integration tests.
 - Read [Dependency Governance](./dependency-governance.md) before changing workspace/Tauri dependency versions.
 - Read [Desktop Command Policy](./desktop-command-policy.md) and [Tauri Handler Registry](./tauri-handler-registry.md) before changing desktop command passthrough or handler registration.
+- Read [llmusage Provider Adapter Contract](./llmusage-provider-adapter.md) before changing provider-scoped usage sync, adapter filters, or dashboard payloads.
