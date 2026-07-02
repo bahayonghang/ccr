@@ -850,3 +850,39 @@ Implemented the ccr-ui Providers usage tab with provider_stats store exposure, o
 ### Next Steps
 
 - None - task complete
+
+
+## Session 25: 完成 Provider 用量统计父任务验收
+
+**Date**: 2026-07-02
+**Task**: 完成 Provider 用量统计父任务验收
+**Branch**: `dev`
+
+### Summary
+
+完成 07-01-provider-usage-stats 父任务集成验收：四个子任务已归档，父级自动化门禁通过 version-check、fmt-check、lint-strict、just test、frontend-check-quick 与 just ci；真实账号/用量的手动 E2E 未在本环境执行。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `41ce6b9c` | (see git log) |
+| `f57b3718` | (see git log) |
+| `f9ffe588` | (see git log) |
+| `ba02c900` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

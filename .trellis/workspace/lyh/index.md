@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 24
+- **Total Sessions**: 25
 - **Last Active**: 2026-07-02
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~852 | Active |
+| `journal-1.md` | ~888 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 25 | 2026-07-02 | 完成 Provider 用量统计父任务验收 | `41ce6b9c`, `f57b3718`, `f9ffe588`, `ba02c900` | `dev` |
 | 24 | 2026-07-02 | 完成 TUI Usage 统计标签页 | `ba02c900` | `dev` |
 | 23 | 2026-07-02 | ccr-ui Provider usage view | `f9ffe588` | `dev` |
 | 22 | 2026-07-02 | C2 llmusage provider adapter | `6676c891`, `f57b3718`, `b9e4196d` | `dev` |
