@@ -817,3 +817,36 @@ Implemented the ccr-ui Providers usage tab with provider_stats store exposure, o
 ### Next Steps
 
 - None - task complete
+
+
+## Session 24: 完成 TUI Usage 统计标签页
+
+**Date**: 2026-07-02
+**Task**: 完成 TUI Usage 统计标签页
+**Branch**: `dev`
+
+### Summary
+
+完成 C4 ccr-tui usage/statistics tab：新增共享只读 ccr-usage 投影、Tauri 适配器委托、TUI Usage 标签页、相关 spec 更新和验证。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `ba02c900` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
