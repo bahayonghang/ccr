@@ -343,6 +343,7 @@ define_command_registry! {
         super::usage::get_usage_capabilities_v2,
         super::usage::get_usage_trends_v2,
         super::usage::get_usage_by_model_v2,
+        super::usage::get_usage_by_provider_v2,
         super::usage::get_usage_by_project_v2,
         super::usage::get_usage_heatmap_v2,
         super::usage::get_usage_logs_v2,
@@ -495,10 +496,10 @@ mod tests {
         assert_eq!(COMMAND_MODULES.len(), 30);
 
         #[cfg(target_os = "windows")]
-        assert_eq!(registered_command_count(), 319);
+        assert_eq!(registered_command_count(), 320);
 
         #[cfg(not(target_os = "windows"))]
-        assert_eq!(registered_command_count(), 311);
+        assert_eq!(registered_command_count(), 312);
     }
 
     #[test]

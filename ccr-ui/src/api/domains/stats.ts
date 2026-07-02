@@ -61,6 +61,15 @@ export const getUsageByModelV2 = async <T = UnknownRecord>(
   return invoke('get_usage_by_model_v2', { platform, startDate, endDate })
 }
 
+/** V2: 获取 provider 统计 */
+export const getUsageByProviderV2 = async <T = UnknownRecord>(
+  platform?: string,
+  startDate?: string,
+  endDate?: string,
+): Promise<T> => {
+  return invoke('get_usage_by_provider_v2', { platform, startDate, endDate })
+}
+
 /** V2: 获取项目统计 */
 export const getUsageByProjectV2 = async <T = UnknownRecord>(
   platform?: string,
@@ -123,9 +132,11 @@ export const getUsageDashboardV2 = async <T = UnknownRecord>(
   endDate?: string,
   heatmapDays?: number,
   includeHeatmap?: boolean,
+  provider?: string,
 ): Promise<T> => {
   return invoke('get_usage_dashboard_v2', {
     platform,
+    provider,
     startDate,
     endDate,
     heatmapDays,

@@ -66,6 +66,20 @@ export interface SourceBreakdown {
   share_cost: number
 }
 
+/** Provider 聚合统计 */
+export interface ProviderBreakdown {
+  provider: string | null
+  request_count: number
+  input_tokens: number
+  cache_read_tokens: number
+  cache_creation_tokens: number
+  output_tokens: number
+  reasoning_output_tokens: number
+  total_tokens: number
+  cost_with_cache_usd: number
+  cost_without_cache_usd: number
+}
+
 /** 使用记录（v2，含提取列） */
 export interface UsageRecordV2 {
   id: string
@@ -195,6 +209,7 @@ export interface UsageDashboardResponse {
   summary: UsageSummary
   trends: DailyTrend[]
   model_stats: ModelStat[]
+  provider_stats: ProviderBreakdown[]
   project_stats: ProjectStat[]
   source_stats: SourceBreakdown[]
   archive: UsageArchiveDiagnostics

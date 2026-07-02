@@ -28,6 +28,7 @@
 //! 都属于这条旁路，不是漏迁。usage events 链路里出现 `usage_repo` 引用才是 bug。
 
 use std::collections::BTreeMap;
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -40,6 +41,7 @@ use tauri::{AppHandle, Emitter, Manager, State};
 use uuid::Uuid;
 
 use crate::events::{self, UsageImportPayload};
+use crate::llmusage_adapter::error::LlmusageAdapterError;
 use crate::llmusage_adapter::{
     JobEvent, LogsQuery as LlmusageLogsQuery, SourceKind, SourceSyncStats, SyncCommandOptions,
     SyncSummaryEvent, build_filter, canonical_source_id, is_optional_source_absent,
@@ -340,20 +342,30 @@ fn record_db_duration(state: &AppState, db_ms: f64) {
 
 fn usage_dashboard_cache_key(
     platform: Option<&str>,
+    provider: Option<&str>,
     start_date: Option<&str>,
     end_date: Option<&str>,
     heatmap_days: u32,
     include_heatmap: bool,
 ) -> String {
     format!(
-        "{}dashboard:platform={}:start={}:end={}:heatmap_days={}:include_heatmap={}",
+        "{}dashboard:platform={}:provider={}:start={}:end={}:heatmap_days={}:include_heatmap={}",
         USAGE_SNAPSHOT_CACHE_PREFIX,
         platform.unwrap_or("all"),
+        provider.unwrap_or("all"),
         start_date.unwrap_or(""),
         end_date.unwrap_or(""),
         heatmap_days,
         include_heatmap
     )
+}
+
+fn provider_activation_map_path() -> Option<PathBuf> {
+    let root = ccr_config::managers::provider_activation::default_ccr_root()?;
+    let path = ccr_config::managers::provider_activation::activation_log_path(&root);
+    // llmusage treats an explicit --provider-map as strict, so avoid turning a
+    // not-yet-created activation log into a sync failure.
+    path.is_file().then_some(path)
 }
 
 async fn invalidate_usage_snapshot_cache(app_handle: &AppHandle) {
@@ -1143,6 +1155,7 @@ async fn run_llmusage_sync_all(
             rebuild,
             recent_days,
             source: None,
+            provider_map: provider_activation_map_path(),
         },
     )
     .await
@@ -1166,6 +1179,7 @@ async fn run_llmusage_sync_once(
             rebuild,
             recent_days,
             source: parsed_source,
+            provider_map: provider_activation_map_path(),
         },
     )
     .await
@@ -1715,6 +1729,36 @@ pub async fn get_usage_by_model_v2(
     serde_json::to_value(stats).map_err(|e| format!("Serialize error: {e}"))
 }
 
+/// 获取按 provider 聚合的用量统计
+#[tauri::command]
+pub async fn get_usage_by_provider_v2(
+    state: State<'_, AppState>,
+    platform: Option<String>,
+    start_date: Option<String>,
+    end_date: Option<String>,
+) -> Result<Value, String> {
+    let command_started = Instant::now();
+    let llmusage = state.llmusage.clone();
+    let result = tokio::task::spawn_blocking(move || {
+        let db_started = Instant::now();
+        let filter = build_filter(platform, None, start_date, end_date)?;
+        let dashboard = llmusage
+            .dashboard()
+            .map_err(|e| format!("Dashboard open error: {e}"))?;
+        let stats = dashboard
+            .provider_breakdown(&filter)
+            .map_err(|e| format!("Provider stats query error: {e}"))?;
+        Ok::<_, String>((stats, elapsed_ms(db_started)))
+    })
+    .await
+    .map_err(|e| format!("Task join error: {e}"))?;
+
+    record_command_duration(&state, command_started);
+    let (stats, db_ms) = result?;
+    record_db_duration(&state, db_ms);
+    serde_json::to_value(stats).map_err(|e| format!("Serialize error: {e}"))
+}
+
 /// 获取按项目聚合的用量统计
 #[tauri::command]
 pub async fn get_usage_by_project_v2(
@@ -1833,6 +1877,7 @@ async fn compute_usage_dashboard_payload(
     llmusage: Arc<crate::llmusage_adapter::LlmusageRuntime>,
     usage_db_pool: ccr_db::database::pool::DbPool,
     platform: Option<String>,
+    provider: Option<String>,
     start_date: Option<String>,
     end_date: Option<String>,
     heatmap_days: u32,
@@ -1845,7 +1890,8 @@ async fn compute_usage_dashboard_payload(
         let platform_scope = platform_scope_label(platform.as_deref());
         let snapshot_start_date = start_date.clone();
         let snapshot_end_date = end_date.clone();
-        let filter = build_filter(platform.clone(), None, start_date.clone(), end_date.clone())?;
+        let filter = build_filter(platform.clone(), None, start_date.clone(), end_date.clone())?
+            .with_provider(provider.clone());
         let dashboard = llmusage
             .dashboard()
             .map_err(|e| format!("Dashboard open error: {e}"))?;
@@ -1869,6 +1915,14 @@ async fn compute_usage_dashboard_payload(
         let source_stats = dashboard
             .source_breakdown(&filter)
             .map_err(|e| format!("Source stats query error: {e}"))?;
+        let provider_stats = match dashboard.provider_breakdown(&filter) {
+            Ok(stats) => stats,
+            Err(
+                LlmusageAdapterError::SchemaUnsupported { .. }
+                | LlmusageAdapterError::FeatureUnavailable { .. },
+            ) if filter.provider.is_none() => Vec::new(),
+            Err(error) => return Err(format!("Provider stats query error: {error}")),
+        };
         let mut archive = load_llmusage_archive_diagnostics(
             &dashboard,
             count_archived_sessions(&usage_db_pool)?,
@@ -1906,6 +1960,7 @@ async fn compute_usage_dashboard_payload(
             "model_stats": model_stats,
             "project_stats": project_stats,
             "source_stats": source_stats,
+            "provider_stats": provider_stats,
             "archive": archive,
             "snapshot": snapshot,
             "heatmap": heatmap,
@@ -1922,6 +1977,7 @@ async fn compute_usage_dashboard_payload(
 pub async fn get_usage_dashboard_v2(
     state: State<'_, AppState>,
     platform: Option<String>,
+    provider: Option<String>,
     start_date: Option<String>,
     end_date: Option<String>,
     heatmap_days: Option<i64>,
@@ -1937,6 +1993,7 @@ pub async fn get_usage_dashboard_v2(
     let cacheable = !active_usage_import && !active_session_index;
     let cache_key = usage_dashboard_cache_key(
         platform.as_deref(),
+        provider.as_deref(),
         start_date.as_deref(),
         end_date.as_deref(),
         heatmap_days,
@@ -1962,6 +2019,7 @@ pub async fn get_usage_dashboard_v2(
                     state.llmusage.clone(),
                     state.usage_db_pool.clone(),
                     platform.clone(),
+                    provider.clone(),
                     start_date.clone(),
                     end_date.clone(),
                     heatmap_days,
@@ -1998,6 +2056,7 @@ pub async fn get_usage_dashboard_v2(
         state.llmusage.clone(),
         state.usage_db_pool.clone(),
         platform,
+        provider,
         start_date,
         end_date,
         heatmap_days,
@@ -2309,6 +2368,7 @@ pub async fn start_usage_import_job_v2(
         rebuild: reset_sources.unwrap_or(false),
         recent_days: Some(recent_window_days as u32),
         source,
+        provider_map: provider_activation_map_path(),
     };
     let snapshot = UsageImportJobSnapshot::new(
         job_id.clone(),

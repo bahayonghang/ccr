@@ -443,6 +443,7 @@ export {
   getUsageSummaryV2,
   getUsageTrendsV2,
   getUsageByModelV2,
+  getUsageByProviderV2,
   getUsageByProjectV2,
   getUsageHeatmapV2,
   getUsageLogsV2,

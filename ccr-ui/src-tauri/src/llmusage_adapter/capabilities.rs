@@ -7,6 +7,7 @@ use super::{AppPaths, error::LlmusageAdapterError};
 use crate::process::std_command;
 
 pub const MIN_SUPPORTED_SCHEMA_VERSION: i64 = 10;
+pub const PROVIDER_BREAKDOWN_SCHEMA_VERSION: i64 = 14;
 
 #[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[serde(rename_all = "snake_case")]
@@ -14,6 +15,7 @@ pub enum FeatureKey {
     Overview,
     DailyTrends,
     ModelBreakdown,
+    ProviderBreakdown,
     ProjectBreakdown,
     Heatmap,
     Logs,
@@ -29,6 +31,7 @@ impl FeatureKey {
             Self::Overview => "overview",
             Self::DailyTrends => "daily_trends",
             Self::ModelBreakdown => "model_breakdown",
+            Self::ProviderBreakdown => "provider_breakdown",
             Self::ProjectBreakdown => "project_breakdown",
             Self::Heatmap => "heatmap",
             Self::Logs => "logs",
@@ -119,6 +122,7 @@ impl CapabilityReport {
                 FeatureKey::Overview,
                 FeatureKey::DailyTrends,
                 FeatureKey::ModelBreakdown,
+                FeatureKey::ProviderBreakdown,
                 FeatureKey::ProjectBreakdown,
                 FeatureKey::Heatmap,
                 FeatureKey::Logs,
@@ -173,9 +177,10 @@ pub fn ensure_feature(paths: &AppPaths, feature: FeatureKey) -> Result<(), Llmus
         LlmusageAdapterError::DbUnreadable(format!("{}: {error}", paths.db_path.display()))
     })?;
     let schema_version = read_schema_version(&conn)?;
-    if schema_version.unwrap_or_default() < MIN_SUPPORTED_SCHEMA_VERSION {
+    let expected_schema_version = min_schema_version(feature);
+    if schema_version.unwrap_or_default() < expected_schema_version {
         return Err(LlmusageAdapterError::SchemaUnsupported {
-            expected: MIN_SUPPORTED_SCHEMA_VERSION,
+            expected: expected_schema_version,
             actual: schema_version,
         });
     }
@@ -204,23 +209,23 @@ fn populate_db_features(
     schema_version: Option<i64>,
     features: &mut BTreeMap<String, FeatureCapability>,
 ) {
-    let schema_ok = schema_version.unwrap_or_default() >= MIN_SUPPORTED_SCHEMA_VERSION;
     for key in [
         FeatureKey::Overview,
         FeatureKey::DailyTrends,
         FeatureKey::ModelBreakdown,
+        FeatureKey::ProviderBreakdown,
         FeatureKey::ProjectBreakdown,
         FeatureKey::Heatmap,
         FeatureKey::Logs,
         FeatureKey::Diagnostics,
         FeatureKey::HomeOverview,
     ] {
+        let expected_schema_version = min_schema_version(key);
+        let schema_ok = schema_version.unwrap_or_default() >= expected_schema_version;
         let cap = if !schema_ok {
             FeatureCapability::unsupported(
                 UnsupportedReason::SchemaUnsupported,
-                format!(
-                    "expected schema >= {MIN_SUPPORTED_SCHEMA_VERSION}, got {schema_version:?}"
-                ),
+                format!("expected schema >= {expected_schema_version}, got {schema_version:?}"),
             )
         } else {
             match missing_requirement(conn, key) {
@@ -257,6 +262,13 @@ fn missing_requirement(
         }
     }
     Ok(None)
+}
+
+fn min_schema_version(feature: FeatureKey) -> i64 {
+    match feature {
+        FeatureKey::ProviderBreakdown => PROVIDER_BREAKDOWN_SCHEMA_VERSION,
+        _ => MIN_SUPPORTED_SCHEMA_VERSION,
+    }
 }
 
 pub fn required_columns(feature: FeatureKey) -> Vec<(&'static str, Vec<&'static str>)> {
@@ -308,6 +320,24 @@ pub fn required_columns(feature: FeatureKey) -> Vec<(&'static str, Vec<&'static 
                 "pricing_rate",
             ],
         )],
+        FeatureKey::ProviderBreakdown => vec![
+            (
+                "usage_bucket_30m",
+                vec![
+                    "provider_label",
+                    "input_tokens",
+                    "cache_read_tokens",
+                    "cache_creation_tokens",
+                    "output_tokens",
+                    "reasoning_output_tokens",
+                    "total_tokens",
+                    "event_count",
+                    "cost_with_cache_usd",
+                    "cost_without_cache_usd",
+                ],
+            ),
+            ("usage_event", vec!["provider_label"]),
+        ],
         FeatureKey::ProjectBreakdown => vec![(
             "usage_bucket_30m",
             vec![
@@ -437,6 +467,76 @@ mod tests {
         assert!(
             cols.iter()
                 .any(|(table, cols)| *table == "usage_event" && cols.contains(&"event_key"))
+        );
+    }
+
+    #[test]
+    fn provider_breakdown_requires_schema_14() {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch(
+            "CREATE TABLE meta(key TEXT PRIMARY KEY, value TEXT NOT NULL);
+             INSERT INTO meta(key, value) VALUES ('schema_version', '13');",
+        )
+        .unwrap();
+        let mut features = BTreeMap::new();
+
+        populate_db_features(&conn, Some(13), &mut features);
+
+        let capability = features.get("provider_breakdown").unwrap();
+        assert!(!capability.supported);
+        assert_eq!(
+            capability.reason.as_ref(),
+            Some(&UnsupportedReason::SchemaUnsupported)
+        );
+        assert!(
+            capability
+                .detail
+                .as_deref()
+                .unwrap_or_default()
+                .contains("expected schema >= 14")
+        );
+    }
+
+    #[test]
+    fn provider_breakdown_requires_provider_label_columns() {
+        let cols = required_columns(FeatureKey::ProviderBreakdown);
+        assert!(cols.iter().any(|(table, cols)| {
+            *table == "usage_bucket_30m" && cols.contains(&"provider_label")
+        }));
+        assert!(
+            cols.iter()
+                .any(|(table, cols)| *table == "usage_event" && cols.contains(&"provider_label"))
+        );
+    }
+
+    #[test]
+    fn provider_breakdown_reports_missing_provider_label_column() {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch(
+            r#"
+            CREATE TABLE meta(key TEXT PRIMARY KEY, value TEXT NOT NULL);
+            INSERT INTO meta(key, value) VALUES ('schema_version', '14');
+            CREATE TABLE usage_bucket_30m(total_tokens INTEGER NOT NULL);
+            CREATE TABLE usage_event(event_key TEXT NOT NULL);
+            "#,
+        )
+        .unwrap();
+        let mut features = BTreeMap::new();
+
+        populate_db_features(&conn, Some(14), &mut features);
+
+        let capability = features.get("provider_breakdown").unwrap();
+        assert!(!capability.supported);
+        assert_eq!(
+            capability.reason.as_ref(),
+            Some(&UnsupportedReason::MissingColumn)
+        );
+        assert!(
+            capability
+                .detail
+                .as_deref()
+                .unwrap_or_default()
+                .contains("usage_bucket_30m.provider_label")
         );
     }
 }

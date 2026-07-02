@@ -3,6 +3,7 @@ import type {
   DailyTrend,
   ModelStat,
   PaginatedLogs,
+  ProviderBreakdown,
   ProjectStat,
   SourceBreakdown,
   UsageArchiveDiagnostics,
@@ -66,6 +67,19 @@ const source: SourceBreakdown = {
   share_cost: 1,
 }
 
+const provider: ProviderBreakdown = {
+  provider: 'openai',
+  request_count: 1,
+  input_tokens: 4,
+  cache_read_tokens: 3,
+  cache_creation_tokens: 0,
+  output_tokens: 3,
+  reasoning_output_tokens: 1,
+  total_tokens: 10,
+  cost_with_cache_usd: 0.01,
+  cost_without_cache_usd: 0.02,
+}
+
 const archive: UsageArchiveDiagnostics = {
   archive_root: 'D:/archive',
   live_sources: 1,
@@ -83,11 +97,12 @@ describe('usage dashboard payload helpers', () => {
     expect(
       buildDashboardFetchKey({
         platform: 'codex',
+        provider: 'openai',
         start: '2026-05-01',
         end: '2026-05-19',
         includeHeatmap: false,
       })
-    ).toBe('codex|2026-05-01|2026-05-19|core')
+    ).toBe('codex|openai|2026-05-01|2026-05-19|core')
   })
 
   it('normalizes aggregated dashboard payload aliases and heatmap inclusion', () => {
@@ -97,6 +112,7 @@ describe('usage dashboard payload helpers', () => {
       trends: [trend],
       by_model: [model],
       by_project: [project],
+      provider_stats: [provider],
       source_stats: [source],
       archive,
       heatmap: { data: { '2026-05-19': 1 } },
@@ -107,6 +123,7 @@ describe('usage dashboard payload helpers', () => {
       trends: [trend],
       modelStats: [model],
       projectStats: [project],
+      providerStats: [provider],
       sourceStats: [source],
       archive,
       heatmap: { data: { '2026-05-19': 1 } },
@@ -121,6 +138,7 @@ describe('usage dashboard payload helpers', () => {
         trends: [trend],
         modelStats: [model],
         projectStats: [project],
+        providerStats: [provider],
         sourceStats: [source],
         archive,
         heatmap: { data: { '2026-05-19': 1 } },
@@ -131,6 +149,7 @@ describe('usage dashboard payload helpers', () => {
       trends: [trend],
       model_stats: [model],
       project_stats: [project],
+      provider_stats: [provider],
       source_stats: [source],
       archive,
       heatmap: undefined,

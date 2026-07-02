@@ -5,6 +5,7 @@ import type {
   PaginatedLogs,
   UsagePlatform,
   ProjectStat,
+  ProviderBreakdown,
   SourceBreakdown,
   UsageArchiveDiagnostics,
   UsageDashboardResponse,
@@ -16,7 +17,7 @@ import type {
 
 export type UsageDashboardPayload = Omit<
   UsageDashboardResponse,
-  'summary' | 'heatmap' | 'generated_at' | 'archive' | 'source_stats' | 'snapshot'
+  'summary' | 'heatmap' | 'generated_at' | 'archive' | 'provider_stats' | 'source_stats' | 'snapshot'
 > & {
   summary?: UsageSummary | null
   archive?: UsageArchiveDiagnostics | null
@@ -24,6 +25,7 @@ export type UsageDashboardPayload = Omit<
   heatmap?: HeatmapResponse
   by_model?: ModelStat[]
   by_project?: ProjectStat[]
+  provider_stats?: ProviderBreakdown[]
   source_stats?: SourceBreakdown[]
 }
 
@@ -37,6 +39,7 @@ export type NormalizedUsageDashboardPayload = {
   trends: DailyTrend[]
   modelStats: ModelStat[]
   projectStats: ProjectStat[]
+  providerStats: ProviderBreakdown[]
   sourceStats: SourceBreakdown[]
   archive: UsageArchiveDiagnostics | null
   snapshot: UsageSnapshotProjection | null
@@ -50,15 +53,24 @@ export const parseEnvFlag = (value: string | undefined, defaultValue: boolean): 
 
 export const buildDashboardFetchKey = ({
   platform,
+  provider,
   start,
   end,
   includeHeatmap,
 }: {
   platform?: UsagePlatform
+  provider?: string
   start?: string
   end?: string
   includeHeatmap: boolean
-}) => [platform ?? 'all', start ?? '', end ?? '', includeHeatmap ? 'heatmap' : 'core'].join('|')
+}) =>
+  [
+    platform ?? 'all',
+    provider ?? 'all',
+    start ?? '',
+    end ?? '',
+    includeHeatmap ? 'heatmap' : 'core',
+  ].join('|')
 
 export const normalizeDashboardPayload = (
   data: UsageDashboardPayload,
@@ -69,6 +81,7 @@ export const normalizeDashboardPayload = (
   // 兼容后端 "by_model" / "model_stats" 两种字段名。
   modelStats: data.model_stats ?? data.by_model ?? [],
   projectStats: data.project_stats ?? data.by_project ?? [],
+  providerStats: data.provider_stats ?? [],
   sourceStats: data.source_stats ?? [],
   archive: data.archive ?? null,
   snapshot: data.snapshot ?? null,
@@ -80,6 +93,7 @@ export const buildDashboardCachePayload = ({
   trends,
   modelStats,
   projectStats,
+  providerStats = [],
   sourceStats = [],
   archive,
   snapshot,
@@ -90,6 +104,7 @@ export const buildDashboardCachePayload = ({
   trends: DailyTrend[]
   modelStats: ModelStat[]
   projectStats: ProjectStat[]
+  providerStats?: ProviderBreakdown[]
   sourceStats?: SourceBreakdown[]
   archive: UsageArchiveDiagnostics | null
   snapshot?: UsageSnapshotProjection | null
@@ -100,6 +115,7 @@ export const buildDashboardCachePayload = ({
   trends,
   model_stats: modelStats,
   project_stats: projectStats,
+  provider_stats: providerStats,
   source_stats: sourceStats,
   archive: archive ?? undefined,
   snapshot: snapshot ?? undefined,

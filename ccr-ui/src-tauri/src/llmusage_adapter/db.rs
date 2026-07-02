@@ -10,7 +10,7 @@ use super::{
     queries::{
         DailyTrendDto, HeatmapPoint, HomeOverviewPayload, HomeOverviewPlatformStats,
         HomeOverviewSeriesItem, HomeOverviewSummary, ModelBreakdown, OverviewPayload,
-        ProjectBreakdown, SourceBreakdownDto, TokenSummary, UsageRecordDto,
+        ProjectBreakdown, ProviderBreakdownDto, SourceBreakdownDto, TokenSummary, UsageRecordDto,
     },
     source::{SourceKind, parse_source_filter},
 };
@@ -27,6 +27,7 @@ pub enum ReportTimezone {
 pub struct QueryFilter {
     pub source: Option<SourceKind>,
     pub model: Option<String>,
+    pub provider: Option<String>,
     pub since: Option<NaiveDate>,
     pub until: Option<NaiveDate>,
     pub project_hash: Option<String>,
@@ -89,6 +90,9 @@ impl QueryFilter {
         if let Some(model) = self.model.as_ref() {
             filter.push(format!("{prefix}model = ?"), model);
         }
+        if let Some(provider) = self.provider.as_ref() {
+            filter.push(format!("{prefix}provider_label = ?"), provider);
+        }
         if let Some(since) = self.since {
             filter.push(
                 format!(
@@ -122,6 +126,9 @@ impl QueryFilter {
         if let Some(model) = self.model.as_ref() {
             filter.push(format!("{prefix}model = ?"), model);
         }
+        if let Some(provider) = self.provider.as_ref() {
+            filter.push(format!("{prefix}provider_label = ?"), provider);
+        }
         if let Some(since) = self.since {
             filter.push(
                 format!(
@@ -150,11 +157,17 @@ impl QueryFilter {
         Self {
             source: None,
             model: self.model.clone(),
+            provider: self.provider.clone(),
             since: self.since,
             until: self.until,
             project_hash: self.project_hash.clone(),
             timezone: self.timezone,
         }
+    }
+
+    pub fn with_provider(mut self, provider: Option<String>) -> Self {
+        self.provider = provider.map(|value| value.trim().to_string());
+        self
     }
 }
 
@@ -167,6 +180,7 @@ pub fn build_filter(
     Ok(QueryFilter {
         source: platform.as_deref().and_then(parse_source_filter),
         model: model.and_then(non_empty_string),
+        provider: None,
         since: parse_optional_date(start_date.as_deref(), "start_date")?,
         until: parse_optional_date(end_date.as_deref(), "end_date")?,
         project_hash: None,
@@ -219,8 +233,20 @@ impl Dashboard {
         Ok(Self { paths, conn })
     }
 
+    fn ensure_feature_for_filter(
+        &self,
+        feature: FeatureKey,
+        filter: &QueryFilter,
+    ) -> Result<(), LlmusageAdapterError> {
+        ensure_feature(&self.paths, feature)?;
+        if filter.provider.is_some() && feature != FeatureKey::ProviderBreakdown {
+            ensure_feature(&self.paths, FeatureKey::ProviderBreakdown)?;
+        }
+        Ok(())
+    }
+
     pub fn overview(&self, filter: &QueryFilter) -> Result<OverviewPayload, LlmusageAdapterError> {
-        ensure_feature(&self.paths, FeatureKey::Overview)?;
+        self.ensure_feature_for_filter(FeatureKey::Overview, filter)?;
         let total = self.query_token_summary(filter, None)?;
         let cutoff = (chrono::Utc::now() - chrono::Duration::hours(24)).to_rfc3339();
         let last_24h = self.query_token_summary(filter, Some(&cutoff))?;
@@ -283,7 +309,7 @@ impl Dashboard {
         &self,
         filter: &QueryFilter,
     ) -> Result<Vec<DailyTrendDto>, LlmusageAdapterError> {
-        ensure_feature(&self.paths, FeatureKey::DailyTrends)?;
+        self.ensure_feature_for_filter(FeatureKey::DailyTrends, filter)?;
         let sql_filter = filter.bucket_filter(None);
         let modifier = filter.local_time_modifier();
         let sql = format!(
@@ -326,7 +352,7 @@ impl Dashboard {
         &self,
         filter: &QueryFilter,
     ) -> Result<Vec<ModelBreakdown>, LlmusageAdapterError> {
-        ensure_feature(&self.paths, FeatureKey::ModelBreakdown)?;
+        self.ensure_feature_for_filter(FeatureKey::ModelBreakdown, filter)?;
         let sql_filter = filter.bucket_filter(None);
         let sql = format!(
             r#"
@@ -377,11 +403,55 @@ impl Dashboard {
         Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
     }
 
+    pub fn provider_breakdown(
+        &self,
+        filter: &QueryFilter,
+    ) -> Result<Vec<ProviderBreakdownDto>, LlmusageAdapterError> {
+        self.ensure_feature_for_filter(FeatureKey::ProviderBreakdown, filter)?;
+        let sql_filter = filter.bucket_filter(None);
+        let sql = format!(
+            r#"
+            SELECT
+                provider_label,
+                COALESCE(SUM(event_count), 0),
+                COALESCE(SUM(input_tokens), 0),
+                COALESCE(SUM(cache_read_tokens), 0),
+                COALESCE(SUM(cache_creation_tokens), 0),
+                COALESCE(SUM(output_tokens), 0),
+                COALESCE(SUM(reasoning_output_tokens), 0),
+                COALESCE(SUM(total_tokens), 0),
+                COALESCE(SUM(cost_with_cache_usd), 0.0),
+                COALESCE(SUM(cost_without_cache_usd), 0.0)
+            FROM usage_bucket_30m
+            {}
+            GROUP BY provider_label
+            ORDER BY SUM(total_tokens) DESC, provider_label ASC
+        "#,
+            sql_filter.where_sql()
+        );
+        let mut stmt = self.conn.prepare(&sql)?;
+        let rows = stmt.query_map(params_from_iter(sql_filter.param_refs()), |row| {
+            Ok(ProviderBreakdownDto {
+                provider: non_empty(row.get(0)?),
+                request_count: row.get(1)?,
+                input_tokens: row.get(2)?,
+                cache_read_tokens: row.get(3)?,
+                cache_creation_tokens: row.get(4)?,
+                output_tokens: row.get(5)?,
+                reasoning_output_tokens: row.get(6)?,
+                total_tokens: row.get(7)?,
+                cost_with_cache_usd: row.get(8)?,
+                cost_without_cache_usd: row.get(9)?,
+            })
+        })?;
+        Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
+    }
+
     pub fn project_breakdown(
         &self,
         filter: &QueryFilter,
     ) -> Result<Vec<ProjectBreakdown>, LlmusageAdapterError> {
-        ensure_feature(&self.paths, FeatureKey::ProjectBreakdown)?;
+        self.ensure_feature_for_filter(FeatureKey::ProjectBreakdown, filter)?;
         let mut sql_filter = filter.bucket_filter(None);
         sql_filter.push_raw("project_hash <> ''");
         // 老版本 llmusage 的 usage_bucket_30m 没有 project_path 列，select 时改 NULL；
@@ -435,7 +505,7 @@ impl Dashboard {
         &self,
         filter: &QueryFilter,
     ) -> Result<Vec<SourceBreakdownDto>, LlmusageAdapterError> {
-        ensure_feature(&self.paths, FeatureKey::HomeOverview)?;
+        self.ensure_feature_for_filter(FeatureKey::HomeOverview, filter)?;
         let source_filter = filter.without_source();
         let sql_filter = source_filter.bucket_filter(None);
         let modifier = source_filter.local_time_modifier();
@@ -504,7 +574,7 @@ impl Dashboard {
         filter: &QueryFilter,
         days: u32,
     ) -> Result<Vec<HeatmapPoint>, LlmusageAdapterError> {
-        ensure_feature(&self.paths, FeatureKey::Heatmap)?;
+        self.ensure_feature_for_filter(FeatureKey::Heatmap, filter)?;
         let days = days.clamp(1, 366);
         let end = chrono::Local::now().date_naive();
         let start = end - chrono::Duration::days((days - 1) as i64);
@@ -550,7 +620,7 @@ impl Dashboard {
     }
 
     pub fn logs(&self, query: &LogsQuery) -> Result<LogsPage, LlmusageAdapterError> {
-        ensure_feature(&self.paths, FeatureKey::Logs)?;
+        self.ensure_feature_for_filter(FeatureKey::Logs, &query.filter)?;
         let mut sql_filter = query.filter.event_filter(Some("e"));
         if let Some(cursor) = query.cursor.as_ref().and_then(|value| decode_cursor(value)) {
             sql_filter.push_raw("(e.event_at < ? OR (e.event_at = ? AND e.event_key < ?))");
@@ -669,7 +739,7 @@ impl Dashboard {
         &self,
         filter: &QueryFilter,
     ) -> Result<HomeOverviewPayload, LlmusageAdapterError> {
-        ensure_feature(&self.paths, FeatureKey::HomeOverview)?;
+        self.ensure_feature_for_filter(FeatureKey::HomeOverview, filter)?;
         let trends = self.trends_daily(filter)?;
         let mut by_platform = std::collections::BTreeMap::new();
         for source in ["claude", "codex", "gemini", "opencode"] {
@@ -1030,6 +1100,192 @@ mod tests {
         assert!(event.where_sql().contains("project_hash = ?"));
         assert_eq!(bucket.params, vec!["hash-xyz".to_string()]);
         assert_eq!(event.params, vec!["hash-xyz".to_string()]);
+    }
+
+    fn create_provider_fixture(root: &std::path::Path) -> Dashboard {
+        let db_path = root.join("llmusage.db");
+        let conn = Connection::open(&db_path).expect("test db should open");
+        conn.execute_batch(
+            r#"
+            CREATE TABLE meta(key TEXT PRIMARY KEY, value TEXT NOT NULL);
+            INSERT INTO meta(key, value) VALUES ('schema_version', '14');
+            CREATE TABLE usage_event(provider_label TEXT NOT NULL DEFAULT '');
+            CREATE TABLE usage_bucket_30m(
+                source TEXT NOT NULL,
+                provider_label TEXT NOT NULL DEFAULT '',
+                model TEXT NOT NULL,
+                hour_start TEXT NOT NULL,
+                project_hash TEXT NOT NULL DEFAULT '',
+                project_label TEXT NOT NULL DEFAULT '',
+                project_ref TEXT,
+                input_tokens INTEGER NOT NULL,
+                cache_read_tokens INTEGER NOT NULL,
+                cache_creation_tokens INTEGER NOT NULL,
+                output_tokens INTEGER NOT NULL,
+                reasoning_output_tokens INTEGER NOT NULL,
+                total_tokens INTEGER NOT NULL,
+                event_count INTEGER NOT NULL,
+                cost_with_cache_usd REAL NOT NULL,
+                cost_without_cache_usd REAL NOT NULL,
+                pricing_status TEXT NOT NULL,
+                pricing_source TEXT,
+                pricing_rate TEXT
+            );
+            INSERT INTO usage_bucket_30m VALUES
+              ('codex', 'openai', 'gpt-5', '2026-07-01T00:00:00Z', 'p1', 'Project 1', NULL, 40, 10, 5, 30, 15, 100, 2, 0.10, 0.15, 'priced', 'catalog', 'rate-a'),
+              ('codex', 'openai', 'gpt-4', '2026-07-01T00:30:00Z', 'p1', 'Project 1', NULL, 10, 0, 0, 5, 5, 20, 1, 0.02, 0.03, 'priced', 'catalog', 'rate-b'),
+              ('claude', 'anthropic', 'claude-sonnet', '2026-07-01T01:00:00Z', 'p2', 'Project 2', NULL, 20, 0, 0, 25, 5, 50, 1, 0.20, 0.25, 'priced', 'catalog', 'rate-c'),
+              ('codex', '', 'gpt-5', '2026-07-01T01:30:00Z', 'p3', 'Project 3', NULL, 10, 0, 0, 10, 10, 30, 1, 0.03, 0.04, 'priced', 'catalog', 'rate-a');
+            "#,
+        )
+        .expect("provider fixture should be created");
+        drop(conn);
+
+        Dashboard::open(AppPaths::from_root_for_test(root)).expect("dashboard should open test db")
+    }
+
+    #[test]
+    fn provider_breakdown_sums_to_source_totals_and_marks_unattributed() {
+        let temp = tempfile::TempDir::new().expect("temp dir should be created");
+        let dashboard = create_provider_fixture(temp.path());
+
+        let provider_stats = dashboard
+            .provider_breakdown(&QueryFilter::default())
+            .expect("provider breakdown should query");
+        let source_total = dashboard
+            .source_breakdown(&QueryFilter::default())
+            .expect("source breakdown should query")
+            .iter()
+            .map(|row| row.total_tokens)
+            .sum::<i64>();
+
+        assert_eq!(
+            provider_stats
+                .iter()
+                .map(|row| row.total_tokens)
+                .sum::<i64>(),
+            source_total
+        );
+        assert_eq!(source_total, 200);
+        let openai = provider_stats
+            .iter()
+            .find(|row| row.provider.as_deref() == Some("openai"))
+            .expect("openai row should exist");
+        assert_eq!(openai.total_tokens, 120);
+        assert_eq!(openai.request_count, 3);
+        let unattributed = provider_stats
+            .iter()
+            .find(|row| row.provider.is_none())
+            .expect("empty provider label should map to unattributed");
+        assert_eq!(unattributed.total_tokens, 30);
+    }
+
+    #[test]
+    fn provider_filter_narrows_overview_model_and_source_totals() {
+        let temp = tempfile::TempDir::new().expect("temp dir should be created");
+        let dashboard = create_provider_fixture(temp.path());
+        let filter = QueryFilter {
+            provider: Some("openai".to_string()),
+            ..QueryFilter::default()
+        };
+
+        let overview = dashboard
+            .overview(&filter)
+            .expect("overview should accept provider filter");
+        assert_eq!(overview.total.total_tokens, 120);
+        assert_eq!(overview.total_events, 3);
+
+        let model_total = dashboard
+            .model_breakdown(&filter)
+            .expect("model breakdown should accept provider filter")
+            .iter()
+            .map(|row| row.total_tokens)
+            .sum::<i64>();
+        assert_eq!(model_total, 120);
+
+        let source_total = dashboard
+            .source_breakdown(&filter)
+            .expect("source breakdown should accept provider filter")
+            .iter()
+            .map(|row| row.total_tokens)
+            .sum::<i64>();
+        assert_eq!(source_total, 120);
+    }
+
+    #[test]
+    fn provider_filter_can_match_unattributed_rows() {
+        let temp = tempfile::TempDir::new().expect("temp dir should be created");
+        let dashboard = create_provider_fixture(temp.path());
+        let filter = QueryFilter {
+            provider: Some(String::new()),
+            ..QueryFilter::default()
+        };
+
+        let overview = dashboard
+            .overview(&filter)
+            .expect("empty provider filter should query unattributed rows");
+        assert_eq!(overview.total.total_tokens, 30);
+        assert_eq!(overview.total_events, 1);
+    }
+
+    #[test]
+    fn provider_breakdown_rejects_schema_below_14() {
+        let temp = tempfile::TempDir::new().expect("temp dir should be created");
+        let db_path = temp.path().join("llmusage.db");
+        let conn = Connection::open(&db_path).expect("test db should open");
+        conn.execute_batch(
+            r#"
+            CREATE TABLE meta(key TEXT PRIMARY KEY, value TEXT NOT NULL);
+            INSERT INTO meta(key, value) VALUES ('schema_version', '13');
+            "#,
+        )
+        .expect("old schema should be created");
+        drop(conn);
+
+        let dashboard = Dashboard::open(AppPaths::from_root_for_test(temp.path()))
+            .expect("dashboard should open schema 13 DB");
+        let error = dashboard
+            .provider_breakdown(&QueryFilter::default())
+            .expect_err("provider breakdown should reject old schema");
+
+        assert!(matches!(
+            error,
+            LlmusageAdapterError::SchemaUnsupported {
+                expected: 14,
+                actual: Some(13)
+            }
+        ));
+    }
+
+    #[test]
+    fn provider_breakdown_rejects_missing_provider_label_column() {
+        let temp = tempfile::TempDir::new().expect("temp dir should be created");
+        let db_path = temp.path().join("llmusage.db");
+        let conn = Connection::open(&db_path).expect("test db should open");
+        conn.execute_batch(
+            r#"
+            CREATE TABLE meta(key TEXT PRIMARY KEY, value TEXT NOT NULL);
+            INSERT INTO meta(key, value) VALUES ('schema_version', '14');
+            CREATE TABLE usage_bucket_30m(total_tokens INTEGER NOT NULL);
+            CREATE TABLE usage_event(event_key TEXT NOT NULL);
+            "#,
+        )
+        .expect("schema 14 missing provider columns should be created");
+        drop(conn);
+
+        let dashboard = Dashboard::open(AppPaths::from_root_for_test(temp.path()))
+            .expect("dashboard should open schema 14 DB");
+        let error = dashboard
+            .provider_breakdown(&QueryFilter::default())
+            .expect_err("provider breakdown should require provider_label");
+
+        assert!(matches!(
+            error,
+            LlmusageAdapterError::FeatureUnavailable {
+                feature: "provider_breakdown",
+                ..
+            }
+        ));
     }
 
     #[test]
