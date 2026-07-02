@@ -180,6 +180,16 @@
             />
           </template>
 
+          <template v-else-if="activeTab === 'providers'">
+            <UsageProvidersTab
+              :format-cost="formatCost"
+              :format-tokens="formatTokens"
+              :provider-capability="providerCapability"
+              :provider-stats="providerStats"
+              :selected-window-label="selectedWindowLabel"
+            />
+          </template>
+
           <template v-else-if="activeTab === 'models'">
             <UsageModelsTab
               :chart-component="apexchart"
@@ -248,6 +258,7 @@ import UsageModelsTab from '@/components/usage/UsageModelsTab.vue'
 import UsageOpsCockpit from '@/components/usage/UsageOpsCockpit.vue'
 import UsageOverviewTab from '@/components/usage/UsageOverviewTab.vue'
 import UsageProjectsTab from '@/components/usage/UsageProjectsTab.vue'
+import UsageProvidersTab from '@/components/usage/UsageProvidersTab.vue'
 import UsageSourceSummaryCard from '@/components/usage/UsageSourceSummaryCard.vue'
 import UsageTokenBreakdownStrip from '@/components/usage/UsageTokenBreakdownStrip.vue'
 import type { UsageRangePreset } from './usage/dateWindow'
@@ -305,6 +316,8 @@ const {
   pieColors,
   pieOptions,
   pieSeries,
+  providerCapability,
+  providerStats,
   runtimeUnavailable,
   selectedPlatformLabel,
   selectedPlatform,

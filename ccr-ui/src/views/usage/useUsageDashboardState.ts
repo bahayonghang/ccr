@@ -132,7 +132,7 @@ export const useUsageDashboardState = () => {
   const { t, locale } = useI18n()
   const store = useUsageStore()
 
-  const tabKeys = ['overview', 'tokens', 'cost', 'models', 'projects', 'logs'] as const
+  const tabKeys = ['overview', 'tokens', 'cost', 'providers', 'models', 'projects', 'logs'] as const
   const activeTab = ref<string>('overview')
   const selectedPlatform = ref('')
   const selectedRange = ref<UsageRangePreset>(DEFAULT_USAGE_RANGE_PRESET)
@@ -653,6 +653,7 @@ export const useUsageDashboardState = () => {
     dashboardPresentation.value.topProjectRankings
   )
   const sourceStats = computed(() => (dashboardReady.value ? store.sourceStats : []))
+  const providerStats = computed(() => (dashboardReady.value ? store.providerStats : []))
   const logsRecords = computed(() => store.logs?.records ?? [])
   const unknownModelStat = computed(
     () => store.modelStats.find((item) => item.model === 'unknown') ?? null
@@ -719,6 +720,10 @@ export const useUsageDashboardState = () => {
     if (!capability || capability.supported) return null
     return capability
   })
+
+  const providerCapability = computed<UsageFeatureCapability | null>(
+    () => store.usageCapabilities?.features.provider_breakdown ?? null
+  )
 
   const unsupportedStateTitle = computed(() => {
     const reason = normalizeUnsupportedReason(dashboardUnsupportedCapability.value?.reason)
@@ -960,6 +965,8 @@ export const useUsageDashboardState = () => {
     pieColors,
     pieOptions,
     pieSeries,
+    providerCapability,
+    providerStats,
     hasRenderableTrendData,
     localeReady,
     runtimeUnavailable,

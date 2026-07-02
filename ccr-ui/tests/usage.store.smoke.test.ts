@@ -26,6 +26,7 @@ vi.mock('@/utils/tauriRuntime', () => ({
 vi.mock('@/api', () => ({
   getUsageCapabilitiesV2: vi.fn().mockResolvedValue(createSupportedCapabilities()),
   getUsageByModelV2: vi.fn().mockResolvedValue([]),
+  getUsageByProviderV2: vi.fn().mockResolvedValue([]),
   getUsageByProjectV2: vi.fn().mockResolvedValue([]),
   getUsageDashboardV2: vi.fn().mockResolvedValue({
     summary: {
@@ -482,6 +483,53 @@ describe('usage store smoke', () => {
     }))
     expect(store.logs?.total).toBe(120)
     expect(store.logsPage).toBe(2)
+  })
+
+  it('caches provider stats for the current filter window', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-04-01T00:00:00Z'))
+
+    const api = await import('@/api')
+    vi.mocked(api.getUsageByProviderV2).mockResolvedValue([
+      {
+        provider: 'anyrouter',
+        request_count: 2,
+        input_tokens: 200,
+        cache_read_tokens: 0,
+        cache_creation_tokens: 0,
+        output_tokens: 100,
+        reasoning_output_tokens: 0,
+        total_tokens: 300,
+        cost_with_cache_usd: 0.03,
+        cost_without_cache_usd: 0.04,
+      },
+    ])
+
+    const { useUsageStore } = await import('@/stores/usage')
+    const store = useUsageStore()
+    store.platform = 'codex'
+    store.timeRange = { start: '2026-03-01', end: '2026-03-31' }
+
+    await store.fetchProviderStats()
+    await store.fetchProviderStats()
+
+    expect(api.getUsageByProviderV2).toHaveBeenCalledTimes(1)
+    expect(api.getUsageByProviderV2).toHaveBeenCalledWith(
+      'codex',
+      '2026-03-01',
+      '2026-03-31'
+    )
+    expect(store.providerStats[0]?.provider).toBe('anyrouter')
+
+    store.timeRange = { start: '2026-04-01', end: '2026-04-30' }
+    await store.fetchProviderStats()
+
+    expect(api.getUsageByProviderV2).toHaveBeenCalledTimes(2)
+    expect(api.getUsageByProviderV2).toHaveBeenLastCalledWith(
+      'codex',
+      '2026-04-01',
+      '2026-04-30'
+    )
   })
 
   it('progressively refreshes the dashboard during import without flipping loading state', async () => {

@@ -2,7 +2,9 @@ import { createApp, defineComponent, h, KeepAlive, nextTick, reactive, ref } fro
 import type {
   DailyTrend,
   ModelStat,
+  ProviderBreakdown,
   ProjectStat,
+  UsageCapabilityReport,
   UsageSnapshotProjection,
   UsageSummary,
 } from '@/types/usage'
@@ -16,7 +18,9 @@ const usageStore = reactive({
   trends: [] as DailyTrend[],
   modelStats: [] as ModelStat[],
   projectStats: [] as ProjectStat[],
+  providerStats: [] as ProviderBreakdown[],
   sourceStats: [],
+  usageCapabilities: null as UsageCapabilityReport | null,
   logs: null as null | {
     records: unknown[]
     total?: number | null
@@ -98,6 +102,7 @@ const translationTemplates: Record<string, string> = {
   'usage.dashboard.tabs.overview': 'Overview',
   'usage.dashboard.tabs.tokens': 'Tokens',
   'usage.dashboard.tabs.cost': 'Cost',
+  'usage.dashboard.tabs.providers': 'Providers',
   'usage.dashboard.tabs.models': 'Models',
   'usage.dashboard.tabs.projects': 'Projects',
   'usage.dashboard.tabs.logs': 'Diagnostics',
@@ -294,7 +299,9 @@ beforeEach(() => {
   usageStore.trends = []
   usageStore.modelStats = []
   usageStore.projectStats = []
+  usageStore.providerStats = []
   usageStore.sourceStats = []
+  usageStore.usageCapabilities = null
   usageStore.logs = null
   usageStore.logsLoading = false
   usageStore.archive = null
@@ -432,10 +439,62 @@ describe('usage dashboard state smoke', () => {
         'overview',
         'tokens',
         'cost',
+        'providers',
         'models',
         'projects',
         'logs',
       ])
+    } finally {
+      unmount()
+    }
+  })
+
+  it('exposes provider stats and provider capability for the provider tab', async () => {
+    tauriRuntime = true
+    usageStore.providerStats = [
+      {
+        provider: 'openai',
+        request_count: 5,
+        input_tokens: 1000,
+        cache_read_tokens: 250,
+        cache_creation_tokens: 50,
+        output_tokens: 400,
+        reasoning_output_tokens: 40,
+        total_tokens: 1700,
+        cost_with_cache_usd: 0.42,
+        cost_without_cache_usd: 0.6,
+      },
+      {
+        provider: null,
+        request_count: 2,
+        input_tokens: 200,
+        cache_read_tokens: 0,
+        cache_creation_tokens: 0,
+        output_tokens: 100,
+        reasoning_output_tokens: 0,
+        total_tokens: 300,
+        cost_with_cache_usd: 0.04,
+        cost_without_cache_usd: 0.04,
+      },
+    ]
+    usageStore.usageCapabilities = {
+      cli_available: true,
+      root_dir: 'C:/Users/test/.llmusage',
+      db_path: 'C:/Users/test/.llmusage/llmusage.db',
+      db_exists: true,
+      db_readable: true,
+      schema_version: 14,
+      features: {
+        provider_breakdown: { supported: true },
+      },
+    }
+
+    const { state, unmount } = await mountComposable()
+
+    try {
+      expect(state.providerStats.value).toHaveLength(2)
+      expect(state.providerStats.value[1]?.provider).toBeNull()
+      expect(state.providerCapability.value).toEqual({ supported: true })
     } finally {
       unmount()
     }

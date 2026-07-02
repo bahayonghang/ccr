@@ -19,6 +19,7 @@ import type {
   PaginatedLogs,
   UsagePlatform,
   ProjectStat,
+  ProviderBreakdown,
   SourceBreakdown,
   StartUsageImportJobResponse,
   UsageCapabilityReport,
@@ -31,6 +32,7 @@ import type {
 import {
   getUsageImportJobStatusV2,
   getUsageByModelV2,
+  getUsageByProviderV2,
   getUsageByProjectV2,
   getUsageCapabilitiesV2,
   getUsageDashboardV2,
@@ -105,12 +107,18 @@ type IdleCapableWindow = Window & {
   requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number
 }
 
+type ProviderStatsCacheEntry = {
+  payload: ProviderBreakdown[]
+  ts: number
+}
+
 export const useUsageStore = defineStore('usage', () => {
   // ═══ State ═══
   const summary = ref<UsageSummary | null>(null)
   const trends = shallowRef<DailyTrend[]>([])
   const modelStats = shallowRef<ModelStat[]>([])
   const projectStats = shallowRef<ProjectStat[]>([])
+  const providerStats = shallowRef<ProviderBreakdown[]>([])
   const sourceStats = shallowRef<SourceBreakdown[]>([])
   const heatmap = shallowRef<HeatmapResponse | null>(null)
   const logs = shallowRef<PaginatedLogs | null>(null)
@@ -152,6 +160,7 @@ export const useUsageStore = defineStore('usage', () => {
   // 此 cursor 仅在 store 内部使用，不进 return（消费者不应直接读写）。
   const logsCursorStack = ref<Array<string | null>>([null])
   const dashboardCache = new Map<string, UsageDashboardCacheEntry>()
+  const providerStatsCache = new Map<string, ProviderStatsCacheEntry>()
 
   // ═══ Computed ═══
   const totalTokens = computed(() => summary.value?.total_tokens ?? 0)
@@ -195,6 +204,7 @@ export const useUsageStore = defineStore('usage', () => {
     trends.value = normalized.trends
     modelStats.value = normalized.modelStats
     projectStats.value = normalized.projectStats
+    providerStats.value = normalized.providerStats
     sourceStats.value = normalized.sourceStats
     archive.value = normalized.archive
     snapshot.value = normalized.snapshot
@@ -208,6 +218,8 @@ export const useUsageStore = defineStore('usage', () => {
     trends.value = []
     modelStats.value = []
     projectStats.value = []
+    providerStats.value = []
+    providerStatsCache.clear()
     sourceStats.value = []
     heatmap.value = null
     logs.value = null
@@ -322,6 +334,7 @@ export const useUsageStore = defineStore('usage', () => {
     force = false
   ) => {
     dashboardCache.clear()
+    providerStatsCache.clear()
     await fetchAll({
       background: true,
       includeHeatmap,
@@ -338,6 +351,7 @@ export const useUsageStore = defineStore('usage', () => {
       'usage:snapshot-updated',
       (event) => {
         dashboardCache.clear()
+        providerStatsCache.clear()
         if (!lastUpdated.value && !summary.value) return
         if (snapshotRefreshPromise) return
 
@@ -555,6 +569,7 @@ export const useUsageStore = defineStore('usage', () => {
           trends.value = trendsData ?? []
           modelStats.value = modelData ?? []
           projectStats.value = projectData ?? []
+          providerStats.value = []
           sourceStats.value = []
           if (includeHeatmap) {
             await fetchHeatmap(reason)
@@ -567,6 +582,7 @@ export const useUsageStore = defineStore('usage', () => {
               trends: trendsData ?? [],
               modelStats: modelData ?? [],
               projectStats: projectData ?? [],
+              providerStats: [],
               sourceStats: [],
               archive: archive.value,
               snapshot: snapshot.value,
@@ -648,6 +664,36 @@ export const useUsageStore = defineStore('usage', () => {
     } finally {
       logsLoading.value = false
     }
+  }
+
+  async function fetchProviderStats() {
+    const key = buildDashboardFetchKey({
+      platform: platform.value,
+      start: timeRange.value.start,
+      end: timeRange.value.end,
+      includeHeatmap: false,
+    })
+    const cached = providerStatsCache.get(key)
+    if (cached && Date.now() - cached.ts < DASHBOARD_CACHE_TTL_MS) {
+      providerStats.value = cached.payload
+      return providerStats.value
+    }
+
+    const capabilities = await refreshUsageCapabilities()
+    const providerCapability = capabilities?.features.provider_breakdown
+    if (providerCapability && !providerCapability.supported) {
+      providerStats.value = []
+      providerStatsCache.set(key, { payload: providerStats.value, ts: Date.now() })
+      return providerStats.value
+    }
+
+    providerStats.value = await getUsageByProviderV2<ProviderBreakdown[]>(
+      platform.value,
+      timeRange.value.start,
+      timeRange.value.end
+    )
+    providerStatsCache.set(key, { payload: providerStats.value, ts: Date.now() })
+    return providerStats.value
   }
 
   /** 下一页日志 */
@@ -907,6 +953,7 @@ export const useUsageStore = defineStore('usage', () => {
     trends,
     modelStats,
     projectStats,
+    providerStats,
     sourceStats,
     heatmap,
     logs,
@@ -946,6 +993,7 @@ export const useUsageStore = defineStore('usage', () => {
     // actions
     initializeDashboard,
     fetchAll,
+    fetchProviderStats,
     refreshUsageCapabilities,
     fetchHeatmap,
     fetchLogs,
