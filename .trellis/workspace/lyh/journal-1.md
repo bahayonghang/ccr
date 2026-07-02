@@ -716,3 +716,36 @@ Implemented configurable TUI tab ordering via ~/.ccr/tui.toml, fixed the main TU
 ### Next Steps
 
 - None - task complete
+
+
+## Session 21: Provider activation timeline completed
+
+**Date**: 2026-07-02
+**Task**: Provider activation timeline completed
+**Branch**: `dev`
+
+### Summary
+
+Archived C1 provider activation timeline after verified ccr-config activation logging landed.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `41ce6b9c` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

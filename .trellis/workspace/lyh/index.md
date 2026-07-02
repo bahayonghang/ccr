@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 20
-- **Last Active**: 2026-06-27
+- **Total Sessions**: 21
+- **Last Active**: 2026-07-02
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~718 | Active |
+| `journal-1.md` | ~751 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 21 | 2026-07-02 | Provider activation timeline completed | `41ce6b9c` | `dev` |
 | 20 | 2026-06-27 | Claude 第三方 profile 切换修复 | `7d717090`, `5e5a5966`, `c7d3f397`, `57e32544` | `dev` |
 | 19 | 2026-06-19 | Claude 第三方模型 Profile auth_mode 自愈 | `98869fe7`, `ea5d149d` | `feature/claude-third-party-authmode` |
 | 18 | 2026-06-18 | TUI Tab Order Configuration | `b9501428`, `38fdc4f3`, `0949ca1b`, `896480cc`, `e4676860` | `dev` |
