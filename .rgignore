@@ -1,0 +1,3 @@
+# Local reference repos and large static assets are not source-search targets.
+ccr-ui/ref/
+ccr-ui/public/fonts/
