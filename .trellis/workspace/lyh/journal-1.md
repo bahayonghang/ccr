@@ -749,3 +749,38 @@ Archived C1 provider activation timeline after verified ccr-config activation lo
 ### Next Steps
 
 - None - task complete
+
+
+## Session 22: C2 llmusage provider adapter
+
+**Date**: 2026-07-02
+**Task**: C2 llmusage provider adapter
+**Branch**: `dev`
+
+### Summary
+
+Completed C2 llmusage provider ingest adapter: fixed ccr-ui README version drift, added provider_breakdown/provider filter/provider_stats/schema-14 capability and provider-map sync wiring, recorded Trellis design/implement and code-spec, then archived the C2 task.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `6676c891` | (see git log) |
+| `f57b3718` | (see git log) |
+| `b9e4196d` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

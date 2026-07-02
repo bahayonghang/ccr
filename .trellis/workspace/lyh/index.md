@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 21
+- **Total Sessions**: 22
 - **Last Active**: 2026-07-02
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~751 | Active |
+| `journal-1.md` | ~786 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 22 | 2026-07-02 | C2 llmusage provider adapter | `6676c891`, `f57b3718`, `b9e4196d` | `dev` |
 | 21 | 2026-07-02 | Provider activation timeline completed | `41ce6b9c` | `dev` |
 | 20 | 2026-06-27 | Claude 第三方 profile 切换修复 | `7d717090`, `5e5a5966`, `c7d3f397`, `57e32544` | `dev` |
 | 19 | 2026-06-19 | Claude 第三方模型 Profile auth_mode 自愈 | `98869fe7`, `ea5d149d` | `feature/claude-third-party-authmode` |
