@@ -253,12 +253,13 @@ fn display_temp_config(base_url: &str, token: &str, model: Option<&str>) {
         Cell::new(base_url).fg(TableColor::Blue),
     ]);
 
-    // Auth Token (脱敏显示)
+    // Auth Token (脱敏显示)——此处 token 是交互输入的裸 &str（非 Secret），
+    // 必须显式走唯一掩码算法
     table.add_row(vec![
         Cell::new("Auth Token")
             .fg(TableColor::Yellow)
             .add_attribute(Attribute::Bold),
-        Cell::new(token.to_string()).fg(TableColor::DarkGrey),
+        Cell::new(ccr_core::mask_sensitive(token)).fg(TableColor::DarkGrey),
     ]);
 
     // Model

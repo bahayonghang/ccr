@@ -74,9 +74,10 @@ fn test_temp_override_basic_workflow() {
     if let Some(temp) = loaded_temp
         && let Some(temp_token) = &temp.auth_token
     {
-        new_settings
-            .env
-            .insert("ANTHROPIC_AUTH_TOKEN".to_string(), temp_token.expose().to_string());
+        new_settings.env.insert(
+            "ANTHROPIC_AUTH_TOKEN".to_string(),
+            temp_token.expose().to_string(),
+        );
     }
     settings_manager.save_atomic(&new_settings).unwrap();
 
@@ -112,9 +113,10 @@ fn test_temp_override_multiple_fields() {
     let mut new_settings = settings_manager.load().unwrap();
     if let Some(temp) = temp_manager.load().unwrap() {
         if let Some(token) = &temp.auth_token {
-            new_settings
-                .env
-                .insert("ANTHROPIC_AUTH_TOKEN".to_string(), token.expose().to_string());
+            new_settings.env.insert(
+                "ANTHROPIC_AUTH_TOKEN".to_string(),
+                token.expose().to_string(),
+            );
         }
         if let Some(url) = &temp.base_url {
             new_settings
@@ -173,9 +175,10 @@ fn test_temp_override_no_interference_with_other_vars() {
     if let Some(temp) = temp_manager.load().unwrap()
         && let Some(token) = &temp.auth_token
     {
-        new_settings
-            .env
-            .insert("ANTHROPIC_AUTH_TOKEN".to_string(), token.expose().to_string());
+        new_settings.env.insert(
+            "ANTHROPIC_AUTH_TOKEN".to_string(),
+            token.expose().to_string(),
+        );
     }
     settings_manager.save_atomic(&new_settings).unwrap();
 

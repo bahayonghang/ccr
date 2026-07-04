@@ -32,7 +32,8 @@ pub struct SyncStatusInfo {
 pub struct WebDavConfigInput {
     pub webdav_url: String,
     pub username: String,
-    pub password: String,
+    /// UI 表单明文入参：Secret 包裹，payload Debug/日志不泄露
+    pub password: ccr_core::Secret,
     pub remote_path: Option<String>,
     pub auto_sync: Option<bool>,
 }
@@ -1293,7 +1294,7 @@ fn build_sync_config(payload: WebDavConfigInput) -> SyncConfig {
         enabled: true,
         webdav_url: payload.webdav_url,
         username: payload.username,
-        password: ccr_core::Secret::new(payload.password),
+        password: payload.password,
         remote_path: payload
             .remote_path
             .filter(|s| !s.is_empty())
@@ -1378,7 +1379,7 @@ mod tests {
         WebDavConfigInput {
             webdav_url: "https://dav.example.com/".to_string(),
             username: "user@example.com".to_string(),
-            password: "secret".to_string(),
+            password: ccr_core::Secret::from("secret"),
             remote_path: Some("/ccr/".to_string()),
             auto_sync: Some(false),
         }

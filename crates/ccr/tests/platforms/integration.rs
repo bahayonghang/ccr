@@ -69,7 +69,9 @@ fn create_gemini_profile(name: &str) -> ProfileConfig {
     let mut profile = ProfileConfig::new();
     profile.description = Some(format!("Test Gemini profile: {}", name));
     profile.base_url = Some("https://generativelanguage.googleapis.com/v1".to_string());
-    profile.auth_token = Some(ccr_core::Secret::from("AIzaSy1234567890123456789012345678901234"));
+    profile.auth_token = Some(ccr_core::Secret::from(
+        "AIzaSy1234567890123456789012345678901234",
+    ));
     profile.model = Some("gemini-2.0-flash-exp".to_string());
     profile.small_fast_model = Some("gemini-1.5-flash".to_string());
     profile.provider = Some("Google".to_string());

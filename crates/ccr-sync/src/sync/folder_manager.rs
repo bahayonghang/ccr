@@ -738,6 +738,34 @@ mod tests {
         assert_eq!(mode & 0o777, 0o600);
     }
 
+    // 🔁 旧格式（明文密码）sync_folders.toml 读入 → 保存 → 再读：无损，磁盘仍为明文
+    #[test]
+    fn test_legacy_plaintext_folders_file_round_trip_lossless() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let config_path = temp_dir.path().join("sync_folders.toml");
+        let legacy = r#"
+version = "1.0"
+
+[webdav]
+url = "https://dav.example.com/"
+username = "user@example.com"
+password = "legacy-folders-password"
+base_remote_path = "/ccr-sync"
+"#;
+        std::fs::write(&config_path, legacy).unwrap();
+
+        let manager = SyncFolderManager::new(&config_path);
+        let loaded = manager.load_config().unwrap();
+        assert_eq!(loaded.webdav.password.expose(), "legacy-folders-password");
+
+        manager.save_config(&loaded).unwrap();
+        let on_disk = std::fs::read_to_string(&config_path).unwrap();
+        assert!(on_disk.contains("legacy-folders-password"));
+
+        let reloaded = manager.load_config().unwrap();
+        assert_eq!(reloaded.webdav.password, loaded.webdav.password);
+    }
+
     #[test]
     fn test_sync_folder_manager_migration() {
         let env = TestSyncEnv::new();

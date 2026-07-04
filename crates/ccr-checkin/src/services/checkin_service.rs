@@ -823,8 +823,9 @@ impl CheckinService {
             .decrypt(&account.cookies_json_encrypted)
             .map_err(|e| CheckinServiceError::Crypto(e.to_string()))?;
 
-        let credentials = CookieCredentials::from_json(cookies_json.expose(), account.api_user.clone())
-            .map_err(|e| CheckinServiceError::Crypto(format!("Invalid cookies JSON: {}", e)))?;
+        let credentials =
+            CookieCredentials::from_json(cookies_json.expose(), account.api_user.clone())
+                .map_err(|e| CheckinServiceError::Crypto(format!("Invalid cookies JSON: {}", e)))?;
 
         // 签到前远程预查：检查是否已签到，同时取一次余额样本（供奖励兜底）
         let probe_before = self
@@ -1201,8 +1202,9 @@ impl CheckinService {
             .decrypt(&account.cookies_json_encrypted)
             .map_err(|e| CheckinServiceError::Crypto(e.to_string()))?;
 
-        let credentials = CookieCredentials::from_json(cookies_json.expose(), account.api_user.clone())
-            .map_err(|e| CheckinServiceError::Crypto(format!("Invalid cookies JSON: {}", e)))?;
+        let credentials =
+            CookieCredentials::from_json(cookies_json.expose(), account.api_user.clone())
+                .map_err(|e| CheckinServiceError::Crypto(format!("Invalid cookies JSON: {}", e)))?;
 
         let snapshot = self
             .do_query_balance(&provider, &credentials, account_id, &account.name)
@@ -1610,8 +1612,9 @@ impl CheckinService {
             .decrypt(&account.cookies_json_encrypted)
             .map_err(|e| CheckinServiceError::Crypto(e.to_string()))?;
 
-        let credentials = CookieCredentials::from_json(cookies_json.expose(), account.api_user.clone())
-            .map_err(|e| CheckinServiceError::Crypto(format!("Invalid cookies JSON: {}", e)))?;
+        let credentials =
+            CookieCredentials::from_json(cookies_json.expose(), account.api_user.clone())
+                .map_err(|e| CheckinServiceError::Crypto(format!("Invalid cookies JSON: {}", e)))?;
 
         let url = format!(
             "{}{}",
@@ -1679,8 +1682,9 @@ impl CheckinService {
             .decrypt(&account.cookies_json_encrypted)
             .map_err(|e| CheckinServiceError::Crypto(e.to_string()))?;
 
-        let credentials = CookieCredentials::from_json(cookies_json.expose(), account.api_user.clone())
-            .map_err(|e| CheckinServiceError::Crypto(format!("Invalid cookies JSON: {}", e)))?;
+        let credentials =
+            CookieCredentials::from_json(cookies_json.expose(), account.api_user.clone())
+                .map_err(|e| CheckinServiceError::Crypto(format!("Invalid cookies JSON: {}", e)))?;
 
         let validation_path = WafCookieManager::policy_for_provider(&provider)
             .and_then(|policy| policy.validation_path)

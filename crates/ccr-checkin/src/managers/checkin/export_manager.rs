@@ -85,10 +85,13 @@ impl ExportManager {
                 let plaintext = crypto
                     .decrypt(&account.cookies_json_encrypted)
                     .map_err(|e| ExportError::CryptoError(e.to_string()))?;
-                (plaintext.expose().to_string(), false)
+                (plaintext, false)
             } else {
                 // 保持加密状态
-                (account.cookies_json_encrypted.clone(), true)
+                (
+                    ccr_core::Secret::new(account.cookies_json_encrypted.clone()),
+                    true,
+                )
             };
 
             export_accounts.push(ExportAccount {
@@ -240,7 +243,7 @@ impl ExportManager {
             for export_account in data.accounts {
                 let cookies_json_encrypted = if export_account.cookies_json_encrypted {
                     // 尝试解密并重新加密（验证密钥是否匹配）
-                    match crypto.decrypt(&export_account.cookies_json) {
+                    match crypto.decrypt(export_account.cookies_json.expose()) {
                         Ok(plaintext) => crypto
                             .encrypt(plaintext.expose())
                             .map_err(|e| ExportError::CryptoError(e.to_string()))?,
@@ -255,7 +258,7 @@ impl ExportManager {
                 } else {
                     // 明文 Cookies JSON，直接加密
                     crypto
-                        .encrypt(&export_account.cookies_json)
+                        .encrypt(export_account.cookies_json.expose())
                         .map_err(|e| ExportError::CryptoError(e.to_string()))?
                 };
 
