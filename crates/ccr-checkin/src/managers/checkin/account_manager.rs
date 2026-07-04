@@ -7,8 +7,8 @@ use crate::core::error::DbError;
 use crate::database::{self, repositories::checkin_repo};
 use crate::models::checkin::{
     AccountInfo, AccountsResponse, CheckinAccount, CreateAccountRequest, UpdateAccountRequest,
-    mask_cookies_json,
 };
+use ccr_core::Secret;
 use chrono::Utc;
 use std::path::{Path, PathBuf};
 
@@ -116,14 +116,30 @@ impl AccountManager {
         let account = self.get(id)?;
         let crypto = self.get_crypto()?;
         let cookies_masked = match crypto.decrypt(&account.cookies_json_encrypted) {
-            Ok(plaintext) => mask_cookies_json(&plaintext),
+            Ok(plaintext) => Self::masked_cookies_display(&plaintext),
             Err(_) => "****".to_string(), // 解密失败时显示占位符
         };
         Ok(Self::build_account_info(&account, cookies_masked))
     }
 
+    /// 生成 Cookies 的掩码展示串（如 "session=sess...alue; token=****"）
+    ///
+    /// 仅做 JSON map 迭代 + 格式化；掩码算法本身由 [`Secret`] 的 Display
+    /// 提供（全仓唯一实现 ccr_core::mask_sensitive），此处不携带第二套规则
+    fn masked_cookies_display(plaintext: &Secret) -> String {
+        match serde_json::from_str::<std::collections::HashMap<String, String>>(plaintext.expose())
+        {
+            Ok(cookies) => cookies
+                .iter()
+                .map(|(k, v)| format!("{}={}", k, Secret::from(v.as_str())))
+                .collect::<Vec<_>>()
+                .join("; "),
+            Err(_) => "****".to_string(),
+        }
+    }
+
     /// 获取解密后的 Cookies JSON 和 API User
-    pub fn get_cookies_json(&self, id: &str) -> Result<(String, String)> {
+    pub fn get_cookies_json(&self, id: &str) -> Result<(Secret, String)> {
         let account = self.get(id)?;
         let crypto = self.get_crypto()?;
         let cookies_json = crypto
@@ -136,9 +152,9 @@ impl AccountManager {
     pub fn create(&self, request: CreateAccountRequest) -> Result<CheckinAccount> {
         let crypto = self.get_crypto()?;
 
-        // 加密 Cookies JSON
+        // 加密 Cookies JSON（加密是明文的合法消费点）
         let cookies_json_encrypted = crypto
-            .encrypt(&request.cookies_json)
+            .encrypt(request.cookies_json.expose())
             .map_err(|e| AccountError::CryptoError(e.to_string()))?;
 
         let mut account = CheckinAccount::new(
@@ -168,7 +184,7 @@ impl AccountManager {
 
         if let Some(cookies_json) = request.cookies_json {
             account.cookies_json_encrypted = crypto
-                .encrypt(&cookies_json)
+                .encrypt(cookies_json.expose())
                 .map_err(|e| AccountError::CryptoError(e.to_string()))?;
         }
 
@@ -322,6 +338,10 @@ mod tests {
             // 验证可以解密
             let decrypted = crypto.decrypt(&fetched.cookies_json_encrypted).unwrap();
             assert_eq!(decrypted, r#"{"session": "abc123"}"#);
+            // 掩码展示串不含 cookie 原值
+            let masked = AccountManager::masked_cookies_display(&decrypted);
+            assert!(masked.contains("session="));
+            assert!(!masked.contains("abc123"));
         });
     }
 

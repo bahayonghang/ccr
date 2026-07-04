@@ -888,7 +888,7 @@ pub async fn execute_cdk_recharge(
             .map_err(|e| format!("Failed to decrypt cookies: {}", e))?;
 
         let topup_cookies: std::collections::HashMap<String, String> =
-            serde_json::from_str(&cookies_json).unwrap_or_default();
+            serde_json::from_str(cookies_json.expose()).unwrap_or_default();
 
         // Build topup URL and include the provided CDK code
         let topup_url = cdk_config
@@ -1155,7 +1155,8 @@ pub async fn get_checkin_account_cookies(
 
         Ok(serde_json::json!({
             "account_id": account_id,
-            "cookies_json": cookies_json,
+            // 编辑表单回填需要原文：显式 expose（掩码化改造属 typed-ipc 任务）
+            "cookies_json": cookies_json.expose(),
             "api_user": account.api_user,
         }))
     })

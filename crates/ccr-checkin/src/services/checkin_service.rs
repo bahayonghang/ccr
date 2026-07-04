@@ -823,7 +823,7 @@ impl CheckinService {
             .decrypt(&account.cookies_json_encrypted)
             .map_err(|e| CheckinServiceError::Crypto(e.to_string()))?;
 
-        let credentials = CookieCredentials::from_json(&cookies_json, account.api_user.clone())
+        let credentials = CookieCredentials::from_json(cookies_json.expose(), account.api_user.clone())
             .map_err(|e| CheckinServiceError::Crypto(format!("Invalid cookies JSON: {}", e)))?;
 
         // 签到前远程预查：检查是否已签到，同时取一次余额样本（供奖励兜底）
@@ -862,7 +862,8 @@ impl CheckinService {
             };
 
             // 即使已签到，仍尝试 CDK 充值
-            self.try_cdk_topup(&provider, &account, &cookies_json).await;
+            self.try_cdk_topup(&provider, &account, cookies_json.expose())
+                .await;
 
             return Ok(result);
         }
@@ -973,7 +974,8 @@ impl CheckinService {
         if result.status == CheckinStatus::Success
             || result.status == CheckinStatus::AlreadyCheckedIn
         {
-            self.try_cdk_topup(&provider, &account, &cookies_json).await;
+            self.try_cdk_topup(&provider, &account, cookies_json.expose())
+                .await;
         }
 
         Ok(result)
@@ -1199,7 +1201,7 @@ impl CheckinService {
             .decrypt(&account.cookies_json_encrypted)
             .map_err(|e| CheckinServiceError::Crypto(e.to_string()))?;
 
-        let credentials = CookieCredentials::from_json(&cookies_json, account.api_user.clone())
+        let credentials = CookieCredentials::from_json(cookies_json.expose(), account.api_user.clone())
             .map_err(|e| CheckinServiceError::Crypto(format!("Invalid cookies JSON: {}", e)))?;
 
         let snapshot = self
@@ -1608,7 +1610,7 @@ impl CheckinService {
             .decrypt(&account.cookies_json_encrypted)
             .map_err(|e| CheckinServiceError::Crypto(e.to_string()))?;
 
-        let credentials = CookieCredentials::from_json(&cookies_json, account.api_user.clone())
+        let credentials = CookieCredentials::from_json(cookies_json.expose(), account.api_user.clone())
             .map_err(|e| CheckinServiceError::Crypto(format!("Invalid cookies JSON: {}", e)))?;
 
         let url = format!(
@@ -1677,7 +1679,7 @@ impl CheckinService {
             .decrypt(&account.cookies_json_encrypted)
             .map_err(|e| CheckinServiceError::Crypto(e.to_string()))?;
 
-        let credentials = CookieCredentials::from_json(&cookies_json, account.api_user.clone())
+        let credentials = CookieCredentials::from_json(cookies_json.expose(), account.api_user.clone())
             .map_err(|e| CheckinServiceError::Crypto(format!("Invalid cookies JSON: {}", e)))?;
 
         let validation_path = WafCookieManager::policy_for_provider(&provider)
@@ -2791,7 +2793,7 @@ mod tests {
             .create(CreateAccountRequest {
                 provider_id: provider.id.clone(),
                 name: "acct".to_string(),
-                cookies_json: r#"{"session":"abc"}"#.to_string(),
+                cookies_json: ccr_core::Secret::from(r#"{"session":"abc"}"#),
                 api_user: String::new(),
                 extra_config: "{}".to_string(),
             })
@@ -2848,7 +2850,7 @@ mod tests {
             .create(CreateAccountRequest {
                 provider_id: provider.id.clone(),
                 name: "disabled-acct".to_string(),
-                cookies_json: r#"{"session":"abc"}"#.to_string(),
+                cookies_json: ccr_core::Secret::from(r#"{"session":"abc"}"#),
                 api_user: String::new(),
                 extra_config: "{}".to_string(),
             })

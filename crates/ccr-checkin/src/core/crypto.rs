@@ -10,7 +10,7 @@ use aes_gcm::{
     aead::{Aead, KeyInit, OsRng, rand_core::RngCore},
 };
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
-use ccr_core::{WriteOptions, write_guarded};
+use ccr_core::{Secret, WriteOptions, write_guarded};
 use std::fs;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
@@ -152,9 +152,12 @@ impl CryptoManager {
 
     /// 解密密文
     ///
+    /// 返回 [`Secret`]：解密产物即包裹，Debug/日志路径不泄露；
+    /// 原文仅经 `expose()` 流向 HTTP 头构造、明文导出等合法消费点
+    ///
     /// # Arguments
     /// * `encrypted` - base64 编码的加密数据 (nonce || ciphertext)
-    pub fn decrypt(&self, encrypted: &str) -> Result<String, CryptoError> {
+    pub fn decrypt(&self, encrypted: &str) -> Result<Secret, CryptoError> {
         // Base64 解码
         let combined = BASE64
             .decode(encrypted.trim())
@@ -180,6 +183,7 @@ impl CryptoManager {
         })?;
 
         String::from_utf8(plaintext)
+            .map(Secret::new)
             .map_err(|e| CryptoError::DecryptionError(format!("Invalid UTF-8: {}", e)))
     }
 
@@ -194,25 +198,6 @@ impl CryptoManager {
     pub fn key_exists(checkin_dir: &Path) -> bool {
         checkin_dir.join(CRYPTO_KEY_FILE).exists()
     }
-}
-
-/// 掩码显示 API Key
-///
-/// 例如: "sk-1234567890abcdef" -> "sk-****cdef"
-#[allow(dead_code)]
-pub fn mask_api_key(api_key: &str) -> String {
-    if api_key.len() <= 8 {
-        return "*".repeat(api_key.len());
-    }
-
-    // 找到前缀分隔符
-    let prefix_end = api_key.find('-').map(|i| i + 1).unwrap_or(0);
-    let prefix = &api_key[..prefix_end];
-
-    // 保留最后 4 个字符
-    let suffix = &api_key[api_key.len() - 4..];
-
-    format!("{}****{}", prefix, suffix)
 }
 
 #[cfg(test)]
@@ -235,8 +220,8 @@ mod tests {
             .decrypt(&encrypted)
             .expect("Failed to decrypt test data");
 
-        assert_eq!(original, decrypted);
-        assert_ne!(original, encrypted);
+        assert_eq!(decrypted, original);
+        assert_ne!(encrypted, original);
     }
 
     #[test]
@@ -256,16 +241,16 @@ mod tests {
         assert_ne!(encrypted1, encrypted2);
 
         assert_eq!(
-            original,
             crypto
                 .decrypt(&encrypted1)
-                .expect("Failed to decrypt test data 1")
+                .expect("Failed to decrypt test data 1"),
+            original
         );
         assert_eq!(
-            original,
             crypto
                 .decrypt(&encrypted2)
-                .expect("Failed to decrypt test data 2")
+                .expect("Failed to decrypt test data 2"),
+            original
         );
     }
 
@@ -292,7 +277,7 @@ mod tests {
                 .expect("Failed to decrypt test data")
         };
 
-        assert_eq!(original, decrypted);
+        assert_eq!(decrypted, original);
     }
 
     // 🔐 密钥文件权限断言仅在 Unix 有意义；Windows 无 Unix 权限模型（NTFS ACL），
@@ -314,15 +299,6 @@ mod tests {
             .permissions()
             .mode();
         assert_eq!(mode & 0o777, 0o600);
-    }
-
-    #[test]
-    fn test_mask_api_key() {
-        assert_eq!(mask_api_key("sk-1234567890abcdef"), "sk-****cdef");
-        assert_eq!(mask_api_key("sk-abc"), "******");
-        assert_eq!(mask_api_key("short"), "*****");
-        assert_eq!(mask_api_key("12345678"), "********");
-        assert_eq!(mask_api_key("123456789"), "****6789");
     }
 
     #[test]
