@@ -1,0 +1,4 @@
+{"file": ".trellis/tasks/07-03-arch-guarded-write/prd.md", "reason": "验收标准逐条核对的依据（rg 口径、锁目录唯一、备份/权限/崩溃安全测试、spec 更新）"}
+{"file": ".trellis/tasks/07-03-arch-guarded-write/design.md", "reason": "检查实现是否偏离设计：备份命名兼容矩阵、锁序分析、AC#1 的 5 crate 口径"}
+{"file": ".trellis/spec/ccr-core/backend/atomic-writer.md", "reason": "Windows 替换语义回归检查：禁止 delete-then-rename，失败保留旧文件"}
+{"file": ".trellis/spec/ccr-core/backend/backend-guidelines.md", "reason": "检查生产路径无 unwrap/expect、错误变体合理、注释语言约定"}
