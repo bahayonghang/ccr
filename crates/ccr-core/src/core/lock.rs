@@ -125,18 +125,25 @@ impl FileLock {
         let start = Instant::now();
         let mut retry_count = 0;
         loop {
+            // ⚠️ fs4 >= 0.12 语义：Ok(true) = 成功获取；Ok(false) = 锁被其他持有者占用
             match file.try_lock_exclusive() {
-                Ok(_) => {
+                Ok(true) => {
                     tracing::debug!("成功获取文件锁: {:?}", lock_path);
                     return Ok(FileLock { file, lock_path });
                 }
-                Err(_) if start.elapsed() < timeout => {
+                Ok(false) | Err(_) if start.elapsed() < timeout => {
                     // 🎯 优化：使用指数退避策略，减少 CPU 消耗
                     // 等待时间：50ms, 100ms, 200ms, 400ms...最多 400ms
                     let wait_ms = 50 * (1 << retry_count).min(8);
                     std::thread::sleep(Duration::from_millis(wait_ms));
                     retry_count += 1;
                     continue;
+                }
+                Ok(false) => {
+                    return Err(CcrError::LockTimeout(format!(
+                        "获取文件锁超时 (锁被占用): {:?}",
+                        lock_path.display()
+                    )));
                 }
                 Err(e) => {
                     return Err(CcrError::LockTimeout(format!(
