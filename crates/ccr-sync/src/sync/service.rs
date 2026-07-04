@@ -8,6 +8,7 @@
 // - ✅ 连接测试
 
 use ccr_core::core::error::{CcrError, Result};
+use ccr_core::core::guarded_write::{WriteOptions, write_guarded_async};
 use reqwest_dav::list_cmd::ListEntity;
 use reqwest_dav::re_exports::reqwest::StatusCode;
 use reqwest_dav::{Auth, Client, ClientBuilder, DecodeError, Depth, Error as DavError};
@@ -261,14 +262,16 @@ impl SyncService {
             })?;
         }
 
-        // 💾 保存到本地
-        fs::write(local_path, content).await.map_err(|e| {
-            CcrError::SyncError(format!(
-                "保存文件到本地失败 {}: {}",
-                local_path.display(),
-                e
-            ))
-        })?;
+        // 💾 原子保存到本地（guarded write：锁 + temp → fsync → 原子替换，防半成品下载）
+        write_guarded_async(local_path, content.to_vec(), WriteOptions::default())
+            .await
+            .map_err(|e| {
+                CcrError::SyncError(format!(
+                    "保存文件到本地失败 {}: {}",
+                    local_path.display(),
+                    e
+                ))
+            })?;
 
         tracing::debug!("✅ 文件已下载: {}", local_path.display());
         Ok(())

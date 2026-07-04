@@ -8,6 +8,7 @@
 
 use ccr_core::core::error::{CcrError, Result};
 use ccr_core::core::fileio;
+use ccr_core::core::guarded_write::WriteOptions;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -92,7 +93,15 @@ impl SyncConfigManager {
     }
 
     pub fn save(&self, config: &SyncConfig) -> Result<()> {
-        fileio::write_toml(&self.config_path, config)?;
+        // sync.toml 含 WebDAV 密码，用 secret 选项落盘（Unix 上 0o600；Windows no-op）
+        fileio::write_toml_opts(
+            &self.config_path,
+            config,
+            &WriteOptions {
+                secret: true,
+                ..Default::default()
+            },
+        )?;
         tracing::debug!("✅ Sync配置文件已保存: {:?}", self.config_path);
         Ok(())
     }
@@ -158,5 +167,26 @@ mod tests {
 
         manager.delete().unwrap();
         assert!(!config_path.exists());
+    }
+
+    // 🔐 sync.toml 含 WebDAV 密码，落盘应为 owner-only（0o600）。
+    // 权限断言仅在 Unix 有意义；Windows 权限模型（NTFS ACL）不同，secret 为 no-op。
+    #[cfg(unix)]
+    #[test]
+    fn test_sync_config_saved_with_owner_only_mode() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let temp_dir = tempfile::tempdir().unwrap();
+        let config_path = temp_dir.path().join("sync.toml");
+        let manager = SyncConfigManager::new(&config_path);
+
+        let config = SyncConfig {
+            password: "s3cret".to_string(),
+            ..Default::default()
+        };
+        manager.save(&config).unwrap();
+
+        let mode = fs::metadata(&config_path).unwrap().permissions().mode();
+        assert_eq!(mode & 0o777, 0o600);
     }
 }

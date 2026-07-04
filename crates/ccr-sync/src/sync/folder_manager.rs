@@ -14,9 +14,7 @@
 use crate::sync::folder::{FolderStats, SyncFolder, SyncFoldersConfig, WebDavConfig, expand_path};
 use ccr_core::core::error::{CcrError, Result};
 use ccr_core::core::fileio;
-use ccr_core::core::lock::LockManager;
 use std::path::{Path, PathBuf};
-use std::time::Duration;
 
 use super::config::SyncConfigManager;
 
@@ -137,22 +135,14 @@ impl SyncFolderManager {
     ///
     /// 如果序列化失败、无法获取锁或写入失败，返回错误
     pub fn save_config(&self, config: &SyncFoldersConfig) -> Result<()> {
-        // 获取文件锁
-        let lock_dir = self
-            .config_path
-            .parent()
-            .unwrap_or_else(|| Path::new("."))
-            .join(".locks");
-        let lock_manager = LockManager::new(lock_dir);
-        let _lock = lock_manager.lock_resource("sync_folders", Duration::from_secs(5))?;
-
         // 验证配置
         let errors = config.validate();
         if !errors.is_empty() {
             return Err(CcrError::ValidationError(errors.join("; ")));
         }
 
-        // 使用统一的 fileio 写入 TOML（会自动创建父目录和原子写入）
+        // 使用统一的 fileio 写入 TOML（guarded write 已内置统一锁目录的路径锁 +
+        // 原子写，无需自建 <config_dir>/.locks 锁——消除锁目录 split-brain）
         fileio::write_toml(&self.config_path, config)?;
 
         tracing::info!(
