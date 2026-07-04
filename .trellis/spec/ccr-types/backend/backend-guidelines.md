@@ -36,6 +36,20 @@ Do not add `ccr-core`, `rusqlite`, `reqwest`, or filesystem dependencies here. S
 
 Avoid application error types in this crate. Prefer pure constructors, validation helpers that return simple results, or let callers validate at service boundaries.
 
+## ClaudeSettings Single Shape Contract
+
+`ccr_types::ClaudeSettings` is the **only** `ClaudeSettings` definition in the workspace (`rg 'struct ClaudeSettings'` must hit exactly `crates/ccr-types/src/claude_settings.rs`). `ccr-cli`'s `managers::settings` and the root `ccr::ClaudeSettings` are re-exports of this type; do not reintroduce a parallel shape on either side of the CLI/UI seam.
+
+Ownership split for managed-env behavior:
+
+- **This crate** owns the pure data operations and key registry: `env_keys` constants (including `NON_ANTHROPIC_MANAGED_KEYS`), `clear_anthropic_vars`, `clear_managed_vars`, `apply_managed_env(pairs)` (clear-first, then insert), `anthropic_env_status`, `has_anthropic_overrides`, and validation (`validate`, `validate_api_key_mode`).
+- **`ccr-config`** owns the `ConfigSection -> pairs` mapping (`ConfigSection::to_managed_env_pairs`), referencing `env_keys` constants so key names cannot drift.
+- **`ccr-cli`** keeps only the IO adapter (`SettingsManager`: load/save/backup/restore).
+
+Validation returns `Result<(), String>` with stable Chinese messages; callers wrap into their own error type (CLI uses `CcrError::ValidationError`). Do not add `Validatable` or other `ccr-core` trait impls here — this crate stays a leaf, and orphan rules prevent downstream impls anyway.
+
+Intentional strictness kept by tests: invalid `hooks` types are a parse error (not tolerated into `other`), legacy array hooks normalize to the canonical object format on write, and empty known containers are dropped on serialization. Unknown fields must survive read→modify→write round-trips at every nesting level.
+
 ## Testing
 
 Add serialization round-trip tests and legacy-input tests for contract changes. `model_rate_catalog.rs`, `claude_settings.rs`, and auth modules are good examples of module-local tests.
