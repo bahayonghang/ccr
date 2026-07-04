@@ -925,3 +925,41 @@ ccr-core 新增 guarded_write 深模块（锁→备份keep-10轮换→fsync原�
 ### Next Steps
 
 - None - task complete
+
+
+## Session 27: 07-03-arch-secret-newtype 全流程闭环：Secret 掩码 newtype
+
+**Date**: 2026-07-04
+**Task**: 07-03-arch-secret-newtype 全流程闭环：Secret 掩码 newtype
+**Branch**: `dev`
+
+### Summary
+
+Secret 掩码 newtype 任务闭环：规划（design/implement，含 4 处事实校准：第 4 套掩码 mask_token、mask_api_key 死代码、ccr facade 冻结、claude/codex 编辑表单明文回环）→ B0 ccr-core Secret 类型（Debug/Display/默认 serde 恒掩码，expose() 唯一出口，expose_plaintext* 注解为唯一明文落盘通道）→ B1 sync 密码迁移（含 sync_folders.toml 补 0o600）→ B2 auth_token 全链路迁移（43 文件，删 mask_token，claude/codex 明文 IPC 显式 expose 保行为）→ B3 checkin cookies 迁移（decrypt 返回 Secret，删 mask_api_key/mask_cookies_json，净 -46 行）→ B4 收尾（ExportAccount/WebDavConfigInput 迁移；trellis-check 发现并修复 temp_cmd 明文回归 Critical）。门禁全绿（fmt/lint-strict/test/1414 测试），spec 沉淀 Secrets And Masking 契约 + 已否决决策（加密/zeroize/泛型）+ 债务清单（WAF cookies、SSH 密码缓存、typed-ipc 明文点）。rust-security-reviewer 代理因 API 代理 1m 上下文限制启动失败，由主会话完成同等内联审查（43 处 expose() 全量普查通过）。已知 flake：src-tauri cli_versions_fast_mode 5s 墙钟断言在编译负载下偶发；预存在 clippy 告警 codex_auth.rs:633（cfg(windows) needless_return，非本任务引入）。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `261be0fd` | (see git log) |
+| `766e9d90` | (see git log) |
+| `e82a4bc4` | (see git log) |
+| `72bc087a` | (see git log) |
+| `60c994d8` | (see git log) |
+| `bf6de041` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

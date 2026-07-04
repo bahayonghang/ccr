@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 26
+- **Total Sessions**: 27
 - **Last Active**: 2026-07-04
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~927 | Active |
+| `journal-1.md` | ~965 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 27 | 2026-07-04 | 07-03-arch-secret-newtype 全流程闭环：Secret 掩码 newtype | `261be0fd`, `766e9d90`, `e82a4bc4`, `72bc087a`, `60c994d8`, `bf6de041` | `dev` |
 | 26 | 2026-07-04 | 统一 guarded write 深模块（07-03-arch-guarded-write） | `80b61326`, `25b329a6`, `9c1452d2`, `6a920bb7`, `12746289`, `408d9e67`, `2546dd1f` | `dev` |
 | 25 | 2026-07-02 | 完成 Provider 用量统计父任务验收 | `41ce6b9c`, `f57b3718`, `f9ffe588`, `ba02c900` | `dev` |
 | 24 | 2026-07-02 | 完成 TUI Usage 统计标签页 | `ba02c900` | `dev` |
