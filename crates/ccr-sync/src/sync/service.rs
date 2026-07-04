@@ -37,12 +37,12 @@ impl SyncService {
     pub async fn new(config: &SyncConfig) -> Result<Self> {
         tracing::debug!("🔌 创建 WebDAV 客户端: {}", config.webdav_url);
 
-        // 🔧 构建 WebDAV 客户端
+        // 🔧 构建 WebDAV 客户端（Basic Auth 是密码的合法明文消费点，走 expose()）
         let client = ClientBuilder::new()
             .set_host(config.webdav_url.clone())
             .set_auth(Auth::Basic(
                 config.username.clone(),
-                config.password.clone(),
+                config.password.expose().to_string(),
             ))
             .build()
             .map_err(|e| CcrError::SyncError(format!("创建 WebDAV 客户端失败: {}", e)))?;
@@ -656,7 +656,7 @@ mod tests {
             enabled: true,
             webdav_url: "https://dav.jianguoyun.com/dav/".to_string(),
             username: "test@example.com".to_string(),
-            password: "test_password".to_string(),
+            password: ccr_core::Secret::from("test_password"),
             remote_path: "/ccr/".to_string(), // 🆕 改为目录路径
             auto_sync: false,
         }

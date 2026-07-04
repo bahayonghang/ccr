@@ -651,6 +651,7 @@ name = "ccr-core"
 version = "6.4.3"
 dependencies = [
  "anyhow",
+ "chrono",
  "colored",
  "dirs",
  "fs4 0.13.1",

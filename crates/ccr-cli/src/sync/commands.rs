@@ -192,7 +192,7 @@ pub async fn sync_config_command() -> Result<()> {
     println!("  💡 坚果云: 账户信息 -> 安全选项 -> 添加应用 -> 生成密码");
     print!("  请输入: ");
     let _ = io::stdout().flush();
-    let password = read_password()?;
+    let password = ccr_core::Secret::new(read_password()?);
     println!();
 
     // 4. 远程路径
@@ -1880,7 +1880,7 @@ mod tests {
             enabled: true,
             webdav_url: "https://dav.jianguoyun.com/dav/".to_string(),
             username: "test@example.com".to_string(),
-            password: "test_password".to_string(),
+            password: ccr_core::Secret::from("test_password"),
             remote_path: "/ccr/".to_string(), // 🆕 改为目录路径
             auto_sync: false,
         };
