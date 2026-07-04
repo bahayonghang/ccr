@@ -15,6 +15,7 @@ pub mod cache;
 pub mod error;
 pub mod file_manager;
 pub mod fileio;
+pub mod guarded_write;
 pub mod http;
 pub mod lock;
 pub mod logging;
@@ -39,7 +40,12 @@ pub use file_manager::FileManager;
 #[allow(unused_imports)]
 pub use fileio::{
     read_json, read_json_async, read_toml, read_toml_async, write_json, write_json_async,
-    write_toml, write_toml_async,
+    write_json_opts, write_json_opts_async, write_toml, write_toml_async, write_toml_opts,
+    write_toml_opts_async,
+};
+#[allow(unused_imports)]
+pub use guarded_write::{
+    BACKUP_KEEP, BackupPolicy, WriteOptions, backup_guarded, write_guarded, write_guarded_async,
 };
 #[allow(unused_imports)]
 pub use http::HTTP_CLIENT;

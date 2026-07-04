@@ -41,6 +41,7 @@ use uuid::Uuid;
 #[allow(dead_code)]
 pub struct AtomicWriter {
     target_path: PathBuf,
+    secret: bool,
 }
 
 /// 📝 异步原子写入器
@@ -146,7 +147,20 @@ impl AtomicWriter {
     pub fn new<P: AsRef<Path>>(target_path: P) -> Self {
         Self {
             target_path: target_path.as_ref().to_path_buf(),
+            secret: false,
         }
+    }
+
+    /// Marks the target as secret material.
+    ///
+    /// When enabled, the temporary file is restricted to owner-only
+    /// permissions (0o600) on Unix **before** any content is written, so the
+    /// secret bytes are never readable by other users. On Windows this is a
+    /// no-op (NTFS uses a different permission model).
+    #[must_use]
+    pub fn secret(mut self, secret: bool) -> Self {
+        self.secret = secret;
+        self
     }
 
     /// 💾 原子写入内容到文件
@@ -171,7 +185,7 @@ impl AtomicWriter {
         }
 
         // 📄 在同一目录创建临时文件(确保在同一文件系统)
-        let temp_file = if let Some(parent) = self.target_path.parent() {
+        let mut temp_file = if let Some(parent) = self.target_path.parent() {
             NamedTempFile::new_in(parent)
         } else {
             NamedTempFile::new()
@@ -180,9 +194,35 @@ impl AtomicWriter {
             CcrError::IoError(std::io::Error::other(format!("创建临时文件失败: {}", e)))
         })?;
 
-        // ✍️ 写入内容
-        fs::write(temp_file.path(), content).map_err(|e| {
-            CcrError::IoError(std::io::Error::other(format!("写入临时文件失败: {}", e)))
+        // 🔐 secret 模式：写入内容之前先收紧权限，避免敏感字节以宽权限落盘
+        #[cfg(unix)]
+        if self.secret {
+            use std::os::unix::fs::PermissionsExt;
+            temp_file
+                .as_file()
+                .set_permissions(fs::Permissions::from_mode(0o600))
+                .map_err(|e| {
+                    CcrError::IoError(std::io::Error::other(format!(
+                        "设置临时文件权限失败: {}",
+                        e
+                    )))
+                })?;
+        }
+        // Windows 权限模型不同，secret 选项为 no-op
+        #[cfg(not(unix))]
+        let _ = self.secret;
+
+        // ✍️ 通过临时文件句柄写入内容（避免二次打开）
+        {
+            use std::io::Write;
+            temp_file.as_file_mut().write_all(content).map_err(|e| {
+                CcrError::IoError(std::io::Error::other(format!("写入临时文件失败: {}", e)))
+            })?;
+        }
+
+        // 💽 rename 前 fsync，确保数据先于替换操作落盘
+        temp_file.as_file().sync_all().map_err(|e| {
+            CcrError::IoError(std::io::Error::other(format!("刷写临时文件失败: {}", e)))
         })?;
 
         self.persist_temp_file(temp_file)?;
@@ -258,6 +298,16 @@ impl AsyncAtomicWriter {
             CcrError::IoError(std::io::Error::other(format!("写入临时文件失败: {}", e)))
         })?;
 
+        // 💽 rename 前 fsync（spawn_blocking 中以写句柄重开：Windows 的
+        // FlushFileBuffers 需要写权限，读句柄会失败）
+        if let Err(e) = sync_temp_path_async(temp_path.clone()).await {
+            let _ = async_fs::remove_file(&temp_path).await;
+            return Err(CcrError::IoError(std::io::Error::other(format!(
+                "刷写临时文件失败: {}",
+                e
+            ))));
+        }
+
         if let Err(e) = persist_temp_path_async(temp_path.clone(), self.target_path.clone()).await {
             let _ = async_fs::remove_file(&temp_path).await;
             return Err(CcrError::IoError(std::io::Error::other(format!(
@@ -285,6 +335,16 @@ impl AsyncAtomicWriter {
         let temp_name = format!(".{}.tmp-{}", file_name, Uuid::new_v4());
         parent.join(temp_name)
     }
+}
+
+async fn sync_temp_path_async(temp_path: PathBuf) -> std::io::Result<()> {
+    // 同步 fsync 放入阻塞线程池，避免阻塞异步运行时
+    tokio::task::spawn_blocking(move || -> std::io::Result<()> {
+        let file = fs::OpenOptions::new().write(true).open(&temp_path)?;
+        file.sync_all()
+    })
+    .await
+    .map_err(|e| std::io::Error::other(format!("刷写任务失败: {}", e)))?
 }
 
 async fn persist_temp_path_async(temp_path: PathBuf, target_path: PathBuf) -> std::io::Result<()> {

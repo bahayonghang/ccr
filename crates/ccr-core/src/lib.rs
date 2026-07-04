@@ -4,10 +4,12 @@ pub mod core;
 pub mod utils;
 
 pub use core::{
-    AsyncAtomicWriter, AtomicWriter, CCR_GITHUB_REPO, CCR_UI_REPO, CONFIG_LOCK, CacheStatus,
-    CcrError, ColorOutput, ConfigCache, FileLock, FileManager, HTTP_CLIENT, LockManager, Result,
-    init_file_only_logger, init_logger, read_json, read_json_async, read_toml, read_toml_async,
-    write_json, write_json_async, write_toml, write_toml_async,
+    AsyncAtomicWriter, AtomicWriter, BACKUP_KEEP, BackupPolicy, CCR_GITHUB_REPO, CCR_UI_REPO,
+    CONFIG_LOCK, CacheStatus, CcrError, ColorOutput, ConfigCache, FileLock, FileManager,
+    HTTP_CLIENT, LockManager, Result, WriteOptions, backup_guarded, init_file_only_logger,
+    init_logger, read_json, read_json_async, read_toml, read_toml_async, write_guarded,
+    write_guarded_async, write_json, write_json_async, write_json_opts, write_json_opts_async,
+    write_toml, write_toml_async, write_toml_opts, write_toml_opts_async,
 };
 pub use utils::{
     AutoCompletable, Validatable, is_qwen_chat_file, mask_if_sensitive, mask_sensitive,
@@ -85,6 +87,39 @@ pub(crate) mod test_support {
                 Some(value) => std::env::set_var(key, value),
                 None => std::env::remove_var(key),
             }
+        }
+    }
+
+    /// 独立的窄夹具：仅覆盖 `CCR_LOCK_DIR`，用于把 guarded write / 文件锁测试
+    /// 隔离到 tempdir。按 test-fixtures 约定不并入 TestLogEnv（该夹具只管日志键），
+    /// 但与其共享同一把进程级 env 锁。
+    pub(crate) struct TestLockDirEnv {
+        previous: Option<OsString>,
+        _env_guard: MutexGuard<'static, ()>,
+    }
+
+    impl TestLockDirEnv {
+        pub(crate) fn new(lock_dir: &std::path::Path) -> Self {
+            let env_guard = ENV_LOCK
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+
+            let previous = std::env::var_os("CCR_LOCK_DIR");
+            // SAFETY: TestLockDirEnv holds the process-wide ccr-core test env lock until Drop.
+            unsafe {
+                std::env::set_var("CCR_LOCK_DIR", lock_dir);
+            }
+
+            Self {
+                previous,
+                _env_guard: env_guard,
+            }
+        }
+    }
+
+    impl Drop for TestLockDirEnv {
+        fn drop(&mut self) {
+            restore_env_var("CCR_LOCK_DIR", self.previous.take());
         }
     }
 

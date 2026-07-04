@@ -7,8 +7,8 @@
 // - 🧹 代码复用 - 单一数据源
 // - 📝 支持 TOML 和 JSON 格式
 
-use crate::core::atomic_writer::{AsyncAtomicWriter, AtomicWriter};
 use crate::core::error::{CcrError, Result};
+use crate::core::guarded_write::{self, WriteOptions};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
@@ -65,7 +65,7 @@ where
 /// # 特性
 /// - 自动创建父目录（如果不存在）
 /// - 使用漂亮的格式化输出
-/// - 原子写入（先写临时文件再重命名）
+/// - guarded write（文件锁 + temp → fsync → 原子替换）
 ///
 /// # 返回
 /// - `Ok(())`: 成功写入
@@ -95,22 +95,22 @@ pub fn write_toml<T>(path: &Path, value: &T) -> Result<()>
 where
     T: Serialize,
 {
-    // 确保父目录存在
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).map_err(|e| {
-            CcrError::FileIoError(format!("创建目录 {} 失败: {}", parent.display(), e))
-        })?;
-    }
+    write_toml_opts(path, value, &WriteOptions::default())
+}
 
+/// Serializes `value` as pretty TOML and writes it through the guarded write
+/// pipeline with explicit [`WriteOptions`] (backup policy, secret
+/// permissions, lock timeout).
+pub fn write_toml_opts<T>(path: &Path, value: &T, opts: &WriteOptions) -> Result<()>
+where
+    T: Serialize,
+{
     // 序列化为 TOML（使用漂亮格式）
     let content = toml::to_string_pretty(value)
         .map_err(|e| CcrError::FileIoError(format!("序列化 TOML 数据失败: {}", e)))?;
 
-    AtomicWriter::new(path)
-        .write_string(&content)
-        .map_err(|e| {
-            CcrError::FileIoError(format!("写入配置文件 {} 失败: {}", path.display(), e))
-        })?;
+    // 委托 guarded write：锁 + 备份 + 原子写（含 fsync 与父目录创建）
+    guarded_write::write_guarded(path, content.as_bytes(), opts)?;
 
     tracing::trace!("✅ 成功写入 TOML 文件: {}", path.display());
     Ok(())
@@ -140,20 +140,21 @@ pub fn write_json<T>(path: &Path, value: &T) -> Result<()>
 where
     T: Serialize,
 {
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).map_err(|e| {
-            CcrError::FileIoError(format!("创建目录 {} 失败: {}", parent.display(), e))
-        })?;
-    }
+    write_json_opts(path, value, &WriteOptions::default())
+}
 
+/// Serializes `value` as pretty JSON and writes it through the guarded write
+/// pipeline with explicit [`WriteOptions`].
+#[allow(dead_code)]
+pub fn write_json_opts<T>(path: &Path, value: &T, opts: &WriteOptions) -> Result<()>
+where
+    T: Serialize,
+{
     let content = serde_json::to_string_pretty(value)
         .map_err(|e| CcrError::FileIoError(format!("序列化 JSON 数据失败: {}", e)))?;
 
-    AtomicWriter::new(path)
-        .write_string(&content)
-        .map_err(|e| {
-            CcrError::FileIoError(format!("写入 JSON 文件 {} 失败: {}", path.display(), e))
-        })?;
+    // 委托 guarded write：锁 + 备份 + 原子写（含 fsync 与父目录创建）
+    guarded_write::write_guarded(path, content.as_bytes(), opts)?;
 
     tracing::trace!("✅ 成功写入 JSON 文件: {}", path.display());
     Ok(())
@@ -183,21 +184,21 @@ pub async fn write_toml_async<T>(path: &Path, value: &T) -> Result<()>
 where
     T: Serialize,
 {
-    if let Some(parent) = path.parent() {
-        async_fs::create_dir_all(parent).await.map_err(|e| {
-            CcrError::FileIoError(format!("创建目录 {} 失败: {}", parent.display(), e))
-        })?;
-    }
+    write_toml_opts_async(path, value, WriteOptions::default()).await
+}
 
+/// Async variant of [`write_toml_opts`]; the guarded write runs on the tokio
+/// blocking thread pool.
+#[allow(dead_code)]
+pub async fn write_toml_opts_async<T>(path: &Path, value: &T, opts: WriteOptions) -> Result<()>
+where
+    T: Serialize,
+{
     let content = toml::to_string_pretty(value)
         .map_err(|e| CcrError::FileIoError(format!("序列化 TOML 数据失败: {}", e)))?;
 
-    AsyncAtomicWriter::new(path)
-        .write_string_async(&content)
-        .await
-        .map_err(|e| {
-            CcrError::FileIoError(format!("写入配置文件 {} 失败: {}", path.display(), e))
-        })?;
+    // 委托 guarded write：锁 + 备份 + 原子写（含 fsync 与父目录创建）
+    guarded_write::write_guarded_async(path, content.into_bytes(), opts).await?;
 
     tracing::trace!("✅ 成功写入 TOML 文件: {}", path.display());
     Ok(())
@@ -227,21 +228,21 @@ pub async fn write_json_async<T>(path: &Path, value: &T) -> Result<()>
 where
     T: Serialize,
 {
-    if let Some(parent) = path.parent() {
-        async_fs::create_dir_all(parent).await.map_err(|e| {
-            CcrError::FileIoError(format!("创建目录 {} 失败: {}", parent.display(), e))
-        })?;
-    }
+    write_json_opts_async(path, value, WriteOptions::default()).await
+}
 
+/// Async variant of [`write_json_opts`]; the guarded write runs on the tokio
+/// blocking thread pool.
+#[allow(dead_code)]
+pub async fn write_json_opts_async<T>(path: &Path, value: &T, opts: WriteOptions) -> Result<()>
+where
+    T: Serialize,
+{
     let content = serde_json::to_string_pretty(value)
         .map_err(|e| CcrError::FileIoError(format!("序列化 JSON 数据失败: {}", e)))?;
 
-    AsyncAtomicWriter::new(path)
-        .write_string_async(&content)
-        .await
-        .map_err(|e| {
-            CcrError::FileIoError(format!("写入 JSON 文件 {} 失败: {}", path.display(), e))
-        })?;
+    // 委托 guarded write：锁 + 备份 + 原子写（含 fsync 与父目录创建）
+    guarded_write::write_guarded_async(path, content.into_bytes(), opts).await?;
 
     tracing::trace!("✅ 成功写入 JSON 文件: {}", path.display());
     Ok(())
@@ -251,6 +252,7 @@ where
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
+    use crate::test_support::TestLockDirEnv;
     use serde::{Deserialize, Serialize};
     use tempfile::tempdir;
 
@@ -264,6 +266,7 @@ mod tests {
     #[test]
     fn test_read_write_toml() {
         let temp_dir = tempdir().unwrap();
+        let _lock_dir = TestLockDirEnv::new(temp_dir.path().join("locks").as_path());
         let config_path = temp_dir.path().join("test_config.toml");
 
         let original = TestConfig {
@@ -285,6 +288,7 @@ mod tests {
     #[test]
     fn test_auto_create_parent_directory() {
         let temp_dir = tempdir().unwrap();
+        let _lock_dir = TestLockDirEnv::new(temp_dir.path().join("locks").as_path());
         let nested_path = temp_dir.path().join("nested/dir/config.toml");
 
         let config = TestConfig {
@@ -321,6 +325,7 @@ mod tests {
     #[test]
     fn test_read_write_json() {
         let temp_dir = tempdir().unwrap();
+        let _lock_dir = TestLockDirEnv::new(temp_dir.path().join("locks").as_path());
         let config_path = temp_dir.path().join("test_config.json");
 
         let original = TestConfig {
@@ -337,6 +342,7 @@ mod tests {
     #[tokio::test]
     async fn test_read_write_toml_async() {
         let temp_dir = tempdir().unwrap();
+        let _lock_dir = TestLockDirEnv::new(temp_dir.path().join("locks").as_path());
         let config_path = temp_dir.path().join("test_config_async.toml");
 
         let original = TestConfig {
@@ -353,6 +359,7 @@ mod tests {
     #[tokio::test]
     async fn test_read_write_json_async() {
         let temp_dir = tempdir().unwrap();
+        let _lock_dir = TestLockDirEnv::new(temp_dir.path().join("locks").as_path());
         let config_path = temp_dir.path().join("test_config_async.json");
 
         let original = TestConfig {
