@@ -498,6 +498,7 @@ name = "ccr-config"
 version = "6.4.3"
 dependencies = [
  "ccr-core",
+ "ccr-types",
  "chrono",
  "dirs",
  "indexmap",

@@ -253,6 +253,89 @@ impl ConfigSection {
         self.usage_count = Some(count + 1);
     }
 
+    /// 🔄 生成本配置节应写入 settings.json `env` 的全部托管键值对
+    ///
+    /// 这是 ConfigSection → 托管 env 的唯一映射：键名引用
+    /// `ccr_types::env_keys` 常量，防止跨 crate 字面量漂移。
+    /// 调用方以 `ClaudeSettings::apply_managed_env(section.to_managed_env_pairs())`
+    /// 完成"先清空受管键、再写入新值"的 profile 切换语义。
+    /// None 字段不产生键值对（切换后对应 env 被清空即为正确行为）。
+    pub fn to_managed_env_pairs(&self) -> Vec<(String, String)> {
+        use ccr_types::env_keys;
+
+        let mut pairs = Vec::new();
+        let mut push = |key: &str, value: &Option<String>| {
+            if let Some(value) = value {
+                pairs.push((key.to_string(), value.clone()));
+            }
+        };
+
+        push(env_keys::ANTHROPIC_BASE_URL, &self.base_url);
+        push(env_keys::ANTHROPIC_MODEL, &self.model);
+        push(env_keys::ANTHROPIC_SMALL_FAST_MODEL, &self.small_fast_model);
+        push(
+            env_keys::ANTHROPIC_DEFAULT_OPUS_MODEL,
+            &self.default_opus_model,
+        );
+        push(
+            env_keys::ANTHROPIC_DEFAULT_SONNET_MODEL,
+            &self.default_sonnet_model,
+        );
+        push(
+            env_keys::ANTHROPIC_DEFAULT_HAIKU_MODEL,
+            &self.default_haiku_model,
+        );
+        push(
+            env_keys::ANTHROPIC_DEFAULT_FABLE_MODEL,
+            &self.default_fable_model,
+        );
+        push(
+            env_keys::ANTHROPIC_DEFAULT_OPUS_MODEL_NAME,
+            &self.default_opus_model_name,
+        );
+        push(
+            env_keys::ANTHROPIC_DEFAULT_SONNET_MODEL_NAME,
+            &self.default_sonnet_model_name,
+        );
+        push(
+            env_keys::ANTHROPIC_DEFAULT_HAIKU_MODEL_NAME,
+            &self.default_haiku_model_name,
+        );
+        push(
+            env_keys::ANTHROPIC_DEFAULT_FABLE_MODEL_NAME,
+            &self.default_fable_model_name,
+        );
+        push(env_keys::CLAUDE_CODE_SUBAGENT_MODEL, &self.subagent_model);
+        push(
+            env_keys::ANTHROPIC_CUSTOM_MODEL_OPTION,
+            &self.custom_model_option,
+        );
+        push(
+            env_keys::ANTHROPIC_CUSTOM_MODEL_OPTION_NAME,
+            &self.custom_model_option_name,
+        );
+        push(env_keys::CLAUDE_CODE_EFFORT_LEVEL, &self.effort_level);
+        push(
+            env_keys::CLAUDE_CODE_AUTO_COMPACT_WINDOW,
+            &self.claude_code_auto_compact_window,
+        );
+        push(env_keys::API_TIMEOUT_MS, &self.api_timeout_ms);
+        push(
+            env_keys::CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC,
+            &self.claude_code_disable_nonessential_traffic,
+        );
+
+        // 🔑 auth_token：env 注入 settings.json 是 token 的合法明文消费点
+        if let Some(auth_token) = &self.auth_token {
+            pairs.push((
+                env_keys::ANTHROPIC_AUTH_TOKEN.to_string(),
+                auth_token.expose().to_string(),
+            ));
+        }
+
+        pairs
+    }
+
     /// 📊 获取预期的 ANTHROPIC_* 环境变量状态（无副作用）
     ///
     /// 根据配置节的字段值，返回应用后的环境变量状态
@@ -262,7 +345,7 @@ impl ConfigSection {
 
         let mut status = HashMap::new();
 
-        // 映射关系与 ClaudeSettings::update_from_config 保持一致
+        // 核心 4 键的展示预览；完整托管键映射见 to_managed_env_pairs
         // （env 预览与实际写入 settings 的值一致，是 token 的合法明文消费点；
         //   展示侧由调用方按变量名掩码）
         status.insert("ANTHROPIC_BASE_URL".to_string(), self.base_url.clone());
@@ -362,5 +445,182 @@ model = "claude-sonnet-4-5"
         let debug = format!("{:?}", section);
         assert!(!debug.contains("sk-ant-super-secret-token"));
         assert!(debug.contains("sk-a...oken"));
+    }
+
+    // ═══ to_managed_env_pairs：ConfigSection → 托管 env 的唯一映射 ═══
+    // （断言语义迁自 ccr-cli ClaudeSettings::update_from_config 测试系列）
+
+    use std::collections::HashMap;
+
+    fn pairs_map(section: &ConfigSection) -> HashMap<String, String> {
+        section.to_managed_env_pairs().into_iter().collect()
+    }
+
+    fn create_test_config_section() -> ConfigSection {
+        ConfigSection {
+            description: Some("Test".into()),
+            base_url: Some("https://api.test.com".into()),
+            auth_token: Some(Secret::from("sk-test-token")),
+            model: Some("test-model".into()),
+            small_fast_model: Some("test-small".into()),
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn test_to_managed_env_pairs_core_fields() {
+        let map = pairs_map(&create_test_config_section());
+
+        assert_eq!(
+            map.get("ANTHROPIC_BASE_URL"),
+            Some(&"https://api.test.com".to_string())
+        );
+        assert_eq!(
+            map.get("ANTHROPIC_AUTH_TOKEN"),
+            Some(&"sk-test-token".to_string())
+        );
+        assert_eq!(map.get("ANTHROPIC_MODEL"), Some(&"test-model".to_string()));
+        assert_eq!(
+            map.get("ANTHROPIC_SMALL_FAST_MODEL"),
+            Some(&"test-small".to_string())
+        );
+    }
+
+    #[test]
+    fn test_to_managed_env_pairs_extended_model_envs() {
+        let section = ConfigSection {
+            default_opus_model: Some("deepseek-v4-pro".into()),
+            default_sonnet_model: Some("deepseek-v4-pro".into()),
+            default_haiku_model: Some("deepseek-v4-flash".into()),
+            subagent_model: Some("deepseek-v4-flash".into()),
+            effort_level: Some("max".into()),
+            ..create_test_config_section()
+        };
+
+        let map = pairs_map(&section);
+        assert_eq!(
+            map.get("ANTHROPIC_DEFAULT_OPUS_MODEL"),
+            Some(&"deepseek-v4-pro".to_string())
+        );
+        assert_eq!(
+            map.get("ANTHROPIC_DEFAULT_SONNET_MODEL"),
+            Some(&"deepseek-v4-pro".to_string())
+        );
+        assert_eq!(
+            map.get("ANTHROPIC_DEFAULT_HAIKU_MODEL"),
+            Some(&"deepseek-v4-flash".to_string())
+        );
+        assert_eq!(
+            map.get("CLAUDE_CODE_SUBAGENT_MODEL"),
+            Some(&"deepseek-v4-flash".to_string())
+        );
+        assert_eq!(map.get("CLAUDE_CODE_EFFORT_LEVEL"), Some(&"max".to_string()));
+    }
+
+    #[test]
+    fn test_to_managed_env_pairs_fable_and_display_names() {
+        let section = ConfigSection {
+            default_fable_model: Some("glm-5.2[1m]".into()),
+            default_opus_model_name: Some("GLM-5.2".into()),
+            default_sonnet_model_name: Some("GLM-5.2".into()),
+            default_haiku_model_name: Some("GLM-5.2".into()),
+            default_fable_model_name: Some("GLM-5.2".into()),
+            custom_model_option: Some("glm-5.2[1m]".into()),
+            custom_model_option_name: Some("GLM 5.2 (1M)".into()),
+            ..create_test_config_section()
+        };
+
+        let map = pairs_map(&section);
+        assert_eq!(
+            map.get("ANTHROPIC_DEFAULT_FABLE_MODEL"),
+            Some(&"glm-5.2[1m]".to_string())
+        );
+        assert_eq!(
+            map.get("ANTHROPIC_DEFAULT_FABLE_MODEL_NAME"),
+            Some(&"GLM-5.2".to_string())
+        );
+        assert_eq!(
+            map.get("ANTHROPIC_CUSTOM_MODEL_OPTION"),
+            Some(&"glm-5.2[1m]".to_string())
+        );
+        assert_eq!(
+            map.get("ANTHROPIC_CUSTOM_MODEL_OPTION_NAME"),
+            Some(&"GLM 5.2 (1M)".to_string())
+        );
+    }
+
+    #[test]
+    fn test_to_managed_env_pairs_runtime_envs() {
+        let section = ConfigSection {
+            claude_code_auto_compact_window: Some("1000000".into()),
+            api_timeout_ms: Some("3000000".into()),
+            claude_code_disable_nonessential_traffic: Some("1".into()),
+            ..create_test_config_section()
+        };
+
+        let map = pairs_map(&section);
+        assert_eq!(
+            map.get("CLAUDE_CODE_AUTO_COMPACT_WINDOW"),
+            Some(&"1000000".to_string())
+        );
+        assert_eq!(map.get("API_TIMEOUT_MS"), Some(&"3000000".to_string()));
+        assert_eq!(
+            map.get("CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC"),
+            Some(&"1".to_string())
+        );
+    }
+
+    // 🏷️ None 字段不产生键值对
+    #[test]
+    fn test_to_managed_env_pairs_skips_none_fields() {
+        let map = pairs_map(&create_test_config_section());
+
+        assert!(!map.contains_key("ANTHROPIC_DEFAULT_FABLE_MODEL"));
+        assert!(!map.contains_key("ANTHROPIC_DEFAULT_OPUS_MODEL_NAME"));
+        assert!(!map.contains_key("CLAUDE_CODE_AUTO_COMPACT_WINDOW"));
+    }
+
+    // 🔁 与 ClaudeSettings::apply_managed_env 组合：切换 profile 后旧托管键不残留（防串档）
+    #[test]
+    fn test_apply_managed_env_pairs_clears_stale_keys_on_profile_switch() {
+        let mut settings = ccr_types::ClaudeSettings::new();
+
+        let with_extras = ConfigSection {
+            default_fable_model: Some("glm-5.2[1m]".into()),
+            claude_code_auto_compact_window: Some("1000000".into()),
+            effort_level: Some("max".into()),
+            ..create_test_config_section()
+        };
+        settings.apply_managed_env(with_extras.to_managed_env_pairs());
+        assert!(settings.env.contains_key("ANTHROPIC_DEFAULT_FABLE_MODEL"));
+        assert!(settings.env.contains_key("CLAUDE_CODE_EFFORT_LEVEL"));
+
+        let without_extras = create_test_config_section();
+        settings.apply_managed_env(without_extras.to_managed_env_pairs());
+
+        assert!(!settings.env.contains_key("ANTHROPIC_DEFAULT_FABLE_MODEL"));
+        assert!(!settings.env.contains_key("CLAUDE_CODE_EFFORT_LEVEL"));
+        assert!(!settings.env.contains_key("CLAUDE_CODE_AUTO_COMPACT_WINDOW"));
+        assert_eq!(
+            settings.env.get("ANTHROPIC_BASE_URL"),
+            Some(&"https://api.test.com".to_string())
+        );
+    }
+
+    // 📊 预览（to_anthropic_env_status）与真实写入值（to_managed_env_pairs）一致
+    #[test]
+    fn test_env_status_preview_matches_managed_pairs() {
+        let section = create_test_config_section();
+        let map = pairs_map(&section);
+        let status = section.to_anthropic_env_status();
+
+        for key in [
+            "ANTHROPIC_BASE_URL",
+            "ANTHROPIC_AUTH_TOKEN",
+            "ANTHROPIC_MODEL",
+            "ANTHROPIC_SMALL_FAST_MODEL",
+        ] {
+            assert_eq!(status.get(key).cloned().flatten(), map.get(key).cloned());
+        }
     }
 }
