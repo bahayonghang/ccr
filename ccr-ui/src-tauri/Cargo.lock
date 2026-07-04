@@ -828,6 +828,7 @@ dependencies = [
 name = "ccr-usage"
 version = "6.4.3"
 dependencies = [
+ "base64 0.22.1",
  "chrono",
  "dirs",
  "rusqlite",

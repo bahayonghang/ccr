@@ -81,4 +81,29 @@ mod tests {
 
         restore_env("LLMUSAGE_HOME", saved);
     }
+
+    #[test]
+    fn default_discovery_uses_llmusage_root_not_legacy_ccr_root() {
+        let _guard = ENV_LOCK.lock().expect("env lock should be available");
+        let temp_home = TempDir::new().expect("temp home should be created");
+        let saved_llmusage = std::env::var_os("LLMUSAGE_HOME");
+        let saved_home = std::env::var_os("HOME");
+        let saved_userprofile = std::env::var_os("USERPROFILE");
+        unsafe {
+            std::env::remove_var("LLMUSAGE_HOME");
+            std::env::set_var("HOME", temp_home.path());
+            std::env::set_var("USERPROFILE", temp_home.path());
+        }
+
+        let paths = discover_llmusage_paths().expect("default llmusage root should be discovered");
+        assert_eq!(paths.root_dir, temp_home.path().join(".llmusage"));
+        assert_ne!(
+            paths.root_dir,
+            temp_home.path().join(".ccr").join("llmusage")
+        );
+
+        restore_env("LLMUSAGE_HOME", saved_llmusage);
+        restore_env("HOME", saved_home);
+        restore_env("USERPROFILE", saved_userprofile);
+    }
 }

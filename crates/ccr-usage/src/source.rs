@@ -71,6 +71,14 @@ mod tests {
             canonical_source_id(Some("openai-codex")).as_deref(),
             Some("codex")
         );
+        assert_eq!(
+            canonical_source_id(Some("gemini-cli")).as_deref(),
+            Some("gemini")
+        );
+        assert_eq!(
+            canonical_source_id(Some("Open Code")).as_deref(),
+            Some("opencode")
+        );
         assert_eq!(canonical_source_id(Some("all")), None);
     }
 }

@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use rusqlite::{Connection, OpenFlags};
 use serde::Serialize;
 
@@ -9,13 +11,135 @@ pub const PROVIDER_BREAKDOWN_SCHEMA_VERSION: i64 = 14;
 #[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[serde(rename_all = "snake_case")]
 pub enum FeatureKey {
+    Overview,
+    DailyTrends,
+    ModelBreakdown,
     ProviderBreakdown,
+    ProjectBreakdown,
+    Heatmap,
+    Logs,
+    Diagnostics,
+    HomeOverview,
+    SyncJsonEvents,
+    Cancel,
 }
 
 impl FeatureKey {
     pub fn as_str(self) -> &'static str {
         match self {
+            Self::Overview => "overview",
+            Self::DailyTrends => "daily_trends",
+            Self::ModelBreakdown => "model_breakdown",
             Self::ProviderBreakdown => "provider_breakdown",
+            Self::ProjectBreakdown => "project_breakdown",
+            Self::Heatmap => "heatmap",
+            Self::Logs => "logs",
+            Self::Diagnostics => "diagnostics",
+            Self::HomeOverview => "home_overview",
+            Self::SyncJsonEvents => "sync_json_events",
+            Self::Cancel => "cancel",
+        }
+    }
+}
+
+/// Feature keys answered by reading the llmusage SQLite database. CLI-backed
+/// keys (`SyncJsonEvents`, `Cancel`) are owned by the desktop adapter.
+pub const DB_BACKED_FEATURES: [FeatureKey; 9] = [
+    FeatureKey::Overview,
+    FeatureKey::DailyTrends,
+    FeatureKey::ModelBreakdown,
+    FeatureKey::ProviderBreakdown,
+    FeatureKey::ProjectBreakdown,
+    FeatureKey::Heatmap,
+    FeatureKey::Logs,
+    FeatureKey::Diagnostics,
+    FeatureKey::HomeOverview,
+];
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum UnsupportedReason {
+    CliMissing,
+    DbMissing,
+    DbUnreadable,
+    SchemaUnsupported,
+    MissingTable,
+    MissingColumn,
+    WaitingForLlmusage,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub struct FeatureCapability {
+    pub supported: bool,
+    pub reason: Option<UnsupportedReason>,
+    pub detail: Option<String>,
+}
+
+impl FeatureCapability {
+    pub fn supported() -> Self {
+        Self {
+            supported: true,
+            reason: None,
+            detail: None,
+        }
+    }
+
+    pub fn unsupported(reason: UnsupportedReason, detail: impl Into<String>) -> Self {
+        Self {
+            supported: false,
+            reason: Some(reason),
+            detail: Some(detail.into()),
+        }
+    }
+}
+
+/// Read-only capability snapshot of the llmusage database. Presentation layers
+/// (Tauri `CapabilityReport`, …) merge CLI-side keys on top of this.
+#[derive(Debug, Clone, Serialize)]
+pub struct DbCapabilities {
+    pub db_exists: bool,
+    pub db_readable: bool,
+    pub schema_version: Option<i64>,
+    pub features: BTreeMap<String, FeatureCapability>,
+}
+
+impl DbCapabilities {
+    pub fn detect(paths: &AppPaths) -> Self {
+        let db_exists = paths.db_path.is_file();
+        let mut db_readable = false;
+        let mut schema_version = None;
+        let mut features = BTreeMap::new();
+
+        if db_exists && let Ok(conn) = open_readonly_for_capabilities(paths) {
+            db_readable = true;
+            schema_version = read_schema_version(&conn).ok().flatten();
+            populate_db_features(&conn, schema_version, &mut features);
+        }
+
+        if !db_exists || !db_readable {
+            let reason = if db_exists {
+                UnsupportedReason::DbUnreadable
+            } else {
+                UnsupportedReason::DbMissing
+            };
+            let detail = if db_exists {
+                format!("llmusage DB is not readable at {}", paths.db_path.display())
+            } else {
+                format!("llmusage DB does not exist at {}", paths.db_path.display())
+            };
+            for key in DB_BACKED_FEATURES {
+                features.insert(
+                    key.as_str().to_string(),
+                    FeatureCapability::unsupported(reason.clone(), detail.clone()),
+                );
+            }
+        }
+
+        Self {
+            db_exists,
+            db_readable,
+            schema_version,
+            features,
         }
     }
 }
@@ -54,14 +178,112 @@ pub(crate) fn ensure_feature(paths: &AppPaths, feature: FeatureKey) -> Result<()
     Ok(())
 }
 
-fn min_schema_version(feature: FeatureKey) -> i64 {
-    match feature {
-        FeatureKey::ProviderBreakdown => PROVIDER_BREAKDOWN_SCHEMA_VERSION,
+pub(crate) fn populate_db_features(
+    conn: &Connection,
+    schema_version: Option<i64>,
+    features: &mut BTreeMap<String, FeatureCapability>,
+) {
+    for key in DB_BACKED_FEATURES {
+        let expected_schema_version = min_schema_version(key);
+        let schema_ok = schema_version.unwrap_or_default() >= expected_schema_version;
+        let cap = if !schema_ok {
+            FeatureCapability::unsupported(
+                UnsupportedReason::SchemaUnsupported,
+                format!("expected schema >= {expected_schema_version}, got {schema_version:?}"),
+            )
+        } else {
+            match missing_requirement(conn, key) {
+                Ok(None) => FeatureCapability::supported(),
+                Ok(Some((reason, detail))) => FeatureCapability::unsupported(reason, detail),
+                Err(error) => FeatureCapability::unsupported(
+                    UnsupportedReason::DbUnreadable,
+                    error.to_string(),
+                ),
+            }
+        };
+        features.insert(key.as_str().to_string(), cap);
     }
 }
 
-pub(crate) fn required_columns(feature: FeatureKey) -> Vec<(&'static str, Vec<&'static str>)> {
+fn missing_requirement(
+    conn: &Connection,
+    feature: FeatureKey,
+) -> rusqlite::Result<Option<(UnsupportedReason, String)>> {
+    for (table, columns) in required_columns(feature) {
+        if !table_exists(conn, table)? {
+            return Ok(Some((
+                UnsupportedReason::MissingTable,
+                format!("missing table `{table}`"),
+            )));
+        }
+        for column in columns {
+            if !column_exists(conn, table, column)? {
+                return Ok(Some((
+                    UnsupportedReason::MissingColumn,
+                    format!("missing column `{table}.{column}`"),
+                )));
+            }
+        }
+    }
+    Ok(None)
+}
+
+fn min_schema_version(feature: FeatureKey) -> i64 {
     match feature {
+        FeatureKey::ProviderBreakdown => PROVIDER_BREAKDOWN_SCHEMA_VERSION,
+        _ => MIN_SUPPORTED_SCHEMA_VERSION,
+    }
+}
+
+pub fn required_columns(feature: FeatureKey) -> Vec<(&'static str, Vec<&'static str>)> {
+    match feature {
+        FeatureKey::Overview => vec![(
+            "usage_bucket_30m",
+            vec![
+                "source",
+                "hour_start",
+                "input_tokens",
+                "cache_read_tokens",
+                "output_tokens",
+                "reasoning_output_tokens",
+                "total_tokens",
+                "event_count",
+                "cost_with_cache_usd",
+            ],
+        )],
+        FeatureKey::DailyTrends | FeatureKey::Heatmap | FeatureKey::HomeOverview => vec![(
+            "usage_bucket_30m",
+            vec![
+                "source",
+                "hour_start",
+                "input_tokens",
+                "cache_read_tokens",
+                "cache_creation_tokens",
+                "output_tokens",
+                "reasoning_output_tokens",
+                "total_tokens",
+                "event_count",
+                "cost_with_cache_usd",
+            ],
+        )],
+        FeatureKey::ModelBreakdown => vec![(
+            "usage_bucket_30m",
+            vec![
+                "model",
+                "input_tokens",
+                "cache_read_tokens",
+                "cache_creation_tokens",
+                "output_tokens",
+                "reasoning_output_tokens",
+                "total_tokens",
+                "event_count",
+                "cost_with_cache_usd",
+                "cost_without_cache_usd",
+                "pricing_status",
+                "pricing_source",
+                "pricing_rate",
+            ],
+        )],
         FeatureKey::ProviderBreakdown => vec![
             (
                 "usage_bucket_30m",
@@ -80,6 +302,48 @@ pub(crate) fn required_columns(feature: FeatureKey) -> Vec<(&'static str, Vec<&'
             ),
             ("usage_event", vec!["provider_label"]),
         ],
+        FeatureKey::ProjectBreakdown => vec![(
+            "usage_bucket_30m",
+            vec![
+                "project_hash",
+                "project_label",
+                "project_ref",
+                "total_tokens",
+                "event_count",
+                "cost_with_cache_usd",
+            ],
+        )],
+        FeatureKey::Logs => vec![(
+            "usage_event",
+            vec![
+                "event_key",
+                "source",
+                "model",
+                "event_at",
+                "input_tokens",
+                "cache_read_tokens",
+                "cache_creation_tokens",
+                "output_tokens",
+                "reasoning_output_tokens",
+                "total_tokens",
+                "project_hash",
+                "project_label",
+                "project_ref",
+                "project_path",
+                "cost_with_cache_usd",
+                "cost_without_cache_usd",
+                "pricing_status",
+                "pricing_source",
+            ],
+        )],
+        FeatureKey::Diagnostics => vec![
+            ("source_file", vec!["source", "state"]),
+            (
+                "source_sync_status",
+                vec!["source", "recent_completed_at", "history_completed_at"],
+            ),
+        ],
+        FeatureKey::SyncJsonEvents | FeatureKey::Cancel => vec![],
     }
 }
 
@@ -151,6 +415,18 @@ mod tests {
     }
 
     #[test]
+    fn non_provider_features_keep_min_supported_schema() {
+        assert_eq!(
+            min_schema_version(FeatureKey::Overview),
+            MIN_SUPPORTED_SCHEMA_VERSION
+        );
+        assert_eq!(
+            min_schema_version(FeatureKey::Logs),
+            MIN_SUPPORTED_SCHEMA_VERSION
+        );
+    }
+
+    #[test]
     fn provider_breakdown_requires_provider_label_columns() {
         let cols = required_columns(FeatureKey::ProviderBreakdown);
         assert!(cols.iter().any(|(table, cols)| {
@@ -160,5 +436,108 @@ mod tests {
             cols.iter()
                 .any(|(table, cols)| *table == "usage_event" && cols.contains(&"provider_label"))
         );
+    }
+
+    #[test]
+    fn required_logs_columns_include_raw_join_keys() {
+        let cols = required_columns(FeatureKey::Logs);
+        assert!(
+            cols.iter()
+                .any(|(table, cols)| *table == "usage_event" && cols.contains(&"event_key"))
+        );
+    }
+
+    #[test]
+    fn schema_gate_rejects_old_schema() {
+        let conn =
+            rusqlite::Connection::open_in_memory().expect("in-memory db should open");
+        conn.execute_batch("CREATE TABLE meta(key TEXT PRIMARY KEY, value TEXT NOT NULL); INSERT INTO meta(key, value) VALUES ('schema_version', '9');").expect("meta fixture should be created");
+        assert_eq!(
+            read_schema_version(&conn).expect("schema version should read"),
+            Some(9)
+        );
+    }
+
+    #[test]
+    fn provider_breakdown_capability_requires_schema_14() {
+        let conn =
+            rusqlite::Connection::open_in_memory().expect("in-memory db should open");
+        conn.execute_batch(
+            "CREATE TABLE meta(key TEXT PRIMARY KEY, value TEXT NOT NULL);
+             INSERT INTO meta(key, value) VALUES ('schema_version', '13');",
+        )
+        .expect("meta fixture should be created");
+        let mut features = std::collections::BTreeMap::new();
+
+        populate_db_features(&conn, Some(13), &mut features);
+
+        let capability = features
+            .get("provider_breakdown")
+            .expect("provider_breakdown key should exist");
+        assert!(!capability.supported);
+        assert_eq!(
+            capability.reason.as_ref(),
+            Some(&UnsupportedReason::SchemaUnsupported)
+        );
+        assert!(
+            capability
+                .detail
+                .as_deref()
+                .unwrap_or_default()
+                .contains("expected schema >= 14")
+        );
+    }
+
+    #[test]
+    fn provider_breakdown_reports_missing_provider_label_column() {
+        let conn =
+            rusqlite::Connection::open_in_memory().expect("in-memory db should open");
+        conn.execute_batch(
+            r#"
+            CREATE TABLE meta(key TEXT PRIMARY KEY, value TEXT NOT NULL);
+            INSERT INTO meta(key, value) VALUES ('schema_version', '14');
+            CREATE TABLE usage_bucket_30m(total_tokens INTEGER NOT NULL);
+            CREATE TABLE usage_event(event_key TEXT NOT NULL);
+            "#,
+        )
+        .expect("schema 14 fixture should be created");
+        let mut features = std::collections::BTreeMap::new();
+
+        populate_db_features(&conn, Some(14), &mut features);
+
+        let capability = features
+            .get("provider_breakdown")
+            .expect("provider_breakdown key should exist");
+        assert!(!capability.supported);
+        assert_eq!(
+            capability.reason.as_ref(),
+            Some(&UnsupportedReason::MissingColumn)
+        );
+        assert!(
+            capability
+                .detail
+                .as_deref()
+                .unwrap_or_default()
+                .contains("usage_bucket_30m.provider_label")
+        );
+    }
+
+    #[test]
+    fn db_capabilities_mark_missing_db_for_all_db_backed_features() {
+        let temp = tempfile::TempDir::new().expect("temp dir should be created");
+        let caps = DbCapabilities::detect(&AppPaths::from_root(temp.path()));
+
+        assert!(!caps.db_exists);
+        assert!(!caps.db_readable);
+        assert_eq!(caps.schema_version, None);
+        assert_eq!(caps.features.len(), DB_BACKED_FEATURES.len());
+        for key in DB_BACKED_FEATURES {
+            let capability = caps.features.get(key.as_str()).expect("feature present");
+            assert!(!capability.supported);
+            assert_eq!(
+                capability.reason.as_ref(),
+                Some(&UnsupportedReason::DbMissing)
+            );
+        }
     }
 }

@@ -4,22 +4,26 @@
 //! active llmusage SQLite database through read-only, version-gated SQL
 //! projections. It must not link the upstream Rust crate, bootstrap/migrate the
 //! DB, or parse raw provider logs.
+//!
+//! The read-only projection itself (paths, source vocabulary, capability
+//! gates, SQL) lives in the shared `ccr_usage` crate; this module only keeps
+//! CLI sync execution, NDJSON events, and the Tauri-facing DTO/error mapping.
 
 pub mod capabilities;
 pub mod cli;
 pub mod db;
 pub mod error;
 pub mod events;
-pub mod paths;
 pub mod queries;
-pub mod source;
 
-pub use capabilities::{CapabilityReport, FeatureKey};
+pub use capabilities::CapabilityReport;
+pub use ccr_usage::{
+    AppPaths, SourceKind, canonical_source_id, discover_llmusage_paths, parse_source_filter,
+    platform_scope_label,
+};
 pub use cli::{LlmusageCli, SyncCommandOptions, run_sync_collect};
 pub use db::{Dashboard, LogsQuery, QueryFilter, build_filter, open_dashboard};
 pub use events::{JobEvent, SourceSyncStats, SyncSummaryEvent, is_optional_source_absent};
-pub use paths::{AppPaths, discover_llmusage_paths};
-pub use source::{SourceKind, canonical_source_id, parse_source_filter, platform_scope_label};
 
 #[derive(Debug, Clone)]
 pub struct LlmusageRuntime {
