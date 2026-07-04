@@ -998,3 +998,41 @@ Secret 掩码 newtype 任务闭环：规划（design/implement，含 4 处事实
 ### Next Steps
 
 - 第二批子任务待启动：07-03-arch-typed-ipc / claude-settings / ccr-facade / sqlite-seam / ccr-error
+
+---
+
+## Session 29: 07-03-arch-claude-settings 全流程闭环：合并 ClaudeSettings 双 shape
+
+**Date**: 2026-07-04
+**Task**: `.trellis/tasks/archive/2026-07/07-03-arch-claude-settings/`
+
+### Summary
+
+合并 ClaudeSettings 任务闭环：侦查修正 PRD 一处预设（UI 侧 Tauri 命令早已是 ccr_types 富类型 adapter——claude.rs 注释明示区分两 shape，本任务真正工作面在 CLI 侧），并确认三个结构事实：ConfigSection 定义于 ccr-config（非 ccr-cli，且 ccr-config 原不依赖 ccr-types）；Validatable trait 在 ccr-core 而 ccr-types 是纯 leaf，orphan rule 挡死跨 crate impl，但全仓无泛型 T: Validatable 消费 ClaudeSettings→固有方法即可、调用点文本不变；rg 的 3 处 .other.get("auth_mode") 全是 ConfigSection.other，无任何代码遍历贫瘠版 ClaudeSettings.other，切换安全。设计三层归属：ccr-types 持纯数据操作面（env_keys 18 常量+NON_ANTHROPIC_MANAGED_KEYS、clear/apply_managed_env/env_status/has_overrides/validate 系，验证返回 Result<(),String> 调用点包装 CcrError::ValidationError 保文案零漂移）；ccr-config 新增 types 依赖边持唯一映射 to_managed_env_pairs（顺带收敛了 to_anthropic_env_status 注释自述"与 update_from_config 保持一致"的人工同步漂移点）；ccr-cli settings.rs 收缩为纯 IO adapter（-306 行）+pub use re-export——crate::managers 与 ccr:: 路径零改动，lib.rs 文本不变故 public_api_compat 快照零更新。5 处生产调用点改组合式 apply_managed_env(section.to_managed_env_pairs())。有意行为变化入 spec：hooks 非法类型容忍→解析报错（doctor 更早诊断、restore 拒坏备份）、legacy hooks 数组写路径归一化 canonical object、空容器不再往返写出。测试迁移：12 个变更逻辑测试拆迁 ccr-types（纯数据+富字段/未知字段往返+legacy hooks 归一化）与 ccr-config（18 键映射+防串档组合+预览一致性守卫），ccr-cli 补磁盘级读改写读往返测试。cargo test --workspace 多线程撞出 ccr-checkin 并发 flake 一枚（Account not found），单线程复核通过、与本改动无关——CLAUDE.md 的 --test-threads=1 警告再次应验。fmt 顺带折叠了上一任务遗留的 capabilities.rs 三行式，按 surgical 原则单独 style 提交不混入 refactor。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `3d99b7b5` | feat(types): ClaudeSettings 吸收托管 env 变更与验证逻辑 |
+| `486e9f26` | feat(config): ConfigSection 收敛托管 env 唯一映射 |
+| `326415ba` | refactor(cli): 删除贫瘠 ClaudeSettings 收敛唯一 shape |
+| `5dd0b21b` | style(usage): rustfmt 折叠 capabilities 测试三行表达式 |
+| `c3aa17e2` | docs(spec): 沉淀 ClaudeSettings 唯一 shape 与托管 env 映射契约 |
+
+### Testing
+
+- [OK] cargo test -p ccr-types：41 通过（13 新增：clear/apply/防串档/env_status/validate 系+往返保留+hooks 归一化）
+- [OK] cargo test -p ccr-config：53 通过（7 新增映射/组合/一致性）
+- [OK] just test 全 workspace 绿；lint-strict/fmt-check/version-check 绿
+- [OK] src-tauri 全量 189 通过（settings 过滤 10）；just frontend-check-quick 362 smoke 通过
+- [OK] rg 'struct ClaudeSettings' 唯一命中 crates/ccr-types/src/claude_settings.rs
+
+### Status
+
+[OK] **Completed** — 父任务 07-03-arch-deepening 进度 4/8
+
+### Next Steps
+
+- 第二批剩余：07-03-arch-typed-ipc（usage-projection 已完成，以 usage domain 为试点最顺）
+- 第三批（先否决式调研）：ccr-facade / sqlite-seam / ccr-error
