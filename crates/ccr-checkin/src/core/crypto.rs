@@ -10,6 +10,7 @@ use aes_gcm::{
     aead::{Aead, KeyInit, OsRng, rand_core::RngCore},
 };
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
+use ccr_core::{WriteOptions, write_guarded};
 use std::fs;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
@@ -107,28 +108,17 @@ impl CryptoManager {
     }
 
     /// 保存密钥到文件
-    fn save_key(path: &PathBuf, key: &Key<Aes256Gcm>) -> Result<(), CryptoError> {
+    fn save_key(path: &Path, key: &Key<Aes256Gcm>) -> Result<(), CryptoError> {
         let key_base64 = BASE64.encode(key.as_slice());
 
-        // 使用临时文件 + 原子重命名，确保安全
-        let temp_path = path.with_extension("key.tmp");
-
-        fs::write(&temp_path, &key_base64)
-            .map_err(|e| CryptoError::KeyWriteError(format!("{}: {}", temp_path.display(), e)))?;
-
-        fs::rename(&temp_path, path)
-            .map_err(|e| CryptoError::KeyWriteError(format!("Atomic rename failed: {}", e)))?;
-
-        // 尝试设置文件权限（仅限 Unix）
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            if let Ok(metadata) = fs::metadata(path) {
-                let mut perms = metadata.permissions();
-                perms.set_mode(0o600); // 仅用户可读写
-                let _ = fs::set_permissions(path, perms);
-            }
-        }
+        // 统一走 guarded write：temp 文件在写入内容之前即设为 0o600（消除明文 key
+        // 短暂 world-readable 窗口）+ fsync + Windows 重试 rename + 跨进程文件锁。
+        let opts = WriteOptions {
+            secret: true,
+            ..Default::default()
+        };
+        write_guarded(path, key_base64.as_bytes(), &opts)
+            .map_err(|e| CryptoError::KeyWriteError(format!("{}: {}", path.display(), e)))?;
 
         Ok(())
     }
@@ -303,6 +293,27 @@ mod tests {
         };
 
         assert_eq!(original, decrypted);
+    }
+
+    // 🔐 密钥文件权限断言仅在 Unix 有意义；Windows 无 Unix 权限模型（NTFS ACL），
+    // secret 选项在 Windows 上为 no-op，故该测试跳过。
+    #[cfg(unix)]
+    #[test]
+    fn test_save_key_sets_owner_only_mode() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let temp_dir = TempDir::new().expect("Failed to create temp dir for test");
+        let path = temp_dir.path().to_path_buf();
+
+        // 首次 new 会生成并保存密钥（走 save_key → write_guarded secret）
+        CryptoManager::new(&path).expect("Failed to create CryptoManager for test");
+
+        let key_path = path.join(CRYPTO_KEY_FILE);
+        let mode = fs::metadata(&key_path)
+            .expect("key file should exist")
+            .permissions()
+            .mode();
+        assert_eq!(mode & 0o777, 0o600);
     }
 
     #[test]
