@@ -1828,7 +1828,7 @@ current_profile = "{current_profile}"
                         ),
                         ("ANTHROPIC_MODEL".to_string(), "test-model".to_string()),
                     ]),
-                    other: HashMap::new(),
+                    ..ClaudeSettings::default()
                 })
                 .unwrap(),
             )

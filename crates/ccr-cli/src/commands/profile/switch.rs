@@ -12,7 +12,6 @@ use crate::application::profile_switch::switch_profile_for_platform as run_switc
 use crate::managers::settings::SettingsManager;
 use crate::models::Platform;
 use crate::platforms::create_platform;
-use ccr_core::Validatable;
 use ccr_core::core::error::{CcrError, Result};
 use ccr_core::core::logging::ColorOutput;
 use colored::Colorize;

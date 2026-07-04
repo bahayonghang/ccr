@@ -116,7 +116,7 @@ current_profile = "main"
                     ),
                     ("ANTHROPIC_MODEL".to_string(), "claude-test".to_string()),
                 ]),
-                other: HashMap::new(),
+                ..ClaudeSettings::default()
             })
             .unwrap(),
         )

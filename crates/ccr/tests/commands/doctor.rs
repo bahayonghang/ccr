@@ -117,7 +117,7 @@ impl DoctorFixture {
                     ),
                     ("ANTHROPIC_MODEL".to_string(), "claude-test".to_string()),
                 ]),
-                other: HashMap::new(),
+                ..ClaudeSettings::default()
             })
             .unwrap(),
         )
@@ -331,7 +331,7 @@ fn doctor_warns_for_glm_placeholder_and_missing_runtime_envs() {
                     "glm-5.2[1m]".to_string(),
                 ),
             ]),
-            other: HashMap::new(),
+            ..ClaudeSettings::default()
         })
         .unwrap(),
     )

@@ -24,8 +24,8 @@ use crate::state::AppState;
 
 // ── Settings（~/.claude/settings.json）Helper ──
 //
-// 使用 ccr_types::ClaudeSettings（带有 agents/plugins/hooks 等 typed fields），
-// 而非 ccr::ClaudeSettings（仅 env + other flatten）。
+// ccr_types::ClaudeSettings 是全仓唯一 shape（ccr::ClaudeSettings 已是其 re-export），
+// 托管 env 变更/验证逻辑均在该类型上，本模块只做 IO 与 serde 往返。
 
 async fn active_environment(state: &AppState) -> Arc<dyn ExecutionEnvironment> {
     let registry = state.env_registry.read().await;

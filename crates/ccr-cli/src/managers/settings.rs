@@ -1,334 +1,26 @@
 // ⭐ CCR 设置管理模块
 // 📝 负责读写和管理 ~/.claude/settings.json 文件
-// 💎 这是 CCR 的核心模块,直接操作 Claude Code 的配置文件
+// 💎 本模块是 ClaudeSettings 的 IO adapter:类型与全部变更/验证逻辑
+//    归属 ccr_types::ClaudeSettings,这里只做加载/保存/备份/恢复
 //
 // 核心职责:
 // - 🔧 管理 Claude Code settings.json
 // - 🔄 原子性写入(临时文件 + 重命名)
 // - 🔒 文件锁保证并发安全
 // - 💾 自动备份机制
-// - 🌍 环境变量映射
 
-use crate::managers::config::ConfigSection;
-use ccr_core::Validatable;
 use ccr_core::core::atomic_writer::AsyncAtomicWriter;
 use ccr_core::core::cache::ConfigCache;
 use ccr_core::core::error::{CcrError, Result};
 use ccr_core::core::lock::LockManager;
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
-use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 use tempfile::NamedTempFile;
 use tokio::fs as async_fs;
 
-// 🎯 优化：定义常量避免重复分配字符串
-const ANTHROPIC_BASE_URL: &str = "ANTHROPIC_BASE_URL";
-const ANTHROPIC_AUTH_TOKEN: &str = "ANTHROPIC_AUTH_TOKEN";
-const ANTHROPIC_MODEL: &str = "ANTHROPIC_MODEL";
-const ANTHROPIC_SMALL_FAST_MODEL: &str = "ANTHROPIC_SMALL_FAST_MODEL";
-const ANTHROPIC_DEFAULT_OPUS_MODEL: &str = "ANTHROPIC_DEFAULT_OPUS_MODEL";
-const ANTHROPIC_DEFAULT_SONNET_MODEL: &str = "ANTHROPIC_DEFAULT_SONNET_MODEL";
-const ANTHROPIC_DEFAULT_HAIKU_MODEL: &str = "ANTHROPIC_DEFAULT_HAIKU_MODEL";
-const ANTHROPIC_DEFAULT_FABLE_MODEL: &str = "ANTHROPIC_DEFAULT_FABLE_MODEL";
-const ANTHROPIC_DEFAULT_OPUS_MODEL_NAME: &str = "ANTHROPIC_DEFAULT_OPUS_MODEL_NAME";
-const ANTHROPIC_DEFAULT_SONNET_MODEL_NAME: &str = "ANTHROPIC_DEFAULT_SONNET_MODEL_NAME";
-const ANTHROPIC_DEFAULT_HAIKU_MODEL_NAME: &str = "ANTHROPIC_DEFAULT_HAIKU_MODEL_NAME";
-const ANTHROPIC_DEFAULT_FABLE_MODEL_NAME: &str = "ANTHROPIC_DEFAULT_FABLE_MODEL_NAME";
-const ANTHROPIC_CUSTOM_MODEL_OPTION: &str = "ANTHROPIC_CUSTOM_MODEL_OPTION";
-const ANTHROPIC_CUSTOM_MODEL_OPTION_NAME: &str = "ANTHROPIC_CUSTOM_MODEL_OPTION_NAME";
-const CLAUDE_CODE_SUBAGENT_MODEL: &str = "CLAUDE_CODE_SUBAGENT_MODEL";
-const CLAUDE_CODE_EFFORT_LEVEL: &str = "CLAUDE_CODE_EFFORT_LEVEL";
-const CLAUDE_CODE_AUTO_COMPACT_WINDOW: &str = "CLAUDE_CODE_AUTO_COMPACT_WINDOW";
-const API_TIMEOUT_MS: &str = "API_TIMEOUT_MS";
-const CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: &str = "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC";
-
-/// 🧹 不带 ANTHROPIC_ 前缀但同样由 ccr 托管的 env key 列表
-const NON_ANTHROPIC_MANAGED_KEYS: &[&str] = &[
-    CLAUDE_CODE_SUBAGENT_MODEL,
-    CLAUDE_CODE_EFFORT_LEVEL,
-    CLAUDE_CODE_AUTO_COMPACT_WINDOW,
-    API_TIMEOUT_MS,
-    CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC,
-];
-
-/// 🎨 Claude Code 设置结构
-///
-/// 对应 ~/.claude/settings.json 的结构
-///
-/// 字段说明:
-/// - 🌍 env: 环境变量映射(包含 ANTHROPIC_* 变量)
-/// - 📦 other: 其他未知字段(保持原样,向前兼容)
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ClaudeSettings {
-    /// 🌍 环境变量配置字典
-    #[serde(default)]
-    pub env: HashMap<String, String>,
-
-    /// 📦 其他设置字段(扁平化存储,保持原样)
-    #[serde(flatten)]
-    pub other: HashMap<String, Value>,
-}
-
-impl ClaudeSettings {
-    /// 🏗️ 创建新的空设置
-    pub fn new() -> Self {
-        Self {
-            env: HashMap::new(),
-            other: HashMap::new(),
-        }
-    }
-
-    /// 🧹 清空所有 ANTHROPIC_ 前缀的环境变量
-    ///
-    /// 保留其他环境变量,只删除 ANTHROPIC_* 相关的
-    pub fn clear_anthropic_vars(&mut self) {
-        self.env.retain(|key, _| !key.starts_with("ANTHROPIC_"));
-        tracing::debug!("🧹 清空所有 ANTHROPIC_* 环境变量");
-    }
-
-    /// 🧹 清空所有由 ccr 托管的 env key
-    ///
-    /// 在 ANTHROPIC_* 之外还覆盖 CLAUDE_CODE_SUBAGENT_MODEL / CLAUDE_CODE_EFFORT_LEVEL,
-    /// 这些键由 Profile 显式配置, 切换 Profile 时也必须随之清理。
-    pub fn clear_managed_vars(&mut self) {
-        self.clear_anthropic_vars();
-        for key in NON_ANTHROPIC_MANAGED_KEYS {
-            self.env.remove(*key);
-        }
-        tracing::debug!("🧹 清空所有受 ccr 托管的环境变量");
-    }
-
-    /// 🔄 从配置节更新环境变量
-    ///
-    /// 执行流程:
-    /// 1. 🧹 先清空所有受管理的 env key
-    /// 2. ➕ 根据配置节设置新的环境变量
-    ///
-    /// 映射关系:
-    /// - base_url → ANTHROPIC_BASE_URL
-    /// - auth_token → ANTHROPIC_AUTH_TOKEN
-    /// - model → ANTHROPIC_MODEL
-    /// - small_fast_model → ANTHROPIC_SMALL_FAST_MODEL
-    /// - default_opus_model → ANTHROPIC_DEFAULT_OPUS_MODEL
-    /// - default_sonnet_model → ANTHROPIC_DEFAULT_SONNET_MODEL
-    /// - default_haiku_model → ANTHROPIC_DEFAULT_HAIKU_MODEL
-    /// - subagent_model → CLAUDE_CODE_SUBAGENT_MODEL
-    /// - effort_level → CLAUDE_CODE_EFFORT_LEVEL
-    pub fn update_from_config(&mut self, section: &ConfigSection) {
-        // 🧹 清空旧的受管理 env key
-        self.clear_managed_vars();
-
-        // 🌐 设置 base_url
-        if let Some(base_url) = &section.base_url {
-            self.env
-                .insert(ANTHROPIC_BASE_URL.to_string(), base_url.clone());
-        }
-
-        // 🔑 设置 auth_token
-        if let Some(auth_token) = &section.auth_token {
-            // env 注入 settings.json 是 token 的合法明文消费点
-            self.env.insert(
-                ANTHROPIC_AUTH_TOKEN.to_string(),
-                auth_token.expose().to_string(),
-            );
-        }
-
-        // 🤖 设置 model
-        if let Some(model) = &section.model {
-            self.env.insert(ANTHROPIC_MODEL.to_string(), model.clone());
-        }
-
-        // ⚡ 设置 small_fast_model
-        if let Some(small_model) = &section.small_fast_model {
-            self.env
-                .insert(ANTHROPIC_SMALL_FAST_MODEL.to_string(), small_model.clone());
-        }
-
-        // 🧠 设置 default_opus_model
-        if let Some(value) = &section.default_opus_model {
-            self.env
-                .insert(ANTHROPIC_DEFAULT_OPUS_MODEL.to_string(), value.clone());
-        }
-
-        // 🎼 设置 default_sonnet_model
-        if let Some(value) = &section.default_sonnet_model {
-            self.env
-                .insert(ANTHROPIC_DEFAULT_SONNET_MODEL.to_string(), value.clone());
-        }
-
-        // 🍃 设置 default_haiku_model
-        if let Some(value) = &section.default_haiku_model {
-            self.env
-                .insert(ANTHROPIC_DEFAULT_HAIKU_MODEL.to_string(), value.clone());
-        }
-
-        // 📖 设置 default_fable_model
-        if let Some(value) = &section.default_fable_model {
-            self.env
-                .insert(ANTHROPIC_DEFAULT_FABLE_MODEL.to_string(), value.clone());
-        }
-
-        // 🏷️ 设置各层显示名 (*_MODEL_NAME)
-        if let Some(value) = &section.default_opus_model_name {
-            self.env
-                .insert(ANTHROPIC_DEFAULT_OPUS_MODEL_NAME.to_string(), value.clone());
-        }
-        if let Some(value) = &section.default_sonnet_model_name {
-            self.env.insert(
-                ANTHROPIC_DEFAULT_SONNET_MODEL_NAME.to_string(),
-                value.clone(),
-            );
-        }
-        if let Some(value) = &section.default_haiku_model_name {
-            self.env.insert(
-                ANTHROPIC_DEFAULT_HAIKU_MODEL_NAME.to_string(),
-                value.clone(),
-            );
-        }
-        if let Some(value) = &section.default_fable_model_name {
-            self.env.insert(
-                ANTHROPIC_DEFAULT_FABLE_MODEL_NAME.to_string(),
-                value.clone(),
-            );
-        }
-
-        // 🤖 设置 subagent_model
-        if let Some(value) = &section.subagent_model {
-            self.env
-                .insert(CLAUDE_CODE_SUBAGENT_MODEL.to_string(), value.clone());
-        }
-
-        // 🧩 设置 custom_model_option
-        if let Some(value) = &section.custom_model_option {
-            self.env
-                .insert(ANTHROPIC_CUSTOM_MODEL_OPTION.to_string(), value.clone());
-        }
-
-        // 🧩 设置 custom_model_option_name
-        if let Some(value) = &section.custom_model_option_name {
-            self.env.insert(
-                ANTHROPIC_CUSTOM_MODEL_OPTION_NAME.to_string(),
-                value.clone(),
-            );
-        }
-
-        // 🎚️ 设置 effort_level
-        if let Some(value) = &section.effort_level {
-            self.env
-                .insert(CLAUDE_CODE_EFFORT_LEVEL.to_string(), value.clone());
-        }
-
-        // 📏 设置 auto compact window
-        if let Some(value) = &section.claude_code_auto_compact_window {
-            self.env
-                .insert(CLAUDE_CODE_AUTO_COMPACT_WINDOW.to_string(), value.clone());
-        }
-
-        // ⏱️ 设置 API timeout
-        if let Some(value) = &section.api_timeout_ms {
-            self.env.insert(API_TIMEOUT_MS.to_string(), value.clone());
-        }
-
-        // 🚦 设置 disable nonessential traffic
-        if let Some(value) = &section.claude_code_disable_nonessential_traffic {
-            self.env.insert(
-                CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC.to_string(),
-                value.clone(),
-            );
-        }
-
-        tracing::info!("✅ 环境变量已从配置更新");
-    }
-
-    /// 📊 获取 ANTHROPIC_* 环境变量状态(用于展示)
-    ///
-    /// 返回所有 ANTHROPIC 相关变量的当前值或 None
-    pub fn anthropic_env_status(&self) -> HashMap<String, Option<String>> {
-        let mut status = HashMap::new();
-        let vars = [
-            ANTHROPIC_BASE_URL,
-            ANTHROPIC_AUTH_TOKEN,
-            ANTHROPIC_MODEL,
-            ANTHROPIC_SMALL_FAST_MODEL,
-            ANTHROPIC_DEFAULT_OPUS_MODEL,
-            ANTHROPIC_DEFAULT_SONNET_MODEL,
-            ANTHROPIC_DEFAULT_HAIKU_MODEL,
-            ANTHROPIC_DEFAULT_FABLE_MODEL,
-            ANTHROPIC_DEFAULT_OPUS_MODEL_NAME,
-            ANTHROPIC_DEFAULT_SONNET_MODEL_NAME,
-            ANTHROPIC_DEFAULT_HAIKU_MODEL_NAME,
-            ANTHROPIC_DEFAULT_FABLE_MODEL_NAME,
-            CLAUDE_CODE_AUTO_COMPACT_WINDOW,
-            API_TIMEOUT_MS,
-            CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC,
-        ];
-
-        for var in vars {
-            status.insert(var.to_string(), self.env.get(var).cloned());
-        }
-
-        status
-    }
-
-    /// 🔍 是否存在任何 Claude API key 覆盖
-    pub fn has_anthropic_overrides(&self) -> bool {
-        self.env.keys().any(|key| key.starts_with("ANTHROPIC_"))
-    }
-
-    /// ✅ 严格验证 API key 模式所需环境变量
-    pub fn validate_api_key_mode(&self) -> Result<()> {
-        let base_url = self.env.get(ANTHROPIC_BASE_URL).ok_or_else(|| {
-            CcrError::ValidationError("缺少必需的环境变量: ANTHROPIC_BASE_URL".into())
-        })?;
-
-        if base_url.trim().is_empty() {
-            return Err(CcrError::ValidationError(
-                "环境变量不能为空: ANTHROPIC_BASE_URL".into(),
-            ));
-        }
-
-        if !base_url.starts_with("http://") && !base_url.starts_with("https://") {
-            return Err(CcrError::ValidationError(
-                "ANTHROPIC_BASE_URL 必须以 http:// 或 https:// 开头".into(),
-            ));
-        }
-
-        let auth_token = self.env.get(ANTHROPIC_AUTH_TOKEN).ok_or_else(|| {
-            CcrError::ValidationError("缺少必需的环境变量: ANTHROPIC_AUTH_TOKEN".into())
-        })?;
-
-        if auth_token.trim().is_empty() {
-            return Err(CcrError::ValidationError(
-                "环境变量不能为空: ANTHROPIC_AUTH_TOKEN".into(),
-            ));
-        }
-
-        Ok(())
-    }
-}
-
-impl Default for ClaudeSettings {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl Validatable for ClaudeSettings {
-    /// ✅ 验证 Claude settings 中的 ANTHROPIC_* 覆盖
-    ///
-    /// 官方订阅模式下允许完全没有 ANTHROPIC_*；
-    /// 一旦存在覆盖，则按 API key 模式严格校验。
-    fn validate(&self) -> Result<()> {
-        if !self.has_anthropic_overrides() {
-            return Ok(());
-        }
-
-        self.validate_api_key_mode()
-    }
-}
+// 🎯 唯一 shape:富类型定义与托管 env 变更/查询/验证逻辑均在 ccr-types
+pub use ccr_types::ClaudeSettings;
 
 /// 🔧 设置管理器
 ///
@@ -1035,330 +727,6 @@ impl CachedSettingsManager {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
-    use crate::managers::config::ConfigSection;
-    use indexmap::IndexMap;
-
-    fn create_test_config_section() -> ConfigSection {
-        ConfigSection {
-            description: Some("Test".into()),
-            base_url: Some("https://api.test.com".into()),
-            auth_token: Some("sk-test-token".into()),
-            model: Some("test-model".into()),
-            small_fast_model: Some("test-small".into()),
-            provider: None,
-            provider_type: None,
-            account: None,
-            tags: None,
-            usage_count: Some(0),
-            enabled: Some(true),
-            other: IndexMap::new(),
-            ..Default::default()
-        }
-    }
-
-    fn create_deepseek_like_section() -> ConfigSection {
-        ConfigSection {
-            description: Some("DeepSeek".into()),
-            base_url: Some("https://api.deepseek.com/anthropic".into()),
-            auth_token: Some("sk-deepseek".into()),
-            model: Some("deepseek-v4-pro".into()),
-            small_fast_model: Some("deepseek-v4-flash".into()),
-            default_opus_model: Some("deepseek-v4-pro".into()),
-            default_sonnet_model: Some("deepseek-v4-pro".into()),
-            default_haiku_model: Some("deepseek-v4-flash".into()),
-            subagent_model: Some("deepseek-v4-flash".into()),
-            effort_level: Some("max".into()),
-            ..Default::default()
-        }
-    }
-
-    #[test]
-    fn test_claude_settings_update_from_config() {
-        let mut settings = ClaudeSettings::new();
-        let config = create_test_config_section();
-
-        settings.update_from_config(&config);
-
-        assert_eq!(
-            settings.env.get("ANTHROPIC_BASE_URL"),
-            Some(&"https://api.test.com".to_string())
-        );
-        assert_eq!(
-            settings.env.get("ANTHROPIC_AUTH_TOKEN"),
-            Some(&"sk-test-token".to_string())
-        );
-        assert_eq!(
-            settings.env.get("ANTHROPIC_MODEL"),
-            Some(&"test-model".to_string())
-        );
-    }
-
-    #[test]
-    fn test_claude_settings_update_from_config_writes_extended_envs() {
-        let mut settings = ClaudeSettings::new();
-        let config = create_deepseek_like_section();
-
-        settings.update_from_config(&config);
-
-        assert_eq!(
-            settings.env.get("ANTHROPIC_DEFAULT_OPUS_MODEL"),
-            Some(&"deepseek-v4-pro".to_string())
-        );
-        assert_eq!(
-            settings.env.get("ANTHROPIC_DEFAULT_SONNET_MODEL"),
-            Some(&"deepseek-v4-pro".to_string())
-        );
-        assert_eq!(
-            settings.env.get("ANTHROPIC_DEFAULT_HAIKU_MODEL"),
-            Some(&"deepseek-v4-flash".to_string())
-        );
-        assert_eq!(
-            settings.env.get("CLAUDE_CODE_SUBAGENT_MODEL"),
-            Some(&"deepseek-v4-flash".to_string())
-        );
-        assert_eq!(
-            settings.env.get("CLAUDE_CODE_EFFORT_LEVEL"),
-            Some(&"max".to_string())
-        );
-    }
-
-    #[test]
-    fn test_update_from_config_writes_custom_model_option() {
-        let mut settings = ClaudeSettings::new();
-        let mut config = create_test_config_section();
-        config.custom_model_option = Some("glm-5.2[1m]".into());
-        config.custom_model_option_name = Some("GLM 5.2 (1M)".into());
-
-        settings.update_from_config(&config);
-
-        assert_eq!(
-            settings.env.get("ANTHROPIC_CUSTOM_MODEL_OPTION"),
-            Some(&"glm-5.2[1m]".to_string())
-        );
-        assert_eq!(
-            settings.env.get("ANTHROPIC_CUSTOM_MODEL_OPTION_NAME"),
-            Some(&"GLM 5.2 (1M)".to_string())
-        );
-
-        // clear_managed_vars 应能清掉 (ANTHROPIC_ 前缀)
-        settings.clear_managed_vars();
-        assert!(!settings.env.contains_key("ANTHROPIC_CUSTOM_MODEL_OPTION"));
-        assert!(
-            !settings
-                .env
-                .contains_key("ANTHROPIC_CUSTOM_MODEL_OPTION_NAME")
-        );
-    }
-
-    #[test]
-    fn test_update_from_config_writes_runtime_envs() {
-        let mut settings = ClaudeSettings::new();
-        let mut config = create_test_config_section();
-        config.claude_code_auto_compact_window = Some("1000000".into());
-        config.api_timeout_ms = Some("3000000".into());
-        config.claude_code_disable_nonessential_traffic = Some("1".into());
-
-        settings.update_from_config(&config);
-
-        assert_eq!(
-            settings.env.get("CLAUDE_CODE_AUTO_COMPACT_WINDOW"),
-            Some(&"1000000".to_string())
-        );
-        assert_eq!(
-            settings.env.get("API_TIMEOUT_MS"),
-            Some(&"3000000".to_string())
-        );
-        assert_eq!(
-            settings.env.get("CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC"),
-            Some(&"1".to_string())
-        );
-    }
-
-    #[test]
-    fn test_runtime_envs_cleared_on_profile_switch() {
-        let mut settings = ClaudeSettings::new();
-
-        let mut with_runtime_envs = create_test_config_section();
-        with_runtime_envs.claude_code_auto_compact_window = Some("1000000".into());
-        with_runtime_envs.api_timeout_ms = Some("3000000".into());
-        with_runtime_envs.claude_code_disable_nonessential_traffic = Some("1".into());
-        settings.update_from_config(&with_runtime_envs);
-
-        let without_runtime_envs = create_test_config_section();
-        settings.update_from_config(&without_runtime_envs);
-
-        assert!(!settings.env.contains_key("CLAUDE_CODE_AUTO_COMPACT_WINDOW"));
-        assert!(!settings.env.contains_key("API_TIMEOUT_MS"));
-        assert!(
-            !settings
-                .env
-                .contains_key("CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC")
-        );
-    }
-
-    // 📖 fable 层与各层显示名应写出对应 env
-    #[test]
-    fn test_update_from_config_writes_fable_and_model_names() {
-        let mut settings = ClaudeSettings::new();
-        let mut config = create_test_config_section();
-        config.default_fable_model = Some("glm-5.2[1m]".into());
-        config.default_opus_model_name = Some("GLM-5.2".into());
-        config.default_sonnet_model_name = Some("GLM-5.2".into());
-        config.default_haiku_model_name = Some("GLM-5.2".into());
-        config.default_fable_model_name = Some("GLM-5.2".into());
-
-        settings.update_from_config(&config);
-
-        assert_eq!(
-            settings.env.get("ANTHROPIC_DEFAULT_FABLE_MODEL"),
-            Some(&"glm-5.2[1m]".to_string())
-        );
-        assert_eq!(
-            settings.env.get("ANTHROPIC_DEFAULT_OPUS_MODEL_NAME"),
-            Some(&"GLM-5.2".to_string())
-        );
-        assert_eq!(
-            settings.env.get("ANTHROPIC_DEFAULT_SONNET_MODEL_NAME"),
-            Some(&"GLM-5.2".to_string())
-        );
-        assert_eq!(
-            settings.env.get("ANTHROPIC_DEFAULT_HAIKU_MODEL_NAME"),
-            Some(&"GLM-5.2".to_string())
-        );
-        assert_eq!(
-            settings.env.get("ANTHROPIC_DEFAULT_FABLE_MODEL_NAME"),
-            Some(&"GLM-5.2".to_string())
-        );
-    }
-
-    // 🏷️ 显示名字段为空时不写出
-    #[test]
-    fn test_update_from_config_skips_empty_model_names() {
-        let mut settings = ClaudeSettings::new();
-        let config = create_test_config_section();
-
-        settings.update_from_config(&config);
-
-        assert!(!settings.env.contains_key("ANTHROPIC_DEFAULT_FABLE_MODEL"));
-        assert!(
-            !settings
-                .env
-                .contains_key("ANTHROPIC_DEFAULT_OPUS_MODEL_NAME")
-        );
-        assert!(
-            !settings
-                .env
-                .contains_key("ANTHROPIC_DEFAULT_FABLE_MODEL_NAME")
-        );
-    }
-
-    // 🔁 切换 profile (update_from_config 先 clear) 时, 上一档的 fable env 不残留 (防串档)
-    #[test]
-    fn test_fable_env_cleared_on_profile_switch() {
-        let mut settings = ClaudeSettings::new();
-
-        let mut with_fable = create_test_config_section();
-        with_fable.default_fable_model = Some("glm-5.2[1m]".into());
-        with_fable.default_fable_model_name = Some("GLM-5.2".into());
-        settings.update_from_config(&with_fable);
-        assert!(settings.env.contains_key("ANTHROPIC_DEFAULT_FABLE_MODEL"));
-
-        // 切到不含 fable 的 profile
-        let without_fable = create_test_config_section();
-        settings.update_from_config(&without_fable);
-        assert!(
-            !settings.env.contains_key("ANTHROPIC_DEFAULT_FABLE_MODEL"),
-            "切换后旧 fable 模型映射必须被清掉"
-        );
-        assert!(
-            !settings
-                .env
-                .contains_key("ANTHROPIC_DEFAULT_FABLE_MODEL_NAME"),
-            "切换后旧 fable 显示名必须被清掉"
-        );
-    }
-
-    #[test]
-    fn test_claude_settings_clear_managed_vars_drops_claude_code_keys() {
-        let mut settings = ClaudeSettings::new();
-        settings
-            .env
-            .insert("ANTHROPIC_BASE_URL".into(), "test".into());
-        settings
-            .env
-            .insert("CLAUDE_CODE_SUBAGENT_MODEL".into(), "x".into());
-        settings
-            .env
-            .insert("CLAUDE_CODE_EFFORT_LEVEL".into(), "max".into());
-        settings
-            .env
-            .insert("CLAUDE_CODE_AUTO_COMPACT_WINDOW".into(), "1000000".into());
-        settings
-            .env
-            .insert("API_TIMEOUT_MS".into(), "3000000".into());
-        settings.env.insert(
-            "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC".into(),
-            "1".into(),
-        );
-        settings.env.insert("OTHER_VAR".into(), "keep".into());
-
-        settings.clear_managed_vars();
-
-        assert!(!settings.env.contains_key("ANTHROPIC_BASE_URL"));
-        assert!(!settings.env.contains_key("CLAUDE_CODE_SUBAGENT_MODEL"));
-        assert!(!settings.env.contains_key("CLAUDE_CODE_EFFORT_LEVEL"));
-        assert!(!settings.env.contains_key("CLAUDE_CODE_AUTO_COMPACT_WINDOW"));
-        assert!(!settings.env.contains_key("API_TIMEOUT_MS"));
-        assert!(
-            !settings
-                .env
-                .contains_key("CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC")
-        );
-        assert!(settings.env.contains_key("OTHER_VAR"));
-    }
-
-    #[test]
-    fn test_claude_settings_clear_anthropic_vars() {
-        let mut settings = ClaudeSettings::new();
-        settings
-            .env
-            .insert("ANTHROPIC_BASE_URL".into(), "test".into());
-        settings.env.insert("OTHER_VAR".into(), "keep".into());
-
-        settings.clear_anthropic_vars();
-
-        assert!(!settings.env.contains_key("ANTHROPIC_BASE_URL"));
-        assert!(settings.env.contains_key("OTHER_VAR"));
-    }
-
-    #[test]
-    fn test_claude_settings_validate() {
-        let mut settings = ClaudeSettings::new();
-
-        // 官方订阅模式下允许没有 ANTHROPIC_* 覆盖
-        assert!(settings.validate().is_ok());
-
-        // 添加必需变量
-        settings
-            .env
-            .insert("ANTHROPIC_BASE_URL".into(), "https://test.com".into());
-        settings
-            .env
-            .insert("ANTHROPIC_AUTH_TOKEN".into(), "token".into());
-
-        assert!(settings.validate().is_ok());
-    }
-
-    #[test]
-    fn test_claude_settings_validate_api_key_mode_rejects_partial_overrides() {
-        let mut settings = ClaudeSettings::new();
-        settings
-            .env
-            .insert("ANTHROPIC_BASE_URL".into(), "https://test.com".into());
-
-        assert!(settings.validate().is_err());
-        assert!(settings.validate_api_key_mode().is_err());
-    }
 
     #[test]
     fn test_settings_manager_save_load() {
@@ -1372,7 +740,9 @@ mod tests {
 
         // 创建并保存设置
         let mut settings = ClaudeSettings::new();
-        settings.update_from_config(&create_test_config_section());
+        settings
+            .env
+            .insert("ANTHROPIC_BASE_URL".into(), "https://api.test.com".into());
 
         manager.save_atomic(&settings).unwrap();
 
@@ -1382,6 +752,48 @@ mod tests {
             loaded.env.get("ANTHROPIC_BASE_URL"),
             Some(&"https://api.test.com".to_string())
         );
+    }
+
+    // 📀 磁盘级读→改→写→读:富字段与未知字段经 IO adapter 往返无损(唯一 shape 的核心回归防线)
+    #[test]
+    fn test_disk_roundtrip_preserves_unknown_fields_across_apply() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let settings_path = temp_dir.path().join("settings.json");
+        let backup_dir = temp_dir.path().join("backups");
+        let lock_dir = temp_dir.path().join("locks");
+
+        std::fs::write(
+            &settings_path,
+            r#"{
+                "env": { "ANTHROPIC_BASE_URL": "https://old.example.com", "MY_VAR": "keep" },
+                "outputStyle": "engineer",
+                "mcpServers": { "fs": { "command": "node", "vendor_flag": true } },
+                "statusline": { "theme": "warm" },
+                "future_top_level": 42
+            }"#,
+        )
+        .unwrap();
+
+        let lock_manager = LockManager::new(lock_dir);
+        let manager = SettingsManager::new(&settings_path, backup_dir, lock_manager);
+
+        let mut settings = manager.load().unwrap();
+        settings.apply_managed_env([(
+            "ANTHROPIC_BASE_URL".to_string(),
+            "https://new.example.com".to_string(),
+        )]);
+        manager.save_atomic(&settings).unwrap();
+
+        let reloaded = manager.load().unwrap();
+        assert_eq!(
+            reloaded.env.get("ANTHROPIC_BASE_URL"),
+            Some(&"https://new.example.com".to_string())
+        );
+        assert_eq!(reloaded.env.get("MY_VAR"), Some(&"keep".to_string()));
+        assert_eq!(reloaded.output_style.as_deref(), Some("engineer"));
+        assert!(reloaded.mcp_servers.contains_key("fs"));
+        assert!(reloaded.other.contains_key("statusline"));
+        assert!(reloaded.other.contains_key("future_top_level"));
     }
 
     #[test]

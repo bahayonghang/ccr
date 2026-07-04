@@ -514,7 +514,10 @@ model = "claude-sonnet-4-5"
             map.get("CLAUDE_CODE_SUBAGENT_MODEL"),
             Some(&"deepseek-v4-flash".to_string())
         );
-        assert_eq!(map.get("CLAUDE_CODE_EFFORT_LEVEL"), Some(&"max".to_string()));
+        assert_eq!(
+            map.get("CLAUDE_CODE_EFFORT_LEVEL"),
+            Some(&"max".to_string())
+        );
     }
 
     #[test]

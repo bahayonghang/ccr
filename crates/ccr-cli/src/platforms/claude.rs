@@ -345,7 +345,7 @@ impl PlatformConfig for ClaudePlatform {
                 settings.clear_managed_vars();
             }
             ClaudeProfileAuthMode::ApiKey => {
-                settings.update_from_config(&section);
+                settings.apply_managed_env(section.to_managed_env_pairs());
                 if let Err(error) = Self::ensure_onboarding_completed() {
                     tracing::warn!(
                         error = %error,

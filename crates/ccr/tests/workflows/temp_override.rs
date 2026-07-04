@@ -53,7 +53,7 @@ fn test_temp_override_basic_workflow() {
     // 1. 创建原始设置
     let config = create_test_config();
     let mut settings = ccr::ClaudeSettings::new();
-    settings.update_from_config(&config);
+    settings.apply_managed_env(config.to_managed_env_pairs());
     settings_manager.save_atomic(&settings).unwrap();
 
     // 验证原始token
@@ -100,7 +100,7 @@ fn test_temp_override_multiple_fields() {
     // 创建原始设置
     let config = create_test_config();
     let mut settings = ccr::ClaudeSettings::new();
-    settings.update_from_config(&config);
+    settings.apply_managed_env(config.to_managed_env_pairs());
     settings_manager.save_atomic(&settings).unwrap();
 
     // 创建多字段临时覆盖

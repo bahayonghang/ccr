@@ -3,7 +3,6 @@
 // 测试 ConfigService, SettingsService, HistoryService, BackupService 的业务流程
 
 use ccr::LockManager;
-use ccr::Validatable;
 use ccr::managers::config::{CcsConfig, ConfigManager, ConfigSection};
 use ccr::managers::settings::SettingsManager;
 use ccr::services::{BackupService, ConfigService, HistoryService, SettingsService};

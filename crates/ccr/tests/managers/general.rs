@@ -228,7 +228,7 @@ fn test_settings_update_from_config() {
     assert!(settings.env.is_empty());
 
     // 从配置更新
-    settings.update_from_config(&config);
+    settings.apply_managed_env(config.to_managed_env_pairs());
 
     // 验证更新后的值
     assert_eq!(
@@ -584,7 +584,7 @@ fn test_config_and_settings_integration() {
     let section = loaded_config.get_current_section().unwrap();
 
     let mut settings = ClaudeSettings::new();
-    settings.update_from_config(section);
+    settings.apply_managed_env(section.to_managed_env_pairs());
 
     // 保存设置
     let lock_manager = LockManager::new(lock_dir);

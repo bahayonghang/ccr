@@ -802,9 +802,10 @@ mod tests {
     #[test]
     fn test_apply_managed_env_replaces_managed_and_keeps_others() {
         let mut settings = ClaudeSettings::new();
-        settings
-            .env
-            .insert("ANTHROPIC_BASE_URL".into(), "https://old.example.com".into());
+        settings.env.insert(
+            "ANTHROPIC_BASE_URL".into(),
+            "https://old.example.com".into(),
+        );
         settings.env.insert("KEEP_ME".into(), "value".into());
 
         settings.apply_managed_env([
@@ -1000,7 +1001,10 @@ mod tests {
             value["hooks"].is_object(),
             "legacy 数组必须归一化为 object 格式"
         );
-        assert_eq!(value["hooks"]["Stop"][0]["hooks"][0]["command"], "echo stop");
+        assert_eq!(
+            value["hooks"]["Stop"][0]["hooks"][0]["command"],
+            "echo stop"
+        );
     }
 
     #[test]

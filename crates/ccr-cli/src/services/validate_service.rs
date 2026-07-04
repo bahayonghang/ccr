@@ -9,7 +9,6 @@
 use crate::managers::SettingsManager;
 use crate::services::ConfigService;
 use crate::services::config_service::ValidationReport;
-use ccr_core::Validatable;
 use ccr_core::core::error::Result;
 use std::sync::Arc;
 

@@ -16,7 +16,6 @@ use crate::services::{
     StatusAuthKind, StatusHealth,
 };
 use ccr_config::profile_to_section;
-use ccr_core::Validatable;
 use ccr_core::core::error::Result;
 use ccr_core::core::logging::ColorOutput;
 use colored::Colorize;
