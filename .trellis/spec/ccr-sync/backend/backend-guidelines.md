@@ -38,6 +38,10 @@ WebDAV uses `reqwest_dav` with `native-tls`. Do not add another HTTP client stac
 
 Use `tracing::debug!` for detailed path decisions and `tracing::info!` for user-meaningful sync milestones. Never log WebDAV passwords or full secret-bearing URLs.
 
+## Credentials
+
+`SyncConfig.password` and `WebDavConfig.password` are `ccr_core::Secret` — Debug/logs/default serde are masked by type; plaintext persists to disk only through the `expose_plaintext` serde annotation, and `expose()` is reserved for the `reqwest_dav` Basic Auth constructor and emptiness checks. Both credential-bearing files (`sync.toml`, `sync_folders.toml`) are written with guarded write `secret: true` (0o600 on Unix). See the Secrets And Masking section in `ccr-core/backend/backend-guidelines.md` before adding credential fields.
+
 ## Testing
 
 Tests that mutate sync env vars must use `test_support::TestSyncEnv`. For path matching and selector changes, add focused unit tests before broad integration tests.

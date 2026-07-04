@@ -29,6 +29,8 @@ Do not duplicate check-in database models in this crate; use `ccr_db::models::ch
 
 Database initialization is owned by `ccr-db`; tests call `database::initialize_for_test()`. Check-in account secrets must pass through `CryptoManager` and should never be logged or stored in plaintext outside intentional encrypted fields.
 
+`CryptoManager::decrypt` returns `ccr_core::Secret` — decrypted cookies are wrapped at the boundary, and plaintext leaves only via `expose()` at Cookie-header construction, re-encryption, and explicit plaintext export. `CreateAccountRequest`/`UpdateAccountRequest`/`ExportAccount` cookie fields are `Secret` for the same reason. The masked display string is built by iterating the cookie map and formatting each value through `Secret`'s Display — do not reintroduce a local masking rule (see Secrets And Masking in `ccr-core/backend/backend-guidelines.md`).
+
 Network services use `reqwest` clients and proxy detection. Preserve explicit WAF/Cloudflare/cookie-expired error classification in `CheckinServiceError::error_code()`.
 
 ## Error Handling
