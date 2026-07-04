@@ -6,10 +6,11 @@ pub mod utils;
 pub use core::{
     AsyncAtomicWriter, AtomicWriter, BACKUP_KEEP, BackupPolicy, CCR_GITHUB_REPO, CCR_UI_REPO,
     CONFIG_LOCK, CacheStatus, CcrError, ColorOutput, ConfigCache, FileLock, FileManager,
-    HTTP_CLIENT, LockManager, Result, WriteOptions, backup_guarded, init_file_only_logger,
-    init_logger, read_json, read_json_async, read_toml, read_toml_async, write_guarded,
-    write_guarded_async, write_json, write_json_async, write_json_opts, write_json_opts_async,
-    write_toml, write_toml_async, write_toml_opts, write_toml_opts_async,
+    HTTP_CLIENT, LockManager, Result, Secret, WriteOptions, backup_guarded, expose_plaintext,
+    expose_plaintext_option, init_file_only_logger, init_logger, read_json, read_json_async,
+    read_toml, read_toml_async, write_guarded, write_guarded_async, write_json, write_json_async,
+    write_json_opts, write_json_opts_async, write_toml, write_toml_async, write_toml_opts,
+    write_toml_opts_async,
 };
 pub use utils::{
     AutoCompletable, Validatable, is_qwen_chat_file, mask_if_sensitive, mask_sensitive,

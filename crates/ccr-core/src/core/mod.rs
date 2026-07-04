@@ -19,6 +19,7 @@ pub mod guarded_write;
 pub mod http;
 pub mod lock;
 pub mod logging;
+pub mod secret;
 pub mod sqlite;
 
 /// GitHub 仓库标识（owner/repo）
@@ -53,5 +54,7 @@ pub use http::HTTP_CLIENT;
 pub use lock::{CONFIG_LOCK, FileLock, LockManager};
 #[allow(unused_imports)]
 pub use logging::{ColorOutput, init_file_only_logger, init_logger};
+#[allow(unused_imports)]
+pub use secret::{Secret, expose_plaintext, expose_plaintext_option};
 #[allow(unused_imports)]
 pub use sqlite::{DbConnection, DbPool, PoolConfig, create_sqlite_pool};
