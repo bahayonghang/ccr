@@ -963,3 +963,38 @@ Secret 掩码 newtype 任务闭环：规划（design/implement，含 4 处事实
 ### Next Steps
 
 - None - task complete
+
+---
+
+## Session 28: 07-03-arch-usage-projection 全流程闭环：统一 usage 投影
+
+**Date**: 2026-07-04
+**Task**: `.trellis/tasks/archive/2026-07/07-03-arch-usage-projection/`
+
+### Summary
+
+统一 usage 投影任务闭环：侦查阶段修正 PRD 三处事实（adapter 的 provider_breakdown 已委托 ccr-usage，本次收敛其余 9 查询；adapter AppPaths 的 6 个扩展字段+with_cli_home 为全仓零使用死代码，直接删除不迁移；LlmusageAdapterError 在 commands 层仅 1 处显式 match，wrapper 保错误类型即近零改动）→ B1 ccr-usage 吸收超集（FeatureKey 11 键、DbCapabilities、QueryFilter+model/project_hash、Dashboard 全 10 查询、投影 DTO 全集、TaggedProviderBreakdown/provider_breakdown_by_source，22 个 adapter 测试迁入+补 logs/diagnostics/home_overview 净新覆盖）→ B2 adapter 收敛（删 source/paths，capabilities/db 退化为 DbCapabilities 委托+Dashboard 薄 wrapper，投影 DTO re-export，serde 形状零变化）→ B3 TUI（删 UsageProviderRow 影子结构与 10 字段映射，UsageLoader 注入 seam，state_from_load_result 纯函数化错误分类，9 个新测试无需真实 DB）→ B4 文档契约（CLAUDE.md "git dependency" 错误表述修正为 CLI+只读 SQLite 无 crate 依赖；契约细化 DTO 归属规则/rg 审查清单/影子结构反例）。全仓 usage SQL 现仅存于 crates/ccr-usage/src/db.rs（rg 'FROM usage_bucket_30m|FROM usage_event' 14 处全命中该文件）。提交切分调整：B1 的 QueryFilter 扩展字段会破坏旧 adapter 逐字段构造（shared_provider_filter 无 ..Default），故 B1+B2 合并为单提交保每提交可编译。门禁全绿：version-check/fmt-check/lint-strict/workspace 1296 测试/src-tauri 189/前端 smoke 8（usage-dashboard-payload 5 + api-facade-boundary 3）。lint-strict 对 ccr-usage 测试代码禁 unwrap，迁入测试统一改 expect。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `34ab1c30` | refactor(usage): 统一 llmusage 投影到 ccr-usage 并将 adapter 收敛为薄委托 |
+| `4a686869` | refactor(tui): 删除 UsageProviderRow 影子结构并引入 usage loader seam |
+| `09f94053` | docs(spec): 修正 llmusage 依赖表述并细化 usage 投影契约 |
+
+### Testing
+
+- [OK] cargo test -p ccr-usage：33 通过（22 迁入合并 + 净新增 logs 分页/diagnostics/home_overview/DbCapabilities 降级/tagged 标签）
+- [OK] cargo test -p ccr-tui -- --test-threads=1：160 通过（含 9 个新状态机/分类测试）
+- [OK] src-tauri llmusage_adapter 14 + llmusage_no_crate_guard 2 + handler_registry 3；全量 189 通过
+- [OK] just test 全 workspace 1296 通过；lint-strict/fmt-check/version-check 绿
+- [OK] bun test:smoke usage-dashboard-payload(5) + api-facade-boundary(3)
+
+### Status
+
+[OK] **Completed** — 父任务 07-03-arch-deepening 进度 3/8
+
+### Next Steps
+
+- 第二批子任务待启动：07-03-arch-typed-ipc / claude-settings / ccr-facade / sqlite-seam / ccr-error
