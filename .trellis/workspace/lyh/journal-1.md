@@ -886,3 +886,42 @@ Implemented the ccr-ui Providers usage tab with provider_stats store exposure, o
 ### Next Steps
 
 - None - task complete
+
+
+## Session 26: 统一 guarded write 深模块（07-03-arch-guarded-write）
+
+**Date**: 2026-07-04
+**Task**: 统一 guarded write 深模块（07-03-arch-guarded-write）
+**Branch**: `dev`
+
+### Summary
+
+ccr-core 新增 guarded_write 深模块（锁→备份keep-10轮换→fsync原子写→按需0o600），fileio 全写路径委托；迁移 ccr-config/sync/store/checkin 共10处调用点，删除4套备份实现与自建锁目录（split-brain 消除）；sync.toml 与 checkin key 权限成为显式契约。顺带修复既有严重bug：FileLock 把 fs4 Ok(false) 误判为获锁成功，全仓跨进程锁此前空转。294 测试 + just lint-strict/test 全绿；atomic-writer.md spec 增补契约与遗留债务清单。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `80b61326` | (see git log) |
+| `25b329a6` | (see git log) |
+| `9c1452d2` | (see git log) |
+| `6a920bb7` | (see git log) |
+| `12746289` | (see git log) |
+| `408d9e67` | (see git log) |
+| `2546dd1f` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
