@@ -407,14 +407,7 @@ impl ConfigService {
 
         // 备份当前配置（如果需要）
         if backup && self.config_manager.config_path().exists() {
-            let timestamp = chrono::Local::now().format("%Y%m%d_%H%M%S");
-            let backup_path = self
-                .config_manager
-                .config_path()
-                .with_extension(format!("toml.import_backup_{}.bak", timestamp));
-
-            std::fs::copy(self.config_manager.config_path(), &backup_path)
-                .map_err(|e| CcrError::FileIoError(format!("备份失败: {}", e)))?;
+            self.config_manager.backup(Some("import_backup"))?;
         }
 
         // 根据模式导入

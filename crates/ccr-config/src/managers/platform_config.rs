@@ -9,6 +9,7 @@
 
 use ccr_core::core::error::{CcrError, Result};
 use ccr_core::core::fileio;
+use ccr_core::core::{BackupPolicy, WriteOptions, backup_guarded, write_guarded};
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -392,40 +393,34 @@ impl PlatformConfigManager {
     ///
     /// 执行流程:
     /// 1. ✅ 验证源文件存在
-    /// 2. 🏷️ 生成带时间戳的备份文件名
-    /// 3. 📋 复制文件到备份位置
+    /// 2. 🛡️ 委托统一 guarded 备份（独立目录命名 + keep-10 轮换内置）
     ///
-    /// 文件名格式: config.toml.{timestamp}.bak
+    /// 文件名格式:
+    /// - 无标签: config.{timestamp}.toml.bak
+    /// - 有标签: config_{tag}.{timestamp}.toml.bak
+    ///
     /// 备份位置: ~/.ccr/backups/
     pub fn backup(&self, tag: Option<&str>) -> Result<PathBuf> {
-        // ✅ 验证源文件存在
+        // ✅ 验证源文件存在（保持 ConfigMissing 语义）
         if !self.config_path.exists() {
             return Err(CcrError::ConfigMissing(
                 self.config_path.display().to_string(),
             ));
         }
 
-        // 🗂️ 确保备份目录存在
+        // 🛡️ 委托 guarded 备份：独立备份目录 + 命名前缀
         let backup_dir = self.root_dir()?.join("backups");
-        fs::create_dir_all(&backup_dir)
-            .map_err(|e| CcrError::ConfigError(format!("创建备份目录失败: {}", e)))?;
-
-        // 🏷️ 生成备份文件名(带时间戳)
-        let timestamp = chrono::Local::now().format("%Y%m%d_%H%M%S");
-        let backup_filename = if let Some(tag_str) = tag {
-            format!("config_{}_{}.toml.bak", tag_str, timestamp)
-        } else {
-            format!("config_{}.toml.bak", timestamp)
+        let prefix = match tag {
+            Some(tag) => format!("config_{}", tag),
+            None => "config".to_string(),
         };
-
-        let backup_path = backup_dir.join(backup_filename);
-
-        // 📋 复制文件
-        fs::copy(&self.config_path, &backup_path)
-            .map_err(|e| CcrError::ConfigError(format!("备份配置文件失败: {}", e)))?;
-
-        tracing::debug!("✅ 平台配置已备份到: {:?}", backup_path);
-        Ok(backup_path)
+        let policy = BackupPolicy::Dir {
+            dir: backup_dir,
+            prefix,
+        };
+        backup_guarded(&self.config_path, &policy)?.ok_or_else(|| {
+            CcrError::ConfigError(format!("备份配置文件失败: {}", self.config_path.display()))
+        })
     }
 
     /// 🔄 从备份恢复配置
@@ -434,9 +429,10 @@ impl PlatformConfigManager {
             return Err(CcrError::ConfigMissing(backup_path.display().to_string()));
         }
 
-        // 📋 复制备份文件到配置位置
-        fs::copy(backup_path, &self.config_path)
-            .map_err(|e| CcrError::ConfigError(format!("恢复配置文件失败: {}", e)))?;
+        // 📄 读取备份字节后经 guarded write 原子恢复（修复非原子 fs::copy）
+        let bytes = fs::read(backup_path)
+            .map_err(|e| CcrError::ConfigError(format!("读取备份文件失败: {}", e)))?;
+        write_guarded(&self.config_path, &bytes, &WriteOptions::default())?;
 
         tracing::debug!("✅ 已从备份恢复配置: {:?}", backup_path);
         Ok(())
@@ -462,7 +458,7 @@ impl PlatformConfigManager {
                 && path
                     .file_name()
                     .and_then(|n| n.to_str())
-                    .map(|n| n.starts_with("config_") && n.ends_with(".toml.bak"))
+                    .map(|n| n.starts_with("config") && n.ends_with(".toml.bak"))
                     .unwrap_or(false)
             {
                 backups.push(path);
@@ -607,5 +603,40 @@ mod tests {
         assert!(enabled.contains(&&"claude".to_string()));
         assert!(enabled.contains(&&"codex".to_string()));
         assert!(!enabled.contains(&&"gemini".to_string()));
+    }
+
+    #[test]
+    fn test_list_backups_discovers_legacy_and_new_naming() {
+        use crate::test_support::TestCcrEnv;
+
+        let env = TestCcrEnv::new();
+        let manager = PlatformConfigManager::with_default().unwrap();
+        manager.save(&UnifiedConfig::default()).unwrap();
+
+        // 预置旧命名备份：config_{ts}.toml.bak（迁移前格式）
+        let backup_dir = env.root().join("backups");
+        fs::create_dir_all(&backup_dir).unwrap();
+        let legacy = backup_dir.join("config_20200101_000000.toml.bak");
+        fs::write(&legacy, "legacy").unwrap();
+
+        // 产出新命名备份：config.{ts}.toml.bak
+        let new_backup = manager.backup(None).unwrap();
+        let new_name = new_backup
+            .file_name()
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .to_string();
+        assert!(new_name.starts_with("config.") && new_name.ends_with(".toml.bak"));
+
+        // list_backups 同时发现旧命名与新产出
+        let names: Vec<String> = manager
+            .list_backups()
+            .unwrap()
+            .iter()
+            .map(|p| p.file_name().unwrap().to_str().unwrap().to_string())
+            .collect();
+        assert!(names.iter().any(|n| n == "config_20200101_000000.toml.bak"));
+        assert!(names.iter().any(|n| n == &new_name));
     }
 }

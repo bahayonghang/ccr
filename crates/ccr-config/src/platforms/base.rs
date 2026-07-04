@@ -13,71 +13,18 @@ use crate::managers::PlatformConfigManager;
 use crate::managers::config::{CcsConfig, ConfigSection, GlobalSettings, ProviderType};
 use crate::models::{PlatformPaths, ProfileConfig};
 use ccr_core::core::error::{CcrError, Result};
-use ccr_core::core::{AtomicWriter, LockManager};
+use ccr_core::core::{BackupPolicy, LockManager, WriteOptions, write_guarded};
 use ccr_core::utils::toml_json;
-use chrono::Local;
 use indexmap::IndexMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 const PLATFORM_PROFILE_LOCK_TIMEOUT: Duration = Duration::from_secs(10);
-const PLATFORM_PROFILE_BACKUP_KEEP: usize = 10;
 const PLATFORM_REGISTRY_LOCK_RESOURCE: &str = "platform_registry";
 
 fn profile_lock_resource(platform_name: &str) -> String {
     format!("platform_profiles_{}", platform_name)
-}
-
-fn backup_with_rotation(source: &Path, backup_dir: &Path, prefix: &str) -> Result<()> {
-    if !source.exists() {
-        return Ok(());
-    }
-
-    fs::create_dir_all(backup_dir)
-        .map_err(|e| CcrError::ConfigError(format!("创建备份目录失败 {:?}: {}", backup_dir, e)))?;
-
-    let timestamp = Local::now().format("%Y%m%d_%H%M%S");
-    let extension = source
-        .extension()
-        .and_then(|ext| ext.to_str())
-        .filter(|ext| !ext.is_empty())
-        .unwrap_or("bak");
-    let backup_path = backup_dir.join(format!("{prefix}.{timestamp}.{extension}.bak"));
-
-    fs::copy(source, &backup_path).map_err(|e| {
-        CcrError::ConfigError(format!(
-            "备份文件失败 {:?} -> {:?}: {}",
-            source, backup_path, e
-        ))
-    })?;
-
-    let mut backups: Vec<_> = fs::read_dir(backup_dir)
-        .map_err(|e| CcrError::ConfigError(format!("读取备份目录失败 {:?}: {}", backup_dir, e)))?
-        .filter_map(|entry| entry.ok())
-        .map(|entry| entry.path())
-        .filter(|path| {
-            path.file_name()
-                .and_then(|name| name.to_str())
-                .is_some_and(|name| name.starts_with(prefix) && name.ends_with(".bak"))
-        })
-        .collect();
-
-    backups.sort_by(|a, b| {
-        let a_time = fs::metadata(a).and_then(|m| m.modified()).ok();
-        let b_time = fs::metadata(b).and_then(|m| m.modified()).ok();
-        b_time.cmp(&a_time)
-    });
-
-    if backups.len() > PLATFORM_PROFILE_BACKUP_KEEP {
-        for old in &backups[PLATFORM_PROFILE_BACKUP_KEEP..] {
-            if let Err(err) = fs::remove_file(old) {
-                tracing::warn!("清理旧备份失败 {:?}: {}", old, err);
-            }
-        }
-    }
-
-    Ok(())
 }
 
 fn save_platform_registry_with_paths<F>(
@@ -325,11 +272,18 @@ pub fn save_profiles_to_toml(
     let content = toml::to_string_pretty(&config)
         .map_err(|e| CcrError::ConfigError(format!("序列化配置失败: {}", e)))?;
 
-    backup_with_rotation(profiles_path, &paths.backups_dir, "profiles")?;
-
-    AtomicWriter::new(profiles_path)
-        .write_string(&content)
-        .map_err(|e| CcrError::ConfigError(format!("写入配置文件失败: {}", e)))?;
+    // 🛡️ 单次 guarded write：备份轮换 + 原子替换合并（命名 RMW 锁在函数开头已持有）
+    write_guarded(
+        profiles_path,
+        content.as_bytes(),
+        &WriteOptions {
+            backup: BackupPolicy::Dir {
+                dir: paths.backups_dir.clone(),
+                prefix: "profiles".into(),
+            },
+            ..Default::default()
+        },
+    )?;
 
     tracing::info!("✅ 已保存 {} profiles: {:?}", platform_name, profiles_path);
     Ok(())
@@ -447,11 +401,19 @@ pub fn update_current_config(profiles_path: &Path, name: &str) -> Result<()> {
                 .unwrap_or_else(|| Path::new("."))
                 .join("backups")
         });
-    backup_with_rotation(profiles_path, &backup_dir, "profiles")?;
 
-    AtomicWriter::new(profiles_path)
-        .write_string(&new_content)
-        .map_err(|e| CcrError::ConfigError(format!("写入配置文件失败: {}", e)))?;
+    // 🛡️ 单次 guarded write：备份轮换 + 原子替换合并（命名 RMW 锁在函数开头已持有）
+    write_guarded(
+        profiles_path,
+        new_content.as_bytes(),
+        &WriteOptions {
+            backup: BackupPolicy::Dir {
+                dir: backup_dir,
+                prefix: "profiles".into(),
+            },
+            ..Default::default()
+        },
+    )?;
 
     tracing::debug!("✅ 已更新 profiles.toml 的 current_config: {}", name);
     Ok(())
