@@ -449,8 +449,7 @@ mod tests {
 
     #[test]
     fn schema_gate_rejects_old_schema() {
-        let conn =
-            rusqlite::Connection::open_in_memory().expect("in-memory db should open");
+        let conn = rusqlite::Connection::open_in_memory().expect("in-memory db should open");
         conn.execute_batch("CREATE TABLE meta(key TEXT PRIMARY KEY, value TEXT NOT NULL); INSERT INTO meta(key, value) VALUES ('schema_version', '9');").expect("meta fixture should be created");
         assert_eq!(
             read_schema_version(&conn).expect("schema version should read"),
@@ -460,8 +459,7 @@ mod tests {
 
     #[test]
     fn provider_breakdown_capability_requires_schema_14() {
-        let conn =
-            rusqlite::Connection::open_in_memory().expect("in-memory db should open");
+        let conn = rusqlite::Connection::open_in_memory().expect("in-memory db should open");
         conn.execute_batch(
             "CREATE TABLE meta(key TEXT PRIMARY KEY, value TEXT NOT NULL);
              INSERT INTO meta(key, value) VALUES ('schema_version', '13');",
@@ -490,8 +488,7 @@ mod tests {
 
     #[test]
     fn provider_breakdown_reports_missing_provider_label_column() {
-        let conn =
-            rusqlite::Connection::open_in_memory().expect("in-memory db should open");
+        let conn = rusqlite::Connection::open_in_memory().expect("in-memory db should open");
         conn.execute_batch(
             r#"
             CREATE TABLE meta(key TEXT PRIMARY KEY, value TEXT NOT NULL);
