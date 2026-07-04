@@ -27,13 +27,13 @@ ccr-core 新增 `Secret` 类型：Debug/Display/serde 内置统一掩码，`expo
 
 ## Acceptance Criteria
 
-- [ ] 全仓掩码算法只剩 1 处实现；`mask_api_key`、`mask_cookies_json` 删除。
-- [ ] `Secret` 的 Debug/Display/serde 掩码行为有单元测试；`expose()` 之外无法取到原文（类型层面验证）。
-- [ ] auth_token、checkin 凭据、WebDAV password 均为 `Secret` 类型；`rg 'password.*String'` 在凭据结构上无裸 String 残留。
-- [ ] 既有配置文件读写往返（读旧文件→保存→再读）无损，有测试。
-- [ ] 日志/错误信息中不出现凭据原文（抽查 Display/Debug 路径有测试覆盖）。
-- [ ] `just lint-strict`、`just test` 通过；rust-security-reviewer 子代理审查通过。
-- [ ] masking 相关 spec 条目更新（trellis-update-spec）。
+- [x] 全仓掩码算法只剩 1 处实现；`mask_api_key`、`mask_cookies_json` 删除。
+- [x] `Secret` 的 Debug/Display/serde 掩码行为有单元测试；`expose()` 之外无法取到原文（类型层面验证）。
+- [x] auth_token、checkin 凭据、WebDAV password 均为 `Secret` 类型；`rg 'password.*String'` 在凭据结构上无裸 String 残留。
+- [x] 既有配置文件读写往返（读旧文件→保存→再读）无损，有测试。
+- [x] 日志/错误信息中不出现凭据原文（抽查 Display/Debug 路径有测试覆盖）。
+- [x] `just lint-strict`、`just test` 通过；rust-security-reviewer 子代理审查通过。
+- [x] masking 相关 spec 条目更新（trellis-update-spec）。
 
 ## Notes
 
