@@ -1,4 +1,4 @@
-use ccr_usage::SourceKind;
+use ccr_usage::{SourceKind, TaggedProviderBreakdown};
 use ratatui::{
     Frame,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -11,7 +11,7 @@ use ratatui::{
 use crate::models::Platform;
 use crate::tui::theme;
 
-use super::app::{UsageApp, UsageDataset, UsageLoadState, UsageProviderRow};
+use super::app::{UsageApp, UsageDataset, UsageLoadState};
 
 pub fn draw(frame: &mut Frame, app: &mut UsageApp) {
     draw_embedded(
@@ -181,29 +181,32 @@ fn usage_rows(dataset: &UsageDataset, compact: bool) -> Vec<Row<'static>> {
     rows
 }
 
-fn render_row(row: &UsageProviderRow, compact: bool) -> Row<'static> {
-    let platform = platform_label(row.platform);
-    let provider = truncate(row.display_provider(), if compact { 18 } else { 24 });
-    let style = platform_style(row.platform);
+fn render_row(row: &TaggedProviderBreakdown, compact: bool) -> Row<'static> {
+    let platform = platform_label(row.source);
+    let provider = truncate(
+        row.breakdown.display_provider(),
+        if compact { 18 } else { 24 },
+    );
+    let style = platform_style(row.source);
     if compact {
         Row::new(vec![
             Cell::from(Span::styled(platform, style)),
             Cell::from(provider),
-            Cell::from(format_count(row.request_count)),
-            Cell::from(format_count(row.input_tokens)),
-            Cell::from(format_count(row.output_tokens_total())),
-            Cell::from(format_cost(row.cost_with_cache_usd)),
+            Cell::from(format_count(row.breakdown.request_count)),
+            Cell::from(format_count(row.breakdown.input_tokens)),
+            Cell::from(format_count(row.breakdown.output_tokens_total())),
+            Cell::from(format_cost(row.breakdown.cost_with_cache_usd)),
         ])
     } else {
         Row::new(vec![
             Cell::from(Span::styled(platform, style)),
             Cell::from(provider),
-            Cell::from(format_count(row.request_count)),
-            Cell::from(format_count(row.input_tokens)),
-            Cell::from(format_count(row.output_tokens_total())),
-            Cell::from(format_count(row.cache_tokens_total())),
-            Cell::from(format_count(row.total_tokens)),
-            Cell::from(format_cost(row.cost_with_cache_usd)),
+            Cell::from(format_count(row.breakdown.request_count)),
+            Cell::from(format_count(row.breakdown.input_tokens)),
+            Cell::from(format_count(row.breakdown.output_tokens_total())),
+            Cell::from(format_count(row.breakdown.cache_tokens_total())),
+            Cell::from(format_count(row.breakdown.total_tokens)),
+            Cell::from(format_cost(row.breakdown.cost_with_cache_usd)),
         ])
     }
 }
@@ -320,8 +323,7 @@ mod tests {
 
     #[test]
     fn row_data_uses_unattributed_provider_label() {
-        let row = UsageProviderRow {
-            platform: SourceKind::Codex,
+        let row = ccr_usage::ProviderBreakdownDto {
             provider: None,
             request_count: 1,
             input_tokens: 2,
@@ -331,6 +333,7 @@ mod tests {
             reasoning_output_tokens: 6,
             total_tokens: 20,
             cost_with_cache_usd: 0.0123,
+            cost_without_cache_usd: 0.02,
         };
 
         assert_eq!(row.display_provider(), "unattributed");
