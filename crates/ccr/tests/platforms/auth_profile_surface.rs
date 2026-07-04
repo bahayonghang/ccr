@@ -28,7 +28,7 @@ fn gemini_profile_storage_still_works_outside_auth_profile_command_surface() {
 
     let mut profile = ProfileConfig::new();
     profile.base_url = Some("https://generativelanguage.googleapis.com/v1".to_string());
-    profile.auth_token = Some("AIzaSy1234567890123456789012345678901234".to_string());
+    profile.auth_token = Some(ccr_core::Secret::from("AIzaSy1234567890123456789012345678901234"));
     profile.model = Some("gemini-pro".to_string());
 
     gemini.save_profile("usage-fixture", &profile).unwrap();

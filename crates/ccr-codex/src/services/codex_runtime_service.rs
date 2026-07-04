@@ -103,7 +103,7 @@ impl CodexRuntimeService {
                 secret.auth_mode,
                 CodexProfileAuthMode::OpenAiApiKey | CodexProfileAuthMode::ProviderEnvKey
             ) {
-                profile.auth_token = Some(secret.secret.clone());
+                profile.auth_token = Some(ccr_core::Secret::new(secret.secret.clone()));
             }
 
             if let Some(env_key) = &secret.env_key

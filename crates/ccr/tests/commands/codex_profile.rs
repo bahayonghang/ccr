@@ -102,7 +102,7 @@ impl CodexProfileFixture {
             description: Some("Team".to_string()),
             provider: Some("openai".to_string()),
             provider_type: Some("official_relay".to_string()),
-            auth_token: Some("sk-team-token".to_string()),
+            auth_token: Some(ccr_core::Secret::from("sk-team-token")),
             model: Some("gpt-5".to_string()),
             ..Default::default()
         };

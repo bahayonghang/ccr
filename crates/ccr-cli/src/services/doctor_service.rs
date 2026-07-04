@@ -1064,8 +1064,8 @@ impl DoctorService {
         let mut warnings = Vec::new();
         if profile
             .auth_token
-            .as_deref()
-            .is_some_and(Self::looks_like_placeholder_token)
+            .as_ref()
+            .is_some_and(|token| Self::looks_like_placeholder_token(token.expose()))
         {
             warnings.push(
                 "auth_token looks like a placeholder; Claude Code will not authenticate until a real key is configured.".to_string(),
@@ -1074,7 +1074,7 @@ impl DoctorService {
 
         for (field, env_key, expected) in Self::claude_expected_profile_env(profile) {
             match settings.env.get(env_key) {
-                Some(actual) if actual == expected => {}
+                Some(actual) if *actual == expected => {}
                 Some(_) => {
                     warnings.push(format!("{env_key} does not match profile field {field}."))
                 }
@@ -1184,7 +1184,7 @@ impl DoctorService {
 
     fn claude_expected_profile_env(
         profile: &ProfileConfig,
-    ) -> Vec<(&'static str, &'static str, &String)> {
+    ) -> Vec<(&'static str, &'static str, String)> {
         let mut expected = Vec::new();
         Self::push_expected_env(
             &mut expected,
@@ -1192,11 +1192,16 @@ impl DoctorService {
             "ANTHROPIC_BASE_URL",
             &profile.base_url,
         );
+        // 期望 env 与实际 settings 比对需要原文（合法明文消费点）
+        let expected_auth_token = profile
+            .auth_token
+            .as_ref()
+            .map(|token| token.expose().to_string());
         Self::push_expected_env(
             &mut expected,
             "auth_token",
             "ANTHROPIC_AUTH_TOKEN",
-            &profile.auth_token,
+            &expected_auth_token,
         );
         Self::push_expected_env(&mut expected, "model", "ANTHROPIC_MODEL", &profile.model);
         Self::push_expected_env(
@@ -1298,14 +1303,14 @@ impl DoctorService {
         expected
     }
 
-    fn push_expected_env<'a>(
-        expected: &mut Vec<(&'static str, &'static str, &'a String)>,
+    fn push_expected_env(
+        expected: &mut Vec<(&'static str, &'static str, String)>,
         field: &'static str,
         env_key: &'static str,
-        value: &'a Option<String>,
+        value: &Option<String>,
     ) {
         if let Some(value) = value.as_ref().filter(|value| !value.trim().is_empty()) {
-            expected.push((field, env_key, value));
+            expected.push((field, env_key, value.clone()));
         }
     }
 
@@ -1635,8 +1640,8 @@ impl DoctorService {
             .is_some_and(|value| !value.trim().is_empty())
             && section
                 .auth_token
-                .as_deref()
-                .is_some_and(|value| !value.trim().is_empty())
+                .as_ref()
+                .is_some_and(|value| !value.expose().trim().is_empty())
     }
 
     fn format_probe_detail(result: &HealthCheckResult) -> String {
@@ -1788,7 +1793,7 @@ current_profile = "{current_profile}"
                 ConfigSection {
                     description: Some("Doctor test".to_string()),
                     base_url: Some("https://api.example.com".to_string()),
-                    auth_token: Some("sk-test-token".to_string()),
+                    auth_token: Some(ccr_core::Secret::from("sk-test-token")),
                     model: Some("test-model".to_string()),
                     small_fast_model: None,
                     provider: Some("example".to_string()),

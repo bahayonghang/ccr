@@ -42,10 +42,10 @@ fn create_claude_profile(name: &str) -> ProfileConfig {
     let mut profile = ProfileConfig::new();
     profile.description = Some(format!("Test Claude profile: {}", name));
     profile.base_url = Some("https://api.anthropic.com".to_string());
-    profile.auth_token = Some(format!(
+    profile.auth_token = Some(ccr_core::Secret::new(format!(
         "sk-ant-api03-{}",
         "1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890"
-    ));
+    )));
     profile.model = Some("claude-3-5-sonnet-20241022".to_string());
     profile.small_fast_model = Some("claude-3-5-haiku-20241022".to_string());
     profile.provider = Some("Anthropic".to_string());
@@ -57,7 +57,7 @@ fn create_codex_profile(name: &str) -> ProfileConfig {
     let mut profile = ProfileConfig::new();
     profile.description = Some(format!("Test Codex profile: {}", name));
     profile.base_url = Some("https://api.openai.com/v1".to_string());
-    profile.auth_token = Some("sk-test-codex-12345678901234567890".to_string());
+    profile.auth_token = Some(ccr_core::Secret::from("sk-test-codex-12345678901234567890"));
     profile.model = Some("gpt-5-codex".to_string());
     profile.small_fast_model = Some("gpt-5-mini".to_string());
     profile.provider = Some("OpenAI".to_string());
@@ -69,7 +69,7 @@ fn create_gemini_profile(name: &str) -> ProfileConfig {
     let mut profile = ProfileConfig::new();
     profile.description = Some(format!("Test Gemini profile: {}", name));
     profile.base_url = Some("https://generativelanguage.googleapis.com/v1".to_string());
-    profile.auth_token = Some("AIzaSy1234567890123456789012345678901234".to_string());
+    profile.auth_token = Some(ccr_core::Secret::from("AIzaSy1234567890123456789012345678901234"));
     profile.model = Some("gemini-2.0-flash-exp".to_string());
     profile.small_fast_model = Some("gemini-1.5-flash".to_string());
     profile.provider = Some("Google".to_string());
@@ -526,14 +526,14 @@ fn test_profile_validation_integration() {
 
     // 无效 profile - 缺少 base_url
     let mut invalid_profile = ProfileConfig::new();
-    invalid_profile.auth_token = Some("sk-ant-api03-123".to_string());
+    invalid_profile.auth_token = Some(ccr_core::Secret::from("sk-ant-api03-123"));
     invalid_profile.model = Some("claude-3".to_string());
     assert!(claude.validate_profile(&invalid_profile).is_err());
 
     // 无效 profile - 空 base_url
     let mut invalid_profile2 = ProfileConfig::new();
     invalid_profile2.base_url = Some("".to_string());
-    invalid_profile2.auth_token = Some("sk-ant-api03-123".to_string());
+    invalid_profile2.auth_token = Some(ccr_core::Secret::from("sk-ant-api03-123"));
     invalid_profile2.model = Some("claude-3".to_string());
     assert!(claude.validate_profile(&invalid_profile2).is_err());
 

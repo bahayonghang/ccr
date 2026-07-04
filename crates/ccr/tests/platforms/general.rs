@@ -284,7 +284,7 @@ fn test_platform_initialization_creates_directories() {
     // 保存一个 profile（会触发目录创建）
     let mut profile = ProfileConfig::new();
     profile.base_url = Some("https://api.test.com".to_string());
-    profile.auth_token = Some("test-token".to_string());
+    profile.auth_token = Some(ccr_core::Secret::from("test-token"));
     profile.model = Some("test-model".to_string());
 
     let result = codex.save_profile("test", &profile);
@@ -311,7 +311,7 @@ fn test_profile_save_and_load() {
     let mut profile = ProfileConfig::new();
     profile.description = Some("Test Profile".to_string());
     profile.base_url = Some("https://api.test.com".to_string());
-    profile.auth_token = Some("ghp_test123456789012345678901234567890".to_string()); // GitHub token 格式
+    profile.auth_token = Some(ccr_core::Secret::from("ghp_test123456789012345678901234567890")); // GitHub token 格式
     profile.model = Some("gpt-4".to_string());
     profile.small_fast_model = Some("gpt-3.5-turbo".to_string());
 
@@ -339,7 +339,7 @@ fn test_profile_delete() {
     // 创建并保存 profile（使用符合 Gemini 格式的 token）
     let mut profile = ProfileConfig::new();
     profile.base_url = Some("https://api.gemini.com".to_string());
-    profile.auth_token = Some("AIzaSy1234567890123456789012345678901234".to_string()); // Google API Key 格式
+    profile.auth_token = Some(ccr_core::Secret::from("AIzaSy1234567890123456789012345678901234")); // Google API Key 格式
     profile.model = Some("gemini-pro".to_string());
 
     gemini.save_profile("to-delete", &profile).unwrap();
@@ -368,10 +368,10 @@ fn test_profile_list_names() {
     for i in 1..=3 {
         let mut profile = ProfileConfig::new();
         profile.base_url = Some(format!("https://api{}.test.com", i));
-        profile.auth_token = Some(format!(
+        profile.auth_token = Some(ccr_core::Secret::new(format!(
             "ghp_test{:0>36}",
             i // GitHub token 格式，40 字符
-        ));
+        )));
         profile.model = Some("model".to_string());
 
         codex
@@ -405,19 +405,19 @@ fn test_multiple_platforms_coexist() {
     // 为每个平台保存一个 profile（使用符合格式的 token）
     let mut claude_profile = ProfileConfig::new();
     claude_profile.base_url = Some("https://api.anthropic.com".to_string());
-    claude_profile.auth_token = Some("sk-ant-api03-1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890".to_string()); // Claude token 格式
+    claude_profile.auth_token = Some(ccr_core::Secret::from("sk-ant-api03-1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890")); // Claude token 格式
     claude_profile.model = Some("claude-3-5-sonnet".to_string());
     claude.save_profile("official", &claude_profile).unwrap();
 
     let mut codex_profile = ProfileConfig::new();
     codex_profile.base_url = Some("https://api.github.com".to_string());
-    codex_profile.auth_token = Some("ghp_1234567890123456789012345678901234567890".to_string()); // GitHub token 格式
+    codex_profile.auth_token = Some(ccr_core::Secret::from("ghp_1234567890123456789012345678901234567890")); // GitHub token 格式
     codex_profile.model = Some("gpt-4".to_string());
     codex.save_profile("github", &codex_profile).unwrap();
 
     let mut gemini_profile = ProfileConfig::new();
     gemini_profile.base_url = Some("https://api.google.com".to_string());
-    gemini_profile.auth_token = Some("AIzaSy1234567890123456789012345678901234".to_string()); // Google API Key 格式
+    gemini_profile.auth_token = Some(ccr_core::Secret::from("AIzaSy1234567890123456789012345678901234")); // Google API Key 格式
     gemini_profile.model = Some("gemini-pro".to_string());
     gemini.save_profile("google", &gemini_profile).unwrap();
 

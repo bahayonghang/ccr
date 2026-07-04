@@ -16,7 +16,8 @@ pub struct ConfigInfo {
     pub name: String,
     pub description: String,
     pub base_url: Option<String>,
-    pub auth_token: Option<String>,
+    /// 展示 DTO 持有 Secret：显示走 Display（掩码），需要原文的合法点走 expose()
+    pub auth_token: Option<ccr_core::Secret>,
     pub model: Option<String>,
     pub small_fast_model: Option<String>,
     pub is_current: bool,
@@ -374,11 +375,12 @@ impl ConfigService {
         let (_file_lock, _guard) = self.lock_config()?;
         let mut config = self.config_manager.load_with_autofix()?;
 
-        // 🎯 优化：统一使用 utils::mask_sensitive 进行掩码处理
+        // 🎯 掩码处理：Secret 的 Display 即统一掩码；用掩码串重建 Secret，
+        // 经 expose_plaintext 注解序列化后导出的就是掩码文本（行为与旧版一致）
         if !include_secrets {
             for section in config.sections.values_mut() {
                 if let Some(ref token) = section.auth_token {
-                    section.auth_token = Some(ccr_core::mask_sensitive(token));
+                    section.auth_token = Some(ccr_core::Secret::new(token.to_string()));
                 }
             }
         }

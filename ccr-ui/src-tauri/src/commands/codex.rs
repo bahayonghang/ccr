@@ -1538,7 +1538,7 @@ fn apply_profile_config(
         profile.base_url = parse_string_field(raw, "base_url")?;
     }
     if let Some(raw) = obj.get("auth_token") {
-        profile.auth_token = parse_string_field(raw, "auth_token")?;
+        profile.auth_token = parse_string_field(raw, "auth_token")?.map(ccr_core::Secret::new);
     }
     if let Some(raw) = obj.get("model") {
         profile.model = parse_string_field(raw, "model")?;
@@ -1626,7 +1626,8 @@ fn profile_to_json(
         "name": name,
         "description": profile.description,
         "base_url": profile.base_url,
-        "auth_token": profile.auth_token,
+        // 编辑表单预填需要原文：显式 expose（掩码化改造属 typed-ipc 任务）
+        "auth_token": profile.auth_token.as_ref().map(ccr_core::Secret::expose),
         "model": profile.model,
         "small_fast_model": profile.small_fast_model,
         "provider": profile.provider,

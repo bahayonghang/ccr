@@ -129,8 +129,11 @@ impl ClaudeSettings {
 
         // 🔑 设置 auth_token
         if let Some(auth_token) = &section.auth_token {
-            self.env
-                .insert(ANTHROPIC_AUTH_TOKEN.to_string(), auth_token.clone());
+            // env 注入 settings.json 是 token 的合法明文消费点
+            self.env.insert(
+                ANTHROPIC_AUTH_TOKEN.to_string(),
+                auth_token.expose().to_string(),
+            );
         }
 
         // 🤖 设置 model

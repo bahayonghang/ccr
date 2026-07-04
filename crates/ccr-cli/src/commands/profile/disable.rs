@@ -95,7 +95,7 @@ mod tests {
             ConfigSection {
                 description: Some("Test 1".to_string()),
                 base_url: Some("https://api.test1.com".to_string()),
-                auth_token: Some("token1".to_string()),
+                auth_token: Some(ccr_core::Secret::from("token1")),
                 model: Some("model1".to_string()),
                 small_fast_model: None,
                 provider: None,

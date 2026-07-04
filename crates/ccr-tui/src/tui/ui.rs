@@ -798,7 +798,7 @@ fn codex_profile_detail_lines(
             if config
                 .auth_token
                 .as_ref()
-                .is_some_and(|token| !token.trim().is_empty())
+                .is_some_and(|token| !token.expose().trim().is_empty())
             {
                 "configured".to_string()
             } else {
@@ -871,7 +871,7 @@ fn claude_profile_detail_lines(
         if config
             .auth_token
             .as_ref()
-            .is_some_and(|token| !token.trim().is_empty())
+            .is_some_and(|token| !token.expose().trim().is_empty())
         {
             "configured".to_string()
         } else {

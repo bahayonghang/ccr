@@ -106,7 +106,7 @@ impl ClaudeProfileFixture {
         let mut proxy = ProfileConfig {
             description: Some("Proxy".to_string()),
             base_url: Some("https://anthropic-proxy.example.com".to_string()),
-            auth_token: Some("sk-claude-proxy".to_string()),
+            auth_token: Some(ccr_core::Secret::from("sk-claude-proxy")),
             provider: Some("anyrouter".to_string()),
             model: Some("claude-sonnet-4-20250514".to_string()),
             ..Default::default()

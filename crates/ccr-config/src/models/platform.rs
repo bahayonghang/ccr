@@ -152,9 +152,13 @@ pub struct ProfileConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub base_url: Option<String>,
 
-    /// 🔑 认证令牌/密钥
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub auth_token: Option<String>,
+    /// 🔑 认证令牌/密钥：Debug/日志/默认序列化恒掩码；
+    /// 落盘原文走 expose_plaintext_option 注解
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        serialize_with = "ccr_core::expose_plaintext_option"
+    )]
+    pub auth_token: Option<ccr_core::Secret>,
 
     /// 🤖 默认模型名称
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -304,7 +308,7 @@ impl ProfileConfig {
 
     /// 设置认证令牌
     pub fn with_auth_token(mut self, token: String) -> Self {
-        self.auth_token = Some(token);
+        self.auth_token = Some(ccr_core::Secret::new(token));
         self
     }
 
@@ -653,7 +657,10 @@ mod tests {
             profile.base_url,
             Some("https://api.example.com".to_string())
         );
-        assert_eq!(profile.auth_token, Some("test-token".to_string()));
+        assert_eq!(
+            profile.auth_token,
+            Some(ccr_core::Secret::from("test-token"))
+        );
         assert_eq!(profile.model, Some("test-model".to_string()));
     }
 

@@ -337,7 +337,7 @@ fn patch_profile_with_config(profile: &mut ProfileConfig, config: &Value) -> Res
         profile.base_url = parse_string_field(raw, "base_url")?;
     }
     if let Some(raw) = obj.get("auth_token") {
-        profile.auth_token = parse_string_field(raw, "auth_token")?;
+        profile.auth_token = parse_string_field(raw, "auth_token")?.map(ccr_core::Secret::new);
     }
     if let Some(raw) = obj.get("model") {
         profile.model = parse_string_field(raw, "model")?;
@@ -453,7 +453,8 @@ fn profile_to_json(current_profile: Option<&str>, name: String, profile: Profile
         "name": name,
         "description": profile.description,
         "base_url": profile.base_url,
-        "auth_token": profile.auth_token,
+        // 编辑表单预填需要原文：显式 expose（掩码化改造属 typed-ipc 任务）
+        "auth_token": profile.auth_token.as_ref().map(ccr_core::Secret::expose),
         "model": profile.model,
         "small_fast_model": profile.small_fast_model,
         "default_opus_model": profile.default_opus_model,

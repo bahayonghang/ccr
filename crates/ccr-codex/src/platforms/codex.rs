@@ -183,6 +183,15 @@ impl CodexPlatform {
             .map(str::to_string)
     }
 
+    /// Secret 版 trimmed：取原文（auth_token 的合法明文消费点——
+    /// 用于 auth.json 持久化与 env 注入），空白视为未设置
+    fn trimmed_secret(value: Option<&ccr_core::Secret>) -> Option<String> {
+        value
+            .map(|secret| secret.expose().trim())
+            .filter(|text| !text.is_empty())
+            .map(str::to_string)
+    }
+
     /// 🔍 判断是否为官方配置
     ///
     /// 优先检查 provider_type 字段，回退检查 base_url
@@ -368,7 +377,7 @@ impl CodexPlatform {
         }
 
         if Self::is_official_profile(profile) {
-            return if Self::trimmed(profile.auth_token.as_ref()).is_some() {
+            return if Self::trimmed_secret(profile.auth_token.as_ref()).is_some() {
                 CodexProfileAuthMode::OpenAiApiKey
             } else {
                 CodexProfileAuthMode::OpenAiChatgpt
@@ -766,7 +775,7 @@ impl CodexPlatform {
         profile: &ProfileConfig,
         current_auth_intent: &AuthIntent,
     ) -> Result<SwitchSpec> {
-        let auth_token = Self::trimmed(profile.auth_token.as_ref());
+        let auth_token = Self::trimmed_secret(profile.auth_token.as_ref());
         let model = Self::trimmed(profile.model.as_ref());
         let approval_policy = Self::platform_string(profile, "approval_policy");
         let sandbox_mode = Self::platform_string(profile, "sandbox_mode");
@@ -1439,7 +1448,7 @@ impl PlatformConfig for CodexPlatform {
         self.validate_profile(&normalized)?;
         let auth_mode = Self::resolve_profile_auth_mode(&normalized);
         let env_key = Self::platform_string(&normalized, "env_key");
-        let secret = Self::trimmed(normalized.auth_token.as_ref());
+        let secret = Self::trimmed_secret(normalized.auth_token.as_ref());
 
         self.runtime_service
             .persist_profile_secret(name, auth_mode, env_key, secret)?;
@@ -1542,7 +1551,7 @@ impl PlatformConfig for CodexPlatform {
         }
 
         if let Some(token) = profile.auth_token.as_ref()
-            && token.trim().is_empty()
+            && token.expose().trim().is_empty()
         {
             return Err(CcrError::ValidationError(
                 "auth_token 不能为空字符串".into(),
@@ -1551,7 +1560,7 @@ impl PlatformConfig for CodexPlatform {
 
         match auth_mode {
             CodexProfileAuthMode::OpenAiApiKey => {
-                if Self::trimmed(profile.auth_token.as_ref()).is_none() {
+                if Self::trimmed_secret(profile.auth_token.as_ref()).is_none() {
                     return Err(CcrError::ValidationError(
                         "openai_api_key 模式需要 auth_token".into(),
                     ));
@@ -1563,7 +1572,7 @@ impl PlatformConfig for CodexPlatform {
                         "provider_env_key 模式需要 env_key".into(),
                     ));
                 }
-                if Self::trimmed(profile.auth_token.as_ref()).is_none() {
+                if Self::trimmed_secret(profile.auth_token.as_ref()).is_none() {
                     return Err(CcrError::ValidationError(
                         "provider_env_key 模式需要 auth_token".into(),
                     ));
@@ -1708,7 +1717,7 @@ mod tests {
         let mut custom_profile = ProfileConfig {
             description: Some("PackyCode".to_string()),
             base_url: Some("https://api.packyapi.com/v1".to_string()),
-            auth_token: Some("sk-packy".to_string()),
+            auth_token: Some(ccr_core::Secret::from("sk-packy")),
             model: Some("gpt-4.1-mini".to_string()),
             small_fast_model: None,
             provider: Some("packycode".to_string()),
@@ -1765,7 +1774,7 @@ mod tests {
         let mut github_profile = ProfileConfig {
             description: Some("GitHub Legacy".to_string()),
             base_url: Some("https://api.github.com".to_string()),
-            auth_token: Some("ghp_1234567890abcdefghij".to_string()),
+            auth_token: Some(ccr_core::Secret::from("ghp_1234567890abcdefghij")),
             model: Some("gpt-4".to_string()),
             small_fast_model: None,
             provider: Some("github".to_string()),
@@ -1948,7 +1957,7 @@ requires_openai_auth = true
         let profile = ProfileConfig {
             description: Some("API Key".to_string()),
             base_url: None,
-            auth_token: Some("sk-test".to_string()),
+            auth_token: Some(ccr_core::Secret::from("sk-test")),
             model: None,
             small_fast_model: None,
             provider: None,
@@ -1994,7 +2003,7 @@ requires_openai_auth = true
         let mut profile = ProfileConfig {
             description: Some("Mistral Provider".to_string()),
             base_url: Some("https://api.mistral.ai/v1".to_string()),
-            auth_token: Some("mistral-key-123".to_string()),
+            auth_token: Some(ccr_core::Secret::from("mistral-key-123")),
             model: Some("mistral-large".to_string()),
             small_fast_model: None,
             provider: Some("mistral".to_string()),
@@ -2034,8 +2043,8 @@ requires_openai_auth = true
 
         let loaded = platform.load_profiles().unwrap();
         assert_eq!(
-            loaded.get("mistral").unwrap().auth_token.as_deref(),
-            Some("mistral-key-123")
+            loaded.get("mistral").unwrap().auth_token.as_ref(),
+            Some(&ccr_core::Secret::from("mistral-key-123"))
         );
     }
 
@@ -2183,7 +2192,7 @@ env_key = "MISTRAL_API_KEY"
         let mut profile = ProfileConfig {
             description: Some("Mistral Provider".to_string()),
             base_url: Some("https://api.mistral.ai/v1".to_string()),
-            auth_token: Some("mistral-key-123".to_string()),
+            auth_token: Some(ccr_core::Secret::from("mistral-key-123")),
             model: Some("mistral-large".to_string()),
             small_fast_model: None,
             provider: Some("mistral".to_string()),
@@ -2264,7 +2273,7 @@ env_key = "MISTRAL_API_KEY"
         let mut profile = ProfileConfig {
             description: Some("PackyCode Relay".to_string()),
             base_url: Some("https://api.packyapi.com/v1".to_string()),
-            auth_token: Some("sk-packy".to_string()),
+            auth_token: Some(ccr_core::Secret::from("sk-packy")),
             model: Some("gpt-4.1-mini".to_string()),
             small_fast_model: None,
             provider: Some("packycode".to_string()),
@@ -2355,7 +2364,7 @@ env_key = "MISTRAL_API_KEY"
         let mut profile = ProfileConfig {
             description: Some("Mistral Provider".to_string()),
             base_url: Some("https://api.mistral.ai/v1".to_string()),
-            auth_token: Some("mistral-key-123".to_string()),
+            auth_token: Some(ccr_core::Secret::from("mistral-key-123")),
             model: Some("mistral-large".to_string()),
             small_fast_model: None,
             provider: Some("mistral".to_string()),
@@ -2443,7 +2452,7 @@ env_key = "MISTRAL_API_KEY"
         let mut profile = ProfileConfig {
             description: Some("Mistral Provider".to_string()),
             base_url: Some("https://api.mistral.ai/v1".to_string()),
-            auth_token: Some("mistral-key-123".to_string()),
+            auth_token: Some(ccr_core::Secret::from("mistral-key-123")),
             model: Some("mistral-large".to_string()),
             small_fast_model: None,
             provider: Some("mistral".to_string()),
@@ -2513,7 +2522,7 @@ env_key = "MISTRAL_API_KEY"
         let mut profile = ProfileConfig {
             description: Some("OpenAI Compatible".to_string()),
             base_url: Some("https://api.openai-proxy.com/v1".to_string()),
-            auth_token: Some("sk-proxy-key".to_string()),
+            auth_token: Some(ccr_core::Secret::from("sk-proxy-key")),
             model: None,
             small_fast_model: None,
             provider: Some("proxy".to_string()),
@@ -2599,7 +2608,7 @@ env_key = "MISTRAL_API_KEY"
         let mut profile = ProfileConfig {
             description: Some("Proxy".to_string()),
             base_url: Some("https://api.proxy.example/v1".to_string()),
-            auth_token: Some("sk-proxy-key".to_string()),
+            auth_token: Some(ccr_core::Secret::from("sk-proxy-key")),
             model: None,
             small_fast_model: None,
             provider: Some("proxy".to_string()),
@@ -2653,7 +2662,7 @@ env_key = "MISTRAL_API_KEY"
         let mut profile = ProfileConfig {
             description: Some("Custom Provider".to_string()),
             base_url: Some("https://api.example.com/v1".to_string()),
-            auth_token: Some("sk-test".to_string()),
+            auth_token: Some(ccr_core::Secret::from("sk-test")),
             model: Some("gpt-4".to_string()),
             small_fast_model: None,
             provider: Some("custom".to_string()),
@@ -2762,7 +2771,7 @@ env_key = "MISTRAL_API_KEY"
         let mut profile = ProfileConfig {
             description: Some("Custom Provider".to_string()),
             base_url: Some("https://api.example.com/v1".to_string()),
-            auth_token: Some("sk-test".to_string()),
+            auth_token: Some(ccr_core::Secret::from("sk-test")),
             model: Some("new-root-model".to_string()),
             small_fast_model: None,
             provider: Some("custom".to_string()),

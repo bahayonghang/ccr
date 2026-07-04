@@ -832,7 +832,7 @@ impl CodexAuthService {
                 updated.auth_token = auth_data
                     .get("OPENAI_API_KEY")
                     .and_then(serde_json::Value::as_str)
-                    .map(str::to_string);
+                    .map(ccr_core::Secret::from);
             } else {
                 updated.auth_token = None;
             }
@@ -2047,7 +2047,7 @@ mod tests {
         let mut profile = ProfileConfig {
             description: Some("Duck".to_string()),
             base_url: Some("https://api.example.com/v1".to_string()),
-            auth_token: Some("duck-key".to_string()),
+            auth_token: Some(ccr_core::Secret::from("duck-key")),
             model: Some("gpt-5-codex".to_string()),
             provider: Some("duck".to_string()),
             provider_type: Some("third_party_model".to_string()),
@@ -2119,7 +2119,7 @@ mod tests {
         .unwrap();
 
         let mut profile = official_profile();
-        profile.auth_token = Some("sk-profile-token".to_string());
+        profile.auth_token = Some(ccr_core::Secret::from("sk-profile-token"));
 
         let platform = service.platform().unwrap();
         platform.save_profile("official-api", &profile).unwrap();

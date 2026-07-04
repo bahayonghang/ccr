@@ -12,7 +12,6 @@ use crate::managers::SettingsManager;
 use crate::managers::temp_override::{TempOverride, TempOverrideManager};
 use ccr_core::core::error::Result;
 use ccr_core::core::logging::ColorOutput;
-use ccr_core::mask_sensitive;
 use comfy_table::{
     Attribute, Cell, Color as TableColor, ContentArrangement, Table, presets::UTF8_FULL,
 };
@@ -52,9 +51,11 @@ pub async fn temp_token_set(
 
     // 应用临时覆盖到当前设置
     if let Some(temp_token) = &temp_override.auth_token {
-        current_settings
-            .env
-            .insert("ANTHROPIC_AUTH_TOKEN".to_string(), temp_token.clone());
+        // env 注入是临时 token 的合法明文消费点
+        current_settings.env.insert(
+            "ANTHROPIC_AUTH_TOKEN".to_string(),
+            temp_token.expose().to_string(),
+        );
     }
 
     if let Some(temp_base_url) = &temp_override.base_url {
@@ -164,7 +165,7 @@ fn display_temp_override(temp_override: &TempOverride) {
             Cell::new("Auth Token")
                 .fg(TableColor::Yellow)
                 .add_attribute(Attribute::Bold),
-            Cell::new(mask_sensitive(token)).fg(TableColor::DarkGrey),
+            Cell::new(token.to_string()).fg(TableColor::DarkGrey),
         ]);
     }
 

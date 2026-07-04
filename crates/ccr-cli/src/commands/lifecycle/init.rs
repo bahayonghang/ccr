@@ -180,7 +180,7 @@ mod tests {
             ConfigSection {
                 description: Some("AnyRouter 主节点 API".to_string()),
                 base_url: Some("https://api.example.com".to_string()),
-                auth_token: Some("sk-YOUR_API_TOKEN_HERE".to_string()),
+                auth_token: Some(ccr_core::Secret::from("sk-YOUR_API_TOKEN_HERE")),
                 model: Some("claude-sonnet-4-5-20250929".to_string()),
                 small_fast_model: Some("claude-3-5-haiku-20241022".to_string()),
                 provider: Some("AnyRouter".to_string()),

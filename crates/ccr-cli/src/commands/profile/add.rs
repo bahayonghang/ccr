@@ -113,7 +113,7 @@ pub async fn add_command() -> Result<()> {
     let section = ConfigSection {
         description,
         base_url: Some(base_url),
-        auth_token: Some(auth_token),
+        auth_token: Some(ccr_core::Secret::new(auth_token)),
         model,
         small_fast_model,
         provider,
@@ -145,7 +145,11 @@ pub async fn add_command() -> Result<()> {
     );
     println!(
         "  Auth Token: {}",
-        ColorOutput::mask_sensitive(section.auth_token.as_deref().unwrap_or("未设置"))
+        section
+            .auth_token
+            .as_ref()
+            .map(|token| token.to_string())
+            .unwrap_or_else(|| "未设置".to_string())
     );
     if let Some(m) = &section.model {
         println!("  主模型: {}", m);

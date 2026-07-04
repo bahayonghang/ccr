@@ -17,7 +17,6 @@
 use crate::managers::SettingsManager;
 use ccr_core::core::error::{CcrError, Result};
 use ccr_core::core::logging::ColorOutput;
-use ccr_core::mask_sensitive;
 use comfy_table::{
     Attribute, Cell, Color as TableColor, ContentArrangement, Table, presets::UTF8_FULL,
 };
@@ -259,7 +258,7 @@ fn display_temp_config(base_url: &str, token: &str, model: Option<&str>) {
         Cell::new("Auth Token")
             .fg(TableColor::Yellow)
             .add_attribute(Attribute::Bold),
-        Cell::new(mask_sensitive(token)).fg(TableColor::DarkGrey),
+        Cell::new(token.to_string()).fg(TableColor::DarkGrey),
     ]);
 
     // Model

@@ -145,7 +145,7 @@ fn claude_api_key_section() -> ConfigSection {
     ConfigSection {
         description: Some("Claude API key".to_string()),
         base_url: Some("https://api.example.com".to_string()),
-        auth_token: Some("sk-claude-test".to_string()),
+        auth_token: Some(ccr_core::Secret::from("sk-claude-test")),
         model: Some("claude-test".to_string()),
         small_fast_model: None,
         provider: Some("example".to_string()),
@@ -163,7 +163,7 @@ fn claude_glm_placeholder_section() -> ConfigSection {
     let mut section = ConfigSection {
         description: Some("GLM placeholder".to_string()),
         base_url: Some("https://api.z.ai/api/anthropic".to_string()),
-        auth_token: Some("sk-xxx".to_string()),
+        auth_token: Some(ccr_core::Secret::from("sk-xxx")),
         default_opus_model: Some("glm-5.2[1m]".to_string()),
         default_sonnet_model: Some("glm-5.2[1m]".to_string()),
         default_haiku_model: Some("glm-4.7".to_string()),

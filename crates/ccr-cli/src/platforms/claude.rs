@@ -247,7 +247,7 @@ impl ClaudePlatform {
         }
 
         if let Some(auth_token) = &section.auth_token
-            && auth_token.trim().is_empty()
+            && auth_token.expose().trim().is_empty()
         {
             return Err(CcrError::ValidationError(
                 "auth_token 不能为空字符串".into(),
@@ -464,7 +464,7 @@ mod tests {
         let section = ConfigSection {
             description: Some("Test".to_string()),
             base_url: Some("https://api.test.com".to_string()),
-            auth_token: Some("sk-test".to_string()),
+            auth_token: Some(ccr_core::Secret::from("sk-test")),
             model: Some("test-model".to_string()),
             small_fast_model: Some("test-small".to_string()),
             provider: Some("test-provider".to_string()),
@@ -480,7 +480,7 @@ mod tests {
         let profile = ClaudePlatform::section_to_profile(&section);
         assert_eq!(profile.description, Some("Test".to_string()));
         assert_eq!(profile.base_url, Some("https://api.test.com".to_string()));
-        assert_eq!(profile.auth_token, Some("sk-test".to_string()));
+        assert_eq!(profile.auth_token, Some(ccr_core::Secret::from("sk-test")));
 
         // 反向转换
         let section2 = ClaudePlatform::profile_to_section(&profile).unwrap();

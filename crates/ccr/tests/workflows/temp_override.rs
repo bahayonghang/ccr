@@ -32,7 +32,7 @@ fn create_test_config() -> ConfigSection {
     ConfigSection {
         description: Some("Test Config".to_string()),
         base_url: Some("https://api.test.com".to_string()),
-        auth_token: Some("sk-test-original".to_string()),
+        auth_token: Some(ccr_core::Secret::from("sk-test-original")),
         model: Some("test-model".to_string()),
         small_fast_model: Some("test-small".to_string()),
         provider: None,
@@ -76,7 +76,7 @@ fn test_temp_override_basic_workflow() {
     {
         new_settings
             .env
-            .insert("ANTHROPIC_AUTH_TOKEN".to_string(), temp_token.clone());
+            .insert("ANTHROPIC_AUTH_TOKEN".to_string(), temp_token.expose().to_string());
     }
     settings_manager.save_atomic(&new_settings).unwrap();
 
@@ -114,7 +114,7 @@ fn test_temp_override_multiple_fields() {
         if let Some(token) = &temp.auth_token {
             new_settings
                 .env
-                .insert("ANTHROPIC_AUTH_TOKEN".to_string(), token.clone());
+                .insert("ANTHROPIC_AUTH_TOKEN".to_string(), token.expose().to_string());
         }
         if let Some(url) = &temp.base_url {
             new_settings
@@ -175,7 +175,7 @@ fn test_temp_override_no_interference_with_other_vars() {
     {
         new_settings
             .env
-            .insert("ANTHROPIC_AUTH_TOKEN".to_string(), token.clone());
+            .insert("ANTHROPIC_AUTH_TOKEN".to_string(), token.expose().to_string());
     }
     settings_manager.save_atomic(&new_settings).unwrap();
 

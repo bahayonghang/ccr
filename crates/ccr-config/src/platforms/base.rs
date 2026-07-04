@@ -610,7 +610,7 @@ mod tests {
         let section = ConfigSection {
             description: Some("Test".to_string()),
             base_url: Some("https://api.test.com".to_string()),
-            auth_token: Some("sk-test".to_string()),
+            auth_token: Some(ccr_core::Secret::from("sk-test")),
             model: Some("test-model".to_string()),
             small_fast_model: None,
             provider: Some("test-provider".to_string()),

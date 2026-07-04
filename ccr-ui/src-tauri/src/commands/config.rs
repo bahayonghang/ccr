@@ -55,15 +55,6 @@ pub struct ExportResult {
     pub filename: String,
 }
 
-/// 屏蔽敏感 token（显示前 4 位和后 4 位）
-fn mask_token(token: &str) -> String {
-    if token.len() <= 10 {
-        "*".repeat(token.len())
-    } else {
-        format!("{}...{}", &token[..4], &token[token.len() - 4..])
-    }
-}
-
 fn destructive_confirmation_token(action: &str) -> String {
     format!("desktop-confirm:{action}")
 }
@@ -158,7 +149,11 @@ pub async fn list_configs(_state: State<'_, AppState>) -> Result<Vec<ConfigInfo>
                 name: name.clone(),
                 description: section.description.clone().unwrap_or_default(),
                 base_url: section.base_url.clone().unwrap_or_default(),
-                auth_token: mask_token(&section.auth_token.clone().unwrap_or_default()),
+                auth_token: section
+                    .auth_token
+                    .as_ref()
+                    .map(|token| token.to_string())
+                    .unwrap_or_default(),
                 model: section.model.clone(),
                 small_fast_model: section.small_fast_model.clone(),
                 is_current: name == &config.current_config,
@@ -226,7 +221,7 @@ pub async fn add_config(
         let section = ConfigSection {
             description,
             base_url: Some(base_url),
-            auth_token: Some(auth_token),
+            auth_token: Some(ccr_core::Secret::new(auth_token)),
             model,
             small_fast_model,
             provider,
@@ -522,7 +517,7 @@ pub async fn update_config(name: String, data: serde_json::Value) -> Result<Stri
                         section.base_url = value.as_str().map(str::to_string);
                     }
                     "auth_token" => {
-                        section.auth_token = value.as_str().map(str::to_string);
+                        section.auth_token = value.as_str().map(ccr_core::Secret::from);
                     }
                     "model" => {
                         section.model = value.as_str().map(str::to_string);

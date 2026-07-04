@@ -3,6 +3,7 @@
 
 use ccr_core::core::error::{CcrError, Result};
 use ccr_core::utils::{AutoCompletable, Validatable};
+use ccr_core::{Secret, expose_plaintext_option};
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 
@@ -50,9 +51,13 @@ pub struct ConfigSection {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub base_url: Option<String>,
 
-    /// 🔑 认证令牌(切换时必需)
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub auth_token: Option<String>,
+    /// 🔑 认证令牌(切换时必需)：Debug/日志/默认序列化恒掩码；
+    /// 落盘原文走 expose_plaintext_option 注解
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        serialize_with = "expose_plaintext_option"
+    )]
+    pub auth_token: Option<Secret>,
 
     /// 🤖 默认模型名称(可选)
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -175,7 +180,7 @@ impl Validatable for ConfigSection {
             .as_ref()
             .ok_or_else(|| CcrError::ValidationError("auth_token 不能为空".into()))?;
 
-        if auth_token.trim().is_empty() {
+        if auth_token.expose().trim().is_empty() {
             return Err(CcrError::ValidationError("auth_token 不能为空".into()));
         }
 
@@ -258,8 +263,13 @@ impl ConfigSection {
         let mut status = HashMap::new();
 
         // 映射关系与 ClaudeSettings::update_from_config 保持一致
+        // （env 预览与实际写入 settings 的值一致，是 token 的合法明文消费点；
+        //   展示侧由调用方按变量名掩码）
         status.insert("ANTHROPIC_BASE_URL".to_string(), self.base_url.clone());
-        status.insert("ANTHROPIC_AUTH_TOKEN".to_string(), self.auth_token.clone());
+        status.insert(
+            "ANTHROPIC_AUTH_TOKEN".to_string(),
+            self.auth_token.as_ref().map(|t| t.expose().to_string()),
+        );
         status.insert("ANTHROPIC_MODEL".to_string(), self.model.clone());
         status.insert(
             "ANTHROPIC_SMALL_FAST_MODEL".to_string(),
@@ -312,4 +322,45 @@ pub struct GlobalSettings {
     /// 🎨 TUI 主题名称 (预留字段)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tui_theme: Option<String>,
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+    use super::*;
+
+    // 🔁 旧格式（明文 auth_token）TOML 读入 → 序列化 → 再读：无损，且输出仍为明文
+    #[test]
+    fn test_legacy_plaintext_section_round_trip_lossless() {
+        let legacy = r#"
+description = "AnyRouter"
+base_url = "https://api.example.com"
+auth_token = "sk-ant-legacy-plain-token"
+model = "claude-sonnet-4-5"
+"#;
+        let section: ConfigSection = toml::from_str(legacy).unwrap();
+        assert_eq!(
+            section.auth_token.as_ref().unwrap().expose(),
+            "sk-ant-legacy-plain-token"
+        );
+
+        let saved = toml::to_string(&section).unwrap();
+        assert!(saved.contains("sk-ant-legacy-plain-token"));
+
+        let reloaded: ConfigSection = toml::from_str(&saved).unwrap();
+        assert_eq!(reloaded.auth_token, section.auth_token);
+        assert_eq!(reloaded.base_url, section.base_url);
+    }
+
+    // 🙈 Debug 输出（tracing 日志路径）不得包含 token 原文
+    #[test]
+    fn test_debug_output_masks_auth_token() {
+        let section = ConfigSection {
+            auth_token: Some(Secret::from("sk-ant-super-secret-token")),
+            ..Default::default()
+        };
+        let debug = format!("{:?}", section);
+        assert!(!debug.contains("sk-ant-super-secret-token"));
+        assert!(debug.contains("sk-a...oken"));
+    }
 }

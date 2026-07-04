@@ -765,8 +765,8 @@ impl ClaudeAuthService {
             .is_some_and(|value| !value.trim().is_empty())
             || profile
                 .auth_token
-                .as_deref()
-                .is_some_and(|value| !value.trim().is_empty())
+                .as_ref()
+                .is_some_and(|value| !value.expose().trim().is_empty())
         {
             ClaudeProfileAuthMode::ApiKey
         } else {
@@ -788,8 +788,13 @@ impl ClaudeAuthService {
             value.as_deref().is_some_and(|raw| !raw.trim().is_empty())
         }
 
+        let token_filled = profile
+            .auth_token
+            .as_ref()
+            .is_some_and(|raw| !raw.expose().trim().is_empty());
+
         profile.provider_type.as_deref() == Some("third_party_model")
-            || (filled(&profile.base_url) && filled(&profile.auth_token))
+            || (filled(&profile.base_url) && token_filled)
     }
 
     /// 🩹 在 `resolve_profile_auth_mode` 之上叠加自愈
@@ -1014,7 +1019,7 @@ mod tests {
             .platform_data
             .insert("auth_mode".into(), json!("subscription"));
         profile.base_url = Some("https://example.com".to_string());
-        profile.auth_token = Some("sk-test".to_string());
+        profile.auth_token = Some(ccr_core::Secret::from("sk-test"));
 
         assert_eq!(
             ClaudeAuthService::resolve_profile_auth_mode(&profile),

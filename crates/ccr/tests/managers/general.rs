@@ -17,7 +17,7 @@ fn create_test_config_section(name: &str) -> ConfigSection {
     ConfigSection {
         description: Some(format!("Test config for {}", name)),
         base_url: Some(format!("https://api.{}.com", name)),
-        auth_token: Some(format!("sk-test-token-{}", name)),
+        auth_token: Some(ccr_core::Secret::new(format!("sk-test-token-{}", name))),
         model: Some("claude-sonnet-4".into()),
         small_fast_model: Some("claude-haiku".into()),
         provider: Some(name.to_string()),
