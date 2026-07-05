@@ -25,9 +25,11 @@ Keep the split:
 
 Do not duplicate check-in database models in this crate; use `ccr_db::models::checkin`.
 
+Database access goes through named `ccr_db::database` paths. Do not reintroduce a wholesale `pub use ccr_db::database;` in `lib.rs` — it had zero external consumers and made ccr-db's entire pool/schema/repository surface part of this crate's contract (removed in 07-03-arch-sqlite-seam).
+
 ## Database And Crypto Boundaries
 
-Database initialization is owned by `ccr-db`; tests call `database::initialize_for_test()`. Check-in account secrets must pass through `CryptoManager` and should never be logged or stored in plaintext outside intentional encrypted fields.
+Database initialization is owned by `ccr-db`; tests call `database::initialize_for_test()`, or — for manager-level unit tests — inject an independent in-memory pool via `ccr_db::database::DbAccess::Pool` (see `AccountManager::with_db`; constructors keep a `DbAccess::Global` default so production callers stay unchanged). Check-in account secrets must pass through `CryptoManager` and should never be logged or stored in plaintext outside intentional encrypted fields.
 
 `CryptoManager::decrypt` returns `ccr_core::Secret` — decrypted cookies are wrapped at the boundary, and plaintext leaves only via `expose()` at Cookie-header construction, re-encryption, and explicit plaintext export. `CreateAccountRequest`/`UpdateAccountRequest`/`ExportAccount` cookie fields are `Secret` for the same reason. The masked display string is built by iterating the cookie map and formatting each value through `Secret`'s Display — do not reintroduce a local masking rule (see Secrets And Masking in `ccr-core/backend/backend-guidelines.md`).
 

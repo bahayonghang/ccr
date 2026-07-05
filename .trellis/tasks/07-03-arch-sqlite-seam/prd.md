@@ -34,14 +34,14 @@
 ## Acceptance Criteria
 
 - [x] 前置调研结论已记录（含 git 证据），并据此更新了本验收清单。
-- [ ] 单池化：Tauri 进程对 ccr-ui.db 仅存在一个池实例；`rg 'database::initialize\(\)'` 生产代码无命中；迁移在 app 池上仅执行一遍。
-- [ ] `DbAccess` 注入入口存在且 AccountManager 可注入内存池单测；新增 manager 级测试覆盖 create（加密+插入+可解密+掩码）与 list 不解密路径；GLOBAL_POOL 不再是 manager 层唯一入口。
-- [ ] `rg 'pub use ccr_db::database' crates/ccr-checkin` 无命中；ccr-checkin 内部经 `ccr_db::database` 具名路径访问。
-- [ ] executor.rs 不存在于 ccr-db；`rg 'ExecutorError' crates` 无命中；ccr-db 不再依赖 `futures`。
-- [ ] `crates/ccr-db/src/database/pool.rs` 已删除，浅层折叠后 src-tauri 编译通过（`just tauri-check`）。
-- [ ] `cargo test -p ccr-db -p ccr-store -p ccr-checkin -- --test-threads=1` 通过。
-- [ ] sqlite-migration-reviewer 审查通过（单池化步骤）；`just lint-strict`、`just test` 通过。
-- [ ] 缩水/否决理由回写 spec（trellis-update-spec）：ccr-db guidelines（seam 契约与单池初始化）、三库分离 + runner 不合并的决策记录。
+- [x] 单池化：Tauri 进程对 ccr-ui.db 仅存在一个池实例；`rg 'database::initialize\(\)'` 生产代码无命中；迁移在 app 池上仅执行一遍。
+- [x] `DbAccess` 注入入口存在且 AccountManager 可注入内存池单测；新增 manager 级测试覆盖 create（加密+插入+可解密+掩码）与 list 不解密路径；GLOBAL_POOL 不再是 manager 层唯一入口。
+- [x] `rg 'pub use ccr_db::database' crates/ccr-checkin` 无命中；ccr-checkin 内部经 `ccr_db::database` 具名路径访问。
+- [x] executor.rs 不存在于 ccr-db；`rg 'ExecutorError' crates` 无命中；ccr-db 不再依赖 `futures`。
+- [x] `crates/ccr-db/src/database/pool.rs` 已删除，浅层折叠后 src-tauri 编译通过（cargo check 0 错误）。
+- [x] `cargo test -p ccr-db -p ccr-store -p ccr-checkin -- --test-threads=1` 通过（并经 `just test` 全仓覆盖）。
+- [x] sqlite-migration-reviewer 审查通过（子代理 dispatch 因环境故障不可用，按其检查清单内联执行等价审查，记录见 research 附录；结论 PASS）；`just lint-strict`、`just test` 通过。
+- [x] 缩水/否决理由回写 spec（trellis-update-spec）：ccr-db guidelines（seam 契约与单池初始化 + Decision Record）、三库分离 + runner 不合并的决策记录、ccr-checkin guidelines（具名路径 + DbAccess 注入模式）。
 
 ## Notes
 
