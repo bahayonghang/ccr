@@ -1,3 +1,5 @@
+// re-export 墙条目须有真实消费方；盘点与规则见 .trellis/spec/ccr-cli/backend/（facade 收拢任务回写）
+//
 // 🎯 CCR 服务层模块
 // 封装业务逻辑,提供统一的业务操作接口
 //
@@ -35,28 +37,17 @@ pub use backup_service::BackupService;
 #[allow(unused_imports)]
 pub use ccr_codex::services::codex_session_service;
 #[allow(unused_imports)]
-pub use ccr_codex::services::codex_session_service::CodexSessionInventory;
-#[allow(unused_imports)]
 pub use ccr_codex::{
-    AuthReadSnapshot, CodexAuthCacheAction, CodexAuthService, CodexHistoryBackupPruneResult,
-    CodexHistoryBackupSummary, CodexHistoryProviderBuckets, CodexHistoryRestoreResult,
+    AuthReadSnapshot, CodexAuthService, CodexHistoryBackupPruneResult, CodexHistoryProviderBuckets,
     CodexHistorySyncOptions, CodexHistorySyncResult, CodexHistorySyncService,
-    CodexHistorySyncStatus, CodexHistoryVisibilityDiagnostics, CodexOAuthTokenService,
-    CodexQuotaService, CodexRollingUsage, CodexRuntimeCommitPlan, CodexRuntimeService,
-    CodexSessionDetail, CodexSessionExport, CodexSessionMessage, CodexSessionRestoreSummary,
-    CodexSessionService, CodexSessionSummary, CodexSessionTrashService, CodexSessionTrashSummary,
-    CodexTrashedSessionRecord, CodexUsageRecord, CodexUsageService, CodexUsageStats,
-    OpenCodeAuthService, OpenCodeQuotaService, OpenCodeReadSnapshot, OpenCodeRollingUsage,
-    OpenCodeUsageRecord, OpenCodeUsageService, OpenCodeUsageStats,
+    CodexHistorySyncStatus, CodexOAuthTokenService, CodexQuotaService, CodexRollingUsage,
+    CodexSessionTrashService, CodexUsageRecord, CodexUsageService, OpenCodeAuthService,
+    OpenCodeQuotaService, OpenCodeRollingUsage, OpenCodeUsageRecord, OpenCodeUsageService,
 };
 #[allow(unused_imports)]
-pub use claude_auth_service::{ClaudeAuthItem, ClaudeAuthReadSnapshot, ClaudeAuthService};
+pub use claude_auth_service::{ClaudeAuthItem, ClaudeAuthService};
 #[allow(unused_imports)]
 pub use config_service::ConfigService;
-#[allow(unused_imports)]
-pub use doctor_service::{
-    DoctorCheck, DoctorReport, DoctorRunOptions, DoctorService, DoctorStatus,
-};
 #[allow(unused_imports)]
 pub use history_service::HistoryService;
 #[allow(unused_imports)]
@@ -70,17 +61,4 @@ pub use settings_service::SettingsService;
 #[allow(unused_imports)]
 pub use skills_service::SkillsService;
 #[allow(unused_imports)]
-pub use sync_service::SyncService;
-#[allow(unused_imports)]
-pub use ui_service::UiService;
-#[allow(unused_imports)]
 pub use validate_service::ValidateService;
-
-// Install flow (llmusage detection + guided install)
-#[allow(unused_imports)]
-pub use install_service::InstallService;
-#[allow(unused_imports)]
-pub use install_types::{
-    AttemptId, CancelResult, DetectionResult, HostCapabilities, InstallEvent, InstallFlowError,
-    InstallPlan, ManualCatalog, PlanOutcome, RingBufferSnapshot,
-};

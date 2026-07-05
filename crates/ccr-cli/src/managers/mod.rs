@@ -1,3 +1,5 @@
+// re-export 墙条目须有真实消费方；盘点与规则见 .trellis/spec/ccr-cli/backend/（facade 收拢任务回写）
+
 //! 📁 CCR Manager 层模块
 //!
 //! 负责数据访问和持久化管理。
@@ -30,35 +32,24 @@ pub mod temp_override;
 #[allow(unused_imports)]
 pub use budget_manager::BudgetManager;
 #[allow(unused_imports)]
-pub use ccr_codex::managers::codex_config::{CachedCodexConfigManager, CodexConfigManager};
+pub use ccr_codex::managers::codex_config::CodexConfigManager;
 #[allow(unused_imports)]
 pub use ccr_config::managers::platform_config::{
     PlatformConfigEntry, PlatformConfigManager, UnifiedConfig,
 };
 #[allow(unused_imports)]
-pub use ccr_config::managers::{TuiConfig, TuiConfigManager, TuiTabId};
+pub use ccr_config::managers::{TuiConfigManager, TuiTabId};
 #[allow(unused_imports)]
 pub use ccr_store::history::{
-    EnvChange, HistoryEntry, HistoryManager, HistoryStats, OperationDetails, OperationResult,
-    OperationType,
+    HistoryEntry, HistoryManager, OperationDetails, OperationResult, OperationType,
 };
-#[allow(unused_imports)]
-pub use ccr_sync::{SyncConfig, SyncConfigManager};
 #[allow(unused_imports)]
 pub use config::{CcsConfig, ConfigManager, ConfigSection, GlobalSettings, ProviderType};
 #[allow(unused_imports)]
-pub use config_file_handler::ConfigFileHandler;
-#[allow(unused_imports)]
-pub use config_validator::{ConfigValidator, ValidationReport};
-#[allow(unused_imports)]
 pub use cost_tracker::CostTracker;
-#[allow(unused_imports)]
-pub use mcp_preset_manager::{McpPresetManager, McpSyncManager, get_builtin_presets};
 #[allow(unused_imports)]
 pub use pricing_manager::PricingManager;
 #[allow(unused_imports)]
-pub use settings::{CachedSettingsManager, ClaudeSettings, SettingsManager};
-#[allow(unused_imports)]
-pub use sync_folder_manager::SyncFolderManager;
+pub use settings::{ClaudeSettings, SettingsManager};
 #[allow(unused_imports)]
 pub use temp_override::{TempOverride, TempOverrideManager};
