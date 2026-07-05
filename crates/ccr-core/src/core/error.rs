@@ -101,6 +101,14 @@ pub mod exit_codes {
 /// ❌ CCR 错误类型枚举
 ///
 /// 涵盖所有可能的错误情况,每种错误都有专门的退出码
+///
+/// # 🧊 冻结声明 (2026-07-05)
+///
+/// 本枚举 25 个 variant 已冻结:**不再新增领域 variant**(History/Sync/Platform/Ui 这类
+/// 应用层词汇)。新领域错误请在归属 crate 自建错误类型(参照 `ccr-db::DbError`、
+/// `ccr-usage::UsageError`、ccr-checkin 分层错误先例);原语 variant(IO/锁/格式级)
+/// 的增删需个案评审,并有意更新 `test_variant_set_is_frozen` 快照。
+/// 依据与规则见 ADR: `.trellis/spec/ccr-core/backend/ccr-error-freeze.md`
 #[derive(Error, Debug)]
 pub enum CcrError {
     /// ⚙️ 配置文件相关错误
@@ -400,5 +408,102 @@ mod tests {
         let msg = err.user_message();
         assert!(msg.contains("退出码: 101"));
         assert!(!msg.contains("检查网络连接、Rust 工具链与 cargo 是否可用"));
+    }
+
+    // 🧊 冻结守卫:variant 集合快照(ADR: .trellis/spec/ccr-core/backend/ccr-error-freeze.md)。
+    // 新增 variant → variant_name 缺臂编译错;删除/更名 → 未知 variant 编译错。
+    // 触发本测试变更前,请先读 ADR:领域错误应建在归属 crate,而不是扩张本枚举。
+    #[test]
+    fn test_variant_set_is_frozen() {
+        const FROZEN_VARIANTS: [&str; 25] = [
+            "ConfigError",
+            "ConfigMissing",
+            "ConfigSectionNotFound",
+            "ConfigFormatInvalid",
+            "SettingsError",
+            "SettingsMissing",
+            "FileLockError",
+            "LockTimeout",
+            "JsonError",
+            "TomlError",
+            "IoError",
+            "FileIoError",
+            "HistoryError",
+            "ValidationError",
+            "SyncError",
+            "PlatformNotFound",
+            "PlatformNotSupported",
+            "ProfileNotFound",
+            "NetworkError",
+            "ResourceNotFound",
+            "ResourceAlreadyExists",
+            "DatabaseError",
+            "UpdateError",
+            "UiError",
+            "ExternalCommandError",
+        ];
+
+        fn variant_name(err: &CcrError) -> &'static str {
+            match err {
+                CcrError::ConfigError(_) => "ConfigError",
+                CcrError::ConfigMissing(_) => "ConfigMissing",
+                CcrError::ConfigSectionNotFound(_) => "ConfigSectionNotFound",
+                CcrError::ConfigFormatInvalid(_) => "ConfigFormatInvalid",
+                CcrError::SettingsError(_) => "SettingsError",
+                CcrError::SettingsMissing(_) => "SettingsMissing",
+                CcrError::FileLockError(_) => "FileLockError",
+                CcrError::LockTimeout(_) => "LockTimeout",
+                CcrError::JsonError(_) => "JsonError",
+                CcrError::TomlError(_) => "TomlError",
+                CcrError::IoError(_) => "IoError",
+                CcrError::FileIoError(_) => "FileIoError",
+                CcrError::HistoryError(_) => "HistoryError",
+                CcrError::ValidationError(_) => "ValidationError",
+                CcrError::SyncError(_) => "SyncError",
+                CcrError::PlatformNotFound(_) => "PlatformNotFound",
+                CcrError::PlatformNotSupported(_) => "PlatformNotSupported",
+                CcrError::ProfileNotFound(_) => "ProfileNotFound",
+                CcrError::NetworkError(_) => "NetworkError",
+                CcrError::ResourceNotFound(_) => "ResourceNotFound",
+                CcrError::ResourceAlreadyExists(_) => "ResourceAlreadyExists",
+                CcrError::DatabaseError(_) => "DatabaseError",
+                CcrError::UpdateError(_) => "UpdateError",
+                CcrError::UiError(_) => "UiError",
+                CcrError::ExternalCommandError(_) => "ExternalCommandError",
+            }
+        }
+
+        let samples: [CcrError; 25] = [
+            CcrError::ConfigError(String::new()),
+            CcrError::ConfigMissing(String::new()),
+            CcrError::ConfigSectionNotFound(String::new()),
+            CcrError::ConfigFormatInvalid(String::new()),
+            CcrError::SettingsError(String::new()),
+            CcrError::SettingsMissing(String::new()),
+            CcrError::FileLockError(String::new()),
+            CcrError::LockTimeout(String::new()),
+            CcrError::JsonError(serde_json::from_str::<serde_json::Value>("{").unwrap_err()),
+            CcrError::TomlError(toml::from_str::<toml::Value>("=").unwrap_err()),
+            CcrError::IoError(std::io::Error::other("io")),
+            CcrError::FileIoError(String::new()),
+            CcrError::HistoryError(String::new()),
+            CcrError::ValidationError(String::new()),
+            CcrError::SyncError(String::new()),
+            CcrError::PlatformNotFound(String::new()),
+            CcrError::PlatformNotSupported(String::new()),
+            CcrError::ProfileNotFound(String::new()),
+            CcrError::NetworkError(String::new()),
+            CcrError::ResourceNotFound(String::new()),
+            CcrError::ResourceAlreadyExists(String::new()),
+            CcrError::DatabaseError(String::new()),
+            CcrError::UpdateError(String::new()),
+            CcrError::UiError(String::new()),
+            CcrError::ExternalCommandError(String::new()),
+        ];
+
+        assert_eq!(samples.len(), FROZEN_VARIANTS.len());
+        for (err, expected) in samples.iter().zip(FROZEN_VARIANTS.iter()) {
+            assert_eq!(variant_name(err), *expected);
+        }
     }
 }

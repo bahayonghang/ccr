@@ -21,7 +21,7 @@ use colored::Colorize;
 /// # 返回
 ///
 /// * `Ok(())` - 成功禁用配置
-/// * `Err(CcrError::ConfigNotFound)` - 配置不存在
+/// * `Err(CcrError::ConfigSectionNotFound)` - 配置不存在
 /// * `Err(CcrError::ConfigError)` - 配置文件操作失败
 pub async fn disable_command(config_name: &str, force: bool) -> Result<()> {
     ColorOutput::title("禁用配置");
