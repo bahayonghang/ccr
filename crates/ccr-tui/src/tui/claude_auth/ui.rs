@@ -2,11 +2,11 @@
 // 绘制 Claude 官方订阅账号管理终端界面
 
 use super::app::ClaudeAuthApp;
-use crate::models::ClaudeLoginState;
-use crate::services::ClaudeAuthItem;
 use crate::tui::overlay::{Overlay, render_overlay};
 use crate::tui::theme;
 use crate::tui::toast::ToastKind;
+use ccr_cli::models::ClaudeLoginState;
+use ccr_cli::services::ClaudeAuthItem;
 use chrono::{DateTime, Local, Utc};
 use ratatui::{
     Frame,
@@ -977,10 +977,10 @@ mod tests {
     #![allow(clippy::unwrap_used)]
 
     use super::*;
-    use crate::models::{
+    use ccr_cli::models::{
         ClaudeCurrentAuthInfo, ClaudeProfileAuthMode, ClaudeRuntimeMode, ClaudeRuntimeSummary,
     };
-    use crate::services::ClaudeAuthService;
+    use ccr_cli::services::ClaudeAuthService;
     use chrono::TimeZone;
     use ratatui::{Terminal, backend::TestBackend};
     fn sample_account() -> ClaudeAuthItem {
@@ -1110,11 +1110,11 @@ mod tests {
             home.join(".claude.json"),
         ))
         .unwrap();
-        app.runtime_summary = Some(crate::models::ClaudeRuntimeSummary {
-            mode: crate::models::ClaudeRuntimeMode::ProfileOnly,
+        app.runtime_summary = Some(ccr_cli::models::ClaudeRuntimeSummary {
+            mode: ccr_cli::models::ClaudeRuntimeMode::ProfileOnly,
             current_profile_name: Some("main_pro".to_string()),
             current_profile_provider: Some("pro".to_string()),
-            current_profile_auth_mode: Some(crate::models::ClaudeProfileAuthMode::ApiKey),
+            current_profile_auth_mode: Some(ccr_cli::models::ClaudeProfileAuthMode::ApiKey),
             current_profile_auth_source: Some("provider:pro".to_string()),
             current_login_name: Some("work".to_string()),
             official_login_state: ClaudeLoginState::LoggedInSaved {

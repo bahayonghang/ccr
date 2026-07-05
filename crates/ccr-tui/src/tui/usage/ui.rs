@@ -8,8 +8,8 @@ use ratatui::{
     widgets::{Block, Borders, Cell, Paragraph, Row, Table, Wrap},
 };
 
-use crate::models::Platform;
 use crate::tui::theme;
+use ccr_cli::models::Platform;
 
 use super::app::{UsageApp, UsageDataset, UsageLoadState};
 

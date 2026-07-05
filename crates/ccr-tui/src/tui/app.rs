@@ -1,11 +1,11 @@
 // TUI application state — Tab-based dispatch (Claude + Codex only)
 
-use crate::models::{ClaudeRuntimeSummary, CodexRuntimeSummary};
-use crate::models::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};
-use crate::platforms::create_platform;
 use crate::tui::action::Action;
 use crate::tui::toast::{Toast, ToastManager};
 use ccr_cli::managers::{TuiConfigManager, TuiTabId};
+use ccr_cli::models::{ClaudeRuntimeSummary, CodexRuntimeSummary};
+use ccr_cli::models::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};
+use ccr_cli::platforms::create_platform;
 use ccr_core::core::error::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use indexmap::IndexMap;
@@ -211,7 +211,7 @@ impl App {
         };
 
         let codex_runtime_summary = if platform == Platform::Codex {
-            crate::services::CodexAuthService::new()
+            ccr_cli::services::CodexAuthService::new()
                 .ok()
                 .and_then(|service| service.get_runtime_summary().ok())
         } else {
@@ -219,7 +219,7 @@ impl App {
         };
 
         let claude_runtime_summary = if platform == Platform::Claude {
-            crate::services::ClaudeAuthService::new()
+            ccr_cli::services::ClaudeAuthService::new()
                 .ok()
                 .and_then(|service| service.get_runtime_summary().ok())
         } else {
@@ -1305,8 +1305,8 @@ impl TuiApp for App {
 mod tests {
     #![allow(clippy::unwrap_used)]
     use super::*;
-    use crate::models::Platform;
-    use crate::models::ProfileConfig;
+    use ccr_cli::models::Platform;
+    use ccr_cli::models::ProfileConfig;
     use ccr_core::core::error::{CcrError, Result};
     use std::path::PathBuf;
     use std::sync::Arc;

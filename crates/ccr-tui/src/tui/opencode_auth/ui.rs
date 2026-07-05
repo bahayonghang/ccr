@@ -5,11 +5,11 @@ use super::app::{
     OpenCodeAuthApp, OpenCodeAuthUsagePanelData, OpenCodeUsageAttributionState, OpenCodeUsageState,
     PreviewMetricWindow, QuotaPreviewCellState, QuotaState,
 };
-use crate::models::{OpenCodeAuthItem, OpenCodeLoginState};
-use crate::services::{OpenCodeQuotaService, OpenCodeUsageService};
 use crate::tui::overlay::{Overlay, render_overlay};
 use crate::tui::theme;
 use crate::tui::toast::ToastKind;
+use ccr_cli::models::{OpenCodeAuthItem, OpenCodeLoginState};
+use ccr_cli::services::{OpenCodeQuotaService, OpenCodeUsageService};
 use chrono::{Local, Utc};
 use ratatui::{
     Frame,
@@ -1250,7 +1250,7 @@ fn truncate_text(value: &str, max_width: usize) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::OpenCodeAuthItem;
+    use ccr_cli::models::OpenCodeAuthItem;
     use chrono::{Duration, TimeZone, Utc};
     use indexmap::IndexMap;
     use ratatui::{Terminal, backend::TestBackend};
@@ -1271,7 +1271,7 @@ mod tests {
     }
 
     fn sample_usage_panel() -> OpenCodeAuthUsagePanelData {
-        let mut usage = crate::services::OpenCodeRollingUsage::default();
+        let mut usage = ccr_cli::services::OpenCodeRollingUsage::default();
         usage.five_hour.total_input_tokens = 1_000;
         usage.five_hour.total_output_tokens = 200;
         usage.five_hour.total_requests = 2;
@@ -1355,8 +1355,10 @@ mod tests {
 
     #[test]
     fn account_snapshot_lines_show_identity_and_usage_metadata() {
-        let service =
-            crate::services::OpenCodeAuthService::from_dirs(PathBuf::from("."), PathBuf::from("."));
+        let service = ccr_cli::services::OpenCodeAuthService::from_dirs(
+            PathBuf::from("."),
+            PathBuf::from("."),
+        );
         let mut app = crate::tui::opencode_auth::app::OpenCodeAuthApp::from_service(service)
             .expect("test opencode auth app should initialize from injected service");
         app.accounts = vec![sample_account()];
@@ -1364,10 +1366,10 @@ mod tests {
         app.preview_cache.insert(
             "primary".to_string(),
             crate::tui::opencode_auth::app::QuotaPreviewEntry {
-                quota: crate::models::CodexAccountQuota {
+                quota: ccr_cli::models::CodexAccountQuota {
                     account_name: "primary".to_string(),
                     email: Some("use***@example.com".to_string()),
-                    quota: Some(crate::models::CodexQuota {
+                    quota: Some(ccr_cli::models::CodexQuota {
                         hourly_percentage: 48,
                         hourly_reset_time: Some(
                             (Utc::now()
@@ -1429,8 +1431,10 @@ mod tests {
     #[test]
     fn hourly_cell_appends_reset_in_parentheses() {
         let account = sample_account();
-        let service =
-            crate::services::OpenCodeAuthService::from_dirs(PathBuf::from("."), PathBuf::from("."));
+        let service = ccr_cli::services::OpenCodeAuthService::from_dirs(
+            PathBuf::from("."),
+            PathBuf::from("."),
+        );
         let mut app = crate::tui::opencode_auth::app::OpenCodeAuthApp::from_service(service)
             .expect("test opencode auth app should initialize from injected service");
         app.accounts = vec![account.clone()];
@@ -1438,10 +1442,10 @@ mod tests {
         app.preview_cache.insert(
             "primary".to_string(),
             crate::tui::opencode_auth::app::QuotaPreviewEntry {
-                quota: crate::models::CodexAccountQuota {
+                quota: ccr_cli::models::CodexAccountQuota {
                     account_name: "primary".to_string(),
                     email: None,
-                    quota: Some(crate::models::CodexQuota {
+                    quota: Some(ccr_cli::models::CodexQuota {
                         hourly_percentage: 52,
                         hourly_reset_time: Some(
                             (Utc::now()
@@ -1488,8 +1492,10 @@ mod tests {
     #[test]
     fn weekly_cell_appends_reset_in_parentheses() {
         let account = sample_account();
-        let service =
-            crate::services::OpenCodeAuthService::from_dirs(PathBuf::from("."), PathBuf::from("."));
+        let service = ccr_cli::services::OpenCodeAuthService::from_dirs(
+            PathBuf::from("."),
+            PathBuf::from("."),
+        );
         let mut app = crate::tui::opencode_auth::app::OpenCodeAuthApp::from_service(service)
             .expect("test opencode auth app should initialize from injected service");
         app.accounts = vec![account.clone()];
@@ -1497,10 +1503,10 @@ mod tests {
         app.preview_cache.insert(
             "primary".to_string(),
             crate::tui::opencode_auth::app::QuotaPreviewEntry {
-                quota: crate::models::CodexAccountQuota {
+                quota: ccr_cli::models::CodexAccountQuota {
                     account_name: "primary".to_string(),
                     email: None,
-                    quota: Some(crate::models::CodexQuota {
+                    quota: Some(ccr_cli::models::CodexQuota {
                         hourly_percentage: 10,
                         hourly_reset_time: Some(
                             (Utc::now() + chrono::Duration::hours(1)).timestamp(),
@@ -1543,8 +1549,10 @@ mod tests {
 
     #[test]
     fn draw_usage_panel_shows_quota_and_provider_usage_together() {
-        let service =
-            crate::services::OpenCodeAuthService::from_dirs(PathBuf::from("."), PathBuf::from("."));
+        let service = ccr_cli::services::OpenCodeAuthService::from_dirs(
+            PathBuf::from("."),
+            PathBuf::from("."),
+        );
         let mut app = crate::tui::opencode_auth::app::OpenCodeAuthApp::from_service(service)
             .expect("test opencode auth app should initialize from injected service");
         app.accounts = vec![sample_account()];
@@ -1552,10 +1560,10 @@ mod tests {
         app.quota_state = QuotaState::Loaded {
             cache: IndexMap::from([(
                 "primary".to_string(),
-                crate::models::CodexAccountQuota {
+                ccr_cli::models::CodexAccountQuota {
                     account_name: "primary".to_string(),
                     email: Some("use***@example.com".to_string()),
-                    quota: Some(crate::models::CodexQuota {
+                    quota: Some(ccr_cli::models::CodexQuota {
                         hourly_percentage: 48,
                         hourly_reset_time: Some(
                             (Utc::now() + chrono::Duration::hours(3)).timestamp(),
@@ -1580,7 +1588,7 @@ mod tests {
             crate::tui::opencode_auth::app::OpenCodeUsageDataset {
                 provider_id: "openai".to_string(),
                 rolling: sample_usage_panel().rolling,
-                records: vec![crate::services::OpenCodeUsageRecord {
+                records: vec![ccr_cli::services::OpenCodeUsageRecord {
                     session_id: "ses-1".to_string(),
                     timestamp: Utc::now(),
                     input_tokens: 1200,
@@ -1610,8 +1618,10 @@ mod tests {
 
     #[test]
     fn draw_account_snapshot_panel_keeps_weekly_reset_visible() {
-        let service =
-            crate::services::OpenCodeAuthService::from_dirs(PathBuf::from("."), PathBuf::from("."));
+        let service = ccr_cli::services::OpenCodeAuthService::from_dirs(
+            PathBuf::from("."),
+            PathBuf::from("."),
+        );
         let mut app = crate::tui::opencode_auth::app::OpenCodeAuthApp::from_service(service)
             .expect("test opencode auth app should initialize from injected service");
         app.accounts = vec![sample_account()];
@@ -1619,10 +1629,10 @@ mod tests {
         app.preview_cache.insert(
             "primary".to_string(),
             crate::tui::opencode_auth::app::QuotaPreviewEntry {
-                quota: crate::models::CodexAccountQuota {
+                quota: ccr_cli::models::CodexAccountQuota {
                     account_name: "primary".to_string(),
                     email: Some("use***@example.com".to_string()),
-                    quota: Some(crate::models::CodexQuota {
+                    quota: Some(ccr_cli::models::CodexQuota {
                         hourly_percentage: 48,
                         hourly_reset_time: Some(
                             (Utc::now()

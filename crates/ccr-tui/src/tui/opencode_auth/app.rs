@@ -1,14 +1,6 @@
 // OpenCode Auth TUI application state machine
 // Manages manual save/switch/delete for OpenCode openai auth snapshots
 
-use crate::models::{
-    CodexAccountQuota, CodexToOpenCodeMigrationReport, OpenCodeAuthItem, OpenCodeAuthRegistry,
-    OpenCodeLoginState, OpenCodeReadSnapshot,
-};
-use crate::services::{
-    OpenCodeAuthService, OpenCodeQuotaService, OpenCodeRollingUsage, OpenCodeUsageRecord,
-    OpenCodeUsageService,
-};
 use crate::tui::auth_refresh::{RefreshReason, RefreshSchedulerState, RefreshTask, RefreshTier};
 use crate::tui::overlay::Overlay;
 use crate::tui::pagination::{
@@ -16,6 +8,14 @@ use crate::tui::pagination::{
 };
 use crate::tui::runtime::{AsyncTaskExecutor, TuiApp};
 use crate::tui::toast::{Toast, ToastManager};
+use ccr_cli::models::{
+    CodexAccountQuota, CodexToOpenCodeMigrationReport, OpenCodeAuthItem, OpenCodeAuthRegistry,
+    OpenCodeLoginState, OpenCodeReadSnapshot,
+};
+use ccr_cli::services::{
+    OpenCodeAuthService, OpenCodeQuotaService, OpenCodeRollingUsage, OpenCodeUsageRecord,
+    OpenCodeUsageService,
+};
 use ccr_core::core::error::Result;
 use chrono::Utc;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
@@ -1402,13 +1402,13 @@ mod tests {
     fn write_codex_source_account(codex_ccr_dir: &Path, name: &str, account_id: &str) {
         std::fs::create_dir_all(codex_ccr_dir.join("auth")).unwrap();
 
-        let mut registry = crate::models::CodexAuthRegistry::default();
+        let mut registry = ccr_cli::models::CodexAuthRegistry::default();
         registry.accounts.insert(
             name.to_string(),
-            crate::models::CodexAuthAccount {
+            ccr_cli::models::CodexAuthAccount {
                 description: None,
                 account_id: account_id.to_string(),
-                auth_method: Some(crate::models::OpenAiAuthMethod::Chatgpt),
+                auth_method: Some(ccr_cli::models::OpenAiAuthMethod::Chatgpt),
                 api_base_url: None,
                 api_provider_name: None,
                 email: None,
@@ -1425,9 +1425,9 @@ mod tests {
         )
         .unwrap();
 
-        let snapshot = crate::models::CodexAuthJson {
+        let snapshot = ccr_cli::models::CodexAuthJson {
             openai_api_key: None,
-            tokens: Some(crate::models::CodexAuthTokens {
+            tokens: Some(ccr_cli::models::CodexAuthTokens {
                 id_token: Some(format!(
                     "{}.{}.signature",
                     URL_SAFE_NO_PAD.encode(r#"{"alg":"none","typ":"JWT"}"#),

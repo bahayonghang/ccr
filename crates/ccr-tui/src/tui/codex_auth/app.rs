@@ -1,17 +1,17 @@
 // Codex Auth TUI application state machine
 // Manages the Codex multi-account selector state
 
-use crate::models::{
-    CodexAccountQuota, CodexAuthItem, CodexAuthRegistry, CodexRuntimeSummary, LoginState,
-};
-use crate::services::AuthReadSnapshot;
-use crate::services::{
-    CodexAuthService, CodexQuotaService, CodexRollingUsage, CodexUsageRecord, CodexUsageService,
-};
 use crate::tui::auth_refresh::{RefreshReason, RefreshSchedulerState, RefreshTask, RefreshTier};
 use crate::tui::overlay::Overlay;
 use crate::tui::pagination::{
     DEFAULT_PAGE_SIZE, index_in_page, page_for_index, page_slice, total_pages,
+};
+use ccr_cli::models::{
+    CodexAccountQuota, CodexAuthItem, CodexAuthRegistry, CodexRuntimeSummary, LoginState,
+};
+use ccr_cli::services::AuthReadSnapshot;
+use ccr_cli::services::{
+    CodexAuthService, CodexQuotaService, CodexRollingUsage, CodexUsageRecord, CodexUsageService,
 };
 use ccr_core::core::error::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
@@ -643,7 +643,7 @@ impl CodexAuthApp {
     fn records_for_account(
         records: &[CodexUsageRecord],
         account_id: &str,
-        ledger: &[crate::models::CodexUsageActivation],
+        ledger: &[ccr_cli::models::CodexUsageActivation],
     ) -> Vec<CodexUsageRecord> {
         if ledger.is_empty() {
             return Vec::new();
@@ -910,7 +910,7 @@ impl CodexAuthApp {
                         return Ok(false);
                     }
 
-                    match crate::services::CodexOAuthTokenService::new() {
+                    match ccr_cli::services::CodexOAuthTokenService::new() {
                         Ok(oauth) => match oauth.repair_saved_account(&account.name) {
                             Ok(outcome) => {
                                 if outcome.updated {
@@ -1578,7 +1578,7 @@ mod tests {
         };
         registry.accounts.insert(
             name.to_string(),
-            crate::models::CodexAuthAccount {
+            ccr_cli::models::CodexAuthAccount {
                 description: None,
                 account_id: account_id.to_string(),
                 auth_method: None,
@@ -1610,21 +1610,21 @@ mod tests {
         );
 
         let records = vec![
-            crate::services::CodexUsageRecord {
+            ccr_cli::services::CodexUsageRecord {
                 session_id: "before".to_string(),
                 timestamp: Utc.with_ymd_and_hms(2026, 4, 13, 9, 30, 0).unwrap(),
                 input_tokens: 10,
                 output_tokens: 5,
                 model: Some("gpt-5.4".to_string()),
             },
-            crate::services::CodexUsageRecord {
+            ccr_cli::services::CodexUsageRecord {
                 session_id: "during".to_string(),
                 timestamp: Utc.with_ymd_and_hms(2026, 4, 13, 11, 0, 0).unwrap(),
                 input_tokens: 20,
                 output_tokens: 10,
                 model: Some("gpt-5.4".to_string()),
             },
-            crate::services::CodexUsageRecord {
+            ccr_cli::services::CodexUsageRecord {
                 session_id: "after".to_string(),
                 timestamp: Utc.with_ymd_and_hms(2026, 4, 13, 12, 30, 0).unwrap(),
                 input_tokens: 30,
@@ -1645,7 +1645,7 @@ mod tests {
         let selected = sample_saved_account("qq_pro", "acc-qq");
         let registry = registry_with_account("qq_pro", "acc-qq");
         let now = Utc::now();
-        let records = vec![crate::services::CodexUsageRecord {
+        let records = vec![ccr_cli::services::CodexUsageRecord {
             session_id: "global-only".to_string(),
             timestamp: now - Duration::minutes(30),
             input_tokens: 120,
@@ -1653,7 +1653,9 @@ mod tests {
             model: Some("gpt-5.4".to_string()),
         }];
         let dataset = CodexUsageDataset {
-            global: crate::services::CodexUsageService::compute_rolling_usage_for_records(&records),
+            global: ccr_cli::services::CodexUsageService::compute_rolling_usage_for_records(
+                &records,
+            ),
             records,
         };
 
@@ -1673,7 +1675,7 @@ mod tests {
         let mut registry = registry_with_account("qq_pro", "acc-qq");
         registry.accounts.insert(
             "other".to_string(),
-            crate::models::CodexAuthAccount {
+            ccr_cli::models::CodexAuthAccount {
                 description: None,
                 account_id: "acc-other".to_string(),
                 auth_method: None,
@@ -1699,14 +1701,14 @@ mod tests {
         );
 
         let records = vec![
-            crate::services::CodexUsageRecord {
+            ccr_cli::services::CodexUsageRecord {
                 session_id: "qq-pro".to_string(),
                 timestamp: Utc.with_ymd_and_hms(2026, 4, 13, 11, 0, 0).unwrap(),
                 input_tokens: 200,
                 output_tokens: 40,
                 model: Some("gpt-5.4".to_string()),
             },
-            crate::services::CodexUsageRecord {
+            ccr_cli::services::CodexUsageRecord {
                 session_id: "other".to_string(),
                 timestamp: Utc.with_ymd_and_hms(2026, 4, 13, 12, 30, 0).unwrap(),
                 input_tokens: 500,
@@ -1715,7 +1717,9 @@ mod tests {
             },
         ];
         let dataset = CodexUsageDataset {
-            global: crate::services::CodexUsageService::compute_rolling_usage_for_records(&records),
+            global: ccr_cli::services::CodexUsageService::compute_rolling_usage_for_records(
+                &records,
+            ),
             records,
         };
 

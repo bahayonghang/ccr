@@ -5,10 +5,10 @@ use super::app::{
     CodexAuthApp, CodexAuthUsagePanelData, CodexUsageAttributionState, CodexUsageScope,
     PreviewMetricWindow, QuotaPreviewCellState, QuotaState, UsageState,
 };
-use crate::services::{CodexQuotaService, CodexUsageService};
 use crate::tui::overlay::{Overlay, render_overlay};
 use crate::tui::theme;
 use crate::tui::toast::ToastKind;
+use ccr_cli::services::{CodexQuotaService, CodexUsageService};
 use chrono::Local;
 use ratatui::{
     Frame,
@@ -53,14 +53,16 @@ pub fn draw(f: &mut Frame, app: &mut CodexAuthApp) {
 /// Draw title bar
 fn draw_title(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
     let login_status = match &app.login_state {
-        crate::models::LoginState::NotLoggedIn => "未登录".to_string(),
-        crate::models::LoginState::LoggedInUnsaved => "已登录 (未保存)".to_string(),
-        crate::models::LoginState::LoggedInSaved(name) => format!("已登录: {}", name),
-        crate::models::LoginState::ApiKeyActive => "API Key 模式".to_string(),
-        crate::models::LoginState::ProviderKeyActive { env_key } => {
+        ccr_cli::models::LoginState::NotLoggedIn => "未登录".to_string(),
+        ccr_cli::models::LoginState::LoggedInUnsaved => "已登录 (未保存)".to_string(),
+        ccr_cli::models::LoginState::LoggedInSaved(name) => format!("已登录: {}", name),
+        ccr_cli::models::LoginState::ApiKeyActive => "API Key 模式".to_string(),
+        ccr_cli::models::LoginState::ProviderKeyActive { env_key } => {
             format!("Provider Key: {}", env_key)
         }
-        crate::models::LoginState::Unknown { type_name, .. } => format!("未知状态: {}", type_name),
+        ccr_cli::models::LoginState::Unknown { type_name, .. } => {
+            format!("未知状态: {}", type_name)
+        }
     };
 
     let title = Paragraph::new(vec![Line::from(vec![
@@ -130,7 +132,7 @@ impl AccountTableLayout {
             .unwrap_or(0)
     }
 
-    fn account_name_width(&self, account: &crate::models::CodexAuthItem) -> usize {
+    fn account_name_width(&self, account: &ccr_cli::models::CodexAuthItem) -> usize {
         let reserved = if account.is_virtual { 2 } else { 0 };
         self.text_width(AccountColumn::Account)
             .saturating_sub(reserved)
@@ -224,7 +226,7 @@ fn normalize_plan_display(plan: &str) -> Option<String> {
 
 fn quota_plan_for_account(
     app: &CodexAuthApp,
-    account: &crate::models::CodexAuthItem,
+    account: &ccr_cli::models::CodexAuthItem,
 ) -> Option<String> {
     let selected_quota = app
         .selected_account()
@@ -246,7 +248,7 @@ fn quota_plan_for_account(
 
 fn account_property_display(
     app: &CodexAuthApp,
-    account: &crate::models::CodexAuthItem,
+    account: &ccr_cli::models::CodexAuthItem,
 ) -> (String, Style) {
     if let Some(plan) = quota_plan_for_account(app, account) {
         return (plan, theme::info_style());
@@ -262,10 +264,10 @@ fn account_property_display(
     let registry_account = app.auth_registry.accounts.get(&account.name);
 
     match registry_account.and_then(|entry| entry.auth_method) {
-        Some(crate::models::OpenAiAuthMethod::Chatgpt) => {
+        Some(ccr_cli::models::OpenAiAuthMethod::Chatgpt) => {
             ("CHATGPT".to_string(), theme::info_style())
         }
-        Some(crate::models::OpenAiAuthMethod::Api) => ("API".to_string(), theme::muted_style()),
+        Some(ccr_cli::models::OpenAiAuthMethod::Api) => ("API".to_string(), theme::muted_style()),
         None if registry_account
             .and_then(|entry| entry.api_provider_name.as_deref())
             .map(str::trim)
@@ -509,7 +511,7 @@ fn account_header_cell(column: &AccountColumn) -> Cell<'static> {
 }
 
 fn account_cell(
-    account: &crate::models::CodexAuthItem,
+    account: &ccr_cli::models::CodexAuthItem,
     app: &CodexAuthApp,
     column: AccountColumn,
     layout: &AccountTableLayout,
@@ -731,37 +733,39 @@ fn truncate_text(value: &str, max_width: usize) -> String {
 
 fn login_status_text(app: &CodexAuthApp) -> String {
     match &app.login_state {
-        crate::models::LoginState::NotLoggedIn => "未登录".to_string(),
-        crate::models::LoginState::LoggedInUnsaved => "已登录 (未保存)".to_string(),
-        crate::models::LoginState::LoggedInSaved(name) => format!("已登录: {}", name),
-        crate::models::LoginState::ApiKeyActive => "API Key 模式".to_string(),
-        crate::models::LoginState::ProviderKeyActive { env_key } => {
+        ccr_cli::models::LoginState::NotLoggedIn => "未登录".to_string(),
+        ccr_cli::models::LoginState::LoggedInUnsaved => "已登录 (未保存)".to_string(),
+        ccr_cli::models::LoginState::LoggedInSaved(name) => format!("已登录: {}", name),
+        ccr_cli::models::LoginState::ApiKeyActive => "API Key 模式".to_string(),
+        ccr_cli::models::LoginState::ProviderKeyActive { env_key } => {
             format!("Provider Key: {}", env_key)
         }
-        crate::models::LoginState::Unknown { type_name, .. } => format!("未知状态: {}", type_name),
+        ccr_cli::models::LoginState::Unknown { type_name, .. } => {
+            format!("未知状态: {}", type_name)
+        }
     }
 }
 
-fn login_status_style(login_state: &crate::models::LoginState) -> Style {
+fn login_status_style(login_state: &ccr_cli::models::LoginState) -> Style {
     match login_state {
-        crate::models::LoginState::NotLoggedIn | crate::models::LoginState::Unknown { .. } => {
+        ccr_cli::models::LoginState::NotLoggedIn | ccr_cli::models::LoginState::Unknown { .. } => {
             theme::error_style()
         }
-        crate::models::LoginState::LoggedInUnsaved => theme::warning_style(),
-        crate::models::LoginState::LoggedInSaved(_) => theme::success_style(),
-        crate::models::LoginState::ApiKeyActive
-        | crate::models::LoginState::ProviderKeyActive { .. } => theme::info_style(),
+        ccr_cli::models::LoginState::LoggedInUnsaved => theme::warning_style(),
+        ccr_cli::models::LoginState::LoggedInSaved(_) => theme::success_style(),
+        ccr_cli::models::LoginState::ApiKeyActive
+        | ccr_cli::models::LoginState::ProviderKeyActive { .. } => theme::info_style(),
     }
 }
 
-fn format_saved_at(account: &crate::models::CodexAuthItem) -> String {
+fn format_saved_at(account: &ccr_cli::models::CodexAuthItem) -> String {
     account
         .saved_at
         .map(|ts| ts.with_timezone(&Local).format("%Y-%m-%d").to_string())
         .unwrap_or_else(|| "-".to_string())
 }
 
-fn format_expires_at(account: &crate::models::CodexAuthItem) -> (String, Style) {
+fn format_expires_at(account: &ccr_cli::models::CodexAuthItem) -> (String, Style) {
     match account.last_refresh {
         Some(ts) => {
             let text = ts.with_timezone(&Local).format("%Y-%m-%d").to_string();
@@ -1022,7 +1026,7 @@ fn progress_bar(pct: i32, width: usize) -> String {
 
 fn account_snapshot_lines(
     app: &CodexAuthApp,
-    account: &crate::models::CodexAuthItem,
+    account: &ccr_cli::models::CodexAuthItem,
 ) -> Vec<Line<'static>> {
     let account_style = if account.is_current {
         theme::success_style()
@@ -1361,8 +1365,8 @@ mod tests {
     use ratatui::{Terminal, backend::TestBackend};
     use std::path::PathBuf;
 
-    fn sample_account() -> crate::models::CodexAuthItem {
-        crate::models::CodexAuthItem {
+    fn sample_account() -> ccr_cli::models::CodexAuthItem {
+        ccr_cli::models::CodexAuthItem {
             name: "codexcn".to_string(),
             description: Some("Primary account".to_string()),
             email: Some("bah***@gmail.com".to_string()),
@@ -1375,16 +1379,16 @@ mod tests {
         }
     }
 
-    fn sample_account_without_plan() -> crate::models::CodexAuthItem {
+    fn sample_account_without_plan() -> ccr_cli::models::CodexAuthItem {
         let mut account = sample_account();
         account.plan_type = None;
         account
     }
 
     fn sample_registry_account(
-        auth_method: Option<crate::models::OpenAiAuthMethod>,
-    ) -> crate::models::CodexAuthAccount {
-        crate::models::CodexAuthAccount {
+        auth_method: Option<ccr_cli::models::OpenAiAuthMethod>,
+    ) -> ccr_cli::models::CodexAuthAccount {
+        ccr_cli::models::CodexAuthAccount {
             description: Some("Primary account".to_string()),
             account_id: "acc-codexcn".to_string(),
             auth_method,
@@ -1488,7 +1492,7 @@ mod tests {
     #[test]
     fn account_snapshot_lines_show_identity_and_refresh_metadata() {
         let service =
-            crate::services::CodexAuthService::from_dirs(PathBuf::from("."), PathBuf::from("."));
+            ccr_cli::services::CodexAuthService::from_dirs(PathBuf::from("."), PathBuf::from("."));
         let mut app = crate::tui::codex_auth::app::CodexAuthApp::from_service(service)
             .expect("test codex auth app should initialize from injected service");
         app.accounts = vec![sample_account()];
@@ -1496,10 +1500,10 @@ mod tests {
         app.preview_cache.insert(
             "codexcn".to_string(),
             crate::tui::codex_auth::app::QuotaPreviewEntry {
-                quota: crate::models::CodexAccountQuota {
+                quota: ccr_cli::models::CodexAccountQuota {
                     account_name: "codexcn".to_string(),
                     email: Some("bah***@gmail.com".to_string()),
-                    quota: Some(crate::models::CodexQuota {
+                    quota: Some(ccr_cli::models::CodexQuota {
                         hourly_percentage: 95,
                         hourly_reset_time: Some(
                             (Utc::now()
@@ -1550,7 +1554,7 @@ mod tests {
     #[test]
     fn account_snapshot_lines_prefer_quota_plan_when_account_plan_missing() {
         let service =
-            crate::services::CodexAuthService::from_dirs(PathBuf::from("."), PathBuf::from("."));
+            ccr_cli::services::CodexAuthService::from_dirs(PathBuf::from("."), PathBuf::from("."));
         let mut app = crate::tui::codex_auth::app::CodexAuthApp::from_service(service)
             .expect("test codex auth app should initialize from injected service");
         let account = sample_account_without_plan();
@@ -1559,10 +1563,10 @@ mod tests {
         app.preview_cache.insert(
             "codexcn".to_string(),
             crate::tui::codex_auth::app::QuotaPreviewEntry {
-                quota: crate::models::CodexAccountQuota {
+                quota: ccr_cli::models::CodexAccountQuota {
                     account_name: "codexcn".to_string(),
                     email: Some("bah***@gmail.com".to_string()),
-                    quota: Some(crate::models::CodexQuota {
+                    quota: Some(ccr_cli::models::CodexQuota {
                         hourly_percentage: 88,
                         hourly_reset_time: Some(
                             (Utc::now() + chrono::Duration::hours(4)).timestamp(),
@@ -1592,7 +1596,7 @@ mod tests {
     #[test]
     fn plan_column_falls_back_to_auth_property_when_plan_missing() {
         let service =
-            crate::services::CodexAuthService::from_dirs(PathBuf::from("."), PathBuf::from("."));
+            ccr_cli::services::CodexAuthService::from_dirs(PathBuf::from("."), PathBuf::from("."));
         let mut app = crate::tui::codex_auth::app::CodexAuthApp::from_service(service)
             .expect("test codex auth app should initialize from injected service");
         let account = sample_account_without_plan();
@@ -1600,7 +1604,7 @@ mod tests {
         app.selected_index = 0;
         app.auth_registry.accounts.insert(
             account.name.clone(),
-            sample_registry_account(Some(crate::models::OpenAiAuthMethod::Chatgpt)),
+            sample_registry_account(Some(ccr_cli::models::OpenAiAuthMethod::Chatgpt)),
         );
 
         let layout = account_table_layout(108);
@@ -1620,7 +1624,7 @@ mod tests {
     #[test]
     fn plan_column_prefers_quota_plan_over_auth_property() {
         let service =
-            crate::services::CodexAuthService::from_dirs(PathBuf::from("."), PathBuf::from("."));
+            ccr_cli::services::CodexAuthService::from_dirs(PathBuf::from("."), PathBuf::from("."));
         let mut app = crate::tui::codex_auth::app::CodexAuthApp::from_service(service)
             .expect("test codex auth app should initialize from injected service");
         let account = sample_account_without_plan();
@@ -1628,15 +1632,15 @@ mod tests {
         app.selected_index = 0;
         app.auth_registry.accounts.insert(
             account.name.clone(),
-            sample_registry_account(Some(crate::models::OpenAiAuthMethod::Chatgpt)),
+            sample_registry_account(Some(ccr_cli::models::OpenAiAuthMethod::Chatgpt)),
         );
         app.preview_cache.insert(
             account.name.clone(),
             crate::tui::codex_auth::app::QuotaPreviewEntry {
-                quota: crate::models::CodexAccountQuota {
+                quota: ccr_cli::models::CodexAccountQuota {
                     account_name: account.name.clone(),
                     email: account.email.clone(),
-                    quota: Some(crate::models::CodexQuota {
+                    quota: Some(ccr_cli::models::CodexQuota {
                         hourly_percentage: 92,
                         hourly_reset_time: Some(
                             (Utc::now() + chrono::Duration::hours(2)).timestamp(),
@@ -1669,7 +1673,7 @@ mod tests {
         let mut terminal = Terminal::new(TestBackend::new(60, 1)).unwrap();
         let account = sample_account();
         let service =
-            crate::services::CodexAuthService::from_dirs(PathBuf::from("."), PathBuf::from("."));
+            ccr_cli::services::CodexAuthService::from_dirs(PathBuf::from("."), PathBuf::from("."));
         let mut app = crate::tui::codex_auth::app::CodexAuthApp::from_service(service)
             .expect("test codex auth app should initialize from injected service");
         app.accounts = vec![account.clone()];
@@ -1677,10 +1681,10 @@ mod tests {
         app.preview_cache.insert(
             "codexcn".to_string(),
             crate::tui::codex_auth::app::QuotaPreviewEntry {
-                quota: crate::models::CodexAccountQuota {
+                quota: ccr_cli::models::CodexAccountQuota {
                     account_name: "codexcn".to_string(),
                     email: None,
-                    quota: Some(crate::models::CodexQuota {
+                    quota: Some(ccr_cli::models::CodexQuota {
                         hourly_percentage: 95,
                         hourly_reset_time: Some(
                             (Utc::now()
@@ -1736,7 +1740,7 @@ mod tests {
     fn hourly_cell_appends_reset_in_parentheses() {
         let account = sample_account();
         let service =
-            crate::services::CodexAuthService::from_dirs(PathBuf::from("."), PathBuf::from("."));
+            ccr_cli::services::CodexAuthService::from_dirs(PathBuf::from("."), PathBuf::from("."));
         let mut app = crate::tui::codex_auth::app::CodexAuthApp::from_service(service)
             .expect("test codex auth app should initialize from injected service");
         app.accounts = vec![account.clone()];
@@ -1744,10 +1748,10 @@ mod tests {
         app.preview_cache.insert(
             "codexcn".to_string(),
             crate::tui::codex_auth::app::QuotaPreviewEntry {
-                quota: crate::models::CodexAccountQuota {
+                quota: ccr_cli::models::CodexAccountQuota {
                     account_name: "codexcn".to_string(),
                     email: None,
-                    quota: Some(crate::models::CodexQuota {
+                    quota: Some(ccr_cli::models::CodexQuota {
                         hourly_percentage: 52,
                         hourly_reset_time: Some(
                             (Utc::now()
@@ -1792,7 +1796,7 @@ mod tests {
     fn weekly_cell_appends_reset_in_parentheses() {
         let account = sample_account();
         let service =
-            crate::services::CodexAuthService::from_dirs(PathBuf::from("."), PathBuf::from("."));
+            ccr_cli::services::CodexAuthService::from_dirs(PathBuf::from("."), PathBuf::from("."));
         let mut app = crate::tui::codex_auth::app::CodexAuthApp::from_service(service)
             .expect("test codex auth app should initialize from injected service");
         app.accounts = vec![account.clone()];
@@ -1800,10 +1804,10 @@ mod tests {
         app.preview_cache.insert(
             "codexcn".to_string(),
             crate::tui::codex_auth::app::QuotaPreviewEntry {
-                quota: crate::models::CodexAccountQuota {
+                quota: ccr_cli::models::CodexAccountQuota {
                     account_name: "codexcn".to_string(),
                     email: None,
-                    quota: Some(crate::models::CodexQuota {
+                    quota: Some(ccr_cli::models::CodexQuota {
                         hourly_percentage: 10,
                         hourly_reset_time: Some(
                             (Utc::now() + chrono::Duration::hours(1)).timestamp(),
@@ -1844,7 +1848,7 @@ mod tests {
     #[test]
     fn draw_account_snapshot_panel_keeps_weekly_reset_visible() {
         let service =
-            crate::services::CodexAuthService::from_dirs(PathBuf::from("."), PathBuf::from("."));
+            ccr_cli::services::CodexAuthService::from_dirs(PathBuf::from("."), PathBuf::from("."));
         let mut app = crate::tui::codex_auth::app::CodexAuthApp::from_service(service)
             .expect("test codex auth app should initialize from injected service");
         app.accounts = vec![sample_account()];
@@ -1852,10 +1856,10 @@ mod tests {
         app.preview_cache.insert(
             "codexcn".to_string(),
             crate::tui::codex_auth::app::QuotaPreviewEntry {
-                quota: crate::models::CodexAccountQuota {
+                quota: ccr_cli::models::CodexAccountQuota {
                     account_name: "codexcn".to_string(),
                     email: Some("bah***@gmail.com".to_string()),
-                    quota: Some(crate::models::CodexQuota {
+                    quota: Some(ccr_cli::models::CodexQuota {
                         hourly_percentage: 95,
                         hourly_reset_time: Some(
                             (Utc::now()
@@ -1897,7 +1901,7 @@ mod tests {
 
     #[test]
     fn usage_digest_lines_include_all_time_and_top_model() {
-        let mut usage = crate::services::CodexRollingUsage::default();
+        let mut usage = ccr_cli::services::CodexRollingUsage::default();
         usage.five_hour.total_input_tokens = 1_000;
         usage.five_hour.total_output_tokens = 2_000;
         usage.five_hour.total_requests = 3;
@@ -1937,7 +1941,7 @@ mod tests {
     #[test]
     fn draw_usage_panel_keeps_quota_and_local_attribution_note() {
         let service =
-            crate::services::CodexAuthService::from_dirs(PathBuf::from("."), PathBuf::from("."));
+            ccr_cli::services::CodexAuthService::from_dirs(PathBuf::from("."), PathBuf::from("."));
         let mut app = crate::tui::codex_auth::app::CodexAuthApp::from_service(service)
             .expect("test codex auth app should initialize from injected service");
         app.accounts = vec![sample_account()];
@@ -1945,10 +1949,10 @@ mod tests {
         app.quota_state = QuotaState::Loaded {
             cache: indexmap::IndexMap::from([(
                 "codexcn".to_string(),
-                crate::models::CodexAccountQuota {
+                ccr_cli::models::CodexAccountQuota {
                     account_name: "codexcn".to_string(),
                     email: Some("bah***@gmail.com".to_string()),
-                    quota: Some(crate::models::CodexQuota {
+                    quota: Some(ccr_cli::models::CodexQuota {
                         hourly_percentage: 52,
                         hourly_reset_time: Some(
                             (Utc::now() + chrono::Duration::hours(3)).timestamp(),
@@ -1970,8 +1974,8 @@ mod tests {
             )]),
         };
         app.usage_state = UsageState::Loaded(crate::tui::codex_auth::app::CodexUsageDataset {
-            global: crate::services::CodexUsageService::compute_rolling_usage_for_records(&[
-                crate::services::CodexUsageRecord {
+            global: ccr_cli::services::CodexUsageService::compute_rolling_usage_for_records(&[
+                ccr_cli::services::CodexUsageRecord {
                     session_id: "global-only".to_string(),
                     timestamp: Utc::now(),
                     input_tokens: 1200,
@@ -1979,7 +1983,7 @@ mod tests {
                     model: Some("gpt-5.4".to_string()),
                 },
             ]),
-            records: vec![crate::services::CodexUsageRecord {
+            records: vec![ccr_cli::services::CodexUsageRecord {
                 session_id: "global-only".to_string(),
                 timestamp: Utc::now(),
                 input_tokens: 1200,

@@ -8,7 +8,7 @@ use super::opencode_auth;
 use super::theme;
 use super::toast::ToastKind;
 use super::usage;
-use crate::models::{CodexRuntimeSummary, OpenAiAuthMethod, Platform, ProfileConfig};
+use ccr_cli::models::{CodexRuntimeSummary, OpenAiAuthMethod, Platform, ProfileConfig};
 use ccr_codex::CodexPlatform;
 use ratatui::{
     Frame,
@@ -199,13 +199,13 @@ fn render_codex_runtime_banner(
     f.render_widget(banner, area);
 }
 
-fn runtime_mode_style(mode: crate::models::CodexRuntimeMode) -> Style {
+fn runtime_mode_style(mode: ccr_cli::models::CodexRuntimeMode) -> Style {
     match mode {
-        crate::models::CodexRuntimeMode::ProfileOnly => theme::success_style(),
-        crate::models::CodexRuntimeMode::ProfileWithAuth
-        | crate::models::CodexRuntimeMode::ProfilePendingAuth => theme::warning_style(),
-        crate::models::CodexRuntimeMode::RuntimeOnly => theme::secondary_text_emphasis_style(),
-        crate::models::CodexRuntimeMode::Unresolved => theme::muted_style(),
+        ccr_cli::models::CodexRuntimeMode::ProfileOnly => theme::success_style(),
+        ccr_cli::models::CodexRuntimeMode::ProfileWithAuth
+        | ccr_cli::models::CodexRuntimeMode::ProfilePendingAuth => theme::warning_style(),
+        ccr_cli::models::CodexRuntimeMode::RuntimeOnly => theme::secondary_text_emphasis_style(),
+        ccr_cli::models::CodexRuntimeMode::Unresolved => theme::muted_style(),
     }
 }
 
@@ -864,10 +864,10 @@ fn claude_profile_detail_lines(
     config: &ProfileConfig,
     is_current: bool,
 ) -> Vec<Line<'static>> {
-    let auth_mode = crate::platforms::ClaudePlatform::profile_auth_mode(config);
+    let auth_mode = ccr_cli::platforms::ClaudePlatform::profile_auth_mode(config);
     let provider_type = opt_text(config.provider_type.as_deref());
     let provider = opt_text(config.provider.as_deref());
-    let token_state = if matches!(auth_mode, crate::models::ClaudeProfileAuthMode::ApiKey) {
+    let token_state = if matches!(auth_mode, ccr_cli::models::ClaudeProfileAuthMode::ApiKey) {
         if config
             .auth_token
             .as_ref()
@@ -898,7 +898,7 @@ fn claude_profile_detail_lines(
         detail_line("auth_mode", auth_mode.as_str().to_string()),
         detail_line(
             "auth_source",
-            crate::platforms::ClaudePlatform::profile_auth_source(config),
+            ccr_cli::platforms::ClaudePlatform::profile_auth_source(config),
         ),
         detail_line("token", token_state),
     ];
