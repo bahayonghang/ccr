@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/ccr/backend/tauri-handler-registry.md", "reason": "验收跑 commands::handler_registry 计数测试，确认 309/317 未变"}
+{"file": ".trellis/spec/ccr-ui/frontend/api-facade-boundary.md", "reason": "验收跑 api-facade-boundary.smoke + type-check + lint；生成物守卫独立性检查"}
+{"file": ".trellis/tasks/07-03-arch-typed-ipc/prd.md", "reason": "6 条 AC 逐项核验（Value 清零/UnknownRecord 清零/无 app 单测/漂移守卫/门禁/推广决策记录）"}
+{"file": ".trellis/tasks/07-03-arch-typed-ipc/design.md", "reason": "检查实现与设计一致：wire 不变论断、TS_RS_LARGE_INT、同名类型不冲突导出"}

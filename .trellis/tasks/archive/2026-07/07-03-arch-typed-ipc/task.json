@@ -3,7 +3,7 @@
   "name": "arch-typed-ipc",
   "title": "Tauri IPC seam 类型化",
   "description": "244/312 命令返回 Result<Value,String>，IPC 往返零测试。用 specta/ts-rs 生成共享 DTO 使 Rust↔TS 漂移变编译错误；命令体下沉为 State-free service 函数以便无 Tauri app 单测。先从单个 domain（usage 或 codex）试点。api-facade-boundary.md 已预告 generated typed client。审查候选 4（Worth exploring）。",
-  "status": "planning",
+  "status": "completed",
   "dev_type": null,
   "scope": null,
   "package": null,
@@ -11,7 +11,7 @@
   "creator": "lyh",
   "assignee": "lyh",
   "createdAt": "2026-07-03",
-  "completedAt": null,
+  "completedAt": "2026-07-05",
   "branch": null,
   "base_branch": "dev",
   "worktree_path": null,
@@ -21,6 +21,6 @@
   "children": [],
   "parent": "07-03-arch-deepening",
   "relatedFiles": [],
-  "notes": "",
+  "notes": "推广决策：按域分批推广（见 research/promotion-evaluation.md）；重叠盘点见 research/usage-family-overlap.md；契约沉淀 .trellis/spec/ccr/backend/typed-ipc-bindings.md",
   "meta": {}
 }

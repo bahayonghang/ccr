@@ -1,0 +1,6 @@
+{"file": ".trellis/spec/ccr/backend/tauri-handler-registry.md", "reason": "命令注册与计数冻结契约：本任务零增删命令，309/317 不得漂移"}
+{"file": ".trellis/spec/ccr-ui/frontend/api-facade-boundary.md", "reason": "tauri.ts 冻结/domains/* 归属/生成客户端漂移检查须独立于手工门面守卫"}
+{"file": ".trellis/spec/ccr/backend/llmusage-provider-adapter.md", "reason": "ccr-usage 拥有投影、upstream 只走 CLI+只读 SQLite；加 ts feature 不得破坏该边界"}
+{"file": ".trellis/spec/ccr/backend/dependency-governance.md", "reason": "ccr-usage 新增 optional ts-rs 依赖需符合依赖治理约束"}
+{"file": ".trellis/tasks/07-03-arch-typed-ipc/design.md", "reason": "选型对比、17 命令返回类型对照表、分层归属、守卫接线设计"}
+{"file": ".trellis/tasks/07-03-arch-typed-ipc/implement.md", "reason": "8 阶段执行清单与各阶段验证命令"}
