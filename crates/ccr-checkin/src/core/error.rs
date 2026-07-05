@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-pub use ccr_db::core::error::{DbError, ExecutorError, MigrationError};
+pub use ccr_db::core::error::{DbError, MigrationError};
 
 /// 签到服务错误
 #[derive(Debug, Error)]
