@@ -5,11 +5,13 @@
 ## Scenario: domain command registry for Tauri invoke handlers
 
 ### 1. Scope / Trigger
+
 - Trigger: adding, moving, renaming, or removing a Tauri `#[tauri::command]` function.
 - Applies to `ccr-ui/src-tauri/src/commands/mod.rs` and `ccr-ui/src-tauri/src/commands/handler_registry.rs`.
 - Goal: keep `commands::mod` as module wiring only, and keep invoke handler growth inside a domain-shaped registry with metadata and tests.
 
 ### 2. Signatures
+
 - Public handler entry:
   ```rust
   pub use handler_registry::generate_handler;
@@ -28,14 +30,16 @@
   ```
 
 ### 3. Contracts
+
 - `commands::mod` owns only submodule declarations plus `pub use handler_registry::generate_handler`.
 - Base commands live in `COMMAND_MODULES` through `define_command_registry!`.
 - Windows-only WSL commands live in `WINDOWS_COMMAND_MODULES` and the Windows `generate_handler()` arm.
 - Each command path must appear once; duplicate command paths fail `command_registry_paths_are_unique`.
 - Registry metadata must remain non-empty and domain-keyed; empty module keys, titles, or command lists are invalid.
-- Count assertions intentionally freeze the current handler surface: 309 base commands and 317 commands on Windows.
+- Count assertions intentionally freeze the current handler surface: 312 base commands and 320 commands on Windows.
 
 ### 4. Validation & Error Matrix
+
 - New command added outside `handler_registry.rs` -> reject in review.
 - Duplicate command path -> `command_registry_paths_are_unique` fails.
 - Empty domain module metadata -> `command_registry_modules_are_well_formed` fails.
@@ -43,12 +47,14 @@
 - Removing `generate_handler` re-export from `commands::mod` -> desktop `main.rs` check fails.
 
 ### 5. Good / Base / Bad Cases
+
 - Good: add a new Codex command under the existing `codex` registry group and update the command count test.
 - Base: move no commands; only maintain module declarations in `commands::mod`.
 - Bad: reintroduce a long `tauri::generate_handler![...]` list directly in `commands::mod`.
 - Bad: add a Windows-only command to the base registry instead of the Windows module list.
 
 ### 6. Tests Required
+
 - Run `cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml commands::handler_registry -- --nocapture`.
 - Run `cargo check --manifest-path ccr-ui/src-tauri/Cargo.toml --bin ccr-desktop`.
 - Run `git diff --check`.
@@ -57,6 +63,7 @@
 ### 7. Wrong vs Correct
 
 #### Wrong
+
 ```rust
 // commands/mod.rs
 tauri::generate_handler![
@@ -65,6 +72,7 @@ tauri::generate_handler![
 ```
 
 #### Correct
+
 ```rust
 // commands/handler_registry.rs
 define_command_registry! {
