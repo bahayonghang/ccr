@@ -16,7 +16,7 @@ use tracing::{debug, info, warn};
 use uuid::Uuid;
 use walkdir::WalkDir;
 
-use crate::database::{self, pool::DbPool, repositories::usage_repo};
+use crate::database::{self, DbPool, repositories::usage_repo};
 
 /// Import configuration
 #[derive(Debug, Clone)]

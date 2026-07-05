@@ -11,7 +11,7 @@ use std::time::{Duration, Instant};
 
 use arc_swap::ArcSwap;
 use ccr_core::core::AtomicWriter;
-use ccr_db::database::pool::DbPool;
+use ccr_db::database::DbPool;
 use ccr_db::services::log_persistence::{LogPersistenceService, LogStorageConfig};
 use chrono::{DateTime, Utc};
 use moka::future::Cache as MokaCache;

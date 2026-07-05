@@ -823,7 +823,7 @@ pub fn load_llmusage_archive_diagnostics(
     Ok(archive)
 }
 
-pub fn count_archived_sessions(pool: &ccr_db::database::pool::DbPool) -> Result<u64, String> {
+pub fn count_archived_sessions(pool: &ccr_db::database::DbPool) -> Result<u64, String> {
     let conn = pool.get().map_err(|e| format!("DB error: {e}"))?;
     ccr_db::database::repositories::usage_repo::get_session_archive_platform_summaries(
         &conn, &None, &None,
@@ -838,7 +838,7 @@ pub fn count_archived_sessions(pool: &ccr_db::database::pool::DbPool) -> Result<
 }
 
 pub fn load_home_session_snapshot(
-    pool: &ccr_db::database::pool::DbPool,
+    pool: &ccr_db::database::DbPool,
     start_date: &str,
     end_date: &str,
 ) -> Result<HomeSessionSnapshot, String> {
@@ -1025,7 +1025,7 @@ pub fn usage_logs(
 #[allow(clippy::too_many_arguments)]
 pub fn compute_dashboard(
     llmusage: &LlmusageRuntime,
-    usage_db_pool: &ccr_db::database::pool::DbPool,
+    usage_db_pool: &ccr_db::database::DbPool,
     platform: Option<String>,
     provider: Option<String>,
     start_date: Option<String>,
@@ -1118,7 +1118,7 @@ pub fn compute_dashboard(
 /// 首页工作区概览计算（State-free，同步）：统一 llmusage usage + ccr session 统计链路。
 pub fn compute_home_overview(
     llmusage: &LlmusageRuntime,
-    pool: &ccr_db::database::pool::DbPool,
+    pool: &ccr_db::database::DbPool,
     days: usize,
     ctx: HomeJobContext,
 ) -> Result<HomeUsageOverviewResponse, String> {
@@ -1597,8 +1597,8 @@ mod service_tests {
     }
 
     /// 临时 ccr-db usage pool（home_dir 传 temp，防止迁移逻辑碰真实家目录）。
-    fn temp_usage_pool(temp: &TempDir) -> ccr_db::database::pool::DbPool {
-        let pool = ccr_db::database::pool::create_pool(&temp.path().join("usage.db"), None)
+    fn temp_usage_pool(temp: &TempDir) -> ccr_db::database::DbPool {
+        let pool = ccr_db::database::create_pool(&temp.path().join("usage.db"), None)
             .expect("usage pool should be created");
         let conn = pool.get().expect("pool should hand out a connection");
         ccr_db::database::migrations::run_all_migrations(&conn, temp.path())

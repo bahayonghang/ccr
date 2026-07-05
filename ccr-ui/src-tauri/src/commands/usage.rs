@@ -350,7 +350,7 @@ fn archive_entry_from_session(
 }
 
 fn sync_platform_session_archive(
-    usage_db_pool: &ccr_db::database::pool::DbPool,
+    usage_db_pool: &ccr_db::database::DbPool,
     platform: Platform,
 ) -> Result<(), String> {
     let platform_label = session_index_platform_label(platform).to_string();
@@ -1055,7 +1055,7 @@ pub async fn get_usage_logs_v2(
 #[allow(clippy::too_many_arguments)]
 async fn compute_usage_dashboard_payload(
     llmusage: Arc<LlmusageRuntime>,
-    usage_db_pool: ccr_db::database::pool::DbPool,
+    usage_db_pool: ccr_db::database::DbPool,
     platform: Option<String>,
     provider: Option<String>,
     start_date: Option<String>,
