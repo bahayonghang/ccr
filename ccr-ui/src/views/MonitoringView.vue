@@ -580,7 +580,7 @@ const loadUsageSummary = async () => {
   let capabilityError: unknown = null
 
   try {
-    const capabilities = await getUsageCapabilitiesV2<UsageCapabilityReport>()
+    const capabilities = await getUsageCapabilitiesV2()
     const capability = overviewCapability(capabilities)
     if (capability && !capability.supported) {
       usageSummary.value = null
@@ -595,7 +595,7 @@ const loadUsageSummary = async () => {
   }
 
   try {
-    const summary = await getUsageSummaryV2<UsageSummary>()
+    const summary = await getUsageSummaryV2()
     if (!summary || typeof summary.total_requests !== 'number') {
       throw new Error('Invalid usage summary payload')
     }

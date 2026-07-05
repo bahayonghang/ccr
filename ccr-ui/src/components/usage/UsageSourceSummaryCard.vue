@@ -23,7 +23,7 @@
         type="button"
         class="source-card__item"
         :class="{ 'source-card__item--active': selectedPlatform === item.source }"
-        @click="$emit('select-source', item.source)"
+        @click="onSelectSource(item.source)"
       >
         <span class="source-card__source-row">
           <span class="source-card__source-name">{{ sourceLabel(item.source) }}</span>
@@ -70,7 +70,7 @@ const props = defineProps<{
   formatTokens: (value: number) => string
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   'select-source': [source: UsagePlatform]
 }>()
 
@@ -79,6 +79,16 @@ const sourceLabels: Record<UsagePlatform, string> = {
   codex: 'Codex',
   gemini: 'Antigravity',
   opencode: 'OpenCode',
+}
+
+// wire 上 source 是 string，视图层在 emit 边界收窄为 UsagePlatform；
+// 未知平台（理论上不出现）不触发选择。
+const isUsagePlatform = (value: string): value is UsagePlatform => value in sourceLabels
+
+const onSelectSource = (source: string) => {
+  if (isUsagePlatform(source)) {
+    emit('select-source', source)
+  }
 }
 
 const visibleSources = computed(() =>
@@ -91,7 +101,8 @@ const visibleSources = computed(() =>
     )
 )
 
-const sourceLabel = (source: UsagePlatform) => sourceLabels[source] ?? source
+// 已知平台显示品牌名，未知值原样回显
+const sourceLabel = (source: string) => sourceLabels[source as UsagePlatform] ?? source
 const barWidth = (share: number) => Math.min(100, Math.max(share * 100, share > 0 ? 4 : 0))
 </script>
 

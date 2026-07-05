@@ -241,7 +241,8 @@ const modelRankings = computed(() =>
     .slice(0, 10)
 )
 
-const sourceLabel = (source: UsagePlatform) => sourceLabels[source] ?? source
+// wire 上 source 是 string；已知平台显示品牌名，未知值原样回显
+const sourceLabel = (source: string) => sourceLabels[source as UsagePlatform] ?? source
 const modelCost = (model: ModelStat) => model.cost_with_cache ?? model.total_cost
 const modelShare = (model: ModelStat) =>
   totalCost.value > 0 ? modelCost(model) / totalCost.value : 0

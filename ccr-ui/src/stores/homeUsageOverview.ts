@@ -16,8 +16,6 @@ import type {
   HomeUsageOverviewResponse,
   UsageCapabilityReport,
   SessionIndexJobSnapshot,
-  StartSessionIndexJobResponse,
-  StartUsageImportJobResponse,
   UsageImportJobSnapshot,
   UsageSnapshotUpdatedPayload,
 } from '@/types/usage'
@@ -195,7 +193,7 @@ export const useHomeUsageOverviewStore = defineStore('homeUsageOverview', () => 
       }),
     ])
 
-    const latest = await getUsageImportJobStatusV2<UsageImportJobSnapshot>(jobId)
+    const latest = await getUsageImportJobStatusV2(jobId)
     await handleUsageJobSnapshot(latest)
   }
 
@@ -219,7 +217,7 @@ export const useHomeUsageOverviewStore = defineStore('homeUsageOverview', () => 
       }),
     ])
 
-    const latest = await getSessionIndexJobStatusV2<SessionIndexJobSnapshot>(jobId)
+    const latest = await getSessionIndexJobStatusV2(jobId)
     await handleSessionJobSnapshot(latest)
   }
 
@@ -247,11 +245,7 @@ export const useHomeUsageOverviewStore = defineStore('homeUsageOverview', () => 
     ) {
       usageWarmupLastAttemptAt = Date.now()
       try {
-        const response = await startUsageImportJobV2<StartUsageImportJobResponse>(
-          undefined,
-          days,
-          undefined
-        )
+        const response = await startUsageImportJobV2(undefined, days, undefined)
         await trackUsageImportJob(response.job_id)
       } catch (warmupError) {
         logger.error('[home-usage-overview] failed to start usage warmup', warmupError)
@@ -268,7 +262,7 @@ export const useHomeUsageOverviewStore = defineStore('homeUsageOverview', () => 
     ) {
       sessionWarmupLastAttemptAt = Date.now()
       try {
-        const response = await ensureSessionIndexV2<StartSessionIndexJobResponse>()
+        const response = await ensureSessionIndexV2()
         await trackSessionIndexJob(response.job_id)
       } catch (warmupError) {
         logger.error('[home-usage-overview] failed to start session warmup', warmupError)
@@ -311,9 +305,9 @@ export const useHomeUsageOverviewStore = defineStore('homeUsageOverview', () => 
 
     try {
       if (isTauriRuntime()) {
-        usageCapabilities.value = await getUsageCapabilitiesV2<UsageCapabilityReport>()
+        usageCapabilities.value = await getUsageCapabilitiesV2()
       }
-      const data = await getHomeUsageOverviewV2<HomeUsageOverviewResponse>(days)
+      const data = await getHomeUsageOverviewV2(days)
       overview.value = data
       error.value = null
       overviewCache.set(days, { data, ts: Date.now() })

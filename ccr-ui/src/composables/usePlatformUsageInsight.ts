@@ -54,7 +54,7 @@ export const usePlatformUsageInsight = ({
 
     try {
       const window = dateWindow.value
-      const data = await getUsageDashboardV2<UsageDashboardResponse>(
+      const data = await getUsageDashboardV2(
         unref(platform),
         window.start,
         window.end,

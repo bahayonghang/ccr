@@ -21,7 +21,6 @@ import type {
   ProjectStat,
   ProviderBreakdown,
   SourceBreakdown,
-  StartUsageImportJobResponse,
   UsageCapabilityReport,
   UsageImportJobSnapshot,
   UsageImportSummary,
@@ -232,7 +231,7 @@ export const useUsageStore = defineStore('usage', () => {
     if (!force && usageCapabilities.value) return usageCapabilities.value
 
     try {
-      usageCapabilities.value = await getUsageCapabilitiesV2<UsageCapabilityReport>()
+      usageCapabilities.value = await getUsageCapabilitiesV2()
     } catch (capabilityError) {
       logger.error('[usage] failed to load llmusage capabilities', capabilityError)
     }
@@ -430,7 +429,7 @@ export const useUsageStore = defineStore('usage', () => {
       }),
     ])
 
-    const latest = await getUsageImportJobStatusV2<UsageImportJobSnapshot>(jobId)
+    const latest = await getUsageImportJobStatusV2(jobId)
     const trigger =
       latest.status === 'failed' || latest.status === 'cancelled'
         ? 'failed'
@@ -445,7 +444,7 @@ export const useUsageStore = defineStore('usage', () => {
   // ═══ Actions ═══
   async function fetchHeatmap(reason: string = 'manual') {
     const startedAt = nowMs()
-    heatmap.value = await getUsageHeatmapV2<HeatmapResponse>(platform.value, HEATMAP_DAYS)
+    heatmap.value = await getUsageHeatmapV2(platform.value, HEATMAP_DAYS)
     recordPerfMetric('usage_heatmap_load_ms', nowMs() - startedAt, { reason })
   }
 
@@ -527,7 +526,7 @@ export const useUsageStore = defineStore('usage', () => {
 
         if (USE_DASHBOARD_API) {
           requestCount = 1
-          const data = await getUsageDashboardV2<UsageDashboardPayload>(
+          const data = await getUsageDashboardV2(
             platform.value,
             timeRange.value.start,
             timeRange.value.end,
@@ -543,26 +542,10 @@ export const useUsageStore = defineStore('usage', () => {
         } else {
           requestCount = includeHeatmap ? 5 : 4
           const [summaryData, trendsData, modelData, projectData] = await Promise.all([
-            getUsageSummaryV2<UsageSummary>(
-              platform.value,
-              timeRange.value.start,
-              timeRange.value.end
-            ),
-            getUsageTrendsV2<DailyTrend[]>(
-              platform.value,
-              timeRange.value.start,
-              timeRange.value.end
-            ),
-            getUsageByModelV2<ModelStat[]>(
-              platform.value,
-              timeRange.value.start,
-              timeRange.value.end
-            ),
-            getUsageByProjectV2<ProjectStat[]>(
-              platform.value,
-              timeRange.value.start,
-              timeRange.value.end
-            ),
+            getUsageSummaryV2(platform.value, timeRange.value.start, timeRange.value.end),
+            getUsageTrendsV2(platform.value, timeRange.value.start, timeRange.value.end),
+            getUsageByModelV2(platform.value, timeRange.value.start, timeRange.value.end),
+            getUsageByProjectV2(platform.value, timeRange.value.start, timeRange.value.end),
           ])
           if (requestId !== requestSerial) return
           summary.value = summaryData ?? null
@@ -646,7 +629,7 @@ export const useUsageStore = defineStore('usage', () => {
       const previousTotal = logs.value?.total ?? null
       logsPage.value = targetPage
 
-      const result = await getUsageLogsV2<PaginatedLogs>(
+      const result = await getUsageLogsV2(
         buildUsageLogsQuery({
           platform: platform.value,
           model: logsModelFilter.value,
@@ -687,7 +670,7 @@ export const useUsageStore = defineStore('usage', () => {
       return providerStats.value
     }
 
-    providerStats.value = await getUsageByProviderV2<ProviderBreakdown[]>(
+    providerStats.value = await getUsageByProviderV2(
       platform.value,
       timeRange.value.start,
       timeRange.value.end
@@ -716,11 +699,8 @@ export const useUsageStore = defineStore('usage', () => {
 
     try {
       const response = requestedPlatform
-        ? normalizeImportResponse(
-            await importUsageV2<UsageImportResult>(requestedPlatform),
-            requestedPlatform
-          )
-        : normalizeImportResponse(await importAllUsageV2<ImportAllUsageResponse>())
+        ? normalizeImportResponse(await importUsageV2(requestedPlatform), requestedPlatform)
+        : normalizeImportResponse(await importAllUsageV2())
 
       lastImportSummary.value = response.summary
       lastImportResults.value = response.results
@@ -772,6 +752,7 @@ export const useUsageStore = defineStore('usage', () => {
             duration_ms: 0,
             completed: false,
             error: message,
+            is_optional_absent: false,
           },
         ],
         summary: {
@@ -810,7 +791,7 @@ export const useUsageStore = defineStore('usage', () => {
     resetProgressRefreshState()
 
     try {
-      const response = await startUsageImportJobV2<StartUsageImportJobResponse>(
+      const response = await startUsageImportJobV2(
         opts.platform,
         opts.recentDays,
         opts.resetSources

@@ -22,7 +22,8 @@ export type UsageDashboardPayload = Omit<
   summary?: UsageSummary | null
   archive?: UsageArchiveDiagnostics | null
   snapshot?: UsageSnapshotProjection | null
-  heatmap?: HeatmapResponse
+  // 生成类型的 wire 契约：include_heatmap=false 时后端返回 null
+  heatmap?: HeatmapResponse | null
   by_model?: ModelStat[]
   by_project?: ProjectStat[]
   provider_stats?: ProviderBreakdown[]
