@@ -117,15 +117,11 @@ fn main() {
                 }
             }
 
-            // 初始化全局数据库，并确保后续通过 with_connection() 的调用可用。
-            // 这里先启动全局连接池，再为 AppState 创建独立的应用连接池。
-            ccr_db::database::initialize().map_err(|e| {
-                tracing::error!("[app] failed to initialize global database pool: {e}");
-                Box::new(e) as Box<dyn std::error::Error>
-            })?;
-            // 创建应用级连接池，供 AppState、SSH/环境注册和后台任务复用。
-            let db_pool = ccr_db::database::create_app_pool().map_err(|e| {
-                tracing::error!("[app] failed to create app database pool: {e}");
+            // 初始化数据库：单池同时登记为全局池并供 AppState 持有，
+            // manager 层 with_connection() 与 commands 层直取连接共享同一连接上限，
+            // ccr-ui.db 的迁移只执行一遍。
+            let db_pool = ccr_db::database::initialize_app_pool().map_err(|e| {
+                tracing::error!("[app] failed to initialize app database pool: {e}");
                 Box::new(e) as Box<dyn std::error::Error>
             })?;
             let usage_db_pool = ccr_db::database::create_usage_archive_pool().map_err(|e| {
@@ -138,7 +134,7 @@ fn main() {
             })?;
             tracing::info!(
                 llmusage_db = %llmusage.paths().db_path.display(),
-                "[app] database initialized (global + app pool); llmusage will be read on demand"
+                "[app] database initialized (single shared pool); llmusage will be read on demand"
             );
 
             // 构建并注册全局 AppState（启动期错误返 Result，不 panic 跨 FFI）。

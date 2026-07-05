@@ -85,20 +85,16 @@ pub fn get_usage_archive_db_path() -> Result<PathBuf, DbError> {
     Ok(analytics_dir.join("usage.db"))
 }
 
-/// 初始化全局连接池并运行迁移
-pub fn initialize() -> Result<(), DbError> {
-    let db_path = get_db_path()?;
-    let pool = create_pool(&db_path, None)?;
-
-    // 运行迁移
-    let conn = pool.get().map_err(|e| DbError::PoolGet(e.to_string()))?;
-    let home_dir = dirs::home_dir().ok_or(DbError::HomeDirNotFound)?;
-    migrations::run_all_migrations(&conn, &home_dir)
-        .map_err(|e| DbError::Migration(e.to_string()))?;
-
-    let _ = GLOBAL_POOL.set(pool);
-    info!("[ccr-db] database initialized at {:?}", db_path);
-    Ok(())
+/// 创建应用连接池并登记为全局池（同一实例）。
+///
+/// GLOBAL_POOL 与返回值共享同一池（r2d2 Pool 为 Arc 语义）：manager 层
+/// `with_connection()` 与 AppState 直取连接看到同一连接上限与迁移状态，
+/// 避免同一 DB 文件双池双迁移。
+pub fn initialize_app_pool() -> Result<DbPool, DbError> {
+    let pool = create_app_pool()?;
+    let _ = GLOBAL_POOL.set(pool.clone());
+    info!("[ccr-db] database initialized at {:?}", get_db_path()?);
+    Ok(pool)
 }
 
 /// 创建独立连接池实例（用于 Tauri AppState）
