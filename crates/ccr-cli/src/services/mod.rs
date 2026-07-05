@@ -1,4 +1,4 @@
-// re-export 墙条目须有真实消费方；盘点与规则见 .trellis/spec/ccr-cli/backend/（facade 收拢任务回写）
+// re-export 墙条目须有真实消费方；规则见 .trellis/spec/ccr/backend/public-api-boundary.md，逐符号盘点见任务归档 07-03-arch-ccr-facade/research/inventory.md
 //
 // 🎯 CCR 服务层模块
 // 封装业务逻辑,提供统一的业务操作接口
