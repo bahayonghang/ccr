@@ -21,7 +21,8 @@ const DEFAULT_PLAN: &str = "team";
 const DEFAULT_MONTHLY: f64 = 200.0;
 
 /// 订阅设置 DTO（同时对外暴露给 Tauri 命令）
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, ts_rs::TS)]
+#[ts(export, export_to = "../../src/types/generated/claude_observer/")]
 pub struct SubscriptionDto {
     pub mode: String,
     pub plan: String,
