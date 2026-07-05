@@ -1074,3 +1074,35 @@ typed-ipc 试点闭环：选型 ts-rs 11 弃 tauri-specta（RC 期且要接管 i
 
 - 第三批（先否决式调研）：07-03-arch-ccr-facade / sqlite-seam / ccr-error
 - 推广评估产出的后续候选：arch-typed-ipc-observer（下一类型化域）、usage-family-absorb（stats 9 条零调用命令下线 + CostTracker 链路清理）
+
+## Session 31: 07-03-arch-ccr-error 否决式评估闭环：冻结 CcrError
+
+**Date**: 2026-07-05
+**Task**: `.trellis/tasks/archive/2026-07/07-03-arch-ccr-error/`
+
+### Summary
+
+第三批首个子任务按父任务既定时序（ccr-error 评估先于 facade/sqlite-seam 动手）执行否决式调研并闭环：**否决落法 A（领域 variant 上移归属 crate），按落法 B 缩水实施（冻结 + 守卫 + ADR）**。调研全量盘点 1082 处 `CcrError::` 引用 / 104 文件（实际 25 个 variant，勘误 PRD 的"约 26"）。否决依据三条硬证据：① A 的归属前提在依赖图上为假——UiError 主构造方 ccr-cli 38 次而 ccr-tui→ccr-cli（方向反）、DatabaseError 最大构造方 ccr-codex 32 次且 codex 不依赖 ccr-store、SettingsError 归属 crate 就是 ccr-cli 自己，唯一 100% 集中的只有 HistoryError（ccr-store 11 次）；A 的诚实形状是"每 crate 自建枚举+顶层聚合"，150-180 文件 / 1030+ 构造点。② 6.x 冻结（public-api-boundary）+ 枚举未标 non_exhaustive，删/改公开 variant 即 breaking，"core 领域词汇清零"验收在本 major 不可达。③ 收益实证为零——生产代码 variant 分支全仓仅 1 处且匹配原语（is_locked_error→FileLockError），exit_code/user_message/is_fatal 唯一消费方 dispatch.rs，ccr-core 拆分后 3 个月新增 variant 0 次。B 实施面：error.rs 枚举 doc 冻结声明 + test_variant_set_is_frozen 快照守卫（穷尽 match，增/删/更名均编译期拦截，红绿验证 error[E0004] 后复绿）；顺手清 2 处幽灵注释（profile enable/disable 引用不存在的 ConfigNotFound→ConfigSectionNotFound）；ADR ccr-error-freeze.md 落 ccr-core spec（含给 sqlite-seam 的规则：seam 说 DbError、ccr-store 边界 map_err 桥接、禁 From<DbError> impl；给 facade 的结论：prelude 形状不变）；spec 措辞收口实改 4 处——除计划内 sync/store/codex 三处外，发现 ccr-core backend-guidelines "Add a new variant only when…" 直接授权加 variant 与冻结冲突，一并重写；其余 5 处核对为描述性不动。中间态 C（只上移 HistoryError）无数据支撑不做。A 登记为 7.0 breaking 候选；另记一笔更便宜的减薄替代（exit_codes/user_message 挪到唯一消费方 dispatch 侧）供未来评估。时序产出：facade 与 sqlite-seam 的错误维度阻塞即刻解除，且规则已预写进 ADR。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `cb10ce43` | test(core): 冻结 CcrError variant 集并加快照守卫 |
+| `04aafdc2` | docs(spec): CcrError 冻结 ADR 与错误指引措辞收口 |
+| `f8ac64bf` | chore(task): archive 07-03-arch-ccr-error |
+
+### Testing
+
+- [OK] cargo test -p ccr-core 69 通过；-p ccr-core -p ccr-cli 264 通过；public_api_compat 3/3（快照零变化，符合零公开面变更预期）
+- [OK] 守卫红绿证据：注释 ExternalCommandError 臂 → error[E0004] non-exhaustive，还原复绿
+- [OK] just version-check / fmt-check / lint-strict 全绿；rg ConfigNotFound crates/ 0 命中
+
+### Status
+
+[OK] **Completed** — 父任务 07-03-arch-deepening 进度 6/8；ccr-facade 与 sqlite-seam 错误维度依赖解除
+
+### Next Steps
+
+- 第三批剩余（均需先否决式调研）：07-03-arch-ccr-facade（prelude 形状已定，可直接进调研）/ 07-03-arch-sqlite-seam（错误规则已预写进 ADR）
+- 推广评估独立候选依旧：arch-typed-ipc-observer（下一类型化域）、usage-family-absorb（stats 9 条零调用命令下线）
