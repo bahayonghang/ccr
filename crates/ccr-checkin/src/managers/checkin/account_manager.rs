@@ -32,14 +32,22 @@ pub type Result<T> = std::result::Result<T, AccountError>;
 pub struct AccountManager {
     /// 签到数据目录（用于加密密钥）
     checkin_dir: PathBuf,
+    /// 数据库访问句柄（默认全局池；测试/嵌入场景可注入独立池）
+    db: database::DbAccess,
 }
 
 impl AccountManager {
     /// 创建新的账号管理器
     /// 注意：checkin_dir 仅用于加密密钥存储
     pub fn new(checkin_dir: &Path) -> Self {
+        Self::with_db(checkin_dir, database::DbAccess::Global)
+    }
+
+    /// 注入式构造：测试或嵌入场景使用独立连接池
+    pub fn with_db(checkin_dir: &Path, db: database::DbAccess) -> Self {
         Self {
             checkin_dir: checkin_dir.to_path_buf(),
+            db,
         }
     }
 
@@ -50,7 +58,7 @@ impl AccountManager {
 
     /// 获取所有账号 (列表路径不解密 Cookies，掩码为占位符)
     pub fn list(&self) -> Result<AccountsResponse> {
-        let accounts = database::with_connection(checkin_repo::get_all_accounts)?;
+        let accounts = self.db.with_connection(checkin_repo::get_all_accounts)?;
 
         let account_infos: Vec<AccountInfo> = accounts.iter().map(Self::to_account_info).collect();
 
@@ -63,7 +71,7 @@ impl AccountManager {
 
     /// 根据提供商 ID 获取账号列表
     pub fn list_by_provider(&self, provider_id: &str) -> Result<Vec<AccountInfo>> {
-        let accounts = database::with_connection(|conn| {
+        let accounts = self.db.with_connection(|conn| {
             checkin_repo::get_accounts_by_provider(conn, provider_id)
         })?;
 
@@ -72,7 +80,7 @@ impl AccountManager {
 
     /// 检查提供商是否有关联账号
     pub fn has_accounts_for_provider(&self, provider_id: &str) -> Result<bool> {
-        let accounts = database::with_connection(|conn| {
+        let accounts = self.db.with_connection(|conn| {
             checkin_repo::get_accounts_by_provider(conn, provider_id)
         })?;
         Ok(!accounts.is_empty())
@@ -107,7 +115,7 @@ impl AccountManager {
 
     /// 根据 ID 获取账号
     pub fn get(&self, id: &str) -> Result<CheckinAccount> {
-        database::with_connection(|conn| checkin_repo::get_account_by_id(conn, id))?
+        self.db.with_connection(|conn| checkin_repo::get_account_by_id(conn, id))?
             .ok_or_else(|| AccountError::NotFound(id.to_string()))
     }
 
@@ -167,7 +175,7 @@ impl AccountManager {
         // 设置扩展配置 (CDK 凭证等)
         account.extra_config = request.extra_config;
 
-        database::with_connection(|conn| checkin_repo::insert_account(conn, &account))?;
+        self.db.with_connection(|conn| checkin_repo::insert_account(conn, &account))?;
 
         tracing::info!("Created account: {} ({})", account.name, account.id);
         Ok(account)
@@ -202,7 +210,7 @@ impl AccountManager {
 
         account.updated_at = Some(Utc::now());
 
-        database::with_connection(|conn| checkin_repo::update_account(conn, &account))?;
+        self.db.with_connection(|conn| checkin_repo::update_account(conn, &account))?;
 
         tracing::info!("Updated account: {} ({})", account.name, account.id);
         Ok(account)
@@ -212,7 +220,7 @@ impl AccountManager {
     pub fn update_checkin_time(&self, id: &str) -> Result<()> {
         let mut account = self.get(id)?;
         account.update_checkin_time();
-        database::with_connection(|conn| checkin_repo::update_account(conn, &account))?;
+        self.db.with_connection(|conn| checkin_repo::update_account(conn, &account))?;
         Ok(())
     }
 
@@ -220,13 +228,13 @@ impl AccountManager {
     pub fn update_balance_time(&self, id: &str) -> Result<()> {
         let mut account = self.get(id)?;
         account.update_balance_check_time();
-        database::with_connection(|conn| checkin_repo::update_account(conn, &account))?;
+        self.db.with_connection(|conn| checkin_repo::update_account(conn, &account))?;
         Ok(())
     }
 
     /// 删除账号
     pub fn delete(&self, id: &str) -> Result<()> {
-        let deleted = database::with_connection(|conn| checkin_repo::delete_account(conn, id))?;
+        let deleted = self.db.with_connection(|conn| checkin_repo::delete_account(conn, id))?;
 
         if !deleted {
             return Err(AccountError::NotFound(id.to_string()));
@@ -238,13 +246,13 @@ impl AccountManager {
 
     /// 获取所有启用的账号
     pub fn get_enabled_accounts(&self) -> Result<Vec<CheckinAccount>> {
-        let accounts = database::with_connection(checkin_repo::get_enabled_accounts)?;
+        let accounts = self.db.with_connection(checkin_repo::get_enabled_accounts)?;
         Ok(accounts)
     }
 
     /// 加载所有账号（兼容旧 API）
     pub fn load_all(&self) -> Result<Vec<CheckinAccount>> {
-        let accounts = database::with_connection(checkin_repo::get_all_accounts)?;
+        let accounts = self.db.with_connection(checkin_repo::get_all_accounts)?;
         Ok(accounts)
     }
 
@@ -254,7 +262,7 @@ impl AccountManager {
         accounts_to_import: Vec<CheckinAccount>,
         overwrite: bool,
     ) -> Result<(usize, usize)> {
-        let existing = database::with_connection(checkin_repo::get_all_accounts)?;
+        let existing = self.db.with_connection(checkin_repo::get_all_accounts)?;
         let mut imported = 0;
         let mut skipped = 0;
 
@@ -263,7 +271,7 @@ impl AccountManager {
 
             if exists {
                 if overwrite {
-                    database::with_connection(|conn| {
+                    self.db.with_connection(|conn| {
                         checkin_repo::update_account(conn, &new_account)
                     })?;
                     imported += 1;
@@ -271,7 +279,7 @@ impl AccountManager {
                     skipped += 1;
                 }
             } else {
-                database::with_connection(|conn| checkin_repo::insert_account(conn, &new_account))?;
+                self.db.with_connection(|conn| checkin_repo::insert_account(conn, &new_account))?;
                 imported += 1;
             }
         }
@@ -285,86 +293,80 @@ impl AccountManager {
 mod tests {
     use super::*;
     use crate::database::schema::CREATE_TABLES_SQL;
-    use once_cell::sync::Lazy;
-    use rusqlite::Connection;
-    use std::sync::Mutex;
     use tempfile::TempDir;
 
-    // Use a single in-memory database for tests
-    static TEST_DB: Lazy<Mutex<Connection>> = Lazy::new(|| {
-        let conn = Connection::open_in_memory().unwrap();
-        conn.execute_batch(CREATE_TABLES_SQL).unwrap();
-        Mutex::new(conn)
-    });
-
-    fn with_test_db<F, R>(f: F) -> R
-    where
-        F: FnOnce(&Connection) -> R,
-    {
-        let conn = TEST_DB.lock().unwrap();
-        // Clean up before each test
-        conn.execute("DELETE FROM checkin_accounts", []).unwrap();
-        f(&conn)
+    /// manager 级测试夹具：注入独立内存池（不触 GLOBAL_POOL），
+    /// 加密密钥目录用临时目录。每个测试独立数据库，无跨测试清理。
+    fn manager_with_memory_db() -> (TempDir, AccountManager) {
+        let pool = database::create_memory_pool().unwrap();
+        {
+            let conn = pool.get().unwrap();
+            conn.execute_batch(CREATE_TABLES_SQL).unwrap();
+        }
+        let temp_dir = TempDir::new().unwrap();
+        let manager = AccountManager::with_db(temp_dir.path(), database::DbAccess::Pool(pool));
+        (temp_dir, manager)
     }
 
-    fn create_test_crypto_dir() -> TempDir {
-        TempDir::new().unwrap()
-    }
-
-    #[test]
-    fn test_create_and_get_account() {
-        let temp_dir = create_test_crypto_dir();
-        let crypto = CryptoManager::new(&temp_dir.path().to_path_buf()).unwrap();
-
-        with_test_db(|conn| {
-            let cookies_encrypted = crypto.encrypt(r#"{"session": "abc123"}"#).unwrap();
-            let account = CheckinAccount::new(
-                "provider-1".to_string(),
-                "Test Account".to_string(),
-                cookies_encrypted,
-                "12345".to_string(),
-            );
-
-            crate::database::repositories::checkin_repo::insert_account(conn, &account).unwrap();
-
-            let fetched =
-                crate::database::repositories::checkin_repo::get_account_by_id(conn, &account.id)
-                    .unwrap()
-                    .unwrap();
-            assert_eq!(fetched.name, "Test Account");
-            assert!(fetched.enabled);
-            assert_eq!(fetched.api_user, "12345");
-
-            // 验证可以解密
-            let decrypted = crypto.decrypt(&fetched.cookies_json_encrypted).unwrap();
-            assert_eq!(decrypted, r#"{"session": "abc123"}"#);
-            // 掩码展示串不含 cookie 原值
-            let masked = AccountManager::masked_cookies_display(&decrypted);
-            assert!(masked.contains("session="));
-            assert!(!masked.contains("abc123"));
-        });
+    fn create_request(name: &str, cookies_json: &str) -> CreateAccountRequest {
+        CreateAccountRequest {
+            provider_id: "provider-1".to_string(),
+            name: name.to_string(),
+            cookies_json: Secret::from(cookies_json),
+            api_user: "12345".to_string(),
+            extra_config: "{}".to_string(),
+        }
     }
 
     #[test]
-    fn test_list_accounts() {
-        with_test_db(|conn| {
-            use crate::database::repositories::checkin_repo;
-            // 初始为空
-            let accounts = checkin_repo::get_all_accounts(conn).unwrap();
-            assert_eq!(accounts.len(), 0);
+    fn test_create_and_get_roundtrip_encrypts_cookies() {
+        let (_dir, manager) = manager_with_memory_db();
 
-            // 创建账号
-            let account = CheckinAccount::new(
-                "provider-1".to_string(),
-                "Account 1".to_string(),
-                "encrypted".to_string(),
-                "".to_string(),
-            );
-            checkin_repo::insert_account(conn, &account).unwrap();
+        let created = manager
+            .create(create_request("Test Account", r#"{"session": "abc123"}"#))
+            .unwrap();
 
-            let accounts = checkin_repo::get_all_accounts(conn).unwrap();
-            assert_eq!(accounts.len(), 1);
-        });
+        // 密文入库：存储字段不含明文片段
+        assert!(!created.cookies_json_encrypted.contains("abc123"));
+
+        let fetched = manager.get(&created.id).unwrap();
+        assert_eq!(fetched.name, "Test Account");
+        assert_eq!(fetched.api_user, "12345");
+        assert!(fetched.enabled);
+
+        // manager 解密路径可还原明文
+        let (cookies, api_user) = manager.get_cookies_json(&created.id).unwrap();
+        assert_eq!(cookies.expose(), r#"{"session": "abc123"}"#);
+        assert_eq!(api_user, "12345");
+    }
+
+    #[test]
+    fn test_get_info_masks_cookie_values() {
+        let (_dir, manager) = manager_with_memory_db();
+        let created = manager
+            .create(create_request("Masked", r#"{"session": "abc123"}"#))
+            .unwrap();
+
+        let info = manager.get_info(&created.id).unwrap();
+
+        // 惰性解密生成真实掩码：有键名、无明文值
+        assert!(info.cookies_masked.contains("session="));
+        assert!(!info.cookies_masked.contains("abc123"));
+    }
+
+    #[test]
+    fn test_list_uses_placeholder_mask() {
+        let (_dir, manager) = manager_with_memory_db();
+        assert_eq!(manager.list().unwrap().total, 0);
+
+        manager
+            .create(create_request("Account 1", r#"{"session": "abc123"}"#))
+            .unwrap();
+
+        let response = manager.list().unwrap();
+        assert_eq!(response.total, 1);
+        // 列表路径不解密：掩码为占位符
+        assert_eq!(response.accounts[0].cookies_masked, "****");
     }
 
     #[test]
@@ -388,74 +390,63 @@ mod tests {
     }
 
     #[test]
-    fn test_update_account() {
-        with_test_db(|conn| {
-            use crate::database::repositories::checkin_repo;
-            let mut account = CheckinAccount::new(
-                "provider-1".to_string(),
-                "Original".to_string(),
-                "encrypted".to_string(),
-                "11111".to_string(),
-            );
-            checkin_repo::insert_account(conn, &account).unwrap();
+    fn test_update_account_reencrypts_cookies() {
+        let (_dir, manager) = manager_with_memory_db();
+        let created = manager
+            .create(create_request("Original", r#"{"session": "abc123"}"#))
+            .unwrap();
 
-            // Update
-            account.name = "Updated".to_string();
-            account.enabled = false;
-            account.updated_at = Some(Utc::now());
+        let updated = manager
+            .update(
+                &created.id,
+                UpdateAccountRequest {
+                    name: Some("Updated".to_string()),
+                    cookies_json: Some(Secret::from(r#"{"session": "new456"}"#)),
+                    api_user: None,
+                    enabled: Some(false),
+                    extra_config: None,
+                },
+            )
+            .unwrap();
 
-            checkin_repo::update_account(conn, &account).unwrap();
+        assert_eq!(updated.name, "Updated");
+        assert!(!updated.enabled);
+        assert!(updated.updated_at.is_some());
 
-            let fetched = checkin_repo::get_account_by_id(conn, &account.id)
-                .unwrap()
-                .unwrap();
-            assert_eq!(fetched.name, "Updated");
-            assert!(!fetched.enabled);
-        });
+        // 新 cookies 重加密后仍可解密
+        let (cookies, _) = manager.get_cookies_json(&created.id).unwrap();
+        assert_eq!(cookies.expose(), r#"{"session": "new456"}"#);
     }
 
     #[test]
-    fn test_delete_account() {
-        with_test_db(|conn| {
-            use crate::database::repositories::checkin_repo;
-            let account = CheckinAccount::new(
-                "provider-1".to_string(),
-                "To Delete".to_string(),
-                "encrypted".to_string(),
-                "".to_string(),
-            );
-            checkin_repo::insert_account(conn, &account).unwrap();
+    fn test_delete_account_then_not_found() {
+        let (_dir, manager) = manager_with_memory_db();
+        let created = manager
+            .create(create_request("To Delete", r#"{"k": "v"}"#))
+            .unwrap();
 
-            let deleted = checkin_repo::delete_account(conn, &account.id).unwrap();
-            assert!(deleted);
+        manager.delete(&created.id).unwrap();
 
-            let fetched = checkin_repo::get_account_by_id(conn, &account.id).unwrap();
-            assert!(fetched.is_none());
-        });
+        assert!(matches!(
+            manager.get(&created.id),
+            Err(AccountError::NotFound(_))
+        ));
+        assert!(matches!(
+            manager.delete(&created.id),
+            Err(AccountError::NotFound(_))
+        ));
     }
 
     #[test]
-    fn test_get_accounts_by_provider() {
-        with_test_db(|conn| {
-            use crate::database::repositories::checkin_repo;
-            let a1 = CheckinAccount::new(
-                "provider-1".to_string(),
-                "Account".to_string(),
-                "encrypted".to_string(),
-                "".to_string(),
-            );
-            checkin_repo::insert_account(conn, &a1).unwrap();
+    fn test_list_by_provider_scopes_accounts() {
+        let (_dir, manager) = manager_with_memory_db();
+        manager
+            .create(create_request("Account", r#"{"k": "v"}"#))
+            .unwrap();
 
-            assert!(
-                !checkin_repo::get_accounts_by_provider(conn, "provider-1")
-                    .unwrap()
-                    .is_empty()
-            );
-            assert!(
-                checkin_repo::get_accounts_by_provider(conn, "provider-2")
-                    .unwrap()
-                    .is_empty()
-            );
-        });
+        assert_eq!(manager.list_by_provider("provider-1").unwrap().len(), 1);
+        assert!(manager.list_by_provider("provider-2").unwrap().is_empty());
+        assert!(manager.has_accounts_for_provider("provider-1").unwrap());
+        assert!(!manager.has_accounts_for_provider("provider-2").unwrap());
     }
 }

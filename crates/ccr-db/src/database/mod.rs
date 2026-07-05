@@ -139,14 +139,36 @@ pub fn get_pool() -> Option<&'static DbPool> {
     GLOBAL_POOL.get()
 }
 
+/// 在指定池上执行闭包（全局路径与注入路径共用的实现）
+fn with_connection_on<F, T>(pool: &DbPool, f: F) -> Result<T, DbError>
+where
+    F: FnOnce(&rusqlite::Connection) -> Result<T, rusqlite::Error>,
+{
+    let conn = pool.get().map_err(|e| DbError::PoolGet(e.to_string()))?;
+    f(&conn).map_err(|e| DbError::Query(e.to_string()))
+}
+
+/// 在指定池上执行事务闭包（全局路径与注入路径共用的实现）
+fn transaction_on<F, T>(pool: &DbPool, f: F) -> Result<T, DbError>
+where
+    F: FnOnce(&rusqlite::Transaction<'_>) -> Result<T, rusqlite::Error>,
+{
+    let mut conn = pool.get().map_err(|e| DbError::PoolGet(e.to_string()))?;
+    let tx = conn
+        .transaction()
+        .map_err(|e| DbError::Query(e.to_string()))?;
+    let result = f(&tx).map_err(|e| DbError::Query(e.to_string()))?;
+    tx.commit().map_err(|e| DbError::Query(e.to_string()))?;
+    Ok(result)
+}
+
 /// 使用连接池执行闭包
 pub fn with_connection<F, T>(f: F) -> Result<T, DbError>
 where
     F: FnOnce(&rusqlite::Connection) -> Result<T, rusqlite::Error>,
 {
     let pool = GLOBAL_POOL.get().ok_or(DbError::NotInitialized)?;
-    let conn = pool.get().map_err(|e| DbError::PoolGet(e.to_string()))?;
-    f(&conn).map_err(|e| DbError::Query(e.to_string()))
+    with_connection_on(pool, f)
 }
 
 /// 使用事务执行闭包
@@ -155,13 +177,46 @@ where
     F: FnOnce(&rusqlite::Transaction<'_>) -> Result<T, rusqlite::Error>,
 {
     let pool = GLOBAL_POOL.get().ok_or(DbError::NotInitialized)?;
-    let mut conn = pool.get().map_err(|e| DbError::PoolGet(e.to_string()))?;
-    let tx = conn
-        .transaction()
-        .map_err(|e| DbError::Query(e.to_string()))?;
-    let result = f(&tx).map_err(|e| DbError::Query(e.to_string()))?;
-    tx.commit().map_err(|e| DbError::Query(e.to_string()))?;
-    Ok(result)
+    transaction_on(pool, f)
+}
+
+/// 注入式数据库访问句柄。
+///
+/// manager 层默认走进程级全局池（[`DbAccess::Global`]，行为与自由函数
+/// [`with_connection`]/[`transaction`] 完全一致）；测试或嵌入场景可注入
+/// 独立池（[`DbAccess::Pool`]），使 manager 方法路径可以脱离 GLOBAL_POOL
+/// 单测。错误统一说 [`DbError`]。
+#[derive(Clone, Default)]
+pub enum DbAccess {
+    /// 进程级全局池（GLOBAL_POOL）
+    #[default]
+    Global,
+    /// 注入的独立池（如内存池单测、嵌入场景）
+    Pool(DbPool),
+}
+
+impl DbAccess {
+    /// 在句柄指向的池上执行闭包
+    pub fn with_connection<F, T>(&self, f: F) -> Result<T, DbError>
+    where
+        F: FnOnce(&rusqlite::Connection) -> Result<T, rusqlite::Error>,
+    {
+        match self {
+            DbAccess::Global => with_connection(f),
+            DbAccess::Pool(pool) => with_connection_on(pool, f),
+        }
+    }
+
+    /// 在句柄指向的池上执行事务闭包
+    pub fn transaction<F, T>(&self, f: F) -> Result<T, DbError>
+    where
+        F: FnOnce(&rusqlite::Transaction<'_>) -> Result<T, rusqlite::Error>,
+    {
+        match self {
+            DbAccess::Global => transaction(f),
+            DbAccess::Pool(pool) => transaction_on(pool, f),
+        }
+    }
 }
 
 /// 关闭数据库（释放全局池引用无法做到，仅做标记日志）
