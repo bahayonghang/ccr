@@ -35,10 +35,10 @@
 
 ## Acceptance Criteria
 
-- [ ] 8 个子任务各自的 prd.md 验收标准全部满足并归档。
-- [ ] 跨子任务集成审查：`just ci` 全绿（version-sync → fmt → lint-strict → check-workspace → test → release → audit → frontend-check → vscode-ci）。
-- [ ] 无新增的重复实现：掩码算法仅 1 处、原子写入口仅 1 处、usage 投影仅 1 处（以 rg 抽查验证）。
-- [ ] 子任务中推翻/缩水的候选，其理由回写到对应 spec（trellis-update-spec），避免未来审查重复提议。
+- [x] 8 个子任务各自的 prd.md 验收标准全部满足并归档。
+- [x] 跨子任务集成审查：`just ci` 全绿（2026-07-05 收口重跑：version-sync → fmt → fmt-check → lint-strict → check-workspace → test → release → audit → ts-bindings → frontend-check → vscode-ci，7:15 全过）。
+- [x] 无新增的重复实现：掩码算法仅 1 处（`ccr-core/src/utils/mask.rs`，logging 处为委托）、原子写入口仅 1 处（`AtomicWriter` 定义唯一）、usage 投影仅 1 处（ccr-usage，rg 抽查验证）。
+- [x] 子任务中推翻/缩水的候选，其理由回写到对应 spec：ccr-error（ccr-error-freeze ADR）、ccr-facade（public-api-boundary thin facade 契约 + 7.0 候选）、sqlite-seam（ccr-db guidelines Decision Record：三库分离 + 双 runner 保留）。
 
 ## Notes
 
