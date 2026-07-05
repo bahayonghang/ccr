@@ -4,11 +4,11 @@
 
 use crate::core::crypto::CryptoManager;
 use crate::core::error::DbError;
-use ccr_db::database::{self, repositories::checkin_repo};
 use crate::models::checkin::{
     AccountInfo, AccountsResponse, CheckinAccount, CreateAccountRequest, UpdateAccountRequest,
 };
 use ccr_core::Secret;
+use ccr_db::database::{self, repositories::checkin_repo};
 use chrono::Utc;
 use std::path::{Path, PathBuf};
 
@@ -71,18 +71,18 @@ impl AccountManager {
 
     /// 根据提供商 ID 获取账号列表
     pub fn list_by_provider(&self, provider_id: &str) -> Result<Vec<AccountInfo>> {
-        let accounts = self.db.with_connection(|conn| {
-            checkin_repo::get_accounts_by_provider(conn, provider_id)
-        })?;
+        let accounts = self
+            .db
+            .with_connection(|conn| checkin_repo::get_accounts_by_provider(conn, provider_id))?;
 
         Ok(accounts.iter().map(Self::to_account_info).collect())
     }
 
     /// 检查提供商是否有关联账号
     pub fn has_accounts_for_provider(&self, provider_id: &str) -> Result<bool> {
-        let accounts = self.db.with_connection(|conn| {
-            checkin_repo::get_accounts_by_provider(conn, provider_id)
-        })?;
+        let accounts = self
+            .db
+            .with_connection(|conn| checkin_repo::get_accounts_by_provider(conn, provider_id))?;
         Ok(!accounts.is_empty())
     }
 
@@ -115,7 +115,8 @@ impl AccountManager {
 
     /// 根据 ID 获取账号
     pub fn get(&self, id: &str) -> Result<CheckinAccount> {
-        self.db.with_connection(|conn| checkin_repo::get_account_by_id(conn, id))?
+        self.db
+            .with_connection(|conn| checkin_repo::get_account_by_id(conn, id))?
             .ok_or_else(|| AccountError::NotFound(id.to_string()))
     }
 
@@ -175,7 +176,8 @@ impl AccountManager {
         // 设置扩展配置 (CDK 凭证等)
         account.extra_config = request.extra_config;
 
-        self.db.with_connection(|conn| checkin_repo::insert_account(conn, &account))?;
+        self.db
+            .with_connection(|conn| checkin_repo::insert_account(conn, &account))?;
 
         tracing::info!("Created account: {} ({})", account.name, account.id);
         Ok(account)
@@ -210,7 +212,8 @@ impl AccountManager {
 
         account.updated_at = Some(Utc::now());
 
-        self.db.with_connection(|conn| checkin_repo::update_account(conn, &account))?;
+        self.db
+            .with_connection(|conn| checkin_repo::update_account(conn, &account))?;
 
         tracing::info!("Updated account: {} ({})", account.name, account.id);
         Ok(account)
@@ -220,7 +223,8 @@ impl AccountManager {
     pub fn update_checkin_time(&self, id: &str) -> Result<()> {
         let mut account = self.get(id)?;
         account.update_checkin_time();
-        self.db.with_connection(|conn| checkin_repo::update_account(conn, &account))?;
+        self.db
+            .with_connection(|conn| checkin_repo::update_account(conn, &account))?;
         Ok(())
     }
 
@@ -228,13 +232,16 @@ impl AccountManager {
     pub fn update_balance_time(&self, id: &str) -> Result<()> {
         let mut account = self.get(id)?;
         account.update_balance_check_time();
-        self.db.with_connection(|conn| checkin_repo::update_account(conn, &account))?;
+        self.db
+            .with_connection(|conn| checkin_repo::update_account(conn, &account))?;
         Ok(())
     }
 
     /// 删除账号
     pub fn delete(&self, id: &str) -> Result<()> {
-        let deleted = self.db.with_connection(|conn| checkin_repo::delete_account(conn, id))?;
+        let deleted = self
+            .db
+            .with_connection(|conn| checkin_repo::delete_account(conn, id))?;
 
         if !deleted {
             return Err(AccountError::NotFound(id.to_string()));
@@ -246,7 +253,9 @@ impl AccountManager {
 
     /// 获取所有启用的账号
     pub fn get_enabled_accounts(&self) -> Result<Vec<CheckinAccount>> {
-        let accounts = self.db.with_connection(checkin_repo::get_enabled_accounts)?;
+        let accounts = self
+            .db
+            .with_connection(checkin_repo::get_enabled_accounts)?;
         Ok(accounts)
     }
 
@@ -271,15 +280,15 @@ impl AccountManager {
 
             if exists {
                 if overwrite {
-                    self.db.with_connection(|conn| {
-                        checkin_repo::update_account(conn, &new_account)
-                    })?;
+                    self.db
+                        .with_connection(|conn| checkin_repo::update_account(conn, &new_account))?;
                     imported += 1;
                 } else {
                     skipped += 1;
                 }
             } else {
-                self.db.with_connection(|conn| checkin_repo::insert_account(conn, &new_account))?;
+                self.db
+                    .with_connection(|conn| checkin_repo::insert_account(conn, &new_account))?;
                 imported += 1;
             }
         }

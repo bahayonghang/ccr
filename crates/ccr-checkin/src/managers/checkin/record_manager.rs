@@ -3,10 +3,10 @@
 // 使用 SQLite 统一存储（替代 JSON 文件）
 
 use crate::core::error::DbError;
-use ccr_db::database::{self, repositories::checkin_repo};
 use crate::models::checkin::{
     CheckinRecord, CheckinRecordInfo, CheckinRecordsResponse, CheckinStatus,
 };
+use ccr_db::database::{self, repositories::checkin_repo};
 use chrono::Utc;
 
 #[derive(Debug, thiserror::Error)]

@@ -5,8 +5,8 @@
 
 use super::builtin_providers::{CatalogProviderEntry, get_providers_catalog};
 use crate::core::error::DbError;
-use ccr_db::database::{self, repositories::checkin_repo};
 use crate::models::checkin::CheckinProvider;
+use ccr_db::database::{self, repositories::checkin_repo};
 use chrono::{Duration, Utc};
 use std::collections::HashMap;
 
