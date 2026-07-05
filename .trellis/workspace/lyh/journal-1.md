@@ -1179,3 +1179,9 @@ typed-ipc 试点闭环：选型 ts-rs 11 弃 tauri-specta（RC 期且要接管 i
 - 父任务收口：跨子任务集成审查（`just ci` 全量重跑）后归档 07-03-arch-deepening
 - 独立候选依旧：arch-typed-ipc-observer（下一类型化域）、usage-family-absorb（stats 零调用命令下线）
 - 环境事项：子代理 dispatch 的代理侧 1m 上下文 400 需人工修复（影响所有 Agent 工具调用）
+
+### Addendum: 父任务 07-03-arch-deepening 收口（同日）
+
+- `just ci` 集成门全绿（11 步 7:15：version-sync/fmt/fmt-check/lint-strict/check-workspace/test/release/audit/ts-bindings/frontend-check/vscode-ci），工作树零残留改动
+- 三个"全仓仅 1 处"不变量 rg 抽查过：掩码算法（utils/mask.rs 唯一，logging 委托）、AtomicWriter 定义唯一、usage 投影归 ccr-usage
+- 父任务 prd 验收 4/4 勾选，已归档 archive/2026-07/07-03-arch-deepening —— **架构深化系列 8/8 全部闭环**
