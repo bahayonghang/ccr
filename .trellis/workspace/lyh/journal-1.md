@@ -1036,3 +1036,41 @@ Secret 掩码 newtype 任务闭环：规划（design/implement，含 4 处事实
 
 - 第二批剩余：07-03-arch-typed-ipc（usage-projection 已完成，以 usage domain 为试点最顺）
 - 第三批（先否决式调研）：ccr-facade / sqlite-seam / ccr-error
+
+## Session 30: 07-03-arch-typed-ipc 全流程闭环：Tauri IPC seam 类型化（usage V2 试点）
+
+**Date**: 2026-07-05
+**Task**: `.trellis/tasks/archive/2026-07/07-03-arch-typed-ipc/`
+
+### Summary
+
+typed-ipc 试点闭环：选型 ts-rs 11 弃 tauri-specta（RC 期且要接管 invoke handler，与冻结 handler_registry 冲突）。两处硬啃的机制事实入 spec：export_to 相对 `<manifest>/bindings/` 解析（比直觉深一层）；`TS_RS_LARGE_INT` 是未发布 v12 特性，已发布 v10/v11 硬编码 i64/u64→bigint，改用字段级 `#[ts(as = "f64")]`（~70 处，wire 是 serde_json number 语义无损）并写明 v12 升级路径；输入型 Option 字段与 skip_serializing_if 输出字段需 `#[ts(optional)]`（缺键≠null）。17 条 usage V2 命令签名 Result<Value,String> 清零；业务体下沉 services/usage.rs（commands/usage.rs 2779→1447 行），State-free 函数 + LlmusageRuntime::from_paths + ccr_usage::fixtures（schema v14）使 12 个 service 单测脱离 Tauri app 运行。前端 types/usage.ts 400 行手写镜像→60 行 shim，stats.ts 17 wrapper 具名化、21 处调用点去泛型；type-check 一次暴露真实漂移面：9 个测试文件 fixture 漂移、2 处 string 冒充 UsagePlatform 的不健全收窄、dashboard heatmap 可空性被手写类型隐藏。守卫 bindings/bindings-check 入 just ci；入库后完整证明绿→红→绿（红 = 入库绑定与 canonical 分叉 exit 1 列 MM 路径；未入库手改会被重生成静默修复，canonical 胜出——语义与"防提交期漂移"一致）。GitHub 质量门现状零 src-tauri 面（tauri 仅 release.yml），workflow 接线判为结构性变更随未来 src-tauri CI 任务，决策入 implement.md。registry 冻结计数勘误 309/317→312/320（f57b3718 加命令后 spec 未同步）。盘点：stats 10 命令 9 条零前端调用（仅 get_provider_usage 被 ConfigsView 用）；observer 9 命令活跃不可吸收。推广评估：按域分批立项，observer 为下一候选，codex 最后且先拆分。trellis-check 独立复核 6/6 AC PASS + 3 DTO wire 抽查通过，自愈 5 处（.prettierignore 补齐 + 4 处任务工件过时表述）。过程韧性：429×2 + 进程重启×2 打断四个子代理，全部经 SendMessage 状态快照续跑完成。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `4451e219` | build(deps): 引入 ts-rs v11 与 ccr-usage ts/test-fixtures feature |
+| `f68d6026` | refactor(tauri): usage V2 17 命令类型化 + services 抽取 + 生成绑定入库 |
+| `f16c3d48` | refactor(ui): 前端切换 usage 生成类型并清除试点域泛型 |
+| `1a131cea` | test(ui): usage smoke fixture 迁移至生成类型完备 builder |
+| `cc571935` | build(ci): tauri-bindings 漂移守卫接入 just ci 与生成目录治理 |
+| `658265aa` | docs(spec): 沉淀 typed-ipc-bindings 契约并勘误 registry 计数 |
+| `23ba3229` | chore(task): archive 07-03-arch-typed-ipc |
+
+### Testing
+
+- [OK] src-tauri services 48 通过（12 个无 Tauri app service 单测）；ccr-usage --features ts,test-fixtures 41 通过
+- [OK] src-tauri 全量 235 通过 + handler_registry 3/3（312/320）；export 重生成 34 通过且幂等
+- [OK] just test 全 workspace 绿；lint-strict/fmt-check/version-check 绿
+- [OK] bun type-check 0 错误；frontend-check-quick 362 smoke 通过；facade smoke 3/3
+- [OK] tauri-bindings-check 绿→红（staged 漂移 exit 1）→复绿；生成物 bigint 扫描 0 命中
+
+### Status
+
+[OK] **Completed** — 父任务 07-03-arch-deepening 进度 5/8
+
+### Next Steps
+
+- 第三批（先否决式调研）：07-03-arch-ccr-facade / sqlite-seam / ccr-error
+- 推广评估产出的后续候选：arch-typed-ipc-observer（下一类型化域）、usage-family-absorb（stats 9 条零调用命令下线 + CostTracker 链路清理）
