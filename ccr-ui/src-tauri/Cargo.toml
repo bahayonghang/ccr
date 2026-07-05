@@ -22,7 +22,7 @@ ccr-store = { path = "../../crates/ccr-store" }
 ccr-sync = { path = "../../crates/ccr-sync" }
 ccr-checkin = { path = "../../crates/ccr-checkin" }
 ccr-cli = { path = "../../crates/ccr-cli" }
-ccr-usage = { path = "../../crates/ccr-usage" }
+ccr-usage = { path = "../../crates/ccr-usage", features = ["ts"] }
 # CCR 类型定义 - Claude Settings 子类型（Agent、Plugin、Hook 等）
 ccr-types = { path = "../../crates/ccr-types" }
 
@@ -37,6 +37,9 @@ tauri-plugin-dialog = "2"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 serde_yaml = "0.9"
+
+# TypeScript 绑定生成（usage V2 试点：DTO 单一来源，生成物入库 + 漂移守卫）
+ts-rs = "11"
 
 # Async runtime
 tokio = { version = "1.49", features = [
@@ -117,6 +120,10 @@ winreg = "0.56.0"
 # SSH 远程支持（Phase C2，暂未启用：russh 0.57 的 rand_core 预发布版与 ccr-db 冲突）
 # russh = "0.57.1"
 # russh-sftp = "2.1.1"
+
+[dev-dependencies]
+# 服务层单测的 llmusage 投影 fixture（与主依赖 features 合并生效：ts + test-fixtures）
+ccr-usage = { path = "../../crates/ccr-usage", features = ["test-fixtures"] }
 
 [features]
 default = []

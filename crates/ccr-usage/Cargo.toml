@@ -16,6 +16,14 @@ rusqlite = { workspace = true }
 serde = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
+ts-rs = { workspace = true, optional = true }
+
+[features]
+# 生成 TypeScript 绑定（ccr-ui 桌面端启用）；默认关闭，CLI 依赖图零变化。
+ts = ["dep:ts-rs"]
+# 测试专用 llmusage 投影 fixture（本 crate 与 src-tauri dev-dependency 共用）；
+# 默认关闭，零新增依赖（rusqlite 已是正式依赖）。
+test-fixtures = []
 
 [dev-dependencies]
 serde_json = { workspace = true }
