@@ -31,7 +31,7 @@ Auth files and exported account snapshots are security-sensitive. Preserve maski
 
 ## Error Handling
 
-Return `ccr_core::Result<T>` and map missing auth/config/session state to actionable `CcrError` variants. Avoid panics in runtime discovery and session restore paths; unreadable records should become diagnostics or skipped records with context.
+Return `ccr_core::Result<T>` and map missing auth/config/session state to the existing actionable `CcrError` variants — the variant set is frozen, do not add new ones (see `../../ccr-core/backend/ccr-error-freeze.md`). Avoid panics in runtime discovery and session restore paths; unreadable records should become diagnostics or skipped records with context.
 
 ## Logging
 

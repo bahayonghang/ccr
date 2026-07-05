@@ -24,7 +24,7 @@ The crate intentionally exposes the `sync/` module as its public surface. Keep n
 
 ## Error Handling
 
-Return `ccr_core::Result<T>` and map WebDAV/network/path failures to `CcrError::SyncError`. Preserve context in messages, including the local or remote path that failed.
+Return `ccr_core::Result<T>` and map WebDAV/network/path failures to `CcrError::SyncError` in existing sync paths; the `CcrError` variant set is frozen, so new subsystems use self-owned error types (see `../../ccr-core/backend/ccr-error-freeze.md`). Preserve context in messages, including the local or remote path that failed.
 
 Do not treat every WebDAV error as "not found"; `service.rs` already maps `reqwest_dav` status and decode errors more specifically.
 

@@ -28,7 +28,7 @@ Do not put command presentation logic or TUI rendering into this crate.
 
 Session persistence uses `rusqlite` and `r2d2_sqlite`. Batch writes should use transactions, as `SessionStore::upsert_sessions` does. Dynamic `IN` queries should chunk inputs, as `get_file_hashes` does with chunks of 500.
 
-Map `rusqlite` failures to `CcrError::DatabaseError` with operation context. Do not expose raw SQL errors without saying which operation failed.
+In existing store paths, map `rusqlite` failures to `CcrError::DatabaseError` with operation context. Do not expose raw SQL errors without saying which operation failed. New modules and shared SQLite seam code speak `ccr-db`'s `DbError` and bridge with `map_err` at the ccr-store boundary — do not add `From<DbError>` impls or new `CcrError` variants (see `../../ccr-core/backend/ccr-error-freeze.md`).
 
 ## Logging
 

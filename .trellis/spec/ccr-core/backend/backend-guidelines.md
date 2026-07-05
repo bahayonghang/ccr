@@ -60,7 +60,7 @@ Do not hand-roll `fs::write` for durable CCR config/auth/history state unless a 
 
 ## Error Handling
 
-Use `CcrError` for shared application errors and keep variants actionable for CLI users. Add a new variant only when callers need to distinguish a domain of failure or a stable exit code.
+Use the existing `CcrError` variants for shared application errors and keep messages actionable for CLI users. The variant set is frozen (25 variants) — do not add domain variants; new domain errors live in the owning crate as self-owned types, and primitive-tier additions need case review plus an intentional guard-test update. See [CcrError Freeze](./ccr-error-freeze.md).
 
 Recover from poisoned test/runtime locks with `unwrap_or_else(|poisoned| poisoned.into_inner())` where the existing fixture pattern does so. Do not introduce `unwrap`/`expect` in production paths.
 
