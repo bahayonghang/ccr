@@ -57,6 +57,11 @@ pub const DB_BACKED_FEATURES: [FeatureKey; 9] = [
 ];
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "ts",
+    ts(export, export_to = "../../../ccr-ui/src/types/generated/usage/")
+)]
 #[serde(rename_all = "snake_case")]
 pub enum UnsupportedReason {
     CliMissing,
@@ -69,6 +74,11 @@ pub enum UnsupportedReason {
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "ts",
+    ts(export, export_to = "../../../ccr-ui/src/types/generated/usage/")
+)]
 pub struct FeatureCapability {
     pub supported: bool,
     pub reason: Option<UnsupportedReason>,

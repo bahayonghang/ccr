@@ -44,16 +44,31 @@ pub struct OverviewPayload {
     pub last_export_at: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, PartialEq)]
+// 上 wire 的投影 DTO（被 ccr-ui Tauri 命令直接返回或嵌入响应体）在 ts feature 下
+// 生成 TypeScript 绑定；i64 字段一律 ts(as = "f64")：wire 是 serde_json number，
+// 映射为 number 而非 ts-rs 默认的 bigint（用量数值 << 2^53，无精度风险）。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "ts",
+    ts(export, export_to = "../../../ccr-ui/src/types/generated/usage/")
+)]
 pub struct DailyTrendDto {
     pub date: String,
+    #[cfg_attr(feature = "ts", ts(as = "f64"))]
     pub request_count: i64,
+    #[cfg_attr(feature = "ts", ts(as = "f64"))]
     pub total_tokens: i64,
+    #[cfg_attr(feature = "ts", ts(as = "f64"))]
     pub input_tokens: i64,
     /// Compatibility field: assistant output plus reasoning output.
+    #[cfg_attr(feature = "ts", ts(as = "f64"))]
     pub output_tokens: i64,
+    #[cfg_attr(feature = "ts", ts(as = "f64"))]
     pub reasoning_output_tokens: i64,
+    #[cfg_attr(feature = "ts", ts(as = "f64"))]
     pub cache_read_tokens: i64,
+    #[cfg_attr(feature = "ts", ts(as = "f64"))]
     pub cache_creation_tokens: i64,
     pub cost_usd: f64,
 }
@@ -76,26 +91,46 @@ pub struct ModelBreakdown {
     pub pricing_rate: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "ts",
+    ts(export, export_to = "../../../ccr-ui/src/types/generated/usage/")
+)]
 pub struct SourceBreakdownDto {
     pub source: String,
+    #[cfg_attr(feature = "ts", ts(as = "f64"))]
     pub event_count: i64,
+    #[cfg_attr(feature = "ts", ts(as = "f64"))]
     pub total_tokens: i64,
     pub total_cost: f64,
+    #[cfg_attr(feature = "ts", ts(as = "f64"))]
     pub active_days: i64,
     pub share_tokens: f64,
     pub share_cost: f64,
 }
 
-#[derive(Debug, Clone, Serialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "ts",
+    ts(export, export_to = "../../../ccr-ui/src/types/generated/usage/")
+)]
 pub struct ProviderBreakdownDto {
     pub provider: Option<String>,
+    #[cfg_attr(feature = "ts", ts(as = "f64"))]
     pub request_count: i64,
+    #[cfg_attr(feature = "ts", ts(as = "f64"))]
     pub input_tokens: i64,
+    #[cfg_attr(feature = "ts", ts(as = "f64"))]
     pub cache_read_tokens: i64,
+    #[cfg_attr(feature = "ts", ts(as = "f64"))]
     pub cache_creation_tokens: i64,
+    #[cfg_attr(feature = "ts", ts(as = "f64"))]
     pub output_tokens: i64,
+    #[cfg_attr(feature = "ts", ts(as = "f64"))]
     pub reasoning_output_tokens: i64,
+    #[cfg_attr(feature = "ts", ts(as = "f64"))]
     pub total_tokens: i64,
     pub cost_with_cache_usd: f64,
     pub cost_without_cache_usd: f64,
@@ -144,6 +179,11 @@ pub struct HeatmapPoint {
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "ts",
+    ts(export, export_to = "../../../ccr-ui/src/types/generated/usage/")
+)]
 pub struct UsageRecordDto {
     pub id: String,
     pub platform: String,
@@ -152,9 +192,13 @@ pub struct UsageRecordDto {
     pub recorded_at: String,
     pub source_id: String,
     pub model: Option<String>,
+    #[cfg_attr(feature = "ts", ts(as = "f64"))]
     pub input_tokens: i64,
+    #[cfg_attr(feature = "ts", ts(as = "f64"))]
     pub output_tokens: i64,
+    #[cfg_attr(feature = "ts", ts(as = "f64"))]
     pub cache_read_tokens: i64,
+    #[cfg_attr(feature = "ts", ts(as = "f64"))]
     pub cache_creation_tokens: i64,
     pub cost_with_cache_usd: f64,
     pub cost_without_cache_usd: f64,

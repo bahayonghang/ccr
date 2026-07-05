@@ -1,35 +1,52 @@
 // 投影 DTO 的定义归 ccr-usage（全仓唯一一份 serde 形状），adapter 通过 re-export
 // 暴露并保留未来分叉权；本文件只保留 Tauri 表现层转换 DTO 与纯展示工具函数。
+// 部分名字暂无 crate 内点名使用（分叉权预留），显式 allow 未使用 re-export。
+#[allow(unused_imports)]
 pub use ccr_usage::{
     DailyTrendDto, HeatmapPoint, HomeOverviewPayload, HomeOverviewPlatformStats,
-    HomeOverviewSeriesItem, HomeOverviewSummary, ModelBreakdown, OverviewPayload,
-    ProjectBreakdown, ProviderBreakdownDto, SourceBreakdownDto, TokenSummary, UsageRecordDto,
-    generated_at,
+    HomeOverviewSeriesItem, HomeOverviewSummary, ModelBreakdown, OverviewPayload, ProjectBreakdown,
+    ProviderBreakdownDto, SourceBreakdownDto, TokenSummary, UsageRecordDto, generated_at,
 };
 
 use chrono::DateTime;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
-#[derive(Debug, Clone, Serialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, TS)]
+#[ts(export, export_to = "../../src/types/generated/usage/")]
 pub struct UsageSummaryDto {
+    // wire 走 serde_json（i64 序列化为 JSON number），ts(as = "f64") 使生成类型为
+    // number 而非 ts-rs 默认的 bigint；用量数值 << 2^53，无精度风险。
+    #[ts(as = "f64")]
     pub total_requests: i64,
+    #[ts(as = "f64")]
     pub total_tokens: i64,
+    #[ts(as = "f64")]
     pub total_input_tokens: i64,
+    #[ts(as = "f64")]
     pub total_output_tokens: i64,
+    #[ts(as = "f64")]
     pub total_cache_read_tokens: i64,
     pub total_cost_usd: f64,
     pub cache_efficiency: f64,
 }
 
-#[derive(Debug, Clone, Serialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, TS)]
+#[ts(export, export_to = "../../src/types/generated/usage/")]
 pub struct ModelStatDto {
     pub model: String,
+    #[ts(as = "f64")]
     pub request_count: i64,
+    #[ts(as = "f64")]
     pub total_tokens: i64,
     pub total_cost: f64,
+    #[ts(as = "f64")]
     pub input_tokens: i64,
+    #[ts(as = "f64")]
     pub output_tokens: i64,
+    #[ts(as = "f64")]
     pub cache_read_tokens: i64,
+    #[ts(as = "f64")]
     pub cache_creation_tokens: i64,
     pub cost_with_cache: f64,
     pub cost_without_cache: f64,
@@ -39,24 +56,33 @@ pub struct ModelStatDto {
     pub pricing_rate: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, TS)]
+#[ts(export, export_to = "../../src/types/generated/usage/")]
 pub struct ProjectStatDto {
     pub project_path: String,
+    #[ts(as = "f64")]
     pub request_count: i64,
+    #[ts(as = "f64")]
     pub total_tokens: i64,
     pub total_cost: f64,
 }
 
-#[derive(Debug, Clone, Serialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, TS)]
+#[ts(export, export_to = "../../src/types/generated/usage/")]
 pub struct HeatmapResponseDto {
+    #[ts(as = "std::collections::HashMap<String, f64>")]
     pub data: std::collections::HashMap<String, i64>,
 }
 
-#[derive(Debug, Clone, Serialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, PartialEq, TS)]
+#[ts(export, export_to = "../../src/types/generated/usage/")]
 pub struct PaginatedLogsDto {
     pub records: Vec<UsageRecordDto>,
+    #[ts(as = "Option<f64>")]
     pub total: Option<i64>,
+    #[ts(as = "f64")]
     pub page: i64,
+    #[ts(as = "f64")]
     pub page_size: i64,
     pub next_cursor: Option<String>,
     pub mode: String,

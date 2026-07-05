@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 
 use serde::Serialize;
+use ts_rs::TS;
 
 use super::AppPaths;
 use crate::process::std_command;
@@ -9,7 +10,8 @@ pub use ccr_usage::{DbCapabilities, FeatureCapability, FeatureKey, UnsupportedRe
 
 /// Tauri-facing capability payload: shared DB capabilities from `ccr_usage`
 /// merged with desktop-only CLI detection.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/usage/")]
 pub struct CapabilityReport {
     pub cli_available: bool,
     pub cli_version: Option<String>,
@@ -17,6 +19,8 @@ pub struct CapabilityReport {
     pub db_path: String,
     pub db_exists: bool,
     pub db_readable: bool,
+    // i64/u64 走 serde_json number，ts(as = "f64") 避免 ts-rs 默认 bigint
+    #[ts(as = "Option<f64>")]
     pub schema_version: Option<i64>,
     pub features: BTreeMap<String, FeatureCapability>,
 }

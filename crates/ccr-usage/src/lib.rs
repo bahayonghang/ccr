@@ -7,6 +7,8 @@
 mod capabilities;
 mod db;
 mod error;
+#[cfg(feature = "test-fixtures")]
+pub mod fixtures;
 mod paths;
 mod queries;
 mod source;

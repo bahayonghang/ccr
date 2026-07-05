@@ -35,11 +35,15 @@ impl LlmusageRuntime {
     /// Builds a lightweight runtime handle. This never opens, creates,
     /// bootstraps, migrates, or writes the llmusage database.
     pub fn discover() -> Result<Self, String> {
-        let paths = discover_llmusage_paths()?;
-        Ok(Self {
-            paths: paths.clone(),
-            cli: LlmusageCli::new(paths),
-        })
+        Ok(Self::from_paths(discover_llmusage_paths()?))
+    }
+
+    /// Builds a runtime handle for an explicit path set (tests, remote roots).
+    pub fn from_paths(paths: AppPaths) -> Self {
+        Self {
+            cli: LlmusageCli::new(paths.clone()),
+            paths,
+        }
     }
 
     pub fn paths(&self) -> &AppPaths {

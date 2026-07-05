@@ -10,6 +10,7 @@ mod llmusage_adapter;
 mod monitoring;
 mod platform;
 mod process;
+mod services;
 mod session_index_jobs;
 mod ssh;
 mod state;
