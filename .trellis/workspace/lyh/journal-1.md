@@ -1185,3 +1185,43 @@ typed-ipc 试点闭环：选型 ts-rs 11 弃 tauri-specta（RC 期且要接管 i
 - `just ci` 集成门全绿（11 步 7:15：version-sync/fmt/fmt-check/lint-strict/check-workspace/test/release/audit/ts-bindings/frontend-check/vscode-ci），工作树零残留改动
 - 三个"全仓仅 1 处"不变量 rg 抽查过：掩码算法（utils/mask.rs 唯一，logging 委托）、AtomicWriter 定义唯一、usage 投影归 ccr-usage
 - 父任务 prd 验收 4/4 勾选，已归档 archive/2026-07/07-03-arch-deepening —— **架构深化系列 8/8 全部闭环**
+
+---
+
+## 2026-07-05 · arch-typed-ipc-observer（typed-ipc 第二域：claude_observer）
+
+### What
+
+按 usage V2 试点确立的机制，把 claude_observer 域（9 命令）接入 typed-ipc：
+服务层抽取 + ts-rs 生成绑定入库 + 前端 wrapper 迁出冻结门面 + 手写镜像降 shim。
+
+- 侦查修正 PRD 预设：9 条命令后端本就全是具名 DTO（无擦除点），工作面是生成链路/服务化/前端迁移
+- 新增 `services/claude_observer.rs`：7 个 State-free 查询服务函数 + 8 个 wire DTO（5 个随迁 + HeatmapCell/TopToolRow 服务层映射 + SubscriptionDto 原地 derive）
+- 决策：ccr-db 仓储类型不直接上 wire——服务层同形 DTO + From 映射，ccr-db 零 ts-rs concern，bindings recipe 无需第三段（已写入 spec Contracts）
+- 前端：wrapper 迁 domains/claudeObserver.ts（facade allowlist 缩减 9 条），types/claudeObserver.ts 87 行镜像 → 16 行 re-export shim，`ClaudeObserver*` 别名（零消费）删除
+- 6 个服务单测（fixture 投影库 + temp ccr-db pool 双源，insight 覆盖 roi None/Some 两分支）
+
+### Commits
+
+| Hash | Message |
+|------|---------|
+| `36374a03` | refactor(tauri): claude_observer 域服务化 + ts-rs 绑定接入 |
+| `83cd5052` | refactor(ui): claude_observer wrapper 迁出冻结门面，接生成绑定 |
+| `06e84d40` | docs(spec): typed-ipc 契约回写 claude_observer 域与仓储类型映射规则 |
+| `6f17eb4c` | chore(task): archive 07-05-arch-typed-ipc-observer |
+
+### Testing
+
+- [OK] AC1-AC6 全过：命令文件 to_value/Result<Value> 零命中；8 绑定入库无 bigint；tauri-bindings-check 绿（入库后）；registry 312/320 不变
+- [OK] src-tauri 全量 246/247（唯一失败是 system::cli_versions_fast_mode 5s 计时断言，隔离重跑过——负载抖动 flake，与本任务无关）
+- [OK] type-check / facade smoke / frontend-check-quick（81 文件 362 测试）/ fmt-check / lint-strict / just test / version-check 全绿
+
+### Status
+
+[OK] **Completed** — 已归档 archive/2026-07/07-05-arch-typed-ipc-observer
+
+### Next Steps
+
+- 独立候选：usage-family-absorb（stats 9 条零调用命令下线 + get_provider_usage 迁移 ConfigsView + CostTracker 链路清理）
+- typed-ipc 后续域按推广评估排序：codex 域最后做且先拆子域；typed-ipc-command-name-guard 仍是可选小任务
+- 环境事项未解：子代理 dispatch 代理侧 1m 上下文 400 依旧需人工修复（本任务继续内联实施）
