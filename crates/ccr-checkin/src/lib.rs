@@ -6,8 +6,6 @@ pub mod core;
 pub mod managers;
 pub mod services;
 
-pub use ccr_db::database;
-
 pub mod models {
     pub mod checkin {
         pub use ccr_db::models::checkin::*;

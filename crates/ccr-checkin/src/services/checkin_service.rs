@@ -2107,7 +2107,7 @@ pub struct TodayCheckinStats {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
-    use crate::database;
+    use ccr_db::database;
     use tempfile::TempDir;
 
     fn setup() -> (TempDir, CheckinService) {

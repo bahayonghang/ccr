@@ -5,7 +5,7 @@
 
 use super::builtin_providers::{CatalogProviderEntry, get_providers_catalog};
 use crate::core::error::DbError;
-use crate::database::{self, repositories::checkin_repo};
+use ccr_db::database::{self, repositories::checkin_repo};
 use crate::models::checkin::CheckinProvider;
 use chrono::{Duration, Utc};
 use std::collections::HashMap;
@@ -239,8 +239,8 @@ fn policy_from_catalog_entry(entry: &CatalogProviderEntry) -> Option<WafCookiePo
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
-    use crate::database::repositories::checkin_repo;
-    use crate::database::schema::CREATE_TABLES_SQL;
+    use ccr_db::database::repositories::checkin_repo;
+    use ccr_db::database::schema::CREATE_TABLES_SQL;
     use once_cell::sync::Lazy;
     use rusqlite::Connection;
     use std::sync::Mutex;

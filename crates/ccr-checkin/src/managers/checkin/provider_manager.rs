@@ -3,7 +3,7 @@
 // 使用 SQLite 统一存储（替代 JSON 文件）
 
 use crate::core::error::DbError;
-use crate::database::{self, repositories::checkin_repo};
+use ccr_db::database::{self, repositories::checkin_repo};
 use crate::models::checkin::{
     CheckinProvider, CreateProviderRequest, ProvidersResponse, UpdateProviderRequest,
 };
@@ -212,8 +212,8 @@ impl ProviderManager {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
-    use crate::database::repositories::checkin_repo;
-    use crate::database::schema::CREATE_TABLES_SQL;
+    use ccr_db::database::repositories::checkin_repo;
+    use ccr_db::database::schema::CREATE_TABLES_SQL;
     use once_cell::sync::Lazy;
     use rusqlite::Connection;
     use std::sync::Mutex;

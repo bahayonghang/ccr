@@ -4,7 +4,7 @@
 
 use crate::core::crypto::CryptoManager;
 use crate::core::error::DbError;
-use crate::database::{self, repositories::checkin_repo};
+use ccr_db::database::{self, repositories::checkin_repo};
 use crate::models::checkin::{
     AccountInfo, AccountsResponse, CheckinAccount, CreateAccountRequest, UpdateAccountRequest,
 };
@@ -292,7 +292,7 @@ impl AccountManager {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
-    use crate::database::schema::CREATE_TABLES_SQL;
+    use ccr_db::database::schema::CREATE_TABLES_SQL;
     use tempfile::TempDir;
 
     /// manager 级测试夹具：注入独立内存池（不触 GLOBAL_POOL），
