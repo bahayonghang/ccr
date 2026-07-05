@@ -7,8 +7,8 @@
 ### 1. Scope / Trigger
 
 - Trigger: adding/changing any wire DTO returned by (or accepted as input to) a typed Tauri command; typing a new command domain; upgrading `ts-rs`.
-- Applies to `ccr-ui/src-tauri/src/services/*`, `ccr-ui/src-tauri/src/llmusage_adapter/{queries,capabilities}.rs`, `ccr-ui/src-tauri/src/{usage_jobs,session_index_jobs}.rs`, `crates/ccr-usage/src/{queries,capabilities}.rs`, and the generated dir `ccr-ui/src/types/generated/`.
-- Pilot domain: handler_registry "Usage V2" group (17 commands, all `Result<NamedDto, String>` — `Result<Value, String>` is banned in typed domains).
+- Applies to `ccr-ui/src-tauri/src/services/*`, `ccr-ui/src-tauri/src/llmusage_adapter/{queries,capabilities}.rs`, `ccr-ui/src-tauri/src/{usage_jobs,session_index_jobs}.rs`, `ccr-ui/src-tauri/src/claude_observer/subscription.rs`, `crates/ccr-usage/src/{queries,capabilities}.rs`, and the generated dir `ccr-ui/src/types/generated/`.
+- Typed domains: handler_registry "Usage V2" group (17 commands, pilot) and "Claude Observer" group (9 commands, `services/claude_observer.rs` + `generated/claude_observer/`). All typed commands are `Result<NamedDto, String>` — `Result<Value, String>` is banned in typed domains.
 
 ### 2. Signatures
 
@@ -46,6 +46,7 @@
 - Generated files are **committed** (reviewers see contract diffs), `linguist-generated` + `eol=lf` via root `.gitattributes`, excluded from eslint (`ccr-ui/eslint.config.js` ignores `src/types/generated/**`), covered by `bun run type-check`.
 - TS consumption: domain wrappers (`src/api/domains/stats.ts`) import generated types directly and expose concrete return types — no `<T = UnknownRecord>` generics in a typed domain. `src/types/usage.ts` is a compat shim re-exporting generated types under legacy names plus hand-written view-only types (`UsagePlatform`, `HomeOverviewViewMode`, event payloads). Event payloads (`app_handle.emit`) are not command returns and stay hand-written until events join the pilot.
 - Name uniqueness: one exported type name per generated dir. If a workspace crate and src-tauri both define a same-named type (e.g. `HomeOverview*`), only the wire-facing one gets `ts(export)`.
+- **Repository types never go on the wire directly**: when a domain returns rows owned by a ccr-db repository (e.g. `claude_tool_calls_repo::{HeatmapCell,TopToolRow}`), the service layer defines a same-shaped wire DTO with the `TS` derive and maps via `From`. ccr-db stays free of ts-rs/frontend-binding concerns, and the bindings recipe never needs a ccr-db export step.
 
 ### 4. Validation & Error Matrix
 

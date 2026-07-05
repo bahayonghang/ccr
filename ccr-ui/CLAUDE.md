@@ -175,7 +175,7 @@ CCR UI 的核心用户是 AI CLI 重度用户。典型使用场景不是偶发�
 
 前端所有 API 调用通过 `@tauri-apps/api/core` 的 `invoke()` 函数。新增 wrapper 一律放
 `src/api/domains/<domain>.ts`（`src/api/tauri.ts` 是冻结的兼容门面，见
-`.trellis/spec/ccr-ui/frontend/api-facade-boundary.md`）；已类型化的 domain（usage V2）
+`.trellis/spec/ccr-ui/frontend/api-facade-boundary.md`）；已类型化的 domain（usage V2、claude_observer）
 返回类型使用 ts-rs 生成绑定（`src/types/generated/`，契约见
 `.trellis/spec/ccr/backend/typed-ipc-bindings.md`）：
 

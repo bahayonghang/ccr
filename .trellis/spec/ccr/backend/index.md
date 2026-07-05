@@ -23,4 +23,4 @@
 - Read [Dependency Governance](./dependency-governance.md) before changing workspace/Tauri dependency versions.
 - Read [Desktop Command Policy](./desktop-command-policy.md) and [Tauri Handler Registry](./tauri-handler-registry.md) before changing desktop command passthrough or handler registration.
 - Read [llmusage Provider Adapter Contract](./llmusage-provider-adapter.md) before changing provider-scoped usage sync, adapter filters, or dashboard payloads.
-- Read [Typed IPC Bindings](./typed-ipc-bindings.md) before changing usage V2 wire DTOs, generated TypeScript under `ccr-ui/src/types/generated/`, or typing a new command domain.
+- Read [Typed IPC Bindings](./typed-ipc-bindings.md) before changing usage V2 / claude_observer wire DTOs, generated TypeScript under `ccr-ui/src/types/generated/`, or typing a new command domain.
