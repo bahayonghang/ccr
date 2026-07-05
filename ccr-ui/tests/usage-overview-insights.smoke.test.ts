@@ -10,6 +10,7 @@ import {
   shortenPath,
 } from '@/views/usage/usageOverviewInsights'
 import type { UsageTrendBucket } from '@/views/usage/usageDashboardPresentation'
+import { makeArchiveDiagnostics } from './helpers/usageFixtures'
 
 const translate = (
   key: string,
@@ -22,6 +23,15 @@ const model = (overrides: Partial<ModelStat> & { model: string }): ModelStat => 
   total_tokens: 100,
   total_cost: 1,
   cost_with_cache: overrides.total_cost ?? 1,
+  input_tokens: 0,
+  output_tokens: 0,
+  cache_read_tokens: 0,
+  cache_creation_tokens: 0,
+  cost_without_cache: 0,
+  cache_savings: 0,
+  pricing_status: 'priced',
+  pricing_source: null,
+  pricing_rate: null,
   ...overrides,
 })
 
@@ -67,7 +77,7 @@ describe('usage overview insight helpers', () => {
     expect(buildSelectedWindowLabel('all_time', translate)).toBe('All Time')
     expect(shortenPath('D:/workspace/a/b/c')).toBe('.../b/c')
 
-    const archive: UsageArchiveDiagnostics = {
+    const archive: UsageArchiveDiagnostics = makeArchiveDiagnostics({
       archive_root: 'D:/workspace/archive/live',
       live_sources: 2,
       missing_sources: 1,
@@ -75,7 +85,7 @@ describe('usage overview insight helpers', () => {
       archived_sessions: 4,
       recent_completed_at: '2026-05-19T01:00:00Z',
       history_completed_at: null,
-    }
+    })
 
     expect(
       buildDashboardMetaItems({

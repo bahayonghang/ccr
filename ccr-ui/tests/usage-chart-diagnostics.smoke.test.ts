@@ -13,6 +13,7 @@ import {
   shouldRecommendCodexRepair,
 } from '@/views/usage/usageDiagnostics'
 import { formatCost, formatTokens } from '@/views/usage/usageSummaryCards'
+import { makeArchiveDiagnostics, makeModelStat } from './helpers/usageFixtures'
 
 const summary = (overrides: Partial<UsageSummary> = {}): UsageSummary => ({
   total_requests: 10,
@@ -101,19 +102,19 @@ describe('usage chart and diagnostics helpers', () => {
   })
 
   it('summarizes diagnostics and recommends Codex repair only for risky Codex data', () => {
-    const unknownModel: ModelStat = {
+    const unknownModel: ModelStat = makeModelStat({
       model: 'unknown',
       request_count: 2,
       total_tokens: 10,
       total_cost: 0,
-    }
-    const archive: UsageArchiveDiagnostics = {
+    })
+    const archive: UsageArchiveDiagnostics = makeArchiveDiagnostics({
       archive_root: 'C:/usage.db',
       live_sources: 1,
       missing_sources: 2,
       deleted_sources: 3,
       archived_sessions: 4,
-    }
+    })
     const messages = {
       noRecentRecord: 'No recent record',
       rawLogsHint: 'Raw logs unavailable',

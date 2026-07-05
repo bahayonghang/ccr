@@ -33,11 +33,13 @@ const providerStats: ProviderBreakdown[] = [
 
 const supportedCapability: UsageFeatureCapability = {
   supported: true,
+  reason: null,
+  detail: null,
 }
 
 const mountProvidersTab = async (
   stats: ProviderBreakdown[] = providerStats,
-  providerCapability: UsageFeatureCapability | null = supportedCapability,
+  providerCapability: UsageFeatureCapability | null = supportedCapability
 ) => {
   const el = document.createElement('div')
   document.body.appendChild(el)

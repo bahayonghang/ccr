@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import UsageCostTab from '@/components/usage/UsageCostTab.vue'
 import type { DailyTrend, ModelStat, SourceBreakdown, UsageSummary } from '@/types/usage'
 import { createI18nStub } from './helpers/i18n-stub'
+import { makeModelStat } from './helpers/usageFixtures'
 
 const ChartStub = defineComponent({
   name: 'ChartStub',
@@ -12,10 +13,15 @@ const ChartStub = defineComponent({
     type: { type: String, required: true },
   },
   setup(props) {
-    return () => h('pre', { class: 'chart-stub' }, JSON.stringify({
-      type: props.type,
-      series: props.series,
-    }))
+    return () =>
+      h(
+        'pre',
+        { class: 'chart-stub' },
+        JSON.stringify({
+          type: props.type,
+          series: props.series,
+        })
+      )
   },
 })
 
@@ -76,20 +82,20 @@ const sourceStats: SourceBreakdown[] = [
 ]
 
 const modelStats: ModelStat[] = [
-  {
+  makeModelStat({
     model: 'cheap-large',
     request_count: 5,
     total_tokens: 2000,
     total_cost: 0.5,
     cost_with_cache: 0.5,
-  },
-  {
+  }),
+  makeModelStat({
     model: 'expensive-small',
     request_count: 2,
     total_tokens: 400,
     total_cost: 2,
     cost_with_cache: 2,
-  },
+  }),
 ]
 
 const mountCostTab = async () => {

@@ -5,10 +5,12 @@ import type {
   ProviderBreakdown,
   ProjectStat,
   UsageCapabilityReport,
+  UsageFeatureCapability,
   UsageSnapshotProjection,
   UsageSummary,
 } from '@/types/usage'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { makeModelStat } from './helpers/usageFixtures'
 
 let localeHydrated = false
 const perfMarks: string[] = []
@@ -479,13 +481,16 @@ describe('usage dashboard state smoke', () => {
     ]
     usageStore.usageCapabilities = {
       cli_available: true,
+      cli_version: null,
       root_dir: 'C:/Users/test/.llmusage',
       db_path: 'C:/Users/test/.llmusage/llmusage.db',
       db_exists: true,
       db_readable: true,
       schema_version: 14,
       features: {
-        provider_breakdown: { supported: true },
+        // 断言用 toEqual({ supported: true }) 精确比较，补 reason/detail: null 会让断言变红；
+        // 这里保持运行时值不变，仅用 as 收窄类型。
+        provider_breakdown: { supported: true } as UsageFeatureCapability,
       },
     }
 
@@ -568,7 +573,7 @@ describe('usage dashboard state smoke', () => {
       cache_efficiency: 0,
     }
     usageStore.modelStats = [
-      { model: 'unknown', request_count: 42, total_tokens: 43800, total_cost: 0 },
+      makeModelStat({ model: 'unknown', request_count: 42, total_tokens: 43800, total_cost: 0 }),
     ]
     usageStore.logs = {
       total: 42,
@@ -646,8 +651,18 @@ describe('usage dashboard state smoke', () => {
       cache_efficiency: 0.375,
     }
     usageStore.modelStats = [
-      { model: 'claude-opus', request_count: 72, total_tokens: 30000, total_cost: 18.4 },
-      { model: 'gemini-flash', request_count: 48, total_tokens: 30000, total_cost: 6.1 },
+      makeModelStat({
+        model: 'claude-opus',
+        request_count: 72,
+        total_tokens: 30000,
+        total_cost: 18.4,
+      }),
+      makeModelStat({
+        model: 'gemini-flash',
+        request_count: 48,
+        total_tokens: 30000,
+        total_cost: 6.1,
+      }),
     ]
     usageStore.projectStats = [
       {
@@ -717,6 +732,8 @@ describe('usage dashboard state smoke', () => {
     usageStore.snapshot = {
       generated_at: '2026-05-25T09:10:00Z',
       platform_scope: 'all',
+      start_date: null,
+      end_date: null,
       cache_ttl_seconds: 30,
       freshness: {
         state: 'stale',
@@ -742,6 +759,8 @@ describe('usage dashboard state smoke', () => {
           live_sources: 1,
           missing_sources: 1,
           deleted_sources: 0,
+          recent_completed_at: null,
+          history_completed_at: null,
           freshness: {
             state: 'stale',
             latest_completed_at: '2026-05-24T00:00:00Z',
@@ -796,7 +815,12 @@ describe('usage dashboard state smoke', () => {
       },
     ]
     usageStore.modelStats = [
-      { model: 'claude-opus', request_count: 72, total_tokens: 30000, total_cost: 18.4 },
+      makeModelStat({
+        model: 'claude-opus',
+        request_count: 72,
+        total_tokens: 30000,
+        total_cost: 18.4,
+      }),
     ]
 
     const { state, unmount } = await mountComposable()
@@ -847,20 +871,20 @@ describe('usage dashboard state smoke', () => {
   it('keeps overview model distribution cost-based while exposing token-based models data', async () => {
     tauriRuntime = true
     usageStore.modelStats = [
-      {
+      makeModelStat({
         model: 'expensive-small',
         request_count: 3,
         total_tokens: 1000,
         total_cost: 100,
         cost_with_cache: 100,
-      },
-      {
+      }),
+      makeModelStat({
         model: 'cheap-large',
         request_count: 2,
         total_tokens: 10000,
         total_cost: 1,
         cost_with_cache: 1,
-      },
+      }),
     ]
 
     const { state, unmount } = await mountComposable()
@@ -886,8 +910,18 @@ describe('usage dashboard state smoke', () => {
       cache_efficiency: 0.375,
     }
     usageStore.modelStats = [
-      { model: 'claude-opus', request_count: 72, total_tokens: 30000, total_cost: 18.4 },
-      { model: 'gemini-flash', request_count: 48, total_tokens: 30000, total_cost: 6.1 },
+      makeModelStat({
+        model: 'claude-opus',
+        request_count: 72,
+        total_tokens: 30000,
+        total_cost: 18.4,
+      }),
+      makeModelStat({
+        model: 'gemini-flash',
+        request_count: 48,
+        total_tokens: 30000,
+        total_cost: 6.1,
+      }),
     ]
     usageStore.projectStats = [
       {

@@ -19,6 +19,11 @@ import {
   parseEnvFlag,
   type UsageDashboardPayload,
 } from '@/stores/usageDashboardPayload'
+import {
+  makeArchiveDiagnostics,
+  makeFeatureCapability,
+  makeModelStat,
+} from './helpers/usageFixtures'
 
 const summary: UsageSummary = {
   total_requests: 1,
@@ -42,13 +47,13 @@ const trend: DailyTrend = {
   cost_usd: 0.01,
 }
 
-const model: ModelStat = {
+const model: ModelStat = makeModelStat({
   model: 'gpt-5.5',
   request_count: 1,
   total_tokens: 10,
   total_cost: 0.01,
   cost_with_cache: 0.01,
-}
+})
 
 const project: ProjectStat = {
   project_path: 'D:/repo',
@@ -80,13 +85,13 @@ const provider: ProviderBreakdown = {
   cost_without_cache_usd: 0.02,
 }
 
-const archive: UsageArchiveDiagnostics = {
+const archive: UsageArchiveDiagnostics = makeArchiveDiagnostics({
   archive_root: 'D:/archive',
   live_sources: 1,
   missing_sources: 0,
   deleted_sources: 0,
   archived_sessions: 1,
-}
+})
 
 describe('usage dashboard payload helpers', () => {
   it('parses env flags and builds stable dashboard fetch keys', () => {
@@ -185,6 +190,7 @@ describe('usage dashboard payload helpers', () => {
       page: 1,
       page_size: 10,
       total: null,
+      next_cursor: null,
       mode: 'offset',
     }
     expect(normalizePaginatedLogs(logs, 2, 25, 99)).toMatchObject({
@@ -197,7 +203,9 @@ describe('usage dashboard payload helpers', () => {
 
   it('keeps unsupported capability checks explicit', () => {
     expect(isCapabilityUnsupported(null)).toBe(false)
-    expect(isCapabilityUnsupported({ supported: true })).toBe(false)
-    expect(isCapabilityUnsupported({ supported: false, reason: 'cli_missing' })).toBe(true)
+    expect(isCapabilityUnsupported(makeFeatureCapability({ supported: true }))).toBe(false)
+    expect(
+      isCapabilityUnsupported(makeFeatureCapability({ supported: false, reason: 'cli_missing' }))
+    ).toBe(true)
   })
 })

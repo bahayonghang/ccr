@@ -5,6 +5,7 @@ import {
   hasPlatformUsageData,
 } from '@/views/platform-usage/platformUsagePresentation'
 import type { PlatformUsageDashboardData } from '@/types/platformUsageInsight'
+import { makeModelStat } from './helpers/usageFixtures'
 
 const baseData: PlatformUsageDashboardData = {
   generated_at: '2026-05-20T12:00:00.000Z',
@@ -42,18 +43,18 @@ const baseData: PlatformUsageDashboardData = {
     },
   ],
   model_stats: [
-    {
+    makeModelStat({
       model: 'gpt-5.5',
       request_count: 8,
       total_tokens: 7_000,
       total_cost: 1.7,
-    },
-    {
+    }),
+    makeModelStat({
       model: 'gpt-5.4',
       request_count: 4,
       total_tokens: 2_000,
       total_cost: 0.7,
-    },
+    }),
   ],
   project_stats: [
     {

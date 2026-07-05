@@ -6,6 +6,7 @@ import {
 import type { CliVersionEntry, SystemInfo } from '@/types'
 import type { MonitoringEntry } from '@/composables/useMonitoringFeed'
 import type { HomeUsageOverviewResponse } from '@/types/usage'
+import { makeArchiveDiagnostics } from './helpers/usageFixtures'
 
 const platforms: DashboardPlatformSource[] = [
   {
@@ -103,7 +104,7 @@ const overview = (
     opencode: { sessions: 0, requests: 40, tokens: 15000 },
   },
   series: [],
-  archive: {
+  archive: makeArchiveDiagnostics({
     archive_root: 'C:/Users/test/.ccr/analytics/usage.db',
     live_sources: 3,
     missing_sources: 0,
@@ -111,7 +112,7 @@ const overview = (
     archived_sessions: 18,
     recent_completed_at: null,
     history_completed_at: null,
-  },
+  }),
   bootstrap: {
     usage_import_attempted: false,
     usage_imported_records: 0,
@@ -126,6 +127,8 @@ const overview = (
   snapshot: {
     generated_at: '2026-04-29T09:00:00Z',
     platform_scope: 'all',
+    start_date: null,
+    end_date: null,
     cache_ttl_seconds: 30,
     freshness: {
       state: 'fresh',
@@ -135,12 +138,14 @@ const overview = (
     },
     readiness: {
       state: 'ready',
+      next_action: null,
       detail: 'ready',
       has_live_sources: true,
       has_missing_sources: false,
       has_deleted_sources: false,
       active_usage_import: false,
       active_session_index: false,
+      recent_completed_at: null,
     },
     source_health: [],
     drilldown: {
@@ -150,7 +155,8 @@ const overview = (
       supports_sessions: true,
     },
   },
-  empty_reason: undefined,
+  // 生成类型里 empty_reason 为 string | null（必填），undefined 不再合法；null 同为 falsy，不影响 readiness 断言。
+  empty_reason: null,
   last_updated: '2026-04-29T09:00:00Z',
   ...overrides,
 })
