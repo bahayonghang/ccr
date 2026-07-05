@@ -1142,3 +1142,40 @@ typed-ipc 试点闭环：选型 ts-rs 11 弃 tauri-specta（RC 期且要接管 i
 
 - 第三批最后一个：07-03-arch-sqlite-seam（错误规则已预写进 ccr-error-freeze ADR：seam 说 DbError、ccr-store 边界 map_err 桥接、禁 From impl；仍需先否决式调研）
 - 推广评估独立候选依旧：arch-typed-ipc-observer、usage-family-absorb
+
+## Session 33: 07-03-arch-sqlite-seam 否决式调研闭环：seam 缩水实施
+
+**Date**: 2026-07-05
+**Task**: `.trellis/tasks/archive/2026-07/07-03-arch-sqlite-seam/`
+
+### Summary
+
+第三批收官子任务（父任务 8/8）。否决式调研触发否决门，任务按 PRD 预案缩水为"共享 seam 代码、保持 DB 文件分离"。三前提判定：**前提 1（否决门）三库分离系有意设计**——data.db（CLI 进程）与 ccr-ui.db（桌面进程）不同进程/根目录/生命周期从未同库，usage.db 是 aa5af6c1 显式拆出的 durable archive（迁移方向就是从 ccr-ui.db 迁出），合并即翻案。**前提 2 "两套栈重复 pool+migrate+conn" 大部分推翻**——pool 工厂已全仓唯一（ccr-core::core::sqlite 就是 seam，两套栈都在消费），所谓重复实为 ccr-db/database/pool.rs 137 行纯转发浅层；migration runner 同名表不同 schema（name-based vs version-based）合并即重写已发布语义；跨栈 crate 级 seam 会新增 ccr-store→ccr-db 耦合把 89KB 迁移+checkin 模型拖进 CLI 构建——三条全否决。**前提 3 GLOBAL_POOL 不可测成立**（AccountManager 加密→持久化→掩码路径零 manager 级覆盖，测试绕过 manager 直调 repo），且新发现同库双池 wart：main.rs 对 ccr-ui.db 同时开 GLOBAL_POOL(10)+AppState 池(8)、迁移跑两遍。**前提 4/5 成立且更好做**：executor.rs 4 个导出函数全仓零调用（8838890c 老 Web shell-out 遗物），PRD 说"移出"证据说"删除"；checkin wholesale re-export 外部消费方 0。落地五步各自独立提交：删 executor（-322 行，卸 futures/async-stream/tokio-process）→ pool.rs 折叠（类型 pub use 保同一性，src-tauri 9 处 import 换径）→ 单池化 initialize_app_pool()（建池→迁移一遍→set GLOBAL→返回同实例给 AppState，连接上限 18→8 取舍记录）→ DbAccess(Global|Pool) 注入 + AccountManager 试点（new() 默认 Global 零调用方变更，测试重写为 manager 级：内存池注入覆盖 create 加密入库/get_cookies_json 解密/get_info 掩码不泄露/列表占位/update 重加密/delete NotFound，-6 repo 级 +7 manager 级）→ 删 wholesale re-export（内部 crate::database→ccr_db::database）。错误方向全程按 ccr-error-freeze ADR（seam 说 primitive/DbError，无新 From impl，ccr-store 27 处不动）。环境故障一笔：子代理 dispatch 全数 400（代理侧 1m 上下文配置），sqlite-migration-reviewer 按其清单内联等价审查（迁移幂等单跑/Arc 池共享/无嵌套 with_connection/不触备份路径），PASS 记录进 research 附录。spec 回写：ccr-db guidelines（单池初始化契约、DbAccess 模式、Decision Record 三库分离+双 runner 保留防重提）、ccr-checkin guidelines（具名路径禁回墙、manager 级测试注入模式）。既有死依赖发现一笔未动：ccr-db 的 reqwest 在 src 零使用（与本任务无关，留待依赖清理）。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `0b29c28c` | refactor(db): 删除零调用的 executor.rs 及 ExecutorError |
+| `ba8de334` | refactor(db): 折叠 pool.rs 纯转发浅层进 database/mod.rs |
+| `91f6db92` | refactor(db): ccr-ui.db 单池化：GLOBAL_POOL 与 AppState 共享同一池实例 |
+| `4e79a0a2` | feat(db): DbAccess 注入式访问 + AccountManager manager 级单测试点 |
+| `e3dbbeaf` | refactor(checkin): 移除 ccr_db::database wholesale re-export，改具名路径 |
+| `1c19c9d9` | style: cargo fmt 对齐 sqlite-seam 改动的格式 |
+| `cbb4703c` | docs(spec): sqlite-seam 契约回写 |
+
+### Testing
+
+- [OK] 每步硬门槛：cargo test -p ccr-db -p ccr-checkin（197→198，manager 级测试净增）；src-tauri cargo check 0 错误 ×3 轮；clippy -D warnings 过
+- [OK] 全量：just version-check / fmt-check / lint-strict / test 全绿；public_api_compat 零快照变化（ccr 面未动）
+- [OK] rg 判据全过：ExecutorError/execute_* 零命中、database::pool 零命中、pub use ccr_db::database 零命中、crate::database 零命中、database::initialize() 生产零命中
+
+### Status
+
+[OK] **Completed** — 父任务 07-03-arch-deepening 进度 8/8，全部子任务闭环
+
+### Next Steps
+
+- 父任务收口：跨子任务集成审查（`just ci` 全量重跑）后归档 07-03-arch-deepening
+- 独立候选依旧：arch-typed-ipc-observer（下一类型化域）、usage-family-absorb（stats 零调用命令下线）
+- 环境事项：子代理 dispatch 的代理侧 1m 上下文 400 需人工修复（影响所有 Agent 工具调用）
