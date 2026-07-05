@@ -24,6 +24,8 @@ export default [
       '**/src-tauri/gen/**',
       '**/.vite/**',
       '**/docs/**',
+      // ts-rs 生成的 TypeScript 绑定（漂移守卫走 just tauri-bindings-check，不走 lint）
+      'src/types/generated/**',
     ],
   },
   js.configs.recommended,

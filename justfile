@@ -477,6 +477,7 @@ _ci-timed-windows:
         @{ Name = "test";            Label = "Test" },
         @{ Name = "release";         Label = "Release Build" },
         @{ Name = "audit";           Label = "Security Audit" },
+        @{ Name = "tauri-bindings-check"; Label = "TS Bindings Drift" },
         @{ Name = "frontend-check";  Label = "Frontend Check" },
         @{ Name = "vscode-ci";       Label = "VSCode CI" }
     )
@@ -533,8 +534,8 @@ _ci-timed-windows:
 _ci-timed-linux:
     #!/usr/bin/env bash
     set -uo pipefail
-    steps=("version-sync" "fmt" "fmt-check" "lint-strict" "check-workspace" "test" "release" "audit" "frontend-check" "vscode-ci")
-    labels=("Version Sync" "Format" "Format Check" "Strict Clippy" "Workspace Check" "Test" "Release Build" "Security Audit" "Frontend Check" "VSCode CI")
+    steps=("version-sync" "fmt" "fmt-check" "lint-strict" "check-workspace" "test" "release" "audit" "tauri-bindings-check" "frontend-check" "vscode-ci")
+    labels=("Version Sync" "Format" "Format Check" "Strict Clippy" "Workspace Check" "Test" "Release Build" "Security Audit" "TS Bindings Drift" "Frontend Check" "VSCode CI")
     PAD=20
     times=()
     statuses=()
@@ -594,8 +595,8 @@ _ci-timed-linux:
 _ci-timed-macos:
     #!/usr/bin/env bash
     set -uo pipefail
-    steps=("version-sync" "fmt" "fmt-check" "lint-strict" "check-workspace" "test" "release" "audit" "frontend-check" "vscode-ci")
-    labels=("Version Sync" "Format" "Format Check" "Strict Clippy" "Workspace Check" "Test" "Release Build" "Security Audit" "Frontend Check" "VSCode CI")
+    steps=("version-sync" "fmt" "fmt-check" "lint-strict" "check-workspace" "test" "release" "audit" "tauri-bindings-check" "frontend-check" "vscode-ci")
+    labels=("Version Sync" "Format" "Format Check" "Strict Clippy" "Workspace Check" "Test" "Release Build" "Security Audit" "TS Bindings Drift" "Frontend Check" "VSCode CI")
     PAD=20
     times=()
     statuses=()
@@ -1252,6 +1253,14 @@ tauri-fmt:
 
 tauri-test:
     @just _ui-run tauri-test
+
+# 🔄 重新生成 usage V2 的 TypeScript 绑定（ts-rs，生成物入库）
+tauri-bindings:
+    @just _ui-run bindings
+
+# 🧪 TypeScript 绑定漂移守卫（重新生成后 git 必须无差异）
+tauri-bindings-check:
+    @just _ui-run bindings-check
 
 ui-test:
     @just _ui-run test

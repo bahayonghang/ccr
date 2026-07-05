@@ -1531,6 +1531,67 @@ _tauri-test-windows:
     @Write-Output '🧪 运行 Tauri 测试...'
     @bun run tauri:test
 
+# 🔄 重新生成 usage V2 的 TypeScript 绑定（ts-rs export tests；生成物入库）
+bindings:
+    @just _bindings-{{os()}}
+
+_bindings-linux:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "🔄 重新生成 TypeScript 绑定..."
+    rm -rf src/types/generated
+    cargo test --manifest-path ../Cargo.toml -p ccr-usage --features ts export_bindings
+    cargo test --manifest-path src-tauri/Cargo.toml export_bindings
+    echo "✅ 绑定已生成: src/types/generated/"
+
+_bindings-macos:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "🔄 重新生成 TypeScript 绑定..."
+    rm -rf src/types/generated
+    cargo test --manifest-path ../Cargo.toml -p ccr-usage --features ts export_bindings
+    cargo test --manifest-path src-tauri/Cargo.toml export_bindings
+    echo "✅ 绑定已生成: src/types/generated/"
+
+_bindings-windows:
+    @Write-Output '🔄 重新生成 TypeScript 绑定...'
+    @if (Test-Path src/types/generated) { Remove-Item -Recurse -Force src/types/generated }
+    @cargo test --manifest-path ../Cargo.toml -p ccr-usage --features ts export_bindings
+    @cargo test --manifest-path src-tauri/Cargo.toml export_bindings
+    @Write-Output '✅ 绑定已生成: src/types/generated/'
+
+# 🧪 TypeScript 绑定漂移守卫：重新生成后 git 必须无差异（含未跟踪新文件）
+bindings-check:
+    @just _bindings-check-{{os()}}
+
+_bindings-check-linux:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    just bindings
+    status=$(git status --porcelain -- src/types/generated)
+    if [ -n "$status" ]; then
+        echo "$status"
+        echo "❌ TypeScript 绑定漂移：Rust DTO 与入库生成物不一致，运行 just tauri-bindings 后提交"
+        exit 1
+    fi
+    echo "✅ TypeScript 绑定与 Rust DTO 同步"
+
+_bindings-check-macos:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    just bindings
+    status=$(git status --porcelain -- src/types/generated)
+    if [ -n "$status" ]; then
+        echo "$status"
+        echo "❌ TypeScript 绑定漂移：Rust DTO 与入库生成物不一致，运行 just tauri-bindings 后提交"
+        exit 1
+    fi
+    echo "✅ TypeScript 绑定与 Rust DTO 同步"
+
+_bindings-check-windows:
+    @just bindings
+    @$status = git status --porcelain -- src/types/generated; if ($status) { Write-Output $status; Write-Output '❌ TypeScript 绑定漂移：Rust DTO 与入库生成物不一致，运行 just tauri-bindings 后提交'; exit 1 } else { Write-Output '✅ TypeScript 绑定与 Rust DTO 同步' }
+
 # 清理 Tauri 构建产物
 tauri-clean:
     @just _tauri-clean-{{os()}}
