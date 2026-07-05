@@ -1106,3 +1106,39 @@ typed-ipc 试点闭环：选型 ts-rs 11 弃 tauri-specta（RC 期且要接管 i
 
 - 第三批剩余（均需先否决式调研）：07-03-arch-ccr-facade（prelude 形状已定，可直接进调研）/ 07-03-arch-sqlite-seam（错误规则已预写进 ADR）
 - 推广评估独立候选依旧：arch-typed-ipc-observer（下一类型化域）、usage-family-absorb（stats 9 条零调用命令下线）
+
+## Session 32: 07-03-arch-ccr-facade 否决式调研后缩水落地：facade 收拢
+
+**Date**: 2026-07-05
+**Task**: `.trellis/tasks/archive/2026-07/07-03-arch-ccr-facade/`
+
+### Summary
+
+第三批第二个子任务闭环。否决式调研对 PRD 三前提的判定：**前提 1 被推翻**——dispatch.rs 在 4 个 `#[cfg(feature="tui")]` 分支（L176/375/575/609）调 `ccr_tui::tui::*`，而 ccr-tui→ccr-cli，整体迁移即循环依赖；缩水为 **TuiLaunchers 注入式**（4 个 `fn() -> Result<(), CcrError>` 字段，main.rs 唯一构造方注入，cfg 双分支改运行时 Option 判断、两路径恒编译），dispatch(749 行)+help(51 行) 全量迁入 ccr-cli，ccr::cli 经转发同名可达，lib.rs 仅删 1 行私有 `mod help;`（快照只收集 pub 行，3/3 零变化）。**前提 2 部分推翻**——"4 个死依赖"实为删 3 移 1（ccr-config 被 tests/commands 的 profile 测试 6 处消费，`profile_to_section` 无 ccr:: 转发路径），且实际死依赖面 29 个而非 4：[dependencies] 收敛到 6 个真实引用（ccr-cli/core/store/tui[opt]/clap/tokio），新增 [dev-dependencies] 6 个（含 inventory 漏记勘误 toml/filetime）。**前提 3 成立**——墙瘦身逐符号白名单执行删 59（models 8/managers 14/services 37，零勘误恢复），保留 ~70 均可指出消费方（inventory C8 全表）；陷阱按预判处理（OpenCodeReadSnapshot 只删 services 副本、锁定项不动、改组不删行）。附带：ccr-tui lib.rs 别名墙（0 外部消费）删除，10 文件改 ccr_cli:: 直连；show_version 的 env!(CARGO_PKG_DESCRIPTION) 迁移后会解析成 ccr-cli 描述（用户可见回归），改常量保持原文案。路由测试从纯 ccr 层黑盒升级为 11 个进程内直接测试（TUI 注入命中断言/快捷切换优先级/None 降级/纯输出/只读命令，IsolatedEnv 对齐 ccr tests/support 惯例）；110+ 分支全量路由断言按 design 决策 2 明确不做（需可注入执行器改造，成本远超收益，黑盒 144 测试兜底）。PRD 勘误另记："24 个集成测试"实为 10 文件/54 个（全目录 135 fn + doc-tests，Windows 跳 1 个 cfg(unix)）。spec 回写 public-api-boundary.md：thin facade 契约、依赖收敛规则（禁回加 pass-through 依赖）、墙规则（新增 re-export 须指出消费方）、7.0 breaking 候选登记（删 ccr 桥，附 src-tauri 消费基线 3 处）。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `382f8dba` | refactor(ccr): 收敛 ccr 依赖到 src 真实引用集 |
+| `6e83f3a1` | refactor(cli): dispatch/help 迁入 ccr-cli，TUI 启动器注入解循环 |
+| `de0eacf9` | test(cli): dispatch 路由直接测试 |
+| `fd30c860` | refactor(cli): re-export 墙瘦身：删除 59 个无消费方条目 |
+| `297e223f` | refactor(tui): 移除 ccr-cli 别名墙，改直接 import |
+| `3b4ec9f7` | docs(spec): public-api-boundary 补 facade 收拢契约与 7.0 breaking 候选 |
+| `c9a770a0` | chore(task): archive 07-03-arch-ccr-facade |
+
+### Testing
+
+- [OK] 每步硬门槛全过：public_api_compat 3/3 零快照变化 ×4 轮；src-tauri cargo check 0 错误 ×4 轮
+- [OK] 全量：just version-check / fmt-check / lint-strict / test（--workspace --all-features 串行）全绿；ccr 144 / ccr-cli 206(+11) / ccr-tui 160
+- [OK] clippy -D warnings 逐 crate 过；5 步各自独立 commit 作回滚点
+
+### Status
+
+[OK] **Completed** — 父任务 07-03-arch-deepening 进度 7/8
+
+### Next Steps
+
+- 第三批最后一个：07-03-arch-sqlite-seam（错误规则已预写进 ccr-error-freeze ADR：seam 说 DbError、ccr-store 边界 map_err 桥接、禁 From impl；仍需先否决式调研）
+- 推广评估独立候选依旧：arch-typed-ipc-observer、usage-family-absorb
