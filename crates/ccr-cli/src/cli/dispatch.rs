@@ -2,23 +2,40 @@
 //
 // 将 CLI 命令路由到对应的处理函数
 
+use crate::cli::definitions::{CleanAction, Cli, Commands, DEFAULT_CLEAN_BACKUP_DAYS};
+use crate::cli::help;
 use crate::cli::subcommands::{AllSyncAction, FolderAction};
-use crate::cli::{CleanAction, Cli, Commands, DEFAULT_CLEAN_BACKUP_DAYS};
-use crate::help;
 use ccr_core::core::error::CcrError;
 use std::result::Result;
+
+/// Injectable TUI entry points for the command dispatcher.
+///
+/// `ccr-cli` cannot depend on `ccr-tui` (which itself depends on `ccr-cli`),
+/// so the binary crate constructs this struct and injects the TUI launchers
+/// at runtime. Passing `None` to [`CommandDispatcher::dispatch`] selects the
+/// non-TUI fallback branches instead.
+pub struct TuiLaunchers {
+    /// Launcher for the main profile-switching TUI (`ccr` with no subcommand).
+    pub main: fn() -> Result<(), CcrError>,
+    /// Launcher for the Codex auth TUI (`ccr codex` with no action).
+    pub codex_auth: fn() -> Result<(), CcrError>,
+    /// Launcher for the OpenCode auth TUI (`ccr opencode` with no action).
+    pub opencode_auth: fn() -> Result<(), CcrError>,
+    /// Launcher for the Claude auth TUI (`ccr claude` with no action).
+    pub claude_auth: fn() -> Result<(), CcrError>,
+}
 
 /// 命令分发器
 pub struct CommandDispatcher;
 
 impl CommandDispatcher {
     /// 分发并执行命令
-    pub async fn dispatch(cli: &Cli) -> Result<(), CcrError> {
-        Self::dispatch_async(cli).await
+    pub async fn dispatch(cli: &Cli, tui: Option<&TuiLaunchers>) -> Result<(), CcrError> {
+        Self::dispatch_async(cli, tui).await
     }
 
     /// 异步分发并执行命令
-    async fn dispatch_async(cli: &Cli) -> Result<(), CcrError> {
+    async fn dispatch_async(cli: &Cli, tui: Option<&TuiLaunchers>) -> Result<(), CcrError> {
         let auto_yes = cli.auto_yes;
 
         match &cli.command {
@@ -139,10 +156,10 @@ impl CommandDispatcher {
             Some(Commands::Check { action }) => Self::dispatch_check(action).await,
             Some(Commands::Doctor(args)) => crate::commands::doctor_command(args.clone()).await,
 
-            Some(Commands::Codex { action }) => Self::dispatch_codex(action).await,
-            Some(Commands::OpenCode { action }) => Self::dispatch_opencode(action).await,
+            Some(Commands::Codex { action }) => Self::dispatch_codex(action, tui).await,
+            Some(Commands::OpenCode { action }) => Self::dispatch_opencode(action, tui).await,
 
-            Some(Commands::Claude { action }) => Self::dispatch_claude(action).await,
+            Some(Commands::Claude { action }) => Self::dispatch_claude(action, tui).await,
 
             Some(Commands::Sessions(args)) => {
                 crate::commands::sessions_cmd::execute(args.clone()).await
@@ -152,7 +169,7 @@ impl CommandDispatcher {
             }
 
             // 无子命令时的处理
-            None => Self::handle_no_subcommand(cli).await,
+            None => Self::handle_no_subcommand(cli, tui).await,
 
             // 帮助命令
             Some(Commands::Help { path }) => {
@@ -163,21 +180,17 @@ impl CommandDispatcher {
     }
 
     /// 处理无子命令的情况（快捷切换或打开TUI）
-    async fn handle_no_subcommand(cli: &Cli) -> Result<(), CcrError> {
+    async fn handle_no_subcommand(cli: &Cli, tui: Option<&TuiLaunchers>) -> Result<(), CcrError> {
         if let Some(config_name) = &cli.config_name {
             // 快捷切换配置
             Err(crate::commands::migration::legacy_shortcut_error(
                 config_name,
             ))
         } else {
-            // 打开TUI配置选择器
-            #[cfg(feature = "tui")]
-            {
-                crate::tui::run_tui()
-            }
-            #[cfg(not(feature = "tui"))]
-            {
-                crate::commands::current_command(false, false).await
+            // 打开TUI配置选择器（未注入启动器时降级为显示当前配置）
+            match tui {
+                Some(launchers) => (launchers.main)(),
+                None => crate::commands::current_command(false, false).await,
             }
         }
     }
@@ -363,23 +376,17 @@ impl CommandDispatcher {
     /// Codex 命令分发
     async fn dispatch_codex(
         action: &Option<crate::cli::subcommands::CodexAction>,
+        tui: Option<&TuiLaunchers>,
     ) -> Result<(), CcrError> {
         use crate::cli::subcommands::codex::{CodexSessionsAction, CodexSyncHistoryAction};
         use crate::cli::subcommands::{CodexAction, CodexAuthAction, CodexProfileAction};
 
         match action {
-            // 无子命令时启动主 TUI 的 Codex Auth 视图
-            None => {
-                #[cfg(feature = "tui")]
-                {
-                    crate::tui::codex_auth::run_codex_auth_tui()
-                }
-                #[cfg(not(feature = "tui"))]
-                {
-                    // 无 TUI 时显示账号列表
-                    crate::commands::codex::auth::list_command().await
-                }
-            }
+            // 无子命令时启动主 TUI 的 Codex Auth 视图（未注入启动器时显示账号列表）
+            None => match tui {
+                Some(launchers) => (launchers.codex_auth)(),
+                None => crate::commands::codex::auth::list_command().await,
+            },
             // Codex help 子命令
             Some(CodexAction::Help) => {
                 help::print_subcommand_help("codex");
@@ -565,21 +572,19 @@ impl CommandDispatcher {
     /// OpenCode 命令分发
     async fn dispatch_opencode(
         action: &Option<crate::cli::subcommands::OpenCodeAction>,
+        tui: Option<&TuiLaunchers>,
     ) -> Result<(), CcrError> {
         use crate::cli::subcommands::{OpenCodeAction, OpenCodeAuthAction};
 
         match action {
-            None => {
-                #[cfg(feature = "tui")]
-                {
-                    crate::tui::opencode_auth::run_opencode_auth_tui()
-                }
-                #[cfg(not(feature = "tui"))]
-                {
+            // 无子命令时启动 OpenCode Auth TUI（未注入启动器时打印帮助）
+            None => match tui {
+                Some(launchers) => (launchers.opencode_auth)(),
+                None => {
                     help::print_subcommand_help("opencode");
                     Ok(())
                 }
-            }
+            },
             Some(OpenCodeAction::Help) => {
                 help::print_subcommand_help("opencode");
                 Ok(())
@@ -599,20 +604,16 @@ impl CommandDispatcher {
     /// Claude 命令分发
     async fn dispatch_claude(
         action: &Option<crate::cli::subcommands::ClaudeAction>,
+        tui: Option<&TuiLaunchers>,
     ) -> Result<(), CcrError> {
         use crate::cli::subcommands::{ClaudeAction, ClaudeAuthAction, ClaudeProfileAction};
 
         match action {
-            None => {
-                #[cfg(feature = "tui")]
-                {
-                    crate::tui::claude_auth::run_claude_auth_tui()
-                }
-                #[cfg(not(feature = "tui"))]
-                {
-                    crate::commands::claude::auth::list::list_command().await
-                }
-            }
+            // 无子命令时启动 Claude Auth TUI（未注入启动器时显示账号列表）
+            None => match tui {
+                Some(launchers) => (launchers.claude_auth)(),
+                None => crate::commands::claude::auth::list::list_command().await,
+            },
             Some(ClaudeAction::Help) => {
                 help::print_subcommand_help("claude");
                 Ok(())
@@ -708,7 +709,13 @@ impl CommandDispatcher {
         println!();
         ColorOutput::key_value("版本", version, 2);
         ColorOutput::key_value("作者", env!("CARGO_PKG_AUTHORS"), 2);
-        ColorOutput::key_value("描述", env!("CARGO_PKG_DESCRIPTION"), 2);
+        // 描述的是 ccr 二进制而非本 crate；dispatch 迁入 ccr-cli 后
+        // env!("CARGO_PKG_DESCRIPTION") 会解析成 ccr-cli 的描述，故用常量保持原文案
+        ColorOutput::key_value(
+            "描述",
+            "Claude Code Configuration Switcher (Rust implementation)",
+            2,
+        );
         println!();
 
         ColorOutput::info("常用入口:");

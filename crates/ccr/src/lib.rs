@@ -137,7 +137,6 @@
 //! 完整的配置示例和故障排除指南请参考 `docs/examples/` 目录。
 
 pub mod cli;
-mod help;
 
 /// Compatibility-only bridge for historical root imports.
 ///
