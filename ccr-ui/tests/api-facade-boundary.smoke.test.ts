@@ -42,15 +42,6 @@ const ALLOWED_TAURI_FACADE_COMMANDS = [
   'get_builtin_prompt',
   'get_builtin_prompts_by_category',
   'health_check',
-  'claude_observer_get_insight',
-  'claude_observer_daily_trend',
-  'claude_observer_cost_breakdown',
-  'claude_observer_cache_stats',
-  'claude_observer_top_sessions',
-  'claude_observer_tool_heatmap',
-  'claude_observer_top_tools',
-  'claude_observer_subscription_get',
-  'claude_observer_subscription_set',
 ] as const
 
 const stripTypeScriptComments = (source: string): string => {
