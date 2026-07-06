@@ -1263,3 +1263,36 @@ typed-ipc 试点闭环：选型 ts-rs 11 弃 tauri-specta（RC 期且要接管 i
 - typed-ipc 后续域按推广评估排序:codex 域最后做且先拆子域;typed-ipc-command-name-guard 仍是可选小任务
 - 顺带发现(盘点遗留,未处理):services/usage.rs 本地 HomeOverview*(u64)与 ccr-usage 同名类型(i64)并存,后续小型收敛候选
 - 环境事项未解:子代理 dispatch 代理侧 1m 上下文 400,本任务继续内联实施
+
+
+## Session 28: llmusage Fable/Mythos stats adoption
+
+**Date**: 2026-07-06
+**Task**: llmusage Fable/Mythos stats adoption
+**Branch**: `dev`
+
+### Summary
+
+Adopted upstream llmusage Claude Fable/Mythos static pricing in CCR legacy/catalog paths, added ccr-ui pass-through coverage for static-v1 model rows, updated the llmusage adapter spec, and verified focused Rust/frontend gates before archive.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `8a9d8fcd` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
