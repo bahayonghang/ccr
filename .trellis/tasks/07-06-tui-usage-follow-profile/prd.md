@@ -55,22 +55,22 @@
 
 ## Acceptance Criteria
 
-- [ ] Wide/Standard/Compact 三种视口下，Claude 与 Codex profile 详情均出现
+- [x] Wide/Standard/Compact 三种视口下，Claude 与 Codex profile 详情均出现
       Usage 分组；选中不同 profile 时数字跟随其 provider 变化（单测以注入
       loader 驱动状态断言详情行内容）。
-- [ ] 六种状态（loading / 无 provider / 无记录 / Unsupported / Error / 命中）
+- [x] 六种状态（loading / 无 provider / 无记录 / Unsupported / Error / 命中）
       各有单测覆盖详情行渲染文案。
-- [ ] Tab 循环不再出现 Usage 页；`tab_config_id` 无 Usage 映射；
+- [x] Tab 循环不再出现 Usage 页；`tab_config_id` 无 Usage 映射；
       `default_order_selects_codex_profile_first` 等既有 tab 顺序回归测试更新后
       通过。
-- [ ] 旧版含 `usage` 的 `tui.toml` 加载成功：自定义顺序保留、`usage` 被忽略并
+- [x] 旧版含 `usage` 的 `tui.toml` 加载成功：自定义顺序保留、`usage` 被忽略并
       记录 warn 日志（新增 ccr-config 单测）。
-- [ ] `r` 刷新后用量状态机回到 Loading 并在数据返回后更新（复用现有注入 loader
+- [x] `r` 刷新后用量状态机回到 Loading 并在数据返回后更新（复用现有注入 loader
       异步测试模式）。
-- [ ] `cargo test -p ccr-tui -- --test-threads=1`、`cargo test -p ccr-config
+- [x] `cargo test -p ccr-tui -- --test-threads=1`、`cargo test -p ccr-config
       -- --test-threads=1`、`cargo test -p ccr-usage`、`just fmt-check`、
       `just lint-strict` 全绿。
-- [ ] `rg 'usage_bucket_30m' --type rust` 的 SQL 命中仍仅在 `crates/ccr-usage`。
+- [x] `rg 'usage_bucket_30m' --type rust` 的 SQL 命中仍仅在 `crates/ccr-usage`。
 
 ## Out of Scope
 

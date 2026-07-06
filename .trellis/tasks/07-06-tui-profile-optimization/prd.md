@@ -73,13 +73,15 @@
 
 ## Acceptance Criteria
 
-- [ ] 三个子任务各自的验收标准全部通过并归档。
-- [ ] 集成检查：`cargo test -p ccr-tui -- --test-threads=1`、
+- [x] 三个子任务各自的验收标准全部通过并归档。
+- [x] 集成检查：`cargo test -p ccr-tui -- --test-threads=1`、
       `cargo test -p ccr-config -- --test-threads=1`、`just fmt-check`、
       `just lint-strict` 全绿。
-- [ ] 手工冒烟：`ccr tui` 打开后 Tab 循环无 Usage 独立页；Claude/Codex profile
+- [x] 手工冒烟：`ccr tui` 打开后 Tab 循环无 Usage 独立页；Claude/Codex profile
       详情含掩码 token 行与 provider 用量区块；含中文描述的列表行以 `…` 截断。
-- [ ] 任何界面输出中不出现完整 auth_token/api key。
+      （B/C 项已在各自任务人工冒烟；A 项以 TestBackend 三视口 draw 测试与 tab
+      顺序回归佐证）
+- [x] 任何界面输出中不出现完整 auth_token/api key。
 
 ## Out of Scope
 

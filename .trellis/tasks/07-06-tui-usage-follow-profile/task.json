@@ -3,7 +3,7 @@
   "name": "tui-usage-follow-profile",
   "title": "TUI 用量统计跟随 profile：详情面板内嵌 provider 用量并下线独立 Usage tab",
   "description": "",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": null,
   "scope": null,
   "package": null,
