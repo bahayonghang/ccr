@@ -99,6 +99,7 @@
 - TUI usage views should load the shared projection on a background task through an injectable loader seam (`UsageLoader`), consume `TaggedProviderBreakdown` directly (no per-surface shadow row structs), request `SourceKind::Claude` and `SourceKind::Codex` separately when rendering those platform sections (via `provider_breakdown_by_source`), and display `provider = null` as `unattributed` (`ProviderBreakdownDto::display_provider`).
 - Only pass `--provider-map <path>` when `$CCR_ROOT/analytics/provider_activation.jsonl` exists. The installed llmusage CLI treats an explicit missing provider-map path as a hard sync error.
 - New frontend business wrappers belong in `src/api/domains/*`; `src/api/tauri.ts` remains a compatibility facade.
+- The legacy `ccr_store::CostTracker` stats command family (`get_cost_overview`, `get_provider_usage`, `get_daily_stats`, 10 commands total, plus `stats_snapshot.rs`) was removed from ccr-ui in 2026-07 (usage-family-absorb). All statistics surfaces consume V2 usage commands; do not reintroduce JSONL-scan stats commands. The only remaining `CostTracker` consumers in ccr-ui are the claude budgets path (`claude_get_budgets`) and the startup storage-dir check in `main.rs`.
 
 ### 4. Validation & Error Matrix
 
