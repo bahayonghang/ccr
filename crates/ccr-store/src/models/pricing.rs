@@ -376,6 +376,17 @@ mod tests {
         assert!(sonnet.is_some());
         assert_eq!(sonnet.unwrap().input_price, 3.0);
         assert_eq!(sonnet.unwrap().output_price, 15.0);
+
+        // 验证 Claude Fable/Mythos 5 定价
+        for model in ["claude-fable-5", "claude-mythos-5"] {
+            let pricing = config
+                .get_pricing(model)
+                .unwrap_or_else(|| panic!("{model} default pricing should exist"));
+            assert_eq!(pricing.input_price, 10.0);
+            assert_eq!(pricing.output_price, 50.0);
+            assert_eq!(pricing.cache_read_price, Some(1.0));
+            assert_eq!(pricing.cache_write_price, Some(12.5));
+        }
     }
 
     #[test]

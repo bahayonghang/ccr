@@ -3303,6 +3303,41 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_usage_record_prices_claude_fable_and_mythos() {
+        let _guard = setup();
+        let service = UsageImportService::new(ImportConfig::default());
+
+        for (uuid, model) in [
+            ("claude-fable", "claude-fable-5"),
+            ("claude-mythos", "anthropic.claude-mythos-5"),
+        ] {
+            let json = serde_json::json!({
+                "uuid": uuid,
+                "timestamp": "2026-07-03T02:00:00Z",
+                "message": {
+                    "model": model,
+                    "usage": {
+                        "input_tokens": 1_000_000,
+                        "cache_read_input_tokens": 200_000,
+                        "cache_creation_input_tokens": 300_000,
+                        "output_tokens": 400_000
+                    }
+                }
+            });
+
+            let record = service
+                .parse_usage_record(&json, "claude", "/workspace", uuid)
+                .unwrap_or_else(|| panic!("{model} usage record should parse"));
+            assert_eq!(record.cache_read_tokens, 200_000);
+            assert_eq!(record.cache_creation_tokens, 300_000);
+            assert!((record.cost_with_cache_usd - 33.95).abs() < 0.000_001);
+            assert!((record.cost_without_cache_usd - 35.0).abs() < 0.000_001);
+            assert_eq!(record.pricing_status, "priced");
+            assert_eq!(record.pricing_source.as_deref(), Some("official:anthropic"));
+        }
+    }
+
+    #[test]
     fn test_parse_usage_record_cache_creation_and_unpriced() {
         let _guard = setup();
         let service = UsageImportService::new(ImportConfig::default());

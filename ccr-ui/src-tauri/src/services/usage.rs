@@ -1788,6 +1788,57 @@ mod service_tests {
     }
 
     #[test]
+    fn usage_by_model_preserves_llmusage_static_v1_fable_mythos_rows() {
+        let temp = TempDir::new().expect("temp dir should be created");
+        let (runtime, conn) = open_fixture(&temp);
+        for model in ["claude-fable-5", "claude-mythos-5"] {
+            seed_bucket(
+                &conn,
+                &SeedBucket {
+                    source: "claude".to_string(),
+                    provider_label: "anthropic".to_string(),
+                    model: model.to_string(),
+                    input_tokens: 1_000_000,
+                    cache_read_tokens: 200_000,
+                    cache_creation_tokens: 300_000,
+                    output_tokens: 400_000,
+                    reasoning_output_tokens: 0,
+                    total_tokens: 1_900_000,
+                    event_count: 1,
+                    cost_with_cache_usd: 33.95,
+                    cost_without_cache_usd: 35.0,
+                    pricing_status: "static".to_string(),
+                    pricing_source: Some("static-v1".to_string()),
+                    pricing_rate: Some("10/1/50".to_string()),
+                    ..SeedBucket::default()
+                },
+            );
+        }
+        drop(conn);
+
+        let stats = usage_by_model(&runtime, Some("claude".to_string()), None, None)
+            .expect("model stats should query");
+        assert_eq!(
+            stats.iter().map(|row| row.model.as_str()).collect::<Vec<_>>(),
+            vec!["claude-fable-5", "claude-mythos-5"]
+        );
+
+        for row in stats {
+            assert_eq!(row.input_tokens, 1_000_000);
+            assert_eq!(row.cache_read_tokens, 200_000);
+            assert_eq!(row.cache_creation_tokens, 300_000);
+            assert_eq!(row.output_tokens, 400_000);
+            assert_close(row.total_cost, 33.95);
+            assert_close(row.cost_with_cache, 33.95);
+            assert_close(row.cost_without_cache, 35.0);
+            assert_close(row.cache_savings, 1.05);
+            assert_eq!(row.pricing_status, "static");
+            assert_eq!(row.pricing_source.as_deref(), Some("static-v1"));
+            assert_eq!(row.pricing_rate.as_deref(), Some("10/1/50"));
+        }
+    }
+
+    #[test]
     fn usage_by_provider_aggregates_and_maps_unattributed_to_none() {
         let temp = TempDir::new().expect("temp dir should be created");
         let (runtime, conn) = open_fixture(&temp);

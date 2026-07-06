@@ -252,7 +252,7 @@ describe('UsageModelsTab smoke', () => {
         pricing_rate: 'snapshot',
       },
       {
-        model: 'static-model',
+        model: 'claude-fable-5',
         request_count: 1,
         total_tokens: 80,
         total_cost: 0.7,
@@ -264,8 +264,8 @@ describe('UsageModelsTab smoke', () => {
         cost_without_cache: 0.7,
         cache_savings: 0,
         pricing_status: 'static',
-        pricing_source: 'static',
-        pricing_rate: 'static',
+        pricing_source: 'static-v1',
+        pricing_rate: '10/1/50',
       },
     ])
 
@@ -275,6 +275,8 @@ describe('UsageModelsTab smoke', () => {
       expect(text).toContain('Mixed')
       expect(text).toContain('Snapshot')
       expect(text).toContain('Static')
+      expect(text).toContain('claude-fable-5')
+      expect(text).toContain('10/1/50')
       expect(mounted.el.querySelector('.models-tab__status--mixed')).not.toBeNull()
       expect(mounted.el.querySelector('.models-tab__status--snapshot')).not.toBeNull()
       expect(mounted.el.querySelector('.models-tab__status--static')).not.toBeNull()

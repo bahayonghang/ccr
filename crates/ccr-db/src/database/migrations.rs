@@ -2039,6 +2039,26 @@ mod tests {
         )
         .unwrap();
         conn.execute(
+            "INSERT INTO usage_records (
+                id, platform, project_path, record_json, recorded_at, source_id,
+                model, input_tokens, output_tokens, cache_read_tokens, cost_usd
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+            params![
+                "fable-record",
+                "claude",
+                "D:/Documents/Code/Github/ccr",
+                "{\"usage\":{\"cache_creation_input_tokens\":300000}}",
+                "2026-04-20T09:00:00Z",
+                "source-fable",
+                "claude-fable-5",
+                1_000_000_i64,
+                400_000_i64,
+                200_000_i64,
+                77.0_f64
+            ],
+        )
+        .unwrap();
+        conn.execute(
             "INSERT INTO usage_daily_agg (
                 date, platform, request_count, input_tokens, output_tokens, cache_read_tokens, cost_usd
              ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
@@ -2089,6 +2109,35 @@ mod tests {
         assert_eq!(status, "priced");
         assert_eq!(source, "official:anthropic");
 
+        let (fable_cache_creation, fable_cost, fable_no_cache, fable_status, fable_source): (
+            i64,
+            f64,
+            f64,
+            String,
+            String,
+        ) = conn
+            .query_row(
+                "SELECT cache_creation_tokens, cost_with_cache_usd,
+                        cost_without_cache_usd, pricing_status, pricing_source
+                 FROM usage_records WHERE id = 'fable-record'",
+                [],
+                |row| {
+                    Ok((
+                        row.get(0)?,
+                        row.get(1)?,
+                        row.get(2)?,
+                        row.get(3)?,
+                        row.get(4)?,
+                    ))
+                },
+            )
+            .unwrap();
+        assert_eq!(fable_cache_creation, 300_000);
+        assert!((fable_cost - 33.95).abs() < 0.000_001);
+        assert!((fable_no_cache - 35.0).abs() < 0.000_001);
+        assert_eq!(fable_status, "priced");
+        assert_eq!(fable_source, "official:anthropic");
+
         let daily_cost: f64 = conn
             .query_row(
                 "SELECT cost_usd FROM usage_daily_agg WHERE date = '2026-04-20' AND platform = 'claude'",
@@ -2096,7 +2145,7 @@ mod tests {
                 |row| row.get(0),
             )
             .unwrap();
-        assert!((daily_cost - 36.75).abs() < 0.000_001);
+        assert!((daily_cost - 70.7).abs() < 0.000_001);
 
         let count: i32 = conn
             .query_row(

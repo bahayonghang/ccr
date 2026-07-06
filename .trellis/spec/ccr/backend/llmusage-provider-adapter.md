@@ -182,3 +182,95 @@ let rows = dashboard.provider_breakdown(&ccr_usage::QueryFilter {
 ```
 
 Keep provider attribution in `crates/ccr-usage`; presentation layers only map DTOs, errors, and UI labels.
+
+## Scenario: Adopt upstream llmusage static model pricing in CCR
+
+### 1. Scope / Trigger
+
+- Trigger: local/upstream `llmusage` adds or changes static model pricing that CCR legacy archives, default pricing rows, or desktop model breakdowns must recognize.
+- Applies to `crates/ccr-types/src/model_rate_catalog.rs`, legacy `ccr-store` pricing defaults, legacy `ccr-db` import/migration/model-stat readers, `crates/ccr-usage` read-only projections, and `ccr-ui/src-tauri/src/services/usage.rs`.
+- CCR must keep the dependency boundary: do not add the upstream `llmusage` Rust crate. Legacy CCR-owned pricing is embedded in `ccr-types`; desktop dashboard rows from `llmusage.db` are passed through from `crates/ccr-usage`.
+
+### 2. Signatures
+
+- Embedded catalog:
+  ```rust
+  pub fn official_model_rate_overrides() -> Vec<ModelRateOverride>;
+  pub fn normalize_model_id(model: &str) -> String;
+  pub struct ModelRateCatalog;
+  impl ModelRateCatalog {
+      pub fn official() -> Self;
+      pub fn calculate(&self, model: &str, input: i64, output: i64, cache_read: i64, cache_creation: i64) -> PricingComputation;
+      pub fn rate_summary(&self, model: &str) -> Option<String>;
+  }
+  ```
+- Read-only projection fields owned by upstream `llmusage.db`:
+  ```rust
+  ModelBreakdown {
+      model,
+      cost_with_cache_usd,
+      cost_without_cache_usd,
+      pricing_status,
+      pricing_source,
+      pricing_rate,
+      ..
+  }
+  ```
+
+### 3. Contracts
+
+- Add canonical CCR default rows only for model ids CCR should expose in built-in defaults. Aliases may resolve for calculation without creating duplicate default rows.
+- Alias matching must be exact after known provider-prefix normalization. For example, `anthropic/claude-fable-5`, `anthropic.claude-fable-5`, and `anthropic-claude-fable-5` may resolve, but `not-fable-5` and preview names must not.
+- Legacy CCR import/migration/model-stat paths may calculate prices through `ModelRateCatalog::official()`.
+- Desktop Usage Dashboard must not recalculate `llmusage.db` pricing. It should preserve stored `pricing_status`, `pricing_source`, `pricing_rate`, and stored cache-aware/cache-free costs.
+- Installed-CLI detection remains tolerant. Do not add a hard minimum installed `llmusage` version gate unless product policy explicitly asks for it.
+
+### 4. Validation & Error Matrix
+
+- Missing catalog row in `ccr-types` -> legacy import/migration model stats mark the model `unpriced`.
+- Overbroad alias matching -> unrelated models can be priced incorrectly; add negative tests whenever adding aliases.
+- `llmusage.db` row has `pricing_status = static`, `pricing_source = static-v1`, `pricing_rate = 10/1/50` -> desktop DTO must return those exact values.
+- Older installed `llmusage` writes `unpriced` rows -> CCR displays the stored state instead of fabricating static pricing.
+- New `llmusage = ...` manifest dependency or `llmusage::` import -> architecture violation; the no-crate guard must fail.
+
+### 5. Good / Base / Bad Cases
+
+- Good: add `claude-fable-5` and `claude-mythos-5` canonical rows to `official_model_rate_overrides()`; exact aliases resolve in `ModelRateCatalog::calculate()`.
+- Good: Tauri service tests seed `ccr_usage::fixtures::SeedBucket` with upstream `static-v1` fields and assert pass-through to `ModelStatDto`.
+- Base: a user has an older `llmusage.db`; the dashboard still loads and shows whatever stored pricing state exists.
+- Bad: duplicate pricing SQL in `ccr-ui` or `ccr-tui`.
+- Bad: adding aliases with substring matching such as `model.contains("fable")`.
+- Bad: hard-blocking dashboard reads because `llmusage --version` is older than the latest catalog addition.
+
+### 6. Tests Required
+
+- `cargo test -p ccr-types -- --test-threads=1` with positive canonical/alias cases, negative non-matches, and sample cache-aware/cache-free costs.
+- `cargo test -p ccr-store -- --test-threads=1` asserting built-in default rows expose canonical models.
+- `cargo test -p ccr-db -- --test-threads=1` covering legacy import, migration repricing, and model stats.
+- `cargo test -p ccr-usage` when projection SQL changes; otherwise keep `ccr-usage` as the read-only SQL owner.
+- `cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml llmusage_adapter -- --nocapture` and a focused Tauri service test for `ModelStatDto` pass-through.
+- `cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml --test llmusage_no_crate_guard -- --nocapture`.
+- If frontend fixture rows change, run the focused smoke test plus `just frontend-check-quick`.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```rust
+if model.contains("fable") {
+    return Some(anthropic_rate(10.0, 50.0, 1.0));
+}
+```
+
+This prices unrelated models such as `not-fable-5`.
+
+#### Correct
+
+```rust
+let normalized = normalize_model_id(model);
+if matches!(normalized.as_str(), "claude-fable-5" | "fable-5") {
+    return Some((anthropic_rate(10.0, 50.0, 1.0), "official:anthropic", "priced"));
+}
+```
+
+Exact aliases are priced, and unrelated ids stay `unpriced`.
