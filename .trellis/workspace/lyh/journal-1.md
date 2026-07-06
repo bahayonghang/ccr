@@ -1296,3 +1296,40 @@ Adopted upstream llmusage Claude Fable/Mythos static pricing in CCR legacy/catal
 ### Next Steps
 
 - None - task complete
+
+
+## Session 29: TUI profile 优化 B+C：token 掩码显示与页面体验修复
+
+**Date**: 2026-07-06
+**Task**: TUI profile 优化 B+C：token 掩码显示与页面体验修复
+**Branch**: `dev`
+
+### Summary
+
+完成父任务 07-06-tui-profile-optimization 的 B、C 两个子任务并拆分为 5 个提交：fix(core) mask_sensitive 多字节 panic（字符切片）、feat(tui) token 行掩码显示归位 Routing/Auth、fix(tui) unicode-width 显示宽度截断修复 CJK 溢出 + 快捷键单一出处 + switch_count 标签 + Focus 收敛（4~5 行自适应）、docs(spec) 截断与快捷键约定入 backend-guidelines、chore(task) 规划产物。ui.rs 含 B/C 混合改动，用 git apply --cached 补丁级拆分索引并对 B-only 中间态独立跑测试（167 过）保证每个提交原子可 revert。全量 175 测试过，trellis-check approve。遗留：子任务 A（用量跟随 profile）已规划待实施；security-review.md 记录 3 处存量字节切片隐患（HIGH: sync/commands.rs:271 WebDAV URL 截断）待用户决策。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `107898fe` | (see git log) |
+| `6ec7360b` | (see git log) |
+| `5a903191` | (see git log) |
+| `ee497777` | (see git log) |
+| `0726b596` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

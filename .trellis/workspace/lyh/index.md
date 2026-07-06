@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 28
+- **Total Sessions**: 29
 - **Last Active**: 2026-07-06
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1298 | Active |
+| `journal-1.md` | ~1335 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 29 | 2026-07-06 | TUI profile 优化 B+C：token 掩码显示与页面体验修复 | `107898fe`, `6ec7360b`, `5a903191`, `ee497777`, `0726b596` | `dev` |
 | 28 | 2026-07-06 | llmusage Fable/Mythos stats adoption | `8a9d8fcd` | `dev` |
 | 27 | 2026-07-04 | 07-03-arch-secret-newtype 全流程闭环：Secret 掩码 newtype | `261be0fd`, `766e9d90`, `e82a4bc4`, `72bc087a`, `60c994d8`, `bf6de041` | `dev` |
 | 26 | 2026-07-04 | 统一 guarded write 深模块（07-03-arch-guarded-write） | `80b61326`, `25b329a6`, `9c1452d2`, `6a920bb7`, `12746289`, `408d9e67`, `2546dd1f` | `dev` |
