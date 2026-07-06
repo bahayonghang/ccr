@@ -256,11 +256,6 @@ define_command_registry! {
         super::checkin::add_waf_cookie,
         super::checkin::delete_waf_cookie,
     ],
-    stats: "统计" => [
-        super::stats::get_cost_overview,
-        super::stats::get_heatmap_data,
-        super::stats::get_session_stats,
-    ],
     system: "系统" => [
         super::system::get_system_info,
         super::system::check_version,
@@ -364,15 +359,6 @@ define_command_registry! {
         super::command_exec::start_ccr_command_job,
         super::command_exec::get_ccr_command_job_status,
         super::command_exec::cancel_ccr_command_job,
-    ],
-    stats_extended: "统计扩展" => [
-        super::stats::get_cost_trend,
-        super::stats::get_cost_by_model,
-        super::stats::get_cost_by_project,
-        super::stats::get_provider_usage,
-        super::stats::get_top_sessions,
-        super::stats::get_stats_summary,
-        super::stats::get_daily_stats,
     ],
     checkin_extended: "签到扩展" => [
         super::checkin::list_builtin_providers,
@@ -493,13 +479,13 @@ mod tests {
 
     #[test]
     fn command_registry_shape_matches_current_handler_surface() {
-        assert_eq!(COMMAND_MODULES.len(), 30);
+        assert_eq!(COMMAND_MODULES.len(), 28);
 
         #[cfg(target_os = "windows")]
-        assert_eq!(registered_command_count(), 320);
+        assert_eq!(registered_command_count(), 310);
 
         #[cfg(not(target_os = "windows"))]
-        assert_eq!(registered_command_count(), 312);
+        assert_eq!(registered_command_count(), 302);
     }
 
     #[test]

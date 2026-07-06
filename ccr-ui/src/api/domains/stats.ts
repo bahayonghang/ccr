@@ -1,11 +1,12 @@
 /**
  * Stats Domain —— 统计与用量 API
  *
- * 对应后端 commands::stats::* 与 commands::usage::* 命令。
- * 真迁移自 tauri.ts 第 12 分组（含 V2 usage 子节与 Stats 扩展）。
+ * 对应后端 commands::usage::* 与 commands::pricing::* 命令。
+ * 真迁移自 tauri.ts 第 12 分组。
  *
- * V2 usage 系列与 Stats 系列命令在业务上都属于"数据/统计"域，
- * 这里合并为一个 domain；`domains/usage.ts` 保留作为 `usageApi` 命名空间门面，
+ * legacy CostTracker 系 stats 命令（get_cost_overview 等 10 条）已随
+ * usage-family-absorb 任务下线，统计数据统一走 V2 usage（llmusage 投影）；
+ * `domains/usage.ts` 保留作为 `usageApi` 命名空间门面，
  * 从本文件 re-export 子集以维持历史契约。
  */
 
@@ -29,21 +30,6 @@ import type { UsageImportResultV2 } from '../../types/generated/usage/UsageImpor
 import type { UsageLogsQuery } from '../../types/generated/usage/UsageLogsQuery'
 import type { UsageSummaryDto } from '../../types/generated/usage/UsageSummaryDto'
 
-// ── 费用与热力图 ──
-
-/** 获取费用概览 */
-export const getCostOverview = async <T = UnknownRecord>(period?: string): Promise<T> => {
-  return invoke('get_cost_overview', { period })
-}
-
-/** 获取热力图数据 */
-export const getHeatmapData = async <T = UnknownRecord>(
-  platform?: string,
-  days?: number,
-): Promise<T> => {
-  return invoke('get_heatmap_data', { platform, days })
-}
-
 // ── V2 Usage ──
 // 返回类型为 ts-rs 生成的 DTO（src/types/generated/usage/），与 Rust 命令签名同源；
 // 该组 wrapper 不再接受调用方泛型注入，shape 漂移在编译期暴露。
@@ -57,7 +43,7 @@ export const getUsageCapabilitiesV2 = async (): Promise<CapabilityReport> => {
 export const getUsageSummaryV2 = async (
   platform?: string,
   startDate?: string,
-  endDate?: string,
+  endDate?: string
 ): Promise<UsageSummaryDto> => {
   return invoke('get_usage_summary_v2', { platform, startDate, endDate })
 }
@@ -66,7 +52,7 @@ export const getUsageSummaryV2 = async (
 export const getUsageTrendsV2 = async (
   platform?: string,
   startDate?: string,
-  endDate?: string,
+  endDate?: string
 ): Promise<DailyTrendDto[]> => {
   return invoke('get_usage_trends_v2', { platform, startDate, endDate })
 }
@@ -75,7 +61,7 @@ export const getUsageTrendsV2 = async (
 export const getUsageByModelV2 = async (
   platform?: string,
   startDate?: string,
-  endDate?: string,
+  endDate?: string
 ): Promise<ModelStatDto[]> => {
   return invoke('get_usage_by_model_v2', { platform, startDate, endDate })
 }
@@ -84,7 +70,7 @@ export const getUsageByModelV2 = async (
 export const getUsageByProviderV2 = async (
   platform?: string,
   startDate?: string,
-  endDate?: string,
+  endDate?: string
 ): Promise<ProviderBreakdownDto[]> => {
   return invoke('get_usage_by_provider_v2', { platform, startDate, endDate })
 }
@@ -93,7 +79,7 @@ export const getUsageByProviderV2 = async (
 export const getUsageByProjectV2 = async (
   platform?: string,
   startDate?: string,
-  endDate?: string,
+  endDate?: string
 ): Promise<ProjectStatDto[]> => {
   return invoke('get_usage_by_project_v2', { platform, startDate, endDate })
 }
@@ -101,7 +87,7 @@ export const getUsageByProjectV2 = async (
 /** V2: 获取热力图（兼容映射到现有命令） */
 export const getUsageHeatmapV2 = async (
   platform?: string,
-  days?: number,
+  days?: number
 ): Promise<HeatmapResponseDto> => {
   return invoke('get_usage_heatmap_v2', { platform, days })
 }
@@ -116,7 +102,7 @@ export const getUsageLogsV2 = async (
   model?: string,
   cursor?: string,
   includeTotal?: boolean,
-  mode?: 'cursor' | 'offset',
+  mode?: 'cursor' | 'offset'
 ): Promise<PaginatedLogsDto> => {
   const query: UsageLogsQuery =
     typeof platformOrQuery === 'object'
@@ -140,7 +126,7 @@ export const getUsageDashboardV2 = async (
   endDate?: string,
   heatmapDays?: number,
   includeHeatmap?: boolean,
-  provider?: string,
+  provider?: string
 ): Promise<UsageDashboardResponse> => {
   return invoke('get_usage_dashboard_v2', {
     platform,
@@ -156,7 +142,7 @@ export const getUsageDashboardV2 = async (
 export const startUsageImportJobV2 = async (
   platform?: string,
   recentDays?: number,
-  resetSources?: boolean,
+  resetSources?: boolean
 ): Promise<StartUsageImportJobResponse> => {
   return invoke('start_usage_import_job_v2', { platform, recentDays, resetSources })
 }
@@ -168,7 +154,7 @@ export const ensureSessionIndexV2 = async (): Promise<StartSessionIndexJobRespon
 
 /** V2: 查询 session 索引后台任务状态 */
 export const getSessionIndexJobStatusV2 = async (
-  jobId: string,
+  jobId: string
 ): Promise<SessionIndexJobSnapshot> => {
   return invoke('get_session_index_job_status_v2', { jobId })
 }
@@ -198,43 +184,6 @@ export const getHomeUsageOverviewV2 = async (days?: number): Promise<HomeUsageOv
   return invoke('get_home_usage_overview_v2', { days })
 }
 
-/** 获取会话统计 */
-export const getSessionStats = async <T = UnknownRecord>(platform?: string): Promise<T> => {
-  return invoke('get_session_stats', { platform })
-}
-
-// ── Stats 扩展 ──
-
-/** 获取费用趋势 */
-export const getCostTrend = async <T = UnknownRecord>(period?: string): Promise<T> => {
-  return invoke('get_cost_trend', { period })
-}
-
-/** 按模型统计费用（period 参数保留向后兼容，后端已忽略） */
-export const getCostByModel = async <T = UnknownRecord>(_period?: string): Promise<T> => {
-  return invoke('get_cost_by_model')
-}
-
-/** 按项目统计费用（period 参数保留向后兼容） */
-export const getCostByProject = async <T = UnknownRecord>(_period?: string): Promise<T> => {
-  return invoke('get_cost_by_project')
-}
-
-/** 获取提供商使用量 */
-export const getProviderUsage = async <T = UnknownRecord>(): Promise<T> => {
-  return invoke('get_provider_usage')
-}
-
-/** 获取 Top Sessions */
-export const getTopSessions = async <T = UnknownRecord>(limit?: number): Promise<T> => {
-  return invoke('get_top_sessions', { limit })
-}
-
-/** 获取统计摘要 */
-export const getStatsSummary = async <T = UnknownRecord>(): Promise<T> => {
-  return invoke('get_stats_summary')
-}
-
 // ── 定价 ──
 
 /** 设置定价（兼容 data.model / data.name 两种命名） */
@@ -257,9 +206,4 @@ export const removePricing = async <T = UnknownRecord>(model: string): Promise<T
 /** 重置全部定价 */
 export const resetPricing = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('reset_pricing')
-}
-
-/** 获取每日统计 */
-export const getDailyStats = async <T = UnknownRecord>(days?: number): Promise<T> => {
-  return invoke('get_daily_stats', { days })
 }

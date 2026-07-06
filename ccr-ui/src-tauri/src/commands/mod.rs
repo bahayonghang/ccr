@@ -20,7 +20,6 @@ pub mod pricing;
 pub mod profile_lifecycle;
 pub mod shell;
 pub mod ssh;
-pub mod stats;
 pub mod sync;
 pub mod system;
 pub mod ui_state;

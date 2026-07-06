@@ -230,7 +230,7 @@ import {
   listConfigs, switchConfig,
   getHistory, deleteConfig, enableConfig, disableConfig
 } from '@/api'
-import { getProviderUsage } from '@/api'
+import { getUsageByProviderV2 } from '@/api'
 import type { ConfigItem, ConfigListResponse, HistoryEntry, HistoryResponse } from '@/types'
 import { useUIStore } from '@/stores/ui'
 import { logger } from '@/utils/logger'
@@ -391,7 +391,15 @@ const loadHistory = async () => {
 const loadProviderUsage = async () => {
   providerLoading.value = true
   try {
-    providerUsage.value = (await getProviderUsage<Record<string, number>>()) || {}
+    // 对齐旧 get_provider_usage 的近 30 天窗口；provider 归因维度来自 llmusage 投影
+    const startDate = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10)
+    const breakdown = await getUsageByProviderV2(undefined, startDate)
+    const usage: Record<string, number> = {}
+    for (const item of breakdown) {
+      const key = item.provider ?? 'unknown'
+      usage[key] = (usage[key] ?? 0) + item.request_count
+    }
+    providerUsage.value = usage
   } catch (e: unknown) {
     providerError.value = getErrorMessage(e)
   }

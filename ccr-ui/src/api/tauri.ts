@@ -438,8 +438,6 @@ export {
 // 以下 re-export 保持 `from '@/api/tauri'` 的历史导入兼容，
 // 推荐新代码使用 `from '@/api/domains/stats'` 或 `statsApi.*` / `usageApi.*`。
 export {
-  getCostOverview,
-  getHeatmapData,
   getUsageSummaryV2,
   getUsageTrendsV2,
   getUsageByModelV2,
@@ -457,18 +455,10 @@ export {
   importUsageV2,
   importAllUsageV2,
   getHomeUsageOverviewV2,
-  getSessionStats,
-  getCostTrend,
-  getCostByModel,
-  getCostByProject,
-  getProviderUsage,
-  getTopSessions,
-  getStatsSummary,
   setPricing,
   getPricingList,
   removePricing,
   resetPricing,
-  getDailyStats,
   type UsageLogsQuery,
 } from './domains/stats'
 
