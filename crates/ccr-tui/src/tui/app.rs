@@ -42,8 +42,6 @@ pub enum TabVariant {
     CodexAuth,
     /// OpenCode openai account/auth management
     OpenCodeAuth,
-    /// Read-only provider usage statistics
-    Usage,
 }
 
 /// A tab representing one platform with its profiles loaded
@@ -112,7 +110,6 @@ fn tab_config_id(tab: &PlatformTab) -> Option<TuiTabId> {
         (_, TabVariant::CodexAuth) => Some(TuiTabId::CodexAuth),
         (_, TabVariant::ClaudeAuth) => Some(TuiTabId::ClaudeAuth),
         (_, TabVariant::OpenCodeAuth) => Some(TuiTabId::OpencodeAuth),
-        (_, TabVariant::Usage) => Some(TuiTabId::Usage),
         (_, TabVariant::Profile) => None,
     }
 }
@@ -182,10 +179,8 @@ pub struct App {
     pub opencode_auth_error: Option<String>,
     /// Last opencode auth action info (action_type, account_name, success, error)
     pub last_opencode_action: Option<(String, String, bool, Option<String>)>,
-    /// Embedded Usage app (lazy initialized)
+    /// 用量数据引擎(懒初始化):后台加载 provider 用量,详情面板纯内存查找
     pub usage_app: Option<UsageApp>,
-    /// Last Usage initialization error for placeholder rendering
-    pub usage_error: Option<String>,
     /// 🖱️ Cached header (tab bar) area for mouse hit-testing
     pub header_area: Cell<Option<Rect>>,
     /// 🖱️ Cached profile list area for mouse hit-testing
@@ -556,19 +551,6 @@ impl App {
                 saved_selection: None,
             });
         }
-        tabs.push(PlatformTab {
-            platform: Platform::Codex,
-            variant: TabVariant::Usage,
-            label: "Usage".to_string(),
-            profiles: Vec::new(),
-            profile_configs: IndexMap::new(),
-            profile_load_error: None,
-            current_profile_error: None,
-            claude_runtime_summary: None,
-            codex_runtime_summary: None,
-            instance: None,
-            saved_selection: None,
-        });
         tabs = reorder_tabs(tabs, &load_tab_order());
 
         let mut app = Self {
@@ -590,7 +572,6 @@ impl App {
             opencode_auth_error: None,
             last_opencode_action: None,
             usage_app: None,
-            usage_error: None,
             header_area: Cell::new(None),
             list_area: Cell::new(None),
             detail_area: Cell::new(None),
@@ -776,6 +757,11 @@ impl App {
             }
             Action::Reload => {
                 self.reload_profiles();
+                // 用量数据集与 profiles 一同刷新(后台异步拉取,不阻塞渲染)
+                self.ensure_usage_engine();
+                if let Some(engine) = self.usage_app.as_mut() {
+                    engine.refresh();
+                }
                 self.toasts.push(Toast::info("已刷新配置列表"));
             }
         }
@@ -947,26 +933,11 @@ impl App {
         self.tabs[self.active_tab].variant == TabVariant::OpenCodeAuth
     }
 
-    /// Check if the currently active tab is the Usage variant
-    pub fn is_usage_tab(&self) -> bool {
-        self.tabs[self.active_tab].variant == TabVariant::Usage
-    }
-
-    /// Ensure Usage app is initialized before interaction/rendering
-    pub fn ensure_usage_app(&mut self) {
-        if self.usage_app.is_some() {
-            return;
+    /// 确保用量数据引擎已就绪(懒初始化,构造无 I/O;数据由后台任务拉取)
+    fn ensure_usage_engine(&mut self) {
+        if self.usage_app.is_none() {
+            self.usage_app = Some(UsageApp::with_task_executor(self.task_executor.clone()));
         }
-
-        let app = UsageApp::with_task_executor(self.task_executor.clone());
-        self.usage_app = Some(app);
-        self.usage_error = None;
-    }
-
-    /// Get mutable Usage app, initializing it on demand
-    fn usage_app_mut(&mut self) -> Option<&mut UsageApp> {
-        self.ensure_usage_app();
-        self.usage_app.as_mut()
     }
 
     /// Pre-select Claude Auth tab (for `ccr claude` entry)
@@ -1019,17 +990,10 @@ impl App {
         let is_claude_auth = self.is_claude_auth_tab();
         let is_codex_auth = self.is_codex_auth_tab();
         let is_opencode_auth = self.is_opencode_auth_tab();
-        let is_usage = self.is_usage_tab();
 
-        if !is_claude_auth && !is_codex_auth && !is_opencode_auth && !is_usage {
-            // profile tab 的选中定位已由切 tab 时的 restore/focus 完成，无需再 sync
-            return;
-        }
-
-        if is_usage {
-            if let Some(usage_app) = self.usage_app_mut() {
-                usage_app.on_activated();
-            }
+        if !is_claude_auth && !is_codex_auth && !is_opencode_auth {
+            // profile tab 的选中定位已由切 tab 时的 restore/focus 完成，无需再 sync;
+            // 用量引擎的激活由 on_tick 的 profile 分支统一驱动(含启动首帧)
             return;
         }
 
@@ -1172,12 +1136,6 @@ impl TuiApp for App {
                 }
             }
             Ok(false)
-        } else if self.is_usage_tab() {
-            if let Some(usage_app) = self.usage_app_mut() {
-                usage_app.handle_key(key)
-            } else {
-                Ok(false)
-            }
         } else {
             // Profile tabs (Claude / Codex Profile): key mapping + dispatch
             let action = self.map_key(key);
@@ -1216,9 +1174,6 @@ impl TuiApp for App {
                 if self.is_opencode_auth_tab() {
                     return self.delegate_mouse_to_opencode(mouse);
                 }
-                if self.is_usage_tab() {
-                    return Ok(false);
-                }
 
                 // Profile tabs (Claude / Codex Profile): 列表项点击
                 if let Some(area) = self.list_area.get()
@@ -1240,9 +1195,6 @@ impl TuiApp for App {
                 if self.is_opencode_auth_tab() {
                     return self.delegate_mouse_to_opencode(mouse);
                 }
-                if self.is_usage_tab() {
-                    return Ok(false);
-                }
                 if let Some(area) = self.detail_area.get()
                     && point_in_rect(area, mouse.row, mouse.column)
                 {
@@ -1261,9 +1213,6 @@ impl TuiApp for App {
                 }
                 if self.is_opencode_auth_tab() {
                     return self.delegate_mouse_to_opencode(mouse);
-                }
-                if self.is_usage_tab() {
-                    return Ok(false);
                 }
                 if let Some(area) = self.detail_area.get()
                     && point_in_rect(area, mouse.row, mouse.column)
@@ -1285,10 +1234,15 @@ impl TuiApp for App {
             self.codex_auth_app.as_mut().is_some_and(|a| a.on_tick())
         } else if self.is_opencode_auth_tab() {
             self.opencode_auth_app.as_mut().is_some_and(|a| a.on_tick())
-        } else if self.is_usage_tab() {
-            self.usage_app.as_mut().is_some_and(|a| a.on_tick())
         } else {
-            self.toasts.tick()
+            // Profile tab: 首次进入(含启动首帧)激活用量引擎,此后每 tick 泵
+            // 后台任务消息;on_activated 仅在 Idle 态生效,不会重复拉取
+            self.ensure_usage_engine();
+            let usage_redraw = self.usage_app.as_mut().is_some_and(|engine| {
+                engine.on_activated();
+                engine.tick()
+            });
+            self.toasts.tick() | usage_redraw
         }
     }
 
@@ -1470,7 +1424,6 @@ mod tests {
             opencode_auth_error: None,
             last_opencode_action: None,
             usage_app: None,
-            usage_error: None,
             header_area: Cell::new(None),
             list_area: Cell::new(None),
             detail_area: Cell::new(None),
@@ -1533,7 +1486,6 @@ mod tests {
             opencode_auth_error: None,
             last_opencode_action: None,
             usage_app: None,
-            usage_error: None,
             header_area: Cell::new(None),
             list_area: Cell::new(None),
             detail_area: Cell::new(None),
@@ -1591,7 +1543,6 @@ mod tests {
             opencode_auth_error: None,
             last_opencode_action: None,
             usage_app: None,
-            usage_error: None,
             header_area: Cell::new(None),
             list_area: Cell::new(None),
             detail_area: Cell::new(None),
@@ -1694,6 +1645,45 @@ mod tests {
         assert_eq!(app.selected_profile().unwrap().name, "a2");
     }
 
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn reload_action_refreshes_usage_engine() {
+        use crate::tui::usage::app::{UsageApp, UsageDataset, UsageLoadState};
+
+        let mut app = app_with_profile_tabs(vec![profile_tab(
+            Platform::Codex,
+            "Codex Profile",
+            &["c1"],
+            Some("c1"),
+        )]);
+        app.usage_app = Some(UsageApp::with_loader(
+            app.task_executor.clone(),
+            Arc::new(|| Ok(UsageDataset { rows: Vec::new() })),
+        ));
+
+        // r → Reload: profiles 与用量数据集一同刷新,状态机回到 Loading
+        app.dispatch(Action::Reload).unwrap();
+        assert!(matches!(
+            app.usage_app.as_ref().unwrap().state,
+            UsageLoadState::Loading
+        ));
+
+        // 数据返回后由 on_tick 泵消息更新状态(空数据集 → Empty)
+        for _ in 0..200 {
+            app.on_tick();
+            if !matches!(
+                app.usage_app.as_ref().unwrap().state,
+                UsageLoadState::Loading
+            ) {
+                break;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+        }
+        assert!(matches!(
+            app.usage_app.as_ref().unwrap().state,
+            UsageLoadState::Empty
+        ));
+    }
+
     fn key_with_modifiers(code: KeyCode, modifiers: KeyModifiers) -> KeyEvent {
         KeyEvent::new(code, modifiers)
     }
@@ -1793,7 +1783,6 @@ mod tests {
             opencode_auth_error: None,
             last_opencode_action: None,
             usage_app: None,
-            usage_error: None,
             header_area: Cell::new(None),
             list_area: Cell::new(None),
             detail_area: Cell::new(None),
@@ -1933,7 +1922,6 @@ mod tests {
             opencode_auth_error: None,
             last_opencode_action: None,
             usage_app: None,
-            usage_error: None,
             header_area: Cell::new(None),
             list_area: Cell::new(None),
             detail_area: Cell::new(None),
@@ -1995,7 +1983,6 @@ mod tests {
             opencode_auth_error: None,
             last_opencode_action: None,
             usage_app: None,
-            usage_error: None,
             header_area: Cell::new(None),
             list_area: Cell::new(None),
             detail_area: Cell::new(None),
@@ -2032,7 +2019,6 @@ mod tests {
             opencode_auth_error: None,
             last_opencode_action: None,
             usage_app: None,
-            usage_error: None,
             header_area: Cell::new(None),
             list_area: Cell::new(None),
             detail_area: Cell::new(None),
@@ -2093,7 +2079,6 @@ mod tests {
             opencode_auth_error: None,
             last_opencode_action: None,
             usage_app: None,
-            usage_error: None,
             header_area: Cell::new(None),
             list_area: Cell::new(None),
             detail_area: Cell::new(None),

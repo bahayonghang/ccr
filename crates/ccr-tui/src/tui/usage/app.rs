@@ -1,12 +1,9 @@
 use std::sync::Arc;
 
-use ccr_core::core::error::Result;
 use ccr_usage::{QueryFilter, SourceKind, TaggedProviderBreakdown, UsageError};
-use crossterm::event::{KeyCode, KeyEvent};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, error::TryRecvError};
 
-use crate::tui::runtime::{AsyncTaskExecutor, TuiApp};
-use crate::tui::toast::{Toast, ToastManager};
+use crate::tui::runtime::AsyncTaskExecutor;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct UsageDataset {
@@ -44,9 +41,11 @@ enum UsageTaskMessage {
     Loaded(std::result::Result<UsageDataset, UsageError>),
 }
 
+/// App 持有的用量数据引擎:后台加载 provider 用量数据集,供 profile 详情
+/// 面板的 Usage 分组做纯内存查找。独立 Usage tab 已下线,本结构不再实现
+/// TuiApp(无按键/渲染职责),由 `App::on_tick` 驱动 `tick()` 泵消息。
 pub struct UsageApp {
     pub state: UsageLoadState,
-    pub toasts: ToastManager,
     task_executor: AsyncTaskExecutor,
     loader: UsageLoader,
     task_tx: UnboundedSender<UsageTaskMessage>,
@@ -64,7 +63,6 @@ impl UsageApp {
         let (task_tx, task_rx) = tokio::sync::mpsc::unbounded_channel();
         Self {
             state: UsageLoadState::Idle,
-            toasts: ToastManager::new(),
             task_executor,
             loader,
             task_tx,
@@ -82,6 +80,23 @@ impl UsageApp {
 
     pub fn refresh(&mut self) {
         self.start_fetch();
+    }
+
+    /// 供 App::on_tick 每帧调用:处理激活延迟 + 泵后台任务消息。
+    /// 返回是否需要重绘。渲染循环不做任何阻塞 I/O。
+    pub fn tick(&mut self) -> bool {
+        let mut needs_redraw = false;
+        if let Some(remaining) = self.activation_delay_ticks.as_mut() {
+            needs_redraw = true;
+            if *remaining > 0 {
+                *remaining -= 1;
+            }
+            if *remaining == 0 {
+                self.activation_delay_ticks = None;
+                self.start_fetch();
+            }
+        }
+        needs_redraw | self.drain_task_messages()
     }
 
     fn start_fetch(&mut self) {
@@ -143,40 +158,6 @@ fn load_usage_dataset() -> std::result::Result<UsageDataset, UsageError> {
         &QueryFilter::default(),
     )?;
     Ok(UsageDataset { rows })
-}
-
-impl TuiApp for UsageApp {
-    fn handle_key(&mut self, key: KeyEvent) -> Result<bool> {
-        match key.code {
-            KeyCode::Char('q') | KeyCode::Esc => Ok(true),
-            KeyCode::Char('r') => {
-                self.refresh();
-                self.toasts.push(Toast::info("正在刷新用量统计"));
-                Ok(false)
-            }
-            _ => Ok(false),
-        }
-    }
-
-    fn on_tick(&mut self) -> bool {
-        let mut needs_redraw = self.toasts.tick();
-        if let Some(remaining) = self.activation_delay_ticks.as_mut() {
-            needs_redraw = true;
-            if *remaining > 0 {
-                *remaining -= 1;
-            }
-            if *remaining == 0 {
-                self.activation_delay_ticks = None;
-                self.start_fetch();
-            }
-        }
-        needs_redraw |= self.drain_task_messages();
-        needs_redraw
-    }
-
-    fn render(&mut self, frame: &mut ratatui::Frame) {
-        super::ui::draw(frame, self);
-    }
 }
 
 #[cfg(test)]
@@ -349,5 +330,42 @@ mod tests {
         drain_until_settled(&mut app).await;
 
         assert!(matches!(&app.state, UsageLoadState::Error(message) if message.contains("boom")));
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn on_activated_then_tick_starts_fetch_after_delay() {
+        let dataset = sample_dataset();
+        let mut app = UsageApp::with_loader(
+            AsyncTaskExecutor::from_current_or_test(),
+            Arc::new(move || Ok(dataset.clone())),
+        );
+
+        app.on_activated();
+        assert_eq!(app.state, UsageLoadState::Idle);
+
+        // 1-tick 激活延迟:首个 tick 触发后台拉取,渲染循环不被阻塞
+        assert!(app.tick());
+        assert_eq!(app.state, UsageLoadState::Loading);
+
+        drain_until_settled(&mut app).await;
+        assert!(matches!(app.state, UsageLoadState::Loaded(_)));
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn on_activated_after_loaded_does_not_refetch() {
+        let dataset = sample_dataset();
+        let mut app = UsageApp::with_loader(
+            AsyncTaskExecutor::from_current_or_test(),
+            Arc::new(move || Ok(dataset.clone())),
+        );
+
+        app.refresh();
+        drain_until_settled(&mut app).await;
+        assert!(matches!(app.state, UsageLoadState::Loaded(_)));
+
+        // 再次进入 profile tab 只做内存查找,不发新查询
+        app.on_activated();
+        app.tick();
+        assert!(matches!(app.state, UsageLoadState::Loaded(_)));
     }
 }
