@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 29
+- **Total Sessions**: 30
 - **Last Active**: 2026-07-06
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1335 | Active |
+| `journal-1.md` | ~1371 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 30 | 2026-07-06 | TUI 用量统计跟随 profile:详情内嵌 provider 用量并下线独立 Usage tab | `cff8e272`, `0aa56481`, `83e0123d`, `09ba703e` | `dev` |
 | 29 | 2026-07-06 | TUI profile 优化 B+C：token 掩码显示与页面体验修复 | `107898fe`, `6ec7360b`, `5a903191`, `ee497777`, `0726b596` | `dev` |
 | 28 | 2026-07-06 | llmusage Fable/Mythos stats adoption | `8a9d8fcd` | `dev` |
 | 27 | 2026-07-04 | 07-03-arch-secret-newtype 全流程闭环：Secret 掩码 newtype | `261be0fd`, `766e9d90`, `e82a4bc4`, `72bc087a`, `60c994d8`, `bf6de041` | `dev` |

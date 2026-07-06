@@ -1333,3 +1333,39 @@ Adopted upstream llmusage Claude Fable/Mythos static pricing in CCR legacy/catal
 ### Next Steps
 
 - None - task complete
+
+
+## Session 30: TUI 用量统计跟随 profile:详情内嵌 provider 用量并下线独立 Usage tab
+
+**Date**: 2026-07-06
+**Task**: TUI 用量统计跟随 profile:详情内嵌 provider 用量并下线独立 Usage tab
+**Branch**: `dev`
+
+### Summary
+
+父任务 07-06-tui-profile-optimization 最后一个子任务 A 完成并连同父任务归档。ccr-config: DEFAULT_TAB_ORDER 缩为 5 项,TuiTabId::Usage 保留为 doc(hidden) 兼容变体,load() 过滤 usage 并 warn 且保留自定义顺序。ccr-tui: UsageApp 降级为 App 级数据引擎(删 TuiApp impl,新增 tick()),App::on_tick 的 profile 分支幂等激活引擎(覆盖启动首帧,notify_tab_activated 不触发启动场景),Reload 联动 refresh;详情面板 usage_section_lines 六态渲染+Compact 3 行变体,无 provider 显式 unattributed 不回退 null 桶。教训: 1) implement.md 步骤 2/3 因 TuiApp 方法被路由引用无法独立编译,合并为单提交; 2) lint-strict 只拦 Option::unwrap,测试断言用 expect 替代; 3) rtk hook 会改写 rg 长参数,复杂 glob 用 rtk proxy rg。规范同步: synthetic tab 契约改写+内嵌用量引擎契约、ccr-config usage 过滤容忍、adapter 措辞。全门禁绿(186/55/33/144 测试+fmt+lint),交互冒烟建议用户 ccr tui 复核
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `cff8e272` | (see git log) |
+| `0aa56481` | (see git log) |
+| `83e0123d` | (see git log) |
+| `09ba703e` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
