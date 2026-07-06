@@ -21,6 +21,7 @@ use ratatui::{
         ScrollbarState, Tabs, Wrap,
     },
 };
+use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
 // ═══════════════════════════════════════════════════════════
 // Main render entry
@@ -226,9 +227,10 @@ fn wide_profile_workspace_layout(area: Rect) -> (Rect, Rect) {
 }
 
 fn profile_list_rail_layout(area: Rect) -> (Rect, Rect) {
+    // Selection 面板 3 行内容 + 上下边框 = 5; keys 行已并入全局 footer
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Min(8), Constraint::Length(6)])
+        .constraints([Constraint::Min(8), Constraint::Length(5)])
         .split(area);
     (chunks[0], chunks[1])
 }
@@ -275,30 +277,42 @@ fn column_widths(area_width: u16) -> (usize, usize) {
     (name_width, desc_width)
 }
 
+// 截断/填充一律按终端显示宽度计数 (CJK 为 2 列), 不能按字符数,
+// 否则含中文的单元格会溢出列宽被 ratatui 硬裁剪、省略号丢失。
 fn truncate_text(text: &str, width: usize) -> String {
     if width == 0 {
         return String::new();
     }
-    let len = text.chars().count();
-    if len <= width {
+    if text.width() <= width {
         return text.to_string();
     }
     if width == 1 {
         return "…".to_string();
     }
-    let mut out: String = text.chars().take(width - 1).collect();
+
+    // 预留 1 列给省略号; 剩余宽度为奇数时宁短 1 列也不溢出
+    let mut out = String::new();
+    let mut used = 0usize;
+    for ch in text.chars() {
+        let ch_width = ch.width().unwrap_or(0);
+        if used + ch_width > width - 1 {
+            break;
+        }
+        out.push(ch);
+        used += ch_width;
+    }
     out.push('…');
     out
 }
 
 fn pad_text(text: &str, width: usize) -> String {
-    let len = text.chars().count();
-    if len >= width {
+    let text_width = text.width();
+    if text_width >= width {
         return text.to_string();
     }
-    let mut out = String::with_capacity(width);
+    let mut out = String::with_capacity(text.len() + width - text_width);
     out.push_str(text);
-    out.extend(std::iter::repeat_n(' ', width - len));
+    out.extend(std::iter::repeat_n(' ', width - text_width));
     out
 }
 
@@ -612,31 +626,35 @@ fn render_profile_context_workspace(
     let profile_name = profile.name.clone();
     let is_current = profile.is_current;
 
+    // Focus 高度随内容收缩 (2-3 行 + 边框), 让出的行给 Context 详情
+    let summary = profile_summary_strings(
+        profile_name.as_str(),
+        config,
+        is_current,
+        app.last_applied.as_ref(),
+    );
+    let summary_height = summary.len() as u16 + 2;
+
     if mode == theme::ViewportMode::Wide {
         let chunks = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
-                Constraint::Length(7),
+                Constraint::Length(summary_height),
                 Constraint::Min(10),
                 Constraint::Length(3),
             ])
             .split(area);
 
-        render_profile_summary_block(f, app, chunks[0], profile_name.as_str(), config, is_current);
+        render_profile_summary_block(f, app, chunks[0], summary);
         render_profile_details(f, app, chunks[1]);
         render_profile_status_strip(f, app, chunks[2], profile_name.as_str());
     } else {
-        let summary_height = if mode == theme::ViewportMode::Compact {
-            5
-        } else {
-            7
-        };
         let chunks = Layout::default()
             .direction(Direction::Vertical)
             .constraints([Constraint::Length(summary_height), Constraint::Min(0)])
             .split(area);
 
-        render_profile_summary_block(f, app, chunks[0], profile_name.as_str(), config, is_current);
+        render_profile_summary_block(f, app, chunks[0], summary);
         render_profile_details(f, app, chunks[1]);
     }
 }
@@ -708,14 +726,7 @@ fn render_profile_details(f: &mut Frame, app: &mut App, area: Rect) {
     }
 }
 
-fn render_profile_summary_block(
-    f: &mut Frame,
-    app: &App,
-    area: Rect,
-    profile_name: &str,
-    config: &ProfileConfig,
-    is_current: bool,
-) {
+fn render_profile_summary_block(f: &mut Frame, app: &App, area: Rect, summary: Vec<String>) {
     let platform = app.current_platform();
     let block = Block::default()
         .borders(Borders::ALL)
@@ -725,16 +736,7 @@ fn render_profile_summary_block(
         .title_style(theme::platform_style_for(platform))
         .padding(Padding::horizontal(1));
 
-    let lines: Vec<Line> = profile_summary_strings(
-        platform,
-        profile_name,
-        config,
-        is_current,
-        app.last_applied.as_ref(),
-    )
-    .into_iter()
-    .map(profile_summary_line)
-    .collect();
+    let lines: Vec<Line> = summary.into_iter().map(profile_summary_line).collect();
 
     let paragraph = Paragraph::new(lines).block(block).wrap(Wrap { trim: true });
     f.render_widget(paragraph, area);
@@ -747,10 +749,10 @@ fn render_profile_status_strip(f: &mut Frame, app: &App, area: Rect, profile_nam
         .title(" Status ")
         .title_style(theme::secondary_text_emphasis_style());
 
-    let mut text = footer_text(app);
-    if let Some(action) = last_apply_message(profile_name, app.last_applied.as_ref()) {
-        text = format!("{action}  │  {text}");
-    }
+    // 快捷键只保留底部全局 Keys footer 一处; strip 只反馈 apply 结果/toast
+    let text = last_apply_message(profile_name, app.last_applied.as_ref())
+        .or_else(|| app.toasts.active().map(|toast| toast.message.clone()))
+        .unwrap_or_default();
 
     let paragraph = Paragraph::new(text)
         .block(block)
@@ -777,7 +779,7 @@ fn generic_profile_detail_lines(
         detail_line("account", opt_text(config.account.as_deref())),
         Line::from(""),
         section_line(" Activity "),
-        detail_line("usage_count", config.usage_count().to_string()),
+        detail_line("switch_count", config.usage_count().to_string()),
         detail_line("tags", tags_text(config)),
     ]
 }
@@ -846,7 +848,7 @@ fn codex_profile_detail_lines(
         detail_line("account", opt_text(config.account.as_deref())),
         Line::from(""),
         section_line(" Activity "),
-        detail_line("usage_count", config.usage_count().to_string()),
+        detail_line("switch_count", config.usage_count().to_string()),
         detail_line("tags", tags_text(config)),
     ]
 }
@@ -898,7 +900,7 @@ fn claude_profile_detail_lines(
     lines.extend([
         Line::from(""),
         section_line(" Activity "),
-        detail_line("usage_count", config.usage_count().to_string()),
+        detail_line("switch_count", config.usage_count().to_string()),
         detail_line("tags", tags_text(config)),
     ]);
 
@@ -1049,16 +1051,16 @@ fn profile_meta_strings(
             total_pages.max(1)
         ),
         "Legend: ● current · ▶ selected".to_string(),
-        "Enter apply · r reload · Tab/Shift+Tab switch".to_string(),
     ]
 }
 
+// Focus 块只保留 Context 分组里没有的信息: 选中态/当前态 + 最近 apply 结果。
+// Description/Model/Base URL 等在 Context 的 Overview/Engine 分组已完整展示。
 fn profile_summary_strings(
-    platform: Platform,
     name: &str,
     config: &ProfileConfig,
     is_current: bool,
-    _last_applied: Option<&(String, String, bool, Option<String>)>,
+    last_applied: Option<&(String, String, bool, Option<String>)>,
 ) -> Vec<String> {
     let mut lines = vec![
         format!("Name: {name}"),
@@ -1071,26 +1073,10 @@ fn profile_summary_strings(
                 "Disabled"
             }
         ),
-        format!("Description: {}", opt_text(config.description.as_deref())),
-        format!("Model: {}", opt_text(config.model.as_deref())),
     ];
 
-    if platform == Platform::Codex {
-        let auth_mode = CodexPlatform::profile_auth_mode(config);
-        lines.push(format!(
-            "Routing: {} · {}",
-            opt_text(config.provider.as_deref()),
-            auth_mode.as_str()
-        ));
-        lines.push(format!(
-            "Base URL: {}",
-            opt_text(config.base_url.as_deref())
-        ));
-    } else {
-        lines.push(format!(
-            "Base URL: {}",
-            opt_text(config.base_url.as_deref())
-        ));
+    if let Some(message) = last_apply_message(name, last_applied) {
+        lines.push(format!("Last apply: {message}"));
     }
 
     lines
@@ -1407,8 +1393,9 @@ mod tests {
         let app = sample_profile_app(profile, ProfileConfig::new());
 
         assert!(footer_text(&app).contains("Tab/Shift+Tab switch"));
+        // 快捷键只保留 footer 一处, Selection 面板不再重复
         assert!(
-            profile_meta_strings(1, 0, 1, app.selected_profile())
+            !profile_meta_strings(1, 0, 1, app.selected_profile())
                 .iter()
                 .any(|line| line.contains("Tab/Shift+Tab switch"))
         );
@@ -1434,8 +1421,8 @@ mod tests {
     fn profile_list_rail_layout_keeps_full_selection_panel_visible() {
         let (list_area, meta_area) = profile_list_rail_layout(Rect::new(0, 0, 58, 20));
 
-        assert_eq!(list_area.height, 14);
-        assert_eq!(meta_area.height, 6);
+        assert_eq!(list_area.height, 15);
+        assert_eq!(meta_area.height, 5);
     }
 
     #[test]
@@ -1455,6 +1442,55 @@ mod tests {
         assert_eq!(column_widths(51), (45, 0));
         assert_eq!(column_widths(52), (18, 28));
         assert_eq!(column_widths(58), (20, 32));
+    }
+
+    #[test]
+    fn truncate_text_limits_display_width_for_cjk_and_emoji() {
+        for (text, width) in [
+            ("中文描述很长", 8),
+            ("ab中文cd", 6),
+            ("📭📭📭", 4),
+            ("公益 AnyRouter 中转", 10),
+            ("中文", 1),
+        ] {
+            let out = truncate_text(text, width);
+            assert!(out.width() <= width, "{text} @ {width} -> {out}");
+            assert!(out.ends_with('…'), "{text} @ {width} -> {out}");
+        }
+    }
+
+    #[test]
+    fn truncate_and_pad_keep_ascii_behavior_unchanged() {
+        assert_eq!(truncate_text("abcdef", 6), "abcdef");
+        assert_eq!(truncate_text("abcdefg", 6), "abcde…");
+        assert_eq!(truncate_text("abc", 0), "");
+        assert_eq!(pad_text("abc", 6), "abc   ");
+        assert_eq!(pad_text("abcdef", 4), "abcdef");
+    }
+
+    #[test]
+    fn pad_text_fills_to_display_width_for_cjk() {
+        let out = pad_text("中文", 6);
+        assert_eq!(out, "中文  ");
+        assert_eq!(out.width(), 6);
+    }
+
+    #[test]
+    fn profile_list_row_with_cjk_description_stays_within_column_budget() {
+        let profile = ProfileItem {
+            name: "anyrouter4".to_string(),
+            description: Some("AnyRouter 公益中转,含超长中文描述用于截断验证".to_string()),
+            is_current: true,
+        };
+        let (name_width, desc_width) = (20usize, 24usize);
+
+        let rendered = plain_line_text(&profile_list_row(&profile, false, name_width, desc_width));
+
+        assert!(
+            rendered.width() <= name_width + 2 + desc_width,
+            "{rendered}"
+        );
+        assert!(rendered.contains('…'), "{rendered}");
     }
 
     #[test]
@@ -1492,7 +1528,7 @@ mod tests {
         assert_eq!(summary.spans[0].style.fg, Some(theme::subtext()));
         assert_eq!(summary.spans[1].style.fg, Some(theme::text()));
 
-        let detail = detail_line("usage_count", "42".to_string());
+        let detail = detail_line("switch_count", "42".to_string());
         assert_eq!(detail.spans[0].style.fg, Some(theme::subtext()));
         assert_eq!(detail.spans[1].style.fg, Some(theme::text()));
     }
@@ -1539,6 +1575,7 @@ mod tests {
                 .any(|line| line.contains("Profiles: 15 · Page: 2/2"))
         );
         assert!(lines.iter().any(|line| line.contains("Legend:")));
+        assert!(!lines.iter().any(|line| line.contains("Enter apply")));
     }
 
     #[test]
@@ -1546,22 +1583,45 @@ mod tests {
         let mut config = ProfileConfig::new();
         config.description = Some("fovts 公益".to_string());
         config.model = Some("gpt-5.4".to_string());
+        config.base_url = Some("https://example.com/v1".to_string());
 
         let lines = profile_summary_strings(
-            Platform::Codex,
             "fovts",
             &config,
             true,
             Some(&("Codex Profile".to_string(), "fovts".to_string(), true, None)),
         );
 
+        assert!(lines.iter().any(|line| line.contains("Name: fovts")));
         assert!(
             lines
                 .iter()
                 .any(|line| line.contains("Status: Current · Enabled"))
         );
-        assert!(lines.iter().any(|line| line.contains("Model: gpt-5.4")));
-        assert!(!lines.iter().any(|line| line.contains("Last action:")));
+        assert!(
+            lines
+                .iter()
+                .any(|line| line.contains("Last apply: Applied successfully"))
+        );
+        // Context 的 Overview/Engine 分组已展示这些信息, Focus 不再重复
+        assert!(!lines.iter().any(|line| line.starts_with("Description:")));
+        assert!(!lines.iter().any(|line| line.starts_with("Model:")));
+        assert!(!lines.iter().any(|line| line.starts_with("Base URL:")));
+    }
+
+    #[test]
+    fn profile_summary_strings_skip_apply_line_for_other_profiles() {
+        let config = ProfileConfig::new();
+
+        let lines = profile_summary_strings(
+            "fovts",
+            &config,
+            false,
+            Some(&("Codex Profile".to_string(), "other".to_string(), true, None)),
+        );
+
+        assert_eq!(lines.len(), 2);
+        assert!(!lines.iter().any(|line| line.contains("Last apply:")));
     }
 
     #[test]
@@ -1581,7 +1641,29 @@ mod tests {
 
         let rendered = buffer_text(terminal.backend());
         assert!(rendered.contains("Applied successfully"), "{rendered}");
-        assert!(rendered.contains("Enter apply"), "{rendered}");
+        // strip 不再重复快捷键列表
+        assert!(!rendered.contains("Enter apply"), "{rendered}");
+        assert!(!rendered.contains("q quit"), "{rendered}");
+    }
+
+    #[test]
+    fn profile_status_strip_stays_quiet_without_apply_feedback() {
+        let profile = ProfileItem {
+            name: "fovts".to_string(),
+            description: Some("fovts 公益".to_string()),
+            is_current: true,
+        };
+        let app = sample_profile_app(profile, ProfileConfig::new());
+
+        let mut terminal = Terminal::new(TestBackend::new(72, 3)).unwrap();
+        terminal
+            .draw(|frame| render_profile_status_strip(frame, &app, frame.area(), "fovts"))
+            .unwrap();
+
+        let rendered = buffer_text(terminal.backend());
+        assert!(rendered.contains("Status"), "{rendered}");
+        assert!(!rendered.contains("Enter apply"), "{rendered}");
+        assert!(!rendered.contains("Tab/Shift+Tab"), "{rendered}");
     }
 
     #[test]
@@ -1858,5 +1940,42 @@ mod tests {
             detail_value_style("token", "missing"),
             theme::warning_style()
         );
+    }
+
+    #[test]
+    fn detail_activity_group_labels_switch_count_not_usage_count() {
+        let config = ProfileConfig::new();
+
+        for lines in [
+            generic_profile_detail_lines("g", &config, false),
+            claude_profile_detail_lines("c", &config, false),
+            codex_profile_detail_lines("x", &config, false),
+        ] {
+            let text = detail_texts(&lines).join("\n");
+            assert!(text.contains("switch_count"), "{text}");
+            assert!(!text.contains("usage_count"), "{text}");
+        }
+    }
+
+    #[test]
+    fn wide_profile_draw_shows_shortcuts_only_in_global_footer() {
+        let profile = ProfileItem {
+            name: "fovts".to_string(),
+            description: Some("fovts 公益".to_string()),
+            is_current: true,
+        };
+        let mut app = sample_profile_app(profile, ProfileConfig::new());
+        app.last_applied = Some(("Claude Code".to_string(), "fovts".to_string(), true, None));
+
+        let mut terminal = Terminal::new(TestBackend::new(140, 32)).unwrap();
+        terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+
+        let rendered = buffer_text(terminal.backend());
+        assert_eq!(
+            rendered.matches("Enter apply").count(),
+            1,
+            "shortcuts must only appear in the Keys footer: {rendered}"
+        );
+        assert!(rendered.contains("Applied successfully"), "{rendered}");
     }
 }

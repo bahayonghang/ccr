@@ -10,6 +10,7 @@ use ratatui::{
 
 use crate::tui::theme;
 use ccr_cli::models::Platform;
+use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
 use super::app::{UsageApp, UsageDataset, UsageLoadState};
 
@@ -277,14 +278,24 @@ fn platform_style(platform: SourceKind) -> Style {
     }
 }
 
+// 与 tui/ui.rs 同一策略: 按显示宽度截断, CJK provider 名不得溢出列宽
 fn truncate(value: &str, width: usize) -> String {
-    if value.chars().count() <= width {
+    if value.width() <= width {
         return value.to_string();
     }
     if width <= 1 {
         return "…".to_string();
     }
-    let mut out: String = value.chars().take(width - 1).collect();
+    let mut out = String::new();
+    let mut used = 0usize;
+    for ch in value.chars() {
+        let ch_width = ch.width().unwrap_or(0);
+        if used + ch_width > width - 1 {
+            break;
+        }
+        out.push(ch);
+        used += ch_width;
+    }
     out.push('…');
     out
 }
@@ -338,5 +349,18 @@ mod tests {
 
         assert_eq!(row.display_provider(), "unattributed");
         assert_eq!(truncate(row.display_provider(), 6), "unatt…");
+    }
+
+    #[test]
+    fn truncate_limits_display_width_for_cjk_providers() {
+        for (value, width) in [("某中文中转商名称超长", 8), ("公益 AnyRouter 中转", 10)]
+        {
+            let out = truncate(value, width);
+            assert!(out.width() <= width, "{value} @ {width} -> {out}");
+            assert!(out.ends_with('…'), "{value} @ {width} -> {out}");
+        }
+
+        // ASCII 行为回归: 宽度足够时原样返回
+        assert_eq!(truncate("openrouter", 12), "openrouter");
     }
 }
