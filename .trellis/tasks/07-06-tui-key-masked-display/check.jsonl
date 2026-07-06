@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/ccr-tui/backend/backend-guidelines.md", "reason": "验收对照：TUI 测试与验证命令、渲染边界"}
+{"file": ".trellis/tasks/07-06-tui-key-masked-display/prd.md", "reason": "安全红线验收：渲染输出不得含完整 token 明文、掩码只复用 ccr_core::mask_sensitive"}

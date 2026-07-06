@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/ccr-tui/backend/backend-guidelines.md", "reason": "验收对照：渲染循环不阻塞、错误以 issue string 呈现、tab 顺序回归测试要求"}
+{"file": ".trellis/spec/ccr/backend/llmusage-provider-adapter.md", "reason": "验收对照：rg usage_bucket_30m 仅命中 ccr-usage、无影子行结构、Unsupported/Error 分级正确"}
