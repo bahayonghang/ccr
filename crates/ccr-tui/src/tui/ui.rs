@@ -795,15 +795,7 @@ fn codex_profile_detail_lines(
         });
     let token_state = match auth_mode.as_str() {
         "openai_api_key" | "provider_env_key" => {
-            if config
-                .auth_token
-                .as_ref()
-                .is_some_and(|token| !token.expose().trim().is_empty())
-            {
-                "configured".to_string()
-            } else {
-                "missing".to_string()
-            }
+            configured_token_text(config).unwrap_or_else(|| "missing".to_string())
         }
         _ => "-".to_string(),
     };
@@ -820,6 +812,7 @@ fn codex_profile_detail_lines(
         detail_line("provider", opt_text(config.provider.as_deref())),
         detail_line("auth_mode", auth_mode.as_str().to_string()),
         detail_line("auth_source", CodexPlatform::profile_auth_source(config)),
+        detail_line("token", token_state),
         detail_line(
             "openai_login",
             login_method.unwrap_or_else(|| "-".to_string()),
@@ -855,7 +848,6 @@ fn codex_profile_detail_lines(
         section_line(" Activity "),
         detail_line("usage_count", config.usage_count().to_string()),
         detail_line("tags", tags_text(config)),
-        detail_line("token", token_state),
     ]
 }
 
@@ -868,15 +860,7 @@ fn claude_profile_detail_lines(
     let provider_type = opt_text(config.provider_type.as_deref());
     let provider = opt_text(config.provider.as_deref());
     let token_state = if matches!(auth_mode, ccr_cli::models::ClaudeProfileAuthMode::ApiKey) {
-        if config
-            .auth_token
-            .as_ref()
-            .is_some_and(|token| !token.expose().trim().is_empty())
-        {
-            "configured".to_string()
-        } else {
-            "missing".to_string()
-        }
+        configured_token_text(config).unwrap_or_else(|| "missing".to_string())
     } else {
         "subscription".to_string()
     };
@@ -921,6 +905,17 @@ fn claude_profile_detail_lines(
     lines
 }
 
+// token 行展示统一走这里: 掩码策略唯一归属 ccr_core::mask_sensitive,
+// 这里只负责拼接 `configured (<masked>)` 展示形态, 不得输出明文。
+fn configured_token_text(config: &ProfileConfig) -> Option<String> {
+    config
+        .auth_token
+        .as_ref()
+        .map(|token| token.expose().trim())
+        .filter(|token| !token.is_empty())
+        .map(|token| format!("configured ({})", ccr_core::mask_sensitive(token)))
+}
+
 fn section_line(title: &str) -> Line<'static> {
     Line::from(vec![
         Span::styled("▌ ", theme::info_style()),
@@ -947,7 +942,7 @@ fn detail_value_style(label: &str, value: &str) -> Style {
 
     if normalized_value == "yes"
         || normalized_value == "enabled"
-        || normalized_value == "configured"
+        || normalized_value.starts_with("configured")
         || normalized_value == "current"
     {
         return theme::success_style();
@@ -1689,5 +1684,179 @@ mod tests {
 
         assert!(app.profile_detail_scroll < 100);
         assert!(app.profile_detail_scroll > 0);
+    }
+
+    fn detail_texts(lines: &[Line<'_>]) -> Vec<String> {
+        lines.iter().map(plain_line_text).collect()
+    }
+
+    fn token_line(texts: &[String]) -> String {
+        texts
+            .iter()
+            .find(|text| text.starts_with("token"))
+            .cloned()
+            .expect("token line present")
+    }
+
+    #[test]
+    fn claude_detail_token_line_shows_masked_key_when_configured() {
+        let mut config = ProfileConfig::new();
+        config
+            .platform_data
+            .insert("auth_mode".to_string(), serde_json::json!("api_key"));
+        config.auth_token = Some(ccr_core::Secret::new("sk-ant-test1234567890"));
+
+        let texts = detail_texts(&claude_profile_detail_lines("api", &config, false));
+        assert!(
+            token_line(&texts).contains("configured (sk-a...7890)"),
+            "{texts:?}"
+        );
+    }
+
+    #[test]
+    fn claude_detail_token_line_masks_short_key_fully() {
+        let mut config = ProfileConfig::new();
+        config
+            .platform_data
+            .insert("auth_mode".to_string(), serde_json::json!("api_key"));
+        config.auth_token = Some(ccr_core::Secret::new("shortkey12"));
+
+        let texts = detail_texts(&claude_profile_detail_lines("api", &config, false));
+        assert!(
+            token_line(&texts).contains("configured (**********)"),
+            "{texts:?}"
+        );
+    }
+
+    #[test]
+    fn detail_token_states_keep_missing_subscription_and_dash() {
+        let mut claude_missing = ProfileConfig::new();
+        claude_missing
+            .platform_data
+            .insert("auth_mode".to_string(), serde_json::json!("api_key"));
+        let texts = detail_texts(&claude_profile_detail_lines("m", &claude_missing, false));
+        assert!(
+            token_line(&texts).trim_end().ends_with("missing"),
+            "{texts:?}"
+        );
+
+        let mut claude_subscription = ProfileConfig::new();
+        claude_subscription
+            .platform_data
+            .insert("auth_mode".to_string(), serde_json::json!("subscription"));
+        let texts = detail_texts(&claude_profile_detail_lines(
+            "s",
+            &claude_subscription,
+            false,
+        ));
+        assert!(
+            token_line(&texts).trim_end().ends_with("subscription"),
+            "{texts:?}"
+        );
+
+        let mut codex_missing = ProfileConfig::new();
+        codex_missing
+            .platform_data
+            .insert("auth_mode".to_string(), serde_json::json!("openai_api_key"));
+        let texts = detail_texts(&codex_profile_detail_lines("m", &codex_missing, false));
+        assert!(
+            token_line(&texts).trim_end().ends_with("missing"),
+            "{texts:?}"
+        );
+
+        let mut codex_no_auth = ProfileConfig::new();
+        codex_no_auth
+            .platform_data
+            .insert("auth_mode".to_string(), serde_json::json!("no_auth"));
+        let texts = detail_texts(&codex_profile_detail_lines("n", &codex_no_auth, false));
+        assert!(token_line(&texts).trim_end().ends_with('-'), "{texts:?}");
+    }
+
+    #[test]
+    fn codex_detail_token_line_is_masked_and_lives_in_routing_auth_group() {
+        let mut config = ProfileConfig::new();
+        config
+            .platform_data
+            .insert("auth_mode".to_string(), serde_json::json!("openai_api_key"));
+        config.auth_token = Some(ccr_core::Secret::new("sk-test-abcdef1234567890"));
+
+        let texts = detail_texts(&codex_profile_detail_lines("codex-key", &config, false));
+
+        let routing_idx = texts
+            .iter()
+            .position(|text| text.contains("Routing/Auth"))
+            .expect("Routing/Auth section present");
+        let engine_idx = texts
+            .iter()
+            .position(|text| text.contains("Engine"))
+            .expect("Engine section present");
+        let activity_idx = texts
+            .iter()
+            .position(|text| text.contains("Activity"))
+            .expect("Activity section present");
+        let token_idx = texts
+            .iter()
+            .position(|text| text.starts_with("token"))
+            .expect("token line present");
+
+        assert!(
+            routing_idx < token_idx && token_idx < engine_idx,
+            "{texts:?}"
+        );
+        assert!(
+            texts[activity_idx..]
+                .iter()
+                .all(|text| !text.starts_with("token")),
+            "{texts:?}"
+        );
+        assert!(
+            texts[token_idx].contains("configured (sk-t...7890)"),
+            "{texts:?}"
+        );
+    }
+
+    #[test]
+    fn profile_detail_lines_never_render_plaintext_token() {
+        let plaintext = "sk-ant-test1234567890";
+
+        let mut claude_config = ProfileConfig::new();
+        claude_config
+            .platform_data
+            .insert("auth_mode".to_string(), serde_json::json!("api_key"));
+        claude_config.auth_token = Some(ccr_core::Secret::new(plaintext));
+
+        let mut codex_config = ProfileConfig::new();
+        codex_config
+            .platform_data
+            .insert("auth_mode".to_string(), serde_json::json!("openai_api_key"));
+        codex_config.auth_token = Some(ccr_core::Secret::new(plaintext));
+
+        let claude_text = detail_texts(&claude_profile_detail_lines(
+            "claude-key",
+            &claude_config,
+            true,
+        ))
+        .join("\n");
+        let codex_text = detail_texts(&codex_profile_detail_lines(
+            "codex-key",
+            &codex_config,
+            true,
+        ))
+        .join("\n");
+
+        assert!(!claude_text.contains(plaintext), "{claude_text}");
+        assert!(!codex_text.contains(plaintext), "{codex_text}");
+    }
+
+    #[test]
+    fn detail_value_style_keeps_configured_masked_value_green() {
+        assert_eq!(
+            detail_value_style("token", "configured (sk-a...7890)"),
+            theme::success_style()
+        );
+        assert_eq!(
+            detail_value_style("token", "missing"),
+            theme::warning_style()
+        );
     }
 }
