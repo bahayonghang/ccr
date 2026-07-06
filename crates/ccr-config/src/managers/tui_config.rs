@@ -5,10 +5,9 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
-const DEFAULT_TAB_ORDER: [TuiTabId; 6] = [
+const DEFAULT_TAB_ORDER: [TuiTabId; 5] = [
     TuiTabId::CodexProfile,
     TuiTabId::ClaudeProfile,
-    TuiTabId::Usage,
     TuiTabId::CodexAuth,
     TuiTabId::ClaudeAuth,
     TuiTabId::OpencodeAuth,
@@ -19,6 +18,10 @@ const DEFAULT_TAB_ORDER: [TuiTabId; 6] = [
 pub enum TuiTabId {
     CodexProfile,
     ClaudeProfile,
+    /// Deprecated: 独立 Usage tab 已下线(用量内嵌到 profile 详情面板)。
+    /// 仅为解析旧版 `tui.toml` 保留;`load()` 会过滤该项并记录 warn,
+    /// 不得因它出现而丢弃用户的自定义排序。
+    #[doc(hidden)]
     Usage,
     CodexAuth,
     ClaudeAuth,
@@ -90,7 +93,16 @@ impl TuiConfigManager {
             return Ok(TuiConfig::default());
         }
 
-        let config: TuiConfig = fileio::read_toml(&self.config_path)?;
+        let mut config: TuiConfig = fileio::read_toml(&self.config_path)?;
+        // 兼容旧版配置:曾存在独立 usage tab,现已下线。过滤而非报错,
+        // 保住用户对其余 tab 的自定义排序。
+        if config.tab_order.contains(&TuiTabId::Usage) {
+            tracing::warn!(
+                "TUI config {} contains deprecated `usage` tab; ignoring it (usage now lives in profile details)",
+                self.config_path.display()
+            );
+            config.tab_order.retain(|tab_id| *tab_id != TuiTabId::Usage);
+        }
         validate_tab_order(&config.tab_order)?;
         Ok(config)
     }
@@ -176,7 +188,47 @@ mod tests {
     }
 
     #[test]
-    fn load_preserves_valid_custom_tab_order() {
+    fn default_order_excludes_deprecated_usage_tab() {
+        let order = TuiTabId::default_order();
+
+        assert_eq!(order.len(), 5);
+        assert!(!order.contains(&TuiTabId::Usage));
+    }
+
+    #[test]
+    fn load_accepts_five_item_tab_order_without_usage() {
+        let env = TestCcrEnv::new();
+        let manager = TuiConfigManager::new(env.root().join("tui.toml"));
+
+        std::fs::write(
+            manager.config_path(),
+            r#"tab_order = [
+  "claude_profile",
+  "codex_profile",
+  "codex_auth",
+  "claude_auth",
+  "opencode_auth",
+]
+"#,
+        )
+        .unwrap();
+
+        let config = manager.load().unwrap();
+        assert_eq!(
+            config.tab_order,
+            vec![
+                TuiTabId::ClaudeProfile,
+                TuiTabId::CodexProfile,
+                TuiTabId::CodexAuth,
+                TuiTabId::ClaudeAuth,
+                TuiTabId::OpencodeAuth,
+            ]
+        );
+    }
+
+    // 旧版 tui.toml 含已下线的 usage tab:自定义顺序必须原样保留,仅剔除 usage
+    #[test]
+    fn load_preserves_legacy_custom_order_and_ignores_usage_tab() {
         let env = TestCcrEnv::new();
         let manager = TuiConfigManager::new(env.root().join("tui.toml"));
 
@@ -201,7 +253,6 @@ mod tests {
                 TuiTabId::ClaudeAuth,
                 TuiTabId::CodexProfile,
                 TuiTabId::ClaudeProfile,
-                TuiTabId::Usage,
                 TuiTabId::CodexAuth,
                 TuiTabId::OpencodeAuth,
             ]
