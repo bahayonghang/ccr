@@ -1225,3 +1225,41 @@ typed-ipc 试点闭环：选型 ts-rs 11 弃 tauri-specta（RC 期且要接管 i
 - 独立候选：usage-family-absorb（stats 9 条零调用命令下线 + get_provider_usage 迁移 ConfigsView + CostTracker 链路清理）
 - typed-ipc 后续域按推广评估排序：codex 域最后做且先拆子域；typed-ipc-command-name-guard 仍是可选小任务
 - 环境事项未解：子代理 dispatch 代理侧 1m 上下文 400 依旧需人工修复（本任务继续内联实施）
+
+---
+
+## 2026-07-06 · usage-family-absorb（stats 家族下线 + provider usage 迁移）
+
+### What
+
+按 07-03-arch-typed-ipc 重叠盘点的结论,整体退役 CostTracker 系 legacy stats 链路:
+
+- ConfigsView 迁移:getProviderUsage → getUsageByProviderV2(近 30 天窗口对齐旧语义,ProviderBreakdownDto[] 映射 Record<provider, request_count>,null provider 归 unknown;ProviderStatsModal 契约不变)
+- 删 commands/stats.rs(10 条命令)+ stats_snapshot.rs(三个符号仅 stats.rs 消费,复核过 AppState 缓存基建为 codex/usage/system 共用不受影响)
+- handler_registry 移除 统计/统计扩展 两组,形状测试 30→28 模块、320→310/312→302
+- 前端 domains/stats.ts 删 10 wrapper,tauri.ts 冻结门面与 usageApi 命名空间同步缩减
+- 边界坚持:claude 预算链路(claude_get_budgets 经 BudgetManager 用 CostTracker)、main.rs 启动目录校验、pricing 组均保留
+
+### Commits
+
+| Hash | Message |
+|------|---------|
+| `f672db0c` | refactor(ui): usage 家族吸收:下线 CostTracker 系 10 条 stats 命令 |
+| `43770a43` | docs(spec): llmusage 适配器契约回写 legacy stats 家族下线 |
+
+### Testing
+
+- [OK] src-tauri cargo clippy --all-targets 零 error;cargo test 247/247(含更新后 registry 形状测试)
+- [OK] just frontend-check-quick 全绿(type-check / lint / i18n / smoke 81 文件 362 测试)
+- [OK] 残留扫描:10 条命令名 + wrapper 名全仓仅剩解释性注释与历史分析 HTML,无代码引用
+- [NOTE] src-tauri claude.rs 有既有 fmt 漂移(cargo fmt --check 报 claude.rs:361),非本任务引入,未动
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- typed-ipc 后续域按推广评估排序:codex 域最后做且先拆子域;typed-ipc-command-name-guard 仍是可选小任务
+- 顺带发现(盘点遗留,未处理):services/usage.rs 本地 HomeOverview*(u64)与 ccr-usage 同名类型(i64)并存,后续小型收敛候选
+- 环境事项未解:子代理 dispatch 代理侧 1m 上下文 400,本任务继续内联实施
