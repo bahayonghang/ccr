@@ -65,23 +65,26 @@ Tests that mutate `CCR_ROOT` or `CCR_LOCK_DIR` must use `test_support::TestCcrEn
 
 - `tab_order` is a complete ordered list of known tab ids.
 - Current tab ids: `codex_profile`, `claude_profile`, `codex_auth`, `claude_auth`, `opencode_auth`.
+- Deprecated id `usage` (standalone Usage tab retired 2026-07) stays parse-tolerant: the enum variant is kept `#[doc(hidden)]`, `load()` filters it out with a `tracing::warn!` **before** validation, and the user's custom order of the remaining tabs is preserved — never fall back to defaults just because `usage` appears.
 - Missing files return the built-in default order and must not block TUI startup.
 
 ### 4. Validation & Error Matrix
 
 - Missing `tui.toml` -> return default config.
-- Missing `tab_order`, duplicate ids, unknown ids, or incomplete lists -> return the full default order.
+- `tab_order` containing deprecated `usage` -> filter + warn, then validate the remaining list normally (custom order preserved).
+- Missing `tab_order`, duplicate ids, unknown ids, or incomplete lists (after `usage` filtering) -> return the full default order.
 - TOML parse failure -> return the full default order and let the TUI continue.
 
 ### 5. Good/Base/Bad Cases
 
 - Good: `tab_order = ["codex_profile", "claude_profile", "codex_auth", "claude_auth", "opencode_auth"]`
+- Good (legacy): a 6-item order containing `usage` loads with `usage` dropped and the custom order intact.
 - Base: no `tui.toml` exists, so the same default order is used.
 - Bad: `tab_order = ["claude_auth"]`, because partial overrides are intentionally rejected.
 
 ### 6. Tests Required
 
-- Unit tests for missing file, valid custom order, duplicate ids, missing ids, and unknown ids.
+- Unit tests for missing file, valid custom order, duplicate ids, missing ids, unknown ids, and legacy orders containing `usage` (order preserved, `usage` filtered).
 - Tests that resolve default paths through `CCR_ROOT` must use `test_support::TestCcrEnv`.
 
 ### 7. Wrong vs Correct

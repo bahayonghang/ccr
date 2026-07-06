@@ -96,7 +96,7 @@
 - A provider filter must apply to overview, daily trends, model breakdown, source breakdown, project breakdown, heatmap, and logs through the shared `QueryFilter`.
 - `get_usage_dashboard_v2` includes `provider_stats` and its cache key must include the provider filter.
 - When no provider filter is supplied and provider capability is unavailable, dashboard payloads degrade to `provider_stats: []`; an explicit provider filter must surface the unsupported error.
-- TUI usage views should load the shared projection on a background task through an injectable loader seam (`UsageLoader`), consume `TaggedProviderBreakdown` directly (no per-surface shadow row structs), request `SourceKind::Claude` and `SourceKind::Codex` separately when rendering those platform sections (via `provider_breakdown_by_source`), and display `provider = null` as `unattributed` (`ProviderBreakdownDto::display_provider`).
+- TUI usage surfaces (the profile-detail Usage section; the standalone Usage tab was retired 2026-07) should load the shared projection on a background task through an injectable loader seam (`UsageLoader`), consume `TaggedProviderBreakdown` directly (no per-surface shadow row structs), request `SourceKind::Claude` and `SourceKind::Codex` separately when rendering those platform sections (via `provider_breakdown_by_source`), and display `provider = null` as `unattributed` (`ProviderBreakdownDto::display_provider`).
 - Only pass `--provider-map <path>` when `$CCR_ROOT/analytics/provider_activation.jsonl` exists. The installed llmusage CLI treats an explicit missing provider-map path as a hard sync error.
 - New frontend business wrappers belong in `src/api/domains/*`; `src/api/tauri.ts` remains a compatibility facade.
 - The legacy `ccr_store::CostTracker` stats command family (`get_cost_overview`, `get_provider_usage`, `get_daily_stats`, 10 commands total, plus `stats_snapshot.rs`) was removed from ccr-ui in 2026-07 (usage-family-absorb). All statistics surfaces consume V2 usage commands; do not reintroduce JSONL-scan stats commands. The only remaining `CostTracker` consumers in ccr-ui are the claude budgets path (`claude_get_budgets`) and the startup storage-dir check in `main.rs`.
@@ -117,7 +117,7 @@
 
 - Good: schema 14 fixture with `openai`, `anthropic`, and empty labels; provider totals sum to source totals and empty labels serialize as `null`.
 - Good: `provider = "openai"` narrows overview/model/source totals to only OpenAI-attributed rows.
-- Good: Tauri provider dashboard and TUI Usage tab both call `ccr-usage` and differ only in DTO/error mapping and presentation.
+- Good: Tauri provider dashboard and the TUI profile-detail Usage section both call `ccr-usage` and differ only in DTO/error mapping and presentation.
 - Base: old llmusage DB still renders the dashboard, but provider stats are empty until the user upgrades/syncs.
 - Bad: adding provider filtering only to `provider_breakdown`; dashboard cards would show mixed-provider totals.
 - Bad: copying any usage SQL (provider breakdown or otherwise) into `ccr-ui` or `ccr-tui`; future schema/capability fixes would diverge.
@@ -128,7 +128,7 @@
 ### 6. Tests Required
 
 - `cargo test -p ccr-usage`
-- `cargo test -p ccr-tui -- --test-threads=1` when adding or changing the TUI Usage tab
+- `cargo test -p ccr-tui -- --test-threads=1` when adding or changing TUI usage surfaces
 - `cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml llmusage_adapter -- --nocapture`
 - `cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml commands::handler_registry -- --nocapture`
 - `cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml --test llmusage_no_crate_guard -- --nocapture`

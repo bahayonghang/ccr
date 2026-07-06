@@ -66,14 +66,13 @@ When changing tab ordering, add or keep regression tests that assert:
 
 ### Synthetic read-only tabs
 
-Use a synthetic `PlatformTab` only when a tab is not a profile/auth surface but still needs to live in the configured tab bar, such as `TabVariant::Usage`.
-
-Contract:
+Use a synthetic `PlatformTab` only when a tab is not a profile/auth surface but still needs to live in the configured tab bar. There is currently **no** synthetic tab in the tree: the standalone Usage tab was retired in 2026-07 (usage now renders inside profile details, see the next section). Keep this contract for any future synthetic tab:
 
 - Add a matching `TuiTabId` in `crates/ccr-config` and include it in the complete-list default order.
 - Give the synthetic tab an empty `profiles` list and route it before profile selection/apply behavior in `handle_key`, mouse handlers, activation, ticks, and `ui::draw`.
 - Lazily initialize the embedded app from `App::with_task_executor(...)`; load external data with `AsyncTaskExecutor::spawn_blocking()` and a message channel so the terminal render loop never blocks on filesystem or SQLite work.
-- Keep the tab read-only unless the PRD explicitly asks for mutations. For usage/statistics views, show unsupported, missing-data, empty, and query-error states inside the tab rather than panicking or falling back to profile UI.
+- Keep the tab read-only unless the PRD explicitly asks for mutations. For usage/statistics views, show unsupported, missing-data, empty, and query-error states inside the view rather than panicking or falling back to profile UI.
+- When retiring a synthetic tab, keep its `TuiTabId` variant parse-tolerant (`#[doc(hidden)]`, filtered on load with a warn) so existing `tui.toml` custom orders survive; see the ccr-config guidelines.
 
 Wrong:
 
@@ -86,13 +85,23 @@ self.handle_profile_action(action)
 Correct:
 
 ```rust
-if self.is_usage_tab() {
-    if let Some(usage_app) = self.usage_app_mut() {
-        return usage_app.handle_key(key);
+if self.is_my_synthetic_tab() {
+    if let Some(embedded) = self.my_synthetic_app_mut() {
+        return embedded.handle_key(key);
     }
     return Ok(false);
 }
 ```
+
+### Embedded usage engine (profile-detail Usage section)
+
+Provider usage lives inside the Claude/Codex profile detail panel, powered by an App-level data engine (`tui/usage/app.rs::UsageApp`), not a tab:
+
+- `UsageApp` does **not** implement `TuiApp` (no key/render duties). `App::on_tick`'s profile-tab branch drives it: `ensure_usage_engine()` + `on_activated()` (idempotent, only arms the 1-tick delay while `Idle`) + `tick()` (pumps the mpsc channel). This covers both startup landing on a profile tab and later tab switches.
+- Data loads once per session via the injectable `UsageLoader` seam on `spawn_blocking` (`provider_breakdown_by_source([Claude, Codex], default filter)`); selection changes are pure in-memory lookups. `Action::Reload` (`r`) calls `engine.refresh()` alongside the profile reload; the `task_active` guard prevents task storms.
+- Rendering: `ui.rs::usage_section_lines(platform, provider, state, compact)` appends the section after Activity in the codex/claude detail builders. All six states (engine-not-initialized/`Idle`/`Loading`, no provider label, no matching row, `Unsupported`, `Error`, hit) render as in-section lines — never panic, never replace the page.
+- Attribution is provider-level. A profile without `profile.provider` must render `no provider label — usage unattributed` and must **not** fall back to the `provider = null` bucket (it mixes all historical unattributed usage).
+- Do not re-add per-selection SQL or a second load-state machine; the engine's dataset is the only source. Tests inject loaders via `UsageApp::with_loader` — production tests must not touch `~/.llmusage`. Beware: `App::on_tick` on a profile tab lazily creates the engine with the **real** loader, so tests that tick profile tabs must pre-inject an engine.
 
 ## Logging
 
@@ -110,4 +119,4 @@ For TUI changes, run:
 - `cargo test -p ccr-tui -- --test-threads=1`
 - `cargo test -p ccr -- --test-threads=1` when the binary/TUI feature surface changes
 - `just lint-strict`
-- For usage/statistics tabs, also run `cargo test -p ccr-usage`
+- For usage/statistics surfaces, also run `cargo test -p ccr-usage`
