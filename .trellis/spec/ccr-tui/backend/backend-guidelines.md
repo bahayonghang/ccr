@@ -36,6 +36,12 @@ Maintain stable tab/profile selection across refreshes where possible. Use expli
 
 Preserve pagination helpers and page-size behavior when changing list rendering.
 
+### Text truncation, padding, and shortcut hints
+
+Truncate and pad cell text by terminal display width via `unicode-width`, never by `chars().count()` — CJK characters render 2 columns wide, so char-counted cells overflow their column and ratatui hard-clips them, losing the `…` marker. Follow the shared helper shape (`truncate_text`/`pad_text` in `tui/ui.rs`, same-named helpers in auth sub-apps and the usage view): accumulate per-char width, reserve 1 column for `…`, and prefer ending 1 column short over overflowing.
+
+Keyboard shortcut hints live only in the global Keys footer. Panels and status strips carry state (selection, apply/toast feedback), not key legends — do not reintroduce per-panel shortcut lines.
+
 ### Per-tab profile selection
 
 Each profile tab owns its selection snapshot (`PlatformTab::saved_selection`); `selected_index` / `current_page` / `selected_profile_name` on `App` are the working copy for the active tab only (`page_size` stays global). On tab switch, `save_active_tab_selection` stores the leaving tab's snapshot and `restore_active_tab_selection` loads the entering tab's — restoring a saved snapshot via `align_selection_by_name` (name-first), or focusing the enabled (`is_current`) profile via `focus_current_profile` on first visit.
