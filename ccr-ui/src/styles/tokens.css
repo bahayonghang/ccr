@@ -5,22 +5,22 @@
 
 /* ========== 颜色系统 ========== */
 :root {
-  /* --- 背景层级 (亮色主题 - 默认) --- */
-  --color-bg-base: #f4ede3;
-  --color-bg-base-rgb: 244 237 227;
-  --color-bg-elevated: #fbf6ee;
-  --color-bg-elevated-rgb: 251 246 238;
-  --color-bg-surface: #fffaf3;
-  --color-bg-surface-rgb: 255 250 243;
-  --color-bg-overlay: #ede2d4;
-  --color-bg-overlay-rgb: 237 226 212;
+  /* --- 背景层级 (亮色主题 - 默认；卡片最亮、桌面压暗，相邻层 OKLCH ΔL ≥ 3) --- */
+  --color-bg-base: #ebe1d0;
+  --color-bg-base-rgb: 235 225 208;
+  --color-bg-elevated: #f5eee1;
+  --color-bg-elevated-rgb: 245 238 225;
+  --color-bg-surface: #fefaf2;
+  --color-bg-surface-rgb: 254 250 242;
+  --color-bg-overlay: #e2d6c3;
+  --color-bg-overlay-rgb: 226 214 195;
 
   /* --- 边框与分隔 --- */
-  --color-border-subtle: rgb(70 53 41 / 8%);
+  --color-border-subtle: rgb(70 53 41 / 12%);
   --color-border-subtle-rgb: 70 53 41;
-  --color-border-default: rgb(70 53 41 / 13%);
+  --color-border-default: rgb(70 53 41 / 19%);
   --color-border-default-rgb: 70 53 41;
-  --color-border-strong: rgb(70 53 41 / 21%);
+  --color-border-strong: rgb(70 53 41 / 30%);
   --color-border-strong-rgb: 70 53 41;
   --color-border-accent: rgb(217 119 87 / 18%);
   --color-border-interactive: var(--color-accent-primary);
@@ -31,8 +31,8 @@
   --color-text-primary-rgb: 49 36 28;
   --color-text-secondary: #5f4d3f;
   --color-text-secondary-rgb: 95 77 63;
-  --color-text-muted: #7f6a5b;
-  --color-text-muted-rgb: 127 106 91;
+  --color-text-muted: #715d4c;
+  --color-text-muted-rgb: 113 93 76;
   --color-text-ghost: #9a8373;
   --color-text-ghost-rgb: 154 131 115;
   --color-text-disabled: #b4a08f;
@@ -137,12 +137,12 @@
   --color-bg-overlay: #342b26;
   --color-bg-overlay-rgb: 52 43 38;
 
-  /* --- 边框与分隔 --- */
-  --color-border-subtle: rgb(243 234 223 / 8%);
+  /* --- 边框与分隔 (暗色下需 ≥16% / ≥26% 保证卡片边界可辨) --- */
+  --color-border-subtle: rgb(243 234 223 / 10%);
   --color-border-subtle-rgb: 243 234 223;
-  --color-border-default: rgb(243 234 223 / 12%);
+  --color-border-default: rgb(243 234 223 / 16%);
   --color-border-default-rgb: 243 234 223;
-  --color-border-strong: rgb(243 234 223 / 20%);
+  --color-border-strong: rgb(243 234 223 / 26%);
   --color-border-strong-rgb: 243 234 223;
   --color-border-accent: rgb(231 154 119 / 24%);
 
@@ -226,23 +226,23 @@
 
 /* ========== 亮色主题覆盖 ========== */
 [data-theme='light'] {
-  /* --- 背景层级 --- */
-  --color-bg-base: #f5f5f7;
-  --color-bg-elevated: #fff;
-  --color-bg-surface: #fbfbfd;
-  --color-bg-overlay: #ececf1;
+  /* --- 背景层级（与 :root 暖 clay 基线保持一致） --- */
+  --color-bg-base: #ebe1d0;
+  --color-bg-elevated: #f5eee1;
+  --color-bg-surface: #fefaf2;
+  --color-bg-overlay: #e2d6c3;
 
   /* --- 边框与分隔 --- */
-  --color-border-subtle: rgb(29 29 31 / 8%);
-  --color-border-default: rgb(29 29 31 / 12%);
-  --color-border-strong: rgb(29 29 31 / 20%);
-  --color-border-accent: rgb(0 113 227 / 18%);
+  --color-border-subtle: rgb(70 53 41 / 12%);
+  --color-border-default: rgb(70 53 41 / 19%);
+  --color-border-strong: rgb(70 53 41 / 30%);
+  --color-border-accent: rgb(217 119 87 / 18%);
 
   /* --- 文字层级 --- */
-  --color-text-primary: #1d1d1f;
-  --color-text-secondary: #424245;
-  --color-text-muted: #6e6e73;
-  --color-text-disabled: #adadb3;
+  --color-text-primary: #31241c;
+  --color-text-secondary: #5f4d3f;
+  --color-text-muted: #715d4c;
+  --color-text-disabled: #b4a08f;
 
   /* --- 发光效果（亮色模式保持克制） --- */
   --color-accent-primary-glow: rgb(217 119 87 / 8%);
@@ -327,14 +327,15 @@
 
 /* ========== 字体系统 ========== */
 :root:where(:root):where(:root) {
-  /* --- 字体族 --- */
+  /* --- 字体族（三轨分离：正文品牌字体 / 标题比例显示字体 / 数值代码真等宽） --- */
   --font-sans:
     'MapleBright', 'SF Pro Text', 'PingFang SC', 'Microsoft YaHei UI', 'Microsoft YaHei', sans-serif;
   --font-brand:
-    'MapleBright', 'SF Pro Display', 'SF Pro Text', 'PingFang SC', 'Microsoft YaHei UI',
+    'SF Pro Display', 'Segoe UI Variable Display', 'PingFang SC', 'Microsoft YaHei UI',
     'Microsoft YaHei', sans-serif;
   --font-mono:
-    'MapleBright', 'SF Pro Text', 'PingFang SC', 'Microsoft YaHei UI', 'Microsoft YaHei', sans-serif;
+    'Cascadia Code', 'Cascadia Mono', 'SFMono-Regular', ui-monospace, 'Consolas', 'MapleBright',
+    monospace;
 
   /* --- 字号 --- */
   --text-xs: 0.75rem;
@@ -406,13 +407,13 @@
 
 /* ========== 阴影与光效系统 ========== */
 :root:where(:root):where(:root):where(:root):where(:root) {
-  /* --- 标准阴影 --- */
-  --shadow-xs: 0 1px 2px rgb(73 54 40 / 4%);
-  --shadow-sm: 0 2px 6px rgb(73 54 40 / 5%);
-  --shadow-md: 0 10px 24px rgb(73 54 40 / 7%);
-  --shadow-lg: 0 18px 38px rgb(73 54 40 / 9%);
-  --shadow-xl: 0 26px 54px rgb(73 54 40 / 12%);
-  --shadow-2xl: 0 34px 72px rgb(73 54 40 / 14%);
+  /* --- 标准阴影（暖褐 tint，elevation 三档肉眼可分：sm ≥ 8%、md ≥ 12%） --- */
+  --shadow-xs: 0 1px 2px rgb(73 54 40 / 6%);
+  --shadow-sm: 0 2px 6px rgb(73 54 40 / 9%);
+  --shadow-md: 0 10px 24px rgb(73 54 40 / 13%);
+  --shadow-lg: 0 18px 38px rgb(73 54 40 / 16%);
+  --shadow-xl: 0 26px 54px rgb(73 54 40 / 19%);
+  --shadow-2xl: 0 34px 72px rgb(73 54 40 / 22%);
   --shadow-inner: inset 0 1px 0 rgb(255 251 245 / 46%);
 
   /* --- 柔和交互光晕 --- */
@@ -465,98 +466,116 @@
 }
 
 /* ========== 玻璃效果系统 ========== */
+
+/* 玻璃预算（review 依据）：同屏 backdrop-filter 元素 ≤ 3；禁止嵌套玻璃；
+   禁止在滚动内容区内部使用玻璃。普通内容卡片一律走不透明 card/workspace 语义。 */
 :root:where(:root):where(:root):where(:root):where(:root):where(:root) {
-  /* --- 玻璃背景 (Apple-style frosted surfaces) --- */
-  --glass-bg-light: rgb(255 250 243 / 86%);
-  --glass-bg-medium: rgb(251 246 238 / 92%);
-  --glass-bg-strong: rgb(255 250 243 / 96%);
+  /* --- 三档 material 液态玻璃令牌（blur + saturate + 分层边框 + inset 高光，亮色参数） --- */
 
-  /* --- 玻璃边框 --- */
-  --glass-border-light: rgb(70 53 41 / 8%);
-  --glass-border-medium: rgb(70 53 41 / 12%);
-  --glass-border-strong: rgb(70 53 41 / 16%);
+  /* floating：模态 / 命令面板 / 浮层（最强，同屏最多 1 个） */
+  --material-glass-floating-bg: rgb(var(--color-bg-elevated-rgb) / 72%);
+  --material-glass-floating-blur: blur(16px) saturate(170%);
+  --material-glass-floating-border: rgb(var(--color-border-strong-rgb) / 26%);
+  --material-glass-floating-highlight: inset 0 1px 0 rgb(255 251 245 / 55%);
+  --material-glass-floating-shadow: 0 24px 64px rgb(73 54 40 / 20%);
 
-  /* --- 玻璃模糊 --- */
+  /* chrome：侧栏 / 顶栏（常驻，同屏 ≤ 2 个） */
+  --material-glass-chrome-bg: rgb(var(--color-bg-elevated-rgb) / 82%);
+  --material-glass-chrome-blur: blur(10px) saturate(150%);
+  --material-glass-chrome-border: rgb(var(--color-border-default-rgb) / 22%);
+  --material-glass-chrome-highlight: inset 0 1px 0 rgb(255 251 245 / 45%);
+  --material-glass-chrome-shadow: 0 10px 30px rgb(73 54 40 / 10%);
+
+  /* inline：页面内悬浮条（sticky 工具条等，少用） */
+  --material-glass-inline-bg: rgb(var(--color-bg-elevated-rgb) / 88%);
+  --material-glass-inline-blur: blur(8px) saturate(140%);
+  --material-glass-inline-border: var(--color-border-default);
+  --material-glass-inline-highlight: inset 0 1px 0 rgb(255 251 245 / 38%);
+  --material-glass-inline-shadow: var(--shadow-sm);
+
+  /* --- 玻璃背景 (deprecated：改用 --material-glass-* 三档) --- */
+  --glass-bg-light: rgb(var(--color-bg-surface-rgb) / 86%);
+  --glass-bg-medium: rgb(var(--color-bg-elevated-rgb) / 92%);
+  --glass-bg-strong: rgb(var(--color-bg-surface-rgb) / 96%);
+
+  /* --- 玻璃边框 (deprecated：改用 --material-glass-*-border) --- */
+  --glass-border-light: rgb(var(--color-border-default-rgb) / 12%);
+  --glass-border-medium: rgb(var(--color-border-default-rgb) / 18%);
+  --glass-border-strong: rgb(var(--color-border-default-rgb) / 26%);
+
+  /* --- 玻璃模糊 (deprecated：改用 --material-glass-*-blur；旧档保持轻量，避免存量引用超玻璃预算) --- */
   --glass-blur-sm: blur(2px) saturate(104%);
   --glass-blur-md: blur(3px) saturate(106%);
   --glass-blur-lg: blur(4px) saturate(108%);
   --glass-blur-xl: blur(6px) saturate(110%);
 
-  /* --- 玻璃阴影 (亮色模式增强可见性) --- */
-  --glass-shadow: 0 10px 24px rgb(73 54 40 / 7%);
-  --glass-shadow-elevated: 0 18px 40px rgb(73 54 40 / 10%);
+  /* --- 玻璃阴影 (deprecated：改用 --material-glass-*-shadow) --- */
+  --glass-shadow: 0 10px 24px rgb(73 54 40 / 13%);
+  --glass-shadow-elevated: 0 18px 40px rgb(73 54 40 / 16%);
   --glass-inner-glow: inset 0 1px 0 rgb(255 251 245 / 36%);
 
-  /* --- 液态玻璃效果 --- */
-  --liquid-glass-bg: rgb(251 246 238 / 92%);
+  /* --- 液态玻璃效果 (deprecated：改用 --material-glass-* 三档) --- */
+  --liquid-glass-bg: rgb(var(--color-bg-elevated-rgb) / 92%);
   --liquid-glass-blur: blur(4px) saturate(106%);
-  --liquid-glass-border: rgb(70 53 41 / 10%);
+  --liquid-glass-border: rgb(var(--color-border-default-rgb) / 16%);
   --liquid-glass-highlight: inset 0 1px 0 rgb(255 251 245 / 38%);
-  --liquid-glass-shadow: 0 12px 30px rgb(73 54 40 / 8%);
+  --liquid-glass-shadow: 0 12px 30px rgb(73 54 40 / 10%);
 
-  /* --- 语义化 Surface Contract --- */
-  --surface-shell-bg: var(--liquid-glass-bg);
-  --surface-shell-blur: var(--liquid-glass-blur);
-  --surface-shell-border: var(--liquid-glass-border);
-  --surface-shell-shadow: var(--liquid-glass-shadow);
-  --surface-workspace-bg: var(--glass-bg-medium);
-  --surface-workspace-blur: var(--glass-blur-md);
-  --surface-workspace-border: var(--glass-border-medium);
-  --surface-workspace-shadow: var(--glass-shadow);
-  --surface-card-bg: var(--glass-bg-strong);
-  --surface-card-blur: var(--glass-blur-lg);
-  --surface-card-border: var(--glass-border-medium);
-  --surface-card-shadow: var(--glass-shadow);
-  --surface-modal-bg: var(--glass-bg-strong);
-  --surface-modal-blur: var(--glass-blur-xl);
-  --surface-modal-border: var(--glass-border-strong);
-  --surface-modal-shadow: var(--glass-shadow-elevated);
-  --surface-status-bg: var(--glass-bg-light);
-  --surface-status-blur: var(--glass-blur-md);
-  --surface-status-border: var(--glass-border-light);
-  --surface-status-shadow: var(--shadow-sm);
+  /* --- 语义化 Surface Contract ---
+     modal→floating / shell→chrome / status→inline；card/workspace 退出玻璃改不透明。 */
+  --surface-shell-bg: var(--material-glass-chrome-bg);
+  --surface-shell-blur: var(--material-glass-chrome-blur);
+  --surface-shell-border: var(--material-glass-chrome-border);
+  --surface-shell-shadow: var(--material-glass-chrome-shadow);
+  --surface-workspace-bg: rgb(var(--color-bg-elevated-rgb) / 98%);
+  --surface-workspace-blur: none;
+  --surface-workspace-border: var(--color-border-default);
+  --surface-workspace-shadow: var(--shadow-sm);
+  --surface-card-bg: rgb(var(--color-bg-surface-rgb) / 98%);
+  --surface-card-blur: none;
+  --surface-card-border: var(--color-border-default);
+  --surface-card-shadow: var(--shadow-md);
+  --surface-modal-bg: var(--material-glass-floating-bg);
+  --surface-modal-blur: var(--material-glass-floating-blur);
+  --surface-modal-border: var(--material-glass-floating-border);
+  --surface-modal-shadow: var(--material-glass-floating-shadow);
+  --surface-status-bg: var(--material-glass-inline-bg);
+  --surface-status-blur: var(--material-glass-inline-blur);
+  --surface-status-border: var(--material-glass-inline-border);
+  --surface-status-shadow: var(--material-glass-inline-shadow);
 }
 
 /* 暗色主题玻璃效果 */
 [data-theme='dark']:where([data-theme='dark']):where([data-theme='dark']) {
+  /* --- 三档 material 液态玻璃（暗色参数：bg 更透、高光降到 6%~9%） --- */
+  --material-glass-floating-bg: rgb(var(--color-bg-elevated-rgb) / 66%);
+  --material-glass-floating-border: rgb(var(--color-border-strong-rgb) / 30%);
+  --material-glass-floating-highlight: inset 0 1px 0 rgb(255 248 240 / 9%);
+  --material-glass-floating-shadow: 0 24px 64px rgb(0 0 0 / 52%);
+  --material-glass-chrome-bg: rgb(var(--color-bg-elevated-rgb) / 78%);
+  --material-glass-chrome-border: rgb(var(--color-border-default-rgb) / 24%);
+  --material-glass-chrome-highlight: inset 0 1px 0 rgb(255 248 240 / 7%);
+  --material-glass-chrome-shadow: 0 10px 30px rgb(0 0 0 / 34%);
+  --material-glass-inline-bg: rgb(var(--color-bg-elevated-rgb) / 86%);
+  --material-glass-inline-highlight: inset 0 1px 0 rgb(255 248 240 / 6%);
+
+  /* --- 旧玻璃档位 (deprecated：改用 --material-glass-* 三档) --- */
   --glass-bg-light: rgb(34 27 24 / 92%);
   --glass-bg-medium: rgb(34 27 24 / 96%);
   --glass-bg-strong: rgb(42 34 30 / 98%);
-  --glass-border-light: rgb(243 234 223 / 10%);
-  --glass-border-medium: rgb(243 234 223 / 14%);
-  --glass-border-strong: rgb(243 234 223 / 20%);
+  --glass-border-light: rgb(243 234 223 / 12%);
+  --glass-border-medium: rgb(243 234 223 / 16%);
+  --glass-border-strong: rgb(243 234 223 / 22%);
   --glass-shadow: 0 12px 28px rgb(0 0 0 / 34%);
   --glass-shadow-elevated: 0 20px 46px rgb(0 0 0 / 42%);
   --glass-inner-glow: inset 0 1px 0 rgb(255 248 240 / 5%);
 
-  /* --- 液态玻璃效果 --- */
+  /* --- 液态玻璃效果 (deprecated：改用 --material-glass-* 三档) --- */
   --liquid-glass-bg: rgb(34 27 24 / 96%);
   --liquid-glass-blur: blur(4px) saturate(106%);
-  --liquid-glass-border: rgb(243 234 223 / 12%);
+  --liquid-glass-border: rgb(243 234 223 / 16%);
   --liquid-glass-highlight: inset 0 1px 0 rgb(255 248 240 / 5%);
   --liquid-glass-shadow: 0 16px 36px rgb(0 0 0 / 38%);
-  --surface-shell-bg: rgb(var(--color-bg-base-rgb) / 98%);
-  --surface-workspace-bg: rgb(var(--color-bg-elevated-rgb) / 98%);
-  --surface-workspace-blur: none;
-  --surface-workspace-border: rgb(var(--color-border-default-rgb) / 14%);
-  --surface-workspace-shadow: 0 8px 20px rgb(0 0 0 / 26%);
-  --surface-card-bg: rgb(var(--color-bg-surface-rgb) / 98%);
-  --surface-card-blur: none;
-  --surface-card-border: rgb(var(--color-border-default-rgb) / 16%);
-  --surface-card-shadow: 0 10px 24px rgb(0 0 0 / 30%);
-  --surface-status-bg: rgb(var(--color-bg-elevated-rgb) / 96%);
-  --surface-status-blur: none;
-  --surface-status-border: rgb(var(--color-border-default-rgb) / 14%);
-  --surface-status-shadow: 0 2px 8px rgb(0 0 0 / 22%);
-}
-
-@media (prefers-reduced-transparency: reduce) {
-  :root:where(:root):where(:root):where(:root):where(:root):where(:root) {
-    --liquid-glass-bg: var(--glass-bg-strong);
-    --surface-shell-bg: var(--glass-bg-strong);
-    --surface-workspace-bg: var(--glass-bg-strong);
-    --surface-status-bg: var(--glass-bg-strong);
-  }
 }
 
 /* ========== 动画系统 ========== */
@@ -629,24 +648,28 @@
 
 /* clay 为默认，等价 :root + [data-theme="light/dark"]，无需显式块 */
 
-/* --- paper（亮）：更纯净的纸面感 --- */
+/* --- paper（亮）：更纯净的纸面感（中性灰阶，卡片最亮、相邻层 ΔL ≥ 3） --- */
 [data-flavor='paper'] {
-  --color-bg-base: #fafafa;
-  --color-bg-base-rgb: 250 250 250;
-  --color-bg-elevated: #fff;
-  --color-bg-elevated-rgb: 255 255 255;
-  --color-bg-surface: #f4f4f5;
-  --color-bg-surface-rgb: 244 244 245;
-  --color-bg-overlay: #e5e5e7;
-  --color-bg-overlay-rgb: 229 229 231;
+  --color-bg-base: #e7e7e7;
+  --color-bg-base-rgb: 231 231 231;
+  --color-bg-elevated: #f2f2f2;
+  --color-bg-elevated-rgb: 242 242 242;
+  --color-bg-surface: #fdfdfd;
+  --color-bg-surface-rgb: 253 253 253;
+  --color-bg-overlay: #dbdbdb;
+  --color-bg-overlay-rgb: 219 219 219;
   --color-text-primary: #1a1a1c;
   --color-text-primary-rgb: 26 26 28;
   --color-text-secondary: #3f3f46;
   --color-text-secondary-rgb: 63 63 70;
-  --color-text-muted: #6b6b70;
-  --color-text-muted-rgb: 107 107 112;
-  --color-border-default: rgb(20 20 22 / 12%);
+  --color-text-muted: #626268;
+  --color-text-muted-rgb: 98 98 104;
+  --color-border-subtle: rgb(20 20 22 / 12%);
+  --color-border-subtle-rgb: 20 20 22;
+  --color-border-default: rgb(20 20 22 / 19%);
   --color-border-default-rgb: 20 20 22;
+  --color-border-strong: rgb(20 20 22 / 30%);
+  --color-border-strong-rgb: 20 20 22;
 }
 
 /* --- paper（暗）--- */
@@ -665,28 +688,36 @@
   --color-text-secondary-rgb: 212 212 216;
   --color-text-muted: #a1a1a8;
   --color-text-muted-rgb: 161 161 168;
-  --color-border-default: rgb(240 240 244 / 12%);
+  --color-border-subtle: rgb(240 240 244 / 10%);
+  --color-border-subtle-rgb: 240 240 244;
+  --color-border-default: rgb(240 240 244 / 16%);
   --color-border-default-rgb: 240 240 244;
+  --color-border-strong: rgb(240 240 244 / 26%);
+  --color-border-strong-rgb: 240 240 244;
 }
 
-/* --- graphite（亮）：冷中性轴 --- */
+/* --- graphite（亮）：冷中性轴（保持微冷色相，卡片最亮、相邻层 ΔL ≥ 3） --- */
 [data-flavor='graphite'] {
-  --color-bg-base: #ececee;
-  --color-bg-base-rgb: 236 236 238;
-  --color-bg-elevated: #f6f6f8;
-  --color-bg-elevated-rgb: 246 246 248;
-  --color-bg-surface: #fafafc;
-  --color-bg-surface-rgb: 250 250 252;
-  --color-bg-overlay: #dcdce0;
-  --color-bg-overlay-rgb: 220 220 224;
+  --color-bg-base: #e4e4e9;
+  --color-bg-base-rgb: 228 228 233;
+  --color-bg-elevated: #f0f0f4;
+  --color-bg-elevated-rgb: 240 240 244;
+  --color-bg-surface: #fbfbfd;
+  --color-bg-surface-rgb: 251 251 253;
+  --color-bg-overlay: #d8d8de;
+  --color-bg-overlay-rgb: 216 216 222;
   --color-text-primary: #1f2024;
   --color-text-primary-rgb: 31 32 36;
   --color-text-secondary: #43464c;
   --color-text-secondary-rgb: 67 70 76;
-  --color-text-muted: #6a6e76;
-  --color-text-muted-rgb: 106 110 118;
-  --color-border-default: rgb(31 32 36 / 13%);
+  --color-text-muted: #5f636c;
+  --color-text-muted-rgb: 95 99 108;
+  --color-border-subtle: rgb(31 32 36 / 12%);
+  --color-border-subtle-rgb: 31 32 36;
+  --color-border-default: rgb(31 32 36 / 19%);
   --color-border-default-rgb: 31 32 36;
+  --color-border-strong: rgb(31 32 36 / 30%);
+  --color-border-strong-rgb: 31 32 36;
 }
 
 /* --- graphite（暗）--- */
@@ -705,8 +736,12 @@
   --color-text-secondary-rgb: 199 202 209;
   --color-text-muted: #989ca6;
   --color-text-muted-rgb: 152 156 166;
-  --color-border-default: rgb(236 238 242 / 12%);
+  --color-border-subtle: rgb(236 238 242 / 10%);
+  --color-border-subtle-rgb: 236 238 242;
+  --color-border-default: rgb(236 238 242 / 16%);
   --color-border-default-rgb: 236 238 242;
+  --color-border-strong: rgb(236 238 242 / 26%);
+  --color-border-strong-rgb: 236 238 242;
 }
 
 /* --- Catppuccin Latte：浅色底色族 --- */
@@ -835,9 +870,9 @@
   --ctp-shadow-md-opacity: 38%;
   --ctp-shadow-lg-opacity: 48%;
   --ctp-glow-opacity: 12%;
-  --ctp-glass-light-opacity: 46%;
-  --ctp-glass-medium-opacity: 58%;
-  --ctp-glass-strong-opacity: 70%;
+  --ctp-glass-light-opacity: 54%;
+  --ctp-glass-medium-opacity: 66%;
+  --ctp-glass-strong-opacity: 80%;
   --ctp-stage-noise-opacity: 0.024;
 }
 
@@ -901,9 +936,9 @@
   --ctp-shadow-md-opacity: 38%;
   --ctp-shadow-lg-opacity: 48%;
   --ctp-glow-opacity: 12%;
-  --ctp-glass-light-opacity: 46%;
-  --ctp-glass-medium-opacity: 58%;
-  --ctp-glass-strong-opacity: 70%;
+  --ctp-glass-light-opacity: 54%;
+  --ctp-glass-medium-opacity: 66%;
+  --ctp-glass-strong-opacity: 80%;
   --ctp-stage-noise-opacity: 0.024;
 }
 
@@ -967,9 +1002,9 @@
   --ctp-shadow-md-opacity: 38%;
   --ctp-shadow-lg-opacity: 48%;
   --ctp-glow-opacity: 12%;
-  --ctp-glass-light-opacity: 44%;
-  --ctp-glass-medium-opacity: 56%;
-  --ctp-glass-strong-opacity: 68%;
+  --ctp-glass-light-opacity: 52%;
+  --ctp-glass-medium-opacity: 64%;
+  --ctp-glass-strong-opacity: 78%;
   --ctp-stage-noise-opacity: 0.024;
 }
 
@@ -1082,45 +1117,31 @@
   --glass-bg-light: rgb(var(--ctp-mantle-rgb) / var(--ctp-glass-light-opacity));
   --glass-bg-medium: rgb(var(--ctp-mantle-rgb) / var(--ctp-glass-medium-opacity));
   --glass-bg-strong: rgb(var(--ctp-mantle-rgb) / var(--ctp-glass-strong-opacity));
-  --glass-border-light: rgb(var(--ctp-surface2-rgb) / 18%);
-  --glass-border-medium: rgb(var(--ctp-surface2-rgb) / 24%);
-  --glass-border-strong: rgb(var(--ctp-overlay0-rgb) / 30%);
+  --glass-border-light: rgb(var(--ctp-surface2-rgb) / 24%);
+  --glass-border-medium: rgb(var(--ctp-surface2-rgb) / 32%);
+  --glass-border-strong: rgb(var(--ctp-overlay0-rgb) / 40%);
   --glass-shadow: 0 10px 24px rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-md-opacity));
   --glass-shadow-elevated: 0 18px 40px rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-lg-opacity));
   --glass-inner-glow: inset 0 1px 0 rgb(var(--ctp-text-rgb) / 4%);
   --liquid-glass-bg: rgb(var(--ctp-mantle-rgb) / 92%);
-  --liquid-glass-border: rgb(var(--ctp-surface2-rgb) / 20%);
+  --liquid-glass-border: rgb(var(--ctp-surface2-rgb) / 28%);
   --liquid-glass-highlight: inset 0 1px 0 rgb(var(--ctp-text-rgb) / 4%);
   --liquid-glass-shadow: 0 12px 30px rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-md-opacity));
-  --surface-shell-bg: var(--liquid-glass-bg);
-  --surface-shell-blur: var(--liquid-glass-blur);
-  --surface-shell-border: var(--liquid-glass-border);
-  --surface-shell-shadow: var(--liquid-glass-shadow);
-  --surface-workspace-bg: var(--glass-bg-medium);
-  --surface-workspace-blur: none;
-  --surface-workspace-border: var(--glass-border-medium);
-  --surface-workspace-shadow: var(--glass-shadow);
-  --surface-card-bg: var(--glass-bg-strong);
-  --surface-card-blur: none;
-  --surface-card-border: var(--glass-border-medium);
-  --surface-card-shadow: var(--glass-shadow);
-  --surface-modal-bg: var(--glass-bg-strong);
-  --surface-modal-blur: var(--glass-blur-xl);
-  --surface-modal-border: var(--glass-border-strong);
-  --surface-modal-shadow: var(--glass-shadow-elevated);
-  --surface-status-bg: var(--glass-bg-light);
-  --surface-status-blur: none;
-  --surface-status-border: var(--glass-border-light);
-  --surface-status-shadow: var(--shadow-sm);
+
+  /* --- 三档 material 液态玻璃（Catppuccin：bg/blur 经语义 rgb 变量自动映射，此处覆盖边框/高光/阴影） --- */
+  --material-glass-floating-border: rgb(var(--ctp-overlay0-rgb) / 60%);
+  --material-glass-floating-highlight: inset 0 1px 0 rgb(var(--ctp-text-rgb) / 6%);
+  --material-glass-floating-shadow: 0 24px 64px
+    rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-lg-opacity));
+  --material-glass-chrome-border: rgb(var(--ctp-surface2-rgb) / 52%);
+  --material-glass-chrome-highlight: inset 0 1px 0 rgb(var(--ctp-text-rgb) / 5%);
+  --material-glass-chrome-shadow: 0 10px 30px
+    rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-md-opacity));
+  --material-glass-inline-highlight: inset 0 1px 0 rgb(var(--ctp-text-rgb) / 4%);
 }
 
+/* mocha 的 brand/mono 字体分离已上移为全局默认（见“字体系统” :root 块），此处不再重复声明。 */
 html:root[data-resolved-flavor='mocha'] {
-  --font-brand:
-    'SF Pro Display', 'Segoe UI Variable Display', 'MapleBright', 'PingFang SC',
-    'Microsoft YaHei UI', 'Microsoft YaHei', sans-serif;
-  --font-mono:
-    'Cascadia Code', 'Cascadia Mono', 'SFMono-Regular', ui-monospace, 'Consolas', 'MapleBright',
-    monospace;
   --color-bg-base: var(--ctp-crust);
   --color-bg-base-rgb: var(--ctp-crust-rgb);
   --color-bg-elevated: var(--ctp-base);
@@ -1162,20 +1183,56 @@ html:root[data-resolved-flavor='mocha'] {
   --liquid-glass-border: rgb(var(--ctp-surface2-rgb) / 26%);
   --liquid-glass-highlight: inset 0 1px 0 rgb(var(--ctp-text-rgb) / 4%);
   --liquid-glass-shadow: 0 14px 32px rgb(0 0 0 / 42%);
-  --surface-shell-bg: rgb(var(--ctp-crust-rgb) / 98%);
-  --surface-shell-border: rgb(var(--ctp-surface2-rgb) / 24%);
-  --surface-shell-shadow:
-    0 26px 60px rgb(0 0 0 / 54%), inset -1px 0 0 rgb(var(--ctp-text-rgb) / 5%);
-  --surface-workspace-bg: rgb(var(--ctp-base-rgb) / 98%);
-  --surface-workspace-blur: none;
-  --surface-workspace-border: rgb(var(--ctp-surface2-rgb) / 26%);
-  --surface-card-bg: rgb(var(--ctp-surface0-rgb) / 98%);
-  --surface-card-blur: none;
-  --surface-card-border: rgb(var(--ctp-overlay0-rgb) / 34%);
-  --surface-card-shadow: 0 10px 24px rgb(0 0 0 / 38%);
-  --surface-status-bg: rgb(var(--ctp-base-rgb) / 96%);
-  --surface-status-blur: none;
-  --surface-status-border: rgb(var(--ctp-surface2-rgb) / 24%);
+
+  /* --- 三档 material 液态玻璃（mocha：更致密、边界更锐的高专注玻璃） --- */
+  --material-glass-floating-bg: rgb(var(--ctp-base-rgb) / 78%);
+  --material-glass-floating-border: rgb(var(--ctp-overlay1-rgb) / 48%);
+  --material-glass-floating-shadow: 0 24px 64px rgb(0 0 0 / 52%);
+  --material-glass-chrome-bg: rgb(var(--ctp-crust-rgb) / 86%);
+  --material-glass-chrome-border: rgb(var(--ctp-surface2-rgb) / 32%);
+  --material-glass-chrome-shadow: 0 12px 32px rgb(0 0 0 / 40%);
+  --material-glass-inline-bg: rgb(var(--ctp-base-rgb) / 90%);
+}
+
+/* ========== 无障碍：减少透明度（prefers-reduced-transparency） ========== */
+
+/* 三档 material 与旧玻璃档全部回退为对应档的不透明表面并关闭模糊。
+   specificity 说明：mocha 覆盖块是 html:root[data-resolved-flavor='mocha'] (0,2,1)，
+   查询内的 html:root (0,1,1) 压不过它对 bg 令牌的覆盖，
+   因此查询内必须再带一条 mocha 同级作用域的重置规则（smoke 已锁定，勿删）。 */
+@media (prefers-reduced-transparency: reduce) {
+  html:root {
+    --material-glass-floating-bg: var(--color-bg-elevated);
+    --material-glass-floating-blur: none;
+    --material-glass-chrome-bg: var(--color-bg-elevated);
+    --material-glass-chrome-blur: none;
+    --material-glass-inline-bg: var(--color-bg-elevated);
+    --material-glass-inline-blur: none;
+    --glass-bg-light: var(--color-bg-elevated);
+    --glass-bg-medium: var(--color-bg-elevated);
+    --glass-bg-strong: var(--color-bg-surface);
+    --glass-blur-sm: none;
+    --glass-blur-md: none;
+    --glass-blur-lg: none;
+    --glass-blur-xl: none;
+    --liquid-glass-bg: var(--color-bg-elevated);
+    --liquid-glass-blur: none;
+  }
+
+  /* mocha：主覆盖块以 (0,2,1) 直接覆盖 material bg 与旧玻璃 bg，
+     必须同级作用域重置（本规则源顺序在主覆盖块之后，故生效）。 */
+  html:root[data-resolved-flavor='mocha'] {
+    --material-glass-floating-bg: var(--color-bg-elevated);
+    --material-glass-floating-blur: none;
+    --material-glass-chrome-bg: var(--color-bg-elevated);
+    --material-glass-chrome-blur: none;
+    --material-glass-inline-bg: var(--color-bg-elevated);
+    --material-glass-inline-blur: none;
+    --glass-bg-light: var(--color-bg-elevated);
+    --glass-bg-medium: var(--color-bg-elevated);
+    --glass-bg-strong: var(--color-bg-surface);
+    --liquid-glass-bg: var(--color-bg-elevated);
+  }
 }
 
 /* ========== Accent：强调色覆盖（仅 primary 家族 + border-accent） ========== */

@@ -7,10 +7,12 @@
 ## Scenario: Catppuccin flavor token overrides
 
 ### 1. Scope / Trigger
+
 - Trigger: changing `ccr-ui/src/styles/tokens.css`, `ccr-ui/src/styles/home.css`, theme bootstrap behavior, or tests that guard theme/flavor/accent semantics.
 - Applies to the three-layer model: `data-theme` controls light/dark/system resolution, `data-flavor` controls the palette family, and `data-accent` controls emphasis color.
 
 ### 2. Signatures
+
 - Theme bootstrap: `ccr-ui/src/utils/themeBootstrap.ts`
 - Global theme tokens: `ccr-ui/src/styles/tokens.css`
 - Home/dashboard material tokens: `ccr-ui/src/styles/home.css`
@@ -24,6 +26,7 @@
   - `ccr-ui/tests/apple-glass-surface-contract.smoke.test.ts`
 
 ### 3. Contracts
+
 - Do not replace the default `clay` flavor unless the task explicitly asks for a default theme migration.
 - Catppuccin flavors must remap existing semantic tokens instead of adding a second component language.
 - Keep `data-theme`, `data-flavor`, and `data-accent` independent. A visual polish change must not collapse flavor into theme or accent.
@@ -33,6 +36,7 @@
 - Visual automation that preloads theme preferences must write `ccr-theme`, `ccr-flavor`, and `ccr-accent`, then assert the rendered `data-theme`, `data-flavor`, `data-resolved-flavor`, and `data-accent` values before trusting computed styles.
 
 ### 4. Validation & Error Matrix
+
 - Changed theme token semantics without targeted theme smoke tests -> not accepted.
 - Mocha/material override present in source but lower specificity than the shared Catppuccin block -> rendered CSS may stay gray even though text tests pass.
 - New mono/display stack outside a documented scoped exception -> `apple-glass-surface-contract.smoke.test.ts` should fail.
@@ -40,6 +44,7 @@
 - Visual verification uses a bundle-shaped preference key instead of `ccr-theme` / `ccr-flavor` / `ccr-accent` -> the page silently falls back to default light/clay and the evidence is invalid.
 
 ### 5. Good/Base/Bad Cases
+
 - Good: add `html:root[data-resolved-flavor="mocha"]` after the shared Catppuccin block when Mocha needs a sharper material treatment.
 - Good: in Playwright, preload `localStorage.setItem('ccr-theme', 'dark')`, `localStorage.setItem('ccr-flavor', 'mocha')`, and `localStorage.setItem('ccr-accent', 'sky')`, then assert the document dataset before recording screenshots.
 - Good: strip only the Mocha override block before scanning for otherwise-forbidden legacy mono stacks.
@@ -49,6 +54,7 @@
 - Bad: change `data-theme` behavior to force Mocha directly instead of preserving `data-flavor`.
 
 ### 6. Tests Required
+
 - `cd ccr-ui && bun run type-check`
 - `cd ccr-ui && bun run lint`
 - `cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/apple-glass-surface-contract.smoke.test.ts tests/theme-bootstrap.smoke.test.ts tests/app-settings.smoke.test.ts`
@@ -57,6 +63,7 @@
 ### 7. Wrong vs Correct
 
 #### Wrong
+
 ```css
 [data-resolved-flavor="mocha"] {
   --color-bg-base: var(--ctp-crust);
@@ -66,6 +73,7 @@
 If an earlier selector with equal or higher specificity also sets `--color-bg-base`, this source text can look correct while the rendered value remains unchanged.
 
 #### Correct
+
 ```css
 html:root[data-resolved-flavor="mocha"] {
   --color-bg-base: var(--ctp-crust);
@@ -73,3 +81,45 @@ html:root[data-resolved-flavor="mocha"] {
 ```
 
 Pair the override with a smoke assertion that extracts this exact block and checks the token values that must render.
+
+---
+
+## Scenario: Three-tier material glass budget (`--material-glass-*`)
+
+### 1. Scope / Trigger
+
+- Trigger: adding/removing a `backdrop-filter` surface, or wiring a component to `.glass-floating` / `.glass-chrome` / `.glass-inline` in `ccr-ui/src/styles/utilities.css`.
+- Introduced by `07-07-ui-glass-tokens` as the real (blur 8~~16px + saturate 140~~180%) replacement for the old "everything is 2~6px blur" glass tokens, which read as fog rather than material.
+
+### 2. Signatures
+
+- Tier tokens (defined per flavor in `tokens.css`): `--material-glass-floating-{bg,blur,border,highlight,shadow}`, `-chrome-`, `-inline-`.
+- Utility classes: `ccr-ui/src/styles/utilities.css` → `.glass-floating`, `.glass-chrome`, `.glass-inline`.
+- Legacy tokens `--glass-blur-*` / `--glass-bg-*` / `--liquid-glass-*` are `deprecated` (comment-tagged in `tokens.css`) and intentionally kept at their old, thin values — do not "improve" them into real glass, that would blow the on-screen budget below.
+
+### 3. Contracts
+
+- Budget: at most 3 `backdrop-filter` elements on screen at once; never nest glass inside glass; never put glass inside a scrolling content area (scroll + blur repaints continuously).
+- Tier assignment is fixed by role, not by choice: `floating` = modal/command-palette/floating panel (≤1 on screen), `chrome` = sidebar/topbar (≤2, persistent), `inline` = sticky in-page toolbars (rare).
+- Ordinary content cards/workspaces are **not** glass: they map to `--surface-card-*` / `--surface-workspace-*`, which must resolve to `blur: none` and ≥98% opacity. If a component needs "depth", use elevation (border + shadow), not transparency.
+- Every place a tier's `background`/`blur` is set must have a matching reset inside the `prefers-reduced-transparency: reduce` block, including inside flavor-scoped overrides (e.g. mocha) — a reduced-transparency block that resets the shared tokens but not the mocha-scoped ones still leaves mocha glass on screen.
+- Don't repoint legacy `--glass-*`/`--liquid-glass-*` tokens to the new material recipes just because it's tempting to unify — that pushes old call-sites (31 files, 75+ references at time of writing) over budget. Migrate call-sites to the tier classes/tokens explicitly instead, one component at a time.
+
+### 4. Validation & Error Matrix
+
+- New `backdrop-filter` usage added without checking current on-screen count -> likely breaks the ≤3 budget; check for existing floating/chrome/inline usage on the same route first.
+- Glass applied to a scrollable list/table row -> forbidden regardless of tier; use opaque surface tokens.
+- `prefers-reduced-transparency` block updates the shared `--material-glass-*-bg` but a flavor override (e.g. `html:root[data-resolved-flavor='mocha']`) sets its own copy at higher specificity -> glass survives the reduced-transparency preference for that flavor; `apple-glass-surface-contract.smoke.test.ts` asserts the mocha-scoped reset explicitly, so extend that assertion pattern for any new flavor-scoped material override.
+- A component still reads `--liquid-glass-*` / `--glass-blur-*` directly -> acceptable as-is (deprecated but stable); flag for migration in the relevant child task instead of patching the legacy token's recipe.
+
+### 5. Good/Base/Bad Cases
+
+- Good: `BaseModal` uses `.glass-floating` (one modal on screen at a time); sidebar/topbar chrome uses `.glass-chrome`; a page never stacks more than one floating + two chrome surfaces simultaneously.
+- Base: a component still reads legacy `--liquid-glass-bg`/`-border`/`-highlight`/`-shadow` directly (e.g. `ConfigCard.vue`) — fine to leave as-is outside this task's scope; the legacy tokens still resolve to sane, budget-safe values because they stay thin, not because they were repointed.
+- Bad: adding `backdrop-filter: var(--material-glass-chrome-blur)` to a table row or an infinite-scroll list item.
+- Bad: writing a new flavor override block that sets `--material-glass-floating-bg` without adding the matching flavor-scoped reset inside `@media (prefers-reduced-transparency: reduce)`.
+
+### 6. Tests Required
+
+- `cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/apple-glass-surface-contract.smoke.test.ts` (locks tier token presence, budget comment, and reduced-transparency fallback incl. flavor-scoped resets).
+- Manual/DevTools: toggle "Emulate CSS prefers-reduced-transparency: reduce" (Rendering panel) and confirm all glass surfaces on the route go opaque.
