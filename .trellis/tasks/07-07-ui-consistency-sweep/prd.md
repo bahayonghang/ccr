@@ -1,0 +1,56 @@
+# 全站一致性清扫:原生对话框与旧页面对齐
+
+## Goal
+
+清除全站残留的原生 `confirm()/alert()`,把尚未跟上"编辑式工作台"DNA 的旧页面逐个对齐到新材质与交互标准。本任务是清单驱动的收尾任务,在 07-07-ui-profiles-unify 抽出的 `useConfirmAction` 之上批量施工。
+
+## Requirements
+
+### R1 原生对话框清除(全部改 ConfirmModal/useConfirmAction + toast)
+
+| 文件 | 命中 |
+|---|---|
+| views/ClaudeAuthView.vue | 471/489 confirm |
+| views/mcp/McpManagerView.vue | 304/331/354 confirm |
+| views/generic/AgentDetailView.vue | 447/461/475 alert+confirm |
+| components/BaseSlashCommands.vue | 557 confirm |
+| components/McpPresetsPanel.vue | 339/361/363/370 alert |
+| composables/usePlatformMcp.ts | 221 confirm |
+| composables/usePlatformPlugins.ts | 138 confirm |
+
+composables 中的 confirm 需要把确认决策上移到调用视图层(composable 返回需确认的意图,视图弹 dialog),不允许 composable 直接依赖 UI 组件。
+
+### R2 旧页面对齐(每页一个 checklist 项,按优先级)
+
+1. McpManagerView / mcp/*:确认对话框 + 卡片表面贴新令牌 + 空态用 EmptyState。
+2. ClaudeAuthView / codex/tabs(Auth 相关):同上;codex-auth-shared.css(658 行)中硬编码表面色迁移语义令牌。
+3. generic/AgentDetailView + AgentsView:对话框 + 危险操作 danger 语义。
+4. McpPresetsPanel:alert 链改 toast + 部分失败展示改内联结果列表。
+5. SyncView / CheckinView / ConfigsView:抽查硬编码颜色与旧卡片样式,贴新令牌(不重排版,纯表面对齐)。
+
+### R3 通用标准(每页验收基准)
+
+- 无原生 confirm/alert;危险操作 danger 型确认;错误走 toast 或内联错误面板。
+- 表面/边框/文字全部走语义令牌,无新硬编码 hex/rgba(装饰性除外并注释)。
+- 空态有引导动作;加载态用骨架或统一 spinner;无新增 backdrop-filter。
+- prefers-reduced-motion 下无常驻动画。
+
+## Out of Scope
+
+- 各旧页面的信息架构重排(只做表面与交互对齐,大重构另立任务)。
+- HistoryList 虚拟滚动之外的新虚拟化改造(如后续发现长列表卡顿另立任务)。
+
+## Acceptance Criteria
+
+- [ ] `rg "\\b(confirm|alert)\\(" ccr-ui/src --glob '!**/*.test.*'` 仅剩注释或明确标注的降级路径(目标零命中)。
+- [ ] R2 清单每页:亮/暗截图 + 确认对话框/空态/加载态手测记录。
+- [ ] `rg "#[0-9a-fA-F]{6}" ccr-ui/src/views ccr-ui/src/components --glob '*.vue'` 新增命中为零(存量装饰性命中登记清单)。
+- [ ] `bun run type-check && bun run lint` + 主题 smoke + provider-templates smoke 通过。
+
+## Dependencies
+
+- 依赖 07-07-ui-glass-tokens(令牌)与 07-07-ui-profiles-unify(useConfirmAction)。
+
+## Notes
+
+- 本任务按 R2 顺序可拆多次提交/多个会话执行,每页独立可验收;若单页工作量超预期(如 codex-auth-shared.css 迁移),允许把该页拆为独立子任务再挂到父任务下。

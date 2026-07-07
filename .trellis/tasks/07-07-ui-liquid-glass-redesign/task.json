@@ -1,0 +1,32 @@
+{
+  "id": "ui-liquid-glass-redesign",
+  "name": "ui-liquid-glass-redesign",
+  "title": "ccr-ui 液态玻璃视觉与交互重构总纲",
+  "description": "统一 ccr-ui 视觉语言:修复泛白配色、建立高性能液态玻璃材质体系、统一 Profiles 交互、优化使用统计页性能与排版",
+  "status": "planning",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P1",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-07-07",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "dev",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "07-07-ui-glass-tokens",
+    "07-07-ui-shell-home",
+    "07-07-ui-profiles-unify",
+    "07-07-ui-usage-dashboard",
+    "07-07-ui-consistency-sweep"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}
