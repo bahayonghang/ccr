@@ -1369,3 +1369,37 @@ Adopted upstream llmusage Claude Fable/Mythos static pricing in CCR legacy/catal
 ### Next Steps
 
 - None - task complete
+
+
+## Session 31: 应用外壳与首页材质落地(07-07-ui-shell-home)
+
+**Date**: 2026-07-07
+**Task**: 应用外壳与首页材质落地(07-07-ui-shell-home)
+**Branch**: `dev`
+
+### Summary
+
+MainLayout 侧栏/顶栏统一迁移到 chrome 玻璃预算档;首页信息架构收口:actions 8列主位+readiness 4列紧凑状态条、hero 就绪徽章、信号严重度门控(前端日志噪声不再三处炸雷)、NextActions 去装饰编号+首次使用引导、SignalStream 时间倒序+聚合去重、UsageMovement 峰值标注、PlatformMatrix 骨架 loading。frontend-quality-reviewer 独立复核后修复 isFirstRun 误判 OpenCode 用户与死类名两处问题;preview 实机核查亮暗主题/响应式断点/图标配色。顺带把 07-07-ui-glass-tokens(三档玻璃令牌体系)一并归档。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `84618ff6` | (see git log) |
+| `e76add4a` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
