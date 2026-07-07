@@ -123,3 +123,39 @@ Pair the override with a smoke assertion that extracts this exact block and chec
 
 - `cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/apple-glass-surface-contract.smoke.test.ts` (locks tier token presence, budget comment, and reduced-transparency fallback incl. flavor-scoped resets).
 - Manual/DevTools: toggle "Emulate CSS prefers-reduced-transparency: reduce" (Rendering panel) and confirm all glass surfaces on the route go opaque.
+
+---
+
+## Scenario: Migrating a component onto a glass tier via its semantic alias, not the raw tier token
+
+### 1. Scope / Trigger
+
+- Trigger: moving an existing component's `backdrop-filter` rule from one glass tier to another (e.g. `07-07-ui-shell-home` moving `MainLayout.vue`'s `.topbar-glass` from inline to chrome tier).
+- The semantic surface-contract layer in `tokens.css` (`--surface-shell-*` = chrome, `--surface-status-*` = inline, `--surface-card-*`/`--surface-workspace-*` = opaque, `--surface-modal-*` = floating) sits _between_ components and the raw `--material-glass-*-*` tokens. Components should read the semantic alias, not the raw tier token directly, wherever an alias already exists.
+
+### 2. Signatures
+
+- Semantic aliases: `tokens.css` → `--surface-shell-{bg,blur,border,shadow}`, `--surface-status-{bg,blur,border,shadow}`, `--surface-card-{bg,blur,border,shadow}`, `--surface-workspace-*`, `--surface-modal-*`.
+- `--surface-status-*` consumers at time of writing (07-07-ui-shell-home): `Button.vue`, `Input.vue`, `Card.vue`, `Titlebar.vue`, `ListSearchHeader.vue`, `MultiSelectFloatingBar.vue`, `McpListPanel.vue`/`McpImportPanel.vue`/`McpCreatePanel.vue`/`McpDetailPanel.vue`, `BulkDeleteDialog.vue`, `ThemeToggle.vue`, `UsageDashboardView.vue`, `AppSettingsView.vue`, `UsageInsightPanel.vue` (15+ files) — this is a **shared** general-purpose "sticky/toolbar surface" alias, not a token owned by any one component.
+
+### 3. Contracts
+
+- Before repointing a component to a different tier, `rg` the semantic alias you're about to touch (`--surface-status-`, `--surface-shell-`, etc.) across `ccr-ui/src`. If more than the one component you're editing shows up, do **not** redefine that alias's value in `tokens.css` — instead change the _consumer's_ CSS rule to reference a different, already-correct-tier alias.
+- `--surface-shell-*` was, before this task, only consumed by `.sidebar-glass`. Repointing `.topbar-glass` to the same alias (instead of inventing a third alias or redefining `--surface-status-*`) means sidebar+topbar now correctly share one chrome-tier budget slot, and the 15+ unrelated `--surface-status-*` consumers are untouched.
+- If no existing alias matches the target tier for a given role, add a new semantic alias in the "Surface Contract" block of `tokens.css` rather than pointing the component at `--material-glass-<tier>-*` directly — keeps the indirection consistent for the next migration.
+
+### 4. Validation & Error Matrix
+
+- Redefining a shared alias's value (e.g. changing `--surface-status-bg` to chrome-tier opacity/blur) to fix one component -> silently changes Button/Input/Card/Titlebar/etc. everywhere; not caught by type-check or lint, only by visual regression.
+- Repointing a consumer to a different alias without checking the alias resolves through the intended tier (`--surface-shell-*` -> `--material-glass-chrome-*`) -> verify via `rg "surface-shell" ccr-ui/src/styles/tokens.css` before and after, or `preview_inspect` the element's computed `backdrop-filter`/`background-color` against the sibling that's known-correct (e.g. confirm topbar and sidebar report identical computed `backdrop-filter`).
+
+### 5. Good/Base/Bad Cases
+
+- Good: `.topbar-glass { background: var(--surface-shell-bg); backdrop-filter: var(--surface-shell-blur); ... }` — reuses the existing chrome alias, zero blast radius on other consumers.
+- Bad: editing `--surface-status-bg`/`-blur`/`-border`/`-shadow` inside `tokens.css` to chrome-tier values "because the topbar needs it" — breaks every other `--surface-status-*` consumer.
+- Bad: adding `background: var(--material-glass-chrome-bg)` directly on a new component instead of introducing/reusing a semantic alias — works today but skips the indirection future theme/flavor work relies on.
+
+### 6. Tests Required
+
+- `rg "<alias-name>" ccr-ui/src` before touching any semantic alias's _definition_ (not just a consumer's usage).
+- `cd ccr-ui && bun run type-check && bun run lint` (CSS-only changes won't be caught by either — pair with a live `preview_inspect` computed-style check on both the migrated component and one representative other consumer of the alias you did _not_ touch).

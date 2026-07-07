@@ -15,7 +15,7 @@
     <button
       v-if="showMobileBackdrop"
       type="button"
-      class="fixed inset-0 layout-layer-modal-backdrop bg-black/55 backdrop-blur-[2px] lg:hidden"
+      class="fixed inset-0 layout-layer-modal-backdrop bg-black/55 lg:hidden"
       :aria-label="closeNavigationLabel"
       @click="closeSidebar"
     />
@@ -25,7 +25,7 @@
       id="primary-navigation-panel"
       class="sidebar-glass layout-sidebar flex flex-col transition-[width,transform,background-color,border-color,box-shadow] duration-300 ease-out will-change-[transform]"
       :class="[
-        isResizing ? 'select-none' : '',
+        isResizing ? 'select-none is-resizing' : '',
         isMobileSidebar
           ? 'fixed inset-y-0 left-0 layout-layer-modal w-[min(86vw,320px)] max-w-[320px] border-r border-border-default/20 shadow-2xl shadow-black/15'
           : 'relative layout-layer-dropdown flex-shrink-0',
@@ -451,13 +451,19 @@ onBeforeUnmount(() => {
     var(--glass-inner-glow);
 }
 
+/* 拖拽 resize 全程重模糊会拖累合成帧;拖拽期间临时降级为不透明 */
+.sidebar-glass.is-resizing {
+  backdrop-filter: none;
+}
+
+/* 顶栏与侧栏同属常驻 chrome 玻璃预算(≤2),复用同一档令牌 */
 .topbar-glass {
-  background: var(--surface-status-bg);
-  backdrop-filter: var(--surface-status-blur);
+  background: var(--surface-shell-bg);
+  backdrop-filter: var(--surface-shell-blur);
   box-shadow:
     inset 0 -1px 0 rgb(var(--color-border-default-rgb) / 18%),
     var(--glass-inner-glow),
-    var(--surface-status-shadow);
+    var(--surface-shell-shadow);
 }
 
 .layout-layer-dropdown {
@@ -552,8 +558,8 @@ onBeforeUnmount(() => {
 
 /* 设置坞：扁平不透明表面 + 语义边框，去 backdrop-filter / 去发光 / 去 accent mesh */
 .settings-dock {
-  background: rgb(var(--color-bg-elevated-rgb) / 94%);
-  border: 1px solid rgb(var(--color-border-default-rgb) / 18%);
+  background: var(--surface-card-bg);
+  border: 1px solid var(--surface-card-border);
   box-shadow: var(--surface-card-shadow);
 }
 
@@ -574,16 +580,6 @@ onBeforeUnmount(() => {
   border-color: rgb(var(--color-border-default-rgb) / 56%);
   background: rgb(var(--color-bg-elevated-rgb) / 84%);
   color: var(--color-text-secondary);
-}
-
-[data-theme="light"] .settings-dock {
-  background: rgb(var(--color-bg-elevated-rgb) / 96%);
-  border: 1px solid rgb(var(--color-border-default-rgb) / 18%);
-  box-shadow: var(--surface-card-shadow);
-}
-
-[data-theme="light"] .settings-dock:hover {
-  box-shadow: var(--shadow-md);
 }
 
 </style>
