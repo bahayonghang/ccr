@@ -1,12 +1,6 @@
 {
-  "probeUrls": [
-    "/",
-    "/settings"
-  ],
-  "requestUrls": [
-    "/@vite/client",
-    "/node_modules/vite/dist/client/env.mjs"
-  ],
+  "probeUrls": ["/", "/settings"],
+  "requestUrls": ["/@vite/client", "/node_modules/vite/dist/client/env.mjs"],
   "clientFiles": [
     "./src/main.ts",
     "./src/App.vue",
@@ -23,7 +17,6 @@
     "./src/views/AppSettingsView.vue",
     "./src/api/runtime/environment.ts",
     "./src/components/BackendStatusBanner.vue",
-    "./src/components/common/AnimeBackground.vue",
     "./src/components/common/GlobalConfirmDialog.vue",
     "./src/components/common/ScrollToTopButton.vue",
     "./src/components/common/ToastContainer.vue",
