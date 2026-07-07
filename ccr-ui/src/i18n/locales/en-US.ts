@@ -716,6 +716,14 @@ export default {
       cloudSyncDesc: 'Sync or back up configuration.',
       usageStatsTitle: 'Usage',
       usageStatsDesc: 'Open trends, models, projects, and diagnostics.',
+      onboardingDescription:
+        'Finish these three steps before CCR can track configuration and usage.',
+      onboardingStep1Title: 'Create a profile',
+      onboardingStep1Desc: 'Set up the first Claude Code profile, with routing and credentials.',
+      onboardingStep2Title: 'Configure MCP',
+      onboardingStep2Desc: 'Connect an MCP server to extend what the model can do.',
+      onboardingStep3Title: 'Import usage',
+      onboardingStep3Desc: 'Import local usage records to unlock trend charts and stats.',
     },
     platforms: {
       eyebrow: 'Platform state',
@@ -746,10 +754,11 @@ export default {
       },
     },
     usage: {
-      eyebrow: 'Usage trend',
       title: 'Usage trend',
       description:
         'Sessions, requests, and tokens are summarized from the local usage archive only.',
+      peakLabel: 'Peak',
+      hoverHint: "Hover a bar to see that day's exact value.",
       error: 'Local usage summary could not be loaded.',
       emptyTitle: 'No local usage yet',
       emptyDescription: 'No local sessions or usage records are available for this window.',
@@ -2863,7 +2872,8 @@ export default {
         unsupportedHint:
           'Upgrade llmusage, run sync with provider attribution, then refresh this dashboard.',
         tableTitle: 'Provider ledger',
-        tableSubtitle: '{window} · provider totals reconcile with the source totals for this scope.',
+        tableSubtitle:
+          '{window} · provider totals reconcile with the source totals for this scope.',
         providers: 'providers',
         summaryProviders: 'Attributed Providers',
         summaryProvidersDetail: 'excluding unattributed usage',

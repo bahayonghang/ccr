@@ -48,12 +48,18 @@
           :aria-label="entry.level"
         />
         <span class="dashboard-signal__channel">{{ entry.channel }}</span>
-        <p
-          class="dashboard-signal__message"
-          :title="entry.message"
-        >
-          {{ entry.message }}
-        </p>
+        <span class="dashboard-signal__message-group">
+          <p
+            class="dashboard-signal__message"
+            :title="entry.message"
+          >
+            {{ entry.message }}
+          </p>
+          <span
+            v-if="entry.count > 1"
+            class="dashboard-signal__count"
+          >×{{ entry.count }}</span>
+        </span>
       </li>
     </ol>
 
@@ -114,22 +120,31 @@ const props = withDefaults(defineProps<{
 const { t } = useI18n()
 
 type FilterId = 'all' | 'warn' | 'error'
+type AggregatedEntry = MonitoringEntry & { count: number }
 
 const filter = ref<FilterId>('all')
 
-const severityRank: Record<MonitoringEntry['level'], number> = {
-  error: 0,
-  warn: 1,
-  info: 2,
-  debug: 3,
-}
-
+// 按时间稳定倒序：不再按 severity 优先排序，避免更早的错误盖过更新的普通事件。
 const sortedEntries = computed(() => {
-  return [...props.entries].sort((left, right) => {
-    const rankDiff = severityRank[left.level] - severityRank[right.level]
-    if (rankDiff !== 0) return rankDiff
-    return new Date(right.timestamp).getTime() - new Date(left.timestamp).getTime()
-  })
+  return [...props.entries].sort((left, right) => (
+    new Date(right.timestamp).getTime() - new Date(left.timestamp).getTime()
+  ))
+})
+
+// 相邻且频道/级别/文案完全相同的事件聚合为一条，附带出现次数，避免刷屏。
+const aggregatedEntries = computed<AggregatedEntry[]>(() => {
+  const result: AggregatedEntry[] = []
+
+  for (const entry of sortedEntries.value) {
+    const last = result[result.length - 1]
+    if (last && last.message === entry.message && last.channel === entry.channel && last.level === entry.level) {
+      last.count += 1
+    } else {
+      result.push({ ...entry, count: 1 })
+    }
+  }
+
+  return result
 })
 
 const matchesFilter = (entry: MonitoringEntry, id: FilterId) => {
@@ -138,14 +153,14 @@ const matchesFilter = (entry: MonitoringEntry, id: FilterId) => {
   return entry.level === 'error'
 }
 
-const filteredEntries = computed(() => sortedEntries.value.filter((entry) => matchesFilter(entry, filter.value)))
+const filteredEntries = computed(() => aggregatedEntries.value.filter((entry) => matchesFilter(entry, filter.value)))
 
 const visibleEntries = computed(() => filteredEntries.value.slice(0, props.limit))
 
 const filterOptions = computed(() => ([
-  { id: 'all' as const, label: t('dashboard.signals.filterAll'), count: sortedEntries.value.length },
-  { id: 'warn' as const, label: t('dashboard.signals.filterWarn'), count: sortedEntries.value.filter((entry) => matchesFilter(entry, 'warn')).length },
-  { id: 'error' as const, label: t('dashboard.signals.filterError'), count: sortedEntries.value.filter((entry) => matchesFilter(entry, 'error')).length },
+  { id: 'all' as const, label: t('dashboard.signals.filterAll'), count: aggregatedEntries.value.length },
+  { id: 'warn' as const, label: t('dashboard.signals.filterWarn'), count: aggregatedEntries.value.filter((entry) => matchesFilter(entry, 'warn')).length },
+  { id: 'error' as const, label: t('dashboard.signals.filterError'), count: aggregatedEntries.value.filter((entry) => matchesFilter(entry, 'error')).length },
 ]))
 
 const formatTime = (timestamp: string) => {
@@ -263,11 +278,17 @@ const formatTime = (timestamp: string) => {
 .dashboard-signal {
   display: grid;
   grid-template-columns: auto auto auto minmax(0, 1fr);
-  align-items: center;
+  align-items: start;
   gap: 0.52rem;
-  padding: 0.38rem 0.52rem;
+  padding: 0.42rem 0.52rem;
   border-radius: 8px;
   transition: background-color var(--home-motion-duration) var(--home-motion-ease);
+}
+
+.dashboard-signal__time,
+.dashboard-signal__dot,
+.dashboard-signal__channel {
+  margin-top: 0.15rem;
 }
 
 .dashboard-signal:hover {
@@ -304,26 +325,42 @@ const formatTime = (timestamp: string) => {
 }
 
 .dashboard-signal__channel {
-  padding: 0.1rem 0.4rem;
-  border: 1px solid var(--home-border-hairline);
-  border-radius: 4px;
-  background: rgb(var(--color-bg-surface-rgb) / 68%);
-  color: var(--color-text-muted);
+  color: var(--color-text-disabled);
   font-family: var(--font-mono);
   font-feature-settings: var(--home-mono-feature);
   font-size: 0.625rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: lowercase;
+}
+
+.dashboard-signal__message-group {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  min-width: 0;
 }
 
 .dashboard-signal__message {
+  display: -webkit-box;
   overflow: hidden;
+  flex: 1;
+  min-width: 0;
   margin: 0;
   color: var(--color-text-secondary);
   font-size: var(--home-text-body);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.4;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.dashboard-signal__count {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-feature-settings: var(--home-mono-feature);
+  font-size: var(--home-text-meta);
+  font-weight: 800;
 }
 
 .dashboard-signals__empty {

@@ -5,27 +5,43 @@
         class="dashboard-hero"
         data-dashboard-hero
       >
-        <p class="dashboard-hero__eyebrow">
-          <span class="dashboard-hero__eyebrow-anchor" />
-          {{ t('dashboard.eyebrow') }}
-        </p>
-        <h1 class="dashboard-hero__title">
-          {{ t('dashboard.title') }}
-        </h1>
-        <p class="dashboard-hero__description">
-          {{ t('dashboard.description') }}
-        </p>
+        <div class="dashboard-hero__lede">
+          <p class="dashboard-hero__eyebrow">
+            <span class="dashboard-hero__eyebrow-anchor" />
+            {{ t('dashboard.eyebrow') }}
+          </p>
+          <h1 class="dashboard-hero__title">
+            {{ t('dashboard.title') }}
+          </h1>
+          <p class="dashboard-hero__description">
+            {{ t('dashboard.description') }}
+          </p>
+        </div>
+        <button
+          type="button"
+          class="dashboard-hero__badge"
+          :data-tone="heroBadgeTone"
+          :aria-label="t('dashboard.readiness.label')"
+          @click="scrollToReadiness"
+        >
+          <span
+            class="dashboard-hero__badge-dot"
+            aria-hidden="true"
+          />
+          {{ t(heroBadgeLabelKey) }}
+        </button>
       </section>
 
       <section class="dashboard-grid dashboard-grid--top">
+        <DashboardNextActions
+          class="dashboard-grid__actions"
+          :actions="dashboardPresentation.actions"
+          :show-onboarding="dashboardPresentation.isFirstRun"
+        />
         <DashboardReadinessLedger
           class="dashboard-grid__readiness"
           :readiness="dashboardPresentation.readiness"
           :status-metrics="dashboardPresentation.statusMetrics"
-        />
-        <DashboardNextActions
-          class="dashboard-grid__actions"
-          :actions="dashboardPresentation.actions"
         />
       </section>
 
@@ -231,6 +247,35 @@ const backendStatus = computed<DashboardBackendStatus>(() => {
   return 'checking'
 })
 
+const heroBadgeTone = computed<'ok' | 'checking' | 'error'>(() => {
+  if (backendStatus.value === 'ok') return 'ok'
+  if (backendStatus.value === 'error') return 'error'
+  return 'checking'
+})
+
+const heroBadgeLabelKey = computed(() => {
+  switch (backendStatus.value) {
+    case 'ok':
+      return 'dashboard.metrics.backendReady'
+    case 'error':
+      return 'dashboard.metrics.backendError'
+    case 'checking':
+      return 'dashboard.metrics.backendChecking'
+    case 'unsupported':
+      return 'dashboard.metrics.backendUnsupported'
+    default:
+      return 'dashboard.metrics.backendUnknown'
+  }
+})
+
+const scrollToReadiness = () => {
+  const target = document.querySelector('[data-dashboard-readiness]')
+  const reduceMotion = typeof window.matchMedia === 'function'
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+  target?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'center' })
+}
+
 const platforms = computed<DashboardPlatformSource[]>(() => [
   {
     title: t('dashboard.platforms.claudeTitle'),
@@ -310,10 +355,74 @@ const dashboardPresentation = computed(() => buildDashboardPresentation({
 }
 
 .dashboard-hero {
-  display: grid;
-  gap: 0.35rem;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
   padding: 1rem 0 0.15rem;
   color: var(--color-text-primary);
+}
+
+.dashboard-hero__lede {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+  flex: 1 1 28rem;
+}
+
+.dashboard-hero__badge {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.85rem;
+  border: 1px solid var(--home-border-card);
+  border-radius: 999px;
+  background: var(--home-surface-card);
+  box-shadow: var(--home-elevation-sunk);
+  color: var(--color-text-secondary);
+  font-size: var(--home-text-meta);
+  font-weight: 800;
+  letter-spacing: var(--home-tracking-eyebrow);
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    border-color var(--home-motion-duration) var(--home-motion-ease),
+    background-color var(--home-motion-duration) var(--home-motion-ease);
+}
+
+.dashboard-hero__badge:hover {
+  border-color: var(--home-border-card-hover);
+  background: var(--home-surface-card-hover);
+}
+
+.dashboard-hero__badge:focus-visible {
+  outline: 0;
+  box-shadow: var(--home-focus-ring);
+}
+
+.dashboard-hero__badge-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: var(--color-text-muted);
+}
+
+.dashboard-hero__badge[data-tone='ok'] {
+  color: var(--color-success);
+}
+
+.dashboard-hero__badge[data-tone='ok'] .dashboard-hero__badge-dot {
+  background: var(--color-success);
+}
+
+.dashboard-hero__badge[data-tone='error'] {
+  color: var(--color-danger);
+}
+
+.dashboard-hero__badge[data-tone='error'] .dashboard-hero__badge-dot {
+  background: var(--color-danger);
 }
 
 .dashboard-hero__eyebrow {
@@ -367,17 +476,22 @@ const dashboardPresentation = computed(() => buildDashboardPresentation({
   min-width: 0;
 }
 
-.dashboard-grid__readiness,
+.dashboard-grid__actions,
 .dashboard-grid__usage {
   grid-column: span 8;
 }
 
-.dashboard-grid__actions,
+.dashboard-grid__readiness,
 .dashboard-grid__signals {
   grid-column: span 4;
 }
 
 @media (width <= 1180px) {
+  .dashboard-hero {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
   .dashboard-grid__readiness,
   .dashboard-grid__usage,
   .dashboard-grid__actions,

@@ -243,7 +243,9 @@ describe('dashboard presentation', () => {
     })
 
     expect(presentation.readiness.status).toBe('attention')
-    expect(presentation.readiness.reasonKeys).toContain('dashboard.readiness.reasons.usageEmpty')
+    expect(presentation.readiness.reasons.map((reason) => reason.key)).toContain(
+      'dashboard.readiness.reasons.usageEmpty'
+    )
     expect(presentation.actions.some((action) => action.id === 'open-usage')).toBe(true)
   })
 
