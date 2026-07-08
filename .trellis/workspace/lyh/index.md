@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 32
+- **Total Sessions**: 33
 - **Last Active**: 2026-07-08
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1443 | Active |
+| `journal-1.md` | ~1508 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 33 | 2026-07-08 | 07-07-ui-usage-dashboard 第 8/9 项收尾:性能复测揪出 U1/U2 残留并修复,review gate 通过后归档 | `84d2168d`, `ea3f0d1f`, `cf73fc5b`, `df271edb` | `dev` |
 | 32 | 2026-07-08 | Claude/Codex Profiles 交互与视觉统一收尾(07-07-ui-profiles-unify) | `2abe9bf1`, `b40a9b65`, `3c200e08`, `e4e0063b`, `044431d3`, `b2deda96` | `dev` |
 | 31 | 2026-07-07 | 应用外壳与首页材质落地(07-07-ui-shell-home) | `84618ff6`, `e76add4a` | `dev` |
 | 30 | 2026-07-06 | TUI 用量统计跟随 profile:详情内嵌 provider 用量并下线独立 Usage tab | `cff8e272`, `0aa56481`, `83e0123d`, `09ba703e` | `dev` |

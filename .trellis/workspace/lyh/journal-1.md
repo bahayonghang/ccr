@@ -1470,3 +1470,39 @@ implement.md 第 7 项闭环。7a:UsageLogsTab loading 态从单行"加载中"�
 
 - 第 8 项:bun run type-check && bun run lint + just frontend-check-quick(末轮全量)
 - 第 9 项:前后性能数据对比写入 research/、截图归档、review gate
+
+
+## Session 33: 07-07-ui-usage-dashboard 第 8/9 项收尾:性能复测揪出 U1/U2 残留并修复,review gate 通过后归档
+
+**Date**: 2026-07-08
+**Task**: 07-07-ui-usage-dashboard 第 8/9 项收尾:性能复测揪出 U1/U2 残留并修复,review gate 通过后归档
+**Branch**: `dev`
+
+### Summary
+
+第 8 项两轮全量检查全绿。第 9 项按基线同口径复测(tauri-shim + Playwright,vite 15173)首轮不达标:tokens/cost 六次再进入全部重建且 168~198ms 比基线更差、窗口切换 37ms 内重挂(refetch 之前)。diagnose-after.mjs 节点身份 probe 定位三处根因:①Tokens/Cost 局部 chartOptions 缺 redrawOnParentResize/redrawOnWindowResize:false,KeepAlive 重挂触发 ApexCharts parentResize 全量重建(KeepAlive 本身正常,tokens 根 DOM 跨往返存活);②dashboardPresentation 依赖 selectedWindowLabel 纯文案,窗口一点 series 值同引用新,vue3-apexcharts deep watch 触发无效 updateSeries 重建 canvas;③harness 未覆盖 store 30s dashboard 快照缓存路径。修复:useUsageCharts 对 trendSeries/pieSeries/modelTokenPieSeries 按值记忆化(computed(previous)+join key);两 tab 补 redraw 冻结;harness 补缓存结算规则。终测全绿:U1 12/12 rebuilt=false(10~14ms,基线 12/12 重建 25~62ms),U2 2/2 不重挂 canvas 全存活,内存 20 次往返 16.3→16.3MB,0 console error;产物入 research/after/(after-perf.json+perf-comparison.md+3 截图)。review gate(frontend-quality-reviewer,ba790fc3^..HEAD+工作区)可合入无 blocker,当场修 4 处:logs ledger 补 aria-busy(骨架 aria-hidden 致读屏静默,7a 回归)、toolbar popover 去 @click.stop 与 aria-haspopup、修 5col 陈旧注释;遗留 cost delta 涨=绿语义色、tokens/cost 硬编码 animations off、sourcesHint 裸英文留后续。spec 沉淀 usage-chart-stability-contracts.md(vue3-apexcharts 三类 prop 监听语义、options/series 引用纪律、KeepAlive 交互契约、节点身份法回归口径)。注意:frontend-quality-reviewer 子代理经 CCR 代理两次 400(1m 上下文 flag 未透传),显式 model=fable 后成功。15173 dev server 已杀。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `84d2168d` | (see git log) |
+| `ea3f0d1f` | (see git log) |
+| `cf73fc5b` | (see git log) |
+| `df271edb` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
