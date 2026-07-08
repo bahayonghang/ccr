@@ -107,8 +107,43 @@
      相对容器 offset 恒为 1px(sticky 生效);强制 `logsLoading=true` 后渲染
      12 骨架行 × 6 格 = 72 个占位块、表头仍在,复位后恢复 20 条真实行。
      全程 0 console error。
-8. [ ] `bun run type-check && bun run lint` + `just frontend-check-quick`。
-9. [ ] 前后性能数据对比写入 research/,截图入 research/;review gate。
+8. [x] `bun run type-check && bun run lint` + `just frontend-check-quick`。
+   - 已完成(2026-07-08),跑了两轮:第 7 项收尾态一轮全绿;第 9 项复测追加 3 处修复
+     (useUsageCharts.ts series 按值记忆化 + Tokens/Cost tab redraw flags,见第 9 项)后
+     再跑一轮,type-check/lint/lint:style 与 `just frontend-check-quick`
+     (type-check/lint:ci/test:i18n/test:smoke)均 exit 0。lint 仅 1 条既有 warning
+     (DashboardSignalStream.vue 裸 '×',dashboard 页,非本任务改动范围)。
+9. [x] 前后性能数据对比写入 research/,截图入 research/;review gate。
+   - 已完成(2026-07-08)。**首轮复测不达标并揪出 3 处残留根因**(用
+     `research/perf-harness/measure-after.mjs` 按基线同口径重测 + `diagnose-after.mjs`
+     节点身份 probe 定位):① Tokens/Cost tab 本地 chartOptions 缺
+     `redrawOnParentResize/redrawOnWindowResize: false`,ApexCharts 默认 parentResize
+     全量 update 重建 canvas,KeepAlive 重挂正好触发 → 六次再进入全部重建且 168~198ms
+     比基线更差(KeepAlive 本身正常:probe 证实 tokens 根 DOM 跨往返存活);
+     ② `dashboardPresentation` 依赖 `selectedWindowLabel`(纯文案),窗口一点 label 同步变 →
+     trendSeries/pieSeries 产出"值相同、引用全新"的数组 → vue3-apexcharts deep series
+     watcher 触发无效 updateSeries(内部全量 update 重建 canvas),37ms、发生在 300ms
+     防抖 refetch 之前;③ harness 未覆盖 store 的 30s dashboard 快照缓存路径(切回同窗口
+     零 IPC,合法行为)。修复:`useUsageCharts.ts` 对 trendSeries/pieSeries/
+     modelTokenPieSeries 按值记忆化(`computed(previous)` + join key,与 labels 记忆化
+     同思路);两个 tab 补 redraw flags;harness 补缓存结算规则。
+   - **修复后全绿**(`research/after/after-perf.json` + `perf-comparison.md`):
+     U1 消除——12/12 次 tab 再进入 rebuilt=false、10~14ms(基线 12/12 重建、25~62ms);
+     U2 消除——窗口切换 2/2 不重挂、2/2 canvas 存活(本月 319ms 含防抖 refetch,近 30 天
+     命中 30s 缓存零 IPC;基线 2/2 重挂 61~64ms);20 次往返内存 16.3→16.3MB 无泄漏;
+     0 console error。截图:`research/after/after-{tokens-reentry,window-last30,
+     overview-final}-1920.png`。
+   - **review gate**(frontend-quality-reviewer,范围 ba790fc3^..HEAD ccr-ui + 工作区
+     3 个性能修复文件):可合入、无 blocker。记忆化正确性/下游消费方/i18n 成对/a11y 基座/
+     context 契约均核查通过。4 处本任务引入的小问题当场修复:logs ledger 补
+     `:aria-busy="ctx.logsLoading"`(骨架 aria-hidden 后加载对读屏静默,7a 回归);
+     toolbar meta trigger 去掉 `@click.stop`(妨碍其他浮层的 document click 收起)与
+     `aria-haspopup="true"`(弹层是 role="group" 静态 chips 非 menu);
+     UsageDashboardView "5col 指标格"陈旧注释改为实际的 2 列。遗留(后续小任务):
+     cost delta 涨=绿的语义反转(沿袭 UsageMetricCard 惯例,现被结论卡放大,属产品决策);
+     Tokens/Cost 本地 options 仍硬编码 animations:{enabled:false}(与 7b 基座动效语言
+     不一致,always-off 是 reduced-motion 安全子集);sourcesHint 裸英文(见第 6 项记录)。
+     修复后 `just frontend-check-quick` 复跑全绿。
 
 ## Rollback
 

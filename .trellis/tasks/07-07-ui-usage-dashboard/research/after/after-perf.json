@@ -1,0 +1,88 @@
+{
+  "capturedAt": "2026-07-08",
+  "method": "vite dev http://127.0.0.1:15173/usage + Playwright + research/perf-harness/tauri-shim.js 注入(fixture 30 天数据);localStorage 预置 ccr-theme=light/ccr-flavor=clay/ccr-accent=clay + ccr-usage-fixture-variant=stale;viewport 1920x1080;计时:纯 setTimeout(10ms) 轮询;rebuilt=旧 canvas DOM 节点未存活(data-perf-id 节点标记法,与基线一致)。口径差异:基线计时终点为“首个无标记 canvas 出现”,KeepAlive 后再进入不再产生新 canvas,终点放宽为“活动 tab 出现 canvas(无论新旧)”。窗口切换结算:出现无标记 canvas → remount(基线行为);否则在 refetch(get_usage_dashboard_v2)后静默 600ms,或命中 store 30s 快照缓存(DASHBOARD_CACHE_TTL_MS,无 IPC,servedFromCache=true)时点击后静默 1500ms 结算,两种路径均核对切换前 canvas 节点是否全部存活。",
+  "baselineRef": "../baseline/baseline-perf.json",
+  "datasetAssertion": {
+    "ok": true,
+    "dataset": {
+      "theme": "light",
+      "flavor": "clay",
+      "resolvedFlavor": "clay",
+      "accent": "clay"
+    }
+  },
+  "warmup": {
+    "toTokens": 65,
+    "toCost": 30,
+    "toOverview": 16,
+    "note": "tokens/cost 首次进入为冷挂载(懒 chunk),rebuilt=true/true;overview 首次返回 rebuilt=false(KeepAlive 命中)"
+  },
+  "tabSwitchCyclesMs": [
+    {
+      "toTokens": 10,
+      "backOverview1": 10,
+      "toCost": 11,
+      "backOverview2": 12
+    },
+    {
+      "toTokens": 14,
+      "backOverview1": 12,
+      "toCost": 12,
+      "backOverview2": 12
+    },
+    {
+      "toTokens": 13,
+      "backOverview1": 12,
+      "toCost": 12,
+      "backOverview2": 12
+    }
+  ],
+  "tabSwitchCyclesRebuilt": [
+    {
+      "toTokens": false,
+      "backOverview1": false,
+      "toCost": false,
+      "backOverview2": false
+    },
+    {
+      "toTokens": false,
+      "backOverview1": false,
+      "toCost": false,
+      "backOverview2": false
+    },
+    {
+      "toTokens": false,
+      "backOverview1": false,
+      "toCost": false,
+      "backOverview2": false
+    }
+  ],
+  "chartRebuiltOnEveryReentry": false,
+  "chartRebuiltCount": "0/12",
+  "windowSwitches": [
+    {
+      "label": "本月",
+      "ms": 319,
+      "chartRemounted": false,
+      "fetchMs": 319,
+      "servedFromCache": false,
+      "survivedCanvases": 2,
+      "canvasesBefore": 2
+    },
+    {
+      "label": "近 30 天",
+      "ms": 1507,
+      "chartRemounted": false,
+      "fetchMs": null,
+      "servedFromCache": true,
+      "survivedCanvases": 2,
+      "canvasesBefore": 2
+    }
+  ],
+  "memoryAfter20Toggles": {
+    "beforeMB": 16.3,
+    "afterMB": 16.3,
+    "leak": false
+  },
+  "consoleErrors": []
+}
