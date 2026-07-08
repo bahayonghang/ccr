@@ -31,6 +31,7 @@ export const createUsageDashboardContext = (
     modelStats: toRef(store, 'modelStats'),
     projectStats: toRef(store, 'projectStats'),
     logsLoading: toRef(store, 'logsLoading'),
+    logsPageSize: toRef(store, 'logsPageSize'),
     logsPage: toRef(store, 'logsPage'),
     logsTotalPages: toRef(store, 'logsTotalPages'),
     canPrevLogs: toRef(store, 'canPrevLogs'),

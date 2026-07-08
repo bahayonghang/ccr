@@ -116,9 +116,23 @@
 
       <div
         v-if="ctx.logsLoading"
-        class="diagnostics-tab__state"
+        class="diagnostics-tab__body"
+        aria-hidden="true"
       >
-        {{ $t('usage.states.loading') }}
+        <div
+          v-for="row in skeletonRowCount"
+          :key="row"
+          class="diagnostics-tab__row diagnostics-tab__row--item"
+        >
+          <div
+            v-for="col in 6"
+            :key="col"
+            class="diagnostics-tab__cell"
+            :class="{ 'is-right': col >= 4 }"
+          >
+            <span class="diagnostics-tab__skeleton" />
+          </div>
+        </div>
       </div>
 
       <div
@@ -205,9 +219,13 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useUsageDashboardContext } from '@/views/usage/usageDashboardContext'
 
 const ctx = useUsageDashboardContext()
+
+// 骨架行数参考分页大小,但滚动容器 max-height 内只能看到约 12 行,超出部分渲染无意义。
+const skeletonRowCount = computed(() => Math.min(ctx.logsPageSize, 12))
 </script>
 
 <style scoped>
@@ -382,7 +400,9 @@ const ctx = useUsageDashboardContext()
 }
 
 .diagnostics-tab__ledger {
-  overflow: hidden;
+  /* 唯一滚动容器:表头 sticky 依赖它,横向滚动时表头与行保持同步 */
+  max-height: 35rem;
+  overflow: auto;
   border-radius: 1.15rem;
   border: 1px solid rgb(var(--color-border-default-rgb) / 18%);
   background: rgb(var(--color-bg-elevated-rgb) / 46%);
@@ -395,6 +415,9 @@ const ctx = useUsageDashboardContext()
 }
 
 .diagnostics-tab__header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   border-bottom: 1px solid rgb(var(--color-border-default-rgb) / 18%);
   background: rgb(var(--color-bg-elevated-rgb) / 92%);
 }
@@ -409,14 +432,17 @@ const ctx = useUsageDashboardContext()
   text-transform: uppercase;
 }
 
-.diagnostics-tab__body {
-  max-height: 32rem;
-  overflow: auto;
-}
-
 .diagnostics-tab__row--item {
   border-bottom: 1px solid rgb(var(--color-border-default-rgb) / 12%);
   transition: background-color var(--motion-subtle-duration) var(--motion-subtle-ease);
+}
+
+.diagnostics-tab__skeleton {
+  display: inline-block;
+  width: 62%;
+  height: 0.9rem;
+  border-radius: 0.45rem;
+  background: rgb(var(--color-border-default-rgb) / 26%);
 }
 
 .diagnostics-tab__row--item:hover {

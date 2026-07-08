@@ -78,8 +78,35 @@
 6b. [x] formatTokens/formatCost 格式化升级(≥1B 用 B、千分位)。
    - 验证:12527.4M → 12.53B;$26,114.04;既有单测/快照更新。
    - 已完成(commit 03ff641d):smoke 9/9 通过,首屏实测 12.53B / $26,114.04。
-7. [ ] logs 骨架行 + sticky 表头;图表动画接 prefers-reduced-motion。
+7. [x] logs 骨架行 + sticky 表头;图表动画接 prefers-reduced-motion。
    - 验证:reduced-motion 模拟下无入场动画。
+   - 已完成(未提交):
+     **7a** UsageLogsTab.vue:loading 态由单行"加载中"文字改为骨架行——复用
+     `diagnostics-tab__row--item` 网格(6 列,后 3 列 is-right),每格一个静态灰块
+     `diagnostics-tab__skeleton`(无 shimmer,天然兼容 reduced-motion),整块
+     aria-hidden。行数 `Math.min(ctx.logsPageSize, 12)`(context 新增
+     `logsPageSize: toRef(store,'logsPageSize')`;分页大小 50,但滚动容器
+     max-height 内只见约 12 行,多渲染无意义)。sticky 表头:滚动容器从
+     `__body`(max-height 32rem/overflow auto)上移到 `__ledger`(max-height
+     35rem/overflow auto,原 overflow:hidden),`__header` 加 position:sticky
+     top:0 z-index:1(背景本就是 92% 不透明 elevated 色);横向滚动时表头与行
+     同容器滚动保持列对齐,__body 自身的滚动样式删除。
+     **7b** 选项 B(已与用户确认):usageChartOptions.ts 模块级
+     `prefersReducedMotion` ref + `matchMedia('(prefers-reduced-motion: reduce)')`
+     change 监听;`buildChartAnimations()` 返回 `{ enabled: !ref }`,TREND/PIE
+     两个冻结 base 中删除硬编码 `animations:{enabled:false}`,工厂里
+     `{ ...BASE, animations: buildChartAnimations() }` 注入。options 工厂在
+     useUsageCharts 的 computed 内被调用,ref 变化经依赖追踪自动重建 options,
+     无需组件侧接线;记忆化不受影响(动画开关不依赖数据)。
+   - 验证记录:`just frontend-check-quick` 全绿(type-check/lint:ci/test:i18n
+     23/23/test:smoke 372/372)。Playwright + tauri-shim 实测(vite 15173):
+     ① `emulateMedia({reducedMotion:'reduce'})` 下 matchMedia=true,趋势线
+     path `d` 在渲染后 500ms 内完全静止(无入场动画);② no-preference 下
+     6 次 120ms 间隔采样得 6 个不同 path(入场动画正常播放)。诊断 tab:
+     表头 computed position=sticky/z-index=1,ledger scrollTop=400 前后表头
+     相对容器 offset 恒为 1px(sticky 生效);强制 `logsLoading=true` 后渲染
+     12 骨架行 × 6 格 = 72 个占位块、表头仍在,复位后恢复 20 条真实行。
+     全程 0 console error。
 8. [ ] `bun run type-check && bun run lint` + `just frontend-check-quick`。
 9. [ ] 前后性能数据对比写入 research/,截图入 research/;review gate。
 

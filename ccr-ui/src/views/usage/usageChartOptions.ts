@@ -1,3 +1,4 @@
+import { ref } from 'vue'
 import type { UsageTrendBucket, TrendGranularity } from './usageDashboardPresentation'
 
 type DisplayUsageTrendBucket = UsageTrendBucket & { displayEndDate: string }
@@ -93,7 +94,7 @@ const buildDateFormatters = (locale: string) => ({
 export const formatTrendAxisLabel = (
   value: number,
   granularity: TrendGranularity,
-  locale: string,
+  locale: string
 ) => {
   const formatters = buildDateFormatters(locale)
   const date = new Date(value)
@@ -107,7 +108,7 @@ export const formatTrendTooltipLabel = (
   startDate: string,
   endDate: string,
   granularity: TrendGranularity,
-  locale: string,
+  locale: string
 ) => {
   const formatters = buildDateFormatters(locale)
   const start = parseUtcDate(startDate)
@@ -168,24 +169,24 @@ export const buildChartTheme = (): ChartThemeState => ({
   warning: readCssVar('--color-warning', '#BC8540'),
   reasoningToken: readCssVar(
     usageTokenCategoryColors.reasoning.cssVar,
-    usageTokenCategoryColors.reasoning.fallback,
+    usageTokenCategoryColors.reasoning.fallback
   ),
   muted: readCssVar('--color-text-muted', '#6E6E73'),
   inputToken: readCssVar(
     usageTokenCategoryColors.input.cssVar,
-    usageTokenCategoryColors.input.fallback,
+    usageTokenCategoryColors.input.fallback
   ),
   outputToken: readCssVar(
     usageTokenCategoryColors.output.cssVar,
-    usageTokenCategoryColors.output.fallback,
+    usageTokenCategoryColors.output.fallback
   ),
   cacheReadToken: readCssVar(
     usageTokenCategoryColors.cacheRead.cssVar,
-    usageTokenCategoryColors.cacheRead.fallback,
+    usageTokenCategoryColors.cacheRead.fallback
   ),
   cacheCreationToken: readCssVar(
     usageTokenCategoryColors.cacheCreation.cssVar,
-    usageTokenCategoryColors.cacheCreation.fallback,
+    usageTokenCategoryColors.cacheCreation.fallback
   ),
   textPrimary: readCssVar('--color-text-primary', '#1D1D1F'),
   textSecondary: readCssVar('--color-text-secondary', '#424245'),
@@ -221,15 +222,22 @@ export const buildTrendTooltipHtml = ({
   const bucket = buckets[index]
   if (!bucket) return ''
 
-  const label = formatTrendTooltipLabel(bucket.startDate, bucket.displayEndDate, granularity, locale)
+  const label = formatTrendTooltipLabel(
+    bucket.startDate,
+    bucket.displayEndDate,
+    granularity,
+    locale
+  )
   const colors = context.w?.globals?.colors ?? []
   const names = context.w?.globals?.seriesNames ?? []
-  const rows = (context.series ?? []).map((series, seriesIndex) => {
-    const name = escapeTooltipText(names[seriesIndex] ?? seriesNames[seriesIndex] ?? '')
-    const value = formatTokens(series[index] ?? 0)
-    const color = colors[seriesIndex] ?? fallbackColor
-    return `<div class="usage-chart-tooltip__row"><span><i style="background:${color}"></i>${name}</span><strong>${value}</strong></div>`
-  }).join('')
+  const rows = (context.series ?? [])
+    .map((series, seriesIndex) => {
+      const name = escapeTooltipText(names[seriesIndex] ?? seriesNames[seriesIndex] ?? '')
+      const value = formatTokens(series[index] ?? 0)
+      const color = colors[seriesIndex] ?? fallbackColor
+      return `<div class="usage-chart-tooltip__row"><span><i style="background:${color}"></i>${name}</span><strong>${value}</strong></div>`
+    })
+    .join('')
 
   return `<div class="usage-chart-tooltip"><div class="usage-chart-tooltip__title">${escapeTooltipText(label)}</div>${rows}<div class="usage-chart-tooltip__row usage-chart-tooltip__row--cost"><span>${escapeTooltipText(costLabel)}</span><strong>${formatCost(bucket.costUsd)}</strong></div></div>`
 }
@@ -237,13 +245,27 @@ export const buildTrendTooltipHtml = ({
 // ============ 图表静态骨架（模块级冻结常量）============
 // 这些片段既不含主题色也不含数据，跨渲染共享同一引用。ApexCharts 内部会深拷贝 options，
 // 因此冻结既能表达“静态骨架”的意图，又能拦截意外的原地修改。
+
+// 动画默认开启，仅在用户系统偏好 reduced-motion 时降级关闭（动效原则：核心动画需兼容降级）。
+// 模块级 ref + matchMedia change 监听：options 工厂在 computed 内读取该 ref，
+// 偏好切换时依赖追踪自动触发 options 重建，无需组件侧额外接线。
+const prefersReducedMotion = ref(false)
+if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+  const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
+  prefersReducedMotion.value = motionQuery.matches
+  motionQuery.addEventListener('change', (event) => {
+    prefersReducedMotion.value = event.matches
+  })
+}
+
+const buildChartAnimations = () => ({ enabled: !prefersReducedMotion.value })
+
 const TREND_CHART_BASE = Object.freeze({
   background: 'transparent',
   fontFamily: 'inherit',
   parentHeightOffset: 0,
   redrawOnParentResize: false,
   redrawOnWindowResize: false,
-  animations: { enabled: false },
   toolbar: { show: false },
 })
 const TREND_MARKERS = Object.freeze({ size: 0, hover: { size: 0, sizeOffset: 0 } })
@@ -261,7 +283,6 @@ const PIE_CHART_BASE = Object.freeze({
   parentHeightOffset: 0,
   redrawOnParentResize: false,
   redrawOnWindowResize: false,
-  animations: { enabled: false },
 })
 const PIE_LEGEND = Object.freeze({ show: false })
 const PIE_DATA_LABEL_STYLE = Object.freeze({ fontSize: '11px', fontWeight: 600 })
@@ -293,7 +314,7 @@ export const buildTrendChartOptions = ({
   formatTokens,
   formatCost,
 }: TrendChartOptionsInput) => ({
-  chart: TREND_CHART_BASE,
+  chart: { ...TREND_CHART_BASE, animations: buildChartAnimations() },
   theme: { mode: theme.mode },
   colors: [theme.inputToken, theme.outputToken, theme.cacheReadToken],
   xaxis: {
@@ -401,7 +422,7 @@ export const buildDistributionPieOptions = ({
   formatTokens,
   formatCost,
 }: DistributionPieOptionsInput) => ({
-  chart: PIE_CHART_BASE,
+  chart: { ...PIE_CHART_BASE, animations: buildChartAnimations() },
   theme: { mode: theme.mode },
   colors,
   labels,
@@ -468,8 +489,7 @@ export const buildDistributionPieOptions = ({
   tooltip: {
     theme: theme.mode,
     y: {
-      formatter: (value: number) =>
-        metric === 'tokens' ? formatTokens(value) : formatCost(value),
+      formatter: (value: number) => (metric === 'tokens' ? formatTokens(value) : formatCost(value)),
     },
   },
 })
