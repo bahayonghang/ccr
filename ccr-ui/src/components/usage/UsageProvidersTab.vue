@@ -11,7 +11,7 @@
 
       <div class="providers-tab__total">
         <span>{{ $t('usage.dashboard.providers.totalCost') }}</span>
-        <strong>{{ formatCost(totalCost) }}</strong>
+        <strong>{{ ctx.formatCost(totalCost) }}</strong>
         <small>{{ $t('usage.dashboard.providers.costBasis') }}</small>
       </div>
     </article>
@@ -32,7 +32,7 @@
       <div class="providers-tab__head">
         <div>
           <h3>{{ $t('usage.dashboard.providers.tableTitle') }}</h3>
-          <p>{{ $t('usage.dashboard.providers.tableSubtitle', { window: selectedWindowLabel }) }}</p>
+          <p>{{ $t('usage.dashboard.providers.tableSubtitle', { window: ctx.selectedWindowLabel }) }}</p>
         </div>
         <span>
           {{ providerRows.length.toLocaleString() }}
@@ -51,7 +51,7 @@
         </article>
         <article class="providers-tab__summary-card">
           <span>{{ $t('usage.dashboard.providers.summaryTokens') }}</span>
-          <strong>{{ formatTokens(totalTokens) }}</strong>
+          <strong>{{ ctx.formatTokens(totalTokens) }}</strong>
           <small>{{ tokenMixSummary }}</small>
         </article>
         <article class="providers-tab__summary-card">
@@ -123,23 +123,23 @@
                 {{ row.request_count.toLocaleString() }}
               </td>
               <td class="is-right">
-                {{ formatTokens(row.input_tokens) }}
+                {{ ctx.formatTokens(row.input_tokens) }}
               </td>
               <td class="is-right">
-                {{ formatTokens(row.output_tokens) }}
+                {{ ctx.formatTokens(row.output_tokens) }}
               </td>
               <td class="is-right">
-                {{ formatTokens(row.cache_read_tokens) }}
+                {{ ctx.formatTokens(row.cache_read_tokens) }}
               </td>
               <td class="is-right">
-                {{ formatTokens(row.cache_creation_tokens) }}
+                {{ ctx.formatTokens(row.cache_creation_tokens) }}
               </td>
               <td class="is-right providers-tab__cost-cell">
-                <strong>{{ formatCost(row.cost_with_cache_usd) }}</strong>
+                <strong>{{ ctx.formatCost(row.cost_with_cache_usd) }}</strong>
                 <small>{{ $t('usage.dashboard.providers.costBasis') }}</small>
               </td>
               <td class="is-right providers-tab__cost-cell">
-                <strong>{{ formatCost(row.cost_without_cache_usd) }}</strong>
+                <strong>{{ ctx.formatCost(row.cost_without_cache_usd) }}</strong>
                 <small>{{ $t('usage.dashboard.providers.costBasis') }}</small>
               </td>
               <td class="is-right providers-tab__share-cell">
@@ -167,15 +167,10 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import AsyncStatePanel from '@/components/ui/AsyncStatePanel.vue'
-import type { ProviderBreakdown, UsageFeatureCapability } from '@/types/usage'
+import type { ProviderBreakdown } from '@/types/usage'
+import { useUsageDashboardContext } from '@/views/usage/usageDashboardContext'
 
-const props = defineProps<{
-  providerStats: ProviderBreakdown[]
-  providerCapability: UsageFeatureCapability | null
-  selectedWindowLabel: string
-  formatCost: (value: number) => string
-  formatTokens: (value: number) => string
-}>()
+const ctx = useUsageDashboardContext()
 
 const { t } = useI18n()
 
@@ -185,9 +180,9 @@ type ProviderRow = ProviderBreakdown & {
   isUnattributed: boolean
 }
 
-const unsupported = computed(() => props.providerCapability?.supported === false)
+const unsupported = computed(() => ctx.providerCapability?.supported === false)
 const unsupportedDescription = computed(() => {
-  const detail = props.providerCapability?.detail?.trim()
+  const detail = ctx.providerCapability?.detail?.trim()
   const hint = t('usage.dashboard.providers.unsupportedHint')
   return detail
     ? `${detail} ${hint}`
@@ -195,7 +190,7 @@ const unsupportedDescription = computed(() => {
 })
 
 const providerRows = computed<ProviderRow[]>(() =>
-  [...props.providerStats]
+  [...ctx.providerStats]
     .filter((item) => item.total_tokens > 0 || item.request_count > 0 || item.cost_with_cache_usd > 0)
     .sort((left, right) =>
       right.total_tokens - left.total_tokens ||
@@ -230,8 +225,8 @@ const totalRequests = computed(() =>
 )
 const tokenMixSummary = computed(() =>
   t('usage.dashboard.providers.summaryTokenMix', {
-    input: props.formatTokens(totalInputTokens.value),
-    output: props.formatTokens(totalOutputTokens.value),
+    input: ctx.formatTokens(totalInputTokens.value),
+    output: ctx.formatTokens(totalOutputTokens.value),
   })
 )
 

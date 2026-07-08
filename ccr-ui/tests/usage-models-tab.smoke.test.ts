@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import UsageModelsTab from '@/components/usage/UsageModelsTab.vue'
 import type { ModelDistributionSlice } from '@/views/usage/usageDashboardPresentation'
 import type { ModelStat } from '@/types/usage'
+import { withUsageDashboardContext } from './helpers/usageDashboardContextStub'
 
 const translations: Record<string, string> = {
   'usage.dashboard.chart.costByModel': 'Cost by Model',
@@ -53,18 +54,20 @@ const mountModelsTab = async (modelStats: ModelStat[], shouldRenderChart = false
     isOther: false,
   }))
 
-  const app = createApp(UsageModelsTab, {
-    chartComponent: ChartStub,
-    shouldRenderChart,
-    pieSeries: modelDistribution.map((slice) => slice.totalTokens),
-    pieOptions: {},
-    pieColors: ['#4f46e5'],
-    distributionSubtitle: 'Distribution',
-    modelDistribution,
-    modelStats,
-    formatCost: (value: number) => `$${value.toFixed(2)}`,
-    formatTokens: (value: number) => value.toLocaleString(),
-  })
+  const app = createApp(
+    withUsageDashboardContext(UsageModelsTab, {
+      chartComponent: ChartStub,
+      shouldRenderDistributionChart: shouldRenderChart,
+      modelTokenPieSeries: modelDistribution.map((slice) => slice.totalTokens),
+      modelTokenPieOptions: {},
+      pieColors: ['#4f46e5'],
+      distributionSubtitle: 'Distribution',
+      modelTokenDistribution: modelDistribution,
+      modelStats,
+      formatCost: (value: number) => `$${value.toFixed(2)}`,
+      formatTokens: (value: number) => value.toLocaleString(),
+    })
+  )
 
   app.config.globalProperties.$t = (key: string) => translations[key] ?? key
   app.mount(el)

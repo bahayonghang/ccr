@@ -31,7 +31,7 @@
               {{ projectName(project.project_path) }}
             </strong>
             <span class="projects-tab__project-cost">
-              {{ formatCost(project.total_cost) }}
+              {{ ctx.formatCost(project.total_cost) }}
             </span>
           </div>
 
@@ -40,7 +40,7 @@
           </div>
 
           <div class="projects-tab__metrics">
-            <span>{{ formatTokens(project.total_tokens) }} {{ $t('usage.dashboard.table.tokens') }}</span>
+            <span>{{ ctx.formatTokens(project.total_tokens) }} {{ $t('usage.dashboard.table.tokens') }}</span>
             <span>{{ project.request_count.toLocaleString() }} {{ $t('usage.dashboard.table.requests') }}</span>
             <span>{{ formatShare(project.total_cost) }} {{ $t('usage.dashboard.table.share') }}</span>
           </div>
@@ -66,23 +66,16 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { ProjectStat } from '@/types/usage'
+import { useUsageDashboardContext } from '@/views/usage/usageDashboardContext'
 
-interface Props {
-  projectStats: ProjectStat[]
-  formatCost: (value: number) => string
-  formatTokens: (value: number) => string
-  shortenPath: (path: string) => string
-}
-
-const props = defineProps<Props>()
+const ctx = useUsageDashboardContext()
 
 const totalCost = computed(() =>
-  props.projectStats.reduce((sum, item) => sum + item.total_cost, 0),
+  ctx.projectStats.reduce((sum, item) => sum + item.total_cost, 0),
 )
 
 const sortedProjects = computed(() =>
-  [...props.projectStats].sort((left, right) =>
+  [...ctx.projectStats].sort((left, right) =>
     right.total_cost - left.total_cost ||
     right.total_tokens - left.total_tokens ||
     right.request_count - left.request_count,
@@ -99,7 +92,7 @@ const costShare = (value: number) => (totalCost.value > 0 ? value / totalCost.va
 const projectName = (path: string) => {
   const normalized = path.replace(/\\/g, '/')
   const parts = normalized.split('/').filter(Boolean)
-  return parts.at(-1) ?? props.shortenPath(path)
+  return parts.at(-1) ?? ctx.shortenPath(path)
 }
 </script>
 

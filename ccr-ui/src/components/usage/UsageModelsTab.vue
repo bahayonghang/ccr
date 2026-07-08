@@ -1,15 +1,15 @@
 <template>
   <div class="models-tab">
     <UsageModelDistributionCard
-      :chart-component="chartComponent"
-      :format-cost="formatCost"
-      :format-tokens="formatTokens"
-      :model-distribution="modelDistribution"
-      :pie-colors="pieColors"
-      :pie-options="pieOptions"
-      :pie-series="pieSeries"
-      :should-render-chart="shouldRenderChart"
-      :subtitle="distributionSubtitle"
+      :chart-component="ctx.chartComponent"
+      :format-cost="ctx.formatCost"
+      :format-tokens="ctx.formatTokens"
+      :model-distribution="ctx.modelTokenDistribution"
+      :pie-colors="ctx.pieColors"
+      :pie-options="ctx.modelTokenPieOptions"
+      :pie-series="ctx.modelTokenPieSeries"
+      :should-render-chart="ctx.shouldRenderDistributionChart"
+      :subtitle="ctx.distributionSubtitle"
       metric="tokens"
       :title="$t('usage.dashboard.chart.tokensByModel')"
     />
@@ -32,13 +32,13 @@
       >
         <article class="models-tab__summary-card">
           <span>{{ $t('usage.dashboard.models.summaryTotalTokens') }}</span>
-          <strong>{{ formatTokens(totalTokens) }}</strong>
+          <strong>{{ ctx.formatTokens(totalTokens) }}</strong>
           <small>{{ $t('usage.dashboard.models.summaryInputOutput') }} · {{ inputOutputSummary }}</small>
         </article>
         <article class="models-tab__summary-card">
           <span>{{ $t('usage.dashboard.models.summaryTotalCost') }}</span>
-          <strong>{{ formatCost(totalCost) }}</strong>
-          <small>{{ $t('usage.dashboard.models.summaryCacheSavings') }} · {{ formatCost(totalSavings) }}</small>
+          <strong>{{ ctx.formatCost(totalCost) }}</strong>
+          <small>{{ $t('usage.dashboard.models.summaryCacheSavings') }} · {{ ctx.formatCost(totalSavings) }}</small>
         </article>
         <article class="models-tab__summary-card">
           <span>{{ $t('usage.dashboard.models.summaryRequests') }}</span>
@@ -126,28 +126,28 @@
                 {{ model.request_count.toLocaleString() }}
               </td>
               <td class="is-right">
-                {{ formatTokens(inputTokens(model)) }}
+                {{ ctx.formatTokens(inputTokens(model)) }}
               </td>
               <td class="is-right">
-                {{ formatTokens(outputTokens(model)) }}
+                {{ ctx.formatTokens(outputTokens(model)) }}
               </td>
               <td class="is-right">
-                {{ formatTokens(cacheReadTokens(model)) }}
+                {{ ctx.formatTokens(cacheReadTokens(model)) }}
               </td>
               <td class="is-right">
-                {{ formatTokens(cacheCreationTokens(model)) }}
+                {{ ctx.formatTokens(cacheCreationTokens(model)) }}
               </td>
               <td>
                 <span class="models-tab__rate">{{ pricingRate(model) }}</span>
               </td>
               <td class="is-right">
-                {{ formatCost(costWithCache(model)) }}
+                {{ ctx.formatCost(costWithCache(model)) }}
               </td>
               <td class="is-right">
-                {{ formatCost(costWithoutCache(model)) }}
+                {{ ctx.formatCost(costWithoutCache(model)) }}
               </td>
               <td class="is-right">
-                {{ formatCost(cacheSavings(model)) }}
+                {{ ctx.formatCost(cacheSavings(model)) }}
               </td>
               <td>
                 <span
@@ -177,50 +177,37 @@
 </template>
 
 <script setup lang="ts">
-import { computed, type Component } from 'vue'
+import { computed } from 'vue'
 import type { ModelStat } from '@/types/usage'
-import type { ModelDistributionSlice } from '@/views/usage/usageDashboardPresentation'
 import UsageModelDistributionCard from './UsageModelDistributionCard.vue'
+import { useUsageDashboardContext } from '@/views/usage/usageDashboardContext'
 
-interface Props {
-  chartComponent: Component
-  shouldRenderChart: boolean
-  pieSeries: number[]
-  pieOptions: object
-  pieColors: string[]
-  distributionSubtitle: string
-  modelDistribution: ModelDistributionSlice[]
-  modelStats: ModelStat[]
-  formatCost: (value: number) => string
-  formatTokens: (value: number) => string
-}
-
-const props = defineProps<Props>()
+const ctx = useUsageDashboardContext()
 
 const totalTokens = computed(() =>
-  props.modelStats.reduce((sum, item) => sum + item.total_tokens, 0),
+  ctx.modelStats.reduce((sum, item) => sum + item.total_tokens, 0),
 )
 const totalCost = computed(() =>
-  props.modelStats.reduce((sum, item) => sum + costWithCache(item), 0),
+  ctx.modelStats.reduce((sum, item) => sum + costWithCache(item), 0),
 )
 const totalSavings = computed(() =>
-  props.modelStats.reduce((sum, item) => sum + cacheSavings(item), 0),
+  ctx.modelStats.reduce((sum, item) => sum + cacheSavings(item), 0),
 )
 const totalRequests = computed(() =>
-  props.modelStats.reduce((sum, item) => sum + item.request_count, 0),
+  ctx.modelStats.reduce((sum, item) => sum + item.request_count, 0),
 )
 const totalInputTokens = computed(() =>
-  props.modelStats.reduce((sum, item) => sum + inputTokens(item), 0),
+  ctx.modelStats.reduce((sum, item) => sum + inputTokens(item), 0),
 )
 const totalOutputTokens = computed(() =>
-  props.modelStats.reduce((sum, item) => sum + outputTokens(item), 0),
+  ctx.modelStats.reduce((sum, item) => sum + outputTokens(item), 0),
 )
 const inputOutputSummary = computed(() =>
-  `${props.formatTokens(totalInputTokens.value)} / ${props.formatTokens(totalOutputTokens.value)}`
+  `${ctx.formatTokens(totalInputTokens.value)} / ${ctx.formatTokens(totalOutputTokens.value)}`
 )
 
 const sortedModels = computed(() =>
-  [...props.modelStats].sort((left, right) =>
+  [...ctx.modelStats].sort((left, right) =>
     right.total_tokens - left.total_tokens ||
     costWithCache(right) - costWithCache(left) ||
     right.request_count - left.request_count,

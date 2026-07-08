@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import UsageProvidersTab from '@/components/usage/UsageProvidersTab.vue'
 import type { ProviderBreakdown, UsageFeatureCapability } from '@/types/usage'
 import { createI18nStub } from './helpers/i18n-stub'
+import { withUsageDashboardContext } from './helpers/usageDashboardContextStub'
 
 const providerStats: ProviderBreakdown[] = [
   {
@@ -44,13 +45,15 @@ const mountProvidersTab = async (
   const el = document.createElement('div')
   document.body.appendChild(el)
 
-  const app = createApp(UsageProvidersTab, {
-    providerStats: stats,
-    providerCapability,
-    selectedWindowLabel: 'Last 7 days',
-    formatCost: (value: number) => `$${value.toFixed(2)}`,
-    formatTokens: (value: number) => value.toLocaleString(),
-  })
+  const app = createApp(
+    withUsageDashboardContext(UsageProvidersTab, {
+      providerStats: stats,
+      providerCapability,
+      selectedWindowLabel: 'Last 7 days',
+      formatCost: (value: number) => `$${value.toFixed(2)}`,
+      formatTokens: (value: number) => value.toLocaleString(),
+    })
+  )
 
   app.use(createI18nStub())
   app.mount(el)

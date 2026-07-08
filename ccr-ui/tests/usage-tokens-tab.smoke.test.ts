@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import type { DailyTrend } from '@/types/usage'
 import UsageTokensTab from '@/components/usage/UsageTokensTab.vue'
 import { createI18nStub } from './helpers/i18n-stub'
+import { withUsageDashboardContext } from './helpers/usageDashboardContextStub'
 
 const ChartStub = defineComponent({
   name: 'ChartStub',
@@ -12,10 +13,15 @@ const ChartStub = defineComponent({
     type: { type: String, required: true },
   },
   setup(props) {
-    return () => h('pre', { class: 'chart-stub' }, JSON.stringify({
-      type: props.type,
-      series: props.series,
-    }))
+    return () =>
+      h(
+        'pre',
+        { class: 'chart-stub' },
+        JSON.stringify({
+          type: props.type,
+          series: props.series,
+        })
+      )
   },
 })
 
@@ -23,11 +29,13 @@ const mountTokensTab = async (trends: DailyTrend[]) => {
   const el = document.createElement('div')
   document.body.appendChild(el)
 
-  const app = createApp(UsageTokensTab, {
-    chartComponent: ChartStub,
-    trends,
-    formatTokens: (value: number) => value.toLocaleString(),
-  })
+  const app = createApp(
+    withUsageDashboardContext(UsageTokensTab, {
+      chartComponent: ChartStub,
+      trends,
+      formatTokens: (value: number) => value.toLocaleString(),
+    })
+  )
 
   app.use(createI18nStub())
   app.mount(el)

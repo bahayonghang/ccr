@@ -100,14 +100,12 @@ export const useUsageDashboardState = () => {
   let firstContentMarked = false
 
   const dashboardReady = computed(() => localeReady.value && dashboardBootstrapped.value)
-  const shouldRenderTrendChart = computed(
-    () => activeTab.value === 'overview' && trendChartReady.value
-  )
-  const shouldRenderDistributionChart = computed(
-    () =>
-      (activeTab.value === 'overview' && distributionChartReady.value) ||
-      (activeTab.value === 'models' && modelsChartVisited.value && distributionChartReady.value)
-  )
+  // 图表水合门控只跟随各自的 *Ready 单调标志，不再耦合 activeTab：
+  // tab 内容改由 KeepAlive 缓存后，切走的 tab 实例仍存活于缓存容器，若门控随 activeTab
+  // 翻假会把已挂载的 ApexCharts 卸载，返回时又重建，反而抵消 KeepAlive 收益。
+  // *Ready 只会 false→true 单调递增，首屏仍延迟到内容就绪后再挂图（契约不变）。
+  const shouldRenderTrendChart = computed(() => trendChartReady.value)
+  const shouldRenderDistributionChart = computed(() => distributionChartReady.value)
 
   const translateDashboardText = (
     key: string,

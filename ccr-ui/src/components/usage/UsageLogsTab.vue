@@ -14,16 +14,16 @@
         <label class="diagnostics-tab__filter-field">
           <span>{{ $t('usage.dashboard.logs.filterLabel') }}</span>
           <input
-            :value="logModelFilter"
+            :value="ctx.logModelFilter"
             :placeholder="$t('usage.dashboard.logs.filterPlaceholder')"
             class="toolbar-select diagnostics-tab__filter-input"
-            @input="updateLogModelFilter(($event.target as HTMLInputElement).value)"
-            @keyup.enter="loadLogs('reset')"
+            @input="ctx.updateLogModelFilter(($event.target as HTMLInputElement).value)"
+            @keyup.enter="ctx.loadLogs('reset')"
           >
         </label>
         <button
           class="diagnostics-tab__filter-action"
-          @click="loadLogs('reset')"
+          @click="ctx.loadLogs('reset')"
         >
           {{ $t('usage.dashboard.logs.search') }}
         </button>
@@ -36,7 +36,7 @@
           {{ $t('usage.dashboard.diagnostics.totalRecords') }}
         </span>
         <strong class="diagnostics-tab__summary-value">
-          {{ diagnosticsSummary.totalRecords }}
+          {{ ctx.diagnosticsSummary.totalRecords }}
         </strong>
       </article>
       <article class="diagnostics-tab__summary-card">
@@ -44,7 +44,7 @@
           {{ $t('usage.dashboard.diagnostics.latestRecord') }}
         </span>
         <strong class="diagnostics-tab__summary-value diagnostics-tab__summary-value--small">
-          {{ diagnosticsSummary.latestRecordAt }}
+          {{ ctx.diagnosticsSummary.latestRecordAt }}
         </strong>
       </article>
       <article class="diagnostics-tab__summary-card">
@@ -53,25 +53,25 @@
         </span>
         <div class="diagnostics-tab__health-row">
           <strong class="diagnostics-tab__summary-value diagnostics-tab__summary-value--small">
-            {{ diagnosticsSummary.healthLabel }}
+            {{ ctx.diagnosticsSummary.healthLabel }}
           </strong>
           <span
             class="diagnostics-tab__health-pill"
             :class="{
-              'diagnostics-tab__health-pill--warning': diagnosticsSummary.repairRecommended,
+              'diagnostics-tab__health-pill--warning': ctx.diagnosticsSummary.repairRecommended,
             }"
           >
-            {{ diagnosticsSummary.repairRecommended ? $t('usage.dashboard.diagnostics.needsAction') : $t('usage.dashboard.diagnostics.ready') }}
+            {{ ctx.diagnosticsSummary.repairRecommended ? $t('usage.dashboard.diagnostics.needsAction') : $t('usage.dashboard.diagnostics.ready') }}
           </span>
         </div>
         <span class="diagnostics-tab__summary-detail">
-          {{ diagnosticsSummary.healthDetail }}
+          {{ ctx.diagnosticsSummary.healthDetail }}
         </span>
       </article>
     </div>
 
     <div
-      v-if="diagnosticsSummary.repairRecommended"
+      v-if="ctx.diagnosticsSummary.repairRecommended"
       class="diagnostics-tab__repair-callout"
     >
       <div>
@@ -79,16 +79,16 @@
           {{ $t('usage.dashboard.diagnostics.repairTitle') }}
         </h4>
         <p class="diagnostics-tab__repair-detail">
-          {{ diagnosticsSummary.healthDetail }}
+          {{ ctx.diagnosticsSummary.healthDetail }}
         </p>
       </div>
 
       <button
-        v-if="diagnosticsSummary.canRepairCodex"
+        v-if="ctx.diagnosticsSummary.canRepairCodex"
         class="diagnostics-tab__repair-button"
-        @click="repairCodexLogs"
+        @click="ctx.repairCodexLogs"
       >
-        {{ repairButtonLabel }}
+        {{ ctx.repairCodexButtonLabel }}
       </button>
     </div>
 
@@ -115,21 +115,21 @@
       </div>
 
       <div
-        v-if="logsLoading"
+        v-if="ctx.logsLoading"
         class="diagnostics-tab__state"
       >
         {{ $t('usage.states.loading') }}
       </div>
 
       <div
-        v-else-if="logsRecords.length === 0"
+        v-else-if="ctx.logsRecords.length === 0"
         class="diagnostics-tab__state"
       >
         <strong class="diagnostics-tab__state-title">
-          {{ diagnosticsEmptyMessage }}
+          {{ ctx.diagnosticsEmptyMessage }}
         </strong>
         <span class="diagnostics-tab__state-detail">
-          {{ diagnosticsEmptyDetail }}
+          {{ ctx.diagnosticsEmptyDetail }}
         </span>
       </div>
 
@@ -138,7 +138,7 @@
         class="diagnostics-tab__body"
       >
         <div
-          v-for="record in logsRecords"
+          v-for="record in ctx.logsRecords"
           :key="record.id"
           class="diagnostics-tab__row diagnostics-tab__row--item"
         >
@@ -155,48 +155,48 @@
             {{ record.model || $t('usage.dashboard.diagnostics.unknownModel') }}
           </div>
           <div class="diagnostics-tab__cell is-right">
-            {{ formatTokens(record.input_tokens) }}
+            {{ ctx.formatTokens(record.input_tokens) }}
           </div>
           <div class="diagnostics-tab__cell is-right">
-            {{ formatTokens(record.output_tokens) }}
+            {{ ctx.formatTokens(record.output_tokens) }}
           </div>
           <div class="diagnostics-tab__cell is-right">
-            {{ formatCost(record.cost_with_cache_usd) }}
+            {{ ctx.formatCost(record.cost_with_cache_usd) }}
           </div>
         </div>
       </div>
     </div>
 
     <div
-      v-if="showPager"
+      v-if="ctx.showLogsPager"
       class="diagnostics-tab__pager"
     >
       <span class="diagnostics-tab__pager-status">
-        {{ $t('usage.dashboard.logs.pageStatus', { page: logsPage, pages: hasLogsTotal ? logsTotalPages : '?' }) }}
+        {{ $t('usage.dashboard.logs.pageStatus', { page: ctx.logsPage, pages: ctx.hasLogsTotal ? ctx.logsTotalPages : '?' }) }}
       </span>
       <button
         class="diagnostics-tab__pager-button"
-        :disabled="!canPrevLogs"
-        @click="loadLogs('prev')"
+        :disabled="!ctx.canPrevLogs"
+        @click="ctx.loadLogs('prev')"
       >
         {{ $t('usage.dashboard.logs.prev') }}
       </button>
       <span
-        v-if="hasLogsTotal"
+        v-if="ctx.hasLogsTotal"
         class="diagnostics-tab__pager-text"
       >
-        {{ logsPage }} / {{ logsTotalPages }}
+        {{ ctx.logsPage }} / {{ ctx.logsTotalPages }}
       </span>
       <span
         v-else
         class="diagnostics-tab__pager-text"
       >
-        {{ logsPage }}
+        {{ ctx.logsPage }}
       </span>
       <button
         class="diagnostics-tab__pager-button"
-        :disabled="!canNextLogs"
-        @click="loadLogs('next')"
+        :disabled="!ctx.canNextLogs"
+        @click="ctx.loadLogs('next')"
       >
         {{ $t('usage.dashboard.logs.next') }}
       </button>
@@ -205,41 +205,9 @@
 </template>
 
 <script setup lang="ts">
-import type { UsageRecordV2 } from '@/types/usage'
+import { useUsageDashboardContext } from '@/views/usage/usageDashboardContext'
 
-type LogsDirection = 'reset' | 'next' | 'prev' | 'same'
-
-type UsageDiagnosticsSummary = {
-  totalRecords: string
-  latestRecordAt: string
-  healthLabel: string
-  healthDetail: string
-  repairRecommended: boolean
-  canRepairCodex: boolean
-}
-
-interface Props {
-  diagnosticsEmptyDetail: string
-  diagnosticsEmptyMessage: string
-  diagnosticsSummary: UsageDiagnosticsSummary
-  logModelFilter: string
-  logsLoading: boolean
-  logsRecords: UsageRecordV2[]
-  logsPage: number
-  logsTotalPages: number
-  canPrevLogs: boolean
-  canNextLogs: boolean
-  hasLogsTotal: boolean
-  showPager: boolean
-  repairButtonLabel: string
-  formatCost: (value: number) => string
-  formatTokens: (value: number) => string
-  loadLogs: (direction?: LogsDirection) => void | Promise<void>
-  repairCodexLogs: () => void | Promise<void>
-  updateLogModelFilter: (value: string) => void
-}
-
-defineProps<Props>()
+const ctx = useUsageDashboardContext()
 </script>
 
 <style scoped>

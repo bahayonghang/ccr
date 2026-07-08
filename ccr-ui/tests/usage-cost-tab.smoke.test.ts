@@ -4,6 +4,7 @@ import UsageCostTab from '@/components/usage/UsageCostTab.vue'
 import type { DailyTrend, ModelStat, SourceBreakdown, UsageSummary } from '@/types/usage'
 import { createI18nStub } from './helpers/i18n-stub'
 import { makeModelStat } from './helpers/usageFixtures'
+import { withUsageDashboardContext } from './helpers/usageDashboardContextStub'
 
 const ChartStub = defineComponent({
   name: 'ChartStub',
@@ -102,15 +103,17 @@ const mountCostTab = async () => {
   const el = document.createElement('div')
   document.body.appendChild(el)
 
-  const app = createApp(UsageCostTab, {
-    chartComponent: ChartStub,
-    summary,
-    trends,
-    sourceStats,
-    modelStats,
-    formatCost: (value: number) => `$${value.toFixed(2)}`,
-    formatTokens: (value: number) => value.toLocaleString(),
-  })
+  const app = createApp(
+    withUsageDashboardContext(UsageCostTab, {
+      chartComponent: ChartStub,
+      summary,
+      trends,
+      sourceStats,
+      modelStats,
+      formatCost: (value: number) => `$${value.toFixed(2)}`,
+      formatTokens: (value: number) => value.toLocaleString(),
+    })
+  )
 
   app.use(createI18nStub())
   app.mount(el)

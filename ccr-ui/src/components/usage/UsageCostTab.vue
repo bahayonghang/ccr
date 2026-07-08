@@ -10,7 +10,7 @@
       </div>
       <div class="cost-tab__anchor-value">
         <span>{{ $t('usage.dashboard.cost.totalCost') }}</span>
-        <strong>{{ formatCost(totalCost) }}</strong>
+        <strong>{{ ctx.formatCost(totalCost) }}</strong>
         <small>{{ totalRequests.toLocaleString() }} {{ $t('usage.dashboard.table.requests') }}</small>
       </div>
     </article>
@@ -23,11 +23,11 @@
           </p>
           <h3>{{ $t('usage.dashboard.cost.trendTitle') }}</h3>
         </div>
-        <span>{{ trends.length.toLocaleString() }} {{ $t('usage.dashboard.tokens.days') }}</span>
+        <span>{{ ctx.trends.length.toLocaleString() }} {{ $t('usage.dashboard.tokens.days') }}</span>
       </div>
 
       <component
-        :is="chartComponent"
+        :is="ctx.chartComponent"
         v-if="hasTrendRows"
         type="bar"
         height="300"
@@ -66,10 +66,10 @@
             <div class="cost-tab__ranking-main">
               <span class="cost-tab__ranking-row">
                 <strong>{{ sourceLabel(item.source) }}</strong>
-                <b>{{ formatCost(item.total_cost) }}</b>
+                <b>{{ ctx.formatCost(item.total_cost) }}</b>
               </span>
               <span class="cost-tab__ranking-row cost-tab__ranking-row--meta">
-                <small>{{ formatTokens(item.total_tokens) }} · {{ item.event_count.toLocaleString() }} {{ $t('usage.dashboard.table.requests') }}</small>
+                <small>{{ ctx.formatTokens(item.total_tokens) }} · {{ item.event_count.toLocaleString() }} {{ $t('usage.dashboard.table.requests') }}</small>
                 <small>{{ formatPercent(item.share_cost) }}</small>
               </span>
               <span class="cost-tab__bar">
@@ -110,10 +110,10 @@
             <div class="cost-tab__ranking-main">
               <span class="cost-tab__ranking-row">
                 <strong :title="item.model">{{ item.model }}</strong>
-                <b>{{ formatCost(modelCost(item)) }}</b>
+                <b>{{ ctx.formatCost(modelCost(item)) }}</b>
               </span>
               <span class="cost-tab__ranking-row cost-tab__ranking-row--meta">
-                <small>{{ formatTokens(item.total_tokens) }} · {{ item.request_count.toLocaleString() }} {{ $t('usage.dashboard.table.requests') }}</small>
+                <small>{{ ctx.formatTokens(item.total_tokens) }} · {{ item.request_count.toLocaleString() }} {{ $t('usage.dashboard.table.requests') }}</small>
                 <small>{{ formatPercent(modelShare(item)) }}</small>
               </span>
               <span class="cost-tab__bar">
@@ -135,21 +135,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed, type Component } from 'vue'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { DailyTrend, ModelStat, UsagePlatform, SourceBreakdown, UsageSummary } from '@/types/usage'
+import type { ModelStat, UsagePlatform } from '@/types/usage'
 import { formatPercent } from '@/views/usage/usageSummaryCards'
 import { buildChartTheme, type ChartThemeState } from '@/views/usage/usageChartOptions'
+import { useUsageDashboardContext } from '@/views/usage/usageDashboardContext'
 
-const props = defineProps<{
-  chartComponent: Component
-  summary: UsageSummary | null
-  trends: DailyTrend[]
-  sourceStats: SourceBreakdown[]
-  modelStats: ModelStat[]
-  formatCost: (value: number) => string
-  formatTokens: (value: number) => string
-}>()
+const ctx = useUsageDashboardContext()
 
 const { t } = useI18n()
 
@@ -162,15 +155,15 @@ const sourceLabels: Record<UsagePlatform, string> = {
 
 const theme = computed<ChartThemeState>(() => buildChartTheme())
 const totalCost = computed(() =>
-  props.summary?.total_cost_usd ??
-  props.trends.reduce((sum, item) => sum + item.cost_usd, 0)
+  ctx.summary?.total_cost_usd ??
+  ctx.trends.reduce((sum, item) => sum + item.cost_usd, 0)
 )
-const totalRequests = computed(() => props.summary?.total_requests ?? 0)
-const hasTrendRows = computed(() => props.trends.length > 0)
+const totalRequests = computed(() => ctx.summary?.total_requests ?? 0)
+const hasTrendRows = computed(() => ctx.trends.length > 0)
 const chartSeries = computed(() => [
   {
     name: tLabel('usage.dashboard.cost.totalCost', 'Total Cost'),
-    data: props.trends.map((item) => item.cost_usd),
+    data: ctx.trends.map((item) => item.cost_usd),
   },
 ])
 const chartOptions = computed(() => ({
@@ -198,12 +191,12 @@ const chartOptions = computed(() => ({
   tooltip: {
     theme: theme.value.mode,
     y: {
-      formatter: (value: number) => props.formatCost(value),
+      formatter: (value: number) => ctx.formatCost(value),
     },
   },
   xaxis: {
-    categories: props.trends.map((item) => item.date),
-    tickAmount: props.trends.length > 18 ? 8 : undefined,
+    categories: ctx.trends.map((item) => item.date),
+    tickAmount: ctx.trends.length > 18 ? 8 : undefined,
     labels: {
       rotate: 0,
       trim: true,
@@ -215,13 +208,13 @@ const chartOptions = computed(() => ({
   yaxis: {
     labels: {
       style: { colors: theme.value.textMuted, fontSize: '11px' },
-      formatter: (value: number) => props.formatCost(value),
+      formatter: (value: number) => ctx.formatCost(value),
     },
   },
 }))
 
 const sourceRankings = computed(() =>
-  [...props.sourceStats]
+  [...ctx.sourceStats]
     .filter((item) => item.total_cost > 0 || item.total_tokens > 0 || item.event_count > 0)
     .sort((left, right) =>
       right.total_cost - left.total_cost ||
@@ -231,7 +224,7 @@ const sourceRankings = computed(() =>
 )
 
 const modelRankings = computed(() =>
-  [...props.modelStats]
+  [...ctx.modelStats]
     .filter((item) => modelCost(item) > 0 || item.total_tokens > 0 || item.request_count > 0)
     .sort((left, right) =>
       modelCost(right) - modelCost(left) ||

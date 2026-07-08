@@ -1,6 +1,7 @@
 import { createApp, defineComponent, h, nextTick } from 'vue'
 import { afterEach, describe, expect, it } from 'vitest'
 import UsageOverviewTab from '@/components/usage/UsageOverviewTab.vue'
+import { withUsageDashboardContext } from './helpers/usageDashboardContextStub'
 
 const ChartStub = defineComponent({
   name: 'ChartStub',
@@ -18,95 +19,91 @@ const mountOverviewTab = async () => {
     'D:/workspace/very-long-folder-name/another-layer/of-reporting/usage-dashboard-overflow-repro-project'
 
   const app = createApp(
-    defineComponent({
-      render() {
-        return h(UsageOverviewTab, {
-          chartComponent: ChartStub,
-          shouldRenderTrendChart: true,
-          shouldRenderDistributionChart: true,
-          hasRenderableTrendData: true,
-          trendSeries: [
-            {
-              name: 'Input',
-              data: [
-                { x: '2026-03-01T00:00:00Z', y: 1200 },
-                { x: '2026-03-02T00:00:00Z', y: 1800 },
-              ],
-            },
-            {
-              name: 'Output',
-              data: [
-                { x: '2026-03-01T00:00:00Z', y: 480 },
-                { x: '2026-03-02T00:00:00Z', y: 720 },
-              ],
-            },
-            {
-              name: 'Cache',
-              data: [
-                { x: '2026-03-01T00:00:00Z', y: 90 },
-                { x: '2026-03-02T00:00:00Z', y: 110 },
-              ],
-            },
+    withUsageDashboardContext(UsageOverviewTab, {
+      chartComponent: ChartStub,
+      shouldRenderTrendChart: true,
+      shouldRenderDistributionChart: true,
+      hasRenderableTrendData: true,
+      trendSeries: [
+        {
+          name: 'Input',
+          data: [
+            { x: '2026-03-01T00:00:00Z', y: 1200 },
+            { x: '2026-03-02T00:00:00Z', y: 1800 },
           ],
-          trendOptions: {},
-          trendSubtitle: '30 day desktop window',
-          trendGranularityLabel: 'Daily',
-          pieSeries: [82, 18],
-          pieOptions: {},
-          pieColors: ['#CA8FD1', '#7F78D8'],
-          distributionSubtitle: '2 models visible',
-          modelDistribution: [
-            {
-              id: 'primary',
-              label: longModelLabel,
-              totalCost: 82,
-              totalTokens: 64000,
-              requestCount: 96,
-              share: 0.82,
-              childCount: 1,
-              isOther: false,
-            },
-            {
-              id: 'others',
-              label: 'Others',
-              totalCost: 18,
-              totalTokens: 16000,
-              requestCount: 24,
-              share: 0.18,
-              childCount: 3,
-              isOther: true,
-            },
+        },
+        {
+          name: 'Output',
+          data: [
+            { x: '2026-03-01T00:00:00Z', y: 480 },
+            { x: '2026-03-02T00:00:00Z', y: 720 },
           ],
-          modelStats: [],
-          projectStats: [],
-          overviewHighlights: [
-            { id: 'density', label: 'Density', value: 'Daily', detail: '30 points' },
+        },
+        {
+          name: 'Cache',
+          data: [
+            { x: '2026-03-01T00:00:00Z', y: 90 },
+            { x: '2026-03-02T00:00:00Z', y: 110 },
           ],
-          topModelRankings: [
-            {
-              id: 'primary',
-              label: longModelLabel,
-              title: longModelLabel,
-              detail: '96 requests · 64.0K',
-              value: '$82.00',
-              share: 0.82,
-            },
-          ],
-          topProjectRankings: [
-            {
-              id: 'project',
-              label: '.../overflow-repro-project',
-              title: longProjectPath,
-              detail: '64.0K · 96 requests',
-              value: '$82.00',
-              share: 0.82,
-            },
-          ],
-          formatCost: (value: number) => `$${value.toFixed(2)}`,
-          formatTokens: (value: number) => `${value}`,
-          shortenPath: (value: string) => value,
-        })
-      },
+        },
+      ],
+      trendOptions: {},
+      trendSubtitle: '30 day desktop window',
+      trendGranularityLabel: 'Daily',
+      pieSeries: [82, 18],
+      pieOptions: {},
+      pieColors: ['#CA8FD1', '#7F78D8'],
+      distributionSubtitle: '2 models visible',
+      modelDistribution: [
+        {
+          id: 'primary',
+          label: longModelLabel,
+          totalCost: 82,
+          totalTokens: 64000,
+          requestCount: 96,
+          share: 0.82,
+          childCount: 1,
+          isOther: false,
+        },
+        {
+          id: 'others',
+          label: 'Others',
+          totalCost: 18,
+          totalTokens: 16000,
+          requestCount: 24,
+          share: 0.18,
+          childCount: 3,
+          isOther: true,
+        },
+      ],
+      modelStats: [],
+      projectStats: [],
+      overviewHighlights: [
+        { id: 'density', label: 'Density', value: 'Daily', detail: '30 points' },
+      ],
+      topModelRankings: [
+        {
+          id: 'primary',
+          label: longModelLabel,
+          title: longModelLabel,
+          detail: '96 requests · 64.0K',
+          value: '$82.00',
+          share: 0.82,
+        },
+      ],
+      topProjectRankings: [
+        {
+          id: 'project',
+          label: '.../overflow-repro-project',
+          title: longProjectPath,
+          detail: '64.0K · 96 requests',
+          value: '$82.00',
+          share: 0.82,
+        },
+      ],
+      formatCost: (value: number) => `$${value.toFixed(2)}`,
+      formatTokens: (value: number) => `${value}`,
+      shortenPath: (value: string) => value,
     })
   )
 
@@ -173,55 +170,52 @@ describe('usage overview tab smoke', () => {
     document.body.appendChild(el)
 
     const app = createApp(
-      defineComponent({
-        render() {
-          return h(UsageOverviewTab, {
-            chartComponent: ChartStub,
-            shouldRenderTrendChart: false,
-            shouldRenderDistributionChart: false,
-            hasRenderableTrendData: true,
-            trendSeries: [
-              {
-                name: 'Input',
-                data: [{ x: '2026-03-01T00:00:00Z', y: 1200 }],
-              },
-            ],
-            trendOptions: {},
-            trendSubtitle: '30 day desktop window',
-            trendGranularityLabel: 'Daily',
-            pieSeries: [82],
-            pieOptions: {},
-            pieColors: ['#CA8FD1'],
-            distributionSubtitle: '1 model visible',
-            modelDistribution: [
-              {
-                id: 'primary',
-                label: 'claude-opus',
-                totalCost: 82,
-                totalTokens: 64000,
-                requestCount: 96,
-                share: 1,
-                childCount: 1,
-                isOther: false,
-              },
-            ],
-            modelStats: [],
-            projectStats: [],
-            overviewHighlights: [],
-            topModelRankings: [],
-            topProjectRankings: [],
-            formatCost: (value: number) => `$${value.toFixed(2)}`,
-            formatTokens: (value: number) => `${value}`,
-            shortenPath: (value: string) => value,
-          })
-        },
+      withUsageDashboardContext(UsageOverviewTab, {
+        chartComponent: ChartStub,
+        shouldRenderTrendChart: false,
+        shouldRenderDistributionChart: false,
+        hasRenderableTrendData: true,
+        trendSeries: [
+          {
+            name: 'Input',
+            data: [{ x: '2026-03-01T00:00:00Z', y: 1200 }],
+          },
+        ],
+        trendOptions: {},
+        trendSubtitle: '30 day desktop window',
+        trendGranularityLabel: 'Daily',
+        pieSeries: [82],
+        pieOptions: {},
+        pieColors: ['#CA8FD1'],
+        distributionSubtitle: '1 model visible',
+        modelDistribution: [
+          {
+            id: 'primary',
+            label: 'claude-opus',
+            totalCost: 82,
+            totalTokens: 64000,
+            requestCount: 96,
+            share: 1,
+            childCount: 1,
+            isOther: false,
+          },
+        ],
+        modelStats: [],
+        projectStats: [],
+        overviewHighlights: [],
+        topModelRankings: [],
+        topProjectRankings: [],
+        formatCost: (value: number) => `$${value.toFixed(2)}`,
+        formatTokens: (value: number) => `${value}`,
+        shortenPath: (value: string) => value,
       })
     )
 
-    app.config.globalProperties.$t = (key: string) => ({
-      'usage.dashboard.chart.preparingTrend': 'Preparing trend chart…',
-      'usage.dashboard.chart.preparingDistribution': 'Preparing distribution chart…',
-    })[key] ?? key
+    app.config.globalProperties.$t = (key: string) =>
+      ({
+        'usage.dashboard.chart.preparingTrend': 'Preparing trend chart…',
+        'usage.dashboard.chart.preparingDistribution': 'Preparing distribution chart…',
+      })[key] ?? key
     app.mount(el)
     await nextTick()
     await nextTick()

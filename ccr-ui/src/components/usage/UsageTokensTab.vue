@@ -41,12 +41,12 @@
             :style="{ background: item.color }"
           />
           <span>{{ item.label }}</span>
-          <strong>{{ formatTokens(item.value) }}</strong>
+          <strong>{{ ctx.formatTokens(item.value) }}</strong>
         </article>
       </div>
 
       <component
-        :is="chartComponent"
+        :is="ctx.chartComponent"
         v-if="hasRows"
         :key="activeMode"
         type="bar"
@@ -118,22 +118,22 @@
             >
               <td>{{ row.date }}</td>
               <td class="is-right">
-                {{ formatTokens(row.inputTokens) }}
+                {{ ctx.formatTokens(row.inputTokens) }}
               </td>
               <td class="is-right">
-                {{ formatTokens(row.assistantOutputTokens) }}
+                {{ ctx.formatTokens(row.assistantOutputTokens) }}
               </td>
               <td class="is-right">
-                {{ formatTokens(row.cacheReadTokens) }}
+                {{ ctx.formatTokens(row.cacheReadTokens) }}
               </td>
               <td class="is-right">
-                {{ formatTokens(row.cacheCreationTokens) }}
+                {{ ctx.formatTokens(row.cacheCreationTokens) }}
               </td>
               <td class="is-right">
-                {{ formatTokens(row.reasoningOutputTokens) }}
+                {{ ctx.formatTokens(row.reasoningOutputTokens) }}
               </td>
               <td class="is-right tokens-tab__total-cell">
-                {{ formatTokens(row.totalTokens) }}
+                {{ ctx.formatTokens(row.totalTokens) }}
               </td>
             </tr>
           </tbody>
@@ -151,9 +151,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, type Component } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { DailyTrend } from '@/types/usage'
+import { useUsageDashboardContext } from '@/views/usage/usageDashboardContext'
 import {
   buildChartTheme,
   type ChartThemeState,
@@ -166,17 +166,13 @@ import {
   type UsageTokenSeriesKey,
 } from '@/views/usage/usageTokenBreakdown'
 
-const props = defineProps<{
-  chartComponent: Component
-  trends: DailyTrend[]
-  formatTokens: (value: number) => string
-}>()
+const ctx = useUsageDashboardContext()
 
 const { t } = useI18n()
 const modes: UsageTokenBreakdownMode[] = ['breakdown', 'total']
 const activeMode = ref<UsageTokenBreakdownMode>('breakdown')
 
-const rows = computed(() => toUsageTokenBreakdownRows(props.trends))
+const rows = computed(() => toUsageTokenBreakdownRows(ctx.trends))
 const totals = computed(() => sumUsageTokenBreakdownRows(rows.value))
 const hasRows = computed(() => rows.value.length > 0)
 const theme = computed<ChartThemeState>(() => buildChartTheme())
@@ -289,7 +285,7 @@ const chartOptions = computed(() => ({
     shared: true,
     intersect: false,
     y: {
-      formatter: (value: number) => props.formatTokens(value),
+      formatter: (value: number) => ctx.formatTokens(value),
     },
   },
   xaxis: {
@@ -306,7 +302,7 @@ const chartOptions = computed(() => ({
   yaxis: {
     labels: {
       style: { colors: theme.value.textMuted, fontSize: '11px' },
-      formatter: (value: number) => props.formatTokens(value),
+      formatter: (value: number) => ctx.formatTokens(value),
     },
   },
 }))
