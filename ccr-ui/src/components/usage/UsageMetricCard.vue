@@ -28,9 +28,13 @@
     </p>
 
     <div class="usage-metric-card__sparkline">
-      <UsageSparkline
-        :points="card.sparkline"
-        :tone="card.tone"
+      <Sparkline
+        class="usage-metric-card__spark"
+        :values="sparklineValues"
+        :width="120"
+        :height="38"
+        :stroke-width="2.4"
+        fill="currentColor"
         :label="card.sparklineLabel"
       />
     </div>
@@ -49,15 +53,19 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import SIcon from '@/components/ui/SIcon.vue'
-import UsageSparkline from './UsageSparkline.vue'
+import Sparkline from '@/components/ui/Sparkline.vue'
 import type { UsageSummaryCard } from '@/views/usage/usageSummaryCards'
 
 interface Props {
   card: UsageSummaryCard
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
+
+// 统一 Sparkline 取数值序列；配色沿用卡片按 tone 设置的 --usage-metric-rgb（见 __spark 样式）
+const sparklineValues = computed(() => props.card.sparkline.map((point) => point.value))
 </script>
 
 <style scoped>
@@ -211,6 +219,12 @@ defineProps<Props>()
   border: 1px solid rgb(var(--usage-metric-rgb) / 10%);
   background: rgb(var(--color-bg-elevated-rgb) / 28%);
   padding: 0.26rem 0.36rem;
+}
+
+.usage-metric-card__spark {
+  width: 100%;
+  height: 2.45rem;
+  color: rgb(var(--usage-metric-rgb) / 92%);
 }
 
 .usage-metric-card__stats {

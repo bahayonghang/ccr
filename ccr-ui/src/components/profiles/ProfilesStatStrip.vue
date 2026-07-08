@@ -35,7 +35,7 @@
       <Sparkline
         v-if="totalSpark"
         :values="totalSpark"
-        color="var(--cp-info)"
+        stroke="var(--cp-info)"
         class="cp-stat__spark"
       />
     </div>
@@ -76,7 +76,7 @@
       <Sparkline
         v-if="recentSpark"
         :values="recentSpark"
-        color="var(--cp-good)"
+        stroke="var(--cp-good)"
         class="cp-stat__spark"
       />
     </div>
@@ -85,7 +85,7 @@
 
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
-import Sparkline from './Sparkline.vue'
+import Sparkline from '@/components/ui/Sparkline.vue'
 
 export interface ProfilesStatStripLabels {
   current: string
