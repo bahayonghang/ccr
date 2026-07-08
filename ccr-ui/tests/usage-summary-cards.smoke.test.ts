@@ -6,6 +6,7 @@ import {
   buildSummarySparklinePoints,
   buildUsageSummaryCards,
   formatCost,
+  formatTokens,
 } from '@/views/usage/usageSummaryCards'
 
 const buildBucket = (
@@ -156,5 +157,32 @@ describe('usage summary card helpers', () => {
       averageLabel: '1',
       peakLabel: '1',
     })
+  })
+})
+
+describe('formatTokens / formatCost number formatting', () => {
+  it('renders billions with a B unit and two decimals', () => {
+    expect(formatTokens(12_527_400_000)).toBe('12.53B')
+    expect(formatTokens(1_000_000_000)).toBe('1.00B')
+  })
+
+  it('keeps values just below 1B in the M tier', () => {
+    expect(formatTokens(999_999_999)).toBe('1000.0M')
+  })
+
+  it('preserves the existing M/K/plain tier conventions', () => {
+    expect(formatTokens(5_400_000)).toBe('5.4M')
+    expect(formatTokens(5_400)).toBe('5.4K')
+    expect(formatTokens(540)).toBe('540')
+  })
+
+  it('adds thousands separators to costs at or above one dollar', () => {
+    expect(formatCost(26_114.04)).toBe('$26,114.04')
+    expect(formatCost(6)).toBe('$6.00')
+  })
+
+  it('keeps four-decimal precision for sub-dollar costs', () => {
+    expect(formatCost(0.37)).toBe('$0.3700')
+    expect(formatCost(0)).toBe('$0.0000')
   })
 })

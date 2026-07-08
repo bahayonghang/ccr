@@ -49,14 +49,20 @@ export type BuildUsageSummaryCardsInput = {
 }
 
 export const formatTokens = (value: number) =>
-  value >= 1e6
-    ? `${(value / 1e6).toFixed(1)}M`
-    : value >= 1e3
-      ? `${(value / 1e3).toFixed(1)}K`
-      : value.toString()
+  // 十亿级用 B 档并保留两位小数(12.53B),避免出现 12527.4M 这类难读数字;M/K 档维持一位小数
+  value >= 1e9
+    ? `${(value / 1e9).toFixed(2)}B`
+    : value >= 1e6
+      ? `${(value / 1e6).toFixed(1)}M`
+      : value >= 1e3
+        ? `${(value / 1e3).toFixed(1)}K`
+        : value.toString()
 
 export const formatCost = (value: number) =>
-  value >= 1 ? `$${value.toFixed(2)}` : `$${value.toFixed(4)}`
+  // ≥1 美元加千分位分隔(en-US,与硬编码的 $ 符号一致);<1 保持四位小数精度
+  value >= 1
+    ? `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    : `$${value.toFixed(4)}`
 
 export const formatPercent = (value: number) => `${(value * 100).toFixed(1)}%`
 
