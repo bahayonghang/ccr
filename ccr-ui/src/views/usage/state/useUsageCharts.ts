@@ -5,6 +5,7 @@ import {
   buildUsageDashboardPresentation,
   selectTrendGranularity,
   type TrendGranularity,
+  type UsageTrendSeriesItem,
 } from '../usageDashboardPresentation'
 import { getUsageRangePresetSpanDays, type UsageRangePreset } from '../dateWindow'
 import {
@@ -84,7 +85,19 @@ export const useUsageCharts = (params: {
 
   const trendBuckets = computed(() => dashboardPresentation.value.trendBuckets)
   const summaryCards = computed(() => dashboardPresentation.value.summaryCards)
-  const trendSeries = computed(() => dashboardPresentation.value.trendSeries)
+  // series 按值记忆化:presentation 的输入含 selectedWindowLabel 等纯文案,窗口切换时会
+  // 产出“值相同、引用全新”的 series 数组;vue3-apexcharts 对 series 是 deep watch,
+  // 引用一变就 updateSeries → ApexCharts 内部走全量 update(销毁重建 canvas 节点)。
+  // 值未变时复用上一引用拦截无效更新,真实数据变化仍走 updateSeries 快路径
+  // (与下方 labels 的 join key 记忆化同一思路)。
+  const trendSeriesKeyOf = (series: UsageTrendSeriesItem[]) =>
+    series
+      .map((item) => `${item.name}:${item.data.map((point) => `${point.x}=${point.y}`).join(',')}`)
+      .join('\n')
+  const trendSeries = computed<UsageTrendSeriesItem[]>((previous) => {
+    const next = dashboardPresentation.value.trendSeries
+    return previous && trendSeriesKeyOf(previous) === trendSeriesKeyOf(next) ? previous : next
+  })
   const cacheCreationTokens = computed(() =>
     (dashboardReady.value ? store.trends : []).reduce(
       (sum, item) => sum + item.cache_creation_tokens,
@@ -140,8 +153,16 @@ export const useUsageCharts = (params: {
 
   const modelDistribution = computed(() => dashboardPresentation.value.modelDistribution)
   const modelTokenDistribution = computed(() => dashboardPresentation.value.modelTokenDistribution)
-  const pieSeries = computed(() => dashboardPresentation.value.pieSeries)
-  const modelTokenPieSeries = computed(() => dashboardPresentation.value.modelTokenPieSeries)
+  // 数值序列同样按值记忆化,理由同 trendSeries(拦截“引用变、值没变”的无效 updateSeries)。
+  const memoizeNumberSeries = (source: () => number[]) =>
+    computed<number[]>((previous) => {
+      const next = source()
+      return previous && previous.join(',') === next.join(',') ? previous : next
+    })
+  const pieSeries = memoizeNumberSeries(() => dashboardPresentation.value.pieSeries)
+  const modelTokenPieSeries = memoizeNumberSeries(
+    () => dashboardPresentation.value.modelTokenPieSeries
+  )
 
   // 取色个数只取决于切片数量（与数值无关）：先用数量 computed 记忆化，
   // 数据刷新但切片数不变时 pieColors 不重算，引用稳定，不会拖脏 options。

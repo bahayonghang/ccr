@@ -172,6 +172,9 @@ const chartOptions = computed(() => ({
     fontFamily: 'inherit',
     toolbar: { show: false },
     animations: { enabled: false },
+    // 同 UsageTokensTab:关闭 parentResize 触发的全量重建,保住 KeepAlive 缓存的 canvas。
+    redrawOnParentResize: false,
+    redrawOnWindowResize: false,
   },
   theme: { mode: theme.value.mode },
   colors: [theme.value.warning],

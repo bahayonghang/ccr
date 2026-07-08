@@ -257,6 +257,10 @@ const chartOptions = computed(() => ({
     stacked: activeMode.value === 'breakdown',
     toolbar: { show: false },
     animations: { enabled: false },
+    // KeepAlive 重挂会触发 ApexCharts 的 parentResize 观察器,默认会全量 update 重建
+    // canvas,抵消缓存收益;与 usageChartOptions.ts 的 TREND/PIE 基座保持一致地关闭。
+    redrawOnParentResize: false,
+    redrawOnWindowResize: false,
   },
   theme: { mode: theme.value.mode },
   colors: chartColors.value,
