@@ -64,8 +64,7 @@
           type="button"
           class="usage-dashboard-toolbar__meta-trigger"
           :aria-expanded="metaOpen"
-          aria-haspopup="true"
-          @click.stop="metaOpen = !metaOpen"
+          @click="metaOpen = !metaOpen"
         >
           <SIcon
             name="Database"

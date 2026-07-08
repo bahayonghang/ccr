@@ -92,7 +92,11 @@
       </button>
     </div>
 
-    <div class="diagnostics-tab__ledger">
+    <!-- 骨架块本身 aria-hidden,加载状态经 aria-busy 暴露给辅助技术(含分页翻页)。 -->
+    <div
+      class="diagnostics-tab__ledger"
+      :aria-busy="ctx.logsLoading"
+    >
       <div class="diagnostics-tab__header diagnostics-tab__row">
         <div>
           {{ $t('usage.dashboard.table.time') }}

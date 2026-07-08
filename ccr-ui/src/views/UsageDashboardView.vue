@@ -242,7 +242,7 @@ const updateSelectedRange = (value: UsageRangePreset) => {
 
 const diagnosticsOpen = ref(false)
 
-// 费用结论卡拎出 cost 卡单独放大展示，其余 3 张沿用 UsageMetricCard 排进 5col 指标格。
+// 费用结论卡拎出 cost 卡单独放大展示，其余 3 张沿用 UsageMetricCard 排进右侧 2 列指标格。
 const costSummaryCard = computed(() => summaryCards.value.find((card) => card.id === 'cost') ?? null)
 const otherSummaryCards = computed(() => summaryCards.value.filter((card) => card.id !== 'cost'))
 
