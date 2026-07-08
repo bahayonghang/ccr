@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 31
-- **Last Active**: 2026-07-07
+- **Total Sessions**: 32
+- **Last Active**: 2026-07-08
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1405 | Active |
+| `journal-1.md` | ~1443 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 32 | 2026-07-08 | Claude/Codex Profiles 交互与视觉统一收尾(07-07-ui-profiles-unify) | `2abe9bf1`, `b40a9b65`, `3c200e08`, `e4e0063b`, `044431d3`, `b2deda96` | `dev` |
 | 31 | 2026-07-07 | 应用外壳与首页材质落地(07-07-ui-shell-home) | `84618ff6`, `e76add4a` | `dev` |
 | 30 | 2026-07-06 | TUI 用量统计跟随 profile:详情内嵌 provider 用量并下线独立 Usage tab | `cff8e272`, `0aa56481`, `83e0123d`, `09ba703e` | `dev` |
 | 29 | 2026-07-06 | TUI profile 优化 B+C：token 掩码显示与页面体验修复 | `107898fe`, `6ec7360b`, `5a903191`, `ee497777`, `0726b596` | `dev` |
