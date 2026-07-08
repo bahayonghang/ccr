@@ -597,6 +597,56 @@
     };
   }
 
+  // start_usage_import_job_v2 / get_usage_import_job_status_v2：手动点
+  // “刷新/导入 usage”触发。之前两条命令均未打桩，惰性兜底 resolve(null)：
+  //   - startImportJob 读 response.snapshot 直接抛 TypeError（stores/usage.ts:800）
+  //   - 即便 ①修好，ensureImportJobListeners 紧接着调用 getUsageImportJobStatusV2
+  //     再读 latest.status，同样对 null 抛错（stores/usage.ts:432-434）
+  // 两处都是终态判定用的只读查询，这里统一用 buildImportJobSnapshot 生成一份
+  // status='finished' 的快照：syncImportFeedbackFromJob 读到终态会立即把
+  // importing 置回 false，UI 不会卡在“导入中”。live/missing/deleted 复用当前
+  // VARIANT 的 archive 计数，保持与页面其余诊断信息一致。事件监听器仍然只是
+  // no-op 注册（本桩事件永不 emit，属既有行为，无需额外处理）。
+  function buildImportJobSnapshot(jobId, args) {
+    var diag = buildDiagnostics(VARIANT);
+    var now = new Date().toISOString();
+    return {
+      job_id: jobId,
+      status: "finished",
+      stage: "finished",
+      platform_scope: (args && args.platform) || "all",
+      recent_window_days: (args && args.recentDays) || 30,
+      files_total: 1,
+      files_scanned: 1,
+      files_imported: 1,
+      records_imported: 0,
+      records_skipped: 0,
+      history_cursor_hit: true,
+      live_sources: diag.archive.live_sources,
+      missing_sources: diag.archive.missing_sources,
+      deleted_sources: diag.archive.deleted_sources,
+      started_at: now,
+      updated_at: now,
+      recent_ready_at: now,
+      finished_at: now,
+      warnings: [],
+      results: [],
+    };
+  }
+
+  function handleStartImportJob(args) {
+    var jobId = "job-" + Date.now();
+    return {
+      job_id: jobId,
+      snapshot: buildImportJobSnapshot(jobId, args),
+    };
+  }
+
+  function handleImportJobStatus(args) {
+    var jobId = (args && args.jobId) || "job-unknown";
+    return buildImportJobSnapshot(jobId, args);
+  }
+
   // ══════════════════════════════════════════════════════════════════
   // 命令处理器：应用启动期非 usage 命令（消费方会解构字段，必须给非 null 形状）
   // ══════════════════════════════════════════════════════════════════
@@ -637,6 +687,12 @@
     },
     get_usage_logs_v2: function (args) {
       return handleLogs(args);
+    },
+    start_usage_import_job_v2: function (args) {
+      return handleStartImportJob(args);
+    },
+    get_usage_import_job_status_v2: function (args) {
+      return handleImportJobStatus(args);
     },
 
     // ── 应用外壳启动命令（解构字段，需非 null）──

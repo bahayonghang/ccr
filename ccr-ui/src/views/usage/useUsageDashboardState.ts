@@ -137,11 +137,13 @@ export const useUsageDashboardState = () => {
   const markFirstContentReadyAfterPaint = () => {
     if (firstContentMarked) return
 
-    cleanups.push(scheduleAfterPaint(() => {
-      if (firstContentMarked) return
-      firstContentMarked = true
-      perfMark('usage_first_content_ready')
-    }))
+    cleanups.push(
+      scheduleAfterPaint(() => {
+        if (firstContentMarked) return
+        firstContentMarked = true
+        perfMark('usage_first_content_ready')
+      })
+    )
   }
 
   const scheduleChartHydration = () => {
@@ -153,16 +155,22 @@ export const useUsageDashboardState = () => {
       return
     }
 
-    cleanups.push(scheduleAfterPaint(() => {
-      cleanups.push(scheduleWhenIdle(() => {
-        trendChartReady.value = true
-        perfMark('usage_trend_chart_gate_ready')
-        cleanups.push(scheduleWhenIdle(() => {
-          distributionChartReady.value = true
-          perfMark('usage_distribution_chart_gate_ready')
-        }))
-      }))
-    }))
+    cleanups.push(
+      scheduleAfterPaint(() => {
+        cleanups.push(
+          scheduleWhenIdle(() => {
+            trendChartReady.value = true
+            perfMark('usage_trend_chart_gate_ready')
+            cleanups.push(
+              scheduleWhenIdle(() => {
+                distributionChartReady.value = true
+                perfMark('usage_distribution_chart_gate_ready')
+              })
+            )
+          })
+        )
+      })
+    )
   }
 
   const showInstallDialog = ref(false)
@@ -248,10 +256,12 @@ export const useUsageDashboardState = () => {
       const firstVisit = !modelsChartVisited.value
       modelsChartVisited.value = true
       if (!distributionChartReady.value && dashboardReady.value) {
-        cleanups.push(scheduleWhenIdle(() => {
-          distributionChartReady.value = true
-          perfMark('usage_models_distribution_chart_gate_ready')
-        }))
+        cleanups.push(
+          scheduleWhenIdle(() => {
+            distributionChartReady.value = true
+            perfMark('usage_models_distribution_chart_gate_ready')
+          })
+        )
       } else if (firstVisit && dashboardReady.value) {
         perfMark('usage_models_distribution_chart_gate_ready')
       }
@@ -262,13 +272,16 @@ export const useUsageDashboardState = () => {
     void hydrateUsageLocale()
   })
 
-  watch([dashboardReady, () => store.dashboardUnsupported, () => store.hasNoUsageData], ([ready]) => {
-    if (ready) {
-      perfMark('usage_dashboard_ready')
-      markFirstContentReadyAfterPaint()
-      scheduleChartHydration()
+  watch(
+    [dashboardReady, () => store.dashboardUnsupported, () => store.hasNoUsageData],
+    ([ready]) => {
+      if (ready) {
+        perfMark('usage_dashboard_ready')
+        markFirstContentReadyAfterPaint()
+        scheduleChartHydration()
+      }
     }
-  })
+  )
 
   const handleOpsPrimaryAction = async (action: UsageOpsAction) => {
     if (action === 'import') {
@@ -280,10 +293,6 @@ export const useUsageDashboardState = () => {
       activeTab.value = 'logs'
       await logs.loadLogs('reset')
     }
-  }
-  const openDiagnostics = async () => {
-    activeTab.value = 'logs'
-    await logs.loadLogs('same')
   }
 
   let dashboardAutoRefreshActive = false
@@ -377,7 +386,6 @@ export const useUsageDashboardState = () => {
     showInstallDialog,
     store,
     handleOpsPrimaryAction,
-    openDiagnostics,
     shouldRenderTrendChart,
     shouldRenderDistributionChart,
     ...filters,

@@ -2625,6 +2625,7 @@ export default {
         platform: '平台',
         window: '窗口',
         pricing: '定价来源',
+        dataSource: '数据源',
       },
 
       tabs: {
@@ -2651,6 +2652,7 @@ export default {
         average: '平均',
         peak: '峰值',
         sparklineLabel: '{metric} 在 {window} 内的趋势',
+        periodOverPeriod: '较上一周期',
       },
       tokenStrip: {
         eyebrow: 'Token 构成',
@@ -2732,6 +2734,9 @@ export default {
           drilldown: '深钻能力',
           dimensions: '{count} 个维度',
           noDrilldown: '暂无维度',
+          liveLabel: '在档',
+          missingLabel: '缺失',
+          deletedLabel: '已删',
         },
         freshness: {
           fresh: '新鲜',
@@ -2742,6 +2747,10 @@ export default {
           live: 'live',
           degraded: 'degraded',
           missing: 'missing',
+        },
+        sourceStateHints: {
+          degraded: '该来源部分数据缺失，或已超过新鲜度窗口。',
+          missing: '暂无该来源的在档数据，导入后可恢复。',
         },
         actions: {
           import_usage: '导入 usage',
@@ -2759,6 +2768,8 @@ export default {
           hours: '{count}h 前',
           days: '{count}d 前',
         },
+        drawerTitle: 'Usage 诊断',
+        healthGridTitle: '快照健康',
       },
       cost: {
         eyebrow: '费用台账',

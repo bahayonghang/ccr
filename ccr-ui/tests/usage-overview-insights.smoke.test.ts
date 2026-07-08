@@ -102,7 +102,7 @@ describe('usage overview insight helpers', () => {
       ['window', '30 Days'],
       ['models', '3'],
       ['projects', '2'],
-      ['archive', 'L 2 · M 1 · D 0'],
+      ['archive', 'Live 2 · Missing 1 · Deleted 0'],
       ['archive-root', '.../archive/live'],
       ['archive-time', expect.any(String)],
     ])

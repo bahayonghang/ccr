@@ -1,7 +1,6 @@
 <!-- eslint-disable vue/no-template-shadow -->
 <template>
   <div class="usage-page">
-    <div class="usage-page__ambient" />
     <div class="usage-shell">
       <UsageDashboardToolbar
         :selected-platform="selectedPlatform"
@@ -9,24 +8,11 @@
         :import-button-label="importButtonLabel"
         :importing="store.importing"
         :runtime-unavailable="runtimeUnavailable"
+        :meta-items="!runtimeUnavailable && dashboardReady ? dashboardMetaItems : []"
         @update:selected-platform="updateSelectedPlatform"
         @update:selected-range="updateSelectedRange"
         @import="doImport"
       />
-
-      <div
-        v-if="!runtimeUnavailable && dashboardReady && dashboardMetaItems.length > 0"
-        class="usage-header-meta"
-      >
-        <span
-          v-for="item in dashboardMetaItems"
-          :key="item.id"
-          class="usage-header-meta__chip"
-        >
-          <span class="usage-header-meta__label">{{ item.label }}</span>
-          <strong class="usage-header-meta__value">{{ item.value }}</strong>
-        </span>
-      </div>
 
       <AsyncStatePanel
         v-if="runtimeUnavailable"
@@ -39,29 +25,36 @@
       />
 
       <template v-else>
-        <UsageOpsCockpit
+        <UsageStaleBanner
           v-if="dashboardReady"
           :presentation="opsCockpit"
           @primary-action="handleOpsPrimaryAction"
-          @secondary-action="openDiagnostics"
+          @secondary-action="diagnosticsOpen = true"
         />
 
         <section
-          v-if="dashboardReady && summaryCards.length > 0"
-          class="usage-summary-grid"
+          v-if="dashboardReady && costSummaryCard"
+          class="usage-hero-row"
         >
-          <UsageMetricCard
-            v-for="card in summaryCards"
-            :key="card.id"
-            :card="card"
-          />
-        </section>
+          <UsageCostConclusionCard :card="costSummaryCard">
+            <UsageTokenBreakdownStrip
+              v-if="store.summary"
+              :summary="store.summary"
+              :cache-creation-tokens="cacheCreationTokens"
+            />
+          </UsageCostConclusionCard>
 
-        <UsageTokenBreakdownStrip
-          v-if="dashboardReady && store.summary"
-          :summary="store.summary"
-          :cache-creation-tokens="cacheCreationTokens"
-        />
+          <div
+            v-if="otherSummaryCards.length > 0"
+            class="usage-metric-grid"
+          >
+            <UsageMetricCard
+              v-for="card in otherSummaryCards"
+              :key="card.id"
+              :card="card"
+            />
+          </div>
+        </section>
 
         <div class="usage-workspace-switcher">
           <div class="usage-tabs">
@@ -142,20 +135,28 @@
       v-model:is-open="showInstallDialog"
       @retry-import="doImportAfterInstall"
     />
+
+    <UsageDiagnosticsDrawer
+      v-model="diagnosticsOpen"
+      :presentation="opsCockpit"
+      @refresh="doImport"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, defineAsyncComponent, type Component } from 'vue'
+import { computed, defineAsyncComponent, ref, type Component } from 'vue'
 import AsyncStatePanel from '@/components/ui/AsyncStatePanel.vue'
+import UsageCostConclusionCard from '@/components/usage/UsageCostConclusionCard.vue'
 import UsageDashboardToolbar from '@/components/usage/UsageDashboardToolbar.vue'
+import UsageDiagnosticsDrawer from '@/components/usage/UsageDiagnosticsDrawer.vue'
 import UsageLogsTab from '@/components/usage/UsageLogsTab.vue'
 import UsageMetricCard from '@/components/usage/UsageMetricCard.vue'
 import UsageModelsTab from '@/components/usage/UsageModelsTab.vue'
-import UsageOpsCockpit from '@/components/usage/UsageOpsCockpit.vue'
 import UsageOverviewTab from '@/components/usage/UsageOverviewTab.vue'
 import UsageProjectsTab from '@/components/usage/UsageProjectsTab.vue'
 import UsageProvidersTab from '@/components/usage/UsageProvidersTab.vue'
+import UsageStaleBanner from '@/components/usage/UsageStaleBanner.vue'
 import UsageTokenBreakdownStrip from '@/components/usage/UsageTokenBreakdownStrip.vue'
 import type { UsageRangePreset } from './usage/dateWindow'
 import { perfMark, perfMeasure } from '@/utils/perfTelemetry'
@@ -214,7 +215,6 @@ const {
   importButtonLabel,
   handleOpsPrimaryAction,
   onFilterChange,
-  openDiagnostics,
   opsCockpit,
   runtimeUnavailable,
   selectedPlatform,
@@ -240,6 +240,12 @@ const updateSelectedRange = (value: UsageRangePreset) => {
   onFilterChange()
 }
 
+const diagnosticsOpen = ref(false)
+
+// 费用结论卡拎出 cost 卡单独放大展示，其余 3 张沿用 UsageMetricCard 排进 5col 指标格。
+const costSummaryCard = computed(() => summaryCards.value.find((card) => card.id === 'cost') ?? null)
+const otherSummaryCards = computed(() => summaryCards.value.filter((card) => card.id !== 'cost'))
+
 // usage 域 provide/inject 上下文：7 个 tab 子组件 inject 取用，替代逐 tab 8~20 个 props 透传。
 provideUsageDashboardContext(
   createUsageDashboardContext(usage, {
@@ -263,16 +269,6 @@ const runtimeCopy = computed(() => getRuntimeUnavailableCopy('usage'))
   padding: 1rem 1rem 1.5rem;
 }
 
-.usage-page__ambient {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(circle at 12% 0%, rgb(var(--color-accent-primary-rgb) / 8%), transparent 28%),
-    radial-gradient(circle at 100% 18%, rgb(var(--color-premium-blue-rgb) / 18%), transparent 34%);
-  opacity: 0.7;
-}
-
 .usage-shell {
   position: relative;
   z-index: 1;
@@ -283,39 +279,18 @@ const runtimeCopy = computed(() => getRuntimeUnavailableCopy('usage'))
   gap: 0.85rem;
 }
 
-.usage-header-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
-}
-
-.usage-header-meta__chip {
-  display: inline-flex;
-  min-height: 1.8rem;
-  align-items: center;
-  gap: 0.45rem;
-  border-radius: 9999px;
-  border: 1px solid rgb(var(--color-border-default-rgb) / 28%);
-  background: rgb(var(--color-bg-elevated-rgb) / 66%);
-  padding: 0.28rem 0.7rem;
-  color: var(--color-text-secondary);
-}
-
-.usage-header-meta__label {
-  font-size: 0.68rem;
-  letter-spacing: 0.04em;
-}
-
-.usage-header-meta__value {
-  color: var(--color-text-primary);
-  font-size: 0.78rem;
-  font-weight: 600;
-}
-
-.usage-summary-grid {
+.usage-hero-row {
   display: grid;
   gap: 0.8rem;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  align-items: stretch;
+}
+
+.usage-metric-grid {
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: start;
 }
 
 .usage-workspace-switcher {
@@ -395,13 +370,13 @@ td {
 }
 
 @media (width < 1280px) {
-  .usage-summary-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .usage-hero-row {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
 @media (width < 900px) {
-  .usage-summary-grid {
+  .usage-metric-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 

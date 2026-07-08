@@ -27,8 +27,54 @@
 5. [x] Sparkline 三合一,删两份旧实现。
    - 验证:`rg -l "usage/SparkLine|UsageSparkline"` 零引用;涉及卡片截图正常。
    - 已完成(commit 01509644):components/ui/Sparkline.vue 唯一实现;UsageMetricCard/ProfilesStatStrip 已迁移;rg 零残留;指标卡 SVG 渲染回归通过。
-6. [ ] 第一屏重排(design.md §5):指标卡上移首行、cockpit 拆为 StaleBanner + 诊断抽屉、L/M/D 人话化、degraded 解释与动作、空告警隐藏、meta popover、去 ambient。
+6. [x] 第一屏重排(design.md §5):指标卡上移首行、cockpit 拆为 StaleBanner + 诊断抽屉、L/M/D 人话化、degraded 解释与动作、空告警隐藏、meta popover、去 ambient。
    - 验证:1920/1280/900px 三档截图;stale 与健康两种状态截图;i18n 齐全。
+   - 已完成(未提交):UsageOpsCockpit.vue(449行)删除,拆为 UsageStaleBanner.vue(仅
+     state≠'ready' 时渲染的单行横幅)+ UsageDiagnosticsDrawer.vue(包 BaseModal,装健康格
+     +来源明细+告警,alerts 为空时整节不渲染)+ UsageCostConclusionCard.vue(费用结论卡,
+     slot 内嵌 TokenBreakdownStrip)。UsageDashboardView.vue 首屏改
+     `.usage-hero-row`(7fr/5fr grid):左结论卡,右 `.usage-metric-grid` 装剩余 3 张
+     UsageMetricCard(tokens/activeDays/requests,cost 已挪进结论卡)。断点:
+     <1280px hero-row 转 1fr 纵向堆叠,<900px metric-grid 转 1fr 单列。
+     L/M/D 人话化:usageOverviewInsights.ts 新增 formatSourceCounts()(三个独立
+     词条 liveLabel/missingLabel/deletedLabel 拼接,不用 ICU 占位符),替换
+     usageOpsCockpit.ts 两处 + buildDashboardMetaItems 的 archive chip 一处裸
+     `L/M/D` 拼接;抽屉与 toolbar 数据源 popover 内实测均为 "Live 1 · Missing 1 ·
+     Deleted 0"/"在档 2,053 · 缺失 2,829 · 已删 0"。degraded/missing 来源卡新增
+     `hint` 字段(i18n sourceStateHints.degraded/missing)+ 行内"刷新 usage"按钮,
+     emit `refresh` 冒泡到 doImport。meta chips 迁入 UsageDashboardToolbar.vue 新增
+     `metaItems` prop 驱动的"数据源"popover(点击外部/Escape 关闭,模式参考
+     EnvironmentSwitcher.vue 但按钮语义改 role="group"+aria-label,非 dialog)。
+     `.usage-page__ambient` 径向渐变层整段删除。openDiagnostics 因唯一调用方改为
+     直接开抽屉而从 useUsageDashboardState.ts 移除;handleOpsPrimaryAction 的
+     'diagnostics' 分支(needs_session_index 等状态下跳 Logs tab 走修复流程)保持不动。
+     新增 i18n key(zh/en 成对):ops.health.liveLabel/missingLabel/deletedLabel、
+     ops.sourceStateHints.degraded/missing、ops.drawerTitle、ops.healthGridTitle、
+     toolbar.dataSource、cards.periodOverPeriod。
+   - 验证记录:`just frontend-check-quick` 全绿(type-check/lint:ci/test:i18n 23/23/
+     test:smoke 372/372,含新增 usage-stale-banner.smoke.test.ts +
+     usage-diagnostics-drawer.smoke.test.ts,删除并拆分原 usage-ops-cockpit.smoke.test.ts)。
+     用 `.trellis/tasks/07-07-ui-usage-dashboard/research/perf-harness/tauri-shim.js`
+     注入 Playwright,`ccr-ui-web`(15173)起服务,实测 1920/1280/1200/900/850px ×
+     stale/健康 两态:健康态横幅不渲染、结论卡+指标格并排正确、<1280 纵向堆叠、
+     <900 指标格转单列均在 1200/850 px 处实测确认(1280/900 整数边界处仍是断点未触发前
+     的状态,符合 `width < N` 语义);stale 态横幅一句话+相对时间+两按钮、点开诊断抽屉见
+     人话化健康格与 Codex(degraded)/Antigravity(missing)/Claude(live)三来源卡、
+     Antigravity 无告警数据时"运维告警"整节不渲染(非空列表兜底文案)。截图存档于
+     `research/layout-item6/`。frontend-quality-reviewer 复核后修了两处:toolbar
+     popover 的 `role="dialog"` 缺 aria-modal/labelledby 改为 `role="group"` +
+     aria-label;UsageCostConclusionCard 补全遗漏的 `.usage-cost-conclusion--sand`
+     tone 规则(此前靠基类默认值巧合渲染正确)。追加修复:手动点"刷新 usage"此前在浏览器
+     测试桩下报 `TypeError: Cannot read properties of null (reading 'snapshot')`,
+     溯源到 `stores/usage.ts:800`(`start_usage_import_job_v2` 桩未覆盖导致
+     `response` 为 null;修完后暴露第二处同源缺口:`ensureImportJobListeners` 紧接着调
+     `get_usage_import_job_status_v2` 读 `.status`,同样未打桩)——两处均为测试桩缺口,
+     `stores/usage.ts` 本身本轮未改动。已在 `research/perf-harness/tauri-shim.js` 补
+     `buildImportJobSnapshot()` 统一构造 `status:'finished'` 快照,两条命令共用;
+     Playwright 复测点击链路(打开抽屉→点 Codex 卡"刷新 usage")0 console error,
+     两条命令均按预期参数被调用。另,复核发现 `usage.dashboard.ops.sourcesHint` 仍是未人话化的
+     `'live / missing / deleted'` 裸英文,已在抽屉的"来源健康"小节标题旁展示,与本项
+     "人话化"精神相悖但属既有代码、本项未触碰,留作后续小任务。
 6b. [x] formatTokens/formatCost 格式化升级(≥1B 用 B、千分位)。
    - 验证:12527.4M → 12.53B;$26,114.04;既有单测/快照更新。
    - 已完成(commit 03ff641d):smoke 9/9 通过,首屏实测 12.53B / $26,114.04。

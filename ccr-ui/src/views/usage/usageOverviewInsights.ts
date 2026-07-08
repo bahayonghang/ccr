@@ -6,7 +6,7 @@ import { formatCost, formatPercent, formatTokens } from './usageSummaryCards'
 export type UsageDashboardTranslate = (
   key: string,
   values: Record<string, number | string> | undefined,
-  fallback: string,
+  fallback: string
 ) => string
 
 export type DashboardMetaItem = {
@@ -38,16 +38,30 @@ export const shortenPath = (path: string) => {
   return parts.length > 2 ? `.../${parts.slice(-2).join('/')}` : path
 }
 
-export const formatDateTime = (value: string, locale: string) => new Date(value).toLocaleString(locale)
+export const formatDateTime = (value: string, locale: string) =>
+  new Date(value).toLocaleString(locale)
 
 export const formatArchiveTimestamp = (value: string | null | undefined, locale: string) => {
   if (!value) return '—'
   return formatDateTime(value, locale)
 }
 
+// 人话化来源计数：替代开发者速记 "L 2,053 · M 2,829 · D 0"，主层与抽屉统一走这个格式。
+export const formatSourceCounts = (
+  live: number,
+  missing: number,
+  deleted: number,
+  translate: UsageDashboardTranslate
+) =>
+  [
+    `${translate('usage.dashboard.ops.health.liveLabel', undefined, 'Live')} ${live.toLocaleString()}`,
+    `${translate('usage.dashboard.ops.health.missingLabel', undefined, 'Missing')} ${missing.toLocaleString()}`,
+    `${translate('usage.dashboard.ops.health.deletedLabel', undefined, 'Deleted')} ${deleted.toLocaleString()}`,
+  ].join(' · ')
+
 export const buildSelectedPlatformLabel = (
   selectedPlatform: string,
-  translate: UsageDashboardTranslate,
+  translate: UsageDashboardTranslate
 ) => {
   if (!selectedPlatform) {
     return translate('usage.dashboard.allPlatforms', undefined, 'All Platforms')
@@ -63,13 +77,13 @@ export const buildSelectedPlatformLabel = (
   return translate(
     `usage.platforms.${selectedPlatform}`,
     undefined,
-    fallbackLabels[selectedPlatform] ?? selectedPlatform,
+    fallbackLabels[selectedPlatform] ?? selectedPlatform
   )
 }
 
 export const buildSelectedWindowLabel = (
   selectedRange: UsageRangePreset,
-  translate: UsageDashboardTranslate,
+  translate: UsageDashboardTranslate
 ) => {
   const labels: Record<UsageRangePreset, { key: string; fallback: string }> = {
     today: { key: 'usage.dashboard.range.today', fallback: 'Today' },
@@ -126,7 +140,12 @@ export const buildDashboardMetaItems = ({
     id: 'archive',
     label: 'Archive',
     value: archive
-      ? `L ${archive.live_sources} · M ${archive.missing_sources} · D ${archive.deleted_sources}`
+      ? formatSourceCounts(
+          archive.live_sources,
+          archive.missing_sources,
+          archive.deleted_sources,
+          translate
+        )
       : '—',
   },
   {
@@ -174,7 +193,7 @@ export const buildOverviewHighlights = ({
           points: trendBuckets.length,
           window: selectedWindowLabel,
         },
-        `${trendBuckets.length} points across ${selectedWindowLabel}`,
+        `${trendBuckets.length} points across ${selectedWindowLabel}`
       ),
     },
     {
@@ -207,7 +226,7 @@ export const buildOverviewHighlights = ({
             {
               percent: formatPercent(summary.cache_efficiency),
             },
-            `Cache reuse ${formatPercent(summary.cache_efficiency)}`,
+            `Cache reuse ${formatPercent(summary.cache_efficiency)}`
           )
         : translate('usage.dashboard.table.noData', undefined, 'No data'),
     },
@@ -216,7 +235,7 @@ export const buildOverviewHighlights = ({
 
 export const buildTopModelRankings = (
   modelStats: ModelStat[],
-  translate: UsageDashboardTranslate,
+  translate: UsageDashboardTranslate
 ): OverviewRankItem[] => {
   const totalCost = modelStats.reduce((sum, item) => sum + modelCost(item), 0)
 
@@ -225,7 +244,7 @@ export const buildTopModelRankings = (
       (left, right) =>
         modelCost(right) - modelCost(left) ||
         right.total_tokens - left.total_tokens ||
-        right.request_count - left.request_count,
+        right.request_count - left.request_count
     )
     .slice(0, 5)
     .map((item) => ({
@@ -240,7 +259,7 @@ export const buildTopModelRankings = (
 
 export const buildTopProjectRankings = (
   projectStats: ProjectStat[],
-  translate: UsageDashboardTranslate,
+  translate: UsageDashboardTranslate
 ): OverviewRankItem[] => {
   const totalCost = projectStats.reduce((sum, item) => sum + item.total_cost, 0)
 
@@ -249,7 +268,7 @@ export const buildTopProjectRankings = (
       (left, right) =>
         right.total_cost - left.total_cost ||
         right.total_tokens - left.total_tokens ||
-        right.request_count - left.request_count,
+        right.request_count - left.request_count
     )
     .slice(0, 5)
     .map((item) => ({

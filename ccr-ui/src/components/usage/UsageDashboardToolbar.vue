@@ -55,6 +55,48 @@
         {{ $t('usage.dashboard.toolbar.pricing') }}
       </a>
 
+      <div
+        v-if="metaItems.length > 0"
+        ref="metaRootRef"
+        class="usage-dashboard-toolbar__meta"
+      >
+        <button
+          type="button"
+          class="usage-dashboard-toolbar__meta-trigger"
+          :aria-expanded="metaOpen"
+          aria-haspopup="true"
+          @click.stop="metaOpen = !metaOpen"
+        >
+          <SIcon
+            name="Database"
+            size="w-3.5 h-3.5"
+          />
+          <span>{{ $t('usage.dashboard.toolbar.dataSource') }}</span>
+          <SIcon
+            name="ChevronDown"
+            size="w-3 h-3"
+            class="usage-dashboard-toolbar__meta-chevron"
+            :class="{ 'usage-dashboard-toolbar__meta-chevron--open': metaOpen }"
+          />
+        </button>
+
+        <div
+          v-if="metaOpen"
+          class="usage-dashboard-toolbar__meta-popover"
+          role="group"
+          :aria-label="$t('usage.dashboard.toolbar.dataSource')"
+        >
+          <span
+            v-for="item in metaItems"
+            :key="item.id"
+            class="usage-dashboard-toolbar__meta-chip"
+          >
+            <span class="usage-dashboard-toolbar__meta-label">{{ item.label }}</span>
+            <strong class="usage-dashboard-toolbar__meta-value">{{ item.value }}</strong>
+          </span>
+        </div>
+      </div>
+
       <Button
         variant="glass"
         density="compact"
@@ -71,8 +113,11 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted, onUnmounted, ref } from 'vue'
 import Button from '@/components/ui/Button.vue'
+import SIcon from '@/components/ui/SIcon.vue'
 import type { UsageRangePreset } from '@/views/usage/dateWindow'
+import type { DashboardMetaItem } from '@/views/usage/usageOverviewInsights'
 
 interface Props {
   selectedPlatform: string
@@ -80,6 +125,7 @@ interface Props {
   importButtonLabel: string
   importing: boolean
   runtimeUnavailable: boolean
+  metaItems: DashboardMetaItem[]
 }
 
 const props = defineProps<Props>()
@@ -89,6 +135,29 @@ const emit = defineEmits<{
   'update:selectedRange': [value: UsageRangePreset]
   import: []
 }>()
+
+const metaOpen = ref(false)
+const metaRootRef = ref<HTMLElement | null>(null)
+
+const handleClickOutside = (event: MouseEvent) => {
+  if (!metaRootRef.value?.contains(event.target as Node)) {
+    metaOpen.value = false
+  }
+}
+
+const handleEscape = (event: KeyboardEvent) => {
+  if (event.key === 'Escape') metaOpen.value = false
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+  document.addEventListener('keydown', handleEscape)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+  document.removeEventListener('keydown', handleEscape)
+})
 
 const rangeOptions: Array<{ value: UsageRangePreset; key: string }> = [
   { value: 'today', key: 'usage.dashboard.range.today' },
@@ -256,6 +325,81 @@ const emitRange = (value: UsageRangePreset) => {
   color: var(--color-text-primary);
 }
 
+.usage-dashboard-toolbar__meta {
+  position: relative;
+}
+
+.usage-dashboard-toolbar__meta-trigger {
+  display: inline-flex;
+  min-height: 2.5rem;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid rgb(var(--color-border-default-rgb) / 14%);
+  border-radius: 9999px;
+  background: rgb(var(--color-bg-elevated-rgb) / 46%);
+  padding: 0 0.78rem;
+  color: var(--color-text-secondary);
+  font-size: 0.78rem;
+  font-weight: 700;
+  transition:
+    color var(--motion-subtle-duration) var(--motion-subtle-ease),
+    background-color var(--motion-subtle-duration) var(--motion-subtle-ease),
+    border-color var(--motion-subtle-duration) var(--motion-subtle-ease);
+}
+
+.usage-dashboard-toolbar__meta-trigger:hover {
+  border-color: rgb(var(--color-accent-primary-rgb) / 18%);
+  color: var(--color-text-primary);
+}
+
+.usage-dashboard-toolbar__meta-chevron {
+  transition: transform var(--motion-subtle-duration) var(--motion-subtle-ease);
+}
+
+.usage-dashboard-toolbar__meta-chevron--open {
+  transform: rotate(180deg);
+}
+
+.usage-dashboard-toolbar__meta-popover {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.4rem);
+  z-index: var(--layer-dropdown);
+  display: flex;
+  width: max-content;
+  max-width: 22rem;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  border-radius: 1.1rem;
+  border: 1px solid rgb(var(--color-border-default-rgb) / 16%);
+  background: var(--color-bg-elevated);
+  padding: 0.65rem;
+  box-shadow: var(--elevation-3);
+}
+
+.usage-dashboard-toolbar__meta-chip {
+  display: inline-flex;
+  min-height: 1.8rem;
+  align-items: center;
+  gap: 0.45rem;
+  border-radius: 9999px;
+  border: 1px solid rgb(var(--color-border-default-rgb) / 28%);
+  background: rgb(var(--color-bg-surface-rgb) / 66%);
+  padding: 0.28rem 0.7rem;
+  color: var(--color-text-secondary);
+}
+
+.usage-dashboard-toolbar__meta-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+}
+
+.usage-dashboard-toolbar__meta-value {
+  color: var(--color-text-primary);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
 @media (width < 1180px) {
   .usage-dashboard-toolbar {
     align-items: flex-start;
@@ -273,8 +417,21 @@ const emitRange = (value: UsageRangePreset) => {
   .usage-dashboard-toolbar__field--segmented,
   .usage-dashboard-toolbar__select,
   .usage-dashboard-toolbar__segments,
-  .usage-dashboard-toolbar__pricing-link {
+  .usage-dashboard-toolbar__pricing-link,
+  .usage-dashboard-toolbar__meta,
+  .usage-dashboard-toolbar__meta-trigger {
     width: 100%;
+  }
+
+  .usage-dashboard-toolbar__meta-trigger {
+    justify-content: space-between;
+  }
+
+  .usage-dashboard-toolbar__meta-popover {
+    right: 0;
+    left: 0;
+    width: auto;
+    max-width: none;
   }
 
   .usage-dashboard-toolbar__segments {

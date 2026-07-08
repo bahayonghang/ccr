@@ -2733,6 +2733,7 @@ export default {
         platform: 'Platform',
         window: 'Window',
         pricing: 'Pricing source',
+        dataSource: 'Data sources',
       },
       tabs: {
         overview: 'Overview',
@@ -2757,6 +2758,7 @@ export default {
         average: 'Average',
         peak: 'Peak',
         sparklineLabel: '{metric} trend for {window}',
+        periodOverPeriod: 'vs. previous period',
       },
       tokenStrip: {
         eyebrow: 'Token Composition',
@@ -2842,6 +2844,9 @@ export default {
           drilldown: 'Drilldown',
           dimensions: '{count} dimensions',
           noDrilldown: 'No dimensions yet',
+          liveLabel: 'Live',
+          missingLabel: 'Missing',
+          deletedLabel: 'Deleted',
         },
         freshness: {
           fresh: 'fresh',
@@ -2852,6 +2857,10 @@ export default {
           live: 'live',
           degraded: 'degraded',
           missing: 'missing',
+        },
+        sourceStateHints: {
+          degraded: 'Some sessions for this source are missing or older than the freshness window.',
+          missing: 'No live data for this source yet — import to restore it.',
         },
         actions: {
           import_usage: 'Import usage',
@@ -2869,6 +2878,8 @@ export default {
           hours: '{count}h ago',
           days: '{count}d ago',
         },
+        drawerTitle: 'Usage diagnostics',
+        healthGridTitle: 'Snapshot health',
       },
       cost: {
         eyebrow: 'Cost Ledger',
