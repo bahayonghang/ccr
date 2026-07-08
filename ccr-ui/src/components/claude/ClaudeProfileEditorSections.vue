@@ -150,7 +150,12 @@
       </div>
 
       <div class="mt-5 editor-panel-muted rounded-xl p-4">
-        <div class="flex items-start gap-3">
+        <button
+          type="button"
+          class="flex w-full items-start gap-3 text-left"
+          :aria-expanded="advancedExpanded"
+          @click="advancedExpanded = !advancedExpanded"
+        >
           <span class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center">
             <SIcon
               name="Sparkles"
@@ -158,16 +163,31 @@
             />
           </span>
           <div class="min-w-0 flex-1">
-            <span class="block text-sm font-semibold text-text-primary">
+            <span class="flex flex-wrap items-center gap-2 text-sm font-semibold text-text-primary">
               {{ $t('claudeProfiles.advancedModelsTitle') }}
+              <span
+                v-if="advancedFieldsFilledCount > 0"
+                class="editor-tag rounded-full px-2 py-0.5 text-[11px] font-normal text-text-secondary"
+              >
+                {{ $t('claudeProfiles.advancedModelsConfiguredCount', { count: advancedFieldsFilledCount }) }}
+              </span>
             </span>
             <span class="mt-1 block text-xs leading-5 text-text-muted">
               {{ $t('claudeProfiles.advancedModelsDescription') }}
             </span>
           </div>
-        </div>
+          <SIcon
+            name="ChevronDown"
+            size="w-4 h-4"
+            class="mt-1 shrink-0 text-text-muted transition-transform duration-200"
+            :class="advancedExpanded ? 'rotate-180' : ''"
+          />
+        </button>
 
-        <div class="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div
+          v-show="advancedExpanded"
+          class="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2"
+        >
           <div>
             <label
               for="claude-profile-default-opus-model"
@@ -754,6 +774,31 @@ const { t } = useI18n()
 const uiStore = useUIStore()
 const showAuthToken = ref(false)
 
+// 高级模型映射分组的渐进披露：默认折叠，编辑已有值时自动展开。
+const ADVANCED_FIELD_KEYS = [
+  'default_opus_model',
+  'default_sonnet_model',
+  'default_haiku_model',
+  'default_fable_model',
+  'default_opus_model_name',
+  'default_sonnet_model_name',
+  'default_haiku_model_name',
+  'default_fable_model_name',
+  'subagent_model',
+  'custom_model_option',
+  'custom_model_option_name',
+  'claude_code_auto_compact_window',
+  'api_timeout_ms',
+  'claude_code_disable_nonessential_traffic',
+  'effort_level',
+] as const satisfies readonly (keyof ClaudeProfileEditorForm)[]
+
+const advancedFieldsFilledCount = computed(() =>
+  ADVANCED_FIELD_KEYS.filter((key) => String(props.form[key] ?? '').trim() !== '').length,
+)
+
+const advancedExpanded = ref(advancedFieldsFilledCount.value > 0)
+
 // 「API-key 形态」判定，与后端 is_api_key_shaped 对齐：
 // provider_type=third_party_model，或 base_url 与 auth_token 同时非空。
 const isApiKeyShaped = computed(() =>
@@ -792,5 +837,6 @@ async function copyAuthToken() {
 
 watch(() => props.editingName, () => {
   showAuthToken.value = false
+  advancedExpanded.value = advancedFieldsFilledCount.value > 0
 })
 </script>
