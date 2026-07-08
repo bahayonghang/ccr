@@ -233,3 +233,243 @@ export const buildTrendTooltipHtml = ({
 
   return `<div class="usage-chart-tooltip"><div class="usage-chart-tooltip__title">${escapeTooltipText(label)}</div>${rows}<div class="usage-chart-tooltip__row usage-chart-tooltip__row--cost"><span>${escapeTooltipText(costLabel)}</span><strong>${formatCost(bucket.costUsd)}</strong></div></div>`
 }
+
+// ============ 图表静态骨架（模块级冻结常量）============
+// 这些片段既不含主题色也不含数据，跨渲染共享同一引用。ApexCharts 内部会深拷贝 options，
+// 因此冻结既能表达“静态骨架”的意图，又能拦截意外的原地修改。
+const TREND_CHART_BASE = Object.freeze({
+  background: 'transparent',
+  fontFamily: 'inherit',
+  parentHeightOffset: 0,
+  redrawOnParentResize: false,
+  redrawOnWindowResize: false,
+  animations: { enabled: false },
+  toolbar: { show: false },
+})
+const TREND_MARKERS = Object.freeze({ size: 0, hover: { size: 0, sizeOffset: 0 } })
+const TREND_STROKE = Object.freeze({ curve: 'smooth' as const, width: 2.2 })
+const TREND_FILL = Object.freeze({
+  type: 'gradient',
+  gradient: { opacityFrom: 0.32, opacityTo: 0.04 },
+})
+const TREND_DATA_LABELS = Object.freeze({ enabled: false })
+const TREND_AXIS_BORDER = Object.freeze({ show: false })
+
+const PIE_CHART_BASE = Object.freeze({
+  background: 'transparent',
+  fontFamily: 'inherit',
+  parentHeightOffset: 0,
+  redrawOnParentResize: false,
+  redrawOnWindowResize: false,
+  animations: { enabled: false },
+})
+const PIE_LEGEND = Object.freeze({ show: false })
+const PIE_DATA_LABEL_STYLE = Object.freeze({ fontSize: '11px', fontWeight: 600 })
+const PIE_DATA_LABEL_DROP_SHADOW = Object.freeze({ enabled: false })
+
+// 趋势图 options 工厂：只注入主题色、坐标轴标量（tickAmount/granularity）、系列名与格式化闭包。
+// buckets 走 getBuckets 取值器而非快照——tooltip 闭包在渲染时才读当前数据，
+// options 因此无需随数据刷新重建（详见 useUsageCharts 的记忆化说明）。
+export interface TrendChartOptionsInput {
+  theme: ChartThemeState
+  locale: string
+  granularity: TrendGranularity
+  tickAmount: number | undefined
+  seriesNames: string[]
+  costLabel: string
+  getBuckets: () => DisplayUsageTrendBucket[]
+  formatTokens: (value: number) => string
+  formatCost: (value: number) => string
+}
+
+export const buildTrendChartOptions = ({
+  theme,
+  locale,
+  granularity,
+  tickAmount,
+  seriesNames,
+  costLabel,
+  getBuckets,
+  formatTokens,
+  formatCost,
+}: TrendChartOptionsInput) => ({
+  chart: TREND_CHART_BASE,
+  theme: { mode: theme.mode },
+  colors: [theme.inputToken, theme.outputToken, theme.cacheReadToken],
+  xaxis: {
+    type: 'datetime' as const,
+    tickAmount,
+    labels: {
+      style: { colors: theme.textMuted, fontSize: '11px' },
+      datetimeUTC: false,
+      formatter: (_value: string, timestamp?: number) => {
+        if (timestamp == null) return ''
+        return formatTrendAxisLabel(timestamp, granularity, locale)
+      },
+    },
+    axisBorder: TREND_AXIS_BORDER,
+    axisTicks: { color: theme.grid },
+  },
+  yaxis: [
+    {
+      seriesName: seriesNames[0],
+      labels: {
+        style: { colors: theme.textMuted },
+        formatter: (value: number) => formatTokens(value),
+      },
+    },
+    {
+      seriesName: seriesNames[1],
+      opposite: true,
+      showAlways: true,
+      labels: {
+        style: { colors: theme.textMuted },
+        formatter: (value: number) => formatTokens(value),
+      },
+    },
+    {
+      seriesName: seriesNames[2],
+      show: false,
+      labels: {
+        style: { colors: theme.textMuted },
+        formatter: (value: number) => formatTokens(value),
+      },
+    },
+  ],
+  markers: TREND_MARKERS,
+  stroke: TREND_STROKE,
+  fill: TREND_FILL,
+  dataLabels: TREND_DATA_LABELS,
+  tooltip: {
+    theme: theme.mode,
+    shared: true,
+    intersect: false,
+    custom: (context: ApexCustomTooltipContext) =>
+      buildTrendTooltipHtml({
+        context,
+        buckets: getBuckets(),
+        granularity,
+        locale,
+        seriesNames,
+        fallbackColor: theme.primary,
+        costLabel,
+        formatTokens,
+        formatCost,
+      }),
+    x: {
+      // ApexCharts 把 formatter 的 context 类型标成 any，这里收口到本地 ApexFormatterContext。
+      formatter: (_value: string, context: ApexFormatterContext) => {
+        const bucket = getBuckets()[context?.dataPointIndex ?? -1]
+        if (!bucket) return _value
+        return formatTrendTooltipLabel(bucket.startDate, bucket.displayEndDate, granularity, locale)
+      },
+    },
+  },
+  grid: {
+    borderColor: theme.grid,
+    strokeDashArray: 4,
+    padding: { left: 4, right: 6, bottom: 2, top: 6 },
+  },
+  legend: {
+    show: true,
+    showForSingleSeries: true,
+    position: 'top' as const,
+    horizontalAlign: 'right' as const,
+    labels: { colors: theme.textSecondary },
+    markers: { strokeWidth: 0 },
+  },
+})
+
+// 分布饼图 options 工厂：labels/colors 由调用方以“按值记忆化”的方式传入，
+// metric 决定数值/费用格式化，totalLabel 承载中心总计文案（随 locale 变化）。
+export interface DistributionPieOptionsInput {
+  metric: ModelDistributionMetric
+  theme: ChartThemeState
+  colors: string[]
+  labels: string[]
+  totalLabel: string
+  formatTokens: (value: number) => string
+  formatCost: (value: number) => string
+}
+
+export const buildDistributionPieOptions = ({
+  metric,
+  theme,
+  colors,
+  labels,
+  totalLabel,
+  formatTokens,
+  formatCost,
+}: DistributionPieOptionsInput) => ({
+  chart: PIE_CHART_BASE,
+  theme: { mode: theme.mode },
+  colors,
+  labels,
+  legend: PIE_LEGEND,
+  plotOptions: {
+    pie: {
+      donut: {
+        size: '72%',
+        labels: {
+          show: true,
+          name: {
+            show: true,
+            fontSize: '11px',
+            color: theme.textMuted,
+            offsetY: -2,
+          },
+          value: {
+            show: true,
+            fontSize: '15px',
+            fontWeight: 600,
+            color: theme.textPrimary,
+            formatter: (value: string) =>
+              metric === 'tokens' ? formatTokens(Number(value)) : formatCost(Number(value)),
+          },
+          total: {
+            show: true,
+            label: totalLabel,
+            fontSize: '10px',
+            color: theme.textMuted,
+            formatter: (context: ApexFormatterContext) =>
+              metric === 'tokens'
+                ? formatTokens(
+                    (context.globals?.seriesTotals ?? []).reduce(
+                      (sum: number, item: number) => sum + item,
+                      0
+                    )
+                  )
+                : formatCost(
+                    (context.globals?.seriesTotals ?? []).reduce(
+                      (sum: number, item: number) => sum + item,
+                      0
+                    )
+                  ),
+          },
+        },
+      },
+    },
+  },
+  dataLabels: {
+    enabled: true,
+    formatter: (
+      _: number,
+      options: { seriesIndex: number; w: { globals: { series: number[] } } }
+    ) => {
+      const total = options.w.globals.series.reduce((sum: number, item: number) => sum + item, 0)
+      if (total <= 0) return '0%'
+
+      const percent = (options.w.globals.series[options.seriesIndex] / total) * 100
+      return percent >= 7 ? `${percent.toFixed(0)}%` : ''
+    },
+    style: PIE_DATA_LABEL_STYLE,
+    dropShadow: PIE_DATA_LABEL_DROP_SHADOW,
+  },
+  tooltip: {
+    theme: theme.mode,
+    y: {
+      formatter: (value: number) =>
+        metric === 'tokens' ? formatTokens(value) : formatCost(value),
+    },
+  },
+})
