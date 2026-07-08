@@ -15,11 +15,18 @@
             export: $t('common.export'),
             add: $t('claudeProfiles.addProfile'),
           }"
+          :palette="{
+            label: $t('claudeProfiles.commandPaletteButton'),
+            shortcut: '⌘K',
+            title: $t('claudeProfiles.commandPaletteShortcut'),
+          }"
           :loading="loading || isRefreshing"
           :exporting="isExporting"
+          :palette-open="paletteOpen"
           @add="openAddForm"
           @export="handleExportProfiles"
           @reload="refreshProfiles"
+          @open-palette="paletteOpen = true"
         />
 
         <ProfilesStatStrip
@@ -42,6 +49,14 @@
             mono: true,
           }"
           :last-write="lastWriteHint"
+        />
+
+        <ProfilesQuickRail
+          :profiles="profiles"
+          :current-name="currentProfileName"
+          i18n-prefix="claudeProfiles"
+          :disabled="loading || isRefreshing || isSaving || confirmActionBusy"
+          @apply="handleApply"
         />
 
         <ProfilesToolbar
@@ -195,7 +210,7 @@
                 :profile="profile"
                 :descriptor="rowDescriptor"
                 :is-current="profile.is_current"
-                :disabled="loading || isRefreshing || isSaving"
+                :disabled="loading || isRefreshing || isSaving || confirmActionBusy"
                 @apply="handleApply"
                 @edit="openEditForm(findProfile($event))"
                 @delete="handleDelete"
@@ -233,7 +248,7 @@
                 :profile="profile"
                 :descriptor="rowDescriptor"
                 :is-current="profile.is_current"
-                :disabled="loading || isRefreshing || isSaving"
+                :disabled="loading || isRefreshing || isSaving || confirmActionBusy"
                 @apply="handleApply"
                 @edit="openEditForm(findProfile($event))"
                 @delete="handleDelete"
@@ -348,7 +363,6 @@
         <div
           ref="modalScrollRef"
           class="editor-scroll-area min-h-0 flex-1 overflow-y-auto pr-1"
-          @scroll="syncActiveFormSection"
         >
           <ProviderTemplateSelector
             class="mb-4"
@@ -409,6 +423,26 @@
         </div>
       </div>
     </BaseModal>
+
+    <ProfilesCommandPalette
+      :open="paletteOpen"
+      :profiles="profiles"
+      :descriptor="paletteDescriptor"
+      :actions="paletteActions"
+      i18n-prefix="claudeProfiles.commandPalette"
+      @update:open="paletteOpen = $event"
+      @apply="handleApply"
+    />
+
+    <ConfirmModal
+      v-model:is-open="showConfirmModal"
+      :type="confirmDialog.type"
+      :title="confirmDialog.title"
+      :message="confirmDialog.message"
+      :confirm-text="confirmDialog.confirmText"
+      :cancel-text="$t('claudeProfiles.cancel')"
+      @confirm="executeConfirmedAction"
+    />
   </div>
 </template>
 
@@ -425,13 +459,18 @@ import {
 } from '@/api'
 import ClaudeProfileEditorSections from '@/components/claude/ClaudeProfileEditorSections.vue'
 import ClaudeProfileRow from '@/components/claude/ClaudeProfileRow.vue'
+import ProfilesCommandPalette, { type ProfilesCommandPaletteAction, type ProfilesCommandPaletteDescriptor } from '@/components/profiles/ProfilesCommandPalette.vue'
 import ProfilesContextRail, { type ContextRailDescriptor, type ContextRailActiveField } from '@/components/profiles/ProfilesContextRail.vue'
 import { useClaudeProfilesInsights } from '@/composables/useClaudeProfilesInsights'
+import { useConfirmAction } from '@/composables/useConfirmAction'
+import { useProfilesHotkeys } from '@/composables/useProfilesHotkeys'
 import ProfilesHeader from '@/components/profiles/ProfilesHeader.vue'
 import ProfileListRow, { type ProfileRowDescriptor } from '@/components/profiles/ProfileListRow.vue'
+import ProfilesQuickRail from '@/components/profiles/ProfilesQuickRail.vue'
 import ProfilesStatStrip from '@/components/profiles/ProfilesStatStrip.vue'
 import ProfilesToolbar, { type ProfilesViewMode } from '@/components/profiles/ProfilesToolbar.vue'
 import BaseModal from '@/components/common/BaseModal.vue'
+import ConfirmModal from '@/components/ConfirmModal.vue'
 import ModuleSubnav from '@/components/ModuleSubnav.vue'
 import ProviderTemplateSelector from '@/components/provider-templates/ProviderTemplateSelector.vue'
 import SIcon from '@/components/ui/SIcon.vue'
@@ -486,7 +525,15 @@ const selectedProviderTemplate = ref<string | null>(null)
 const selectedProviderEndpoint = ref('')
 const sortBy = ref<ClaudeProfilesSortBy>('recent')
 const viewMode = ref<ProfilesViewMode>('card')
+const paletteOpen = ref(false)
 const lastWriteHint = ref<string | null>(null)
+const {
+  isOpen: showConfirmModal,
+  dialog: confirmDialog,
+  busy: confirmActionBusy,
+  openConfirmDialog,
+  executeConfirmedAction,
+} = useConfirmAction()
 
 // 列表行平台策略：base_url/model/authMode 解析 + 操作文案 + 编辑图标
 const rowDescriptor = computed<ProfileRowDescriptor<ClaudeProfile>>(() => ({
@@ -852,7 +899,7 @@ const prepareFormWorkspace = () => {
 
   void nextTick(() => {
     modalScrollRef.value?.scrollTo({ top: 0 })
-    syncActiveFormSection()
+    setupSectionObserver()
   })
 }
 
@@ -976,41 +1023,53 @@ const resetFilters = () => {
   providerFilter.value = null
 }
 
-const isEditableTarget = (el: EventTarget | null): boolean => {
-  if (!(el instanceof HTMLElement)) return false
-  const tag = el.tagName
-  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable
+// ===== 命令面板：策略注入(profile 判定/副标题) + 常用命令 =====
+const paletteDescriptor: ProfilesCommandPaletteDescriptor<ClaudeProfile> = {
+  isEnabled: profile => profile.enabled !== false,
+  hint: profile => profile.description || profile.base_url || undefined,
 }
 
-// 快捷键：⌘K / 聚焦搜索框
-const handleGlobalKeydown = (event: KeyboardEvent) => {
-  if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
-    event.preventDefault()
-    toolbarRef.value?.focusSearch()
-    return
-  }
-  if (event.key === '/' && !isEditableTarget(event.target)) {
-    event.preventDefault()
-    toolbarRef.value?.focusSearch()
-  }
+const paletteActions = computed<ProfilesCommandPaletteAction[]>(() => [
+  { id: '__add', icon: 'Plus', labelKey: 'claudeProfiles.commandPalette.actionAdd', handler: openAddForm },
+  { id: '__reload', icon: 'RefreshCw', labelKey: 'claudeProfiles.commandPalette.actionReload', handler: () => { void refreshProfiles() } },
+  { id: '__export', icon: 'Download', labelKey: 'claudeProfiles.commandPalette.actionExport', handler: () => { void handleExportProfiles() } },
+])
+
+// 分区高亮改 IntersectionObserver 追踪(顶部 -140px 锚线)，取代逐帧 @scroll 计算。
+let sectionObserver: IntersectionObserver | null = null
+
+const teardownSectionObserver = () => {
+  sectionObserver?.disconnect()
+  sectionObserver = null
 }
 
-const syncActiveFormSection = () => {
+const setupSectionObserver = () => {
+  teardownSectionObserver()
   const container = modalScrollRef.value
-
   if (!container) return
 
-  let nextSection: ClaudeProfileFormSectionId = 'basic'
-
+  const elementToSection = new Map<Element, ClaudeProfileFormSectionId>()
   CLAUDE_PROFILE_FORM_SECTION_IDS.forEach((sectionId) => {
     const element = modalSectionRefs.value[sectionId]
-
-    if (element && element.offsetTop - container.scrollTop <= 140) {
-      nextSection = sectionId
-    }
+    if (element) elementToSection.set(element, sectionId)
   })
+  if (elementToSection.size === 0) return
 
-  activeFormSectionId.value = nextSection
+  const visibility = new Map<ClaudeProfileFormSectionId, boolean>()
+
+  sectionObserver = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        const sectionId = elementToSection.get(entry.target)
+        if (sectionId) visibility.set(sectionId, entry.isIntersecting)
+      }
+      const activeId = CLAUDE_PROFILE_FORM_SECTION_IDS.find(id => visibility.get(id))
+      if (activeId) activeFormSectionId.value = activeId
+    },
+    { root: container, rootMargin: '-140px 0px -70% 0px', threshold: 0 },
+  )
+
+  elementToSection.forEach((_sectionId, element) => sectionObserver?.observe(element))
 }
 
 const scrollToFormSection = (sectionId: ClaudeProfileFormSectionId) => {
@@ -1025,6 +1084,10 @@ const scrollToFormSection = (sectionId: ClaudeProfileFormSectionId) => {
     top: Math.max(element.offsetTop - 16, 0),
     behavior: 'smooth',
   })
+}
+
+const markWrite = () => {
+  lastWriteHint.value = new Date().toLocaleTimeString()
 }
 
 const loadProfiles = async (options: { preserveData?: boolean } = {}) => {
@@ -1045,7 +1108,6 @@ const loadProfiles = async (options: { preserveData?: boolean } = {}) => {
     profiles.value = normalized.profiles
     loadError.value = null
     refreshError.value = null
-    lastWriteHint.value = new Date().toLocaleTimeString()
 
     if (normalized.warnings.length > 0) {
       logger.warn('Normalized inconsistent Claude profiles response', {
@@ -1091,7 +1153,32 @@ const handleExportProfiles = async () => {
   }
 }
 
-const handleSave = async () => {
+const performSave = async () => {
+  isSaving.value = true
+  saveError.value = null
+
+  try {
+    const request = buildRequest()
+
+    if (isEditing.value) {
+      await updateClaudeProfile(editingName.value, request)
+    } else {
+      await addClaudeProfile(request)
+    }
+
+    showForm.value = false
+    activeFormSectionId.value = 'basic'
+    markWrite()
+    await loadProfiles({ preserveData: profiles.value.length > 0 })
+  } catch (error) {
+    logger.error('Failed to save Claude profile:', error)
+    saveError.value = getErrorMessage(error, t('claudeProfiles.operationFailed'))
+  } finally {
+    isSaving.value = false
+  }
+}
+
+const handleSave = () => {
   const trimmedName = form.name.trim()
   if (!trimmedName) return
 
@@ -1109,73 +1196,73 @@ const handleSave = async () => {
       return
     }
 
-    const confirmed = confirm(translateWithFallback(
+    openConfirmDialog({
+      title: t('claudeProfiles.renameConfirmTitle'),
+      message: translateWithFallback(
+        t,
+        'claudeProfiles.renameConfirmBody',
+        '将 "{old}" 重命名为 "{new}"。旧名称会被删除；若当前激活，激活指针会自动迁移到新名。',
+        { old: editingName.value, new: trimmedName },
+      ),
+      confirmText: t('claudeProfiles.renameConfirmCta'),
+      type: 'warning',
+      action: performSave,
+    })
+    return
+  }
+
+  void performSave()
+}
+
+const handleDelete = (name: string) => {
+  openConfirmDialog({
+    title: t('claudeProfiles.deleteTooltip'),
+    message: translateWithFallback(
       t,
-      'claudeProfiles.renameConfirmBody',
-      '将 "{old}" 重命名为 "{new}"。旧名称会被删除；若当前激活，激活指针会自动迁移到新名。',
-      { old: editingName.value, new: trimmedName },
-    ))
-    if (!confirmed) return
-  }
-
-  isSaving.value = true
-  saveError.value = null
-
-  try {
-    const request = buildRequest()
-
-    if (isEditing.value) {
-      await updateClaudeProfile(editingName.value, request)
-    } else {
-      await addClaudeProfile(request)
-    }
-
-    showForm.value = false
-    activeFormSectionId.value = 'basic'
-    await loadProfiles({ preserveData: profiles.value.length > 0 })
-  } catch (error) {
-    logger.error('Failed to save Claude profile:', error)
-    saveError.value = getErrorMessage(error, t('claudeProfiles.operationFailed'))
-  } finally {
-    isSaving.value = false
-  }
+      'claudeProfiles.deleteConfirm',
+      '确定要删除 Profile "{name}" 吗？',
+      { name },
+    ),
+    confirmText: t('claudeProfiles.deleteTooltip'),
+    type: 'danger',
+    action: async () => {
+      try {
+        await deleteClaudeProfile(name)
+        markWrite()
+        await loadProfiles({ preserveData: profiles.value.length > 0 })
+      } catch (error) {
+        logger.error('Failed to delete Claude profile:', error)
+        uiStore.showError(getErrorMessage(error, t('claudeProfiles.deleteFailed')))
+      }
+    },
+  })
 }
 
-const handleDelete = async (name: string) => {
-  if (!confirm(translateWithFallback(
-    t,
-    'claudeProfiles.deleteConfirm',
-    '确定要删除 Profile "{name}" 吗？',
-    { name },
-  ))) return
-
-  try {
-    await deleteClaudeProfile(name)
-    await loadProfiles({ preserveData: profiles.value.length > 0 })
-  } catch (error) {
-    logger.error('Failed to delete Claude profile:', error)
-    alert(getErrorMessage(error, t('claudeProfiles.deleteFailed')))
-  }
-}
-
-const handleApply = async (name: string) => {
+const handleApply = (name: string) => {
   const targetProfile = profiles.value.find(profile => profile.name === name)
   if (!targetProfile || targetProfile.is_current || targetProfile.enabled === false) return
 
-  if (!confirm(translateWithFallback(
-    t,
-    'claudeProfiles.confirmApply',
-    '确定要应用 Profile "{name}" 吗？这将同步更新当前 Claude 配置。',
-    { name },
-  ))) return
-
-  try {
-    await applyClaudeProfile(name)
-    await loadProfiles({ preserveData: profiles.value.length > 0 })
-  } catch (error) {
-    logger.error('Failed to apply Claude profile:', error)
-    alert(getErrorMessage(error, t('claudeProfiles.applyFailed')))
-  }
+  openConfirmDialog({
+    title: t('claudeProfiles.applyProfile'),
+    message: translateWithFallback(
+      t,
+      'claudeProfiles.confirmApply',
+      '确定要应用 Profile "{name}" 吗？这将同步更新当前 Claude 配置。',
+      { name },
+    ),
+    confirmText: t('claudeProfiles.applyProfile'),
+    type: 'warning',
+    action: async () => {
+      try {
+        await applyClaudeProfile(name)
+        markWrite()
+        await loadProfiles({ preserveData: profiles.value.length > 0 })
+      } catch (error) {
+        logger.error('Failed to apply Claude profile:', error)
+        uiStore.showError(getErrorMessage(error, t('claudeProfiles.applyFailed')))
+      }
+    },
+  })
 }
 
 // 当前激活的标签/Provider 若因数据变化而失效，自动回退到"全部"
@@ -1191,22 +1278,32 @@ watch(showForm, (isOpen) => {
 
   saveError.value = null
   activeFormSectionId.value = 'basic'
+  teardownSectionObserver()
+})
+
+// ===== 键盘快捷键：/ ⌘K ⌘1-9 Esc（两页共用实现） =====
+useProfilesHotkeys({
+  paletteOpen,
+  focusSearch: () => toolbarRef.value?.focusSearch(),
+  getApplicableProfiles: () => profiles.value.filter(p => p.enabled !== false),
+  onApply: handleApply,
 })
 
 onMounted(() => {
   void loadProfiles()
-  document.addEventListener('keydown', handleGlobalKeydown)
 })
+
 onBeforeUnmount(() => {
-  document.removeEventListener('keydown', handleGlobalKeydown)
+  teardownSectionObserver()
 })
 </script>
 
 <style>
 .claude-profile-editor-modal {
-  --editor-shell-bg: linear-gradient(180deg, rgb(var(--color-bg-surface-rgb) / 96%), rgb(var(--color-bg-elevated-rgb) / 92%));
-  --editor-shell-border: rgb(var(--color-border-default-rgb) / 72%);
-  --editor-shell-shadow: 0 28px 80px rgb(var(--color-accent-primary-rgb) / 10%), 0 12px 32px rgb(var(--color-text-primary-rgb) / 8%);
+  /* 外壳材质：floating 档玻璃令牌（modal/命令面板同档），内部 panel 单独维持不透明 */
+  --editor-shell-bg: var(--material-glass-floating-bg);
+  --editor-shell-border: var(--material-glass-floating-border);
+  --editor-shell-shadow: var(--material-glass-floating-shadow);
   --editor-shell-highlight: radial-gradient(circle at top right, rgb(var(--color-accent-primary-rgb) / 10%), transparent 42%);
   --editor-panel-bg: rgb(var(--color-bg-surface-rgb) / 88%);
   --editor-panel-muted-bg: rgb(var(--color-bg-overlay-rgb) / 60%);
@@ -1234,12 +1331,15 @@ onBeforeUnmount(() => {
   background: var(--editor-shell-bg) !important;
   border: 1px solid var(--editor-shell-border) !important;
   box-shadow: var(--editor-shell-shadow) !important;
+  backdrop-filter: var(--material-glass-floating-blur) !important;
+
+  /* stylelint-disable-next-line property-no-vendor-prefix */
+  -webkit-backdrop-filter: var(--material-glass-floating-blur) !important;
   color: var(--editor-ink);
 }
 
 :root[class~='dark'] .claude-profile-editor-modal,
 [data-theme='dark'] .claude-profile-editor-modal {
-  --editor-shell-shadow: 0 32px 90px rgb(0 0 0 / 56%), 0 18px 42px rgb(0 0 0 / 36%);
   --editor-panel-shadow: inset 0 1px 0 rgb(255 255 255 / 6%), 0 16px 32px rgb(0 0 0 / 24%);
   --editor-muted-shadow: none;
   --editor-scrollbar-track: rgb(var(--color-bg-base-rgb) / 36%);
@@ -1575,7 +1675,7 @@ onBeforeUnmount(() => {
 
 /* ===========================================================
    作用域设计令牌：仅在本视图内生效，子组件靠继承解析 --cp-*
-   主色用暖中性 accent-secondary（与统一身份色系统一致）
+   主色跟随共享 accent-primary（与 Codex Profiles 页一致）
    =========================================================== */
 .claude-profiles-view {
   /* 背景层 → 全局 token */
@@ -1596,12 +1696,17 @@ onBeforeUnmount(() => {
   --cp-ink-3: var(--color-text-ghost);
   --cp-ink-4: var(--color-text-disabled);
 
-  /* 主色 → 暖中性 accent-secondary */
-  --cp-accent: var(--color-accent-secondary);
-  --cp-accent-soft: rgb(var(--color-accent-secondary-rgb) / 14%);
-  --cp-accent-line: rgb(var(--color-accent-secondary-rgb) / 35%);
-  --cp-accent-hover: var(--color-accent-secondary-hover);
+  /* 主色 → 共享 accent-primary（跟随用户 data-accent 选择，两平台一致） */
+  --cp-accent: var(--color-accent-primary);
+  --cp-accent-soft: rgb(var(--color-accent-primary-rgb) / 14%);
+  --cp-accent-line: rgb(var(--color-accent-primary-rgb) / 35%);
+  --cp-accent-hover: var(--color-accent-primary-hover);
   --cp-on-accent: var(--color-text-inverted);
+
+  /* 平台识别色：仅用于页头图标徽章，不跟随用户 accent 选择 */
+  --cp-icon-color: var(--color-platform-claude);
+  --cp-icon-soft: rgb(var(--color-platform-claude-rgb) / 14%);
+  --cp-icon-line: rgb(var(--color-platform-claude-rgb) / 35%);
 
   /* 状态色 → 全局 token */
   --cp-good: var(--color-success);
@@ -1619,7 +1724,7 @@ onBeforeUnmount(() => {
 }
 
 .cp-shell {
-  max-width: 1440px;
+  max-width: 1680px;
   margin: 16px auto 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -1679,11 +1784,17 @@ onBeforeUnmount(() => {
   gap: 10px;
 }
 
-/* 卡片视图栅格 */
+/* 卡片视图栅格：≥1280px 双列，≥1680px 视口宽度可到三列 */
 .cp-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
   gap: 10px;
+}
+
+@media (width <= 1279px) {
+  .cp-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 /* 列表视图 */

@@ -55,13 +55,12 @@
             mono: false,
           }"
           :last-write="lastWriteHint"
-          :total-spark="[3, 5, 4, 6, 7, 8, 7]"
-          :recent-spark="[2, 4, 3, 5, 4, 6, 5]"
         />
 
         <ProfilesQuickRail
           :profiles="profiles"
           :current-name="currentProfile"
+          i18n-prefix="codex.profiles"
           :disabled="actionLoading"
           :busy-name="busyAction === 'apply' ? busyProfileName : null"
           @apply="handleApply"
@@ -244,15 +243,14 @@
       />
     </main>
 
-    <CommandPalette
+    <ProfilesCommandPalette
       :open="paletteOpen"
       :profiles="profiles"
+      :descriptor="paletteDescriptor"
+      :actions="paletteActions"
+      i18n-prefix="codex.profiles.commandPalette"
       @update:open="paletteOpen = $event"
       @apply="handleApply"
-      @add="handleAdd"
-      @export="handleExportProfiles"
-      @reload="reloadProfiles"
-      @import="handleAdd"
     />
 
     <CodexProfileEditorModal
@@ -296,7 +294,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, h, onActivated, onBeforeUnmount, onMounted, reactive, ref, type FunctionalComponent } from 'vue'
+import { computed, h, onActivated, onMounted, reactive, ref, type FunctionalComponent } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   addCodexCustomModel,
@@ -310,13 +308,15 @@ import {
   updateCodexProfile,
 } from '@/api'
 import CodexProfileEditorModal from '@/components/codex/CodexProfileEditorModal.vue'
-import CommandPalette from '@/components/codex/CommandPalette.vue'
 import ProfileCard from '@/components/codex/ProfileCard.vue'
 import ProfileListRow, { type ProfileRowDescriptor } from '@/components/profiles/ProfileListRow.vue'
+import ProfilesCommandPalette, { type ProfilesCommandPaletteAction, type ProfilesCommandPaletteDescriptor } from '@/components/profiles/ProfilesCommandPalette.vue'
 import ProfilesContextRail, { type ContextRailDescriptor, type ContextRailActiveField } from '@/components/profiles/ProfilesContextRail.vue'
 import { useCodexProfilesInsights } from '@/composables/useCodexProfilesInsights'
+import { useConfirmAction } from '@/composables/useConfirmAction'
+import { useProfilesHotkeys } from '@/composables/useProfilesHotkeys'
 import ProfilesHeader from '@/components/profiles/ProfilesHeader.vue'
-import ProfilesQuickRail from '@/components/codex/ProfilesQuickRail.vue'
+import ProfilesQuickRail from '@/components/profiles/ProfilesQuickRail.vue'
 import ProfilesStatStrip from '@/components/profiles/ProfilesStatStrip.vue'
 import ProfilesToolbar, { type ProfilesViewMode } from '@/components/profiles/ProfilesToolbar.vue'
 import ConfirmModal from '@/components/ConfirmModal.vue'
@@ -366,7 +366,6 @@ const uiStore = useUIStore()
 // ===== 加载与状态 =====
 const loading = ref(false)
 const saving = ref(false)
-const actionLoading = ref(false)
 const exporting = ref(false)
 
 const profiles = ref<CodexProfile[]>([])
@@ -383,16 +382,15 @@ const showForm = ref(false)
 const editingName = ref<string | null>(null)
 const busyProfileName = ref<string | null>(null)
 const busyAction = ref<'apply' | 'delete' | null>(null)
-const showConfirmModal = ref(false)
 const lastLoadedAt = ref(0)
 const lastWriteHint = ref<string | null>(null)
-const confirmDialog = reactive<{
-  title: string
-  message: string
-  confirmText: string
-  type: 'danger' | 'info' | 'warning'
-}>({ title: '', message: '', confirmText: '', type: 'warning' })
-let confirmedAction: (() => Promise<void>) | null = null
+const {
+  isOpen: showConfirmModal,
+  dialog: confirmDialog,
+  busy: actionLoading,
+  openConfirmDialog,
+  executeConfirmedAction,
+} = useConfirmAction()
 
 // ===== 列表筛选状态 =====
 const query = ref('')
@@ -594,6 +592,10 @@ const loadModels = async () => {
   }
 }
 
+const markWrite = () => {
+  lastWriteHint.value = new Date().toLocaleTimeString()
+}
+
 const loadProfiles = async () => {
   try {
     loading.value = true
@@ -604,7 +606,6 @@ const loadProfiles = async () => {
     profiles.value = profilesData.profiles || []
     currentProfile.value = profilesData.current_profile ?? null
     lastLoadedAt.value = Date.now()
-    lastWriteHint.value = new Date().toLocaleTimeString()
   } catch (error) {
     logger.error('Failed to load codex profiles:', error)
     uiStore.showError(t('codex.states.loadFailed'))
@@ -632,32 +633,6 @@ const handleExportProfiles = async () => {
     uiStore.showError(extractErrorMessage(error) || t('codex.profiles.exportFailed'))
   } finally {
     exporting.value = false
-  }
-}
-
-const openConfirmDialog = (options: {
-  title: string
-  message: string
-  confirmText: string
-  type: 'danger' | 'info' | 'warning'
-  action: () => Promise<void>
-}) => {
-  confirmDialog.title = options.title
-  confirmDialog.message = options.message
-  confirmDialog.confirmText = options.confirmText
-  confirmDialog.type = options.type
-  confirmedAction = options.action
-  showConfirmModal.value = true
-}
-
-const executeConfirmedAction = async () => {
-  if (!confirmedAction) return
-  actionLoading.value = true
-  try {
-    await confirmedAction()
-  } finally {
-    actionLoading.value = false
-    confirmedAction = null
   }
 }
 
@@ -704,6 +679,7 @@ const handleProfileAction = async (
   busyAction.value = action
   try {
     await task()
+    markWrite()
     await loadProfiles()
     uiStore.showSuccess(successMessage)
   } catch (error) {
@@ -804,6 +780,7 @@ const handleSave = async () => {
       await addCodexProfile(request)
     }
     handleCloseForm()
+    markWrite()
     await loadProfiles()
     uiStore.showSuccess(isEditing ? t('codex.profiles.updateProfile') : t('codex.profiles.addProfile'))
   } catch (error) {
@@ -884,46 +861,28 @@ const ProfilesSection: FunctionalComponent<{ title: string, count: number }> = (
 }
 ProfilesSection.props = ['title', 'count']
 
-// ===== 键盘快捷键：/ ⌘K ⌘1-9 Esc =====
-const isEditableTarget = (el: EventTarget | null): boolean => {
-  if (!(el instanceof HTMLElement)) return false
-  const tag = el.tagName
-  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable
+// ===== 命令面板：策略注入(profile 判定/副标题) + 常用命令 =====
+const paletteDescriptor: ProfilesCommandPaletteDescriptor<CodexProfile> = {
+  isEnabled: profile => profile.enabled !== false,
+  hint: profile => profile.description || profile.base_url || undefined,
 }
 
-const onWindowKeyDown = (event: KeyboardEvent) => {
-  if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
-    event.preventDefault()
-    paletteOpen.value = !paletteOpen.value
-    return
-  }
-  if ((event.metaKey || event.ctrlKey) && /^[1-9]$/.test(event.key)) {
-    const idx = Number.parseInt(event.key, 10) - 1
-    const enabledOnly = profiles.value.filter(p => p.enabled !== false)
-    const target = enabledOnly[idx]
-    if (target) {
-      event.preventDefault()
-      handleApply(target.name)
-    }
-    return
-  }
-  if (event.key === '/' && !isEditableTarget(event.target)) {
-    event.preventDefault()
-    toolbarRef.value?.focusSearch()
-    return
-  }
-  if (event.key === 'Escape' && paletteOpen.value) {
-    paletteOpen.value = false
-  }
-}
+const paletteActions = computed<ProfilesCommandPaletteAction[]>(() => [
+  { id: '__add', icon: 'Plus', labelKey: 'codex.profiles.commandPalette.actionAdd', handler: handleAdd },
+  { id: '__reload', icon: 'RefreshCw', labelKey: 'codex.profiles.commandPalette.actionReload', handler: reloadProfiles },
+  { id: '__export', icon: 'Download', labelKey: 'codex.profiles.commandPalette.actionExport', handler: () => { void handleExportProfiles() } },
+])
 
-onMounted(async () => {
-  window.addEventListener('keydown', onWindowKeyDown)
-  await ensureLoaded(true)
+// ===== 键盘快捷键：/ ⌘K ⌘1-9 Esc（两页共用实现） =====
+useProfilesHotkeys({
+  paletteOpen,
+  focusSearch: () => toolbarRef.value?.focusSearch(),
+  getApplicableProfiles: () => profiles.value.filter(p => p.enabled !== false),
+  onApply: handleApply,
 })
 
-onBeforeUnmount(() => {
-  window.removeEventListener('keydown', onWindowKeyDown)
+onMounted(async () => {
+  await ensureLoaded(true)
 })
 
 onActivated(() => { void ensureLoaded(false) })
@@ -950,12 +909,17 @@ onActivated(() => { void ensureLoaded(false) })
   --cp-ink-3: var(--color-text-ghost);
   --cp-ink-4: var(--color-text-disabled);
 
-  /* 主色 → Claude Clay（与 Auth 页同源） */
+  /* 主色 → 共享 accent-primary（跟随用户 data-accent 选择，两平台一致） */
   --cp-accent: var(--color-accent-primary);
   --cp-accent-soft: rgb(var(--color-accent-primary-rgb) / 14%);
   --cp-accent-line: rgb(var(--color-accent-primary-rgb) / 35%);
   --cp-accent-hover: var(--color-accent-primary-hover);
   --cp-on-accent: var(--color-text-inverted);
+
+  /* 平台识别色：仅用于页头图标徽章，不跟随用户 accent 选择 */
+  --cp-icon-color: var(--color-platform-codex);
+  --cp-icon-soft: rgb(var(--color-platform-codex-rgb) / 14%);
+  --cp-icon-line: rgb(var(--color-platform-codex-rgb) / 35%);
 
   /* 状态色 → 全局 token */
   --cp-good: var(--color-success);
@@ -973,7 +937,7 @@ onActivated(() => { void ensureLoaded(false) })
 }
 
 .cp-shell {
-  max-width: 1440px;
+  max-width: 1680px;
   margin: 16px auto 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -1019,8 +983,14 @@ onActivated(() => { void ensureLoaded(false) })
 
 .cp-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr); /* 单列模式 */
+  grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
   gap: 14px;
+}
+
+@media (width <= 1279px) {
+  .cp-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .cp-list-head {

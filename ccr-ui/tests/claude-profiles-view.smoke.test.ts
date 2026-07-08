@@ -52,11 +52,12 @@ vi.mock('@/components/ui/SIcon.vue', () => ({
 vi.mock('@/components/PageHeaderCard.vue', () => ({
   default: defineComponent({
     setup(_props, { slots }) {
-      return () => h('section', { 'data-stub': 'PageHeaderCard' }, [
-        h('div', { 'data-slot': 'meta' }, slots.meta?.()),
-        h('div', { 'data-slot': 'actions' }, slots.actions?.()),
-        h('div', { 'data-slot': 'default' }, slots.default?.()),
-      ])
+      return () =>
+        h('section', { 'data-stub': 'PageHeaderCard' }, [
+          h('div', { 'data-slot': 'meta' }, slots.meta?.()),
+          h('div', { 'data-slot': 'actions' }, slots.actions?.()),
+          h('div', { 'data-slot': 'default' }, slots.default?.()),
+        ])
     },
   }),
 }))
@@ -69,16 +70,17 @@ vi.mock('@/components/ui/Input.vue', () => ({
     },
     emits: ['update:modelValue'],
     setup(props, { emit, slots }) {
-      return () => h('label', { 'data-stub': 'Input' }, [
-        slots.leading?.(),
-        h('input', {
-          value: props.modelValue,
-          placeholder: props.placeholder,
-          onInput: (event: Event) => {
-            emit('update:modelValue', (event.target as HTMLInputElement).value)
-          },
-        }),
-      ])
+      return () =>
+        h('label', { 'data-stub': 'Input' }, [
+          slots.leading?.(),
+          h('input', {
+            value: props.modelValue,
+            placeholder: props.placeholder,
+            onInput: (event: Event) => {
+              emit('update:modelValue', (event.target as HTMLInputElement).value)
+            },
+          }),
+        ])
     },
   }),
 }))
@@ -89,12 +91,14 @@ vi.mock('@/components/common/BaseModal.vue', () => ({
       modelValue: { type: Boolean, default: false },
     },
     setup(props, { slots }) {
-      return () => props.modelValue
-        ? h('div', { 'data-stub': 'BaseModal' }, [
-            h('div', { 'data-slot': 'header' }, slots.header?.({ titleId: 'modal-title' })),
-            slots.default?.(),
-          ])
-        : null
+      return () =>
+        props.modelValue
+          ? h('div', { 'data-stub': 'BaseModal' }, [
+              h('div', { 'data-slot': 'header' }, slots.header?.({ titleId: 'modal-title' })),
+              slots.default?.(),
+              h('div', { 'data-slot': 'footer' }, slots.footer?.()),
+            ])
+          : null
     },
   }),
 }))
@@ -172,7 +176,7 @@ const sampleProfiles: ClaudeProfile[] = [
 ]
 
 const cloneProfiles = (profiles: ClaudeProfile[] = sampleProfiles): ClaudeProfile[] =>
-  profiles.map(profile => ({
+  profiles.map((profile) => ({
     ...profile,
     tags: profile.tags ? [...profile.tags] : undefined,
   }))
@@ -181,22 +185,26 @@ const mountView = async () => {
   const el = document.createElement('div')
   document.body.appendChild(el)
 
-  const app = createApp(defineComponent({
-    setup() {
-      return () => h(ClaudeCodeProfilesView)
-    },
-  }))
+  const app = createApp(
+    defineComponent({
+      setup() {
+        return () => h(ClaudeCodeProfilesView)
+      },
+    })
+  )
 
-  app.use(createI18n({
-    legacy: false,
-    locale: 'zh-CN',
-    fallbackLocale: 'zh-CN',
-    missingWarn: false,
-    fallbackWarn: false,
-    messages: {
-      'zh-CN': zhCnMessages,
-    },
-  }))
+  app.use(
+    createI18n({
+      legacy: false,
+      locale: 'zh-CN',
+      fallbackLocale: 'zh-CN',
+      missingWarn: false,
+      fallbackWarn: false,
+      messages: {
+        'zh-CN': zhCnMessages,
+      },
+    })
+  )
   app.use(createPinia())
   app.component('RouterLink', RouterLinkStub)
 
@@ -212,30 +220,30 @@ const mountView = async () => {
   }
 }
 
-const findSearchInput = (el: HTMLElement) =>
-  el.querySelector<HTMLInputElement>('.cp-search__input')
+const findSearchInput = (el: HTMLElement) => el.querySelector<HTMLInputElement>('.cp-search__input')
 
-const findToolbarMeta = (el: HTMLElement) =>
-  el.querySelector<HTMLElement>('.cp-toolbar__meta')
+const findToolbarMeta = (el: HTMLElement) => el.querySelector<HTMLElement>('.cp-toolbar__meta')
 
 const findButtonByText = (el: HTMLElement, text: string) =>
-  Array.from(el.querySelectorAll<HTMLButtonElement>('button'))
-    .find(button => button.textContent?.includes(text)) ?? null
+  Array.from(el.querySelectorAll<HTMLButtonElement>('button')).find((button) =>
+    button.textContent?.includes(text)
+  ) ?? null
 
 const findProfileCards = (el: HTMLElement) =>
   Array.from(el.querySelectorAll<HTMLElement>('.cp-grid > article'))
 
 const findProfileCardNames = (el: HTMLElement) =>
   findProfileCards(el)
-    .map(card => sampleProfiles.find(profile => card.textContent?.includes(profile.name))?.name)
+    .map((card) => sampleProfiles.find((profile) => card.textContent?.includes(profile.name))?.name)
     .filter((name): name is string => Boolean(name))
 
 const findProfileCard = (el: HTMLElement, name: string) =>
   findProfileCards(el).find((article) => article.textContent?.includes(name)) ?? null
 
 const findApplyButton = (card: HTMLElement | null) =>
-  Array.from(card?.querySelectorAll<HTMLButtonElement>('button') ?? [])
-    .find(button => button.textContent?.includes('应用此 Profile')) ?? null
+  Array.from(card?.querySelectorAll<HTMLButtonElement>('button') ?? []).find((button) =>
+    button.textContent?.includes('应用此 Profile')
+  ) ?? null
 
 beforeEach(() => {
   apiMocks.listClaudeProfiles.mockReset()
@@ -254,8 +262,6 @@ beforeEach(() => {
     filename: 'ccr-claude-profiles-test.toml',
   })
 
-  vi.stubGlobal('confirm', vi.fn(() => true))
-  vi.stubGlobal('alert', vi.fn())
   Object.defineProperty(URL, 'createObjectURL', {
     configurable: true,
     value: vi.fn(() => 'blob:ccr-claude-profiles-test'),
@@ -434,10 +440,14 @@ describe('ClaudeCodeProfilesView smoke', () => {
 
       expect(apiMocks.listClaudeProfiles).toHaveBeenCalledTimes(2)
       expect(searchInput!.value).toBe('local')
-      expect(findProfileCards(el).map(card => card.textContent)).toEqual([
+      expect(findProfileCards(el).map((card) => card.textContent)).toEqual([
         expect.stringContaining('missing-provider-refreshed'),
       ])
-      expect(findProfileCards(el).map(card => card.textContent).join('')).not.toContain('Temporary local sandbox')
+      expect(
+        findProfileCards(el)
+          .map((card) => card.textContent)
+          .join('')
+      ).not.toContain('Temporary local sandbox')
     } finally {
       unmount()
     }
@@ -447,7 +457,9 @@ describe('ClaudeCodeProfilesView smoke', () => {
     const { el, unmount } = await mountView()
 
     try {
-      const exportButton = el.querySelector('[data-icon="Download"]')?.closest('button') as HTMLButtonElement | null
+      const exportButton = el
+        .querySelector('[data-icon="Download"]')
+        ?.closest('button') as HTMLButtonElement | null
 
       expect(exportButton).not.toBeNull()
 
@@ -488,7 +500,7 @@ describe('ClaudeCodeProfilesView smoke', () => {
     }
   })
 
-  it('renders interpolated confirmation copy when applying a profile', async () => {
+  it('opens a confirm dialog with interpolated copy and only applies after confirmation', async () => {
     const { el, unmount } = await mountView()
 
     try {
@@ -500,9 +512,23 @@ describe('ClaudeCodeProfilesView smoke', () => {
       applyButton?.click()
       await flushPromises()
 
-      expect(globalThis.confirm).toHaveBeenCalledWith(
+      const dialog = el.querySelector<HTMLElement>('[data-stub="BaseModal"]')
+      expect(dialog).not.toBeNull()
+      expect(dialog?.textContent).toContain(
         '确定要应用 Profile "anthropic-a" 吗？这将同步更新当前 Claude 配置。'
       )
+      expect(apiMocks.applyClaudeProfile).not.toHaveBeenCalled()
+
+      const footer = dialog!.querySelector<HTMLElement>('[data-slot="footer"]')
+      const confirmButton = Array.from(
+        footer?.querySelectorAll<HTMLButtonElement>('button') ?? []
+      ).find((button) => button.textContent?.includes('应用此 Profile'))
+
+      expect(confirmButton).not.toBeUndefined()
+
+      confirmButton?.click()
+      await flushPromises()
+
       expect(apiMocks.applyClaudeProfile).toHaveBeenCalledWith('anthropic-a')
     } finally {
       unmount()
