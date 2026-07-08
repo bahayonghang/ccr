@@ -766,9 +766,10 @@ watch(() => props.modelValue, (isOpen) => {
 
 <style>
 .codex-profile-editor-modal {
-  --editor-shell-bg: linear-gradient(180deg, rgb(255 253 253 / 96%), rgb(246 255 251 / 92%));
-  --editor-shell-border: rgb(var(--color-border-default-rgb) / 82%);
-  --editor-shell-shadow: 0 28px 80px rgb(40 160 120 / 10%), 0 12px 32px rgb(104 70 123 / 10%);
+  /* 外壳材质：floating 档玻璃令牌（modal/命令面板同档），内部 panel 单独维持不透明 */
+  --editor-shell-bg: var(--material-glass-floating-bg);
+  --editor-shell-border: var(--material-glass-floating-border);
+  --editor-shell-shadow: var(--material-glass-floating-shadow);
   --editor-shell-highlight:
     radial-gradient(circle at top right, rgb(var(--color-platform-codex-rgb) / 12%), transparent 40%),
     radial-gradient(circle at top left, rgb(var(--color-accent-primary-rgb) / 10%), transparent 32%);
@@ -797,14 +798,15 @@ watch(() => props.modelValue, (isOpen) => {
   background: var(--editor-shell-bg) !important;
   border: 1px solid var(--editor-shell-border) !important;
   box-shadow: var(--editor-shell-shadow) !important;
+  backdrop-filter: var(--material-glass-floating-blur) !important;
+
+  /* stylelint-disable-next-line property-no-vendor-prefix */
+  -webkit-backdrop-filter: var(--material-glass-floating-blur) !important;
   color: var(--editor-ink);
 }
 
 :root[class~='dark'] .codex-profile-editor-modal,
 [data-theme='dark'] .codex-profile-editor-modal {
-  --editor-shell-bg: linear-gradient(180deg, rgb(23 18 30 / 96%), rgb(16 14 24 / 94%));
-  --editor-shell-border: rgb(96 160 134 / 32%);
-  --editor-shell-shadow: 0 32px 90px rgb(8 4 12 / 58%), 0 18px 42px rgb(17 10 24 / 42%);
   --editor-shell-highlight:
     radial-gradient(circle at top right, rgb(var(--color-platform-codex-rgb) / 16%), transparent 44%),
     radial-gradient(circle at top left, rgb(var(--color-accent-primary-rgb) / 11%), transparent 34%);

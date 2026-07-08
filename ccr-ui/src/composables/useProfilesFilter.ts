@@ -157,12 +157,21 @@ export function useProfilesFilter<T extends ProfileLike>(
     return sortFn ? [...list].sort(sortFn) : list
   })
 
+  // 当前 profile 固定置顶：不改变其余项的相对顺序，仅将命中项前移。
+  const pinCurrent = (list: T[]): T[] => {
+    const current = currentProfile.value
+    if (!current) return list
+    const idx = list.findIndex(profile => profile.name === current)
+    if (idx <= 0) return list
+    return [list[idx], ...list.slice(0, idx), ...list.slice(idx + 1)]
+  }
+
   const enabledList = computed<T[]>(() =>
-    filtered.value.filter(profile => isProfileEnabled(profile)),
+    pinCurrent(filtered.value.filter(profile => isProfileEnabled(profile))),
   )
 
   const disabledList = computed<T[]>(() =>
-    filtered.value.filter(profile => !isProfileEnabled(profile)),
+    pinCurrent(filtered.value.filter(profile => !isProfileEnabled(profile))),
   )
 
   return {

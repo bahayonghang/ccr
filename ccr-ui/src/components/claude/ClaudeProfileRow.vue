@@ -85,7 +85,7 @@
             v-else
             type="button"
             :disabled="profile.enabled === false"
-            class="inline-flex min-h-[36px] items-center justify-center gap-2 rounded-xl border px-3.5 py-2 text-sm font-medium transition-all duration-200 hover:shadow-lg active:scale-[0.97] focus:outline-none focus:ring-2 focus:ring-offset-1"
+            class="inline-flex h-7 items-center justify-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium transition-all duration-200 hover:shadow-md active:scale-[0.97] focus:outline-none focus:ring-2 focus:ring-offset-1"
             :class="profile.enabled === false ? 'cursor-not-allowed opacity-55 hover:shadow-none active:scale-100' : ''"
             :style="{
               background: `linear-gradient(to bottom, rgb(var(${providerColor.rgbVar}) / 0.14), rgb(var(${providerColor.rgbVar}) / 0.08))`,
@@ -97,7 +97,7 @@
           >
             <SIcon
               name="Play"
-              size="w-3.5 h-3.5"
+              size="w-3 h-3"
             />
             {{ $t('claudeProfiles.applyProfile') }}
           </button>
@@ -157,13 +157,8 @@
             :class="item.mono ? 'font-mono text-[13px]' : ''"
             :title="item.fullValue"
           >
-            <template v-if="item.type === 'url' && item.parsedUrl">
-              <span class="text-accent-info/60">{{ item.parsedUrl.protocol }}</span>
-              <span class="text-text-primary">{{ item.parsedUrl.host }}</span>
-              <span
-                v-if="item.parsedUrl.path"
-                class="text-text-muted"
-              >{{ item.parsedUrl.path }}</span>
+            <template v-if="item.type === 'url'">
+              <span class="text-text-primary">{{ truncateMiddle(item.value, 22, 14) }}</span>
             </template>
             <template v-else-if="item.type === 'model' && item.value !== $t('claudeProfiles.notSet')">
               <span
@@ -187,6 +182,7 @@ import { useI18n } from 'vue-i18n'
 import SIcon from '@/components/ui/SIcon.vue'
 import type { ClaudeProfile } from '@/types'
 import { highlightSearchMatch, type ProviderColorConfig } from '@/utils/claudeProfiles'
+import { truncateMiddle } from '@/utils/text'
 
 const props = defineProps<{
   profile: ClaudeProfile
@@ -245,23 +241,6 @@ const currentCardStyle = computed(() => ({
   boxShadow: `0 18px 38px rgb(var(${props.providerColor.rgbVar}) / 0.1), inset 0 1px 0 rgba(255,255,255,0.06)`,
 }))
 
-/** 解析 URL 为 protocol / host / path 三段 */
-interface ParsedUrl {
-  protocol: string
-  host: string
-  path: string
-}
-
-const parseUrl = (url: string): ParsedUrl | null => {
-  const match = url.match(/^(https?:\/\/)([^/]+)(\/.*)?$/)
-  if (!match) return null
-  return {
-    protocol: match[1],
-    host: match[2],
-    path: match[3] || '',
-  }
-}
-
 // 搜索高亮
 const highlightedName = computed(() =>
   highlightSearchMatch(props.profile.name, props.searchQuery || ''),
@@ -283,7 +262,6 @@ interface DetailItem {
   fullValue: string
   mono: boolean
   type: 'url' | 'model' | 'text'
-  parsedUrl?: ParsedUrl | null
 }
 
 const detailItems = computed<DetailItem[]>(() => {
@@ -295,7 +273,6 @@ const detailItems = computed<DetailItem[]>(() => {
       fullValue: baseUrlValue,
       mono: true,
       type: 'url',
-      parsedUrl: props.profile.base_url?.trim() ? parseUrl(props.profile.base_url.trim()) : null,
     },
   ]
 

@@ -166,9 +166,11 @@ const emit = defineEmits<{
   height: 38px;
   flex-shrink: 0;
   border-radius: 10px;
-  background: var(--cp-accent-soft);
-  border: 1px solid var(--cp-accent-line);
-  color: var(--cp-accent);
+
+  /* 平台识别色：视图可选覆盖 --cp-icon-*，未设置时退回共享 accent */
+  background: var(--cp-icon-soft, var(--cp-accent-soft));
+  border: 1px solid var(--cp-icon-line, var(--cp-accent-line));
+  color: var(--cp-icon-color, var(--cp-accent));
 }
 
 .cp-header__text { min-width: 0; }

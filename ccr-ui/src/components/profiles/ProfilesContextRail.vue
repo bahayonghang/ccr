@@ -170,8 +170,11 @@
         </div>
       </div>
 
-      <!-- 2.2 Auth 模式 -->
-      <div class="cp-rail-section">
+      <!-- 2.2 Auth 模式（隐藏 0 值条目，避免罗列从未出现的模式） -->
+      <div
+        v-if="visibleAuthModeBreakdown.length > 0"
+        class="cp-rail-section"
+      >
         <div class="cp-rail-section__head">
           {{ t(`${i18nPrefix}.authSection`) }}
         </div>
@@ -180,10 +183,9 @@
           role="presentation"
         >
           <li
-            v-for="item in authModeBreakdown"
+            v-for="item in visibleAuthModeBreakdown"
             :key="item.mode"
             class="cp-rail-bar"
-            :class="{ 'cp-rail-bar--zero': item.count === 0 }"
           >
             <div class="cp-rail-bar__label">
               {{ descriptor.authModeLabel(item.mode) }}
@@ -192,7 +194,7 @@
               <div
                 class="cp-rail-bar__fill"
                 :class="{ 'cp-rail-bar__fill--warn': descriptor.isDeprecatedMode(item.mode) }"
-                :style="{ width: `${item.count === 0 ? 0 : Math.max(item.pct, 4)}%` }"
+                :style="{ width: `${Math.max(item.pct, 4)}%` }"
               />
             </div>
             <div class="cp-rail-bar__value">
@@ -460,6 +462,11 @@ const activeFields = computed<ContextRailActiveField[]>(() =>
   props.activeProfile ? props.descriptor.activeFields(props.activeProfile) : [],
 )
 
+// 分布条只展示实际出现过的 auth 模式，0 值条目对判断配置健康没有信息量。
+const visibleAuthModeBreakdown = computed(() =>
+  authModeBreakdown.value.filter(item => item.count > 0),
+)
+
 const activeTags = computed(() => props.activeProfile?.tags ?? [])
 
 const onEdit = (name: string) => emit('edit', name)
@@ -707,8 +714,6 @@ const onEdit = (name: string) => emit('edit', name)
   gap: 8px;
   font-size: 11px;
 }
-
-.cp-rail-bar--zero { opacity: 0.55; }
 
 .cp-rail-bar__label {
   color: var(--cp-ink-1);

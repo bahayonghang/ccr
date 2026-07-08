@@ -20,7 +20,7 @@
     <span
       class="cp-row__url"
       :title="baseUrlText"
-    >{{ baseUrlText }}</span>
+    >{{ truncateMiddle(baseUrlText, 20, 12) }}</span>
     <span
       class="cp-row__model"
       :title="modelText"
@@ -83,6 +83,7 @@
 <script setup lang="ts" generic="T extends ProfileRowProfile">
 import { computed } from 'vue'
 import SIcon from '@/components/ui/SIcon.vue'
+import { truncateMiddle } from '@/utils/text'
 
 /** Row 渲染所需的最小 profile 形状（两平台共有字段） */
 export interface ProfileRowProfile {

@@ -94,8 +94,11 @@
         <div class="cp-field__label">
           {{ $t('codex.profiles.fields.baseUrl') }}
         </div>
-        <div class="cp-field__value">
-          {{ profileBaseUrlText }}
+        <div
+          class="cp-field__value"
+          :title="profileBaseUrlText"
+        >
+          {{ truncatedBaseUrl }}
         </div>
       </div>
 
@@ -215,6 +218,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SIcon from '@/components/ui/SIcon.vue'
 import type { CodexProfile, CodexProfileAuthMode } from '@/types'
+import { truncateMiddle } from '@/utils/text'
 
 interface Props {
   profile: CodexProfile
@@ -243,6 +247,8 @@ const profileBaseUrlText = computed(() => {
   const raw = props.profile.base_url?.trim()
   return raw && raw.length > 0 ? raw : t('codex.profiles.officialBaseUrl')
 })
+
+const truncatedBaseUrl = computed(() => truncateMiddle(profileBaseUrlText.value, 24, 14))
 
 const authModeText = computed(() => {
   const mode = props.profile.auth_mode as CodexProfileAuthMode | undefined
@@ -416,10 +422,6 @@ const hasFooter = computed(
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-  padding: 6px 10px;
-  background: var(--cp-bg-0);
-  border: 1px solid var(--cp-line);
-  border-radius: 6px;
   color: var(--cp-ink-0);
   font-family: var(--cp-mono);
   font-size: 12px;
