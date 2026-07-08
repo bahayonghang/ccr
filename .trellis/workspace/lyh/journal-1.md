@@ -1441,3 +1441,32 @@ MainLayout 侧栏/顶栏统一迁移到 chrome 玻璃预算档;首页信息架�
 ### Next Steps
 
 - None - task complete
+
+## Session 39: 07-07-ui-usage-dashboard 第 7 项:logs 骨架行+sticky 表头+图表动画接 reduced-motion
+
+**Date**: 2026-07-08
+**Task**: `.trellis/tasks/07-07-ui-usage-dashboard/`
+
+### Summary
+
+implement.md 第 7 项闭环。7a:UsageLogsTab loading 态从单行"加载中"文字改为 12 条骨架行(复用 diagnostics-tab__row--item 六列网格、静态灰块、aria-hidden,行数 min(logsPageSize,12),context 新透出 logsPageSize);滚动容器从 __body(32rem) 上移到 __ledger(35rem/overflow:auto,原 overflow:hidden),表头 sticky top:0 z-index:1,横向滚动表头与行同容器对齐。7b 经用户确认选方案 B(默认开动画、reduced-motion 降级,贴合 ccr-ui CLAUDE.md 动效原则):usageChartOptions.ts 删除 TREND/PIE 两处硬编码 animations:{enabled:false},模块级 prefersReducedMotion ref + matchMedia change 监听,工厂 { ...BASE, animations: buildChartAnimations() } 注入,options 在 computed 内构建故偏好切换自动重建,记忆化不受影响。验证方法沉淀:Playwright emulateMedia({reducedMotion}) 双向采样趋势线 path d(reduce 下 500ms 静止、no-preference 下 6 采样全不同);Pinia 直改 logsLoading=true 强制骨架态(shim 同步返回观测不到 loading 窗口)。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `6fc77440` | feat(ccr-ui): [AI] ✨ logs 骨架行+sticky 表头,动画接 reduced-motion |
+
+### Testing
+
+- [OK] just frontend-check-quick 全绿(type-check/lint:ci/test:i18n 23/23/test:smoke 372/372)
+- [OK] Playwright+tauri-shim:reduced-motion 双向、sticky(scroll 400px offset 恒 1px)、骨架行 12×6,0 console error
+
+### Status
+
+[OK] 第 7 项完成 — checklist 7/9(余第 8 项全量快检、第 9 项性能前后对比+review gate)
+
+### Next Steps
+
+- 第 8 项:bun run type-check && bun run lint + just frontend-check-quick(末轮全量)
+- 第 9 项:前后性能数据对比写入 research/、截图归档、review gate
