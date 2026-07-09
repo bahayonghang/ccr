@@ -172,7 +172,7 @@
           <input
             v-model="apiKeyValue"
             type="password"
-            class="w-full px-4 py-3 rounded-xl bg-bg-surface/700 border border-border-default focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 outline-none transition-[border-color,box-shadow] font-mono text-sm"
+            class="w-full px-4 py-3 rounded-xl bg-bg-surface/70 border border-border-default focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 outline-none transition-[border-color,box-shadow] font-mono text-sm"
             :placeholder="`${$t('mcp.presets.enterApiKey')} ${selectedPreset.api_key_env}`"
           >
           <p class="text-xs text-text-muted mt-2">
@@ -221,10 +221,40 @@
           </a>
         </div>
 
+        <!-- Install Results (partial failure stays inline) -->
+        <div
+          v-if="installResults.length"
+          class="mb-6 space-y-2"
+        >
+          <div class="text-xs font-bold text-text-secondary uppercase tracking-wider">
+            {{ $t('mcp.presets.installPartialFailed') }}
+          </div>
+          <div
+            v-for="result in installResults"
+            :key="result.platform"
+            class="flex items-center gap-2 px-3 py-2 rounded-xl border text-sm"
+            :class="result.success
+              ? 'border-accent-success/30 bg-accent-success/10 text-accent-success'
+              : 'border-accent-danger/30 bg-accent-danger/10 text-accent-danger'"
+          >
+            <SIcon
+              :name="result.success ? 'CheckCircle2' : 'AlertCircle'"
+              size="w-4 h-4"
+              class="flex-shrink-0"
+            />
+            <span class="font-bold flex-shrink-0">{{ result.platform }}</span>
+            <span
+              v-if="result.message"
+              class="text-xs truncate text-text-secondary"
+              :title="result.message"
+            >{{ result.message }}</span>
+          </div>
+        </div>
+
         <!-- Actions -->
         <div class="flex gap-4">
           <button
-            class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-colors bg-white text-text-secondary hover:bg-bg-surface border border-border-default"
+            class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-colors bg-bg-elevated text-text-secondary hover:bg-bg-surface border border-border-default"
             @click="closeInstallModal"
           >
             {{ $t('common.cancel') }}
@@ -282,6 +312,8 @@ const selectedPreset = ref<McpPreset | null>(null)
 const selectedPlatforms = ref<string[]>(['claude'])
 const apiKeyValue = ref('')
 const installing = ref(false)
+// 部分失败时的逐平台安装结果,留在弹窗内展示
+const installResults = ref<SyncResult[]>([])
 
 // Available platforms
 const platforms = [
@@ -307,6 +339,7 @@ const handlePresetClick = (preset: McpPreset) => {
   selectedPreset.value = preset
   selectedPlatforms.value = ['claude']
   apiKeyValue.value = ''
+  installResults.value = []
   showInstallModal.value = true
 }
 
@@ -330,6 +363,7 @@ const closeInstallModal = () => {
   showInstallModal.value = false
   selectedPreset.value = null
   apiKeyValue.value = ''
+  installResults.value = []
 }
 
 // Confirm installation
@@ -357,16 +391,17 @@ const confirmInstall = async () => {
     )
 
     // Check results
-    const failed = (result.results as SyncResult[]).filter((r: SyncResult) => !r.success)
+    const results = result.results as SyncResult[]
+    const failed = results.filter((r: SyncResult) => !r.success)
     if (failed.length > 0) {
-      const failedPlatforms = failed.map((f: SyncResult) => `${f.platform}: ${f.message}`).join('\n')
-      uiStore.showError(`${t('mcp.presets.installPartialFailed')}\n\n${failedPlatforms}`)
+      // 部分失败:弹窗留在原地内联展示逐平台结果,不再靠 toast 塞失败清单
+      installResults.value = results
+      emit('installed')
     } else {
       uiStore.showSuccess(t('mcp.presets.installSuccess'))
+      closeInstallModal()
+      emit('installed')
     }
-
-    closeInstallModal()
-    emit('installed')
   } catch (err) {
     logger.error('Failed to install preset:', err)
     uiStore.showError(`${t('mcp.presets.installFailed')}: ${err instanceof Error ? err.message : 'Unknown error'}`)
