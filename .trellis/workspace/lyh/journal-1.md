@@ -1515,3 +1515,37 @@ implement.md 第 7 项闭环。7a:UsageLogsTab loading 态从单行"加载中"�
 - 关键决策:cost delta 用新增 `deltaSentiment` 字段实现方向/好坏解耦(涨=红仅 cost 卡),而非翻转 deltaTone——方向语义保留给未来消费方;确认交互约定沉淀为 confirm-interaction-contracts.md 新 spec。
 - 教训:`bg-white`/`/700` 这类 Tailwind 硬伤 lint 抓不到,清扫靠 rg 模式扫描;check:i18n 红灯先 git stash 验证是否存量,避免误背锅。
 - 遗留:亮/暗截图与手测(R1-M + R2 各页)用户已自行验证完毕;任务归档至 archive/2026-07/。子任务 07-09(codex-auth css 令牌)独立待排期,父任务 5/6 未归档。
+
+
+## Session 34: codex-auth-shared.css 语义令牌迁移收尾
+
+**Date**: 2026-07-09
+**Task**: codex-auth-shared.css 语义令牌迁移收尾
+**Branch**: `dev`
+
+### Summary
+
+完成 07-09 最后一块拼图:codex-auth-shared.css 4 处硬编码色迁移到语义令牌,其中 --platform-codex-rgb 是从未被 theme.css 桥接的幽灵引用(永远吃字面量橙色 fallback),顺手修成真正的品牌绿。亮/暗主题用 preview_inspect 逐点核对 computed 值。契约沉淀到 theme-token-contracts.md 新场景。父任务 07-07-ui-liquid-glass-redesign 6/6 子任务全部完成,与 07-09 一并归档。CodexSettingsView.vue 里同款 bug 已 spawn_task 交给独立会话。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b76c04b6` | (see git log) |
+| `d2ef238a` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
