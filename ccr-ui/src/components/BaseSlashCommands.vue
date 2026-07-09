@@ -359,6 +359,7 @@ import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useCommandsViewStore } from '@/stores/commandsView'
+import { useUIStore } from '@/stores/ui'
 import { logger } from '@/utils/logger'
 
 // 组件导入
@@ -378,6 +379,7 @@ const props = defineProps<Props>()
 // 状态管理
 const { t } = useI18n()
 const viewStore = useCommandsViewStore()
+const uiStore = useUIStore()
 
 const loading = ref(false)
 const commands = ref<SlashCommand[]>([])
@@ -554,7 +556,14 @@ const handleEdit = (command: SlashCommand) => {
 }
 
 const handleDelete = async (name: string) => {
-  if (!confirm(t(`${props.config.i18n.prefix}.confirmDelete`, { name }))) {
+  const confirmed = await uiStore.requestConfirm({
+    title: t('common.delete'),
+    message: t(`${props.config.i18n.prefix}.confirmDelete`, { name }),
+    confirmText: t('common.delete'),
+    cancelText: t('common.cancel'),
+    type: 'danger',
+  })
+  if (!confirmed) {
     return
   }
 

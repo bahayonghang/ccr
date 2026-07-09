@@ -357,10 +357,12 @@ import { extractStringParam } from '@/types/router'
 import { getErrorMessage } from '@/utils/errorHandler'
 import { logger } from '@/utils/logger'
 import { copyText } from '@/utils/clipboard'
+import { useUIStore } from '@/stores/ui'
 
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
+const uiStore = useUIStore()
 const defaultAgentModelOptions = [
   { value: 'claude-sonnet-4-5-20250929', label: 'Claude Sonnet 4.5' },
   { value: 'claude-opus-4-20250514', label: 'Claude Opus 4' },
@@ -444,7 +446,7 @@ const handleSave = async () => {
     showEditModal.value = false
   } catch (err) {
     logger.error('Failed to update agent:', err)
-    alert(t('common.operationFailed'))
+    uiStore.showError(t('common.operationFailed'))
   } finally {
     saving.value = false
   }
@@ -458,21 +460,28 @@ const handleToggle = async () => {
     agent.value.disabled = !agent.value.disabled
   } catch (err) {
     logger.error('Failed to toggle agent:', err)
-    alert(t('common.operationFailed'))
+    uiStore.showError(t('common.operationFailed'))
   }
 }
 
 const handleDelete = async () => {
   if (!agent.value) return
 
-  if (!confirm(t('agents.deleteConfirm', { name: agent.value.name }))) return
+  const confirmed = await uiStore.requestConfirm({
+    title: t('common.delete'),
+    message: t('agents.deleteConfirm', { name: agent.value.name }),
+    confirmText: t('common.delete'),
+    cancelText: t('common.cancel'),
+    type: 'danger'
+  })
+  if (!confirmed) return
 
   try {
     await deleteAgent(agent.value.name)
     router.push('/agents')
   } catch (err) {
     logger.error('Failed to delete agent:', err)
-    alert(t('common.deleteFailed'))
+    uiStore.showError(t('common.deleteFailed'))
   }
 }
 

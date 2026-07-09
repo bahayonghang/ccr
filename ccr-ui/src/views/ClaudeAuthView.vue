@@ -468,7 +468,14 @@ const handleSave = async () => {
 }
 
 const handleSwitch = async (name: string) => {
-  if (!window.confirm(tt(`确定切换到官方账号 "${name}" 吗？`, `Switch to official account "${name}"?`))) return
+  const confirmed = await uiStore.requestConfirm({
+    title: tt('切换官方账号', 'Switch official account'),
+    message: tt(`确定切换到官方账号 "${name}" 吗？`, `Switch to official account "${name}"?`),
+    confirmText: tt('切换', 'Switch'),
+    cancelText: tt('取消', 'Cancel'),
+    type: 'warning',
+  })
+  if (!confirmed) return
 
   try {
     busyName.value = name
@@ -486,7 +493,14 @@ const handleSwitch = async (name: string) => {
 }
 
 const handleDelete = async (name: string) => {
-  if (!window.confirm(tt(`确定删除官方账号 "${name}" 吗？`, `Delete official account "${name}"?`))) return
+  const confirmed = await uiStore.requestConfirm({
+    title: tt('删除官方账号', 'Delete official account'),
+    message: tt(`确定删除官方账号 "${name}" 吗？`, `Delete official account "${name}"?`),
+    confirmText: tt('删除', 'Delete'),
+    cancelText: tt('取消', 'Cancel'),
+    type: 'danger',
+  })
+  if (!confirmed) return
 
   try {
     busyName.value = name

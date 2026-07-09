@@ -301,9 +301,13 @@ function handleUpdateField(field: keyof UnifiedMcpRequest, value: unknown) {
 
 async function handleSubmit() {
   if (formData.value.scope === 'project') {
-    const confirmed = window.confirm(
-      t('mcp.manager.confirm.projectScopeWrite'),
-    )
+    const confirmed = await uiStore.requestConfirm({
+      title: t('common.warning'),
+      message: t('mcp.manager.confirm.projectScopeWrite'),
+      confirmText: t('common.confirm'),
+      cancelText: t('common.cancel'),
+      type: 'warning',
+    })
     if (!confirmed) return
   }
   const success = await submitForm()
@@ -328,9 +332,13 @@ async function confirmBulkDelete() {
 }
 
 async function handleDeleteGroup(group: McpGroup) {
-  const confirmed = window.confirm(
-    t('mcp.manager.confirm.deleteGroup', { count: group.items.length, name: group.name }),
-  )
+  const confirmed = await uiStore.requestConfirm({
+    title: t('common.delete'),
+    message: t('mcp.manager.confirm.deleteGroup', { count: group.items.length, name: group.name }),
+    confirmText: t('common.delete'),
+    cancelText: t('common.cancel'),
+    type: 'danger',
+  })
   if (!confirmed) return
 
   try {
@@ -351,9 +359,13 @@ async function handleImportServers(
   scope?: string,
 ) {
   if (scope === 'project') {
-    const confirmed = window.confirm(
-      t('mcp.manager.confirm.projectScopeImport'),
-    )
+    const confirmed = await uiStore.requestConfirm({
+      title: t('common.warning'),
+      message: t('mcp.manager.confirm.projectScopeImport'),
+      confirmText: t('common.confirm'),
+      cancelText: t('common.cancel'),
+      type: 'warning',
+    })
     if (!confirmed) return
   }
 

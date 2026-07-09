@@ -264,8 +264,10 @@ import {
   type SyncResult
 } from '@/api'
 import { logger } from '@/utils/logger'
+import { useUIStore } from '@/stores/ui'
 
 const { t } = useI18n({ useScope: 'global' })
+const uiStore = useUIStore()
 
 const emit = defineEmits<{
   (e: 'installed'): void
@@ -336,7 +338,7 @@ const confirmInstall = async () => {
 
   // Check API key requirement
   if (selectedPreset.value.requires_api_key && selectedPreset.value.api_key_env && !apiKeyValue.value) {
-    alert(t('mcp.presets.apiKeyRequired'))
+    uiStore.showWarning(t('mcp.presets.apiKeyRequired'))
     return
   }
 
@@ -358,16 +360,16 @@ const confirmInstall = async () => {
     const failed = (result.results as SyncResult[]).filter((r: SyncResult) => !r.success)
     if (failed.length > 0) {
       const failedPlatforms = failed.map((f: SyncResult) => `${f.platform}: ${f.message}`).join('\n')
-      alert(`${t('mcp.presets.installPartialFailed')}\n\n${failedPlatforms}`)
+      uiStore.showError(`${t('mcp.presets.installPartialFailed')}\n\n${failedPlatforms}`)
     } else {
-      alert(t('mcp.presets.installSuccess'))
+      uiStore.showSuccess(t('mcp.presets.installSuccess'))
     }
 
     closeInstallModal()
     emit('installed')
   } catch (err) {
     logger.error('Failed to install preset:', err)
-    alert(`${t('mcp.presets.installFailed')}: ${err instanceof Error ? err.message : 'Unknown error'}`)
+    uiStore.showError(`${t('mcp.presets.installFailed')}: ${err instanceof Error ? err.message : 'Unknown error'}`)
   } finally {
     installing.value = false
   }
