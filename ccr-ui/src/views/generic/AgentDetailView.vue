@@ -299,7 +299,7 @@
               <span
                 v-for="tool in (formData.tools || [])"
                 :key="tool"
-                class="px-3 py-1.5 rounded-lg text-sm flex items-center gap-2 bg-white border border-border-default shadow-sm text-text-primary group"
+                class="px-3 py-1.5 rounded-lg text-sm flex items-center gap-2 bg-bg-elevated border border-border-default shadow-sm text-text-primary group"
               >
                 {{ tool }}
                 <button
@@ -318,7 +318,7 @@
             <textarea
               v-model="formData.system_prompt"
               rows="8"
-              class="w-full px-4 py-3 rounded-xl bg-bg-surface/700 border border-border-default focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 outline-none transition-colors resize-y font-mono text-sm leading-relaxed"
+              class="w-full px-4 py-3 rounded-xl bg-bg-surface/70 border border-border-default focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 outline-none transition-colors resize-y font-mono text-sm leading-relaxed"
               :placeholder="$t('agents.systemPromptPlaceholder')"
             />
           </div>
@@ -326,7 +326,7 @@
 
         <div class="flex gap-4 mt-10 pt-6 border-t border-border-default/50">
           <button
-            class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-colors bg-white text-text-secondary hover:bg-bg-surface border border-border-default"
+            class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-colors bg-bg-elevated text-text-secondary hover:bg-bg-surface border border-border-default"
             @click="showEditModal = false"
           >
             {{ $t('common.cancel') }}

@@ -292,7 +292,7 @@
                         <div
                           v-for="(tool, i) in agent.tools.slice(0, 3)"
                           :key="i" 
-                          class="w-6 h-6 rounded-full bg-white border border-border-default flex items-center justify-center text-[10px] shadow-sm text-text-secondary"
+                          class="w-6 h-6 rounded-full bg-bg-elevated border border-border-default flex items-center justify-center text-[10px] shadow-sm text-text-secondary"
                           :title="tool"
                         >
                           {{ tool.charAt(0).toUpperCase() }}
@@ -424,7 +424,7 @@
               <span
                 v-for="tool in (formData.tools || [])"
                 :key="tool"
-                class="px-3 py-1.5 rounded-lg text-sm flex items-center gap-2 bg-white border border-border-default shadow-sm text-text-primary group"
+                class="px-3 py-1.5 rounded-lg text-sm flex items-center gap-2 bg-bg-elevated border border-border-default shadow-sm text-text-primary group"
               >
                 {{ tool }}
                 <button
@@ -451,7 +451,7 @@
 
         <div class="flex gap-4 mt-10 pt-6 border-t border-border-default/50">
           <button
-            class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-colors bg-white text-text-secondary hover:bg-bg-surface border border-border-default"
+            class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-colors bg-bg-elevated text-text-secondary hover:bg-bg-surface border border-border-default"
             @click="showAddForm = false"
           >
             {{ $t('common.cancel') }}
@@ -717,11 +717,11 @@ const navigateToDetail = (agent: Agent) => {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgb(0 0 0 / 10%);
+  background: rgb(var(--color-border-default-rgb) / 45%);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgb(0 0 0 / 20%);
+  background: rgb(var(--color-border-default-rgb) / 70%);
 }
 </style>
