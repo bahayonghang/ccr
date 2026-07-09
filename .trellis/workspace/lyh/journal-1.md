@@ -1506,3 +1506,12 @@ implement.md 第 7 项闭环。7a:UsageLogsTab loading 态从单行"加载中"�
 ### Next Steps
 
 - None - task complete
+
+## 2026-07-09 · 07-07-ui-consistency-sweep R2 全量执行并归档
+
+**Completed**
+
+- R2-1~R2-6 单会话连续落地,每页一笔中文提交(8158eb5a/8601e639/3fa12979/126fb2e2/53029eb8),R2-5 抽查干净零改动;顺手修存量 en-US i18n 缺口(4c1af375)。
+- 关键决策:cost delta 用新增 `deltaSentiment` 字段实现方向/好坏解耦(涨=红仅 cost 卡),而非翻转 deltaTone——方向语义保留给未来消费方;确认交互约定沉淀为 confirm-interaction-contracts.md 新 spec。
+- 教训:`bg-white`/`/700` 这类 Tailwind 硬伤 lint 抓不到,清扫靠 rg 模式扫描;check:i18n 红灯先 git stash 验证是否存量,避免误背锅。
+- 遗留:亮/暗截图与手测(R1-M + R2 各页)用户已自行验证完毕;任务归档至 archive/2026-07/。子任务 07-09(codex-auth css 令牌)独立待排期,父任务 5/6 未归档。
