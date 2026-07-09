@@ -155,6 +155,7 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useUsageDashboardContext } from '@/views/usage/usageDashboardContext'
 import {
+  buildChartAnimations,
   buildChartTheme,
   type ChartThemeState,
 } from '@/views/usage/usageChartOptions'
@@ -256,7 +257,7 @@ const chartOptions = computed(() => ({
     fontFamily: 'inherit',
     stacked: activeMode.value === 'breakdown',
     toolbar: { show: false },
-    animations: { enabled: false },
+    animations: buildChartAnimations(),
     // KeepAlive 重挂会触发 ApexCharts 的 parentResize 观察器,默认会全量 update 重建
     // canvas,抵消缓存收益;与 usageChartOptions.ts 的 TREND/PIE 基座保持一致地关闭。
     redrawOnParentResize: false,

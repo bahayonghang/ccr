@@ -17,7 +17,7 @@
       <strong class="usage-metric-card__value">{{ card.value }}</strong>
       <span
         class="usage-metric-card__delta"
-        :class="`usage-metric-card__delta--${card.deltaTone}`"
+        :class="`usage-metric-card__delta--${card.deltaSentiment}`"
       >
         {{ card.deltaLabel }}
       </span>
@@ -190,19 +190,19 @@ const sparklineValues = computed(() => props.card.sparkline.map((point) => point
   font-variant-numeric: tabular-nums;
 }
 
-.usage-metric-card__delta--up {
+.usage-metric-card__delta--positive {
   border-color: rgb(var(--color-success-rgb) / 18%);
   background: rgb(var(--color-success-rgb) / 10%);
   color: var(--color-success);
 }
 
-.usage-metric-card__delta--down {
+.usage-metric-card__delta--negative {
   border-color: rgb(var(--color-danger-rgb) / 16%);
   background: rgb(var(--color-danger-rgb) / 8%);
   color: var(--color-danger);
 }
 
-.usage-metric-card__delta--flat {
+.usage-metric-card__delta--neutral {
   color: var(--color-text-muted);
 }
 

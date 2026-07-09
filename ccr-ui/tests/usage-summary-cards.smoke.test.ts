@@ -142,6 +142,7 @@ describe('usage summary card helpers', () => {
       peakLabel: '20',
       deltaLabel: '+100%',
       deltaTone: 'up',
+      deltaSentiment: 'positive',
       sparklineLabel: 'Total Requests trend for 30 Days',
     })
     expect(cost).toMatchObject({
@@ -149,6 +150,9 @@ describe('usage summary card helpers', () => {
       detail: '$0.2000 per request',
       averageLabel: '$3.00',
       peakLabel: '$4.00',
+      // cost 语义翻转:涨(up)在 cost 卡上是负面(红)
+      deltaTone: 'up',
+      deltaSentiment: 'negative',
     })
     expect(activeDays).toMatchObject({
       label: 'Active Days',

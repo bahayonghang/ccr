@@ -43,8 +43,8 @@
   ApexCharts 默认 `redrawOnParentResize: true`,而 KeepAlive 重挂(DOM 摘下再插回)
   必然触发 parentResize → 全量重建。TREND/PIE 冻结基座已内置;**tab 组件内自建的
   局部 options(如 UsageTokensTab/UsageCostTab 的柱状图)最容易漏**,新增图表时逐项核对。
-- 动画统一走 `buildChartAnimations()`(默认开启、`prefers-reduced-motion` 降级),
-  不要新增硬编码 `animations: { enabled: false }`(存量两处见"已知偏差")。
+- 动画统一走 `buildChartAnimations()`(已导出;默认开启、`prefers-reduced-motion` 降级),
+  不要新增硬编码 `animations: { enabled: false }`。
 
 ## 3. series 引用纪律
 
@@ -81,7 +81,8 @@
 
 ## 已知偏差(接受现状,改动时顺手收敛)
 
-- `UsageTokensTab.vue` / `UsageCostTab.vue` 局部 options 仍硬编码
-  `animations: { enabled: false }`(reduced-motion 的安全子集,仅动效语言不一致);
-  且 cost tab 的 options 直接依赖 `ctx.trends`(数据刷新会对离屏缓存图表触发
+- ~~`UsageTokensTab.vue` / `UsageCostTab.vue` 局部 options 硬编码
+  `animations: { enabled: false }`~~——已收敛(07-07-ui-consistency-sweep R2-6,
+  两处均改走导出的 `buildChartAnimations()`)。
+- cost tab 的 options 直接依赖 `ctx.trends`(数据刷新会对离屏缓存图表触发
   updateOptions 重建,用户不可见)。将图表 options 收编进工厂时一并处理。

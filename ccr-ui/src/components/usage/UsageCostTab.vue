@@ -139,7 +139,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { ModelStat, UsagePlatform } from '@/types/usage'
 import { formatPercent } from '@/views/usage/usageSummaryCards'
-import { buildChartTheme, type ChartThemeState } from '@/views/usage/usageChartOptions'
+import { buildChartAnimations, buildChartTheme, type ChartThemeState } from '@/views/usage/usageChartOptions'
 import { useUsageDashboardContext } from '@/views/usage/usageDashboardContext'
 
 const ctx = useUsageDashboardContext()
@@ -171,7 +171,7 @@ const chartOptions = computed(() => ({
     background: 'transparent',
     fontFamily: 'inherit',
     toolbar: { show: false },
-    animations: { enabled: false },
+    animations: buildChartAnimations(),
     // 同 UsageTokensTab:关闭 parentResize 触发的全量重建,保住 KeepAlive 缓存的 canvas。
     redrawOnParentResize: false,
     redrawOnWindowResize: false,

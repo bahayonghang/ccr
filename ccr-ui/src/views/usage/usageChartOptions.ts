@@ -258,7 +258,8 @@ if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
   })
 }
 
-const buildChartAnimations = () => ({ enabled: !prefersReducedMotion.value })
+// 导出供 tab 组件局部 options 复用,统一 reduced-motion 降级口径
+export const buildChartAnimations = () => ({ enabled: !prefersReducedMotion.value })
 
 const TREND_CHART_BASE = Object.freeze({
   background: 'transparent',

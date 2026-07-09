@@ -2675,7 +2675,7 @@ export default {
       ops: {
         eyebrow: 'Usage 运维驾驶舱',
         sourcesTitle: '来源健康',
-        sourcesHint: 'live / missing / deleted',
+        sourcesHint: '按状态标注：正常在线 / 文件缺失 / 已删除',
         alertsTitle: '运维告警',
         alertsHint: '导入与同步事件',
         noSources: '暂未生成来源健康快照。',

@@ -17,7 +17,7 @@
       <strong class="usage-cost-conclusion__value">{{ card.value }}</strong>
       <span
         class="usage-cost-conclusion__delta"
-        :class="`usage-cost-conclusion__delta--${card.deltaTone}`"
+        :class="`usage-cost-conclusion__delta--${card.deltaSentiment}`"
       >
         {{ card.deltaLabel }}
         <small>{{ $t('usage.dashboard.cards.periodOverPeriod') }}</small>
@@ -155,19 +155,19 @@ defineProps<{
   font-variant-numeric: initial;
 }
 
-.usage-cost-conclusion__delta--up {
+.usage-cost-conclusion__delta--positive {
   border-color: rgb(var(--color-success-rgb) / 18%);
   background: rgb(var(--color-success-rgb) / 10%);
   color: var(--color-success);
 }
 
-.usage-cost-conclusion__delta--down {
+.usage-cost-conclusion__delta--negative {
   border-color: rgb(var(--color-danger-rgb) / 16%);
   background: rgb(var(--color-danger-rgb) / 8%);
   color: var(--color-danger);
 }
 
-.usage-cost-conclusion__delta--flat {
+.usage-cost-conclusion__delta--neutral {
   color: var(--color-text-muted);
 }
 

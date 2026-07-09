@@ -3,6 +3,8 @@ import type { UsageTrendBucket } from './usageDashboardPresentation'
 
 export type UsageSummaryCardTone = 'rose' | 'sand' | 'sky' | 'amber'
 export type UsageSummaryCardDeltaTone = 'up' | 'down' | 'flat'
+// 语义色倾向:方向(deltaTone)与好坏(sentiment)解耦——cost 涨=negative(红)/降=positive(绿),其余指标涨=positive
+export type UsageSummaryCardDeltaSentiment = 'positive' | 'negative' | 'neutral'
 export type UsageSummaryCardMetric = 'tokens' | 'cost' | 'activeDays' | 'requests'
 
 export type UsageSparklinePoint = {
@@ -25,17 +27,24 @@ export type UsageSummaryCard = {
   peakLabel: string
   deltaLabel: string
   deltaTone: UsageSummaryCardDeltaTone
+  deltaSentiment: UsageSummaryCardDeltaSentiment
 }
 
 type UsageSummaryCardDraft = Omit<
   UsageSummaryCard,
-  'sparkline' | 'sparklineLabel' | 'averageLabel' | 'peakLabel' | 'deltaLabel' | 'deltaTone'
+  | 'sparkline'
+  | 'sparklineLabel'
+  | 'averageLabel'
+  | 'peakLabel'
+  | 'deltaLabel'
+  | 'deltaTone'
+  | 'deltaSentiment'
 >
 
 type UsageDashboardTranslator = (
   key: string,
   values: Record<string, number | string> | undefined,
-  fallback: string,
+  fallback: string
 ) => string
 
 export type BuildUsageSummaryCardsInput = {
@@ -76,7 +85,7 @@ const formatCompactCount = (value: number) =>
         : value.toFixed(1)
 
 export const buildSummarySparklinePoints = (
-  buckets: UsageTrendBucket[],
+  buckets: UsageTrendBucket[]
 ): UsageSummarySparklinePoints => ({
   requests: buckets.map((item) => ({ label: item.startDate, value: item.requestCount })),
   tokens: buckets.map((item) => ({ label: item.startDate, value: item.totalTokens })),
@@ -89,7 +98,7 @@ export const buildSummarySparklinePoints = (
 
 export const buildMetricStats = (
   points: UsageSparklinePoint[],
-  formatter: (value: number) => string,
+  formatter: (value: number) => string
 ) => {
   if (points.length === 0) {
     return {
@@ -118,22 +127,35 @@ export const buildMetricStats = (
   }
 }
 
+// cost 涨=红/降=绿(2026-07-09 拍板);其余指标维持涨=绿
+const resolveDeltaSentiment = (
+  metric: UsageSummaryCardMetric,
+  tone: UsageSummaryCardDeltaTone
+): UsageSummaryCardDeltaSentiment => {
+  if (tone === 'flat') return 'neutral'
+  return (tone === 'up') !== (metric === 'cost') ? 'positive' : 'negative'
+}
+
 const buildSummaryCard = (
   card: UsageSummaryCardDraft,
   sparklinePoints: UsageSummarySparklinePoints,
   selectedWindowLabel: string,
   translate: UsageDashboardTranslator,
-  formatter: (value: number) => string,
-): UsageSummaryCard => ({
-  ...card,
-  sparkline: sparklinePoints[card.id],
-  sparklineLabel: translate(
-    'usage.dashboard.cards.sparklineLabel',
-    { metric: card.label, window: selectedWindowLabel },
-    `${card.label} trend for ${selectedWindowLabel}`,
-  ),
-  ...buildMetricStats(sparklinePoints[card.id], formatter),
-})
+  formatter: (value: number) => string
+): UsageSummaryCard => {
+  const stats = buildMetricStats(sparklinePoints[card.id], formatter)
+  return {
+    ...card,
+    sparkline: sparklinePoints[card.id],
+    sparklineLabel: translate(
+      'usage.dashboard.cards.sparklineLabel',
+      { metric: card.label, window: selectedWindowLabel },
+      `${card.label} trend for ${selectedWindowLabel}`
+    ),
+    ...stats,
+    deltaSentiment: resolveDeltaSentiment(card.id, stats.deltaTone),
+  }
+}
 
 export const buildUsageSummaryCards = ({
   summary,
@@ -162,7 +184,7 @@ export const buildUsageSummaryCards = ({
             output: formatTokens(summary.total_output_tokens),
             cache: formatTokens(summary.total_cache_read_tokens),
           },
-          `${formatTokens(summary.total_input_tokens)} in · ${formatTokens(summary.total_output_tokens)} out · ${formatTokens(summary.total_cache_read_tokens)} cache read`,
+          `${formatTokens(summary.total_input_tokens)} in · ${formatTokens(summary.total_output_tokens)} out · ${formatTokens(summary.total_cache_read_tokens)} cache read`
         ),
         icon: 'Layers',
         tone: 'rose',
@@ -170,7 +192,7 @@ export const buildUsageSummaryCards = ({
       sparklinePoints,
       selectedWindowLabel,
       translate,
-      formatTokens,
+      formatTokens
     ),
     buildSummaryCard(
       {
@@ -182,7 +204,7 @@ export const buildUsageSummaryCards = ({
           {
             average: averageCostPerRequest,
           },
-          `${averageCostPerRequest} per request`,
+          `${averageCostPerRequest} per request`
         ),
         icon: 'Wallet',
         tone: 'sand',
@@ -190,7 +212,7 @@ export const buildUsageSummaryCards = ({
       sparklinePoints,
       selectedWindowLabel,
       translate,
-      formatCost,
+      formatCost
     ),
     buildSummaryCard(
       {
@@ -202,7 +224,7 @@ export const buildUsageSummaryCards = ({
           {
             window: selectedWindowLabel,
           },
-          `Days with token activity in ${selectedWindowLabel}`,
+          `Days with token activity in ${selectedWindowLabel}`
         ),
         icon: 'Calendar',
         tone: 'sky',
@@ -210,7 +232,7 @@ export const buildUsageSummaryCards = ({
       sparklinePoints,
       selectedWindowLabel,
       translate,
-      formatCompactCount,
+      formatCompactCount
     ),
     buildSummaryCard(
       {
@@ -223,7 +245,7 @@ export const buildUsageSummaryCards = ({
             models: modelCount,
             projects: projectCount,
           },
-          `${modelCount} models · ${projectCount} projects`,
+          `${modelCount} models · ${projectCount} projects`
         ),
         icon: 'Activity',
         tone: 'amber',
@@ -231,7 +253,7 @@ export const buildUsageSummaryCards = ({
       sparklinePoints,
       selectedWindowLabel,
       translate,
-      formatCompactCount,
+      formatCompactCount
     ),
   ]
 }
