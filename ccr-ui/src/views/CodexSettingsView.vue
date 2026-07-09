@@ -896,8 +896,8 @@ export default { components: { ToggleField } }
 .codex-settings-header__icon {
   @apply flex h-12 w-12 items-center justify-center rounded-2xl border shadow-lg backdrop-blur-md;
 
-  border-color: rgb(var(--platform-codex-rgb, 245 158 11) / 20%);
-  background: rgb(var(--platform-codex-rgb, 245 158 11) / 10%);
+  border-color: rgb(var(--color-platform-codex-rgb) / 20%);
+  background: rgb(var(--color-platform-codex-rgb) / 10%);
 }
 
 .codex-settings-title {
