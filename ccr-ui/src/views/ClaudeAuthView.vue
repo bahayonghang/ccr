@@ -167,12 +167,14 @@
           {{ tt('正在加载账号信息…', 'Loading account details...') }}
         </div>
 
-        <div
+        <EmptyState
           v-else-if="accounts.length === 0"
-          class="claude-auth-view__empty"
-        >
-          {{ tt('尚未保存任何官方账号快照。', 'No official account snapshots saved yet.') }}
-        </div>
+          icon="User"
+          :title="tt('尚未保存任何官方账号快照。', 'No official account snapshots saved yet.')"
+          :action-text="tt('保存当前登录', 'Save current login')"
+          action-icon="Plus"
+          :on-action="() => { showSaveForm = true }"
+        />
 
         <div
           v-else
@@ -245,64 +247,60 @@
         </div>
       </section>
 
-      <div
-        v-if="showSaveForm"
-        class="claude-auth-view__modal-backdrop"
-        @click.self="showSaveForm = false"
+      <BaseModal
+        v-model="showSaveForm"
+        :title="tt('保存当前官方登录', 'Save current official login')"
+        size="md"
+        surface="solid"
       >
-        <div class="claude-auth-view__modal">
-          <h3 class="claude-auth-view__modal-title">
-            {{ tt('保存当前官方登录', 'Save current official login') }}
-          </h3>
-          <p class="claude-auth-view__modal-subtitle">
-            {{ tt('当前必须已经通过 `claude login` 拿到官方登录，CCR 只负责保存快照和切换。', 'You must already have an official login from `claude login`. CCR only saves and switches snapshots.') }}
-          </p>
+        <p class="claude-auth-view__modal-subtitle">
+          {{ tt('当前必须已经通过 `claude login` 拿到官方登录，CCR 只负责保存快照和切换。', 'You must already have an official login from `claude login`. CCR only saves and switches snapshots.') }}
+        </p>
 
-          <label class="claude-auth-view__field">
-            <span>{{ tt('账号名称', 'Account name') }}</span>
-            <input
-              v-model="saveForm.name"
-              type="text"
-              :placeholder="tt('例如 work / personal', 'e.g. work / personal')"
-            >
-          </label>
+        <label class="claude-auth-view__field">
+          <span>{{ tt('账号名称', 'Account name') }}</span>
+          <input
+            v-model="saveForm.name"
+            type="text"
+            :placeholder="tt('例如 work / personal', 'e.g. work / personal')"
+          >
+        </label>
 
-          <label class="claude-auth-view__field">
-            <span>{{ tt('描述（可选）', 'Description (optional)') }}</span>
-            <input
-              v-model="saveForm.description"
-              type="text"
-              :placeholder="tt('例如 公司订阅 / 个人订阅', 'e.g. company plan / personal plan')"
-            >
-          </label>
+        <label class="claude-auth-view__field">
+          <span>{{ tt('描述（可选）', 'Description (optional)') }}</span>
+          <input
+            v-model="saveForm.description"
+            type="text"
+            :placeholder="tt('例如 公司订阅 / 个人订阅', 'e.g. company plan / personal plan')"
+          >
+        </label>
 
-          <label class="claude-auth-view__checkbox">
-            <input
-              v-model="saveForm.force"
-              type="checkbox"
-            >
-            <span>{{ tt('覆盖同名账号', 'Overwrite same-name account') }}</span>
-          </label>
+        <label class="claude-auth-view__checkbox">
+          <input
+            v-model="saveForm.force"
+            type="checkbox"
+          >
+          <span>{{ tt('覆盖同名账号', 'Overwrite same-name account') }}</span>
+        </label>
 
-          <div class="claude-auth-view__modal-actions">
-            <button
-              type="button"
-              class="claude-auth-view__ghost-button"
-              @click="showSaveForm = false"
-            >
-              {{ tt('取消', 'Cancel') }}
-            </button>
-            <button
-              type="button"
-              class="claude-auth-view__primary-button"
-              :disabled="saving"
-              @click="handleSave"
-            >
-              {{ saving ? tt('保存中…', 'Saving...') : tt('保存', 'Save') }}
-            </button>
-          </div>
-        </div>
-      </div>
+        <template #footer>
+          <button
+            type="button"
+            class="claude-auth-view__ghost-button"
+            @click="showSaveForm = false"
+          >
+            {{ tt('取消', 'Cancel') }}
+          </button>
+          <button
+            type="button"
+            class="claude-auth-view__primary-button"
+            :disabled="saving"
+            @click="handleSave"
+          >
+            {{ saving ? tt('保存中…', 'Saving...') : tt('保存', 'Save') }}
+          </button>
+        </template>
+      </BaseModal>
     </div>
   </div>
 </template>
@@ -311,6 +309,8 @@
 import { computed, onActivated, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ModuleSubnav from '@/components/ModuleSubnav.vue'
+import BaseModal from '@/components/common/BaseModal.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
 import {
   deleteClaudeAuth,
   getClaudeAuthCurrent,
@@ -544,8 +544,7 @@ onActivated(() => {
 .claude-auth-view__actions,
 .claude-auth-view__panel-header,
 .claude-auth-view__row-actions,
-.claude-auth-view__account-name,
-.claude-auth-view__modal-actions {
+.claude-auth-view__account-name {
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -627,16 +626,10 @@ onActivated(() => {
 
 .claude-auth-view__stat-card,
 .claude-auth-view__panel,
-.claude-auth-view__banner,
-.claude-auth-view__modal {
+.claude-auth-view__banner {
   border: 1px solid var(--stage-border-soft);
   border-radius: 1rem;
   background: var(--stage-surface-elevated);
-}
-
-.claude-auth-view__stat-card,
-.claude-auth-view__panel,
-.claude-auth-view__banner {
   padding: 1rem 1.125rem;
 }
 
@@ -650,8 +643,7 @@ onActivated(() => {
 }
 
 .claude-auth-view__stat-value,
-.claude-auth-view__panel-title,
-.claude-auth-view__modal-title {
+.claude-auth-view__panel-title {
   color: var(--stage-text-primary);
   font-size: 1.125rem;
   line-height: 1.5rem;
@@ -690,15 +682,15 @@ onActivated(() => {
 }
 
 .claude-auth-view__freshness--fresh {
-  color: rgb(16 185 129);
+  color: var(--color-success);
 }
 
 .claude-auth-view__freshness--stale {
-  color: rgb(245 158 11);
+  color: var(--color-warning);
 }
 
 .claude-auth-view__freshness--old {
-  color: rgb(239 68 68);
+  color: var(--color-danger);
 }
 
 .claude-auth-view__table-wrap {
@@ -751,23 +743,6 @@ onActivated(() => {
   text-align: center;
 }
 
-.claude-auth-view__modal-backdrop {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgb(15 23 42 / 55%);
-  padding: 1rem;
-  z-index: var(--layer-popover);
-}
-
-.claude-auth-view__modal {
-  width: min(100%, 480px);
-  padding: 1.25rem;
-  box-shadow: 0 24px 48px rgb(15 23 42 / 25%);
-}
-
 .claude-auth-view__modal-subtitle {
   margin-top: 0.5rem;
   color: var(--stage-text-secondary);
@@ -802,11 +777,6 @@ onActivated(() => {
   font-size: 0.875rem;
 }
 
-.claude-auth-view__modal-actions {
-  justify-content: flex-end;
-  margin-top: 1.25rem;
-}
-
 @media (width <= 1024px) {
   .claude-auth-view__stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -830,8 +800,7 @@ onActivated(() => {
     grid-template-columns: 1fr;
   }
 
-  .claude-auth-view__row-actions,
-  .claude-auth-view__modal-actions {
+  .claude-auth-view__row-actions {
     flex-wrap: wrap;
   }
 }
