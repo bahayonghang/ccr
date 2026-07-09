@@ -959,6 +959,7 @@ export default {
       empty: {
         noUsage: 'No Claude Code usage imported yet',
         noUsageDesc: 'Complete the first import under /usage, then return to view insights.',
+        loadError: 'Failed to load data',
         openFullDashboard: 'Open Usage import',
         noTrend: 'No data yet',
       },
@@ -2783,7 +2784,7 @@ export default {
       ops: {
         eyebrow: 'Usage operations cockpit',
         sourcesTitle: 'Source health',
-        sourcesHint: 'live / missing / deleted',
+        sourcesHint: 'Each source is marked live, missing, or deleted',
         alertsTitle: 'Operational alerts',
         alertsHint: 'import and sync events',
         noSources: 'No source health snapshot yet.',
