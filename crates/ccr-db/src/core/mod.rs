@@ -1,4 +1,3 @@
-//! 核心基础设施 — 错误类型、命令执行器。
+//! 核心基础设施 — 错误类型。
 
 pub mod error;
-pub mod executor;

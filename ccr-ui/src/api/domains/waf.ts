@@ -6,10 +6,14 @@
  */
 
 import { invoke } from '@tauri-apps/api/core'
-import type { UnknownRecord } from '../_shared'
+import type {
+  WafCookieRecoveryResult,
+  WafCookieStatus,
+  WafCookieValidationResult,
+} from '@/types/checkin'
 
 /** 打开 WAF 登录窗口 */
-export const openWafLogin = async <T = UnknownRecord>(
+export const openWafLogin = async <T = WafCookieRecoveryResult>(
   loginUrl: string,
   providerId: string,
 ): Promise<T> => {
@@ -17,6 +21,13 @@ export const openWafLogin = async <T = UnknownRecord>(
 }
 
 /** 获取 WAF Cookie 状态 */
-export const getWafCookieStatus = async <T = UnknownRecord>(providerId: string): Promise<T> => {
+export const getWafCookieStatus = async <T = WafCookieStatus>(providerId: string): Promise<T> => {
   return invoke('get_waf_cookie_status', { providerId })
+}
+
+/** 验证缓存的 WAF Cookie 是否能通过账号用户信息接口 */
+export const validateWafCookieForAccount = async <T = WafCookieValidationResult>(
+  accountId: string,
+): Promise<T> => {
+  return invoke('validate_waf_cookie_for_account', { accountId })
 }

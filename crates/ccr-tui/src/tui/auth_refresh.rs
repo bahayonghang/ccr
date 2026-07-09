@@ -76,18 +76,18 @@ where
         }
 
         if let Some(position) = self.pending.iter().position(|entry| entry.key == task.key) {
-            let mut merged = self
-                .pending
-                .remove(position)
-                .expect("position already checked");
-            if task.tier < merged.tier {
-                merged.tier = task.tier;
+            if let Some(mut merged) = self.pending.remove(position) {
+                if task.tier < merged.tier {
+                    merged.tier = task.tier;
+                }
+                merged.force_refresh |= task.force_refresh;
+                if matches!(task.reason, RefreshReason::ManualRefresh) {
+                    merged.reason = task.reason;
+                }
+                self.insert_by_priority(merged);
+            } else {
+                self.insert_by_priority(task);
             }
-            merged.force_refresh |= task.force_refresh;
-            if matches!(task.reason, RefreshReason::ManualRefresh) {
-                merged.reason = task.reason;
-            }
-            self.insert_by_priority(merged);
             return;
         }
 

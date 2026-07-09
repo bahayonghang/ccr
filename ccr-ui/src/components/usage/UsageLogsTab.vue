@@ -1,5 +1,5 @@
 <template>
-  <section class="diagnostics-tab glass-panel rounded-[26px] p-4">
+  <section class="diagnostics-tab glass-panel rounded-xl p-4">
     <div class="diagnostics-tab__head">
       <div>
         <h3 class="diagnostics-tab__title">
@@ -14,16 +14,16 @@
         <label class="diagnostics-tab__filter-field">
           <span>{{ $t('usage.dashboard.logs.filterLabel') }}</span>
           <input
-            :value="logModelFilter"
+            :value="ctx.logModelFilter"
             :placeholder="$t('usage.dashboard.logs.filterPlaceholder')"
             class="toolbar-select diagnostics-tab__filter-input"
-            @input="updateLogModelFilter(($event.target as HTMLInputElement).value)"
-            @keyup.enter="loadLogs('reset')"
+            @input="ctx.updateLogModelFilter(($event.target as HTMLInputElement).value)"
+            @keyup.enter="ctx.loadLogs('reset')"
           >
         </label>
         <button
           class="diagnostics-tab__filter-action"
-          @click="loadLogs('reset')"
+          @click="ctx.loadLogs('reset')"
         >
           {{ $t('usage.dashboard.logs.search') }}
         </button>
@@ -36,7 +36,7 @@
           {{ $t('usage.dashboard.diagnostics.totalRecords') }}
         </span>
         <strong class="diagnostics-tab__summary-value">
-          {{ diagnosticsSummary.totalRecords }}
+          {{ ctx.diagnosticsSummary.totalRecords }}
         </strong>
       </article>
       <article class="diagnostics-tab__summary-card">
@@ -44,7 +44,7 @@
           {{ $t('usage.dashboard.diagnostics.latestRecord') }}
         </span>
         <strong class="diagnostics-tab__summary-value diagnostics-tab__summary-value--small">
-          {{ diagnosticsSummary.latestRecordAt }}
+          {{ ctx.diagnosticsSummary.latestRecordAt }}
         </strong>
       </article>
       <article class="diagnostics-tab__summary-card">
@@ -53,25 +53,25 @@
         </span>
         <div class="diagnostics-tab__health-row">
           <strong class="diagnostics-tab__summary-value diagnostics-tab__summary-value--small">
-            {{ diagnosticsSummary.healthLabel }}
+            {{ ctx.diagnosticsSummary.healthLabel }}
           </strong>
           <span
             class="diagnostics-tab__health-pill"
             :class="{
-              'diagnostics-tab__health-pill--warning': diagnosticsSummary.repairRecommended,
+              'diagnostics-tab__health-pill--warning': ctx.diagnosticsSummary.repairRecommended,
             }"
           >
-            {{ diagnosticsSummary.repairRecommended ? $t('usage.dashboard.diagnostics.needsAction') : $t('usage.dashboard.diagnostics.ready') }}
+            {{ ctx.diagnosticsSummary.repairRecommended ? $t('usage.dashboard.diagnostics.needsAction') : $t('usage.dashboard.diagnostics.ready') }}
           </span>
         </div>
         <span class="diagnostics-tab__summary-detail">
-          {{ diagnosticsSummary.healthDetail }}
+          {{ ctx.diagnosticsSummary.healthDetail }}
         </span>
       </article>
     </div>
 
     <div
-      v-if="diagnosticsSummary.repairRecommended"
+      v-if="ctx.diagnosticsSummary.repairRecommended"
       class="diagnostics-tab__repair-callout"
     >
       <div>
@@ -79,20 +79,24 @@
           {{ $t('usage.dashboard.diagnostics.repairTitle') }}
         </h4>
         <p class="diagnostics-tab__repair-detail">
-          {{ diagnosticsSummary.healthDetail }}
+          {{ ctx.diagnosticsSummary.healthDetail }}
         </p>
       </div>
 
       <button
-        v-if="diagnosticsSummary.canRepairCodex"
+        v-if="ctx.diagnosticsSummary.canRepairCodex"
         class="diagnostics-tab__repair-button"
-        @click="repairCodexLogs"
+        @click="ctx.repairCodexLogs"
       >
-        {{ repairButtonLabel }}
+        {{ ctx.repairCodexButtonLabel }}
       </button>
     </div>
 
-    <div class="diagnostics-tab__ledger">
+    <!-- 骨架块本身 aria-hidden,加载状态经 aria-busy 暴露给辅助技术(含分页翻页)。 -->
+    <div
+      class="diagnostics-tab__ledger"
+      :aria-busy="ctx.logsLoading"
+    >
       <div class="diagnostics-tab__header diagnostics-tab__row">
         <div>
           {{ $t('usage.dashboard.table.time') }}
@@ -115,21 +119,35 @@
       </div>
 
       <div
-        v-if="logsLoading"
-        class="diagnostics-tab__state"
+        v-if="ctx.logsLoading"
+        class="diagnostics-tab__body"
+        aria-hidden="true"
       >
-        {{ $t('usage.states.loading') }}
+        <div
+          v-for="row in skeletonRowCount"
+          :key="row"
+          class="diagnostics-tab__row diagnostics-tab__row--item"
+        >
+          <div
+            v-for="col in 6"
+            :key="col"
+            class="diagnostics-tab__cell"
+            :class="{ 'is-right': col >= 4 }"
+          >
+            <span class="diagnostics-tab__skeleton" />
+          </div>
+        </div>
       </div>
 
       <div
-        v-else-if="logsRecords.length === 0"
+        v-else-if="ctx.logsRecords.length === 0"
         class="diagnostics-tab__state"
       >
         <strong class="diagnostics-tab__state-title">
-          {{ diagnosticsEmptyMessage }}
+          {{ ctx.diagnosticsEmptyMessage }}
         </strong>
         <span class="diagnostics-tab__state-detail">
-          {{ diagnosticsEmptyDetail }}
+          {{ ctx.diagnosticsEmptyDetail }}
         </span>
       </div>
 
@@ -138,7 +156,7 @@
         class="diagnostics-tab__body"
       >
         <div
-          v-for="record in logsRecords"
+          v-for="record in ctx.logsRecords"
           :key="record.id"
           class="diagnostics-tab__row diagnostics-tab__row--item"
         >
@@ -155,48 +173,48 @@
             {{ record.model || $t('usage.dashboard.diagnostics.unknownModel') }}
           </div>
           <div class="diagnostics-tab__cell is-right">
-            {{ formatTokens(record.input_tokens) }}
+            {{ ctx.formatTokens(record.input_tokens) }}
           </div>
           <div class="diagnostics-tab__cell is-right">
-            {{ formatTokens(record.output_tokens) }}
+            {{ ctx.formatTokens(record.output_tokens) }}
           </div>
           <div class="diagnostics-tab__cell is-right">
-            {{ formatCost(record.cost_with_cache_usd) }}
+            {{ ctx.formatCost(record.cost_with_cache_usd) }}
           </div>
         </div>
       </div>
     </div>
 
     <div
-      v-if="showPager"
+      v-if="ctx.showLogsPager"
       class="diagnostics-tab__pager"
     >
       <span class="diagnostics-tab__pager-status">
-        {{ $t('usage.dashboard.logs.pageStatus', { page: logsPage, pages: hasLogsTotal ? logsTotalPages : '?' }) }}
+        {{ $t('usage.dashboard.logs.pageStatus', { page: ctx.logsPage, pages: ctx.hasLogsTotal ? ctx.logsTotalPages : '?' }) }}
       </span>
       <button
         class="diagnostics-tab__pager-button"
-        :disabled="!canPrevLogs"
-        @click="loadLogs('prev')"
+        :disabled="!ctx.canPrevLogs"
+        @click="ctx.loadLogs('prev')"
       >
         {{ $t('usage.dashboard.logs.prev') }}
       </button>
       <span
-        v-if="hasLogsTotal"
+        v-if="ctx.hasLogsTotal"
         class="diagnostics-tab__pager-text"
       >
-        {{ logsPage }} / {{ logsTotalPages }}
+        {{ ctx.logsPage }} / {{ ctx.logsTotalPages }}
       </span>
       <span
         v-else
         class="diagnostics-tab__pager-text"
       >
-        {{ logsPage }}
+        {{ ctx.logsPage }}
       </span>
       <button
         class="diagnostics-tab__pager-button"
-        :disabled="!canNextLogs"
-        @click="loadLogs('next')"
+        :disabled="!ctx.canNextLogs"
+        @click="ctx.loadLogs('next')"
       >
         {{ $t('usage.dashboard.logs.next') }}
       </button>
@@ -205,41 +223,13 @@
 </template>
 
 <script setup lang="ts">
-import type { UsageRecordV2 } from '@/types/usage'
+import { computed } from 'vue'
+import { useUsageDashboardContext } from '@/views/usage/usageDashboardContext'
 
-type LogsDirection = 'reset' | 'next' | 'prev' | 'same'
+const ctx = useUsageDashboardContext()
 
-type UsageDiagnosticsSummary = {
-  totalRecords: string
-  latestRecordAt: string
-  healthLabel: string
-  healthDetail: string
-  repairRecommended: boolean
-  canRepairCodex: boolean
-}
-
-interface Props {
-  diagnosticsEmptyDetail: string
-  diagnosticsEmptyMessage: string
-  diagnosticsSummary: UsageDiagnosticsSummary
-  logModelFilter: string
-  logsLoading: boolean
-  logsRecords: UsageRecordV2[]
-  logsPage: number
-  logsTotalPages: number
-  canPrevLogs: boolean
-  canNextLogs: boolean
-  hasLogsTotal: boolean
-  showPager: boolean
-  repairButtonLabel: string
-  formatCost: (value: number) => string
-  formatTokens: (value: number) => string
-  loadLogs: (direction?: LogsDirection) => void | Promise<void>
-  repairCodexLogs: () => void | Promise<void>
-  updateLogModelFilter: (value: string) => void
-}
-
-defineProps<Props>()
+// 骨架行数参考分页大小,但滚动容器 max-height 内只能看到约 12 行,超出部分渲染无意义。
+const skeletonRowCount = computed(() => Math.min(ctx.logsPageSize, 12))
 </script>
 
 <style scoped>
@@ -414,7 +404,9 @@ defineProps<Props>()
 }
 
 .diagnostics-tab__ledger {
-  overflow: hidden;
+  /* 唯一滚动容器:表头 sticky 依赖它,横向滚动时表头与行保持同步 */
+  max-height: 35rem;
+  overflow: auto;
   border-radius: 1.15rem;
   border: 1px solid rgb(var(--color-border-default-rgb) / 18%);
   background: rgb(var(--color-bg-elevated-rgb) / 46%);
@@ -427,6 +419,9 @@ defineProps<Props>()
 }
 
 .diagnostics-tab__header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   border-bottom: 1px solid rgb(var(--color-border-default-rgb) / 18%);
   background: rgb(var(--color-bg-elevated-rgb) / 92%);
 }
@@ -441,14 +436,17 @@ defineProps<Props>()
   text-transform: uppercase;
 }
 
-.diagnostics-tab__body {
-  max-height: 32rem;
-  overflow: auto;
-}
-
 .diagnostics-tab__row--item {
   border-bottom: 1px solid rgb(var(--color-border-default-rgb) / 12%);
   transition: background-color var(--motion-subtle-duration) var(--motion-subtle-ease);
+}
+
+.diagnostics-tab__skeleton {
+  display: inline-block;
+  width: 62%;
+  height: 0.9rem;
+  border-radius: 0.45rem;
+  background: rgb(var(--color-border-default-rgb) / 26%);
 }
 
 .diagnostics-tab__row--item:hover {

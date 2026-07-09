@@ -6,8 +6,6 @@ pub mod core;
 pub mod managers;
 pub mod services;
 
-pub use ccr_db::database;
-
 pub mod models {
     pub mod checkin {
         pub use ccr_db::models::checkin::*;
@@ -21,4 +19,7 @@ pub use models::checkin::*;
 pub use services::cdk_service::{
     CdkError, CdkExtraConfig, CdkRedeemError, CdkService, CdkTopupResult,
 };
-pub use services::checkin_service::{CheckinExecutionResult, CheckinService, TodayCheckinStats};
+pub use services::checkin_service::{
+    CheckinExecutionResult, CheckinService, TodayCheckinStats, WafCookieValidationResult,
+    resolve_checkin_proxy_url,
+};

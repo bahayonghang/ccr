@@ -1,4 +1,5 @@
 import { computed, ref, type Ref } from 'vue'
+import { getErrorMessage } from '@/utils/errorHandler'
 
 interface UseCachedFetchOptions<T> {
   ttlMs: number
@@ -64,7 +65,7 @@ export function useCachedFetch<T>(options: UseCachedFetchOptions<T>): UseCachedF
         return result
       })
       .catch((err: unknown) => {
-        error.value = err instanceof Error ? err.message : String(err)
+        error.value = getErrorMessage(err)
         throw err
       })
       .finally(() => {

@@ -33,7 +33,7 @@
                 ? 'var(--accent-danger)'
                 : stage === 'success'
                   ? 'var(--accent-success)'
-                  : 'linear-gradient(90deg, var(--accent-primary), var(--accent-secondary))'
+                  : 'var(--accent-primary)'
             }"
           />
 
@@ -89,7 +89,7 @@
                 background: 'var(--bg-tertiary)',
                 color: 'var(--text-secondary)'
               }"
-              aria-label="关闭"
+              :aria-label="t('common.close')"
               @click="$emit('close')"
             >
               <SIcon
@@ -110,7 +110,7 @@
                 class="text-base leading-relaxed"
                 :style="{ color: 'var(--text-primary)' }"
               >
-                确定要立即更新 CCR 吗？
+                {{ t('common.updateModal.confirmMessage') }}
               </p>
               <div
                 class="rounded-lg p-4 space-y-2"
@@ -128,17 +128,17 @@
                       name="AlertTriangle"
                       size="w-4 h-4"
                     />
-                    注意事项：
+                    {{ t('common.updateModal.notesTitle') }}
                   </span>
                 </p>
                 <ul
                   class="text-sm space-y-1.5 ml-6 list-disc"
                   :style="{ color: 'var(--text-muted)' }"
                 >
-                  <li>更新过程可能需要几分钟时间</li>
-                  <li>更新期间请勿关闭此窗口</li>
-                  <li>更新完成后需要刷新页面</li>
-                  <li>建议在更新前保存当前工作</li>
+                  <li>{{ t('common.updateModal.noteDuration') }}</li>
+                  <li>{{ t('common.updateModal.noteDoNotClose') }}</li>
+                  <li>{{ t('common.updateModal.noteRefresh') }}</li>
+                  <li>{{ t('common.updateModal.noteSaveWork') }}</li>
                 </ul>
               </div>
             </div>
@@ -159,7 +159,7 @@
                   class="text-base font-medium"
                   :style="{ color: 'var(--text-primary)' }"
                 >
-                  正在执行更新，请稍候...
+                  {{ t('common.updateModal.runningMessage') }}
                 </p>
               </div>
 
@@ -186,7 +186,7 @@
                 <div
                   class="h-full progress-bar-animation"
                   :style="{
-                    background: 'linear-gradient(90deg, var(--accent-primary), var(--accent-secondary))'
+                    background: 'var(--accent-primary)'
                   }"
                 />
               </div>
@@ -215,13 +215,13 @@
                     class="text-base font-semibold"
                     :style="{ color: 'var(--accent-success)' }"
                   >
-                    CCR 已成功更新！
+                    {{ t('common.updateModal.successMessage') }}
                   </p>
                   <p
                     class="text-sm"
                     :style="{ color: 'var(--text-secondary)' }"
                   >
-                    更新已完成，建议刷新页面以使用最新版本。
+                    {{ t('common.updateModal.successHint') }}
                   </p>
                 </div>
               </div>
@@ -235,7 +235,7 @@
                   class="text-sm font-medium mb-2"
                   :style="{ color: 'var(--text-secondary)' }"
                 >
-                  查看更新日志
+                  {{ t('common.updateModal.viewLog') }}
                 </summary>
                 <div
                   class="rounded-lg p-4 font-mono text-xs overflow-x-auto"
@@ -275,13 +275,13 @@
                     class="text-base font-semibold"
                     :style="{ color: 'var(--accent-danger)' }"
                   >
-                    更新失败
+                    {{ t('common.updateModal.errorTitle') }}
                   </p>
                   <p
                     class="text-sm"
                     :style="{ color: 'var(--text-secondary)' }"
                   >
-                    更新过程中出现错误，请查看错误信息并重试。
+                    {{ t('common.updateModal.errorMessage') }}
                   </p>
                 </div>
               </div>
@@ -310,7 +310,7 @@
                   class="text-sm font-medium mb-2"
                   :style="{ color: 'var(--text-secondary)' }"
                 >
-                  查看详细日志
+                  {{ t('common.updateModal.viewDetailedLog') }}
                 </summary>
                 <div
                   class="rounded-lg p-4 font-mono text-xs overflow-x-auto"
@@ -347,17 +347,16 @@
                 }"
                 @click="$emit('close')"
               >
-                取消
+                {{ t('common.cancel') }}
               </button>
               <button
                 class="px-5 py-2.5 rounded-lg font-semibold text-sm transition-transform text-white hover:scale-105"
                 :style="{
-                  background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))',
-                  boxShadow: '0 0 20px var(--glow-primary)'
+                  background: 'var(--accent-primary)'
                 }"
                 @click="$emit('confirm')"
               >
-                确认更新
+                {{ t('common.updateModal.confirmAction') }}
               </button>
             </template>
 
@@ -367,7 +366,7 @@
               class="text-sm"
               :style="{ color: 'var(--text-muted)' }"
             >
-              更新中，请勿关闭窗口...
+              {{ t('common.updateModal.runningHint') }}
             </p>
 
             <!-- 成功或错误 -->
@@ -381,18 +380,17 @@
                 }"
                 @click="$emit('close')"
               >
-                关闭
+                {{ t('common.close') }}
               </button>
               <button
                 v-if="stage === 'success'"
                 class="px-5 py-2.5 rounded-lg font-semibold text-sm transition-transform text-white hover:scale-105"
                 :style="{
-                  background: 'linear-gradient(135deg, var(--accent-success), var(--accent-primary))',
-                  boxShadow: '0 0 20px var(--glow-success)'
+                  background: 'var(--accent-success)'
                 }"
                 @click="handleRefresh"
               >
-                刷新页面
+                {{ t('common.updateModal.refreshPage') }}
               </button>
             </template>
           </div>
@@ -405,7 +403,9 @@
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
 import { ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useFocusTrap, useEscapeKey, useUniqueId } from '@/composables/useAccessibility'
+import { MODAL_FOCUS_DELAY_MS } from '@/config/constants'
 
 interface Props {
   isOpen: boolean
@@ -423,6 +423,7 @@ const emit = defineEmits<{
   close: []
   confirm: []
 }>()
+const { t } = useI18n()
 
 // Accessibility enhancements
 const titleId = useUniqueId('update-modal-title')
@@ -445,20 +446,20 @@ useEscapeKey(handleClose, isOpenRef)
 
 watch(isOpenRef, (isOpen) => {
   if (isOpen) {
-    setTimeout(() => focusFirstElement(), 100)
+    setTimeout(() => focusFirstElement(), MODAL_FOCUS_DELAY_MS)
   }
 })
 
 const getTitle = () => {
   switch (props.stage) {
     case 'confirm':
-      return '确认更新'
+      return t('common.updateModal.confirmTitle')
     case 'updating':
-      return '正在更新...'
+      return t('common.updateModal.updatingTitle')
     case 'success':
-      return '更新成功'
+      return t('common.updateModal.successTitle')
     case 'error':
-      return '更新失败'
+      return t('common.updateModal.errorTitle')
     default:
       return ''
   }

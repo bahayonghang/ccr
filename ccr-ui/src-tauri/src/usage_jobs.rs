@@ -1,10 +1,12 @@
 use chrono::Utc;
 use serde::Serialize;
+use ts_rs::TS;
 
 use crate::commands::usage::{UsageImportResultV2, UsageImportSummary};
 
-#[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq, TS)]
 #[serde(rename_all = "snake_case")]
+#[ts(export, export_to = "../../src/types/generated/usage/")]
 pub enum UsageImportJobStatus {
     Pending,
     Running,
@@ -14,8 +16,9 @@ pub enum UsageImportJobStatus {
     Cancelled,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq, TS)]
 #[serde(rename_all = "snake_case")]
+#[ts(export, export_to = "../../src/types/generated/usage/")]
 pub enum UsageImportJobStage {
     Queued,
     ImportingRecent,
@@ -25,7 +28,8 @@ pub enum UsageImportJobStage {
     Cancelled,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/usage/")]
 pub struct UsageImportJobSnapshot {
     pub job_id: String,
     pub status: UsageImportJobStatus,
@@ -43,17 +47,23 @@ pub struct UsageImportJobSnapshot {
     pub deleted_sources: usize,
     pub started_at: String,
     pub updated_at: String,
+    // skip_serializing_if 字段在 wire 上是"缺键"而非 null，ts(optional) 生成 `field?: T` 精确表达。
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
     pub recent_ready_at: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
     pub finished_at: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
     pub current_file: Option<String>,
     pub warnings: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
     pub error: Option<String>,
     pub results: Vec<UsageImportResultV2>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
     pub summary: Option<UsageImportSummary>,
 }
 

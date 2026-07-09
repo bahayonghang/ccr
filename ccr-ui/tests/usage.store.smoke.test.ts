@@ -1,6 +1,7 @@
 import { setActivePinia, createPinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ImportAllUsageResponse, UsageSummary } from '@/types/usage'
+import { makeUsageImportJobSnapshot, makeUsageRecord } from './helpers/usageFixtures'
 
 const tauriRuntimeMock = vi.fn(() => false)
 const eventListeners = new Map<string, (event: { payload: unknown }) => void>()
@@ -8,12 +9,14 @@ const perfEvents: Array<Record<string, unknown>> = []
 const perfEventListener = ((event: Event) => {
   perfEvents.push((event as CustomEvent<Record<string, unknown>>).detail)
 }) as EventListener
-const listenMock = vi.fn(async (eventName: string, callback: (event: { payload: unknown }) => void) => {
-  eventListeners.set(eventName, callback)
-  return () => {
-    eventListeners.delete(eventName)
+const listenMock = vi.fn(
+  async (eventName: string, callback: (event: { payload: unknown }) => void) => {
+    eventListeners.set(eventName, callback)
+    return () => {
+      eventListeners.delete(eventName)
+    }
   }
-})
+)
 
 vi.mock('@tauri-apps/api/event', () => ({
   listen: listenMock,
@@ -26,6 +29,7 @@ vi.mock('@/utils/tauriRuntime', () => ({
 vi.mock('@/api', () => ({
   getUsageCapabilitiesV2: vi.fn().mockResolvedValue(createSupportedCapabilities()),
   getUsageByModelV2: vi.fn().mockResolvedValue([]),
+  getUsageByProviderV2: vi.fn().mockResolvedValue([]),
   getUsageByProjectV2: vi.fn().mockResolvedValue([]),
   getUsageDashboardV2: vi.fn().mockResolvedValue({
     summary: {
@@ -35,7 +39,7 @@ vi.mock('@/api', () => ({
       total_output_tokens: 0,
       total_cache_read_tokens: 0,
       total_cost_usd: 0,
-      cache_efficiency: 0
+      cache_efficiency: 0,
     },
     trends: [],
     model_stats: [],
@@ -48,7 +52,7 @@ vi.mock('@/api', () => ({
       archived_sessions: 0,
       recent_completed_at: null,
       history_completed_at: null,
-    }
+    },
   }),
   getUsageHeatmapV2: vi.fn().mockResolvedValue({ data: {} }),
   getUsageLogsV2: vi.fn().mockResolvedValue({
@@ -57,7 +61,7 @@ vi.mock('@/api', () => ({
     page: 1,
     page_size: 50,
     next_cursor: null,
-    mode: 'cursor'
+    mode: 'cursor',
   }),
   getUsageSummaryV2: vi.fn().mockResolvedValue({
     total_requests: 0,
@@ -66,7 +70,7 @@ vi.mock('@/api', () => ({
     total_output_tokens: 0,
     total_cache_read_tokens: 0,
     total_cost_usd: 0,
-    cache_efficiency: 0
+    cache_efficiency: 0,
   }),
   getUsageImportJobStatusV2: vi.fn(),
   getUsageTrendsV2: vi.fn().mockResolvedValue([]),
@@ -77,8 +81,8 @@ vi.mock('@/api', () => ({
       failure_count: 0,
       imported_records: 0,
       processed_files: 0,
-      has_partial: false
-    }
+      has_partial: false,
+    },
   }),
   importUsageV2: vi.fn(),
   startUsageImportJobV2: vi.fn(),
@@ -140,7 +144,7 @@ describe('usage store smoke', () => {
       total_output_tokens: 45,
       total_cache_read_tokens: 30,
       total_cost_usd: 1.5,
-      cache_efficiency: 0.2
+      cache_efficiency: 0.2,
     }
     store.summary = summary
 
@@ -148,8 +152,6 @@ describe('usage store smoke', () => {
     expect(store.hasUsageData).toBe(true)
     expect(store.hasNoUsageData).toBe(false)
   })
-
-
 
   it('uses backend total_tokens instead of deriving input plus output', async () => {
     const { useUsageStore } = await import('@/stores/usage')
@@ -178,7 +180,8 @@ describe('usage store smoke', () => {
       records_skipped: 1,
       duration_ms: 18,
       completed: true,
-      error: null
+      error: null,
+      is_optional_absent: false,
     })
 
     const { useUsageStore } = await import('@/stores/usage')
@@ -191,7 +194,7 @@ describe('usage store smoke', () => {
       failure_count: 0,
       imported_records: 12,
       processed_files: 2,
-      has_partial: false
+      has_partial: false,
     })
     expect(store.lastImportSummary).toEqual((result as ImportAllUsageResponse).summary)
     expect(store.lastImportResults).toHaveLength(1)
@@ -207,7 +210,8 @@ describe('usage store smoke', () => {
       records_skipped: 2,
       duration_ms: 11,
       completed: true,
-      error: null
+      error: null,
+      is_optional_absent: false,
     })
 
     const { useUsageStore } = await import('@/stores/usage')
@@ -220,7 +224,7 @@ describe('usage store smoke', () => {
       failure_count: 0,
       imported_records: 7,
       processed_files: 1,
-      has_partial: false
+      has_partial: false,
     })
     expect(store.lastImportResults[0]?.platform).toBe('opencode')
     expect(store.error).toBeNull()
@@ -250,23 +254,22 @@ describe('usage store smoke', () => {
       failure_count: 0,
       imported_records: 0,
       processed_files: 0,
-      has_partial: false
+      has_partial: false,
     })
     expect(store.lastImportResults[0]).toMatchObject({
       platform: 'opencode',
       completed: true,
-      error: null
+      error: null,
     })
     expect(store.warning).toBeNull()
     expect(store.error).toBeNull()
   })
 
-
   it('starts a background usage import job and stores the active snapshot', async () => {
     const api = await import('@/api')
     vi.mocked(api.startUsageImportJobV2).mockResolvedValue({
       job_id: 'usage-import-1',
-      snapshot: {
+      snapshot: makeUsageImportJobSnapshot({
         job_id: 'usage-import-1',
         status: 'running',
         stage: 'importing_recent',
@@ -290,7 +293,7 @@ describe('usage store smoke', () => {
         error: null,
         results: [],
         summary: null,
-      },
+      }),
     })
 
     const { useUsageStore } = await import('@/stores/usage')
@@ -307,7 +310,7 @@ describe('usage store smoke', () => {
     const api = await import('@/api')
     vi.mocked(api.startUsageImportJobV2).mockResolvedValue({
       job_id: 'usage-import-repair',
-      snapshot: {
+      snapshot: makeUsageImportJobSnapshot({
         job_id: 'usage-import-repair',
         status: 'running',
         stage: 'importing_recent',
@@ -331,7 +334,7 @@ describe('usage store smoke', () => {
         error: null,
         results: [],
         summary: null,
-      },
+      }),
     })
 
     const { useUsageStore } = await import('@/stores/usage')
@@ -350,7 +353,7 @@ describe('usage store smoke', () => {
     const api = await import('@/api')
     vi.mocked(api.startUsageImportJobV2).mockResolvedValue({
       job_id: 'usage-import-opencode',
-      snapshot: {
+      snapshot: makeUsageImportJobSnapshot({
         job_id: 'usage-import-opencode',
         status: 'finished',
         stage: 'finished',
@@ -374,17 +377,19 @@ describe('usage store smoke', () => {
         // job-level error 也不再嗅探 absent，保持空。
         warnings: [],
         error: null,
-        results: [{
-          platform: 'opencode',
-          files_processed: 0,
-          records_imported: 0,
-          records_skipped: 0,
-          duration_ms: 0,
-          completed: false,
-          error: 'OpenCode SQLite DB 缺失',
-          // 新契约：后端通过 typed 字段标记 absent，前端不再嗅探 error 字符串。
-          is_optional_absent: true,
-        }],
+        results: [
+          {
+            platform: 'opencode',
+            files_processed: 0,
+            records_imported: 0,
+            records_skipped: 0,
+            duration_ms: 0,
+            completed: false,
+            error: 'OpenCode SQLite DB 缺失',
+            // 新契约：后端通过 typed 字段标记 absent，前端不再嗅探 error 字符串。
+            is_optional_absent: true,
+          },
+        ],
         summary: {
           success_count: 0,
           failure_count: 1,
@@ -392,7 +397,7 @@ describe('usage store smoke', () => {
           processed_files: 0,
           has_partial: true,
         },
-      },
+      }),
     })
 
     const { useUsageStore } = await import('@/stores/usage')
@@ -428,24 +433,26 @@ describe('usage store smoke', () => {
 
     await store.fetchLogs('reset')
 
-    expect(api.getUsageLogsV2).toHaveBeenCalledWith(expect.objectContaining({
-      platform: 'codex',
-      model: 'unknown',
-      start_date: '2026-03-01',
-      end_date: '2026-03-31',
-      page: 1,
-      page_size: 50,
-      include_total: true,
-      cursor: undefined,
-      mode: 'cursor',
-    }))
+    expect(api.getUsageLogsV2).toHaveBeenCalledWith(
+      expect.objectContaining({
+        platform: 'codex',
+        model: 'unknown',
+        start_date: '2026-03-01',
+        end_date: '2026-03-31',
+        page: 1,
+        page_size: 50,
+        include_total: true,
+        cursor: undefined,
+        mode: 'cursor',
+      })
+    )
   })
 
   it('uses next_cursor instead of recounting when loading the next logs page', async () => {
     const api = await import('@/api')
     vi.mocked(api.getUsageLogsV2)
       .mockResolvedValueOnce({
-        records: [{ id: 'row-1' }],
+        records: [makeUsageRecord({ id: 'row-1' })],
         total: 120,
         page: 1,
         page_size: 50,
@@ -453,7 +460,7 @@ describe('usage store smoke', () => {
         mode: 'cursor',
       })
       .mockResolvedValueOnce({
-        records: [{ id: 'row-2' }],
+        records: [makeUsageRecord({ id: 'row-2' })],
         total: null,
         page: 2,
         page_size: 50,
@@ -468,20 +475,65 @@ describe('usage store smoke', () => {
     await store.fetchLogs('reset')
     await store.fetchLogs('next')
 
-    expect(api.getUsageLogsV2).toHaveBeenNthCalledWith(1, expect.objectContaining({
-      page: 1,
-      include_total: true,
-      cursor: undefined,
-      mode: 'cursor',
-    }))
-    expect(api.getUsageLogsV2).toHaveBeenNthCalledWith(2, expect.objectContaining({
-      page: 2,
-      include_total: false,
-      cursor: 'cursor-2',
-      mode: 'cursor',
-    }))
+    expect(api.getUsageLogsV2).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        page: 1,
+        include_total: true,
+        cursor: undefined,
+        mode: 'cursor',
+      })
+    )
+    expect(api.getUsageLogsV2).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        page: 2,
+        include_total: false,
+        cursor: 'cursor-2',
+        mode: 'cursor',
+      })
+    )
     expect(store.logs?.total).toBe(120)
     expect(store.logsPage).toBe(2)
+  })
+
+  it('caches provider stats for the current filter window', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-04-01T00:00:00Z'))
+
+    const api = await import('@/api')
+    vi.mocked(api.getUsageByProviderV2).mockResolvedValue([
+      {
+        provider: 'anyrouter',
+        request_count: 2,
+        input_tokens: 200,
+        cache_read_tokens: 0,
+        cache_creation_tokens: 0,
+        output_tokens: 100,
+        reasoning_output_tokens: 0,
+        total_tokens: 300,
+        cost_with_cache_usd: 0.03,
+        cost_without_cache_usd: 0.04,
+      },
+    ])
+
+    const { useUsageStore } = await import('@/stores/usage')
+    const store = useUsageStore()
+    store.platform = 'codex'
+    store.timeRange = { start: '2026-03-01', end: '2026-03-31' }
+
+    await store.fetchProviderStats()
+    await store.fetchProviderStats()
+
+    expect(api.getUsageByProviderV2).toHaveBeenCalledTimes(1)
+    expect(api.getUsageByProviderV2).toHaveBeenCalledWith('codex', '2026-03-01', '2026-03-31')
+    expect(store.providerStats[0]?.provider).toBe('anyrouter')
+
+    store.timeRange = { start: '2026-04-01', end: '2026-04-30' }
+    await store.fetchProviderStats()
+
+    expect(api.getUsageByProviderV2).toHaveBeenCalledTimes(2)
+    expect(api.getUsageByProviderV2).toHaveBeenLastCalledWith('codex', '2026-04-01', '2026-04-30')
   })
 
   it('progressively refreshes the dashboard during import without flipping loading state', async () => {
@@ -492,7 +544,7 @@ describe('usage store smoke', () => {
     const api = await import('@/api')
     vi.mocked(api.startUsageImportJobV2).mockResolvedValue({
       job_id: 'usage-import-2',
-      snapshot: {
+      snapshot: makeUsageImportJobSnapshot({
         job_id: 'usage-import-2',
         status: 'running',
         stage: 'importing_recent',
@@ -516,33 +568,35 @@ describe('usage store smoke', () => {
         error: null,
         results: [],
         summary: null,
-      },
+      }),
     })
-    vi.mocked(api.getUsageImportJobStatusV2).mockResolvedValue({
-      job_id: 'usage-import-2',
-      status: 'running',
-      stage: 'importing_recent',
-      platform_scope: 'all',
-      recent_window_days: 90,
-      files_total: 12,
-      files_scanned: 0,
-      files_imported: 0,
-      records_imported: 0,
-      records_skipped: 0,
-      history_cursor_hit: false,
-      live_sources: 0,
-      missing_sources: 0,
-      deleted_sources: 0,
-      started_at: '2026-04-01T00:00:00Z',
-      updated_at: '2026-04-01T00:00:00Z',
-      recent_ready_at: null,
-      finished_at: null,
-      current_file: null,
-      warnings: [],
-      error: null,
-      results: [],
-      summary: null,
-    })
+    vi.mocked(api.getUsageImportJobStatusV2).mockResolvedValue(
+      makeUsageImportJobSnapshot({
+        job_id: 'usage-import-2',
+        status: 'running',
+        stage: 'importing_recent',
+        platform_scope: 'all',
+        recent_window_days: 90,
+        files_total: 12,
+        files_scanned: 0,
+        files_imported: 0,
+        records_imported: 0,
+        records_skipped: 0,
+        history_cursor_hit: false,
+        live_sources: 0,
+        missing_sources: 0,
+        deleted_sources: 0,
+        started_at: '2026-04-01T00:00:00Z',
+        updated_at: '2026-04-01T00:00:00Z',
+        recent_ready_at: null,
+        finished_at: null,
+        current_file: null,
+        warnings: [],
+        error: null,
+        results: [],
+        summary: null,
+      })
+    )
 
     const { useUsageStore } = await import('@/stores/usage')
     const store = useUsageStore()
@@ -679,9 +733,11 @@ describe('usage store smoke', () => {
     await flushPromises()
 
     expect(api.getUsageDashboardV2).toHaveBeenCalledTimes(1)
-    expect(perfEvents.some((event) =>
-      event.name === 'usage_auto_refresh_resume' && event.immediate === true
-    )).toBe(true)
+    expect(
+      perfEvents.some(
+        (event) => event.name === 'usage_auto_refresh_resume' && event.immediate === true
+      )
+    ).toBe(true)
   })
 
   it('can resume auto refresh without an immediate fetch when requested', async () => {

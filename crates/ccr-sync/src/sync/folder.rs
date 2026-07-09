@@ -7,6 +7,7 @@
 // - 🔄 路径扩展和验证
 // - 🏗️ Builder 模式便捷构建
 
+use ccr_core::Secret;
 use ccr_core::core::error::{CcrError, Result};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -296,8 +297,9 @@ pub struct WebDavConfig {
     /// 👤 用户名
     pub username: String,
 
-    /// 🔑 密码/应用密码
-    pub password: String,
+    /// 🔑 密码/应用密码：Debug/日志/默认序列化恒掩码；落盘原文走 expose_plaintext 注解
+    #[serde(serialize_with = "ccr_core::expose_plaintext")]
+    pub password: Secret,
 
     /// 📁 基础远程路径
     ///
@@ -316,7 +318,7 @@ impl Default for WebDavConfig {
         Self {
             url: "https://dav.jianguoyun.com/dav/".to_string(),
             username: String::new(),
-            password: String::new(),
+            password: Secret::default(),
             base_remote_path: default_base_remote_path(),
         }
     }
@@ -596,7 +598,7 @@ mod tests {
         let mut config = SyncFoldersConfig::default();
         config.webdav.url = "https://dav.example.com/".to_string();
         config.webdav.username = "test@example.com".to_string();
-        config.webdav.password = "password".to_string();
+        config.webdav.password = Secret::from("password");
 
         config.folders.push(
             SyncFolder::builder()

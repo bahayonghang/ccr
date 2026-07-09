@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/ccr-core/backend/backend-guidelines.md", "reason": "检查 Secret 实现是否符合 ccr-core 基础设施边界与掩码 helper 唯一性"}
+{"file": ".trellis/spec/ccr-core/backend/atomic-writer.md", "reason": "检查 sync_folders.toml secret 写入是否符合 guarded write 契约"}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "检查掩码算法是否真正收敛为 1 处、无新增重复"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "检查 IPC 序列化行为（掩码默认 vs 显式 expose）是否保持前端契约不破"}

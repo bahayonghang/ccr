@@ -67,7 +67,7 @@ impl SettingsService {
             .load()
             .unwrap_or_else(|_| ClaudeSettings::new());
 
-        settings.update_from_config(section);
+        settings.apply_managed_env(section.to_managed_env_pairs());
         self.settings_manager.save_atomic(&settings)?;
 
         Ok(())
@@ -77,7 +77,7 @@ impl SettingsService {
     pub async fn apply_config_async(&self, section: &ConfigSection) -> Result<()> {
         let mut settings = self.settings_manager.load_async().await.unwrap_or_default();
 
-        settings.update_from_config(section);
+        settings.apply_managed_env(section.to_managed_env_pairs());
         self.settings_manager.save_atomic_async(&settings).await?;
 
         Ok(())

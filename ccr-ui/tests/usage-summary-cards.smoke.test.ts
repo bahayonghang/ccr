@@ -6,11 +6,12 @@ import {
   buildSummarySparklinePoints,
   buildUsageSummaryCards,
   formatCost,
+  formatTokens,
 } from '@/views/usage/usageSummaryCards'
 
 const buildBucket = (
   startDate: string,
-  overrides: Partial<UsageTrendBucket>,
+  overrides: Partial<UsageTrendBucket>
 ): UsageTrendBucket => ({
   id: startDate,
   startDate,
@@ -18,6 +19,7 @@ const buildBucket = (
   requestCount: 0,
   inputTokens: 0,
   outputTokens: 0,
+  reasoningOutputTokens: 0,
   totalTokens: 0,
   cacheReadTokens: 0,
   cacheCreationTokens: 0,
@@ -39,16 +41,21 @@ const buildSummary = (overrides: Partial<UsageSummary> = {}): UsageSummary => ({
 const translate = (
   _key: string,
   _values: Record<string, number | string> | undefined,
-  fallback: string,
+  fallback: string
 ) => fallback
 
 describe('usage summary card helpers', () => {
   it('builds metric stats with average, peak, positive delta, and tone', () => {
-    expect(buildMetricStats([
-      { label: '2026-05-01', value: 10 },
-      { label: '2026-05-02', value: 20 },
-      { label: '2026-05-03', value: 40 },
-    ], (value) => value.toFixed(0))).toEqual({
+    expect(
+      buildMetricStats(
+        [
+          { label: '2026-05-01', value: 10 },
+          { label: '2026-05-02', value: 20 },
+          { label: '2026-05-03', value: 40 },
+        ],
+        (value) => value.toFixed(0)
+      )
+    ).toEqual({
       averageLabel: '23',
       peakLabel: '40',
       deltaLabel: '+300%',
@@ -135,6 +142,7 @@ describe('usage summary card helpers', () => {
       peakLabel: '20',
       deltaLabel: '+100%',
       deltaTone: 'up',
+      deltaSentiment: 'positive',
       sparklineLabel: 'Total Requests trend for 30 Days',
     })
     expect(cost).toMatchObject({
@@ -142,6 +150,9 @@ describe('usage summary card helpers', () => {
       detail: '$0.2000 per request',
       averageLabel: '$3.00',
       peakLabel: '$4.00',
+      // cost 语义翻转:涨(up)在 cost 卡上是负面(红)
+      deltaTone: 'up',
+      deltaSentiment: 'negative',
     })
     expect(activeDays).toMatchObject({
       label: 'Active Days',
@@ -150,5 +161,32 @@ describe('usage summary card helpers', () => {
       averageLabel: '1',
       peakLabel: '1',
     })
+  })
+})
+
+describe('formatTokens / formatCost number formatting', () => {
+  it('renders billions with a B unit and two decimals', () => {
+    expect(formatTokens(12_527_400_000)).toBe('12.53B')
+    expect(formatTokens(1_000_000_000)).toBe('1.00B')
+  })
+
+  it('keeps values just below 1B in the M tier', () => {
+    expect(formatTokens(999_999_999)).toBe('1000.0M')
+  })
+
+  it('preserves the existing M/K/plain tier conventions', () => {
+    expect(formatTokens(5_400_000)).toBe('5.4M')
+    expect(formatTokens(5_400)).toBe('5.4K')
+    expect(formatTokens(540)).toBe('540')
+  })
+
+  it('adds thousands separators to costs at or above one dollar', () => {
+    expect(formatCost(26_114.04)).toBe('$26,114.04')
+    expect(formatCost(6)).toBe('$6.00')
+  })
+
+  it('keeps four-decimal precision for sub-dollar costs', () => {
+    expect(formatCost(0.37)).toBe('$0.3700')
+    expect(formatCost(0)).toBe('$0.0000')
   })
 })

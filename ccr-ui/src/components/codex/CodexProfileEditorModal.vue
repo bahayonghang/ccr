@@ -7,13 +7,13 @@
     :close-on-backdrop="!saving"
     :close-on-escape="!saving"
     :persistent="saving"
-    content-class="codex-profile-editor-modal !max-w-[980px] !max-h-[90vh] rounded-[32px]"
+    content-class="codex-profile-editor-modal !max-w-[980px] !max-h-[90vh] rounded-2xl"
     @update:model-value="handleModalModelValue"
   >
     <template #header="{ titleId }">
       <div class="editor-shell-header flex items-start justify-between gap-4">
         <div class="flex min-w-0 items-start gap-4">
-          <div class="editor-hero-icon flex h-14 w-14 shrink-0 items-center justify-center rounded-[20px]">
+          <div class="editor-hero-icon flex h-14 w-14 shrink-0 items-center justify-center rounded-lg">
             <SIcon
               name="Settings"
               size="w-7 h-7"
@@ -85,6 +85,20 @@
         class="editor-scroll-area min-h-0 flex-1 overflow-y-auto pr-1"
         @scroll="syncActiveSection"
       >
+        <ProviderTemplateSelector
+          v-if="providerTemplateDraft"
+          class="mb-4"
+          platform="codex"
+          :selected-template-id="selectedProviderTemplate"
+          :selected-endpoint="selectedProviderEndpoint"
+          :draft-context="providerTemplateDraft"
+          :label="$t('codex.profiles.templateSelector.label')"
+          :helper="$t('codex.profiles.templateSelector.helper')"
+          :placeholder="$t('codex.profiles.templateSelector.placeholder')"
+          @select="$emit('select-template', $event)"
+          @manual="$emit('manual-template')"
+        />
+
         <section
           id="identity"
           ref="identityRef"
@@ -107,7 +121,7 @@
             </div>
           </div>
 
-          <div class="editor-panel editor-panel-muted rounded-[28px] p-5">
+          <div class="editor-panel editor-panel-muted rounded-xl p-5">
             <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
                 <label
@@ -121,7 +135,7 @@
                   data-testid="codex-profile-name-input"
                   :value="form.name"
                   type="text"
-                  class="editor-input w-full rounded-[20px] px-4 py-3 text-sm"
+                  class="editor-input w-full rounded-lg px-4 py-3 text-sm"
                   :placeholder="$t('codex.profiles.placeholders.name')"
                   @input="updateTextField('name', $event)"
                 >
@@ -141,7 +155,7 @@
                   id="codex-profile-description"
                   :value="form.description"
                   type="text"
-                  class="editor-input w-full rounded-[20px] px-4 py-3 text-sm"
+                  class="editor-input w-full rounded-lg px-4 py-3 text-sm"
                   :placeholder="$t('codex.profiles.placeholders.description')"
                   @input="updateTextField('description', $event)"
                 >
@@ -172,7 +186,7 @@
             </div>
           </div>
 
-          <div class="editor-panel rounded-[28px] p-5">
+          <div class="editor-panel rounded-xl p-5">
             <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <div>
                 <label
@@ -184,7 +198,7 @@
                 <select
                   id="codex-profile-auth-mode"
                   :value="form.auth_mode"
-                  class="editor-input w-full rounded-[20px] px-4 py-3 text-sm"
+                  class="editor-input w-full rounded-lg px-4 py-3 text-sm"
                   @change="updateSelectField('auth_mode', $event)"
                 >
                   <option
@@ -203,7 +217,7 @@
                 </p>
               </div>
 
-              <div class="editor-panel-muted rounded-[20px] p-4">
+              <div class="editor-panel-muted rounded-lg p-4">
                 <p class="text-xs font-semibold uppercase tracking-[0.24em] text-text-muted">
                   {{ $t('codex.profiles.fields.openAiLoginMethod') }}
                 </p>
@@ -233,7 +247,7 @@
                 id="codex-profile-base-url"
                 :value="form.base_url"
                 type="text"
-                class="editor-input editor-input--mono w-full rounded-[20px] px-4 py-3 text-sm"
+                class="editor-input editor-input--mono w-full rounded-lg px-4 py-3 text-sm"
                 :placeholder="$t('codex.profiles.placeholders.baseUrl')"
                 @input="updateTextField('base_url', $event)"
               >
@@ -259,7 +273,7 @@
                   :value="form.auth_token"
                   data-testid="codex-auth-token-input"
                   :type="showToken ? 'text' : 'password'"
-                  class="editor-input editor-input--mono w-full rounded-[20px] px-4 py-3 pr-24 text-sm"
+                  class="editor-input editor-input--mono w-full rounded-lg px-4 py-3 pr-24 text-sm"
                   :placeholder="$t('codex.profiles.placeholders.authToken')"
                   @input="updateTextField('auth_token', $event)"
                 >
@@ -310,7 +324,7 @@
                 id="codex-profile-env-key"
                 :value="form.env_key"
                 type="text"
-                class="editor-input editor-input--mono w-full rounded-[20px] px-4 py-3 text-sm"
+                class="editor-input editor-input--mono w-full rounded-lg px-4 py-3 text-sm"
                 :placeholder="$t('codex.profiles.placeholders.envKey')"
                 @input="updateTextField('env_key', $event)"
               >
@@ -343,7 +357,7 @@
             </div>
           </div>
 
-          <div class="editor-panel rounded-[28px] p-5">
+          <div class="editor-panel rounded-xl p-5">
             <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
                 <label
@@ -355,7 +369,7 @@
                 <select
                   id="codex-profile-model"
                   :value="selectedModelOption"
-                  class="editor-input editor-input--mono w-full rounded-[20px] px-4 py-3 text-sm"
+                  class="editor-input editor-input--mono w-full rounded-lg px-4 py-3 text-sm"
                   @change="emitSelectedModelOption"
                 >
                   <option
@@ -373,7 +387,7 @@
                   v-if="selectedModelOption === CUSTOM_MODEL_OPTION"
                   :value="customModelInput"
                   type="text"
-                  class="editor-input editor-input--mono mt-3 w-full rounded-[20px] px-4 py-3 text-sm"
+                  class="editor-input editor-input--mono mt-3 w-full rounded-lg px-4 py-3 text-sm"
                   :placeholder="$t('codex.profiles.placeholders.customModel')"
                   @input="emitCustomModelInput"
                 >
@@ -393,7 +407,7 @@
                   id="codex-profile-reasoning-effort"
                   :value="form.model_reasoning_effort"
                   data-testid="codex-reasoning-effort-select"
-                  class="editor-input w-full rounded-[20px] px-4 py-3 text-sm"
+                  class="editor-input w-full rounded-lg px-4 py-3 text-sm"
                   @change="updateSelectField('model_reasoning_effort', $event)"
                 >
                   <option value="">
@@ -424,7 +438,7 @@
                 id="codex-profile-wire-api"
                 :value="form.wire_api"
                 type="text"
-                class="editor-input editor-input--mono w-full rounded-[20px] px-4 py-3 text-sm"
+                class="editor-input editor-input--mono w-full rounded-lg px-4 py-3 text-sm"
                 :placeholder="$t('codex.profiles.placeholders.wireApi')"
                 @input="updateTextField('wire_api', $event)"
               >
@@ -454,7 +468,7 @@
             </div>
           </div>
 
-          <div class="editor-panel rounded-[28px] p-5">
+          <div class="editor-panel rounded-xl p-5">
             <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
               <div>
                 <label
@@ -467,7 +481,7 @@
                   id="codex-profile-provider"
                   :value="form.provider"
                   type="text"
-                  class="editor-input w-full rounded-[20px] px-4 py-3 text-sm"
+                  class="editor-input w-full rounded-lg px-4 py-3 text-sm"
                   :placeholder="$t('codex.profiles.placeholders.provider')"
                   @input="updateTextField('provider', $event)"
                 >
@@ -483,7 +497,7 @@
                   id="codex-profile-provider-type"
                   :value="form.provider_type"
                   type="text"
-                  class="editor-input w-full rounded-[20px] px-4 py-3 text-sm"
+                  class="editor-input w-full rounded-lg px-4 py-3 text-sm"
                   :placeholder="$t('codex.profiles.placeholders.providerType')"
                   @input="updateTextField('provider_type', $event)"
                 >
@@ -499,14 +513,14 @@
                   id="codex-profile-tags"
                   :value="form.tags_input"
                   type="text"
-                  class="editor-input w-full rounded-[20px] px-4 py-3 text-sm"
+                  class="editor-input w-full rounded-lg px-4 py-3 text-sm"
                   :placeholder="$t('codex.profiles.placeholders.tags')"
                   @input="updateTextField('tags_input', $event)"
                 >
               </div>
             </div>
 
-            <div class="mt-5 flex items-center justify-between rounded-[20px] border border-border-default/35 bg-bg-elevated/34 px-4 py-3">
+            <div class="mt-5 flex items-center justify-between rounded-lg border border-border-default/35 bg-bg-elevated/34 px-4 py-3">
               <div>
                 <p class="text-sm font-semibold text-text-primary">
                   {{ $t('codex.profiles.fields.enabled') }}
@@ -570,10 +584,12 @@
 import { computed, nextTick, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import BaseModal from '@/components/common/BaseModal.vue'
+import ProviderTemplateSelector from '@/components/provider-templates/ProviderTemplateSelector.vue'
 import SIcon from '@/components/ui/SIcon.vue'
-import { copyToClipboard } from '@/utils/codexHelpers'
+import { copyText } from '@/utils/clipboard'
 import { useUIStore } from '@/stores/ui'
 import type { CodexProfileAuthMode } from '@/types'
+import type { ProviderTemplateDraftContext, ProviderTemplateSelection } from '@/types/providerTemplates'
 import type { CodexProfileEditorForm } from '@/utils/codexProfileEditor'
 import {
   CUSTOM_MODEL_OPTION,
@@ -604,6 +620,9 @@ interface Props {
   isDeprecatedAuthMode: boolean
   displayOpenAiLoginMethod: string
   authModeLabel: (mode: CodexProfileAuthMode) => string
+  selectedProviderTemplate?: string | null
+  selectedProviderEndpoint?: string
+  providerTemplateDraft?: ProviderTemplateDraftContext | null
 }
 
 const props = defineProps<Props>()
@@ -614,6 +633,8 @@ const emit = defineEmits<{
   'update:customModelInput': [value: string]
   close: []
   save: []
+  'select-template': [selection: ProviderTemplateSelection]
+  'manual-template': []
 }>()
 
 const { t } = useI18n()
@@ -721,7 +742,7 @@ const copyToken = async () => {
   const token = props.form.auth_token.trim()
   if (!token) return
 
-  const ok = await copyToClipboard(token)
+  const ok = await copyText(token)
   if (ok) {
     uiStore.showSuccess(t('codex.profiles.messages.tokenCopied'))
   } else {
@@ -745,9 +766,10 @@ watch(() => props.modelValue, (isOpen) => {
 
 <style>
 .codex-profile-editor-modal {
-  --editor-shell-bg: linear-gradient(180deg, rgb(255 253 253 / 96%), rgb(246 255 251 / 92%));
-  --editor-shell-border: rgb(var(--color-border-default-rgb) / 82%);
-  --editor-shell-shadow: 0 28px 80px rgb(40 160 120 / 10%), 0 12px 32px rgb(104 70 123 / 10%);
+  /* 外壳材质：floating 档玻璃令牌（modal/命令面板同档），内部 panel 单独维持不透明 */
+  --editor-shell-bg: var(--material-glass-floating-bg);
+  --editor-shell-border: var(--material-glass-floating-border);
+  --editor-shell-shadow: var(--material-glass-floating-shadow);
   --editor-shell-highlight:
     radial-gradient(circle at top right, rgb(var(--color-platform-codex-rgb) / 12%), transparent 40%),
     radial-gradient(circle at top left, rgb(var(--color-accent-primary-rgb) / 10%), transparent 32%);
@@ -776,14 +798,15 @@ watch(() => props.modelValue, (isOpen) => {
   background: var(--editor-shell-bg) !important;
   border: 1px solid var(--editor-shell-border) !important;
   box-shadow: var(--editor-shell-shadow) !important;
+  backdrop-filter: var(--material-glass-floating-blur) !important;
+
+  /* stylelint-disable-next-line property-no-vendor-prefix */
+  -webkit-backdrop-filter: var(--material-glass-floating-blur) !important;
   color: var(--editor-ink);
 }
 
 :root[class~='dark'] .codex-profile-editor-modal,
 [data-theme='dark'] .codex-profile-editor-modal {
-  --editor-shell-bg: linear-gradient(180deg, rgb(23 18 30 / 96%), rgb(16 14 24 / 94%));
-  --editor-shell-border: rgb(96 160 134 / 32%);
-  --editor-shell-shadow: 0 32px 90px rgb(8 4 12 / 58%), 0 18px 42px rgb(17 10 24 / 42%);
   --editor-shell-highlight:
     radial-gradient(circle at top right, rgb(var(--color-platform-codex-rgb) / 16%), transparent 44%),
     radial-gradient(circle at top left, rgb(var(--color-accent-primary-rgb) / 11%), transparent 34%);
@@ -891,7 +914,6 @@ watch(() => props.modelValue, (isOpen) => {
   border: 1px solid var(--editor-hairline);
   background: var(--editor-panel-bg);
   box-shadow: var(--editor-panel-shadow);
-  backdrop-filter: blur(20px) saturate(135%);
 }
 
 .codex-profile-editor-modal .editor-panel-muted {

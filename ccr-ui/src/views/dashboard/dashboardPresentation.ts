@@ -62,13 +62,18 @@ export interface DashboardStatusMetric {
   tone: DashboardTone
 }
 
+export interface DashboardReadinessReason {
+  key: string
+  ok: boolean
+}
+
 export interface DashboardReadiness {
   status: DashboardReadinessStatus
   tone: DashboardTone
   labelKey: string
   titleKey: string
   descriptionKey: string
-  reasonKeys: string[]
+  reasons: DashboardReadinessReason[]
 }
 
 export interface DashboardAction {
@@ -109,6 +114,8 @@ export interface DashboardPresentation {
   signalCounts: DashboardSignalCounts
   installedCliCount: number
   runtimeCliCount: number
+  /** 桌面运行时下 CLI 探测已完成但一个都未安装：视为首次使用，行动队列改渲染引导态 */
+  isFirstRun: boolean
 }
 
 const DASHBOARD_DEFAULT_ACTIONS: DashboardAction[] = [
@@ -261,12 +268,17 @@ const buildPlatformRows = (input: DashboardPresentationInput): DashboardPlatform
   })
 }
 
+// 前端 UI 日志(如保存重试失败)只归入事件流展示，不参与阻塞叙事 / 红色 tile / 行动队列的驱动，
+// 避免同一条噪声在首屏被放大三次；只有非 frontend 频道的信号才算"核心"信号。
+const isCoreSignal = (entry: MonitoringEntry) => entry.channel !== 'frontend'
+
 const countSignals = (logs: MonitoringEntry[]): DashboardSignalCounts => {
-  const errors = logs.filter((entry) => entry.level === 'error').length
-  const warnings = logs.filter((entry) => entry.level === 'warn').length
+  const coreLogs = logs.filter(isCoreSignal)
+  const errors = coreLogs.filter((entry) => entry.level === 'error').length
+  const warnings = coreLogs.filter((entry) => entry.level === 'warn').length
 
   return {
-    total: logs.length,
+    total: coreLogs.length,
     warnings,
     errors,
   }
@@ -292,25 +304,25 @@ const buildReadiness = (
   const missingRuntimeRows = runtimeRows.filter((platform) => platform.state === 'attention')
   const scanningRuntimeRows = runtimeRows.filter((platform) => platform.state === 'scanning')
   const usageReasonKey = getUsageReasonKey(input)
-  const reasonKeys = [
+  const reasons: DashboardReadinessReason[] = [
     input.backendStatus === 'unsupported'
-      ? 'dashboard.readiness.reasons.backendUnsupported'
+      ? { key: 'dashboard.readiness.reasons.backendUnsupported', ok: false }
       : input.backendStatus === 'error'
-        ? 'dashboard.readiness.reasons.backendError'
+        ? { key: 'dashboard.readiness.reasons.backendError', ok: false }
         : input.backendStatus === 'ok'
-          ? 'dashboard.readiness.reasons.backendOk'
-          : 'dashboard.readiness.reasons.backendChecking',
+          ? { key: 'dashboard.readiness.reasons.backendOk', ok: true }
+          : { key: 'dashboard.readiness.reasons.backendChecking', ok: false },
     missingRuntimeRows.length > 0
-      ? 'dashboard.readiness.reasons.cliMissing'
+      ? { key: 'dashboard.readiness.reasons.cliMissing', ok: false }
       : scanningRuntimeRows.length > 0
-        ? 'dashboard.readiness.reasons.cliScanning'
-        : 'dashboard.readiness.reasons.allCliReady',
-    usageReasonKey,
+        ? { key: 'dashboard.readiness.reasons.cliScanning', ok: false }
+        : { key: 'dashboard.readiness.reasons.allCliReady', ok: true },
+    { key: usageReasonKey, ok: usageReasonKey === 'dashboard.readiness.reasons.usageReady' },
     signalCounts.errors > 0
-      ? 'dashboard.readiness.reasons.signalsError'
+      ? { key: 'dashboard.readiness.reasons.signalsError', ok: false }
       : signalCounts.warnings > 0
-        ? 'dashboard.readiness.reasons.signalsWarn'
-        : 'dashboard.readiness.reasons.signalsQuiet',
+        ? { key: 'dashboard.readiness.reasons.signalsWarn', ok: false }
+        : { key: 'dashboard.readiness.reasons.signalsQuiet', ok: true },
   ]
 
   if (!input.isNativeRuntime || input.backendStatus === 'unsupported') {
@@ -320,7 +332,7 @@ const buildReadiness = (
       labelKey: 'dashboard.readiness.webPreviewLabel',
       titleKey: 'dashboard.readiness.webPreviewTitle',
       descriptionKey: 'dashboard.readiness.webPreviewDescription',
-      reasonKeys,
+      reasons,
     }
   }
 
@@ -338,7 +350,7 @@ const buildReadiness = (
       labelKey: 'dashboard.readiness.attentionLabel',
       titleKey: 'dashboard.readiness.attentionTitle',
       descriptionKey: 'dashboard.readiness.attentionDescription',
-      reasonKeys,
+      reasons,
     }
   }
 
@@ -355,7 +367,7 @@ const buildReadiness = (
       labelKey: 'dashboard.readiness.warmingLabel',
       titleKey: 'dashboard.readiness.warmingTitle',
       descriptionKey: 'dashboard.readiness.warmingDescription',
-      reasonKeys,
+      reasons,
     }
   }
 
@@ -366,7 +378,7 @@ const buildReadiness = (
       labelKey: 'dashboard.readiness.attentionLabel',
       titleKey: 'dashboard.readiness.attentionTitle',
       descriptionKey: 'dashboard.readiness.attentionDescription',
-      reasonKeys,
+      reasons,
     }
   }
 
@@ -376,7 +388,7 @@ const buildReadiness = (
     labelKey: 'dashboard.readiness.readyLabel',
     titleKey: 'dashboard.readiness.readyTitle',
     descriptionKey: 'dashboard.readiness.readyDescription',
-    reasonKeys,
+    reasons,
   }
 }
 
@@ -638,6 +650,13 @@ export const buildDashboardPresentation = (input: DashboardPresentationInput): D
     signalCounts,
     installedCliCount,
     runtimeCliCount,
+    // installedCliCount 只统计 CLI 档平台，纯 OpenCode（managed 档）用户会永远是 0；
+    // 再叠加用量归档判断，避免把已有真实用量的用户误判成首次使用。
+    isFirstRun: input.isNativeRuntime
+      && input.cliVersionsLoaded
+      && !input.usageLoading
+      && installedCliCount === 0
+      && (!input.overview || input.overview.summary.total_requests === 0),
   }
 }
 

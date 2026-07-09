@@ -4,25 +4,64 @@
 
     <main class="cp-shell">
       <div class="cp-main">
-        <ClaudeProfilesHeader
+        <ProfilesHeader
+          icon="Layers"
+          back-to="/claude-code"
+          :labels="{
+            title: $t('claudeProfiles.title'),
+            subtitle: $t('claudeProfiles.subtitle'),
+            back: $t('claudeProfiles.back'),
+            reload: $t('claudeProfiles.reloadAction'),
+            export: $t('common.export'),
+            add: $t('claudeProfiles.addProfile'),
+          }"
+          :palette="{
+            label: $t('claudeProfiles.commandPaletteButton'),
+            shortcut: '⌘K',
+            title: $t('claudeProfiles.commandPaletteShortcut'),
+          }"
           :loading="loading || isRefreshing"
           :exporting="isExporting"
+          :palette-open="paletteOpen"
           @add="openAddForm"
           @export="handleExportProfiles"
           @reload="refreshProfiles"
+          @open-palette="paletteOpen = true"
         />
 
-        <ClaudeProfilesStatStrip
+        <ProfilesStatStrip
           :current="currentProfileName"
           :total="profiles.length"
-          :enabled="enabledProfilesCount"
-          :subscription-count="subscriptionCount"
-          :api-key-count="apiKeyCount"
+          :labels="{
+            current: $t('claudeProfiles.currentProfile'),
+            notSet: $t('claudeProfiles.notSet'),
+            currentHint: $t('claudeProfiles.statStrip.profileSubtitle'),
+            total: $t('claudeProfiles.totalCount'),
+            totalHint: $t('claudeProfiles.statStrip.totalHint', { enabled: enabledProfilesCount, disabled: profiles.length - enabledProfilesCount }),
+            lastWrite: $t('claudeProfiles.statStrip.lastWrite'),
+            lastWriteHint: $t('claudeProfiles.statStrip.lastWriteHint'),
+          }"
+          :secondary="{
+            icon: 'ShieldCheck',
+            title: $t('claudeProfiles.statStrip.authTitle'),
+            value: `${subscriptionCount} · ${apiKeyCount}`,
+            hint: $t('claudeProfiles.statStrip.authSplit', { subscription: subscriptionCount, apiKey: apiKeyCount }),
+            mono: true,
+          }"
           :last-write="lastWriteHint"
         />
 
-        <ClaudeProfilesToolbar
+        <ProfilesQuickRail
+          :profiles="profiles"
+          :current-name="currentProfileName"
+          i18n-prefix="claudeProfiles"
+          :disabled="loading || isRefreshing || isSaving || confirmActionBusy"
+          @apply="handleApply"
+        />
+
+        <ProfilesToolbar
           ref="toolbarRef"
+          i18n-prefix="claudeProfiles.toolbar"
           :query="searchQuery"
           :status-filter="statusFilter"
           :tag-filter="tagFilter"
@@ -165,12 +204,13 @@
                 <span>{{ $t('claudeProfiles.fields.tags') }}</span>
                 <span class="cp-list-head__right">{{ $t('claudeProfiles.toolbar.actionsLabel') }}</span>
               </div>
-              <ClaudeProfileListRow
+              <ProfileListRow
                 v-for="profile in enabledList"
                 :key="profile.name"
                 :profile="profile"
+                :descriptor="rowDescriptor"
                 :is-current="profile.is_current"
-                :disabled="loading || isRefreshing || isSaving"
+                :disabled="loading || isRefreshing || isSaving || confirmActionBusy"
                 @apply="handleApply"
                 @edit="openEditForm(findProfile($event))"
                 @delete="handleDelete"
@@ -202,12 +242,13 @@
               v-if="viewMode === 'list'"
               class="cp-list"
             >
-              <ClaudeProfileListRow
+              <ProfileListRow
                 v-for="profile in disabledList"
                 :key="profile.name"
                 :profile="profile"
+                :descriptor="rowDescriptor"
                 :is-current="profile.is_current"
-                :disabled="loading || isRefreshing || isSaving"
+                :disabled="loading || isRefreshing || isSaving || confirmActionBusy"
                 @apply="handleApply"
                 @edit="openEditForm(findProfile($event))"
                 @delete="handleDelete"
@@ -232,10 +273,12 @@
         </template>
       </div>
 
-      <ClaudeProfilesContextRail
+      <ProfilesContextRail
         :profiles="profiles"
         :current="currentProfileName"
         :active-profile="activeProfile"
+        i18n-prefix="claudeProfiles.contextRail"
+        :descriptor="railDescriptor"
         @edit="openEditForm(findProfile($event))"
       />
     </main>
@@ -245,12 +288,12 @@
       :persistent="isSaving"
       :show-close="false"
       size="xl"
-      content-class="claude-profile-editor-modal !max-w-[980px] !max-h-[90vh] rounded-[32px]"
+      content-class="claude-profile-editor-modal !max-w-[980px] !max-h-[90vh] rounded-2xl"
     >
       <template #header="{ titleId }">
         <div class="editor-shell-header flex items-start justify-between gap-4">
           <div class="flex min-w-0 items-start gap-4">
-            <div class="editor-hero-icon flex h-14 w-14 shrink-0 items-center justify-center rounded-[20px]">
+            <div class="editor-hero-icon flex h-14 w-14 shrink-0 items-center justify-center rounded-lg">
               <SIcon
                 name="Layers"
                 size="w-7 h-7"
@@ -320,8 +363,19 @@
         <div
           ref="modalScrollRef"
           class="editor-scroll-area min-h-0 flex-1 overflow-y-auto pr-1"
-          @scroll="syncActiveFormSection"
         >
+          <ProviderTemplateSelector
+            class="mb-4"
+            platform="claude"
+            :selected-template-id="selectedProviderTemplate"
+            :selected-endpoint="selectedProviderEndpoint"
+            :draft-context="claudeTemplateDraft"
+            label="Provider template"
+            helper="Fill non-secret provider, endpoint, and model defaults from a reusable template."
+            @select="applyClaudeProviderTemplate"
+            @manual="useManualProviderTemplate"
+          />
+
           <ClaudeProfileEditorSections
             :editing-name="editingName"
             :form="form"
@@ -369,11 +423,31 @@
         </div>
       </div>
     </BaseModal>
+
+    <ProfilesCommandPalette
+      :open="paletteOpen"
+      :profiles="profiles"
+      :descriptor="paletteDescriptor"
+      :actions="paletteActions"
+      i18n-prefix="claudeProfiles.commandPalette"
+      @update:open="paletteOpen = $event"
+      @apply="handleApply"
+    />
+
+    <ConfirmModal
+      v-model:is-open="showConfirmModal"
+      :type="confirmDialog.type"
+      :title="confirmDialog.title"
+      :message="confirmDialog.message"
+      :confirm-text="confirmDialog.confirmText"
+      :cancel-text="$t('claudeProfiles.cancel')"
+      @confirm="executeConfirmedAction"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, h, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { computed, h, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch, type FunctionalComponent } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   addClaudeProfile,
@@ -385,13 +459,20 @@ import {
 } from '@/api'
 import ClaudeProfileEditorSections from '@/components/claude/ClaudeProfileEditorSections.vue'
 import ClaudeProfileRow from '@/components/claude/ClaudeProfileRow.vue'
-import ClaudeProfilesContextRail from '@/components/claude/profiles/ClaudeProfilesContextRail.vue'
-import ClaudeProfilesHeader from '@/components/claude/profiles/ClaudeProfilesHeader.vue'
-import ClaudeProfileListRow from '@/components/claude/profiles/ClaudeProfileListRow.vue'
-import ClaudeProfilesStatStrip from '@/components/claude/profiles/ClaudeProfilesStatStrip.vue'
-import ClaudeProfilesToolbar, { type ClaudeProfilesViewMode } from '@/components/claude/profiles/ClaudeProfilesToolbar.vue'
+import ProfilesCommandPalette, { type ProfilesCommandPaletteAction, type ProfilesCommandPaletteDescriptor } from '@/components/profiles/ProfilesCommandPalette.vue'
+import ProfilesContextRail, { type ContextRailDescriptor, type ContextRailActiveField } from '@/components/profiles/ProfilesContextRail.vue'
+import { useClaudeProfilesInsights } from '@/composables/useClaudeProfilesInsights'
+import { useConfirmAction } from '@/composables/useConfirmAction'
+import { useProfilesHotkeys } from '@/composables/useProfilesHotkeys'
+import ProfilesHeader from '@/components/profiles/ProfilesHeader.vue'
+import ProfileListRow, { type ProfileRowDescriptor } from '@/components/profiles/ProfileListRow.vue'
+import ProfilesQuickRail from '@/components/profiles/ProfilesQuickRail.vue'
+import ProfilesStatStrip from '@/components/profiles/ProfilesStatStrip.vue'
+import ProfilesToolbar, { type ProfilesViewMode } from '@/components/profiles/ProfilesToolbar.vue'
 import BaseModal from '@/components/common/BaseModal.vue'
+import ConfirmModal from '@/components/ConfirmModal.vue'
 import ModuleSubnav from '@/components/ModuleSubnav.vue'
+import ProviderTemplateSelector from '@/components/provider-templates/ProviderTemplateSelector.vue'
 import SIcon from '@/components/ui/SIcon.vue'
 import { translateWithFallback } from '@/i18n/formatMessage'
 import type { ClaudeProfile, ClaudeProfileRequest, ClaudeProfilesResponse } from '@/types'
@@ -400,6 +481,7 @@ import type {
   ClaudeProfileEditorSectionItem,
   ClaudeProfileFormSectionId,
 } from '@/types/claudeProfileEditor'
+import type { ProviderTemplateDraftContext, ProviderTemplateSelection } from '@/types/providerTemplates'
 import { getErrorMessage } from '@/types/api'
 import {
   normalizeClaudeProfilesState,
@@ -414,6 +496,7 @@ import { logger } from '@/utils/logger'
 import { CLAUDE_PROFILE_FORM_SECTION_IDS } from '@/types/claudeProfileEditor'
 import { downloadTextFile } from '@/utils/download'
 import { useUIStore } from '@/stores/ui'
+import { mapTemplateToClaudeProfilePatch } from '@/utils/providerTemplates'
 
 interface ProfilesExportResponse {
   content: string
@@ -438,10 +521,101 @@ const searchQuery = ref('')
 const statusFilter = ref<ClaudeProfilesStatusFilter>('all')
 const tagFilter = ref<string | null>(null)
 const providerFilter = ref<string | null>(null)
+const selectedProviderTemplate = ref<string | null>(null)
+const selectedProviderEndpoint = ref('')
 const sortBy = ref<ClaudeProfilesSortBy>('recent')
-const viewMode = ref<ClaudeProfilesViewMode>('card')
+const viewMode = ref<ProfilesViewMode>('card')
+const paletteOpen = ref(false)
 const lastWriteHint = ref<string | null>(null)
-const toolbarRef = ref<InstanceType<typeof ClaudeProfilesToolbar> | null>(null)
+const {
+  isOpen: showConfirmModal,
+  dialog: confirmDialog,
+  busy: confirmActionBusy,
+  openConfirmDialog,
+  executeConfirmedAction,
+} = useConfirmAction()
+
+// 列表行平台策略：base_url/model/authMode 解析 + 操作文案 + 编辑图标
+const rowDescriptor = computed<ProfileRowDescriptor<ClaudeProfile>>(() => ({
+  baseUrl: (profile) => {
+    const raw = profile.base_url?.trim()
+    return raw && raw.length > 0 ? raw : t('claudeProfiles.officialBaseUrl')
+  },
+  // Claude 多模型：优先主模型，回退 sonnet/opus/haiku/subagent 映射
+  model: (profile) =>
+    profile.model?.trim()
+    || profile.default_sonnet_model?.trim()
+    || profile.default_opus_model?.trim()
+    || profile.default_haiku_model?.trim()
+    || profile.subagent_model?.trim()
+    || '—',
+  authMode: (profile) =>
+    profile.auth_mode === 'api_key'
+      ? t('claudeProfiles.authModeApiKey')
+      : t('claudeProfiles.authModeSubscription'),
+  editIcon: 'Pencil',
+  labels: {
+    apply: t('claudeProfiles.applyProfile'),
+    edit: t('claudeProfiles.editTooltip'),
+    delete: t('claudeProfiles.deleteTooltip'),
+  },
+}))
+
+const claudeAuthModeLabel = (mode: string): string =>
+  mode === 'api_key' ? t('claudeProfiles.authModeApiKey') : t('claudeProfiles.authModeSubscription')
+
+// 上下文侧栏平台策略：洞察来源 + 当前 profile 字段列表 + 文案/图标
+const railDescriptor: ContextRailDescriptor<ClaudeProfile> = {
+  editIcon: 'Pencil',
+  useInsights: useClaudeProfilesInsights,
+  activeFields: (profile) => {
+    const baseUrl = profile.base_url?.trim() || t('claudeProfiles.officialBaseUrl')
+    // Claude 多模型：优先主模型，回退 sonnet/opus/haiku/subagent 映射
+    const model = profile.model?.trim()
+      || profile.default_sonnet_model?.trim()
+      || profile.default_opus_model?.trim()
+      || profile.default_haiku_model?.trim()
+      || profile.subagent_model?.trim()
+      || '—'
+    const fields: ContextRailActiveField[] = [
+      { label: t('claudeProfiles.fields.baseUrl'), value: baseUrl },
+      { label: t('claudeProfiles.fields.model'), value: model, variant: 'accent' },
+      {
+        label: t('claudeProfiles.fields.authMode'),
+        value: claudeAuthModeLabel(profile.auth_mode ?? 'subscription'),
+        variant: 'muted',
+      },
+    ]
+    if (profile.provider) {
+      fields.push({ label: t('claudeProfiles.providerLabel'), value: profile.provider, variant: 'muted' })
+    }
+    if (profile.account) {
+      fields.push({ label: t('claudeProfiles.accountLabel'), value: profile.account })
+    }
+    return fields
+  },
+  authModeLabel: claudeAuthModeLabel,
+  isDeprecatedMode: () => false,
+  missingMessage: missing =>
+    missing
+      .map(field =>
+        field === 'base_url'
+          ? t('claudeProfiles.contextRail.issues.missingBaseUrl')
+          : field === 'model'
+            ? t('claudeProfiles.contextRail.issues.missingModel')
+            : t('claudeProfiles.contextRail.issues.missingAccount'),
+      )
+      .join(' · '),
+  runtimeSummary: (profile) => {
+    const model = profile.model?.trim()
+      || profile.default_sonnet_model?.trim()
+      || profile.default_opus_model?.trim()
+      || '—'
+    const baseUrl = profile.base_url?.trim() || '—'
+    return `${model} · ${baseUrl}`
+  },
+}
+const toolbarRef = ref<InstanceType<typeof ProfilesToolbar> | null>(null)
 const modalScrollRef = ref<HTMLElement | null>(null)
 const activeFormSectionId = ref<ClaudeProfileFormSectionId>('basic')
 const modalSectionRefs = ref<Record<ClaudeProfileFormSectionId, HTMLElement | null>>({
@@ -460,8 +634,18 @@ const form = reactive<ClaudeProfileEditorForm>({
   default_opus_model: '',
   default_sonnet_model: '',
   default_haiku_model: '',
+  default_fable_model: '',
+  default_opus_model_name: '',
+  default_sonnet_model_name: '',
+  default_haiku_model_name: '',
+  default_fable_model_name: '',
   subagent_model: '',
+  custom_model_option: '',
+  custom_model_option_name: '',
   effort_level: '',
+  claude_code_auto_compact_window: '',
+  api_timeout_ms: '',
+  claude_code_disable_nonessential_traffic: '',
   provider: '',
   provider_type: '',
   account: '',
@@ -516,9 +700,9 @@ const findProfile = (name: string): ClaudeProfile => {
 }
 
 // 简易分组容器：标题 + 计数 + 内容插槽（functional component）
-const ProfilesSection = (
-  props: { title: string, count: number },
-  { slots }: { slots: { default?: () => unknown } },
+const ProfilesSection: FunctionalComponent<{ title: string, count: number }> = (
+  props,
+  { slots },
 ) => {
   const children = (slots.default?.() ?? []) as never
   return h('section', { class: 'cp-section' }, [
@@ -530,7 +714,7 @@ const ProfilesSection = (
     h('div', { class: 'cp-section__body' }, children),
   ])
 }
-;(ProfilesSection as unknown as { props: string[] }).props = ['title', 'count']
+ProfilesSection.props = ['title', 'count']
 
 const modalEyebrow = computed(() => (
   isEditing.value
@@ -559,7 +743,7 @@ const modalStatusClass = computed(() => {
   return 'editor-pill--neutral'
 })
 
-const textFieldClass = 'editor-input w-full rounded-[20px] px-4 py-3 text-sm'
+const textFieldClass = 'editor-input w-full rounded-lg px-4 py-3 text-sm'
 const monospaceFieldClass = `${textFieldClass} editor-input--mono`
 const textareaClass = `${textFieldClass} editor-input--textarea min-h-[116px] resize-y`
 
@@ -578,6 +762,34 @@ const parseTags = (input: string): string[] | undefined => {
 }
 
 const parsedFormTags = computed(() => parseTags(form.tagsInput) ?? [])
+const claudeTemplateDraft = computed<ProviderTemplateDraftContext>(() => ({
+  platform: 'claude',
+  defaultName: form.provider || form.name || 'Claude provider',
+  name: form.provider || form.name,
+  category: 'third_party',
+  baseUrls: form.base_url.trim() ? [form.base_url.trim()] : [],
+  modelCatalog: [
+    form.default_opus_model,
+    form.default_sonnet_model,
+    form.default_haiku_model,
+    form.default_fable_model,
+    form.subagent_model,
+  ].filter(Boolean),
+  platformOverride: {
+    baseUrl: form.base_url,
+    provider: form.provider,
+    providerType: form.provider_type,
+    defaultOpusModel: form.default_opus_model,
+    defaultSonnetModel: form.default_sonnet_model,
+    defaultHaikuModel: form.default_haiku_model,
+    defaultFableModel: form.default_fable_model,
+    subagentModel: form.subagent_model,
+    claudeCodeAutoCompactWindow: form.claude_code_auto_compact_window,
+    apiTimeoutMs: form.api_timeout_ms,
+    claudeCodeDisableNonessentialTraffic: form.claude_code_disable_nonessential_traffic,
+    description: form.description,
+  },
+}))
 const modalSectionItems = computed<ClaudeProfileEditorSectionItem[]>(() => ([
   {
     id: 'basic' as const,
@@ -630,8 +842,20 @@ const buildRequest = (): ClaudeProfileRequest => ({
   default_opus_model: normalizeOptional(form.default_opus_model) ?? null,
   default_sonnet_model: normalizeOptional(form.default_sonnet_model) ?? null,
   default_haiku_model: normalizeOptional(form.default_haiku_model) ?? null,
+  default_fable_model: normalizeOptional(form.default_fable_model) ?? null,
+  default_opus_model_name: normalizeOptional(form.default_opus_model_name) ?? null,
+  default_sonnet_model_name: normalizeOptional(form.default_sonnet_model_name) ?? null,
+  default_haiku_model_name: normalizeOptional(form.default_haiku_model_name) ?? null,
+  default_fable_model_name: normalizeOptional(form.default_fable_model_name) ?? null,
   subagent_model: normalizeOptional(form.subagent_model) ?? null,
+  custom_model_option: normalizeOptional(form.custom_model_option) ?? null,
+  custom_model_option_name: normalizeOptional(form.custom_model_option_name) ?? null,
   effort_level: normalizeOptional(form.effort_level) ?? null,
+  claude_code_auto_compact_window:
+    normalizeOptional(form.claude_code_auto_compact_window) ?? null,
+  api_timeout_ms: normalizeOptional(form.api_timeout_ms) ?? null,
+  claude_code_disable_nonessential_traffic:
+    normalizeOptional(form.claude_code_disable_nonessential_traffic) ?? null,
   provider: normalizeOptional(form.provider),
   provider_type: normalizeOptional(form.provider_type),
   account: normalizeOptional(form.account),
@@ -648,13 +872,25 @@ const resetForm = () => {
   form.default_opus_model = ''
   form.default_sonnet_model = ''
   form.default_haiku_model = ''
+  form.default_fable_model = ''
+  form.default_opus_model_name = ''
+  form.default_sonnet_model_name = ''
+  form.default_haiku_model_name = ''
+  form.default_fable_model_name = ''
   form.subagent_model = ''
+  form.custom_model_option = ''
+  form.custom_model_option_name = ''
   form.effort_level = ''
+  form.claude_code_auto_compact_window = ''
+  form.api_timeout_ms = ''
+  form.claude_code_disable_nonessential_traffic = ''
   form.provider = ''
   form.provider_type = ''
   form.account = ''
   form.tagsInput = ''
   form.enabled = true
+  selectedProviderTemplate.value = null
+  selectedProviderEndpoint.value = ''
 }
 
 const prepareFormWorkspace = () => {
@@ -663,7 +899,7 @@ const prepareFormWorkspace = () => {
 
   void nextTick(() => {
     modalScrollRef.value?.scrollTo({ top: 0 })
-    syncActiveFormSection()
+    setupSectionObserver()
   })
 }
 
@@ -686,14 +922,27 @@ const openEditForm = (profile: ClaudeProfile) => {
   form.default_opus_model = profile.default_opus_model || ''
   form.default_sonnet_model = profile.default_sonnet_model || ''
   form.default_haiku_model = profile.default_haiku_model || ''
+  form.default_fable_model = profile.default_fable_model || ''
+  form.default_opus_model_name = profile.default_opus_model_name || ''
+  form.default_sonnet_model_name = profile.default_sonnet_model_name || ''
+  form.default_haiku_model_name = profile.default_haiku_model_name || ''
+  form.default_fable_model_name = profile.default_fable_model_name || ''
   form.subagent_model = profile.subagent_model || ''
+  form.custom_model_option = profile.custom_model_option || ''
+  form.custom_model_option_name = profile.custom_model_option_name || ''
   const rawEffort = profile.effort_level || ''
   form.effort_level = (VALID_EFFORT_LEVELS as readonly string[]).includes(rawEffort) ? rawEffort : ''
+  form.claude_code_auto_compact_window = profile.claude_code_auto_compact_window || ''
+  form.api_timeout_ms = profile.api_timeout_ms || ''
+  form.claude_code_disable_nonessential_traffic =
+    profile.claude_code_disable_nonessential_traffic || ''
   form.provider = profile.provider || ''
   form.provider_type = profile.provider_type || ''
   form.account = profile.account || ''
   form.tagsInput = (profile.tags || []).join(', ')
   form.enabled = profile.enabled !== false
+  selectedProviderTemplate.value = null
+  selectedProviderEndpoint.value = ''
   isEditing.value = true
   editingName.value = profile.name
   showForm.value = true
@@ -706,6 +955,45 @@ const closeForm = () => {
   showForm.value = false
   saveError.value = null
   activeFormSectionId.value = 'basic'
+}
+
+const useManualProviderTemplate = () => {
+  selectedProviderTemplate.value = null
+  selectedProviderEndpoint.value = ''
+}
+
+const applyClaudeProviderTemplate = (selection: ProviderTemplateSelection) => {
+  const patch = mapTemplateToClaudeProfilePatch(selection.template, selection.endpoint)
+
+  selectedProviderTemplate.value = selection.template.id
+  selectedProviderEndpoint.value = selection.endpoint || ''
+  form.base_url = patch.base_url || ''
+  form.provider = patch.provider || selection.template.name
+  form.provider_type = patch.provider_type || ''
+  form.default_opus_model = patch.default_opus_model || ''
+  form.default_sonnet_model = patch.default_sonnet_model || ''
+  form.default_haiku_model = patch.default_haiku_model || ''
+  form.default_fable_model = patch.default_fable_model || ''
+  form.subagent_model = patch.subagent_model || ''
+  form.claude_code_auto_compact_window = patch.claude_code_auto_compact_window || ''
+  form.api_timeout_ms = patch.api_timeout_ms || ''
+  form.claude_code_disable_nonessential_traffic =
+    patch.claude_code_disable_nonessential_traffic || ''
+
+  // 选用 provider 模板即意味着走第三方/中转端点 → 默认 api_key 鉴权，
+  // 避免落到 subscription 被后端清空。
+  if (patch.base_url) {
+    form.auth_mode = 'api_key'
+  }
+
+  if (!form.name.trim()) {
+    form.name = patch.suggestedName || selection.template.id
+  }
+  if (!form.description.trim() && patch.description) {
+    form.description = patch.description
+  }
+
+  activeFormSectionId.value = 'connection'
 }
 
 type SectionRefTarget = Element | { $el?: unknown } | null
@@ -735,41 +1023,53 @@ const resetFilters = () => {
   providerFilter.value = null
 }
 
-const isEditableTarget = (el: EventTarget | null): boolean => {
-  if (!(el instanceof HTMLElement)) return false
-  const tag = el.tagName
-  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable
+// ===== 命令面板：策略注入(profile 判定/副标题) + 常用命令 =====
+const paletteDescriptor: ProfilesCommandPaletteDescriptor<ClaudeProfile> = {
+  isEnabled: profile => profile.enabled !== false,
+  hint: profile => profile.description || profile.base_url || undefined,
 }
 
-// 快捷键：⌘K / 聚焦搜索框
-const handleGlobalKeydown = (event: KeyboardEvent) => {
-  if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
-    event.preventDefault()
-    toolbarRef.value?.focusSearch()
-    return
-  }
-  if (event.key === '/' && !isEditableTarget(event.target)) {
-    event.preventDefault()
-    toolbarRef.value?.focusSearch()
-  }
+const paletteActions = computed<ProfilesCommandPaletteAction[]>(() => [
+  { id: '__add', icon: 'Plus', labelKey: 'claudeProfiles.commandPalette.actionAdd', handler: openAddForm },
+  { id: '__reload', icon: 'RefreshCw', labelKey: 'claudeProfiles.commandPalette.actionReload', handler: () => { void refreshProfiles() } },
+  { id: '__export', icon: 'Download', labelKey: 'claudeProfiles.commandPalette.actionExport', handler: () => { void handleExportProfiles() } },
+])
+
+// 分区高亮改 IntersectionObserver 追踪(顶部 -140px 锚线)，取代逐帧 @scroll 计算。
+let sectionObserver: IntersectionObserver | null = null
+
+const teardownSectionObserver = () => {
+  sectionObserver?.disconnect()
+  sectionObserver = null
 }
 
-const syncActiveFormSection = () => {
+const setupSectionObserver = () => {
+  teardownSectionObserver()
   const container = modalScrollRef.value
-
   if (!container) return
 
-  let nextSection: ClaudeProfileFormSectionId = 'basic'
-
+  const elementToSection = new Map<Element, ClaudeProfileFormSectionId>()
   CLAUDE_PROFILE_FORM_SECTION_IDS.forEach((sectionId) => {
     const element = modalSectionRefs.value[sectionId]
-
-    if (element && element.offsetTop - container.scrollTop <= 140) {
-      nextSection = sectionId
-    }
+    if (element) elementToSection.set(element, sectionId)
   })
+  if (elementToSection.size === 0) return
 
-  activeFormSectionId.value = nextSection
+  const visibility = new Map<ClaudeProfileFormSectionId, boolean>()
+
+  sectionObserver = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        const sectionId = elementToSection.get(entry.target)
+        if (sectionId) visibility.set(sectionId, entry.isIntersecting)
+      }
+      const activeId = CLAUDE_PROFILE_FORM_SECTION_IDS.find(id => visibility.get(id))
+      if (activeId) activeFormSectionId.value = activeId
+    },
+    { root: container, rootMargin: '-140px 0px -70% 0px', threshold: 0 },
+  )
+
+  elementToSection.forEach((_sectionId, element) => sectionObserver?.observe(element))
 }
 
 const scrollToFormSection = (sectionId: ClaudeProfileFormSectionId) => {
@@ -784,6 +1084,10 @@ const scrollToFormSection = (sectionId: ClaudeProfileFormSectionId) => {
     top: Math.max(element.offsetTop - 16, 0),
     behavior: 'smooth',
   })
+}
+
+const markWrite = () => {
+  lastWriteHint.value = new Date().toLocaleTimeString()
 }
 
 const loadProfiles = async (options: { preserveData?: boolean } = {}) => {
@@ -804,7 +1108,6 @@ const loadProfiles = async (options: { preserveData?: boolean } = {}) => {
     profiles.value = normalized.profiles
     loadError.value = null
     refreshError.value = null
-    lastWriteHint.value = new Date().toLocaleTimeString()
 
     if (normalized.warnings.length > 0) {
       logger.warn('Normalized inconsistent Claude profiles response', {
@@ -850,7 +1153,32 @@ const handleExportProfiles = async () => {
   }
 }
 
-const handleSave = async () => {
+const performSave = async () => {
+  isSaving.value = true
+  saveError.value = null
+
+  try {
+    const request = buildRequest()
+
+    if (isEditing.value) {
+      await updateClaudeProfile(editingName.value, request)
+    } else {
+      await addClaudeProfile(request)
+    }
+
+    showForm.value = false
+    activeFormSectionId.value = 'basic'
+    markWrite()
+    await loadProfiles({ preserveData: profiles.value.length > 0 })
+  } catch (error) {
+    logger.error('Failed to save Claude profile:', error)
+    saveError.value = getErrorMessage(error, t('claudeProfiles.operationFailed'))
+  } finally {
+    isSaving.value = false
+  }
+}
+
+const handleSave = () => {
   const trimmedName = form.name.trim()
   if (!trimmedName) return
 
@@ -868,73 +1196,73 @@ const handleSave = async () => {
       return
     }
 
-    const confirmed = confirm(translateWithFallback(
+    openConfirmDialog({
+      title: t('claudeProfiles.renameConfirmTitle'),
+      message: translateWithFallback(
+        t,
+        'claudeProfiles.renameConfirmBody',
+        '将 "{old}" 重命名为 "{new}"。旧名称会被删除；若当前激活，激活指针会自动迁移到新名。',
+        { old: editingName.value, new: trimmedName },
+      ),
+      confirmText: t('claudeProfiles.renameConfirmCta'),
+      type: 'warning',
+      action: performSave,
+    })
+    return
+  }
+
+  void performSave()
+}
+
+const handleDelete = (name: string) => {
+  openConfirmDialog({
+    title: t('claudeProfiles.deleteTooltip'),
+    message: translateWithFallback(
       t,
-      'claudeProfiles.renameConfirmBody',
-      '将 "{old}" 重命名为 "{new}"。旧名称会被删除；若当前激活，激活指针会自动迁移到新名。',
-      { old: editingName.value, new: trimmedName },
-    ))
-    if (!confirmed) return
-  }
-
-  isSaving.value = true
-  saveError.value = null
-
-  try {
-    const request = buildRequest()
-
-    if (isEditing.value) {
-      await updateClaudeProfile(editingName.value, request)
-    } else {
-      await addClaudeProfile(request)
-    }
-
-    showForm.value = false
-    activeFormSectionId.value = 'basic'
-    await loadProfiles({ preserveData: profiles.value.length > 0 })
-  } catch (error) {
-    logger.error('Failed to save Claude profile:', error)
-    saveError.value = getErrorMessage(error, t('claudeProfiles.operationFailed'))
-  } finally {
-    isSaving.value = false
-  }
+      'claudeProfiles.deleteConfirm',
+      '确定要删除 Profile "{name}" 吗？',
+      { name },
+    ),
+    confirmText: t('claudeProfiles.deleteTooltip'),
+    type: 'danger',
+    action: async () => {
+      try {
+        await deleteClaudeProfile(name)
+        markWrite()
+        await loadProfiles({ preserveData: profiles.value.length > 0 })
+      } catch (error) {
+        logger.error('Failed to delete Claude profile:', error)
+        uiStore.showError(getErrorMessage(error, t('claudeProfiles.deleteFailed')))
+      }
+    },
+  })
 }
 
-const handleDelete = async (name: string) => {
-  if (!confirm(translateWithFallback(
-    t,
-    'claudeProfiles.deleteConfirm',
-    '确定要删除 Profile "{name}" 吗？',
-    { name },
-  ))) return
-
-  try {
-    await deleteClaudeProfile(name)
-    await loadProfiles({ preserveData: profiles.value.length > 0 })
-  } catch (error) {
-    logger.error('Failed to delete Claude profile:', error)
-    alert(getErrorMessage(error, t('claudeProfiles.deleteFailed')))
-  }
-}
-
-const handleApply = async (name: string) => {
+const handleApply = (name: string) => {
   const targetProfile = profiles.value.find(profile => profile.name === name)
   if (!targetProfile || targetProfile.is_current || targetProfile.enabled === false) return
 
-  if (!confirm(translateWithFallback(
-    t,
-    'claudeProfiles.confirmApply',
-    '确定要应用 Profile "{name}" 吗？这将同步更新当前 Claude 配置。',
-    { name },
-  ))) return
-
-  try {
-    await applyClaudeProfile(name)
-    await loadProfiles({ preserveData: profiles.value.length > 0 })
-  } catch (error) {
-    logger.error('Failed to apply Claude profile:', error)
-    alert(getErrorMessage(error, t('claudeProfiles.applyFailed')))
-  }
+  openConfirmDialog({
+    title: t('claudeProfiles.applyProfile'),
+    message: translateWithFallback(
+      t,
+      'claudeProfiles.confirmApply',
+      '确定要应用 Profile "{name}" 吗？这将同步更新当前 Claude 配置。',
+      { name },
+    ),
+    confirmText: t('claudeProfiles.applyProfile'),
+    type: 'warning',
+    action: async () => {
+      try {
+        await applyClaudeProfile(name)
+        markWrite()
+        await loadProfiles({ preserveData: profiles.value.length > 0 })
+      } catch (error) {
+        logger.error('Failed to apply Claude profile:', error)
+        uiStore.showError(getErrorMessage(error, t('claudeProfiles.applyFailed')))
+      }
+    },
+  })
 }
 
 // 当前激活的标签/Provider 若因数据变化而失效，自动回退到"全部"
@@ -950,22 +1278,32 @@ watch(showForm, (isOpen) => {
 
   saveError.value = null
   activeFormSectionId.value = 'basic'
+  teardownSectionObserver()
+})
+
+// ===== 键盘快捷键：/ ⌘K ⌘1-9 Esc（两页共用实现） =====
+useProfilesHotkeys({
+  paletteOpen,
+  focusSearch: () => toolbarRef.value?.focusSearch(),
+  getApplicableProfiles: () => profiles.value.filter(p => p.enabled !== false),
+  onApply: handleApply,
 })
 
 onMounted(() => {
   void loadProfiles()
-  document.addEventListener('keydown', handleGlobalKeydown)
 })
+
 onBeforeUnmount(() => {
-  document.removeEventListener('keydown', handleGlobalKeydown)
+  teardownSectionObserver()
 })
 </script>
 
 <style>
 .claude-profile-editor-modal {
-  --editor-shell-bg: linear-gradient(180deg, rgb(var(--color-bg-surface-rgb) / 96%), rgb(var(--color-bg-elevated-rgb) / 92%));
-  --editor-shell-border: rgb(var(--color-border-default-rgb) / 72%);
-  --editor-shell-shadow: 0 28px 80px rgb(var(--color-accent-primary-rgb) / 10%), 0 12px 32px rgb(var(--color-text-primary-rgb) / 8%);
+  /* 外壳材质：floating 档玻璃令牌（modal/命令面板同档），内部 panel 单独维持不透明 */
+  --editor-shell-bg: var(--material-glass-floating-bg);
+  --editor-shell-border: var(--material-glass-floating-border);
+  --editor-shell-shadow: var(--material-glass-floating-shadow);
   --editor-shell-highlight: radial-gradient(circle at top right, rgb(var(--color-accent-primary-rgb) / 10%), transparent 42%);
   --editor-panel-bg: rgb(var(--color-bg-surface-rgb) / 88%);
   --editor-panel-muted-bg: rgb(var(--color-bg-overlay-rgb) / 60%);
@@ -993,12 +1331,15 @@ onBeforeUnmount(() => {
   background: var(--editor-shell-bg) !important;
   border: 1px solid var(--editor-shell-border) !important;
   box-shadow: var(--editor-shell-shadow) !important;
+  backdrop-filter: var(--material-glass-floating-blur) !important;
+
+  /* stylelint-disable-next-line property-no-vendor-prefix */
+  -webkit-backdrop-filter: var(--material-glass-floating-blur) !important;
   color: var(--editor-ink);
 }
 
 :root[class~='dark'] .claude-profile-editor-modal,
 [data-theme='dark'] .claude-profile-editor-modal {
-  --editor-shell-shadow: 0 32px 90px rgb(0 0 0 / 56%), 0 18px 42px rgb(0 0 0 / 36%);
   --editor-panel-shadow: inset 0 1px 0 rgb(255 255 255 / 6%), 0 16px 32px rgb(0 0 0 / 24%);
   --editor-muted-shadow: none;
   --editor-scrollbar-track: rgb(var(--color-bg-base-rgb) / 36%);
@@ -1124,7 +1465,6 @@ onBeforeUnmount(() => {
   border: 1px solid var(--editor-hairline);
   background: var(--editor-panel-bg);
   box-shadow: var(--editor-panel-shadow);
-  backdrop-filter: blur(20px) saturate(135%);
 }
 
 .claude-profile-editor-modal .editor-panel-head {
@@ -1192,6 +1532,17 @@ onBeforeUnmount(() => {
 .claude-profile-editor-modal .editor-banner__icon {
   background: rgb(var(--color-danger-rgb) / 12%);
   color: rgb(var(--color-danger-rgb) / 100%);
+}
+
+.claude-profile-editor-modal .editor-banner--warn {
+  border-color: rgb(var(--color-warning-rgb) / 28%);
+  background: linear-gradient(180deg, rgb(var(--color-warning-rgb) / 12%), rgb(var(--color-warning-rgb) / 6%));
+  box-shadow: 0 18px 40px rgb(var(--color-warning-rgb) / 8%);
+}
+
+.claude-profile-editor-modal .editor-banner--warn .editor-banner__icon {
+  background: rgb(var(--color-warning-rgb) / 14%);
+  color: rgb(var(--color-warning-rgb) / 100%);
 }
 
 .claude-profile-editor-modal .editor-input {
@@ -1324,7 +1675,7 @@ onBeforeUnmount(() => {
 
 /* ===========================================================
    作用域设计令牌：仅在本视图内生效，子组件靠继承解析 --cp-*
-   主色用暖中性 accent-secondary（与统一身份色系统一致）
+   主色跟随共享 accent-primary（与 Codex Profiles 页一致）
    =========================================================== */
 .claude-profiles-view {
   /* 背景层 → 全局 token */
@@ -1345,11 +1696,17 @@ onBeforeUnmount(() => {
   --cp-ink-3: var(--color-text-ghost);
   --cp-ink-4: var(--color-text-disabled);
 
-  /* 主色 → 暖中性 accent-secondary */
-  --cp-accent: var(--color-accent-secondary);
-  --cp-accent-soft: rgb(var(--color-accent-secondary-rgb) / 14%);
-  --cp-accent-line: rgb(var(--color-accent-secondary-rgb) / 35%);
+  /* 主色 → 共享 accent-primary（跟随用户 data-accent 选择，两平台一致） */
+  --cp-accent: var(--color-accent-primary);
+  --cp-accent-soft: rgb(var(--color-accent-primary-rgb) / 14%);
+  --cp-accent-line: rgb(var(--color-accent-primary-rgb) / 35%);
+  --cp-accent-hover: var(--color-accent-primary-hover);
   --cp-on-accent: var(--color-text-inverted);
+
+  /* 平台识别色：仅用于页头图标徽章，不跟随用户 accent 选择 */
+  --cp-icon-color: var(--color-platform-claude);
+  --cp-icon-soft: rgb(var(--color-platform-claude-rgb) / 14%);
+  --cp-icon-line: rgb(var(--color-platform-claude-rgb) / 35%);
 
   /* 状态色 → 全局 token */
   --cp-good: var(--color-success);
@@ -1367,7 +1724,7 @@ onBeforeUnmount(() => {
 }
 
 .cp-shell {
-  max-width: 1440px;
+  max-width: 1680px;
   margin: 16px auto 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -1427,11 +1784,17 @@ onBeforeUnmount(() => {
   gap: 10px;
 }
 
-/* 卡片视图栅格 */
+/* 卡片视图栅格：≥1280px 双列，≥1680px 视口宽度可到三列 */
 .cp-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
   gap: 10px;
+}
+
+@media (width <= 1279px) {
+  .cp-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 /* 列表视图 */

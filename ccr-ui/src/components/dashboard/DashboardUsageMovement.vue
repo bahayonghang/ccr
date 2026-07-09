@@ -5,9 +5,6 @@
   >
     <header class="dashboard-usage__header">
       <div class="dashboard-usage__lede">
-        <p class="dashboard-usage__eyebrow">
-          {{ t('dashboard.usage.eyebrow') }}
-        </p>
         <h2 class="dashboard-usage__title">
           {{ t('dashboard.usage.title') }}
         </h2>
@@ -83,9 +80,14 @@
               <span class="dashboard-usage__chart-readout-value">{{ hoveredPoint.valueLabel }}</span>
               <span class="dashboard-usage__chart-readout-metric">{{ getMetricLabel(selectedMetric) }}</span>
             </template>
+            <template v-else-if="peakPoint">
+              <span class="dashboard-usage__chart-readout-metric">{{ t('dashboard.usage.peakLabel') }}</span>
+              <span class="dashboard-usage__chart-readout-value">{{ peakPoint.valueLabel }}</span>
+              <span class="dashboard-usage__chart-readout-date">{{ peakPoint.dateLabel }}</span>
+            </template>
             <template v-else>
               <span class="dashboard-usage__chart-readout-placeholder">
-                {{ t('dashboard.usage.description') }}
+                {{ t('dashboard.usage.hoverHint') }}
               </span>
             </template>
           </span>
@@ -274,6 +276,15 @@ const hoveredPoint = computed(() => {
   return chartPoints.value.find((point) => point.key === hoveredKey.value) ?? null
 })
 
+// 未 hover 时用峰值取代通用说明文案，既避免与卡片描述重复，又替用户先标出重点
+const peakPoint = computed(() => {
+  const points = chartPoints.value
+  if (points.length === 0) return null
+
+  const best = points.reduce((max, point) => (point.value > max.value ? point : max), points[0])
+  return best.value > 0 ? best : null
+})
+
 const emptyTitle = computed(() => {
   if (props.error) return t('dashboard.usage.unavailableTitle')
   if (isInitialLoading.value) return t('dashboard.metrics.usagePreparing')
@@ -333,15 +344,6 @@ const lastUpdatedLabel = computed(() => (
   display: grid;
   gap: 0.2rem;
   min-width: 0;
-}
-
-.dashboard-usage__eyebrow {
-  margin: 0;
-  color: var(--color-text-muted);
-  font-size: var(--home-text-meta);
-  font-weight: 800;
-  letter-spacing: var(--home-tracking-eyebrow);
-  text-transform: uppercase;
 }
 
 .dashboard-usage__title {

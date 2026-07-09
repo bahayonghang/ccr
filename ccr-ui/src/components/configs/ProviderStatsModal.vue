@@ -6,11 +6,8 @@
     @click.self="$emit('close')"
   >
     <div
-      class="w-full max-w-5xl mx-4 rounded-3xl p-6"
+      class="w-full max-w-5xl mx-4 rounded-3xl p-6 surface-modal"
       :style="{
-        background: 'var(--glass-bg-strong)',
-        backdropFilter: 'blur(24px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(24px) saturate(180%)',
         border: '1px solid var(--border-color)',
         boxShadow: 'var(--shadow-xl)'
       }"
@@ -216,7 +213,7 @@
                     color: 'var(--text-primary)'
                   }"
                 >
-                  {{ count }}次 ({{ maxCount ? ((count / totalUsage) * 100).toFixed(1) : 0 }}%)
+                  {{ formatUsageShare(count) }}
                 </div>
 
                 <!-- 柱子 -->
@@ -225,16 +222,9 @@
                     class="w-full rounded-t-lg transition-all duration-300 group-hover:brightness-110 relative overflow-hidden"
                     :style="{
                       height: Math.max((count / (maxCount || 1)) * 100, 4) + '%',
-                      background: chartColors[index % chartColors.length],
-                      boxShadow: `0 4px 12px ${chartColors[index % chartColors.length]}40`
+                      background: chartColors[index % chartColors.length]
                     }"
-                  >
-                    <!-- 玻璃光泽效果 -->
-                    <div
-                      class="absolute inset-0 opacity-50"
-                      :style="{ background: 'linear-gradient(to bottom, rgba(255,255,255,0.3), transparent)' }"
-                    />
-                  </div>
+                  />
                 </div>
 
                 <!-- 标签 -->
@@ -286,7 +276,8 @@ interface Emits {
 
 defineEmits<Emits>()
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
+const isZh = computed(() => locale.value.startsWith('zh'))
 
 // 图表颜色配置
 const chartColors = [
@@ -344,6 +335,11 @@ const yTicks = computed(() => {
     value: Math.round((max * percent) / 100),
   }))
 })
+
+const formatUsageShare = (count: number) => {
+  const percent = maxCount.value ? ((count / totalUsage.value) * 100).toFixed(1) : '0'
+  return isZh.value ? `${count}次 (${percent}%)` : `${count} calls (${percent}%)`
+}
 </script>
 
 <style scoped>

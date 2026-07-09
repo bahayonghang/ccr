@@ -39,6 +39,12 @@ import {
   getQuotaTone,
   getSectionInfo,
 } from "./profileTreePresentation";
+import {
+  getPlatformNodeContextValue,
+  getProfileNodeContextValue,
+  getSectionNodeContextValue,
+  supportsProfileMutation,
+} from "./profileTreeVisibility";
 
 /** Escape user-controlled strings to prevent Markdown injection */
 function escapeMarkdown(str: string): string {
@@ -92,11 +98,8 @@ export class PlatformNode extends vscode.TreeItem {
         ? vscode.TreeItemCollapsibleState.Expanded
         : vscode.TreeItemCollapsibleState.None,
     );
-    this.contextValue = platform.enabled && (platform.name === "claude" || platform.name === "codex")
-      ? "platform-create-supported"
-      : platform.enabled
-        ? "platform"
-        : "platform-disabled";
+    const supportsMutation = supportsProfileMutation(platform.name);
+    this.contextValue = getPlatformNodeContextValue(platform);
 
     const codiconId = getPlatformCodiconId(platform.name);
     if (!platform.enabled) {
@@ -134,7 +137,9 @@ export class PlatformNode extends vscode.TreeItem {
       md.appendMarkdown(`**Runtime Sync:** ${escapeMarkdown(runtimeError)}\n\n`);
     }
     md.appendMarkdown(`---\n\n`);
-    md.appendMarkdown(`*Expand to manage grouped resources*`);
+    md.appendMarkdown(platform.enabled && supportsMutation
+      ? `*Expand to manage grouped resources*`
+      : `*Expand to browse grouped resources*`);
     this.tooltip = md;
   }
 }
@@ -142,9 +147,7 @@ export class PlatformNode extends vscode.TreeItem {
 export class SectionNode extends vscode.TreeItem {
   constructor(public readonly section: TreeSectionInfo) {
     super(section.label, vscode.TreeItemCollapsibleState.Expanded);
-    this.contextValue = section.kind === "profiles" && (section.platformName === "claude" || section.platformName === "codex")
-      ? "section-profiles-create-supported"
-      : `section-${section.kind}`;
+    this.contextValue = getSectionNodeContextValue(section);
     this.description = section.kind === "auth"
       ? "quota & accounts"
       : section.kind === "runtime"
@@ -168,7 +171,8 @@ export class ProfileNode extends vscode.TreeItem {
   constructor(public readonly profile: ProfileInfo) {
     super(profile.name, vscode.TreeItemCollapsibleState.None);
 
-    this.contextValue = profile.isCurrent ? "profile-current" : "profile";
+    const supportsMutation = supportsProfileMutation(profile.platformName);
+    this.contextValue = getProfileNodeContextValue(profile);
 
     const parts: string[] = [];
     if (profile.provider) parts.push(profile.provider);
@@ -229,14 +233,18 @@ export class ProfileNode extends vscode.TreeItem {
       md.appendMarkdown(` · **Tags:** ${profile.tags.map((t) => escapeMarkdown(t)).join(", ")}`);
     }
     md.appendMarkdown(`\n\n`);
-    md.appendMarkdown(`*Click to switch · Right-click for more*`);
+    md.appendMarkdown(supportsMutation
+      ? `*Click to switch · Right-click for more*`
+      : `*Read-only profile · Right-click for more*`);
 
     this.tooltip = md;
-    this.command = {
-      command: "ccr.switchProfile",
-      title: "Switch Profile",
-      arguments: [this],
-    };
+    if (supportsMutation) {
+      this.command = {
+        command: "ccr.switchProfile",
+        title: "Switch Profile",
+        arguments: [this],
+      };
+    }
   }
 }
 

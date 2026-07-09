@@ -13,6 +13,15 @@
 import { invoke } from '@tauri-apps/api/core'
 import { asRecord, type UnknownRecord } from '../_shared'
 
+const confirmationTokenFor = (action: 'delete_config' | 'import_config' | 'restore_config') =>
+  `desktop-confirm:${action}`
+
+interface ImportConfigPayload {
+  content?: string
+  mode?: 'merge' | 'replace' | string
+  backup?: boolean
+}
+
 /** 列出所有配置（包装为 { configs: [...] } 格式供前端消费） */
 export const listConfigs = async <T = UnknownRecord>(): Promise<T> => {
   const configs = await invoke('list_configs')
@@ -47,7 +56,10 @@ export const updateConfig = async <T = UnknownRecord>(
 
 /** 删除指定配置 */
 export const deleteConfig = async <T = UnknownRecord>(name: string): Promise<T> => {
-  return invoke('delete_config', { name })
+  return invoke('delete_config', {
+    name,
+    confirmationToken: confirmationTokenFor('delete_config'),
+  })
 }
 
 /** 重命名配置 */
@@ -73,7 +85,21 @@ export const validateConfigs = async <T = UnknownRecord>(): Promise<T> => {
 
 /** 导入配置 */
 export const importConfig = async <T = UnknownRecord>(data: unknown): Promise<T> => {
-  return invoke('import_config', { data })
+  const payload = asRecord(data) as ImportConfigPayload
+  return invoke('import_config', {
+    content: payload.content ?? '',
+    mode: payload.mode ?? 'merge',
+    backup: payload.backup ?? true,
+    confirmationToken: confirmationTokenFor('import_config'),
+  })
+}
+
+/** 从备份文件恢复配置 */
+export const restoreConfig = async <T = UnknownRecord>(backupPath: string): Promise<T> => {
+  return invoke('restore_config', {
+    backupPath,
+    confirmationToken: confirmationTokenFor('restore_config'),
+  })
 }
 
 /** 导出配置 */

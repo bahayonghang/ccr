@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/ccr-ui/frontend/theme-token-contracts.md", "reason": "R2 表面/令牌施工基准:语义令牌分层、玻璃预算、别名消费规则"}
+{"file": ".trellis/spec/ccr-ui/frontend/usage-chart-stability-contracts.md", "reason": "R2-6b animations 对齐必读:options 引用纪律、buildChartAnimations、已知偏差节"}
+{"file": ".trellis/spec/ccr-ui/frontend/dashboard-presentation-contracts.md", "reason": "R2-6a cost delta 语义色改 usageSummaryCards/展示结构前对照"}
+{"file": ".trellis/spec/ccr-ui/frontend/index.md", "reason": "质量检查命令入口(type-check/lint/smoke 全集)"}

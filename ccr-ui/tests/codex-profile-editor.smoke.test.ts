@@ -3,13 +3,17 @@ import { createI18n } from 'vue-i18n'
 import { createApp, defineComponent, h, nextTick, reactive } from 'vue'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { CodexProfileEditorForm } from '@/utils/codexProfileEditor'
+import type {
+  ProviderTemplateDraftContext,
+  ProviderTemplateSelection,
+} from '@/types/providerTemplates'
 
 const helperMocks = vi.hoisted(() => ({
-  copyToClipboard: vi.fn(),
+  copyText: vi.fn(),
 }))
 
-vi.mock('@/utils/codexHelpers', () => ({
-  copyToClipboard: helperMocks.copyToClipboard,
+vi.mock('@/utils/clipboard', () => ({
+  copyText: helperMocks.copyText,
 }))
 
 vi.mock('@/components/common/BaseModal.vue', () => ({
@@ -19,12 +23,13 @@ vi.mock('@/components/common/BaseModal.vue', () => ({
       contentClass: { type: String, default: '' },
     },
     setup(props, { slots }) {
-      return () => props.modelValue
-        ? h('div', { class: props.contentClass }, [
-            slots.header?.({ titleId: 'modal-title' }),
-            slots.default?.(),
-          ])
-        : null
+      return () =>
+        props.modelValue
+          ? h('div', { class: props.contentClass }, [
+              slots.header?.({ titleId: 'modal-title' }),
+              slots.default?.(),
+            ])
+          : null
     },
   }),
 }))
@@ -37,6 +42,60 @@ vi.mock('@/components/ui/SIcon.vue', () => ({
     },
     setup(props) {
       return () => h('span', { 'data-icon': props.name, class: props.size })
+    },
+  }),
+}))
+
+vi.mock('@/components/provider-templates/ProviderTemplateSelector.vue', () => ({
+  default: defineComponent({
+    props: {
+      platform: { type: String, required: true },
+      selectedTemplateId: { type: String, default: null },
+      selectedEndpoint: { type: String, default: '' },
+      draftContext: { type: Object, default: null },
+      label: { type: String, default: '' },
+      helper: { type: String, default: '' },
+      placeholder: { type: String, default: '' },
+    },
+    emits: ['select', 'manual'],
+    setup(props, { emit }) {
+      return () =>
+        h(
+          'section',
+          {
+            'data-testid': 'provider-template-selector',
+            'data-platform': props.platform,
+            'data-selected-template': props.selectedTemplateId || '',
+            'data-selected-endpoint': props.selectedEndpoint || '',
+          },
+          [
+            h('span', { 'data-testid': 'provider-template-label' }, props.label),
+            h('span', { 'data-testid': 'provider-template-helper' }, props.helper),
+            h('span', { 'data-testid': 'provider-template-placeholder' }, props.placeholder),
+            h(
+              'button',
+              {
+                type: 'button',
+                'data-testid': 'provider-template-select',
+                onClick: () =>
+                  emit('select', {
+                    template: { id: 'openrouter', name: 'OpenRouter', platforms: { codex: {} } },
+                    endpoint: 'https://openrouter.ai/api/v1',
+                  }),
+              },
+              'select'
+            ),
+            h(
+              'button',
+              {
+                type: 'button',
+                'data-testid': 'provider-template-manual',
+                onClick: () => emit('manual'),
+              },
+              'manual'
+            ),
+          ]
+        )
     },
   }),
 }))
@@ -83,6 +142,11 @@ const i18n = createI18n({
           customModelOption: 'Custom model',
           customModelHint: 'Custom model hint',
           modelPresetHint: 'Preset hint',
+          templateSelector: {
+            label: 'Provider template',
+            helper: 'Fill non-secret provider fields.',
+            placeholder: 'Choose a Codex provider template',
+          },
           reasoningEffortHint: 'Reasoning hint',
           enabledHint: 'Enabled hint',
           deprecatedAuthModeHint: 'Deprecated {mode}',
@@ -155,39 +219,56 @@ const createForm = (): CodexProfileEditorForm => ({
   tags_input: 'free, stable',
 })
 
-const mountModal = async (form: CodexProfileEditorForm) => {
+const mountModal = async (
+  form: CodexProfileEditorForm,
+  options: {
+    selectedProviderTemplate?: string | null
+    selectedProviderEndpoint?: string
+    providerTemplateDraft?: ProviderTemplateDraftContext | null
+    onSelectTemplate?: (selection: ProviderTemplateSelection) => void
+    onManualTemplate?: () => void
+  } = {}
+) => {
   const el = document.createElement('div')
   document.body.appendChild(el)
 
-  const app = createApp(defineComponent({
-    setup() {
-      const state = reactive(form)
+  const app = createApp(
+    defineComponent({
+      setup() {
+        const state = reactive(form)
 
-      return () => h(CodexProfileEditorModal, {
-        modelValue: true,
-        editingName: 'ice',
-        saving: false,
-        form: state,
-        updateField: (field: keyof CodexProfileEditorForm, value: string | boolean) => {
-          state[field] = value as never
-        },
-        availableAuthModeOptions: ['openai_api_key', 'no_auth'],
-        modelCatalog: ['gpt-5.4'],
-        selectedModelOption: 'gpt-5.4',
-        customModelInput: '',
-        requiresBaseUrl: true,
-        requiresSecret: true,
-        requiresEnvKey: false,
-        authTokenHint: 'token hint',
-        isDeprecatedAuthMode: false,
-        displayOpenAiLoginMethod: 'api',
-        authModeLabel: (mode: string) => mode,
-        'onUpdate:modelValue': () => undefined,
-        'onUpdate:selectedModelOption': () => undefined,
-        'onUpdate:customModelInput': () => undefined,
-      })
-    },
-  }))
+        return () =>
+          h(CodexProfileEditorModal, {
+            modelValue: true,
+            editingName: 'ice',
+            saving: false,
+            form: state,
+            updateField: (field: keyof CodexProfileEditorForm, value: string | boolean) => {
+              state[field] = value as never
+            },
+            availableAuthModeOptions: ['openai_api_key', 'no_auth'],
+            modelCatalog: ['gpt-5.4'],
+            selectedModelOption: 'gpt-5.4',
+            customModelInput: '',
+            requiresBaseUrl: true,
+            requiresSecret: true,
+            requiresEnvKey: false,
+            authTokenHint: 'token hint',
+            isDeprecatedAuthMode: false,
+            displayOpenAiLoginMethod: 'api',
+            authModeLabel: (mode: string) => mode,
+            selectedProviderTemplate: options.selectedProviderTemplate,
+            selectedProviderEndpoint: options.selectedProviderEndpoint,
+            providerTemplateDraft: options.providerTemplateDraft,
+            'onUpdate:modelValue': () => undefined,
+            'onUpdate:selectedModelOption': () => undefined,
+            'onUpdate:customModelInput': () => undefined,
+            onSelectTemplate: options.onSelectTemplate,
+            onManualTemplate: options.onManualTemplate,
+          })
+      },
+    })
+  )
 
   app.use(createPinia())
   app.use(i18n)
@@ -205,8 +286,8 @@ const mountModal = async (form: CodexProfileEditorForm) => {
 }
 
 beforeEach(() => {
-  helperMocks.copyToClipboard.mockReset()
-  helperMocks.copyToClipboard.mockResolvedValue(true)
+  helperMocks.copyText.mockReset()
+  helperMocks.copyText.mockResolvedValue(true)
 })
 
 afterEach(() => {
@@ -226,6 +307,19 @@ describe('codex profile editor helpers', () => {
 })
 
 describe('CodexProfileEditorModal smoke', () => {
+  const templateDraft: ProviderTemplateDraftContext = {
+    platform: 'codex',
+    defaultName: 'OpenRouter',
+    name: 'OpenRouter',
+    category: 'aggregator',
+    baseUrls: ['https://openrouter.ai/api/v1'],
+    modelCatalog: ['anthropic/claude-sonnet-4.6'],
+    platformOverride: {
+      baseUrl: 'https://openrouter.ai/api/v1',
+      modelCatalog: ['anthropic/claude-sonnet-4.6'],
+    },
+  }
+
   it('keeps removed fields out of the UI', async () => {
     const { el, unmount } = await mountModal(createForm())
 
@@ -242,7 +336,9 @@ describe('CodexProfileEditorModal smoke', () => {
 
     try {
       const input = el.querySelector<HTMLInputElement>('[data-testid="codex-auth-token-input"]')
-      const toggle = el.querySelector<HTMLButtonElement>('[data-testid="codex-auth-token-visibility"]')
+      const toggle = el.querySelector<HTMLButtonElement>(
+        '[data-testid="codex-auth-token-visibility"]'
+      )
 
       expect(input?.type).toBe('password')
       toggle?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
@@ -258,11 +354,13 @@ describe('CodexProfileEditorModal smoke', () => {
     const { el, unmount } = await mountModal(createForm())
 
     try {
-      const copyButton = el.querySelector<HTMLButtonElement>('[data-testid="codex-auth-token-copy"]')
+      const copyButton = el.querySelector<HTMLButtonElement>(
+        '[data-testid="codex-auth-token-copy"]'
+      )
       copyButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
       await Promise.resolve()
 
-      expect(helperMocks.copyToClipboard).toHaveBeenCalledWith('sk-test-123')
+      expect(helperMocks.copyText).toHaveBeenCalledWith('sk-test-123')
     } finally {
       unmount()
     }
@@ -285,10 +383,53 @@ describe('CodexProfileEditorModal smoke', () => {
     const { el, unmount } = await mountModal(createForm())
 
     try {
-      const select = el.querySelector<HTMLSelectElement>('[data-testid="codex-reasoning-effort-select"]')
-      const values = Array.from(select?.querySelectorAll('option') ?? []).map(option => option.value)
+      const select = el.querySelector<HTMLSelectElement>(
+        '[data-testid="codex-reasoning-effort-select"]'
+      )
+      const values = Array.from(select?.querySelectorAll('option') ?? []).map(
+        (option) => option.value
+      )
 
       expect(values).toEqual(['', ...REASONING_EFFORT_OPTIONS])
+    } finally {
+      unmount()
+    }
+  })
+
+  it('renders the Codex provider template selector and forwards template events', async () => {
+    const onSelectTemplate = vi.fn()
+    const onManualTemplate = vi.fn()
+    const { el, unmount } = await mountModal(createForm(), {
+      selectedProviderTemplate: 'openrouter',
+      selectedProviderEndpoint: 'https://openrouter.ai/api/v1',
+      providerTemplateDraft: templateDraft,
+      onSelectTemplate,
+      onManualTemplate,
+    })
+
+    try {
+      const selector = el.querySelector<HTMLElement>('[data-testid="provider-template-selector"]')
+      expect(selector).toBeTruthy()
+      expect(selector?.dataset.platform).toBe('codex')
+      expect(selector?.dataset.selectedTemplate).toBe('openrouter')
+      expect(selector?.dataset.selectedEndpoint).toBe('https://openrouter.ai/api/v1')
+      expect(el.textContent).toContain('Provider template')
+      expect(el.textContent).toContain('Choose a Codex provider template')
+
+      el.querySelector<HTMLButtonElement>(
+        '[data-testid="provider-template-select"]'
+      )?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      el.querySelector<HTMLButtonElement>(
+        '[data-testid="provider-template-manual"]'
+      )?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await nextTick()
+
+      expect(onSelectTemplate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          endpoint: 'https://openrouter.ai/api/v1',
+        })
+      )
+      expect(onManualTemplate).toHaveBeenCalled()
     } finally {
       unmount()
     }

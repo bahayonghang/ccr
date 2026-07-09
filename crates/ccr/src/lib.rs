@@ -24,6 +24,18 @@
 //! CLI/TUI Layer → Services → Managers → Core/Utils
 //! ```
 //!
+//! ## Public API boundary
+//!
+//! New application and integration code should prefer [`crate::prelude`]. The
+//! crate root also keeps broad historical re-exports as a compatibility-only
+//! legacy surface for existing downstream users.
+//!
+//! In the 6.x line, these exports are intentionally not marked `#[deprecated]`
+//! because current consumers still compile through them. Any removal, rename,
+//! or warning-producing deprecation must first be listed in a documented
+//! next-major breaking-change list with a migration path to [`crate::prelude`]
+//! or a narrower domain crate.
+//!
 //! ### 模块组织
 //!
 //! - [`core`] - 核心基础设施（错误处理、文件锁、日志）
@@ -125,12 +137,30 @@
 //! 完整的配置示例和故障排除指南请参考 `docs/examples/` 目录。
 
 pub mod cli;
-mod help;
 
+/// Compatibility-only bridge for historical root imports.
+///
+/// Keep this broad `ccr_cli` re-export available for existing consumers, but
+/// route new stable API through [`crate::prelude`] unless a breaking-release
+/// plan intentionally widens the crate root surface.
 pub use ccr_cli::{application, commands, managers, models, platforms, services, sync};
 
 #[cfg(feature = "tui")]
 pub use ccr_tui::tui;
+
+/// Stable import surface for application and integration consumers.
+///
+/// The crate root still keeps legacy re-exports for compatibility, but new
+/// consumers should prefer this prelude when they only need CCR's public error,
+/// platform, configuration, and service contracts.
+pub mod prelude {
+    pub use crate::{
+        BackupService, CcrError, ConfigManager, ConfigService, HistoryManager, HistoryService,
+        Platform, PlatformConfig, PlatformConfigEntry, PlatformConfigManager, PlatformPaths,
+        ProfileConfig, Result, SettingsManager, SettingsService, UnifiedConfig, ValidateService,
+        create_platform,
+    };
+}
 
 // ═══════════════════════════════════════════════════════════
 // 核心类型导出

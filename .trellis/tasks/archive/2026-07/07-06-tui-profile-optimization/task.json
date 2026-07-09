@@ -1,0 +1,30 @@
+{
+  "id": "tui-profile-optimization",
+  "name": "tui-profile-optimization",
+  "title": "TUI profile 界面优化（统计跟随 profile + key 掩码显示 + 页面体验修复）",
+  "description": "父任务：持有需求集与任务地图。三个子任务分别交付：Usage 统计并入 profile 详情、详情 key 前后掩码显示、profile 页面体验问题修复。",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P1",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-07-06",
+  "completedAt": "2026-07-06",
+  "branch": null,
+  "base_branch": "dev",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "07-06-tui-usage-follow-profile",
+    "07-06-tui-key-masked-display",
+    "07-06-tui-profile-page-polish"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}

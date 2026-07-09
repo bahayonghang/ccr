@@ -25,6 +25,7 @@ use super::event::{Event, EventHandler};
 pub enum AsyncTaskExecutor {
     Handle(tokio::runtime::Handle),
     Owned(Arc<tokio::runtime::Runtime>),
+    Disabled,
 }
 
 impl AsyncTaskExecutor {
@@ -34,9 +35,11 @@ impl AsyncTaskExecutor {
             .unwrap_or_else(|_| {
                 let runtime = tokio::runtime::Builder::new_multi_thread()
                     .enable_all()
-                    .build()
-                    .expect("failed to create fallback TUI runtime");
-                Self::Owned(Arc::new(runtime))
+                    .build();
+                match runtime {
+                    Ok(runtime) => Self::Owned(Arc::new(runtime)),
+                    Err(_) => Self::Disabled,
+                }
             })
     }
 
@@ -52,6 +55,7 @@ impl AsyncTaskExecutor {
             Self::Owned(runtime) => {
                 runtime.spawn(future);
             }
+            Self::Disabled => {}
         }
     }
 
@@ -67,6 +71,7 @@ impl AsyncTaskExecutor {
             Self::Owned(runtime) => {
                 runtime.spawn_blocking(func);
             }
+            Self::Disabled => {}
         }
     }
 }

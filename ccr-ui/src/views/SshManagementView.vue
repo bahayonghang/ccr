@@ -1,6 +1,7 @@
 <!-- -->
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   refreshEnvironments,
   sshAddHost,
@@ -22,6 +23,10 @@ import {
   type SshHostConfig,
   type SshKeyInfo,
 } from '@/api'
+
+const { locale } = useI18n()
+const isZh = computed(() => locale.value.startsWith('zh'))
+const tt = (zh: string, en: string) => (isZh.value ? zh : en)
 
 // SSH 密钥列表，待密钥管理 UI 实装时使用
 const discoveredKeys = ref<SshKeyInfo[]>([])
@@ -52,6 +57,17 @@ const configPath = ref('settings.json')
 const selectedHost = computed(() => {
   return hosts.value.find((host) => buildEnvId(host) === activeEnvId.value)
 })
+const selectedHostLabel = computed(() => (
+  selectedHost.value
+    ? `${selectedHost.value.user || 'user'}@${selectedHost.value.host}`
+    : tt('未连接', 'Not connected')
+))
+const platformOptions = computed(() => ([
+  { value: 'claude', label: 'claude' },
+  { value: 'codex', label: 'codex' },
+  { value: 'gemini', label: 'gemini' },
+  { value: 'opencode', label: 'opencode' },
+]))
 
 function buildEnvId(host: SshHostConfig): string {
   return `ssh:${host.id?.trim() || host.host}`
@@ -63,7 +79,7 @@ async function loadHosts() {
   try {
     hosts.value = await sshListHosts()
   } catch (e: unknown) {
-    error.value = e?.toString?.() || '加载 SSH 主机失败'
+    error.value = e?.toString?.() || tt('加载 SSH 主机失败', 'Failed to load SSH hosts')
   } finally {
     loading.value = false
   }
@@ -73,7 +89,7 @@ async function addHost() {
   error.value = ''
   try {
     if (!form.value.host?.trim()) {
-      throw new Error('主机地址不能为空')
+      throw new Error(tt('主机地址不能为空', 'Host is required'))
     }
     await sshAddHost({
       id: form.value.id?.trim() || undefined,
@@ -88,7 +104,7 @@ async function addHost() {
     await loadHosts()
     form.value = { host: '', port: 22, user: '', name: '', identity_file: '' }
   } catch (e: unknown) {
-    error.value = e?.toString?.() || '新增 SSH 主机失败'
+    error.value = e?.toString?.() || tt('新增 SSH 主机失败', 'Failed to add SSH host')
   }
 }
 
@@ -109,7 +125,7 @@ async function connectHost(host: SshHostConfig) {
     cliStatusText.value = ''
     configContent.value = ''
   } catch (e: unknown) {
-    error.value = e?.toString?.() || '连接 SSH 主机失败'
+    error.value = e?.toString?.() || tt('连接 SSH 主机失败', 'Failed to connect to SSH host')
   }
 }
 
@@ -126,7 +142,7 @@ async function confirmFingerprintAndConnect() {
     activeConnectionState.value = await sshConnect(activeEnvId.value, connectPassword.value || undefined)
     pendingFingerprint.value = null
   } catch (e: unknown) {
-    error.value = e?.toString?.() || '确认指纹失败'
+    error.value = e?.toString?.() || tt('确认指纹失败', 'Failed to confirm fingerprint')
   }
 }
 
@@ -136,7 +152,7 @@ async function reconnectHost() {
   try {
     activeConnectionState.value = await sshReconnect(activeEnvId.value, connectPassword.value || undefined)
   } catch (e: unknown) {
-    error.value = e?.toString?.() || '重连失败'
+    error.value = e?.toString?.() || tt('重连失败', 'Reconnect failed')
   }
 }
 
@@ -159,7 +175,7 @@ async function disconnectHost() {
     activeEnvId.value = ''
     pendingFingerprint.value = null
   } catch (e: unknown) {
-    error.value = e?.toString?.() || '断开连接失败'
+    error.value = e?.toString?.() || tt('断开连接失败', 'Failed to disconnect')
   }
 }
 
@@ -170,7 +186,7 @@ async function detectCli() {
     const data = await sshDetectCli(activeEnvId.value)
     cliStatusText.value = JSON.stringify(data, null, 2)
   } catch (e: unknown) {
-    error.value = e?.toString?.() || 'CLI 检测失败'
+    error.value = e?.toString?.() || tt('CLI 检测失败', 'CLI detection failed')
   }
 }
 
@@ -180,7 +196,7 @@ async function readConfig() {
   try {
     configContent.value = await sshReadConfig(activeEnvId.value, platform.value, configPath.value)
   } catch (e: unknown) {
-    error.value = e?.toString?.() || '读取配置失败'
+    error.value = e?.toString?.() || tt('读取配置失败', 'Failed to read config')
   }
 }
 
@@ -190,7 +206,7 @@ async function writeConfig() {
   try {
     await sshWriteConfig(activeEnvId.value, platform.value, configPath.value, configContent.value, true)
   } catch (e: unknown) {
-    error.value = e?.toString?.() || '写入配置失败'
+    error.value = e?.toString?.() || tt('写入配置失败', 'Failed to write config')
   }
 }
 
@@ -203,13 +219,35 @@ async function testConnect(host: SshHostConfig) {
   } catch (e: unknown) {
     testResults.value = {
       ...testResults.value,
-      [envId]: { success: false, latency_ms: 0, error: e?.toString?.() || '测试失败' },
+      [envId]: { success: false, latency_ms: 0, error: e?.toString?.() || tt('测试失败', 'Test failed') },
     }
   } finally {
     const next = new Set(testingHosts.value)
     next.delete(envId)
     testingHosts.value = next
   }
+}
+
+function formatTestResult(result: SshConnectResult) {
+  if (result.success) {
+    return `${tt('连通', 'Reachable')} (${result.latency_ms} ms)`
+  }
+  if (result.error) {
+    return `${tt('失败', 'Failed')}: ${result.error}`
+  }
+  return tt('失败', 'Failed')
+}
+
+function formatConnectionState(state: SshConnectionState) {
+  return `${tt('连接状态', 'Connection state')}: ${state.connected ? tt('已连接', 'Connected') : tt('未连接', 'Not connected')}`
+}
+
+function formatConnectionCheckedAt(value: string) {
+  return `(${value})`
+}
+
+function formatConnectionError(value: string) {
+  return `${tt('错误', 'Error')}: ${value}`
 }
 
 onMounted(async () => {
@@ -226,10 +264,10 @@ defineExpose({ sshListKeys, discoveredKeys })
     <div class="flex items-center justify-between gap-4">
       <div>
         <h1 class="text-xl font-bold text-white">
-          SSH 远程管理
+          {{ tt('SSH 远程管理', 'SSH Remote Management') }}
         </h1>
         <p class="text-sm text-text-muted">
-          添加主机并连接后执行配置读写和 CLI 检测
+          {{ tt('添加主机并连接后执行配置读写和 CLI 检测', 'Add a host, connect, then run config read/write and CLI checks.') }}
         </p>
       </div>
       <button
@@ -237,7 +275,7 @@ defineExpose({ sshListKeys, discoveredKeys })
         :disabled="loading"
         @click="loadHosts"
       >
-        刷新主机
+        {{ tt('刷新主机', 'Refresh hosts') }}
       </button>
     </div>
 
@@ -251,7 +289,7 @@ defineExpose({ sshListKeys, discoveredKeys })
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <section class="rounded-xl border border-border-default/15 glass-surface p-4 space-y-3">
         <h2 class="text-base font-semibold text-white">
-          新增 SSH 主机
+          {{ tt('新增 SSH 主机', 'Add SSH host') }}
         </h2>
         <div class="grid grid-cols-2 gap-3">
           <input
@@ -296,19 +334,19 @@ defineExpose({ sshListKeys, discoveredKeys })
           class="px-3 py-2 rounded-lg bg-sky-500/20 text-sky-300"
           @click="addHost"
         >
-          添加主机
+          {{ tt('添加主机', 'Add host') }}
         </button>
       </section>
 
       <section class="rounded-xl border border-border-default/15 glass-surface p-4 space-y-3">
         <h2 class="text-base font-semibold text-white">
-          主机列表
+          {{ tt('主机列表', 'Host list') }}
         </h2>
         <div
           v-if="hosts.length === 0"
           class="text-sm text-text-muted"
         >
-          暂无 SSH 主机
+          {{ tt('暂无 SSH 主机', 'No SSH hosts yet') }}
         </div>
         <div
           v-for="host in hosts"
@@ -330,13 +368,13 @@ defineExpose({ sshListKeys, discoveredKeys })
                 :disabled="testingHosts.has(buildEnvId(host))"
                 @click="testConnect(host)"
               >
-                {{ testingHosts.has(buildEnvId(host)) ? '测试中…' : '测试连接' }}
+                {{ testingHosts.has(buildEnvId(host)) ? tt('测试中…', 'Testing...') : tt('测试连接', 'Test connection') }}
               </button>
               <button
                 class="px-2 py-1 rounded border border-border-default/15 text-xs"
                 @click="connectHost(host)"
               >
-                连接
+                {{ tt('连接', 'Connect') }}
               </button>
             </div>
           </div>
@@ -347,13 +385,7 @@ defineExpose({ sshListKeys, discoveredKeys })
             <span
               :class="testResults[buildEnvId(host)].success ? 'text-green-400' : 'text-red-400'"
             >
-              {{ testResults[buildEnvId(host)].success ? '连通' : '失败' }}
-              <span v-if="testResults[buildEnvId(host)].success">
-                （{{ testResults[buildEnvId(host)].latency_ms }} ms）
-              </span>
-              <span v-else-if="testResults[buildEnvId(host)].error">
-                ：{{ testResults[buildEnvId(host)].error }}
-              </span>
+              {{ formatTestResult(testResults[buildEnvId(host)]) }}
             </span>
           </div>
         </div>
@@ -363,7 +395,7 @@ defineExpose({ sshListKeys, discoveredKeys })
     <section class="rounded-xl border border-border-default/15 glass-surface p-4 space-y-3">
       <div class="flex items-center justify-between gap-3">
         <h2 class="text-base font-semibold text-white">
-          已连接主机
+          {{ tt('已连接主机', 'Connected host') }}
         </h2>
         <div class="flex items-center gap-2">
           <button
@@ -371,43 +403,43 @@ defineExpose({ sshListKeys, discoveredKeys })
             :disabled="!activeEnvId"
             @click="refreshConnectionState"
           >
-            刷新状态
+            {{ tt('刷新状态', 'Refresh state') }}
           </button>
           <button
             class="px-2 py-1 rounded border border-border-default/15 text-xs"
             :disabled="!activeEnvId"
             @click="reconnectHost"
           >
-            重连
+            {{ tt('重连', 'Reconnect') }}
           </button>
           <button
             class="px-2 py-1 rounded border border-border-default/15 text-xs"
             :disabled="!activeEnvId"
             @click="disconnectHost"
           >
-            断开
+            {{ tt('断开', 'Disconnect') }}
           </button>
         </div>
       </div>
       <div class="text-sm text-text-muted">
-        {{ selectedHost ? `${selectedHost.user || 'user'}@${selectedHost.host}` : '未连接' }}
+        {{ selectedHostLabel }}
       </div>
       <div
         v-if="activeConnectionState"
         class="rounded-md border border-border-default/15 p-2 text-xs text-text-muted"
       >
-        连接状态：{{ activeConnectionState.connected ? '已连接' : '未连接' }}
-        <span v-if="activeConnectionState.last_checked_at">（{{ activeConnectionState.last_checked_at }}）</span>
+        {{ formatConnectionState(activeConnectionState) }}
+        <span v-if="activeConnectionState.last_checked_at">{{ ` ${formatConnectionCheckedAt(activeConnectionState.last_checked_at)}` }}</span>
         <span
           v-if="activeConnectionState.last_error"
           class="text-red-300"
-        >，错误：{{ activeConnectionState.last_error }}</span>
+        >{{ ` ${formatConnectionError(activeConnectionState.last_error)}` }}</span>
       </div>
       <div
         v-if="pendingFingerprint"
         class="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-200 space-y-2"
       >
-        <div>检测到主机指纹需要确认：</div>
+        <div>{{ tt('检测到主机指纹需要确认：', 'Host fingerprint confirmation required:') }}</div>
         <div class="text-xs font-mono">
           {{ pendingFingerprint.key_type }} {{ pendingFingerprint.fingerprint }}
         </div>
@@ -415,7 +447,7 @@ defineExpose({ sshListKeys, discoveredKeys })
           class="px-2 py-1 rounded border border-amber-400/60 text-xs"
           @click="confirmFingerprintAndConnect"
         >
-          确认并连接
+          {{ tt('确认并连接', 'Confirm and connect') }}
         </button>
       </div>
 
@@ -424,17 +456,12 @@ defineExpose({ sshListKeys, discoveredKeys })
           v-model="platform"
           class="rounded-md border border-border-default/15 px-2 py-1 text-sm"
         >
-          <option value="claude">
-            claude
-          </option>
-          <option value="codex">
-            codex
-          </option>
-          <option value="gemini">
-            gemini
-          </option>
-          <option value="opencode">
-            opencode
+          <option
+            v-for="item in platformOptions"
+            :key="item.value"
+            :value="item.value"
+          >
+            {{ item.label }}
           </option>
         </select>
         <input
@@ -447,21 +474,21 @@ defineExpose({ sshListKeys, discoveredKeys })
           :disabled="!activeEnvId"
           @click="readConfig"
         >
-          读取配置
+          {{ tt('读取配置', 'Read config') }}
         </button>
         <button
           class="px-2 py-1 rounded border border-border-default/15 text-xs"
           :disabled="!activeEnvId"
           @click="writeConfig"
         >
-          写入配置
+          {{ tt('写入配置', 'Write config') }}
         </button>
         <button
           class="px-2 py-1 rounded border border-border-default/15 text-xs"
           :disabled="!activeEnvId"
           @click="detectCli"
         >
-          检测 CLI
+          {{ tt('检测 CLI', 'Detect CLI') }}
         </button>
       </div>
 
@@ -478,4 +505,3 @@ defineExpose({ sshListKeys, discoveredKeys })
     </section>
   </div>
 </template>
-

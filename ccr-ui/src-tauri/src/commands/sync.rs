@@ -32,7 +32,8 @@ pub struct SyncStatusInfo {
 pub struct WebDavConfigInput {
     pub webdav_url: String,
     pub username: String,
-    pub password: String,
+    /// UI 表单明文入参：Secret 包裹，payload Debug/日志不泄露
+    pub password: ccr_core::Secret,
     pub remote_path: Option<String>,
     pub auto_sync: Option<bool>,
 }
@@ -289,10 +290,7 @@ fn sync_config_for_folder(
 ) -> Result<SyncConfig, String> {
     let webdav = load_webdav_config(manager)?;
 
-    if webdav.url.trim().is_empty()
-        || webdav.username.trim().is_empty()
-        || webdav.password.trim().is_empty()
-    {
+    if !webdav_is_complete(&webdav) {
         return Err("WebDAV account is incomplete. Please configure WebDAV first.".to_string());
     }
 
@@ -323,10 +321,7 @@ fn sync_config_for_asset(
 ) -> Result<SyncConfig, String> {
     let webdav = load_webdav_config(manager)?;
 
-    if webdav.url.trim().is_empty()
-        || webdav.username.trim().is_empty()
-        || webdav.password.trim().is_empty()
-    {
+    if !webdav_is_complete(&webdav) {
         return Err("WebDAV account is incomplete. Please configure WebDAV first.".to_string());
     }
 
@@ -339,14 +334,14 @@ fn sync_config_for_asset(
 fn webdav_is_complete(webdav: &WebDavConfig) -> bool {
     !webdav.url.trim().is_empty()
         && !webdav.username.trim().is_empty()
-        && !webdav.password.trim().is_empty()
+        && !webdav.password.expose().trim().is_empty()
 }
 
 fn sync_config_is_complete(config: &SyncConfig) -> bool {
     config.enabled
         && !config.webdav_url.trim().is_empty()
         && !config.username.trim().is_empty()
-        && !config.password.trim().is_empty()
+        && !config.password.expose().trim().is_empty()
 }
 
 fn load_legacy_sync_config() -> Result<SyncConfig, String> {
@@ -485,10 +480,7 @@ async fn asset_info(
     let local_exists = tokio::fs::try_exists(&local_path).await.unwrap_or(false);
     let webdav = load_webdav_config(manager)?;
     let remote_path = asset_remote_path(asset, &webdav);
-    let remote_exists = if webdav.url.trim().is_empty()
-        || webdav.username.trim().is_empty()
-        || webdav.password.trim().is_empty()
-    {
+    let remote_exists = if !webdav_is_complete(&webdav) {
         None
     } else {
         let config = sync_config_from_webdav(&webdav, &remote_path);
@@ -1387,7 +1379,7 @@ mod tests {
         WebDavConfigInput {
             webdav_url: "https://dav.example.com/".to_string(),
             username: "user@example.com".to_string(),
-            password: "secret".to_string(),
+            password: ccr_core::Secret::from("secret"),
             remote_path: Some("/ccr/".to_string()),
             auto_sync: Some(false),
         }
@@ -1500,7 +1492,7 @@ mod tests {
         let webdav = WebDavConfig {
             url: "https://dav.example.com".to_string(),
             username: "user".to_string(),
-            password: "secret".to_string(),
+            password: ccr_core::Secret::from("secret"),
             base_remote_path: "/ccr/".to_string(),
         };
 

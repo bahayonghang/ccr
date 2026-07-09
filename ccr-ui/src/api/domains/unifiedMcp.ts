@@ -9,6 +9,7 @@
  */
 
 import { invoke } from '@tauri-apps/api/core'
+import { getErrorMessage } from '@/utils/errorHandler'
 import { asRecord, type UnknownRecord } from '../_shared'
 
 export interface UnifiedMcpImportResult {
@@ -50,7 +51,7 @@ export const importUnifiedMcpServers = async (
       results.push({
         name,
         ok: false,
-        error: err instanceof Error ? err.message : String(err),
+        error: getErrorMessage(err),
       })
     }
   }

@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/ccr-checkin/backend/backend-guidelines.md", "reason": "签到后端错误分类契约（error_code 保留要求、WAF 契约、日志脱敏）"}
+{"file": ".trellis/spec/ccr-ui/frontend/api-facade-boundary.md", "reason": "api/domains 层参数透传修改需遵守 facade 边界约定"}
+{"file": ".trellis/spec/ccr/backend/tauri-handler-registry.md", "reason": "get_checkin_records 扩参涉及 Tauri 命令签名变更"}
+{"file": ".trellis/tasks/06-10-checkin-optimize-templates/research/internal-checkin-architecture.md", "reason": "错误五层转换路径与全部 file:line 定位（getErrorMessage 主犯、task_error 覆盖、记录筛选断链、刷余额吞错）"}

@@ -186,7 +186,7 @@ export interface CodexConfig {
   tui?: {
     alternate_screen?: string
     animations?: boolean
-    notifications?: boolean
+    notifications?: boolean | string[]
     show_tooltips?: boolean
   }
   hide_agent_reasoning?: boolean

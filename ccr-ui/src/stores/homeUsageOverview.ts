@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { getErrorMessage } from '@/utils/errorHandler'
+import { ref, shallowRef } from 'vue'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import {
   ensureSessionIndexV2,
@@ -15,8 +16,6 @@ import type {
   HomeUsageOverviewResponse,
   UsageCapabilityReport,
   SessionIndexJobSnapshot,
-  StartSessionIndexJobResponse,
-  StartUsageImportJobResponse,
   UsageImportJobSnapshot,
   UsageSnapshotUpdatedPayload,
 } from '@/types/usage'
@@ -30,7 +29,7 @@ type LoadOptions = {
 }
 
 export const useHomeUsageOverviewStore = defineStore('homeUsageOverview', () => {
-  const overview = ref<HomeUsageOverviewResponse | null>(null)
+  const overview = shallowRef<HomeUsageOverviewResponse | null>(null)
   const loading = ref(false)
   const error = ref<string | null>(null)
   const activeDays = ref(30)
@@ -51,6 +50,7 @@ export const useHomeUsageOverviewStore = defineStore('homeUsageOverview', () => 
   let usageWarmupLastAttemptAt = 0
   let sessionWarmupLastAttemptAt = 0
   let retryProbeTimer: ReturnType<typeof setTimeout> | null = null
+  let snapshotRefreshPromise: Promise<void | HomeUsageOverviewResponse> | null = null
 
   const shouldRetryWarmup = (lastAttemptAt: number) =>
     Date.now() - lastAttemptAt >= HOME_WARMUP_RETRY_COOLDOWN_MS
@@ -90,10 +90,18 @@ export const useHomeUsageOverviewStore = defineStore('homeUsageOverview', () => 
       () => {
         invalidate()
         if (!overview.value) return
-        void loadOverview(activeDays.value, { force: true, background: true }).catch((loadError) => {
-          logger.error('[home-usage-overview] snapshot refresh failed', loadError)
-        })
-      },
+
+        // 防止重复刷新：如果已有刷新请求在飞行中，跳过
+        if (snapshotRefreshPromise) return
+
+        snapshotRefreshPromise = loadOverview(activeDays.value, { force: true, background: true })
+          .catch((loadError) => {
+            logger.error('[home-usage-overview] snapshot refresh failed', loadError)
+          })
+          .finally(() => {
+            snapshotRefreshPromise = null
+          })
+      }
     )
   }
 
@@ -118,13 +126,20 @@ export const useHomeUsageOverviewStore = defineStore('homeUsageOverview', () => 
     if (snapshot.job_id !== activeUsageJobId) return
 
     currentUsageJob.value = snapshot
-    usageWarmupRunning.value = snapshot.status !== 'finished' && snapshot.status !== 'failed' && snapshot.status !== 'cancelled'
+    usageWarmupRunning.value =
+      snapshot.status !== 'finished' &&
+      snapshot.status !== 'failed' &&
+      snapshot.status !== 'cancelled'
 
     if (snapshot.status === 'recent_ready' || snapshot.status === 'finished') {
       await refreshActiveOverview()
     }
 
-    if (snapshot.status === 'finished' || snapshot.status === 'failed' || snapshot.status === 'cancelled') {
+    if (
+      snapshot.status === 'finished' ||
+      snapshot.status === 'failed' ||
+      snapshot.status === 'cancelled'
+    ) {
       usageWarmupRunning.value = false
       activeUsageJobId = null
       await clearUsageJobListeners()
@@ -178,7 +193,7 @@ export const useHomeUsageOverviewStore = defineStore('homeUsageOverview', () => 
       }),
     ])
 
-    const latest = await getUsageImportJobStatusV2<UsageImportJobSnapshot>(jobId)
+    const latest = await getUsageImportJobStatusV2(jobId)
     await handleUsageJobSnapshot(latest)
   }
 
@@ -202,7 +217,7 @@ export const useHomeUsageOverviewStore = defineStore('homeUsageOverview', () => 
       }),
     ])
 
-    const latest = await getSessionIndexJobStatusV2<SessionIndexJobSnapshot>(jobId)
+    const latest = await getSessionIndexJobStatusV2(jobId)
     await handleSessionJobSnapshot(latest)
   }
 
@@ -230,11 +245,7 @@ export const useHomeUsageOverviewStore = defineStore('homeUsageOverview', () => 
     ) {
       usageWarmupLastAttemptAt = Date.now()
       try {
-        const response = await startUsageImportJobV2<StartUsageImportJobResponse>(
-          undefined,
-          days,
-          undefined,
-        )
+        const response = await startUsageImportJobV2(undefined, days, undefined)
         await trackUsageImportJob(response.job_id)
       } catch (warmupError) {
         logger.error('[home-usage-overview] failed to start usage warmup', warmupError)
@@ -251,7 +262,7 @@ export const useHomeUsageOverviewStore = defineStore('homeUsageOverview', () => 
     ) {
       sessionWarmupLastAttemptAt = Date.now()
       try {
-        const response = await ensureSessionIndexV2<StartSessionIndexJobResponse>()
+        const response = await ensureSessionIndexV2()
         await trackSessionIndexJob(response.job_id)
       } catch (warmupError) {
         logger.error('[home-usage-overview] failed to start session warmup', warmupError)
@@ -260,8 +271,8 @@ export const useHomeUsageOverviewStore = defineStore('homeUsageOverview', () => 
     }
 
     if (
-      (data.bootstrap.needs_usage_import && !usageWarmupRunning.value)
-      || (data.bootstrap.needs_session_index && !sessionWarmupRunning.value)
+      (data.bootstrap.needs_usage_import && !usageWarmupRunning.value) ||
+      (data.bootstrap.needs_session_index && !sessionWarmupRunning.value)
     ) {
       scheduleRetryProbe()
     } else {
@@ -294,9 +305,9 @@ export const useHomeUsageOverviewStore = defineStore('homeUsageOverview', () => 
 
     try {
       if (isTauriRuntime()) {
-        usageCapabilities.value = await getUsageCapabilitiesV2<UsageCapabilityReport>()
+        usageCapabilities.value = await getUsageCapabilitiesV2()
       }
-      const data = await getHomeUsageOverviewV2<HomeUsageOverviewResponse>(days)
+      const data = await getHomeUsageOverviewV2(days)
       overview.value = data
       error.value = null
       overviewCache.set(days, { data, ts: Date.now() })
@@ -304,7 +315,7 @@ export const useHomeUsageOverviewStore = defineStore('homeUsageOverview', () => 
       return data
     } catch (loadError) {
       if (!background || !hadData) {
-        error.value = loadError instanceof Error ? loadError.message : String(loadError)
+        error.value = getErrorMessage(loadError)
       }
       throw loadError
     } finally {

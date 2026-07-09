@@ -237,16 +237,7 @@ fn is_executable(path: &Path) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::Mutex;
-    use std::sync::MutexGuard;
-
-    static ENV_TEST_LOCK: Mutex<()> = Mutex::new(());
-
-    fn env_test_lock() -> MutexGuard<'static, ()> {
-        ENV_TEST_LOCK
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
-    }
+    use crate::test_support::TestHostEnv;
 
     #[test]
     fn which_on_path_finds_common_binary() {
@@ -311,8 +302,7 @@ mod tests {
 
     #[test]
     fn resolve_executable_uses_path_before_hints() {
-        let _guard = env_test_lock();
-
+        let mut env = TestHostEnv::new();
         let fixture = tempfile::tempdir().expect("tempdir");
         let bin_dir = fixture.path().join("bin");
         std::fs::create_dir_all(&bin_dir).expect("create bin dir");
@@ -322,37 +312,16 @@ mod tests {
         std::fs::write(&path_on_hint, "payload").expect("write fake executable");
         set_executable_mode_if_needed(&path_on_hint);
 
-        let path_in_hint = std::env::var_os("PATH");
-        if path_in_hint.is_none() {
-            unsafe {
-                std::env::remove_var("PATH");
-            }
-        } else {
-            unsafe {
-                std::env::set_var("PATH", "");
-            }
-        }
+        env.set_env("PATH", std::ffi::OsStr::new(""));
 
         let result = resolve_executable("brew", vec![bin_dir]);
         assert_eq!(result, Some(path_on_hint));
-
-        if let Some(path) = path_in_hint {
-            unsafe {
-                std::env::set_var("PATH", path);
-            }
-        } else {
-            unsafe {
-                std::env::remove_var("PATH");
-            }
-        }
     }
 
     #[test]
     fn resolve_executable_uses_cargo_hints() {
-        let _guard = env_test_lock();
-
-        let fixture = tempfile::tempdir().expect("tempdir");
-        let cwd = fixture.path();
+        let mut env = TestHostEnv::new();
+        let cwd = env.home();
         let bin_dir = cwd.join("bin");
         std::fs::create_dir_all(&bin_dir).expect("create cargo bin dir");
 
@@ -361,54 +330,22 @@ mod tests {
         std::fs::write(&path_on_hint, "payload").expect("write fake executable");
         set_executable_mode_if_needed(&path_on_hint);
 
-        let old_cargo_home = std::env::var_os("CARGO_HOME");
-        let old_home = std::env::var_os("HOME");
-        let old_path = std::env::var_os("PATH");
-
-        unsafe {
-            std::env::set_var("CARGO_HOME", cwd);
-            std::env::set_var("PATH", "/_ccr_nonexistent_path_for_tests");
-            std::env::remove_var("HOME");
-        }
+        let cargo_home = cwd.as_os_str().to_owned();
+        env.set_env("CARGO_HOME", cargo_home.as_os_str());
+        env.set_env(
+            "PATH",
+            std::ffi::OsStr::new("/_ccr_nonexistent_path_for_tests"),
+        );
+        env.remove_env("HOME");
         let result = probe_host_capabilities();
         assert!(result.has_cargo);
         assert_eq!(result.cargo_path, Some(path_on_hint.clone()));
-
-        if let Some(value) = old_cargo_home {
-            unsafe {
-                std::env::set_var("CARGO_HOME", value);
-            }
-        } else {
-            unsafe {
-                std::env::remove_var("CARGO_HOME");
-            }
-        }
-        if let Some(value) = old_home {
-            unsafe {
-                std::env::set_var("HOME", value);
-            }
-        } else {
-            unsafe {
-                std::env::remove_var("HOME");
-            }
-        }
-        if let Some(value) = old_path {
-            unsafe {
-                std::env::set_var("PATH", value);
-            }
-        } else {
-            unsafe {
-                std::env::remove_var("PATH");
-            }
-        }
     }
 
     #[test]
     fn cargo_path_in_probe_host_capabilities_comes_from_hint_dirs() {
-        let _guard = env_test_lock();
-
-        let fixture = tempfile::tempdir().expect("tempdir");
-        let home = fixture.path().join("home");
+        let mut env = TestHostEnv::new();
+        let home = env.home().join("home");
         let cargo_bin = home.join(".cargo").join("bin");
         std::fs::create_dir_all(&cargo_bin).expect("create cargo bin dir");
 
@@ -417,46 +354,16 @@ mod tests {
         std::fs::write(&exe_path, "payload").expect("write fake executable");
         set_executable_mode_if_needed(&exe_path);
 
-        let old_home = std::env::var_os("HOME");
-        let old_path = std::env::var_os("PATH");
-        let old_cargo_home = std::env::var_os("CARGO_HOME");
-        unsafe {
-            std::env::remove_var("CARGO_HOME");
-            std::env::set_var("HOME", &home);
-            std::env::set_var("PATH", "/_ccr_nonexistent_path_for_tests");
-        }
+        env.remove_env("CARGO_HOME");
+        env.set_env("HOME", home.as_os_str());
+        env.set_env(
+            "PATH",
+            std::ffi::OsStr::new("/_ccr_nonexistent_path_for_tests"),
+        );
         let result = probe_host_capabilities();
 
         assert!(result.has_cargo);
         assert_eq!(result.cargo_path, Some(exe_path));
-
-        if let Some(old_path) = old_path {
-            unsafe {
-                std::env::set_var("PATH", old_path);
-            }
-        } else {
-            unsafe {
-                std::env::remove_var("PATH");
-            }
-        }
-        if let Some(home) = old_home {
-            unsafe {
-                std::env::set_var("HOME", home);
-            }
-        } else {
-            unsafe {
-                std::env::remove_var("HOME");
-            }
-        }
-        if let Some(cargo_home) = old_cargo_home {
-            unsafe {
-                std::env::set_var("CARGO_HOME", cargo_home);
-            }
-        } else {
-            unsafe {
-                std::env::remove_var("CARGO_HOME");
-            }
-        }
     }
 
     #[cfg(unix)]

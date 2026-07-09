@@ -4,7 +4,7 @@ These notes apply to everything under `ccr-ui/` and supplement the repository-le
 
 ## Local Verification
 
-- For full local UI checks from this directory, use `just check`; from the repository root, use `just ui-check`. The frontend lint path can apply ESLint/Stylelint fixes, so inspect the diff after running it.
+- For full local UI checks from this directory, use `just check`; from the repository root, use `just ui-check`. The default frontend lint path is no-fix (`bun run lint`); use `bun run lint:fix` only when intentionally mutating files locally.
 - For narrow frontend checks, use `bun run type-check`, `bun run test`, and `bun run build`.
 - For Tauri Rust checks, use `bun run tauri:check`, `bun run tauri:test`, and `bun run tauri:clippy`.
 

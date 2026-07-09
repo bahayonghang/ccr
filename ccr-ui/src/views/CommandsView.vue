@@ -386,7 +386,7 @@
                 {{ t('commands.previewLabel') }}
               </div>
               <div class="command-strip__body">
-                <span class="command-strip__prompt">➜</span>
+                <span class="command-strip__prompt">{{ commandPromptSymbol }}</span>
                 <span class="command-strip__binary">{{ commandPreview }}</span>
                 <span
                   v-if="args.trim()"
@@ -527,16 +527,24 @@
               class="commands-terminal"
             >
               <div
+                v-if="ledgerTruncated"
+                class="commands-terminal__truncated"
+              >
+                {{ t('commands.ledgerTruncated', { count: MAX_LEDGER_LINES }) }}
+              </div>
+              <div
                 v-for="line in ledgerLines"
-                :key="`${line.channel}-${line.index}-${line.text}`"
+                :key="`${line.channel}-${line.index}`"
                 class="commands-terminal__line"
                 :class="`commands-terminal__line--${line.channel}`"
               >
                 <span class="commands-terminal__channel">{{ line.channel }}</span>
+                <!-- eslint-disable vue/no-v-html -- ANSI 输出经 ansiRenderer(DOMPurify) 消毒 -->
                 <code
                   class="commands-terminal__text"
                   v-html="line.safeHtml"
                 />
+                <!-- eslint-enable vue/no-v-html -->
               </div>
             </div>
 
@@ -561,7 +569,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue'
 import { listen, type Event, type UnlistenFn } from '@tauri-apps/api/event'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
@@ -583,6 +591,7 @@ import { createAnsiRenderer } from '@/utils/ansiRenderer'
 import { logger } from '@/utils/logger'
 import { getRuntimeUnavailableCopy } from '@/utils/runtimeState'
 import { isTauriRuntime } from '@/utils/tauriRuntime'
+import { copyText } from '@/utils/clipboard'
 
 interface CommandClient {
   id: CliClient
@@ -602,6 +611,9 @@ interface CommandUiInfo extends CommandInfo {
 type CommandBadge = 'safe' | 'danger' | 'readonly' | 'args' | 'blocked'
 type LedgerChannel = 'stdout' | 'stderr' | 'system'
 type CommandCollection = 'catalog' | 'favorites' | 'history'
+
+// 账本最大渲染行数，与 useStream 默认上限对齐，超出部分仅保留最近行
+const MAX_LEDGER_LINES = 2000
 
 interface FavoriteCommand {
   id: string
@@ -625,6 +637,7 @@ interface CommandHistoryItem {
 const { t } = useI18n({ useScope: 'global' })
 const route = useRoute()
 const router = useRouter()
+const commandPromptSymbol = '➜'
 
 const runtimeUnavailable = computed(() => !isTauriRuntime())
 const runtimeCopy = computed(() => getRuntimeUnavailableCopy('commands'))
@@ -643,7 +656,7 @@ const searchQuery = ref('')
 const activeCategory = ref('all')
 const activeCollection = ref<CommandCollection>('catalog')
 const dangerAccepted = ref(false)
-const currentSnapshot = ref<CommandJobSnapshot | null>(null)
+const currentSnapshot = shallowRef<CommandJobSnapshot | null>(null)
 const configs = ref<ConfigItem[]>([])
 const favorites = ref<FavoriteCommand[]>([])
 const historyItems = ref<CommandHistoryItem[]>([])
@@ -776,6 +789,11 @@ const canExecuteSelected = computed(() => {
   return true
 })
 const selectedCommandArgs = computed(() => splitArgs(args.value))
+const selectedConfirmationToken = computed(() => {
+  const command = selectedCommandInfo.value
+  if (!command?.dangerous || !dangerAccepted.value) return undefined
+  return `desktop-confirm:${command.name}`
+})
 const selectedFavorite = computed(() =>
   favorites.value.find(
     (item) =>
@@ -853,12 +871,16 @@ const ledgerLines = computed(() => {
       index,
       safeHtml: ansiRenderer.renderLine(text),
     }))
-  return [
+  const all = [
     ...build('system', snapshot.system_lines),
     ...build('stdout', snapshot.stdout_lines),
     ...build('stderr', snapshot.stderr_lines),
   ]
+  // 环形截断：与 useStream 对齐，仅渲染最近 MAX_LEDGER_LINES 行，避免长输出 DOM 膨胀
+  return all.length > MAX_LEDGER_LINES ? all.slice(-MAX_LEDGER_LINES) : all
 })
+
+const ledgerTruncated = computed(() => outputLineCount.value > MAX_LEDGER_LINES)
 
 const ledgerSubtitle = computed(() => {
   const snapshot = currentSnapshot.value
@@ -1090,6 +1112,7 @@ const handleExecute = async () => {
     const response = await startCcrCommandJob({
       command: selectedCommandInfo.value.name,
       args: splitArgs(args.value),
+      confirmationToken: selectedConfirmationToken.value,
     })
     currentSnapshot.value = response.snapshot
   } catch (error) {
@@ -1157,7 +1180,7 @@ const handleCopyOutput = async () => {
   if (!currentSnapshot.value) return
   const text = ledgerLines.value.map((line) => `[${line.channel}] ${line.text}`).join('\n')
   try {
-    await navigator.clipboard.writeText(text)
+    if (!(await copyText(text))) throw new Error('clipboard copy failed')
   } catch (error) {
     logger.error('Failed to copy:', error)
   }
@@ -1567,6 +1590,12 @@ const formatDuration = (duration?: number | null) => (duration == null ? '—' :
 
 .commands-terminal__channel {
   @apply text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted;
+}
+
+.commands-terminal__truncated {
+  @apply mb-2 rounded-lg border border-border-default/50 px-2 py-1 text-[11px] text-text-muted;
+
+  background-color: rgb(var(--color-bg-elevated-rgb) / 60%);
 }
 
 .commands-terminal__text {

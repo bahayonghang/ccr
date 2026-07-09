@@ -1,13 +1,13 @@
 <template>
   <div class="checkin-account-dashboard">
     <div class="dashboard-shell">
-      <section class="dashboard-header dashboard-surface">
+      <section class="dashboard-header checkin-surface-card">
         <div class="header-left">
           <button
             type="button"
             class="icon-button"
-            aria-label="返回账号列表"
-            title="返回账号列表"
+            :aria-label="tt('返回账号列表', 'Back to account list')"
+            :title="tt('返回账号列表', 'Back to account list')"
             @click="goBack"
           >
             <SIcon
@@ -18,19 +18,19 @@
 
           <div class="header-copy">
             <p class="header-eyebrow">
-              签到账号 · Dashboard
+              {{ tt('签到账号 · Dashboard', 'Check-in account dashboard') }}
             </p>
             <div class="header-title-row">
-              <h1>{{ dashboard?.account.name || '账号 Dashboard' }}</h1>
+              <h1>{{ dashboard?.account.name || tt('账号 Dashboard', 'Account dashboard') }}</h1>
               <span class="provider-pill">
-                {{ dashboard?.account.provider_name || '未知提供商' }}
+                {{ dashboard?.account.provider_name || tt('未知提供商', 'Unknown provider') }}
               </span>
               <span
                 v-if="dashboard"
                 class="status-pill"
                 :class="accountEnabled ? 'status-on' : 'status-off'"
               >
-                {{ accountEnabled ? '启用' : '已禁用' }}
+                {{ accountEnabled ? tt('启用', 'Enabled') : tt('已禁用', 'Disabled') }}
               </span>
             </div>
 
@@ -40,14 +40,14 @@
                   name="CalendarDays"
                   size="w-3.5 h-3.5"
                 />
-                最后签到：{{ dashboard?.streak.last_check_in_date || '-' }}
+                {{ tt('最后签到：', 'Last check-in:') }} {{ dashboard?.streak.last_check_in_date || '-' }}
               </span>
               <span class="meta-chip">
                 <SIcon
                   name="Wallet"
                   size="w-3.5 h-3.5"
                 />
-                余额更新：{{ formatDateTime(dashboard?.account.last_balance_check_at) }}
+                {{ tt('余额更新：', 'Balance updated:') }} {{ formatDateTime(dashboard?.account.last_balance_check_at) }}
               </span>
             </div>
           </div>
@@ -64,7 +64,7 @@
               name="CheckCircle2"
               size="w-4 h-4"
             />
-            签到
+            {{ tt('签到', 'Check in') }}
           </button>
           <button
             type="button"
@@ -76,7 +76,7 @@
               name="Wallet"
               size="w-4 h-4"
             />
-            刷新余额
+            {{ tt('刷新余额', 'Refresh balance') }}
           </button>
           <button
             type="button"
@@ -89,14 +89,14 @@
               size="w-4 h-4"
               :class="{ 'animate-spin': loading }"
             />
-            刷新
+            {{ tt('刷新', 'Refresh') }}
           </button>
         </div>
       </section>
 
       <div
         v-if="error"
-        class="state-card dashboard-surface state-error"
+        class="state-card checkin-surface-card state-error"
       >
         <p>{{ error }}</p>
         <button
@@ -104,16 +104,16 @@
           class="ghost-link"
           @click="loadDashboard"
         >
-          重试
+          {{ tt('重试', 'Retry') }}
         </button>
       </div>
 
       <div
         v-else-if="loading"
-        class="state-card dashboard-surface state-loading"
+        class="state-card checkin-surface-card state-loading"
       >
         <div class="loader" />
-        加载中...
+        {{ tt('加载中...', 'Loading...') }}
       </div>
 
       <div
@@ -121,7 +121,7 @@
         class="dashboard-stack"
       >
         <div class="dashboard-main-grid">
-          <section class="stats-card-vertical dashboard-surface">
+          <section class="stats-card-vertical checkin-surface-card">
             <div class="card-lead">
               <div class="stats-icon accent">
                 <SIcon
@@ -131,9 +131,9 @@
               </div>
               <div class="card-copy">
                 <p class="card-overline">
-                  Account overview
+                  {{ tt('账号总览', 'Account overview') }}
                 </p>
-                <h2>账号统计</h2>
+                <h2>{{ tt('账号统计', 'Account stats') }}</h2>
               </div>
             </div>
 
@@ -146,7 +146,7 @@
                   />
                 </div>
                 <div class="vertical-copy">
-                  <span class="vertical-label">当前余额</span>
+                  <span class="vertical-label">{{ tt('当前余额', 'Current balance') }}</span>
                   <span class="vertical-value success">
                     {{ formatCurrency(dashboard.account.latest_balance, dashboard.account.balance_currency) }}
                   </span>
@@ -161,7 +161,7 @@
                   />
                 </div>
                 <div class="vertical-copy">
-                  <span class="vertical-label">总额度</span>
+                  <span class="vertical-label">{{ tt('总额度', 'Total quota') }}</span>
                   <span class="vertical-value accent">
                     {{ formatCurrency(dashboard.account.total_quota, dashboard.account.balance_currency) }}
                   </span>
@@ -176,7 +176,7 @@
                   />
                 </div>
                 <div class="vertical-copy">
-                  <span class="vertical-label">历史消耗</span>
+                  <span class="vertical-label">{{ tt('历史消耗', 'Usage to date') }}</span>
                   <span class="vertical-value warning">
                     {{ formatCurrency(dashboard.account.used_quota, dashboard.account.balance_currency) }}
                   </span>
@@ -185,7 +185,7 @@
             </div>
           </section>
 
-          <section class="stats-card-vertical dashboard-surface">
+          <section class="stats-card-vertical checkin-surface-card">
             <div class="card-lead">
               <div class="stats-icon warning">
                 <SIcon
@@ -195,9 +195,9 @@
               </div>
               <div class="card-copy">
                 <p class="card-overline">
-                  Streak snapshot
+                  {{ tt('连续签到快照', 'Streak snapshot') }}
                 </p>
-                <h2>签到统计</h2>
+                <h2>{{ tt('签到统计', 'Check-in stats') }}</h2>
               </div>
             </div>
 
@@ -210,9 +210,9 @@
                   />
                 </div>
                 <div class="vertical-copy">
-                  <span class="vertical-label">当前连续</span>
+                  <span class="vertical-label">{{ tt('当前连续', 'Current streak') }}</span>
                   <span class="vertical-value warning">
-                    {{ dashboard.streak.current_streak }} <small>天</small>
+                    {{ dashboard.streak.current_streak }} <small>{{ tt('天', 'days') }}</small>
                   </span>
                 </div>
               </article>
@@ -225,9 +225,9 @@
                   />
                 </div>
                 <div class="vertical-copy">
-                  <span class="vertical-label">最长连续</span>
+                  <span class="vertical-label">{{ tt('最长连续', 'Longest streak') }}</span>
                   <span class="vertical-value accent">
-                    {{ dashboard.streak.longest_streak }} <small>天</small>
+                    {{ dashboard.streak.longest_streak }} <small>{{ tt('天', 'days') }}</small>
                   </span>
                 </div>
               </article>
@@ -240,9 +240,9 @@
                   />
                 </div>
                 <div class="vertical-copy">
-                  <span class="vertical-label">总签到天数</span>
+                  <span class="vertical-label">{{ tt('总签到天数', 'Total check-in days') }}</span>
                   <span class="vertical-value success">
-                    {{ dashboard.streak.total_check_in_days }} <small>天</small>
+                    {{ dashboard.streak.total_check_in_days }} <small>{{ tt('天', 'days') }}</small>
                   </span>
                 </div>
               </article>
@@ -250,7 +250,7 @@
 
             <div class="checkin-progress">
               <div class="progress-info">
-                <span>本月签到率</span>
+                <span>{{ tt('本月签到率', 'Check-in rate this month') }}</span>
                 <span class="progress-percent">
                   {{ dashboard.calendar.month_stats.check_in_rate.toFixed(1) }}%
                 </span>
@@ -262,37 +262,37 @@
                 />
               </div>
               <div class="progress-days">
-                {{ dashboard.calendar.month_stats.checked_in_days }} / {{ dashboard.calendar.month_stats.total_days }} 天
+                {{ tt(`${dashboard.calendar.month_stats.checked_in_days} / ${dashboard.calendar.month_stats.total_days} 天`, `${dashboard.calendar.month_stats.checked_in_days} / ${dashboard.calendar.month_stats.total_days} days`) }}
               </div>
             </div>
           </section>
 
-          <section class="calendar-card dashboard-surface">
+          <section class="calendar-card checkin-surface-card">
             <div class="card-header">
               <div class="card-copy">
                 <p class="card-overline">
-                  Monthly history
+                  {{ tt('月度记录', 'Monthly history') }}
                 </p>
-                <h2>签到日历</h2>
+                <h2>{{ tt('签到日历', 'Check-in calendar') }}</h2>
               </div>
 
               <div class="calendar-nav">
                 <button
                   type="button"
                   class="nav-btn"
-                  aria-label="上个月"
+                  :aria-label="tt('上个月', 'Previous month')"
                   @click="prevMonth"
                 >
-                  ‹
+                  {{ prevGlyph }}
                 </button>
-                <span class="calendar-month">{{ calendarYear }}年{{ calendarMonth }}月</span>
+                <span class="calendar-month">{{ formatCalendarMonth(calendarYear, calendarMonth) }}</span>
                 <button
                   type="button"
                   class="nav-btn"
-                  aria-label="下个月"
+                  :aria-label="tt('下个月', 'Next month')"
                   @click="nextMonth"
                 >
-                  ›
+                  {{ nextGlyph }}
                 </button>
               </div>
             </div>
@@ -301,15 +301,15 @@
           </section>
         </div>
 
-        <section class="trend-card dashboard-surface">
+        <section class="trend-card checkin-surface-card">
           <div class="trend-header">
             <div class="card-copy">
               <p class="card-overline">
-                Rolling changes
+                {{ tt('滚动变化', 'Rolling changes') }}
               </p>
               <div class="trend-title-row">
-                <h2>签到趋势</h2>
-                <span class="trend-tag">近 {{ trendDays }} 天</span>
+                <h2>{{ tt('签到趋势', 'Check-in trend') }}</h2>
+                <span class="trend-tag">{{ tt(`近 ${trendDays} 天`, `Last ${trendDays} days`) }}</span>
               </div>
             </div>
 
@@ -339,17 +339,24 @@
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
 import { computed, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { checkinAccount, getCheckinAccountDashboard, queryCheckinBalance } from '@/api'
 import type { BalanceSnapshot, CheckinAccountDashboardResponse } from '@/types/checkin'
 import { extractStringParam } from '@/types/router'
+import { getErrorMessage } from '@/types/api'
 import { useUIStore } from '@/stores/ui'
 import AccountDashboardCalendar from './components/AccountDashboardCalendar.vue'
 import AccountDashboardTrend from './components/AccountDashboardTrend.vue'
 
 const route = useRoute()
 const router = useRouter()
+const { locale } = useI18n()
 const uiStore = useUIStore()
+const isZh = computed(() => locale.value.startsWith('zh'))
+const tt = (zh: string, en: string) => (isZh.value ? zh : en)
+const prevGlyph = '\u2039'
+const nextGlyph = '\u203A'
 
 const accountId = computed(() => extractStringParam(route.params.accountId) || '')
 const dashboard = ref<CheckinAccountDashboardResponse | null>(null)
@@ -365,8 +372,6 @@ const trendDays = ref(30)
 const trendOptions = [7, 30, 90]
 
 const accountEnabled = computed(() => dashboard.value?.account.enabled ?? false)
-const getErrorMessage = (currentError: unknown, fallback: string) =>
-  currentError instanceof Error ? currentError.message : fallback
 
 const loadDashboard = async () => {
   if (!accountId.value) return
@@ -380,7 +385,7 @@ const loadDashboard = async () => {
       days: trendDays.value,
     })
   } catch (currentError: unknown) {
-    error.value = getErrorMessage(currentError, '加载失败')
+    error.value = getErrorMessage(currentError, tt('加载失败', 'Load failed'))
   } finally {
     loading.value = false
   }
@@ -394,11 +399,11 @@ const handleCheckin = async () => {
     const result = await checkinAccount(accountId.value)
     const label =
       result.status === 'success'
-        ? '签到成功'
+        ? tt('签到成功', 'Check-in successful')
         : result.status === 'already_checked_in'
-          ? '今日已签到'
-          : '签到失败'
-    const message = result.message ? `${label}：${result.message}` : label
+          ? tt('今日已签到', 'Already checked in today')
+          : tt('签到失败', 'Check-in failed')
+    const message = result.message ? tt(`${label}：${result.message}`, `${label}: ${result.message}`) : label
     if (result.status === 'failed') {
       uiStore.showError(message)
     } else {
@@ -406,7 +411,7 @@ const handleCheckin = async () => {
     }
     await loadDashboard()
   } catch (currentError: unknown) {
-    uiStore.showError('签到失败：' + getErrorMessage(currentError, '未知错误'))
+    uiStore.showError(tt('签到失败：', 'Check-in failed: ') + getErrorMessage(currentError, tt('未知错误', 'Unknown error')))
   } finally {
     checkinLoading.value = false
   }
@@ -419,11 +424,14 @@ const handleBalanceRefresh = async () => {
   try {
     const result = await queryCheckinBalance<BalanceSnapshot>(accountId.value)
     uiStore.showSuccess(
-      `余额：${result.currency}${result.remaining_quota.toFixed(2)}（已用 ${result.usage_percentage.toFixed(1)}%）`
+      tt(
+        `余额：${result.currency}${result.remaining_quota.toFixed(2)}（已用 ${result.usage_percentage.toFixed(1)}%）`,
+        `Balance: ${result.currency}${result.remaining_quota.toFixed(2)} (${result.usage_percentage.toFixed(1)}% used)`
+      )
     )
     await loadDashboard()
   } catch (currentError: unknown) {
-    uiStore.showError('刷新余额失败：' + getErrorMessage(currentError, '未知错误'))
+    uiStore.showError(tt('刷新余额失败：', 'Balance refresh failed: ') + getErrorMessage(currentError, tt('未知错误', 'Unknown error')))
   } finally {
     balanceLoading.value = false
   }
@@ -463,7 +471,18 @@ const formatCurrency = (value?: number, currency?: string) => {
 
 const formatDateTime = (value?: string) => {
   if (!value) return '-'
-  return new Date(value).toLocaleString('zh-CN')
+  return new Date(value).toLocaleString(isZh.value ? 'zh-CN' : 'en-US')
+}
+
+const formatCalendarMonth = (year: number, month: number) => {
+  if (isZh.value) {
+    return `${year}年${month}月`
+  }
+
+  return new Date(year, month - 1, 1).toLocaleDateString('en-US', {
+    month: 'long',
+    year: 'numeric',
+  })
 }
 
 watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { immediate: true })
@@ -490,14 +509,6 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
-}
-
-.dashboard-surface {
-  border: 1px solid rgb(255 255 255 / 20%);
-  border-radius: 1.5rem;
-  background: var(--glass-bg, rgb(255 255 255 / 8%));
-  box-shadow: 0 10px 30px rgb(15 23 42 / 10%);
-  backdrop-filter: blur(20px);
 }
 
 .dashboard-header {
@@ -1008,7 +1019,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 .trend-btn.active {
   background: rgb(var(--color-bg-elevated-rgb) / 92%);
   color: var(--accent-primary);
-  box-shadow: 0 2px 6px rgb(15 23 42 / 8%);
+  box-shadow: var(--shadow-sm);
 }
 
 .trend-body {

@@ -1,7 +1,6 @@
 <!-- -->
 <template>
   <div class="checkin-providers">
-    <!-- 内置中转站区域 -->
     <div v-if="availableBuiltinProviders.length > 0">
       <div class="checkin-providers__section-header">
         <SIcon
@@ -10,7 +9,7 @@
           class="checkin-providers__section-icon checkin-providers__section-icon--primary"
         />
         <h2 class="checkin-providers__section-title">
-          内置中转站
+          {{ t('checkin.providers.builtinTitle') }}
         </h2>
         <span class="checkin-providers__section-count">
           ({{ availableBuiltinProviders.length }})
@@ -30,8 +29,8 @@
                   <h3 class="checkin-providers__builtin-card-title">
                     {{ bp.name }}
                   </h3>
-                  <span class="checkin-providers__builtin-badge">
-                    内置
+                  <span class="checkin-providers__builtin-badge checkin-badge-pill">
+                    {{ t('checkin.providers.builtInBadge') }}
                   </span>
                 </div>
                 <p class="checkin-providers__builtin-domain">
@@ -56,7 +55,7 @@
                   d="M12 4v16m8-8H4"
                 />
               </svg>
-              <span>添加</span>
+              <span>{{ t('common.add') }}</span>
             </button>
           </div>
           <p class="checkin-providers__builtin-description">
@@ -65,7 +64,7 @@
           <div class="checkin-providers__tag-list">
             <span
               v-if="bp.supports_checkin"
-              class="checkin-providers__tag"
+              class="checkin-providers__tag checkin-badge-pill"
               :class="bp.checkin_bugged
                 ? 'checkin-providers__tag--warning'
                 : 'checkin-providers__tag--success'"
@@ -75,34 +74,33 @@
                 size="w-3 h-3"
                 class="mr-1 inline"
               />
-              {{ bp.checkin_bugged ? '自动签到' : '支持签到' }}
+              {{ bp.checkin_bugged ? t('checkin.providers.autoCheckin') : t('checkin.providers.supportsCheckin') }}
             </span>
             <span
               v-else
-              class="checkin-providers__tag checkin-providers__tag--muted"
+              class="checkin-providers__tag checkin-badge-pill checkin-providers__tag--muted"
             >
               <SIcon
                 name="XCircle"
                 size="w-3 h-3"
                 class="mr-1"
-              /> 无签到
+              /> {{ t('checkin.providers.noCheckin') }}
             </span>
             <span
               v-if="bp.requires_waf_bypass"
-              class="checkin-providers__tag checkin-providers__tag--warning"
+              class="checkin-providers__tag checkin-badge-pill checkin-providers__tag--warning"
             >
               <SIcon
                 name="Shield"
                 size="w-3 h-3"
                 class="mr-1"
-              /> 需要 WAF 绕过
+              /> {{ t('checkin.providers.requiresWafBypass') }}
             </span>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 已添加的提供商 -->
     <div>
       <div class="checkin-providers__section-header checkin-providers__section-header--split">
         <div class="checkin-providers__section-heading">
@@ -112,7 +110,7 @@
             class="checkin-providers__section-icon checkin-providers__section-icon--secondary"
           />
           <h2 class="checkin-providers__section-title">
-            已添加的提供商
+            {{ t('checkin.providers.addedTitle') }}
           </h2>
           <span class="checkin-providers__section-count">
             ({{ providers.length }})
@@ -135,11 +133,10 @@
               d="M12 4v16m8-8H4"
             />
           </svg>
-          <span>自定义添加</span>
+          <span>{{ t('checkin.providers.customAdd') }}</span>
         </button>
       </div>
 
-      <!-- 提供商列表 -->
       <div
         v-if="providers.length === 0"
         class="checkin-providers__empty-state"
@@ -151,9 +148,9 @@
             class="checkin-providers__empty-icon-symbol"
           />
         </p>
-        <p>暂无提供商配置</p>
+        <p>{{ t('checkin.providers.emptyTitle') }}</p>
         <p class="checkin-providers__empty-subtitle">
-          点击上方内置中转站快速添加，或自定义添加
+          {{ t('checkin.providers.emptyHint') }}
         </p>
       </div>
       <div
@@ -182,7 +179,7 @@
             <div class="checkin-providers__provider-actions">
               <button
                 class="checkin-providers__icon-button checkin-providers__icon-button--edit"
-                title="编辑"
+                :title="t('common.edit')"
                 @click="openProviderModal(provider)"
               >
                 <svg
@@ -201,7 +198,7 @@
               </button>
               <button
                 class="checkin-providers__icon-button checkin-providers__icon-button--delete"
-                title="删除"
+                :title="t('common.delete')"
                 @click="deleteProvider(provider.id)"
               >
                 <svg
@@ -221,7 +218,7 @@
             </div>
           </div>
           <div class="checkin-providers__provider-meta">
-            <span>签到路径: {{ provider.checkin_path }}</span>
+            <span>{{ t('checkin.providers.checkinPath', { path: provider.checkin_path }) }}</span>
           </div>
           <div
             v-if="requiresWafBypass(provider)"
@@ -236,22 +233,22 @@
                     class="checkin-providers__waf-icon"
                   />
                   <p class="checkin-providers__waf-title">
-                    WAF 验证
+                    {{ t('checkin.providers.wafTitle') }}
                   </p>
                   <span
-                    class="checkin-providers__tag"
+                    class="checkin-providers__tag checkin-badge-pill"
                     :class="hasCachedWafCookie(provider.id)
                       ? 'checkin-providers__tag--success'
                       : 'checkin-providers__tag--warning'"
                   >
-                    {{ hasCachedWafCookie(provider.id) ? '已缓存 Cookie' : '未缓存 Cookie' }}
+                    {{ hasCachedWafCookie(provider.id) ? t('checkin.providers.cachedCookie') : t('checkin.providers.uncachedCookie') }}
                   </span>
                 </div>
                 <p class="checkin-providers__waf-message">
-                  AnyRouter 这类站点签到前需要先获取 WAF Cookie，且网页登录与签到请求必须使用同一代理/出口。
+                  {{ t('checkin.providers.wafMessage') }}
                 </p>
                 <p class="checkin-providers__waf-hint">
-                  参考流程：先保存 <code>session</code> 和 <code>api_user</code>，再打开登录页完成挑战，最后回到签到页重试。
+                  {{ t('checkin.providers.wafHint') }}
                 </p>
               </div>
               <button
@@ -267,10 +264,10 @@
                 <span>
                   {{
                     wafLoadingMap[provider.id] === true
-                      ? '获取中...'
+                      ? t('checkin.providers.loading')
                       : hasCachedWafCookie(provider.id)
-                        ? '重新获取'
-                        : '获取 Cookie'
+                        ? t('checkin.providers.reloadCookie')
+                        : t('checkin.providers.getCookie')
                   }}
                 </span>
               </button>
@@ -289,7 +286,7 @@
   >
     <div class="checkin-providers__modal-panel">
       <h3 class="checkin-providers__modal-title">
-        {{ editingProvider ? '编辑提供商' : '添加提供商' }}
+        {{ editingProvider ? t('checkin.providers.editProvider') : t('checkin.providers.addProvider') }}
       </h3>
       <form
         class="checkin-providers__modal-form"
@@ -297,19 +294,19 @@
       >
         <div>
           <label class="checkin-providers__field-label">
-            名称 *
+            {{ t('checkin.providers.nameLabel') }}
           </label>
           <input
             v-model="providerForm.name"
             type="text"
             required
             class="checkin-providers__field-input"
-            placeholder="例如: OpenRouter"
+            placeholder="OpenRouter"
           >
         </div>
         <div>
           <label class="checkin-providers__field-label">
-            Base URL *
+            {{ t('checkin.providers.baseUrlLabel') }}
           </label>
           <input
             v-model="providerForm.base_url"
@@ -322,7 +319,7 @@
         <div class="checkin-providers__field-grid">
           <div>
             <label class="checkin-providers__field-label">
-              签到路径
+              {{ t('checkin.providers.checkinPathLabel') }}
             </label>
             <input
               v-model="providerForm.checkin_path"
@@ -333,7 +330,7 @@
           </div>
           <div>
             <label class="checkin-providers__field-label">
-              余额路径
+              {{ t('checkin.providers.balancePathLabel') }}
             </label>
             <input
               v-model="providerForm.balance_path"
@@ -346,7 +343,7 @@
         <div class="checkin-providers__field-grid">
           <div>
             <label class="checkin-providers__field-label">
-              认证 Header
+              {{ t('checkin.providers.authHeaderLabel') }}
             </label>
             <input
               v-model="providerForm.auth_header"
@@ -357,7 +354,7 @@
           </div>
           <div>
             <label class="checkin-providers__field-label">
-              认证前缀
+              {{ t('checkin.providers.authPrefixLabel') }}
             </label>
             <input
               v-model="providerForm.auth_prefix"
@@ -373,13 +370,13 @@
             class="checkin-providers__secondary-button"
             @click="showProviderModal = false"
           >
-            取消
+            {{ t('common.cancel') }}
           </button>
           <button
             type="submit"
             class="checkin-providers__primary-button"
           >
-            保存
+            {{ t('common.save') }}
           </button>
         </div>
       </form>
@@ -390,6 +387,7 @@
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useUIStore } from '@/stores/ui'
 import {
   createCheckinProvider,
@@ -398,8 +396,18 @@ import {
   openWafLogin,
   getWafCookieStatus,
 } from '@/api'
-import type { CheckinProvider, BuiltinProvider, WafCookieStatus } from '@/types/checkin'
+import type {
+  CheckinProvider,
+  BuiltinProvider,
+  WafCookieRecoveryResult,
+  WafCookieStatus,
+} from '@/types/checkin'
 import { logger } from '@/utils/logger'
+import { getErrorMessage } from '@/types/api'
+import {
+  filterAvailableBuiltinProviders,
+  resolveBuiltinProvider,
+} from '../composables/builtinProviderLookup'
 
 const props = defineProps<{
   providers: CheckinProvider[]
@@ -410,26 +418,27 @@ const emit = defineEmits<{
   (e: 'add-builtin', builtinId: string): void
   (e: 'refresh'): void
 }>()
+const { t } = useI18n()
 const uiStore = useUIStore()
 
-const getErrorMessage = (error: unknown, fallback: string) =>
-  error instanceof Error ? error.message : fallback
+const formatWafRecoveryResult = (result: WafCookieRecoveryResult) => {
+  if (result.missing_cookie_names.length > 0) {
+    return `缺少 WAF Cookie: ${result.missing_cookie_names.join(', ')}`
+  }
+  return result.message || t('checkin.providers.uncachedCookie')
+}
 
-// 计算属性：过滤出尚未添加的内置提供商
-const availableBuiltinProviders = computed(() => {
-  const addedNames = new Set(props.providers.map(p => p.name))
-  return props.builtinProviders.filter(bp => !addedNames.has(bp.name))
-})
-
-const builtinProviderMap = computed(() => {
-  return new Map(props.builtinProviders.map((provider) => [provider.name, provider]))
-})
+// 计算属性：过滤出尚未添加的内置提供商（builtin_id 优先判定，name 回退兼容旧数据）
+const availableBuiltinProviders = computed(() =>
+  filterAvailableBuiltinProviders(props.builtinProviders, props.providers)
+)
 
 const wafStatusMap = ref<Record<string, WafCookieStatus | undefined>>({})
 const wafLoadingMap = ref<Record<string, boolean>>({})
 
+// builtin_id 优先反查内置站（改名安全），旧数据无 builtin_id 时回退 name 匹配
 const getBuiltinProvider = (provider: CheckinProvider): BuiltinProvider | undefined => {
-  return builtinProviderMap.value.get(provider.name)
+  return resolveBuiltinProvider(props.builtinProviders, provider)
 }
 
 const requiresWafBypass = (provider: CheckinProvider) => {
@@ -473,9 +482,18 @@ const startWafLogin = async (provider: CheckinProvider) => {
   }
 
   try {
-    await openWafLogin<string>(getProviderLoginUrl(provider), provider.id)
+    const result = await openWafLogin<WafCookieRecoveryResult>(
+      getProviderLoginUrl(provider),
+      provider.id
+    )
     await loadWafStatus(provider.id)
-    uiStore.showSuccess(`${provider.name} 的 WAF Cookie 已更新，现在可以回到签到页重试。`)
+    if (result.persisted) {
+      uiStore.showSuccess(
+        `${provider.name} ${t('checkin.providers.cachedCookie')}，${t('checkin.providers.emptyHint')}`
+      )
+    } else {
+      uiStore.showError(`获取 WAF Cookie 失败: ${formatWafRecoveryResult(result)}`)
+    }
   } catch (error: unknown) {
     uiStore.showError('获取 WAF Cookie 失败: ' + getErrorMessage(error, '未知错误'))
   } finally {
@@ -595,8 +613,7 @@ const deleteProvider = async (id: string) => {
 .checkin-providers__primary-button,
 .checkin-providers__secondary-button,
 .checkin-providers__modal-overlay,
-.checkin-providers__modal-actions,
-.checkin-providers__tag {
+.checkin-providers__modal-actions {
   display: flex;
   align-items: center;
 }
@@ -625,7 +642,7 @@ const deleteProvider = async (id: string) => {
   font-size: 1.125rem;
   line-height: 1.75rem;
   font-weight: 600;
-  color: white;
+  color: var(--text-primary);
 }
 
 .checkin-providers__section-count {
@@ -660,19 +677,14 @@ const deleteProvider = async (id: string) => {
 }
 
 .checkin-providers__builtin-card {
-  border: 1px solid rgb(191 219 254 / 100%);
-  background: linear-gradient(135deg, rgb(239 246 255 / 100%), rgb(238 242 255 / 100%));
-  box-shadow: 0 1px 2px rgb(15 23 42 / 6%);
+  border: 1px solid var(--color-border-default);
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-xs);
   transition: box-shadow 0.2s ease;
 }
 
 .checkin-providers__builtin-card:hover {
-  box-shadow: 0 10px 24px rgb(15 23 42 / 12%);
-}
-
-.dark .checkin-providers__builtin-card {
-  border-color: rgb(75 85 99 / 100%);
-  background: linear-gradient(135deg, rgb(31 41 55 / 100%), rgb(55 65 81 / 100%));
+  box-shadow: var(--shadow-md);
 }
 
 .checkin-providers__builtin-card-main {
@@ -695,22 +707,16 @@ const deleteProvider = async (id: string) => {
   color: var(--text-primary);
 }
 
+/* 形状配方由全局 .checkin-badge-pill 提供，这里保留尺寸差异 */
 .checkin-providers__builtin-badge,
 .checkin-providers__tag {
-  border-radius: 9999px;
   padding: 0.125rem 0.5rem;
-  font-size: 0.75rem;
   line-height: 1rem;
 }
 
 .checkin-providers__builtin-badge {
-  background: rgb(219 234 254 / 100%);
-  color: rgb(29 78 216 / 100%);
-}
-
-.dark .checkin-providers__builtin-badge {
-  background: rgb(30 64 175 / 100%);
-  color: rgb(147 197 253 / 100%);
+  background: rgb(var(--color-info-rgb) / 15%);
+  color: var(--color-info);
 }
 
 .checkin-providers__builtin-domain,
@@ -743,33 +749,18 @@ const deleteProvider = async (id: string) => {
 }
 
 .checkin-providers__tag--success {
-  background: rgb(220 252 231 / 100%);
-  color: rgb(21 128 61 / 100%);
-}
-
-.dark .checkin-providers__tag--success {
-  background: rgb(20 83 45 / 40%);
-  color: rgb(187 247 208 / 100%);
+  background: rgb(var(--color-success-rgb) / 15%);
+  color: var(--color-success);
 }
 
 .checkin-providers__tag--warning {
-  background: rgb(254 243 199 / 100%);
-  color: rgb(161 98 7 / 100%);
-}
-
-.dark .checkin-providers__tag--warning {
-  background: rgb(113 63 18 / 100%);
-  color: rgb(253 224 71 / 100%);
+  background: rgb(var(--color-warning-rgb) / 15%);
+  color: var(--color-warning);
 }
 
 .checkin-providers__tag--muted {
-  background: rgb(243 244 246 / 100%);
+  background: var(--color-bg-overlay);
   color: var(--text-secondary);
-}
-
-.dark .checkin-providers__tag--muted {
-  background: rgb(55 65 81 / 100%);
-  color: rgb(156 163 175 / 100%);
 }
 
 .checkin-providers__primary-button,
@@ -782,12 +773,12 @@ const deleteProvider = async (id: string) => {
 }
 
 .checkin-providers__primary-button {
-  background: rgb(37 99 235 / 100%);
+  background: var(--color-accent-primary);
   color: white;
 }
 
 .checkin-providers__primary-button:hover {
-  background: rgb(29 78 216 / 100%);
+  background: var(--color-accent-primary-hover);
 }
 
 .checkin-providers__primary-button--compact {
@@ -797,14 +788,10 @@ const deleteProvider = async (id: string) => {
 
 .checkin-providers__empty-state {
   border-radius: 0.5rem;
-  background: rgb(249 250 251 / 100%);
+  background: var(--color-bg-surface);
   padding: 3rem 1rem;
   text-align: center;
   color: var(--text-muted);
-}
-
-.dark .checkin-providers__empty-state {
-  background: rgb(31 41 55 / 50%);
 }
 
 .checkin-providers__empty-icon {
@@ -814,25 +801,21 @@ const deleteProvider = async (id: string) => {
 
 .checkin-providers__empty-icon-symbol {
   margin-inline: auto;
-  color: rgb(255 255 255 / 50%);
+  color: var(--text-disabled);
 }
 
 .checkin-providers__provider-card {
   border-left: 4px solid;
-  background: rgb(255 255 255 / 100%);
-  box-shadow: 0 1px 2px rgb(15 23 42 / 8%);
-}
-
-.dark .checkin-providers__provider-card {
-  background: rgb(31 41 55 / 100%);
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-xs);
 }
 
 .checkin-providers__provider-card--enabled {
-  border-left-color: rgb(34 197 94 / 100%);
+  border-left-color: var(--color-success);
 }
 
 .checkin-providers__provider-card--disabled {
-  border-left-color: rgb(156 163 175 / 100%);
+  border-left-color: var(--text-disabled);
 }
 
 .checkin-providers__provider-url {
@@ -847,19 +830,11 @@ const deleteProvider = async (id: string) => {
 }
 
 .checkin-providers__icon-button--edit {
-  color: rgb(37 99 235 / 100%);
-}
-
-.dark .checkin-providers__icon-button--edit {
-  color: rgb(96 165 250 / 100%);
+  color: var(--color-info);
 }
 
 .checkin-providers__icon-button--delete {
-  color: rgb(220 38 38 / 100%);
-}
-
-.dark .checkin-providers__icon-button--delete {
-  color: rgb(248 113 113 / 100%);
+  color: var(--color-danger);
 }
 
 .checkin-providers__provider-meta {
@@ -871,14 +846,9 @@ const deleteProvider = async (id: string) => {
 .checkin-providers__waf-card {
   margin-top: 1rem;
   border-radius: 0.5rem;
-  border: 1px solid rgb(254 215 170 / 100%);
-  background: rgb(255 247 237 / 90%);
+  border: 1px solid rgb(var(--color-warning-rgb) / 40%);
+  background: rgb(var(--color-warning-rgb) / 12%);
   padding: 0.75rem;
-}
-
-.dark .checkin-providers__waf-card {
-  border-color: rgb(154 52 18 / 100%);
-  background: rgb(124 45 18 / 20%);
 }
 
 .checkin-providers__waf-card-layout {
@@ -896,21 +866,13 @@ const deleteProvider = async (id: string) => {
 }
 
 .checkin-providers__waf-icon {
-  color: rgb(234 88 12 / 100%);
-}
-
-.dark .checkin-providers__waf-icon {
-  color: rgb(253 186 116 / 100%);
+  color: var(--color-warning);
 }
 
 .checkin-providers__waf-title {
   font-size: 0.875rem;
   font-weight: 500;
-  color: rgb(124 45 18 / 100%);
-}
-
-.dark .checkin-providers__waf-title {
-  color: rgb(255 237 213 / 100%);
+  color: var(--color-warning);
 }
 
 .checkin-providers__waf-message,
@@ -921,29 +883,21 @@ const deleteProvider = async (id: string) => {
 
 .checkin-providers__waf-message {
   margin-top: 0.5rem;
-  color: rgb(154 52 18 / 100%);
+  color: rgb(var(--color-warning-rgb) / 92%);
 }
 
 .checkin-providers__waf-hint {
   margin-top: 0.25rem;
-  color: rgb(194 65 12 / 100%);
-}
-
-.dark .checkin-providers__waf-message {
-  color: rgb(254 215 170 / 100%);
-}
-
-.dark .checkin-providers__waf-hint {
-  color: rgb(253 186 116 / 100%);
+  color: rgb(var(--color-warning-rgb) / 82%);
 }
 
 .checkin-providers__waf-action {
-  background: rgb(234 88 12 / 100%);
+  background: var(--color-warning);
   color: white;
 }
 
 .checkin-providers__waf-action:hover:not(:disabled) {
-  background: rgb(194 65 12 / 100%);
+  background: var(--color-warning-hover);
 }
 
 .checkin-providers__waf-action:disabled {
@@ -954,7 +908,7 @@ const deleteProvider = async (id: string) => {
 .checkin-providers__modal-overlay {
   position: fixed;
   inset: 0;
-  z-index: 50;
+  z-index: var(--layer-popover);
   justify-content: center;
   background: rgb(0 0 0 / 50%);
   padding: 1rem;
@@ -964,13 +918,9 @@ const deleteProvider = async (id: string) => {
   width: 100%;
   max-width: 32rem;
   border-radius: 0.5rem;
-  background: white;
+  background: var(--color-bg-elevated);
   padding: 1.5rem;
-  box-shadow: 0 24px 48px rgb(15 23 42 / 24%);
-}
-
-.dark .checkin-providers__modal-panel {
-  background: rgb(31 41 55 / 100%);
+  box-shadow: var(--shadow-xl);
 }
 
 .checkin-providers__modal-title {
@@ -997,17 +947,11 @@ const deleteProvider = async (id: string) => {
   display: block;
   width: 100%;
   margin-top: 0.25rem;
-  border: 1px solid rgb(209 213 219 / 100%);
+  border: 1px solid var(--color-border-default);
   border-radius: 0.5rem;
-  background: white;
+  background: var(--color-bg-surface);
   padding: 0.5rem 0.75rem;
-  color: rgb(17 24 39 / 100%);
-}
-
-.dark .checkin-providers__field-input {
-  border-color: rgb(75 85 99 / 100%);
-  background: rgb(55 65 81 / 100%);
-  color: white;
+  color: var(--text-primary);
 }
 
 .checkin-providers__modal-actions {
@@ -1016,20 +960,12 @@ const deleteProvider = async (id: string) => {
 }
 
 .checkin-providers__secondary-button {
-  border: 1px solid rgb(209 213 219 / 100%);
+  border: 1px solid var(--color-border-default);
   color: var(--text-secondary);
 }
 
 .checkin-providers__secondary-button:hover {
-  background: rgb(249 250 251 / 100%);
-}
-
-.dark .checkin-providers__secondary-button {
-  border-color: rgb(75 85 99 / 100%);
-}
-
-.dark .checkin-providers__secondary-button:hover {
-  background: rgb(55 65 81 / 100%);
+  background: var(--color-bg-elevated);
 }
 
 @media (width >= 768px) {

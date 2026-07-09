@@ -3,27 +3,19 @@
 //!
 //! 测试新的交互式内容选择功能的完整流程
 
-use ccr::CONFIG_LOCK;
+use crate::setup_ccr_test_env;
 use ccr::commands::SyncContentSelector;
 use ccr::commands::sync_content_selector::{SyncContentSelection, SyncContentType};
 use std::fs;
-use tempfile::tempdir;
 
 #[test]
 fn test_sync_content_selection_flow() {
-    let _guard = CONFIG_LOCK.lock().expect("配置锁已中毒");
     // 创建临时测试环境
-    let temp_dir = tempdir().unwrap();
-    let ccr_root = temp_dir.path().join(".ccr");
-
-    // 设置CCR_ROOT环境变量
-    // SAFETY: 测试仅在当前进程临时设置 CCR_ROOT，结束前会显式清理。
-    unsafe {
-        std::env::set_var("CCR_ROOT", ccr_root.to_str().unwrap());
-    }
+    let env = setup_ccr_test_env();
+    let ccr_root = env.path();
 
     // 创建测试文件结构
-    fs::create_dir_all(&ccr_root).unwrap();
+    fs::create_dir_all(ccr_root).unwrap();
     fs::write(
         ccr_root.join("config.toml"),
         "default_platform = 'claude'\n",
@@ -79,39 +71,21 @@ fn test_sync_content_selection_flow() {
     let paths = custom_selection.to_paths();
     assert!(paths.contains(&"config.toml".to_string()));
     assert!(paths.contains(&"platforms/claude".to_string()));
-
-    // 清理环境变量
-    // SAFETY: 仅清理本测试设置的 CCR_ROOT，避免影响其他测试。
-    unsafe {
-        std::env::remove_var("CCR_ROOT");
-    }
 }
 
 #[test]
 fn test_sync_content_type_detection() {
-    let _guard = CONFIG_LOCK.lock().expect("配置锁已中毒");
-    let temp_dir = tempdir().unwrap();
-    let ccr_root = temp_dir.path().join(".ccr");
-
-    // SAFETY: 测试仅在当前进程临时设置 CCR_ROOT，结束前会显式清理。
-    unsafe {
-        std::env::set_var("CCR_ROOT", ccr_root.to_str().unwrap());
-    }
+    let env = setup_ccr_test_env();
+    let ccr_root = env.path();
 
     // 只创建config文件
-    fs::create_dir_all(&ccr_root).unwrap();
+    fs::create_dir_all(ccr_root).unwrap();
     fs::write(ccr_root.join("config.toml"), "test").unwrap();
 
     // 验证当前环境下各平台目录尚不存在
     assert!(!SyncContentType::Claude.exists());
     assert!(!SyncContentType::Gemini.exists());
     assert!(!SyncContentType::Qwen.exists());
-
-    // 清理环境变量
-    // SAFETY: 仅清理本测试设置的 CCR_ROOT，避免影响其他测试。
-    unsafe {
-        std::env::remove_var("CCR_ROOT");
-    }
 }
 
 #[test]

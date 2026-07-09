@@ -1,3 +1,5 @@
+// re-export 墙条目须有真实消费方；规则见 .trellis/spec/ccr/backend/public-api-boundary.md，逐符号盘点见任务归档 07-03-arch-ccr-facade/research/inventory.md
+
 pub mod budget;
 pub mod mcp_preset;
 pub mod pricing;
@@ -11,17 +13,15 @@ pub mod sync_folder;
 pub use ccr_codex::models::codex_auth::CodexAuthTokens;
 #[allow(unused_imports)]
 pub use ccr_codex::models::codex_auth::{
-    AuthIntent, AuthState, AuthStateStatus, CodexAccountQuota, CodexAuthAccount, CodexAuthExport,
-    CodexAuthExportAccount, CodexAuthItem, CodexAuthJson, CodexAuthRegistry, CodexProfileAuthMode,
-    CodexProfileSecret, CodexProfileSecretStore, CodexQuota, CodexRuntimeMode, CodexRuntimeSummary,
-    CodexUsageActivation, CredentialStoreKind, CurrentAuthInfo, ImportMode, ImportResult,
-    LoginState, OpenAiAuthMethod, normalize_auth_map_for_intent,
+    AuthIntent, AuthState, AuthStateStatus, CodexAccountQuota, CodexAuthAccount, CodexAuthItem,
+    CodexAuthJson, CodexAuthRegistry, CodexProfileAuthMode, CodexQuota, CodexRuntimeMode,
+    CodexRuntimeSummary, CodexUsageActivation, CredentialStoreKind, CurrentAuthInfo, ImportMode,
+    ImportResult, LoginState, OpenAiAuthMethod,
 };
 #[allow(unused_imports)]
 pub use ccr_codex::models::opencode_auth::{
     CodexToOpenCodeMigrationItem, CodexToOpenCodeMigrationReport, CodexToOpenCodeMigrationStatus,
-    OpenCodeAuthAccount, OpenCodeAuthItem, OpenCodeAuthRegistry, OpenCodeCurrentAuthInfo,
-    OpenCodeLoginState, OpenCodeOpenAiAuth, OpenCodeReadSnapshot,
+    OpenCodeAuthItem, OpenCodeAuthRegistry, OpenCodeLoginState, OpenCodeReadSnapshot,
 };
 pub use ccr_config::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};
 #[allow(unused_imports)]

@@ -1,0 +1,6 @@
+{"file": ".trellis/spec/ccr-checkin/backend/backend-guidelines.md", "reason": "WAF/CF/cookie-expired 分类契约、WAF cookie 恢复契约（不可回退）、测试要求"}
+{"file": ".trellis/tasks/06-10-checkin-optimize-templates/research/newapi-checkin.md", "reason": "CF 四签名运行时检测、宽容响应判定、已签到归一必须放统一出口的教训"}
+{"file": ".trellis/tasks/06-10-checkin-optimize-templates/research/anyrouter-check-in.md", "reason": "完整浏览器头清单（HTTP/2 + Sec-Fetch-* + X-Requested-With）与余额差奖励推断"}
+{"file": ".trellis/tasks/06-10-checkin-optimize-templates/research/all-api-hub.md", "reason": "4 态结果契约（success/already_checked/failed/skipped + 跳过原因枚举）与 summary 结构"}
+{"file": ".trellis/tasks/06-10-checkin-optimize-templates/research/metapi.md", "reason": "不支持签到→skipped 降级不告警、消息分类器与奖励余额差兜底细节"}
+{"file": ".trellis/tasks/06-10-checkin-optimize-templates/research/internal-checkin-architecture.md", "reason": "do_checkin 现有判定/挑战检测/[ALREADY_CHECKED_IN] hack 的 file:line 定位"}

@@ -1,5 +1,6 @@
 // 签到账号模型
 
+use ccr_core::Secret;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -164,9 +165,9 @@ pub struct CreateAccountRequest {
     pub provider_id: String,
     /// 账号备注名称
     pub name: String,
-    /// Cookies JSON (明文，将被加密存储)
+    /// Cookies JSON (明文，将被加密存储)：Secret 包裹，请求体 Debug/日志不泄露
     /// 格式: {"session": "abc123", "token": "xyz789"}
-    pub cookies_json: String,
+    pub cookies_json: Secret,
     /// API User 标识 (可选，New-Api-User 请求头值)
     #[serde(default)]
     pub api_user: String,
@@ -181,9 +182,9 @@ pub struct UpdateAccountRequest {
     /// 账号备注名称 (可选)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
-    /// Cookies JSON (可选，明文，将被加密存储)
+    /// Cookies JSON (可选，明文，将被加密存储)：Secret 包裹
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub cookies_json: Option<String>,
+    pub cookies_json: Option<Secret>,
     /// API User 标识 (可选)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub api_user: Option<String>,
@@ -215,35 +216,6 @@ pub struct TestConnectionResponse {
     /// 用户信息 (如果成功)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub user_info: Option<serde_json::Value>,
-}
-
-/// 遮罩 Cookies JSON 字符串
-/// 将 {"session": "abc123xyz", "token": "secret"} 转换为 "session=ab****yz; token=****"
-pub fn mask_cookies_json(cookies_json: &str) -> String {
-    match serde_json::from_str::<HashMap<String, String>>(cookies_json) {
-        Ok(cookies) => cookies
-            .iter()
-            .map(|(k, v)| {
-                let masked_value = mask_value(v);
-                format!("{}={}", k, masked_value)
-            })
-            .collect::<Vec<_>>()
-            .join("; "),
-        Err(_) => "****".to_string(),
-    }
-}
-
-/// 遮罩单个值
-/// 保留前 2 位和后 2 位，中间用 **** 替代
-fn mask_value(value: &str) -> String {
-    let len = value.len();
-    if len <= 4 {
-        "****".to_string()
-    } else if len <= 8 {
-        format!("{}****", &value[..2])
-    } else {
-        format!("{}****{}", &value[..2], &value[len - 2..])
-    }
 }
 
 #[cfg(test)]
@@ -308,35 +280,17 @@ mod tests {
         assert!(!creds.has_api_user());
     }
 
+    // 🙈 请求结构携带明文 Cookies，Debug（日志路径）不得泄露
     #[test]
-    fn test_mask_cookies_json() {
-        let json = r#"{"session": "abc123xyz", "token": "secret"}"#;
-        let masked = mask_cookies_json(json);
-
-        // 检查遮罩格式
-        assert!(masked.contains("session=ab****yz"));
-        assert!(masked.contains("token=se****"));
-    }
-
-    #[test]
-    fn test_mask_value() {
-        // 短值 (<=4)
-        assert_eq!(mask_value("abc"), "****");
-        assert_eq!(mask_value("abcd"), "****");
-
-        // 中等长度 (5-8)
-        assert_eq!(mask_value("abcde"), "ab****");
-        assert_eq!(mask_value("abcdefgh"), "ab****");
-
-        // 长值 (>8)
-        assert_eq!(mask_value("abc123xyz"), "ab****yz");
-        assert_eq!(mask_value("verylongvalue"), "ve****ue");
-    }
-
-    #[test]
-    fn test_mask_cookies_json_invalid() {
-        let invalid_json = "not valid json";
-        let masked = mask_cookies_json(invalid_json);
-        assert_eq!(masked, "****");
+    fn test_create_request_debug_masks_cookies() {
+        let request = CreateAccountRequest {
+            provider_id: "provider-1".to_string(),
+            name: "Main".to_string(),
+            cookies_json: Secret::from(r#"{"session": "super-secret-session-value"}"#),
+            api_user: "12345".to_string(),
+            extra_config: "{}".to_string(),
+        };
+        let debug = format!("{:?}", request);
+        assert!(!debug.contains("super-secret-session-value"));
     }
 }

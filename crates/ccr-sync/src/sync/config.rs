@@ -8,6 +8,8 @@
 
 use ccr_core::core::error::{CcrError, Result};
 use ccr_core::core::fileio;
+use ccr_core::core::guarded_write::WriteOptions;
+use ccr_core::{Secret, expose_plaintext};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -19,7 +21,9 @@ pub struct SyncConfig {
     pub enabled: bool,
     pub webdav_url: String,
     pub username: String,
-    pub password: String,
+    /// WebDAV 密码：Debug/日志/默认序列化恒掩码；落盘原文走 expose_plaintext 注解
+    #[serde(serialize_with = "expose_plaintext")]
+    pub password: Secret,
     #[serde(default = "default_remote_path")]
     pub remote_path: String,
     #[serde(default)]
@@ -36,7 +40,7 @@ impl Default for SyncConfig {
             enabled: false,
             webdav_url: "https://dav.jianguoyun.com/dav/".to_string(),
             username: String::new(),
-            password: String::new(),
+            password: Secret::default(),
             remote_path: default_remote_path(),
             auto_sync: false,
         }
@@ -92,7 +96,15 @@ impl SyncConfigManager {
     }
 
     pub fn save(&self, config: &SyncConfig) -> Result<()> {
-        fileio::write_toml(&self.config_path, config)?;
+        // sync.toml 含 WebDAV 密码，用 secret 选项落盘（Unix 上 0o600；Windows no-op）
+        fileio::write_toml_opts(
+            &self.config_path,
+            config,
+            &WriteOptions {
+                secret: true,
+                ..Default::default()
+            },
+        )?;
         tracing::debug!("✅ Sync配置文件已保存: {:?}", self.config_path);
         Ok(())
     }
@@ -132,7 +144,7 @@ mod tests {
             enabled: true,
             webdav_url: "https://dav.jianguoyun.com/dav/".to_string(),
             username: "test@example.com".to_string(),
-            password: "test_password".to_string(),
+            password: Secret::from("test_password"),
             remote_path: "/ccr/".to_string(),
             auto_sync: false,
         };
@@ -158,5 +170,66 @@ mod tests {
 
         manager.delete().unwrap();
         assert!(!config_path.exists());
+    }
+
+    // 🔐 sync.toml 含 WebDAV 密码，落盘应为 owner-only（0o600）。
+    // 权限断言仅在 Unix 有意义；Windows 权限模型（NTFS ACL）不同，secret 为 no-op。
+    #[cfg(unix)]
+    #[test]
+    fn test_sync_config_saved_with_owner_only_mode() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let temp_dir = tempfile::tempdir().unwrap();
+        let config_path = temp_dir.path().join("sync.toml");
+        let manager = SyncConfigManager::new(&config_path);
+
+        let config = SyncConfig {
+            password: Secret::from("s3cret"),
+            ..Default::default()
+        };
+        manager.save(&config).unwrap();
+
+        let mode = fs::metadata(&config_path).unwrap().permissions().mode();
+        assert_eq!(mode & 0o777, 0o600);
+    }
+
+    // 🔁 旧格式（明文密码）sync.toml 读入 → 保存 → 再读：无损，且磁盘仍为明文
+    #[test]
+    fn test_legacy_plaintext_file_round_trip_lossless() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let config_path = temp_dir.path().join("sync.toml");
+        let legacy = r#"
+enabled = true
+webdav_url = "https://dav.example.com/dav/"
+username = "user@example.com"
+password = "legacy-plain-password"
+remote_path = "/ccr/"
+auto_sync = false
+"#;
+        fs::write(&config_path, legacy).unwrap();
+
+        let manager = SyncConfigManager::new(&config_path);
+        let loaded = manager.load().unwrap();
+        assert_eq!(loaded.password.expose(), "legacy-plain-password");
+
+        manager.save(&loaded).unwrap();
+        let on_disk = fs::read_to_string(&config_path).unwrap();
+        assert!(on_disk.contains("legacy-plain-password"));
+
+        let reloaded = manager.load().unwrap();
+        assert_eq!(reloaded.password.expose(), "legacy-plain-password");
+        assert_eq!(reloaded.username, loaded.username);
+    }
+
+    // 🙈 Debug 输出（tracing 日志路径）不得包含密码原文
+    #[test]
+    fn test_debug_output_masks_password() {
+        let config = SyncConfig {
+            password: Secret::from("super-secret-password"),
+            ..Default::default()
+        };
+        let debug = format!("{:?}", config);
+        assert!(!debug.contains("super-secret-password"));
+        assert!(debug.contains("supe...word"));
     }
 }

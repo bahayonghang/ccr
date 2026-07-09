@@ -6,7 +6,7 @@
 // - 三个页面(Claude Code / Codex Auth / OpenCode Auth)共用同一套「外壳」语言,
 //   仅以平台强调色区分身份: Claude=Peach, Codex=Blue, OpenCode=Teal。
 
-use crate::models::Platform;
+use ccr_cli::models::Platform;
 use ratatui::style::{Color, Modifier, Style};
 use std::sync::atomic::{AtomicU8, Ordering};
 

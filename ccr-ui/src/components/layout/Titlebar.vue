@@ -31,7 +31,7 @@
           :class="{ 'bg-bg-overlay/70 text-text-primary': isMenuOpen }"
           @click="toggleMenu"
         >
-          文件
+          {{ menuLabel }}
         </button>
 
         <!-- Dropdown -->
@@ -50,7 +50,7 @@
             class="w-full text-left px-3 py-1.5 text-xs text-danger hover:text-danger hover:bg-danger/10 transition-colors flex items-center"
             @click="closeWindow"
           >
-            <i class="i-carbon-close mr-2" /> 离开系统
+            <i class="i-carbon-close mr-2" /> {{ quitLabel }}
           </button>
         </div>
       </div>
@@ -238,7 +238,9 @@ import { APP_ENGINE, APP_NAME, APP_OWNER, APP_TAGLINE, APP_VERSION } from '@/con
 import { logger } from '@/utils/logger'
 import { getCurrentWindowSafe } from '@/utils/tauriWindow'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
+const isZh = computed(() => locale.value.startsWith('zh'))
+const tt = (zh: string, en: string) => (isZh.value ? zh : en)
 
 const isMaximized = ref(false)
 const isFocused = ref(true)
@@ -253,6 +255,8 @@ const appIconUrl = '/icons/icon.svg'
 const appLogoUrl = '/icons/logo.svg'
 const windowTitle = computed(() => appName.toUpperCase())
 const appVersionText = computed(() => `v${APP_VERSION}`)
+const menuLabel = computed(() => tt('文件', 'File'))
+const quitLabel = computed(() => tt('离开系统', 'Quit'))
 
 // Actions
 const minimizeWindow = async () => {

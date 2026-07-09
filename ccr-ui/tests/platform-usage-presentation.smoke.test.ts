@@ -5,6 +5,7 @@ import {
   hasPlatformUsageData,
 } from '@/views/platform-usage/platformUsagePresentation'
 import type { PlatformUsageDashboardData } from '@/types/platformUsageInsight'
+import { makeModelStat } from './helpers/usageFixtures'
 
 const baseData: PlatformUsageDashboardData = {
   generated_at: '2026-05-20T12:00:00.000Z',
@@ -24,6 +25,7 @@ const baseData: PlatformUsageDashboardData = {
       total_tokens: 2_000,
       input_tokens: 800,
       output_tokens: 900,
+      reasoning_output_tokens: 0,
       cache_read_tokens: 300,
       cache_creation_tokens: 0,
       cost_usd: 0.7,
@@ -34,24 +36,25 @@ const baseData: PlatformUsageDashboardData = {
       total_tokens: 7_000,
       input_tokens: 2_200,
       output_tokens: 3_100,
+      reasoning_output_tokens: 0,
       cache_read_tokens: 1_700,
       cache_creation_tokens: 0,
       cost_usd: 1.7,
     },
   ],
   model_stats: [
-    {
+    makeModelStat({
       model: 'gpt-5.5',
       request_count: 8,
       total_tokens: 7_000,
       total_cost: 1.7,
-    },
-    {
+    }),
+    makeModelStat({
       model: 'gpt-5.4',
       request_count: 4,
       total_tokens: 2_000,
       total_cost: 0.7,
-    },
+    }),
   ],
   project_stats: [
     {
@@ -125,7 +128,9 @@ describe('platform usage presentation smoke', () => {
       },
     })
 
-    expect(hasPlatformUsageData(result.summary, result.trends, result.modelStats, result.projectStats)).toBe(false)
+    expect(
+      hasPlatformUsageData(result.summary, result.trends, result.modelStats, result.projectStats)
+    ).toBe(false)
     expect(result.empty).toBe(true)
     expect(result.cards).toEqual([])
   })

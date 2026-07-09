@@ -1,10 +1,11 @@
 // TUI application state — Tab-based dispatch (Claude + Codex only)
 
-use crate::models::{ClaudeRuntimeSummary, CodexRuntimeSummary};
-use crate::models::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};
-use crate::platforms::create_platform;
 use crate::tui::action::Action;
 use crate::tui::toast::{Toast, ToastManager};
+use ccr_cli::managers::{TuiConfigManager, TuiTabId};
+use ccr_cli::models::{ClaudeRuntimeSummary, CodexRuntimeSummary};
+use ccr_cli::models::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};
+use ccr_cli::platforms::create_platform;
 use ccr_core::core::error::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use indexmap::IndexMap;
@@ -20,6 +21,7 @@ use super::opencode_auth::OpenCodeAuthApp;
 use super::pagination::{DEFAULT_PAGE_SIZE, page_for_index, page_slice, total_pages};
 use super::runtime::{AsyncTaskExecutor, TuiApp};
 use super::ui;
+use super::usage::UsageApp;
 
 /// A single profile entry for display
 #[derive(Debug, Clone)]
@@ -54,6 +56,16 @@ pub struct PlatformTab {
     pub claude_runtime_summary: Option<ClaudeRuntimeSummary>,
     pub codex_runtime_summary: Option<CodexRuntimeSummary>,
     pub instance: Option<Arc<dyn PlatformConfig>>,
+    /// 离开该 tab 时保存的选中快照；None = 从未访问过（per-tab 会话级记忆）
+    pub saved_selection: Option<TabSelection>,
+}
+
+/// 单个 tab 的选中状态快照，用于 per-tab 记忆光标位置
+#[derive(Clone)]
+pub struct TabSelection {
+    pub selected_index: usize,
+    pub current_page: usize,
+    pub selected_profile_name: Option<String>,
 }
 
 struct ProfileTabData {
@@ -89,6 +101,46 @@ fn current_profile_source_path(platform: Platform) -> String {
 
 fn format_issue(location: String, error: &dyn std::fmt::Display) -> String {
     format!("Where: {location}\nWhat: {error}")
+}
+
+fn tab_config_id(tab: &PlatformTab) -> Option<TuiTabId> {
+    match (tab.platform, tab.variant) {
+        (Platform::Codex, TabVariant::Profile) => Some(TuiTabId::CodexProfile),
+        (Platform::Claude, TabVariant::Profile) => Some(TuiTabId::ClaudeProfile),
+        (_, TabVariant::CodexAuth) => Some(TuiTabId::CodexAuth),
+        (_, TabVariant::ClaudeAuth) => Some(TuiTabId::ClaudeAuth),
+        (_, TabVariant::OpenCodeAuth) => Some(TuiTabId::OpencodeAuth),
+        (_, TabVariant::Profile) => None,
+    }
+}
+
+fn load_tab_order() -> Vec<TuiTabId> {
+    match TuiConfigManager::with_default() {
+        Ok(manager) => manager.load_or_default().tab_order,
+        Err(error) => {
+            tracing::warn!(
+                "Failed to resolve TUI config path: {}. Falling back to default tab order.",
+                error
+            );
+            TuiTabId::default_order()
+        }
+    }
+}
+
+fn reorder_tabs(mut tabs: Vec<PlatformTab>, tab_order: &[TuiTabId]) -> Vec<PlatformTab> {
+    let mut reordered = Vec::with_capacity(tabs.len());
+
+    for tab_id in tab_order {
+        if let Some(index) = tabs
+            .iter()
+            .position(|tab| tab_config_id(tab) == Some(*tab_id))
+        {
+            reordered.push(tabs.remove(index));
+        }
+    }
+
+    reordered.extend(tabs);
+    reordered
 }
 
 /// Main TUI application state
@@ -127,6 +179,8 @@ pub struct App {
     pub opencode_auth_error: Option<String>,
     /// Last opencode auth action info (action_type, account_name, success, error)
     pub last_opencode_action: Option<(String, String, bool, Option<String>)>,
+    /// 用量数据引擎(懒初始化):后台加载 provider 用量,详情面板纯内存查找
+    pub usage_app: Option<UsageApp>,
     /// 🖱️ Cached header (tab bar) area for mouse hit-testing
     pub header_area: Cell<Option<Rect>>,
     /// 🖱️ Cached profile list area for mouse hit-testing
@@ -152,7 +206,7 @@ impl App {
         };
 
         let codex_runtime_summary = if platform == Platform::Codex {
-            crate::services::CodexAuthService::new()
+            ccr_cli::services::CodexAuthService::new()
                 .ok()
                 .and_then(|service| service.get_runtime_summary().ok())
         } else {
@@ -160,7 +214,7 @@ impl App {
         };
 
         let claude_runtime_summary = if platform == Platform::Claude {
-            crate::services::ClaudeAuthService::new()
+            ccr_cli::services::ClaudeAuthService::new()
                 .ok()
                 .and_then(|service| service.get_runtime_summary().ok())
         } else {
@@ -299,6 +353,74 @@ impl App {
         self.reset_profile_detail_scroll();
     }
 
+    /// 把光标定位到当前 tab 的已启用项（is_current）；无已启用项则定位第 0 项。所有平台统一。
+    fn focus_current_profile(&mut self) {
+        let total = self.current_profiles().len();
+        if total == 0 {
+            self.current_page = 0;
+            self.selected_index = 0;
+            self.selected_profile_name = None;
+            self.reset_profile_detail_scroll();
+            return;
+        }
+        let target = self.current_profile_global_index().unwrap_or(0);
+        self.current_page = page_for_index(target, self.page_size);
+        self.selected_index = super::pagination::index_in_page(target, self.page_size);
+        self.remember_selected_profile();
+        self.reset_profile_detail_scroll();
+    }
+
+    /// 离开 tab：把当前工作副本写入该 tab 的选中快照（per-tab 记忆）
+    fn save_active_tab_selection(&mut self) {
+        self.remember_selected_profile();
+        self.tabs[self.active_tab].saved_selection = Some(TabSelection {
+            selected_index: self.selected_index,
+            current_page: self.current_page,
+            selected_profile_name: self.selected_profile_name.clone(),
+        });
+    }
+
+    /// 进入 tab：有快照则恢复并按名对齐（防 reload 后越界）；无快照则定位已启用项
+    fn restore_active_tab_selection(&mut self) {
+        match self.tabs[self.active_tab].saved_selection.clone() {
+            Some(saved) => {
+                self.current_page = saved.current_page;
+                self.selected_index = saved.selected_index;
+                self.selected_profile_name = saved.selected_profile_name;
+                self.align_selection_by_name();
+            }
+            None => self.focus_current_profile(),
+        }
+    }
+
+    /// 按 selected_profile_name 在当前 tab 重新对齐光标（无平台差异；name 失效则按残留索引 clamp）。
+    /// 与 sync_selection_to_profile_name 的差异：本方法不让 Codex 的 is_current 抢占已恢复的快照位置。
+    fn align_selection_by_name(&mut self) {
+        let total = self.current_profiles().len();
+        if total == 0 {
+            self.current_page = 0;
+            self.selected_index = 0;
+            self.selected_profile_name = None;
+            self.reset_profile_detail_scroll();
+            return;
+        }
+        let target = self
+            .selected_profile_name
+            .as_ref()
+            .and_then(|name| {
+                self.current_profiles()
+                    .iter()
+                    .position(|profile| profile.name == *name)
+            })
+            .or_else(|| self.selected_profile_global_index())
+            .unwrap_or(0)
+            .min(total - 1);
+        self.current_page = page_for_index(target, self.page_size);
+        self.selected_index = super::pagination::index_in_page(target, self.page_size);
+        self.remember_selected_profile();
+        self.reset_profile_detail_scroll();
+    }
+
     /// Build the app with Claude + Codex tabs only.
     #[allow(dead_code)]
     pub fn new() -> Result<Self> {
@@ -331,6 +453,7 @@ impl App {
                                 claude_runtime_summary: tab_data.claude_runtime_summary.clone(),
                                 codex_runtime_summary: None,
                                 instance: Some(Arc::clone(&instance)),
+                                saved_selection: None,
                             });
                             tabs.push(PlatformTab {
                                 platform,
@@ -343,6 +466,7 @@ impl App {
                                 claude_runtime_summary: tab_data.claude_runtime_summary,
                                 codex_runtime_summary: tab_data.codex_runtime_summary,
                                 instance: Some(instance),
+                                saved_selection: None,
                             });
                         }
                         Platform::Codex => {
@@ -358,6 +482,7 @@ impl App {
                                 claude_runtime_summary: None,
                                 codex_runtime_summary: None,
                                 instance: Some(Arc::clone(&instance)),
+                                saved_selection: None,
                             });
                             // OpenCode Auth tab (manual OpenCode openai switching)
                             tabs.push(PlatformTab {
@@ -371,6 +496,7 @@ impl App {
                                 claude_runtime_summary: None,
                                 codex_runtime_summary: None,
                                 instance: Some(Arc::clone(&instance)),
+                                saved_selection: None,
                             });
                             // Codex Profile tab (profile switching)
                             tabs.push(PlatformTab {
@@ -384,6 +510,7 @@ impl App {
                                 claude_runtime_summary: None,
                                 codex_runtime_summary: tab_data.codex_runtime_summary,
                                 instance: Some(instance),
+                                saved_selection: None,
                             });
                         }
                         _ => {}
@@ -408,6 +535,7 @@ impl App {
                 claude_runtime_summary: None,
                 codex_runtime_summary: None,
                 instance: None,
+                saved_selection: None,
             });
             tabs.push(PlatformTab {
                 platform: Platform::Claude,
@@ -420,8 +548,10 @@ impl App {
                 claude_runtime_summary: None,
                 codex_runtime_summary: None,
                 instance: None,
+                saved_selection: None,
             });
         }
+        tabs = reorder_tabs(tabs, &load_tab_order());
 
         let mut app = Self {
             tabs,
@@ -441,13 +571,14 @@ impl App {
             opencode_auth_app: None,
             opencode_auth_error: None,
             last_opencode_action: None,
+            usage_app: None,
             header_area: Cell::new(None),
             list_area: Cell::new(None),
             detail_area: Cell::new(None),
             profile_detail_scroll: 0,
             task_executor,
         };
-        app.sync_selection_to_profile_name();
+        app.focus_current_profile();
         Ok(app)
     }
 
@@ -542,31 +673,31 @@ impl App {
             Action::Quit => return Ok(true),
             Action::NextTab => {
                 if self.tabs.len() > 1 {
-                    self.remember_selected_profile();
+                    self.save_active_tab_selection();
                     self.active_tab = (self.active_tab + 1) % self.tabs.len();
-                    self.sync_selection_to_profile_name();
+                    self.restore_active_tab_selection();
                     self.reset_profile_detail_scroll();
                     self.notify_tab_activated();
                 }
             }
             Action::PrevTab => {
                 if self.tabs.len() > 1 {
-                    self.remember_selected_profile();
+                    self.save_active_tab_selection();
                     self.active_tab = if self.active_tab == 0 {
                         self.tabs.len() - 1
                     } else {
                         self.active_tab - 1
                     };
-                    self.sync_selection_to_profile_name();
+                    self.restore_active_tab_selection();
                     self.reset_profile_detail_scroll();
                     self.notify_tab_activated();
                 }
             }
             Action::SwitchTab(idx) => {
                 if idx < self.tabs.len() {
-                    self.remember_selected_profile();
+                    self.save_active_tab_selection();
                     self.active_tab = idx;
-                    self.sync_selection_to_profile_name();
+                    self.restore_active_tab_selection();
                     self.reset_profile_detail_scroll();
                     self.notify_tab_activated();
                 }
@@ -626,6 +757,11 @@ impl App {
             }
             Action::Reload => {
                 self.reload_profiles();
+                // 用量数据集与 profiles 一同刷新(后台异步拉取,不阻塞渲染)
+                self.ensure_usage_engine();
+                if let Some(engine) = self.usage_app.as_mut() {
+                    engine.refresh();
+                }
                 self.toasts.push(Toast::info("已刷新配置列表"));
             }
         }
@@ -797,6 +933,13 @@ impl App {
         self.tabs[self.active_tab].variant == TabVariant::OpenCodeAuth
     }
 
+    /// 确保用量数据引擎已就绪(懒初始化,构造无 I/O;数据由后台任务拉取)
+    fn ensure_usage_engine(&mut self) {
+        if self.usage_app.is_none() {
+            self.usage_app = Some(UsageApp::with_task_executor(self.task_executor.clone()));
+        }
+    }
+
     /// Pre-select Claude Auth tab (for `ccr claude` entry)
     pub fn with_claude_auth_tab(mut self) -> Self {
         if let Some(idx) = self
@@ -849,7 +992,8 @@ impl App {
         let is_opencode_auth = self.is_opencode_auth_tab();
 
         if !is_claude_auth && !is_codex_auth && !is_opencode_auth {
-            self.sync_selection_to_profile_name();
+            // profile tab 的选中定位已由切 tab 时的 restore/focus 完成，无需再 sync;
+            // 用量引擎的激活由 on_tick 的 profile 分支统一驱动(含启动首帧)
             return;
         }
 
@@ -1091,7 +1235,14 @@ impl TuiApp for App {
         } else if self.is_opencode_auth_tab() {
             self.opencode_auth_app.as_mut().is_some_and(|a| a.on_tick())
         } else {
-            self.toasts.tick()
+            // Profile tab: 首次进入(含启动首帧)激活用量引擎,此后每 tick 泵
+            // 后台任务消息;on_activated 仅在 Idle 态生效,不会重复拉取
+            self.ensure_usage_engine();
+            let usage_redraw = self.usage_app.as_mut().is_some_and(|engine| {
+                engine.on_activated();
+                engine.tick()
+            });
+            self.toasts.tick() | usage_redraw
         }
     }
 
@@ -1108,8 +1259,8 @@ impl TuiApp for App {
 mod tests {
     #![allow(clippy::unwrap_used)]
     use super::*;
-    use crate::models::Platform;
-    use crate::models::ProfileConfig;
+    use ccr_cli::models::Platform;
+    use ccr_cli::models::ProfileConfig;
     use ccr_core::core::error::{CcrError, Result};
     use std::path::PathBuf;
     use std::sync::Arc;
@@ -1254,6 +1405,7 @@ mod tests {
                 claude_runtime_summary: None,
                 codex_runtime_summary: None,
                 instance: None,
+                saved_selection: None,
             }],
             active_tab: 0,
             selected_index,
@@ -1271,6 +1423,7 @@ mod tests {
             opencode_auth_app: None,
             opencode_auth_error: None,
             last_opencode_action: None,
+            usage_app: None,
             header_area: Cell::new(None),
             list_area: Cell::new(None),
             detail_area: Cell::new(None),
@@ -1291,7 +1444,22 @@ mod tests {
             claude_runtime_summary: None,
             codex_runtime_summary: None,
             instance: None,
+            saved_selection: None,
         }
+    }
+
+    fn configured_tabs_in_original_order() -> Vec<PlatformTab> {
+        vec![
+            empty_tab(Platform::Claude, TabVariant::ClaudeAuth, "Claude Auth"),
+            empty_tab(Platform::Claude, TabVariant::Profile, "Claude Code"),
+            empty_tab(Platform::Codex, TabVariant::CodexAuth, "Codex Auth"),
+            empty_tab(Platform::Codex, TabVariant::OpenCodeAuth, "OpenCode Auth"),
+            empty_tab(Platform::Codex, TabVariant::Profile, "Codex Profile"),
+        ]
+    }
+
+    fn tab_order_ids(tabs: &[PlatformTab]) -> Vec<TuiTabId> {
+        tabs.iter().filter_map(tab_config_id).collect()
     }
 
     fn tab_switching_app(active_tab: usize) -> App {
@@ -1317,12 +1485,203 @@ mod tests {
             opencode_auth_app: None,
             opencode_auth_error: None,
             last_opencode_action: None,
+            usage_app: None,
             header_area: Cell::new(None),
             list_area: Cell::new(None),
             detail_area: Cell::new(None),
             profile_detail_scroll: 0,
             task_executor: AsyncTaskExecutor::from_current_or_test(),
         }
+    }
+
+    fn profile_tab(
+        platform: Platform,
+        label: &str,
+        names: &[&str],
+        current: Option<&str>,
+    ) -> PlatformTab {
+        let profiles = names
+            .iter()
+            .map(|name| ProfileItem {
+                name: (*name).to_string(),
+                description: None,
+                is_current: current == Some(*name),
+            })
+            .collect();
+        PlatformTab {
+            platform,
+            variant: TabVariant::Profile,
+            label: label.to_string(),
+            profiles,
+            profile_configs: IndexMap::<String, ProfileConfig>::new(),
+            profile_load_error: None,
+            current_profile_error: None,
+            claude_runtime_summary: None,
+            codex_runtime_summary: None,
+            instance: None,
+            saved_selection: None,
+        }
+    }
+
+    fn app_with_profile_tabs(tabs: Vec<PlatformTab>) -> App {
+        App {
+            tabs,
+            active_tab: 0,
+            selected_index: 0,
+            current_page: 0,
+            page_size: DEFAULT_PAGE_SIZE,
+            selected_profile_name: None,
+            toasts: ToastManager::new(),
+            last_applied: None,
+            claude_auth_app: None,
+            claude_auth_error: None,
+            last_claude_action: None,
+            codex_auth_app: None,
+            codex_auth_error: None,
+            last_codex_action: None,
+            opencode_auth_app: None,
+            opencode_auth_error: None,
+            last_opencode_action: None,
+            usage_app: None,
+            header_area: Cell::new(None),
+            list_area: Cell::new(None),
+            detail_area: Cell::new(None),
+            profile_detail_scroll: 0,
+            task_executor: AsyncTaskExecutor::from_current_or_test(),
+        }
+    }
+
+    #[test]
+    fn switching_to_tab_first_time_focuses_current_profile() {
+        let mut app = app_with_profile_tabs(vec![
+            profile_tab(
+                Platform::Codex,
+                "Codex Profile",
+                &["c1", "c2", "c3"],
+                Some("c1"),
+            ),
+            profile_tab(
+                Platform::Claude,
+                "Claude Code",
+                &["a1", "a2", "a3", "a4", "a5"],
+                Some("a4"),
+            ),
+        ]);
+        // 模拟构造后的初始定位（with_task_executor 会调 focus_current_profile）
+        app.focus_current_profile();
+        // 用户在 Codex tab 把光标移到非启用项，制造跨 tab 残留索引
+        app.dispatch(Action::SelectNext).unwrap();
+        app.dispatch(Action::SelectNext).unwrap();
+        assert_eq!(app.selected_profile().unwrap().name, "c3");
+
+        // 首次切到 Claude Code（无快照）：应定位已启用项 a4，而非继承索引 2
+        app.dispatch(Action::SwitchTab(1)).unwrap();
+        assert_eq!(app.selected_profile().unwrap().name, "a4");
+    }
+
+    #[test]
+    fn revisiting_tab_restores_saved_selection() {
+        let mut app = app_with_profile_tabs(vec![
+            profile_tab(
+                Platform::Codex,
+                "Codex Profile",
+                &["c1", "c2", "c3"],
+                Some("c1"),
+            ),
+            profile_tab(
+                Platform::Claude,
+                "Claude Code",
+                &["a1", "a2", "a3", "a4", "a5"],
+                Some("a4"),
+            ),
+        ]);
+        app.focus_current_profile();
+
+        // 进入 Claude tab：首次定位已启用项 a4
+        app.dispatch(Action::SwitchTab(1)).unwrap();
+        assert_eq!(app.selected_profile().unwrap().name, "a4");
+        // 移动到非启用项 a5
+        app.dispatch(Action::SelectNext).unwrap();
+        assert_eq!(app.selected_profile().unwrap().name, "a5");
+
+        // 切回 Codex，再切回 Claude：应恢复上次离开位置 a5（per-tab 记忆）
+        app.dispatch(Action::SwitchTab(0)).unwrap();
+        app.dispatch(Action::SwitchTab(1)).unwrap();
+        assert_eq!(app.selected_profile().unwrap().name, "a5");
+    }
+
+    #[test]
+    fn tabs_keep_independent_selection() {
+        let mut app = app_with_profile_tabs(vec![
+            profile_tab(
+                Platform::Codex,
+                "Codex Profile",
+                &["c1", "c2", "c3"],
+                Some("c1"),
+            ),
+            profile_tab(
+                Platform::Claude,
+                "Claude Code",
+                &["a1", "a2", "a3"],
+                Some("a1"),
+            ),
+        ]);
+        app.focus_current_profile();
+
+        // Codex tab 选到 c3（非启用项）
+        app.dispatch(Action::SelectNext).unwrap();
+        app.dispatch(Action::SelectNext).unwrap();
+        assert_eq!(app.selected_profile().unwrap().name, "c3");
+
+        // 切到 Claude tab，选到 a2
+        app.dispatch(Action::SwitchTab(1)).unwrap();
+        app.dispatch(Action::SelectNext).unwrap();
+        assert_eq!(app.selected_profile().unwrap().name, "a2");
+
+        // 来回切换：两 tab 各自保持选中，互不串扰
+        app.dispatch(Action::SwitchTab(0)).unwrap();
+        assert_eq!(app.selected_profile().unwrap().name, "c3");
+        app.dispatch(Action::SwitchTab(1)).unwrap();
+        assert_eq!(app.selected_profile().unwrap().name, "a2");
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn reload_action_refreshes_usage_engine() {
+        use crate::tui::usage::app::{UsageApp, UsageDataset, UsageLoadState};
+
+        let mut app = app_with_profile_tabs(vec![profile_tab(
+            Platform::Codex,
+            "Codex Profile",
+            &["c1"],
+            Some("c1"),
+        )]);
+        app.usage_app = Some(UsageApp::with_loader(
+            app.task_executor.clone(),
+            Arc::new(|| Ok(UsageDataset { rows: Vec::new() })),
+        ));
+
+        // r → Reload: profiles 与用量数据集一同刷新,状态机回到 Loading
+        app.dispatch(Action::Reload).unwrap();
+        assert!(matches!(
+            app.usage_app.as_ref().unwrap().state,
+            UsageLoadState::Loading
+        ));
+
+        // 数据返回后由 on_tick 泵消息更新状态(空数据集 → Empty)
+        for _ in 0..200 {
+            app.on_tick();
+            if !matches!(
+                app.usage_app.as_ref().unwrap().state,
+                UsageLoadState::Loading
+            ) {
+                break;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+        }
+        assert!(matches!(
+            app.usage_app.as_ref().unwrap().state,
+            UsageLoadState::Empty
+        ));
     }
 
     fn key_with_modifiers(code: KeyCode, modifiers: KeyModifiers) -> KeyEvent {
@@ -1354,6 +1713,88 @@ mod tests {
             .unwrap();
 
         assert_eq!(app.active_tab, 2);
+    }
+
+    #[test]
+    fn reorder_tabs_uses_default_profile_first_order() {
+        let tabs = reorder_tabs(
+            configured_tabs_in_original_order(),
+            &TuiTabId::default_order(),
+        );
+
+        assert_eq!(
+            tab_order_ids(&tabs),
+            vec![
+                TuiTabId::CodexProfile,
+                TuiTabId::ClaudeProfile,
+                TuiTabId::CodexAuth,
+                TuiTabId::ClaudeAuth,
+                TuiTabId::OpencodeAuth,
+            ]
+        );
+    }
+
+    #[test]
+    fn reorder_tabs_honors_custom_full_order() {
+        let tabs = reorder_tabs(
+            configured_tabs_in_original_order(),
+            &[
+                TuiTabId::ClaudeAuth,
+                TuiTabId::CodexAuth,
+                TuiTabId::OpencodeAuth,
+                TuiTabId::ClaudeProfile,
+                TuiTabId::CodexProfile,
+            ],
+        );
+
+        assert_eq!(
+            tab_order_ids(&tabs),
+            vec![
+                TuiTabId::ClaudeAuth,
+                TuiTabId::CodexAuth,
+                TuiTabId::OpencodeAuth,
+                TuiTabId::ClaudeProfile,
+                TuiTabId::CodexProfile,
+            ]
+        );
+    }
+
+    #[test]
+    fn default_order_selects_codex_profile_first() {
+        let app = App {
+            tabs: reorder_tabs(
+                configured_tabs_in_original_order(),
+                &TuiTabId::default_order(),
+            ),
+            active_tab: 0,
+            selected_index: 0,
+            current_page: 0,
+            page_size: DEFAULT_PAGE_SIZE,
+            selected_profile_name: None,
+            toasts: ToastManager::new(),
+            last_applied: None,
+            claude_auth_app: None,
+            claude_auth_error: None,
+            last_claude_action: None,
+            codex_auth_app: None,
+            codex_auth_error: None,
+            last_codex_action: None,
+            opencode_auth_app: None,
+            opencode_auth_error: None,
+            last_opencode_action: None,
+            usage_app: None,
+            header_area: Cell::new(None),
+            list_area: Cell::new(None),
+            detail_area: Cell::new(None),
+            profile_detail_scroll: 0,
+            task_executor: AsyncTaskExecutor::from_current_or_test(),
+        };
+
+        assert_eq!(
+            tab_config_id(app.current_tab()),
+            Some(TuiTabId::CodexProfile)
+        );
+        assert_eq!(app.current_tab().label, "Codex Profile");
     }
 
     #[test]
@@ -1462,6 +1903,7 @@ mod tests {
                 claude_runtime_summary: None,
                 codex_runtime_summary: None,
                 instance: None,
+                saved_selection: None,
             }],
             active_tab: 0,
             selected_index: 0,
@@ -1479,6 +1921,7 @@ mod tests {
             opencode_auth_app: None,
             opencode_auth_error: None,
             last_opencode_action: None,
+            usage_app: None,
             header_area: Cell::new(None),
             list_area: Cell::new(None),
             detail_area: Cell::new(None),
@@ -1507,6 +1950,7 @@ mod tests {
                     claude_runtime_summary: None,
                     codex_runtime_summary: None,
                     instance: None,
+                    saved_selection: None,
                 },
                 PlatformTab {
                     platform: Platform::Claude,
@@ -1519,6 +1963,7 @@ mod tests {
                     claude_runtime_summary: None,
                     codex_runtime_summary: None,
                     instance: None,
+                    saved_selection: None,
                 },
             ],
             active_tab: 0,
@@ -1537,6 +1982,7 @@ mod tests {
             opencode_auth_app: None,
             opencode_auth_error: None,
             last_opencode_action: None,
+            usage_app: None,
             header_area: Cell::new(None),
             list_area: Cell::new(None),
             detail_area: Cell::new(None),
@@ -1547,6 +1993,42 @@ mod tests {
 
         assert_eq!(app.active_tab, 1);
         assert!(app.is_claude_auth_tab());
+    }
+
+    #[test]
+    fn with_codex_tab_selects_codex_auth_variant_after_reordering() {
+        let app = App {
+            tabs: reorder_tabs(
+                configured_tabs_in_original_order(),
+                &TuiTabId::default_order(),
+            ),
+            active_tab: 0,
+            selected_index: 0,
+            current_page: 0,
+            page_size: DEFAULT_PAGE_SIZE,
+            selected_profile_name: None,
+            toasts: ToastManager::new(),
+            last_applied: None,
+            claude_auth_app: None,
+            claude_auth_error: None,
+            last_claude_action: None,
+            codex_auth_app: None,
+            codex_auth_error: None,
+            last_codex_action: None,
+            opencode_auth_app: None,
+            opencode_auth_error: None,
+            last_opencode_action: None,
+            usage_app: None,
+            header_area: Cell::new(None),
+            list_area: Cell::new(None),
+            detail_area: Cell::new(None),
+            profile_detail_scroll: 0,
+            task_executor: AsyncTaskExecutor::from_current_or_test(),
+        }
+        .with_codex_tab();
+
+        assert_eq!(app.active_tab, 2);
+        assert!(app.is_codex_auth_tab());
     }
 
     #[test]
@@ -1564,6 +2046,7 @@ mod tests {
                     claude_runtime_summary: None,
                     codex_runtime_summary: None,
                     instance: None,
+                    saved_selection: None,
                 },
                 PlatformTab {
                     platform: Platform::Codex,
@@ -1576,6 +2059,7 @@ mod tests {
                     claude_runtime_summary: None,
                     codex_runtime_summary: None,
                     instance: None,
+                    saved_selection: None,
                 },
             ],
             active_tab: 0,
@@ -1594,6 +2078,7 @@ mod tests {
             opencode_auth_app: None,
             opencode_auth_error: None,
             last_opencode_action: None,
+            usage_app: None,
             header_area: Cell::new(None),
             list_area: Cell::new(None),
             detail_area: Cell::new(None),

@@ -10,7 +10,7 @@ use crate::managers::config::CcsConfig;
 use ccr_core::AutoCompletable;
 use ccr_core::core::error::{CcrError, Result};
 use ccr_core::core::fileio;
-use chrono::Local;
+use ccr_core::core::{BackupPolicy, backup_guarded};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -120,9 +120,7 @@ impl ConfigFileHandler {
     ///
     /// 执行流程:
     /// 1. ✅ 验证源文件存在
-    /// 2. 🏷️ 生成带时间戳的备份文件名
-    /// 3. 📋 复制文件到备份位置
-    /// 4. 🧹 自动清理旧备份(只保留最近10个)
+    /// 2. 🛡️ 委托统一 guarded 备份（同目录命名 + keep-10 轮换内置）
     ///
     /// 文件名格式:
     /// - 有标签: .ccs_config.toml.{tag}_{timestamp}.bak
@@ -130,50 +128,20 @@ impl ConfigFileHandler {
     ///
     /// 备份位置: 与配置文件同目录
     pub fn backup(&self, tag: Option<&str>) -> Result<PathBuf> {
-        // ✅ 验证源文件存在
+        // ✅ 验证源文件存在（保持 ConfigMissing 语义）
         if !self.config_path.exists() {
             return Err(CcrError::ConfigMissing(
                 self.config_path.display().to_string(),
             ));
         }
 
-        // 🏷️ 生成备份文件名(带时间戳)
-        let timestamp = Local::now().format("%Y%m%d_%H%M%S");
-        let backup_path = if let Some(tag_str) = tag {
-            self.config_path
-                .with_extension(format!("toml.{}_{}.bak", tag_str, timestamp))
-        } else {
-            self.config_path
-                .with_extension(format!("toml.{}.bak", timestamp))
+        // 🛡️ 委托 guarded 备份：同目录命名与轮换与旧实现逐字节一致
+        let policy = BackupPolicy::SameDir {
+            tag: tag.map(str::to_string),
         };
-
-        // 📋 复制文件
-        fs::copy(&self.config_path, &backup_path)
-            .map_err(|e| CcrError::ConfigError(format!("备份配置文件失败: {}", e)))?;
-
-        tracing::info!("💾 配置文件已备份: {:?}", backup_path);
-
-        // 🧹 自动清理旧备份(只保留最近10个)
-        const MAX_BACKUPS: usize = 10;
-        if let Ok(backups) = self.list_backups()
-            && backups.len() > MAX_BACKUPS
-        {
-            let to_delete = &backups[MAX_BACKUPS..];
-            for old_backup in to_delete {
-                if let Err(e) = fs::remove_file(old_backup) {
-                    tracing::warn!("清理旧备份失败 {:?}: {}", old_backup, e);
-                } else {
-                    tracing::debug!("🗑️ 已删除旧备份: {:?}", old_backup);
-                }
-            }
-            tracing::info!(
-                "🧹 已自动清理 {} 个旧配置备份,保留最近 {} 个",
-                to_delete.len(),
-                MAX_BACKUPS
-            );
-        }
-
-        Ok(backup_path)
+        backup_guarded(&self.config_path, &policy)?.ok_or_else(|| {
+            CcrError::ConfigError(format!("备份配置文件失败: {}", self.config_path.display()))
+        })
     }
 
     /// 📋 列出所有配置备份文件

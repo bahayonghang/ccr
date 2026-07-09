@@ -63,8 +63,7 @@ impl ClaudeProfileFixture {
     fn run_json(&self, args: &[&str]) -> (Output, Value) {
         let output = self.run_output(args);
         let stdout = String::from_utf8_lossy(&output.stdout);
-        let json = serde_json::from_str::<Value>(&stdout)
-            .unwrap_or_else(|error| panic!("failed to parse stdout as json: {error}\n{stdout}"));
+        let json = serde_json::from_str::<Value>(&stdout).unwrap();
         (output, json)
     }
 
@@ -107,7 +106,7 @@ impl ClaudeProfileFixture {
         let mut proxy = ProfileConfig {
             description: Some("Proxy".to_string()),
             base_url: Some("https://anthropic-proxy.example.com".to_string()),
-            auth_token: Some("sk-claude-proxy".to_string()),
+            auth_token: Some(ccr_core::Secret::from("sk-claude-proxy")),
             provider: Some("anyrouter".to_string()),
             model: Some("claude-sonnet-4-20250514".to_string()),
             ..Default::default()

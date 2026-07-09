@@ -18,6 +18,7 @@ vi.mock('@/api', () => apiMocks)
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({
     t: (key: string) => key,
+    locale: { value: 'en-US' },
   }),
 }))
 

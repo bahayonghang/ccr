@@ -14,9 +14,8 @@
 use crate::sync::folder::{FolderStats, SyncFolder, SyncFoldersConfig, WebDavConfig, expand_path};
 use ccr_core::core::error::{CcrError, Result};
 use ccr_core::core::fileio;
-use ccr_core::core::lock::LockManager;
+use ccr_core::core::guarded_write::WriteOptions;
 use std::path::{Path, PathBuf};
-use std::time::Duration;
 
 use super::config::SyncConfigManager;
 
@@ -137,23 +136,24 @@ impl SyncFolderManager {
     ///
     /// 如果序列化失败、无法获取锁或写入失败，返回错误
     pub fn save_config(&self, config: &SyncFoldersConfig) -> Result<()> {
-        // 获取文件锁
-        let lock_dir = self
-            .config_path
-            .parent()
-            .unwrap_or_else(|| Path::new("."))
-            .join(".locks");
-        let lock_manager = LockManager::new(lock_dir);
-        let _lock = lock_manager.lock_resource("sync_folders", Duration::from_secs(5))?;
-
         // 验证配置
         let errors = config.validate();
         if !errors.is_empty() {
             return Err(CcrError::ValidationError(errors.join("; ")));
         }
 
-        // 使用统一的 fileio 写入 TOML（会自动创建父目录和原子写入）
-        fileio::write_toml(&self.config_path, config)?;
+        // 使用统一的 fileio 写入 TOML（guarded write 已内置统一锁目录的路径锁 +
+        // 原子写，无需自建 <config_dir>/.locks 锁——消除锁目录 split-brain）。
+        // sync_folders.toml 含 WebDAV 密码，与 sync.toml 同样用 secret 落盘
+        //（Unix 上 0o600；Windows no-op）
+        fileio::write_toml_opts(
+            &self.config_path,
+            config,
+            &WriteOptions {
+                secret: true,
+                ..Default::default()
+            },
+        )?;
 
         tracing::info!(
             "✅ Sync文件夹配置文件已保存: {:?}, 文件夹数: {}",
@@ -521,6 +521,7 @@ impl SyncFolderManager {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
+    use crate::test_support::TestSyncEnv;
 
     #[test]
     fn test_sync_folder_manager_load_save() {
@@ -537,7 +538,7 @@ mod tests {
         let mut new_config = SyncFoldersConfig::default();
         new_config.webdav.url = "https://dav.example.com/".to_string();
         new_config.webdav.username = "test@example.com".to_string();
-        new_config.webdav.password = "password".to_string();
+        new_config.webdav.password = ccr_core::Secret::from("password");
 
         new_config.folders.push(
             SyncFolder::builder()
@@ -567,7 +568,7 @@ mod tests {
         let mut config = SyncFoldersConfig::default();
         config.webdav.url = "https://dav.example.com/".to_string();
         config.webdav.username = "test@example.com".to_string();
-        config.webdav.password = "password".to_string();
+        config.webdav.password = ccr_core::Secret::from("password");
         manager.save_config(&config).unwrap();
 
         // 添加文件夹
@@ -597,7 +598,7 @@ mod tests {
         let mut config = SyncFoldersConfig::default();
         config.webdav.url = "https://dav.example.com/".to_string();
         config.webdav.username = "test@example.com".to_string();
-        config.webdav.password = "password".to_string();
+        config.webdav.password = ccr_core::Secret::from("password");
         manager.save_config(&config).unwrap();
 
         let folder = SyncFolder::builder()
@@ -626,7 +627,7 @@ mod tests {
         let mut config = SyncFoldersConfig::default();
         config.webdav.url = "https://dav.example.com/".to_string();
         config.webdav.username = "test@example.com".to_string();
-        config.webdav.password = "password".to_string();
+        config.webdav.password = ccr_core::Secret::from("password");
 
         config.folders.push(
             SyncFolder::builder()
@@ -657,7 +658,7 @@ mod tests {
         let mut config = SyncFoldersConfig::default();
         config.webdav.url = "https://dav.example.com/".to_string();
         config.webdav.username = "test@example.com".to_string();
-        config.webdav.password = "password".to_string();
+        config.webdav.password = ccr_core::Secret::from("password");
 
         config.folders.push(
             SyncFolder::builder()
@@ -691,7 +692,7 @@ mod tests {
         let mut config = SyncFoldersConfig::default();
         config.webdav.url = "https://dav.example.com/".to_string();
         config.webdav.username = "test@example.com".to_string();
-        config.webdav.password = "password".to_string();
+        config.webdav.password = ccr_core::Secret::from("password");
 
         config.folders.push(
             SyncFolder::builder()
@@ -715,34 +716,77 @@ mod tests {
         assert!(folder.enabled);
     }
 
+    // 🔐 sync_folders.toml 含 WebDAV 密码，落盘应为 owner-only（0o600）。
+    // 权限断言仅在 Unix 有意义；Windows 权限模型（NTFS ACL）不同，secret 为 no-op。
+    #[cfg(unix)]
+    #[test]
+    fn test_sync_folders_config_saved_with_owner_only_mode() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let temp_dir = tempfile::tempdir().unwrap();
+        let config_path = temp_dir.path().join("sync_folders.toml");
+        let manager = SyncFolderManager::new(&config_path);
+
+        let mut config = SyncFoldersConfig::default();
+        config.webdav.url = "https://dav.example.com/".to_string();
+        config.webdav.username = "test@example.com".to_string();
+        config.webdav.password = ccr_core::Secret::from("s3cret");
+        manager.save_config(&config).unwrap();
+
+        let mode = std::fs::metadata(&config_path)
+            .unwrap()
+            .permissions()
+            .mode();
+        assert_eq!(mode & 0o777, 0o600);
+    }
+
+    // 🔁 旧格式（明文密码）sync_folders.toml 读入 → 保存 → 再读：无损，磁盘仍为明文
+    #[test]
+    fn test_legacy_plaintext_folders_file_round_trip_lossless() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let config_path = temp_dir.path().join("sync_folders.toml");
+        let legacy = r#"
+version = "1.0"
+
+[webdav]
+url = "https://dav.example.com/"
+username = "user@example.com"
+password = "legacy-folders-password"
+base_remote_path = "/ccr-sync"
+"#;
+        std::fs::write(&config_path, legacy).unwrap();
+
+        let manager = SyncFolderManager::new(&config_path);
+        let loaded = manager.load_config().unwrap();
+        assert_eq!(loaded.webdav.password.expose(), "legacy-folders-password");
+
+        manager.save_config(&loaded).unwrap();
+        let on_disk = std::fs::read_to_string(&config_path).unwrap();
+        assert!(on_disk.contains("legacy-folders-password"));
+
+        let reloaded = manager.load_config().unwrap();
+        assert_eq!(reloaded.webdav.password, loaded.webdav.password);
+    }
+
     #[test]
     fn test_sync_folder_manager_migration() {
-        let temp_dir = tempfile::tempdir().unwrap();
-        let sync_folders_path = temp_dir.path().join("sync_folders.toml");
-        let sync_config_path = temp_dir.path().join("sync.toml");
-
-        // 设置环境变量指向临时目录
-        // SAFETY: 仅在测试中覆写当前进程的 sync 配置路径，测试结束后立即清理。
-        unsafe {
-            std::env::set_var("CCR_SYNC_FOLDERS_CONFIG", &sync_folders_path);
-            std::env::set_var("CCR_SYNC_CONFIG_PATH", &sync_config_path);
-        }
+        let env = TestSyncEnv::new();
 
         // 创建旧版 sync.toml
         let old_config = crate::sync::config::SyncConfig {
             enabled: true,
             webdav_url: "https://dav.example.com/".to_string(),
             username: "test@example.com".to_string(),
-            password: "password".to_string(),
+            password: ccr_core::Secret::from("password"),
             remote_path: "/ccr-sync".to_string(),
             auto_sync: false,
         };
 
-        let sync_config_manager = SyncConfigManager::new(&sync_config_path);
+        let sync_config_manager = SyncConfigManager::new(env.sync_config_path());
         sync_config_manager.save(&old_config).unwrap();
 
         // 执行迁移
-        let mut manager = SyncFolderManager::new(&sync_folders_path);
+        let mut manager = SyncFolderManager::new(env.sync_folders_path());
         let migrated = manager.migrate_from_legacy().unwrap();
 
         assert!(migrated, "应该执行了迁移");
@@ -766,12 +810,5 @@ mod tests {
         // 再次调用迁移应该返回 false（已存在）
         let migrated_again = manager.migrate_from_legacy().unwrap();
         assert!(!migrated_again, "第二次迁移应该跳过");
-
-        // 清理环境变量
-        // SAFETY: 仅清理本测试先前设置的进程环境变量，避免污染后续用例。
-        unsafe {
-            std::env::remove_var("CCR_SYNC_FOLDERS_CONFIG");
-            std::env::remove_var("CCR_SYNC_CONFIG_PATH");
-        }
     }
 }

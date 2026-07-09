@@ -10,6 +10,7 @@ use aes_gcm::{
     aead::{Aead, KeyInit, OsRng, rand_core::RngCore},
 };
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
+use ccr_core::{Secret, WriteOptions, write_guarded};
 use std::fs;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
@@ -107,28 +108,17 @@ impl CryptoManager {
     }
 
     /// 保存密钥到文件
-    fn save_key(path: &PathBuf, key: &Key<Aes256Gcm>) -> Result<(), CryptoError> {
+    fn save_key(path: &Path, key: &Key<Aes256Gcm>) -> Result<(), CryptoError> {
         let key_base64 = BASE64.encode(key.as_slice());
 
-        // 使用临时文件 + 原子重命名，确保安全
-        let temp_path = path.with_extension("key.tmp");
-
-        fs::write(&temp_path, &key_base64)
-            .map_err(|e| CryptoError::KeyWriteError(format!("{}: {}", temp_path.display(), e)))?;
-
-        fs::rename(&temp_path, path)
-            .map_err(|e| CryptoError::KeyWriteError(format!("Atomic rename failed: {}", e)))?;
-
-        // 尝试设置文件权限（仅限 Unix）
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            if let Ok(metadata) = fs::metadata(path) {
-                let mut perms = metadata.permissions();
-                perms.set_mode(0o600); // 仅用户可读写
-                let _ = fs::set_permissions(path, perms);
-            }
-        }
+        // 统一走 guarded write：temp 文件在写入内容之前即设为 0o600（消除明文 key
+        // 短暂 world-readable 窗口）+ fsync + Windows 重试 rename + 跨进程文件锁。
+        let opts = WriteOptions {
+            secret: true,
+            ..Default::default()
+        };
+        write_guarded(path, key_base64.as_bytes(), &opts)
+            .map_err(|e| CryptoError::KeyWriteError(format!("{}: {}", path.display(), e)))?;
 
         Ok(())
     }
@@ -162,9 +152,12 @@ impl CryptoManager {
 
     /// 解密密文
     ///
+    /// 返回 [`Secret`]：解密产物即包裹，Debug/日志路径不泄露；
+    /// 原文仅经 `expose()` 流向 HTTP 头构造、明文导出等合法消费点
+    ///
     /// # Arguments
     /// * `encrypted` - base64 编码的加密数据 (nonce || ciphertext)
-    pub fn decrypt(&self, encrypted: &str) -> Result<String, CryptoError> {
+    pub fn decrypt(&self, encrypted: &str) -> Result<Secret, CryptoError> {
         // Base64 解码
         let combined = BASE64
             .decode(encrypted.trim())
@@ -190,6 +183,7 @@ impl CryptoManager {
         })?;
 
         String::from_utf8(plaintext)
+            .map(Secret::new)
             .map_err(|e| CryptoError::DecryptionError(format!("Invalid UTF-8: {}", e)))
     }
 
@@ -204,25 +198,6 @@ impl CryptoManager {
     pub fn key_exists(checkin_dir: &Path) -> bool {
         checkin_dir.join(CRYPTO_KEY_FILE).exists()
     }
-}
-
-/// 掩码显示 API Key
-///
-/// 例如: "sk-1234567890abcdef" -> "sk-****cdef"
-#[allow(dead_code)]
-pub fn mask_api_key(api_key: &str) -> String {
-    if api_key.len() <= 8 {
-        return "*".repeat(api_key.len());
-    }
-
-    // 找到前缀分隔符
-    let prefix_end = api_key.find('-').map(|i| i + 1).unwrap_or(0);
-    let prefix = &api_key[..prefix_end];
-
-    // 保留最后 4 个字符
-    let suffix = &api_key[api_key.len() - 4..];
-
-    format!("{}****{}", prefix, suffix)
 }
 
 #[cfg(test)]
@@ -245,8 +220,8 @@ mod tests {
             .decrypt(&encrypted)
             .expect("Failed to decrypt test data");
 
-        assert_eq!(original, decrypted);
-        assert_ne!(original, encrypted);
+        assert_eq!(decrypted, original);
+        assert_ne!(encrypted, original);
     }
 
     #[test]
@@ -266,16 +241,16 @@ mod tests {
         assert_ne!(encrypted1, encrypted2);
 
         assert_eq!(
-            original,
             crypto
                 .decrypt(&encrypted1)
-                .expect("Failed to decrypt test data 1")
+                .expect("Failed to decrypt test data 1"),
+            original
         );
         assert_eq!(
-            original,
             crypto
                 .decrypt(&encrypted2)
-                .expect("Failed to decrypt test data 2")
+                .expect("Failed to decrypt test data 2"),
+            original
         );
     }
 
@@ -302,16 +277,28 @@ mod tests {
                 .expect("Failed to decrypt test data")
         };
 
-        assert_eq!(original, decrypted);
+        assert_eq!(decrypted, original);
     }
 
+    // 🔐 密钥文件权限断言仅在 Unix 有意义；Windows 无 Unix 权限模型（NTFS ACL），
+    // secret 选项在 Windows 上为 no-op，故该测试跳过。
+    #[cfg(unix)]
     #[test]
-    fn test_mask_api_key() {
-        assert_eq!(mask_api_key("sk-1234567890abcdef"), "sk-****cdef");
-        assert_eq!(mask_api_key("sk-abc"), "******");
-        assert_eq!(mask_api_key("short"), "*****");
-        assert_eq!(mask_api_key("12345678"), "********");
-        assert_eq!(mask_api_key("123456789"), "****6789");
+    fn test_save_key_sets_owner_only_mode() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let temp_dir = TempDir::new().expect("Failed to create temp dir for test");
+        let path = temp_dir.path().to_path_buf();
+
+        // 首次 new 会生成并保存密钥（走 save_key → write_guarded secret）
+        CryptoManager::new(&path).expect("Failed to create CryptoManager for test");
+
+        let key_path = path.join(CRYPTO_KEY_FILE);
+        let mode = fs::metadata(&key_path)
+            .expect("key file should exist")
+            .permissions()
+            .mode();
+        assert_eq!(mode & 0o777, 0o600);
     }
 
     #[test]

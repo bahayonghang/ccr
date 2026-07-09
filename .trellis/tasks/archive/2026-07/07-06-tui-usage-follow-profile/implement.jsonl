@@ -1,0 +1,3 @@
+{"file": ".trellis/spec/ccr-tui/backend/backend-guidelines.md", "reason": "TUI 状态/渲染边界、synthetic tab 契约（本任务要拆除的对象）、per-tab selection 红线、异步加载与测试/验证命令"}
+{"file": ".trellis/spec/ccr/backend/llmusage-provider-adapter.md", "reason": "用量 SQL 只能在 crates/ccr-usage、TUI 必须消费 TaggedProviderBreakdown、schema14/Unsupported 错误分级契约"}
+{"file": ".trellis/spec/ccr-config/backend/index.md", "reason": "TuiTabId/TuiConfigManager 属 ccr-config，改 DEFAULT_TAB_ORDER 与校验前先过其包规范"}

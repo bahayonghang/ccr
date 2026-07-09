@@ -18,7 +18,7 @@
             </div>
             <div>
               <h1 class="gemini-title">
-                Antigravity CLI
+                {{ t('gemini.overview.breadcrumb') }}
               </h1>
               <p class="gemini-subtitle">
                 {{ t('gemini.overview.hero.subtitle') }}
@@ -160,7 +160,7 @@
 
       <section
         class="gemini-module-section animate-slide-up"
-        style="animation-delay: 120ms"
+        :style="{ animationDelay: '120ms' }"
       >
         <div class="gemini-section-heading">
           <div>
@@ -228,7 +228,7 @@
 
       <section
         class="gemini-quick-dock animate-slide-up"
-        style="animation-delay: 220ms"
+        :style="{ animationDelay: '220ms' }"
       >
         <Card
           v-for="card in quickInfoCards"
@@ -282,6 +282,7 @@ import {
   buildPlatformUsageI18nLabels,
   buildPlatformUsageSpec,
 } from '@/views/platform-usage/platformUsageSpecs'
+import { copyText } from '@/utils/clipboard'
 
 type ModuleTone = 'gemini' | 'command' | 'capability' | 'plugin'
 type TagTone = 'gemini' | 'command' | 'neutral' | 'capability'
@@ -479,9 +480,8 @@ const quickInfoCards = computed<QuickInfoCard[]>(() => [
 ])
 
 const copyCommand = async (command: string) => {
-  if (!navigator.clipboard?.writeText) return
-
-  await navigator.clipboard.writeText(command)
+  const ok = await copyText(command)
+  if (!ok) return
   copiedCommand.value = command
 
   if (copyResetTimer) {

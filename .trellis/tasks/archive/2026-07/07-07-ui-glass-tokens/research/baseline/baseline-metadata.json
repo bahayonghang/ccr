@@ -1,0 +1,86 @@
+{
+  "capturedAt": "2026-07-07",
+  "method": "vite dev server http://localhost:15173 + Playwright, viewport 1440x900, localStorage preset ccr-theme/ccr-flavor/ccr-accent per theme-token-contracts.md, dataset asserted before screenshot",
+  "accent": "clay",
+  "routes": {
+    "dashboard": "/",
+    "profiles": "/claude-code/profiles",
+    "usage": "/usage"
+  },
+  "combos": [
+    {
+      "theme": "light",
+      "flavor": "clay",
+      "resolvedFlavor": "clay",
+      "bgBase": "#f5f5f7",
+      "bgSurface": "#fbfbfd",
+      "borderDefault": "rgb(29 29 31 / 12%)"
+    },
+    {
+      "theme": "light",
+      "flavor": "paper",
+      "resolvedFlavor": "paper",
+      "bgBase": "#fafafa",
+      "bgSurface": "#f4f4f5",
+      "borderDefault": "rgb(20 20 22 / 12%)"
+    },
+    {
+      "theme": "light",
+      "flavor": "graphite",
+      "resolvedFlavor": "graphite",
+      "bgBase": "#ececee",
+      "bgSurface": "#fafafc",
+      "borderDefault": "rgb(31 32 36 / 13%)"
+    },
+    {
+      "theme": "light",
+      "flavor": "mocha",
+      "resolvedFlavor": "latte",
+      "bgBase": "#eff1f5",
+      "bgSurface": "#ccd0da",
+      "borderDefault": "rgb(172 176 190 / 58%)"
+    },
+    {
+      "theme": "dark",
+      "flavor": "clay",
+      "resolvedFlavor": "clay",
+      "bgBase": "#17120f",
+      "bgSurface": "#2a221e",
+      "borderDefault": "rgb(243 234 223 / 12%)"
+    },
+    {
+      "theme": "dark",
+      "flavor": "paper",
+      "resolvedFlavor": "paper",
+      "bgBase": "#1a1a1c",
+      "bgSurface": "#2a2a2d",
+      "borderDefault": "rgb(240 240 244 / 12%)"
+    },
+    {
+      "theme": "dark",
+      "flavor": "graphite",
+      "resolvedFlavor": "graphite",
+      "bgBase": "#14161a",
+      "bgSurface": "#25272c",
+      "borderDefault": "rgb(236 238 242 / 12%)"
+    },
+    {
+      "theme": "dark",
+      "flavor": "mocha",
+      "resolvedFlavor": "mocha",
+      "bgBase": "#11111b",
+      "bgSurface": "#313244",
+      "borderDefault": "rgb(108 112 134 / 44%)"
+    }
+  ],
+  "fontsAtBaseline": {
+    "fontBrand": "'MapleBright', 'SF Pro Display', 'SF Pro Text', 'PingFang SC', ... (MapleBright first — R5 problem confirmed)",
+    "fontMono": "'MapleBright', 'SF Pro Text', 'PingFang SC', ... (MapleBright first, not truly monospace — R5 problem confirmed)"
+  },
+  "notes": [
+    "Light clay base (#f5f5f7) vs surface (#fbfbfd): near-identical lightness, confirms R1 泛白 (washed-out layering).",
+    "Light clay is currently a COOL gray, not the warm beige design.md §2 prescribes; design.md values are the approved target (brand direction = warm neutral surfaces).",
+    "Dark clay base #17120f vs surface #2a221e: layer delta exists at token level but panels in screenshots still read flat; border-default 12% alpha is below the ≥16% PRD floor.",
+    "package.json references scripts/capture-route-snapshots.mjs which does not exist (pre-existing, untouched)."
+  ]
+}

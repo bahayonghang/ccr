@@ -1,0 +1,32 @@
+{
+  "id": "checkin-optimize-templates",
+  "name": "checkin-optimize-templates",
+  "title": "brainstorm: 优化 ccr-ui 签到管理（修复报错 + 体验/性能 + 与模板打通）",
+  "description": "",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": "ccr",
+  "priority": "P2",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-06-10",
+  "completedAt": "2026-06-11",
+  "branch": null,
+  "base_branch": "dev",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "06-10-checkin-error-chain",
+    "06-10-providers-catalog-json",
+    "06-10-checkin-engine-hardening",
+    "06-10-checkin-ux-concurrency",
+    "06-10-checkin-component-split"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}

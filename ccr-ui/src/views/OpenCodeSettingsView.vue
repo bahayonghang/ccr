@@ -1,7 +1,7 @@
 <template>
   <OpenCodePageShell
-    title="Settings"
-    description="拆分管理 `opencode.json` 与 `tui.json`，把 server/runtime、tools/permissions、theme/keybinds 放回各自语义层。"
+    :title="tt('设置', 'Settings')"
+    :description="tt('拆分管理 `opencode.json` 与 `tui.json`，把 server/runtime、tools/permissions、theme/keybinds 放回各自语义层。', 'Manage `opencode.json` and `tui.json` separately so server/runtime, tools/permissions, and theme/keybinds stay in the right layer.')"
     icon="SlidersHorizontal"
     tone="lime"
     badge="settings"
@@ -28,7 +28,7 @@
             size="w-4 h-4"
           />
         </template>
-        保存全部
+        {{ tt('保存全部', 'Save all') }}
       </Button>
     </template>
 
@@ -39,44 +39,44 @@
           class="p-5"
         >
           <h2 class="text-lg font-semibold text-text-primary">
-            Runtime config · opencode.json
+            {{ tt('Runtime config · opencode.json', 'Runtime config · opencode.json') }}
           </h2>
           <div class="mt-4 grid gap-4 md:grid-cols-2">
             <div>
-              <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">model</label>
+              <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('模型', 'model') }}</label>
               <input
                 v-model="form.model"
                 class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 text-sm text-text-primary"
               >
             </div>
             <div>
-              <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">small_model</label>
+              <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('small_model', 'small_model') }}</label>
               <input
                 v-model="form.smallModel"
                 class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 text-sm text-text-primary"
               >
             </div>
             <div>
-              <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">default_agent</label>
+              <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('default_agent', 'default_agent') }}</label>
               <input
                 v-model="form.defaultAgent"
                 class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 text-sm text-text-primary"
               >
             </div>
             <div>
-              <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">share</label>
+              <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('share', 'share') }}</label>
               <select
                 v-model="form.share"
                 class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 text-sm text-text-primary"
               >
                 <option value="manual">
-                  manual
+                  {{ tt('手动', 'manual') }}
                 </option>
                 <option value="auto">
-                  auto
+                  {{ tt('自动', 'auto') }}
                 </option>
                 <option value="disabled">
-                  disabled
+                  {{ tt('禁用', 'disabled') }}
                 </option>
               </select>
             </div>
@@ -88,14 +88,14 @@
                 v-model="form.snapshot"
                 type="checkbox"
               >
-              启用 snapshot
+              {{ tt('启用 snapshot', 'Enable snapshot') }}
             </label>
             <label class="flex items-center gap-3 rounded-2xl border border-border-default/55 bg-bg-base/35 px-4 py-3 text-sm text-text-primary">
               <input
                 v-model="form.autoupdate"
                 type="checkbox"
               >
-              启用 autoupdate
+              {{ tt('启用 autoupdate', 'Enable autoupdate') }}
             </label>
           </div>
         </Card>
@@ -105,18 +105,18 @@
           class="p-5"
         >
           <h2 class="text-lg font-semibold text-text-primary">
-            Server / tools / permissions
+            {{ tt('Server / tools / permissions', 'Server / tools / permissions') }}
           </h2>
           <div class="mt-4 grid gap-4 md:grid-cols-3">
             <div>
-              <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">port</label>
+              <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('端口', 'port') }}</label>
               <input
                 v-model="form.serverPort"
                 class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 text-sm text-text-primary"
               >
             </div>
             <div>
-              <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">hostname</label>
+              <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('主机名', 'hostname') }}</label>
               <input
                 v-model="form.serverHostname"
                 class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 text-sm text-text-primary"
@@ -127,13 +127,13 @@
                 v-model="form.serverMdns"
                 type="checkbox"
               >
-              mDNS
+              {{ tt('mDNS', 'mDNS') }}
             </label>
           </div>
 
           <div class="mt-4 grid gap-4 md:grid-cols-2">
             <div>
-              <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">tools JSON</label>
+              <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('tools JSON', 'tools JSON') }}</label>
               <textarea
                 v-model="form.toolsJson"
                 rows="8"
@@ -141,7 +141,7 @@
               />
             </div>
             <div>
-              <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">permission JSON</label>
+              <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('permission JSON', 'permission JSON') }}</label>
               <textarea
                 v-model="form.permissionJson"
                 rows="8"
@@ -156,11 +156,11 @@
           class="p-5"
         >
           <h2 class="text-lg font-semibold text-text-primary">
-            TUI config · tui.json
+            {{ tt('TUI config · tui.json', 'TUI config · tui.json') }}
           </h2>
           <div class="mt-4 grid gap-4 md:grid-cols-2">
             <div>
-              <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">theme</label>
+              <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('主题', 'theme') }}</label>
               <select
                 v-model="form.theme"
                 class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 text-sm text-text-primary"
@@ -179,12 +179,12 @@
                 v-model="form.mouse"
                 type="checkbox"
               >
-              启用 mouse
+              {{ tt('启用 mouse', 'Enable mouse') }}
             </label>
           </div>
 
           <div class="mt-4">
-            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">keybinds JSON</label>
+            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('keybinds JSON', 'keybinds JSON') }}</label>
             <textarea
               v-model="form.keybindsJson"
               rows="10"
@@ -200,10 +200,10 @@
           class="p-5"
         >
           <h2 class="text-lg font-semibold text-text-primary">
-            Instructions
+            {{ tt('Instructions', 'Instructions') }}
           </h2>
           <p class="mt-2 text-sm text-text-secondary">
-            每行一个路径或 glob，会进入 `instructions` 数组。
+            {{ tt('每行一个路径或 glob，会进入 `instructions` 数组。', 'Add one path or glob per line. Each entry goes into the `instructions` array.') }}
           </p>
           <textarea
             v-model="form.instructionsText"
@@ -217,7 +217,9 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { getErrorMessage } from '@/utils/errorHandler'
 import Card from '@/components/ui/Card.vue'
 import Button from '@/components/ui/Button.vue'
 import SIcon from '@/components/ui/SIcon.vue'
@@ -227,7 +229,10 @@ import { getOpenCodeConfig, getOpenCodeTuiSettings, listOpenCodeThemes, updateOp
 import type { OpenCodeConfig, OpenCodeTheme, OpenCodeTuiConfig } from '@/types'
 import { formatJsonInput, normalizeStringListInput, parseJsonInput } from '@/utils/opencode'
 
+const { locale } = useI18n()
 const uiStore = useUIStore()
+const isZh = computed(() => locale.value.startsWith('zh'))
+const tt = (zh: string, en: string) => (isZh.value ? zh : en)
 const saving = ref(false)
 const themes = ref<OpenCodeTheme[]>([])
 
@@ -276,7 +281,7 @@ async function loadSettings() {
 
     themes.value = themeList
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   }
 }
 
@@ -310,10 +315,10 @@ async function saveAll() {
       updateOpenCodeConfig(runtimePatch),
       updateOpenCodeTuiSettings(tuiPatch),
     ])
-    uiStore.showSuccess('OpenCode 设置已保存')
+    uiStore.showSuccess(tt('OpenCode 设置已保存', 'OpenCode settings saved'))
     await loadSettings()
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   } finally {
     saving.value = false
   }

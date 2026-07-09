@@ -73,8 +73,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }),
   );
 
-  checkCcrAvailability();
-
   context.subscriptions.push(
     vscode.commands.registerCommand("ccr.refreshProfiles", () => refreshAll({
       invalidateRuntime: true,
@@ -431,25 +429,39 @@ async function showSwitchQuickPick(
 
   let platformName: string;
   if (platformOverride) {
+    if (!isProfileCreationPlatform(platformOverride)) {
+      vscode.window.showWarningMessage(`Profile switching is not available for '${platformOverride}'.`);
+      return;
+    }
+
     const exists = registry.platforms.some((platform) => platform.name === platformOverride);
     if (!exists) {
       vscode.window.showWarningMessage(`Platform '${platformOverride}' is not available.`);
       return;
     }
     platformName = platformOverride;
-  } else if (registry.platforms.length === 1) {
-    platformName = registry.platforms[0].name;
   } else {
-    const picked = await vscode.window.showQuickPick(
-      registry.platforms.map((platform) => ({
-        label: `${platform.icon} ${platform.displayName}`,
-        description: platform.currentProfile ? `current: ${platform.currentProfile}` : undefined,
-        platformName: platform.name,
-      })),
-      { placeHolder: "Select platform" },
-    );
-    if (!picked) return;
-    platformName = picked.platformName;
+    const switchablePlatforms = registry.platforms.filter((platform) => isProfileCreationPlatform(platform.name));
+
+    if (switchablePlatforms.length === 0) {
+      vscode.window.showWarningMessage("Claude and Codex profile switching is not available.");
+      return;
+    }
+
+    if (switchablePlatforms.length === 1) {
+      platformName = switchablePlatforms[0].name;
+    } else {
+      const picked = await vscode.window.showQuickPick(
+        switchablePlatforms.map((platform) => ({
+          label: `${platform.icon} ${platform.displayName}`,
+          description: platform.currentProfile ? `current: ${platform.currentProfile}` : undefined,
+          platformName: platform.name,
+        })),
+        { placeHolder: "Select platform" },
+      );
+      if (!picked) return;
+      platformName = picked.platformName;
+    }
   }
 
   const profiles = await readProfiles(platformName);

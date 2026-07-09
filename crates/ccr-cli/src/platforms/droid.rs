@@ -143,7 +143,11 @@ impl DroidPlatform {
             model: profile.model.clone().unwrap_or_default(),
             display_name: profile.description.clone(),
             base_url: profile.base_url.clone().unwrap_or_default(),
-            api_key: profile.auth_token.clone().unwrap_or_default(),
+            api_key: profile
+                .auth_token
+                .as_ref()
+                .map(|token| token.expose().to_string())
+                .unwrap_or_default(),
             provider: profile
                 .provider
                 .clone()
@@ -343,7 +347,7 @@ mod tests {
         let mut profile = ProfileConfig::new();
         profile.model = Some("claude-sonnet-4-5".to_string());
         profile.base_url = Some("https://api.anthropic.com/v1".to_string());
-        profile.auth_token = Some("sk-ant-xxx".to_string());
+        profile.auth_token = Some(ccr_core::Secret::from("sk-ant-xxx"));
         profile.provider = Some("anthropic".to_string());
         profile.description = Some("My Anthropic".to_string());
         profile

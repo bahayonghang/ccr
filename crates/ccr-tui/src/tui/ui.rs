@@ -7,8 +7,11 @@ use super::codex_auth;
 use super::opencode_auth;
 use super::theme;
 use super::toast::ToastKind;
-use crate::models::{CodexRuntimeSummary, OpenAiAuthMethod, Platform, ProfileConfig};
+use super::usage::app::UsageLoadState;
+use super::usage::ui::{format_cost, format_count};
+use ccr_cli::models::{CodexRuntimeSummary, OpenAiAuthMethod, Platform, ProfileConfig};
 use ccr_codex::CodexPlatform;
+use ccr_usage::{ProviderBreakdownDto, SourceKind};
 use ratatui::{
     Frame,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -20,6 +23,7 @@ use ratatui::{
         ScrollbarState, Tabs, Wrap,
     },
 };
+use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
 // ═══════════════════════════════════════════════════════════
 // Main render entry
@@ -180,13 +184,13 @@ fn render_codex_runtime_banner(
     f.render_widget(banner, area);
 }
 
-fn runtime_mode_style(mode: crate::models::CodexRuntimeMode) -> Style {
+fn runtime_mode_style(mode: ccr_cli::models::CodexRuntimeMode) -> Style {
     match mode {
-        crate::models::CodexRuntimeMode::ProfileOnly => theme::success_style(),
-        crate::models::CodexRuntimeMode::ProfileWithAuth
-        | crate::models::CodexRuntimeMode::ProfilePendingAuth => theme::warning_style(),
-        crate::models::CodexRuntimeMode::RuntimeOnly => theme::secondary_text_emphasis_style(),
-        crate::models::CodexRuntimeMode::Unresolved => theme::muted_style(),
+        ccr_cli::models::CodexRuntimeMode::ProfileOnly => theme::success_style(),
+        ccr_cli::models::CodexRuntimeMode::ProfileWithAuth
+        | ccr_cli::models::CodexRuntimeMode::ProfilePendingAuth => theme::warning_style(),
+        ccr_cli::models::CodexRuntimeMode::RuntimeOnly => theme::secondary_text_emphasis_style(),
+        ccr_cli::models::CodexRuntimeMode::Unresolved => theme::muted_style(),
     }
 }
 
@@ -207,9 +211,10 @@ fn wide_profile_workspace_layout(area: Rect) -> (Rect, Rect) {
 }
 
 fn profile_list_rail_layout(area: Rect) -> (Rect, Rect) {
+    // Selection 面板 3 行内容 + 上下边框 = 5; keys 行已并入全局 footer
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Min(8), Constraint::Length(6)])
+        .constraints([Constraint::Min(8), Constraint::Length(5)])
         .split(area);
     (chunks[0], chunks[1])
 }
@@ -256,30 +261,42 @@ fn column_widths(area_width: u16) -> (usize, usize) {
     (name_width, desc_width)
 }
 
+// 截断/填充一律按终端显示宽度计数 (CJK 为 2 列), 不能按字符数,
+// 否则含中文的单元格会溢出列宽被 ratatui 硬裁剪、省略号丢失。
 fn truncate_text(text: &str, width: usize) -> String {
     if width == 0 {
         return String::new();
     }
-    let len = text.chars().count();
-    if len <= width {
+    if text.width() <= width {
         return text.to_string();
     }
     if width == 1 {
         return "…".to_string();
     }
-    let mut out: String = text.chars().take(width - 1).collect();
+
+    // 预留 1 列给省略号; 剩余宽度为奇数时宁短 1 列也不溢出
+    let mut out = String::new();
+    let mut used = 0usize;
+    for ch in text.chars() {
+        let ch_width = ch.width().unwrap_or(0);
+        if used + ch_width > width - 1 {
+            break;
+        }
+        out.push(ch);
+        used += ch_width;
+    }
     out.push('…');
     out
 }
 
 fn pad_text(text: &str, width: usize) -> String {
-    let len = text.chars().count();
-    if len >= width {
+    let text_width = text.width();
+    if text_width >= width {
         return text.to_string();
     }
-    let mut out = String::with_capacity(width);
+    let mut out = String::with_capacity(text.len() + width - text_width);
     out.push_str(text);
-    out.extend(std::iter::repeat_n(' ', width - len));
+    out.extend(std::iter::repeat_n(' ', width - text_width));
     out
 }
 
@@ -592,36 +609,40 @@ fn render_profile_context_workspace(
     let profile_name = profile.name.clone();
     let is_current = profile.is_current;
 
+    // Focus 高度随内容收缩 (2-3 行 + 边框), 让出的行给 Context 详情
+    let summary = profile_summary_strings(
+        profile_name.as_str(),
+        config,
+        is_current,
+        app.last_applied.as_ref(),
+    );
+    let summary_height = summary.len() as u16 + 2;
+
     if mode == theme::ViewportMode::Wide {
         let chunks = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
-                Constraint::Length(7),
+                Constraint::Length(summary_height),
                 Constraint::Min(10),
                 Constraint::Length(3),
             ])
             .split(area);
 
-        render_profile_summary_block(f, app, chunks[0], profile_name.as_str(), config, is_current);
-        render_profile_details(f, app, chunks[1]);
+        render_profile_summary_block(f, app, chunks[0], summary);
+        render_profile_details(f, app, chunks[1], mode);
         render_profile_status_strip(f, app, chunks[2], profile_name.as_str());
     } else {
-        let summary_height = if mode == theme::ViewportMode::Compact {
-            5
-        } else {
-            7
-        };
         let chunks = Layout::default()
             .direction(Direction::Vertical)
             .constraints([Constraint::Length(summary_height), Constraint::Min(0)])
             .split(area);
 
-        render_profile_summary_block(f, app, chunks[0], profile_name.as_str(), config, is_current);
-        render_profile_details(f, app, chunks[1]);
+        render_profile_summary_block(f, app, chunks[0], summary);
+        render_profile_details(f, app, chunks[1], mode);
     }
 }
 
-fn render_profile_details(f: &mut Frame, app: &mut App, area: Rect) {
+fn render_profile_details(f: &mut Frame, app: &mut App, area: Rect, mode: theme::ViewportMode) {
     app.detail_area.set(Some(area));
     let platform = app.current_platform();
     let accent = theme::platform_color_for(platform);
@@ -651,10 +672,25 @@ fn render_profile_details(f: &mut Frame, app: &mut App, area: Rect) {
         return;
     };
 
+    // 用量引擎状态只读传入详情行构造(未初始化 = 加载中);渲染循环零 I/O
+    let usage_state = app.usage_app.as_ref().map(|engine| &engine.state);
+    let compact = mode == theme::ViewportMode::Compact;
     let lines = if platform == Platform::Codex {
-        codex_profile_detail_lines(profile.name.as_str(), config, profile.is_current)
+        codex_profile_detail_lines(
+            profile.name.as_str(),
+            config,
+            profile.is_current,
+            usage_state,
+            compact,
+        )
     } else if platform == Platform::Claude {
-        claude_profile_detail_lines(profile.name.as_str(), config, profile.is_current)
+        claude_profile_detail_lines(
+            profile.name.as_str(),
+            config,
+            profile.is_current,
+            usage_state,
+            compact,
+        )
     } else {
         generic_profile_detail_lines(profile.name.as_str(), config, profile.is_current)
     };
@@ -688,14 +724,7 @@ fn render_profile_details(f: &mut Frame, app: &mut App, area: Rect) {
     }
 }
 
-fn render_profile_summary_block(
-    f: &mut Frame,
-    app: &App,
-    area: Rect,
-    profile_name: &str,
-    config: &ProfileConfig,
-    is_current: bool,
-) {
+fn render_profile_summary_block(f: &mut Frame, app: &App, area: Rect, summary: Vec<String>) {
     let platform = app.current_platform();
     let block = Block::default()
         .borders(Borders::ALL)
@@ -705,16 +734,7 @@ fn render_profile_summary_block(
         .title_style(theme::platform_style_for(platform))
         .padding(Padding::horizontal(1));
 
-    let lines: Vec<Line> = profile_summary_strings(
-        platform,
-        profile_name,
-        config,
-        is_current,
-        app.last_applied.as_ref(),
-    )
-    .into_iter()
-    .map(profile_summary_line)
-    .collect();
+    let lines: Vec<Line> = summary.into_iter().map(profile_summary_line).collect();
 
     let paragraph = Paragraph::new(lines).block(block).wrap(Wrap { trim: true });
     f.render_widget(paragraph, area);
@@ -727,10 +747,10 @@ fn render_profile_status_strip(f: &mut Frame, app: &App, area: Rect, profile_nam
         .title(" Status ")
         .title_style(theme::secondary_text_emphasis_style());
 
-    let mut text = footer_text(app);
-    if let Some(action) = last_apply_message(profile_name, app.last_applied.as_ref()) {
-        text = format!("{action}  │  {text}");
-    }
+    // 快捷键只保留底部全局 Keys footer 一处; strip 只反馈 apply 结果/toast
+    let text = last_apply_message(profile_name, app.last_applied.as_ref())
+        .or_else(|| app.toasts.active().map(|toast| toast.message.clone()))
+        .unwrap_or_default();
 
     let paragraph = Paragraph::new(text)
         .block(block)
@@ -757,7 +777,7 @@ fn generic_profile_detail_lines(
         detail_line("account", opt_text(config.account.as_deref())),
         Line::from(""),
         section_line(" Activity "),
-        detail_line("usage_count", config.usage_count().to_string()),
+        detail_line("switch_count", config.usage_count().to_string()),
         detail_line("tags", tags_text(config)),
     ]
 }
@@ -766,6 +786,8 @@ fn codex_profile_detail_lines(
     name: &str,
     config: &ProfileConfig,
     is_current: bool,
+    usage: Option<&UsageLoadState>,
+    compact: bool,
 ) -> Vec<Line<'static>> {
     let auth_mode = CodexPlatform::profile_auth_mode(config);
     let login_method =
@@ -775,20 +797,12 @@ fn codex_profile_detail_lines(
         });
     let token_state = match auth_mode.as_str() {
         "openai_api_key" | "provider_env_key" => {
-            if config
-                .auth_token
-                .as_ref()
-                .is_some_and(|token| !token.trim().is_empty())
-            {
-                "configured".to_string()
-            } else {
-                "missing".to_string()
-            }
+            configured_token_text(config).unwrap_or_else(|| "missing".to_string())
         }
         _ => "-".to_string(),
     };
 
-    vec![
+    let mut lines = vec![
         section_line(" Overview "),
         detail_line("name", name.to_string()),
         detail_line("current", yes_no(is_current)),
@@ -800,6 +814,7 @@ fn codex_profile_detail_lines(
         detail_line("provider", opt_text(config.provider.as_deref())),
         detail_line("auth_mode", auth_mode.as_str().to_string()),
         detail_line("auth_source", CodexPlatform::profile_auth_source(config)),
+        detail_line("token", token_state),
         detail_line(
             "openai_login",
             login_method.unwrap_or_else(|| "-".to_string()),
@@ -833,30 +848,32 @@ fn codex_profile_detail_lines(
         detail_line("account", opt_text(config.account.as_deref())),
         Line::from(""),
         section_line(" Activity "),
-        detail_line("usage_count", config.usage_count().to_string()),
+        detail_line("switch_count", config.usage_count().to_string()),
         detail_line("tags", tags_text(config)),
-        detail_line("token", token_state),
-    ]
+    ];
+
+    lines.extend(usage_section_lines(
+        SourceKind::Codex,
+        config.provider.as_deref(),
+        usage,
+        compact,
+    ));
+
+    lines
 }
 
 fn claude_profile_detail_lines(
     name: &str,
     config: &ProfileConfig,
     is_current: bool,
+    usage: Option<&UsageLoadState>,
+    compact: bool,
 ) -> Vec<Line<'static>> {
-    let auth_mode = crate::platforms::ClaudePlatform::profile_auth_mode(config);
+    let auth_mode = ccr_cli::platforms::ClaudePlatform::profile_auth_mode(config);
     let provider_type = opt_text(config.provider_type.as_deref());
     let provider = opt_text(config.provider.as_deref());
-    let token_state = if matches!(auth_mode, crate::models::ClaudeProfileAuthMode::ApiKey) {
-        if config
-            .auth_token
-            .as_ref()
-            .is_some_and(|token| !token.trim().is_empty())
-        {
-            "configured".to_string()
-        } else {
-            "missing".to_string()
-        }
+    let token_state = if matches!(auth_mode, ccr_cli::models::ClaudeProfileAuthMode::ApiKey) {
+        configured_token_text(config).unwrap_or_else(|| "missing".to_string())
     } else {
         "subscription".to_string()
     };
@@ -878,7 +895,7 @@ fn claude_profile_detail_lines(
         detail_line("auth_mode", auth_mode.as_str().to_string()),
         detail_line(
             "auth_source",
-            crate::platforms::ClaudePlatform::profile_auth_source(config),
+            ccr_cli::platforms::ClaudePlatform::profile_auth_source(config),
         ),
         detail_line("token", token_state),
     ];
@@ -894,11 +911,129 @@ fn claude_profile_detail_lines(
     lines.extend([
         Line::from(""),
         section_line(" Activity "),
-        detail_line("usage_count", config.usage_count().to_string()),
+        detail_line("switch_count", config.usage_count().to_string()),
         detail_line("tags", tags_text(config)),
     ]);
 
+    lines.extend(usage_section_lines(
+        SourceKind::Claude,
+        config.provider.as_deref(),
+        usage,
+        compact,
+    ));
+
     lines
+}
+
+// ═══════════════════════════════════════════════════════════
+// Profile detail: Usage section (provider-level)
+// ═══════════════════════════════════════════════════════════
+
+// 详情面板的 Usage 分组: 数据来自 App 级用量引擎一次性加载的数据集,
+// 这里只做纯内存查找与格式化;六种状态都渲染为组内单行,不打断整页详情。
+// 归因粒度是 provider 级 —— 共享同一 provider 的多个 profile 数字相同。
+fn usage_section_lines(
+    platform: SourceKind,
+    provider: Option<&str>,
+    state: Option<&UsageLoadState>,
+    compact: bool,
+) -> Vec<Line<'static>> {
+    let title = match provider {
+        Some(name) => format!(" Usage (provider: {name}) "),
+        None => " Usage ".to_string(),
+    };
+    let mut lines = vec![Line::from(""), section_line(&title)];
+
+    let Some(provider) = provider else {
+        // profile 未填 provider 字段时激活事件无归因标签。不回退展示
+        // unattributed 桶 —— 那里混着全部历史未归因用量,数字会误导。
+        lines.push(usage_status_line(
+            "no provider label — usage unattributed",
+            theme::muted_style(),
+        ));
+        return lines;
+    };
+
+    match state {
+        None | Some(UsageLoadState::Idle | UsageLoadState::Loading) => {
+            lines.push(usage_status_line("loading...", theme::muted_style()));
+        }
+        Some(UsageLoadState::Unsupported(message)) => {
+            lines.push(usage_status_line(message, theme::warning_style()));
+        }
+        Some(UsageLoadState::Error(message)) => {
+            lines.push(usage_status_line(message, theme::error_style()));
+        }
+        Some(UsageLoadState::Empty) => {
+            lines.push(usage_status_line("no usage recorded", theme::muted_style()));
+        }
+        Some(UsageLoadState::Loaded(dataset)) => {
+            match dataset
+                .platform_rows(platform)
+                .find(|row| row.breakdown.provider.as_deref() == Some(provider))
+            {
+                Some(row) => lines.extend(usage_metric_lines(&row.breakdown, compact)),
+                None => {
+                    lines.push(usage_status_line("no usage recorded", theme::muted_style()));
+                }
+            }
+        }
+    }
+
+    lines
+}
+
+fn usage_status_line(text: &str, style: Style) -> Line<'static> {
+    Line::from(Span::styled(text.to_string(), style))
+}
+
+fn usage_metric_lines(breakdown: &ProviderBreakdownDto, compact: bool) -> Vec<Line<'static>> {
+    if compact {
+        // Compact 视口合并为 3 行,控制详情面板高度
+        return vec![
+            detail_line("requests", format_count(breakdown.request_count)),
+            detail_line(
+                "tokens",
+                format!(
+                    "in {} · out {} · cache {}",
+                    format_count(breakdown.input_tokens),
+                    format_count(breakdown.output_tokens_total()),
+                    format_count(breakdown.cache_tokens_total()),
+                ),
+            ),
+            detail_line("approx_cost", format_cost(breakdown.cost_with_cache_usd)),
+        ];
+    }
+
+    vec![
+        detail_line("requests", format_count(breakdown.request_count)),
+        detail_line("input", format_count(breakdown.input_tokens)),
+        detail_line("output", format_count(breakdown.output_tokens_total())),
+        detail_line("cache", format_count(breakdown.cache_tokens_total())),
+        detail_line("total", format_count(breakdown.total_tokens)),
+        detail_line("approx_cost", format_cost(breakdown.cost_with_cache_usd)),
+        Line::from(vec![
+            Span::styled(
+                format!("{:<16}", "note"),
+                theme::secondary_text_emphasis_style(),
+            ),
+            Span::styled(
+                "approx official-equivalent · provider-level (all-time)".to_string(),
+                theme::muted_style(),
+            ),
+        ]),
+    ]
+}
+
+// token 行展示统一走这里: 掩码策略唯一归属 ccr_core::mask_sensitive,
+// 这里只负责拼接 `configured (<masked>)` 展示形态, 不得输出明文。
+fn configured_token_text(config: &ProfileConfig) -> Option<String> {
+    config
+        .auth_token
+        .as_ref()
+        .map(|token| token.expose().trim())
+        .filter(|token| !token.is_empty())
+        .map(|token| format!("configured ({})", ccr_core::mask_sensitive(token)))
 }
 
 fn section_line(title: &str) -> Line<'static> {
@@ -927,7 +1062,7 @@ fn detail_value_style(label: &str, value: &str) -> Style {
 
     if normalized_value == "yes"
         || normalized_value == "enabled"
-        || normalized_value == "configured"
+        || normalized_value.starts_with("configured")
         || normalized_value == "current"
     {
         return theme::success_style();
@@ -1034,16 +1169,16 @@ fn profile_meta_strings(
             total_pages.max(1)
         ),
         "Legend: ● current · ▶ selected".to_string(),
-        "Enter apply · r reload · Tab/Shift+Tab switch".to_string(),
     ]
 }
 
+// Focus 块只保留 Context 分组里没有的信息: 选中态/当前态 + 最近 apply 结果。
+// Description/Model/Base URL 等在 Context 的 Overview/Engine 分组已完整展示。
 fn profile_summary_strings(
-    platform: Platform,
     name: &str,
     config: &ProfileConfig,
     is_current: bool,
-    _last_applied: Option<&(String, String, bool, Option<String>)>,
+    last_applied: Option<&(String, String, bool, Option<String>)>,
 ) -> Vec<String> {
     let mut lines = vec![
         format!("Name: {name}"),
@@ -1056,26 +1191,10 @@ fn profile_summary_strings(
                 "Disabled"
             }
         ),
-        format!("Description: {}", opt_text(config.description.as_deref())),
-        format!("Model: {}", opt_text(config.model.as_deref())),
     ];
 
-    if platform == Platform::Codex {
-        let auth_mode = CodexPlatform::profile_auth_mode(config);
-        lines.push(format!(
-            "Routing: {} · {}",
-            opt_text(config.provider.as_deref()),
-            auth_mode.as_str()
-        ));
-        lines.push(format!(
-            "Base URL: {}",
-            opt_text(config.base_url.as_deref())
-        ));
-    } else {
-        lines.push(format!(
-            "Base URL: {}",
-            opt_text(config.base_url.as_deref())
-        ));
+    if let Some(message) = last_apply_message(name, last_applied) {
+        lines.push(format!("Last apply: {message}"));
     }
 
     lines
@@ -1261,11 +1380,15 @@ fn render_toast(f: &mut Frame, app: &App, area: Rect) {
 mod tests {
     use super::*;
     use crate::tui::app::{PlatformTab, ProfileItem, TabVariant};
+    use crate::tui::runtime::AsyncTaskExecutor;
     use crate::tui::theme::ViewportMode;
     use crate::tui::toast::ToastManager;
+    use crate::tui::usage::app::{UsageApp, UsageDataset};
+    use ccr_usage::TaggedProviderBreakdown;
     use indexmap::IndexMap;
     use ratatui::{Terminal, backend::TestBackend};
     use std::cell::Cell;
+    use std::sync::Arc;
 
     fn plain_line_text(line: &Line<'_>) -> String {
         line.spans
@@ -1310,6 +1433,7 @@ mod tests {
                 claude_runtime_summary: None,
                 codex_runtime_summary: None,
                 instance: None,
+                saved_selection: None,
             }],
             active_tab: 0,
             selected_index: 0,
@@ -1327,6 +1451,7 @@ mod tests {
             opencode_auth_app: None,
             opencode_auth_error: None,
             last_opencode_action: None,
+            usage_app: None,
             header_area: Cell::new(None),
             list_area: Cell::new(None),
             detail_area: Cell::new(None),
@@ -1347,6 +1472,7 @@ mod tests {
             claude_runtime_summary: None,
             codex_runtime_summary: None,
             instance: None,
+            saved_selection: None,
         }
     }
 
@@ -1388,8 +1514,9 @@ mod tests {
         let app = sample_profile_app(profile, ProfileConfig::new());
 
         assert!(footer_text(&app).contains("Tab/Shift+Tab switch"));
+        // 快捷键只保留 footer 一处, Selection 面板不再重复
         assert!(
-            profile_meta_strings(1, 0, 1, app.selected_profile())
+            !profile_meta_strings(1, 0, 1, app.selected_profile())
                 .iter()
                 .any(|line| line.contains("Tab/Shift+Tab switch"))
         );
@@ -1415,8 +1542,8 @@ mod tests {
     fn profile_list_rail_layout_keeps_full_selection_panel_visible() {
         let (list_area, meta_area) = profile_list_rail_layout(Rect::new(0, 0, 58, 20));
 
-        assert_eq!(list_area.height, 14);
-        assert_eq!(meta_area.height, 6);
+        assert_eq!(list_area.height, 15);
+        assert_eq!(meta_area.height, 5);
     }
 
     #[test]
@@ -1436,6 +1563,55 @@ mod tests {
         assert_eq!(column_widths(51), (45, 0));
         assert_eq!(column_widths(52), (18, 28));
         assert_eq!(column_widths(58), (20, 32));
+    }
+
+    #[test]
+    fn truncate_text_limits_display_width_for_cjk_and_emoji() {
+        for (text, width) in [
+            ("中文描述很长", 8),
+            ("ab中文cd", 6),
+            ("📭📭📭", 4),
+            ("公益 AnyRouter 中转", 10),
+            ("中文", 1),
+        ] {
+            let out = truncate_text(text, width);
+            assert!(out.width() <= width, "{text} @ {width} -> {out}");
+            assert!(out.ends_with('…'), "{text} @ {width} -> {out}");
+        }
+    }
+
+    #[test]
+    fn truncate_and_pad_keep_ascii_behavior_unchanged() {
+        assert_eq!(truncate_text("abcdef", 6), "abcdef");
+        assert_eq!(truncate_text("abcdefg", 6), "abcde…");
+        assert_eq!(truncate_text("abc", 0), "");
+        assert_eq!(pad_text("abc", 6), "abc   ");
+        assert_eq!(pad_text("abcdef", 4), "abcdef");
+    }
+
+    #[test]
+    fn pad_text_fills_to_display_width_for_cjk() {
+        let out = pad_text("中文", 6);
+        assert_eq!(out, "中文  ");
+        assert_eq!(out.width(), 6);
+    }
+
+    #[test]
+    fn profile_list_row_with_cjk_description_stays_within_column_budget() {
+        let profile = ProfileItem {
+            name: "anyrouter4".to_string(),
+            description: Some("AnyRouter 公益中转,含超长中文描述用于截断验证".to_string()),
+            is_current: true,
+        };
+        let (name_width, desc_width) = (20usize, 24usize);
+
+        let rendered = plain_line_text(&profile_list_row(&profile, false, name_width, desc_width));
+
+        assert!(
+            rendered.width() <= name_width + 2 + desc_width,
+            "{rendered}"
+        );
+        assert!(rendered.contains('…'), "{rendered}");
     }
 
     #[test]
@@ -1473,7 +1649,7 @@ mod tests {
         assert_eq!(summary.spans[0].style.fg, Some(theme::subtext()));
         assert_eq!(summary.spans[1].style.fg, Some(theme::text()));
 
-        let detail = detail_line("usage_count", "42".to_string());
+        let detail = detail_line("switch_count", "42".to_string());
         assert_eq!(detail.spans[0].style.fg, Some(theme::subtext()));
         assert_eq!(detail.spans[1].style.fg, Some(theme::text()));
     }
@@ -1520,6 +1696,7 @@ mod tests {
                 .any(|line| line.contains("Profiles: 15 · Page: 2/2"))
         );
         assert!(lines.iter().any(|line| line.contains("Legend:")));
+        assert!(!lines.iter().any(|line| line.contains("Enter apply")));
     }
 
     #[test]
@@ -1527,22 +1704,45 @@ mod tests {
         let mut config = ProfileConfig::new();
         config.description = Some("fovts 公益".to_string());
         config.model = Some("gpt-5.4".to_string());
+        config.base_url = Some("https://example.com/v1".to_string());
 
         let lines = profile_summary_strings(
-            Platform::Codex,
             "fovts",
             &config,
             true,
             Some(&("Codex Profile".to_string(), "fovts".to_string(), true, None)),
         );
 
+        assert!(lines.iter().any(|line| line.contains("Name: fovts")));
         assert!(
             lines
                 .iter()
                 .any(|line| line.contains("Status: Current · Enabled"))
         );
-        assert!(lines.iter().any(|line| line.contains("Model: gpt-5.4")));
-        assert!(!lines.iter().any(|line| line.contains("Last action:")));
+        assert!(
+            lines
+                .iter()
+                .any(|line| line.contains("Last apply: Applied successfully"))
+        );
+        // Context 的 Overview/Engine 分组已展示这些信息, Focus 不再重复
+        assert!(!lines.iter().any(|line| line.starts_with("Description:")));
+        assert!(!lines.iter().any(|line| line.starts_with("Model:")));
+        assert!(!lines.iter().any(|line| line.starts_with("Base URL:")));
+    }
+
+    #[test]
+    fn profile_summary_strings_skip_apply_line_for_other_profiles() {
+        let config = ProfileConfig::new();
+
+        let lines = profile_summary_strings(
+            "fovts",
+            &config,
+            false,
+            Some(&("Codex Profile".to_string(), "other".to_string(), true, None)),
+        );
+
+        assert_eq!(lines.len(), 2);
+        assert!(!lines.iter().any(|line| line.contains("Last apply:")));
     }
 
     #[test]
@@ -1562,7 +1762,29 @@ mod tests {
 
         let rendered = buffer_text(terminal.backend());
         assert!(rendered.contains("Applied successfully"), "{rendered}");
-        assert!(rendered.contains("Enter apply"), "{rendered}");
+        // strip 不再重复快捷键列表
+        assert!(!rendered.contains("Enter apply"), "{rendered}");
+        assert!(!rendered.contains("q quit"), "{rendered}");
+    }
+
+    #[test]
+    fn profile_status_strip_stays_quiet_without_apply_feedback() {
+        let profile = ProfileItem {
+            name: "fovts".to_string(),
+            description: Some("fovts 公益".to_string()),
+            is_current: true,
+        };
+        let app = sample_profile_app(profile, ProfileConfig::new());
+
+        let mut terminal = Terminal::new(TestBackend::new(72, 3)).unwrap();
+        terminal
+            .draw(|frame| render_profile_status_strip(frame, &app, frame.area(), "fovts"))
+            .unwrap();
+
+        let rendered = buffer_text(terminal.backend());
+        assert!(rendered.contains("Status"), "{rendered}");
+        assert!(!rendered.contains("Enter apply"), "{rendered}");
+        assert!(!rendered.contains("Tab/Shift+Tab"), "{rendered}");
     }
 
     #[test]
@@ -1600,7 +1822,9 @@ mod tests {
         let mut terminal = Terminal::new(TestBackend::new(32, 14)).unwrap();
 
         terminal
-            .draw(|frame| render_profile_details(frame, &mut app, frame.area()))
+            .draw(|frame| {
+                render_profile_details(frame, &mut app, frame.area(), ViewportMode::Standard)
+            })
             .unwrap();
 
         let rendered = buffer_text(terminal.backend());
@@ -1660,10 +1884,575 @@ mod tests {
 
         let mut terminal = Terminal::new(TestBackend::new(48, 8)).unwrap();
         terminal
-            .draw(|frame| render_profile_details(frame, &mut app, frame.area()))
+            .draw(|frame| {
+                render_profile_details(frame, &mut app, frame.area(), ViewportMode::Standard)
+            })
             .unwrap();
 
         assert!(app.profile_detail_scroll < 100);
         assert!(app.profile_detail_scroll > 0);
+    }
+
+    fn detail_texts(lines: &[Line<'_>]) -> Vec<String> {
+        lines.iter().map(plain_line_text).collect()
+    }
+
+    fn token_line(texts: &[String]) -> String {
+        texts
+            .iter()
+            .find(|text| text.starts_with("token"))
+            .cloned()
+            .expect("token line present")
+    }
+
+    #[test]
+    fn claude_detail_token_line_shows_masked_key_when_configured() {
+        let mut config = ProfileConfig::new();
+        config
+            .platform_data
+            .insert("auth_mode".to_string(), serde_json::json!("api_key"));
+        config.auth_token = Some(ccr_core::Secret::new("sk-ant-test1234567890"));
+
+        let texts = detail_texts(&claude_profile_detail_lines(
+            "api", &config, false, None, false,
+        ));
+        assert!(
+            token_line(&texts).contains("configured (sk-a...7890)"),
+            "{texts:?}"
+        );
+    }
+
+    #[test]
+    fn claude_detail_token_line_masks_short_key_fully() {
+        let mut config = ProfileConfig::new();
+        config
+            .platform_data
+            .insert("auth_mode".to_string(), serde_json::json!("api_key"));
+        config.auth_token = Some(ccr_core::Secret::new("shortkey12"));
+
+        let texts = detail_texts(&claude_profile_detail_lines(
+            "api", &config, false, None, false,
+        ));
+        assert!(
+            token_line(&texts).contains("configured (**********)"),
+            "{texts:?}"
+        );
+    }
+
+    #[test]
+    fn detail_token_states_keep_missing_subscription_and_dash() {
+        let mut claude_missing = ProfileConfig::new();
+        claude_missing
+            .platform_data
+            .insert("auth_mode".to_string(), serde_json::json!("api_key"));
+        let texts = detail_texts(&claude_profile_detail_lines(
+            "m",
+            &claude_missing,
+            false,
+            None,
+            false,
+        ));
+        assert!(
+            token_line(&texts).trim_end().ends_with("missing"),
+            "{texts:?}"
+        );
+
+        let mut claude_subscription = ProfileConfig::new();
+        claude_subscription
+            .platform_data
+            .insert("auth_mode".to_string(), serde_json::json!("subscription"));
+        let texts = detail_texts(&claude_profile_detail_lines(
+            "s",
+            &claude_subscription,
+            false,
+            None,
+            false,
+        ));
+        assert!(
+            token_line(&texts).trim_end().ends_with("subscription"),
+            "{texts:?}"
+        );
+
+        let mut codex_missing = ProfileConfig::new();
+        codex_missing
+            .platform_data
+            .insert("auth_mode".to_string(), serde_json::json!("openai_api_key"));
+        let texts = detail_texts(&codex_profile_detail_lines(
+            "m",
+            &codex_missing,
+            false,
+            None,
+            false,
+        ));
+        assert!(
+            token_line(&texts).trim_end().ends_with("missing"),
+            "{texts:?}"
+        );
+
+        let mut codex_no_auth = ProfileConfig::new();
+        codex_no_auth
+            .platform_data
+            .insert("auth_mode".to_string(), serde_json::json!("no_auth"));
+        let texts = detail_texts(&codex_profile_detail_lines(
+            "n",
+            &codex_no_auth,
+            false,
+            None,
+            false,
+        ));
+        assert!(token_line(&texts).trim_end().ends_with('-'), "{texts:?}");
+    }
+
+    #[test]
+    fn codex_detail_token_line_is_masked_and_lives_in_routing_auth_group() {
+        let mut config = ProfileConfig::new();
+        config
+            .platform_data
+            .insert("auth_mode".to_string(), serde_json::json!("openai_api_key"));
+        config.auth_token = Some(ccr_core::Secret::new("sk-test-abcdef1234567890"));
+
+        let texts = detail_texts(&codex_profile_detail_lines(
+            "codex-key",
+            &config,
+            false,
+            None,
+            false,
+        ));
+
+        let routing_idx = texts
+            .iter()
+            .position(|text| text.contains("Routing/Auth"))
+            .expect("Routing/Auth section present");
+        let engine_idx = texts
+            .iter()
+            .position(|text| text.contains("Engine"))
+            .expect("Engine section present");
+        let activity_idx = texts
+            .iter()
+            .position(|text| text.contains("Activity"))
+            .expect("Activity section present");
+        let token_idx = texts
+            .iter()
+            .position(|text| text.starts_with("token"))
+            .expect("token line present");
+
+        assert!(
+            routing_idx < token_idx && token_idx < engine_idx,
+            "{texts:?}"
+        );
+        assert!(
+            texts[activity_idx..]
+                .iter()
+                .all(|text| !text.starts_with("token")),
+            "{texts:?}"
+        );
+        assert!(
+            texts[token_idx].contains("configured (sk-t...7890)"),
+            "{texts:?}"
+        );
+    }
+
+    #[test]
+    fn profile_detail_lines_never_render_plaintext_token() {
+        let plaintext = "sk-ant-test1234567890";
+
+        let mut claude_config = ProfileConfig::new();
+        claude_config
+            .platform_data
+            .insert("auth_mode".to_string(), serde_json::json!("api_key"));
+        claude_config.auth_token = Some(ccr_core::Secret::new(plaintext));
+
+        let mut codex_config = ProfileConfig::new();
+        codex_config
+            .platform_data
+            .insert("auth_mode".to_string(), serde_json::json!("openai_api_key"));
+        codex_config.auth_token = Some(ccr_core::Secret::new(plaintext));
+
+        let claude_text = detail_texts(&claude_profile_detail_lines(
+            "claude-key",
+            &claude_config,
+            true,
+            None,
+            false,
+        ))
+        .join("\n");
+        let codex_text = detail_texts(&codex_profile_detail_lines(
+            "codex-key",
+            &codex_config,
+            true,
+            None,
+            false,
+        ))
+        .join("\n");
+
+        assert!(!claude_text.contains(plaintext), "{claude_text}");
+        assert!(!codex_text.contains(plaintext), "{codex_text}");
+    }
+
+    #[test]
+    fn detail_value_style_keeps_configured_masked_value_green() {
+        assert_eq!(
+            detail_value_style("token", "configured (sk-a...7890)"),
+            theme::success_style()
+        );
+        assert_eq!(
+            detail_value_style("token", "missing"),
+            theme::warning_style()
+        );
+    }
+
+    #[test]
+    fn detail_activity_group_labels_switch_count_not_usage_count() {
+        let config = ProfileConfig::new();
+
+        for lines in [
+            generic_profile_detail_lines("g", &config, false),
+            claude_profile_detail_lines("c", &config, false, None, false),
+            codex_profile_detail_lines("x", &config, false, None, false),
+        ] {
+            let text = detail_texts(&lines).join("\n");
+            assert!(text.contains("switch_count"), "{text}");
+            assert!(!text.contains("usage_count"), "{text}");
+        }
+    }
+
+    #[test]
+    fn wide_profile_draw_shows_shortcuts_only_in_global_footer() {
+        let profile = ProfileItem {
+            name: "fovts".to_string(),
+            description: Some("fovts 公益".to_string()),
+            is_current: true,
+        };
+        let mut app = sample_profile_app(profile, ProfileConfig::new());
+        app.last_applied = Some(("Claude Code".to_string(), "fovts".to_string(), true, None));
+
+        let mut terminal = Terminal::new(TestBackend::new(140, 32)).unwrap();
+        terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+
+        let rendered = buffer_text(terminal.backend());
+        assert_eq!(
+            rendered.matches("Enter apply").count(),
+            1,
+            "shortcuts must only appear in the Keys footer: {rendered}"
+        );
+        assert!(rendered.contains("Applied successfully"), "{rendered}");
+    }
+
+    // ── Profile 详情 Usage 分组 ──────────────────────────────
+
+    fn usage_row(
+        source: SourceKind,
+        provider: Option<&str>,
+        requests: i64,
+    ) -> TaggedProviderBreakdown {
+        TaggedProviderBreakdown {
+            source,
+            breakdown: ProviderBreakdownDto {
+                provider: provider.map(str::to_string),
+                request_count: requests,
+                input_tokens: 1_500,
+                cache_read_tokens: 200,
+                cache_creation_tokens: 100,
+                output_tokens: 40,
+                reasoning_output_tokens: 5,
+                total_tokens: 1_845,
+                cost_with_cache_usd: 1.5,
+                cost_without_cache_usd: 2.0,
+            },
+        }
+    }
+
+    fn loaded_usage(rows: Vec<TaggedProviderBreakdown>) -> UsageLoadState {
+        UsageLoadState::Loaded(UsageDataset { rows })
+    }
+
+    #[test]
+    fn usage_section_shows_loading_before_dataset_arrives() {
+        let idle = UsageLoadState::Idle;
+        let loading = UsageLoadState::Loading;
+        for state in [None, Some(&idle), Some(&loading)] {
+            let texts = detail_texts(&usage_section_lines(
+                SourceKind::Codex,
+                Some("anyrouter"),
+                state,
+                false,
+            ));
+            assert!(
+                texts
+                    .iter()
+                    .any(|text| text.contains("Usage (provider: anyrouter)")),
+                "{texts:?}"
+            );
+            assert!(
+                texts.iter().any(|text| text.contains("loading...")),
+                "{texts:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn usage_section_reports_unattributed_without_provider_label() {
+        // 数据集里的 provider=null 桶混着全部历史未归因用量;
+        // 未填 provider 的 profile 不得回退展示该桶数字
+        let state = loaded_usage(vec![usage_row(SourceKind::Codex, None, 999_999)]);
+        let lines = usage_section_lines(SourceKind::Codex, None, Some(&state), false);
+        let texts = detail_texts(&lines);
+
+        assert!(
+            texts
+                .iter()
+                .any(|text| text.contains("no provider label — usage unattributed")),
+            "{texts:?}"
+        );
+        assert!(
+            !texts.iter().any(|text| text.starts_with("requests")),
+            "{texts:?}"
+        );
+        assert_eq!(
+            lines.last().expect("usage status line present").spans[0].style,
+            theme::muted_style()
+        );
+    }
+
+    #[test]
+    fn usage_section_reports_no_usage_for_unmatched_provider_or_platform() {
+        let cases = [
+            // provider 无对应行
+            loaded_usage(vec![usage_row(SourceKind::Codex, Some("other"), 10)]),
+            // provider 同名但平台不同(Claude 行不服务 Codex 详情)
+            loaded_usage(vec![usage_row(SourceKind::Claude, Some("anyrouter"), 10)]),
+            // 数据集整体为空
+            UsageLoadState::Empty,
+        ];
+        for state in &cases {
+            let texts = detail_texts(&usage_section_lines(
+                SourceKind::Codex,
+                Some("anyrouter"),
+                Some(state),
+                false,
+            ));
+            assert!(
+                texts.iter().any(|text| text.contains("no usage recorded")),
+                "{texts:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn usage_section_unsupported_and_error_render_semantic_status_lines() {
+        let unsupported =
+            UsageLoadState::Unsupported("provider_breakdown requires schema >= 14".to_string());
+        let lines = usage_section_lines(
+            SourceKind::Claude,
+            Some("anthropic"),
+            Some(&unsupported),
+            false,
+        );
+        let status = lines.last().expect("unsupported status line present");
+        assert!(plain_line_text(status).contains("schema >= 14"));
+        assert_eq!(status.spans[0].style, theme::warning_style());
+
+        let error = UsageLoadState::Error("query failed: boom".to_string());
+        let lines = usage_section_lines(SourceKind::Claude, Some("anthropic"), Some(&error), false);
+        let status = lines.last().expect("error status line present");
+        assert!(plain_line_text(status).contains("boom"));
+        assert_eq!(status.spans[0].style, theme::error_style());
+    }
+
+    #[test]
+    fn usage_section_hit_renders_full_metric_fields() {
+        let state = loaded_usage(vec![usage_row(
+            SourceKind::Codex,
+            Some("anyrouter"),
+            56_200,
+        )]);
+        let texts = detail_texts(&usage_section_lines(
+            SourceKind::Codex,
+            Some("anyrouter"),
+            Some(&state),
+            false,
+        ));
+
+        let has = |label: &str, value: &str| {
+            texts
+                .iter()
+                .any(|text| text.starts_with(label) && text.contains(value))
+        };
+        assert!(has("requests", "56.2K"), "{texts:?}");
+        assert!(has("input", "1.5K"), "{texts:?}");
+        // output 含 reasoning: 40 + 5
+        assert!(has("output", "45"), "{texts:?}");
+        assert!(has("cache", "300"), "{texts:?}");
+        assert!(has("total", "1.8K"), "{texts:?}");
+        assert!(has("approx_cost", "$1.50"), "{texts:?}");
+        // 成本口径提示保留为 muted 单行
+        assert!(
+            texts.iter().any(|text| text.starts_with("note")
+                && text.contains("approx official-equivalent")
+                && text.contains("provider-level (all-time)")),
+            "{texts:?}"
+        );
+    }
+
+    #[test]
+    fn usage_section_compact_merges_metrics_into_three_lines() {
+        let state = loaded_usage(vec![usage_row(
+            SourceKind::Codex,
+            Some("anyrouter"),
+            56_200,
+        )]);
+        let lines = usage_section_lines(SourceKind::Codex, Some("anyrouter"), Some(&state), true);
+        let texts = detail_texts(&lines);
+
+        // 空行 + 分组头 + requests/tokens/approx_cost 共 3 行指标
+        assert_eq!(lines.len(), 5, "{texts:?}");
+        assert!(
+            texts.iter().any(|text| text.starts_with("tokens")
+                && text.contains("in 1.5K")
+                && text.contains("out 45")
+                && text.contains("cache 300")),
+            "{texts:?}"
+        );
+        assert!(
+            !texts.iter().any(|text| text.starts_with("input")),
+            "{texts:?}"
+        );
+        assert!(
+            !texts.iter().any(|text| text.starts_with("note")),
+            "{texts:?}"
+        );
+    }
+
+    #[test]
+    fn detail_lines_append_usage_section_after_activity_per_platform() {
+        let state = loaded_usage(vec![
+            usage_row(SourceKind::Claude, Some("anyrouter"), 111),
+            usage_row(SourceKind::Codex, Some("anyrouter"), 222),
+        ]);
+        let mut config = ProfileConfig::new();
+        config.provider = Some("anyrouter".to_string());
+
+        let cases = [
+            (
+                claude_profile_detail_lines("c", &config, false, Some(&state), false),
+                "111",
+            ),
+            (
+                codex_profile_detail_lines("x", &config, false, Some(&state), false),
+                "222",
+            ),
+        ];
+        for (lines, requests) in cases {
+            let texts = detail_texts(&lines);
+            let activity_idx = texts
+                .iter()
+                .position(|text| text.contains("Activity"))
+                .expect("Activity section present");
+            let usage_idx = texts
+                .iter()
+                .position(|text| text.contains("Usage (provider: anyrouter)"))
+                .expect("Usage section present");
+            assert!(activity_idx < usage_idx, "{texts:?}");
+            // 平台过滤正确: Claude/Codex 详情各取本平台行
+            assert!(
+                texts
+                    .iter()
+                    .any(|text| text.starts_with("requests") && text.contains(requests)),
+                "{texts:?}"
+            );
+        }
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn injected_loader_dataset_drives_detail_numbers_per_provider() {
+        let rows = vec![
+            usage_row(SourceKind::Codex, Some("anyrouter"), 1_500),
+            usage_row(SourceKind::Codex, Some("fovts"), 42),
+        ];
+        let mut engine = UsageApp::with_loader(
+            AsyncTaskExecutor::from_current_or_test(),
+            Arc::new(move || Ok(UsageDataset { rows: rows.clone() })),
+        );
+        engine.refresh();
+        for _ in 0..200 {
+            if engine.tick() {
+                break;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+        }
+        assert!(matches!(engine.state, UsageLoadState::Loaded(_)));
+
+        let mut anyrouter = ProfileConfig::new();
+        anyrouter.provider = Some("anyrouter".to_string());
+        let mut fovts = ProfileConfig::new();
+        fovts.provider = Some("fovts".to_string());
+
+        // 选中不同 profile(不同 provider)时数字各自跟随
+        let texts = detail_texts(&codex_profile_detail_lines(
+            "a",
+            &anyrouter,
+            false,
+            Some(&engine.state),
+            false,
+        ));
+        assert!(
+            texts
+                .iter()
+                .any(|text| text.starts_with("requests") && text.contains("1.5K")),
+            "{texts:?}"
+        );
+        let texts = detail_texts(&codex_profile_detail_lines(
+            "b",
+            &fovts,
+            false,
+            Some(&engine.state),
+            false,
+        ));
+        assert!(
+            texts
+                .iter()
+                .any(|text| text.starts_with("requests") && text.contains("42")),
+            "{texts:?}"
+        );
+    }
+
+    #[test]
+    fn usage_section_renders_across_viewports_for_claude_and_codex() {
+        for (width, height) in [(140u16, 32u16), (100, 30), (80, 28)] {
+            for platform in [Platform::Claude, Platform::Codex] {
+                let profile = ProfileItem {
+                    name: "p1".to_string(),
+                    description: None,
+                    is_current: false,
+                };
+                let mut config = ProfileConfig::new();
+                config.provider = Some("anyrouter".to_string());
+
+                let mut app = sample_profile_app(profile, config);
+                app.tabs[0].platform = platform;
+                app.tabs[0].label = format!("{} Profile", platform.display_name());
+
+                let mut engine = UsageApp::with_loader(
+                    AsyncTaskExecutor::from_current_or_test(),
+                    Arc::new(|| Ok(UsageDataset { rows: Vec::new() })),
+                );
+                engine.state = loaded_usage(vec![
+                    usage_row(SourceKind::Claude, Some("anyrouter"), 77),
+                    usage_row(SourceKind::Codex, Some("anyrouter"), 77),
+                ]);
+                app.usage_app = Some(engine);
+                // 详情行较多,滚到底部确认 Usage 分组真实渲染进缓冲区
+                app.profile_detail_scroll = 500;
+
+                let mut terminal = Terminal::new(TestBackend::new(width, height)).unwrap();
+                terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+
+                let rendered = buffer_text(terminal.backend());
+                assert!(
+                    rendered.contains("approx_cost"),
+                    "{platform:?} {width}x{height}: {rendered}"
+                );
+            }
+        }
     }
 }

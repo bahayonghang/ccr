@@ -1,0 +1,7 @@
+{"file": ".trellis/spec/ccr-core/backend/backend-guidelines.md", "reason": "ccr-core 基础设施边界：掩码 helper 归属、错误处理、unwrap 禁令——Secret 类型落位与实现须遵守"}
+{"file": ".trellis/spec/ccr-core/backend/atomic-writer.md", "reason": "guarded write secret(0o600) 契约——B1 给 sync_folders.toml 补 secret 写入时引用"}
+{"file": ".trellis/spec/ccr-core/backend/test-fixtures.md", "reason": "round-trip 测试涉及 tempdir/env 的既有夹具约定"}
+{"file": ".trellis/spec/ccr-config/backend/backend-guidelines.md", "reason": "B2 迁移 ConfigSection/ProfileConfig 时的 ccr-config 层约定"}
+{"file": ".trellis/spec/ccr-sync/backend/backend-guidelines.md", "reason": "B1 迁移 SyncConfig/WebDavConfig 时的 ccr-sync 层约定"}
+{"file": ".trellis/spec/ccr-checkin/backend/backend-guidelines.md", "reason": "B3 迁移 checkin 凭据流时的层约定"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "IPC 序列化行为变化（掩码默认/显式 expose）跨 Rust/前端两层，评估回环风险时引用"}

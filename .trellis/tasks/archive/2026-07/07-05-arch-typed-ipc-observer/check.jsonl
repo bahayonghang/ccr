@@ -1,0 +1,3 @@
+{"file": ".trellis/spec/ccr/backend/typed-ipc-bindings.md", "reason": "验收依据：Validation & Error Matrix + Tests Required（bindings-check、export tests、type-check、registry 计数）"}
+{"file": ".trellis/spec/ccr-ui/frontend/api-facade-boundary.md", "reason": "验收依据：facade smoke 必跑，allowlist 变更须有文档化理由"}
+{"file": ".trellis/tasks/07-05-arch-typed-ipc-observer/prd.md", "reason": "AC1-AC6 验收标准清单"}

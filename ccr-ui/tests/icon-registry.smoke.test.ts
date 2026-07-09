@@ -5,17 +5,21 @@ import { registerAppIcons } from '@/config/iconRegistry'
 
 const solarPrefix = 'solar:'
 
-const configuredSolarIconNames = [...new Set(
-  Object.values(iconMap)
-    .filter((iconId): iconId is string => iconId.startsWith(solarPrefix))
-    .map((iconId) => iconId.slice(solarPrefix.length))
-)]
+const configuredSolarIconNames = [
+  ...new Set(
+    Object.values(iconMap)
+      .filter((iconId) => iconId.startsWith(solarPrefix))
+      .map((iconId) => iconId.slice(solarPrefix.length))
+  ),
+]
 
 describe('icon registry smoke', () => {
   it('registers every configured solar icon in the local Iconify cache', async () => {
     await registerAppIcons()
 
-    const missingIcons = configuredSolarIconNames.filter((iconName) => !getIcon(`solar:${iconName}`))
+    const missingIcons = configuredSolarIconNames.filter(
+      (iconName) => !getIcon(`solar:${iconName}`)
+    )
 
     expect(missingIcons).toEqual([])
   })

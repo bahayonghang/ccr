@@ -47,7 +47,7 @@
                 </div>
                 <div>
                   <div class="opencode-page-shell__eyebrow">
-                    OpenCode operator surface
+                    {{ operatorSurfaceEyebrow }}
                   </div>
                   <h1 class="opencode-page-shell__title">
                     {{ title }}
@@ -113,6 +113,8 @@ const props = withDefaults(defineProps<{
   backLabel: 'OpenCode',
   badge: '',
 })
+
+const operatorSurfaceEyebrow = 'OpenCode operator surface'
 
 const toneClass = computed(() => ({
   lime: 'opencode-page-shell__tone--lime',
@@ -224,4 +226,3 @@ const toneClass = computed(() => ({
   @apply flex flex-col gap-5;
 }
 </style>
-

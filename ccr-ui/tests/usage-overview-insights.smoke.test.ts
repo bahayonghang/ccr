@@ -10,24 +10,32 @@ import {
   shortenPath,
 } from '@/views/usage/usageOverviewInsights'
 import type { UsageTrendBucket } from '@/views/usage/usageDashboardPresentation'
+import { makeArchiveDiagnostics } from './helpers/usageFixtures'
 
 const translate = (
   key: string,
   values: Record<string, number | string> | undefined,
-  fallback: string,
-) => values ? `${fallback} ${JSON.stringify(values)}` : fallback
+  fallback: string
+) => (values ? `${fallback} ${JSON.stringify(values)}` : fallback)
 
 const model = (overrides: Partial<ModelStat> & { model: string }): ModelStat => ({
-  model: overrides.model,
   request_count: 1,
   total_tokens: 100,
   total_cost: 1,
   cost_with_cache: overrides.total_cost ?? 1,
+  input_tokens: 0,
+  output_tokens: 0,
+  cache_read_tokens: 0,
+  cache_creation_tokens: 0,
+  cost_without_cache: 0,
+  cache_savings: 0,
+  pricing_status: 'priced',
+  pricing_source: null,
+  pricing_rate: null,
   ...overrides,
 })
 
 const project = (overrides: Partial<ProjectStat> & { project_path: string }): ProjectStat => ({
-  project_path: overrides.project_path,
   request_count: 1,
   total_tokens: 100,
   total_cost: 1,
@@ -41,6 +49,7 @@ const bucket = (overrides: Partial<UsageTrendBucket> = {}): UsageTrendBucket => 
   requestCount: 1,
   inputTokens: 10,
   outputTokens: 5,
+  reasoningOutputTokens: 0,
   totalTokens: 15,
   cacheReadTokens: 2,
   cacheCreationTokens: 1,
@@ -68,7 +77,7 @@ describe('usage overview insight helpers', () => {
     expect(buildSelectedWindowLabel('all_time', translate)).toBe('All Time')
     expect(shortenPath('D:/workspace/a/b/c')).toBe('.../b/c')
 
-    const archive: UsageArchiveDiagnostics = {
+    const archive: UsageArchiveDiagnostics = makeArchiveDiagnostics({
       archive_root: 'D:/workspace/archive/live',
       live_sources: 2,
       missing_sources: 1,
@@ -76,22 +85,24 @@ describe('usage overview insight helpers', () => {
       archived_sessions: 4,
       recent_completed_at: '2026-05-19T01:00:00Z',
       history_completed_at: null,
-    }
+    })
 
-    expect(buildDashboardMetaItems({
-      archive,
-      locale: 'en-US',
-      modelCount: 3,
-      projectCount: 2,
-      selectedPlatformLabel: 'Codex',
-      selectedWindowLabel: '30 Days',
-      translate,
-    }).map((item) => [item.id, item.value])).toEqual([
+    expect(
+      buildDashboardMetaItems({
+        archive,
+        locale: 'en-US',
+        modelCount: 3,
+        projectCount: 2,
+        selectedPlatformLabel: 'Codex',
+        selectedWindowLabel: '30 Days',
+        translate,
+      }).map((item) => [item.id, item.value])
+    ).toEqual([
       ['scope', 'Codex'],
       ['window', '30 Days'],
       ['models', '3'],
       ['projects', '2'],
-      ['archive', 'L 2 · M 1 · D 0'],
+      ['archive', 'Live 2 · Missing 1 · Deleted 0'],
       ['archive-root', '.../archive/live'],
       ['archive-time', expect.any(String)],
     ])
@@ -99,8 +110,12 @@ describe('usage overview insight helpers', () => {
 
   it('builds overview highlights with top model/project/cache semantics', () => {
     const highlights = buildOverviewHighlights({
-      modelStats: [model({ model: 'gpt-5.5', total_tokens: 2000, total_cost: 8, cost_with_cache: 6 })],
-      projectStats: [project({ project_path: 'D:/repos/acme/app', request_count: 12, total_cost: 2 })],
+      modelStats: [
+        model({ model: 'gpt-5.5', total_tokens: 2000, total_cost: 8, cost_with_cache: 6 }),
+      ],
+      projectStats: [
+        project({ project_path: 'D:/repos/acme/app', request_count: 12, total_cost: 2 }),
+      ],
       summary: summary({ total_cache_read_tokens: 1200, cache_efficiency: 0.4 }),
       trendBuckets: [bucket(), bucket({ id: '2026-05-20', startDate: '2026-05-20' })],
       trendGranularityLabel: 'Daily',
@@ -108,7 +123,12 @@ describe('usage overview insight helpers', () => {
       translate,
     })
 
-    expect(highlights.map((item) => item.id)).toEqual(['density', 'top-model', 'top-project', 'cache'])
+    expect(highlights.map((item) => item.id)).toEqual([
+      'density',
+      'top-model',
+      'top-project',
+      'cache',
+    ])
     expect(highlights.find((item) => item.id === 'top-model')).toMatchObject({
       value: 'gpt-5.5',
       detail: '$6.00 · 2.0K',
@@ -118,11 +138,32 @@ describe('usage overview insight helpers', () => {
   })
 
   it('sorts top rankings with stable tie breakers and share values', () => {
-    const modelRankings = buildTopModelRankings([
-      model({ model: 'cheap-large', request_count: 5, total_tokens: 1000, total_cost: 1, cost_with_cache: 1 }),
-      model({ model: 'expensive', request_count: 2, total_tokens: 100, total_cost: 5, cost_with_cache: 5 }),
-      model({ model: 'same-cost-more-tokens', request_count: 1, total_tokens: 200, total_cost: 5, cost_with_cache: 5 }),
-    ], translate)
+    const modelRankings = buildTopModelRankings(
+      [
+        model({
+          model: 'cheap-large',
+          request_count: 5,
+          total_tokens: 1000,
+          total_cost: 1,
+          cost_with_cache: 1,
+        }),
+        model({
+          model: 'expensive',
+          request_count: 2,
+          total_tokens: 100,
+          total_cost: 5,
+          cost_with_cache: 5,
+        }),
+        model({
+          model: 'same-cost-more-tokens',
+          request_count: 1,
+          total_tokens: 200,
+          total_cost: 5,
+          cost_with_cache: 5,
+        }),
+      ],
+      translate
+    )
 
     expect(modelRankings.map((item) => item.id)).toEqual([
       'same-cost-more-tokens',
@@ -131,10 +172,13 @@ describe('usage overview insight helpers', () => {
     ])
     expect(modelRankings[0].share).toBeCloseTo(5 / 11)
 
-    const projectRankings = buildTopProjectRankings([
-      project({ project_path: 'D:/a', total_cost: 1, total_tokens: 200, request_count: 2 }),
-      project({ project_path: 'D:/b', total_cost: 3, total_tokens: 100, request_count: 1 }),
-    ], translate)
+    const projectRankings = buildTopProjectRankings(
+      [
+        project({ project_path: 'D:/a', total_cost: 1, total_tokens: 200, request_count: 2 }),
+        project({ project_path: 'D:/b', total_cost: 3, total_tokens: 100, request_count: 1 }),
+      ],
+      translate
+    )
 
     expect(projectRankings.map((item) => item.id)).toEqual(['D:/b', 'D:/a'])
     expect(projectRankings[0]).toMatchObject({

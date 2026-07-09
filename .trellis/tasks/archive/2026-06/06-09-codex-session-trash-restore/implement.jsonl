@@ -1,0 +1,4 @@
+{"file":".trellis/spec/guides/index.md","reason":"Shared thinking guides for cross-layer and reuse checks before implementation."}
+{"file":".trellis/spec/ccr-codex/backend/index.md","reason":"ccr-codex backend spec index for service implementation."}
+{"file":".trellis/spec/ccr-codex/backend/test-fixtures.md","reason":"Required fixture guidance for env-sensitive ccr-codex tests."}
+{"file":".trellis/tasks/06-09-codex-session-trash-restore/research/codebase-notes.md","reason":"Task-specific codebase findings and implementation constraints."}

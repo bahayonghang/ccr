@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
-import { claudeObserver as api } from '@/api/tauri'
+import { claudeObserver as api } from '@/api'
 import type {
   BreakdownRow,
   CacheStatsDto,
@@ -89,9 +89,15 @@ export const useClaudeObserverStore = defineStore('claudeObserver', () => {
     try {
       const data = await loader()
       slot.value = { loading: false, error: null, data }
+
+      // 添加调试日志：检查空数组
+      if (Array.isArray(data) && data.length === 0) {
+        logger.warn('[claudeObserver] Query returned empty array')
+      }
     } catch (err) {
-      slot.value = { loading: false, error: toMessage(err), data: slot.value.data }
-      logger.warn('[claudeObserver] load failed', err)
+      const errorMsg = toMessage(err)
+      slot.value = { loading: false, error: errorMsg, data: slot.value.data }
+      logger.error('[claudeObserver] load failed', { error: errorMsg, err })
     }
   }
 

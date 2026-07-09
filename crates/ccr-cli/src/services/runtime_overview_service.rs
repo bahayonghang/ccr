@@ -429,8 +429,8 @@ fn provider_suffix(source: &str) -> Option<&str> {
 
 fn profile_has_auth_token(profile: Option<&ProfileConfig>) -> bool {
     profile
-        .and_then(|profile| profile.auth_token.as_deref())
-        .map(str::trim)
+        .and_then(|profile| profile.auth_token.as_ref())
+        .map(|token| token.expose().trim())
         .is_some_and(|value| !value.is_empty())
 }
 

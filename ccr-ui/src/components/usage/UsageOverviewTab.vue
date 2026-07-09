@@ -1,7 +1,16 @@
 <template>
   <div class="overview-tab">
+    <UsageSourceSummaryCard
+      v-if="(ctx.sourceStats?.length ?? 0) > 0"
+      :format-cost="ctx.formatCost"
+      :format-tokens="ctx.formatTokens"
+      :selected-platform="ctx.selectedPlatform"
+      :source-stats="ctx.sourceStats"
+      @select-source="ctx.updateSelectedPlatform"
+    />
+
     <section class="overview-tab__canvas overview-tab__hero">
-      <div class="overview-tab__trend glass-panel rounded-[30px] p-4">
+      <div class="overview-tab__trend glass-panel rounded-2xl p-4">
         <div class="overview-tab__panel-head">
           <div class="overview-tab__trend-copy">
             <p class="overview-tab__eyebrow">
@@ -11,7 +20,7 @@
               {{ $t('usage.dashboard.chart.trendTitle') }}
             </h3>
             <p class="overview-tab__panel-subtitle">
-              {{ trendSubtitle }}
+              {{ ctx.trendSubtitle }}
             </p>
 
             <div
@@ -35,22 +44,22 @@
           </div>
 
           <span class="overview-tab__trend-chip">
-            {{ trendGranularityLabel }}
+            {{ ctx.trendGranularityLabel }}
           </span>
         </div>
 
         <div class="overview-tab__trend-shell">
           <component
-            :is="chartComponent"
-            v-if="shouldRenderTrendChart && hasRenderableTrendData"
+            :is="ctx.chartComponent"
+            v-if="ctx.shouldRenderTrendChart && ctx.hasRenderableTrendData"
             class="overview-tab__chart"
             type="area"
             height="100%"
-            :options="trendOptions"
-            :series="trendSeries"
+            :options="ctx.trendOptions"
+            :series="ctx.trendSeries"
           />
           <div
-            v-else-if="hasRenderableTrendData"
+            v-else-if="ctx.hasRenderableTrendData"
             class="overview-tab__empty overview-tab__empty--trend overview-tab__empty--deferred"
           >
             {{ $t('usage.dashboard.chart.preparingTrend') }}
@@ -64,24 +73,24 @@
         </div>
       </div>
 
-      <aside class="overview-tab__distribution glass-panel rounded-[28px] p-4">
+      <aside class="overview-tab__distribution glass-panel rounded-xl p-4">
         <UsageModelDistributionCard
-          :chart-component="chartComponent"
-          :format-cost="formatCost"
-          :format-tokens="formatTokens"
-          :model-distribution="modelDistribution"
-          :pie-colors="pieColors"
-          :pie-options="pieOptions"
-          :pie-series="pieSeries"
-          :should-render-chart="shouldRenderDistributionChart"
-          :subtitle="distributionSubtitle"
+          :chart-component="ctx.chartComponent"
+          :format-cost="ctx.formatCost"
+          :format-tokens="ctx.formatTokens"
+          :model-distribution="ctx.modelDistribution"
+          :pie-colors="ctx.pieColors"
+          :pie-options="ctx.pieOptions"
+          :pie-series="ctx.pieSeries"
+          :should-render-chart="ctx.shouldRenderDistributionChart"
+          :subtitle="ctx.distributionSubtitle"
           :title="$t('usage.dashboard.chart.costByModel')"
           variant="embedded"
         />
       </aside>
     </section>
 
-    <section class="overview-tab__insights-strip glass-panel rounded-[26px] p-4">
+    <section class="overview-tab__insights-strip glass-panel rounded-xl p-4">
       <div class="overview-tab__panel-head overview-tab__panel-head--strip">
         <div>
           <p class="overview-tab__eyebrow">
@@ -97,11 +106,11 @@
       </div>
 
       <div
-        v-if="overviewHighlights.length > 0"
+        v-if="ctx.overviewHighlights.length > 0"
         class="overview-tab__insight-grid"
       >
         <article
-          v-for="item in overviewHighlights"
+          v-for="item in ctx.overviewHighlights"
           :key="item.id"
           class="overview-tab__insight-tile"
           :class="`overview-tab__insight-tile--${getInsightTone(item.id)}`"
@@ -133,7 +142,7 @@
     </section>
 
     <section class="overview-tab__rankings">
-      <div class="overview-tab__rank-panel glass-panel rounded-[26px] p-4">
+      <div class="overview-tab__rank-panel glass-panel rounded-xl p-4">
         <div class="overview-tab__panel-head">
           <div>
             <p class="overview-tab__eyebrow">
@@ -149,11 +158,11 @@
         </div>
 
         <ol
-          v-if="topModelRankings.length > 0"
+          v-if="ctx.topModelRankings.length > 0"
           class="overview-tab__rank-list"
         >
           <li
-            v-for="(item, index) in topModelRankings"
+            v-for="(item, index) in ctx.topModelRankings"
             :key="item.id"
             class="overview-tab__rank-item"
           >
@@ -188,7 +197,7 @@
         </div>
       </div>
 
-      <div class="overview-tab__rank-panel glass-panel rounded-[26px] p-4">
+      <div class="overview-tab__rank-panel glass-panel rounded-xl p-4">
         <div class="overview-tab__panel-head">
           <div>
             <p class="overview-tab__eyebrow">
@@ -204,11 +213,11 @@
         </div>
 
         <ol
-          v-if="topProjectRankings.length > 0"
+          v-if="ctx.topProjectRankings.length > 0"
           class="overview-tab__rank-list"
         >
           <li
-            v-for="(item, index) in topProjectRankings"
+            v-for="(item, index) in ctx.topProjectRankings"
             :key="item.id"
             class="overview-tab__rank-item"
           >
@@ -247,59 +256,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed, type Component } from 'vue'
-import type { ModelStat, ProjectStat } from '@/types/usage'
-import type { ModelDistributionSlice } from '@/views/usage/usageDashboardPresentation'
+import { computed } from 'vue'
+import { useUsageDashboardContext } from '@/views/usage/usageDashboardContext'
 import UsageModelDistributionCard from './UsageModelDistributionCard.vue'
+import UsageSourceSummaryCard from './UsageSourceSummaryCard.vue'
 
-type TrendSeriesItem = {
-  name: string
-  data: Array<{ x: string; y: number }>
-}
-
-type OverviewHighlight = {
-  id: string
-  label: string
-  value: string
-  detail: string
-}
-
-type OverviewRankItem = {
-  id: string
-  label: string
-  title: string
-  detail: string
-  value: string
-  share: number
-}
-
-interface Props {
-  chartComponent: Component
-  shouldRenderTrendChart: boolean
-  shouldRenderDistributionChart: boolean
-  hasRenderableTrendData: boolean
-  trendSeries: TrendSeriesItem[]
-  trendOptions: object
-  trendSubtitle: string
-  trendGranularityLabel: string
-  pieSeries: number[]
-  pieOptions: object
-  pieColors: string[]
-  distributionSubtitle: string
-  modelDistribution: ModelDistributionSlice[]
-  modelStats: ModelStat[]
-  projectStats: ProjectStat[]
-  overviewHighlights: OverviewHighlight[]
-  topModelRankings: OverviewRankItem[]
-  topProjectRankings: OverviewRankItem[]
-  formatCost: (value: number) => string
-  formatTokens: (value: number) => string
-  shortenPath: (path: string) => string
-}
+const ctx = useUsageDashboardContext()
 
 const formatShare = (value: number) => `${Math.round(value * 100)}%`
-
-const props = defineProps<Props>()
 
 type TrendLegendTone = 'primary' | 'secondary' | 'tertiary'
 
@@ -320,7 +284,7 @@ const formatTrendLegendValue = (value: number) => {
 const trendLegendTones: TrendLegendTone[] = ['primary', 'secondary', 'tertiary']
 
 const trendLegendItems = computed<TrendLegendItem[]>(() =>
-  props.trendSeries.slice(0, 3).map((series, index) => ({
+  ctx.trendSeries.slice(0, 3).map((series, index) => ({
     id: `${series.name}-${index}`,
     label: series.name,
     value: formatTrendLegendValue(series.data.reduce((sum, point) => sum + point.y, 0)),

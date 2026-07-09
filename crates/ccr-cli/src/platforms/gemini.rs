@@ -156,11 +156,13 @@ impl GeminiPlatform {
 
     /// 📋 从 ProfileConfig 提取 Antigravity 特定字段
     fn extract_gemini_fields(profile: &ProfileConfig) -> Result<GeminiFields> {
+        // 写入 Antigravity 配置文件需要原文（合法明文消费点）
         let api_key = profile
             .auth_token
             .as_ref()
             .ok_or_else(|| CcrError::ValidationError("缺少 api_key 字段".into()))?
-            .clone();
+            .expose()
+            .to_string();
 
         let project_id = profile
             .platform_data
@@ -264,7 +266,7 @@ impl PlatformConfig for GeminiPlatform {
         let api_key = profile.auth_token.as_ref().ok_or_else(|| {
             CcrError::ValidationError("Antigravity profile 缺少 auth_token (API key)".into())
         })?;
-        Self::validate_api_key(api_key)?;
+        Self::validate_api_key(api_key.expose())?;
 
         Ok(())
     }
@@ -351,7 +353,7 @@ mod tests {
         let valid_profile = ProfileConfig {
             description: Some("Google Antigravity".to_string()),
             base_url: None,
-            auth_token: Some("AIzaSyDtWl5vKg1234567890abcdefgh".to_string()),
+            auth_token: Some(ccr_core::Secret::from("AIzaSyDtWl5vKg1234567890abcdefgh")),
             model: Some("gemini-pro".to_string()),
             small_fast_model: None,
             provider: Some("google".to_string()),
@@ -373,7 +375,7 @@ mod tests {
 
         // 无效的 profile（错误的 API key 格式）
         let mut invalid_profile = valid_profile;
-        invalid_profile.auth_token = Some("invalid_key".to_string());
+        invalid_profile.auth_token = Some(ccr_core::Secret::from("invalid_key"));
         assert!(platform.validate_profile(&invalid_profile).is_err());
     }
 }

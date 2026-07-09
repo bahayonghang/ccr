@@ -8,6 +8,7 @@
 // - 🧹 自动清理过期配置
 
 use ccr_core::core::error::{CcrError, Result};
+use ccr_core::{Secret, expose_plaintext_option};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -28,9 +29,13 @@ use tokio::fs as async_fs;
 /// - **简单直接**：设置后下次 switch 时自动应用并清除
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TempOverride {
-    /// 🔑 临时认证令牌(最常用的覆盖字段)
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub auth_token: Option<String>,
+    /// 🔑 临时认证令牌(最常用的覆盖字段)：Debug/日志/默认序列化恒掩码；
+    /// 落盘原文走 expose_plaintext_option 注解
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        serialize_with = "expose_plaintext_option"
+    )]
+    pub auth_token: Option<Secret>,
 
     /// 🌐 临时 API 基础 URL
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -59,7 +64,7 @@ impl TempOverride {
     /// - auth_token: 临时 token
     pub fn new(auth_token: String) -> Self {
         Self {
-            auth_token: Some(auth_token),
+            auth_token: Some(Secret::new(auth_token)),
             base_url: None,
             model: None,
             small_fast_model: None,
@@ -274,7 +279,7 @@ mod tests {
     #[test]
     fn test_temp_override_creation() {
         let temp = TempOverride::new("sk-test-token".to_string());
-        assert_eq!(temp.auth_token, Some("sk-test-token".to_string()));
+        assert_eq!(temp.auth_token, Some(Secret::from("sk-test-token")));
     }
 
     #[test]
@@ -293,7 +298,11 @@ mod tests {
         let loaded = manager.load().unwrap();
         assert!(loaded.is_some());
         let loaded_temp = loaded.unwrap();
-        assert_eq!(loaded_temp.auth_token, Some("sk-test-token".to_string()));
+        assert_eq!(loaded_temp.auth_token, Some(Secret::from("sk-test-token")));
+
+        // 落盘为明文原文（expose_plaintext_option 注解），旧版本可无损读回
+        let on_disk = fs::read_to_string(&override_path).unwrap();
+        assert!(on_disk.contains("sk-test-token"));
     }
 
     #[test]

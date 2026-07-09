@@ -1,8 +1,8 @@
 #![allow(clippy::unwrap_used)]
 // 🧪 CCR 多平台功能集成测试
 //
-// ⚠️ **重要提示**: 这些测试修改全局环境变量 CCR_ROOT，因此必须串行运行
-// 运行方式: `cargo test --test platform_tests -- --test-threads=1`
+// ⚠️ **重要提示**: 环境相关测试通过共享 fixture 锁临时修改 CCR_ROOT / CCR_LOCK_DIR；
+// 全局串行测试策略会在 Phase 5 后续切片统一评估，不在本测试目标内直接移除。
 //
 // 测试内容:
 // - Platform 初始化
@@ -29,12 +29,6 @@ type TempDir = PlatformTestEnv;
 fn setup_test_env() -> TempDir {
     let temp_dir = setup_platform_test_env();
 
-    // 设置环境变量指向临时目录
-    // SAFETY: 测试仅在当前进程临时设置 CCR_ROOT，清理函数会恢复干净状态。
-    unsafe {
-        std::env::set_var("CCR_ROOT", temp_dir.path().to_str().unwrap());
-    }
-
     // 确保根目录存在
     std::fs::create_dir_all(temp_dir.path()).ok();
 
@@ -43,10 +37,6 @@ fn setup_test_env() -> TempDir {
 
 /// 清理测试环境
 fn cleanup_test_env(temp_dir: TempDir) {
-    // SAFETY: 仅清理本测试设置的 CCR_ROOT，避免污染后续测试。
-    unsafe {
-        std::env::remove_var("CCR_ROOT");
-    }
     drop(temp_dir);
 }
 
@@ -294,7 +284,7 @@ fn test_platform_initialization_creates_directories() {
     // 保存一个 profile（会触发目录创建）
     let mut profile = ProfileConfig::new();
     profile.base_url = Some("https://api.test.com".to_string());
-    profile.auth_token = Some("test-token".to_string());
+    profile.auth_token = Some(ccr_core::Secret::from("test-token"));
     profile.model = Some("test-model".to_string());
 
     let result = codex.save_profile("test", &profile);
@@ -321,7 +311,9 @@ fn test_profile_save_and_load() {
     let mut profile = ProfileConfig::new();
     profile.description = Some("Test Profile".to_string());
     profile.base_url = Some("https://api.test.com".to_string());
-    profile.auth_token = Some("ghp_test123456789012345678901234567890".to_string()); // GitHub token 格式
+    profile.auth_token = Some(ccr_core::Secret::from(
+        "ghp_test123456789012345678901234567890",
+    )); // GitHub token 格式
     profile.model = Some("gpt-4".to_string());
     profile.small_fast_model = Some("gpt-3.5-turbo".to_string());
 
@@ -349,7 +341,9 @@ fn test_profile_delete() {
     // 创建并保存 profile（使用符合 Gemini 格式的 token）
     let mut profile = ProfileConfig::new();
     profile.base_url = Some("https://api.gemini.com".to_string());
-    profile.auth_token = Some("AIzaSy1234567890123456789012345678901234".to_string()); // Google API Key 格式
+    profile.auth_token = Some(ccr_core::Secret::from(
+        "AIzaSy1234567890123456789012345678901234",
+    )); // Google API Key 格式
     profile.model = Some("gemini-pro".to_string());
 
     gemini.save_profile("to-delete", &profile).unwrap();
@@ -378,10 +372,10 @@ fn test_profile_list_names() {
     for i in 1..=3 {
         let mut profile = ProfileConfig::new();
         profile.base_url = Some(format!("https://api{}.test.com", i));
-        profile.auth_token = Some(format!(
+        profile.auth_token = Some(ccr_core::Secret::new(format!(
             "ghp_test{:0>36}",
             i // GitHub token 格式，40 字符
-        ));
+        )));
         profile.model = Some("model".to_string());
 
         codex
@@ -415,19 +409,25 @@ fn test_multiple_platforms_coexist() {
     // 为每个平台保存一个 profile（使用符合格式的 token）
     let mut claude_profile = ProfileConfig::new();
     claude_profile.base_url = Some("https://api.anthropic.com".to_string());
-    claude_profile.auth_token = Some("sk-ant-api03-1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890".to_string()); // Claude token 格式
+    claude_profile.auth_token = Some(ccr_core::Secret::from(
+        "sk-ant-api03-1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890",
+    )); // Claude token 格式
     claude_profile.model = Some("claude-3-5-sonnet".to_string());
     claude.save_profile("official", &claude_profile).unwrap();
 
     let mut codex_profile = ProfileConfig::new();
     codex_profile.base_url = Some("https://api.github.com".to_string());
-    codex_profile.auth_token = Some("ghp_1234567890123456789012345678901234567890".to_string()); // GitHub token 格式
+    codex_profile.auth_token = Some(ccr_core::Secret::from(
+        "ghp_1234567890123456789012345678901234567890",
+    )); // GitHub token 格式
     codex_profile.model = Some("gpt-4".to_string());
     codex.save_profile("github", &codex_profile).unwrap();
 
     let mut gemini_profile = ProfileConfig::new();
     gemini_profile.base_url = Some("https://api.google.com".to_string());
-    gemini_profile.auth_token = Some("AIzaSy1234567890123456789012345678901234".to_string()); // Google API Key 格式
+    gemini_profile.auth_token = Some(ccr_core::Secret::from(
+        "AIzaSy1234567890123456789012345678901234",
+    )); // Google API Key 格式
     gemini_profile.model = Some("gemini-pro".to_string());
     gemini.save_profile("google", &gemini_profile).unwrap();
 
@@ -508,12 +508,10 @@ fn test_invalid_platform_name() {
 
     let result = Platform::from_str("invalid-platform");
     assert!(result.is_err());
-
-    if let Err(CcrError::PlatformNotFound(name)) = result {
-        assert_eq!(name, "invalid-platform");
-    } else {
-        panic!("Expected PlatformNotFound error");
-    }
+    assert!(matches!(
+        result,
+        Err(CcrError::PlatformNotFound(name)) if name == "invalid-platform"
+    ));
 }
 
 #[test]

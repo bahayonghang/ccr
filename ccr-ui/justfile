@@ -785,15 +785,15 @@ check-frontend-lint:
 
 _check-frontend-lint-linux:
     @echo "🔍 检查前端代码 (ESLint)..."
-    bun run lint
+    bun run lint:ci
 
 _check-frontend-lint-macos:
     @echo "🔍 检查前端代码 (ESLint)..."
-    bun run lint
+    bun run lint:ci
 
 _check-frontend-lint-windows:
     @Write-Output '🔍 检查前端代码 (ESLint)...'
-    @bun run lint
+    @bun run lint:ci
 
 # 检查前端代码 - TypeScript 类型
 check-frontend-types:
@@ -817,19 +817,19 @@ check-security:
 
 _check-security-linux:
     @echo "🔒 检查前端安全漏洞..."
-    bunx better-npm-audit audit
+    bun audit --audit-level=high
     @echo ""
     @echo "✅ 安全检查完成"
 
 _check-security-macos:
     @echo "🔒 检查前端安全漏洞..."
-    bunx better-npm-audit audit
+    bun audit --audit-level=high
     @echo ""
     @echo "✅ 安全检查完成"
 
 _check-security-windows:
     @Write-Output '🔒 检查前端安全漏洞...'
-    @bunx better-npm-audit audit
+    @bun audit --audit-level=high
     @Write-Output ''
     @Write-Output '✅ 安全检查完成'
 
@@ -915,15 +915,15 @@ fmt-frontend:
 
 _fmt-frontend-linux:
     @echo "💅 格式化前端代码..."
-    bun run lint --fix || true
+    bun run lint:fix || true
 
 _fmt-frontend-macos:
     @echo "💅 格式化前端代码..."
-    bun run lint --fix || true
+    bun run lint:fix || true
 
 _fmt-frontend-windows:
     @Write-Output '💅 格式化前端代码...'
-    @bun run lint --fix; if (-not $?) { Write-Host '⚠️ 前端格式化遇到问题，但继续流程' -ForegroundColor Yellow }
+    @bun run lint:fix; if (-not $?) { Write-Host '⚠️ 前端格式化遇到问题，但继续流程' -ForegroundColor Yellow }
 
 # Clippy 检查后端
 clippy:
@@ -1270,7 +1270,7 @@ _ci-summary-linux:
     @echo "✅ CI 流程完成"
     @echo "   - 后端: cargo check + clippy + test"
     @echo "   - 前端: lint + type-check + test"
-    @echo "   - 安全: better-npm-audit"
+    @echo "   - 安全: bun audit --audit-level=high"
     @echo "   - 构建: src-tauri release + root dist"
 
 _ci-summary-macos:
@@ -1278,7 +1278,7 @@ _ci-summary-macos:
     @echo "✅ CI 流程完成"
     @echo "   - 后端: cargo check + clippy + test"
     @echo "   - 前端: lint + type-check + test"
-    @echo "   - 安全: better-npm-audit"
+    @echo "   - 安全: bun audit --audit-level=high"
     @echo "   - 构建: src-tauri release + root dist"
 
 _ci-summary-windows:
@@ -1286,32 +1286,24 @@ _ci-summary-windows:
     @Write-Output '✅ CI 流程完成'
     @Write-Output '   - 后端: cargo check + clippy + test'
     @Write-Output '   - 前端: lint + type-check + test'
-    @Write-Output '   - 安全: better-npm-audit'
+    @Write-Output '   - 安全: bun audit --audit-level=high'
     @Write-Output '   - 构建: src-tauri release + root dist'
 
-# CI 安全检查（不阻断 CI）
+# CI 安全检查（高危/严重漏洞阻断 CI）
 ci-security:
     @just _ci-security-{{os()}}
 
 _ci-security-linux:
     @echo "🔒 检查安全漏洞..."
-    @if [ -f "package-lock.json" ]; then \
-        bunx better-npm-audit audit || echo "⚠️  安全检查有警告，但不阻断 CI"; \
-    else \
-        echo "ℹ️  未检测到 package-lock.json，跳过 better-npm-audit（当前使用 bun.lock）"; \
-    fi
+    bun audit --audit-level=high
 
 _ci-security-macos:
     @echo "🔒 检查安全漏洞..."
-    @if [ -f "package-lock.json" ]; then \
-        bunx better-npm-audit audit || echo "⚠️  安全检查有警告，但不阻断 CI"; \
-    else \
-        echo "ℹ️  未检测到 package-lock.json，跳过 better-npm-audit（当前使用 bun.lock）"; \
-    fi
+    bun audit --audit-level=high
 
 _ci-security-windows:
     @Write-Output '🔒 检查安全漏洞...'
-    @if (Test-Path 'package-lock.json') { bunx better-npm-audit audit; if (-not $?) { Write-Host '⚠️  安全检查有警告，但不阻断 CI' -ForegroundColor Yellow } } else { Write-Host 'ℹ️  未检测到 package-lock.json，跳过 better-npm-audit（当前使用 bun.lock）' -ForegroundColor Cyan }
+    @bun audit --audit-level=high
 
 # 准备发布
 prepare-release: clean build
@@ -1538,6 +1530,67 @@ _tauri-test-macos:
 _tauri-test-windows:
     @Write-Output '🧪 运行 Tauri 测试...'
     @bun run tauri:test
+
+# 🔄 重新生成 usage V2 的 TypeScript 绑定（ts-rs export tests；生成物入库）
+bindings:
+    @just _bindings-{{os()}}
+
+_bindings-linux:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "🔄 重新生成 TypeScript 绑定..."
+    rm -rf src/types/generated
+    cargo test --manifest-path ../Cargo.toml -p ccr-usage --features ts export_bindings
+    cargo test --manifest-path src-tauri/Cargo.toml export_bindings
+    echo "✅ 绑定已生成: src/types/generated/"
+
+_bindings-macos:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "🔄 重新生成 TypeScript 绑定..."
+    rm -rf src/types/generated
+    cargo test --manifest-path ../Cargo.toml -p ccr-usage --features ts export_bindings
+    cargo test --manifest-path src-tauri/Cargo.toml export_bindings
+    echo "✅ 绑定已生成: src/types/generated/"
+
+_bindings-windows:
+    @Write-Output '🔄 重新生成 TypeScript 绑定...'
+    @if (Test-Path src/types/generated) { Remove-Item -Recurse -Force src/types/generated }
+    @cargo test --manifest-path ../Cargo.toml -p ccr-usage --features ts export_bindings
+    @cargo test --manifest-path src-tauri/Cargo.toml export_bindings
+    @Write-Output '✅ 绑定已生成: src/types/generated/'
+
+# 🧪 TypeScript 绑定漂移守卫：重新生成后 git 必须无差异（含未跟踪新文件）
+bindings-check:
+    @just _bindings-check-{{os()}}
+
+_bindings-check-linux:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    just bindings
+    status=$(git status --porcelain -- src/types/generated)
+    if [ -n "$status" ]; then
+        echo "$status"
+        echo "❌ TypeScript 绑定漂移：Rust DTO 与入库生成物不一致，运行 just tauri-bindings 后提交"
+        exit 1
+    fi
+    echo "✅ TypeScript 绑定与 Rust DTO 同步"
+
+_bindings-check-macos:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    just bindings
+    status=$(git status --porcelain -- src/types/generated)
+    if [ -n "$status" ]; then
+        echo "$status"
+        echo "❌ TypeScript 绑定漂移：Rust DTO 与入库生成物不一致，运行 just tauri-bindings 后提交"
+        exit 1
+    fi
+    echo "✅ TypeScript 绑定与 Rust DTO 同步"
+
+_bindings-check-windows:
+    @just bindings
+    @$status = git status --porcelain -- src/types/generated; if ($status) { Write-Output $status; Write-Output '❌ TypeScript 绑定漂移：Rust DTO 与入库生成物不一致，运行 just tauri-bindings 后提交'; exit 1 } else { Write-Output '✅ TypeScript 绑定与 Rust DTO 同步' }
 
 # 清理 Tauri 构建产物
 tauri-clean:

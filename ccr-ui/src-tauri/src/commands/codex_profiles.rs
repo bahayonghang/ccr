@@ -287,7 +287,7 @@ mod update_tests {
         let mut profile = ProfileConfig {
             description: Some("Relay profile".to_string()),
             base_url: Some("https://relay.example/v1".to_string()),
-            auth_token: Some(secret.to_string()),
+            auth_token: Some(ccr_core::Secret::from(secret)),
             model: Some("gpt-5.4".to_string()),
             small_fast_model: None,
             provider: Some("mistral".to_string()),

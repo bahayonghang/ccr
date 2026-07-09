@@ -10,7 +10,7 @@
               size="w-6 h-6"
               class="mr-2 text-accent-secondary sm:w-7 sm:h-7"
             />
-            Hooks Management
+            {{ tt('Hooks 管理', 'Hooks Management') }}
           </h2>
           <span class="rounded-full border border-accent-secondary/20 bg-accent-secondary/10 px-3 py-1 text-sm font-medium text-accent-secondary">
             {{ totalHandlers }}
@@ -25,7 +25,7 @@
             size="w-5 h-5"
             class="mr-2"
           />
-          Add Hook Group
+          {{ tt('添加 Hook 组', 'Add Hook Group') }}
         </button>
       </div>
 
@@ -36,11 +36,11 @@
       >
         <div class="space-y-3 p-5">
           <p class="text-sm text-text-secondary">
-            Claude Code hooks use the official grouped format:
-            <code class="font-mono text-xs">event -&gt; matcher groups -&gt; handlers</code>.
+            {{ tt('Claude Code hooks 使用官方分组格式：', 'Claude Code hooks use the official grouped format:') }}
+            <code class="font-mono text-xs">{{ hookFlowLabel }}</code>{{ tt('。', '.') }}
           </p>
           <p class="text-xs text-text-muted">
-            Individual hooks cannot be toggled off in the official schema. Remove a handler or matcher group to disable it.
+            {{ tt('官方 schema 不支持单独关闭某个 hook。要禁用时，请删除对应 handler 或 matcher group。', 'Individual hooks cannot be toggled off in the official schema. Remove a handler or matcher group to disable it.') }}
           </p>
         </div>
       </Card>
@@ -53,7 +53,7 @@
           :class="selectedEvent === eventName ? 'bg-accent-secondary text-white shadow-md' : 'border border-border-default bg-bg-elevated text-text-secondary hover:bg-bg-surface'"
           @click="selectedEvent = eventName"
         >
-          {{ eventName }}
+          {{ eventName === allEventKey ? tt('全部', 'All') : eventName }}
           <span class="ml-2 opacity-70">({{ eventGroupCount(eventName) }})</span>
         </button>
       </div>
@@ -63,7 +63,7 @@
         class="py-20 text-center text-text-muted"
       >
         <div class="loading-spinner mx-auto mb-4 h-8 w-8 border-accent-secondary/30 border-t-accent-secondary" />
-        <span>Loading...</span>
+        <span>{{ tt('加载中...', 'Loading...') }}</span>
       </div>
 
       <div
@@ -78,7 +78,7 @@
           />
         </div>
         <p class="text-lg font-medium">
-          No hook groups found
+          {{ tt('没有找到 Hook 组', 'No hook groups found') }}
         </p>
       </div>
 
@@ -103,11 +103,11 @@
                     class="rounded-md border px-2 py-0.5 text-xs font-medium"
                     :class="getEventColor(eventName)"
                   >
-                    {{ groups.length }} group{{ groups.length === 1 ? '' : 's' }}
+                    {{ tt(`${groups.length} 组`, `${groups.length} group${groups.length === 1 ? '' : 's'}`) }}
                   </span>
                 </div>
                 <p class="text-xs text-text-muted">
-                  {{ handlerCountForEvent(eventName) }} handler{{ handlerCountForEvent(eventName) === 1 ? '' : 's' }}
+                  {{ tt(`${handlerCountForEvent(eventName)} 个处理器`, `${handlerCountForEvent(eventName)} handler${handlerCountForEvent(eventName) === 1 ? '' : 's'}`) }}
                 </p>
               </div>
               <button
@@ -119,7 +119,7 @@
                   size="w-4 h-4"
                   class="mr-2"
                 />
-                Add Group
+                {{ tt('添加分组', 'Add Group') }}
               </button>
             </div>
 
@@ -132,16 +132,16 @@
                 <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div class="space-y-2">
                     <div class="flex flex-wrap items-center gap-2">
-                      <span class="rounded-md bg-bg-elevated px-2 py-1 text-xs font-semibold uppercase tracking-wide text-text-muted">Matcher</span>
+                      <span class="rounded-md bg-bg-elevated px-2 py-1 text-xs font-semibold uppercase tracking-wide text-text-muted">{{ tt('匹配器', 'Matcher') }}</span>
                       <code class="break-all rounded-md border border-border-default bg-bg-elevated px-2 py-1 font-mono text-xs text-text-primary">
-                        {{ group.matcher || 'All matches' }}
+                        {{ group.matcher || tt('全部匹配', 'All matches') }}
                       </code>
                     </div>
                     <p
                       v-if="groupExtraKeys(group).length > 0"
                       class="text-xs text-text-muted"
                     >
-                      Advanced group fields: {{ groupExtraKeys(group).join(', ') }}
+                      {{ tt('高级分组字段：', 'Advanced group fields:') }} {{ groupExtraKeys(group).join(', ') }}
                     </p>
                   </div>
 
@@ -180,22 +180,22 @@
                           <span
                             v-if="handler.model"
                             class="rounded-md border border-border-default px-2 py-1 text-xs text-text-secondary"
-                          >model: {{ handler.model }}</span>
+                          >{{ tt('模型：', 'model:') }} {{ handler.model }}</span>
                           <span
                             v-if="typeof handler.timeout === 'number'"
                             class="rounded-md border border-border-default px-2 py-1 text-xs text-text-secondary"
-                          >timeout: {{ handler.timeout }}s</span>
+                          >{{ tt('超时：', 'timeout:') }} {{ handler.timeout }}s</span>
                           <span
                             v-if="handler.async === true"
                             class="rounded-md border border-border-default px-2 py-1 text-xs text-text-secondary"
-                          >async</span>
+                          >{{ tt('异步', 'async') }}</span>
                         </div>
                         <code class="block break-all font-mono text-xs text-text-primary">{{ getHandlerSummary(handler) }}</code>
                         <p
                           v-if="handlerExtraKeys(handler).length > 0"
                           class="text-xs text-text-muted"
                         >
-                          Advanced handler fields: {{ handlerExtraKeys(handler).join(', ') }}
+                          {{ tt('高级处理器字段：', 'Advanced handler fields:') }} {{ handlerExtraKeys(handler).join(', ') }}
                         </p>
                       </div>
 
@@ -242,46 +242,46 @@
                 size="w-6 h-6"
                 class="mr-2 text-accent-secondary"
               />
-              {{ editingTarget ? 'Edit Hook Group' : 'Add Hook Group' }}
+              {{ editingTarget ? tt('编辑 Hook 组', 'Edit Hook Group') : tt('添加 Hook 组', 'Add Hook Group') }}
             </h3>
 
             <div class="space-y-6">
               <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
-                  <label class="hooks-field-label">Event</label>
+                  <label class="hooks-field-label">{{ tt('事件', 'Event') }}</label>
                   <input
                     v-model="groupForm.event"
                     list="known-hook-events"
                     type="text"
                     class="hooks-input"
-                    placeholder="PreToolUse"
+                    :placeholder="eventPlaceholder"
                   >
                 </div>
                 <div>
-                  <label class="hooks-field-label">Matcher</label>
+                  <label class="hooks-field-label">{{ tt('匹配器', 'Matcher') }}</label>
                   <input
                     v-model="groupForm.matcher"
                     type="text"
                     class="hooks-input"
-                    placeholder="Write|Edit"
+                    :placeholder="matcherPlaceholder"
                   >
                 </div>
               </div>
 
               <div>
-                <label class="hooks-field-label">Group Advanced JSON</label>
+                <label class="hooks-field-label">{{ tt('分组高级 JSON', 'Group Advanced JSON') }}</label>
                 <textarea
                   v-model="groupForm.groupExtraJson"
                   rows="4"
                   class="hooks-input hooks-input--mono hooks-input--textarea"
-                  placeholder="{&#10;  &quot;source&quot;: &quot;user&quot;&#10;}"
+                  :placeholder="groupExtraPlaceholder"
                 />
               </div>
 
               <div class="space-y-4">
                 <div class="flex items-center justify-between">
                   <h4 class="text-lg font-semibold text-text-primary">
-                    Handlers
+                    {{ tt('处理器', 'Handlers') }}
                   </h4>
                   <button
                     class="hooks-secondary-button"
@@ -292,7 +292,7 @@
                       size="w-4 h-4"
                       class="mr-2"
                     />
-                    Add Handler
+                    {{ tt('添加处理器', 'Add Handler') }}
                   </button>
                 </div>
 
@@ -303,7 +303,7 @@
                 >
                   <div class="flex items-center justify-between">
                     <h5 class="text-sm font-semibold uppercase tracking-wide text-text-muted">
-                      Handler {{ handlerIndex + 1 }}
+                      {{ tt(`处理器 ${handlerIndex + 1}`, `Handler ${handlerIndex + 1}`) }}
                     </h5>
                     <button
                       class="hooks-icon-button hooks-icon-button--danger"
@@ -319,17 +319,17 @@
 
                   <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div>
-                      <label class="hooks-field-label">Type</label>
+                      <label class="hooks-field-label">{{ tt('类型', 'Type') }}</label>
                       <input
                         v-model="handler.type"
                         list="known-handler-types"
                         type="text"
                         class="hooks-input"
-                        placeholder="command"
+                        :placeholder="commandTypePlaceholder"
                       >
                     </div>
                     <div>
-                      <label class="hooks-field-label">Timeout (seconds)</label>
+                      <label class="hooks-field-label">{{ tt('超时（秒）', 'Timeout (seconds)') }}</label>
                       <input
                         v-model="handler.timeout"
                         type="text"
@@ -344,12 +344,12 @@
                     class="space-y-4"
                   >
                     <div>
-                      <label class="hooks-field-label">Command</label>
+                      <label class="hooks-field-label">{{ tt('命令', 'Command') }}</label>
                       <input
                         v-model="handler.command"
                         type="text"
                         class="hooks-input hooks-input--mono"
-                        placeholder="./scripts/check-style.sh"
+                        :placeholder="commandPlaceholder"
                       >
                     </div>
                     <label class="hooks-checkbox">
@@ -358,7 +358,7 @@
                         type="checkbox"
                         class="h-4 w-4 rounded border-border-default text-accent-secondary focus:ring-accent-secondary"
                       >
-                      <span class="hooks-checkbox__label">Run asynchronously</span>
+                      <span class="hooks-checkbox__label">{{ tt('异步运行', 'Run asynchronously') }}</span>
                     </label>
                   </div>
 
@@ -367,31 +367,31 @@
                     class="space-y-4"
                   >
                     <div>
-                      <label class="hooks-field-label">URL</label>
+                      <label class="hooks-field-label">{{ tt('URL', 'URL') }}</label>
                       <input
                         v-model="handler.url"
                         type="text"
                         class="hooks-input hooks-input--mono"
-                        placeholder="https://example.com/hooks"
+                        :placeholder="urlPlaceholder"
                       >
                     </div>
                     <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                       <div>
-                        <label class="hooks-field-label">Headers JSON</label>
+                        <label class="hooks-field-label">{{ tt('请求头 JSON', 'Headers JSON') }}</label>
                         <textarea
                           v-model="handler.headersJson"
                           rows="4"
                           class="hooks-input hooks-input--mono hooks-input--textarea"
-                          placeholder="{&#10;  &quot;Authorization&quot;: &quot;Bearer ...&quot;&#10;}"
+                          :placeholder="headersPlaceholder"
                         />
                       </div>
                       <div>
-                        <label class="hooks-field-label">Allowed Env Vars</label>
+                        <label class="hooks-field-label">{{ tt('允许的环境变量', 'Allowed Env Vars') }}</label>
                         <textarea
                           v-model="handler.allowedEnvVarsText"
                           rows="4"
                           class="hooks-input hooks-input--mono hooks-input--textarea"
-                          placeholder="OPENAI_API_KEY, GITHUB_TOKEN"
+                          :placeholder="allowedEnvVarsPlaceholder"
                         />
                       </div>
                     </div>
@@ -401,7 +401,7 @@
                         type="checkbox"
                         class="h-4 w-4 rounded border-border-default text-accent-secondary focus:ring-accent-secondary"
                       >
-                      <span class="hooks-checkbox__label">Run asynchronously</span>
+                      <span class="hooks-checkbox__label">{{ tt('异步运行', 'Run asynchronously') }}</span>
                     </label>
                   </div>
 
@@ -410,42 +410,42 @@
                     class="space-y-4"
                   >
                     <div>
-                      <label class="hooks-field-label">Prompt</label>
+                      <label class="hooks-field-label">{{ tt('提示词', 'Prompt') }}</label>
                       <textarea
                         v-model="handler.prompt"
                         rows="4"
                         class="hooks-input hooks-input--mono hooks-input--textarea"
-                        placeholder="Evaluate this action and return JSON"
+                        :placeholder="promptPlaceholder"
                       />
                     </div>
                     <div>
-                      <label class="hooks-field-label">Model</label>
+                      <label class="hooks-field-label">{{ tt('模型', 'Model') }}</label>
                       <input
                         v-model="handler.model"
                         type="text"
                         class="hooks-input"
-                        placeholder="claude-haiku-4-5"
+                        :placeholder="modelPlaceholder"
                       >
                     </div>
                   </div>
 
                   <div>
-                    <label class="hooks-field-label">Status Message</label>
+                    <label class="hooks-field-label">{{ tt('状态消息', 'Status Message') }}</label>
                     <input
                       v-model="handler.statusMessage"
                       type="text"
                       class="hooks-input"
-                      placeholder="Checking style..."
+                      :placeholder="statusMessagePlaceholder"
                     >
                   </div>
 
                   <div>
-                    <label class="hooks-field-label">Handler Advanced JSON</label>
+                    <label class="hooks-field-label">{{ tt('处理器高级 JSON', 'Handler Advanced JSON') }}</label>
                     <textarea
                       v-model="handler.extraJson"
                       rows="4"
                       class="hooks-input hooks-input--mono hooks-input--textarea"
-                      placeholder="{&#10;  &quot;custom&quot;: true&#10;}"
+                      :placeholder="handlerExtraPlaceholder"
                     />
                   </div>
                 </div>
@@ -456,14 +456,14 @@
                   class="hooks-footer-button"
                   @click="closeModal"
                 >
-                  Cancel
+                  {{ tt('取消', 'Cancel') }}
                 </button>
                 <button
                   class="hooks-footer-button hooks-footer-button--primary"
                   :disabled="saving"
                   @click="saveGroup"
                 >
-                  {{ saving ? 'Saving...' : editingTarget ? 'Save Group' : 'Add Group' }}
+                  {{ saving ? tt('保存中...', 'Saving...') : editingTarget ? tt('保存分组', 'Save Group') : tt('添加分组', 'Add Group') }}
                 </button>
               </div>
             </div>
@@ -491,6 +491,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import SIcon from '@/components/ui/SIcon.vue'
 import Card from '@/components/ui/Card.vue'
 import { listHooks, updateHooks } from '@/api'
@@ -526,21 +527,38 @@ interface EditingTarget {
 
 const knownHookEvents = ['PermissionRequest', 'PostToolUse', 'PostToolUseFailure', 'PreToolUse', 'Stop', 'SubagentStop', 'TaskCompleted', 'UserPromptSubmit', 'ConfigChange', 'Elicitation', 'ElicitationResult', 'InstructionsLoaded', 'Notification', 'PostCompact', 'PreCompact', 'SessionEnd', 'SessionStart', 'StopFailure', 'SubagentStart', 'TeammateIdle', 'WorktreeCreate', 'WorktreeRemove']
 const knownHandlerTypes = ['command', 'http', 'prompt', 'agent']
+const allEventKey = 'All'
+const hookFlowLabel = 'event -> matcher groups -> handlers'
+const eventPlaceholder = 'PreToolUse'
+const matcherPlaceholder = 'Write|Edit'
+const groupExtraPlaceholder = '{\n  "source": "user"\n}'
+const commandTypePlaceholder = 'command'
+const commandPlaceholder = './scripts/check-style.sh'
+const urlPlaceholder = 'https://example.com/hooks'
+const headersPlaceholder = '{\n  "Authorization": "Bearer ..."\n}'
+const allowedEnvVarsPlaceholder = 'OPENAI_API_KEY, GITHUB_TOKEN'
+const promptPlaceholder = 'Evaluate this action and return JSON'
+const modelPlaceholder = 'claude-haiku-4-5'
+const statusMessagePlaceholder = 'Checking style...'
+const handlerExtraPlaceholder = '{\n  "custom": true\n}'
 
+const { locale } = useI18n()
+const isZh = computed(() => locale.value.startsWith('zh'))
+const tt = (zh: string, en: string) => (isZh.value ? zh : en)
 const uiStore = useUIStore()
 const hooksConfig = ref<HookMap>({})
 const loading = ref(false)
 const saving = ref(false)
 const showModal = ref(false)
-const selectedEvent = ref('All')
+const selectedEvent = ref(allEventKey)
 const editingTarget = ref<EditingTarget | null>(null)
 const groupForm = ref<HookGroupFormState>(createEmptyGroupForm())
 
 const sortedEventNames = computed(() => Object.keys(hooksConfig.value).sort((left, right) => left.localeCompare(right)))
-const eventTabs = computed(() => ['All', ...sortedEventNames.value])
+const eventTabs = computed(() => [allEventKey, ...sortedEventNames.value])
 const visibleEventEntries = computed(() => {
   const entries = Object.entries(hooksConfig.value).sort(([left], [right]) => left.localeCompare(right))
-  return selectedEvent.value === 'All' ? entries : entries.filter(([eventName]) => eventName === selectedEvent.value)
+  return selectedEvent.value === allEventKey ? entries : entries.filter(([eventName]) => eventName === selectedEvent.value)
 })
 const totalHandlers = computed(() => Object.values(hooksConfig.value).reduce((count, groups) => count + groups.reduce((sum, group) => sum + group.hooks.length, 0), 0))
 const knownEventOptions = computed(() => Array.from(new Set([...knownHookEvents, ...sortedEventNames.value])).sort((left, right) => left.localeCompare(right)))
@@ -566,7 +584,7 @@ function parseJsonObject(input: string, label: string): Record<string, unknown> 
   if (!trimmed) return {}
   const parsed = JSON.parse(trimmed) as unknown
   if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-    throw new Error(`${label} must be a JSON object`)
+    throw new Error(tt(`${label} 必须是 JSON 对象`, `${label} must be a JSON object`))
   }
   return parsed as Record<string, unknown>
 }
@@ -575,7 +593,7 @@ function parseTimeout(timeout: string): number | undefined {
   const trimmed = timeout.trim()
   if (!trimmed) return undefined
   const value = Number.parseInt(trimmed, 10)
-  if (!Number.isFinite(value) || value < 0) throw new Error('Timeout must be a non-negative integer')
+  if (!Number.isFinite(value) || value < 0) throw new Error(tt('超时必须是非负整数', 'Timeout must be a non-negative integer'))
   return value
 }
 
@@ -610,7 +628,7 @@ function getEventColor(eventName: string): string {
 }
 
 function eventGroupCount(eventName: string): number {
-  if (eventName === 'All') {
+  if (eventName === allEventKey) {
     return Object.values(hooksConfig.value).reduce((count, groups) => count + groups.length, 0)
   }
   return hooksConfig.value[eventName]?.length ?? 0
@@ -621,9 +639,9 @@ function handlerCountForEvent(eventName: string): number {
 }
 
 function getHandlerSummary(handler: Hook): string {
-  if (handler.type === 'command') return handler.command || '(missing command)'
-  if (handler.type === 'http') return handler.url || '(missing url)'
-  if (handler.type === 'prompt' || handler.type === 'agent') return handler.prompt || '(missing prompt)'
+  if (handler.type === 'command') return handler.command || tt('(缺少命令)', '(missing command)')
+  if (handler.type === 'http') return handler.url || tt('(缺少 URL)', '(missing url)')
+  if (handler.type === 'prompt' || handler.type === 'agent') return handler.prompt || tt('(缺少提示词)', '(missing prompt)')
   return JSON.stringify(handler)
 }
 
@@ -656,7 +674,7 @@ function groupToForm(eventName: string, group: HookMatcherGroup): HookGroupFormS
 
 function buildHandler(handlerForm: HookHandlerForm): Hook {
   const type = handlerForm.type.trim()
-  if (!type) throw new Error('Handler type is required')
+  if (!type) throw new Error(tt('处理器类型不能为空', 'Handler type is required'))
 
   const extra = parseJsonObject(handlerForm.extraJson, 'Handler advanced JSON')
   const handler: Hook = { ...extra, type }
@@ -668,11 +686,11 @@ function buildHandler(handlerForm: HookHandlerForm): Hook {
   const statusMessage = handlerForm.statusMessage.trim()
 
   if (type === 'command') {
-    if (!command) throw new Error('Command handlers require a command')
+    if (!command) throw new Error(tt('命令型处理器必须填写命令', 'Command handlers require a command'))
     handler.command = command
     if (handlerForm.asyncEnabled) handler.async = true
   } else if (type === 'http') {
-    if (!url) throw new Error('HTTP handlers require a URL')
+    if (!url) throw new Error(tt('HTTP 处理器必须填写 URL', 'HTTP handlers require a URL'))
     handler.url = url
     const headers = parseHeaders(handlerForm.headersJson)
     if (headers) handler.headers = headers
@@ -680,7 +698,7 @@ function buildHandler(handlerForm: HookHandlerForm): Hook {
     if (allowedEnvVars) handler.allowedEnvVars = allowedEnvVars
     if (handlerForm.asyncEnabled) handler.async = true
   } else {
-    if (!prompt) throw new Error(`${type} handlers require a prompt`)
+    if (!prompt) throw new Error(tt(`${type} 处理器必须填写提示词`, `${type} handlers require a prompt`))
     handler.prompt = prompt
     if (model) handler.model = model
   }
@@ -693,8 +711,8 @@ function buildHandler(handlerForm: HookHandlerForm): Hook {
 
 function buildGroupFromForm(): { event: string; group: HookMatcherGroup } {
   const eventName = groupForm.value.event.trim()
-  if (!eventName) throw new Error('Event is required')
-  if (groupForm.value.handlers.length === 0) throw new Error('At least one handler is required')
+  if (!eventName) throw new Error(tt('事件不能为空', 'Event is required'))
+  if (groupForm.value.handlers.length === 0) throw new Error(tt('至少需要一个处理器', 'At least one handler is required'))
 
   const groupExtra = parseJsonObject(groupForm.value.groupExtraJson, 'Group advanced JSON')
   const matcher = groupForm.value.matcher.trim()
@@ -707,10 +725,10 @@ async function loadHooks() {
   loading.value = true
   try {
     hooksConfig.value = await listHooks<HookMap>()
-    if (selectedEvent.value !== 'All' && !hooksConfig.value[selectedEvent.value]) selectedEvent.value = 'All'
+    if (selectedEvent.value !== allEventKey && !hooksConfig.value[selectedEvent.value]) selectedEvent.value = allEventKey
   } catch (error) {
     logger.error('Failed to load hooks:', error)
-    uiStore.showError(error instanceof Error ? error.message : 'Failed to load hooks')
+    uiStore.showError(error instanceof Error ? error.message : tt('加载 Hooks 失败', 'Failed to load hooks'))
   } finally {
     loading.value = false
   }
@@ -748,10 +766,10 @@ async function persistHooks(nextHooks: HookMap, successMessage: string) {
   try {
     hooksConfig.value = await updateHooks<HookMap>(nextHooks)
     uiStore.showSuccess(successMessage)
-    if (selectedEvent.value !== 'All' && !hooksConfig.value[selectedEvent.value]) selectedEvent.value = 'All'
+    if (selectedEvent.value !== allEventKey && !hooksConfig.value[selectedEvent.value]) selectedEvent.value = allEventKey
   } catch (error) {
     logger.error('Failed to save hooks:', error)
-    uiStore.showError(error instanceof Error ? error.message : 'Failed to save hooks')
+    uiStore.showError(error instanceof Error ? error.message : tt('保存 Hooks 失败', 'Failed to save hooks'))
     throw error
   } finally {
     saving.value = false
@@ -770,19 +788,19 @@ async function saveGroup() {
     }
 
     nextHooks[event] = [...(nextHooks[event] ?? []), group]
-    await persistHooks(nextHooks, editingTarget.value ? 'Hook group updated successfully' : 'Hook group added successfully')
+    await persistHooks(nextHooks, editingTarget.value ? tt('Hook 组更新成功', 'Hook group updated successfully') : tt('Hook 组添加成功', 'Hook group added successfully'))
     closeModal()
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : 'Failed to save hook group')
+    uiStore.showError(error instanceof Error ? error.message : tt('保存 Hook 组失败', 'Failed to save hook group'))
   }
 }
 
 async function handleDeleteGroup(eventName: string, groupIndex: number) {
   const confirmed = await uiStore.requestConfirm({
-    title: 'Delete hook group',
-    message: `Delete matcher group ${groupIndex + 1} from "${eventName}"?`,
-    confirmText: 'Delete',
-    cancelText: 'Cancel',
+    title: tt('删除 Hook 组', 'Delete hook group'),
+    message: tt(`确认删除 "${eventName}" 下的第 ${groupIndex + 1} 个匹配组吗？`, `Delete matcher group ${groupIndex + 1} from "${eventName}"?`),
+    confirmText: tt('删除', 'Delete'),
+    cancelText: tt('取消', 'Cancel'),
     type: 'danger',
   })
   if (!confirmed) return
@@ -790,15 +808,15 @@ async function handleDeleteGroup(eventName: string, groupIndex: number) {
   const nextHooks = cloneHookMap(hooksConfig.value)
   nextHooks[eventName]?.splice(groupIndex, 1)
   if ((nextHooks[eventName] ?? []).length === 0) delete nextHooks[eventName]
-  await persistHooks(nextHooks, 'Hook group deleted successfully')
+  await persistHooks(nextHooks, tt('Hook 组删除成功', 'Hook group deleted successfully'))
 }
 
 async function handleDeleteHandler(eventName: string, groupIndex: number, handlerIndex: number) {
   const confirmed = await uiStore.requestConfirm({
-    title: 'Delete handler',
-    message: `Delete handler ${handlerIndex + 1} from "${eventName}"?`,
-    confirmText: 'Delete',
-    cancelText: 'Cancel',
+    title: tt('删除处理器', 'Delete handler'),
+    message: tt(`确认删除 "${eventName}" 下的第 ${handlerIndex + 1} 个处理器吗？`, `Delete handler ${handlerIndex + 1} from "${eventName}"?`),
+    confirmText: tt('删除', 'Delete'),
+    cancelText: tt('取消', 'Cancel'),
     type: 'danger',
   })
   if (!confirmed) return
@@ -810,7 +828,7 @@ async function handleDeleteHandler(eventName: string, groupIndex: number, handle
   group.hooks.splice(handlerIndex, 1)
   if (group.hooks.length === 0) nextHooks[eventName]?.splice(groupIndex, 1)
   if ((nextHooks[eventName] ?? []).length === 0) delete nextHooks[eventName]
-  await persistHooks(nextHooks, 'Handler deleted successfully')
+  await persistHooks(nextHooks, tt('处理器删除成功', 'Handler deleted successfully'))
 }
 
 onMounted(() => {

@@ -17,8 +17,9 @@ vi.mock('@/components/ui/SIcon.vue', () => ({
 
 vi.mock('@/composables/useCodexTrayPanel', async () => {
   const { computed, ref } = await import('vue')
+  type TraySnapshot = import('@/types').CodexTraySnapshot
 
-  const snapshot = ref<any>(null)
+  const snapshot = ref<TraySnapshot | null>(null)
   const screen = ref<'overview' | 'switch'>('overview')
   const loading = ref(false)
   const busyAccount = ref<string | null>(null)
@@ -45,7 +46,7 @@ vi.mock('@/composables/useCodexTrayPanel', async () => {
     screen.value = 'overview'
   })
 
-  const seed = (nextSnapshot: any) => {
+  const seed = (nextSnapshot: TraySnapshot) => {
     snapshot.value = nextSnapshot
     screen.value = 'overview'
     loading.value = false
@@ -152,16 +153,32 @@ const flush = async () => {
   await nextTick()
 }
 
+// mock 工厂额外暴露的 __trayPanelTestState 不存在于真实模块类型上，用局部类型断言取回。
+type TrayPanelTestState = {
+  seed: (snapshot: ReturnType<typeof sampleSnapshot>) => void
+  openAuth: ReturnType<typeof vi.fn>
+  openMain: ReturnType<typeof vi.fn>
+  openUsage: ReturnType<typeof vi.fn>
+}
+
+const getTrayPanelTestState = async (): Promise<TrayPanelTestState> => {
+  const trayPanelModule = await import('@/composables/useCodexTrayPanel')
+  return (trayPanelModule as unknown as { __trayPanelTestState: TrayPanelTestState })
+    .__trayPanelTestState
+}
+
 const mountView = async () => {
   const { default: CodexTrayPanelView } = await import('@/views/tray/CodexTrayPanelView.vue')
   const el = document.createElement('div')
   document.body.appendChild(el)
 
-  const app = createApp(defineComponent({
-    setup() {
-      return () => h(CodexTrayPanelView)
-    },
-  }))
+  const app = createApp(
+    defineComponent({
+      setup() {
+        return () => h(CodexTrayPanelView)
+      },
+    })
+  )
 
   app.use(i18n)
   app.mount(el)
@@ -178,8 +195,8 @@ const mountView = async () => {
 
 beforeEach(async () => {
   vi.clearAllMocks()
-  const trayPanelModule = await import('@/composables/useCodexTrayPanel')
-  trayPanelModule.__trayPanelTestState.seed(sampleSnapshot(true))
+  const testState = await getTrayPanelTestState()
+  testState.seed(sampleSnapshot(true))
 })
 
 afterEach(() => {
@@ -221,7 +238,7 @@ describe('codex tray panel', () => {
   })
 
   it('routes overview action buttons through the existing shell helpers', async () => {
-    const trayPanelModule = await import('@/composables/useCodexTrayPanel')
+    const testState = await getTrayPanelTestState()
     const { el, unmount } = await mountView()
 
     try {
@@ -229,16 +246,16 @@ describe('codex tray panel', () => {
       ;(el.querySelector('[data-testid="tray-action-open-main"]') as HTMLButtonElement).click()
       await flush()
 
-      expect(trayPanelModule.__trayPanelTestState.openUsage).toHaveBeenCalledTimes(1)
-      expect(trayPanelModule.__trayPanelTestState.openMain).toHaveBeenCalledTimes(1)
+      expect(testState.openUsage).toHaveBeenCalledTimes(1)
+      expect(testState.openMain).toHaveBeenCalledTimes(1)
     } finally {
       unmount()
     }
   })
 
   it('disables the switch action when account management is unavailable', async () => {
-    const trayPanelModule = await import('@/composables/useCodexTrayPanel')
-    trayPanelModule.__trayPanelTestState.seed(sampleSnapshot(false))
+    const testState = await getTrayPanelTestState()
+    testState.seed(sampleSnapshot(false))
 
     const { el, unmount } = await mountView()
 
@@ -246,10 +263,9 @@ describe('codex tray panel', () => {
       const trigger = el.querySelector('[data-testid="tray-action-switch"]') as HTMLButtonElement
       expect(trigger.disabled).toBe(true)
       expect(el.textContent).toContain('Switching is unavailable for the current profile.')
-
       ;(el.querySelector('[data-testid="tray-action-open-auth"]') as HTMLButtonElement).click()
       await flush()
-      expect(trayPanelModule.__trayPanelTestState.openAuth).toHaveBeenCalledTimes(1)
+      expect(testState.openAuth).toHaveBeenCalledTimes(1)
     } finally {
       unmount()
     }

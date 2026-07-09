@@ -165,7 +165,7 @@
                   class="p-2 rounded-lg transition-transform hover:scale-110"
                   :style="{ background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border-default)', color: 'var(--color-danger)' }"
                   :title="$t('common.delete')"
-                  @click="deletePlugin(plugin)"
+                  @click="handleDeletePlugin(plugin)"
                 >
                   <SIcon
                     name="Trash2"
@@ -304,8 +304,11 @@
 import SIcon from '@/components/ui/SIcon.vue'
 import { onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import ModuleSubnav from '@/components/ModuleSubnav.vue'
+import { useUIStore } from '@/stores/ui'
 import { usePlatformPlugins, type PluginPlatformType } from '@/composables/usePlatformPlugins'
+import type { Plugin } from '@/types'
 
 // ============ Props ============
 
@@ -314,6 +317,9 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+
+const { t } = useI18n()
+const uiStore = useUIStore()
 
 // ============ Composable ============
 
@@ -345,6 +351,19 @@ onMounted(() => {
 })
 
 // ============ Event Handlers ============
+
+/** 删除插件：先弹全局确认框，确认后才调用 composable 的纯执行器 */
+async function handleDeletePlugin(plugin: Plugin): Promise<void> {
+  const name = plugin.name || plugin.id
+  const confirmed = await uiStore.requestConfirm({
+    title: t('common.delete'),
+    message: t(`${i18nPrefix.value}.deleteConfirm`, { name }),
+    confirmText: t('common.delete'),
+    cancelText: t('common.cancel'),
+    type: 'danger',
+  })
+  if (confirmed) await deletePlugin(plugin)
+}
 
 /** 卡片悬停效果 */
 function onCardHover(el: HTMLElement, hover: boolean): void {

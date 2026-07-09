@@ -6,20 +6,21 @@
  */
 
 import { defineStore } from 'pinia'
-import { computed, ref } from 'vue'
+import { getErrorMessage } from '@/utils/errorHandler'
+import { computed, ref, shallowRef } from 'vue'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import type {
   UsageArchiveDiagnostics,
   DailyTrend,
   HeatmapResponse,
   ImportAllUsageResponse,
-  ImportResult,
+  UsageImportResult,
   ModelStat,
   PaginatedLogs,
-  Platform,
+  UsagePlatform,
   ProjectStat,
+  ProviderBreakdown,
   SourceBreakdown,
-  StartUsageImportJobResponse,
   UsageCapabilityReport,
   UsageImportJobSnapshot,
   UsageImportSummary,
@@ -30,6 +31,7 @@ import type {
 import {
   getUsageImportJobStatusV2,
   getUsageByModelV2,
+  getUsageByProviderV2,
   getUsageByProjectV2,
   getUsageCapabilitiesV2,
   getUsageDashboardV2,
@@ -69,10 +71,7 @@ const IMPORT_PROGRESS_REFRESH_INTERVAL_MS = 2_000
 const DASHBOARD_CACHE_TTL_MS = 30_000
 const AUTO_REFRESH_FRESHNESS_MS = DASHBOARD_CACHE_TTL_MS
 
-const USE_DASHBOARD_API = parseEnvFlag(
-  import.meta.env.VITE_USAGE_DASHBOARD_AGGREGATED_API,
-  true,
-)
+const USE_DASHBOARD_API = parseEnvFlag(import.meta.env.VITE_USAGE_DASHBOARD_AGGREGATED_API, true)
 const LAZY_HEATMAP_LOAD = parseEnvFlag(import.meta.env.VITE_PERF_HEATMAP_LAZY_LOAD, true)
 
 const nowMs = () => (typeof performance !== 'undefined' ? performance.now() : Date.now())
@@ -80,7 +79,7 @@ const nowMs = () => (typeof performance !== 'undefined' ? performance.now() : Da
 const recordPerfMetric = (
   name: string,
   value: number,
-  extra: Record<string, string | number | boolean> = {},
+  extra: Record<string, string | number | boolean> = {}
 ) => {
   const detail = { name, value, ts: Date.now(), ...extra }
   if (typeof window !== 'undefined') {
@@ -91,10 +90,7 @@ const recordPerfMetric = (
   }
 }
 
-const recordPerfMark = (
-  name: string,
-  extra: Record<string, string | number | boolean> = {},
-) => {
+const recordPerfMark = (name: string, extra: Record<string, string | number | boolean> = {}) => {
   recordPerfMetric(name, 0, extra)
 }
 
@@ -110,17 +106,23 @@ type IdleCapableWindow = Window & {
   requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number
 }
 
+type ProviderStatsCacheEntry = {
+  payload: ProviderBreakdown[]
+  ts: number
+}
+
 export const useUsageStore = defineStore('usage', () => {
   // ═══ State ═══
   const summary = ref<UsageSummary | null>(null)
-  const trends = ref<DailyTrend[]>([])
-  const modelStats = ref<ModelStat[]>([])
-  const projectStats = ref<ProjectStat[]>([])
-  const sourceStats = ref<SourceBreakdown[]>([])
-  const heatmap = ref<HeatmapResponse | null>(null)
-  const logs = ref<PaginatedLogs | null>(null)
+  const trends = shallowRef<DailyTrend[]>([])
+  const modelStats = shallowRef<ModelStat[]>([])
+  const projectStats = shallowRef<ProjectStat[]>([])
+  const providerStats = shallowRef<ProviderBreakdown[]>([])
+  const sourceStats = shallowRef<SourceBreakdown[]>([])
+  const heatmap = shallowRef<HeatmapResponse | null>(null)
+  const logs = shallowRef<PaginatedLogs | null>(null)
   const archive = ref<UsageArchiveDiagnostics | null>(null)
-  const snapshot = ref<UsageSnapshotProjection | null>(null)
+  const snapshot = shallowRef<UsageSnapshotProjection | null>(null)
   const usageCapabilities = ref<UsageCapabilityReport | null>(null)
 
   const loading = ref(true)
@@ -132,11 +134,11 @@ export const useUsageStore = defineStore('usage', () => {
   const isBootstrapping = ref(false)
   const bootstrapAttempted = ref(false)
   const lastImportSummary = ref<UsageImportSummary | null>(null)
-  const lastImportResults = ref<ImportResult[]>([])
+  const lastImportResults = ref<UsageImportResult[]>([])
   const currentImportJob = ref<UsageImportJobSnapshot | null>(null)
 
   // 筛选条件
-  const platform = ref<Platform | undefined>(undefined)
+  const platform = ref<UsagePlatform | undefined>(undefined)
   const timeRange = ref<{ start?: string; end?: string }>({})
   const logsPage = ref(1)
   const logsPageSize = ref(50)
@@ -157,6 +159,7 @@ export const useUsageStore = defineStore('usage', () => {
   // 此 cursor 仅在 store 内部使用，不进 return（消费者不应直接读写）。
   const logsCursorStack = ref<Array<string | null>>([null])
   const dashboardCache = new Map<string, UsageDashboardCacheEntry>()
+  const providerStatsCache = new Map<string, ProviderStatsCacheEntry>()
 
   // ═══ Computed ═══
   const totalTokens = computed(() => summary.value?.total_tokens ?? 0)
@@ -183,7 +186,9 @@ export const useUsageStore = defineStore('usage', () => {
 
   const showLogsPager = computed(() => {
     if (!logs.value) return false
-    return canPrevLogs.value || canNextLogs.value || (hasLogsTotal.value && logsTotalPages.value > 1)
+    return (
+      canPrevLogs.value || canNextLogs.value || (hasLogsTotal.value && logsTotalPages.value > 1)
+    )
   })
 
   const hasUsageData = computed(() => (summary.value?.total_requests ?? 0) > 0)
@@ -198,6 +203,7 @@ export const useUsageStore = defineStore('usage', () => {
     trends.value = normalized.trends
     modelStats.value = normalized.modelStats
     projectStats.value = normalized.projectStats
+    providerStats.value = normalized.providerStats
     sourceStats.value = normalized.sourceStats
     archive.value = normalized.archive
     snapshot.value = normalized.snapshot
@@ -211,6 +217,8 @@ export const useUsageStore = defineStore('usage', () => {
     trends.value = []
     modelStats.value = []
     projectStats.value = []
+    providerStats.value = []
+    providerStatsCache.clear()
     sourceStats.value = []
     heatmap.value = null
     logs.value = null
@@ -223,7 +231,7 @@ export const useUsageStore = defineStore('usage', () => {
     if (!force && usageCapabilities.value) return usageCapabilities.value
 
     try {
-      usageCapabilities.value = await getUsageCapabilitiesV2<UsageCapabilityReport>()
+      usageCapabilities.value = await getUsageCapabilitiesV2()
     } catch (capabilityError) {
       logger.error('[usage] failed to load llmusage capabilities', capabilityError)
     }
@@ -231,7 +239,7 @@ export const useUsageStore = defineStore('usage', () => {
     return usageCapabilities.value
   }
 
-  const applyFilters = (opts: { platform?: Platform; start?: string; end?: string }) => {
+  const applyFilters = (opts: { platform?: UsagePlatform; start?: string; end?: string }) => {
     platform.value = opts.platform
     timeRange.value = { start: opts.start, end: opts.end }
   }
@@ -275,15 +283,17 @@ export const useUsageStore = defineStore('usage', () => {
     if (visibleSummary) {
       lastImportSummary.value = visibleSummary
       const failedDetails = visibleResults
-        .filter(result => result.error)
-        .map(result => `${result.platform}: ${result.error}`)
+        .filter((result) => result.error)
+        .map((result) => `${result.platform}: ${result.error}`)
         .join('\n')
 
       if (visibleSummary.failure_count === visibleResults.length && visibleResults.length > 0) {
-        error.value = failedDetails || job.error || '未能导入本地 usage 日志，请检查日志目录或导入错误'
+        error.value =
+          failedDetails || job.error || '未能导入本地 usage 日志，请检查日志目录或导入错误'
         warning.value = null
       } else if (visibleSummary.has_partial) {
-        warning.value = failedDetails || visibleJob.warnings[0] || '仅导入部分 usage 数据，可重试继续导入'
+        warning.value =
+          failedDetails || visibleJob.warnings[0] || '仅导入部分 usage 数据，可重试继续导入'
       } else {
         warning.value = null
       }
@@ -297,7 +307,7 @@ export const useUsageStore = defineStore('usage', () => {
   const clearImportJobListeners = async () => {
     const unlisteners = importJobUnlisteners
     importJobUnlisteners = []
-    await Promise.all(unlisteners.map(unlisten => unlisten()))
+    await Promise.all(unlisteners.map((unlisten) => unlisten()))
   }
 
   const shouldRefreshOnImportProgress = (job: UsageImportJobSnapshot) => {
@@ -320,9 +330,10 @@ export const useUsageStore = defineStore('usage', () => {
   const refreshAfterImportSignal = async (
     reason: string,
     includeHeatmap = false,
-    force = false,
+    force = false
   ) => {
     dashboardCache.clear()
+    providerStatsCache.clear()
     await fetchAll({
       background: true,
       includeHeatmap,
@@ -339,6 +350,7 @@ export const useUsageStore = defineStore('usage', () => {
       'usage:snapshot-updated',
       (event) => {
         dashboardCache.clear()
+        providerStatsCache.clear()
         if (!lastUpdated.value && !summary.value) return
         if (snapshotRefreshPromise) return
 
@@ -351,13 +363,13 @@ export const useUsageStore = defineStore('usage', () => {
         }).finally(() => {
           snapshotRefreshPromise = null
         })
-      },
+      }
     )
   }
 
   const handleImportJobSnapshot = async (
     job: UsageImportJobSnapshot,
-    trigger: 'progress' | 'recent-ready' | 'finished' | 'failed',
+    trigger: 'progress' | 'recent-ready' | 'finished' | 'failed'
   ) => {
     syncImportFeedbackFromJob(job)
 
@@ -417,21 +429,22 @@ export const useUsageStore = defineStore('usage', () => {
       }),
     ])
 
-    const latest = await getUsageImportJobStatusV2<UsageImportJobSnapshot>(jobId)
-    const trigger = latest.status === 'failed' || latest.status === 'cancelled'
-      ? 'failed'
-      : latest.status === 'finished'
-        ? 'finished'
-        : latest.status === 'recent_ready'
-          ? 'recent-ready'
-          : 'progress'
+    const latest = await getUsageImportJobStatusV2(jobId)
+    const trigger =
+      latest.status === 'failed' || latest.status === 'cancelled'
+        ? 'failed'
+        : latest.status === 'finished'
+          ? 'finished'
+          : latest.status === 'recent_ready'
+            ? 'recent-ready'
+            : 'progress'
     await handleImportJobSnapshot(latest, trigger)
   }
 
   // ═══ Actions ═══
   async function fetchHeatmap(reason: string = 'manual') {
     const startedAt = nowMs()
-    heatmap.value = await getUsageHeatmapV2<HeatmapResponse>(platform.value, HEATMAP_DAYS)
+    heatmap.value = await getUsageHeatmapV2(platform.value, HEATMAP_DAYS)
     recordPerfMetric('usage_heatmap_load_ms', nowMs() - startedAt, { reason })
   }
 
@@ -439,7 +452,12 @@ export const useUsageStore = defineStore('usage', () => {
     if (!LAZY_HEATMAP_LOAD) return
     const win = typeof window !== 'undefined' ? (window as IdleCapableWindow) : null
     if (typeof win?.requestIdleCallback === 'function') {
-      win.requestIdleCallback(() => { void fetchHeatmap(reason) }, { timeout: 1000 })
+      win.requestIdleCallback(
+        () => {
+          void fetchHeatmap(reason)
+        },
+        { timeout: 1000 }
+      )
     } else {
       setTimeout(() => {
         void fetchHeatmap(reason)
@@ -508,12 +526,12 @@ export const useUsageStore = defineStore('usage', () => {
 
         if (USE_DASHBOARD_API) {
           requestCount = 1
-          const data = await getUsageDashboardV2<UsageDashboardPayload>(
+          const data = await getUsageDashboardV2(
             platform.value,
             timeRange.value.start,
             timeRange.value.end,
             HEATMAP_DAYS,
-            includeHeatmap,
+            includeHeatmap
           )
           if (requestId !== requestSerial) return
           applyDashboardPayload(data, includeHeatmap)
@@ -524,16 +542,17 @@ export const useUsageStore = defineStore('usage', () => {
         } else {
           requestCount = includeHeatmap ? 5 : 4
           const [summaryData, trendsData, modelData, projectData] = await Promise.all([
-            getUsageSummaryV2<UsageSummary>(platform.value, timeRange.value.start, timeRange.value.end),
-            getUsageTrendsV2<DailyTrend[]>(platform.value, timeRange.value.start, timeRange.value.end),
-            getUsageByModelV2<ModelStat[]>(platform.value, timeRange.value.start, timeRange.value.end),
-            getUsageByProjectV2<ProjectStat[]>(platform.value, timeRange.value.start, timeRange.value.end),
+            getUsageSummaryV2(platform.value, timeRange.value.start, timeRange.value.end),
+            getUsageTrendsV2(platform.value, timeRange.value.start, timeRange.value.end),
+            getUsageByModelV2(platform.value, timeRange.value.start, timeRange.value.end),
+            getUsageByProjectV2(platform.value, timeRange.value.start, timeRange.value.end),
           ])
           if (requestId !== requestSerial) return
           summary.value = summaryData ?? null
           trends.value = trendsData ?? []
           modelStats.value = modelData ?? []
           projectStats.value = projectData ?? []
+          providerStats.value = []
           sourceStats.value = []
           if (includeHeatmap) {
             await fetchHeatmap(reason)
@@ -546,6 +565,7 @@ export const useUsageStore = defineStore('usage', () => {
               trends: trendsData ?? [],
               modelStats: modelData ?? [],
               projectStats: projectData ?? [],
+              providerStats: [],
               sourceStats: [],
               archive: archive.value,
               snapshot: snapshot.value,
@@ -566,7 +586,7 @@ export const useUsageStore = defineStore('usage', () => {
         recordPerfMetric('usage_requests_per_refresh', requestCount, { reason })
       } catch (e) {
         if (requestId !== requestSerial) return
-        error.value = e instanceof Error ? e.message : String(e)
+        error.value = getErrorMessage(e)
       } finally {
         if (requestId === requestSerial && !background) {
           loading.value = false
@@ -585,9 +605,7 @@ export const useUsageStore = defineStore('usage', () => {
   }
 
   /** 拉取日志 */
-  async function fetchLogs(
-    direction: 'reset' | 'next' | 'prev' | 'same' = 'same',
-  ) {
+  async function fetchLogs(direction: 'reset' | 'next' | 'prev' | 'same' = 'same') {
     logsLoading.value = true
     error.value = null
     try {
@@ -611,22 +629,54 @@ export const useUsageStore = defineStore('usage', () => {
       const previousTotal = logs.value?.total ?? null
       logsPage.value = targetPage
 
-      const result = await getUsageLogsV2<PaginatedLogs>(buildUsageLogsQuery({
-        platform: platform.value,
-        model: logsModelFilter.value,
-        startDate: timeRange.value.start,
-        endDate: timeRange.value.end,
-        page: targetPage,
-        pageSize: logsPageSize.value,
-        cursor: currentCursor,
-        includeTotal: targetPage === 1 && previousTotal == null,
-      }))
+      const result = await getUsageLogsV2(
+        buildUsageLogsQuery({
+          platform: platform.value,
+          model: logsModelFilter.value,
+          startDate: timeRange.value.start,
+          endDate: timeRange.value.end,
+          page: targetPage,
+          pageSize: logsPageSize.value,
+          cursor: currentCursor,
+          includeTotal: targetPage === 1 && previousTotal == null,
+        })
+      )
       logs.value = normalizePaginatedLogs(result, targetPage, logsPageSize.value, previousTotal)
     } catch (e) {
-      error.value = e instanceof Error ? e.message : String(e)
+      error.value = getErrorMessage(e)
     } finally {
       logsLoading.value = false
     }
+  }
+
+  async function fetchProviderStats() {
+    const key = buildDashboardFetchKey({
+      platform: platform.value,
+      start: timeRange.value.start,
+      end: timeRange.value.end,
+      includeHeatmap: false,
+    })
+    const cached = providerStatsCache.get(key)
+    if (cached && Date.now() - cached.ts < DASHBOARD_CACHE_TTL_MS) {
+      providerStats.value = cached.payload
+      return providerStats.value
+    }
+
+    const capabilities = await refreshUsageCapabilities()
+    const providerCapability = capabilities?.features.provider_breakdown
+    if (providerCapability && !providerCapability.supported) {
+      providerStats.value = []
+      providerStatsCache.set(key, { payload: providerStats.value, ts: Date.now() })
+      return providerStats.value
+    }
+
+    providerStats.value = await getUsageByProviderV2(
+      platform.value,
+      timeRange.value.start,
+      timeRange.value.end
+    )
+    providerStatsCache.set(key, { payload: providerStats.value, ts: Date.now() })
+    return providerStats.value
   }
 
   /** 下一页日志 */
@@ -640,8 +690,8 @@ export const useUsageStore = defineStore('usage', () => {
   }
 
   async function triggerImport(
-    requestedPlatform?: Platform,
-    reason: 'manual' | 'bootstrap' = 'manual',
+    requestedPlatform?: UsagePlatform,
+    reason: 'manual' | 'bootstrap' = 'manual'
   ): Promise<ImportAllUsageResponse> {
     importing.value = true
     isBootstrapping.value = reason === 'bootstrap'
@@ -649,29 +699,33 @@ export const useUsageStore = defineStore('usage', () => {
 
     try {
       const response = requestedPlatform
-        ? normalizeImportResponse(
-          await importUsageV2<ImportResult>(requestedPlatform),
-          requestedPlatform,
-        )
-        : normalizeImportResponse(await importAllUsageV2<ImportAllUsageResponse>())
+        ? normalizeImportResponse(await importUsageV2(requestedPlatform), requestedPlatform)
+        : normalizeImportResponse(await importAllUsageV2())
 
       lastImportSummary.value = response.summary
       lastImportResults.value = response.results
 
-      const failedResults = response.results.filter(result => result.error)
+      const failedResults = response.results.filter((result) => result.error)
       const failedDetails = failedResults
-        .map(result => `${result.platform}: ${result.error}`)
+        .map((result) => `${result.platform}: ${result.error}`)
         .join('\n')
 
-      if (response.summary.failure_count === response.results.length && response.results.length > 0) {
+      if (
+        response.summary.failure_count === response.results.length &&
+        response.results.length > 0
+      ) {
         error.value = failedDetails || '未能导入本地 usage 日志，请检查日志目录或导入错误'
         warning.value = null
         return response
       }
 
       if (response.summary.has_partial) {
-        warning.value = failedDetails || '仅导入部分 usage 数据，达到时间预算或部分平台失败，可重试继续导入'
-      } else if (response.summary.processed_files === 0 && response.summary.imported_records === 0) {
+        warning.value =
+          failedDetails || '仅导入部分 usage 数据，达到时间预算或部分平台失败，可重试继续导入'
+      } else if (
+        response.summary.processed_files === 0 &&
+        response.summary.imported_records === 0
+      ) {
         warning.value = null
       } else {
         warning.value = null
@@ -687,17 +741,20 @@ export const useUsageStore = defineStore('usage', () => {
 
       return response
     } catch (e) {
-      const message = e instanceof Error ? e.message : String(e)
+      const message = getErrorMessage(e)
       const fallback = normalizeImportResponse({
-        results: [{
-          platform: requestedPlatform ?? 'all',
-          files_processed: 0,
-          records_imported: 0,
-          records_skipped: 0,
-          duration_ms: 0,
-          completed: false,
-          error: message,
-        }],
+        results: [
+          {
+            platform: requestedPlatform ?? 'all',
+            files_processed: 0,
+            records_imported: 0,
+            records_skipped: 0,
+            duration_ms: 0,
+            completed: false,
+            error: message,
+            is_optional_absent: false,
+          },
+        ],
         summary: {
           success_count: 0,
           failure_count: 1,
@@ -720,7 +777,7 @@ export const useUsageStore = defineStore('usage', () => {
   }
 
   async function startImportJob(opts: {
-    platform?: Platform
+    platform?: UsagePlatform
     recentDays?: number
     reason?: 'manual' | 'bootstrap'
     resetSources?: boolean
@@ -734,17 +791,17 @@ export const useUsageStore = defineStore('usage', () => {
     resetProgressRefreshState()
 
     try {
-      const response = await startUsageImportJobV2<StartUsageImportJobResponse>(
+      const response = await startUsageImportJobV2(
         opts.platform,
         opts.recentDays,
-        opts.resetSources,
+        opts.resetSources
       )
 
       syncImportFeedbackFromJob(response.snapshot)
       await ensureImportJobListeners(response.job_id)
       return response.snapshot
     } catch (e) {
-      const message = e instanceof Error ? e.message : String(e)
+      const message = getErrorMessage(e)
       error.value = message
       importing.value = false
       isBootstrapping.value = false
@@ -754,7 +811,11 @@ export const useUsageStore = defineStore('usage', () => {
   }
 
   /** 初始化仪表盘并在空库时做一次自举导入 */
-  async function initializeDashboard(opts: { platform?: Platform; start?: string; end?: string }) {
+  async function initializeDashboard(opts: {
+    platform?: UsagePlatform
+    start?: string
+    end?: string
+  }) {
     applyFilters(opts)
     await fetchAll({ includeHeatmap: !LAZY_HEATMAP_LOAD, reason: 'initialize' })
 
@@ -785,7 +846,7 @@ export const useUsageStore = defineStore('usage', () => {
   }
 
   /** 设置筛选条件并刷新（300ms 防抖） */
-  function setFilters(opts: { platform?: Platform; start?: string; end?: string }) {
+  function setFilters(opts: { platform?: UsagePlatform; start?: string; end?: string }) {
     applyFilters(opts)
 
     if (filterDebounceTimer) {
@@ -826,7 +887,7 @@ export const useUsageStore = defineStore('usage', () => {
       intervalMs: REFRESH_INTERVAL,
       pauseWhenHidden: true,
       immediate: false,
-    },
+    }
   )
 
   const heatmapAutoRefresh = LAZY_HEATMAP_LOAD
@@ -841,7 +902,7 @@ export const useUsageStore = defineStore('usage', () => {
           intervalMs: HEATMAP_REFRESH_INTERVAL,
           pauseWhenHidden: true,
           immediate: false,
-        },
+        }
       )
 
   const shouldAutoRefreshImmediately = () => {
@@ -873,6 +934,7 @@ export const useUsageStore = defineStore('usage', () => {
     trends,
     modelStats,
     projectStats,
+    providerStats,
     sourceStats,
     heatmap,
     logs,
@@ -912,6 +974,7 @@ export const useUsageStore = defineStore('usage', () => {
     // actions
     initializeDashboard,
     fetchAll,
+    fetchProviderStats,
     refreshUsageCapabilities,
     fetchHeatmap,
     fetchLogs,

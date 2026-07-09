@@ -23,6 +23,49 @@
         border-color: var(--glass-border-medium);
     }
 
+    /* ========== 液态玻璃三档 Material Utilities ==========
+       玻璃预算（review 依据）：同屏 backdrop-filter 元素 ≤ 3；禁止嵌套玻璃；
+       禁止在滚动内容区内部使用玻璃（滚动 + 模糊会持续触发重绘）。
+       floating：模态 / 命令面板 / 浮层（同屏最多 1）；
+       chrome：侧栏 / 顶栏（常驻，同屏 ≤ 2）；
+       inline：页面内悬浮条（sticky 工具条等，少用）。
+       普通内容卡片禁止使用这三个类，一律走不透明 surface-card/workspace 语义。 */
+    .glass-floating {
+        background:
+            radial-gradient(140% 70% at 50% 0%, rgb(255 251 245 / 12%) 0%, transparent 62%),
+            var(--material-glass-floating-bg);
+        border: 1px solid var(--material-glass-floating-border);
+        box-shadow: var(--material-glass-floating-highlight), var(--material-glass-floating-shadow);
+        backdrop-filter: var(--material-glass-floating-blur);
+        /* stylelint-disable-next-line property-no-vendor-prefix */
+        -webkit-backdrop-filter: var(--material-glass-floating-blur);
+        contain: paint;
+    }
+
+    .glass-chrome {
+        background:
+            radial-gradient(140% 70% at 50% 0%, rgb(255 251 245 / 8%) 0%, transparent 62%),
+            var(--material-glass-chrome-bg);
+        border: 1px solid var(--material-glass-chrome-border);
+        box-shadow: var(--material-glass-chrome-highlight), var(--material-glass-chrome-shadow);
+        backdrop-filter: var(--material-glass-chrome-blur);
+        /* stylelint-disable-next-line property-no-vendor-prefix */
+        -webkit-backdrop-filter: var(--material-glass-chrome-blur);
+        contain: paint;
+    }
+
+    .glass-inline {
+        background:
+            radial-gradient(140% 70% at 50% 0%, rgb(255 251 245 / 6%) 0%, transparent 62%),
+            var(--material-glass-inline-bg);
+        border: 1px solid var(--material-glass-inline-border);
+        box-shadow: var(--material-glass-inline-highlight), var(--material-glass-inline-shadow);
+        backdrop-filter: var(--material-glass-inline-blur);
+        /* stylelint-disable-next-line property-no-vendor-prefix */
+        -webkit-backdrop-filter: var(--material-glass-inline-blur);
+        contain: paint;
+    }
+
     .toolbar-select {
         padding: 0.375rem 0.75rem;
         border-radius: var(--radius-lg);
@@ -883,5 +926,15 @@
     .nav-item-active-glow,
     .nav-item-inactive {
         background: var(--glass-bg-strong) !important;
+    }
+
+    /* material 三档真实玻璃例外：模糊本身依赖透明底，回退为对应档的不透明表面并关闭模糊。 */
+    .glass-floating,
+    .glass-chrome,
+    .glass-inline {
+        background: var(--color-bg-elevated) !important;
+        backdrop-filter: none !important;
+        /* stylelint-disable-next-line property-no-vendor-prefix */
+        -webkit-backdrop-filter: none !important;
     }
 }

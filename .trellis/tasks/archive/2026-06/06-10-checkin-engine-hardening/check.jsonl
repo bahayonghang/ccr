@@ -1,0 +1,3 @@
+{"file": ".trellis/spec/ccr-checkin/backend/backend-guidelines.md", "reason": "校验 WAF 契约不回退、错误分类保留、日志脱敏、测试命令"}
+{"file": ".trellis/tasks/06-10-checkin-optimize-templates/research/newapi-checkin.md", "reason": "校验判定矩阵覆盖四签名与已签到归一统一出口"}
+{"file": ".trellis/tasks/06-10-checkin-optimize-templates/research/internal-checkin-architecture.md", "reason": "校验改动点与现有执行流定位一致"}

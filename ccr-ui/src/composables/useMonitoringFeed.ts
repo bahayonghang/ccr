@@ -1,6 +1,7 @@
-import { onMounted, onUnmounted, ref, type Ref } from 'vue'
-import { invoke } from '@tauri-apps/api/core'
+import { onMounted, onUnmounted, ref, shallowRef, type Ref } from 'vue'
+import type { UnknownRecord } from '@/types/common'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
+import { getMonitoringFeed, getRecentEvents, type MonitoringFeedQuery } from '@/api'
 import { logger, type LoggerEntry, type LogLevel } from '@/utils/logger'
 import { isTauriRuntime } from '@/utils/tauriRuntime'
 
@@ -18,7 +19,7 @@ export interface MonitoringEntry {
   fields?: unknown
 }
 
-export interface TokenStats {
+export interface MonitoringTokenStats {
   input_tokens: number
   output_tokens: number
   cache_tokens: number
@@ -27,18 +28,10 @@ export interface TokenStats {
   last_updated: string
 }
 
-interface MonitoringFeedQuery {
-  count?: number
-  level?: MonitoringLevel
-  channel?: string
-}
-
 interface MonitoringFeedOptions {
   initialCount?: number
   maxEntries?: number
 }
-
-type UnknownRecord = Record<string, unknown>
 
 const MONITORING_EVENT_NAME = 'app:monitoring'
 const DEFAULT_INITIAL_COUNT = 100
@@ -101,7 +94,10 @@ const buildLegacyMessage = (type: string, data: UnknownRecord): string => {
   switch (type) {
     case 'CheckinCompleted':
     case 'CheckinFailed':
-      return readString(data, 'message') ?? `Checkin ${type === 'CheckinCompleted' ? 'completed' : 'failed'}`
+      return (
+        readString(data, 'message') ??
+        `Checkin ${type === 'CheckinCompleted' ? 'completed' : 'failed'}`
+      )
     case 'SyncStatusChanged':
       return readString(data, 'message') ?? 'Sync status changed'
     case 'TaskProgress':
@@ -133,11 +129,12 @@ const normalizeLegacyEvent = (record: UnknownRecord): MonitoringEntry | null => 
   }
 
   const data = event && isRecord(event.data) ? event.data : {}
-  const level = type === 'CheckinFailed'
-    ? 'error'
-    : type === 'Notification'
-      ? normalizeLevel(readString(data, 'level'))
-      : 'info'
+  const level =
+    type === 'CheckinFailed'
+      ? 'error'
+      : type === 'Notification'
+        ? normalizeLevel(readString(data, 'level'))
+        : 'info'
 
   return {
     id: readString(record, 'id') ?? createFallbackId('legacy-monitoring'),
@@ -221,7 +218,10 @@ const trimEntries = (entries: MonitoringEntry[], maxEntries: number): Monitoring
   return entries.length > maxEntries ? entries.slice(-maxEntries) : entries
 }
 
-const insertEntryByTimestamp = (entries: MonitoringEntry[], entry: MonitoringEntry): MonitoringEntry[] => {
+const insertEntryByTimestamp = (
+  entries: MonitoringEntry[],
+  entry: MonitoringEntry
+): MonitoringEntry[] => {
   if (entries.length === 0) {
     return [entry]
   }
@@ -252,12 +252,13 @@ export function useMonitoringFeed(options: MonitoringFeedOptions = {}) {
   const { initialCount = DEFAULT_INITIAL_COUNT, maxEntries = DEFAULT_MAX_ENTRIES } = options
 
   const isConnected: Ref<boolean> = ref(true)
-  const logs: Ref<MonitoringEntry[]> = ref([])
-  const tokenStats: Ref<TokenStats | null> = ref(null)
+  const logs = shallowRef<MonitoringEntry[]>([])
+  const tokenStats: Ref<MonitoringTokenStats | null> = ref(null)
 
   const seenEntries = new Set<string>()
   const unlisteners: UnlistenFn[] = []
   let unsubscribeLogger: (() => void) | null = null
+  let listening = false
 
   const mergeEntries = (entries: MonitoringEntry[]) => {
     if (entries.length === 0) {
@@ -299,8 +300,12 @@ export function useMonitoringFeed(options: MonitoringFeedOptions = {}) {
     const query: MonitoringFeedQuery = { count: initialCount }
 
     try {
-      const entries = await invoke<unknown[]>('get_monitoring_feed', { query })
-      mergeEntries(entries.map(normalizeMonitoringEntry).filter((entry): entry is MonitoringEntry => entry !== null))
+      const entries = await getMonitoringFeed(query)
+      mergeEntries(
+        entries
+          .map(normalizeMonitoringEntry)
+          .filter((entry): entry is MonitoringEntry => entry !== null)
+      )
       isConnected.value = true
       return
     } catch {
@@ -308,8 +313,12 @@ export function useMonitoringFeed(options: MonitoringFeedOptions = {}) {
     }
 
     try {
-      const entries = await invoke<unknown[]>('get_recent_events', { count: initialCount })
-      mergeEntries(entries.map(normalizeMonitoringEntry).filter((entry): entry is MonitoringEntry => entry !== null))
+      const entries = await getRecentEvents<unknown[]>(initialCount)
+      mergeEntries(
+        entries
+          .map(normalizeMonitoringEntry)
+          .filter((entry): entry is MonitoringEntry => entry !== null)
+      )
       isConnected.value = true
     } catch {
       isConnected.value = false
@@ -331,7 +340,7 @@ export function useMonitoringFeed(options: MonitoringFeedOptions = {}) {
       })
       unlisteners.push(unMonitoring)
 
-      const unStats = await listen<TokenStats>('token-stats', (event) => {
+      const unStats = await listen<MonitoringTokenStats>('token-stats', (event) => {
         tokenStats.value = event.payload
       })
       unlisteners.push(unStats)
@@ -343,6 +352,18 @@ export function useMonitoringFeed(options: MonitoringFeedOptions = {}) {
   }
 
   onMounted(() => {
+    start()
+  })
+
+  onUnmounted(() => {
+    stop()
+  })
+
+  // start/stop 幂等：缓存视图（keep-alive）可通过 pause/resume 在 deactivated/activated
+  // 间断开/重连事件源，避免切走后仍在后台持续合并事件；重复调用 start 不会重复挂监听。
+  function start() {
+    if (listening) return
+    listening = true
     mergeEntries(logger.getHistory().map(normalizeLoggerEntry))
     unsubscribeLogger = logger.subscribe((entry) => {
       mergeEntries([normalizeLoggerEntry(entry)])
@@ -350,9 +371,11 @@ export function useMonitoringFeed(options: MonitoringFeedOptions = {}) {
 
     void loadInitialFeed()
     void setupNativeListeners()
-  })
+  }
 
-  onUnmounted(() => {
+  function stop() {
+    if (!listening) return
+    listening = false
     for (const unlisten of unlisteners) {
       void unlisten()
     }
@@ -360,7 +383,7 @@ export function useMonitoringFeed(options: MonitoringFeedOptions = {}) {
 
     unsubscribeLogger?.()
     unsubscribeLogger = null
-  })
+  }
 
   return {
     isConnected,
@@ -368,5 +391,9 @@ export function useMonitoringFeed(options: MonitoringFeedOptions = {}) {
     tokenStats,
     clearLogs,
     refresh: loadInitialFeed,
+    /** 暂停事件消费（缓存视图 onDeactivated 调用） */
+    pause: stop,
+    /** 恢复事件消费并重新拉取初始快照（缓存视图 onActivated 调用） */
+    resume: start,
   }
 }

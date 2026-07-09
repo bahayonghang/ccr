@@ -1,4 +1,5 @@
 import { computed, ref } from 'vue'
+import { getErrorMessage } from '@/utils/errorHandler'
 import { useI18n } from 'vue-i18n'
 import {
   getCodexDashboardOverview,
@@ -246,7 +247,7 @@ export function useCodexDashboard() {
             overview.value = result
           })
           .catch((reason: unknown) => {
-            overviewError.value = reason instanceof Error ? reason.message : String(reason)
+            overviewError.value = getErrorMessage(reason)
           })
           .finally(() => {
             overviewLoading.value = false
@@ -262,7 +263,7 @@ export function useCodexDashboard() {
             usageSummary.value = result
           })
           .catch((reason: unknown) => {
-            usageError.value = reason instanceof Error ? reason.message : String(reason)
+            usageError.value = getErrorMessage(reason)
           })
           .finally(() => {
             usageLoading.value = false

@@ -1,99 +1,52 @@
-use std::collections::{BTreeMap, HashMap};
+// 投影 DTO 的定义归 ccr-usage（全仓唯一一份 serde 形状），adapter 通过 re-export
+// 暴露并保留未来分叉权；本文件只保留 Tauri 表现层转换 DTO 与纯展示工具函数。
+// 部分名字暂无 crate 内点名使用（分叉权预留），显式 allow 未使用 re-export。
+#[allow(unused_imports)]
+pub use ccr_usage::{
+    DailyTrendDto, HeatmapPoint, HomeOverviewPayload, HomeOverviewPlatformStats,
+    HomeOverviewSeriesItem, HomeOverviewSummary, ModelBreakdown, OverviewPayload, ProjectBreakdown,
+    ProviderBreakdownDto, SourceBreakdownDto, TokenSummary, UsageRecordDto, generated_at,
+};
 
-use chrono::{DateTime, Utc};
+use chrono::DateTime;
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
-#[derive(Debug, Clone, Default, Serialize, PartialEq)]
-pub struct TokenSummary {
-    pub input_tokens: i64,
-    pub cache_read_tokens: i64,
-    pub output_tokens: i64,
-    pub reasoning_output_tokens: i64,
-    pub total_tokens: i64,
-}
-
-impl TokenSummary {
-    pub fn output_tokens_with_reasoning(&self) -> i64 {
-        self.output_tokens + self.reasoning_output_tokens
-    }
-
-    pub fn cache_efficiency(&self) -> f64 {
-        let denominator = self.input_tokens + self.cache_read_tokens;
-        if denominator == 0 {
-            0.0
-        } else {
-            self.cache_read_tokens as f64 / denominator as f64
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, PartialEq)]
-pub struct OverviewPayload {
-    pub generated_at: String,
-    pub total: TokenSummary,
-    pub last_24h: TokenSummary,
-    pub source_count: i64,
-    pub bucket_count: i64,
-    pub total_events: i64,
-    pub last_24h_events: i64,
-    pub total_cost_usd: f64,
-    pub cache_efficiency: f64,
-    pub last_sync_at: Option<String>,
-    pub last_export_at: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, TS)]
+#[ts(export, export_to = "../../src/types/generated/usage/")]
 pub struct UsageSummaryDto {
+    // wire 走 serde_json（i64 序列化为 JSON number），ts(as = "f64") 使生成类型为
+    // number 而非 ts-rs 默认的 bigint；用量数值 << 2^53，无精度风险。
+    #[ts(as = "f64")]
     pub total_requests: i64,
+    #[ts(as = "f64")]
     pub total_tokens: i64,
+    #[ts(as = "f64")]
     pub total_input_tokens: i64,
+    #[ts(as = "f64")]
     pub total_output_tokens: i64,
+    #[ts(as = "f64")]
     pub total_cache_read_tokens: i64,
     pub total_cost_usd: f64,
     pub cache_efficiency: f64,
 }
 
-#[derive(Debug, Clone, Serialize, PartialEq)]
-pub struct DailyTrendDto {
-    pub date: String,
-    pub request_count: i64,
-    pub total_tokens: i64,
-    pub input_tokens: i64,
-    /// Compatibility field: assistant output plus reasoning output.
-    pub output_tokens: i64,
-    pub reasoning_output_tokens: i64,
-    pub cache_read_tokens: i64,
-    pub cache_creation_tokens: i64,
-    pub cost_usd: f64,
-}
-
-#[derive(Debug, Clone, Serialize, PartialEq)]
-pub struct ModelBreakdown {
-    pub model: String,
-    pub input_tokens: i64,
-    pub cache_read_tokens: i64,
-    pub cache_creation_tokens: i64,
-    pub output_tokens: i64,
-    pub reasoning_output_tokens: i64,
-    pub total_tokens: i64,
-    pub event_count: i64,
-    pub cost_with_cache_usd: f64,
-    pub cost_without_cache_usd: f64,
-    pub cache_savings_usd: f64,
-    pub pricing_status: String,
-    pub pricing_source: Option<String>,
-    pub pricing_rate: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, TS)]
+#[ts(export, export_to = "../../src/types/generated/usage/")]
 pub struct ModelStatDto {
     pub model: String,
+    #[ts(as = "f64")]
     pub request_count: i64,
+    #[ts(as = "f64")]
     pub total_tokens: i64,
     pub total_cost: f64,
+    #[ts(as = "f64")]
     pub input_tokens: i64,
+    #[ts(as = "f64")]
     pub output_tokens: i64,
+    #[ts(as = "f64")]
     pub cache_read_tokens: i64,
+    #[ts(as = "f64")]
     pub cache_creation_tokens: i64,
     pub cost_with_cache: f64,
     pub cost_without_cache: f64,
@@ -103,106 +56,36 @@ pub struct ModelStatDto {
     pub pricing_rate: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, PartialEq)]
-pub struct SourceBreakdownDto {
-    pub source: String,
-    pub event_count: i64,
-    pub total_tokens: i64,
-    pub total_cost: f64,
-    pub active_days: i64,
-    pub share_tokens: f64,
-    pub share_cost: f64,
-}
-
-#[derive(Debug, Clone, Serialize, PartialEq)]
-pub struct ProjectBreakdown {
-    pub project_hash: String,
-    pub project_label: String,
-    pub project_ref: Option<String>,
-    pub total_tokens: i64,
-    pub event_count: i64,
-    pub total_cost_usd: f64,
-    pub project_path: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, TS)]
+#[ts(export, export_to = "../../src/types/generated/usage/")]
 pub struct ProjectStatDto {
     pub project_path: String,
+    #[ts(as = "f64")]
     pub request_count: i64,
+    #[ts(as = "f64")]
     pub total_tokens: i64,
     pub total_cost: f64,
 }
 
-#[derive(Debug, Clone, Serialize, PartialEq)]
-pub struct HeatmapPoint {
-    pub date: String,
-    pub event_count: i64,
-}
-
-#[derive(Debug, Clone, Serialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, TS)]
+#[ts(export, export_to = "../../src/types/generated/usage/")]
 pub struct HeatmapResponseDto {
-    pub data: HashMap<String, i64>,
+    #[ts(as = "std::collections::HashMap<String, f64>")]
+    pub data: std::collections::HashMap<String, i64>,
 }
 
-#[derive(Debug, Clone, Serialize, PartialEq)]
-pub struct UsageRecordDto {
-    pub id: String,
-    pub platform: String,
-    pub project_path: String,
-    pub record_json: String,
-    pub recorded_at: String,
-    pub source_id: String,
-    pub model: Option<String>,
-    pub input_tokens: i64,
-    pub output_tokens: i64,
-    pub cache_read_tokens: i64,
-    pub cache_creation_tokens: i64,
-    pub cost_with_cache_usd: f64,
-    pub cost_without_cache_usd: f64,
-    pub pricing_status: String,
-    pub pricing_source: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, PartialEq, TS)]
+#[ts(export, export_to = "../../src/types/generated/usage/")]
 pub struct PaginatedLogsDto {
     pub records: Vec<UsageRecordDto>,
+    #[ts(as = "Option<f64>")]
     pub total: Option<i64>,
+    #[ts(as = "f64")]
     pub page: i64,
+    #[ts(as = "f64")]
     pub page_size: i64,
     pub next_cursor: Option<String>,
     pub mode: String,
-}
-
-#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
-pub struct HomeOverviewPlatformStats {
-    pub sessions: i64,
-    pub requests: i64,
-    pub tokens: i64,
-}
-
-#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
-pub struct HomeOverviewSummary {
-    pub total_sessions: i64,
-    pub total_requests: i64,
-    pub total_tokens: i64,
-    pub active_days: i64,
-    pub platforms: i64,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct HomeOverviewSeriesItem {
-    pub date: String,
-    pub claude: HomeOverviewPlatformStats,
-    pub codex: HomeOverviewPlatformStats,
-    pub gemini: HomeOverviewPlatformStats,
-    pub opencode: HomeOverviewPlatformStats,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct HomeOverviewPayload {
-    pub summary: HomeOverviewSummary,
-    pub by_platform: BTreeMap<String, HomeOverviewPlatformStats>,
-    pub series: Vec<HomeOverviewSeriesItem>,
 }
 
 pub fn to_usage_summary(payload: OverviewPayload) -> UsageSummaryDto {
@@ -284,10 +167,6 @@ fn non_empty(value: String) -> Option<String> {
     (!value.is_empty()).then_some(value)
 }
 
-pub fn generated_at() -> String {
-    Utc::now().to_rfc3339()
-}
-
 pub fn max_rfc3339(left: Option<String>, right: Option<String>) -> Option<String> {
     match (left, right) {
         (Some(left), Some(right)) => {
@@ -335,27 +214,6 @@ mod tests {
         assert_eq!(summary.total_output_tokens, 23);
         assert_eq!(summary.total_cache_read_tokens, 5);
         assert_eq!(summary.total_cost_usd, 0.42);
-    }
-
-    #[test]
-    fn serializes_daily_trend_reasoning_without_changing_output_contract() {
-        let trend = DailyTrendDto {
-            date: "2026-05-21".to_string(),
-            request_count: 2,
-            total_tokens: 100,
-            input_tokens: 40,
-            output_tokens: 30,
-            reasoning_output_tokens: 8,
-            cache_read_tokens: 20,
-            cache_creation_tokens: 10,
-            cost_usd: 0.42,
-        };
-
-        let value = serde_json::to_value(&trend).expect("daily trend must serialize");
-
-        assert_eq!(value["output_tokens"], 30);
-        assert_eq!(value["reasoning_output_tokens"], 8);
-        assert_eq!(value["total_tokens"], 100);
     }
 
     #[test]

@@ -108,10 +108,15 @@ impl HealthCheckService {
             .clone()
             .unwrap_or_else(|| "https://api.anthropic.com".to_string());
 
-        let api_key = config.auth_token.clone().unwrap_or_else(|| {
-            debug!("Provider {} 未配置 API Key", name);
-            String::new()
-        });
+        // HTTP 探测是 token 的合法明文消费点
+        let api_key = config
+            .auth_token
+            .as_ref()
+            .map(|token| token.expose().to_string())
+            .unwrap_or_else(|| {
+                debug!("Provider {} 未配置 API Key", name);
+                String::new()
+            });
 
         info!("检查 Provider: {} ({})", name, base_url);
 

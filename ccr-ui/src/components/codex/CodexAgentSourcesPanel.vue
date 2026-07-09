@@ -8,12 +8,12 @@
         <SIcon
           name="Github"
           size="w-4 h-4"
-        />GitHub Sources
+        />{{ t('codex.agents.sources.title') }}
       </div>
 
       <div class="space-y-3">
         <label class="block space-y-2 text-sm text-text-secondary">
-          <span class="font-medium text-text-primary">Repository URL</span>
+          <span class="font-medium text-text-primary">{{ t('codex.agents.sources.repositoryUrl') }}</span>
           <input
             v-model="sourceUrl"
             type="text"
@@ -30,7 +30,7 @@
           <SIcon
             name="Plus"
             size="w-4 h-4"
-          />Add Source
+          />{{ t('codex.agents.sources.addSource') }}
         </button>
       </div>
 
@@ -38,7 +38,7 @@
         v-if="loading && sources.length === 0"
         class="py-10 text-sm text-text-muted"
       >
-        Loading sources...
+        {{ t('codex.agents.sources.loading') }}
       </div>
 
       <div
@@ -66,12 +66,12 @@
               class="rounded-full px-2 py-0.5 text-[11px] font-medium uppercase"
               :class="statusTone(source.status)"
             >
-              {{ source.status }}
+              {{ statusText(source.status) }}
             </span>
           </div>
           <div class="mt-3 flex items-center justify-between text-xs text-text-secondary">
-            <span>{{ source.agentCount }} agents</span>
-            <span>{{ source.isStale ? 'stale cache' : source.scanComplete ? 'complete' : 'partial' }}</span>
+            <span>{{ t('codex.agents.sources.agentCount', { count: source.agentCount }) }}</span>
+            <span>{{ sourceFreshnessText(source) }}</span>
           </div>
           <div
             v-if="source.lastError"
@@ -91,7 +91,7 @@
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div>
             <div class="text-sm font-semibold text-text-primary">
-              {{ catalog?.source.owner && catalog?.source.repo ? `${catalog.source.owner}/${catalog.source.repo}` : 'Select a source' }}
+              {{ catalog?.source.owner && catalog?.source.repo ? `${catalog.source.owner}/${catalog.source.repo}` : t('codex.agents.sources.selectSource') }}
             </div>
             <div
               v-if="catalog?.source.repoUrl"
@@ -113,7 +113,7 @@
               <SIcon
                 name="RefreshCcw"
                 size="w-4 h-4"
-              />Rescan
+              />{{ t('codex.agents.sources.rescan') }}
             </button>
             <button
               type="button"
@@ -124,7 +124,7 @@
               <SIcon
                 name="Trash2"
                 size="w-4 h-4"
-              />Remove
+              />{{ t('codex.agents.sources.remove') }}
             </button>
           </div>
         </div>
@@ -135,15 +135,15 @@
         >
           <div class="rounded-2xl border border-border-default/60 bg-bg-surface/60 px-3 py-3">
             <div class="text-[11px] uppercase tracking-wider text-text-muted">
-              Status
+              {{ t('codex.agents.sources.stats.status') }}
             </div>
             <div class="mt-1 text-base font-semibold text-text-primary">
-              {{ catalog.source.status }}
+              {{ statusText(catalog.source.status) }}
             </div>
           </div>
           <div class="rounded-2xl border border-border-default/60 bg-bg-surface/60 px-3 py-3">
             <div class="text-[11px] uppercase tracking-wider text-text-muted">
-              Agents
+              {{ t('codex.agents.sources.stats.agents') }}
             </div>
             <div class="mt-1 text-base font-semibold text-text-primary">
               {{ catalog.agents.length }}
@@ -151,7 +151,7 @@
           </div>
           <div class="rounded-2xl border border-border-default/60 bg-bg-surface/60 px-3 py-3">
             <div class="text-[11px] uppercase tracking-wider text-text-muted">
-              Diagnostics
+              {{ t('codex.agents.sources.stats.diagnostics') }}
             </div>
             <div class="mt-1 text-base font-semibold text-text-primary">
               {{ catalog.diagnostics.length }}
@@ -159,7 +159,7 @@
           </div>
           <div class="rounded-2xl border border-border-default/60 bg-bg-surface/60 px-3 py-3">
             <div class="text-[11px] uppercase tracking-wider text-text-muted">
-              Tracked
+              {{ t('codex.agents.sources.stats.tracked') }}
             </div>
             <div class="mt-1 text-base font-semibold text-text-primary">
               {{ catalog.installs.length }}
@@ -170,7 +170,7 @@
           v-if="catalog?.source.isStale"
           class="mt-4 rounded-2xl border border-sky-400/25 bg-sky-500/10 px-4 py-3 text-sm text-sky-100"
         >
-          This catalog is being served from cache and may be stale. Use <span class="font-semibold">Rescan</span> to force a fresh GitHub scan.
+          {{ t('codex.agents.sources.staleCatalogHint') }}
         </div>
         <div
           v-if="catalog?.source.lastError"
@@ -189,7 +189,7 @@
           <SIcon
             name="History"
             size="w-4 h-4"
-          />Tracked Installs
+          />{{ t('codex.agents.sources.trackedInstalls') }}
         </div>
         <div class="space-y-3">
           <article
@@ -214,7 +214,7 @@
                   class="rounded-full px-2 py-0.5 text-[11px] font-medium uppercase"
                   :class="statusTone(install.status)"
                 >
-                  {{ install.status }}
+                  {{ statusText(install.status) }}
                 </span>
                 <button
                   type="button"
@@ -225,7 +225,7 @@
                   <SIcon
                     name="Download"
                     size="w-4 h-4"
-                  />Sync
+                  />{{ t('codex.agents.sources.sync') }}
                 </button>
                 <button
                   v-if="install.status === 'conflict'"
@@ -237,7 +237,7 @@
                   <SIcon
                     name="AlertOctagon"
                     size="w-4 h-4"
-                  />Overwrite
+                  />{{ t('codex.agents.sources.overwrite') }}
                 </button>
                 <button
                   v-if="install.status === 'local-modified' || install.status === 'conflict'"
@@ -249,7 +249,7 @@
                   <SIcon
                     name="CheckCheck"
                     size="w-4 h-4"
-                  />Accept Local
+                  />{{ t('codex.agents.sources.acceptLocal') }}
                 </button>
                 <button
                   v-if="install.status === 'broken'"
@@ -261,7 +261,7 @@
                   <SIcon
                     name="Unlink2"
                     size="w-4 h-4"
-                  />Untrack
+                  />{{ t('codex.agents.sources.untrack') }}
                 </button>
               </div>
             </div>
@@ -284,7 +284,7 @@
           <SIcon
             name="AlertTriangle"
             size="w-4 h-4"
-          />Scan Diagnostics
+          />{{ t('codex.agents.sources.scanDiagnostics') }}
         </div>
         <div class="space-y-3">
           <div
@@ -314,7 +314,7 @@
               {{ group.label }}
             </div>
             <div class="text-xs text-text-muted">
-              {{ group.items.length }} agents
+              {{ t('codex.agents.sources.agentCount', { count: group.items.length }) }}
             </div>
           </div>
           <div class="space-y-3">
@@ -333,7 +333,7 @@
                       v-if="agent.parseError"
                       class="rounded-full border border-amber-400/30 bg-amber-500/10 px-2 py-0.5 text-[11px] text-amber-100"
                     >
-                      invalid
+                      {{ t('codex.agents.sources.invalid') }}
                     </span>
                     <span
                       v-if="agent.model"
@@ -343,7 +343,7 @@
                     </span>
                   </div>
                   <div class="mt-1 text-sm text-text-secondary">
-                    {{ agent.description || 'No description' }}
+                    {{ agent.description || t('codex.agents.noDescription') }}
                   </div>
                   <div class="mt-2 break-all text-xs text-text-muted">
                     {{ agent.sourcePath }}
@@ -358,7 +358,7 @@
                     <SIcon
                       name="FileCode2"
                       size="w-4 h-4"
-                    />Preview
+                    />{{ t('codex.agents.sources.preview') }}
                   </button>
                   <button
                     type="button"
@@ -369,7 +369,7 @@
                     <SIcon
                       name="Download"
                       size="w-4 h-4"
-                    />Install
+                    />{{ t('codex.agents.sources.install') }}
                   </button>
                 </div>
               </div>
@@ -381,7 +381,7 @@
 
     <BaseModal
       :model-value="previewOpen"
-      title="Remote Agent Preview"
+      :title="t('codex.agents.sources.previewTitle')"
       size="xl"
       @update:model-value="previewOpen = $event"
     >
@@ -408,7 +408,7 @@
 
     <BaseModal
       :model-value="installOpen"
-      title="Install Remote Agent"
+      :title="t('codex.agents.sources.installTitle')"
       size="md"
       @update:model-value="installOpen = $event"
     >
@@ -422,25 +422,25 @@
           </div>
         </div>
         <label class="block space-y-2 text-sm text-text-secondary">
-          <span class="font-medium text-text-primary">Target name</span>
+          <span class="font-medium text-text-primary">{{ t('codex.agents.sources.targetName') }}</span>
           <input
             v-model="installTargetName"
             type="text"
             class="w-full rounded-2xl border border-border-default/60 bg-bg-surface/70 px-3 py-2 text-sm text-text-primary"
-            placeholder="Leave empty to keep the source name"
+            :placeholder="t('codex.agents.sources.targetNamePlaceholder')"
           >
         </label>
         <label class="block space-y-2 text-sm text-text-secondary">
-          <span class="font-medium text-text-primary">Conflict policy</span>
+          <span class="font-medium text-text-primary">{{ t('codex.agents.sources.conflictPolicy') }}</span>
           <select
             v-model="installConflictMode"
             class="w-full rounded-2xl border border-border-default/60 bg-bg-surface/70 px-3 py-2 text-sm text-text-primary"
           >
             <option value="">
-              Abort if same-name target exists
+              {{ t('codex.agents.sources.conflictAbort') }}
             </option>
             <option value="replace">
-              Replace existing tracked remote install
+              {{ t('codex.agents.sources.conflictReplace') }}
             </option>
           </select>
         </label>
@@ -451,7 +451,7 @@
           class="inline-flex min-h-10 items-center rounded-2xl border border-border-default/60 px-4 py-2 text-sm text-text-secondary"
           @click="installOpen = false"
         >
-          Cancel
+          {{ t('common.cancel') }}
         </button>
         <button
           type="button"
@@ -459,7 +459,7 @@
           :disabled="mutating || !installTarget"
           @click="handleInstall"
         >
-          Install
+          {{ t('codex.agents.sources.install') }}
         </button>
       </template>
     </BaseModal>
@@ -468,6 +468,8 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { getErrorMessage } from '@/utils/errorHandler'
 import BaseModal from '@/components/common/BaseModal.vue'
 import Card from '@/components/ui/Card.vue'
 import SIcon from '@/components/ui/SIcon.vue'
@@ -479,6 +481,7 @@ const emit = defineEmits<{
   refreshInstalled: []
 }>()
 
+const { t } = useI18n()
 const uiStore = useUIStore()
 const {
   sources,
@@ -557,13 +560,49 @@ function statusTone(status: string) {
   }
 }
 
+function statusText(status: string) {
+  switch (status) {
+    case 'ok':
+      return t('codex.agents.sources.status.ok')
+    case 'error':
+      return t('codex.agents.sources.status.error')
+    case 'access-denied':
+      return t('codex.agents.sources.status.accessDenied')
+    case 'not-found':
+      return t('codex.agents.sources.status.notFound')
+    case 'rate-limited':
+      return t('codex.agents.sources.status.rateLimited')
+    case 'update-available':
+      return t('codex.agents.sources.status.updateAvailable')
+    case 'conflict':
+      return t('codex.agents.sources.status.conflict')
+    case 'broken':
+      return t('codex.agents.sources.status.broken')
+    case 'partial':
+      return t('codex.agents.sources.status.partial')
+    case 'local-modified':
+      return t('codex.agents.sources.status.localModified')
+    default:
+      return status
+  }
+}
+
+function sourceFreshnessText(source: { isStale: boolean; scanComplete: boolean }) {
+  if (source.isStale) {
+    return t('codex.agents.sources.freshness.staleCache')
+  }
+  return source.scanComplete
+    ? t('codex.agents.sources.freshness.complete')
+    : t('codex.agents.sources.freshness.partial')
+}
+
 async function handleAddSource() {
   try {
     await addSource(sourceUrl.value.trim())
     sourceUrl.value = ''
-    uiStore.showSuccess('Source added and scanned')
+    uiStore.showSuccess(t('codex.agents.sources.messages.addSuccess'))
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   }
 }
 
@@ -571,25 +610,25 @@ async function handleSelectSource(sourceId: string) {
   try {
     await loadCatalog(sourceId)
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   }
 }
 
 async function handleSyncSource(sourceId: string) {
   try {
     await syncSource(sourceId)
-    uiStore.showSuccess('Source rescanned')
+    uiStore.showSuccess(t('codex.agents.sources.messages.rescanSuccess'))
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   }
 }
 
 async function handleRemoveSource(sourceId: string) {
   const confirmed = await uiStore.requestConfirm({
-    title: 'Remove source',
-    message: 'Remove this GitHub source? Existing installed agents will be kept.',
-    confirmText: 'Remove',
-    cancelText: 'Cancel',
+    title: t('codex.agents.sources.confirm.removeTitle'),
+    message: t('codex.agents.sources.confirm.removeMessage'),
+    confirmText: t('codex.agents.sources.remove'),
+    cancelText: t('common.cancel'),
     type: 'danger',
   })
   if (!confirmed) {
@@ -598,9 +637,9 @@ async function handleRemoveSource(sourceId: string) {
 
   try {
     await removeSource(sourceId)
-    uiStore.showSuccess('Source removed')
+    uiStore.showSuccess(t('codex.agents.sources.messages.removeSuccess'))
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   }
 }
 
@@ -630,9 +669,9 @@ async function handleInstall() {
     })
     installOpen.value = false
     emit('refreshInstalled')
-    uiStore.showSuccess('Remote agent installed')
+    uiStore.showSuccess(t('codex.agents.sources.messages.installSuccess'))
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   }
 }
 
@@ -640,18 +679,18 @@ async function handleSyncInstall(installId: string) {
   try {
     await syncInstall(installId)
     emit('refreshInstalled')
-    uiStore.showSuccess('Tracked install synced')
+    uiStore.showSuccess(t('codex.agents.sources.messages.syncSuccess'))
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   }
 }
 
 async function handleForceSyncInstall(installId: string) {
   const confirmed = await uiStore.requestConfirm({
-    title: 'Overwrite local changes',
-    message: 'Replace the local tracked file with the upstream version?',
-    confirmText: 'Overwrite',
-    cancelText: 'Cancel',
+    title: t('codex.agents.sources.confirm.overwriteTitle'),
+    message: t('codex.agents.sources.confirm.overwriteMessage'),
+    confirmText: t('codex.agents.sources.overwrite'),
+    cancelText: t('common.cancel'),
     type: 'danger',
   })
   if (!confirmed) {
@@ -661,9 +700,9 @@ async function handleForceSyncInstall(installId: string) {
   try {
     await forceSyncInstall(installId)
     emit('refreshInstalled')
-    uiStore.showSuccess('Upstream version applied')
+    uiStore.showSuccess(t('codex.agents.sources.messages.overwriteSuccess'))
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   }
 }
 
@@ -671,18 +710,18 @@ async function handleAcceptLocalInstall(installId: string) {
   try {
     await acceptLocalInstall(installId)
     emit('refreshInstalled')
-    uiStore.showSuccess('Local changes accepted as baseline')
+    uiStore.showSuccess(t('codex.agents.sources.messages.acceptLocalSuccess'))
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   }
 }
 
 async function handleUntrackInstall(installId: string) {
   const confirmed = await uiStore.requestConfirm({
-    title: 'Stop tracking install',
-    message: 'Remove provenance tracking for this install and keep the local file?',
-    confirmText: 'Untrack',
-    cancelText: 'Cancel',
+    title: t('codex.agents.sources.confirm.untrackTitle'),
+    message: t('codex.agents.sources.confirm.untrackMessage'),
+    confirmText: t('codex.agents.sources.untrack'),
+    cancelText: t('common.cancel'),
     type: 'warning',
   })
   if (!confirmed) {
@@ -692,9 +731,9 @@ async function handleUntrackInstall(installId: string) {
   try {
     await untrackInstall(installId)
     emit('refreshInstalled')
-    uiStore.showSuccess('Tracking removed')
+    uiStore.showSuccess(t('codex.agents.sources.messages.untrackSuccess'))
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   }
 }
 </script>

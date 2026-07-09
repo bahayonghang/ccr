@@ -169,6 +169,7 @@ export const iconMap = {
   Package:    'solar:box-minimalistic-bold-duotone',
   Box:        'solar:box-bold-duotone',
   Boxes:      'solar:box-bold-duotone',
+  Blocks:     'solar:widget-2-bold-duotone',
   Puzzle:     'solar:widget-2-bold-duotone',
   Workflow:   'solar:branching-paths-down-bold-duotone',
   Wrench:     'solar:sledgehammer-bold-duotone',

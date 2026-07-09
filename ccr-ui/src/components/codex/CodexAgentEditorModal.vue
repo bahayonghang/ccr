@@ -1,7 +1,7 @@
 <template>
   <BaseModal
     :model-value="modelValue"
-    :title="editingName ? 'Edit Codex Agent' : 'Add Codex Agent'"
+    :title="editingName ? t('codex.agents.editAgent') : t('codex.agents.addAgent')"
     size="xl"
     surface="solid"
     content-class="codex-agent-editor-modal max-h-[calc(100vh-3rem)]"
@@ -13,7 +13,7 @@
         class="rounded-2xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100"
       >
         <div class="font-semibold">
-          TOML parse error
+          {{ t('codex.agents.diagnosticsTitle') }}
         </div>
         <div class="mt-1 whitespace-pre-wrap break-words">
           {{ parseError }}
@@ -27,7 +27,7 @@
           :class="useRawToml ? panelButtonClass.inactive : panelButtonClass.active"
           @click="useRawToml = false"
         >
-          Structured
+          {{ t('codex.agents.structuredEditor') }}
         </button>
         <button
           type="button"
@@ -35,7 +35,7 @@
           :class="useRawToml ? panelButtonClass.active : panelButtonClass.inactive"
           @click="useRawToml = true"
         >
-          Raw TOML
+          {{ t('codex.agents.rawEditor') }}
         </button>
       </div>
 
@@ -45,7 +45,7 @@
       >
         <div class="grid gap-4 md:grid-cols-2">
           <label class="space-y-2 text-sm text-text-secondary">
-            <span class="font-semibold text-text-primary">Name *</span>
+            <span class="font-semibold text-text-primary">{{ t('codex.agents.form.name') }} *</span>
             <input
               v-model="form.name"
               type="text"
@@ -54,7 +54,7 @@
           </label>
 
           <label class="space-y-2 text-sm text-text-secondary">
-            <span class="font-semibold text-text-primary">Model</span>
+            <span class="font-semibold text-text-primary">{{ t('codex.agents.form.model') }}</span>
             <input
               v-if="availableModels.length === 0"
               v-model="form.model"
@@ -68,7 +68,7 @@
               class="codex-agent-input"
             >
               <option value="">
-                Follow parent session
+                {{ t('codex.agents.followParentSession') }}
               </option>
               <option
                 v-for="model in availableModels"
@@ -82,7 +82,7 @@
         </div>
 
         <label class="space-y-2 text-sm text-text-secondary">
-          <span class="font-semibold text-text-primary">Description *</span>
+          <span class="font-semibold text-text-primary">{{ t('codex.agents.form.description') }} *</span>
           <textarea
             v-model="form.description"
             rows="2"
@@ -91,7 +91,7 @@
         </label>
 
         <label class="space-y-2 text-sm text-text-secondary">
-          <span class="font-semibold text-text-primary">Developer Instructions *</span>
+          <span class="font-semibold text-text-primary">{{ t('codex.agents.form.developerInstructions') }} *</span>
           <textarea
             v-model="form.developerInstructions"
             rows="8"
@@ -101,13 +101,13 @@
 
         <div class="grid gap-4 md:grid-cols-3">
           <label class="space-y-2 text-sm text-text-secondary">
-            <span class="font-semibold text-text-primary">Reasoning Effort</span>
+            <span class="font-semibold text-text-primary">{{ t('codex.agents.form.reasoningEffort') }}</span>
             <select
               v-model="form.modelReasoningEffort"
               class="codex-agent-input"
             >
               <option value="">
-                Follow parent session
+                {{ t('codex.agents.followParentSession') }}
               </option>
               <option value="low">
                 low
@@ -125,7 +125,7 @@
           </label>
 
           <label class="space-y-2 text-sm text-text-secondary">
-            <span class="font-semibold text-text-primary">Sandbox</span>
+            <span class="font-semibold text-text-primary">{{ t('codex.agents.form.sandboxMode') }}</span>
             <input
               v-model="form.sandboxMode"
               type="text"
@@ -135,7 +135,7 @@
           </label>
 
           <label class="space-y-2 text-sm text-text-secondary">
-            <span class="font-semibold text-text-primary">Nicknames</span>
+            <span class="font-semibold text-text-primary">{{ t('codex.agents.form.nicknameCandidates') }}</span>
             <input
               v-model="nicknameCandidatesText"
               type="text"
@@ -147,7 +147,7 @@
 
         <div>
           <label class="space-y-2 text-sm text-text-secondary">
-            <span class="font-semibold text-text-primary">mcp_servers JSON</span>
+            <span class="font-semibold text-text-primary">{{ t('codex.agents.mcpServersLabel') }}</span>
             <textarea
               v-model="mcpServersJson"
               rows="6"
@@ -163,7 +163,7 @@
         class="space-y-3"
       >
         <div class="rounded-2xl border border-border-default/50 bg-bg-surface/70 px-4 py-3 text-sm text-text-secondary">
-          Raw TOML editing preserves every field directly. Structured overrides are disabled while this mode is active.
+          {{ t('codex.agents.rawEditorDescription') }}
         </div>
         <textarea
           v-model="rawToml"
@@ -186,14 +186,14 @@
         class="rounded-xl border border-border-default/70 px-4 py-2 text-sm text-text-secondary transition-colors hover:bg-bg-surface"
         @click="emit('update:modelValue', false)"
       >
-        Cancel
+        {{ t('common.cancel') }}
       </button>
       <button
         type="button"
         class="rounded-xl bg-accent-primary px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-accent-primary/20 transition-transform hover:scale-[1.02]"
         @click="handleSubmit"
       >
-        {{ editingName ? 'Save Agent' : 'Create Agent' }}
+        {{ editingName ? t('common.save') : t('codex.agents.editorCreate') }}
       </button>
     </template>
   </BaseModal>
@@ -201,6 +201,8 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { getErrorMessage } from '@/utils/errorHandler'
 import BaseModal from '@/components/common/BaseModal.vue'
 import type { CodexAgent, CodexAgentRequest } from '@/types'
 
@@ -214,6 +216,7 @@ const emit = defineEmits<{
   'update:modelValue': [value: boolean]
   save: [payload: CodexAgentRequest]
 }>()
+const { t } = useI18n()
 
 const form = reactive<CodexAgentRequest>({
   name: '',
@@ -271,7 +274,10 @@ function parseOptionalJson(label: string, value: string) {
   try {
     return JSON.parse(value)
   } catch (error) {
-    throw new Error(`${label} must be valid JSON: ${error instanceof Error ? error.message : String(error)}`)
+    throw new Error(t('codex.agents.invalidJsonWithLabel', {
+      label,
+      error: getErrorMessage(error),
+    }))
   }
 }
 
@@ -281,7 +287,7 @@ function handleSubmit() {
   try {
     if (useRawToml.value) {
       if (!rawToml.value.trim()) {
-        throw new Error('Raw TOML cannot be empty')
+        throw new Error(t('codex.agents.rawTomlEmpty'))
       }
 
       emit('save', {
@@ -291,7 +297,7 @@ function handleSubmit() {
     }
 
     if (!form.name?.trim() || !form.description?.trim() || !form.developerInstructions?.trim()) {
-      throw new Error('Name, description, and developer instructions are required')
+      throw new Error(t('codex.agents.validation.required'))
     }
 
     emit('save', {
@@ -308,7 +314,7 @@ function handleSubmit() {
       mcpServers: parseOptionalJson('mcp_servers JSON', mcpServersJson.value) ?? null,
     })
   } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : String(error)
+    errorMessage.value = getErrorMessage(error)
   }
 }
 </script>

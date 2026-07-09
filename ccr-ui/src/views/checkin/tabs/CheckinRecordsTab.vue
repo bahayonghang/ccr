@@ -1,13 +1,23 @@
 <template>
   <div class="checkin-records">
     <h2 class="checkin-records__title">
-      签到记录
+      {{ t('checkin.records.title') }}
     </h2>
     <div
-      v-if="records.length === 0"
+      v-if="recordsLoadError"
+      class="checkin-records__error"
+    >
+      <SIcon
+        name="AlertCircle"
+        size="w-4 h-4"
+      />
+      <span>{{ recordsLoadError }}</span>
+    </div>
+    <div
+      v-else-if="records.length === 0"
       class="checkin-records__empty"
     >
-      暂无签到记录
+      {{ t('checkin.records.empty') }}
     </div>
     <div
       v-else
@@ -20,10 +30,10 @@
               name="XCircle"
               size="w-4 h-4"
             />
-            失败历史记录 ({{ failedHistoryTotal }})
+            {{ t('checkin.records.failedHistoryTitle', { count: failedHistoryTotal }) }}
           </div>
           <span class="checkin-records__history-summary-hint">
-            点击展开详情
+            {{ t('checkin.records.failedHistoryHint') }}
           </span>
         </summary>
         <div class="checkin-records__history-body">
@@ -33,7 +43,7 @@
               class="checkin-records__history-input"
             >
               <option value="all">
-                全部提供商
+                {{ t('checkin.records.allProviders') }}
               </option>
               <option
                 v-for="provider in providers"
@@ -46,7 +56,7 @@
             <input
               v-model="failedHistoryKeyword"
               type="text"
-              placeholder="账号 / ID / 消息"
+              :placeholder="t('checkin.records.keywordPlaceholder')"
               class="checkin-records__history-input"
             >
             <button
@@ -54,34 +64,34 @@
               :disabled="failedHistoryLoading"
               @click="applyFailedHistoryFilters"
             >
-              筛选
+              {{ t('checkin.records.filter') }}
             </button>
             <button
               class="checkin-records__history-button"
               :disabled="failedHistoryLoading"
               @click="resetFailedHistoryFilters"
             >
-              重置
+              {{ t('checkin.records.reset') }}
             </button>
             <button
               class="checkin-records__history-button"
               :disabled="failedHistoryLoading"
               @click="exportFailedHistory"
             >
-              导出
+              {{ t('checkin.records.export') }}
             </button>
           </div>
           <div
             v-if="failedHistoryLoading"
             class="checkin-records__history-state"
           >
-            加载中...
+            {{ t('checkin.records.loading') }}
           </div>
           <div
             v-else-if="failedHistoryTotal === 0"
             class="checkin-records__history-state"
           >
-            暂无失败记录
+            {{ t('checkin.records.emptyFailed') }}
           </div>
           <div
             v-else
@@ -101,15 +111,24 @@
                 </div>
               </div>
               <div class="checkin-records__history-item-meta">
-                提供商: {{ getRecordProviderName(record) }} · 账号ID: {{ record.account_id }}
+                {{ t('checkin.records.providerLabel', { name: getRecordProviderName(record) }) }}
+                {{ t('checkin.records.accountIdLabel', { id: record.account_id }) }}
               </div>
               <div class="checkin-records__history-item-reason">
-                原因: {{ getRecordReason(record) }}
+                {{ t('checkin.records.reasonLabel', { reason: getRecordReason(record) }) }}
               </div>
+              <button
+                v-if="record.error_code === 'cookie_expired'"
+                type="button"
+                class="checkin-records__history-button checkin-records__fix-button"
+                @click="emit('update-cookie', record.account_id)"
+              >
+                {{ t('checkin.records.cookieExpiredFix') }}
+              </button>
             </div>
             <div class="checkin-records__history-pagination">
               <span>
-                第 {{ failedHistoryPage }} / {{ failedHistoryTotalPages }} 页
+                {{ t('checkin.records.pageLabel', { page: failedHistoryPage, total: failedHistoryTotalPages }) }}
               </span>
               <div class="checkin-records__history-pagination-actions">
                 <button
@@ -117,14 +136,14 @@
                   :disabled="failedHistoryPage === 1"
                   @click="goToFailedHistoryPage(failedHistoryPage - 1)"
                 >
-                  上一页
+                  {{ t('checkin.records.previousPage') }}
                 </button>
                 <button
                   class="checkin-records__history-button"
                   :disabled="failedHistoryPage === failedHistoryTotalPages"
                   @click="goToFailedHistoryPage(failedHistoryPage + 1)"
                 >
-                  下一页
+                  {{ t('checkin.records.nextPage') }}
                 </button>
               </div>
             </div>
@@ -137,25 +156,25 @@
           <thead class="checkin-records__table-head">
             <tr>
               <th class="checkin-records__table-heading">
-                时间
+                {{ t('checkin.records.time') }}
               </th>
               <th class="checkin-records__table-heading">
-                账号
+                {{ t('checkin.records.account') }}
               </th>
               <th class="checkin-records__table-heading">
-                状态
+                {{ t('checkin.records.status') }}
               </th>
               <th class="checkin-records__table-heading">
-                奖励
+                {{ t('checkin.records.reward') }}
               </th>
               <th class="checkin-records__table-heading">
-                余额
+                {{ t('checkin.records.balance') }}
               </th>
               <th class="checkin-records__table-heading">
-                原因
+                {{ t('checkin.records.reason') }}
               </th>
               <th class="checkin-records__table-heading checkin-records__table-heading--right">
-                详情
+                {{ t('checkin.records.details') }}
               </th>
             </tr>
           </thead>
@@ -173,7 +192,7 @@
                 </td>
                 <td class="checkin-records__table-cell checkin-records__table-cell--nowrap">
                   <span
-                    class="checkin-records__status-badge"
+                    class="checkin-records__status-badge checkin-badge-pill"
                     :class="getStatusClass(record.status)"
                   >
                     {{ getStatusText(record.status) }}
@@ -189,23 +208,33 @@
                   {{ getRecordReason(record) }}
                 </td>
                 <td class="checkin-records__table-cell checkin-records__table-cell--right">
-                  <button
-                    class="checkin-records__detail-toggle"
-                    :aria-expanded="isRecordExpanded(record.id)"
-                    @click="toggleRecordExpanded(record.id)"
-                  >
-                    <SIcon
-                      v-if="isRecordExpanded(record.id)"
-                      name="ChevronUp"
-                      size="w-4 h-4"
-                    />
-                    <SIcon
-                      v-else
-                      name="ChevronDown"
-                      size="w-4 h-4"
-                    />
-                    详情
-                  </button>
+                  <div class="checkin-records__row-actions">
+                    <button
+                      v-if="record.error_code === 'cookie_expired'"
+                      type="button"
+                      class="checkin-records__detail-toggle checkin-records__fix-button"
+                      @click="emit('update-cookie', record.account_id)"
+                    >
+                      {{ t('checkin.records.cookieExpiredFix') }}
+                    </button>
+                    <button
+                      class="checkin-records__detail-toggle"
+                      :aria-expanded="isRecordExpanded(record.id)"
+                      @click="toggleRecordExpanded(record.id)"
+                    >
+                      <SIcon
+                        v-if="isRecordExpanded(record.id)"
+                        name="ChevronUp"
+                        size="w-4 h-4"
+                      />
+                      <SIcon
+                        v-else
+                        name="ChevronDown"
+                        size="w-4 h-4"
+                      />
+                      {{ t('checkin.records.details') }}
+                    </button>
+                  </div>
                 </td>
               </tr>
               <tr
@@ -219,7 +248,7 @@
                   <div class="checkin-records__detail-grid">
                     <div class="checkin-records__detail-item">
                       <div class="checkin-records__detail-label">
-                        提供商
+                        {{ t('checkin.records.provider') }}
                       </div>
                       <div class="checkin-records__detail-value">
                         {{ getRecordProviderName(record) }}
@@ -227,7 +256,7 @@
                     </div>
                     <div class="checkin-records__detail-item">
                       <div class="checkin-records__detail-label">
-                        账号ID
+                        {{ t('checkin.records.accountId') }}
                       </div>
                       <div class="checkin-records__detail-value checkin-records__detail-value--break">
                         {{ record.account_id }}
@@ -235,7 +264,7 @@
                     </div>
                     <div class="checkin-records__detail-item">
                       <div class="checkin-records__detail-label">
-                        原因
+                        {{ t('checkin.records.reason') }}
                       </div>
                       <div class="checkin-records__detail-value checkin-records__detail-value--break">
                         {{ getRecordReason(record) }}
@@ -243,7 +272,7 @@
                     </div>
                     <div class="checkin-records__detail-item">
                       <div class="checkin-records__detail-label">
-                        原始消息
+                        {{ t('checkin.records.rawMessage') }}
                       </div>
                       <div class="checkin-records__detail-value checkin-records__detail-value--break">
                         {{ getRecordRawMessage(record) }}
@@ -251,7 +280,7 @@
                     </div>
                     <div class="checkin-records__detail-item">
                       <div class="checkin-records__detail-label">
-                        奖励 / 余额变化
+                        {{ t('checkin.records.rewardAndBalance') }}
                       </div>
                       <div class="checkin-records__detail-value">
                         {{ record.reward || '-' }} ·
@@ -260,11 +289,11 @@
                     </div>
                     <div class="checkin-records__detail-item">
                       <div class="checkin-records__detail-label">
-                        余额前 / 后
+                        {{ t('checkin.records.balanceBeforeAfter') }}
                       </div>
                       <div class="checkin-records__detail-value">
                         {{ record.balance_before !== undefined && record.balance_before !== null ? `$${record.balance_before.toFixed(2)}` : '-' }}
-                        →
+                        {{ t('checkin.records.balanceSeparator') }}
                         {{ record.balance_after !== undefined && record.balance_after !== null ? `$${record.balance_after.toFixed(2)}` : '-' }}
                       </div>
                     </div>
@@ -282,6 +311,7 @@
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, onMounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useUIStore } from '@/stores/ui'
 import {
   listCheckinRecords,
@@ -296,6 +326,7 @@ import type {
   CheckinRecordsResponse,
 } from '@/types/checkin'
 import { logger } from '@/utils/logger'
+import { getErrorMessage } from '@/types/api'
 
 interface CheckinRecordsExportResponse {
   blob: Blob
@@ -304,11 +335,18 @@ interface CheckinRecordsExportResponse {
 
 const props = defineProps<{
   records: CheckinRecordInfo[]
+  recordsLoadError: string | null
   providers: CheckinProvider[]
   accounts: AccountInfo[]
   todayStats: TodayCheckinStats | null
 }>()
 
+const emit = defineEmits<{
+  /** cookie_expired 快捷修复：请求打开对应账号的编辑弹窗 */
+  (e: 'update-cookie', accountId: string): void
+}>()
+
+const { t, locale } = useI18n()
 const uiStore = useUIStore()
 
 // 记录展开状态
@@ -322,8 +360,6 @@ const failedHistoryPage = ref(1)
 const failedHistoryPageSize = ref(5)
 const failedHistoryProviderFilter = ref<string>('all')
 const failedHistoryKeyword = ref('')
-const getErrorMessage = (error: unknown, fallback: string) =>
-  error instanceof Error ? error.message : fallback
 
 const failedHistoryTotalPages = computed(() => {
   const total = Math.ceil(failedHistoryTotal.value / failedHistoryPageSize.value)
@@ -340,7 +376,7 @@ const getAccountName = (accountId: string) => {
 }
 
 const formatDate = (dateStr: string) => {
-  return new Date(dateStr).toLocaleString('zh-CN')
+  return new Date(dateStr).toLocaleString(locale.value)
 }
 
 const getStatusClass = (status: string) => {
@@ -351,6 +387,8 @@ const getStatusClass = (status: string) => {
       return 'checkin-records__status-badge--warning'
     case 'failed':
       return 'checkin-records__status-badge--danger'
+    case 'skipped':
+      return 'checkin-records__status-badge--neutral'
     default:
       return 'checkin-records__status-badge--neutral'
   }
@@ -359,11 +397,13 @@ const getStatusClass = (status: string) => {
 const getStatusText = (status: string) => {
   switch (status) {
     case 'success':
-      return '成功'
+      return t('checkin.status.success')
     case 'already_checked_in':
-      return '已签到'
+      return t('checkin.status.already_checked_in')
     case 'failed':
-      return '失败'
+      return t('checkin.status.failed')
+    case 'skipped':
+      return t('checkin.status.skipped')
     default:
       return status
   }
@@ -375,15 +415,26 @@ const getRecordProviderName = (record: CheckinRecordInfo) => {
   return account?.provider_id ? getProviderName(account.provider_id) : '-'
 }
 
+// skipped 记录的 skip_reason 经由 error_code 列持久化（4 态契约）
+const skipReasonText: Record<string, string> = {
+  account_disabled: t('checkin.skipReasons.account_disabled'),
+  provider_disabled: t('checkin.skipReasons.provider_disabled'),
+  provider_unsupported: t('checkin.skipReasons.provider_unsupported'),
+}
+
 const getRecordReason = (record: CheckinRecordInfo) => {
   if (record.message) return record.message
   switch (record.status) {
     case 'success':
-      return record.reward ? `签到成功 · 奖励 ${record.reward}` : '签到成功'
+      return record.reward
+        ? `${t('checkin.detail.checkinSuccess')} · ${t('checkin.detail.reward', { reward: record.reward })}`
+        : t('checkin.detail.checkinSuccess')
     case 'already_checked_in':
-      return '今日已签到'
+      return t('checkin.detail.todayAlreadyCheckedIn')
     case 'failed':
-      return '未知原因'
+      return t('checkin.errors.unknownReason')
+    case 'skipped':
+      return (record.error_code && skipReasonText[record.error_code]) || t('checkin.detail.skipped')
     default:
       return '-'
   }
@@ -464,7 +515,9 @@ const exportFailedHistory = async () => {
     link.remove()
     URL.revokeObjectURL(url)
   } catch (e: unknown) {
-    uiStore.showError('导出失败: ' + getErrorMessage(e, '未知错误'))
+    uiStore.showError(t('checkin.records.exportFailed', {
+      error: getErrorMessage(e, t('checkin.errors.unknown')),
+    }))
   }
 }
 
@@ -508,20 +561,26 @@ onMounted(() => {
   color: var(--text-muted);
 }
 
+.checkin-records__error {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1rem;
+  border: 1px solid rgb(var(--color-warning-rgb) / 30%);
+  border-radius: 0.5rem;
+  background: rgb(var(--color-warning-rgb) / 10%);
+  color: var(--color-warning);
+}
+
 .checkin-records__content {
   gap: 1rem;
 }
 
 .checkin-records__history {
   overflow: hidden;
-  border: 1px solid rgb(254 226 226 / 100%);
+  border: 1px solid rgb(var(--color-danger-rgb) / 30%);
   border-radius: 0.5rem;
-  background: rgb(254 242 242 / 100%);
-}
-
-.dark .checkin-records__history {
-  border-color: rgb(153 27 27 / 60%);
-  background: rgb(127 29 29 / 20%);
+  background: rgb(var(--color-danger-rgb) / 8%);
 }
 
 .checkin-records__history-summary,
@@ -543,11 +602,7 @@ onMounted(() => {
   font-size: 0.875rem;
   line-height: 1.25rem;
   font-weight: 500;
-  color: rgb(185 28 28 / 100%);
-}
-
-.dark .checkin-records__history-summary {
-  color: rgb(254 202 202 / 100%);
+  color: var(--color-danger);
 }
 
 .checkin-records__history-summary-label {
@@ -564,18 +619,7 @@ onMounted(() => {
 .checkin-records__history-button {
   font-size: 0.75rem;
   line-height: 1rem;
-  color: rgb(220 38 38 / 80%);
-}
-
-.dark .checkin-records__history-summary-hint,
-.dark .checkin-records__history-state,
-.dark .checkin-records__history-item-time,
-.dark .checkin-records__history-item-meta,
-.dark .checkin-records__history-item-reason,
-.dark .checkin-records__history-pagination,
-.dark .checkin-records__history-input,
-.dark .checkin-records__history-button {
-  color: rgb(252 165 165 / 80%);
+  color: rgb(var(--color-danger-rgb) / 82%);
 }
 
 .checkin-records__history-body {
@@ -590,16 +634,10 @@ onMounted(() => {
 
 .checkin-records__history-input,
 .checkin-records__history-button {
-  border: 1px solid rgb(254 202 202 / 100%);
+  border: 1px solid rgb(var(--color-danger-rgb) / 30%);
   border-radius: 0.375rem;
-  background: rgb(255 255 255 / 80%);
+  background: rgb(var(--color-bg-surface-rgb) / 80%);
   padding: 0.25rem 0.5rem;
-}
-
-.dark .checkin-records__history-input,
-.dark .checkin-records__history-button {
-  border-color: rgb(153 27 27 / 100%);
-  background: rgb(69 10 10 / 30%);
 }
 
 .checkin-records__history-button {
@@ -607,11 +645,7 @@ onMounted(() => {
 }
 
 .checkin-records__history-button:hover:not(:disabled) {
-  background: rgb(254 226 226 / 100%);
-}
-
-.dark .checkin-records__history-button:hover:not(:disabled) {
-  background: rgb(127 29 29 / 30%);
+  background: rgb(var(--color-danger-rgb) / 14%);
 }
 
 .checkin-records__history-button:disabled {
@@ -623,15 +657,10 @@ onMounted(() => {
 }
 
 .checkin-records__history-item {
-  border: 1px solid rgb(254 202 202 / 100%);
+  border: 1px solid rgb(var(--color-danger-rgb) / 30%);
   border-radius: 0.375rem;
-  background: rgb(255 255 255 / 70%);
+  background: rgb(var(--color-bg-surface-rgb) / 70%);
   padding: 0.75rem;
-}
-
-.dark .checkin-records__history-item {
-  border-color: rgb(153 27 27 / 100%);
-  background: rgb(69 10 10 / 30%);
 }
 
 .checkin-records__history-item-head,
@@ -648,11 +677,7 @@ onMounted(() => {
   font-size: 0.875rem;
   line-height: 1.25rem;
   font-weight: 500;
-  color: rgb(153 27 27 / 100%);
-}
-
-.dark .checkin-records__history-item-name {
-  color: rgb(254 202 202 / 100%);
+  color: var(--color-danger);
 }
 
 .checkin-records__history-item-meta {
@@ -675,12 +700,8 @@ onMounted(() => {
 .checkin-records__table-shell {
   overflow: hidden;
   border-radius: 0.5rem;
-  background: white;
-  box-shadow: 0 1px 2px rgb(15 23 42 / 8%);
-}
-
-.dark .checkin-records__table-shell {
-  background: rgb(31 41 55 / 100%);
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-xs);
 }
 
 .checkin-records__table {
@@ -690,11 +711,7 @@ onMounted(() => {
 }
 
 .checkin-records__table-head {
-  background: rgb(249 250 251 / 100%);
-}
-
-.dark .checkin-records__table-head {
-  background: rgb(55 65 81 / 50%);
+  background: var(--color-bg-elevated);
 }
 
 .checkin-records__table-heading,
@@ -718,11 +735,7 @@ onMounted(() => {
 }
 
 .checkin-records__table-body > tr + tr > td {
-  border-top: 1px solid rgb(229 231 235 / 100%);
-}
-
-.dark .checkin-records__table-body > tr + tr > td {
-  border-top-color: rgb(55 65 81 / 100%);
+  border-top: 1px solid var(--color-border-subtle);
 }
 
 .checkin-records__table-row {
@@ -730,11 +743,7 @@ onMounted(() => {
 }
 
 .checkin-records__table-row:hover {
-  background: rgb(249 250 251 / 100%);
-}
-
-.dark .checkin-records__table-row:hover {
-  background: rgb(55 65 81 / 50%);
+  background: rgb(var(--color-accent-primary-rgb) / 6%);
 }
 
 .checkin-records__table-cell {
@@ -751,11 +760,7 @@ onMounted(() => {
 }
 
 .checkin-records__table-cell--success {
-  color: rgb(22 163 74 / 100%);
-}
-
-.dark .checkin-records__table-cell--success {
-  color: rgb(74 222 128 / 100%);
+  color: var(--color-success);
 }
 
 .checkin-records__table-cell--nowrap {
@@ -769,82 +774,66 @@ onMounted(() => {
   white-space: nowrap;
 }
 
+/* 形状配方由全局 .checkin-badge-pill 提供，这里保留尺寸差异 */
 .checkin-records__status-badge {
-  display: inline-flex;
-  align-items: center;
-  border-radius: 9999px;
   padding: 0.25rem 0.5rem;
-  font-size: 0.75rem;
   line-height: 1rem;
   font-weight: 500;
 }
 
 .checkin-records__status-badge--success {
-  background: rgb(220 252 231 / 100%);
-  color: rgb(22 101 52 / 100%);
-}
-
-.dark .checkin-records__status-badge--success {
-  background: rgb(20 83 45 / 20%);
-  color: rgb(74 222 128 / 100%);
+  background: rgb(var(--color-success-rgb) / 15%);
+  color: var(--color-success);
 }
 
 .checkin-records__status-badge--warning {
-  background: rgb(254 249 195 / 100%);
-  color: rgb(161 98 7 / 100%);
-}
-
-.dark .checkin-records__status-badge--warning {
-  background: rgb(113 63 18 / 30%);
-  color: rgb(250 204 21 / 100%);
+  background: rgb(var(--color-warning-rgb) / 15%);
+  color: var(--color-warning);
 }
 
 .checkin-records__status-badge--danger {
-  background: rgb(254 226 226 / 100%);
-  color: rgb(153 27 27 / 100%);
-}
-
-.dark .checkin-records__status-badge--danger {
-  background: rgb(127 29 29 / 20%);
-  color: rgb(248 113 113 / 100%);
+  background: rgb(var(--color-danger-rgb) / 15%);
+  color: var(--color-danger);
 }
 
 .checkin-records__status-badge--neutral {
-  background: rgb(243 244 246 / 100%);
-  color: rgb(31 41 55 / 100%);
-}
-
-.dark .checkin-records__status-badge--neutral {
-  background: rgb(55 65 81 / 100%);
-  color: rgb(156 163 175 / 100%);
+  background: var(--color-bg-overlay);
+  color: var(--text-secondary);
 }
 
 .checkin-records__detail-toggle {
   gap: 0.25rem;
   font-size: 0.75rem;
   line-height: 1rem;
-  color: rgb(37 99 235 / 100%);
+  color: var(--color-info);
   transition: color 0.2s ease;
 }
 
 .checkin-records__detail-toggle:hover {
-  color: rgb(29 78 216 / 100%);
+  color: var(--color-info-hover);
 }
 
-.dark .checkin-records__detail-toggle {
-  color: rgb(147 197 253 / 100%);
+.checkin-records__row-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
-.dark .checkin-records__detail-toggle:hover {
-  color: rgb(191 219 254 / 100%);
+/* cookie_expired 快捷修复入口（直达账号编辑弹窗） */
+.checkin-records__fix-button {
+  color: var(--color-danger);
+}
+
+.checkin-records__fix-button:hover {
+  color: var(--color-danger-hover);
+}
+
+.checkin-records__history-item .checkin-records__fix-button {
+  margin-top: 0.5rem;
 }
 
 .checkin-records__detail-row {
-  background: rgb(249 250 251 / 70%);
-}
-
-.dark .checkin-records__detail-row {
-  background: rgb(31 41 55 / 60%);
+  background: rgb(var(--color-bg-elevated-rgb) / 70%);
 }
 
 .checkin-records__detail-cell {

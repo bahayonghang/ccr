@@ -1,0 +1,2 @@
+# ts-rs 生成的 TypeScript 绑定：格式由 ts-rs 固定，重排会触发 bindings-check 漂移红
+src/types/generated/

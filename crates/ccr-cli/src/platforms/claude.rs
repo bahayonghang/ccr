@@ -19,6 +19,7 @@ use crate::models::{
 };
 use ccr_config::platforms::base;
 use ccr_core::Validatable;
+use ccr_core::core::AtomicWriter;
 use ccr_core::core::error::{CcrError, Result};
 use indexmap::IndexMap;
 use serde_json::json;
@@ -72,6 +73,47 @@ impl ClaudePlatform {
     /// 📋 从 ProfileConfig 转换为 ConfigSection
     fn profile_to_section(profile: &ProfileConfig) -> Result<ConfigSection> {
         base::profile_to_section(profile)
+    }
+
+    fn claude_json_path() -> Result<PathBuf> {
+        if let Some(path) = std::env::var_os("CLAUDE_JSON_PATH") {
+            return Ok(PathBuf::from(path));
+        }
+
+        let home =
+            dirs::home_dir().ok_or_else(|| CcrError::ConfigError("无法获取用户主目录".into()))?;
+        Ok(home.join(".claude.json"))
+    }
+
+    fn ensure_onboarding_completed() -> Result<bool> {
+        let path = Self::claude_json_path()?;
+        let mut document = if path.exists() {
+            let content = fs::read_to_string(&path)
+                .map_err(|e| CcrError::ConfigError(format!("读取 Claude 状态文件失败: {e}")))?;
+            serde_json::from_str::<serde_json::Value>(&content)
+                .map_err(|e| CcrError::ConfigError(format!("解析 Claude 状态文件失败: {e}")))?
+        } else {
+            json!({})
+        };
+
+        let Some(object) = document.as_object_mut() else {
+            return Err(CcrError::ConfigError(
+                "Claude 状态文件必须是 JSON object".into(),
+            ));
+        };
+
+        if matches!(
+            object.get("hasCompletedOnboarding"),
+            Some(serde_json::Value::Bool(true))
+        ) {
+            return Ok(false);
+        }
+
+        object.insert("hasCompletedOnboarding".to_string(), json!(true));
+        let content = serde_json::to_string_pretty(&document)
+            .map_err(|e| CcrError::ConfigError(format!("序列化 Claude 状态文件失败: {e}")))?;
+        AtomicWriter::new(&path).write_string(&content)?;
+        Ok(true)
     }
 
     /// 💾 保存 profiles 到 TOML 文件
@@ -156,7 +198,9 @@ impl ClaudePlatform {
     }
 
     pub fn profile_auth_mode(profile: &ProfileConfig) -> ClaudeProfileAuthMode {
-        crate::services::ClaudeAuthService::resolve_profile_auth_mode(profile)
+        // 走 effective_auth_mode: 在字面解析之上叠加「API-key 形态 + subscription
+        // → api_key」的自愈, 保证 apply / validate / UI 回显口径一致。
+        crate::services::ClaudeAuthService::effective_auth_mode(profile)
     }
 
     pub fn profile_auth_source(profile: &ProfileConfig) -> String {
@@ -173,7 +217,17 @@ impl ClaudePlatform {
     }
 
     fn normalize_profile(profile: &mut ProfileConfig) {
+        let resolved = crate::services::ClaudeAuthService::resolve_profile_auth_mode(profile);
         let auth_mode = Self::profile_auth_mode(profile);
+        if resolved != auth_mode {
+            // 保存时权威纠正: 落盘存储态即为 api_key, UI 刷新随之一致。
+            tracing::warn!(
+                provider = ?profile.provider,
+                "保存 Claude profile: auth_mode={} 与第三方/API-key 形态冲突，自动纠正为 {}",
+                resolved.as_str(),
+                auth_mode.as_str()
+            );
+        }
         profile
             .platform_data
             .insert(Self::AUTH_MODE_FIELD.to_string(), json!(auth_mode.as_str()));
@@ -193,7 +247,7 @@ impl ClaudePlatform {
         }
 
         if let Some(auth_token) = &section.auth_token
-            && auth_token.trim().is_empty()
+            && auth_token.expose().trim().is_empty()
         {
             return Err(CcrError::ValidationError(
                 "auth_token 不能为空字符串".into(),
@@ -267,6 +321,17 @@ impl PlatformConfig for ClaudePlatform {
         let section = Self::profile_to_section(profile)?;
 
         let auth_mode = Self::profile_auth_mode(profile);
+        let literal_mode = crate::services::ClaudeAuthService::resolve_profile_auth_mode(profile);
+        if literal_mode != auth_mode {
+            // 应用时防御自愈: 既有 profile (如旧 chy) 无需重存即可正确生效。
+            tracing::warn!(
+                profile = %name,
+                provider = ?profile.provider,
+                "应用 Claude profile: auth_mode={} 与第三方/API-key 形态冲突，自动纠正为 {}",
+                literal_mode.as_str(),
+                auth_mode.as_str()
+            );
+        }
         self.validate_profile(profile)?;
 
         // 加载当前设置
@@ -280,7 +345,13 @@ impl PlatformConfig for ClaudePlatform {
                 settings.clear_managed_vars();
             }
             ClaudeProfileAuthMode::ApiKey => {
-                settings.update_from_config(&section);
+                settings.apply_managed_env(section.to_managed_env_pairs());
+                if let Err(error) = Self::ensure_onboarding_completed() {
+                    tracing::warn!(
+                        error = %error,
+                        "应用 Claude API-key profile 时无法补写 Claude Code onboarding 标记"
+                    );
+                }
             }
         }
 
@@ -318,8 +389,18 @@ impl PlatformConfig for ClaudePlatform {
             "ANTHROPIC_DEFAULT_OPUS_MODEL".into(),
             "ANTHROPIC_DEFAULT_SONNET_MODEL".into(),
             "ANTHROPIC_DEFAULT_HAIKU_MODEL".into(),
+            "ANTHROPIC_DEFAULT_FABLE_MODEL".into(),
+            "ANTHROPIC_DEFAULT_OPUS_MODEL_NAME".into(),
+            "ANTHROPIC_DEFAULT_SONNET_MODEL_NAME".into(),
+            "ANTHROPIC_DEFAULT_HAIKU_MODEL_NAME".into(),
+            "ANTHROPIC_DEFAULT_FABLE_MODEL_NAME".into(),
             "CLAUDE_CODE_SUBAGENT_MODEL".into(),
+            "ANTHROPIC_CUSTOM_MODEL_OPTION".into(),
+            "ANTHROPIC_CUSTOM_MODEL_OPTION_NAME".into(),
             "CLAUDE_CODE_EFFORT_LEVEL".into(),
+            "CLAUDE_CODE_AUTO_COMPACT_WINDOW".into(),
+            "API_TIMEOUT_MS".into(),
+            "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC".into(),
         ]
     }
 }
@@ -330,70 +411,22 @@ mod tests {
     use super::*;
     use crate::managers::PlatformConfigManager;
     use crate::managers::{PlatformConfigEntry, UnifiedConfig};
+    use crate::test_support::TestHome;
     use std::fs;
-    use std::sync::MutexGuard;
-
-    fn restore_env_var(key: &str, previous: Option<String>) {
-        // SAFETY: 仅在测试中恢复当前进程环境变量，调用方保证作用域内串行使用。
-        unsafe {
-            match previous {
-                Some(value) => std::env::set_var(key, value),
-                None => std::env::remove_var(key),
-            }
-        }
-    }
 
     struct TestEnv {
-        root: tempfile::TempDir,
-        previous_root: Option<String>,
-        previous_settings: Option<String>,
-        previous_backup: Option<String>,
-        previous_lock: Option<String>,
-        _env_guard: MutexGuard<'static, ()>,
+        home: TestHome,
     }
 
     impl TestEnv {
         fn new() -> Self {
-            let env_guard = crate::test_support::env_lock();
-            let root = tempfile::tempdir().unwrap();
-            let settings_path = root.path().join("claude").join("settings.json");
-            let backup_dir = root.path().join("claude").join("backups");
-            let lock_dir = root.path().join("locks");
-
-            let previous_root = std::env::var("CCR_ROOT").ok();
-            let previous_settings = std::env::var("CCR_SETTINGS_PATH").ok();
-            let previous_backup = std::env::var("CCR_BACKUP_DIR").ok();
-            let previous_lock = std::env::var("CCR_LOCK_DIR").ok();
-
-            // SAFETY: 测试需要临时覆写 Claude 平台相关环境变量，结束后会恢复原值。
-            unsafe {
-                std::env::set_var("CCR_ROOT", root.path());
-                std::env::set_var("CCR_SETTINGS_PATH", &settings_path);
-                std::env::set_var("CCR_BACKUP_DIR", &backup_dir);
-                std::env::set_var("CCR_LOCK_DIR", &lock_dir);
-            }
-
             Self {
-                root,
-                previous_root,
-                previous_settings,
-                previous_backup,
-                previous_lock,
-                _env_guard: env_guard,
+                home: TestHome::new(),
             }
         }
 
         fn root_path(&self) -> &std::path::Path {
-            self.root.path()
-        }
-    }
-
-    impl Drop for TestEnv {
-        fn drop(&mut self) {
-            restore_env_var("CCR_ROOT", self.previous_root.take());
-            restore_env_var("CCR_SETTINGS_PATH", self.previous_settings.take());
-            restore_env_var("CCR_BACKUP_DIR", self.previous_backup.take());
-            restore_env_var("CCR_LOCK_DIR", self.previous_lock.take());
+            self.home.root()
         }
     }
 
@@ -431,7 +464,7 @@ mod tests {
         let section = ConfigSection {
             description: Some("Test".to_string()),
             base_url: Some("https://api.test.com".to_string()),
-            auth_token: Some("sk-test".to_string()),
+            auth_token: Some(ccr_core::Secret::from("sk-test")),
             model: Some("test-model".to_string()),
             small_fast_model: Some("test-small".to_string()),
             provider: Some("test-provider".to_string()),
@@ -447,7 +480,7 @@ mod tests {
         let profile = ClaudePlatform::section_to_profile(&section);
         assert_eq!(profile.description, Some("Test".to_string()));
         assert_eq!(profile.base_url, Some("https://api.test.com".to_string()));
-        assert_eq!(profile.auth_token, Some("sk-test".to_string()));
+        assert_eq!(profile.auth_token, Some(ccr_core::Secret::from("sk-test")));
 
         // 反向转换
         let section2 = ClaudePlatform::profile_to_section(&profile).unwrap();
@@ -661,6 +694,16 @@ mod tests {
                 .env
                 .insert("ANTHROPIC_AUTH_TOKEN".into(), "sk-old".into());
             settings.env.insert("KEEP_ME".into(), "value".into());
+            settings
+                .env
+                .insert("CLAUDE_CODE_AUTO_COMPACT_WINDOW".into(), "1000000".into());
+            settings
+                .env
+                .insert("API_TIMEOUT_MS".into(), "3000000".into());
+            settings.env.insert(
+                "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC".into(),
+                "1".into(),
+            );
             SettingsManager::with_default()?.save_atomic(&settings)?;
 
             platform.apply_profile("official")?;
@@ -668,6 +711,13 @@ mod tests {
             let settings = SettingsManager::with_default()?.load()?;
             assert!(!settings.env.contains_key("ANTHROPIC_BASE_URL"));
             assert!(!settings.env.contains_key("ANTHROPIC_AUTH_TOKEN"));
+            assert!(!settings.env.contains_key("CLAUDE_CODE_AUTO_COMPACT_WINDOW"));
+            assert!(!settings.env.contains_key("API_TIMEOUT_MS"));
+            assert!(
+                !settings
+                    .env
+                    .contains_key("CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC")
+            );
             assert_eq!(
                 settings.env.get("KEEP_ME").map(String::as_str),
                 Some("value")
@@ -676,6 +726,420 @@ mod tests {
             Ok(())
         })();
 
+        result.unwrap();
+    }
+
+    /// 构造一个「字面标成 subscription, 实则第三方 (base_url+token+模型映射)」的 profile
+    fn make_mismarked_third_party_profile() -> ProfileConfig {
+        let mut profile = ProfileConfig::new()
+            .with_base_url("https://chy.example.com".to_string())
+            .with_auth_token("sk-chy".to_string());
+        profile.default_opus_model = Some("glm-5.2[1m]".to_string());
+        profile.provider = Some("chy".to_string());
+        profile.platform_data.insert(
+            ClaudePlatform::AUTH_MODE_FIELD.to_string(),
+            json!("subscription"),
+        );
+        profile
+    }
+
+    // AC2: 保存时应把 subscription 纠正为 api_key 落盘
+    #[test]
+    fn test_save_corrects_mismarked_subscription_to_api_key() {
+        let env = TestEnv::new();
+
+        let result = (|| -> Result<()> {
+            let platform = ClaudePlatform::new()?;
+            platform.save_profile("chy", &make_mismarked_third_party_profile())?;
+
+            let config = read_profiles_config(env.root_path());
+            let section = config.sections.get("chy").expect("chy section 应存在");
+            assert_eq!(
+                section.other.get("auth_mode").and_then(|v| v.as_str()),
+                Some("api_key"),
+                "保存时应把 subscription 纠正为 api_key"
+            );
+
+            Ok(())
+        })();
+
+        drop(env);
+        result.unwrap();
+    }
+
+    // AC1: 误标 subscription 的第三方 profile, save + apply 后覆盖项不被清空
+    #[test]
+    fn test_apply_mismarked_subscription_third_party_writes_overrides() {
+        let _env = TestEnv::new();
+
+        let result = (|| -> Result<()> {
+            let platform = ClaudePlatform::new()?;
+            platform.save_profile("chy", &make_mismarked_third_party_profile())?;
+            platform.apply_profile("chy")?;
+
+            let settings = SettingsManager::with_default()?.load()?;
+            assert_eq!(
+                settings.env.get("ANTHROPIC_BASE_URL").map(String::as_str),
+                Some("https://chy.example.com")
+            );
+            assert_eq!(
+                settings.env.get("ANTHROPIC_AUTH_TOKEN").map(String::as_str),
+                Some("sk-chy")
+            );
+            assert_eq!(
+                settings
+                    .env
+                    .get("ANTHROPIC_DEFAULT_OPUS_MODEL")
+                    .map(String::as_str),
+                Some("glm-5.2[1m]")
+            );
+
+            Ok(())
+        })();
+
+        result.unwrap();
+    }
+
+    #[test]
+    fn test_api_key_profile_apply_marks_onboarding_complete() {
+        let env = TestEnv::new();
+
+        let result = (|| -> Result<()> {
+            fs::write(
+                env.home.claude_json_path(),
+                serde_json::to_string_pretty(&json!({
+                    "oauthAccount": {
+                        "accountUuid": "account-123",
+                        "emailAddress": "user@example.com"
+                    }
+                }))
+                .unwrap(),
+            )
+            .unwrap();
+
+            let platform = ClaudePlatform::new()?;
+            platform.save_profile("glm", &make_profile("glm"))?;
+            platform.apply_profile("glm")?;
+
+            let claude_json: serde_json::Value =
+                serde_json::from_str(&fs::read_to_string(env.home.claude_json_path()).unwrap())
+                    .unwrap();
+            assert_eq!(claude_json["hasCompletedOnboarding"], json!(true));
+            assert_eq!(
+                claude_json["oauthAccount"]["emailAddress"],
+                json!("user@example.com")
+            );
+
+            Ok(())
+        })();
+
+        drop(env);
+        result.unwrap();
+    }
+
+    #[test]
+    fn test_api_key_profile_apply_creates_missing_claude_json() {
+        let env = TestEnv::new();
+
+        let result = (|| -> Result<()> {
+            let platform = ClaudePlatform::new()?;
+            platform.save_profile("glm", &make_profile("glm"))?;
+            platform.apply_profile("glm")?;
+
+            let claude_json: serde_json::Value =
+                serde_json::from_str(&fs::read_to_string(env.home.claude_json_path()).unwrap())
+                    .unwrap();
+            assert_eq!(claude_json["hasCompletedOnboarding"], json!(true));
+
+            Ok(())
+        })();
+
+        drop(env);
+        result.unwrap();
+    }
+
+    #[test]
+    fn test_api_key_profile_apply_keeps_settings_when_claude_json_is_invalid() {
+        let env = TestEnv::new();
+
+        let result = (|| -> Result<()> {
+            fs::write(env.home.claude_json_path(), "{invalid json").unwrap();
+
+            let platform = ClaudePlatform::new()?;
+            platform.save_profile("glm", &make_profile("glm"))?;
+            platform.apply_profile("glm")?;
+
+            let settings = SettingsManager::with_default()?.load()?;
+            assert_eq!(
+                settings.env.get("ANTHROPIC_BASE_URL").map(String::as_str),
+                Some("https://glm.example.com")
+            );
+
+            Ok(())
+        })();
+
+        drop(env);
+        result.unwrap();
+    }
+
+    // AC1(防御自愈): 存量 profile 直接落盘为 subscription, 未经 save 也能在 apply 时正确生效
+    #[test]
+    fn test_apply_defensively_heals_stale_subscription_profile() {
+        let env = TestEnv::new();
+
+        let result = (|| -> Result<()> {
+            let platform = ClaudePlatform::new()?;
+            let profiles_path = env
+                .root_path()
+                .join("platforms")
+                .join("claude")
+                .join("profiles.toml");
+            fs::create_dir_all(profiles_path.parent().unwrap()).unwrap();
+            fs::write(
+                &profiles_path,
+                r#"default_config = "chy"
+current_config = "chy"
+
+[chy]
+base_url = "https://chy.example.com"
+auth_token = "sk-chy"
+default_opus_model = "glm-5.2[1m]"
+provider = "chy"
+auth_mode = "subscription"
+"#,
+            )
+            .unwrap();
+
+            platform.apply_profile("chy")?;
+
+            let settings = SettingsManager::with_default()?.load()?;
+            assert_eq!(
+                settings.env.get("ANTHROPIC_BASE_URL").map(String::as_str),
+                Some("https://chy.example.com")
+            );
+            assert_eq!(
+                settings
+                    .env
+                    .get("ANTHROPIC_DEFAULT_OPUS_MODEL")
+                    .map(String::as_str),
+                Some("glm-5.2[1m]")
+            );
+
+            Ok(())
+        })();
+
+        drop(env);
+        result.unwrap();
+    }
+
+    // AC4: TOML 内的 custom_model_option 自动迁移到 typed 字段 (不残留 platform_data), 且 apply 写出 env
+    #[test]
+    fn test_custom_model_option_migrates_from_toml_and_writes_env() {
+        let env = TestEnv::new();
+
+        let result = (|| -> Result<()> {
+            let platform = ClaudePlatform::new()?;
+            let profiles_path = env
+                .root_path()
+                .join("platforms")
+                .join("claude")
+                .join("profiles.toml");
+            fs::create_dir_all(profiles_path.parent().unwrap()).unwrap();
+            fs::write(
+                &profiles_path,
+                r#"default_config = "chy"
+current_config = "chy"
+
+[chy]
+base_url = "https://chy.example.com"
+auth_token = "sk-chy"
+custom_model_option = "glm-5.2[1m]"
+custom_model_option_name = "glm-5.2[1m]"
+provider = "chy"
+auth_mode = "api_key"
+"#,
+            )
+            .unwrap();
+
+            // typed 化后, custom_model_option 落在 typed 字段, 不再残留 platform_data
+            let profiles = platform.load_profiles()?;
+            let chy = profiles.get("chy").expect("chy profile 应存在");
+            assert_eq!(chy.custom_model_option.as_deref(), Some("glm-5.2[1m]"));
+            assert!(!chy.platform_data.contains_key("custom_model_option"));
+            assert!(!chy.platform_data.contains_key("custom_model_option_name"));
+
+            platform.apply_profile("chy")?;
+            let settings = SettingsManager::with_default()?.load()?;
+            assert_eq!(
+                settings
+                    .env
+                    .get("ANTHROPIC_CUSTOM_MODEL_OPTION")
+                    .map(String::as_str),
+                Some("glm-5.2[1m]")
+            );
+
+            Ok(())
+        })();
+
+        drop(env);
+        result.unwrap();
+    }
+
+    // 📖 TOML 内的 default_fable_model 与各层 *_model_name 自动迁移到 typed 字段, 且 apply 写出 env
+    #[test]
+    fn test_fable_and_model_names_migrate_from_toml_and_write_env() {
+        let env = TestEnv::new();
+
+        let result = (|| -> Result<()> {
+            let platform = ClaudePlatform::new()?;
+            let profiles_path = env
+                .root_path()
+                .join("platforms")
+                .join("claude")
+                .join("profiles.toml");
+            fs::create_dir_all(profiles_path.parent().unwrap()).unwrap();
+            fs::write(
+                &profiles_path,
+                r#"default_config = "glm"
+current_config = "glm"
+
+[glm]
+base_url = "https://open.bigmodel.cn/api/anthropic"
+auth_token = "sk-glm"
+default_opus_model = "glm-5.2[1m]"
+default_sonnet_model = "glm-5.2[1m]"
+default_haiku_model = "glm-5.2[1m]"
+default_fable_model = "glm-5.2[1m]"
+default_opus_model_name = "GLM-5.2"
+default_sonnet_model_name = "GLM-5.2"
+default_haiku_model_name = "GLM-5.2"
+default_fable_model_name = "GLM-5.2"
+provider = "glm"
+auth_mode = "api_key"
+"#,
+            )
+            .unwrap();
+
+            // typed 化后, fable / *_model_name 落在 typed 字段, 不再残留 platform_data
+            let profiles = platform.load_profiles()?;
+            let glm = profiles.get("glm").expect("glm profile 应存在");
+            assert_eq!(glm.default_fable_model.as_deref(), Some("glm-5.2[1m]"));
+            assert_eq!(glm.default_fable_model_name.as_deref(), Some("GLM-5.2"));
+            assert_eq!(glm.default_opus_model_name.as_deref(), Some("GLM-5.2"));
+            assert!(!glm.platform_data.contains_key("default_fable_model"));
+            assert!(!glm.platform_data.contains_key("default_fable_model_name"));
+            assert!(!glm.platform_data.contains_key("default_opus_model_name"));
+
+            platform.apply_profile("glm")?;
+            let settings = SettingsManager::with_default()?.load()?;
+            assert_eq!(
+                settings
+                    .env
+                    .get("ANTHROPIC_DEFAULT_FABLE_MODEL")
+                    .map(String::as_str),
+                Some("glm-5.2[1m]")
+            );
+            assert_eq!(
+                settings
+                    .env
+                    .get("ANTHROPIC_DEFAULT_FABLE_MODEL_NAME")
+                    .map(String::as_str),
+                Some("GLM-5.2")
+            );
+            assert_eq!(
+                settings
+                    .env
+                    .get("ANTHROPIC_DEFAULT_OPUS_MODEL_NAME")
+                    .map(String::as_str),
+                Some("GLM-5.2")
+            );
+
+            Ok(())
+        })();
+
+        drop(env);
+        result.unwrap();
+    }
+
+    #[test]
+    fn test_runtime_envs_migrate_from_toml_and_write_env() {
+        let env = TestEnv::new();
+
+        let result = (|| -> Result<()> {
+            let platform = ClaudePlatform::new()?;
+            let profiles_path = env
+                .root_path()
+                .join("platforms")
+                .join("claude")
+                .join("profiles.toml");
+            fs::create_dir_all(profiles_path.parent().unwrap()).unwrap();
+            fs::write(
+                &profiles_path,
+                r#"default_config = "glm"
+current_config = "glm"
+
+[glm]
+base_url = "https://api.z.ai/api/anthropic"
+auth_token = "sk-glm"
+default_opus_model = "glm-5.2[1m]"
+default_sonnet_model = "glm-5.2[1m]"
+default_haiku_model = "glm-5.2[1m]"
+default_fable_model = "glm-5.2[1m]"
+claude_code_auto_compact_window = "1000000"
+api_timeout_ms = "3000000"
+claude_code_disable_nonessential_traffic = "1"
+provider = "glm"
+auth_mode = "api_key"
+"#,
+            )
+            .unwrap();
+
+            let profiles = platform.load_profiles()?;
+            let glm = profiles.get("glm").expect("glm profile 应存在");
+            assert_eq!(
+                glm.claude_code_auto_compact_window.as_deref(),
+                Some("1000000")
+            );
+            assert_eq!(glm.api_timeout_ms.as_deref(), Some("3000000"));
+            assert_eq!(
+                glm.claude_code_disable_nonessential_traffic.as_deref(),
+                Some("1")
+            );
+            assert!(
+                !glm.platform_data
+                    .contains_key("claude_code_auto_compact_window")
+            );
+            assert!(!glm.platform_data.contains_key("api_timeout_ms"));
+            assert!(
+                !glm.platform_data
+                    .contains_key("claude_code_disable_nonessential_traffic")
+            );
+
+            platform.apply_profile("glm")?;
+            let settings = SettingsManager::with_default()?.load()?;
+            assert_eq!(
+                settings
+                    .env
+                    .get("CLAUDE_CODE_AUTO_COMPACT_WINDOW")
+                    .map(String::as_str),
+                Some("1000000")
+            );
+            assert_eq!(
+                settings.env.get("API_TIMEOUT_MS").map(String::as_str),
+                Some("3000000")
+            );
+            assert_eq!(
+                settings
+                    .env
+                    .get("CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC")
+                    .map(String::as_str),
+                Some("1")
+            );
+
+            Ok(())
+        })();
+
+        drop(env);
         result.unwrap();
     }
 }

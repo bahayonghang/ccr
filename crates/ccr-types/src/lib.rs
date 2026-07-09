@@ -25,7 +25,7 @@ pub use claude_auth::{
 };
 pub use claude_settings::{
     Agent, ClaudeSettings, Hook, HookMatcherGroup, HooksConfig, McpServer, Plugin, SlashCommand,
-    default_true, is_false,
+    default_true, env_keys, is_false,
 };
 pub use codex_auth::LoginState;
 pub use model_rate_catalog::{

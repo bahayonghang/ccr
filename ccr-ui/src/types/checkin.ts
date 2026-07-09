@@ -15,11 +15,22 @@ export interface CheckinProvider {
   auth_header: string
   auth_prefix: string
   enabled: boolean
+  /** 关联的内置站 ID（builtin-* 前缀；自定义站缺省。改名安全的反查键，优先于 name 匹配） */
+  builtin_id?: string
   created_at: string
   updated_at?: string
 }
 
-/** 内置提供商定义 */
+/**
+ * 内置提供商定义。
+ *
+ * 手工镜像（snake_case wire format），来源：
+ * - 数据源: crates/ccr-checkin/data/providers-catalog.json（双端共享单一目录）
+ * - Rust struct: crates/ccr-checkin/src/managers/checkin/builtin_providers.rs 的 BuiltinProvider
+ *   （由 catalog 条目投影，经 list_builtin_providers 命令 serde 全字段序列化）
+ *
+ * 字段集合一致性由 tests/providers-catalog.smoke.test.ts 防漂移测试守护。
+ */
 export interface BuiltinProvider {
   id: string
   name: string
@@ -151,8 +162,8 @@ export interface AccountsResponse {
 // 签到操作类型
 // ═══════════════════════════════════════════════════════════
 
-/** 签到状态 */
-export type CheckinStatus = 'success' | 'already_checked_in' | 'failed'
+/** 签到状态（4 态契约：skipped = 不支持签到/禁用等跳过，不计入失败） */
+export type CheckinStatus = 'success' | 'already_checked_in' | 'failed' | 'skipped'
 
 /** 签到执行结果 */
 export interface CheckinExecutionResult {
@@ -162,6 +173,8 @@ export interface CheckinExecutionResult {
   status: CheckinStatus
   message?: string
   error_code?: string
+  /** 跳过原因（仅 status === 'skipped'）：provider_unsupported / provider_disabled / account_disabled */
+  skip_reason?: string
   reward?: string
   balance?: number
 }
@@ -177,6 +190,8 @@ export interface CheckinSummary {
   success: number
   already_checked_in: number
   failed: number
+  /** 跳过数（旧后端载荷可能缺失，做可选兼容） */
+  skipped?: number
 }
 
 /** 签到响应 */
@@ -209,6 +224,8 @@ export interface CheckinJobLogEntryPayload {
   status: CheckinLogStatus
   message?: string
   error_code?: string
+  /** 跳过原因（仅 status === 'skipped'） */
+  skip_reason?: string
   reward?: string
   balance?: number
   timestamp: string
@@ -252,6 +269,30 @@ export interface WafCookieStatus {
   provider_id: string
   has_cookie: boolean
   expires_at?: string
+  cookie_names?: string[]
+  required_cookie_names?: string[]
+  missing_cookie_names?: string[]
+}
+
+export interface WafCookieRecoveryResult {
+  provider_id: string
+  provider_name: string
+  found_cookie_names: string[]
+  missing_cookie_names: string[]
+  required_cookie_names: string[]
+  persisted: boolean
+  source: string
+  message: string
+}
+
+export interface WafCookieValidationResult {
+  account_id: string
+  provider_id: string
+  provider_name: string
+  success: boolean
+  status_code?: number
+  challenge: string
+  message: string
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -402,7 +443,7 @@ export interface CheckinImportRequest {
 }
 
 /** 导入结果 */
-export interface ImportResult {
+export interface CheckinImportResult {
   success: boolean
   message: string
   providers_imported: number
@@ -518,6 +559,7 @@ export type CheckinLogStatus =
   | 'success'
   | 'already_checked_in'
   | 'failed'
+  | 'skipped'
 
 /** 签到日志条目 */
 export interface CheckinLogEntry {
@@ -610,4 +652,16 @@ export interface OAuthStateResponse {
   message?: string
   /** 引导用户提取 cookies 的说明 */
   extraction_guide: string[]
+}
+
+export interface OAuthAuthorizeUrlResponse {
+  success: boolean
+  authorize_url?: string
+  extraction_guide?: string[]
+  message?: string
+}
+
+export interface OAuthAuthorizeUrlRequest {
+  provider_id: string
+  oauth_type: 'github' | 'linuxdo'
 }

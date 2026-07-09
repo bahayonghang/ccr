@@ -11,7 +11,6 @@ setup() {
   mkdir -p "$ROOT_DIR/crates/ccr-db"
   mkdir -p "$ROOT_DIR/ccr-ui/src-tauri"
   mkdir -p "$ROOT_DIR/ccr-ui/src/components"
-  mkdir -p "$ROOT_DIR/ccr-ui/src/layouts"
   mkdir -p "$ROOT_DIR/ccr-vscode"
 
   # 创建根 Cargo.toml
@@ -67,12 +66,6 @@ EOF
 
   # 创建 Vue 组件
   cat > "$ROOT_DIR/ccr-ui/src/components/MainLayout.vue" <<EOF
-<template>
-  <div class="footer">CCR UI v1.2.3</div>
-</template>
-EOF
-
-  cat > "$ROOT_DIR/ccr-ui/src/layouts/MainLayout.vue" <<EOF
 <template>
   <div class="footer">CCR UI v1.2.3</div>
 </template>

@@ -1,7 +1,7 @@
 <template>
   <main class="min-h-full bg-bg-base">
     <section class="flex w-full max-w-none flex-col gap-4">
-      <header class="rounded-[24px] border border-border-default/55 bg-bg-elevated/80 p-4 shadow-sm shadow-black/5">
+      <header class="rounded-xl border border-border-default/55 bg-bg-elevated/80 p-4 shadow-sm shadow-black/5">
         <div class="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div class="max-w-3xl">
             <p class="text-xs font-semibold uppercase tracking-[0.28em] text-text-muted">
@@ -61,7 +61,7 @@
 
       <div class="grid min-w-0 gap-4 xl:grid-cols-[minmax(320px,360px)_minmax(0,1fr)] 2xl:grid-cols-[minmax(340px,380px)_minmax(0,1fr)]">
         <aside class="min-w-0 space-y-4">
-          <section class="rounded-[24px] border border-border-default/55 bg-bg-elevated/80 p-4 shadow-sm shadow-black/5">
+          <section class="rounded-xl border border-border-default/55 bg-bg-elevated/80 p-4 shadow-sm shadow-black/5">
             <div class="flex items-start justify-between gap-4">
               <div>
                 <p class="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">
@@ -128,7 +128,7 @@
             </div>
           </section>
 
-          <section class="rounded-[24px] border border-border-default/55 bg-bg-elevated/80 p-4 shadow-sm shadow-black/5">
+          <section class="rounded-xl border border-border-default/55 bg-bg-elevated/80 p-4 shadow-sm shadow-black/5">
             <div class="flex items-center justify-between gap-3">
               <div>
                 <p class="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">
@@ -240,7 +240,7 @@
           </section>
         </aside>
 
-        <section class="min-w-0 overflow-hidden rounded-[24px] border border-border-default/55 bg-bg-elevated/80 shadow-sm shadow-black/5">
+        <section class="min-w-0 overflow-hidden rounded-xl border border-border-default/55 bg-bg-elevated/80 shadow-sm shadow-black/5">
           <div class="flex flex-col gap-4 border-b border-border-default/45 p-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <p class="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">
@@ -580,7 +580,7 @@ const loadUsageSummary = async () => {
   let capabilityError: unknown = null
 
   try {
-    const capabilities = await getUsageCapabilitiesV2<UsageCapabilityReport>()
+    const capabilities = await getUsageCapabilitiesV2()
     const capability = overviewCapability(capabilities)
     if (capability && !capability.supported) {
       usageSummary.value = null
@@ -595,7 +595,7 @@ const loadUsageSummary = async () => {
   }
 
   try {
-    const summary = await getUsageSummaryV2<UsageSummary>()
+    const summary = await getUsageSummaryV2()
     if (!summary || typeof summary.total_requests !== 'number') {
       throw new Error('Invalid usage summary payload')
     }

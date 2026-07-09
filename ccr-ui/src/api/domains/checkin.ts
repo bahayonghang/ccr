@@ -11,10 +11,8 @@
 
 import { invoke } from '@tauri-apps/api/core'
 import { isRecord, pickArray, type UnknownRecord } from '../_shared'
-import type {
-  OAuthAuthorizeUrlRequest,
-  OAuthAuthorizeUrlResponse,
-} from '../tauri'
+import type { CheckinRecordsQuery } from '@/types/checkin'
+import type { OAuthAuthorizeUrlRequest, OAuthAuthorizeUrlResponse } from '../tauri'
 
 // ── Provider ──
 
@@ -39,7 +37,7 @@ export const createCheckinProvider = async <T = UnknownRecord>(data: unknown): P
 /** 更新签到 Provider */
 export const updateCheckinProvider = async <T = UnknownRecord>(
   id: string,
-  data: unknown,
+  data: unknown
 ): Promise<T> => {
   return invoke('update_provider', { id, data })
 }
@@ -72,7 +70,7 @@ export const getCheckinAccount = async <T = UnknownRecord>(id: string): Promise<
 /** 获取签到账号仪表盘（完整 dashboard 数据：account + streak + calendar + trend） */
 export const getCheckinAccountDashboard = async <T = UnknownRecord>(
   id: string,
-  query?: { year?: number; month?: number; days?: number },
+  query?: { year?: number; month?: number; days?: number }
 ): Promise<T> => {
   return invoke('get_account_dashboard', {
     accountId: id,
@@ -90,7 +88,7 @@ export const createCheckinAccount = async <T = UnknownRecord>(data: unknown): Pr
 /** 更新签到账号 */
 export const updateCheckinAccount = async <T = UnknownRecord>(
   id: string,
-  data: unknown,
+  data: unknown
 ): Promise<T> => {
   return invoke('update_account', { id, data })
 }
@@ -140,7 +138,7 @@ export const queryCheckinBalance = async <T = UnknownRecord>(accountId: string):
 /** 获取余额历史 */
 export const getCheckinBalanceHistory = async <T = UnknownRecord>(
   accountId: string,
-  days?: number,
+  days?: number
 ): Promise<T> => {
   return invoke('get_balance_history', { accountId, days })
 }
@@ -152,26 +150,29 @@ export const getBalanceStats = async <T = UnknownRecord>(): Promise<T> => {
 
 // ── 记录 ──
 
-/** 列出签到记录 */
+/** 列出签到记录（对象形式支持 status/provider_id/keyword/page/page_size SQL 级过滤） */
 export const listCheckinRecords = async <T = UnknownRecord>(
-  params?: number | { page?: number; page_size?: number; account_id?: string },
+  params?: number | CheckinRecordsQuery
 ): Promise<T> => {
   if (typeof params === 'number') {
     return invoke('get_checkin_records', { accountId: null, limit: params })
   }
 
-  const page = params?.page ?? 1
-  const pageSize = params?.page_size ?? 20
-  const accountId = params?.account_id ?? null
-  const limit = pageSize
-
-  return invoke('get_checkin_records', { accountId, limit, page })
+  return invoke('get_checkin_records', {
+    accountId: params?.account_id ?? null,
+    limit: params?.limit ?? null,
+    status: params?.status ?? null,
+    providerId: params?.provider_id ?? null,
+    keyword: params?.keyword ?? null,
+    page: params?.page ?? 1,
+    pageSize: params?.page_size ?? 20,
+  })
 }
 
 /** 获取指定账号签到记录 */
 export const getAccountCheckinRecords = async <T = UnknownRecord>(
   accountId: string,
-  limit?: number,
+  limit?: number
 ): Promise<T> => {
   return invoke('get_checkin_records', { accountId, limit })
 }
@@ -191,7 +192,7 @@ export const getTodayCheckinStats = async <T = UnknownRecord>(): Promise<T> => {
 /** 执行 CDK 充值 */
 export const executeCdkRecharge = async <T = UnknownRecord>(
   accountId: string,
-  cdkCode: string,
+  cdkCode: string
 ): Promise<T> => {
   return invoke('execute_cdk_recharge', { accountId, cdkCode })
 }
@@ -211,7 +212,7 @@ export const listWafCookies = async <T = UnknownRecord>(): Promise<T> => {
 /** 添加 WAF Cookie */
 export const addWafCookie = async <T = UnknownRecord>(
   providerId: string,
-  cookie: string,
+  cookie: string
 ): Promise<T> => {
   return invoke('add_waf_cookie', { providerId, cookie })
 }
@@ -225,14 +226,14 @@ export const deleteWafCookie = async <T = UnknownRecord>(id: string): Promise<T>
 
 /** 获取签到账号 Cookies */
 export const getCheckinAccountCookies = async <T = UnknownRecord>(
-  accountId: string,
+  accountId: string
 ): Promise<T> => {
   return invoke('get_checkin_account_cookies', { accountId })
 }
 
 /** 导出签到配置 */
 export const exportCheckinConfig = async <T = UnknownRecord>(
-  options?: Record<string, unknown>,
+  options?: Record<string, unknown>
 ): Promise<T> => {
   return invoke('export_checkin_config', { options: options ?? null })
 }
@@ -245,7 +246,7 @@ export const previewCheckinImport = async <T = UnknownRecord>(data: unknown): Pr
 /** 导入签到配置 */
 export const importCheckinConfig = async <T = UnknownRecord>(
   data: unknown,
-  options?: unknown,
+  options?: unknown
 ): Promise<T> => {
   return invoke('import_checkin_config', { data, options: options ?? null })
 }
@@ -264,7 +265,7 @@ export const addBuiltinProvider = async <T = UnknownRecord>(providerId: string):
 
 /** 获取 OAuth 授权链接（仅 HTTP 后端支持；Tauri 运行时返回失败响应） */
 export const getOAuthAuthorizeUrl = async (
-  _request: OAuthAuthorizeUrlRequest,
+  _request: OAuthAuthorizeUrlRequest
 ): Promise<OAuthAuthorizeUrlResponse> => {
   return {
     success: false,

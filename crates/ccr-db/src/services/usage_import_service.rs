@@ -16,7 +16,7 @@ use tracing::{debug, info, warn};
 use uuid::Uuid;
 use walkdir::WalkDir;
 
-use crate::database::{self, pool::DbPool, repositories::usage_repo};
+use crate::database::{self, DbPool, repositories::usage_repo};
 
 /// Import configuration
 #[derive(Debug, Clone)]
@@ -2294,6 +2294,7 @@ impl UsageImportService {
 mod tests {
     use super::*;
     use crate::database;
+    use crate::test_support::TestOpenCodeEnv;
     use std::io::Write;
     use std::sync::{Mutex, MutexGuard, OnceLock};
     use tempfile::TempDir;
@@ -3207,8 +3208,8 @@ mod tests {
         let _guard = setup();
         reset_usage_tables();
 
-        let temp_dir = TempDir::new().unwrap();
-        let db_path = temp_dir.path().join("opencode.db");
+        let env = TestOpenCodeEnv::new();
+        let db_path = env.opencode_dir().join("opencode.db");
         let conn = rusqlite::Connection::open(&db_path).unwrap();
         create_opencode_message_table(&conn);
         let now = Utc
@@ -3228,25 +3229,9 @@ mod tests {
         );
         drop(conn);
 
-        let previous_opencode_dir = std::env::var("CCR_OPENCODE_DIR").ok();
-        let result = {
-            // SAFETY: Usage import tests are serialized by `setup()` before mutating process
-            // environment used by OpenCode path discovery.
-            unsafe {
-                std::env::set_var("CCR_OPENCODE_DIR", temp_dir.path());
-            }
-            let result = UsageImportService::new(ImportConfig::default()).import_platform("all");
-            match previous_opencode_dir {
-                Some(value) => unsafe {
-                    std::env::set_var("CCR_OPENCODE_DIR", value);
-                },
-                None => unsafe {
-                    std::env::remove_var("CCR_OPENCODE_DIR");
-                },
-            }
-            result
-        }
-        .unwrap();
+        let result = UsageImportService::new(ImportConfig::default())
+            .import_platform("all")
+            .unwrap();
         assert_eq!(result.platform, "all");
         assert!(result.records_imported >= 1);
 
@@ -3315,6 +3300,41 @@ mod tests {
 
         let gemini = service.calculate_cost("gemini-3.1-pro-preview", 201_000, 1_000_000, 0);
         assert!((gemini - 18.804).abs() < 0.000_001);
+    }
+
+    #[test]
+    fn test_parse_usage_record_prices_claude_fable_and_mythos() {
+        let _guard = setup();
+        let service = UsageImportService::new(ImportConfig::default());
+
+        for (uuid, model) in [
+            ("claude-fable", "claude-fable-5"),
+            ("claude-mythos", "anthropic.claude-mythos-5"),
+        ] {
+            let json = serde_json::json!({
+                "uuid": uuid,
+                "timestamp": "2026-07-03T02:00:00Z",
+                "message": {
+                    "model": model,
+                    "usage": {
+                        "input_tokens": 1_000_000,
+                        "cache_read_input_tokens": 200_000,
+                        "cache_creation_input_tokens": 300_000,
+                        "output_tokens": 400_000
+                    }
+                }
+            });
+
+            let record = service
+                .parse_usage_record(&json, "claude", "/workspace", uuid)
+                .unwrap_or_else(|| panic!("{model} usage record should parse"));
+            assert_eq!(record.cache_read_tokens, 200_000);
+            assert_eq!(record.cache_creation_tokens, 300_000);
+            assert!((record.cost_with_cache_usd - 33.95).abs() < 0.000_001);
+            assert!((record.cost_without_cache_usd - 35.0).abs() < 0.000_001);
+            assert_eq!(record.pricing_status, "priced");
+            assert_eq!(record.pricing_source.as_deref(), Some("official:anthropic"));
+        }
     }
 
     #[test]

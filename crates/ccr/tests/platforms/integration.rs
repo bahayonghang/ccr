@@ -1,8 +1,8 @@
 #![allow(clippy::unwrap_used)]
 // 🧪 CCR 多平台集成测试
 //
-// ⚠️ **重要提示**: 这些测试修改全局环境变量 CCR_ROOT，因此必须串行运行
-// 运行方式: `cargo test --test platform_integration_tests -- --test-threads=1`
+// ⚠️ **重要提示**: 环境相关测试通过共享 fixture 锁临时修改 CCR_ROOT / CCR_LOCK_DIR；
+// 全局串行测试策略会在 Phase 5 后续切片统一评估，不在本测试目标内直接移除。
 //
 // 测试内容:
 // - 平台切换工作流（完整流程）
@@ -26,12 +26,6 @@ type TempDir = PlatformTestEnv;
 fn setup_test_env() -> TempDir {
     let temp_dir = setup_platform_test_env();
 
-    // 设置环境变量指向临时目录
-    // SAFETY: 测试仅在当前进程临时设置 CCR_ROOT，清理函数会恢复干净状态。
-    unsafe {
-        std::env::set_var("CCR_ROOT", temp_dir.path().to_str().unwrap());
-    }
-
     // 确保根目录存在
     std::fs::create_dir_all(temp_dir.path()).ok();
 
@@ -40,10 +34,6 @@ fn setup_test_env() -> TempDir {
 
 /// 清理测试环境
 fn cleanup_test_env(temp_dir: TempDir) {
-    // SAFETY: 仅清理本测试设置的 CCR_ROOT，避免污染后续测试。
-    unsafe {
-        std::env::remove_var("CCR_ROOT");
-    }
     drop(temp_dir);
 }
 
@@ -52,10 +42,10 @@ fn create_claude_profile(name: &str) -> ProfileConfig {
     let mut profile = ProfileConfig::new();
     profile.description = Some(format!("Test Claude profile: {}", name));
     profile.base_url = Some("https://api.anthropic.com".to_string());
-    profile.auth_token = Some(format!(
+    profile.auth_token = Some(ccr_core::Secret::new(format!(
         "sk-ant-api03-{}",
         "1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890"
-    ));
+    )));
     profile.model = Some("claude-3-5-sonnet-20241022".to_string());
     profile.small_fast_model = Some("claude-3-5-haiku-20241022".to_string());
     profile.provider = Some("Anthropic".to_string());
@@ -67,7 +57,7 @@ fn create_codex_profile(name: &str) -> ProfileConfig {
     let mut profile = ProfileConfig::new();
     profile.description = Some(format!("Test Codex profile: {}", name));
     profile.base_url = Some("https://api.openai.com/v1".to_string());
-    profile.auth_token = Some("sk-test-codex-12345678901234567890".to_string());
+    profile.auth_token = Some(ccr_core::Secret::from("sk-test-codex-12345678901234567890"));
     profile.model = Some("gpt-5-codex".to_string());
     profile.small_fast_model = Some("gpt-5-mini".to_string());
     profile.provider = Some("OpenAI".to_string());
@@ -79,7 +69,9 @@ fn create_gemini_profile(name: &str) -> ProfileConfig {
     let mut profile = ProfileConfig::new();
     profile.description = Some(format!("Test Gemini profile: {}", name));
     profile.base_url = Some("https://generativelanguage.googleapis.com/v1".to_string());
-    profile.auth_token = Some("AIzaSy1234567890123456789012345678901234".to_string());
+    profile.auth_token = Some(ccr_core::Secret::from(
+        "AIzaSy1234567890123456789012345678901234",
+    ));
     profile.model = Some("gemini-2.0-flash-exp".to_string());
     profile.small_fast_model = Some("gemini-1.5-flash".to_string());
     profile.provider = Some("Google".to_string());
@@ -536,14 +528,14 @@ fn test_profile_validation_integration() {
 
     // 无效 profile - 缺少 base_url
     let mut invalid_profile = ProfileConfig::new();
-    invalid_profile.auth_token = Some("sk-ant-api03-123".to_string());
+    invalid_profile.auth_token = Some(ccr_core::Secret::from("sk-ant-api03-123"));
     invalid_profile.model = Some("claude-3".to_string());
     assert!(claude.validate_profile(&invalid_profile).is_err());
 
     // 无效 profile - 空 base_url
     let mut invalid_profile2 = ProfileConfig::new();
     invalid_profile2.base_url = Some("".to_string());
-    invalid_profile2.auth_token = Some("sk-ant-api03-123".to_string());
+    invalid_profile2.auth_token = Some(ccr_core::Secret::from("sk-ant-api03-123"));
     invalid_profile2.model = Some("claude-3".to_string());
     assert!(claude.validate_profile(&invalid_profile2).is_err());
 

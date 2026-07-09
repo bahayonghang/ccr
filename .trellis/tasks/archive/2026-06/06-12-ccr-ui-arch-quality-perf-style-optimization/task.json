@@ -1,0 +1,32 @@
+{
+  "id": "ccr-ui-arch-quality-perf-style-optimization",
+  "name": "ccr-ui-arch-quality-perf-style-optimization",
+  "title": "ccr-ui architecture quality performance and style optimization",
+  "description": "",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": "ccr",
+  "priority": "P2",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-06-12",
+  "completedAt": "2026-06-15",
+  "branch": "dev",
+  "base_branch": "dev",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "06-14-ws42-73-facade-i18n-guard",
+    "06-14-ws46-opencode-generic-migration",
+    "06-14-ws45-codexauth-deep-split",
+    "06-14-ws44-invoke-generic-escape",
+    "06-14-ws6-batch4-finish"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "完成（5/5 子任务结案）。ws42-73 门面深挖回收 + no-raw-text 防回归 fa063f7a · ws45 CodexAuthView 深拆 step0-5（3320→826）67084f04/5d6ffedf · ws6-batch4 孤岛扁平化 + BaseModal 收口 edc99b77 · ws44 泛型机械删除评估后否决（前提不成立，改荐运行时收窄）b13f3ad7 · ws46 OpenCode generic 迁移 WONTFIX（迁移将致双回归）c9123251。WS4 架构线 + WS6 视觉线收口；AC#7/AC#8 偏离项均已在子任务 prd.md 留档。",
+  "meta": {}
+}

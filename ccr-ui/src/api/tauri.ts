@@ -1,10 +1,13 @@
 /**
- * Tauri API Client for CCR Desktop
+ * Tauri API compatibility facade for CCR Desktop.
  *
- * 通过 Tauri invoke() 调用 Rust 后端命令的完整封装。
- * 所有函数名与原 api/modules/ 导出保持一致，以确保 Store 层无缝切换。
+ * Compatibility-only: keep this file stable for legacy imports from `@/api` or
+ * `@/api/tauri`. Do not add new business API wrappers or direct `invoke()` calls
+ * here. New APIs must live in `src/api/domains/*` (or a generated typed client)
+ * and be exposed from `src/api/index.ts` through a domain namespace or an
+ * explicit compatibility re-export.
  *
- * 分组顺序：
+ * 分组顺序（历史兼容导出）：
  *   1. 环境检测 & 工具函数
  *   2. 配置管理 (Config)
  *   3. 同步 (Sync / WebDAV)
@@ -28,7 +31,7 @@ import { invoke } from '@tauri-apps/api/core'
 import { isTauriRuntime } from '@/utils/tauriRuntime'
 import type { CommandJobSnapshot, StartCommandJobResponse } from '@/types'
 
-type UnknownRecord = Record<string, unknown>
+import type { UnknownRecord } from '@/types/common'
 
 const isRecord = (value: unknown): value is UnknownRecord => {
   return typeof value === 'object' && value !== null
@@ -53,120 +56,23 @@ const pickArray = (value: unknown, key: string): unknown[] => {
 // 类型导出（兼容历史 `@/api` 类型导入）
 // ════════════════════════════════════════════════════════════
 
-export interface HeatmapData {
-  data: Record<string, number>
-  max_value: number
-  total_tokens: number
-  active_days: number
-}
+export type { HeatmapData } from '@/types/stats'
 
-export interface BuiltinPrompt {
-  id: string
-  name: string
-  description: string
-  category: string
-  tags: string[]
-  content: string
-}
+export type { BuiltinPrompt } from '@/types/claude'
 
-export interface ClaudeSettingsData {
-  model?: string
-  availableModels?: string[]
-  alwaysThinkingEnabled?: boolean
-  maxThinkingTokens?: number
-  maxOutputTokens?: number
-  effortLevel?: string
-  skipDangerousModePermissionPrompt?: boolean
-  theme?: string
-  language?: string
-  showTurnDuration?: boolean
-  prefersReducedMotion?: boolean
-  spinnerTipsEnabled?: boolean
-  terminalProgressBarEnabled?: boolean
-  showSpinnerTree?: boolean
-  includeCoAuthoredBy?: boolean
-  autoUpdates?: boolean
-  autoUpdatesChannel?: string
-  cleanupPeriodDays?: number
-  respectGitignore?: boolean
-  env?: Record<string, string>
-  permissions?: {
-    allow?: string[]
-    deny?: string[]
-    defaultMode?: string
-    additionalDirectories?: string[]
-  }
-  sandbox?: {
-    enabled?: boolean
-    autoAllowBashIfSandboxed?: boolean
-    network?: {
-      allowLocalBinding?: boolean
-      allowedDomains?: string[]
-    }
-    excludedCommands?: string[]
-  }
-  attribution?: {
-    commit?: string
-    pr?: string
-  }
-  [key: string]: unknown
-}
+export type { ClaudeSettingsData } from '@/types/claude'
 
-export interface SyncResult {
-  platform: string
-  success: boolean
-  message?: string
-}
+export type { SyncResult } from '@/types/sync'
 
-export interface OAuthAuthorizeUrlResponse {
-  success: boolean
-  authorize_url?: string
-  extraction_guide?: string[]
-  message?: string
-}
+export type { OAuthAuthorizeUrlResponse } from '@/types/checkin'
 
-export interface OAuthAuthorizeUrlRequest {
-  provider_id: string
-  oauth_type: 'github' | 'linuxdo'
-}
+export type { OAuthAuthorizeUrlRequest } from '@/types/checkin'
 
-export interface SyncFolderItem {
-  name: string
-  enabled: boolean
-  localPath: string
-  remotePath: string
-  description?: string
-}
+export type { SyncFolderItem } from '@/types/sync'
 
-export interface SyncStatusResponse {
-  configured?: boolean
-  config?: {
-    webdav_url?: string
-    username?: string
-    remote_path?: string
-  }
-  [key: string]: unknown
-}
+export type { CommandResultLike } from '@/types/common'
 
-export interface CommandResultLike {
-  success?: boolean
-  message?: string
-  output?: string
-  data?: {
-    output?: string
-  }
-}
-
-export interface VersionInfoResponse {
-  current_version?: string
-  build_time?: string
-  git_commit?: string
-  latest_version?: string
-  has_update?: boolean
-  release_url?: string
-  release_notes?: string
-  published_at?: string
-}
+export type { VersionInfoResponse } from '@/types/common'
 
 // resolveNameAndConfig / resolveName helper 已外移到 ./_shared，供各 domain 共享使用。
 
@@ -247,6 +153,7 @@ export {
   duplicateConfig,
   validateConfigs,
   importConfig,
+  restoreConfig,
   exportConfig,
   getHistory,
   clearHistory,
@@ -531,11 +438,10 @@ export {
 // 以下 re-export 保持 `from '@/api/tauri'` 的历史导入兼容，
 // 推荐新代码使用 `from '@/api/domains/stats'` 或 `statsApi.*` / `usageApi.*`。
 export {
-  getCostOverview,
-  getHeatmapData,
   getUsageSummaryV2,
   getUsageTrendsV2,
   getUsageByModelV2,
+  getUsageByProviderV2,
   getUsageByProjectV2,
   getUsageHeatmapV2,
   getUsageLogsV2,
@@ -549,18 +455,10 @@ export {
   importUsageV2,
   importAllUsageV2,
   getHomeUsageOverviewV2,
-  getSessionStats,
-  getCostTrend,
-  getCostByModel,
-  getCostByProject,
-  getProviderUsage,
-  getTopSessions,
-  getStatsSummary,
   setPricing,
   getPricingList,
   removePricing,
   resetPricing,
-  getDailyStats,
   type UsageLogsQuery,
 } from './domains/stats'
 
@@ -600,7 +498,7 @@ export {
 // ════════════════════════════════════════════════════════════
 // 16. WAF —— 实现已迁移至 ./domains/waf
 // ════════════════════════════════════════════════════════════
-export { openWafLogin, getWafCookieStatus } from './domains/waf'
+export { openWafLogin, getWafCookieStatus, validateWafCookieForAccount } from './domains/waf'
 
 // ════════════════════════════════════════════════════════════
 // 17. 统一 MCP (Unified MCP) —— 实现已迁移至 ./domains/unifiedMcp
@@ -618,6 +516,7 @@ export {
 // 18. 事件 (Events) —— 实现已迁移至 ./domains/events
 // ════════════════════════════════════════════════════════════
 export { getRecentEvents, getRuntimeMetrics } from './domains/events'
+export { getMonitoringFeed, type MonitoringFeedQuery } from './domains/monitoring'
 
 // ════════════════════════════════════════════════════════════
 // 19. 环境管理 (Environment) —— 实现已迁移至 ./domains/environment
@@ -655,12 +554,16 @@ export {
 
 /** 执行 CCR 命令 */
 export const executeCommand = async (
-  commandOrPayload: string | { command: string; args?: string[] },
+  commandOrPayload:
+    | string
+    | { command: string; args?: string[]; confirmationToken?: string | null },
   args?: string[]
 ): Promise<unknown> => {
   const command = typeof commandOrPayload === 'string' ? commandOrPayload : commandOrPayload.command
   const resolvedArgs = typeof commandOrPayload === 'string' ? args : commandOrPayload.args
-  return invoke('execute_ccr_command', { command, args: resolvedArgs })
+  const confirmationToken =
+    typeof commandOrPayload === 'string' ? undefined : commandOrPayload.confirmationToken
+  return invoke('execute_ccr_command', { command, args: resolvedArgs, confirmationToken })
 }
 
 /** 列出可用命令 */
@@ -674,12 +577,15 @@ export const getCommandHelp = async <T = UnknownRecord>(command: string): Promis
 }
 
 /** 启动 CCR 命令后台任务 */
-export const startCcrCommandJob = async (
-  payload: { command: string; args?: string[] },
-): Promise<StartCommandJobResponse> => {
+export const startCcrCommandJob = async (payload: {
+  command: string
+  args?: string[]
+  confirmationToken?: string | null
+}): Promise<StartCommandJobResponse> => {
   return invoke('start_ccr_command_job', {
     command: payload.command,
     args: payload.args,
+    confirmationToken: payload.confirmationToken,
   })
 }
 
@@ -816,93 +722,4 @@ export const resolveApiBaseUrl = (): string => {
 /** 后端健康检查（使用 Tauri invoke 实现） */
 export const getBackendHealth = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('health_check')
-}
-
-// ── Claude Observer ──
-//
-// 对应 ccr-ui/src-tauri/src/commands/claude_observer.rs 的 9 个命令。
-// 数据源：llmusage（token/cost 维度）+ ccr-db `claude_tool_calls`（工具调用维度）。
-
-import type {
-  BreakdownRow as ClaudeObserverBreakdownRow,
-  CacheStatsDto as ClaudeObserverCacheStatsDto,
-  DailyPoint as ClaudeObserverDailyPoint,
-  HeatmapCell as ClaudeObserverHeatmapCell,
-  InsightDto as ClaudeObserverInsightDto,
-  SessionRow as ClaudeObserverSessionRow,
-  SubscriptionDto as ClaudeObserverSubscriptionDto,
-  TopToolRow as ClaudeObserverTopToolRow,
-} from '@/types/claudeObserver'
-
-export type {
-  ClaudeObserverBreakdownRow,
-  ClaudeObserverCacheStatsDto,
-  ClaudeObserverDailyPoint,
-  ClaudeObserverHeatmapCell,
-  ClaudeObserverInsightDto,
-  ClaudeObserverSessionRow,
-  ClaudeObserverSubscriptionDto,
-  ClaudeObserverTopToolRow,
-}
-
-export const claudeObserver = {
-  /** 一次性拉首屏 Hero 三卡 + 订阅 banner 数据 */
-  getInsight: async (range?: 'today' | 'month' | 'all'): Promise<ClaudeObserverInsightDto> => {
-    return invoke('claude_observer_get_insight', { range })
-  },
-
-  /** 最近 N 天每日趋势（claude 平台过滤） */
-  dailyTrend: async (days?: number): Promise<ClaudeObserverDailyPoint[]> => {
-    return invoke('claude_observer_daily_trend', { days })
-  },
-
-  /** 按 project 或 model 维度 Top N 拆分 */
-  costBreakdown: async (
-    dim: 'project' | 'model',
-    days?: number,
-    limit?: number,
-  ): Promise<ClaudeObserverBreakdownRow[]> => {
-    return invoke('claude_observer_cost_breakdown', { dim, days, limit })
-  },
-
-  /** 缓存效率：命中率 + 4 个 token 总量 */
-  cacheStats: async (): Promise<ClaudeObserverCacheStatsDto> => {
-    return invoke('claude_observer_cache_stats')
-  },
-
-  /** Top sessions（来自 claude_tool_calls，by ∈ cost | calls） */
-  topSessions: async (
-    limit?: number,
-    by?: 'cost' | 'calls',
-  ): Promise<ClaudeObserverSessionRow[]> => {
-    return invoke('claude_observer_top_sessions', { limit, by })
-  },
-
-  /** 周×小时工具调用热力图 */
-  toolHeatmap: async (days?: number): Promise<ClaudeObserverHeatmapCell[]> => {
-    return invoke('claude_observer_tool_heatmap', { days })
-  },
-
-  /** Top tools 排行（按调用次数） */
-  topTools: async (days?: number, limit?: number): Promise<ClaudeObserverTopToolRow[]> => {
-    return invoke('claude_observer_top_tools', { days, limit })
-  },
-
-  /** 读取订阅设置 */
-  subscriptionGet: async (): Promise<ClaudeObserverSubscriptionDto> => {
-    return invoke('claude_observer_subscription_get')
-  },
-
-  /** 写入订阅设置 */
-  subscriptionSet: async (
-    mode: string,
-    plan: string,
-    monthlyUsd: number,
-  ): Promise<ClaudeObserverSubscriptionDto> => {
-    return invoke('claude_observer_subscription_set', {
-      mode,
-      plan,
-      monthlyUsd,
-    })
-  },
 }

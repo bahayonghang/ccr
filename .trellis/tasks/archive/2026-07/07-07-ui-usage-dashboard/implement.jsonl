@@ -1,0 +1,3 @@
+{"file": ".trellis/spec/ccr-ui/frontend/index.md", "reason": "ccr-ui 前端规范索引与 pre-dev checklist / 质量检查命令"}
+{"file": ".trellis/spec/ccr-ui/frontend/theme-token-contracts.md", "reason": "玻璃预算(同屏≤3)、--surface-card-*/--surface-status-* 语义别名契约;UsageDashboardView 是 --surface-status-* 消费者,禁止改共享别名定义"}
+{"file": ".trellis/tasks/07-07-ui-liquid-glass-redesign/prd.md", "reason": "父任务总纲:D 节使用统计页审计结论、F6 截图复核、R4/R6 需求与跨子任务验收标准"}

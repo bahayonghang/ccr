@@ -1,17 +1,17 @@
 // Claude Auth TUI application state machine
 // 管理 Claude 官方订阅账号快照的保存 / 切换 / 删除
 
-use crate::models::{
-    ClaudeAuthRegistry, ClaudeCurrentAuthInfo, ClaudeLoginState, ClaudeRuntimeMode,
-    ClaudeRuntimeSummary,
-};
-use crate::services::{ClaudeAuthItem, ClaudeAuthService};
 use crate::tui::overlay::Overlay;
 use crate::tui::pagination::{
     DEFAULT_PAGE_SIZE, index_in_page, page_for_index, page_slice, total_pages,
 };
 use crate::tui::runtime::TuiApp;
 use crate::tui::toast::{Toast, ToastManager};
+use ccr_cli::models::{
+    ClaudeAuthRegistry, ClaudeCurrentAuthInfo, ClaudeLoginState, ClaudeRuntimeMode,
+    ClaudeRuntimeSummary,
+};
+use ccr_cli::services::{ClaudeAuthItem, ClaudeAuthService};
 use ccr_core::core::error::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use ratatui::Frame;

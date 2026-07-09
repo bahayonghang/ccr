@@ -42,7 +42,13 @@
         </span>
         <span class="dashboard-platform__identity">
           <strong>{{ platform.title }}</strong>
-          <span>{{ resolveVersion(platform) }}</span>
+          <span
+            v-if="platform.versionKey === 'dashboard.platforms.stateScanning'"
+            class="dashboard-platform__version-skeleton"
+            role="status"
+            :aria-label="t(platform.versionKey)"
+          />
+          <span v-else>{{ resolveVersion(platform) }}</span>
         </span>
         <span
           class="dashboard-platform__status"
@@ -272,6 +278,26 @@ const resolveVersion = (platform: DashboardPlatformRow) => {
   text-transform: uppercase;
 }
 
+.dashboard-platform__version-skeleton {
+  display: inline-block;
+  width: 48px;
+  height: 12px;
+  border-radius: 4px;
+  background: linear-gradient(
+    90deg,
+    rgb(var(--color-border-default-rgb) / 16%) 25%,
+    rgb(var(--color-border-default-rgb) / 34%) 50%,
+    rgb(var(--color-border-default-rgb) / 16%) 75%
+  );
+  background-size: 200% 100%;
+  animation: dashboard-platform-skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes dashboard-platform-skeleton-pulse {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
 .dashboard-platform__status {
   display: inline-flex;
   align-items: center;
@@ -404,6 +430,10 @@ const resolveVersion = (platform: DashboardPlatformRow) => {
   .dashboard-platform,
   .dashboard-platform__cta {
     transition: none;
+  }
+
+  .dashboard-platform__version-skeleton {
+    animation: none;
   }
 }
 </style>

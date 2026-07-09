@@ -2,7 +2,7 @@
   <div class="space-y-5">
     <div
       v-if="saveError"
-      class="editor-banner editor-banner--error rounded-[24px] px-5 py-4"
+      class="editor-banner editor-banner--error rounded-xl px-5 py-4"
     >
       <div class="flex items-start gap-3">
         <div class="editor-banner__icon flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl">
@@ -24,7 +24,7 @@
 
     <section
       :ref="target => registerModalSectionRef('basic', target)"
-      class="editor-panel editor-panel--section rounded-[28px] p-5 lg:p-6"
+      class="editor-panel editor-panel--section rounded-xl p-5 lg:p-6"
     >
       <div class="mb-5 flex items-start gap-3">
         <div class="editor-section-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl">
@@ -88,7 +88,7 @@
 
     <section
       :ref="target => registerModalSectionRef('connection', target)"
-      class="editor-panel editor-panel--section rounded-[28px] p-5 lg:p-6"
+      class="editor-panel editor-panel--section rounded-xl p-5 lg:p-6"
     >
       <div class="mb-5 flex items-start gap-3">
         <div class="editor-section-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl">
@@ -149,8 +149,13 @@
         </div>
       </div>
 
-      <div class="mt-5 editor-panel-muted rounded-[24px] p-4">
-        <div class="flex items-start gap-3">
+      <div class="mt-5 editor-panel-muted rounded-xl p-4">
+        <button
+          type="button"
+          class="flex w-full items-start gap-3 text-left"
+          :aria-expanded="advancedExpanded"
+          @click="advancedExpanded = !advancedExpanded"
+        >
           <span class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center">
             <SIcon
               name="Sparkles"
@@ -158,16 +163,31 @@
             />
           </span>
           <div class="min-w-0 flex-1">
-            <span class="block text-sm font-semibold text-text-primary">
+            <span class="flex flex-wrap items-center gap-2 text-sm font-semibold text-text-primary">
               {{ $t('claudeProfiles.advancedModelsTitle') }}
+              <span
+                v-if="advancedFieldsFilledCount > 0"
+                class="editor-tag rounded-full px-2 py-0.5 text-[11px] font-normal text-text-secondary"
+              >
+                {{ $t('claudeProfiles.advancedModelsConfiguredCount', { count: advancedFieldsFilledCount }) }}
+              </span>
             </span>
             <span class="mt-1 block text-xs leading-5 text-text-muted">
               {{ $t('claudeProfiles.advancedModelsDescription') }}
             </span>
           </div>
-        </div>
+          <SIcon
+            name="ChevronDown"
+            size="w-4 h-4"
+            class="mt-1 shrink-0 text-text-muted transition-transform duration-200"
+            :class="advancedExpanded ? 'rotate-180' : ''"
+          />
+        </button>
 
-        <div class="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div
+          v-show="advancedExpanded"
+          class="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2"
+        >
           <div>
             <label
               for="claude-profile-default-opus-model"
@@ -230,6 +250,106 @@
 
           <div>
             <label
+              for="claude-profile-default-fable-model"
+              class="mb-2 block text-sm font-medium text-text-secondary"
+            >
+              {{ $t('claudeProfiles.defaultFableModelLabel') }}
+            </label>
+            <input
+              id="claude-profile-default-fable-model"
+              :value="form.default_fable_model"
+              type="text"
+              :placeholder="$t('claudeProfiles.defaultFableModelPlaceholder')"
+              :class="monospaceFieldClass"
+              @input="updateTextField('default_fable_model', $event)"
+            >
+            <p class="mt-1.5 text-xs text-text-muted">
+              {{ $t('claudeProfiles.defaultFableModelHelper') }}
+            </p>
+          </div>
+
+          <div>
+            <label
+              for="claude-profile-default-opus-model-name"
+              class="mb-2 block text-sm font-medium text-text-secondary"
+            >
+              {{ $t('claudeProfiles.defaultOpusModelNameLabel') }}
+            </label>
+            <input
+              id="claude-profile-default-opus-model-name"
+              :value="form.default_opus_model_name"
+              type="text"
+              :placeholder="$t('claudeProfiles.defaultModelNamePlaceholder')"
+              :class="monospaceFieldClass"
+              @input="updateTextField('default_opus_model_name', $event)"
+            >
+            <p class="mt-1.5 text-xs text-text-muted">
+              {{ $t('claudeProfiles.defaultModelNameHelper') }}
+            </p>
+          </div>
+
+          <div>
+            <label
+              for="claude-profile-default-sonnet-model-name"
+              class="mb-2 block text-sm font-medium text-text-secondary"
+            >
+              {{ $t('claudeProfiles.defaultSonnetModelNameLabel') }}
+            </label>
+            <input
+              id="claude-profile-default-sonnet-model-name"
+              :value="form.default_sonnet_model_name"
+              type="text"
+              :placeholder="$t('claudeProfiles.defaultModelNamePlaceholder')"
+              :class="monospaceFieldClass"
+              @input="updateTextField('default_sonnet_model_name', $event)"
+            >
+            <p class="mt-1.5 text-xs text-text-muted">
+              {{ $t('claudeProfiles.defaultModelNameHelper') }}
+            </p>
+          </div>
+
+          <div>
+            <label
+              for="claude-profile-default-haiku-model-name"
+              class="mb-2 block text-sm font-medium text-text-secondary"
+            >
+              {{ $t('claudeProfiles.defaultHaikuModelNameLabel') }}
+            </label>
+            <input
+              id="claude-profile-default-haiku-model-name"
+              :value="form.default_haiku_model_name"
+              type="text"
+              :placeholder="$t('claudeProfiles.defaultModelNamePlaceholder')"
+              :class="monospaceFieldClass"
+              @input="updateTextField('default_haiku_model_name', $event)"
+            >
+            <p class="mt-1.5 text-xs text-text-muted">
+              {{ $t('claudeProfiles.defaultModelNameHelper') }}
+            </p>
+          </div>
+
+          <div>
+            <label
+              for="claude-profile-default-fable-model-name"
+              class="mb-2 block text-sm font-medium text-text-secondary"
+            >
+              {{ $t('claudeProfiles.defaultFableModelNameLabel') }}
+            </label>
+            <input
+              id="claude-profile-default-fable-model-name"
+              :value="form.default_fable_model_name"
+              type="text"
+              :placeholder="$t('claudeProfiles.defaultModelNamePlaceholder')"
+              :class="monospaceFieldClass"
+              @input="updateTextField('default_fable_model_name', $event)"
+            >
+            <p class="mt-1.5 text-xs text-text-muted">
+              {{ $t('claudeProfiles.defaultModelNameHelper') }}
+            </p>
+          </div>
+
+          <div>
+            <label
               for="claude-profile-subagent-model"
               class="mb-2 block text-sm font-medium text-text-secondary"
             >
@@ -245,6 +365,106 @@
             >
             <p class="mt-1.5 text-xs text-text-muted">
               {{ $t('claudeProfiles.subagentModelHelper') }}
+            </p>
+          </div>
+
+          <div>
+            <label
+              for="claude-profile-custom-model-option"
+              class="mb-2 block text-sm font-medium text-text-secondary"
+            >
+              {{ $t('claudeProfiles.customModelOptionLabel') }}
+            </label>
+            <input
+              id="claude-profile-custom-model-option"
+              :value="form.custom_model_option"
+              type="text"
+              :placeholder="$t('claudeProfiles.customModelOptionPlaceholder')"
+              :class="monospaceFieldClass"
+              @input="updateTextField('custom_model_option', $event)"
+            >
+            <p class="mt-1.5 text-xs text-text-muted">
+              {{ $t('claudeProfiles.customModelOptionHelper') }}
+            </p>
+          </div>
+
+          <div>
+            <label
+              for="claude-profile-custom-model-option-name"
+              class="mb-2 block text-sm font-medium text-text-secondary"
+            >
+              {{ $t('claudeProfiles.customModelOptionNameLabel') }}
+            </label>
+            <input
+              id="claude-profile-custom-model-option-name"
+              :value="form.custom_model_option_name"
+              type="text"
+              :placeholder="$t('claudeProfiles.customModelOptionNamePlaceholder')"
+              :class="monospaceFieldClass"
+              @input="updateTextField('custom_model_option_name', $event)"
+            >
+            <p class="mt-1.5 text-xs text-text-muted">
+              {{ $t('claudeProfiles.customModelOptionNameHelper') }}
+            </p>
+          </div>
+
+          <div>
+            <label
+              for="claude-profile-auto-compact-window"
+              class="mb-2 block text-sm font-medium text-text-secondary"
+            >
+              {{ $t('claudeProfiles.autoCompactWindowLabel') }}
+            </label>
+            <input
+              id="claude-profile-auto-compact-window"
+              :value="form.claude_code_auto_compact_window"
+              type="text"
+              :placeholder="$t('claudeProfiles.autoCompactWindowPlaceholder')"
+              :class="monospaceFieldClass"
+              @input="updateTextField('claude_code_auto_compact_window', $event)"
+            >
+            <p class="mt-1.5 text-xs text-text-muted">
+              {{ $t('claudeProfiles.autoCompactWindowHelper') }}
+            </p>
+          </div>
+
+          <div>
+            <label
+              for="claude-profile-api-timeout-ms"
+              class="mb-2 block text-sm font-medium text-text-secondary"
+            >
+              {{ $t('claudeProfiles.apiTimeoutMsLabel') }}
+            </label>
+            <input
+              id="claude-profile-api-timeout-ms"
+              :value="form.api_timeout_ms"
+              type="text"
+              :placeholder="$t('claudeProfiles.apiTimeoutMsPlaceholder')"
+              :class="monospaceFieldClass"
+              @input="updateTextField('api_timeout_ms', $event)"
+            >
+            <p class="mt-1.5 text-xs text-text-muted">
+              {{ $t('claudeProfiles.apiTimeoutMsHelper') }}
+            </p>
+          </div>
+
+          <div>
+            <label
+              for="claude-profile-disable-nonessential-traffic"
+              class="mb-2 block text-sm font-medium text-text-secondary"
+            >
+              {{ $t('claudeProfiles.disableNonessentialTrafficLabel') }}
+            </label>
+            <input
+              id="claude-profile-disable-nonessential-traffic"
+              :value="form.claude_code_disable_nonessential_traffic"
+              type="text"
+              :placeholder="$t('claudeProfiles.disableNonessentialTrafficPlaceholder')"
+              :class="monospaceFieldClass"
+              @input="updateTextField('claude_code_disable_nonessential_traffic', $event)"
+            >
+            <p class="mt-1.5 text-xs text-text-muted">
+              {{ $t('claudeProfiles.disableNonessentialTrafficHelper') }}
             </p>
           </div>
 
@@ -290,7 +510,7 @@
 
     <section
       :ref="target => registerModalSectionRef('auth', target)"
-      class="editor-panel editor-panel--section rounded-[28px] p-5 lg:p-6"
+      class="editor-panel editor-panel--section rounded-xl p-5 lg:p-6"
     >
       <div class="mb-5 flex items-start gap-3">
         <div class="editor-section-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl">
@@ -333,6 +553,23 @@
           <p class="mt-1.5 text-xs text-text-muted">
             {{ $t('claudeProfiles.authModeHelper') }}
           </p>
+
+          <div
+            v-if="showAuthModeMismatch"
+            class="editor-banner editor-banner--warn mt-3 rounded-xl px-4 py-3"
+          >
+            <div class="flex items-start gap-3">
+              <div class="editor-banner__icon flex h-8 w-8 shrink-0 items-center justify-center rounded-xl">
+                <SIcon
+                  name="AlertTriangle"
+                  size="w-4 h-4"
+                />
+              </div>
+              <p class="min-w-0 break-words text-xs leading-5 text-text-secondary">
+                {{ $t('claudeProfiles.authModeMismatchWarning') }}
+              </p>
+            </div>
+          </div>
         </div>
 
         <div>
@@ -431,7 +668,7 @@
 
     <section
       :ref="target => registerModalSectionRef('status', target)"
-      class="editor-panel editor-panel--section rounded-[28px] p-5 lg:p-6"
+      class="editor-panel editor-panel--section rounded-xl p-5 lg:p-6"
     >
       <div class="mb-5 flex items-start gap-3">
         <div class="editor-section-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl">
@@ -484,7 +721,7 @@
           </div>
         </div>
 
-        <div class="editor-panel-muted rounded-[24px] p-4">
+        <div class="editor-panel-muted rounded-xl p-4">
           <label
             for="claude-profile-enabled"
             class="flex cursor-pointer items-start gap-3"
@@ -513,12 +750,12 @@
 
 <script setup lang="ts">
 import type { ComponentPublicInstance } from 'vue'
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SIcon from '@/components/ui/SIcon.vue'
 import { useUIStore } from '@/stores/ui'
 import type { ClaudeProfileEditorForm, ClaudeProfileFormSectionId } from '@/types/claudeProfileEditor'
-import { copyToClipboard } from '@/utils/codexHelpers'
+import { copyText } from '@/utils/clipboard'
 
 const props = defineProps<{
   editingName: string
@@ -537,6 +774,43 @@ const { t } = useI18n()
 const uiStore = useUIStore()
 const showAuthToken = ref(false)
 
+// 高级模型映射分组的渐进披露：默认折叠，编辑已有值时自动展开。
+const ADVANCED_FIELD_KEYS = [
+  'default_opus_model',
+  'default_sonnet_model',
+  'default_haiku_model',
+  'default_fable_model',
+  'default_opus_model_name',
+  'default_sonnet_model_name',
+  'default_haiku_model_name',
+  'default_fable_model_name',
+  'subagent_model',
+  'custom_model_option',
+  'custom_model_option_name',
+  'claude_code_auto_compact_window',
+  'api_timeout_ms',
+  'claude_code_disable_nonessential_traffic',
+  'effort_level',
+] as const satisfies readonly (keyof ClaudeProfileEditorForm)[]
+
+const advancedFieldsFilledCount = computed(() =>
+  ADVANCED_FIELD_KEYS.filter((key) => String(props.form[key] ?? '').trim() !== '').length,
+)
+
+const advancedExpanded = ref(advancedFieldsFilledCount.value > 0)
+
+// 「API-key 形态」判定，与后端 is_api_key_shaped 对齐：
+// provider_type=third_party_model，或 base_url 与 auth_token 同时非空。
+const isApiKeyShaped = computed(() =>
+  props.form.provider_type.trim() === 'third_party_model'
+  || (props.form.base_url.trim() !== '' && props.form.auth_token.trim() !== ''),
+)
+
+// 第三方/API-key 形态却仍选了 subscription：apply 时会被清空，给出内联警告。
+const showAuthModeMismatch = computed(() =>
+  isApiKeyShaped.value && props.form.auth_mode === 'subscription',
+)
+
 function updateTextField(field: keyof ClaudeProfileEditorForm, event: Event) {
   props.updateFormField(field, (event.target as HTMLInputElement).value)
 }
@@ -553,7 +827,7 @@ async function copyAuthToken() {
   const token = props.form.auth_token.trim()
   if (!token) return
 
-  const ok = await copyToClipboard(token)
+  const ok = await copyText(token)
   if (ok) {
     uiStore.showSuccess(t('claudeProfiles.authTokenCopied'))
   } else {
@@ -563,5 +837,6 @@ async function copyAuthToken() {
 
 watch(() => props.editingName, () => {
   showAuthToken.value = false
+  advancedExpanded.value = advancedFieldsFilledCount.value > 0
 })
 </script>

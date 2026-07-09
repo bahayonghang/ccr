@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/ccr-tui/backend/backend-guidelines.md", "reason": "详情渲染归属 ui.rs、单测优先、验证命令清单"}
+{"file": ".trellis/spec/ccr-core/backend/index.md", "reason": "mask_sensitive 属 ccr-core 公共工具，确认复用而非新增掩码策略前过其包规范"}

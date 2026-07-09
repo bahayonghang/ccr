@@ -17,7 +17,7 @@
       <strong class="usage-metric-card__value">{{ card.value }}</strong>
       <span
         class="usage-metric-card__delta"
-        :class="`usage-metric-card__delta--${card.deltaTone}`"
+        :class="`usage-metric-card__delta--${card.deltaSentiment}`"
       >
         {{ card.deltaLabel }}
       </span>
@@ -28,9 +28,13 @@
     </p>
 
     <div class="usage-metric-card__sparkline">
-      <UsageSparkline
-        :points="card.sparkline"
-        :tone="card.tone"
+      <Sparkline
+        class="usage-metric-card__spark"
+        :values="sparklineValues"
+        :width="120"
+        :height="38"
+        :stroke-width="2.4"
+        fill="currentColor"
         :label="card.sparklineLabel"
       />
     </div>
@@ -49,15 +53,19 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import SIcon from '@/components/ui/SIcon.vue'
-import UsageSparkline from './UsageSparkline.vue'
+import Sparkline from '@/components/ui/Sparkline.vue'
 import type { UsageSummaryCard } from '@/views/usage/usageSummaryCards'
 
 interface Props {
   card: UsageSummaryCard
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
+
+// 统一 Sparkline 取数值序列；配色沿用卡片按 tone 设置的 --usage-metric-rgb（见 __spark 样式）
+const sparklineValues = computed(() => props.card.sparkline.map((point) => point.value))
 </script>
 
 <style scoped>
@@ -109,7 +117,7 @@ defineProps<Props>()
   content: '';
   position: absolute;
   inset: 0 auto 0 0;
-  z-index: -1;
+  z-index: var(--z-behind);
   width: 3px;
   background: linear-gradient(180deg, rgb(var(--usage-metric-rgb) / 82%), transparent);
 }
@@ -118,7 +126,7 @@ defineProps<Props>()
   content: '';
   position: absolute;
   inset: auto -16% -36% auto;
-  z-index: -1;
+  z-index: var(--z-behind);
   width: 9rem;
   height: 9rem;
   border-radius: 9999px;
@@ -182,19 +190,19 @@ defineProps<Props>()
   font-variant-numeric: tabular-nums;
 }
 
-.usage-metric-card__delta--up {
+.usage-metric-card__delta--positive {
   border-color: rgb(var(--color-success-rgb) / 18%);
   background: rgb(var(--color-success-rgb) / 10%);
   color: var(--color-success);
 }
 
-.usage-metric-card__delta--down {
+.usage-metric-card__delta--negative {
   border-color: rgb(var(--color-danger-rgb) / 16%);
   background: rgb(var(--color-danger-rgb) / 8%);
   color: var(--color-danger);
 }
 
-.usage-metric-card__delta--flat {
+.usage-metric-card__delta--neutral {
   color: var(--color-text-muted);
 }
 
@@ -211,6 +219,12 @@ defineProps<Props>()
   border: 1px solid rgb(var(--usage-metric-rgb) / 10%);
   background: rgb(var(--color-bg-elevated-rgb) / 28%);
   padding: 0.26rem 0.36rem;
+}
+
+.usage-metric-card__spark {
+  width: 100%;
+  height: 2.45rem;
+  color: rgb(var(--usage-metric-rgb) / 92%);
 }
 
 .usage-metric-card__stats {

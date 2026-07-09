@@ -1,7 +1,6 @@
 <!-- eslint-disable vue/no-template-shadow -->
 <template>
   <div class="usage-page">
-    <div class="usage-page__ambient" />
     <div class="usage-shell">
       <UsageDashboardToolbar
         :selected-platform="selectedPlatform"
@@ -9,24 +8,11 @@
         :import-button-label="importButtonLabel"
         :importing="store.importing"
         :runtime-unavailable="runtimeUnavailable"
+        :meta-items="!runtimeUnavailable && dashboardReady ? dashboardMetaItems : []"
         @update:selected-platform="updateSelectedPlatform"
         @update:selected-range="updateSelectedRange"
         @import="doImport"
       />
-
-      <div
-        v-if="!runtimeUnavailable && dashboardReady && dashboardMetaItems.length > 0"
-        class="usage-header-meta"
-      >
-        <span
-          v-for="item in dashboardMetaItems"
-          :key="item.id"
-          class="usage-header-meta__chip"
-        >
-          <span class="usage-header-meta__label">{{ item.label }}</span>
-          <strong class="usage-header-meta__value">{{ item.value }}</strong>
-        </span>
-      </div>
 
       <AsyncStatePanel
         v-if="runtimeUnavailable"
@@ -39,29 +25,36 @@
       />
 
       <template v-else>
-        <UsageOpsCockpit
+        <UsageStaleBanner
           v-if="dashboardReady"
           :presentation="opsCockpit"
           @primary-action="handleOpsPrimaryAction"
-          @secondary-action="openDiagnostics"
+          @secondary-action="diagnosticsOpen = true"
         />
 
         <section
-          v-if="dashboardReady && summaryCards.length > 0"
-          class="usage-summary-grid"
+          v-if="dashboardReady && costSummaryCard"
+          class="usage-hero-row"
         >
-          <UsageMetricCard
-            v-for="card in summaryCards"
-            :key="card.id"
-            :card="card"
-          />
-        </section>
+          <UsageCostConclusionCard :card="costSummaryCard">
+            <UsageTokenBreakdownStrip
+              v-if="store.summary"
+              :summary="store.summary"
+              :cache-creation-tokens="cacheCreationTokens"
+            />
+          </UsageCostConclusionCard>
 
-        <UsageTokenBreakdownStrip
-          v-if="dashboardReady && store.summary"
-          :summary="store.summary"
-          :cache-creation-tokens="cacheCreationTokens"
-        />
+          <div
+            v-if="otherSummaryCards.length > 0"
+            class="usage-metric-grid"
+          >
+            <UsageMetricCard
+              v-for="card in otherSummaryCards"
+              :key="card.id"
+              :card="card"
+            />
+          </div>
+        </section>
 
         <div class="usage-workspace-switcher">
           <div class="usage-tabs">
@@ -81,7 +74,7 @@
         </div>
 
         <AsyncStatePanel
-          v-if="store.loading"
+          v-if="store.loading && !hasDashboardData"
           state="loading"
           :title="$t('usage.states.loading')"
           compact
@@ -116,6 +109,8 @@
         <div
           v-else
           class="usage-content"
+          :class="{ 'usage-content--busy': store.loading }"
+          :aria-busy="store.loading"
         >
           <AsyncStatePanel
             v-if="showEmptyState"
@@ -125,107 +120,12 @@
             compact
           />
 
-          <template v-else-if="activeTab === 'overview'">
-            <UsageSourceSummaryCard
-              v-if="sourceStats.length > 0"
-              :format-cost="formatCost"
-              :format-tokens="formatTokens"
-              :selected-platform="selectedPlatform"
-              :source-stats="sourceStats"
-              @select-source="updateSelectedPlatform"
-            />
-
-            <UsageOverviewTab
-              :chart-component="apexchart"
-              :distribution-subtitle="distributionSubtitle"
-              :format-cost="formatCost"
-              :format-tokens="formatTokens"
-              :has-renderable-trend-data="hasRenderableTrendData"
-              :model-stats="store.modelStats"
-              :model-distribution="modelDistribution"
-              :overview-highlights="overviewHighlights"
-              :pie-colors="pieColors"
-              :pie-options="pieOptions"
-              :pie-series="pieSeries"
-              :project-stats="store.projectStats"
-              :shorten-path="shortenPath"
-              :should-render-distribution-chart="shouldRenderDistributionChart"
-              :should-render-trend-chart="shouldRenderTrendChart"
-              :top-model-rankings="topModelRankings"
-              :top-project-rankings="topProjectRankings"
-              :trend-granularity-label="trendGranularityLabel"
-              :trend-options="trendOptions"
-              :trend-series="trendSeries"
-              :trend-subtitle="trendSubtitle"
-            />
-          </template>
-
-          <template v-else-if="activeTab === 'tokens'">
-            <UsageTokensTab
-              :chart-component="apexchart"
-              :format-tokens="formatTokens"
-              :trends="store.trends"
-            />
-          </template>
-
-          <template v-else-if="activeTab === 'cost'">
-            <UsageCostTab
-              :chart-component="apexchart"
-              :format-cost="formatCost"
-              :format-tokens="formatTokens"
-              :model-stats="store.modelStats"
-              :source-stats="sourceStats"
-              :summary="store.summary"
-              :trends="store.trends"
-            />
-          </template>
-
-          <template v-else-if="activeTab === 'models'">
-            <UsageModelsTab
-              :chart-component="apexchart"
-              :distribution-subtitle="distributionSubtitle"
-              :format-cost="formatCost"
-              :format-tokens="formatTokens"
-              :model-stats="store.modelStats"
-              :model-distribution="modelTokenDistribution"
-              :pie-colors="pieColors"
-              :pie-options="modelTokenPieOptions"
-              :pie-series="modelTokenPieSeries"
-              :should-render-chart="shouldRenderDistributionChart"
-            />
-          </template>
-
-          <template v-else-if="activeTab === 'projects'">
-            <UsageProjectsTab
-              :format-cost="formatCost"
-              :format-tokens="formatTokens"
-              :project-stats="store.projectStats"
-              :shorten-path="shortenPath"
-            />
-          </template>
-
-          <template v-else-if="activeTab === 'logs'">
-            <UsageLogsTab
-              :can-next-logs="store.canNextLogs"
-              :can-prev-logs="store.canPrevLogs"
-              :diagnostics-empty-detail="diagnosticsEmptyDetail"
-              :diagnostics-empty-message="diagnosticsEmptyMessage"
-              :diagnostics-summary="diagnosticsSummary"
-              :format-cost="formatCost"
-              :format-tokens="formatTokens"
-              :has-logs-total="store.hasLogsTotal"
-              :load-logs="loadLogs"
-              :logs-loading="store.logsLoading"
-              :logs-page="store.logsPage"
-              :logs-records="logsRecords"
-              :logs-total-pages="store.logsTotalPages"
-              :log-model-filter="logModelFilter"
-              :repair-button-label="repairCodexButtonLabel"
-              :repair-codex-logs="repairCodexLogs"
-              :show-pager="store.showLogsPager"
-              :update-log-model-filter="updateLogModelFilter"
-            />
-          </template>
+          <KeepAlive
+            v-else
+            :max="4"
+          >
+            <component :is="activeTabComponent" />
+          </KeepAlive>
         </div>
       </template>
     </div>
@@ -235,25 +135,37 @@
       v-model:is-open="showInstallDialog"
       @retry-import="doImportAfterInstall"
     />
+
+    <UsageDiagnosticsDrawer
+      v-model="diagnosticsOpen"
+      :presentation="opsCockpit"
+      @refresh="doImport"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, defineAsyncComponent } from 'vue'
+import { computed, defineAsyncComponent, ref, type Component } from 'vue'
 import AsyncStatePanel from '@/components/ui/AsyncStatePanel.vue'
+import UsageCostConclusionCard from '@/components/usage/UsageCostConclusionCard.vue'
 import UsageDashboardToolbar from '@/components/usage/UsageDashboardToolbar.vue'
+import UsageDiagnosticsDrawer from '@/components/usage/UsageDiagnosticsDrawer.vue'
 import UsageLogsTab from '@/components/usage/UsageLogsTab.vue'
 import UsageMetricCard from '@/components/usage/UsageMetricCard.vue'
 import UsageModelsTab from '@/components/usage/UsageModelsTab.vue'
-import UsageOpsCockpit from '@/components/usage/UsageOpsCockpit.vue'
 import UsageOverviewTab from '@/components/usage/UsageOverviewTab.vue'
 import UsageProjectsTab from '@/components/usage/UsageProjectsTab.vue'
-import UsageSourceSummaryCard from '@/components/usage/UsageSourceSummaryCard.vue'
+import UsageProvidersTab from '@/components/usage/UsageProvidersTab.vue'
+import UsageStaleBanner from '@/components/usage/UsageStaleBanner.vue'
 import UsageTokenBreakdownStrip from '@/components/usage/UsageTokenBreakdownStrip.vue'
 import type { UsageRangePreset } from './usage/dateWindow'
 import { perfMark, perfMeasure } from '@/utils/perfTelemetry'
 import { getRuntimeUnavailableCopy } from '@/utils/runtimeState'
 import { useUsageDashboardState } from './usage/useUsageDashboardState'
+import {
+  createUsageDashboardContext,
+  provideUsageDashboardContext,
+} from './usage/usageDashboardContext'
 
 const apexchart = defineAsyncComponent(async () => {
   perfMark('usage_chart_import_start')
@@ -278,6 +190,19 @@ const UsageCostTab = defineAsyncComponent({
   suspensible: false,
 })
 
+// KeepAlive 按组件标识缓存，映射表内的组件引用必须稳定（模块级 import / 模块级 async 包装），
+// 不能在渲染期重建，否则每次切换都被判为新组件而丢失缓存。
+const tabComponents: Record<string, Component> = {
+  overview: UsageOverviewTab,
+  tokens: UsageTokensTab,
+  cost: UsageCostTab,
+  providers: UsageProvidersTab,
+  models: UsageModelsTab,
+  projects: UsageProjectsTab,
+  logs: UsageLogsTab,
+}
+
+const usage = useUsageDashboardState()
 const {
   activeTab,
   cacheCreationTokens,
@@ -287,57 +212,23 @@ const {
   doImportAfterInstall,
   emptyStateDescription,
   emptyStateTitle,
-  formatCost,
-  formatTokens,
   importButtonLabel,
-  diagnosticsEmptyDetail,
-  diagnosticsEmptyMessage,
-  diagnosticsSummary,
-  hasRenderableTrendData,
   handleOpsPrimaryAction,
-  loadLogs,
-  logsRecords,
-  logModelFilter,
   onFilterChange,
-  openDiagnostics,
   opsCockpit,
-  overviewHighlights,
-  pieColors,
-  pieOptions,
-  pieSeries,
   runtimeUnavailable,
-  selectedPlatformLabel,
   selectedPlatform,
+  selectedPlatformLabel,
   selectedRange,
   selectedWindowLabel,
-  repairCodexButtonLabel,
-  repairCodexLogs,
-  shortenPath,
-  shouldRenderDistributionChart,
-  shouldRenderTrendChart,
   showEmptyState,
   showInstallDialog,
-  sourceStats,
   store,
-  trendSubtitle,
   summaryCards,
   tabKeys,
-  topModelRankings,
-  topProjectRankings,
-  trendGranularityLabel,
-  trendOptions,
-  trendSeries,
-  distributionSubtitle,
-  modelDistribution,
-  modelTokenDistribution,
-  modelTokenPieOptions,
-  modelTokenPieSeries,
-  updateLogModelFilter,
   unsupportedStateDescription,
   unsupportedStateTitle,
-} = useUsageDashboardState()
-
-const runtimeCopy = computed(() => getRuntimeUnavailableCopy('usage'))
+} = usage
 
 const updateSelectedPlatform = (value: string) => {
   selectedPlatform.value = value
@@ -348,22 +239,34 @@ const updateSelectedRange = (value: UsageRangePreset) => {
   selectedRange.value = value
   onFilterChange()
 }
+
+const diagnosticsOpen = ref(false)
+
+// 费用结论卡拎出 cost 卡单独放大展示，其余 3 张沿用 UsageMetricCard 排进右侧 2 列指标格。
+const costSummaryCard = computed(() => summaryCards.value.find((card) => card.id === 'cost') ?? null)
+const otherSummaryCards = computed(() => summaryCards.value.filter((card) => card.id !== 'cost'))
+
+// usage 域 provide/inject 上下文：7 个 tab 子组件 inject 取用，替代逐 tab 8~20 个 props 透传。
+provideUsageDashboardContext(
+  createUsageDashboardContext(usage, {
+    chartComponent: apexchart,
+    updateSelectedPlatform,
+  })
+)
+
+// 刷新期间保持内容挂载：仅在“尚无可渲染数据”（首屏 / 切平台进空库）时让 loading 面板接管；
+// 已有内容的刷新交给各图表的 memoized options → updateSeries 快路径，不再整树重挂。
+const hasDashboardData = computed(() => store.summary != null || store.trends.length > 0)
+
+const activeTabComponent = computed(() => tabComponents[activeTab.value] ?? UsageOverviewTab)
+
+const runtimeCopy = computed(() => getRuntimeUnavailableCopy('usage'))
 </script>
 
 <style scoped>
 .usage-page {
   position: relative;
   padding: 1rem 1rem 1.5rem;
-}
-
-.usage-page__ambient {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(circle at 12% 0%, rgb(var(--color-accent-primary-rgb) / 8%), transparent 28%),
-    radial-gradient(circle at 100% 18%, rgb(var(--color-premium-blue-rgb) / 18%), transparent 34%);
-  opacity: 0.7;
 }
 
 .usage-shell {
@@ -376,39 +279,18 @@ const updateSelectedRange = (value: UsageRangePreset) => {
   gap: 0.85rem;
 }
 
-.usage-header-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
-}
-
-.usage-header-meta__chip {
-  display: inline-flex;
-  min-height: 1.8rem;
-  align-items: center;
-  gap: 0.45rem;
-  border-radius: 9999px;
-  border: 1px solid rgb(var(--color-border-default-rgb) / 28%);
-  background: rgb(var(--color-bg-elevated-rgb) / 66%);
-  padding: 0.28rem 0.7rem;
-  color: var(--color-text-secondary);
-}
-
-.usage-header-meta__label {
-  font-size: 0.68rem;
-  letter-spacing: 0.04em;
-}
-
-.usage-header-meta__value {
-  color: var(--color-text-primary);
-  font-size: 0.78rem;
-  font-weight: 600;
-}
-
-.usage-summary-grid {
+.usage-hero-row {
   display: grid;
   gap: 0.8rem;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  align-items: stretch;
+}
+
+.usage-metric-grid {
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: start;
 }
 
 .usage-workspace-switcher {
@@ -467,6 +349,12 @@ const updateSelectedRange = (value: UsageRangePreset) => {
   display: flex;
   flex-direction: column;
   gap: 0.9rem;
+  transition: opacity var(--motion-subtle-duration) var(--motion-subtle-ease);
+}
+
+/* 刷新进行中（已有内容）时的轻量忙碌提示：仅淡出，不搭骨架屏（骨架屏属清单第 7 项）。 */
+.usage-content--busy {
+  opacity: 0.8;
 }
 
 td {
@@ -482,13 +370,13 @@ td {
 }
 
 @media (width < 1280px) {
-  .usage-summary-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .usage-hero-row {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
 @media (width < 900px) {
-  .usage-summary-grid {
+  .usage-metric-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 

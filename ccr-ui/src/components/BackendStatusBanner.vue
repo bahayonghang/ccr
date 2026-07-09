@@ -1,15 +1,19 @@
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
-import { computed } from 'vue'
+import { computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useBackendHealth } from '@/composables/useBackendHealth'
 import { isTauriEnvironment } from '@/api/runtime/environment'
 
-const { status, errorMessage, checkHealth } = useBackendHealth()
+const { status, errorMessage, checkHealth, resume, pause } = useBackendHealth()
 const isTauri = isTauriEnvironment()
 const { t } = useI18n()
 
 const shouldShow = computed(() => isTauri && status.value === 'error')
+
+// 轮询生命周期绑定到 Banner，避免模块级常驻轮询
+onMounted(() => resume())
+onUnmounted(() => pause())
 </script>
 
 <template>

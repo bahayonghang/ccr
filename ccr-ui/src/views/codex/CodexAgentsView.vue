@@ -38,7 +38,7 @@
               <SIcon
                 name="FolderSearch"
                 size="w-4 h-4"
-              /><span>Choose Project</span>
+              /><span>{{ tt('选择项目', 'Choose Project') }}</span>
             </button>
             <button
               v-if="activePanel === 'installed' && hasProjectShortcut && !isProjectMode"
@@ -49,7 +49,7 @@
               <SIcon
                 name="FolderGit2"
                 size="w-4 h-4"
-              /><span>Open Last Project</span>
+              /><span>{{ tt('打开上次项目', 'Open Last Project') }}</span>
             </button>
             <button
               v-if="activePanel === 'installed' && isProjectMode"
@@ -60,7 +60,7 @@
               <SIcon
                 name="ArrowLeftRight"
                 size="w-4 h-4"
-              /><span>Back To Global</span>
+              /><span>{{ tt('返回全局', 'Back To Global') }}</span>
             </button>
             <button
               v-if="activePanel === 'installed'"
@@ -82,7 +82,7 @@
             :class="activePanel === 'installed' ? 'border-accent-primary/40 bg-accent-primary/10 text-accent-primary' : 'border-border-default/60 bg-bg-surface/60 text-text-secondary hover:bg-bg-surface'"
             @click="activePanel = 'installed'"
           >
-            Installed
+            {{ tt('已安装', 'Installed') }}
           </button>
           <button
             type="button"
@@ -90,7 +90,7 @@
             :class="activePanel === 'sources' ? 'border-accent-primary/40 bg-accent-primary/10 text-accent-primary' : 'border-border-default/60 bg-bg-surface/60 text-text-secondary hover:bg-bg-surface'"
             @click="activePanel = 'sources'"
           >
-            Sources
+            {{ tt('来源', 'Sources') }}
           </button>
         </div>
 
@@ -102,29 +102,29 @@
             <div class="grid gap-4 md:grid-cols-3">
               <div class="codex-agent-summary-card">
                 <div class="codex-agent-summary-label">
-                  Active Scope
+                  {{ tt('当前作用域', 'Active Scope') }}
                 </div><div class="codex-agent-summary-value">
-                  {{ activeContext?.mode === 'project' ? 'Project' : 'Global' }}
+                  {{ activeContext?.mode === 'project' ? tt('项目', 'Project') : tt('全局', 'Global') }}
                 </div><div class="codex-agent-summary-note">
-                  Only one management context is active at a time.
+                  {{ tt('同一时间只会激活一个管理上下文。', 'Only one management context is active at a time.') }}
                 </div>
               </div>
               <div class="codex-agent-summary-card">
                 <div class="codex-agent-summary-label">
-                  Agents
+                  {{ tt('Agent 数量', 'Agents') }}
                 </div><div class="codex-agent-summary-value">
                   {{ agents.length }}
                 </div><div class="codex-agent-summary-note">
-                  {{ diagnostics.length }} diagnostics tracked
+                  {{ tt(`${diagnostics.length} 条诊断`, `${diagnostics.length} diagnostics tracked`) }}
                 </div>
               </div>
               <div class="codex-agent-summary-card">
                 <div class="codex-agent-summary-label">
-                  Sessions
+                  {{ tt('会话数量', 'Sessions') }}
                 </div><div class="codex-agent-summary-value">
                   {{ sessionsTotal ?? '—' }}
                 </div><div class="codex-agent-summary-note">
-                  Inventory from Codex dashboard overview.
+                  {{ tt('数据来自 Codex 总览页会话统计。', 'Inventory from Codex dashboard overview.') }}
                 </div>
               </div>
             </div>
@@ -154,7 +154,7 @@
                     <SIcon
                       name="ShieldCheck"
                       size="w-4 h-4"
-                    /><span>Validate</span>
+                    /><span>{{ tt('校验', 'Validate') }}</span>
                   </button>
                   <button
                     type="button"
@@ -165,7 +165,7 @@
                     <SIcon
                       name="Download"
                       size="w-4 h-4"
-                    /><span>Export</span>
+                    /><span>{{ tt('导出', 'Export') }}</span>
                   </button>
                   <button
                     type="button"
@@ -176,7 +176,7 @@
                     <SIcon
                       name="Copy"
                       size="w-4 h-4"
-                    /><span>Copy</span>
+                    /><span>{{ tt('复制', 'Copy') }}</span>
                   </button>
                   <button
                     type="button"
@@ -186,7 +186,7 @@
                     <SIcon
                       name="Upload"
                       size="w-4 h-4"
-                    /><span>Import</span>
+                    /><span>{{ tt('导入', 'Import') }}</span>
                   </button>
                   <button
                     type="button"
@@ -197,7 +197,7 @@
                     <SIcon
                       name="TextField"
                       size="w-4 h-4"
-                    /><span>Rename</span>
+                    /><span>{{ tt('重命名', 'Rename') }}</span>
                   </button>
                   <button
                     type="button"
@@ -208,7 +208,7 @@
                     <SIcon
                       name="Trash2"
                       size="w-4 h-4"
-                    /><span>Delete</span>
+                    /><span>{{ tt('删除', 'Delete') }}</span>
                   </button>
                 </div>
               </div>
@@ -246,7 +246,7 @@
                   type="checkbox"
                   class="h-4 w-4 rounded border-border-default/70 bg-transparent"
                   @change="toggleVisibleSelection(($event.target as HTMLInputElement).checked)"
-                ><span>Select visible agents</span></label>
+                ><span>{{ tt('选择当前可见 Agent', 'Select visible agents') }}</span></label>
                 <article
                   v-for="agent in filteredAgents"
                   :key="agent.path"
@@ -268,20 +268,20 @@
                         <span
                           v-if="agent.parseError"
                           class="rounded-full border border-amber-400/30 bg-amber-500/10 px-2.5 py-1 text-xs text-amber-100"
-                        >Invalid TOML</span>
+                        >{{ tt('TOML 无效', 'Invalid TOML') }}</span>
                         <span
                           v-if="agent.model"
                           class="rounded-full border border-sky-400/20 bg-sky-500/10 px-2.5 py-1 text-xs text-sky-100"
                         >{{ agent.model }}</span>
                       </div>
                       <div class="mt-2 text-sm text-text-secondary">
-                        {{ agent.description || 'No description' }}
+                        {{ agent.description || tt('暂无描述', 'No description') }}
                       </div>
                       <div class="mt-3 flex flex-wrap gap-2 text-xs text-text-muted">
                         <span
                           v-if="agent.nicknameCandidates?.length"
                           class="rounded-full border border-border-default/50 px-2.5 py-1"
-                        >{{ agent.nicknameCandidates.length }} nicknames</span>
+                        >{{ tt(`${agent.nicknameCandidates.length} 个昵称`, `${agent.nicknameCandidates.length} nicknames`) }}</span>
                         <span
                           v-if="agent.sandboxMode"
                           class="rounded-full border border-border-default/50 px-2.5 py-1"
@@ -293,7 +293,7 @@
                       <button
                         type="button"
                         class="codex-agent-icon-button"
-                        title="Edit"
+                        :title="tt('编辑', 'Edit')"
                         @click="openEditModal(agent)"
                       >
                         <SIcon
@@ -304,7 +304,7 @@
                       <button
                         type="button"
                         class="codex-agent-icon-button"
-                        title="Rename"
+                        :title="tt('重命名', 'Rename')"
                         @click="openRenameModal(agent)"
                       >
                         <SIcon
@@ -315,7 +315,7 @@
                       <button
                         type="button"
                         class="codex-agent-icon-button"
-                        title="Copy"
+                        :title="tt('复制', 'Copy')"
                         :disabled="!alternateContextRequest"
                         @click="openCopyModal(agent)"
                       >
@@ -327,7 +327,7 @@
                       <button
                         type="button"
                         class="codex-agent-icon-button"
-                        title="Validate"
+                        :title="tt('校验', 'Validate')"
                         @click="handleValidateAgent(agent)"
                       >
                         <SIcon
@@ -338,7 +338,7 @@
                       <button
                         type="button"
                         class="codex-agent-icon-button"
-                        title="Export"
+                        :title="tt('导出', 'Export')"
                         @click="exportAgent(agent)"
                       >
                         <SIcon
@@ -349,7 +349,7 @@
                       <button
                         type="button"
                         class="codex-agent-icon-button danger"
-                        title="Delete"
+                        :title="tt('删除', 'Delete')"
                         @click="handleDeleteAgent(agent)"
                       >
                         <SIcon
@@ -373,19 +373,19 @@
                 <SIcon
                   name="FolderTree"
                   size="w-4 h-4"
-                />Context Control
+                />{{ tt('上下文控制', 'Context Control') }}
               </div>
               <div class="space-y-3 text-sm text-text-secondary">
                 <div>
                   <div class="font-medium text-text-primary">
-                    Current
+                    {{ tt('当前', 'Current') }}
                   </div><div class="mt-1 break-all">
                     {{ activeContext?.agentsDir ?? '~/.codex/agents/' }}
                   </div>
                 </div>
                 <div v-if="lastProjectRoot">
                   <div class="font-medium text-text-primary">
-                    Last Project
+                    {{ tt('上次项目', 'Last Project') }}
                   </div><div class="mt-1 break-all">
                     {{ lastProjectRoot }}
                   </div>
@@ -400,7 +400,7 @@
                 <SIcon
                   name="Boxes"
                   size="w-4 h-4"
-                />Built-in Agents
+                />{{ tt('内置 Agent', 'Built-in Agents') }}
               </div>
               <div class="space-y-3">
                 <div
@@ -411,7 +411,7 @@
                   <div class="flex items-center justify-between gap-3">
                     <div class="font-medium text-text-primary">
                       {{ builtIn.name }}
-                    </div><span class="rounded-full border border-border-default/50 px-2 py-0.5 text-[11px] text-text-muted">Read-only</span>
+                    </div><span class="rounded-full border border-border-default/50 px-2 py-0.5 text-[11px] text-text-muted">{{ tt('只读', 'Read-only') }}</span>
                   </div>
                   <div class="mt-1 text-sm text-text-secondary">
                     {{ builtIn.description }}
@@ -427,13 +427,13 @@
                 <SIcon
                   name="AlertTriangle"
                   size="w-4 h-4"
-                />Diagnostics
+                />{{ tt('诊断', 'Diagnostics') }}
               </div>
               <div
                 v-if="diagnostics.length === 0"
                 class="text-sm text-text-secondary"
               >
-                No context-level diagnostics.
+                {{ tt('当前上下文没有诊断信息。', 'No context-level diagnostics.') }}
               </div>
               <div
                 v-else
@@ -478,11 +478,11 @@
     />
     <BaseModal
       :model-value="renameModalOpen"
-      title="Rename Agent"
+      :title="tt('重命名 Agent', 'Rename Agent')"
       size="md"
       @update:model-value="renameModalOpen = $event"
     >
-      <label class="space-y-2 text-sm text-text-secondary"><span class="font-semibold text-text-primary">New name</span><input
+      <label class="space-y-2 text-sm text-text-secondary"><span class="font-semibold text-text-primary">{{ tt('新名称', 'New name') }}</span><input
         v-model="renameDraft"
         type="text"
         class="codex-agent-input"
@@ -493,31 +493,31 @@
           class="codex-agent-secondary-button"
           @click="renameModalOpen = false"
         >
-          Cancel
+          {{ tt('取消', 'Cancel') }}
         </button><button
           type="button"
           class="codex-agent-primary-button"
           @click="handleRenameAgent"
         >
-          Rename
+          {{ tt('重命名', 'Rename') }}
         </button>
       </template>
     </BaseModal>
     <BaseModal
       :model-value="copyModalOpen"
-      title="Copy Agent"
+      :title="tt('复制 Agent', 'Copy Agent')"
       size="md"
       @update:model-value="copyModalOpen = $event"
     >
       <div class="space-y-4">
         <div class="rounded-2xl border border-border-default/60 bg-bg-surface/60 px-4 py-3 text-sm text-text-secondary">
-          Target context: <span class="font-semibold text-text-primary">{{ copyTargetLabel }}</span>
+          {{ tt('目标上下文：', 'Target context:') }} <span class="font-semibold text-text-primary">{{ copyTargetLabel }}</span>
         </div>
-        <label class="space-y-2 text-sm text-text-secondary"><span class="font-semibold text-text-primary">Target name</span><input
+        <label class="space-y-2 text-sm text-text-secondary"><span class="font-semibold text-text-primary">{{ tt('目标名称', 'Target name') }}</span><input
           v-model="copyDraftName"
           type="text"
           class="codex-agent-input"
-          placeholder="Leave blank to keep current name"
+          :placeholder="tt('留空则保持当前名称', 'Leave blank to keep current name')"
         ></label>
       </div>
       <template #footer>
@@ -526,40 +526,40 @@
           class="codex-agent-secondary-button"
           @click="copyModalOpen = false"
         >
-          Cancel
+          {{ tt('取消', 'Cancel') }}
         </button><button
           type="button"
           class="codex-agent-primary-button"
           :disabled="!alternateContextRequest"
           @click="handleCopyAgent"
         >
-          Copy
+          {{ tt('复制', 'Copy') }}
         </button>
       </template>
     </BaseModal>
     <BaseModal
       :model-value="bulkRenameModalOpen"
-      title="Bulk Rename Agents"
+      :title="tt('批量重命名 Agent', 'Bulk Rename Agents')"
       size="md"
       @update:model-value="bulkRenameModalOpen = $event"
     >
       <div class="space-y-4">
         <label class="space-y-2 text-sm text-text-secondary">
-          <span class="font-semibold text-text-primary">Prefix</span>
+          <span class="font-semibold text-text-primary">{{ tt('前缀', 'Prefix') }}</span>
           <input
             v-model="bulkRenamePrefix"
             type="text"
             class="codex-agent-input"
-            placeholder="feature-"
+            :placeholder="tt('例如 feature-', 'e.g. feature-')"
           >
         </label>
         <label class="space-y-2 text-sm text-text-secondary">
-          <span class="font-semibold text-text-primary">Suffix</span>
+          <span class="font-semibold text-text-primary">{{ tt('后缀', 'Suffix') }}</span>
           <input
             v-model="bulkRenameSuffix"
             type="text"
             class="codex-agent-input"
-            placeholder="-review"
+            :placeholder="tt('例如 -review', 'e.g. -review')"
           >
         </label>
       </div>
@@ -569,7 +569,7 @@
           class="codex-agent-secondary-button"
           @click="bulkRenameModalOpen = false"
         >
-          Cancel
+          {{ tt('取消', 'Cancel') }}
         </button>
         <button
           type="button"
@@ -577,7 +577,7 @@
           :disabled="selectedAgents.length === 0"
           @click="handleBulkRename"
         >
-          Rename
+          {{ tt('重命名', 'Rename') }}
         </button>
       </template>
     </BaseModal>
@@ -586,6 +586,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { getErrorMessage } from '@/utils/errorHandler'
 import { useI18n } from 'vue-i18n'
 import BaseModal from '@/components/common/BaseModal.vue'
 import Card from '@/components/ui/Card.vue'
@@ -598,7 +599,9 @@ import { useCodexAgents } from '@/composables/useCodexAgents'
 import { useUIStore } from '@/stores/ui'
 import type { CodexAgentContextRequest, CodexAgentRecord, CodexAgentUpsertRequest } from '@/types'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
+const isZh = computed(() => locale.value.startsWith('zh'))
+const tt = (zh: string, en: string) => (isZh.value ? zh : en)
 const uiStore = useUIStore()
 const {
   activeContext,
@@ -674,12 +677,12 @@ const alternateContextRequest = computed<CodexAgentContextRequest | null>(() => 
 })
 const copyTargetLabel = computed(() => {
   if (isProjectMode.value) {
-    return 'Global'
+    return tt('全局', 'Global')
   }
 
   return lastProjectRoot.value
-    ? `Project: ${lastProjectRoot.value}`
-    : 'Choose project first'
+    ? tt(`项目：${lastProjectRoot.value}`, `Project: ${lastProjectRoot.value}`)
+    : tt('请先选择项目', 'Choose project first')
 })
 const canCopySelection = computed(() => {
   return selectedAgents.value.length > 0 && !!alternateContextRequest.value
@@ -721,32 +724,32 @@ async function handleRefresh() {
 async function handleChooseProject() {
   try {
     if (await chooseProjectContext()) {
-      uiStore.showSuccess('Project context activated')
+      uiStore.showSuccess(tt('已切换到项目上下文', 'Project context activated'))
       resetSelection()
     }
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   }
 }
 
 async function handleSwitchToSavedProject() {
   try {
     if (await switchToProjectContext()) {
-      uiStore.showSuccess('Project context activated')
+      uiStore.showSuccess(tt('已切换到项目上下文', 'Project context activated'))
       resetSelection()
     }
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   }
 }
 
 async function handleBackToGlobal() {
   try {
     await switchToGlobalContext()
-    uiStore.showSuccess('Returned to global agents')
+    uiStore.showSuccess(tt('已返回全局 Agent 视图', 'Returned to global agents'))
     resetSelection()
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   }
 }
 
@@ -764,17 +767,17 @@ async function handleSaveAgent(payload: CodexAgentUpsertRequest) {
   try {
     if (editingAgent.value) {
       await updateAgentRecord(editingAgent.value.name, payload)
-      uiStore.showSuccess('Codex agent updated')
+      uiStore.showSuccess(tt('Codex Agent 已更新', 'Codex agent updated'))
     } else {
       await createAgent(payload)
-      uiStore.showSuccess('Codex agent created')
+      uiStore.showSuccess(tt('Codex Agent 已创建', 'Codex agent created'))
     }
 
     editorOpen.value = false
     editingAgent.value = null
     resetSelection()
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   }
 }
 
@@ -791,12 +794,12 @@ async function handleRenameAgent() {
 
   try {
     await renameAgentRecord(renameTarget.value.name, renameDraft.value.trim())
-    uiStore.showSuccess('Agent renamed')
+    uiStore.showSuccess(tt('Agent 已重命名', 'Agent renamed'))
     renameModalOpen.value = false
     renameTarget.value = null
     resetSelection()
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   }
 }
 
@@ -825,7 +828,7 @@ function openBulkCopyModal() {
 
 async function handleCopyAgent() {
   if (!alternateContextRequest.value) {
-    uiStore.showWarning('Choose a project context first')
+    uiStore.showWarning(tt('请先选择项目上下文', 'Choose a project context first'))
     return
   }
 
@@ -835,17 +838,17 @@ async function handleCopyAgent() {
       await copyAgentRecord(agent.name, alternateContextRequest.value, copyDraftName.value.trim() || undefined)
     }
 
-    uiStore.showSuccess(`Copied ${queue.length} agent${queue.length > 1 ? 's' : ''}`)
+    uiStore.showSuccess(tt(`已复制 ${queue.length} 个 Agent`, `Copied ${queue.length} agent${queue.length > 1 ? 's' : ''}`))
     copyModalOpen.value = false
     copyTarget.value = null
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   }
 }
 
 async function handleBulkRename() {
   if (!bulkRenamePrefix.value && !bulkRenameSuffix.value) {
-    uiStore.showWarning('Provide a prefix, suffix, or both')
+    uiStore.showWarning(tt('请至少提供前缀、后缀中的一项', 'Provide a prefix, suffix, or both'))
     return
   }
 
@@ -857,10 +860,10 @@ async function handleBulkRename() {
       )
     }
     bulkRenameModalOpen.value = false
-    uiStore.showSuccess(`Renamed ${selectedAgents.value.length} agent${selectedAgents.value.length > 1 ? 's' : ''}`)
+    uiStore.showSuccess(tt(`已重命名 ${selectedAgents.value.length} 个 Agent`, `Renamed ${selectedAgents.value.length} agent${selectedAgents.value.length > 1 ? 's' : ''}`))
     resetSelection()
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   }
 }
 
@@ -878,10 +881,10 @@ async function handleDeleteAgent(agent: CodexAgentRecord) {
 
   try {
     await deleteAgentRecord(agent.name)
-    uiStore.showSuccess('Agent deleted')
+    uiStore.showSuccess(tt('Agent 已删除', 'Agent deleted'))
     resetSelection()
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   }
 }
 
@@ -891,8 +894,8 @@ async function handleBulkDelete() {
   }
 
   const confirmed = await uiStore.requestConfirm({
-    title: 'Delete selected agents',
-    message: `Delete ${selectedAgents.value.length} selected agents from the active context?`,
+    title: tt('删除所选 Agent', 'Delete selected agents'),
+    message: tt(`确认从当前上下文删除 ${selectedAgents.value.length} 个所选 Agent 吗？`, `Delete ${selectedAgents.value.length} selected agents from the active context?`),
     confirmText: t('common.delete'),
     cancelText: t('common.cancel'),
     type: 'danger',
@@ -905,19 +908,19 @@ async function handleBulkDelete() {
     for (const agent of selectedAgents.value) {
       await deleteAgentRecord(agent.name)
     }
-    uiStore.showSuccess('Selected agents deleted')
+    uiStore.showSuccess(tt('已删除所选 Agent', 'Selected agents deleted'))
     resetSelection()
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   }
 }
 
 async function handleValidateAgent(agent: CodexAgentRecord) {
   try {
     await validateAgentRecord(agent.name)
-    uiStore.showSuccess(`Validated ${agent.name}`)
+    uiStore.showSuccess(tt(`已校验 ${agent.name}`, `Validated ${agent.name}`))
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   }
 }
 
@@ -926,9 +929,9 @@ async function handleBulkValidate() {
     for (const agent of selectedAgents.value) {
       await validateAgentRecord(agent.name)
     }
-    uiStore.showSuccess(`Validated ${selectedAgents.value.length} agent${selectedAgents.value.length > 1 ? 's' : ''}`)
+    uiStore.showSuccess(tt(`已校验 ${selectedAgents.value.length} 个 Agent`, `Validated ${selectedAgents.value.length} agent${selectedAgents.value.length > 1 ? 's' : ''}`))
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   }
 }
 
@@ -969,9 +972,9 @@ async function handleImportFiles(event: Event) {
       }
     }
 
-    uiStore.showSuccess('Import completed')
+    uiStore.showSuccess(tt('导入完成', 'Import completed'))
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   } finally {
     if (input) {
       input.value = ''
@@ -1128,4 +1131,3 @@ function handleExportSelected() {
   color: var(--color-text-primary);
 }
 </style>
-

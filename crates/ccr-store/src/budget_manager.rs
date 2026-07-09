@@ -61,16 +61,8 @@ impl BudgetManager {
     fn save_config(&self) -> Result<()> {
         self.config.validate().map_err(CcrError::ValidationError)?;
 
-        let content = toml::to_string_pretty(&self.config)
-            .map_err(|e| CcrError::ConfigError(format!("序列化预算配置失败: {}", e)))?;
-
-        // 确保目录存在
-        if let Some(parent) = self.config_path.parent() {
-            fs::create_dir_all(parent)?;
-        }
-
-        fs::write(&self.config_path, content)?;
-        Ok(())
+        // 委托 fileio：序列化 + 父目录创建 + 锁 + fsync + 原子替换
+        ccr_core::core::fileio::write_toml(&self.config_path, &self.config)
     }
 
     /// 获取当前配置

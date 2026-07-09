@@ -120,7 +120,7 @@ const classes = computed(() => {
 
 <style scoped>
 .ui-button {
-  @apply inline-flex min-h-[44px] items-center justify-center rounded-full font-medium;
+  @apply inline-flex min-h-[44px] items-center justify-center rounded-lg font-medium;
   @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/30 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-base;
 
   transform: translateZ(0);
@@ -132,7 +132,7 @@ const classes = computed(() => {
 }
 
 .ui-button:active {
-  transform: scale(var(--ui-button-active-scale, 0.95));
+  transform: translateY(1px) scale(var(--ui-button-active-scale, 0.985));
 }
 
 .ui-button:disabled {
@@ -165,41 +165,33 @@ const classes = computed(() => {
   @apply border text-text-inverted;
 
   border-color: rgb(var(--color-accent-primary-rgb) / 16%);
-  background: linear-gradient(180deg, var(--color-accent-primary), var(--color-accent-primary-active));
-  box-shadow:
-    var(--ui-button-shadow, 0 14px 28px rgb(var(--color-accent-primary-rgb) / 16%)),
-    inset 0 1px 0 rgb(255 251 245 / 18%);
+  background: var(--color-accent-primary);
+  box-shadow: var(--ui-button-shadow, none);
 }
 
 .ui-button--primary:hover:not(:disabled) {
-  background: linear-gradient(180deg, var(--color-accent-primary-hover), var(--color-accent-primary));
-  box-shadow:
-    0 16px 32px rgb(var(--color-accent-primary-rgb) / 18%),
-    inset 0 1px 0 rgb(255 251 245 / 22%);
-  transform: translateY(-0.5px);
+  background: var(--color-accent-primary-hover);
 }
 
 .ui-button--secondary {
   @apply border text-text-primary shadow-sm;
 
   border-color: var(--surface-status-border);
-  background: linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 98%), rgb(var(--color-bg-surface-rgb) / 88%));
-  box-shadow:
-    var(--ui-button-shadow, var(--surface-status-shadow)),
-    inset 0 1px 0 rgb(255 251 245 / 14%);
+  background: rgb(var(--color-bg-elevated-rgb) / 96%);
+  box-shadow: var(--ui-button-shadow, var(--surface-status-shadow));
 }
 
 .ui-button--secondary:hover:not(:disabled) {
   border-color: rgb(var(--color-accent-primary-rgb) / 18%);
-  background: linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 100%), rgb(var(--color-bg-surface-rgb) / 92%));
+  background: rgb(var(--color-bg-elevated-rgb) / 100%);
 }
 
 .ui-button--accent {
   @apply border text-text-inverted;
 
   border-color: rgb(var(--color-accent-secondary-rgb) / 16%);
-  background: linear-gradient(180deg, var(--color-accent-secondary), rgb(var(--color-accent-secondary-rgb) / 88%));
-  box-shadow: 0 14px 28px rgb(var(--color-accent-secondary-rgb) / 14%);
+  background: var(--color-accent-secondary);
+  box-shadow: var(--ui-button-shadow, none);
 }
 
 .ui-button--accent:hover:not(:disabled) {
@@ -249,8 +241,8 @@ const classes = computed(() => {
   @apply border text-text-inverted;
 
   border-color: rgb(var(--color-danger-rgb) / 16%);
-  background: linear-gradient(180deg, var(--color-danger), rgb(var(--color-danger-rgb) / 88%));
-  box-shadow: var(--ui-button-shadow, 0 14px 28px rgb(var(--color-danger-rgb) / 14%));
+  background: var(--color-danger);
+  box-shadow: var(--ui-button-shadow, none);
 }
 
 .ui-button--danger:hover:not(:disabled) {
@@ -261,14 +253,12 @@ const classes = computed(() => {
   @apply border text-text-inverted;
 
   border-color: rgb(var(--color-success-rgb) / 16%);
-  background: linear-gradient(180deg, var(--color-success), rgb(var(--color-success-rgb) / 88%));
-  box-shadow: var(--ui-button-shadow, 0 14px 28px rgb(var(--color-success-rgb) / 14%));
+  background: var(--color-success);
+  box-shadow: var(--ui-button-shadow, none);
 }
 
 .ui-button--success:hover:not(:disabled) {
-  background: linear-gradient(180deg, var(--color-success-hover), var(--color-success));
-  box-shadow: var(--ui-button-shadow, 0 16px 30px rgb(var(--color-success-rgb) / 18%));
-  transform: translateY(-0.5px);
+  background: var(--color-success-hover);
 }
 
 .ui-button--surface-workspace.ui-button--glass {
@@ -320,6 +310,6 @@ const classes = computed(() => {
 .ui-button--motion-standard {
   --ui-button-duration: var(--motion-standard-duration);
   --ui-button-ease: var(--motion-standard-ease);
-  --ui-button-active-scale: 0.95;
+  --ui-button-active-scale: 0.985;
 }
 </style>

@@ -32,7 +32,7 @@ fn create_test_config() -> ConfigSection {
     ConfigSection {
         description: Some("Test Config".to_string()),
         base_url: Some("https://api.test.com".to_string()),
-        auth_token: Some("sk-test-original".to_string()),
+        auth_token: Some(ccr_core::Secret::from("sk-test-original")),
         model: Some("test-model".to_string()),
         small_fast_model: Some("test-small".to_string()),
         provider: None,
@@ -53,7 +53,7 @@ fn test_temp_override_basic_workflow() {
     // 1. 创建原始设置
     let config = create_test_config();
     let mut settings = ccr::ClaudeSettings::new();
-    settings.update_from_config(&config);
+    settings.apply_managed_env(config.to_managed_env_pairs());
     settings_manager.save_atomic(&settings).unwrap();
 
     // 验证原始token
@@ -74,9 +74,10 @@ fn test_temp_override_basic_workflow() {
     if let Some(temp) = loaded_temp
         && let Some(temp_token) = &temp.auth_token
     {
-        new_settings
-            .env
-            .insert("ANTHROPIC_AUTH_TOKEN".to_string(), temp_token.clone());
+        new_settings.env.insert(
+            "ANTHROPIC_AUTH_TOKEN".to_string(),
+            temp_token.expose().to_string(),
+        );
     }
     settings_manager.save_atomic(&new_settings).unwrap();
 
@@ -99,7 +100,7 @@ fn test_temp_override_multiple_fields() {
     // 创建原始设置
     let config = create_test_config();
     let mut settings = ccr::ClaudeSettings::new();
-    settings.update_from_config(&config);
+    settings.apply_managed_env(config.to_managed_env_pairs());
     settings_manager.save_atomic(&settings).unwrap();
 
     // 创建多字段临时覆盖
@@ -112,9 +113,10 @@ fn test_temp_override_multiple_fields() {
     let mut new_settings = settings_manager.load().unwrap();
     if let Some(temp) = temp_manager.load().unwrap() {
         if let Some(token) = &temp.auth_token {
-            new_settings
-                .env
-                .insert("ANTHROPIC_AUTH_TOKEN".to_string(), token.clone());
+            new_settings.env.insert(
+                "ANTHROPIC_AUTH_TOKEN".to_string(),
+                token.expose().to_string(),
+            );
         }
         if let Some(url) = &temp.base_url {
             new_settings
@@ -173,9 +175,10 @@ fn test_temp_override_no_interference_with_other_vars() {
     if let Some(temp) = temp_manager.load().unwrap()
         && let Some(token) = &temp.auth_token
     {
-        new_settings
-            .env
-            .insert("ANTHROPIC_AUTH_TOKEN".to_string(), token.clone());
+        new_settings.env.insert(
+            "ANTHROPIC_AUTH_TOKEN".to_string(),
+            token.expose().to_string(),
+        );
     }
     settings_manager.save_atomic(&new_settings).unwrap();
 

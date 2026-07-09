@@ -13,7 +13,7 @@ fn create_test_section(name: &str) -> ConfigSection {
     ConfigSection {
         description: Some(format!("Test config {}", name)),
         base_url: Some(format!("https://api.{}.com", name)),
-        auth_token: Some(format!("sk-test-token-{}", name)),
+        auth_token: Some(ccr_core::Secret::new(format!("sk-test-token-{}", name))),
         model: Some("test-model".into()),
         small_fast_model: Some("test-small".into()),
         provider: None,

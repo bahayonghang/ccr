@@ -62,10 +62,6 @@ describe('v-html safety allowlist', () => {
         binding: 'highlightedName',
       },
       {
-        file: 'src/components/MarkdownEditor.vue',
-        binding: 'renderedHtml',
-      },
-      {
         file: 'src/components/usage/LlmusageInstallDialog.vue',
         binding: 'descriptionHtml',
       },
@@ -77,21 +73,13 @@ describe('v-html safety allowlist', () => {
   })
 
   it('keeps audited v-html sources behind explicit escaping or sanitization helpers', async () => {
-    const [
-      markdownRender,
-      ansiRenderer,
-      claudeProfiles,
-      installDialog,
-      commandsView,
-    ] = await Promise.all([
-      readFile('src/composables/useMarkdownRender.ts', 'utf8'),
+    const [ansiRenderer, claudeProfiles, installDialog, commandsView] = await Promise.all([
       readFile('src/utils/ansiRenderer.ts', 'utf8'),
       readFile('src/utils/claudeProfiles.ts', 'utf8'),
       readFile('src/components/usage/LlmusageInstallDialog.vue', 'utf8'),
       readFile('src/views/CommandsView.vue', 'utf8'),
     ])
 
-    expect(markdownRender).toMatch(/sanitizeMarkdown/)
     expect(ansiRenderer).toMatch(/sanitizeTerminal/)
     expect(claudeProfiles).toMatch(/escapeHtml/)
     expect(installDialog).toMatch(/只渲染 i18n 文案，无用户输入/)

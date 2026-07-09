@@ -169,6 +169,157 @@ pub struct ClaudeSettings {
     pub other: HashMap<String, Value>,
 }
 
+/// Environment variable keys managed by CCR inside `settings.json`'s `env` map.
+///
+/// These are the keys written by profile switching and cleared by
+/// [`ClaudeSettings::clear_managed_vars`]. Mapping from profile fields lives in
+/// `ccr-config` (`ConfigSection::to_managed_env_pairs`), which references these
+/// constants so key names never drift between crates.
+pub mod env_keys {
+    pub const ANTHROPIC_BASE_URL: &str = "ANTHROPIC_BASE_URL";
+    pub const ANTHROPIC_AUTH_TOKEN: &str = "ANTHROPIC_AUTH_TOKEN";
+    pub const ANTHROPIC_MODEL: &str = "ANTHROPIC_MODEL";
+    pub const ANTHROPIC_SMALL_FAST_MODEL: &str = "ANTHROPIC_SMALL_FAST_MODEL";
+    pub const ANTHROPIC_DEFAULT_OPUS_MODEL: &str = "ANTHROPIC_DEFAULT_OPUS_MODEL";
+    pub const ANTHROPIC_DEFAULT_SONNET_MODEL: &str = "ANTHROPIC_DEFAULT_SONNET_MODEL";
+    pub const ANTHROPIC_DEFAULT_HAIKU_MODEL: &str = "ANTHROPIC_DEFAULT_HAIKU_MODEL";
+    pub const ANTHROPIC_DEFAULT_FABLE_MODEL: &str = "ANTHROPIC_DEFAULT_FABLE_MODEL";
+    pub const ANTHROPIC_DEFAULT_OPUS_MODEL_NAME: &str = "ANTHROPIC_DEFAULT_OPUS_MODEL_NAME";
+    pub const ANTHROPIC_DEFAULT_SONNET_MODEL_NAME: &str = "ANTHROPIC_DEFAULT_SONNET_MODEL_NAME";
+    pub const ANTHROPIC_DEFAULT_HAIKU_MODEL_NAME: &str = "ANTHROPIC_DEFAULT_HAIKU_MODEL_NAME";
+    pub const ANTHROPIC_DEFAULT_FABLE_MODEL_NAME: &str = "ANTHROPIC_DEFAULT_FABLE_MODEL_NAME";
+    pub const ANTHROPIC_CUSTOM_MODEL_OPTION: &str = "ANTHROPIC_CUSTOM_MODEL_OPTION";
+    pub const ANTHROPIC_CUSTOM_MODEL_OPTION_NAME: &str = "ANTHROPIC_CUSTOM_MODEL_OPTION_NAME";
+    pub const CLAUDE_CODE_SUBAGENT_MODEL: &str = "CLAUDE_CODE_SUBAGENT_MODEL";
+    pub const CLAUDE_CODE_EFFORT_LEVEL: &str = "CLAUDE_CODE_EFFORT_LEVEL";
+    pub const CLAUDE_CODE_AUTO_COMPACT_WINDOW: &str = "CLAUDE_CODE_AUTO_COMPACT_WINDOW";
+    pub const API_TIMEOUT_MS: &str = "API_TIMEOUT_MS";
+    pub const CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: &str =
+        "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC";
+
+    /// Managed env keys that do not carry the `ANTHROPIC_` prefix.
+    ///
+    /// These are explicitly configured by profiles, so profile switching must
+    /// clear them together with the `ANTHROPIC_*` overrides.
+    pub const NON_ANTHROPIC_MANAGED_KEYS: &[&str] = &[
+        CLAUDE_CODE_SUBAGENT_MODEL,
+        CLAUDE_CODE_EFFORT_LEVEL,
+        CLAUDE_CODE_AUTO_COMPACT_WINDOW,
+        API_TIMEOUT_MS,
+        CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC,
+    ];
+}
+
+impl ClaudeSettings {
+    /// Create an empty settings value (same as `Default::default()`).
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Remove every `ANTHROPIC_*` entry from `env`, keeping all other keys.
+    pub fn clear_anthropic_vars(&mut self) {
+        self.env.retain(|key, _| !key.starts_with("ANTHROPIC_"));
+    }
+
+    /// Remove every CCR-managed entry from `env`.
+    ///
+    /// Covers all `ANTHROPIC_*` keys plus [`env_keys::NON_ANTHROPIC_MANAGED_KEYS`].
+    pub fn clear_managed_vars(&mut self) {
+        self.clear_anthropic_vars();
+        for key in env_keys::NON_ANTHROPIC_MANAGED_KEYS {
+            self.env.remove(*key);
+        }
+    }
+
+    /// Replace the managed portion of `env` with `pairs`.
+    ///
+    /// Clears all managed keys first (see [`Self::clear_managed_vars`]), then
+    /// inserts each pair. Non-managed env entries are untouched. This is the
+    /// data-side core of profile switching; callers obtain `pairs` from
+    /// `ConfigSection::to_managed_env_pairs` in `ccr-config`.
+    pub fn apply_managed_env(&mut self, pairs: impl IntoIterator<Item = (String, String)>) {
+        self.clear_managed_vars();
+        for (key, value) in pairs {
+            self.env.insert(key, value);
+        }
+    }
+
+    /// Snapshot of the managed `ANTHROPIC_*`/runtime env values for display.
+    ///
+    /// Returns each known managed key mapped to its current value (or `None`).
+    pub fn anthropic_env_status(&self) -> HashMap<String, Option<String>> {
+        let vars = [
+            env_keys::ANTHROPIC_BASE_URL,
+            env_keys::ANTHROPIC_AUTH_TOKEN,
+            env_keys::ANTHROPIC_MODEL,
+            env_keys::ANTHROPIC_SMALL_FAST_MODEL,
+            env_keys::ANTHROPIC_DEFAULT_OPUS_MODEL,
+            env_keys::ANTHROPIC_DEFAULT_SONNET_MODEL,
+            env_keys::ANTHROPIC_DEFAULT_HAIKU_MODEL,
+            env_keys::ANTHROPIC_DEFAULT_FABLE_MODEL,
+            env_keys::ANTHROPIC_DEFAULT_OPUS_MODEL_NAME,
+            env_keys::ANTHROPIC_DEFAULT_SONNET_MODEL_NAME,
+            env_keys::ANTHROPIC_DEFAULT_HAIKU_MODEL_NAME,
+            env_keys::ANTHROPIC_DEFAULT_FABLE_MODEL_NAME,
+            env_keys::CLAUDE_CODE_AUTO_COMPACT_WINDOW,
+            env_keys::API_TIMEOUT_MS,
+            env_keys::CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC,
+        ];
+
+        let mut status = HashMap::new();
+        for var in vars {
+            status.insert(var.to_string(), self.env.get(var).cloned());
+        }
+        status
+    }
+
+    /// Whether any `ANTHROPIC_*` override is present in `env`.
+    pub fn has_anthropic_overrides(&self) -> bool {
+        self.env.keys().any(|key| key.starts_with("ANTHROPIC_"))
+    }
+
+    /// Strictly validate the env vars required by API-key mode.
+    ///
+    /// The error is a plain message; callers wrap it into their own error type
+    /// (e.g. `CcrError::ValidationError`).
+    pub fn validate_api_key_mode(&self) -> Result<(), String> {
+        let base_url = self
+            .env
+            .get(env_keys::ANTHROPIC_BASE_URL)
+            .ok_or_else(|| "缺少必需的环境变量: ANTHROPIC_BASE_URL".to_string())?;
+
+        if base_url.trim().is_empty() {
+            return Err("环境变量不能为空: ANTHROPIC_BASE_URL".to_string());
+        }
+
+        if !base_url.starts_with("http://") && !base_url.starts_with("https://") {
+            return Err("ANTHROPIC_BASE_URL 必须以 http:// 或 https:// 开头".to_string());
+        }
+
+        let auth_token = self
+            .env
+            .get(env_keys::ANTHROPIC_AUTH_TOKEN)
+            .ok_or_else(|| "缺少必需的环境变量: ANTHROPIC_AUTH_TOKEN".to_string())?;
+
+        if auth_token.trim().is_empty() {
+            return Err("环境变量不能为空: ANTHROPIC_AUTH_TOKEN".to_string());
+        }
+
+        Ok(())
+    }
+
+    /// Validate the `ANTHROPIC_*` overrides in these settings.
+    ///
+    /// Subscription mode (no `ANTHROPIC_*` overrides at all) is valid; once any
+    /// override exists, the strict API-key-mode rules apply.
+    pub fn validate(&self) -> Result<(), String> {
+        if !self.has_anthropic_overrides() {
+            return Ok(());
+        }
+        self.validate_api_key_mode()
+    }
+}
+
 /// MCP Server configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct McpServer {
@@ -597,6 +748,263 @@ mod tests {
         let json = r#"{"env": {}}"#;
         let settings: ClaudeSettings = serde_json::from_str(json).unwrap();
         assert!(settings.hooks.is_empty());
+    }
+
+    // ═══ 变更/查询/验证逻辑（迁自 ccr-cli managers/settings.rs）═══
+
+    #[test]
+    fn test_clear_anthropic_vars() {
+        let mut settings = ClaudeSettings::new();
+        settings
+            .env
+            .insert("ANTHROPIC_BASE_URL".into(), "test".into());
+        settings.env.insert("OTHER_VAR".into(), "keep".into());
+
+        settings.clear_anthropic_vars();
+
+        assert!(!settings.env.contains_key("ANTHROPIC_BASE_URL"));
+        assert!(settings.env.contains_key("OTHER_VAR"));
+    }
+
+    #[test]
+    fn test_clear_managed_vars_drops_claude_code_keys() {
+        let mut settings = ClaudeSettings::new();
+        settings
+            .env
+            .insert("ANTHROPIC_BASE_URL".into(), "test".into());
+        settings
+            .env
+            .insert("CLAUDE_CODE_SUBAGENT_MODEL".into(), "x".into());
+        settings
+            .env
+            .insert("CLAUDE_CODE_EFFORT_LEVEL".into(), "max".into());
+        settings
+            .env
+            .insert("CLAUDE_CODE_AUTO_COMPACT_WINDOW".into(), "1000000".into());
+        settings
+            .env
+            .insert("API_TIMEOUT_MS".into(), "3000000".into());
+        settings.env.insert(
+            "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC".into(),
+            "1".into(),
+        );
+        settings.env.insert("OTHER_VAR".into(), "keep".into());
+
+        settings.clear_managed_vars();
+
+        for key in env_keys::NON_ANTHROPIC_MANAGED_KEYS {
+            assert!(!settings.env.contains_key(*key), "{key} 应被清除");
+        }
+        assert!(!settings.env.contains_key("ANTHROPIC_BASE_URL"));
+        assert!(settings.env.contains_key("OTHER_VAR"));
+    }
+
+    #[test]
+    fn test_apply_managed_env_replaces_managed_and_keeps_others() {
+        let mut settings = ClaudeSettings::new();
+        settings.env.insert(
+            "ANTHROPIC_BASE_URL".into(),
+            "https://old.example.com".into(),
+        );
+        settings.env.insert("KEEP_ME".into(), "value".into());
+
+        settings.apply_managed_env([
+            (
+                "ANTHROPIC_BASE_URL".to_string(),
+                "https://new.example.com".to_string(),
+            ),
+            ("ANTHROPIC_AUTH_TOKEN".to_string(), "sk-new".to_string()),
+        ]);
+
+        assert_eq!(
+            settings.env.get("ANTHROPIC_BASE_URL"),
+            Some(&"https://new.example.com".to_string())
+        );
+        assert_eq!(
+            settings.env.get("ANTHROPIC_AUTH_TOKEN"),
+            Some(&"sk-new".to_string())
+        );
+        assert_eq!(settings.env.get("KEEP_ME"), Some(&"value".to_string()));
+    }
+
+    // 🔁 二次 apply 时上一档的托管键不残留（防串档）
+    #[test]
+    fn test_apply_managed_env_clears_stale_keys_on_switch() {
+        let mut settings = ClaudeSettings::new();
+        settings.apply_managed_env([
+            (
+                "ANTHROPIC_DEFAULT_FABLE_MODEL".to_string(),
+                "glm-5.2[1m]".to_string(),
+            ),
+            ("CLAUDE_CODE_EFFORT_LEVEL".to_string(), "max".to_string()),
+        ]);
+
+        settings.apply_managed_env([(
+            "ANTHROPIC_BASE_URL".to_string(),
+            "https://api.test.com".to_string(),
+        )]);
+
+        assert!(!settings.env.contains_key("ANTHROPIC_DEFAULT_FABLE_MODEL"));
+        assert!(!settings.env.contains_key("CLAUDE_CODE_EFFORT_LEVEL"));
+        assert!(settings.env.contains_key("ANTHROPIC_BASE_URL"));
+    }
+
+    #[test]
+    fn test_anthropic_env_status_reports_known_keys() {
+        let mut settings = ClaudeSettings::new();
+        settings
+            .env
+            .insert("ANTHROPIC_BASE_URL".into(), "https://api.test.com".into());
+
+        let status = settings.anthropic_env_status();
+
+        assert_eq!(
+            status.get("ANTHROPIC_BASE_URL"),
+            Some(&Some("https://api.test.com".to_string()))
+        );
+        assert_eq!(status.get("ANTHROPIC_AUTH_TOKEN"), Some(&None));
+        assert!(status.contains_key("CLAUDE_CODE_AUTO_COMPACT_WINDOW"));
+    }
+
+    #[test]
+    fn test_validate_subscription_mode_allows_no_overrides() {
+        let settings = ClaudeSettings::new();
+        assert!(settings.validate().is_ok());
+        assert!(!settings.has_anthropic_overrides());
+    }
+
+    #[test]
+    fn test_validate_full_api_key_mode_passes() {
+        let mut settings = ClaudeSettings::new();
+        settings
+            .env
+            .insert("ANTHROPIC_BASE_URL".into(), "https://test.com".into());
+        settings
+            .env
+            .insert("ANTHROPIC_AUTH_TOKEN".into(), "token".into());
+
+        assert!(settings.has_anthropic_overrides());
+        assert!(settings.validate().is_ok());
+    }
+
+    #[test]
+    fn test_validate_rejects_partial_overrides() {
+        let mut settings = ClaudeSettings::new();
+        settings
+            .env
+            .insert("ANTHROPIC_BASE_URL".into(), "https://test.com".into());
+
+        assert!(settings.validate().is_err());
+        let err = settings.validate_api_key_mode().unwrap_err();
+        assert!(err.contains("ANTHROPIC_AUTH_TOKEN"));
+    }
+
+    #[test]
+    fn test_validate_api_key_mode_rejects_bad_base_url() {
+        let mut settings = ClaudeSettings::new();
+        settings
+            .env
+            .insert("ANTHROPIC_BASE_URL".into(), "ftp://test.com".into());
+        settings
+            .env
+            .insert("ANTHROPIC_AUTH_TOKEN".into(), "token".into());
+
+        let err = settings.validate_api_key_mode().unwrap_err();
+        assert!(err.contains("http://"));
+
+        settings
+            .env
+            .insert("ANTHROPIC_BASE_URL".into(), "  ".into());
+        let err = settings.validate_api_key_mode().unwrap_err();
+        assert!(err.contains("不能为空"));
+    }
+
+    // ═══ 读→改→写→读 往返保留（本类型作为唯一 shape 的核心回归防线）═══
+
+    #[test]
+    fn test_roundtrip_preserves_rich_and_unknown_fields_across_apply() {
+        let disk_json = r#"{
+            "env": {
+                "ANTHROPIC_BASE_URL": "https://old.example.com",
+                "MY_CUSTOM_VAR": "keep-me"
+            },
+            "outputStyle": "engineer",
+            "mcpServers": {
+                "fs": { "command": "node", "args": ["fs.js"], "vendor_flag": true }
+            },
+            "hooks": {
+                "PreToolUse": [
+                    { "matcher": "Bash", "hooks": [{ "type": "command", "command": "./sec.sh" }] }
+                ]
+            },
+            "plugins": [
+                { "id": "p1", "name": "Plugin", "version": "1.0", "future_field": "x" }
+            ],
+            "statusline": { "theme": "warm" },
+            "totally_unknown_top_level": [1, 2, 3]
+        }"#;
+
+        let mut settings: ClaudeSettings = serde_json::from_str(disk_json).unwrap();
+        settings.apply_managed_env([(
+            "ANTHROPIC_BASE_URL".to_string(),
+            "https://new.example.com".to_string(),
+        )]);
+
+        let written = serde_json::to_string_pretty(&settings).unwrap();
+        let reloaded: ClaudeSettings = serde_json::from_str(&written).unwrap();
+
+        // 托管 env 已替换，非托管 env 保留
+        assert_eq!(
+            reloaded.env.get("ANTHROPIC_BASE_URL"),
+            Some(&"https://new.example.com".to_string())
+        );
+        assert_eq!(
+            reloaded.env.get("MY_CUSTOM_VAR"),
+            Some(&"keep-me".to_string())
+        );
+
+        // 富字段保留（含嵌套未知字段）
+        assert_eq!(reloaded.output_style.as_deref(), Some("engineer"));
+        assert_eq!(
+            reloaded.mcp_servers["fs"].other.get("vendor_flag"),
+            Some(&Value::Bool(true))
+        );
+        assert_eq!(
+            reloaded.hooks["PreToolUse"][0].hooks[0].command.as_deref(),
+            Some("./sec.sh")
+        );
+        assert_eq!(
+            reloaded.plugins[0].other.get("future_field"),
+            Some(&Value::String("x".to_string()))
+        );
+
+        // 顶层未知字段保留
+        assert!(reloaded.other.contains_key("statusline"));
+        assert!(reloaded.other.contains_key("totally_unknown_top_level"));
+    }
+
+    // legacy 数组 hooks 在往返后归一化为 canonical object 格式（有意的规范化行为）
+    #[test]
+    fn test_roundtrip_normalizes_legacy_hooks_to_canonical() {
+        let disk_json = r#"{
+            "env": {},
+            "hooks": [
+                { "event": "Stop", "command": "echo stop" }
+            ]
+        }"#;
+
+        let settings: ClaudeSettings = serde_json::from_str(disk_json).unwrap();
+        let written = serde_json::to_string(&settings).unwrap();
+
+        let value: Value = serde_json::from_str(&written).unwrap();
+        assert!(
+            value["hooks"].is_object(),
+            "legacy 数组必须归一化为 object 格式"
+        );
+        assert_eq!(
+            value["hooks"]["Stop"][0]["hooks"][0]["command"],
+            "echo stop"
+        );
     }
 
     #[test]

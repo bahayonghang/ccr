@@ -16,6 +16,7 @@ path = "src/lib.rs"
 ccr-cli = { path = "../ccr-cli" }
 ccr-core = { path = "../ccr-core" }
 ccr-codex = { path = "../ccr-codex" }
+ccr-usage = { path = "../ccr-usage" }
 chrono = { workspace = true }
 crossterm = "0.29.0"
 dirs = { workspace = true }

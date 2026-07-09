@@ -15,6 +15,7 @@ mod selection;
 pub mod theme;
 pub mod toast;
 mod ui;
+pub mod usage;
 
 pub use app::App;
 pub use event::EventHandler;
@@ -65,7 +66,7 @@ fn print_exit_info(app: &App) {
 pub fn run_tui() -> Result<()> {
     let mut guard = TerminalGuard::new()?;
     let task_executor = AsyncTaskExecutor::from_current_or_test();
-    let mut app = App::with_task_executor(task_executor)?.with_claude_auth_tab();
+    let mut app = App::with_task_executor(task_executor)?;
     let mut events = EventHandler::new(250);
 
     run_loop(&mut guard, &mut app, &mut events)?;

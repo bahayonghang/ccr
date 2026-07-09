@@ -1,34 +1,8 @@
 #![allow(clippy::unwrap_used)]
 
+use crate::setup_ccr_test_env;
 use ccr::managers::{ConfigManager, PlatformConfigManager, UnifiedConfig};
-use std::ffi::OsString;
 use std::fs;
-
-struct EnvGuard {
-    key: &'static str,
-    previous: Option<OsString>,
-}
-
-impl EnvGuard {
-    fn set_path(key: &'static str, value: &std::path::Path) -> Self {
-        let previous = std::env::var_os(key);
-        unsafe {
-            std::env::set_var(key, value);
-        }
-        Self { key, previous }
-    }
-}
-
-impl Drop for EnvGuard {
-    fn drop(&mut self) {
-        unsafe {
-            match self.previous.take() {
-                Some(value) => std::env::set_var(self.key, value),
-                None => std::env::remove_var(self.key),
-            }
-        }
-    }
-}
 
 #[test]
 fn legacy_registry_fields_load_without_becoming_clean_write_routing_truth() {
@@ -110,9 +84,9 @@ fn per_platform_current_profile_helpers_round_trip() {
 
 #[test]
 fn config_manager_default_ignores_legacy_current_platform_routing() {
-    let temp_dir = tempfile::tempdir().unwrap();
+    let env = setup_ccr_test_env();
     fs::write(
-        temp_dir.path().join("config.toml"),
+        env.path().join("config.toml"),
         r#"
 default_platform = "claude"
 current_platform = "codex"
@@ -128,7 +102,6 @@ current_profile = "official"
     )
     .unwrap();
 
-    let _ccr_root = EnvGuard::set_path("CCR_ROOT", temp_dir.path());
     let manager = ConfigManager::with_default().unwrap();
 
     assert!(

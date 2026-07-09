@@ -1,0 +1,8 @@
+{"file": ".trellis/tasks/06-12-ccr-ui-arch-quality-perf-style-optimization/research/architecture-analysis.md", "reason": "架构问题完整证据：god view 结构、Profiles 双胞胎相似度、API 边界穿透点、类型双定义清单"}
+{"file": ".trellis/tasks/06-12-ccr-ui-arch-quality-perf-style-optimization/research/code-quality-analysis.md", "reason": "死代码清单（30 个零引用组件/死视图/死 i18n）、format 工具 36 处重复位置、getErrorMessage 推广点位"}
+{"file": ".trellis/tasks/06-12-ccr-ui-arch-quality-perf-style-optimization/research/performance-analysis.md", "reason": "SessionsView 失效证据、CommandsView O(n²) 行号、装饰层 GPU 成本点位、keep-alive 与轮询细节"}
+{"file": ".trellis/tasks/06-12-ccr-ui-arch-quality-perf-style-optimization/research/style-analysis.md", "reason": "签到模块主题失效统计、悬空 token 位置、raw rgb/圆角/backdrop-filter 热点文件清单"}
+{"file": ".trellis/spec/ccr-ui/frontend/api-facade-boundary.md", "reason": "API 域封装与 legacy 门面契约——WS3 invoke 守卫扩面与 domains 迁移必须遵守"}
+{"file": ".trellis/spec/ccr-ui/frontend/theme-token-contracts.md", "reason": "主题/flavor/accent token 分层契约——WS1 签到迁移与 WS4 设计语言推广必须遵守"}
+{"file": ".trellis/spec/ccr-ui/frontend/checkin-ux-contracts.md", "reason": "签到模块并发/展示契约——改 CheckinView 样式时不得破坏既有 UX 行为"}
+{"file": ".trellis/tasks/archive/2026-06/06-11-ccr-ui-appearance-system-redesign/prd.md", "reason": "深色工作台设计语言权威定义（圆角/扁平/去玻璃/低饱和语义色）——样式推广的目标基准"}

@@ -1,4 +1,5 @@
 import { logger } from '@/utils/logger'
+import { getErrorMessage } from '@/utils/errorHandler'
 import { isTauriRuntime } from '@/utils/tauriRuntime'
 
 export type PerfEnvironment = 'tauri' | 'web'
@@ -178,7 +179,7 @@ const observePerformance = (
     observer.observe({ type, buffered: true })
     state.observers.push(observer)
   } catch (error) {
-    state.observerError = error instanceof Error ? error.message : String(error)
+    state.observerError = getErrorMessage(error)
   }
 }
 

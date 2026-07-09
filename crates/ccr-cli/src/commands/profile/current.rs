@@ -16,7 +16,6 @@ use crate::services::{
     StatusAuthKind, StatusHealth,
 };
 use ccr_config::profile_to_section;
-use ccr_core::Validatable;
 use ccr_core::core::error::Result;
 use ccr_core::core::logging::ColorOutput;
 use colored::Colorize;
@@ -274,7 +273,7 @@ async fn current_command_verbose() -> Result<()> {
                 if let Some(auth_key_name) = auth_key_name
                     && let Some(token) = auth.get(auth_key_name).and_then(|v| v.as_str())
                 {
-                    current_section.auth_token = Some(token.to_string());
+                    current_section.auth_token = Some(ccr_core::Secret::from(token));
                 }
             }
         }
@@ -383,7 +382,7 @@ async fn current_command_verbose() -> Result<()> {
             Cell::new("Auth Token")
                 .fg(TableColor::Yellow)
                 .add_attribute(Attribute::Bold),
-            Cell::new(ColorOutput::mask_sensitive(auth_token)).fg(TableColor::DarkGrey),
+            Cell::new(auth_token.to_string()).fg(TableColor::DarkGrey),
         ]);
     }
 

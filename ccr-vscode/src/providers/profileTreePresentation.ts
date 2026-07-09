@@ -5,6 +5,7 @@ import type {
   TreeSectionInfo,
   TreeSectionKind,
 } from "../models/types";
+import { getPlatformDisplayName } from "../services/ccrPaths";
 
 export interface RuntimeDetailDescriptor {
   label: string;
@@ -35,6 +36,8 @@ function compactPathTail(filePath?: string): string {
 }
 
 export function getSectionInfo(platformName: string, kind: TreeSectionKind): TreeSectionInfo {
+  const displayName = getPlatformDisplayName(platformName);
+
   if (platformName === "claude") {
     return {
       kind,
@@ -44,11 +47,38 @@ export function getSectionInfo(platformName: string, kind: TreeSectionKind): Tre
     };
   }
 
+  if (platformName === "codex") {
+    if (kind === "runtime") {
+      return {
+        kind,
+        platformName,
+        label: "Codex Runtime",
+        description: "Current control mode, profile route, and auth identity",
+      };
+    }
+
+    if (kind === "auth") {
+      return {
+        kind,
+        platformName,
+        label: "Codex Auth",
+        description: "Switch and inspect saved Codex auth accounts",
+      };
+    }
+
+    return {
+      kind,
+      platformName,
+      label: "Codex Profiles",
+      description: "Switch and manage Codex profiles",
+    };
+  }
+
   if (kind === "runtime") {
     return {
       kind,
       platformName,
-      label: "Codex Runtime",
+      label: `${displayName} Runtime`,
       description: "Current control mode, profile route, and auth identity",
     };
   }
@@ -57,16 +87,16 @@ export function getSectionInfo(platformName: string, kind: TreeSectionKind): Tre
     return {
       kind,
       platformName,
-      label: "Codex Auth",
-      description: "Switch and inspect saved Codex auth accounts",
+      label: `${displayName} Auth`,
+      description: `Inspect saved ${displayName} auth accounts`,
     };
   }
 
   return {
     kind,
     platformName,
-    label: "Codex Profiles",
-    description: "Switch and manage Codex profiles",
+    label: `${displayName} Profiles`,
+    description: `Browse and inspect ${displayName} profiles`,
   };
 }
 

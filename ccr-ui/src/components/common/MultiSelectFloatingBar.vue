@@ -74,9 +74,8 @@ defineEmits<{
   border-radius: 1rem;
   border: 1px solid rgb(var(--color-accent-primary-rgb) / 20%);
   background: var(--surface-card-bg, rgb(var(--color-bg-elevated-rgb) / 92%));
-  backdrop-filter: blur(20px) saturate(1.3);
   box-shadow: var(--elevation-2);
-  z-index: 10;
+  z-index: var(--layer-sticky);
 }
 
 .multi-select-bar__count {

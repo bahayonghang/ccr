@@ -359,6 +359,7 @@ import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useCommandsViewStore } from '@/stores/commandsView'
+import { useUIStore } from '@/stores/ui'
 import { logger } from '@/utils/logger'
 
 // 组件导入
@@ -366,53 +367,7 @@ import { EmptyState } from '@/components/ui'
 import ModuleSubnav from './ModuleSubnav.vue'
 import CommandList from './CommandList.vue'
 import CommandFormModal from './CommandFormModal.vue'
-
-// 类型定义
-interface SlashCommand {
-  name: string
-  command: string
-  description: string
-  folder: string
-  enabled: boolean
-}
-
-interface SlashCommandRequest {
-  name: string
-  command: string
-  description: string
-  folder: string
-}
-
-interface PlatformConfig {
-  api: {
-    list: () => Promise<{ commands: SlashCommand[], folders: string[] }>
-    add: (cmd: SlashCommandRequest) => Promise<void>
-    update: (name: string, cmd: SlashCommandRequest) => Promise<void>
-    delete: (name: string) => Promise<void>
-    toggle: (name: string) => Promise<void>
-  }
-  i18n: {
-    prefix: string
-    breadcrumb?: {
-      home: string
-      platform: string
-      current: string
-    }
-  }
-  theme: 'claude-code' | 'css-variable'
-  route: {
-    homePath: string
-    module: string
-  }
-  platform: {
-    name: string
-    displayName: string
-  }
-  features: {
-    breadcrumb: boolean
-    glassEffect: boolean
-  }
-}
+import type { SlashCommand, SlashCommandRequest, PlatformConfig } from '@/types/platform'
 
 // Props
 interface Props {
@@ -424,6 +379,7 @@ const props = defineProps<Props>()
 // 状态管理
 const { t } = useI18n()
 const viewStore = useCommandsViewStore()
+const uiStore = useUIStore()
 
 const loading = ref(false)
 const commands = ref<SlashCommand[]>([])
@@ -600,7 +556,14 @@ const handleEdit = (command: SlashCommand) => {
 }
 
 const handleDelete = async (name: string) => {
-  if (!confirm(t(`${props.config.i18n.prefix}.confirmDelete`, { name }))) {
+  const confirmed = await uiStore.requestConfirm({
+    title: t('common.delete'),
+    message: t(`${props.config.i18n.prefix}.confirmDelete`, { name }),
+    confirmText: t('common.delete'),
+    cancelText: t('common.cancel'),
+    type: 'danger',
+  })
+  if (!confirmed) {
     return
   }
 

@@ -64,8 +64,7 @@ impl CurrentFixture {
     fn run_json(&self, args: &[&str]) -> (Output, Value) {
         let output = self.run_output(args);
         let stdout = String::from_utf8_lossy(&output.stdout);
-        let json = serde_json::from_str::<Value>(&stdout)
-            .unwrap_or_else(|error| panic!("failed to parse stdout as json: {error}\n{stdout}"));
+        let json = serde_json::from_str::<Value>(&stdout).unwrap();
         (output, json)
     }
 
@@ -124,7 +123,7 @@ impl CurrentFixture {
                     ),
                     ("ANTHROPIC_MODEL".to_string(), "claude-test".to_string()),
                 ]),
-                other: HashMap::new(),
+                ..ClaudeSettings::default()
             })
             .unwrap(),
         )
@@ -152,7 +151,7 @@ fn claude_api_key_section() -> ConfigSection {
     ConfigSection {
         description: Some("Claude API key".to_string()),
         base_url: Some("https://api.example.com".to_string()),
-        auth_token: Some("sk-claude-test".to_string()),
+        auth_token: Some(ccr_core::Secret::from("sk-claude-test")),
         model: Some("claude-test".to_string()),
         small_fast_model: None,
         provider: Some("example".to_string()),

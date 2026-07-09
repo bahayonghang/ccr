@@ -10,7 +10,7 @@ pub mod record;
 // ── account ──
 pub use account::{
     AccountInfo, AccountsResponse, CheckinAccount, CookieCredentials, CreateAccountRequest,
-    TestConnectionResponse, UpdateAccountRequest, mask_cookies_json,
+    TestConnectionResponse, UpdateAccountRequest,
 };
 
 // ── balance ──

@@ -256,14 +256,12 @@
                   v-model="formData.model"
                   class="w-full px-4 py-3 rounded-xl bg-bg-surface/700 border border-border-default focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 outline-none transition-colors appearance-none"
                 >
-                  <option value="claude-sonnet-4-5-20250929">
-                    Claude Sonnet 4.5
-                  </option>
-                  <option value="claude-opus-4-20250514">
-                    Claude Opus 4
-                  </option>
-                  <option value="claude-3-5-sonnet-20241022">
-                    Claude 3.5 Sonnet
+                  <option
+                    v-for="option in defaultAgentModelOptions"
+                    :key="option.value"
+                    :value="option.value"
+                  >
+                    {{ option.label }}
                   </option>
                 </select>
                 <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-text-muted">
@@ -301,7 +299,7 @@
               <span
                 v-for="tool in (formData.tools || [])"
                 :key="tool"
-                class="px-3 py-1.5 rounded-lg text-sm flex items-center gap-2 bg-white border border-border-default shadow-sm text-text-primary group"
+                class="px-3 py-1.5 rounded-lg text-sm flex items-center gap-2 bg-bg-elevated border border-border-default shadow-sm text-text-primary group"
               >
                 {{ tool }}
                 <button
@@ -320,7 +318,7 @@
             <textarea
               v-model="formData.system_prompt"
               rows="8"
-              class="w-full px-4 py-3 rounded-xl bg-bg-surface/700 border border-border-default focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 outline-none transition-colors resize-y font-mono text-sm leading-relaxed"
+              class="w-full px-4 py-3 rounded-xl bg-bg-surface/70 border border-border-default focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 outline-none transition-colors resize-y font-mono text-sm leading-relaxed"
               :placeholder="$t('agents.systemPromptPlaceholder')"
             />
           </div>
@@ -328,7 +326,7 @@
 
         <div class="flex gap-4 mt-10 pt-6 border-t border-border-default/50">
           <button
-            class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-colors bg-white text-text-secondary hover:bg-bg-surface border border-border-default"
+            class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-colors bg-bg-elevated text-text-secondary hover:bg-bg-surface border border-border-default"
             @click="showEditModal = false"
           >
             {{ $t('common.cancel') }}
@@ -358,10 +356,18 @@ import type { Agent, AgentRequest } from '@/types'
 import { extractStringParam } from '@/types/router'
 import { getErrorMessage } from '@/utils/errorHandler'
 import { logger } from '@/utils/logger'
+import { copyText } from '@/utils/clipboard'
+import { useUIStore } from '@/stores/ui'
 
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
+const uiStore = useUIStore()
+const defaultAgentModelOptions = [
+  { value: 'claude-sonnet-4-5-20250929', label: 'Claude Sonnet 4.5' },
+  { value: 'claude-opus-4-20250514', label: 'Claude Opus 4' },
+  { value: 'claude-3-5-sonnet-20241022', label: 'Claude 3.5 Sonnet' },
+]
 
 // 使用 agents module (Claude Code)
 const { getAgent, updateAgent, deleteAgent, toggleAgent, loading } = useAgents('agents')
@@ -440,7 +446,7 @@ const handleSave = async () => {
     showEditModal.value = false
   } catch (err) {
     logger.error('Failed to update agent:', err)
-    alert(t('common.operationFailed'))
+    uiStore.showError(t('common.operationFailed'))
   } finally {
     saving.value = false
   }
@@ -454,21 +460,28 @@ const handleToggle = async () => {
     agent.value.disabled = !agent.value.disabled
   } catch (err) {
     logger.error('Failed to toggle agent:', err)
-    alert(t('common.operationFailed'))
+    uiStore.showError(t('common.operationFailed'))
   }
 }
 
 const handleDelete = async () => {
   if (!agent.value) return
 
-  if (!confirm(t('agents.deleteConfirm', { name: agent.value.name }))) return
+  const confirmed = await uiStore.requestConfirm({
+    title: t('common.delete'),
+    message: t('agents.deleteConfirm', { name: agent.value.name }),
+    confirmText: t('common.delete'),
+    cancelText: t('common.cancel'),
+    type: 'danger'
+  })
+  if (!confirmed) return
 
   try {
     await deleteAgent(agent.value.name)
     router.push('/agents')
   } catch (err) {
     logger.error('Failed to delete agent:', err)
-    alert(t('common.deleteFailed'))
+    uiStore.showError(t('common.deleteFailed'))
   }
 }
 
@@ -476,7 +489,7 @@ const copySystemPrompt = async () => {
   if (!agent.value?.system_prompt) return
 
   try {
-    await navigator.clipboard.writeText(agent.value.system_prompt)
+    if (!(await copyText(agent.value.system_prompt))) throw new Error('clipboard copy failed')
     copied.value = true
     setTimeout(() => {
       copied.value = false
@@ -486,4 +499,3 @@ const copySystemPrompt = async () => {
   }
 }
 </script>
-

@@ -12,7 +12,6 @@ use crate::application::profile_switch::switch_profile_for_platform as run_switc
 use crate::managers::settings::SettingsManager;
 use crate::models::Platform;
 use crate::platforms::create_platform;
-use ccr_core::Validatable;
 use ccr_core::core::error::{CcrError, Result};
 use ccr_core::core::logging::ColorOutput;
 use colored::Colorize;
@@ -167,7 +166,7 @@ pub async fn switch_command_for_platform(config_name: &str, platform_name: &str)
             Cell::new("Auth Token")
                 .fg(TableColor::Yellow)
                 .add_attribute(Attribute::Bold),
-            Cell::new(ColorOutput::mask_sensitive(auth_token)).fg(TableColor::DarkGrey),
+            Cell::new(auth_token.to_string()).fg(TableColor::DarkGrey),
         ]);
     }
 

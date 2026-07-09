@@ -24,7 +24,7 @@ export interface McpServersResponse {
 
 // ============ Slash Command Management Types ============
 
-export interface SlashCommand {
+export interface McpSlashCommand {
   name: string;
   description: string;
   command: string;
@@ -33,7 +33,7 @@ export interface SlashCommand {
   folder?: string; // Folder path: '' for root, 'subfolder' for subfolder
 }
 
-export interface SlashCommandRequest {
+export interface McpSlashCommandRequest {
   name: string;
   description: string;
   command: string;
@@ -42,7 +42,7 @@ export interface SlashCommandRequest {
 }
 
 export interface SlashCommandsResponse {
-  commands: SlashCommand[];
+  commands: McpSlashCommand[];
   folders?: string[]; // List of subdirectories
 }
 

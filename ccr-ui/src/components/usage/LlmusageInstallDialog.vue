@@ -26,10 +26,12 @@
       class="space-y-4"
     >
       <div class="bg-bg-surface rounded-lg p-4 border border-border-default">
+        <!-- eslint-disable vue/no-v-html -- 仅渲染 i18n 文案中的 <strong>，无用户输入 -->
         <p
           class="text-sm text-text-primary leading-relaxed"
           v-html="descriptionHtml"
         />
+        <!-- eslint-enable vue/no-v-html -->
         <p class="text-sm text-text-secondary mt-2">
           {{ t('usage.install.dialog.detectedAbsent') }}
         </p>
@@ -189,7 +191,7 @@
         class="text-center py-4"
       >
         <div class="text-4xl mb-3">
-          ⏹️
+          {{ cancelledOutcomeGlyph }}
         </div>
         <p class="text-sm font-medium text-text-primary">
           {{ t('usage.install.dialog.cancelled') }}
@@ -297,6 +299,7 @@ import {
   type ManualCatalog,
   type ProgressStage,
 } from '@/api/domains/install'
+import { copyText } from '@/utils/clipboard'
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Props & Emits
@@ -341,6 +344,7 @@ const autoRetryFired = ref<Set<string>>(new Set())
 // Manual install state
 const copiedCommand = ref<string | null>(null)
 const recheckLoading = ref(false)
+const cancelledOutcomeGlyph = '⏹️'
 
 // Log container ref for auto-scroll
 const logContainer = ref<HTMLElement | null>(null)
@@ -501,7 +505,7 @@ async function recheckInstallation() {
 
 async function copyCommand(cmd: string) {
   try {
-    await navigator.clipboard.writeText(cmd)
+    if (!(await copyText(cmd))) throw new Error('clipboard copy failed')
     copiedCommand.value = cmd
     if (copiedTimer) clearTimeout(copiedTimer)
     copiedTimer = setTimeout(() => {

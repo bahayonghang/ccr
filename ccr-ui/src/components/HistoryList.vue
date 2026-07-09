@@ -1,13 +1,75 @@
+<script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
+import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { useVirtualizer } from '@tanstack/vue-virtual'
+import type { HistoryEntry } from '@/types'
+import { formatRelativeTime } from '@/utils/codexHelpers'
+import Spinner from '@/components/ui/Spinner.vue'
+import Card from '@/components/ui/Card.vue'
+
+const props = withDefaults(defineProps<{
+  entries: HistoryEntry[]
+  loading?: boolean
+}>(), { loading: false })
+
+const { t } = useI18n()
+const parentRef = ref<HTMLElement | null>(null)
+
+const rowVirtualizer = useVirtualizer(computed(() => ({
+  count: props.entries.length,
+  getScrollElement: () => parentRef.value,
+  estimateSize: () => 160,
+  overscan: 5,
+})))
+
+const measureElement = (element: unknown) => {
+  rowVirtualizer.value.measureElement(element instanceof Element ? element : null)
+}
+
+const getOperationLabel = (op: string) => ({
+  'switch': 'Switched Config',
+  'init': 'Initialized',
+  'update': 'Updated Config',
+  'delete': 'Deleted Config',
+  'validate': 'Validation Run',
+  'clean': 'Cleaned Backups',
+  'import': 'Imported',
+  'export': 'Exported'
+}[op] || op)
+
+const getOperationIcon = (op: string) => ({
+  'switch': 'GitBranch',
+  'init': 'CheckCircle',
+  'update': 'FileEdit',
+  'delete': 'Trash2',
+  'validate': 'CheckCircle',
+  'clean': 'RefreshCw',
+  'import': 'ArrowRight',
+  'export': 'ArrowRight'
+}[op] || 'GitBranch')
+
+const getOperationColor = (op: string) => ({
+  'switch': 'var(--chart-color-0)',
+  'init': 'var(--chart-color-1)',
+  'update': 'var(--chart-color-3)',
+  'delete': 'var(--chart-color-4)',
+  'validate': 'var(--chart-color-2)',
+  'clean': 'var(--chart-color-3)',
+  'import': 'var(--chart-color-1)',
+  'export': 'var(--chart-color-0)'
+}[op] || 'var(--color-text-muted)')
+</script>
+
 <template>
   <div class="h-[600px] flex flex-col">
-    <!-- Header -->
     <div class="flex items-center justify-between mb-4 flex-shrink-0">
       <div>
         <h2 class="text-xl font-bold text-white">
-          Operation History
+          {{ t('common.historyPanel.title') }}
         </h2>
         <p class="text-sm text-text-primary">
-          {{ entries.length }} records found
+          {{ t('common.historyPanel.recordsFound', { count: entries.length }) }}
         </p>
       </div>
     </div>
@@ -36,10 +98,10 @@
         />
       </div>
       <p class="text-lg font-medium text-text-primary">
-        No history records
+        {{ t('common.historyPanel.emptyTitle') }}
       </p>
       <p class="text-sm">
-        Operations will appear here.
+        {{ t('common.historyPanel.emptyDescription') }}
       </p>
     </div>
 
@@ -151,7 +213,10 @@
                       <span class="font-bold text-white">{{ change.key }}</span>
                       <div class="flex items-center gap-1 truncate text-text-muted">
                         <span class="truncate">{{ change.old_value || '_' }}</span>
-                        <span>→</span>
+                        <SIcon
+                          name="ArrowRight"
+                          size="h-3 w-3"
+                        />
                         <span class="text-white truncate">{{ change.new_value || '_' }}</span>
                       </div>
                     </div>
@@ -159,12 +224,12 @@
                       v-if="entries[virtualRow.index].changes.length > 3"
                       class="text-[10px] text-accent-primary hover:underline"
                     >
-                      + {{ entries[virtualRow.index].changes.length - 3 }} more changes
+                      + {{ entries[virtualRow.index].changes.length - 3 }} {{ t('common.historyPanel.moreChanges') }}
                     </button>
                   </div>
                     
                   <div class="mt-2 pt-2 border-t border-border-default/10 text-[10px] text-text-muted font-mono">
-                    ID: {{ entries[virtualRow.index].id }}
+                    {{ t('common.historyPanel.idLabel', { id: entries[virtualRow.index].id }) }}
                   </div>
                 </div>
               </div>
@@ -175,65 +240,3 @@
     </div>
   </div>
 </template>
-
-<script setup lang="ts">
-import SIcon from '@/components/ui/SIcon.vue'
-import { ref, computed } from 'vue'
-import { useVirtualizer } from '@tanstack/vue-virtual'
-import type { HistoryEntry } from '@/types'
-import { formatRelativeTime } from '@/utils/codexHelpers'
-import Spinner from '@/components/ui/Spinner.vue'
-import Card from '@/components/ui/Card.vue'
-
-const props = withDefaults(defineProps<{
-  entries: HistoryEntry[]
-  loading?: boolean
-}>(), { loading: false })
-
-const parentRef = ref<HTMLElement | null>(null)
-
-const rowVirtualizer = useVirtualizer(computed(() => ({
-  count: props.entries.length,
-  getScrollElement: () => parentRef.value,
-  estimateSize: () => 160,
-  overscan: 5,
-})))
-
-const measureElement = (element: unknown) => {
-  rowVirtualizer.value.measureElement(element instanceof Element ? element : null)
-}
-
-const getOperationLabel = (op: string) => ({
-  'switch': 'Switched Config',
-  'init': 'Initialized',
-  'update': 'Updated Config',
-  'delete': 'Deleted Config',
-  'validate': 'Validation Run',
-  'clean': 'Cleaned Backups',
-  'import': 'Imported',
-  'export': 'Exported'
-}[op] || op)
-
-const getOperationIcon = (op: string) => ({
-  'switch': 'GitBranch',
-  'init': 'CheckCircle',
-  'update': 'FileEdit',
-  'delete': 'Trash2',
-  'validate': 'CheckCircle',
-  'clean': 'RefreshCw',
-  'import': 'ArrowRight',
-  'export': 'ArrowRight'
-}[op] || 'GitBranch')
-
-const getOperationColor = (op: string) => ({
-  'switch': '#8b5cf6',
-  'init': '#10b981',
-  'update': '#3b82f6',
-  'delete': '#ef4444',
-  'validate': '#f59e0b',
-  'clean': '#6366f1',
-  'import': '#06b6d4',
-  'export': '#ec4899'
-}[op] || '#64748b')
-</script>
-

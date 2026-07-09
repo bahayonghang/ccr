@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
 import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { isTauriEnvironment, TauriRuntimeApi } from '@/api/runtime/environment'
 import { logger } from '@/utils/logger'
 
+const { t } = useI18n()
 const isTauri = ref(false)
 const tauriVersion = ref<string | null>(null)
 
@@ -43,15 +45,14 @@ onMounted(async () => {
     />
 
     <span>
-      {{ isTauri ? '桌面应用' : 'Web版本' }}
+      {{ isTauri ? t('common.environment.desktopApp') : t('common.environment.webVersion') }}
     </span>
 
     <span
       v-if="isTauri && tauriVersion"
       class="px-1.5 py-0.5 rounded bg-bg-surface/700 dark:bg-black/20 text-xs"
     >
-      v{{ tauriVersion }}
+      {{ t('common.versionPrefix') }}{{ tauriVersion }}
     </span>
   </div>
 </template>
-

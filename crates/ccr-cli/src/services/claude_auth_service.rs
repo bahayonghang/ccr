@@ -399,7 +399,7 @@ impl ClaudeAuthService {
         let metadata = self.read_optional_json::<ClaudeMetadataDocument>(&self.claude_json_path);
         let info = credentials
             .as_ref()
-            .map(|doc| self.build_current_info(doc, metadata.as_ref()));
+            .and_then(|doc| self.build_current_info(doc, metadata.as_ref()));
         let usable = info.is_some();
 
         RuntimeAuthRead { info, usable }
@@ -409,22 +409,19 @@ impl ClaudeAuthService {
         &self,
         credentials: &ClaudeCredentialsDocument,
         metadata: Option<&ClaudeMetadataDocument>,
-    ) -> ClaudeCurrentAuthInfo {
-        let oauth = credentials
-            .claude_ai_oauth
-            .as_ref()
-            .expect("runtime auth info requires claudeAiOauth");
+    ) -> Option<ClaudeCurrentAuthInfo> {
+        let oauth = credentials.claude_ai_oauth.as_ref()?;
         let oauth_account = metadata.and_then(|meta| meta.oauth_account.as_ref());
         let expires_at = oauth.expires_at.to_datetime();
 
-        ClaudeCurrentAuthInfo {
+        Some(ClaudeCurrentAuthInfo {
             account_uuid: oauth_account.and_then(|account| account.account_uuid.clone()),
             email: oauth_account.and_then(|account| account.email_address.clone()),
             billing_type: oauth_account.and_then(|account| account.billing_type.clone()),
             subscription_type: oauth.subscription_type.clone(),
             rate_limit_tier: oauth.rate_limit_tier.clone(),
             expires_at,
-        }
+        })
     }
 
     fn build_registry_account(
@@ -583,7 +580,13 @@ impl ClaudeAuthService {
         }
 
         let metadata = self.read_optional_json::<ClaudeMetadataDocument>(&self.claude_json_path);
-        let info = self.build_current_info(&credentials, metadata.as_ref());
+        let info = self
+            .build_current_info(&credentials, metadata.as_ref())
+            .ok_or_else(|| {
+                CcrError::ValidationError(
+                    "未检测到 Claude 官方订阅登录，请先运行 `claude login`".into(),
+                )
+            })?;
 
         let mut registry = self.load_registry()?;
         if registry.accounts.contains_key(name) && !force {
@@ -762,13 +765,54 @@ impl ClaudeAuthService {
             .is_some_and(|value| !value.trim().is_empty())
             || profile
                 .auth_token
-                .as_deref()
-                .is_some_and(|value| !value.trim().is_empty())
+                .as_ref()
+                .is_some_and(|value| !value.expose().trim().is_empty())
         {
             ClaudeProfileAuthMode::ApiKey
         } else {
             ClaudeProfileAuthMode::Subscription
         }
+    }
+
+    /// 🔎 判定 profile 是否为「API-key 形态」(第三方/中转必然形态)
+    ///
+    /// 保守规则: `provider_type == third_party_model`, 或 `base_url` 与
+    /// `auth_token` 同时非空。
+    ///
+    /// 刻意**不**把「模型映射字段非空」纳入判定: `ANTHROPIC_DEFAULT_*_MODEL`
+    /// 在官方订阅下也可用于钉某个快照, 以此判 api_key 会误伤合法的
+    /// 「订阅 + 快照钉选」profile, 并触发 `section.validate()` 失败。
+    /// 真实第三方必然带 base_url + auth_token, 已被覆盖。
+    pub fn is_api_key_shaped(profile: &ProfileConfig) -> bool {
+        fn filled(value: &Option<String>) -> bool {
+            value.as_deref().is_some_and(|raw| !raw.trim().is_empty())
+        }
+
+        let token_filled = profile
+            .auth_token
+            .as_ref()
+            .is_some_and(|raw| !raw.expose().trim().is_empty());
+
+        profile.provider_type.as_deref() == Some("third_party_model")
+            || (filled(&profile.base_url) && token_filled)
+    }
+
+    /// 🩹 在 `resolve_profile_auth_mode` 之上叠加自愈
+    ///
+    /// 当 profile 解析为 subscription 但实为 API-key 形态时, 纠正为 api_key。
+    /// 这避免「base_url + auth_token 齐全却被标成 subscription」的 profile 在
+    /// apply 时被 `clear_managed_vars()` 静默清空。
+    ///
+    /// 纯函数、不打日志: warn 由实际纠正点 (`apply_profile` / `normalize_profile`)
+    /// 发出, 以免只读渲染路径 (如 `profile_to_json`) 刷屏。
+    pub fn effective_auth_mode(profile: &ProfileConfig) -> ClaudeProfileAuthMode {
+        let resolved = Self::resolve_profile_auth_mode(profile);
+        if matches!(resolved, ClaudeProfileAuthMode::Subscription)
+            && Self::is_api_key_shaped(profile)
+        {
+            return ClaudeProfileAuthMode::ApiKey;
+        }
+        resolved
     }
 
     fn profile_auth_source(profile: &ProfileConfig, auth_mode: ClaudeProfileAuthMode) -> String {
@@ -789,57 +833,31 @@ impl ClaudeAuthService {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
+    use crate::test_support::TestHome;
     use chrono::Duration;
     use serde_json::json;
-    use std::sync::MutexGuard;
-    use tempfile::TempDir;
-
-    fn restore_env_var(key: &str, previous: Option<String>) {
-        // SAFETY: 仅在测试中恢复当前进程环境变量，调用方保证作用域内串行使用。
-        unsafe {
-            match previous {
-                Some(value) => std::env::set_var(key, value),
-                None => std::env::remove_var(key),
-            }
-        }
-    }
 
     struct TestEnv {
-        _root: TempDir,
-        _env_guard: MutexGuard<'static, ()>,
-        previous_ccr_root: Option<String>,
-        previous_lock_dir: Option<String>,
+        _home: TestHome,
         service: ClaudeAuthService,
     }
 
     impl TestEnv {
         fn new() -> Self {
-            let env_guard = crate::test_support::env_lock();
-            let root = tempfile::tempdir().unwrap();
-            let home = root.path().join("home");
-            let ccr_claude_dir = home.join(".ccr").join("platforms").join("claude");
-            let claude_dir = home.join(".claude");
-            let claude_json_path = home.join(".claude.json");
+            let home = TestHome::new();
+            let ccr_claude_dir = home.root().join("platforms").join("claude");
+            let claude_dir = home.home().join(".claude");
+            let claude_json_path = home.home().join(".claude.json");
             fs::create_dir_all(&ccr_claude_dir).unwrap();
             fs::create_dir_all(&claude_dir).unwrap();
-            let previous_ccr_root = std::env::var("CCR_ROOT").ok();
-            let previous_lock_dir = std::env::var("CCR_LOCK_DIR").ok();
-            // SAFETY: 测试需要临时指向隔离的 CCR 根目录，结束后会恢复原值。
-            unsafe {
-                std::env::set_var("CCR_ROOT", home.join(".ccr"));
-                std::env::set_var("CCR_LOCK_DIR", home.join(".locks"));
-            }
 
             Self {
-                _env_guard: env_guard,
-                previous_ccr_root,
-                previous_lock_dir,
                 service: ClaudeAuthService::from_parts(
                     ccr_claude_dir,
                     claude_dir,
                     claude_json_path,
                 ),
-                _root: root,
+                _home: home,
             }
         }
 
@@ -904,13 +922,6 @@ mod tests {
                 serde_json::to_string_pretty(&value).unwrap(),
             )
             .unwrap();
-        }
-    }
-
-    impl Drop for TestEnv {
-        fn drop(&mut self) {
-            restore_env_var("CCR_ROOT", self.previous_ccr_root.clone());
-            restore_env_var("CCR_LOCK_DIR", self.previous_lock_dir.clone());
         }
     }
 
@@ -1008,7 +1019,7 @@ mod tests {
             .platform_data
             .insert("auth_mode".into(), json!("subscription"));
         profile.base_url = Some("https://example.com".to_string());
-        profile.auth_token = Some("sk-test".to_string());
+        profile.auth_token = Some(ccr_core::Secret::from("sk-test"));
 
         assert_eq!(
             ClaudeAuthService::resolve_profile_auth_mode(&profile),
@@ -1078,5 +1089,48 @@ auth_mode = "api_key"
         );
         assert_eq!(summary.current_auth_name.as_deref(), Some("work"));
         assert_eq!(summary.auth_label(), "Official / work");
+    }
+
+    #[test]
+    fn test_effective_auth_mode_corrects_mismarked_third_party() {
+        let mut profile = ProfileConfig::new()
+            .with_base_url("https://chy.example.com".to_string())
+            .with_auth_token("sk-chy".to_string());
+        profile
+            .platform_data
+            .insert("auth_mode".into(), json!("subscription"));
+
+        // 字面解析仍是 subscription, 但 effective 纠正为 api_key
+        assert_eq!(
+            ClaudeAuthService::resolve_profile_auth_mode(&profile),
+            ClaudeProfileAuthMode::Subscription
+        );
+        assert_eq!(
+            ClaudeAuthService::effective_auth_mode(&profile),
+            ClaudeProfileAuthMode::ApiKey
+        );
+    }
+
+    #[test]
+    fn test_effective_auth_mode_keeps_subscription_snapshot_pin() {
+        // 官方订阅 + 仅模型映射 (无 base_url/token): 不应被误纠正为 api_key
+        let mut profile = ProfileConfig::new();
+        profile.default_opus_model = Some("claude-opus-4-5-20251101".to_string());
+        profile
+            .platform_data
+            .insert("auth_mode".into(), json!("subscription"));
+
+        assert!(!ClaudeAuthService::is_api_key_shaped(&profile));
+        assert_eq!(
+            ClaudeAuthService::effective_auth_mode(&profile),
+            ClaudeProfileAuthMode::Subscription
+        );
+    }
+
+    #[test]
+    fn test_is_api_key_shaped_detects_third_party_provider_type() {
+        let mut profile = ProfileConfig::new();
+        profile.provider_type = Some("third_party_model".to_string());
+        assert!(ClaudeAuthService::is_api_key_shaped(&profile));
     }
 }

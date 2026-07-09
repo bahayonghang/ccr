@@ -162,7 +162,7 @@
       <!-- CLI 二级折叠 -->
       <details class="cli-hint">
         <summary>{{ t('sync.account.cliHint') }}</summary>
-        <code class="cli-command">ccr sync config</code>
+        <code class="cli-command">{{ t('sync.webdav.configureCommand') }}</code>
       </details>
     </div>
 
@@ -197,6 +197,7 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
+import { getErrorMessage } from '@/utils/errorHandler'
 import { useI18n } from 'vue-i18n'
 import BaseModal from '@/components/common/BaseModal.vue'
 import Button from '@/components/ui/Button.vue'
@@ -327,7 +328,7 @@ const onTest = async () => {
     logger.error('test_webdav_config failed:', err)
     testBanner.value = {
       ok: false,
-      message: err instanceof Error ? err.message : String(err),
+      message: getErrorMessage(err),
     }
   } finally {
     testing.value = false
@@ -348,7 +349,7 @@ const onSave = async () => {
     logger.error('set_webdav_config failed:', err)
     testBanner.value = {
       ok: false,
-      message: err instanceof Error ? err.message : String(err),
+      message: getErrorMessage(err),
     }
   } finally {
     saving.value = false

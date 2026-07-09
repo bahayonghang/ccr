@@ -17,7 +17,7 @@ fn create_test_config_section(name: &str) -> ConfigSection {
     ConfigSection {
         description: Some(format!("Test config for {}", name)),
         base_url: Some(format!("https://api.{}.com", name)),
-        auth_token: Some(format!("sk-test-token-{}", name)),
+        auth_token: Some(ccr_core::Secret::new(format!("sk-test-token-{}", name))),
         model: Some("claude-sonnet-4".into()),
         small_fast_model: Some("claude-haiku".into()),
         provider: Some(name.to_string()),
@@ -228,7 +228,7 @@ fn test_settings_update_from_config() {
     assert!(settings.env.is_empty());
 
     // 从配置更新
-    settings.update_from_config(&config);
+    settings.apply_managed_env(config.to_managed_env_pairs());
 
     // 验证更新后的值
     assert_eq!(
@@ -584,7 +584,7 @@ fn test_config_and_settings_integration() {
     let section = loaded_config.get_current_section().unwrap();
 
     let mut settings = ClaudeSettings::new();
-    settings.update_from_config(section);
+    settings.apply_managed_env(section.to_managed_env_pairs());
 
     // 保存设置
     let lock_manager = LockManager::new(lock_dir);

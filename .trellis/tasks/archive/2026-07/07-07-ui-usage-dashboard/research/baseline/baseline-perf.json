@@ -1,0 +1,23 @@
+{
+  "capturedAt": "2026-07-08",
+  "method": "vite dev http://127.0.0.1:15173/usage + Playwright + research/perf-harness/tauri-shim.js 注入(fixture 30 天数据);localStorage 预置 ccr-theme=light/ccr-flavor=clay/ccr-accent=clay + ccr-usage-fixture-variant=stale;viewport 1920x1080;dataset 断言通过(light/clay/clay)。计时:纯 setTimeout(10ms) 轮询,click → 首个『无标记』.apexcharts-canvas 出现;rebuilt=旧 canvas DOM 节点未存活(节点属性标记法)。",
+  "artifactWarning": "初版测量(双 rAF 计时路径)得到恒定 ~4027ms,为测量伪影,已弃用;本文件为修正方法后的数据。",
+  "warmup": { "toTokens": 80, "toCost": 45, "toOverview": 45, "note": "tokens/cost 懒 chunk 已在此轮加载" },
+  "tabSwitchCyclesMs": [
+    { "toTokens": 62, "backOverview1": 37, "toCost": 35, "backOverview2": 37 },
+    { "toTokens": 60, "backOverview1": 33, "toCost": 31, "backOverview2": 39 },
+    { "toTokens": 61, "backOverview1": 34, "toCost": 25, "backOverview2": 38 }
+  ],
+  "chartRebuiltOnEveryReentry": true,
+  "windowSwitches": [
+    { "label": "本月", "ms": 64, "chartRemounted": true },
+    { "label": "近 30 天", "ms": 61, "chartRemounted": true }
+  ],
+  "memoryAfter20Toggles": { "beforeMB": 38.0, "afterMB": 22.4, "leak": false },
+  "conclusions": [
+    "U1 实锤:12/12 次 tab 再进入均重建图表 DOM(rebuilt=true),KeepAlive 后应为 rebuilt=false。",
+    "U2 实锤:窗口切换(store.loading v-if 整块替换 + options 引用重建)导致图表重挂载而非 updateSeries 快路径。",
+    "fixture 仅 30 天数据,绝对耗时(25~80ms)偏小;验收主指标是 rebuilt/chartRemounted 布尔翻转,耗时为辅助参考。",
+    "20 次快速往返无内存泄漏(GC 后反降);KeepAlive 改造后需复测此项防缓存泄漏。"
+  ]
+}

@@ -3,7 +3,8 @@
  * WSL 管理视图 — WSL 发行版列表、配置浏览、同步操作
  */
 import SIcon from '@/components/ui/SIcon.vue'
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   clearWslCache,
   detectWslCli,
@@ -18,6 +19,9 @@ import {
 } from '@/api/runtime/wsl'
 import { logger } from '@/utils/logger'
 
+const { locale } = useI18n()
+const isZh = computed(() => locale.value.startsWith('zh'))
+const tt = (zh: string, en: string) => (isZh.value ? zh : en)
 const distros = ref<WslDistro[]>([])
 const selectedDistro = ref<string | null>(null)
 const isLoading = ref(false)
@@ -28,6 +32,7 @@ const configContent = ref('')
 const cliStatus = ref<WslCliStatus>({})
 const selectedPlatform = ref('claude')
 const cacheStatus = ref<WslCacheStatus | null>(null)
+const stateBullet = '●'
 
 const platforms = ['claude', 'codex', 'gemini']
 
@@ -40,11 +45,11 @@ const stateColor = (state: string) => {
 }
 
 const formatCacheAge = (secs: number | null): string => {
-  if (secs === null) return '未知'
-  if (secs < 60) return `${secs}秒前`
-  if (secs < 3600) return `${Math.floor(secs / 60)}分钟前`
-  if (secs < 86400) return `${Math.floor(secs / 3600)}小时前`
-  return `${Math.floor(secs / 86400)}天前`
+  if (secs === null) return tt('未知', 'Unknown')
+  if (secs < 60) return isZh.value ? `${secs}秒前` : `${secs}s ago`
+  if (secs < 3600) return isZh.value ? `${Math.floor(secs / 60)}分钟前` : `${Math.floor(secs / 60)}m ago`
+  if (secs < 86400) return isZh.value ? `${Math.floor(secs / 3600)}小时前` : `${Math.floor(secs / 3600)}h ago`
+  return isZh.value ? `${Math.floor(secs / 86400)}天前` : `${Math.floor(secs / 86400)}d ago`
 }
 
 const fetchCacheStatus = async () => {
@@ -95,7 +100,7 @@ const readConfig = async () => {
       path: 'settings.json',
     })
   } catch (e) {
-    configContent.value = `读取失败: ${e}`
+    configContent.value = `${tt('读取失败', 'Read failed')}: ${e}`
   }
 }
 
@@ -112,7 +117,7 @@ const syncConfig = async (direction: string) => {
     })
     syncMessage.value = result
   } catch (e) {
-    syncMessage.value = `同步失败: ${e}`
+    syncMessage.value = `${tt('同步失败', 'Sync failed')}: ${e}`
   } finally {
     isSyncing.value = false
   }
@@ -171,10 +176,10 @@ onMounted(() => fetchDistros())
         </div>
         <div>
           <h1 class="text-xl font-bold text-white">
-            WSL 环境管理
+            {{ tt('WSL 环境管理', 'WSL Environment Management') }}
           </h1>
           <p class="text-sm text-text-muted">
-            管理 Windows Subsystem for Linux 发行版配置
+            {{ tt('管理 Windows Subsystem for Linux 发行版配置', 'Manage Windows Subsystem for Linux distribution configuration') }}
           </p>
         </div>
       </div>
@@ -189,7 +194,7 @@ onMounted(() => fetchDistros())
             size="w-4 h-4"
             :class="{ 'animate-spin': isRefreshing }"
           />
-          刷新
+          {{ tt('刷新', 'Refresh') }}
         </button>
         <button
           class="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent-primary/10 border border-accent-primary/30 text-accent-primary hover:bg-accent-primary/20 transition-colors text-sm"
@@ -201,7 +206,7 @@ onMounted(() => fetchDistros())
             size="w-4 h-4"
             :class="{ 'animate-spin': isRefreshing }"
           />
-          强制刷新
+          {{ tt('强制刷新', 'Force refresh') }}
         </button>
       </div>
     </div>
@@ -218,11 +223,11 @@ onMounted(() => fetchDistros())
             size="w-4 h-4"
             class="text-text-muted"
           />
-          <span class="text-text-primary">缓存状态:</span>
+          <span class="text-text-primary">{{ `${tt('缓存状态', 'Cache status')}:` }}</span>
           <span
             :class="cacheStatus.has_disk_cache ? 'text-emerald-400' : 'text-text-muted'"
           >
-            {{ cacheStatus.has_disk_cache ? '已缓存' : '未缓存' }}
+            {{ cacheStatus.has_disk_cache ? tt('已缓存', 'Cached') : tt('未缓存', 'Not cached') }}
           </span>
         </div>
         <div
@@ -230,13 +235,13 @@ onMounted(() => fetchDistros())
           class="flex items-center gap-2"
         >
           <span class="text-text-muted">|</span>
-          <span class="text-text-primary">缓存时间:</span>
+          <span class="text-text-primary">{{ `${tt('缓存时间', 'Cache age')}:` }}</span>
           <span class="text-white">{{ formatCacheAge(cacheStatus.age_secs) }}</span>
           <span
             v-if="cacheStatus.is_expired"
             class="px-1.5 py-0.5 rounded text-[10px] bg-amber-500/20 text-amber-400"
           >
-            已过期
+            {{ tt('已过期', 'Expired') }}
           </span>
         </div>
       </div>
@@ -248,7 +253,7 @@ onMounted(() => fetchDistros())
           name="Trash2"
           size="w-3 h-3"
         />
-        清除缓存
+        {{ tt('清除缓存', 'Clear cache') }}
       </button>
     </div>
 
@@ -271,10 +276,10 @@ onMounted(() => fetchDistros())
         class="mx-auto text-text-muted mb-3"
       />
       <p class="text-text-primary font-medium">
-        未检测到 WSL 发行版
+        {{ tt('未检测到 WSL 发行版', 'No WSL distributions detected') }}
       </p>
       <p class="text-sm text-text-muted mt-1">
-        请先安装 WSL 并配置至少一个 Linux 发行版
+        {{ tt('请先安装 WSL 并配置至少一个 Linux 发行版', 'Install WSL and configure at least one Linux distribution first') }}
       </p>
     </div>
 
@@ -286,7 +291,7 @@ onMounted(() => fetchDistros())
       <!-- 左侧：发行版列表 -->
       <div class="col-span-4 space-y-3">
         <h2 class="text-xs font-bold uppercase tracking-wider text-text-muted px-1">
-          发行版
+          {{ tt('发行版', 'Distributions') }}
         </h2>
         <div class="space-y-2">
           <button
@@ -306,15 +311,15 @@ onMounted(() => fetchDistros())
                 {{ distro.name }}
               </div>
               <div class="flex items-center gap-2 text-[10px] mt-0.5">
-                <span class="opacity-60">WSL{{ distro.version === 'Wsl2' ? '2' : '1' }}</span>
-                <span :class="stateColor(distro.state)">● {{ distro.state }}</span>
+                <span class="opacity-60">{{ `WSL${distro.version === 'Wsl2' ? '2' : '1'}` }}</span>
+                <span :class="stateColor(distro.state)">{{ `${stateBullet} ${distro.state}` }}</span>
               </div>
             </div>
             <span
               v-if="distro.is_default"
               class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-accent-primary/20 text-accent-primary"
             >
-              默认
+              {{ tt('默认', 'Default') }}
             </span>
           </button>
         </div>
@@ -325,7 +330,7 @@ onMounted(() => fetchDistros())
         <!-- CLI 工具检测 -->
         <div class="rounded-xl border border-border-default/15 glass-surface p-4">
           <h3 class="text-sm font-semibold text-white mb-3">
-            AI CLI 工具状态
+            {{ tt('AI CLI 工具状态', 'AI CLI tool status') }}
           </h3>
           <div class="grid grid-cols-3 gap-3">
             <div
@@ -360,7 +365,7 @@ onMounted(() => fetchDistros())
                 name="FileText"
                 size="w-4 h-4"
               />
-              配置文件
+              {{ tt('配置文件', 'Config file') }}
             </h3>
             <select
               v-model="selectedPlatform"
@@ -382,7 +387,7 @@ onMounted(() => fetchDistros())
         <!-- 同步操作 -->
         <div class="rounded-xl border border-border-default/15 glass-surface p-4">
           <h3 class="text-sm font-semibold text-white mb-3">
-            配置同步
+            {{ tt('配置同步', 'Config sync') }}
           </h3>
           <div class="flex items-center gap-3">
             <button
@@ -394,7 +399,7 @@ onMounted(() => fetchDistros())
                 name="Upload"
                 size="w-4 h-4"
               />
-              推送到 WSL
+              {{ tt('推送到 WSL', 'Push to WSL') }}
             </button>
             <button
               class="flex items-center gap-2 px-4 py-2 rounded-lg border border-border-default/15 text-text-primary text-sm font-medium hover:text-white hover:border-accent-primary/30 transition-colors"
@@ -405,7 +410,7 @@ onMounted(() => fetchDistros())
                 name="Download"
                 size="w-4 h-4"
               />
-              从 WSL 拉取
+              {{ tt('从 WSL 拉取', 'Pull from WSL') }}
             </button>
           </div>
           <p
@@ -419,4 +424,3 @@ onMounted(() => fetchDistros())
     </div>
   </div>
 </template>
-

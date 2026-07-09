@@ -1,5 +1,6 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
-import { getCodexTraySnapshot, switchCodexAuth } from '@/api/tauri'
+import { getErrorMessage } from '@/utils/errorHandler'
+import { getCodexTraySnapshot, switchCodexAuth } from '@/api'
 import {
   shellBeginTrayPanelDrag,
   shellCompleteTrayPanelDrag,
@@ -54,7 +55,7 @@ export function useCodexTrayPanel() {
       snapshot.value = await getCodexTraySnapshot<CodexTraySnapshot>(force)
     } catch (loadError) {
       logger.error('Failed to load Codex tray snapshot:', loadError)
-      error.value = loadError instanceof Error ? loadError.message : String(loadError)
+      error.value = getErrorMessage(loadError)
     } finally {
       loading.value = false
     }
@@ -70,7 +71,7 @@ export function useCodexTrayPanel() {
       screen.value = 'overview'
     } catch (switchError) {
       logger.error('Failed to switch Codex tray account:', switchError)
-      error.value = switchError instanceof Error ? switchError.message : String(switchError)
+      error.value = getErrorMessage(switchError)
     } finally {
       busyAccount.value = null
     }
@@ -114,9 +115,7 @@ export function useCodexTrayPanel() {
       const afterPosition = await win.outerPosition()
       const moved = shouldPersistTrayPanelManualPosition(beforePosition, afterPosition)
 
-      await shellCompleteTrayPanelDrag(
-        moved ? { x: afterPosition.x, y: afterPosition.y } : null
-      )
+      await shellCompleteTrayPanelDrag(moved ? { x: afterPosition.x, y: afterPosition.y } : null)
     } catch (dragError) {
       logger.error('Failed to drag Codex tray panel:', dragError)
       try {

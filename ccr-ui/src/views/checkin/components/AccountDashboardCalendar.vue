@@ -14,7 +14,7 @@
       v-if="cells.length === 0"
       class="calendar-empty"
     >
-      暂无日历数据
+      {{ tt('暂无日历数据', 'No calendar data yet') }}
     </div>
 
     <div
@@ -48,15 +48,15 @@
     <div class="calendar-legend">
       <div class="legend-item">
         <span class="legend-dot checked" />
-        已签到
+        {{ tt('已签到', 'Checked in') }}
       </div>
       <div class="legend-item">
         <span class="legend-dot unchecked" />
-        未签到
+        {{ tt('未签到', 'Missed') }}
       </div>
       <div class="legend-item">
         <span class="legend-dot today" />
-        今天
+        {{ tt('今天', 'Today') }}
       </div>
     </div>
   </div>
@@ -64,13 +64,19 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { CheckinDashboardCalendar, CheckinDashboardDay } from '@/types/checkin'
 
 const props = defineProps<{
   calendar: CheckinDashboardCalendar | null
 }>()
 
-const weekLabels = ['日', '一', '二', '三', '四', '五', '六']
+const { locale } = useI18n()
+const isZh = computed(() => locale.value.startsWith('zh'))
+const tt = (zh: string, en: string) => (isZh.value ? zh : en)
+const weekLabels = computed(() => (isZh.value
+  ? ['日', '一', '二', '三', '四', '五', '六']
+  : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']))
 
 const todayString = computed(() => {
   const now = new Date()
@@ -115,10 +121,10 @@ const cellClass = (cell: CheckinDashboardDay | null) => {
 }
 
 const buildTitle = (cell: CheckinDashboardDay) => {
-  const status = cell.is_checked_in ? '已签到' : '未签到'
+  const status = cell.is_checked_in ? tt('已签到', 'Checked in') : tt('未签到', 'Missed')
   const reward = dayReward(cell)
   const rewardText = reward !== null ? `+${reward.toFixed(2)}` : '-'
-  return `${cell.date} · ${status} · 奖励 ${rewardText}`
+  return tt(`${cell.date} · ${status} · 奖励 ${rewardText}`, `${cell.date} · ${status} · Reward ${rewardText}`)
 }
 </script>
 
@@ -191,7 +197,7 @@ const buildTitle = (cell: CheckinDashboardDay) => {
 .cell-checked {
   background: rgb(var(--color-accent-primary-rgb) / 12%);
   border-color: rgb(var(--color-accent-primary-rgb) / 34%);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 20%);
+  box-shadow: var(--shadow-inner);
 }
 
 .cell-unchecked {

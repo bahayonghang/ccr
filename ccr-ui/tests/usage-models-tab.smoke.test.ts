@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import UsageModelsTab from '@/components/usage/UsageModelsTab.vue'
 import type { ModelDistributionSlice } from '@/views/usage/usageDashboardPresentation'
 import type { ModelStat } from '@/types/usage'
+import { withUsageDashboardContext } from './helpers/usageDashboardContextStub'
 
 const translations: Record<string, string> = {
   'usage.dashboard.chart.costByModel': 'Cost by Model',
@@ -53,18 +54,20 @@ const mountModelsTab = async (modelStats: ModelStat[], shouldRenderChart = false
     isOther: false,
   }))
 
-  const app = createApp(UsageModelsTab, {
-    chartComponent: ChartStub,
-    shouldRenderChart,
-    pieSeries: modelDistribution.map((slice) => slice.totalTokens),
-    pieOptions: {},
-    pieColors: ['#4f46e5'],
-    distributionSubtitle: 'Distribution',
-    modelDistribution,
-    modelStats,
-    formatCost: (value: number) => `$${value.toFixed(2)}`,
-    formatTokens: (value: number) => value.toLocaleString(),
-  })
+  const app = createApp(
+    withUsageDashboardContext(UsageModelsTab, {
+      chartComponent: ChartStub,
+      shouldRenderDistributionChart: shouldRenderChart,
+      modelTokenPieSeries: modelDistribution.map((slice) => slice.totalTokens),
+      modelTokenPieOptions: {},
+      pieColors: ['#4f46e5'],
+      distributionSubtitle: 'Distribution',
+      modelTokenDistribution: modelDistribution,
+      modelStats,
+      formatCost: (value: number) => `$${value.toFixed(2)}`,
+      formatTokens: (value: number) => value.toLocaleString(),
+    })
+  )
 
   app.config.globalProperties.$t = (key: string) => translations[key] ?? key
   app.mount(el)
@@ -252,7 +255,7 @@ describe('UsageModelsTab smoke', () => {
         pricing_rate: 'snapshot',
       },
       {
-        model: 'static-model',
+        model: 'claude-fable-5',
         request_count: 1,
         total_tokens: 80,
         total_cost: 0.7,
@@ -264,8 +267,8 @@ describe('UsageModelsTab smoke', () => {
         cost_without_cache: 0.7,
         cache_savings: 0,
         pricing_status: 'static',
-        pricing_source: 'static',
-        pricing_rate: 'static',
+        pricing_source: 'static-v1',
+        pricing_rate: '10/1/50',
       },
     ])
 
@@ -275,6 +278,8 @@ describe('UsageModelsTab smoke', () => {
       expect(text).toContain('Mixed')
       expect(text).toContain('Snapshot')
       expect(text).toContain('Static')
+      expect(text).toContain('claude-fable-5')
+      expect(text).toContain('10/1/50')
       expect(mounted.el.querySelector('.models-tab__status--mixed')).not.toBeNull()
       expect(mounted.el.querySelector('.models-tab__status--snapshot')).not.toBeNull()
       expect(mounted.el.querySelector('.models-tab__status--static')).not.toBeNull()

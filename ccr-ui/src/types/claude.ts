@@ -58,8 +58,18 @@ export interface ClaudeProfile {
   default_opus_model?: string | null
   default_sonnet_model?: string | null
   default_haiku_model?: string | null
+  default_fable_model?: string | null
+  default_opus_model_name?: string | null
+  default_sonnet_model_name?: string | null
+  default_haiku_model_name?: string | null
+  default_fable_model_name?: string | null
   subagent_model?: string | null
+  custom_model_option?: string | null
+  custom_model_option_name?: string | null
   effort_level?: string | null
+  claude_code_auto_compact_window?: string | null
+  api_timeout_ms?: string | null
+  claude_code_disable_nonessential_traffic?: string | null
   provider?: string | null
   provider_type?: string | null
   account?: string | null
@@ -83,8 +93,18 @@ export interface ClaudeProfileRequest {
   default_opus_model?: string | null
   default_sonnet_model?: string | null
   default_haiku_model?: string | null
+  default_fable_model?: string | null
+  default_opus_model_name?: string | null
+  default_sonnet_model_name?: string | null
+  default_haiku_model_name?: string | null
+  default_fable_model_name?: string | null
   subagent_model?: string | null
+  custom_model_option?: string | null
+  custom_model_option_name?: string | null
   effort_level?: string | null
+  claude_code_auto_compact_window?: string | null
+  api_timeout_ms?: string | null
+  claude_code_disable_nonessential_traffic?: string | null
   provider?: string
   provider_type?: string
   account?: string
@@ -169,4 +189,56 @@ export interface ClaudeAuthSaveRequest {
   name: string
   description?: string | null
   force?: boolean
+}
+
+export interface BuiltinPrompt {
+  id: string
+  name: string
+  description: string
+  category: string
+  tags: string[]
+  content: string
+}
+
+export interface ClaudeSettingsData {
+  model?: string
+  availableModels?: string[]
+  alwaysThinkingEnabled?: boolean
+  maxThinkingTokens?: number
+  maxOutputTokens?: number
+  effortLevel?: string
+  skipDangerousModePermissionPrompt?: boolean
+  theme?: string
+  language?: string
+  showTurnDuration?: boolean
+  prefersReducedMotion?: boolean
+  spinnerTipsEnabled?: boolean
+  terminalProgressBarEnabled?: boolean
+  showSpinnerTree?: boolean
+  includeCoAuthoredBy?: boolean
+  autoUpdates?: boolean
+  autoUpdatesChannel?: string
+  cleanupPeriodDays?: number
+  respectGitignore?: boolean
+  env?: Record<string, string>
+  permissions?: {
+    allow?: string[]
+    deny?: string[]
+    defaultMode?: string
+    additionalDirectories?: string[]
+  }
+  sandbox?: {
+    enabled?: boolean
+    autoAllowBashIfSandboxed?: boolean
+    network?: {
+      allowLocalBinding?: boolean
+      allowedDomains?: string[]
+    }
+    excludedCommands?: string[]
+  }
+  attribution?: {
+    commit?: string
+    pr?: string
+  }
+  [key: string]: unknown
 }

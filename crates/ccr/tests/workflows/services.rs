@@ -3,7 +3,6 @@
 // 测试 ConfigService, SettingsService, HistoryService, BackupService 的业务流程
 
 use ccr::LockManager;
-use ccr::Validatable;
 use ccr::managers::config::{CcsConfig, ConfigManager, ConfigSection};
 use ccr::managers::settings::SettingsManager;
 use ccr::services::{BackupService, ConfigService, HistoryService, SettingsService};
@@ -18,7 +17,7 @@ fn create_test_section(name: &str) -> ConfigSection {
     ConfigSection {
         description: Some(format!("Test config {}", name)),
         base_url: Some(format!("https://api.{}.com", name)),
-        auth_token: Some(format!("sk-test-token-{}", name)),
+        auth_token: Some(ccr_core::Secret::new(format!("sk-test-token-{}", name))),
         model: Some("claude-sonnet-4".into()),
         small_fast_model: Some("claude-haiku".into()),
         provider: Some(name.to_string()),

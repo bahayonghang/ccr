@@ -7,6 +7,7 @@ import {
   groupModelTokenDistribution,
   selectTrendGranularity,
 } from '@/views/usage/usageDashboardPresentation'
+import { makeModelStat } from './helpers/usageFixtures'
 
 const buildTrend = (date: string, multiplier: number): DailyTrend => ({
   date,
@@ -52,12 +53,15 @@ describe('usage dashboard presentation helpers', () => {
   it('uses monthly buckets for 365 day windows', () => {
     expect(selectTrendGranularity(365)).toBe('month')
 
-    const buckets = aggregateDailyTrends([
-      buildTrend('2026-01-03', 1),
-      buildTrend('2026-01-18', 2),
-      buildTrend('2026-02-02', 3),
-      buildTrend('2026-02-27', 4),
-    ], 'month')
+    const buckets = aggregateDailyTrends(
+      [
+        buildTrend('2026-01-03', 1),
+        buildTrend('2026-01-18', 2),
+        buildTrend('2026-02-02', 3),
+        buildTrend('2026-02-27', 4),
+      ],
+      'month'
+    )
 
     expect(buckets).toHaveLength(2)
     expect(buckets[0]).toMatchObject({
@@ -79,13 +83,15 @@ describe('usage dashboard presentation helpers', () => {
   })
 
   it('groups model cost distribution into top six plus others', () => {
-    const models = Array.from({ length: 8 }, (_, index): ModelStat => ({
-      model: `model-${index + 1}`,
-      request_count: 10 - index,
-      total_tokens: (index + 1) * 100,
-      total_cost: 8 - index,
-      cost_with_cache: 8 - index,
-    }))
+    const models = Array.from({ length: 8 }, (_, index): ModelStat =>
+      makeModelStat({
+        model: `model-${index + 1}`,
+        request_count: 10 - index,
+        total_tokens: (index + 1) * 100,
+        total_cost: 8 - index,
+        cost_with_cache: 8 - index,
+      })
+    )
 
     const slices = groupModelDistribution(models, 6)
 
@@ -103,20 +109,20 @@ describe('usage dashboard presentation helpers', () => {
 
   it('can group model distribution by token usage for the models tab', () => {
     const models: ModelStat[] = [
-      {
+      makeModelStat({
         model: 'expensive-small',
         request_count: 3,
         total_tokens: 1000,
         total_cost: 100,
         cost_with_cache: 100,
-      },
-      {
+      }),
+      makeModelStat({
         model: 'cheap-large',
         request_count: 2,
         total_tokens: 10000,
         total_cost: 1,
         cost_with_cache: 1,
-      },
+      }),
     ]
 
     const costSlices = groupModelDistribution(models)
@@ -135,20 +141,20 @@ describe('usage dashboard presentation helpers', () => {
   it('builds centralized dashboard presentation without repeating chart derivations', () => {
     const presentation = buildUsageDashboardPresentation({
       modelStats: [
-        {
+        makeModelStat({
           model: 'expensive-small',
           request_count: 3,
           total_tokens: 1000,
           total_cost: 100,
           cost_with_cache: 100,
-        },
-        {
+        }),
+        makeModelStat({
           model: 'cheap-large',
           request_count: 2,
           total_tokens: 10000,
           total_cost: 1,
           cost_with_cache: 1,
-        },
+        }),
       ],
       projectStats: [
         {
@@ -171,10 +177,7 @@ describe('usage dashboard presentation helpers', () => {
       translate: (_key, _values, fallback) => fallback,
       trendGranularity: 'day',
       trendGranularityLabel: 'Daily',
-      trends: [
-        buildTrend('2026-01-05', 1),
-        buildTrend('2026-01-06', 2),
-      ],
+      trends: [buildTrend('2026-01-05', 1), buildTrend('2026-01-06', 2)],
     })
 
     expect(presentation.trendBuckets).toHaveLength(2)

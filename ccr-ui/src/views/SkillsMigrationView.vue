@@ -3,23 +3,23 @@
     <div class="skills-migration-view__shell">
       <section class="skills-migration-view__hero">
         <div class="skills-migration-view__badge">
-          Skills migration
+          {{ tt('Skills 迁移', 'Skills migration') }}
         </div>
         <h1 class="skills-migration-view__title">
-          Skills 已从 CCR UI 下线
+          {{ tt('Skills 已从 CCR UI 下线', 'Skills has been removed from CCR UI') }}
         </h1>
         <p class="skills-migration-view__lead">
-          CCR UI 现在只保留 CLI 配置管理主线，不再内置 skills 安装、市场和来源管理。
+          {{ tt('CCR UI 现在只保留 CLI 配置管理主线，不再内置 skills 安装、市场和来源管理。', 'CCR UI now only keeps the CLI configuration management path and no longer embeds skills installation, marketplace, or source management.') }}
         </p>
         <p class="skills-migration-view__copy">
-          之后请改用独立应用
+          {{ tt('之后请改用独立应用', 'Use the standalone app instead') }}
           <a
             :href="skillportRepoUrl"
             target="_blank"
             rel="noreferrer"
             class="skills-migration-view__link"
-          >skillport</a>
-          处理 skills。
+          >{{ tt('skillport', 'skillport') }}</a>
+          {{ tt('处理 skills。', 'to handle skills.') }}
         </p>
 
         <div
@@ -45,7 +45,7 @@
             data-testid="skills-migration-primary"
             disabled
           >
-            检测 skillport…
+            {{ tt('检测 skillport…', 'Detecting skillport...') }}
           </button>
 
           <button
@@ -61,7 +61,7 @@
               alt=""
               class="skills-migration-view__primary-icon"
             >
-            <span>{{ isOpening ? '正在打开…' : '打开 skillport' }}</span>
+            <span>{{ isOpening ? tt('正在打开…', 'Opening...') : tt('打开 skillport', 'Open skillport') }}</span>
           </button>
 
           <a
@@ -72,7 +72,7 @@
             class="skills-migration-view__primary"
             data-testid="skills-migration-primary"
           >
-            前往 skillport 仓库
+            {{ tt('前往 skillport 仓库', 'Go to the skillport repository') }}
           </a>
 
           <button
@@ -82,14 +82,14 @@
             :disabled="isDetecting"
             @click="refreshAppStatus"
           >
-            重新检测
+            {{ tt('重新检测', 'Recheck') }}
           </button>
 
           <RouterLink
             to="/configs"
             class="skills-migration-view__secondary"
           >
-            返回配置管理
+            {{ tt('返回配置管理', 'Back to config management') }}
           </RouterLink>
         </div>
 
@@ -108,30 +108,30 @@
             rel="noreferrer"
             class="skills-migration-view__helper-link"
           >
-            查看仓库说明
+            {{ tt('查看仓库说明', 'View repository instructions') }}
           </a>
         </div>
       </section>
 
       <section class="skills-migration-view__grid">
         <article class="skills-migration-view__card">
-          <h2>为什么下线</h2>
+          <h2>{{ tt('为什么下线', 'Why it was removed') }}</h2>
           <p>
-            这一层功能和 CCR UI 的核心定位不一致。继续保留会让路由、状态和桌面后端持续膨胀。
+            {{ tt('这一层功能和 CCR UI 的核心定位不一致。继续保留会让路由、状态和桌面后端持续膨胀。', 'This layer did not fit CCR UI’s core scope. Keeping it would keep inflating routes, state, and the desktop backend.') }}
           </p>
         </article>
 
         <article class="skills-migration-view__card">
-          <h2>现在去哪里</h2>
+          <h2>{{ tt('现在去哪里', 'Where to go now') }}</h2>
           <p>
-            skills 的浏览、安装和管理统一改到 skillport。CCR UI 只负责 CLI 配置、运行态和数据面。
+            {{ tt('skills 的浏览、安装和管理统一改到 skillport。CCR UI 只负责 CLI 配置、运行态和数据面。', 'Browse, install, and manage skills in skillport. CCR UI only handles CLI config, runtime state, and data surfaces.') }}
           </p>
         </article>
 
         <article class="skills-migration-view__card">
-          <h2>怎么开始</h2>
+          <h2>{{ tt('怎么开始', 'How to start') }}</h2>
           <p>
-            如果本机已安装 skillport，这里会直接显示打开按钮。还没安装时，请先去仓库查看最新安装说明。
+            {{ tt('如果本机已安装 skillport，这里会直接显示打开按钮。还没安装时，请先去仓库查看最新安装说明。', 'If skillport is already installed, this page will show an open button. Otherwise, check the repository for install instructions first.') }}
           </p>
         </article>
       </section>
@@ -141,6 +141,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
 import skillportBadgeUrl from '@/assets/skillport-badge.svg'
 import {
@@ -153,6 +154,10 @@ import { logger } from '@/utils/logger'
 
 const skillportRepoUrl = 'https://github.com/bahayonghang/skills-manage-windows'
 
+const { locale } = useI18n()
+const isZh = computed(() => locale.value.startsWith('zh'))
+const tt = (zh: string, en: string) => (isZh.value ? zh : en)
+
 const isDetecting = ref(false)
 const isOpening = ref(false)
 const launchError = ref('')
@@ -164,10 +169,10 @@ const appStatus = ref<SkillportAppStatus>({
 })
 
 const statusPillLabel = computed(() => {
-  if (isDetecting.value) return '正在检测'
-  if (appStatus.value.installed) return '已检测到安装'
-  if (appStatus.value.supported) return '未检测到安装'
-  return '当前环境不支持'
+  if (isDetecting.value) return tt('正在检测', 'Detecting')
+  if (appStatus.value.installed) return tt('已检测到安装', 'Installed')
+  if (appStatus.value.supported) return tt('未检测到安装', 'Not installed')
+  return tt('当前环境不支持', 'Unsupported environment')
 })
 
 const statusPillClass = computed(() => {
@@ -179,18 +184,18 @@ const statusPillClass = computed(() => {
 
 const statusSummary = computed(() => {
   if (isDetecting.value) {
-    return '正在检查本机是否已经安装 skillport。'
+    return tt('正在检查本机是否已经安装 skillport。', 'Checking whether skillport is installed locally.')
   }
 
   if (appStatus.value.installed) {
-    return '已检测到本机安装，可以直接从这里拉起独立应用。'
+    return tt('已检测到本机安装，可以直接从这里拉起独立应用。', 'Skillport is installed locally and can be launched from here.')
   }
 
   if (appStatus.value.supported) {
-    return '当前没有检测到本机安装，请先前往仓库查看最新安装说明。'
+    return tt('当前没有检测到本机安装，请先前往仓库查看最新安装说明。', 'No local install was detected. Check the repository instructions first.')
   }
 
-  return '当前运行环境暂不支持自动检测，请直接前往仓库查看说明。'
+  return tt('当前运行环境暂不支持自动检测，请直接前往仓库查看说明。', 'The current environment does not support auto-detection. Check the repository instructions directly.')
 })
 
 /*
@@ -233,7 +238,7 @@ const refreshAppStatus = async (): Promise<void> => {
       platform: 'other',
       source: 'not_found',
     }
-    launchError.value = '自动检测失败，请先查看仓库说明后再重试。'
+  launchError.value = tt('自动检测失败，请先查看仓库说明后再重试。', 'Auto-detection failed. Check the repository instructions first, then retry.')
     logger.warn('[skills-migration] 探测 skillport 状态失败', error)
   } finally {
     // 1.5 结束探测态，允许用户继续操作
@@ -275,7 +280,7 @@ const handlePrimaryAction = async (): Promise<void> => {
     await openSkillportApp()
   } catch (error) {
     // 2.4 打开失败时保留仓库入口，并给出页内错误提示
-    launchError.value = '已检测到 skillport，但拉起失败。请先查看仓库说明，确认安装是否完整。'
+    launchError.value = tt('已检测到 skillport，但拉起失败。请先查看仓库说明，确认安装是否完整。', 'Skillport was detected, but launch failed. Check the repository instructions and confirm the install is complete.')
     logger.error('[skills-migration] 打开 skillport 失败', error)
   } finally {
     // 2.5 结束打开态，允许再次尝试
@@ -299,7 +304,7 @@ onMounted(() => {
 }
 
 .skills-migration-view__hero {
-  @apply rounded-[32px] border border-border-default/60 bg-bg-elevated/70 p-8;
+  @apply rounded-2xl border border-border-default/60 bg-bg-elevated/70 p-8;
 }
 
 .skills-migration-view__badge {
@@ -323,7 +328,7 @@ onMounted(() => {
 }
 
 .skills-migration-view__status {
-  @apply mt-6 flex flex-col gap-3 rounded-[24px] border border-border-default/50 bg-bg-surface/70 p-4;
+  @apply mt-6 flex flex-col gap-3 rounded-xl border border-border-default/50 bg-bg-surface/70 p-4;
 }
 
 .skills-migration-view__status-pill {
@@ -397,7 +402,7 @@ onMounted(() => {
 }
 
 .skills-migration-view__card {
-  @apply rounded-[28px] border border-border-default/50 bg-bg-surface/70 p-5;
+  @apply rounded-xl border border-border-default/50 bg-bg-surface/70 p-5;
 }
 
 .skills-migration-view__card h2 {

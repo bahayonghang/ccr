@@ -5,12 +5,15 @@
 ### Added
 - Add configurable CCR status bar modes: pinned platform, current platform, or hidden
 - Add `CCR: Select Status Bar Platform` command for quick status bar pinning
+- Add `CCR: Switch Profile For Platform` as a direct platform-scoped switch command
 - Add copy actions for `base_url` and `auth_token` inside the visual profile editor
 
 ### Changed
 - Redesign the profile editor as a dashboard-style control panel with platform accents and section headers
 - Treat `model` and `small_fast_model` as optional editor fields with clearer fallback copy
 - Replace the CCR sidebar icon with a route-toggle style glyph for clearer switcher semantics
+- Surface Gemini, Qwen, and Droid registry metadata as read-only platform browse entries
+- Remove eager startup activation so the extension activates on actual CCR views and commands instead
 
 ## [5.0.9]
 

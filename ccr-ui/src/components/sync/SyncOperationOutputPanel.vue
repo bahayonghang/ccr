@@ -127,7 +127,7 @@
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SIcon from '@/components/ui/SIcon.vue'
-import { copyToClipboard } from '@/utils/codexHelpers'
+import { copyText } from '@/utils/clipboard'
 import type { SyncOperationOutput } from '@/types/syncSelection'
 
 interface Props {
@@ -165,7 +165,7 @@ const durationText = computed(() => {
 
 const copyRawDetails = async () => {
   if (!props.output) return
-  const ok = await copyToClipboard(props.output.rawLog)
+  const ok = await copyText(props.output.rawLog)
   if (!ok) return
   copied.value = true
   window.setTimeout(() => {

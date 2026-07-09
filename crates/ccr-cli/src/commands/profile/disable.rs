@@ -21,7 +21,7 @@ use colored::Colorize;
 /// # 返回
 ///
 /// * `Ok(())` - 成功禁用配置
-/// * `Err(CcrError::ConfigNotFound)` - 配置不存在
+/// * `Err(CcrError::ConfigSectionNotFound)` - 配置不存在
 /// * `Err(CcrError::ConfigError)` - 配置文件操作失败
 pub async fn disable_command(config_name: &str, force: bool) -> Result<()> {
     ColorOutput::title("禁用配置");
@@ -84,36 +84,9 @@ pub async fn disable_command(config_name: &str, force: bool) -> Result<()> {
 mod tests {
     use crate::managers::config::{CcsConfig, ConfigManager, ConfigSection, GlobalSettings};
     use crate::services::ConfigService;
+    use crate::test_support::TestHome;
     use indexmap::IndexMap;
-    use std::path::Path;
     use std::sync::Arc;
-    use tempfile::tempdir;
-
-    struct EnvVarGuard {
-        key: &'static str,
-        previous: Option<String>,
-    }
-
-    impl EnvVarGuard {
-        fn set_path(key: &'static str, value: &Path) -> Self {
-            let previous = std::env::var(key).ok();
-            unsafe {
-                std::env::set_var(key, value);
-            }
-            Self { key, previous }
-        }
-    }
-
-    impl Drop for EnvVarGuard {
-        fn drop(&mut self) {
-            unsafe {
-                match self.previous.take() {
-                    Some(value) => std::env::set_var(self.key, value),
-                    None => std::env::remove_var(self.key),
-                }
-            }
-        }
-    }
 
     fn create_test_config_with_enabled() -> CcsConfig {
         let mut sections = IndexMap::new();
@@ -122,7 +95,7 @@ mod tests {
             ConfigSection {
                 description: Some("Test 1".to_string()),
                 base_url: Some("https://api.test1.com".to_string()),
-                auth_token: Some("token1".to_string()),
+                auth_token: Some(ccr_core::Secret::from("token1")),
                 model: Some("model1".to_string()),
                 small_fast_model: None,
                 provider: None,
@@ -146,10 +119,8 @@ mod tests {
 
     #[test]
     fn test_disable_config() {
-        let _env_guard = crate::test_support::env_lock();
-        let temp_dir = tempdir().unwrap();
-        let _lock_dir = EnvVarGuard::set_path("CCR_LOCK_DIR", &temp_dir.path().join("locks"));
-        let config_path = temp_dir.path().join(".ccs_config.toml");
+        let test_home = TestHome::new();
+        let config_path = test_home.home().join(".ccs_config.toml");
 
         // 创建测试配置
         {

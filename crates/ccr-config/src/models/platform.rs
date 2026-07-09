@@ -152,9 +152,13 @@ pub struct ProfileConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub base_url: Option<String>,
 
-    /// 🔑 认证令牌/密钥
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub auth_token: Option<String>,
+    /// 🔑 认证令牌/密钥：Debug/日志/默认序列化恒掩码；
+    /// 落盘原文走 expose_plaintext_option 注解
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        serialize_with = "ccr_core::expose_plaintext_option"
+    )]
+    pub auth_token: Option<ccr_core::Secret>,
 
     /// 🤖 默认模型名称
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -176,13 +180,53 @@ pub struct ProfileConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub default_haiku_model: Option<String>,
 
+    /// 📖 Fable 默认模型映射 (ANTHROPIC_DEFAULT_FABLE_MODEL)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub default_fable_model: Option<String>,
+
+    /// 🏷️ Opus 层显示名 (ANTHROPIC_DEFAULT_OPUS_MODEL_NAME)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub default_opus_model_name: Option<String>,
+
+    /// 🏷️ Sonnet 层显示名 (ANTHROPIC_DEFAULT_SONNET_MODEL_NAME)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub default_sonnet_model_name: Option<String>,
+
+    /// 🏷️ Haiku 层显示名 (ANTHROPIC_DEFAULT_HAIKU_MODEL_NAME)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub default_haiku_model_name: Option<String>,
+
+    /// 🏷️ Fable 层显示名 (ANTHROPIC_DEFAULT_FABLE_MODEL_NAME)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub default_fable_model_name: Option<String>,
+
     /// 🤖 子代理模型 (CLAUDE_CODE_SUBAGENT_MODEL)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub subagent_model: Option<String>,
 
+    /// 🧩 自定义模型选项 (ANTHROPIC_CUSTOM_MODEL_OPTION)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub custom_model_option: Option<String>,
+
+    /// 🧩 自定义模型选项显示名 (ANTHROPIC_CUSTOM_MODEL_OPTION_NAME)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub custom_model_option_name: Option<String>,
+
     /// 🎚️ 思考强度 (CLAUDE_CODE_EFFORT_LEVEL)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub effort_level: Option<String>,
+
+    /// 📏 自动压缩上下文窗口 (CLAUDE_CODE_AUTO_COMPACT_WINDOW)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub claude_code_auto_compact_window: Option<String>,
+
+    /// ⏱️ API 超时时间 (API_TIMEOUT_MS)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub api_timeout_ms: Option<String>,
+
+    /// 🚦 禁用非必要流量 (CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub claude_code_disable_nonessential_traffic: Option<String>,
 
     /// 🏢 提供商名称
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -227,8 +271,18 @@ impl ProfileConfig {
             default_opus_model: None,
             default_sonnet_model: None,
             default_haiku_model: None,
+            default_fable_model: None,
+            default_opus_model_name: None,
+            default_sonnet_model_name: None,
+            default_haiku_model_name: None,
+            default_fable_model_name: None,
             subagent_model: None,
+            custom_model_option: None,
+            custom_model_option_name: None,
             effort_level: None,
+            claude_code_auto_compact_window: None,
+            api_timeout_ms: None,
+            claude_code_disable_nonessential_traffic: None,
             provider: None,
             provider_type: None,
             account: None,
@@ -254,7 +308,7 @@ impl ProfileConfig {
 
     /// 设置认证令牌
     pub fn with_auth_token(mut self, token: String) -> Self {
-        self.auth_token = Some(token);
+        self.auth_token = Some(ccr_core::Secret::new(token));
         self
     }
 
@@ -603,7 +657,10 @@ mod tests {
             profile.base_url,
             Some("https://api.example.com".to_string())
         );
-        assert_eq!(profile.auth_token, Some("test-token".to_string()));
+        assert_eq!(
+            profile.auth_token,
+            Some(ccr_core::Secret::from("test-token"))
+        );
         assert_eq!(profile.model, Some("test-model".to_string()));
     }
 

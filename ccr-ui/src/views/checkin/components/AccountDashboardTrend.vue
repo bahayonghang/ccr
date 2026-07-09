@@ -4,7 +4,7 @@
       v-if="chartData.length === 0"
       class="trend-empty"
     >
-      暂无趋势数据
+      {{ tt('暂无趋势数据', 'No trend data yet') }}
     </div>
 
     <div
@@ -50,16 +50,16 @@
           {{ chartData[hoveredIndex].date }}
         </div>
         <div class="tooltip-row">
-          <span>状态</span>
+          <span>{{ tt('状态', 'Status') }}</span>
           <span
             class="tooltip-value"
             :class="chartData[hoveredIndex].is_checked_in ? 'tooltip-checked' : 'tooltip-missed'"
           >
-            {{ chartData[hoveredIndex].is_checked_in ? '已签到' : '未签到' }}
+            {{ chartData[hoveredIndex].is_checked_in ? tt('已签到', 'Checked in') : tt('未签到', 'Missed') }}
           </span>
         </div>
         <div class="tooltip-row">
-          <span>本日奖励</span>
+          <span>{{ tt('本日奖励', 'Reward') }}</span>
           <span class="tooltip-value tooltip-checked">
             {{ formatReward(chartData[hoveredIndex].reward_amount) }}
           </span>
@@ -68,7 +68,7 @@
           v-if="chartData[hoveredIndex].current_balance > 0"
           class="tooltip-row"
         >
-          <span>当日余额</span>
+          <span>{{ tt('当日余额', 'Balance') }}</span>
           <span class="tooltip-value">${{ chartData[hoveredIndex].current_balance.toFixed(2) }}</span>
         </div>
       </div>
@@ -90,12 +90,16 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { CheckinDashboardTrend, CheckinDashboardTrendPoint } from '@/types/checkin'
 
 const props = defineProps<{
   trend: CheckinDashboardTrend | null
 }>()
 
+const { locale } = useI18n()
+const isZh = computed(() => locale.value.startsWith('zh'))
+const tt = (zh: string, en: string) => (isZh.value ? zh : en)
 const width = 800
 const height = 220
 const padding = 20
@@ -258,13 +262,12 @@ const formatReward = (amount: number) => {
   position: absolute;
   min-width: 11rem;
   padding: 0.75rem 0.85rem;
-  border-radius: 0.85rem;
-  background: rgb(var(--color-bg-base-rgb) / 96%);
-  border: 1px solid rgb(var(--color-border-default-rgb) / 82%);
-  box-shadow: 0 14px 32px rgb(15 23 42 / 18%);
-  backdrop-filter: blur(14px) saturate(135%);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-default);
+  box-shadow: var(--shadow-lg);
   pointer-events: none;
-  z-index: 5;
+  z-index: var(--layer-raised);
 }
 
 .tooltip-date {
@@ -300,12 +303,6 @@ const formatReward = (amount: number) => {
 
 .tooltip-value.tooltip-missed {
   color: var(--text-muted);
-}
-
-:global(.dark) .chart-tooltip {
-  background: rgb(var(--color-bg-surface-rgb) / 96%);
-  border-color: rgb(var(--color-border-default-rgb) / 88%);
-  box-shadow: 0 18px 36px rgb(0 0 0 / 34%);
 }
 
 @media (width <= 768px) {

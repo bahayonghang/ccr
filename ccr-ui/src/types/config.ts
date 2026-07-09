@@ -5,6 +5,7 @@
 export interface CommandRequest {
   command: string;
   args: string[];
+  confirmationToken?: string | null;
 }
 
 export interface CommandResponse {
@@ -54,6 +55,7 @@ export interface CommandArgSchema {
 
 export interface CommandFlagSchema {
   name: string;
+  aliases?: string[];
   label: string;
   description?: string;
   type: 'boolean' | 'text' | 'path' | 'number' | string;
@@ -75,6 +77,8 @@ export interface CommandJobSnapshot {
   stdout_lines: string[];
   stderr_lines: string[];
   system_lines: string[];
+  truncated?: boolean;
+  dropped_lines?: number;
   error?: string | null;
 }
 

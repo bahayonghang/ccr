@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/ccr/backend/typed-ipc-bindings.md", "reason": "typed-ipc 核心契约：ts(as=f64) 标注规则、export_to 相对路径语义、生成物入库守卫、Extending to a new domain 六步清单"}
+{"file": ".trellis/spec/ccr-ui/frontend/api-facade-boundary.md", "reason": "tauri.ts 冻结门面契约：observer wrapper 迁出 domains/ + allowlist 缩减 9 条须同步 smoke 测试"}
+{"file": ".trellis/spec/ccr/backend/tauri-handler-registry.md", "reason": "命令注册与计数冻结契约：本任务零增删命令，312/320 不得漂移"}
+{"file": ".trellis/tasks/07-05-arch-typed-ipc-observer/design.md", "reason": "本任务技术设计：分层归属、服务层映射 ccr-db 类型决策、ts 标注清单、测试策略"}
+{"file": ".trellis/tasks/archive/2026-07/07-03-arch-typed-ipc/design.md", "reason": "usage 试点先例：ts-rs 配置陷阱（bigint/export_to）、服务抽取与薄壳命令模式"}

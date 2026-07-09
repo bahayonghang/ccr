@@ -186,6 +186,16 @@
               />
               {{ t('checkin.result.summaryFailed', { count: checkinResult.summary.failed }) }}
             </span>
+            <span
+              v-if="(checkinResult.summary.skipped ?? 0) > 0"
+              class="checkin-view__result-badge checkin-view__result-badge--muted"
+            >
+              <SIcon
+                name="Circle"
+                size="w-3.5 h-3.5"
+              />
+              {{ t('checkin.result.summarySkipped', { count: checkinResult.summary.skipped }) }}
+            </span>
             <span class="checkin-view__result-badge checkin-view__result-badge--neutral">
               {{ t('checkin.result.summaryTotal', { count: checkinResult.summary.total }) }}
             </span>
@@ -329,9 +339,52 @@
                       >
                         {{ t('checkin.result.recoveryStillFailed') }}
                       </span>
+                      <button
+                        v-if="item.error_code === 'cookie_expired'"
+                        type="button"
+                        class="checkin-view__result-fix-button"
+                        @click="openAccountCookieFix(item.account_id)"
+                      >
+                        {{ t('checkin.actions.updateCookie') }}
+                      </button>
                     </div>
                     <p class="checkin-view__result-message checkin-view__result-message--danger">
                       {{ getFailedDetail(item) }}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- 跳过结果（4 态：不计入失败） -->
+            <div
+              v-if="skippedCheckinResults.length > 0"
+              class="checkin-view__result-section"
+            >
+              <p class="checkin-view__result-section-title checkin-view__result-section-title--muted">
+                {{ t('checkin.result.skippedTitle', { count: skippedCheckinResults.length }) }}
+              </p>
+              <div class="checkin-view__result-list">
+                <div
+                  v-for="item in skippedCheckinResults"
+                  :key="item.account_id"
+                  class="checkin-view__result-item checkin-view__result-item--muted"
+                >
+                  <SIcon
+                    name="Circle"
+                    size="w-4 h-4"
+                    class="checkin-view__result-item-icon checkin-view__result-item-icon--muted"
+                  />
+                  <div class="checkin-view__result-item-body">
+                    <div class="checkin-view__result-item-meta">
+                      <span class="checkin-view__result-item-name checkin-view__result-item-name--muted">
+                        {{ item.account_name }}
+                      </span>
+                      <span class="checkin-view__result-tag checkin-view__result-tag--muted">
+                        {{ item.provider_name }}
+                      </span>
+                    </div>
+                    <p class="checkin-view__result-message checkin-view__result-message--muted">
+                      {{ getSkippedDetail(item) }}
                     </p>
                   </div>
                 </div>
@@ -528,18 +581,22 @@
         :checkin-loading="checkinLoading"
         :providers="providers"
         :builtin-providers="builtinProviders"
+        :pending-edit-account-id="pendingEditAccountId"
         @refresh="loadAllData"
         @checkin="executeCheckinSingle"
         @refresh-balance="refreshAccountBalance"
         @navigate="openAccountDashboard"
         @show-oauth-wizard="showOAuthWizard = true"
+        @pending-edit-consumed="clearPendingEditAccount"
       />
       <CheckinRecordsTab
         v-if="activeTab === 'records'"
         :records="records"
+        :records-load-error="recordsLoadError"
         :providers="providers"
         :accounts="accounts"
         :today-stats="todayStats"
+        @update-cookie="openAccountCookieFix"
       />
       <CheckinImportExportTab
         v-if="activeTab === 'import-export'"
@@ -611,6 +668,7 @@ const {
   checkinLoading,
   balanceRefreshing,
   error,
+  recordsLoadError,
   checkinResultRef,
   activeTab,
   showCheckinConfirm,
@@ -635,6 +693,7 @@ const {
   failedCheckinResults,
   successCheckinResults,
   alreadyCheckedInResults,
+  skippedCheckinResults,
   // Tab 配置
   tabs,
   // 数据加载
@@ -644,6 +703,10 @@ const {
   handleCheckinConfirm,
   closeCheckinModal,
   handleOAuthSuccess,
+  // Cookie 快捷修复
+  pendingEditAccountId,
+  openAccountCookieFix,
+  clearPendingEditAccount,
   // 余额操作
   refreshAllBalances,
   refreshAccountBalance,
@@ -653,6 +716,7 @@ const {
   getSuccessDetail,
   getAlreadyCheckedInDetail,
   getFailedDetail,
+  getSkippedDetail,
   getErrorLabel,
 } = useCheckinState()
 
@@ -702,18 +766,13 @@ const openAccountDashboard = (accountId: string) => {
   border-radius: 0.875rem;
   border: 1px solid rgb(var(--color-accent-primary-rgb) / 16%);
   background: rgb(var(--color-accent-primary-rgb) / 10%);
-  box-shadow: inset 0 1px 0 rgb(255 248 240 / 42%);
+  box-shadow: var(--shadow-inner);
 }
 
 .checkin-view__title-icon {
   color: var(--accent-primary);
 }
 
-.dark .checkin-view__title-icon-shell {
-  border-color: rgb(var(--color-accent-primary-rgb) / 26%);
-  background: rgb(var(--color-accent-primary-rgb) / 14%);
-  box-shadow: inset 0 1px 0 rgb(255 248 240 / 10%);
-}
 
 .checkin-view__title-label {
   min-width: 0;
@@ -742,13 +801,11 @@ const openAccountDashboard = (accountId: string) => {
   border: 1px solid transparent;
   border-radius: 0.875rem;
   padding: 0.55rem 1.05rem;
-  color: rgb(255 255 255 / 100%);
+  color: white;
   font-weight: 700;
   letter-spacing: -0.01em;
   white-space: nowrap;
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 14%),
-    0 14px 30px rgb(15 23 42 / 14%);
+  box-shadow: var(--shadow-sm);
   transition:
     border-color 0.2s ease,
     box-shadow 0.2s ease,
@@ -761,7 +818,7 @@ const openAccountDashboard = (accountId: string) => {
   cursor: not-allowed;
   opacity: 0.58;
   filter: grayscale(0.32);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 8%);
+  box-shadow: none;
 }
 
 .checkin-view__action-button:hover:not(:disabled) {
@@ -769,36 +826,21 @@ const openAccountDashboard = (accountId: string) => {
 }
 
 .checkin-view__action-button--checkin {
-  border-color: rgb(74 222 128 / 34%);
-  background:
-    radial-gradient(circle at 15% 0%, rgb(34 197 94 / 34%), transparent 35%),
-    linear-gradient(135deg, rgb(20 184 166 / 96%), rgb(22 163 74 / 98%));
-  box-shadow:
-    inset 0 1px 0 rgb(236 253 245 / 18%),
-    0 0 0 1px rgb(34 197 94 / 10%),
-    0 16px 34px rgb(22 163 74 / 24%);
+  background: var(--color-success);
 }
 
 .checkin-view__action-button--checkin:hover:not(:disabled) {
-  border-color: rgb(134 239 172 / 48%);
-  box-shadow:
-    inset 0 1px 0 rgb(236 253 245 / 22%),
-    0 0 0 1px rgb(34 197 94 / 18%),
-    0 20px 42px rgb(22 163 74 / 32%);
+  background: var(--color-success-hover);
+  box-shadow: var(--shadow-md);
 }
 
 .checkin-view__action-button--balance {
-  border-color: rgb(96 165 250 / 32%);
-  background:
-    radial-gradient(circle at 15% 0%, rgb(125 211 252 / 30%), transparent 35%),
-    linear-gradient(135deg, rgb(37 99 235 / 96%), rgb(79 70 229 / 96%));
+  background: var(--color-accent-primary);
 }
 
 .checkin-view__action-button--balance:hover:not(:disabled) {
-  border-color: rgb(147 197 253 / 46%);
-  box-shadow:
-    inset 0 1px 0 rgb(239 246 255 / 18%),
-    0 18px 38px rgb(37 99 235 / 26%);
+  background: var(--color-accent-primary-hover);
+  box-shadow: var(--shadow-md);
 }
 
 .checkin-view__loading {
@@ -812,21 +854,17 @@ const openAccountDashboard = (accountId: string) => {
   width: 3rem;
   height: 3rem;
   border-radius: 9999px;
-  border-bottom: 2px solid rgb(37 99 235 / 100%);
+  border-bottom: 2px solid var(--color-info);
   animation: spin 1s linear infinite;
 }
 
 .checkin-view__error {
   border-radius: 0.5rem;
-  border: 1px solid rgb(254 202 202 / 100%);
-  background: rgb(254 242 242 / 100%);
+  border: 1px solid rgb(var(--color-danger-rgb) / 30%);
+  background: rgb(var(--color-danger-rgb) / 8%);
   padding: 1rem;
 }
 
-.dark .checkin-view__error {
-  border-color: rgb(153 27 27 / 100%);
-  background: rgb(127 29 29 / 20%);
-}
 
 .checkin-view__error-content {
   display: flex;
@@ -835,7 +873,7 @@ const openAccountDashboard = (accountId: string) => {
 .checkin-view__error-icon {
   width: 1.25rem;
   height: 1.25rem;
-  color: rgb(248 113 113 / 100%);
+  color: var(--color-danger);
 }
 
 .checkin-view__error-body {
@@ -843,63 +881,45 @@ const openAccountDashboard = (accountId: string) => {
 }
 
 .checkin-view__error-title {
-  color: rgb(153 27 27 / 100%);
+  color: var(--color-danger);
   font-size: 0.875rem;
   line-height: 1.25rem;
   font-weight: 500;
 }
 
-.dark .checkin-view__error-title {
-  color: rgb(254 202 202 / 100%);
-}
 
 .checkin-view__error-message {
   margin-top: 0.5rem;
-  color: rgb(185 28 28 / 100%);
+  color: var(--color-danger);
   font-size: 0.875rem;
   line-height: 1.25rem;
 }
 
-.dark .checkin-view__error-message {
-  color: rgb(252 165 165 / 100%);
-}
 
 .checkin-view__result {
   border-radius: 0.5rem;
   border-width: 1px;
   padding: 1rem;
-  box-shadow: 0 1px 2px rgb(15 23 42 / 8%);
+  box-shadow: var(--shadow-xs);
 }
 
 .checkin-view__result--recovering {
-  border-color: rgb(186 230 253 / 100%);
-  background: rgb(240 249 255 / 100%);
+  border-color: rgb(var(--color-info-rgb) / 30%);
+  background: rgb(var(--color-info-rgb) / 8%);
 }
 
-.dark .checkin-view__result--recovering {
-  border-color: rgb(7 89 133 / 100%);
-  background: rgb(12 74 110 / 20%);
-}
 
 .checkin-view__result--warning {
-  border-color: rgb(253 230 138 / 100%);
-  background: rgb(255 251 235 / 100%);
+  border-color: rgb(var(--color-warning-rgb) / 30%);
+  background: rgb(var(--color-warning-rgb) / 8%);
 }
 
-.dark .checkin-view__result--warning {
-  border-color: rgb(146 64 14 / 100%);
-  background: rgb(120 53 15 / 20%);
-}
 
 .checkin-view__result--success {
-  border-color: rgb(187 247 208 / 100%);
-  background: rgb(240 253 244 / 100%);
+  border-color: rgb(var(--color-success-rgb) / 30%);
+  background: rgb(var(--color-success-rgb) / 8%);
 }
 
-.dark .checkin-view__result--success {
-  border-color: rgb(21 128 61 / 100%);
-  background: rgb(20 83 45 / 20%);
-}
 
 .checkin-view__result-header {
   display: flex;
@@ -923,15 +943,15 @@ const openAccountDashboard = (accountId: string) => {
 }
 
 .checkin-view__result-status-icon--recovering {
-  color: rgb(14 165 233 / 100%);
+  color: var(--color-info);
 }
 
 .checkin-view__result-status-icon--warning {
-  color: rgb(245 158 11 / 100%);
+  color: var(--color-warning);
 }
 
 .checkin-view__result-status-icon--success {
-  color: rgb(74 222 128 / 100%);
+  color: var(--color-success);
 }
 
 .checkin-view__result-status-title {
@@ -941,28 +961,19 @@ const openAccountDashboard = (accountId: string) => {
 }
 
 .checkin-view__result-status-title--recovering {
-  color: rgb(7 89 133 / 100%);
+  color: var(--color-info);
 }
 
-.dark .checkin-view__result-status-title--recovering {
-  color: rgb(186 230 253 / 100%);
-}
 
 .checkin-view__result-status-title--warning {
-  color: rgb(146 64 14 / 100%);
+  color: var(--color-warning);
 }
 
-.dark .checkin-view__result-status-title--warning {
-  color: rgb(253 230 138 / 100%);
-}
 
 .checkin-view__result-status-title--success {
-  color: rgb(22 101 52 / 100%);
+  color: var(--color-success);
 }
 
-.dark .checkin-view__result-status-title--success {
-  color: rgb(187 247 208 / 100%);
-}
 
 .checkin-view__result-summary {
   margin-top: 0.75rem;
@@ -983,44 +994,34 @@ const openAccountDashboard = (accountId: string) => {
 }
 
 .checkin-view__result-badge--success {
-  background: rgb(220 252 231 / 100%);
-  color: rgb(21 128 61 / 100%);
+  background: rgb(var(--color-success-rgb) / 15%);
+  color: var(--color-success);
 }
 
-.dark .checkin-view__result-badge--success {
-  background: rgb(20 83 45 / 40%);
-  color: rgb(187 247 208 / 100%);
-}
 
 .checkin-view__result-badge--info {
-  background: rgb(219 234 254 / 100%);
-  color: rgb(29 78 216 / 100%);
+  background: rgb(var(--color-info-rgb) / 15%);
+  color: var(--color-info);
 }
 
-.dark .checkin-view__result-badge--info {
-  background: rgb(30 64 175 / 40%);
-  color: rgb(191 219 254 / 100%);
-}
 
 .checkin-view__result-badge--danger {
-  background: rgb(254 226 226 / 100%);
-  color: rgb(185 28 28 / 100%);
+  background: rgb(var(--color-danger-rgb) / 15%);
+  color: var(--color-danger);
 }
 
-.dark .checkin-view__result-badge--danger {
-  background: rgb(127 29 29 / 40%);
-  color: rgb(254 202 202 / 100%);
-}
 
 .checkin-view__result-badge--neutral {
-  background: rgb(241 245 249 / 100%);
-  color: rgb(51 65 85 / 100%);
+  background: var(--color-bg-overlay);
+  color: var(--text-secondary);
 }
 
-.dark .checkin-view__result-badge--neutral {
-  background: rgb(30 41 59 / 100%);
-  color: rgb(226 232 240 / 100%);
+
+.checkin-view__result-badge--muted {
+  background: var(--color-bg-overlay);
+  color: var(--text-muted);
 }
+
 
 .checkin-view__result-grid {
   margin-top: 1rem;
@@ -1046,24 +1047,16 @@ const openAccountDashboard = (accountId: string) => {
 }
 
 .checkin-view__callout--recovery {
-  border-color: rgb(186 230 253 / 100%);
-  background: rgb(240 249 255 / 90%);
+  border-color: rgb(var(--color-info-rgb) / 30%);
+  background: rgb(var(--color-info-rgb) / 8%);
 }
 
-.dark .checkin-view__callout--recovery {
-  border-color: rgb(7 89 133 / 100%);
-  background: rgb(12 74 110 / 20%);
-}
 
 .checkin-view__callout--waf {
-  border-color: rgb(254 215 170 / 100%);
-  background: rgb(255 247 237 / 90%);
+  border-color: rgb(var(--color-warning-rgb) / 30%);
+  background: rgb(var(--color-warning-rgb) / 8%);
 }
 
-.dark .checkin-view__callout--waf {
-  border-color: rgb(154 52 18 / 100%);
-  background: rgb(124 45 18 / 20%);
-}
 
 .checkin-view__callout-layout {
   display: flex;
@@ -1080,12 +1073,9 @@ const openAccountDashboard = (accountId: string) => {
 }
 
 .checkin-view__callout-icon--recovery {
-  color: rgb(2 132 199 / 100%);
+  color: var(--color-info);
 }
 
-.dark .checkin-view__callout-icon--recovery {
-  color: rgb(125 211 252 / 100%);
-}
 
 .checkin-view__callout-title {
   font-size: 0.875rem;
@@ -1094,20 +1084,14 @@ const openAccountDashboard = (accountId: string) => {
 }
 
 .checkin-view__callout-title--recovery {
-  color: rgb(12 74 110 / 100%);
+  color: var(--color-info);
 }
 
-.dark .checkin-view__callout-title--recovery {
-  color: rgb(224 242 254 / 100%);
-}
 
 .checkin-view__callout-title--waf {
-  color: rgb(124 45 18 / 100%);
+  color: var(--color-warning);
 }
 
-.dark .checkin-view__callout-title--waf {
-  color: rgb(255 237 213 / 100%);
-}
 
 .checkin-view__callout-message,
 .checkin-view__callout-meta,
@@ -1122,38 +1106,31 @@ const openAccountDashboard = (accountId: string) => {
 
 .checkin-view__callout-message--recovery,
 .checkin-view__callout-meta--recovery {
-  color: rgb(7 89 133 / 100%);
+  color: var(--color-info);
 }
 
-.dark .checkin-view__callout-message--recovery,
-.dark .checkin-view__callout-meta--recovery {
-  color: rgb(186 230 253 / 100%);
-}
 
 .checkin-view__callout-message--waf {
-  color: rgb(154 52 18 / 100%);
+  color: var(--color-warning);
 }
 
-.dark .checkin-view__callout-message--waf {
-  color: rgb(254 215 170 / 100%);
-}
 
 .checkin-view__callout-action {
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
   border-radius: 0.5rem;
-  background: rgb(234 88 12 / 100%);
+  background: var(--color-warning);
   padding: 0.5rem 0.75rem;
   font-size: 0.75rem;
   line-height: 1rem;
   font-weight: 500;
-  color: rgb(255 255 255 / 100%);
+  color: white;
   transition: background-color 0.2s ease;
 }
 
 .checkin-view__callout-action:hover {
-  background: rgb(194 65 12 / 100%);
+  background: var(--color-warning-hover);
 }
 
 .checkin-view__result-section,
@@ -1177,28 +1154,24 @@ const openAccountDashboard = (accountId: string) => {
 }
 
 .checkin-view__result-section-title--success {
-  color: rgb(21 128 61 / 100%);
+  color: var(--color-success);
 }
 
-.dark .checkin-view__result-section-title--success {
-  color: rgb(134 239 172 / 100%);
-}
 
 .checkin-view__result-section-title--danger {
-  color: rgb(220 38 38 / 100%);
+  color: var(--color-danger);
 }
 
-.dark .checkin-view__result-section-title--danger {
-  color: rgb(248 113 113 / 100%);
-}
 
 .checkin-view__result-section-title--info {
-  color: rgb(29 78 216 / 100%);
+  color: var(--color-info);
 }
 
-.dark .checkin-view__result-section-title--info {
-  color: rgb(147 197 253 / 100%);
+
+.checkin-view__result-section-title--muted {
+  color: var(--text-muted);
 }
+
 
 .checkin-view__result-list {
   gap: 0.375rem;
@@ -1214,34 +1187,28 @@ const openAccountDashboard = (accountId: string) => {
 }
 
 .checkin-view__result-item--success {
-  border-color: rgb(187 247 208 / 100%);
-  background: rgb(240 253 244 / 100%);
+  border-color: rgb(var(--color-success-rgb) / 30%);
+  background: rgb(var(--color-success-rgb) / 8%);
 }
 
-.dark .checkin-view__result-item--success {
-  border-color: rgb(21 128 61 / 100%);
-  background: rgb(20 83 45 / 20%);
-}
 
 .checkin-view__result-item--danger {
-  border-color: rgb(254 202 202 / 100%);
-  background: rgb(254 242 242 / 100%);
+  border-color: rgb(var(--color-danger-rgb) / 30%);
+  background: rgb(var(--color-danger-rgb) / 8%);
 }
 
-.dark .checkin-view__result-item--danger {
-  border-color: rgb(153 27 27 / 100%);
-  background: rgb(127 29 29 / 30%);
-}
 
 .checkin-view__result-item--info {
-  border-color: rgb(191 219 254 / 100%);
-  background: rgb(239 246 255 / 100%);
+  border-color: rgb(var(--color-info-rgb) / 30%);
+  background: rgb(var(--color-info-rgb) / 8%);
 }
 
-.dark .checkin-view__result-item--info {
-  border-color: rgb(30 64 175 / 100%);
-  background: rgb(30 58 138 / 20%);
+
+.checkin-view__result-item--muted {
+  border-color: var(--color-border-default);
+  background: var(--color-bg-surface);
 }
+
 
 .checkin-view__result-item-icon {
   margin-top: 0.125rem;
@@ -1249,15 +1216,19 @@ const openAccountDashboard = (accountId: string) => {
 }
 
 .checkin-view__result-item-icon--success {
-  color: rgb(34 197 94 / 100%);
+  color: var(--color-success);
 }
 
 .checkin-view__result-item-icon--danger {
-  color: rgb(239 68 68 / 100%);
+  color: var(--color-danger);
 }
 
 .checkin-view__result-item-icon--info {
-  color: rgb(59 130 246 / 100%);
+  color: var(--color-info);
+}
+
+.checkin-view__result-item-icon--muted {
+  color: var(--text-muted);
 }
 
 .checkin-view__result-item-body {
@@ -1279,28 +1250,24 @@ const openAccountDashboard = (accountId: string) => {
 }
 
 .checkin-view__result-item-name--success {
-  color: rgb(22 101 52 / 100%);
+  color: var(--color-success);
 }
 
-.dark .checkin-view__result-item-name--success {
-  color: rgb(187 247 208 / 100%);
-}
 
 .checkin-view__result-item-name--danger {
-  color: rgb(153 27 27 / 100%);
+  color: var(--color-danger);
 }
 
-.dark .checkin-view__result-item-name--danger {
-  color: rgb(254 202 202 / 100%);
-}
 
 .checkin-view__result-item-name--info {
-  color: rgb(30 64 175 / 100%);
+  color: var(--color-info);
 }
 
-.dark .checkin-view__result-item-name--info {
-  color: rgb(191 219 254 / 100%);
+
+.checkin-view__result-item-name--muted {
+  color: var(--text-secondary);
 }
+
 
 .checkin-view__result-tag {
   display: inline-flex;
@@ -1313,63 +1280,64 @@ const openAccountDashboard = (accountId: string) => {
 }
 
 .checkin-view__result-tag--success {
-  background: rgb(220 252 231 / 100%);
-  color: rgb(21 128 61 / 100%);
+  background: rgb(var(--color-success-rgb) / 15%);
+  color: var(--color-success);
 }
 
-.dark .checkin-view__result-tag--success {
-  background: rgb(22 101 52 / 100%);
-  color: rgb(220 252 231 / 100%);
-}
 
 .checkin-view__result-tag--reward {
-  background: rgb(209 250 229 / 100%);
-  color: rgb(4 120 87 / 100%);
+  background: rgb(var(--color-success-rgb) / 15%);
+  color: var(--color-success);
 }
 
-.dark .checkin-view__result-tag--reward {
-  background: rgb(6 78 59 / 100%);
-  color: rgb(209 250 229 / 100%);
-}
 
 .checkin-view__result-tag--danger {
-  background: rgb(254 226 226 / 100%);
-  color: rgb(220 38 38 / 100%);
+  background: rgb(var(--color-danger-rgb) / 15%);
+  color: var(--color-danger);
 }
 
-.dark .checkin-view__result-tag--danger {
-  background: rgb(153 27 27 / 100%);
-  color: rgb(254 202 202 / 100%);
-}
 
 .checkin-view__result-tag--warning {
-  background: rgb(255 237 213 / 100%);
-  color: rgb(194 65 12 / 100%);
+  background: rgb(var(--color-warning-rgb) / 15%);
+  color: var(--color-warning);
 }
 
-.dark .checkin-view__result-tag--warning {
-  background: rgb(124 45 18 / 100%);
-  color: rgb(255 237 213 / 100%);
-}
 
 .checkin-view__result-tag--info {
-  background: rgb(219 234 254 / 100%);
-  color: rgb(29 78 216 / 100%);
+  background: rgb(var(--color-info-rgb) / 15%);
+  color: var(--color-info);
 }
 
-.dark .checkin-view__result-tag--info {
-  background: rgb(30 64 175 / 100%);
-  color: rgb(219 234 254 / 100%);
-}
 
 .checkin-view__result-tag--recovery {
-  background: rgb(224 242 254 / 100%);
-  color: rgb(3 105 161 / 100%);
+  background: rgb(var(--color-info-rgb) / 15%);
+  color: var(--color-info);
 }
 
-.dark .checkin-view__result-tag--recovery {
-  background: rgb(12 74 110 / 100%);
-  color: rgb(224 242 254 / 100%);
+
+.checkin-view__result-tag--muted {
+  background: var(--color-bg-overlay);
+  color: var(--text-muted);
+}
+
+
+/* cookie_expired 快捷修复入口：直达账号编辑弹窗 */
+.checkin-view__result-fix-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 0.375rem;
+  background: var(--color-danger);
+  padding: 0.2rem 0.55rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 600;
+  color: white;
+  transition: background-color 0.2s ease;
+}
+
+.checkin-view__result-fix-button:hover {
+  background: var(--color-danger-hover);
 }
 
 .checkin-view__result-message {
@@ -1378,28 +1346,24 @@ const openAccountDashboard = (accountId: string) => {
 }
 
 .checkin-view__result-message--success {
-  color: rgb(21 128 61 / 100%);
+  color: var(--color-success);
 }
 
-.dark .checkin-view__result-message--success {
-  color: rgb(134 239 172 / 100%);
-}
 
 .checkin-view__result-message--danger {
-  color: rgb(220 38 38 / 100%);
+  color: var(--color-danger);
 }
 
-.dark .checkin-view__result-message--danger {
-  color: rgb(248 113 113 / 100%);
-}
 
 .checkin-view__result-message--info {
-  color: rgb(29 78 216 / 100%);
+  color: var(--color-info);
 }
 
-.dark .checkin-view__result-message--info {
-  color: rgb(147 197 253 / 100%);
+
+.checkin-view__result-message--muted {
+  color: var(--text-muted);
 }
+
 
 .checkin-view__result-close {
   margin-left: 0.75rem;
@@ -1408,19 +1372,19 @@ const openAccountDashboard = (accountId: string) => {
 }
 
 .checkin-view__result-close--warning {
-  color: rgb(251 191 36 / 100%);
+  color: var(--color-warning);
 }
 
 .checkin-view__result-close--warning:hover {
-  color: rgb(245 158 11 / 100%);
+  color: var(--color-warning);
 }
 
 .checkin-view__result-close--success {
-  color: rgb(74 222 128 / 100%);
+  color: var(--color-success);
 }
 
 .checkin-view__result-close--success:hover {
-  color: rgb(34 197 94 / 100%);
+  color: var(--color-success);
 }
 
 .checkin-view__content {
@@ -1446,22 +1410,18 @@ const openAccountDashboard = (accountId: string) => {
   align-items: center;
   justify-content: space-between;
   border-radius: 0.75rem;
-  border: 1px solid rgb(243 244 246 / 100%);
-  background: rgb(255 255 255 / 100%);
+  border: 1px solid var(--color-border-default);
+  background: var(--color-bg-surface);
   padding: 1.5rem;
-  box-shadow: 0 1px 2px rgb(15 23 42 / 8%);
+  box-shadow: var(--shadow-xs);
   transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .checkin-view__stat-card:hover {
   transform: scale(1.02);
-  box-shadow: 0 10px 24px rgb(15 23 42 / 12%);
+  box-shadow: var(--shadow-md);
 }
 
-.dark .checkin-view__stat-card {
-  border-color: rgb(55 65 81 / 100%);
-  background: rgb(31 41 55 / 100%);
-}
 
 .checkin-view__stat-label {
   color: var(--text-muted);
@@ -1479,28 +1439,19 @@ const openAccountDashboard = (accountId: string) => {
 }
 
 .checkin-view__stat-value--success {
-  color: rgb(22 163 74 / 100%);
+  color: var(--color-success);
 }
 
-.dark .checkin-view__stat-value--success {
-  color: rgb(74 222 128 / 100%);
-}
 
 .checkin-view__stat-value--info {
-  color: rgb(37 99 235 / 100%);
+  color: var(--color-info);
 }
 
-.dark .checkin-view__stat-value--info {
-  color: rgb(96 165 250 / 100%);
-}
 
 .checkin-view__stat-value--warning {
-  color: rgb(234 88 12 / 100%);
+  color: var(--color-warning);
 }
 
-.dark .checkin-view__stat-value--warning {
-  color: rgb(251 146 60 / 100%);
-}
 
 .checkin-view__stat-icon {
   display: inline-flex;
@@ -1511,42 +1462,27 @@ const openAccountDashboard = (accountId: string) => {
 }
 
 .checkin-view__stat-icon--success {
-  background: rgb(240 253 244 / 100%);
-  color: rgb(22 163 74 / 100%);
+  background: rgb(var(--color-success-rgb) / 8%);
+  color: var(--color-success);
 }
 
-.dark .checkin-view__stat-icon--success {
-  background: rgb(20 83 45 / 20%);
-  color: rgb(74 222 128 / 100%);
-}
 
 .checkin-view__stat-icon--info {
-  background: rgb(239 246 255 / 100%);
-  color: rgb(37 99 235 / 100%);
+  background: rgb(var(--color-info-rgb) / 8%);
+  color: var(--color-info);
 }
 
-.dark .checkin-view__stat-icon--info {
-  background: rgb(30 64 175 / 20%);
-  color: rgb(96 165 250 / 100%);
-}
 
 .checkin-view__stat-icon--warning {
-  background: rgb(255 247 237 / 100%);
-  color: rgb(234 88 12 / 100%);
+  background: rgb(var(--color-warning-rgb) / 8%);
+  color: var(--color-warning);
 }
 
-.dark .checkin-view__stat-icon--warning {
-  background: rgb(154 52 18 / 20%);
-  color: rgb(251 146 60 / 100%);
-}
 
 .checkin-view__tabs-shell {
-  border-bottom: 1px solid rgb(229 231 235 / 100%);
+  border-bottom: 1px solid var(--color-border-default);
 }
 
-.dark .checkin-view__tabs-shell {
-  border-color: rgb(55 65 81 / 100%);
-}
 
 .checkin-view__tabs {
   margin-bottom: -1px;

@@ -11,8 +11,18 @@ export interface ClaudeProfileEditorForm {
   default_opus_model: string
   default_sonnet_model: string
   default_haiku_model: string
+  default_fable_model: string
+  default_opus_model_name: string
+  default_sonnet_model_name: string
+  default_haiku_model_name: string
+  default_fable_model_name: string
   subagent_model: string
+  custom_model_option: string
+  custom_model_option_name: string
   effort_level: string
+  claude_code_auto_compact_window: string
+  api_timeout_ms: string
+  claude_code_disable_nonessential_traffic: string
   provider: string
   provider_type: string
   account: string

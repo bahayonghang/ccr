@@ -1,7 +1,7 @@
 <template>
   <OpenCodePageShell
-    title="Providers"
-    description="按官方 provider schema 管理认证、baseURL、模型和启用状态。"
+    :title="tt('Providers', 'Providers')"
+    :description="tt('按官方 provider schema 管理认证、baseURL、模型和启用状态。', 'Manage auth, baseURL, models, and enabled state with the official provider schema.')"
     icon="Layers"
     tone="lime"
     badge="provider"
@@ -20,7 +20,7 @@
             size="w-4 h-4"
           />
         </template>
-        添加 Provider
+        {{ tt('添加 Provider', 'Add provider') }}
       </Button>
     </template>
 
@@ -40,10 +40,10 @@
           class="p-8 text-center"
         >
           <h2 class="text-lg font-semibold text-text-primary">
-            暂无 Provider
+            {{ tt('暂无 Provider', 'No providers yet') }}
           </h2>
           <p class="mt-2 text-sm text-text-secondary">
-            从 Anthropic、OpenAI、Google 或自定义 OpenAI-compatible provider 开始。
+            {{ tt('从 Anthropic、OpenAI、Google 或自定义 OpenAI-compatible provider 开始。', 'Start with Anthropic, OpenAI, Google, or a custom OpenAI-compatible provider.') }}
           </p>
         </Card>
 
@@ -63,7 +63,7 @@
                   class="rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em]"
                   :class="providerEnabled(provider.id) ? 'bg-emerald-300/10 text-emerald-200' : 'bg-amber-300/10 text-amber-200'"
                 >
-                  {{ providerEnabled(provider.id) ? 'enabled' : 'disabled' }}
+                  {{ providerEnabled(provider.id) ? tt('已启用', 'enabled') : tt('已禁用', 'disabled') }}
                 </span>
               </div>
 
@@ -72,19 +72,19 @@
               </h2>
               <div class="mt-3 grid gap-3 md:grid-cols-3">
                 <div class="rounded-2xl border border-border-default/55 bg-bg-base/35 p-3">
-                  <span class="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-muted">API key</span>
+                  <span class="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('API key', 'API key') }}</span>
                   <p class="mt-2 text-sm text-text-primary">
                     {{ maskSecret(provider.options?.apiKey) }}
                   </p>
                 </div>
                 <div class="rounded-2xl border border-border-default/55 bg-bg-base/35 p-3">
-                  <span class="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-muted">baseURL</span>
+                  <span class="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('baseURL', 'baseURL') }}</span>
                   <p class="mt-2 break-all text-sm text-text-primary">
                     {{ provider.options?.baseURL || 'default' }}
                   </p>
                 </div>
                 <div class="rounded-2xl border border-border-default/55 bg-bg-base/35 p-3">
-                  <span class="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-muted">models</span>
+                  <span class="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('models', 'models') }}</span>
                   <p class="mt-2 text-sm text-text-primary">
                     {{ Object.keys(provider.models || {}).length }}
                   </p>
@@ -106,7 +106,7 @@
                     size="w-4 h-4"
                   />
                 </template>
-                {{ providerEnabled(provider.id) ? '停用' : '启用' }}
+                {{ providerEnabled(provider.id) ? tt('停用', 'Disable') : tt('启用', 'Enable') }}
               </Button>
               <Button
                 variant="secondary"
@@ -121,7 +121,7 @@
                     size="w-4 h-4"
                   />
                 </template>
-                编辑
+                {{ tt('编辑', 'Edit') }}
               </Button>
               <Button
                 variant="danger"
@@ -136,7 +136,7 @@
                     size="w-4 h-4"
                   />
                 </template>
-                删除
+                {{ tt('删除', 'Delete') }}
               </Button>
             </div>
           </div>
@@ -148,37 +148,49 @@
         class="p-5"
       >
         <h2 class="text-lg font-semibold text-text-primary">
-          推荐预设
+          {{ tt('Provider templates', 'Provider templates') }}
         </h2>
         <p class="mt-2 text-sm text-text-secondary">
-          先选 provider id，再填认证与 baseURL。更多 provider-specific options 走 JSON 扩展位。
+          {{ tt('搜索内置或自定义的非敏感模板，一次性填写 provider id、npm、baseURL 和模型 JSON。', 'Search built-in or custom non-secret templates, then fill provider id, npm, baseURL, and model JSON in one step.') }}
         </p>
 
-        <div class="mt-4 space-y-3">
-          <button
-            v-for="preset in OPENCODE_PROVIDER_PRESETS"
-            :key="preset.id"
-            class="w-full rounded-2xl border border-border-default/55 bg-bg-base/35 p-3 text-left transition-colors hover:border-lime-300/35 hover:bg-lime-300/10"
-            @click="openCreate(preset.id)"
-          >
-            <strong class="block text-sm text-text-primary">{{ preset.label }}</strong>
-            <span class="mt-1 block text-xs leading-6 text-text-secondary">{{ preset.description }}</span>
-          </button>
-        </div>
+        <ProviderTemplateSelector
+          class="mt-4"
+          platform="opencode"
+          :selected-template-id="selectedProviderTemplate"
+          :selected-endpoint="selectedProviderEndpoint"
+          :draft-context="openCodeTemplateDraft"
+          label="Template"
+          helper="Templates never store apiKey; credentials stay in this provider form."
+          @select="handleOpenCodeTemplateSelect"
+          @manual="useManualOpenCodeTemplate"
+        />
       </Card>
     </div>
 
     <BaseModal
       v-model="showModal"
-      :title="editingId ? '编辑 Provider' : '添加 Provider'"
-      description="直接编辑 OpenCode provider 配置。"
+      :title="editingId ? tt('编辑 Provider', 'Edit provider') : tt('添加 Provider', 'Add provider')"
+      :description="tt('直接编辑 OpenCode provider 配置。', 'Edit the OpenCode provider config directly.')"
       size="lg"
-      content-class="max-w-2xl"
+      content-class="max-w-2xl max-h-[90vh] overflow-y-auto"
     >
       <div class="space-y-4">
+        <ProviderTemplateSelector
+          v-if="!editingId"
+          platform="opencode"
+          :selected-template-id="selectedProviderTemplate"
+          :selected-endpoint="selectedProviderEndpoint"
+          :draft-context="openCodeTemplateDraft"
+          label="Provider template"
+          helper="Apply another non-secret template before saving this provider."
+          @select="applyOpenCodeProviderTemplate"
+          @manual="useManualOpenCodeTemplate"
+        />
+
         <div class="grid gap-4 md:grid-cols-2">
           <div>
-            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">provider id *</label>
+            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('provider id *', 'provider id *') }}</label>
             <input
               v-model="form.id"
               :disabled="Boolean(editingId)"
@@ -187,18 +199,26 @@
             >
           </div>
           <div>
-            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">display name</label>
+            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('display name', 'display name') }}</label>
             <input
               v-model="form.name"
               class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 text-sm text-text-primary"
               placeholder="Anthropic"
             >
           </div>
+          <div class="md:col-span-2">
+            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('npm package', 'npm package') }}</label>
+            <input
+              v-model="form.npm"
+              class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 text-sm text-text-primary"
+              placeholder="@ai-sdk/openai-compatible"
+            >
+          </div>
         </div>
 
         <div class="grid gap-4 md:grid-cols-2">
           <div>
-            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">api key</label>
+            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('api key', 'api key') }}</label>
             <input
               v-model="form.apiKey"
               class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 text-sm text-text-primary"
@@ -206,7 +226,7 @@
             >
           </div>
           <div>
-            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">baseURL</label>
+            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('baseURL', 'baseURL') }}</label>
             <input
               v-model="form.baseURL"
               class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 text-sm text-text-primary"
@@ -220,11 +240,11 @@
             v-model="form.enabled"
             type="checkbox"
           >
-          该 provider 默认启用
+          {{ tt('该 provider 默认启用', 'Enable this provider by default') }}
         </label>
 
         <div>
-          <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">models JSON</label>
+          <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('models JSON', 'models JSON') }}</label>
           <textarea
             v-model="form.modelsJson"
             rows="8"
@@ -234,12 +254,22 @@
         </div>
 
         <div>
-          <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">extra options JSON</label>
+          <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('extra options JSON', 'extra options JSON') }}</label>
           <textarea
             v-model="form.extraOptionsJson"
             rows="6"
             class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 font-mono text-sm text-text-primary"
             placeholder="{&#10;  &quot;timeout&quot;: 600000&#10;}"
+          />
+        </div>
+
+        <div>
+          <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('root extra JSON', 'root extra JSON') }}</label>
+          <textarea
+            v-model="form.rootExtraJson"
+            rows="5"
+            class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 font-mono text-sm text-text-primary"
+            placeholder="{&#10;  &quot;api&quot;: &quot;chat&quot;&#10;}"
           />
         </div>
 
@@ -251,7 +281,7 @@
             motion="subtle"
             @click="showModal = false"
           >
-            取消
+            {{ tt('取消', 'Cancel') }}
           </Button>
           <Button
             variant="primary"
@@ -269,7 +299,7 @@
                 class="animate-spin"
               />
             </template>
-            保存
+            {{ tt('保存', 'Save') }}
           </Button>
         </div>
       </div>
@@ -279,37 +309,87 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { getErrorMessage } from '@/utils/errorHandler'
 import Card from '@/components/ui/Card.vue'
 import Button from '@/components/ui/Button.vue'
 import SIcon from '@/components/ui/SIcon.vue'
 import BaseModal from '@/components/common/BaseModal.vue'
 import OpenCodePageShell from '@/components/opencode/OpenCodePageShell.vue'
+import ProviderTemplateSelector from '@/components/provider-templates/ProviderTemplateSelector.vue'
 import { useUIStore } from '@/stores/ui'
-import { addOpenCodeProvider, deleteOpenCodeProvider, getOpenCodeConfig, listOpenCodeProviders, updateOpenCodeConfig, updateOpenCodeProvider } from '@/api'
-import { OPENCODE_PROVIDER_PRESETS } from '@/types/opencode'
-import type { OpenCodeConfig, OpenCodeProviderConfig, OpenCodeProviderOptions } from '@/types'
+import { addOpenCodeProvider, deleteOpenCodeProvider, getOpenCodeConfig, listOpenCodeProviders, updateOpenCodeConfig } from '@/api'
+import type {
+  OpenCodeConfig,
+  OpenCodeModelConfig,
+  OpenCodeProviderConfig,
+  OpenCodeProviderOptions,
+  OpenCodeProviderRequest,
+} from '@/types'
+import type { ProviderTemplateDraftContext, ProviderTemplateSelection } from '@/types/providerTemplates'
 import { formatJsonInput, maskSecret, parseJsonInput } from '@/utils/opencode'
+import { mapTemplateToOpenCodeProviderPatch } from '@/utils/providerTemplates'
 
+const { locale } = useI18n()
 const uiStore = useUIStore()
+const isZh = computed(() => locale.value.startsWith('zh'))
+const tt = (zh: string, en: string) => (isZh.value ? zh : en)
 const loading = ref(false)
 const saving = ref(false)
 const showModal = ref(false)
 const editingId = ref('')
 const providers = ref<OpenCodeProviderConfig[]>([])
 const configState = ref<OpenCodeConfig>({})
+const selectedProviderTemplate = ref<string | null>(null)
+const selectedProviderEndpoint = ref('')
 
 const form = reactive({
   id: '',
   name: '',
+  npm: '',
   apiKey: '',
   baseURL: '',
   enabled: true,
   modelsJson: '{}',
   extraOptionsJson: '{}',
+  rootExtraJson: '{}',
 })
+
+const providerManagedRootKeys = new Set([
+  'id',
+  'name',
+  'npm',
+  'options',
+  'models',
+])
+
+function parseJsonInputSafe<T>(value: string, fallback: T): T {
+  try {
+    return parseJsonInput<T>(value, fallback)
+  } catch {
+    return fallback
+  }
+}
 
 const disabledProviders = computed(() => new Set(configState.value.disabled_providers || []))
 const enabledProviders = computed(() => configState.value.enabled_providers || [])
+const openCodeTemplateDraft = computed<ProviderTemplateDraftContext>(() => ({
+  platform: 'opencode',
+  defaultName: form.name || form.id || 'OpenCode provider',
+  name: form.name || form.id,
+  category: form.baseURL.trim() ? 'third_party' : 'official',
+  baseUrls: form.baseURL.trim() ? [form.baseURL.trim()] : [],
+  modelCatalog: Object.keys(parseJsonInputSafe<Record<string, unknown>>(form.modelsJson, {})),
+  platformOverride: {
+    id: form.id,
+    name: form.name,
+    npm: form.npm,
+    baseURL: form.baseURL,
+    models: parseJsonInputSafe<Record<string, unknown>>(form.modelsJson, {}),
+    extraOptions: parseJsonInputSafe<Record<string, unknown>>(form.extraOptionsJson, {}),
+    rootExtra: parseJsonInputSafe<Record<string, unknown>>(form.rootExtraJson, {}),
+  },
+}))
 
 function providerEnabled(id: string) {
   if (disabledProviders.value.has(id)) return false
@@ -327,21 +407,59 @@ async function loadProviders() {
     providers.value = providerList
     configState.value = config
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   } finally {
     loading.value = false
   }
 }
 
-function openCreate(presetId = '') {
+function resetCreateForm() {
   editingId.value = ''
-  form.id = presetId
+  form.id = ''
   form.name = ''
+  form.npm = ''
   form.apiKey = ''
   form.baseURL = ''
   form.enabled = true
   form.modelsJson = '{}'
   form.extraOptionsJson = '{}'
+  form.rootExtraJson = '{}'
+  selectedProviderTemplate.value = null
+  selectedProviderEndpoint.value = ''
+}
+
+function openCreate() {
+  resetCreateForm()
+  showModal.value = true
+}
+
+function useManualOpenCodeTemplate() {
+  selectedProviderTemplate.value = null
+  selectedProviderEndpoint.value = ''
+  if (!showModal.value) {
+    openCreate()
+  }
+}
+
+function applyOpenCodeProviderTemplate(selection: ProviderTemplateSelection) {
+  const patch = mapTemplateToOpenCodeProviderPatch(selection.template, selection.endpoint)
+
+  selectedProviderTemplate.value = selection.template.id
+  selectedProviderEndpoint.value = selection.endpoint || ''
+  form.id = patch.id || ''
+  form.name = patch.name || selection.template.name
+  form.npm = patch.npm || ''
+  form.baseURL = patch.baseURL || ''
+  form.modelsJson = patch.modelsJson || '{}'
+  form.extraOptionsJson = patch.extraOptionsJson || '{}'
+  form.rootExtraJson = patch.rootExtraJson || '{}'
+  form.apiKey = ''
+  form.enabled = true
+}
+
+function handleOpenCodeTemplateSelect(selection: ProviderTemplateSelection) {
+  resetCreateForm()
+  applyOpenCodeProviderTemplate(selection)
   showModal.value = true
 }
 
@@ -349,6 +467,7 @@ function openEdit(provider: OpenCodeProviderConfig) {
   editingId.value = provider.id
   form.id = provider.id
   form.name = provider.name || ''
+  form.npm = provider.npm || ''
   form.apiKey = String(provider.options?.apiKey || '')
   form.baseURL = String(provider.options?.baseURL || '')
   form.enabled = providerEnabled(provider.id)
@@ -357,7 +476,16 @@ function openEdit(provider: OpenCodeProviderConfig) {
   delete extraOptions.apiKey
   delete extraOptions.baseURL
   form.extraOptionsJson = formatJsonInput(extraOptions)
+  form.rootExtraJson = formatJsonInput(rootExtraFields(provider))
+  selectedProviderTemplate.value = null
+  selectedProviderEndpoint.value = ''
   showModal.value = true
+}
+
+function rootExtraFields(provider: OpenCodeProviderConfig) {
+  return Object.fromEntries(
+    Object.entries(provider).filter(([key]) => !providerManagedRootKeys.has(key)),
+  )
 }
 
 async function syncProviderVisibility(id: string, enabled: boolean) {
@@ -383,37 +511,37 @@ async function syncProviderVisibility(id: string, enabled: boolean) {
 
 async function saveProvider() {
   if (!form.id.trim()) {
-    uiStore.showError('Provider id 不能为空')
+    uiStore.showError(tt('Provider id 不能为空', 'Provider ID is required'))
     return
   }
 
   saving.value = true
   try {
     const extraOptions = parseJsonInput<Record<string, unknown>>(form.extraOptionsJson, {})
-    const models = parseJsonInput<Record<string, unknown>>(form.modelsJson, {})
+    const rootExtra = parseJsonInput<Record<string, unknown>>(form.rootExtraJson, {})
+    const models = parseJsonInput<Record<string, OpenCodeModelConfig>>(form.modelsJson, {})
     const options: OpenCodeProviderOptions = { ...extraOptions }
     if (form.apiKey.trim()) options.apiKey = form.apiKey.trim()
     if (form.baseURL.trim()) options.baseURL = form.baseURL.trim()
 
-    const request = {
+    const request: OpenCodeProviderRequest = {
+      ...rootExtra,
       id: form.id.trim(),
       name: form.name.trim() || undefined,
+      npm: form.npm.trim() || undefined,
       options,
       models,
     }
+    const { id, ...providerConfig } = request
 
-    if (editingId.value) {
-      await updateOpenCodeProvider(request.id, request)
-    } else {
-      await addOpenCodeProvider(request)
-    }
+    await addOpenCodeProvider(id, providerConfig)
 
-    await syncProviderVisibility(request.id, form.enabled)
-    uiStore.showSuccess(editingId.value ? 'Provider 已更新' : 'Provider 已创建')
+    await syncProviderVisibility(id, form.enabled)
+    uiStore.showSuccess(editingId.value ? tt('Provider 已更新', 'Provider updated') : tt('Provider 已创建', 'Provider created'))
     showModal.value = false
     await loadProviders()
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   } finally {
     saving.value = false
   }
@@ -422,10 +550,10 @@ async function saveProvider() {
 async function toggleEnabled(provider: OpenCodeProviderConfig) {
   try {
     await syncProviderVisibility(provider.id, !providerEnabled(provider.id))
-    uiStore.showSuccess(providerEnabled(provider.id) ? 'Provider 已启用' : 'Provider 已停用')
+    uiStore.showSuccess(providerEnabled(provider.id) ? tt('Provider 已启用', 'Provider enabled') : tt('Provider 已停用', 'Provider disabled'))
     await loadProviders()
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   }
 }
 
@@ -436,10 +564,10 @@ async function removeProvider(provider: OpenCodeProviderConfig) {
       disabled_providers: (configState.value.disabled_providers || []).filter((item) => item !== provider.id),
       enabled_providers: (configState.value.enabled_providers || []).filter((item) => item !== provider.id),
     })
-    uiStore.showSuccess('Provider 已删除')
+    uiStore.showSuccess(tt('Provider 已删除', 'Provider deleted'))
     await loadProviders()
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
+    uiStore.showError(getErrorMessage(error))
   }
 }
 

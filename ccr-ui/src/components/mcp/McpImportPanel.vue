@@ -49,7 +49,7 @@
           class="form-field__input"
         >
           <option value="user">
-            {{ t('mcp.manager.scopes.user') }} — ~/.claude.json
+            {{ t('mcp.manager.scopes.user') }} — {{ claudeUserScopePath }}
           </option>
           <option value="local">
             {{ t('mcp.manager.scopes.local') }} — {{ t('mcp.manager.form.currentProjectEntry') }}
@@ -161,6 +161,7 @@ const targetPlatform = ref<UnifiedMcpPlatform>(props.platforms[0] ?? 'claude')
 const targetScope = ref('user')
 const parseError = ref('')
 const parsedServers = ref<ParsedServer[]>([])
+const claudeUserScopePath = '~/.claude.json'
 
 watch(jsonInput, (value) => {
   parseError.value = ''

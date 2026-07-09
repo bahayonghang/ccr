@@ -24,8 +24,8 @@ use crate::state::AppState;
 
 // ── Settings（~/.claude/settings.json）Helper ──
 //
-// 使用 ccr_types::ClaudeSettings（带有 agents/plugins/hooks 等 typed fields），
-// 而非 ccr::ClaudeSettings（仅 env + other flatten）。
+// ccr_types::ClaudeSettings 是全仓唯一 shape（ccr::ClaudeSettings 已是其 re-export），
+// 托管 env 变更/验证逻辑均在该类型上，本模块只做 IO 与 serde 往返。
 
 async fn active_environment(state: &AppState) -> Arc<dyn ExecutionEnvironment> {
     let registry = state.env_registry.read().await;
@@ -337,7 +337,7 @@ fn patch_profile_with_config(profile: &mut ProfileConfig, config: &Value) -> Res
         profile.base_url = parse_string_field(raw, "base_url")?;
     }
     if let Some(raw) = obj.get("auth_token") {
-        profile.auth_token = parse_string_field(raw, "auth_token")?;
+        profile.auth_token = parse_string_field(raw, "auth_token")?.map(ccr_core::Secret::new);
     }
     if let Some(raw) = obj.get("model") {
         profile.model = parse_string_field(raw, "model")?;
@@ -354,11 +354,47 @@ fn patch_profile_with_config(profile: &mut ProfileConfig, config: &Value) -> Res
     if let Some(raw) = obj.get("default_haiku_model") {
         profile.default_haiku_model = parse_string_field(raw, "default_haiku_model")?;
     }
+    if let Some(raw) = obj.get("default_fable_model") {
+        profile.default_fable_model = parse_string_field(raw, "default_fable_model")?;
+    }
+    if let Some(raw) = obj.get("default_opus_model_name") {
+        profile.default_opus_model_name = parse_string_field(raw, "default_opus_model_name")?;
+    }
+    if let Some(raw) = obj.get("default_sonnet_model_name") {
+        profile.default_sonnet_model_name =
+            parse_string_field(raw, "default_sonnet_model_name")?;
+    }
+    if let Some(raw) = obj.get("default_haiku_model_name") {
+        profile.default_haiku_model_name =
+            parse_string_field(raw, "default_haiku_model_name")?;
+    }
+    if let Some(raw) = obj.get("default_fable_model_name") {
+        profile.default_fable_model_name =
+            parse_string_field(raw, "default_fable_model_name")?;
+    }
     if let Some(raw) = obj.get("subagent_model") {
         profile.subagent_model = parse_string_field(raw, "subagent_model")?;
     }
+    if let Some(raw) = obj.get("custom_model_option") {
+        profile.custom_model_option = parse_string_field(raw, "custom_model_option")?;
+    }
+    if let Some(raw) = obj.get("custom_model_option_name") {
+        profile.custom_model_option_name =
+            parse_string_field(raw, "custom_model_option_name")?;
+    }
     if let Some(raw) = obj.get("effort_level") {
         profile.effort_level = parse_string_field(raw, "effort_level")?;
+    }
+    if let Some(raw) = obj.get("claude_code_auto_compact_window") {
+        profile.claude_code_auto_compact_window =
+            parse_string_field(raw, "claude_code_auto_compact_window")?;
+    }
+    if let Some(raw) = obj.get("api_timeout_ms") {
+        profile.api_timeout_ms = parse_string_field(raw, "api_timeout_ms")?;
+    }
+    if let Some(raw) = obj.get("claude_code_disable_nonessential_traffic") {
+        profile.claude_code_disable_nonessential_traffic =
+            parse_string_field(raw, "claude_code_disable_nonessential_traffic")?;
     }
     if let Some(raw) = obj.get("provider") {
         profile.provider = parse_string_field(raw, "provider")?;
@@ -417,14 +453,25 @@ fn profile_to_json(current_profile: Option<&str>, name: String, profile: Profile
         "name": name,
         "description": profile.description,
         "base_url": profile.base_url,
-        "auth_token": profile.auth_token,
+        // 编辑表单预填需要原文：显式 expose（掩码化改造属 typed-ipc 任务）
+        "auth_token": profile.auth_token.as_ref().map(ccr_core::Secret::expose),
         "model": profile.model,
         "small_fast_model": profile.small_fast_model,
         "default_opus_model": profile.default_opus_model,
         "default_sonnet_model": profile.default_sonnet_model,
         "default_haiku_model": profile.default_haiku_model,
+        "default_fable_model": profile.default_fable_model,
+        "default_opus_model_name": profile.default_opus_model_name,
+        "default_sonnet_model_name": profile.default_sonnet_model_name,
+        "default_haiku_model_name": profile.default_haiku_model_name,
+        "default_fable_model_name": profile.default_fable_model_name,
         "subagent_model": profile.subagent_model,
+        "custom_model_option": profile.custom_model_option,
+        "custom_model_option_name": profile.custom_model_option_name,
         "effort_level": profile.effort_level,
+        "claude_code_auto_compact_window": profile.claude_code_auto_compact_window,
+        "api_timeout_ms": profile.api_timeout_ms,
+        "claude_code_disable_nonessential_traffic": profile.claude_code_disable_nonessential_traffic,
         "provider": profile.provider,
         "provider_type": profile.provider_type,
         "account": profile.account,

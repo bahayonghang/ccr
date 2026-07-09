@@ -1,0 +1,31 @@
+{
+  "id": "provider-usage-stats",
+  "name": "provider-usage-stats",
+  "title": "Per-provider token/cost usage stats (Claude Code + Codex)",
+  "description": "按 relay provider 归因的 token/消费统计，llmusage 原生 provider 支持 + ccr 激活时间线，TUI 与 ccr-ui 双端展示",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-07-01",
+  "completedAt": "2026-07-02",
+  "branch": null,
+  "base_branch": "dev",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "07-01-provider-activation-timeline",
+    "07-01-llmusage-provider-ingest-adapter",
+    "07-01-ccr-ui-provider-usage-view",
+    "07-01-ccr-tui-usage-tab"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}

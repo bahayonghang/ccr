@@ -9,6 +9,7 @@ import type {
 } from '@/types/usage'
 import {
   formatDateTime,
+  formatSourceCounts,
   type UsageDashboardTranslate,
 } from './usageOverviewInsights'
 
@@ -28,6 +29,8 @@ export interface UsageOpsSourceItem {
   label: string
   statusLabel: string
   detail: string
+  // 非 live 来源的一句话解释（如 "部分数据缺失或已过期"），live 来源为 null 不渲染。
+  hint: string | null
   tone: UsageOpsTone
 }
 
@@ -45,6 +48,8 @@ export interface UsageOpsCockpitPresentation {
   title: string
   detail: string
   summaryLine: string
+  // 横幅用的相对新鲜度一句话（如 "4d 前"），健康态为 null。
+  freshnessAgeLabel: string | null
   primaryAction: UsageOpsAction
   primaryActionLabel: string | null
   secondaryActionLabel: string | null
@@ -246,11 +251,20 @@ const buildSourceItems = ({
         source.state,
       ),
       detail: [
-        `L ${source.live_sources.toLocaleString()} · M ${source.missing_sources.toLocaleString()} · D ${source.deleted_sources.toLocaleString()}`,
+        formatSourceCounts(source.live_sources, source.missing_sources, source.deleted_sources, translate),
         latest
           ? formatDateTime(latest, locale)
           : translateWithFallback(translate, 'usage.dashboard.ops.missingTimestampShort', 'no sync'),
       ].join(' · '),
+      hint: source.state === 'live'
+        ? null
+        : translateWithFallback(
+            translate,
+            `usage.dashboard.ops.sourceStateHints.${source.state}`,
+            source.state === 'degraded'
+              ? 'Some sessions for this source are missing or older than the freshness window.'
+              : 'No live data for this source yet — import to restore it.',
+          ),
       tone: sourceTone[source.state],
     }
   })
@@ -365,11 +379,12 @@ export const buildUsageOpsCockpit = ({
     ?? archive?.recent_completed_at
 
   const sourceValue = archive
-    ? `L ${archive.live_sources.toLocaleString()} · M ${archive.missing_sources.toLocaleString()} · D ${archive.deleted_sources.toLocaleString()}`
+    ? formatSourceCounts(archive.live_sources, archive.missing_sources, archive.deleted_sources, translate)
     : '—'
   const generatedAt = snapshot?.generated_at ?? lastUpdatedAt
   const cacheTtlSeconds = snapshot?.cache_ttl_seconds ?? 30
   const dimensions = snapshot?.drilldown.dimensions ?? []
+  const freshnessAgeLabel = state === 'ready' ? null : formatAge(freshness?.age_seconds, translate)
 
   return {
     state,
@@ -390,6 +405,7 @@ export const buildUsageOpsCockpit = ({
       stateCopy.detail,
     ),
     summaryLine: `${selectedPlatformLabel} · ${selectedWindowLabel}`,
+    freshnessAgeLabel,
     primaryAction,
     primaryActionLabel,
     secondaryActionLabel,

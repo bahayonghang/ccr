@@ -31,7 +31,7 @@ export function usePageTransition() {
   window.addEventListener('popstate', onPopState)
   onUnmounted(() => window.removeEventListener('popstate', onPopState))
 
-  router.beforeEach((to, from) => {
+  const unregisterGuard = router.beforeEach((to, from) => {
     // 首次加载 / 无 from
     if (!from.name) {
       transitionName.value = 'page-fade'
@@ -76,6 +76,9 @@ export function usePageTransition() {
 
     isBack = false
   })
+
+  // 解注册路由守卫，避免消费者卸载后守卫残留（当前消费者 MainLayout 常驻，此处为防御性清理）
+  onUnmounted(() => unregisterGuard())
 
   return { transitionName }
 }

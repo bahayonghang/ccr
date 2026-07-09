@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core'
 
-type UnknownRecord = Record<string, unknown>
+import type { UnknownRecord } from '@/types/common'
 
 const isRecord = (value: unknown): value is UnknownRecord => {
   return typeof value === 'object' && value !== null
@@ -37,7 +37,7 @@ export const healthCheck = async <T = UnknownRecord>(): Promise<T> => {
 }
 
 export const getCliVersions = async <T = UnknownRecord>(
-  options?: CliVersionsCommandOptions,
+  options?: CliVersionsCommandOptions
 ): Promise<T> => {
   const normalizedOptions = options
     ? {
@@ -81,7 +81,7 @@ export const getCliVersions = async <T = UnknownRecord>(
 }
 
 export const getCliVersion = async <T = UnknownRecord>(
-  options: CliVersionCommandOptions,
+  options: CliVersionCommandOptions
 ): Promise<T> => {
   const normalizedOptions = {
     tool: options.tool,

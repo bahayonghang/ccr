@@ -1,5 +1,6 @@
 // 导入/导出数据模型
 
+use ccr_core::{Secret, expose_plaintext};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
@@ -17,8 +18,10 @@ pub struct ExportAccount {
     pub provider_id: String,
     /// 账号备注名称
     pub name: String,
-    /// Cookies JSON (加密或明文，取决于导出选项)
-    pub cookies_json: String,
+    /// Cookies JSON (加密或明文，取决于导出选项)：Debug/日志恒掩码；
+    /// 导出文件需要真实值，走 expose_plaintext 注解
+    #[serde(serialize_with = "expose_plaintext")]
+    pub cookies_json: Secret,
     /// 是否加密
     pub cookies_json_encrypted: bool,
     /// API User ID

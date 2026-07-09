@@ -18,8 +18,8 @@ use ccr_checkin::managers::checkin::{
     WafCookieManager, get_checkin_dir,
 };
 use ccr_checkin::models::checkin::{
-    CheckinStatus, CreateAccountRequest, CreateProviderRequest, ExportOptions,
-    UpdateAccountRequest, UpdateProviderRequest,
+    CheckinRecordsResponse, CheckinStatus, CreateAccountRequest, CreateProviderRequest,
+    ExportOptions, UpdateAccountRequest, UpdateProviderRequest,
 };
 use ccr_checkin::services::cdk_service::{CdkExtraConfig, CdkService};
 use ccr_checkin::services::checkin_service::{CheckinExecutionResult, CheckinService};
@@ -83,13 +83,6 @@ struct CheckinJobAccountMeta {
     provider_name: String,
 }
 
-fn build_failed_checkin_result(
-    meta: &CheckinJobAccountMeta,
-    message: impl Into<String>,
-) -> CheckinExecutionResult {
-    build_failed_checkin_result_with_code(meta, message, "task_error")
-}
-
 fn build_failed_checkin_result_with_code(
     meta: &CheckinJobAccountMeta,
     message: impl Into<String>,
@@ -102,6 +95,7 @@ fn build_failed_checkin_result_with_code(
         status: CheckinStatus::Failed,
         message: Some(message.into()),
         error_code: Some(error_code.to_string()),
+        skip_reason: None,
         reward: None,
         balance: None,
     }
@@ -232,9 +226,13 @@ async fn execute_checkin_job_accounts(
             let result =
                 match timeout(Duration::from_secs(90), service.checkin(&meta.account_id)).await {
                     Ok(Ok(result)) => result,
-                    Ok(Err(error)) => {
-                        build_failed_checkin_result(&meta, format!("Checkin failed: {}", error))
-                    }
+                    // 透传服务层错误分类（waf_blocked/cookie_expired/crypto_error/...），
+                    // task_error 仅保留给 spawn/JoinSet 等基础设施失败
+                    Ok(Err(error)) => build_failed_checkin_result_with_code(
+                        &meta,
+                        format!("Checkin failed: {}", error),
+                        error.error_code(),
+                    ),
                     Err(_) => build_failed_checkin_result_with_code(&meta, "签到超时", "timeout"),
                 };
 
@@ -348,6 +346,10 @@ async fn run_checkin_job(
 pub async fn list_providers(_state: State<'_, AppState>) -> Result<Value, String> {
     run_blocking(|| {
         let manager = ProviderManager::new();
+        // 旧数据兼容：按 name/base_url 回填缺失的 builtin_id（幂等，仅影响 NULL 行）
+        if let Err(e) = manager.backfill_builtin_ids() {
+            tracing::warn!("Failed to backfill provider builtin_id: {}", e);
+        }
         let response = manager
             .list()
             .map_err(|e| format!("Failed to list providers: {}", e))?;
@@ -611,6 +613,7 @@ pub async fn batch_checkin(
     let mut success = 0usize;
     let mut already_checked_in = 0usize;
     let mut failed = 0usize;
+    let mut skipped = 0usize;
 
     for result in &results {
         match result.status {
@@ -619,6 +622,7 @@ pub async fn batch_checkin(
                 already_checked_in += 1
             }
             ccr_checkin::models::checkin::CheckinStatus::Failed => failed += 1,
+            ccr_checkin::models::checkin::CheckinStatus::Skipped => skipped += 1,
         }
     }
 
@@ -628,7 +632,8 @@ pub async fn batch_checkin(
             "total": results.len(),
             "success": success,
             "already_checked_in": already_checked_in,
-            "failed": failed
+            "failed": failed,
+            "skipped": skipped
         }
     });
 
@@ -692,15 +697,45 @@ pub async fn get_checkin_job_status(
 }
 
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub async fn get_checkin_records(
     _state: State<'_, AppState>,
     account_id: Option<String>,
     limit: Option<usize>,
+    status: Option<String>,
+    provider_id: Option<String>,
+    keyword: Option<String>,
+    page: Option<usize>,
+    page_size: Option<usize>,
 ) -> Result<Value, String> {
     run_blocking(move || {
         let record_manager = RecordManager::new();
 
-        let response = if let Some(aid) = account_id.as_deref() {
+        // 任一高级过滤/分页参数出现即走 SQL 级过滤；否则保留旧 limit 语义（兼容存量调用）
+        let use_advanced = status.is_some()
+            || provider_id.is_some()
+            || keyword.is_some()
+            || page.is_some()
+            || page_size.is_some();
+
+        let response = if use_advanced {
+            let page = page.unwrap_or(1).max(1);
+            let page_size = page_size.or(limit).unwrap_or(20).clamp(1, 500);
+            let (records, total) = record_manager
+                .get_paginated_advanced(
+                    status.as_deref(),
+                    account_id.as_deref(),
+                    provider_id.as_deref(),
+                    keyword.as_deref(),
+                    page,
+                    page_size,
+                )
+                .map_err(|e| format!("Failed to get records: {}", e))?;
+            CheckinRecordsResponse {
+                records: records.into_iter().map(Into::into).collect(),
+                total,
+            }
+        } else if let Some(aid) = account_id.as_deref() {
             record_manager
                 .get_by_account(aid, limit)
                 .map_err(|e| format!("Failed to get records: {}", e))?
@@ -835,15 +870,10 @@ pub async fn execute_cdk_recharge(
             .map_err(|e| format!("Provider not found: {}", e))?;
 
         // Look up builtin provider CDK config
-        use ccr_checkin::managers::checkin::builtin_providers::get_builtin_providers;
-        let builtin_providers = get_builtin_providers();
-        let cdk_config = builtin_providers
-            .iter()
-            .find(|bp| {
-                bp.name == provider.name
-                    || bp.id == format!("builtin-{}", provider.name.to_lowercase())
-            })
-            .and_then(|bp| bp.cdk_config.as_ref())
+        // 优先 builtin_id 精确反查 catalog（改名安全），旧数据（NULL）回退 name 匹配
+        use ccr_checkin::managers::checkin::builtin_providers::resolve_builtin_for_provider;
+        let cdk_config = resolve_builtin_for_provider(&provider)
+            .and_then(|bp| bp.cdk_config)
             .ok_or_else(|| format!("Provider {} does not support CDK recharge", provider.name))?;
 
         // Parse account extra_config for CDK credentials
@@ -858,7 +888,7 @@ pub async fn execute_cdk_recharge(
             .map_err(|e| format!("Failed to decrypt cookies: {}", e))?;
 
         let topup_cookies: std::collections::HashMap<String, String> =
-            serde_json::from_str(&cookies_json).unwrap_or_default();
+            serde_json::from_str(cookies_json.expose()).unwrap_or_default();
 
         // Build topup URL and include the provided CDK code
         let topup_url = cdk_config
@@ -1092,6 +1122,8 @@ pub async fn add_builtin_provider(provider_id: String) -> Result<Value, String> 
             user_info_path: Some(checkin_provider.user_info_path),
             auth_header: Some(checkin_provider.auth_header),
             auth_prefix: Some(checkin_provider.auth_prefix),
+            // 落库记录内置站来源，后续 CDK/WAF 反查不再依赖 name
+            builtin_id: checkin_provider.builtin_id,
         };
         let provider = manager
             .create(req)
@@ -1123,7 +1155,8 @@ pub async fn get_checkin_account_cookies(
 
         Ok(serde_json::json!({
             "account_id": account_id,
-            "cookies_json": cookies_json,
+            // 编辑表单回填需要原文：显式 expose（掩码化改造属 typed-ipc 任务）
+            "cookies_json": cookies_json.expose(),
             "api_user": account.api_user,
         }))
     })
@@ -1209,4 +1242,48 @@ pub async fn get_account_dashboard(
         serde_json::to_value(dashboard).map_err(|e| format!("Serialization error: {}", e))
     })
     .await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ccr_checkin::core::error::CheckinServiceError;
+
+    fn test_meta() -> CheckinJobAccountMeta {
+        CheckinJobAccountMeta {
+            account_id: "acc-1".to_string(),
+            account_name: "test-account".to_string(),
+            provider_name: "TestProvider".to_string(),
+        }
+    }
+
+    // Job 路径 Ok(Err(error)) 分支必须透传服务层 error_code，不得覆盖为 task_error
+    #[test]
+    fn job_failure_preserves_crypto_error_code() {
+        let error = CheckinServiceError::Crypto("decrypt failed".to_string());
+        let result = build_failed_checkin_result_with_code(
+            &test_meta(),
+            format!("Checkin failed: {}", error),
+            error.error_code(),
+        );
+
+        assert_eq!(result.status, CheckinStatus::Failed);
+        assert_eq!(result.error_code.as_deref(), Some("crypto_error"));
+        assert_eq!(
+            result.message.as_deref(),
+            Some("Checkin failed: Crypto error: decrypt failed")
+        );
+    }
+
+    #[test]
+    fn job_failure_preserves_waf_blocked_error_code() {
+        let error = CheckinServiceError::Api("检测到 WAF 挑战页面（响应为 HTML）".to_string());
+        let result = build_failed_checkin_result_with_code(
+            &test_meta(),
+            format!("Checkin failed: {}", error),
+            error.error_code(),
+        );
+
+        assert_eq!(result.error_code.as_deref(), Some("waf_blocked"));
+    }
 }

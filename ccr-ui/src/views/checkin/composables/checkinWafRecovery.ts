@@ -1,4 +1,10 @@
-import { openWafLogin, startCheckinJob, getCheckinJobStatus } from '@/api'
+import {
+  openWafLogin,
+  startCheckinJob,
+  getCheckinJobStatus,
+  validateWafCookieForAccount,
+} from '@/api'
+import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import type {
   CheckinProvider,
   CheckinDisplayResponse,
@@ -9,6 +15,8 @@ import type {
   CheckinJobSnapshot,
   CheckinLogEntry,
   StartCheckinJobResponse,
+  WafCookieRecoveryResult,
+  WafCookieValidationResult,
 } from '@/types/checkin'
 import type { Ref } from 'vue'
 import type { CheckinRefreshOptions } from './checkinDataState'
@@ -32,6 +40,17 @@ interface WafRecoveryRefs {
 type RefreshCheckinData = (options?: CheckinRefreshOptions) => Promise<void>
 
 const CHECKIN_RECOVERY_MISSING_LOG = '自动重试未返回日志'
+
+export const formatWafCookieRecoveryFailure = (result: WafCookieRecoveryResult): string => {
+  if (result.missing_cookie_names.length > 0) {
+    return `缺少 WAF Cookie: ${result.missing_cookie_names.join(', ')}`
+  }
+  return result.message || 'WAF Cookie 未获取完整'
+}
+
+export const formatWafCookieValidationFailure = (result: WafCookieValidationResult): string => {
+  return result.message || 'WAF Cookie 验证失败'
+}
 
 export const mapCheckinJobLogEntry = (entry: CheckinJobLogEntryPayload): CheckinLogEntry => ({
   accountId: entry.account_id,
@@ -107,12 +126,14 @@ const buildCheckinSummary = (results: CheckinDisplayResult[]) => {
         summary.success += 1
       } else if (item.status === 'already_checked_in') {
         summary.already_checked_in += 1
+      } else if (item.status === 'skipped') {
+        summary.skipped += 1
       } else {
         summary.failed += 1
       }
       return summary
     },
-    { total: 0, success: 0, already_checked_in: 0, failed: 0 }
+    { total: 0, success: 0, already_checked_in: 0, failed: 0, skipped: 0 }
   )
 }
 
@@ -187,19 +208,58 @@ const mergeRetryResults = (
   )
 }
 
-const waitForCheckinJobResult = async (
+const isTerminalJobSnapshot = (snapshot: CheckinJobSnapshot) =>
+  snapshot.status === 'finished' || snapshot.status === 'timed_out'
+
+/**
+ * 等待补救重试任务结束：复用 checkin:job-finished / checkin:job-timeout 事件，
+ * 监听挂载后再用 getCheckinJobStatus 对账一次，覆盖事件先于监听到达的窗口（无轮询）。
+ */
+export const waitForCheckinJobResult = async (
   jobId: string,
   initialSnapshot: CheckinJobSnapshot
 ): Promise<CheckinJobSnapshot> => {
-  let snapshot = initialSnapshot
-  for (let attempt = 0; attempt < 240; attempt += 1) {
-    if (snapshot.status === 'finished' || snapshot.status === 'timed_out') {
-      return snapshot
-    }
-    await new Promise((resolve) => setTimeout(resolve, 500))
-    snapshot = await getCheckinJobStatus<CheckinJobSnapshot>(jobId)
+  if (isTerminalJobSnapshot(initialSnapshot)) {
+    return initialSnapshot
   }
-  throw new Error('自动重试等待超时')
+
+  return new Promise<CheckinJobSnapshot>((resolve, reject) => {
+    const unlisteners: UnlistenFn[] = []
+    let settled = false
+
+    const cleanup = () => {
+      void Promise.all(unlisteners.splice(0).map((unlisten) => unlisten()))
+    }
+
+    const settle = (snapshot: CheckinJobSnapshot) => {
+      if (settled || snapshot.job_id !== jobId || !isTerminalJobSnapshot(snapshot)) return
+      settled = true
+      cleanup()
+      resolve(snapshot)
+    }
+
+    const setup = async () => {
+      unlisteners.push(
+        await listen<CheckinJobSnapshot>('checkin:job-finished', (event) => {
+          settle(event.payload)
+        })
+      )
+      unlisteners.push(
+        await listen<CheckinJobSnapshot>('checkin:job-timeout', (event) => {
+          settle(event.payload)
+        })
+      )
+      const latest = await getCheckinJobStatus<CheckinJobSnapshot>(jobId)
+      settle(latest)
+    }
+
+    setup().catch((error: unknown) => {
+      if (settled) return
+      settled = true
+      cleanup()
+      reject(error instanceof Error ? error : new Error(String(error)))
+    })
+  })
 }
 
 const retryAccountsAfterWaf = async (accountIds: string[]): Promise<CheckinJobSnapshot> => {
@@ -213,7 +273,14 @@ export const createCheckinWafRecovery = (
   getErrorMessage: (error: unknown, fallback: string) => string,
   getProviderLoginUrl: (provider: CheckinProvider) => string
 ) => {
-  const runWafRecovery = async (initialResult: CheckinDisplayResponse): Promise<CheckinDisplayResponse> => {
+  // provider 级补救冷却：避免快速连点为同一站点反复开 WebView 取 cookie。
+  // 失败后保留 60s 冷却；完整跑完一轮（含重试）后清除，不阻塞用户主动重试。
+  const RECOVERY_COOLDOWN_MS = 60_000
+  const recoveryAttemptAt = new Map<string, number>()
+
+  const runWafRecovery = async (
+    initialResult: CheckinDisplayResponse
+  ): Promise<CheckinDisplayResponse> => {
     const groups = detectWafBlockedGroups(refs.providers.value, initialResult)
     if (groups.length === 0 || refs.wafRecoveryRunning.value) {
       return initialResult
@@ -239,10 +306,29 @@ export const createCheckinWafRecovery = (
           continue
         }
 
+        const providerId = group.provider.id
+        const lastAttemptAt = recoveryAttemptAt.get(providerId)
+        if (lastAttemptAt && Date.now() - lastAttemptAt < RECOVERY_COOLDOWN_MS) {
+          const recoveryError = '刚刚已尝试自动获取 WAF Cookie，请稍后重试或前往“提供商”页手动获取'
+          mergedResult = markWafRecoveryFailure(mergedResult, group.accountIds, recoveryError)
+          refs.checkinResult.value = mergedResult
+          refs.checkinLogs.value = applyRecoveryFailureToLogs(
+            refs.checkinLogs.value,
+            group.accountIds,
+            recoveryError
+          )
+          continue
+        }
+        recoveryAttemptAt.set(providerId, Date.now())
+
         refs.wafRecoveryMessage.value = `正在为 ${group.providerName} 获取 WAF Cookie（${index + 1}/${groups.length}）`
 
+        let recoveryResult: WafCookieRecoveryResult
         try {
-          await openWafLogin<string>(getProviderLoginUrl(group.provider), group.provider.id)
+          recoveryResult = await openWafLogin<WafCookieRecoveryResult>(
+            getProviderLoginUrl(group.provider),
+            group.provider.id
+          )
         } catch (error: unknown) {
           const recoveryError = `自动获取 WAF Cookie 失败：${getErrorMessage(error, '未知错误')}`
           mergedResult = markWafRecoveryFailure(mergedResult, group.accountIds, recoveryError)
@@ -255,7 +341,48 @@ export const createCheckinWafRecovery = (
           continue
         }
 
-        refs.wafRecoveryMessage.value = `已获取 ${group.providerName} 的 WAF Cookie，正在重试 ${group.accountIds.length} 个账号`
+        if (!recoveryResult.persisted) {
+          const recoveryError = `自动获取 WAF Cookie 失败：${formatWafCookieRecoveryFailure(recoveryResult)}`
+          mergedResult = markWafRecoveryFailure(mergedResult, group.accountIds, recoveryError)
+          refs.checkinResult.value = mergedResult
+          refs.checkinLogs.value = applyRecoveryFailureToLogs(
+            refs.checkinLogs.value,
+            group.accountIds,
+            recoveryError
+          )
+          continue
+        }
+
+        refs.wafRecoveryMessage.value = `已获取 ${group.providerName} 的 WAF Cookie，正在验证`
+
+        try {
+          const validation = await validateWafCookieForAccount<WafCookieValidationResult>(
+            group.accountIds[0]
+          )
+          if (!validation.success) {
+            const recoveryError = `WAF Cookie 已获取但验证失败：${formatWafCookieValidationFailure(validation)}`
+            mergedResult = markWafRecoveryFailure(mergedResult, group.accountIds, recoveryError)
+            refs.checkinResult.value = mergedResult
+            refs.checkinLogs.value = applyRecoveryFailureToLogs(
+              refs.checkinLogs.value,
+              group.accountIds,
+              recoveryError
+            )
+            continue
+          }
+        } catch (error: unknown) {
+          const recoveryError = `WAF Cookie 已获取但验证失败：${getErrorMessage(error, '未知错误')}`
+          mergedResult = markWafRecoveryFailure(mergedResult, group.accountIds, recoveryError)
+          refs.checkinResult.value = mergedResult
+          refs.checkinLogs.value = applyRecoveryFailureToLogs(
+            refs.checkinLogs.value,
+            group.accountIds,
+            recoveryError
+          )
+          continue
+        }
+
+        refs.wafRecoveryMessage.value = `已验证 ${group.providerName} 的 WAF Cookie，正在重试 ${group.accountIds.length} 个账号`
 
         try {
           const retrySnapshot = await retryAccountsAfterWaf(group.accountIds)
@@ -271,6 +398,8 @@ export const createCheckinWafRecovery = (
             reloadRecords: true,
             reloadStats: true,
           })
+          // 完整跑完一轮补救（含重试），清除冷却以便用户主动重试
+          recoveryAttemptAt.delete(providerId)
         } catch (error: unknown) {
           const recoveryError = `自动重试失败：${getErrorMessage(error, '未知错误')}`
           mergedResult = markWafRecoveryFailure(mergedResult, group.accountIds, recoveryError)

@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/ccr-ui/frontend/api-facade-boundary.md", "reason": "前端 api 层若新增批量刷新封装需遵守 facade 边界"}
+{"file": ".trellis/spec/ccr-checkin/backend/backend-guidelines.md", "reason": "AccountManager 改动与日志脱敏、测试要求"}
+{"file": ".trellis/tasks/06-10-checkin-optimize-templates/research/all-api-hub.md", "reason": "minInterval 节流 + force 两档、per-origin 串行队列、批量 UX 与 4 态展示参考"}
+{"file": ".trellis/tasks/06-10-checkin-optimize-templates/research/internal-checkin-architecture.md", "reason": "无界并发/轮询/alert 混用/list 解密等热点的 file:line 定位与事件系统现状"}

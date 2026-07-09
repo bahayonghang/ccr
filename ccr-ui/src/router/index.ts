@@ -115,7 +115,7 @@ const routes: RouteRecordRaw[] = [
         path: 'codex',
         name: 'codex',
         component: () => import('@/views/CodexView.vue'),
-        meta: { cache: true, cacheKey: 'CodexView', depth: 1, group: 'codex' },
+        meta: { depth: 1, group: 'codex' },
       },
       {
         path: 'antigravity',
@@ -203,10 +203,11 @@ const routes: RouteRecordRaw[] = [
         meta: { depth: 1, group: 'data' },
       },
       {
+        // SessionsView 已下线：旧实现依赖 legacy HTTP /api/sessions，
+        // Tauri 运行时无该服务（页面必然加载失败）。保留 redirect 兜底旧书签。
         path: 'sessions',
         name: 'sessions',
-        component: () => import('@/views/SessionsView.vue'),
-        meta: { depth: 1, group: 'data' },
+        redirect: '/monitoring',
       },
       // MCP 管理
       {
@@ -223,7 +224,7 @@ const routes: RouteRecordRaw[] = [
         path: 'mcp-manager',
         name: 'mcp-manager',
         component: () => import('@/views/mcp/McpManagerView.vue'),
-        meta: { cache: true, cacheKey: 'McpManagerView', depth: 1, group: 'config' },
+        meta: { depth: 1, group: 'config' },
       },
       {
         path: 'slash-commands',
@@ -323,13 +324,13 @@ const routes: RouteRecordRaw[] = [
         path: 'codex/mcp',
         name: 'codex-mcp',
         component: () => import('@/views/CodexMcpView.vue'),
-        meta: { cache: true, cacheKey: 'CodexMcpView', depth: 2, group: 'codex' },
+        meta: { depth: 2, group: 'codex' },
       },
       {
         path: 'codex/profiles',
         name: 'codex-profiles',
         component: () => import('@/views/CodexProfilesView.vue'),
-        meta: { cache: true, cacheKey: 'CodexProfilesView', depth: 2, group: 'codex' },
+        meta: { depth: 2, group: 'codex' },
       },
       {
         path: 'codex/agents',
@@ -353,7 +354,7 @@ const routes: RouteRecordRaw[] = [
         path: 'codex/auth',
         name: 'codex-auth',
         component: () => import('@/views/CodexAuthView.vue'),
-        meta: { cache: true, cacheKey: 'CodexAuthView', depth: 2, group: 'codex' },
+        meta: { depth: 2, group: 'codex' },
       },
       {
         path: 'codex/settings',

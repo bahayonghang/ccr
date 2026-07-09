@@ -10,10 +10,10 @@ mod llmusage_adapter;
 mod monitoring;
 mod platform;
 mod process;
+mod services;
 mod session_index_jobs;
 mod ssh;
 mod state;
-mod stats_snapshot;
 #[cfg(test)]
 mod test_support;
 mod usage_jobs;
@@ -116,15 +116,11 @@ fn main() {
                 }
             }
 
-            // 初始化全局数据库，并确保后续通过 with_connection() 的调用可用。
-            // 这里先启动全局连接池，再为 AppState 创建独立的应用连接池。
-            ccr_db::database::initialize().map_err(|e| {
-                tracing::error!("[app] failed to initialize global database pool: {e}");
-                Box::new(e) as Box<dyn std::error::Error>
-            })?;
-            // 创建应用级连接池，供 AppState、SSH/环境注册和后台任务复用。
-            let db_pool = ccr_db::database::create_app_pool().map_err(|e| {
-                tracing::error!("[app] failed to create app database pool: {e}");
+            // 初始化数据库：单池同时登记为全局池并供 AppState 持有，
+            // manager 层 with_connection() 与 commands 层直取连接共享同一连接上限，
+            // ccr-ui.db 的迁移只执行一遍。
+            let db_pool = ccr_db::database::initialize_app_pool().map_err(|e| {
+                tracing::error!("[app] failed to initialize app database pool: {e}");
                 Box::new(e) as Box<dyn std::error::Error>
             })?;
             let usage_db_pool = ccr_db::database::create_usage_archive_pool().map_err(|e| {
@@ -137,7 +133,7 @@ fn main() {
             })?;
             tracing::info!(
                 llmusage_db = %llmusage.paths().db_path.display(),
-                "[app] database initialized (global + app pool); llmusage will be read on demand"
+                "[app] database initialized (single shared pool); llmusage will be read on demand"
             );
 
             // 构建并注册全局 AppState（启动期错误返 Result，不 panic 跨 FFI）。
@@ -441,7 +437,7 @@ mod tests {
 }
 
 /// 后台维护任务循环：60s 基础 tick，按 tick 数分频执行不同粒度的清理。
-/// - 每 60s  : cache_cleanup
+/// - 每 60s  : cache_cleanup + command job TTL/capacity prune
 /// - 每 300s : ssh 运行时状态 + 密码缓存 cleanup（tick % 5 == 0）
 /// - 每 600s : 监控日志 cleanup + usage import probe（tick % 10 == 0）
 ///   shutdown 信号到达时，最多等 60s 退出（tick 粒度）。
@@ -465,6 +461,12 @@ async fn run_background_tasks(app_handle: tauri::AppHandle, shutdown: Arc<Notify
 
                 // 每 60s：LRU 缓存过期清理
                 state.cache_cleanup().await;
+                let pruned_command_jobs = crate::commands::command_exec::prune_command_jobs().await;
+                if pruned_command_jobs > 0 {
+                    tracing::debug!(
+                        "[background] pruned {pruned_command_jobs} command job snapshot(s)"
+                    );
+                }
 
                 // 每 5min：SSH 运行时状态与密码缓存清理
                 if tick.is_multiple_of(5) {

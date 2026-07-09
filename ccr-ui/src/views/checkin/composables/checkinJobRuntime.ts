@@ -42,7 +42,7 @@ export const createCheckinJobRuntime = (
   refs: CheckinJobRefs,
   refreshCheckinData: RefreshCheckinData,
   runWafRecovery: RunWafRecovery,
-  getErrorMessage: (error: unknown, fallback: string) => string
+  notifyJobStartFailed: (error: unknown) => void
 ) => {
   const checkinJobUnlisteners: UnlistenFn[] = []
 
@@ -191,7 +191,7 @@ export const createCheckinJobRuntime = (
       refs.activeCheckinJobId.value = null
       refs.checkinFlowPhase.value = 'finished'
       await cleanupCheckinJobListeners()
-      alert('签到失败: ' + getErrorMessage(error, '未知错误'))
+      notifyJobStartFailed(error)
       logger.error('Checkin job failed', error)
     }
   }

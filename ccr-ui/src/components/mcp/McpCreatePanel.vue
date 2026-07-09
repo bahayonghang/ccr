@@ -50,7 +50,7 @@
           @change="updateField('scope', ($event.target as HTMLSelectElement).value)"
         >
           <option value="user">
-            {{ $t('mcp.manager.scopes.user') }} — ~/.claude.json
+            {{ $t('mcp.manager.scopes.user') }} — {{ claudeUserScopePath }}
           </option>
           <option value="local">
             {{ $t('mcp.manager.scopes.local') }} — {{ $t('mcp.manager.form.currentProjectEntry') }}
@@ -345,6 +345,8 @@ function maskValue(value: string): string {
   if (value.length <= 8) return '••••••'
   return `${value.slice(0, 4)}••••${value.slice(-2)}`
 }
+
+const claudeUserScopePath = '~/.claude.json'
 </script>
 
 <style scoped>

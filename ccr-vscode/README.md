@@ -1,11 +1,12 @@
 # CCR VSCode Extension
 
-Manage AI CLI tool configurations (Claude, Codex, Gemini, Qwen, Droid) directly from the VSCode sidebar.
+Manage CCR profile and platform metadata (Claude, Codex, Gemini/Antigravity, Qwen, Droid) directly from the VS Code sidebar.
 
 ## Features
 
 - **Profile Viewer** — TreeView showing all platforms and profiles with current-profile indicator
-- **Profile Switcher** — Switch profiles via TreeView click or QuickPick (uses `ccr` CLI)
+- **Profile Switcher** — Switch Claude/Codex profiles via TreeView click or QuickPick (uses `ccr` CLI)
+- **Platform Metadata** — Browse Gemini, Qwen, and Droid registry data without exposing write actions
 - **Profile Editor** — Control-panel style editor with copy actions for `base_url` and `auth_token`
 - **Optional Models** — Leave `model` overrides blank to fall back to platform defaults
 - **Status Bar** — Show a pinned platform, follow the current platform, or hide the item entirely
@@ -21,6 +22,7 @@ Manage AI CLI tool configurations (Claude, Codex, Gemini, Qwen, Droid) directly 
 1. Install the `.vsix` file: `code --install-extension ccr-vscode-<version>.vsix`
 2. Open the CCR sidebar panel in the Activity Bar
 3. View, switch, and edit profiles
+4. Use `CCR: Switch Profile For Platform` to jump straight into a platform-specific switch flow
 
 ## Configuration
 

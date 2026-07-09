@@ -1,6 +1,7 @@
 import { createApp, defineComponent, h, nextTick } from 'vue'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { CheckinFlowPhase, CheckinLogEntry } from '@/types/checkin'
+import { createI18nStub } from './helpers/i18n-stub'
 
 vi.mock('@/components/common/BaseModal.vue', () => ({
   default: defineComponent({
@@ -58,6 +59,7 @@ const mountModal = async (
     },
   }))
 
+  app.use(createI18nStub('zh-CN'))
   app.mount(el)
   await nextTick()
 
@@ -117,7 +119,7 @@ describe('CheckinProgressModal smoke', () => {
         message: 'API error: 检测到 WAF 挑战页面',
         wafRecoveryAttempted: true,
         wafRecovered: false,
-        wafRecoveryError: '自动重试失败：仍返回 HTML 挑战页',
+        wafRecoveryError: '自动获取 WAF Cookie 失败：缺少 WAF Cookie: acw_sc__v2',
         timestamp: new Date('2026-03-23T09:00:05.000Z'),
       },
     ]
@@ -128,8 +130,36 @@ describe('CheckinProgressModal smoke', () => {
       expect(el.textContent).toContain('签到完成')
       expect(el.textContent).toContain('全部任务执行完毕')
       expect(el.textContent).toContain('自动补救失败')
-      expect(el.textContent).toContain('自动重试失败：仍返回 HTML 挑战页')
-      expect(el.textContent).toContain('确定')
+      expect(el.textContent).toContain('自动获取 WAF Cookie 失败：缺少 WAF Cookie: acw_sc__v2')
+      expect(el.textContent).toContain('确认')
+    } finally {
+      unmount()
+    }
+  })
+
+  it('renders manual-WAF terminal state when waf_blocked failures remain', async () => {
+    const logs: CheckinLogEntry[] = [
+      {
+        accountId: 'acc-1',
+        accountName: 'anyrouter_stumail',
+        providerName: 'AnyRouter',
+        status: 'failed',
+        message: 'API error: 检测到 WAF 挑战页面',
+        errorCode: 'waf_blocked',
+        wafRecoveryAttempted: true,
+        wafRecovered: false,
+        timestamp: new Date('2026-03-23T09:00:05.000Z'),
+      },
+    ]
+
+    const { el, unmount } = await mountModal('finished', logs)
+
+    try {
+      // 仍有 WAF 未恢复时，终态应区别于绿色"全部完成"，引导用户手动处理
+      expect(el.textContent).toContain('需手动处理 WAF')
+      expect(el.textContent).toContain('仍被 WAF 拦截')
+      expect(el.textContent).not.toContain('全部任务执行完毕')
+      expect(el.textContent).toContain('确认')
     } finally {
       unmount()
     }

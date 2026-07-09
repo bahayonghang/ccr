@@ -206,6 +206,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { getErrorMessage } from '@/utils/errorHandler'
 import { useI18n } from 'vue-i18n'
 import MasterDetailLayout from '@/components/common/MasterDetailLayout.vue'
 import BulkDeleteDialog from '@/components/common/BulkDeleteDialog.vue'
@@ -300,9 +301,13 @@ function handleUpdateField(field: keyof UnifiedMcpRequest, value: unknown) {
 
 async function handleSubmit() {
   if (formData.value.scope === 'project') {
-    const confirmed = window.confirm(
-      t('mcp.manager.confirm.projectScopeWrite'),
-    )
+    const confirmed = await uiStore.requestConfirm({
+      title: t('common.warning'),
+      message: t('mcp.manager.confirm.projectScopeWrite'),
+      confirmText: t('common.confirm'),
+      cancelText: t('common.cancel'),
+      type: 'warning',
+    })
     if (!confirmed) return
   }
   const success = await submitForm()
@@ -320,23 +325,27 @@ async function confirmBulkDelete() {
     showBulkDeleteDialog.value = false
     uiStore.showSuccess(t('mcp.manager.messages.deletedSelected'))
   } catch (err) {
-    uiStore.showError(err instanceof Error ? err.message : String(err))
+    uiStore.showError(getErrorMessage(err))
   } finally {
     bulkDeleting.value = false
   }
 }
 
 async function handleDeleteGroup(group: McpGroup) {
-  const confirmed = window.confirm(
-    t('mcp.manager.confirm.deleteGroup', { count: group.items.length, name: group.name }),
-  )
+  const confirmed = await uiStore.requestConfirm({
+    title: t('common.delete'),
+    message: t('mcp.manager.confirm.deleteGroup', { count: group.items.length, name: group.name }),
+    confirmText: t('common.delete'),
+    cancelText: t('common.cancel'),
+    type: 'danger',
+  })
   if (!confirmed) return
 
   try {
     await deleteGroup(group)
     uiStore.showSuccess(t('mcp.manager.messages.deletedServer', { name: group.name }))
   } catch (err) {
-    uiStore.showError(err instanceof Error ? err.message : String(err))
+    uiStore.showError(getErrorMessage(err))
   }
 }
 
@@ -350,9 +359,13 @@ async function handleImportServers(
   scope?: string,
 ) {
   if (scope === 'project') {
-    const confirmed = window.confirm(
-      t('mcp.manager.confirm.projectScopeImport'),
-    )
+    const confirmed = await uiStore.requestConfirm({
+      title: t('common.warning'),
+      message: t('mcp.manager.confirm.projectScopeImport'),
+      confirmText: t('common.confirm'),
+      cancelText: t('common.cancel'),
+      type: 'warning',
+    })
     if (!confirmed) return
   }
 
@@ -582,7 +595,7 @@ async function handleImportServers(
 .mcp-alert--error {
   border: 1px solid rgb(var(--color-danger-rgb, 239 68 68) / 26%);
   background: rgb(var(--color-danger-rgb, 239 68 68) / 8%);
-  color: var(--color-danger, #ef4444);
+  color: var(--color-danger);
 }
 
 .mcp-manager-view :deep(.master-detail) {

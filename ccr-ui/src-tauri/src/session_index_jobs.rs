@@ -1,8 +1,10 @@
 use chrono::Utc;
 use serde::Serialize;
+use ts_rs::TS;
 
-#[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq, TS)]
 #[serde(rename_all = "snake_case")]
+#[ts(export, export_to = "../../src/types/generated/usage/")]
 pub enum SessionIndexJobStatus {
     Pending,
     Running,
@@ -10,8 +12,9 @@ pub enum SessionIndexJobStatus {
     Failed,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq, TS)]
 #[serde(rename_all = "snake_case")]
+#[ts(export, export_to = "../../src/types/generated/usage/")]
 pub enum SessionIndexJobStage {
     Queued,
     Indexing,
@@ -19,26 +22,37 @@ pub enum SessionIndexJobStage {
     Failed,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/usage/")]
 pub struct SessionIndexJobSnapshot {
     pub job_id: String,
     pub status: SessionIndexJobStatus,
     pub stage: SessionIndexJobStage,
     pub platforms_total: usize,
     pub platforms_completed: usize,
+    // i64/u64 走 serde_json number，ts(as = "f64") 避免 ts-rs 默认 bigint
+    #[ts(as = "f64")]
     pub files_total: u64,
+    #[ts(as = "f64")]
     pub files_scanned: u64,
+    #[ts(as = "f64")]
     pub sessions_added: u64,
+    #[ts(as = "f64")]
     pub sessions_updated: u64,
+    #[ts(as = "f64")]
     pub errors: u64,
     pub started_at: String,
     pub updated_at: String,
+    // skip_serializing_if 字段在 wire 上是"缺键"而非 null，ts(optional) 生成 `field?: T` 精确表达。
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
     pub finished_at: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
     pub current_platform: Option<String>,
     pub warnings: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
     pub error: Option<String>,
 }
 

@@ -219,10 +219,15 @@ async fn cmd_verify(name: &str) -> Result<()> {
                 .clone()
                 .unwrap_or_else(|| "https://api.anthropic.com".to_string());
 
-            let api_key = c.auth_token.clone().unwrap_or_else(|| {
-                tracing::debug!("配置 {} 未设置 API Key", name);
-                String::new()
-            });
+            // API Key 在线校验是 token 的合法明文消费点
+            let api_key = c
+                .auth_token
+                .as_ref()
+                .map(|t| t.expose().to_string())
+                .unwrap_or_else(|| {
+                    tracing::debug!("配置 {} 未设置 API Key", name);
+                    String::new()
+                });
 
             if api_key.is_empty() {
                 ColorOutput::error("API Key 未配置");

@@ -1,6 +1,16 @@
 import { createApp, defineComponent, h, KeepAlive, nextTick, reactive, ref } from 'vue'
-import type { DailyTrend, UsageSnapshotProjection, UsageSummary } from '@/types/usage'
+import type {
+  DailyTrend,
+  ModelStat,
+  ProviderBreakdown,
+  ProjectStat,
+  UsageCapabilityReport,
+  UsageFeatureCapability,
+  UsageSnapshotProjection,
+  UsageSummary,
+} from '@/types/usage'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { makeModelStat } from './helpers/usageFixtures'
 
 let localeHydrated = false
 const perfMarks: string[] = []
@@ -8,9 +18,11 @@ const perfMarks: string[] = []
 const usageStore = reactive({
   summary: null as UsageSummary | null,
   trends: [] as DailyTrend[],
-  modelStats: [],
-  projectStats: [],
+  modelStats: [] as ModelStat[],
+  projectStats: [] as ProjectStat[],
+  providerStats: [] as ProviderBreakdown[],
   sourceStats: [],
+  usageCapabilities: null as UsageCapabilityReport | null,
   logs: null as null | {
     records: unknown[]
     total?: number | null
@@ -92,6 +104,7 @@ const translationTemplates: Record<string, string> = {
   'usage.dashboard.tabs.overview': 'Overview',
   'usage.dashboard.tabs.tokens': 'Tokens',
   'usage.dashboard.tabs.cost': 'Cost',
+  'usage.dashboard.tabs.providers': 'Providers',
   'usage.dashboard.tabs.models': 'Models',
   'usage.dashboard.tabs.projects': 'Projects',
   'usage.dashboard.tabs.logs': 'Diagnostics',
@@ -132,10 +145,12 @@ const translationTemplates: Record<string, string> = {
   'usage.dashboard.ops.eyebrow': 'Usage operations cockpit',
   'usage.dashboard.ops.states.ready.label': 'Ready',
   'usage.dashboard.ops.states.ready.title': 'Usage data is ready',
-  'usage.dashboard.ops.states.ready.detail': 'The local read model is fresh enough for cost and token decisions.',
+  'usage.dashboard.ops.states.ready.detail':
+    'The local read model is fresh enough for cost and token decisions.',
   'usage.dashboard.ops.states.stale.label': 'Stale',
   'usage.dashboard.ops.states.stale.title': 'Usage data is stale',
-  'usage.dashboard.ops.states.stale.detail': 'Refresh the local usage archive before making budget or quota decisions.',
+  'usage.dashboard.ops.states.stale.detail':
+    'Refresh the local usage archive before making budget or quota decisions.',
   'usage.dashboard.ops.health.readiness': 'Readiness',
   'usage.dashboard.ops.health.nextAction': 'Next action: {action}',
   'usage.dashboard.ops.health.noAction': 'No blocking action',
@@ -203,9 +218,9 @@ const flushPromises = async () => {
   await nextTick()
 }
 
-const withFakeNow = async <T>(isoTimestamp: string, callback: () => Promise<T>) => {
+const withFakeNow = async <T>(timestamp: string | Date, callback: () => Promise<T>) => {
   vi.useFakeTimers()
-  vi.setSystemTime(new Date(isoTimestamp))
+  vi.setSystemTime(timestamp instanceof Date ? timestamp : new Date(timestamp))
   try {
     return await callback()
   } finally {
@@ -286,7 +301,9 @@ beforeEach(() => {
   usageStore.trends = []
   usageStore.modelStats = []
   usageStore.projectStats = []
+  usageStore.providerStats = []
   usageStore.sourceStats = []
+  usageStore.usageCapabilities = null
   usageStore.logs = null
   usageStore.logsLoading = false
   usageStore.archive = null
@@ -420,7 +437,69 @@ describe('usage dashboard state smoke', () => {
     const { state, unmount } = await mountComposable()
 
     try {
-      expect([...state.tabKeys]).toEqual(['overview', 'tokens', 'cost', 'models', 'projects', 'logs'])
+      expect([...state.tabKeys]).toEqual([
+        'overview',
+        'tokens',
+        'cost',
+        'providers',
+        'models',
+        'projects',
+        'logs',
+      ])
+    } finally {
+      unmount()
+    }
+  })
+
+  it('exposes provider stats and provider capability for the provider tab', async () => {
+    tauriRuntime = true
+    usageStore.providerStats = [
+      {
+        provider: 'openai',
+        request_count: 5,
+        input_tokens: 1000,
+        cache_read_tokens: 250,
+        cache_creation_tokens: 50,
+        output_tokens: 400,
+        reasoning_output_tokens: 40,
+        total_tokens: 1700,
+        cost_with_cache_usd: 0.42,
+        cost_without_cache_usd: 0.6,
+      },
+      {
+        provider: null,
+        request_count: 2,
+        input_tokens: 200,
+        cache_read_tokens: 0,
+        cache_creation_tokens: 0,
+        output_tokens: 100,
+        reasoning_output_tokens: 0,
+        total_tokens: 300,
+        cost_with_cache_usd: 0.04,
+        cost_without_cache_usd: 0.04,
+      },
+    ]
+    usageStore.usageCapabilities = {
+      cli_available: true,
+      cli_version: null,
+      root_dir: 'C:/Users/test/.llmusage',
+      db_path: 'C:/Users/test/.llmusage/llmusage.db',
+      db_exists: true,
+      db_readable: true,
+      schema_version: 14,
+      features: {
+        // 断言用 toEqual({ supported: true }) 精确比较，补 reason/detail: null 会让断言变红；
+        // 这里保持运行时值不变，仅用 as 收窄类型。
+        provider_breakdown: { supported: true } as UsageFeatureCapability,
+      },
+    }
+
+    const { state, unmount } = await mountComposable()
+
+    try {
+      expect(state.providerStats.value).toHaveLength(2)
+      expect(state.providerStats.value[1]?.provider).toBeNull()
+      expect(state.providerCapability.value).toEqual({ supported: true })
     } finally {
       unmount()
     }
@@ -494,7 +573,7 @@ describe('usage dashboard state smoke', () => {
       cache_efficiency: 0,
     }
     usageStore.modelStats = [
-      { model: 'unknown', request_count: 42, total_tokens: 43800, total_cost: 0 },
+      makeModelStat({ model: 'unknown', request_count: 42, total_tokens: 43800, total_cost: 0 }),
     ]
     usageStore.logs = {
       total: 42,
@@ -572,8 +651,18 @@ describe('usage dashboard state smoke', () => {
       cache_efficiency: 0.375,
     }
     usageStore.modelStats = [
-      { model: 'claude-opus', request_count: 72, total_tokens: 30000, total_cost: 18.4 },
-      { model: 'gemini-flash', request_count: 48, total_tokens: 30000, total_cost: 6.1 },
+      makeModelStat({
+        model: 'claude-opus',
+        request_count: 72,
+        total_tokens: 30000,
+        total_cost: 18.4,
+      }),
+      makeModelStat({
+        model: 'gemini-flash',
+        request_count: 48,
+        total_tokens: 30000,
+        total_cost: 6.1,
+      }),
     ]
     usageStore.projectStats = [
       {
@@ -643,6 +732,8 @@ describe('usage dashboard state smoke', () => {
     usageStore.snapshot = {
       generated_at: '2026-05-25T09:10:00Z',
       platform_scope: 'all',
+      start_date: null,
+      end_date: null,
       cache_ttl_seconds: 30,
       freshness: {
         state: 'stale',
@@ -668,6 +759,8 @@ describe('usage dashboard state smoke', () => {
           live_sources: 1,
           missing_sources: 1,
           deleted_sources: 0,
+          recent_completed_at: null,
+          history_completed_at: null,
           freshness: {
             state: 'stale',
             latest_completed_at: '2026-05-24T00:00:00Z',
@@ -722,7 +815,12 @@ describe('usage dashboard state smoke', () => {
       },
     ]
     usageStore.modelStats = [
-      { model: 'claude-opus', request_count: 72, total_tokens: 30000, total_cost: 18.4 },
+      makeModelStat({
+        model: 'claude-opus',
+        request_count: 72,
+        total_tokens: 30000,
+        total_cost: 18.4,
+      }),
     ]
 
     const { state, unmount } = await mountComposable()
@@ -773,20 +871,20 @@ describe('usage dashboard state smoke', () => {
   it('keeps overview model distribution cost-based while exposing token-based models data', async () => {
     tauriRuntime = true
     usageStore.modelStats = [
-      {
+      makeModelStat({
         model: 'expensive-small',
         request_count: 3,
         total_tokens: 1000,
         total_cost: 100,
         cost_with_cache: 100,
-      },
-      {
+      }),
+      makeModelStat({
         model: 'cheap-large',
         request_count: 2,
         total_tokens: 10000,
         total_cost: 1,
         cost_with_cache: 1,
-      },
+      }),
     ]
 
     const { state, unmount } = await mountComposable()
@@ -812,8 +910,18 @@ describe('usage dashboard state smoke', () => {
       cache_efficiency: 0.375,
     }
     usageStore.modelStats = [
-      { model: 'claude-opus', request_count: 72, total_tokens: 30000, total_cost: 18.4 },
-      { model: 'gemini-flash', request_count: 48, total_tokens: 30000, total_cost: 6.1 },
+      makeModelStat({
+        model: 'claude-opus',
+        request_count: 72,
+        total_tokens: 30000,
+        total_cost: 18.4,
+      }),
+      makeModelStat({
+        model: 'gemini-flash',
+        request_count: 48,
+        total_tokens: 30000,
+        total_cost: 6.1,
+      }),
     ]
     usageStore.projectStats = [
       {
@@ -841,8 +949,9 @@ describe('usage dashboard state smoke', () => {
 
     try {
       expect(state.dashboardReady.value).toBe(true)
-      expect(state.summaryCards.value.find((card) => card.id === 'requests')?.detail)
-        .toBe('2 models · 1 projects')
+      expect(state.summaryCards.value.find((card) => card.id === 'requests')?.detail).toBe(
+        '2 models · 1 projects'
+      )
       expect(state.trendSubtitle.value).toBe('Last 30 Days, aggregated by Daily, 1 key points')
       expect(state.overviewHighlights.value[0]?.detail).toBe('1 key points across Last 30 Days')
 
@@ -866,15 +975,15 @@ describe('usage dashboard state smoke', () => {
   })
 
   it('uses a local inclusive 7 day window instead of UTC ISO slicing', async () => {
-    await withFakeNow('2026-05-10T00:30:00+08:00', async () => {
+    await withFakeNow(new Date(2026, 4, 10, 0, 30, 0), async () => {
       tauriRuntime = true
       const { state, unmount } = await mountComposable()
 
       try {
-      state.selectedRange.value = 'this_week'
-      state.onFilterChange()
+        state.selectedRange.value = 'this_week'
+        state.onFilterChange()
 
-      expect(usageStore.setFilters).toHaveBeenLastCalledWith(
+        expect(usageStore.setFilters).toHaveBeenLastCalledWith(
           expect.objectContaining({
             start: '2026-05-04',
             end: '2026-05-10',
@@ -905,7 +1014,7 @@ describe('usage dashboard state smoke', () => {
 
       expect(tokenCard?.value).toBe('195')
       expect(tokenCard?.detail).toContain('30 cache read')
-      expect(state.summaryCards.value.some((card) => card.id === 'cache')).toBe(false)
+      expect(state.summaryCards.value.some((card) => (card.id as string) === 'cache')).toBe(false)
     } finally {
       unmount()
     }

@@ -1,14 +1,22 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  makeArchiveDiagnostics,
+  makeSessionIndexJobSnapshot,
+  makeSnapshotProjection,
+  makeUsageImportJobSnapshot,
+} from './helpers/usageFixtures'
 
 const eventListeners = new Map<string, (event: { payload: unknown }) => void>()
 
-const listenMock = vi.fn(async (eventName: string, callback: (event: { payload: unknown }) => void) => {
-  eventListeners.set(eventName, callback)
-  return () => {
-    eventListeners.delete(eventName)
+const listenMock = vi.fn(
+  async (eventName: string, callback: (event: { payload: unknown }) => void) => {
+    eventListeners.set(eventName, callback)
+    return () => {
+      eventListeners.delete(eventName)
+    }
   }
-})
+)
 
 const tauriRuntimeMock = vi.fn(() => true)
 
@@ -55,17 +63,19 @@ const createSupportedCapabilities = () => ({
   },
 })
 
-const createOverview = (bootstrap?: Partial<{
-  usage_job_id: string | null
-  needs_usage_import: boolean
-  needs_session_index: boolean
-  is_warm: boolean
-  usage_import_attempted: boolean
-  usage_imported_records: number
-  session_reindex_attempted: boolean
-  indexed_sessions: number
-  session_job_id: string | null
-}>) => ({
+const createOverview = (
+  bootstrap?: Partial<{
+    usage_job_id: string | null
+    needs_usage_import: boolean
+    needs_session_index: boolean
+    is_warm: boolean
+    usage_import_attempted: boolean
+    usage_imported_records: number
+    session_reindex_attempted: boolean
+    indexed_sessions: number
+    session_job_id: string | null
+  }>
+) => ({
   summary: {
     total_sessions: 0,
     total_requests: 0,
@@ -80,7 +90,7 @@ const createOverview = (bootstrap?: Partial<{
     opencode: { sessions: 0, requests: 0, tokens: 0 },
   },
   series: [],
-  archive: {
+  archive: makeArchiveDiagnostics({
     archive_root: 'C:/Users/test/.ccr/analytics/usage.db',
     live_sources: 0,
     missing_sources: 0,
@@ -88,17 +98,18 @@ const createOverview = (bootstrap?: Partial<{
     archived_sessions: 0,
     recent_completed_at: null,
     history_completed_at: null,
-  },
+  }),
+  snapshot: makeSnapshotProjection(),
   bootstrap: {
     usage_import_attempted: false,
     usage_imported_records: 0,
-      session_reindex_attempted: false,
-      indexed_sessions: 0,
-      usage_job_id: null,
-      session_job_id: null,
-      needs_usage_import: false,
-      needs_session_index: false,
-      is_warm: true,
+    session_reindex_attempted: false,
+    indexed_sessions: 0,
+    usage_job_id: null,
+    session_job_id: null,
+    needs_usage_import: false,
+    needs_session_index: false,
+    is_warm: true,
     ...bootstrap,
   },
   empty_reason: 'no_usage_and_sessions' as const,
@@ -144,11 +155,11 @@ describe('home usage overview store smoke', () => {
         needs_usage_import: true,
         needs_session_index: true,
         is_warm: false,
-      }),
+      })
     )
     vi.mocked(api.startUsageImportJobV2).mockResolvedValue({
       job_id: 'usage-import-home',
-      snapshot: {
+      snapshot: makeUsageImportJobSnapshot({
         job_id: 'usage-import-home',
         status: 'running',
         stage: 'importing_recent',
@@ -172,36 +183,38 @@ describe('home usage overview store smoke', () => {
         error: null,
         results: [],
         summary: null,
-      },
+      }),
     })
-    vi.mocked(api.getUsageImportJobStatusV2).mockResolvedValue({
-      job_id: 'usage-import-home',
-      status: 'running',
-      stage: 'importing_recent',
-      platform_scope: 'all',
-      recent_window_days: 30,
-      files_total: 0,
-      files_scanned: 0,
-      files_imported: 0,
-      records_imported: 0,
-      records_skipped: 0,
-      history_cursor_hit: false,
-      live_sources: 0,
-      missing_sources: 0,
-      deleted_sources: 0,
-      started_at: '2026-04-08T00:00:00Z',
-      updated_at: '2026-04-08T00:00:00Z',
-      recent_ready_at: null,
-      finished_at: null,
-      current_file: null,
-      warnings: [],
-      error: null,
-      results: [],
-      summary: null,
-    })
+    vi.mocked(api.getUsageImportJobStatusV2).mockResolvedValue(
+      makeUsageImportJobSnapshot({
+        job_id: 'usage-import-home',
+        status: 'running',
+        stage: 'importing_recent',
+        platform_scope: 'all',
+        recent_window_days: 30,
+        files_total: 0,
+        files_scanned: 0,
+        files_imported: 0,
+        records_imported: 0,
+        records_skipped: 0,
+        history_cursor_hit: false,
+        live_sources: 0,
+        missing_sources: 0,
+        deleted_sources: 0,
+        started_at: '2026-04-08T00:00:00Z',
+        updated_at: '2026-04-08T00:00:00Z',
+        recent_ready_at: null,
+        finished_at: null,
+        current_file: null,
+        warnings: [],
+        error: null,
+        results: [],
+        summary: null,
+      })
+    )
     vi.mocked(api.ensureSessionIndexV2).mockResolvedValue({
       job_id: 'session-index-home',
-      snapshot: {
+      snapshot: makeSessionIndexJobSnapshot({
         job_id: 'session-index-home',
         status: 'running',
         stage: 'indexing',
@@ -218,26 +231,28 @@ describe('home usage overview store smoke', () => {
         current_platform: 'claude',
         warnings: [],
         error: null,
-      },
+      }),
     })
-    vi.mocked(api.getSessionIndexJobStatusV2).mockResolvedValue({
-      job_id: 'session-index-home',
-      status: 'running',
-      stage: 'indexing',
-      platforms_total: 4,
-      platforms_completed: 0,
-      files_total: 12,
-      files_scanned: 0,
-      sessions_added: 0,
-      sessions_updated: 0,
-      errors: 0,
-      started_at: '2026-04-08T00:00:00Z',
-      updated_at: '2026-04-08T00:00:00Z',
-      finished_at: null,
-      current_platform: 'claude',
-      warnings: [],
-      error: null,
-    })
+    vi.mocked(api.getSessionIndexJobStatusV2).mockResolvedValue(
+      makeSessionIndexJobSnapshot({
+        job_id: 'session-index-home',
+        status: 'running',
+        stage: 'indexing',
+        platforms_total: 4,
+        platforms_completed: 0,
+        files_total: 12,
+        files_scanned: 0,
+        sessions_added: 0,
+        sessions_updated: 0,
+        errors: 0,
+        started_at: '2026-04-08T00:00:00Z',
+        updated_at: '2026-04-08T00:00:00Z',
+        finished_at: null,
+        current_platform: 'claude',
+        warnings: [],
+        error: null,
+      })
+    )
 
     const { useHomeUsageOverviewStore } = await import('@/stores/homeUsageOverview')
     const store = useHomeUsageOverviewStore()
@@ -256,41 +271,47 @@ describe('home usage overview store smoke', () => {
   it('refreshes the cached overview when the active usage import job reaches recent_ready', async () => {
     const api = await import('@/api')
     vi.mocked(api.getHomeUsageOverviewV2)
-      .mockResolvedValueOnce(createOverview({
-        usage_job_id: 'usage-import-home',
-        needs_usage_import: true,
-        is_warm: false,
-      }))
-      .mockResolvedValueOnce(createOverview({
-        usage_job_id: null,
-        needs_usage_import: false,
-        is_warm: true,
-      }))
-    vi.mocked(api.getUsageImportJobStatusV2).mockResolvedValue({
-      job_id: 'usage-import-home',
-      status: 'running',
-      stage: 'importing_recent',
-      platform_scope: 'all',
-      recent_window_days: 30,
-      files_total: 0,
-      files_scanned: 0,
-      files_imported: 0,
-      records_imported: 0,
-      records_skipped: 0,
-      history_cursor_hit: false,
-      live_sources: 0,
-      missing_sources: 0,
-      deleted_sources: 0,
-      started_at: '2026-04-08T00:00:00Z',
-      updated_at: '2026-04-08T00:00:00Z',
-      recent_ready_at: null,
-      finished_at: null,
-      current_file: null,
-      warnings: [],
-      error: null,
-      results: [],
-      summary: null,
-    })
+      .mockResolvedValueOnce(
+        createOverview({
+          usage_job_id: 'usage-import-home',
+          needs_usage_import: true,
+          is_warm: false,
+        })
+      )
+      .mockResolvedValueOnce(
+        createOverview({
+          usage_job_id: null,
+          needs_usage_import: false,
+          is_warm: true,
+        })
+      )
+    vi.mocked(api.getUsageImportJobStatusV2).mockResolvedValue(
+      makeUsageImportJobSnapshot({
+        job_id: 'usage-import-home',
+        status: 'running',
+        stage: 'importing_recent',
+        platform_scope: 'all',
+        recent_window_days: 30,
+        files_total: 0,
+        files_scanned: 0,
+        files_imported: 0,
+        records_imported: 0,
+        records_skipped: 0,
+        history_cursor_hit: false,
+        live_sources: 0,
+        missing_sources: 0,
+        deleted_sources: 0,
+        started_at: '2026-04-08T00:00:00Z',
+        updated_at: '2026-04-08T00:00:00Z',
+        recent_ready_at: null,
+        finished_at: null,
+        current_file: null,
+        warnings: [],
+        error: null,
+        results: [],
+        summary: null,
+      })
+    )
 
     const { useHomeUsageOverviewStore } = await import('@/stores/homeUsageOverview')
     const store = useHomeUsageOverviewStore()

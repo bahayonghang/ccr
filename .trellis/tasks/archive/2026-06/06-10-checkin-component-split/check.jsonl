@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/ccr-ui/frontend/theme-token-contracts.md", "reason": "校验样式抽取未破坏主题 token 契约"}
+{"file": ".trellis/tasks/06-10-checkin-optimize-templates/research/internal-checkin-architecture.md", "reason": "校验拆分范围与死代码删除清单一致、行为零变化"}

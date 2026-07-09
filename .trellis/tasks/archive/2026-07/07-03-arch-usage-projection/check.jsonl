@@ -1,0 +1,3 @@
+{"file": ".trellis/spec/ccr/backend/llmusage-provider-adapter.md", "reason": "验收基准：Tests Required 全清单 + Validation & Error Matrix 逐条核对"}
+{"file": ".trellis/tasks/07-03-arch-usage-projection/prd.md", "reason": "AC 7 条逐条核对"}
+{"file": ".trellis/tasks/07-03-arch-usage-projection/design.md", "reason": "行为保持清单 10 条逐条核对；DTO serde 形状零变化"}

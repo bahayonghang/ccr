@@ -1,0 +1,4 @@
+*.sh text eol=lf
+
+# ts-rs 生成的 TypeScript 绑定：锁 LF 防止跨平台再生成造成假漂移；diff 折叠
+ccr-ui/src/types/generated/** text eol=lf linguist-generated=true

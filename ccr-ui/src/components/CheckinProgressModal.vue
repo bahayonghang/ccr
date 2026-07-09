@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
 import { computed, ref, watch, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
 import BaseModal from '@/components/common/BaseModal.vue'
 import type { CheckinFlowPhase, CheckinLogEntry } from '@/types/checkin'
 
@@ -19,6 +20,7 @@ const props = defineProps<Props>()
 const emit = defineEmits<{
   close: []
 }>()
+const { t } = useI18n()
 
 const logContainerRef = ref<HTMLElement | null>(null)
 
@@ -27,9 +29,17 @@ const circumference = 2 * Math.PI * radius
 const isRecovering = computed(() => props.phase === 'recovering')
 const isFinished = computed(() => props.phase === 'finished')
 
+// 终态诚实化：仍有账号被 WAF 拦截且未恢复时，区别于"全部成功"的绿色终态
+const unresolvedWafCount = computed(
+  () =>
+    props.logs.filter((log) => log.status === 'failed' && log.errorCode === 'waf_blocked').length
+)
+const needsManualWaf = computed(() => isFinished.value && unresolvedWafCount.value > 0)
+
 const modalTitle = computed(() => {
-  if (isRecovering.value) return '正在自动处理 WAF'
-  return isFinished.value ? '签到完成' : '正在执行签到'
+  if (isRecovering.value) return t('checkin.result.recoveringTitle')
+  if (needsManualWaf.value) return t('checkin.progress.manualWafTitle')
+  return isFinished.value ? t('checkin.result.completed') : t('checkin.progress.runningTitle')
 })
 
 const progressPercent = computed(() => {
@@ -60,9 +70,11 @@ const getLogTextClass = (status: CheckinLogEntry['status']) => {
 const getRecoveryBadgeLabel = (log: CheckinLogEntry) => {
   if (!log.wafRecoveryAttempted) return null
   if (log.wafRecovered) {
-    return log.status === 'already_checked_in' ? '自动补救后完成' : '自动补救后成功'
+    return log.status === 'already_checked_in'
+      ? t('checkin.result.recoveryCompleted')
+      : t('checkin.result.recoverySuccess')
   }
-  return '自动补救失败'
+  return t('checkin.progress.recoveryFailed')
 }
 
 watch(
@@ -116,9 +128,9 @@ watch(
           <span class="absolute text-2xl font-bold text-text-primary">
             <template v-if="isFinished">
               <SIcon
-                name="CheckCircle"
+                :name="needsManualWaf ? 'AlertTriangle' : 'CheckCircle'"
                 size="h-10 w-10"
-                class="text-accent-success"
+                :class="needsManualWaf ? 'text-accent-warning' : 'text-accent-success'"
               />
             </template>
             <template v-else-if="isRecovering">
@@ -136,13 +148,13 @@ watch(
 
         <div class="space-y-1">
           <p class="text-sm text-text-secondary">
-            {{ current }} / {{ total }} 个账号
+            {{ t('checkin.progress.accountProgress', { current, total }) }}
           </p>
           <p
             v-if="currentAccountName && !isFinished && !isRecovering"
             class="text-sm font-medium text-accent-primary"
           >
-            正在签到：{{ currentAccountName }}
+            {{ t('checkin.progress.currentAccount', { account: currentAccountName }) }}
           </p>
           <p
             v-else-if="isRecovering && recoveryMessage"
@@ -152,15 +164,20 @@ watch(
           </p>
           <p
             v-else-if="isFinished"
-            class="text-sm font-medium text-accent-success"
+            class="text-sm font-medium"
+            :class="needsManualWaf ? 'text-accent-warning' : 'text-accent-success'"
           >
-            全部任务执行完毕
+            {{
+              needsManualWaf
+                ? t('checkin.progress.manualWafSummary', { count: unresolvedWafCount })
+                : t('checkin.progress.allTasksCompleted')
+            }}
           </p>
           <p
             v-if="isRecovering && recoveryProviderName"
             class="text-xs text-text-secondary"
           >
-            当前提供商：{{ recoveryProviderName }}
+            {{ t('checkin.result.currentProvider', { provider: recoveryProviderName }) }}
           </p>
         </div>
       </div>
@@ -171,7 +188,7 @@ watch(
             name="FileText"
             size="h-4 w-4"
           />
-          签到日志
+          {{ t('checkin.progress.logTitle') }}
         </h4>
         <div
           ref="logContainerRef"
@@ -228,8 +245,8 @@ watch(
                 v-if="getRecoveryBadgeLabel(log)"
                 class="ml-2 inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium"
                 :class="log.wafRecovered
-                  ? 'bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-200'
-                  : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-200'"
+                  ? 'bg-accent-info/15 text-accent-info'
+                  : 'bg-accent-warning/15 text-accent-warning'"
               >
                 {{ getRecoveryBadgeLabel(log) }}
               </span>
@@ -242,7 +259,7 @@ watch(
               </p>
               <p
                 v-if="log.wafRecoveryAttempted && log.wafRecovered === false && log.wafRecoveryError"
-                class="mt-0.5 break-all text-xs text-amber-700 dark:text-amber-300"
+                class="mt-0.5 break-all text-xs text-accent-warning"
               >
                 {{ log.wafRecoveryError }}
               </p>
@@ -252,7 +269,7 @@ watch(
             v-if="logs.length === 0"
             class="flex h-full items-center justify-center text-sm text-text-muted"
           >
-            等待开始签到...
+            {{ t('checkin.progress.waiting') }}
           </div>
         </div>
       </div>
@@ -262,14 +279,14 @@ watch(
         class="pt-2"
       >
         <button
-          class="flex w-full items-center justify-center gap-2 rounded-lg bg-accent-primary px-4 py-2.5 font-medium text-white transition-colors hover:bg-accent-primary/90"
+          class="flex w-full items-center justify-center gap-2 rounded-lg bg-accent-primary px-4 py-2.5 font-medium text-text-inverted transition-colors hover:bg-accent-primary/90"
           @click="emit('close')"
         >
           <SIcon
             name="CheckCircle"
             size="h-5 w-5"
           />
-          确定
+          {{ t('common.confirm') }}
         </button>
       </div>
     </div>

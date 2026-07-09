@@ -13,71 +13,18 @@ use crate::managers::PlatformConfigManager;
 use crate::managers::config::{CcsConfig, ConfigSection, GlobalSettings, ProviderType};
 use crate::models::{PlatformPaths, ProfileConfig};
 use ccr_core::core::error::{CcrError, Result};
-use ccr_core::core::{AtomicWriter, LockManager};
+use ccr_core::core::{BackupPolicy, LockManager, WriteOptions, write_guarded};
 use ccr_core::utils::toml_json;
-use chrono::Local;
 use indexmap::IndexMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 const PLATFORM_PROFILE_LOCK_TIMEOUT: Duration = Duration::from_secs(10);
-const PLATFORM_PROFILE_BACKUP_KEEP: usize = 10;
 const PLATFORM_REGISTRY_LOCK_RESOURCE: &str = "platform_registry";
 
 fn profile_lock_resource(platform_name: &str) -> String {
     format!("platform_profiles_{}", platform_name)
-}
-
-fn backup_with_rotation(source: &Path, backup_dir: &Path, prefix: &str) -> Result<()> {
-    if !source.exists() {
-        return Ok(());
-    }
-
-    fs::create_dir_all(backup_dir)
-        .map_err(|e| CcrError::ConfigError(format!("创建备份目录失败 {:?}: {}", backup_dir, e)))?;
-
-    let timestamp = Local::now().format("%Y%m%d_%H%M%S");
-    let extension = source
-        .extension()
-        .and_then(|ext| ext.to_str())
-        .filter(|ext| !ext.is_empty())
-        .unwrap_or("bak");
-    let backup_path = backup_dir.join(format!("{prefix}.{timestamp}.{extension}.bak"));
-
-    fs::copy(source, &backup_path).map_err(|e| {
-        CcrError::ConfigError(format!(
-            "备份文件失败 {:?} -> {:?}: {}",
-            source, backup_path, e
-        ))
-    })?;
-
-    let mut backups: Vec<_> = fs::read_dir(backup_dir)
-        .map_err(|e| CcrError::ConfigError(format!("读取备份目录失败 {:?}: {}", backup_dir, e)))?
-        .filter_map(|entry| entry.ok())
-        .map(|entry| entry.path())
-        .filter(|path| {
-            path.file_name()
-                .and_then(|name| name.to_str())
-                .is_some_and(|name| name.starts_with(prefix) && name.ends_with(".bak"))
-        })
-        .collect();
-
-    backups.sort_by(|a, b| {
-        let a_time = fs::metadata(a).and_then(|m| m.modified()).ok();
-        let b_time = fs::metadata(b).and_then(|m| m.modified()).ok();
-        b_time.cmp(&a_time)
-    });
-
-    if backups.len() > PLATFORM_PROFILE_BACKUP_KEEP {
-        for old in &backups[PLATFORM_PROFILE_BACKUP_KEEP..] {
-            if let Err(err) = fs::remove_file(old) {
-                tracing::warn!("清理旧备份失败 {:?}: {}", old, err);
-            }
-        }
-    }
-
-    Ok(())
 }
 
 fn save_platform_registry_with_paths<F>(
@@ -136,8 +83,20 @@ pub fn section_to_profile(section: &ConfigSection) -> ProfileConfig {
         default_opus_model: section.default_opus_model.clone(),
         default_sonnet_model: section.default_sonnet_model.clone(),
         default_haiku_model: section.default_haiku_model.clone(),
+        default_fable_model: section.default_fable_model.clone(),
+        default_opus_model_name: section.default_opus_model_name.clone(),
+        default_sonnet_model_name: section.default_sonnet_model_name.clone(),
+        default_haiku_model_name: section.default_haiku_model_name.clone(),
+        default_fable_model_name: section.default_fable_model_name.clone(),
         subagent_model: section.subagent_model.clone(),
+        custom_model_option: section.custom_model_option.clone(),
+        custom_model_option_name: section.custom_model_option_name.clone(),
         effort_level: section.effort_level.clone(),
+        claude_code_auto_compact_window: section.claude_code_auto_compact_window.clone(),
+        api_timeout_ms: section.api_timeout_ms.clone(),
+        claude_code_disable_nonessential_traffic: section
+            .claude_code_disable_nonessential_traffic
+            .clone(),
         provider: section.provider.clone(),
         provider_type: section
             .provider_type
@@ -172,8 +131,20 @@ pub fn profile_to_section(profile: &ProfileConfig) -> Result<ConfigSection> {
         default_opus_model: profile.default_opus_model.clone(),
         default_sonnet_model: profile.default_sonnet_model.clone(),
         default_haiku_model: profile.default_haiku_model.clone(),
+        default_fable_model: profile.default_fable_model.clone(),
+        default_opus_model_name: profile.default_opus_model_name.clone(),
+        default_sonnet_model_name: profile.default_sonnet_model_name.clone(),
+        default_haiku_model_name: profile.default_haiku_model_name.clone(),
+        default_fable_model_name: profile.default_fable_model_name.clone(),
         subagent_model: profile.subagent_model.clone(),
+        custom_model_option: profile.custom_model_option.clone(),
+        custom_model_option_name: profile.custom_model_option_name.clone(),
         effort_level: profile.effort_level.clone(),
+        claude_code_auto_compact_window: profile.claude_code_auto_compact_window.clone(),
+        api_timeout_ms: profile.api_timeout_ms.clone(),
+        claude_code_disable_nonessential_traffic: profile
+            .claude_code_disable_nonessential_traffic
+            .clone(),
         provider: profile.provider.clone(),
         provider_type,
         account: profile.account.clone(),
@@ -301,11 +272,18 @@ pub fn save_profiles_to_toml(
     let content = toml::to_string_pretty(&config)
         .map_err(|e| CcrError::ConfigError(format!("序列化配置失败: {}", e)))?;
 
-    backup_with_rotation(profiles_path, &paths.backups_dir, "profiles")?;
-
-    AtomicWriter::new(profiles_path)
-        .write_string(&content)
-        .map_err(|e| CcrError::ConfigError(format!("写入配置文件失败: {}", e)))?;
+    // 🛡️ 单次 guarded write：备份轮换 + 原子替换合并（命名 RMW 锁在函数开头已持有）
+    write_guarded(
+        profiles_path,
+        content.as_bytes(),
+        &WriteOptions {
+            backup: BackupPolicy::Dir {
+                dir: paths.backups_dir.clone(),
+                prefix: "profiles".into(),
+            },
+            ..Default::default()
+        },
+    )?;
 
     tracing::info!("✅ 已保存 {} profiles: {:?}", platform_name, profiles_path);
     Ok(())
@@ -423,11 +401,19 @@ pub fn update_current_config(profiles_path: &Path, name: &str) -> Result<()> {
                 .unwrap_or_else(|| Path::new("."))
                 .join("backups")
         });
-    backup_with_rotation(profiles_path, &backup_dir, "profiles")?;
 
-    AtomicWriter::new(profiles_path)
-        .write_string(&new_content)
-        .map_err(|e| CcrError::ConfigError(format!("写入配置文件失败: {}", e)))?;
+    // 🛡️ 单次 guarded write：备份轮换 + 原子替换合并（命名 RMW 锁在函数开头已持有）
+    write_guarded(
+        profiles_path,
+        new_content.as_bytes(),
+        &WriteOptions {
+            backup: BackupPolicy::Dir {
+                dir: backup_dir,
+                prefix: "profiles".into(),
+            },
+            ..Default::default()
+        },
+    )?;
 
     tracing::debug!("✅ 已更新 profiles.toml 的 current_config: {}", name);
     Ok(())
@@ -455,6 +441,11 @@ pub fn update_registry_current_profile(platform_name: &str, profile_name: &str) 
         unified_config.set_platform_profile(platform_name, profile_name)
     })?;
 
+    // 📈 记录 provider 激活时间线（尽力而为，失败不影响切换）
+    if let Some(root) = crate::managers::provider_activation::default_ccr_root() {
+        crate::managers::provider_activation::record_activation(&root, platform_name, profile_name);
+    }
+
     tracing::debug!("✅ 已更新注册表 current_profile: {}", profile_name);
     Ok(())
 }
@@ -481,8 +472,39 @@ pub fn update_registry_current_profile_with_paths(
         },
     )?;
 
+    // 📈 记录 provider 激活时间线（根目录取自 registry_path 的父目录，兼容测试隔离）
+    if let Some(root) = registry_path.parent() {
+        crate::managers::provider_activation::record_activation(root, platform_name, profile_name);
+    }
+
     tracing::debug!("✅ 已更新注册表 current_profile: {}", profile_name);
     Ok(())
+}
+
+/// 🔀 删除当前 profile 后的重定向结果（用于记录激活时间线）
+enum ReconcileOutcome {
+    Activate(String),
+    Clear,
+}
+
+/// 把 reconcile 结果写入 provider 激活时间线（尽力而为）
+fn record_reconcile_outcome(
+    root: Option<&Path>,
+    platform_name: &str,
+    outcome: Option<ReconcileOutcome>,
+) {
+    let Some(root) = root else {
+        return;
+    };
+    match outcome {
+        Some(ReconcileOutcome::Activate(next)) => {
+            crate::managers::provider_activation::record_activation(root, platform_name, &next);
+        }
+        Some(ReconcileOutcome::Clear) => {
+            crate::managers::provider_activation::record_clear(root, platform_name);
+        }
+        None => {}
+    }
 }
 
 /// 🔍 获取当前 profile (从注册表)
@@ -493,6 +515,7 @@ pub fn reconcile_registry_current_profile_after_delete(
     deleted_profile_name: &str,
     remaining_profiles: &IndexMap<String, ProfileConfig>,
 ) -> Result<()> {
+    let mut outcome: Option<ReconcileOutcome> = None;
     save_platform_registry(|unified_config| {
         let current_profile = match unified_config.get_platform(platform_name) {
             Ok(entry) => entry.current_profile.clone(),
@@ -505,14 +528,21 @@ pub fn reconcile_registry_current_profile_after_delete(
 
         if let Some(next_profile_name) = remaining_profiles.keys().next().cloned() {
             unified_config.set_platform_profile(platform_name, &next_profile_name)?;
+            outcome = Some(ReconcileOutcome::Activate(next_profile_name));
         } else {
             let registry = unified_config.get_platform_mut(platform_name)?;
             registry.current_profile = None;
             registry.last_used = Some(chrono::Utc::now().to_rfc3339());
+            outcome = Some(ReconcileOutcome::Clear);
         }
 
         Ok(())
     })?;
+    record_reconcile_outcome(
+        crate::managers::provider_activation::default_ccr_root().as_deref(),
+        platform_name,
+        outcome,
+    );
     Ok(())
 }
 
@@ -523,6 +553,7 @@ pub fn reconcile_registry_current_profile_after_delete_with_paths(
     deleted_profile_name: &str,
     remaining_profiles: &IndexMap<String, ProfileConfig>,
 ) -> Result<()> {
+    let mut outcome: Option<ReconcileOutcome> = None;
     save_platform_registry_with_paths(
         registry_path.to_path_buf(),
         lock_dir.to_path_buf(),
@@ -538,15 +569,18 @@ pub fn reconcile_registry_current_profile_after_delete_with_paths(
 
             if let Some(next_profile_name) = remaining_profiles.keys().next().cloned() {
                 unified_config.set_platform_profile(platform_name, &next_profile_name)?;
+                outcome = Some(ReconcileOutcome::Activate(next_profile_name));
             } else {
                 let registry = unified_config.get_platform_mut(platform_name)?;
                 registry.current_profile = None;
                 registry.last_used = Some(chrono::Utc::now().to_rfc3339());
+                outcome = Some(ReconcileOutcome::Clear);
             }
 
             Ok(())
         },
     )?;
+    record_reconcile_outcome(registry_path.parent(), platform_name, outcome);
     Ok(())
 }
 
@@ -569,26 +603,14 @@ pub fn get_current_profile_from_registry(platform_name: &str) -> Result<Option<S
 mod tests {
     use super::*;
     use crate::managers::{PlatformConfigEntry, UnifiedConfig};
-    use std::sync::{LazyLock, Mutex};
-
-    static ENV_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
-
-    fn restore_env_var(key: &str, previous: Option<String>) {
-        // SAFETY: 仅在测试中恢复当前进程环境变量，调用方保证作用域内串行使用。
-        unsafe {
-            match previous {
-                Some(value) => std::env::set_var(key, value),
-                None => std::env::remove_var(key),
-            }
-        }
-    }
+    use crate::test_support::TestCcrEnv;
 
     #[test]
     fn test_section_to_profile_roundtrip() {
         let section = ConfigSection {
             description: Some("Test".to_string()),
             base_url: Some("https://api.test.com".to_string()),
-            auth_token: Some("sk-test".to_string()),
+            auth_token: Some(ccr_core::Secret::from("sk-test")),
             model: Some("test-model".to_string()),
             small_fast_model: None,
             provider: Some("test-provider".to_string()),
@@ -634,81 +656,56 @@ mod tests {
 
     #[test]
     fn test_reconcile_registry_current_profile_after_delete_repoints_to_first_remaining() {
-        let _guard = ENV_LOCK.lock().unwrap();
-        let temp_dir = tempfile::tempdir().unwrap();
-        let previous_root = std::env::var("CCR_ROOT").ok();
-        let previous_lock_dir = std::env::var("CCR_LOCK_DIR").ok();
+        let _env = TestCcrEnv::new();
+        let manager = PlatformConfigManager::with_default().unwrap();
+        let mut unified_config = UnifiedConfig::default();
+        unified_config
+            .register_platform("codex".into(), PlatformConfigEntry::default())
+            .unwrap();
+        unified_config
+            .set_platform_profile("codex", "obsolete")
+            .unwrap();
+        manager.save(&unified_config).unwrap();
 
-        // SAFETY: 测试需要临时覆写进程环境变量来隔离 CCR 根目录，作用域结束后会恢复。
-        unsafe {
-            std::env::set_var("CCR_ROOT", temp_dir.path());
-            std::env::set_var("CCR_LOCK_DIR", temp_dir.path().join(".locks"));
-        }
+        let mut remaining_profiles = IndexMap::new();
+        remaining_profiles.insert("replacement".to_string(), ProfileConfig::new());
 
-        let result = (|| -> Result<()> {
-            let manager = PlatformConfigManager::with_default()?;
-            let mut unified_config = UnifiedConfig::default();
-            unified_config.register_platform("codex".into(), PlatformConfigEntry::default())?;
-            unified_config.set_platform_profile("codex", "obsolete")?;
-            manager.save(&unified_config)?;
+        reconcile_registry_current_profile_after_delete("codex", "obsolete", &remaining_profiles)
+            .unwrap();
 
-            let mut remaining_profiles = IndexMap::new();
-            remaining_profiles.insert("replacement".to_string(), ProfileConfig::new());
-
-            reconcile_registry_current_profile_after_delete(
-                "codex",
-                "obsolete",
-                &remaining_profiles,
-            )?;
-
-            let reloaded = manager.load()?;
-            assert_eq!(
-                reloaded.get_platform("codex")?.current_profile.as_deref(),
-                Some("replacement")
-            );
-            Ok(())
-        })();
-
-        restore_env_var("CCR_ROOT", previous_root);
-        restore_env_var("CCR_LOCK_DIR", previous_lock_dir);
-        result.unwrap();
+        let reloaded = manager.load().unwrap();
+        assert_eq!(
+            reloaded
+                .get_platform("codex")
+                .unwrap()
+                .current_profile
+                .as_deref(),
+            Some("replacement")
+        );
     }
 
     #[test]
     fn test_reconcile_registry_current_profile_after_delete_clears_when_empty() {
-        let _guard = ENV_LOCK.lock().unwrap();
-        let temp_dir = tempfile::tempdir().unwrap();
-        let previous_root = std::env::var("CCR_ROOT").ok();
-        let previous_lock_dir = std::env::var("CCR_LOCK_DIR").ok();
+        let _env = TestCcrEnv::new();
+        let manager = PlatformConfigManager::with_default().unwrap();
+        let mut unified_config = UnifiedConfig::default();
+        unified_config
+            .register_platform("gemini".into(), PlatformConfigEntry::default())
+            .unwrap();
+        unified_config
+            .set_platform_profile("gemini", "obsolete")
+            .unwrap();
+        manager.save(&unified_config).unwrap();
 
-        // SAFETY: 测试需要临时覆写进程环境变量来隔离 CCR 根目录，作用域结束后会恢复。
-        unsafe {
-            std::env::set_var("CCR_ROOT", temp_dir.path());
-            std::env::set_var("CCR_LOCK_DIR", temp_dir.path().join(".locks"));
-        }
+        let remaining_profiles = IndexMap::new();
+        reconcile_registry_current_profile_after_delete("gemini", "obsolete", &remaining_profiles)
+            .unwrap();
 
-        let result = (|| -> Result<()> {
-            let manager = PlatformConfigManager::with_default()?;
-            let mut unified_config = UnifiedConfig::default();
-            unified_config.register_platform("gemini".into(), PlatformConfigEntry::default())?;
-            unified_config.set_platform_profile("gemini", "obsolete")?;
-            manager.save(&unified_config)?;
-
-            let remaining_profiles = IndexMap::new();
-            reconcile_registry_current_profile_after_delete(
-                "gemini",
-                "obsolete",
-                &remaining_profiles,
-            )?;
-
-            let reloaded = manager.load()?;
-            assert_eq!(reloaded.get_platform("gemini")?.current_profile, None);
-            Ok(())
-        })();
-
-        restore_env_var("CCR_ROOT", previous_root);
-        restore_env_var("CCR_LOCK_DIR", previous_lock_dir);
-        result.unwrap();
+        let reloaded = manager.load().unwrap();
+        assert_eq!(
+            reloaded.get_platform("gemini").unwrap().current_profile,
+            None
+        );
     }
 
     #[test]

@@ -1336,6 +1336,36 @@ pub fn run_migration_v14(conn: &Connection) -> MigrationResult<()> {
     Ok(())
 }
 
+/// Run migration v15: add builtin_id column to checkin_providers
+/// Links user provider rows to bundled providers-catalog entries (rename-safe joins)
+pub fn run_migration_v15(conn: &Connection) -> MigrationResult<()> {
+    if is_migration_applied(conn, 15)? {
+        debug!("Migration v15 already applied, skipping");
+        return Ok(());
+    }
+
+    info!("Running migration v15: checkin_providers builtin_id column");
+
+    // 旧库补列；新库已由 CREATE_TABLES_SQL 带上该列
+    if !table_has_column(conn, "checkin_providers", "builtin_id")? {
+        conn.execute(
+            "ALTER TABLE checkin_providers ADD COLUMN builtin_id TEXT",
+            [],
+        )
+        .map_err(|e| MigrationError::Database(e.to_string()))?;
+    }
+
+    let now = Utc::now().to_rfc3339();
+    conn.execute(
+        INSERT_MIGRATION_SQL,
+        rusqlite::params![15, "checkin_providers_builtin_id", now],
+    )
+    .map_err(|e| MigrationError::Database(e.to_string()))?;
+
+    info!("Migration v15 completed successfully");
+    Ok(())
+}
+
 fn table_exists(conn: &Connection, table_name: &str) -> MigrationResult<bool> {
     let count: i64 = conn
         .query_row(
@@ -1385,6 +1415,9 @@ pub fn run_all_migrations(conn: &Connection, home_dir: &Path) -> MigrationResult
 
     // Step 1.15: Run v14 migration (claude_observer tables: user_settings, claude_tool_calls)
     run_migration_v14(conn)?;
+
+    // Step 1.16: Run v15 migration (checkin_providers builtin_id column)
+    run_migration_v15(conn)?;
 
     // Step 2: Import legacy data if not done and files exist
     if !is_legacy_migration_done(conn)? {
@@ -2006,6 +2039,26 @@ mod tests {
         )
         .unwrap();
         conn.execute(
+            "INSERT INTO usage_records (
+                id, platform, project_path, record_json, recorded_at, source_id,
+                model, input_tokens, output_tokens, cache_read_tokens, cost_usd
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+            params![
+                "fable-record",
+                "claude",
+                "D:/Documents/Code/Github/ccr",
+                "{\"usage\":{\"cache_creation_input_tokens\":300000}}",
+                "2026-04-20T09:00:00Z",
+                "source-fable",
+                "claude-fable-5",
+                1_000_000_i64,
+                400_000_i64,
+                200_000_i64,
+                77.0_f64
+            ],
+        )
+        .unwrap();
+        conn.execute(
             "INSERT INTO usage_daily_agg (
                 date, platform, request_count, input_tokens, output_tokens, cache_read_tokens, cost_usd
              ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
@@ -2056,6 +2109,35 @@ mod tests {
         assert_eq!(status, "priced");
         assert_eq!(source, "official:anthropic");
 
+        let (fable_cache_creation, fable_cost, fable_no_cache, fable_status, fable_source): (
+            i64,
+            f64,
+            f64,
+            String,
+            String,
+        ) = conn
+            .query_row(
+                "SELECT cache_creation_tokens, cost_with_cache_usd,
+                        cost_without_cache_usd, pricing_status, pricing_source
+                 FROM usage_records WHERE id = 'fable-record'",
+                [],
+                |row| {
+                    Ok((
+                        row.get(0)?,
+                        row.get(1)?,
+                        row.get(2)?,
+                        row.get(3)?,
+                        row.get(4)?,
+                    ))
+                },
+            )
+            .unwrap();
+        assert_eq!(fable_cache_creation, 300_000);
+        assert!((fable_cost - 33.95).abs() < 0.000_001);
+        assert!((fable_no_cache - 35.0).abs() < 0.000_001);
+        assert_eq!(fable_status, "priced");
+        assert_eq!(fable_source, "official:anthropic");
+
         let daily_cost: f64 = conn
             .query_row(
                 "SELECT cost_usd FROM usage_daily_agg WHERE date = '2026-04-20' AND platform = 'claude'",
@@ -2063,7 +2145,7 @@ mod tests {
                 |row| row.get(0),
             )
             .unwrap();
-        assert!((daily_cost - 36.75).abs() < 0.000_001);
+        assert!((daily_cost - 70.7).abs() < 0.000_001);
 
         let count: i32 = conn
             .query_row(
@@ -2121,6 +2203,116 @@ mod tests {
             .unwrap();
         assert_eq!(count, 1);
     }
+    #[test]
+    fn test_migration_v15_adds_builtin_id_to_legacy_table() {
+        let conn = Connection::open_in_memory().unwrap();
+        run_initial_migration(&conn).unwrap();
+
+        // 模拟旧库：checkin_providers 没有 builtin_id 列
+        conn.execute_batch(
+            "DROP TABLE checkin_providers;
+             CREATE TABLE checkin_providers (
+                 id TEXT PRIMARY KEY,
+                 name TEXT NOT NULL,
+                 base_url TEXT NOT NULL,
+                 checkin_path TEXT NOT NULL,
+                 balance_path TEXT NOT NULL,
+                 user_info_path TEXT NOT NULL,
+                 auth_header TEXT NOT NULL,
+                 auth_prefix TEXT NOT NULL,
+                 enabled INTEGER NOT NULL,
+                 created_at TEXT NOT NULL,
+                 updated_at TEXT
+             );",
+        )
+        .unwrap();
+
+        conn.execute(
+            "INSERT INTO checkin_providers (
+                id, name, base_url, checkin_path, balance_path, user_info_path,
+                auth_header, auth_prefix, enabled, created_at
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+            rusqlite::params![
+                "provider-legacy",
+                "Legacy Provider",
+                "https://legacy.example.com",
+                "/api/user/checkin",
+                "/api/user/self",
+                "/api/user/self",
+                "Authorization",
+                "Bearer",
+                1,
+                Utc::now().to_rfc3339(),
+            ],
+        )
+        .unwrap();
+
+        assert!(!table_has_column(&conn, "checkin_providers", "builtin_id").unwrap());
+
+        run_migration_v15(&conn).unwrap();
+
+        assert!(table_has_column(&conn, "checkin_providers", "builtin_id").unwrap());
+
+        // 旧行 builtin_id 为 NULL，向后兼容可读
+        let provider = checkin_repo::get_provider_by_id(&conn, "provider-legacy")
+            .unwrap()
+            .unwrap();
+        assert_eq!(provider.name, "Legacy Provider");
+        assert_eq!(provider.builtin_id, None);
+
+        // 回填路径：仅 NULL 行允许写入
+        assert!(
+            checkin_repo::set_provider_builtin_id_if_missing(
+                &conn,
+                "provider-legacy",
+                "builtin-anyrouter"
+            )
+            .unwrap()
+        );
+        let provider = checkin_repo::get_provider_by_id(&conn, "provider-legacy")
+            .unwrap()
+            .unwrap();
+        assert_eq!(provider.builtin_id.as_deref(), Some("builtin-anyrouter"));
+
+        // 已有值的行不会被覆盖
+        assert!(
+            !checkin_repo::set_provider_builtin_id_if_missing(
+                &conn,
+                "provider-legacy",
+                "builtin-other"
+            )
+            .unwrap()
+        );
+
+        let count: i32 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM migrations WHERE version = 15",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(count, 1);
+    }
+
+    #[test]
+    fn test_migration_v15_idempotent() {
+        let conn = Connection::open_in_memory().unwrap();
+        run_initial_migration(&conn).unwrap();
+
+        // 新库 CREATE_TABLES_SQL 已带 builtin_id 列，v15 应跳过 ALTER 且可重入
+        run_migration_v15(&conn).unwrap();
+        run_migration_v15(&conn).unwrap();
+
+        let count: i32 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM migrations WHERE version = 15",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(count, 1);
+    }
+
     #[test]
     fn test_legacy_migration_marker() {
         let conn = Connection::open_in_memory().unwrap();

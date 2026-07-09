@@ -2057,6 +2057,50 @@ mod tests {
     }
 
     #[test]
+    #[allow(deprecated)]
+    fn test_model_stats_include_fable_static_rate_summary() {
+        let conn = setup_test_db();
+        let source_id = Uuid::new_v4().to_string();
+        let record = UsageRecord {
+            id: "fable-model-stat".to_string(),
+            platform: "claude".to_string(),
+            project_path: "/project/claude".to_string(),
+            record_json: "{}".to_string(),
+            recorded_at: DateTime::parse_from_rfc3339("2026-07-03T02:00:00Z")
+                .unwrap()
+                .with_timezone(&Utc),
+            source_id,
+            model: Some("claude-fable-5".to_string()),
+            input_tokens: 1_000_000,
+            output_tokens: 400_000,
+            cache_read_tokens: 200_000,
+            cache_creation_tokens: 300_000,
+            cost_usd: 33.95,
+            cost_with_cache_usd: 33.95,
+            cost_without_cache_usd: 35.0,
+            pricing_status: "priced".to_string(),
+            pricing_source: Some("official:anthropic".to_string()),
+        };
+        insert_record(&conn, &record).unwrap();
+
+        let stats = get_model_stats(&conn, &Some("claude".to_string()), &None, &None).unwrap();
+        let fable = stats
+            .iter()
+            .find(|row| row.model == "claude-fable-5")
+            .expect("Fable model stat should be present");
+
+        assert_eq!(fable.request_count, 1);
+        assert_eq!(fable.total_tokens, 1_900_000);
+        assert_eq!(fable.cache_creation_tokens, 300_000);
+        assert!((fable.cost_with_cache - 33.95).abs() < 0.000_001);
+        assert!((fable.cost_without_cache - 35.0).abs() < 0.000_001);
+        assert!((fable.cache_savings - 1.05).abs() < 0.000_001);
+        assert_eq!(fable.pricing_status, "priced");
+        assert_eq!(fable.pricing_source.as_deref(), Some("official:anthropic"));
+        assert_eq!(fable.pricing_rate.as_deref(), Some("10/1/50"));
+    }
+
+    #[test]
     fn test_paginated_logs_respects_date_and_model_filters() {
         let conn = setup_test_db();
         let source_id = Uuid::new_v4().to_string();

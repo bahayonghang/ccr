@@ -13,7 +13,6 @@ BeforeAll {
     New-Item -Path "$root/crates/ccr-db" -ItemType Directory -Force | Out-Null
     New-Item -Path "$root/ccr-ui/src-tauri" -ItemType Directory -Force | Out-Null
     New-Item -Path "$root/ccr-ui/src/components" -ItemType Directory -Force | Out-Null
-    New-Item -Path "$root/ccr-ui/src/layouts" -ItemType Directory -Force | Out-Null
     New-Item -Path "$root/ccr-vscode" -ItemType Directory -Force | Out-Null
     New-Item -Path "$root/scripts" -ItemType Directory -Force | Out-Null
 
@@ -68,12 +67,6 @@ edition = "2021"
   <div class="footer">CCR UI v1.2.3</div>
 </template>
 '@ | Set-Content -Path "$root/ccr-ui/src/components/MainLayout.vue" -Encoding UTF8
-
-    @'
-<template>
-  <div class="footer">CCR UI v1.2.3</div>
-</template>
-'@ | Set-Content -Path "$root/ccr-ui/src/layouts/MainLayout.vue" -Encoding UTF8
 
     @'
 {

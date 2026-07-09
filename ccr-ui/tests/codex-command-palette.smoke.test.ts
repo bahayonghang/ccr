@@ -10,15 +10,19 @@ vi.mock('@/components/ui/SIcon.vue', () => ({
       size: { type: String, default: '' },
     },
     setup(props) {
-      return () => h('span', {
-        'data-icon': props.name,
-        class: props.size,
-      })
+      return () =>
+        h('span', {
+          'data-icon': props.name,
+          class: props.size,
+        })
     },
   }),
 }))
 
-import CommandPalette from '@/components/codex/profiles/CommandPalette.vue'
+import ProfilesCommandPalette, {
+  type ProfilesCommandPaletteAction,
+  type ProfilesCommandPaletteDescriptor,
+} from '@/components/profiles/ProfilesCommandPalette.vue'
 
 const messages = {
   en: {
@@ -55,11 +59,13 @@ const flush = async () => {
 }
 
 const dispatchKey = (element: Element, key: string) => {
-  element.dispatchEvent(new KeyboardEvent('keydown', {
-    key,
-    bubbles: true,
-    cancelable: true,
-  }))
+  element.dispatchEvent(
+    new KeyboardEvent('keydown', {
+      key,
+      bubbles: true,
+      cancelable: true,
+    })
+  )
 }
 
 const profiles: CodexProfile[] = [
@@ -80,6 +86,11 @@ const profiles: CodexProfile[] = [
   },
 ]
 
+const descriptor: ProfilesCommandPaletteDescriptor<CodexProfile> = {
+  isEnabled: (profile) => profile.enabled !== false,
+  hint: (profile) => profile.description || profile.base_url || undefined,
+}
+
 const mountPalette = async () => {
   const el = document.createElement('div')
   document.body.appendChild(el)
@@ -92,6 +103,27 @@ const mountPalette = async () => {
     reload: vi.fn(),
   }
 
+  const actions: ProfilesCommandPaletteAction[] = [
+    {
+      id: '__add',
+      icon: 'Plus',
+      labelKey: 'codex.profiles.commandPalette.actionAdd',
+      handler: events.add,
+    },
+    {
+      id: '__reload',
+      icon: 'RefreshCw',
+      labelKey: 'codex.profiles.commandPalette.actionReload',
+      handler: events.reload,
+    },
+    {
+      id: '__export',
+      icon: 'Download',
+      labelKey: 'codex.profiles.commandPalette.actionExport',
+      handler: events.export,
+    },
+  ]
+
   const i18n = createI18n({
     legacy: false,
     locale: 'en',
@@ -100,21 +132,24 @@ const mountPalette = async () => {
     messages,
   })
 
-  const app = createApp(defineComponent({
-    setup() {
-      return () => h(CommandPalette, {
-        open: state.open,
-        profiles,
-        'onUpdate:open': (value: boolean) => {
-          state.open = value
-        },
-        onApply: events.apply,
-        onAdd: events.add,
-        onExport: events.export,
-        onReload: events.reload,
-      })
-    },
-  }))
+  const app = createApp(
+    defineComponent({
+      setup() {
+        return () =>
+          h(ProfilesCommandPalette, {
+            open: state.open,
+            profiles,
+            descriptor,
+            actions,
+            i18nPrefix: 'codex.profiles.commandPalette',
+            'onUpdate:open': (value: boolean) => {
+              state.open = value
+            },
+            onApply: events.apply,
+          })
+      },
+    })
+  )
 
   app.use(i18n)
   app.mount(el)
@@ -168,7 +203,7 @@ describe('Codex CommandPalette smoke', () => {
 
     try {
       await palette.open()
-      const input = document.body.querySelector<HTMLInputElement>('#codex-command-palette-search')
+      const input = document.body.querySelector<HTMLInputElement>('#cp-command-palette-search')
       expect(input).toBeTruthy()
 
       dispatchKey(input!, 'ArrowDown')
@@ -191,7 +226,7 @@ describe('Codex CommandPalette smoke', () => {
       await palette.open()
       expect(document.body.style.overflow).toBe('hidden')
 
-      const input = document.body.querySelector<HTMLInputElement>('#codex-command-palette-search')
+      const input = document.body.querySelector<HTMLInputElement>('#cp-command-palette-search')
       dispatchKey(input!, 'Escape')
       await flush()
 

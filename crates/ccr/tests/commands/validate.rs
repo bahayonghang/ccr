@@ -85,7 +85,7 @@ current_profile = "main"
             ConfigSection {
                 description: Some("Claude API key".to_string()),
                 base_url: Some("https://api.example.com".to_string()),
-                auth_token: Some("sk-claude-test".to_string()),
+                auth_token: Some(ccr_core::Secret::from("sk-claude-test")),
                 model: Some("claude-test".to_string()),
                 small_fast_model: None,
                 provider: Some("example".to_string()),
@@ -116,7 +116,7 @@ current_profile = "main"
                     ),
                     ("ANTHROPIC_MODEL".to_string(), "claude-test".to_string()),
                 ]),
-                other: HashMap::new(),
+                ..ClaudeSettings::default()
             })
             .unwrap(),
         )

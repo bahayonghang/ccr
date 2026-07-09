@@ -435,11 +435,11 @@ lint: fmt clippy
     @just header "代码质量检查"
     @just success "代码质量检查全部通过"
 
-# 🔒 安全审计 (cargo audit) - 若未安装则跳过
+# 🔒 安全审计 (cargo audit) - 若未安装则失败
 audit:
     @just header "🔒 运行安全审计"
     @just info "📌 使用 cargo-audit (需要安装: cargo install cargo-audit)"
-    -cargo audit || just warn "cargo-audit 未安装，跳过安全审计 (安装: cargo install cargo-audit)"
+    cargo audit
     @just success "安全审计步骤完成"
 
 # ═══════════════════════════════════════════════════════════
@@ -477,6 +477,7 @@ _ci-timed-windows:
         @{ Name = "test";            Label = "Test" },
         @{ Name = "release";         Label = "Release Build" },
         @{ Name = "audit";           Label = "Security Audit" },
+        @{ Name = "tauri-bindings-check"; Label = "TS Bindings Drift" },
         @{ Name = "frontend-check";  Label = "Frontend Check" },
         @{ Name = "vscode-ci";       Label = "VSCode CI" }
     )
@@ -533,8 +534,8 @@ _ci-timed-windows:
 _ci-timed-linux:
     #!/usr/bin/env bash
     set -uo pipefail
-    steps=("version-sync" "fmt" "fmt-check" "lint-strict" "check-workspace" "test" "release" "audit" "frontend-check" "vscode-ci")
-    labels=("Version Sync" "Format" "Format Check" "Strict Clippy" "Workspace Check" "Test" "Release Build" "Security Audit" "Frontend Check" "VSCode CI")
+    steps=("version-sync" "fmt" "fmt-check" "lint-strict" "check-workspace" "test" "release" "audit" "tauri-bindings-check" "frontend-check" "vscode-ci")
+    labels=("Version Sync" "Format" "Format Check" "Strict Clippy" "Workspace Check" "Test" "Release Build" "Security Audit" "TS Bindings Drift" "Frontend Check" "VSCode CI")
     PAD=20
     times=()
     statuses=()
@@ -594,8 +595,8 @@ _ci-timed-linux:
 _ci-timed-macos:
     #!/usr/bin/env bash
     set -uo pipefail
-    steps=("version-sync" "fmt" "fmt-check" "lint-strict" "check-workspace" "test" "release" "audit" "frontend-check" "vscode-ci")
-    labels=("Version Sync" "Format" "Format Check" "Strict Clippy" "Workspace Check" "Test" "Release Build" "Security Audit" "Frontend Check" "VSCode CI")
+    steps=("version-sync" "fmt" "fmt-check" "lint-strict" "check-workspace" "test" "release" "audit" "tauri-bindings-check" "frontend-check" "vscode-ci")
+    labels=("Version Sync" "Format" "Format Check" "Strict Clippy" "Workspace Check" "Test" "Release Build" "Security Audit" "TS Bindings Drift" "Frontend Check" "VSCode CI")
     PAD=20
     times=()
     statuses=()
@@ -664,7 +665,7 @@ frontend-typecheck:
 # 🎨 前端 Lint 检查
 frontend-lint:
     @just header "🎨 前端 Lint 检查"
-    cd ccr-ui && bun install --frozen-lockfile && bun run lint
+    cd ccr-ui && bun install --frozen-lockfile && bun run lint:ci
     @just success "前端 Lint 检查通过"
 
 # 🧪 前端 Smoke Tests
@@ -949,16 +950,22 @@ _version-sync-macos:
 _version-check-windows:
     @just info "🔍 检查版本号一致性"
     @.\scripts\version-sync.ps1 -Check -Verbose
+    @.\scripts\check-doc-drift.ps1 -Verbose
+    @.\scripts\check-dependency-drift.ps1 -Verbose
 
 [private]
 _version-check-linux:
     @just info "🔍 检查版本号一致性"
     bash scripts/version-sync.sh --check --verbose
+    bash scripts/check-doc-drift.sh --verbose
+    bash scripts/check-dependency-drift.sh --verbose
 
 [private]
 _version-check-macos:
     @just info "🔍 检查版本号一致性"
     bash scripts/version-sync.sh --check --verbose
+    bash scripts/check-doc-drift.sh --verbose
+    bash scripts/check-dependency-drift.sh --verbose
 
 # 🧪 运行脚本测试 (Bats + Pester)
 test-scripts:
@@ -1246,6 +1253,14 @@ tauri-fmt:
 
 tauri-test:
     @just _ui-run tauri-test
+
+# 🔄 重新生成 usage V2 的 TypeScript 绑定（ts-rs，生成物入库）
+tauri-bindings:
+    @just _ui-run bindings
+
+# 🧪 TypeScript 绑定漂移守卫（重新生成后 git 必须无差异）
+tauri-bindings-check:
+    @just _ui-run bindings-check
 
 ui-test:
     @just _ui-run test

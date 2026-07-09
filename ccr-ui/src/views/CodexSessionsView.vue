@@ -15,10 +15,10 @@
             </div>
             <div>
               <h1 class="codex-sessions-title">
-                Codex Sessions
+                {{ tt('Codex 会话', 'Codex Sessions') }}
               </h1>
               <p class="codex-sessions-subtitle">
-                直接读取本地 `~/.codex/sessions`，集中查看会话上下文、导出记录和复制工作流样本。
+                {{ tt('直接读取本地 `~/.codex/sessions`，集中查看会话上下文、导出记录和复制工作流样本。', 'Read local `~/.codex/sessions` directly to inspect session context, export records, and copy workflow samples.') }}
               </p>
             </div>
           </div>
@@ -32,7 +32,7 @@
                 name="ArrowLeft"
                 size="w-4 h-4"
               />
-              <span>返回 Codex</span>
+              <span>{{ tt('返回 Codex', 'Back to Codex') }}</span>
             </RouterLink>
             <button
               class="hidden"
@@ -54,7 +54,7 @@
                   :class="{ 'animate-spin': loading }"
                 />
               </template>
-              刷新列表
+              {{ tt('刷新列表', 'Refresh list') }}
             </Button>
           </div>
         </div>
@@ -67,13 +67,13 @@
             class="codex-sessions-stat"
           >
             <p class="codex-sessions-stat__label">
-              已加载会话
+              {{ tt('已加载会话', 'Loaded sessions') }}
             </p>
             <p class="codex-sessions-stat__value">
               {{ sessions.length }}
             </p>
             <p class="codex-sessions-stat__hint">
-              当前窗口最多展示 {{ SESSION_LIMIT }} 条最近记录
+              {{ tt(`当前窗口最多展示 ${SESSION_LIMIT} 条最近记录`, `This window shows up to ${SESSION_LIMIT} recent records`) }}
             </p>
           </Card>
           <Card
@@ -83,13 +83,13 @@
             class="codex-sessions-stat"
           >
             <p class="codex-sessions-stat__label">
-              列表 Tokens
+              {{ tt('列表 Tokens', 'List tokens') }}
             </p>
             <p class="codex-sessions-stat__value">
               {{ formatTokenCount(totalTokens) }}
             </p>
             <p class="codex-sessions-stat__hint">
-              来自当前已加载的会话摘要
+              {{ tt('来自当前已加载的会话摘要', 'From the currently loaded session summaries') }}
             </p>
           </Card>
           <Card
@@ -99,13 +99,13 @@
             class="codex-sessions-stat"
           >
             <p class="codex-sessions-stat__label">
-              当前会话消息
+              {{ tt('当前会话消息', 'Current session messages') }}
             </p>
             <p class="codex-sessions-stat__value">
               {{ selectedSession?.message_count ?? 0 }}
             </p>
             <p class="codex-sessions-stat__hint">
-              仅统计用户与助手消息
+              {{ tt('仅统计用户与助手消息', 'Only user and assistant messages are counted') }}
             </p>
           </Card>
         </div>
@@ -131,10 +131,10 @@
             <div class="codex-sessions-panel__header">
               <div>
                 <h2 class="codex-sessions-panel__title">
-                  最近会话
+                  {{ tt('最近会话', 'Recent sessions') }}
                 </h2>
                 <p class="codex-sessions-panel__subtitle">
-                  左侧列表用于快速切换，右侧查看详情和导出
+                  {{ tt('左侧列表用于快速切换，右侧查看详情和导出', 'Use the left list for quick switching and the right panel for details and export') }}
                 </p>
               </div>
 
@@ -147,7 +147,7 @@
                   motion="subtle"
                   density="compact"
                   :full-width="true"
-                  placeholder="搜索 session id / cwd / model"
+                  :placeholder="tt('搜索 session id / cwd / model', 'Search session id / cwd / model')"
                 >
                   <template #leading>
                     <SIcon
@@ -164,15 +164,15 @@
               class="codex-sessions-loading"
             >
               <div class="codex-sessions-loading__spinner" />
-              <span>正在读取本地会话记录…</span>
+              <span>{{ tt('正在读取本地会话记录…', 'Loading local session records...') }}</span>
             </div>
 
             <EmptyState
               v-else-if="filteredSessions.length === 0"
               icon="Inbox"
-              title="没有匹配的会话"
-              description="当前过滤条件下没有找到会话，试试清空搜索或刷新列表。"
-              action-text="清空搜索"
+              :title="tt('没有匹配的会话', 'No matching sessions')"
+              :description="tt('当前过滤条件下没有找到会话，试试清空搜索或刷新列表。', 'No sessions match the current filters. Try clearing the search or refreshing the list.')"
+              :action-text="tt('清空搜索', 'Clear search')"
               action-icon="RotateCcw"
               :on-action="clearSearch"
             />
@@ -197,12 +197,12 @@
                       {{ session.session_id }}
                     </p>
                     <p class="codex-session-row__meta">
-                      {{ session.model || 'unknown model' }} ·
+                      {{ session.model || tt('未知模型', 'Unknown model') }} ·
                       {{ formatRelative(session.updated_at) }}
                     </p>
                   </div>
 
-                  <span class="codex-session-row__badge"> {{ session.message_count }} msg </span>
+                  <span class="codex-session-row__badge"> {{ tt(`${session.message_count} 条消息`, `${session.message_count} msg`) }} </span>
                 </div>
 
                 <p
@@ -231,10 +231,10 @@
             <div class="codex-sessions-panel__header">
               <div>
                 <h2 class="codex-sessions-panel__title">
-                  会话详情
+                  {{ tt('会话详情', 'Session details') }}
                 </h2>
                 <p class="codex-sessions-panel__subtitle">
-                  当前默认只展示用户与助手消息，避免把系统提示词刷满工作台
+                  {{ tt('当前默认只展示用户与助手消息，避免把系统提示词刷满工作台', 'By default, only user and assistant messages are shown so system prompts do not flood the workspace') }}
                 </p>
               </div>
 
@@ -253,7 +253,7 @@
                       size="w-4 h-4"
                     />
                   </template>
-                  复制路径
+                  {{ tt('复制路径', 'Copy path') }}
                 </Button>
                 <Button
                   variant="glass"
@@ -269,7 +269,7 @@
                       size="w-4 h-4"
                     />
                   </template>
-                  导出
+                  {{ tt('导出', 'Export') }}
                 </Button>
                 <Button
                   variant="glass"
@@ -285,7 +285,7 @@
                       size="w-4 h-4"
                     />
                   </template>
-                  克隆
+                  {{ tt('克隆', 'Clone') }}
                 </Button>
                 <Button
                   variant="danger"
@@ -301,7 +301,7 @@
                       size="w-4 h-4"
                     />
                   </template>
-                  删除
+                  {{ tt('删除', 'Delete') }}
                 </Button>
               </div>
             </div>
@@ -311,14 +311,14 @@
               class="codex-sessions-loading"
             >
               <div class="codex-sessions-loading__spinner" />
-              <span>正在读取会话详情…</span>
+              <span>{{ tt('正在读取会话详情…', 'Loading session details...') }}</span>
             </div>
 
             <EmptyState
               v-else-if="!detail"
               icon="MessagesSquare"
-              title="还没有选中会话"
-              description="从左侧选择一个最近会话，就可以在这里查看详细上下文。"
+              :title="tt('还没有选中会话', 'No session selected yet')"
+              :description="tt('从左侧选择一个最近会话，就可以在这里查看详细上下文。', 'Select a recent session on the left to inspect its full context here.')"
             />
 
             <div
@@ -332,34 +332,34 @@
                       {{ selectedSession?.session_id }}
                     </h3>
                     <p class="codex-detail-summary__meta">
-                      {{ selectedSession?.model || 'unknown model' }} ·
+                      {{ selectedSession?.model || tt('未知模型', 'Unknown model') }} ·
                       {{ formatAbsolute(selectedSession?.updated_at) }}
                     </p>
                   </div>
                   <span class="codex-detail-summary__pill">
-                    {{ selectedSession?.total_requests ?? 0 }} req
+                    {{ tt(`${selectedSession?.total_requests ?? 0} 次请求`, `${selectedSession?.total_requests ?? 0} req`) }}
                   </span>
                 </div>
 
                 <div class="codex-detail-grid">
                   <div class="codex-detail-field">
-                    <span class="codex-detail-field__label">工作目录</span>
+                    <span class="codex-detail-field__label">{{ tt('工作目录', 'Working directory') }}</span>
                     <button
                       type="button"
                       class="codex-detail-field__value codex-detail-field__value--button"
                       @click="copyCwd"
                     >
-                      {{ selectedSession?.cwd || 'N/A' }}
+                      {{ selectedSession?.cwd || tt('N/A', 'N/A') }}
                     </button>
                   </div>
                   <div class="codex-detail-field">
-                    <span class="codex-detail-field__label">相对路径</span>
+                    <span class="codex-detail-field__label">{{ tt('相对路径', 'Relative path') }}</span>
                     <span class="codex-detail-field__value">
                       {{ selectedSession?.relative_path }}
                     </span>
                   </div>
                   <div class="codex-detail-field">
-                    <span class="codex-detail-field__label">输入 / 输出</span>
+                    <span class="codex-detail-field__label">{{ tt('输入 / 输出', 'Input / output') }}</span>
                     <span class="codex-detail-field__value">
                       {{ formatTokenCount(selectedSession?.total_input_tokens ?? 0) }}
                       /
@@ -367,9 +367,9 @@
                     </span>
                   </div>
                   <div class="codex-detail-field">
-                    <span class="codex-detail-field__label">CLI 版本</span>
+                    <span class="codex-detail-field__label">{{ tt('CLI 版本', 'CLI version') }}</span>
                     <span class="codex-detail-field__value">
-                      {{ selectedSession?.cli_version || 'N/A' }}
+                      {{ selectedSession?.cli_version || tt('N/A', 'N/A') }}
                     </span>
                   </div>
                 </div>
@@ -378,7 +378,7 @@
                   v-if="detail.clipped"
                   class="codex-detail-tip"
                 >
-                  详情面板只展示最近 {{ detail.message_limit }} 条消息，导出会沿用同样的窗口上限。
+                  {{ tt(`详情面板只展示最近 ${detail.message_limit} 条消息，导出会沿用同样的窗口上限。`, `The detail panel only shows the most recent ${detail.message_limit} messages, and export uses the same window limit.`) }}
                 </div>
               </div>
 
@@ -395,7 +395,7 @@
                 >
                   <div class="codex-message__meta">
                     <span class="codex-message__role">
-                      {{ message.role === 'assistant' ? 'Assistant' : 'User' }}
+                      {{ message.role === 'assistant' ? tt('助手', 'Assistant') : tt('用户', 'User') }}
                     </span>
                     <span class="codex-message__time">
                       {{ formatAbsolute(message.timestamp) }}
@@ -414,6 +414,8 @@
 
 <script setup lang="ts">
 import { computed, onActivated, onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { getErrorMessage } from '@/utils/errorHandler'
 import Button from '@/components/ui/Button.vue'
 import Card from '@/components/ui/Card.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
@@ -428,7 +430,8 @@ import {
   listCodexSessions,
 } from '@/api'
 import { useUIStore } from '@/stores/ui'
-import { copyToClipboard, formatRelativeTime, formatTimestamp } from '@/utils/codexHelpers'
+import { formatRelativeTime, formatTimestamp } from '@/utils/codexHelpers'
+import { copyText } from '@/utils/clipboard'
 import { logger } from '@/utils/logger'
 import type {
   CodexCloneSessionResponse,
@@ -444,6 +447,9 @@ const SESSION_LIMIT = 160
 const DETAIL_LIMIT = 120
 const EXPORT_LIMIT = 200
 
+const { locale } = useI18n()
+const isZh = computed(() => locale.value.startsWith('zh'))
+const tt = (zh: string, en: string) => (isZh.value ? zh : en)
 const uiStore = useUIStore()
 
 const loading = ref(true)
@@ -487,17 +493,17 @@ function formatTokenCount(value: number): string {
 }
 
 function formatRelative(value?: string | null): string {
-  if (!value) return '未知时间'
+  if (!value) return tt('未知时间', 'Unknown time')
   return formatRelativeTime(value)
 }
 
 function formatAbsolute(value?: string | null): string {
-  if (!value) return '未知时间'
+  if (!value) return tt('未知时间', 'Unknown time')
   return formatTimestamp(value)
 }
 
 function extractErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
+  return getErrorMessage(error)
 }
 
 async function loadSessionDetail(filePath: string) {
@@ -575,7 +581,7 @@ async function handleExport() {
     link.click()
     document.body.removeChild(link)
     URL.revokeObjectURL(url)
-    uiStore.showSuccess('Session Markdown 已导出')
+    uiStore.showSuccess(tt('Session Markdown 已导出', 'Session Markdown exported'))
   } catch (error) {
     const message = extractErrorMessage(error)
     logger.error('Failed to export codex session:', error)
@@ -596,7 +602,7 @@ async function handleClone() {
       selectedSession.value.file_path
     )
     await loadSessions(payload.session.file_path)
-    uiStore.showSuccess('Session 已克隆到本地会话目录')
+    uiStore.showSuccess(tt('Session 已克隆到本地会话目录', 'Session cloned to the local session directory'))
   } catch (error) {
     const message = extractErrorMessage(error)
     logger.error('Failed to clone codex session:', error)
@@ -612,10 +618,10 @@ async function handleDelete() {
   }
 
   const confirmed = await uiStore.requestConfirm({
-    title: '删除 Session',
-    message: `确认删除 ${selectedSession.value.session_id} 吗？这个操作会直接删除本地 JSONL 文件。`,
-    confirmText: '删除',
-    cancelText: '取消',
+    title: tt('删除 Session', 'Delete session'),
+    message: tt(`确认删除 ${selectedSession.value.session_id} 吗？这个操作会直接删除本地 JSONL 文件。`, `Delete ${selectedSession.value.session_id}? This will delete the local JSONL file.`),
+    confirmText: tt('删除', 'Delete'),
+    cancelText: tt('取消', 'Cancel'),
     type: 'danger',
   })
 
@@ -632,7 +638,7 @@ async function handleDelete() {
   try {
     await deleteCodexSession(deletingPath)
     await loadSessions(fallbackFilePath)
-    uiStore.showSuccess('Session 已删除')
+    uiStore.showSuccess(tt('Session 已删除', 'Session deleted'))
   } catch (error) {
     const message = extractErrorMessage(error)
     logger.error('Failed to delete codex session:', error)
@@ -644,21 +650,21 @@ async function handleDelete() {
 
 async function copyFilePath() {
   if (!selectedSession.value) return
-  const success = await copyToClipboard(selectedSession.value.file_path)
+  const success = await copyText(selectedSession.value.file_path)
   if (success) {
-    uiStore.showSuccess('已复制 session 文件路径')
+    uiStore.showSuccess(tt('已复制 session 文件路径', 'Session file path copied'))
   } else {
-    uiStore.showError('复制失败')
+    uiStore.showError(tt('复制失败', 'Copy failed'))
   }
 }
 
 async function copyCwd() {
   if (!selectedSession.value?.cwd) return
-  const success = await copyToClipboard(selectedSession.value.cwd)
+  const success = await copyText(selectedSession.value.cwd)
   if (success) {
-    uiStore.showSuccess('已复制工作目录')
+    uiStore.showSuccess(tt('已复制工作目录', 'Working directory copied'))
   } else {
-    uiStore.showError('复制失败')
+    uiStore.showError(tt('复制失败', 'Copy failed'))
   }
 }
 
@@ -895,5 +901,3 @@ onActivated(() => {
   font-family: var(--font-mono);
 }
 </style>
-
-

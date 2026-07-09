@@ -13,6 +13,8 @@ pub enum CheckinStatus {
     AlreadyCheckedIn,
     /// 签到失败
     Failed,
+    /// 跳过（不支持签到 / 提供商或账号已禁用等，不计入失败）
+    Skipped,
 }
 
 impl std::fmt::Display for CheckinStatus {
@@ -21,6 +23,7 @@ impl std::fmt::Display for CheckinStatus {
             CheckinStatus::Success => write!(f, "成功"),
             CheckinStatus::AlreadyCheckedIn => write!(f, "今日已签到"),
             CheckinStatus::Failed => write!(f, "失败"),
+            CheckinStatus::Skipped => write!(f, "跳过"),
         }
     }
 }
@@ -37,7 +40,7 @@ pub struct CheckinRecord {
     /// 消息 (成功消息或错误信息)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub message: Option<String>,
-    /// 错误分类代码 (仅失败时有值)
+    /// 错误分类代码 (失败时) 或跳过原因 (跳过时，如 provider_unsupported)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error_code: Option<String>,
     /// 签到奖励信息
@@ -92,6 +95,21 @@ impl CheckinRecord {
             status: CheckinStatus::Failed,
             message: Some(error),
             error_code,
+            reward: None,
+            balance_before: None,
+            balance_after: None,
+            checked_in_at: Utc::now(),
+        }
+    }
+
+    /// 创建跳过的签到记录（skip_reason 复用 error_code 字段持久化）
+    pub fn skipped(account_id: String, message: Option<String>, skip_reason: String) -> Self {
+        Self {
+            id: uuid::Uuid::new_v4().to_string(),
+            account_id,
+            status: CheckinStatus::Skipped,
+            message,
+            error_code: Some(skip_reason),
             reward: None,
             balance_before: None,
             balance_after: None,
@@ -251,6 +269,7 @@ pub struct CheckinStatusOverview {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 
@@ -282,5 +301,31 @@ mod tests {
         assert_eq!(format!("{}", CheckinStatus::Success), "成功");
         assert_eq!(format!("{}", CheckinStatus::AlreadyCheckedIn), "今日已签到");
         assert_eq!(format!("{}", CheckinStatus::Failed), "失败");
+        assert_eq!(format!("{}", CheckinStatus::Skipped), "跳过");
+    }
+
+    #[test]
+    fn test_checkin_record_skipped() {
+        let record = CheckinRecord::skipped(
+            "account-1".to_string(),
+            Some("该站点不支持签到".to_string()),
+            "provider_unsupported".to_string(),
+        );
+
+        assert_eq!(record.status, CheckinStatus::Skipped);
+        assert_eq!(record.error_code.as_deref(), Some("provider_unsupported"));
+    }
+
+    #[test]
+    fn test_checkin_status_serde_snake_case() {
+        // 4 态契约的 wire 格式：snake_case 字符串（前端/DB 兼容）
+        assert_eq!(
+            serde_json::to_string(&CheckinStatus::Skipped).unwrap(),
+            "\"skipped\""
+        );
+        assert_eq!(
+            serde_json::to_string(&CheckinStatus::AlreadyCheckedIn).unwrap(),
+            "\"already_checked_in\""
+        );
     }
 }

@@ -1,3 +1,5 @@
+use std::ffi::OsString;
+use std::path::PathBuf;
 use std::process::Stdio;
 use std::sync::{Arc, Mutex};
 
@@ -49,6 +51,33 @@ pub struct SyncCommandOptions {
     pub rebuild: bool,
     pub recent_days: Option<u32>,
     pub source: Option<SourceKind>,
+    pub provider_map: Option<PathBuf>,
+}
+
+fn sync_option_args(options: &SyncCommandOptions) -> Vec<OsString> {
+    let mut args = Vec::new();
+    if options.rebuild {
+        args.push(OsString::from("--rebuild"));
+    }
+    if let Some(days) = options.recent_days {
+        args.push(OsString::from("--recent-days"));
+        args.push(OsString::from(days.to_string()));
+    }
+    if let Some(source) = options.source {
+        args.push(OsString::from("--source"));
+        args.push(OsString::from(source.as_str()));
+    }
+    if let Some(provider_map) = options.provider_map.as_ref() {
+        args.push(OsString::from("--provider-map"));
+        args.push(provider_map.as_os_str().to_os_string());
+    }
+    args
+}
+
+fn append_sync_options(command: &mut Command, options: &SyncCommandOptions) {
+    for arg in sync_option_args(options) {
+        command.arg(arg);
+    }
 }
 
 pub async fn run_sync_collect(
@@ -84,15 +113,7 @@ where
 {
     let mut command = cli.command();
     command.arg("sync").arg("--json-events");
-    if options.rebuild {
-        command.arg("--rebuild");
-    }
-    if let Some(days) = options.recent_days {
-        command.arg("--recent-days").arg(days.to_string());
-    }
-    if let Some(source) = options.source {
-        command.arg("--source").arg(source.as_str());
-    }
+    append_sync_options(&mut command, &options);
     command
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -219,6 +240,34 @@ mod tests {
         let options = SyncCommandOptions::default();
         assert!(!options.rebuild);
         assert_eq!(options.source, None);
+        assert_eq!(options.provider_map, None);
+    }
+
+    #[test]
+    fn sync_options_append_provider_map_argument() {
+        let options = SyncCommandOptions {
+            rebuild: true,
+            recent_days: Some(7),
+            source: Some(SourceKind::Codex),
+            provider_map: Some(PathBuf::from("provider_activation.jsonl")),
+        };
+        let args = sync_option_args(&options)
+            .into_iter()
+            .map(|arg| arg.to_string_lossy().to_string())
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            args,
+            vec![
+                "--rebuild",
+                "--recent-days",
+                "7",
+                "--source",
+                "codex",
+                "--provider-map",
+                "provider_activation.jsonl"
+            ]
+        );
     }
 
     /// C1 回归：stderr 写 >64KB 不应阻塞 stdout NDJSON 的并发消费。

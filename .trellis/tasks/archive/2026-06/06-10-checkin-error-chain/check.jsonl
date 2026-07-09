@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/ccr-checkin/backend/backend-guidelines.md", "reason": "校验：error_code 分类保留、不泄露 secret、测试命令要求"}
+{"file": ".trellis/tasks/06-10-checkin-optimize-templates/research/internal-checkin-architecture.md", "reason": "校验修复点与 research 定位一致（4 处 getErrorMessage、Job error_code、记录筛选链路、刷余额失败可见）"}

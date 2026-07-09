@@ -10,6 +10,7 @@ repository = "https://github.com/bahayonghang/ccr"
 
 [dependencies]
 ccr-core = { path = "../ccr-core" }
+ccr-types = { path = "../ccr-types" }
 chrono = { workspace = true }
 dirs = { workspace = true }
 indexmap = { workspace = true }

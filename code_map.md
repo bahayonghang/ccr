@@ -20,4 +20,4 @@ Minimal navigation for this repository. Keep behavior rules in `AGENTS.md` / `CL
 
 ## Generated / ignored paths
 
-Skip generated or local-runtime output unless the task explicitly targets them: `target/`, `node_modules/`, `dist/`, `.omx/state/`, `.omx/tmp/`, and `outputs/`.
+Skip generated, local-runtime, reference, or large static output unless the task explicitly targets them: `target/`, `node_modules/`, `dist/`, `.omx/state/`, `.omx/tmp/`, `outputs/`, `ccr-ui/ref/`, and `ccr-ui/public/fonts/`.

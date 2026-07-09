@@ -11,7 +11,7 @@ use std::time::{Duration, Instant};
 
 use arc_swap::ArcSwap;
 use ccr_core::core::AtomicWriter;
-use ccr_db::database::pool::DbPool;
+use ccr_db::database::DbPool;
 use ccr_db::services::log_persistence::{LogPersistenceService, LogStorageConfig};
 use chrono::{DateTime, Utc};
 use moka::future::Cache as MokaCache;
@@ -313,9 +313,29 @@ impl AppState {
         usage_db_pool: DbPool,
         llmusage: LlmusageRuntime,
     ) -> Result<Self, String> {
-        let http_client = reqwest::Client::builder()
+        // HTTP/2 经 reqwest "http2" feature + native-tls ALPN 自动协商（见 Cargo.toml），
+        // 签到等外部请求的指纹更接近真实浏览器；ccr-checkin 自建 client 同样受益于该 feature。
+        //
+        // 代理出口对齐：该共享 client 的消费者全部是签到/WAF（commands/checkin.rs + commands/waf.rs），
+        // 必须与 WAF WebView 走同一出口——阿里云 WAF cookie 与来源 IP 绑定，出口不一致会让
+        // WebView 取到的 cookie 重放失败。先 .no_proxy() 关闭 reqwest 隐式探测，再按统一来源
+        // （env→Windows 注册表，见 ccr_checkin::resolve_checkin_proxy_url）显式应用代理。
+        let mut http_client_builder = reqwest::Client::builder()
             .cookie_store(true)
             .timeout(Duration::from_secs(30))
+            .no_proxy();
+        if let Some(proxy_url) = ccr_checkin::resolve_checkin_proxy_url() {
+            match reqwest::Proxy::all(&proxy_url) {
+                Ok(proxy) => {
+                    tracing::info!("共享 HTTP client 已启用代理（与 WAF WebView 出口对齐）");
+                    http_client_builder = http_client_builder.proxy(proxy);
+                }
+                Err(e) => {
+                    tracing::warn!(error = %e, "代理配置无效，共享 HTTP client 将直连");
+                }
+            }
+        }
+        let http_client = http_client_builder
             .build()
             .map_err(|e| format!("failed to build reqwest client: {e}"))?;
 

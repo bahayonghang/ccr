@@ -57,7 +57,7 @@
             </div>
             <div class="claude-terminal-card__body">
               <p class="claude-terminal-card__line">
-                <span>$</span> ccr current
+                <span>$</span> {{ currentConfigCommand }}
               </p>
               <p class="claude-terminal-card__status">
                 {{ $t('claudeCode.hero.consoleStatus') }}
@@ -78,7 +78,7 @@
 
       <section
         class="claude-section animate-slide-up claude-section--observer"
-        style="animation-delay: 80ms"
+        :style="{ animationDelay: '80ms' }"
         aria-label="Claude Code usage insight"
       >
         <UsageInsightPanel />
@@ -86,7 +86,7 @@
 
       <section
         class="claude-tag-row animate-slide-up"
-        style="animation-delay: 100ms"
+        :style="{ animationDelay: '100ms' }"
         aria-label="Claude Code capabilities"
       >
         <span
@@ -105,7 +105,7 @@
 
       <section
         class="claude-section animate-slide-up"
-        style="animation-delay: 180ms"
+        :style="{ animationDelay: '180ms' }"
       >
         <div class="claude-section-heading">
           <SIcon
@@ -168,7 +168,7 @@
 
       <section
         class="claude-section animate-slide-up"
-        style="animation-delay: 260ms"
+        :style="{ animationDelay: '260ms' }"
       >
         <div class="claude-section-heading">
           <SIcon
@@ -226,7 +226,7 @@
 
       <section
         class="claude-bottom-grid animate-slide-up"
-        style="animation-delay: 340ms"
+        :style="{ animationDelay: '340ms' }"
       >
         <Card
           variant="glass"
@@ -336,6 +336,7 @@ import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
 import Button from '@/components/ui/Button.vue'
 import Card from '@/components/ui/Card.vue'
 import SIcon from '@/components/ui/SIcon.vue'
+import { copyText } from '@/utils/clipboard'
 
 // 用量洞察面板较重，按需异步加载，避免拖慢 Claude Code 首屏
 const UsageInsightPanel = defineAsyncComponent({
@@ -344,6 +345,9 @@ const UsageInsightPanel = defineAsyncComponent({
 })
 
 const { t } = useI18n()
+const currentConfigCommand = 'ccr current'
+const switchConfigCommand = 'ccr switch'
+const listConfigsCommand = 'ccr list'
 
 const heroChips = computed(() => [
   t('claudeCode.features.configManagement'),
@@ -421,9 +425,9 @@ const extensionModules = computed(() => [
 ])
 
 const commonCommands = computed(() => [
-  { label: t('claudeCode.quickActions.viewCurrentConfig'), cmd: 'ccr current' },
-  { label: t('claudeCode.quickActions.switchConfig'), cmd: 'ccr switch' },
-  { label: t('claudeCode.quickActions.listAllConfigs'), cmd: 'ccr list' },
+  { label: t('claudeCode.quickActions.viewCurrentConfig'), cmd: currentConfigCommand },
+  { label: t('claudeCode.quickActions.switchConfig'), cmd: switchConfigCommand },
+  { label: t('claudeCode.quickActions.listAllConfigs'), cmd: listConfigsCommand },
 ])
 
 const resources = computed(() => [
@@ -433,7 +437,7 @@ const resources = computed(() => [
 ])
 
 const copyCommand = (cmd: string) => {
-  navigator.clipboard.writeText(cmd)
+  void copyText(cmd)
 }
 </script>
 

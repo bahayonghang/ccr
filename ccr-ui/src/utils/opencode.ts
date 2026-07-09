@@ -14,10 +14,12 @@ export function parseJsonInput<T>(value: string, fallback: T): T {
 }
 
 export function splitCommandInput(value: string): string[] {
-  return value
-    .match(/"[^"]*"|'[^']*'|\S+/g)
-    ?.map((part) => part.replace(/^['"]|['"]$/g, '').trim())
-    .filter(Boolean) ?? []
+  return (
+    value
+      .match(/"[^"]*"|'[^']*'|\S+/g)
+      ?.map((part) => part.replace(/^['"]|['"]$/g, '').trim())
+      .filter(Boolean) ?? []
+  )
 }
 
 export function stringifyCommandInput(parts?: string[]) {
@@ -29,10 +31,6 @@ export function maskSecret(value?: string) {
   if (value.startsWith('{env:')) return value
   if (value.length <= 8) return `${value.slice(0, 2)}••••`
   return `${value.slice(0, 4)}••••${value.slice(-4)}`
-}
-
-export async function copyText(value: string) {
-  await navigator.clipboard.writeText(value)
 }
 
 export function normalizeStringListInput(value: string) {

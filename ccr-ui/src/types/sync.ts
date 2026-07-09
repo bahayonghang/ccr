@@ -77,3 +77,17 @@ export interface WebDavTestResult {
   ok: boolean
   message: string
 }
+
+export interface SyncResult {
+  platform: string
+  success: boolean
+  message?: string
+}
+
+export interface SyncFolderItem {
+  name: string
+  enabled: boolean
+  localPath: string
+  remotePath: string
+  description?: string
+}

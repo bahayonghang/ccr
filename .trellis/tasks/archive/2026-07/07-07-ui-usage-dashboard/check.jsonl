@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/ccr-ui/frontend/theme-token-contracts.md", "reason": "校验矩阵:玻璃预算、reduced-transparency 降级、语义别名不得重定义;theme smoke 测试命令"}
+{"file": ".trellis/spec/ccr-ui/frontend/index.md", "reason": "质量检查命令清单(type-check/lint/smoke)"}

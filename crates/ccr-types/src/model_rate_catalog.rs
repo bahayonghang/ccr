@@ -138,6 +138,8 @@ pub fn official_model_rate_overrides() -> Vec<ModelRateOverride> {
         ("claude-opus-4-5-20251101", 5.0, 25.0, 0.5, 6.25),
         ("claude-sonnet-4-6", 3.0, 15.0, 0.3, 3.75),
         ("claude-sonnet-4-5-20250929", 3.0, 15.0, 0.3, 3.75),
+        ("claude-fable-5", 10.0, 50.0, 1.0, 12.5),
+        ("claude-mythos-5", 10.0, 50.0, 1.0, 12.5),
         ("claude-3-5-sonnet-20241022", 3.0, 15.0, 0.3, 3.75),
         ("claude-haiku-4-5-20251001", 1.0, 5.0, 0.1, 1.25),
         ("claude-haiku-4-5", 1.0, 5.0, 0.1, 1.25),
@@ -169,7 +171,7 @@ pub fn official_model_rate_overrides() -> Vec<ModelRateOverride> {
 pub fn official_model_rate_override_for(model: &str) -> Option<ModelRateOverride> {
     let normalized = normalize_model_id(model);
     official_rate(&normalized, 0).map(|(rate, _, _)| ModelRateOverride {
-        model: normalized,
+        model: canonical_official_model_id(&normalized).to_string(),
         input_price: rate.input_per_million,
         output_price: rate.output_per_million,
         cache_read_price: Some(rate.cache_read_per_million),
@@ -182,9 +184,16 @@ pub fn normalize_model_id(model: &str) -> String {
         .trim()
         .to_ascii_lowercase()
         .replace('_', "-")
-        .replace("anthropic/", "")
-        .replace("openai/", "")
-        .replace("google/", "");
+        .trim_start_matches("anthropic/")
+        .trim_start_matches("anthropic.")
+        .trim_start_matches("anthropic-")
+        .trim_start_matches("openai/")
+        .trim_start_matches("openai.")
+        .trim_start_matches("openai-")
+        .trim_start_matches("google/")
+        .trim_start_matches("google.")
+        .trim_start_matches("google-")
+        .to_string();
 
     if normalized.starts_with("claude-") {
         for family in ["opus", "sonnet", "haiku"] {
@@ -196,6 +205,14 @@ pub fn normalize_model_id(model: &str) -> String {
     }
 
     normalized
+}
+
+fn canonical_official_model_id(model: &str) -> &str {
+    match model {
+        "fable-5" => "claude-fable-5",
+        "mythos-5" => "claude-mythos-5",
+        _ => model,
+    }
 }
 
 fn official_rate(
@@ -227,6 +244,17 @@ fn official_rate(
     {
         return Some((
             anthropic_rate(3.0, 15.0, 0.3),
+            "official:anthropic",
+            "priced",
+        ));
+    }
+
+    if matches!(
+        model,
+        "claude-fable-5" | "fable-5" | "claude-mythos-5" | "mythos-5"
+    ) {
+        return Some((
+            anthropic_rate(10.0, 50.0, 1.0),
             "official:anthropic",
             "priced",
         ));
@@ -402,6 +430,8 @@ mod tests {
         assert_cost("claude-opus-4-6", 1_000_000, 1_000_000, 1_000_000, 30.5);
         assert_cost("claude-opus-4.7", 1_000_000, 1_000_000, 1_000_000, 30.5);
         assert_cost("claude-haiku-4-5", 1_000_000, 1_000_000, 1_000_000, 6.1);
+        assert_cost("claude-fable-5", 1_000_000, 400_000, 200_000, 30.2);
+        assert_cost("claude-mythos-5", 1_000_000, 400_000, 200_000, 30.2);
         assert_cost("gpt-5.4", 100_000, 100_000, 100_000, 1.775);
         assert_cost("gpt-5.5", 100_000, 100_000, 100_000, 3.55);
         assert_cost("gpt-5.4-mini", 100_000, 100_000, 100_000, 0.5325);
@@ -429,6 +459,49 @@ mod tests {
     }
 
     #[test]
+    fn prices_claude_fable_and_mythos_aliases_without_substring_matches() {
+        let catalog = ModelRateCatalog::official();
+        for model in [
+            "claude-fable-5",
+            "fable-5",
+            "anthropic/claude-fable-5",
+            "anthropic.claude-fable-5",
+            "anthropic-claude-fable-5",
+            "claude-mythos-5",
+            "mythos-5",
+            "anthropic/claude-mythos-5",
+            "anthropic.claude-mythos-5",
+            "anthropic-claude-mythos-5",
+        ] {
+            let actual = catalog.calculate(model, 1_000_000, 400_000, 200_000, 300_000);
+            assert_eq!(actual.pricing_status, "priced", "{model}");
+            assert_eq!(actual.pricing_source, "official:anthropic", "{model}");
+            assert_eq!(actual.rate_label.as_deref(), Some("10/1/50"), "{model}");
+            assert_eq!(actual.input_rate_per_million, Some(10.0), "{model}");
+            assert_eq!(actual.cache_read_rate_per_million, Some(1.0), "{model}");
+            assert_eq!(actual.output_rate_per_million, Some(50.0), "{model}");
+            assert!(
+                (actual.cost_with_cache_usd - 33.95).abs() < 0.000_001,
+                "{model}"
+            );
+            assert!(
+                (actual.cost_without_cache_usd - 35.0).abs() < 0.000_001,
+                "{model}"
+            );
+        }
+
+        for model in [
+            "not-fable-5",
+            "not-mythos-5",
+            "claude-mythos-preview",
+            "not-anthropic/claude-fable-5",
+        ] {
+            let actual = catalog.calculate(model, 1, 1, 1, 1);
+            assert_eq!(actual.pricing_status, "unpriced", "{model}");
+        }
+    }
+
+    #[test]
     fn returns_normalized_official_override_for_aliases() {
         let Some(actual) = official_model_rate_override_for("anthropic/claude-opus-4.6") else {
             panic!("official alias should resolve to a model rate");
@@ -437,5 +510,14 @@ mod tests {
         assert_eq!(actual.input_price, 5.0);
         assert_eq!(actual.output_price, 25.0);
         assert_eq!(actual.cache_read_price, Some(0.5));
+
+        let Some(fable) = official_model_rate_override_for("fable-5") else {
+            panic!("short fable alias should resolve to a model rate");
+        };
+        assert_eq!(fable.model, "claude-fable-5");
+        assert_eq!(fable.input_price, 10.0);
+        assert_eq!(fable.output_price, 50.0);
+        assert_eq!(fable.cache_read_price, Some(1.0));
+        assert_eq!(fable.cache_write_price, Some(12.5));
     }
 }

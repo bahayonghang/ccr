@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { CheckinJobSnapshot, CheckinLogEntry } from '@/types/checkin'
 import {
   applyRecoveryFailureToLogs,
+  formatWafCookieRecoveryFailure,
   mergeRetryLogsIntoProgress,
 } from '@/views/checkin/composables/useCheckinState'
 
@@ -100,5 +101,21 @@ describe('checkin state helpers smoke', () => {
       status: 'success',
     })
     expect(merged[1].wafRecoveryAttempted).toBeUndefined()
+  })
+
+  it('formats missing required WAF cookie names for recovery failures', () => {
+    const message = formatWafCookieRecoveryFailure({
+      provider_id: 'provider-anyrouter',
+      provider_name: 'AnyRouter',
+      found_cookie_names: ['acw_tc', 'cdn_sec_tc'],
+      missing_cookie_names: ['acw_sc__v2'],
+      required_cookie_names: ['acw_tc', 'cdn_sec_tc', 'acw_sc__v2'],
+      persisted: false,
+      source: 'webview_store',
+      message: 'WAF Cookie 未获取完整，缺少: acw_sc__v2',
+    })
+
+    expect(message).toBe('缺少 WAF Cookie: acw_sc__v2')
+    expect(message).not.toContain('secret')
   })
 })

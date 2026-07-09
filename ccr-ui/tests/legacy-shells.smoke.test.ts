@@ -175,6 +175,27 @@ const mountView = async (component: unknown) => {
   }
 }
 
+const flushView = async () => {
+  await Promise.resolve()
+  await nextTick()
+  await Promise.resolve()
+  await nextTick()
+}
+
+const setControlValue = async (
+  control: HTMLInputElement | HTMLTextAreaElement,
+  value: string,
+) => {
+  control.value = value
+  control.dispatchEvent(new Event('input', { bubbles: true }))
+  await nextTick()
+}
+
+const findButtonByText = (root: ParentNode, text: string) => {
+  return Array.from(root.querySelectorAll<HTMLButtonElement>('button'))
+    .find((button) => button.textContent?.includes(text)) ?? null
+}
+
 beforeEach(() => {
   apiMocks.listCodexProfiles.mockReset()
   apiMocks.listCodexAuthAccounts.mockReset()
@@ -331,7 +352,146 @@ describe('legacy shell pages smoke', () => {
 
     try {
       expect(el.textContent).toContain('Provider')
-      expect(el.textContent).toContain('暂无 Provider')
+      expect(el.textContent).toContain('No providers yet')
+    } finally {
+      unmount()
+    }
+  })
+
+  it('creates OpenCode OpenAI-compatible providers with root npm config', async () => {
+    apiMocks.addOpenCodeProvider.mockResolvedValue({ id: 'openai' })
+    apiMocks.updateOpenCodeConfig.mockResolvedValue({ disabled_providers: [] })
+
+    const { default: OpenCodeProvidersView } = await import('@/views/OpenCodeProvidersView.vue')
+    const { el, unmount } = await mountView(OpenCodeProvidersView)
+
+    try {
+      el.querySelector<HTMLButtonElement>('[data-testid="provider-template-trigger"]')?.click()
+      await flushView()
+
+      const searchInput = el.querySelector<HTMLInputElement>('[data-testid="provider-template-search"]')
+      expect(searchInput).not.toBeNull()
+      await setControlValue(searchInput!, 'openai compatible')
+
+      const option = Array.from(el.querySelectorAll<HTMLButtonElement>('[data-testid="provider-template-option"]'))
+        .find(button => button.textContent?.includes('OpenAI Compatible'))
+      expect(option).not.toBeNull()
+
+      option!.click()
+      await flushView()
+
+      const textInputs = Array.from(el.querySelectorAll<HTMLInputElement>('input:not([type="checkbox"])'))
+      const providerInputs = textInputs.slice(-5)
+      expect(providerInputs[0]?.value).toBe('openai')
+      expect(providerInputs[1]?.value).toBe('OpenAI Compatible')
+      expect(providerInputs[2]?.value).toBe('@ai-sdk/openai-compatible')
+
+      await setControlValue(providerInputs[3], '<YOUR_API_KEY>')
+      await setControlValue(providerInputs[4], 'https://api.example.com/v1')
+
+      const textareas = Array.from(el.querySelectorAll<HTMLTextAreaElement>('textarea'))
+      await setControlValue(textareas[0], JSON.stringify({
+        'gpt-5.2': {
+          name: 'GPT-5.2',
+          limit: {
+            context: 400000,
+            output: 128000,
+          },
+          options: {
+            store: false,
+          },
+          variants: {
+            low: {},
+            medium: {},
+            high: {},
+            xhigh: {},
+          },
+        },
+      }))
+
+      findButtonByText(el, 'Save')?.click()
+      await flushView()
+
+      expect(apiMocks.addOpenCodeProvider).toHaveBeenCalledWith('openai', {
+        name: 'OpenAI Compatible',
+        npm: '@ai-sdk/openai-compatible',
+        options: {
+          apiKey: '<YOUR_API_KEY>',
+          baseURL: 'https://api.example.com/v1',
+        },
+        models: {
+          'gpt-5.2': {
+            name: 'GPT-5.2',
+            limit: {
+              context: 400000,
+              output: 128000,
+            },
+            options: {
+              store: false,
+            },
+            variants: {
+              low: {},
+              medium: {},
+              high: {},
+              xhigh: {},
+            },
+          },
+        },
+      })
+    } finally {
+      unmount()
+    }
+  })
+
+  it('preserves OpenCode provider root extras when saving edits', async () => {
+    apiMocks.listOpenCodeProviders.mockResolvedValue([
+      {
+        id: 'openai',
+        name: 'OpenAI Compatible',
+        npm: '@ai-sdk/openai-compatible',
+        api: 'chat',
+        whitelist: ['gpt-5.2'],
+        options: {
+          apiKey: '{env:OPENAI_API_KEY}',
+          baseURL: 'https://api.example.com/v1',
+          timeout: 600000,
+        },
+        models: {
+          'gpt-5.2': {
+            name: 'GPT-5.2',
+          },
+        },
+      },
+    ])
+    apiMocks.addOpenCodeProvider.mockResolvedValue({ id: 'openai' })
+    apiMocks.updateOpenCodeConfig.mockResolvedValue({ disabled_providers: [] })
+
+    const { default: OpenCodeProvidersView } = await import('@/views/OpenCodeProvidersView.vue')
+    const { el, unmount } = await mountView(OpenCodeProvidersView)
+
+    try {
+      findButtonByText(el, 'Edit')?.click()
+      await flushView()
+
+      findButtonByText(el, 'Save')?.click()
+      await flushView()
+
+      expect(apiMocks.addOpenCodeProvider).toHaveBeenCalledWith('openai', {
+        name: 'OpenAI Compatible',
+        npm: '@ai-sdk/openai-compatible',
+        api: 'chat',
+        whitelist: ['gpt-5.2'],
+        options: {
+          timeout: 600000,
+          apiKey: '{env:OPENAI_API_KEY}',
+          baseURL: 'https://api.example.com/v1',
+        },
+        models: {
+          'gpt-5.2': {
+            name: 'GPT-5.2',
+          },
+        },
+      })
     } finally {
       unmount()
     }
@@ -343,7 +503,7 @@ describe('legacy shell pages smoke', () => {
 
     try {
       expect(el.textContent).toContain('MCP')
-      expect(el.textContent).toContain('暂无 MCP 服务器')
+      expect(el.textContent).toContain('No MCP servers yet')
     } finally {
       unmount()
     }
@@ -355,7 +515,7 @@ describe('legacy shell pages smoke', () => {
 
     try {
       expect(el.textContent).toContain('Built-in layout')
-      expect(el.textContent).toContain('暂无自定义 Agent')
+      expect(el.textContent).toContain('No custom agents yet')
     } finally {
       unmount()
     }
@@ -367,7 +527,7 @@ describe('legacy shell pages smoke', () => {
 
     try {
       expect(el.textContent).toContain('Built-in behavior')
-      expect(el.textContent).toContain('暂无自定义 Command')
+      expect(el.textContent).toContain('No custom commands yet')
     } finally {
       unmount()
     }
@@ -379,7 +539,7 @@ describe('legacy shell pages smoke', () => {
 
     try {
       expect(el.textContent).toContain('Plugins')
-      expect(el.textContent).toContain('暂无 npm 插件配置')
+      expect(el.textContent).toContain('No npm plugin packages configured.')
     } finally {
       unmount()
     }

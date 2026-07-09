@@ -2,12 +2,13 @@
 
 use std::collections::HashMap;
 use std::io;
+use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::sync::LazyLock;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use crate::process::tokio_command;
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tauri::{AppHandle, Emitter};
@@ -20,23 +21,26 @@ const EVENT_COMMAND_JOB_PROGRESS: &str = "commands:job-progress";
 const EVENT_COMMAND_JOB_FINISHED: &str = "commands:job-finished";
 const EVENT_COMMAND_JOB_CANCELLED: &str = "commands:job-cancelled";
 
+const COMMAND_JOB_MAX_JOBS: usize = 64;
+const COMMAND_JOB_TTL_SECS: u64 = 30 * 60;
+const COMMAND_JOB_MAX_LINES_PER_CHANNEL: usize = 500;
+const COMMAND_JOB_MAX_BYTES_PER_CHANNEL: usize = 512 * 1024;
+const CCR_CLI_VERSION_PROBE_TIMEOUT_SECS: u64 = 3;
+
 /// 允许执行的 CCR 子命令白名单
 const ALLOWED_COMMANDS: &[&str] = &[
     "list",
     "switch",
     "add",
-    "delete",
     "rename",
     "duplicate",
     "show",
     "validate",
     "export",
-    "import",
     "history",
     "version",
     "help",
     "backup",
-    "restore",
     "diff",
     "status",
 ];
@@ -58,6 +62,8 @@ pub struct CommandArgSchema {
 #[serde(rename_all = "camelCase")]
 pub struct CommandFlagSchema {
     pub name: &'static str,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub aliases: Vec<&'static str>,
     pub label: &'static str,
     pub description: &'static str,
     #[serde(rename = "type")]
@@ -83,6 +89,171 @@ pub struct CommandInfo {
     pub flags: Vec<CommandFlagSchema>,
     pub aliases: Vec<&'static str>,
     pub related_route: Option<&'static str>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct CommandExecutionRequest {
+    command: String,
+    args: Vec<String>,
+    confirmation_token: Option<String>,
+    background_job: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct CommandPolicy {
+    info: CommandInfo,
+    allow_background_job: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ParsedFlagValue {
+    Inline,
+    NextArg,
+}
+
+impl CommandExecutionRequest {
+    fn foreground(
+        command: String,
+        args: Option<Vec<String>>,
+        confirmation_token: Option<String>,
+    ) -> Self {
+        Self {
+            command,
+            args: args.unwrap_or_default(),
+            confirmation_token,
+            background_job: false,
+        }
+    }
+
+    fn background(
+        command: String,
+        args: Option<Vec<String>>,
+        confirmation_token: Option<String>,
+    ) -> Self {
+        Self {
+            command,
+            args: args.unwrap_or_default(),
+            confirmation_token,
+            background_job: true,
+        }
+    }
+}
+
+impl CommandPolicy {
+    fn from_command(command: &str) -> Result<Self, String> {
+        let catalog = command_catalog();
+        let info = catalog
+            .into_iter()
+            .find(|entry| entry.name == command)
+            .ok_or_else(|| command_not_allowed_error(command))?;
+
+        if !info.executable || !ALLOWED_COMMANDS.contains(&info.name) {
+            return Err(command_not_allowed_error(command));
+        }
+
+        Ok(Self {
+            allow_background_job: true,
+            info,
+        })
+    }
+
+    fn validate(&self, request: &CommandExecutionRequest) -> Result<(), String> {
+        if request.background_job && !self.allow_background_job {
+            return Err(format!(
+                "命令 '{}' 不允许作为后台任务执行。",
+                request.command
+            ));
+        }
+
+        self.validate_confirmation(request)?;
+        self.validate_args(&request.args)
+    }
+
+    fn validate_confirmation(&self, request: &CommandExecutionRequest) -> Result<(), String> {
+        if !self.info.requires_confirmation {
+            return Ok(());
+        }
+
+        let expected = confirmation_token_for(&self.info);
+        match request.confirmation_token.as_deref() {
+            Some(token) if token == expected => Ok(()),
+            _ => Err(format!(
+                "命令 '{}' 需要桌面确认后才能执行。",
+                self.info.name
+            )),
+        }
+    }
+
+    fn validate_args(&self, args: &[String]) -> Result<(), String> {
+        let required_positional_count = self.info.args.iter().filter(|arg| arg.required).count();
+        let max_positional_count = self.info.args.len();
+        let mut positional_count = 0usize;
+        let mut index = 0usize;
+
+        while let Some(raw_arg) = args.get(index) {
+            if raw_arg.starts_with('-') {
+                let (flag_name, value_kind) = split_flag_arg(raw_arg)?;
+                let flag = self.find_flag(flag_name).ok_or_else(|| {
+                    format!("命令 '{}' 不允许参数 '{}'。", self.info.name, flag_name)
+                })?;
+
+                if flag.takes_value {
+                    match value_kind {
+                        Some(ParsedFlagValue::Inline) => {}
+                        Some(ParsedFlagValue::NextArg) => {
+                            return Err(format!(
+                                "命令 '{}' 的参数 '{}' 缺少值。",
+                                self.info.name, flag_name
+                            ));
+                        }
+                        None => {
+                            let value = args.get(index + 1).ok_or_else(|| {
+                                format!("命令 '{}' 的参数 '{}' 缺少值。", self.info.name, flag_name)
+                            })?;
+                            if value.starts_with('-') {
+                                return Err(format!(
+                                    "命令 '{}' 的参数 '{}' 缺少值。",
+                                    self.info.name, flag_name
+                                ));
+                            }
+                            index += 1;
+                        }
+                    }
+                } else if value_kind.is_some() {
+                    return Err(format!(
+                        "命令 '{}' 的布尔参数 '{}' 不接受值。",
+                        self.info.name, flag_name
+                    ));
+                }
+            } else {
+                positional_count += 1;
+                if positional_count > max_positional_count {
+                    return Err(format!(
+                        "命令 '{}' 不接受额外位置参数 '{}'。",
+                        self.info.name, raw_arg
+                    ));
+                }
+            }
+
+            index += 1;
+        }
+
+        if positional_count < required_positional_count {
+            return Err(format!(
+                "命令 '{}' 缺少必需位置参数。需要 {} 个，收到 {} 个。",
+                self.info.name, required_positional_count, positional_count
+            ));
+        }
+
+        Ok(())
+    }
+
+    fn find_flag(&self, name: &str) -> Option<&CommandFlagSchema> {
+        self.info
+            .flags
+            .iter()
+            .find(|flag| flag.name == name || flag.aliases.contains(&name))
+    }
 }
 
 fn text_arg(
@@ -127,8 +298,18 @@ fn bool_flag(
     label: &'static str,
     description: &'static str,
 ) -> CommandFlagSchema {
+    bool_flag_with_aliases(name, vec![], label, description)
+}
+
+fn bool_flag_with_aliases(
+    name: &'static str,
+    aliases: Vec<&'static str>,
+    label: &'static str,
+    description: &'static str,
+) -> CommandFlagSchema {
     CommandFlagSchema {
         name,
+        aliases,
         label,
         description,
         flag_type: "boolean",
@@ -137,8 +318,9 @@ fn bool_flag(
     }
 }
 
-fn value_flag(
+fn value_flag_with_aliases(
     name: &'static str,
+    aliases: Vec<&'static str>,
     label: &'static str,
     description: &'static str,
     value_type: &'static str,
@@ -146,6 +328,7 @@ fn value_flag(
 ) -> CommandFlagSchema {
     CommandFlagSchema {
         name,
+        aliases,
         label,
         description,
         flag_type: value_type,
@@ -228,15 +411,17 @@ fn command_catalog() -> Vec<CommandInfo> {
             requires_confirmation: false,
             args: vec![],
             flags: vec![
-                value_flag(
+                value_flag_with_aliases(
                     "--limit",
+                    vec!["-l"],
                     "Limit",
                     "Maximum number of history entries.",
                     "number",
                     Some("20"),
                 ),
-                value_flag(
+                value_flag_with_aliases(
                     "--type",
+                    vec!["-t"],
                     "Operation type",
                     "Filter by operation type.",
                     "text",
@@ -351,8 +536,9 @@ fn command_catalog() -> Vec<CommandInfo> {
             requires_confirmation: false,
             args: vec![],
             flags: vec![
-                value_flag(
+                value_flag_with_aliases(
                     "--output",
+                    vec!["-o"],
                     "Output file",
                     "Destination TOML file path.",
                     "path",
@@ -476,13 +662,13 @@ fn command_catalog() -> Vec<CommandInfo> {
             name: "delete",
             path: vec!["delete"],
             title: "Delete configuration",
-            description: "Delete a saved CCR configuration. Requires explicit confirmation in the UI.",
-            usage: "ccr delete <config>",
-            examples: vec!["ccr delete old-config --force"],
+            description: "Use the typed desktop configuration API to delete a saved CCR configuration.",
+            usage: "Config domain: delete_config(name)",
+            examples: vec!["delete_config({ name: 'old-config' })"],
             category: "danger",
-            risk: "destructive",
-            executable: true,
-            requires_confirmation: true,
+            risk: "typed_only",
+            executable: false,
+            requires_confirmation: false,
             args: vec![text_arg(
                 "config_name",
                 "Configuration",
@@ -491,8 +677,9 @@ fn command_catalog() -> Vec<CommandInfo> {
                 Some("configs"),
                 "Configuration name to delete.",
             )],
-            flags: vec![bool_flag(
+            flags: vec![bool_flag_with_aliases(
                 "--force",
+                vec!["-f"],
                 "Skip CLI confirmation",
                 "Run non-interactively after UI confirmation.",
             )],
@@ -503,13 +690,13 @@ fn command_catalog() -> Vec<CommandInfo> {
             name: "import",
             path: vec!["import"],
             title: "Import configuration",
-            description: "Import configuration from a TOML file. Replace mode can overwrite existing data.",
-            usage: "ccr import <file> --merge --backup",
-            examples: vec!["ccr import ccr-config.toml --merge --backup"],
+            description: "Use the typed desktop configuration API to import TOML content.",
+            usage: "Config domain: import_config(content, mode, backup)",
+            examples: vec!["import_config({ content, mode: 'merge', backup: true })"],
             category: "danger",
-            risk: "destructive",
-            executable: true,
-            requires_confirmation: true,
+            risk: "typed_only",
+            executable: false,
+            requires_confirmation: false,
             args: vec![path_arg(
                 "input",
                 "Input file",
@@ -518,18 +705,21 @@ fn command_catalog() -> Vec<CommandInfo> {
                 "TOML file to import.",
             )],
             flags: vec![
-                bool_flag(
+                bool_flag_with_aliases(
                     "--merge",
+                    vec!["-m"],
                     "Merge",
                     "Merge imported configs into existing configs.",
                 ),
-                bool_flag(
+                bool_flag_with_aliases(
                     "--backup",
+                    vec!["-b"],
                     "Backup first",
                     "Create a backup before importing.",
                 ),
-                bool_flag(
+                bool_flag_with_aliases(
                     "--force",
+                    vec!["-f"],
                     "Skip CLI confirmation",
                     "Run non-interactively after UI confirmation.",
                 ),
@@ -541,13 +731,13 @@ fn command_catalog() -> Vec<CommandInfo> {
             name: "restore",
             path: vec!["restore"],
             title: "Restore backup",
-            description: "Restore configuration from a backup. Requires explicit confirmation in the UI.",
-            usage: "ccr restore <backup>",
-            examples: vec!["ccr restore ccr-backup-20260524"],
+            description: "Restore is not exposed through generic desktop command passthrough.",
+            usage: "Dedicated restore command pending typed service boundary",
+            examples: vec![],
             category: "danger",
-            risk: "destructive",
-            executable: true,
-            requires_confirmation: true,
+            risk: "typed_only",
+            executable: false,
+            requires_confirmation: false,
             args: vec![text_arg(
                 "backup",
                 "Backup id/path",
@@ -782,6 +972,8 @@ pub struct CommandJobSnapshot {
     pub stdout_lines: Vec<String>,
     pub stderr_lines: Vec<String>,
     pub system_lines: Vec<String>,
+    pub truncated: bool,
+    pub dropped_lines: usize,
     pub error: Option<String>,
 }
 
@@ -820,6 +1012,95 @@ fn elapsed_ms(started: Instant) -> u64 {
     started.elapsed().as_millis().min(u128::from(u64::MAX)) as u64
 }
 
+fn sorted_prune_candidates(
+    jobs: &HashMap<String, CommandJobSnapshot>,
+    include_terminal_only: bool,
+) -> Vec<String> {
+    let mut candidates = jobs
+        .values()
+        .filter(|job| !include_terminal_only || job.is_terminal())
+        .map(|job| {
+            (
+                job.finished_datetime()
+                    .or_else(|| job.started_datetime())
+                    .unwrap_or_else(Utc::now),
+                job.job_id.clone(),
+            )
+        })
+        .collect::<Vec<_>>();
+    candidates.sort_by(|left, right| left.0.cmp(&right.0).then_with(|| left.1.cmp(&right.1)));
+    candidates.into_iter().map(|(_, job_id)| job_id).collect()
+}
+
+fn prune_expired_jobs_locked(
+    jobs: &mut HashMap<String, CommandJobSnapshot>,
+    now: DateTime<Utc>,
+) -> Vec<String> {
+    let expired = jobs
+        .iter()
+        .filter(|(_, snapshot)| snapshot.is_expired(now))
+        .map(|(job_id, _)| job_id.clone())
+        .collect::<Vec<_>>();
+    for job_id in &expired {
+        jobs.remove(job_id);
+    }
+    expired
+}
+
+fn prune_to_capacity_locked(
+    jobs: &mut HashMap<String, CommandJobSnapshot>,
+    capacity: usize,
+) -> Vec<String> {
+    let mut removed = Vec::new();
+    if capacity == 0 {
+        removed.extend(jobs.keys().cloned().collect::<Vec<_>>());
+        jobs.clear();
+        return removed;
+    }
+
+    if jobs.len() <= capacity {
+        return removed;
+    }
+
+    for job_id in sorted_prune_candidates(jobs, true) {
+        if jobs.len() <= capacity {
+            break;
+        }
+        if jobs.remove(&job_id).is_some() {
+            removed.push(job_id);
+        }
+    }
+
+    removed
+}
+
+async fn remove_cancel_tokens(job_ids: &[String]) {
+    if job_ids.is_empty() {
+        return;
+    }
+
+    let mut cancel_tokens = COMMAND_JOBS.cancel_tokens.lock().await;
+    for job_id in job_ids {
+        cancel_tokens.remove(job_id);
+    }
+}
+
+async fn prune_jobs_by_policy() -> usize {
+    let removed = {
+        let mut jobs = COMMAND_JOBS.jobs.lock().await;
+        let mut removed = prune_expired_jobs_locked(&mut jobs, Utc::now());
+        removed.extend(prune_to_capacity_locked(&mut jobs, COMMAND_JOB_MAX_JOBS));
+        removed
+    };
+
+    remove_cancel_tokens(&removed).await;
+    removed.len()
+}
+
+pub(crate) async fn prune_command_jobs() -> usize {
+    prune_jobs_by_policy().await
+}
+
 impl CommandJobSnapshot {
     fn queued(job_id: String, command: String, args: Vec<String>) -> Self {
         Self {
@@ -834,20 +1115,37 @@ impl CommandJobSnapshot {
             stdout_lines: Vec::new(),
             stderr_lines: Vec::new(),
             system_lines: vec!["Job queued".to_string()],
+            truncated: false,
+            dropped_lines: 0,
             error: None,
         }
     }
 
     fn mark_running(&mut self) {
         self.status = CommandJobStatus::Running;
-        self.system_lines.push("Process started".to_string());
+        self.push_line(OutputChannel::System, "Process started".to_string());
     }
 
     fn push_line(&mut self, channel: OutputChannel, line: String) {
         match channel {
-            OutputChannel::Stdout => self.stdout_lines.push(line),
-            OutputChannel::Stderr => self.stderr_lines.push(line),
-            OutputChannel::System => self.system_lines.push(line),
+            OutputChannel::Stdout => push_capped_line(
+                &mut self.stdout_lines,
+                &mut self.truncated,
+                &mut self.dropped_lines,
+                line,
+            ),
+            OutputChannel::Stderr => push_capped_line(
+                &mut self.stderr_lines,
+                &mut self.truncated,
+                &mut self.dropped_lines,
+                line,
+            ),
+            OutputChannel::System => push_capped_line(
+                &mut self.system_lines,
+                &mut self.truncated,
+                &mut self.dropped_lines,
+                line,
+            ),
         }
     }
 
@@ -864,29 +1162,281 @@ impl CommandJobSnapshot {
         self.exit_code = exit_code;
         self.error = error;
     }
+
+    fn is_terminal(&self) -> bool {
+        matches!(
+            self.status,
+            CommandJobStatus::Success
+                | CommandJobStatus::Failed
+                | CommandJobStatus::Cancelled
+                | CommandJobStatus::Unavailable
+        )
+    }
+
+    fn finished_datetime(&self) -> Option<DateTime<Utc>> {
+        DateTime::parse_from_rfc3339(self.finished_at.as_deref()?)
+            .ok()
+            .map(|value| value.with_timezone(&Utc))
+    }
+
+    fn started_datetime(&self) -> Option<DateTime<Utc>> {
+        DateTime::parse_from_rfc3339(&self.started_at)
+            .ok()
+            .map(|value| value.with_timezone(&Utc))
+    }
+
+    fn is_expired(&self, now: DateTime<Utc>) -> bool {
+        if !self.is_terminal() {
+            return false;
+        }
+
+        self.finished_datetime().is_some_and(|finished_at| {
+            now.signed_duration_since(finished_at).num_seconds() >= COMMAND_JOB_TTL_SECS as i64
+        })
+    }
 }
 
-/// 校验子命令是否允许从桌面命令面板直接执行。
-fn validate_command(command: &str) -> Result<(), String> {
-    let catalog = command_catalog();
-    let executable = catalog.iter().any(|entry| {
-        entry.name == command && entry.executable && ALLOWED_COMMANDS.contains(&command)
-    });
+fn channel_size_bytes(lines: &[String]) -> usize {
+    lines.iter().map(|line| line.len()).sum()
+}
 
-    if executable {
-        Ok(())
-    } else {
-        let allowed = catalog
-            .iter()
-            .filter(|entry| entry.executable)
-            .map(|entry| entry.name)
-            .collect::<Vec<_>>()
-            .join(", ");
-        Err(format!(
-            "命令 '{}' 不允许从桌面命令面板直接执行。可直接执行的命令: {}",
-            command, allowed
-        ))
+fn truncate_line_to_bytes(line: String) -> (String, bool) {
+    if line.len() <= COMMAND_JOB_MAX_BYTES_PER_CHANNEL {
+        return (line, false);
     }
+
+    const MARKER: &str = "…";
+    let budget = COMMAND_JOB_MAX_BYTES_PER_CHANNEL.saturating_sub(MARKER.len());
+    let mut end = 0usize;
+    for (index, ch) in line.char_indices() {
+        let next = index + ch.len_utf8();
+        if next > budget {
+            break;
+        }
+        end = next;
+    }
+
+    let mut truncated = line[..end].to_string();
+    if COMMAND_JOB_MAX_BYTES_PER_CHANNEL >= MARKER.len() {
+        truncated.push_str(MARKER);
+    }
+    (truncated, true)
+}
+
+fn push_capped_line(
+    lines: &mut Vec<String>,
+    truncated: &mut bool,
+    dropped_lines: &mut usize,
+    line: String,
+) {
+    let (line, line_was_truncated) = truncate_line_to_bytes(line);
+    if line_was_truncated {
+        *truncated = true;
+    }
+
+    lines.push(line);
+    while lines.len() > COMMAND_JOB_MAX_LINES_PER_CHANNEL
+        || channel_size_bytes(lines) > COMMAND_JOB_MAX_BYTES_PER_CHANNEL
+    {
+        if lines.is_empty() {
+            break;
+        }
+        lines.remove(0);
+        *truncated = true;
+        *dropped_lines += 1;
+    }
+}
+
+fn confirmation_token_for(command: &CommandInfo) -> String {
+    format!("desktop-confirm:{}", command.name)
+}
+
+fn command_not_allowed_error(command: &str) -> String {
+    let catalog = command_catalog();
+    let allowed = catalog
+        .iter()
+        .filter(|entry| entry.executable)
+        .map(|entry| entry.name)
+        .collect::<Vec<_>>()
+        .join(", ");
+    format!(
+        "命令 '{}' 不允许从桌面命令面板直接执行。可直接执行的命令: {}",
+        command, allowed
+    )
+}
+
+fn split_flag_arg(raw_arg: &str) -> Result<(&str, Option<ParsedFlagValue>), String> {
+    if !raw_arg.starts_with('-') || raw_arg == "-" {
+        return Err(format!("无效参数 '{}'", raw_arg));
+    }
+
+    if let Some((flag, value)) = raw_arg.split_once('=') {
+        if flag.is_empty() || flag == "-" || flag == "--" {
+            return Err(format!("无效参数 '{}'", raw_arg));
+        }
+        Ok((
+            flag,
+            Some(if value.is_empty() {
+                ParsedFlagValue::NextArg
+            } else {
+                ParsedFlagValue::Inline
+            }),
+        ))
+    } else if raw_arg.ends_with('=') {
+        Ok((
+            raw_arg.trim_end_matches('='),
+            Some(ParsedFlagValue::NextArg),
+        ))
+    } else {
+        Ok((raw_arg, None))
+    }
+}
+
+fn ccr_executable_name() -> &'static str {
+    if cfg!(windows) { "ccr.exe" } else { "ccr" }
+}
+
+fn ccr_path_candidate_from_current_exe(current_exe: &Path) -> Option<PathBuf> {
+    let dir = current_exe.parent()?;
+    Some(dir.join(ccr_executable_name()))
+}
+
+fn ccr_dev_path_candidates_from_manifest(manifest_dir: &Path) -> Vec<PathBuf> {
+    let Some(repo_root) = manifest_dir.parent().and_then(Path::parent) else {
+        return Vec::new();
+    };
+    let exe_name = ccr_executable_name();
+    vec![
+        repo_root.join("target").join("debug").join(exe_name),
+        repo_root.join("target").join("release").join(exe_name),
+    ]
+}
+
+fn is_executable_file(path: &Path) -> bool {
+    path.is_file()
+}
+
+fn resolve_ccr_binary_candidate<F>(
+    current_exe: Option<&Path>,
+    manifest_dir: &Path,
+    exists: F,
+) -> String
+where
+    F: Fn(&Path) -> bool,
+{
+    let candidates = current_exe
+        .and_then(ccr_path_candidate_from_current_exe)
+        .into_iter()
+        .chain(ccr_dev_path_candidates_from_manifest(manifest_dir));
+
+    for candidate in candidates {
+        if exists(&candidate) {
+            return candidate.to_string_lossy().into_owned();
+        }
+    }
+
+    "ccr".to_string()
+}
+
+fn resolve_ccr_binary() -> String {
+    let current_exe = std::env::current_exe().ok();
+    resolve_ccr_binary_candidate(
+        current_exe.as_deref(),
+        Path::new(env!("CARGO_MANIFEST_DIR")),
+        is_executable_file,
+    )
+}
+
+fn ccr_binary_not_found_message(binary: &str) -> String {
+    if binary == "ccr" {
+        "CCR 二进制未找到，请确认已安装并在 PATH 中".to_string()
+    } else {
+        format!(
+            "CCR 二进制未找到，已尝试使用 '{}'。请确认桌面应用同目录存在 ccr 可执行文件，或已安装并在 PATH 中。",
+            binary
+        )
+    }
+}
+
+fn build_ccr_command(binary: &str) -> tokio::process::Command {
+    tokio_command(binary)
+}
+
+async fn probe_ccr_binary_version(binary: &str) -> Result<Option<String>, String> {
+    let mut command = build_ccr_command(binary);
+    command.arg("--version");
+    let output = tokio::time::timeout(
+        Duration::from_secs(CCR_CLI_VERSION_PROBE_TIMEOUT_SECS),
+        command.output(),
+    )
+    .await
+    .map_err(|_| {
+        format!(
+            "CCR 二进制版本探测超时（{} 秒）：{}",
+            CCR_CLI_VERSION_PROBE_TIMEOUT_SECS, binary
+        )
+    })?
+    .map_err(|error| {
+        if error.kind() == io::ErrorKind::NotFound {
+            ccr_binary_not_found_message(binary)
+        } else {
+            format!("CCR 二进制版本探测失败: {error}")
+        }
+    })?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        let suffix = if stderr.is_empty() {
+            String::new()
+        } else {
+            format!("：{stderr}")
+        };
+        return Err(format!(
+            "CCR 二进制版本探测失败，退出码 {:?}{suffix}",
+            output.status.code()
+        ));
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    Ok(parse_ccr_version_output(&stdout))
+}
+
+async fn resolve_checked_ccr_binary() -> Result<String, String> {
+    let binary = resolve_ccr_binary();
+    let actual_version = probe_ccr_binary_version(&binary).await?;
+    let expected_version = env!("CARGO_PKG_VERSION");
+
+    match actual_version.as_deref() {
+        Some(version) if version == expected_version => Ok(binary),
+        Some(version) => Err(format!(
+            "CCR 二进制版本不匹配：桌面版本 {expected_version}，CLI 版本 {version}（{binary}）。请使用同版本 ccr 可执行文件。"
+        )),
+        None => Err(format!(
+            "无法解析 CCR 二进制版本输出（{binary}）。请确认该可执行文件是有效的 ccr CLI。"
+        )),
+    }
+}
+
+fn parse_ccr_version_output(output: &str) -> Option<String> {
+    output
+        .split_whitespace()
+        .find(|part| part.chars().next().is_some_and(|ch| ch.is_ascii_digit()))
+        .map(ToOwned::to_owned)
+}
+
+/// 校验子命令请求是否允许从桌面命令面板直接执行。
+fn validate_command_request(request: &CommandExecutionRequest) -> Result<(), String> {
+    let policy = CommandPolicy::from_command(&request.command)?;
+    policy.validate(request)
+}
+
+#[cfg(test)]
+fn validate_command(command: &str) -> Result<(), String> {
+    validate_command_request(&CommandExecutionRequest::foreground(
+        command.to_string(),
+        None,
+        None,
+    ))
 }
 
 #[cfg(test)]
@@ -899,17 +1449,37 @@ fn split_output_lines(output: &str) -> Vec<String> {
         .collect()
 }
 
-async fn insert_job(snapshot: CommandJobSnapshot, cancel_token: CancellationToken) {
-    COMMAND_JOBS
-        .jobs
-        .lock()
-        .await
-        .insert(snapshot.job_id.clone(), snapshot.clone());
+async fn insert_job(
+    snapshot: CommandJobSnapshot,
+    cancel_token: CancellationToken,
+) -> Result<(), String> {
+    let removed = {
+        let mut jobs = COMMAND_JOBS.jobs.lock().await;
+        let mut removed = prune_expired_jobs_locked(&mut jobs, Utc::now());
+        if jobs.len() >= COMMAND_JOB_MAX_JOBS {
+            removed.extend(prune_to_capacity_locked(
+                &mut jobs,
+                COMMAND_JOB_MAX_JOBS.saturating_sub(1),
+            ));
+        }
+
+        if jobs.len() >= COMMAND_JOB_MAX_JOBS {
+            return Err(format!(
+                "后台命令任务已达到上限（{} 个），请等待正在运行的任务完成后重试。",
+                COMMAND_JOB_MAX_JOBS
+            ));
+        }
+
+        jobs.insert(snapshot.job_id.clone(), snapshot.clone());
+        removed
+    };
+    remove_cancel_tokens(&removed).await;
     COMMAND_JOBS
         .cancel_tokens
         .lock()
         .await
         .insert(snapshot.job_id, cancel_token);
+    Ok(())
 }
 
 async fn update_job<F>(job_id: &str, updater: F) -> Option<CommandJobSnapshot>
@@ -923,6 +1493,7 @@ where
 }
 
 async fn get_job(job_id: &str) -> Option<CommandJobSnapshot> {
+    prune_jobs_by_policy().await;
     COMMAND_JOBS.jobs.lock().await.get(job_id).cloned()
 }
 
@@ -980,7 +1551,20 @@ async fn run_command_job(app_handle: AppHandle, job_id: String, cancel_token: Ca
     })
     .await;
 
-    let mut cmd = tokio_command("ccr");
+    let binary = match resolve_checked_ccr_binary().await {
+        Ok(binary) => binary,
+        Err(message) => {
+            update_and_emit(&app_handle, EVENT_COMMAND_JOB_FINISHED, &job_id, |job| {
+                job.push_line(OutputChannel::System, message.clone());
+                job.mark_terminal(CommandJobStatus::Unavailable, started, None, Some(message));
+            })
+            .await;
+            remove_cancel_token(&job_id).await;
+            return;
+        }
+    };
+
+    let mut cmd = build_ccr_command(&binary);
     cmd.arg(&initial.command)
         .args(&initial.args)
         .stdout(Stdio::piped())
@@ -992,7 +1576,7 @@ async fn run_command_job(app_handle: AppHandle, job_id: String, cancel_token: Ca
             let (status, message) = if error.kind() == io::ErrorKind::NotFound {
                 (
                     CommandJobStatus::Unavailable,
-                    "CCR 二进制未找到，请确认已安装并在 PATH 中".to_string(),
+                    ccr_binary_not_found_message(&binary),
                 )
             } else {
                 (CommandJobStatus::Failed, format!("执行失败: {error}"))
@@ -1075,12 +1659,7 @@ async fn run_command_job(app_handle: AppHandle, job_id: String, cancel_token: Ca
 
     let exit_code = final_code.unwrap_or(-1);
     let success = exit_code == 0;
-    let event = if success {
-        EVENT_COMMAND_JOB_FINISHED
-    } else {
-        EVENT_COMMAND_JOB_FINISHED
-    };
-    update_and_emit(&app_handle, event, &job_id, |job| {
+    update_and_emit(&app_handle, EVENT_COMMAND_JOB_FINISHED, &job_id, |job| {
         job.mark_terminal(
             if success {
                 CommandJobStatus::Success
@@ -1106,19 +1685,19 @@ async fn run_command_job(app_handle: AppHandle, job_id: String, cancel_token: Ca
 pub async fn execute_ccr_command(
     command: String,
     args: Option<Vec<String>>,
+    confirmation_token: Option<String>,
 ) -> Result<Value, String> {
-    validate_command(&command)?;
+    let request = CommandExecutionRequest::foreground(command, args, confirmation_token);
+    validate_command_request(&request)?;
 
     let started = Instant::now();
-    let mut cmd = tokio_command("ccr");
-    cmd.arg(&command);
-    if let Some(extra_args) = args {
-        cmd.args(&extra_args);
-    }
+    let binary = resolve_checked_ccr_binary().await?;
+    let mut cmd = build_ccr_command(&binary);
+    cmd.arg(&request.command).args(&request.args);
 
     let output = cmd.output().await.map_err(|e| {
         if e.kind() == std::io::ErrorKind::NotFound {
-            "CCR 二进制未找到，请确认已安装并在 PATH 中".to_string()
+            ccr_binary_not_found_message(&binary)
         } else {
             format!("执行失败: {e}")
         }
@@ -1145,13 +1724,15 @@ pub async fn start_ccr_command_job(
     app_handle: AppHandle,
     command: String,
     args: Option<Vec<String>>,
+    confirmation_token: Option<String>,
 ) -> Result<Value, String> {
-    validate_command(&command)?;
+    let request = CommandExecutionRequest::background(command, args, confirmation_token);
+    validate_command_request(&request)?;
 
     let job_id = format!("ccr-command-{}", Uuid::new_v4());
-    let snapshot = CommandJobSnapshot::queued(job_id.clone(), command, args.unwrap_or_default());
+    let snapshot = CommandJobSnapshot::queued(job_id.clone(), request.command, request.args);
     let cancel_token = CancellationToken::new();
-    insert_job(snapshot.clone(), cancel_token.clone()).await;
+    insert_job(snapshot.clone(), cancel_token.clone()).await?;
 
     tauri::async_runtime::spawn(run_command_job(app_handle, job_id.clone(), cancel_token));
 
@@ -1215,19 +1796,17 @@ pub async fn list_ccr_commands() -> Result<Value, String> {
 /// 执行 `ccr help <command>` 并返回帮助文本
 #[tauri::command]
 pub async fn get_ccr_command_help(command: String) -> Result<Value, String> {
-    validate_command(&command)?;
+    CommandPolicy::from_command(&command)?;
 
-    let output = tokio_command("ccr")
-        .args(["help", &command])
-        .output()
-        .await
-        .map_err(|e| {
-            if e.kind() == std::io::ErrorKind::NotFound {
-                "CCR 二进制未找到，请确认已安装并在 PATH 中".to_string()
-            } else {
-                format!("执行失败: {e}")
-            }
-        })?;
+    let binary = resolve_checked_ccr_binary().await?;
+    let mut cmd = build_ccr_command(&binary);
+    let output = cmd.args(["help", &command]).output().await.map_err(|e| {
+        if e.kind() == std::io::ErrorKind::NotFound {
+            ccr_binary_not_found_message(&binary)
+        } else {
+            format!("执行失败: {e}")
+        }
+    })?;
 
     let stdout = String::from_utf8_lossy(&output.stdout).into_owned();
     let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
@@ -1256,15 +1835,115 @@ mod tests {
     }
 
     #[test]
+    fn command_policy_allows_safe_command_with_declared_flag() {
+        let request = CommandExecutionRequest::foreground(
+            "status".to_string(),
+            Some(vec!["--json".to_string()]),
+            None,
+        );
+
+        assert!(validate_command_request(&request).is_ok());
+    }
+
+    #[test]
+    fn command_policy_rejects_unknown_flag_before_process_spawn() {
+        let request = CommandExecutionRequest::foreground(
+            "status".to_string(),
+            Some(vec!["--delete-everything".to_string()]),
+            None,
+        );
+
+        let error = validate_command_request(&request).expect_err("unknown flags are blocked");
+        assert!(error.contains("不允许参数"));
+        assert!(error.contains("--delete-everything"));
+    }
+
+    #[test]
+    fn command_policy_rejects_extra_positional_args() {
+        let request = CommandExecutionRequest::foreground(
+            "status".to_string(),
+            Some(vec!["surprise".to_string()]),
+            None,
+        );
+
+        let error =
+            validate_command_request(&request).expect_err("extra positional args are blocked");
+        assert!(error.contains("不接受额外位置参数"));
+    }
+
+    #[test]
+    fn command_policy_rejects_destructive_passthrough_commands_even_with_confirmation() {
+        for command in ["delete", "import", "restore"] {
+            let request = CommandExecutionRequest::foreground(
+                command.to_string(),
+                Some(vec!["target".to_string(), "--force".to_string()]),
+                Some(format!("desktop-confirm:{command}")),
+            );
+
+            let error = validate_command_request(&request)
+                .expect_err("destructive commands must use typed Tauri APIs");
+            assert!(
+                error.contains("不允许"),
+                "{command} should be rejected by the generic process policy: {error}"
+            );
+        }
+    }
+
+    #[test]
+    fn command_policy_rejects_destructive_passthrough_for_background_jobs() {
+        for command in ["delete", "import", "restore"] {
+            let request = CommandExecutionRequest::background(
+                command.to_string(),
+                Some(vec!["target".to_string()]),
+                Some(format!("desktop-confirm:{command}")),
+            );
+
+            let error = validate_command_request(&request)
+                .expect_err("job path cannot re-enable destructive passthrough");
+            assert!(
+                error.contains("不允许"),
+                "{command} should be rejected by the generic job policy: {error}"
+            );
+        }
+    }
+
+    #[test]
+    fn command_policy_rejects_value_flags_without_values() {
+        let request = CommandExecutionRequest::foreground(
+            "history".to_string(),
+            Some(vec!["--limit".to_string()]),
+            None,
+        );
+
+        let error = validate_command_request(&request).expect_err("value flags need values");
+        assert!(error.contains("缺少值"));
+    }
+
+    #[test]
+    fn command_policy_accepts_short_aliases_declared_in_catalog() {
+        let request = CommandExecutionRequest::foreground(
+            "history".to_string(),
+            Some(vec![
+                "-l".to_string(),
+                "5".to_string(),
+                "-t=switch".to_string(),
+            ]),
+            None,
+        );
+
+        assert!(validate_command_request(&request).is_ok());
+    }
+
+    #[test]
     fn command_catalog_marks_execution_boundaries_with_metadata() {
         let catalog = command_catalog();
         let delete = catalog
             .iter()
             .find(|command| command.name == "delete")
             .expect("delete metadata exists");
-        assert_eq!(delete.risk, "destructive");
-        assert!(delete.executable);
-        assert!(delete.requires_confirmation);
+        assert_eq!(delete.risk, "typed_only");
+        assert!(!delete.executable);
+        assert!(!delete.requires_confirmation);
         assert!(
             delete
                 .args
@@ -1287,6 +1966,81 @@ mod tests {
                 command.name
             );
         }
+
+        for command_name in ["delete", "import", "restore"] {
+            let command = catalog
+                .iter()
+                .find(|entry| entry.name == command_name)
+                .expect("destructive command metadata exists");
+            assert_eq!(command.risk, "typed_only");
+            assert!(
+                !command.executable,
+                "{command_name} must use typed config commands instead of process passthrough"
+            );
+            assert!(
+                !ALLOWED_COMMANDS.contains(&command.name),
+                "{command_name} must not be in the generic process whitelist"
+            );
+        }
+    }
+
+    #[test]
+    fn ccr_binary_resolver_prefers_same_directory_sidecar() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        let app_dir = temp.path().join("app");
+        std::fs::create_dir_all(&app_dir).expect("app dir");
+        let sidecar = app_dir.join(ccr_executable_name());
+        std::fs::write(&sidecar, "fake ccr").expect("sidecar");
+        let current_exe = app_dir.join(if cfg!(windows) {
+            "ccr-desktop.exe"
+        } else {
+            "ccr-desktop"
+        });
+        let manifest_dir = temp.path().join("ccr-ui").join("src-tauri");
+
+        let resolved =
+            resolve_ccr_binary_candidate(Some(&current_exe), &manifest_dir, is_executable_file);
+
+        assert_eq!(resolved, sidecar.to_string_lossy());
+    }
+
+    #[test]
+    fn ccr_binary_resolver_uses_repo_debug_binary_before_path_fallback() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        let manifest_dir = temp.path().join("ccr-ui").join("src-tauri");
+        let debug_binary = temp
+            .path()
+            .join("target")
+            .join("debug")
+            .join(ccr_executable_name());
+        std::fs::create_dir_all(debug_binary.parent().expect("debug parent"))
+            .expect("debug parent dir");
+        std::fs::create_dir_all(&manifest_dir).expect("manifest dir");
+        std::fs::write(&debug_binary, "fake ccr").expect("debug ccr");
+
+        let resolved = resolve_ccr_binary_candidate(None, &manifest_dir, is_executable_file);
+
+        assert_eq!(resolved, debug_binary.to_string_lossy());
+    }
+
+    #[test]
+    fn ccr_binary_resolver_falls_back_to_path_name_when_no_candidate_exists() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        let manifest_dir = temp.path().join("ccr-ui").join("src-tauri");
+
+        let resolved = resolve_ccr_binary_candidate(None, &manifest_dir, |_| false);
+
+        assert_eq!(resolved, "ccr");
+    }
+
+    #[test]
+    fn parse_ccr_version_output_extracts_semver_token() {
+        assert_eq!(
+            parse_ccr_version_output("ccr 6.3.0\n"),
+            Some("6.3.0".to_string())
+        );
+        assert_eq!(parse_ccr_version_output("6.3.0"), Some("6.3.0".to_string()));
+        assert_eq!(parse_ccr_version_output("ccr"), None);
     }
 
     #[test]
@@ -1313,6 +2067,8 @@ mod tests {
         assert!(value["stdout_lines"].is_array());
         assert!(value["stderr_lines"].is_array());
         assert!(value["system_lines"].is_array());
+        assert_eq!(value["truncated"], false);
+        assert_eq!(value["dropped_lines"], 0);
     }
 
     #[test]
@@ -1336,5 +2092,103 @@ mod tests {
         assert_eq!(snapshot.stderr_lines, vec!["validation failed"]);
         assert!(snapshot.duration_ms.is_some());
         assert!(snapshot.error.as_deref().unwrap_or_default().contains('2'));
+    }
+
+    #[test]
+    fn command_job_snapshot_caps_output_lines_per_channel() {
+        let mut snapshot =
+            CommandJobSnapshot::queued("job-lines".to_string(), "status".to_string(), Vec::new());
+
+        for index in 0..=COMMAND_JOB_MAX_LINES_PER_CHANNEL {
+            snapshot.push_line(OutputChannel::Stdout, format!("line {index}"));
+        }
+
+        assert_eq!(
+            snapshot.stdout_lines.len(),
+            COMMAND_JOB_MAX_LINES_PER_CHANNEL
+        );
+        assert_eq!(snapshot.stdout_lines[0], "line 1");
+        assert!(snapshot.truncated);
+        assert_eq!(snapshot.dropped_lines, 1);
+    }
+
+    #[test]
+    fn command_job_snapshot_caps_single_line_bytes() {
+        let mut snapshot =
+            CommandJobSnapshot::queued("job-bytes".to_string(), "status".to_string(), Vec::new());
+        let long_line = "x".repeat(COMMAND_JOB_MAX_BYTES_PER_CHANNEL + 64);
+
+        snapshot.push_line(OutputChannel::Stderr, long_line);
+
+        assert_eq!(snapshot.stderr_lines.len(), 1);
+        assert!(snapshot.stderr_lines[0].ends_with('…'));
+        assert!(snapshot.stderr_lines[0].len() <= COMMAND_JOB_MAX_BYTES_PER_CHANNEL);
+        assert!(snapshot.truncated);
+        assert_eq!(snapshot.dropped_lines, 0);
+    }
+
+    #[test]
+    fn command_job_ttl_prunes_only_terminal_jobs() {
+        let now = Utc::now();
+        let old_finished_at =
+            (now - chrono::Duration::seconds(COMMAND_JOB_TTL_SECS as i64 + 1)).to_rfc3339();
+        let mut jobs = HashMap::new();
+        let mut terminal =
+            CommandJobSnapshot::queued("terminal".to_string(), "status".to_string(), Vec::new());
+        terminal.status = CommandJobStatus::Success;
+        terminal.finished_at = Some(old_finished_at.clone());
+        let mut running =
+            CommandJobSnapshot::queued("running".to_string(), "status".to_string(), Vec::new());
+        running.status = CommandJobStatus::Running;
+        running.finished_at = Some(old_finished_at);
+        jobs.insert(terminal.job_id.clone(), terminal);
+        jobs.insert(running.job_id.clone(), running);
+
+        let removed = prune_expired_jobs_locked(&mut jobs, now);
+
+        assert_eq!(removed, vec!["terminal".to_string()]);
+        assert!(!jobs.contains_key("terminal"));
+        assert!(jobs.contains_key("running"));
+    }
+
+    #[test]
+    fn command_job_capacity_prunes_oldest_terminal_snapshots_first() {
+        let mut jobs = HashMap::new();
+        for index in 0..3 {
+            let mut snapshot = CommandJobSnapshot::queued(
+                format!("job-{index}"),
+                "status".to_string(),
+                Vec::new(),
+            );
+            snapshot.status = CommandJobStatus::Success;
+            snapshot.finished_at =
+                Some((Utc::now() + chrono::Duration::seconds(index as i64)).to_rfc3339());
+            jobs.insert(snapshot.job_id.clone(), snapshot);
+        }
+
+        let removed = prune_to_capacity_locked(&mut jobs, 1);
+
+        assert_eq!(removed, vec!["job-0".to_string(), "job-1".to_string()]);
+        assert_eq!(jobs.len(), 1);
+        assert!(jobs.contains_key("job-2"));
+    }
+
+    #[test]
+    fn command_job_capacity_keeps_active_snapshots() {
+        let mut jobs = HashMap::new();
+        for index in 0..3 {
+            let mut snapshot = CommandJobSnapshot::queued(
+                format!("active-{index}"),
+                "status".to_string(),
+                Vec::new(),
+            );
+            snapshot.status = CommandJobStatus::Running;
+            jobs.insert(snapshot.job_id.clone(), snapshot);
+        }
+
+        let removed = prune_to_capacity_locked(&mut jobs, 1);
+
+        assert!(removed.is_empty());
+        assert_eq!(jobs.len(), 3);
     }
 }

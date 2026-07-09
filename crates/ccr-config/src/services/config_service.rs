@@ -16,7 +16,8 @@ pub struct ConfigInfo {
     pub name: String,
     pub description: String,
     pub base_url: Option<String>,
-    pub auth_token: Option<String>,
+    /// 展示 DTO 持有 Secret：显示走 Display（掩码），需要原文的合法点走 expose()
+    pub auth_token: Option<ccr_core::Secret>,
     pub model: Option<String>,
     pub small_fast_model: Option<String>,
     pub is_current: bool,
@@ -357,6 +358,16 @@ impl ConfigService {
         self.config_manager.backup(tag)
     }
 
+    /// 🔄 从已解析的配置备份恢复
+    ///
+    /// 🔐 **并发安全**: 在同一个跨进程锁 + CONFIG_LOCK 内完成“备份当前配置 + 保存恢复配置”，
+    /// 避免调用方分两次进入 service 造成恢复窗口中配置被其他写入打断。
+    pub fn restore_config_from_backup(&self, backup_config: &CcsConfig) -> Result<()> {
+        let (_file_lock, _guard) = self.lock_config()?;
+        self.config_manager.backup(Some("pre_restore"))?;
+        self.config_manager.save(backup_config)
+    }
+
     /// 📤 导出配置
     ///
     /// 返回配置的 TOML 字符串
@@ -364,11 +375,12 @@ impl ConfigService {
         let (_file_lock, _guard) = self.lock_config()?;
         let mut config = self.config_manager.load_with_autofix()?;
 
-        // 🎯 优化：统一使用 utils::mask_sensitive 进行掩码处理
+        // 🎯 掩码处理：Secret 的 Display 即统一掩码；用掩码串重建 Secret，
+        // 经 expose_plaintext 注解序列化后导出的就是掩码文本（行为与旧版一致）
         if !include_secrets {
             for section in config.sections.values_mut() {
                 if let Some(ref token) = section.auth_token {
-                    section.auth_token = Some(ccr_core::mask_sensitive(token));
+                    section.auth_token = Some(ccr_core::Secret::new(token.to_string()));
                 }
             }
         }
@@ -397,14 +409,7 @@ impl ConfigService {
 
         // 备份当前配置（如果需要）
         if backup && self.config_manager.config_path().exists() {
-            let timestamp = chrono::Local::now().format("%Y%m%d_%H%M%S");
-            let backup_path = self
-                .config_manager
-                .config_path()
-                .with_extension(format!("toml.import_backup_{}.bak", timestamp));
-
-            std::fs::copy(self.config_manager.config_path(), &backup_path)
-                .map_err(|e| CcrError::FileIoError(format!("备份失败: {}", e)))?;
+            self.config_manager.backup(Some("import_backup"))?;
         }
 
         // 根据模式导入
@@ -545,8 +550,8 @@ fn merge_configs(
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
+    use crate::test_support::TestCcrEnv;
     use indexmap::IndexMap;
-    use tempfile::tempdir;
 
     fn create_test_section() -> ConfigSection {
         ConfigSection {
@@ -568,12 +573,8 @@ mod tests {
 
     #[test]
     fn test_config_service_add_get() {
-        let temp_dir = tempdir().unwrap();
-        let config_path = temp_dir.path().join("config.toml");
-        let previous_lock_dir = std::env::var("CCR_LOCK_DIR").ok();
-        unsafe {
-            std::env::set_var("CCR_LOCK_DIR", temp_dir.path().join(".locks"));
-        }
+        let env = TestCcrEnv::new();
+        let config_path = env.root().join("config.toml");
 
         // 创建初始配置
         let mut config = CcsConfig {
@@ -591,9 +592,9 @@ mod tests {
         let service = ConfigService::new(manager);
 
         // 添加新配置
-        let result = service.add_config("new_config".into(), create_test_section());
-        restore_env_var("CCR_LOCK_DIR", previous_lock_dir);
-        result.unwrap();
+        service
+            .add_config("new_config".into(), create_test_section())
+            .unwrap();
 
         // 获取配置
         let info = service.get_config("new_config").unwrap();
@@ -601,12 +602,45 @@ mod tests {
         assert_eq!(info.description, "Test config");
     }
 
-    fn restore_env_var(key: &str, previous: Option<String>) {
-        unsafe {
-            match previous {
-                Some(value) => std::env::set_var(key, value),
-                None => std::env::remove_var(key),
-            }
-        }
+    #[test]
+    fn restore_config_from_backup_replaces_config_and_creates_pre_restore_backup() {
+        let env = TestCcrEnv::new();
+        let config_path = env.root().join("config.toml");
+
+        let mut current = CcsConfig {
+            default_config: "current".into(),
+            current_config: "current".into(),
+            settings: crate::managers::config::GlobalSettings::default(),
+            sections: indexmap::IndexMap::new(),
+        };
+        current.set_section("current".into(), create_test_section());
+
+        let mut backup = CcsConfig {
+            default_config: "restored".into(),
+            current_config: "restored".into(),
+            settings: crate::managers::config::GlobalSettings::default(),
+            sections: indexmap::IndexMap::new(),
+        };
+        backup.set_section("restored".into(), create_test_section());
+
+        let manager = Arc::new(ConfigManager::new(&config_path));
+        manager.save(&current).unwrap();
+
+        let service = ConfigService::new(manager.clone());
+        service.restore_config_from_backup(&backup).unwrap();
+
+        let restored = manager.load().unwrap();
+        assert_eq!(restored.current_config, "restored");
+        assert!(restored.sections.contains_key("restored"));
+
+        let backups = manager.list_backups().unwrap();
+        assert_eq!(backups.len(), 1);
+        assert!(
+            backups[0]
+                .file_name()
+                .and_then(|name| name.to_str())
+                .unwrap()
+                .contains("pre_restore")
+        );
     }
 }

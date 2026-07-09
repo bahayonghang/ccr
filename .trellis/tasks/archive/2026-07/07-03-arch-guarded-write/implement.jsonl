@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/ccr-core/backend/atomic-writer.md", "reason": "AtomicWriter/AsyncAtomicWriter 的 Windows 替换语义与崩溃安全契约，本任务在其上加深（fsync/secret/guarded），不得违反"}
+{"file": ".trellis/spec/ccr-core/backend/backend-guidelines.md", "reason": "ccr-core 基础设施规范：错误处理、tracing、测试 env 隔离夹具、验证命令"}
+{"file": ".trellis/spec/ccr-core/backend/test-fixtures.md", "reason": "ccr-core 测试夹具与 env 变量串行化模式，guarded_write 测试需要 CCR_LOCK_DIR 隔离"}
+{"file": ".trellis/tasks/07-03-arch-guarded-write/design.md", "reason": "接口契约、分层、备份命名兼容矩阵、10 个调用点迁移方案、死锁分析——实现的唯一蓝本"}

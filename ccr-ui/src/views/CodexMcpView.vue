@@ -32,9 +32,9 @@
               </div>
 
               <div class="flex flex-wrap gap-2">
-                <span class="chip chip-primary">control plane</span>
-                <span class="chip chip-neutral">official mcp_servers</span>
-                <span class="chip chip-success">power-user density</span>
+                <span class="chip chip-primary">{{ tt('控制面', 'control plane') }}</span>
+                <span class="chip chip-neutral">{{ tt('官方 mcp_servers', 'official mcp_servers') }}</span>
+                <span class="chip chip-success">{{ tt('高密度工作台', 'power-user density') }}</span>
               </div>
             </div>
 
@@ -101,40 +101,40 @@
                 {{ servers.length }}
               </p>
               <p class="stat-detail">
-                {{ activeCount }} live
+                {{ `${activeCount} ${tt('在线', 'live')}` }}
               </p>
             </div>
             <div class="stat-card">
               <p class="stat-label">
-                HTTP transport
+                {{ tt('HTTP transport', 'HTTP transport') }}
               </p>
               <p class="stat-value">
                 {{ httpCount }}
               </p>
               <p class="stat-detail">
-                {{ authAwareCount }} auth-aware
+                {{ `${authAwareCount} ${tt('鉴权感知', 'auth-aware')}` }}
               </p>
             </div>
             <div class="stat-card">
               <p class="stat-label">
-                Scoped tools
+                {{ tt('Scoped tools', 'Scoped tools') }}
               </p>
               <p class="stat-value">
                 {{ scopedCount }}
               </p>
               <p class="stat-detail">
-                {{ requiredCount }} required
+                {{ `${requiredCount} ${tt('必需', 'required')}` }}
               </p>
             </div>
             <div class="stat-card">
               <p class="stat-label">
-                Legacy
+                {{ tt('Legacy', 'Legacy') }}
               </p>
               <p class="stat-value">
                 {{ legacyCount }}
               </p>
               <p class="stat-detail">
-                startup_timeout_ms / bearer_token
+                {{ tt('startup_timeout_ms / bearer_token', 'startup_timeout_ms / bearer_token') }}
               </p>
             </div>
           </div>
@@ -194,7 +194,7 @@
                 target="_blank"
                 rel="noreferrer"
                 class="doc-link"
-              ><span>Codex Config Reference</span><SIcon
+              ><span>{{ tt('Codex Config Reference', 'Codex Config Reference') }}</span><SIcon
                 name="ArrowUpRight"
                 size="w-4 h-4"
               /></a>
@@ -203,7 +203,7 @@
                 target="_blank"
                 rel="noreferrer"
                 class="doc-link"
-              ><span>OpenAI Docs MCP</span><SIcon
+              ><span>{{ tt('OpenAI Docs MCP', 'OpenAI Docs MCP') }}</span><SIcon
                 name="ArrowUpRight"
                 size="w-4 h-4"
               /></a>
@@ -244,7 +244,7 @@
 
           <div>
             <p class="filter-label">
-              Transport
+              {{ tt('传输层', 'Transport') }}
             </p>
             <div class="filter-row">
               <button
@@ -262,7 +262,7 @@
 
           <div>
             <p class="filter-label">
-              State
+              {{ tt('状态', 'State') }}
             </p>
             <div class="filter-row">
               <button
@@ -280,7 +280,7 @@
 
           <div>
             <p class="filter-label">
-              Focus
+              {{ tt('关注项', 'Focus') }}
             </p>
             <div class="filter-row">
               <button
@@ -305,10 +305,10 @@
         >
           <div class="mb-4">
             <p class="eyebrow">
-              Inventory
+              {{ tt('清单', 'Inventory') }}
             </p>
             <h2 class="panel-title">
-              Servers
+              {{ tt('Servers', 'Servers') }}
             </h2>
             <p class="lead">
               {{ filteredServers.length }} / {{ servers.length }}
@@ -344,7 +344,7 @@
                 size="sm"
                 @click="prefillDocsPreset"
               >
-                Docs MCP
+                {{ tt('Docs MCP', 'Docs MCP') }}
               </Button>
             </div>
           </div>
@@ -393,19 +393,19 @@
                     <span
                       v-if="!server.enabled"
                       class="mini-chip mini-chip--amber"
-                    >paused</span>
+                    >{{ tt('已暂停', 'paused') }}</span>
                     <span
                       v-if="server.required"
                       class="mini-chip mini-chip--rose"
-                    >required</span>
+                    >{{ tt('必需', 'required') }}</span>
                     <span
                       v-if="hasScopedTools(server)"
                       class="mini-chip mini-chip--success"
-                    >scoped</span>
+                    >{{ tt('已限制', 'scoped') }}</span>
                     <span
                       v-if="hasLegacyCompatibility(server)"
                       class="mini-chip mini-chip--amber"
-                    >legacy</span>
+                    >{{ tt('旧兼容', 'legacy') }}</span>
                   </div>
                   <p class="endpoint-text">
                     {{ server.transport === 'http' ? server.url : server.command }}
@@ -426,16 +426,16 @@
 
               <div class="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
                 <div class="metric-card">
-                  <span>Args</span><strong>{{ server.args.length }}</strong>
+                  <span>{{ tt('参数', 'Args') }}</span><strong>{{ server.args.length }}</strong>
                 </div>
                 <div class="metric-card">
-                  <span>Env</span><strong>{{ countEnvInputs(server) }}</strong>
+                  <span>{{ tt('环境', 'Env') }}</span><strong>{{ countEnvInputs(server) }}</strong>
                 </div>
                 <div class="metric-card">
-                  <span>Headers</span><strong>{{ countHeaderInputs(server) }}</strong>
+                  <span>{{ tt('请求头', 'Headers') }}</span><strong>{{ countHeaderInputs(server) }}</strong>
                 </div>
                 <div class="metric-card">
-                  <span>Timeout</span><strong>{{ timeoutLabel(server) }}</strong>
+                  <span>{{ tt('超时', 'Timeout') }}</span><strong>{{ timeoutLabel(server) }}</strong>
                 </div>
               </div>
 
@@ -484,7 +484,7 @@
             <div class="form-section">
               <div class="grid gap-4 xl:grid-cols-2">
                 <label class="field-block">
-                  <span>Server name</span>
+                  <span>{{ tt('Server 名称', 'Server name') }}</span>
                   <input
                     v-model="draft.name"
                     class="field-input"
@@ -499,7 +499,7 @@
                 </label>
 
                 <div class="field-block">
-                  <span>Transport</span>
+                  <span>{{ tt('传输层', 'Transport') }}</span>
                   <div class="flex flex-wrap gap-2">
                     <button
                       type="button"
@@ -525,18 +525,18 @@
                 <label class="switch-pill"><input
                   v-model="draft.enabled"
                   type="checkbox"
-                ><span>Enabled</span></label>
+                ><span>{{ tt('已启用', 'Enabled') }}</span></label>
                 <label class="switch-pill"><input
                   v-model="draft.required"
                   type="checkbox"
-                ><span>Required</span></label>
+                ><span>{{ tt('必需', 'Required') }}</span></label>
               </div>
             </div>
 
             <div class="form-section">
               <div class="grid gap-4 xl:grid-cols-2">
                 <label class="field-block">
-                  <span>enabled_tools</span>
+                  <span>{{ tt('enabled_tools', 'enabled_tools') }}</span>
                   <textarea
                     v-model="draft.enabledToolsText"
                     class="field-textarea"
@@ -545,7 +545,7 @@
                   />
                 </label>
                 <label class="field-block">
-                  <span>disabled_tools</span>
+                  <span>{{ tt('disabled_tools', 'disabled_tools') }}</span>
                   <textarea
                     v-model="draft.disabledToolsText"
                     class="field-textarea"
@@ -561,7 +561,7 @@
                 <label
                   v-if="draft.transport === 'http'"
                   class="field-block"
-                ><span>URL</span><input
+                ><span>{{ tt('URL', 'URL') }}</span><input
                   v-model="draft.url"
                   class="field-input"
                   type="text"
@@ -570,7 +570,7 @@
                 <label
                   v-else
                   class="field-block"
-                ><span>Command</span><input
+                ><span>{{ tt('命令', 'Command') }}</span><input
                   v-model="draft.command"
                   class="field-input"
                   type="text"
@@ -579,7 +579,7 @@
                 <label
                   v-if="draft.transport === 'stdio'"
                   class="field-block"
-                ><span>cwd</span><input
+                ><span>{{ tt('cwd', 'cwd') }}</span><input
                   v-model="draft.cwd"
                   class="field-input"
                   type="text"
@@ -588,7 +588,7 @@
                 <label
                   v-else
                   class="field-block"
-                ><span>bearer_token_env_var</span><input
+                ><span>{{ tt('bearer_token_env_var', 'bearer_token_env_var') }}</span><input
                   v-model="draft.bearer_token_env_var"
                   class="field-input"
                   type="text"
@@ -600,7 +600,7 @@
                 v-if="draft.transport === 'stdio'"
                 class="field-block mt-4"
               >
-                <span>Args</span>
+                <span>{{ tt('参数', 'Args') }}</span>
                 <textarea
                   v-model="draft.argsText"
                   class="field-textarea"
@@ -659,6 +659,7 @@
 
 <script setup lang="ts">
 import { computed, onActivated, onMounted, reactive, ref } from 'vue'
+import { getErrorMessage } from '@/utils/errorHandler'
 import { RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { addCodexMcpServer, deleteCodexMcpServer, listCodexMcpServers, updateCodexMcpServer } from '@/api'
@@ -669,6 +670,7 @@ import SIcon from '@/components/ui/SIcon.vue'
 import { useUIStore } from '@/stores/ui'
 import { logger } from '@/utils/logger'
 import type { CodexMcpServer, CodexMcpServerRequest, CodexMcpServersResponse } from '@/types'
+import { REFRESH_TTL_MS } from '@/config/constants'
 
 type Transport = 'stdio' | 'http'
 type TransportFilter = 'all' | Transport
@@ -714,8 +716,6 @@ interface Draft {
   bearer_token_env_var: string
 }
 
-const REFRESH_TTL_MS = 30_000
-
 const { locale } = useI18n()
 const uiStore = useUIStore()
 const isZh = computed(() => locale.value.startsWith('zh'))
@@ -736,23 +736,23 @@ const lastLoadedAt = ref(0)
 const draft = reactive(createDraft())
 const draftBaseline = ref(createDraft())
 
-const transportOptions = [
-  { value: 'all' as const, label: 'All' },
+const transportOptions = computed(() => [
+  { value: 'all' as const, label: tt('全部', 'All') },
   { value: 'stdio' as const, label: 'STDIO' },
   { value: 'http' as const, label: 'HTTP' },
-]
+])
 
-const stateOptions = [
-  { value: 'all' as const, label: 'All' },
-  { value: 'enabled' as const, label: 'enabled' },
-  { value: 'disabled' as const, label: 'paused' },
-]
+const stateOptions = computed(() => [
+  { value: 'all' as const, label: tt('全部', 'All') },
+  { value: 'enabled' as const, label: tt('已启用', 'Enabled') },
+  { value: 'disabled' as const, label: tt('已暂停', 'Paused') },
+])
 
-const focusOptions = [
-  { value: 'all' as const, label: 'All' },
-  { value: 'scoped' as const, label: 'scoped' },
-  { value: 'required' as const, label: 'required' },
-]
+const focusOptions = computed(() => [
+  { value: 'all' as const, label: tt('全部', 'All') },
+  { value: 'scoped' as const, label: tt('已限制', 'Scoped') },
+  { value: 'required' as const, label: tt('必需', 'Required') },
+])
 
 const filteredServers = computed(() => {
   const keyword = searchQuery.value.trim().toLowerCase()
@@ -905,20 +905,20 @@ function countHeaderInputs(server: ServerRecord) {
 
 function timeoutLabel(server: ServerRecord) {
   if (server.tool_timeout_sec) return `${server.tool_timeout_sec}s`
-  if (server.startup_timeout_sec) return `start ${server.startup_timeout_sec}s`
-  if (server.startup_timeout_ms) return `start ${server.startup_timeout_ms}ms`
+  if (server.startup_timeout_sec) return isZh.value ? `启动 ${server.startup_timeout_sec}s` : `start ${server.startup_timeout_sec}s`
+  if (server.startup_timeout_ms) return isZh.value ? `启动 ${server.startup_timeout_ms}ms` : `start ${server.startup_timeout_ms}ms`
   return '—'
 }
 
 function describeServer(server: ServerRecord) {
   const parts: string[] = []
-  if (hasScopedTools(server)) parts.push(`${server.enabled_tools.length + server.disabled_tools.length} tool rules`)
-  if (countEnvInputs(server) > 0) parts.push(`${countEnvInputs(server)} env inputs`)
-  if (countHeaderInputs(server) > 0) parts.push(`${countHeaderInputs(server)} header injectors`)
-  if (server.required) parts.push('required')
-  if (!server.enabled) parts.push('paused')
-  if (hasLegacyCompatibility(server)) parts.push('legacy')
-  return parts.join(' · ') || 'No extra policy'
+  if (hasScopedTools(server)) parts.push(isZh.value ? `${server.enabled_tools.length + server.disabled_tools.length} 条 tool 规则` : `${server.enabled_tools.length + server.disabled_tools.length} tool rules`)
+  if (countEnvInputs(server) > 0) parts.push(isZh.value ? `${countEnvInputs(server)} 个环境注入` : `${countEnvInputs(server)} env inputs`)
+  if (countHeaderInputs(server) > 0) parts.push(isZh.value ? `${countHeaderInputs(server)} 个 header 注入` : `${countHeaderInputs(server)} header injectors`)
+  if (server.required) parts.push(tt('必需', 'required'))
+  if (!server.enabled) parts.push(tt('已暂停', 'paused'))
+  if (hasLegacyCompatibility(server)) parts.push(tt('旧兼容', 'legacy'))
+  return parts.join(' · ') || tt('没有额外策略', 'No extra policy')
 }
 
 function selectServer(server: ServerRecord) {
@@ -981,7 +981,7 @@ async function loadServers(force = false) {
     servers.value = Array.isArray(data.servers) ? data.servers.map(normalizeServer) : []
     lastLoadedAt.value = Date.now()
   } catch (reason) {
-    const message = reason instanceof Error ? reason.message : String(reason)
+    const message = getErrorMessage(reason)
     logger.error('Failed to load Codex MCP servers', reason)
     error.value = message
     uiStore.showError(`${tt('加载 Codex MCP 服务器失败', 'Failed to load Codex MCP servers')}: ${message}`)
@@ -1031,7 +1031,7 @@ async function saveDraft() {
       if (refreshed) selectServer(refreshed)
     }
   } catch (reason) {
-    uiStore.showError(reason instanceof Error ? reason.message : String(reason))
+    uiStore.showError(getErrorMessage(reason))
   } finally {
     submitting.value = false
   }
@@ -1049,7 +1049,7 @@ async function toggleServer(server: ServerRecord) {
       if (refreshed) selectServer(refreshed)
     }
   } catch (reason) {
-    uiStore.showError(reason instanceof Error ? reason.message : String(reason))
+    uiStore.showError(getErrorMessage(reason))
   }
 }
 
@@ -1066,7 +1066,7 @@ async function armOrDeleteSelected() {
     cancelEditor()
     await loadServers(true)
   } catch (reason) {
-    uiStore.showError(reason instanceof Error ? reason.message : String(reason))
+    uiStore.showError(getErrorMessage(reason))
   } finally {
     submitting.value = false
     deleteArmed.value = false

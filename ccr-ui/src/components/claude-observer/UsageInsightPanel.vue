@@ -92,7 +92,7 @@
       v-else-if="state === 'empty'"
       state="empty"
       :title="$t('claudeCode.observer.empty.noUsage')"
-      :description="$t('claudeCode.observer.empty.noUsageDesc')"
+      :description="emptyDescription"
       icon="Database"
       :action-label="$t('claudeCode.observer.empty.openFullDashboard')"
       action-icon="ArrowUpRight"
@@ -211,6 +211,7 @@ import CostAttributionTab from './CostAttributionTab.vue'
 import TokenDetailTab from './TokenDetailTab.vue'
 import BehaviorAnalysisTab from './BehaviorAnalysisTab.vue'
 import { useClaudeObserverStore } from '@/stores/claudeObserver'
+import { formatTokens } from './formatters'
 
 // 订阅对话框比较重，按需异步加载
 const SubscriptionDialog = defineAsyncComponent({
@@ -312,6 +313,15 @@ const pricingNote = computed(() => {
   return t('claudeCode.observer.subtitleWithVersion', { version })
 })
 
+const emptyDescription = computed(() => {
+  // 如果有错误，显示错误信息
+  if (loadError.value) {
+    return `${t('claudeCode.observer.empty.loadError')}: ${loadError.value}`
+  }
+  // 否则显示友好提示
+  return t('claudeCode.observer.empty.noUsageDesc')
+})
+
 /*
  * ========================================================================
  * 步骤4：动画开关
@@ -383,14 +393,6 @@ const formatUsd = (value: number) => {
   if (value >= 1000) return `$${value.toFixed(0)}`
   if (value >= 1) return `$${value.toFixed(2)}`
   return `$${value.toFixed(4)}`
-}
-
-const formatTokens = (value: number) => {
-  if (!Number.isFinite(value) || value <= 0) return '0'
-  if (value >= 1e9) return `${(value / 1e9).toFixed(2)}B`
-  if (value >= 1e6) return `${(value / 1e6).toFixed(2)}M`
-  if (value >= 1e3) return `${(value / 1e3).toFixed(1)}k`
-  return value.toLocaleString()
 }
 
 const formatRoi = (roi: number | null) => {

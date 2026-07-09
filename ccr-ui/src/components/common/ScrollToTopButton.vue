@@ -51,15 +51,11 @@ defineEmits<{
   gap: 0.55rem;
   min-height: 2.9rem;
   padding: 0.7rem 0.95rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-full);
   border: 1px solid rgb(var(--color-accent-secondary-rgb) / 26%);
-  background:
-    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 82%), rgb(var(--color-accent-secondary-rgb) / 10%));
-  box-shadow:
-    0 18px 32px rgb(6 8 18 / 22%),
-    inset 0 1px 0 rgb(255 255 255 / 10%);
-  backdrop-filter: blur(20px) saturate(140%);
-  color: rgb(var(--color-accent-secondary-rgb) / 100%);
+  background: rgb(var(--color-bg-elevated-rgb) / 94%);
+  box-shadow: var(--shadow-md);
+  color: var(--color-accent-secondary);
   font-size: 0.8rem;
   font-weight: 700;
   letter-spacing: 0.08em;

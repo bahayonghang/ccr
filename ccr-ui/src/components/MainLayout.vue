@@ -15,7 +15,7 @@
     <button
       v-if="showMobileBackdrop"
       type="button"
-      class="fixed inset-0 layout-layer-modal-backdrop bg-slate-950/55 backdrop-blur-[2px] lg:hidden"
+      class="fixed inset-0 layout-layer-modal-backdrop bg-black/55 lg:hidden"
       :aria-label="closeNavigationLabel"
       @click="closeSidebar"
     />
@@ -25,7 +25,7 @@
       id="primary-navigation-panel"
       class="sidebar-glass layout-sidebar flex flex-col transition-[width,transform,background-color,border-color,box-shadow] duration-300 ease-out will-change-[transform]"
       :class="[
-        isResizing ? 'select-none' : '',
+        isResizing ? 'select-none is-resizing' : '',
         isMobileSidebar
           ? 'fixed inset-y-0 left-0 layout-layer-modal w-[min(86vw,320px)] max-w-[320px] border-r border-border-default/20 shadow-2xl shadow-black/15'
           : 'relative layout-layer-dropdown flex-shrink-0',
@@ -135,9 +135,8 @@
             @click="navigate"
           >
             <div class="absolute inset-0 bg-gradient-to-br from-accent-primary/12 via-accent-secondary/10 to-transparent opacity-90" />
-            <div class="absolute inset-0 settings-dock-accent-mesh" />
 
-            <div class="relative flex flex-col gap-3 p-3.5 backdrop-blur-md">
+            <div class="relative flex flex-col gap-3 p-3.5">
               <div class="flex items-start justify-between gap-3">
                 <div class="space-y-1.5">
                   <p class="flex items-center gap-2 text-[11px] font-mono tracking-wide">
@@ -442,7 +441,6 @@ onBeforeUnmount(() => {
 
 /* Sidebar Glass Effect - Unified Transparent Mode */
 :root[data-theme="dark"] .sidebar-glass,
-.dark .sidebar-glass,
 .sidebar-glass {
   background: var(--surface-shell-bg);
   backdrop-filter: var(--surface-shell-blur);
@@ -453,13 +451,19 @@ onBeforeUnmount(() => {
     var(--glass-inner-glow);
 }
 
+/* 拖拽 resize 全程重模糊会拖累合成帧;拖拽期间临时降级为不透明 */
+.sidebar-glass.is-resizing {
+  backdrop-filter: none;
+}
+
+/* 顶栏与侧栏同属常驻 chrome 玻璃预算(≤2),复用同一档令牌 */
 .topbar-glass {
-  background: var(--surface-status-bg);
-  backdrop-filter: var(--surface-status-blur);
+  background: var(--surface-shell-bg);
+  backdrop-filter: var(--surface-shell-blur);
   box-shadow:
     inset 0 -1px 0 rgb(var(--color-border-default-rgb) / 18%),
     var(--glass-inner-glow),
-    var(--surface-status-shadow);
+    var(--surface-shell-shadow);
 }
 
 .layout-layer-dropdown {
@@ -488,7 +492,7 @@ onBeforeUnmount(() => {
 
 /* Content area compositing fix:
  * Force main + scroll container onto GPU compositing layers so that
- * children's backdrop-filter can blur through to the fixed AnimeBackground.
+ * children's backdrop-filter can blur through to the fixed StageBackground.
  * Using backface-visibility instead of transform to avoid creating a
  * containing block for fixed-positioned descendants. */
 .content-main,
@@ -510,10 +514,11 @@ onBeforeUnmount(() => {
 
 /* Nav Item Styles */
 .nav-item {
-  @apply relative flex items-center gap-3 overflow-hidden rounded-2xl px-3 py-2.5 text-sm font-medium text-text-secondary
+  @apply relative flex items-center gap-3 overflow-hidden px-3 py-2.5 text-sm font-medium text-text-secondary
          transition-interactive duration-200;
 
   border: 1px solid rgb(var(--color-border-default-rgb) / 0%);
+  border-radius: var(--radius-lg);
   background: linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 0%), rgb(var(--color-bg-surface-rgb) / 0%));
 }
 
@@ -527,21 +532,18 @@ onBeforeUnmount(() => {
   background:
     linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 92%), rgb(var(--color-bg-surface-rgb) / 82%));
   border-color: rgb(var(--color-border-default-rgb) / 54%);
-  box-shadow:
-    var(--shadow-md),
-    var(--glass-inner-glow);
+  box-shadow: var(--shadow-md);
 }
 
+/* 激活态：去发光，改用边框 + 内描边强调（左侧 accent 标记保留） */
 .nav-item.router-link-active:not(.nav-item--root),
 .nav-item.router-link-exact-active.nav-item--root {
   @apply text-text-primary;
 
-  box-shadow:
-    0 14px 28px rgb(var(--color-accent-primary-rgb) / 10%),
-    var(--glass-inner-glow);
   background:
     linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 94%), rgb(var(--color-bg-surface-rgb) / 86%));
-  border-color: rgb(var(--color-accent-primary-rgb) / 14%);
+  border-color: rgb(var(--color-accent-primary-rgb) / 24%);
+  box-shadow: inset 0 0 0 1px rgb(var(--color-accent-primary-rgb) / 10%);
 }
 
 /* Active indicator strip */
@@ -552,60 +554,32 @@ onBeforeUnmount(() => {
   @apply absolute left-0 top-1/2 -translate-y-1/2 h-4 w-1 rounded-r-full;
 
   background: rgb(var(--color-accent-primary-rgb) / 100%);
-  box-shadow: 0 0 4px rgb(var(--color-accent-primary-rgb) / 18%);
 }
 
+/* 设置坞：扁平不透明表面 + 语义边框，去 backdrop-filter / 去发光 / 去 accent mesh */
 .settings-dock {
-  background:
-    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 88%) 0%, rgb(var(--color-bg-surface-rgb) / 80%) 100%);
-  backdrop-filter: blur(14px) saturate(116%);
-  border: 1px solid rgb(var(--color-border-default-rgb) / 18%);
-  box-shadow:
-    var(--surface-card-shadow),
-    var(--glass-inner-glow);
+  background: var(--surface-card-bg);
+  border: 1px solid var(--surface-card-border);
+  box-shadow: var(--surface-card-shadow);
 }
 
 .settings-dock:hover {
-  border-color: rgb(var(--color-accent-primary-rgb) / 16%);
-  box-shadow:
-    0 20px 40px rgb(var(--color-accent-primary-rgb) / 10%),
-    var(--shadow-md),
-    var(--glass-inner-glow);
+  border-color: rgb(var(--color-accent-primary-rgb) / 20%);
+  box-shadow: var(--shadow-md);
 }
 
 .settings-dock--active {
-  border-color: rgb(var(--color-accent-primary-rgb) / 18%);
-  box-shadow:
-    0 22px 42px rgb(var(--color-accent-primary-rgb) / 12%),
-    var(--glass-inner-glow);
-}
-
-.settings-dock-accent-mesh {
-  background:
-    radial-gradient(ellipse at top right, rgb(var(--color-accent-primary-rgb) / 10%), transparent 54%),
-    radial-gradient(ellipse at bottom left, rgb(var(--color-premium-blue-rgb) / 24%), transparent 52%);
+  border-color: rgb(var(--color-accent-primary-rgb) / 28%);
+  box-shadow: inset 0 0 0 1px rgb(var(--color-accent-primary-rgb) / 12%);
 }
 
 .settings-dock-pill {
-  @apply inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold tracking-[0.12em] uppercase;
+  @apply inline-flex items-center border px-2.5 py-1 text-[10px] font-semibold tracking-[0.04em];
 
+  border-radius: var(--radius-sm);
   border-color: rgb(var(--color-border-default-rgb) / 56%);
   background: rgb(var(--color-bg-elevated-rgb) / 84%);
   color: var(--color-text-secondary);
-}
-
-[data-theme="light"] .settings-dock {
-  background:
-    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 90%) 0%, rgb(var(--color-bg-surface-rgb) / 84%) 100%);
-  backdrop-filter: blur(16px) saturate(120%);
-  border: 1px solid rgb(var(--color-border-default-rgb) / 18%);
-  box-shadow:
-    var(--surface-card-shadow),
-    var(--glass-inner-glow);
-}
-
-[data-theme="light"] .settings-dock:hover {
-  box-shadow: var(--shadow-lg);
 }
 
 </style>

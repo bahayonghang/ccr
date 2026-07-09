@@ -128,7 +128,13 @@ fn update_profile_field(
     match field {
         "description" => profile.description = if clear { None } else { value },
         "base_url" => profile.base_url = if clear { None } else { value },
-        "auth_token" => profile.auth_token = if clear { None } else { value },
+        "auth_token" => {
+            profile.auth_token = if clear {
+                None
+            } else {
+                value.map(ccr_core::Secret::new)
+            }
+        }
         "model" => profile.model = if clear { None } else { value },
         "small_fast_model" => profile.small_fast_model = if clear { None } else { value },
         "provider" => profile.provider = if clear { None } else { value },
@@ -227,7 +233,9 @@ pub async fn platform_profile_create_command(args: PlatformProfileCreateArgs) ->
     let mut profile = ProfileConfig::new();
     profile.description = description.filter(|value| !value.trim().is_empty());
     profile.base_url = base_url.filter(|value| !value.trim().is_empty());
-    profile.auth_token = auth_token.filter(|value| !value.trim().is_empty());
+    profile.auth_token = auth_token
+        .filter(|value| !value.trim().is_empty())
+        .map(ccr_core::Secret::new);
     profile.model = model.filter(|value| !value.trim().is_empty());
     profile.small_fast_model = small_fast_model.filter(|value| !value.trim().is_empty());
     profile.provider = provider.filter(|value| !value.trim().is_empty());

@@ -1,32 +1,60 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
   <title id="title">CCR brand master</title>
-  <desc id="desc">Reference master for the CCR rounded-square prism badge brand system.</desc>
+  <desc id="desc">Reference master for the CCR circuit-link brand icon.</desc>
   <defs>
-    <linearGradient id="badgeFill" x1="116" y1="102" x2="394" y2="410" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#F29A68"/>
-      <stop offset="0.56" stop-color="#E87C58"/>
-      <stop offset="1" stop-color="#D96543"/>
+    <linearGradient id="sideFill" x1="148" y1="258" x2="876" y2="628" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0F1D2C"/>
+      <stop offset="0.5" stop-color="#172638"/>
+      <stop offset="1" stop-color="#0E1A28"/>
     </linearGradient>
-    <linearGradient id="badgeHighlight" x1="144" y1="122" x2="332" y2="290" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.38"/>
-      <stop offset="0.4" stop-color="#FFFFFF" stop-opacity="0.14"/>
-      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    <linearGradient id="blueStroke" x1="292" y1="170" x2="632" y2="632" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0A8EF2"/>
+      <stop offset="0.55" stop-color="#15A9FF"/>
+      <stop offset="1" stop-color="#078FE4"/>
     </linearGradient>
-    <filter id="badgeShadow" x="-18%" y="-18%" width="136%" height="136%">
-      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#A94A2D" flood-opacity="0.22"/>
+    <linearGradient id="orangeStroke" x1="520" y1="444" x2="748" y2="734" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FF6B00"/>
+      <stop offset="1" stop-color="#F24700"/>
+    </linearGradient>
+    <filter id="softShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#0F1D2C" flood-opacity="0.12"/>
     </filter>
   </defs>
 
-  <g id="badge" filter="url(#badgeShadow)">
-    <rect x="88" y="88" width="336" height="336" rx="122" fill="url(#badgeFill)"/>
-    <path
-      d="M132 126C184 102 266 102 338 132C382 151 405 178 418 204V88H88V190C96 166 110 144 132 126Z"
-      fill="url(#badgeHighlight)"
-    />
+  <rect width="1024" height="1024" fill="#FFFFFF"/>
+
+  <g id="side-links" fill="url(#sideFill)" filter="url(#softShadow)">
+    <path d="M426 258H323C221 258 148 335 148 443C148 551 221 628 323 628H426L359 561H322C256 561 211 512 211 443C211 374 256 325 322 325H359L426 258Z"/>
+    <path d="M598 258H701C803 258 876 335 876 443H813C813 374 768 325 702 325H665L598 258Z"/>
+    <path d="M665 561H702C768 561 813 512 813 443H876C876 551 803 628 701 628H598L665 561Z"/>
   </g>
 
-  <g id="monogram" fill="none" stroke="#FFF8F2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M164 292 236 190H332L388 258 318 356H216Z" stroke-width="32"/>
-    <path d="M236 190 294 258 216 356" stroke-width="28"/>
+  <g id="circuit" fill="none" stroke-linecap="round" stroke-linejoin="round" filter="url(#softShadow)">
+    <g stroke="url(#blueStroke)">
+      <circle cx="512" cy="197" r="30" stroke-width="20"/>
+      <circle cx="293" cy="443" r="24" stroke-width="20"/>
+      <path d="M512 227V275C512 296 500 305 482 316C435 342 405 383 405 433V604L430 631" stroke-width="31"/>
+      <path d="M512 275C589 303 632 358 632 429C632 478 603 508 558 542C535 559 522 579 522 603" stroke-width="31"/>
+      <path d="M317 443H405" stroke-width="31"/>
+    </g>
+
+    <g stroke="url(#orangeStroke)">
+      <circle cx="735" cy="443" r="24" stroke-width="20"/>
+      <circle cx="522" cy="666" r="24" stroke-width="20"/>
+      <path d="M632 443H711" stroke-width="31"/>
+      <path d="M522 604V642" stroke-width="31"/>
+      <path d="M522 604L656 734" stroke-width="31"/>
+    </g>
+  </g>
+
+  <g id="code-mark" fill="#132235" filter="url(#softShadow)">
+    <path d="M449 443L501 404V482Z"/>
+    <path d="M575 443L523 404V482Z"/>
+  </g>
+
+  <g id="wordmark" fill="#132235" filter="url(#softShadow)">
+    <path d="M286 740H418V762H318C310 762 306 766 306 774V816C306 824 310 828 318 828H418V850H286C264 850 250 836 250 814V776C250 754 264 740 286 740Z"/>
+    <path d="M454 740H586V762H486C478 762 474 766 474 774V816C474 824 478 828 486 828H586V850H454C432 850 418 836 418 814V776C418 754 432 740 454 740Z"/>
+    <path d="M622 740H712C738 740 754 756 754 782C754 806 741 820 718 823L760 850H712L674 823H652V850H622V740ZM652 762V801H704C717 801 724 794 724 782C724 769 717 762 704 762H652Z"/>
   </g>
 </svg>

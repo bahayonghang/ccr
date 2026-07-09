@@ -89,19 +89,3 @@ impl From<serde_json::Error> for MigrationError {
         MigrationError::Json(e.to_string())
     }
 }
-
-/// 命令执行器错误
-#[derive(Debug, Error)]
-pub enum ExecutorError {
-    #[error("Execution failed: {0}")]
-    ExecutionFailed(String),
-
-    #[error("Command timed out after {0}s")]
-    Timeout(u64),
-
-    #[error("Binary not found: {0}")]
-    BinaryNotFound(String),
-
-    #[error("Stdio handle missing")]
-    StdioHandleMissing,
-}

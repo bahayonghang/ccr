@@ -3,10 +3,10 @@
 // 使用 SQLite 统一存储（替代 JSON 文件）
 
 use crate::core::error::DbError;
-use crate::database::{self, repositories::checkin_repo};
 use crate::models::checkin::{
     CheckinProvider, CreateProviderRequest, ProvidersResponse, UpdateProviderRequest,
 };
+use ccr_db::database::{self, repositories::checkin_repo};
 use chrono::Utc;
 
 #[derive(Debug, thiserror::Error)]
@@ -171,14 +171,49 @@ impl ProviderManager {
         let providers = database::with_connection(checkin_repo::get_all_providers)?;
         Ok(providers)
     }
+
+    /// 旧数据回填：为缺少 builtin_id 的提供商按 name/base_url 匹配内置目录并写回。
+    /// 幂等操作（仅更新 builtin_id 为 NULL 的行），返回成功回填的数量。
+    pub fn backfill_builtin_ids(&self) -> Result<usize> {
+        use super::builtin_providers::get_builtin_providers;
+
+        let providers = database::with_connection(checkin_repo::get_all_providers)?;
+        let builtins = get_builtin_providers();
+        let mut updated = 0;
+
+        for provider in providers.iter().filter(|p| p.builtin_id.is_none()) {
+            let matched = builtins.iter().find(|bp| {
+                bp.name == provider.name
+                    || bp.base_url.trim_end_matches('/') == provider.base_url.trim_end_matches('/')
+            });
+
+            if let Some(builtin) = matched {
+                let written = database::with_connection(|conn| {
+                    checkin_repo::set_provider_builtin_id_if_missing(
+                        conn,
+                        &provider.id,
+                        &builtin.id,
+                    )
+                })?;
+                if written {
+                    updated += 1;
+                }
+            }
+        }
+
+        if updated > 0 {
+            tracing::info!("Backfilled builtin_id for {} provider(s)", updated);
+        }
+        Ok(updated)
+    }
 }
 
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
-    use crate::database::repositories::checkin_repo;
-    use crate::database::schema::CREATE_TABLES_SQL;
+    use ccr_db::database::repositories::checkin_repo;
+    use ccr_db::database::schema::CREATE_TABLES_SQL;
     use once_cell::sync::Lazy;
     use rusqlite::Connection;
     use std::sync::Mutex;
@@ -209,6 +244,7 @@ mod tests {
                 user_info_path: None,
                 auth_header: None,
                 auth_prefix: None,
+                builtin_id: None,
             };
 
             let provider = request.into_provider();
@@ -286,5 +322,63 @@ mod tests {
             let fetched = checkin_repo::get_provider_by_id(conn, &provider.id).unwrap();
             assert!(fetched.is_none());
         });
+    }
+
+    #[test]
+    fn test_backfill_builtin_ids_matches_by_name_and_base_url() {
+        // 该测试覆盖「旧数据无 builtin_id 时一次性回填」路径，使用全局测试库
+        database::initialize_for_test().unwrap();
+        database::with_connection(|conn| {
+            conn.execute("DELETE FROM checkin_providers", [])
+                .map(|_| ())
+        })
+        .unwrap();
+
+        // 旧行 1：按 name 匹配（base_url 已被用户改过）
+        let by_name = CheckinProvider::new(
+            "AnyRouter".to_string(),
+            "https://renamed-url.example".to_string(),
+        );
+        // 旧行 2：按 base_url 匹配（name 已被用户改过，含尾部斜杠）
+        let by_url = CheckinProvider::new("我的小站".to_string(), "https://codex.cab/".to_string());
+        // 旧行 3：自定义站，不应被回填
+        let custom =
+            CheckinProvider::new("Custom".to_string(), "https://custom.example".to_string());
+        // 旧行 4：已有 builtin_id，不应被覆盖
+        let mut already =
+            CheckinProvider::new("Hotaru".to_string(), "https://hotaruapi.com".to_string());
+        already.builtin_id = Some("builtin-hotaru".to_string());
+
+        for provider in [&by_name, &by_url, &custom, &already] {
+            database::with_connection(|conn| checkin_repo::insert_provider(conn, provider))
+                .unwrap();
+        }
+
+        let manager = ProviderManager::new();
+        let updated = manager.backfill_builtin_ids().unwrap();
+        assert_eq!(updated, 2);
+
+        assert_eq!(
+            manager.get(&by_name.id).unwrap().builtin_id.as_deref(),
+            Some("builtin-anyrouter")
+        );
+        assert_eq!(
+            manager.get(&by_url.id).unwrap().builtin_id.as_deref(),
+            Some("builtin-codex-cab")
+        );
+        assert_eq!(manager.get(&custom.id).unwrap().builtin_id, None);
+        assert_eq!(
+            manager.get(&already.id).unwrap().builtin_id.as_deref(),
+            Some("builtin-hotaru")
+        );
+
+        // 幂等：再跑一次不应有新的回填
+        assert_eq!(manager.backfill_builtin_ids().unwrap(), 0);
+
+        database::with_connection(|conn| {
+            conn.execute("DELETE FROM checkin_providers", [])
+                .map(|_| ())
+        })
+        .unwrap();
     }
 }

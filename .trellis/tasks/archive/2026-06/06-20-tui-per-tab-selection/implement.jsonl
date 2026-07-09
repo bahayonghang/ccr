@@ -1,0 +1,1 @@
+{"file": ".trellis/spec/ccr-tui/backend/backend-guidelines.md", "reason": "TUI 状态/渲染边界、跨刷新选择稳定性、分页与 page-size 行为、active_tab=0 Startup Contract、测试与验证命令约定"}

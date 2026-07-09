@@ -1,6 +1,7 @@
 import { createPinia } from 'pinia'
 import { createApp, defineComponent, h, nextTick } from 'vue'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { createI18nStub } from './helpers/i18n-stub'
 
 const apiMocks = vi.hoisted(() => ({
   listHooks: vi.fn(),
@@ -37,6 +38,7 @@ const mountView = async () => {
   }))
 
   app.use(createPinia())
+  app.use(createI18nStub('en-US'))
   app.mount(el)
   await Promise.resolve()
   await nextTick()

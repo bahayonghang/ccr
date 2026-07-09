@@ -1,7 +1,7 @@
 // Checkin Repository - SQLite data access layer for checkin module
 // Replaces JSON file storage for providers, accounts, records, and balances
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, NaiveTime, Utc};
 use rusqlite::{Connection, OptionalExtension, params};
 use tracing::debug;
 
@@ -11,6 +11,14 @@ use crate::models::checkin::{
     provider::CheckinProvider,
     record::{CheckinRecord, CheckinStatus},
 };
+
+fn today_start_utc_rfc3339() -> String {
+    Utc::now()
+        .date_naive()
+        .and_time(NaiveTime::MIN)
+        .and_utc()
+        .to_rfc3339()
+}
 
 // ═══════════════════════════════════════════════════════════
 // Provider Operations
@@ -27,8 +35,8 @@ pub fn insert_provider(
 
     conn.execute(
         "INSERT INTO checkin_providers (id, name, base_url, checkin_path, balance_path,
-         user_info_path, auth_header, auth_prefix, enabled, created_at, updated_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+         user_info_path, auth_header, auth_prefix, enabled, created_at, updated_at, builtin_id)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
         params![
             provider.id,
             provider.name,
@@ -41,6 +49,7 @@ pub fn insert_provider(
             if provider.enabled { 1 } else { 0 },
             created_at,
             updated_at,
+            provider.builtin_id,
         ],
     )?;
 
@@ -53,7 +62,7 @@ pub fn insert_provider(
 pub fn get_all_providers(conn: &Connection) -> Result<Vec<CheckinProvider>, rusqlite::Error> {
     let mut stmt = conn.prepare_cached(
         "SELECT id, name, base_url, checkin_path, balance_path, user_info_path,
-                auth_header, auth_prefix, enabled, created_at, updated_at
+                auth_header, auth_prefix, enabled, created_at, updated_at, builtin_id
          FROM checkin_providers
          ORDER BY name ASC",
     )?;
@@ -73,7 +82,7 @@ pub fn get_provider_by_id(
 ) -> Result<Option<CheckinProvider>, rusqlite::Error> {
     conn.query_row(
         "SELECT id, name, base_url, checkin_path, balance_path, user_info_path,
-                auth_header, auth_prefix, enabled, created_at, updated_at
+                auth_header, auth_prefix, enabled, created_at, updated_at, builtin_id
          FROM checkin_providers WHERE id = ?1",
         params![id],
         row_to_provider,
@@ -92,8 +101,9 @@ pub fn update_provider(
     let affected = conn.execute(
         "UPDATE checkin_providers SET
          name = ?1, base_url = ?2, checkin_path = ?3, balance_path = ?4,
-         user_info_path = ?5, auth_header = ?6, auth_prefix = ?7, enabled = ?8, updated_at = ?9
-         WHERE id = ?10",
+         user_info_path = ?5, auth_header = ?6, auth_prefix = ?7, enabled = ?8, updated_at = ?9,
+         builtin_id = ?10
+         WHERE id = ?11",
         params![
             provider.name,
             provider.base_url,
@@ -104,10 +114,25 @@ pub fn update_provider(
             provider.auth_prefix,
             if provider.enabled { 1 } else { 0 },
             updated_at,
+            provider.builtin_id,
             provider.id,
         ],
     )?;
 
+    Ok(affected > 0)
+}
+
+/// Backfill builtin_id for a provider row only when it is still NULL
+#[allow(dead_code)]
+pub fn set_provider_builtin_id_if_missing(
+    conn: &Connection,
+    provider_id: &str,
+    builtin_id: &str,
+) -> Result<bool, rusqlite::Error> {
+    let affected = conn.execute(
+        "UPDATE checkin_providers SET builtin_id = ?1 WHERE id = ?2 AND builtin_id IS NULL",
+        params![builtin_id, provider_id],
+    )?;
     Ok(affected > 0)
 }
 
@@ -290,6 +315,7 @@ pub fn insert_record(conn: &Connection, record: &CheckinRecord) -> Result<(), ru
         CheckinStatus::Success => "success",
         CheckinStatus::AlreadyCheckedIn => "already_checked_in",
         CheckinStatus::Failed => "failed",
+        CheckinStatus::Skipped => "skipped",
     };
 
     conn.execute(
@@ -480,7 +506,7 @@ pub fn get_records_paginated_advanced(
 
     let offset = (page.saturating_sub(1)) * page_size;
     let select_sql = format!(
-        "SELECT r.id, r.account_id, r.status, r.message, r.reward, r.balance_before, r.balance_after, r.checked_in_at
+        "SELECT r.id, r.account_id, r.status, r.message, r.error_code, r.reward, r.balance_before, r.balance_after, r.checked_in_at
          {} {}
          ORDER BY r.checked_in_at DESC
          LIMIT ?{} OFFSET ?{}",
@@ -552,7 +578,7 @@ pub fn get_records_filtered_advanced(
         format!("WHERE {}", conditions.join(" AND "))
     };
     let sql = format!(
-        "SELECT r.id, r.account_id, r.status, r.message, r.reward, r.balance_before, r.balance_after, r.checked_in_at
+        "SELECT r.id, r.account_id, r.status, r.message, r.error_code, r.reward, r.balance_before, r.balance_after, r.checked_in_at
          {} {}
          ORDER BY r.checked_in_at DESC",
         from_clause, where_clause
@@ -579,11 +605,7 @@ pub fn get_today_status_counts(
         return Ok((0, 0));
     }
 
-    let today_start = Utc::now()
-        .date_naive()
-        .and_hms_opt(0, 0, 0)
-        .expect("Invalid time: 00:00:00");
-    let today_start_str = today_start.and_utc().to_rfc3339();
+    let today_start_str = today_start_utc_rfc3339();
 
     let placeholders = (0..account_ids.len())
         .map(|idx| format!("?{}", idx + 2))
@@ -634,11 +656,7 @@ pub fn get_today_records(
     conn: &Connection,
     account_id: &str,
 ) -> Result<Vec<CheckinRecord>, rusqlite::Error> {
-    let today_start = Utc::now()
-        .date_naive()
-        .and_hms_opt(0, 0, 0)
-        .expect("Invalid time: 00:00:00");
-    let today_start_str = today_start.and_utc().to_rfc3339();
+    let today_start_str = today_start_utc_rfc3339();
 
     let mut stmt = conn.prepare_cached(
         "SELECT id, account_id, status, message, error_code, reward, balance_before, balance_after, checked_in_at
@@ -888,6 +906,7 @@ fn row_to_provider(row: &rusqlite::Row) -> Result<CheckinProvider, rusqlite::Err
     let enabled: i32 = row.get(8)?;
     let created_at_str: String = row.get(9)?;
     let updated_at_str: Option<String> = row.get(10)?;
+    let builtin_id: Option<String> = row.get(11)?;
 
     let created_at = DateTime::parse_from_rfc3339(&created_at_str)
         .map(|dt| dt.with_timezone(&Utc))
@@ -909,6 +928,7 @@ fn row_to_provider(row: &rusqlite::Row) -> Result<CheckinProvider, rusqlite::Err
         auth_header,
         auth_prefix,
         enabled: enabled != 0,
+        builtin_id,
         created_at,
         updated_at,
     })
@@ -980,6 +1000,7 @@ fn row_to_record(row: &rusqlite::Row) -> Result<CheckinRecord, rusqlite::Error> 
     let status = match status_str.as_str() {
         "success" => CheckinStatus::Success,
         "already_checked_in" => CheckinStatus::AlreadyCheckedIn,
+        "skipped" => CheckinStatus::Skipped,
         _ => CheckinStatus::Failed,
     };
 
@@ -1125,6 +1146,120 @@ mod tests {
         // Delete by account
         let deleted = delete_records_by_account(&conn, "account-1").unwrap();
         assert_eq!(deleted, 1);
+    }
+
+    #[test]
+    fn test_skipped_record_roundtrip() {
+        // skipped 状态以 TEXT 落库，无需 migration；读取必须还原为 Skipped 而非 Failed
+        let conn = setup_test_db();
+
+        let record = CheckinRecord::skipped(
+            "account-1".to_string(),
+            Some("该站点不支持签到".to_string()),
+            "provider_unsupported".to_string(),
+        );
+        insert_record(&conn, &record).unwrap();
+
+        let records = get_records_by_account(&conn, "account-1", 10).unwrap();
+        assert_eq!(records.len(), 1);
+        assert_eq!(records[0].status, CheckinStatus::Skipped);
+        assert_eq!(
+            records[0].error_code.as_deref(),
+            Some("provider_unsupported")
+        );
+
+        // skipped 不计入今日 checked_in/failed 统计
+        let (checked_in, failed) =
+            get_today_status_counts(&conn, &["account-1".to_string()]).unwrap();
+        assert_eq!(checked_in, 0);
+        assert_eq!(failed, 0);
+    }
+
+    #[test]
+    fn test_get_records_paginated_advanced_preserves_column_order() {
+        let conn = setup_test_db();
+
+        let provider =
+            CheckinProvider::new("Provider".to_string(), "https://api.test.com".to_string());
+        insert_provider(&conn, &provider).unwrap();
+
+        let account = CheckinAccount::new(
+            provider.id.clone(),
+            "Test Account".to_string(),
+            "encrypted-cookies".to_string(),
+            "12345".to_string(),
+        );
+        insert_account(&conn, &account).unwrap();
+
+        let record = CheckinRecord::failed(
+            account.id.clone(),
+            "Cookie 已过期".to_string(),
+            Some("cookie_expired".to_string()),
+        )
+        .with_balance(Some(100.0), Some(80.0));
+        insert_record(&conn, &record).unwrap();
+
+        let (records, total) = get_records_paginated_advanced(
+            &conn,
+            Some("failed"),
+            Some(&account.id),
+            Some(&provider.id),
+            Some("Cookie"),
+            1,
+            10,
+        )
+        .unwrap();
+
+        assert_eq!(total, 1);
+        assert_eq!(records.len(), 1);
+        assert_eq!(records[0].status, CheckinStatus::Failed);
+        assert_eq!(records[0].message.as_deref(), Some("Cookie 已过期"));
+        assert_eq!(records[0].error_code.as_deref(), Some("cookie_expired"));
+        assert_eq!(records[0].reward.as_deref(), None);
+        assert_eq!(records[0].balance_before, Some(100.0));
+        assert_eq!(records[0].balance_after, Some(80.0));
+    }
+
+    #[test]
+    fn test_get_records_filtered_advanced_preserves_column_order() {
+        let conn = setup_test_db();
+
+        let provider =
+            CheckinProvider::new("Provider".to_string(), "https://api.test.com".to_string());
+        insert_provider(&conn, &provider).unwrap();
+
+        let account = CheckinAccount::new(
+            provider.id.clone(),
+            "Test Account".to_string(),
+            "encrypted-cookies".to_string(),
+            "12345".to_string(),
+        );
+        insert_account(&conn, &account).unwrap();
+
+        let record = CheckinRecord::success(
+            account.id.clone(),
+            Some("签到成功".to_string()),
+            Some("+10".to_string()),
+        )
+        .with_balance(Some(100.0), Some(110.0));
+        insert_record(&conn, &record).unwrap();
+
+        let records = get_records_filtered_advanced(
+            &conn,
+            Some("success"),
+            Some(&account.id),
+            Some(&provider.id),
+            Some("签到"),
+        )
+        .unwrap();
+
+        assert_eq!(records.len(), 1);
+        assert_eq!(records[0].status, CheckinStatus::Success);
+        assert_eq!(records[0].message.as_deref(), Some("签到成功"));
+        assert_eq!(records[0].error_code.as_deref(), None);
+        assert_eq!(records[0].reward.as_deref(), Some("+10"));
+        assert_eq!(records[0].balance_before, Some(100.0));
+        assert_eq!(records[0].balance_after, Some(110.0));
     }
 
     #[test]

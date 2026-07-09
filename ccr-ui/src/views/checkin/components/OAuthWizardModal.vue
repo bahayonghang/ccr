@@ -1,7 +1,7 @@
 <template>
   <BaseModal
     v-model="isVisible"
-    title="OAuth 引导登录"
+    :title="t('checkin.actions.oauthLoginTitle')"
     size="lg"
     :persistent="loading"
     @close="handleClose"
@@ -57,7 +57,7 @@
     >
       <!-- 提供商选择 -->
       <div class="oauth-wizard__field">
-        <label class="oauth-wizard__label">选择提供商</label>
+        <label class="oauth-wizard__label">{{ t('checkin.oauthWizard.providerLabel') }}</label>
         <select
           v-model="selectedProviderId"
           class="oauth-wizard__input"
@@ -66,7 +66,7 @@
             value=""
             disabled
           >
-            请选择...
+            {{ chosenOptionText }}
           </option>
           <option
             v-for="provider in oauthProviders"
@@ -83,7 +83,7 @@
         v-if="selectedProvider"
         class="oauth-wizard__field"
       >
-        <label class="oauth-wizard__label">选择登录方式</label>
+        <label class="oauth-wizard__label">{{ t('checkin.oauthWizard.loginMethodLabel') }}</label>
         <div class="oauth-wizard__choice-grid">
           <button
             v-if="selectedProvider.oauth_config?.linuxdo_client_id"
@@ -99,7 +99,7 @@
               name="Globe"
               size="w-5 h-5"
             />
-            LinuxDo
+            {{ t('checkin.oauthWizard.oauthTypes.linuxdo') }}
           </button>
           <button
             v-if="selectedProvider.oauth_config?.github_client_id"
@@ -115,14 +115,14 @@
               name="Github"
               size="w-5 h-5"
             />
-            GitHub
+            {{ t('checkin.oauthWizard.oauthTypes.github') }}
           </button>
         </div>
         <p
           v-if="!selectedProvider.oauth_config?.linuxdo_client_id && !selectedProvider.oauth_config?.github_client_id"
           class="oauth-wizard__warning"
         >
-          该提供商的 OAuth client_id 尚未配置
+          {{ t('checkin.oauthWizard.oauthNotConfigured') }}
         </p>
       </div>
     </div>
@@ -142,7 +142,7 @@
           class="oauth-wizard__state-icon oauth-wizard__state-icon--loading animate-spin"
         />
         <p class="oauth-wizard__state-text">
-          正在获取授权链接...
+          {{ t('checkin.oauthWizard.loadingAuthorizeUrl') }}
         </p>
       </div>
 
@@ -157,7 +157,7 @@
           class="oauth-wizard__link-button"
           @click="step = 0"
         >
-          返回重新选择
+          {{ t('checkin.oauthWizard.backToSelection') }}
         </button>
       </div>
 
@@ -171,7 +171,7 @@
               name="ExternalLink"
               size="w-4 h-4"
             />
-            请在浏览器中打开以下链接完成授权：
+            {{ t('checkin.oauthWizard.openInBrowserHint') }}
           </p>
           <div class="oauth-wizard__url-row">
             <input
@@ -183,7 +183,7 @@
               class="oauth-wizard__button oauth-wizard__button--primary oauth-wizard__button--compact"
               @click="copyUrl"
             >
-              {{ copied ? '已复制' : '复制' }}
+              {{ copied ? t('checkin.oauthWizard.copied') : t('checkin.oauthWizard.copy') }}
             </button>
           </div>
           <a
@@ -196,14 +196,14 @@
               name="ExternalLink"
               size="w-3.5 h-3.5"
             />
-            在新标签页打开
+            {{ t('checkin.oauthWizard.openInNewTab') }}
           </a>
         </div>
 
         <!-- 引导说明 -->
         <div class="oauth-wizard__panel oauth-wizard__panel--neutral">
           <p class="oauth-wizard__panel-title oauth-wizard__panel-title--neutral">
-            操作步骤：
+            {{ t('checkin.oauthWizard.guideTitle') }}
           </p>
           <ol class="oauth-wizard__guide-list">
             <li
@@ -226,32 +226,32 @@
     >
       <div class="oauth-wizard__field">
         <label class="oauth-wizard__label">
-          粘贴 Cookies JSON 或 document.cookie 字符串
+          {{ t('checkin.oauthWizard.credentialsLabel') }}
         </label>
         <textarea
           v-model="pastedCredentials"
           rows="6"
-          placeholder="{&quot;session&quot;: &quot;xxx&quot;, &quot;token&quot;: &quot;yyy&quot;} 或 session=xxx; token=yyy"
+          :placeholder="t('checkin.oauthWizard.credentialsPlaceholder')"
           class="oauth-wizard__input oauth-wizard__input--textarea oauth-wizard__input--mono"
         />
       </div>
 
       <div class="oauth-wizard__field">
         <label class="oauth-wizard__label">
-          API User (可选，通常为数字 ID)
+          {{ t('checkin.oauthWizard.apiUserLabel') }}
         </label>
         <input
           v-model="pastedApiUser"
-          placeholder="从 localStorage 中获取，留空则自动获取"
+          :placeholder="t('checkin.oauthWizard.apiUserPlaceholder')"
           class="oauth-wizard__input"
         >
       </div>
 
       <div class="oauth-wizard__field">
-        <label class="oauth-wizard__label">账号备注名称</label>
+        <label class="oauth-wizard__label">{{ t('checkin.oauthWizard.accountNameLabel') }}</label>
         <input
           v-model="accountName"
-          :placeholder="`${selectedProvider?.name ?? ''} 账号`"
+          :placeholder="defaultAccountName"
           class="oauth-wizard__input"
         >
       </div>
@@ -281,7 +281,7 @@
           class="oauth-wizard__state-icon oauth-wizard__state-icon--loading animate-spin"
         />
         <p class="oauth-wizard__state-text">
-          正在创建账号...
+          {{ t('checkin.oauthWizard.creatingAccount') }}
         </p>
       </div>
 
@@ -295,10 +295,10 @@
           class="oauth-wizard__state-icon oauth-wizard__state-icon--success"
         />
         <p class="oauth-wizard__state-text oauth-wizard__state-text--success">
-          账号创建成功！
+          {{ t('checkin.oauthWizard.createSuccess') }}
         </p>
         <p class="oauth-wizard__state-subtitle">
-          {{ selectedProvider?.name }} - {{ accountName || '新账号' }}
+          {{ selectedProvider?.name }} - {{ accountName || t('checkin.oauthWizard.newAccount') }}
         </p>
       </div>
 
@@ -308,20 +308,20 @@
       >
         <div class="oauth-wizard__panel oauth-wizard__panel--neutral oauth-wizard__summary">
           <div class="oauth-wizard__summary-row">
-            <span class="oauth-wizard__summary-label">提供商</span>
+            <span class="oauth-wizard__summary-label">{{ t('checkin.providers.provider') }}</span>
             <span class="oauth-wizard__summary-value">{{ selectedProvider?.name }}</span>
           </div>
           <div class="oauth-wizard__summary-row">
-            <span class="oauth-wizard__summary-label">账号名称</span>
-            <span class="oauth-wizard__summary-value">{{ accountName || selectedProvider?.name + ' 账号' }}</span>
+            <span class="oauth-wizard__summary-label">{{ t('checkin.oauthWizard.summary.accountName') }}</span>
+            <span class="oauth-wizard__summary-value">{{ accountName || defaultAccountName }}</span>
           </div>
           <div class="oauth-wizard__summary-row">
-            <span class="oauth-wizard__summary-label">Cookies 数量</span>
-            <span class="oauth-wizard__summary-value">{{ parsedCookieCount }} 个</span>
+            <span class="oauth-wizard__summary-label">{{ t('checkin.oauthWizard.summary.cookieCount') }}</span>
+            <span class="oauth-wizard__summary-value">{{ t('checkin.oauthWizard.summary.cookieCountValue', { count: parsedCookieCount }) }}</span>
           </div>
           <div class="oauth-wizard__summary-row">
-            <span class="oauth-wizard__summary-label">API User</span>
-            <span class="oauth-wizard__summary-value">{{ pastedApiUser || '(未设置)' }}</span>
+            <span class="oauth-wizard__summary-label">{{ t('checkin.oauthWizard.summary.apiUser') }}</span>
+            <span class="oauth-wizard__summary-value">{{ pastedApiUser || t('checkin.oauthWizard.unsetValue') }}</span>
           </div>
         </div>
 
@@ -345,7 +345,7 @@
           :disabled="loading || creatingAccount"
           @click="step--"
         >
-          上一步
+          {{ t('common.previous') }}
         </button>
         <div v-else />
 
@@ -354,7 +354,7 @@
             class="oauth-wizard__button oauth-wizard__button--secondary"
             @click="handleClose"
           >
-            {{ createSuccess ? '关闭' : '取消' }}
+            {{ createSuccess ? t('common.close') : t('common.cancel') }}
           </button>
 
           <button
@@ -363,7 +363,7 @@
             class="oauth-wizard__button oauth-wizard__button--primary"
             @click="goToStep1"
           >
-            获取授权链接
+            {{ t('checkin.actions.oauthLogin') }}
           </button>
 
           <button
@@ -371,7 +371,7 @@
             class="oauth-wizard__button oauth-wizard__button--primary"
             @click="step = 2"
           >
-            我已完成授权
+            {{ t('common.next') }}
           </button>
 
           <button
@@ -380,7 +380,7 @@
             class="oauth-wizard__button oauth-wizard__button--primary"
             @click="goToStep3"
           >
-            下一步
+            {{ t('common.next') }}
           </button>
 
           <button
@@ -389,7 +389,7 @@
             class="oauth-wizard__button oauth-wizard__button--success"
             @click="createAccount"
           >
-            确认创建
+            {{ t('common.confirm') }}
           </button>
         </div>
       </div>
@@ -400,9 +400,11 @@
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import BaseModal from '@/components/common/BaseModal.vue'
 import { getOAuthAuthorizeUrl, createCheckinAccount } from '@/api'
 import type { BuiltinProvider } from '@/types/checkin'
+import { copyText } from '@/utils/clipboard'
 
 const props = defineProps<{
   isOpen: boolean
@@ -415,13 +417,19 @@ const emit = defineEmits<{
   (e: 'success'): void
 }>()
 
+const { t } = useI18n()
 const isVisible = computed({
   get: () => props.isOpen,
   set: (val: boolean) => emit('update:isOpen', val),
 })
 
 // Steps
-const stepLabels = ['选择方式', '获取链接', '粘贴凭证', '确认创建']
+const stepLabels = computed(() => [
+  t('checkin.oauthWizard.steps.selectMethod'),
+  t('checkin.oauthWizard.steps.getLink'),
+  t('checkin.oauthWizard.steps.pasteCredentials'),
+  t('checkin.oauthWizard.steps.confirmCreate'),
+])
 const step = ref(0)
 
 // Step 0 state
@@ -445,6 +453,13 @@ const parseError = ref('')
 const creatingAccount = ref(false)
 const createSuccess = ref(false)
 const createError = ref('')
+
+const chosenOptionText = computed(() => t('common.selectOption'))
+const defaultAccountName = computed(() =>
+  selectedProvider.value?.name
+    ? t('checkin.oauthWizard.defaultAccountName', { provider: selectedProvider.value.name })
+    : ''
+)
 
 // Computed
 const oauthProviders = computed(() =>
@@ -523,10 +538,10 @@ async function goToStep1() {
       authorizeUrl.value = response.authorize_url
       extractionGuide.value = response.extraction_guide || []
     } else {
-      oauthError.value = response.message || '获取授权链接失败'
+      oauthError.value = response.message || t('checkin.oauthWizard.errors.fetchAuthorizeUrlFailed')
     }
   } catch (err: unknown) {
-    oauthError.value = err instanceof Error ? err.message : '网络请求失败'
+    oauthError.value = err instanceof Error ? err.message : t('checkin.oauthWizard.errors.networkRequestFailed')
   } finally {
     loading.value = false
   }
@@ -534,7 +549,7 @@ async function goToStep1() {
 
 async function copyUrl() {
   try {
-    await navigator.clipboard.writeText(authorizeUrl.value)
+    if (!(await copyText(authorizeUrl.value))) throw new Error('clipboard copy failed')
     copied.value = true
     setTimeout(() => {
       copied.value = false
@@ -570,7 +585,7 @@ function parseCookies(input: string): Record<string, string> {
     return parseCookieString(trimmed)
   }
 
-  throw new Error('无法识别的格式')
+  throw new Error(t('checkin.oauthWizard.errors.unrecognizedCredentialsFormat'))
 }
 
 function parseCookieString(str: string): Record<string, string> {
@@ -591,12 +606,12 @@ function goToStep3() {
   try {
     const cookies = parseCookies(pastedCredentials.value)
     if (Object.keys(cookies).length === 0) {
-      parseError.value = 'Cookies 为空，请检查输入格式'
+      parseError.value = t('checkin.oauthWizard.errors.emptyCookies')
       return
     }
     step.value = 3
   } catch (err: unknown) {
-    parseError.value = err instanceof Error ? err.message : '解析失败'
+    parseError.value = err instanceof Error ? err.message : t('checkin.oauthWizard.errors.parseFailed')
   }
 }
 
@@ -606,14 +621,14 @@ async function createAccount() {
 
   try {
     const provider = selectedProvider.value
-    if (!provider) throw new Error('未选择提供商')
+    if (!provider) throw new Error(t('checkin.oauthWizard.errors.providerRequired'))
 
     const cookies = parseCookies(pastedCredentials.value)
     const cookiesJson = JSON.stringify(cookies)
 
     await createCheckinAccount({
       provider_id: provider.id.replace('builtin-', ''),
-      name: accountName.value || `${provider.name} 账号`,
+      name: accountName.value || t('checkin.oauthWizard.defaultAccountName', { provider: provider.name }),
       cookies_json: cookiesJson,
       api_user: pastedApiUser.value || '',
     })
@@ -621,7 +636,7 @@ async function createAccount() {
     createSuccess.value = true
     emit('success')
   } catch (err: unknown) {
-    createError.value = err instanceof Error ? err.message : '创建失败'
+    createError.value = err instanceof Error ? err.message : t('checkin.oauthWizard.errors.createFailed')
   } finally {
     creatingAccount.value = false
   }
@@ -655,15 +670,15 @@ async function createAccount() {
 }
 
 .oauth-wizard__step--complete {
-  color: rgb(34 197 94 / 100%);
+  color: var(--color-success);
 }
 
 .oauth-wizard__step--current {
-  color: rgb(59 130 246 / 100%);
+  color: var(--color-info);
 }
 
 .oauth-wizard__step--inactive {
-  color: rgb(161 161 170 / 100%);
+  color: var(--text-muted);
 }
 
 .oauth-wizard__step-circle {
@@ -679,21 +694,21 @@ async function createAccount() {
 }
 
 .oauth-wizard__step-circle--complete {
-  border-color: rgb(34 197 94 / 100%);
-  background: rgb(34 197 94 / 20%);
-  color: rgb(34 197 94 / 100%);
+  border-color: var(--color-success);
+  background: rgb(var(--color-success-rgb) / 20%);
+  color: var(--color-success);
 }
 
 .oauth-wizard__step-circle--current {
-  border-color: rgb(59 130 246 / 100%);
-  background: rgb(59 130 246 / 20%);
-  color: rgb(59 130 246 / 100%);
+  border-color: var(--color-info);
+  background: rgb(var(--color-info-rgb) / 20%);
+  color: var(--color-info);
 }
 
 .oauth-wizard__step-circle--inactive {
-  border-color: rgb(82 82 91 / 100%);
-  background: rgb(39 39 42 / 100%);
-  color: rgb(113 113 122 / 100%);
+  border-color: var(--color-border-strong);
+  background: var(--color-bg-surface);
+  color: var(--text-ghost);
 }
 
 .oauth-wizard__step-icon {
@@ -713,7 +728,7 @@ async function createAccount() {
 }
 
 .oauth-wizard__step-divider {
-  color: rgb(82 82 91 / 100%);
+  color: var(--text-disabled);
 }
 
 .oauth-wizard__section {
@@ -736,22 +751,22 @@ async function createAccount() {
   font-size: 0.875rem;
   line-height: 1.25rem;
   font-weight: 500;
-  color: rgb(212 212 216 / 100%);
+  color: var(--text-secondary);
 }
 
 .oauth-wizard__input {
   width: 100%;
-  border: 1px solid rgb(63 63 70 / 100%);
+  border: 1px solid var(--color-border-default);
   border-radius: 0.5rem;
-  background: rgb(39 39 42 / 100%);
+  background: var(--color-bg-surface);
   padding: 0.5rem 0.75rem;
   font-size: 0.875rem;
   line-height: 1.25rem;
-  color: rgb(228 228 231 / 100%);
+  color: var(--text-primary);
 }
 
 .oauth-wizard__input:focus {
-  outline: 2px solid rgb(59 130 246 / 100%);
+  outline: 2px solid var(--color-info);
   outline-offset: 0;
 }
 
@@ -781,24 +796,24 @@ async function createAccount() {
 }
 
 .oauth-wizard__choice--active {
-  border-color: rgb(59 130 246 / 100%);
-  background: rgb(59 130 246 / 10%);
-  color: rgb(96 165 250 / 100%);
+  border-color: var(--color-info);
+  background: rgb(var(--color-info-rgb) / 10%);
+  color: var(--color-info);
 }
 
 .oauth-wizard__choice--inactive {
-  border-color: rgb(63 63 70 / 100%);
-  background: rgb(39 39 42 / 100%);
-  color: rgb(212 212 216 / 100%);
+  border-color: var(--color-border-default);
+  background: var(--color-bg-surface);
+  color: var(--text-secondary);
 }
 
 .oauth-wizard__choice--inactive:hover {
-  border-color: rgb(113 113 122 / 100%);
+  border-color: var(--text-ghost);
 }
 
 .oauth-wizard__warning {
   margin-top: 0.5rem;
-  color: rgb(251 191 36 / 100%);
+  color: var(--color-warning);
 }
 
 .oauth-wizard__state {
@@ -809,11 +824,11 @@ async function createAccount() {
 }
 
 .oauth-wizard__state-icon--loading {
-  color: rgb(59 130 246 / 100%);
+  color: var(--color-info);
 }
 
 .oauth-wizard__state-icon--success {
-  color: rgb(34 197 94 / 100%);
+  color: var(--color-success);
 }
 
 .oauth-wizard__state-text,
@@ -825,18 +840,18 @@ async function createAccount() {
 }
 
 .oauth-wizard__state-text {
-  color: rgb(161 161 170 / 100%);
+  color: var(--text-muted);
 }
 
 .oauth-wizard__state-text--success {
   font-weight: 500;
-  color: rgb(74 222 128 / 100%);
+  color: var(--color-success);
 }
 
 .oauth-wizard__state-subtitle {
   font-size: 0.75rem;
   line-height: 1rem;
-  color: rgb(113 113 122 / 100%);
+  color: var(--text-ghost);
 }
 
 .oauth-wizard__panel {
@@ -846,17 +861,17 @@ async function createAccount() {
 }
 
 .oauth-wizard__panel--error {
-  border-color: rgb(239 68 68 / 20%);
-  background: rgb(239 68 68 / 10%);
+  border-color: rgb(var(--color-danger-rgb) / 20%);
+  background: rgb(var(--color-danger-rgb) / 10%);
 }
 
 .oauth-wizard__panel--info {
-  border-color: rgb(59 130 246 / 20%);
-  background: rgb(59 130 246 / 10%);
+  border-color: rgb(var(--color-info-rgb) / 20%);
+  background: rgb(var(--color-info-rgb) / 10%);
 }
 
 .oauth-wizard__panel--neutral {
-  background: rgb(39 39 42 / 50%);
+  background: rgb(var(--color-bg-surface-rgb) / 50%);
 }
 
 .oauth-wizard__panel-title {
@@ -865,22 +880,22 @@ async function createAccount() {
 }
 
 .oauth-wizard__panel-title--info {
-  color: rgb(147 197 253 / 100%);
+  color: var(--color-info);
 }
 
 .oauth-wizard__panel-title--neutral {
-  color: rgb(212 212 216 / 100%);
+  color: var(--text-secondary);
 }
 
 .oauth-wizard__error-text {
   font-size: 0.875rem;
   line-height: 1.25rem;
-  color: rgb(248 113 113 / 100%);
+  color: var(--color-danger);
 }
 
 .oauth-wizard__link-button,
 .oauth-wizard__external-link {
-  color: rgb(96 165 250 / 100%);
+  color: var(--color-info);
 }
 
 .oauth-wizard__link-button {
@@ -901,14 +916,14 @@ async function createAccount() {
 
 .oauth-wizard__url-input {
   flex: 1 1 auto;
-  border: 1px solid rgb(63 63 70 / 100%);
+  border: 1px solid var(--color-border-default);
   border-radius: 0.25rem;
-  background: rgb(24 24 27 / 100%);
+  background: var(--color-bg-base);
   padding: 0.375rem 0.75rem;
   font-family: var(--font-mono);
   font-size: 0.75rem;
   line-height: 1rem;
-  color: rgb(212 212 216 / 100%);
+  color: var(--text-secondary);
 }
 
 .oauth-wizard__button {
@@ -932,38 +947,38 @@ async function createAccount() {
 }
 
 .oauth-wizard__button--ghost {
-  color: rgb(161 161 170 / 100%);
+  color: var(--text-muted);
 }
 
 .oauth-wizard__button--ghost:hover {
-  color: rgb(228 228 231 / 100%);
+  color: var(--text-primary);
 }
 
 .oauth-wizard__button--secondary {
-  border: 1px solid rgb(63 63 70 / 100%);
-  color: rgb(161 161 170 / 100%);
+  border: 1px solid var(--color-border-default);
+  color: var(--text-muted);
 }
 
 .oauth-wizard__button--secondary:hover {
-  color: rgb(228 228 231 / 100%);
+  color: var(--text-primary);
 }
 
 .oauth-wizard__button--primary {
-  background: rgb(37 99 235 / 100%);
+  background: var(--color-accent-primary);
   color: white;
 }
 
 .oauth-wizard__button--primary:hover:not(:disabled) {
-  background: rgb(29 78 216 / 100%);
+  background: var(--color-accent-primary-hover);
 }
 
 .oauth-wizard__button--success {
-  background: rgb(22 163 74 / 100%);
+  background: var(--color-success);
   color: white;
 }
 
 .oauth-wizard__button--success:hover:not(:disabled) {
-  background: rgb(21 128 61 / 100%);
+  background: var(--color-success-hover);
 }
 
 .oauth-wizard__external-link {
@@ -985,13 +1000,13 @@ async function createAccount() {
   padding-left: 1rem;
   font-size: 0.75rem;
   line-height: 1rem;
-  color: rgb(161 161 170 / 100%);
+  color: var(--text-muted);
 }
 
 .oauth-wizard__guide-item::before {
   position: absolute;
   left: 0;
-  color: rgb(113 113 122 / 100%);
+  color: var(--text-ghost);
   content: attr(data-index);
 }
 
@@ -1007,11 +1022,11 @@ async function createAccount() {
 }
 
 .oauth-wizard__summary-label {
-  color: rgb(161 161 170 / 100%);
+  color: var(--text-muted);
 }
 
 .oauth-wizard__summary-value {
-  color: rgb(228 228 231 / 100%);
+  color: var(--text-primary);
 }
 
 @media (width >= 640px) {

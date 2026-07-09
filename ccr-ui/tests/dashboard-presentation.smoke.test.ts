@@ -6,6 +6,7 @@ import {
 import type { CliVersionEntry, SystemInfo } from '@/types'
 import type { MonitoringEntry } from '@/composables/useMonitoringFeed'
 import type { HomeUsageOverviewResponse } from '@/types/usage'
+import { makeArchiveDiagnostics } from './helpers/usageFixtures'
 
 const platforms: DashboardPlatformSource[] = [
   {
@@ -82,13 +83,13 @@ const cliEntry = (platform: string, overrides: Partial<CliVersionEntry> = {}): C
   ...overrides,
 })
 
-const createCliMap = (entries: CliVersionEntry[] = [
-  cliEntry('claude-code'),
-  cliEntry('codex'),
-  cliEntry('antigravity'),
-]) => new Map(entries.map((entry) => [entry.platform, entry]))
+const createCliMap = (
+  entries: CliVersionEntry[] = [cliEntry('claude-code'), cliEntry('codex'), cliEntry('antigravity')]
+) => new Map(entries.map((entry) => [entry.platform, entry]))
 
-const overview = (overrides: Partial<HomeUsageOverviewResponse> = {}): HomeUsageOverviewResponse => ({
+const overview = (
+  overrides: Partial<HomeUsageOverviewResponse> = {}
+): HomeUsageOverviewResponse => ({
   summary: {
     total_sessions: 18,
     total_requests: 1240,
@@ -103,7 +104,7 @@ const overview = (overrides: Partial<HomeUsageOverviewResponse> = {}): HomeUsage
     opencode: { sessions: 0, requests: 40, tokens: 15000 },
   },
   series: [],
-  archive: {
+  archive: makeArchiveDiagnostics({
     archive_root: 'C:/Users/test/.ccr/analytics/usage.db',
     live_sources: 3,
     missing_sources: 0,
@@ -111,7 +112,7 @@ const overview = (overrides: Partial<HomeUsageOverviewResponse> = {}): HomeUsage
     archived_sessions: 18,
     recent_completed_at: null,
     history_completed_at: null,
-  },
+  }),
   bootstrap: {
     usage_import_attempted: false,
     usage_imported_records: 0,
@@ -123,7 +124,39 @@ const overview = (overrides: Partial<HomeUsageOverviewResponse> = {}): HomeUsage
     needs_session_index: false,
     is_warm: true,
   },
-  empty_reason: undefined,
+  snapshot: {
+    generated_at: '2026-04-29T09:00:00Z',
+    platform_scope: 'all',
+    start_date: null,
+    end_date: null,
+    cache_ttl_seconds: 30,
+    freshness: {
+      state: 'fresh',
+      latest_completed_at: '2026-04-29T08:00:00Z',
+      age_seconds: 3600,
+      stale_after_seconds: 86_400,
+    },
+    readiness: {
+      state: 'ready',
+      next_action: null,
+      detail: 'ready',
+      has_live_sources: true,
+      has_missing_sources: false,
+      has_deleted_sources: false,
+      active_usage_import: false,
+      active_session_index: false,
+      recent_completed_at: null,
+    },
+    source_health: [],
+    drilldown: {
+      dimensions: [],
+      supports_logs: true,
+      supports_projects: true,
+      supports_sessions: true,
+    },
+  },
+  // 生成类型里 empty_reason 为 string | null（必填），undefined 不再合法；null 同为 falsy，不影响 readiness 断言。
+  empty_reason: null,
   last_updated: '2026-04-29T09:00:00Z',
   ...overrides,
 })
@@ -159,7 +192,9 @@ describe('dashboard presentation', () => {
     expect(presentation.installedCliCount).toBe(3)
     expect(presentation.runtimeCliCount).toBe(3)
     expect(presentation.actions[0]?.id).toBe('command-runner')
-    expect(presentation.platformRows.every((row) => row.state === 'ready' || row.state === 'managed')).toBe(true)
+    expect(
+      presentation.platformRows.every((row) => row.state === 'ready' || row.state === 'managed')
+    ).toBe(true)
   })
 
   it('prioritizes web-preview capability boundaries outside native runtime', () => {
@@ -208,7 +243,9 @@ describe('dashboard presentation', () => {
     })
 
     expect(presentation.readiness.status).toBe('attention')
-    expect(presentation.readiness.reasonKeys).toContain('dashboard.readiness.reasons.usageEmpty')
+    expect(presentation.readiness.reasons.map((reason) => reason.key)).toContain(
+      'dashboard.readiness.reasons.usageEmpty'
+    )
     expect(presentation.actions.some((action) => action.id === 'open-usage')).toBe(true)
   })
 
@@ -223,4 +260,3 @@ describe('dashboard presentation', () => {
     expect(presentation.actions[0]?.id).toBe('open-monitoring')
   })
 })
-

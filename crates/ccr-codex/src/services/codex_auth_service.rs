@@ -832,7 +832,7 @@ impl CodexAuthService {
                 updated.auth_token = auth_data
                     .get("OPENAI_API_KEY")
                     .and_then(serde_json::Value::as_str)
-                    .map(str::to_string);
+                    .map(ccr_core::Secret::from);
             } else {
                 updated.auth_token = None;
             }
@@ -1982,41 +1982,10 @@ impl CodexAuthService {
 mod tests {
     use super::*;
     use crate::models::{CodexAuthTokens, CodexRuntimeMode, ProfileConfig};
+    use crate::test_support::TestCodexEnv;
     use chrono::Duration;
     use serde_json::json;
-    use std::ffi::OsString;
-    use std::sync::{LazyLock, Mutex};
     use tempfile::TempDir;
-
-    static ENV_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
-
-    struct EnvVarGuard {
-        key: &'static str,
-        previous: Option<OsString>,
-    }
-
-    impl EnvVarGuard {
-        fn set(key: &'static str, value: &std::path::Path) -> Self {
-            let previous = std::env::var_os(key);
-            // SAFETY: tests that use process-wide environment variables hold ENV_LOCK.
-            unsafe {
-                std::env::set_var(key, value);
-            }
-            Self { key, previous }
-        }
-    }
-
-    impl Drop for EnvVarGuard {
-        fn drop(&mut self) {
-            // SAFETY: tests that use process-wide environment variables hold ENV_LOCK.
-            unsafe {
-                match &self.previous {
-                    Some(value) => std::env::set_var(self.key, value),
-                    None => std::env::remove_var(self.key),
-                }
-            }
-        }
-    }
 
     /// 创建测试用的 service 实例
     fn create_test_service() -> (CodexAuthService, TempDir, TempDir) {
@@ -2078,7 +2047,7 @@ mod tests {
         let mut profile = ProfileConfig {
             description: Some("Duck".to_string()),
             base_url: Some("https://api.example.com/v1".to_string()),
-            auth_token: Some("duck-key".to_string()),
+            auth_token: Some(ccr_core::Secret::from("duck-key")),
             model: Some("gpt-5-codex".to_string()),
             provider: Some("duck".to_string()),
             provider_type: Some("third_party_model".to_string()),
@@ -2150,7 +2119,7 @@ mod tests {
         .unwrap();
 
         let mut profile = official_profile();
-        profile.auth_token = Some("sk-profile-token".to_string());
+        profile.auth_token = Some(ccr_core::Secret::from("sk-profile-token"));
 
         let platform = service.platform().unwrap();
         platform.save_profile("official-api", &profile).unwrap();
@@ -2245,9 +2214,7 @@ mod tests {
 
     #[test]
     fn test_get_runtime_summary_ignores_global_registry_current_profile() {
-        let _guard = ENV_LOCK.lock().unwrap();
-        let global_ccr = TempDir::new().unwrap();
-        let _ccr_root = EnvVarGuard::set("CCR_ROOT", global_ccr.path());
+        let env = TestCodexEnv::new();
 
         let manager = ccr_config::PlatformConfigManager::with_default().unwrap();
         let mut global_registry = manager.load_or_create_default().unwrap();
@@ -2277,6 +2244,12 @@ mod tests {
         assert_eq!(
             summary.current_profile_auth_mode,
             Some(crate::models::CodexProfileAuthMode::ProviderEnvKey)
+        );
+        assert!(
+            !service
+                .platform_paths()
+                .registry_file
+                .starts_with(env.root())
         );
     }
 

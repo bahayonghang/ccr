@@ -109,6 +109,7 @@
 
 <script setup lang="ts">
 import { reactive, ref, watch } from 'vue'
+import { getErrorMessage } from '@/utils/errorHandler'
 import BaseModal from '@/components/common/BaseModal.vue'
 import { useClaudeObserverStore } from '@/stores/claudeObserver'
 import type { SubscriptionDto } from '@/types/claudeObserver'
@@ -182,7 +183,7 @@ const onSave = async () => {
     emit('saved')
     emit('update:modelValue', false)
   } catch (err) {
-    error.value = err instanceof Error ? err.message : String(err)
+    error.value = getErrorMessage(err)
   } finally {
     saving.value = false
   }
