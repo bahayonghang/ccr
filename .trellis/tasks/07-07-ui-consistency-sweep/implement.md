@@ -71,10 +71,14 @@ rg "\b(confirm|alert)\(" ccr-ui/src --glob '!**/*.test.*'
 
 ## 收尾(全部 R2 完成后)
 
-- [ ] F-1 spec 更新:design.md §1/§2 确认交互约定沉淀到 spec(trellis-update-spec 评估:并入现有 ccr-ui frontend 契约或新建交互契约文档);usage-chart-stability-contracts "已知偏差"节收敛。
-- [ ] F-2 PRD 验收清单逐项复核打勾;登记存量装饰性 hex 命中清单;确认独立子任务 07-09 不阻塞本任务归档。
-- [ ] F-3 全量验证:`just frontend-check-quick` + 主题 smoke(`bunx vitest run --config vitest.smoke.config.ts tests/apple-glass-surface-contract.smoke.test.ts tests/theme-bootstrap.smoke.test.ts tests/app-settings.smoke.test.ts`)+ provider-templates smoke(`bun run test:smoke -- tests/provider-templates.smoke.test.ts`)。
-- [ ] F-4 中文分批提交([AI] 前缀,R2 每页一笔);不 push。
+- [x] F-1 spec 更新:design.md §1/§2 确认交互约定沉淀到 spec(trellis-update-spec 评估:并入现有 ccr-ui frontend 契约或新建交互契约文档);usage-chart-stability-contracts "已知偏差"节收敛。
+      记录(2026-07-09):新建 `.trellis/spec/ccr-ui/frontend/confirm-interaction-contracts.md`(requestConfirm 闸门模式、danger/warning 语义分级、composable 不触达对话框边界、toast 分级与内联列表升级、BaseModal 迁移指引),挂入 index.md 指南表与 Pre-Development Checklist。usage 契约"已知偏差"节已在 R2-6 收敛(animations 项划掉,ctx.trends 项保留)。
+- [x] F-2 PRD 验收清单逐项复核打勾;登记存量装饰性 hex 命中清单;确认独立子任务 07-09 不阻塞本任务归档。
+      记录(2026-07-09):PRD 验收 5 项中 4 项打勾;截图/手测项保持未勾(无运行中 Tauri 应用,统一留待带应用会话)。存量 hex 清单已登记进 PRD(AppSettings 色板数据 15、AgentIcons 品牌 fallback 4、CommandList 令牌 fallback 4、TokenDetailTab 图表 fallback 1、ClaudeCodeSettingsView `#f87171`×2 存量待迁、Checkin 遮罩 scrim 1)。07-09(codex-auth-shared.css 迁移)为独立 PRD-only 子任务挂在父任务 07-07-ui-liquid-glass-redesign 下,与本任务无文件交集(R2-2 未触碰该文件),不阻塞归档。
+- [x] F-3 全量验证:`just frontend-check-quick` + 主题 smoke(`bunx vitest run --config vitest.smoke.config.ts tests/apple-glass-surface-contract.smoke.test.ts tests/theme-bootstrap.smoke.test.ts tests/app-settings.smoke.test.ts`)+ provider-templates smoke(`bun run test:smoke -- tests/provider-templates.smoke.test.ts`)。
+      记录(2026-07-09):frontend-check-quick 全绿;主题 smoke 39/39;provider-templates smoke 9/9。
+- [x] F-4 中文分批提交([AI] 前缀,R2 每页一笔);不 push。
+      记录(2026-07-09):R2 六笔——`8158eb5a`(R2-1 mcp)、`8601e639`(R2-2 auth)、`3fa12979`(R2-3 agents)、`126fb2e2`(R2-4 presets)、R2-5 零改动并入 R2-6 记录、`53029eb8`(R2-6 usage + 契约收敛);另 `4c1af375` 存量 i18n 缺口独立一笔;收尾工件(spec 新契约 + index + prd/implement)一笔(见本次提交)。未 push。
 
 ## 回滚点
 

@@ -43,11 +43,11 @@ composables 中的 confirm 需要把确认决策上移到调用视图层(composa
 
 ## Acceptance Criteria
 
-- [ ] `rg "\\b(confirm|alert)\\(" ccr-ui/src --glob '!**/*.test.*'` 仅剩注释或明确标注的降级路径(目标零命中)。
-- [ ] R2 清单每页:亮/暗截图 + 确认对话框/空态/加载态手测记录。
-- [ ] `rg "#[0-9a-fA-F]{6}" ccr-ui/src/views ccr-ui/src/components --glob '*.vue'` 新增命中为零(存量装饰性命中登记清单)。
-- [ ] usage 遗留三项按 2026-07-09 决策落地:cost 卡涨=红/降=绿;两处图表 animations 走 `buildChartAnimations()`;sourcesHint 双语人话化(`bun run i18n` 通过)。
-- [ ] `bun run type-check && bun run lint` + 主题 smoke + provider-templates smoke 通过。
+- [x] `rg "\\b(confirm|alert)\\(" ccr-ui/src --glob '!**/*.test.*'` 仅剩注释或明确标注的降级路径(目标零命中)。(2026-07-09 复核:2 命中均为注释豁免,零实弹)
+- [ ] R2 清单每页:亮/暗截图 + 确认对话框/空态/加载态手测记录。(代码面全部完成;截图与手测因会话无运行中 Tauri 应用,统一留待带应用会话补,见 implement.md R1-M)
+- [x] `rg "#[0-9a-fA-F]{6}" ccr-ui/src/views ccr-ui/src/components --glob '*.vue'` 新增命中为零(存量装饰性命中登记清单)。(2026-07-09 登记:AppSettingsView 15 处=主题/accent 预览色板数据;AgentIcons 4 处=平台品牌色 fallback;CommandList 4 处=令牌 fallback;TokenDetailTab 1 处=图表色 fallback;ClaudeCodeSettingsView 2 处 `#f87171`=存量待迁,非本任务触碰。另:CheckinProvidersTab 弹窗遮罩 `rgb(0 0 0 / 50%)` 为惯例性 scrim,与 BaseModal 黑遮罩一致)
+- [x] usage 遗留三项按 2026-07-09 决策落地:cost 卡涨=红/降=绿;两处图表 animations 走 `buildChartAnimations()`;sourcesHint 双语人话化(`bun run check:i18n` 通过)。
+- [x] `bun run type-check && bun run lint` + 主题 smoke + provider-templates smoke 通过。(2026-07-09,见 implement.md F-3 记录)
 
 ## Dependencies
 

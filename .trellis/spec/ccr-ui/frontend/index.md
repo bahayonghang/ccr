@@ -14,6 +14,7 @@
 | [Theme Token Contracts](./theme-token-contracts.md)                       | Theme/flavor/accent token layering and visual verification guardrails                                  | Complete |
 | [Dashboard Presentation Contracts](./dashboard-presentation-contracts.md) | Signal severity gating, readiness reason shape, first-run heuristic, compact-card empty states         | Complete |
 | [Usage Chart Stability Contracts](./usage-chart-stability-contracts.md)   | ApexCharts options/series reference discipline, redraw freeze flags, KeepAlive interplay               | Complete |
+| [Confirm Interaction Contracts](./confirm-interaction-contracts.md)       | requestConfirm gate pattern, danger/warning semantics, no native dialogs, composable boundary          | Complete |
 
 ## Pre-Development Checklist
 
@@ -23,6 +24,7 @@
 - Read [Theme Token Contracts](./theme-token-contracts.md) before changing `ccr-ui/src/styles/tokens.css`, flavor overrides, or theme smoke contracts.
 - Read [Dashboard Presentation Contracts](./dashboard-presentation-contracts.md) before changing `dashboardPresentation.ts` or its five Dashboard child components.
 - Read [Usage Chart Stability Contracts](./usage-chart-stability-contracts.md) before adding or changing any ApexCharts usage chart, its options/series wiring, or the usage tab KeepAlive structure.
+- Read [Confirm Interaction Contracts](./confirm-interaction-contracts.md) before adding any confirmation dialog, destructive-action flow, or user-facing alert/toast.
 
 ## Quality Check
 
