@@ -159,3 +159,38 @@ Pair the override with a smoke assertion that extracts this exact block and chec
 
 - `rg "<alias-name>" ccr-ui/src` before touching any semantic alias's _definition_ (not just a consumer's usage).
 - `cd ccr-ui && bun run type-check && bun run lint` (CSS-only changes won't be caught by either — pair with a live `preview_inspect` computed-style check on both the migrated component and one representative other consumer of the alias you did _not_ touch).
+
+---
+
+## Scenario: `theme.css` legacy bridge names are non-exhaustive (phantom `var(..., fallback)` tokens)
+
+### 1. Scope / Trigger
+
+- Trigger: a consumer references a short-form variable (no `--color-`/`--stage-` prefix, e.g. `--platform-codex`, `--platform-codex-rgb`) with a literal fallback, e.g. `rgb(var(--platform-codex-rgb, 245 158 11) / 10%)`.
+- `theme.css` (`/* Compatibility bridge: keep legacy variable names alive, but source all values from tokens.css. */`) only bridges a hand-picked subset of short names to their canonical `--color-*` definitions. It is **not** a mechanical 1:1 mirror of every token in `tokens.css`.
+
+### 2. Signatures
+
+- Confirmed bridged (exist in `theme.css`): `--platform-claude`, `--platform-codex`, `--platform-gemini` (non-`-rgb` only), `--stage-text-*`, `--stage-surface-*`, `--stage-chip-neutral-*`, `--accent-*`, `--bg-*`, `--text-*`.
+- Confirmed **not** bridged (verified via `rg "^\s*--[a-z-]+: var\(--color-" ccr-ui/src/styles/theme.css`): `--platform-claude-rgb`, `--platform-codex-rgb`, `--platform-gemini-rgb`. Any consumer of these three always silently uses its own literal fallback — the CSS custom property never resolves through the cascade.
+
+### 3. Contracts
+
+- Before consuming a short-form `var(--foo, <fallback>)` pattern, `rg "^\s*--foo:" ccr-ui/src/styles/theme.css` to confirm the bridge actually exists. If it doesn't, either bridge-consume the canonical `--color-foo` token directly (preferred — matches how sibling Codex/Gemini components already consume `--color-platform-codex-rgb` / `--color-platform-gemini-rgb` directly, per `rg "color-platform-codex-rgb" ccr-ui/src`), or add the missing bridge line in `theme.css` if the short form must stay the public name.
+- A literal fallback on a `var()` reference is not automatically "intentional decorative default" — verify the primary reference actually resolves somewhere in the cascade first. If it never resolves, the fallback **is** the hardcoded value in practice, just spelled to look like a token.
+- Don't assume `-rgb` siblings of a bridged name are also bridged; check each suffix independently.
+
+### 4. Validation & Error Matrix
+
+- `var(--platform-codex-rgb, 245 158 11)` used anywhere -> always renders `rgb(245 158 11)` regardless of theme/flavor, because `--platform-codex-rgb` is never set. Found live in `codex-auth-shared.css` (fixed, 07-09-ui-codex-auth-css-tokens) and still present in `CodexSettingsView.vue:899-900` (out of scope for that task, unfixed as of 2026-07-09).
+- Treating a passing `rg "#[0-9a-fA-F]{3,8}\b|rgba?\("` scan as proof of "no hardcoded colors" -> false negative for this pattern, since `var(--undefined-name, 245 158 11)` doesn't match a bare hex/rgb literal regex at the call site in the same way a raw `rgb(245 158 11 / 10%)` would, but behaves identically at runtime. Grep for `var\(--[a-z-]+-rgb,\s*\d` / `var\(--[a-z-]+,\s*#` patterns too when auditing a file for this class of bug.
+
+### 5. Good/Base/Bad Cases
+
+- Good: `background: rgb(var(--color-platform-codex-rgb) / 10%);` — consumes the canonical, always-defined token directly, no fallback needed.
+- Bad: `background: rgb(var(--platform-codex-rgb, 245 158 11) / 10%);` — looks token-based, is actually a permanently-hardcoded amber regardless of theme/flavor.
+
+### 6. Tests Required
+
+- `rg "var\(--[a-z-]+-rgb,\s*\d|var\(--[a-z-]+,\s*#" <file>` when auditing a file for hardcoded-color migration, in addition to the plain hex/rgba regex.
+- `preview_inspect` the computed `background-color`/`color` against the token's known value from `tokens.css` (not just "does it look like a var() call").
