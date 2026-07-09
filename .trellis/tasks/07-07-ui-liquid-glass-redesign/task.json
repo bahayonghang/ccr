@@ -23,7 +23,8 @@
     "07-07-ui-shell-home",
     "07-07-ui-profiles-unify",
     "07-07-ui-usage-dashboard",
-    "07-07-ui-consistency-sweep"
+    "07-07-ui-consistency-sweep",
+    "07-09-ui-codex-auth-css-tokens"
   ],
   "parent": null,
   "relatedFiles": [],

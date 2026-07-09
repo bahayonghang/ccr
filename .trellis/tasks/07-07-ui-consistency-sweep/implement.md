@@ -1,0 +1,76 @@
+# 执行清单
+
+> 约定见 design.md。R1 为首个执行会话范围;R2 按序每页独立验收,可跨会话。
+> 前置阅读:`.trellis/spec/ccr-ui/frontend/theme-token-contracts.md`;做 R2-6 时加读 `usage-chart-stability-contracts.md` 与 `dashboard-presentation-contracts.md`。
+> 完成一项即打勾并在该项下追加验证记录(日期 + 命令输出要点);不得预填。
+
+## R1 原生对话框清除(7 文件,16 处实弹命中)
+
+每完成一项跑余量核对,预期命中数递减(起点 16 实弹):
+
+```bash
+rg "\b(confirm|alert)\(" ccr-ui/src --glob '!**/*.test.*'
+```
+
+豁免(不计入实弹):`composables/useAgents.ts:72`(注释)、`composables/useConfirmAction.ts:2`(文档注释)。
+
+- [x] R1-1 `views/ClaudeAuthView.vue`(2 处):471 切换官方账号 confirm → `requestConfirm`(**warning**);489 删除官方账号 → `requestConfirm`(**danger**)。文案沿用现有 `tt()` 双语串拆 title/message。
+      验证:rg 余量 14 实弹。
+      记录(2026-07-09):`rg "\b(confirm|alert)\(" ccr-ui/src --glob '!**/*.test.*'` = 16 命中(14 实弹 + 2 豁免注释)。title/confirmText 用 tt() 内联双语,未新增 i18n key。
+- [x] R1-2 `views/mcp/McpManagerView.vue`(3 处):304 projectScopeWrite → **warning**;331 deleteGroup → **danger**;354 projectScopeImport → **warning**。`handleSubmit` / `handleImportServers` 改 async 闸门(scope !== 'project' 直通不弹窗)。
+      验证:rg 余量 11 实弹。
+      记录(2026-07-09):rg = 13 命中(11 实弹)。三个 handler 原本已 async,确认后继续 submitForm+closePanel / 导入流程,控制流不变。title/confirmText 复用 `common.warning`/`common.confirm`/`common.delete`/`common.cancel`。
+- [x] R1-3 `views/generic/AgentDetailView.vue`(4 处):447/461 `alert(operationFailed)` → `uiStore.showError`;468 删除 confirm → `requestConfirm`(**danger**);475 `alert(deleteFailed)` → `uiStore.showError`。补 `useUIStore` import。
+      验证:rg 余量 7 实弹。
+      记录(2026-07-09):rg = 9 命中(7 实弹)。已补 `useUIStore` import + 实例。
+- [x] R1-4 `components/BaseSlashCommands.vue`(1 处):557 删除 confirm → `requestConfirm`(**danger**)。补 uiStore。
+      验证:rg 余量 6 实弹。
+      记录(2026-07-09):rg = 8 命中(6 实弹)。message 沿用 `${props.config.i18n.prefix}.confirmDelete`。
+- [x] R1-5 `components/McpPresetsPanel.vue`(4 处):339 apiKeyRequired → `showWarning`;361 installPartialFailed → `showError`(失败平台列表拼入消息,内联结果列表升级留 R2-4);363 installSuccess → `showSuccess`;370 installFailed → `showError`。补 uiStore。
+      验证:rg 余量 2 实弹(仅剩 composables)。
+      记录(2026-07-09):rg = 4 命中(2 实弹,均在 composables)。失败平台列表沿用原 `\n` 拼接进 showError 消息。
+- [x] R1-6 `composables/usePlatformMcp.ts:221` + `views/generic/PlatformMcpView.vue`:composable `deleteServer` 去 confirm 变纯执行器;视图新增 `handleDeleteServer`(`requestConfirm` **danger**,message 用 `${i18nPrefix}.deleteConfirm`),模板 `@click` 改接线。
+      验证:rg 余量 1 实弹。
+      记录(2026-07-09):rg = 3 命中(1 实弹)。deleteServer 签名/返回 `Promise<boolean>` 与 toast+loadServers 保留;PostToolUse formatter hook 将该 composable 整文件重排(4 空格→2 空格),非手工重构。
+- [x] R1-7 `composables/usePlatformPlugins.ts:138` + `views/generic/PlatformPluginsView.vue`:同 R1-6,`handleDeletePlugin`。
+      验证:rg 实弹 0(全站仅剩 2 处豁免注释)。
+      记录(2026-07-09):rg = 2 命中(0 实弹,仅剩 useAgents.ts:72 / useConfirmAction.ts:2 豁免注释)。name 用 `plugin.name || plugin.id`;formatter 同样整文件重排该 composable。`cd ccr-ui && bun run type-check` 通过;`bun run lint` 0 errors(1 个存量 warning:DashboardSignalStream.vue,非本次触碰)。未新增 i18n key。
+- [x] R1-V 收尾验证(全绿才算过):
+  - `rg "\b(confirm|alert)\(" ccr-ui/src --glob '!**/*.test.*'` 零实弹命中。
+  - `cd ccr-ui && bun run type-check && bun run lint`。
+  - `just frontend-check-quick`。
+  - 若新增 i18n key(如确认框标题):`bun run i18n && bun run test:i18n`。
+      记录(2026-07-09):rg 全扫 = 2 命中,均为豁免注释,零实弹 ✅;type-check 零报错 ✅;lint 0 errors(1 个存量 warning:DashboardSignalStream.vue,非本次触碰)✅;`just frontend-check-quick` 全绿(i18n 23/23、smoke 82 文件 372/372)✅;未新增 i18n key(复用 common.* 与既有 deleteConfirm/confirmDelete key、ClaudeAuthView 用 tt() 内联双语)。composable 语义 diff 经 `git diff -w` 复核:仅 confirm 闸门删除 + 注释更新,大 diff 为项目 formatter hook 的 4→2 空格重排。
+- [ ] R1-M 手测(亮/暗各一轮):ClaudeAuth 切换/删除、MCP manager project scope 提交/删组/project scope 导入、Agent 详情删除、斜杠命令删除、presets 安装失败与成功路径、platform MCP 删除、platform 插件删除 —— 核对 dialog type 语义、取消不执行、toast 出现。留手测记录。
+      状态(2026-07-09):本会话无运行中的 Tauri 应用,手测未执行;留待用户或下个带应用会话完成后补记录。静态面已由 R1-V 覆盖。
+- [x] R1-C 提交(中文,[AI] 前缀,不 push,分两笔):① 视图/组件对话框清除(R1-1~5);② composable 确认决策上移(R1-6~7)。
+      记录(2026-07-09):① `02789820` fix(ccr-ui) 清除视图与组件层原生 confirm/alert;② `94ff6f29` refactor(ccr-ui) platform MCP/插件删除确认决策上移到视图层。未 push。
+
+## R2 旧页面对齐(每页一项,按序独立验收)
+
+每页统一验收基线(R3):无原生对话框;危险操作 danger;表面/边框/文字走语义令牌,无新硬编码 hex/rgba(装饰性除外并注释);空态有引导动作(EmptyState);加载态骨架或统一 spinner;无新增 `backdrop-filter`;`prefers-reduced-motion` 下无常驻动画。
+
+每页统一产出:**亮/暗截图各一** + 确认对话框/空态/加载态手测记录 + 该页文件 `rg "#[0-9a-fA-F]{6}"` 新增命中为零 + `cd ccr-ui && bun run type-check && bun run lint`。
+
+- [ ] R2-1 `McpManagerView` / `mcp/*`:卡片表面贴新令牌 + 空态 EmptyState(confirm 已在 R1 清除)。
+- [ ] R2-2 `ClaudeAuthView` / codex tabs(Auth 相关):页面结构内表面类与交互对齐。**不动 `codex-auth-shared.css`**(已拆 07-09-ui-codex-auth-css-tokens)。
+- [ ] R2-3 `generic/AgentDetailView` + `AgentsView`:危险操作 danger 语义复查(AgentsView 已用 requestConfirm,核对 type)+ 表面对齐。
+- [ ] R2-4 `McpPresetsPanel`:部分失败展示从 toast 升级为内联结果列表 + 表面对齐。
+- [ ] R2-5 `SyncView` / `CheckinView` / `ConfigsView`:抽查硬编码颜色与旧卡片样式,贴新令牌(不重排版)。
+- [ ] R2-6 usage 遗留三项(设计见 design.md §3;对照 usage-chart-stability-contracts + dashboard-presentation-contracts):
+  - a. cost delta 涨=红/降=绿:`usageSummaryCards.ts` + `UsageMetricCard.vue`(cost 实例)+ `UsageCostConclusionCard.vue`;requests/tokens 卡不动。
+  - b. `UsageTokensTab.vue:259` / `UsageCostTab.vue:174` 硬编码 animations → 导出并复用 `buildChartAnimations()`;保持 options 引用纪律;顺带收敛契约"已知偏差"节。
+  - c. `ops.sourcesHint`(zh-CN.ts:2678 / en-US.ts:2786)双语人话化;`UsageDiagnosticsDrawer` 显示核对。
+  - 验证:type-check + lint + `bun run i18n && bun run test:i18n`;usage 页亮/暗截图;reduced-motion 下图表动画降级手测;tab 切换无 canvas 重建回归(节点身份口径见契约 §5)。
+
+## 收尾(全部 R2 完成后)
+
+- [ ] F-1 spec 更新:design.md §1/§2 确认交互约定沉淀到 spec(trellis-update-spec 评估:并入现有 ccr-ui frontend 契约或新建交互契约文档);usage-chart-stability-contracts "已知偏差"节收敛。
+- [ ] F-2 PRD 验收清单逐项复核打勾;登记存量装饰性 hex 命中清单;确认独立子任务 07-09 不阻塞本任务归档。
+- [ ] F-3 全量验证:`just frontend-check-quick` + 主题 smoke(`bunx vitest run --config vitest.smoke.config.ts tests/apple-glass-surface-contract.smoke.test.ts tests/theme-bootstrap.smoke.test.ts tests/app-settings.smoke.test.ts`)+ provider-templates smoke(`bun run test:smoke -- tests/provider-templates.smoke.test.ts`)。
+- [ ] F-4 中文分批提交([AI] 前缀,R2 每页一笔);不 push。
+
+## 回滚点
+
+- R1 两笔提交独立可 revert;composable 上移若引回归,revert 第 ② 笔即恢复 confirm 内置行为。
+- R2 每页一笔提交,单页回退不影响其他页。

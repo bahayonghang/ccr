@@ -1,1 +1,4 @@
-{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file": ".trellis/spec/ccr-ui/frontend/theme-token-contracts.md", "reason": "检查 R2 表面改动是否守住语义令牌与玻璃预算契约"}
+{"file": ".trellis/spec/ccr-ui/frontend/usage-chart-stability-contracts.md", "reason": "检查 R2-6 图表改动未破坏 options/series 引用纪律与 redrawOn* 冻结"}
+{"file": ".trellis/spec/ccr-ui/frontend/dashboard-presentation-contracts.md", "reason": "检查 delta tone 改动与 dashboard 展示契约一致"}
+{"file": ".trellis/spec/ccr-ui/frontend/index.md", "reason": "质量检查命令全集与 pre-dev checklist"}

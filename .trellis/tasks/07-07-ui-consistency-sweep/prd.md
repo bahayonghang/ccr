@@ -23,10 +23,11 @@ composables 中的 confirm 需要把确认决策上移到调用视图层(composa
 ### R2 旧页面对齐(每页一个 checklist 项,按优先级)
 
 1. McpManagerView / mcp/*:确认对话框 + 卡片表面贴新令牌 + 空态用 EmptyState。
-2. ClaudeAuthView / codex/tabs(Auth 相关):同上;codex-auth-shared.css(658 行)中硬编码表面色迁移语义令牌。
+2. ClaudeAuthView / codex/tabs(Auth 相关):同上;~~codex-auth-shared.css(658 行)中硬编码表面色迁移语义令牌~~(2026-07-09 拆出独立子任务 07-09-ui-codex-auth-css-tokens,本任务不动该文件)。
 3. generic/AgentDetailView + AgentsView:对话框 + 危险操作 danger 语义。
 4. McpPresetsPanel:alert 链改 toast + 部分失败展示改内联结果列表。
 5. SyncView / CheckinView / ConfigsView:抽查硬编码颜色与旧卡片样式,贴新令牌(不重排版,纯表面对齐)。
+6. usage 遗留三项(2026-07-09 决策并入):cost delta 语义色改"涨=红(danger)/降=绿(success)";UsageTokensTab/UsageCostTab 硬编码 `animations: { enabled: false }` 对齐 `buildChartAnimations()`;`ops.sourcesHint` 裸英文文案人话化(zh/en 双语)。
 
 ### R3 通用标准(每页验收基准)
 
@@ -45,6 +46,7 @@ composables 中的 confirm 需要把确认决策上移到调用视图层(composa
 - [ ] `rg "\\b(confirm|alert)\\(" ccr-ui/src --glob '!**/*.test.*'` 仅剩注释或明确标注的降级路径(目标零命中)。
 - [ ] R2 清单每页:亮/暗截图 + 确认对话框/空态/加载态手测记录。
 - [ ] `rg "#[0-9a-fA-F]{6}" ccr-ui/src/views ccr-ui/src/components --glob '*.vue'` 新增命中为零(存量装饰性命中登记清单)。
+- [ ] usage 遗留三项按 2026-07-09 决策落地:cost 卡涨=红/降=绿;两处图表 animations 走 `buildChartAnimations()`;sourcesHint 双语人话化(`bun run i18n` 通过)。
 - [ ] `bun run type-check && bun run lint` + 主题 smoke + provider-templates smoke 通过。
 
 ## Dependencies
@@ -54,3 +56,4 @@ composables 中的 confirm 需要把确认决策上移到调用视图层(composa
 ## Notes
 
 - 本任务按 R2 顺序可拆多次提交/多个会话执行,每页独立可验收;若单页工作量超预期(如 codex-auth-shared.css 迁移),允许把该页拆为独立子任务再挂到父任务下。
+- 2026-07-09 规划决策(用户拍板):① usage 遗留三项并入本任务(R2 第 6 项);② cost delta 语义色定为涨=红/降=绿;③ codex-auth-shared.css 迁移拆为独立子任务 07-09-ui-codex-auth-css-tokens,本任务 R2-2 不动该文件。
