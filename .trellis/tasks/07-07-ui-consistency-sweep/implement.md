@@ -52,7 +52,8 @@ rg "\b(confirm|alert)\(" ccr-ui/src --glob '!**/*.test.*'
 
 每页统一产出:**亮/暗截图各一** + 确认对话框/空态/加载态手测记录 + 该页文件 `rg "#[0-9a-fA-F]{6}"` 新增命中为零 + `cd ccr-ui && bun run type-check && bun run lint`。
 
-- [ ] R2-1 `McpManagerView` / `mcp/*`:卡片表面贴新令牌 + 空态 EmptyState(confirm 已在 R1 清除)。
+- [x] R2-1 `McpManagerView` / `mcp/*`:卡片表面贴新令牌 + 空态 EmptyState(confirm 已在 R1 清除)。
+      记录(2026-07-09):① `McpDetailPanel.vue` `.detail-section` 表面从 `rgb(--color-bg-surface-rgb / 54%)`+`--elevation-1` 贴换为 `--surface-card-{bg,border,shadow}` 语义令牌,`--effective` 变体渐变叠在 `--surface-card-bg` 上;② `McpListPanel.vue` 列表空态从纯文本 div 换为 `EmptyState` 组件(icon Server;非搜索空态带"添加服务器"引导动作 → emit create;搜索无结果不带动作),删除孤儿样式 `.mcp-list-panel__empty`;③ `McpManagerView.vue` 唯一 hex fallback `var(--color-danger, #ef4444)` 去掉字面量(令牌已在 tokens.css 定义)。未新增 i18n key(复用 list.empty/noSearchResults/actions.addServer)。验证:mcp 全部文件 `rg "#……"` 零命中;type-check 零报错;lint 0 errors(1 存量 warning 非本次触碰);`just frontend-check-quick` 全绿(smoke 372/372)。亮/暗截图与手测:本会话无运行中 Tauri 应用,与 R1-M 一并留待带应用会话补。detail 面板"未选中"占位为选择提示非数据空态,维持原样。
 - [ ] R2-2 `ClaudeAuthView` / codex tabs(Auth 相关):页面结构内表面类与交互对齐。**不动 `codex-auth-shared.css`**(已拆 07-09-ui-codex-auth-css-tokens)。
 - [ ] R2-3 `generic/AgentDetailView` + `AgentsView`:危险操作 danger 语义复查(AgentsView 已用 requestConfirm,核对 type)+ 表面对齐。
 - [ ] R2-4 `McpPresetsPanel`:部分失败展示从 toast 升级为内联结果列表 + 表面对齐。

@@ -82,12 +82,14 @@
 
     <!-- 列表区域 -->
     <div class="mcp-list-panel__scroll">
-      <div
+      <EmptyState
         v-if="groups.length === 0 && !loading"
-        class="mcp-list-panel__empty"
-      >
-        {{ searchQuery ? t('mcp.manager.list.noSearchResults') : t('mcp.manager.list.empty') }}
-      </div>
+        icon="Server"
+        :title="searchQuery ? t('mcp.manager.list.noSearchResults') : t('mcp.manager.list.empty')"
+        :action-text="searchQuery ? undefined : t('mcp.manager.actions.addServer')"
+        action-icon="Plus"
+        :on-action="searchQuery ? undefined : () => emit('create')"
+      />
 
       <button
         v-for="group in groups"
@@ -146,6 +148,7 @@ import ListSearchHeader from '@/components/common/ListSearchHeader.vue'
 import MultiSelectFloatingBar from '@/components/common/MultiSelectFloatingBar.vue'
 import AgentIcons from '@/components/common/AgentIcons.vue'
 import SIcon from '@/components/ui/SIcon.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
 import type { McpGroup } from '@/types/mcpManager'
 
 const { t } = useI18n({ useScope: 'global' })
@@ -163,7 +166,7 @@ defineProps<{
   loading: boolean
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   'update:searchQuery': [value: string]
   'select': [name: string]
   'create': []
@@ -207,13 +210,6 @@ function formatScopeList(scopes: string[]): string {
   display: flex;
   flex-direction: column;
   gap: 0.125rem;
-}
-
-.mcp-list-panel__empty {
-  padding: 1.5rem 0.75rem;
-  text-align: center;
-  font-size: 0.8125rem;
-  color: var(--color-text-muted);
 }
 
 /* 列表项 */

@@ -595,7 +595,7 @@ async function handleImportServers(
 .mcp-alert--error {
   border: 1px solid rgb(var(--color-danger-rgb, 239 68 68) / 26%);
   background: rgb(var(--color-danger-rgb, 239 68 68) / 8%);
-  color: var(--color-danger, #ef4444);
+  color: var(--color-danger);
 }
 
 .mcp-manager-view :deep(.master-detail) {

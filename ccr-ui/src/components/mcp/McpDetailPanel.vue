@@ -475,16 +475,16 @@ function maskValue(value: string): string {
 
 .detail-section {
   padding: 1rem;
-  border: 1px solid var(--surface-card-border, rgb(var(--color-border-default-rgb) / 45%));
+  border: 1px solid var(--surface-card-border);
   border-radius: 1rem;
-  background: rgb(var(--color-bg-surface-rgb) / 54%);
-  box-shadow: var(--elevation-1);
+  background: var(--surface-card-bg);
+  box-shadow: var(--surface-card-shadow);
 }
 
 .detail-section--effective {
   background:
     linear-gradient(135deg, rgb(var(--color-accent-primary-rgb) / 9%), transparent 46%),
-    rgb(var(--color-bg-surface-rgb) / 62%);
+    var(--surface-card-bg);
 }
 
 .detail-section__heading {
