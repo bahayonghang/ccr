@@ -218,9 +218,9 @@ const flushPromises = async () => {
   await nextTick()
 }
 
-const withFakeNow = async <T>(isoTimestamp: string, callback: () => Promise<T>) => {
+const withFakeNow = async <T>(timestamp: string | Date, callback: () => Promise<T>) => {
   vi.useFakeTimers()
-  vi.setSystemTime(new Date(isoTimestamp))
+  vi.setSystemTime(timestamp instanceof Date ? timestamp : new Date(timestamp))
   try {
     return await callback()
   } finally {
@@ -975,7 +975,7 @@ describe('usage dashboard state smoke', () => {
   })
 
   it('uses a local inclusive 7 day window instead of UTC ISO slicing', async () => {
-    await withFakeNow('2026-05-10T00:30:00+08:00', async () => {
+    await withFakeNow(new Date(2026, 4, 10, 0, 30, 0), async () => {
       tauriRuntime = true
       const { state, unmount } = await mountComposable()
 

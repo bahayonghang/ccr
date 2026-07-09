@@ -728,6 +728,8 @@ mod tests {
         let manager = SyncFolderManager::new(&config_path);
 
         let mut config = SyncFoldersConfig::default();
+        config.webdav.url = "https://dav.example.com/".to_string();
+        config.webdav.username = "test@example.com".to_string();
         config.webdav.password = ccr_core::Secret::from("s3cret");
         manager.save_config(&config).unwrap();
 

@@ -341,12 +341,12 @@ fn doctor_warns_for_glm_placeholder_and_missing_runtime_envs() {
 
     assert!(output.status.success(), "{:?}", output.status);
     assert!(json["summary"]["warnings"].as_u64().unwrap() >= 1);
-    let settings_check = json["checks"]
-        .as_array()
-        .unwrap()
+    let checks = json["checks"].as_array().unwrap();
+    let settings_check = checks
         .iter()
-        .find(|check| check["id"] == "platform.claude.settings_file")
-        .expect("settings_file check should exist");
+        .find(|check| check["id"] == "platform.claude.settings_file");
+    assert!(settings_check.is_some(), "settings_file check should exist");
+    let settings_check = settings_check.unwrap();
     assert_eq!(settings_check["status"], "warn");
     let detail = settings_check["detail"].as_str().unwrap();
     assert!(detail.contains("placeholder"), "{detail}");
