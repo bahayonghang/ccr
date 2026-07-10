@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 36
+- **Total Sessions**: 37
 - **Last Active**: 2026-07-10
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1619 | Active |
+| `journal-1.md` | ~1653 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 37 | 2026-07-10 | 完成 TUI 中英文切换 | `415b01db`, `2e50c0c8` | `dev` |
 | 36 | 2026-07-10 | 完善双语 README 界面预览 | `d71da7b6`, `d47a9b62` | `dev` |
 | 35 | 2026-07-10 | 完成 Codex GPT-5.6 三模型支持 | `0e999aaf`, `7c535a48` | `dev` |
 | 34 | 2026-07-09 | codex-auth-shared.css 语义令牌迁移收尾 | `b76c04b6`, `d2ef238a` | `dev` |

@@ -1617,3 +1617,37 @@ implement.md 第 7 项闭环。7a:UsageLogsTab loading 态从单行"加载中"�
 ### Next Steps
 
 - None - task complete
+
+
+## Session 37: 完成 TUI 中英文切换
+
+**Date**: 2026-07-10
+**Task**: 完成 TUI 中英文切换
+**Branch**: `dev`
+
+### Summary
+
+为 Rust TUI 增加默认英文、简体中文完整界面覆盖与 Ctrl+L 全局切换，语言通过 tui.toml 原子持久化；补齐状态保持、CJK 布局、失败回退测试并通过 just ci。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `415b01db` | (see git log) |
+| `2e50c0c8` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
