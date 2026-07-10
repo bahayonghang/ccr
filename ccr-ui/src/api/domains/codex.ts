@@ -266,10 +266,6 @@ export const listCodexModels = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('codex_list_models')
 }
 
-export const addCodexCustomModel = async <T = UnknownRecord>(model: string): Promise<T> => {
-  return invoke('codex_add_custom_model', { model })
-}
-
 // ── Codex Profile 管理（CCR profiles.toml） ──
 
 export const addCodexProfile = async <T = UnknownRecord>(

@@ -261,6 +261,7 @@
       :update-field="updateFormField"
       :available-auth-mode-options="availableAuthModeOptions"
       :model-catalog="modelCatalog"
+      :current-model-option="currentModelOption"
       :selected-model-option="selectedModelOption"
       :custom-model-input="customModelInput"
       :requires-base-url="requiresBaseUrl"
@@ -297,7 +298,6 @@
 import { computed, h, onActivated, onMounted, reactive, ref, type FunctionalComponent } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
-  addCodexCustomModel,
   addCodexProfile,
   applyCodexProfile,
   deleteCodexProfile,
@@ -330,7 +330,6 @@ import {
 import { translateWithFallback } from '@/i18n/formatMessage'
 import { useUIStore } from '@/stores/ui'
 import type {
-  CodexAddCustomModelResponse,
   CodexModelsResponse,
   CodexProfile,
   CodexProfileAuthMode,
@@ -343,6 +342,7 @@ import {
   CUSTOM_MODEL_OPTION,
   type CodexProfileEditorForm,
   authModeToLoginMethod,
+  buildCodexProfileModelCatalog,
   buildCodexProfileRequest,
   codexProfileToEditorForm,
   createCodexProfileEditorForm,
@@ -371,7 +371,7 @@ const exporting = ref(false)
 const profiles = ref<CodexProfile[]>([])
 const currentProfile = ref<string | null>(null)
 const codexBuiltinModels = ref<string[]>([])
-const codexCustomModels = ref<string[]>([])
+const currentModelOption = ref('')
 const selectedModelOption = ref<string>('')
 const customModelInput = ref('')
 const selectedProviderTemplate = ref<string | null>(null)
@@ -491,8 +491,7 @@ const currentConfigMode = computed<'official' | 'custom'>(() => {
 
 // ===== 派生 =====
 const modelCatalog = computed(() => {
-  const merged = [...codexBuiltinModels.value, ...codexCustomModels.value]
-  return merged.filter((model, index) => merged.indexOf(model) === index)
+  return buildCodexProfileModelCatalog(codexBuiltinModels.value, currentModelOption.value)
 })
 
 const availableAuthModeOptions = computed(() => {
@@ -586,7 +585,6 @@ const loadModels = async () => {
   try {
     const data = await listCodexModels<CodexModelsResponse>()
     codexBuiltinModels.value = data.builtin_models || []
-    codexCustomModels.value = data.custom_models || []
   } catch (error) {
     logger.error('Failed to load codex models:', error)
   }
@@ -638,6 +636,7 @@ const handleExportProfiles = async () => {
 
 const resetForm = () => {
   Object.assign(form, createCodexProfileEditorForm())
+  currentModelOption.value = ''
   selectedModelOption.value = modelCatalog.value[0] || CUSTOM_MODEL_OPTION
   customModelInput.value = ''
   selectedProviderTemplate.value = null
@@ -646,6 +645,10 @@ const resetForm = () => {
 
 const applyProfileToForm = (profile: CodexProfile) => {
   Object.assign(form, codexProfileToEditorForm(profile))
+  const normalizedModel = normalizeModelName(profile.model)
+  currentModelOption.value = codexBuiltinModels.value.includes(normalizedModel)
+    ? ''
+    : normalizedModel
   const selection = resolveModelSelection(profile.model, modelCatalog.value)
   selectedModelOption.value = selection.selectedModelOption
   customModelInput.value = selection.customModelInput
@@ -733,7 +736,7 @@ const applyCodexProfileTemplate = (selection: ProviderTemplateSelection) => {
     form.description = patch.description
   }
   if (patch.model) {
-    const modelSelection = resolveModelSelection(patch.model, modelCatalog.value)
+    const modelSelection = resolveModelSelection(patch.model, codexBuiltinModels.value)
     selectedModelOption.value = modelSelection.selectedModelOption
     customModelInput.value = modelSelection.customModelInput
   }
@@ -769,11 +772,6 @@ const handleSave = async () => {
   try {
     saving.value = true
     const isEditing = Boolean(editingName.value)
-    if (selectedModelOption.value === CUSTOM_MODEL_OPTION) {
-      const response = await addCodexCustomModel<CodexAddCustomModelResponse>(resolvedModelValue.value)
-      const models = response.models || []
-      codexCustomModels.value = models.filter(m => !codexBuiltinModels.value.includes(m))
-    }
     if (editingName.value) {
       await updateCodexProfile(editingName.value, request)
     } else {

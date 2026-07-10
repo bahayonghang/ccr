@@ -3804,13 +3804,13 @@ export default {
       currentActive: 'Current Active',
       placeholders: {
         name: 'e.g: duckcoding',
-        description: 'e.g: OpenAI-compatible relay (gpt-5.3-codex / gpt-5.4)',
+        description: 'e.g: OpenAI-compatible relay using GPT-5.6',
         authToken: 'e.g: ghp_... or sk-...',
         baseUrl: 'e.g: https://api.github.com/copilot or https://your-openai-compatible.com/v1',
         envKey: 'e.g: MISTRAL_API_KEY',
         wireApi: 'e.g: responses',
-        model: 'e.g: gpt-5.3-codex or gpt-5.4',
-        customModel: 'Enter a custom model name',
+        model: 'e.g: gpt-5.6-luna or a provider model ID',
+        customModel: 'e.g: provider/model-name',
         smallFastModel: 'e.g: gpt-4o-mini',
         provider: 'e.g: duckcoding',
         providerType: 'e.g: official_relay',
@@ -3832,9 +3832,10 @@ export default {
       },
       customModelOption: 'Custom model…',
       customModelHint:
-        'The model will be written to a dedicated custom-models.toml for reuse by future profiles.',
+        'Saved only to this profile; it will not be added to the preset list.',
       modelPresetHint:
-        'Use the conservative built-in presets first; choose custom for anything else.',
+        'Choose a GPT-5.6 preset or use a custom provider model.',
+      currentModelOption: '{model} (current profile value)',
       templateSelector: {
         label: 'Provider template',
         helper:

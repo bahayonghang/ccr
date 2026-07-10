@@ -2725,6 +2725,60 @@ env_key = "MISTRAL_API_KEY"
     }
 
     #[test]
+    fn test_target_gpt_5_6_models_round_trip_and_apply_without_runtime_allowlist() {
+        let env = TestCodexEnv::new();
+        write_file_store_config(env.codex_dir());
+        let platform = CodexPlatform::new().unwrap();
+
+        for model in ["gpt-5.6-luna", "gpt-5.6-terra", "gpt-5.6-sol"] {
+            let profile_name = format!("target-{}", model.replace('.', "-"));
+            let mut profile = ProfileConfig {
+                description: Some("GPT-5.6 relay".to_string()),
+                base_url: Some("https://api.example.com/v1".to_string()),
+                model: Some(model.to_string()),
+                provider: Some("custom".to_string()),
+                enabled: Some(true),
+                ..Default::default()
+            };
+            profile
+                .platform_data
+                .insert("wire_api".into(), json!("responses"));
+
+            platform.save_profile(&profile_name, &profile).unwrap();
+            let loaded_profiles = platform.load_profiles().unwrap();
+            assert_eq!(
+                loaded_profiles
+                    .get(&profile_name)
+                    .and_then(|saved| saved.model.as_deref()),
+                Some(model)
+            );
+
+            platform.apply_profile(&profile_name).unwrap();
+
+            let config = CodexConfigManager::with_default()
+                .unwrap()
+                .load_config()
+                .unwrap();
+            let root = config.as_table().unwrap();
+            assert_eq!(
+                root.get("model").and_then(|value| value.as_str()),
+                Some(model)
+            );
+
+            let provider = root
+                .get("model_providers")
+                .and_then(|value| value.as_table())
+                .and_then(|providers| providers.get(THIRD_PARTY_RUNTIME_PROVIDER_KEY))
+                .and_then(|value| value.as_table())
+                .unwrap();
+            assert_eq!(
+                provider.get("wire_api").and_then(|value| value.as_str()),
+                Some("responses")
+            );
+        }
+    }
+
+    #[test]
     fn test_third_party_clears_stale_optional_provider_fields() {
         let env = TestCodexEnv::new();
         write_file_store_config(env.codex_dir());
