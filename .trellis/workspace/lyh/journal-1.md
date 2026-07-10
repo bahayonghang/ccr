@@ -1549,3 +1549,37 @@ implement.md 第 7 项闭环。7a:UsageLogsTab loading 态从单行"加载中"�
 ### Next Steps
 
 - None - task complete
+
+
+## Session 35: 完成 Codex GPT-5.6 三模型支持
+
+**Date**: 2026-07-10
+**Task**: 完成 Codex GPT-5.6 三模型支持
+**Branch**: `dev`
+
+### Summary
+
+为 ccr-ui Codex Profile 固定 luna、terra、sol 三个预设，保留每 Profile 自定义与旧值编辑兼容，移除全局自定义模型写入，并增加 Profile round-trip/apply 与前端目录回归；just ci 全绿。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `0e999aaf` | (see git log) |
+| `7c535a48` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
