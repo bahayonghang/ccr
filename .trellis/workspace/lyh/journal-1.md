@@ -1583,3 +1583,37 @@ implement.md 第 7 项闭环。7a:UsageLogsTab loading 态从单行"加载中"�
 ### Next Steps
 
 - None - task complete
+
+
+## Session 36: 完善双语 README 界面预览
+
+**Date**: 2026-07-10
+**Task**: 完善双语 README 界面预览
+**Branch**: `dev`
+
+### Summary
+
+为中英文 README 添加三张共用的 TUI 与 CCR UI 脱敏截图及对称说明，并提交工作区中的空白 TODO 占位文件。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `d71da7b6` | (see git log) |
+| `d47a9b62` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
