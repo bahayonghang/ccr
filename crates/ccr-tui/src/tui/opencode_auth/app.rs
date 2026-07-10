@@ -1,6 +1,7 @@
 // OpenCode Auth TUI application state machine
 // Manages manual save/switch/delete for OpenCode openai auth snapshots
 
+use crate::tui::CompletedAction;
 use crate::tui::auth_refresh::{RefreshReason, RefreshSchedulerState, RefreshTask, RefreshTier};
 use crate::tui::overlay::Overlay;
 use crate::tui::pagination::{
@@ -147,7 +148,7 @@ pub struct OpenCodeAuthApp {
     /// OpenCode 数据目录（用于本地 usage 统计）
     opencode_dir: PathBuf,
     /// Last action info (action_type, account_name, success, error)
-    pub last_action: Option<(String, String, bool, Option<String>)>,
+    pub last_action: Option<(CompletedAction, String, bool, Option<String>)>,
     /// Usage data state
     pub usage_state: OpenCodeUsageState,
     /// Quota query state
@@ -269,20 +270,29 @@ impl OpenCodeAuthApp {
 
     fn codex_import_preview_lines(report: &CodexToOpenCodeMigrationReport) -> Vec<String> {
         vec![
-            "将从已保存的 Codex Auth 账号导入兼容的 OpenAI OAuth 账号。".to_string(),
-            "不会覆盖现有 OpenCode 账号，也不会切换当前 OpenCode 登录。".to_string(),
+            crate::tui_text!(
+                "Compatible OpenAI OAuth accounts will be imported from saved Codex Auth accounts.",
+                "将从已保存的 Codex Auth 账号导入兼容的 OpenAI OAuth 账号。"
+            )
+            .to_string(),
+            crate::tui_text!(
+                "Existing OpenCode accounts will not be overwritten and the current login will not change.",
+                "不会覆盖现有 OpenCode 账号，也不会切换当前 OpenCode 登录。"
+            )
+            .to_string(),
             String::new(),
-            format!("可导入: {}", report.imported),
-            format!("同名跳过: {}", report.skipped_existing_name),
-            format!("同 account_id 跳过: {}", report.skipped_existing_account_id),
-            format!("认证不兼容: {}", report.skipped_incompatible_auth),
-            format!("缺少快照: {}", report.skipped_missing_snapshot),
-            format!("快照无效: {}", report.skipped_invalid_snapshot),
+            crate::tui_format!("Importable: {}", "可导入：{}", report.imported),
+            crate::tui_format!("Same-name skipped: {}", "同名跳过：{}", report.skipped_existing_name),
+            crate::tui_format!("Same account_id skipped: {}", "同 account_id 跳过：{}", report.skipped_existing_account_id),
+            crate::tui_format!("Incompatible auth: {}", "认证不兼容：{}", report.skipped_incompatible_auth),
+            crate::tui_format!("Missing snapshot: {}", "缺少快照：{}", report.skipped_missing_snapshot),
+            crate::tui_format!("Invalid snapshot: {}", "快照无效：{}", report.skipped_invalid_snapshot),
         ]
     }
 
     fn codex_import_summary(report: &CodexToOpenCodeMigrationReport) -> String {
-        format!(
+        crate::tui_format!(
+            "imported {}, same name {}, same account_id {}, incompatible {}, missing snapshot {}, invalid snapshot {}",
             "导入 {}，同名 {}，同 account_id {}，不兼容 {}，缺少快照 {}，快照无效 {}",
             report.imported,
             report.skipped_existing_name,
@@ -381,9 +391,10 @@ impl OpenCodeAuthApp {
             .map(|entry| Self::preview_reset_detail_summary_text(&entry.quota))
             .unwrap_or_else(|| {
                 if self.is_activation_gate_pending() {
-                    "等待 1s 激活门控".to_string()
+                    crate::tui_text!("waiting for 1s activation gate", "等待 1s 激活门控")
+                        .to_string()
                 } else if self.preview_task_active {
-                    "正在批量查询…".to_string()
+                    crate::tui_text!("querying batch…", "正在批量查询…").to_string()
                 } else {
                     "-".to_string()
                 }
@@ -518,18 +529,27 @@ impl OpenCodeAuthApp {
         let selected = self.selected_account();
         let top_model = Self::top_model_from_usage(&dataset.rolling);
         let fallback_reason = match selected {
-            None => Some("当前未选中账号，以下展示本机 OpenCode openai provider 的本地 usage 汇总".to_string()),
+            None => Some(crate::tui_text!(
+                "No account is selected; showing local usage for this machine's OpenCode openai provider",
+                "当前未选中账号，以下展示本机 OpenCode openai provider 的本地 usage 汇总"
+            ).to_string()),
             Some(account) if account.is_virtual => Some(
-                "当前登录尚未保存为 CCR 账号；OpenCode 本地日志仅记录 provider/model，不包含保存账号 id，以下为 openai provider 汇总"
-                    .to_string(),
+                crate::tui_text!(
+                    "The current login is not saved as a CCR account. OpenCode logs only contain provider/model, not saved account ids; showing the openai provider aggregate",
+                    "当前登录尚未保存为 CCR 账号；OpenCode 本地日志仅记录 provider/model，不包含保存账号 id，以下为 openai provider 汇总"
+                ).to_string(),
             ),
             Some(account) if account.is_current => Some(
-                "当前选中账号就是当前登录，但 OpenCode 本地日志仍只记录 provider/model；以下为 openai provider 汇总，而不是按账号精确归因"
-                    .to_string(),
+                crate::tui_text!(
+                    "The selected account is the current login, but OpenCode logs only contain provider/model; showing the openai provider aggregate rather than exact account attribution",
+                    "当前选中账号就是当前登录，但 OpenCode 本地日志仍只记录 provider/model；以下为 openai provider 汇总，而不是按账号精确归因"
+                ).to_string(),
             ),
             Some(_) => Some(
-                "所选账号不是当前登录；OpenCode 本地日志不包含保存账号 id，以下为当前机器 openai provider 汇总，不代表该账号独立历史"
-                    .to_string(),
+                crate::tui_text!(
+                    "The selected account is not the current login. OpenCode logs do not contain saved account ids; this machine's openai provider aggregate does not represent separate account history",
+                    "所选账号不是当前登录；OpenCode 本地日志不包含保存账号 id，以下为当前机器 openai provider 汇总，不代表该账号独立历史"
+                ).to_string(),
             ),
         };
         let attribution_state = match selected {
@@ -767,7 +787,7 @@ impl OpenCodeAuthApp {
                         account_name: account_name.clone(),
                         email: None,
                         quota: None,
-                        error: Some(format!("初始化 OpenCode 配额服务失败: {error}")),
+                        error: Some(error.to_string()),
                         fetched_at: Utc::now(),
                     })
                     .collect(),
@@ -857,7 +877,7 @@ impl OpenCodeAuthApp {
                 Err(error) => {
                     let _ = tx.send(OpenCodeAuthTaskMessage::Quota(Err((
                         account_key,
-                        format!("初始化 OpenCode 配额服务失败: {}", error),
+                        error.to_string(),
                     ))));
                 }
             }
@@ -950,17 +970,25 @@ impl OpenCodeAuthApp {
                     self.overlay = Some(Overlay::save_input());
                 }
                 OpenCodeLoginState::LoggedInSaved(_) => {
-                    self.toasts.push(Toast::warning("当前登录已保存"));
+                    self.toasts.push(Toast::warning(crate::tui_text!(
+                        "The current login is already saved",
+                        "当前登录已保存"
+                    )));
                 }
                 OpenCodeLoginState::NotLoggedIn => {
-                    self.toasts
-                        .push(Toast::warning("当前未检测到 OpenCode openai 登录"));
+                    self.toasts.push(Toast::warning(crate::tui_text!(
+                        "No OpenCode openai login detected",
+                        "当前未检测到 OpenCode openai 登录"
+                    )));
                 }
             },
             KeyCode::Char('d') | KeyCode::Delete => {
                 if let Some(account) = self.selected_account() {
                     if account.is_virtual {
-                        self.toasts.push(Toast::warning("未保存的当前登录无法删除"));
+                        self.toasts.push(Toast::warning(crate::tui_text!(
+                            "The unsaved current login cannot be deleted",
+                            "未保存的当前登录无法删除"
+                        )));
                     } else {
                         self.overlay = Some(Overlay::confirm_delete(account.name.clone()));
                     }
@@ -971,16 +999,23 @@ impl OpenCodeAuthApp {
                 self.refresh_usage();
                 self.rebuild_quota_refresh_plan(true);
                 self.try_start_quota_refresh(true);
-                self.toasts.push(Toast::info("已刷新 OpenCode 账号与统计"));
+                self.toasts.push(Toast::info(crate::tui_text!(
+                    "OpenCode accounts and statistics reloaded",
+                    "已刷新 OpenCode 账号与统计"
+                )));
             }
             KeyCode::Char('i') => match self.service.import_saved_codex_accounts(true) {
                 Ok(report) => {
                     if !report.has_importable_accounts() {
                         if report.total() == 0 {
-                            self.toasts.push(Toast::info("未发现已保存的 Codex 账号"));
+                            self.toasts.push(Toast::info(crate::tui_text!(
+                                "No saved Codex accounts found",
+                                "未发现已保存的 Codex 账号"
+                            )));
                         } else {
-                            self.toasts.push(Toast::info(format!(
-                                "没有可导入账号: {}",
+                            self.toasts.push(Toast::info(crate::tui_format!(
+                                "No accounts can be imported: {}",
+                                "没有可导入账号：{}",
                                 Self::codex_import_summary(&report)
                             )));
                         }
@@ -992,13 +1027,15 @@ impl OpenCodeAuthApp {
                 }
                 Err(err) => {
                     self.last_action = Some((
-                        "导入失败".to_string(),
+                        CompletedAction::Import,
                         "codex".to_string(),
                         false,
                         Some(err.to_string()),
                     ));
-                    self.toasts
-                        .push(Toast::error(format!("导入预览失败: {err}")));
+                    self.toasts.push(Toast::error(crate::tui_format!(
+                        "Failed to preview import: {err}",
+                        "导入预览失败：{err}"
+                    )));
                 }
             },
             _ => {}
@@ -1027,21 +1064,25 @@ impl OpenCodeAuthApp {
                         match self.service.delete_account(&subject) {
                             Ok(()) => {
                                 self.last_action =
-                                    Some(("已删除".to_string(), subject.clone(), true, None));
-                                self.toasts.push(Toast::success(format!(
-                                    "已删除 OpenCode 账号: {subject}"
+                                    Some((CompletedAction::Delete, subject.clone(), true, None));
+                                self.toasts.push(Toast::success(crate::tui_format!(
+                                    "Deleted OpenCode account: {subject}",
+                                    "已删除 OpenCode 账号：{subject}"
                                 )));
                                 self.reload_accounts()?;
                                 self.rebuild_quota_refresh_plan(false);
                             }
                             Err(e) => {
                                 self.last_action = Some((
-                                    "删除失败".to_string(),
+                                    CompletedAction::Delete,
                                     subject.clone(),
                                     false,
                                     Some(e.to_string()),
                                 ));
-                                self.toasts.push(Toast::error(format!("删除失败: {e}")));
+                                self.toasts.push(Toast::error(crate::tui_format!(
+                                    "Delete failed: {e}",
+                                    "删除失败：{e}"
+                                )));
                             }
                         }
                     }
@@ -1049,13 +1090,14 @@ impl OpenCodeAuthApp {
                         match self.service.import_saved_codex_accounts(false) {
                             Ok(report) => {
                                 self.last_action = Some((
-                                    "已导入".to_string(),
-                                    format!("{} 个账号", report.imported),
+                                    CompletedAction::Import,
+                                    report.imported.to_string(),
                                     true,
                                     None,
                                 ));
-                                self.toasts.push(Toast::success(format!(
-                                    "Codex -> OpenCode 导入完成: {}",
+                                self.toasts.push(Toast::success(crate::tui_format!(
+                                    "Codex -> OpenCode import complete: {}",
+                                    "Codex -> OpenCode 导入完成：{}",
                                     Self::codex_import_summary(&report)
                                 )));
                                 self.reload_accounts()?;
@@ -1063,12 +1105,15 @@ impl OpenCodeAuthApp {
                             }
                             Err(err) => {
                                 self.last_action = Some((
-                                    "导入失败".to_string(),
+                                    CompletedAction::Import,
                                     "codex".to_string(),
                                     false,
                                     Some(err.to_string()),
                                 ));
-                                self.toasts.push(Toast::error(format!("导入失败: {err}")));
+                                self.toasts.push(Toast::error(crate::tui_format!(
+                                    "Import failed: {err}",
+                                    "导入失败：{err}"
+                                )));
                             }
                         }
                     }
@@ -1078,9 +1123,9 @@ impl OpenCodeAuthApp {
             }
             KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => {
                 let message = if matches!(self.overlay, Some(Overlay::ImportCodexConfirm { .. })) {
-                    "已取消导入"
+                    crate::tui_text!("Import cancelled", "已取消导入")
                 } else {
-                    "已取消删除"
+                    crate::tui_text!("Deletion cancelled", "已取消删除")
                 };
                 self.overlay = None;
                 self.toasts.push(Toast::info(message));
@@ -1094,7 +1139,10 @@ impl OpenCodeAuthApp {
         match key.code {
             KeyCode::Esc => {
                 self.overlay = None;
-                self.toasts.push(Toast::info("已取消保存"));
+                self.toasts.push(Toast::info(crate::tui_text!(
+                    "Save cancelled",
+                    "已取消保存"
+                )));
             }
             KeyCode::Enter => {
                 let mut overlay = match self.overlay.take() {
@@ -1105,7 +1153,10 @@ impl OpenCodeAuthApp {
 
                 if name.trim().is_empty() {
                     self.overlay = Some(Overlay::save_input());
-                    self.toasts.push(Toast::warning("账号名称不能为空"));
+                    self.toasts.push(Toast::warning(crate::tui_text!(
+                        "Account name cannot be empty",
+                        "账号名称不能为空"
+                    )));
                     return Ok(false);
                 }
 
@@ -1113,21 +1164,25 @@ impl OpenCodeAuthApp {
                     Ok(()) => {
                         let saved_name = name.trim().to_string();
                         self.last_action =
-                            Some(("已保存为".to_string(), saved_name.clone(), true, None));
-                        self.toasts.push(Toast::success(format!(
-                            "已保存 OpenCode 账号: {saved_name}"
+                            Some((CompletedAction::Save, saved_name.clone(), true, None));
+                        self.toasts.push(Toast::success(crate::tui_format!(
+                            "Saved OpenCode account: {saved_name}",
+                            "已保存 OpenCode 账号：{saved_name}"
                         )));
                         self.reload_accounts()?;
                         self.rebuild_quota_refresh_plan(false);
                     }
                     Err(e) => {
                         self.last_action = Some((
-                            "保存失败".to_string(),
+                            CompletedAction::Save,
                             name.trim().to_string(),
                             false,
                             Some(e.to_string()),
                         ));
-                        self.toasts.push(Toast::error(format!("保存失败: {e}")));
+                        self.toasts.push(Toast::error(crate::tui_format!(
+                            "Save failed: {e}",
+                            "保存失败：{e}"
+                        )));
                     }
                 }
             }
@@ -1204,21 +1259,28 @@ impl OpenCodeAuthApp {
     fn switch_selected_account(&mut self) -> Result<bool> {
         if let Some(account) = self.selected_account().cloned() {
             if account.is_virtual {
-                self.toasts.push(Toast::info("这是当前登录，无需切换"));
+                self.toasts.push(Toast::info(crate::tui_text!(
+                    "This is the current login; no switch is needed",
+                    "这是当前登录，无需切换"
+                )));
                 return Ok(false);
             }
 
             if account.is_current {
-                self.toasts.push(Toast::info("已经是当前账号"));
+                self.toasts.push(Toast::info(crate::tui_text!(
+                    "This account is already active",
+                    "已经是当前账号"
+                )));
                 return Ok(false);
             }
 
             match self.service.switch_account(&account.name) {
                 Ok(()) => {
                     self.last_action =
-                        Some(("已切换到".to_string(), account.name.clone(), true, None));
-                    self.toasts.push(Toast::success(format!(
-                        "已切换到 OpenCode 账号: {}",
+                        Some((CompletedAction::Switch, account.name.clone(), true, None));
+                    self.toasts.push(Toast::success(crate::tui_format!(
+                        "Switched to OpenCode account: {}",
+                        "已切换到 OpenCode 账号：{}",
                         account.name
                     )));
                     self.should_quit = true;
@@ -1226,12 +1288,15 @@ impl OpenCodeAuthApp {
                 }
                 Err(e) => {
                     self.last_action = Some((
-                        "切换失败".to_string(),
+                        CompletedAction::Switch,
                         account.name.clone(),
                         false,
                         Some(e.to_string()),
                     ));
-                    self.toasts.push(Toast::error(format!("切换失败: {e}")));
+                    self.toasts.push(Toast::error(crate::tui_format!(
+                        "Switch failed: {e}",
+                        "切换失败：{e}"
+                    )));
                 }
             }
         }
@@ -1546,7 +1611,7 @@ mod tests {
         assert!(registry.accounts.contains_key("codex-work"));
         assert_eq!(
             app.last_action,
-            Some(("已导入".to_string(), "1 个账号".to_string(), true, None))
+            Some((CompletedAction::Import, "1".to_string(), true, None))
         );
     }
 

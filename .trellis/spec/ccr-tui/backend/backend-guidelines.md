@@ -64,6 +64,105 @@ When changing tab ordering, add or keep regression tests that assert:
 - `active_tab = 0` selects the first configured tab
 - auth shortcut helpers still select their matching auth variant after reordering
 
+## Scenario: TUI Bilingual Localization
+
+### 1. Scope / Trigger
+
+- Trigger: adding or changing TUI-owned labels, status/error/loading text,
+  overlays, toasts, shortcut footers, or post-exit summaries.
+- Applies to the main profile surface and embedded Claude Auth, Codex Auth, and
+  OpenCode Auth surfaces. CLI-only output and raw lower-layer errors are outside
+  the translation catalog.
+
+### 2. Signatures
+
+- `i18n::initialize_from_config()`
+- `i18n::{active_language, set_language, toggle_language}`
+- `tui_text!(english_literal, chinese_literal)`
+- `tui_format!(english_format, chinese_format, args...)`
+- Global key contract: `Ctrl+L` toggles `TuiLanguage` before tab-specific key
+  dispatch.
+
+### 3. Contracts
+
+- English is the deterministic default. Simplified Chinese is the only second
+  language; persisted values come from `ccr-config::TuiConfig.language`.
+- Initialize language before `TerminalGuard::new()` so terminal capability
+  errors use the saved language, and initialize again while constructing `App`
+  before the first visible frame is built.
+- `Ctrl+L` updates the active catalog immediately and saves the full loaded
+  `TuiConfig`; it must not reconstruct `App` or reset tab, selection,
+  pagination, auth, overlay, toast, or background-task state.
+- The catalog covers all TUI-owned visible text: profile and auth views, usage
+  and quota sections, overlays, loading/empty/error states, toasts, footers,
+  and post-exit summaries. Dynamic identifiers, paths, provider/model names,
+  and raw lower-layer errors stay unchanged inside localized context.
+- Completed auth operations store a semantic `CompletedAction`, not a translated
+  verb or count phrase. Post-exit summaries translate that action and format raw
+  values using the language active when the terminal closes.
+- Active language is thread-local to keep parallel render tests isolated.
+  Background tasks must return typed data or raw lower-layer errors; they must
+  not call `tui_text!` / `tui_format!` on executor threads. Localize when the
+  main TUI thread renders or consumes the result.
+- CJK labels use `unicode-width` padding/truncation. The compact profile footer
+  must retain `PgUp/PgDn details`, `Ctrl+L language`, and the existing primary
+  actions in both languages.
+
+### 4. Validation & Error Matrix
+
+- Missing/invalid saved language -> render English and continue startup.
+- Config save succeeds -> show a success toast in the newly selected language.
+- Config save fails -> keep the newly selected session language, show a
+  localized non-fatal error toast, and leave the previous disk file intact.
+- Missing translation -> treat as a code/test defect; English is the required
+  baseline for every typed catalog message.
+- Background service fails -> retain its raw error and add localized TUI context
+  on the render thread.
+
+### 5. Good/Base/Bad Cases
+
+- Good: `Ctrl+L` on an auth tab changes tab labels, panels, footer, and new
+  feedback without changing the selected account or active work.
+- Good: a Chinese CJK label is truncated by display width and preserves the
+  ellipsis within its column.
+- Base: no `tui.toml` exists, so the first frame and terminal errors are English.
+- Bad: formatting a localized quota-service error inside `spawn(async move {`;
+  the executor thread does not own the TUI thread's locale.
+- Bad: saving a language-only TOML document and thereby replacing custom
+  `tab_order`.
+
+### 6. Tests Required
+
+- Catalog completeness and English/Chinese selection tests.
+- `Ctrl+L` detection, persistence, save-failure, and state-preservation tests.
+- Ratatui `TestBackend` assertions for Chinese compact, standard, and wide
+  profile layouts plus representative auth/loading/error surfaces.
+- Display-width tests for CJK truncation/padding and compact footer regression.
+- Terminal capability error assertion under the Chinese active language.
+- Post-exit action-label assertions in both languages; changing language after
+  an action must not leave an old-language verb in the summary state.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```rust
+executor.spawn(async move {
+    tx.send(crate::tui_format!("Load failed: {error}", "加载失败：{error}"))
+});
+```
+
+#### Correct
+
+```rust
+executor.spawn(async move {
+    tx.send(error.to_string())
+});
+
+// On the TUI thread:
+let message = crate::tui_format!("Load failed: {}", "加载失败：{}", error);
+```
+
 ### Synthetic read-only tabs
 
 Use a synthetic `PlatformTab` only when a tab is not a profile/auth surface but still needs to live in the configured tab bar. There is currently **no** synthetic tab in the tree: the standalone Usage tab was retired in 2026-07 (usage now renders inside profile details, see the next section). Keep this contract for any future synthetic tab:

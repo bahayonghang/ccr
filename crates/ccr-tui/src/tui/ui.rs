@@ -135,14 +135,14 @@ fn render_codex_runtime_banner(
 ) {
     let (mode_label, mode_style, profile_label, auth_label) = if let Some(summary) = summary {
         (
-            summary.mode.label().to_string(),
+            codex_runtime_mode_label(summary.mode).to_string(),
             runtime_mode_style(summary.mode),
-            summary.profile_label(),
-            summary.auth_label(),
+            localize_codex_runtime_text(summary.profile_label()),
+            localize_codex_runtime_text(summary.auth_label()),
         )
     } else {
         (
-            "未解析".to_string(),
+            crate::tui_text!("Unresolved", "未解析").to_string(),
             theme::muted_style(),
             "-".to_string(),
             "-".to_string(),
@@ -151,20 +151,32 @@ fn render_codex_runtime_banner(
 
     let lines = if compact {
         vec![Line::from(vec![
-            Span::styled(" 当前驱动: ", theme::secondary_text_style()),
+            Span::styled(
+                crate::tui_text!(" Active driver: ", " 当前驱动："),
+                theme::secondary_text_style(),
+            ),
             Span::styled(mode_label, mode_style),
         ])]
     } else {
         vec![
             Line::from(vec![
-                Span::styled(" 当前驱动: ", theme::secondary_text_style()),
+                Span::styled(
+                    crate::tui_text!(" Active driver: ", " 当前驱动："),
+                    theme::secondary_text_style(),
+                ),
                 Span::styled(mode_label, mode_style),
             ]),
             Line::from(vec![
-                Span::styled(" Profile: ", theme::secondary_text_style()),
+                Span::styled(
+                    crate::tui_text!(" Profile: ", " 配置："),
+                    theme::secondary_text_style(),
+                ),
                 Span::styled(profile_label, theme::primary_text_style()),
                 Span::styled("  │  ", Style::default().fg(theme::border())),
-                Span::styled("Auth: ", theme::secondary_text_style()),
+                Span::styled(
+                    crate::tui_text!("Auth: ", "认证："),
+                    theme::secondary_text_style(),
+                ),
                 Span::styled(auth_label, Style::default().fg(theme::success())),
             ]),
         ]
@@ -176,7 +188,7 @@ fn render_codex_runtime_banner(
                 .borders(Borders::ALL)
                 .border_set(symbols::border::ROUNDED)
                 .border_style(Style::default().fg(theme::codex()))
-                .title(" 当前控制面 ")
+                .title(crate::tui_text!(" Control plane ", " 当前控制面 "))
                 .title_style(theme::codex_style()),
         )
         .wrap(Wrap { trim: true });
@@ -364,7 +376,7 @@ fn render_header(f: &mut Frame, app: &App, area: Rect) {
     let current_label = format!(
         " {} {} ",
         app.current_platform().icon(),
-        app.current_tab().label
+        app.current_tab().display_label()
     );
 
     let tabs = Tabs::new(tab_titles)
@@ -373,7 +385,10 @@ fn render_header(f: &mut Frame, app: &App, area: Rect) {
                 .borders(Borders::ALL)
                 .border_set(symbols::border::ROUNDED)
                 .border_style(Style::default().fg(theme::border()))
-                .title(" 🚀 CCR - Configuration Switcher ")
+                .title(crate::tui_text!(
+                    " CCR - Configuration Switcher ",
+                    " CCR - 配置切换器 "
+                ))
                 .title_alignment(Alignment::Center)
                 .title_style(theme::primary_text_emphasis_style())
                 .title_bottom(
@@ -398,9 +413,9 @@ fn tab_title_line(
     compact: bool,
 ) -> Line<'static> {
     let label = if compact {
-        compact_tab_label(&tab.label)
+        tab.compact_display_label()
     } else {
-        tab.label.as_str()
+        tab.display_label()
     };
     let style = if is_active {
         theme::tab_active_style_for(tab.platform)
@@ -414,17 +429,6 @@ fn tab_title_line(
     };
 
     Line::from(Span::styled(title, style))
-}
-
-fn compact_tab_label(label: &str) -> &str {
-    match label {
-        "Claude Auth" => "Auth",
-        "Claude Code" => "Claude",
-        "Codex Auth" => "CxAuth",
-        "OpenCode Auth" => "Open",
-        "Codex Profile" => "Codex",
-        _ => label,
-    }
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -495,10 +499,11 @@ fn render_profile_list_panel(f: &mut Frame, app: &mut App, area: Rect) {
         app.current_page * app.page_size + profiles.len()
     };
     let title = if all_profiles.is_empty() {
-        format!(" {} Profiles ", platform_name)
+        crate::tui_format!(" {} Profiles ", " {} 配置 ", platform_name)
     } else if total_pages > 1 {
-        format!(
+        crate::tui_format!(
             " {} Profiles ({})  {}-{} / {}  Page {}/{} ",
+            " {} 配置 ({})  {}-{} / {}  第 {}/{} 页 ",
             platform_name,
             total_profiles,
             visible_start,
@@ -508,7 +513,12 @@ fn render_profile_list_panel(f: &mut Frame, app: &mut App, area: Rect) {
             total_pages
         )
     } else {
-        format!(" {} Profiles ({}) ", platform_name, total_profiles)
+        crate::tui_format!(
+            " {} Profiles ({}) ",
+            " {} 配置 ({}) ",
+            platform_name,
+            total_profiles
+        )
     };
 
     let block = Block::default()
@@ -549,7 +559,7 @@ fn render_profile_meta_panel(f: &mut Frame, app: &App, area: Rect) {
         .borders(Borders::ALL)
         .border_set(symbols::border::ROUNDED)
         .border_style(Style::default().fg(theme::border()))
-        .title(" Selection ")
+        .title(crate::tui_text!(" Selection ", " 选择 "))
         .title_style(theme::secondary_text_emphasis_style())
         .padding(Padding::horizontal(1));
 
@@ -578,7 +588,7 @@ fn render_profile_context_workspace(
             .borders(Borders::ALL)
             .border_set(symbols::border::ROUNDED)
             .border_style(Style::default().fg(theme::platform_color_for(app.current_platform())))
-            .title(" Focus ")
+            .title(crate::tui_text!(" Focus ", " 当前焦点 "))
             .title_style(theme::platform_style_for(app.current_platform()))
             .padding(Padding::horizontal(1));
 
@@ -595,7 +605,7 @@ fn render_profile_context_workspace(
             .borders(Borders::ALL)
             .border_set(symbols::border::ROUNDED)
             .border_style(Style::default().fg(theme::platform_color_for(app.current_platform())))
-            .title(" Focus ")
+            .title(crate::tui_text!(" Focus ", " 当前焦点 "))
             .title_style(theme::platform_style_for(app.current_platform()))
             .padding(Padding::horizontal(1));
 
@@ -650,7 +660,7 @@ fn render_profile_details(f: &mut Frame, app: &mut App, area: Rect, mode: theme:
         .borders(Borders::ALL)
         .border_set(symbols::border::ROUNDED)
         .border_style(Style::default().fg(accent))
-        .title(" Context ")
+        .title(crate::tui_text!(" Context ", " 上下文 "))
         .title_style(theme::platform_style_for(platform))
         .padding(Padding::horizontal(1));
 
@@ -730,7 +740,7 @@ fn render_profile_summary_block(f: &mut Frame, app: &App, area: Rect, summary: V
         .borders(Borders::ALL)
         .border_set(symbols::border::ROUNDED)
         .border_style(Style::default().fg(theme::platform_color_for(platform)))
-        .title(" Focus ")
+        .title(crate::tui_text!(" Focus ", " 当前焦点 "))
         .title_style(theme::platform_style_for(platform))
         .padding(Padding::horizontal(1));
 
@@ -744,7 +754,7 @@ fn render_profile_status_strip(f: &mut Frame, app: &App, area: Rect, profile_nam
     let block = Block::default()
         .borders(Borders::TOP)
         .border_style(Style::default().fg(theme::border()))
-        .title(" Status ")
+        .title(crate::tui_text!(" Status ", " 状态 "))
         .title_style(theme::secondary_text_emphasis_style());
 
     // 快捷键只保留底部全局 Keys footer 一处; strip 只反馈 apply 结果/toast
@@ -796,9 +806,8 @@ fn codex_profile_detail_lines(
             OpenAiAuthMethod::Api => "api".to_string(),
         });
     let token_state = match auth_mode.as_str() {
-        "openai_api_key" | "provider_env_key" => {
-            configured_token_text(config).unwrap_or_else(|| "missing".to_string())
-        }
+        "openai_api_key" | "provider_env_key" => configured_token_text(config)
+            .unwrap_or_else(|| crate::tui_text!("missing", "缺失").to_string()),
         _ => "-".to_string(),
     };
 
@@ -873,9 +882,10 @@ fn claude_profile_detail_lines(
     let provider_type = opt_text(config.provider_type.as_deref());
     let provider = opt_text(config.provider.as_deref());
     let token_state = if matches!(auth_mode, ccr_cli::models::ClaudeProfileAuthMode::ApiKey) {
-        configured_token_text(config).unwrap_or_else(|| "missing".to_string())
+        configured_token_text(config)
+            .unwrap_or_else(|| crate::tui_text!("missing", "缺失").to_string())
     } else {
-        "subscription".to_string()
+        crate::tui_text!("subscription", "订阅").to_string()
     };
 
     let mut lines = vec![
@@ -939,8 +949,8 @@ fn usage_section_lines(
     compact: bool,
 ) -> Vec<Line<'static>> {
     let title = match provider {
-        Some(name) => format!(" Usage (provider: {name}) "),
-        None => " Usage ".to_string(),
+        Some(name) => crate::tui_format!(" Usage (provider: {name}) ", " 用量（提供商：{name}） "),
+        None => crate::tui_text!(" Usage ", " 用量 ").to_string(),
     };
     let mut lines = vec![Line::from(""), section_line(&title)];
 
@@ -948,7 +958,10 @@ fn usage_section_lines(
         // profile 未填 provider 字段时激活事件无归因标签。不回退展示
         // unattributed 桶 —— 那里混着全部历史未归因用量,数字会误导。
         lines.push(usage_status_line(
-            "no provider label — usage unattributed",
+            crate::tui_text!(
+                "no provider label — usage unattributed",
+                "缺少提供商标签，无法归因用量"
+            ),
             theme::muted_style(),
         ));
         return lines;
@@ -956,7 +969,10 @@ fn usage_section_lines(
 
     match state {
         None | Some(UsageLoadState::Idle | UsageLoadState::Loading) => {
-            lines.push(usage_status_line("loading...", theme::muted_style()));
+            lines.push(usage_status_line(
+                crate::tui_text!("loading...", "加载中..."),
+                theme::muted_style(),
+            ));
         }
         Some(UsageLoadState::Unsupported(message)) => {
             lines.push(usage_status_line(message, theme::warning_style()));
@@ -965,7 +981,10 @@ fn usage_section_lines(
             lines.push(usage_status_line(message, theme::error_style()));
         }
         Some(UsageLoadState::Empty) => {
-            lines.push(usage_status_line("no usage recorded", theme::muted_style()));
+            lines.push(usage_status_line(
+                crate::tui_text!("no usage recorded", "暂无用量记录"),
+                theme::muted_style(),
+            ));
         }
         Some(UsageLoadState::Loaded(dataset)) => {
             match dataset
@@ -974,7 +993,10 @@ fn usage_section_lines(
             {
                 Some(row) => lines.extend(usage_metric_lines(&row.breakdown, compact)),
                 None => {
-                    lines.push(usage_status_line("no usage recorded", theme::muted_style()));
+                    lines.push(usage_status_line(
+                        crate::tui_text!("no usage recorded", "暂无用量记录"),
+                        theme::muted_style(),
+                    ));
                 }
             }
         }
@@ -994,8 +1016,9 @@ fn usage_metric_lines(breakdown: &ProviderBreakdownDto, compact: bool) -> Vec<Li
             detail_line("requests", format_count(breakdown.request_count)),
             detail_line(
                 "tokens",
-                format!(
+                crate::tui_format!(
                     "in {} · out {} · cache {}",
+                    "输入 {} · 输出 {} · 缓存 {}",
                     format_count(breakdown.input_tokens),
                     format_count(breakdown.output_tokens_total()),
                     format_count(breakdown.cache_tokens_total()),
@@ -1014,11 +1037,15 @@ fn usage_metric_lines(breakdown: &ProviderBreakdownDto, compact: bool) -> Vec<Li
         detail_line("approx_cost", format_cost(breakdown.cost_with_cache_usd)),
         Line::from(vec![
             Span::styled(
-                format!("{:<16}", "note"),
+                pad_text(crate::tui_text!("note", "说明"), 16),
                 theme::secondary_text_emphasis_style(),
             ),
             Span::styled(
-                "approx official-equivalent · provider-level (all-time)".to_string(),
+                crate::tui_text!(
+                    "approx official-equivalent · provider-level (all-time)",
+                    "约等于官方口径 · 提供商级别（全时段）"
+                )
+                .to_string(),
                 theme::muted_style(),
             ),
         ]),
@@ -1033,10 +1060,61 @@ fn configured_token_text(config: &ProfileConfig) -> Option<String> {
         .as_ref()
         .map(|token| token.expose().trim())
         .filter(|token| !token.is_empty())
-        .map(|token| format!("configured ({})", ccr_core::mask_sensitive(token)))
+        .map(|token| {
+            crate::tui_format!(
+                "configured ({})",
+                "已配置（{}）",
+                ccr_core::mask_sensitive(token)
+            )
+        })
+}
+
+fn codex_runtime_mode_label(mode: ccr_cli::models::CodexRuntimeMode) -> &'static str {
+    match mode {
+        ccr_cli::models::CodexRuntimeMode::ProfileOnly => {
+            crate::tui_text!("Profile driven", "Profile 驱动")
+        }
+        ccr_cli::models::CodexRuntimeMode::ProfileWithAuth => {
+            crate::tui_text!(
+                "Profile routing + Auth identity",
+                "Profile 路由 + Auth 身份"
+            )
+        }
+        ccr_cli::models::CodexRuntimeMode::ProfilePendingAuth => {
+            crate::tui_text!(
+                "Profile routing, waiting for Auth",
+                "Profile 路由，等待 Auth"
+            )
+        }
+        ccr_cli::models::CodexRuntimeMode::RuntimeOnly => {
+            crate::tui_text!("Runtime/Auth only", "仅 Runtime/Auth 生效")
+        }
+        ccr_cli::models::CodexRuntimeMode::Unresolved => {
+            crate::tui_text!("Unresolved", "未解析")
+        }
+    }
+}
+
+fn localize_codex_runtime_text(text: String) -> String {
+    if crate::tui::i18n::active_language() == ccr_cli::managers::TuiLanguage::English {
+        text.replace("未绑定", "not bound")
+            .replace("未保存账号", "unsaved account")
+            .replace("未登录", "not logged in")
+            .replace("未知状态", "unknown state")
+    } else {
+        text
+    }
 }
 
 fn section_line(title: &str) -> Line<'static> {
+    let title = match title {
+        " Overview " => crate::tui_text!(" Overview ", " 概览 "),
+        " Runtime " => crate::tui_text!(" Runtime ", " 运行时 "),
+        " Activity " => crate::tui_text!(" Activity ", " 活动 "),
+        " Routing/Auth " => crate::tui_text!(" Routing/Auth ", " 路由/认证 "),
+        " Engine " => crate::tui_text!(" Engine ", " 引擎 "),
+        _ => title,
+    };
     Line::from(vec![
         Span::styled("▌ ", theme::info_style()),
         Span::styled(
@@ -1047,13 +1125,46 @@ fn section_line(title: &str) -> Line<'static> {
 }
 
 fn detail_line(label: &str, value: String) -> Line<'static> {
+    let display_label = localized_detail_label(label);
     Line::from(vec![
         Span::styled(
-            format!("{label:<16}"),
+            pad_text(display_label, 16),
             theme::secondary_text_emphasis_style(),
         ),
         Span::styled(value.clone(), detail_value_style(label, &value)),
     ])
+}
+
+fn localized_detail_label(label: &str) -> &str {
+    match label {
+        "name" => crate::tui_text!("name", "名称"),
+        "current" => crate::tui_text!("current", "当前"),
+        "enabled" => crate::tui_text!("enabled", "启用"),
+        "description" => crate::tui_text!("description", "描述"),
+        "base_url" => crate::tui_text!("base_url", "基础地址"),
+        "model" => crate::tui_text!("model", "模型"),
+        "small_fast" => crate::tui_text!("small_fast", "快速模型"),
+        "account" => crate::tui_text!("account", "账号"),
+        "switch_count" => crate::tui_text!("switch_count", "切换次数"),
+        "tags" => crate::tui_text!("tags", "标签"),
+        "provider_type" => crate::tui_text!("provider_type", "提供商类型"),
+        "provider" => crate::tui_text!("provider", "提供商"),
+        "auth_mode" => crate::tui_text!("auth_mode", "认证模式"),
+        "auth_source" => crate::tui_text!("auth_source", "认证来源"),
+        "token" => crate::tui_text!("token", "令牌"),
+        "openai_login" => crate::tui_text!("openai_login", "OpenAI 登录"),
+        "env_key" => crate::tui_text!("env_key", "环境变量键"),
+        "wire_api" => crate::tui_text!("wire_api", "协议 API"),
+        "requires_openai" => crate::tui_text!("requires_openai", "需要 OpenAI"),
+        "requests" => crate::tui_text!("requests", "请求数"),
+        "tokens" => crate::tui_text!("tokens", "令牌数"),
+        "input" => crate::tui_text!("input", "输入"),
+        "output" => crate::tui_text!("output", "输出"),
+        "cache" => crate::tui_text!("cache", "缓存"),
+        "total" => crate::tui_text!("total", "总计"),
+        "approx_cost" => crate::tui_text!("approx_cost", "估算费用"),
+        _ => label,
+    }
 }
 
 fn detail_value_style(label: &str, value: &str) -> Style {
@@ -1064,11 +1175,21 @@ fn detail_value_style(label: &str, value: &str) -> Style {
         || normalized_value == "enabled"
         || normalized_value.starts_with("configured")
         || normalized_value == "current"
+        || normalized_value == "是"
+        || normalized_value == "启用"
+        || normalized_value.starts_with("已配置")
+        || normalized_value == "当前"
     {
         return theme::success_style();
     }
 
-    if normalized_value == "no" || normalized_value == "disabled" || normalized_value == "missing" {
+    if normalized_value == "no"
+        || normalized_value == "disabled"
+        || normalized_value == "missing"
+        || normalized_value == "否"
+        || normalized_value == "禁用"
+        || normalized_value == "缺失"
+    {
         return theme::warning_style();
     }
 
@@ -1090,7 +1211,7 @@ fn detail_value_style(label: &str, value: &str) -> Style {
 }
 
 fn profile_summary_line(text: String) -> Line<'static> {
-    if let Some((label, value)) = text.split_once(':') {
+    if let Some((label, value)) = text.split_once(':').or_else(|| text.split_once('：')) {
         return Line::from(vec![
             Span::styled(format!("{label}: "), theme::secondary_text_emphasis_style()),
             Span::styled(
@@ -1113,16 +1234,16 @@ fn opt_text(value: Option<&str>) -> String {
 
 fn yes_no(value: bool) -> String {
     if value {
-        "yes".to_string()
+        crate::tui_text!("yes", "是").to_string()
     } else {
-        "no".to_string()
+        crate::tui_text!("no", "否").to_string()
     }
 }
 
 fn bool_text(value: Option<bool>) -> &'static str {
     match value {
-        Some(true) => "yes",
-        Some(false) => "no",
+        Some(true) => crate::tui_text!("yes", "是"),
+        Some(false) => crate::tui_text!("no", "否"),
         None => "-",
     }
 }
@@ -1154,21 +1275,22 @@ fn profile_meta_strings(
     let selection = selected
         .map(|profile| {
             if profile.is_current {
-                format!("Selected: {} (current)", profile.name)
+                crate::tui_format!("Selected: {} (current)", "已选择：{}（当前）", profile.name)
             } else {
-                format!("Selected: {}", profile.name)
+                crate::tui_format!("Selected: {}", "已选择：{}", profile.name)
             }
         })
-        .unwrap_or_else(|| "Selected: -".to_string());
+        .unwrap_or_else(|| crate::tui_text!("Selected: -", "已选择：-").to_string());
 
     vec![
         selection,
-        format!(
+        crate::tui_format!(
             "Profiles: {total_profiles} · Page: {}/{}",
+            "配置数：{total_profiles} · 页码：{}/{}",
             current_page + 1,
             total_pages.max(1)
         ),
-        "Legend: ● current · ▶ selected".to_string(),
+        crate::tui_text!("Legend: ● current · ▶ selected", "图例：● 当前 · ▶ 已选择").to_string(),
     ]
 }
 
@@ -1181,20 +1303,28 @@ fn profile_summary_strings(
     last_applied: Option<&(String, String, bool, Option<String>)>,
 ) -> Vec<String> {
     let mut lines = vec![
-        format!("Name: {name}"),
-        format!(
+        crate::tui_format!("Name: {name}", "名称：{name}"),
+        crate::tui_format!(
             "Status: {} · {}",
-            if is_current { "Current" } else { "Available" },
-            if config.is_enabled() {
-                "Enabled"
+            "状态：{} · {}",
+            if is_current {
+                crate::tui_text!("Current", "当前")
             } else {
-                "Disabled"
+                crate::tui_text!("Available", "可用")
+            },
+            if config.is_enabled() {
+                crate::tui_text!("Enabled", "启用")
+            } else {
+                crate::tui_text!("Disabled", "禁用")
             }
         ),
     ];
 
     if let Some(message) = last_apply_message(name, last_applied) {
-        lines.push(format!("Last apply: {message}"));
+        lines.push(crate::tui_format!(
+            "Last apply: {message}",
+            "最近应用：{message}"
+        ));
     }
 
     lines
@@ -1210,10 +1340,11 @@ fn last_apply_message(
     }
 
     if *success {
-        Some("Applied successfully".to_string())
+        Some(crate::tui_text!("Applied successfully", "应用成功").to_string())
     } else {
-        Some(format!(
+        Some(crate::tui_format!(
             "Apply failed{}",
+            "应用失败{}",
             error
                 .as_ref()
                 .map(|err| format!(" ({err})"))
@@ -1232,19 +1363,31 @@ fn render_empty_state(f: &mut Frame, app: &App, area: Rect, block: Block) {
         let error_text = vec![
             Line::from(""),
             Line::from(Span::styled(
-                format!("⚠ Failed to load {} profiles", platform_name),
+                crate::tui_format!(
+                    "Failed to load {} profiles",
+                    "无法加载 {} 配置",
+                    platform_name
+                ),
                 theme::empty_hint_style(),
             )),
             Line::from(""),
             Line::from(Span::styled(
-                "CCR could not read the profile source below:".to_string(),
+                crate::tui_text!(
+                    "CCR could not read the profile source below:",
+                    "CCR 无法读取以下配置来源："
+                )
+                .to_string(),
                 theme::secondary_text_style(),
             )),
             Line::from(""),
             Line::from(Span::styled(error.to_string(), theme::primary_text_style())),
             Line::from(""),
             Line::from(Span::styled(
-                "Fix the file content or path, then press 'r' to reload.".to_string(),
+                crate::tui_text!(
+                    "Fix the file content or path, then press 'r' to reload.",
+                    "修复文件内容或路径后，按 r 重新加载。"
+                )
+                .to_string(),
                 theme::muted_style(),
             )),
         ];
@@ -1261,17 +1404,29 @@ fn render_empty_state(f: &mut Frame, app: &App, area: Rect, block: Block) {
     let empty_text = vec![
         Line::from(""),
         Line::from(Span::styled(
-            format!("📭 No {} configurations found", platform_name),
+            crate::tui_format!(
+                "No {} configurations found",
+                "未找到 {} 配置",
+                platform_name
+            ),
             theme::empty_hint_style(),
         )),
         Line::from(""),
         Line::from(Span::styled(
-            format!("Run 'ccr platform init {}' to initialize", short_name),
+            crate::tui_format!(
+                "Run 'ccr platform init {}' to initialize",
+                "运行 'ccr platform init {}' 进行初始化",
+                short_name
+            ),
             theme::secondary_text_style(),
         )),
         Line::from(""),
         Line::from(Span::styled(
-            "Or 'ccr add' to create a new configuration".to_string(),
+            crate::tui_text!(
+                "Or 'ccr add' to create a new configuration",
+                "或运行 'ccr add' 创建新配置"
+            )
+            .to_string(),
             theme::muted_style(),
         )),
     ];
@@ -1287,7 +1442,7 @@ fn profile_status_text(app: &App) -> Vec<Line<'static>> {
     if let Some(error) = app.current_profile_load_error() {
         return vec![
             Line::from(Span::styled(
-                "⚠ Profile list unavailable".to_string(),
+                crate::tui_text!("Profile list unavailable", "配置列表不可用").to_string(),
                 theme::empty_hint_style(),
             )),
             Line::from(""),
@@ -1298,7 +1453,8 @@ fn profile_status_text(app: &App) -> Vec<Line<'static>> {
     if let Some(error) = app.current_profile_status_error() {
         return vec![
             Line::from(Span::styled(
-                "⚠ Current profile state unavailable".to_string(),
+                crate::tui_text!("Current profile state unavailable", "当前配置状态不可用")
+                    .to_string(),
                 theme::empty_hint_style(),
             )),
             Line::from(""),
@@ -1306,7 +1462,10 @@ fn profile_status_text(app: &App) -> Vec<Line<'static>> {
         ];
     }
 
-    vec![Line::from("No profile selected")]
+    vec![Line::from(crate::tui_text!(
+        "No profile selected",
+        "未选择配置"
+    ))]
 }
 
 fn profile_status_alignment(app: &App) -> Alignment {
@@ -1323,13 +1482,13 @@ fn profile_status_alignment(app: &App) -> Alignment {
 
 /// Render footer with keyboard shortcuts and toast notification
 fn render_footer(f: &mut Frame, app: &App, area: Rect) {
-    let paragraph = Paragraph::new(footer_text(app))
+    let paragraph = Paragraph::new(footer_text_for_width(app, area.width))
         .block(
             Block::default()
                 .borders(Borders::TOP)
                 .border_set(symbols::border::ROUNDED)
                 .border_style(Style::default().fg(theme::border()))
-                .title(" Keys ")
+                .title(crate::tui_text!(" Keys ", " 按键 "))
                 .title_alignment(Alignment::Center)
                 .title_style(theme::muted_style()),
         )
@@ -1340,15 +1499,33 @@ fn render_footer(f: &mut Frame, app: &App, area: Rect) {
     f.render_widget(paragraph, area);
 }
 
+#[cfg(test)]
 fn footer_text(app: &App) -> String {
+    footer_text_for_width(app, u16::MAX)
+}
+
+fn footer_text_for_width(app: &App, width: u16) -> String {
+    if width < 90 {
+        let shortcuts = crate::tui_text!(
+            "Tab│↑↓ select│PgUp/PgDn details│Enter apply│Ctrl+L lang│q quit",
+            "Tab│↑↓选择│PgUp/PgDn详情│Enter应用│Ctrl+L语言│q退出"
+        );
+        return if let Some(toast) = app.toasts.active() {
+            format!("{}  │  {}", toast.message, shortcuts)
+        } else {
+            shortcuts.to_string()
+        };
+    }
+
     let page_hint = if app.total_pages() > 1 {
-        "←→ page  │  "
+        crate::tui_text!("←→ page  │  ", "←→ 翻页  │  ")
     } else {
         ""
     };
 
-    let shortcuts = format!(
-        "Tab/Shift+Tab switch  │  {page_hint}↑↓/jk select  │  PgUp/PgDn details  │  Enter apply  │  r reload  │  q quit"
+    let shortcuts = crate::tui_format!(
+        "Tab/Shift+Tab switch  │  {page_hint}↑↓/jk select  │  PgUp/PgDn details  │  Enter apply  │  r reload  │  Ctrl+L language  │  q quit",
+        "Tab/Shift+Tab 切换  │  {page_hint}↑↓/jk 选择  │  PgUp/PgDn 详情  │  Enter 应用  │  r 刷新  │  Ctrl+L 语言  │  q 退出"
     );
 
     if let Some(toast) = app.toasts.active() {
@@ -1528,6 +1705,39 @@ mod tests {
         assert_eq!(theme::viewport_mode(100, 30), ViewportMode::Standard);
         assert_eq!(theme::viewport_mode(140, 20), ViewportMode::Compact);
         assert_eq!(theme::viewport_mode(80, 30), ViewportMode::Compact);
+    }
+
+    #[test]
+    fn simplified_chinese_renders_across_all_viewport_modes() {
+        crate::tui::i18n::set_language(ccr_cli::managers::TuiLanguage::SimplifiedChinese);
+
+        for (width, height) in [(80, 20), (100, 30), (140, 30)] {
+            let profile = ProfileItem {
+                name: "main".to_string(),
+                description: Some("主要配置".to_string()),
+                is_current: true,
+            };
+            let mut app = sample_profile_app(profile, ProfileConfig::new());
+            let mut terminal = Terminal::new(TestBackend::new(width, height)).unwrap();
+            terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+
+            let rendered = buffer_text(terminal.backend());
+            let compact = rendered.replace(' ', "");
+            assert!(
+                compact.contains("配置切换器"),
+                "{width}x{height}: {rendered}"
+            );
+            assert!(
+                compact.contains("Claude配置"),
+                "{width}x{height}: {rendered}"
+            );
+            assert!(
+                compact.contains("Ctrl+L语言"),
+                "{width}x{height}: {rendered}"
+            );
+        }
+
+        crate::tui::i18n::set_language(ccr_cli::managers::TuiLanguage::English);
     }
 
     #[test]

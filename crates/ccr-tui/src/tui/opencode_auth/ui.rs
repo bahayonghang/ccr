@@ -108,15 +108,26 @@ pub fn draw_loading_placeholder(
     error: Option<&str>,
 ) {
     let message = error
-        .map(|err| format!("OpenCode Auth 初始化失败\n\n{err}"))
-        .unwrap_or_else(|| "正在初始化 OpenCode Auth...".to_string());
+        .map(|err| {
+            crate::tui_format!(
+                "Failed to initialize OpenCode Auth\n\n{err}",
+                "OpenCode 认证初始化失败\n\n{err}"
+            )
+        })
+        .unwrap_or_else(|| {
+            crate::tui_text!(
+                "Initializing OpenCode Auth...",
+                "正在初始化 OpenCode 认证..."
+            )
+            .to_string()
+        });
 
     let panel = Paragraph::new(message)
         .block(
             Block::default()
                 .borders(Borders::ALL)
                 .border_style(Style::default().fg(theme::border()))
-                .title(" 🔐 OpenCode Auth ")
+                .title(crate::tui_text!(" OpenCode Auth ", " OpenCode 认证 "))
                 .title_style(Style::default().fg(theme::opencode())),
         )
         .alignment(Alignment::Center)
@@ -124,15 +135,15 @@ pub fn draw_loading_placeholder(
     f.render_widget(panel, content_area);
 
     if mode == crate::tui::theme::ViewportMode::Compact {
-        let help = Paragraph::new("Tab 切换")
+        let help = Paragraph::new(crate::tui_text!("Tab switch", "Tab 切换"))
             .style(theme::muted_style())
             .alignment(Alignment::Center);
         f.render_widget(help, footer_area);
     } else {
         let status = Paragraph::new(if error.is_some() {
-            "初始化失败"
+            crate::tui_text!("Initialization failed", "初始化失败")
         } else {
-            "加载中"
+            crate::tui_text!("Loading", "加载中")
         })
         .style(if error.is_some() {
             theme::error_style()
@@ -143,7 +154,7 @@ pub fn draw_loading_placeholder(
             Block::default()
                 .borders(Borders::TOP)
                 .border_style(Style::default().fg(theme::border()))
-                .title(" Keys ")
+                .title(crate::tui_text!(" Keys ", " 按键 "))
                 .title_style(Style::default().fg(theme::opencode())),
         );
         f.render_widget(status, footer_area);
@@ -153,7 +164,7 @@ pub fn draw_loading_placeholder(
 fn draw_title(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp) {
     let title = Paragraph::new(vec![Line::from(vec![
         Span::styled(
-            " 🔐 OpenCode 账号管理 ",
+            crate::tui_text!(" OpenCode Account Manager ", " OpenCode 账号管理 "),
             Style::default()
                 .fg(theme::opencode())
                 .add_modifier(Modifier::BOLD),
@@ -174,7 +185,7 @@ fn draw_title(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp) {
 }
 
 fn draw_account_list_with_status(f: &mut Frame, area: Rect, app: &mut OpenCodeAuthApp) {
-    let title = format!(" 🔐 账号列表 · {} ", login_status_text(app));
+    let title = crate::tui_format!(" Accounts · {} ", " 账号列表 · {} ", login_status_text(app));
     render_account_list_panel(f, area, app, title);
 }
 
@@ -251,9 +262,12 @@ fn render_account_list_panel(f: &mut Frame, area: Rect, app: &mut OpenCodeAuthAp
 
     if app.accounts.is_empty() {
         app.list_area.set(None);
-        let empty = Paragraph::new(" 暂未发现可切换的 OpenCode 账号")
-            .style(theme::muted_style())
-            .alignment(Alignment::Left);
+        let empty = Paragraph::new(crate::tui_text!(
+            " No switchable OpenCode accounts found",
+            " 暂未发现可切换的 OpenCode 账号"
+        ))
+        .style(theme::muted_style())
+        .alignment(Alignment::Left);
         f.render_widget(empty, inner);
         return;
     }
@@ -292,25 +306,38 @@ fn account_list_footer_line(app: &OpenCodeAuthApp) -> Line<'static> {
         .unwrap_or_else(theme::muted_style);
 
     let preview_hint = if app.is_activation_gate_pending() {
-        "  ·  速览将在 1s 后展开 "
+        crate::tui_text!("  ·  preview expands after 1s ", "  ·  速览将在 1s 后展开 ")
     } else if app.selected_preview_entry().is_some() {
-        "  ·  全账号速览已就绪 "
+        crate::tui_text!("  ·  all-account preview ready ", "  ·  全账号速览已就绪 ")
     } else {
-        "  ·  速览待命 "
+        crate::tui_text!("  ·  preview idle ", "  ·  速览待命 ")
     };
 
     Line::from(vec![
-        Span::styled(" Selected: ", theme::muted_style()),
-        Span::styled(selected_name, selected_style),
-        Span::styled("  ·  Legend: ", theme::muted_style()),
-        Span::styled("🟢 fresh", theme::success_style()),
-        Span::styled(" · ", theme::muted_style()),
-        Span::styled("🟡 stale", theme::warning_style()),
-        Span::styled(" · ", theme::muted_style()),
-        Span::styled("🔴 old", theme::error_style()),
         Span::styled(
-            format!(
+            crate::tui_text!(" Selected: ", " 已选择："),
+            theme::muted_style(),
+        ),
+        Span::styled(selected_name, selected_style),
+        Span::styled(
+            crate::tui_text!("  ·  Legend: ", "  ·  图例："),
+            theme::muted_style(),
+        ),
+        Span::styled(
+            crate::tui_text!("🟢 fresh", "🟢 新鲜"),
+            theme::success_style(),
+        ),
+        Span::styled(" · ", theme::muted_style()),
+        Span::styled(
+            crate::tui_text!("🟡 stale", "🟡 陈旧"),
+            theme::warning_style(),
+        ),
+        Span::styled(" · ", theme::muted_style()),
+        Span::styled(crate::tui_text!("🔴 old", "🔴 过期"), theme::error_style()),
+        Span::styled(
+            crate::tui_format!(
                 "  ·  Page {}/{}  ·  {} accounts ",
+                "  ·  第 {}/{} 页  ·  {} 个账号 ",
                 app.current_page + 1,
                 app.total_pages(),
                 app.accounts.len()
@@ -429,13 +456,13 @@ fn render_account_list_rows(
 
 fn account_header_cell(column: &AccountColumn) -> Cell<'static> {
     let label = match column {
-        AccountColumn::Account => "账号",
-        AccountColumn::Email => "邮箱",
-        AccountColumn::Plan => "类型",
-        AccountColumn::QuotaSummary => "配额",
+        AccountColumn::Account => crate::tui_text!("Account", "账号"),
+        AccountColumn::Email => crate::tui_text!("Email", "邮箱"),
+        AccountColumn::Plan => crate::tui_text!("Type", "类型"),
+        AccountColumn::QuotaSummary => crate::tui_text!("Quota", "配额"),
         AccountColumn::HourlyQuota => "5h",
         AccountColumn::WeeklyQuota => "7d",
-        AccountColumn::ExpiresAt => "到期",
+        AccountColumn::ExpiresAt => crate::tui_text!("Expires", "到期"),
     };
 
     Cell::from(label.to_string())
@@ -646,7 +673,7 @@ fn draw_account_snapshot_panel(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp)
             Block::default()
                 .borders(Borders::ALL)
                 .border_style(Style::default().fg(theme::opencode()))
-                .title(" Focus ")
+                .title(crate::tui_text!(" Focus ", " 当前焦点 "))
                 .title_style(theme::opencode_style()),
         )
         .wrap(Wrap { trim: true });
@@ -684,12 +711,12 @@ fn account_snapshot_lines(app: &OpenCodeAuthApp, account: &OpenCodeAuthItem) -> 
             format!(
                 "{}{}",
                 if account.is_current {
-                    "Current"
+                    crate::tui_text!("Current", "当前")
                 } else {
-                    "Saved"
+                    crate::tui_text!("Saved", "已保存")
                 },
                 if account.is_virtual {
-                    " · Virtual"
+                    crate::tui_text!(" · Virtual", " · 临时")
                 } else {
                     ""
                 }
@@ -739,12 +766,29 @@ fn account_snapshot_lines(app: &OpenCodeAuthApp, account: &OpenCodeAuthItem) -> 
 }
 
 fn detail_label_span(label: &str) -> Span<'static> {
+    let label = localized_detail_label(label);
     Span::styled(
-        format!("{label:<DETAIL_LABEL_WIDTH$}"),
+        pad_text(label, DETAIL_LABEL_WIDTH),
         Style::default()
             .fg(theme::subtext())
             .add_modifier(Modifier::BOLD),
     )
+}
+
+fn localized_detail_label(label: &str) -> &str {
+    match label {
+        "Account:" => crate::tui_text!("Account:", "账号："),
+        "State:" => crate::tui_text!("State:", "状态："),
+        "OpenAI ID:" => crate::tui_text!("OpenAI ID:", "OpenAI ID："),
+        "Email:" => crate::tui_text!("Email:", "邮箱："),
+        "Plan:" => crate::tui_text!("Plan:", "类型："),
+        "Saved at:" => crate::tui_text!("Saved at:", "保存时间："),
+        "Expires:" => crate::tui_text!("Expires:", "到期时间："),
+        "Quota scope:" => crate::tui_text!("Quota scope:", "配额范围："),
+        "Usage scope:" => crate::tui_text!("Usage scope:", "用量范围："),
+        "Attribution:" => crate::tui_text!("Attribution:", "归因："),
+        _ => label,
+    }
 }
 
 fn detail_line(label: &str, value: impl Into<String>, style: Style) -> Line<'static> {
@@ -768,7 +812,10 @@ fn preview_reset_detail_line(
         label,
         vec![
             Span::styled(preview_value, preview_style),
-            Span::styled("  Reset ", theme::muted_style()),
+            Span::styled(
+                crate::tui_text!("  Reset ", "  重置 "),
+                theme::muted_style(),
+            ),
             Span::styled(reset_value, theme::muted_style()),
         ],
     )
@@ -790,14 +837,14 @@ fn draw_status_bar(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp) {
         };
         (toast.message.as_str(), style)
     } else {
-        ("就绪", theme::success_style())
+        (crate::tui_text!("Ready", "就绪"), theme::success_style())
     };
 
     let status = Paragraph::new(message).style(style).block(
         Block::default()
             .borders(Borders::ALL)
             .border_style(Style::default().fg(theme::border()))
-            .title(" 状态 ")
+            .title(crate::tui_text!(" Status ", " 状态 "))
             .title_style(Style::default().fg(theme::opencode())),
     );
 
@@ -808,7 +855,7 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp) {
     let title = Line::from(vec![
         Span::styled("📊 ", theme::card_block_style()),
         Span::styled(
-            "Usage & Quota",
+            crate::tui_text!("Usage & Quota", "用量与配额"),
             Style::default()
                 .fg(theme::text())
                 .add_modifier(Modifier::BOLD),
@@ -818,35 +865,47 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp) {
     let mut content: Vec<Line> = Vec::new();
 
     content.push(Line::from(Span::styled(
-        "  列表已用于全账号速览；此处聚焦当前选中账号的完整配额，并明确标注本地 usage 的 provider 限制。",
+        crate::tui_text!(
+            "  The list shows all-account previews; this panel focuses on the selected account quota and clearly marks provider limits for local usage.",
+            "  列表已用于全账号速览；此处聚焦当前选中账号的完整配额，并明确标注本地 usage 的 provider 限制。"
+        ),
         theme::muted_style(),
     )));
 
     content.push(scope_line(
         "Quota scope:",
-        "selected account",
+        crate::tui_text!("selected account", "所选账号"),
         theme::success_style(),
     ));
 
     match &app.quota_state {
         QuotaState::Idle => {
             let idle_message = if app.is_activation_gate_pending() {
-                "  ⏳ 停留 1s 后自动展开全账号速览，并同步带出当前账号详情"
+                crate::tui_text!(
+                    "  All-account previews and selected account details load after 1s",
+                    "  停留 1s 后自动展开全账号速览，并同步带出当前账号详情"
+                )
             } else {
-                "  ⏳ 已缓存全账号速览；按 r 强刷当前账号与本地统计"
+                crate::tui_text!(
+                    "  All-account previews cached; press r to refresh the selected account and local statistics",
+                    "  已缓存全账号速览；按 r 强刷当前账号与本地统计"
+                )
             };
             content.push(Line::from(Span::styled(idle_message, theme::muted_style())));
         }
         QuotaState::Loading { .. } if app.selected_quota().is_none() => {
             content.push(Line::from(Span::styled(
-                "  ⏳ 正在查询当前账号配额...",
+                crate::tui_text!(
+                    "  Querying the selected account quota...",
+                    "  正在查询当前账号配额..."
+                ),
                 theme::warning_style(),
             )));
         }
         QuotaState::Error { .. } if app.selected_quota().is_none() => {
             if let Some(err) = app.selected_quota_error() {
                 content.push(Line::from(Span::styled(
-                    format!("  ⚠️ 配额查询失败: {}", err),
+                    crate::tui_format!("  Quota query failed: {}", "  配额查询失败：{}", err),
                     theme::error_style(),
                 )));
             }
@@ -856,13 +915,16 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp) {
                 if let Some(ref quota) = aq.quota {
                     let account_label = aq.email.as_deref().unwrap_or(&aq.account_name);
                     content.push(Line::from(vec![
-                        Span::styled("  配额 ", theme::info_style()),
+                        Span::styled(crate::tui_text!("  Quota ", "  配额 "), theme::info_style()),
                         Span::styled(format!("({})", account_label), theme::muted_style()),
                     ]));
 
                     if app.is_selected_quota_loading() {
                         content.push(Line::from(Span::styled(
-                            "  ⏳ 正在刷新选中账号配额...",
+                            crate::tui_text!(
+                                "  Refreshing the selected account quota...",
+                                "  正在刷新选中账号配额..."
+                            ),
                             theme::warning_style(),
                         )));
                     }
@@ -872,14 +934,18 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp) {
                     let h_reset = quota
                         .hourly_reset_time
                         .map(|value| {
-                            format!(
-                                "  重置: {}",
+                            crate::tui_format!(
+                                "  Reset: {}",
+                                "  重置：{}",
                                 OpenCodeQuotaService::format_reset_duration(value)
                             )
                         })
                         .unwrap_or_default();
                     content.push(Line::from(vec![
-                        Span::styled("  5h限额: ", Style::default().fg(theme::text())),
+                        Span::styled(
+                            crate::tui_text!("  5h limit: ", "  5h限额："),
+                            Style::default().fg(theme::text()),
+                        ),
                         Span::styled(h_bar, Style::default().fg(h_color)),
                         Span::styled(
                             format!(" {}%", quota.hourly_percentage),
@@ -897,14 +963,22 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp) {
                             let dt = chrono::DateTime::from_timestamp(value, 0)
                                 .map(|dt| dt.with_timezone(&chrono::Local));
                             if let Some(local) = dt {
-                                format!("  重置: {} ({})", relative, local.format("%m/%d %H:%M"))
+                                crate::tui_format!(
+                                    "  Reset: {} ({})",
+                                    "  重置：{}（{}）",
+                                    relative,
+                                    local.format("%m/%d %H:%M")
+                                )
                             } else {
-                                format!("  重置: {}", relative)
+                                crate::tui_format!("  Reset: {}", "  重置：{}", relative)
                             }
                         })
                         .unwrap_or_default();
                     content.push(Line::from(vec![
-                        Span::styled("  周限额: ", Style::default().fg(theme::text())),
+                        Span::styled(
+                            crate::tui_text!("  Weekly limit: ", "  周限额："),
+                            Style::default().fg(theme::text()),
+                        ),
                         Span::styled(w_bar, Style::default().fg(w_color)),
                         Span::styled(
                             format!(" {}%", quota.weekly_percentage),
@@ -918,7 +992,10 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp) {
                             .and_then(|account| account.plan_type.as_deref())
                     }) {
                         content.push(Line::from(vec![
-                            Span::styled("  订阅: ", Style::default().fg(theme::text())),
+                            Span::styled(
+                                crate::tui_text!("  Plan: ", "  订阅："),
+                                Style::default().fg(theme::text()),
+                            ),
                             Span::styled(plan.to_string(), theme::info_style()),
                         ]));
                     }
@@ -947,7 +1024,7 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp) {
         ));
         if let Some(reason) = &panel.fallback_reason {
             content.push(Line::from(Span::styled(
-                format!("  Note: {}", reason),
+                crate::tui_format!("  Note: {}", "  说明：{}", reason),
                 theme::warning_style(),
             )));
         }
@@ -955,30 +1032,46 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp) {
     } else {
         if app.is_activation_gate_pending() {
             content.push(Line::from(Span::styled(
-                "  ⏳ 停留 1s 后自动加载本地 openai usage，并与列表速览一起就位",
+                crate::tui_text!(
+                    "  Local openai usage and list previews load after 1s",
+                    "  停留 1s 后自动加载本地 openai usage，并与列表速览一起就位"
+                ),
                 theme::muted_style(),
             )));
         } else {
             match &app.usage_state {
                 OpenCodeUsageState::NoData => {
                     content.push(Line::from(Span::styled(
-                        "  📭 暂无本地 openai usage 数据",
+                        crate::tui_text!(
+                            "  No local openai usage data",
+                            "  暂无本地 openai usage 数据"
+                        ),
                         theme::muted_style(),
                     )));
                     content.push(Line::from(Span::styled(
-                        "  说明: 仅统计 OpenCode message 表里 providerID=openai 的 assistant 消息",
+                        crate::tui_text!(
+                            "  Only assistant messages with providerID=openai in the OpenCode message table are counted",
+                            "  仅统计 OpenCode message 表里 providerID=openai 的 assistant 消息"
+                        ),
                         theme::muted_style(),
                     )));
                 }
                 OpenCodeUsageState::Error(err) => {
                     content.push(Line::from(Span::styled(
-                        format!("  ⚠️ 统计加载失败: {}", err),
+                        crate::tui_format!(
+                            "  Failed to load statistics: {}",
+                            "  统计加载失败：{}",
+                            err
+                        ),
                         theme::error_style(),
                     )));
                 }
                 OpenCodeUsageState::Loading => {
                     content.push(Line::from(Span::styled(
-                        "  ⏳ 正在加载本地 openai usage...",
+                        crate::tui_text!(
+                            "  Loading local openai usage...",
+                            "  正在加载本地 openai usage..."
+                        ),
                         theme::muted_style(),
                     )));
                 }
@@ -1014,22 +1107,33 @@ fn progress_bar(pct: i32, width: usize) -> String {
 
 fn usage_scope_badge(panel: &OpenCodeAuthUsagePanelData) -> (String, Style) {
     (
-        format!("{} provider", panel.provider_label),
+        crate::tui_format!("{} provider", "{} 提供商", panel.provider_label),
         theme::info_style(),
     )
 }
 
 fn usage_attribution_label(state: OpenCodeUsageAttributionState) -> &'static str {
     match state {
-        OpenCodeUsageAttributionState::ProviderGlobal => "provider aggregate",
+        OpenCodeUsageAttributionState::ProviderGlobal => {
+            crate::tui_text!("provider aggregate", "提供商汇总")
+        }
         OpenCodeUsageAttributionState::CurrentSavedSelection => {
-            "current selection · provider aggregate"
+            crate::tui_text!(
+                "current selection · provider aggregate",
+                "当前选择 · 提供商汇总"
+            )
         }
         OpenCodeUsageAttributionState::SavedSelectionFallback => {
-            "saved selection · provider fallback"
+            crate::tui_text!(
+                "saved selection · provider fallback",
+                "已保存选择 · 提供商回退"
+            )
         }
         OpenCodeUsageAttributionState::VirtualCurrentLogin => {
-            "unsaved current login · provider aggregate"
+            crate::tui_text!(
+                "unsaved current login · provider aggregate",
+                "未保存的当前登录 · 提供商汇总"
+            )
         }
     }
 }
@@ -1053,33 +1157,38 @@ fn usage_digest_lines(panel: &OpenCodeAuthUsagePanelData) -> Vec<Line<'static>> 
         .top_model
         .as_ref()
         .map(|top| {
-            format!(
+            crate::tui_format!(
                 "  Top model: {} ({}, {} req)",
+                "  主要模型：{}（{}，{} 次请求）",
                 top.model,
                 OpenCodeUsageService::format_tokens(top.total_tokens),
                 top.total_requests
             )
         })
-        .unwrap_or_else(|| "  Top model: -".to_string());
+        .unwrap_or_else(|| crate::tui_text!("  Top model: -", "  主要模型：-").to_string());
 
     vec![
-        Line::from(format!(
-            "  5小时: {} tokens ({} 请求)",
+        Line::from(crate::tui_format!(
+            "  5 hours: {} tokens ({} requests)",
+            "  5小时：{} tokens（{} 请求）",
             OpenCodeUsageService::format_tokens(five_total),
             usage.five_hour.total_requests
         )),
-        Line::from(format!(
-            "  7天:   {} tokens ({} 请求)",
+        Line::from(crate::tui_format!(
+            "  7 days:  {} tokens ({} requests)",
+            "  7天：  {} tokens（{} 请求）",
             OpenCodeUsageService::format_tokens(seven_total),
             usage.seven_day.total_requests
         )),
-        Line::from(format!(
-            "  All time: {} tokens ({} 请求)",
+        Line::from(crate::tui_format!(
+            "  All time: {} tokens ({} requests)",
+            "  全时段：{} tokens（{} 请求）",
             OpenCodeUsageService::format_tokens(all_time),
             usage.all_time.total_requests
         )),
-        Line::from(format!(
+        Line::from(crate::tui_format!(
             "  Records: {} local assistant messages",
+            "  记录：{} 条本地 assistant 消息",
             panel.record_count
         )),
         Line::from(top_model),
@@ -1088,13 +1197,22 @@ fn usage_digest_lines(panel: &OpenCodeAuthUsagePanelData) -> Vec<Line<'static>> 
 
 fn draw_help_bar(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp) {
     let help_text = match &app.overlay {
-        Some(Overlay::Confirm { .. }) => "y 确认删除 | n/Esc 取消",
-        Some(Overlay::ImportCodexConfirm { .. }) => "y 确认导入 | n/Esc 取消",
-        Some(Overlay::Input { .. }) => "Enter 确认 | Esc 取消",
-        Some(Overlay::RenameInput { .. }) => "Enter 保存 | Esc 取消",
-        None => {
-            "↑/k 上移 | ↓/j 下移 | Enter 切换 | s 保存当前 | i 导入 Codex | d 删除 | r 刷新账号/统计 | q 退出"
+        Some(Overlay::Confirm { .. }) => {
+            crate::tui_text!("y confirm delete | n/Esc cancel", "y 确认删除 | n/Esc 取消")
         }
+        Some(Overlay::ImportCodexConfirm { .. }) => {
+            crate::tui_text!("y confirm import | n/Esc cancel", "y 确认导入 | n/Esc 取消")
+        }
+        Some(Overlay::Input { .. }) => {
+            crate::tui_text!("Enter confirm | Esc cancel", "Enter 确认 | Esc 取消")
+        }
+        Some(Overlay::RenameInput { .. }) => {
+            crate::tui_text!("Enter save | Esc cancel", "Enter 保存 | Esc 取消")
+        }
+        None => crate::tui_text!(
+            "↑/k up | ↓/j down | Enter switch | s save current | i import Codex | d delete | r refresh accounts/statistics | Ctrl+L language | q quit",
+            "↑/k 上移 | ↓/j 下移 | Enter 切换 | s 保存当前 | i 导入 Codex | d 删除 | r 刷新账号/统计 | Ctrl+L 语言 | q 退出"
+        ),
     };
 
     let help = Paragraph::new(help_text)
@@ -1106,13 +1224,16 @@ fn draw_help_bar(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp) {
 
 fn draw_footer_strip(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp) {
     let message = if let Some(toast) = app.toasts.active() {
-        format!(
-            "{}  │  Tab/Shift+Tab switch  │  ↑↓/jk select  │  Enter switch  │  s save  │  i import  │  d delete  │  r refresh  │  q quit",
+        crate::tui_format!(
+            "{}  │  Tab/Shift+Tab switch  │  ↑↓/jk select  │  Enter switch  │  s save  │  i import  │  d delete  │  r refresh  │  Ctrl+L language  │  q quit",
+            "{}  │  Tab/Shift+Tab 切换  │  ↑↓/jk 选择  │  Enter 切换  │  s 保存  │  i 导入  │  d 删除  │  r 刷新  │  Ctrl+L 语言  │  q 退出",
             toast.message
         )
     } else {
-        "Tab/Shift+Tab switch  │  ↑↓/jk select  │  Enter switch  │  s save  │  i import  │  d delete  │  r refresh  │  q quit"
-            .to_string()
+        crate::tui_text!(
+            "Tab/Shift+Tab switch  │  ↑↓/jk select  │  Enter switch  │  s save  │  i import  │  d delete  │  r refresh  │  Ctrl+L language  │  q quit",
+            "Tab/Shift+Tab 切换  │  ↑↓/jk 选择  │  Enter 切换  │  s 保存  │  i 导入  │  d 删除  │  r 刷新  │  Ctrl+L 语言  │  q 退出"
+        ).to_string()
     };
 
     let help = Paragraph::new(message)
@@ -1120,7 +1241,7 @@ fn draw_footer_strip(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp) {
             Block::default()
                 .borders(Borders::TOP)
                 .border_style(Style::default().fg(theme::border()))
-                .title(" Keys ")
+                .title(crate::tui_text!(" Keys ", " 按键 "))
                 .title_style(Style::default().fg(theme::muted())),
         )
         .alignment(Alignment::Center)
@@ -1135,9 +1256,13 @@ fn scope_line(label: &str, value: impl Into<String>, style: Style) -> Line<'stat
 
 fn login_status_text(app: &OpenCodeAuthApp) -> String {
     match &app.login_state {
-        OpenCodeLoginState::NotLoggedIn => "未登录".to_string(),
-        OpenCodeLoginState::LoggedInUnsaved => "已登录 (未保存)".to_string(),
-        OpenCodeLoginState::LoggedInSaved(name) => format!("已登录: {}", name),
+        OpenCodeLoginState::NotLoggedIn => crate::tui_text!("Not logged in", "未登录").to_string(),
+        OpenCodeLoginState::LoggedInUnsaved => {
+            crate::tui_text!("Logged in (unsaved)", "已登录（未保存）").to_string()
+        }
+        OpenCodeLoginState::LoggedInSaved(name) => {
+            crate::tui_format!("Logged in: {}", "已登录：{}", name)
+        }
     }
 }
 
@@ -1244,6 +1369,17 @@ fn truncate_text(value: &str, max_width: usize) -> String {
         current_width += ch_width;
     }
     result.push('…');
+    result
+}
+
+fn pad_text(value: &str, width: usize) -> String {
+    let value_width = value.width();
+    if value_width >= width {
+        return value.to_string();
+    }
+    let mut result = String::with_capacity(value.len() + width - value_width);
+    result.push_str(value);
+    result.extend(std::iter::repeat_n(' ', width - value_width));
     result
 }
 
@@ -1608,7 +1744,7 @@ mod tests {
         let compact = compact_text(&rendered);
         assert!(compact.contains("Usage&Quota"), "{rendered}");
         assert!(compact.contains("Quotascope:selectedaccount"), "{rendered}");
-        assert!(compact.contains("重置:"), "{rendered}");
+        assert!(compact.contains("Reset:"), "{rendered}");
         assert!(compact.contains("Usagescope:openaiprovider"), "{rendered}");
         assert!(
             compact.contains("Records:1localassistantmessages"),
