@@ -112,4 +112,4 @@ Visual limitation:
 - [x] 根据实施中学到的稳定契约更新 `.trellis/spec/ccr-ui/frontend/`。
 - [x] 更新本任务验收勾选和实施记录。
 - [x] 按仓库规范拆分原子中文 Conventional Commits（实现提交 `0e999aaf`）。
-- [ ] 完成 Trellis archive 与 journal，记录 substantive work commits。
+- [x] 完成 Trellis archive 与 journal，记录 substantive work commits（`0e999aaf`、`7c535a48`）。
