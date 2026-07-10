@@ -12,6 +12,26 @@ CLI-first workflow with explicit Claude Runtime / Codex Runtime state, plus TUI 
 - **Auth Portability**: Save/export/import Codex auth and migrate compatible accounts into OpenCode.
 - **Smart Sync**: WebDAV-based multi-folder synchronization.
 
+## Interface Preview
+
+### TUI
+
+The terminal interface keeps profile switching, the active routing/auth context, selected-profile details, and keyboard actions in a single view.
+
+![CCR TUI showing Codex profile selection and routing details](docs/assets/readme/ccr-tui-overview.png)
+
+### CCR UI Dashboard
+
+The Dashboard surfaces desktop-backend readiness, the next recommended action, runtime availability, and platform signals before you enter a module.
+
+![CCR UI Dashboard showing readiness and next actions](docs/assets/readme/ccr-ui-dashboard.png)
+
+### CCR UI Codex Profiles
+
+Codex Profiles combines quick switching, search and status filters, profile cards, active-profile context, and configuration distribution in one management view.
+
+![CCR UI Codex Profiles view with filters and profile context](docs/assets/readme/ccr-ui-codex-profiles.png)
+
 ## 🚀 Quick Start
 
 ```bash
