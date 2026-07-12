@@ -5,6 +5,7 @@ use super::app::{
     CodexAuthApp, CodexAuthUsagePanelData, CodexUsageAttributionState, CodexUsageScope,
     PreviewMetricWindow, QuotaPreviewCellState, QuotaState, UsageState,
 };
+use crate::tui::footer::{ShortcutHint, shortcut_line};
 use crate::tui::overlay::{Overlay, render_overlay};
 use crate::tui::theme;
 use crate::tui::toast::ToastKind;
@@ -1442,21 +1443,39 @@ fn draw_account_snapshot_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
 }
 
 fn draw_footer_strip(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
-    let message = if let Some(toast) = app.toasts.active() {
-        crate::tui_format!(
-            "{}  │  Tab/Shift+Tab switch  │  ↑↓/jk select  │  Enter switch  │  s save  │  b quota  │  r refresh  │  Ctrl+L language  │  q quit",
-            "{}  │  Tab/Shift+Tab 切换  │  ↑↓/jk 选择  │  Enter 切换  │  s 保存  │  b 配额  │  r 刷新  │  Ctrl+L 语言  │  q 退出",
-            toast.message
-        )
-    } else {
-        crate::tui_text!(
-            "Tab/Shift+Tab switch  │  ↑↓/jk select  │  Enter switch  │  s save  │  d delete  │  b quota  │  r refresh  │  Ctrl+L language  │  q quit",
-            "Tab/Shift+Tab 切换  │  ↑↓/jk 选择  │  Enter 切换  │  s 保存  │  d 删除  │  b 配额  │  r 刷新  │  Ctrl+L 语言  │  q 退出"
-        )
-        .to_string()
-    };
+    let mut hints = vec![
+        ShortcutHint::new("Tab/Shift+Tab", crate::tui_text!("switch", "切换")),
+        ShortcutHint::new("↑↓/jk", crate::tui_text!("select", "选择")),
+        ShortcutHint::new("Enter", crate::tui_text!("switch", "切换")),
+        ShortcutHint::new("s", crate::tui_text!("save", "保存")),
+    ];
+    if app.toasts.active().is_none() {
+        hints.push(ShortcutHint::new("d", crate::tui_text!("delete", "删除")));
+    }
+    hints.extend([
+        ShortcutHint::new("b", crate::tui_text!("quota", "配额")),
+        ShortcutHint::new("r", crate::tui_text!("refresh", "刷新")),
+        ShortcutHint::new("Ctrl+L", crate::tui_text!("language", "语言")),
+        ShortcutHint::new("q", crate::tui_text!("quit", "退出")),
+    ]);
 
-    let help = Paragraph::new(message)
+    let mut line = shortcut_line(&hints, theme::codex());
+    if let Some(toast) = app.toasts.active() {
+        let style = match toast.kind {
+            ToastKind::Success => theme::success_style(),
+            ToastKind::Error => theme::error_style(),
+            ToastKind::Warning => theme::warning_style(),
+            ToastKind::Info => theme::info_style(),
+        };
+        line.spans.insert(
+            0,
+            Span::styled("  │  ", Style::default().fg(theme::muted())),
+        );
+        line.spans
+            .insert(0, Span::styled(toast.message.clone(), style));
+    }
+
+    let help = Paragraph::new(line)
         .block(
             Block::default()
                 .borders(Borders::TOP)

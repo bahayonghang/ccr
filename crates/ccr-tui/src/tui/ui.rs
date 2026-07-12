@@ -4,6 +4,7 @@
 use super::app::App;
 use super::claude_auth;
 use super::codex_auth;
+use super::footer::{ShortcutHint, shortcut_line};
 use super::opencode_auth;
 use super::theme;
 use super::toast::ToastKind;
@@ -1968,7 +1969,24 @@ fn profile_status_alignment(app: &App) -> Alignment {
 
 /// Render footer with keyboard shortcuts and toast notification
 fn render_footer(f: &mut Frame, app: &App, area: Rect) {
-    let paragraph = Paragraph::new(footer_text_for_width(app, area.width))
+    let hints = footer_hints_for_width(app, area.width);
+    let mut line = shortcut_line(&hints, theme::accent_for(app.current_platform()));
+    if let Some(toast) = app.toasts.active() {
+        let style = match toast.kind {
+            ToastKind::Success => theme::success_style(),
+            ToastKind::Error => theme::error_style(),
+            ToastKind::Warning => theme::warning_style(),
+            ToastKind::Info => theme::info_style(),
+        };
+        line.spans.insert(
+            0,
+            Span::styled("  │  ", Style::default().fg(theme::muted())),
+        );
+        line.spans
+            .insert(0, Span::styled(toast.message.clone(), style));
+    }
+
+    let paragraph = Paragraph::new(line)
         .block(
             Block::default()
                 .borders(Borders::TOP)
@@ -1990,35 +2008,55 @@ fn footer_text(app: &App) -> String {
     footer_text_for_width(app, u16::MAX)
 }
 
+#[cfg(test)]
 fn footer_text_for_width(app: &App, width: u16) -> String {
-    if width < 90 {
-        let shortcuts = crate::tui_text!(
-            "Tab│↑↓ select│PgUp/PgDn details│Enter apply│Ctrl+L lang│q quit",
-            "Tab│↑↓选择│PgUp/PgDn详情│Enter应用│Ctrl+L语言│q退出"
-        );
-        return if let Some(toast) = app.toasts.active() {
-            format!("{}  │  {}", toast.message, shortcuts)
-        } else {
-            shortcuts.to_string()
-        };
-    }
-
-    let page_hint = if app.total_pages() > 1 {
-        crate::tui_text!("←→ page  │  ", "←→ 翻页  │  ")
-    } else {
-        ""
-    };
-
-    let shortcuts = crate::tui_format!(
-        "Tab/Shift+Tab switch  │  {page_hint}↑↓/jk select  │  PgUp/PgDn details  │  Enter apply  │  r reload  │  Ctrl+L language  │  q quit",
-        "Tab/Shift+Tab 切换  │  {page_hint}↑↓/jk 选择  │  PgUp/PgDn 详情  │  Enter 应用  │  r 刷新  │  Ctrl+L 语言  │  q 退出"
-    );
+    let shortcuts = footer_hints_for_width(app, width)
+        .iter()
+        .map(|hint| {
+            if hint.label.is_empty() {
+                hint.key.to_string()
+            } else {
+                format!("{} {}", hint.key, hint.label)
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("  │  ");
 
     if let Some(toast) = app.toasts.active() {
         format!("{}  │  {}", toast.message, shortcuts)
     } else {
         shortcuts
     }
+}
+
+fn footer_hints_for_width(app: &App, width: u16) -> Vec<ShortcutHint<'static>> {
+    if width < 90 {
+        return vec![
+            ShortcutHint::new("Tab", ""),
+            ShortcutHint::new("↑↓", crate::tui_text!("select", "选择")),
+            ShortcutHint::new("PgUp/PgDn", crate::tui_text!("details", "详情")),
+            ShortcutHint::new("Enter", crate::tui_text!("apply", "应用")),
+            ShortcutHint::new("Ctrl+L", crate::tui_text!("lang", "语言")),
+            ShortcutHint::new("q", crate::tui_text!("quit", "退出")),
+        ];
+    }
+
+    let mut hints = vec![ShortcutHint::new(
+        "Tab/Shift+Tab",
+        crate::tui_text!("switch", "切换"),
+    )];
+    if app.total_pages() > 1 {
+        hints.push(ShortcutHint::new("←→", crate::tui_text!("page", "翻页")));
+    }
+    hints.extend([
+        ShortcutHint::new("↑↓/jk", crate::tui_text!("select", "选择")),
+        ShortcutHint::new("PgUp/PgDn", crate::tui_text!("details", "详情")),
+        ShortcutHint::new("Enter", crate::tui_text!("apply", "应用")),
+        ShortcutHint::new("r", crate::tui_text!("reload", "刷新")),
+        ShortcutHint::new("Ctrl+L", crate::tui_text!("language", "语言")),
+        ShortcutHint::new("q", crate::tui_text!("quit", "退出")),
+    ]);
+    hints
 }
 
 /// Render toast notification (replaces old status_message)
@@ -2394,13 +2432,14 @@ mod tests {
     }
 
     #[test]
-    fn footer_uses_terminal_foreground_with_modifier_hierarchy() {
+    fn footer_uses_platform_accent_for_keys() {
         let profile = ProfileItem {
             name: "default".to_string(),
             description: Some("Default profile".to_string()),
             is_current: false,
         };
         let app = sample_profile_app(profile, ProfileConfig::new());
+        let expected_accent = theme::accent_for(app.current_platform());
         let mut terminal = Terminal::new(TestBackend::new(72, 3)).unwrap();
 
         terminal
@@ -2414,8 +2453,8 @@ mod tests {
             .find(|cell| cell.symbol() == "T")
             .expect("footer should render Tab/Shift+Tab switch shortcut");
 
-        assert_eq!(footer_cell.fg, theme::subtext());
-        assert_ne!(footer_cell.fg, theme::text());
+        assert_eq!(footer_cell.fg, expected_accent);
+        assert!(footer_cell.modifier.contains(Modifier::BOLD));
     }
 
     #[test]

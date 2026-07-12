@@ -7,6 +7,7 @@ mod auth_refresh;
 pub mod claude_auth;
 pub mod codex_auth;
 mod event;
+mod footer;
 pub mod i18n;
 pub mod opencode_auth;
 pub mod overlay;

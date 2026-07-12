@@ -2,6 +2,7 @@
 // 绘制 Claude 官方订阅账号管理终端界面
 
 use super::app::ClaudeAuthApp;
+use crate::tui::footer::{ShortcutHint, shortcut_line};
 use crate::tui::overlay::{Overlay, render_overlay};
 use crate::tui::theme;
 use crate::tui::toast::ToastKind;
@@ -635,25 +636,36 @@ fn focus_lines(app: &ClaudeAuthApp) -> Vec<Line<'static>> {
 }
 
 fn draw_footer_strip(f: &mut Frame, area: Rect, app: &ClaudeAuthApp) {
-    let text = match &app.overlay {
-        Some(Overlay::Confirm { .. }) => {
-            crate::tui_text!("y confirm delete | n/Esc cancel", "y 确认删除 | n/Esc 取消")
-        }
-        Some(Overlay::ImportCodexConfirm { .. }) => {
-            crate::tui_text!("y confirm | n/Esc cancel", "y 确认 | n/Esc 取消")
-        }
-        Some(Overlay::Input { .. }) => crate::tui_text!(
-            "enter account name | Enter save | Esc cancel",
-            "输入账号名 | Enter 保存 | Esc 取消"
-        ),
-        Some(Overlay::RenameInput { .. }) => crate::tui_text!(
-            "enter new name | Enter save | Esc cancel",
-            "输入新名称 | Enter 保存 | Esc 取消"
-        ),
-        None => crate::tui_text!(
-            "Tab/Shift+Tab switch  │  ←→/hl page  │  ↑↓/jk select  │  Enter switch  │  s save  │  d delete  │  r refresh  │  Ctrl+L language  │  q quit",
-            "Tab/Shift+Tab 切换  │  ←→/hl 翻页  │  ↑↓/jk 选择  │  Enter 切换  │  s 保存  │  d 删除  │  r 刷新  │  Ctrl+L 语言  │  q 退出"
-        ),
+    let hints = match &app.overlay {
+        Some(Overlay::Confirm { .. }) => vec![
+            ShortcutHint::new("y", crate::tui_text!("confirm delete", "确认删除")),
+            ShortcutHint::new("n/Esc", crate::tui_text!("cancel", "取消")),
+        ],
+        Some(Overlay::ImportCodexConfirm { .. }) => vec![
+            ShortcutHint::new("y", crate::tui_text!("confirm", "确认")),
+            ShortcutHint::new("n/Esc", crate::tui_text!("cancel", "取消")),
+        ],
+        Some(Overlay::Input { .. }) => vec![
+            ShortcutHint::new("", crate::tui_text!("enter account name", "输入账号名")),
+            ShortcutHint::new("Enter", crate::tui_text!("save", "保存")),
+            ShortcutHint::new("Esc", crate::tui_text!("cancel", "取消")),
+        ],
+        Some(Overlay::RenameInput { .. }) => vec![
+            ShortcutHint::new("", crate::tui_text!("enter new name", "输入新名称")),
+            ShortcutHint::new("Enter", crate::tui_text!("save", "保存")),
+            ShortcutHint::new("Esc", crate::tui_text!("cancel", "取消")),
+        ],
+        None => vec![
+            ShortcutHint::new("Tab/Shift+Tab", crate::tui_text!("switch", "切换")),
+            ShortcutHint::new("←→/hl", crate::tui_text!("page", "翻页")),
+            ShortcutHint::new("↑↓/jk", crate::tui_text!("select", "选择")),
+            ShortcutHint::new("Enter", crate::tui_text!("switch", "切换")),
+            ShortcutHint::new("s", crate::tui_text!("save", "保存")),
+            ShortcutHint::new("d", crate::tui_text!("delete", "删除")),
+            ShortcutHint::new("r", crate::tui_text!("refresh", "刷新")),
+            ShortcutHint::new("Ctrl+L", crate::tui_text!("language", "语言")),
+            ShortcutHint::new("q", crate::tui_text!("quit", "退出")),
+        ],
     };
 
     let style = if let Some(toast) = app.toasts.active() {
@@ -670,10 +682,10 @@ fn draw_footer_strip(f: &mut Frame, area: Rect, app: &ClaudeAuthApp) {
     let content = if let Some(toast) = app.toasts.active() {
         vec![
             Line::from(Span::styled(toast.message.as_str(), style)),
-            Line::from(Span::styled(text, theme::muted_style())),
+            shortcut_line(&hints, theme::claude()),
         ]
     } else {
-        vec![Line::from(Span::styled(text, theme::muted_style()))]
+        vec![shortcut_line(&hints, theme::claude())]
     };
 
     let footer = Paragraph::new(content)
@@ -684,6 +696,7 @@ fn draw_footer_strip(f: &mut Frame, area: Rect, app: &ClaudeAuthApp) {
                 .title(crate::tui_text!(" Keys ", " 按键 "))
                 .title_style(theme::claude_style()),
         )
+        .alignment(Alignment::Center)
         .wrap(Wrap { trim: true });
     f.render_widget(footer, area);
 }
@@ -1272,6 +1285,26 @@ mod tests {
             .collect::<Vec<_>>()
             .join("");
         assert!(rendered.contains("Claude Auth"), "{rendered}");
+    }
+
+    #[test]
+    fn footer_shortcuts_are_centered_and_use_claude_accent() {
+        let app = sample_app();
+        let mut terminal = Terminal::new(TestBackend::new(220, 3)).unwrap();
+
+        terminal
+            .draw(|frame| draw_footer_strip(frame, frame.area(), &app))
+            .unwrap();
+
+        let buffer = terminal.backend().buffer();
+        let occupied = (0_u16..220)
+            .filter(|&x| buffer[(x, 1)].symbol() != " ")
+            .collect::<Vec<_>>();
+        let left_margin = *occupied.first().expect("footer should render shortcuts");
+        let right_margin = 219 - occupied.last().expect("footer should render shortcuts");
+        assert!(left_margin.abs_diff(right_margin) <= 1);
+        assert_eq!(buffer[(left_margin, 1)].fg, theme::claude());
+        assert!(buffer[(left_margin, 1)].modifier.contains(Modifier::BOLD));
     }
 
     #[test]
