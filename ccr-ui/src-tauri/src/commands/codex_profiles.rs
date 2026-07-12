@@ -43,34 +43,6 @@ pub async fn codex_list_models() -> Result<Value, String> {
         .map_err(|e| format!("任务执行失败: {e}"))?
 }
 
-/// 保存 Codex 自定义模型
-#[tauri::command]
-pub async fn codex_add_custom_model(model: String) -> Result<Value, String> {
-    tokio::task::spawn_blocking(move || {
-        let normalized =
-            normalize_model_name(&model).ok_or_else(|| "模型名称不能为空".to_string())?;
-        let path = codex_custom_models_path()?;
-        let mut file = read_codex_custom_models(&path)?;
-        let mut custom_models = sanitize_custom_models(std::mem::take(&mut file.models));
-        if !custom_models.iter().any(|item| item == &normalized)
-            && !CODEX_BUILTIN_MODELS
-                .iter()
-                .any(|builtin| *builtin == normalized)
-        {
-            custom_models.push(normalized.clone());
-        }
-        file.models = custom_models.clone();
-        write_codex_custom_models(&path, &file)?;
-        Ok(json!({
-            "model": normalized,
-            "models": merge_codex_models(&custom_models),
-            "message": "Codex 自定义模型已保存",
-        }))
-    })
-    .await
-    .map_err(|e| format!("任务执行失败: {e}"))?
-}
-
 /// 新增 Codex profile（写入 CCR profiles.toml）
 #[tauri::command]
 pub async fn codex_add_profile(

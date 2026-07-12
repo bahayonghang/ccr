@@ -6,7 +6,9 @@
 // - 三个页面(Claude Code / Codex Auth / OpenCode Auth)共用同一套「外壳」语言,
 //   仅以平台强调色区分身份: Claude=Peach, Codex=Blue, OpenCode=Teal。
 
+use ccr_cli::managers::{TuiConfigManager, TuiTheme};
 use ccr_cli::models::Platform;
+use ccr_core::core::error::Result;
 use ratatui::style::{Color, Modifier, Style};
 use std::sync::atomic::{AtomicU8, Ordering};
 
@@ -186,33 +188,80 @@ pub fn set_theme(variant: ThemeVariant) {
 }
 
 /// Toggle between Mocha and Latte (used by the in-app theme switch key).
-pub fn toggle_theme() {
+pub fn toggle_theme() -> ThemeVariant {
     let next = match active_variant() {
         ThemeVariant::Mocha => ThemeVariant::Latte,
         ThemeVariant::Latte => ThemeVariant::Mocha,
     };
     set_theme(next);
+    next
 }
 
-/// Resolve and apply the startup theme: explicit `CCR_TUI_THEME` override wins,
-/// otherwise auto-detect the terminal background, falling back to Mocha.
-///
-/// Must run before the terminal enters raw mode / the alternate screen so the
-/// background query can round-trip cleanly.
-pub fn init_theme() {
+/// Resolve and apply the startup theme. Persisted Mocha/Latte is deterministic;
+/// terminal background detection only runs for the explicit `auto` override.
+pub fn init_theme(configured: TuiTheme) {
     let env_value = std::env::var("CCR_TUI_THEME").ok();
-    let variant = forced_variant_from_env(env_value.as_deref())
-        .or_else(detect_terminal_variant)
-        .unwrap_or(ThemeVariant::Mocha);
+    let variant = resolve_startup_variant(env_value.as_deref(), configured, || {
+        detect_terminal_variant()
+    });
+    if let Some(value) = env_value.as_deref()
+        && !matches!(
+            value.trim().to_ascii_lowercase().as_str(),
+            "mocha" | "latte" | "auto"
+        )
+    {
+        tracing::warn!(
+            "Unsupported CCR_TUI_THEME `{value}`; using persisted theme `{}`",
+            configured.as_str()
+        );
+    }
     set_theme(variant);
 }
 
-// 解析 CCR_TUI_THEME: 显式 mocha/latte 直接返回; auto/未知/未设置返回 None(走自动探测)。
-fn forced_variant_from_env(value: Option<&str>) -> Option<ThemeVariant> {
+fn resolve_startup_variant(
+    value: Option<&str>,
+    configured: TuiTheme,
+    detect: impl FnOnce() -> Option<ThemeVariant>,
+) -> ThemeVariant {
     match value.map(|raw| raw.trim().to_ascii_lowercase()).as_deref() {
-        Some("mocha") => Some(ThemeVariant::Mocha),
-        Some("latte") => Some(ThemeVariant::Latte),
-        _ => None,
+        Some("mocha") => ThemeVariant::Mocha,
+        Some("latte") => ThemeVariant::Latte,
+        Some("auto") => detect().unwrap_or_else(|| configured.into()),
+        _ => configured.into(),
+    }
+}
+
+pub fn toggle_theme_and_persist() -> Result<ThemeVariant> {
+    let variant = toggle_theme();
+    persist_theme_with_manager(variant, TuiConfigManager::with_default())?;
+    Ok(variant)
+}
+
+fn persist_theme_with_manager(
+    variant: ThemeVariant,
+    manager: Result<TuiConfigManager>,
+) -> Result<()> {
+    let manager = manager?;
+    let mut config = manager.load_or_default();
+    config.theme = variant.into();
+    manager.save(&config)
+}
+
+impl From<TuiTheme> for ThemeVariant {
+    fn from(theme: TuiTheme) -> Self {
+        match theme {
+            TuiTheme::Mocha => Self::Mocha,
+            TuiTheme::Latte => Self::Latte,
+        }
+    }
+}
+
+impl From<ThemeVariant> for TuiTheme {
+    fn from(theme: ThemeVariant) -> Self {
+        match theme {
+            ThemeVariant::Mocha => Self::Mocha,
+            ThemeVariant::Latte => Self::Latte,
+        }
     }
 }
 
@@ -572,20 +621,43 @@ pub fn separator_style() -> Style {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ccr_cli::managers::{TuiConfig, TuiLanguage};
+    use std::cell::Cell;
 
     #[test]
-    fn forced_variant_from_env_parses_explicit_overrides() {
-        assert_eq!(
-            forced_variant_from_env(Some("mocha")),
+    fn startup_theme_uses_persisted_value_without_auto_detection() {
+        let detect_called = Cell::new(false);
+        let variant = resolve_startup_variant(None, TuiTheme::Latte, || {
+            detect_called.set(true);
             Some(ThemeVariant::Mocha)
+        });
+
+        assert_eq!(variant, ThemeVariant::Latte);
+        assert!(!detect_called.get());
+        assert_eq!(
+            resolve_startup_variant(Some("nonsense"), TuiTheme::Latte, || None),
+            ThemeVariant::Latte
+        );
+    }
+
+    #[test]
+    fn startup_theme_honors_explicit_overrides_and_auto_opt_in() {
+        assert_eq!(
+            resolve_startup_variant(Some("mocha"), TuiTheme::Latte, || None),
+            ThemeVariant::Mocha
         );
         assert_eq!(
-            forced_variant_from_env(Some(" Latte ")),
-            Some(ThemeVariant::Latte)
+            resolve_startup_variant(Some(" Latte "), TuiTheme::Mocha, || None),
+            ThemeVariant::Latte
         );
-        assert_eq!(forced_variant_from_env(Some("auto")), None);
-        assert_eq!(forced_variant_from_env(Some("nonsense")), None);
-        assert_eq!(forced_variant_from_env(None), None);
+
+        let detect_called = Cell::new(false);
+        let variant = resolve_startup_variant(Some("auto"), TuiTheme::Mocha, || {
+            detect_called.set(true);
+            Some(ThemeVariant::Latte)
+        });
+        assert_eq!(variant, ThemeVariant::Latte);
+        assert!(detect_called.get());
     }
 
     #[test]
@@ -603,6 +675,29 @@ mod tests {
 
         // 复位,避免污染其它串行测试。
         set_theme(ThemeVariant::Mocha);
+    }
+
+    #[test]
+    fn persisted_theme_toggle_preserves_language_and_tab_order() {
+        let temp = tempfile::tempdir().expect("create temporary TUI config directory");
+        let path = temp.path().join("tui.toml");
+        let manager = TuiConfigManager::new(&path);
+        let mut config = TuiConfig {
+            language: TuiLanguage::SimplifiedChinese,
+            ..TuiConfig::default()
+        };
+        config.tab_order.swap(0, 1);
+        manager.save(&config).expect("save initial TUI preferences");
+
+        persist_theme_with_manager(ThemeVariant::Latte, Ok(manager))
+            .expect("persist toggled TUI theme");
+
+        let saved = TuiConfigManager::new(&path)
+            .load()
+            .expect("reload persisted TUI preferences");
+        assert_eq!(saved.theme, TuiTheme::Latte);
+        assert_eq!(saved.language, TuiLanguage::SimplifiedChinese);
+        assert_eq!(saved.tab_order, config.tab_order);
     }
 
     #[test]

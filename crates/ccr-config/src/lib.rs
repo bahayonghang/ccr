@@ -8,8 +8,8 @@ pub mod services;
 pub use ccr_core::{AutoCompletable, CcrError, Result, Validatable};
 pub use managers::{
     CcsConfig, ConfigManager, ConfigSection, ConfigValidator, GlobalSettings, PlatformConfigEntry,
-    PlatformConfigManager, ProviderType, TuiConfig, TuiConfigManager, TuiTabId, UnifiedConfig,
-    ValidationReport,
+    PlatformConfigManager, ProviderType, TuiConfig, TuiConfigManager, TuiLanguage, TuiTabId,
+    TuiTheme, UnifiedConfig, ValidationReport,
 };
 pub use models::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};
 pub use platforms::base::{

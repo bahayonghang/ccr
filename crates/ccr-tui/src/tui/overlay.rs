@@ -58,11 +58,11 @@ impl Overlay {
     pub fn confirm_delete(subject: impl Into<String>) -> Self {
         let subject = subject.into();
         Self::Confirm {
-            title: "确认删除".to_string(),
+            title: crate::tui_text!("Confirm deletion", "确认删除").to_string(),
             message: vec![
-                format!("即将删除账号: {}", subject),
+                crate::tui_format!("Account to delete: {}", "即将删除账号：{}", subject),
                 String::new(),
-                "此操作不可撤销！".to_string(),
+                crate::tui_text!("This action cannot be undone!", "此操作不可撤销！").to_string(),
             ],
             subject,
         }
@@ -71,7 +71,7 @@ impl Overlay {
     /// Create a confirmation overlay for importing saved Codex accounts
     pub fn confirm_import_codex(message: Vec<String>) -> Self {
         Self::ImportCodexConfirm {
-            title: "导入 Codex 账号".to_string(),
+            title: crate::tui_text!("Import Codex accounts", "导入 Codex 账号").to_string(),
             message,
         }
     }
@@ -79,10 +79,14 @@ impl Overlay {
     /// Create an input overlay for saving
     pub fn save_input() -> Self {
         Self::Input {
-            title: "保存账号".to_string(),
-            prompt: "请输入账号名称:".to_string(),
+            title: crate::tui_text!("Save account", "保存账号").to_string(),
+            prompt: crate::tui_text!("Enter an account name:", "请输入账号名称：").to_string(),
             buffer: String::new(),
-            hint: "(只能包含字母、数字、下划线和连字符)".to_string(),
+            hint: crate::tui_text!(
+                "(letters, numbers, underscores, and hyphens only)",
+                "（只能包含字母、数字、下划线和连字符）"
+            )
+            .to_string(),
         }
     }
 
@@ -90,10 +94,14 @@ impl Overlay {
     pub fn rename_input(source: impl Into<String>) -> Self {
         let source = source.into();
         Self::RenameInput {
-            title: "重命名账号".to_string(),
+            title: crate::tui_text!("Rename account", "重命名账号").to_string(),
             buffer: source.clone(),
             source,
-            hint: "(Enter 保存 · Esc 取消 · 只能含字母/数字/_/-)".to_string(),
+            hint: crate::tui_text!(
+                "(Enter save · Esc cancel · letters/numbers/_/- only)",
+                "（Enter 保存 · Esc 取消 · 只能含字母/数字/_/-）"
+            )
+            .to_string(),
         }
     }
 
@@ -169,7 +177,7 @@ pub fn render_overlay(f: &mut Frame, overlay: &Overlay) {
             let mut lines = vec![
                 Line::from(""),
                 Line::from(Span::styled(
-                    "⚠️ 确认删除",
+                    crate::tui_text!("⚠ Confirm deletion", "⚠ 确认删除"),
                     Style::default()
                         .fg(theme::error())
                         .add_modifier(Modifier::BOLD),
@@ -183,7 +191,10 @@ pub fn render_overlay(f: &mut Frame, overlay: &Overlay) {
 
             lines.push(Line::from(""));
             lines.push(Line::from(Span::styled(
-                "按 y 确认 | 按 n 或 Esc 取消",
+                crate::tui_text!(
+                    "Press y to confirm | n or Esc to cancel",
+                    "按 y 确认 | 按 n 或 Esc 取消"
+                ),
                 Style::default().fg(theme::muted()),
             )));
 
@@ -199,7 +210,7 @@ pub fn render_overlay(f: &mut Frame, overlay: &Overlay) {
             let mut lines = vec![
                 Line::from(""),
                 Line::from(Span::styled(
-                    "⇄ 导入 Codex 账号",
+                    crate::tui_text!("⇄ Import Codex accounts", "⇄ 导入 Codex 账号"),
                     Style::default()
                         .fg(theme::info())
                         .add_modifier(Modifier::BOLD),
@@ -213,7 +224,10 @@ pub fn render_overlay(f: &mut Frame, overlay: &Overlay) {
 
             lines.push(Line::from(""));
             lines.push(Line::from(Span::styled(
-                "按 y 确认导入 | 按 n 或 Esc 取消",
+                crate::tui_text!(
+                    "Press y to import | n or Esc to cancel",
+                    "按 y 确认导入 | 按 n 或 Esc 取消"
+                ),
                 Style::default().fg(theme::muted()),
             )));
 
@@ -234,7 +248,7 @@ pub fn render_overlay(f: &mut Frame, overlay: &Overlay) {
             let lines = vec![
                 Line::from(""),
                 Line::from(Span::styled(
-                    "💾 保存当前登录",
+                    crate::tui_text!("Save current login", "保存当前登录"),
                     Style::default()
                         .fg(theme::info())
                         .add_modifier(Modifier::BOLD),
@@ -255,7 +269,10 @@ pub fn render_overlay(f: &mut Frame, overlay: &Overlay) {
                 )),
                 Line::from(""),
                 Line::from(Span::styled(
-                    "按 Enter 确认 | 按 Esc 取消",
+                    crate::tui_text!(
+                        "Press Enter to confirm | Esc to cancel",
+                        "按 Enter 确认 | 按 Esc 取消"
+                    ),
                     Style::default().fg(theme::muted()),
                 )),
             ];
@@ -277,15 +294,18 @@ pub fn render_overlay(f: &mut Frame, overlay: &Overlay) {
             let lines = vec![
                 Line::from(""),
                 Line::from(Span::styled(
-                    "✏️ 重命名已保存账号",
+                    crate::tui_text!("Rename saved account", "重命名已保存账号"),
                     Style::default()
                         .fg(theme::selection_bg())
                         .add_modifier(Modifier::BOLD),
                 )),
                 Line::from(""),
-                Line::from(format!("当前名称: {source}")),
+                Line::from(crate::tui_format!(
+                    "Current name: {source}",
+                    "当前名称：{source}"
+                )),
                 Line::from(""),
-                Line::from("新名称:"),
+                Line::from(crate::tui_text!("New name:", "新名称：")),
                 Line::from(Span::styled(
                     format!("▶ {buffer}_"),
                     Style::default()
@@ -299,7 +319,10 @@ pub fn render_overlay(f: &mut Frame, overlay: &Overlay) {
                 )),
                 Line::from(""),
                 Line::from(Span::styled(
-                    "Enter 确认 · Ctrl+F 强制覆盖 · Esc 取消",
+                    crate::tui_text!(
+                        "Enter confirm · Ctrl+F overwrite · Esc cancel",
+                        "Enter 确认 · Ctrl+F 强制覆盖 · Esc 取消"
+                    ),
                     Style::default().fg(theme::muted()),
                 )),
             ];

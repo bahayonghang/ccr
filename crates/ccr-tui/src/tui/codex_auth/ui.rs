@@ -5,6 +5,7 @@ use super::app::{
     CodexAuthApp, CodexAuthUsagePanelData, CodexUsageAttributionState, CodexUsageScope,
     PreviewMetricWindow, QuotaPreviewCellState, QuotaState, UsageState,
 };
+use crate::tui::footer::{ShortcutHint, shortcut_line};
 use crate::tui::overlay::{Overlay, render_overlay};
 use crate::tui::theme;
 use crate::tui::toast::ToastKind;
@@ -53,21 +54,29 @@ pub fn draw(f: &mut Frame, app: &mut CodexAuthApp) {
 /// Draw title bar
 fn draw_title(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
     let login_status = match &app.login_state {
-        ccr_cli::models::LoginState::NotLoggedIn => "未登录".to_string(),
-        ccr_cli::models::LoginState::LoggedInUnsaved => "已登录 (未保存)".to_string(),
-        ccr_cli::models::LoginState::LoggedInSaved(name) => format!("已登录: {}", name),
-        ccr_cli::models::LoginState::ApiKeyActive => "API Key 模式".to_string(),
+        ccr_cli::models::LoginState::NotLoggedIn => {
+            crate::tui_text!("Not logged in", "未登录").to_string()
+        }
+        ccr_cli::models::LoginState::LoggedInUnsaved => {
+            crate::tui_text!("Logged in (unsaved)", "已登录（未保存）").to_string()
+        }
+        ccr_cli::models::LoginState::LoggedInSaved(name) => {
+            crate::tui_format!("Logged in: {}", "已登录：{}", name)
+        }
+        ccr_cli::models::LoginState::ApiKeyActive => {
+            crate::tui_text!("API Key mode", "API Key 模式").to_string()
+        }
         ccr_cli::models::LoginState::ProviderKeyActive { env_key } => {
-            format!("Provider Key: {}", env_key)
+            crate::tui_format!("Provider Key: {}", "提供商密钥：{}", env_key)
         }
         ccr_cli::models::LoginState::Unknown { type_name, .. } => {
-            format!("未知状态: {}", type_name)
+            crate::tui_format!("Unknown state: {}", "未知状态：{}", type_name)
         }
     };
 
     let title = Paragraph::new(vec![Line::from(vec![
         Span::styled(
-            " 🔐 Codex 账号管理 ",
+            crate::tui_text!(" Codex Account Manager ", " Codex 账号管理 "),
             Style::default()
                 .fg(theme::codex())
                 .add_modifier(Modifier::BOLD),
@@ -88,7 +97,12 @@ fn draw_title(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
 }
 
 fn draw_account_list(f: &mut Frame, area: Rect, app: &mut CodexAuthApp) {
-    render_account_list_panel(f, area, app, " 账号列表 ".to_string());
+    render_account_list_panel(
+        f,
+        area,
+        app,
+        crate::tui_text!(" Accounts ", " 账号列表 ").to_string(),
+    );
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -190,8 +204,9 @@ fn resolve_table_widths(
 }
 
 fn detail_label_span(label: &str) -> Span<'static> {
+    let label = localized_detail_label(label);
     Span::styled(
-        format!("{label:<DETAIL_LABEL_WIDTH$}"),
+        pad_text(label, DETAIL_LABEL_WIDTH),
         Style::default()
             .fg(theme::subtext())
             .add_modifier(Modifier::BOLD),
@@ -206,6 +221,21 @@ fn detail_optional_line(label: &str, value: Option<&str>, style: Style) -> Line<
     match value.map(str::trim).filter(|value| !value.is_empty()) {
         Some(value) => detail_line(label, value.to_string(), style),
         None => detail_line(label, "-", theme::muted_style()),
+    }
+}
+
+fn localized_detail_label(label: &str) -> &str {
+    match label {
+        "Account:" => crate::tui_text!("Account:", "账号："),
+        "State:" => crate::tui_text!("State:", "状态："),
+        "Email:" => crate::tui_text!("Email:", "邮箱："),
+        "Plan:" => crate::tui_text!("Plan:", "属性："),
+        "Saved at:" => crate::tui_text!("Saved at:", "保存时间："),
+        "Last refresh:" => crate::tui_text!("Last refresh:", "最近刷新："),
+        "Quota scope:" => crate::tui_text!("Quota scope:", "配额范围："),
+        "Usage scope:" => crate::tui_text!("Usage scope:", "用量范围："),
+        "Attribution:" => crate::tui_text!("Attribution:", "归因："),
+        _ => label,
     }
 }
 
@@ -290,7 +320,10 @@ fn preview_reset_detail_line(
         label,
         vec![
             Span::styled(preview_value, preview_style),
-            Span::styled("  Reset ", theme::muted_style()),
+            Span::styled(
+                crate::tui_text!("  Reset ", "  重置 "),
+                theme::muted_style(),
+            ),
             Span::styled(reset_value, theme::muted_style()),
         ],
     )
@@ -322,9 +355,12 @@ fn render_account_list_panel(f: &mut Frame, area: Rect, app: &mut CodexAuthApp, 
 
     if app.accounts.is_empty() {
         app.list_area.set(None);
-        let empty = Paragraph::new(" 未检测到可切换的 Codex 账号")
-            .style(theme::muted_style())
-            .alignment(Alignment::Left);
+        let empty = Paragraph::new(crate::tui_text!(
+            " No switchable Codex accounts detected",
+            " 未检测到可切换的 Codex 账号"
+        ))
+        .style(theme::muted_style())
+        .alignment(Alignment::Left);
         f.render_widget(empty, inner);
         return;
     }
@@ -363,25 +399,38 @@ fn account_list_footer_line(app: &CodexAuthApp) -> Line<'static> {
         .unwrap_or_else(theme::muted_style);
 
     let preview_hint = if app.is_activation_gate_pending() {
-        "  ·  速览将在 1s 后展开 "
+        crate::tui_text!("  ·  preview expands after 1s ", "  ·  速览将在 1s 后展开 ")
     } else if app.selected_preview_entry().is_some() {
-        "  ·  全账号速览已就绪 "
+        crate::tui_text!("  ·  all-account preview ready ", "  ·  全账号速览已就绪 ")
     } else {
-        "  ·  速览待命 "
+        crate::tui_text!("  ·  preview idle ", "  ·  速览待命 ")
     };
 
     Line::from(vec![
-        Span::styled(" Selected: ", theme::muted_style()),
-        Span::styled(selected_name, selected_style),
-        Span::styled("  ·  Legend: ", theme::muted_style()),
-        Span::styled("🟢 fresh", theme::success_style()),
-        Span::styled(" · ", theme::muted_style()),
-        Span::styled("🟡 stale", theme::warning_style()),
-        Span::styled(" · ", theme::muted_style()),
-        Span::styled("🔴 old", theme::error_style()),
         Span::styled(
-            format!(
+            crate::tui_text!(" Selected: ", " 已选择："),
+            theme::muted_style(),
+        ),
+        Span::styled(selected_name, selected_style),
+        Span::styled(
+            crate::tui_text!("  ·  Legend: ", "  ·  图例："),
+            theme::muted_style(),
+        ),
+        Span::styled(
+            crate::tui_text!("🟢 fresh", "🟢 新鲜"),
+            theme::success_style(),
+        ),
+        Span::styled(" · ", theme::muted_style()),
+        Span::styled(
+            crate::tui_text!("🟡 stale", "🟡 陈旧"),
+            theme::warning_style(),
+        ),
+        Span::styled(" · ", theme::muted_style()),
+        Span::styled(crate::tui_text!("🔴 old", "🔴 过期"), theme::error_style()),
+        Span::styled(
+            crate::tui_format!(
                 "  ·  Page {}/{}  ·  {} accounts ",
+                "  ·  第 {}/{} 页  ·  {} 个账号 ",
                 app.current_page + 1,
                 app.total_pages(),
                 app.accounts.len()
@@ -498,13 +547,13 @@ fn render_account_list_rows(
 
 fn account_header_cell(column: &AccountColumn) -> Cell<'static> {
     let label = match column {
-        AccountColumn::Account => "账号",
-        AccountColumn::Email => "邮箱",
-        AccountColumn::Plan => "属性",
-        AccountColumn::QuotaSummary => "配额",
+        AccountColumn::Account => crate::tui_text!("Account", "账号"),
+        AccountColumn::Email => crate::tui_text!("Email", "邮箱"),
+        AccountColumn::Plan => crate::tui_text!("Plan", "属性"),
+        AccountColumn::QuotaSummary => crate::tui_text!("Quota", "配额"),
         AccountColumn::HourlyQuota => "5h",
         AccountColumn::WeeklyQuota => "7d",
-        AccountColumn::ExpiresAt => "刷新",
+        AccountColumn::ExpiresAt => crate::tui_text!("Refresh", "刷新"),
     };
 
     Cell::from(label.to_string())
@@ -731,17 +780,36 @@ fn truncate_text(value: &str, max_width: usize) -> String {
     result
 }
 
+fn pad_text(value: &str, width: usize) -> String {
+    let value_width = value.width();
+    if value_width >= width {
+        return value.to_string();
+    }
+    let mut result = String::with_capacity(value.len() + width - value_width);
+    result.push_str(value);
+    result.extend(std::iter::repeat_n(' ', width - value_width));
+    result
+}
+
 fn login_status_text(app: &CodexAuthApp) -> String {
     match &app.login_state {
-        ccr_cli::models::LoginState::NotLoggedIn => "未登录".to_string(),
-        ccr_cli::models::LoginState::LoggedInUnsaved => "已登录 (未保存)".to_string(),
-        ccr_cli::models::LoginState::LoggedInSaved(name) => format!("已登录: {}", name),
-        ccr_cli::models::LoginState::ApiKeyActive => "API Key 模式".to_string(),
+        ccr_cli::models::LoginState::NotLoggedIn => {
+            crate::tui_text!("Not logged in", "未登录").to_string()
+        }
+        ccr_cli::models::LoginState::LoggedInUnsaved => {
+            crate::tui_text!("Logged in (unsaved)", "已登录（未保存）").to_string()
+        }
+        ccr_cli::models::LoginState::LoggedInSaved(name) => {
+            crate::tui_format!("Logged in: {}", "已登录：{}", name)
+        }
+        ccr_cli::models::LoginState::ApiKeyActive => {
+            crate::tui_text!("API Key mode", "API Key 模式").to_string()
+        }
         ccr_cli::models::LoginState::ProviderKeyActive { env_key } => {
-            format!("Provider Key: {}", env_key)
+            crate::tui_format!("Provider Key: {}", "提供商密钥：{}", env_key)
         }
         ccr_cli::models::LoginState::Unknown { type_name, .. } => {
-            format!("未知状态: {}", type_name)
+            crate::tui_format!("Unknown state: {}", "未知状态：{}", type_name)
         }
     }
 }
@@ -786,14 +854,14 @@ fn draw_status_bar(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
         };
         (toast.message.as_str(), s)
     } else {
-        ("就绪", theme::success_style())
+        (crate::tui_text!("Ready", "就绪"), theme::success_style())
     };
 
     let status = Paragraph::new(message).style(style).block(
         Block::default()
             .borders(Borders::ALL)
             .border_style(Style::default().fg(theme::border()))
-            .title(" 状态 ")
+            .title(crate::tui_text!(" Status ", " 状态 "))
             .title_style(Style::default().fg(theme::codex())),
     );
 
@@ -805,7 +873,7 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
     let title = Line::from(vec![
         Span::styled("📊 ", theme::card_block_style()),
         Span::styled(
-            "Usage & Quota",
+            crate::tui_text!("Usage & Quota", "用量与配额"),
             Style::default()
                 .fg(theme::text())
                 .add_modifier(Modifier::BOLD),
@@ -817,47 +885,65 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
     // ── 配额刷新确认提示 ──
     if app.pending_quota_confirm {
         content.push(Line::from(Span::styled(
-            "  确认查询配额？按 y 确认 / 其他键取消",
+            crate::tui_text!(
+                "  Query quota? Press y to confirm or any other key to cancel",
+                "  确认查询配额？按 y 确认 / 其他键取消"
+            ),
             theme::warning_style(),
         )));
     }
 
     content.push(Line::from(Span::styled(
-        "  列表已用于全账号速览；此处聚焦当前选中账号的完整配额与本地 usage。",
+        crate::tui_text!(
+            "  The list shows all-account previews; this panel focuses on the selected account's full quota and local usage.",
+            "  列表已用于全账号速览；此处聚焦当前选中账号的完整配额与本地 usage。"
+        ),
         theme::muted_style(),
     )));
 
     // ── 配额余额区域 ──
     content.push(scope_line(
         "Quota scope:",
-        "selected account",
+        crate::tui_text!("selected account", "所选账号"),
         theme::success_style(),
     ));
 
     match &app.quota_state {
         QuotaState::Idle => {
             let idle_message = if app.is_activation_gate_pending() {
-                "  ⏳ 停留 1s 后自动展开全账号速览，并同步带出当前账号详情"
+                crate::tui_text!(
+                    "  All-account previews and selected account details load after 1s",
+                    "  停留 1s 后自动展开全账号速览，并同步带出当前账号详情"
+                )
             } else {
-                "  ⏳ 已缓存全账号速览；按 b 强刷当前账号，按 r 刷新账号与本地统计"
+                crate::tui_text!(
+                    "  All-account previews cached; press b to force-refresh the selected account or r to reload accounts and local statistics",
+                    "  已缓存全账号速览；按 b 强刷当前账号，按 r 刷新账号与本地统计"
+                )
             };
             content.push(Line::from(Span::styled(idle_message, theme::muted_style())));
         }
         QuotaState::Loading { .. } if app.selected_quota().is_none() => {
             content.push(Line::from(Span::styled(
-                "  ⏳ 正在查询当前账号配额...",
+                crate::tui_text!(
+                    "  Querying the selected account quota...",
+                    "  正在查询当前账号配额..."
+                ),
                 theme::warning_style(),
             )));
         }
         QuotaState::Error { .. } if app.selected_quota().is_none() => {
             if let Some(err) = app.selected_quota_error() {
                 content.push(Line::from(Span::styled(
-                    format!("  ⚠️ 配额查询失败: {}", err),
+                    crate::tui_format!("  Quota query failed: {}", "  配额查询失败：{}", err),
                     theme::error_style(),
                 )));
                 if is_refresh_token_reused_error(err) {
                     content.push(Line::from(Span::styled(
-                        "  提示: Token 已轮换，可按 R 尝试修复；仍失败请重新登录后保存账号",
+                        crate::tui_text!(
+                            "  Token rotated; press R to attempt repair. If it still fails, log in again and save the account",
+                            "  Token 已轮换，可按 R 尝试修复；仍失败请重新登录后保存账号"
+                        ),
                         theme::warning_style(),
                     )));
                 }
@@ -868,13 +954,16 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
                 if let Some(ref quota) = aq.quota {
                     let account_label = aq.email.as_deref().unwrap_or(&aq.account_name);
                     content.push(Line::from(vec![
-                        Span::styled("  配额 ", theme::info_style()),
+                        Span::styled(crate::tui_text!("  Quota ", "  配额 "), theme::info_style()),
                         Span::styled(format!("({})", account_label), theme::muted_style()),
                     ]));
 
                     if app.is_selected_quota_loading() {
                         content.push(Line::from(Span::styled(
-                            "  ⏳ 正在刷新选中账号配额...",
+                            crate::tui_text!(
+                                "  Refreshing the selected account quota...",
+                                "  正在刷新选中账号配额..."
+                            ),
                             theme::warning_style(),
                         )));
                     }
@@ -883,10 +972,19 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
                     let h_bar = progress_bar(quota.hourly_percentage, 10);
                     let h_reset = quota
                         .hourly_reset_time
-                        .map(|t| format!("  重置: {}", CodexQuotaService::format_reset_duration(t)))
+                        .map(|t| {
+                            crate::tui_format!(
+                                "  Reset: {}",
+                                "  重置：{}",
+                                CodexQuotaService::format_reset_duration(t)
+                            )
+                        })
                         .unwrap_or_default();
                     content.push(Line::from(vec![
-                        Span::styled("  5h限额: ", Style::default().fg(theme::text())),
+                        Span::styled(
+                            crate::tui_text!("  5h limit: ", "  5h限额："),
+                            Style::default().fg(theme::text()),
+                        ),
                         Span::styled(h_bar, Style::default().fg(h_color)),
                         Span::styled(
                             format!(" {}%", quota.hourly_percentage),
@@ -904,14 +1002,22 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
                             let dt = chrono::DateTime::from_timestamp(t, 0)
                                 .map(|d| d.with_timezone(&chrono::Local));
                             if let Some(local) = dt {
-                                format!("  重置: {} ({})", relative, local.format("%m/%d %H:%M"))
+                                crate::tui_format!(
+                                    "  Reset: {} ({})",
+                                    "  重置：{}（{}）",
+                                    relative,
+                                    local.format("%m/%d %H:%M")
+                                )
                             } else {
-                                format!("  重置: {}", relative)
+                                crate::tui_format!("  Reset: {}", "  重置：{}", relative)
                             }
                         })
                         .unwrap_or_default();
                     content.push(Line::from(vec![
-                        Span::styled("  周限额: ", Style::default().fg(theme::text())),
+                        Span::styled(
+                            crate::tui_text!("  Weekly limit: ", "  周限额："),
+                            Style::default().fg(theme::text()),
+                        ),
                         Span::styled(w_bar, Style::default().fg(w_color)),
                         Span::styled(
                             format!(" {}%", quota.weekly_percentage),
@@ -925,7 +1031,10 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
                             .and_then(|account| account.plan_type.as_deref())
                     }) {
                         content.push(Line::from(vec![
-                            Span::styled("  订阅: ", Style::default().fg(theme::text())),
+                            Span::styled(
+                                crate::tui_text!("  Plan: ", "  订阅："),
+                                Style::default().fg(theme::text()),
+                            ),
                             Span::styled(plan.to_string(), theme::info_style()),
                         ]));
                     }
@@ -937,7 +1046,10 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
                 }
             } else {
                 content.push(Line::from(Span::styled(
-                    "  选中账号暂无配额缓存，正在按需查询...",
+                    crate::tui_text!(
+                        "  No cached quota for the selected account; querying on demand...",
+                        "  选中账号暂无配额缓存，正在按需查询..."
+                    ),
                     theme::muted_style(),
                 )));
             }
@@ -961,7 +1073,7 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
         ));
         if let Some(reason) = &panel.fallback_reason {
             content.push(Line::from(Span::styled(
-                format!("  Note: {}", reason),
+                crate::tui_format!("  Note: {}", "  说明：{}", reason),
                 theme::warning_style(),
             )));
         }
@@ -969,27 +1081,34 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
     } else {
         if app.is_activation_gate_pending() {
             content.push(Line::from(Span::styled(
-                "  ⏳ 停留 1s 后自动加载本地 usage，并与列表速览一起就位",
+                crate::tui_text!(
+                    "  Local usage and list previews load after 1s",
+                    "  停留 1s 后自动加载本地 usage，并与列表速览一起就位"
+                ),
                 theme::muted_style(),
             )));
         } else {
             match &app.usage_state {
                 UsageState::NoData => {
                     content.push(Line::from(Span::styled(
-                        "  📭 暂无本地使用数据",
+                        crate::tui_text!("  No local usage data", "  暂无本地使用数据"),
                         theme::muted_style(),
                     )));
                 }
                 UsageState::Error(err) => {
                     content.push(Line::from(Span::styled(
-                        format!("  ⚠️ 统计加载失败: {}", err),
+                        crate::tui_format!(
+                            "  Failed to load statistics: {}",
+                            "  统计加载失败：{}",
+                            err
+                        ),
                         theme::error_style(),
                     )));
                 }
                 UsageState::Loaded(_) => {}
                 UsageState::Loading => {
                     content.push(Line::from(Span::styled(
-                        "  ⏳ 加载中...",
+                        crate::tui_text!("  Loading...", "  加载中..."),
                         theme::muted_style(),
                     )));
                 }
@@ -1074,12 +1193,12 @@ fn account_snapshot_lines(
             format!(
                 "{}{}",
                 if account.is_current {
-                    "Current"
+                    crate::tui_text!("Current", "当前")
                 } else {
-                    "Saved"
+                    crate::tui_text!("Saved", "已保存")
                 },
                 if account.is_virtual {
-                    " · Virtual"
+                    crate::tui_text!(" · Virtual", " · 临时")
                 } else {
                     ""
                 }
@@ -1109,28 +1228,32 @@ fn usage_digest_lines(panel: &CodexAuthUsagePanelData) -> Vec<Line<'static>> {
         .top_model
         .as_ref()
         .map(|top| {
-            format!(
+            crate::tui_format!(
                 "  Top model: {} ({}, {} req)",
+                "  主要模型：{}（{}，{} 次请求）",
                 top.model,
                 CodexUsageService::format_tokens(top.total_tokens),
                 top.total_requests
             )
         })
-        .unwrap_or_else(|| "  Top model: -".to_string());
+        .unwrap_or_else(|| crate::tui_text!("  Top model: -", "  主要模型：-").to_string());
 
     vec![
-        Line::from(format!(
-            "  5小时: {} tokens ({} 请求)",
+        Line::from(crate::tui_format!(
+            "  5 hours: {} tokens ({} requests)",
+            "  5小时：{} tokens（{} 请求）",
             CodexUsageService::format_tokens(five_total),
             usage.five_hour.total_requests
         )),
-        Line::from(format!(
-            "  7天:   {} tokens ({} 请求)",
+        Line::from(crate::tui_format!(
+            "  7 days:  {} tokens ({} requests)",
+            "  7天：  {} tokens（{} 请求）",
             CodexUsageService::format_tokens(seven_total),
             usage.seven_day.total_requests
         )),
-        Line::from(format!(
-            "  All time: {} tokens ({} 请求)",
+        Line::from(crate::tui_format!(
+            "  All time: {} tokens ({} requests)",
+            "  全时段：{} tokens（{} 请求）",
             CodexUsageService::format_tokens(all_time),
             usage.all_time.total_requests
         )),
@@ -1146,13 +1269,23 @@ fn is_refresh_token_reused_error(message: &str) -> bool {
 /// Draw help bar (overlay-aware)
 fn draw_help_bar(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
     let help_text = match &app.overlay {
-        Some(Overlay::Confirm { .. }) => "y 确认删除 | n/Esc 取消",
-        Some(Overlay::ImportCodexConfirm { .. }) => "y 确认 | n/Esc 取消",
-        Some(Overlay::Input { .. }) => "Enter 确认 | Esc 取消",
-        Some(Overlay::RenameInput { .. }) => "Enter 保存 | Ctrl+F 强制覆盖 | Esc 取消",
-        None => {
-            "↑/k 上移 | ↓/j 下移 | Enter 切换 | s 保存当前 | n 重命名 | d 删除 | r 刷新 | R 修复 | b 配额 | q 退出"
+        Some(Overlay::Confirm { .. }) => {
+            crate::tui_text!("y confirm delete | n/Esc cancel", "y 确认删除 | n/Esc 取消")
         }
+        Some(Overlay::ImportCodexConfirm { .. }) => {
+            crate::tui_text!("y confirm | n/Esc cancel", "y 确认 | n/Esc 取消")
+        }
+        Some(Overlay::Input { .. }) => {
+            crate::tui_text!("Enter confirm | Esc cancel", "Enter 确认 | Esc 取消")
+        }
+        Some(Overlay::RenameInput { .. }) => crate::tui_text!(
+            "Enter save | Ctrl+F overwrite | Esc cancel",
+            "Enter 保存 | Ctrl+F 强制覆盖 | Esc 取消"
+        ),
+        None => crate::tui_text!(
+            "↑/k up | ↓/j down | Enter switch | s save current | n rename | d delete | r refresh | R repair | b quota | Ctrl+L language | q quit",
+            "↑/k 上移 | ↓/j 下移 | Enter 切换 | s 保存当前 | n 重命名 | d 删除 | r 刷新 | R 修复 | b 配额 | Ctrl+L 语言 | q 退出"
+        ),
     };
 
     let help = Paragraph::new(help_text)
@@ -1229,15 +1362,23 @@ pub fn draw_loading_placeholder(
     error: Option<&str>,
 ) {
     let message = error
-        .map(|err| format!("Codex Auth 初始化失败\n\n{}", err))
-        .unwrap_or_else(|| "正在初始化 Codex Auth...".to_string());
+        .map(|err| {
+            crate::tui_format!(
+                "Failed to initialize Codex Auth\n\n{}",
+                "Codex 认证初始化失败\n\n{}",
+                err
+            )
+        })
+        .unwrap_or_else(|| {
+            crate::tui_text!("Initializing Codex Auth...", "正在初始化 Codex 认证...").to_string()
+        });
 
     let panel = Paragraph::new(message)
         .block(
             Block::default()
                 .borders(Borders::ALL)
                 .border_style(Style::default().fg(theme::border()))
-                .title(" 🔐 Codex Auth ")
+                .title(crate::tui_text!(" Codex Auth ", " Codex 认证 "))
                 .title_style(Style::default().fg(theme::codex())),
         )
         .alignment(Alignment::Center)
@@ -1245,15 +1386,15 @@ pub fn draw_loading_placeholder(
     f.render_widget(panel, content_area);
 
     if mode == crate::tui::theme::ViewportMode::Compact {
-        let help = Paragraph::new("Tab 切换")
+        let help = Paragraph::new(crate::tui_text!("Tab switch", "Tab 切换"))
             .style(theme::muted_style())
             .alignment(Alignment::Center);
         f.render_widget(help, footer_area);
     } else {
         let status_text = if error.is_some() {
-            "初始化失败"
+            crate::tui_text!("Initialization failed", "初始化失败")
         } else {
-            "加载中"
+            crate::tui_text!("Loading", "加载中")
         };
         let status_style = if error.is_some() {
             theme::error_style()
@@ -1265,7 +1406,7 @@ pub fn draw_loading_placeholder(
             Block::default()
                 .borders(Borders::TOP)
                 .border_style(Style::default().fg(theme::border()))
-                .title(" Keys ")
+                .title(crate::tui_text!(" Keys ", " 按键 "))
                 .title_style(Style::default().fg(theme::codex())),
         );
         f.render_widget(status, footer_area);
@@ -1273,7 +1414,7 @@ pub fn draw_loading_placeholder(
 }
 
 fn draw_account_list_with_status(f: &mut Frame, area: Rect, app: &mut CodexAuthApp) {
-    let title = format!(" 🔐 账号列表 · {} ", login_status_text(app));
+    let title = crate::tui_format!(" Accounts · {} ", " 账号列表 · {} ", login_status_text(app));
     render_account_list_panel(f, area, app, title);
 }
 
@@ -1293,7 +1434,7 @@ fn draw_account_snapshot_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
             Block::default()
                 .borders(Borders::ALL)
                 .border_style(Style::default().fg(theme::codex()))
-                .title(" Focus ")
+                .title(crate::tui_text!(" Focus ", " 当前焦点 "))
                 .title_style(theme::codex_style()),
         )
         .wrap(Wrap { trim: true });
@@ -1302,22 +1443,44 @@ fn draw_account_snapshot_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
 }
 
 fn draw_footer_strip(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
-    let message = if let Some(toast) = app.toasts.active() {
-        format!(
-            "{}  │  Tab/Shift+Tab switch  │  ↑↓/jk select  │  Enter switch  │  s save  │  b quota  │  r refresh  │  q quit",
-            toast.message
-        )
-    } else {
-        "Tab/Shift+Tab switch  │  ↑↓/jk select  │  Enter switch  │  s save  │  d delete  │  b quota  │  r refresh  │  q quit"
-            .to_string()
-    };
+    let mut hints = vec![
+        ShortcutHint::new("Tab/Shift+Tab", crate::tui_text!("switch", "切换")),
+        ShortcutHint::new("↑↓/jk", crate::tui_text!("select", "选择")),
+        ShortcutHint::new("Enter", crate::tui_text!("switch", "切换")),
+        ShortcutHint::new("s", crate::tui_text!("save", "保存")),
+    ];
+    if app.toasts.active().is_none() {
+        hints.push(ShortcutHint::new("d", crate::tui_text!("delete", "删除")));
+    }
+    hints.extend([
+        ShortcutHint::new("b", crate::tui_text!("quota", "配额")),
+        ShortcutHint::new("r", crate::tui_text!("refresh", "刷新")),
+        ShortcutHint::new("Ctrl+L", crate::tui_text!("language", "语言")),
+        ShortcutHint::new("q", crate::tui_text!("quit", "退出")),
+    ]);
 
-    let help = Paragraph::new(message)
+    let mut line = shortcut_line(&hints, theme::codex());
+    if let Some(toast) = app.toasts.active() {
+        let style = match toast.kind {
+            ToastKind::Success => theme::success_style(),
+            ToastKind::Error => theme::error_style(),
+            ToastKind::Warning => theme::warning_style(),
+            ToastKind::Info => theme::info_style(),
+        };
+        line.spans.insert(
+            0,
+            Span::styled("  │  ", Style::default().fg(theme::muted())),
+        );
+        line.spans
+            .insert(0, Span::styled(toast.message.clone(), style));
+    }
+
+    let help = Paragraph::new(line)
         .block(
             Block::default()
                 .borders(Borders::TOP)
                 .border_style(Style::default().fg(theme::border()))
-                .title(" Keys ")
+                .title(crate::tui_text!(" Keys ", " 按键 "))
                 .title_style(Style::default().fg(theme::muted())),
         )
         .alignment(Alignment::Center)
@@ -1332,9 +1495,12 @@ fn scope_line(label: &str, value: impl Into<String>, style: Style) -> Line<'stat
 
 fn usage_scope_badge(panel: &CodexAuthUsagePanelData) -> (String, Style) {
     match &panel.scope {
-        CodexUsageScope::GlobalRuntime => ("global runtime".to_string(), theme::info_style()),
+        CodexUsageScope::GlobalRuntime => (
+            crate::tui_text!("global runtime", "全局运行时").to_string(),
+            theme::info_style(),
+        ),
         CodexUsageScope::AccountAttributed { account_name } => (
-            format!("attributed to {}", account_name),
+            crate::tui_format!("attributed to {}", "归因到 {}", account_name),
             theme::success_style(),
         ),
     }
@@ -1342,10 +1508,18 @@ fn usage_scope_badge(panel: &CodexAuthUsagePanelData) -> (String, Style) {
 
 fn usage_attribution_label(state: CodexUsageAttributionState) -> &'static str {
     match state {
-        CodexUsageAttributionState::GlobalOnly => "global aggregate",
-        CodexUsageAttributionState::AccountAttributed => "CCR ledger matched",
-        CodexUsageAttributionState::VirtualAccount => "unsaved runtime login",
-        CodexUsageAttributionState::UnattributedFallback => "global fallback",
+        CodexUsageAttributionState::GlobalOnly => {
+            crate::tui_text!("global aggregate", "全局汇总")
+        }
+        CodexUsageAttributionState::AccountAttributed => {
+            crate::tui_text!("CCR ledger matched", "CCR 账本已匹配")
+        }
+        CodexUsageAttributionState::VirtualAccount => {
+            crate::tui_text!("unsaved runtime login", "未保存的运行时登录")
+        }
+        CodexUsageAttributionState::UnattributedFallback => {
+            crate::tui_text!("global fallback", "全局回退")
+        }
     }
 }
 
@@ -2001,7 +2175,7 @@ mod tests {
         let compact = compact_text(&rendered);
         assert!(compact.contains("Usage&Quota"), "{rendered}");
         assert!(compact.contains("Quotascope:selectedaccount"), "{rendered}");
-        assert!(compact.contains("重置:"), "{rendered}");
+        assert!(compact.contains("Reset:"), "{rendered}");
         assert!(compact.contains("Attribution:globalfallback"), "{rendered}");
         assert!(compact.contains("Note:CCR"), "{rendered}");
     }

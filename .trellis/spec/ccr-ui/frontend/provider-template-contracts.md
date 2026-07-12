@@ -35,6 +35,8 @@
 - Codex saved providers may include API keys, but provider templates never do. UI copy must keep "provider template" separate from "saved provider".
 - Codex templates can be applied in both the saved provider form and the API key account form. The API key account mapper may only fill `providerName` and `apiBaseUrl`; the API key, save-provider checkbox, and switch-after-add checkbox remain user-controlled.
 - Codex templates can be applied in the Codex Profile editor modal. The profile mapper may only fill `base_url`, `provider`, optional `provider_type`, `description`, `model`, and `suggestedName`; `auth_token`, `env_key`, `auth_mode`, and other credential fields remain user-controlled.
+- The Codex Profile preset catalog consumes only `CodexModelsResponse.builtin_models`. Its fixed presets are `gpt-5.6-luna`, `gpt-5.6-terra`, and `gpt-5.6-sol`; historical `custom_models` remain available to other consumers such as Codex Agents but must not appear as Profile presets.
+- A manually entered Codex Profile model persists only in that Profile. It must not call `codex_add_custom_model` or mutate `custom-models.toml`; editing the Profile later exposes the non-preset model as a current-value option.
 - Claude templates may fill non-secret profile and runtime fields such as `base_url`, model mappings, `provider`, `provider_type`, `claude_code_auto_compact_window`, `api_timeout_ms`, and `claude_code_disable_nonessential_traffic`. They must leave `auth_token` user-controlled.
 - OpenCode template application must preserve the OpenCode settings contract: provider ID is the map key, `npm` is a provider root field, credentials stay under the provider form, and root extras remain explicit JSON.
 - Multiple endpoint templates become multiple selectable options. Selection may set a non-secret base URL, but must not modify user credential fields.
@@ -48,7 +50,7 @@
 - Applying a Codex template -> fill `name`, `baseUrl`, `websiteUrl`, and `apiKeyUrl`; leave `apiKey` untouched.
 - Applying a Codex template in the API key account flow -> fill `providerName` and `apiBaseUrl`; leave `apiKey` untouched.
 - Applying a Codex template in the Profile editor -> fill profile metadata and selected model state; leave `auth_token`, `env_key`, and `auth_mode` untouched.
-- Applying a Codex Profile template whose model is absent from the current model catalog -> select the custom model path and seed the custom model input.
+- Applying a Codex Profile template whose model is absent from the three fixed presets -> select the custom model path and seed the custom model input without adding it to the global catalog.
 - Applying a Claude GLM template -> fill non-secret model/runtime env fields, including compact window and timeout, but leave `auth_token` untouched.
 - Applying an OpenCode template -> fill `id`, `name`, `npm`, `baseURL`, and non-secret JSON fields; leave `apiKey` untouched.
 
@@ -81,6 +83,7 @@
 - `cd ccr-ui && bun run test:smoke -- tests/codex-profile-editor.smoke.test.ts` when adding or changing the Codex Profile editor template entry point.
   - Assert the existing editor modal renders the `platform="codex"` selector.
   - Assert the modal forwards template selection/manual events without owning credential writes.
+  - Assert the model selector renders the three fixed presets, the custom action, and a current-value option only while editing a non-preset Profile.
 - `cd ccr-ui && bun run test:smoke -- tests/legacy-shells.smoke.test.ts` when replacing legacy selector/card surfaces.
 - `cd ccr-ui && bun run type-check`
 - `cd ccr-ui && bun run lint`

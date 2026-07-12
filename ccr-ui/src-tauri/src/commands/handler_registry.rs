@@ -137,7 +137,6 @@ define_command_registry! {
     codex: "Codex" => [
         super::codex::codex_list_profiles,
         super::codex::codex_list_models,
-        super::codex::codex_add_custom_model,
         super::codex::codex_add_profile,
         super::codex::codex_update_profile,
         super::codex::codex_delete_profile,
@@ -482,10 +481,10 @@ mod tests {
         assert_eq!(COMMAND_MODULES.len(), 28);
 
         #[cfg(target_os = "windows")]
-        assert_eq!(registered_command_count(), 310);
+        assert_eq!(registered_command_count(), 309);
 
         #[cfg(not(target_os = "windows"))]
-        assert_eq!(registered_command_count(), 302);
+        assert_eq!(registered_command_count(), 301);
     }
 
     #[test]

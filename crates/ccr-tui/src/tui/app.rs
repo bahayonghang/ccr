@@ -1,8 +1,10 @@
 // TUI application state — Tab-based dispatch (Claude + Codex only)
 
+use crate::tui::CompletedAction;
 use crate::tui::action::Action;
+use crate::tui::i18n::{self, Message};
 use crate::tui::toast::{Toast, ToastManager};
-use ccr_cli::managers::{TuiConfigManager, TuiTabId};
+use ccr_cli::managers::{TuiConfig, TuiConfigManager, TuiTabId};
 use ccr_cli::models::{ClaudeRuntimeSummary, CodexRuntimeSummary};
 use ccr_cli::models::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};
 use ccr_cli::platforms::create_platform;
@@ -60,6 +62,39 @@ pub struct PlatformTab {
     pub saved_selection: Option<TabSelection>,
 }
 
+impl PlatformTab {
+    pub fn display_label(&self) -> &str {
+        match (self.platform, self.variant) {
+            (Platform::Claude, TabVariant::Profile) => {
+                crate::tui_text!("Claude Code", "Claude 配置")
+            }
+            (Platform::Codex, TabVariant::Profile) => {
+                crate::tui_text!("Codex Profile", "Codex 配置")
+            }
+            (_, TabVariant::ClaudeAuth) => {
+                crate::tui_text!("Claude Auth", "Claude 认证")
+            }
+            (_, TabVariant::CodexAuth) => crate::tui_text!("Codex Auth", "Codex 认证"),
+            (_, TabVariant::OpenCodeAuth) => {
+                crate::tui_text!("OpenCode Auth", "OpenCode 认证")
+            }
+            _ => self.label.as_str(),
+        }
+    }
+
+    pub fn compact_display_label(&self) -> &str {
+        match (self.platform, self.variant) {
+            (Platform::Claude, TabVariant::Profile) => "Claude",
+            (Platform::Codex, TabVariant::Profile) => "Codex",
+            (_, TabVariant::ClaudeAuth | TabVariant::CodexAuth) => {
+                crate::tui_text!("Auth", "认证")
+            }
+            (_, TabVariant::OpenCodeAuth) => "Open",
+            _ => self.display_label(),
+        }
+    }
+}
+
 /// 单个 tab 的选中状态快照，用于 per-tab 记忆光标位置
 #[derive(Clone)]
 pub struct TabSelection {
@@ -86,13 +121,15 @@ fn profile_source_path(platform: Platform) -> String {
 fn current_profile_source_path(platform: Platform) -> String {
     match PlatformPaths::new(platform) {
         Ok(paths) if platform == Platform::Codex => format!(
-            "{}\nFallback: {}",
+            "{}\n{}: {}",
             paths.registry_file.display(),
+            i18n::text(Message::Fallback),
             paths.profiles_file.display()
         ),
         Ok(paths) => paths.registry_file.display().to_string(),
         Err(_) if platform == Platform::Codex => format!(
-            "~/.ccr/config.toml\nFallback: ~/.ccr/platforms/{}/profiles.toml",
+            "~/.ccr/config.toml\n{}: ~/.ccr/platforms/{}/profiles.toml",
+            i18n::text(Message::Fallback),
             platform.short_name()
         ),
         Err(_) => "~/.ccr/config.toml".to_string(),
@@ -100,7 +137,11 @@ fn current_profile_source_path(platform: Platform) -> String {
 }
 
 fn format_issue(location: String, error: &dyn std::fmt::Display) -> String {
-    format!("Where: {location}\nWhat: {error}")
+    format!(
+        "{}: {location}\n{}: {error}",
+        i18n::text(Message::Where),
+        i18n::text(Message::What)
+    )
 }
 
 fn tab_config_id(tab: &PlatformTab) -> Option<TuiTabId> {
@@ -114,15 +155,15 @@ fn tab_config_id(tab: &PlatformTab) -> Option<TuiTabId> {
     }
 }
 
-fn load_tab_order() -> Vec<TuiTabId> {
+pub(super) fn load_tui_config() -> TuiConfig {
     match TuiConfigManager::with_default() {
-        Ok(manager) => manager.load_or_default().tab_order,
+        Ok(manager) => manager.load_or_default(),
         Err(error) => {
             tracing::warn!(
-                "Failed to resolve TUI config path: {}. Falling back to default tab order.",
+                "Failed to resolve TUI config path: {}. Falling back to default config.",
                 error
             );
-            TuiTabId::default_order()
+            TuiConfig::default()
         }
     }
 }
@@ -166,19 +207,19 @@ pub struct App {
     /// Last Claude Auth initialization error for placeholder rendering
     pub claude_auth_error: Option<String>,
     /// Last Claude auth action info (action_type, account_name, success, error)
-    pub last_claude_action: Option<(String, String, bool, Option<String>)>,
+    pub last_claude_action: Option<(CompletedAction, String, bool, Option<String>)>,
     /// Embedded Codex Auth app (lazy initialized)
     pub codex_auth_app: Option<CodexAuthApp>,
     /// Last Codex Auth initialization error for placeholder rendering
     pub codex_auth_error: Option<String>,
     /// Last codex auth action info (action_type, account_name, success, error)
-    pub last_codex_action: Option<(String, String, bool, Option<String>)>,
+    pub last_codex_action: Option<(CompletedAction, String, bool, Option<String>)>,
     /// Embedded OpenCode Auth app (lazy initialized)
     pub opencode_auth_app: Option<OpenCodeAuthApp>,
     /// Last OpenCode Auth initialization error for placeholder rendering
     pub opencode_auth_error: Option<String>,
     /// Last opencode auth action info (action_type, account_name, success, error)
-    pub last_opencode_action: Option<(String, String, bool, Option<String>)>,
+    pub last_opencode_action: Option<(CompletedAction, String, bool, Option<String>)>,
     /// 用量数据引擎(懒初始化):后台加载 provider 用量,详情面板纯内存查找
     pub usage_app: Option<UsageApp>,
     /// 🖱️ Cached header (tab bar) area for mouse hit-testing
@@ -428,6 +469,15 @@ impl App {
     }
 
     pub fn with_task_executor(task_executor: AsyncTaskExecutor) -> Result<Self> {
+        let tui_config = load_tui_config();
+        Self::with_task_executor_and_config(task_executor, tui_config)
+    }
+
+    pub(super) fn with_task_executor_and_config(
+        task_executor: AsyncTaskExecutor,
+        tui_config: TuiConfig,
+    ) -> Result<Self> {
+        i18n::set_language(tui_config.language);
         let mut tabs = Vec::new();
 
         for platform in Platform::implemented() {
@@ -551,7 +601,7 @@ impl App {
                 saved_selection: None,
             });
         }
-        tabs = reorder_tabs(tabs, &load_tab_order());
+        tabs = reorder_tabs(tabs, &tui_config.tab_order);
 
         let mut app = Self {
             tabs,
@@ -762,10 +812,54 @@ impl App {
                 if let Some(engine) = self.usage_app.as_mut() {
                     engine.refresh();
                 }
-                self.toasts.push(Toast::info("已刷新配置列表"));
+                self.push_active_toast(Toast::info(i18n::text(Message::ProfilesReloaded)));
             }
         }
         Ok(false)
+    }
+
+    fn push_active_toast(&mut self, toast: Toast) {
+        if self.is_claude_auth_tab()
+            && let Some(app) = self.claude_auth_app.as_mut()
+        {
+            app.toasts.push(toast);
+        } else if self.is_codex_auth_tab()
+            && let Some(app) = self.codex_auth_app.as_mut()
+        {
+            app.toasts.push(toast);
+        } else if self.is_opencode_auth_tab()
+            && let Some(app) = self.opencode_auth_app.as_mut()
+        {
+            app.toasts.push(toast);
+        } else {
+            self.toasts.push(toast);
+        }
+    }
+
+    fn toggle_language(&mut self) {
+        self.toggle_language_with_manager(TuiConfigManager::with_default());
+    }
+
+    fn toggle_language_with_manager(&mut self, manager: Result<TuiConfigManager>) {
+        let language = i18n::toggle_language();
+        let save_result = manager.and_then(|manager| {
+            let mut config = manager.load_or_default();
+            config.language = language;
+            manager.save(&config)
+        });
+
+        match save_result {
+            Ok(()) => self.push_active_toast(Toast::success(i18n::language_changed(language))),
+            Err(error) => {
+                tracing::warn!("Failed to save TUI language: {error}");
+                self.push_active_toast(Toast::error(i18n::language_save_failed(&error)));
+            }
+        }
+    }
+
+    fn is_language_switch_key(key: KeyEvent) -> bool {
+        key.modifiers.contains(KeyModifiers::CONTROL)
+            && matches!(key.code, KeyCode::Char('l') | KeyCode::Char('L'))
     }
 
     fn scroll_profile_details(&mut self, delta: i16) {
@@ -780,7 +874,10 @@ impl App {
 
     fn apply_selected(&mut self) {
         let Some(selected) = self.selected_profile() else {
-            self.toasts.push(Toast::warning("没有可用的配置"));
+            self.toasts.push(Toast::warning(crate::tui_text!(
+                "No profiles available",
+                "没有可用的配置"
+            )));
             return;
         };
 
@@ -792,8 +889,11 @@ impl App {
         if let Some(instance) = &tab.instance {
             match instance.apply_profile(&profile_name) {
                 Ok(()) => {
-                    self.toasts
-                        .push(Toast::success(format!("✅ 已切换到: {}", profile_name)));
+                    self.toasts.push(Toast::success(crate::tui_format!(
+                        "Switched to: {}",
+                        "已切换到：{}",
+                        profile_name
+                    )));
                     self.last_applied = Some((platform_label, profile_name.clone(), true, None));
 
                     if let Ok(profiles) = instance.load_profiles()
@@ -807,13 +907,19 @@ impl App {
                 }
                 Err(e) => {
                     let err_msg = e.to_string();
-                    self.toasts
-                        .push(Toast::error(format!("❌ 切换失败: {}", err_msg)));
+                    self.toasts.push(Toast::error(crate::tui_format!(
+                        "Switch failed: {}",
+                        "切换失败：{}",
+                        err_msg
+                    )));
                     self.last_applied = Some((platform_label, profile_name, false, Some(err_msg)));
                 }
             }
         } else {
-            self.toasts.push(Toast::error("平台未初始化"));
+            self.toasts.push(Toast::error(crate::tui_text!(
+                "Platform is not initialized",
+                "平台未初始化"
+            )));
         }
     }
 
@@ -852,8 +958,11 @@ impl App {
                 let err = e.to_string();
                 tracing::warn!("Failed to init ClaudeAuthApp: {}", err);
                 self.claude_auth_error = Some(err.clone());
-                self.toasts
-                    .push(Toast::error(format!("Claude Auth 初始化失败: {}", err)));
+                self.toasts.push(Toast::error(crate::tui_format!(
+                    "Failed to initialize Claude Auth: {}",
+                    "Claude 认证初始化失败：{}",
+                    err
+                )));
             }
         }
     }
@@ -879,8 +988,11 @@ impl App {
                 let err = e.to_string();
                 tracing::warn!("Failed to init CodexAuthApp: {}", err);
                 self.codex_auth_error = Some(err.clone());
-                self.toasts
-                    .push(Toast::error(format!("Codex Auth 初始化失败: {}", err)));
+                self.toasts.push(Toast::error(crate::tui_format!(
+                    "Failed to initialize Codex Auth: {}",
+                    "Codex 认证初始化失败：{}",
+                    err
+                )));
             }
         }
     }
@@ -906,8 +1018,11 @@ impl App {
                 let err = e.to_string();
                 tracing::warn!("Failed to init OpenCodeAuthApp: {}", err);
                 self.opencode_auth_error = Some(err.clone());
-                self.toasts
-                    .push(Toast::error(format!("OpenCode Auth 初始化失败: {}", err)));
+                self.toasts.push(Toast::error(crate::tui_format!(
+                    "Failed to initialize OpenCode Auth: {}",
+                    "OpenCode 认证初始化失败：{}",
+                    err
+                )));
             }
         }
     }
@@ -1104,6 +1219,11 @@ impl TuiApp for App {
             return Ok(true);
         }
 
+        if Self::is_language_switch_key(key) {
+            self.toggle_language();
+            return Ok(false);
+        }
+
         if let Some(action) = Self::tab_key_action(key) {
             return self.dispatch(action);
         }
@@ -1259,6 +1379,7 @@ impl TuiApp for App {
 mod tests {
     #![allow(clippy::unwrap_used)]
     use super::*;
+    use ccr_cli::managers::TuiLanguage;
     use ccr_cli::models::Platform;
     use ccr_cli::models::ProfileConfig;
     use ccr_core::core::error::{CcrError, Result};
@@ -1382,6 +1503,65 @@ mod tests {
         assert_eq!(tab_hit_test(header, 1, 35, 3, 0), Some(1));
         // Click at col 65 → tab index 2
         assert_eq!(tab_hit_test(header, 1, 65, 3, 0), Some(2));
+    }
+
+    #[test]
+    fn ctrl_l_is_the_only_language_switch_key() {
+        assert!(App::is_language_switch_key(key_with_modifiers(
+            KeyCode::Char('l'),
+            KeyModifiers::CONTROL
+        )));
+        assert!(App::is_language_switch_key(key_with_modifiers(
+            KeyCode::Char('L'),
+            KeyModifiers::CONTROL
+        )));
+        assert!(!App::is_language_switch_key(key_with_modifiers(
+            KeyCode::Char('l'),
+            KeyModifiers::NONE
+        )));
+    }
+
+    #[test]
+    fn language_toggle_persists_without_changing_app_selection() {
+        let temp = tempfile::tempdir().unwrap();
+        let path = temp.path().join("tui.toml");
+        let manager = TuiConfigManager::new(&path);
+        manager.save(&TuiConfig::default()).unwrap();
+
+        let mut app = tab_switching_app(1);
+        app.selected_index = 2;
+        let active_tab = app.active_tab;
+        let selected_index = app.selected_index;
+        i18n::set_language(TuiLanguage::English);
+
+        app.toggle_language_with_manager(Ok(manager));
+
+        assert_eq!(i18n::active_language(), TuiLanguage::SimplifiedChinese);
+        assert_eq!(app.active_tab, active_tab);
+        assert_eq!(app.selected_index, selected_index);
+        assert_eq!(
+            TuiConfigManager::new(&path).load().unwrap().language,
+            TuiLanguage::SimplifiedChinese
+        );
+
+        i18n::set_language(TuiLanguage::English);
+    }
+
+    #[test]
+    fn language_toggle_remains_active_when_persistence_fails() {
+        let mut app = tab_switching_app(1);
+        i18n::set_language(TuiLanguage::English);
+
+        app.toggle_language_with_manager(Err(CcrError::ConfigFormatInvalid(
+            "storage unavailable".to_string(),
+        )));
+
+        assert_eq!(i18n::active_language(), TuiLanguage::SimplifiedChinese);
+        let toast = app.toasts.active().unwrap();
+        assert_eq!(toast.kind, crate::tui::toast::ToastKind::Error);
+        assert!(toast.message.contains("无法保存设置"));
+
+        i18n::set_language(TuiLanguage::English);
     }
 
     fn profile_navigation_app(count: usize, selected_index: usize, current_page: usize) -> App {

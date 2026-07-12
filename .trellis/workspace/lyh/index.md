@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 34
-- **Last Active**: 2026-07-09
+- **Total Sessions**: 38
+- **Last Active**: 2026-07-12
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1551 | Active |
+| `journal-1.md` | ~1686 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,10 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 38 | 2026-07-12 | 优化 TUI Profile 信息层级与启动性能 | `f96a65cd` | `dev` |
+| 37 | 2026-07-10 | 完成 TUI 中英文切换 | `415b01db`, `2e50c0c8` | `dev` |
+| 36 | 2026-07-10 | 完善双语 README 界面预览 | `d71da7b6`, `d47a9b62` | `dev` |
+| 35 | 2026-07-10 | 完成 Codex GPT-5.6 三模型支持 | `0e999aaf`, `7c535a48` | `dev` |
 | 34 | 2026-07-09 | codex-auth-shared.css 语义令牌迁移收尾 | `b76c04b6`, `d2ef238a` | `dev` |
 | 33 | 2026-07-08 | 07-07-ui-usage-dashboard 第 8/9 项收尾:性能复测揪出 U1/U2 残留并修复,review gate 通过后归档 | `84d2168d`, `ea3f0d1f`, `cf73fc5b`, `df271edb` | `dev` |
 | 32 | 2026-07-08 | Claude/Codex Profiles 交互与视觉统一收尾(07-07-ui-profiles-unify) | `2abe9bf1`, `b40a9b65`, `3c200e08`, `e4e0063b`, `044431d3`, `b2deda96` | `dev` |

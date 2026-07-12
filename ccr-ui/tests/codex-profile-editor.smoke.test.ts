@@ -102,10 +102,15 @@ vi.mock('@/components/provider-templates/ProviderTemplateSelector.vue', () => ({
 
 import CodexProfileEditorModal from '@/components/codex/CodexProfileEditorModal.vue'
 import {
+  buildCodexProfileModelCatalog,
   buildCodexProfileRequest,
   createCodexProfileEditorForm,
+  CUSTOM_MODEL_OPTION,
   REASONING_EFFORT_OPTIONS,
+  resolveModelSelection,
 } from '@/utils/codexProfileEditor'
+
+const modelPresets = ['gpt-5.6-luna', 'gpt-5.6-terra', 'gpt-5.6-sol']
 
 const i18n = createI18n({
   legacy: false,
@@ -142,6 +147,7 @@ const i18n = createI18n({
           customModelOption: 'Custom model',
           customModelHint: 'Custom model hint',
           modelPresetHint: 'Preset hint',
+          currentModelOption: '{model} (current profile value)',
           templateSelector: {
             label: 'Provider template',
             helper: 'Fill non-secret provider fields.',
@@ -227,6 +233,11 @@ const mountModal = async (
     providerTemplateDraft?: ProviderTemplateDraftContext | null
     onSelectTemplate?: (selection: ProviderTemplateSelection) => void
     onManualTemplate?: () => void
+    editingName?: string | null
+    modelCatalog?: string[]
+    currentModelOption?: string
+    selectedModelOption?: string
+    customModelInput?: string
   } = {}
 ) => {
   const el = document.createElement('div')
@@ -240,16 +251,17 @@ const mountModal = async (
         return () =>
           h(CodexProfileEditorModal, {
             modelValue: true,
-            editingName: 'ice',
+            editingName: options.editingName === undefined ? 'ice' : options.editingName,
             saving: false,
             form: state,
             updateField: (field: keyof CodexProfileEditorForm, value: string | boolean) => {
               state[field] = value as never
             },
             availableAuthModeOptions: ['openai_api_key', 'no_auth'],
-            modelCatalog: ['gpt-5.4'],
-            selectedModelOption: 'gpt-5.4',
-            customModelInput: '',
+            modelCatalog: options.modelCatalog ?? modelPresets,
+            currentModelOption: options.currentModelOption,
+            selectedModelOption: options.selectedModelOption ?? modelPresets[0],
+            customModelInput: options.customModelInput ?? '',
             requiresBaseUrl: true,
             requiresSecret: true,
             requiresEnvKey: false,
@@ -295,6 +307,23 @@ afterEach(() => {
 })
 
 describe('codex profile editor helpers', () => {
+  it('builds a stable preset catalog with an optional current profile value', () => {
+    expect(buildCodexProfileModelCatalog(modelPresets)).toEqual(modelPresets)
+    expect(
+      buildCodexProfileModelCatalog(
+        [...modelPresets, 'gpt-5.6-luna', ''],
+        ' gpt-5.4 ',
+      ),
+    ).toEqual([...modelPresets, 'gpt-5.4'])
+  })
+
+  it('routes non-preset provider models through the per-profile custom input', () => {
+    expect(resolveModelSelection('openai/gpt-5.1', modelPresets)).toEqual({
+      selectedModelOption: CUSTOM_MODEL_OPTION,
+      customModelInput: 'openai/gpt-5.1',
+    })
+  })
+
   it('builds payloads with explicit clears for removed fields', () => {
     const request = buildCodexProfileRequest(createForm(), 'gpt-5.4')
 
@@ -319,6 +348,47 @@ describe('CodexProfileEditorModal smoke', () => {
       modelCatalog: ['anthropic/claude-sonnet-4.6'],
     },
   }
+
+  it('renders exactly three presets plus the custom action for new profiles', async () => {
+    const { el, unmount } = await mountModal(createForm(), {
+      editingName: null,
+    })
+
+    try {
+      const select = el.querySelector<HTMLSelectElement>('[data-testid="codex-profile-model-select"]')
+      const values = Array.from(select?.querySelectorAll('option') ?? []).map(option => option.value)
+
+      expect(values).toEqual([...modelPresets, CUSTOM_MODEL_OPTION])
+      expect(el.textContent).not.toContain('current profile value')
+    } finally {
+      unmount()
+    }
+  })
+
+  it('labels a non-preset model as the current profile value while editing', async () => {
+    const currentModel = 'gpt-5.4'
+    const { el, unmount } = await mountModal(createForm(), {
+      modelCatalog: [...modelPresets, currentModel],
+      currentModelOption: currentModel,
+      selectedModelOption: currentModel,
+    })
+
+    try {
+      const select = el.querySelector<HTMLSelectElement>('[data-testid="codex-profile-model-select"]')
+      const options = Array.from(select?.querySelectorAll('option') ?? [])
+
+      expect(options.map(option => option.value)).toEqual([
+        ...modelPresets,
+        currentModel,
+        CUSTOM_MODEL_OPTION,
+      ])
+      expect(options.find(option => option.value === currentModel)?.textContent).toContain(
+        'current profile value',
+      )
+    } finally {
+      unmount()
+    }
+  })
 
   it('keeps removed fields out of the UI', async () => {
     const { el, unmount } = await mountModal(createForm())

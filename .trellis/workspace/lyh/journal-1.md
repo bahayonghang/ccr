@@ -1549,3 +1549,138 @@ implement.md 第 7 项闭环。7a:UsageLogsTab loading 态从单行"加载中"�
 ### Next Steps
 
 - None - task complete
+
+
+## Session 35: 完成 Codex GPT-5.6 三模型支持
+
+**Date**: 2026-07-10
+**Task**: 完成 Codex GPT-5.6 三模型支持
+**Branch**: `dev`
+
+### Summary
+
+为 ccr-ui Codex Profile 固定 luna、terra、sol 三个预设，保留每 Profile 自定义与旧值编辑兼容，移除全局自定义模型写入，并增加 Profile round-trip/apply 与前端目录回归；just ci 全绿。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `0e999aaf` | (see git log) |
+| `7c535a48` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
+
+
+## Session 36: 完善双语 README 界面预览
+
+**Date**: 2026-07-10
+**Task**: 完善双语 README 界面预览
+**Branch**: `dev`
+
+### Summary
+
+为中英文 README 添加三张共用的 TUI 与 CCR UI 脱敏截图及对称说明，并提交工作区中的空白 TODO 占位文件。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `d71da7b6` | (see git log) |
+| `d47a9b62` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
+
+
+## Session 37: 完成 TUI 中英文切换
+
+**Date**: 2026-07-10
+**Task**: 完成 TUI 中英文切换
+**Branch**: `dev`
+
+### Summary
+
+为 Rust TUI 增加默认英文、简体中文完整界面覆盖与 Ctrl+L 全局切换，语言通过 tui.toml 原子持久化；补齐状态保持、CJK 布局、失败回退测试并通过 just ci。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `415b01db` | (see git log) |
+| `2e50c0c8` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
+
+
+## Session 38: 优化 TUI Profile 信息层级与启动性能
+
+**Date**: 2026-07-12
+**Task**: 优化 TUI Profile 信息层级与启动性能
+**Branch**: `dev`
+
+### Summary
+
+新增 Codex 推理强度与显式字段样式，优化响应式详情布局；持久化确定性主题并消除默认 termbg 等待，修复滚动日志留存匹配，完成性能基线与全量相关门禁。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f96a65cd` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

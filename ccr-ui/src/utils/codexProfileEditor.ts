@@ -51,6 +51,22 @@ export const isDeprecatedAuthMode = (authMode?: CodexProfileAuthMode | null) => 
 
 export const normalizeModelName = (value?: string | null) => value?.trim() || ''
 
+export const buildCodexProfileModelCatalog = (
+  presets: string[],
+  currentModel?: string | null,
+) => {
+  const catalog = presets
+    .map(normalizeModelName)
+    .filter((model, index, models) => Boolean(model) && models.indexOf(model) === index)
+  const normalizedCurrentModel = normalizeModelName(currentModel)
+
+  if (normalizedCurrentModel && !catalog.includes(normalizedCurrentModel)) {
+    catalog.push(normalizedCurrentModel)
+  }
+
+  return catalog
+}
+
 export const createCodexProfileEditorForm = (): CodexProfileEditorForm => ({
   name: '',
   description: '',

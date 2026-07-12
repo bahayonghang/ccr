@@ -270,7 +270,6 @@ export {
   acceptLocalCodexSourceInstall,
   untrackCodexSourceInstall,
   listCodexModels,
-  addCodexCustomModel,
   addCodexProfile,
   updateCodexProfile,
   deleteCodexProfile,

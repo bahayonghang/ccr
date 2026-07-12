@@ -369,6 +369,7 @@
                 <select
                   id="codex-profile-model"
                   :value="selectedModelOption"
+                  data-testid="codex-profile-model-select"
                   class="editor-input editor-input--mono w-full rounded-lg px-4 py-3 text-sm"
                   @change="emitSelectedModelOption"
                 >
@@ -377,7 +378,7 @@
                     :key="model"
                     :value="model"
                   >
-                    {{ model }}
+                    {{ modelOptionLabel(model) }}
                   </option>
                   <option :value="CUSTOM_MODEL_OPTION">
                     {{ $t('codex.profiles.customModelOption') }}
@@ -611,6 +612,7 @@ interface Props {
   updateField: (field: keyof CodexProfileEditorForm, value: string | boolean) => void
   availableAuthModeOptions: CodexProfileAuthMode[]
   modelCatalog: string[]
+  currentModelOption?: string
   selectedModelOption: string
   customModelInput: string
   requiresBaseUrl: boolean
@@ -666,6 +668,11 @@ const emitSelectedModelOption = (event: Event) => {
 const emitCustomModelInput = (event: Event) => {
   const target = event.target as HTMLInputElement
   emit('update:customModelInput', target.value)
+}
+
+const modelOptionLabel = (model: string) => {
+  if (model !== props.currentModelOption) return model
+  return t('codex.profiles.currentModelOption', { model })
 }
 
 const updateTextField = (field: keyof CodexProfileEditorForm, event: Event) => {

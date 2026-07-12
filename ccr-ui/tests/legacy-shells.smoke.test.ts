@@ -34,7 +34,6 @@ const apiMocks = vi.hoisted(() => ({
   deleteCodexProfile: vi.fn(),
   applyCodexProfile: vi.fn(),
   exportCodexProfiles: vi.fn(),
-  addCodexCustomModel: vi.fn(),
   listOpenCodeProviders: vi.fn(),
   getOpenCodeConfig: vi.fn(),
   getOpenCodeTuiSettings: vi.fn(),
@@ -212,7 +211,6 @@ beforeEach(() => {
   apiMocks.deleteCodexProfile.mockReset()
   apiMocks.applyCodexProfile.mockReset()
   apiMocks.exportCodexProfiles.mockReset()
-  apiMocks.addCodexCustomModel.mockReset()
   apiMocks.listOpenCodeProviders.mockReset()
   apiMocks.getOpenCodeConfig.mockReset()
   apiMocks.getOpenCodeTuiSettings.mockReset()

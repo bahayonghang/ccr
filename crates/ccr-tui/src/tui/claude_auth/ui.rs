@@ -2,6 +2,7 @@
 // 绘制 Claude 官方订阅账号管理终端界面
 
 use super::app::ClaudeAuthApp;
+use crate::tui::footer::{ShortcutHint, shortcut_line};
 use crate::tui::overlay::{Overlay, render_overlay};
 use crate::tui::theme;
 use crate::tui::toast::ToastKind;
@@ -141,15 +142,22 @@ pub fn draw_loading_placeholder(
     error: Option<&str>,
 ) {
     let message = error
-        .map(|err| format!("Claude Auth 初始化失败\n\n{err}"))
-        .unwrap_or_else(|| "正在初始化 Claude Auth...".to_string());
+        .map(|err| {
+            crate::tui_format!(
+                "Failed to initialize Claude Auth\n\n{err}",
+                "Claude 认证初始化失败\n\n{err}"
+            )
+        })
+        .unwrap_or_else(|| {
+            crate::tui_text!("Initializing Claude Auth...", "正在初始化 Claude 认证...").to_string()
+        });
 
     let panel = Paragraph::new(message)
         .block(
             Block::default()
                 .borders(Borders::ALL)
                 .border_style(Style::default().fg(theme::claude()))
-                .title(" 🔐 Claude Auth ")
+                .title(crate::tui_text!(" Claude Auth ", " Claude 认证 "))
                 .title_style(theme::claude_style()),
         )
         .alignment(Alignment::Center)
@@ -157,15 +165,15 @@ pub fn draw_loading_placeholder(
     f.render_widget(panel, content_area);
 
     if mode == crate::tui::theme::ViewportMode::Compact {
-        let help = Paragraph::new("Tab 切换")
+        let help = Paragraph::new(crate::tui_text!("Tab switch", "Tab 切换"))
             .style(theme::muted_style())
             .alignment(Alignment::Center);
         f.render_widget(help, footer_area);
     } else {
         let status = Paragraph::new(if error.is_some() {
-            "初始化失败"
+            crate::tui_text!("Initialization failed", "初始化失败")
         } else {
-            "加载中"
+            crate::tui_text!("Loading", "加载中")
         })
         .style(if error.is_some() {
             theme::error_style()
@@ -176,7 +184,7 @@ pub fn draw_loading_placeholder(
             Block::default()
                 .borders(Borders::TOP)
                 .border_style(Style::default().fg(theme::border()))
-                .title(" Keys ")
+                .title(crate::tui_text!(" Keys ", " 按键 "))
                 .title_style(theme::claude_style()),
         );
         f.render_widget(status, footer_area);
@@ -185,7 +193,10 @@ pub fn draw_loading_placeholder(
 
 fn draw_title(f: &mut Frame, area: Rect, app: &ClaudeAuthApp) {
     let title = Paragraph::new(vec![Line::from(vec![
-        Span::styled(" 🔐 Claude 官方账号管理 ", theme::claude_style()),
+        Span::styled(
+            crate::tui_text!(" Claude Official Account Manager ", " Claude 官方账号管理 "),
+            theme::claude_style(),
+        ),
         Span::raw(" | "),
         Span::styled(login_status_text(app), login_status_style(&app.login_state)),
     ])])
@@ -202,7 +213,7 @@ fn draw_title(f: &mut Frame, area: Rect, app: &ClaudeAuthApp) {
 }
 
 fn draw_account_list_with_status(f: &mut Frame, area: Rect, app: &mut ClaudeAuthApp) {
-    let title = format!(" 🔐 账号列表 · {} ", list_status_text(app));
+    let title = crate::tui_format!(" Accounts · {} ", " 账号列表 · {} ", list_status_text(app));
     render_account_list_panel(f, area, app, title);
 }
 
@@ -228,9 +239,15 @@ fn render_account_list_panel(f: &mut Frame, area: Rect, app: &mut ClaudeAuthApp,
     if app.accounts.is_empty() {
         app.list_area.set(None);
         let empty = Paragraph::new(vec![
-            Line::from(" 暂未保存 Claude 官方账号"),
+            Line::from(crate::tui_text!(
+                " No Claude official accounts saved",
+                " 暂未保存 Claude 官方账号"
+            )),
             Line::from(""),
-            Line::from("按 s 保存当前 `claude login` 登录快照"),
+            Line::from(crate::tui_text!(
+                "Press s to save the current `claude login` snapshot",
+                "按 s 保存当前 `claude login` 登录快照"
+            )),
         ])
         .style(theme::muted_style())
         .wrap(Wrap { trim: true });
@@ -272,17 +289,33 @@ fn account_list_footer_line(app: &ClaudeAuthApp) -> Line<'static> {
         .unwrap_or_else(theme::muted_style);
 
     Line::from(vec![
-        Span::styled(" Selected: ", theme::muted_style()),
-        Span::styled(selected_name, selected_style),
-        Span::styled("  ·  Legend: ", theme::muted_style()),
-        Span::styled("● current", theme::success_style()),
-        Span::styled(" · ", theme::muted_style()),
-        Span::styled("◐ logged-in", theme::info_style()),
-        Span::styled(" · ", theme::muted_style()),
-        Span::styled("○ saved", theme::muted_style()),
         Span::styled(
-            format!(
+            crate::tui_text!(" Selected: ", " 已选择："),
+            theme::muted_style(),
+        ),
+        Span::styled(selected_name, selected_style),
+        Span::styled(
+            crate::tui_text!("  ·  Legend: ", "  ·  图例："),
+            theme::muted_style(),
+        ),
+        Span::styled(
+            crate::tui_text!("● current", "● 当前"),
+            theme::success_style(),
+        ),
+        Span::styled(" · ", theme::muted_style()),
+        Span::styled(
+            crate::tui_text!("◐ logged-in", "◐ 已登录"),
+            theme::info_style(),
+        ),
+        Span::styled(" · ", theme::muted_style()),
+        Span::styled(
+            crate::tui_text!("○ saved", "○ 已保存"),
+            theme::muted_style(),
+        ),
+        Span::styled(
+            crate::tui_format!(
                 "  ·  Page {}/{}  ·  {} accounts ",
+                "  ·  第 {}/{} 页  ·  {} 个账号 ",
                 app.current_page + 1,
                 app.total_pages(),
                 app.accounts.len()
@@ -406,11 +439,11 @@ fn render_account_list_rows(
 
 fn account_header_cell(column: &AccountColumn) -> Cell<'static> {
     let label = match column {
-        AccountColumn::Status => "状态",
-        AccountColumn::Account => "账号",
-        AccountColumn::Email => "邮箱",
-        AccountColumn::Plan => "订阅",
-        AccountColumn::ExpiresAt => "到期",
+        AccountColumn::Status => crate::tui_text!("Status", "状态"),
+        AccountColumn::Account => crate::tui_text!("Account", "账号"),
+        AccountColumn::Email => crate::tui_text!("Email", "邮箱"),
+        AccountColumn::Plan => crate::tui_text!("Plan", "订阅"),
+        AccountColumn::ExpiresAt => crate::tui_text!("Expires", "到期"),
     };
 
     Cell::from(label.to_string())
@@ -512,7 +545,7 @@ fn draw_focus_panel(f: &mut Frame, area: Rect, app: &ClaudeAuthApp) {
             Block::default()
                 .borders(Borders::ALL)
                 .border_style(Style::default().fg(theme::claude()))
-                .title(" Focus ")
+                .title(crate::tui_text!(" Focus ", " 当前焦点 "))
                 .title_style(theme::claude_style()),
         )
         .wrap(Wrap { trim: true });
@@ -523,7 +556,7 @@ fn draw_context_panel(f: &mut Frame, area: Rect, app: &ClaudeAuthApp) {
     let block = Block::default()
         .borders(Borders::ALL)
         .border_style(Style::default().fg(theme::border()))
-        .title(" Context ")
+        .title(crate::tui_text!(" Context ", " 上下文 "))
         .title_style(
             Style::default()
                 .fg(theme::subtext())
@@ -540,17 +573,25 @@ fn draw_context_panel(f: &mut Frame, area: Rect, app: &ClaudeAuthApp) {
 fn focus_lines(app: &ClaudeAuthApp) -> Vec<Line<'static>> {
     let Some(account) = app.selected_account() else {
         return vec![
-            detail_line("Account:", "-", theme::muted_style()),
-            detail_line("State:", "-", theme::muted_style()),
+            detail_line(
+                crate::tui_text!("Account:", "账号："),
+                "-",
+                theme::muted_style(),
+            ),
+            detail_line(
+                crate::tui_text!("State:", "状态："),
+                "-",
+                theme::muted_style(),
+            ),
         ];
     };
 
     let state_label = if account.is_current {
-        "Current"
+        crate::tui_text!("Current", "当前")
     } else if account.is_logged_in {
-        "Logged in"
+        crate::tui_text!("Logged in", "已登录")
     } else {
-        "Saved"
+        crate::tui_text!("Saved", "已保存")
     };
     let state_style = if account.is_current {
         theme::success_style()
@@ -562,24 +603,32 @@ fn focus_lines(app: &ClaudeAuthApp) -> Vec<Line<'static>> {
 
     vec![
         detail_line(
-            "Account:",
+            crate::tui_text!("Account:", "账号："),
             account.name.clone(),
             account_name_style(account, false),
         ),
-        detail_line("State:", state_label, state_style),
-        detail_optional_line("Email:", account.email.as_deref(), theme::info_style()),
+        detail_line(
+            crate::tui_text!("State:", "状态："),
+            state_label,
+            state_style,
+        ),
         detail_optional_line(
-            "Plan:",
+            crate::tui_text!("Email:", "邮箱："),
+            account.email.as_deref(),
+            theme::info_style(),
+        ),
+        detail_optional_line(
+            crate::tui_text!("Plan:", "订阅："),
             account.subscription_type.as_deref(),
             Style::default().fg(theme::text()),
         ),
         detail_line(
-            "Saved at:",
+            crate::tui_text!("Saved at:", "保存时间："),
             format_datetime(Some(account.saved_at)),
             theme::info_style(),
         ),
         detail_line(
-            "Expires:",
+            crate::tui_text!("Expires:", "到期时间："),
             format_datetime(account.expires_at),
             theme::info_style(),
         ),
@@ -587,14 +636,36 @@ fn focus_lines(app: &ClaudeAuthApp) -> Vec<Line<'static>> {
 }
 
 fn draw_footer_strip(f: &mut Frame, area: Rect, app: &ClaudeAuthApp) {
-    let text = match &app.overlay {
-        Some(Overlay::Confirm { .. }) => "y 确认删除 | n/Esc 取消",
-        Some(Overlay::ImportCodexConfirm { .. }) => "y 确认 | n/Esc 取消",
-        Some(Overlay::Input { .. }) => "输入账号名 | Enter 保存 | Esc 取消",
-        Some(Overlay::RenameInput { .. }) => "输入新名称 | Enter 保存 | Esc 取消",
-        None => {
-            "Tab/Shift+Tab switch  │  ←→/hl page  │  ↑↓/jk select  │  Enter switch  │  s save  │  d delete  │  r refresh  │  q quit"
-        }
+    let hints = match &app.overlay {
+        Some(Overlay::Confirm { .. }) => vec![
+            ShortcutHint::new("y", crate::tui_text!("confirm delete", "确认删除")),
+            ShortcutHint::new("n/Esc", crate::tui_text!("cancel", "取消")),
+        ],
+        Some(Overlay::ImportCodexConfirm { .. }) => vec![
+            ShortcutHint::new("y", crate::tui_text!("confirm", "确认")),
+            ShortcutHint::new("n/Esc", crate::tui_text!("cancel", "取消")),
+        ],
+        Some(Overlay::Input { .. }) => vec![
+            ShortcutHint::new("", crate::tui_text!("enter account name", "输入账号名")),
+            ShortcutHint::new("Enter", crate::tui_text!("save", "保存")),
+            ShortcutHint::new("Esc", crate::tui_text!("cancel", "取消")),
+        ],
+        Some(Overlay::RenameInput { .. }) => vec![
+            ShortcutHint::new("", crate::tui_text!("enter new name", "输入新名称")),
+            ShortcutHint::new("Enter", crate::tui_text!("save", "保存")),
+            ShortcutHint::new("Esc", crate::tui_text!("cancel", "取消")),
+        ],
+        None => vec![
+            ShortcutHint::new("Tab/Shift+Tab", crate::tui_text!("switch", "切换")),
+            ShortcutHint::new("←→/hl", crate::tui_text!("page", "翻页")),
+            ShortcutHint::new("↑↓/jk", crate::tui_text!("select", "选择")),
+            ShortcutHint::new("Enter", crate::tui_text!("switch", "切换")),
+            ShortcutHint::new("s", crate::tui_text!("save", "保存")),
+            ShortcutHint::new("d", crate::tui_text!("delete", "删除")),
+            ShortcutHint::new("r", crate::tui_text!("refresh", "刷新")),
+            ShortcutHint::new("Ctrl+L", crate::tui_text!("language", "语言")),
+            ShortcutHint::new("q", crate::tui_text!("quit", "退出")),
+        ],
     };
 
     let style = if let Some(toast) = app.toasts.active() {
@@ -611,10 +682,10 @@ fn draw_footer_strip(f: &mut Frame, area: Rect, app: &ClaudeAuthApp) {
     let content = if let Some(toast) = app.toasts.active() {
         vec![
             Line::from(Span::styled(toast.message.as_str(), style)),
-            Line::from(Span::styled(text, theme::muted_style())),
+            shortcut_line(&hints, theme::claude()),
         ]
     } else {
-        vec![Line::from(Span::styled(text, theme::muted_style()))]
+        vec![shortcut_line(&hints, theme::claude())]
     };
 
     let footer = Paragraph::new(content)
@@ -622,19 +693,23 @@ fn draw_footer_strip(f: &mut Frame, area: Rect, app: &ClaudeAuthApp) {
             Block::default()
                 .borders(Borders::TOP)
                 .border_style(Style::default().fg(theme::border()))
-                .title(" Keys ")
+                .title(crate::tui_text!(" Keys ", " 按键 "))
                 .title_style(theme::claude_style()),
         )
+        .alignment(Alignment::Center)
         .wrap(Wrap { trim: true });
     f.render_widget(footer, area);
 }
 
 fn draw_help_bar(f: &mut Frame, area: Rect, app: &ClaudeAuthApp) {
     let text = if let Some(toast) = app.toasts.active() {
-        format!("{}  │  Tab 切换", toast.message)
+        crate::tui_format!("{}  │  Tab switch", "{}  │  Tab 切换", toast.message)
     } else {
-        "Tab 切换  │  ● 当前生效  ◐ 仅已登录  ○ 已保存  │  官方账号切换只写入 ~/.claude/.credentials.json"
-            .to_string()
+        crate::tui_text!(
+            "Tab switch  │  ● active  ◐ logged-in only  ○ saved  │  official account switching only writes ~/.claude/.credentials.json  │  Ctrl+L language",
+            "Tab 切换  │  ● 当前生效  ◐ 仅已登录  ○ 已保存  │  官方账号切换只写入 ~/.claude/.credentials.json  │  Ctrl+L 语言"
+        )
+        .to_string()
     };
 
     let bar = Paragraph::new(text)
@@ -650,10 +725,14 @@ fn context_lines(app: &ClaudeAuthApp) -> Vec<Line<'static>> {
     if let Some(summary) = &app.runtime_summary {
         lines.push(kv_line(
             "mode",
-            summary.mode.label().to_string(),
+            localize_claude_runtime_text(summary.mode.label().to_string()),
             theme::text(),
         ));
-        lines.push(kv_line("profile", summary.profile_label(), theme::text()));
+        lines.push(kv_line(
+            "profile",
+            localize_claude_runtime_text(summary.profile_label()),
+            theme::text(),
+        ));
         lines.push(kv_line(
             "auth_mode",
             summary
@@ -672,12 +751,12 @@ fn context_lines(app: &ClaudeAuthApp) -> Vec<Line<'static>> {
         ));
         lines.push(kv_line(
             "login",
-            summary.official_login_label(),
+            localize_claude_runtime_text(summary.official_login_label()),
             theme::info(),
         ));
         lines.push(kv_line(
             "effective_auth",
-            summary.auth_label(),
+            localize_claude_runtime_text(summary.auth_label()),
             theme::success(),
         ));
         lines.push(kv_line(
@@ -689,7 +768,10 @@ fn context_lines(app: &ClaudeAuthApp) -> Vec<Line<'static>> {
             theme::success(),
         ));
     } else {
-        lines.push(Line::from("  未能读取 Claude 运行时摘要"));
+        lines.push(Line::from(crate::tui_text!(
+            "  Could not read the Claude runtime summary",
+            "  未能读取 Claude 运行时摘要"
+        )));
     }
 
     lines.push(Line::from(""));
@@ -725,9 +807,10 @@ fn context_lines(app: &ClaudeAuthApp) -> Vec<Line<'static>> {
             theme::info(),
         ));
     } else {
-        lines.push(Line::from(
-            "  未检测到 ~/.claude/.credentials.json 中的官方订阅登录",
-        ));
+        lines.push(Line::from(crate::tui_text!(
+            "  No official subscription login detected in ~/.claude/.credentials.json",
+            "  未检测到 ~/.claude/.credentials.json 中的官方订阅登录"
+        )));
     }
 
     lines.push(Line::from(""));
@@ -735,7 +818,12 @@ fn context_lines(app: &ClaudeAuthApp) -> Vec<Line<'static>> {
     if let Some(account) = app.selected_account() {
         lines.push(kv_line(
             "current",
-            if account.is_current { "yes" } else { "no" }.to_string(),
+            if account.is_current {
+                crate::tui_text!("yes", "是")
+            } else {
+                crate::tui_text!("no", "否")
+            }
+            .to_string(),
             if account.is_current {
                 theme::success()
             } else {
@@ -744,7 +832,12 @@ fn context_lines(app: &ClaudeAuthApp) -> Vec<Line<'static>> {
         ));
         lines.push(kv_line(
             "logged_in",
-            if account.is_logged_in { "yes" } else { "no" }.to_string(),
+            if account.is_logged_in {
+                crate::tui_text!("yes", "是")
+            } else {
+                crate::tui_text!("no", "否")
+            }
+            .to_string(),
             if account.is_logged_in {
                 theme::info()
             } else {
@@ -791,15 +884,19 @@ fn context_lines(app: &ClaudeAuthApp) -> Vec<Line<'static>> {
             theme::info(),
         ));
     } else {
-        lines.push(Line::from("  当前没有选中的已保存账号"));
+        lines.push(Line::from(crate::tui_text!(
+            "  No saved account is selected",
+            "  当前没有选中的已保存账号"
+        )));
     }
 
     lines
 }
 
 fn detail_label_span(label: &str) -> Span<'static> {
+    let label = localized_detail_label(label);
     Span::styled(
-        format!("{label:<DETAIL_LABEL_WIDTH$}"),
+        pad_text(label, DETAIL_LABEL_WIDTH),
         Style::default()
             .fg(theme::subtext())
             .add_modifier(Modifier::BOLD),
@@ -824,6 +921,14 @@ fn detail_spans_line(label: &str, mut spans: Vec<Span<'static>>) -> Line<'static
 }
 
 fn section_title(title: &str) -> Line<'static> {
+    let title = match title {
+        "Runtime" => crate::tui_text!("Runtime", "运行时"),
+        "Current Official Login" => {
+            crate::tui_text!("Current Official Login", "当前官方登录")
+        }
+        "Selected Snapshot" => crate::tui_text!("Selected Snapshot", "所选快照"),
+        _ => title,
+    };
     Line::from(Span::styled(
         format!("  {title}"),
         Style::default()
@@ -833,35 +938,117 @@ fn section_title(title: &str) -> Line<'static> {
 }
 
 fn kv_line(key: &str, value: String, color: ratatui::style::Color) -> Line<'static> {
+    let key = localized_kv_key(key);
     Line::from(vec![
         Span::styled(
-            format!("  {:<12}", key),
+            format!("  {}", pad_text(key, 12)),
             Style::default().fg(theme::muted()),
         ),
         Span::styled(value, Style::default().fg(color)),
     ])
 }
 
+fn localized_detail_label(label: &str) -> &str {
+    match label {
+        "Account:" => crate::tui_text!("Account:", "账号："),
+        "State:" => crate::tui_text!("State:", "状态："),
+        "Email:" => crate::tui_text!("Email:", "邮箱："),
+        "Plan:" => crate::tui_text!("Plan:", "订阅："),
+        "Saved at:" => crate::tui_text!("Saved at:", "保存时间："),
+        "Expires:" => crate::tui_text!("Expires:", "到期时间："),
+        _ => label,
+    }
+}
+
+fn localized_kv_key(key: &str) -> &str {
+    match key {
+        "mode" => crate::tui_text!("mode", "模式"),
+        "profile" => crate::tui_text!("profile", "配置"),
+        "auth_mode" => crate::tui_text!("auth_mode", "认证模式"),
+        "auth_source" => crate::tui_text!("auth_source", "认证来源"),
+        "login" => crate::tui_text!("login", "登录"),
+        "effective_auth" => crate::tui_text!("effective_auth", "生效认证"),
+        "current_auth" => crate::tui_text!("current_auth", "当前认证"),
+        "email" => crate::tui_text!("email", "邮箱"),
+        "billing" => crate::tui_text!("billing", "计费"),
+        "subscription" => crate::tui_text!("subscription", "订阅"),
+        "tier" => crate::tui_text!("tier", "等级"),
+        "expires" => crate::tui_text!("expires", "到期"),
+        "current" => crate::tui_text!("current", "当前"),
+        "logged_in" => crate::tui_text!("logged_in", "已登录"),
+        "saved_at" => crate::tui_text!("saved_at", "保存时间"),
+        "last_used" => crate::tui_text!("last_used", "最近使用"),
+        _ => key,
+    }
+}
+
+fn localize_claude_runtime_text(text: String) -> String {
+    if crate::tui::i18n::active_language() == ccr_cli::managers::TuiLanguage::English {
+        text.replace("Profile 驱动", "Profile driven")
+            .replace("Profile + 官方订阅", "Profile + official subscription")
+            .replace(
+                "Profile 等待官方订阅",
+                "Profile waiting for official subscription",
+            )
+            .replace("仅官方订阅运行时", "official subscription runtime only")
+            .replace("未解析", "unresolved")
+            .replace("未绑定", "not bound")
+            .replace("未登录", "not logged in")
+            .replace("已登录", "logged in")
+            .replace("未保存", "unsaved")
+            .replace("未就绪", "not ready")
+    } else {
+        text
+    }
+}
+
 fn login_status_text(app: &ClaudeAuthApp) -> String {
     if let Some(summary) = &app.runtime_summary {
         return match &summary.login_state {
-            ClaudeLoginState::NotLoggedIn => "未登录".to_string(),
-            ClaudeLoginState::LoggedInUnsaved => "已登录 (未保存)".to_string(),
+            ClaudeLoginState::NotLoggedIn => {
+                crate::tui_text!("Not logged in", "未登录").to_string()
+            }
+            ClaudeLoginState::LoggedInUnsaved => {
+                crate::tui_text!("Logged in (unsaved)", "已登录（未保存）").to_string()
+            }
             ClaudeLoginState::LoggedInSaved { account_name } => {
-                format!("已登录并保存: {account_name}")
+                crate::tui_format!(
+                    "Logged in and saved: {account_name}",
+                    "已登录并保存：{account_name}"
+                )
             }
             ClaudeLoginState::ApiKeyActive => summary.current_login_name.as_ref().map_or_else(
-                || "当前 Profile 使用 API Key".to_string(),
-                |account_name| format!("当前 Profile 使用 API Key · 官方已登录 {account_name}"),
+                || {
+                    crate::tui_text!(
+                        "Current Profile uses an API Key",
+                        "当前 Profile 使用 API Key"
+                    )
+                    .to_string()
+                },
+                |account_name| {
+                    crate::tui_format!(
+                        "Current Profile uses an API Key · official login {account_name}",
+                        "当前 Profile 使用 API Key · 官方已登录 {account_name}"
+                    )
+                },
             ),
         };
     }
 
     match &app.login_state {
-        ClaudeLoginState::NotLoggedIn => "未登录".to_string(),
-        ClaudeLoginState::LoggedInUnsaved => "已登录 (未保存)".to_string(),
-        ClaudeLoginState::LoggedInSaved { account_name } => format!("已登录并保存: {account_name}"),
-        ClaudeLoginState::ApiKeyActive => "当前 Profile 使用 API Key".to_string(),
+        ClaudeLoginState::NotLoggedIn => crate::tui_text!("Not logged in", "未登录").to_string(),
+        ClaudeLoginState::LoggedInUnsaved => {
+            crate::tui_text!("Logged in (unsaved)", "已登录（未保存）").to_string()
+        }
+        ClaudeLoginState::LoggedInSaved { account_name } => crate::tui_format!(
+            "Logged in and saved: {account_name}",
+            "已登录并保存：{account_name}"
+        ),
+        ClaudeLoginState::ApiKeyActive => crate::tui_text!(
+            "Current Profile uses an API Key",
+            "当前 Profile 使用 API Key"
+        )
+        .to_string(),
     }
 }
 
@@ -878,10 +1065,14 @@ fn login_status_style(state: &ClaudeLoginState) -> Style {
 
 fn list_status_text(app: &ClaudeAuthApp) -> String {
     match &app.login_state {
-        ClaudeLoginState::NotLoggedIn => "未登录".to_string(),
-        ClaudeLoginState::LoggedInUnsaved => "已登录".to_string(),
-        ClaudeLoginState::LoggedInSaved { account_name } => format!("已登录: {account_name}"),
-        ClaudeLoginState::ApiKeyActive => "Profile 使用 API Key".to_string(),
+        ClaudeLoginState::NotLoggedIn => crate::tui_text!("Not logged in", "未登录").to_string(),
+        ClaudeLoginState::LoggedInUnsaved => crate::tui_text!("Logged in", "已登录").to_string(),
+        ClaudeLoginState::LoggedInSaved { account_name } => {
+            crate::tui_format!("Logged in: {account_name}", "已登录：{account_name}")
+        }
+        ClaudeLoginState::ApiKeyActive => {
+            crate::tui_text!("Profile uses an API Key", "Profile 使用 API Key").to_string()
+        }
     }
 }
 
@@ -969,6 +1160,17 @@ fn truncate_text(value: &str, max_width: usize) -> String {
     }
 
     result.push('…');
+    result
+}
+
+fn pad_text(value: &str, width: usize) -> String {
+    let value_width = value.width();
+    if value_width >= width {
+        return value.to_string();
+    }
+    let mut result = String::with_capacity(value.len() + width - value_width);
+    result.push_str(value);
+    result.extend(std::iter::repeat_n(' ', width - value_width));
     result
 }
 
@@ -1086,6 +1288,26 @@ mod tests {
     }
 
     #[test]
+    fn footer_shortcuts_are_centered_and_use_claude_accent() {
+        let app = sample_app();
+        let mut terminal = Terminal::new(TestBackend::new(220, 3)).unwrap();
+
+        terminal
+            .draw(|frame| draw_footer_strip(frame, frame.area(), &app))
+            .unwrap();
+
+        let buffer = terminal.backend().buffer();
+        let occupied = (0_u16..220)
+            .filter(|&x| buffer[(x, 1)].symbol() != " ")
+            .collect::<Vec<_>>();
+        let left_margin = *occupied.first().expect("footer should render shortcuts");
+        let right_margin = 219 - occupied.last().expect("footer should render shortcuts");
+        assert!(left_margin.abs_diff(right_margin) <= 1);
+        assert_eq!(buffer[(left_margin, 1)].fg, theme::claude());
+        assert!(buffer[(left_margin, 1)].modifier.contains(Modifier::BOLD));
+    }
+
+    #[test]
     fn login_status_text_handles_api_key_state() {
         let root = tempfile::tempdir().unwrap();
         let home = root.path().join("home");
@@ -1097,7 +1319,11 @@ mod tests {
         .unwrap();
         app.runtime_summary = None;
         app.login_state = ClaudeLoginState::ApiKeyActive;
+        assert_eq!(login_status_text(&app), "Current Profile uses an API Key");
+
+        crate::tui::i18n::set_language(ccr_cli::managers::TuiLanguage::SimplifiedChinese);
         assert_eq!(login_status_text(&app), "当前 Profile 使用 API Key");
+        crate::tui::i18n::set_language(ccr_cli::managers::TuiLanguage::English);
     }
 
     #[test]
@@ -1126,7 +1352,7 @@ mod tests {
 
         assert_eq!(
             login_status_text(&app),
-            "当前 Profile 使用 API Key · 官方已登录 work"
+            "Current Profile uses an API Key · official login work"
         );
     }
 

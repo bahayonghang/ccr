@@ -21,6 +21,7 @@ use ratatui::layout::Rect;
 use std::cell::Cell;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, error::TryRecvError};
 
+use crate::tui::CompletedAction;
 use crate::tui::runtime::{AsyncTaskExecutor, TuiApp};
 use crate::tui::toast::{Toast, ToastManager};
 use chrono::Utc;
@@ -161,7 +162,7 @@ pub struct CodexAuthApp {
     /// Service instance
     service: CodexAuthService,
     /// Last action info (action_type, account_name, success, error)
-    pub last_action: Option<(String, String, bool, Option<String>)>,
+    pub last_action: Option<(CompletedAction, String, bool, Option<String>)>,
     /// Usage data state
     pub usage_state: UsageState,
     /// Quota query state
@@ -284,7 +285,10 @@ impl CodexAuthApp {
     /// Load usage data
     fn load_usage_data(codex_dir: &Option<PathBuf>) -> UsageState {
         let Some(dir) = codex_dir else {
-            return UsageState::Error("无法获取用户目录".to_string());
+            return UsageState::Error(
+                crate::tui_text!("Could not resolve the user directory", "无法获取用户目录")
+                    .to_string(),
+            );
         };
 
         let usage_service = CodexUsageService::new(dir.clone());
@@ -407,9 +411,10 @@ impl CodexAuthApp {
             .map(|entry| Self::preview_reset_detail_summary_text(&entry.quota))
             .unwrap_or_else(|| {
                 if self.is_activation_gate_pending() {
-                    "等待 1s 激活门控".to_string()
+                    crate::tui_text!("waiting for 1s activation gate", "等待 1s 激活门控")
+                        .to_string()
                 } else if self.preview_task_active {
-                    "正在批量查询…".to_string()
+                    crate::tui_text!("querying batch…", "正在批量查询…").to_string()
                 } else {
                     "-".to_string()
                 }
@@ -567,8 +572,11 @@ impl CodexAuthApp {
                 rolling: dataset.global.clone(),
                 top_model: global_top_model,
                 fallback_reason: Some(
-                    "当前登录尚未保存为 CCR 账号，本地 usage 暂时只能按全局 runtime 展示"
-                        .to_string(),
+                    crate::tui_text!(
+                        "The current login is not saved as a CCR account; local usage can only be shown for the global runtime",
+                        "当前登录尚未保存为 CCR 账号，本地 usage 暂时只能按全局 runtime 展示"
+                    )
+                    .to_string(),
                 ),
             };
         }
@@ -584,7 +592,11 @@ impl CodexAuthApp {
                 rolling: dataset.global.clone(),
                 top_model: global_top_model,
                 fallback_reason: Some(
-                    "CCR 未找到该账号的归因元数据，以下为全局 runtime 统计".to_string(),
+                    crate::tui_text!(
+                        "CCR found no attribution metadata for this account; showing global runtime statistics",
+                        "CCR 未找到该账号的归因元数据，以下为全局 runtime 统计"
+                    )
+                    .to_string(),
                 ),
             };
         };
@@ -599,8 +611,11 @@ impl CodexAuthApp {
                 rolling: dataset.global.clone(),
                 top_model: global_top_model,
                 fallback_reason: Some(
-                    "本地 Codex 日志不包含账号字段；该账号尚无可置信的 CCR 归因记录，以下为全局 runtime 统计"
-                        .to_string(),
+                    crate::tui_text!(
+                        "Local Codex logs do not contain account fields; this account has no reliable CCR attribution records, so global runtime statistics are shown",
+                        "本地 Codex 日志不包含账号字段；该账号尚无可置信的 CCR 归因记录，以下为全局 runtime 统计"
+                    )
+                    .to_string(),
                 ),
             };
         }
@@ -619,8 +634,11 @@ impl CodexAuthApp {
                 > attributed_records.len() as u64
             {
                 Some(
-                    "仅展示已归因到该账号的本地记录；更早或未归因历史不会混入该账号统计"
-                        .to_string(),
+                    crate::tui_text!(
+                        "Only local records attributed to this account are shown; older or unattributed history is excluded",
+                        "仅展示已归因到该账号的本地记录；更早或未归因历史不会混入该账号统计"
+                    )
+                    .to_string(),
                 )
             } else {
                 None
@@ -831,13 +849,19 @@ impl CodexAuthApp {
                     let label = self
                         .selected_account()
                         .map(|account| account.name.as_str())
-                        .unwrap_or("当前账号");
-                    self.toasts
-                        .push(Toast::info(format!("正在查询账号配额: {}", label)));
+                        .unwrap_or(crate::tui_text!("current account", "当前账号"));
+                    self.toasts.push(Toast::info(crate::tui_format!(
+                        "Querying account quota: {}",
+                        "正在查询账号配额：{}",
+                        label
+                    )));
                 }
                 _ => {
                     self.pending_quota_confirm = false;
-                    self.toasts.push(Toast::info("已取消配额查询"));
+                    self.toasts.push(Toast::info(crate::tui_text!(
+                        "Quota query cancelled",
+                        "已取消配额查询"
+                    )));
                 }
             }
             return Ok(false);
@@ -872,10 +896,16 @@ impl CodexAuthApp {
                     self.overlay = Some(Overlay::save_input());
                 }
                 LoginState::ApiKeyActive | LoginState::ProviderKeyActive { .. } => {
-                    self.toasts.push(Toast::info("API Key 模式无需保存账号"));
+                    self.toasts.push(Toast::info(crate::tui_text!(
+                        "API Key mode does not require saving an account",
+                        "API Key 模式无需保存账号"
+                    )));
                 }
                 _ => {
-                    self.toasts.push(Toast::warning("当前登录已保存或未登录"));
+                    self.toasts.push(Toast::warning(crate::tui_text!(
+                        "The current login is already saved or is not logged in",
+                        "当前登录已保存或未登录"
+                    )));
                 }
             },
             KeyCode::Char('d') | KeyCode::Delete => {
@@ -883,14 +913,20 @@ impl CodexAuthApp {
                     if !account.is_virtual {
                         self.overlay = Some(Overlay::confirm_delete(account.name.clone()));
                     } else {
-                        self.toasts.push(Toast::warning("无法删除未保存的登录"));
+                        self.toasts.push(Toast::warning(crate::tui_text!(
+                            "An unsaved login cannot be deleted",
+                            "无法删除未保存的登录"
+                        )));
                     }
                 }
             }
             KeyCode::Char('n') => {
                 if let Some(account) = self.selected_account() {
                     if account.is_virtual {
-                        self.toasts.push(Toast::warning("未保存的登录无法重命名"));
+                        self.toasts.push(Toast::warning(crate::tui_text!(
+                            "An unsaved login cannot be renamed",
+                            "未保存的登录无法重命名"
+                        )));
                     } else {
                         self.overlay = Some(Overlay::rename_input(account.name.clone()));
                     }
@@ -901,12 +937,18 @@ impl CodexAuthApp {
                 self.start_usage_fetch();
                 self.rebuild_quota_refresh_plan(true);
                 self.try_start_quota_refresh(true);
-                self.toasts.push(Toast::info("已刷新账号与统计"));
+                self.toasts.push(Toast::info(crate::tui_text!(
+                    "Accounts and statistics reloaded",
+                    "已刷新账号与统计"
+                )));
             }
             KeyCode::Char('R') => {
                 if let Some(account) = self.selected_account().cloned() {
                     if account.is_virtual {
-                        self.toasts.push(Toast::warning("未保存的当前登录无法修复"));
+                        self.toasts.push(Toast::warning(crate::tui_text!(
+                            "The unsaved current login cannot be repaired",
+                            "未保存的当前登录无法修复"
+                        )));
                         return Ok(false);
                     }
 
@@ -928,12 +970,19 @@ impl CodexAuthApp {
                                 }
                             }
                             Err(e) => {
-                                self.toasts.push(Toast::error(format!("修复失败: {}", e)));
+                                self.toasts.push(Toast::error(crate::tui_format!(
+                                    "Repair failed: {}",
+                                    "修复失败：{}",
+                                    e
+                                )));
                             }
                         },
                         Err(e) => {
-                            self.toasts
-                                .push(Toast::error(format!("初始化修复服务失败: {}", e)));
+                            self.toasts.push(Toast::error(crate::tui_format!(
+                                "Failed to initialize the repair service: {}",
+                                "初始化修复服务失败：{}",
+                                e
+                            )));
                         }
                     }
                 }
@@ -968,20 +1017,30 @@ impl CodexAuthApp {
                 match self.service.delete_account(&subject) {
                     Ok(()) => {
                         self.last_action =
-                            Some(("已删除".to_string(), subject.clone(), true, None));
-                        self.toasts
-                            .push(Toast::success(format!("已删除账号: {}", subject)));
+                            Some((CompletedAction::Delete, subject.clone(), true, None));
+                        self.toasts.push(Toast::success(crate::tui_format!(
+                            "Deleted account: {}",
+                            "已删除账号：{}",
+                            subject
+                        )));
                         self.reload_accounts()?;
                     }
                     Err(e) => {
-                        self.toasts.push(Toast::error(format!("删除失败: {}", e)));
+                        self.toasts.push(Toast::error(crate::tui_format!(
+                            "Delete failed: {}",
+                            "删除失败：{}",
+                            e
+                        )));
                     }
                 }
                 self.overlay = None;
             }
             KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => {
                 self.overlay = None;
-                self.toasts.push(Toast::info("已取消删除"));
+                self.toasts.push(Toast::info(crate::tui_text!(
+                    "Deletion cancelled",
+                    "已取消删除"
+                )));
             }
             _ => {}
         }
@@ -1001,13 +1060,20 @@ impl CodexAuthApp {
                     match self.service.save_current(&name, None, false) {
                         Ok(()) => {
                             self.last_action =
-                                Some(("已保存".to_string(), name.clone(), true, None));
-                            self.toasts
-                                .push(Toast::success(format!("已保存账号: {}", name)));
+                                Some((CompletedAction::Save, name.clone(), true, None));
+                            self.toasts.push(Toast::success(crate::tui_format!(
+                                "Saved account: {}",
+                                "已保存账号：{}",
+                                name
+                            )));
                             self.reload_accounts()?;
                         }
                         Err(e) => {
-                            self.toasts.push(Toast::error(format!("保存失败: {}", e)));
+                            self.toasts.push(Toast::error(crate::tui_format!(
+                                "Save failed: {}",
+                                "保存失败：{}",
+                                e
+                            )));
                         }
                     }
                 }
@@ -1015,7 +1081,10 @@ impl CodexAuthApp {
             }
             KeyCode::Esc => {
                 self.overlay = None;
-                self.toasts.push(Toast::info("已取消保存"));
+                self.toasts.push(Toast::info(crate::tui_text!(
+                    "Save cancelled",
+                    "已取消保存"
+                )));
             }
             KeyCode::Backspace => {
                 if let Some(overlay) = &mut self.overlay {
@@ -1051,7 +1120,10 @@ impl CodexAuthApp {
             }
             KeyCode::Esc => {
                 self.overlay = None;
-                self.toasts.push(Toast::info("已取消重命名"));
+                self.toasts.push(Toast::info(crate::tui_text!(
+                    "Rename cancelled",
+                    "已取消重命名"
+                )));
             }
             KeyCode::Backspace => {
                 if let Some(overlay) = &mut self.overlay {
@@ -1081,7 +1153,10 @@ impl CodexAuthApp {
 
         let trimmed = new_name.trim().to_string();
         if trimmed.is_empty() {
-            self.toasts.push(Toast::warning("新名称不能为空"));
+            self.toasts.push(Toast::warning(crate::tui_text!(
+                "The new name cannot be empty",
+                "新名称不能为空"
+            )));
             if let Some(Overlay::RenameInput { buffer, .. }) = &mut self.overlay {
                 *buffer = source.clone();
             }
@@ -1090,21 +1165,26 @@ impl CodexAuthApp {
 
         if trimmed == source {
             self.overlay = None;
-            self.toasts.push(Toast::info("名称未变化"));
+            self.toasts.push(Toast::info(crate::tui_text!(
+                "The name is unchanged",
+                "名称未变化"
+            )));
             return Ok(());
         }
 
         match self.service.rename_account(&source, &trimmed, force) {
             Ok(_) => {
                 self.last_action = Some((
-                    "已重命名".to_string(),
+                    CompletedAction::Rename,
                     format!("{} -> {}", source, trimmed),
                     true,
                     None,
                 ));
-                self.toasts.push(Toast::success(format!(
-                    "已重命名: {} -> {}",
-                    source, trimmed
+                self.toasts.push(Toast::success(crate::tui_format!(
+                    "Renamed: {} -> {}",
+                    "已重命名：{} -> {}",
+                    source,
+                    trimmed
                 )));
                 self.overlay = None;
                 self.reload_accounts()?;
@@ -1116,10 +1196,17 @@ impl CodexAuthApp {
                     *buffer = trimmed.clone();
                 }
                 if !force && msg.contains("已存在") {
-                    self.toasts
-                        .push(Toast::warning(format!("{} · 按 Ctrl+F 强制覆盖", msg)));
+                    self.toasts.push(Toast::warning(crate::tui_format!(
+                        "{} · press Ctrl+F to overwrite",
+                        "{} · 按 Ctrl+F 强制覆盖",
+                        msg
+                    )));
                 } else {
-                    self.toasts.push(Toast::error(format!("重命名失败: {}", e)));
+                    self.toasts.push(Toast::error(crate::tui_format!(
+                        "Rename failed: {}",
+                        "重命名失败：{}",
+                        e
+                    )));
                 }
             }
         }
@@ -1192,20 +1279,27 @@ impl CodexAuthApp {
     fn switch_selected_account(&mut self) -> Result<bool> {
         if let Some(account) = self.selected_account().cloned() {
             if account.is_virtual {
-                self.toasts.push(Toast::info("这是当前登录，无需切换"));
+                self.toasts.push(Toast::info(crate::tui_text!(
+                    "This is the current login; no switch is needed",
+                    "这是当前登录，无需切换"
+                )));
                 return Ok(false);
             }
 
             if account.is_current {
-                self.toasts.push(Toast::info("已经是当前账号"));
+                self.toasts.push(Toast::info(crate::tui_text!(
+                    "This account is already active",
+                    "已经是当前账号"
+                )));
                 return Ok(false);
             }
 
             // Detect running Codex processes
             let running = self.service.detect_codex_process();
             if !running.is_empty() {
-                self.toasts.push(Toast::warning(format!(
-                    "警告: 检测到 {} 个 Codex 进程正在运行",
+                self.toasts.push(Toast::warning(crate::tui_format!(
+                    "Warning: {} Codex processes are running",
+                    "警告：检测到 {} 个 Codex 进程正在运行",
                     running.len()
                 )));
             }
@@ -1213,14 +1307,21 @@ impl CodexAuthApp {
             match self.service.switch_account(&account.name) {
                 Ok(()) => {
                     self.last_action =
-                        Some(("已切换到".to_string(), account.name.clone(), true, None));
-                    self.toasts
-                        .push(Toast::success(format!("已切换到账号: {}", account.name)));
+                        Some((CompletedAction::Switch, account.name.clone(), true, None));
+                    self.toasts.push(Toast::success(crate::tui_format!(
+                        "Switched to account: {}",
+                        "已切换到账号：{}",
+                        account.name
+                    )));
                     self.should_quit = true;
                     return Ok(true);
                 }
                 Err(e) => {
-                    self.toasts.push(Toast::error(format!("切换失败: {}", e)));
+                    self.toasts.push(Toast::error(crate::tui_format!(
+                        "Switch failed: {}",
+                        "切换失败：{}",
+                        e
+                    )));
                 }
             }
         }
@@ -1279,7 +1380,7 @@ impl CodexAuthApp {
                         account_name: account_name.clone(),
                         email: None,
                         quota: None,
-                        error: Some(format!("初始化配额服务失败: {error}")),
+                        error: Some(error.to_string()),
                         fetched_at: Utc::now(),
                     })
                     .collect(),
@@ -1370,7 +1471,7 @@ impl CodexAuthApp {
                 Err(e) => {
                     let _ = tx.send(CodexAuthTaskMessage::Quota(Err((
                         account_key,
-                        format!("初始化配额服务失败: {}", e),
+                        e.to_string(),
                     ))));
                 }
             }

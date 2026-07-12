@@ -254,7 +254,7 @@ struct CodexDashboardOverviewCacheEntry {
 
 type CodexModelCatalog = (Vec<String>, Vec<String>, Vec<String>);
 
-const CODEX_BUILTIN_MODELS: &[&str] = &["gpt-5.3-codex", "gpt-5.4"];
+const CODEX_BUILTIN_MODELS: &[&str] = &["gpt-5.6-luna", "gpt-5.6-terra", "gpt-5.6-sol"];
 const EXPLICIT_PLATFORM_STRING_FIELDS: &[&str] = &[
     "api_mode",
     "wire_api",
@@ -349,21 +349,6 @@ fn read_codex_custom_models(path: &PathBuf) -> Result<CodexCustomModelsFile, Str
     let content =
         fs::read_to_string(path).map_err(|e| format!("读取 Codex 自定义模型失败: {e}"))?;
     toml::from_str(&content).map_err(|e| format!("解析 Codex 自定义模型失败: {e}"))
-}
-
-fn write_codex_custom_models(path: &PathBuf, models: &CodexCustomModelsFile) -> Result<(), String> {
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).map_err(|e| format!("创建模型目录失败: {e}"))?;
-    }
-    let content =
-        toml::to_string_pretty(models).map_err(|e| format!("序列化 Codex 自定义模型失败: {e}"))?;
-    let parent = path.parent().ok_or("无效的文件路径")?;
-    let tmp =
-        tempfile::NamedTempFile::new_in(parent).map_err(|e| format!("创建临时文件失败: {e}"))?;
-    fs::write(tmp.path(), &content).map_err(|e| format!("写入临时文件失败: {e}"))?;
-    tmp.persist(path)
-        .map_err(|e| format!("持久化模型文件失败: {e}"))?;
-    Ok(())
 }
 
 fn normalize_model_name(model: &str) -> Option<String> {
@@ -1766,6 +1751,40 @@ fn parse_mcp_server(v: &Value) -> Result<CodexMcpServer, String> {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn codex_model_catalog_keeps_target_presets_and_legacy_custom_models_distinct() {
+        let builtin_models = codex_builtin_models();
+        assert_eq!(
+            builtin_models,
+            vec![
+                "gpt-5.6-luna".to_string(),
+                "gpt-5.6-terra".to_string(),
+                "gpt-5.6-sol".to_string(),
+            ]
+        );
+
+        let custom_models = sanitize_custom_models(vec![
+            " gpt-5.4 ".to_string(),
+            "gpt-5.6-luna".to_string(),
+            "relay/custom-model".to_string(),
+            "relay/custom-model".to_string(),
+        ]);
+        assert_eq!(
+            custom_models,
+            vec!["gpt-5.4".to_string(), "relay/custom-model".to_string()]
+        );
+        assert_eq!(
+            merge_codex_models(&custom_models),
+            vec![
+                "gpt-5.6-luna".to_string(),
+                "gpt-5.6-terra".to_string(),
+                "gpt-5.6-sol".to_string(),
+                "gpt-5.4".to_string(),
+                "relay/custom-model".to_string(),
+            ]
+        );
+    }
 
     fn restore_env_var(key: &str, previous: Option<String>) {
         unsafe {

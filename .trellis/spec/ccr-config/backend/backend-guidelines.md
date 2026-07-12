@@ -59,32 +59,65 @@ Tests that mutate `CCR_ROOT` or `CCR_LOCK_DIR` must use `test_support::TestCcrEn
 
 - `TuiConfigManager::with_default() -> Result<TuiConfigManager>`
 - `TuiConfigManager::load_or_default(&self) -> TuiConfig`
-- `TuiConfig { tab_order: Vec<TuiTabId> }`
+- `TuiConfigManager::save(&self, config: &TuiConfig) -> Result<()>`
+- `TuiLanguage::{English, SimplifiedChinese}`
+- `TuiTheme::{Mocha, Latte}`
+- `TuiConfig { language: TuiLanguage, theme: TuiTheme, tab_order: Vec<TuiTabId> }`
 
 ### 3. Contracts
 
 - `tab_order` is a complete ordered list of known tab ids.
+- `language` serializes as `en` or `zh_cn`; a missing value defaults to English.
+- `theme` serializes as `mocha` or `latte`; a missing value defaults to Mocha.
+- An unsupported or non-string `language` falls back to English independently
+  of `tab_order`, so an otherwise valid custom order is preserved.
+- An unsupported or non-string `theme` falls back to Mocha independently of
+  `language` and `tab_order`, preserving all other valid preferences.
 - Current tab ids: `codex_profile`, `claude_profile`, `codex_auth`, `claude_auth`, `opencode_auth`.
 - Deprecated id `usage` (standalone Usage tab retired 2026-07) stays parse-tolerant: the enum variant is kept `#[doc(hidden)]`, `load()` filters it out with a `tracing::warn!` **before** validation, and the user's custom order of the remaining tabs is preserved — never fall back to defaults just because `usage` appears.
 - Missing files return the built-in default order and must not block TUI startup.
+- `save` validates the complete tab order before calling
+  `ccr_core::fileio::write_toml`; callers must pass the full loaded config so a
+  language or theme change does not discard the other preferences.
 
 ### 4. Validation & Error Matrix
 
 - Missing `tui.toml` -> return default config.
+- Missing `language` -> English, preserving the loaded tab order.
+- Unknown or non-string `language` -> warn and use English, preserving the
+  loaded tab order.
+- Missing `theme` -> Mocha, preserving language and tab order.
+- Unknown or non-string `theme` -> warn and use Mocha, preserving language and
+  tab order.
 - `tab_order` containing deprecated `usage` -> filter + warn, then validate the remaining list normally (custom order preserved).
 - Missing `tab_order`, duplicate ids, unknown ids, or incomplete lists (after `usage` filtering) -> return the full default order.
 - TOML parse failure -> return the full default order and let the TUI continue.
+- Invalid tab order passed to `save` -> return an error before writing; keep the
+  existing file unchanged.
+- Filesystem/lock/serialization failure during `save` -> propagate the
+  `ccr_core` error; guarded write behavior keeps the previous file intact.
 
 ### 5. Good/Base/Bad Cases
 
-- Good: `tab_order = ["codex_profile", "claude_profile", "codex_auth", "claude_auth", "opencode_auth"]`
+- Good: `language = "zh_cn"`, `theme = "latte"`, and a complete custom
+  `tab_order` round-trip through `load` / `save`.
 - Good (legacy): a 6-item order containing `usage` loads with `usage` dropped and the custom order intact.
-- Base: no `tui.toml` exists, so the same default order is used.
+- Base: no `tui.toml` exists, so English, Mocha, and the default order are used.
+- Bad: `language = "fr"` with a valid order must fall back only the language;
+  it must not replace the valid order.
+- Bad: `theme = "solarized"` must not discard a valid Chinese language or
+  custom tab order.
 - Bad: `tab_order = ["claude_auth"]`, because partial overrides are intentionally rejected.
 
 ### 6. Tests Required
 
+- Unit tests for missing/English/Chinese/unknown/non-string language values,
+  including assertions that valid custom ordering survives language fallback.
+- Unit tests for default/Latte/unknown/non-string theme values, including
+  assertions that language and custom ordering survive theme fallback.
 - Unit tests for missing file, valid custom order, duplicate ids, missing ids, unknown ids, and legacy orders containing `usage` (order preserved, `usage` filtered).
+- Save tests must assert language/theme/order round-trip and that validation
+  failure does not overwrite an existing valid file.
 - Tests that resolve default paths through `CCR_ROOT` must use `test_support::TestCcrEnv`.
 
 ### 7. Wrong vs Correct
@@ -92,14 +125,18 @@ Tests that mutate `CCR_ROOT` or `CCR_LOCK_DIR` must use `test_support::TestCcrEn
 #### Wrong
 
 ```rust
-let path = home_dir().unwrap().join(".ccr").join("tui.toml");
+let language_only = "language = \"zh_cn\"";
+std::fs::write("~/.ccr/tui.toml", language_only)?;
 ```
 
 #### Correct
 
 ```rust
 let manager = TuiConfigManager::with_default()?;
-let config = manager.load_or_default();
+let mut config = manager.load_or_default();
+config.language = TuiLanguage::SimplifiedChinese;
+config.theme = TuiTheme::Latte;
+manager.save(&config)?;
 ```
 
 ## Verification

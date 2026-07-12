@@ -109,16 +109,22 @@ impl TerminalSessionMode {
     ) -> Result<Self> {
         if !stdin_is_tty || !stdout_is_tty {
             return Err(CcrError::UiError(
-                "TUI 需要交互式终端。\n建议: 直接在终端中运行 `ccr`，或改用 `ccr list` / `ccr current`。"
-                    .to_string(),
+                crate::tui_text!(
+                    "The TUI requires an interactive terminal.\nRun `ccr` directly in a terminal, or use `ccr list` / `ccr current` instead.",
+                    "TUI 需要交互式终端。\n建议：直接在终端中运行 `ccr`，或改用 `ccr list` / `ccr current`。"
+                )
+                .to_string(),
             ));
         }
 
         let term = term.unwrap_or_default();
         if term.eq_ignore_ascii_case("dumb") {
             return Err(CcrError::UiError(
-                "当前终端能力不足（TERM=dumb），无法启动 TUI。\n建议: 使用支持 ANSI/光标控制的终端，或改用 `ccr list` / `ccr current`。"
-                    .to_string(),
+                crate::tui_text!(
+                    "The current terminal lacks the capabilities required by the TUI (TERM=dumb).\nUse a terminal with ANSI and cursor control support, or use `ccr list` / `ccr current` instead.",
+                    "当前终端能力不足（TERM=dumb），无法启动 TUI。\n建议：使用支持 ANSI 和光标控制的终端，或改用 `ccr list` / `ccr current`。"
+                )
+                .to_string(),
             ));
         }
 
@@ -185,8 +191,6 @@ impl TerminalGuard {
     /// Create a new guard using the detected terminal session mode.
     pub fn new() -> Result<Self> {
         let mode = TerminalSessionMode::detect()?;
-        // 在进入 raw mode / 备用屏之前完成主题探测,使终端背景查询能干净往返。
-        super::theme::init_theme();
         let backend = CrosstermBackend::new(io::stdout());
         let mut terminal = Terminal::new(backend)
             .map_err(|e| ccr_core::core::error::CcrError::IoError(io::Error::other(e)))?;
@@ -291,7 +295,11 @@ pub fn run_loop<A: TuiApp>(
                 if key.modifiers.contains(KeyModifiers::CONTROL)
                     && matches!(key.code, KeyCode::Char('t') | KeyCode::Char('T'))
                 {
-                    super::theme::toggle_theme();
+                    if let Err(error) = super::theme::toggle_theme_and_persist() {
+                        tracing::warn!(
+                            "Theme changed for this session, but could not save it: {error}"
+                        );
+                    }
                     draw_frame(guard, app)?;
                     continue;
                 }
@@ -405,6 +413,16 @@ mod tests {
             .unwrap_err();
 
         assert!(matches!(err, CcrError::UiError(_)));
+    }
+
+    #[test]
+    fn terminal_capability_errors_follow_the_active_language() {
+        crate::tui::i18n::set_language(ccr_cli::managers::TuiLanguage::SimplifiedChinese);
+
+        let err = TerminalSessionMode::from_env(Some("dumb"), None, None, true, true).unwrap_err();
+        assert!(err.to_string().contains("当前终端能力不足"));
+
+        crate::tui::i18n::set_language(ccr_cli::managers::TuiLanguage::English);
     }
 
     #[test]

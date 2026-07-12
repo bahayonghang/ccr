@@ -279,7 +279,7 @@ pub async fn sync_status_command() -> Result<()> {
         table.add_row(vec![Cell::new("用户名"), Cell::new(&sync_config.username)]);
 
         // 密码（掩码）
-        let masked_pwd = format!("{}...", &"*".repeat(8));
+        let masked_pwd = format!("{}...", "*".repeat(8));
         table.add_row(vec![
             Cell::new("密码"),
             Cell::new(masked_pwd).fg(TableColor::DarkGrey),

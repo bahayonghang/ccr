@@ -12,6 +12,26 @@
 - **认证迁移友好**：支持保存、导出（加密）、导入 Codex 账号，并迁移兼容账号到 OpenCode。
 - **智能同步**：基于 WebDAV 的多目录同步能力。
 
+## 界面预览
+
+### TUI
+
+终端界面将 Profile 切换、当前路由/认证上下文、所选配置详情和键盘操作集中在同一视图中。
+
+![CCR TUI 展示 Codex Profile 选择和路由详情](docs/assets/readme/ccr-tui-overview.png)
+
+### CCR UI Dashboard
+
+Dashboard 在进入具体模块前集中展示桌面后端就绪状态、下一个建议操作、Runtime 可用性和平台信号。
+
+![CCR UI Dashboard 展示就绪状态和下一步操作](docs/assets/readme/ccr-ui-dashboard.png)
+
+### CCR UI Codex Profiles
+
+Codex Profiles 在一个管理视图中整合快速切换、搜索与状态筛选、Profile 卡片、当前配置上下文和配置分布。
+
+![CCR UI Codex Profiles 展示筛选和配置上下文](docs/assets/readme/ccr-ui-codex-profiles.png)
+
 ## 🚀 快速开始
 
 ```bash
