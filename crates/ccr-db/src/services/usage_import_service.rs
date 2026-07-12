@@ -2037,32 +2037,29 @@ impl UsageImportService {
             .or_else(|| json.get("message").and_then(|m| m.get("usage")));
 
         // Must have at least one token field
+        let usage = usage_obj?;
+        let input = usage
+            .get("input_tokens")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0);
+        let output = usage
+            .get("output_tokens")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0);
+        let cache = usage
+            .get("cache_read_input_tokens")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0);
+        let cache_creation = usage
+            .get("cache_creation_input_tokens")
+            .or_else(|| usage.get("cache_creation_tokens"))
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0);
+        if input == 0 && output == 0 && cache == 0 && cache_creation == 0 {
+            return None;
+        }
         let (input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens) =
-            if let Some(usage) = usage_obj {
-                let input = usage
-                    .get("input_tokens")
-                    .and_then(|v| v.as_i64())
-                    .unwrap_or(0);
-                let output = usage
-                    .get("output_tokens")
-                    .and_then(|v| v.as_i64())
-                    .unwrap_or(0);
-                let cache = usage
-                    .get("cache_read_input_tokens")
-                    .and_then(|v| v.as_i64())
-                    .unwrap_or(0);
-                let cache_creation = usage
-                    .get("cache_creation_input_tokens")
-                    .or_else(|| usage.get("cache_creation_tokens"))
-                    .and_then(|v| v.as_i64())
-                    .unwrap_or(0);
-                if input == 0 && output == 0 && cache == 0 && cache_creation == 0 {
-                    return None;
-                }
-                (input, output, cache, cache_creation)
-            } else {
-                return None;
-            };
+            (input, output, cache, cache_creation);
 
         // Store the original JSON for flexibility
         let record_json = json.to_string();
