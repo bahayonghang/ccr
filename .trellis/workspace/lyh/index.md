@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 37
-- **Last Active**: 2026-07-10
+- **Total Sessions**: 38
+- **Last Active**: 2026-07-12
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1653 | Active |
+| `journal-1.md` | ~1686 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 38 | 2026-07-12 | 优化 TUI Profile 信息层级与启动性能 | `f96a65cd` | `dev` |
 | 37 | 2026-07-10 | 完成 TUI 中英文切换 | `415b01db`, `2e50c0c8` | `dev` |
 | 36 | 2026-07-10 | 完善双语 README 界面预览 | `d71da7b6`, `d47a9b62` | `dev` |
 | 35 | 2026-07-10 | 完成 Codex GPT-5.6 三模型支持 | `0e999aaf`, `7c535a48` | `dev` |

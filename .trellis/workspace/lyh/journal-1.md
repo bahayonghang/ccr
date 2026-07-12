@@ -1651,3 +1651,36 @@ implement.md 第 7 项闭环。7a:UsageLogsTab loading 态从单行"加载中"�
 ### Next Steps
 
 - None - task complete
+
+
+## Session 38: 优化 TUI Profile 信息层级与启动性能
+
+**Date**: 2026-07-12
+**Task**: 优化 TUI Profile 信息层级与启动性能
+**Branch**: `dev`
+
+### Summary
+
+新增 Codex 推理强度与显式字段样式，优化响应式详情布局；持久化确定性主题并消除默认 termbg 等待，修复滚动日志留存匹配，完成性能基线与全量相关门禁。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f96a65cd` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
