@@ -179,12 +179,15 @@ fn print_exit_info(app: &App) {
     }
 }
 
-/// Run the main profile-switching TUI.
-pub fn run_tui() -> Result<()> {
-    i18n::initialize_from_config();
-    let mut guard = TerminalGuard::new()?;
+fn run_tui_with(select: impl FnOnce(App) -> App) -> Result<()> {
+    let tui_config = app::load_tui_config();
+    theme::init_theme(tui_config.theme);
     let task_executor = AsyncTaskExecutor::from_current_or_test();
-    let mut app = App::with_task_executor(task_executor)?;
+    let mut app = select(App::with_task_executor_and_config(
+        task_executor,
+        tui_config,
+    )?);
+    let mut guard = TerminalGuard::new()?;
     let mut events = EventHandler::new(250);
 
     run_loop(&mut guard, &mut app, &mut events)?;
@@ -194,55 +197,26 @@ pub fn run_tui() -> Result<()> {
     print_exit_info(&app);
 
     Ok(())
+}
+
+/// Run the main profile-switching TUI.
+pub fn run_tui() -> Result<()> {
+    run_tui_with(|app| app)
 }
 
 /// Run the main TUI pre-selected to the Codex tab.
 pub fn run_tui_with_codex_auth() -> Result<()> {
-    i18n::initialize_from_config();
-    let mut guard = TerminalGuard::new()?;
-    let task_executor = AsyncTaskExecutor::from_current_or_test();
-    let mut app = App::with_task_executor(task_executor)?.with_codex_tab();
-    let mut events = EventHandler::new(250);
-
-    run_loop(&mut guard, &mut app, &mut events)?;
-
-    // Must drop guard BEFORE printing so terminal leaves alternate screen first
-    drop(guard);
-    print_exit_info(&app);
-
-    Ok(())
+    run_tui_with(App::with_codex_tab)
 }
 
 /// Run the main TUI pre-selected to the Claude Auth tab.
 pub fn run_tui_with_claude_auth() -> Result<()> {
-    i18n::initialize_from_config();
-    let mut guard = TerminalGuard::new()?;
-    let task_executor = AsyncTaskExecutor::from_current_or_test();
-    let mut app = App::with_task_executor(task_executor)?.with_claude_auth_tab();
-    let mut events = EventHandler::new(250);
-
-    run_loop(&mut guard, &mut app, &mut events)?;
-
-    drop(guard);
-    print_exit_info(&app);
-
-    Ok(())
+    run_tui_with(App::with_claude_auth_tab)
 }
 
 /// Run the main TUI pre-selected to the OpenCode Auth tab.
 pub fn run_tui_with_opencode_auth() -> Result<()> {
-    i18n::initialize_from_config();
-    let mut guard = TerminalGuard::new()?;
-    let task_executor = AsyncTaskExecutor::from_current_or_test();
-    let mut app = App::with_task_executor(task_executor)?.with_opencode_auth_tab();
-    let mut events = EventHandler::new(250);
-
-    run_loop(&mut guard, &mut app, &mut events)?;
-
-    drop(guard);
-    print_exit_info(&app);
-
-    Ok(())
+    run_tui_with(App::with_opencode_auth_tab)
 }
 
 #[cfg(test)]

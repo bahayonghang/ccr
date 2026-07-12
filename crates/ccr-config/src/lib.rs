@@ -9,7 +9,7 @@ pub use ccr_core::{AutoCompletable, CcrError, Result, Validatable};
 pub use managers::{
     CcsConfig, ConfigManager, ConfigSection, ConfigValidator, GlobalSettings, PlatformConfigEntry,
     PlatformConfigManager, ProviderType, TuiConfig, TuiConfigManager, TuiLanguage, TuiTabId,
-    UnifiedConfig, ValidationReport,
+    TuiTheme, UnifiedConfig, ValidationReport,
 };
 pub use models::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};
 pub use platforms::base::{

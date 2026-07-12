@@ -9,4 +9,4 @@ pub use config::{CcsConfig, ConfigManager, ConfigSection, GlobalSettings, Provid
 pub use config_file_handler::ConfigFileHandler;
 pub use config_validator::{ConfigValidator, ValidationReport};
 pub use platform_config::{PlatformConfigEntry, PlatformConfigManager, UnifiedConfig};
-pub use tui_config::{TuiConfig, TuiConfigManager, TuiLanguage, TuiTabId};
+pub use tui_config::{TuiConfig, TuiConfigManager, TuiLanguage, TuiTabId, TuiTheme};

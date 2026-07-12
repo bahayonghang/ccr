@@ -153,7 +153,7 @@ fn cleanup_old_logs(log_dir: &std::path::Path) {
 
     for entry in entries.flatten() {
         let path = entry.path();
-        if path.extension().and_then(|item| item.to_str()) != Some("log") {
+        if !is_managed_log_file(&path) {
             continue;
         }
 
@@ -173,6 +173,12 @@ fn cleanup_old_logs(log_dir: &std::path::Path) {
             let _ = std::fs::remove_file(&path);
         }
     }
+}
+
+fn is_managed_log_file(path: &std::path::Path) -> bool {
+    path.file_name()
+        .and_then(|name| name.to_str())
+        .is_some_and(|name| name == "ccr.log" || name.starts_with("ccr.log."))
 }
 
 fn resolve_log_filter() -> String {
@@ -272,6 +278,8 @@ mod tests {
     use super::*;
     use crate::test_support::TestLogEnv;
     use std::ffi::OsStr;
+    use std::fs::{File, FileTimes};
+    use std::time::{Duration, SystemTime};
 
     #[test]
     fn test_resolve_log_filter_precedence() {
@@ -309,5 +317,43 @@ mod tests {
     fn test_markers() {
         assert!(!ColorOutput::current_marker().is_empty());
         assert_eq!(ColorOutput::normal_marker(), " ");
+    }
+
+    #[test]
+    fn managed_log_name_matches_active_and_rolling_files() {
+        assert!(is_managed_log_file(std::path::Path::new("ccr.log")));
+        assert!(is_managed_log_file(std::path::Path::new(
+            "ccr.log.2026-07-12"
+        )));
+        assert!(!is_managed_log_file(std::path::Path::new("other.log")));
+        assert!(!is_managed_log_file(std::path::Path::new("ccr.txt")));
+    }
+
+    #[test]
+    fn cleanup_removes_only_expired_ccr_rolling_logs() {
+        let temp = tempfile::tempdir().expect("temp log dir should be created");
+        let expired = temp.path().join("ccr.log.2026-01-01");
+        let recent = temp.path().join("ccr.log.2026-07-12");
+        let unrelated = temp.path().join("other.log.2026-01-01");
+
+        File::create(&expired).expect("expired log should be created");
+        File::create(&recent).expect("recent log should be created");
+        File::create(&unrelated).expect("unrelated log should be created");
+
+        let old_time = SystemTime::now() - Duration::from_secs(15 * 24 * 60 * 60);
+        for path in [&expired, &unrelated] {
+            let file = File::options()
+                .write(true)
+                .open(path)
+                .expect("test log should open");
+            file.set_times(FileTimes::new().set_modified(old_time))
+                .expect("test log timestamp should update");
+        }
+
+        cleanup_old_logs(temp.path());
+
+        assert!(!expired.exists());
+        assert!(recent.exists());
+        assert!(unrelated.exists());
     }
 }

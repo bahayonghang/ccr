@@ -155,7 +155,7 @@ fn tab_config_id(tab: &PlatformTab) -> Option<TuiTabId> {
     }
 }
 
-fn load_tui_config() -> TuiConfig {
+pub(super) fn load_tui_config() -> TuiConfig {
     match TuiConfigManager::with_default() {
         Ok(manager) => manager.load_or_default(),
         Err(error) => {
@@ -470,6 +470,13 @@ impl App {
 
     pub fn with_task_executor(task_executor: AsyncTaskExecutor) -> Result<Self> {
         let tui_config = load_tui_config();
+        Self::with_task_executor_and_config(task_executor, tui_config)
+    }
+
+    pub(super) fn with_task_executor_and_config(
+        task_executor: AsyncTaskExecutor,
+        tui_config: TuiConfig,
+    ) -> Result<Self> {
         i18n::set_language(tui_config.language);
         let mut tabs = Vec::new();
 

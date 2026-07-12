@@ -202,6 +202,105 @@ Provider usage lives inside the Claude/Codex profile detail panel, powered by an
 - Attribution is provider-level. A profile without `profile.provider` must render `no provider label — usage unattributed` and must **not** fall back to the `provider = null` bucket (it mixes all historical unattributed usage).
 - Do not re-add per-selection SQL or a second load-state machine; the engine's dataset is the only source. Tests inject loaders via `UsageApp::with_loader` — production tests must not touch `~/.llmusage`. Beware: `App::on_tick` on a profile tab lazily creates the engine with the **real** loader, so tests that tick profile tabs must pre-inject an engine.
 
+## Scenario: Profile Detail Semantics And Startup Theme
+
+### 1. Scope / Trigger
+
+- Trigger: changing profile detail fields, their visual hierarchy, responsive
+  layout, startup construction order, or the global theme toggle.
+- Applies to `tui/{ui,theme,app,runtime,mod}.rs` and the persisted
+  `ccr_config::TuiConfig` consumed by the TUI.
+
+### 2. Signatures
+
+- `theme::init_theme(configured: TuiTheme)`
+- `theme::toggle_theme_and_persist() -> Result<ThemeVariant>`
+- `App::with_task_executor_and_config(executor, config) -> Result<App>`
+- `DetailKey`, `DetailTone`, and `DetailField` are the profile-detail
+  presentation model in `ui.rs`.
+- Environment override: `CCR_TUI_THEME=mocha|latte|auto`.
+
+### 3. Contracts
+
+- Startup loads `tui.toml` once, applies its language and theme to App
+  construction, constructs the App before entering the alternate screen, then
+  draws the first frame immediately.
+- Mocha is the deterministic default. `mocha` and `latte` environment values
+  override the persisted theme. Terminal background detection runs only for
+  explicit `CCR_TUI_THEME=auto`; an unset or invalid value must not call
+  `termbg`.
+- `Ctrl+T` changes the active palette immediately and saves the full loaded
+  config so language and custom tab order survive the theme change.
+- Profile builders assign every important value an explicit `DetailTone`.
+  Renderers must not infer business meaning from label/value substrings.
+- Codex Engine renders `model_reasoning_effort` directly after `model`.
+  Missing or blank values render `-`; known values are normalized to lowercase;
+  unknown strings remain visible with warning tone; non-strings render a
+  localized invalid marker. The TUI does not invent Codex's effective default.
+- Focus is the sole name/current/enabled summary. Detail groups do not repeat
+  those fields. Wide profile layout is list 46% / detail 54%, and the 3-row
+  Status strip exists only while apply/toast feedback is visible.
+- Detail label widths are derived from localized display width and clamped per
+  viewport. Token values pass through existing masking before they become a
+  `DetailField`.
+
+### 4. Validation & Error Matrix
+
+- Missing/invalid TUI config -> continue with default preferences.
+- Invalid `CCR_TUI_THEME` -> warn and use the persisted theme without probing.
+- `CCR_TUI_THEME=auto` probe failure -> use the persisted theme.
+- Theme save failure -> keep the new palette for the session, log a warning,
+  and leave the previous guarded config file intact.
+- Missing/blank reasoning effort -> muted `-`; unknown string -> raw normalized
+  value with warning; non-string -> localized invalid marker with warning.
+- Profile/runtime loading failure -> keep the recoverable in-TUI issue state;
+  startup reordering must not turn it into a panic.
+
+### 5. Good/Base/Bad Cases
+
+- Good: a Codex profile with `model_reasoning_effort = "HIGH"` shows `high`
+  beside the model with an emphasized Codex tone.
+- Good: a 140x30 wide page gives the detail rail more width and omits an empty
+  Status strip; 80x20 and 100x30 retain compact/standard behavior.
+- Base: no theme env/config exists, so Mocha is selected without terminal I/O.
+- Bad: calling `termbg` whenever `CCR_TUI_THEME` is unset adds a fixed
+  approximately 100ms wait before the first frame.
+- Bad: styling fields with `label.contains("model")` makes new keys and
+  localized labels silently lose semantic hierarchy.
+
+### 6. Tests Required
+
+- Theme resolution tests assert that persisted Mocha/Latte avoids the detector,
+  explicit overrides win, and only `auto` invokes the detector.
+- Persistence tests assert `Ctrl+T`-equivalent saving preserves language and
+  custom tab order.
+- Reasoning tests cover missing, blank, uppercase known values, every supported
+  level, unknown strings, and non-string values without exposing secrets.
+- Style tests assert model/effort/provider/auth/token/cost tones explicitly.
+- Ratatui `TestBackend` tests cover English and Chinese at 80x20, 100x30, and
+  140x30, including Focus de-duplication, dynamic Status, and 46/54 wide layout.
+- Run `cargo test -p ccr-config`, `cargo test -p ccr-tui`, `cargo test -p ccr`,
+  `just fmt-check`, and `just lint-strict`.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```rust
+let variant = detect_terminal_variant().unwrap_or(ThemeVariant::Mocha);
+let style = detail_value_style(label, value);
+```
+
+#### Correct
+
+```rust
+let variant = resolve_startup_variant(env_value, config.theme, detect_terminal_variant);
+let field = DetailField::new(DetailKey::Model, value, DetailTone::Accent {
+    platform: Platform::Codex,
+    strong: true,
+});
+```
+
 ## Logging
 
 Use `tracing::warn!` for recoverable loading failures and diagnostics. Do not print directly from TUI code during active terminal rendering.

@@ -191,8 +191,6 @@ impl TerminalGuard {
     /// Create a new guard using the detected terminal session mode.
     pub fn new() -> Result<Self> {
         let mode = TerminalSessionMode::detect()?;
-        // 在进入 raw mode / 备用屏之前完成主题探测,使终端背景查询能干净往返。
-        super::theme::init_theme();
         let backend = CrosstermBackend::new(io::stdout());
         let mut terminal = Terminal::new(backend)
             .map_err(|e| ccr_core::core::error::CcrError::IoError(io::Error::other(e)))?;
@@ -297,7 +295,11 @@ pub fn run_loop<A: TuiApp>(
                 if key.modifiers.contains(KeyModifiers::CONTROL)
                     && matches!(key.code, KeyCode::Char('t') | KeyCode::Char('T'))
                 {
-                    super::theme::toggle_theme();
+                    if let Err(error) = super::theme::toggle_theme_and_persist() {
+                        tracing::warn!(
+                            "Theme changed for this session, but could not save it: {error}"
+                        );
+                    }
                     draw_frame(guard, app)?;
                     continue;
                 }
