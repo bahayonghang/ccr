@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 39
+- **Total Sessions**: 40
 - **Last Active**: 2026-07-13
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1720 | Active |
+| `journal-1.md` | ~1754 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 40 | 2026-07-13 | 修正 ccr-ui 思源字体预设并完成渲染诊断 | `720cf97f1c6a4076011ace48722678190e9a068f`, `82af37342230c4d04fa95ff871a44bc9a0b75c41` | `dev` |
 | 39 | 2026-07-13 | ccr-ui 字体设置与 fallback | `535e282d`, `5aa0cfb1` | `dev` |
 | 38 | 2026-07-12 | 优化 TUI Profile 信息层级与启动性能 | `f96a65cd` | `dev` |
 | 37 | 2026-07-10 | 完成 TUI 中英文切换 | `415b01db`, `2e50c0c8` | `dev` |

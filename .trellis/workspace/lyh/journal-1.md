@@ -1718,3 +1718,37 @@ implement.md 第 7 项闭环。7a:UsageLogsTab loading 态从单行"加载中"�
 ### Next Steps
 
 - None - task complete
+
+
+## Session 40: 修正 ccr-ui 思源字体预设并完成渲染诊断
+
+**Date**: 2026-07-13
+**Task**: 修正 ccr-ui 思源字体预设并完成渲染诊断
+**Branch**: `dev`
+
+### Summary
+
+补充 Source Han Sans CN 与 Source Han Serif SC VF 界面字体预设和回归测试，固化系统可见字体族命名契约，并记录小字号衬线可变字体偏虚的诊断结论。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `720cf97f1c6a4076011ace48722678190e9a068f` | (see git log) |
+| `82af37342230c4d04fa95ff871a44bc9a0b75c41` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
