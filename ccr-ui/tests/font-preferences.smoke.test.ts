@@ -6,6 +6,19 @@ beforeEach(() => {
 })
 
 describe('fontPreferences smoke', () => {
+  it('keeps Source Han regional and serif families as distinct interface presets', async () => {
+    const { UI_FONT_PRESETS } = await import('@/utils/fontPreferences')
+
+    expect(UI_FONT_PRESETS).toEqual(
+      expect.arrayContaining([
+        'Source Han Sans SC',
+        'Source Han Sans CN',
+        'Source Han Serif SC VF',
+      ]),
+    )
+    expect(new Set(UI_FONT_PRESETS).size).toBe(UI_FONT_PRESETS.length)
+  })
+
   it('sanitizes injection-prone characters, collapses whitespace, and caps length', async () => {
     const { sanitizeFontFamily, MAX_FONT_NAME_LEN } = await import('@/utils/fontPreferences')
 

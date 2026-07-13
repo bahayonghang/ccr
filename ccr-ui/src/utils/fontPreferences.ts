@@ -32,6 +32,8 @@ export const UI_FONT_PRESETS: readonly string[] = [
   'Microsoft YaHei',
   'Noto Sans SC',
   'Source Han Sans SC',
+  'Source Han Sans CN',
+  'Source Han Serif SC VF',
   'Inter',
   'SF Pro',
   'Segoe UI',
