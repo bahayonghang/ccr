@@ -17,6 +17,10 @@ describe('settings i18n smoke', () => {
       'settings.title',
       'settings.dock.summary',
       'settings.appearance.systemSummary',
+      'settings.appearance.typography.title',
+      'settings.appearance.typography.uiLabel',
+      'settings.appearance.typography.codeLabel',
+      'settings.appearance.typography.systemDefault',
       'settings.shell.resetLayoutAction',
       'settings.diagnostics.restartNote',
     ]
