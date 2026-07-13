@@ -1684,3 +1684,37 @@ implement.md 第 7 项闭环。7a:UsageLogsTab loading 态从单行"加载中"�
 ### Next Steps
 
 - None - task complete
+
+
+## Session 39: ccr-ui 字体设置与 fallback
+
+**Date**: 2026-07-13
+**Task**: ccr-ui 字体设置与 fallback
+**Branch**: `dev`
+
+### Summary
+
+外观区新增界面/代码字体设置：选中字体 prepend 到 tokens.css 的 --font-*-base 回退栈（缺失/缺字形自动回退），纯 localStorage 复刻 theme/flavor/accent 链路，index.html 引导脚本首帧应用防 FOUC。两个非显然卡点：apple-glass 契约测试禁止 src 内出现等宽字体名字面量（把预设名集中到 fontPreferences 标记块并加受控例外解决）；vue-i18n 消息编译把代码样例里的 { } 当成非法命名插值（改用无花括号/竖线的样例）。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `535e282d` | (see git log) |
+| `5aa0cfb1` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
