@@ -109,6 +109,7 @@ Pair the override with a smoke assertion that extracts this exact block and chec
 - Font preferences are localStorage-only, like theme/flavor/accent. Do not route them through the Tauri `DesktopShellPreferences`.
 - First paint: the `index.html` boot IIFE must apply the same prepend before any CSS loads or the app flashes the default font (FOUC). `var(--font-*-base)` inside the inline value resolves lazily once `tokens.css` loads, so setting it pre-CSS is safe.
 - Preset font-name literals (which include otherwise-forbidden mono names such as Cascadia Code / JetBrains Mono / Consolas) live ONLY inside the `/* ========== 字体预设清单 ========== */ … /* ========== 字体预设清单结束 ========== */` block in `fontPreferences.ts` — a controlled exception (`fontPresetBlockPattern`) in the legacy-mono-stack guard. Do not scatter font-name literals into components, i18n, or styles.
+- Preset literals are exact OS-visible family names, not aliases. Keep `Source Han Sans SC`, `Source Han Sans CN`, and `Source Han Serif SC VF` as distinct interface presets: SC/CN identify different regional family registrations, while Serif is a different typeface category. Adding one must not replace another, and the app still falls back silently when a family is unavailable on the current host.
 - i18n copy for the font controls must not embed `{`, `}`, or `|` (vue-i18n message-compiler metacharacters). A code preview like `() => { 0O il1 }` is parsed as an invalid named interpolation and fails `test:i18n`. Keep preview samples brace/pipe-free.
 
 ### 4. Validation & Error Matrix
@@ -116,6 +117,7 @@ Pair the override with a smoke assertion that extracts this exact block and chec
 - Literal font stack written into `--font-*` instead of `var(--font-*-base)` -> `apple-glass-surface-contract.smoke.test.ts` font-track assertion fails and reset can no longer restore cleanly.
 - User font applied without `sanitizeFontFamily` -> CSS-injection / broken quoted string; `font-preferences.smoke.test.ts` sanitize cases fail.
 - Font-name literal added to a component/i18n/style outside the preset block -> `apple-glass-surface-contract.smoke.test.ts` legacy-mono-stack guard fails.
+- Source Han regional or serif family used as a replacement for another family -> valid host installations lose their preset or silently fall back; `font-preferences.smoke.test.ts` must assert that all three exact family names remain present and unique.
 - New font i18n string containing `{` / `}` / `|` -> `test:i18n` "messages compile with vue-i18n" critical failure (both locales).
 - Boot script not updated for a new font channel -> first paint flashes the default font; `theme-bootstrap.smoke.test.ts` first-paint font assertion fails.
 - Font preference persisted to a backend/bundle key instead of `ccr-font-ui` / `ccr-font-code` -> not applied at boot; the page silently keeps the built-in stack and the evidence is invalid.
@@ -124,10 +126,12 @@ Pair the override with a smoke assertion that extracts this exact block and chec
 
 - Good: `applyFontsToDocument('Inter', 'JetBrains Mono')` sets `--font-sans`/`--font-brand` to `"Inter", var(--font-*-base)` and `--font-mono` to `"JetBrains Mono", var(--font-mono-base)`; empty strings `removeProperty` all three.
 - Good: add a new dropdown option inside the marked preset block; the guard's `fontPresetBlockPattern` strips it automatically, no test edit needed.
+- Good: add `Source Han Sans CN` and `Source Han Serif SC VF` beside the existing `Source Han Sans SC`, then lock the three distinct literals in the focused font-preference test.
 - Base: leave the `--font-*-base` stacks (MapleBright / SF Pro Display / Cascadia Code) unchanged when a task only adds user overrides.
 - Bad: `root.style.setProperty('--font-sans', "'MyFont', 'MapleBright', …")` re-inlining the whole stack instead of `"MyFont", var(--font-sans-base)`.
 - Bad: a preview i18n sample `const x = () => { 0O il1 }` (breaks vue-i18n compilation).
 - Bad: hardcoding `JetBrains Mono` in the `AppSettingsView.vue` template/script or an i18n placeholder instead of the preset block.
+- Bad: replacing `Source Han Sans SC` with `Source Han Serif SC VF` because one Windows host has the latter installed; this conflates regional naming with serif/sans typeface choice.
 
 ### 6. Tests Required
 
