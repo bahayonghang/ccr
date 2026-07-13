@@ -31,6 +31,18 @@
         root.setAttribute('data-flavor',flavor);
         root.setAttribute('data-resolved-flavor',resolvedFlavor);
         root.setAttribute('data-accent',accent);
+        // 字体覆盖：把用户字体 prepend 到内置回退栈头，首帧即生效避免闪烁。
+        // 值在写入时已由 fontPreferences.sanitizeFontFamily 净化，这里做轻量二次剥离。
+        var cleanFont=function(s){return (s||'').replace(/["'`\\;{}<>(),]/g,'').replace(/\s+/g,' ').trim().slice(0,64).trim();};
+        var fUi=cleanFont(localStorage.getItem('ccr-font-ui'));
+        var fCode=cleanFont(localStorage.getItem('ccr-font-code'));
+        if(fUi){
+          root.style.setProperty('--font-sans','"'+fUi+'", var(--font-sans-base)');
+          root.style.setProperty('--font-brand','"'+fUi+'", var(--font-brand-base)');
+        }
+        if(fCode){
+          root.style.setProperty('--font-mono','"'+fCode+'", var(--font-mono-base)');
+        }
       })();
     </script>
 

@@ -207,6 +207,140 @@
                 />
               </div>
             </Card>
+
+            <Card
+              variant="glass"
+              class-name="app-settings-card app-settings-card--tight"
+            >
+              <div class="app-settings-card__header">
+                <div>
+                  <p class="app-settings-card__eyebrow">
+                    {{ t('settings.appearance.typography.eyebrow') }}
+                  </p>
+                  <h2 class="app-settings-card__title">
+                    {{ t('settings.appearance.typography.title') }}
+                  </h2>
+                </div>
+                <p class="app-settings-card__description">
+                  {{ t('settings.appearance.typography.description') }}
+                </p>
+              </div>
+
+              <div class="app-settings-stack">
+                <div class="app-settings-row app-settings-row--font">
+                  <div class="app-settings-row__copy">
+                    <h3 class="app-settings-row__title">
+                      {{ t('settings.appearance.typography.uiLabel') }}
+                    </h3>
+                    <p class="app-settings-row__description">
+                      {{ t('settings.appearance.typography.uiDescription') }}
+                    </p>
+                  </div>
+                  <div class="app-settings-font-control">
+                    <select
+                      class="app-settings-font-select"
+                      :value="uiSelectValue"
+                      :aria-label="t('settings.appearance.typography.uiLabel')"
+                      data-testid="settings-font-ui"
+                      @change="onUiSelect(($event.target as HTMLSelectElement).value)"
+                    >
+                      <option value="__default__">
+                        {{ t('settings.appearance.typography.systemDefault') }}
+                      </option>
+                      <option
+                        v-for="preset in UI_FONT_PRESETS"
+                        :key="preset"
+                        :value="preset"
+                      >
+                        {{ preset }}
+                      </option>
+                      <option value="__custom__">
+                        {{ t('settings.appearance.typography.custom') }}
+                      </option>
+                    </select>
+                    <input
+                      v-if="uiCustomActive"
+                      :value="uiFont"
+                      type="text"
+                      class="app-settings-font-input"
+                      :placeholder="t('settings.appearance.typography.customPlaceholder')"
+                      :aria-label="t('settings.appearance.typography.uiLabel')"
+                      data-testid="settings-font-ui-input"
+                      @input="setUiFont(($event.target as HTMLInputElement).value)"
+                    >
+                    <p
+                      class="app-settings-font-preview"
+                      :style="{ fontFamily: uiPreviewFamily }"
+                      aria-hidden="true"
+                    >
+                      {{ t('settings.appearance.typography.previewSampleUi') }}
+                    </p>
+                  </div>
+                </div>
+
+                <div class="app-settings-row app-settings-row--font">
+                  <div class="app-settings-row__copy">
+                    <h3 class="app-settings-row__title">
+                      {{ t('settings.appearance.typography.codeLabel') }}
+                    </h3>
+                    <p class="app-settings-row__description">
+                      {{ t('settings.appearance.typography.codeDescription') }}
+                    </p>
+                  </div>
+                  <div class="app-settings-font-control">
+                    <select
+                      class="app-settings-font-select"
+                      :value="codeSelectValue"
+                      :aria-label="t('settings.appearance.typography.codeLabel')"
+                      data-testid="settings-font-code"
+                      @change="onCodeSelect(($event.target as HTMLSelectElement).value)"
+                    >
+                      <option value="__default__">
+                        {{ t('settings.appearance.typography.systemDefault') }}
+                      </option>
+                      <option
+                        v-for="preset in CODE_FONT_PRESETS"
+                        :key="preset"
+                        :value="preset"
+                      >
+                        {{ preset }}
+                      </option>
+                      <option value="__custom__">
+                        {{ t('settings.appearance.typography.custom') }}
+                      </option>
+                    </select>
+                    <input
+                      v-if="codeCustomActive"
+                      :value="codeFont"
+                      type="text"
+                      class="app-settings-font-input"
+                      :placeholder="t('settings.appearance.typography.customPlaceholder')"
+                      :aria-label="t('settings.appearance.typography.codeLabel')"
+                      data-testid="settings-font-code-input"
+                      @input="setCodeFont(($event.target as HTMLInputElement).value)"
+                    >
+                    <p
+                      class="app-settings-font-preview app-settings-font-preview--mono"
+                      :style="{ fontFamily: codePreviewFamily }"
+                      aria-hidden="true"
+                    >
+                      {{ t('settings.appearance.typography.previewSampleCode') }}
+                    </p>
+                  </div>
+                </div>
+
+                <div class="app-settings-callout">
+                  <SIcon
+                    name="Info"
+                    size="w-4 h-4"
+                    class="mt-0.5 text-accent-primary"
+                  />
+                  <p>
+                    {{ t('settings.appearance.typography.resetHint') }}
+                  </p>
+                </div>
+              </div>
+            </Card>
           </section>
 
           <section :ref="setSectionRef('language')">
@@ -487,6 +621,7 @@ import { getEnvironmentName, getTauriVersion, isTauriEnvironment } from '@/api/r
 import { translateWithFallback } from '@/i18n/formatMessage'
 import { useShellPreferencesStore } from '@/stores/shellPreferences'
 import { isCatppuccinFlavor, type AccentMode, type FlavorMode, type ThemeMode } from '@/utils/themeBootstrap'
+import { CODE_FONT_PRESETS, UI_FONT_PRESETS } from '@/utils/fontPreferences'
 
 type SectionKey = 'appearance' | 'language' | 'shell' | 'diagnostics'
 
@@ -495,6 +630,7 @@ const shellPreferencesStore = useShellPreferencesStore()
 const {
   accent,
   closeToTray,
+  codeFont,
   confirmBeforeExit,
   effectiveTheme,
   flavor,
@@ -504,6 +640,7 @@ const {
   resolvedFlavor,
   sidebarWidth,
   theme,
+  uiFont,
 } =
   storeToRefs(shellPreferencesStore)
 
@@ -737,6 +874,57 @@ const setFlavor = (nextFlavor: FlavorMode) => {
 
 const setAccent = (nextAccent: AccentMode) => {
   shellPreferencesStore.setAccent(nextAccent)
+}
+
+// 预设清单集中在 @/utils/fontPreferences；自定义输入不受清单限制（空串=系统默认，回内置栈）。
+// 存值非空且不在预设内时，强制展开自定义输入回填。
+const uiCustomActive = ref(uiFont.value !== '' && !UI_FONT_PRESETS.includes(uiFont.value))
+const codeCustomActive = ref(codeFont.value !== '' && !CODE_FONT_PRESETS.includes(codeFont.value))
+
+const uiSelectValue = computed(() => {
+  if (uiCustomActive.value) return '__custom__'
+  if (uiFont.value === '') return '__default__'
+  return UI_FONT_PRESETS.includes(uiFont.value) ? uiFont.value : '__custom__'
+})
+
+const codeSelectValue = computed(() => {
+  if (codeCustomActive.value) return '__custom__'
+  if (codeFont.value === '') return '__default__'
+  return CODE_FONT_PRESETS.includes(codeFont.value) ? codeFont.value : '__custom__'
+})
+
+const uiPreviewFamily = computed(() =>
+  uiFont.value ? `"${uiFont.value}", var(--font-sans-base)` : 'var(--font-sans-base)',
+)
+
+const codePreviewFamily = computed(() =>
+  codeFont.value ? `"${codeFont.value}", var(--font-mono-base)` : 'var(--font-mono-base)',
+)
+
+const onUiSelect = (value: string) => {
+  if (value === '__custom__') {
+    uiCustomActive.value = true
+    return
+  }
+  uiCustomActive.value = false
+  shellPreferencesStore.setUiFont(value === '__default__' ? '' : value)
+}
+
+const onCodeSelect = (value: string) => {
+  if (value === '__custom__') {
+    codeCustomActive.value = true
+    return
+  }
+  codeCustomActive.value = false
+  shellPreferencesStore.setCodeFont(value === '__default__' ? '' : value)
+}
+
+const setUiFont = (value: string) => {
+  shellPreferencesStore.setUiFont(value)
+}
+
+const setCodeFont = (value: string) => {
+  shellPreferencesStore.setCodeFont(value)
 }
 
 const setLocalePreference = async (nextLocale: string) => {
@@ -1109,6 +1297,42 @@ onMounted(async () => {
 
   border-color: rgb(var(--color-accent-primary-rgb) / 18%);
   background: rgb(var(--color-accent-primary-rgb) / 6%);
+}
+
+.app-settings-row--font {
+  @apply items-stretch;
+}
+
+.app-settings-font-control {
+  @apply flex w-full flex-col gap-2 lg:max-w-[360px];
+}
+
+.app-settings-font-select,
+.app-settings-font-input {
+  @apply w-full rounded-lg border px-3 py-2 text-sm;
+
+  border-color: rgb(var(--color-border-default-rgb) / 56%);
+  background: rgb(var(--color-bg-base-rgb) / 78%);
+  color: var(--color-text-primary);
+}
+
+.app-settings-font-select:focus-visible,
+.app-settings-font-input:focus-visible {
+  outline: none;
+  border-color: rgb(var(--color-accent-primary-rgb) / 40%);
+  box-shadow: 0 0 0 3px rgb(var(--color-accent-primary-rgb) / 18%);
+}
+
+.app-settings-font-preview {
+  @apply truncate rounded-lg border px-3 py-2 text-sm;
+
+  border-color: rgb(var(--color-border-default-rgb) / 40%);
+  background: rgb(var(--color-bg-elevated-rgb) / 60%);
+  color: var(--color-text-secondary);
+}
+
+.app-settings-font-preview--mono {
+  @apply tracking-normal;
 }
 
 @media (width <= 1279px) {
