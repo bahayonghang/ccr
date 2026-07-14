@@ -520,7 +520,8 @@ const zhCNBootMessages = {
       flavor: {
         eyebrow: 'Flavor',
         title: '界面语调',
-        description: '选择整体底色族。Catppuccin 会跟随最终明暗解析：浅色统一使用 Latte，深色下 Latte/Frappé 解析为 Frappé，Macchiato/Mocha 保持各自深色底。',
+        description:
+          '选择整体底色族。Catppuccin 会跟随最终明暗解析：浅色统一使用 Latte，深色下 Latte/Frappé 解析为 Frappé，Macchiato/Mocha 保持各自深色底。',
         clay: '暖陶',
         clayDescription: '默认暖中性色，对齐 Anthropic 编辑式底色。',
         paper: '纸面',
@@ -549,6 +550,22 @@ const zhCNBootMessages = {
         rose: '玫瑰',
         slate: '板岩',
       },
+      typography: {
+        eyebrow: 'Typography',
+        title: '字体',
+        description:
+          '自定义界面与代码字体。所选字体会置于内置字体栈之前，缺失或缺字形时自动回退，界面始终可读。',
+        uiLabel: '界面字体',
+        uiDescription: '作用于正文与标题（sans / brand 轨）。',
+        codeLabel: '代码字体',
+        codeDescription: '作用于代码与数值等宽区（mono 轨）。',
+        systemDefault: '系统默认',
+        custom: '自定义…',
+        customPlaceholder: '输入字体名称',
+        previewSampleUi: '现代化 AI 工作台 AaBbGg 0123456789',
+        previewSampleCode: '0O 1lI  const x = () => 42',
+        resetHint: '选择「系统默认」或清空可恢复内置字体。',
+      },
     },
     language: {
       eyebrow: 'Language',
@@ -569,7 +586,8 @@ const zhCNBootMessages = {
       closeToTrayTitle: '关闭到托盘',
       closeToTrayDescription: '启用后点 X 只隐藏主窗口；关闭此项后，点 X 会退出桌面进程。',
       openPanelOnTrayClickTitle: '单击托盘打开面板',
-      openPanelOnTrayClickDescription: '让托盘左键直接切换紧凑 Codex 面板，而不是重新打开完整主窗口。',
+      openPanelOnTrayClickDescription:
+        '让托盘左键直接切换紧凑 Codex 面板，而不是重新打开完整主窗口。',
       sidebarWidthTitle: '侧边栏宽度',
       sidebarWidthDescription: '调整主导航的阅读密度，让信息分组更贴合你的工作习惯。',
       resetLayoutTitle: '恢复默认布局',
@@ -583,7 +601,8 @@ const zhCNBootMessages = {
       navCaption: '性能与运行观察',
       perfTitle: '性能遥测',
       perfDescription: '将前端启动与导航性能样本写入本地调试日志，便于诊断加载问题。',
-      restartNote: '该开关会写入本地偏好；为避免误导，建议在刷新页面或重启桌面应用后再开始观察性能日志。',
+      restartNote:
+        '该开关会写入本地偏好；为避免误导，建议在刷新页面或重启桌面应用后再开始观察性能日志。',
     },
   },
 } as const
@@ -617,7 +636,8 @@ const enUSBootMessages = {
     about: {
       menu: 'About {name}',
       title: 'About {name}',
-      description: 'A unified workbench for Claude Code, Codex, Gemini, and other AI CLIs. The UI follows an Anthropic-like editorial direction with warm neutral surfaces, restrained depth, and high-contrast typography for dense operational workflows.',
+      description:
+        'A unified workbench for Claude Code, Codex, Gemini, and other AI CLIs. The UI follows an Anthropic-like editorial direction with warm neutral surfaces, restrained depth, and high-contrast typography for dense operational workflows.',
       owner: 'Owner',
       engine: 'Engine',
       close: 'Got it',
@@ -705,7 +725,8 @@ const enUSBootMessages = {
       readyDescription: 'Backend, runtime CLIs, local usage, and recent signals are ready.',
       attentionDescription: 'At least one signal needs attention. Follow the action queue.',
       warmingDescription: 'Reading host state, CLI versions, and local usage.',
-      webPreviewDescription: 'Browser preview cannot call the Tauri backend; it only proves frontend structure.',
+      webPreviewDescription:
+        'Browser preview cannot call the Tauri backend; it only proves frontend structure.',
       unknownDescription: 'Current evidence is not strong enough to prove the workbench is ready.',
       reasons: {
         backendOk: 'Desktop backend is connected.',
@@ -749,7 +770,8 @@ const enUSBootMessages = {
       title: 'Next step',
       description: 'Sorted by risk, with only the most useful entries visible.',
       webPreviewTitle: 'Confirm web limits',
-      webPreviewDesc: 'Browser mode cannot prove local backend readiness; use the desktop shell for full validation.',
+      webPreviewDesc:
+        'Browser mode cannot prove local backend readiness; use the desktop shell for full validation.',
       backendTitle: 'Check backend',
       backendDesc: 'Open monitoring to inspect why backend or host metrics failed to load.',
       installCliTitle: 'Repair CLI',
@@ -798,7 +820,8 @@ const enUSBootMessages = {
     usage: {
       eyebrow: 'Usage trend',
       title: 'Usage trend',
-      description: 'Sessions, requests, and tokens are summarized from the local usage archive only.',
+      description:
+        'Sessions, requests, and tokens are summarized from the local usage archive only.',
       error: 'Local usage summary could not be loaded.',
       emptyTitle: 'No local usage yet',
       emptyDescription: 'No local sessions or usage records are available for this window.',
@@ -824,7 +847,8 @@ const enUSBootMessages = {
       filterWarn: 'Warn+',
       filterError: 'Error',
       emptyTitle: 'No recent events',
-      emptyDescription: 'Monitoring is quiet. New local events will appear here as the app records them.',
+      emptyDescription:
+        'Monitoring is quiet. New local events will appear here as the app records them.',
       unknownTime: 'Unknown time',
       viewAll: 'Open monitoring view',
       openMonitoring: 'Open monitoring',
@@ -843,7 +867,8 @@ const enUSBootMessages = {
       header: {
         eyebrow: 'Codex Command Center',
         workflow: 'task-first',
-        subtitle: 'Answer whether Codex is ready, what to do next, and whether key safety settings are safe before opening details.',
+        subtitle:
+          'Answer whether Codex is ready, what to do next, and whether key safety settings are safe before opening details.',
         refresh: 'Refresh',
         version: 'Version',
         profile: 'Profile',
@@ -898,15 +923,18 @@ const enUSBootMessages = {
       actions: {
         login: {
           title: 'Sign in first',
-          description: 'Open account management and add an account via OAuth, API key, token JSON, or local import.',
+          description:
+            'Open account management and add an account via OAuth, API key, token JSON, or local import.',
         },
         createProfile: {
           title: 'Create the first profile',
-          description: 'Prepare a switchable profile so model, auth, and safety policy are pinned down.',
+          description:
+            'Prepare a switchable profile so model, auth, and safety policy are pinned down.',
         },
         selectProfile: {
           title: 'Select the current profile',
-          description: 'Profiles exist but none is active. Switch to the default work profile first.',
+          description:
+            'Profiles exist but none is active. Switch to the default work profile first.',
         },
         completeSettings: {
           title: 'Complete CLI safety settings',
@@ -918,7 +946,8 @@ const enUSBootMessages = {
         },
         openSessions: {
           title: 'Return to recent sessions',
-          description: 'Session history is available. Continue, inspect context, or export records.',
+          description:
+            'Session history is available. Continue, inspect context, or export records.',
         },
         ready: {
           title: 'Workflow is ready',
@@ -960,7 +989,8 @@ const enUSBootMessages = {
         },
         sessions: {
           title: 'Sessions',
-          description: 'Open the Codex session workbench to inspect context, export, and copy sessions.',
+          description:
+            'Open the Codex session workbench to inspect context, export, and copy sessions.',
           badge: '{count} sessions',
         },
       },
@@ -979,7 +1009,8 @@ const enUSBootMessages = {
         actionsTitle: 'Preparing next actions',
         actionsDescription: 'Overview data is not available yet. Refresh once to retry.',
         managementTitle: 'No management data yet',
-        managementDescription: 'Refresh once, or open Auth / Profiles to complete the base configuration.',
+        managementDescription:
+          'Refresh once, or open Auth / Profiles to complete the base configuration.',
       },
       error: {
         title: 'Dashboard overview failed to load',
@@ -988,11 +1019,11 @@ const enUSBootMessages = {
     },
   },
 
-
   monitoring: {
     eyebrow: 'Operations Monitor',
     title: 'Operations Monitoring',
-    subtitle: 'Combine the local event stream, usage archive summary, and recent warnings so operators can judge CCR UI runtime state quickly.',
+    subtitle:
+      'Combine the local event stream, usage archive summary, and recent warnings so operators can judge CCR UI runtime state quickly.',
     connected: 'Event stream connected',
     disconnected: 'Event stream disconnected',
     refresh: 'Refresh',
@@ -1085,7 +1116,8 @@ const enUSBootMessages = {
   settings: {
     eyebrow: 'Shell Preferences',
     title: 'Settings',
-    description: 'Manage CCR UI appearance, language, and shell-level preferences from one quiet, dependable place.',
+    description:
+      'Manage CCR UI appearance, language, and shell-level preferences from one quiet, dependable place.',
     active: 'Active',
     enabled: 'Enabled',
     disabled: 'Disabled',
@@ -1099,11 +1131,13 @@ const enUSBootMessages = {
     appearance: {
       eyebrow: 'Appearance',
       title: 'Appearance',
-      description: 'Choose how the workbench should feel across lighting conditions without leaving the editorial surface language.',
+      description:
+        'Choose how the workbench should feel across lighting conditions without leaving the editorial surface language.',
       navCaption: 'Theme and visual tone',
       lightDescription: 'Bright, warm-neutral surfaces for daytime scanning.',
       darkDescription: 'Higher contrast surfaces for focused low-light work.',
-      systemDescription: 'Follow the OS appearance and sync the resolved window theme automatically.',
+      systemDescription:
+        'Follow the OS appearance and sync the resolved window theme automatically.',
       dayBadge: 'Day',
       nightBadge: 'Night',
       autoBadge: 'Auto',
@@ -1111,7 +1145,8 @@ const enUSBootMessages = {
       flavor: {
         eyebrow: 'Flavor',
         title: 'Surface tone',
-        description: 'Pick the underlying neutral family. Catppuccin follows the resolved light or dark theme: light uses Latte; dark maps Latte/Frappé to Frappé and keeps Macchiato or Mocha dark.',
+        description:
+          'Pick the underlying neutral family. Catppuccin follows the resolved light or dark theme: light uses Latte; dark maps Latte/Frappé to Frappé and keeps Macchiato or Mocha dark.',
         clay: 'Clay',
         clayDescription: 'Default warm-neutral, matches the Anthropic editorial baseline.',
         paper: 'Paper',
@@ -1119,18 +1154,23 @@ const enUSBootMessages = {
         graphite: 'Graphite',
         graphiteDescription: 'Cooler neutral axis, easier on long focus sessions.',
         latte: 'Catppuccin Latte',
-        latteDescription: 'Adaptive Catppuccin family; light resolves to Latte and dark resolves to Frappé.',
+        latteDescription:
+          'Adaptive Catppuccin family; light resolves to Latte and dark resolves to Frappé.',
         frappe: 'Catppuccin Frappé',
-        frappeDescription: 'Adaptive Catppuccin family; light resolves to Latte and dark resolves to Frappé.',
+        frappeDescription:
+          'Adaptive Catppuccin family; light resolves to Latte and dark resolves to Frappé.',
         macchiato: 'Catppuccin Macchiato',
-        macchiatoDescription: 'Adaptive Catppuccin family; light resolves to Latte and dark keeps Macchiato.',
+        macchiatoDescription:
+          'Adaptive Catppuccin family; light resolves to Latte and dark keeps Macchiato.',
         mocha: 'Catppuccin Mocha',
-        mochaDescription: 'Adaptive Catppuccin family; light resolves to Latte and dark keeps Mocha.',
+        mochaDescription:
+          'Adaptive Catppuccin family; light resolves to Latte and dark keeps Mocha.',
       },
       accent: {
         eyebrow: 'Accent',
         title: 'Accent color',
-        description: 'Recolor primary actions and highlights only. Functional colors stay the same.',
+        description:
+          'Recolor primary actions and highlights only. Functional colors stay the same.',
         clay: 'Clay',
         sand: 'Sand',
         sage: 'Sage',
@@ -1139,6 +1179,22 @@ const enUSBootMessages = {
         amber: 'Amber',
         rose: 'Rose',
         slate: 'Slate',
+      },
+      typography: {
+        eyebrow: 'Typography',
+        title: 'Fonts',
+        description:
+          'Customize the interface and code fonts. Your choice sits ahead of the built-in font stack and falls back automatically when a glyph is missing, so the UI stays readable.',
+        uiLabel: 'Interface font',
+        uiDescription: 'Applies to body text and headings (sans / brand tracks).',
+        codeLabel: 'Code font',
+        codeDescription: 'Applies to code and monospaced numerals (mono track).',
+        systemDefault: 'System default',
+        custom: 'Custom…',
+        customPlaceholder: 'Enter a font name',
+        previewSampleUi: 'Modern AI workbench AaBbGg 0123456789',
+        previewSampleCode: '0O 1lI  const x = () => 42',
+        resetHint: 'Choose “System default” or clear the field to restore the built-in fonts.',
       },
     },
     language: {
@@ -1153,16 +1209,20 @@ const enUSBootMessages = {
     shell: {
       eyebrow: 'Shell',
       title: 'Workbench',
-      description: 'Keep exit behavior and layout density in one shell-level control surface instead of scattering them across the UI.',
+      description:
+        'Keep exit behavior and layout density in one shell-level control surface instead of scattering them across the UI.',
       navCaption: 'Exit behavior and layout size',
       exitConfirmTitle: 'Confirm before exit',
       exitConfirmDescription: 'Require an extra confirmation before closing the desktop window.',
       closeToTrayTitle: 'Close to tray',
-      closeToTrayDescription: 'When enabled, the close button hides the main window. When disabled, it exits the desktop runtime.',
+      closeToTrayDescription:
+        'When enabled, the close button hides the main window. When disabled, it exits the desktop runtime.',
       openPanelOnTrayClickTitle: 'Open panel on tray click',
-      openPanelOnTrayClickDescription: 'Use left click on the tray icon to toggle the compact Codex panel instead of reopening the full window.',
+      openPanelOnTrayClickDescription:
+        'Use left click on the tray icon to toggle the compact Codex panel instead of reopening the full window.',
       sidebarWidthTitle: 'Sidebar width',
-      sidebarWidthDescription: 'Tune the main navigation width for the information density you prefer.',
+      sidebarWidthDescription:
+        'Tune the main navigation width for the information density you prefer.',
       resetLayoutTitle: 'Reset layout',
       resetLayoutDescription: 'Restore the sidebar width to the default workbench proportion.',
       resetLayoutAction: 'Reset to default',
@@ -1170,11 +1230,14 @@ const enUSBootMessages = {
     diagnostics: {
       eyebrow: 'Diagnostics',
       title: 'Diagnostics',
-      description: 'Keep performance instrumentation available for investigation without turning it into everyday noise.',
+      description:
+        'Keep performance instrumentation available for investigation without turning it into everyday noise.',
       navCaption: 'Performance and runtime observation',
       perfTitle: 'Performance telemetry',
-      perfDescription: 'Write startup and navigation timing samples into local debug logs for troubleshooting.',
-      restartNote: 'This toggle only updates a local preference. Refresh the page or restart the desktop app before relying on new telemetry output.',
+      perfDescription:
+        'Write startup and navigation timing samples into local debug logs for troubleshooting.',
+      restartNote:
+        'This toggle only updates a local preference. Refresh the page or restart the desktop app before relying on new telemetry output.',
     },
   },
 } as const

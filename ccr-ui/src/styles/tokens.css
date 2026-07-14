@@ -328,14 +328,21 @@
 /* ========== 字体系统 ========== */
 :root:where(:root):where(:root) {
   /* --- 字体族（三轨分离：正文品牌字体 / 标题比例显示字体 / 数值代码真等宽） --- */
-  --font-sans:
+
+  /* `-base` 保存内置回退栈；`--font-*` 默认引用它。用户自定义字体时由 JS 在 :root
+     内联覆盖为 `"用户字体", var(--font-*-base)`，缺失/缺字形自动沿栈回退（见
+     utils/fontPreferences.ts）。 */
+  --font-sans-base:
     'MapleBright', 'SF Pro Text', 'PingFang SC', 'Microsoft YaHei UI', 'Microsoft YaHei', sans-serif;
-  --font-brand:
+  --font-brand-base:
     'SF Pro Display', 'Segoe UI Variable Display', 'PingFang SC', 'Microsoft YaHei UI',
     'Microsoft YaHei', sans-serif;
-  --font-mono:
+  --font-mono-base:
     'Cascadia Code', 'Cascadia Mono', 'SFMono-Regular', ui-monospace, 'Consolas', 'MapleBright',
     monospace;
+  --font-sans: var(--font-sans-base);
+  --font-brand: var(--font-brand-base);
+  --font-mono: var(--font-mono-base);
 
   /* --- 字号 --- */
   --text-xs: 0.75rem;

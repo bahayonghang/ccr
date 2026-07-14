@@ -1,0 +1,29 @@
+{
+  "id": "refactor-project-ui-docs",
+  "name": "refactor-project-ui-docs",
+  "title": "重构 CCR 项目与 UI 文档",
+  "description": "基于当前 crates 与 ccr-ui 实现重构公开产品文档和 UI 工程文档。",
+  "status": "completed",
+  "dev_type": "docs",
+  "scope": "docs/**, ccr-ui/docs/**, documentation audit tooling",
+  "package": null,
+  "priority": "P2",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-07-14",
+  "completedAt": "2026-07-14",
+  "branch": null,
+  "base_branch": "dev",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "07-14-refactor-product-docs",
+    "07-14-refactor-ui-docs"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "Cross-surface verification passed. No code-spec update required; lifecycle contracts are enforced by subtree README files and audit scripts.",
+  "meta": {}
+}

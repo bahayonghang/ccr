@@ -1,127 +1,105 @@
-# CCR UI Page Templates And Surface Rules
+# CCR UI Page Templates And Surface Contracts
 
-## Purpose
+This document defines the maintained page-level design contracts for CCR UI. It complements the scoped direction in [`ccr-ui/AGENTS.md`](../../AGENTS.md) and the token implementation in [`src/styles/tokens.css`](../../src/styles/tokens.css).
 
-This document records the approved page templates and visual surface contracts introduced during the shell, token, and hotspot-refactor passes. It is the Phase 6 reference for keeping new routes aligned with the current UI system instead of reintroducing page-owned shells or ad hoc glass variants.
+## Product Direction
 
-## Approved Page Templates
+CCR UI is a calm, precise, editorial workbench for AI CLI power users. Pages prioritize fast scanning, operational clarity, and dense but organized information. Decorative effects must support hierarchy rather than compete with the task.
 
-### 1. Dashboard Template
+All templates must support light and dark themes, reduced motion, reduced transparency, keyboard navigation, and text expansion.
 
-Use for pages that summarize system state, usage, or high-signal operational metrics.
+## Shell Ownership
 
-Required structure:
-- shared app shell from `MainLayout`
-- optional `ModuleSubnav` when the page belongs to a module group
-- one header block for title, subtitle, and primary actions
-- workspace sections for charts, cards, and log tables
+[`MainLayout`](../../src/components/MainLayout.vue) owns viewport-level navigation and application chrome. Routes own only their workspace content.
 
-Current examples:
-- `/usage`
-- `/agents`
-- `/monitoring`
+Routes must not add:
 
-### 2. List / Detail Workspace Template
+- a second application navbar or primary breadcrumb;
+- fixed viewport backgrounds that compete with the shell;
+- `min-h-screen` wrappers that create a second viewport;
+- page-local theme or global navigation controls.
 
-Use for routes that switch between collection browsing and focused record inspection.
+Use `ModuleSubnav` for navigation within a platform or module family, `PageHeaderCard` for a page title and primary actions, and a contained route workspace for the body.
 
-Required structure:
-- shared shell and subnav
-- page-owned workspace header only, never a nested navbar or breadcrumb
-- list region, detail region, or detail modal
-- async states rendered through shared state primitives
+## Page Templates
 
-Current examples:
-- `/mcp-manager`
-- `/claude-code/profiles`
+### Operational Dashboard
 
-### 3. Settings / Form Template
+Use for state summaries, usage, monitoring, and other signal-dense pages.
 
-Use for configuration-heavy screens and modal editors.
+Structure:
 
-Required structure:
-- shared shell and optional module subnav
-- page header card or compact workspace intro
-- one dominant form region
-- secondary guidance or status stacked beside the form when needed
+1. optional module sub-navigation;
+2. one compact title/action region;
+3. high-signal status or metric summary;
+4. charts, tables, logs, or diagnostic panels;
+5. shared loading, error, and empty states.
 
-Current examples:
-- `/configs`
-- `/sync`
-- `/statusline`
+Current route examples include `/`, `/usage`, and `/monitoring`.
 
-## Surface Contract
+### Collection And Detail Workspace
 
-New code should prefer semantic surface utilities over legacy glass aliases.
+Use when users browse a collection and inspect or edit one record.
 
-Primary surfaces:
-- `surface-shell`: top-level app shell chrome
-- `surface-workspace`: standard page workspace panels
-- `surface-card`: denser or more elevated content cards
-- `surface-modal`: modal containers and modal subregions
-- `surface-status`: compact status chips, controls, or inline indicators
+Keep search, filters, selection, and bulk actions close to the collection. Use a contained detail region or modal; do not create another shell inside the route.
 
-Legacy classes:
-- `glass-effect`
-- `glass-surface`
-- `glass-effect-strong`
-- `liquid-glass`
+Current route examples include `/mcp-manager`, `/agents`, `/skills`, and platform profile pages.
 
-These still work as migration aliases, but new components should not introduce additional legacy surface names.
+### Settings And Form Workspace
 
-## Shared Utility Contracts
+Use for configuration-heavy pages and focused editors.
 
-The following utilities are now shared and should not be redefined inside individual pages:
+Provide one dominant form or configuration surface. Place validation and operational status near the affected control. Secondary guidance can sit beside or below the form when space allows, but it must not become a nested card hierarchy.
 
-- `glass-panel`
-  - lightweight dashboard workspace panel
-- `toolbar-select`
-  - compact select control used in dense toolbars
-- `AsyncStatePanel`
-  - shared loading / error / empty-state presentation
+Current route examples include `/settings`, `/configs`, `/sync`, and `/statusline`.
 
-## Async State Rules
+## Semantic Surfaces
 
-Pages and components should not hand-roll their own loading, error, or empty-state layouts unless there is a strong visual reason.
+Components consume role-based surface aliases rather than raw material recipes:
 
-Preferred approach:
-- use `AsyncStatePanel` for generic async states
-- use `EmptyState` when the page needs a more branded empty-state treatment with a primary CTA
-- keep raw text-only fallback states limited to small inline regions
+| Alias | Role |
+|---|---|
+| `--surface-shell-*` | persistent sidebar and topbar chrome |
+| `--surface-workspace-*` | standard route workspaces and dense panels |
+| `--surface-card-*` | individual repeated or elevated content |
+| `--surface-modal-*` | modal containers and floating regions |
+| `--surface-status-*` | compact toolbar, status, and sticky controls |
 
-## Shell Ownership Rules
+Ordinary content cards and workspaces are opaque surfaces. Glass is limited to its semantic role and must not be nested or placed inside scrolling lists. New components must not consume deprecated `--glass-*` or `--liquid-glass-*` recipes directly.
 
-Routes must not own viewport-level shell chrome.
+Before changing a shared alias, search all consumers. Repoint the specific component to an existing role when possible; changing an alias definition can affect unrelated routes.
 
-Never reintroduce:
-- page-local navbars
-- page-local breadcrumbs as primary navigation
-- route-owned fixed viewport backgrounds
-- `min-h-screen` wrappers that compete with `MainLayout`
+## Shared Primitives
 
-Use instead:
-- `MainLayout`
-- `ModuleSubnav`
-- `PageHeaderCard`
-- contained decorative backgrounds inside the route container
+- `AsyncStatePanel` is the default loading, error, and empty-state primitive for route-sized regions.
+- `EmptyState` is appropriate when an empty collection needs a primary recovery action.
+- `PageHeaderCard` owns the route title, supporting copy, and primary actions.
+- `ModuleSubnav` owns navigation between pages in one module family.
+- Shared controls under `components/ui/` own consistent buttons, inputs, cards, dialogs, and feedback.
 
-## Verification Rules
+Small inline regions may use compact text feedback, but route-level states must not be hand-built repeatedly.
 
-Before calling a route visually complete:
+## Responsive And Accessibility Rules
 
-- capture a light-theme screenshot
-- capture a dark-theme screenshot
-- capture a reduced-motion screenshot or verify reduced-motion behavior on the same route
-- confirm the route still renders under plain web mode even if some Tauri-only actions fail
+- Use stable grid tracks, minimum widths, aspect ratios, or bounded containers for fixed-format UI.
+- Allow controls and labels to wrap before text clips or overlaps.
+- Preserve visible focus treatment and keyboard order when layouts reflow.
+- Keep operational tables scannable on narrow screens through deliberate stacking or horizontal scrolling.
+- Disable non-essential motion under `prefers-reduced-motion`.
+- Resolve material surfaces to opaque backgrounds under `prefers-reduced-transparency`.
+- Verify text and state colors in both light and dark themes.
 
-The canonical capture script is:
+## Verification
 
-```bash
-bun run test:playwright:snapshots
+Run the focused static checks for the files changed, then use the web preview for visual work:
+
+```powershell
+bun run type-check
+bun run lint
+bun run test:smoke
+bun run dev:web -- --host 127.0.0.1 --strictPort
 ```
 
-Expected output location:
+Inspect the affected route at `http://127.0.0.1:5173/` at desktop and mobile widths. Verify light and dark themes, reduced motion, text fit, focus behavior, and loading/error/empty states.
 
-```text
-ccr-ui/tests/artifacts/route-snapshots/
-```
+Plain web mode cannot complete every Tauri `invoke()` operation. Treat those failures as runtime limitations unless the route, presentation state, or browser-safe behavior is also broken. See the [verification guide](../development/verification.md) for the full command matrix.

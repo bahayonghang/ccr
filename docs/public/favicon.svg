@@ -1,58 +1,44 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="CCR app icon">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024"
+  role="img" aria-labelledby="title desc">
+  <title id="title">CCR Dual Runtime Router app icon</title>
+  <desc id="desc">A unified C-shaped control plane encloses two runtime routes that converge into a CLI execution chevron.</desc>
   <defs>
-    <linearGradient id="sideFill" x1="148" y1="258" x2="876" y2="628" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#0F1D2C"/>
-      <stop offset="0.5" stop-color="#172638"/>
-      <stop offset="1" stop-color="#0E1A28"/>
+    <linearGradient id="tile" x1="150" y1="110" x2="890" y2="930" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2A221E"/>
+      <stop offset="1" stop-color="#17120F"/>
     </linearGradient>
-    <linearGradient id="blueStroke" x1="292" y1="170" x2="632" y2="632" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#0A8EF2"/>
-      <stop offset="0.55" stop-color="#15A9FF"/>
-      <stop offset="1" stop-color="#078FE4"/>
-    </linearGradient>
-    <linearGradient id="orangeStroke" x1="520" y1="444" x2="748" y2="734" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#FF6B00"/>
-      <stop offset="1" stop-color="#F24700"/>
-    </linearGradient>
-    <filter id="softShadow" x="-10%" y="-10%" width="120%" height="120%">
-      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#0F1D2C" flood-opacity="0.12"/>
+    <filter id="symbolShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="16" stdDeviation="22" flood-color="#000000" flood-opacity="0.20"/>
     </filter>
   </defs>
 
-  <rect width="1024" height="1024" fill="#FFFFFF"/>
+  <rect x="48" y="48" width="928" height="928" rx="224" fill="url(#tile)"/>
+  <rect x="68" y="68" width="888" height="888" rx="205"
+        fill="none" stroke="#F3EADF" stroke-opacity="0.09" stroke-width="6"/>
 
-  <g fill="url(#sideFill)" filter="url(#softShadow)">
-    <path d="M426 258H323C221 258 148 335 148 443C148 551 221 628 323 628H426L359 561H322C256 561 211 512 211 443C211 374 256 325 322 325H359L426 258Z"/>
-    <path d="M598 258H701C803 258 876 335 876 443H813C813 374 768 325 702 325H665L598 258Z"/>
-    <path d="M665 561H702C768 561 813 512 813 443H876C876 551 803 628 701 628H598L665 561Z"/>
-  </g>
+  <!-- Unified CCR entrypoint / outer C. -->
+  <path d="M735 280 A300 300 0 1 0 735 744"
+        fill="none" stroke="#F3EADF" stroke-width="106"
+        stroke-linecap="round" filter="url(#symbolShadow)"/>
 
-  <g fill="none" stroke-linecap="round" stroke-linejoin="round" filter="url(#softShadow)">
-    <g stroke="url(#blueStroke)">
-      <circle cx="512" cy="197" r="30" stroke-width="20"/>
-      <circle cx="293" cy="443" r="24" stroke-width="20"/>
-      <path d="M512 227V275C512 296 500 305 482 316C435 342 405 383 405 433V604L430 631" stroke-width="31"/>
-      <path d="M512 275C589 303 632 358 632 429C632 478 603 508 558 542C535 559 522 579 522 603" stroke-width="31"/>
-      <path d="M317 443H405" stroke-width="31"/>
-    </g>
+  <!-- Explicit Claude Runtime and Codex Runtime / inner split C. -->
+  <path d="M650 390 A176 176 0 0 0 372 512"
+        fill="none" stroke="#E79A77" stroke-width="72"
+        stroke-linecap="round"/>
+  <path d="M372 512 A176 176 0 0 0 650 634"
+        fill="none" stroke="#7CAB82" stroke-width="72"
+        stroke-linecap="round"/>
 
-    <g stroke="url(#orangeStroke)">
-      <circle cx="735" cy="443" r="24" stroke-width="20"/>
-      <circle cx="522" cy="666" r="24" stroke-width="20"/>
-      <path d="M632 443H711" stroke-width="31"/>
-      <path d="M522 604V642" stroke-width="31"/>
-      <path d="M522 604L656 734" stroke-width="31"/>
-    </g>
-  </g>
+  <!-- Both runtime paths converge into the same CLI execution direction. -->
+  <path d="M650 390 C650 442 674 472 712 492"
+        fill="none" stroke="#E79A77" stroke-width="72"
+        stroke-linecap="round"/>
+  <path d="M650 634 C650 582 674 552 712 532"
+        fill="none" stroke="#7CAB82" stroke-width="72"
+        stroke-linecap="round"/>
 
-  <g fill="#132235" filter="url(#softShadow)">
-    <path d="M449 443L501 404V482Z"/>
-    <path d="M575 443L523 404V482Z"/>
-  </g>
-
-  <g fill="#132235" filter="url(#softShadow)">
-    <path d="M286 740H418V762H318C310 762 306 766 306 774V816C306 824 310 828 318 828H418V850H286C264 850 250 836 250 814V776C250 754 264 740 286 740Z"/>
-    <path d="M454 740H586V762H486C478 762 474 766 474 774V816C474 824 478 828 486 828H586V850H454C432 850 418 836 418 814V776C418 754 432 740 454 740Z"/>
-    <path d="M622 740H712C738 740 754 756 754 782C754 806 741 820 718 823L760 850H712L674 823H652V850H622V740ZM652 762V801H704C717 801 724 794 724 782C724 769 717 762 704 762H652Z"/>
-  </g>
+  <!-- CLI prompt / selected route. -->
+  <path d="M706 430 L796 512 L706 594"
+        fill="none" stroke="#F3EADF" stroke-width="68"
+        stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

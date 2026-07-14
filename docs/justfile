@@ -50,14 +50,14 @@ clean-all: clean
 reinstall: clean-all install
     @echo "✅ 重新安装完成！"
 
-# 检查安全漏洞
+# 检查文档结构和源码一致性
 audit:
-    @echo "🔍 检查安全漏洞..."
-    bunx better-npm-audit audit
+    @echo "🔍 检查文档..."
+    bun run audit
 
-# 修复安全漏洞(非破坏性)
-audit-fix:
-    @echo "🔧 修复安全漏洞..."
+# 检查依赖安全漏洞
+security-audit:
+    @echo "🔍 检查依赖安全漏洞..."
     bunx better-npm-audit audit
 
 # 更新依赖到最新版本

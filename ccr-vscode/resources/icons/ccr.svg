@@ -1,14 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-label="CCR">
-  <path d="M9.8 6.2H7.7C4.9 6.2 3 8.3 3 11.1C3 14 4.9 16 7.7 16H9.8L8.5 14.7H7.7C5.8 14.7 4.4 13.2 4.4 11.1C4.4 9.1 5.8 7.6 7.7 7.6H8.5L9.8 6.2Z" fill="currentColor" stroke="none"/>
-  <path d="M14.2 6.2H16.3C19.1 6.2 21 8.3 21 11.1H19.6C19.6 9.1 18.2 7.6 16.3 7.6H15.5L14.2 6.2Z" fill="currentColor" stroke="none"/>
-  <path d="M15.5 14.7H16.3C18.2 14.7 19.6 13.2 19.6 11.1H21C21 14 19.1 16 16.3 16H14.2L15.5 14.7Z" fill="currentColor" stroke="none"/>
-  <circle cx="12" cy="4.2" r="0.7" stroke-width="1.2"/>
-  <circle cx="6.9" cy="11.1" r="0.7" stroke-width="1.2"/>
-  <circle cx="17.1" cy="11.1" r="0.7" stroke-width="1.2"/>
-  <circle cx="12.2" cy="17.2" r="0.7" stroke-width="1.2"/>
-  <path d="M12 4.9V7C12 7.5 11.6 7.8 11.1 8.1C10.1 8.8 9.5 9.8 9.5 11.1V15.3" stroke-width="1.4"/>
-  <path d="M12 7C13.7 7.6 14.7 8.7 14.7 10.6C14.7 11.8 14 12.4 13 13.2C12.5 13.6 12.2 14.1 12.2 14.8V16.5" stroke-width="1.4"/>
-  <path d="M7.6 11.1H9.5M14.7 11.1H16.4M12.2 14.8L15.2 17.8" stroke-width="1.4"/>
-  <path d="M10.8 11.1L11.7 10.4V11.8Z" fill="currentColor" stroke="none"/>
-  <path d="M13.2 11.1L12.3 10.4V11.8Z" fill="currentColor" stroke="none"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+  role="img" aria-label="CCR">
+  <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M17.4 5.6A8 8 0 1 0 17.4 18.4" stroke-width="2.35"/>
+    <path d="M15.5 8.1A4.8 4.8 0 0 0 7.8 12" stroke-width="1.9"/>
+    <path d="M7.8 12a4.8 4.8 0 0 0 7.7 3.9" stroke-width="1.9"/>
+    <path d="M15.4 8.1c0 1.8.8 2.8 2.3 3.5M15.4 15.9c0-1.8.8-2.8 2.3-3.5" stroke-width="1.9"/>
+    <path d="m17.3 9.5 2.8 2.5-2.8 2.5" stroke-width="1.9"/>
+  </g>
 </svg>

@@ -2511,6 +2511,22 @@ export default {
         rose: 'Rose',
         slate: 'Slate',
       },
+      typography: {
+        eyebrow: 'Typography',
+        title: 'Fonts',
+        description:
+          'Customize the interface and code fonts. Your choice sits ahead of the built-in font stack and falls back automatically when a glyph is missing, so the UI stays readable.',
+        uiLabel: 'Interface font',
+        uiDescription: 'Applies to body text and headings (sans / brand tracks).',
+        codeLabel: 'Code font',
+        codeDescription: 'Applies to code and monospaced numerals (mono track).',
+        systemDefault: 'System default',
+        custom: 'Custom…',
+        customPlaceholder: 'Enter a font name',
+        previewSampleUi: 'Modern AI workbench AaBbGg 0123456789',
+        previewSampleCode: '0O 1lI  const x = () => 42',
+        resetHint: 'Choose “System default” or clear the field to restore the built-in fonts.',
+      },
     },
     language: {
       eyebrow: 'Language',
@@ -3831,10 +3847,8 @@ export default {
         no_auth: 'Leave this blank for profiles that do not need runtime auth.',
       },
       customModelOption: 'Custom model…',
-      customModelHint:
-        'Saved only to this profile; it will not be added to the preset list.',
-      modelPresetHint:
-        'Choose a GPT-5.6 preset or use a custom provider model.',
+      customModelHint: 'Saved only to this profile; it will not be added to the preset list.',
+      modelPresetHint: 'Choose a GPT-5.6 preset or use a custom provider model.',
       currentModelOption: '{model} (current profile value)',
       templateSelector: {
         label: 'Provider template',

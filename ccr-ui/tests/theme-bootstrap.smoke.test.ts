@@ -52,6 +52,7 @@ beforeEach(() => {
   document.documentElement.removeAttribute('data-flavor')
   document.documentElement.removeAttribute('data-resolved-flavor')
   document.documentElement.removeAttribute('data-accent')
+  document.documentElement.removeAttribute('style')
   vi.resetModules()
 })
 
@@ -213,6 +214,39 @@ describe('themeBootstrap smoke', () => {
     expect(document.documentElement.getAttribute('data-resolved-flavor')).toBe('frappe')
     expect(document.documentElement.getAttribute('data-accent')).toBe('sage')
     expect(document.documentElement.classList.contains('dark')).toBe(true)
+  })
+
+  it('pre-initializes first paint with font overrides prepended to the base stacks', async () => {
+    localStorage.setItem('ccr-font-ui', 'Inter')
+    localStorage.setItem('ccr-font-code', 'JetBrains Mono')
+    installMatchMediaController(false)
+
+    const source = await readFile('index.html', 'utf8')
+    const script = source.match(/<!-- 主题预初始化[\s\S]*?<script>\s*([\s\S]*?)\s*<\/script>/)?.[1]
+
+    expect(script).toBeTruthy()
+    runInThisContext(script ?? '')
+
+    const root = document.documentElement
+    expect(root.style.getPropertyValue('--font-sans')).toContain('"Inter"')
+    expect(root.style.getPropertyValue('--font-sans')).toContain('var(--font-sans-base)')
+    expect(root.style.getPropertyValue('--font-brand')).toContain('"Inter"')
+    expect(root.style.getPropertyValue('--font-mono')).toContain('"JetBrains Mono"')
+    expect(root.style.getPropertyValue('--font-mono')).toContain('var(--font-mono-base)')
+  })
+
+  it('sanitizes malicious font values in the first-paint script', async () => {
+    localStorage.setItem('ccr-font-ui', 'Evil"; color: red; }')
+    installMatchMediaController(false)
+
+    const source = await readFile('index.html', 'utf8')
+    const script = source.match(/<!-- 主题预初始化[\s\S]*?<script>\s*([\s\S]*?)\s*<\/script>/)?.[1]
+    runInThisContext(script ?? '')
+
+    const sans = document.documentElement.style.getPropertyValue('--font-sans')
+    expect(sans).toContain('var(--font-sans-base)')
+    expect(sans).not.toContain(';')
+    expect(sans).not.toContain('}')
   })
 
   it('rejects unknown flavor and accent values from storage and falls back to clay', async () => {

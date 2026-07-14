@@ -3,8 +3,7 @@ import path from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const docsRoot = path.resolve(__dirname, '..')
+const docsRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const repoRoot = path.resolve(docsRoot, '..')
 
 const read = (...segments) => fs.readFileSync(path.join(repoRoot, ...segments), 'utf8')
@@ -15,11 +14,12 @@ const readIfExists = (...segments) => {
 
 const configText = readIfExists('docs', '.vitepress', 'config.mjs')
 const cliDefinitions = read('crates', 'ccr-cli', 'src', 'cli', 'definitions.rs')
+const workspaceManifest = read('Cargo.toml')
+const uiRouter = read('ccr-ui', 'src', 'router', 'index.ts')
 
 const failures = new Set()
-const ignoredParityFiles = new Set([
-  'README.md'
-])
+const internalOnlyFiles = new Set(['README.md', 'AGENTS.md', 'TODO.md'])
+const internalOnlyPrefixes = ['reports/']
 const historicalFiles = new Set([
   'reference/changelog.md',
   'en/reference/changelog.md'
@@ -47,43 +47,21 @@ function walkMarkdownFiles(dir) {
   return files
 }
 
-function markdownExistsForLink(link) {
-  const normalized = link.replace(/^\/+|\/+$/g, '')
-  if (!normalized) {
-    return fs.existsSync(path.join(docsRoot, 'index.md'))
-  }
-
-  const candidates = [
-    path.join(docsRoot, `${normalized}.md`),
-    path.join(docsRoot, normalized, 'index.md')
-  ]
-
-  return candidates.some(candidate => fs.existsSync(candidate))
-}
-
 function relFromDocs(filePath) {
   return path.relative(docsRoot, filePath).replaceAll(path.sep, '/')
 }
 
-function assert(condition, message) {
-  if (!condition) failures.add(message)
+function isInternalOnly(relPath) {
+  return internalOnlyFiles.has(relPath)
+    || internalOnlyPrefixes.some(prefix => relPath.startsWith(prefix))
 }
 
-function extractUiDefaults() {
-  const uiPort = cliDefinitions.match(/Ui \{[\s\S]*?default_value_t = (\d+)\)\s*\n\s*port: u16/)
-  const backendPort = cliDefinitions.match(/Ui \{[\s\S]*?default_value_t = (\d+)\)\s*\n\s*backend_port: u16/)
-
-  return {
-    uiPort: uiPort?.[1],
-    backendPort: backendPort?.[1]
-  }
+function publishedMarkdownFiles() {
+  return walkMarkdownFiles(docsRoot).filter(file => !isInternalOnly(relFromDocs(file)))
 }
 
 function activeMarkdownFiles() {
-  return walkMarkdownFiles(docsRoot).filter(file => {
-    const rel = relFromDocs(file)
-    return !historicalFiles.has(rel) && !ignoredParityFiles.has(rel)
-  })
+  return publishedMarkdownFiles().filter(file => !historicalFiles.has(relFromDocs(file)))
 }
 
 function collectDocText(prefix = '') {
@@ -93,24 +71,64 @@ function collectDocText(prefix = '') {
     .join('\n')
 }
 
+function assert(condition, message) {
+  if (!condition) failures.add(message)
+}
+
+function targetExists(basePath) {
+  const candidates = [basePath, `${basePath}.md`, path.join(basePath, 'index.md')]
+  return candidates.some(candidate => fs.existsSync(candidate))
+}
+
+function resolveDocTarget(sourceFile, rawTarget) {
+  const trimmed = rawTarget.trim().split(/\s+['"]/)[0].replace(/^<|>$/g, '')
+  if (!trimmed || /^(?:https?:|mailto:|tel:|#)/.test(trimmed)) return null
+
+  let decoded
+  try {
+    decoded = decodeURIComponent(trimmed.split(/[?#]/)[0])
+  } catch {
+    return { target: trimmed, exists: false }
+  }
+  if (!decoded) return null
+
+  if (decoded === '/') {
+    return { target: trimmed, exists: fs.existsSync(path.join(docsRoot, 'index.md')) }
+  }
+
+  const basePath = decoded.startsWith('/')
+    ? path.join(docsRoot, decoded.replace(/^\/+/, ''))
+    : path.resolve(path.dirname(sourceFile), decoded)
+
+  return { target: trimmed, exists: targetExists(basePath) }
+}
+
 function checkInternalLinks() {
   assert(Boolean(configText), 'Missing docs/.vitepress/config.mjs')
-  if (!configText) return
+  if (configText) {
+    const links = [...configText.matchAll(/link:\s*'([^']+)'/g)]
+      .map(match => match[1])
+      .filter(link => link.startsWith('/'))
 
-  const links = [...configText.matchAll(/link:\s*'([^']+)'/g)]
-    .map(match => match[1])
-    .filter(link => link.startsWith('/'))
+    for (const link of links) {
+      const resolved = resolveDocTarget(path.join(docsRoot, 'index.md'), link)
+      assert(resolved?.exists, `Missing markdown target for nav/sidebar link: ${link}`)
+    }
+  }
 
-  for (const link of links) {
-    assert(markdownExistsForLink(link), `Missing markdown target for nav/sidebar link: ${link}`)
+  const linkPattern = /!?\[[^\]]*\]\(([^)]+)\)/g
+  for (const file of publishedMarkdownFiles()) {
+    const content = fs.readFileSync(file, 'utf8')
+    for (const match of content.matchAll(linkPattern)) {
+      const resolved = resolveDocTarget(file, match[1])
+      if (!resolved) continue
+      assert(resolved.exists, `Broken local link in ${relFromDocs(file)}: ${resolved.target}`)
+    }
   }
 }
 
 function checkLocaleParity() {
-  const allDocs = walkMarkdownFiles(docsRoot)
-    .map(relFromDocs)
-    .filter(file => !ignoredParityFiles.has(file))
-
+  const allDocs = publishedMarkdownFiles().map(relFromDocs)
   const zh = new Set(allDocs.filter(file => !file.startsWith('en/')))
   const en = new Set(allDocs.filter(file => file.startsWith('en/')).map(file => file.replace(/^en\//, '')))
 
@@ -179,25 +197,105 @@ function checkRemovedAndRequiredPages() {
   for (const file of removedFiles) {
     assert(!fs.existsSync(path.join(repoRoot, file)), `Removed doc still exists: ${file}`)
   }
-
   for (const file of requiredFiles) {
     assert(fs.existsSync(path.join(repoRoot, file)), `Required doc is missing: ${file}`)
   }
+}
 
-  if (!configText) return
+function pascalToKebab(value) {
+  return value.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase()
+}
 
-  const removedLinks = [
-    '/reference/api',
-    '/en/reference/api',
-    '/reference/commands/web',
-    '/en/reference/commands/web',
-    '/guide/web-guide',
-    '/en/guide/web-guide'
-  ]
+function extractTopLevelCommands() {
+  const lines = cliDefinitions.split(/\r?\n/)
+  const commands = []
+  let insideCommands = false
+  let explicitName = null
 
-  for (const link of removedLinks) {
-    assert(!configText.includes(link), `Removed link still present in nav/sidebar config: ${link}`)
+  for (const line of lines) {
+    if (!insideCommands) {
+      if (line.trim() === 'pub enum Commands {') insideCommands = true
+      continue
+    }
+    if (line === '}') break
+
+    const nameOverride = line.match(/^    #\[command\(name\s*=\s*"([^"]+)"\)\]$/)
+    if (nameOverride) {
+      explicitName = nameOverride[1]
+      continue
+    }
+
+    const variant = line.match(/^    ([A-Z][A-Za-z0-9]*)(?:\s*\{|\(|,)/)
+    if (!variant) continue
+    commands.push(explicitName ?? pascalToKebab(variant[1]))
+    explicitName = null
   }
+
+  return commands
+}
+
+function checkCommandCoverage() {
+  const excludedPages = new Set(['help'])
+  const allowedExtraPages = new Set(['tui'])
+  const commands = extractTopLevelCommands()
+  const expectedPages = new Set(commands.filter(command => !excludedPages.has(command)))
+
+  for (const command of expectedPages) {
+    assert(
+      fs.existsSync(path.join(docsRoot, 'reference', 'commands', `${command}.md`)),
+      `Missing Chinese command page for: ${command}`
+    )
+    assert(
+      fs.existsSync(path.join(docsRoot, 'en', 'reference', 'commands', `${command}.md`)),
+      `Missing English command page for: ${command}`
+    )
+  }
+
+  const actualPages = fs.readdirSync(path.join(docsRoot, 'reference', 'commands'))
+    .filter(file => file.endsWith('.md') && file !== 'index.md')
+    .map(file => file.slice(0, -3))
+  const unexpectedPages = actualPages.filter(page => !expectedPages.has(page) && !allowedExtraPages.has(page))
+  assert(unexpectedPages.length === 0, `Unexpected command pages: ${unexpectedPages.join(', ')}`)
+
+  const zhOverview = read('docs', 'reference', 'commands', 'index.md')
+  const enOverview = read('docs', 'en', 'reference', 'commands', 'index.md')
+  assert(zhOverview.includes('ccr help'), 'Chinese command overview must document ccr help')
+  assert(enOverview.includes('ccr help'), 'English command overview must document ccr help')
+}
+
+function checkWorkspaceCoverage() {
+  const membersBlock = workspaceManifest.match(/members\s*=\s*\[([\s\S]*?)\]/)?.[1] ?? ''
+  const crates = [...membersBlock.matchAll(/"(crates\/[^"\n]+)"/g)].map(match => match[1])
+  const zhMap = read('docs', 'reference', 'internals', 'crate-map.md')
+  const enMap = read('docs', 'en', 'reference', 'internals', 'crate-map.md')
+
+  for (const crate of crates) {
+    assert(zhMap.includes(`\`${crate}\``), `Chinese crate map missing workspace member: ${crate}`)
+    assert(enMap.includes(`\`${crate}\``), `English crate map missing workspace member: ${crate}`)
+  }
+}
+
+function checkUiModuleCoverage() {
+  const routes = ['/claude-code', '/codex', '/antigravity', '/opencode', '/mcp-manager', '/usage', '/monitoring', '/wsl', '/ssh']
+  const zhModules = read('docs', 'guide', 'ui-modules.md')
+  const enModules = read('docs', 'en', 'guide', 'ui-modules.md')
+
+  for (const route of routes) {
+    assert(uiRouter.includes(`path: '${route.slice(1)}'`) || uiRouter.includes(`path: '${route}'`), `Router source missing expected route: ${route}`)
+    assert(zhModules.includes(`\`${route}\``), `Chinese UI module map missing route: ${route}`)
+    assert(enModules.includes(`\`${route}\``), `English UI module map missing route: ${route}`)
+  }
+
+  for (const staleRoute of ['`/droid`', '`/qwen`', '`/provider-health`']) {
+    assert(!zhModules.includes(staleRoute), `Chinese UI module map contains stale route: ${staleRoute}`)
+    assert(!enModules.includes(staleRoute), `English UI module map contains stale route: ${staleRoute}`)
+  }
+}
+
+function extractUiDefaults() {
+  const uiPort = cliDefinitions.match(/Ui \{[\s\S]*?default_value_t = (\d+)\)\s*\n\s*port: u16/)
+  const backendPort = cliDefinitions.match(/Ui \{[\s\S]*?default_value_t = (\d+)\)\s*\n\s*backend_port: u16/)
+  return { uiPort: uiPort?.[1], backendPort: backendPort?.[1] }
 }
 
 function checkFactSync() {
@@ -238,14 +336,14 @@ checkInternalLinks()
 checkLocaleParity()
 checkPlaceholderTranslations()
 checkRemovedAndRequiredPages()
+checkCommandCoverage()
+checkWorkspaceCoverage()
+checkUiModuleCoverage()
 checkFactSync()
 
 if (failures.size > 0) {
-  console.error('docs audit failed:')
-  for (const failure of failures) {
-    console.error(`- ${failure}`)
-  }
+  process.stderr.write(`docs audit failed:\n${[...failures].map(failure => `- ${failure}`).join('\n')}\n`)
   process.exit(1)
 }
 
-console.log('docs audit passed')
+process.stdout.write('docs audit passed\n')

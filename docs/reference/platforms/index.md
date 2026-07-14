@@ -1,47 +1,44 @@
 # 平台支持
 
-本页统一描述 CCR 当前的平台状态，避免首页、命令页和平台页各说各话。
+本页描述 CLI platform domain 的当前状态。CLI 支持与 CCR UI 路由是不同契约。
 
 ## 支持矩阵
 
-| 平台 | 状态 | 配置文件 | 设置目标 | 备注 |
-|------|------|----------|----------|------|
-| Claude Code | 已实现 | `~/.ccr/platforms/claude/profiles.toml` | `~/.claude/settings.json` | 默认主线平台 |
-| Codex | 已实现 | `~/.ccr/platforms/codex/profiles.toml` | `~/.codex/config.toml` | 同时支持 `ccr codex auth` |
-| Antigravity CLI | 已实现 | `~/.ccr/platforms/gemini/profiles.toml` | `~/.gemini/antigravity-cli/settings.json`；MCP: `~/.gemini/antigravity-cli/mcp_config.json` | 内部 key 保持 `gemini`；`agy`/`antigravity` 为别名 |
-| Factory Droid | 已实现 | `~/.ccr/platforms/droid/profiles.toml` | `~/.factory/settings.json` | 独立 settings 结构 |
-| Qwen CLI | 预留 / Stub | `~/.ccr/platforms/qwen/profiles.toml` | `~/.ccr/platforms/qwen/settings.json` | 当前核心实现返回未支持 |
+| 平台 | 状态 | Profile 文件 | 设置目标 |
+|---|---|---|---|
+| Claude Code | 已实现 | `~/.ccr/platforms/claude/profiles.toml` | `~/.claude/settings.json` |
+| Codex | 已实现 | `~/.ccr/platforms/codex/profiles.toml` | `~/.codex/config.toml` |
+| Antigravity CLI | 已实现 | `~/.ccr/platforms/gemini/profiles.toml` | `~/.gemini/antigravity-cli/settings.json` |
+| Factory Droid | 已实现 | `~/.ccr/platforms/droid/profiles.toml` | `~/.factory/settings.json` |
+| Qwen CLI | Stub / 未实现 | 预留平台目录 | 平台操作返回未支持 |
 
-> 平台状态以 `Platform::is_implemented()` 和对应平台实现为准。UI 中有入口，不代表 CLI 平台已经完整可用。
+Antigravity 的持久化 key 仍是 `gemini`，`agy` 与 `antigravity` 是输入别名。
 
-## 快速命令
+## 当前命令边界
 
 ```bash
 ccr platform list
-ccr platform switch claude
-ccr platform info droid
-ccr platform init gemini  # Antigravity CLI compatibility key
+ccr platform list --json
+
+ccr claude profile list
+ccr codex profile list
+ccr current
 ```
 
-## 已实现平台
+`platform switch`、`current`、`info`、`init` 和 `profile` 仍可被 Clap 解析，用于提供明确迁移错误；它们不是当前推荐执行路径。Claude/Codex 使用显式命令，其他平台状态通过 `platform list`、配置文件和当前实现确认。
+
+## 平台指南
 
 - [Claude Code](./claude)
 - [Codex](./codex)
 - [Antigravity CLI](./gemini)
 - [Factory Droid](./droid)
+- [平台命令迁移](./migration)
 
-## 预留平台
+Qwen 只有预留 key 和部分数据路径，不应描述为可切换 runtime。当前 UI 只有 Claude、Codex 和 Antigravity 的平台工作区；OpenCode 使用独立工具入口。
 
-- `qwen`
+## 相关页面
 
-它当前的意义是：
-
-- 在 Unified Mode 中预留命名空间
-- 在 UI 中预留页面入口
-- 为后续实现保留文档位置
-
-## 相关文档
-
-- [platform 命令](/reference/commands/platform)
+- [`platform` 命令](/reference/commands/platform)
+- [UI 模块地图](/guide/ui-modules)
 - [CLI 工作流](/guide/cli-workflows)
-- [迁移指南](/reference/migration)

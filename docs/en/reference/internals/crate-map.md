@@ -1,88 +1,94 @@
 # Crate Map
 
-This page expands the `architecture` page by describing the current responsibilities at the crate and module level.
+This page lists every workspace member in the root `Cargo.toml`. The documentation audit compares this inventory with the workspace automatically.
 
-## `crates/ccr`
+## Entrypoints And Interaction
 
-### Entry and dispatch
+### `crates/ccr`
 
-- `main.rs`: process entrypoint, logger setup, top-level error handling
-- `cli/definitions.rs`: CLI structure and the `Commands` enum
-- `cli/dispatch.rs`: command routing, no-subcommand behavior, and paths such as `ccr ui`, `sync`, and `codex`
+- Builds the installable `ccr` binary.
+- Assembles the `ccr-cli` dispatcher and optional `ccr-tui` launcher.
+- Keeps limited compatibility re-exports; it is no longer the owner of every domain.
 
-### User-facing command layer
+### `crates/ccr-cli`
 
-- `commands/platform/`: platform registry and platform switching
-- `commands/profile/`: profile lifecycle
-- `commands/lifecycle/`: init, clear, clean, optimize, validate
-- `commands/data/`: history, export, import, stats, budget, pricing
-- `commands/codex/`: Codex-specific commands, especially auth plus env/quota
-- `commands/sessions_cmd.rs`, `skills_cmd.rs`, `prompts_cmd.rs`: sessions, skills, and prompt management
+- `src/cli/definitions.rs`: top-level Clap `Commands`.
+- `src/cli/subcommands/`: nested Claude, Codex, OpenCode, platform, and sync commands.
+- `src/cli/dispatch.rs`: routing, TUI launchers, and legacy-path handling.
+- `src/commands/`: user-visible handlers; `services/`, `managers/`, and `platforms/` own CLI-specific orchestration.
 
-### Orchestration layer
+### `crates/ccr-tui`
 
-- `services/config_service.rs`: CRUD, enable/disable, import/export for config sets
-- `services/settings_service.rs`: apply settings, back up settings, restore settings, list backups
-- `services/codex_auth_service.rs`: Codex multi-account auth, backups, switching, import/export
-- `services/sync_service.rs`: WebDAV sync execution
-- `services/ui_service.rs`: detection, update, download, and launch behavior for `ccr ui`
+- Ratatui rendering, interaction state, and platform tabs.
+- Reuses `ccr-cli`, `ccr-codex`, and `ccr-usage` instead of duplicating their domains.
 
-### Persistence and configuration layer
+## Shared Foundation And Contracts
 
-- `managers/config/` and `platform_config.rs`: registry and unified config persistence
-- `managers/settings.rs`: settings file read/write
-- `managers/history.rs`: operation history
-- `managers/pricing_manager.rs`, `budget_manager.rs`, `cost_tracker.rs`: cost and budget state
-- `managers/skills_manager.rs` plus `services/skills_service.rs`: skill sources, installs, inventory, and caches
-- `managers/mcp_preset_manager.rs`: MCP preset installation and cross-platform sync
+### `crates/ccr-core`
 
-### Sessions and sync
+- Shared errors, paths, locks, atomic writes, logging, HTTP, and foundation models.
+- Provides safe writes and common infrastructure to upper layers.
 
-- `sessions/`: session parsing and index models
-- `storage/session_store.rs`: local session storage and queries
-- `sync/`: WebDAV config, folder registration, batch push/pull/status
+### `crates/ccr-types`
 
-### Shared infrastructure
+- Shared serde types for Claude settings, Codex login state, monitoring, and log payloads.
+- Preserves old data through aliases, flattened unknown fields, and compatibility shapes.
 
-- `platforms/`: platform implementations for Claude, Codex, Gemini, Droid, and Qwen
-- `core/`: errors, locks, atomic writes, logging, HTTP helpers, and related foundations
-- `utils/`: masking, validation, and shared format helpers
+## Configuration And Persistence
 
-## `crates/ccr-db`
+### `crates/ccr-config`
 
-### Database entry
+- Platform enum, profile/settings contracts, registry, and format conversions.
+- Unified configuration boundary for Claude, Codex, Antigravity, Droid, and the Qwen stub.
 
-- `database/mod.rs`: database path resolution, global pool, migration startup, transaction wrapper
-- `database/repositories/`: repository layer
-- `database/schema.rs` and `migrations.rs`: schema and data migration
+### `crates/ccr-store`
 
-### Business domains
+- CLI history and session SQLite storage.
+- Session indexing, search, statistics, and pruning queries.
 
-- `models/checkin/`: check-in domain models
-- `managers/checkin/`: providers, accounts, records, balances, exports, WAF cookies
-- `services/checkin_service.rs`: check-in execution and query flow
-- `services/usage_import_service.rs`: usage import from session files
-- `services/log_persistence.rs`: log persistence
+### `crates/ccr-db`
 
-## `crates/ccr-types`
+- Desktop SQLite connections, migrations, repositories, and transactions.
+- Data layer for check-in, logs, and other desktop services.
 
-### Current public surface
+## Domain Crates
 
-- `ClaudeSettings` and related nested types for settings, hooks, MCP, slash commands, agents, and plugins
-- `LoginState` for Codex auth state
-- `MonitoringEntry`, `FrontendLogInput`, and `MonitoringFeedQuery` for monitoring data
+### `crates/ccr-codex`
 
-### Design focus
+- Codex auth snapshots, profile/runtime, quota, usage, and session domain.
 
-- every type is shaped around serde compatibility
-- older field names and input layouts stay accepted
-- unknown fields are preserved through `flatten`/`other`
+### `crates/ccr-sync`
 
-## Test Layout
+- WebDAV configuration, folder registry, push/pull/status, and batch-sync foundation.
 
-- `crates/ccr/tests/commands.rs`
-- `crates/ccr/tests/managers.rs`
-- `crates/ccr/tests/platforms.rs`
-- `crates/ccr/tests/workflows.rs`
+### `crates/ccr-skills`
 
-Those files fan out into capability-oriented subdirectories instead of keeping one flat pile of integration tests.
+- Skill sources, inventory, installs, caches, builtin prompts, and MCP presets.
+
+### `crates/ccr-checkin`
+
+- Check-in business facade combining providers, accounts, balances, records, and execution services.
+- Reuses `ccr-db` for persistence and `ccr-types` for shared contracts.
+
+### `crates/ccr-usage`
+
+- Reads llmusage SQLite/CLI capabilities and exposes stable read-only projections.
+- The `ts` feature exports TypeScript types for the Tauri/Vue boundary.
+- Does not parse raw transcripts directly or own upstream schema migrations.
+
+## Frontend Consumer
+
+`ccr-ui/src-tauri` directly depends on the workspace domain crates except `ccr-tui` and exposes invoke handlers through `commands/handler_registry.rs`. Vue consumes them through `src/api/domains/*`.
+
+## Test Entry Points
+
+- Crate unit tests live beside modules or under each crate's `tests/`.
+- CLI integration tests live under capability directories such as `crates/ccr/tests/commands/`.
+- TUI tests belong to `ccr-tui`.
+- Usage projection and TypeScript binding tests belong to `ccr-usage`.
+- Tauri integration tests live under `ccr-ui/src-tauri/tests/`.
+
+## Related Pages
+
+- [Architecture](../architecture)
+- [Runtime Flows](./runtime-flows)

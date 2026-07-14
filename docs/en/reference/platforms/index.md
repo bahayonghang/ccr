@@ -1,48 +1,44 @@
 # Platform Support
 
-This page is the single platform-status reference for CCR. Home pages, command docs, and platform guides should agree with it.
+This page describes the current CLI platform domain. CLI support and CCR UI route registration are separate contracts.
 
 ## Support Matrix
 
-| Platform | Status | Profile file | Settings target | Notes |
-|----------|--------|--------------|-----------------|-------|
-| Claude Code | Implemented | `~/.ccr/platforms/claude/profiles.toml` | `~/.claude/settings.json` | default primary platform |
-| Codex | Implemented | `~/.ccr/platforms/codex/profiles.toml` | `~/.codex/config.toml` | also exposes `ccr codex auth` |
-| Antigravity CLI | Implemented | `~/.ccr/platforms/gemini/profiles.toml` | `~/.gemini/antigravity-cli/settings.json`; MCP: `~/.gemini/antigravity-cli/mcp_config.json` | internal key remains `gemini`; `agy`/`antigravity` are aliases |
-| Factory Droid | Implemented | `~/.ccr/platforms/droid/profiles.toml` | `~/.factory/settings.json` | separate settings structure |
-| Qwen CLI | Reserved / Stub | `~/.ccr/platforms/qwen/profiles.toml` | `~/.ccr/platforms/qwen/settings.json` | core implementation currently reports unsupported |
+| Platform | Status | Profile file | Settings target |
+|---|---|---|---|
+| Claude Code | Implemented | `~/.ccr/platforms/claude/profiles.toml` | `~/.claude/settings.json` |
+| Codex | Implemented | `~/.ccr/platforms/codex/profiles.toml` | `~/.codex/config.toml` |
+| Antigravity CLI | Implemented | `~/.ccr/platforms/gemini/profiles.toml` | `~/.gemini/antigravity-cli/settings.json` |
+| Factory Droid | Implemented | `~/.ccr/platforms/droid/profiles.toml` | `~/.factory/settings.json` |
+| Qwen CLI | Stub / not implemented | reserved platform directory | platform operations report unsupported |
 
-> Platform status follows `Platform::is_implemented()` and the concrete platform implementation, not merely whether a UI entry exists.
+Antigravity keeps the persisted `gemini` key; `agy` and `antigravity` are input aliases.
 
-## Quick Commands
+## Current Command Boundary
 
 ```bash
 ccr platform list
-ccr platform switch claude
-ccr platform info droid
-ccr platform init gemini  # Antigravity CLI compatibility key
+ccr platform list --json
+
+ccr claude profile list
+ccr codex profile list
+ccr current
 ```
 
-## Implemented Platform Guides
+`platform switch`, `current`, `info`, `init`, and `profile` remain parseable so CCR can return explicit migration errors; they are not current execution paths. Claude and Codex use explicit commands. Confirm other platform state through `platform list`, configuration, and the concrete implementation.
+
+## Platform Guides
 
 - [Claude Code](./claude)
 - [Codex](./codex)
 - [Antigravity CLI](./gemini)
 - [Factory Droid](./droid)
+- [Platform Command Migration](./migration)
 
-## Reserved Platforms
+Qwen has only a reserved key and partial data paths; do not present it as a switchable runtime. The current UI has platform workspaces for Claude, Codex, and Antigravity; OpenCode uses a separate tool entrypoint.
 
-- `qwen`
+## Related Pages
 
-Today that means:
-
-- the keys already exist in Unified Mode
-- the UI may expose reserved module groups
-- the docs keep stable locations for future support
-
-## Related Docs
-
-- [platform command](/en/reference/commands/platform)
+- [`platform` command](/en/reference/commands/platform)
+- [UI Module Map](/en/guide/ui-modules)
 - [CLI Workflows](/en/guide/cli-workflows)
-- [Migration Guide](/en/reference/migration)
-- [Multi-Platform Setup](/en/examples/multi-platform-setup)

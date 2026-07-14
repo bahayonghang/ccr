@@ -53,6 +53,9 @@ const mochaOverridePattern = /html:root\[data-resolved-flavor=["']mocha["']\]\s*
 // 受控例外（精确到块）：tokens.css “字体系统” :root 块是唯一允许出现真等宽字体栈字面量的位置。
 const fontTrackBlockPattern =
   /\/\* ========== 字体系统 ========== \*\/\s*:root:where\(:root\):where\(:root\) {[\s\S]*?^}/m
+// 受控例外（精确到块）：fontPreferences 的“字体预设清单”块存放用户可选字体名（数据，非样式栈）。
+const fontPresetBlockPattern =
+  /\/\* ========== 字体预设清单 ========== \*\/[\s\S]*?\/\* ========== 字体预设清单结束 ========== \*\//
 
 async function collectSourceFiles(root: string): Promise<string[]> {
   const entries = await readdir(root, { withFileTypes: true })
@@ -98,10 +101,14 @@ describe('claude editorial surface contract', () => {
     const source = await readFile('src/styles/tokens.css', 'utf8')
     const fontTrackBlock = source.match(fontTrackBlockPattern)?.[0] ?? ''
 
-    // 字体三轨分离（R5）：正文保留 MapleBright，标题走比例显示字体，数值/代码走真等宽。
-    expect(fontTrackBlock).toMatch(/--font-sans:\s*'MapleBright'/)
-    expect(fontTrackBlock).toMatch(/--font-brand:\s*'SF Pro Display'/)
-    expect(fontTrackBlock).toMatch(/--font-mono:\s*'Cascadia Code'/)
+    // 字体三轨分离（R5）：内置回退栈驻留在 -base 变量（正文保留 MapleBright，标题走比例显示字体，
+    // 数值/代码走真等宽），--font-* 默认引用各自 -base，用户自定义字体时由 JS 内联覆盖。
+    expect(fontTrackBlock).toMatch(/--font-sans-base:\s*'MapleBright'/)
+    expect(fontTrackBlock).toMatch(/--font-brand-base:\s*'SF Pro Display'/)
+    expect(fontTrackBlock).toMatch(/--font-mono-base:\s*'Cascadia Code'/)
+    expect(fontTrackBlock).toMatch(/--font-sans:\s*var\(--font-sans-base\)/)
+    expect(fontTrackBlock).toMatch(/--font-brand:\s*var\(--font-brand-base\)/)
+    expect(fontTrackBlock).toMatch(/--font-mono:\s*var\(--font-mono-base\)/)
 
     // mocha 覆盖块的字体分离已上移为全局默认，不得再在覆盖块内重复声明。
     const mochaOverride = source.match(mochaOverridePattern)?.[0] ?? ''
@@ -192,8 +199,11 @@ describe('claude editorial surface contract', () => {
 
     await Promise.all(
       filesToCheck.map(async (filePath) => {
-        // 受控例外仅剥离 tokens.css 的“字体系统” :root 块（--font-mono 真等宽栈的唯一驻地）。
-        const source = (await readFile(filePath, 'utf8')).replace(fontTrackBlockPattern, '')
+        // 受控例外：剥离 tokens.css 的“字体系统” :root 块与 fontPreferences 的“字体预设清单”块，
+        // 二者是仅有的允许出现真等宽字体名字面量的位置（前者为回退栈，后者为用户可选项数据）。
+        const source = (await readFile(filePath, 'utf8'))
+          .replace(fontTrackBlockPattern, '')
+          .replace(fontPresetBlockPattern, '')
         expect(source, filePath).not.toMatch(forbiddenLegacyFontStacks)
       })
     )

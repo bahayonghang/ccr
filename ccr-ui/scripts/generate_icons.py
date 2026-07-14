@@ -6,10 +6,12 @@
 
 from __future__ import annotations
 
+from functools import lru_cache
 from io import BytesIO
+from math import atan2, cos, hypot, pi, sin, sqrt
 from pathlib import Path
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFilter
 
 try:
     from cairosvg import svg2png as cairosvg_svg2png
@@ -20,18 +22,19 @@ except Exception:
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parents[1]
 BRANDING_DIR = REPO_ROOT / "branding"
-REFERENCE_ICON_PNG = REPO_ROOT / "icon.png"
 
 MASTER_SVG = BRANDING_DIR / "master.svg"
 APP_ICON_SVG = BRANDING_DIR / "app-icon.svg"
 DISPLAY_LOGO_SVG = BRANDING_DIR / "display-logo.svg"
 VSCODE_ICON_SVG = BRANDING_DIR / "vscode-icon.svg"
 
-BRAND_BACKGROUND = (0xFF, 0xFF, 0xFF, 0xFF)
-BRAND_DARK = (0x13, 0x22, 0x35, 0xFF)
-BRAND_SIDE = (0x11, 0x20, 0x31, 0xFF)
-BRAND_BLUE = (0x0E, 0x9F, 0xF3, 0xFF)
-BRAND_ORANGE = (0xFF, 0x58, 0x00, 0xFF)
+BRAND_BASE = (0x17, 0x12, 0x0F, 0xFF)
+BRAND_SURFACE = (0x2A, 0x22, 0x1E, 0xFF)
+BRAND_CREAM = (0xF3, 0xEA, 0xDF, 0xFF)
+BRAND_CLAY = (0xE7, 0x9A, 0x77, 0xFF)
+BRAND_SAGE = (0x7C, 0xAB, 0x82, 0xFF)
+NATIVE_RENDER_SCALE = 2
+NATIVE_RENDER_SIZE = 1024 * NATIVE_RENDER_SCALE
 
 
 def ensure_parent(path: Path) -> None:
@@ -42,18 +45,6 @@ def copy_text_asset(source: Path, target: Path) -> None:
     ensure_parent(target)
     target.write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
     print(f"Updated {target.relative_to(REPO_ROOT)}")
-
-
-def scale(value: float, size: int, base_size: int = 1024) -> int:
-    return int(round(value * size / base_size))
-
-
-def scale_points(points: list[tuple[float, float]], size: int) -> list[tuple[int, int]]:
-    return [(scale(x, size), scale(y, size)) for x, y in points]
-
-
-def scale_box(box: tuple[float, float, float, float], size: int) -> tuple[int, int, int, int]:
-    return tuple(scale(value, size) for value in box)
 
 
 def append_cubic(
@@ -84,128 +75,158 @@ def append_cubic(
 
 def rounded_line(
     draw: ImageDraw.ImageDraw,
-    points: list[tuple[int, int]],
+    points: list[tuple[float, float]],
     width: int,
     color: tuple[int, int, int, int],
 ) -> None:
-    draw.line(points, fill=color, width=width, joint="curve")
     radius = width // 2
-    for x, y in (points[0], points[-1]):
+    for start, end in zip(points, points[1:]):
+        draw.line((start, end), fill=color, width=width)
+    for x, y in points:
         draw.ellipse((x - radius, y - radius, x + radius, y + radius), fill=color)
 
 
-def draw_ring(
-    draw: ImageDraw.ImageDraw,
-    center: tuple[float, float],
+def arc_points(
+    start: tuple[float, float],
+    end: tuple[float, float],
     radius: float,
-    width: float,
-    color: tuple[int, int, int, int],
-    size: int,
-) -> None:
-    cx, cy = center
-    half_width = width / 2
-    draw.ellipse(
-        scale_box((cx - radius - half_width, cy - radius - half_width, cx + radius + half_width, cy + radius + half_width), size),
-        outline=color,
-        width=scale(width, size),
+    large_arc: bool,
+    sweep: bool,
+    steps: int = 96,
+) -> list[tuple[float, float]]:
+    x1, y1 = start
+    x2, y2 = end
+    chord = hypot(x2 - x1, y2 - y1)
+    if chord == 0:
+        return [start]
+
+    radius = max(radius, chord / 2)
+    midpoint = ((x1 + x2) / 2, (y1 + y2) / 2)
+    height = sqrt(max(radius**2 - (chord / 2) ** 2, 0))
+    perpendicular = (-(y2 - y1) / chord, (x2 - x1) / chord)
+    centers = [
+        (midpoint[0] + sign * height * perpendicular[0], midpoint[1] + sign * height * perpendicular[1])
+        for sign in (-1, 1)
+    ]
+
+    selected: tuple[float, float, float, float] | None = None
+    for center_x, center_y in centers:
+        start_angle = atan2(y1 - center_y, x1 - center_x)
+        end_angle = atan2(y2 - center_y, x2 - center_x)
+        if sweep:
+            delta = (end_angle - start_angle) % (2 * pi)
+        else:
+            delta = -((start_angle - end_angle) % (2 * pi))
+        if (abs(delta) > pi) == large_arc:
+            selected = (center_x, center_y, start_angle, delta)
+            break
+
+    if selected is None:
+        raise ValueError("Unable to resolve SVG arc geometry")
+
+    center_x, center_y, start_angle, delta = selected
+    return [
+        (
+            center_x + radius * cos(start_angle + delta * step / steps),
+            center_y + radius * sin(start_angle + delta * step / steps),
+        )
+        for step in range(steps + 1)
+    ]
+
+
+def brand_gradient(size: int) -> Image.Image:
+    gradient = Image.new("RGBA", (size, size))
+    draw = ImageDraw.Draw(gradient)
+    for y in range(size):
+        t = y / max(size - 1, 1)
+        color = tuple(
+            round(BRAND_SURFACE[channel] + (BRAND_BASE[channel] - BRAND_SURFACE[channel]) * t)
+            for channel in range(3)
+        ) + (0xFF,)
+        draw.line((0, y, size, y), fill=color)
+    return gradient
+
+
+@lru_cache(maxsize=2)
+def render_native_brand_master(variant: str) -> Image.Image:
+    if variant == "app":
+        tile_bounds = (48, 48, 976, 976)
+        tile_radius = 224
+        border_bounds = (68, 68, 956, 956)
+        border_radius = 205
+    elif variant == "display":
+        tile_bounds = (32, 32, 992, 992)
+        tile_radius = 236
+        border_bounds = (54, 54, 970, 970)
+        border_radius = 214
+    else:
+        raise ValueError(f"Unknown brand icon variant: {variant}")
+
+    def scaled_points(points: list[tuple[float, float]]) -> list[tuple[float, float]]:
+        return [(x * NATIVE_RENDER_SCALE, y * NATIVE_RENDER_SCALE) for x, y in points]
+
+    def scaled_box(box: tuple[int, int, int, int]) -> tuple[int, int, int, int]:
+        return tuple(value * NATIVE_RENDER_SCALE for value in box)
+
+    canvas = Image.new("RGBA", (NATIVE_RENDER_SIZE, NATIVE_RENDER_SIZE), (0, 0, 0, 0))
+    tile_mask = Image.new("L", canvas.size, 0)
+    ImageDraw.Draw(tile_mask).rounded_rectangle(
+        scaled_box(tile_bounds),
+        radius=tile_radius * NATIVE_RENDER_SCALE,
+        fill=0xFF,
     )
+    canvas.paste(brand_gradient(NATIVE_RENDER_SIZE), mask=tile_mask)
+
+    border = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
+    ImageDraw.Draw(border).rounded_rectangle(
+        scaled_box(border_bounds),
+        radius=border_radius * NATIVE_RENDER_SCALE,
+        outline=BRAND_CREAM[:3] + (23,),
+        width=6 * NATIVE_RENDER_SCALE,
+    )
+    canvas.alpha_composite(border)
+
+    outer_c = scaled_points(arc_points((735, 280), (735, 744), 300, large_arc=True, sweep=False, steps=144))
+    shadow = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
+    rounded_line(
+        ImageDraw.Draw(shadow),
+        [(x, y + 16 * NATIVE_RENDER_SCALE) for x, y in outer_c],
+        106 * NATIVE_RENDER_SCALE,
+        (0, 0, 0, 51),
+    )
+    canvas.alpha_composite(shadow.filter(ImageFilter.GaussianBlur(22 * NATIVE_RENDER_SCALE)))
+
+    draw = ImageDraw.Draw(canvas)
+    rounded_line(draw, outer_c, 106 * NATIVE_RENDER_SCALE, BRAND_CREAM)
+
+    upper_route = scaled_points(arc_points((650, 390), (372, 512), 176, large_arc=False, sweep=False))
+    lower_route = scaled_points(arc_points((372, 512), (650, 634), 176, large_arc=False, sweep=False))
+    rounded_line(draw, upper_route, 72 * NATIVE_RENDER_SCALE, BRAND_CLAY)
+    rounded_line(draw, lower_route, 72 * NATIVE_RENDER_SCALE, BRAND_SAGE)
+
+    upper_convergence = [(650, 390)]
+    append_cubic(upper_convergence, (650, 442), (674, 472), (712, 492))
+    lower_convergence = [(650, 634)]
+    append_cubic(lower_convergence, (650, 582), (674, 552), (712, 532))
+    rounded_line(draw, scaled_points(upper_convergence), 72 * NATIVE_RENDER_SCALE, BRAND_CLAY)
+    rounded_line(draw, scaled_points(lower_convergence), 72 * NATIVE_RENDER_SCALE, BRAND_SAGE)
+    rounded_line(
+        draw,
+        scaled_points([(706, 430), (796, 512), (706, 594)]),
+        68 * NATIVE_RENDER_SCALE,
+        BRAND_CREAM,
+    )
+    return canvas
 
 
 def render_native_brand_icon(size: int, variant: str = "app") -> Image.Image:
-    del variant
-
-    render_size = 1024 if size < 512 else size
-    canvas = Image.new("RGBA", (render_size, render_size), BRAND_BACKGROUND)
-    draw = ImageDraw.Draw(canvas)
-
-    left_side = [(426, 258), (323, 258)]
-    append_cubic(left_side, (221, 258), (148, 335), (148, 443))
-    append_cubic(left_side, (148, 551), (221, 628), (323, 628))
-    left_side.extend([(426, 628), (359, 561), (322, 561)])
-    append_cubic(left_side, (256, 561), (211, 512), (211, 443))
-    append_cubic(left_side, (211, 374), (256, 325), (322, 325))
-    left_side.extend([(359, 325)])
-
-    right_top = [(598, 258), (701, 258)]
-    append_cubic(right_top, (803, 258), (876, 335), (876, 443))
-    right_top.append((813, 443))
-    append_cubic(right_top, (813, 374), (768, 325), (702, 325))
-    right_top.extend([(665, 325)])
-
-    right_bottom = [(665, 561), (702, 561)]
-    append_cubic(right_bottom, (768, 561), (813, 512), (813, 443))
-    right_bottom.append((876, 443))
-    append_cubic(right_bottom, (876, 551), (803, 628), (701, 628))
-    right_bottom.extend([(598, 628)])
-
-    for shape in (left_side, right_top, right_bottom):
-        draw.polygon(scale_points(shape, render_size), fill=BRAND_SIDE)
-
-    blue_width = scale(31, render_size)
-    orange_width = scale(31, render_size)
-
-    draw_ring(draw, (512, 197), 30, 20, BRAND_BLUE, render_size)
-    draw_ring(draw, (293, 443), 24, 20, BRAND_BLUE, render_size)
-
-    blue_left = [(512, 227), (512, 275)]
-    append_cubic(blue_left, (512, 296), (500, 305), (482, 316))
-    append_cubic(blue_left, (435, 342), (405, 383), (405, 433))
-    blue_left.extend([(405, 604), (430, 631)])
-    rounded_line(draw, scale_points(blue_left, render_size), blue_width, BRAND_BLUE)
-
-    blue_right = [(512, 275)]
-    append_cubic(blue_right, (589, 303), (632, 358), (632, 429))
-    append_cubic(blue_right, (632, 478), (603, 508), (558, 542))
-    append_cubic(blue_right, (535, 559), (522, 579), (522, 603))
-    rounded_line(draw, scale_points(blue_right, render_size), blue_width, BRAND_BLUE)
-    rounded_line(draw, scale_points([(317, 443), (405, 443)], render_size), blue_width, BRAND_BLUE)
-
-    draw_ring(draw, (735, 443), 24, 20, BRAND_ORANGE, render_size)
-    draw_ring(draw, (522, 666), 24, 20, BRAND_ORANGE, render_size)
-    rounded_line(draw, scale_points([(632, 443), (711, 443)], render_size), orange_width, BRAND_ORANGE)
-    rounded_line(draw, scale_points([(522, 604), (522, 642)], render_size), orange_width, BRAND_ORANGE)
-    rounded_line(draw, scale_points([(522, 604), (656, 734)], render_size), orange_width, BRAND_ORANGE)
-
-    draw.polygon(scale_points([(449, 443), (501, 404), (501, 482)], render_size), fill=BRAND_DARK)
-    draw.polygon(scale_points([(575, 443), (523, 404), (523, 482)], render_size), fill=BRAND_DARK)
-
-    for offset in (0, 168):
-        draw.rectangle(scale_box((286 + offset, 740, 418 + offset, 762), render_size), fill=BRAND_DARK)
-        draw.rectangle(scale_box((286 + offset, 740, 306 + offset, 850), render_size), fill=BRAND_DARK)
-        draw.rectangle(scale_box((286 + offset, 828, 418 + offset, 850), render_size), fill=BRAND_DARK)
-
-    draw.rectangle(scale_box((622, 740, 652, 850), render_size), fill=BRAND_DARK)
-    draw.rectangle(scale_box((622, 740, 712, 762), render_size), fill=BRAND_DARK)
-    draw.rectangle(scale_box((622, 801, 716, 823), render_size), fill=BRAND_DARK)
-    draw.rectangle(scale_box((704, 740, 754, 801), render_size), fill=BRAND_DARK)
-    draw.polygon(scale_points([(674, 823), (718, 823), (760, 850), (712, 850)], render_size), fill=BRAND_DARK)
-    draw.rectangle(scale_box((652, 762, 704, 801), render_size), fill=BRAND_BACKGROUND)
-
-    if render_size != size:
-        canvas = canvas.resize((size, size), Image.Resampling.LANCZOS)
-
-    return canvas
+    master = render_native_brand_master(variant)
+    if size == master.width:
+        return master.copy()
+    return master.resize((size, size), Image.Resampling.LANCZOS)
 
 
-def load_reference_icon(svg_path: Path) -> Image.Image:
-    if not REFERENCE_ICON_PNG.exists():
-        return render_svg(svg_path, 1024)
-
-    image = Image.open(REFERENCE_ICON_PNG).convert("RGBA")
-    alpha_bbox = image.getchannel("A").getbbox()
-    bbox = alpha_bbox or image.getbbox()
-    if not bbox:
-        raise ValueError(f"Reference icon has no visible pixels: {REFERENCE_ICON_PNG}")
-    cropped = image.crop(bbox)
-    side = max(cropped.size)
-    pad = int(round(side * 0.12))
-    canvas = Image.new("RGBA", (side + pad * 2, side + pad * 2), (0, 0, 0, 0))
-    offset = ((canvas.width - cropped.width) // 2, (canvas.height - cropped.height) // 2)
-    canvas.alpha_composite(cropped, offset)
-    return canvas
-
-
-def render_svg(svg_path: Path, size: int, fallback_image: Image.Image | None = None) -> Image.Image:
+def render_svg(svg_path: Path, size: int) -> Image.Image:
     if cairosvg_svg2png is not None:
         png_bytes = cairosvg_svg2png(
             url=str(svg_path),
@@ -217,20 +238,17 @@ def render_svg(svg_path: Path, size: int, fallback_image: Image.Image | None = N
     if svg_path in {APP_ICON_SVG, DISPLAY_LOGO_SVG}:
         variant = "display" if svg_path == DISPLAY_LOGO_SVG else "app"
         return render_native_brand_icon(size, variant=variant)
-    if fallback_image is None:
-        raise RuntimeError(f"SVG rasterizer unavailable and no fallback image for {svg_path}")
-    return fallback_image.resize((size, size), Image.Resampling.LANCZOS)
+    raise RuntimeError(f"SVG rasterizer unavailable for {svg_path}")
 
 
 def render_with_padding(
     svg_path: Path,
     size: int,
     padding_ratio: float,
-    fallback_image: Image.Image | None = None,
 ) -> Image.Image:
     canvas = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     inner_size = int(round(size * (1 - padding_ratio * 2)))
-    inner = render_svg(svg_path, inner_size, fallback_image=fallback_image)
+    inner = render_svg(svg_path, inner_size)
     offset = ((size - inner_size) // 2, (size - inner_size) // 2)
     canvas.alpha_composite(inner, offset)
     return canvas
@@ -249,9 +267,8 @@ def save_svg_preview(
     svg_path: Path,
     target: Path,
     size: int,
-    fallback_image: Image.Image | None = None,
 ) -> None:
-    save_png(render_svg(svg_path, size, fallback_image=fallback_image), target)
+    save_png(render_svg(svg_path, size), target)
 
 
 def save_ico(image: Image.Image, target: Path) -> None:
@@ -280,21 +297,17 @@ def export_brand_sources() -> None:
 
 
 def export_runtime_assets() -> None:
-    app_fallback = load_reference_icon(APP_ICON_SVG)
-    display_fallback = load_reference_icon(DISPLAY_LOGO_SVG)
-
-    save_svg_preview(APP_ICON_SVG, REPO_ROOT / "icon.png", 512, app_fallback)
-    save_svg_preview(APP_ICON_SVG, REPO_ROOT / "ccr-ui" / "public" / "icons" / "icon.png", 512, app_fallback)
-    save_svg_preview(DISPLAY_LOGO_SVG, REPO_ROOT / "ccr-ui" / "public" / "icons" / "logo.png", 1024, display_fallback)
-    save_svg_preview(DISPLAY_LOGO_SVG, REPO_ROOT / "ccr-ui" / "src" / "assets" / "logo.png", 640, display_fallback)
-    save_svg_preview(APP_ICON_SVG, REPO_ROOT / "docs" / "public" / "favicon.png", 256, app_fallback)
-    save_svg_preview(APP_ICON_SVG, REPO_ROOT / "ccr-vscode" / "icon.png", 256, app_fallback)
+    save_svg_preview(APP_ICON_SVG, REPO_ROOT / "icon.png", 512)
+    save_svg_preview(APP_ICON_SVG, REPO_ROOT / "ccr-ui" / "public" / "icons" / "icon.png", 512)
+    save_svg_preview(DISPLAY_LOGO_SVG, REPO_ROOT / "ccr-ui" / "public" / "icons" / "logo.png", 1024)
+    save_svg_preview(DISPLAY_LOGO_SVG, REPO_ROOT / "ccr-ui" / "src" / "assets" / "logo.png", 640)
+    save_svg_preview(APP_ICON_SVG, REPO_ROOT / "docs" / "public" / "favicon.png", 256)
+    save_svg_preview(APP_ICON_SVG, REPO_ROOT / "ccr-vscode" / "icon.png", 256)
 
 
 def export_tauri_bundle_assets() -> None:
     tauri_icons = REPO_ROOT / "ccr-ui" / "src-tauri" / "icons"
-    app_fallback = load_reference_icon(APP_ICON_SVG)
-    app_1024 = render_svg(APP_ICON_SVG, 1024, fallback_image=app_fallback)
+    app_1024 = render_svg(APP_ICON_SVG, 1024)
 
     png_targets = {
         "32x32.png": 32,
@@ -316,7 +329,7 @@ def export_tauri_bundle_assets() -> None:
     }
 
     for name, size in png_targets.items():
-        save_png(render_svg(APP_ICON_SVG, size, fallback_image=app_fallback), tauri_icons / name)
+        save_png(render_svg(APP_ICON_SVG, size), tauri_icons / name)
 
     save_ico(app_1024, tauri_icons / "icon.ico")
     save_icns(app_1024, tauri_icons / "icon.icns")
@@ -324,7 +337,6 @@ def export_tauri_bundle_assets() -> None:
 
 def export_android_assets() -> None:
     android_root = REPO_ROOT / "ccr-ui" / "src-tauri" / "icons" / "android"
-    app_fallback = load_reference_icon(APP_ICON_SVG)
     launcher_sizes = {
         "mipmap-mdpi": 48,
         "mipmap-hdpi": 72,
@@ -341,15 +353,16 @@ def export_android_assets() -> None:
     }
 
     for bucket, size in launcher_sizes.items():
-        image = render_svg(APP_ICON_SVG, size, fallback_image=app_fallback)
+        image = render_svg(APP_ICON_SVG, size)
         save_png(image, android_root / bucket / "ic_launcher.png")
         save_png(image, android_root / bucket / "ic_launcher_round.png")
 
     for bucket, size in foreground_sizes.items():
-        foreground = render_with_padding(APP_ICON_SVG, size, padding_ratio=0.14, fallback_image=app_fallback)
+        foreground = render_with_padding(APP_ICON_SVG, size, padding_ratio=0.14)
         save_png(foreground, android_root / bucket / "ic_launcher_foreground.png")
 
-    background_xml = """<resources>\n  <color name=\"ic_launcher_background\">#FFFFFF</color>\n</resources>\n"""
+    background_color = "#{:02X}{:02X}{:02X}".format(*BRAND_BASE[:3])
+    background_xml = f"""<resources>\n  <color name=\"ic_launcher_background\">{background_color}</color>\n</resources>\n"""
     background_path = android_root / "values" / "ic_launcher_background.xml"
     ensure_parent(background_path)
     background_path.write_text(background_xml, encoding="utf-8")
@@ -358,7 +371,6 @@ def export_android_assets() -> None:
 
 def export_ios_assets() -> None:
     ios_root = REPO_ROOT / "ccr-ui" / "src-tauri" / "icons" / "ios"
-    app_fallback = load_reference_icon(APP_ICON_SVG)
     ios_targets = {
         "AppIcon-20x20@1x.png": 20,
         "AppIcon-20x20@2x.png": 40,
@@ -381,7 +393,7 @@ def export_ios_assets() -> None:
     }
 
     for name, size in ios_targets.items():
-        save_png(render_svg(APP_ICON_SVG, size, fallback_image=app_fallback), ios_root / name)
+        save_png(render_svg(APP_ICON_SVG, size), ios_root / name)
 
 
 def main() -> None:

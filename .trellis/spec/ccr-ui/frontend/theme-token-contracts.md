@@ -84,6 +84,84 @@ Pair the override with a smoke assertion that extracts this exact block and chec
 
 ---
 
+## Scenario: Font preference override + fallback stack (`--font-*-base`)
+
+### 1. Scope / Trigger
+
+- Trigger: changing the font tracks in `ccr-ui/src/styles/tokens.css`, `ccr-ui/src/utils/fontPreferences.ts`, the font controls in `AppSettingsView.vue`, the `index.html` boot-script font logic, or the `apple-glass-surface-contract` font guards.
+- Introduced by `07-13-ccr-ui-font-settings`: user-selectable interface font (sans + brand) and code font (mono) that prepend to the built-in stack and fall back automatically on a missing font or missing glyph (notably CJK), Codex-style. Font preference is a fourth appearance axis alongside `data-theme`/`data-flavor`/`data-accent`, but it is applied as an inline CSS custom property, not a `data-*` attribute.
+
+### 2. Signatures
+
+- Font util: `ccr-ui/src/utils/fontPreferences.ts` — `sanitizeFontFamily`, `applyFontsToDocument` / `applyUiFontToDocument` / `applyCodeFontToDocument`, `readStoredUiFont` / `readStoredCodeFont` / `persist*`, `applyInitialFonts`, `UI_FONT_PRESETS` / `CODE_FONT_PRESETS`.
+- Font tracks in `tokens.css`: `--font-{sans,brand,mono}-base` hold the built-in stacks; `--font-{sans,brand,mono}` default to `var(--font-*-base)`.
+- Store: `ccr-ui/src/stores/shellPreferences.ts` → `uiFont` / `codeFont`, `setUiFont` / `setCodeFont`.
+- First paint: `ccr-ui/index.html` "主题预初始化" IIFE.
+- Storage keys: `ccr-font-ui`, `ccr-font-code`.
+- Guards: `ccr-ui/tests/font-preferences.smoke.test.ts`, `ccr-ui/tests/theme-bootstrap.smoke.test.ts`, `ccr-ui/tests/apple-glass-surface-contract.smoke.test.ts`.
+
+### 3. Contracts
+
+- The built-in fallback stack lives only in `--font-*-base`; `--font-*` defaults to `var(--font-*-base)`. Never re-inline a literal font stack into `--font-*`.
+- Override = inline custom property on `document.documentElement`: `--font-sans` / `--font-brand` = `"<uiFont>", var(--font-*-base)`; `--font-mono` = `"<codeFont>", var(--font-mono-base)`. Interface font drives sans + brand; code font drives mono only. Keep the two channels independent.
+- Reset (empty / system default) = `removeProperty` the inline var so it resolves back to `var(--font-*-base)`. Do not write the base literal to clear an override.
+- User input must pass `sanitizeFontFamily` before entering any CSS var: strip `" ' \` \ ; { } < > ( ) ,` plus control chars (`\u0000`–`\u001f`, `\u007f`), collapse whitespace, cap at 64 chars; empty result = default (no override). Sanitize runs on both persist and apply, and the boot script repeats a lightweight strip because `localStorage` can be hand-edited.
+- Font preferences are localStorage-only, like theme/flavor/accent. Do not route them through the Tauri `DesktopShellPreferences`.
+- First paint: the `index.html` boot IIFE must apply the same prepend before any CSS loads or the app flashes the default font (FOUC). `var(--font-*-base)` inside the inline value resolves lazily once `tokens.css` loads, so setting it pre-CSS is safe.
+- Preset font-name literals (which include otherwise-forbidden mono names such as Cascadia Code / JetBrains Mono / Consolas) live ONLY inside the `/* ========== 字体预设清单 ========== */ … /* ========== 字体预设清单结束 ========== */` block in `fontPreferences.ts` — a controlled exception (`fontPresetBlockPattern`) in the legacy-mono-stack guard. Do not scatter font-name literals into components, i18n, or styles.
+- Preset literals are exact OS-visible family names, not aliases. Keep `Source Han Sans SC`, `Source Han Sans CN`, and `Source Han Serif SC VF` as distinct interface presets: SC/CN identify different regional family registrations, while Serif is a different typeface category. Adding one must not replace another, and the app still falls back silently when a family is unavailable on the current host.
+- i18n copy for the font controls must not embed `{`, `}`, or `|` (vue-i18n message-compiler metacharacters). A code preview like `() => { 0O il1 }` is parsed as an invalid named interpolation and fails `test:i18n`. Keep preview samples brace/pipe-free.
+
+### 4. Validation & Error Matrix
+
+- Literal font stack written into `--font-*` instead of `var(--font-*-base)` -> `apple-glass-surface-contract.smoke.test.ts` font-track assertion fails and reset can no longer restore cleanly.
+- User font applied without `sanitizeFontFamily` -> CSS-injection / broken quoted string; `font-preferences.smoke.test.ts` sanitize cases fail.
+- Font-name literal added to a component/i18n/style outside the preset block -> `apple-glass-surface-contract.smoke.test.ts` legacy-mono-stack guard fails.
+- Source Han regional or serif family used as a replacement for another family -> valid host installations lose their preset or silently fall back; `font-preferences.smoke.test.ts` must assert that all three exact family names remain present and unique.
+- New font i18n string containing `{` / `}` / `|` -> `test:i18n` "messages compile with vue-i18n" critical failure (both locales).
+- Boot script not updated for a new font channel -> first paint flashes the default font; `theme-bootstrap.smoke.test.ts` first-paint font assertion fails.
+- Font preference persisted to a backend/bundle key instead of `ccr-font-ui` / `ccr-font-code` -> not applied at boot; the page silently keeps the built-in stack and the evidence is invalid.
+
+### 5. Good/Base/Bad Cases
+
+- Good: `applyFontsToDocument('Inter', 'JetBrains Mono')` sets `--font-sans`/`--font-brand` to `"Inter", var(--font-*-base)` and `--font-mono` to `"JetBrains Mono", var(--font-mono-base)`; empty strings `removeProperty` all three.
+- Good: add a new dropdown option inside the marked preset block; the guard's `fontPresetBlockPattern` strips it automatically, no test edit needed.
+- Good: add `Source Han Sans CN` and `Source Han Serif SC VF` beside the existing `Source Han Sans SC`, then lock the three distinct literals in the focused font-preference test.
+- Base: leave the `--font-*-base` stacks (MapleBright / SF Pro Display / Cascadia Code) unchanged when a task only adds user overrides.
+- Bad: `root.style.setProperty('--font-sans', "'MyFont', 'MapleBright', …")` re-inlining the whole stack instead of `"MyFont", var(--font-sans-base)`.
+- Bad: a preview i18n sample `const x = () => { 0O il1 }` (breaks vue-i18n compilation).
+- Bad: hardcoding `JetBrains Mono` in the `AppSettingsView.vue` template/script or an i18n placeholder instead of the preset block.
+- Bad: replacing `Source Han Sans SC` with `Source Han Serif SC VF` because one Windows host has the latter installed; this conflates regional naming with serif/sans typeface choice.
+
+### 6. Tests Required
+
+- `cd ccr-ui && bun run type-check && bun run lint`
+- `cd ccr-ui && bun run test:i18n` (font preview/placeholder copy must compile under vue-i18n).
+- `cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/font-preferences.smoke.test.ts tests/theme-bootstrap.smoke.test.ts tests/apple-glass-surface-contract.smoke.test.ts tests/app-settings.smoke.test.ts`
+- For visual work: in the web preview, pick a present font (applies), a missing font (falls back, no tofu), and system default (restores), and confirm the first paint has no font flash.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```js
+root.style.setProperty('--font-sans', "'MyFont', 'MapleBright', 'PingFang SC', sans-serif")
+```
+
+Re-inlines the fallback stack, so a later `--font-sans-base` change silently diverges and reset cannot restore cleanly.
+
+#### Correct
+
+```js
+root.style.setProperty('--font-sans', '"MyFont", var(--font-sans-base)')
+// reset back to the built-in stack:
+root.style.removeProperty('--font-sans')
+```
+
+Prepend the user font and keep the single source of truth in `--font-sans-base`.
+
+---
+
 ## Scenario: Three-tier material glass budget (`--material-glass-*`)
 
 ### 1. Scope / Trigger

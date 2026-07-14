@@ -1,163 +1,117 @@
-# Architecture
+# CCR Architecture
 
-> This page describes the current code truth. CCR is a Rust workspace built around `crates/ccr`, `crates/ccr-db`, and `crates/ccr-types`. The built-in legacy Web API has been removed and is not part of the current runtime surface.
+CCR combines 13 Rust workspace crates, a Vue 3 frontend, and a Tauri desktop shell. The installable `ccr` binary owns startup; separate crates own CLI, TUI, configuration, persistence, sync, and platform domains.
 
-## Overview
+## Workspace Composition
 
-- `crates/ccr`: main CLI crate for command entrypoints, platform implementations, config writes, sync, session indexing, TUI, and the `ccr ui` bridge
-- `crates/ccr-db`: desktop-side database and service crate for SQLite, CheckIn, usage import, log persistence, and UI state
-- `crates/ccr-types`: shared serde types and compatibility rules reused across crates
-- `ccr-ui/src-tauri`: desktop shell that links against these crates directly instead of calling an internal HTTP server
+| Layer | Crate | Responsibility |
+|---|---|---|
+| Entrypoint | `crates/ccr` | binary startup, feature composition, CLI/TUI launchers, compatibility re-exports |
+| Interaction | `crates/ccr-cli` | Clap definitions, dispatch, user-visible output, CLI application orchestration |
+| Interaction | `crates/ccr-tui` | Ratatui terminal UI and Claude/Codex interactive entrypoints |
+| Foundation | `crates/ccr-core` | errors, locking, atomic writes, HTTP, logging, shared application infrastructure |
+| Configuration | `crates/ccr-config` | platform/profile/settings types, registry, and conversion contracts |
+| Persistence | `crates/ccr-store` | CLI history, session index, and SQLite queries |
+| Platform | `crates/ccr-codex` | Codex auth, runtime, quota, usage, and session domain |
+| Platform | `crates/ccr-sync` | WebDAV configuration, folder registry, and sync operations |
+| Platform | `crates/ccr-skills` | skills, builtin prompts, and MCP preset domain |
+| Desktop data | `crates/ccr-db` | desktop SQLite, repositories, logs, and data services |
+| Desktop domain | `crates/ccr-checkin` | check-in business facade backed by `ccr-db` data services |
+| Usage | `crates/ccr-usage` | read-only llmusage projections and optional TypeScript bindings |
+| Contracts | `crates/ccr-types` | cross-crate serde types, compatibility fields, and shared DTOs |
 
-## Workspace Dependencies
+See the [Crate Map](./internals/crate-map) for expanded ownership notes.
+
+## Dependency Direction
 
 ```mermaid
 flowchart LR
-  UI[ccr-ui / src-tauri]
-  CCR[crates/ccr]
-  DB[crates/ccr-db]
-  TYPES[crates/ccr-types]
-
-  UI --> CCR
-  UI --> DB
-  UI --> TYPES
-  CCR --> TYPES
+  BIN[ccr binary] --> CLI[ccr-cli]
+  BIN --> TUI[ccr-tui]
+  TUI --> CLI
+  TUI --> CODEX[ccr-codex]
+  TUI --> USAGE[ccr-usage]
+  CLI --> CORE[ccr-core]
+  CLI --> CONFIG[ccr-config]
+  CLI --> STORE[ccr-store]
+  CLI --> CODEX
+  CLI --> SYNC[ccr-sync]
+  CLI --> SKILLS[ccr-skills]
+  DESKTOP[ccr-ui/src-tauri] --> CLI
+  DESKTOP --> DB[ccr-db]
+  DESKTOP --> CHECKIN[ccr-checkin]
+  DESKTOP --> USAGE
+  CHECKIN --> DB
+  CONFIG --> TYPES[ccr-types]
+  STORE --> TYPES
+  CODEX --> TYPES
   DB --> TYPES
 ```
 
-## Repository Layout
+Entrypoints and adapters depend on shared domains and contracts. New domain behavior should not accumulate in `crates/ccr` or Vue views.
+
+## CLI And TUI
+
+`crates/ccr/src/main.rs` assembles launchers. Command definitions and dispatch live under `crates/ccr-cli/src/cli/`; handlers live under `crates/ccr-cli/src/commands/`. No-subcommand execution can enter the TUI, and `ccr claude`, `ccr codex`, and `ccr opencode` expose focused interactive entrypoints.
+
+`ccr-tui` owns terminal rendering. `ccr-cli` should call configuration, Codex, sync, skills, and store crates instead of duplicating their lower-level behavior.
+
+## CCR UI And Tauri
+
+`ccr-ui/src/` is the Vue application. `ccr-ui/src-tauri/` registers Rust invoke handlers and links workspace crates directly. The current desktop architecture does not use the removed built-in HTTP API.
 
 ```text
-ccr/
-├── Cargo.toml
-├── crates/
-│   ├── ccr/
-│   │   ├── src/
-│   │   │   ├── application/
-│   │   │   ├── cli/
-│   │   │   ├── commands/
-│   │   │   ├── core/
-│   │   │   ├── managers/
-│   │   │   ├── models/
-│   │   │   ├── platforms/
-│   │   │   ├── services/
-│   │   │   ├── sessions/
-│   │   │   ├── storage/
-│   │   │   ├── sync/
-│   │   │   ├── tui/        # gated by the `tui` feature
-│   │   │   └── utils/
-│   │   └── tests/
-│   ├── ccr-db/
-│   │   └── src/
-│   │       ├── core/
-│   │       ├── database/
-│   │       ├── managers/
-│   │       ├── models/
-│   │       └── services/
-│   └── ccr-types/
-│       └── src/
-├── ccr-ui/
-│   ├── src/
-│   └── src-tauri/
-├── docs/
-├── examples/
-└── scripts/
+Vue view/store
+  -> ccr-ui/src/api/domains/*
+  -> Tauri invoke
+  -> src-tauri/src/commands/*
+  -> workspace crate or host integration
 ```
 
-## Internal Layering in `crates/ccr`
+The UI and CLI share `~/.ccr/` data and platform configuration. The UI is a graphical entrypoint into the same system, not a second source of truth.
 
-```mermaid
-flowchart TD
-  Entry[main.rs / cli]
-  Cmd[commands]
-  App[application]
-  Svc[services]
-  Mgr[managers]
-  Sync[sync + sessions + storage]
-  Plat[platforms]
-  Base[core + utils + models]
-  Tui[tui feature]
+## Data Ownership
 
-  Entry --> Cmd
-  Entry --> Tui
-  Cmd --> App
-  Cmd --> Svc
-  Cmd --> Sync
-  App --> Svc
-  Svc --> Mgr
-  Svc --> Plat
-  Sync --> Mgr
-  Sync --> Base
-  Mgr --> Base
-  Plat --> Base
-  Tui --> Svc
-  Tui --> Plat
-```
+- `ccr-config` owns profile/settings serialization and conversion contracts.
+- `ccr-store` owns CLI history and session-index queries.
+- `ccr-db` owns the desktop database, repositories, and services such as logs.
+- `ccr-usage` reads supported llmusage projections; it does not own upstream database writes or migrations.
+- `ccr-types` owns compatibility behavior; read/write round trips must not silently drop unknown user fields.
 
-Important boundaries:
+## Key Runtime Flows
 
-- `cli/` defines arguments and dispatch rules
-- `commands/` implements user-facing command behavior
-- `services/` orchestrates cross-manager and cross-platform work
-- `managers/` owns config, pricing, history, skills, and MCP preset persistence
-- `sessions/` + `storage/` handle session indexing and local SQLite-backed storage
-- `sync/` owns WebDAV configuration and folder sync flows
-- `tui/` is optional at compile time and enabled by default
+### Profile operations
 
-## `crates/ccr-db` and `crates/ccr-types`
-
-### `ccr-db`
-
-- `database/`: connection pool, schema, migration, repositories
-- `managers/checkin/`: account, provider, balance, record, and WAF cookie management
-- `services/checkin_service.rs`: check-in execution, balance queries, batch operations, and daily stats
-- `services/usage_import_service.rs`: token and cost extraction from Codex and Gemini session files
-- `services/log_persistence.rs`: persisted logs and monitoring-related data
-
-### `ccr-types`
-
-- `ClaudeSettings`: shared Claude settings model
-- `LoginState`: Codex auth login state models
-- `MonitoringEntry` / `FrontendLogInput`: monitoring and frontend log payloads
-
-This crate is about compatibility rather than business orchestration:
-
-- preserve stable serialization behavior
-- accept older input shapes
-- keep unknown fields instead of dropping user-managed config
-
-## Current Key Flows
-
-### Profile switching
-
-1. `main.rs` parses CLI arguments
-2. `cli/dispatch.rs` routes to the concrete command
-3. `ConfigService` loads the registry and the current platform profile set
-4. `SettingsService` acquires locks, creates backups, and writes the target settings
-5. `HistoryService` records the masked operation history
+1. Clap parses arguments into `Commands` or platform subcommands.
+2. `ccr-cli` dispatches to Claude, Codex, or platform handlers.
+3. Domain crates load and validate profiles.
+4. Write paths preserve locks, backups, and atomic-write behavior.
+5. History records a masked result.
 
 ### `ccr ui`
 
-1. `dispatch_ui` enters `UiService`
-2. `UiService` probes for a nearby `ccr-ui/` checkout first
-3. It falls back to `~/.ccr/ccr-ui/`
-4. If still missing, it goes through the GitHub download or update flow
+1. `ccr-cli` enters the UI service.
+2. The service looks for a development checkout or `~/.ccr/ccr-ui/` installation.
+3. A missing installation enters the download/update path.
+4. The Vue/Tauri application continues to reuse the same workspace domains.
 
-### Session indexing
+### Usage
 
-1. `ccr sessions ...` enters the sessions command group
-2. `SessionIndexer` scans Claude, Codex, Gemini, and related session files
-3. `SessionStore` persists searchable summaries and statistics locally
+1. llmusage owns collection and database writes.
+2. `ccr-usage` and the desktop adapter read supported projections.
+3. Tauri commands return stable DTOs.
+4. Vue usage pages render capability, synchronization, and error states.
 
-## Design Constraints
+## Constraints
 
-- there is no current `src/web/**` module and no supported built-in HTTP API
-- `ccr ui` is a graphical entrypoint, not a second configuration system
-- CCR UI and the CLI share the same config, history, and platform truth
+- There is no supported built-in web-server command or public HTTP API.
+- Production paths must not print tokens, account secrets, or unmasked configuration.
+- Configuration writes must preserve backup, locking, and atomic-write semantics.
+- CLI, TUI, and UI representations of one concept should depend on shared types or a domain crate.
 
-## See Also
+## Related Pages
 
-- [Crate Map](/en/reference/internals/crate-map)
-- [Runtime Flows](/en/reference/internals/runtime-flows)
-- [Command Reference](/en/reference/commands/)
-- [Migration Guide](/en/reference/migration)
+- [Crate Map](./internals/crate-map)
+- [Runtime Flows](./internals/runtime-flows)
+- [Choosing An Entrypoint](/en/guide/entrypoints)
+- [UI Module Map](/en/guide/ui-modules)

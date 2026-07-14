@@ -5,13 +5,18 @@ import {
   shellSetPreferences,
   type DesktopShellPreferences,
 } from '@/api/runtime/environment'
-import {
-  normalizeLocale,
-  readStoredLocale,
-  setLocale,
-  type SupportedLocale,
-} from '@/i18n'
+import { normalizeLocale, readStoredLocale, setLocale, type SupportedLocale } from '@/i18n'
 import { isPerfTelemetryEnabled, setPerfTelemetryEnabled } from '@/utils/perfTelemetry'
+import {
+  applyCodeFontToDocument,
+  applyFontsToDocument,
+  applyUiFontToDocument,
+  persistCodeFont,
+  persistUiFont,
+  readStoredCodeFont,
+  readStoredUiFont,
+  sanitizeFontFamily,
+} from '@/utils/fontPreferences'
 import {
   applyAccentToDocument,
   applyFlavorToDocument,
@@ -72,6 +77,8 @@ export const useShellPreferencesStore = defineStore('shellPreferences', () => {
   const flavor = ref<FlavorMode>(readStoredFlavor())
   const resolvedFlavor = ref<FlavorMode>(resolveFlavorMode(effectiveTheme.value, flavor.value))
   const accent = ref<AccentMode>(readStoredAccent())
+  const uiFont = ref<string>(readStoredUiFont())
+  const codeFont = ref<string>(readStoredCodeFont())
   const locale = ref<SupportedLocale>(readStoredLocale())
   const sidebarWidth = ref<number>(readStoredSidebarWidth())
   const confirmBeforeExit = ref(true)
@@ -89,6 +96,9 @@ export const useShellPreferencesStore = defineStore('shellPreferences', () => {
     effectiveTheme.value = applyThemeToDocument(theme.value, flavor.value)
     resolvedFlavor.value = resolveFlavorMode(effectiveTheme.value, flavor.value)
     applyAccentToDocument(accent.value)
+    uiFont.value = readStoredUiFont()
+    codeFont.value = readStoredCodeFont()
+    applyFontsToDocument(uiFont.value, codeFont.value)
   }
 
   const setThemePreference = (nextTheme: ThemeMode): void => {
@@ -114,6 +124,21 @@ export const useShellPreferencesStore = defineStore('shellPreferences', () => {
     accent.value = nextAccent
     persistAccent(nextAccent)
     applyAccentToDocument(nextAccent)
+  }
+
+  // 字体偏好：空串表示回到内置栈。净化后统一走 persist + apply。
+  const setUiFontPreference = (nextFont: string): void => {
+    const sanitized = sanitizeFontFamily(nextFont)
+    uiFont.value = sanitized
+    persistUiFont(sanitized)
+    applyUiFontToDocument(sanitized)
+  }
+
+  const setCodeFontPreference = (nextFont: string): void => {
+    const sanitized = sanitizeFontFamily(nextFont)
+    codeFont.value = sanitized
+    persistCodeFont(sanitized)
+    applyCodeFontToDocument(sanitized)
   }
 
   const syncThemeResolution = (detail: ThemeResolutionChangeDetail): void => {
@@ -228,6 +253,8 @@ export const useShellPreferencesStore = defineStore('shellPreferences', () => {
     flavor,
     resolvedFlavor,
     accent,
+    uiFont,
+    codeFont,
     locale,
     localeLabel,
     sidebarWidth,
@@ -241,6 +268,8 @@ export const useShellPreferencesStore = defineStore('shellPreferences', () => {
     toggleTheme: toggleThemePreference,
     setFlavor: setFlavorPreference,
     setAccent: setAccentPreference,
+    setUiFont: setUiFontPreference,
+    setCodeFont: setCodeFontPreference,
     setLocalePreference,
     updateSidebarWidth,
     commitSidebarWidth,

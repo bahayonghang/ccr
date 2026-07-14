@@ -1,39 +1,81 @@
-# Command Overview
+# Command Reference
 
-CCR's CLI now centers on five groups: runtime overview, platform-scoped profile/auth flows, data and sync, diagnostics and interfaces, and extensions and maintenance.
+This page groups the current top-level `Commands` by task. Use the linked page and `ccr help` output for nested commands.
 
-## Recommended starting sequence
+## Help
+
+```bash
+ccr --help
+ccr help
+ccr help claude profile
+ccr <command> --help
+```
+
+`ccr help [COMMAND_PATH...]` is a real top-level command, but it does not need a separate page. It resolves nested command paths.
+
+## Runtime And Profiles
+
+| Command | Purpose |
+|---|---|
+| [`current`](./current) | Claude/Codex runtime overview |
+| [`claude`](./claude) | Claude official auth and profile runtime |
+| [`codex`](./codex) | Codex auth, profiles, quota, and history sync |
+| [`opencode`](./opencode) | OpenCode auth compatibility and Codex import |
+| [`platform`](./platform) | platform registry; `list` is the primary stable operation |
+| [`switch`](./switch) | legacy profile switch and migration guidance |
+
+## Configuration And Temporary Overrides
+
+| Command | Purpose |
+|---|---|
+| [`init`](./init) | initialize CCR configuration |
+| [`list`](./list) | list configurations |
+| [`add`](./add) / [`delete`](./delete) | create or delete configurations |
+| [`enable`](./enable) / [`disable`](./disable) | change configuration availability |
+| [`temp`](./temp) | interactive temporary configuration |
+| [`temp-token`](./temp-token) | command-driven temporary token override |
+| [`clear`](./clear) | clear CCR-managed settings |
+| [`optimize`](./optimize) | normalize configuration structure |
+
+## Data, Sync, And Operations
+
+| Command | Purpose |
+|---|---|
+| [`history`](./history) | inspect masked operation history |
+| [`export`](./export) / [`import`](./import) | export or import configuration |
+| [`clean`](./clean) | clean backup or plan files |
+| [`sync`](./sync) | synchronize configuration assets through WebDAV |
+| [`sessions`](./sessions) | index, search, resume, and summarize sessions |
+| [`provider`](./provider) | test and verify provider connectivity |
+| [`stats`](./stats) | summarize, import, export, or clear usage |
+| [`budget`](./budget) / [`pricing`](./pricing) | budgets and model pricing |
+
+## Extensions, Diagnostics, And Interfaces
+
+| Command | Purpose |
+|---|---|
+| [`skills`](./skills) | skill sources, scans, installs, and inventory |
+| [`prompts`](./prompts) | prompt preset management |
+| [`validate`](./validate) | configuration and runtime validation |
+| [`doctor`](./doctor) | environment, profile, auth, and optional online diagnostics |
+| [`check`](./check) | cross-platform configuration conflict checks |
+| [`ui`](./ui) | launch or update CCR UI |
+| [`tui`](./tui) | no-subcommand and platform interactive entrypoints |
+| [`update`](./update) | check for or install CCR updates |
+| [`version`](./version) | version and build information |
+
+## Recommended Start
 
 ```bash
 ccr init
 ccr current
-ccr add
 ccr claude profile list
-ccr claude profile switch <name>
+ccr codex auth current
 ccr validate
+ccr doctor
 ```
 
-## Main current paths
-
-| Path | Purpose |
-|---|---|
-| [`current`](./current) | dual Claude Runtime / Codex Runtime overview |
-| [`codex`](./codex) | Codex auth, profile, and sync-history |
-| `ccr claude profile ...` | Claude runtime/profile routing |
-| [`platform`](./platform) | registry compatibility view (mainly `list`) |
-| [`validate`](./validate) / [`doctor`](./doctor) | validation and diagnostics based on explicit runtime state |
-
-## Migration quick map
-
-| Legacy command | Current path |
-|---|---|
-| `ccr switch <name>` | `ccr claude profile switch <name>` or `ccr codex profile switch <name>` |
-| `ccr <name>` | shortcut retired |
-| `ccr platform switch <platform>` | retired |
-| `ccr platform current` | `ccr current` |
-| `ccr platform profile ...` | `ccr claude profile ...` / `ccr codex profile ...` |
-
-## Related docs
+## Related Pages
 
 - [CLI Workflows](/en/guide/cli-workflows)
 - [Configuration Model](/en/guide/configuration)

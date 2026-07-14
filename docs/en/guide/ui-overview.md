@@ -1,56 +1,72 @@
 # UI Overview
 
-`ccr-ui` is CCR's full graphical product surface. It organizes multi-platform configuration management, extensions, and operational views into a single browser or desktop experience.
+CCR UI is the Vue 3 and Tauri graphical interface over the shared `~/.ccr/` configuration and runtime state. It uses the same Rust domain crates as the CLI and TUI; it is not a separate configuration system.
 
-## Boundaries You Should Keep in Mind
-
-- `ccr`: the CLI/TUI entrypoint for configuration management
-- `ccr ui`: the CLI entrypoint that launches the recommended graphical workflow
-- `ccr-ui/`: the standalone Vue 3 + Tauri project directory
-
-## How To Start It
+## Launch Entrypoints
 
 ```bash
 ccr ui
 ccr ui -p 15173 --backend-port 38081
 ```
 
-Defaults:
+The default frontend port is `15173`; the backend port is `38081`. `ccr ui` looks for a development checkout, then `~/.ccr/ccr-ui/`, and enters the download or update path when the UI is missing.
 
-- frontend port: `15173`
-- backend port: `38081`
+For `ccr-ui` development:
 
-Startup discovery order:
+```bash
+cd ccr-ui
+bun run dev:web -- --host 127.0.0.1 --strictPort
+```
 
-1. `ccr-ui/` in the current directory
-2. `ccr-ui/` in the parent directory
-3. `~/.ccr/ccr-ui/`
-4. prompt to download from GitHub when missing
+Use `bun run tauri:dev` when native windows and Tauri invokes are required. Plain browser preview verifies routes and presentation but cannot complete every desktop command.
 
-## Runtime Modes
+## Relationship To Other Entrypoints
 
-| Mode | Entry | Notes |
-|------|-------|-------|
-| Browser mode | `ccr ui` | Recommended daily path |
-| Web development | `cd ccr-ui && bun run dev` | Frontend development and integration testing |
-| Desktop shell | `cd ccr-ui && bun run tauri:dev` | Runs the Tauri desktop shell |
+| Entrypoint | Best for |
+|---|---|
+| `ccr <command>` | automation, exact flags, scripts, and diagnostic output |
+| `ccr` without a subcommand | fast terminal profile/auth operations |
+| `ccr ui` | visual configuration, platform management, usage, monitoring, and desktop tools |
+| `ccr-ui/` checkout | UI development, testing, and Tauri builds |
 
-> In the docs, “UI” means the full `ccr-ui` product surface, not only the `ccr ui` wrapper command.
+## Current Capability Surface
 
-## Why the UI Exists
+- Platform workspaces: Claude Code, Codex, Antigravity CLI, and OpenCode.
+- Configuration and extensions: profiles, auth, settings, MCP, agents, slash commands, plugins, hooks, output styles, statusline, and skills.
+- Data and operations: usage, monitoring, budget, pricing, and check-in.
+- Tools and environments: commands, converter, WebDAV sync, WSL, and SSH.
 
-- Platform modules: Claude, Codex, Gemini, Droid, plus visible reserved groups for Qwen and OpenCode
-- Configuration and extension management: MCP, Skills, Prompts, Plugins, Hooks, Output Styles, Statusline, Provider Health
-- Data and operations views: Usage, Monitoring, Sessions, Budget, Pricing, Sync, Commands
-- Specialized surfaces: Checkin, WSL, SSH, OpenCode
+Factory Droid is implemented in the CLI platform domain and Qwen remains partial/stub support; the current router does not provide dedicated platform home pages for them. Use [Platform Support](/en/reference/platforms/) for platform status and the [UI Module Map](./ui-modules) for actual UI pages.
 
-## Suggested Reading Order
+## Data Boundary
 
-1. [UI Module Map](/en/guide/ui-modules)
-2. [`ccr ui` command](/en/reference/commands/ui)
+```text
+Vue view/store
+  -> src/api/domains/*
+  -> Tauri invoke
+  -> src-tauri/src/commands/*
+  -> workspace domain crate
+```
 
-## Relationship to the Configuration Model
+`src/api/tauri.ts` is a legacy compatibility facade. New frontend business APIs belong in domain modules. Usage data is read through `ccr-usage` and the desktop llmusage adapter; Vue does not parse transcripts directly.
 
-- UI and CLI share the same `~/.ccr/` data model.
-- The UI can expose more surfaces than the CLI, but it must not become a second source of truth.
-- Platform status, defaults, and API routes still come from the codebase definitions.
+## When To Prefer The UI
+
+Prefer the UI when you need to:
+
+- browse and compare state across platform workspaces;
+- inspect usage, monitoring, check-in, or cost dashboards;
+- manage MCP, agents, skills, plugins, and sync assets together.
+
+Prefer the CLI for:
+
+- CI and shell automation;
+- repeatable profile/auth scripting;
+- diagnostics that require JSON or explicit exit codes.
+
+## Related Pages
+
+- [Choosing An Entrypoint](./entrypoints)
+- [UI Module Map](./ui-modules)
+- [`ui` command](/en/reference/commands/ui)
+- [Architecture](/en/reference/architecture)

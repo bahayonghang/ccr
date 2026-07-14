@@ -1684,3 +1684,139 @@ implement.md 第 7 项闭环。7a:UsageLogsTab loading 态从单行"加载中"�
 ### Next Steps
 
 - None - task complete
+
+
+## Session 39: ccr-ui 字体设置与 fallback
+
+**Date**: 2026-07-13
+**Task**: ccr-ui 字体设置与 fallback
+**Branch**: `dev`
+
+### Summary
+
+外观区新增界面/代码字体设置：选中字体 prepend 到 tokens.css 的 --font-*-base 回退栈（缺失/缺字形自动回退），纯 localStorage 复刻 theme/flavor/accent 链路，index.html 引导脚本首帧应用防 FOUC。两个非显然卡点：apple-glass 契约测试禁止 src 内出现等宽字体名字面量（把预设名集中到 fontPreferences 标记块并加受控例外解决）；vue-i18n 消息编译把代码样例里的 { } 当成非法命名插值（改用无花括号/竖线的样例）。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `535e282d` | (see git log) |
+| `5aa0cfb1` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
+
+
+## Session 40: 修正 ccr-ui 思源字体预设并完成渲染诊断
+
+**Date**: 2026-07-13
+**Task**: 修正 ccr-ui 思源字体预设并完成渲染诊断
+**Branch**: `dev`
+
+### Summary
+
+补充 Source Han Sans CN 与 Source Han Serif SC VF 界面字体预设和回归测试，固化系统可见字体族命名契约，并记录小字号衬线可变字体偏虚的诊断结论。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `720cf97f1c6a4076011ace48722678190e9a068f` | (see git log) |
+| `82af37342230c4d04fa95ff871a44bc9a0b75c41` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
+
+
+## Session 41: 重构项目与 UI 文档
+
+**Date**: 2026-07-14
+**Task**: 重构项目与 UI 文档
+**Branch**: `dev`
+
+### Summary
+
+按最新 crates 与 ccr-ui 实现重构双语产品文档和 UI 工程文档，新增源码一致性审计，归档历史设计材料，并完成三层 Trellis 任务收尾。
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `5d2b80c1ee41cfd989fc0cf88228957f365a666f` | (see git log) |
+| `5ae588b8f37e0321dec688f2e3cadd55e47eaf7d` | (see git log) |
+| `c9614eb614fd60f15e429516216d677ca64634cc` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
+
+
+## Session 42: 更新全仓库 CCR 图标
+
+**Date**: 2026-07-14
+**Task**: 更新全仓库 CCR 图标
+**Branch**: `dev`
+
+### Summary
+
+将 Dual Runtime Router 设计接入品牌单一真源，重写 Windows Pillow fallback，更新 UI、Tauri、docs 与 VS Code 全量图标资产，并通过前端、打包与确定性验证。
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f10f54d0` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
