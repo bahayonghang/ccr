@@ -1,5 +1,8 @@
 # Claude Profiles Dashboard — 顶部空白优化方案
 
+> Archive status: proposed, not implemented. Archived on 2026-07-14.
+> This file records a point-in-time design option; it is not a current UI contract.
+
 > 目标文件：`ccr-ui/src/views/ClaudeCodeProfilesView.vue`、`ccr-ui/src/components/claude/ClaudeProfilesOverview.vue`
 > 设计基线：Anthropic-like 编辑式工作台 / 暖中性色 / 高密度 power-user / 明暗双主题
 > 版本：v1 · 针对 `PageHeaderCard` + `ClaudeProfilesOverview` 的顶部 dashboard 区域

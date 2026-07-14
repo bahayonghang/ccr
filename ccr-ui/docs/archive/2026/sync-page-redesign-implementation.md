@@ -1,5 +1,8 @@
 # 配置资产同步页改版实现计划
 
+> Archive status: implemented, retained as historical execution evidence. Archived on 2026-07-14.
+> Current behavior is defined by `src/views/SyncView.vue` and `src-tauri/src/commands/sync.rs`.
+
 > **面向 AI 代理的工作者：** 必需子技能：使用 superpowers:subagent-driven-development（推荐）或 superpowers:executing-plans 逐任务实现此计划。步骤使用复选框（`- [ ]`）语法来跟踪进度。
 
 **目标：** 将 WebDAV 同步页从文件夹同步改为固定 manifest 配置资产同步控制台，支持 CCR platforms、Claude settings/CLAUDE.md、Codex config/AGENTS.md 的单项与全量同步，并移除 Gemini/Antigravity 同步入口。

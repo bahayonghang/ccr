@@ -14,6 +14,7 @@
     "prebuild:web": "bun run icons:ensure",
     "build:with-budget": "vite build --sourcemap && bun ./scripts/check-bundle-budget.mjs",
     "preview": "vite preview",
+    "docs:audit": "node ./scripts/audit-docs.mjs",
     "lint": "eslint . && bun run lint:style",
     "lint:ci": "eslint . --quiet && bun run lint:style",
     "lint:fix": "eslint . --fix && bun run lint:style:fix",
@@ -40,7 +41,7 @@
     "tauri:clippy": "cd src-tauri && cargo clippy",
     "tauri:fmt": "cd src-tauri && cargo fmt",
     "tauri:test": "cd src-tauri && cargo test",
-    "check:all": "bun run type-check && bun run lint && bun run test && bun run tauri:check"
+    "check:all": "bun run docs:audit && bun run type-check && bun run lint && bun run test && bun run tauri:check"
   },
   "dependencies": {
     "@iconify-json/solar": "^1.2.5",
