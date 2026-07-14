@@ -15,6 +15,7 @@
 | [Dashboard Presentation Contracts](./dashboard-presentation-contracts.md) | Signal severity gating, readiness reason shape, first-run heuristic, compact-card empty states                 | Complete |
 | [Usage Chart Stability Contracts](./usage-chart-stability-contracts.md)   | ApexCharts options/series reference discipline, redraw freeze flags, KeepAlive interplay                       | Complete |
 | [Confirm Interaction Contracts](./confirm-interaction-contracts.md)       | requestConfirm gate pattern, danger/warning semantics, no native dialogs, composable boundary                  | Complete |
+| [Brand Asset Pipeline Contract](./brand-asset-pipeline.md)                 | Brand SVG ownership, Cairo/Pillow rendering, generated outputs, and cross-surface verification                 | Complete |
 
 ## Pre-Development Checklist
 
@@ -25,6 +26,7 @@
 - Read [Dashboard Presentation Contracts](./dashboard-presentation-contracts.md) before changing `dashboardPresentation.ts` or its five Dashboard child components.
 - Read [Usage Chart Stability Contracts](./usage-chart-stability-contracts.md) before adding or changing any ApexCharts usage chart, its options/series wiring, or the usage tab KeepAlive structure.
 - Read [Confirm Interaction Contracts](./confirm-interaction-contracts.md) before adding any confirmation dialog, destructive-action flow, or user-facing alert/toast.
+- Read [Brand Asset Pipeline Contract](./brand-asset-pipeline.md) before changing `branding/`, `generate_icons.py`, or generated UI/Tauri/docs/VS Code brand assets.
 
 ## Quality Check
 
@@ -36,3 +38,4 @@
   - `cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/apple-glass-surface-contract.smoke.test.ts tests/theme-bootstrap.smoke.test.ts tests/app-settings.smoke.test.ts`
 - Additionally run the font-preference guard and i18n compile when changing font tracks, `fontPreferences.ts`, or the font controls/copy:
   - `cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/font-preferences.smoke.test.ts` and `cd ccr-ui && bun run test:i18n`
+- Run `cd ccr-ui && bun run icons:generate && bun run icons:ensure && bun run build` for brand-source or renderer changes, then verify deterministic hashes and generated image formats per the brand asset contract.
