@@ -39,7 +39,7 @@ serde_json = "1.0"
 serde_yaml = "0.9"
 
 # TypeScript 绑定生成（usage V2 试点：DTO 单一来源，生成物入库 + 漂移守卫）
-ts-rs = "11"
+ts-rs = { version = "11", features = ["no-serde-warnings"] }
 
 # Async runtime
 tokio = { version = "1.49", features = [
