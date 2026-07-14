@@ -1,94 +1,94 @@
 # Crate 地图
 
-本页按 crate 和模块边界说明当前代码职责，作为 `architecture` 页的展开版。
+本页列出根 `Cargo.toml` 的全部 workspace member。crate 清单由文档审计与 workspace 自动对照。
 
-## `crates/ccr`
+## 入口与交互
 
-### 入口与分发
+### `crates/ccr`
 
-- `main.rs`：程序入口、日志初始化、顶层错误处理
-- `cli/definitions.rs`：CLI 结构与 `Commands` 枚举
-- `cli/dispatch.rs`：命令分发、无子命令行为、`ccr ui` / `sync` / `codex` 等路由
+- 生成可安装的 `ccr` 二进制。
+- 组装 `ccr-cli` dispatcher 与可选 `ccr-tui` launcher。
+- 保留少量兼容 re-export；不再是所有领域逻辑的所有者。
 
-### 用户可见命令层
+### `crates/ccr-cli`
 
-- `commands/platform/`：平台注册表与平台切换
-- `commands/profile/`：profile 生命周期
-- `commands/lifecycle/`：init / clear / clean / optimize / validate
-- `commands/data/`：history / export / import / stats / budget / pricing
-- `commands/codex/`：Codex 专属命令，重点是 auth 与 env / quota
-- `commands/sessions_cmd.rs`、`skills_cmd.rs`、`prompts_cmd.rs`：会话、skills、prompt 管理
+- `src/cli/definitions.rs`：顶层 Clap `Commands`。
+- `src/cli/subcommands/`：Claude、Codex、OpenCode、platform、sync 等嵌套命令。
+- `src/cli/dispatch.rs`：命令路由、TUI launcher 与 legacy 路径处理。
+- `src/commands/`：用户可见处理器；`services/`、`managers/`、`platforms/` 负责 CLI 专属编排。
 
-### Shell / Compat 说明
+### `crates/ccr-tui`
 
-- `services/ui_service.rs`：`ccr ui` 的探测、更新、下载与启动，属于 shell 能力
-- `tui/`：终端 UI，属于 shell 能力
-- `models/`、`managers/`、`services/` 中仍有部分旧域逻辑或 re-export facade
-- 当 `ccr` 与 domain crate 同时提供同名能力时，以 domain crate 为事实源，`ccr` 视为兼容门面
+- Ratatui 渲染、交互状态和平台标签页。
+- 复用 `ccr-cli`、`ccr-codex` 和 `ccr-usage`，不复制命令或 usage 领域。
 
-## `crates/ccr-core`
+## 共享基础与契约
 
-- 共享基础设施：错误、锁、原子写入、日志、HTTP 等底层能力
+### `crates/ccr-core`
 
-## `crates/ccr-config`
+- 共享错误、路径、锁、原子写、日志、HTTP 和基础 domain model。
+- 为上层 crate 提供安全写入与通用基础设施。
 
-- 平台类型、profile/settings 契约、平台注册表、配置 helper
-- 作为配置与平台适配的主 owner
+### `crates/ccr-types`
 
-## `crates/ccr-store`
+- Claude settings、Codex login state、监控/日志 payload 等共享 serde 类型。
+- 通过 alias、flatten 和 unknown-field 保留维持旧数据兼容。
 
-- history、本地 storage、session 索引与查询
-- 作为 CLI/桌面端本地持久化与聚合查询的主 owner
+## 配置与持久化
 
-## `crates/ccr-codex`
+### `crates/ccr-config`
 
-- Codex auth/runtime/quota/usage/session 专属逻辑
+- 平台枚举、profile/settings 契约、平台注册表和格式转换。
+- Claude、Codex、Antigravity、Droid 与 Qwen stub 的统一配置边界。
 
-## `crates/ccr-sync`
+### `crates/ccr-store`
 
-- WebDAV 配置、目录注册、批量 push/pull 所需的 sync domain 能力
+- CLI history 和 session SQLite 存储。
+- session 索引、搜索、统计与清理查询。
 
-## `crates/ccr-skills`
+### `crates/ccr-db`
 
-- skills 安装/清单/cache/source 管理
-- builtin prompts
-- MCP preset 安装与跨平台同步
+- 桌面 SQLite 连接、migration、repository 与事务。
+- Check-in 数据、日志和其他桌面服务的数据层。
 
-## `crates/ccr-db`
+## 领域 crate
 
-### 数据库入口
+### `crates/ccr-codex`
 
-- `database/mod.rs`：数据库路径、全局连接池、迁移启动、事务包装
-- `database/repositories/`：repository 层
-- `database/schema.rs`、`migrations.rs`：schema 与数据迁移
+- Codex auth snapshot、profile/runtime、quota、usage 与 session 领域。
 
-### 业务域
+### `crates/ccr-sync`
 
-- `models/checkin/`：签到域模型
-- `managers/checkin/`：提供商、账号、记录、余额、导出、WAF cookie
-- `services/checkin_service.rs`：签到执行与查询
-- `services/usage_import_service.rs`：从 session 文件导入 usage
-- `services/log_persistence.rs`：日志持久化
+- WebDAV 配置、folder registry、push/pull/status 与批量同步基础。
 
-## `crates/ccr-types`
+### `crates/ccr-skills`
 
-### 当前公开面
+- skills source/inventory/install/cache、builtin prompts 与 MCP presets。
 
-- `ClaudeSettings` 及其子结构：settings、hooks、MCP、slash commands、agents、plugins
-- `LoginState`：Codex auth 状态表达
-- `MonitoringEntry`、`FrontendLogInput`、`MonitoringFeedQuery`：监控输入输出
+### `crates/ccr-checkin`
 
-### 设计重点
+- Check-in 业务门面，组合 provider、account、balance、记录与执行服务。
+- 数据持久化复用 `ccr-db`，共享契约复用 `ccr-types`。
 
-- 所有结构都围绕 serde 兼容性设计
-- 接受旧字段名或旧结构输入
-- 用 `other` / `flatten` 保留未知字段
+### `crates/ccr-usage`
 
-## 测试布局
+- 读取 llmusage SQLite/CLI 能力并输出稳定只读投影。
+- `ts` feature 为 Tauri/Vue 边界导出 TypeScript 类型。
+- 不直接解析原始 transcript，也不拥有上游 schema migration。
 
-- `crates/ccr/tests/commands.rs`
-- `crates/ccr/tests/managers.rs`
-- `crates/ccr/tests/platforms.rs`
-- `crates/ccr/tests/workflows.rs`
+## 前端消费者
 
-这些入口再分发到对应子目录，用能力域而不是单文件堆叠方式组织集成测试。
+`ccr-ui/src-tauri` 直接依赖除 `ccr-tui` 外的 workspace domain crates，并通过 `commands/handler_registry.rs` 暴露 invoke handlers。Vue 端通过 `src/api/domains/*` 消费这些命令。
+
+## 测试入口
+
+- crate 单元测试位于各自 `src/` 模块或 `tests/`。
+- CLI 集成测试位于 `crates/ccr/tests/commands/` 等能力目录。
+- TUI 测试属于 `ccr-tui`。
+- usage TypeScript binding 和 projection 测试属于 `ccr-usage`。
+- Tauri 集成测试位于 `ccr-ui/src-tauri/tests/`。
+
+## 相关页面
+
+- [架构](../architecture)
+- [运行时流程](./runtime-flows)

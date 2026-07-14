@@ -680,11 +680,11 @@ frontend-build:
     cd ccr-ui && bun install --frozen-lockfile && bun run build
     @just success "前端构建完成"
 
-# 📚 文档构建检查 (VitePress) - 可选，有 dead links 时可能失败
+# 📚 文档构建与一致性检查
 docs-check:
     @just header "📚 文档构建检查"
-    @just warn "注意: 若有 dead links 会失败，可在 .vitepress/config 中配置 ignoreDeadLinks"
-    cd docs && npm install && node ./node_modules/vitepress/bin/vitepress.js build
+    cd docs && bun install --frozen-lockfile && bun run audit && bun run build
+    cd ccr-ui && bun run docs:audit
     @just success "文档构建检查完成"
 
 # 🤖 GitHub Copilot 工作区资产检查

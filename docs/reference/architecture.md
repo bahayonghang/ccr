@@ -1,128 +1,117 @@
-# CCR 架构设计
+# CCR 架构
 
-> 面向当前代码真相的架构说明。CCR 的事实源是 Rust workspace：`crates/ccr`、`crates/ccr-core`、`crates/ccr-config`、`crates/ccr-store`、`crates/ccr-codex`、`crates/ccr-sync`、`crates/ccr-skills`、`crates/ccr-db`、`crates/ccr-types`。内置 legacy Web API 已移除，不再属于当前运行面。
+CCR 由 13 个 Rust workspace crate、Vue 3 前端和 Tauri 桌面壳组成。可安装的 `ccr` 二进制负责入口，CLI、TUI、配置、持久化、同步和平台领域由独立 crate 持有。
 
-## 总览
+## Workspace 组成
 
-- `crates/ccr`：CLI/TUI shell crate，负责命令入口、交互式命令、帮助输出、`ccr ui` 启动桥接与兼容 re-export
-- `crates/ccr-core`：共享基础设施，负责错误、锁、原子写入、日志、HTTP 等底层能力
-- `crates/ccr-config`：配置与平台契约，负责平台类型、profile/settings 契约、平台注册表与配置 helper
-- `crates/ccr-store`：本地持久化与会话索引，负责 history/session/storage
-- `crates/ccr-codex`：Codex 专属领域，负责 auth/runtime/quota/usage/session
-- `crates/ccr-sync`：同步领域，负责 WebDAV 同步与 sync folder 注册表
-- `crates/ccr-skills`：skills / builtin prompts / MCP preset 领域
-- `crates/ccr-db`：桌面侧数据库与业务服务，负责 SQLite、CheckIn、usage import、日志持久化、UI state
-- `crates/ccr-types`：跨 crate 共享的 serde 类型与兼容性约束
-- `ccr-ui/src-tauri`：桌面壳，直接复用上述 domain crate，而不是通过旧的内置 HTTP 服务
+| 层 | Crate | 职责 |
+|---|---|---|
+| 入口 | `crates/ccr` | 二进制启动、feature 组合、CLI/TUI launcher 和兼容 re-export |
+| 交互 | `crates/ccr-cli` | Clap 定义、命令分发、用户可见输出和 CLI 应用编排 |
+| 交互 | `crates/ccr-tui` | Ratatui 终端界面和 Claude/Codex 交互入口 |
+| 基础 | `crates/ccr-core` | 错误、锁、原子写、HTTP、日志和共享应用基础设施 |
+| 配置 | `crates/ccr-config` | 平台/profile/settings 类型、注册表与配置转换契约 |
+| 持久化 | `crates/ccr-store` | CLI history、session 索引和 SQLite 查询 |
+| 平台 | `crates/ccr-codex` | Codex auth、runtime、quota、usage 和 session 领域 |
+| 平台 | `crates/ccr-sync` | WebDAV 配置、目录注册与同步操作 |
+| 平台 | `crates/ccr-skills` | skills、builtin prompts 和 MCP preset 领域 |
+| 桌面数据 | `crates/ccr-db` | 桌面 SQLite、repository、日志和数据服务 |
+| 桌面业务 | `crates/ccr-checkin` | 签到业务门面，复用 `ccr-db` 的数据能力 |
+| Usage | `crates/ccr-usage` | 对 llmusage 数据提供只读投影和可选 TypeScript 绑定 |
+| 契约 | `crates/ccr-types` | 跨 crate serde 类型、兼容字段和共享 DTO |
 
-## Workspace 依赖关系
+展开说明见 [Crate 地图](./internals/crate-map)。
+
+## 依赖方向
 
 ```mermaid
 flowchart LR
-  UI[ccr-ui / src-tauri]
-  CCR[crates/ccr]
-  CORE[crates/ccr-core]
-  CFG[crates/ccr-config]
-  STORE[crates/ccr-store]
-  CODEX[crates/ccr-codex]
-  SYNC[crates/ccr-sync]
-  SKILLS[crates/ccr-skills]
-  DB[crates/ccr-db]
-  TYPES[crates/ccr-types]
-
-  UI --> CCR
-  UI --> CORE
-  UI --> CFG
-  UI --> STORE
-  UI --> CODEX
-  UI --> SYNC
-  UI --> SKILLS
-  UI --> DB
-  UI --> TYPES
-  CCR --> CORE
-  CCR --> CFG
-  CCR --> STORE
-  CCR --> CODEX
-  CCR --> SYNC
-  CCR --> SKILLS
-  CCR --> TYPES
+  BIN[ccr binary] --> CLI[ccr-cli]
+  BIN --> TUI[ccr-tui]
+  TUI --> CLI
+  TUI --> CODEX[ccr-codex]
+  TUI --> USAGE[ccr-usage]
+  CLI --> CORE[ccr-core]
+  CLI --> CONFIG[ccr-config]
+  CLI --> STORE[ccr-store]
+  CLI --> CODEX
+  CLI --> SYNC[ccr-sync]
+  CLI --> SKILLS[ccr-skills]
+  DESKTOP[ccr-ui/src-tauri] --> CLI
+  DESKTOP --> DB[ccr-db]
+  DESKTOP --> CHECKIN[ccr-checkin]
+  DESKTOP --> USAGE
+  CHECKIN --> DB
+  CONFIG --> TYPES[ccr-types]
+  STORE --> TYPES
+  CODEX --> TYPES
   DB --> TYPES
 ```
 
-## 仓库布局
+依赖从入口和适配层指向共享领域与契约。新的领域行为不应重新堆回 `crates/ccr` 或 Vue 视图。
+
+## CLI 与 TUI
+
+`crates/ccr/src/main.rs` 组装 launcher。命令定义和分发位于 `crates/ccr-cli/src/cli/`，命令处理器位于 `crates/ccr-cli/src/commands/`。无子命令时可以进入 TUI；`ccr claude`、`ccr codex` 和 `ccr opencode` 也有对应的交互入口。
+
+TUI 渲染由 `ccr-tui` 持有，不应进入 `ccr-cli`。CLI 领域逻辑优先调用配置、Codex、同步、skills 和 store crate，而不是复制底层实现。
+
+## CCR UI 与 Tauri
+
+`ccr-ui/src/` 是 Vue 应用；`ccr-ui/src-tauri/` 注册 Rust invoke handlers，并直接依赖 workspace crate。当前桌面架构不经过已移除的内置 HTTP API。
 
 ```text
-ccr/
-├── Cargo.toml
-├── crates/
-│   ├── ccr/         # shell / compat facade
-│   ├── ccr-core/
-│   ├── ccr-config/
-│   ├── ccr-store/
-│   ├── ccr-codex/
-│   ├── ccr-sync/
-│   ├── ccr-skills/
-│   ├── ccr-db/
-│   └── ccr-types/
-├── ccr-ui/
-│   ├── src/
-│   └── src-tauri/
-├── docs/
-├── examples/
-└── scripts/
+Vue view/store
+  -> ccr-ui/src/api/domains/*
+  -> Tauri invoke
+  -> src-tauri/src/commands/*
+  -> workspace crate or host integration
 ```
 
-## `crates/ccr` 内部分层
+UI 与 CLI 共享 `~/.ccr/` 数据和平台配置。UI 是同一系统的图形入口，不是第二套配置事实源。
 
-```mermaid
-flowchart TD
-  Entry[main.rs / cli]
-  Cmd[commands]
-  App[application]
-  Svc[services]
-  Compat[compat re-export]
-  Domain[domain crates]
-  Tui[tui feature]
+## 数据所有权
 
-  Entry --> Cmd
-  Entry --> Tui
-  Cmd --> App
-  Cmd --> Svc
-  Cmd --> Compat
-  Cmd --> Domain
-  App --> Svc
-  Svc --> Compat
-  Svc --> Domain
-  Tui --> Domain
-```
+- `ccr-config` 持有 profile/settings 序列化与转换契约。
+- `ccr-store` 持有 CLI history 和 session 索引查询。
+- `ccr-db` 持有桌面数据库、repository 和日志等服务。
+- `ccr-usage` 只读适配 llmusage 数据，不拥有写入或迁移上游数据库的权限。
+- `ccr-types` 负责兼容性；未知用户字段不得在读写往返中静默丢失。
 
-关键边界：
+## 关键运行路径
 
-- `cli/` 负责参数定义与命令分发
-- `commands/` 负责用户可见命令行为与交互式 shell 流程
-- `services/` 只保留 shell 编排与 UI 启动桥接
-- domain crate 负责配置、平台、会话、Codex、sync、skills 等真实领域逻辑
-- `crates/ccr` 的 `models/`、`managers/`、`services/` 中残留的域对象优先视为 compat facade，而不是新的事实源
-- `tui/` 是可选 feature；默认构建启用
+### Profile 操作
 
-## `crates/ccr-db` 与 `crates/ccr-types`
+1. Clap 将参数解析为 `Commands` 或平台子命令。
+2. `ccr-cli` 分发到 Claude/Codex/平台处理器。
+3. domain crate 加载并验证 profile。
+4. 写入路径使用锁、备份和原子写。
+5. history 记录脱敏后的操作结果。
 
-### `ccr-db`
+### `ccr ui`
 
-- `database/`：连接池、schema、migration、repository
-- `managers/checkin/`：签到账号、提供商、余额、记录、WAF cookie 管理
-- `services/checkin_service.rs`：签到执行、余额查询、批量签到、今日统计
-- `services/usage_import_service.rs`：从 Codex / Gemini session 文件提取 token 与成本记录
-- `services/log_persistence.rs`：持久化日志与监控相关数据
+1. `ccr-cli` 进入 UI service。
+2. service 查找开发 checkout 或 `~/.ccr/ccr-ui/` 安装。
+3. 缺失时进入下载/更新流程。
+4. Vue/Tauri 应用继续复用同一 workspace 领域。
 
-### `ccr-types`
+### Usage
 
-- `ClaudeSettings`：跨 CLI/UI 共享的 Claude settings 结构
-- `LoginState`：Codex auth 登录状态表达
-- `MonitoringEntry` / `FrontendLogInput`：监控与前端日志输入
+1. llmusage 负责采集和数据库写入。
+2. `ccr-usage` 与桌面 adapter 读取受支持的投影。
+3. Tauri command 返回稳定 DTO。
+4. Vue usage 页面渲染 capability、同步和错误状态。
 
-这个 crate 的重点不是业务逻辑，而是：
+## 约束
 
-- 保持字段序列化兼容
-- 接受旧输入格式
-- 保留未知字段，避免覆盖用户手写配置
+- 不存在受支持的内置 Web server 命令或公开 HTTP API。
+- 生产路径不得打印 token、账号密钥或未脱敏配置。
+- 配置写入必须保持备份、锁和原子写语义。
+- CLI、TUI 和 UI 的同一概念应依赖共同类型或 domain crate。
+
+## 相关页面
+
+- [Crate 地图](./internals/crate-map)
+- [运行时流程](./internals/runtime-flows)
+- [入口选择](/guide/entrypoints)
+- [UI 模块地图](/guide/ui-modules)
