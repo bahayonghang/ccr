@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 41
+- **Total Sessions**: 42
 - **Last Active**: 2026-07-14
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1789 | Active |
+| `journal-1.md` | ~1822 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 42 | 2026-07-14 | 更新全仓库 CCR 图标 | `f10f54d0` | `dev` |
 | 41 | 2026-07-14 | 重构项目与 UI 文档 | `5d2b80c1ee41cfd989fc0cf88228957f365a666f`, `5ae588b8f37e0321dec688f2e3cadd55e47eaf7d`, `c9614eb614fd60f15e429516216d677ca64634cc` | `dev` |
 | 40 | 2026-07-13 | 修正 ccr-ui 思源字体预设并完成渲染诊断 | `720cf97f1c6a4076011ace48722678190e9a068f`, `82af37342230c4d04fa95ff871a44bc9a0b75c41` | `dev` |
 | 39 | 2026-07-13 | ccr-ui 字体设置与 fallback | `535e282d`, `5aa0cfb1` | `dev` |
