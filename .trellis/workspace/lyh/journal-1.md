@@ -1820,3 +1820,36 @@ implement.md 第 7 项闭环。7a:UsageLogsTab loading 态从单行"加载中"�
 ### Next Steps
 
 - None - task complete
+
+
+## Session 43: 生成 CCR 运行时架构图
+
+**Date**: 2026-07-16
+**Task**: 生成 CCR 运行时架构图
+**Branch**: `dev`
+
+### Summary
+
+分析 CLI/TUI、Tauri、VS Code、持久化、llmusage 与网络依赖，使用 Archify 生成并验证包含数据流和信任边界的自包含 HTML。
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b33cd701` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
