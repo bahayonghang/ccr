@@ -37,7 +37,10 @@
 
 - 已通过:`ccr-config` 65 tests、profile lifecycle/handler focused tests、Profiles 面板 smoke、`just frontend-check-quick`、`just test`、`just ci`。
 - 已审查:原文直读、空集合拒绝、activation_conflict + force 二段式、stale token、备份、结构化/raw 写入 `secret:true`、保存后全量刷新。
-- 缺失证据:E1 的真实 Tauri 保存、`ccr current`、外部修改冲突及编辑器行号视觉定位未手工执行;in-app Browser 不可用。
+- production WebView2 编辑器复核:当前 `HEAD` 重新 `just tbuild` 后,Claude/Codex Profiles raw 编辑器的 CodeMirror 运行时样式均带 nonce、`style.sheet` 可读且含 147 条规则、`.cm-scroller` 为 flex,gutter 与正文 top 均为 171.9375px;分别渲染 61/60 行。验证过程未编辑或保存磁盘文件。
+- 截图所用旧 release EXE 构建于 19:19,早于共享 CSP 修复提交 `81dc31fc`(19:31);当前 release EXE 已于 19:41 重建并包含该修复。
+- 缺失证据:E1 的真实 Tauri 保存、`ccr current`、外部修改冲突及非法 TOML 行号定位未手工执行。
+- 用户验收:2026-07-17 用户确认问题已解决并明确要求归档;上述未手工执行项继续按缺失证据保留,不改写为通过。
 
 ## 回滚
 

@@ -67,6 +67,7 @@
 - Frontend editor CSP guard: seed a bootstrap `<style nonce="test-nonce">`, mount `CodeSourceEditor`, then assert the generated CodeMirror runtime style has `nonce === 'test-nonce'`.
 - Run `bun run type-check`, `bun run lint`, `bun run test:i18n`, focused smoke tests, Tauri command tests, and `cargo check`.
 - Use the ccr-ui web preview for ordinary visual evidence, but verify runtime-style or CSP changes against a production Tauri build (`just tbuild` / `just tdev`). Record that the generated style has a nonce, `style.sheet` is readable, `.cm-scroller` is flex, and gutter/content top coordinates align.
+- Before diagnosing a production-only editor failure, rebuild the desktop binary from the current checkout and record the binary timestamp relative to the suspected fix commit. A pre-fix release EXE is not evidence about current source behavior.
 
 ### 7. Wrong vs Correct
 
