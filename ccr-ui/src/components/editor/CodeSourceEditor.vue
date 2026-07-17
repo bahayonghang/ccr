@@ -116,8 +116,11 @@ onMounted(async () => {
     : props.language === 'markdown'
       ? markdownModule.markdown()
       : languageModule.StreamLanguage.define(tomlModule.toml)
+  const cspNonce = document.querySelector<HTMLStyleElement>('style[nonce]')?.nonce
+    || document.querySelector<HTMLScriptElement>('script[nonce]')?.nonce
 
   const extensions: Extension[] = [
+    ...(cspNonce ? [viewModule.EditorView.cspNonce.of(cspNonce)] : []),
     viewModule.lineNumbers(),
     viewModule.highlightActiveLineGutter(),
     viewModule.highlightSpecialChars(),
@@ -154,8 +157,12 @@ onMounted(async () => {
       '.cm-content': {
         minHeight: '28rem',
         padding: '14px 0',
+        color: 'var(--text-primary)',
         caretColor: 'var(--accent-primary)',
         fontFamily: 'var(--font-mono)',
+      },
+      '.cm-line': {
+        color: 'var(--text-primary)',
       },
       '.cm-gutters': {
         color: 'var(--text-muted)',
