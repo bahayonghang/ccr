@@ -1921,3 +1921,34 @@ implement.md 第 7 项闭环。7a:UsageLogsTab loading 态从单行"加载中"�
 ### Next Steps
 
 - None - task complete
+
+
+## Session 46: 归档 ccr-ui 配置管理增强任务树
+
+**Date**: 2026-07-17
+**Task**: 归档 ccr-ui 配置管理增强任务树
+**Branch**: `dev`
+
+### Summary
+
+归档 platform-settings-enhancement 子任务及其父任务 ccr-ui-config-mgmt-enhancement；三个子任务现已全部归档。保留平台任务中真实 Tauri 文件保存、外部冲突和环境切换手工矩阵未执行的缺失证据，并保留任务范围外 4 个 rustfmt 排版改动。
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+(No commits - planning session)
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
