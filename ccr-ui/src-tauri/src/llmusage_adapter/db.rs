@@ -1,7 +1,7 @@
-use super::error::LlmusageAdapterError;
 use super::AppPaths;
+use super::error::LlmusageAdapterError;
 
-pub use ccr_usage::{build_filter, DiagnosticsPayload, LogsPage, LogsQuery, QueryFilter};
+pub use ccr_usage::{DiagnosticsPayload, LogsPage, LogsQuery, QueryFilter, build_filter};
 
 /// Thin wrapper over `ccr_usage::Dashboard`: identical query surface, with
 /// errors mapped to the adapter-owned `LlmusageAdapterError` at the boundary.
