@@ -1886,3 +1886,38 @@ implement.md 第 7 项闭环。7a:UsageLogsTab loading 态从单行"加载中"�
 ### Next Steps
 
 - None - task complete
+
+
+## Session 45: 归档 Profiles TOML 直接编辑
+
+**Date**: 2026-07-17
+**Task**: 归档 Profiles TOML 直接编辑
+**Branch**: `dev`
+
+### Summary
+
+完成 Claude/Codex profiles.toml 原始编辑功能的生产 WebView2 验收，确认共享 CodeMirror CSP nonce 修复在当前 release 生效；保留未手工执行的真实保存、ccr current、外部冲突和非法 TOML 定位证据，并按用户确认归档任务。
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `efe4d874` | (see git log) |
+| `76f11fe5` | (see git log) |
+| `f0c66b49` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 44
+- **Total Sessions**: 45
 - **Last Active**: 2026-07-17
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1888 | Active |
+| `journal-1.md` | ~1923 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 45 | 2026-07-17 | 归档 Profiles TOML 直接编辑 | `efe4d874`, `76f11fe5`, `f0c66b49` | `dev` |
 | 44 | 2026-07-17 | 修复系统提示词编辑器生产环境空白 | `81dc31fc` | `dev` |
 | 43 | 2026-07-16 | 生成 CCR 运行时架构图 | `b33cd701` | `dev` |
 | 42 | 2026-07-14 | 更新全仓库 CCR 图标 | `f10f54d0` | `dev` |
