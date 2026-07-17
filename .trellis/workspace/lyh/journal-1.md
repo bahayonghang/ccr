@@ -1853,3 +1853,36 @@ implement.md 第 7 项闭环。7a:UsageLogsTab loading 态从单行"加载中"�
 ### Next Steps
 
 - None - task complete
+
+
+## Session 44: 修复系统提示词编辑器生产环境空白
+
+**Date**: 2026-07-17
+**Task**: 修复系统提示词编辑器生产环境空白
+**Branch**: `dev`
+
+### Summary
+
+定位并修复 Tauri production CSP 拒绝 CodeMirror 运行时样式的问题，补充 nonce 回归测试、生产 WebView 明暗主题验证和共享编辑器规范，并归档 system-prompts-management 任务。
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `81dc31fc` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
