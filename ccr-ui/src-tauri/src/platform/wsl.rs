@@ -171,8 +171,7 @@ fn write_disk_cache(cache: &WslDistrosCache) -> Result<(), EnvError> {
         let mut file = File::create(&tmp_path)
             .map_err(|e| EnvError::Other(format!("创建临时文件失败: {e}")))?;
 
-        FileExt::lock(&file)
-            .map_err(|e| EnvError::Other(format!("获取文件锁失败: {e}")))?;
+        FileExt::lock(&file).map_err(|e| EnvError::Other(format!("获取文件锁失败: {e}")))?;
 
         file.write_all(content.as_bytes())
             .map_err(|e| EnvError::Other(format!("写入缓存失败: {e}")))?;
@@ -634,6 +633,8 @@ impl ExecutionEnvironment for WslEnvironment {
         path: &str,
         content: &str,
     ) -> Result<(), EnvError> {
+        // Remote writes do not yet have the local guarded-write durability
+        // guarantees (path lock, backup rotation, atomic replacement).
         let base_dir = self.platform_config_dir(platform)?;
         let safe_rel_path = normalize_config_relative_path(path)?;
         let linux_path = format!("{base_dir}/{safe_rel_path}");

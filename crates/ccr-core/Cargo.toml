@@ -10,6 +10,7 @@ repository = "https://github.com/bahayonghang/ccr"
 
 [dependencies]
 anyhow = { workspace = true }
+blake3 = { workspace = true }
 chrono = { workspace = true }
 colored = "3.1.1"
 dirs = { workspace = true }

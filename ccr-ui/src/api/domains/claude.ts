@@ -15,6 +15,12 @@ import {
   type UnknownRecord,
 } from '../_shared'
 import type { ClaudeSettingsData } from '../tauri'
+import type {
+  ConfigLayersResult,
+  RawFileGetResult,
+  RawFileSaveResult,
+  RawProfilesSaveResult,
+} from './configRawTypes'
 
 // ── Claude Settings ──
 
@@ -27,6 +33,23 @@ export const getClaudeSettings = async <T = ClaudeSettingsData>(): Promise<T> =>
 export const updateClaudeSettings = async <T = UnknownRecord>(settings: unknown): Promise<T> => {
   return invoke('claude_update_settings', { settings })
 }
+
+export const getClaudeSettingsRaw = async (): Promise<RawFileGetResult> => {
+  return invoke('claude_get_settings_raw_text')
+}
+
+export const saveClaudeSettingsRaw = async (
+  content: string,
+  token: string,
+): Promise<RawFileSaveResult> => {
+  return invoke('claude_save_settings_raw_text', { content, token })
+}
+
+export const listClaudeSettingsLayers = async (): Promise<ConfigLayersResult> => {
+  return invoke('claude_list_settings_layers')
+}
+
+export type { ConfigLayer, ConfigLayersResult, RawFileGetResult, RawFileSaveResult } from './configRawTypes'
 
 // ── Claude MCP Servers ──
 
@@ -338,6 +361,18 @@ export const listClaudeProfiles = async <T = UnknownRecord>(): Promise<T> => {
 
 export const exportClaudeProfiles = async <T = UnknownRecord>(includeSecrets = true): Promise<T> => {
   return invoke('claude_export_profiles', { includeSecrets })
+}
+
+export const getClaudeProfilesRaw = async (): Promise<RawFileGetResult> => {
+  return invoke('claude_get_profiles_raw')
+}
+
+export const saveClaudeProfilesRaw = async (
+  content: string,
+  token: string,
+  force = false,
+): Promise<RawProfilesSaveResult> => {
+  return invoke('claude_save_profiles_raw', { content, token, force })
 }
 
 export const getClaudeProfile = async <T = UnknownRecord>(name: string): Promise<T> => {

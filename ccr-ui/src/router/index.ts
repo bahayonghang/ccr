@@ -100,6 +100,13 @@ const routes: RouteRecordRaw[] = [
         meta: { depth: 2, group: 'claude-code' },
       },
       {
+        path: 'claude-code/system-prompts',
+        name: 'claude-system-prompts',
+        component: () => import('@/views/generic/SystemPromptsView.vue'),
+        props: { platform: 'claude' },
+        meta: { depth: 2, group: 'claude-code' },
+      },
+      {
         path: 'claude-code/profiles',
         name: 'claude-code-profiles',
         component: () => import('@/views/ClaudeCodeProfilesView.vue'),
@@ -362,6 +369,13 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/CodexSettingsView.vue'),
         meta: { depth: 2, group: 'codex' },
       },
+      {
+        path: 'codex/system-prompts',
+        name: 'codex-system-prompts',
+        component: () => import('@/views/generic/SystemPromptsView.vue'),
+        props: { platform: 'codex' },
+        meta: { depth: 2, group: 'codex' },
+      },
       // Antigravity CLI 子页面 (depth: 2, group: 'gemini')
       {
         path: 'antigravity/slash-commands',
@@ -387,6 +401,18 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'gemini-cli/plugins',
         redirect: '/antigravity/plugins',
+        meta: { depth: 2, group: 'gemini' },
+      },
+      {
+        path: 'antigravity/system-prompts',
+        name: 'gemini-system-prompts',
+        component: () => import('@/views/generic/SystemPromptsView.vue'),
+        props: { platform: 'gemini' },
+        meta: { depth: 2, group: 'gemini' },
+      },
+      {
+        path: 'gemini-cli/system-prompts',
+        redirect: '/antigravity/system-prompts',
         meta: { depth: 2, group: 'gemini' },
       },
       // OpenCode 子页面 (depth: 2, group: 'opencode')
@@ -436,6 +462,13 @@ const routes: RouteRecordRaw[] = [
         path: 'opencode/settings',
         name: 'opencode-settings',
         component: () => import('@/views/OpenCodeSettingsView.vue'),
+        meta: { depth: 2, group: 'opencode', hideGlobalBackground: true },
+      },
+      {
+        path: 'opencode/system-prompts',
+        name: 'opencode-system-prompts',
+        component: () => import('@/views/generic/SystemPromptsView.vue'),
+        props: { platform: 'opencode' },
         meta: { depth: 2, group: 'opencode', hideGlobalBackground: true },
       },
       // 环境管理 (depth: 1, group: 'environment')

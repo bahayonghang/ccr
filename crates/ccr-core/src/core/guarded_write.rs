@@ -28,6 +28,19 @@ pub const BACKUP_KEEP: usize = 10;
 /// 默认锁超时（与既有调用方约定一致）
 const DEFAULT_LOCK_TIMEOUT: Duration = Duration::from_secs(10);
 
+/// Outcome of a compare-and-swap guarded write.
+///
+/// A version mismatch is an expected concurrency result rather than an I/O
+/// error, so callers can map it to their own conflict protocol without
+/// extending the frozen [`CcrError`] enum.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum VersionedWriteOutcome {
+    /// The expected version matched and the replacement completed.
+    Written,
+    /// The target changed since the caller read it; no backup or write ran.
+    Conflict,
+}
+
 /// Options controlling a guarded write.
 ///
 /// The default is: no backup, non-secret permissions, 10s lock timeout.
@@ -95,15 +108,7 @@ pub fn write_guarded(path: &Path, bytes: &[u8], opts: &WriteOptions) -> Result<(
     let resource = lock_resource_name(&target);
     let _lock = lock_manager.lock_resource(&resource, opts.lock_timeout)?;
 
-    // 2. 备份 + 轮换（policy=None 或源不存在时跳过）
-    perform_backup(&target, &opts.backup)?;
-
-    // 3. 原子写（temp → 可选 0o600 → 写入 → fsync → rename）
-    AtomicWriter::new(&target)
-        .secret(opts.secret)
-        .write(bytes)?;
-
-    tracing::debug!("✅ guarded write 完成: {:?}", target);
+    write_locked(&target, bytes, opts)?;
     Ok(())
 }
 
@@ -114,6 +119,73 @@ pub async fn write_guarded_async(path: &Path, bytes: Vec<u8>, opts: WriteOptions
     tokio::task::spawn_blocking(move || write_guarded(&path, &bytes, &opts))
         .await
         .map_err(|e| CcrError::FileIoError(format!("guarded write 后台任务失败: {}", e)))?
+}
+
+/// Returns a stable content version token for compare-and-swap writes.
+pub fn content_version_token(bytes: &[u8]) -> String {
+    blake3::hash(bytes).to_hex().to_string()
+}
+
+/// Writes only when the target still has `expected_token` while holding the
+/// same path lock used for backup and replacement.
+///
+/// An empty token means the caller expects the target not to exist. Existing
+/// empty files have the regular BLAKE3 token for an empty byte slice.
+pub fn write_guarded_versioned(
+    path: &Path,
+    bytes: &[u8],
+    expected_token: &str,
+    opts: &WriteOptions,
+) -> Result<VersionedWriteOutcome> {
+    let target = absolute_path(path)?;
+    let lock_manager = LockManager::with_default_path()?;
+    let resource = lock_resource_name(&target);
+    let _lock = lock_manager.lock_resource(&resource, opts.lock_timeout)?;
+
+    let current_token = match fs::read(&target) {
+        Ok(current) => content_version_token(&current),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => String::new(),
+        Err(error) => {
+            return Err(CcrError::FileIoError(format!(
+                "读取版本化写入目标 {} 失败: {}",
+                target.display(),
+                error
+            )));
+        }
+    };
+
+    if current_token != expected_token {
+        return Ok(VersionedWriteOutcome::Conflict);
+    }
+
+    write_locked(&target, bytes, opts)?;
+    Ok(VersionedWriteOutcome::Written)
+}
+
+/// Async variant of [`write_guarded_versioned`].
+pub async fn write_guarded_versioned_async(
+    path: &Path,
+    bytes: Vec<u8>,
+    expected_token: String,
+    opts: WriteOptions,
+) -> Result<VersionedWriteOutcome> {
+    let path = path.to_path_buf();
+    tokio::task::spawn_blocking(move || {
+        write_guarded_versioned(&path, &bytes, &expected_token, &opts)
+    })
+    .await
+    .map_err(|error| {
+        CcrError::FileIoError(format!("versioned guarded write 后台任务失败: {error}"))
+    })?
+}
+
+/// Applies backup and replacement while the caller holds the target lock.
+fn write_locked(target: &Path, bytes: &[u8], opts: &WriteOptions) -> Result<()> {
+    perform_backup(target, &opts.backup)?;
+    AtomicWriter::new(target).secret(opts.secret).write(bytes)?;
+
+    tracing::debug!("✅ guarded write 完成: {:?}", target);
+    Ok(())
 }
 
 /// Takes an explicit backup of `path` according to `policy`, holding the same
@@ -285,6 +357,7 @@ fn rotate_backups(dir: &Path, match_prefix: &str) -> Result<()> {
 mod tests {
     use super::*;
     use crate::test_support::TestLockDirEnv;
+    use std::sync::{Arc, Barrier};
     use std::thread;
     use tempfile::tempdir;
 
@@ -532,6 +605,133 @@ mod tests {
             "终态内容必须是某个完整 payload，实际长度 {}",
             final_content.len()
         );
+    }
+
+    #[test]
+    fn test_content_version_token_is_stable_and_content_sensitive() {
+        let first = content_version_token(b"settings-v1");
+        let second = content_version_token(b"settings-v1");
+
+        assert_eq!(first, second);
+        assert_eq!(first.len(), 64);
+        assert_ne!(first, content_version_token(b"settings-v2"));
+    }
+
+    #[test]
+    fn test_write_guarded_versioned_writes_matching_version_with_backup() {
+        let temp_dir = tempdir().unwrap();
+        let _lock_dir = TestLockDirEnv::new(temp_dir.path().join("locks").as_path());
+        let target = temp_dir.path().join("settings.json");
+        let backup_dir = temp_dir.path().join("backups");
+        fs::write(&target, b"version-one").unwrap();
+        let expected = content_version_token(b"version-one");
+        let opts = WriteOptions {
+            backup: BackupPolicy::Dir {
+                dir: backup_dir.clone(),
+                prefix: "settings.json".into(),
+            },
+            ..Default::default()
+        };
+
+        let outcome = write_guarded_versioned(&target, b"version-two", &expected, &opts).unwrap();
+
+        assert_eq!(outcome, VersionedWriteOutcome::Written);
+        assert_eq!(fs::read(&target).unwrap(), b"version-two");
+        assert_eq!(fs::read_dir(&backup_dir).unwrap().count(), 1);
+    }
+
+    #[test]
+    fn test_write_guarded_versioned_rejects_conflict_without_backup() {
+        let temp_dir = tempdir().unwrap();
+        let _lock_dir = TestLockDirEnv::new(temp_dir.path().join("locks").as_path());
+        let target = temp_dir.path().join("settings.json");
+        let backup_dir = temp_dir.path().join("backups");
+        fs::write(&target, b"external-change").unwrap();
+        let opts = WriteOptions {
+            backup: BackupPolicy::Dir {
+                dir: backup_dir.clone(),
+                prefix: "settings.json".into(),
+            },
+            ..Default::default()
+        };
+
+        let outcome = write_guarded_versioned(
+            &target,
+            b"stale-editor-content",
+            &content_version_token(b"older-content"),
+            &opts,
+        )
+        .unwrap();
+
+        assert_eq!(outcome, VersionedWriteOutcome::Conflict);
+        assert_eq!(fs::read(&target).unwrap(), b"external-change");
+        assert!(!backup_dir.exists());
+    }
+
+    #[test]
+    fn test_write_guarded_versioned_empty_token_only_creates_missing_file() {
+        let temp_dir = tempdir().unwrap();
+        let _lock_dir = TestLockDirEnv::new(temp_dir.path().join("locks").as_path());
+        let target = temp_dir.path().join("new-config.toml");
+
+        let created =
+            write_guarded_versioned(&target, b"model = 'first'", "", &WriteOptions::default())
+                .unwrap();
+        let conflict =
+            write_guarded_versioned(&target, b"model = 'second'", "", &WriteOptions::default())
+                .unwrap();
+
+        assert_eq!(created, VersionedWriteOutcome::Written);
+        assert_eq!(conflict, VersionedWriteOutcome::Conflict);
+        assert_eq!(fs::read(&target).unwrap(), b"model = 'first'");
+    }
+
+    #[test]
+    fn test_write_guarded_versioned_allows_only_one_concurrent_cas_writer() {
+        let temp_dir = tempdir().unwrap();
+        let _lock_dir = TestLockDirEnv::new(temp_dir.path().join("locks").as_path());
+        let target = temp_dir.path().join("settings.json");
+        fs::write(&target, b"base").unwrap();
+        let expected = content_version_token(b"base");
+        let barrier = Arc::new(Barrier::new(4));
+
+        let handles: Vec<_> = (0..4)
+            .map(|index| {
+                let target = target.clone();
+                let expected = expected.clone();
+                let barrier = Arc::clone(&barrier);
+                thread::spawn(move || {
+                    barrier.wait();
+                    write_guarded_versioned(
+                        &target,
+                        format!("writer-{index}").as_bytes(),
+                        &expected,
+                        &WriteOptions::default(),
+                    )
+                    .unwrap()
+                })
+            })
+            .collect();
+
+        let outcomes: Vec<_> = handles
+            .into_iter()
+            .map(|handle| handle.join().unwrap())
+            .collect();
+        assert_eq!(
+            outcomes
+                .iter()
+                .filter(|outcome| **outcome == VersionedWriteOutcome::Written)
+                .count(),
+            1
+        );
+        assert_eq!(
+            outcomes
+                .iter()
+                .filter(|outcome| **outcome == VersionedWriteOutcome::Conflict)
+                .count(),
+            3
+        );
+        assert!(fs::read_to_string(&target).unwrap().starts_with("writer-"));
     }
 
     #[test]

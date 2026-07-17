@@ -4,29 +4,46 @@
     class="module-subnav"
     aria-label="Module navigation"
   >
-    <RouterLink
+    <template
       v-for="item in items"
       :key="item.href"
-      :to="item.href"
-      class="module-subnav__item"
-      :class="{ 'module-subnav__item--active': isActive(item.href) }"
-      :aria-current="isActive(item.href) ? 'page' : undefined"
     >
-      <SIcon
-        :name="item.icon"
-        size="w-4 h-4"
-      />
-      <span>{{ item.labelKey ? t(item.labelKey) : item.label }}</span>
-    </RouterLink>
+      <RouterLink
+        v-if="!item.localOnly || isLocalEnvironment"
+        :to="item.href"
+        class="module-subnav__item"
+        :class="{ 'module-subnav__item--active': isActive(item.href) }"
+        :aria-current="isActive(item.href) ? 'page' : undefined"
+      >
+        <SIcon
+          :name="item.icon"
+          size="w-4 h-4"
+        />
+        <span>{{ item.labelKey ? t(item.labelKey) : item.label }}</span>
+      </RouterLink>
+      <span
+        v-else
+        class="module-subnav__item module-subnav__item--disabled"
+        :title="t('settingsRaw.unsupportedEnvironment')"
+        aria-disabled="true"
+      >
+        <SIcon
+          :name="item.icon"
+          size="w-4 h-4"
+        />
+        <span>{{ item.labelKey ? t(item.labelKey) : item.label }}</span>
+      </span>
+    </template>
   </nav>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import SIcon from '@/components/ui/SIcon.vue'
 import { getModuleSubnavItems } from '@/config/moduleSubnav'
+import { getCurrentEnvironment } from '@/api'
 
 interface Props {
   module: string
@@ -35,6 +52,7 @@ interface Props {
 const props = defineProps<Props>()
 const route = useRoute()
 const { t } = useI18n()
+const isLocalEnvironment = ref(false)
 
 const items = computed(() => getModuleSubnavItems(props.module))
 const activeHref = computed(() => {
@@ -45,6 +63,19 @@ const activeHref = computed(() => {
 })
 
 const isActive = (href: string) => activeHref.value === href
+
+onMounted(async () => {
+  if (!items.value.some(item => item.localOnly)) {
+    isLocalEnvironment.value = true
+    return
+  }
+  try {
+    const environment = await getCurrentEnvironment<{ env_type?: string } | null>()
+    isLocalEnvironment.value = !environment || environment.env_type === 'local'
+  } catch {
+    isLocalEnvironment.value = false
+  }
+})
 </script>
 
 <style scoped>
@@ -82,5 +113,10 @@ const isActive = (href: string) => activeHref.value === href
   background: rgb(var(--color-accent-primary-rgb) / 10%);
   border-color: rgb(var(--color-accent-primary-rgb) / 25%);
   box-shadow: 0 8px 24px rgb(var(--color-accent-primary-rgb) / 10%);
+}
+
+.module-subnav__item--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 </style>

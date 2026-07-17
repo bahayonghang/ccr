@@ -158,6 +158,72 @@ ccr_core::core::fileio::write_toml_opts(
 
 ---
 
+## Scenario: Content-versioned guarded write (lock-held CAS)
+
+### 1. Scope / Trigger
+
+- Trigger: a caller reads editable file content, later writes the edited content, and must reject intervening external changes.
+- Applies to raw config/prompt/profile editors and any future compare-and-swap persistence built on `guarded_write`.
+
+### 2. Signatures
+
+- `content_version_token(bytes: &[u8]) -> String` returns lowercase BLAKE3 hex.
+- `write_guarded_versioned(path, bytes, expected_token, opts) -> Result<VersionedWriteOutcome>`.
+- `write_guarded_versioned_async(path, bytes, expected_token, opts) -> Result<VersionedWriteOutcome>`.
+- `VersionedWriteOutcome::{Written, Conflict}`; conflict is not a `CcrError` variant.
+
+### 3. Contracts
+
+- One path lock covers current-byte read, token comparison, backup, and atomic replacement.
+- `expected_token == ""` means the caller expects the target not to exist. An existing empty file has the normal BLAKE3 token for empty bytes.
+- A matching token delegates to the same lock-held backup and atomic-write body as `write_guarded`.
+- A mismatch returns `Ok(Conflict)` before backup or temp-file creation.
+- I/O, lock timeout, and async join failures remain errors. Do not extend the frozen `CcrError` enum for expected conflicts.
+
+### 4. Validation & Error Matrix
+
+- Target missing + empty expected token -> `Written`.
+- Target exists + matching BLAKE3 token -> backup according to policy, then `Written`.
+- Target state differs from expected token -> `Conflict`; target and backup set remain unchanged.
+- Lock timeout / read / backup / replacement failure -> existing `CcrError`; never map to `Conflict`.
+
+### 5. Good/Base/Bad Cases
+
+- Good: a raw editor returns the token from its read command and passes it unchanged on save.
+- Base: first creation uses an empty token and succeeds only while the file remains absent.
+- Bad: compare bytes before acquiring the guarded-write path lock, then call `write_guarded` separately.
+- Bad: treat conflict as an I/O error or add `CcrError::WriteConflict`.
+
+### 6. Tests Required
+
+- Stable/content-sensitive token test.
+- Matching write produces `Written`, requested backup, and exact new bytes.
+- Stale token produces `Conflict`, preserves external bytes, and creates no backup.
+- Empty-token first creation succeeds; a second empty-token write conflicts.
+- Four concurrent writers using one token yield exactly one `Written` and three `Conflict` outcomes.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```rust
+if content_version_token(&fs::read(path)?) != expected_token {
+    return Err(CcrError::ValidationError("conflict".into()));
+}
+write_guarded(path, bytes, opts)?;
+```
+
+#### Correct
+
+```rust
+match write_guarded_versioned(path, bytes, expected_token, opts)? {
+    VersionedWriteOutcome::Written => save_result(),
+    VersionedWriteOutcome::Conflict => conflict_result(),
+}
+```
+
+---
+
 ## Known Debt (out of guarded-write task scope, tracked 2026-07)
 
 - `ccr-cli/src/sync/commands.rs` non-atomic `tokio::fs::write` of config during pull; `ccr-cli/platforms/{gemini,droid}.rs` bare `fs::write` of settings; `ccr-codex`/`ccr-skills` direct `AtomicWriter` / hand-rolled temp+rename call sites — migrate to guarded write incrementally.

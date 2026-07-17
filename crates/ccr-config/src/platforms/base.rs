@@ -164,6 +164,20 @@ pub fn profile_to_section(profile: &ProfileConfig) -> Result<ConfigSection> {
 /// 支持两种格式:
 /// 1. CcsConfig 完整格式 (包含 default_config, current_config, settings)
 /// 2. 简化格式 (仅包含 profile sections)
+pub fn parse_profiles_from_str(content: &str) -> Result<IndexMap<String, ProfileConfig>> {
+    let sections = match toml::from_str::<CcsConfig>(content) {
+        Ok(config) => config.sections,
+        Err(_) => toml::from_str::<IndexMap<String, ConfigSection>>(content)
+            .map_err(|error| CcrError::ConfigFormatInvalid(format!("TOML 解析失败: {error}")))?,
+    };
+
+    Ok(sections
+        .into_iter()
+        .map(|(name, section)| (name, section_to_profile(&section)))
+        .collect())
+}
+
+/// Read and parse profiles from a TOML file.
 pub fn load_profiles_from_toml(profiles_path: &Path) -> Result<IndexMap<String, ProfileConfig>> {
     if !profiles_path.exists() {
         return Ok(IndexMap::new());
@@ -175,21 +189,9 @@ pub fn load_profiles_from_toml(profiles_path: &Path) -> Result<IndexMap<String, 
     let content = fs::read_to_string(profiles_path)
         .map_err(|e| CcrError::ConfigError(format!("读取配置文件失败 {}: {}", display_path, e)))?;
 
-    // 尝试解析为 CcsConfig 或简化格式
-    let sections = match toml::from_str::<CcsConfig>(&content) {
-        Ok(config) => config.sections,
-        Err(_) => toml::from_str::<IndexMap<String, ConfigSection>>(&content).map_err(|e| {
-            CcrError::ConfigFormatInvalid(format!("TOML 解析失败 {}: {}", display_path, e))
-        })?,
-    };
-
-    // 转换为 ProfileConfig
-    let profiles = sections
-        .into_iter()
-        .map(|(name, section)| (name, section_to_profile(&section)))
-        .collect();
-
-    Ok(profiles)
+    parse_profiles_from_str(&content).map_err(|error| {
+        CcrError::ConfigFormatInvalid(format!("TOML 解析失败 {display_path}: {error}"))
+    })
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -281,6 +283,7 @@ pub fn save_profiles_to_toml(
                 dir: paths.backups_dir.clone(),
                 prefix: "profiles".into(),
             },
+            secret: true,
             ..Default::default()
         },
     )?;
@@ -411,6 +414,7 @@ pub fn update_current_config(profiles_path: &Path, name: &str) -> Result<()> {
                 dir: backup_dir,
                 prefix: "profiles".into(),
             },
+            secret: true,
             ..Default::default()
         },
     )?;
@@ -719,5 +723,73 @@ mod tests {
 
         assert!(err_text.contains("profiles.toml"));
         assert!(err_text.contains("TOML 解析失败"));
+    }
+
+    #[test]
+    fn test_parse_profiles_from_str_supports_full_and_simplified_formats() {
+        let full = r#"
+default_config = "first"
+current_config = "first"
+
+[first]
+base_url = "https://example.com"
+auth_token = "secret"
+"#;
+        let simplified = r#"
+[second]
+model = "example-model"
+"#;
+
+        let full_profiles = parse_profiles_from_str(full).unwrap();
+        let simplified_profiles = parse_profiles_from_str(simplified).unwrap();
+
+        assert_eq!(full_profiles.len(), 1);
+        assert_eq!(
+            full_profiles["first"].base_url.as_deref(),
+            Some("https://example.com")
+        );
+        assert_eq!(simplified_profiles.len(), 1);
+        assert_eq!(
+            simplified_profiles["second"].model.as_deref(),
+            Some("example-model")
+        );
+    }
+
+    #[test]
+    fn test_parse_profiles_from_str_preserves_empty_collection_behavior() {
+        assert!(parse_profiles_from_str("").unwrap().is_empty());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_profile_structured_writes_keep_owner_only_permissions() {
+        use crate::models::Platform;
+        use std::os::unix::fs::PermissionsExt;
+
+        let _env = TestCcrEnv::new();
+        let paths = PlatformPaths::new(Platform::Claude).unwrap();
+        let mut profiles = IndexMap::new();
+        profiles.insert("default".to_string(), ProfileConfig::new());
+
+        save_profiles_to_toml(&paths.profiles_file, &profiles, "claude", &paths).unwrap();
+        assert_eq!(
+            fs::metadata(&paths.profiles_file)
+                .unwrap()
+                .permissions()
+                .mode()
+                & 0o777,
+            0o600
+        );
+
+        fs::set_permissions(&paths.profiles_file, fs::Permissions::from_mode(0o644)).unwrap();
+        update_current_config(&paths.profiles_file, "default").unwrap();
+        assert_eq!(
+            fs::metadata(&paths.profiles_file)
+                .unwrap()
+                .permissions()
+                .mode()
+                & 0o777,
+            0o600
+        );
     }
 }

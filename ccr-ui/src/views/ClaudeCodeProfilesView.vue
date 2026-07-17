@@ -14,6 +14,7 @@
             reload: $t('claudeProfiles.reloadAction'),
             export: $t('common.export'),
             add: $t('claudeProfiles.addProfile'),
+            source: $t('profilesRaw.edit'),
           }"
           :palette="{
             label: $t('claudeProfiles.commandPaletteButton'),
@@ -23,10 +24,13 @@
           :loading="loading || isRefreshing"
           :exporting="isExporting"
           :palette-open="paletteOpen"
+          :source-disabled="!rawLocal"
+          :source-title="rawLocal ? undefined : $t('settingsRaw.unsupportedEnvironment')"
           @add="openAddForm"
           @export="handleExportProfiles"
           @reload="refreshProfiles"
           @open-palette="paletteOpen = true"
+          @edit-source="openRawEditor"
         />
 
         <ProfilesStatStrip
@@ -434,6 +438,14 @@
       @apply="handleApply"
     />
 
+    <ProfilesRawEditorPanel
+      v-if="showRawEditor"
+      :get-raw="getClaudeProfilesRaw"
+      :save-raw="saveClaudeProfilesRaw"
+      @saved="handleRawSaved"
+      @close="showRawEditor = false"
+    />
+
     <ConfirmModal
       v-model:is-open="showConfirmModal"
       :type="confirmDialog.type"
@@ -454,9 +466,11 @@ import {
   applyClaudeProfile,
   deleteClaudeProfile,
   exportClaudeProfiles,
+  getCurrentEnvironment,
   listClaudeProfiles,
   updateClaudeProfile,
 } from '@/api'
+import { getClaudeProfilesRaw, saveClaudeProfilesRaw } from '@/api/domains/claude'
 import ClaudeProfileEditorSections from '@/components/claude/ClaudeProfileEditorSections.vue'
 import ClaudeProfileRow from '@/components/claude/ClaudeProfileRow.vue'
 import ProfilesCommandPalette, { type ProfilesCommandPaletteAction, type ProfilesCommandPaletteDescriptor } from '@/components/profiles/ProfilesCommandPalette.vue'
@@ -465,6 +479,7 @@ import { useClaudeProfilesInsights } from '@/composables/useClaudeProfilesInsigh
 import { useConfirmAction } from '@/composables/useConfirmAction'
 import { useProfilesHotkeys } from '@/composables/useProfilesHotkeys'
 import ProfilesHeader from '@/components/profiles/ProfilesHeader.vue'
+import ProfilesRawEditorPanel from '@/components/profiles/ProfilesRawEditorPanel.vue'
 import ProfileListRow, { type ProfileRowDescriptor } from '@/components/profiles/ProfileListRow.vue'
 import ProfilesQuickRail from '@/components/profiles/ProfilesQuickRail.vue'
 import ProfilesStatStrip from '@/components/profiles/ProfilesStatStrip.vue'
@@ -527,6 +542,8 @@ const sortBy = ref<ClaudeProfilesSortBy>('recent')
 const viewMode = ref<ProfilesViewMode>('card')
 const paletteOpen = ref(false)
 const lastWriteHint = ref<string | null>(null)
+const showRawEditor = ref(false)
+const rawLocal = ref(false)
 const {
   isOpen: showConfirmModal,
   dialog: confirmDialog,
@@ -1153,6 +1170,37 @@ const handleExportProfiles = async () => {
   }
 }
 
+const loadActiveEnvironment = async () => {
+  try {
+    const environment = await getCurrentEnvironment<{ env_type?: string } | null>()
+    rawLocal.value = !environment || environment.env_type === 'local'
+  } catch {
+    rawLocal.value = false
+  }
+}
+
+const openRawEditor = async () => {
+  if (!rawLocal.value) {
+    uiStore.showWarning(t('settingsRaw.unsupportedEnvironment'))
+    return
+  }
+  const confirmed = await uiStore.requestConfirm({
+    title: t('profilesRaw.openWarningTitle'),
+    message: t('profilesRaw.openWarningMessage'),
+    confirmText: t('profilesRaw.continue'),
+    cancelText: t('common.cancel'),
+    type: 'warning',
+    surface: 'solid',
+  })
+  if (confirmed) showRawEditor.value = true
+}
+
+const handleRawSaved = async () => {
+  showRawEditor.value = false
+  markWrite()
+  await loadProfiles()
+}
+
 const performSave = async () => {
   isSaving.value = true
   saveError.value = null
@@ -1291,6 +1339,7 @@ useProfilesHotkeys({
 
 onMounted(() => {
   void loadProfiles()
+  void loadActiveEnvironment()
 })
 
 onBeforeUnmount(() => {

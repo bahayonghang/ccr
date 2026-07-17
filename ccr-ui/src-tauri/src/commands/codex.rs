@@ -822,6 +822,10 @@ fn read_codex_config(path: &PathBuf) -> Result<CodexConfig, String> {
     toml::from_str(&content).map_err(|e| format!("解析 Codex 配置失败: {e}"))
 }
 
+pub(crate) fn validate_codex_config_raw(content: &str) -> Result<(), toml::de::Error> {
+    toml::from_str::<CodexConfig>(content).map(|_| ())
+}
+
 fn write_codex_config(path: &PathBuf, config: &CodexConfig) -> Result<(), String> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).map_err(|e| format!("创建配置目录失败: {e}"))?;

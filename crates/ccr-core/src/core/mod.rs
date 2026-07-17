@@ -46,7 +46,9 @@ pub use fileio::{
 };
 #[allow(unused_imports)]
 pub use guarded_write::{
-    BACKUP_KEEP, BackupPolicy, WriteOptions, backup_guarded, write_guarded, write_guarded_async,
+    BACKUP_KEEP, BackupPolicy, VersionedWriteOutcome, WriteOptions, backup_guarded,
+    content_version_token, write_guarded, write_guarded_async, write_guarded_versioned,
+    write_guarded_versioned_async,
 };
 #[allow(unused_imports)]
 pub use http::HTTP_CLIENT;

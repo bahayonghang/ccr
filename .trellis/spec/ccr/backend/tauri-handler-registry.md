@@ -36,7 +36,7 @@
 - Windows-only WSL commands live in `WINDOWS_COMMAND_MODULES` and the Windows `generate_handler()` arm.
 - Each command path must appear once; duplicate command paths fail `command_registry_paths_are_unique`.
 - Registry metadata must remain non-empty and domain-keyed; empty module keys, titles, or command lists are invalid.
-- Count assertions intentionally freeze the current handler surface: 312 base commands and 320 commands on Windows.
+- Count assertions intentionally freeze the current handler surface: 315 base commands and 323 commands on Windows across 30 base modules.
 
 ### 4. Validation & Error Matrix
 
