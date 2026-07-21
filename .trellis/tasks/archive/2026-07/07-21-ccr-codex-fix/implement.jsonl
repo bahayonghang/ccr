@@ -1,0 +1,3 @@
+{"file": ".trellis/spec/ccr-codex/backend/backend-guidelines.md", "reason": "Codex 域边界、CodexPaths 路径解析、auth 安全（不记录 token）、错误映射、tracing 日志、测试夹具与验证命令——进程服务与 doctor 编排均须遵守"}
+{"file": ".trellis/spec/ccr-cli/backend/backend-guidelines.md", "reason": "CLI 命令边界、输出/日志规则、退出码与错误处理惯例——ccr codex fix 命令装配与渲染须对齐"}
+{"file": ".trellis/spec/ccr-core/backend/ccr-error-freeze.md", "reason": "CcrError 变体冻结清单：新增命令只能复用现有变体，不得新增"}
