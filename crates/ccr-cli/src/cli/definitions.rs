@@ -834,4 +834,26 @@ mod tests {
             other => panic!("unexpected command: {:?}", other.map(|_| "other")),
         }
     }
+
+    #[test]
+    fn codex_fix_parses() {
+        let cli = Cli::try_parse_from(["ccr", "codex", "fix"]).unwrap();
+        match cli.command {
+            Some(Commands::Codex {
+                action: Some(CodexAction::Fix { dry_run }),
+            }) => assert!(!dry_run),
+            other => panic!("unexpected command: {:?}", other.map(|_| "other")),
+        }
+    }
+
+    #[test]
+    fn codex_fix_dry_run_parses() {
+        let cli = Cli::try_parse_from(["ccr", "codex", "fix", "--dry-run"]).unwrap();
+        match cli.command {
+            Some(Commands::Codex {
+                action: Some(CodexAction::Fix { dry_run }),
+            }) => assert!(dry_run),
+            other => panic!("unexpected command: {:?}", other.map(|_| "other")),
+        }
+    }
 }

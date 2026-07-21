@@ -126,6 +126,18 @@ pub enum CodexAction {
         #[command(subcommand)]
         action: Option<CodexSyncHistoryAction>,
     },
+
+    /// 清理残留 Codex app-server 进程并诊断实际加载的配置/认证来源
+    ///
+    /// 修复 SSH / Desktop / VS Code Remote 断开后 app-server 仍锁定旧登录态、
+    /// 导致第三方 URL/Key 切换不生效的问题。清理后运行 `codex doctor` 展示实际配置。
+    /// 示例: ccr codex fix
+    ///       ccr codex fix --dry-run
+    Fix {
+        /// 只列出将被清理的 app-server 进程，不实际终止
+        #[arg(long)]
+        dry_run: bool,
+    },
 }
 
 #[derive(Subcommand)]
