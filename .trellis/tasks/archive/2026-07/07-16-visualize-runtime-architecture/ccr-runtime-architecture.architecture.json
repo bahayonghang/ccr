@@ -1,0 +1,371 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "CCR 运行时架构",
+    "subtitle": "组件、数据流、外部依赖与信任边界",
+    "output": "ccr-runtime-architecture.html",
+    "animation": "none"
+  },
+  "components": [
+    {
+      "id": "users",
+      "type": "external",
+      "label": "本机用户",
+      "sublabel": "terminal / desktop / editor",
+      "pos": [40, 355],
+      "size": [150, 72]
+    },
+    {
+      "id": "cli_tui",
+      "type": "frontend",
+      "label": "CLI / TUI",
+      "sublabel": "Clap + Ratatui",
+      "pos": [260, 135],
+      "size": [150, 64],
+      "tag": "entrypoint"
+    },
+    {
+      "id": "desktop_vue",
+      "type": "frontend",
+      "label": "CCR Desktop",
+      "sublabel": "Vue 3 WebView",
+      "pos": [260, 355],
+      "size": [150, 64],
+      "tag": "entrypoint"
+    },
+    {
+      "id": "vscode",
+      "type": "frontend",
+      "label": "VS Code 扩展",
+      "sublabel": "sidebar + commands",
+      "pos": [260, 575],
+      "size": [150, 64],
+      "tag": "entrypoint"
+    },
+    {
+      "id": "ccr_binary",
+      "type": "backend",
+      "label": "ccr binary",
+      "sublabel": "ccr-cli + ccr-tui",
+      "pos": [510, 135],
+      "size": [170, 64],
+      "tag": "Rust process"
+    },
+    {
+      "id": "tauri_backend",
+      "type": "backend",
+      "label": "Tauri 后端",
+      "sublabel": "handlers + AppState",
+      "pos": [510, 355],
+      "size": [170, 64],
+      "tag": "Rust process"
+    },
+    {
+      "id": "domains",
+      "type": "backend",
+      "label": "共享领域层",
+      "sublabel": "config / codex / sync / skills",
+      "pos": [760, 245],
+      "size": [210, 92],
+      "tag": "13 crates, grouped"
+    },
+    {
+      "id": "guarded_io",
+      "type": "security",
+      "label": "安全写入基础设施",
+      "sublabel": "lock + backup + atomic replace",
+      "pos": [1040, 125],
+      "size": [200, 72]
+    },
+    {
+      "id": "ccr_home",
+      "type": "database",
+      "label": "~/.ccr",
+      "sublabel": "profiles / auth / history / backups",
+      "pos": [1320, 115],
+      "size": [210, 72],
+      "tag": "sensitive"
+    },
+    {
+      "id": "desktop_db",
+      "type": "database",
+      "label": "CCR Desktop SQLite",
+      "sublabel": "ccr-ui.db + usage archive",
+      "pos": [1320, 285],
+      "size": [210, 72],
+      "tag": "read / write"
+    },
+    {
+      "id": "llmusage_cli",
+      "type": "external",
+      "label": "llmusage CLI",
+      "sublabel": "sync --json-events",
+      "pos": [1040, 455],
+      "size": [200, 68],
+      "tag": "child process"
+    },
+    {
+      "id": "llmusage_db",
+      "type": "database",
+      "label": "llmusage.db",
+      "sublabel": "~/.llmusage / schema-gated",
+      "pos": [1320, 455],
+      "size": [210, 72],
+      "tag": "CCR read-only"
+    },
+    {
+      "id": "ai_runtimes",
+      "type": "external",
+      "label": "AI CLI 运行时",
+      "sublabel": "Claude / Codex / OpenCode",
+      "pos": [1040, 635],
+      "size": [200, 72],
+      "tag": "host integration"
+    },
+    {
+      "id": "webdav",
+      "type": "cloud",
+      "label": "WebDAV 服务",
+      "sublabel": "remote config storage",
+      "pos": [1600, 635],
+      "size": [180, 68],
+      "tag": "external network"
+    },
+    {
+      "id": "provider_apis",
+      "type": "cloud",
+      "label": "供应商 API",
+      "sublabel": "check-in / quota / OAuth",
+      "pos": [1600, 785],
+      "size": [180, 68],
+      "tag": "external network"
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "本机用户会话 / OS 权限边界",
+      "wraps": [
+        "cli_tui",
+        "desktop_vue",
+        "vscode",
+        "ccr_binary",
+        "tauri_backend",
+        "domains",
+        "guarded_io",
+        "ccr_home",
+        "desktop_db",
+        "llmusage_cli",
+        "llmusage_db",
+        "ai_runtimes"
+      ],
+      "pad": 34
+    },
+    {
+      "kind": "security-group",
+      "label": "敏感本地数据",
+      "wraps": ["ccr_home", "desktop_db", "llmusage_db"],
+      "pad": 22
+    },
+    {
+      "kind": "security-group",
+      "label": "第三方本地执行文件 / PATH 与版本信任",
+      "wraps": ["llmusage_cli", "ai_runtimes"],
+      "pad": 22
+    },
+    {
+      "kind": "region",
+      "label": "外部网络信任边界",
+      "wraps": ["webdav", "provider_apis"],
+      "pad": 24
+    }
+  ],
+  "connections": [
+    {
+      "from": "users",
+      "to": "cli_tui",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "orthogonal-h",
+      "via": [[220, 391], [220, 167]],
+      "variant": "emphasis"
+    },
+    {
+      "from": "users",
+      "to": "desktop_vue",
+      "variant": "emphasis"
+    },
+    {
+      "from": "users",
+      "to": "vscode",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "orthogonal-h",
+      "via": [[220, 391], [220, 607]],
+      "variant": "emphasis"
+    },
+    {
+      "from": "cli_tui",
+      "to": "ccr_binary",
+      "variant": "emphasis"
+    },
+    {
+      "from": "desktop_vue",
+      "to": "tauri_backend",
+      "label": "Tauri invoke / events",
+      "variant": "emphasis",
+      "labelAt": [460, 433]
+    },
+    {
+      "from": "vscode",
+      "to": "ccr_binary",
+      "label": "execFile + JSON/stdout",
+      "variant": "dashed",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "orthogonal-h",
+      "via": [[455, 607], [455, 167]],
+      "labelAt": [460, 520]
+    },
+    {
+      "from": "ccr_binary",
+      "to": "domains",
+      "label": "in-process Rust",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "orthogonal-h",
+      "via": [[720, 167], [720, 291]],
+      "labelAt": [722, 220]
+    },
+    {
+      "from": "tauri_backend",
+      "to": "domains",
+      "label": "workspace crates",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "orthogonal-h",
+      "via": [[720, 387], [720, 291]],
+      "labelAt": [722, 365]
+    },
+    {
+      "from": "domains",
+      "to": "guarded_io",
+      "label": "validated writes",
+      "variant": "security",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "orthogonal-h",
+      "via": [[1005, 291], [1005, 161]],
+      "labelAt": [1008, 225]
+    },
+    {
+      "from": "guarded_io",
+      "to": "ccr_home",
+      "label": "profiles / auth / history",
+      "variant": "security",
+      "labelAt": [1280, 211]
+    },
+    {
+      "from": "tauri_backend",
+      "to": "desktop_db",
+      "label": "SQLite read / write",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "orthogonal-h",
+      "via": [[1265, 387], [1265, 321]],
+      "labelAt": [1110, 389]
+    },
+    {
+      "from": "tauri_backend",
+      "to": "llmusage_cli",
+      "label": "spawn + NDJSON",
+      "variant": "dashed",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "orthogonal-h",
+      "via": [[860, 387], [860, 489]],
+      "labelAt": [862, 445]
+    },
+    {
+      "from": "domains",
+      "to": "llmusage_db",
+      "label": "ccr-usage read-only SQL",
+      "variant": "security",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "orthogonal-h",
+      "via": [[1005, 291], [1005, 555], [1270, 555], [1270, 491]],
+      "labelAt": [1115, 558]
+    },
+    {
+      "from": "llmusage_cli",
+      "to": "llmusage_db",
+      "label": "collect / migrate / write",
+      "variant": "emphasis",
+      "route": "orthogonal-h",
+      "labelAt": [1280, 541]
+    },
+    {
+      "from": "domains",
+      "to": "ai_runtimes",
+      "label": "runtime config / auth",
+      "variant": "security",
+      "fromSide": "bottom",
+      "toSide": "left",
+      "route": "orthogonal-v",
+      "via": [[865, 610], [1000, 610], [1000, 671]],
+      "labelAt": [867, 612]
+    },
+    {
+      "from": "domains",
+      "to": "webdav",
+      "label": "WebDAV over TLS + Basic Auth",
+      "variant": "security",
+      "fromSide": "bottom",
+      "toSide": "left",
+      "route": "orthogonal-v",
+      "via": [[865, 745], [1560, 745], [1560, 669]],
+      "labelAt": [1390, 748]
+    },
+    {
+      "from": "domains",
+      "to": "provider_apis",
+      "label": "HTTPS + token / cookie",
+      "variant": "security",
+      "fromSide": "bottom",
+      "toSide": "left",
+      "route": "orthogonal-v",
+      "via": [[865, 895], [1560, 895], [1560, 819]],
+      "labelAt": [1395, 898]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "运行时入口",
+      "items": [
+        "CLI/TUI 与 Tauri 直接复用 Rust workspace 领域 crate",
+        "VS Code 的变更操作通过 ccr 子进程保留锁、备份和审计语义"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "数据所有权",
+      "items": [
+        "~/.ccr 是 profile、runtime 配置和 history 的共享事实源",
+        "ccr-db 拥有桌面 SQLite；ccr-usage 仅只读 llmusage.db"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "信任与敏感性",
+      "items": [
+        "本地文件包含 token、Cookie、账号和 WebDAV 凭据",
+        "外部 CLI、PATH、远端服务和 TLS 连接均跨越独立信任边界"
+      ]
+    }
+  ]
+}

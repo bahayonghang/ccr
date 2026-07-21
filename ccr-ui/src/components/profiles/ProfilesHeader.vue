@@ -56,6 +56,21 @@
       </button>
 
       <button
+        v-if="labels.source"
+        type="button"
+        class="cp-btn cp-btn--ghost"
+        :disabled="loading || sourceDisabled"
+        :title="sourceTitle"
+        @click="emit('editSource')"
+      >
+        <SIcon
+          name="FileCode2"
+          size="w-3.5 h-3.5"
+        />
+        <span>{{ labels.source }}</span>
+      </button>
+
+      <button
         type="button"
         class="cp-btn cp-btn--ghost"
         :disabled="loading"
@@ -109,6 +124,7 @@ export interface ProfilesHeaderLabels {
   reload: string
   export: string
   add: string
+  source?: string
 }
 
 /** 命令面板按钮（Codex 用，Claude 省略 → 不渲染） */
@@ -126,6 +142,8 @@ interface Props {
   exporting?: boolean
   palette?: ProfilesHeaderPalette | null
   paletteOpen?: boolean
+  sourceDisabled?: boolean
+  sourceTitle?: string
 }
 
 withDefaults(defineProps<Props>(), {
@@ -133,6 +151,8 @@ withDefaults(defineProps<Props>(), {
   exporting: false,
   palette: null,
   paletteOpen: false,
+  sourceDisabled: false,
+  sourceTitle: undefined,
 })
 
 const emit = defineEmits<{
@@ -140,6 +160,7 @@ const emit = defineEmits<{
   (e: 'export'): void
   (e: 'reload'): void
   (e: 'openPalette'): void
+  (e: 'editSource'): void
 }>()
 </script>
 

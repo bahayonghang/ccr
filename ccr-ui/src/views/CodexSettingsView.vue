@@ -45,6 +45,7 @@
               </Button>
             </RouterLink>
             <Button
+              v-if="activeTab !== 'source'"
               variant="primary"
               surface="card"
               density="compact"
@@ -83,9 +84,11 @@
               :key="tab.key"
               role="tab"
               :aria-selected="activeTab === tab.key"
+              :disabled="tab.disabled"
+              :title="tab.disabled ? $t('settingsRaw.unsupportedEnvironment') : undefined"
               class="codex-settings-tab"
               :class="{ 'codex-settings-tab--active': activeTab === tab.key }"
-              @click="activeTab = tab.key"
+              @click="changeTab(tab.key)"
             >
               <SIcon
                 :name="tab.icon"
@@ -586,6 +589,17 @@
             </Card>
           </div>
 
+          <ConfigSourcePanel
+            v-if="activeTab === 'source'"
+            language="toml"
+            :get-raw="getCodexConfigRaw"
+            :save-raw="saveCodexConfigRaw"
+            :list-layers="listCodexConfigLayers"
+            @saved="handleRawSaved"
+            @close="activeTab = 'model'"
+            @dirty-change="sourceDirty = $event"
+          />
+
           <!-- Toast -->
           <Transition name="fade">
             <div
@@ -609,16 +623,28 @@ import { useI18n } from 'vue-i18n'
 import Button from '@/components/ui/Button.vue'
 import Card from '@/components/ui/Card.vue'
 import ModuleSubnav from '@/components/ModuleSubnav.vue'
-import { getCodexConfig, updateCodexConfig } from '@/api'
+import ConfigSourcePanel from '@/components/editor/ConfigSourcePanel.vue'
+import {
+  getCodexConfig,
+  getCodexConfigRaw,
+  getCurrentEnvironment,
+  listCodexConfigLayers,
+  saveCodexConfigRaw,
+  updateCodexConfig,
+} from '@/api'
+import { useUIStore } from '@/stores/ui'
 import type { CodexConfig } from '@/types'
 import { logger } from '@/utils/logger'
 
 const { t } = useI18n()
+const uiStore = useUIStore()
 
 // ============ State ============
 const loading = ref(true)
 const saving = ref(false)
 const activeTab = ref('model')
+const rawLocal = ref(true)
+const sourceDirty = ref(false)
 const toast = ref<{ message: string; type: 'success' | 'error' } | null>(null)
 
 const form = reactive<CodexConfig>({})
@@ -630,7 +656,42 @@ const tabs = computed(() => [
   { key: 'tools', label: t('codex.settings.tabs.tools'), icon: 'Wrench' },
   { key: 'ui', label: t('codex.settings.tabs.ui'), icon: 'Monitor' },
   { key: 'features', label: t('codex.settings.tabs.features'), icon: 'Zap' },
+  { key: 'source', label: t('settingsRaw.sourceTab'), icon: 'FileCode2', disabled: !rawLocal.value },
 ])
+
+async function changeTab(nextTab: string) {
+  if (nextTab === 'source' && !rawLocal.value) {
+    uiStore.showWarning(t('settingsRaw.unsupportedEnvironment'))
+    return
+  }
+  if (activeTab.value === 'source' && sourceDirty.value) {
+    const discard = await uiStore.requestConfirm({
+      title: t('settingsRaw.discardTitle'),
+      message: t('settingsRaw.discardMessage'),
+      confirmText: t('settingsRaw.discard'),
+      cancelText: t('common.cancel'),
+      type: 'warning',
+      surface: 'solid',
+    })
+    if (!discard) return
+  }
+  activeTab.value = nextTab
+}
+
+async function handleRawSaved() {
+  sourceDirty.value = false
+  activeTab.value = 'model'
+  await loadConfig()
+}
+
+async function loadActiveEnvironment() {
+  try {
+    const environment = await getCurrentEnvironment<{ env_type?: string }>()
+    rawLocal.value = !environment || environment.env_type === 'local'
+  } catch {
+    rawLocal.value = true
+  }
+}
 
 // ============ Computed proxies for nested fields ============
 
@@ -836,7 +897,10 @@ async function handleSave() {
   }
 }
 
-onMounted(loadConfig)
+onMounted(() => {
+  void loadActiveEnvironment()
+  void loadConfig()
+})
 
 // ============ ToggleField inline component ============
 </script>
@@ -940,6 +1004,11 @@ export default { components: { ToggleField } }
 .codex-settings-tab:hover {
   background: rgb(var(--color-bg-surface-rgb) / 70%);
   border-color: rgb(var(--color-border-default-rgb) / 70%);
+}
+
+.codex-settings-tab:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .codex-settings-tab--active {

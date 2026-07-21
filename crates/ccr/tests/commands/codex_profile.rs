@@ -128,10 +128,13 @@ impl CodexProfileFixture {
     }
 
     fn write_codex_runtime_official(&self) {
-        fs::write(
-            self.codex_dir.join("config.toml"),
+        self.write_codex_runtime_official_with_credential_store("file");
+    }
+
+    fn write_codex_runtime_official_with_credential_store(&self, credential_store: &str) {
+        let config = format!(
             r#"
-cli_auth_credentials_store = "file"
+cli_auth_credentials_store = "{credential_store}"
 model_provider = "custom"
 
 [model_providers.custom]
@@ -140,9 +143,8 @@ base_url = "https://api.openai.com/v1"
 wire_api = "responses"
 requires_openai_auth = true
 "#
-            .trim_start(),
-        )
-        .unwrap();
+        );
+        fs::write(self.codex_dir.join("config.toml"), config.trim_start()).unwrap();
     }
 
     fn write_auth_json_with_oauth(&self) -> String {
@@ -202,7 +204,7 @@ fn codex_profile_switch_and_off_are_consistent_and_off_keeps_auth_json() {
     let fixture = CodexProfileFixture::new();
     fixture.write_unified_codex_profile(Some("official"));
     fixture.save_codex_profiles("official");
-    fixture.write_codex_runtime_official();
+    fixture.write_codex_runtime_official_with_credential_store("keyring");
     let auth_before = fixture.write_auth_json_with_oauth();
 
     let switch_output = fixture.run_output(&["codex", "profile", "switch", "team"]);
@@ -216,6 +218,36 @@ fn codex_profile_switch_and_off_are_consistent_and_off_keeps_auth_json() {
 
     let (_, current_json) = fixture.run_json(&["codex", "profile", "current", "--json"]);
     assert_eq!(current_json["profile"], "team");
+
+    let runtime_config: toml::Value =
+        toml::from_str(&fs::read_to_string(fixture.codex_dir.join("config.toml")).unwrap())
+            .unwrap();
+    assert!(
+        runtime_config
+            .as_table()
+            .unwrap()
+            .get("forced_login_method")
+            .is_none(),
+        "API-key profile switching must not implicitly restrict future Codex login methods: {runtime_config:?}"
+    );
+    assert_eq!(
+        runtime_config
+            .as_table()
+            .unwrap()
+            .get("cli_auth_credentials_store")
+            .and_then(|value| value.as_str()),
+        Some("file"),
+        "API-key profile switching must use file credential storage"
+    );
+
+    let runtime_auth: Value =
+        serde_json::from_str(&fs::read_to_string(fixture.codex_dir.join("auth.json")).unwrap())
+            .unwrap();
+    assert_eq!(runtime_auth["OPENAI_API_KEY"], "sk-team-token");
+    assert!(
+        runtime_auth.get("tokens").is_none(),
+        "API-key profile switching must clear stale OAuth tokens"
+    );
 
     let off_output = fixture.run_output(&["codex", "profile", "off"]);
     assert!(off_output.status.success(), "{:?}", off_output.status);

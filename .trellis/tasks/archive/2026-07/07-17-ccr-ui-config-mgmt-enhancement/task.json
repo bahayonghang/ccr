@@ -1,0 +1,30 @@
+{
+  "id": "ccr-ui-config-mgmt-enhancement",
+  "name": "ccr-ui-config-mgmt-enhancement",
+  "title": "ccr-ui 配置管理增强:系统提示词/系统配置/Profile TOML",
+  "description": "父任务:ccr-ui 三项配置管理能力增强的需求总集、任务地图与跨子任务验收(系统提示词管理、系统配置管理完善、Profile TOML 直接编辑)",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-07-17",
+  "completedAt": "2026-07-17",
+  "branch": null,
+  "base_branch": "dev",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "07-17-system-prompts-management",
+    "07-17-platform-settings-enhancement",
+    "07-17-profile-toml-editing"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}

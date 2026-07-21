@@ -18,6 +18,12 @@ import {
   resolveNameAndConfig,
   type UnknownRecord,
 } from '../_shared'
+import type {
+  ConfigLayersResult,
+  RawFileGetResult,
+  RawFileSaveResult,
+  RawProfilesSaveResult,
+} from './configRawTypes'
 
 // ── Internal Codex Agent helpers —— 与 _shared 中的 resolveName/resolveNameAndConfig 协同 ──
 
@@ -77,6 +83,18 @@ export const exportCodexProfiles = async <T = UnknownRecord>(includeSecrets = tr
   return invoke('codex_export_profiles', { includeSecrets })
 }
 
+export const getCodexProfilesRaw = async (): Promise<RawFileGetResult> => {
+  return invoke('codex_get_profiles_raw')
+}
+
+export const saveCodexProfilesRaw = async (
+  content: string,
+  token: string,
+  force = false,
+): Promise<RawProfilesSaveResult> => {
+  return invoke('codex_save_profiles_raw', { content, token, force })
+}
+
 export const getCodexConfig = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('codex_get_settings')
 }
@@ -85,6 +103,23 @@ export const getCodexConfig = async <T = UnknownRecord>(): Promise<T> => {
 export const updateCodexConfig = async <T = UnknownRecord>(settings: unknown): Promise<T> => {
   return invoke('codex_update_settings', { settings })
 }
+
+export const getCodexConfigRaw = async (): Promise<RawFileGetResult> => {
+  return invoke('codex_get_config_raw_text')
+}
+
+export const saveCodexConfigRaw = async (
+  content: string,
+  token: string,
+): Promise<RawFileSaveResult> => {
+  return invoke('codex_save_config_raw_text', { content, token })
+}
+
+export const listCodexConfigLayers = async (): Promise<ConfigLayersResult> => {
+  return invoke('codex_list_config_layers')
+}
+
+export type { ConfigLayer, ConfigLayersResult, RawFileGetResult, RawFileSaveResult } from './configRawTypes'
 
 // ── Codex MCP Servers ──
 

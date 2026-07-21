@@ -414,7 +414,10 @@ impl CodexPlatform {
                     OpenAiAuthMethod::Api => "api",
                 };
                 Self::set_platform_string(profile, "openai_login_method", Some(method_value));
-                Self::set_platform_string(profile, "forced_login_method", Some(method_value));
+
+                // `forced_login_method` is a persistent Codex policy restriction. Preserve an
+                // explicit value for compatibility, but never infer or overwrite it from the
+                // active authentication method.
 
                 if !Self::is_official_profile(profile) {
                     Self::set_platform_bool(profile, "requires_openai_auth", Some(true));
@@ -831,11 +834,12 @@ impl CodexPlatform {
 
         let auth =
             Self::resolve_auth_selection(effective_auth_mode, auth_token, current_auth_intent)?;
-        let forced_login_method =
-            Self::platform_string(profile, "forced_login_method").or_else(|| {
-                matches!(effective_auth_mode, CodexProfileAuthMode::OpenAiApiKey)
-                    .then(|| "api".to_string())
-            });
+        let forced_login_method = matches!(
+            effective_auth_mode,
+            CodexProfileAuthMode::OpenAiChatgpt | CodexProfileAuthMode::OpenAiApiKey
+        )
+        .then(|| Self::platform_string(profile, "forced_login_method"))
+        .flatten();
 
         // 未显式配置凭据存储时，仅 API key 模式需要强制 file 存储
         // （确保 CCR 写入的 auth.json 被 Codex 正确读取）
@@ -2572,10 +2576,9 @@ env_key = "MISTRAL_API_KEY"
                     Some(THIRD_PARTY_RUNTIME_PROVIDER_KEY),
                     "third-party runtime provider should always be custom"
                 );
-                assert_eq!(
-                    root.get("forced_login_method").and_then(|v| v.as_str()),
-                    Some("api"),
-                    "auto-promote should force API login method"
+                assert!(
+                    root.get("forced_login_method").is_none(),
+                    "auto-promote must not restrict future Codex login methods"
                 );
                 assert!(
                     !content.contains("env_key"),
@@ -2647,9 +2650,99 @@ env_key = "MISTRAL_API_KEY"
 
         let config = config_manager.load_config().unwrap();
         let root = config.as_table().unwrap();
+        assert!(
+            root.get("forced_login_method").is_none(),
+            "API-key switching must not leave a forced login-method policy"
+        );
+    }
+
+    #[test]
+    fn test_apply_profile_preserves_explicit_forced_login_method() {
+        let env = TestCodexEnv::new();
+        write_file_store_config(env.codex_dir());
+
+        let platform = CodexPlatform::new().unwrap();
+        let mut profile = ProfileConfig {
+            description: Some("Restricted Proxy".to_string()),
+            base_url: Some("https://api.proxy.example/v1".to_string()),
+            auth_token: Some(ccr_core::Secret::from("sk-proxy-key")),
+            provider: Some("proxy".to_string()),
+            enabled: Some(true),
+            ..Default::default()
+        };
+        profile
+            .platform_data
+            .insert("wire_api".into(), json!("responses"));
+        profile
+            .platform_data
+            .insert("auth_mode".into(), json!("openai_api_key"));
+        profile
+            .platform_data
+            .insert("forced_login_method".into(), json!("api"));
+
+        platform.save_profile("restricted-proxy", &profile).unwrap();
+        platform.apply_profile("restricted-proxy").unwrap();
+
+        let config = CodexConfigManager::with_default()
+            .unwrap()
+            .load_config()
+            .unwrap();
         assert_eq!(
-            root.get("forced_login_method").and_then(|v| v.as_str()),
+            config
+                .as_table()
+                .unwrap()
+                .get("forced_login_method")
+                .and_then(|value| value.as_str()),
             Some("api")
+        );
+    }
+
+    #[test]
+    fn test_provider_env_key_profile_does_not_apply_forced_login_method() {
+        let env = TestCodexEnv::new();
+        std::fs::write(
+            env.codex_dir().join("config.toml"),
+            "forced_login_method = \"chatgpt\"\n",
+        )
+        .unwrap();
+
+        let platform = CodexPlatform::new().unwrap();
+        let mut profile = ProfileConfig {
+            description: Some("Mistral Provider".to_string()),
+            base_url: Some("https://api.mistral.ai/v1".to_string()),
+            auth_token: Some(ccr_core::Secret::from("mistral-key-123")),
+            provider: Some("mistral".to_string()),
+            enabled: Some(true),
+            ..Default::default()
+        };
+        profile
+            .platform_data
+            .insert("wire_api".into(), json!("responses"));
+        profile
+            .platform_data
+            .insert("auth_mode".into(), json!("provider_env_key"));
+        profile
+            .platform_data
+            .insert("env_key".into(), json!("MISTRAL_API_KEY"));
+        profile
+            .platform_data
+            .insert("forced_login_method".into(), json!("api"));
+
+        platform
+            .apply_third_party_profile("mistral", &profile)
+            .unwrap();
+
+        let config = CodexConfigManager::with_default()
+            .unwrap()
+            .load_config()
+            .unwrap();
+        assert!(
+            config
+                .as_table()
+                .unwrap()
+                .get("forced_login_method")
+                .is_none(),
+            "provider env-key profiles must not apply an OpenAI login-method policy"
         );
     }
 

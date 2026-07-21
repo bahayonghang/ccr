@@ -3,6 +3,7 @@
 use super::config_path::normalize_config_relative_path;
 use super::{CliStatus, EnvError, EnvironmentType, ExecutionEnvironment, PlatformInfo};
 use crate::process::tokio_command;
+use ccr_core::core::{BackupPolicy, WriteOptions, write_guarded_async};
 
 /// 本地环境实现 — 始终可用，委托到 ccr 核心库。
 pub struct LocalEnvironment;
@@ -85,9 +86,18 @@ impl ExecutionEnvironment for LocalEnvironment {
                 .await
                 .map_err(EnvError::Io)?;
         }
-        tokio::fs::write(&full_path, content)
-            .await
-            .map_err(EnvError::Io)
+        write_guarded_async(
+            &full_path,
+            content.as_bytes().to_vec(),
+            WriteOptions {
+                backup: BackupPolicy::SameDir {
+                    tag: Some("ccr_ui".to_string()),
+                },
+                ..Default::default()
+            },
+        )
+        .await
+        .map_err(|error| EnvError::Other(format!("guarded config write failed: {error}")))
     }
 
     async fn detect_cli_status(&self) -> Result<Vec<CliStatus>, EnvError> {

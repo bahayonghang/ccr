@@ -465,7 +465,7 @@ dependencies = [
 
 [[package]]
 name = "ccr"
-version = "6.5.1"
+version = "6.5.3"
 dependencies = [
  "ccr-cli",
  "ccr-core",
@@ -476,7 +476,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-checkin"
-version = "6.5.1"
+version = "6.5.3"
 dependencies = [
  "aes-gcm",
  "base64 0.22.1",
@@ -499,7 +499,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-cli"
-version = "6.5.1"
+version = "6.5.3"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -547,7 +547,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-codex"
-version = "6.5.1"
+version = "6.5.3"
 dependencies = [
  "aes-gcm",
  "argon2",
@@ -575,7 +575,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-config"
-version = "6.5.1"
+version = "6.5.3"
 dependencies = [
  "ccr-core",
  "ccr-types",
@@ -591,9 +591,10 @@ dependencies = [
 
 [[package]]
 name = "ccr-core"
-version = "6.5.1"
+version = "6.5.3"
 dependencies = [
  "anyhow",
+ "blake3",
  "chrono",
  "colored",
  "dirs",
@@ -618,7 +619,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-db"
-version = "6.5.1"
+version = "6.5.3"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -649,7 +650,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-desktop"
-version = "6.5.1"
+version = "6.5.3"
 dependencies = [
  "aes-gcm",
  "arc-swap",
@@ -699,7 +700,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-skills"
-version = "6.5.1"
+version = "6.5.3"
 dependencies = [
  "blake3",
  "ccr-config",
@@ -717,7 +718,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-store"
-version = "6.5.1"
+version = "6.5.3"
 dependencies = [
  "blake3",
  "ccr-config",
@@ -740,7 +741,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-sync"
-version = "6.5.1"
+version = "6.5.3"
 dependencies = [
  "ccr-config",
  "ccr-core",
@@ -758,7 +759,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-types"
-version = "6.5.1"
+version = "6.5.3"
 dependencies = [
  "chrono",
  "serde",
@@ -768,7 +769,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-usage"
-version = "6.5.1"
+version = "6.5.3"
 dependencies = [
  "base64 0.22.1",
  "chrono",

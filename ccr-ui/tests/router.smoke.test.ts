@@ -24,6 +24,10 @@ describe('router smoke', () => {
       'opencode-agents',
       'opencode-commands',
       'opencode-settings',
+      'claude-system-prompts',
+      'codex-system-prompts',
+      'gemini-system-prompts',
+      'opencode-system-prompts',
     ]
 
     for (const routeName of requiredRoutes) {
@@ -71,12 +75,16 @@ describe('router smoke', () => {
       .find((route) => route.path === '/gemini-cli/slash-commands')
     const agentsRoute = router.getRoutes().find((route) => route.path === '/gemini-cli/agents')
     const pluginsRoute = router.getRoutes().find((route) => route.path === '/gemini-cli/plugins')
+    const promptsRoute = router
+      .getRoutes()
+      .find((route) => route.path === '/gemini-cli/system-prompts')
 
     expect(homeRoute?.redirect).toBe('/antigravity')
     expect(mcpRoute?.redirect).toBe('/antigravity/mcp')
     expect(commandsRoute?.redirect).toBe('/antigravity/slash-commands')
     expect(agentsRoute?.redirect).toBe('/antigravity/agents')
     expect(pluginsRoute?.redirect).toBe('/antigravity/plugins')
+    expect(promptsRoute?.redirect).toBe('/antigravity/system-prompts')
   })
 
   it('redirects skills legacy entrypoints to the migration bridge', () => {
@@ -112,6 +120,10 @@ describe('router smoke', () => {
     expect(routePaths).toContain('/antigravity/agents')
     expect(routePaths).toContain('/antigravity/slash-commands')
     expect(routePaths).toContain('/antigravity/plugins')
+    expect(routePaths).toContain('/antigravity/system-prompts')
+    expect(routePaths).toContain('/claude-code/system-prompts')
+    expect(routePaths).toContain('/codex/system-prompts')
+    expect(routePaths).toContain('/opencode/system-prompts')
     expect(routePaths).not.toContain('/droid')
     expect(routePaths).not.toContain('/droid/mcp')
   })

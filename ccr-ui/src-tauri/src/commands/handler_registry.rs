@@ -71,6 +71,20 @@ define_command_registry! {
         super::config::get_history,
         super::config::clear_history,
     ],
+    settings_raw: "配置源文件" => [
+        super::settings_raw::claude_get_settings_raw_text,
+        super::settings_raw::claude_save_settings_raw_text,
+        super::settings_raw::codex_get_config_raw_text,
+        super::settings_raw::codex_save_config_raw_text,
+        super::settings_raw::claude_list_settings_layers,
+        super::settings_raw::codex_list_config_layers,
+    ],
+    system_prompts: "系统提示词" => [
+        super::system_prompts::system_prompts_list,
+        super::system_prompts::system_prompts_get,
+        super::system_prompts::system_prompts_save,
+        super::system_prompts::system_prompts_create,
+    ],
     sync: "同步" => [
         super::sync::sync_push,
         super::sync::sync_pull,
@@ -128,6 +142,8 @@ define_command_registry! {
         super::claude::claude_delete_profile,
         super::claude::claude_apply_profile,
         super::claude::claude_export_profiles,
+        super::claude::claude_get_profiles_raw,
+        super::claude::claude_save_profiles_raw,
         super::claude::claude_list_auth_accounts,
         super::claude::claude_get_auth_current,
         super::claude::claude_save_auth,
@@ -143,6 +159,8 @@ define_command_registry! {
         super::codex::codex_get_profile_env,
         super::codex::codex_apply_profile,
         super::codex::codex_export_profiles,
+        super::codex::codex_get_profiles_raw,
+        super::codex::codex_save_profiles_raw,
         super::codex::codex_get_settings,
         super::codex::codex_update_settings,
         super::codex::codex_list_mcp_servers,
@@ -478,13 +496,13 @@ mod tests {
 
     #[test]
     fn command_registry_shape_matches_current_handler_surface() {
-        assert_eq!(COMMAND_MODULES.len(), 28);
+        assert_eq!(COMMAND_MODULES.len(), 30);
 
         #[cfg(target_os = "windows")]
-        assert_eq!(registered_command_count(), 309);
+        assert_eq!(registered_command_count(), 323);
 
         #[cfg(not(target_os = "windows"))]
-        assert_eq!(registered_command_count(), 301);
+        assert_eq!(registered_command_count(), 315);
     }
 
     #[test]

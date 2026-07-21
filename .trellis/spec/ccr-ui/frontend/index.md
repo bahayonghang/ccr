@@ -15,6 +15,7 @@
 | [Dashboard Presentation Contracts](./dashboard-presentation-contracts.md) | Signal severity gating, readiness reason shape, first-run heuristic, compact-card empty states                 | Complete |
 | [Usage Chart Stability Contracts](./usage-chart-stability-contracts.md)   | ApexCharts options/series reference discipline, redraw freeze flags, KeepAlive interplay                       | Complete |
 | [Confirm Interaction Contracts](./confirm-interaction-contracts.md)       | requestConfirm gate pattern, danger/warning semantics, no native dialogs, composable boundary                  | Complete |
+| [Raw Config Editor Contracts](./raw-config-editor-contracts.md)           | Local-only plaintext source editing, validation, versioned saves, and shared editor behavior                   | Complete |
 | [Brand Asset Pipeline Contract](./brand-asset-pipeline.md)                 | Brand SVG ownership, Cairo/Pillow rendering, generated outputs, and cross-surface verification                 | Complete |
 
 ## Pre-Development Checklist
@@ -26,6 +27,7 @@
 - Read [Dashboard Presentation Contracts](./dashboard-presentation-contracts.md) before changing `dashboardPresentation.ts` or its five Dashboard child components.
 - Read [Usage Chart Stability Contracts](./usage-chart-stability-contracts.md) before adding or changing any ApexCharts usage chart, its options/series wiring, or the usage tab KeepAlive structure.
 - Read [Confirm Interaction Contracts](./confirm-interaction-contracts.md) before adding any confirmation dialog, destructive-action flow, or user-facing alert/toast.
+- Read [Raw Config Editor Contracts](./raw-config-editor-contracts.md) before adding raw config, prompt, or profile source editing.
 - Read [Brand Asset Pipeline Contract](./brand-asset-pipeline.md) before changing `branding/`, `generate_icons.py`, or generated UI/Tauri/docs/VS Code brand assets.
 
 ## Quality Check
@@ -33,6 +35,7 @@
 - Run the focused smoke guard when touching `src/api/tauri.ts` or `src/api/domains/*`:
   - `cd ccr-ui && bun run test:smoke -- tests/api-facade-boundary.smoke.test.ts`
 - Run `cd ccr-ui && bun run type-check` and `cd ccr-ui && bun run lint` for frontend API changes.
+- Run the backend and frontend focused checks from [Raw Config Editor Contracts](./raw-config-editor-contracts.md) when changing source editors or raw-file commands.
 - Run `cd ccr-ui && bun run test:smoke -- tests/provider-templates.smoke.test.ts` when changing provider template data, custom template persistence, selectors, or platform mappers.
 - Run the targeted theme smoke checks when changing theme/flavor/accent tokens:
   - `cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/apple-glass-surface-contract.smoke.test.ts tests/theme-bootstrap.smoke.test.ts tests/app-settings.smoke.test.ts`

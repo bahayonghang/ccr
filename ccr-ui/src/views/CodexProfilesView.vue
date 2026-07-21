@@ -20,6 +20,7 @@
             reload: $t('codex.profiles.reloadAction'),
             export: $t('common.export'),
             add: $t('codex.profiles.addProfile'),
+            source: $t('profilesRaw.edit'),
           }"
           :palette="{
             label: $t('codex.profiles.commandPaletteButton'),
@@ -29,10 +30,13 @@
           :loading="loading"
           :exporting="exporting"
           :palette-open="paletteOpen"
+          :source-disabled="!rawLocal"
+          :source-title="rawLocal ? undefined : $t('settingsRaw.unsupportedEnvironment')"
           @add="handleAdd"
           @export="handleExportProfiles"
           @reload="reloadProfiles"
           @open-palette="paletteOpen = true"
+          @edit-source="openRawEditor"
         />
 
         <ProfilesStatStrip
@@ -282,6 +286,14 @@
       @save="handleSave"
     />
 
+    <ProfilesRawEditorPanel
+      v-if="showRawEditor"
+      :get-raw="getCodexProfilesRaw"
+      :save-raw="saveCodexProfilesRaw"
+      @saved="handleRawSaved"
+      @close="showRawEditor = false"
+    />
+
     <ConfirmModal
       v-model:is-open="showConfirmModal"
       :type="confirmDialog.type"
@@ -302,11 +314,13 @@ import {
   applyCodexProfile,
   deleteCodexProfile,
   exportCodexProfiles,
+  getCurrentEnvironment,
   getCodexProfile,
   listCodexModels,
   listCodexProfiles,
   updateCodexProfile,
 } from '@/api'
+import { getCodexProfilesRaw, saveCodexProfilesRaw } from '@/api/domains/codex'
 import CodexProfileEditorModal from '@/components/codex/CodexProfileEditorModal.vue'
 import ProfileCard from '@/components/codex/ProfileCard.vue'
 import ProfileListRow, { type ProfileRowDescriptor } from '@/components/profiles/ProfileListRow.vue'
@@ -316,6 +330,7 @@ import { useCodexProfilesInsights } from '@/composables/useCodexProfilesInsights
 import { useConfirmAction } from '@/composables/useConfirmAction'
 import { useProfilesHotkeys } from '@/composables/useProfilesHotkeys'
 import ProfilesHeader from '@/components/profiles/ProfilesHeader.vue'
+import ProfilesRawEditorPanel from '@/components/profiles/ProfilesRawEditorPanel.vue'
 import ProfilesQuickRail from '@/components/profiles/ProfilesQuickRail.vue'
 import ProfilesStatStrip from '@/components/profiles/ProfilesStatStrip.vue'
 import ProfilesToolbar, { type ProfilesViewMode } from '@/components/profiles/ProfilesToolbar.vue'
@@ -384,6 +399,8 @@ const busyProfileName = ref<string | null>(null)
 const busyAction = ref<'apply' | 'delete' | null>(null)
 const lastLoadedAt = ref(0)
 const lastWriteHint = ref<string | null>(null)
+const showRawEditor = ref(false)
+const rawLocal = ref(false)
 const {
   isOpen: showConfirmModal,
   dialog: confirmDialog,
@@ -634,6 +651,37 @@ const handleExportProfiles = async () => {
   }
 }
 
+const loadActiveEnvironment = async () => {
+  try {
+    const environment = await getCurrentEnvironment<{ env_type?: string } | null>()
+    rawLocal.value = !environment || environment.env_type === 'local'
+  } catch {
+    rawLocal.value = false
+  }
+}
+
+const openRawEditor = async () => {
+  if (!rawLocal.value) {
+    uiStore.showWarning(t('settingsRaw.unsupportedEnvironment'))
+    return
+  }
+  const confirmed = await uiStore.requestConfirm({
+    title: t('profilesRaw.openWarningTitle'),
+    message: t('profilesRaw.openWarningMessage'),
+    confirmText: t('profilesRaw.continue'),
+    cancelText: t('common.cancel'),
+    type: 'warning',
+    surface: 'solid',
+  })
+  if (confirmed) showRawEditor.value = true
+}
+
+const handleRawSaved = async () => {
+  showRawEditor.value = false
+  markWrite()
+  await loadProfiles()
+}
+
 const resetForm = () => {
   Object.assign(form, createCodexProfileEditorForm())
   currentModelOption.value = ''
@@ -880,10 +928,13 @@ useProfilesHotkeys({
 })
 
 onMounted(async () => {
-  await ensureLoaded(true)
+  await Promise.all([ensureLoaded(true), loadActiveEnvironment()])
 })
 
-onActivated(() => { void ensureLoaded(false) })
+onActivated(() => {
+  void ensureLoaded(false)
+  void loadActiveEnvironment()
+})
 </script>
 
 <style scoped>

@@ -121,7 +121,7 @@ fn opencode_legacy_dir_from_home(home: &Path) -> PathBuf {
     home.join(".opencode")
 }
 
-fn opencode_config_dir() -> Result<PathBuf, String> {
+pub(crate) fn opencode_config_dir() -> Result<PathBuf, String> {
     Ok(opencode_config_dir_from_home(&opencode_home_dir()?))
 }
 

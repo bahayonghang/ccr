@@ -1820,3 +1820,135 @@ implement.md 第 7 项闭环。7a:UsageLogsTab loading 态从单行"加载中"�
 ### Next Steps
 
 - None - task complete
+
+
+## Session 43: 生成 CCR 运行时架构图
+
+**Date**: 2026-07-16
+**Task**: 生成 CCR 运行时架构图
+**Branch**: `dev`
+
+### Summary
+
+分析 CLI/TUI、Tauri、VS Code、持久化、llmusage 与网络依赖，使用 Archify 生成并验证包含数据流和信任边界的自包含 HTML。
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b33cd701` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
+
+
+## Session 44: 修复系统提示词编辑器生产环境空白
+
+**Date**: 2026-07-17
+**Task**: 修复系统提示词编辑器生产环境空白
+**Branch**: `dev`
+
+### Summary
+
+定位并修复 Tauri production CSP 拒绝 CodeMirror 运行时样式的问题，补充 nonce 回归测试、生产 WebView 明暗主题验证和共享编辑器规范，并归档 system-prompts-management 任务。
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `81dc31fc` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
+
+
+## Session 45: 归档 Profiles TOML 直接编辑
+
+**Date**: 2026-07-17
+**Task**: 归档 Profiles TOML 直接编辑
+**Branch**: `dev`
+
+### Summary
+
+完成 Claude/Codex profiles.toml 原始编辑功能的生产 WebView2 验收，确认共享 CodeMirror CSP nonce 修复在当前 release 生效；保留未手工执行的真实保存、ccr current、外部冲突和非法 TOML 定位证据，并按用户确认归档任务。
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `efe4d874` | (see git log) |
+| `76f11fe5` | (see git log) |
+| `f0c66b49` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
+
+
+## Session 46: 归档 ccr-ui 配置管理增强任务树
+
+**Date**: 2026-07-17
+**Task**: 归档 ccr-ui 配置管理增强任务树
+**Branch**: `dev`
+
+### Summary
+
+归档 platform-settings-enhancement 子任务及其父任务 ccr-ui-config-mgmt-enhancement；三个子任务现已全部归档。保留平台任务中真实 Tauri 文件保存、外部冲突和环境切换手工矩阵未执行的缺失证据，并保留任务范围外 4 个 rustfmt 排版改动。
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+(No commits - planning session)
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

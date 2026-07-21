@@ -27,6 +27,7 @@
             </button>
           </RouterLink>
           <button
+            v-if="activeTab !== 'source'"
             class="claude-settings-button claude-settings-button--primary"
             :disabled="saving"
             @click="handleSave"
@@ -61,9 +62,11 @@
             :key="tab.key"
             role="tab"
             :aria-selected="activeTab === tab.key"
+            :disabled="tab.disabled"
+            :title="tab.disabled ? $t('settingsRaw.unsupportedEnvironment') : undefined"
             class="claude-settings-tab"
             :class="activeTab === tab.key ? 'claude-settings-tab--active' : 'claude-settings-tab--inactive'"
-            @click="activeTab = tab.key"
+            @click="changeTab(tab.key)"
           >
             <SIcon
               :name="tab.icon"
@@ -758,6 +761,17 @@
             </div>
           </Card>
         </div>
+
+        <ConfigSourcePanel
+          v-if="activeTab === 'source'"
+          language="json"
+          :get-raw="getClaudeSettingsRaw"
+          :save-raw="saveClaudeSettingsRaw"
+          :list-layers="listClaudeSettingsLayers"
+          @saved="handleRawSaved"
+          @close="activeTab = 'model'"
+          @dirty-change="sourceDirty = $event"
+        />
       </template>
     </div>
   </div>
@@ -768,7 +782,15 @@ import SIcon from '@/components/ui/SIcon.vue'
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Card from '@/components/ui/Card.vue'
-import { getClaudeSettings, updateClaudeSettings } from '@/api'
+import ConfigSourcePanel from '@/components/editor/ConfigSourcePanel.vue'
+import {
+  getClaudeSettings,
+  getClaudeSettingsRaw,
+  getCurrentEnvironment,
+  listClaudeSettingsLayers,
+  saveClaudeSettingsRaw,
+  updateClaudeSettings,
+} from '@/api'
 import type { ClaudeSettingsData } from '@/api'
 import { useUIStore } from '@/stores/ui'
 
@@ -779,6 +801,8 @@ const loadingLabel = computed(() => locale.value.startsWith('zh') ? '加载中..
 const loading = ref(true)
 const saving = ref(false)
 const activeTab = ref('model')
+const rawLocal = ref(true)
+const sourceDirty = ref(false)
 
 const tabs = computed(() => [
   { key: 'model', label: t('claudeSettings.tabs.model'), icon: 'Brain' },
@@ -787,7 +811,42 @@ const tabs = computed(() => [
   { key: 'ui', label: t('claudeSettings.tabs.ui'), icon: 'Palette' },
   { key: 'sandbox', label: t('claudeSettings.tabs.sandbox'), icon: 'Lock' },
   { key: 'git', label: t('claudeSettings.tabs.git'), icon: 'GitBranch' },
+  { key: 'source', label: t('settingsRaw.sourceTab'), icon: 'FileCode2', disabled: !rawLocal.value },
 ])
+
+async function changeTab(nextTab: string) {
+  if (nextTab === 'source' && !rawLocal.value) {
+    uiStore.showWarning(t('settingsRaw.unsupportedEnvironment'))
+    return
+  }
+  if (activeTab.value === 'source' && sourceDirty.value) {
+    const discard = await uiStore.requestConfirm({
+      title: t('settingsRaw.discardTitle'),
+      message: t('settingsRaw.discardMessage'),
+      confirmText: t('settingsRaw.discard'),
+      cancelText: t('common.cancel'),
+      type: 'warning',
+      surface: 'solid',
+    })
+    if (!discard) return
+  }
+  activeTab.value = nextTab
+}
+
+async function handleRawSaved() {
+  sourceDirty.value = false
+  activeTab.value = 'model'
+  await loadSettings()
+}
+
+async function loadActiveEnvironment() {
+  try {
+    const environment = await getCurrentEnvironment<{ env_type?: string }>()
+    rawLocal.value = !environment || environment.env_type === 'local'
+  } catch {
+    rawLocal.value = true
+  }
+}
 
 const modelOptions = ['opus', 'sonnet', 'haiku', 'claude-opus-4-6', 'claude-sonnet-4-5-20250929', 'claude-haiku-4-5-20251001']
 const permissionModeOptions = ['default', 'plan', 'bypassPermissions']
@@ -984,7 +1043,10 @@ function addEnvVar() {
   envEntries.value.push({ key: '', value: '' })
 }
 
-onMounted(loadSettings)
+onMounted(() => {
+  void loadActiveEnvironment()
+  void loadSettings()
+})
 </script>
 
 <style scoped>

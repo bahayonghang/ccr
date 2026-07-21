@@ -1,7 +1,9 @@
 use super::*;
 use crate::commands::profile_lifecycle::{
-    profiles_export_payload_from_path, resolve_profile_target_name,
+    profiles_export_payload_from_path, profiles_raw_payload_from_paths,
+    resolve_profile_target_name, save_profiles_raw_to_paths,
 };
+use crate::commands::settings_raw::ensure_local_env;
 
 /// 列出所有 Claude Code Profiles（~/.ccr/platforms/claude/profiles.toml）。
 #[tauri::command]
@@ -149,6 +151,42 @@ pub async fn claude_delete_profile(name: String) -> Result<Value, String> {
     })
     .await
     .map_err(|e| format!("任务执行失败: {e}"))?
+}
+
+#[tauri::command]
+pub async fn claude_get_profiles_raw(state: State<'_, AppState>) -> Result<Value, String> {
+    if let Some(response) = ensure_local_env(state.inner()).await {
+        return Ok(response);
+    }
+    let paths = PlatformPaths::new(Platform::Claude)
+        .map_err(|error| format!("解析 Claude Profiles 路径失败: {error}"))?;
+    tokio::task::spawn_blocking(move || profiles_raw_payload_from_paths(&paths))
+        .await
+        .map_err(|error| format!("读取 Claude Profiles 后台任务失败: {error}"))?
+}
+
+#[tauri::command]
+pub async fn claude_save_profiles_raw(
+    state: State<'_, AppState>,
+    content: String,
+    token: String,
+    force: bool,
+) -> Result<Value, String> {
+    if let Some(response) = ensure_local_env(state.inner()).await {
+        return Ok(response);
+    }
+    let paths = PlatformPaths::new(Platform::Claude)
+        .map_err(|error| format!("解析 Claude Profiles 路径失败: {error}"))?;
+    tokio::task::spawn_blocking(move || {
+        let platform =
+            ClaudePlatform::new().map_err(|error| format!("初始化 Claude 平台失败: {error}"))?;
+        let current = platform
+            .get_current_profile()
+            .map_err(|error| format!("读取当前 Claude profile 失败: {error}"))?;
+        save_profiles_raw_to_paths(&paths, current.as_deref(), &content, &token, force)
+    })
+    .await
+    .map_err(|error| format!("写入 Claude Profiles 后台任务失败: {error}"))?
 }
 
 /// 应用 Profile。

@@ -8,6 +8,7 @@
 
 pub mod auth;
 pub mod env;
+pub mod fix;
 pub mod profile;
 pub mod quota;
 pub mod sessions;

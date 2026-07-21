@@ -361,16 +361,13 @@ fn patch_profile_with_config(profile: &mut ProfileConfig, config: &Value) -> Res
         profile.default_opus_model_name = parse_string_field(raw, "default_opus_model_name")?;
     }
     if let Some(raw) = obj.get("default_sonnet_model_name") {
-        profile.default_sonnet_model_name =
-            parse_string_field(raw, "default_sonnet_model_name")?;
+        profile.default_sonnet_model_name = parse_string_field(raw, "default_sonnet_model_name")?;
     }
     if let Some(raw) = obj.get("default_haiku_model_name") {
-        profile.default_haiku_model_name =
-            parse_string_field(raw, "default_haiku_model_name")?;
+        profile.default_haiku_model_name = parse_string_field(raw, "default_haiku_model_name")?;
     }
     if let Some(raw) = obj.get("default_fable_model_name") {
-        profile.default_fable_model_name =
-            parse_string_field(raw, "default_fable_model_name")?;
+        profile.default_fable_model_name = parse_string_field(raw, "default_fable_model_name")?;
     }
     if let Some(raw) = obj.get("subagent_model") {
         profile.subagent_model = parse_string_field(raw, "subagent_model")?;
@@ -379,8 +376,7 @@ fn patch_profile_with_config(profile: &mut ProfileConfig, config: &Value) -> Res
         profile.custom_model_option = parse_string_field(raw, "custom_model_option")?;
     }
     if let Some(raw) = obj.get("custom_model_option_name") {
-        profile.custom_model_option_name =
-            parse_string_field(raw, "custom_model_option_name")?;
+        profile.custom_model_option_name = parse_string_field(raw, "custom_model_option_name")?;
     }
     if let Some(raw) = obj.get("effort_level") {
         profile.effort_level = parse_string_field(raw, "effort_level")?;

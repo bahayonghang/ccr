@@ -1819,7 +1819,10 @@ mod service_tests {
         let stats = usage_by_model(&runtime, Some("claude".to_string()), None, None)
             .expect("model stats should query");
         assert_eq!(
-            stats.iter().map(|row| row.model.as_str()).collect::<Vec<_>>(),
+            stats
+                .iter()
+                .map(|row| row.model.as_str())
+                .collect::<Vec<_>>(),
             vec!["claude-fable-5", "claude-mythos-5"]
         );
 

@@ -1,7 +1,9 @@
 use super::*;
 use crate::commands::profile_lifecycle::{
-    profiles_export_payload_from_path, resolve_profile_target_name,
+    profiles_export_payload_from_path, profiles_raw_payload_from_paths,
+    resolve_profile_target_name, save_profiles_raw_to_paths,
 };
+use crate::commands::settings_raw::ensure_local_env;
 
 /// 列出 CCR Codex profiles（~/.ccr/platforms/codex/profiles.toml）
 #[tauri::command]
@@ -33,6 +35,42 @@ pub async fn codex_list_profiles() -> Result<Value, String> {
     })
     .await
     .map_err(|e| format!("任务执行失败: {e}"))?
+}
+
+#[tauri::command]
+pub async fn codex_get_profiles_raw(state: State<'_, AppState>) -> Result<Value, String> {
+    if let Some(response) = ensure_local_env(state.inner()).await {
+        return Ok(response);
+    }
+    let paths = PlatformPaths::new(Platform::Codex)
+        .map_err(|error| format!("解析 Codex Profiles 路径失败: {error}"))?;
+    tokio::task::spawn_blocking(move || profiles_raw_payload_from_paths(&paths))
+        .await
+        .map_err(|error| format!("读取 Codex Profiles 后台任务失败: {error}"))?
+}
+
+#[tauri::command]
+pub async fn codex_save_profiles_raw(
+    state: State<'_, AppState>,
+    content: String,
+    token: String,
+    force: bool,
+) -> Result<Value, String> {
+    if let Some(response) = ensure_local_env(state.inner()).await {
+        return Ok(response);
+    }
+    let paths = PlatformPaths::new(Platform::Codex)
+        .map_err(|error| format!("解析 Codex Profiles 路径失败: {error}"))?;
+    tokio::task::spawn_blocking(move || {
+        let platform =
+            CodexPlatform::new().map_err(|error| format!("初始化 Codex 平台失败: {error}"))?;
+        let current = platform
+            .get_current_profile()
+            .map_err(|error| format!("读取当前 Codex profile 失败: {error}"))?;
+        save_profiles_raw_to_paths(&paths, current.as_deref(), &content, &token, force)
+    })
+    .await
+    .map_err(|error| format!("写入 Codex Profiles 后台任务失败: {error}"))?
 }
 
 /// 列出 Codex 可选模型（内置 + 自定义）

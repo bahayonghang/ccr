@@ -48,6 +48,74 @@ Use `tracing::debug!` for path decisions and autofix behavior. Do not log profil
 
 Tests that mutate `CCR_ROOT` or `CCR_LOCK_DIR` must use `test_support::TestCcrEnv`, which holds a process-wide lock and restores env vars on Drop.
 
+## Scenario: Parse and persist profile TOML safely
+
+### 1. Scope / Trigger
+
+- Trigger: validating raw `profiles.toml` content or changing any structured profile write path.
+- Applies to `parse_profiles_from_str`, `load_profiles_from_toml`, `save_profiles_to_toml`, and `update_current_config`.
+
+### 2. Signatures
+
+- `parse_profiles_from_str(content: &str) -> Result<IndexMap<String, ProfileConfig>>`
+- `load_profiles_from_toml(path: &Path) -> Result<IndexMap<String, ProfileConfig>>`
+- Structured profile writes use `ccr_core::fileio::write_toml_opts(..., WriteOptions { secret: true, .. })`.
+
+### 3. Contracts
+
+- `parse_profiles_from_str` is the single semantic parser for both full `CcsConfig` TOML and the legacy simplified profile map.
+- `load_profiles_from_toml` preserves its missing-file behavior, reads bytes from disk, then delegates semantic parsing to `parse_profiles_from_str`.
+- Parsing an empty document may return an empty collection at the core-library boundary. A UI workflow that forbids clearing all profiles must enforce that policy after parsing rather than changing shared parser compatibility.
+- Both profile registry saves and current-profile updates set `secret: true`; on Unix, resulting files must not expose credential-bearing content beyond owner read/write permissions.
+- Parser and persistence errors must not log or embed raw profile source or credential values.
+
+### 4. Validation & Error Matrix
+
+- Full config with `[profiles.<name>]` entries -> return those profiles.
+- Simplified top-level profile map -> return the equivalent profile collection.
+- Invalid TOML or incompatible profile fields -> return `CcrError`; do not partially accept entries.
+- Missing file through `load_profiles_from_toml` -> preserve the established empty/default result.
+- Empty parsed collection -> return empty from the shared parser; caller-specific destructive-action policy decides whether to reject it.
+- Structured write failure -> propagate the guarded-write error and preserve the previous file.
+
+### 5. Good/Base/Bad Cases
+
+- Good: a raw editor parses with `parse_profiles_from_str`, applies its empty/activation policies, then writes the original bytes through a secret guarded-write path.
+- Base: an existing caller loads a simplified registry without behavior changes after parser extraction.
+- Bad: duplicate the full-versus-simplified fallback parser inside a Tauri command.
+- Bad: serialize credential-bearing profiles with default `secret: false` permissions.
+
+### 6. Tests Required
+
+- Parse equivalent full and simplified fixtures and assert matching profile fields.
+- Assert empty input preserves the shared parser's empty-collection behavior.
+- Keep existing missing-file and malformed-file load tests passing.
+- Exercise both structured write paths and assert secret file permissions on Unix.
+- Run `cargo test -p ccr-config -- --test-threads=1` and clippy for `ccr-config` with warnings denied.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```rust
+let profiles: IndexMap<String, ProfileConfig> = toml::from_str(content)?;
+write_toml(path, &profiles)?;
+```
+
+#### Correct
+
+```rust
+let profiles = parse_profiles_from_str(content)?;
+write_toml_opts(
+    path,
+    &profiles,
+    WriteOptions {
+        secret: true,
+        ..Default::default()
+    },
+)?;
+```
+
 ## Scenario: TUI Preference Config
 
 ### 1. Scope / Trigger
