@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 46
-- **Last Active**: 2026-07-17
+- **Total Sessions**: 47
+- **Last Active**: 2026-07-23
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1954 | Active |
+| `journal-1.md` | ~1987 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 47 | 2026-07-23 | 完善 ccr codex fix 本地运行时诊断 | `a92d15ec` | `dev` |
 | 46 | 2026-07-17 | 归档 ccr-ui 配置管理增强任务树 | - | `dev` |
 | 45 | 2026-07-17 | 归档 Profiles TOML 直接编辑 | `efe4d874`, `76f11fe5`, `f0c66b49` | `dev` |
 | 44 | 2026-07-17 | 修复系统提示词编辑器生产环境空白 | `81dc31fc` | `dev` |
