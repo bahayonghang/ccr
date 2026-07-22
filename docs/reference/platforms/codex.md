@@ -11,6 +11,7 @@ ccr codex profile list
 ccr codex profile switch <name>
 ccr codex profile current
 ccr codex profile off
+ccr codex fix
 ```
 
 ## `auth` 与 `profile`
@@ -25,6 +26,28 @@ ccr codex profile off
 - Runtime auth：`~/.codex/auth.json`
 - Profiles：`~/.ccr/platforms/codex/profiles.toml`
 - Registry pointer：`~/.ccr/config.toml` 中 `[codex].current_profile`
+
+## Runtime 诊断与修复
+
+先切换到需要排查的 profile，再运行诊断：
+
+```bash
+ccr codex profile switch future
+ccr codex fix
+```
+
+`ccr codex fix` 会清理残留 app-server，并比较调用瞬间的 registry pointer、`profiles.toml`、`config.toml`、`auth.json` 与当前进程环境。结果分别报告 `process_state`、`runtime_consistency` 和 `provider_auth_validity`。
+
+裸命令只诊断，不重写 runtime。发现可安全修复的本地漂移后，显式运行：
+
+```bash
+ccr codex fix --repair-runtime
+ccr codex fix --dry-run --repair-runtime
+```
+
+`--repair-runtime` 只通过既有原子应用路径重放当前保存的 profile，不修改或轮换保存的 secret。组合 `--dry-run` 时既不终止进程，也不写 `config.toml` / `auth.json`。
+
+CCR 自己的 reconciliation 不新增第三方凭据探测；命令仍会运行上游 `codex doctor`，其具体检查行为由当前 Codex 版本决定。即使 `runtime_consistency = match`，`provider_auth_validity` 仍为 `not_checked`；若此时 Provider 返回 `INVALID_API_KEY`，应核验或更新该 profile 保存的 key，而不是继续清理 app-server。
 
 ## 历史同步补充
 

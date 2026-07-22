@@ -840,8 +840,15 @@ mod tests {
         let cli = Cli::try_parse_from(["ccr", "codex", "fix"]).unwrap();
         match cli.command {
             Some(Commands::Codex {
-                action: Some(CodexAction::Fix { dry_run }),
-            }) => assert!(!dry_run),
+                action:
+                    Some(CodexAction::Fix {
+                        dry_run,
+                        repair_runtime,
+                    }),
+            }) => {
+                assert!(!dry_run);
+                assert!(!repair_runtime);
+            }
             other => panic!("unexpected command: {:?}", other.map(|_| "other")),
         }
     }
@@ -851,8 +858,34 @@ mod tests {
         let cli = Cli::try_parse_from(["ccr", "codex", "fix", "--dry-run"]).unwrap();
         match cli.command {
             Some(Commands::Codex {
-                action: Some(CodexAction::Fix { dry_run }),
-            }) => assert!(dry_run),
+                action:
+                    Some(CodexAction::Fix {
+                        dry_run,
+                        repair_runtime,
+                    }),
+            }) => {
+                assert!(dry_run);
+                assert!(!repair_runtime);
+            }
+            other => panic!("unexpected command: {:?}", other.map(|_| "other")),
+        }
+    }
+
+    #[test]
+    fn codex_fix_repair_runtime_parses_with_dry_run() {
+        let cli =
+            Cli::try_parse_from(["ccr", "codex", "fix", "--dry-run", "--repair-runtime"]).unwrap();
+        match cli.command {
+            Some(Commands::Codex {
+                action:
+                    Some(CodexAction::Fix {
+                        dry_run,
+                        repair_runtime,
+                    }),
+            }) => {
+                assert!(dry_run);
+                assert!(repair_runtime);
+            }
             other => panic!("unexpected command: {:?}", other.map(|_| "other")),
         }
     }

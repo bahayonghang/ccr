@@ -4,6 +4,7 @@
 
 - `ccr codex auth ...`: official-auth multi-account management
 - `ccr codex profile ...`: runtime/profile routing
+- `ccr codex fix`: stale-process cleanup and local profile/runtime consistency diagnosis
 - `ccr codex sync-history ...`: history visibility repair after provider-namespace changes
 
 ## Common commands
@@ -35,6 +36,31 @@ ccr codex profile off
 - `enable`
 - `disable`
 - `delete`
+
+## `fix`
+
+```bash
+# Switch the target profile first. The bare command does not write runtime files.
+ccr codex profile switch future
+ccr codex fix
+
+# Explicitly repair local drift that can be handled safely.
+ccr codex fix --repair-runtime
+
+# Preview process cleanup and profile replay without signals or file writes.
+ccr codex fix --dry-run --repair-runtime
+```
+
+The diagnosis separates profile pointers, route, credential consistency, and provider validity. CCR's reconciliation only compares the locally saved secret with the configured credential source; it adds no third-party credential probe and never prints key values, masked fragments, lengths, or fingerprints. The command still runs upstream `codex doctor` as supplemental evidence, whose checks depend on the installed Codex version. `provider_auth_validity = not_checked` therefore means neither success nor failure at the provider.
+
+Exit codes:
+
+| Exit code | Meaning |
+|---|---|
+| `0` | No confirmed local drift; provider validity may still be unchecked |
+| `2` | An app-server respawned or could not be terminated |
+| `3` | Local profile/runtime drift remains, or the snapshot changed during doctor |
+| `127` | `codex` is not available on `PATH` |
 
 ## `sync-history`
 

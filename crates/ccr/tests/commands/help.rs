@@ -51,6 +51,15 @@ fn help_subcommand_supports_nested_codex_auth_path() {
 }
 
 #[test]
+fn codex_fix_help_exposes_explicit_runtime_repair() {
+    let stdout = run_help(&["codex", "fix", "--help"]);
+
+    assert!(stdout.contains("--repair-runtime"));
+    assert!(stdout.contains("--dry-run"));
+    assert!(stdout.contains("显式重放当前 CCR profile"));
+}
+
+#[test]
 fn help_subcommand_supports_platform_path() {
     let direct_help = run_help(&["platform", "--help"]);
     let help_command = run_help(&["help", "platform"]);

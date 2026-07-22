@@ -395,9 +395,10 @@ impl CommandDispatcher {
             Some(CodexAction::Env { name }) => {
                 crate::commands::codex::env::env_command(name.as_deref()).await
             }
-            Some(CodexAction::Fix { dry_run }) => {
-                crate::commands::codex::fix::fix_command(*dry_run).await
-            }
+            Some(CodexAction::Fix {
+                dry_run,
+                repair_runtime,
+            }) => crate::commands::codex::fix::fix_command(*dry_run, *repair_runtime).await,
             Some(CodexAction::Profile { action }) => match action {
                 CodexProfileAction::Help => {
                     help::print_nested_subcommand_help(&["codex", "profile"]);

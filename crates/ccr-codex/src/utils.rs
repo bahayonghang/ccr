@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 
 /// Codex 相关路径集合
 ///
-/// 统一解析 CCR_DATA_DIR / CCR_ROOT / CCR_CODEX_DIR 环境变量，
+/// 统一解析 CCR_DATA_DIR / CCR_ROOT / CCR_CODEX_DIR / CODEX_HOME 环境变量，
 /// 消除各 service 构造函数中的重复逻辑。
 pub struct CodexPaths {
     /// CCR 平台数据目录 (~/.ccr/platforms/codex/)
@@ -33,11 +33,16 @@ impl CodexPaths {
         };
         let ccr_codex_dir = ccr_root.join("platforms/codex");
 
-        let codex_dir = if let Ok(custom) = std::env::var("CCR_CODEX_DIR") {
-            PathBuf::from(custom)
-        } else {
-            home.join(".codex")
-        };
+        let codex_dir = std::env::var("CCR_CODEX_DIR")
+            .ok()
+            .filter(|value| !value.trim().is_empty())
+            .or_else(|| {
+                std::env::var("CODEX_HOME")
+                    .ok()
+                    .filter(|value| !value.trim().is_empty())
+            })
+            .map(PathBuf::from)
+            .unwrap_or_else(|| home.join(".codex"));
 
         Ok(Self {
             ccr_codex_dir,
@@ -196,6 +201,7 @@ pub fn ensure_private_permissions(path: &Path) {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
+    use crate::test_support::TestCodexEnv;
 
     #[test]
     fn test_decode_base64url_standard() {
@@ -230,6 +236,17 @@ mod tests {
             PathBuf::from("/tmp/ccr/platforms/codex")
         );
         assert_eq!(paths.codex_dir, PathBuf::from("/tmp/codex"));
+    }
+
+    #[test]
+    fn test_codex_paths_use_codex_home_without_ccr_override() {
+        let mut env = TestCodexEnv::new();
+        let codex_home = env.home().join("custom-codex-home");
+        env.remove_env("CCR_CODEX_DIR");
+        env.set_env("CODEX_HOME", codex_home.as_os_str());
+
+        let paths = CodexPaths::resolve().unwrap();
+        assert_eq!(paths.codex_dir, codex_home);
     }
 
     #[test]

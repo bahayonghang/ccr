@@ -7,6 +7,9 @@ mod current;
 #[path = "commands/codex_profile.rs"]
 mod codex_profile;
 
+#[path = "commands/codex_fix.rs"]
+mod codex_fix;
+
 #[path = "commands/claude_profile.rs"]
 mod claude_profile;
 

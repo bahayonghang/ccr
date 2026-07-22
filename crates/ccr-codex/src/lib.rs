@@ -11,6 +11,7 @@ pub use ccr_core::{CcrError, Result};
 pub use managers::codex_config::{CachedCodexConfigManager, CodexConfigManager};
 pub use models::codex_auth::*;
 pub use models::codex_model_provider::*;
+pub use models::codex_runtime_diagnostic::*;
 pub use models::opencode_auth::*;
 pub use platforms::CodexPlatform;
 pub use services::{
@@ -98,6 +99,18 @@ pub(crate) mod test_support {
 
         pub(crate) fn lock_dir(&self) -> &Path {
             &self.lock_dir
+        }
+
+        pub(crate) fn set_env(&mut self, key: &'static str, value: &OsStr) {
+            set_env_var(&mut self.previous_vars, key, value);
+        }
+
+        pub(crate) fn remove_env(&mut self, key: &'static str) {
+            self.previous_vars.push((key, std::env::var_os(key)));
+            // SAFETY: TestCodexEnv holds the process-wide ccr-codex test env lock until Drop.
+            unsafe {
+                std::env::remove_var(key);
+            }
         }
     }
 

@@ -64,7 +64,7 @@ impl CodexConfigManager {
     /// - auth: ~/.codex/auth.json
     /// - backup: ~/.codex/backups/
     ///
-    /// 支持 `CCR_CODEX_DIR` 环境变量覆盖
+    /// 支持 `CCR_CODEX_DIR` / `CODEX_HOME` 环境变量覆盖
     pub fn with_default() -> Result<Self> {
         let codex_dir = Self::resolve_codex_dir()?;
         let lock_manager = LockManager::with_default_path()?;
@@ -81,7 +81,15 @@ impl CodexConfigManager {
 
     /// 📁 解析 Codex 配置目录
     fn resolve_codex_dir() -> Result<PathBuf> {
-        if let Ok(custom) = std::env::var("CCR_CODEX_DIR") {
+        if let Some(custom) = std::env::var("CCR_CODEX_DIR")
+            .ok()
+            .filter(|value| !value.trim().is_empty())
+            .or_else(|| {
+                std::env::var("CODEX_HOME")
+                    .ok()
+                    .filter(|value| !value.trim().is_empty())
+            })
+        {
             return Ok(PathBuf::from(custom));
         }
         let home =
@@ -437,6 +445,7 @@ impl CachedCodexConfigManager {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
+    use crate::test_support::TestCodexEnv;
     use ccr_core::core::lock::LockManager;
 
     fn create_test_manager(temp_dir: &Path) -> CodexConfigManager {
@@ -448,6 +457,18 @@ mod tests {
             temp_dir.join("backups"),
             lock_manager,
         )
+    }
+
+    #[test]
+    fn default_manager_uses_codex_home_when_ccr_override_is_absent() {
+        let mut env = TestCodexEnv::new();
+        let codex_home = env.home().join("custom-codex-home");
+        env.remove_env("CCR_CODEX_DIR");
+        env.set_env("CODEX_HOME", codex_home.as_os_str());
+
+        let manager = CodexConfigManager::with_default().unwrap();
+        assert_eq!(manager.config_path(), codex_home.join("config.toml"));
+        assert_eq!(manager.auth_path(), codex_home.join("auth.json"));
     }
 
     #[test]

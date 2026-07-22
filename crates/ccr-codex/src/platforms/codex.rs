@@ -9,8 +9,9 @@
 
 use crate::managers::codex_config::CodexConfigManager;
 use crate::models::{
-    AuthIntent, CodexProfileAuthMode, CredentialStoreKind, OpenAiAuthMethod, Platform,
-    PlatformConfig, PlatformPaths, ProfileConfig,
+    AuthIntent, CodexEnvironmentPresence, CodexProfileAuthMode, CodexRuntimeAuthSource,
+    CodexRuntimeDiagnostic, CodexRuntimeIssue, CredentialStoreKind, OpenAiAuthMethod, Platform,
+    PlatformConfig, PlatformPaths, ProfileConfig, ProviderAuthValidity, RuntimeMatchStatus,
 };
 use crate::services::{
     CodexAuthCacheAction, CodexOAuthTokenService, CodexRuntimeCommitPlan, CodexRuntimeService,
@@ -54,14 +55,14 @@ enum RouteSelection {
     },
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 enum AuthSelection {
     EnsureChatgpt,
     WriteOpenAiApiKey(String),
     ClearOpenAi,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 struct SwitchSpec {
     route: RouteSelection,
     auth: Option<AuthSelection>,
@@ -627,6 +628,15 @@ impl CodexPlatform {
         key.ends_with("_API_KEY") && key != "OPENAI_API_KEY"
     }
 
+    fn is_valid_environment_variable(value: &str) -> bool {
+        let mut characters = value.chars();
+        let Some(first) = characters.next() else {
+            return false;
+        };
+        (first == '_' || first.is_ascii_alphabetic())
+            && characters.all(|character| character == '_' || character.is_ascii_alphanumeric())
+    }
+
     fn remove_openai_tokens(auth: &mut serde_json::Map<String, serde_json::Value>) {
         auth.remove("tokens");
         auth.remove("last_refresh");
@@ -797,6 +807,15 @@ impl CodexPlatform {
             let wire_api = Self::resolve_wire_api(profile)?;
             let mut requires_openai_auth = Self::resolve_requires_openai_auth(profile);
             let env_key = Self::platform_string(profile, "env_key");
+            if matches!(auth_mode, CodexProfileAuthMode::ProviderEnvKey)
+                && !env_key
+                    .as_deref()
+                    .is_some_and(Self::is_valid_environment_variable)
+            {
+                return Err(CcrError::ValidationError(
+                    "provider_env_key 模式需要合法的 env_key 变量名".into(),
+                ));
+            }
 
             // 向后兼容：第三方 profile 配置了 auth_token 但未显式声明传递方式时，
             // resolve_profile_auth_mode 会把它解释为 OpenAI API key 模式。这里同步
@@ -1288,6 +1307,539 @@ impl CodexPlatform {
             .and_then(|providers| providers.get(THIRD_PARTY_RUNTIME_PROVIDER_KEY))
             .and_then(|value| value.as_table())
             .cloned()
+    }
+
+    /// Build a read-only snapshot of the CCR profile and Codex runtime.
+    ///
+    /// This intentionally avoids `stable_current_profile()`: that method repairs the registry
+    /// pointer when the route differs, while diagnostics must preserve the evidence it observes.
+    pub fn inspect_runtime(&self) -> Result<CodexRuntimeDiagnostic> {
+        self.inspect_runtime_with_env(|name| std::env::var(name).ok())
+    }
+
+    /// Replay the resolved profile through the existing atomic apply path.
+    pub fn repair_runtime(&self, snapshot: &CodexRuntimeDiagnostic) -> Result<()> {
+        self.repair_runtime_with_env(snapshot, |name| std::env::var(name).ok())
+    }
+
+    fn repair_runtime_with_env<F>(
+        &self,
+        snapshot: &CodexRuntimeDiagnostic,
+        read_env: F,
+    ) -> Result<()>
+    where
+        F: Fn(&str) -> Option<String>,
+    {
+        if !snapshot.repairable {
+            return Err(CcrError::ValidationError(
+                "当前 Codex runtime 状态不能通过重放 profile 安全修复".into(),
+            ));
+        }
+
+        let current = self.inspect_runtime_with_env(read_env)?;
+        if !current.repairable || current.resolved_profile != snapshot.resolved_profile {
+            return Err(CcrError::ValidationError(
+                "诊断后 Codex profile 状态已变化，请重新运行 ccr codex fix".into(),
+            ));
+        }
+
+        let profile = current
+            .resolved_profile
+            .as_deref()
+            .ok_or_else(|| CcrError::ValidationError("没有可重放的 Codex profile".into()))?;
+        <Self as PlatformConfig>::apply_profile(self, profile)
+    }
+
+    fn inspect_runtime_with_env<F>(&self, read_env: F) -> Result<CodexRuntimeDiagnostic>
+    where
+        F: Fn(&str) -> Option<String>,
+    {
+        let registry_profile = self.current_profile_from_registry()?;
+        let profiles_file_profile = self.current_profile_from_profiles_file()?;
+        let mut profiles = self.load_profiles_from_file()?;
+        self.runtime_service
+            .overlay_profile_secrets(&mut profiles)?;
+
+        let mut issues = Vec::new();
+        let (resolved_profile, profile_status) = Self::resolve_diagnostic_profile(
+            registry_profile.as_deref(),
+            profiles_file_profile.as_deref(),
+            &profiles,
+            &mut issues,
+        );
+
+        let config = self.config_manager.load_config()?;
+        let auth = self.config_manager.load_auth()?;
+        let root = config.as_table();
+        let credential_store = CredentialStoreKind::from_config_value(
+            root.and_then(|table| table.get("cli_auth_credentials_store"))
+                .and_then(toml::Value::as_str),
+        );
+        let runtime_provider_id = root
+            .and_then(|table| table.get("model_provider"))
+            .and_then(toml::Value::as_str)
+            .map(str::to_string);
+        let runtime_provider = runtime_provider_id.as_deref().and_then(|provider_id| {
+            root.and_then(|table| table.get("model_providers"))
+                .and_then(toml::Value::as_table)
+                .and_then(|providers| providers.get(provider_id))
+                .and_then(toml::Value::as_table)
+        });
+        let runtime_provider_name = runtime_provider
+            .and_then(|provider| provider.get("name"))
+            .and_then(toml::Value::as_str)
+            .map(str::to_string);
+        let base_url = runtime_provider
+            .and_then(|provider| provider.get("base_url"))
+            .and_then(toml::Value::as_str)
+            .map(Self::safe_base_url_for_display);
+        let wire_api = runtime_provider
+            .and_then(|provider| provider.get("wire_api"))
+            .and_then(toml::Value::as_str)
+            .map(str::to_string);
+        let runtime_env_key = runtime_provider
+            .and_then(|provider| provider.get("env_key"))
+            .and_then(toml::Value::as_str)
+            .filter(|env_key| Self::is_valid_environment_variable(env_key))
+            .map(str::to_string);
+
+        let current_auth_intent = Self::resolve_current_auth_intent(&config, &auth);
+        let auth_source = Self::runtime_auth_source(&current_auth_intent, credential_store, &auth);
+
+        let mut expected = None;
+        let mut expected_env_key = None;
+        if let Some(profile_name) = resolved_profile.as_deref() {
+            let profile = profiles
+                .get(profile_name)
+                .ok_or_else(|| CcrError::ProfileNotFound(profile_name.to_string()))?;
+            let spec = Self::build_switch_spec(profile_name, profile, &current_auth_intent)?;
+            if let RouteSelection::ThirdPartyCustom { env_key, .. } = &spec.route {
+                expected_env_key = env_key.clone();
+            }
+            expected = Some((spec, Self::trimmed_secret(profile.auth_token.as_ref())));
+        }
+
+        let mut env_names = vec!["CODEX_API_KEY".to_string(), "OPENAI_API_KEY".to_string()];
+        for env_key in runtime_env_key.iter().chain(expected_env_key.iter()) {
+            if !env_names.contains(env_key) {
+                env_names.push(env_key.clone());
+            }
+        }
+        let env_values = env_names
+            .iter()
+            .map(|name| {
+                let value = read_env(name).filter(|value| !value.trim().is_empty());
+                (name.clone(), value)
+            })
+            .collect::<IndexMap<_, _>>();
+        let environment = env_values
+            .iter()
+            .map(|(variable, value)| CodexEnvironmentPresence {
+                variable: variable.clone(),
+                is_set: value.is_some(),
+            })
+            .collect::<Vec<_>>();
+
+        let (mut route_status, mut credential_status, mut credential_repairable) = match expected
+            .as_ref()
+        {
+            Some((spec, secret)) => {
+                let route_status = Self::diagnostic_route_status(spec, &config);
+                let (credential_status, credential_repairable) = Self::diagnostic_credential_status(
+                    spec,
+                    secret.as_deref(),
+                    credential_store,
+                    &auth,
+                    &env_values,
+                );
+                (route_status, credential_status, credential_repairable)
+            }
+            None => (
+                RuntimeMatchStatus::NotApplicable,
+                RuntimeMatchStatus::NotApplicable,
+                false,
+            ),
+        };
+
+        let intended_env_key = expected_env_key.as_deref().or(runtime_env_key.as_deref());
+        for variable in ["CODEX_API_KEY", "OPENAI_API_KEY"] {
+            if env_values.get(variable).is_some_and(Option::is_some)
+                && intended_env_key != Some(variable)
+            {
+                issues.push(CodexRuntimeIssue::EnvironmentOverride {
+                    variable: variable.to_string(),
+                });
+                if matches!(
+                    credential_status,
+                    RuntimeMatchStatus::Match | RuntimeMatchStatus::NotApplicable
+                ) {
+                    credential_status = RuntimeMatchStatus::Unsupported;
+                }
+                credential_repairable = false;
+            }
+        }
+
+        if read_env("OPENAI_BASE_URL").is_some_and(|value| !value.trim().is_empty()) {
+            issues.push(CodexRuntimeIssue::EnvironmentOverride {
+                variable: "OPENAI_BASE_URL".to_string(),
+            });
+            if route_status == RuntimeMatchStatus::Match {
+                route_status = RuntimeMatchStatus::Unsupported;
+            }
+        }
+
+        if let Some(codex_home) = read_env("CODEX_HOME").filter(|value| !value.trim().is_empty())
+            && self.config_manager.config_path().parent() != Some(Path::new(&codex_home))
+        {
+            issues.push(CodexRuntimeIssue::CodexHomeMismatch);
+            if route_status == RuntimeMatchStatus::Match {
+                route_status = RuntimeMatchStatus::Unsupported;
+            }
+        }
+
+        match route_status {
+            RuntimeMatchStatus::Mismatch => issues.push(CodexRuntimeIssue::RouteMismatch),
+            RuntimeMatchStatus::Missing => issues.push(CodexRuntimeIssue::RouteMismatch),
+            _ => {}
+        }
+        match credential_status {
+            RuntimeMatchStatus::Missing => issues.push(CodexRuntimeIssue::CredentialMissing),
+            RuntimeMatchStatus::Mismatch => issues.push(CodexRuntimeIssue::CredentialMismatch),
+            RuntimeMatchStatus::Unsupported => {
+                issues.push(CodexRuntimeIssue::CredentialUnsupported)
+            }
+            _ => {}
+        }
+
+        let has_drift =
+            profile_status.is_drift() || route_status.is_drift() || credential_status.is_drift();
+        let repairable = resolved_profile.is_some()
+            && profile_status != RuntimeMatchStatus::Mismatch
+            && route_status != RuntimeMatchStatus::Unsupported
+            && credential_repairable
+            && has_drift;
+
+        Ok(CodexRuntimeDiagnostic {
+            registry_path: self.paths.registry_file.clone(),
+            profiles_path: self.paths.profiles_file.clone(),
+            config_path: self.config_manager.config_path().to_path_buf(),
+            auth_path: self.config_manager.auth_path().to_path_buf(),
+            registry_profile,
+            profiles_file_profile,
+            resolved_profile,
+            runtime_provider_id,
+            runtime_provider_name,
+            base_url,
+            wire_api,
+            credential_store,
+            auth_source,
+            profile_status,
+            route_status,
+            credential_status,
+            provider_auth_validity: ProviderAuthValidity::NotChecked,
+            environment,
+            issues,
+            repairable,
+        })
+    }
+
+    fn resolve_diagnostic_profile(
+        registry_profile: Option<&str>,
+        profiles_file_profile: Option<&str>,
+        profiles: &IndexMap<String, ProfileConfig>,
+        issues: &mut Vec<CodexRuntimeIssue>,
+    ) -> (Option<String>, RuntimeMatchStatus) {
+        match (registry_profile, profiles_file_profile) {
+            (None, None) => (None, RuntimeMatchStatus::NotApplicable),
+            (Some(registry), Some(file)) if registry == file => {
+                if profiles.contains_key(registry) {
+                    (Some(registry.to_string()), RuntimeMatchStatus::Match)
+                } else {
+                    issues.push(CodexRuntimeIssue::ProfileNotFound {
+                        profile: registry.to_string(),
+                    });
+                    (None, RuntimeMatchStatus::Missing)
+                }
+            }
+            (Some(_), Some(_)) => {
+                issues.push(CodexRuntimeIssue::ProfilePointerMismatch);
+                (None, RuntimeMatchStatus::Mismatch)
+            }
+            (Some(registry), None) => {
+                issues.push(CodexRuntimeIssue::ProfilesPointerMissing);
+                if profiles.contains_key(registry) {
+                    (Some(registry.to_string()), RuntimeMatchStatus::Missing)
+                } else {
+                    issues.push(CodexRuntimeIssue::ProfileNotFound {
+                        profile: registry.to_string(),
+                    });
+                    (None, RuntimeMatchStatus::Missing)
+                }
+            }
+            (None, Some(file)) => {
+                issues.push(CodexRuntimeIssue::RegistryPointerMissing);
+                if profiles.contains_key(file) {
+                    (Some(file.to_string()), RuntimeMatchStatus::Missing)
+                } else {
+                    issues.push(CodexRuntimeIssue::ProfileNotFound {
+                        profile: file.to_string(),
+                    });
+                    (None, RuntimeMatchStatus::Missing)
+                }
+            }
+        }
+    }
+
+    fn current_profile_from_profiles_file(&self) -> Result<Option<String>> {
+        if !self.paths.profiles_file.exists() {
+            return Ok(None);
+        }
+        let content = std::fs::read_to_string(&self.paths.profiles_file).map_err(|error| {
+            CcrError::ConfigError(format!(
+                "读取 Codex profiles 文件失败 {}: {}",
+                self.paths.profiles_file.display(),
+                error
+            ))
+        })?;
+        let Ok(config) = toml::from_str::<CcsConfig>(&content) else {
+            return Ok(None);
+        };
+        let current = config.current_config.trim();
+        Ok((!current.is_empty()).then(|| current.to_string()))
+    }
+
+    fn diagnostic_route_status(spec: &SwitchSpec, config: &toml::Value) -> RuntimeMatchStatus {
+        let Some(root) = config.as_table() else {
+            return RuntimeMatchStatus::Missing;
+        };
+        if root
+            .get("model_provider")
+            .and_then(toml::Value::as_str)
+            .is_none()
+        {
+            return RuntimeMatchStatus::Missing;
+        }
+
+        let common_matches = Self::root_string_matches(root, "model", spec.model.as_ref())
+            && Self::root_string_matches(root, "approval_policy", spec.approval_policy.as_ref())
+            && Self::root_string_matches(root, "sandbox_mode", spec.sandbox_mode.as_ref())
+            && Self::root_string_matches(
+                root,
+                "model_reasoning_effort",
+                spec.reasoning_effort.as_ref(),
+            )
+            && Self::root_string_matches(
+                root,
+                "forced_login_method",
+                spec.forced_login_method.as_ref(),
+            )
+            && root
+                .get("disable_response_storage")
+                .and_then(toml::Value::as_bool)
+                == spec.disable_response_storage
+            && root
+                .get("sandbox_workspace_write")
+                .and_then(toml::Value::as_table)
+                .and_then(|workspace| workspace.get("network_access"))
+                .and_then(toml::Value::as_bool)
+                == spec.network_access
+            && spec.credential_store_override.is_none_or(|expected| {
+                CredentialStoreKind::from_config_value(
+                    root.get("cli_auth_credentials_store")
+                        .and_then(toml::Value::as_str),
+                ) == expected
+            });
+
+        if !common_matches || !Self::diagnostic_spec_matches_runtime(spec, config) {
+            RuntimeMatchStatus::Mismatch
+        } else {
+            RuntimeMatchStatus::Match
+        }
+    }
+
+    fn diagnostic_spec_matches_runtime(spec: &SwitchSpec, config: &toml::Value) -> bool {
+        if !Self::spec_matches_runtime_without_auth(spec, config) {
+            return false;
+        }
+
+        match &spec.route {
+            RouteSelection::Official { .. } => {
+                Self::current_custom_provider(config).is_some_and(|provider| {
+                    provider.get("name").and_then(toml::Value::as_str) == Some(OPENAI_PROVIDER_KEY)
+                        && provider.get("wire_api").and_then(toml::Value::as_str)
+                            == Some("responses")
+                        && provider.get("env_key").is_none()
+                })
+            }
+            RouteSelection::ThirdPartyCustom { .. } => true,
+        }
+    }
+
+    fn root_string_matches(
+        root: &toml::map::Map<String, toml::Value>,
+        key: &str,
+        expected: Option<&String>,
+    ) -> bool {
+        root.get(key).and_then(toml::Value::as_str) == expected.map(String::as_str)
+    }
+
+    fn safe_base_url_for_display(value: &str) -> String {
+        let without_fragment = value.split('#').next().unwrap_or(value);
+        let without_query = without_fragment
+            .split('?')
+            .next()
+            .unwrap_or(without_fragment);
+        let Some((scheme, remainder)) = without_query.split_once("://") else {
+            return without_query.to_string();
+        };
+        let host_and_path = remainder
+            .rsplit_once('@')
+            .map(|(_, host_and_path)| host_and_path)
+            .unwrap_or(remainder);
+        format!("{scheme}://{host_and_path}")
+    }
+
+    fn diagnostic_credential_status(
+        spec: &SwitchSpec,
+        expected_secret: Option<&str>,
+        store: CredentialStoreKind,
+        auth: &serde_json::Map<String, serde_json::Value>,
+        env: &IndexMap<String, Option<String>>,
+    ) -> (RuntimeMatchStatus, bool) {
+        let has_openai_key = auth
+            .get("OPENAI_API_KEY")
+            .and_then(serde_json::Value::as_str)
+            .is_some_and(|value| !value.trim().is_empty());
+        let has_chatgpt_tokens = auth
+            .get("tokens")
+            .and_then(serde_json::Value::as_object)
+            .is_some_and(|tokens| {
+                ["id_token", "access_token", "refresh_token"]
+                    .iter()
+                    .any(|field| {
+                        tokens
+                            .get(*field)
+                            .and_then(serde_json::Value::as_str)
+                            .is_some_and(|value| !value.trim().is_empty())
+                    })
+            });
+        let has_provider_key = auth.iter().any(|(key, value)| {
+            Self::is_provider_api_key_field(key)
+                && value.as_str().is_some_and(|value| !value.trim().is_empty())
+        });
+
+        match spec.auth_mode {
+            CodexProfileAuthMode::OpenAiApiKey => {
+                if store != CredentialStoreKind::File {
+                    return (RuntimeMatchStatus::Unsupported, false);
+                }
+                let Some(expected) = expected_secret else {
+                    return (RuntimeMatchStatus::Missing, false);
+                };
+                let actual = auth
+                    .get("OPENAI_API_KEY")
+                    .and_then(serde_json::Value::as_str)
+                    .map(str::trim)
+                    .filter(|value| !value.is_empty());
+                match actual {
+                    None => (RuntimeMatchStatus::Missing, true),
+                    Some(actual) if actual != expected.trim() || has_chatgpt_tokens => {
+                        (RuntimeMatchStatus::Mismatch, true)
+                    }
+                    Some(_) => (RuntimeMatchStatus::Match, true),
+                }
+            }
+            CodexProfileAuthMode::OpenAiChatgpt => {
+                if store != CredentialStoreKind::File {
+                    return (RuntimeMatchStatus::Unsupported, false);
+                }
+                if !has_chatgpt_tokens {
+                    return (RuntimeMatchStatus::Missing, false);
+                }
+                if has_openai_key || has_provider_key {
+                    (RuntimeMatchStatus::Mismatch, true)
+                } else {
+                    (RuntimeMatchStatus::Match, true)
+                }
+            }
+            CodexProfileAuthMode::ProviderEnvKey => {
+                let env_key = match &spec.route {
+                    RouteSelection::ThirdPartyCustom {
+                        env_key: Some(env_key),
+                        ..
+                    } => env_key,
+                    _ => return (RuntimeMatchStatus::Missing, false),
+                };
+                let Some(expected) = expected_secret else {
+                    return (RuntimeMatchStatus::Missing, false);
+                };
+                let actual = env
+                    .get(env_key)
+                    .and_then(Option::as_deref)
+                    .map(str::trim)
+                    .filter(|value| !value.is_empty());
+                match actual {
+                    None => (RuntimeMatchStatus::Missing, false),
+                    Some(actual) if actual != expected.trim() => {
+                        (RuntimeMatchStatus::Mismatch, false)
+                    }
+                    Some(_) if has_provider_key => (RuntimeMatchStatus::Unsupported, false),
+                    Some(_) if has_openai_key || has_chatgpt_tokens => {
+                        (RuntimeMatchStatus::Mismatch, true)
+                    }
+                    Some(_) => (RuntimeMatchStatus::Match, true),
+                }
+            }
+            CodexProfileAuthMode::NoAuth => {
+                if has_provider_key {
+                    (RuntimeMatchStatus::Mismatch, false)
+                } else if has_openai_key || has_chatgpt_tokens {
+                    (RuntimeMatchStatus::Mismatch, true)
+                } else {
+                    (RuntimeMatchStatus::NotApplicable, true)
+                }
+            }
+        }
+    }
+
+    fn runtime_auth_source(
+        intent: &AuthIntent,
+        store: CredentialStoreKind,
+        auth: &serde_json::Map<String, serde_json::Value>,
+    ) -> CodexRuntimeAuthSource {
+        match intent {
+            AuthIntent::ProviderEnvKey { env_key } => {
+                if Self::is_valid_environment_variable(env_key) {
+                    CodexRuntimeAuthSource::Environment {
+                        variable: env_key.clone(),
+                    }
+                } else {
+                    CodexRuntimeAuthSource::EnvironmentInvalid
+                }
+            }
+            AuthIntent::NoAuth => CodexRuntimeAuthSource::None,
+            AuthIntent::OpenAiAuth { .. } => match store {
+                CredentialStoreKind::Keyring => CodexRuntimeAuthSource::KeyringUnreadable,
+                CredentialStoreKind::Auto => CodexRuntimeAuthSource::AutoUnreadable,
+                CredentialStoreKind::File => {
+                    if auth
+                        .get("tokens")
+                        .and_then(serde_json::Value::as_object)
+                        .is_some_and(|tokens| !tokens.is_empty())
+                    {
+                        CodexRuntimeAuthSource::AuthJsonChatgptTokens
+                    } else if auth
+                        .get("OPENAI_API_KEY")
+                        .and_then(serde_json::Value::as_str)
+                        .is_some_and(|value| !value.trim().is_empty())
+                    {
+                        CodexRuntimeAuthSource::AuthJsonOpenAiApiKey
+                    } else {
+                        CodexRuntimeAuthSource::None
+                    }
+                }
+            },
+        }
     }
 
     fn spec_matches_runtime_without_auth(spec: &SwitchSpec, config: &toml::Value) -> bool {
@@ -3066,5 +3618,373 @@ env_key = "MISTRAL_API_KEY"
             provider.get("env_key").is_none(),
             "env_key should be ignored/removed when requires_openai_auth=true"
         );
+    }
+
+    #[test]
+    fn runtime_diagnostic_matches_api_key_without_exposing_secret() {
+        const TEST_SECRET: &str = "diagnostic-secret-must-not-leak";
+        let _env = TestCodexEnv::new();
+        let platform = CodexPlatform::new().unwrap();
+        let profile = runtime_api_key_profile(TEST_SECRET);
+
+        platform.save_profile("future", &profile).unwrap();
+        platform.apply_profile("future").unwrap();
+
+        let diagnostic = platform.inspect_runtime_with_env(|_| None).unwrap();
+        assert_eq!(diagnostic.resolved_profile.as_deref(), Some("future"));
+        assert_eq!(diagnostic.profile_status, RuntimeMatchStatus::Match);
+        assert_eq!(diagnostic.route_status, RuntimeMatchStatus::Match);
+        assert_eq!(diagnostic.credential_status, RuntimeMatchStatus::Match);
+        assert_eq!(
+            diagnostic.provider_auth_validity,
+            ProviderAuthValidity::NotChecked
+        );
+        assert!(!diagnostic.repairable);
+
+        let serialized = serde_json::to_string(&diagnostic).unwrap();
+        let debug = format!("{diagnostic:?}");
+        assert!(!serialized.contains(TEST_SECRET));
+        assert!(!debug.contains(TEST_SECRET));
+    }
+
+    #[test]
+    fn runtime_diagnostic_repairs_api_key_mismatch_and_missing_key() {
+        const TEST_SECRET: &str = "repair-secret-must-not-leak";
+        let env = TestCodexEnv::new();
+        let platform = CodexPlatform::new().unwrap();
+        let profile = runtime_api_key_profile(TEST_SECRET);
+
+        platform.save_profile("future", &profile).unwrap();
+        platform.apply_profile("future").unwrap();
+        std::fs::write(
+            env.codex_dir().join("auth.json"),
+            r#"{"OPENAI_API_KEY":"different-test-value"}"#,
+        )
+        .unwrap();
+
+        let mismatch = platform.inspect_runtime_with_env(|_| None).unwrap();
+        assert_eq!(mismatch.credential_status, RuntimeMatchStatus::Mismatch);
+        assert!(mismatch.repairable);
+        platform
+            .repair_runtime_with_env(&mismatch, |_| None)
+            .unwrap();
+
+        let repaired = platform.inspect_runtime_with_env(|_| None).unwrap();
+        assert_eq!(repaired.runtime_consistency(), RuntimeMatchStatus::Match);
+        let auth = CodexConfigManager::with_default()
+            .unwrap()
+            .load_auth()
+            .unwrap();
+        let repaired_value_matches = auth
+            .get("OPENAI_API_KEY")
+            .and_then(serde_json::Value::as_str)
+            == Some(TEST_SECRET);
+        assert!(repaired_value_matches);
+
+        std::fs::remove_file(env.codex_dir().join("auth.json")).unwrap();
+        let missing = platform.inspect_runtime_with_env(|_| None).unwrap();
+        assert_eq!(missing.credential_status, RuntimeMatchStatus::Missing);
+        assert!(missing.repairable);
+    }
+
+    #[test]
+    fn runtime_diagnostic_requires_provider_env_key_without_leaking_it() {
+        const TEST_SECRET: &str = "provider-env-secret-must-not-leak";
+        let _env = TestCodexEnv::new();
+        let platform = CodexPlatform::new().unwrap();
+        let mut profile = ProfileConfig {
+            description: Some("Mistral Provider".to_string()),
+            base_url: Some("https://api.mistral.ai/v1".to_string()),
+            auth_token: Some(ccr_core::Secret::from(TEST_SECRET)),
+            model: Some("mistral-large".to_string()),
+            provider_type: Some("third_party_model".to_string()),
+            enabled: Some(true),
+            ..Default::default()
+        };
+        profile
+            .platform_data
+            .insert("wire_api".into(), json!("responses"));
+        profile
+            .platform_data
+            .insert("env_key".into(), json!("MISTRAL_API_KEY"));
+        profile
+            .platform_data
+            .insert("auth_mode".into(), json!("provider_env_key"));
+
+        platform.save_profile("mistral", &profile).unwrap();
+        platform.apply_profile("mistral").unwrap();
+
+        let matched = platform
+            .inspect_runtime_with_env(|name| {
+                (name == "MISTRAL_API_KEY").then(|| TEST_SECRET.to_string())
+            })
+            .unwrap();
+        assert_eq!(matched.credential_status, RuntimeMatchStatus::Match);
+
+        let missing = platform.inspect_runtime_with_env(|_| None).unwrap();
+        assert_eq!(missing.credential_status, RuntimeMatchStatus::Missing);
+        assert!(!missing.repairable);
+        let serialized = serde_json::to_string(&missing).unwrap();
+        assert!(!serialized.contains(TEST_SECRET));
+    }
+
+    #[test]
+    fn runtime_diagnostic_reports_runtime_and_expected_env_keys_during_route_drift() {
+        const TEST_SECRET: &str = "expected-env-secret-must-not-leak";
+        let _env = TestCodexEnv::new();
+        let platform = CodexPlatform::new().unwrap();
+        let mut profile = ProfileConfig {
+            description: Some("Expected Provider".to_string()),
+            base_url: Some("https://expected.example/v1".to_string()),
+            auth_token: Some(ccr_core::Secret::from(TEST_SECRET)),
+            provider_type: Some("third_party_model".to_string()),
+            enabled: Some(true),
+            ..Default::default()
+        };
+        profile
+            .platform_data
+            .insert("wire_api".into(), json!("responses"));
+        profile
+            .platform_data
+            .insert("env_key".into(), json!("EXPECTED_API_KEY"));
+        profile
+            .platform_data
+            .insert("auth_mode".into(), json!("provider_env_key"));
+
+        platform.save_profile("expected", &profile).unwrap();
+        platform.apply_profile("expected").unwrap();
+
+        let manager = CodexConfigManager::with_default().unwrap();
+        let mut config = manager.load_config().unwrap();
+        let provider = config
+            .as_table_mut()
+            .and_then(|root| root.get_mut("model_providers"))
+            .and_then(toml::Value::as_table_mut)
+            .and_then(|providers| providers.get_mut(THIRD_PARTY_RUNTIME_PROVIDER_KEY))
+            .and_then(toml::Value::as_table_mut)
+            .unwrap();
+        provider.insert(
+            "base_url".into(),
+            toml::Value::String("https://runtime.example/v1".into()),
+        );
+        provider.insert(
+            "env_key".into(),
+            toml::Value::String("RUNTIME_API_KEY".into()),
+        );
+        manager.save_config_atomic(&config).unwrap();
+
+        let diagnostic = platform
+            .inspect_runtime_with_env(|name| match name {
+                "EXPECTED_API_KEY" => Some(TEST_SECRET.to_string()),
+                "RUNTIME_API_KEY" => Some("runtime-only-value".to_string()),
+                _ => None,
+            })
+            .unwrap();
+
+        assert_eq!(diagnostic.route_status, RuntimeMatchStatus::Mismatch);
+        assert_eq!(diagnostic.credential_status, RuntimeMatchStatus::Match);
+        assert_eq!(
+            diagnostic.auth_source,
+            CodexRuntimeAuthSource::Environment {
+                variable: "RUNTIME_API_KEY".to_string()
+            }
+        );
+        for variable in ["EXPECTED_API_KEY", "RUNTIME_API_KEY"] {
+            assert!(
+                diagnostic
+                    .environment
+                    .iter()
+                    .any(|presence| presence.variable == variable && presence.is_set)
+            );
+        }
+        assert!(
+            !serde_json::to_string(&diagnostic)
+                .unwrap()
+                .contains(TEST_SECRET)
+        );
+    }
+
+    #[test]
+    fn runtime_diagnostic_marks_keyring_credentials_as_unreadable() {
+        let _env = TestCodexEnv::new();
+        let platform = CodexPlatform::new().unwrap();
+        platform
+            .save_profile("future", &runtime_api_key_profile("keyring-secret"))
+            .unwrap();
+        platform.apply_profile("future").unwrap();
+
+        let manager = CodexConfigManager::with_default().unwrap();
+        let mut config = manager.load_config().unwrap();
+        config.as_table_mut().unwrap().insert(
+            "cli_auth_credentials_store".into(),
+            toml::Value::String("keyring".into()),
+        );
+        manager.save_config_atomic(&config).unwrap();
+
+        let diagnostic = platform.inspect_runtime_with_env(|_| None).unwrap();
+        assert_eq!(diagnostic.credential_store, CredentialStoreKind::Keyring);
+        assert_eq!(
+            diagnostic.auth_source,
+            CodexRuntimeAuthSource::KeyringUnreadable
+        );
+        assert_eq!(
+            diagnostic.credential_status,
+            RuntimeMatchStatus::Unsupported
+        );
+        assert!(!diagnostic.repairable);
+    }
+
+    #[test]
+    fn runtime_diagnostic_reports_runtime_only_when_no_profile_is_current() {
+        let _env = TestCodexEnv::new();
+        let platform = CodexPlatform::new().unwrap();
+        platform
+            .save_profile("future", &runtime_api_key_profile("unused-secret"))
+            .unwrap();
+        platform.apply_profile("future").unwrap();
+
+        let registry_manager = PlatformConfigManager::new(&platform.paths.registry_file);
+        let mut registry = registry_manager.load().unwrap();
+        registry.set_current_profile("codex", None).unwrap();
+        registry_manager.save(&registry).unwrap();
+
+        let profiles_text = std::fs::read_to_string(&platform.paths.profiles_file).unwrap();
+        let mut profiles_config = toml::from_str::<CcsConfig>(&profiles_text).unwrap();
+        profiles_config.current_config.clear();
+        std::fs::write(
+            &platform.paths.profiles_file,
+            toml::to_string_pretty(&profiles_config).unwrap(),
+        )
+        .unwrap();
+
+        let diagnostic = platform.inspect_runtime_with_env(|_| None).unwrap();
+        assert!(diagnostic.resolved_profile.is_none());
+        assert_eq!(diagnostic.profile_status, RuntimeMatchStatus::NotApplicable);
+        assert_eq!(
+            diagnostic.runtime_consistency(),
+            RuntimeMatchStatus::NotApplicable
+        );
+        assert!(!diagnostic.repairable);
+    }
+
+    #[test]
+    fn runtime_diagnostic_treats_no_auth_as_not_applicable_credential() {
+        let _env = TestCodexEnv::new();
+        let platform = CodexPlatform::new().unwrap();
+        let mut profile = ProfileConfig {
+            description: Some("No-auth Provider".to_string()),
+            base_url: Some("https://no-auth.example/v1".to_string()),
+            provider_type: Some("third_party_model".to_string()),
+            enabled: Some(true),
+            ..Default::default()
+        };
+        profile
+            .platform_data
+            .insert("wire_api".into(), json!("responses"));
+        profile
+            .platform_data
+            .insert("auth_mode".into(), json!("no_auth"));
+
+        platform.save_profile("no-auth", &profile).unwrap();
+        platform.apply_profile("no-auth").unwrap();
+
+        let diagnostic = platform.inspect_runtime_with_env(|_| None).unwrap();
+        assert_eq!(diagnostic.route_status, RuntimeMatchStatus::Match);
+        assert_eq!(
+            diagnostic.credential_status,
+            RuntimeMatchStatus::NotApplicable
+        );
+        assert_eq!(diagnostic.runtime_consistency(), RuntimeMatchStatus::Match);
+        assert!(!diagnostic.repairable);
+    }
+
+    #[test]
+    fn runtime_diagnostic_preserves_conflicting_profile_pointers() {
+        let _env = TestCodexEnv::new();
+        let platform = CodexPlatform::new().unwrap();
+        platform
+            .save_profile("future", &runtime_api_key_profile("future-secret"))
+            .unwrap();
+        platform.apply_profile("future").unwrap();
+        platform
+            .save_profile("other", &runtime_api_key_profile("other-secret"))
+            .unwrap();
+
+        let manager = PlatformConfigManager::new(&platform.paths.registry_file);
+        let mut registry = manager.load().unwrap();
+        registry
+            .set_current_profile("codex", Some("other"))
+            .unwrap();
+        manager.save(&registry).unwrap();
+
+        let diagnostic = platform.inspect_runtime_with_env(|_| None).unwrap();
+        assert_eq!(diagnostic.registry_profile.as_deref(), Some("other"));
+        assert_eq!(diagnostic.profiles_file_profile.as_deref(), Some("future"));
+        assert_eq!(diagnostic.profile_status, RuntimeMatchStatus::Mismatch);
+        assert!(diagnostic.resolved_profile.is_none());
+        assert!(!diagnostic.repairable);
+        assert_eq!(
+            platform.current_profile_from_registry().unwrap().as_deref(),
+            Some("other")
+        );
+    }
+
+    #[test]
+    fn runtime_diagnostic_sanitizes_url_credentials_and_rejects_invalid_env_names() {
+        const URL_SECRET: &str = "url-secret-must-not-leak";
+        let _env = TestCodexEnv::new();
+        let platform = CodexPlatform::new().unwrap();
+        let mut profile = runtime_api_key_profile("profile-secret");
+        profile.base_url = Some(format!(
+            "https://user:{URL_SECRET}@example.com/v1?key={URL_SECRET}"
+        ));
+
+        platform.save_profile("future", &profile).unwrap();
+        platform.apply_profile("future").unwrap();
+        let diagnostic = platform.inspect_runtime_with_env(|_| None).unwrap();
+        assert_eq!(
+            diagnostic.base_url.as_deref(),
+            Some("https://example.com/v1")
+        );
+        let serialized = serde_json::to_string(&diagnostic).unwrap();
+        assert!(!serialized.contains(URL_SECRET));
+
+        let mut invalid_env_profile = ProfileConfig {
+            description: Some("Invalid env".to_string()),
+            base_url: Some("https://example.com/v1".to_string()),
+            auth_token: Some(ccr_core::Secret::from("provider-secret")),
+            provider_type: Some("third_party_model".to_string()),
+            ..Default::default()
+        };
+        invalid_env_profile
+            .platform_data
+            .insert("wire_api".into(), json!("responses"));
+        invalid_env_profile
+            .platform_data
+            .insert("auth_mode".into(), json!("provider_env_key"));
+        invalid_env_profile
+            .platform_data
+            .insert("env_key".into(), json!("secret=value"));
+        let error = platform.validate_profile(&invalid_env_profile).unwrap_err();
+        assert!(!error.to_string().contains("secret=value"));
+    }
+
+    fn runtime_api_key_profile(secret: &str) -> ProfileConfig {
+        let mut profile = ProfileConfig {
+            description: Some("Future Provider".to_string()),
+            base_url: Some("https://www.futureapi.cc/v1".to_string()),
+            auth_token: Some(ccr_core::Secret::from(secret)),
+            model: Some("gpt-5.6-sol".to_string()),
+            provider_type: Some("third_party_model".to_string()),
+            enabled: Some(true),
+            ..Default::default()
+        };
+        profile
+            .platform_data
+            .insert("wire_api".into(), json!("responses"));
+        profile
+            .platform_data
+            .insert("auth_mode".into(), json!("openai_api_key"));
+        profile
     }
 }
