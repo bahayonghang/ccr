@@ -1,12 +1,6 @@
 name: Frontend CI
 
 on:
-  push:
-    branches: [ main, develop ]
-    paths:
-      - 'ccr-ui/**'
-      - 'docs/**'
-      - '.github/workflows/frontend-ci.yml'
   pull_request:
     branches: [ main, develop ]
     paths:
