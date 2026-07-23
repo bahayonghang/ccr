@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 48
+- **Total Sessions**: 49
 - **Last Active**: 2026-07-23
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~41 | Active |
+| `journal-2.md` | ~74 | Active |
 | `journal-1.md` | ~1987 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 49 | 2026-07-23 | 实现 ccr project init 项目初始化命令 | `cdebd82c484a190babdf52ec3551cc1399875187` | `dev` |
 | 48 | 2026-07-23 | 修复 Codex fix 进程清理行为差异 | `14a3c677`, `ed780638` | `dev` |
 | 47 | 2026-07-23 | 完善 ccr codex fix 本地运行时诊断 | `a92d15ec` | `dev` |
 | 46 | 2026-07-17 | 归档 ccr-ui 配置管理增强任务树 | - | `dev` |
