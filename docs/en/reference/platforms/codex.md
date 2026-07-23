@@ -38,6 +38,12 @@ ccr codex fix
 
 `ccr codex fix` cleans up stale app-server processes and compares the registry pointer, `profiles.toml`, `config.toml`, `auth.json`, and the current process environment at invocation time. It reports `process_state`, `runtime_consistency`, and `provider_auth_validity` separately.
 
+Process discovery explicitly loads command lines and owners and only handles Codex `app-server`
+processes owned by the current user. Cleanup identifies processes by `PID + start_time`, discovers
+replacement PIDs throughout the TERM grace window, and revalidates owner and argv before every
+signal. Output contains redacted summaries only. If a safe snapshot cannot be established, CCR
+reports `process_state = unavailable` instead of treating the unknown state as `clean`.
+
 The bare command is diagnostic only. To replay the saved profile through the existing atomic apply path, opt in explicitly:
 
 ```bash
@@ -46,6 +52,10 @@ ccr codex fix --dry-run --repair-runtime
 ```
 
 `--repair-runtime` does not change or rotate the saved secret. Combined with `--dry-run`, it neither terminates processes nor writes `config.toml` or `auth.json`.
+
+Process cleanup, runtime inspection/repair, and doctor are independent stages. When the runtime
+stage is unavailable, CCR still runs doctor when possible and exits with code `1`; an app-server
+that remains or unavailable process discovery takes precedence with exit code `2`.
 
 CCR's reconciliation adds no third-party credential probe. The command still runs upstream `codex doctor`, whose checks depend on the installed Codex version. Even when `runtime_consistency = match`, `provider_auth_validity` remains `not_checked`. If the provider still returns `INVALID_API_KEY`, verify or update the key saved in that profile instead of repeatedly cleaning app-server processes.
 

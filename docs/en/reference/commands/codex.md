@@ -51,14 +51,27 @@ ccr codex fix --repair-runtime
 ccr codex fix --dry-run --repair-runtime
 ```
 
+The process stage only matches native Codex or the Node Codex wrapper running `app-server` under
+the current owner. It does not match `codex exec`, `codex resume`, `codex login`, or unrelated tools
+that merely contain `codex app-server` in their arguments. Cleanup sends TERM first, keeps
+rediscovering replacement PIDs during an approximately three-second grace window, and sends KILL
+to every matching process still present at the deadline. Owner, PID start time, and argv are checked
+again before every signal. If the current owner or command line cannot be read safely, CCR reports
+`process_state = unavailable` and sends no further signals instead of claiming `clean`.
+
 The diagnosis separates profile pointers, route, credential consistency, and provider validity. CCR's reconciliation only compares the locally saved secret with the configured credential source; it adds no third-party credential probe and never prints key values, masked fragments, lengths, or fingerprints. The command still runs upstream `codex doctor` as supplemental evidence, whose checks depend on the installed Codex version. `provider_auth_validity = not_checked` therefore means neither success nor failure at the provider.
+
+Process cleanup, CCR runtime inspection/repair, and upstream doctor report independently. A runtime
+stage failure reports `runtime_consistency = unavailable`; doctor still runs when it is available.
+Raw process argv and sensitive stage-error content are never rendered.
 
 Exit codes:
 
 | Exit code | Meaning |
 |---|---|
 | `0` | No confirmed local drift; provider validity may still be unchecked |
-| `2` | An app-server respawned or could not be terminated |
+| `1` | CCR runtime inspection or repair failed |
+| `2` | An app-server remains, or process discovery/cleanup could not be completed safely |
 | `3` | Local profile/runtime drift remains, or the snapshot changed during doctor |
 | `127` | `codex` is not available on `PATH` |
 
