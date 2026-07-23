@@ -15,16 +15,17 @@ pub use models::codex_runtime_diagnostic::*;
 pub use models::opencode_auth::*;
 pub use platforms::CodexPlatform;
 pub use services::{
-    AuthReadSnapshot, CodexAppServer, CodexAppServerCleanup, CodexAuthCacheAction,
-    CodexAuthService, CodexHistoryBackupPruneResult, CodexHistoryBackupSummary,
-    CodexHistoryProviderBuckets, CodexHistoryRestoreResult, CodexHistorySyncOptions,
-    CodexHistorySyncResult, CodexHistorySyncService, CodexHistorySyncStatus,
-    CodexHistoryVisibilityDiagnostics, CodexModelProviderStoreService, CodexOAuthTokenService,
-    CodexProcessService, CodexQuotaService, CodexRegistryStore, CodexRollingUsage,
-    CodexRuntimeCommitPlan, CodexRuntimeService, CodexSessionDetail, CodexSessionExport,
-    CodexSessionMessage, CodexSessionRestoreSummary, CodexSessionService, CodexSessionSummary,
-    CodexSessionTrashService, CodexSessionTrashSummary, CodexTrashedSessionRecord,
-    CodexUsageRecord, CodexUsageService, CodexUsageStats, OAuthRepairOutcome, OpenCodeAuthService,
+    AuthReadSnapshot, CodexAppServer, CodexAppServerCleanup, CodexAppServerCleanupReport,
+    CodexAuthCacheAction, CodexAuthService, CodexHistoryBackupPruneResult,
+    CodexHistoryBackupSummary, CodexHistoryProviderBuckets, CodexHistoryRestoreResult,
+    CodexHistorySyncOptions, CodexHistorySyncResult, CodexHistorySyncService,
+    CodexHistorySyncStatus, CodexHistoryVisibilityDiagnostics, CodexModelProviderStoreService,
+    CodexOAuthTokenService, CodexProcessDiscoveryIssue, CodexProcessService, CodexQuotaService,
+    CodexRegistryStore, CodexRollingUsage, CodexRuntimeCommitPlan, CodexRuntimeService,
+    CodexSessionDetail, CodexSessionExport, CodexSessionMessage, CodexSessionRestoreSummary,
+    CodexSessionService, CodexSessionSummary, CodexSessionTrashService, CodexSessionTrashSummary,
+    CodexSignalFailure, CodexSignalStage, CodexTrashedSessionRecord, CodexUsageRecord,
+    CodexUsageService, CodexUsageStats, OAuthRepairOutcome, OpenCodeAuthService,
     OpenCodeQuotaService, OpenCodeRollingUsage, OpenCodeUsageRecord, OpenCodeUsageService,
     OpenCodeUsageStats, TerminationKind,
 };

@@ -10,7 +10,7 @@ use std::process::Stdio;
 use std::time::Duration;
 
 use ccr_codex::{
-    CodexAppServerCleanup, CodexPlatform, CodexProcessService, CodexRuntimeDiagnostic,
+    CodexAppServerCleanupReport, CodexPlatform, CodexProcessService, CodexRuntimeDiagnostic,
     CodexRuntimeIssue, RuntimeMatchStatus, TerminationKind,
 };
 use ccr_core::core::error::Result;
@@ -38,47 +38,78 @@ const HIGHLIGHT_KEYS: &[&str] = &[
 
 pub async fn fix_command(dry_run: bool, repair_runtime: bool) -> Result<()> {
     // A. 进程清理（dry-run 时只枚举、不终止）。
-    let cleanup = CodexProcessService::new().cleanup(dry_run);
-    render_cleanup(&cleanup);
+    let cleanup_report = CodexProcessService::new().cleanup_report(dry_run);
+    render_cleanup(&cleanup_report);
 
     // B. 在调用任何会 reconcile pointer 的路径前，采集只读 profile/runtime 快照。
-    let platform = CodexPlatform::new()?;
-    let before = platform.inspect_runtime()?;
-    render_runtime_diagnostic(&before, "Codex runtime 本地诊断");
-
-    // C. 仅在显式授权时重放当前 profile；dry-run 只展示动作。
-    let mut final_diagnostic = match decide_runtime_repair(dry_run, repair_runtime, &before) {
-        RuntimeRepairAction::None => before,
-        RuntimeRepairAction::Preview => {
-            ColorOutput::info(&format!(
-                "--dry-run：将重放 profile {}，不会写入 config.toml / auth.json",
-                before.resolved_profile.as_deref().unwrap_or("<unknown>")
-            ));
-            before
-        }
-        RuntimeRepairAction::Apply => {
-            let profile = before.resolved_profile.as_deref().unwrap_or("<unknown>");
-            ColorOutput::info(&format!("正在重放当前 Codex profile：{profile}"));
-            platform.repair_runtime(&before)?;
-            let after = platform.inspect_runtime()?;
-            render_runtime_diagnostic(&after, "Runtime 修复后二次验证");
-            if after.runtime_consistency() == RuntimeMatchStatus::Match {
-                ColorOutput::success("Codex runtime 本地漂移已修复");
-            } else {
-                ColorOutput::warning("重放 profile 后本地 runtime 仍不一致");
-            }
-            after
-        }
-        RuntimeRepairAction::Blocked => {
-            ColorOutput::warning(
-                "当前漂移不能通过重放 profile 安全修复；未修改 config.toml / auth.json",
-            );
-            before
+    let mut runtime_failed = false;
+    let platform = match CodexPlatform::new() {
+        Ok(platform) => Some(platform),
+        Err(_) => {
+            runtime_failed = true;
+            render_runtime_unavailable("CCR Codex runtime 初始化失败");
+            None
         }
     };
+    let mut final_diagnostic = platform.as_ref().and_then(|platform| {
+        let before = match platform.inspect_runtime() {
+            Ok(diagnostic) => diagnostic,
+            Err(_) => {
+                runtime_failed = true;
+                render_runtime_unavailable("CCR runtime inspection 失败");
+                return None;
+            }
+        };
+        render_runtime_diagnostic(&before, "Codex runtime 本地诊断");
+
+        // C. 仅在显式授权时重放当前 profile；dry-run 只展示动作。
+        let final_state = match decide_runtime_repair(dry_run, repair_runtime, &before) {
+            RuntimeRepairAction::None => before,
+            RuntimeRepairAction::Preview => {
+                ColorOutput::info(&format!(
+                    "--dry-run：将重放 profile {}，不会写入 config.toml / auth.json",
+                    before.resolved_profile.as_deref().unwrap_or("<unknown>")
+                ));
+                before
+            }
+            RuntimeRepairAction::Apply => {
+                let profile = before.resolved_profile.as_deref().unwrap_or("<unknown>");
+                ColorOutput::info(&format!("正在重放当前 Codex profile：{profile}"));
+                if platform.repair_runtime(&before).is_err() {
+                    runtime_failed = true;
+                    render_runtime_unavailable("CCR runtime repair 失败");
+                    before
+                } else {
+                    match platform.inspect_runtime() {
+                        Ok(after) => {
+                            render_runtime_diagnostic(&after, "Runtime 修复后二次验证");
+                            if after.runtime_consistency() == RuntimeMatchStatus::Match {
+                                ColorOutput::success("Codex runtime 本地漂移已修复");
+                            } else {
+                                ColorOutput::warning("重放 profile 后本地 runtime 仍不一致");
+                            }
+                            after
+                        }
+                        Err(_) => {
+                            runtime_failed = true;
+                            render_runtime_unavailable("Runtime 修复后的 inspection 失败");
+                            before
+                        }
+                    }
+                }
+            }
+            RuntimeRepairAction::Blocked => {
+                ColorOutput::warning(
+                    "当前漂移不能通过重放 profile 安全修复；未修改 config.toml / auth.json",
+                );
+                before
+            }
+        };
+        Some(final_state)
+    });
 
     // D. 环境提示（脱敏）。
-    render_env_hints(&final_diagnostic);
+    render_env_hints(final_diagnostic.as_ref());
 
     // E. 校验 codex 存在性；缺失时以退出码 127 结束（最高优先级）。
     let Some(codex_bin) = which_on_path("codex") else {
@@ -88,21 +119,39 @@ pub async fn fix_command(dry_run: bool, repair_runtime: bool) -> Result<()> {
     };
 
     // F. codex doctor 诊断。
-    let doctor_profile = final_diagnostic.resolved_profile.clone();
+    let doctor_profile = final_diagnostic
+        .as_ref()
+        .and_then(|diagnostic| diagnostic.resolved_profile.clone());
     let doctor = run_codex_doctor(&codex_bin, !dry_run).await;
-    let after_doctor = platform.inspect_runtime()?;
-    let snapshot_changed = after_doctor != final_diagnostic;
-    if snapshot_changed {
-        ColorOutput::warning(
-            "codex doctor 运行期间 profile/runtime 状态发生变化，doctor 输出不能归属于原快照",
-        );
-        render_runtime_diagnostic(&after_doctor, "Doctor 后的最新本地诊断");
-        final_diagnostic = after_doctor;
+    let mut snapshot_changed = false;
+    if let (Some(platform), Some(before_doctor)) = (platform.as_ref(), final_diagnostic.as_ref()) {
+        match platform.inspect_runtime() {
+            Ok(after_doctor) => {
+                snapshot_changed = after_doctor != *before_doctor;
+                if snapshot_changed {
+                    ColorOutput::warning(
+                        "codex doctor 运行期间 profile/runtime 状态发生变化，doctor 输出不能归属于原快照",
+                    );
+                    render_runtime_diagnostic(&after_doctor, "Doctor 后的最新本地诊断");
+                    final_diagnostic = Some(after_doctor);
+                }
+            }
+            Err(_) => {
+                runtime_failed = true;
+                render_runtime_unavailable("Doctor 后的 runtime inspection 失败");
+            }
+        }
     }
     render_doctor(&doctor, doctor_profile.as_deref(), snapshot_changed);
 
-    // G. 固定优先级：respawn(2) 高于 local drift(3)。PATH missing(127) 已提前返回。
-    if let Some(code) = diagnostic_exit_code(&cleanup, &final_diagnostic, snapshot_changed) {
+    // G. 固定优先级：process(2) > runtime failure(1) > local drift(3)。
+    // PATH missing(127) 已提前返回。
+    if let Some(code) = diagnostic_exit_code(
+        &cleanup_report,
+        final_diagnostic.as_ref(),
+        runtime_failed,
+        snapshot_changed,
+    ) {
         exit_after_flush(code);
     }
 
@@ -136,13 +185,16 @@ fn decide_runtime_repair(
 }
 
 fn diagnostic_exit_code(
-    cleanup: &CodexAppServerCleanup,
-    diagnostic: &CodexRuntimeDiagnostic,
+    report: &CodexAppServerCleanupReport,
+    diagnostic: Option<&CodexRuntimeDiagnostic>,
+    runtime_failed: bool,
     snapshot_changed: bool,
 ) -> Option<i32> {
-    if !cleanup.respawned.is_empty() {
+    if report.discovery_issue.is_some() || !report.cleanup.respawned.is_empty() {
         Some(2)
-    } else if snapshot_changed || diagnostic.has_local_drift() {
+    } else if runtime_failed {
+        Some(1)
+    } else if snapshot_changed || diagnostic.is_some_and(CodexRuntimeDiagnostic::has_local_drift) {
         Some(LOCAL_DRIFT_EXIT_CODE)
     } else {
         None
@@ -157,11 +209,22 @@ fn exit_after_flush(code: i32) -> ! {
 
 // ==================== 进程清理渲染 ====================
 
-fn render_cleanup(cleanup: &CodexAppServerCleanup) {
+fn render_cleanup(report: &CodexAppServerCleanupReport) {
+    let cleanup = &report.cleanup;
     ColorOutput::info(&format!(
         "process_state = {}",
-        cleanup_process_state(cleanup)
+        cleanup_process_state(report)
     ));
+    if let Some(issue) = report.discovery_issue {
+        ColorOutput::warning(&format!(
+            "无法安全完成当前用户的 app-server 发现/清理（{}）",
+            issue.as_str()
+        ));
+        ColorOutput::warning("为避免误杀，进程阶段已 fail closed；请修复进程可见性后重试");
+        render_process_candidates(&cleanup.found, "中断前已发现的 app-server：");
+        render_signal_failures(report);
+        return;
+    }
     if cleanup.found.is_empty() {
         ColorOutput::success("未发现残留的 Codex app-server 进程");
         return;
@@ -188,6 +251,11 @@ fn render_cleanup(cleanup: &CodexAppServerCleanup) {
     for (pid, kind) in &cleanup.terminated {
         ColorOutput::info(&format!("  PID {} → {}", pid, termination_desc(*kind)));
     }
+    render_process_candidates(
+        &report.discovered_during_cleanup,
+        "清理窗口内发现的新 app-server：",
+    );
+    render_signal_failures(report);
 
     if cleanup.respawned.is_empty() {
         ColorOutput::success("所有旧 app-server 已清除");
@@ -202,7 +270,11 @@ fn render_cleanup(cleanup: &CodexAppServerCleanup) {
     }
 }
 
-fn cleanup_process_state(cleanup: &CodexAppServerCleanup) -> &'static str {
+fn cleanup_process_state(report: &CodexAppServerCleanupReport) -> &'static str {
+    if report.discovery_issue.is_some() {
+        return "unavailable";
+    }
+    let cleanup = &report.cleanup;
     if !cleanup.respawned.is_empty() {
         "respawned"
     } else if cleanup.dry_run && !cleanup.found.is_empty() {
@@ -211,6 +283,26 @@ fn cleanup_process_state(cleanup: &CodexAppServerCleanup) -> &'static str {
         "clean"
     } else {
         "cleaned"
+    }
+}
+
+fn render_process_candidates(processes: &[ccr_codex::CodexAppServer], title: &str) {
+    if processes.is_empty() {
+        return;
+    }
+    ColorOutput::info(title);
+    for process in processes {
+        ColorOutput::info(&format!("  PID {} — {}", process.pid, process.cmdline));
+    }
+}
+
+fn render_signal_failures(report: &CodexAppServerCleanupReport) {
+    for failure in &report.signal_failures {
+        ColorOutput::warning(&format!(
+            "  PID {} 的 {} 信号发送失败",
+            failure.pid,
+            failure.stage.as_str()
+        ));
     }
 }
 
@@ -287,6 +379,13 @@ fn render_runtime_diagnostic(diagnostic: &CodexRuntimeDiagnostic, title: &str) {
     }
 }
 
+fn render_runtime_unavailable(stage: &str) {
+    ColorOutput::warning("runtime_consistency = unavailable");
+    ColorOutput::warning(&format!(
+        "{stage}；未猜测或写入 config.toml / auth.json，继续执行可用的独立诊断阶段"
+    ));
+}
+
 fn runtime_diagnostic_lines(diagnostic: &CodexRuntimeDiagnostic) -> Vec<String> {
     vec![
         format!("registry = {}", diagnostic.registry_path.display()),
@@ -347,18 +446,22 @@ fn optional_label(value: Option<&str>) -> &str {
     value.unwrap_or("<none>")
 }
 
-fn render_env_hints(diagnostic: &CodexRuntimeDiagnostic) {
+fn render_env_hints(diagnostic: Option<&CodexRuntimeDiagnostic>) {
     ColorOutput::info("当前进程中可能影响 Codex 的环境变量：");
     print_env_value("CODEX_HOME");
     print_env_value("CCR_CODEX_DIR");
     print_env_presence("OPENAI_BASE_URL");
-    for presence in &diagnostic.environment {
-        let state = if presence.is_set {
-            "<已设置，值已隐藏>"
-        } else {
-            "<未设置>"
-        };
-        ColorOutput::info(&format!("  {}={state}", presence.variable));
+    if let Some(diagnostic) = diagnostic {
+        for presence in &diagnostic.environment {
+            let state = if presence.is_set {
+                "<已设置，值已隐藏>"
+            } else {
+                "<未设置>"
+            };
+            ColorOutput::info(&format!("  {}={state}", presence.variable));
+        }
+    } else {
+        ColorOutput::warning("  provider-specific 环境采样不可用（runtime inspection 未完成）");
     }
 }
 
@@ -692,8 +795,9 @@ mod tests {
         sanitize_doctor_text, value_to_display,
     };
     use ccr_codex::{
-        CodexAppServer, CodexAppServerCleanup, CodexRuntimeAuthSource, CodexRuntimeDiagnostic,
-        CredentialStoreKind, ProviderAuthValidity, RuntimeMatchStatus,
+        CodexAppServer, CodexAppServerCleanupReport, CodexProcessDiscoveryIssue,
+        CodexRuntimeAuthSource, CodexRuntimeDiagnostic, CredentialStoreKind, ProviderAuthValidity,
+        RuntimeMatchStatus,
     };
     use serde_json::json;
     use std::path::PathBuf;
@@ -847,23 +951,44 @@ mod tests {
     #[test]
     fn respawn_exit_code_takes_priority_over_local_drift() {
         let diagnostic = test_diagnostic(RuntimeMatchStatus::Mismatch, true);
-        let mut cleanup = CodexAppServerCleanup::default();
+        let mut report = CodexAppServerCleanupReport::default();
         assert_eq!(
-            diagnostic_exit_code(&cleanup, &diagnostic, false),
+            diagnostic_exit_code(&report, Some(&diagnostic), false, false),
             Some(LOCAL_DRIFT_EXIT_CODE)
         );
         let consistent = test_diagnostic(RuntimeMatchStatus::Match, false);
         assert_eq!(
-            diagnostic_exit_code(&cleanup, &consistent, true),
+            diagnostic_exit_code(&report, Some(&consistent), false, true),
             Some(LOCAL_DRIFT_EXIT_CODE)
         );
 
-        cleanup.respawned.push(CodexAppServer {
+        report.cleanup.respawned.push(CodexAppServer {
             pid: 42,
             cmdline: "codex app-server".to_string(),
         });
-        assert_eq!(diagnostic_exit_code(&cleanup, &diagnostic, true), Some(2));
-        assert_eq!(cleanup_process_state(&cleanup), "respawned");
+        assert_eq!(
+            diagnostic_exit_code(&report, Some(&diagnostic), true, true),
+            Some(2)
+        );
+        assert_eq!(cleanup_process_state(&report), "respawned");
+    }
+
+    #[test]
+    fn runtime_failure_and_process_unavailable_have_stable_priority() {
+        let diagnostic = test_diagnostic(RuntimeMatchStatus::Mismatch, true);
+        let mut report = CodexAppServerCleanupReport::default();
+
+        assert_eq!(
+            diagnostic_exit_code(&report, Some(&diagnostic), true, false),
+            Some(1)
+        );
+
+        report.discovery_issue = Some(CodexProcessDiscoveryIssue::CurrentOwnerUnavailable);
+        assert_eq!(
+            diagnostic_exit_code(&report, Some(&diagnostic), true, false),
+            Some(2)
+        );
+        assert_eq!(cleanup_process_state(&report), "unavailable");
     }
 
     fn test_diagnostic(
