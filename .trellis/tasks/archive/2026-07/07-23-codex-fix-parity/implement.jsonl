@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/ccr-codex/backend/codex-app-server-cleanup.md", "reason": "进程发现、清理、runtime repair 与 doctor 的现有契约"}
+{"file": ".trellis/spec/ccr-codex/backend/backend-guidelines.md", "reason": "ccr-codex 域边界、安全、错误与验证要求"}
+{"file": ".trellis/spec/ccr-cli/backend/backend-guidelines.md", "reason": "CLI 编排、输出、错误和命令集成测试契约"}
+{"file": ".trellis/tasks/07-23-codex-fix-parity/research/root-cause-analysis.md", "reason": "现场复现、sysinfo 根因和脚本/Rust 行为差异"}

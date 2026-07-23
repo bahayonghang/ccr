@@ -1,0 +1,31 @@
+{
+  "id": "codex-fix-parity",
+  "name": "codex-fix-parity",
+  "title": "修复 ccr codex fix 与 codexfix 行为差异",
+  "description": "修复 ccr codex fix 因 sysinfo 未刷新 cmdline 而无法发现真实 app-server 的问题，并补齐当前用户过滤、动态 PID 清理、信号结果与诊断阶段隔离。",
+  "status": "completed",
+  "dev_type": null,
+  "scope": "ccr-codex/backend + ccr-cli/backend + docs/spec",
+  "package": null,
+  "priority": "P1",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-07-23",
+  "completedAt": "2026-07-23",
+  "branch": null,
+  "base_branch": "dev",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [
+    "crates/ccr-codex/src/services/codex_process_service.rs",
+    "crates/ccr-cli/src/commands/codex/fix.rs",
+    "crates/ccr/tests/commands/codex_fix.rs",
+    ".trellis/spec/ccr-codex/backend/codex-app-server-cleanup.md"
+  ],
+  "notes": "现场已确认：同一用户有两个 app-server，pgrep 可见但 ccr codex fix --dry-run 报 clean。主因是 sysinfo refresh_processes 默认不刷新 Process::cmd。",
+  "meta": {}
+}
