@@ -14,6 +14,7 @@ use tempfile::TempDir;
 
 const PROFILE_SECRET: &str = "fix-profile-secret-must-not-leak";
 const RUNTIME_SECRET: &str = "fix-runtime-secret-must-not-leak";
+#[cfg(unix)]
 const INVALID_STORE_SENTINEL: &str = "invalid-store-secret-must-not-leak";
 
 struct CodexFixFixture {

@@ -563,9 +563,9 @@ mod tests {
     use std::time::Duration;
 
     use super::{
-        CleanupTiming, CodexProcessDiscoveryIssue, CodexProcessService, CodexSignalStage,
-        ProcessBackend, ProcessDiscovery, ProcessIdentity, SignalAttempt, TerminationKind,
-        TrackedProcess, cleanup_with_backend, is_codex_app_server,
+        CleanupTiming, CodexProcessDiscoveryIssue, CodexSignalStage, ProcessBackend,
+        ProcessDiscovery, ProcessIdentity, SignalAttempt, TerminationKind, TrackedProcess,
+        cleanup_with_backend, is_codex_app_server,
     };
 
     #[cfg(unix)]
@@ -582,6 +582,7 @@ mod tests {
     #[cfg(unix)]
     #[test]
     fn discovers_real_same_user_app_server_process_without_leaking_arguments() {
+        use super::CodexProcessService;
         use std::os::unix::process::CommandExt;
         use std::process::Command;
         use std::thread;
