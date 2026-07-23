@@ -36,6 +36,85 @@ Command handlers should return `ccr_core::Result<T>` or `anyhow::Result<T>` wher
 
 Do not use panics for invalid user input. Clap validation, typed command enums, and `CcrError` should carry invalid states.
 
+## Scenario: Project Workflow Bootstrap
+
+### 1. Scope / Trigger
+
+- Trigger: adding or changing `ccr project init`, project-level external-tool orchestration, or the fixed Agent directory ignore rules.
+- Applies to the Clap command tree, dispatcher, `commands/project`, command integration tests, and bilingual command reference.
+
+### 2. Signatures
+
+- `Commands::Project { action: ProjectAction }`
+- `ProjectAction::Init`
+- `project_init_command(auto_yes: bool) -> ccr_core::Result<()>`
+- Minimum Trellis postcondition: `<cwd>/.trellis/workflow.md` and `<cwd>/.trellis/scripts/task.py` are files.
+- Fixed ignore rules: `.agents/`, `.claude/`, `.codex/`.
+
+### 3. Contracts
+
+- The process current directory is the only project root; do not add upward/downward project discovery or a path argument implicitly.
+- Run stages in order: Git -> Trellis -> `.gitignore`. A failed stage stops later stages and never reports overall success.
+- `git rev-parse --show-toplevel` detects both a repository root and membership in a parent worktree. Either result skips `git init`; parent membership must not create a nested repository.
+- Delegate username and Agent selection to native `trellis init` with inherited stdin/stdout/stderr. Global CCR `--yes` maps only to `trellis init --yes`; CCR must not copy Trellis's platform registry.
+- A successful Trellis exit status is necessary but insufficient: validate the minimum postcondition before touching `.gitignore`.
+- Merge only missing fixed ignore rules. Preserve existing text and LF/CRLF style, skip the write when unchanged, and use `AtomicWriter` when changed.
+- Partial Git/Trellis results are not rolled back. Idempotent retry is the recovery model.
+
+### 4. Validation & Error Matrix
+
+- Git executable missing or `git init` non-zero -> `ExternalCommandError`; do not run Trellis or write `.gitignore`.
+- Trellis executable missing or non-zero -> `ExternalCommandError`; keep Git result, do not write `.gitignore`.
+- Trellis exits zero but either minimum file is missing -> `ValidationError`; do not write `.gitignore`.
+- `.gitignore` read/write fails -> `FileIoError`; keep completed Git and Trellis results.
+- All fixed rules already exist -> success without rewriting `.gitignore`.
+- Bare `ccr project` -> Clap missing-subcommand failure; never initialize implicitly.
+
+### 5. Good/Base/Bad Cases
+
+- Good: a new directory runs `git init`, native Trellis, then an atomic ignore merge.
+- Good: a monorepo child reports the parent Git root, skips nested `git init`, and initializes Trellis in the child directory.
+- Base: rerunning after success delegates re-init behavior to Trellis and leaves a complete `.gitignore` byte-for-byte unchanged.
+- Bad: checking only `<cwd>/.git` and creating a nested repository inside a parent worktree.
+- Bad: treating Trellis exit code zero as complete without checking its minimum files.
+- Bad: hard-coding Claude/Codex or any other Trellis platform list in CCR.
+
+### 6. Tests Required
+
+- `cargo test -p ccr-cli project -- --test-threads=1`
+  - Assert command parsing stays distinct from legacy top-level `ccr init`.
+  - Assert ignore merging covers empty/partial/complete content, missing final newline, CRLF, and no-write idempotence.
+- `cargo test -p ccr --test commands project_init -- --test-threads=1`
+  - Assert stage order, cwd, parent-worktree behavior, `--yes` forwarding, all failure boundaries, postcondition checks, and retry-safe file results.
+  - Fake tools under an isolated child `PATH` must follow `test-fixtures.md`; Unix scripts cannot depend on helpers hidden by that PATH.
+- `cargo test -p ccr --test commands help -- --test-threads=1`
+  - Assert nested help parity and legacy `ccr init` compatibility.
+- Run `just docs-check`, `just lint-strict`, and the final task-appropriate aggregate gate.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```rust
+if !root.join(".git").exists() {
+    Command::new("git").arg("init").status()?;
+}
+Command::new("trellis").args(["init", "--claude", "--codex"]).status()?;
+fs::write(root.join(".gitignore"), ".agents/\n.claude/\n.codex/\n")?;
+```
+
+This can create a nested repository, freezes Trellis platform choices in CCR, discards user ignore rules, and accepts partial Trellis initialization.
+
+#### Correct
+
+```rust
+ensure_git_repository(root)?;          // detects parent worktrees
+run_trellis_init(root, auto_yes)?;     // native TTY + postcondition
+ensure_project_gitignore(root)?;       // merge + no-op + AtomicWriter
+```
+
+This preserves ownership boundaries and makes partial failures safely retryable.
+
 ## Claude Profile Auth Mode Contract
 
 `ClaudePlatform::apply_profile` branches on auth mode: `Subscription` calls `clear_managed_vars()` and writes **no** `ANTHROPIC_*` / `CLAUDE_CODE_*`; `ApiKey` calls `settings.apply_managed_env(section.to_managed_env_pairs())` and writes the overrides. A third-party profile therefore **only works under `api_key`**.

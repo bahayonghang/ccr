@@ -23,6 +23,7 @@ pub mod migration;
 pub mod opencode;
 pub mod platform;
 pub mod profile;
+pub mod project;
 
 // 🔄 保留的独立命令（暂未迁移到子模块）
 pub mod check_cmd;
@@ -64,6 +65,9 @@ pub use lifecycle::init_command;
 pub use lifecycle::optimize_command;
 pub use lifecycle::validate_command;
 pub use lifecycle::{clean_backups_command, clean_menu_command, clean_planfiles_command};
+
+// 🧭 Project 命令
+pub use project::project_init_command;
 
 // 📦 Data 命令
 pub use data::export_command;

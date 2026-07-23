@@ -195,6 +195,15 @@ pub enum Commands {
         branch: String,
     },
 
+    /// 初始化当前项目的 Git、Trellis 工作流和 Agent 忽略规则
+    ///
+    /// 示例: ccr project init
+    ///       ccr -y project init
+    Project {
+        #[command(subcommand)]
+        action: super::subcommands::ProjectAction,
+    },
+
     /// 初始化配置文件
     ///
     /// 在 ~/.ccs_config.toml 创建配置文件模板,包含示例配置方案
@@ -543,8 +552,25 @@ pub struct CleanBackupsArgs {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
-    use crate::cli::subcommands::CodexAction;
+    use crate::cli::subcommands::{CodexAction, ProjectAction};
     use clap::Parser;
+
+    #[test]
+    fn project_init_and_legacy_init_parse_as_distinct_commands() {
+        let project = Cli::try_parse_from(["ccr", "project", "init"]).unwrap();
+        assert!(matches!(
+            project.command,
+            Some(Commands::Project {
+                action: ProjectAction::Init
+            })
+        ));
+
+        let legacy = Cli::try_parse_from(["ccr", "init", "--force"]).unwrap();
+        assert!(matches!(
+            legacy.command,
+            Some(Commands::Init { force: true })
+        ));
+    }
 
     #[test]
     fn clean_without_flags_parses_as_interactive_menu() {

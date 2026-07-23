@@ -4,7 +4,7 @@
 
 use crate::cli::definitions::{CleanAction, Cli, Commands, DEFAULT_CLEAN_BACKUP_DAYS};
 use crate::cli::help;
-use crate::cli::subcommands::{AllSyncAction, FolderAction};
+use crate::cli::subcommands::{AllSyncAction, FolderAction, ProjectAction};
 use ccr_core::core::error::CcrError;
 use std::result::Result;
 
@@ -72,6 +72,9 @@ impl CommandDispatcher {
             Some(Commands::Update { check, branch }) => {
                 crate::commands::update_command(*check, branch).await
             }
+            Some(Commands::Project { action }) => match action {
+                ProjectAction::Init => crate::commands::project_init_command(auto_yes),
+            },
             Some(Commands::Init { force }) => {
                 crate::commands::init_command(auto_yes || *force).await
             }

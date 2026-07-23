@@ -38,6 +38,7 @@
 - `TestHostEnv::set_env()` and `TestHostEnv::remove_env()` capture previous values before mutation and restore them in reverse order on `Drop`.
 - `Drop` restores every captured environment variable in reverse order while the env lock is still held.
 - Tests that also need `CONFIG_LOCK` should create `TestHome` while the relevant test scope owns both locks and should avoid nested `env_lock()` calls.
+- Child-process fixtures that replace `PATH` with a fake-tool directory must not let Unix fake scripts resolve helper programs through that stripped `PATH`; use shell builtins or explicit paths available on the supported CI platforms.
 
 ### 4. Validation & Error Matrix
 - Temp home cannot be created -> test setup fails immediately.
@@ -47,6 +48,7 @@
 - A test mutates CCR env vars without `TestHome` or `env_lock()` -> unsafe for concurrent test execution.
 - A test needs `HOME` / `USERPROFILE` path discovery -> use `TestHome::new_with_home_env()` rather than saving/restoring those variables by hand.
 - A test needs `PATH` / `CARGO_HOME` install detection -> use `TestHostEnv`; do not hide those keys inside `TestHome`.
+- A Unix fake executable calls `mkdir`, `touch`, or another helper by name after the child `PATH` was replaced -> the fixture can fail before it exercises product behavior.
 
 ### 5. Good/Base/Bad Cases
 - Good: `let _home = TestHome::new();` before constructing services that read CCR env paths.
@@ -54,11 +56,13 @@
 - Good: `let mut home = TestHome::new_with_home_env(); home.set_env("CLAUDE_CONFIG_DIR", claude_dir.as_os_str());` for service-specific home discovery tests.
 - Good: `let mut env = TestHostEnv::new(); env.set_env("PATH", OsStr::new(""));` for install detection tests.
 - Good: `env.remove_env("CARGO_HOME")` when testing fallback from `HOME/.cargo/bin`.
+- Good: a Unix fake executable under an isolated `PATH` uses shell builtins and `/bin/mkdir` for its fixture-only filesystem setup.
 - Base: keep `CONFIG_LOCK` for read-modify-write config tests while `TestHome` owns env restoration.
 - Bad: manually saving/restoring `CCR_ROOT` in each test.
 - Bad: calling `std::env::set_var("CCR_ROOT", ...)` without the shared test env lock.
 - Bad: using `TestHome` as a catch-all fixture for `PATH` / `CARGO_HOME` tests.
 - Bad: declaring a second local env mutex inside `install_detect` tests instead of reusing `TestHostEnv`.
+- Bad: replacing a child process's `PATH` with only fake tools, then calling `mkdir` by name inside a Unix fake script.
 
 ### 6. Tests Required
 - Unit test that `TestHome` sets `CCR_ROOT`, removes `CCR_CONFIG_PATH`, creates path roots, and restores previous env values on drop.

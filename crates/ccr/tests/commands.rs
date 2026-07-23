@@ -25,6 +25,9 @@ mod legacy_routing;
 #[path = "commands/platform_profile_surface.rs"]
 mod platform_profile_surface;
 
+#[path = "commands/project_init.rs"]
+mod project_init;
+
 #[path = "commands/validate.rs"]
 mod validate;
 

@@ -1,0 +1,32 @@
+{
+  "id": "project-init-command",
+  "name": "project-init-command",
+  "title": "添加 project init 项目初始化命令",
+  "description": "新增 ccr project init，在当前目录幂等编排 Git、原生 Trellis 初始化和 Agent 目录忽略规则。",
+  "status": "in_progress",
+  "dev_type": "feature",
+  "scope": "ccr-cli command surface, command integration tests, bilingual command documentation",
+  "package": "ccr-cli",
+  "priority": "P2",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-07-23",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [
+    "crates/ccr-cli/src/cli/",
+    "crates/ccr-cli/src/commands/project/",
+    "crates/ccr/tests/commands/",
+    "docs/reference/commands/",
+    "docs/en/reference/commands/"
+  ],
+  "notes": "",
+  "meta": {}
+}

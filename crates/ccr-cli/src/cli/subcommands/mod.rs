@@ -8,6 +8,7 @@ pub mod codex;
 pub mod opencode;
 pub mod platform;
 pub mod profile_args;
+pub mod project;
 pub mod sync;
 pub mod ui;
 
@@ -16,5 +17,6 @@ pub use claude::{ClaudeAction, ClaudeAuthAction, ClaudeProfileAction};
 pub use codex::{CodexAction, CodexAuthAction, CodexProfileAction};
 pub use opencode::{OpenCodeAction, OpenCodeAuthAction};
 pub use platform::PlatformAction;
+pub use project::ProjectAction;
 pub use sync::{AllSyncAction, FolderAction, SyncAction};
 pub use ui::{TempTokenAction, UiAction};
