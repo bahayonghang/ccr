@@ -64,9 +64,11 @@ export interface SshConnectionState {
 }
 
 export interface SshFingerprintProbeResult {
+  challenge_id: string
   host: string
   port: number
   key_type: string
+  public_key: string
   fingerprint: string
   status: 'new' | 'matched' | 'mismatch'
   stored_fingerprint?: string | null
@@ -75,6 +77,7 @@ export interface SshFingerprintProbeResult {
 export interface SshConnectResult {
   success: boolean
   latency_ms: number
+  error_code?: string | null
   error?: string | null
 }
 
@@ -127,14 +130,9 @@ export const sshProbeHostFingerprint = async (
   return invoke('ssh_probe_host_fingerprint', { request: { env_id: envId, host, port } })
 }
 
-export const sshConfirmHostFingerprint = async (
-  host: string,
-  keyType: string,
-  fingerprint: string,
-  port?: number,
-): Promise<void> => {
+export const sshConfirmHostFingerprint = async (challengeId: string): Promise<void> => {
   return invoke('ssh_confirm_host_fingerprint', {
-    request: { host, key_type: keyType, fingerprint, port },
+    request: { challenge_id: challengeId },
   })
 }
 

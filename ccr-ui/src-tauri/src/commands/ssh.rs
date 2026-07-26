@@ -6,16 +6,18 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tauri::{Emitter, State};
-use tokio::io::AsyncWriteExt;
-use tokio::time::{Duration, timeout};
 
 use ccr_db::database::repositories::ssh_repo;
 use ccr_db::models::ssh::{SshHost, SshKnownHost};
 
+use crate::platform::EnvironmentRegistry;
 use crate::platform::local::LocalEnvironment;
 use crate::platform::ssh::{SshEnvironment, SshHostConfig};
-use crate::process::tokio_command;
 use crate::ssh::connection::SshConnectResult;
+use crate::ssh::security::{
+    HostKeyStatus, ScannedHostKey, SshTarget, SshTrustService, app_known_hosts_path,
+    classify_host_key, parse_keyscan_output, persist_known_host, run_openssh_command,
+};
 use crate::ssh::{auth, auth::SshKeyInfo, connection::SshConnectionManager, sftp};
 use crate::state::AppState;
 
@@ -60,20 +62,19 @@ pub struct SshProbeFingerprintRequest {
 
 #[derive(Debug, Clone, Serialize)]
 pub struct SshFingerprintProbeResult {
+    pub challenge_id: String,
     pub host: String,
     pub port: u16,
     pub key_type: String,
+    pub public_key: String,
     pub fingerprint: String,
-    pub status: String,
+    pub status: HostKeyStatus,
     pub stored_fingerprint: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct SshConfirmFingerprintRequest {
-    pub host: String,
-    pub port: Option<u16>,
-    pub key_type: String,
-    pub fingerprint: String,
+    pub challenge_id: String,
 }
 
 #[derive(Debug)]
@@ -87,9 +88,10 @@ async fn resolve_probe_target(
     req: &SshProbeFingerprintRequest,
 ) -> Result<ProbeTarget, String> {
     if let Some(host) = req.host.clone().filter(|v| !v.trim().is_empty()) {
+        let target = SshTarget::new(&host, req.port.unwrap_or(22), None, None)?;
         return Ok(ProbeTarget {
-            host,
-            port: req.port.unwrap_or(22),
+            host: target.host().to_string(),
+            port: target.port(),
         });
     }
 
@@ -113,14 +115,16 @@ async fn resolve_probe_target(
     .map_err(|e| format!("读取 SSH 主机任务失败: {e}"))??
     .ok_or_else(|| format!("SSH 主机不存在: {env_id}"))?;
 
+    let target = SshTarget::new(&host.host, host.port, None, None)?;
     Ok(ProbeTarget {
-        host: host.host,
-        port: host.port,
+        host: target.host().to_string(),
+        port: target.port(),
     })
 }
 
-async fn collect_host_fingerprint(host: &str, port: u16) -> Result<(String, String), String> {
-    let mut keyscan_cmd = tokio_command("ssh-keyscan");
+async fn collect_host_key(host: &str, port: u16) -> Result<ScannedHostKey, String> {
+    let target = SshTarget::new(host, port, None, None)?;
+    let mut keyscan_cmd = crate::process::tokio_command("ssh-keyscan");
     keyscan_cmd
         .arg("-T")
         .arg("5")
@@ -128,12 +132,9 @@ async fn collect_host_fingerprint(host: &str, port: u16) -> Result<(String, Stri
         .arg(port.to_string())
         .arg("-t")
         .arg("ed25519,ecdsa,rsa")
-        .arg(host);
+        .arg(target.host());
 
-    let keyscan_output = timeout(Duration::from_secs(10), keyscan_cmd.output())
-        .await
-        .map_err(|_| "ssh-keyscan 超时（10 秒）".to_string())?
-        .map_err(|e| format!("执行 ssh-keyscan 失败: {e}"))?;
+    let keyscan_output = run_openssh_command(keyscan_cmd, None).await?;
 
     if !keyscan_output.status.success() {
         return Err(format!(
@@ -142,65 +143,11 @@ async fn collect_host_fingerprint(host: &str, port: u16) -> Result<(String, Stri
         ));
     }
 
-    let scanned = String::from_utf8_lossy(&keyscan_output.stdout);
-    let key_line = scanned
-        .lines()
-        .find(|line| !line.trim().is_empty() && !line.trim_start().starts_with('#'))
-        .ok_or_else(|| "未获取到主机公钥".to_string())?
-        .to_string();
-
-    let key_type = key_line
-        .split_whitespace()
-        .nth(1)
-        .unwrap_or("unknown")
-        .to_string();
-
-    let mut keygen_cmd = tokio_command("ssh-keygen");
-    keygen_cmd.arg("-lf").arg("-");
-    keygen_cmd.stdin(std::process::Stdio::piped());
-    keygen_cmd.stdout(std::process::Stdio::piped());
-    keygen_cmd.stderr(std::process::Stdio::piped());
-
-    let mut child = keygen_cmd
-        .spawn()
-        .map_err(|e| format!("启动 ssh-keygen 失败: {e}"))?;
-
-    if let Some(mut stdin) = child.stdin.take() {
-        stdin
-            .write_all(key_line.as_bytes())
-            .await
-            .map_err(|e| format!("写入 ssh-keygen stdin 失败: {e}"))?;
-        stdin
-            .write_all(b"\n")
-            .await
-            .map_err(|e| format!("写入 ssh-keygen 换行失败: {e}"))?;
-    }
-
-    let keygen_output = timeout(Duration::from_secs(10), child.wait_with_output())
-        .await
-        .map_err(|_| "ssh-keygen 超时（10 秒）".to_string())?
-        .map_err(|e| format!("等待 ssh-keygen 结果失败: {e}"))?;
-
-    if !keygen_output.status.success() {
-        return Err(format!(
-            "ssh-keygen 返回失败: {}",
-            String::from_utf8_lossy(&keygen_output.stderr)
-        ));
-    }
-
-    let output_line = String::from_utf8_lossy(&keygen_output.stdout)
-        .lines()
-        .next()
-        .unwrap_or("")
-        .trim()
-        .to_string();
-    let fingerprint = output_line
-        .split_whitespace()
-        .nth(1)
-        .ok_or_else(|| format!("无法解析指纹输出: {output_line}"))?
-        .to_string();
-
-    Ok((key_type, fingerprint))
+    parse_keyscan_output(
+        &String::from_utf8_lossy(&keyscan_output.stdout),
+        target.host(),
+        target.port(),
+    )
 }
 
 async fn connect_internal(
@@ -213,29 +160,83 @@ async fn connect_internal(
         .map(|v| !v.trim().is_empty())
         .unwrap_or(false);
 
-    if let Some(pass) = password.filter(|v| !v.trim().is_empty()) {
-        SshConnectionManager::cache_password(state, &env_id, pass).await;
+    let host_id = env_id
+        .strip_prefix("ssh:")
+        .ok_or_else(|| format!("无效 SSH 环境 ID: {env_id}"))?
+        .to_string();
+    let db_pool = state.db_pool.clone();
+    let host_id_for_load = host_id.clone();
+    let host = tokio::task::spawn_blocking(move || {
+        let conn = db_pool
+            .get()
+            .map_err(|e| format!("获取数据库连接失败: {e}"))?;
+        ssh_repo::get_host(&conn, &host_id_for_load).map_err(|e| format!("读取 SSH 主机失败: {e}"))
+    })
+    .await
+    .map_err(|e| format!("读取 SSH 主机任务失败: {e}"))??
+    .ok_or_else(|| format!("SSH 主机不存在: {env_id}"))?;
+
+    let config = db_host_to_config(host);
+    if let Err(error) = config.validate() {
+        deactivate_failed_connection(state, &env_id, &error).await?;
+        return Err(error);
+    }
+    let connectivity = match SshConnectionManager::test_connectivity(&config).await {
+        Ok(connectivity) => connectivity,
+        Err(error) => {
+            deactivate_failed_connection(state, &env_id, &error).await?;
+            return Err(error);
+        }
+    };
+    if !connectivity.success {
+        let code = connectivity
+            .error_code
+            .as_deref()
+            .unwrap_or("ssh_network_error");
+        let detail = connectivity.error.as_deref().unwrap_or(code);
+        let error = if detail.starts_with(code) {
+            detail.to_string()
+        } else {
+            format!("{code}: {detail}")
+        };
+        deactivate_failed_connection(state, &env_id, &error).await?;
+        return Err(error);
     }
 
-    let mut registry = state.env_registry.write().await;
-    registry
-        .switch_by_id(&env_id)
-        .map_err(|e| format!("切换 SSH 环境失败: {e}"))?;
-    drop(registry);
-
-    let has_password_cached = SshConnectionManager::has_password(state, &env_id).await;
-    let has_password_now = has_password_input || has_password_cached;
-
-    let host_id = env_id.strip_prefix("ssh:").unwrap_or(&env_id).to_string();
     let db_pool = state.db_pool.clone();
-    let _ = tokio::task::spawn_blocking(move || {
+    let update_result = match tokio::task::spawn_blocking(move || {
         let conn = db_pool
             .get()
             .map_err(|e| format!("获取数据库连接失败: {e}"))?;
         ssh_repo::set_last_connected_at(&conn, &host_id, Utc::now())
             .map_err(|e| format!("更新最近连接时间失败: {e}"))
     })
-    .await;
+    .await
+    {
+        Ok(result) => result,
+        Err(error) => Err(format!("更新最近连接时间任务失败: {error}")),
+    };
+    if let Err(error) = update_result {
+        deactivate_failed_connection(state, &env_id, &error).await?;
+        return Err(error);
+    }
+
+    let switch_result = {
+        let mut registry = state.env_registry.write().await;
+        registry
+            .switch_by_id(&env_id)
+            .map_err(|e| format!("切换 SSH 环境失败: {e}"))
+    };
+    if let Err(error) = switch_result {
+        deactivate_failed_connection(state, &env_id, &error).await?;
+        return Err(error);
+    }
+
+    if let Some(pass) = password.filter(|value| !value.trim().is_empty()) {
+        SshConnectionManager::cache_password(state, &env_id, pass).await;
+    }
+    let has_password_cached = SshConnectionManager::has_password(state, &env_id).await;
+    let has_password_now = has_password_input || has_password_cached;
 
     SshConnectionManager::mark_connected(state, env_id.clone(), has_password_now).await;
 
@@ -246,6 +247,45 @@ async fn connect_internal(
         last_checked_at: Some(Utc::now().to_rfc3339()),
         last_error: None,
     })
+}
+
+async fn deactivate_failed_connection(
+    state: &AppState,
+    env_id: &str,
+    error: &str,
+) -> Result<(), String> {
+    {
+        let mut registry = state.env_registry.write().await;
+        deactivate_active_target(&mut registry, env_id)?;
+    }
+
+    SshConnectionManager::clear_password(state, env_id).await;
+    SshConnectionManager::mark_disconnected(state, env_id.to_string(), Some(error.to_string()))
+        .await;
+    Ok(())
+}
+
+fn deactivate_active_target(
+    registry: &mut EnvironmentRegistry,
+    env_id: &str,
+) -> Result<(), String> {
+    let target_is_active = registry
+        .active()
+        .is_some_and(|environment| environment.env_id() == env_id);
+    if !target_is_active {
+        return Ok(());
+    }
+
+    if !registry
+        .list()
+        .iter()
+        .any(|environment| environment.id == "local")
+    {
+        registry.register(Arc::new(LocalEnvironment::new()));
+    }
+    registry
+        .switch_by_id("local")
+        .map_err(|cause| format!("SSH 连接失败且无法切换到本地环境: {cause}"))
 }
 
 #[tauri::command]
@@ -279,6 +319,7 @@ pub async fn ssh_add_host(
         identity_file: host.identity_file,
         remote_home: host.remote_home,
     };
+    config.validate()?;
 
     let host_id = config
         .id
@@ -423,10 +464,11 @@ pub async fn ssh_get_connection_state(
 #[tauri::command]
 pub async fn ssh_probe_host_fingerprint(
     state: State<'_, AppState>,
+    trust: State<'_, Arc<SshTrustService>>,
     request: SshProbeFingerprintRequest,
 ) -> Result<SshFingerprintProbeResult, String> {
     let target = resolve_probe_target(state.inner(), &request).await?;
-    let (key_type, fingerprint) = collect_host_fingerprint(&target.host, target.port).await?;
+    let scanned = collect_host_key(&target.host, target.port).await?;
 
     let host_for_query = target.host.clone();
     let port_for_query = target.port;
@@ -442,21 +484,28 @@ pub async fn ssh_probe_host_fingerprint(
     .await
     .map_err(|e| format!("读取 known_hosts 任务失败: {e}"))??;
 
-    let (status, stored_fingerprint) = if let Some(known_host) = known {
-        if known_host.fingerprint == fingerprint {
-            ("matched".to_string(), Some(known_host.fingerprint))
-        } else {
-            ("mismatch".to_string(), Some(known_host.fingerprint))
-        }
-    } else {
-        ("new".to_string(), None)
-    };
+    let stored_fingerprint = known.map(|known_host| known_host.fingerprint);
+    let status = classify_host_key(stored_fingerprint.as_deref(), &scanned.fingerprint);
+    let challenge_id = trust.register(target.host.clone(), target.port, scanned.clone());
+
+    if status == HostKeyStatus::Matched {
+        persist_known_host(
+            app_known_hosts_path()?,
+            target.host.clone(),
+            target.port,
+            scanned.key_type.clone(),
+            scanned.key_data.clone(),
+        )
+        .await?;
+    }
 
     Ok(SshFingerprintProbeResult {
+        challenge_id,
         host: target.host,
         port: target.port,
-        key_type,
-        fingerprint,
+        key_type: scanned.key_type,
+        public_key: scanned.key_data,
+        fingerprint: scanned.fingerprint,
         status,
         stored_fingerprint,
     })
@@ -465,13 +514,24 @@ pub async fn ssh_probe_host_fingerprint(
 #[tauri::command]
 pub async fn ssh_confirm_host_fingerprint(
     state: State<'_, AppState>,
+    trust: State<'_, Arc<SshTrustService>>,
     request: SshConfirmFingerprintRequest,
 ) -> Result<(), String> {
+    let challenge = trust.consume(&request.challenge_id)?;
+    persist_known_host(
+        app_known_hosts_path()?,
+        challenge.host.clone(),
+        challenge.port,
+        challenge.key_type.clone(),
+        challenge.key_data.clone(),
+    )
+    .await?;
+
     let entry = SshKnownHost {
-        host: request.host,
-        port: request.port.unwrap_or(22),
-        key_type: request.key_type,
-        fingerprint: request.fingerprint,
+        host: challenge.host,
+        port: challenge.port,
+        key_type: challenge.key_type,
+        fingerprint: challenge.fingerprint,
         confirmed_at: Utc::now(),
     };
 
@@ -546,17 +606,53 @@ pub async fn ssh_test_connection(
     .map_err(|e| format!("读取 SSH 主机任务失败: {e}"))??
     .ok_or_else(|| format!("SSH 主机不存在: {env_id}"))?;
 
-    SshConnectionManager::test_connectivity(
-        &host.host,
-        host.port,
-        Some(host.username.as_str()).filter(|v| !v.trim().is_empty()),
-        host.identity_file.as_deref(),
-    )
-    .await
+    SshConnectionManager::test_connectivity(&db_host_to_config(host)).await
 }
 
 /// 列出本机 `~/.ssh/` 目录中发现的所有 SSH 私钥文件信息。
 #[tauri::command]
 pub async fn ssh_list_keys() -> Result<Vec<SshKeyInfo>, String> {
     Ok(auth::discover_keys().await)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn ssh_environment(id: &str) -> Arc<SshEnvironment> {
+        Arc::new(SshEnvironment::new(SshHostConfig {
+            id: Some(id.to_string()),
+            name: None,
+            host: "example.com".to_string(),
+            port: Some(22),
+            user: Some("deploy".to_string()),
+            identity_file: None,
+            remote_home: None,
+        }))
+    }
+
+    #[test]
+    fn failed_active_target_falls_back_to_local() {
+        let mut registry = EnvironmentRegistry::new();
+        registry.register(Arc::new(LocalEnvironment::new()));
+        registry.register(ssh_environment("target"));
+        registry.switch_by_id("ssh:target").unwrap();
+
+        deactivate_active_target(&mut registry, "ssh:target").unwrap();
+
+        assert_eq!(registry.active().unwrap().env_id(), "local");
+    }
+
+    #[test]
+    fn failed_inactive_target_does_not_replace_active_environment() {
+        let mut registry = EnvironmentRegistry::new();
+        registry.register(Arc::new(LocalEnvironment::new()));
+        registry.register(ssh_environment("active"));
+        registry.register(ssh_environment("target"));
+        registry.switch_by_id("ssh:active").unwrap();
+
+        deactivate_active_target(&mut registry, "ssh:target").unwrap();
+
+        assert_eq!(registry.active().unwrap().env_id(), "ssh:active");
+    }
 }

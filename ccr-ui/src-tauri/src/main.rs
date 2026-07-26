@@ -145,6 +145,9 @@ fn main() {
             app.manage(std::sync::Arc::new(
                 ccr_cli::services::install_service::InstallService::new(),
             ));
+            app.manage(std::sync::Arc::new(
+                crate::ssh::security::SshTrustService::new(),
+            ));
             desktop_shell::install_desktop_shell(app.handle()).map_err(std::io::Error::other)?;
 
             let tray_refresh_handle = app.handle().clone();
