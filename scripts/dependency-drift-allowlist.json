@@ -1,0 +1,11 @@
+{
+  "max_active_exceptions": 3,
+  "exceptions": [
+    {
+      "dependency": "toml",
+      "owner": "desktop-platform",
+      "rationale": "The desktop slash-command parser remains on toml 0.9 until its parser compatibility suite is migrated to toml 1.1.",
+      "expires": "2026-10-01"
+    }
+  ]
+}

@@ -109,10 +109,10 @@ fn normalize_mcp_server_for_write(mut config: Value) -> Value {
 
 fn normalize_mcp_server_for_read(name: String, server: Value) -> Value {
     let mut obj = server.as_object().cloned().unwrap_or_default();
-    if !obj.contains_key("url") {
-        if let Some(url) = obj.get("serverUrl").or_else(|| obj.get("httpUrl")).cloned() {
-            obj.insert("url".to_string(), url);
-        }
+    if !obj.contains_key("url")
+        && let Some(url) = obj.get("serverUrl").or_else(|| obj.get("httpUrl")).cloned()
+    {
+        obj.insert("url".to_string(), url);
     }
     obj.insert("name".to_string(), json!(name));
     Value::Object(obj)

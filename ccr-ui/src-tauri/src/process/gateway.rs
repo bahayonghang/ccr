@@ -730,6 +730,224 @@ mod tests {
         assert!(error.contains("hash_mismatch"));
     }
 
+    #[test]
+    fn descriptor_catalog_is_closed_and_resolves_expected_tools() {
+        let descriptors = [
+            (
+                ProcessDescriptor::ccr_command(),
+                ProcessCapability::CcrCommand,
+                DEFAULT_TIMEOUT,
+            ),
+            (
+                ProcessDescriptor::ccr_version_probe(),
+                ProcessCapability::CcrVersionProbe,
+                Duration::from_secs(3),
+            ),
+            (
+                ProcessDescriptor::ccr_update(),
+                ProcessCapability::CcrUpdate,
+                Duration::from_secs(60),
+            ),
+            (
+                ProcessDescriptor::openssh(),
+                ProcessCapability::OpenSsh,
+                Duration::from_secs(15),
+            ),
+            (
+                ProcessDescriptor::sftp(),
+                ProcessCapability::Sftp,
+                Duration::from_secs(15),
+            ),
+            (
+                ProcessDescriptor::ssh_keyscan(),
+                ProcessCapability::SshKeyscan,
+                Duration::from_secs(15),
+            ),
+            (
+                ProcessDescriptor::ssh_keygen(),
+                ProcessCapability::SshKeygen,
+                Duration::from_secs(15),
+            ),
+            (
+                ProcessDescriptor::path_lookup(),
+                ProcessCapability::PathLookup,
+                Duration::from_secs(3),
+            ),
+            (
+                ProcessDescriptor::port_discovery(),
+                ProcessCapability::PortDiscovery,
+                Duration::from_secs(3),
+            ),
+        ];
+        for (descriptor, capability, timeout) in descriptors {
+            assert_eq!(descriptor.capability(), capability);
+            assert_eq!(descriptor.timeout(), timeout);
+            assert!(!capability.id().is_empty());
+        }
+
+        let cli = ProcessDescriptor::cli_probe(
+            "codex",
+            PathBuf::from("detected-codex"),
+            Duration::from_secs(2),
+        )
+        .expect("supported CLI probe");
+        assert_eq!(cli.capability(), ProcessCapability::CliProbe);
+        assert!(
+            ProcessDescriptor::cli_probe(
+                "unknown",
+                PathBuf::from("unknown"),
+                Duration::from_secs(1)
+            )
+            .is_err()
+        );
+
+        let version = ProcessDescriptor::llmusage_version("llmusage").expect("version descriptor");
+        let sync = ProcessDescriptor::llmusage("llmusage").expect("sync descriptor");
+        assert_eq!(version.capability(), ProcessCapability::LlmusageVersion);
+        assert_eq!(sync.capability(), ProcessCapability::LlmusageSync);
+        assert!(ProcessDescriptor::llmusage_version("").is_err());
+        assert!(ProcessDescriptor::llmusage("").is_err());
+
+        let resolved = [
+            (TrustedExecutable::SystemCargo, PathBuf::from("cargo")),
+            (TrustedExecutable::SystemOpenSsh, PathBuf::from("ssh")),
+            (TrustedExecutable::SystemSftp, PathBuf::from("sftp")),
+            (
+                TrustedExecutable::SystemSshKeyscan,
+                PathBuf::from("ssh-keyscan"),
+            ),
+            (
+                TrustedExecutable::SystemSshKeygen,
+                PathBuf::from("ssh-keygen"),
+            ),
+            (
+                TrustedExecutable::PathLookup,
+                PathBuf::from(if cfg!(windows) { "where" } else { "which" }),
+            ),
+            (
+                TrustedExecutable::PortDiscovery,
+                PathBuf::from(if cfg!(windows) { "netstat" } else { "lsof" }),
+            ),
+            (
+                TrustedExecutable::Llmusage(PathBuf::from("llmusage-bin")),
+                PathBuf::from("llmusage-bin"),
+            ),
+            (
+                TrustedExecutable::DetectedCli {
+                    tool: "ccr",
+                    path: PathBuf::from("detected-ccr"),
+                },
+                PathBuf::from("detected-ccr"),
+            ),
+        ];
+        for (executable, expected) in resolved {
+            assert_eq!(
+                resolve_executable(&executable).expect("closed resolver"),
+                expected
+            );
+        }
+    }
+
+    #[test]
+    fn development_sidecar_and_hash_validation_are_deterministic() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        let root = temp.path().join("repo");
+        let manifest_dir = root.join("ccr-ui").join("src-tauri");
+        let release_dir = root.join("target").join("release");
+        std::fs::create_dir_all(&manifest_dir).expect("manifest dir");
+        std::fs::create_dir_all(&release_dir).expect("release dir");
+        let sidecar = release_dir.join(if cfg!(windows) { "ccr.exe" } else { "ccr" });
+        std::fs::write(&sidecar, b"development sidecar").expect("sidecar fixture");
+
+        assert_eq!(
+            resolve_ccr_sidecar(None, &manifest_dir, true, None).expect("development sidecar"),
+            sidecar
+        );
+        assert_eq!(
+            verify_sha256(
+                &sidecar,
+                &hex_lower(&Sha256::digest(b"development sidecar"))
+            )
+            .expect("matching hash"),
+            ()
+        );
+        assert!(verify_sha256(&sidecar, "not-a-sha256").is_err());
+        assert!(verify_sha256(&root.join("missing"), &"0".repeat(64)).is_err());
+    }
+
+    #[test]
+    fn owned_process_registry_filters_ports_and_requests_cancellation() {
+        let pid = u32::MAX;
+        let cancellation = CancellationToken::new();
+        let record = OwnedProcessRecord {
+            pid,
+            capability: ProcessCapability::PortDiscovery,
+            started_at: SystemTime::now() + Duration::from_secs(1),
+            ports: vec![OAUTH_CALLBACK_PORT],
+            cancellation: cancellation.clone(),
+        };
+        OWNED_PROCESSES
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .insert(pid, record);
+
+        assert!(ProcessGateway::owned_processes_for_port(&[pid], 9999).is_empty());
+        let matches =
+            ProcessGateway::owned_processes_for_port(&[pid, pid - 1], OAUTH_CALLBACK_PORT);
+        assert_eq!(matches.len(), 1);
+        assert_eq!(matches[0].pid, pid);
+        matches[0].request_cancel();
+        assert!(cancellation.is_cancelled());
+
+        OWNED_PROCESSES
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .remove(&pid);
+    }
+
+    #[tokio::test]
+    async fn foreground_stdin_is_written_and_streams_are_collected() {
+        let descriptor = ProcessDescriptor::cli_probe(
+            "ccr",
+            PathBuf::from("unused-test-path"),
+            Duration::from_secs(5),
+        )
+        .expect("test descriptor");
+
+        #[cfg(windows)]
+        let command = {
+            let mut command = tokio_command("powershell.exe");
+            command.args([
+                "-NoProfile",
+                "-NonInteractive",
+                "-Command",
+                "$text = [Console]::In.ReadToEnd(); [Console]::Out.Write($text.ToUpperInvariant()); [Console]::Error.Write('err')",
+            ]);
+            command
+        };
+
+        #[cfg(not(windows))]
+        let command = {
+            let mut command = tokio_command("sh");
+            command.args(["-c", "tr '[:lower:]' '[:upper:]'; printf err >&2"]);
+            command
+        };
+
+        let output =
+            ProcessGateway::execute_command(command, &descriptor, Some(b"hello gateway".to_vec()))
+                .await
+                .expect("stdin execution");
+
+        assert!(output.status.success());
+        assert_eq!(output.stdout, b"HELLO GATEWAY");
+        assert_eq!(output.stderr, b"err");
+        assert_eq!(output.stdout_bytes, output.stdout.len());
+        assert_eq!(output.stderr_bytes, output.stderr.len());
+        assert!(!output.stdout_truncated);
+        assert!(!output.stderr_truncated);
+        assert!(!output.timed_out);
+    }
+
     #[cfg(windows)]
     #[tokio::test]
     async fn foreground_output_flood_is_capped_and_terminated() {

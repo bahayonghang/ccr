@@ -53,7 +53,7 @@
 - i64/u64 field missing `ts(as)` → `bigint` appears in generated file → consumer `bun run type-check` fails + drift diff shows `bigint`.
 - Rust DTO changed without regeneration → `just tauri-bindings-check` exits 1 listing the dirty/untracked paths.
 - Hand-edited generated file → same guard failure (regeneration restores canonical output).
-- New typed command added → handler-registry contract still applies unchanged (`define_command_registry!`, frozen counts 312 base / 320 Windows).
+- New typed command added → handler-registry contract still applies unchanged (`define_command_registry!`, frozen counts 315 base / 323 Windows).
 - `serde(alias)` on input DTOs is ignored by ts-rs but remains active for deserialization; keep the desktop dependency's `no-serde-warnings` feature enabled so this intentional compatibility alias does not emit macro warnings. The generated shape remains canonical snake_case.
 - Plain `cargo test` in src-tauri reruns export tests and rewrites generated files idempotently — a dirty tree afterwards means Rust and committed bindings genuinely diverged.
 

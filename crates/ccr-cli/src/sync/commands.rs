@@ -1873,6 +1873,7 @@ async fn sync_folder_pull_internal(
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
+    use std::fs;
 
     #[test]
     fn test_sync_config_creation() {
@@ -1888,5 +1889,97 @@ mod tests {
         assert!(config.enabled);
         assert_eq!(config.webdav_url, "https://dav.jianguoyun.com/dav/");
         assert_eq!(config.remote_path, "/ccr/");
+    }
+
+    #[tokio::test]
+    async fn local_sync_commands_use_isolated_config_and_folder_state() {
+        let mut home = crate::test_support::TestHome::new();
+        let sync_config = home.root().join("sync.toml");
+        let folders_config = home.root().join("sync_folders.toml");
+        home.set_env("CCR_SYNC_CONFIG_PATH", sync_config.as_os_str());
+        home.set_env("CCR_SYNC_FOLDERS_CONFIG", folders_config.as_os_str());
+
+        show_sync_help();
+        sync_status_command().await.unwrap();
+        assert!(sync_push_command(true).await.is_err());
+        assert!(sync_pull_command(true).await.is_err());
+        sync_folder_list_command().unwrap();
+        sync_all_push_command(true).await.unwrap();
+        sync_all_pull_command(true).await.unwrap();
+        sync_all_status_command().await.unwrap();
+        sync_folder_specific_command(&["help".into()])
+            .await
+            .unwrap();
+        assert!(sync_folder_specific_command(&[]).await.is_err());
+
+        let local_dir = home.root().join("fixture-folder");
+        fs::create_dir_all(local_dir.join("nested")).unwrap();
+        fs::write(local_dir.join("root.txt"), "root").unwrap();
+        fs::write(local_dir.join("nested").join("child.txt"), "child").unwrap();
+        let mut manager = SyncFolderManager::with_default().unwrap();
+        manager
+            .update_webdav_config(ccr_sync::WebDavConfig {
+                enabled: true,
+                url: "https://example.invalid/dav/".into(),
+                username: "fixture".into(),
+                password: ccr_core::Secret::from("fixture-secret"),
+                base_remote_path: "/fixtures".into(),
+                auto_sync: false,
+            })
+            .unwrap();
+        let remote_path = "/fixtures/demo".to_string();
+        let description = "isolated folder".to_string();
+        sync_folder_add_command(
+            "demo",
+            local_dir.to_string_lossy().as_ref(),
+            Some(&remote_path),
+            Some(&description),
+        )
+        .unwrap();
+        assert!(
+            sync_folder_add_command("demo", local_dir.to_string_lossy().as_ref(), None, None,)
+                .is_err()
+        );
+        sync_folder_list_command().unwrap();
+        sync_folder_info_command("demo").unwrap();
+        sync_folder_disable_command("demo").unwrap();
+        sync_folder_disable_command("demo").unwrap();
+        sync_all_status_command().await.unwrap();
+        sync_folder_specific_command(&["demo".into(), "push".into()])
+            .await
+            .unwrap();
+        sync_folder_enable_command("demo").unwrap();
+        sync_folder_enable_command("demo").unwrap();
+        assert!(
+            sync_folder_specific_command(&["demo".into(), "unknown".into()])
+                .await
+                .is_err()
+        );
+        assert!(sync_folder_info_command("missing").is_err());
+
+        let filtered = create_temp_sync_directory(
+            &local_dir,
+            &["root.txt".into(), "nested".into(), "missing".into()],
+            true,
+        )
+        .unwrap();
+        assert_eq!(
+            fs::read_to_string(filtered.join("root.txt")).unwrap(),
+            "root"
+        );
+        assert_eq!(
+            fs::read_to_string(filtered.join("nested").join("child.txt")).unwrap(),
+            "child"
+        );
+        fs::remove_dir_all(filtered).unwrap();
+
+        let config_file = home.root().join("config.toml");
+        fs::write(&config_file, "default_platform = 'codex'\n").unwrap();
+        let filtered =
+            create_temp_sync_directory(&config_file, &["config.toml".into()], false).unwrap();
+        assert!(filtered.join("config.toml").is_file());
+        fs::remove_dir_all(filtered).unwrap();
+
+        assert_eq!(get_ccr_sync_path().unwrap(), home.root());
     }
 }

@@ -434,7 +434,6 @@ define_command_registry! {
     ],
 }
 
-#[cfg(target_os = "windows")]
 pub(crate) const WINDOWS_COMMAND_MODULES: &[CommandModule] = &[CommandModule {
     key: "wsl",
     title: "WSL",
@@ -491,8 +490,62 @@ fn command_registry_is_well_formed() -> bool {
 #[cfg(test)]
 mod tests {
     use std::collections::HashSet;
+    use std::fmt::Write as _;
+    use std::path::PathBuf;
 
-    use super::{COMMAND_MODULES, command_registry_is_well_formed, registered_command_count};
+    use super::{
+        COMMAND_MODULES, WINDOWS_COMMAND_MODULES, command_registry_is_well_formed,
+        registered_command_count,
+    };
+
+    fn command_inventory_markdown() -> String {
+        let base_count = COMMAND_MODULES
+            .iter()
+            .map(|module| module.commands.len())
+            .sum::<usize>();
+        let windows_count = base_count
+            + WINDOWS_COMMAND_MODULES
+                .iter()
+                .map(|module| module.commands.len())
+                .sum::<usize>();
+        let mut output = String::from(
+            "# Tauri Command Inventory\n\n> Generated from `commands/handler_registry.rs`; do not edit manually.\n\n",
+        );
+        writeln!(output, "- Base commands: {base_count}").expect("write inventory count");
+        writeln!(output, "- Windows commands: {windows_count}").expect("write inventory count");
+        writeln!(output, "- Base modules: {}\n", COMMAND_MODULES.len())
+            .expect("write inventory count");
+        output.push_str("| Module | Title | Commands |\n| --- | --- | ---: |\n");
+        for module in COMMAND_MODULES {
+            writeln!(
+                output,
+                "| `{}` | {} | {} |",
+                module.key,
+                module.title,
+                module.commands.len()
+            )
+            .expect("write inventory row");
+        }
+        for module in WINDOWS_COMMAND_MODULES {
+            writeln!(
+                output,
+                "| `{}` (Windows) | {} | {} |",
+                module.key,
+                module.title,
+                module.commands.len()
+            )
+            .expect("write inventory row");
+        }
+        output
+    }
+
+    fn command_inventory_paths() -> [PathBuf; 2] {
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+        [
+            root.join("docs/reference/tauri-command-inventory.md"),
+            root.join("docs/en/reference/tauri-command-inventory.md"),
+        ]
+    }
 
     #[test]
     fn command_registry_shape_matches_current_handler_surface() {
@@ -531,6 +584,20 @@ mod tests {
                     "duplicate Windows command path in Tauri command registry: {command}"
                 );
             }
+        }
+    }
+
+    #[test]
+    fn command_inventory_document_matches_registry() {
+        let expected = command_inventory_markdown();
+        for path in command_inventory_paths() {
+            if std::env::var_os("CCR_UPDATE_COMMAND_INVENTORY").is_some() {
+                std::fs::create_dir_all(path.parent().expect("inventory parent"))
+                    .expect("create inventory directory");
+                std::fs::write(&path, &expected).expect("write command inventory");
+            }
+            let actual = std::fs::read_to_string(&path).expect("read command inventory");
+            assert_eq!(actual, expected, "run `just tauri-command-inventory`");
         }
     }
 }

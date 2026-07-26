@@ -258,22 +258,18 @@ async fn start_oauth_callback_listener(
         .await
         .map_err(|e| format!("启动 OAuth 回调监听失败: {e}"))?;
 
-    loop {
-        if let Some(current) = current_pending_state()? {
-            if current.login_id != state.login_id || current.state != state.state {
-                break;
-            }
-            if current.expires_at <= now_ts() {
-                set_oauth_pending(None)?;
-                let payload = json!({
-                    "loginId": state.login_id,
-                    "callbackUrl": state.redirect_uri,
-                    "timeoutSeconds": OAUTH_TIMEOUT_SECONDS,
-                });
-                let _ = app.emit("codex-oauth-login-timeout", payload);
-                break;
-            }
-        } else {
+    while let Some(current) = current_pending_state()? {
+        if current.login_id != state.login_id || current.state != state.state {
+            break;
+        }
+        if current.expires_at <= now_ts() {
+            set_oauth_pending(None)?;
+            let payload = json!({
+                "loginId": state.login_id,
+                "callbackUrl": state.redirect_uri,
+                "timeoutSeconds": OAUTH_TIMEOUT_SECONDS,
+            });
+            let _ = app.emit("codex-oauth-login-timeout", payload);
             break;
         }
 
@@ -813,8 +809,8 @@ pub async fn codex_get_auth_current() -> Result<Value, String> {
             .read_auth_snapshot()
             .map_err(|e| format!("读取认证快照失败: {e}"))?;
 
-        let info = match snapshot.current_info.as_ref() {
-            Some(current) => Some(json!({
+        let info = snapshot.current_info.as_ref().map(|current| {
+            json!({
                 "account_id": current.account_id,
                 "auth_method": current.auth_method.map(|method| match method {
                     OpenAiAuthMethod::Chatgpt => "chatgpt",
@@ -823,9 +819,8 @@ pub async fn codex_get_auth_current() -> Result<Value, String> {
                 "email": current.email,
                 "plan_type": current.plan_type,
                 "last_refresh": current.last_refresh.map(|dt| dt.to_rfc3339()),
-            })),
-            None => None,
-        };
+            })
+        });
 
         Ok(json!({
             "logged_in": info.is_some(),

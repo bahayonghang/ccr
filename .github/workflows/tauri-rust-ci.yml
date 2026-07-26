@@ -1,0 +1,85 @@
+name: Tauri Rust CI
+
+on:
+  pull_request:
+    branches: [main, develop, dev]
+    paths:
+      - 'ccr-ui/src-tauri/**'
+      - 'ccr-ui/src/types/generated/**'
+      - 'ccr-ui/justfile'
+      - 'crates/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'rust-toolchain.toml'
+      - 'justfile'
+      - 'scripts/**'
+      - 'docs/reference/tauri-command-inventory.md'
+      - '.trellis/spec/ccr/backend/**'
+      - '.github/workflows/tauri-rust-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  tauri-linux-required:
+    name: Tauri Linux Required
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Setup Rust 1.95.0
+        uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable
+        with:
+          toolchain: 1.95.0
+          components: clippy,rustfmt
+      - name: Install Linux and repository tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pkg-config libwayland-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+          cargo install just --version 1.57.0 --locked
+      - name: Run local Tauri gate
+        run: just tauri-ci
+
+  tauri-platform-smoke:
+    name: Tauri Smoke (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2025, macos-15]
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Setup Rust 1.95.0
+        uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable
+        with:
+          toolchain: 1.95.0
+      - name: Install just
+        run: cargo install just --version 1.57.0 --locked
+      - name: Run platform process smoke
+        run: just tauri-process-smoke
+
+  tauri-coverage:
+    name: Tauri Gateway Coverage 85
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Setup Rust 1.95.0
+        uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable
+        with:
+          toolchain: 1.95.0
+          components: llvm-tools-preview
+      - name: Install Linux and coverage tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pkg-config libwayland-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+          cargo install just --version 1.57.0 --locked
+          cargo install cargo-llvm-cov --version 0.8.7 --locked
+      - name: Collect Tauri coverage and enforce gateway threshold
+        run: just coverage-tauri
+      - name: Upload Tauri coverage
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: tauri-rust-coverage
+          path: target/coverage-tauri.json
+          if-no-files-found: error
+          retention-days: 14

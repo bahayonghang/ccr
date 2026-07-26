@@ -307,7 +307,7 @@ fn list_codex_agents_for_context(
         }
     }
 
-    agents.sort_by(|left, right| left.name.to_lowercase().cmp(&right.name.to_lowercase()));
+    agents.sort_by_key(|agent| agent.name.to_lowercase());
 
     Ok((agents, diagnostics))
 }
@@ -358,14 +358,16 @@ fn set_or_remove_skills_config(
 ) -> Result<(), String> {
     if let Some(value) = config.get("skillsConfig") {
         if value.is_null() {
-            match table.get_mut("skills").and_then(toml::Value::as_table_mut) {
-                Some(skills_table) => {
-                    skills_table.remove("config");
-                    if skills_table.is_empty() {
-                        table.remove("skills");
-                    }
-                }
-                None => {}
+            let remove_skills = if let Some(skills_table) =
+                table.get_mut("skills").and_then(toml::Value::as_table_mut)
+            {
+                skills_table.remove("config");
+                skills_table.is_empty()
+            } else {
+                false
+            };
+            if remove_skills {
+                table.remove("skills");
             }
         } else {
             let parsed: toml::Value = serde_json::from_value(value.clone())

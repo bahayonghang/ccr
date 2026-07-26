@@ -87,3 +87,55 @@
   }
 }
 ```
+
+## Scenario: Clean PR CI and line coverage
+
+### 1. Scope / Trigger
+- Trigger: changing `ccr-vscode/**`, its hosted workflow, package lock, test runner, or packaging recipe.
+- Applies because extension code previously built only during tag release and lacked a PR check.
+
+### 2. Signatures
+- Local required gate: root `just vscode-ci` -> `ccr-vscode/justfile` recipe `ci`.
+- Local coverage gate: root `just vscode-coverage` -> Node `--experimental-test-coverage --test-coverage-lines=70 --test-coverage-functions=70`.
+- Hosted entry: `.github/workflows/vscode-ci.yml`, job name `VS Code Required`.
+
+### 3. Contracts
+- Hosted and local CI both run clean `npm ci`, TypeScript build checks, tests, `build:package`, VSIX creation, and artifact collection.
+- Node is pinned to 24.18.0 and third-party actions use immutable commit SHAs.
+- The coverage gate enforces at least 70% line coverage; the current function threshold is also 70%.
+- Pull requests to `main`, `develop`, or `dev` that touch `ccr-vscode/**`, the root justfile, or the workflow must trigger the job.
+- Workflow presence does not prove required branch protection; remote protection evidence is separate.
+
+### 4. Validation & Error Matrix
+- Lockfile and package manifest disagree -> `npm ci` fails.
+- TypeScript source/test compile error -> `build-check` fails before packaging.
+- Tests or line/function coverage below 70 -> Node test gate fails.
+- VSIX cannot be created or collected -> `build:package`/artifact step fails.
+- Required check not visible in branch protection -> repository-setting acceptance remains `UNVERIFIED`.
+
+### 5. Good/Base/Bad Cases
+- Good: change a provider helper, add its `*.test.ts`, then run `just vscode-ci` and `just vscode-coverage` locally.
+- Base: documentation-only changes outside the extension do not trigger the extension workflow.
+- Bad: replacing `npm ci` with mutable install behavior or testing only during tag release.
+
+### 6. Tests Required
+- `just vscode-ci` -> clean install, compile, 50 tests, package, and VSIX collection pass.
+- `just vscode-coverage` -> line coverage at least 70% (current observed 91.79%).
+- `python scripts/check_workflow_governance.py` -> pinned actions and branch/path policy pass.
+- Inspect an actual PR check run and protected-branch required-check list when remote permission is available.
+
+### 7. Wrong vs Correct
+#### Wrong
+```yaml
+on:
+  push:
+    tags: ['v*']
+```
+
+#### Correct
+```yaml
+on:
+  pull_request:
+    branches: [main, develop, dev]
+    paths: ['ccr-vscode/**', 'justfile', '.github/workflows/vscode-ci.yml']
+```

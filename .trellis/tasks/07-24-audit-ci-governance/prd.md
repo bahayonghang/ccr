@@ -1,0 +1,73 @@
+# CI 与契约治理补齐
+
+> 父任务：`07-24-audit-remediation` ｜ 覆盖：P1-11、P2-03、P2-04、P2-15、P2-16、P2-17、P3-03 ｜ 报告 Epic E1-E3/E5-E7
+
+## Goal
+
+让 hosted CI 覆盖全部产品面并把设计规范变为 required checks，消除"local `just ci` 强于 hosted CI"的漂移。
+
+## 背景 / 证据（已核实）
+
+- 仓库仅 3 个 workflow：`ci.yml` / `frontend-ci.yml` / `release.yml`
+- `ci.yml:6-12` — paths 不含 `ccr-ui/src-tauri/**`；Tauri Rust（315/323 高权限 commands）仅 tag release 时编译（P1-11）
+- `release.yml:155-197` — VSIX 仅 tag 时 build，未跑已定义的 `lint`/`test`；无 PR workflow 覆盖 `ccr-vscode/**`（P2-03）
+- `frontend-ci.yml:5` — PR branches 仅 `[main, develop]`，root `ci.yml:5` 已含 dev（分支不一致，P2-04）
+- `ci.yml:130` — `cargo test --workspace --all-features -- --test-threads=1`；无 coverage job（P2-15）
+- `ci.yml:26,40` `dtolnay/rust-toolchain@stable`、`frontend-ci.yml` Bun `latest`、actions mutable major tags（P2-16）
+- MSRV 分裂：多数 crate `1.90`，`ccr-db`/`ccr-types`/`src-tauri` `1.88`；`scripts/check-dependency-drift.sh` 有 allowlist 但未进 hosted CI（P2-17）
+- spec `typed-ipc-bindings.md:56` 写 312/320，`handler_registry.rs:502,505` 测试断言 323/315（P3-03）
+
+## Requirements
+
+### 新增 hosted 门禁
+- [x] 新增 `tauri-rust-ci.yml`：fmt/check/clippy/test/bindings，Linux 每 PR，Win/macOS smoke（P1-11, E1）
+- [x] 新增 VSCode PR job：`npm ci && npm run lint && npm test && npm run build:package`（P2-03, E2）
+- [x] `frontend-ci.yml` PR branches 加 `dev`，与 root/Tauri/VS Code PR branch policy 统一（P2-04, E3）
+- [ ] 将 Tauri / VS Code checks 设为 required branch protection；当前读取保护规则返回 HTTP 403，保持 `UNVERIFIED`
+
+### 治理 quick wins
+- [x] hosted 加 dependency drift job + bindings drift；allowlist 设 owner/rationale/expiry，当前 1 个、目标 ≤3（P2-17, E6）
+- [x] 文档计数从 registry test/codegen 生成，修正 312/320→315/323 并加 docs drift job（P3-03, E5）
+- [x] pin Rust 1.95.0/MSRV 1.95、Bun 1.3.10、Node 24.18.0；第三方 action pin commit SHA；接入 Dependabot（P2-16）
+
+### 测试并行化与覆盖率
+- [x] 移除全局 `--test-threads=1`：tests 用 temp `CCR_ROOT`/HOME/DB，共享进程状态使用显式 mutex fixture；默认并行（P2-15）
+- [x] 加 coverage jobs/thresholds：root Rust workspace 总体行覆盖率 ≥70%，Vue/VS Code 行覆盖率 ≥70%，root/Tauri 关键 gateway ≥85%；serial-only annotation 当前/目标均为 0
+
+## Acceptance Criteria
+
+- [ ] 改 Tauri/VSCode 的 PR 必触发对应 check 并设 required branch protection（hosted 产品面 2/4→4/4）
+- [ ] dev push/PR 触发 frontend CI（branch coverage 3/3）
+- [ ] 依赖/bindings/docs drift PR 必失败
+- [ ] 同一 commit 重跑工具版本一致（pin 生效）
+- [ ] `just ci` 与 hosted workflow 调同一脚本，结果等价
+
+## Out of Scope
+
+- 不以降低 coverage target、扩大 ignore 或继续全局单线程来制造绿灯
+- 不在缺少 GitHub 仓库管理权限时宣称 required branch protection 已配置
+- 不把 release 签名实现混入本子任务；这里只保证相应 workflow 门禁可被要求
+
+## Notes
+
+- CI 时间增加：Linux required、Win/macOS 起步可 nightly/smoke（报告阶段 0 回滚：drift job 可暂 non-blocking 一周）
+- 本子任务 quick wins（frontend-ci 加 dev、pin 版本、修文档计数）可最先做，成本 <1d
+- 测试并行化改动大，作为独立 PR，避免与门禁新增混在一起
+- 2026-07-26 现场查询 `main` branch protection 返回 HTTP 403；用户已选择严格端到端验收，required check 的远程设置必须在取得仓库权限并验证真实保护规则后才能标记完成
+
+## Verification evidence (2026-07-26)
+
+| Evidence | Result |
+| --- | --- |
+| `python scripts/check_workflow_governance.py` | PASS：38 immutable action refs；serial-only 0/0 |
+| `just ci-governance-check` | PASS：19 repeated dependencies；1 active exception；315/323 registry doc |
+| `just coverage-rust` | PASS：workspace lines 70.18%；gateway 93.20% |
+| `just coverage-tauri` | PASS：full baseline 39.90% reported；gateway 95.57% enforced |
+| `just frontend-coverage` | PASS：Vue lines 74.54% |
+| `just vscode-coverage` | PASS：lines 91.79%；functions 86.87% |
+| `just tauri-ci` / `just vscode-ci` | PASS；Tauri 293 + 2 tests；bindings/inventory 同步 |
+| `just frontend-check` | PASS：94 files / 422 smoke tests；docs audit/build PASS |
+| `just frontend-audit` | FAIL：既有并行依赖元数据仍有 1 critical + 9 high；recipe/hosted 接线已完成，依赖整改不纳入本提交 |
+| Workflow YAML parse | PASS；`actionlint` unavailable locally |
+| `main` branch protection | UNVERIFIED：GitHub API HTTP 403 (`administration:read` unavailable) |
+| `just version-check` / final `just ci` | BLOCKED by excluded parallel 7.0.0 metadata: `ccr-ui/README.md` lacks `version-7.0.0` |

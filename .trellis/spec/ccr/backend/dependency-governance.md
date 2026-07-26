@@ -59,18 +59,22 @@ Test-RequiredFile $COMPONENT_MAIN_LAYOUT
 - The gate detects new repeated dependency version drift before CI or release builds silently diverge.
 
 ### 2. Signatures
-- Windows: `scripts/check-dependency-drift.ps1 [-Verbose]`
-- Unix: `bash scripts/check-dependency-drift.sh [--verbose|-v]`
-- Root gate: `just version-check` must invoke the dependency drift script for Windows, Linux, and macOS recipe variants.
+- Canonical validator: `python scripts/check_dependency_drift.py [--verbose]`
+- Metadata: `scripts/dependency-drift-allowlist.json`
+- Platform wrappers: `scripts/check-dependency-drift.ps1 [-Verbose]` and `bash scripts/check-dependency-drift.sh [--verbose|-v]`
+- Toolchain source: `rust-toolchain.toml` with channel `1.95.0`; crate manifests use `rust-version = "1.95"`.
+- Root gate: `just version-check` must invoke the dependency drift wrapper for Windows, Linux, and macOS recipe variants.
 
 ### 3. Contracts
 - Parse root `Cargo.toml` `[workspace.dependencies]`.
 - Parse `ccr-ui/src-tauri/Cargo.toml` `[dependencies]`.
 - Compare only dependencies repeated in both manifests.
 - Matching versions pass.
-- Non-matching versions pass only if explicitly allowlisted in the script with a human-readable reason.
+- Non-matching versions pass only if the JSON allowlist supplies non-empty `owner`, `rationale`, and ISO `expires` fields.
+- Expired, duplicate, stale, or ownerless exceptions fail; active exceptions must not exceed `max_active_exceptions` (currently 3).
 - A stale allowlist entry fails when the dependency disappears from either manifest or the two versions become equal.
-- Bash implementation must handle CRLF Cargo manifests and avoid Bash 4-only features so macOS default Bash can run the check.
+- Every crate plus the independent Tauri manifest must declare MSRV 1.95, matching the pinned 1.95.0 toolchain patch.
+- PowerShell and Bash are thin launchers for the same Python validator so their results cannot drift.
 
 ### 4. Validation & Error Matrix
 - Root Cargo manifest missing -> fail.
@@ -80,38 +84,33 @@ Test-RequiredFile $COMPONENT_MAIN_LAYOUT
 - Repeated dependency versions differ and dependency is not allowlisted -> fail.
 - Allowlisted dependency is no longer repeated -> fail.
 - Allowlisted dependency versions now match -> fail until the allowlist entry is removed.
+- Exception owner/rationale missing, expiry invalid/past, or active count above 3 -> fail.
+- Crate MSRV differs from 1.95 or toolchain differs from 1.95.0 -> fail.
 
 ### 5. Good/Base/Bad Cases
 - Good: `serde` repeats with the same version in both manifests.
-- Base: `tokio` differs but remains allowlisted with a reason while desktop runtime compatibility is being evaluated.
+- Base: `toml` differs with owner `desktop-platform`, a migration rationale, and a future expiry while parser compatibility is being evaluated.
 - Bad: adding `anyhow = "1.0.90"` to Tauri while root workspace uses `1.0.102` without an allowlist reason.
 - Bad: leaving an allowlist entry after the Tauri version is aligned with root.
-- Bad: using Bash associative arrays or `mapfile`, which breaks macOS default Bash.
+- Bad: duplicating parsing logic in the PowerShell/Bash wrappers or leaving an exception without an accountable owner and expiry.
 
 ### 6. Tests Required
-- Run `bash -n scripts/check-dependency-drift.sh` after editing the Bash script.
-- Run `bash scripts/check-dependency-drift.sh --verbose` in a Windows working tree to prove CRLF manifest parsing.
-- Run `./scripts/check-dependency-drift.ps1 -Verbose` for the Windows path.
+- Run `python scripts/check_dependency_drift.py --verbose` after validator, manifest, toolchain, or exception changes.
+- Run `bash -n scripts/check-dependency-drift.sh` and `bash scripts/check-dependency-drift.sh --verbose` after editing the Bash wrapper.
+- Run `./scripts/check-dependency-drift.ps1 -Verbose` for the Windows wrapper.
 - Run `just version-check` to prove the root gate includes version, doc, and dependency drift checks.
 - Run `git diff --check` before commit.
 
 ### 7. Wrong vs Correct
 #### Wrong
 ```bash
-awk '$0 == "[workspace.dependencies]" { in_section=1 }' Cargo.toml
-mapfile -t deps < <(extract_deps)
-declare -A versions=()
+# Independent platform parser with a separate inline allowlist.
+declare -A ALLOWED_DRIFT=([toml]="temporary")
 ```
 
 #### Correct
 ```bash
-awk '{ line=$0; sub(/\015$/, "", line) } ...' Cargo.toml
-while IFS=$'\t' read -r name version; do
-  # Bash 3-compatible processing
-  :
-done <<EOF
-$DEPS
-EOF
+python3 scripts/check_dependency_drift.py "$@"
 ```
 
 ## Scenario: SQLite native link compatibility
@@ -204,4 +203,60 @@ r2d2_sqlite = "0.34.0"
 #### Correct
 ```json
 "@tauri-apps/api": "2.11.0"
+```
+
+## Scenario: Hosted workflow, tool pin, and coverage governance
+
+### 1. Scope / Trigger
+- Trigger: changing `.github/workflows/**`, `justfile`, coverage recipes, action pins, test parallelism, or the generated Tauri command inventory.
+- Applies because hosted checks must call repository-owned gates and must not silently weaken local acceptance.
+
+### 2. Signatures
+- Governance validator: `python scripts/check_workflow_governance.py`.
+- Coverage validator: `python scripts/check_coverage_thresholds.py <report.json> [--overall 70] --gateway 85 --gateway-pattern <path>`.
+- Local recipes: `workflow-governance-check`, `dependency-governance-check`, `frontend-audit`, `ci-governance-check`, `coverage-rust`, `coverage-tauri`, `frontend-coverage`, `vscode-coverage`, `tauri-ci`, and `vscode-ci`.
+- Hosted files: `ci.yml`, `frontend-ci.yml`, `tauri-rust-ci.yml`, and `vscode-ci.yml`.
+
+### 3. Contracts
+- Third-party `uses:` references are immutable 40-character commit SHAs; version comments are review hints, not executable refs.
+- Workflow YAML must reject duplicate mapping keys, and PR/push triggers must retain the exact governed branches and product path filters, including frontend `dev` pushes and PRs.
+- Rust is pinned to 1.95.0, Bun to 1.3.10, Node to 24.18.0, just to 1.57.0, and cargo-llvm-cov to 0.8.7.
+- Root Rust, Vue, and VS Code line coverage must be at least 70%; root and Tauri process gateways must be at least 85%.
+- Tauri uploads its full coverage baseline while the hard security threshold remains the gateway; a broad command-wrapper percentage cannot hide a gateway regression.
+- Root workspace tests use default parallelism. `scripts/check_workflow_governance.py` counts `#[serial]` / `#[serial_test::serial]`; current and target counts are both 0.
+- Tauri command inventory is generated from the handler registry and freezes 315 base / 323 Windows commands across 30 base modules.
+- The Tauri Rust gate runs direct Cargo fmt/check/clippy/test plus repository governance recipes; it must not require Bun or the Vue dependency graph.
+- Hosted frontend dependency audit calls the repository-owned `frontend-audit` recipe; current advisory failures remain failures until the owning package metadata is remediated.
+
+### 4. Validation & Error Matrix
+- Mutable action tag, duplicate YAML key, missing workflow, missing branch/path filter, or missing local recipe -> governance check fails.
+- Root/Vue/VS Code line coverage below 70 -> corresponding coverage recipe fails.
+- Root/Tauri gateway below 85 or gateway path not found -> coverage validator fails closed.
+- Global `--test-threads=1` or serial annotation count above 0 -> governance check fails.
+- Handler inventory differs from registry -> `command_inventory_document_matches_registry` fails.
+- Required branch protection not readable/configured -> local files may pass, but repository-setting evidence remains `UNVERIFIED`.
+
+### 5. Good/Base/Bad Cases
+- Good: hosted workflow calls `just coverage-rust`; local and hosted execute the same threshold script.
+- Base: Tauri overall coverage is reported separately while its security gateway remains above 85%.
+- Bad: copying lint/test commands into workflow YAML, pinning `actions/checkout@v6`, or lowering the gateway threshold to compensate for missing tests.
+
+### 6. Tests Required
+- `python scripts/check_workflow_governance.py` -> 38 immutable action references and serial-only count 0.
+- `just ci-governance-check` -> dependency, workflow, and handler inventory gates pass.
+- `just coverage-rust`, `just coverage-tauri`, `just frontend-coverage`, and `just vscode-coverage` -> configured line/gateway thresholds pass.
+- `just tauri-ci`, `just vscode-ci`, and final `just ci` when unrelated workspace metadata is clean.
+- Query protected-branch required checks with current GitHub permission; do not infer remote configuration from workflow files.
+
+### 7. Wrong vs Correct
+#### Wrong
+```yaml
+- uses: actions/checkout@v6
+- run: cargo test --workspace -- --test-threads=1
+```
+
+#### Correct
+```yaml
+- uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+- run: just test
 ```

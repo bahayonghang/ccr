@@ -380,16 +380,15 @@ version:
 test:
     @just header "✅ 运行测试套件"
     @just info "📊 模式: 完整工作区测试"
-    @just warn "注意: 使用串行模式 (--test-threads=1) 避免并发冲突"
-    cargo test --workspace --all-features -- --test-threads=1
+    @just info "并行策略: 默认并行；仅共享进程状态的用例使用显式 crate 内锁"
+    cargo test --workspace --all-features
     @just success "所有测试通过"
 
 # 🧪 运行所有测试 (包括忽略的测试)
 test-all:
     @just info "🧪 运行完整测试套件"
     @just info "📊 模式: 包含被忽略的测试"
-    @just warn "注意: 使用串行模式 (--test-threads=1)"
-    cargo test --workspace --all-features -- --test-threads=1 --include-ignored
+    cargo test --workspace --all-features -- --include-ignored
     @just success "完整测试通过"
 
 # 📊 运行基准测试
@@ -482,6 +481,7 @@ _ci-timed-windows:
         @{ Name = "test";            Label = "Test" },
         @{ Name = "release";         Label = "Release Build" },
         @{ Name = "audit";           Label = "Security Audit" },
+        @{ Name = "ci-governance-check"; Label = "CI Governance" },
         @{ Name = "tauri-bindings-check"; Label = "TS Bindings Drift" },
         @{ Name = "frontend-check";  Label = "Frontend Check" },
         @{ Name = "vscode-ci";       Label = "VSCode CI" }
@@ -539,8 +539,8 @@ _ci-timed-windows:
 _ci-timed-linux:
     #!/usr/bin/env bash
     set -uo pipefail
-    steps=("version-sync" "fmt" "fmt-check" "lint-strict" "check-workspace" "test" "release" "audit" "tauri-bindings-check" "frontend-check" "vscode-ci")
-    labels=("Version Sync" "Format" "Format Check" "Strict Clippy" "Workspace Check" "Test" "Release Build" "Security Audit" "TS Bindings Drift" "Frontend Check" "VSCode CI")
+    steps=("version-sync" "fmt" "fmt-check" "lint-strict" "check-workspace" "test" "release" "audit" "ci-governance-check" "tauri-bindings-check" "frontend-check" "vscode-ci")
+    labels=("Version Sync" "Format" "Format Check" "Strict Clippy" "Workspace Check" "Test" "Release Build" "Security Audit" "CI Governance" "TS Bindings Drift" "Frontend Check" "VSCode CI")
     PAD=20
     times=()
     statuses=()
@@ -600,8 +600,8 @@ _ci-timed-linux:
 _ci-timed-macos:
     #!/usr/bin/env bash
     set -uo pipefail
-    steps=("version-sync" "fmt" "fmt-check" "lint-strict" "check-workspace" "test" "release" "audit" "tauri-bindings-check" "frontend-check" "vscode-ci")
-    labels=("Version Sync" "Format" "Format Check" "Strict Clippy" "Workspace Check" "Test" "Release Build" "Security Audit" "TS Bindings Drift" "Frontend Check" "VSCode CI")
+    steps=("version-sync" "fmt" "fmt-check" "lint-strict" "check-workspace" "test" "release" "audit" "ci-governance-check" "tauri-bindings-check" "frontend-check" "vscode-ci")
+    labels=("Version Sync" "Format" "Format Check" "Strict Clippy" "Workspace Check" "Test" "Release Build" "Security Audit" "CI Governance" "TS Bindings Drift" "Frontend Check" "VSCode CI")
     PAD=20
     times=()
     statuses=()
@@ -705,6 +705,14 @@ frontend-check: frontend-typecheck frontend-lint frontend-test frontend-build do
 # 🌐 前端快速检查 (类型检查 + Lint，不含构建和文档)
 frontend-check-quick: frontend-typecheck frontend-lint frontend-test
     @just success "前端快速检查通过"
+
+# 📊 Vue/Vitest 行覆盖率门禁（lines ≥70%）
+frontend-coverage:
+    cd ccr-ui && bun run vitest -- run --config vitest.smoke.config.ts --coverage --coverage.thresholds.lines=70
+
+# 🔐 前端依赖安全审计（与 hosted workflow 共用入口）
+frontend-audit:
+    cd ccr-ui && bun audit --audit-level=high
 
 # ═══════════════════════════════════════════════════════════
 # 📦 安装与管理命令
@@ -971,6 +979,78 @@ _version-check-macos:
     bash scripts/version-sync.sh --check --verbose
     bash scripts/check-doc-drift.sh --verbose
     bash scripts/check-dependency-drift.sh --verbose
+
+# 🔐 Hosted workflow 触发器、路径过滤和 action pin 治理
+workflow-governance-check:
+    @just _workflow-governance-check-{{os()}}
+
+[private]
+_workflow-governance-check-windows:
+    @python -m unittest scripts/test_check_workflow_governance.py
+    @python scripts/check_workflow_governance.py
+
+[private]
+_workflow-governance-check-linux:
+    @python3 -m unittest scripts/test_check_workflow_governance.py
+    @python3 scripts/check_workflow_governance.py
+
+[private]
+_workflow-governance-check-macos:
+    @python3 -m unittest scripts/test_check_workflow_governance.py
+    @python3 scripts/check_workflow_governance.py
+
+# 🔐 Root/Tauri dependency drift、例外 metadata 和 MSRV 治理
+dependency-governance-check:
+    @just _dependency-governance-check-{{os()}}
+
+[private]
+_dependency-governance-check-windows:
+    @.\scripts\check-dependency-drift.ps1 -Verbose
+
+[private]
+_dependency-governance-check-linux:
+    @bash scripts/check-dependency-drift.sh --verbose
+
+[private]
+_dependency-governance-check-macos:
+    @bash scripts/check-dependency-drift.sh --verbose
+
+# 🔐 CI 配置、依赖例外与命令清单完整治理
+ci-governance-check: workflow-governance-check dependency-governance-check tauri-command-inventory-check
+
+# 📊 Rust workspace 覆盖率：总体 70%，安全 gateway 85%
+coverage-rust:
+    cargo llvm-cov --workspace --all-features --json --output-path target/coverage-workspace.json
+    @just _coverage-rust-check-{{os()}}
+
+[private]
+_coverage-rust-check-windows:
+    @python scripts/check_coverage_thresholds.py target/coverage-workspace.json --overall 70 --gateway 85 --gateway-pattern crates/ccr-core/src/core/process_gateway.rs
+
+[private]
+_coverage-rust-check-linux:
+    @python3 scripts/check_coverage_thresholds.py target/coverage-workspace.json --overall 70 --gateway 85 --gateway-pattern crates/ccr-core/src/core/process_gateway.rs
+
+[private]
+_coverage-rust-check-macos:
+    @python3 scripts/check_coverage_thresholds.py target/coverage-workspace.json --overall 70 --gateway 85 --gateway-pattern crates/ccr-core/src/core/process_gateway.rs
+
+# 📊 Tauri backend 覆盖率：生成完整报告，安全 gateway ≥85%
+coverage-tauri:
+    cargo llvm-cov --manifest-path ccr-ui/src-tauri/Cargo.toml --json --output-path target/coverage-tauri.json
+    @just _coverage-tauri-check-{{os()}}
+
+[private]
+_coverage-tauri-check-windows:
+    @python scripts/check_coverage_thresholds.py target/coverage-tauri.json --gateway 85 --gateway-pattern ccr-ui/src-tauri/src/process/gateway.rs
+
+[private]
+_coverage-tauri-check-linux:
+    @python3 scripts/check_coverage_thresholds.py target/coverage-tauri.json --gateway 85 --gateway-pattern ccr-ui/src-tauri/src/process/gateway.rs
+
+[private]
+_coverage-tauri-check-macos:
+    @python3 scripts/check_coverage_thresholds.py target/coverage-tauri.json --gateway 85 --gateway-pattern ccr-ui/src-tauri/src/process/gateway.rs
 
 # 🧪 运行脚本测试 (Bats + Pester)
 test-scripts:
@@ -1267,6 +1347,39 @@ tauri-bindings:
 tauri-bindings-check:
     @just _ui-run bindings-check
 
+# 🧾 从 handler registry 重新生成/校验 Tauri command inventory
+tauri-command-inventory:
+    @just _tauri-command-inventory-{{os()}}
+
+[private]
+_tauri-command-inventory-windows:
+    @$env:CCR_UPDATE_COMMAND_INVENTORY = '1'; cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml commands::handler_registry::tests::command_inventory_document_matches_registry -- --exact
+
+[private]
+_tauri-command-inventory-linux:
+    @CCR_UPDATE_COMMAND_INVENTORY=1 cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml commands::handler_registry::tests::command_inventory_document_matches_registry -- --exact
+
+[private]
+_tauri-command-inventory-macos:
+    @CCR_UPDATE_COMMAND_INVENTORY=1 cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml commands::handler_registry::tests::command_inventory_document_matches_registry -- --exact
+
+tauri-command-inventory-check:
+    @cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml commands::handler_registry::tests::command_inventory_document_matches_registry -- --exact
+
+# Hosted Tauri required lane and local execution share this fail-closed recipe.
+tauri-ci: dependency-governance-check
+    cargo fmt --manifest-path ccr-ui/src-tauri/Cargo.toml -- --check
+    cargo check --manifest-path ccr-ui/src-tauri/Cargo.toml --bin ccr-desktop
+    cargo clippy --manifest-path ccr-ui/src-tauri/Cargo.toml --bin ccr-desktop -- -D warnings
+    cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml --all-features
+    just tauri-bindings-check
+    just tauri-command-inventory-check
+    @just success "Tauri Rust CI passed"
+
+tauri-process-smoke:
+    cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml process::gateway
+    cargo test -p ccr-core core::process_gateway
+
 ui-test:
     @just _ui-run test
 
@@ -1366,6 +1479,9 @@ vscode-clean:
 # 🚀 VSCode 扩展: 完整 CI
 vscode-ci:
     @just _vscode-run ci
+
+vscode-coverage:
+    @just _vscode-run coverage
 
 # 📦 收集 VSCode 扩展构建产物到 outputs/
 outputs-collect-vscode: vscode-install vscode-build

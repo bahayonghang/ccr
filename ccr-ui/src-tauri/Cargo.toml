@@ -6,7 +6,7 @@ version = "6.5.3"
 description = "CCR Desktop - Tauri Application"
 authors = ["Geekyhang"]
 edition = "2024"
-rust-version = "1.88"
+rust-version = "1.95"
 
 [build-dependencies]
 tauri-build = { version = "=2.6.2", features = [] }
@@ -34,15 +34,15 @@ tauri = { version = "=2.11.2", features = ["tray-icon"] }
 tauri-plugin-dialog = "2"
 
 # Serialization
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.150"
 serde_yaml = "0.9"
 
 # TypeScript 绑定生成（usage V2 试点：DTO 单一来源，生成物入库 + 漂移守卫）
 ts-rs = { version = "11", features = ["no-serde-warnings"] }
 
 # Async runtime
-tokio = { version = "1.49", features = [
+tokio = { version = "1.52.3", features = [
     "rt-multi-thread",
     "io-util",
     "net",
@@ -56,7 +56,7 @@ tokio-util = { version = "0.7", features = ["rt"] }
 
 # HTTP client
 # http2: AppState.http_client 与 ccr-checkin 共用该依赖，通过 ALPN 协商 HTTP/2（native-tls 已内置 alpn）
-reqwest = { version = "0.13.2", default-features = false, features = [
+reqwest = { version = "0.13.4", default-features = false, features = [
     "json",
     "cookies",
     "gzip",
@@ -65,7 +65,7 @@ reqwest = { version = "0.13.2", default-features = false, features = [
 ] }
 
 # Logging
-tracing = "0.1"
+tracing = "0.1.43"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # System info
@@ -75,8 +75,8 @@ sysinfo = "0.39.3"
 aes-gcm = "0.10"
 
 # UUID
-uuid = { version = "1.21", features = ["v4"] }
-chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1.23.2", features = ["serde", "v4"] }
+chrono = { version = "0.4.44", features = ["serde"] }
 base64 = "0.22.1"
 sha2 = "0.11.0"
 
@@ -88,19 +88,19 @@ rusqlite = { version = "0.39.0", features = ["bundled"] }
 async-trait = "0.1"
 
 # Home directory detection
-dirs = "6"
+dirs = "6.0.0"
 
 # TOML parsing (for slash commands)
 toml = "0.9.8"
 
 # Directory walking (for slash commands)
-walkdir = "2"
+walkdir = "2.5"
 
 # Atomic file writes
 tempfile = "3.27.0"
 
 # Error handling
-thiserror = "2"
+thiserror = "2.0.18"
 lru = "0.18.0"
 notify = "8.2.0"
 

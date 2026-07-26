@@ -180,9 +180,11 @@ fn list_for_home(platform: &str, home: &Path) -> Result<Value, String> {
         .iter()
         .map(|spec| file_description(spec, &resolve_from_home(spec, home)))
         .collect();
-    let rules = (normalize_platform(platform) == Some("claude"))
-        .then(|| list_claude_rules(home))
-        .unwrap_or_default();
+    let rules = if normalize_platform(platform) == Some("claude") {
+        list_claude_rules(home)
+    } else {
+        Vec::new()
+    };
     Ok(json!({ "status": "ok", "files": files, "rules": rules }))
 }
 
@@ -239,9 +241,11 @@ pub async fn system_prompts_list(
             .iter()
             .map(|(spec, path)| file_description(spec, path))
             .collect();
-        let rules = (normalized == "claude")
-            .then(|| list_claude_rules(&home))
-            .unwrap_or_default();
+        let rules = if normalized == "claude" {
+            list_claude_rules(&home)
+        } else {
+            Vec::new()
+        };
         Ok(json!({ "status": "ok", "files": files, "rules": rules }))
     })
     .await

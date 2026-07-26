@@ -1419,10 +1419,12 @@ pub async fn clear_webdav_config() -> Result<(), String> {
 
         let mut folder_manager = SyncFolderManager::with_default()
             .map_err(|e| format!("Failed to create SyncFolderManager: {e}"))?;
-        let mut cleared = WebDavConfig::default();
-        cleared.enabled = false;
-        cleared.username.clear();
-        cleared.password = ccr_core::Secret::default();
+        let cleared = WebDavConfig {
+            enabled: false,
+            username: String::new(),
+            password: ccr_core::Secret::default(),
+            ..WebDavConfig::default()
+        };
         folder_manager
             .update_webdav_config(cleared)
             .map_err(|e| format!("Failed to clear canonical WebDAV config: {e}"))
@@ -1513,9 +1515,7 @@ mod tests {
         config.webdav.enabled = false;
         config.webdav.username = "canonical-user".to_string();
         config.webdav.password = ccr_core::Secret::from("canonical-password");
-        folder_manager
-            .save_config(&config)
-            .unwrap();
+        folder_manager.save_config(&config).unwrap();
 
         let canonical = load_webdav_config_with_legacy(&folder_manager, || {
             panic!("legacy must not be read after canonical config exists")

@@ -189,8 +189,7 @@ pub async fn claude_save_profiles_raw(
     .map_err(|error| format!("写入 Claude Profiles 后台任务失败: {error}"))?
 }
 
-/// 应用 Profile。
-
+/// 构建 Claude profile 导出 payload。
 fn claude_profiles_export_payload(include_secrets: bool) -> Result<Value, String> {
     let paths = PlatformPaths::new(Platform::Claude)
         .map_err(|e| format!("Failed to resolve Claude Profiles path: {e}"))?;

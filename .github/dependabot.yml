@@ -1,0 +1,32 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    labels: [dependencies, ci]
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: weekly
+    labels: [dependencies, rust]
+  - package-ecosystem: cargo
+    directory: /ccr-ui/src-tauri
+    schedule:
+      interval: weekly
+    labels: [dependencies, tauri]
+  - package-ecosystem: npm
+    directory: /ccr-ui
+    schedule:
+      interval: weekly
+    labels: [dependencies, frontend]
+  - package-ecosystem: npm
+    directory: /ccr-vscode
+    schedule:
+      interval: weekly
+    labels: [dependencies, vscode]
+  - package-ecosystem: npm
+    directory: /docs
+    schedule:
+      interval: weekly
+    labels: [dependencies, docs]

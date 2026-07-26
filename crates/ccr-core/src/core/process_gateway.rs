@@ -324,7 +324,39 @@ impl Drop for PlatformProcessTree {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tokio::io::AsyncWriteExt;
+    use std::process::Stdio;
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+    #[tokio::test]
+    async fn bounded_line_reader_handles_newline_crlf_and_utf8_boundary() {
+        let mut reader = tokio::io::BufReader::new("first\r\nsecond\n".as_bytes());
+
+        assert_eq!(
+            read_bounded_line(&mut reader, 32).await.expect("read CRLF"),
+            Some(BoundedLine {
+                text: "first".to_owned(),
+                truncated: false,
+            })
+        );
+        assert_eq!(
+            read_bounded_line(&mut reader, 32).await.expect("read LF"),
+            Some(BoundedLine {
+                text: "second".to_owned(),
+                truncated: false,
+            })
+        );
+
+        let mut reader = tokio::io::BufReader::new("é\n".as_bytes());
+        assert_eq!(
+            read_bounded_line(&mut reader, 2)
+                .await
+                .expect("read truncated UTF-8"),
+            Some(BoundedLine {
+                text: "e".to_owned(),
+                truncated: true,
+            })
+        );
+    }
 
     #[tokio::test]
     async fn bounded_line_reader_caps_unterminated_input() {
@@ -352,6 +384,88 @@ mod tests {
                 .expect("read end of stream")
                 .is_none()
         );
+    }
+
+    #[tokio::test]
+    async fn managed_process_exposes_pipes_and_waits() {
+        let mut command = shell_command("read a; printf '%s' \"$a\"; printf 'err' >&2");
+        command
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped());
+        let mut process = ManagedProcess::spawn(command).expect("spawn managed process");
+
+        assert!(process.pid() > 0);
+        let mut stdin = process.take_stdin().expect("piped stdin");
+        let mut stdout = process.take_stdout().expect("piped stdout");
+        let mut stderr = process.take_stderr().expect("piped stderr");
+        assert!(process.take_stdin().is_none());
+        assert!(process.take_stdout().is_none());
+        assert!(process.take_stderr().is_none());
+
+        stdin.write_all(b"hello\n").await.expect("write stdin");
+        drop(stdin);
+        let mut stdout_text = String::new();
+        let mut stderr_text = String::new();
+        stdout
+            .read_to_string(&mut stdout_text)
+            .await
+            .expect("read stdout");
+        stderr
+            .read_to_string(&mut stderr_text)
+            .await
+            .expect("read stderr");
+
+        let status = process.wait().await.expect("wait for managed process");
+        assert!(status.success());
+        assert_eq!(stdout_text, "hello");
+        assert_eq!(stderr_text, "err");
+    }
+
+    #[tokio::test]
+    async fn dropping_unreaped_process_terminates_it() {
+        let process = ManagedProcess::spawn(shell_command("sleep 30"))
+            .expect("spawn long-running managed process");
+        let pid = process.pid();
+        assert!(test_process_is_running(pid));
+
+        drop(process);
+        for _ in 0..40 {
+            if !test_process_is_running(pid) {
+                return;
+            }
+            tokio::time::sleep(Duration::from_millis(25)).await;
+        }
+        panic!("dropped managed process {pid} is still running");
+    }
+
+    #[cfg(windows)]
+    fn shell_command(script: &str) -> Command {
+        let mut command = Command::new("powershell.exe");
+        let script = if script.starts_with("sleep") {
+            "Start-Sleep -Seconds 30"
+        } else {
+            "$line=[Console]::In.ReadLine(); [Console]::Out.Write($line); [Console]::Error.Write('err')"
+        };
+        command.args(["-NoProfile", "-NonInteractive", "-Command", script]);
+        command
+    }
+
+    #[cfg(unix)]
+    fn shell_command(script: &str) -> Command {
+        let mut command = Command::new("sh");
+        command.args(["-c", script]);
+        command
+    }
+
+    #[cfg(windows)]
+    fn test_process_is_running(pid: u32) -> bool {
+        process_is_running(pid)
+    }
+
+    #[cfg(unix)]
+    fn test_process_is_running(pid: u32) -> bool {
+        unix_process_is_running(pid)
     }
 
     #[cfg(windows)]

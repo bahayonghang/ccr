@@ -334,3 +334,108 @@ impl SkillsManager {
             .map_err(|e| CcrError::NetworkError(format!("Failed to read content: {}", e)))
     }
 }
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+    use super::*;
+    use tempfile::tempdir;
+
+    fn build_manager(root: &std::path::Path) -> SkillsManager {
+        SkillsManager {
+            base_path: root.join("skills"),
+            config_path: root.join("config").join("skills.toml"),
+        }
+    }
+
+    fn repository(name: &str, url: &str) -> SkillRepository {
+        SkillRepository {
+            name: name.into(),
+            url: url.into(),
+            branch: "main".into(),
+            description: Some("offline fixture".into()),
+            skill_count: 0,
+            last_synced: None,
+            is_official: false,
+        }
+    }
+
+    #[test]
+    fn local_skill_lifecycle_is_isolated_to_configured_root() {
+        let temp = tempdir().unwrap();
+        let manager = build_manager(temp.path());
+
+        assert!(manager.list_skills().unwrap().is_empty());
+        manager
+            .install_skill(
+                "demo",
+                "---\nname: Demo\ndescription: Offline fixture\n---\n\n# Demo\n",
+            )
+            .unwrap();
+        std::fs::create_dir_all(manager.base_path.join("not-a-skill")).unwrap();
+
+        let skills = manager.list_skills().unwrap();
+        assert_eq!(skills.len(), 1);
+        assert_eq!(skills[0].name, "demo");
+        assert_eq!(skills[0].description.as_deref(), Some("Offline fixture"));
+        assert!(!skills[0].is_remote);
+
+        let skill = manager.get_skill("demo").unwrap();
+        assert!(skill.instruction.contains("# Demo"));
+        assert_eq!(skill.path, manager.base_path.join("demo").to_string_lossy());
+        assert!(matches!(
+            manager.get_skill("missing"),
+            Err(CcrError::ResourceNotFound(_))
+        ));
+        assert!(matches!(
+            manager.install_skill("demo", "duplicate"),
+            Err(CcrError::ResourceAlreadyExists(_))
+        ));
+
+        manager.uninstall_skill("demo").unwrap();
+        assert!(manager.list_skills().unwrap().is_empty());
+        assert!(matches!(
+            manager.uninstall_skill("demo"),
+            Err(CcrError::ResourceNotFound(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn repository_lifecycle_validates_remote_requests_without_network() {
+        let temp = tempdir().unwrap();
+        let manager = build_manager(temp.path());
+        assert!(manager.list_repositories().unwrap().is_empty());
+
+        let invalid = repository("invalid", "https://example.com/owner/repo");
+        manager.add_repository(invalid.clone()).unwrap();
+        let repositories = manager.list_repositories().unwrap();
+        assert_eq!(repositories.len(), 1);
+        assert_eq!(repositories[0].name, invalid.name);
+        assert_eq!(repositories[0].url, invalid.url);
+        assert!(matches!(
+            manager.add_repository(invalid),
+            Err(CcrError::ResourceAlreadyExists(_))
+        ));
+        assert!(matches!(
+            manager.fetch_remote_skills("missing").await,
+            Err(CcrError::ResourceNotFound(_))
+        ));
+        assert!(matches!(
+            manager.fetch_remote_skills("invalid").await,
+            Err(CcrError::ConfigError(_))
+        ));
+
+        manager.remove_repository("invalid").unwrap();
+        assert!(manager.list_repositories().unwrap().is_empty());
+        assert!(matches!(
+            manager.remove_repository("invalid"),
+            Err(CcrError::ResourceNotFound(_))
+        ));
+
+        std::fs::write(&manager.config_path, "repositories = [").unwrap();
+        assert!(matches!(
+            manager.list_repositories(),
+            Err(CcrError::ConfigFormatInvalid(_))
+        ));
+    }
+}

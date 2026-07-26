@@ -1,0 +1,4 @@
+{"file":".trellis/spec/ccr/backend/dependency-governance.md","reason":"Local-hosted parity and pin review"}
+{"file":".trellis/spec/ccr/backend/test-fixtures.md","reason":"Rust and desktop CI coverage expectations"}
+{"file":".trellis/spec/ccr-ui/frontend/index.md","reason":"Vue validation surface"}
+{"file":".trellis/spec/ccr-vscode/frontend/extension-surface-contracts.md","reason":"Extension validation surface"}

@@ -307,26 +307,26 @@ fn yaml_key(name: &str) -> YamlValue {
 
 fn yaml_string(mapping: &YamlMapping, key: &str) -> Option<String> {
     mapping
-        .get(&yaml_key(key))
+        .get(yaml_key(key))
         .and_then(YamlValue::as_str)
         .map(str::to_string)
 }
 
 fn yaml_bool(mapping: &YamlMapping, key: &str) -> Option<bool> {
-    mapping.get(&yaml_key(key)).and_then(YamlValue::as_bool)
+    mapping.get(yaml_key(key)).and_then(YamlValue::as_bool)
 }
 
 fn yaml_f64(mapping: &YamlMapping, key: &str) -> Option<f64> {
-    mapping.get(&yaml_key(key)).and_then(YamlValue::as_f64)
+    mapping.get(yaml_key(key)).and_then(YamlValue::as_f64)
 }
 
 fn yaml_u64(mapping: &YamlMapping, key: &str) -> Option<u64> {
-    mapping.get(&yaml_key(key)).and_then(YamlValue::as_u64)
+    mapping.get(yaml_key(key)).and_then(YamlValue::as_u64)
 }
 
 fn yaml_json(mapping: &YamlMapping, key: &str) -> Option<Value> {
     mapping
-        .get(&yaml_key(key))
+        .get(yaml_key(key))
         .and_then(|value| serde_json::to_value(value).ok())
 }
 
@@ -805,7 +805,7 @@ pub async fn opencode_update_keybindings(keybindings: Value) -> Result<Value, St
 
 #[tauri::command]
 pub async fn opencode_list_themes() -> Result<Value, String> {
-    Ok(serde_json::to_value(vec![
+    serde_json::to_value(vec![
         OpenCodeThemeRecord {
             id: "dark".to_string(),
             name: "Dark".to_string(),
@@ -872,7 +872,7 @@ pub async fn opencode_list_themes() -> Result<Value, String> {
             theme_type: "dark".to_string(),
         },
     ])
-    .map_err(|e| format!("序列化主题列表失败: {e}"))?)
+    .map_err(|e| format!("序列化主题列表失败: {e}"))
 }
 
 #[tauri::command]

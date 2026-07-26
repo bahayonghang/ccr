@@ -112,7 +112,6 @@ pub async fn codex_add_profile(
 }
 
 /// 更新 Codex profile（核心字段覆盖 + extra/platform_data 整体替换）
-
 fn update_codex_profile_payload(name: String, config: Value) -> Result<Value, String> {
     let platform = CodexPlatform::new().map_err(|e| format!("初始化 Codex 平台失败: {e}"))?;
     let profiles = platform
@@ -209,7 +208,6 @@ pub async fn codex_apply_profile(
 }
 
 /// 获取 Codex profile 导出的环境变量与 shell 脚本
-
 fn codex_profiles_export_payload(include_secrets: bool) -> Result<Value, String> {
     let paths = PlatformPaths::new(Platform::Codex)
         .map_err(|e| format!("Failed to resolve Codex Profiles path: {e}"))?;

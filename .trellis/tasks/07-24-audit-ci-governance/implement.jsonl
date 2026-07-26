@@ -1,0 +1,4 @@
+{"file":".trellis/spec/ccr/backend/dependency-governance.md","reason":"Version toolchain and dependency drift gates"}
+{"file":".trellis/spec/ccr/backend/tauri-handler-registry.md","reason":"Generated command inventory source"}
+{"file":".trellis/spec/ccr/backend/typed-ipc-bindings.md","reason":"Hosted binding drift gate"}
+{"file":".trellis/spec/ccr-vscode/frontend/extension-surface-contracts.md","reason":"VS Code build and test surface"}
