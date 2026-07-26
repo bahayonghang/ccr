@@ -172,3 +172,38 @@
 ### Next Steps
 
 - 继续 07-24-audit-process-gateway 子任务
+
+
+## Session 54: 完成 ProcessGateway 与进程能力治理
+
+**Date**: 2026-07-26
+**Task**: 完成 ProcessGateway 与进程能力治理
+**Branch**: `dev`
+
+### Summary
+
+统一前后台进程执行边界，补齐输出上限、背压、进程树清理、sidecar 身份、OAuth URL 与端口归属治理。
+
+### Main Changes
+
+- 新增跨平台 ManagedProcess 和桌面 ProcessGateway，迁移命令、安装、OAuth、系统、SSH/SFTP 与 llmusage 调用。
+- 后台输出改为有界 delta 批次、VecDeque 和 dropped/cleanup_failed 可观测状态。
+- 更新进程生命周期与桌面命令策略规范，保留 WSL/SkillPort legacy adapter 边界。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `e5892e04` | (see git log) |
+
+### Testing
+
+- [OK] just fmt-check；just lint-strict；just frontend-check-quick；Tauri 288+2；just test。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 继续 07-24-audit-ci-governance；Linux/macOS process tree hosted 证据留待父任务最终集成。
