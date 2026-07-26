@@ -9,7 +9,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::platform::ssh::SshHostConfig;
-use crate::process::tokio_command;
+use crate::process::{ProcessDescriptor, ProcessGateway};
 
 /// SSH 认证方式
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -93,14 +93,17 @@ fn parse_key_header(content: &str) -> (String, bool) {
 
 /// 通过 `ssh-keygen -lf` 获取密钥指纹
 async fn get_fingerprint(path: &str) -> Option<String> {
-    let output = tokio_command("ssh-keygen")
-        .arg("-lf")
-        .arg(path)
-        .output()
-        .await
-        .ok()?;
+    let output = ProcessGateway::execute(
+        &ProcessDescriptor::ssh_keygen(),
+        &[
+            std::ffi::OsString::from("-lf"),
+            std::ffi::OsString::from(path),
+        ],
+    )
+    .await
+    .ok()?;
 
-    if !output.status.success() {
+    if !output.status.success() || output.timed_out || output.stdout_truncated {
         return None;
     }
 

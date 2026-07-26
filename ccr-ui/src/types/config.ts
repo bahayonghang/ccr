@@ -63,7 +63,14 @@ export interface CommandFlagSchema {
   defaultValue?: string | null;
 }
 
-export type CommandJobStatus = 'queued' | 'running' | 'success' | 'failed' | 'cancelled' | 'unavailable';
+export type CommandJobStatus =
+  | 'queued'
+  | 'running'
+  | 'success'
+  | 'failed'
+  | 'cancelled'
+  | 'cleanup_failed'
+  | 'unavailable';
 
 export interface CommandJobSnapshot {
   job_id: string;
@@ -85,6 +92,15 @@ export interface CommandJobSnapshot {
 export interface StartCommandJobResponse {
   job_id: string;
   snapshot: CommandJobSnapshot;
+}
+
+export interface CommandJobDelta {
+  job_id: string;
+  seq: number;
+  channel: 'stdout' | 'stderr' | 'system';
+  lines: string[];
+  dropped_count: number;
+  status?: CommandJobStatus;
 }
 
 // ============ Config Management Types ============

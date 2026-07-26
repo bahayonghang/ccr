@@ -102,9 +102,11 @@ impl SshEnvironment {
     async fn run_ssh(&self, remote_cmd: &str) -> Result<std::process::Output, EnvError> {
         let target = self.config.target().map_err(EnvError::Other)?;
         let known_hosts = app_known_hosts_path().map_err(EnvError::Other)?;
-        let mut command = target.ssh_command(&known_hosts, 5);
+        let mut command = target
+            .ssh_command(&known_hosts, 5)
+            .map_err(EnvError::Other)?;
         command.arg(remote_cmd);
-        run_openssh_command(command, None)
+        run_openssh_command(command, &crate::process::ProcessDescriptor::openssh(), None)
             .await
             .map_err(EnvError::ConnectionFailed)
     }
@@ -112,9 +114,13 @@ impl SshEnvironment {
     async fn run_sftp(&self, batch: &str) -> Result<std::process::Output, EnvError> {
         let target = self.config.target().map_err(EnvError::Other)?;
         let known_hosts = app_known_hosts_path().map_err(EnvError::Other)?;
-        run_openssh_command(target.sftp_command(&known_hosts), Some(batch.as_bytes()))
-            .await
-            .map_err(EnvError::ConnectionFailed)
+        run_openssh_command(
+            target.sftp_command(&known_hosts).map_err(EnvError::Other)?,
+            &crate::process::ProcessDescriptor::sftp(),
+            Some(batch.as_bytes()),
+        )
+        .await
+        .map_err(EnvError::ConnectionFailed)
     }
 }
 

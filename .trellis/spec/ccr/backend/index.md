@@ -7,7 +7,7 @@
 | Guide                                                                | Description                                                                                 | Status   |
 | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | -------- |
 | [Backend Guidelines](./backend-guidelines.md)                        | Root CLI/library facade boundaries, logging, errors, and verification                       | Complete |
-| [Desktop Command Policy](./desktop-command-policy.md)                | Request-level validation for desktop command passthrough                                    | Complete |
+| [Desktop Command Policy](./desktop-command-policy.md)                | Desktop request validation, ProcessGateway capabilities, output bounds, and lifecycle        | Complete |
 | [Dependency Governance](./dependency-governance.md)                  | Root/Tauri dependency drift gates                                                           | Complete |
 | [llmusage Provider Adapter Contract](./llmusage-provider-adapter.md) | Provider-scoped llmusage sync/read-only SQLite/Tauri dashboard contract                     | Complete |
 | [Public API Boundary](./public-api-boundary.md)                      | Stable prelude and root re-export compatibility guards                                      | Complete |

@@ -585,7 +585,13 @@ import {
   getRecentItems,
   removeFavorite as removeFavoriteItem,
 } from '@/api/domains/uiState'
-import type { CommandInfo, CommandJobSnapshot, CommandJobStatus, ConfigItem } from '@/types'
+import type {
+  CommandInfo,
+  CommandJobDelta,
+  CommandJobSnapshot,
+  CommandJobStatus,
+  ConfigItem,
+} from '@/types'
 import { normalizeCliClient, type CliClient } from '@/types/router'
 import { createAnsiRenderer } from '@/utils/ansiRenderer'
 import { logger } from '@/utils/logger'
@@ -657,6 +663,7 @@ const activeCategory = ref('all')
 const activeCollection = ref<CommandCollection>('catalog')
 const dangerAccepted = ref(false)
 const currentSnapshot = shallowRef<CommandJobSnapshot | null>(null)
+let lastDeltaSeq = -1
 const configs = ref<ConfigItem[]>([])
 const favorites = ref<FavoriteCommand[]>([])
 const historyItems = ref<CommandHistoryItem[]>([])
@@ -982,21 +989,43 @@ const loadCommands = async () => {
 
 const installJobListeners = async () => {
   if (runtimeUnavailable.value) return
+  const handleDelta = (event: Event<CommandJobDelta>) => {
+    const snapshot = currentSnapshot.value
+    const delta = event.payload
+    if (!snapshot || delta.job_id !== snapshot.job_id || delta.seq <= lastDeltaSeq) return
+
+    lastDeltaSeq = delta.seq
+    const field =
+      delta.channel === 'stdout'
+        ? 'stdout_lines'
+        : delta.channel === 'stderr'
+          ? 'stderr_lines'
+          : 'system_lines'
+    const lines = [...snapshot[field], ...delta.lines]
+    currentSnapshot.value = {
+      ...snapshot,
+      [field]: lines.slice(-500),
+      status: delta.status ?? snapshot.status,
+      truncated: Boolean(snapshot.truncated) || delta.dropped_count > 0,
+      dropped_lines: (snapshot.dropped_lines ?? 0) + delta.dropped_count,
+    }
+  }
   const handleSnapshot = (event: Event<CommandJobSnapshot>) => {
     if (!currentSnapshot.value || event.payload.job_id === currentSnapshot.value.job_id) {
       currentSnapshot.value = event.payload
+      lastDeltaSeq = -1
     }
     void maybeRecordHistory(event.payload)
   }
 
-  unlisteners.push(await listen<CommandJobSnapshot>('commands:job-progress', handleSnapshot))
+  unlisteners.push(await listen<CommandJobDelta>('commands:job-progress', handleDelta))
   unlisteners.push(await listen<CommandJobSnapshot>('commands:job-finished', handleSnapshot))
   unlisteners.push(await listen<CommandJobSnapshot>('commands:job-cancelled', handleSnapshot))
 }
 
 const maybeRecordHistory = async (snapshot: CommandJobSnapshot) => {
   if (recordedJobIds.has(snapshot.job_id)) return
-  if (!['success', 'failed', 'cancelled'].includes(snapshot.status)) return
+  if (!['success', 'failed', 'cancelled', 'cleanup_failed'].includes(snapshot.status)) return
 
   recordedJobIds.add(snapshot.job_id)
   try {
@@ -1044,6 +1073,7 @@ watch(selectedClient, () => {
   args.value = ''
   dangerAccepted.value = false
   currentSnapshot.value = null
+  lastDeltaSeq = -1
   activeCollection.value = 'catalog'
   void loadCommands()
 
@@ -1115,6 +1145,7 @@ const handleExecute = async () => {
       confirmationToken: selectedConfirmationToken.value,
     })
     currentSnapshot.value = response.snapshot
+    lastDeltaSeq = -1
   } catch (error) {
     const message = error instanceof Error ? error.message : t('commands.unknownError')
     currentSnapshot.value = {
@@ -1189,6 +1220,7 @@ const handleCopyOutput = async () => {
 const handleClearOutput = () => {
   ansiRenderer.clear()
   currentSnapshot.value = null
+  lastDeltaSeq = -1
 }
 
 const categoryLabel = (category: string) => {

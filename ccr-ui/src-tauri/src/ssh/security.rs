@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::ffi::OsString;
 use std::net::IpAddr;
 use std::path::{Path, PathBuf};
-use std::process::{Output, Stdio};
+use std::process::Output;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
@@ -14,14 +14,11 @@ use ccr_core::core::{
     VersionedWriteOutcome, WriteOptions, content_version_token, write_guarded_versioned,
 };
 use sha2::{Digest, Sha256};
-use tokio::io::AsyncWriteExt;
-use tokio::time::timeout;
 use uuid::Uuid;
 
-use crate::process::tokio_command;
+use crate::process::{ProcessDescriptor, ProcessGateway};
 
 pub const HOST_KEY_CHALLENGE_TTL: Duration = Duration::from_secs(120);
-const OPENSSH_TIMEOUT: Duration = Duration::from_secs(15);
 const MAX_REMOTE_PATH_LEN: usize = 1024;
 const KNOWN_HOSTS_CAS_ATTEMPTS: usize = 4;
 
@@ -75,26 +72,26 @@ impl SshTarget {
         &self,
         known_hosts_path: &Path,
         connect_timeout_secs: u64,
-    ) -> tokio::process::Command {
-        let mut command = tokio_command("ssh");
+    ) -> Result<tokio::process::Command, String> {
+        let mut command = ProcessGateway::command(&ProcessDescriptor::openssh())?;
         configure_common_options(&mut command, known_hosts_path, connect_timeout_secs);
         command.arg("-p").arg(self.port.to_string());
         if let Some(identity_file) = &self.identity_file {
             command.arg("-i").arg(identity_file);
         }
         command.arg(self.destination());
-        command
+        Ok(command)
     }
 
-    pub fn sftp_command(&self, known_hosts_path: &Path) -> tokio::process::Command {
-        let mut command = tokio_command("sftp");
+    pub fn sftp_command(&self, known_hosts_path: &Path) -> Result<tokio::process::Command, String> {
+        let mut command = ProcessGateway::command(&ProcessDescriptor::sftp())?;
         configure_common_options(&mut command, known_hosts_path, 10);
         command.arg("-P").arg(self.port.to_string());
         if let Some(identity_file) = &self.identity_file {
             command.arg("-i").arg(identity_file);
         }
         command.arg("-b").arg("-").arg(self.destination());
-        command
+        Ok(command)
     }
 }
 
@@ -353,36 +350,23 @@ pub fn sftp_write_plan(
 }
 
 pub async fn run_openssh_command(
-    mut command: tokio::process::Command,
+    command: tokio::process::Command,
+    descriptor: &ProcessDescriptor,
     stdin: Option<&[u8]>,
 ) -> Result<Output, String> {
-    command.kill_on_drop(true);
-    command.stdout(Stdio::piped()).stderr(Stdio::piped());
-    if stdin.is_some() {
-        command.stdin(Stdio::piped());
-    } else {
-        command.stdin(Stdio::null());
+    let output =
+        ProcessGateway::execute_command(command, descriptor, stdin.map(<[u8]>::to_vec)).await?;
+    if output.timed_out {
+        return Err("ssh_process_timeout: OpenSSH command timed out".to_string());
     }
-
-    let mut child = command
-        .spawn()
-        .map_err(|error| format!("ssh_process_spawn_failed: {error}"))?;
-    if let Some(input) = stdin {
-        let mut child_stdin = child
-            .stdin
-            .take()
-            .ok_or_else(|| "ssh_process_stdin_unavailable".to_string())?;
-        child_stdin
-            .write_all(input)
-            .await
-            .map_err(|error| format!("ssh_process_stdin_failed: {error}"))?;
-        drop(child_stdin);
+    if output.stdout_truncated || output.stderr_truncated {
+        return Err("ssh_process_output_limit: OpenSSH output exceeded the limit".to_string());
     }
-
-    timeout(OPENSSH_TIMEOUT, child.wait_with_output())
-        .await
-        .map_err(|_| "ssh_process_timeout: OpenSSH command timed out".to_string())?
-        .map_err(|error| format!("ssh_process_wait_failed: {error}"))
+    Ok(Output {
+        status: output.status,
+        stdout: output.stdout,
+        stderr: output.stderr,
+    })
 }
 
 pub fn app_known_hosts_path() -> Result<PathBuf, String> {
@@ -757,7 +741,9 @@ mod tests {
     #[test]
     fn openssh_commands_always_use_the_app_trust_store() {
         let target = SshTarget::new("example.com", 2222, Some("deploy"), None).unwrap();
-        let command = target.ssh_command(Path::new("C:/CCR Data/known_hosts"), 10);
+        let command = target
+            .ssh_command(Path::new("C:/CCR Data/known_hosts"), 10)
+            .expect("trusted SSH command");
         let args: Vec<String> = command
             .as_std()
             .get_args()

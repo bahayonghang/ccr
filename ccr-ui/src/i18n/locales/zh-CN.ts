@@ -2183,6 +2183,7 @@ export default {
       success: '成功',
       failed: '失败',
       cancelled: '已取消',
+      cleanup_failed: '清理失败',
       unavailable: '不可用',
     },
   },

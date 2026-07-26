@@ -79,13 +79,21 @@ export function useCodexOAuthFlow(deps: {
   const handleReleaseOauthPort = async () => {
     try {
       oauthBusy.value = true
-      const killed = await codexReleaseOAuthPort<number>()
+      const report = await codexReleaseOAuthPort()
       await refreshOauthPortStatus()
+      if (report.unknownPids.length > 0) {
+        addAccountError.value = tf(
+          'codex.auth.oauth.portOwnedByOtherProcess',
+          'Port 1455 is owned by another process (PID: {pids}). Close that process manually.',
+          { pids: report.unknownPids.join(', ') }
+        )
+        return
+      }
       uiStore.showSuccess(
         tf(
           'codex.auth.oauth.releasePortSuccess',
           'Released the callback port ({count} process(es)).',
-          { count: killed }
+          { count: report.cancelRequested }
         )
       )
     } catch (error) {

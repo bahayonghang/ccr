@@ -1,6 +1,6 @@
 use super::*;
 use crate::desktop_shell;
-use crate::process;
+use crate::process::{ProcessDescriptor, ProcessGateway};
 use base64::Engine;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use ccr_codex::services::CodexModelProviderStoreService;
@@ -13,9 +13,9 @@ use reqwest::Url;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map as JsonMap, Value as JsonValue, json};
 use sha2::{Digest, Sha256};
+use std::ffi::OsString;
 use std::io::ErrorKind;
 use std::path::PathBuf;
-use std::process::Stdio;
 use std::sync::{LazyLock, Mutex};
 use tauri::{AppHandle, Emitter, State};
 use uuid::Uuid;
@@ -574,107 +574,99 @@ fn provider_record_from_payload(
     })
 }
 
-fn open_external_url(url: &str) -> Result<(), String> {
-    if url.trim().is_empty() {
-        return Err("URL 不能为空".to_string());
+#[cfg(any(target_os = "windows", test))]
+fn parse_netstat_listeners(text: &str, port: u16) -> Vec<u32> {
+    let mut pids = Vec::new();
+    for line in text.lines() {
+        if !(line.contains(&format!(":{port}")) && line.contains("LISTENING")) {
+            continue;
+        }
+        if let Some(pid) = line
+            .split_whitespace()
+            .last()
+            .and_then(|value| value.parse::<u32>().ok())
+        {
+            pids.push(pid);
+        }
     }
-
-    #[cfg(target_os = "windows")]
-    let mut command = {
-        let mut cmd = process::std_command("rundll32");
-        cmd.arg("url.dll,FileProtocolHandler").arg(url);
-        cmd
-    };
-
-    #[cfg(target_os = "macos")]
-    let mut command = {
-        let mut cmd = process::std_command("open");
-        cmd.arg(url);
-        cmd
-    };
-
-    #[cfg(all(unix, not(target_os = "macos")))]
-    let mut command = {
-        let mut cmd = process::std_command("xdg-open");
-        cmd.arg(url);
-        cmd
-    };
-
-    command.stdout(Stdio::null()).stderr(Stdio::null());
-    command
-        .spawn()
-        .map_err(|e| format!("打开浏览器失败: {e}"))?;
-    Ok(())
+    pids.sort_unstable();
+    pids.dedup();
+    pids
 }
 
-fn discover_port_processes(port: u16) -> Result<Vec<u32>, String> {
+#[cfg(any(not(target_os = "windows"), test))]
+fn parse_lsof_listeners(text: &str) -> Vec<u32> {
+    let mut pids = text
+        .lines()
+        .filter_map(|line| line.trim().parse::<u32>().ok())
+        .collect::<Vec<_>>();
+    pids.sort_unstable();
+    pids.dedup();
+    pids
+}
+
+async fn discover_port_processes(port: u16) -> Result<Vec<u32>, String> {
+    let descriptor = ProcessDescriptor::port_discovery();
     #[cfg(target_os = "windows")]
     {
-        let output = process::std_command("netstat")
-            .args(["-ano", "-p", "tcp"])
-            .output()
-            .map_err(|e| format!("执行 netstat 失败: {e}"))?;
+        let output = ProcessGateway::execute(
+            &descriptor,
+            &[
+                OsString::from("-ano"),
+                OsString::from("-p"),
+                OsString::from("tcp"),
+            ],
+        )
+        .await?;
         let text = String::from_utf8_lossy(&output.stdout);
-        let mut pids = Vec::new();
-        for line in text.lines() {
-            if !(line.contains(&format!(":{port}")) && line.contains("LISTENING")) {
-                continue;
-            }
-            if let Some(pid) = line
-                .split_whitespace()
-                .last()
-                .and_then(|value| value.parse::<u32>().ok())
-            {
-                pids.push(pid);
-            }
-        }
-        pids.sort_unstable();
-        pids.dedup();
-        return Ok(pids);
+        Ok(parse_netstat_listeners(&text, port))
     }
 
     #[cfg(not(target_os = "windows"))]
     {
-        let output = process::std_command("lsof")
-            .args(["-nP", &format!("-iTCP:{port}"), "-sTCP:LISTEN", "-t"])
-            .output()
-            .map_err(|e| format!("执行 lsof 失败: {e}"))?;
+        let output = ProcessGateway::execute(
+            &descriptor,
+            &[
+                OsString::from("-nP"),
+                OsString::from(format!("-iTCP:{port}")),
+                OsString::from("-sTCP:LISTEN"),
+                OsString::from("-t"),
+            ],
+        )
+        .await?;
         let text = String::from_utf8_lossy(&output.stdout);
-        let mut pids = text
-            .lines()
-            .filter_map(|line| line.trim().parse::<u32>().ok())
-            .collect::<Vec<_>>();
-        pids.sort_unstable();
-        pids.dedup();
-        Ok(pids)
+        Ok(parse_lsof_listeners(&text))
     }
 }
 
-fn kill_port_processes(port: u16) -> Result<u32, String> {
-    let pids = discover_port_processes(port)?;
-    if pids.is_empty() {
-        return Ok(0);
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct OAuthPortReleaseReport {
+    pub discovered_pids: Vec<u32>,
+    pub owned_pids: Vec<u32>,
+    pub unknown_pids: Vec<u32>,
+    pub cancel_requested: u32,
+}
+
+fn build_port_release_report(
+    mut discovered_pids: Vec<u32>,
+    mut owned_pids: Vec<u32>,
+) -> OAuthPortReleaseReport {
+    discovered_pids.sort_unstable();
+    discovered_pids.dedup();
+    owned_pids.sort_unstable();
+    owned_pids.dedup();
+    let unknown_pids = discovered_pids
+        .iter()
+        .copied()
+        .filter(|pid| !owned_pids.contains(pid))
+        .collect();
+    OAuthPortReleaseReport {
+        discovered_pids,
+        cancel_requested: owned_pids.len() as u32,
+        owned_pids,
+        unknown_pids,
     }
-
-    for pid in &pids {
-        #[cfg(target_os = "windows")]
-        {
-            process::std_command("taskkill")
-                .args(["/PID", &pid.to_string(), "/F"])
-                .status()
-                .map_err(|e| format!("结束占用端口进程失败: {e}"))?;
-        }
-
-        #[cfg(not(target_os = "windows"))]
-        {
-            process::std_command("kill")
-                .args(["-9", &pid.to_string()])
-                .status()
-                .map_err(|e| format!("结束占用端口进程失败: {e}"))?;
-        }
-    }
-
-    Ok(pids.len() as u32)
 }
 
 fn account_item_to_value(
@@ -1142,13 +1134,21 @@ pub fn codex_is_oauth_port_in_use() -> Result<bool, String> {
 }
 
 #[tauri::command]
-pub fn codex_release_oauth_port() -> Result<u32, String> {
-    kill_port_processes(OAUTH_CALLBACK_PORT)
+pub async fn codex_release_oauth_port() -> Result<OAuthPortReleaseReport, String> {
+    let discovered = discover_port_processes(OAUTH_CALLBACK_PORT).await?;
+    let owned = ProcessGateway::owned_processes_for_port(&discovered, OAUTH_CALLBACK_PORT);
+    for process in &owned {
+        process.request_cancel();
+    }
+    Ok(build_port_release_report(
+        discovered,
+        owned.iter().map(|process| process.pid).collect(),
+    ))
 }
 
 #[tauri::command]
 pub async fn codex_open_external_url(url: String) -> Result<(), String> {
-    tokio::task::spawn_blocking(move || open_external_url(&url))
+    tokio::task::spawn_blocking(move || ProcessGateway::open_oauth_url(&url))
         .await
         .map_err(|e| format!("任务执行失败: {e}"))?
 }
@@ -1380,4 +1380,36 @@ pub async fn codex_delete_model_provider(provider_id: String) -> Result<Value, S
     })
     .await
     .map_err(|e| format!("任务执行失败: {e}"))?
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn port_release_report_never_claims_unknown_processes() {
+        let report = build_port_release_report(vec![41, 7, 41, 9], vec![9]);
+
+        assert_eq!(report.discovered_pids, vec![7, 9, 41]);
+        assert_eq!(report.owned_pids, vec![9]);
+        assert_eq!(report.unknown_pids, vec![7, 41]);
+        assert_eq!(report.cancel_requested, 1);
+    }
+
+    #[test]
+    fn port_release_report_is_noop_when_no_owned_process_matches() {
+        let report = build_port_release_report(vec![23], Vec::new());
+
+        assert_eq!(report.unknown_pids, vec![23]);
+        assert_eq!(report.cancel_requested, 0);
+    }
+
+    #[test]
+    fn port_discovery_parsers_deduplicate_listener_pids() {
+        let netstat = "TCP 127.0.0.1:1455 0.0.0.0:0 LISTENING 41\n\
+                       TCP [::1]:1455 [::]:0 LISTENING 41\n\
+                       TCP 127.0.0.1:1456 0.0.0.0:0 LISTENING 99";
+        assert_eq!(parse_netstat_listeners(netstat, 1455), vec![41]);
+        assert_eq!(parse_lsof_listeners("41\n7\n41\ninvalid\n"), vec![7, 41]);
+    }
 }

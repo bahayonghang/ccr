@@ -118,11 +118,12 @@ impl SshConnectionManager {
         let known_hosts = app_known_hosts_path()?;
         let nonce = format!("__CCR_SSH_OK__{}", Uuid::new_v4());
         let remote_command = format!("printf '%s\\n' {}", posix_single_quote(&nonce));
-        let mut command = target.ssh_command(&known_hosts, 10);
+        let mut command = target.ssh_command(&known_hosts, 10)?;
         command.arg(remote_command);
 
         let start = Instant::now();
-        let result = run_openssh_command(command, None).await;
+        let result =
+            run_openssh_command(command, &crate::process::ProcessDescriptor::openssh(), None).await;
         let latency_ms = start.elapsed().as_millis().min(u128::from(u64::MAX)) as u64;
 
         match result {

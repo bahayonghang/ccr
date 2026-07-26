@@ -8,8 +8,9 @@ use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Instant;
 
-use tokio::io::{AsyncBufReadExt, BufReader};
-use tokio::process::{Child, Command};
+use ccr_core::core::process_gateway::{ManagedProcess, read_bounded_line};
+use tokio::io::BufReader;
+use tokio::process::Command;
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 
@@ -20,6 +21,7 @@ use crate::services::install_types::{
 
 /// Timeout for graceful termination before forceful kill.
 const GRACEFUL_TIMEOUT_MS: u64 = 2000;
+const INSTALL_MAX_LINE_BYTES: usize = 64 * 1024;
 const CARGO_ARGS: &[&str] = &["install", "--locked", "llmusage"];
 const HOMEBREW_ARGS: &[&str] = &["install", "llmusage"];
 const SCOOP_ARGS: &[&str] = &["install", "llmusage"];
@@ -84,13 +86,12 @@ pub(crate) fn run_attempt(
         let spec = process_spec(&action);
 
         // Spawn the child process.
-        let mut child = match Command::new(&spec.program)
+        let mut command = Command::new(&spec.program);
+        command
             .args(spec.args)
             .stdout(std::process::Stdio::piped())
-            .stderr(std::process::Stdio::piped())
-            .kill_on_drop(true)
-            .spawn()
-        {
+            .stderr(std::process::Stdio::piped());
+        let mut child = match ManagedProcess::spawn(command) {
             Ok(c) => {
                 let ev = InstallEvent::Started {
                     attempt_id,
@@ -116,8 +117,8 @@ pub(crate) fn run_attempt(
         // Set up line readers for stdout and stderr.
         let seq = AtomicU64::new(0);
 
-        let stdout = child.stdout.take();
-        let stderr = child.stderr.take();
+        let stdout = child.take_stdout();
+        let stderr = child.take_stderr();
 
         let tx_stdout = tx.clone();
         let ring_stdout = ring.clone();
@@ -159,8 +160,12 @@ pub(crate) fn run_attempt(
             }
             _ = cancel_token.cancelled() => {
                 let requested_at_ms = epoch_ms();
-                graceful_then_forceful(&mut child).await;
-                ChildOutcome::Cancelled { requested_at_ms }
+                let cleanup_error = child
+                    .terminate_tree(std::time::Duration::from_millis(GRACEFUL_TIMEOUT_MS))
+                    .await
+                    .err()
+                    .map(|error| format!("process tree cleanup failed: {error}"));
+                ChildOutcome::Cancelled { requested_at_ms, cleanup_error }
             }
         };
 
@@ -195,9 +200,22 @@ pub(crate) fn run_attempt(
                 stderr_excerpt: None,
                 error_message: format!("error waiting for child: {e}"),
             },
-            ChildOutcome::Cancelled { requested_at_ms } => InstallEvent::Cancelled {
+            ChildOutcome::Cancelled {
+                requested_at_ms,
+                cleanup_error: None,
+            } => InstallEvent::Cancelled {
                 attempt_id,
                 requested_at_ms,
+            },
+            ChildOutcome::Cancelled {
+                cleanup_error: Some(error_message),
+                ..
+            } => InstallEvent::Failed {
+                attempt_id,
+                failure_kind: FailureKind::InternalError,
+                exit_code: None,
+                stderr_excerpt: None,
+                error_message,
             },
         };
 
@@ -210,42 +228,10 @@ pub(crate) fn run_attempt(
 
 enum ChildOutcome {
     Exited(Result<Option<i32>, std::io::Error>),
-    Cancelled { requested_at_ms: u64 },
-}
-
-/// Send graceful signal, wait up to GRACEFUL_TIMEOUT_MS, then forceful kill.
-async fn graceful_then_forceful(child: &mut Child) {
-    // First attempt: try to kill gracefully.
-    // On Unix, we send SIGTERM via the kill syscall.
-    // On Windows, start_kill sends TerminateProcess.
-    #[cfg(unix)]
-    {
-        if let Some(pid) = child.id() {
-            // SAFETY: sending SIGTERM to a known child process.
-            // SIGTERM = 15 on all Unix platforms.
-            unsafe {
-                libc::kill(pid as libc::pid_t, libc::SIGTERM);
-            }
-        }
-    }
-
-    #[cfg(not(unix))]
-    {
-        // On Windows, start_kill is the only option (TerminateProcess).
-        let _ = child.start_kill();
-    }
-
-    // Wait for graceful exit.
-    let graceful = tokio::time::timeout(
-        std::time::Duration::from_millis(GRACEFUL_TIMEOUT_MS),
-        child.wait(),
-    )
-    .await;
-
-    if graceful.is_err() {
-        // Graceful timeout expired — forceful kill.
-        let _ = child.kill().await;
-    }
+    Cancelled {
+        requested_at_ms: u64,
+        cleanup_error: Option<String>,
+    },
 }
 
 /// Pipe lines from an async reader to the event channel.
@@ -257,9 +243,15 @@ async fn pipe_lines<R: tokio::io::AsyncRead + Unpin>(
     tx: &mpsc::Sender<InstallEvent>,
     ring: &RingBufferHandle,
 ) {
-    let mut lines = BufReader::new(reader).lines();
-    while let Ok(Some(line)) = lines.next_line().await {
-        let redacted = redact(&line);
+    let mut reader = BufReader::new(reader);
+    while let Ok(Some(mut line)) = read_bounded_line(&mut reader, INSTALL_MAX_LINE_BYTES).await {
+        if line.truncated {
+            while line.text.len() + '…'.len_utf8() > INSTALL_MAX_LINE_BYTES {
+                line.text.pop();
+            }
+            line.text.push('…');
+        }
+        let redacted = redact(&line.text);
         let current_seq = seq.fetch_add(1, Ordering::Relaxed);
 
         // Detect progress stage from line content.
@@ -364,5 +356,33 @@ mod tests {
         assert!(source.contains("Command::new(&spec.program)"));
         assert!(!source.contains(&renderer_command));
         assert!(!source.contains(&renderer_env));
+    }
+
+    #[tokio::test]
+    async fn install_log_reader_caps_unterminated_lines() {
+        use tokio::io::AsyncWriteExt;
+
+        let (mut writer, reader) = tokio::io::duplex(64 * 1024);
+        let writer_task = tokio::spawn(async move {
+            writer
+                .write_all(&vec![b'x'; INSTALL_MAX_LINE_BYTES * 2])
+                .await
+                .expect("write oversized install log line");
+            writer.shutdown().await.expect("close install log writer");
+        });
+        let (tx, mut rx) = mpsc::channel(4);
+        let ring = RingBufferHandle::new();
+        let attempt_id = AttemptId::new();
+        let sequence = AtomicU64::new(0);
+
+        pipe_lines(reader, LogStream::Stdout, attempt_id, &sequence, &tx, &ring).await;
+        writer_task.await.expect("writer task should finish");
+
+        let event = rx.recv().await.expect("bounded log event");
+        let InstallEvent::Log { line, .. } = event else {
+            panic!("expected bounded log event");
+        };
+        assert!(line.len() <= INSTALL_MAX_LINE_BYTES);
+        assert!(line.ends_with('…'));
     }
 }

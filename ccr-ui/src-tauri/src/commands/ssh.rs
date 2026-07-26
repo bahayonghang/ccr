@@ -124,7 +124,8 @@ async fn resolve_probe_target(
 
 async fn collect_host_key(host: &str, port: u16) -> Result<ScannedHostKey, String> {
     let target = SshTarget::new(host, port, None, None)?;
-    let mut keyscan_cmd = crate::process::tokio_command("ssh-keyscan");
+    let descriptor = crate::process::ProcessDescriptor::ssh_keyscan();
+    let mut keyscan_cmd = crate::process::ProcessGateway::command(&descriptor)?;
     keyscan_cmd
         .arg("-T")
         .arg("5")
@@ -134,7 +135,7 @@ async fn collect_host_key(host: &str, port: u16) -> Result<ScannedHostKey, Strin
         .arg("ed25519,ecdsa,rsa")
         .arg(target.host());
 
-    let keyscan_output = run_openssh_command(keyscan_cmd, None).await?;
+    let keyscan_output = run_openssh_command(keyscan_cmd, &descriptor, None).await?;
 
     if !keyscan_output.status.success() {
         return Err(format!(

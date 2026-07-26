@@ -1,0 +1,4 @@
+{"file":".trellis/spec/ccr/backend/desktop-command-policy.md","reason":"Command capability and lifecycle source contract"}
+{"file":".trellis/spec/ccr/backend/tauri-handler-registry.md","reason":"Process command registration contract"}
+{"file":".trellis/spec/ccr/backend/typed-ipc-bindings.md","reason":"Structured result and event DTOs"}
+{"file":".trellis/spec/ccr-ui/frontend/api-facade-boundary.md","reason":"Generated process client ownership"}

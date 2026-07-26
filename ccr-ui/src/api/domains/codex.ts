@@ -452,7 +452,14 @@ export const codexIsOAuthPortInUse = async <T = boolean>(): Promise<T> => {
   return invoke('codex_is_oauth_port_in_use')
 }
 
-export const codexReleaseOAuthPort = async <T = number>(): Promise<T> => {
+export interface CodexOAuthPortReleaseReport {
+  discoveredPids: number[]
+  ownedPids: number[]
+  unknownPids: number[]
+  cancelRequested: number
+}
+
+export const codexReleaseOAuthPort = async (): Promise<CodexOAuthPortReleaseReport> => {
   return invoke('codex_release_oauth_port')
 }
 

@@ -3,18 +3,19 @@
 use ccr_types::{FrontendLogInput, MonitoringEntry, MonitoringFeedQuery};
 
 use serde::{Deserialize, Serialize};
+use std::ffi::OsString;
 #[cfg(target_os = "windows")]
 use std::path::Path;
-use std::{io::ErrorKind, sync::Arc, time::Instant};
+use std::{sync::Arc, time::Instant};
 use tauri::State;
 use tokio::sync::Semaphore;
-use tokio::time::{Duration, timeout};
+use tokio::time::Duration;
 
 use crate::monitoring::{
     event_to_monitoring_entry, frontend_log_entry, record_monitoring_entry, should_persist,
 };
 use crate::platform::CliStatus;
-use crate::process::tokio_command;
+use crate::process::{ProcessDescriptor, ProcessGateway};
 use crate::state::{AppState, CacheFillRegistration};
 
 /// 系统信息响应结构
@@ -320,19 +321,6 @@ fn current_process_rss_bytes() -> u64 {
     system.process(pid).map(|p| p.memory()).unwrap_or(0)
 }
 
-async fn run_command_with_timeout(
-    program: &str,
-    args: &[&str],
-    timeout_secs: u64,
-) -> Result<std::process::Output, String> {
-    let mut cmd = tokio_command(program);
-    cmd.args(args);
-    match timeout(Duration::from_secs(timeout_secs), cmd.output()).await {
-        Ok(result) => result.map_err(|e| format!("Failed to spawn command: {e}")),
-        Err(_) => Err(format!("Command timeout after {timeout_secs}s")),
-    }
-}
-
 fn extract_version_line(output: &std::process::Output) -> Option<String> {
     let stdout = String::from_utf8_lossy(&output.stdout);
     let stderr = String::from_utf8_lossy(&output.stderr);
@@ -466,10 +454,15 @@ async fn probe_cli_version_target(target: &CliProbeTarget, timeout_ms: u64) -> C
     }
 
     let started_at = Instant::now();
-    let mut cmd = tokio_command(&target.program);
-    cmd.args(["--version"]);
-
-    let result = timeout(Duration::from_millis(timeout_ms), cmd.output()).await;
+    let descriptor = match ProcessDescriptor::cli_probe(
+        target.platform,
+        &target.program,
+        Duration::from_millis(timeout_ms),
+    ) {
+        Ok(descriptor) => descriptor,
+        Err(_) => return missing_cli_version_entry(target.platform),
+    };
+    let result = ProcessGateway::execute(&descriptor, &[OsString::from("--version")]).await;
     let elapsed_ms = started_at.elapsed().as_millis() as u64;
 
     match result {
@@ -477,27 +470,25 @@ async fn probe_cli_version_target(target: &CliProbeTarget, timeout_ms: u64) -> C
             platform: target.platform.to_string(),
             installed: false,
             version: None,
-            status: "timeout".to_string(),
-            elapsed_ms,
-        },
-        Ok(Err(err)) if err.kind() == ErrorKind::NotFound => CliVersionEntry {
-            platform: target.platform.to_string(),
-            installed: false,
-            version: None,
-            status: "not_installed".to_string(),
-            elapsed_ms,
-        },
-        Ok(Err(_)) => CliVersionEntry {
-            platform: target.platform.to_string(),
-            installed: false,
-            version: None,
             status: "error".to_string(),
             elapsed_ms,
         },
-        Ok(Ok(output)) => {
-            let version = extract_version_line(&output);
+        Ok(output) if output.timed_out => CliVersionEntry {
+            platform: target.platform.to_string(),
+            installed: false,
+            version: None,
+            status: "timeout".to_string(),
+            elapsed_ms,
+        },
+        Ok(output) => {
+            let process_output = std::process::Output {
+                status: output.status,
+                stdout: output.stdout,
+                stderr: output.stderr,
+            };
+            let version = extract_version_line(&process_output);
 
-            if version.is_some() {
+            if process_output.status.success() && version.is_some() {
                 CliVersionEntry {
                     platform: target.platform.to_string(),
                     installed: true,
@@ -673,9 +664,16 @@ async fn compute_cli_versions(
 
 #[tauri::command]
 pub async fn update_ccr() -> Result<serde_json::Value, String> {
-    let output = run_command_with_timeout("cargo", &["install", "ccr"], 60).await?;
+    let output = ProcessGateway::execute(
+        &ProcessDescriptor::ccr_update(),
+        &[OsString::from("install"), OsString::from("ccr")],
+    )
+    .await?;
 
-    let success = output.status.success();
+    let success = output.status.success()
+        && !output.timed_out
+        && !output.stdout_truncated
+        && !output.stderr_truncated;
     let stdout = String::from_utf8_lossy(&output.stdout).to_string();
     let stderr = String::from_utf8_lossy(&output.stderr).to_string();
 
@@ -683,6 +681,8 @@ pub async fn update_ccr() -> Result<serde_json::Value, String> {
         "success": success,
         "stdout": stdout,
         "stderr": stderr,
+        "timed_out": output.timed_out,
+        "truncated": output.stdout_truncated || output.stderr_truncated,
     }))
 }
 

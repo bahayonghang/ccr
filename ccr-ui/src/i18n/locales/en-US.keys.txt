@@ -1911,6 +1911,7 @@ export default {
       success: 'Success',
       failed: 'Failed',
       cancelled: 'Cancelled',
+      cleanup_failed: 'Cleanup failed',
       unavailable: 'Unavailable',
     },
   },

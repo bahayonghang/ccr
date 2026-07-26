@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use std::process::Stdio;
 use std::sync::{Arc, Mutex};
 
-use tokio::io::{AsyncBufReadExt, AsyncRead, BufReader};
+use tokio::io::{AsyncRead, BufReader};
 use tokio::process::Command;
 use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
@@ -11,10 +11,12 @@ use tokio_util::sync::CancellationToken;
 use super::{
     AppPaths, JobEvent, SourceKind, error::LlmusageAdapterError, events::parse_ndjson_event,
 };
-use crate::process::tokio_command;
+use crate::process::{ProcessDescriptor, ProcessGateway, read_bounded_line};
 
 /// stderr 摘要最长保留行数，避免 OOM 当上游疯狂打日志
 const STDERR_TAIL_LINES: usize = 64;
+const STDERR_MAX_LINE_BYTES: usize = 64 * 1024;
+const STDOUT_MAX_LINE_BYTES: usize = 1024 * 1024;
 
 #[derive(Debug, Clone)]
 pub struct LlmusageCli {
@@ -30,11 +32,9 @@ impl LlmusageCli {
         }
     }
 
-    pub fn command(&self) -> Command {
-        // 走 process::tokio_command 保证 Windows release 下不弹 cmd / conhost 窗口
-        // （process/mod.rs 在 cfg(all(target_os="windows", not(debug_assertions))) 下设
-        // CREATE_NO_WINDOW 0x08000000）。
-        let mut command = tokio_command(&self.binary);
+    pub fn command(&self) -> Result<(Command, ProcessDescriptor), String> {
+        let descriptor = ProcessDescriptor::llmusage(&self.binary)?;
+        let mut command = ProcessGateway::command(&descriptor)?;
         command.arg("--home").arg(&self.paths.root_dir);
         // 强行静音上游 tracing 日志：llmusage 0.5.3 logging.rs 默认 writer 是 stdout，
         // INFO 日志会跟 NDJSON 事件混在同一条流，把 sync 干掉。RUST_LOG=off 让
@@ -42,7 +42,7 @@ impl LlmusageCli {
         // 日志放到我们要解析的流里也不会带控制码。
         command.env("RUST_LOG", "off");
         command.env("NO_COLOR", "1");
-        command
+        Ok((command, descriptor))
     }
 }
 
@@ -111,26 +111,27 @@ where
     F: FnMut(JobEvent) -> Fut,
     Fut: std::future::Future<Output = Result<(), String>>,
 {
-    let mut command = cli.command();
+    let (mut command, descriptor) = cli
+        .command()
+        .map_err(|error| LlmusageAdapterError::Cli(error.to_string()))?;
     command.arg("sync").arg("--json-events");
     append_sync_options(&mut command, &options);
-    command
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .kill_on_drop(true);
+    command.stdout(Stdio::piped()).stderr(Stdio::piped());
 
-    let mut child = command.spawn().map_err(|error| match error.kind() {
-        std::io::ErrorKind::NotFound => LlmusageAdapterError::CliMissing,
-        _ => LlmusageAdapterError::Cli(error.to_string()),
+    let mut child = ProcessGateway::spawn(command, &descriptor, cancel_token.clone(), Vec::new())
+        .map_err(|error| {
+        if error.contains("not found") || error.contains("os error 2") {
+            LlmusageAdapterError::CliMissing
+        } else {
+            LlmusageAdapterError::Cli(error)
+        }
     })?;
 
     let stdout = child
-        .stdout
-        .take()
+        .take_stdout()
         .ok_or_else(|| LlmusageAdapterError::Cli("failed to capture llmusage stdout".into()))?;
     let stderr = child
-        .stderr
-        .take()
+        .take_stderr()
         .ok_or_else(|| LlmusageAdapterError::Cli("failed to capture llmusage stderr".into()))?;
 
     let (stderr_tail, stderr_task) = spawn_stderr_drainer(stderr);
@@ -140,9 +141,9 @@ where
     let exit = match stdout_result {
         Ok(StdoutOutcome::Eof) => child.wait().await,
         Ok(StdoutOutcome::Cancelled) | Err(_) => {
-            // 出错或取消：让子进程立刻退出，避免 leak。
-            let _ = child.start_kill();
-            child.wait().await
+            child
+                .terminate_tree(std::time::Duration::from_secs(5))
+                .await
         }
     };
 
@@ -185,13 +186,19 @@ where
     let tail: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
     let tail_clone = Arc::clone(&tail);
     let task = tokio::spawn(async move {
-        let mut lines = BufReader::new(reader).lines();
-        while let Ok(Some(line)) = lines.next_line().await {
+        let mut reader = BufReader::new(reader);
+        while let Ok(Some(mut line)) = read_bounded_line(&mut reader, STDERR_MAX_LINE_BYTES).await {
+            if line.truncated {
+                while line.text.len() + '…'.len_utf8() > STDERR_MAX_LINE_BYTES {
+                    line.text.pop();
+                }
+                line.text.push('…');
+            }
             if let Ok(mut buf) = tail_clone.lock() {
                 if buf.len() >= STDERR_TAIL_LINES {
                     buf.remove(0);
                 }
-                buf.push(line);
+                buf.push(line.text);
             }
         }
     });
@@ -210,13 +217,18 @@ where
     F: FnMut(JobEvent) -> Fut,
     Fut: std::future::Future<Output = Result<(), String>>,
 {
-    let mut lines = BufReader::new(reader).lines();
+    let mut reader = BufReader::new(reader);
     loop {
         tokio::select! {
             biased;
             _ = cancel_token.cancelled() => return Ok(StdoutOutcome::Cancelled),
-            line = lines.next_line() => match line {
-                Ok(Some(raw)) => match parse_ndjson_event(&raw) {
+            line = read_bounded_line(&mut reader, STDOUT_MAX_LINE_BYTES) => match line {
+                Ok(Some(raw)) if raw.truncated => {
+                    return Err(LlmusageAdapterError::Cli(
+                        "llmusage_stdout_line_too_long".to_string(),
+                    ));
+                }
+                Ok(Some(raw)) => match parse_ndjson_event(&raw.text) {
                     Ok(Some(event)) => {
                         on_event(event).await.map_err(LlmusageAdapterError::Cli)?;
                     }
@@ -362,5 +374,28 @@ mod tests {
         .expect("cancel path is not an error");
 
         assert!(matches!(outcome, StdoutOutcome::Cancelled));
+    }
+
+    #[tokio::test]
+    async fn oversized_unterminated_stdout_line_fails_bounded() {
+        let (mut writer, reader) = tokio::io::duplex(64 * 1024);
+        let writer_task = tokio::spawn(async move {
+            writer
+                .write_all(&vec![b'x'; STDOUT_MAX_LINE_BYTES + 1024])
+                .await
+                .unwrap();
+            writer.shutdown().await.unwrap();
+        });
+
+        let result = consume_stdout_events(reader, CancellationToken::new(), |_| {
+            std::future::ready(Ok(()))
+        })
+        .await;
+        writer_task.await.unwrap();
+
+        let Err(error) = result else {
+            panic!("oversized line must fail closed");
+        };
+        assert!(error.to_string().contains("llmusage_stdout_line_too_long"));
     }
 }
