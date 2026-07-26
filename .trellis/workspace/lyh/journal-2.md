@@ -72,3 +72,24 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 50: Install opaque handle hardening
+
+**Date**: 2026-07-26
+**Task**: Install opaque handle hardening
+**Branch**: `dev`
+
+### Summary
+
+将安装执行收紧为后端一次性 plan_id，补齐 canonical plan、稳定错误码、生成 TypeScript 绑定与前端重试刷新，并通过 Rust、Tauri、前端及格式检查。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b444b459` | (see git log) |
+
+### Status
+
+[OK] **Completed**
