@@ -9,14 +9,13 @@
 // - 🔒 文件锁保证并发安全
 // - 💾 自动备份机制
 
-use ccr_core::core::atomic_writer::AsyncAtomicWriter;
+use ccr_core::core::atomic_writer::{AsyncAtomicWriter, AtomicWriter};
 use ccr_core::core::cache::ConfigCache;
 use ccr_core::core::error::{CcrError, Result};
 use ccr_core::core::lock::LockManager;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
-use tempfile::NamedTempFile;
 use tokio::fs as async_fs;
 
 // 🎯 唯一 shape:富类型定义与托管 env 变更/查询/验证逻辑均在 ccr-types
@@ -177,21 +176,10 @@ impl SettingsManager {
         let content = serde_json::to_string_pretty(settings)
             .map_err(|e| CcrError::SettingsError(format!("序列化设置失败: {}", e)))?;
 
-        // 📄 写入临时文件
-        let temp_file = if let Some(parent) = self.settings_path.parent() {
-            NamedTempFile::new_in(parent)
-        } else {
-            NamedTempFile::new()
-        }
-        .map_err(|e| CcrError::SettingsError(format!("创建临时文件失败: {}", e)))?;
-
-        fs::write(temp_file.path(), content)
-            .map_err(|e| CcrError::SettingsError(format!("写入临时文件失败: {}", e)))?;
-
-        // 🔄 原子替换(确保不会损坏原文件)
-        temp_file
-            .persist(&self.settings_path)
-            .map_err(|e| CcrError::SettingsError(format!("原子替换文件失败: {}", e)))?;
+        AtomicWriter::new(&self.settings_path)
+            .secret(true)
+            .write_string(&content)
+            .map_err(|e| CcrError::SettingsError(format!("原子保存设置失败: {}", e)))?;
 
         tracing::info!("✅ 设置文件已原子保存: {:?}", self.settings_path);
         Ok(())
@@ -204,7 +192,9 @@ impl SettingsManager {
         let content = serde_json::to_string_pretty(settings)
             .map_err(|e| CcrError::SettingsError(format!("序列化设置失败: {}", e)))?;
 
-        let writer = AsyncAtomicWriter::new(&self.settings_path);
+        let writer = AsyncAtomicWriter::new(&self.settings_path)
+            .secret(true)
+            .preserve_mode(true);
         writer
             .write_string_async(&content)
             .await

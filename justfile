@@ -427,8 +427,13 @@ lint-strict:
     @just info "🔥 运行严格 Clippy 检查"
     @just warn "模式: 所有警告视为错误 + 禁止 unwrap"
     @just info "📌 注意: 测试代码中的 unwrap 会产生警告"
+    python scripts/check-secret-writes.py
     cargo clippy --workspace --all-targets --all-features -- -D warnings -D clippy::unwrap_used
     @just success "严格 Clippy 检查通过"
+
+# 🔐 敏感文件持久化策略守卫
+secret-write-check:
+    python scripts/check-secret-writes.py
 
 # 🔧 完整代码检查 (格式化 + Clippy)
 lint: fmt clippy

@@ -19,6 +19,8 @@
 - `AtomicWriter::secret(self, secret: bool) -> Self` (builder; default `false`)
 - `AsyncAtomicWriter::write_async(&self, content: &[u8]) -> Result<()>`
 - `AsyncAtomicWriter::write_string_async(&self, content: &str) -> Result<()>`
+- `AsyncAtomicWriter::options(self, AsyncAtomicWriterOptions) -> Self`
+- `AsyncAtomicWriterOptions { secret: bool, preserve_mode: bool }`
 - Windows helper: `MoveFileExW(source, target, MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)`.
 
 ### 3. Contracts
@@ -26,12 +28,20 @@
 - Create the parent directory before creating the temporary file.
 - Write the full payload to a temp file in the same directory as the target.
 - `fsync` (`sync_all`) the temp file content BEFORE the rename, on both sync and async paths. Rename durability alone does not guarantee content durability.
-- With `secret(true)`, chmod the temp file to `0o600` BEFORE writing content (Unix; Windows no-op). Never write secret bytes to a file that is not yet owner-only. Rename preserves source permissions, so the final target is `0o600`.
+- With `secret(true)`, set the temp file policy BEFORE writing content. On Unix,
+  new or broadly-readable targets become `0o600`, while an existing stricter
+  owner-only mode such as `0o400` is preserved.
+- On Windows, secret replacement captures the target DACL and applies the same
+  ACE set to the temp file before content is written. Compare the parsed DACL,
+  not the complete security descriptor: Windows may normalize control flags.
 - On Unix-like platforms, keep using atomic rename/persist semantics.
 - On Windows, do not delete the target before replacement.
 - On Windows, use `MOVEFILE_REPLACE_EXISTING` so the OS replaces the target in one operation.
 - Use `MOVEFILE_WRITE_THROUGH` to request flush-through behavior for the rename operation.
 - Async Windows writes must call the blocking WinAPI replacement (and fsync) from `spawn_blocking`.
+- After Unix rename/persist, open and `sync_all()` the parent directory. Windows
+  uses `MOVEFILE_WRITE_THROUGH`; unsupported platforms must log the documented
+  durability downgrade rather than claim a directory fsync.
 - Failed replacement may remove the temporary file, but must leave the old target content intact.
 
 ### 4. Validation & Error Matrix
@@ -41,14 +51,22 @@
 - Windows replacement returns retryable sharing/permission error -> retry without deleting target.
 - Windows replacement exhausts retries -> return I/O error; target remains unchanged.
 - Async blocking task fails to join -> return I/O error; target remains unchanged.
+- Existing mode/DACL cannot be read or applied -> fail before writing secret
+  bytes; target remains unchanged.
+- Parent directory fsync fails after rename -> return an I/O error and do not
+  report durable success (the new complete file may already be visible).
 
 ### 5. Good/Base/Bad Cases
 
 - Good: overwriting `config.toml` on Windows uses `MoveFileExW` with replace and write-through flags.
 - Good: a simulated retry exhaustion leaves the original file content readable.
+- Good: replacing `0o400` keeps `0o400`; replacing `0o644` credential state
+  produces `0o600`.
 - Base: writing a new file still creates the parent directory and produces the requested content.
 - Bad: `remove_file(target)` before `rename(temp, target)`.
 - Bad: async writer doing a delete-then-rename because the sync writer was fixed separately.
+- Bad: writing credentials with `async_fs::write` and applying permissions only
+  after secret bytes are already on disk.
 
 ### 6. Tests Required
 
@@ -57,6 +75,13 @@
 - Unit test for basic async atomic write.
 - Unit test for TOML/JSON fileio wrappers.
 - Windows-only regression: simulated retry exhaustion keeps the original target file.
+- Windows filesystem regression: async secret replacement preserves parsed
+  DACL ACE bytes.
+- Unix regressions (single test thread): umask `000`/`022`/`077` all create
+  `0o600`; overwrite `0o400`/`0o600`/`0o644` produces
+  `0o400`/`0o600`/`0o600`.
+- `python scripts/check-secret-writes.py` rejects direct async writes and
+  sensitive writer chains without `.secret(true)`.
 - Run `cargo test -p ccr-core` and `cargo clippy -p ccr-core --all-targets --all-features -- -D warnings` after changes.
 
 ### 7. Wrong vs Correct
@@ -64,16 +89,18 @@
 #### Wrong
 
 ```rust
-if target.exists() {
-    let _ = fs::remove_file(target);
-}
-fs::rename(temp, target)?;
+async_fs::write(temp, secret_bytes).await?;
+async_fs::set_permissions(temp, owner_only).await?; // too late
 ```
 
 #### Correct
 
 ```rust
-replace_path_windows(temp, target)?;
+AsyncAtomicWriter::new(target)
+    .secret(true)
+    .preserve_mode(true)
+    .write_async(secret_bytes)
+    .await?;
 ```
 
 ---

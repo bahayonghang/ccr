@@ -112,7 +112,9 @@ impl ClaudePlatform {
         object.insert("hasCompletedOnboarding".to_string(), json!(true));
         let content = serde_json::to_string_pretty(&document)
             .map_err(|e| CcrError::ConfigError(format!("序列化 Claude 状态文件失败: {e}")))?;
-        AtomicWriter::new(&path).write_string(&content)?;
+        AtomicWriter::new(&path)
+            .secret(true)
+            .write_string(&content)?;
         Ok(true)
     }
 

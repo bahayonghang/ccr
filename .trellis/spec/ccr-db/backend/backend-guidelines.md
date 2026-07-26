@@ -76,3 +76,80 @@ For database changes, run:
 - `just lint-strict`
 
 Run UI/Tauri checks as well when `ccr-ui/src-tauri` consumers are affected.
+
+## Scenario: Transactional migrations and v3 usage repair
+
+### 1. Scope / Trigger
+
+- Trigger: changing ccr-db schema migrations, data backfills, migration
+  postconditions, or history markers.
+- Published migration numbers are immutable. Historical v3 backfill gaps are
+  repaired by v16; never rewrite an existing v3 marker in place.
+
+### 2. Signatures
+
+- `apply_migration(conn, version, name, migrate, validate_postconditions, marker_name)`
+- `run_migration_v16(conn: &Connection) -> MigrationResult<()>`
+- `migration_rejections(version, row_id, error_code, created_at)` with primary
+  key `(version, row_id)`.
+
+### 3. Contracts
+
+- One SQLite transaction contains schema/data work, postcondition validation,
+  count-bearing marker insertion, and commit.
+- v16 processes every row whose extracted usage fields are missing. Each
+  candidate ends as repaired or as one coded rejection; raw JSON is never
+  stored in rejection details.
+- Row decode and UPDATE errors propagate and roll back rejections, data, schema,
+  and marker. Malformed business JSON is the only expected row rejection.
+- A real file database with repair candidates is copied with `VACUUM INTO`
+  before v16; the backup must pass `PRAGMA integrity_check`. In-memory databases
+  skip this file-only preflight.
+
+### 4. Validation & Error Matrix
+
+- Row decode or UPDATE fails -> transaction rolls back; no marker.
+- Malformed `record_json` -> `malformed_record_json` rejection; no raw payload.
+- `processed != repaired + rejected` -> fail postcondition and roll back.
+- Remaining inconsistent rows do not equal rejection rows -> fail and roll
+  back.
+- Backup creation/open/integrity check fails -> do not begin v16 mutation.
+
+### 5. Good/Base/Bad Cases
+
+- Good: one valid and one malformed candidate produce
+  `repair_usage_v3_backfill[processed=2,repaired=1,rejected=1]`.
+- Base: no candidates records a zero-count marker without a backup.
+- Bad: `.filter_map(|row| row.ok())`, ignored UPDATE results, or inserting the
+  marker outside the data transaction.
+
+### 6. Tests Required
+
+- Inject a BLOB row id and a failing UPDATE trigger; assert no marker or partial
+  accounting, then prove retry succeeds.
+- Fail after transactional DDL and assert both table and marker are absent.
+- Upgrade a file-backed historical-v3 fixture twice; assert exactly one
+  pre-migration backup, backup `integrity_check = ok`, v16 idempotence, and
+  stable repaired/rejected counts.
+- Run `cargo test -p ccr-db migration -- --test-threads=1`, full ccr-db tests,
+  `just lint-strict`, and `just test`.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```rust
+for row in rows.filter_map(|row| row.ok()) {
+    let _ = update.execute(params![row]);
+}
+conn.execute(INSERT_MIGRATION_SQL, params![version, name, now])?;
+```
+
+#### Correct
+
+```rust
+apply_migration(conn, version, name, migrate, validate_postconditions, marker_name)?;
+```
+
+Success means committed schema/data plus verified postconditions and a marker,
+not merely that a backfill loop returned.

@@ -3,10 +3,10 @@
 
 use ccr_types::ModelRateCatalog;
 use chrono::{DateTime, Utc};
-use rusqlite::{Connection, params};
+use rusqlite::{Connection, OpenFlags, Transaction, params};
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use tracing::{debug, error, info, warn};
 
 use crate::database::repositories::{checkin_repo, ui_state_repo};
@@ -39,6 +39,45 @@ pub fn is_migration_applied(conn: &Connection, version: i32) -> MigrationResult<
         }
         Err(e) => Err(MigrationError::Database(e.to_string())),
     }
+}
+
+fn apply_migration<T, M, V, N>(
+    conn: &Connection,
+    version: i32,
+    name: &str,
+    migrate: M,
+    validate_postconditions: V,
+    marker_name: N,
+) -> MigrationResult<Option<T>>
+where
+    M: FnOnce(&Transaction<'_>) -> MigrationResult<T>,
+    V: FnOnce(&Transaction<'_>, &T) -> MigrationResult<()>,
+    N: FnOnce(&T) -> String,
+{
+    if is_migration_applied(conn, version)? {
+        debug!(
+            "Migration v{} ({}) already applied, skipping",
+            version, name
+        );
+        return Ok(None);
+    }
+
+    let tx = conn
+        .unchecked_transaction()
+        .map_err(|error| MigrationError::Database(error.to_string()))?;
+    let outcome = migrate(&tx)?;
+    validate_postconditions(&tx, &outcome)?;
+
+    let now = Utc::now().to_rfc3339();
+    tx.execute(
+        INSERT_MIGRATION_SQL,
+        rusqlite::params![version, marker_name(&outcome), now],
+    )
+    .map_err(|error| MigrationError::Database(error.to_string()))?;
+    tx.commit()
+        .map_err(|error| MigrationError::Database(error.to_string()))?;
+    info!("Migration v{} ({}) completed successfully", version, name);
+    Ok(Some(outcome))
 }
 
 /// Run initial schema migration (version 1)
@@ -501,96 +540,114 @@ pub fn run_migration_v2(conn: &Connection) -> MigrationResult<()> {
 /// Run migration v3: Add extracted columns to usage_records + model_pricing table
 /// Enables efficient aggregation queries without JSON parsing
 pub fn run_migration_v3(conn: &Connection) -> MigrationResult<()> {
-    if is_migration_applied(conn, 3)? {
-        debug!("Migration v3 already applied, skipping");
-        return Ok(());
-    }
-
     info!("Running migration v3: usage_records extracted columns + model_pricing");
+    apply_migration(
+        conn,
+        3,
+        "usage_extracted_columns",
+        |tx| {
+            let alter_stmts = [
+                "ALTER TABLE usage_records ADD COLUMN model TEXT",
+                "ALTER TABLE usage_records ADD COLUMN input_tokens INTEGER DEFAULT 0",
+                "ALTER TABLE usage_records ADD COLUMN output_tokens INTEGER DEFAULT 0",
+                "ALTER TABLE usage_records ADD COLUMN cache_read_tokens INTEGER DEFAULT 0",
+                "ALTER TABLE usage_records ADD COLUMN cost_usd REAL DEFAULT 0",
+            ];
+            for stmt in &alter_stmts {
+                tx.execute_batch(stmt)
+                    .or_else(|error| {
+                        if error.to_string().contains("duplicate column name") {
+                            debug!("Column already exists, skipping: {}", stmt);
+                            Ok(())
+                        } else {
+                            Err(error)
+                        }
+                    })
+                    .map_err(|error| MigrationError::Database(error.to_string()))?;
+            }
 
-    // 涓?usage_records 娣诲姞鎻愬彇鍒楋紙骞傜瓑锛氬拷鐣?duplicate column 閿欒锛?
-    let alter_stmts = [
-        "ALTER TABLE usage_records ADD COLUMN model TEXT",
-        "ALTER TABLE usage_records ADD COLUMN input_tokens INTEGER DEFAULT 0",
-        "ALTER TABLE usage_records ADD COLUMN output_tokens INTEGER DEFAULT 0",
-        "ALTER TABLE usage_records ADD COLUMN cache_read_tokens INTEGER DEFAULT 0",
-        "ALTER TABLE usage_records ADD COLUMN cost_usd REAL DEFAULT 0",
-    ];
-    for stmt in &alter_stmts {
-        conn.execute_batch(stmt)
-            .or_else(|e| {
-                if e.to_string().contains("duplicate column name") {
-                    debug!("Column already exists, skipping: {}", stmt);
-                    Ok(())
-                } else {
-                    Err(e)
-                }
-            })
-            .map_err(|e| MigrationError::Database(e.to_string()))?;
-    }
+            tx.execute_batch(
+                "CREATE INDEX IF NOT EXISTS idx_usage_records_model ON usage_records (model);
+                 CREATE INDEX IF NOT EXISTS idx_usage_records_recorded_at ON usage_records (recorded_at);
+                 CREATE TABLE IF NOT EXISTS model_pricing (
+                    model_id TEXT PRIMARY KEY,
+                    display_name TEXT NOT NULL,
+                    input_cost_per_million REAL NOT NULL,
+                    output_cost_per_million REAL NOT NULL,
+                    cache_read_cost_per_million REAL NOT NULL DEFAULT 0
+                 );
+                 CREATE TABLE IF NOT EXISTS migration_rejections (
+                    version INTEGER NOT NULL,
+                    row_id TEXT NOT NULL,
+                    error_code TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    PRIMARY KEY (version, row_id)
+                 );
+                 INSERT OR IGNORE INTO model_pricing VALUES ('claude-sonnet-4-20250514','Claude Sonnet 4',3,15,0.3);
+                 INSERT OR IGNORE INTO model_pricing VALUES ('claude-opus-4-20250514','Claude Opus 4',15,75,1.5);
+                 INSERT OR IGNORE INTO model_pricing VALUES ('claude-haiku-3-5-20241022','Claude Haiku 3.5',0.8,4,0.08);
+                 INSERT OR IGNORE INTO model_pricing VALUES ('gpt-4.1','GPT-4.1',2,8,0.5);
+                 INSERT OR IGNORE INTO model_pricing VALUES ('gemini-2.5-pro','Gemini 2.5 Pro',1.25,10,0.315);
+                 INSERT OR IGNORE INTO model_pricing VALUES ('gemini-2.5-flash','Gemini 2.5 Flash',0.15,0.6,0.0375);",
+            )
+            .map_err(|error| MigrationError::Database(error.to_string()))?;
 
-    // 鍒涘缓绱㈠紩
-    conn.execute_batch(
-        "CREATE INDEX IF NOT EXISTS idx_usage_records_model ON usage_records (model);
-         CREATE INDEX IF NOT EXISTS idx_usage_records_recorded_at ON usage_records (recorded_at);",
-    )
-    .map_err(|e| MigrationError::Database(e.to_string()))?;
-
-    // 鍒涘缓 model_pricing 琛?
-    conn.execute_batch(
-        "CREATE TABLE IF NOT EXISTS model_pricing (
-            model_id TEXT PRIMARY KEY,
-            display_name TEXT NOT NULL,
-            input_cost_per_million REAL NOT NULL,
-            output_cost_per_million REAL NOT NULL,
-            cache_read_cost_per_million REAL NOT NULL DEFAULT 0
-        );",
-    )
-    .map_err(|e| MigrationError::Database(e.to_string()))?;
-
-    // 棰勭疆妯″瀷浠锋牸
-    conn.execute_batch(
-        "INSERT OR IGNORE INTO model_pricing VALUES ('claude-sonnet-4-20250514','Claude Sonnet 4',3,15,0.3);
-         INSERT OR IGNORE INTO model_pricing VALUES ('claude-opus-4-20250514','Claude Opus 4',15,75,1.5);
-         INSERT OR IGNORE INTO model_pricing VALUES ('claude-haiku-3-5-20241022','Claude Haiku 3.5',0.8,4,0.08);
-         INSERT OR IGNORE INTO model_pricing VALUES ('gpt-4.1','GPT-4.1',2,8,0.5);
-         INSERT OR IGNORE INTO model_pricing VALUES ('gemini-2.5-pro','Gemini 2.5 Pro',1.25,10,0.315);
-         INSERT OR IGNORE INTO model_pricing VALUES ('gemini-2.5-flash','Gemini 2.5 Flash',0.15,0.6,0.0375);",
-    )
-    .map_err(|e| MigrationError::Database(e.to_string()))?;
-
-    // 鍥炲～鐜版湁璁板綍锛氫粠 record_json 鎻愬彇瀛楁
-    backfill_usage_records(conn)?;
-
-    // 璁板綍杩佺Щ
-    let now = Utc::now().to_rfc3339();
-    conn.execute(
-        INSERT_MIGRATION_SQL,
-        rusqlite::params![3, "usage_extracted_columns", now],
-    )
-    .map_err(|e| MigrationError::Database(e.to_string()))?;
-
-    info!("Migration v3 completed successfully");
+            backfill_usage_records(tx, 3)
+        },
+        |tx, stats| validate_usage_backfill(tx, 3, stats),
+        |stats| stats.marker_name("usage_extracted_columns"),
+    )?;
     Ok(())
 }
 
-/// 鍥炲～ usage_records 鐨勬彁鍙栧垪锛堜粠 record_json 瑙ｆ瀽锛?
-fn backfill_usage_records(conn: &Connection) -> MigrationResult<()> {
-    // 璇诲彇鎵€鏈夐渶瑕佸洖濉殑璁板綍锛坢odel 涓?NULL 鐨勶級
+const USAGE_REPAIR_PREDICATE: &str = "model IS NULL
+    OR input_tokens IS NULL
+    OR output_tokens IS NULL
+    OR cache_read_tokens IS NULL
+    OR cost_usd IS NULL";
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+struct UsageBackfillStats {
+    processed: usize,
+    repaired: usize,
+    rejected: usize,
+}
+
+impl UsageBackfillStats {
+    fn marker_name(self, base: &str) -> String {
+        format!(
+            "{base}[processed={},repaired={},rejected={}]",
+            self.processed, self.repaired, self.rejected
+        )
+    }
+}
+
+fn backfill_usage_records(
+    conn: &Connection,
+    rejection_version: i32,
+) -> MigrationResult<UsageBackfillStats> {
+    conn.execute(
+        "DELETE FROM migration_rejections WHERE version = ?1",
+        [rejection_version],
+    )
+    .map_err(|error| MigrationError::Database(error.to_string()))?;
+
     let mut select_stmt = conn
-        .prepare("SELECT id, record_json FROM usage_records WHERE model IS NULL")
-        .map_err(|e| MigrationError::Database(e.to_string()))?;
+        .prepare(&format!(
+            "SELECT id, record_json FROM usage_records WHERE {USAGE_REPAIR_PREDICATE}"
+        ))
+        .map_err(|error| MigrationError::Database(error.to_string()))?;
 
     let rows: Vec<(String, String)> = select_stmt
         .query_map([], |row| {
             Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
         })
-        .map_err(|e| MigrationError::Database(e.to_string()))?
-        .filter_map(|r| r.ok())
-        .collect();
+        .map_err(|error| MigrationError::Database(error.to_string()))?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|error| MigrationError::Database(error.to_string()))?;
 
     if rows.is_empty() {
-        return Ok(());
+        return Ok(UsageBackfillStats::default());
     }
 
     info!(
@@ -603,7 +660,7 @@ fn backfill_usage_records(conn: &Connection) -> MigrationResult<()> {
         .prepare(
             "SELECT model_id, input_cost_per_million, output_cost_per_million, cache_read_cost_per_million FROM model_pricing",
         )
-        .map_err(|e| MigrationError::Database(e.to_string()))?;
+        .map_err(|error| MigrationError::Database(error.to_string()))?;
     let pricing: std::collections::HashMap<String, (f64, f64, f64)> = pricing_stmt
         .query_map([], |row| {
             Ok((
@@ -615,129 +672,230 @@ fn backfill_usage_records(conn: &Connection) -> MigrationResult<()> {
                 ),
             ))
         })
-        .map_err(|e| MigrationError::Database(e.to_string()))?
-        .filter_map(|r| r.ok())
-        .collect();
+        .map_err(|error| MigrationError::Database(error.to_string()))?
+        .collect::<Result<std::collections::HashMap<_, _>, _>>()
+        .map_err(|error| MigrationError::Database(error.to_string()))?;
 
     let mut update_stmt = conn
         .prepare(
             "UPDATE usage_records SET model=?1, input_tokens=?2, output_tokens=?3, cache_read_tokens=?4, cost_usd=?5 WHERE id=?6",
         )
-        .map_err(|e| MigrationError::Database(e.to_string()))?;
+        .map_err(|error| MigrationError::Database(error.to_string()))?;
+
+    let mut stats = UsageBackfillStats {
+        processed: rows.len(),
+        ..UsageBackfillStats::default()
+    };
 
     for (id, json_str) in &rows {
-        if let Ok(json) = serde_json::from_str::<serde_json::Value>(json_str) {
-            // 鎻愬彇 model
-            let model = json
-                .get("model")
-                .or_else(|| json.get("message").and_then(|m| m.get("model")))
-                .and_then(|v| v.as_str())
-                .unwrap_or("unknown");
-
-            // 鎻愬彇 usage
-            let usage = json
-                .get("usage")
-                .or_else(|| json.get("message").and_then(|m| m.get("usage")));
-
-            let (input, output, cache) = if let Some(u) = usage {
-                (
-                    u.get("input_tokens").and_then(|v| v.as_i64()).unwrap_or(0),
-                    u.get("output_tokens").and_then(|v| v.as_i64()).unwrap_or(0),
-                    u.get("cache_read_input_tokens")
-                        .and_then(|v| v.as_i64())
-                        .unwrap_or(0),
+        let json = match serde_json::from_str::<serde_json::Value>(json_str) {
+            Ok(json) => json,
+            Err(_) => {
+                conn.execute(
+                    "INSERT INTO migration_rejections (version, row_id, error_code, created_at)
+                     VALUES (?1, ?2, 'malformed_record_json', ?3)
+                     ON CONFLICT(version, row_id) DO UPDATE SET
+                        error_code=excluded.error_code,
+                        created_at=excluded.created_at",
+                    rusqlite::params![rejection_version, id, Utc::now().to_rfc3339()],
                 )
-            } else {
-                (0, 0, 0)
-            };
+                .map_err(|error| MigrationError::Database(error.to_string()))?;
+                stats.rejected += 1;
+                continue;
+            }
+        };
 
-            // 璁＄畻璐圭敤锛氬尮閰嶅畾浠疯〃锛堟ā绯婂尮閰嶅墠缂€锛?
-            let cost = pricing
-                .iter()
-                .find(|(k, _)| model.starts_with(k.as_str()) || k.starts_with(model))
-                .map(|(_, (ic, oc, cc))| {
-                    (input as f64 * ic + output as f64 * oc + cache as f64 * cc) / 1_000_000.0
-                })
-                .unwrap_or(0.0);
+        let model = json
+            .get("model")
+            .or_else(|| json.get("message").and_then(|message| message.get("model")))
+            .and_then(|value| value.as_str())
+            .unwrap_or("unknown");
+        let usage = json
+            .get("usage")
+            .or_else(|| json.get("message").and_then(|message| message.get("usage")));
+        let (input, output, cache) = if let Some(usage) = usage {
+            (
+                usage
+                    .get("input_tokens")
+                    .and_then(|value| value.as_i64())
+                    .unwrap_or(0),
+                usage
+                    .get("output_tokens")
+                    .and_then(|value| value.as_i64())
+                    .unwrap_or(0),
+                usage
+                    .get("cache_read_input_tokens")
+                    .and_then(|value| value.as_i64())
+                    .unwrap_or(0),
+            )
+        } else {
+            (0, 0, 0)
+        };
+        let cost = pricing
+            .iter()
+            .find(|(key, _)| model.starts_with(key.as_str()) || key.starts_with(model))
+            .map(|(_, (input_cost, output_cost, cache_cost))| {
+                (input as f64 * input_cost
+                    + output as f64 * output_cost
+                    + cache as f64 * cache_cost)
+                    / 1_000_000.0
+            })
+            .unwrap_or(0.0);
 
-            let _ = update_stmt.execute(rusqlite::params![model, input, output, cache, cost, id]);
+        let updated = update_stmt
+            .execute(rusqlite::params![model, input, output, cache, cost, id])
+            .map_err(|error| MigrationError::Database(error.to_string()))?;
+        if updated != 1 {
+            return Err(MigrationError::Database(format!(
+                "usage repair updated {updated} rows for id {id}"
+            )));
         }
+        stats.repaired += 1;
     }
 
-    info!("Backfill complete");
+    info!(
+        processed = stats.processed,
+        repaired = stats.repaired,
+        rejected = stats.rejected,
+        "Usage backfill complete"
+    );
+    Ok(stats)
+}
+
+fn validate_usage_backfill(
+    conn: &Connection,
+    rejection_version: i32,
+    stats: &UsageBackfillStats,
+) -> MigrationResult<()> {
+    if stats.processed != stats.repaired + stats.rejected {
+        return Err(MigrationError::Database(
+            "usage repair accounting mismatch".to_string(),
+        ));
+    }
+
+    let remaining: i64 = conn
+        .query_row(
+            &format!("SELECT COUNT(*) FROM usage_records WHERE {USAGE_REPAIR_PREDICATE}"),
+            [],
+            |row| row.get(0),
+        )
+        .map_err(|error| MigrationError::Database(error.to_string()))?;
+    let recorded_rejections: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM migration_rejections WHERE version = ?1",
+            [rejection_version],
+            |row| row.get(0),
+        )
+        .map_err(|error| MigrationError::Database(error.to_string()))?;
+    let expected_rejections = i64::try_from(stats.rejected).map_err(|_| {
+        MigrationError::Database("usage repair rejection count overflow".to_string())
+    })?;
+    if remaining != expected_rejections || recorded_rejections != expected_rejections {
+        return Err(MigrationError::Database(format!(
+            "usage repair postcondition failed: remaining={remaining}, recorded={recorded_rejections}, rejected={}",
+            stats.rejected
+        )));
+    }
     Ok(())
 }
 
 /// Run migration v4: Add composite indexes for usage analytics pagination/filtering
 pub fn run_migration_v4(conn: &Connection) -> MigrationResult<()> {
-    if is_migration_applied(conn, 4)? {
-        debug!("Migration v4 already applied, skipping");
-        return Ok(());
-    }
-
     info!("Running migration v4: add usage composite indexes");
-    conn.execute_batch(
-        "CREATE INDEX IF NOT EXISTS idx_usage_records_platform_model_recorded_at_id
-             ON usage_records (platform, model, recorded_at DESC, id DESC);
-         CREATE INDEX IF NOT EXISTS idx_usage_records_platform_recorded_at_id
-             ON usage_records (platform, recorded_at DESC, id DESC);",
-    )
-    .map_err(|e| MigrationError::Database(e.to_string()))?;
-
-    let now = Utc::now().to_rfc3339();
-    conn.execute(
-        INSERT_MIGRATION_SQL,
-        rusqlite::params![4, "usage_composite_indexes", now],
-    )
-    .map_err(|e| MigrationError::Database(e.to_string()))?;
-
-    info!("Migration v4 completed successfully");
+    apply_migration(
+        conn,
+        4,
+        "usage_composite_indexes",
+        |tx| {
+            tx.execute_batch(
+                "CREATE INDEX IF NOT EXISTS idx_usage_records_platform_model_recorded_at_id
+                     ON usage_records (platform, model, recorded_at DESC, id DESC);
+                 CREATE INDEX IF NOT EXISTS idx_usage_records_platform_recorded_at_id
+                     ON usage_records (platform, recorded_at DESC, id DESC);",
+            )
+            .map_err(|error| MigrationError::Database(error.to_string()))?;
+            Ok(())
+        },
+        |tx, ()| {
+            for index in [
+                "idx_usage_records_platform_model_recorded_at_id",
+                "idx_usage_records_platform_recorded_at_id",
+            ] {
+                let exists: bool = tx
+                    .query_row(
+                        "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='index' AND name=?1)",
+                        [index],
+                        |row| row.get(0),
+                    )
+                    .map_err(|error| MigrationError::Database(error.to_string()))?;
+                if !exists {
+                    return Err(MigrationError::Database(format!(
+                        "migration v4 postcondition missing index {index}"
+                    )));
+                }
+            }
+            Ok(())
+        },
+        |()| "usage_composite_indexes".to_string(),
+    )?;
     Ok(())
 }
 
 /// Run migration v5: Create usage_daily_agg pre-aggregation table
 /// Enables fast heatmap and trend queries without scanning usage_records
 pub fn run_migration_v5(conn: &Connection) -> MigrationResult<()> {
-    if is_migration_applied(conn, 5)? {
-        debug!("Migration v5 already applied, skipping");
-        return Ok(());
-    }
-
     info!("Running migration v5: usage_daily_agg pre-aggregation table");
-
-    conn.execute_batch(
-        "CREATE TABLE IF NOT EXISTS usage_daily_agg (
-            date TEXT NOT NULL,
-            platform TEXT NOT NULL,
-            request_count INTEGER DEFAULT 0,
-            input_tokens INTEGER DEFAULT 0,
-            output_tokens INTEGER DEFAULT 0,
-            cache_read_tokens INTEGER DEFAULT 0,
-            cost_usd REAL DEFAULT 0,
-            PRIMARY KEY (date, platform)
-        );",
-    )
-    .map_err(|e| MigrationError::Database(e.to_string()))?;
-
-    // Backfill from existing usage_records
-    conn.execute_batch(
-        "INSERT OR REPLACE INTO usage_daily_agg (date, platform, request_count, input_tokens, output_tokens, cache_read_tokens, cost_usd)
-         SELECT DATE(recorded_at), platform, COUNT(*),
-                COALESCE(SUM(input_tokens),0), COALESCE(SUM(output_tokens),0),
-                COALESCE(SUM(cache_read_tokens),0), COALESCE(SUM(cost_usd),0)
-         FROM usage_records
-         GROUP BY DATE(recorded_at), platform;",
-    )
-    .map_err(|e| MigrationError::Database(e.to_string()))?;
-
-    let now = Utc::now().to_rfc3339();
-    conn.execute(
-        INSERT_MIGRATION_SQL,
-        rusqlite::params![5, "usage_daily_agg", now],
-    )
-    .map_err(|e| MigrationError::Database(e.to_string()))?;
-
-    info!("Migration v5 completed successfully");
+    apply_migration(
+        conn,
+        5,
+        "usage_daily_agg",
+        |tx| {
+            tx.execute_batch(
+                "CREATE TABLE IF NOT EXISTS usage_daily_agg (
+                    date TEXT NOT NULL,
+                    platform TEXT NOT NULL,
+                    request_count INTEGER DEFAULT 0,
+                    input_tokens INTEGER DEFAULT 0,
+                    output_tokens INTEGER DEFAULT 0,
+                    cache_read_tokens INTEGER DEFAULT 0,
+                    cost_usd REAL DEFAULT 0,
+                    PRIMARY KEY (date, platform)
+                 );
+                 INSERT OR REPLACE INTO usage_daily_agg
+                    (date, platform, request_count, input_tokens, output_tokens,
+                     cache_read_tokens, cost_usd)
+                 SELECT DATE(recorded_at), platform, COUNT(*),
+                        COALESCE(SUM(input_tokens),0), COALESCE(SUM(output_tokens),0),
+                        COALESCE(SUM(cache_read_tokens),0), COALESCE(SUM(cost_usd),0)
+                 FROM usage_records
+                 GROUP BY DATE(recorded_at), platform;",
+            )
+            .map_err(|error| MigrationError::Database(error.to_string()))?;
+            Ok(())
+        },
+        |tx, ()| {
+            let expected: i64 = tx
+                .query_row(
+                    "SELECT COUNT(*) FROM (
+                        SELECT DATE(recorded_at), platform FROM usage_records
+                        GROUP BY DATE(recorded_at), platform
+                     )",
+                    [],
+                    |row| row.get(0),
+                )
+                .map_err(|error| MigrationError::Database(error.to_string()))?;
+            let actual: i64 = tx
+                .query_row("SELECT COUNT(*) FROM usage_daily_agg", [], |row| row.get(0))
+                .map_err(|error| MigrationError::Database(error.to_string()))?;
+            if actual != expected {
+                return Err(MigrationError::Database(format!(
+                    "migration v5 postcondition failed: expected={expected}, actual={actual}"
+                )));
+            }
+            Ok(())
+        },
+        |()| "usage_daily_agg".to_string(),
+    )?;
     Ok(())
 }
 
@@ -1366,6 +1524,114 @@ pub fn run_migration_v15(conn: &Connection) -> MigrationResult<()> {
     Ok(())
 }
 
+/// Repair rows that may have been silently skipped by the historical v3
+/// backfill. Existing v3 history is preserved; v16 accounts for every
+/// candidate as repaired or explicitly rejected.
+pub fn run_migration_v16(conn: &Connection) -> MigrationResult<()> {
+    const VERSION: i32 = 16;
+    if is_migration_applied(conn, VERSION)? {
+        debug!("Migration v16 already applied, skipping");
+        return Ok(());
+    }
+
+    let candidate_count: i64 = conn
+        .query_row(
+            &format!("SELECT COUNT(*) FROM usage_records WHERE {USAGE_REPAIR_PREDICATE}"),
+            [],
+            |row| row.get(0),
+        )
+        .map_err(|error| MigrationError::Database(error.to_string()))?;
+    let backup_path = if candidate_count > 0 {
+        create_verified_migration_backup(conn, VERSION)?
+    } else {
+        None
+    };
+
+    info!(
+        candidates = candidate_count,
+        backup_created = backup_path.is_some(),
+        "Running migration v16: repair historical usage backfill"
+    );
+    apply_migration(
+        conn,
+        VERSION,
+        "repair_usage_v3_backfill",
+        |tx| {
+            tx.execute_batch(
+                "CREATE TABLE IF NOT EXISTS migration_rejections (
+                    version INTEGER NOT NULL,
+                    row_id TEXT NOT NULL,
+                    error_code TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    PRIMARY KEY (version, row_id)
+                 );",
+            )
+            .map_err(|error| MigrationError::Database(error.to_string()))?;
+            backfill_usage_records(tx, VERSION)
+        },
+        |tx, stats| validate_usage_backfill(tx, VERSION, stats),
+        |stats| stats.marker_name("repair_usage_v3_backfill"),
+    )?;
+    Ok(())
+}
+
+fn create_verified_migration_backup(
+    conn: &Connection,
+    version: i32,
+) -> MigrationResult<Option<PathBuf>> {
+    let database_path: String = conn
+        .query_row(
+            "SELECT file FROM pragma_database_list WHERE name = 'main'",
+            [],
+            |row| row.get(0),
+        )
+        .map_err(|error| MigrationError::Database(error.to_string()))?;
+    if database_path.is_empty() {
+        debug!("Skipping migration backup for an in-memory database");
+        return Ok(None);
+    }
+
+    let database_path = PathBuf::from(database_path);
+    let file_name = database_path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("ccr.db");
+    let timestamp = Utc::now().format("%Y%m%dT%H%M%S%fZ");
+    let backup_path = database_path.with_file_name(format!(
+        "{file_name}.pre-migration-v{version}.{timestamp}.bak"
+    ));
+    let backup_path_sql = backup_path.to_string_lossy().into_owned();
+    conn.execute("VACUUM main INTO ?1", [backup_path_sql])
+        .map_err(|error| MigrationError::Database(format!("backup failed: {error}")))?;
+
+    let verify_result = (|| -> MigrationResult<()> {
+        let backup = Connection::open_with_flags(&backup_path, OpenFlags::SQLITE_OPEN_READ_ONLY)
+            .map_err(|error| MigrationError::Database(format!("backup open failed: {error}")))?;
+        let integrity: String = backup
+            .query_row("PRAGMA integrity_check", [], |row| row.get(0))
+            .map_err(|error| {
+                MigrationError::Database(format!("backup integrity check failed: {error}"))
+            })?;
+        if integrity != "ok" {
+            return Err(MigrationError::Database(format!(
+                "backup integrity check returned {integrity}"
+            )));
+        }
+        Ok(())
+    })();
+    if let Err(error) = verify_result {
+        let _ = fs::remove_file(&backup_path);
+        return Err(error);
+    }
+
+    info!(
+        version,
+        backup_path = %backup_path.display(),
+        "Created verified pre-migration database backup"
+    );
+    Ok(Some(backup_path))
+}
+
 fn table_exists(conn: &Connection, table_name: &str) -> MigrationResult<bool> {
     let count: i64 = conn
         .query_row(
@@ -1443,7 +1709,10 @@ pub fn run_all_migrations(conn: &Connection, home_dir: &Path) -> MigrationResult
         debug!("Legacy data migration already completed");
     }
 
-    // Step 3: Recalculate usage costs after all legacy/live rows are present.
+    // Step 3: Repair historical v3 backfill gaps after legacy rows are present.
+    run_migration_v16(conn)?;
+
+    // Step 4: Recalculate usage costs after all legacy/live rows are present.
     run_migration_v13(conn)?;
 
     Ok(())
@@ -1886,6 +2155,17 @@ mod tests {
         .unwrap();
     }
 
+    fn insert_usage_repair_candidate(conn: &Connection, id: &str, record_json: &str) {
+        conn.execute(
+            "INSERT INTO usage_records (
+                id, platform, project_path, record_json, recorded_at, source_id,
+                model, input_tokens, output_tokens, cache_read_tokens, cost_usd
+             ) VALUES (?1, 'codex', 'D:/repo', ?2, ?3, 'source', NULL, NULL, NULL, NULL, NULL)",
+            params![id, record_json, Utc::now().to_rfc3339()],
+        )
+        .unwrap();
+    }
+
     #[test]
     fn test_initial_migration() {
         let conn = Connection::open_in_memory().unwrap();
@@ -1930,6 +2210,152 @@ mod tests {
             )
             .unwrap();
         assert_eq!(count, 1);
+    }
+
+    #[test]
+    fn test_migration_v16_repairs_valid_rows_and_accounts_for_malformed_json() {
+        let conn = Connection::open_in_memory().unwrap();
+        run_initial_migration(&conn).unwrap();
+        run_migration_v3(&conn).unwrap();
+        insert_usage_repair_candidate(
+            &conn,
+            "valid",
+            r#"{"model":"gpt-4.1","usage":{"input_tokens":10,"output_tokens":2}}"#,
+        );
+        insert_usage_repair_candidate(&conn, "malformed", "{not-json");
+
+        run_migration_v16(&conn).unwrap();
+        run_migration_v16(&conn).unwrap();
+
+        let repaired_model: String = conn
+            .query_row(
+                "SELECT model FROM usage_records WHERE id = 'valid'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(repaired_model, "gpt-4.1");
+        let rejection: String = conn
+            .query_row(
+                "SELECT error_code FROM migration_rejections
+                 WHERE version = 16 AND row_id = 'malformed'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(rejection, "malformed_record_json");
+        let marker: String = conn
+            .query_row(
+                "SELECT name FROM migrations WHERE version = 16",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(
+            marker,
+            "repair_usage_v3_backfill[processed=2,repaired=1,rejected=1]"
+        );
+    }
+
+    #[test]
+    fn test_migration_v16_row_decode_and_update_errors_roll_back_marker() {
+        let conn = Connection::open_in_memory().unwrap();
+        run_initial_migration(&conn).unwrap();
+        run_migration_v3(&conn).unwrap();
+        conn.execute(
+            "INSERT INTO usage_records (
+                id, platform, project_path, record_json, recorded_at, source_id, model
+             ) VALUES (X'80', 'codex', 'D:/repo', '{}', ?1, 'source', NULL)",
+            [Utc::now().to_rfc3339()],
+        )
+        .unwrap();
+
+        assert!(run_migration_v16(&conn).is_err());
+        assert!(!is_migration_applied(&conn, 16).unwrap());
+        conn.execute("DELETE FROM usage_records", []).unwrap();
+
+        insert_usage_repair_candidate(&conn, "blocked-update", r#"{"model":"gpt-4.1"}"#);
+        conn.execute_batch(
+            "CREATE TRIGGER reject_usage_repair BEFORE UPDATE ON usage_records
+             BEGIN SELECT RAISE(FAIL, 'injected update failure'); END;",
+        )
+        .unwrap();
+        assert!(run_migration_v16(&conn).is_err());
+        assert!(!is_migration_applied(&conn, 16).unwrap());
+        let rejection_count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM migration_rejections WHERE version = 16",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(rejection_count, 0);
+
+        conn.execute_batch("DROP TRIGGER reject_usage_repair")
+            .unwrap();
+        run_migration_v16(&conn).unwrap();
+        assert!(is_migration_applied(&conn, 16).unwrap());
+    }
+
+    #[test]
+    fn test_apply_migration_rolls_back_schema_and_marker_on_failure() {
+        let conn = Connection::open_in_memory().unwrap();
+        run_initial_migration(&conn).unwrap();
+
+        let result: MigrationResult<Option<()>> = apply_migration(
+            &conn,
+            99,
+            "injected_failure",
+            |tx| {
+                tx.execute_batch("CREATE TABLE should_rollback (id INTEGER PRIMARY KEY)")?;
+                Err(MigrationError::Database("injected failure".to_string()))
+            },
+            |_tx, ()| Ok(()),
+            |()| "injected_failure".to_string(),
+        );
+
+        assert!(result.is_err());
+        assert!(!table_exists(&conn, "should_rollback").unwrap());
+        assert!(!is_migration_applied(&conn, 99).unwrap());
+    }
+
+    #[test]
+    fn test_migration_v16_creates_verified_backup_for_file_database() {
+        let temp = TempDir::new().unwrap();
+        let database_path = temp.path().join("historical-v3.db");
+        let conn = Connection::open(&database_path).unwrap();
+        run_initial_migration(&conn).unwrap();
+        run_migration_v3(&conn).unwrap();
+        insert_usage_repair_candidate(&conn, "repair-me", r#"{"model":"gpt-4.1"}"#);
+
+        run_migration_v16(&conn).unwrap();
+        run_migration_v16(&conn).unwrap();
+
+        let backups: Vec<PathBuf> = fs::read_dir(temp.path())
+            .unwrap()
+            .map(|entry| entry.unwrap().path())
+            .filter(|path| {
+                path.file_name()
+                    .and_then(|name| name.to_str())
+                    .is_some_and(|name| name.contains("pre-migration-v16"))
+            })
+            .collect();
+        assert_eq!(backups.len(), 1);
+        let backup =
+            Connection::open_with_flags(&backups[0], OpenFlags::SQLITE_OPEN_READ_ONLY).unwrap();
+        let integrity: String = backup
+            .query_row("PRAGMA integrity_check", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(integrity, "ok");
+        assert!(!is_migration_applied(&backup, 16).unwrap());
+        let historical_model: Option<String> = backup
+            .query_row(
+                "SELECT model FROM usage_records WHERE id = 'repair-me'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(historical_model, None);
     }
 
     #[test]

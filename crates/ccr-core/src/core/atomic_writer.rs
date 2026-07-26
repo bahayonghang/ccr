@@ -12,6 +12,7 @@ use std::time::Duration;
 use std::{ffi::OsStr, iter::once, os::windows::ffi::OsStrExt};
 use tempfile::NamedTempFile;
 use tokio::fs as async_fs;
+use tokio::io::AsyncWriteExt;
 use uuid::Uuid;
 
 /// 📝 原子写入器
@@ -47,6 +48,16 @@ pub struct AtomicWriter {
 /// 📝 异步原子写入器
 pub struct AsyncAtomicWriter {
     target_path: PathBuf,
+    options: AsyncAtomicWriterOptions,
+}
+
+/// Security and metadata policy for asynchronous atomic writes.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct AsyncAtomicWriterOptions {
+    /// Restrict new files to the current user before writing any bytes.
+    pub secret: bool,
+    /// Preserve an existing target's stricter mode or Windows DACL.
+    pub preserve_mode: bool,
 }
 
 #[cfg(windows)]
@@ -194,13 +205,26 @@ impl AtomicWriter {
             CcrError::IoError(std::io::Error::other(format!("创建临时文件失败: {}", e)))
         })?;
 
-        // 🔐 secret 模式：写入内容之前先收紧权限，避免敏感字节以宽权限落盘
+        // 🔐 secret 模式：写入内容之前先收紧权限，避免敏感字节以宽权限落盘。
+        // Existing owner-only modes are preserved so a read-only secret does
+        // not become writable after replacement.
         #[cfg(unix)]
         if self.secret {
-            use std::os::unix::fs::PermissionsExt;
+            use std::os::unix::fs::{MetadataExt, PermissionsExt};
+            let mode = match fs::metadata(&self.target_path) {
+                Ok(metadata) if metadata.mode() & 0o077 == 0 => metadata.mode() & 0o777,
+                Ok(_) => 0o600,
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => 0o600,
+                Err(error) => {
+                    return Err(CcrError::IoError(std::io::Error::other(format!(
+                        "读取目标文件权限失败: {}",
+                        error
+                    ))));
+                }
+            };
             temp_file
                 .as_file()
-                .set_permissions(fs::Permissions::from_mode(0o600))
+                .set_permissions(fs::Permissions::from_mode(mode))
                 .map_err(|e| {
                     CcrError::IoError(std::io::Error::other(format!(
                         "设置临时文件权限失败: {}",
@@ -208,9 +232,21 @@ impl AtomicWriter {
                     )))
                 })?;
         }
-        // Windows 权限模型不同，secret 选项为 no-op
-        #[cfg(not(unix))]
-        let _ = self.secret;
+        #[cfg(windows)]
+        if self.secret && self.target_path.exists() {
+            let descriptor = capture_windows_dacl(&self.target_path).map_err(|e| {
+                CcrError::IoError(std::io::Error::other(format!(
+                    "读取目标文件 ACL 失败: {}",
+                    e
+                )))
+            })?;
+            apply_windows_dacl(temp_file.path(), &descriptor).map_err(|e| {
+                CcrError::IoError(std::io::Error::other(format!(
+                    "设置临时文件 ACL 失败: {}",
+                    e
+                )))
+            })?;
+        }
 
         // ✍️ 通过临时文件句柄写入内容（避免二次打开）
         {
@@ -226,6 +262,9 @@ impl AtomicWriter {
         })?;
 
         self.persist_temp_file(temp_file)?;
+        sync_parent_dir(&self.target_path).map_err(|e| {
+            CcrError::IoError(std::io::Error::other(format!("刷写父目录失败: {}", e)))
+        })?;
 
         tracing::debug!("✅ 文件已原子写入: {:?}", self.target_path);
         Ok(())
@@ -281,7 +320,29 @@ impl AsyncAtomicWriter {
     pub fn new<P: AsRef<Path>>(target_path: P) -> Self {
         Self {
             target_path: target_path.as_ref().to_path_buf(),
+            options: AsyncAtomicWriterOptions::default(),
         }
+    }
+
+    /// Applies an explicit security and metadata policy.
+    #[must_use]
+    pub fn options(mut self, options: AsyncAtomicWriterOptions) -> Self {
+        self.options = options;
+        self
+    }
+
+    /// Marks the target as secret material.
+    #[must_use]
+    pub fn secret(mut self, secret: bool) -> Self {
+        self.options.secret = secret;
+        self
+    }
+
+    /// Preserves an existing target's stricter mode or Windows DACL.
+    #[must_use]
+    pub fn preserve_mode(mut self, preserve_mode: bool) -> Self {
+        self.options.preserve_mode = preserve_mode;
+        self
     }
 
     /// 💾 异步原子写入内容到文件
@@ -294,24 +355,98 @@ impl AsyncAtomicWriter {
 
         let temp_path = self.temp_path();
 
-        async_fs::write(&temp_path, content).await.map_err(|e| {
-            CcrError::IoError(std::io::Error::other(format!("写入临时文件失败: {}", e)))
+        #[cfg(windows)]
+        let preserved_dacl = if self.options.preserve_mode && self.target_path.exists() {
+            Some(
+                capture_windows_dacl_async(self.target_path.clone())
+                    .await
+                    .map_err(|e| {
+                        CcrError::IoError(std::io::Error::other(format!(
+                            "读取目标文件 ACL 失败: {}",
+                            e
+                        )))
+                    })?,
+            )
+        } else {
+            None
+        };
+
+        let mut open_options = async_fs::OpenOptions::new();
+        open_options.write(true).create_new(true);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::MetadataExt;
+
+            let existing_mode = if self.options.preserve_mode {
+                match async_fs::metadata(&self.target_path).await {
+                    Ok(metadata) => Some(metadata.mode() & 0o777),
+                    Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
+                    Err(error) => {
+                        return Err(CcrError::IoError(std::io::Error::other(format!(
+                            "读取目标文件权限失败: {}",
+                            error
+                        ))));
+                    }
+                }
+            } else {
+                None
+            };
+            let mode = if self.options.secret {
+                existing_mode
+                    .filter(|mode| mode & 0o077 == 0)
+                    .unwrap_or(0o600)
+            } else {
+                existing_mode.unwrap_or(0o666)
+            };
+            open_options.mode(mode);
+        }
+
+        let mut temp_file = open_options.open(&temp_path).await.map_err(|e| {
+            CcrError::IoError(std::io::Error::other(format!("创建临时文件失败: {}", e)))
         })?;
 
-        // 💽 rename 前 fsync（spawn_blocking 中以写句柄重开：Windows 的
-        // FlushFileBuffers 需要写权限，读句柄会失败）
-        if let Err(e) = sync_temp_path_async(temp_path.clone()).await {
+        #[cfg(windows)]
+        if let Some(dacl) = preserved_dacl
+            && let Err(error) = apply_windows_dacl_async(temp_path.clone(), dacl).await
+        {
+            drop(temp_file);
+            let _ = async_fs::remove_file(&temp_path).await;
+            return Err(CcrError::IoError(std::io::Error::other(format!(
+                "设置临时文件 ACL 失败: {}",
+                error
+            ))));
+        }
+
+        if let Err(e) = temp_file.write_all(content).await {
+            drop(temp_file);
+            let _ = async_fs::remove_file(&temp_path).await;
+            return Err(CcrError::IoError(std::io::Error::other(format!(
+                "写入临时文件失败: {}",
+                e
+            ))));
+        }
+
+        if let Err(e) = temp_file.sync_all().await {
+            drop(temp_file);
             let _ = async_fs::remove_file(&temp_path).await;
             return Err(CcrError::IoError(std::io::Error::other(format!(
                 "刷写临时文件失败: {}",
                 e
             ))));
         }
+        drop(temp_file);
 
         if let Err(e) = persist_temp_path_async(temp_path.clone(), self.target_path.clone()).await {
             let _ = async_fs::remove_file(&temp_path).await;
             return Err(CcrError::IoError(std::io::Error::other(format!(
                 "原子替换文件失败: {}",
+                e
+            ))));
+        }
+
+        if let Err(e) = sync_parent_dir_async(self.target_path.clone()).await {
+            return Err(CcrError::IoError(std::io::Error::other(format!(
+                "刷写父目录失败: {}",
                 e
             ))));
         }
@@ -337,16 +472,6 @@ impl AsyncAtomicWriter {
     }
 }
 
-async fn sync_temp_path_async(temp_path: PathBuf) -> std::io::Result<()> {
-    // 同步 fsync 放入阻塞线程池，避免阻塞异步运行时
-    tokio::task::spawn_blocking(move || -> std::io::Result<()> {
-        let file = fs::OpenOptions::new().write(true).open(&temp_path)?;
-        file.sync_all()
-    })
-    .await
-    .map_err(|e| std::io::Error::other(format!("刷写任务失败: {}", e)))?
-}
-
 async fn persist_temp_path_async(temp_path: PathBuf, target_path: PathBuf) -> std::io::Result<()> {
     #[cfg(windows)]
     {
@@ -361,11 +486,145 @@ async fn persist_temp_path_async(temp_path: PathBuf, target_path: PathBuf) -> st
     }
 }
 
+#[cfg(unix)]
+fn sync_parent_dir(target_path: &Path) -> std::io::Result<()> {
+    let parent = target_path.parent().unwrap_or_else(|| Path::new("."));
+    fs::File::open(parent)?.sync_all()
+}
+
+#[cfg(windows)]
+fn sync_parent_dir(_target_path: &Path) -> std::io::Result<()> {
+    Ok(())
+}
+
+#[cfg(not(any(unix, windows)))]
+fn sync_parent_dir(_target_path: &Path) -> std::io::Result<()> {
+    tracing::warn!("parent-directory fsync is unsupported on this platform");
+    Ok(())
+}
+
+#[cfg(unix)]
+async fn sync_parent_dir_async(target_path: PathBuf) -> std::io::Result<()> {
+    tokio::task::spawn_blocking(move || {
+        let parent = target_path.parent().unwrap_or_else(|| Path::new("."));
+        fs::File::open(parent)?.sync_all()
+    })
+    .await
+    .map_err(|e| std::io::Error::other(format!("父目录刷写任务失败: {}", e)))?
+}
+
+#[cfg(windows)]
+async fn sync_parent_dir_async(_target_path: PathBuf) -> std::io::Result<()> {
+    // MoveFileExW uses MOVEFILE_WRITE_THROUGH above. Windows does not expose a
+    // portable directory fsync handle through std, so the replacement call is
+    // the durability boundary on this platform.
+    Ok(())
+}
+
+#[cfg(not(any(unix, windows)))]
+async fn sync_parent_dir_async(_target_path: PathBuf) -> std::io::Result<()> {
+    tracing::warn!("parent-directory fsync is unsupported on this platform");
+    Ok(())
+}
+
+#[cfg(windows)]
+const DACL_SECURITY_INFORMATION: u32 = 0x0000_0004;
+
+#[cfg(windows)]
+#[link(name = "advapi32")]
+unsafe extern "system" {
+    fn GetFileSecurityW(
+        file_name: *const u16,
+        requested_information: u32,
+        security_descriptor: *mut std::ffi::c_void,
+        length: u32,
+        length_needed: *mut u32,
+    ) -> i32;
+    fn SetFileSecurityW(
+        file_name: *const u16,
+        security_information: u32,
+        security_descriptor: *const std::ffi::c_void,
+    ) -> i32;
+}
+
+#[cfg(windows)]
+fn capture_windows_dacl(path: &Path) -> std::io::Result<Vec<u8>> {
+    let path = path_to_wide(path);
+    let mut needed = 0_u32;
+    // SAFETY: The first call intentionally supplies a null buffer to obtain
+    // the required self-relative security descriptor size.
+    unsafe {
+        GetFileSecurityW(
+            path.as_ptr(),
+            DACL_SECURITY_INFORMATION,
+            std::ptr::null_mut(),
+            0,
+            &mut needed,
+        );
+    }
+    if needed == 0 {
+        return Err(std::io::Error::last_os_error());
+    }
+
+    let mut descriptor = vec![0_u8; needed as usize];
+    // SAFETY: The buffer has the size requested by GetFileSecurityW and lives
+    // for the duration of the call.
+    let ok = unsafe {
+        GetFileSecurityW(
+            path.as_ptr(),
+            DACL_SECURITY_INFORMATION,
+            descriptor.as_mut_ptr().cast(),
+            needed,
+            &mut needed,
+        )
+    };
+    if ok == 0 {
+        Err(std::io::Error::last_os_error())
+    } else {
+        Ok(descriptor)
+    }
+}
+
+#[cfg(windows)]
+fn apply_windows_dacl(path: &Path, descriptor: &[u8]) -> std::io::Result<()> {
+    let path = path_to_wide(path);
+    // SAFETY: descriptor is the self-relative security descriptor returned by
+    // GetFileSecurityW and remains alive for the call.
+    let ok = unsafe {
+        SetFileSecurityW(
+            path.as_ptr(),
+            DACL_SECURITY_INFORMATION,
+            descriptor.as_ptr().cast(),
+        )
+    };
+    if ok == 0 {
+        Err(std::io::Error::last_os_error())
+    } else {
+        Ok(())
+    }
+}
+
+#[cfg(windows)]
+async fn capture_windows_dacl_async(path: PathBuf) -> std::io::Result<Vec<u8>> {
+    tokio::task::spawn_blocking(move || capture_windows_dacl(&path))
+        .await
+        .map_err(|e| std::io::Error::other(format!("ACL 读取任务失败: {}", e)))?
+}
+
+#[cfg(windows)]
+async fn apply_windows_dacl_async(path: PathBuf, descriptor: Vec<u8>) -> std::io::Result<()> {
+    tokio::task::spawn_blocking(move || apply_windows_dacl(&path, &descriptor))
+        .await
+        .map_err(|e| std::io::Error::other(format!("ACL 设置任务失败: {}", e)))?
+}
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use std::fs;
+    #[cfg(unix)]
+    use std::os::unix::fs::PermissionsExt;
     use tempfile::tempdir;
 
     #[test]
@@ -462,6 +721,89 @@ mod tests {
 
         let content = fs::read_to_string(&target_path).unwrap();
         assert_eq!(content, "Hello, Async String!");
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn test_async_secret_mode_ignores_process_umask() {
+        unsafe extern "C" {
+            fn umask(mask: u32) -> u32;
+        }
+
+        let temp_dir = tempdir().unwrap();
+        for mask in [0o000, 0o022, 0o077] {
+            let target_path = temp_dir.path().join(format!("secret-{mask:o}.json"));
+            // SAFETY: This test is required to exercise the process umask and
+            // restores it immediately. Run the documented target with one test
+            // thread so unrelated file-creation tests cannot overlap.
+            let previous = unsafe { umask(mask) };
+            let result = AsyncAtomicWriter::new(&target_path)
+                .secret(true)
+                .preserve_mode(true)
+                .write_string_async("secret")
+                .await;
+            // SAFETY: Restore the exact process umask returned above.
+            unsafe { umask(previous) };
+
+            result.unwrap();
+            assert_eq!(
+                fs::metadata(&target_path).unwrap().permissions().mode() & 0o777,
+                0o600
+            );
+        }
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn test_async_secret_preserves_only_stricter_existing_mode() {
+        let temp_dir = tempdir().unwrap();
+        for (existing_mode, expected_mode) in [(0o400, 0o400), (0o600, 0o600), (0o644, 0o600)] {
+            let target_path = temp_dir
+                .path()
+                .join(format!("secret-{existing_mode:o}.json"));
+            fs::write(&target_path, "old").unwrap();
+            fs::set_permissions(&target_path, fs::Permissions::from_mode(existing_mode)).unwrap();
+
+            AsyncAtomicWriter::new(&target_path)
+                .secret(true)
+                .preserve_mode(true)
+                .write_string_async("new")
+                .await
+                .unwrap();
+
+            assert_eq!(fs::read_to_string(&target_path).unwrap(), "new");
+            assert_eq!(
+                fs::metadata(&target_path).unwrap().permissions().mode() & 0o777,
+                expected_mode
+            );
+        }
+    }
+
+    #[cfg(windows)]
+    #[tokio::test]
+    async fn test_async_secret_preserves_windows_dacl() {
+        fn dacl_bytes(descriptor: &[u8]) -> &[u8] {
+            let offset = u32::from_le_bytes(descriptor[16..20].try_into().unwrap()) as usize;
+            let length =
+                u16::from_le_bytes(descriptor[offset + 2..offset + 4].try_into().unwrap()) as usize;
+            &descriptor[offset..offset + length]
+        }
+
+        let temp_dir = tempdir().unwrap();
+        let target_path = temp_dir.path().join("secret.json");
+        fs::write(&target_path, "old").unwrap();
+        let before = capture_windows_dacl(&target_path).unwrap();
+
+        AsyncAtomicWriter::new(&target_path)
+            .secret(true)
+            .preserve_mode(true)
+            .write_string_async("new")
+            .await
+            .unwrap();
+
+        let after = capture_windows_dacl(&target_path).unwrap();
+        assert_eq!(fs::read_to_string(&target_path).unwrap(), "new");
+        assert_eq!(dacl_bytes(&after), dacl_bytes(&before));
     }
 
     #[cfg(windows)]

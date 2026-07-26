@@ -1087,7 +1087,9 @@ impl CodexPlatform {
             CcrError::ConfigError(format!("序列化 Codex 入口 auth 快照失败: {}", error))
         })?;
         let backup_path = self.profile_entry_auth_state_path();
-        AtomicWriter::new(&backup_path).write_string(&serialized)?;
+        AtomicWriter::new(&backup_path)
+            .secret(true)
+            .write_string(&serialized)?;
         crate::utils::ensure_private_permissions(&backup_path);
         Ok(())
     }
@@ -1118,7 +1120,9 @@ impl CodexPlatform {
             let content = state
                 .content
                 .ok_or_else(|| CcrError::ConfigError("Codex 入口 auth 快照缺少内容".into()))?;
-            AtomicWriter::new(auth_path).write_string(&content)?;
+            AtomicWriter::new(auth_path)
+                .secret(true)
+                .write_string(&content)?;
             crate::utils::ensure_private_permissions(auth_path);
         } else if auth_path.exists() {
             std::fs::remove_file(auth_path).map_err(|error| {

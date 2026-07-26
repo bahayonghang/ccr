@@ -497,6 +497,7 @@ impl OpenCodeAuthService {
             .map_err(|e| CcrError::ConfigError(format!("序列化 OpenCode 注册表失败: {e}")))?;
         let path = self.registry_path();
         AtomicWriter::new(&path)
+            .secret(true)
             .write_string(&content)
             .map_err(|e| CcrError::ConfigError(format!("写入 OpenCode 注册表失败: {e}")))?;
         ensure_private_permissions(&path);
@@ -515,6 +516,7 @@ impl OpenCodeAuthService {
             .map_err(|e| CcrError::ConfigError(format!("序列化 OpenCode 账号快照失败: {e}")))?;
         let path = self.account_auth_path(name);
         AtomicWriter::new(&path)
+            .secret(true)
             .write_string(&content)
             .map_err(|e| CcrError::ConfigError(format!("写入 OpenCode 账号快照失败: {e}")))?;
         ensure_private_permissions(&path);
@@ -531,6 +533,7 @@ impl OpenCodeAuthService {
             .map_err(|e| CcrError::ConfigError(format!("序列化 OpenCode auth.json 失败: {e}")))?;
         let path = self.auth_json_path();
         AtomicWriter::new(&path)
+            .secret(true)
             .write_string(&content)
             .map_err(|e| CcrError::ConfigError(format!("写入 OpenCode auth.json 失败: {e}")))?;
         ensure_private_permissions(&path);
