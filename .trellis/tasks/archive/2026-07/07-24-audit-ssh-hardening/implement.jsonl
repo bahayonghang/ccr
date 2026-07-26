@@ -1,0 +1,4 @@
+{"file":".trellis/spec/ccr/backend/desktop-command-policy.md","reason":"Trusted OpenSSH process construction"}
+{"file":".trellis/spec/ccr-core/backend/atomic-writer.md","reason":"Known-hosts locked atomic update"}
+{"file":".trellis/spec/ccr/backend/typed-ipc-bindings.md","reason":"Challenge and trust DTO generation"}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Trust decision data flow"}
