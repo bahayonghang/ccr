@@ -26,7 +26,7 @@
             type="button"
             class="sync-hero-button sync-hero-button--primary"
             :disabled="globalOperating || assets.length === 0"
-            @click="runAllAssets(false)"
+            @click="requestRunAll(false)"
           >
             <SIcon
               name="Sparkles"
@@ -39,7 +39,7 @@
             type="button"
             class="sync-hero-button sync-hero-button--warning"
             :disabled="globalOperating || assets.length === 0"
-            @click="runAllAssets(true)"
+            @click="requestRunAll(true)"
           >
             <SIcon
               name="Shield"
@@ -141,6 +141,10 @@
                           v-if="asset.sensitive"
                           class="sync-sensitive-chip"
                         >{{ $t('sync.assets.sensitive') }}</span>
+                        <span
+                          v-if="asset.encryptionState === 'v2_required'"
+                          class="sync-encryption-chip"
+                        >{{ $t('sync.assets.encryptionV2') }}</span>
                         <span class="sync-kind-chip">{{ kindLabel(asset.kind) }}</span>
                       </div>
                       <p>{{ asset.description }}</p>
@@ -186,7 +190,7 @@
                       type="button"
                       class="sync-action-button sync-action-button--push"
                       :disabled="isAssetBusy(asset.id) || !asset.localExists"
-                      @click="runAsset(asset, 'push', false)"
+                      @click="requestRunAsset(asset, 'push', false)"
                     >
                       <SIcon
                         name="Upload"
@@ -198,7 +202,7 @@
                       type="button"
                       class="sync-action-button sync-action-button--pull"
                       :disabled="isAssetBusy(asset.id)"
-                      @click="runAsset(asset, 'pull', false)"
+                      @click="requestRunAsset(asset, 'pull', false)"
                     >
                       <SIcon
                         name="Download"
@@ -210,7 +214,7 @@
                       type="button"
                       class="sync-action-button sync-action-button--sync"
                       :disabled="isAssetBusy(asset.id)"
-                      @click="runAsset(asset, 'sync', false)"
+                      @click="requestRunAsset(asset, 'sync', false)"
                     >
                       <SIcon
                         name="RefreshCw"
@@ -263,6 +267,12 @@
         </aside>
       </div>
     </main>
+
+    <SyncPassphraseModal
+      v-model="passphraseModalOpen"
+      :asset-name="pendingSensitiveOperation?.asset?.name"
+      @submit="submitSensitiveOperation"
+    />
   </div>
 </template>
 
@@ -283,6 +293,7 @@ import {
 } from '@/api'
 import SyncInfoSidebar from '@/components/sync/SyncInfoSidebar.vue'
 import SyncOperationOutputPanel from '@/components/sync/SyncOperationOutputPanel.vue'
+import SyncPassphraseModal from '@/components/sync/SyncPassphraseModal.vue'
 import { logger } from '@/utils/logger'
 import type {
   SyncAssetGroup,
@@ -291,6 +302,7 @@ import type {
   SyncAssetOperation,
   SyncOperationOutput,
   SyncOperationResult,
+  SyncAssetOperationOptions,
   SyncStatusView,
 } from '@/types/syncSelection'
 
@@ -329,6 +341,7 @@ const normalizeAsset = (asset: SyncAssetInfo): SyncAssetInfo => {
     localExists: raw.localExists ?? raw.local_exists ?? false,
     remoteExists: raw.remoteExists ?? raw.remote_exists ?? null,
     canonicalName: raw.canonicalName ?? raw.canonical_name ?? null,
+    encryptionState: raw.encryptionState ?? raw.encryption_state ?? (raw.sensitive ? 'v2_required' : 'not_applicable'),
   }
 }
 
@@ -484,6 +497,13 @@ const busyAssetId = ref<string | null>(null)
 const busyOperation = ref<SyncAssetOperation | null>(null)
 const forceRetry = ref<{ assetId: string; operation: SyncAssetOperation } | null>(null)
 const forceRetryAll = ref(false)
+const passphraseModalOpen = ref(false)
+const pendingSensitiveOperation = ref<{
+  asset?: SyncAssetInfo
+  operation?: SyncAssetOperation
+  force: boolean
+  all: boolean
+} | null>(null)
 
 const scopeHighlights = computed(() => [
   { key: 'ccr', label: t('sync.assets.scopeCcrLabel'), value: t('sync.assets.scopeCcrValue') },
@@ -530,17 +550,55 @@ const clearOperationOutput = () => {
   forceRetryAll.value = false
 }
 
-const runAsset = async (asset: SyncAssetInfo, operation: SyncAssetOperation, force: boolean) => {
+const requestRunAsset = (
+  asset: SyncAssetInfo,
+  operation: SyncAssetOperation,
+  force: boolean
+) => {
+  if (!asset.sensitive) {
+    void runAsset(asset, operation, { force })
+    return
+  }
+  pendingSensitiveOperation.value = { asset, operation, force, all: false }
+  passphraseModalOpen.value = true
+}
+
+const requestRunAll = (force: boolean) => {
+  pendingSensitiveOperation.value = { force, all: true }
+  passphraseModalOpen.value = true
+}
+
+const submitSensitiveOperation = (payload: { passphrase: string; migratePlaintextV1: boolean }) => {
+  const pending = pendingSensitiveOperation.value
+  pendingSensitiveOperation.value = null
+  if (!pending) return
+  const options: SyncAssetOperationOptions = {
+    force: pending.force,
+    passphrase: payload.passphrase,
+    migratePlaintextV1: payload.migratePlaintextV1,
+  }
+  if (pending.all) {
+    void runAllAssets(options)
+  } else if (pending.asset && pending.operation) {
+    void runAsset(pending.asset, pending.operation, options)
+  }
+}
+
+const runAsset = async (
+  asset: SyncAssetInfo,
+  operation: SyncAssetOperation,
+  options: SyncAssetOperationOptions
+) => {
   busyAssetId.value = asset.id
   busyOperation.value = operation
   forceRetry.value = null
   forceRetryAll.value = false
   try {
     const result = operation === 'push'
-      ? await pushSyncAsset<SyncOperationResult>(asset.id, force)
+      ? await pushSyncAsset<SyncOperationResult>(asset.id, options)
       : operation === 'pull'
-        ? await pullSyncAsset<SyncOperationResult>(asset.id, force)
-        : await syncSingleAsset<SyncOperationResult>(asset.id, force)
+        ? await pullSyncAsset<SyncOperationResult>(asset.id, options)
+        : await syncSingleAsset<SyncOperationResult>(asset.id, options)
 
     operationOutput.value = buildOperationOutput(result, t('sync.messages.operationComplete'), asset)
     if (result?.success === false) {
@@ -558,12 +616,12 @@ const runAsset = async (asset: SyncAssetInfo, operation: SyncAssetOperation, for
   }
 }
 
-const runAllAssets = async (force: boolean) => {
+const runAllAssets = async (options: SyncAssetOperationOptions) => {
   globalOperating.value = true
   forceRetry.value = null
   forceRetryAll.value = false
   try {
-    const result = await syncAllAssets<SyncOperationResult>(force)
+    const result = await syncAllAssets<SyncOperationResult>(options)
     operationOutput.value = buildOperationOutput(result, t('sync.messages.batchSyncComplete'))
     if (result?.success === false) {
       maybeOfferForceAll(`${result.message || ''}\n${(result.failed || []).map(failure => failure.message).join('\n')}`)
@@ -593,7 +651,7 @@ const maybeOfferForceAll = (message: string) => {
 const retryForce = async (asset: SyncAssetInfo) => {
   const retry = forceRetry.value
   if (!retry || retry.assetId !== asset.id) return
-  await runAsset(asset, retry.operation, true)
+  requestRunAsset(asset, retry.operation, true)
 }
 
 const needsForce = (assetId: string) => forceRetry.value?.assetId === assetId
@@ -750,6 +808,7 @@ onMounted(async () => {
 .sync-count-chip,
 .sync-kind-chip,
 .sync-sensitive-chip,
+.sync-encryption-chip,
 .sync-status-chip {
   @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold;
 }
@@ -841,6 +900,12 @@ onMounted(async () => {
   border: 1px solid rgb(var(--color-warning-rgb) / 30%);
   background: rgb(var(--color-warning-rgb) / 12%);
   color: var(--accent-warning);
+}
+
+.sync-encryption-chip {
+  border: 1px solid rgb(var(--color-success-rgb) / 30%);
+  background: rgb(var(--color-success-rgb) / 10%);
+  color: var(--accent-success);
 }
 
 .sync-path-grid {

@@ -2288,6 +2288,7 @@ export default {
       total: '{count} 项资产',
       sensitiveHint: '敏感值已遮罩',
       sensitive: '敏感',
+      encryptionV2: 'v2 端到端加密',
       itemCount: '{count} 项',
       kindDirectory: '目录',
       kindFile: '文件',
@@ -2302,8 +2303,18 @@ export default {
       scopeCodexValue: 'config.toml + AGENTS.md',
       safetyTitle: '安全边界',
       safetyAllowlist: '只同步固定 allowlist，不同步整个 ~/.claude 或 ~/.codex。',
-      safetyBackup: 'Pull 覆盖本地文件前会创建时间戳备份。',
+      safetyBackup: 'Pull 通过 staging 事务替换，失败时恢复原内容。',
       safetyMask: 'API key、token、password 等敏感值不会在摘要中明文展示。',
+    },
+    passphrase: {
+      title: '输入同步口令',
+      description: '口令只用于本次同步操作。',
+      allAssets: '全部敏感资产',
+      label: '独立同步口令',
+      placeholder: '输入跨设备恢复口令',
+      migrateTitle: '允许读取明文 v1',
+      migrateDescription: '仅用于显式迁移旧远端数据；新的敏感资产仍写为加密 v2。',
+      continue: '继续同步',
     },
     assetGroups: {
       ccr: {

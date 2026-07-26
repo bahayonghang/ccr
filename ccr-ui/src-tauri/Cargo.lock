@@ -744,6 +744,9 @@ dependencies = [
 name = "ccr-sync"
 version = "6.5.3"
 dependencies = [
+ "aes-gcm",
+ "argon2",
+ "base64 0.22.1",
  "ccr-config",
  "ccr-core",
  "chrono",

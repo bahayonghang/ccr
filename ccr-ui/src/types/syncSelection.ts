@@ -45,6 +45,13 @@ export interface SyncOperationResult {
 
 export type SyncAssetKind = 'directory' | 'file'
 export type SyncAssetOperation = 'push' | 'pull' | 'sync'
+export type SyncEncryptionState = 'not_applicable' | 'v2_required'
+
+export interface SyncAssetOperationOptions {
+  force?: boolean
+  passphrase?: string
+  migratePlaintextV1?: boolean
+}
 
 export interface SyncAssetInfo {
   id: string
@@ -53,6 +60,8 @@ export interface SyncAssetInfo {
   description: string
   kind: SyncAssetKind
   sensitive: boolean
+  encryptionState: SyncEncryptionState
+  encryption_state?: SyncEncryptionState
   localPath: string
   local_path?: string
   resolvedLocalPath: string

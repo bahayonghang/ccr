@@ -10,6 +10,7 @@ import type { UnknownRecord } from '../_shared'
 import type { CommandResultLike, SyncFolderItem } from '../tauri'
 import type { SyncStatusResponse } from '@/types/sync'
 import type { WebDavConfigDetails, WebDavConfigInput, WebDavTestResult } from '@/types/sync'
+import type { SyncAssetOperationOptions } from '@/types/syncSelection'
 
 /** 推送配置到远端 */
 export const pushSync = async <T = UnknownRecord>(force?: boolean): Promise<T> => {
@@ -27,26 +28,34 @@ export const listSyncAssets = async <T = UnknownRecord>(): Promise<T> => {
 }
 
 /** 推送单个配置资产 */
-export const pushSyncAsset = async <T = UnknownRecord>(id: string, force?: boolean): Promise<T> => {
-  return invoke('sync_push_asset', { id, force })
+export const pushSyncAsset = async <T = UnknownRecord>(
+  id: string,
+  options: SyncAssetOperationOptions = {}
+): Promise<T> => {
+  return invoke('sync_push_asset', { payload: { id, ...options } })
 }
 
 /** 拉取单个配置资产 */
-export const pullSyncAsset = async <T = UnknownRecord>(id: string, force?: boolean): Promise<T> => {
-  return invoke('sync_pull_asset', { id, force })
+export const pullSyncAsset = async <T = UnknownRecord>(
+  id: string,
+  options: SyncAssetOperationOptions = {}
+): Promise<T> => {
+  return invoke('sync_pull_asset', { payload: { id, ...options } })
 }
 
 /** 同步单个配置资产（默认上传本地资产；本地缺失且远端存在时拉取补齐） */
 export const syncSingleAsset = async <T = UnknownRecord>(
   id: string,
-  force?: boolean
+  options: SyncAssetOperationOptions = {}
 ): Promise<T> => {
-  return invoke('sync_asset', { id, force })
+  return invoke('sync_asset', { payload: { id, ...options } })
 }
 
 /** 对固定配置资产执行一次全量同步 */
-export const syncAllAssets = async <T = UnknownRecord>(force?: boolean): Promise<T> => {
-  return invoke('sync_all_assets', { force })
+export const syncAllAssets = async <T = UnknownRecord>(
+  options: SyncAssetOperationOptions = {}
+): Promise<T> => {
+  return invoke('sync_all_assets', { payload: options })
 }
 
 /** 推送单个同步文件夹 */
@@ -115,7 +124,7 @@ export const testWebdavConfig = async (payload: WebDavConfigInput): Promise<WebD
   return invoke('test_webdav_config', { payload })
 }
 
-/** 断开 WebDAV 账号（物理删除 sync.toml） */
+/** 断开 WebDAV 账号（清空 canonical 配置并删除 migration-only sync.toml） */
 export const clearWebdavConfig = async (): Promise<void> => {
   return invoke('clear_webdav_config')
 }
