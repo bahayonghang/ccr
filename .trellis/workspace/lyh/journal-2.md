@@ -114,3 +114,24 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 52: 完成 WebDAV 同步安全加固
+
+**Date**: 2026-07-26
+**Task**: 完成 WebDAV 同步安全加固
+**Branch**: `dev`
+
+### Summary
+
+完成 WebDAV href 路径边界、受限流式拉取、事务化替换、HTTPS 策略、sync 真值表、canonical 配置迁移、敏感资产 v2 加密与前端独立口令流程；通过 focused sync/Tauri/Vitest tests、just lint-strict、just frontend-check-quick 和最终 just test。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `0e58e9e9` | (see git log) |
+
+### Status
+
+[OK] **Completed**
