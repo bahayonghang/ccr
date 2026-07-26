@@ -93,3 +93,24 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 51: 完成 SSH 信任与传输加固
+
+**Date**: 2026-07-26
+**Task**: 完成 SSH 信任与传输加固
+**Branch**: `dev`
+
+### Summary
+
+实现严格 SSH 参数与 app-owned known_hosts、120 秒单次主机密钥 challenge、真实 nonce 握手和两阶段 SFTP 原子写入；补齐 hostile corpus、失败清理、状态撤回与前端 challenge-only 测试。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `19cef4b2` | (see git log) |
+
+### Status
+
+[OK] **Completed**
