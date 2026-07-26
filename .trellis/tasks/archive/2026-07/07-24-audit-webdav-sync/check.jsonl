@@ -1,0 +1,4 @@
+{"file":".trellis/spec/ccr-sync/backend/test-fixtures.md","reason":"Fake DAV adversarial and fault fixtures"}
+{"file":".trellis/spec/ccr-sync/backend/backend-guidelines.md","reason":"Credential-safe network review"}
+{"file":".trellis/spec/ccr-core/backend/atomic-writer.md","reason":"Exact active-byte preservation review"}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Config and encryption state data flow"}
