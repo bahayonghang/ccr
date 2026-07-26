@@ -539,6 +539,7 @@ dependencies = [
  "tracing-appender",
  "tracing-log",
  "tracing-subscriber",
+ "ts-rs",
  "unicode-width",
  "urlencoding",
  "uuid",

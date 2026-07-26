@@ -6,102 +6,36 @@
  */
 
 import { invoke } from '@tauri-apps/api/core'
+import type { AttemptId } from '@/types/generated/install/AttemptId'
+import type { CancelResult } from '@/types/generated/install/CancelResult'
+import type { DetectionResult } from '@/types/generated/install/DetectionResult'
+import type { HostCapabilities } from '@/types/generated/install/HostCapabilities'
+import type { InstallEvent } from '@/types/generated/install/InstallEvent'
+import type { InstallPlanView } from '@/types/generated/install/InstallPlanView'
+import type { ManualCatalog } from '@/types/generated/install/ManualCatalog'
+import type { PlanId } from '@/types/generated/install/PlanId'
+import type { PlanOutcome } from '@/types/generated/install/PlanOutcome'
+import type { Platform } from '@/types/generated/install/Platform'
+import type { ProgressStage } from '@/types/generated/install/ProgressStage'
+import type { RingBufferSnapshot } from '@/types/generated/install/RingBufferSnapshot'
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Types
 // ──────────────────────────────────────────────────────────────────────────────
 
-export type InstallOs = 'macos' | 'linux' | 'windows'
-export type PackageManager = 'cargo' | 'homebrew' | 'scoop' | 'winget'
-export type DurationClass = 'fast' | 'medium' | 'slow'
-export type LogStream = 'stdout' | 'stderr'
-export type ProgressStage = 'resolving' | 'downloading' | 'compiling' | 'installing' | 'finalizing'
-export type FailureKind = 'spawn_failed' | 'non_zero_exit' | 'internal_error'
-export type UnsupportedReason = 'no_package_manager' | 'elevation_required'
-export type PostInstallHint = 'reopen_app_for_path'
-
-export interface AttemptId {
-  /** UUID string */
-  [key: string]: string
-}
-
-export interface HostCapabilities {
-  platform: InstallOs
-  has_cargo: boolean
-  has_homebrew: boolean
-  has_scoop: boolean
-  has_winget: boolean
-  cargo_path: string | null
-  homebrew_path: string | null
-}
-
-export interface DataRootWarning {
-  kind: 'data_root_missing'
-  path: string
-}
-
-export type DetectionResult =
-  | {
-      status: 'available'
-      path: string
-      version: string | null
-      data_root_warning: DataRootWarning | null
-    }
-  | {
-      status: 'absent'
-      reason: AbsentReason
-      data_root_warning: DataRootWarning | null
-    }
-
-export type AbsentReason =
-  | { kind: 'not_on_path' }
-  | { kind: 'not_executable'; exit_code: number | null; stderr_excerpt: string }
-
-export interface InstallPlan {
-  platform: InstallOs
-  package_manager: PackageManager
-  command: string
-  args: string[]
-  envs: Record<string, string>
-  elevation_required: boolean
-  duration_class: DurationClass
-  plan_id: string
-}
-
-export type PlanOutcome =
-  | { kind: 'plan' } & InstallPlan
-  | { kind: 'unsupported'; reason: UnsupportedReason }
-
-export type InstallEvent =
-  | { type: 'started'; attempt_id: string; plan: InstallPlan }
-  | { type: 'log'; attempt_id: string; stream: LogStream; line: string; seq: number }
-  | { type: 'progress'; attempt_id: string; stage: ProgressStage; detail: string | null }
-  | { type: 'succeeded'; attempt_id: string; duration_ms: number; installed_version: string | null }
-  | { type: 'failed'; attempt_id: string; failure_kind: FailureKind; exit_code: number | null; stderr_excerpt: string | null; error_message: string }
-  | { type: 'cancelled'; attempt_id: string; requested_at_ms: number }
-
-export type CancelResult =
-  | { kind: 'cancelled'; attempt_id: string; requested_at_ms: number }
-  | { kind: 'not_running' }
-  | { kind: 'already_terminal'; attempt_id: string }
-
-export interface RingBufferSnapshot {
-  attempt_id: string | null
-  logs: InstallEvent[]
-  terminal: InstallEvent | null
-}
-
-export interface ManualCommand {
-  platform: InstallOs
-  package_manager: PackageManager | null
-  title: string
-  command_line: string
-  notes: string | null
-}
-
-export interface ManualCatalog {
-  entries: ManualCommand[]
-  docs_url: string
+export type InstallOs = Platform
+export type {
+  AttemptId,
+  CancelResult,
+  DetectionResult,
+  HostCapabilities,
+  InstallEvent,
+  InstallPlanView,
+  ManualCatalog,
+  PlanId,
+  PlanOutcome,
+  ProgressStage,
+  RingBufferSnapshot,
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -127,12 +61,12 @@ export const llmusageInstallPlan = async (
 }
 
 /** Start an install attempt. Returns the attempt ID. */
-export const llmusageInstallExecute = async (plan: InstallPlan): Promise<string> => {
-  return invoke('llmusage_install_execute', { plan })
+export const llmusageInstallExecute = async (planId: PlanId): Promise<AttemptId> => {
+  return invoke('llmusage_install_execute', { planId })
 }
 
 /** Cancel the current in-flight install attempt. */
-export const llmusageInstallCancel = async (attemptId: string): Promise<CancelResult> => {
+export const llmusageInstallCancel = async (attemptId: AttemptId): Promise<CancelResult> => {
   return invoke('llmusage_install_cancel', { attemptId })
 }
 

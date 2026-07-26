@@ -149,9 +149,9 @@ pub fn redact(line: &str) -> String {
 mod tests {
     use super::*;
     use crate::services::install_types::{
-        AttemptId, DurationClass, InstallPlan, LogStream, PackageManager, Platform,
+        AttemptId, DurationClass, InstallActionKind, InstallPlanView, LogStream, PackageManager,
+        PlanId, Platform,
     };
-    use std::collections::BTreeMap;
 
     fn make_log(attempt_id: AttemptId, seq: u64) -> InstallEvent {
         InstallEvent::Log {
@@ -165,15 +165,15 @@ mod tests {
     fn make_started(attempt_id: AttemptId) -> InstallEvent {
         InstallEvent::Started {
             attempt_id,
-            plan: InstallPlan {
+            plan: InstallPlanView {
+                plan_id: PlanId::new(),
                 platform: Platform::Macos,
                 package_manager: PackageManager::Cargo,
-                command: "cargo".to_string(),
-                args: vec!["install".to_string()],
-                envs: BTreeMap::new(),
+                action: InstallActionKind::Cargo,
+                expected_effects: vec!["Install llmusage".to_string()],
                 elevation_required: false,
                 duration_class: DurationClass::Slow,
-                plan_id: uuid::Uuid::new_v4(),
+                expires_at_ms: 1_700_000_120_000,
             },
         }
     }

@@ -1540,6 +1540,7 @@ _bindings-linux:
     set -euo pipefail
     echo "🔄 重新生成 TypeScript 绑定..."
     rm -rf src/types/generated
+    cargo test --manifest-path ../Cargo.toml -p ccr-cli --features ts export_bindings
     cargo test --manifest-path ../Cargo.toml -p ccr-usage --features ts export_bindings
     cargo test --manifest-path src-tauri/Cargo.toml export_bindings
     echo "✅ 绑定已生成: src/types/generated/"
@@ -1549,6 +1550,7 @@ _bindings-macos:
     set -euo pipefail
     echo "🔄 重新生成 TypeScript 绑定..."
     rm -rf src/types/generated
+    cargo test --manifest-path ../Cargo.toml -p ccr-cli --features ts export_bindings
     cargo test --manifest-path ../Cargo.toml -p ccr-usage --features ts export_bindings
     cargo test --manifest-path src-tauri/Cargo.toml export_bindings
     echo "✅ 绑定已生成: src/types/generated/"
@@ -1556,6 +1558,7 @@ _bindings-macos:
 _bindings-windows:
     @Write-Output '🔄 重新生成 TypeScript 绑定...'
     @if (Test-Path src/types/generated) { Remove-Item -Recurse -Force src/types/generated }
+    @cargo test --manifest-path ../Cargo.toml -p ccr-cli --features ts export_bindings
     @cargo test --manifest-path ../Cargo.toml -p ccr-usage --features ts export_bindings
     @cargo test --manifest-path src-tauri/Cargo.toml export_bindings
     @Write-Output '✅ 绑定已生成: src/types/generated/'

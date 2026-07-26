@@ -11,6 +11,7 @@ repository = "https://github.com/bahayonghang/ccr"
 [features]
 default = []
 tui = []
+ts = ["dep:ts-rs"]
 
 [lib]
 name = "ccr_cli"
@@ -52,6 +53,7 @@ tracing = { workspace = true }
 tracing-appender = "0.2.4"
 tracing-log = "0.2"
 tracing-subscriber = { version = "0.3.22", features = ["env-filter", "fmt"] }
+ts-rs = { workspace = true, optional = true, features = ["no-serde-warnings"] }
 tokio-util = { workspace = true }
 uuid = { workspace = true }
 walkdir = { workspace = true }

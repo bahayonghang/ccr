@@ -4,11 +4,10 @@
 
 use std::sync::Arc;
 
-use ccr_cli::services::install_detect;
 use ccr_cli::services::install_service::InstallService;
 use ccr_cli::services::install_types::{
-    AttemptId, CancelResult, DetectionResult, HostCapabilities, InstallPlan, ManualCatalog,
-    PlanOutcome, RingBufferSnapshot,
+    AttemptId, CancelResult, DetectionResult, HostCapabilities, ManualCatalog, PlanId, PlanOutcome,
+    RingBufferSnapshot,
 };
 use tauri::{AppHandle, Emitter, State};
 
@@ -22,8 +21,10 @@ pub async fn llmusage_install_detect(
 
 /// Probe the host for available package managers and platform info.
 #[tauri::command]
-pub async fn llmusage_install_probe_capabilities() -> Result<HostCapabilities, String> {
-    Ok(install_detect::probe_host_capabilities())
+pub async fn llmusage_install_probe_capabilities(
+    svc: State<'_, Arc<InstallService>>,
+) -> Result<HostCapabilities, String> {
+    Ok(svc.probe_capabilities())
 }
 
 /// Generate an install plan for the current host.
@@ -34,6 +35,7 @@ pub async fn llmusage_install_plan(
     capabilities: HostCapabilities,
 ) -> Result<PlanOutcome, String> {
     svc.plan(&detection, &capabilities)
+        .await
         .map_err(|e| e.to_string())
 }
 
@@ -44,9 +46,9 @@ pub async fn llmusage_install_plan(
 pub async fn llmusage_install_execute(
     app: AppHandle,
     svc: State<'_, Arc<InstallService>>,
-    plan: InstallPlan,
+    plan_id: PlanId,
 ) -> Result<AttemptId, String> {
-    let attempt = svc.execute(plan).await.map_err(|e| e.to_string())?;
+    let attempt = svc.execute(plan_id).await.map_err(|e| e.to_string())?;
     let attempt_id = attempt.attempt_id;
     let mut rx = attempt.events;
 
@@ -100,6 +102,6 @@ pub async fn llmusage_install_check(
     svc: State<'_, Arc<InstallService>>,
 ) -> Result<(DetectionResult, HostCapabilities), String> {
     let detection = svc.detect().await.map_err(|e| e.to_string())?;
-    let caps = install_detect::probe_host_capabilities();
+    let caps = svc.probe_capabilities();
     Ok((detection, caps))
 }

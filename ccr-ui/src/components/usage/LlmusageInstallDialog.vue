@@ -295,7 +295,7 @@ import {
   type HostCapabilities,
   type PlanOutcome,
   type InstallEvent,
-  type InstallPlan,
+  type AttemptId,
   type ManualCatalog,
   type ProgressStage,
 } from '@/api/domains/install'
@@ -332,7 +332,7 @@ const planOutcome = ref<PlanOutcome | null>(null)
 const manualCatalog = ref<ManualCatalog | null>(null)
 
 // Auto install state
-const currentAttemptId = ref<string | null>(null)
+const currentAttemptId = ref<AttemptId | null>(null)
 const recentLogs = ref<Array<{ line: string; seq: number }>>([])
 const currentStage = ref<ProgressStage | null>(null)
 const terminalOutcome = ref<'succeeded' | 'failed' | 'cancelled' | null>(null)
@@ -379,12 +379,9 @@ const currentPlatformCommands = computed(() => {
   )
 })
 
-// 后端 PlanOutcome 序列化为 untagged enum，'plan' 分支时含 package_manager 字段。
-// 通过 unknown -> Record<string, unknown> 取出 string，避免 any。
 const planPackageManager = computed(() => {
   if (planOutcome.value?.kind !== 'plan') return ''
-  const pm = (planOutcome.value as unknown as { package_manager?: unknown }).package_manager
-  return typeof pm === 'string' ? pm : ''
+  return planOutcome.value.package_manager
 })
 
 // 描述文案含 <strong>llmusage</strong> 强调，用 v-html 注入；只渲染 i18n 文案，无用户输入。
@@ -458,10 +455,7 @@ async function startAutoInstall() {
   await setupEventListener()
 
   try {
-    const plan = planOutcome.value as unknown as InstallPlan
-    // AttemptId 在 Rust 端是 #[serde(transparent)] uuid::Uuid，序列化为裸 UUID 字符串；
-    // api/domains/install.ts 已声明 Promise<string>，前端无需任何兜底。
-    currentAttemptId.value = await llmusageInstallExecute(plan)
+    currentAttemptId.value = await llmusageInstallExecute(planOutcome.value.plan_id)
   } catch (e) {
     state.value = 'auto-terminal'
     terminalOutcome.value = 'failed'
@@ -469,8 +463,28 @@ async function startAutoInstall() {
   }
 }
 
-function retryAutoInstall() {
-  startAutoInstall()
+async function retryAutoInstall() {
+  try {
+    const [det, caps] = await llmusageInstallCheck()
+    detection.value = det
+    capabilities.value = caps
+    if (det.status === 'available') {
+      emit('install-success')
+      emit('retry-import')
+      handleClose()
+      return
+    }
+    planOutcome.value = await llmusageInstallPlan(det, caps)
+    if (planOutcome.value.kind !== 'plan') {
+      state.value = 'absent-choice'
+      return
+    }
+    await startAutoInstall()
+  } catch (e) {
+    state.value = 'auto-terminal'
+    terminalOutcome.value = 'failed'
+    failureMessage.value = String(e)
+  }
 }
 
 async function cancelInstall() {
