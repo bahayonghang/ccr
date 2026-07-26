@@ -1,0 +1,4 @@
+{"file":".trellis/spec/ccr-core/backend/test-fixtures.md","reason":"Atomic writer platform fixture coverage"}
+{"file":".trellis/spec/ccr-core/backend/atomic-writer.md","reason":"Secret mode and fsync review"}
+{"file":".trellis/spec/ccr-db/backend/test-fixtures.md","reason":"Historical database fixture coverage"}
+{"file":".trellis/spec/ccr-db/backend/backend-guidelines.md","reason":"No silent migration failure review"}

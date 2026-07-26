@@ -1,0 +1,4 @@
+{"file":".trellis/spec/ccr-core/backend/atomic-writer.md","reason":"Permission preservation and durable replace contract"}
+{"file":".trellis/spec/ccr-core/backend/ccr-error-freeze.md","reason":"Preserve frozen public error surface"}
+{"file":".trellis/spec/ccr-db/backend/backend-guidelines.md","reason":"Migration transaction and error conventions"}
+{"file":".trellis/spec/ccr-cli/backend/backend-guidelines.md","reason":"Sensitive settings writer caller contract"}
