@@ -416,3 +416,24 @@
 ### Next Steps
 
 - 配置 12 项签名身份、受保护的 vsix-signing self-hosted runner，并取得真实 v* tag release 授权后执行签名与 provenance 终验。
+
+
+## Session 61: 完成审计整改并切换为无签名发布
+
+**Date**: 2026-07-27
+**Task**: 完成审计整改并切换为无签名发布
+**Branch**: `dev`
+
+### Summary
+
+删除 release-signing 子任务，回退签名门禁，P2-14 记录为 ACCEPTED_RISK；完成父任务全量本地集成验收。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `0f6a8fb4` | (see git log) |
+
+### Status
+
+[OK] **Completed**
