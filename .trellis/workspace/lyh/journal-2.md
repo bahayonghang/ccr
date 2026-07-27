@@ -380,3 +380,39 @@
 ### Next Steps
 
 - 等待真实 Apple Developer ID、Windows code-signing certificate、Marketplace publisher/sign-tool 与 release credentials；随后执行 tag release 并验证实际签名 artifact/provenance，才能归档 release-signing 和父任务。
+
+
+## Session 60: 补充 VSIX 签名运行器阻塞证据
+
+**Date**: 2026-07-27
+**Task**: 补充 VSIX 签名运行器阻塞证据
+**Branch**: `dev`
+
+### Summary
+
+第二次外部状态审计确认签名配置仍为空，并新增确认仓库 Actions self-hosted runner inventory 为 0。
+
+### Main Changes
+
+- 记录 Apple 6、Windows 4、VSIX 2 共 12 项本机配置全部缺失，repository/environment secrets 与 variables 均为 0。
+- 记录 release workflow 要求受保护的 [self-hosted, linux, vsix-signing] runner，但仓库 runner inventory 为 0。
+- 同步父任务 P2-14、release-signing PRD/design/implement；保持 34 PASS + 1 UNVERIFIED，不归档。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `776e21ae` | (see git log) |
+
+### Testing
+
+- [OK] task.py validate: release-signing 与父任务 manifests 全部通过。
+- [OK] release-security-check 6/6、ci-governance-check 52 immutable actions、actionlint 1.7.12 通过。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 配置 12 项签名身份、受保护的 vsix-signing self-hosted runner，并取得真实 v* tag release 授权后执行签名与 provenance 终验。

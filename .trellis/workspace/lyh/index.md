@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 59
+- **Total Sessions**: 60
 - **Last Active**: 2026-07-27
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~382 | Active |
+| `journal-2.md` | ~418 | Active |
 | `journal-1.md` | ~1987 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 60 | 2026-07-27 | 补充 VSIX 签名运行器阻塞证据 | `776e21ae` | `dev` |
 | 59 | 2026-07-27 | 审计整改集成与托管验收证据 checkpoint | `6576b719` | `dev` |
 | 58 | 2026-07-27 | Release signing 仓库侧验收 checkpoint | `d2cabc6a`, `07f8b12f` | `dev` |
 | 57 | 2026-07-27 | 完成 Typed IPC 运行时能力策略 | `3de89558`, `b381e1ad` | `dev` |
