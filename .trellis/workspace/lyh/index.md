@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 58
+- **Total Sessions**: 59
 - **Last Active**: 2026-07-27
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~345 | Active |
+| `journal-2.md` | ~382 | Active |
 | `journal-1.md` | ~1987 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 59 | 2026-07-27 | 审计整改集成与托管验收证据 checkpoint | `6576b719` | `dev` |
 | 58 | 2026-07-27 | Release signing 仓库侧验收 checkpoint | `d2cabc6a`, `07f8b12f` | `dev` |
 | 57 | 2026-07-27 | 完成 Typed IPC 运行时能力策略 | `3de89558`, `b381e1ad` | `dev` |
 | 56 | 2026-07-27 | 完成 CI 与契约治理端到端验收 | `691fd0d5`, `bb46226b`, `7e7c4514`, `158b007c`, `6951839f`, `09acd6f2`, `133842b3`, `2ef69893` | `dev` |

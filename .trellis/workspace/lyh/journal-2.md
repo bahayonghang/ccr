@@ -343,3 +343,40 @@
 ### Next Steps
 
 - 取得可读写 Actions/environment 权限与 Apple、Windows、Marketplace 身份后执行真实 tag release，并验证所有签名与 attestation
+
+
+## Session 59: 审计整改集成与托管验收证据 checkpoint
+
+**Date**: 2026-07-27
+**Task**: 审计整改集成与托管验收证据 checkpoint
+**Branch**: `dev`
+
+### Summary
+
+固化父任务 35 条整改矩阵、Typed IPC 完成证据、PR #43 托管矩阵与 release 外部身份库存；P2-14 继续保持 UNVERIFIED。
+
+### Main Changes
+
+- 父任务证据矩阵更新为 34 PASS + 1 UNVERIFIED，并记录 Typed IPC 实现/证据/归档/journal 提交。
+- 回读 main/dev strict branch protection、release v* policy，以及 repository/environment secrets/variables 全部为 0。
+- 记录 PR #43 head 94eda6d0 的四条 required contexts 和 Tauri Linux/Windows/macOS/gateway coverage 全部通过；未合并 PR、未创建 tag/release。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `6576b719` | (see git log) |
+
+### Testing
+
+- [OK] task.py validate: release-signing 4+4 entries、parent 6+6 entries 全部通过。
+- [OK] just release-security-check: 6/6；just ci-governance-check: 52 immutable actions；actionlint 1.7.12 通过。
+- [OK] PR #43: Root/Tauri/Frontend/VS Code required contexts 全部通过；最终本地 just ci 12 stages 03:53.493。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 等待真实 Apple Developer ID、Windows code-signing certificate、Marketplace publisher/sign-tool 与 release credentials；随后执行 tag release 并验证实际签名 artifact/provenance，才能归档 release-signing 和父任务。
