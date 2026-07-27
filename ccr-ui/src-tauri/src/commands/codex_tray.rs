@@ -93,7 +93,7 @@ pub(crate) async fn compute_codex_tray_snapshot(force: bool) -> Result<CodexTray
     })
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_get_tray_snapshot(force: Option<bool>) -> Result<OpenJsonValueDto, String> {
     let snapshot = compute_codex_tray_snapshot(force.unwrap_or(false)).await?;
     serde_json::to_value(snapshot)

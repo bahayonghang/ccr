@@ -5,7 +5,7 @@
  * 真迁移自 tauri.ts 第 4 分组。对应后端 commands::claude::* 命令。
  */
 
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/api/invokeRuntime'
 import * as claudeGenerated from '../generated/claude'
 import {
   asRecord,

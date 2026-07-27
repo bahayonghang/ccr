@@ -1,6 +1,6 @@
 /* Generated from commands/handler_registry.rs; do not edit. */
 
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/api/invokeRuntime'
 import type { OpenJsonValueDto } from '@/types/generated/common/OpenJsonValueDto'
 
 export interface CodexAgentContextRequest { mode?: string; projectRoot?: string }

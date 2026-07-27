@@ -8,7 +8,7 @@
  * 其它平台暂保留 delete + add 兼容路径。
  */
 
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/api/invokeRuntime'
 import { getErrorMessage } from '@/utils/errorHandler'
 import { updateClaudeMcpServer } from '../generated/claude'
 import { asRecord, toOpenJsonValue, type UnknownRecord } from '../_shared'

@@ -42,6 +42,17 @@ pub(crate) enum CommandConcurrency {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
+pub(crate) enum CommandTimeoutEnforcement {
+    /// Dropping the command future cancels the in-flight work at an await point.
+    Cooperative,
+    /// The deadline bounds queue admission; once started, the future owns completion.
+    CompletionAware,
+    /// A lower business boundary owns timeout, cancellation, and cleanup.
+    BusinessOwned,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
 pub(crate) enum CommandAudit {
     MetadataOnly,
     Redacted,
@@ -95,6 +106,7 @@ pub(crate) struct CommandDescriptor {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) output_type: Option<&'static str>,
     pub(crate) timeout_ms: u64,
+    pub(crate) timeout_enforcement: CommandTimeoutEnforcement,
     pub(crate) concurrency: CommandConcurrency,
     pub(crate) confirmation: CommandConfirmation,
     pub(crate) authorization: CommandAuthorization,
@@ -109,7 +121,7 @@ impl CommandDescriptor {
     ) -> Self {
         let id = handler_path.rsplit("::").next().unwrap_or(handler_path);
         let risk = effective_risk(module.default_risk, id);
-        let (timeout_ms, concurrency, confirmation, authorization, audit) =
+        let (timeout_ms, timeout_enforcement, concurrency, confirmation, authorization, audit) =
             capability_policy(risk, module.default_risk, id);
         let wire_contract = module.wire_contracts[command_index];
 
@@ -125,6 +137,7 @@ impl CommandDescriptor {
             input_type: wire_contract.map(|contract| contract.input_type),
             output_type: wire_contract.map(|contract| contract.output_type),
             timeout_ms,
+            timeout_enforcement,
             concurrency,
             confirmation,
             authorization,
@@ -144,6 +157,20 @@ impl CommandDescriptor {
 }
 
 fn effective_risk(default_risk: CommandRisk, command: &str) -> CommandRisk {
+    match command {
+        "append_frontend_logs"
+        | "start_usage_import_job_v2"
+        | "cancel_usage_import_job_v2"
+        | "import_usage_v2"
+        | "import_all_usage_v2"
+        | "claude_observer_subscription_set" => return CommandRisk::LocalMutation,
+        "sync_status"
+        | "llmusage_install_recent"
+        | "llmusage_install_manual_catalog"
+        | "wsl_cache_status" => return CommandRisk::ReadOnly,
+        _ => {}
+    }
+
     const DESTRUCTIVE_PREFIXES: &[&str] = &[
         "clear_", "clean_", "delete_", "remove_", "reset_", "restore_",
     ];
@@ -191,6 +218,7 @@ fn capability_policy(
     command: &str,
 ) -> (
     u64,
+    CommandTimeoutEnforcement,
     CommandConcurrency,
     CommandConfirmation,
     CommandAuthorization,
@@ -228,11 +256,7 @@ fn capability_policy(
         CommandRisk::ProcessExecution => (
             120_000,
             CommandConcurrency::Singleton,
-            if command == "llmusage_install_execute" {
-                CommandConfirmation::OpaqueCapability
-            } else {
-                CommandConfirmation::UserGesture
-            },
+            CommandConfirmation::UserGesture,
             CommandAuthorization::SystemCapability,
             CommandAudit::Redacted,
         ),
@@ -243,6 +267,21 @@ fn capability_policy(
             CommandAuthorization::SecretAccess,
             CommandAudit::Redacted,
         ),
+    };
+
+    let timeout_enforcement = match (risk, command) {
+        (_, "test_webdav_config") => CommandTimeoutEnforcement::Cooperative,
+        (CommandRisk::ProcessExecution, _) => CommandTimeoutEnforcement::BusinessOwned,
+        _ => CommandTimeoutEnforcement::CompletionAware,
+    };
+
+    let confirmation = if matches!(
+        command,
+        "llmusage_install_execute" | "ssh_confirm_host_fingerprint"
+    ) {
+        CommandConfirmation::OpaqueCapability
+    } else {
+        confirmation
     };
 
     match default_risk {
@@ -257,7 +296,14 @@ fn capability_policy(
         CommandRisk::ReadOnly | CommandRisk::LocalMutation => {}
     }
 
-    (timeout_ms, concurrency, confirmation, authorization, audit)
+    (
+        timeout_ms,
+        timeout_enforcement,
+        concurrency,
+        confirmation,
+        authorization,
+        audit,
+    )
 }
 
 pub(crate) fn command_descriptors() -> impl Iterator<Item = CommandDescriptor> {
@@ -275,6 +321,46 @@ pub(crate) fn command_descriptors() -> impl Iterator<Item = CommandDescriptor> {
 
 pub(crate) fn command_descriptor(command: &str) -> Option<CommandDescriptor> {
     command_descriptors().find(|descriptor| descriptor.id == command)
+}
+
+fn confirmation_token(command: &str) -> String {
+    format!("desktop-confirm:{command}")
+}
+
+fn confirmation_payload_is_valid(
+    descriptor: CommandDescriptor,
+    payload: &tauri::ipc::InvokeBody,
+) -> bool {
+    let tauri::ipc::InvokeBody::Json(payload) = payload else {
+        return descriptor.confirmation == CommandConfirmation::None;
+    };
+
+    match descriptor.confirmation {
+        CommandConfirmation::None => true,
+        CommandConfirmation::UserGesture => payload
+            .as_object()
+            .and_then(|object| object.get("confirmationToken"))
+            .and_then(serde_json::Value::as_str)
+            .is_some_and(|token| token == confirmation_token(descriptor.id)),
+        CommandConfirmation::OpaqueCapability => {
+            let Some(payload) = payload.as_object() else {
+                return false;
+            };
+            match descriptor.id {
+                "llmusage_install_execute" => payload
+                    .get("planId")
+                    .and_then(serde_json::Value::as_str)
+                    .is_some_and(|plan_id| !plan_id.trim().is_empty()),
+                "ssh_confirm_host_fingerprint" => payload
+                    .get("request")
+                    .and_then(serde_json::Value::as_object)
+                    .and_then(|request| request.get("challenge_id"))
+                    .and_then(serde_json::Value::as_str)
+                    .is_some_and(|challenge_id| !challenge_id.trim().is_empty()),
+                _ => false,
+            }
+        }
+    }
 }
 
 macro_rules! command_wire_contract {
@@ -327,7 +413,7 @@ macro_rules! define_command_registry {
                 } else {
                     invoke
                         .resolver
-                        .reject("command is not registered in the capability manifest");
+                        .reject("command rejected by the capability manifest");
                     true
                 }
             }
@@ -355,7 +441,7 @@ macro_rules! define_command_registry {
                 } else {
                     invoke
                         .resolver
-                        .reject("command is not registered in the capability manifest");
+                        .reject("command rejected by the capability manifest");
                     true
                 }
             }
@@ -366,6 +452,15 @@ macro_rules! define_command_registry {
 fn audit_invoke(invoke: &tauri::ipc::Invoke) -> bool {
     let command = invoke.message.command();
     if let Some(descriptor) = command_descriptor(command) {
+        if !confirmation_payload_is_valid(descriptor, invoke.message.payload()) {
+            tracing::warn!(
+                command = descriptor.id,
+                module = descriptor.module,
+                confirmation = ?descriptor.confirmation,
+                "tauri command rejected: capability confirmation missing or invalid"
+            );
+            return false;
+        }
         tracing::debug!(
             command = descriptor.id,
             module = descriptor.module,
@@ -846,8 +941,9 @@ mod tests {
     use super::{
         COMMAND_MODULES, CommandAudit, CommandAuthorization, CommandConcurrency,
         CommandConfirmation, CommandDescriptor, CommandPlatform, CommandRisk, CommandSchema,
-        WINDOWS_COMMAND_MODULES, command_descriptor, command_descriptors,
-        command_registry_is_well_formed, registered_command_count,
+        CommandTimeoutEnforcement, WINDOWS_COMMAND_MODULES, command_descriptor,
+        command_descriptors, command_registry_is_well_formed, confirmation_payload_is_valid,
+        registered_command_count,
     };
 
     #[derive(serde::Serialize)]
@@ -1049,6 +1145,7 @@ mod tests {
             "  input_type?: string\n",
             "  output_type?: string\n",
             "  timeout_ms: number\n",
+            "  timeout_enforcement: 'cooperative' | 'completion_aware' | 'business_owned'\n",
             "  concurrency: 'parallel' | 'module_exclusive' | 'singleton'\n",
             "  confirmation: 'none' | 'user_gesture' | 'opaque_capability'\n",
             "  authorization: 'local_user' | 'secret_access' | 'system_capability'\n",
@@ -1089,7 +1186,7 @@ mod tests {
     fn command_exec_client_typescript() -> String {
         let mut output = [
             "/* Generated from commands/handler_registry.rs; do not edit. */\n\n",
-            "import { invoke } from '@tauri-apps/api/core'\n",
+            "import { invoke } from '@/api/invokeRuntime'\n",
             "import type { CommandCatalog } from '@/types/generated/command_exec/CommandCatalog'\n",
             "import type { CommandExecutionResult } from '@/types/generated/command_exec/CommandExecutionResult'\n",
             "import type { CommandHelpResponse } from '@/types/generated/command_exec/CommandHelpResponse'\n",
@@ -1109,7 +1206,7 @@ mod tests {
     fn sync_client_typescript() -> String {
         let mut output = [
             "/* Generated from commands/handler_registry.rs; do not edit. */\n\n",
-            "import { invoke } from '@tauri-apps/api/core'\n",
+            "import { invoke } from '@/api/invokeRuntime'\n",
             "import type { SyncAllAssetsInput } from '@/types/generated/sync/SyncAllAssetsInput'\n",
             "import type { SyncAssetInfo } from '@/types/generated/sync/SyncAssetInfo'\n",
             "import type { SyncAssetOperationInput } from '@/types/generated/sync/SyncAssetOperationInput'\n",
@@ -1130,7 +1227,7 @@ mod tests {
     fn ssh_client_typescript() -> String {
         let mut output = [
             "/* Generated from commands/handler_registry.rs; do not edit. */\n\n",
-            "import { invoke } from '@tauri-apps/api/core'\n",
+            "import { invoke } from '@/api/invokeRuntime'\n",
             "import type { AddSshHostRequest } from '@/types/generated/ssh/AddSshHostRequest'\n",
             "import type { SshCliStatusDto } from '@/types/generated/ssh/SshCliStatusDto'\n",
             "import type { SshConnectionState } from '@/types/generated/ssh/SshConnectionState'\n",
@@ -1152,7 +1249,7 @@ mod tests {
     fn claude_auth_client_typescript() -> String {
         let mut output = [
             "/* Generated from commands/handler_registry.rs; do not edit. */\n\n",
-            "import { invoke } from '@tauri-apps/api/core'\n",
+            "import { invoke } from '@/api/invokeRuntime'\n",
             "import type { ClaudeAuthActionResponse } from '@/types/generated/claude_auth/ClaudeAuthActionResponse'\n",
             "import type { ClaudeAuthCurrentResponse } from '@/types/generated/claude_auth/ClaudeAuthCurrentResponse'\n",
             "import type { ClaudeAuthListResponse } from '@/types/generated/claude_auth/ClaudeAuthListResponse'\n\n",
@@ -1170,7 +1267,7 @@ mod tests {
     fn codex_auth_client_typescript() -> String {
         let mut output = [
             "/* Generated from commands/handler_registry.rs; do not edit. */\n\n",
-            "import { invoke } from '@tauri-apps/api/core'\n",
+            "import { invoke } from '@/api/invokeRuntime'\n",
             "import type { CodexAuthActionResponse } from '@/types/generated/codex_auth/CodexAuthActionResponse'\n",
             "import type { CodexAuthCurrentResponse } from '@/types/generated/codex_auth/CodexAuthCurrentResponse'\n",
             "import type { CodexAuthListResponse } from '@/types/generated/codex_auth/CodexAuthListResponse'\n",
@@ -1196,7 +1293,7 @@ mod tests {
     fn config_client_typescript() -> String {
         let mut output = [
             "/* Generated from commands/handler_registry.rs; do not edit. */\n\n",
-            "import { invoke } from '@tauri-apps/api/core'\n",
+            "import { invoke } from '@/api/invokeRuntime'\n",
             "import type { ConfigInfo } from '@/types/generated/config/ConfigInfo'\n",
             "import type { ExportResult } from '@/types/generated/config/ExportResult'\n",
             "import type { HistoryEntry } from '@/types/generated/config/HistoryEntry'\n",
@@ -1224,7 +1321,7 @@ mod tests {
     fn ui_state_client_typescript() -> String {
         let mut output = [
             "/* Generated from commands/handler_registry.rs; do not edit. */\n\n",
-            "import { invoke } from '@tauri-apps/api/core'\n",
+            "import { invoke } from '@/api/invokeRuntime'\n",
             "import type { CommandHistoryDto } from '@/types/generated/ui_state/CommandHistoryDto'\n",
             "import type { FavoriteCommandDto } from '@/types/generated/ui_state/FavoriteCommandDto'\n\n",
         ]
@@ -1236,7 +1333,7 @@ mod tests {
     fn system_info_client_typescript() -> String {
         let mut output = [
             "/* Generated from commands/handler_registry.rs; do not edit. */\n\n",
-            "import { invoke } from '@tauri-apps/api/core'\n",
+            "import { invoke } from '@/api/invokeRuntime'\n",
             "import type { SystemInfo } from '@/types/generated/system/SystemInfo'\n",
             "import type { VersionInfo } from '@/types/generated/system/VersionInfo'\n\n",
         ]
@@ -1248,7 +1345,7 @@ mod tests {
     fn converter_client_typescript() -> String {
         let mut output = [
             "/* Generated from commands/handler_registry.rs; do not edit. */\n\n",
-            "import { invoke } from '@tauri-apps/api/core'\n",
+            "import { invoke } from '@/api/invokeRuntime'\n",
             "import type { ConverterRequestDto } from '@/types/generated/converter/ConverterRequestDto'\n",
             "import type { ConvertResult } from '@/types/generated/converter/ConvertResult'\n\n",
         ]
@@ -1260,7 +1357,7 @@ mod tests {
     fn exit_confirm_client_typescript() -> String {
         let mut output = [
             "/* Generated from commands/handler_registry.rs; do not edit. */\n\n",
-            "import { invoke } from '@tauri-apps/api/core'\n\n",
+            "import { invoke } from '@/api/invokeRuntime'\n\n",
         ]
         .concat();
         append_module_client_declarations(&mut output, "exit_confirm");
@@ -1270,7 +1367,7 @@ mod tests {
     fn environment_client_typescript() -> String {
         let mut output = [
             "/* Generated from commands/handler_registry.rs; do not edit. */\n\n",
-            "import { invoke } from '@tauri-apps/api/core'\n",
+            "import { invoke } from '@/api/invokeRuntime'\n",
             "import type { EnvironmentInfo } from '@/types/generated/environment/EnvironmentInfo'\n\n",
         ]
         .concat();
@@ -1281,7 +1378,7 @@ mod tests {
     fn events_client_typescript() -> String {
         let mut output = [
             "/* Generated from commands/handler_registry.rs; do not edit. */\n\n",
-            "import { invoke } from '@tauri-apps/api/core'\n",
+            "import { invoke } from '@/api/invokeRuntime'\n",
             "import type { EventLogEntryDto } from '@/types/generated/events/EventLogEntryDto'\n",
             "import type { FrontendLogInputDto } from '@/types/generated/events/FrontendLogInputDto'\n",
             "import type { MonitoringEntryDto } from '@/types/generated/events/MonitoringEntryDto'\n",
@@ -1296,7 +1393,7 @@ mod tests {
     fn shell_client_typescript() -> String {
         let mut output = [
             "/* Generated from commands/handler_registry.rs; do not edit. */\n\n",
-            "import { invoke } from '@tauri-apps/api/core'\n",
+            "import { invoke } from '@/api/invokeRuntime'\n",
             "import type { DesktopShellPreferences } from '@/types/generated/shell/DesktopShellPreferences'\n",
             "import type { SkillportAppStatus } from '@/types/generated/shell/SkillportAppStatus'\n",
             "import type { TrayPanelManualPosition } from '@/types/generated/shell/TrayPanelManualPosition'\n\n",
@@ -1309,7 +1406,7 @@ mod tests {
     fn system_extended_client_typescript() -> String {
         let mut output = [
             "/* Generated from commands/handler_registry.rs; do not edit. */\n\n",
-            "import { invoke } from '@tauri-apps/api/core'\n",
+            "import { invoke } from '@/api/invokeRuntime'\n",
             "import type { CliVersionEntry } from '@/types/generated/system/CliVersionEntry'\n",
             "import type { CliVersionOptions } from '@/types/generated/system/CliVersionOptions'\n",
             "import type { CliVersionsOptions } from '@/types/generated/system/CliVersionsOptions'\n",
@@ -1323,7 +1420,7 @@ mod tests {
     fn builtin_prompts_client_typescript() -> String {
         let mut output = [
             "/* Generated from commands/handler_registry.rs; do not edit. */\n\n",
-            "import { invoke } from '@tauri-apps/api/core'\n",
+            "import { invoke } from '@/api/invokeRuntime'\n",
             "import type { BuiltinPromptDto } from '@/types/generated/builtin_prompts/BuiltinPromptDto'\n\n",
         ]
         .concat();
@@ -1334,7 +1431,7 @@ mod tests {
     fn gemini_client_typescript() -> String {
         let mut output = [
             "/* Generated from commands/handler_registry.rs; do not edit. */\n\n",
-            "import { invoke } from '@tauri-apps/api/core'\n",
+            "import { invoke } from '@/api/invokeRuntime'\n",
             "import type { OpenJsonValueDto } from '@/types/generated/common/OpenJsonValueDto'\n\n",
         ]
         .concat();
@@ -1345,7 +1442,7 @@ mod tests {
     fn opencode_client_typescript() -> String {
         let mut output = [
             "/* Generated from commands/handler_registry.rs; do not edit. */\n\n",
-            "import { invoke } from '@tauri-apps/api/core'\n",
+            "import { invoke } from '@/api/invokeRuntime'\n",
             "import type { OpenJsonValueDto } from '@/types/generated/common/OpenJsonValueDto'\n",
             "import type { OpenCodePluginFileRecord } from '@/types/generated/opencode/OpenCodePluginFileRecord'\n",
             "import type { OpenCodeThemeRecord } from '@/types/generated/opencode/OpenCodeThemeRecord'\n\n",
@@ -1358,7 +1455,7 @@ mod tests {
     fn claude_client_typescript() -> String {
         let mut output = [
             "/* Generated from commands/handler_registry.rs; do not edit. */\n\n",
-            "import { invoke } from '@tauri-apps/api/core'\n",
+            "import { invoke } from '@/api/invokeRuntime'\n",
             "import type { OpenJsonValueDto } from '@/types/generated/common/OpenJsonValueDto'\n\n",
         ]
         .concat();
@@ -1370,7 +1467,7 @@ mod tests {
     fn codex_client_typescript() -> String {
         let mut output = [
             "/* Generated from commands/handler_registry.rs; do not edit. */\n\n",
-            "import { invoke } from '@tauri-apps/api/core'\n",
+            "import { invoke } from '@/api/invokeRuntime'\n",
             "import type { OpenJsonValueDto } from '@/types/generated/common/OpenJsonValueDto'\n\n",
             "export interface CodexAgentContextRequest { mode?: string; projectRoot?: string }\n",
             "export interface CodexAgentSourceInstallRequest { sourceId: string; agentId: string; targetName?: string | null; conflictMode?: string | null }\n",
@@ -1384,7 +1481,7 @@ mod tests {
     fn system_prompts_client_typescript() -> String {
         let mut output = [
             "/* Generated from commands/handler_registry.rs; do not edit. */\n\n",
-            "import { invoke } from '@tauri-apps/api/core'\n",
+            "import { invoke } from '@/api/invokeRuntime'\n",
             "import type { OpenJsonValueDto } from '@/types/generated/common/OpenJsonValueDto'\n\n",
         ]
         .concat();
@@ -1395,7 +1492,7 @@ mod tests {
     fn install_client_typescript() -> String {
         let mut output = [
             "/* Generated from commands/handler_registry.rs; do not edit. */\n\n",
-            "import { invoke } from '@tauri-apps/api/core'\n",
+            "import { invoke } from '@/api/invokeRuntime'\n",
             "import type { AttemptId } from '@/types/generated/install/AttemptId'\n",
             "import type { CancelResult } from '@/types/generated/install/CancelResult'\n",
             "import type { DetectionResult } from '@/types/generated/install/DetectionResult'\n",
@@ -1413,7 +1510,7 @@ mod tests {
     fn usage_v2_client_typescript() -> String {
         let mut output = [
             "/* Generated from commands/handler_registry.rs; do not edit. */\n\n",
-            "import { invoke } from '@tauri-apps/api/core'\n",
+            "import { invoke } from '@/api/invokeRuntime'\n",
             "import type { CapabilityReport } from '@/types/generated/usage/CapabilityReport'\n",
             "import type { DailyTrendDto } from '@/types/generated/usage/DailyTrendDto'\n",
             "import type { HeatmapResponseDto } from '@/types/generated/usage/HeatmapResponseDto'\n",
@@ -1443,7 +1540,7 @@ mod tests {
     fn claude_observer_client_typescript() -> String {
         let mut output = [
             "/* Generated from commands/handler_registry.rs; do not edit. */\n\n",
-            "import { invoke } from '@tauri-apps/api/core'\n",
+            "import { invoke } from '@/api/invokeRuntime'\n",
             "import type { BreakdownRow } from '@/types/generated/claude_observer/BreakdownRow'\n",
             "import type { CacheStatsDto } from '@/types/generated/claude_observer/CacheStatsDto'\n",
             "import type { DailyPoint } from '@/types/generated/claude_observer/DailyPoint'\n",
@@ -1640,6 +1737,12 @@ mod tests {
             assert!(!descriptor.module.is_empty());
             assert!(!descriptor.title.is_empty());
             assert!(descriptor.timeout_ms > 0);
+            assert!(matches!(
+                descriptor.timeout_enforcement,
+                CommandTimeoutEnforcement::Cooperative
+                    | CommandTimeoutEnforcement::CompletionAware
+                    | CommandTimeoutEnforcement::BusinessOwned
+            ));
             assert_eq!(descriptor.input_schema, descriptor.output_schema);
         }
 
@@ -1705,6 +1808,13 @@ mod tests {
         assert_eq!(sync_push.risk, CommandRisk::NetworkMutation);
         assert_eq!(sync_push.concurrency, CommandConcurrency::ModuleExclusive);
 
+        let ssh_confirm = command_descriptor("ssh_confirm_host_fingerprint")
+            .expect("SSH fingerprint confirmation descriptor");
+        assert_eq!(
+            ssh_confirm.confirmation,
+            CommandConfirmation::OpaqueCapability
+        );
+
         let sync_list =
             command_descriptor("list_sync_assets").expect("list sync assets descriptor");
         assert_eq!(sync_list.risk, CommandRisk::ReadOnly);
@@ -1739,6 +1849,69 @@ mod tests {
         let prompts_list =
             command_descriptor("system_prompts_list").expect("system prompts list descriptor");
         assert_eq!(prompts_list.risk, CommandRisk::ReadOnly);
+
+        let sync_status = command_descriptor("sync_status").expect("sync status descriptor");
+        assert_eq!(sync_status.risk, CommandRisk::ReadOnly);
+        assert_eq!(
+            sync_status.timeout_enforcement,
+            CommandTimeoutEnforcement::CompletionAware
+        );
+
+        let subscription_set = command_descriptor("claude_observer_subscription_set")
+            .expect("subscription setter descriptor");
+        assert_eq!(subscription_set.risk, CommandRisk::LocalMutation);
+
+        let cooperative = command_descriptors()
+            .filter(|descriptor| {
+                descriptor.timeout_enforcement == CommandTimeoutEnforcement::Cooperative
+            })
+            .map(|descriptor| descriptor.id)
+            .collect::<Vec<_>>();
+        assert_eq!(cooperative, vec!["test_webdav_config"]);
+    }
+
+    #[test]
+    fn confirmation_policy_rejects_missing_or_forged_payload_proof() {
+        let delete_config = command_descriptor("delete_config").expect("delete config descriptor");
+        let missing = tauri::ipc::InvokeBody::Json(serde_json::json!({ "name": "demo" }));
+        let forged = tauri::ipc::InvokeBody::Json(serde_json::json!({
+            "name": "demo",
+            "confirmationToken": "desktop-confirm:restore_config"
+        }));
+        let valid = tauri::ipc::InvokeBody::Json(serde_json::json!({
+            "name": "demo",
+            "confirmationToken": "desktop-confirm:delete_config"
+        }));
+
+        assert!(!confirmation_payload_is_valid(delete_config, &missing));
+        assert!(!confirmation_payload_is_valid(delete_config, &forged));
+        assert!(confirmation_payload_is_valid(delete_config, &valid));
+    }
+
+    #[test]
+    fn opaque_install_capability_requires_a_non_empty_plan_handle() {
+        let install = command_descriptor("llmusage_install_execute")
+            .expect("llmusage install execute descriptor");
+        let missing = tauri::ipc::InvokeBody::Json(serde_json::json!({}));
+        let empty = tauri::ipc::InvokeBody::Json(serde_json::json!({ "planId": " " }));
+        let valid = tauri::ipc::InvokeBody::Json(serde_json::json!({ "planId": "plan-123" }));
+
+        assert!(!confirmation_payload_is_valid(install, &missing));
+        assert!(!confirmation_payload_is_valid(install, &empty));
+        assert!(confirmation_payload_is_valid(install, &valid));
+    }
+
+    #[test]
+    fn opaque_ssh_confirmation_requires_a_backend_challenge() {
+        let ssh = command_descriptor("ssh_confirm_host_fingerprint")
+            .expect("SSH fingerprint confirmation descriptor");
+        let missing = tauri::ipc::InvokeBody::Json(serde_json::json!({ "request": {} }));
+        let valid = tauri::ipc::InvokeBody::Json(serde_json::json!({
+            "request": { "challenge_id": "challenge-123" }
+        }));
+
+        assert!(!confirmation_payload_is_valid(ssh, &missing));
+        assert!(confirmation_payload_is_valid(ssh, &valid));
     }
 
     #[test]

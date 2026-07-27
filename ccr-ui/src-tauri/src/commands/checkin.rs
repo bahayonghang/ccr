@@ -342,7 +342,7 @@ async fn run_checkin_job(
 
 // —— Provider 管理 ——
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn list_providers(_state: State<'_, AppState>) -> Result<Value, String> {
     run_blocking(|| {
         let manager = ProviderManager::new();
@@ -358,7 +358,7 @@ pub async fn list_providers(_state: State<'_, AppState>) -> Result<Value, String
     .await
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn add_provider(_state: State<'_, AppState>, data: Value) -> Result<Value, String> {
     let req: CreateProviderRequest =
         serde_json::from_value(data).map_err(|e| format!("Invalid request data: {}", e))?;
@@ -372,7 +372,7 @@ pub async fn add_provider(_state: State<'_, AppState>, data: Value) -> Result<Va
     .await
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn update_provider(
     _state: State<'_, AppState>,
     id: String,
@@ -390,7 +390,7 @@ pub async fn update_provider(
     .await
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn delete_provider(_state: State<'_, AppState>, id: String) -> Result<String, String> {
     let checkin_dir = checkin_dir_str()?;
     run_blocking(move || {
@@ -410,7 +410,7 @@ pub async fn delete_provider(_state: State<'_, AppState>, id: String) -> Result<
     .await
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn test_provider_connection(
     _state: State<'_, AppState>,
     id: String,
@@ -435,7 +435,7 @@ pub async fn test_provider_connection(
 
 // —— Account 管理 ——
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn list_accounts(
     _state: State<'_, AppState>,
     provider_id: Option<String>,
@@ -483,7 +483,7 @@ pub async fn list_accounts(
     .await
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn add_account(_state: State<'_, AppState>, data: Value) -> Result<Value, String> {
     let checkin_dir = checkin_dir_str()?;
     let req: CreateAccountRequest =
@@ -501,7 +501,7 @@ pub async fn add_account(_state: State<'_, AppState>, data: Value) -> Result<Val
     .await
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn update_account(
     _state: State<'_, AppState>,
     id: String,
@@ -523,7 +523,7 @@ pub async fn update_account(
     .await
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn delete_account(_state: State<'_, AppState>, id: String) -> Result<String, String> {
     let checkin_dir = checkin_dir_str()?;
     run_blocking(move || {
@@ -544,7 +544,7 @@ pub async fn delete_account(_state: State<'_, AppState>, id: String) -> Result<S
     .await
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn batch_delete_accounts(
     _state: State<'_, AppState>,
     ids: Vec<String>,
@@ -584,7 +584,7 @@ pub async fn batch_delete_accounts(
 
 // —— 签到执行 ——
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn execute_checkin(
     state: State<'_, AppState>,
     account_id: String,
@@ -600,7 +600,7 @@ pub async fn execute_checkin(
     serde_json::to_value(result).map_err(|e| format!("Serialization error: {}", e))
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn batch_checkin(
     state: State<'_, AppState>,
     account_ids: Vec<String>,
@@ -640,7 +640,7 @@ pub async fn batch_checkin(
     Ok(response)
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn start_checkin_job(
     app_handle: AppHandle,
     state: State<'_, AppState>,
@@ -683,7 +683,7 @@ pub async fn start_checkin_job(
     serde_json::to_value(response).map_err(|e| format!("Serialization error: {}", e))
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn get_checkin_job_status(
     state: State<'_, AppState>,
     job_id: String,
@@ -696,7 +696,7 @@ pub async fn get_checkin_job_status(
     serde_json::to_value(snapshot).map_err(|e| format!("Serialization error: {}", e))
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 #[allow(clippy::too_many_arguments)]
 pub async fn get_checkin_records(
     _state: State<'_, AppState>,
@@ -752,7 +752,7 @@ pub async fn get_checkin_records(
 
 // —— Balance 查询 ——
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn get_balance(state: State<'_, AppState>, account_id: String) -> Result<Value, String> {
     let checkin_dir = checkin_dir_str()?;
     let service = CheckinService::with_client(checkin_dir, state.http_client.clone());
@@ -765,7 +765,7 @@ pub async fn get_balance(state: State<'_, AppState>, account_id: String) -> Resu
     serde_json::to_value(snapshot).map_err(|e| format!("Serialization error: {}", e))
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn get_balance_history(
     _state: State<'_, AppState>,
     account_id: String,
@@ -781,7 +781,7 @@ pub async fn get_balance_history(
     .await
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn get_balance_stats(_state: State<'_, AppState>) -> Result<Value, String> {
     run_blocking(|| {
         let balance_manager = BalanceManager::new();
@@ -807,7 +807,7 @@ pub async fn get_balance_stats(_state: State<'_, AppState>) -> Result<Value, Str
 
 // —— Export 导出 ——
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn export_checkin_data(
     _state: State<'_, AppState>,
     options: Value,
@@ -825,7 +825,7 @@ pub async fn export_checkin_data(
     .await
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn export_checkin_stats(_state: State<'_, AppState>) -> Result<Value, String> {
     let checkin_dir = checkin_dir_str()?;
     run_blocking(move || {
@@ -842,7 +842,7 @@ pub async fn export_checkin_stats(_state: State<'_, AppState>) -> Result<Value, 
 
 // —— CDK 充值 ——
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn execute_cdk_recharge(
     state: State<'_, AppState>,
     account_id: String,
@@ -971,7 +971,7 @@ pub async fn execute_cdk_recharge(
     serde_json::to_value(result).map_err(|e| format!("Serialization error: {}", e))
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn get_cdk_history(
     _state: State<'_, AppState>,
     account_id: Option<String>,
@@ -997,7 +997,7 @@ pub async fn get_cdk_history(
 
 // —— WAF Cookie 管理 ——
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn list_waf_cookies(_state: State<'_, AppState>) -> Result<Value, String> {
     run_blocking(|| {
         // WafCookieManager provides per-provider lookup; list all by getting all providers
@@ -1025,7 +1025,7 @@ pub async fn list_waf_cookies(_state: State<'_, AppState>) -> Result<Value, Stri
     .await
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn add_waf_cookie(
     _state: State<'_, AppState>,
     provider_id: String,
@@ -1066,7 +1066,7 @@ pub async fn add_waf_cookie(
     .await
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn delete_waf_cookie(_state: State<'_, AppState>, id: String) -> Result<String, String> {
     run_blocking(move || {
         // `id` is treated as provider_id for WAF cookies
@@ -1086,7 +1086,7 @@ pub async fn delete_waf_cookie(_state: State<'_, AppState>, id: String) -> Resul
 
 // —— 内置 Provider 与导入导出 ——
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn list_builtin_providers() -> Result<Value, String> {
     run_blocking(|| {
         use ccr_checkin::managers::checkin::builtin_providers::get_builtin_providers;
@@ -1100,7 +1100,7 @@ pub async fn list_builtin_providers() -> Result<Value, String> {
     .await
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn add_builtin_provider(provider_id: String) -> Result<Value, String> {
     run_blocking(move || {
         use ccr_checkin::managers::checkin::builtin_providers::get_builtin_providers;
@@ -1133,7 +1133,7 @@ pub async fn add_builtin_provider(provider_id: String) -> Result<Value, String> 
     .await
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn get_checkin_account_cookies(
     _state: State<'_, AppState>,
     account_id: String,
@@ -1163,7 +1163,7 @@ pub async fn get_checkin_account_cookies(
     .await
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn export_checkin_config(options: Option<Value>) -> Result<Value, String> {
     let checkin_dir = checkin_dir_str()?;
     let opts: ccr_checkin::models::checkin::ExportOptions = if let Some(v) = options {
@@ -1181,7 +1181,7 @@ pub async fn export_checkin_config(options: Option<Value>) -> Result<Value, Stri
     .await
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn preview_checkin_import(data: Value) -> Result<Value, String> {
     let checkin_dir = checkin_dir_str()?;
     let export_data: ccr_checkin::models::checkin::ExportData =
@@ -1196,7 +1196,7 @@ pub async fn preview_checkin_import(data: Value) -> Result<Value, String> {
     .await
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn import_checkin_config(data: Value, options: Option<Value>) -> Result<Value, String> {
     let checkin_dir = checkin_dir_str()?;
     let export_data: ccr_checkin::models::checkin::ExportData =
@@ -1218,7 +1218,7 @@ pub async fn import_checkin_config(data: Value, options: Option<Value>) -> Resul
 
 // —— Dashboard ——
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn get_account_dashboard(
     _state: State<'_, AppState>,
     account_id: String,

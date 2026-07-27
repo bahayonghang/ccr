@@ -10,7 +10,7 @@
  *   - `import { configApi } from '@/api'` 然后 `configApi.listConfigs()`（命名空间）
  */
 
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/api/invokeRuntime'
 import { asRecord, type UnknownRecord } from '../_shared'
 import {
   addConfigTyped,

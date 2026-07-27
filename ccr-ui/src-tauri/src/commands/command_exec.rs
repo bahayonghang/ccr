@@ -1793,7 +1793,7 @@ async fn run_command_job(app_handle: AppHandle, job_id: String, cancel_token: Ca
 /// 执行白名单内的 CCR CLI 子命令并返回输出
 ///
 /// 返回 `{ success, stdout, stderr, output, error, exit_code, duration_ms }`
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn execute_ccr_command(
     command: String,
     args: Option<Vec<String>>,
@@ -1830,7 +1830,7 @@ pub async fn execute_ccr_command(
 }
 
 /// 启动一个 app session 内可跟踪、可取消的 CCR CLI 后台任务。
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn start_ccr_command_job(
     app_handle: AppHandle,
     command: String,
@@ -1850,7 +1850,7 @@ pub async fn start_ccr_command_job(
     Ok(StartCommandJobResponse { job_id, snapshot })
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn get_ccr_command_job_status(job_id: String) -> Result<CommandJobSnapshot, String> {
     let snapshot = get_job(&job_id)
         .await
@@ -1859,7 +1859,7 @@ pub async fn get_ccr_command_job_status(job_id: String) -> Result<CommandJobSnap
     Ok(snapshot)
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn cancel_ccr_command_job(
     _app_handle: AppHandle,
     job_id: String,
@@ -1895,13 +1895,13 @@ pub async fn cancel_ccr_command_job(
 /// 返回 CCR 命令目录和桌面执行元数据
 ///
 /// 返回 `CommandInfo[]`，其中 `executable=false` 的条目只能作为预览/跳转。
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn list_ccr_commands() -> Result<CommandCatalog, String> {
     Ok(CommandCatalog(command_catalog()))
 }
 
 /// 执行 `ccr help <command>` 并返回帮助文本
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn get_ccr_command_help(command: String) -> Result<CommandHelpResponse, String> {
     CommandPolicy::from_command(&command)?;
 

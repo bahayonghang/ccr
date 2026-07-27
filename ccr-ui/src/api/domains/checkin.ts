@@ -9,7 +9,7 @@
  * 保留在此处以维持历史调用契约。
  */
 
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/api/invokeRuntime'
 import { isRecord, pickArray, type UnknownRecord } from '../_shared'
 import type { CheckinRecordsQuery } from '@/types/checkin'
 import type { OAuthAuthorizeUrlRequest, OAuthAuthorizeUrlResponse } from '../tauri'

@@ -1128,7 +1128,7 @@ async fn fetch_repo_metadata(
     github_get_json::<GitHubRepoPayload>(state, &repo_url).await
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_list_agent_sources() -> Result<OpenJsonValueDto, String> {
     let sources = load_sources()?;
     serde_json::to_value(CodexAgentSourcesResponse {
@@ -1138,7 +1138,7 @@ pub async fn codex_list_agent_sources() -> Result<OpenJsonValueDto, String> {
     .try_into()
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_add_agent_source(
     state: State<'_, AppState>,
     request: CodexAgentSourceRequest,
@@ -1193,7 +1193,7 @@ pub async fn codex_add_agent_source(
         .try_into()
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_remove_agent_source(source_id: String) -> Result<(), String> {
     let mut sources = load_sources()?;
     let initial_len = sources.sources.len();
@@ -1206,7 +1206,7 @@ pub async fn codex_remove_agent_source(source_id: String) -> Result<(), String> 
     Ok(())
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_sync_agent_source(
     state: State<'_, AppState>,
     source_id: String,
@@ -1233,7 +1233,7 @@ pub async fn codex_sync_agent_source(
         .try_into()
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_get_agent_source_catalog(
     state: State<'_, AppState>,
     source_id: String,
@@ -1270,7 +1270,7 @@ pub async fn codex_get_agent_source_catalog(
         .try_into()
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_install_source_agent(
     state: State<'_, AppState>,
     request: CodexAgentSourceInstallRequest,
@@ -1380,7 +1380,7 @@ pub async fn codex_install_source_agent(
     .try_into()
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_sync_source_install(
     state: State<'_, AppState>,
     request: CodexAgentSourceSyncRequest,
@@ -1465,7 +1465,7 @@ pub async fn codex_sync_source_install(
     .try_into()
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_accept_local_source_install(
     request: CodexAgentSourceInstallActionRequest,
 ) -> Result<OpenJsonValueDto, String> {
@@ -1490,7 +1490,7 @@ pub async fn codex_accept_local_source_install(
     .try_into()
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_untrack_source_install(
     request: CodexAgentSourceInstallActionRequest,
 ) -> Result<OpenJsonValueDto, String> {

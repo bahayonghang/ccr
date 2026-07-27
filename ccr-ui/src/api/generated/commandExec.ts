@@ -1,6 +1,6 @@
 /* Generated from commands/handler_registry.rs; do not edit. */
 
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/api/invokeRuntime'
 import type { CommandCatalog } from '@/types/generated/command_exec/CommandCatalog'
 import type { CommandExecutionResult } from '@/types/generated/command_exec/CommandExecutionResult'
 import type { CommandHelpResponse } from '@/types/generated/command_exec/CommandHelpResponse'

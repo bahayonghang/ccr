@@ -1,6 +1,6 @@
 /* Generated from commands/handler_registry.rs; do not edit. */
 
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/api/invokeRuntime'
 import type { CapabilityReport } from '@/types/generated/usage/CapabilityReport'
 import type { DailyTrendDto } from '@/types/generated/usage/DailyTrendDto'
 import type { HeatmapResponseDto } from '@/types/generated/usage/HeatmapResponseDto'

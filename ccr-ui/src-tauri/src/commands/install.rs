@@ -12,7 +12,7 @@ use ccr_cli::services::install_types::{
 use tauri::{AppHandle, Emitter, State};
 
 /// Detect whether `llmusage` is available on the host.
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn llmusage_install_detect(
     svc: State<'_, Arc<InstallService>>,
 ) -> Result<DetectionResult, String> {
@@ -20,7 +20,7 @@ pub async fn llmusage_install_detect(
 }
 
 /// Probe the host for available package managers and platform info.
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn llmusage_install_probe_capabilities(
     svc: State<'_, Arc<InstallService>>,
 ) -> Result<HostCapabilities, String> {
@@ -28,7 +28,7 @@ pub async fn llmusage_install_probe_capabilities(
 }
 
 /// Generate an install plan for the current host.
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn llmusage_install_plan(
     svc: State<'_, Arc<InstallService>>,
     detection: DetectionResult,
@@ -42,7 +42,7 @@ pub async fn llmusage_install_plan(
 /// Start an install attempt. Returns the attempt ID.
 ///
 /// Events are streamed to the `"llmusage.install"` event channel.
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn llmusage_install_execute(
     app: AppHandle,
     svc: State<'_, Arc<InstallService>>,
@@ -71,7 +71,7 @@ pub async fn llmusage_install_execute(
 }
 
 /// Cancel the current in-flight install attempt.
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn llmusage_install_cancel(
     svc: State<'_, Arc<InstallService>>,
     attempt_id: AttemptId,
@@ -80,7 +80,7 @@ pub async fn llmusage_install_cancel(
 }
 
 /// Read the most recent events from the ring buffer.
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn llmusage_install_recent(
     svc: State<'_, Arc<InstallService>>,
 ) -> Result<RingBufferSnapshot, String> {
@@ -88,7 +88,7 @@ pub async fn llmusage_install_recent(
 }
 
 /// Get the manual install catalog (copy-able commands + docs link).
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn llmusage_install_manual_catalog(
     svc: State<'_, Arc<InstallService>>,
 ) -> Result<ManualCatalog, String> {
@@ -97,7 +97,7 @@ pub async fn llmusage_install_manual_catalog(
 
 /// Convenience: detect + probe capabilities in one call.
 /// Returns both the detection result and host capabilities.
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn llmusage_install_check(
     svc: State<'_, Arc<InstallService>>,
 ) -> Result<(DetectionResult, HostCapabilities), String> {

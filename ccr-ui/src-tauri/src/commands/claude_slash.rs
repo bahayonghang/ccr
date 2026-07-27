@@ -1,6 +1,6 @@
 use super::*;
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn claude_list_slash_commands(
     state: State<'_, AppState>,
 ) -> Result<OpenJsonValueDto, String> {
@@ -10,7 +10,7 @@ pub async fn claude_list_slash_commands(
     open_json(serde_json::json!({ "commands": commands }))
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn claude_add_slash_command(
     state: State<'_, AppState>,
     name: String,
@@ -30,7 +30,7 @@ pub async fn claude_add_slash_command(
     open_json(serde_json::json!({ "commands": result }))
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn claude_update_slash_command(
     state: State<'_, AppState>,
     name: String,
@@ -55,7 +55,7 @@ pub async fn claude_update_slash_command(
     open_json(serde_json::json!({ "commands": result }))
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn claude_delete_slash_command(
     state: State<'_, AppState>,
     name: String,

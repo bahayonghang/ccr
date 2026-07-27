@@ -1,6 +1,6 @@
 /* Generated from commands/handler_registry.rs; do not edit. */
 
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/api/invokeRuntime'
 import type { EventLogEntryDto } from '@/types/generated/events/EventLogEntryDto'
 import type { FrontendLogInputDto } from '@/types/generated/events/FrontendLogInputDto'
 import type { MonitoringEntryDto } from '@/types/generated/events/MonitoringEntryDto'

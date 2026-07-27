@@ -909,7 +909,7 @@ fn asset_operation_label(direction: SyncAssetDirection) -> &'static str {
 
 // ── 命令实现 ──
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn list_sync_assets() -> Result<Vec<SyncAssetInfo>, String> {
     let manager = SyncFolderManager::with_default()
         .map_err(|e| format!("Failed to create SyncFolderManager: {e}"))?;
@@ -920,26 +920,26 @@ pub async fn list_sync_assets() -> Result<Vec<SyncAssetInfo>, String> {
     Ok(assets)
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn sync_push_asset(
     payload: SyncAssetOperationInput,
 ) -> Result<SyncOperationResult, String> {
     sync_one_asset(payload, SyncAssetDirection::Push).await
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn sync_pull_asset(
     payload: SyncAssetOperationInput,
 ) -> Result<SyncOperationResult, String> {
     sync_one_asset(payload, SyncAssetDirection::Pull).await
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn sync_asset(payload: SyncAssetOperationInput) -> Result<SyncOperationResult, String> {
     sync_one_asset(payload, SyncAssetDirection::Sync).await
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn sync_all_assets(
     payload: Option<SyncAllAssetsInput>,
 ) -> Result<SyncOperationResult, String> {
@@ -1052,17 +1052,17 @@ async fn run_asset_syncs(
     ))
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn sync_push(force: Option<bool>) -> Result<SyncOperationResult, String> {
     sync_enabled_folders(SyncDirection::Push, force.unwrap_or(false)).await
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn sync_pull(force: Option<bool>) -> Result<SyncOperationResult, String> {
     sync_enabled_folders(SyncDirection::Pull, force.unwrap_or(false)).await
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn sync_push_folder(
     id: String,
     force: Option<bool>,
@@ -1070,7 +1070,7 @@ pub async fn sync_push_folder(
     sync_one_folder(id, SyncDirection::Push, force.unwrap_or(false)).await
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn sync_pull_folder(
     id: String,
     force: Option<bool>,
@@ -1223,7 +1223,7 @@ async fn directory_remote_exists(config: &SyncConfig) -> Option<bool> {
     }
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn sync_status() -> Result<SyncStatusInfo, String> {
     let webdav = tokio::task::spawn_blocking(|| {
         let manager = SyncFolderManager::with_default()
@@ -1270,7 +1270,7 @@ pub async fn sync_status() -> Result<SyncStatusInfo, String> {
     })
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn list_sync_folders() -> Result<Vec<SyncFolderInfo>, String> {
     let folders = tokio::task::spawn_blocking(|| {
         let manager = SyncFolderManager::with_default()
@@ -1287,7 +1287,7 @@ pub async fn list_sync_folders() -> Result<Vec<SyncFolderInfo>, String> {
     Ok(result)
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn add_sync_folder(
     name: String,
     local_path: String,
@@ -1306,7 +1306,7 @@ pub async fn add_sync_folder(
     Ok(folder_info(folder))
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn update_sync_folder(
     id: String,
     name: Option<String>,
@@ -1335,7 +1335,7 @@ pub async fn update_sync_folder(
     Ok(folder_info(updated))
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn delete_sync_folder(id: String) -> Result<SyncOperationResult, String> {
     let start = Instant::now();
     let folder_name = id.clone();
@@ -1378,7 +1378,7 @@ fn build_sync_config(payload: WebDavConfigInput) -> SyncConfig {
 }
 
 /// 持久化 WebDAV 账号，保存即启用。
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn set_webdav_config(payload: WebDavConfigInput) -> Result<WebDavConfigDetails, String> {
     let saved = tokio::task::spawn_blocking(move || {
         let mut folder_manager = SyncFolderManager::with_default()
@@ -1401,7 +1401,7 @@ pub async fn set_webdav_config(payload: WebDavConfigInput) -> Result<WebDavConfi
 
 /// 测试 WebDAV 凭据（不持久化）。
 /// 永远返回 Ok，UI 通过 ok / message 区分。
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn test_webdav_config(payload: WebDavConfigInput) -> Result<WebDavTestResult, String> {
     let config = build_sync_config(payload);
 
@@ -1429,7 +1429,7 @@ pub async fn test_webdav_config(payload: WebDavConfigInput) -> Result<WebDavTest
 }
 
 /// 断开账号：清空 canonical folder-manager 配置，并删除 migration-only legacy 文件。
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn clear_webdav_config() -> Result<(), String> {
     tokio::task::spawn_blocking(|| {
         SyncConfigManager::with_default()

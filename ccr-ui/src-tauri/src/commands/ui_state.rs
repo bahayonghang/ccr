@@ -70,7 +70,7 @@ where
 
 // ── 收藏命令 ──
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn get_favorites() -> Result<Vec<FavoriteCommandDto>, String> {
     run_blocking(|| {
         let manager =
@@ -84,7 +84,7 @@ pub async fn get_favorites() -> Result<Vec<FavoriteCommandDto>, String> {
     .await
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn add_favorite(
     command: String,
     args: Vec<String>,
@@ -109,7 +109,7 @@ pub async fn add_favorite(
     .await
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn remove_favorite(id: String) -> Result<bool, String> {
     run_blocking(move || {
         let manager =
@@ -123,7 +123,7 @@ pub async fn remove_favorite(id: String) -> Result<bool, String> {
 
 // ── 命令历史 ──
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn get_recent_items(limit: Option<usize>) -> Result<Vec<CommandHistoryDto>, String> {
     run_blocking(move || {
         let manager =
@@ -137,7 +137,7 @@ pub async fn get_recent_items(limit: Option<usize>) -> Result<Vec<CommandHistory
     .await
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn add_recent_item(
     command: String,
     args: Vec<String>,
@@ -155,7 +155,7 @@ pub async fn add_recent_item(
     .await
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn clear_recent_items() -> Result<String, String> {
     run_blocking(|| {
         let manager =

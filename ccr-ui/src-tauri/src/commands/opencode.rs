@@ -753,14 +753,14 @@ fn scan_plugin_files(dir: &Path, scope: &str) -> Result<Vec<OpenCodePluginFileRe
     Ok(files)
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn opencode_get_settings() -> Result<OpenJsonValueDto, String> {
     let primary = opencode_config_path()?;
     let legacy = opencode_legacy_config_path()?;
     open_json(read_json_file_with_fallback(&primary, &legacy)?)
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn opencode_update_settings(
     settings: OpenJsonValueDto,
 ) -> Result<OpenJsonValueDto, String> {
@@ -772,7 +772,7 @@ pub async fn opencode_update_settings(
     open_json(merged)
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn opencode_get_tui_settings() -> Result<OpenJsonValueDto, String> {
     let primary = opencode_tui_path()?;
     let legacy = opencode_legacy_keybindings_path()?;
@@ -786,7 +786,7 @@ pub async fn opencode_get_tui_settings() -> Result<OpenJsonValueDto, String> {
     open_json(json!({}))
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn opencode_update_tui_settings(
     settings: OpenJsonValueDto,
 ) -> Result<OpenJsonValueDto, String> {
@@ -797,7 +797,7 @@ pub async fn opencode_update_tui_settings(
     open_json(merged)
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn opencode_get_keybindings() -> Result<OpenJsonValueDto, String> {
     let tui: Value = opencode_get_tui_settings().await?.into();
     open_json(
@@ -808,7 +808,7 @@ pub async fn opencode_get_keybindings() -> Result<OpenJsonValueDto, String> {
     )
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn opencode_update_keybindings(
     keybindings: OpenJsonValueDto,
 ) -> Result<OpenJsonValueDto, String> {
@@ -823,7 +823,7 @@ pub async fn opencode_update_keybindings(
     )
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn opencode_list_themes() -> Result<Vec<OpenCodeThemeRecord>, String> {
     Ok(vec![
         OpenCodeThemeRecord {
@@ -894,7 +894,7 @@ pub async fn opencode_list_themes() -> Result<Vec<OpenCodeThemeRecord>, String> 
     ])
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn opencode_list_agents() -> Result<OpenJsonValueDto, String> {
     open_json(
         serde_json::to_value(list_agents_internal()?)
@@ -902,7 +902,7 @@ pub async fn opencode_list_agents() -> Result<OpenJsonValueDto, String> {
     )
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn opencode_add_agent(config: OpenJsonValueDto) -> Result<OpenJsonValueDto, String> {
     let config: Value = config.into();
     let object = config
@@ -921,12 +921,12 @@ pub async fn opencode_add_agent(config: OpenJsonValueDto) -> Result<OpenJsonValu
     )
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn opencode_update_agent(config: OpenJsonValueDto) -> Result<OpenJsonValueDto, String> {
     opencode_add_agent(config).await
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn opencode_delete_agent(
     name: String,
     context: Option<OpenJsonValueDto>,
@@ -940,7 +940,7 @@ pub async fn opencode_delete_agent(
     delete_markdown_doc(&name, &scoped, "agents")
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn opencode_list_commands() -> Result<OpenJsonValueDto, String> {
     open_json(
         serde_json::to_value(list_commands_internal()?)
@@ -948,7 +948,7 @@ pub async fn opencode_list_commands() -> Result<OpenJsonValueDto, String> {
     )
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn opencode_add_command(config: OpenJsonValueDto) -> Result<OpenJsonValueDto, String> {
     let config: Value = config.into();
     let object = config
@@ -967,12 +967,12 @@ pub async fn opencode_add_command(config: OpenJsonValueDto) -> Result<OpenJsonVa
     )
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn opencode_update_command(config: OpenJsonValueDto) -> Result<OpenJsonValueDto, String> {
     opencode_add_command(config).await
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn opencode_delete_command(
     name: String,
     context: Option<OpenJsonValueDto>,
@@ -986,7 +986,7 @@ pub async fn opencode_delete_command(
     delete_markdown_doc(&name, &scoped, "commands")
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn opencode_list_local_plugins() -> Result<Vec<OpenCodePluginFileRecord>, String> {
     let mut records = Vec::new();
     records.extend(scan_plugin_files(

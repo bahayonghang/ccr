@@ -195,7 +195,7 @@ pub struct ClaudeAuthActionResponse {
     pub message: String,
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn claude_list_auth_accounts() -> Result<ClaudeAuthListResponse, String> {
     tokio::task::spawn_blocking(|| {
         let service =
@@ -222,7 +222,7 @@ pub async fn claude_list_auth_accounts() -> Result<ClaudeAuthListResponse, Strin
     .map_err(|e| format!("任务执行失败: {e}"))?
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn claude_get_auth_current() -> Result<ClaudeAuthCurrentResponse, String> {
     tokio::task::spawn_blocking(|| {
         let service =
@@ -245,7 +245,7 @@ pub async fn claude_get_auth_current() -> Result<ClaudeAuthCurrentResponse, Stri
     .map_err(|e| format!("任务执行失败: {e}"))?
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn claude_save_auth(
     name: String,
     description: Option<String>,
@@ -266,7 +266,7 @@ pub async fn claude_save_auth(
     .map_err(|e| format!("任务执行失败: {e}"))?
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn claude_switch_auth(name: String) -> Result<ClaudeAuthActionResponse, String> {
     let name_resp = name.clone();
     tokio::task::spawn_blocking(move || {
@@ -284,7 +284,7 @@ pub async fn claude_switch_auth(name: String) -> Result<ClaudeAuthActionResponse
     })
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn claude_delete_auth(name: String) -> Result<ClaudeAuthActionResponse, String> {
     let name_resp = name.clone();
     tokio::task::spawn_blocking(move || {

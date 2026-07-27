@@ -1,6 +1,6 @@
 /* Generated from commands/handler_registry.rs; do not edit. */
 
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/api/invokeRuntime'
 import type { ConfigInfo } from '@/types/generated/config/ConfigInfo'
 import type { ExportResult } from '@/types/generated/config/ExportResult'
 import type { HistoryEntry } from '@/types/generated/config/HistoryEntry'

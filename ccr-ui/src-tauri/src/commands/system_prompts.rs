@@ -221,7 +221,7 @@ fn save_prompt_file(
     Ok(result)
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn system_prompts_list(
     state: State<'_, AppState>,
     platform: String,
@@ -254,7 +254,7 @@ pub async fn system_prompts_list(
     .try_into()
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn system_prompts_get(
     state: State<'_, AppState>,
     platform: String,
@@ -273,7 +273,7 @@ pub async fn system_prompts_get(
     .try_into()
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn system_prompts_save(
     state: State<'_, AppState>,
     platform: String,
@@ -293,7 +293,7 @@ pub async fn system_prompts_save(
         .try_into()
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn system_prompts_create(
     state: State<'_, AppState>,
     platform: String,

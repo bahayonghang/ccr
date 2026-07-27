@@ -9,6 +9,7 @@ const INVOKE_ALLOWED_PATHS = [
   'src/api/domains/',
   'src/api/generated/', // registry-owned typed clients; drift is checked by Rust generation tests
   'src/api/runtime/',
+  'src/api/invokeRuntime.ts', // manifest-driven confirmation and admission adapter
   'src/api/tauri.ts', // 兼容门面，命令清单由下方冻结测试守护
   'src/utils/logger.ts', // 日志桥：动态 import 后上报 append_frontend_logs
 ] as const

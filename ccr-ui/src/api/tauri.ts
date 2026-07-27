@@ -27,7 +27,7 @@
  *  17. HTTP-only 桩函数 (无 Tauri 命令对应)
  */
 
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/api/invokeRuntime'
 import { isTauriRuntime } from '@/utils/tauriRuntime'
 import {
   cancelCcrCommandJob as cancelTypedCcrCommandJob,

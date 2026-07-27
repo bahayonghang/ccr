@@ -1,6 +1,6 @@
 /* Generated from commands/handler_registry.rs; do not edit. */
 
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/api/invokeRuntime'
 import type { SyncAllAssetsInput } from '@/types/generated/sync/SyncAllAssetsInput'
 import type { SyncAssetInfo } from '@/types/generated/sync/SyncAssetInfo'
 import type { SyncAssetOperationInput } from '@/types/generated/sync/SyncAssetOperationInput'

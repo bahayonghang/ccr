@@ -429,7 +429,7 @@ fn deactivate_active_target(
         .map_err(|cause| format!("SSH 连接失败且无法切换到本地环境: {cause}"))
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn ssh_list_hosts(state: State<'_, AppState>) -> Result<Vec<SshHostConfigDto>, String> {
     let db_pool = state.db_pool.clone();
 
@@ -449,7 +449,7 @@ pub async fn ssh_list_hosts(state: State<'_, AppState>) -> Result<Vec<SshHostCon
         .collect())
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn ssh_add_host(
     app_handle: tauri::AppHandle,
     state: State<'_, AppState>,
@@ -530,7 +530,7 @@ pub async fn ssh_add_host(
     Ok(config.into())
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn ssh_connect(
     state: State<'_, AppState>,
     env_id: String,
@@ -539,7 +539,7 @@ pub async fn ssh_connect(
     connect_internal(state.inner(), env_id, password).await
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn ssh_reconnect(
     state: State<'_, AppState>,
     env_id: String,
@@ -548,7 +548,7 @@ pub async fn ssh_reconnect(
     connect_internal(state.inner(), env_id, password).await
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn ssh_disconnect(state: State<'_, AppState>) -> Result<SshConnectionState, String> {
     let mut registry = state.env_registry.write().await;
     let previous = registry.active().map(|env| env.env_id());
@@ -582,7 +582,7 @@ pub async fn ssh_disconnect(state: State<'_, AppState>) -> Result<SshConnectionS
     })
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn ssh_get_connection_state(
     state: State<'_, AppState>,
     env_id: Option<String>,
@@ -608,7 +608,7 @@ pub async fn ssh_get_connection_state(
     ))
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn ssh_probe_host_fingerprint(
     state: State<'_, AppState>,
     trust: State<'_, Arc<SshTrustService>>,
@@ -658,7 +658,7 @@ pub async fn ssh_probe_host_fingerprint(
     })
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn ssh_confirm_host_fingerprint(
     state: State<'_, AppState>,
     trust: State<'_, Arc<SshTrustService>>,
@@ -696,7 +696,7 @@ pub async fn ssh_confirm_host_fingerprint(
     Ok(())
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn ssh_read_config(
     state: State<'_, AppState>,
     env_id: String,
@@ -706,7 +706,7 @@ pub async fn ssh_read_config(
     sftp::read_config(state.inner(), &env_id, &platform, &path).await
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn ssh_write_config(
     state: State<'_, AppState>,
     env_id: String,
@@ -726,7 +726,7 @@ pub async fn ssh_write_config(
     .await
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn ssh_detect_cli(
     state: State<'_, AppState>,
     env_id: String,
@@ -739,7 +739,7 @@ pub async fn ssh_detect_cli(
 }
 
 /// 测试 SSH 连接连通性（从数据库解析主机配置）。
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn ssh_test_connection(
     state: State<'_, AppState>,
     env_id: String,
@@ -766,7 +766,7 @@ pub async fn ssh_test_connection(
 }
 
 /// 列出本机 `~/.ssh/` 目录中发现的所有 SSH 私钥文件信息。
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn ssh_list_keys() -> Result<Vec<SshKeyInfoDto>, String> {
     Ok(auth::discover_keys()
         .await

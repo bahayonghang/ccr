@@ -1,6 +1,6 @@
 /* Generated from commands/handler_registry.rs; do not edit. */
 
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/api/invokeRuntime'
 import type { CliVersionEntry } from '@/types/generated/system/CliVersionEntry'
 import type { CliVersionOptions } from '@/types/generated/system/CliVersionOptions'
 import type { CliVersionsOptions } from '@/types/generated/system/CliVersionsOptions'

@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/api/invokeRuntime'
 import { getSystemInfo as getSystemInfoTyped } from '../generated/systemInfo'
 import {
   getCliVersion as getCliVersionTyped,

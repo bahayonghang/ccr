@@ -1,6 +1,6 @@
 use super::*;
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn claude_list_plugins(state: State<'_, AppState>) -> Result<OpenJsonValueDto, String> {
     let settings = load_settings(state.inner()).await?;
     let plugins = serde_json::to_value(&settings.plugins)
@@ -8,7 +8,7 @@ pub async fn claude_list_plugins(state: State<'_, AppState>) -> Result<OpenJsonV
     open_json(serde_json::json!({ "plugins": plugins }))
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn claude_add_plugin(
     state: State<'_, AppState>,
     name: String,
@@ -28,7 +28,7 @@ pub async fn claude_add_plugin(
     open_json(serde_json::json!({ "plugins": result }))
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn claude_update_plugin(
     state: State<'_, AppState>,
     name: String,
@@ -53,7 +53,7 @@ pub async fn claude_update_plugin(
     open_json(serde_json::json!({ "plugins": result }))
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn claude_delete_plugin(
     state: State<'_, AppState>,
     name: String,

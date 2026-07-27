@@ -23,6 +23,7 @@ describe('codex profile update API', () => {
 
     expect(invokeMock).toHaveBeenCalledWith('codex_update_profile', {
       name: 'ice',
+      confirmationToken: 'desktop-confirm:codex_update_profile',
       config: expect.objectContaining({
         name: 'ice-renamed',
         model: 'gpt-5.4',

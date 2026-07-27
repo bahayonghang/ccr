@@ -1150,7 +1150,7 @@ fn parse_import_entries(content: &str) -> Result<Vec<(Option<String>, CodexAuthJ
 }
 
 /// 列出所有 Codex Auth 账号
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_list_auth_accounts() -> Result<CodexAuthListResponse, String> {
     tokio::task::spawn_blocking(|| {
         let service =
@@ -1178,7 +1178,7 @@ pub async fn codex_list_auth_accounts() -> Result<CodexAuthListResponse, String>
 }
 
 /// 获取当前 Codex Auth 信息
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_get_auth_current() -> Result<CodexAuthCurrentResponse, String> {
     tokio::task::spawn_blocking(|| {
         let service =
@@ -1201,7 +1201,7 @@ pub async fn codex_get_auth_current() -> Result<CodexAuthCurrentResponse, String
 }
 
 /// 保存当前登录到命名账号
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_save_auth(
     app: AppHandle,
     state: State<'_, AppState>,
@@ -1231,7 +1231,7 @@ pub async fn codex_save_auth(
 }
 
 /// 切换到指定账号
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_switch_auth(
     app: AppHandle,
     state: State<'_, AppState>,
@@ -1256,7 +1256,7 @@ pub async fn codex_switch_auth(
 }
 
 /// 删除指定账号
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_delete_auth(
     app: AppHandle,
     state: State<'_, AppState>,
@@ -1284,7 +1284,7 @@ pub async fn codex_delete_auth(
 ///
 /// 同步迁移 auth 文件、registry 键顺序以及 usage_ledger 归因记录。
 /// 默认拒绝同名冲突，传入 `force=true` 时备份并覆盖占位账号。
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_rename_auth(
     app: AppHandle,
     state: State<'_, AppState>,
@@ -1319,7 +1319,7 @@ pub async fn codex_rename_auth(
 }
 
 /// 检测运行中的 Codex 进程
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_detect_process() -> Result<CodexAuthProcessResponse, String> {
     tokio::task::spawn_blocking(|| {
         let service =
@@ -1349,7 +1349,7 @@ pub async fn codex_detect_process() -> Result<CodexAuthProcessResponse, String> 
     .map_err(|e| format!("任务执行失败: {e}"))?
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_oauth_login_start(app: AppHandle) -> Result<CodexOAuthStartResponse, String> {
     hydrate_oauth_pending_if_needed()?;
     if let Some(existing) = current_pending_state()? {
@@ -1389,7 +1389,7 @@ pub async fn codex_oauth_login_start(app: AppHandle) -> Result<CodexOAuthStartRe
     Ok(CodexOAuthStartResponse { login_id, auth_url })
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_oauth_login_completed(
     app: AppHandle,
     state: State<'_, AppState>,
@@ -1450,8 +1450,8 @@ pub async fn codex_oauth_login_completed(
     Ok(response)
 }
 
-#[tauri::command]
-pub fn codex_oauth_login_cancel(login_id: Option<String>) -> Result<(), String> {
+#[ccr_tauri_command_macros::command]
+pub async fn codex_oauth_login_cancel(login_id: Option<String>) -> Result<(), String> {
     let Some(current) = current_pending_state()? else {
         return Ok(());
     };
@@ -1463,8 +1463,8 @@ pub fn codex_oauth_login_cancel(login_id: Option<String>) -> Result<(), String> 
     set_oauth_pending(None)
 }
 
-#[tauri::command]
-pub fn codex_oauth_submit_callback_url(
+#[ccr_tauri_command_macros::command]
+pub async fn codex_oauth_submit_callback_url(
     app: AppHandle,
     login_id: String,
     callback_url: String,
@@ -1500,12 +1500,12 @@ pub fn codex_oauth_submit_callback_url(
     Ok(())
 }
 
-#[tauri::command]
-pub fn codex_is_oauth_port_in_use() -> Result<bool, String> {
+#[ccr_tauri_command_macros::command]
+pub async fn codex_is_oauth_port_in_use() -> Result<bool, String> {
     Ok(std::net::TcpListener::bind(("127.0.0.1", OAUTH_CALLBACK_PORT)).is_err())
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_release_oauth_port() -> Result<OAuthPortReleaseReport, String> {
     let discovered = discover_port_processes(OAUTH_CALLBACK_PORT).await?;
     let owned = ProcessGateway::owned_processes_for_port(&discovered, OAUTH_CALLBACK_PORT);
@@ -1518,14 +1518,14 @@ pub async fn codex_release_oauth_port() -> Result<OAuthPortReleaseReport, String
     ))
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_open_external_url(url: String) -> Result<(), String> {
     tokio::task::spawn_blocking(move || ProcessGateway::open_oauth_url(&url))
         .await
         .map_err(|e| format!("任务执行失败: {e}"))?
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_import_auth_payload(
     app: AppHandle,
     state: State<'_, AppState>,
@@ -1582,7 +1582,7 @@ pub async fn codex_import_auth_payload(
     Ok(result)
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_import_auth_from_local(
     app: AppHandle,
     state: State<'_, AppState>,
@@ -1612,7 +1612,7 @@ pub async fn codex_import_auth_from_local(
     Ok(result)
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_add_auth_with_api_key(
     app: AppHandle,
     state: State<'_, AppState>,
@@ -1690,7 +1690,7 @@ pub async fn codex_add_auth_with_api_key(
     Ok(response)
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_list_model_providers() -> Result<CodexModelProvidersResponse, String> {
     tokio::task::spawn_blocking(|| {
         let service = CodexModelProviderStoreService::new()
@@ -1706,7 +1706,7 @@ pub async fn codex_list_model_providers() -> Result<CodexModelProvidersResponse,
     .map_err(|e| format!("任务执行失败: {e}"))?
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_save_model_provider(
     payload: CodexModelProviderUpsertPayload,
 ) -> Result<CodexModelProviderSaveResponse, String> {
@@ -1740,7 +1740,7 @@ pub async fn codex_save_model_provider(
     .map_err(|e| format!("任务执行失败: {e}"))?
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_delete_model_provider(
     provider_id: String,
 ) -> Result<CodexModelProviderDeleteResponse, String> {

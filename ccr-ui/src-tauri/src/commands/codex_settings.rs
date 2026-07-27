@@ -1,7 +1,7 @@
 use super::*;
 
 /// 获取 Codex 完整配置（去掉 mcp_servers 和 profiles）
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_get_settings() -> Result<OpenJsonValueDto, String> {
     tokio::task::spawn_blocking(|| -> Result<Value, String> {
         let path = codex_config_path()?;
@@ -14,7 +14,7 @@ pub async fn codex_get_settings() -> Result<OpenJsonValueDto, String> {
 }
 
 /// 更新 Codex 配置（合并写入，不覆盖 mcp_servers/profiles）
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_update_settings(
     state: State<'_, AppState>,
     settings: OpenJsonValueDto,

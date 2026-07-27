@@ -8,7 +8,7 @@
  * 由 `./system` 汇总 re-export 以维持 `systemApi` 命名空间契约，不在此文件重复。
  */
 
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/api/invokeRuntime'
 import type { UnknownRecord } from '../_shared'
 import {
   getCurrentEnvironment,

@@ -9,7 +9,7 @@
  * 迁移时一并带入本文件作为内部实现细节。
  */
 
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/api/invokeRuntime'
 import * as codexClient from '../generated/codex'
 import {
   asRecord,

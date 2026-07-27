@@ -5,7 +5,7 @@
  * that command module is migrated.
  */
 
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/api/invokeRuntime'
 import { asRecord, type UnknownRecord } from '../_shared'
 
 export {

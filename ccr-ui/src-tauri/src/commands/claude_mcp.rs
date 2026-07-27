@@ -5,7 +5,7 @@ use crate::commands::claude_mcp_config::{
     parse_scope, update_claude_mcp_server_default,
 };
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn claude_list_mcp_servers() -> Result<OpenJsonValueDto, String> {
     tokio::task::spawn_blocking(|| {
         let list = list_claude_mcp_default()?;
@@ -16,7 +16,7 @@ pub async fn claude_list_mcp_servers() -> Result<OpenJsonValueDto, String> {
     .try_into()
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn claude_add_mcp_server(
     name: String,
     config: OpenJsonValueDto,
@@ -31,7 +31,7 @@ pub async fn claude_add_mcp_server(
     .try_into()
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn claude_update_mcp_server(
     name: String,
     config: OpenJsonValueDto,
@@ -46,7 +46,7 @@ pub async fn claude_update_mcp_server(
     .try_into()
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn claude_delete_mcp_server(
     name: String,
     scope: Option<String>,

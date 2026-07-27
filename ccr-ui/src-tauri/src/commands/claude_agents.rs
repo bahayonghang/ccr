@@ -1,6 +1,6 @@
 use super::*;
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn claude_list_agents(state: State<'_, AppState>) -> Result<OpenJsonValueDto, String> {
     let settings = load_settings(state.inner()).await?;
     let agents = serde_json::to_value(&settings.agents)
@@ -8,7 +8,7 @@ pub async fn claude_list_agents(state: State<'_, AppState>) -> Result<OpenJsonVa
     open_json(serde_json::json!({ "agents": agents }))
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn claude_add_agent(
     state: State<'_, AppState>,
     name: String,
@@ -28,7 +28,7 @@ pub async fn claude_add_agent(
     open_json(serde_json::json!({ "agents": result }))
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn claude_update_agent(
     state: State<'_, AppState>,
     name: String,
@@ -53,7 +53,7 @@ pub async fn claude_update_agent(
     open_json(serde_json::json!({ "agents": result }))
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn claude_delete_agent(
     state: State<'_, AppState>,
     name: String,

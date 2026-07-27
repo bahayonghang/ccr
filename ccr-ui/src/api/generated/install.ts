@@ -1,6 +1,6 @@
 /* Generated from commands/handler_registry.rs; do not edit. */
 
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/api/invokeRuntime'
 import type { AttemptId } from '@/types/generated/install/AttemptId'
 import type { CancelResult } from '@/types/generated/install/CancelResult'
 import type { DetectionResult } from '@/types/generated/install/DetectionResult'

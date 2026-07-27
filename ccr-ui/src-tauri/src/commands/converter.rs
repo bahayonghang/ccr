@@ -74,7 +74,7 @@ pub struct ConvertStats {
     pub base_config: bool,
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn convert_config(request: ConverterRequestDto) -> Result<ConvertResult, String> {
     let request = ConverterRequest::from(request);
     let result = tokio::task::spawn_blocking(move || {

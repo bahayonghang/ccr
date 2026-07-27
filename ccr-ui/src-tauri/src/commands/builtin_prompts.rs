@@ -54,7 +54,7 @@ impl From<BuiltinPrompt> for BuiltinPromptDto {
     }
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn list_builtin_prompts() -> Result<Vec<BuiltinPromptDto>, String> {
     tokio::task::spawn_blocking(|| {
         ccr_skills::get_builtin_prompts()
@@ -66,7 +66,7 @@ pub async fn list_builtin_prompts() -> Result<Vec<BuiltinPromptDto>, String> {
     .map_err(|e| format!("Task join error: {e}"))
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn get_builtin_prompt(id: String) -> Result<Option<BuiltinPromptDto>, String> {
     tokio::task::spawn_blocking(move || {
         ccr_skills::get_prompt_by_id(&id).map(BuiltinPromptDto::from)
@@ -75,7 +75,7 @@ pub async fn get_builtin_prompt(id: String) -> Result<Option<BuiltinPromptDto>, 
     .map_err(|e| format!("Task join error: {e}"))
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn get_builtin_prompts_by_category(
     category: String,
 ) -> Result<Vec<BuiltinPromptDto>, String> {

@@ -1,6 +1,6 @@
 /* Generated from commands/handler_registry.rs; do not edit. */
 
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/api/invokeRuntime'
 import type { CommandHistoryDto } from '@/types/generated/ui_state/CommandHistoryDto'
 import type { FavoriteCommandDto } from '@/types/generated/ui_state/FavoriteCommandDto'
 

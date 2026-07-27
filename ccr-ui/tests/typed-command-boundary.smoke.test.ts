@@ -35,7 +35,7 @@ describe('typed Rust command boundary', () => {
     for (const file of await walkRustFiles('src-tauri/src/commands')) {
       const source = await readFile(file, 'utf8')
       for (const match of source.matchAll(
-        /#\[tauri::command\](?:\s*#\[[^\]]+\])*\s*pub\s+(?:async\s+)?fn\s+(\w+)([\s\S]*?)\{/g,
+        /#\[ccr_tauri_command_macros::command\](?:\s*#\[[^\]]+\])*\s*pub\s+async\s+fn\s+(\w+)([\s\S]*?)\{/g,
       )) {
         signatures.set(match[1], { file, header: match[2] })
       }

@@ -502,7 +502,7 @@ pub(crate) fn write_agent_file(path: &Path, table: &toml::value::Table) -> Resul
         .map_err(|e| format!("写入 agent 文件 '{}' 失败: {e}", path.to_string_lossy()))
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_list_agents(
     context: Option<CodexAgentContextRequest>,
 ) -> Result<OpenJsonValueDto, String> {
@@ -520,7 +520,7 @@ pub async fn codex_list_agents(
     .try_into()
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_add_agent(
     state: State<'_, AppState>,
     context: Option<CodexAgentContextRequest>,
@@ -570,7 +570,7 @@ pub async fn codex_add_agent(
     open_json(response)
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_update_agent(
     state: State<'_, AppState>,
     context: Option<CodexAgentContextRequest>,
@@ -632,7 +632,7 @@ pub async fn codex_update_agent(
     open_json(response)
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_delete_agent(
     state: State<'_, AppState>,
     context: Option<CodexAgentContextRequest>,
@@ -659,7 +659,7 @@ pub async fn codex_delete_agent(
     Ok(response)
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_rename_agent(
     state: State<'_, AppState>,
     context: Option<CodexAgentContextRequest>,
@@ -712,7 +712,7 @@ pub async fn codex_rename_agent(
     open_json(response)
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_copy_agent(
     state: State<'_, AppState>,
     source_context: Option<CodexAgentContextRequest>,
@@ -767,7 +767,7 @@ pub async fn codex_copy_agent(
     open_json(response)
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_validate_agent_toml(
     context: Option<CodexAgentContextRequest>,
     name: String,

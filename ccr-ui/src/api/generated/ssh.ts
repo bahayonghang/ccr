@@ -1,6 +1,6 @@
 /* Generated from commands/handler_registry.rs; do not edit. */
 
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/api/invokeRuntime'
 import type { AddSshHostRequest } from '@/types/generated/ssh/AddSshHostRequest'
 import type { SshCliStatusDto } from '@/types/generated/ssh/SshCliStatusDto'
 import type { SshConnectionState } from '@/types/generated/ssh/SshConnectionState'

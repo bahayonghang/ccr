@@ -1,6 +1,6 @@
 /* Generated from commands/handler_registry.rs; do not edit. */
 
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/api/invokeRuntime'
 import type { OpenJsonValueDto } from '@/types/generated/common/OpenJsonValueDto'
 import type { OpenCodePluginFileRecord } from '@/types/generated/opencode/OpenCodePluginFileRecord'
 import type { OpenCodeThemeRecord } from '@/types/generated/opencode/OpenCodeThemeRecord'

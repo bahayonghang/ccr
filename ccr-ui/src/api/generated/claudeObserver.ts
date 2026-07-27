@@ -1,6 +1,6 @@
 /* Generated from commands/handler_registry.rs; do not edit. */
 
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/api/invokeRuntime'
 import type { BreakdownRow } from '@/types/generated/claude_observer/BreakdownRow'
 import type { CacheStatsDto } from '@/types/generated/claude_observer/CacheStatsDto'
 import type { DailyPoint } from '@/types/generated/claude_observer/DailyPoint'

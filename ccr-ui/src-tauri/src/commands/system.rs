@@ -364,7 +364,7 @@ impl CliProbeMode {
     }
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn get_system_info() -> Result<SystemInfo, String> {
     tokio::task::spawn_blocking(|| {
         use sysinfo::{MINIMUM_CPU_UPDATE_INTERVAL, System};
@@ -429,7 +429,7 @@ pub async fn get_system_info() -> Result<SystemInfo, String> {
     .map_err(|e| format!("Task join error: {e}"))?
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn check_version() -> Result<VersionInfo, String> {
     let current = env!("CARGO_PKG_VERSION").to_string();
     // TODO: Phase B4 接入 GitHub Releases API
@@ -440,7 +440,7 @@ pub async fn check_version() -> Result<VersionInfo, String> {
     })
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn health_check(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
     let pool = state.db_pool.clone();
     let db_ok = tokio::task::spawn_blocking(move || pool.get().map(|_| true).unwrap_or(false))
@@ -467,7 +467,7 @@ fn monitoring_matches_query(entry: &MonitoringEntry, query: &MonitoringFeedQuery
     level_matches && channel_matches
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn get_monitoring_feed(
     state: State<'_, AppState>,
     query: Option<MonitoringFeedQueryDto>,
@@ -502,7 +502,7 @@ pub async fn get_monitoring_feed(
         .collect()
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn append_frontend_logs(
     app_handle: tauri::AppHandle,
     entries: Vec<FrontendLogInputDto>,
@@ -515,7 +515,7 @@ pub async fn append_frontend_logs(
 
     Ok(())
 }
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn get_recent_events(
     state: State<'_, AppState>,
     count: Option<usize>,
@@ -530,7 +530,7 @@ pub async fn get_recent_events(
         .collect()
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn get_runtime_metrics(
     state: State<'_, AppState>,
 ) -> Result<RuntimeMetricsResponse, String> {
@@ -895,7 +895,7 @@ async fn compute_cli_versions(
     Ok(entries)
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn update_ccr() -> Result<serde_json::Value, String> {
     let output = ProcessGateway::execute(
         &ProcessDescriptor::ccr_update(),
@@ -919,7 +919,7 @@ pub async fn update_ccr() -> Result<serde_json::Value, String> {
     }))
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn get_cli_versions(
     state: State<'_, AppState>,
     options: Option<CliVersionsOptions>,
@@ -986,7 +986,7 @@ pub async fn get_cli_versions(
     Ok(cli_versions_payload(entries, mode, timeout_ms, parallelism))
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn get_cli_version(
     state: State<'_, AppState>,
     options: CliVersionOptions,

@@ -6,7 +6,7 @@ use crate::commands::profile_lifecycle::{
 use crate::commands::settings_raw::ensure_local_env;
 
 /// 列出 CCR Codex profiles（~/.ccr/platforms/codex/profiles.toml）
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_list_profiles() -> Result<OpenJsonValueDto, String> {
     tokio::task::spawn_blocking(|| -> Result<Value, String> {
         let platform = CodexPlatform::new().map_err(|e| format!("初始化 Codex 平台失败: {e}"))?;
@@ -38,7 +38,7 @@ pub async fn codex_list_profiles() -> Result<OpenJsonValueDto, String> {
     .try_into()
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_get_profiles_raw(
     state: State<'_, AppState>,
 ) -> Result<OpenJsonValueDto, String> {
@@ -53,7 +53,7 @@ pub async fn codex_get_profiles_raw(
         .try_into()
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_save_profiles_raw(
     state: State<'_, AppState>,
     content: String,
@@ -79,7 +79,7 @@ pub async fn codex_save_profiles_raw(
 }
 
 /// 列出 Codex 可选模型（内置 + 自定义）
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_list_models() -> Result<OpenJsonValueDto, String> {
     tokio::task::spawn_blocking(codex_list_models_payload)
         .await
@@ -88,7 +88,7 @@ pub async fn codex_list_models() -> Result<OpenJsonValueDto, String> {
 }
 
 /// 新增 Codex profile（写入 CCR profiles.toml）
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_add_profile(
     state: State<'_, AppState>,
     name: String,
@@ -160,7 +160,7 @@ fn update_codex_profile_payload(name: String, config: Value) -> Result<Value, St
     }))
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_update_profile(
     state: State<'_, AppState>,
     name: String,
@@ -176,7 +176,7 @@ pub async fn codex_update_profile(
 }
 
 /// 删除 Codex profile
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_delete_profile(
     state: State<'_, AppState>,
     name: String,
@@ -196,7 +196,7 @@ pub async fn codex_delete_profile(
 }
 
 /// 应用 Codex profile
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_apply_profile(
     state: State<'_, AppState>,
     name: String,
@@ -222,7 +222,7 @@ fn codex_profiles_export_payload(include_secrets: bool) -> Result<Value, String>
     profiles_export_payload_from_path(&paths.profiles_file, "ccr-codex-profiles", include_secrets)
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_export_profiles(include_secrets: bool) -> Result<OpenJsonValueDto, String> {
     tokio::task::spawn_blocking(move || codex_profiles_export_payload(include_secrets))
         .await
@@ -584,7 +584,7 @@ mod update_tests {
     }
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_get_profile_env(name: String) -> Result<OpenJsonValueDto, String> {
     tokio::task::spawn_blocking(move || -> Result<Value, String> {
         let platform = CodexPlatform::new().map_err(|e| format!("初始化 Codex 平台失败: {e}"))?;

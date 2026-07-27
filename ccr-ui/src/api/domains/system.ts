@@ -5,7 +5,7 @@
  * 以保持 `systemApi` 命名空间对外契约（api/index.ts 的 systemApi 指向此文件）。
  */
 
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/api/invokeRuntime'
 import { type UnknownRecord } from '../_shared'
 import {
   checkVersion as checkVersionTyped,

@@ -1,6 +1,6 @@
 /* Generated from commands/handler_registry.rs; do not edit. */
 
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/api/invokeRuntime'
 import type { EnvironmentInfo } from '@/types/generated/environment/EnvironmentInfo'
 
 export const listEnvironments = (): Promise<EnvironmentInfo[]> => invoke('list_environments')

@@ -1,7 +1,7 @@
 use super::*;
 
 /// 列出 config.toml 中的 [mcp_servers]
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_list_mcp_servers() -> Result<OpenJsonValueDto, String> {
     tokio::task::spawn_blocking(|| -> Result<Value, String> {
         let path = codex_config_path()?;
@@ -45,7 +45,7 @@ pub async fn codex_list_mcp_servers() -> Result<OpenJsonValueDto, String> {
 }
 
 /// 添加 MCP 服务器到 config.toml
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_add_mcp_server(
     state: State<'_, AppState>,
     name: String,
@@ -79,7 +79,7 @@ pub async fn codex_add_mcp_server(
 }
 
 /// 更新已有 MCP 服务器
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_update_mcp_server(
     state: State<'_, AppState>,
     name: String,
@@ -120,7 +120,7 @@ pub async fn codex_update_mcp_server(
 }
 
 /// 删除 MCP 服务器
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_delete_mcp_server(
     state: State<'_, AppState>,
     name: String,

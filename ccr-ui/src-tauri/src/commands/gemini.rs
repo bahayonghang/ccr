@@ -256,7 +256,7 @@ fn find_command_file(
 
 // ── Settings ──
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn gemini_get_settings() -> Result<OpenJsonValueDto, String> {
     tokio::task::spawn_blocking(read_gemini_config)
         .await
@@ -264,7 +264,7 @@ pub async fn gemini_get_settings() -> Result<OpenJsonValueDto, String> {
         .try_into()
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn gemini_update_settings(
     settings: OpenJsonValueDto,
 ) -> Result<OpenJsonValueDto, String> {
@@ -280,7 +280,7 @@ pub async fn gemini_update_settings(
 
 // ── MCP Servers ──
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn gemini_list_mcp_servers() -> Result<OpenJsonValueDto, String> {
     tokio::task::spawn_blocking(|| -> Result<Value, String> {
         let config = read_gemini_mcp_config()?;
@@ -300,7 +300,7 @@ pub async fn gemini_list_mcp_servers() -> Result<OpenJsonValueDto, String> {
     .try_into()
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn gemini_add_mcp_server(
     name: String,
     config: OpenJsonValueDto,
@@ -327,7 +327,7 @@ pub async fn gemini_add_mcp_server(
     .try_into()
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn gemini_update_mcp_server(
     name: String,
     config: OpenJsonValueDto,
@@ -354,7 +354,7 @@ pub async fn gemini_update_mcp_server(
     .try_into()
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn gemini_delete_mcp_server(name: String) -> Result<String, String> {
     tokio::task::spawn_blocking(move || -> Result<String, String> {
         let mut full = read_gemini_mcp_config()?;
@@ -376,7 +376,7 @@ pub async fn gemini_delete_mcp_server(name: String) -> Result<String, String> {
 
 // ── Slash Commands ──
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn gemini_list_slash_commands() -> Result<OpenJsonValueDto, String> {
     tokio::task::spawn_blocking(|| {
         let (proj, user) = gemini_commands_dirs()?;
@@ -387,7 +387,7 @@ pub async fn gemini_list_slash_commands() -> Result<OpenJsonValueDto, String> {
     .try_into()
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn gemini_add_slash_command(
     name: String,
     config: OpenJsonValueDto,
@@ -430,7 +430,7 @@ pub async fn gemini_add_slash_command(
     .try_into()
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn gemini_update_slash_command(
     name: String,
     config: OpenJsonValueDto,
@@ -463,7 +463,7 @@ pub async fn gemini_update_slash_command(
     .try_into()
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn gemini_delete_slash_command(name: String) -> Result<String, String> {
     tokio::task::spawn_blocking(move || {
         let (proj, user) = gemini_commands_dirs()?;
@@ -478,7 +478,7 @@ pub async fn gemini_delete_slash_command(name: String) -> Result<String, String>
 
 // ── Extensions ──
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn gemini_list_extensions() -> Result<OpenJsonValueDto, String> {
     // Antigravity plugins/extensions 通过 ~/.gemini/antigravity-cli/extensions/ 目录管理
     tokio::task::spawn_blocking(|| -> Result<Value, String> {

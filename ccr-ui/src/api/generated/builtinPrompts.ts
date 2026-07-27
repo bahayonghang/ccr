@@ -1,6 +1,6 @@
 /* Generated from commands/handler_registry.rs; do not edit. */
 
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/api/invokeRuntime'
 import type { BuiltinPromptDto } from '@/types/generated/builtin_prompts/BuiltinPromptDto'
 
 export const listBuiltinPrompts = (): Promise<BuiltinPromptDto[]> => invoke('list_builtin_prompts')

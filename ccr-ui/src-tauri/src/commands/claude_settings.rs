@@ -1,13 +1,13 @@
 use super::*;
 
 /// 读取 ~/.claude/settings.json，以 JSON Value 返回完整内容。
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn claude_get_settings(state: State<'_, AppState>) -> Result<OpenJsonValueDto, String> {
     open_json(read_active_claude_settings_raw(state.inner()).await?)
 }
 
 /// 将调用方提供的 JSON 合并写入 ~/.claude/settings.json。
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn claude_update_settings(
     state: State<'_, AppState>,
     settings: OpenJsonValueDto,
@@ -24,7 +24,7 @@ pub async fn claude_update_settings(
     open_json(result)
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn claude_get_output_styles() -> Result<OpenJsonValueDto, String> {
     tokio::task::spawn_blocking(|| -> Result<Value, String> {
         let dir = output_styles_dir()
@@ -66,7 +66,7 @@ pub async fn claude_get_output_styles() -> Result<OpenJsonValueDto, String> {
 }
 
 /// 写入或覆盖一个 output style 文件（styles 是 [{name, content}] 数组）。
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn claude_update_output_styles(
     styles: OpenJsonValueDto,
 ) -> Result<OpenJsonValueDto, String> {
@@ -96,7 +96,7 @@ pub async fn claude_update_output_styles(
     .try_into()
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn claude_get_statusline(state: State<'_, AppState>) -> Result<OpenJsonValueDto, String> {
     let settings = load_settings(state.inner()).await?;
     let statusline = settings
@@ -107,7 +107,7 @@ pub async fn claude_get_statusline(state: State<'_, AppState>) -> Result<OpenJso
     open_json(statusline)
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn claude_update_statusline(
     state: State<'_, AppState>,
     config: OpenJsonValueDto,
@@ -121,7 +121,7 @@ pub async fn claude_update_statusline(
     open_json(config)
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn claude_get_budgets() -> Result<OpenJsonValueDto, String> {
     tokio::task::spawn_blocking(|| -> Result<Value, String> {
         let budget_manager = BudgetManager::with_default()
@@ -163,7 +163,7 @@ pub async fn claude_get_budgets() -> Result<OpenJsonValueDto, String> {
 
 /// 更新预算配置。budgets 可包含字段：enabled, dailyLimit, weeklyLimit, monthlyLimit,
 /// warnAtPercent。
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn claude_update_budgets(budgets: OpenJsonValueDto) -> Result<OpenJsonValueDto, String> {
     let budgets: Value = budgets.into();
     tokio::task::spawn_blocking(move || -> Result<Value, String> {
@@ -248,7 +248,7 @@ pub async fn claude_update_budgets(budgets: OpenJsonValueDto) -> Result<OpenJson
     .try_into()
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn claude_list_prompts() -> Result<OpenJsonValueDto, String> {
     tokio::task::spawn_blocking(|| -> Result<Value, String> {
         let manager = PromptsManager::new(Platform::Claude)
@@ -269,7 +269,7 @@ pub async fn claude_list_prompts() -> Result<OpenJsonValueDto, String> {
 
 /// 整体替换 prompt presets 列表，或添加/更新单个 preset。
 /// prompts 可以是 PromptPreset 数组，或单个 PromptPreset 对象（则执行 add/update）。
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn claude_update_prompts(prompts: OpenJsonValueDto) -> Result<OpenJsonValueDto, String> {
     let prompts: Value = prompts.into();
     tokio::task::spawn_blocking(move || -> Result<Value, String> {

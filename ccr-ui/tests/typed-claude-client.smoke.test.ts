@@ -84,6 +84,7 @@ describe('typed Claude client facade', () => {
     })
 
     expect(invokeMock).toHaveBeenCalledWith('claude_update_budgets', {
+      confirmationToken: 'desktop-confirm:claude_update_budgets',
       budgets: {
         enabled: true,
         dailyLimit: 5,

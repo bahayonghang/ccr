@@ -1,6 +1,6 @@
 use super::*;
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn claude_list_hooks(state: State<'_, AppState>) -> Result<OpenJsonValueDto, String> {
     let settings = load_settings(state.inner()).await?;
     let hooks =
@@ -9,7 +9,7 @@ pub async fn claude_list_hooks(state: State<'_, AppState>) -> Result<OpenJsonVal
 }
 
 /// 整体替换 hooks 配置（官方 grouped hooks 对象）。
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn claude_update_hooks(
     state: State<'_, AppState>,
     hooks: OpenJsonValueDto,

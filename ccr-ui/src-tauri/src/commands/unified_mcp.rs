@@ -247,7 +247,7 @@ fn capabilities() -> Vec<PlatformMcpCapability> {
     ]
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn unified_list_mcp_servers(
     platforms: Option<Vec<String>>,
 ) -> Result<serde_json::Value, String> {
@@ -430,7 +430,7 @@ fn request_to_config(request: &UnifiedMcpRequest) -> Value {
     Value::Object(config)
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn unified_add_mcp_server(
     request: UnifiedMcpRequest,
 ) -> Result<serde_json::Value, String> {
@@ -488,7 +488,7 @@ pub async fn unified_add_mcp_server(
     .map_err(|e| format!("Task join error: {e}"))?
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn unified_update_mcp_server(
     platform: String,
     name: String,
@@ -511,7 +511,7 @@ pub async fn unified_update_mcp_server(
     .map_err(|e| format!("Task join error: {e}"))?
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn unified_delete_mcp_server(
     platform: String,
     name: String,

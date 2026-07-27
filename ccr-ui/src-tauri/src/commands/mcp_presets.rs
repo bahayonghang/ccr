@@ -18,7 +18,7 @@ fn requested_platform_ids(platforms: Option<Vec<String>>) -> Vec<String> {
     platforms.unwrap_or_else(|| vec!["codex".to_string(), "gemini".to_string()])
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn list_mcp_presets() -> Result<Value, String> {
     let result = tokio::task::spawn_blocking(|| {
         let manager = McpPresetManager::new(Platform::Claude)
@@ -33,7 +33,7 @@ pub async fn list_mcp_presets() -> Result<Value, String> {
     Ok(result)
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn get_mcp_preset(id: String) -> Result<Value, String> {
     let result = tokio::task::spawn_blocking(move || {
         let manager = McpPresetManager::new(Platform::Claude)
@@ -48,7 +48,7 @@ pub async fn get_mcp_preset(id: String) -> Result<Value, String> {
     Ok(result)
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn install_mcp_preset(
     preset_id: String,
     platforms: Option<Vec<String>>,
@@ -95,7 +95,7 @@ pub async fn install_mcp_preset(
     Ok(result)
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn install_mcp_preset_single(
     platform: String,
     preset_id: String,
@@ -135,7 +135,7 @@ pub async fn install_mcp_preset_single(
     Ok(result)
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn list_source_mcp_servers() -> Result<Value, String> {
     let result = tokio::task::spawn_blocking(|| {
         let sync_manager = ccr_skills::McpSyncManager::new();
@@ -161,7 +161,7 @@ pub async fn list_source_mcp_servers() -> Result<Value, String> {
     Ok(result)
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn sync_mcp_server(
     name: String,
     platforms: Option<Vec<String>>,
@@ -208,7 +208,7 @@ pub async fn sync_mcp_server(
     Ok(result)
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn sync_all_mcp_servers(platforms: Option<Vec<String>>) -> Result<Value, String> {
     let result = tokio::task::spawn_blocking(move || {
         let sync_manager = ccr_skills::McpSyncManager::new();

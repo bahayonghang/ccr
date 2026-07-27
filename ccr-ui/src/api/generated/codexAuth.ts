@@ -1,6 +1,6 @@
 /* Generated from commands/handler_registry.rs; do not edit. */
 
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/api/invokeRuntime'
 import type { CodexAuthActionResponse } from '@/types/generated/codex_auth/CodexAuthActionResponse'
 import type { CodexAuthCurrentResponse } from '@/types/generated/codex_auth/CodexAuthCurrentResponse'
 import type { CodexAuthListResponse } from '@/types/generated/codex_auth/CodexAuthListResponse'

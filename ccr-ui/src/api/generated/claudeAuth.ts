@@ -1,6 +1,6 @@
 /* Generated from commands/handler_registry.rs; do not edit. */
 
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/api/invokeRuntime'
 import type { ClaudeAuthActionResponse } from '@/types/generated/claude_auth/ClaudeAuthActionResponse'
 import type { ClaudeAuthCurrentResponse } from '@/types/generated/claude_auth/ClaudeAuthCurrentResponse'
 import type { ClaudeAuthListResponse } from '@/types/generated/claude_auth/ClaudeAuthListResponse'

@@ -22,6 +22,7 @@ describe('sync encryption IPC contract', () => {
     })
 
     expect(invokeMock).toHaveBeenCalledWith('sync_push_asset', {
+      confirmationToken: 'desktop-confirm:sync_push_asset',
       payload: {
         id: 'codex-config',
         force: true,
@@ -39,6 +40,7 @@ describe('sync encryption IPC contract', () => {
     await syncAllAssets({ force: false, passphrase: 'batch-passphrase' })
 
     expect(invokeMock).toHaveBeenNthCalledWith(1, 'sync_pull_asset', {
+      confirmationToken: 'desktop-confirm:sync_pull_asset',
       payload: {
         id: 'claude-settings',
         passphrase: 'migration-passphrase',
@@ -46,6 +48,7 @@ describe('sync encryption IPC contract', () => {
       },
     })
     expect(invokeMock).toHaveBeenNthCalledWith(2, 'sync_all_assets', {
+      confirmationToken: 'desktop-confirm:sync_all_assets',
       payload: { force: false, passphrase: 'batch-passphrase' },
     })
   })

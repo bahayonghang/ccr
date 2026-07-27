@@ -1,6 +1,6 @@
 use super::*;
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_list_sessions(
     limit: Option<usize>,
     query: Option<String>,
@@ -20,7 +20,7 @@ pub async fn codex_list_sessions(
     .try_into()
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_get_session_detail(
     file_path: String,
     message_limit: Option<usize>,
@@ -40,7 +40,7 @@ pub async fn codex_get_session_detail(
     .try_into()
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_export_session(
     file_path: String,
     max_messages: Option<usize>,
@@ -60,7 +60,7 @@ pub async fn codex_export_session(
     .try_into()
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_clone_session(
     state: State<'_, AppState>,
     file_path: String,
@@ -87,7 +87,7 @@ pub async fn codex_clone_session(
     open_json(response)
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_delete_session(
     state: State<'_, AppState>,
     file_path: String,

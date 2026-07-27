@@ -1,6 +1,6 @@
 /* Generated from commands/handler_registry.rs; do not edit. */
 
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/api/invokeRuntime'
 import type { DesktopShellPreferences } from '@/types/generated/shell/DesktopShellPreferences'
 import type { SkillportAppStatus } from '@/types/generated/shell/SkillportAppStatus'
 import type { TrayPanelManualPosition } from '@/types/generated/shell/TrayPanelManualPosition'
