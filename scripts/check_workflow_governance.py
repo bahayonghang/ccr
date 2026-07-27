@@ -199,6 +199,14 @@ def main() -> int:
         if runner not in root_workflow:
             failures.append(f"ci.yml: root workspace runner coverage missing {runner}")
 
+    tauri_linux = workflow_job_block(
+        workflows.get("tauri-rust-ci.yml", ""), "tauri-linux-required"
+    )
+    if "oven-sh/setup-bun@" not in tauri_linux or "bun-version: 1.3.10" not in tauri_linux:
+        failures.append(
+            "tauri-rust-ci.yml: Linux validation must install pinned Bun 1.3.10 for bindings"
+        )
+
     all_workflows = "\n".join(workflows.values())
     if "bun-version: 1.3.10" not in all_workflows:
         failures.append("Bun 1.3.10 pin is missing")

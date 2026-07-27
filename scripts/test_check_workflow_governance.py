@@ -132,6 +132,19 @@ class WorkflowGovernanceParserTests(unittest.TestCase):
             "cargo --config ../.cargo/tauri-ci.toml test", ui_justfile
         )
 
+    def test_tauri_linux_gate_installs_pinned_bun_for_bindings(self) -> None:
+        workflow = (
+            self.ROOT / ".github" / "workflows" / "tauri-rust-ci.yml"
+        ).read_text(encoding="utf-8")
+        linux_job = workflow_job_block(workflow, "tauri-linux-required")
+
+        self.assertIn(
+            "oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6",
+            linux_job,
+        )
+        self.assertIn("bun-version: 1.3.10", linux_job)
+        self.assertIn("run: just tauri-ci", linux_job)
+
 
 if __name__ == "__main__":
     unittest.main()
