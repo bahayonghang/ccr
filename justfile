@@ -747,7 +747,7 @@ frontend-coverage:
 
 # 🔐 前端依赖安全审计（与 hosted workflow 共用入口）
 frontend-audit:
-    cd ccr-ui && bun audit --audit-level=high
+    cd ccr-ui && bun run audit:dependencies
 
 # ═══════════════════════════════════════════════════════════
 # 📦 安装与管理命令

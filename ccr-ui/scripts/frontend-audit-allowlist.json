@@ -1,0 +1,16 @@
+{
+  "maxActiveExceptions": 1,
+  "exceptions": [
+    {
+      "id": "GHSA-mh99-v99m-4gvg",
+      "package": "brace-expansion",
+      "owner": "frontend-platform",
+      "rationale": "Bun 1.3.10 cannot apply nested overrides, and brace-expansion 1.x/2.x have no compatible patched release. Both installed legacy versions are patched to delegate to brace-expansion-safe 5.0.8 while preserving the CommonJS function contract required by minimatch 3.x/9.x.",
+      "expires": "2026-08-31",
+      "patchedVersions": [
+        "1.1.16",
+        "2.1.2"
+      ]
+    }
+  ]
+}

@@ -55,19 +55,19 @@
 - 测试并行化改动大，作为独立 PR，避免与门禁新增混在一起
 - 2026-07-26 现场查询 `main` branch protection 返回 HTTP 403；用户已选择严格端到端验收，required check 的远程设置必须在取得仓库权限并验证真实保护规则后才能标记完成
 
-## Verification evidence (2026-07-26)
+## Verification evidence (2026-07-27)
 
 | Evidence | Result |
 | --- | --- |
-| `python scripts/check_workflow_governance.py` | PASS：38 immutable action refs；serial-only 0/0 |
+| `python scripts/check_workflow_governance.py` | PASS：47 immutable action refs；serial-only 0/0 |
 | `just ci-governance-check` | PASS：19 repeated dependencies；1 active exception；315/323 registry doc |
 | `just coverage-rust` | PASS：workspace lines 70.18%；gateway 93.20% |
 | `just coverage-tauri` | PASS：full baseline 39.90% reported；gateway 95.57% enforced |
 | `just frontend-coverage` | PASS：Vue lines 74.54% |
 | `just vscode-coverage` | PASS：lines 91.79%；functions 86.87% |
 | `just tauri-ci` / `just vscode-ci` | PASS；Tauri 293 + 2 tests；bindings/inventory 同步 |
-| `just frontend-check` | PASS：94 files / 422 smoke tests；docs audit/build PASS |
-| `just frontend-audit` | FAIL：既有并行依赖元数据仍有 1 critical + 9 high；recipe/hosted 接线已完成，依赖整改不纳入本提交 |
+| `just frontend-check` | PASS：103 files / 460 smoke tests；docs audit/build PASS |
+| `just frontend-audit` | PASS：初始 1 critical + 9 high 已整改；仅余 `GHSA-mh99-v99m-4gvg` 的版本数据库命中，1.1.16/2.1.2 已通过 Bun patch 委托至安全 5.0.8，结构化 exception 为 1/1 且 2026-08-31 到期 |
 | Workflow YAML parse | PASS；`actionlint` unavailable locally |
 | `main` branch protection | UNVERIFIED：GitHub API HTTP 403 (`administration:read` unavailable) |
 | `just version-check` / final `just ci` | BLOCKED by excluded parallel 7.0.0 metadata: `ccr-ui/README.md` lacks `version-7.0.0` |

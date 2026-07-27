@@ -1,0 +1,7 @@
+diff --git a/index.js b/index.js
+index b8a51951..88d6bb63 100644
+--- a/index.js
++++ b/index.js
+@@ -3 +3 @@
+-module.exports = expandTop;
++module.exports = require('brace-expansion-safe').expand;

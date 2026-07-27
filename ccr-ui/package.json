@@ -14,6 +14,7 @@
     "prebuild:web": "bun run icons:ensure",
     "build:with-budget": "vite build --sourcemap && bun ./scripts/check-bundle-budget.mjs",
     "preview": "vite preview",
+    "audit:dependencies": "bun ./scripts/audit-dependencies.mjs",
     "docs:audit": "node ./scripts/audit-docs.mjs",
     "lint": "eslint . && bun run lint:style",
     "lint:ci": "eslint . --quiet && bun run lint:style",
@@ -74,15 +75,16 @@
     "@types/node": "^22.19.19",
     "@typescript-eslint/parser": "^8.60.1",
     "@vitejs/plugin-vue": "^6.0.7",
-    "@vitest/coverage-v8": "^4.1.8",
+    "@vitest/coverage-v8": "^4.1.10",
     "@vue/eslint-config-typescript": "^14.7.0",
     "autoprefixer": "^10.5.0",
+    "brace-expansion-safe": "npm:brace-expansion@5.0.8",
     "eslint": "^9.39.4",
     "eslint-plugin-vue": "^10.6.2",
     "globals": "^16.5.0",
     "jsdom": "^26.1.0",
     "playwright": "^1.60.0",
-    "postcss": "^8.5.15",
+    "postcss": "^8.5.23",
     "postcss-html": "^1.8.1",
     "stylelint": "^17.12.0",
     "stylelint-config-recommended-vue": "^1.6.1",
@@ -91,17 +93,22 @@
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.60.1",
     "vite": "^7.3.5",
-    "vitest": "^4.1.8",
+    "vitest": "^4.1.10",
     "vue-eslint-parser": "^10.4.1",
     "vue-tsc": "^2.2.12"
   },
   "overrides": {
-    "balanced-match": "1.0.2",
-    "fast-uri": "3.1.2",
+    "fast-uri": "3.1.4",
     "flatted": "3.4.2",
+    "js-yaml": "4.3.0",
     "picomatch": "4.0.4",
+    "postcss": "$postcss",
     "rollup": "4.61.0",
     "esbuild": "0.28.1",
     "ws": "8.21.0"
+  },
+  "patchedDependencies": {
+    "brace-expansion@1.1.16": "patches/brace-expansion@1.1.16.patch",
+    "brace-expansion@2.1.2": "patches/brace-expansion@2.1.2.patch"
   }
 }

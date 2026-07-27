@@ -817,19 +817,19 @@ check-security:
 
 _check-security-linux:
     @echo "🔒 检查前端安全漏洞..."
-    bun audit --audit-level=high
+    bun run audit:dependencies
     @echo ""
     @echo "✅ 安全检查完成"
 
 _check-security-macos:
     @echo "🔒 检查前端安全漏洞..."
-    bun audit --audit-level=high
+    bun run audit:dependencies
     @echo ""
     @echo "✅ 安全检查完成"
 
 _check-security-windows:
     @Write-Output '🔒 检查前端安全漏洞...'
-    @bun audit --audit-level=high
+    @bun run audit:dependencies
     @Write-Output ''
     @Write-Output '✅ 安全检查完成'
 
@@ -1295,15 +1295,15 @@ ci-security:
 
 _ci-security-linux:
     @echo "🔒 检查安全漏洞..."
-    bun audit --audit-level=high
+    bun run audit:dependencies
 
 _ci-security-macos:
     @echo "🔒 检查安全漏洞..."
-    bun audit --audit-level=high
+    bun run audit:dependencies
 
 _ci-security-windows:
     @Write-Output '🔒 检查安全漏洞...'
-    @bun audit --audit-level=high
+    @bun run audit:dependencies
 
 # 准备发布
 prepare-release: clean build

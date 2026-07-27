@@ -295,6 +295,7 @@ r2d2_sqlite = "0.34.0"
 ### 2. Signatures
 - Governance validator: `python scripts/check_workflow_governance.py`.
 - Coverage validator: `python scripts/check_coverage_thresholds.py <report.json> [--overall 70] --gateway 85 --gateway-pattern <path>`.
+- Frontend audit validator: `cd ccr-ui && bun run audit:dependencies`; policy: `ccr-ui/scripts/frontend-audit-allowlist.json`.
 - Local recipes: `workflow-governance-check`, `dependency-governance-check`, `frontend-audit`, `ci-governance-check`, `coverage-rust`, `coverage-tauri`, `frontend-coverage`, `vscode-coverage`, `tauri-ci`, and `vscode-ci`.
 - Hosted files: `ci.yml`, `frontend-ci.yml`, `tauri-rust-ci.yml`, and `vscode-ci.yml`.
 
@@ -307,7 +308,10 @@ r2d2_sqlite = "0.34.0"
 - Root workspace tests use default parallelism. `scripts/check_workflow_governance.py` counts `#[serial]` / `#[serial_test::serial]`; current and target counts are both 0.
 - Tauri command inventory is generated from the handler registry and freezes 315 base / 323 Windows commands across 30 base modules.
 - The Tauri Rust gate runs direct Cargo fmt/check/clippy/test plus repository governance recipes; it must not require Bun or the Vue dependency graph.
-- Hosted frontend dependency audit calls the repository-owned `frontend-audit` recipe; current advisory failures remain failures until the owning package metadata is remediated.
+- Hosted frontend dependency audit calls the repository-owned `frontend-audit` recipe and parses Bun's JSON report. Unexpected, expired, duplicate, package-mismatched, or stale advisory exceptions fail closed.
+- Frontend advisory exceptions require non-empty owner/rationale, ISO expiry, explicit patched versions, and must stay within `maxActiveExceptions` (currently 1).
+- `brace-expansion` 1.1.16/2.1.2 keep their CommonJS function contract through version-exact Bun patches that delegate to the pinned `brace-expansion-safe` alias at 5.0.8. The audit exception covers only the version-database false positive after those runtime patches are verified.
+- Bun 1.3.10 supports only top-level overrides. Do not force one `brace-expansion` major across `minimatch` 3.x/9.x/10.x: 5.x exports `{ expand }`, while the legacy consumers require the module itself as a function.
 
 ### 4. Validation & Error Matrix
 - Mutable action tag, duplicate YAML key, missing workflow, missing branch/path filter, or missing local recipe -> governance check fails.
@@ -315,16 +319,20 @@ r2d2_sqlite = "0.34.0"
 - Root/Tauri gateway below 85 or gateway path not found -> coverage validator fails closed.
 - Global `--test-threads=1` or serial annotation count above 0 -> governance check fails.
 - Handler inventory differs from registry -> `command_inventory_document_matches_registry` fails.
+- Missing patch/alias, inactive runtime delegation, unexpected high advisory, or stale/expired frontend exception -> `bun run audit:dependencies` fails.
 - Required branch protection not readable/configured -> local files may pass, but repository-setting evidence remains `UNVERIFIED`.
 
 ### 5. Good/Base/Bad Cases
 - Good: hosted workflow calls `just coverage-rust`; local and hosted execute the same threshold script.
 - Base: Tauri overall coverage is reported separately while its security gateway remains above 85%.
-- Bad: copying lint/test commands into workflow YAML, pinning `actions/checkout@v6`, or lowering the gateway threshold to compensate for missing tests.
+- Base: Bun still reports `GHSA-mh99-v99m-4gvg` against legacy version numbers, while both installed legacy versions are runtime-identical to the pinned safe implementation and the expiring exception remains active.
+- Bad: copying lint/test commands into workflow YAML, pinning `actions/checkout@v6`, lowering the gateway threshold, or globally overriding all `brace-expansion` consumers to 5.x.
 
 ### 6. Tests Required
-- `python scripts/check_workflow_governance.py` -> 38 immutable action references and serial-only count 0.
+- `python scripts/check_workflow_governance.py` -> 47 immutable action references and serial-only count 0.
 - `just ci-governance-check` -> dependency, workflow, and handler inventory gates pass.
+- `cd ccr-ui && bun install --frozen-lockfile && bun run audit:dependencies` -> both patches apply, runtime exports equal the safe 5.0.8 implementation, and only the active structured exception remains.
+- `cd ccr-ui && bun run test:smoke -- tests/frontend-dependency-audit.smoke.test.ts` -> exception limit, expiry, package match, stale detection, and GHSA extraction pass.
 - `just coverage-rust`, `just coverage-tauri`, `just frontend-coverage`, and `just vscode-coverage` -> configured line/gateway thresholds pass.
 - `just tauri-ci`, `just vscode-ci`, and final `just ci` when unrelated workspace metadata is clean.
 - Query protected-branch required checks with current GitHub permission; do not infer remote configuration from workflow files.
@@ -336,10 +344,24 @@ r2d2_sqlite = "0.34.0"
 - run: cargo test --workspace -- --test-threads=1
 ```
 
+```json
+{"overrides":{"brace-expansion":"5.0.8"}}
+```
+
 #### Correct
 ```yaml
 - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 - run: just test
+```
+
+```json
+{
+  "devDependencies": {"brace-expansion-safe":"npm:brace-expansion@5.0.8"},
+  "patchedDependencies": {
+    "brace-expansion@1.1.16":"patches/brace-expansion@1.1.16.patch",
+    "brace-expansion@2.1.2":"patches/brace-expansion@2.1.2.patch"
+  }
+}
 ```
 
 ## Scenario: internal crates do not depend on the umbrella facade
