@@ -26,8 +26,9 @@ Set-Location $RootDir
 function Invoke-CleanDevEnvironment {
     Write-Output '[WebDev] Cleaning browser web dev environment...'
     & powershell -ExecutionPolicy Bypass -File (Join-Path $RootDir 'scripts/clean_dev.ps1') -BackendPort $BackendPort -VitePort $VitePort -StopTauriDesktop
-    if (Test-Path 'node_modules/.vite') {
-        Remove-Item -Recurse -Force 'node_modules/.vite' -ErrorAction SilentlyContinue
+    if ($env:CCR_DEV_RESET_VITE_CACHE -eq '1' -and (Test-Path 'node_modules/.vite')) {
+        Write-Output '[WebDev] CCR_DEV_RESET_VITE_CACHE=1; removing the Vite dependency cache...'
+        Remove-Item -Recurse -Force 'node_modules/.vite'
     }
     Write-Output '[WebDev] Cleanup complete'
     Write-Output ''
