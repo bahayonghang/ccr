@@ -2005,7 +2005,9 @@ mod tests {
                     .expect("create inventory directory");
                 std::fs::write(&path, &expected).expect("write command inventory");
             }
-            let actual = std::fs::read_to_string(&path).expect("read command inventory");
+            let actual = std::fs::read_to_string(&path)
+                .expect("read command inventory")
+                .replace("\r\n", "\n");
             assert_eq!(actual, expected, "run `just tauri-command-inventory`");
         }
     }
