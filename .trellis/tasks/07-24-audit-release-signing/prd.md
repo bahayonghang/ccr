@@ -37,7 +37,7 @@
 
 - **需外部证书流程**：Apple Developer ID、Windows code signing cert、VSCode Marketplace publisher，涉及密钥管理与 secrets 配置，非纯代码任务
 - 报告 §11 指出 repo config 显示 null 但外部发布流程可能另有配置——落地前先盘点 release secret/process inventory
-- 2026-07-26 现场盘点：当前 `gh` 凭据调用 Actions secrets inventory 返回 HTTP 403，仓库内也没有可验证的 Apple/Windows/VSIX 签名身份；因此只能先证明 workflow、校验脚本和文档的仓库侧闭环，不能把真实签名 artifact 验证宣称为已通过
+- 2026-07-27 现场盘点：远程 `release` environment 已存在并仅允许 `v*` tag，但当前 `gh` 凭据读取 environment/repository secrets、variables 与 branch protection 仍返回 HTTP 403；仓库内也没有可验证的 Apple/Windows/VSIX 签名身份。因此只能证明 workflow、校验脚本和文档的仓库侧闭环，不能把真实签名 artifact 验证宣称为已通过
 - 优先级 P2，可在 P1 发版阻断组完成后进行
 
 ## Key Decision
@@ -49,10 +49,17 @@
 - 仓库侧已实现受保护 `release` environment 的 fail-closed DAG：CLI/Tauri
   平台签名、VSIX sign-tool + Marketplace 发布、集中 SBOM/checksum、GitHub
   OIDC provenance，且 GitHub Release 只在前述步骤全部成功后创建。
-- `just release-security-check`、`actionlint`、`just ci-governance-check`、
-  `just vscode-ci`、`just ui-check` 与中英文 docs build/audit 已通过。
+- `just release-security-check`、`actionlint 1.7.12`、
+  `just ci-governance-check`、`just vscode-ci`、`just ui-check`、中英文
+  docs build/audit 与最终 `just ci` 已通过；最终 CI 的 12 个步骤全部为绿。
+- 首次聚合 CI 的 104 个 smoke 文件 / 464 个测试本身全部通过，但 Vitest
+  worker teardown 出现两次瞬态 `onUserConsoleLog` rejection；focused、独立
+  full smoke 及最终完整 CI 均未复现，因此未引入无证据的 runner workaround。
 - `just version-check` 被不属于本任务的并行 `7.0.0` doc-drift 阻塞；未修改
   或暂存对应版本元数据。
-- 远程 `release` environment 查询为 HTTP 404，仓库 secrets inventory 为
-  HTTP 403。没有真实 Apple/Windows/VSIX 身份或签名 artifact，因此所有
+- 远程 `release` environment 已存在，custom deployment branch policy 为
+  tag `v*`；environment/repository secrets inventory 与 branch protection
+  仍为 HTTP 403，repository rulesets 为空。最新 `v6.5.0` release 早于本整改，
+  只有 checksum 资产，其 artifact digest 的 attestation API 返回 404。
+  没有真实 Apple/Windows/VSIX 身份或新 pipeline 签名 artifact，因此所有
   Acceptance Criteria 继续保持未勾选，本任务不得归档。

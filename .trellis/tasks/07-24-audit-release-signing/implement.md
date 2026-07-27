@@ -51,19 +51,29 @@ activation acceptance.
 | Evidence | Result |
 | --- | --- |
 | `just release-security-check` | PASS: 6/6 policy tests; updater disabled; centralized publication fail closed |
-| `actionlint .github/workflows/release.yml` | PASS with declared `vsix-signing` self-hosted runner label |
-| `just ci-governance-check` | PASS: 47 immutable action references; dependency and command inventory gates pass |
-| `just vscode-ci` | PASS: 50/50 tests and development VSIX packaging |
-| `just ui-check` | PASS: backend/lint/type-check; 102 smoke files / 457 tests |
+| `actionlint .github/workflows/release.yml` | PASS with actionlint 1.7.12; release workflow has no syntax or expression findings |
+| `just ci-governance-check` | PASS: 52 immutable action references; release/dependency/command inventory gates pass |
+| `just vscode-ci` | PASS: 50/50 tests and development VSIX packaging; unsigned development VSIX is not acceptance evidence |
+| `just ui-check` | PASS: backend/lint/type-check; 104 smoke files / 464 tests; 6 unrelated generated whitespace hunks isolated then restored byte-for-byte |
 | docs build + audit | PASS |
 | `just version-check` | BLOCKED by unrelated parallel `7.0.0` metadata: `ccr-ui/README.md` lacks `version-7.0.0`; version values themselves are aligned |
-| GitHub `release` environment | EXTERNAL BLOCK: environment GET and secret list return HTTP 404 |
-| Repository secrets inventory | EXTERNAL BLOCK: HTTP 403, token lacks Actions secrets permission |
-| Real Apple/Windows/VSIX signatures and OIDC provenance | NOT RUN: no certificate, publisher sign-tool/identity, protected environment, or authorized release run |
+| `just ci` | PASS: all 12 steps green in 03:53.493, including workspace tests, release build, audit, bindings drift, 104/464 frontend smoke tests, docs, and VS Code packaging |
+| GitHub `release` environment | PARTIAL EXTERNAL PASS: environment exists; custom deployment policy allows only `v*` tags; secrets/variables inventory remains HTTP 403 |
+| Required branch protection | EXTERNAL BLOCK: branch-protection endpoint returns HTTP 403; repository rulesets and readable `dev` rules are empty, so required contexts are not verified |
+| Repository/environment secrets inventory | EXTERNAL BLOCK: HTTP 403, token lacks Actions secrets permission |
+| Latest real release | NO-GO: `v6.5.0` run `29002291872` predates signing workflow; assets expose checksums only and the sampled artifact digest has no GitHub attestation (HTTP 404) |
+| Real Apple/Windows/VSIX signatures and OIDC provenance | NOT RUN: no readable certificate/publisher identity, no protected-environment secret evidence, and no post-remediation tag release |
 
 This is a verified repository-side checkpoint only. Do not archive this task or
 mark its acceptance criteria complete until the external activation rows pass
 against actual release artifacts.
+
+The first aggregate `just ci` attempt reached the frontend smoke suite and all
+104 files / 464 tests passed, but Vitest exited nonzero on two transient worker
+teardown rejections (`onUserConsoleLog`). The focused usage-store suite, a
+standalone full smoke rerun, and the final full `just ci` all passed without a
+code change, so no runner workaround was introduced without a reproducible
+failure.
 
 ## Rollback checks
 
