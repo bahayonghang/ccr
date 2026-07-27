@@ -207,3 +207,38 @@
 ### Next Steps
 
 - 继续 07-24-audit-ci-governance；Linux/macOS process tree hosted 证据留待父任务最终集成。
+
+
+## Session 55: 完成审计 P3 轻量清理
+
+**Date**: 2026-07-27
+**Task**: 完成审计 P3 轻量清理
+**Branch**: `dev`
+
+### Summary
+
+完成 7.x facade 弃用、内部 umbrella 依赖门禁、职责拆分契约、UTF-8 注释修复和显式 JSON 格式治理；归档 P3 子任务。
+
+### Main Changes
+
+- 七个 legacy 模块保留兼容路径并标记 8.0.0 最早移除窗口，仓库测试迁移到 ccr_cli。
+- 新增 dependency/JSON validators、回归测试和 Trellis 可执行规范。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `a4e9dd3f` | (see git log) |
+
+### Testing
+
+- [OK] public-api 3/3；doctest 10/10；scripts 7/7；migration 16/16；just fmt-check、just lint-strict、just test。
+- [OK] just version-check 的 version-sync 通过，doc drift 被并行 ccr-ui/README.md 缺少 version-7.0.0 阻塞。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 继续 CI governance、typed IPC 与 release signing 的严格剩余验收，不降低远程/签名证据门槛。
