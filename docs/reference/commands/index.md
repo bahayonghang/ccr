@@ -28,7 +28,7 @@ ccr <command> --help
 
 | 命令 | 用途 |
 |---|---|
-| [`init`](./init) | 初始化 CCR 配置 |
+| [`init`](./init) | 初始化用户级 CCR 配置（`~/.ccr/`） |
 | [`list`](./list) | 列出配置 |
 | [`add`](./add) / [`delete`](./delete) | 创建或删除配置 |
 | [`enable`](./enable) / [`disable`](./disable) | 切换配置可用状态 |
@@ -36,6 +36,14 @@ ccr <command> --help
 | [`temp-token`](./temp-token) | 命令式临时 token 覆盖 |
 | [`clear`](./clear) | 清理 CCR 管理的设置 |
 | [`optimize`](./optimize) | 整理配置结构 |
+
+## 项目引导
+
+| 命令 | 用途 |
+|---|---|
+| [`project init`](./project-init) | 在当前目录初始化 Git、Trellis 和 Agent ignore 规则 |
+
+`ccr init` 管理用户级 CCR 配置；`ccr project init` 管理当前项目工作流，两者不会互相替代。
 
 ## 数据、同步与运营
 
@@ -67,7 +75,8 @@ ccr <command> --help
 ## 推荐起步
 
 ```bash
-ccr init
+ccr init                    # 用户级 CCR 配置
+ccr project init            # 当前项目工作流
 ccr current
 ccr claude profile list
 ccr codex auth current

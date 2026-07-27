@@ -44,6 +44,8 @@ pub struct CodexAuthService {
     ccr_codex_dir: PathBuf,
     /// Codex CLI 配置目录 (~/.codex/)
     codex_dir: PathBuf,
+    /// Lock directory captured at construction so operations cannot drift with process env.
+    lock_dir: PathBuf,
 }
 
 struct CurrentAuthDocuments {
@@ -64,17 +66,23 @@ impl CodexAuthService {
     /// 创建新的 CodexAuthService 实例
     pub fn new() -> Result<Self> {
         let paths = CodexPaths::resolve()?;
+        let lock_dir = env::var_os("CCR_LOCK_DIR")
+            .map(PathBuf::from)
+            .unwrap_or_else(|| paths.codex_dir.join(".locks"));
         Ok(Self {
             ccr_codex_dir: paths.ccr_codex_dir,
             codex_dir: paths.codex_dir,
+            lock_dir,
         })
     }
 
     /// 从显式路径构造（用于测试注入与非标准工作目录场景）
     pub fn from_dirs(ccr_codex_dir: PathBuf, codex_dir: PathBuf) -> Self {
+        let lock_dir = codex_dir.join(".locks");
         Self {
             ccr_codex_dir,
             codex_dir,
+            lock_dir,
         }
     }
 
@@ -164,15 +172,13 @@ impl CodexAuthService {
 
     /// 创建使用当前 service 本地路径的 CodexConfigManager
     fn codex_config_manager(&self) -> Result<CodexConfigManager> {
-        let lock_dir = env::var_os("CCR_LOCK_DIR")
-            .map(PathBuf::from)
-            .unwrap_or_else(|| self.codex_dir.join(".locks"));
+        fs::create_dir_all(&self.lock_dir)?;
 
         Ok(CodexConfigManager::new(
             self.codex_dir.join("config.toml"),
             self.auth_json_path(),
             self.codex_dir.join("backups"),
-            LockManager::new(lock_dir),
+            LockManager::new(self.lock_dir.clone()),
         ))
     }
 
@@ -1997,10 +2003,10 @@ mod tests {
         )
         .unwrap();
 
-        let service = CodexAuthService {
-            ccr_codex_dir: ccr_dir.path().to_path_buf(),
-            codex_dir: codex_dir.path().to_path_buf(),
-        };
+        let service = CodexAuthService::from_dirs(
+            ccr_dir.path().to_path_buf(),
+            codex_dir.path().to_path_buf(),
+        );
 
         (service, ccr_dir, codex_dir)
     }

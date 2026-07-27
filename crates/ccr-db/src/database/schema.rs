@@ -359,6 +359,14 @@ CREATE TABLE IF NOT EXISTS migrations (
     name TEXT NOT NULL,
     applied_at TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS migration_rejections (
+    version INTEGER NOT NULL,
+    row_id TEXT NOT NULL,
+    error_code TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    PRIMARY KEY (version, row_id)
+);
 "#;
 
 /// SQL to check if initial migration was performed

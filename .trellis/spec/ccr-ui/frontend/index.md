@@ -17,6 +17,8 @@
 | [Confirm Interaction Contracts](./confirm-interaction-contracts.md)       | requestConfirm gate pattern, danger/warning semantics, no native dialogs, composable boundary                  | Complete |
 | [Raw Config Editor Contracts](./raw-config-editor-contracts.md)           | Local-only plaintext source editing, validation, versioned saves, and shared editor behavior                   | Complete |
 | [Brand Asset Pipeline Contract](./brand-asset-pipeline.md)                 | Brand SVG ownership, Cairo/Pillow rendering, generated outputs, and cross-surface verification                 | Complete |
+| [Sync Security Contracts](./sync-security-contracts.md)                    | Typed sync IPC, truth table, canonical WebDAV config, and operation passphrase lifecycle                       | Complete |
+| [Development Resource Contracts](./development-resource-contracts.md)       | Vite watcher scope, warmup ownership, process cleanup, cache preservation, and smoke worker budgets            | Complete |
 
 ## Pre-Development Checklist
 
@@ -29,6 +31,8 @@
 - Read [Confirm Interaction Contracts](./confirm-interaction-contracts.md) before adding any confirmation dialog, destructive-action flow, or user-facing alert/toast.
 - Read [Raw Config Editor Contracts](./raw-config-editor-contracts.md) before adding raw config, prompt, or profile source editing.
 - Read [Brand Asset Pipeline Contract](./brand-asset-pipeline.md) before changing `branding/`, `generate_icons.py`, or generated UI/Tauri/docs/VS Code brand assets.
+- Read [Sync Security Contracts](./sync-security-contracts.md) before changing fixed sync assets, sync IPC payloads, WebDAV configuration ownership, or the sensitive passphrase flow.
+- Read [Development Resource Contracts](./development-resource-contracts.md) before changing Vite/Vitest development startup, warmup, watcher, cache, or process-lifecycle tooling.
 
 ## Quality Check
 
@@ -42,3 +46,5 @@
 - Additionally run the font-preference guard and i18n compile when changing font tracks, `fontPreferences.ts`, or the font controls/copy:
   - `cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/font-preferences.smoke.test.ts` and `cd ccr-ui && bun run test:i18n`
 - Run `cd ccr-ui && bun run icons:generate && bun run icons:ensure && bun run build` for brand-source or renderer changes, then verify deterministic hashes and generated image formats per the brand asset contract.
+- Run the focused Tauri sync tests plus frontend type-check, lint, and smoke tests from [Sync Security Contracts](./sync-security-contracts.md) for sync contract changes.
+- Run `cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/dev-tooling-resource.smoke.test.ts` for development resource tooling changes.

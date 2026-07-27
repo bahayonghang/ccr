@@ -1,0 +1,6 @@
+{"file":".trellis/spec/ccr/backend/public-api-boundary.md","reason":"Compatibility and deprecation review"}
+{"file":".trellis/spec/ccr/backend/dependency-governance.md","reason":"Version and manifest policy review"}
+{"file":".trellis/spec/ccr/backend/module-decomposition.md","reason":"No mechanical split and public path preservation"}
+{"file":".trellis/spec/ccr/backend/repository-json-formatting.md","reason":"Canonical inventory and semantic-diff boundary"}
+{"file":".trellis/spec/ccr-db/backend/test-fixtures.md","reason":"Migration source changes retain fixtures"}
+{"file":".trellis/spec/guides/code-reuse-thinking-guide.md","reason":"No mechanical split or duplication"}

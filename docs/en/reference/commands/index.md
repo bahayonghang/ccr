@@ -28,7 +28,7 @@ ccr <command> --help
 
 | Command | Purpose |
 |---|---|
-| [`init`](./init) | initialize CCR configuration |
+| [`init`](./init) | initialize user-level CCR configuration (`~/.ccr/`) |
 | [`list`](./list) | list configurations |
 | [`add`](./add) / [`delete`](./delete) | create or delete configurations |
 | [`enable`](./enable) / [`disable`](./disable) | change configuration availability |
@@ -36,6 +36,14 @@ ccr <command> --help
 | [`temp-token`](./temp-token) | command-driven temporary token override |
 | [`clear`](./clear) | clear CCR-managed settings |
 | [`optimize`](./optimize) | normalize configuration structure |
+
+## Project Bootstrap
+
+| Command | Purpose |
+|---|---|
+| [`project init`](./project-init) | initialize Git, Trellis, and Agent ignore rules in the current directory |
+
+`ccr init` manages user-level CCR configuration. `ccr project init` manages the current project workflow; neither replaces the other.
 
 ## Data, Sync, And Operations
 
@@ -67,7 +75,8 @@ ccr <command> --help
 ## Recommended Start
 
 ```bash
-ccr init
+ccr init                    # user-level CCR configuration
+ccr project init            # current project workflow
 ccr current
 ccr claude profile list
 ccr codex auth current

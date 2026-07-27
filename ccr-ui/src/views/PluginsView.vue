@@ -321,7 +321,7 @@ const deleteConfirmMessage = computed(() => translateWithFallback(
 const loadPlugins = async () => {
   try {
     loading.value = true
-    const data = await listPlugins<PluginType[]>()
+    const data = await listPlugins()
     plugins.value = data || []
   } catch (err) {
     logger.error('Failed to load plugins:', err)

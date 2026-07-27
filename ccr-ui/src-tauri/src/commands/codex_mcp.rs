@@ -1,9 +1,9 @@
 use super::*;
 
 /// 列出 config.toml 中的 [mcp_servers]
-#[tauri::command]
-pub async fn codex_list_mcp_servers() -> Result<Value, String> {
-    tokio::task::spawn_blocking(|| {
+#[ccr_tauri_command_macros::command]
+pub async fn codex_list_mcp_servers() -> Result<OpenJsonValueDto, String> {
+    tokio::task::spawn_blocking(|| -> Result<Value, String> {
         let path = codex_config_path()?;
         let config = read_codex_config(&path)?;
         let servers: Vec<Value> = config
@@ -40,16 +40,18 @@ pub async fn codex_list_mcp_servers() -> Result<Value, String> {
         Ok(json!({ "servers": servers }))
     })
     .await
-    .map_err(|e| format!("任务执行失败: {e}"))?
+    .map_err(|e| format!("任务执行失败: {e}"))??
+    .try_into()
 }
 
 /// 添加 MCP 服务器到 config.toml
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_add_mcp_server(
     state: State<'_, AppState>,
     name: String,
-    config: Value,
-) -> Result<Value, String> {
+    config: OpenJsonValueDto,
+) -> Result<OpenJsonValueDto, String> {
+    let config: Value = config.into();
     let response = tokio::task::spawn_blocking(move || -> Result<Value, String> {
         let path = codex_config_path()?;
         let mut cfg = read_codex_config(&path)?;
@@ -73,16 +75,17 @@ pub async fn codex_add_mcp_server(
     .map_err(|e| format!("任务执行失败: {e}"))??;
 
     invalidate_codex_dashboard_overview_cache(&state).await;
-    Ok(response)
+    open_json(response)
 }
 
 /// 更新已有 MCP 服务器
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_update_mcp_server(
     state: State<'_, AppState>,
     name: String,
-    config: Value,
-) -> Result<Value, String> {
+    config: OpenJsonValueDto,
+) -> Result<OpenJsonValueDto, String> {
+    let config: Value = config.into();
     let response = tokio::task::spawn_blocking(move || -> Result<Value, String> {
         let path = codex_config_path()?;
         let mut cfg = read_codex_config(&path)?;
@@ -113,11 +116,11 @@ pub async fn codex_update_mcp_server(
     .map_err(|e| format!("任务执行失败: {e}"))??;
 
     invalidate_codex_dashboard_overview_cache(&state).await;
-    Ok(response)
+    open_json(response)
 }
 
 /// 删除 MCP 服务器
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_delete_mcp_server(
     state: State<'_, AppState>,
     name: String,

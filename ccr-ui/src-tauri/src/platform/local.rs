@@ -2,7 +2,7 @@
 
 use super::config_path::normalize_config_relative_path;
 use super::{CliStatus, EnvError, EnvironmentType, ExecutionEnvironment, PlatformInfo};
-use crate::process::tokio_command;
+use crate::process::{ProcessDescriptor, ProcessGateway};
 use ccr_core::core::{BackupPolicy, WriteOptions, write_guarded_async};
 
 /// 本地环境实现 — 始终可用，委托到 ccr 核心库。
@@ -145,14 +145,15 @@ fn resolve_config_path(
 
 /// 检测 CLI 工具是否可用（通过 PATH 查找）
 async fn which_tool(name: &str) -> Option<String> {
-    let cmd = if cfg!(windows) {
-        tokio_command("where").arg(name).output().await
-    } else {
-        tokio_command("which").arg(name).output().await
-    };
+    let output = ProcessGateway::execute(
+        &ProcessDescriptor::path_lookup(),
+        &[std::ffi::OsString::from(name)],
+    )
+    .await
+    .ok()?;
 
-    match cmd {
-        Ok(output) if output.status.success() => {
+    match output {
+        output if output.status.success() && !output.timed_out && !output.stdout_truncated => {
             let path = String::from_utf8_lossy(&output.stdout)
                 .lines()
                 .next()

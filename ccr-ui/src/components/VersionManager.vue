@@ -3,7 +3,7 @@ import SIcon from '@/components/ui/SIcon.vue'
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { getVersion, checkUpdate, updateCCR } from '@/api'
-import type { VersionInfo, UpdateCheckResponse } from '@/types'
+import type { VersionInfo } from '@/types/generated/system/VersionInfo'
 import { logger } from '@/utils/logger'
 import UpdateModal from './UpdateModal.vue'
 
@@ -15,7 +15,7 @@ interface UpdateResult {
 
 const { t } = useI18n()
 const versionInfo = ref<VersionInfo | null>(null)
-const updateInfo = ref<UpdateCheckResponse | null>(null)
+const updateInfo = ref<VersionInfo | null>(null)
 const isCheckingUpdate = ref(false)
 const showUpdateModal = ref(false)
 const updateStage = ref<'confirm' | 'updating' | 'success' | 'error'>('confirm')
@@ -28,7 +28,7 @@ onMounted(() => {
 
 const loadVersionInfo = async () => {
   try {
-    const data = await getVersion<VersionInfo>()
+    const data = await getVersion()
     versionInfo.value = data
   } catch (err) {
     logger.error('Failed to load version info:', err)
@@ -38,7 +38,7 @@ const loadVersionInfo = async () => {
 const handleCheckUpdate = async () => {
   isCheckingUpdate.value = true
   try {
-    const data = await checkUpdate<UpdateCheckResponse>()
+    const data = await checkUpdate()
     updateInfo.value = data
   } catch (err) {
     logger.error('Failed to check for updates:', err)
@@ -122,13 +122,13 @@ const handleCloseUpdateModal = () => {
         class="text-2xl font-bold font-mono tracking-wide"
         :style="{ color: 'var(--accent-primary)' }"
       >
-        {{ t('common.versionPrefix') }}{{ versionInfo.current_version }}
+        {{ t('common.versionPrefix') }}{{ versionInfo.current }}
       </div>
     </div>
 
     <!-- 更新信息 -->
     <div
-      v-if="updateInfo && updateInfo.has_update"
+      v-if="updateInfo && updateInfo.update_available"
       class="mb-3 p-2.5 rounded-lg"
       :style="{
         background: 'rgba(var(--color-success-rgb), 0.1)',
@@ -155,28 +155,13 @@ const handleCloseUpdateModal = () => {
           class="text-sm font-bold font-mono"
           :style="{ color: 'var(--accent-success)' }"
         >
-          {{ t('common.versionPrefix') }}{{ updateInfo.latest_version }}
+          {{ t('common.versionPrefix') }}{{ updateInfo.latest ?? updateInfo.current }}
         </span>
       </div>
-      <a
-        v-if="updateInfo.release_url"
-        :href="updateInfo.release_url"
-        target="_blank"
-        rel="noopener noreferrer"
-        class="text-xs underline hover:no-underline"
-        :style="{ color: 'var(--accent-success)' }"
-      >
-        {{ t('common.versionManager.viewReleaseNotes') }}
-        <SIcon
-          name="ArrowRight"
-          size="inline-block h-3 w-3"
-          class="ml-1 align-middle"
-        />
-      </a>
     </div>
 
     <div
-      v-if="updateInfo && !updateInfo.has_update"
+      v-if="updateInfo && !updateInfo.update_available"
       class="mb-3 text-xs text-center py-1.5 inline-flex w-full items-center justify-center gap-1.5"
       :style="{ color: 'var(--text-muted)' }"
     >
@@ -209,12 +194,12 @@ const handleCloseUpdateModal = () => {
 
       <button
         class="px-3 py-2 rounded-lg font-semibold text-xs transition-transform flex items-center justify-center space-x-1.5 text-white hover:scale-105"
-        :class="{ 'animate-pulse-subtle': updateInfo?.has_update }"
+        :class="{ 'animate-pulse-subtle': updateInfo?.update_available }"
         :style="{
-          background: updateInfo?.has_update
+          background: updateInfo?.update_available
             ? 'linear-gradient(135deg, var(--accent-success), var(--accent-primary))'
             : 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))',
-          boxShadow: updateInfo?.has_update
+          boxShadow: updateInfo?.update_available
             ? '0 0 20px var(--glow-success)'
             : '0 0 20px var(--glow-primary)'
         }"

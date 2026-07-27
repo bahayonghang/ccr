@@ -409,6 +409,8 @@ impl CodexQuotaService {
         let content = serde_json::to_string_pretty(&value)
             .map_err(|error| format!("序列化 auth 文件失败: {error}"))?;
         AsyncAtomicWriter::new(auth_path)
+            .secret(true)
+            .preserve_mode(true)
             .write_string_async(&content)
             .await
             .map_err(|error| format!("写回 auth 文件失败: {error}"))?;

@@ -59,7 +59,7 @@ export const useConfigsStore = defineStore('configs', {
       this.error = null
 
       try {
-        const data = await listConfigs<ConfigListResponse>()
+        const data = await listConfigs()
         this.items = data
         this.lastFetchedAt = Date.now()
         return data

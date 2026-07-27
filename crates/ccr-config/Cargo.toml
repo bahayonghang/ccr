@@ -2,7 +2,7 @@
 name = "ccr-config"
 version.workspace = true
 edition = "2024"
-rust-version = "1.90"
+rust-version = "1.95"
 authors = ["Yonghang Li"]
 description = "Shared CCR configuration contracts and platform profile registry helpers"
 license = "MIT"

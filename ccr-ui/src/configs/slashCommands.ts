@@ -58,7 +58,7 @@ function getRequestName(cmd: SlashCommandRequest): string {
 export const claudeCodeConfig: PlatformConfig = {
   api: {
     list: async () => {
-      const data = await listSlashCommands<{ commands?: unknown[]; folders?: unknown }>()
+      const data = await listSlashCommands()
       return {
         commands: (data.commands ?? []).map(normalizeSlashCommand),
         folders: asStringArray(data.folders),
@@ -105,7 +105,7 @@ export const claudeCodeConfig: PlatformConfig = {
 export const codexConfig: PlatformConfig = {
   api: {
     list: async () => {
-      return await listCodexSlashCommands<{ commands: SlashCommand[]; folders: string[] }>()
+      return await listCodexSlashCommands()
     },
     add: async (cmd: SlashCommandRequest) => {
       await addCodexSlashCommand(getRequestName(cmd), cmd)
@@ -142,7 +142,11 @@ export const codexConfig: PlatformConfig = {
 export const geminiConfig: PlatformConfig = {
   api: {
     list: async () => {
-      return await listGeminiSlashCommands<{ commands: SlashCommand[]; folders: string[] }>()
+      const data = asRecord(await listGeminiSlashCommands())
+      return {
+        commands: (Array.isArray(data.commands) ? data.commands : []).map(normalizeSlashCommand),
+        folders: asStringArray(data.folders),
+      }
     },
     add: async (cmd: SlashCommandRequest) => {
       await addGeminiSlashCommand(getRequestName(cmd), cmd)

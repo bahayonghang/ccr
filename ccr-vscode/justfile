@@ -12,7 +12,7 @@ default:
 
 # 📦 安装依赖
 install:
-    npm install
+    npm ci
 
 # 🔨 构建扩展 — esbuild 打包 + vsce 生成 .vsix + 复制到 outputs/
 build:
@@ -44,12 +44,15 @@ watch:
 
 # 🔍 TypeScript 类型检查
 lint:
-    node ./node_modules/typescript/bin/tsc --noEmit
-    node ./node_modules/typescript/bin/tsc -p tsconfig.test.json --noEmit
+    npm run lint
 
 # ✅ 运行测试
 test:
-    node --import tsx --test src/**/*.test.ts
+    npm test
+
+# 📊 Node 原生覆盖率门禁（无额外 coverage runner）
+coverage:
+    node --experimental-test-coverage --test-coverage-lines=70 --test-coverage-functions=70 --import tsx --test src/**/*.test.ts
 
 # 🧹 清理构建产物
 clean:

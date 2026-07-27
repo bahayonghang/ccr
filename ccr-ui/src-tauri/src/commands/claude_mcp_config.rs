@@ -149,10 +149,10 @@ fn home_dir() -> Result<PathBuf, String> {
 
 fn detect_project_root() -> Result<PathBuf, String> {
     for key in ["CCR_PROJECT_DIR", "CLAUDE_PROJECT_DIR"] {
-        if let Ok(value) = std::env::var(key) {
-            if !value.trim().is_empty() {
-                return normalize_existing_or_raw_path(PathBuf::from(value));
-            }
+        if let Ok(value) = std::env::var(key)
+            && !value.trim().is_empty()
+        {
+            return normalize_existing_or_raw_path(PathBuf::from(value));
         }
     }
 

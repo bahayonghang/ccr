@@ -5,7 +5,7 @@
  * 真迁移自 tauri.ts 第 16 分组。
  */
 
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/api/invokeRuntime'
 import type {
   WafCookieRecoveryResult,
   WafCookieStatus,

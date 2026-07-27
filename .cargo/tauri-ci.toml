@@ -1,0 +1,2 @@
+[env]
+TAURI_CONFIG = '{"build":{"frontendDist":"ci-dist"}}'

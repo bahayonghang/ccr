@@ -1,24 +1,28 @@
 //! 系统命令模块，提供系统信息、版本检查、健康检查、监控事件查询与运行时指标采样。
 
-use ccr_types::{FrontendLogInput, MonitoringEntry, MonitoringFeedQuery};
+use ccr_types::{FrontendLogInput, MonitoringEntry, MonitoringFeedQuery, MonitoringLevel};
 
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
+use std::ffi::OsString;
 #[cfg(target_os = "windows")]
 use std::path::Path;
-use std::{io::ErrorKind, sync::Arc, time::Instant};
+use std::{sync::Arc, time::Instant};
 use tauri::State;
 use tokio::sync::Semaphore;
-use tokio::time::{Duration, timeout};
+use tokio::time::Duration;
+use ts_rs::TS;
 
 use crate::monitoring::{
     event_to_monitoring_entry, frontend_log_entry, record_monitoring_entry, should_persist,
 };
 use crate::platform::CliStatus;
-use crate::process::tokio_command;
+use crate::process::{ProcessDescriptor, ProcessGateway};
 use crate::state::{AppState, CacheFillRegistration};
 
 /// 系统信息响应结构
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/system/")]
 pub struct SystemInfo {
     pub hostname: String,
     pub os: String,
@@ -33,15 +37,18 @@ pub struct SystemInfo {
     pub total_memory_gb: f64,
     pub used_memory_gb: f64,
     pub memory_usage_percent: f64,
+    #[ts(as = "f64")]
     pub total_memory_mb: u64,
     pub total_swap_gb: f64,
     pub used_swap_gb: f64,
+    #[ts(as = "f64")]
     pub uptime_seconds: u64,
     pub ccr_version: String,
 }
 
 /// 版本检查结果
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/system/")]
 pub struct VersionInfo {
     pub current: String,
     pub latest: Option<String>,
@@ -49,41 +56,262 @@ pub struct VersionInfo {
 }
 
 /// 运行时指标响应
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/events/")]
 pub struct RuntimeMetricsResponse {
     pub cache_entries: usize,
     pub event_log_entries: usize,
     pub event_log_memory_bytes: usize,
     pub ssh_state_count: usize,
     pub ssh_password_cache_count: usize,
+    #[ts(as = "f64")]
     pub process_rss_bytes: u64,
     pub command_p95_ms: Option<f64>,
     pub db_query_p95_ms: Option<f64>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[serde(untagged)]
+#[ts(export, export_to = "../../src/types/generated/events/")]
+pub enum JsonValueDto {
+    Null,
+    Bool(bool),
+    Number(f64),
+    String(String),
+    Array(Vec<JsonValueDto>),
+    Object(BTreeMap<String, JsonValueDto>),
+}
+
+impl TryFrom<serde_json::Value> for JsonValueDto {
+    type Error = String;
+
+    fn try_from(value: serde_json::Value) -> Result<Self, Self::Error> {
+        match value {
+            serde_json::Value::Null => Ok(Self::Null),
+            serde_json::Value::Bool(value) => Ok(Self::Bool(value)),
+            serde_json::Value::Number(value) => value
+                .as_f64()
+                .map(Self::Number)
+                .ok_or_else(|| "JSON number cannot be represented as f64".to_string()),
+            serde_json::Value::String(value) => Ok(Self::String(value)),
+            serde_json::Value::Array(values) => values
+                .into_iter()
+                .map(Self::try_from)
+                .collect::<Result<Vec<_>, _>>()
+                .map(Self::Array),
+            serde_json::Value::Object(values) => values
+                .into_iter()
+                .map(|(key, value)| Self::try_from(value).map(|value| (key, value)))
+                .collect::<Result<BTreeMap<_, _>, _>>()
+                .map(Self::Object),
+        }
+    }
+}
+
+impl From<JsonValueDto> for serde_json::Value {
+    fn from(value: JsonValueDto) -> Self {
+        match value {
+            JsonValueDto::Null => Self::Null,
+            JsonValueDto::Bool(value) => Self::Bool(value),
+            JsonValueDto::Number(value) => serde_json::Number::from_f64(value)
+                .map(Self::Number)
+                .unwrap_or(Self::Null),
+            JsonValueDto::String(value) => Self::String(value),
+            JsonValueDto::Array(values) => {
+                Self::Array(values.into_iter().map(Self::from).collect())
+            }
+            JsonValueDto::Object(values) => Self::Object(
+                values
+                    .into_iter()
+                    .map(|(key, value)| (key, Self::from(value)))
+                    .collect(),
+            ),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, TS)]
+#[serde(rename_all = "lowercase")]
+#[ts(export, export_to = "../../src/types/generated/events/")]
+pub enum MonitoringLevelDto {
+    Debug,
+    Info,
+    Warn,
+    Error,
+}
+
+impl From<MonitoringLevel> for MonitoringLevelDto {
+    fn from(value: MonitoringLevel) -> Self {
+        match value {
+            MonitoringLevel::Debug => Self::Debug,
+            MonitoringLevel::Info => Self::Info,
+            MonitoringLevel::Warn => Self::Warn,
+            MonitoringLevel::Error => Self::Error,
+        }
+    }
+}
+
+impl From<MonitoringLevelDto> for MonitoringLevel {
+    fn from(value: MonitoringLevelDto) -> Self {
+        match value {
+            MonitoringLevelDto::Debug => Self::Debug,
+            MonitoringLevelDto::Info => Self::Info,
+            MonitoringLevelDto::Warn => Self::Warn,
+            MonitoringLevelDto::Error => Self::Error,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Default, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../../src/types/generated/events/")]
+pub struct MonitoringFeedQueryDto {
+    #[ts(optional)]
+    pub count: Option<usize>,
+    #[ts(optional)]
+    pub level: Option<MonitoringLevelDto>,
+    #[ts(optional)]
+    pub channel: Option<String>,
+}
+
+impl From<MonitoringFeedQueryDto> for MonitoringFeedQuery {
+    fn from(value: MonitoringFeedQueryDto) -> Self {
+        Self {
+            count: value.count,
+            level: value.level.map(MonitoringLevel::from),
+            channel: value.channel,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../../src/types/generated/events/")]
+pub struct FrontendLogInputDto {
+    pub level: MonitoringLevelDto,
+    pub message: String,
+    #[serde(default)]
+    pub source: String,
+    #[ts(optional)]
+    pub timestamp: Option<String>,
+    #[ts(optional)]
+    pub fields: Option<JsonValueDto>,
+}
+
+impl From<FrontendLogInputDto> for FrontendLogInput {
+    fn from(value: FrontendLogInputDto) -> Self {
+        Self {
+            level: value.level.into(),
+            message: value.message,
+            source: value.source,
+            timestamp: value.timestamp,
+            fields: value.fields.map(serde_json::Value::from),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/events/")]
+pub struct MonitoringEntryDto {
+    pub id: String,
+    pub timestamp: String,
+    pub level: MonitoringLevelDto,
+    pub channel: String,
+    pub event_type: String,
+    pub source: String,
+    pub message: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub correlation_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub fields: Option<JsonValueDto>,
+}
+
+impl TryFrom<MonitoringEntry> for MonitoringEntryDto {
+    type Error = String;
+
+    fn try_from(value: MonitoringEntry) -> Result<Self, Self::Error> {
+        Ok(Self {
+            id: value.id,
+            timestamp: value.timestamp,
+            level: value.level.into(),
+            channel: value.channel,
+            event_type: value.event_type,
+            source: value.source,
+            message: value.message,
+            correlation_id: value.correlation_id,
+            fields: value.fields.map(JsonValueDto::try_from).transpose()?,
+        })
+    }
+}
+
+#[derive(Debug, Clone, Serialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/events/")]
+pub struct EventLogEntryDto {
+    #[ts(as = "f64")]
+    pub id: u64,
+    pub timestamp: String,
+    pub event: JsonValueDto,
+}
+
+impl TryFrom<crate::events::EventLogEntry> for EventLogEntryDto {
+    type Error = String;
+
+    fn try_from(value: crate::events::EventLogEntry) -> Result<Self, Self::Error> {
+        let event = serde_json::to_value(value.event)
+            .map_err(|error| format!("Failed to serialize event log entry: {error}"))?;
+        Ok(Self {
+            id: value.id,
+            timestamp: value.timestamp,
+            event: JsonValueDto::try_from(event)?,
+        })
+    }
+}
+
+#[derive(Debug, Clone, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../../src/types/generated/system/")]
 pub struct CliVersionsOptions {
+    #[ts(optional)]
     pub mode: Option<String>,
+    #[ts(as = "Option<f64>", optional)]
     pub timeout_ms: Option<u64>,
+    #[ts(optional)]
     pub parallelism: Option<usize>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../../src/types/generated/system/")]
 pub struct CliVersionOptions {
     pub tool: String,
+    #[ts(as = "Option<f64>", optional)]
     pub timeout_ms: Option<u64>,
+    #[ts(optional)]
     pub force: Option<bool>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/system/")]
 pub struct CliVersionEntry {
     pub platform: String,
     pub installed: bool,
     pub version: Option<String>,
     pub status: String,
+    #[ts(as = "f64")]
     pub elapsed_ms: u64,
+}
+
+#[derive(Debug, Clone, Serialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/system/")]
+pub struct CliVersionsResponse {
+    pub versions: BTreeMap<String, String>,
+    pub entries: Vec<CliVersionEntry>,
+    pub mode: String,
+    #[ts(as = "f64")]
+    pub timeout_ms: u64,
+    pub parallelism: usize,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -136,7 +364,7 @@ impl CliProbeMode {
     }
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn get_system_info() -> Result<SystemInfo, String> {
     tokio::task::spawn_blocking(|| {
         use sysinfo::{MINIMUM_CPU_UPDATE_INTERVAL, System};
@@ -201,7 +429,7 @@ pub async fn get_system_info() -> Result<SystemInfo, String> {
     .map_err(|e| format!("Task join error: {e}"))?
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn check_version() -> Result<VersionInfo, String> {
     let current = env!("CARGO_PKG_VERSION").to_string();
     // TODO: Phase B4 接入 GitHub Releases API
@@ -212,7 +440,7 @@ pub async fn check_version() -> Result<VersionInfo, String> {
     })
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn health_check(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
     let pool = state.db_pool.clone();
     let db_ok = tokio::task::spawn_blocking(move || pool.get().map(|_| true).unwrap_or(false))
@@ -239,12 +467,12 @@ fn monitoring_matches_query(entry: &MonitoringEntry, query: &MonitoringFeedQuery
     level_matches && channel_matches
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn get_monitoring_feed(
     state: State<'_, AppState>,
-    query: Option<MonitoringFeedQuery>,
-) -> Result<Vec<MonitoringEntry>, String> {
-    let query = query.unwrap_or_default();
+    query: Option<MonitoringFeedQueryDto>,
+) -> Result<Vec<MonitoringEntryDto>, String> {
+    let query = MonitoringFeedQuery::from(query.unwrap_or_default());
     let count = query.count.unwrap_or(100).clamp(1, 500);
     let level = query.level.map(|item| item.as_str().to_string());
     let channel = query.channel.clone();
@@ -268,32 +496,41 @@ pub async fn get_monitoring_feed(
     entries.retain(|entry| seen.insert(entry.id.clone()));
     entries.truncate(count);
 
-    Ok(entries)
+    entries
+        .into_iter()
+        .map(MonitoringEntryDto::try_from)
+        .collect()
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn append_frontend_logs(
     app_handle: tauri::AppHandle,
-    entries: Vec<FrontendLogInput>,
+    entries: Vec<FrontendLogInputDto>,
 ) -> Result<(), String> {
     for input in entries {
-        let entry = frontend_log_entry(input);
+        let entry = frontend_log_entry(input.into());
         let persist = should_persist(entry.level, &entry.event_type);
         record_monitoring_entry(&app_handle, entry, persist).await;
     }
 
     Ok(())
 }
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn get_recent_events(
     state: State<'_, AppState>,
     count: Option<usize>,
-) -> Result<Vec<crate::events::EventLogEntry>, String> {
+) -> Result<Vec<EventLogEntryDto>, String> {
     let count = count.unwrap_or(50);
-    Ok(state.event_log.recent(count).await)
+    state
+        .event_log
+        .recent(count)
+        .await
+        .into_iter()
+        .map(EventLogEntryDto::try_from)
+        .collect()
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn get_runtime_metrics(
     state: State<'_, AppState>,
 ) -> Result<RuntimeMetricsResponse, String> {
@@ -318,19 +555,6 @@ fn current_process_rss_bytes() -> u64 {
     system.refresh_processes(ProcessesToUpdate::All, true);
     let pid = Pid::from_u32(std::process::id());
     system.process(pid).map(|p| p.memory()).unwrap_or(0)
-}
-
-async fn run_command_with_timeout(
-    program: &str,
-    args: &[&str],
-    timeout_secs: u64,
-) -> Result<std::process::Output, String> {
-    let mut cmd = tokio_command(program);
-    cmd.args(args);
-    match timeout(Duration::from_secs(timeout_secs), cmd.output()).await {
-        Ok(result) => result.map_err(|e| format!("Failed to spawn command: {e}")),
-        Err(_) => Err(format!("Command timeout after {timeout_secs}s")),
-    }
 }
 
 fn extract_version_line(output: &std::process::Output) -> Option<String> {
@@ -466,10 +690,15 @@ async fn probe_cli_version_target(target: &CliProbeTarget, timeout_ms: u64) -> C
     }
 
     let started_at = Instant::now();
-    let mut cmd = tokio_command(&target.program);
-    cmd.args(["--version"]);
-
-    let result = timeout(Duration::from_millis(timeout_ms), cmd.output()).await;
+    let descriptor = match ProcessDescriptor::cli_probe(
+        target.platform,
+        &target.program,
+        Duration::from_millis(timeout_ms),
+    ) {
+        Ok(descriptor) => descriptor,
+        Err(_) => return missing_cli_version_entry(target.platform),
+    };
+    let result = ProcessGateway::execute(&descriptor, &[OsString::from("--version")]).await;
     let elapsed_ms = started_at.elapsed().as_millis() as u64;
 
     match result {
@@ -477,27 +706,25 @@ async fn probe_cli_version_target(target: &CliProbeTarget, timeout_ms: u64) -> C
             platform: target.platform.to_string(),
             installed: false,
             version: None,
-            status: "timeout".to_string(),
-            elapsed_ms,
-        },
-        Ok(Err(err)) if err.kind() == ErrorKind::NotFound => CliVersionEntry {
-            platform: target.platform.to_string(),
-            installed: false,
-            version: None,
-            status: "not_installed".to_string(),
-            elapsed_ms,
-        },
-        Ok(Err(_)) => CliVersionEntry {
-            platform: target.platform.to_string(),
-            installed: false,
-            version: None,
             status: "error".to_string(),
             elapsed_ms,
         },
-        Ok(Ok(output)) => {
-            let version = extract_version_line(&output);
+        Ok(output) if output.timed_out => CliVersionEntry {
+            platform: target.platform.to_string(),
+            installed: false,
+            version: None,
+            status: "timeout".to_string(),
+            elapsed_ms,
+        },
+        Ok(output) => {
+            let process_output = std::process::Output {
+                status: output.status,
+                stdout: output.stdout,
+                stderr: output.stderr,
+            };
+            let version = extract_version_line(&process_output);
 
-            if version.is_some() {
+            if process_output.status.success() && version.is_some() {
                 CliVersionEntry {
                     platform: target.platform.to_string(),
                     installed: true,
@@ -603,8 +830,8 @@ async fn get_cached_cli_version(
     Ok(probe_cli_version_target(&target, timeout_ms).await)
 }
 
-fn legacy_versions_map(entries: &[CliVersionEntry]) -> serde_json::Map<String, serde_json::Value> {
-    let mut versions = serde_json::Map::new();
+fn legacy_versions_map(entries: &[CliVersionEntry]) -> BTreeMap<String, String> {
+    let mut versions = BTreeMap::new();
     for entry in entries {
         let legacy_value = if entry.installed {
             entry
@@ -614,10 +841,7 @@ fn legacy_versions_map(entries: &[CliVersionEntry]) -> serde_json::Map<String, s
         } else {
             "not found".to_string()
         };
-        versions.insert(
-            entry.platform.clone(),
-            serde_json::Value::String(legacy_value),
-        );
+        versions.insert(entry.platform.clone(), legacy_value);
     }
     versions
 }
@@ -627,14 +851,14 @@ fn cli_versions_payload(
     mode: CliProbeMode,
     timeout_ms: u64,
     parallelism: usize,
-) -> serde_json::Value {
-    serde_json::json!({
-        "versions": legacy_versions_map(&entries),
-        "entries": entries,
-        "mode": mode.as_str(),
-        "timeout_ms": timeout_ms,
-        "parallelism": parallelism,
-    })
+) -> CliVersionsResponse {
+    CliVersionsResponse {
+        versions: legacy_versions_map(&entries),
+        entries,
+        mode: mode.as_str().to_string(),
+        timeout_ms,
+        parallelism,
+    }
 }
 
 async fn compute_cli_versions(
@@ -671,11 +895,18 @@ async fn compute_cli_versions(
     Ok(entries)
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn update_ccr() -> Result<serde_json::Value, String> {
-    let output = run_command_with_timeout("cargo", &["install", "ccr"], 60).await?;
+    let output = ProcessGateway::execute(
+        &ProcessDescriptor::ccr_update(),
+        &[OsString::from("install"), OsString::from("ccr")],
+    )
+    .await?;
 
-    let success = output.status.success();
+    let success = output.status.success()
+        && !output.timed_out
+        && !output.stdout_truncated
+        && !output.stderr_truncated;
     let stdout = String::from_utf8_lossy(&output.stdout).to_string();
     let stderr = String::from_utf8_lossy(&output.stderr).to_string();
 
@@ -683,14 +914,16 @@ pub async fn update_ccr() -> Result<serde_json::Value, String> {
         "success": success,
         "stdout": stdout,
         "stderr": stderr,
+        "timed_out": output.timed_out,
+        "truncated": output.stdout_truncated || output.stderr_truncated,
     }))
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn get_cli_versions(
     state: State<'_, AppState>,
     options: Option<CliVersionsOptions>,
-) -> Result<serde_json::Value, String> {
+) -> Result<CliVersionsResponse, String> {
     let options = options.unwrap_or(CliVersionsOptions {
         mode: None,
         timeout_ms: None,
@@ -753,7 +986,7 @@ pub async fn get_cli_versions(
     Ok(cli_versions_payload(entries, mode, timeout_ms, parallelism))
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn get_cli_version(
     state: State<'_, AppState>,
     options: CliVersionOptions,
@@ -782,25 +1015,10 @@ mod tests {
             .expect("compute_cli_versions should succeed");
         let payload = cli_versions_payload(entries, mode, timeout_ms, parallelism);
 
-        assert_eq!(payload.get("mode").and_then(|v| v.as_str()), Some("fast"));
-        assert_eq!(
-            payload.get("timeout_ms").and_then(|v| v.as_u64()),
-            Some(3_500)
-        );
-        assert_eq!(
-            payload
-                .get("versions")
-                .and_then(|v| v.as_object())
-                .map(|m| m.len()),
-            Some(4)
-        );
-        assert_eq!(
-            payload
-                .get("entries")
-                .and_then(|v| v.as_array())
-                .map(|a| a.len()),
-            Some(4)
-        );
+        assert_eq!(payload.mode, "fast");
+        assert_eq!(payload.timeout_ms, 3_500);
+        assert_eq!(payload.versions.len(), 4);
+        assert_eq!(payload.entries.len(), 4);
 
         // fast 模式下应在合理时间内返回，避免回归导致探测超时
         assert!(started_at.elapsed() <= Duration::from_millis(5_000));

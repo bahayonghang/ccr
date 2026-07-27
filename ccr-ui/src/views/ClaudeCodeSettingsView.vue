@@ -841,7 +841,7 @@ async function handleRawSaved() {
 
 async function loadActiveEnvironment() {
   try {
-    const environment = await getCurrentEnvironment<{ env_type?: string }>()
+    const environment = await getCurrentEnvironment()
     rawLocal.value = !environment || environment.env_type === 'local'
   } catch {
     rawLocal.value = true
@@ -930,7 +930,7 @@ function parseOptionalInteger(value?: string): number | undefined {
 async function loadSettings() {
   loading.value = true
   try {
-    const data = await getClaudeSettings<ClaudeSettingsData>()
+    const data = await getClaudeSettings()
 
     form.model = data.model || ''
     form.availableModels = data.availableModels || []

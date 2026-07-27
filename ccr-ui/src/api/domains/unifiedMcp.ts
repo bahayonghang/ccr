@@ -8,9 +8,11 @@
  * 其它平台暂保留 delete + add 兼容路径。
  */
 
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/api/invokeRuntime'
 import { getErrorMessage } from '@/utils/errorHandler'
-import { asRecord, type UnknownRecord } from '../_shared'
+import { updateClaudeMcpServer } from '../generated/claude'
+import { asRecord, toOpenJsonValue, type UnknownRecord } from '../_shared'
+import type { OpenJsonValueDto } from '@/types/generated/common/OpenJsonValueDto'
 
 export interface UnifiedMcpImportResult {
   name: string
@@ -109,14 +111,18 @@ export const deleteUnifiedMcp = async <T = UnknownRecord>(
  *
  * 当前仅 Claude 平台后端实现了 disabled 字段语义；其它平台抛错提示不支持。
  */
-export const toggleUnifiedMcp = async <T = UnknownRecord>(
+export const toggleUnifiedMcp = async (
   platform: string,
   name: string,
   disabled?: boolean,
   scope?: string,
-): Promise<T> => {
+): Promise<OpenJsonValueDto> => {
   if (platform === 'claude') {
-    return invoke('claude_update_mcp_server', { name, config: { disabled: disabled ?? true }, scope })
+    return updateClaudeMcpServer(
+      name,
+      toOpenJsonValue({ disabled: disabled ?? true }, 'Claude MCP toggle payload'),
+      scope,
+    )
   }
   throw new Error(`[Tauri] toggleUnifiedMcp: 平台 ${platform} 不支持启用/禁用切换`)
 }

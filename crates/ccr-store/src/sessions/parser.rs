@@ -708,6 +708,60 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_file_with_hash_dispatches_every_platform() {
+        let dir = tempdir().expect("Failed to create temp directory for dispatch test");
+        let content = r#"{"type":"init","session_id":"record-id","cwd":"/tmp/project","timestamp":"2026-07-26T10:00:00Z"}
+{"type":"user","role":"user","message":"Hello from dispatch","timestamp":"2026-07-26T10:00:01Z"}
+{"type":"assistant","role":"assistant","message":"Ready","timestamp":"2026-07-26T10:00:02Z"}
+"#;
+        let cases = [
+            (Platform::Claude, "claude", "record-id"),
+            (Platform::Codex, "codex", "record-id"),
+            (Platform::Gemini, "gemini", "gemini"),
+            (Platform::Qwen, "qwen", "record-id"),
+            (Platform::Droid, "droid", "droid"),
+        ];
+
+        for (platform, stem, expected_id) in cases {
+            let path = dir.path().join(format!("{stem}.jsonl"));
+            std::fs::write(&path, content).expect("Failed to write dispatch fixture");
+            let expected_hash = format!("provided-{stem}");
+
+            let session =
+                SessionParser::parse_file_with_hash(&path, platform, expected_hash.clone())
+                    .expect("Failed to parse dispatched session");
+
+            assert_eq!(session.platform, platform);
+            assert_eq!(session.id, expected_id);
+            assert_eq!(session.file_hash, expected_hash);
+            assert_eq!(session.message_count, 2);
+            assert_eq!(session.title.as_deref(), Some("Hello from dispatch"));
+        }
+    }
+
+    #[test]
+    fn test_missing_inputs_report_empty_scan_and_parse_errors() {
+        let dir = tempdir().expect("Failed to create temp directory for error test");
+        let missing = dir.path().join("missing.jsonl");
+
+        assert!(
+            SessionParser::scan_directory(&missing, Platform::Codex)
+                .expect("Missing scan root should be empty")
+                .is_empty()
+        );
+        assert!(matches!(
+            SessionParser::parse_file(&missing, Platform::Claude),
+            Err(CcrError::ConfigError(_))
+        ));
+
+        let (sessions, stats) = SessionParser::parse_files(&[missing], Platform::Codex);
+        assert!(sessions.is_empty());
+        assert_eq!(stats.files_scanned, 1);
+        assert_eq!(stats.sessions_added, 0);
+        assert_eq!(stats.errors, 1);
+    }
+
+    #[test]
     #[ignore]
     fn benchmark_parse_files_parallel() {
         let dir = tempdir().expect("Failed to create temp directory for benchmark");

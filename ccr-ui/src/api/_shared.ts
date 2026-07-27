@@ -6,6 +6,7 @@
  */
 
 import type { UnknownRecord } from '@/types/common'
+import type { OpenJsonValueDto } from '@/types/generated/common/OpenJsonValueDto'
 
 export type { UnknownRecord }
 
@@ -29,6 +30,45 @@ export const pickArray = (value: unknown, key: string): unknown[] => {
 export const pickRecord = (value: unknown, key: string): UnknownRecord => {
   if (!isRecord(value)) return {}
   return asRecord(value[key])
+}
+
+export function toOpenJsonValue(
+  value: unknown,
+  label = 'Command payload',
+): OpenJsonValueDto {
+  return convertOpenJsonValue(value, label, new WeakSet<object>())
+}
+
+function convertOpenJsonValue(
+  value: unknown,
+  label: string,
+  ancestors: WeakSet<object>,
+): OpenJsonValueDto {
+  if (value === null || typeof value === 'string' || typeof value === 'boolean') return value
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (typeof value !== 'object') throw new TypeError(`${label} must be JSON-compatible`)
+  if (ancestors.has(value)) throw new TypeError(`${label} must not contain circular references`)
+
+  ancestors.add(value)
+  if (Array.isArray(value)) {
+    const result = value.map(item => convertOpenJsonValue(item, label, ancestors))
+    ancestors.delete(value)
+    return result
+  }
+  if (isRecord(value)) {
+    const prototype = Object.getPrototypeOf(value)
+    if (prototype !== Object.prototype && prototype !== null) {
+      throw new TypeError(`${label} must contain only plain JSON objects`)
+    }
+    const result = Object.fromEntries(
+      Object.entries(value)
+        .filter(([, item]) => item !== undefined)
+        .map(([key, item]) => [key, convertOpenJsonValue(item, label, ancestors)]),
+    )
+    ancestors.delete(value)
+    return result
+  }
+  throw new TypeError(`${label} must be JSON-compatible`)
 }
 
 /**

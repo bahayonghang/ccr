@@ -3,9 +3,14 @@
 use std::time::Instant;
 
 use chrono::Utc;
-use tokio::time::{Duration, timeout};
+use tokio::time::Duration;
+use uuid::Uuid;
 
-use crate::process::tokio_command;
+use crate::platform::ssh::SshHostConfig;
+use crate::ssh::security::{
+    app_known_hosts_path, classify_ssh_failure, openssh_error, posix_single_quote,
+    run_openssh_command,
+};
 use crate::state::{AppState, DEFAULT_SSH_PASSWORD_TTL_SECS, SshPasswordEntry, SshRuntimeState};
 
 /// SSH 连接测试结果。
@@ -15,6 +20,8 @@ pub struct SshConnectResult {
     pub success: bool,
     /// 连接延迟（毫秒）。
     pub latency_ms: u64,
+    /// Stable failure classification for callers that must block security errors.
+    pub error_code: Option<String>,
     /// 失败时的错误信息。
     pub error: Option<String>,
 }
@@ -103,67 +110,46 @@ impl SshConnectionManager {
         map.values().cloned().collect()
     }
 
-    /// 测试 SSH 连接是否可达（10 秒超时）。
+    /// 测试 SSH 连接是否可达，并要求 app-owned known_hosts 已确认目标密钥。
     ///
-    /// 使用 `ssh -o BatchMode=yes -o ConnectTimeout=10` 执行 `echo __CCR_SSH_OK__`
-    /// 来验证连通性并测量延迟。
-    pub async fn test_connectivity(
-        host: &str,
-        port: u16,
-        user: Option<&str>,
-        identity_file: Option<&str>,
-    ) -> Result<SshConnectResult, String> {
-        let mut cmd = tokio_command("ssh");
-        cmd.arg("-o").arg("BatchMode=yes");
-        cmd.arg("-o").arg("ConnectTimeout=10");
-        cmd.arg("-o").arg("StrictHostKeyChecking=accept-new");
-        cmd.arg("-p").arg(port.to_string());
-
-        if let Some(key) = identity_file
-            && !key.trim().is_empty()
-        {
-            cmd.arg("-i").arg(key);
-        }
-
-        let target = if let Some(u) = user.filter(|v| !v.trim().is_empty()) {
-            format!("{u}@{host}")
-        } else {
-            host.to_string()
-        };
-        cmd.arg(target);
-        cmd.arg("echo __CCR_SSH_OK__");
+    /// 成功结果必须包含本次后端生成的 nonce，不能由未握手的状态切换伪造。
+    pub async fn test_connectivity(config: &SshHostConfig) -> Result<SshConnectResult, String> {
+        let target = config.target()?;
+        let known_hosts = app_known_hosts_path()?;
+        let nonce = format!("__CCR_SSH_OK__{}", Uuid::new_v4());
+        let remote_command = format!("printf '%s\\n' {}", posix_single_quote(&nonce));
+        let mut command = target.ssh_command(&known_hosts, 10)?;
+        command.arg(remote_command);
 
         let start = Instant::now();
-
-        let result = timeout(Duration::from_secs(10), cmd.output()).await;
-
-        let latency_ms = start.elapsed().as_millis() as u64;
+        let result =
+            run_openssh_command(command, &crate::process::ProcessDescriptor::openssh(), None).await;
+        let latency_ms = start.elapsed().as_millis().min(u128::from(u64::MAX)) as u64;
 
         match result {
-            Err(_) => Ok(SshConnectResult {
+            Err(error) => Ok(SshConnectResult {
                 success: false,
                 latency_ms,
-                error: Some("连接超时（10 秒）".to_string()),
+                error_code: Some("ssh_network_error".to_string()),
+                error: Some(error),
             }),
-            Ok(Err(e)) => Ok(SshConnectResult {
-                success: false,
-                latency_ms,
-                error: Some(format!("执行 ssh 失败: {e}")),
-            }),
-            Ok(Ok(output)) => {
+            Ok(output) => {
                 let stdout = String::from_utf8_lossy(&output.stdout);
-                if output.status.success() && stdout.contains("__CCR_SSH_OK__") {
+                if output.status.success() && stdout.trim() == nonce {
                     Ok(SshConnectResult {
                         success: true,
                         latency_ms,
+                        error_code: None,
                         error: None,
                     })
                 } else {
                     let stderr = String::from_utf8_lossy(&output.stderr);
+                    let kind = classify_ssh_failure(&stderr);
                     Ok(SshConnectResult {
                         success: false,
                         latency_ms,
-                        error: Some(stderr.trim().to_string()),
+                        error_code: Some(kind.code().to_string()),
+                        error: Some(openssh_error(&stderr)),
                     })
                 }
             }

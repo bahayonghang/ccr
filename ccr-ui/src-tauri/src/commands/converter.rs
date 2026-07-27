@@ -1,10 +1,60 @@
 //! 格式转换命令 — 跨平台配置格式转换。
 
-use ccr_db::models::converter::ConverterRequest;
+use ccr_db::models::converter::{CliType, ConverterRequest};
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
+
+#[derive(Debug, Clone, Deserialize, TS)]
+#[serde(rename_all = "kebab-case")]
+#[ts(export, export_to = "../../src/types/generated/converter/")]
+pub enum ConverterCliType {
+    ClaudeCode,
+    Codex,
+    Gemini,
+    Qwen,
+}
+
+impl From<ConverterCliType> for CliType {
+    fn from(value: ConverterCliType) -> Self {
+        match value {
+            ConverterCliType::ClaudeCode => Self::ClaudeCode,
+            ConverterCliType::Codex => Self::Codex,
+            ConverterCliType::Gemini => Self::Gemini,
+            ConverterCliType::Qwen => Self::Qwen,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Deserialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/converter/")]
+pub struct ConverterRequestDto {
+    pub source_format: ConverterCliType,
+    pub target_format: ConverterCliType,
+    pub config_data: String,
+    #[ts(optional)]
+    pub convert_mcp: Option<bool>,
+    #[ts(optional)]
+    pub convert_commands: Option<bool>,
+    #[ts(optional)]
+    pub convert_agents: Option<bool>,
+}
+
+impl From<ConverterRequestDto> for ConverterRequest {
+    fn from(value: ConverterRequestDto) -> Self {
+        Self {
+            source_format: value.source_format.into(),
+            target_format: value.target_format.into(),
+            config_data: value.config_data,
+            convert_mcp: value.convert_mcp.unwrap_or(true),
+            convert_commands: value.convert_commands.unwrap_or(true),
+            convert_agents: value.convert_agents.unwrap_or(true),
+        }
+    }
+}
 
 /// 转换结果（前端友好格式）
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/converter/")]
 pub struct ConvertResult {
     pub success: bool,
     pub content: String,
@@ -14,7 +64,8 @@ pub struct ConvertResult {
 }
 
 /// 转换统计
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/converter/")]
 pub struct ConvertStats {
     pub mcp_servers: usize,
     pub slash_commands: usize,
@@ -23,8 +74,9 @@ pub struct ConvertStats {
     pub base_config: bool,
 }
 
-#[tauri::command]
-pub async fn convert_config(request: ConverterRequest) -> Result<ConvertResult, String> {
+#[ccr_tauri_command_macros::command]
+pub async fn convert_config(request: ConverterRequestDto) -> Result<ConvertResult, String> {
+    let request = ConverterRequest::from(request);
     let result = tokio::task::spawn_blocking(move || {
         ccr_db::services::converter_service::ConfigConverter::convert(request)
             .map_err(|e| format!("Config conversion failed: {e}"))

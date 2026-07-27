@@ -8,30 +8,42 @@
  * 由 `./system` 汇总 re-export 以维持 `systemApi` 命名空间契约，不在此文件重复。
  */
 
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/api/invokeRuntime'
 import type { UnknownRecord } from '../_shared'
+import {
+  getCurrentEnvironment,
+  listEnvironments,
+  refreshEnvironments,
+  switchEnvironment,
+} from '../generated/environment'
+import {
+  sshAddHost as addTypedSshHost,
+  sshConfirmHostFingerprint as confirmTypedSshHostFingerprint,
+  sshConnect as connectTypedSsh,
+  sshDetectCli as detectTypedSshCli,
+  sshDisconnect as disconnectTypedSsh,
+  sshGetConnectionState as getTypedSshConnectionState,
+  sshListHosts as listTypedSshHosts,
+  sshListKeys as listTypedSshKeys,
+  sshProbeHostFingerprint as probeTypedSshHostFingerprint,
+  sshReadConfig as readTypedSshConfig,
+  sshReconnect as reconnectTypedSsh,
+  sshTestConnection as testTypedSshConnection,
+  sshWriteConfig as writeTypedSshConfig,
+} from '../generated/ssh'
+import type { AddSshHostRequest } from '@/types/generated/ssh/AddSshHostRequest'
+import type { SshCliStatusDto } from '@/types/generated/ssh/SshCliStatusDto'
+import type { SshConnectionState as GeneratedSshConnectionState } from '@/types/generated/ssh/SshConnectionState'
+import type { SshConnectionStateResponse } from '@/types/generated/ssh/SshConnectionStateResponse'
+import type { SshConnectResultDto } from '@/types/generated/ssh/SshConnectResultDto'
+import type { SshFingerprintProbeResult as GeneratedSshFingerprintProbeResult } from '@/types/generated/ssh/SshFingerprintProbeResult'
+import type { SshHostConfigDto } from '@/types/generated/ssh/SshHostConfigDto'
+import type { SshKeyInfoDto } from '@/types/generated/ssh/SshKeyInfoDto'
 
 // ── 环境注册表 ──
 
 /** 列出所有执行环境（local / wsl / ssh） */
-export const listEnvironments = async <T = UnknownRecord>(): Promise<T> => {
-  return invoke('list_environments')
-}
-
-/** 获取当前活跃环境 */
-export const getCurrentEnvironment = async <T = UnknownRecord>(): Promise<T> => {
-  return invoke('get_current_environment')
-}
-
-/** 切换活跃环境 */
-export const switchEnvironment = async <T = UnknownRecord>(envId: string): Promise<T> => {
-  return invoke('switch_environment', { envId })
-}
-
-/** 刷新环境列表（WSL 重新探测 / SSH 重新查 DB） */
-export const refreshEnvironments = async <T = UnknownRecord>(): Promise<T> => {
-  return invoke('refresh_environments')
-}
+export { getCurrentEnvironment, listEnvironments, refreshEnvironments, switchEnvironment }
 
 /** 通过当前环境列出受支持的平台 */
 export const envListPlatforms = async <T = UnknownRecord>(): Promise<T> => {
@@ -45,78 +57,54 @@ export const envDetectCli = async <T = UnknownRecord>(): Promise<T> => {
 
 // ── SSH 数据结构 ──
 
-export interface SshHostConfig {
-  id?: string
-  name?: string
-  host: string
-  port?: number
-  user?: string
-  identity_file?: string
-  remote_home?: string
-}
-
-export interface SshConnectionState {
-  env_id: string
-  connected: boolean
-  has_password: boolean
-  last_checked_at?: string | null
-  last_error?: string | null
-}
-
-export interface SshFingerprintProbeResult {
-  host: string
-  port: number
-  key_type: string
-  fingerprint: string
-  status: 'new' | 'matched' | 'mismatch'
-  stored_fingerprint?: string | null
-}
-
-export interface SshConnectResult {
-  success: boolean
-  latency_ms: number
-  error?: string | null
-}
-
-export interface SshKeyInfo {
-  path: string
-  key_type: string
-  has_passphrase: boolean
-  fingerprint?: string | null
-}
+export type SshHostConfig = Pick<SshHostConfigDto, 'host'> & Partial<SshHostConfigDto>
+export type SshConnectionState = GeneratedSshConnectionState
+export type SshFingerprintProbeResult = GeneratedSshFingerprintProbeResult
+export type SshConnectResult = SshConnectResultDto
+export type SshKeyInfo = SshKeyInfoDto
+export type SshCliStatus = SshCliStatusDto
 
 // ── SSH 命令 ──
 
 export const sshListHosts = async (): Promise<SshHostConfig[]> => {
-  return invoke('ssh_list_hosts')
+  return listTypedSshHosts()
 }
 
 export const sshAddHost = async (host: SshHostConfig): Promise<SshHostConfig> => {
-  return invoke('ssh_add_host', { host })
+  const request: AddSshHostRequest = {
+    id: host.id ?? undefined,
+    name: host.name ?? undefined,
+    host: host.host,
+    port: host.port ?? undefined,
+    user: host.user ?? undefined,
+    identity_file: host.identity_file ?? undefined,
+    remote_home: host.remote_home ?? undefined,
+  }
+  return addTypedSshHost(request)
 }
 
 export const sshConnect = async (
   envId: string,
   password?: string,
 ): Promise<SshConnectionState> => {
-  return invoke('ssh_connect', { envId, password })
+  return connectTypedSsh({ envId, password })
 }
 
 export const sshReconnect = async (
   envId: string,
   password?: string,
 ): Promise<SshConnectionState> => {
-  return invoke('ssh_reconnect', { envId, password })
+  return reconnectTypedSsh({ envId, password })
 }
 
 export const sshDisconnect = async (): Promise<SshConnectionState> => {
-  return invoke('ssh_disconnect')
+  return disconnectTypedSsh()
 }
 
 export const sshGetConnectionState = async (
   envId?: string,
-): Promise<SshConnectionState | SshConnectionState[]> => {
-  return invoke('ssh_get_connection_state', { envId })
+): Promise<SshConnectionStateResponse> => {
+  return getTypedSshConnectionState(envId)
 }
 
 export const sshProbeHostFingerprint = async (
@@ -124,18 +112,11 @@ export const sshProbeHostFingerprint = async (
   host?: string,
   port?: number,
 ): Promise<SshFingerprintProbeResult> => {
-  return invoke('ssh_probe_host_fingerprint', { request: { env_id: envId, host, port } })
+  return probeTypedSshHostFingerprint({ env_id: envId, host, port })
 }
 
-export const sshConfirmHostFingerprint = async (
-  host: string,
-  keyType: string,
-  fingerprint: string,
-  port?: number,
-): Promise<void> => {
-  return invoke('ssh_confirm_host_fingerprint', {
-    request: { host, key_type: keyType, fingerprint, port },
-  })
+export const sshConfirmHostFingerprint = async (challengeId: string): Promise<void> => {
+  return confirmTypedSshHostFingerprint(challengeId)
 }
 
 export const sshReadConfig = async (
@@ -143,7 +124,7 @@ export const sshReadConfig = async (
   platform: string,
   path: string,
 ): Promise<string> => {
-  return invoke('ssh_read_config', { envId, platform, path })
+  return readTypedSshConfig({ envId, platform, path })
 }
 
 export const sshWriteConfig = async (
@@ -153,17 +134,17 @@ export const sshWriteConfig = async (
   content: string,
   enableBackup = true,
 ): Promise<void> => {
-  return invoke('ssh_write_config', { envId, platform, path, content, enableBackup })
+  return writeTypedSshConfig({ envId, platform, path, content, enableBackup })
 }
 
-export const sshDetectCli = async <T = UnknownRecord>(envId: string): Promise<T> => {
-  return invoke('ssh_detect_cli', { envId })
+export const sshDetectCli = async (envId: string): Promise<SshCliStatus[]> => {
+  return detectTypedSshCli(envId)
 }
 
 export const sshTestConnection = async (envId: string): Promise<SshConnectResult> => {
-  return invoke('ssh_test_connection', { envId })
+  return testTypedSshConnection(envId)
 }
 
 export const sshListKeys = async (): Promise<SshKeyInfo[]> => {
-  return invoke('ssh_list_keys')
+  return listTypedSshKeys()
 }

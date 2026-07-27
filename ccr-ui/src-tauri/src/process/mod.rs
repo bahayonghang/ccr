@@ -2,6 +2,11 @@
 
 use std::ffi::OsStr;
 
+mod gateway;
+
+pub use ccr_core::core::process_gateway::read_bounded_line;
+pub use gateway::{ProcessDescriptor, ProcessGateway};
+
 #[cfg(all(target_os = "windows", not(debug_assertions)))]
 const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 

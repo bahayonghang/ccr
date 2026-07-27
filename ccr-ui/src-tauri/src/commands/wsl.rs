@@ -27,7 +27,7 @@ pub struct WslCliInfo {
 ///
 /// # 参数
 /// - `force_refresh`: 是否强制刷新（跳过缓存），默认 false
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn wsl_list_distros(force_refresh: Option<bool>) -> Result<Vec<WslDistroInfo>, String> {
     let force = force_refresh.unwrap_or(false);
     tokio::task::spawn_blocking(move || detect_wsl_distros_with_cache(force))
@@ -37,7 +37,7 @@ pub async fn wsl_list_distros(force_refresh: Option<bool>) -> Result<Vec<WslDist
 }
 
 /// 强制刷新 WSL 发行版列表（清除缓存并重新检测）。
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn wsl_refresh_distros() -> Result<Vec<WslDistroInfo>, String> {
     tokio::task::spawn_blocking(|| detect_wsl_distros_with_cache(true))
         .await
@@ -46,7 +46,7 @@ pub async fn wsl_refresh_distros() -> Result<Vec<WslDistroInfo>, String> {
 }
 
 /// 清除 WSL 缓存。
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn wsl_clear_cache() -> Result<(), String> {
     tokio::task::spawn_blocking(clear_wsl_cache)
         .await
@@ -55,7 +55,7 @@ pub async fn wsl_clear_cache() -> Result<(), String> {
 }
 
 /// 获取 WSL 缓存状态。
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn wsl_cache_status() -> Result<WslCacheStatus, String> {
     Ok(get_wsl_cache_status())
 }
@@ -65,7 +65,7 @@ pub async fn wsl_cache_status() -> Result<WslCacheStatus, String> {
 /// - `distro`: 发行版名称（如 "Ubuntu-22.04"）
 /// - `platform`: 平台名（如 "claude"、"codex"）
 /// - `path`: 相对于平台配置目录的路径（如 "settings.json"）
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn wsl_read_config(
     distro: String,
     platform: String,
@@ -89,7 +89,7 @@ pub async fn wsl_read_config(
 /// - `platform`: 平台名
 /// - `path`: 相对路径
 /// - `content`: 文件内容
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn wsl_write_config(
     distro: String,
     platform: String,
@@ -109,7 +109,7 @@ pub async fn wsl_write_config(
 }
 
 /// 检测指定 WSL 发行版中已安装的 AI CLI 工具。
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn wsl_detect_cli(distro: String) -> Result<Vec<WslCliInfo>, String> {
     let distros = tokio::task::spawn_blocking(|| detect_wsl_distros_with_cache(false))
         .await
@@ -139,7 +139,7 @@ pub async fn wsl_detect_cli(distro: String) -> Result<Vec<WslCliInfo>, String> {
 /// - `distro`: 发行版名称
 /// - `platform`: 平台名
 /// - `direction`: 同步方向（"localToWsl" 或 "wslToLocal"）
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn wsl_sync_config(
     distro: String,
     platform: String,

@@ -14,9 +14,13 @@ use serde_yaml::{Mapping as YamlMapping, Value as YamlValue};
 use std::ffi::OsStr;
 use std::fs;
 use std::path::{Path, PathBuf};
+use ts_rs::TS;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+use super::wire::OpenJsonValueDto;
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../../src/types/generated/opencode/")]
 pub struct OpenCodeThemeRecord {
     pub id: String,
     pub name: String,
@@ -79,13 +83,19 @@ pub struct OpenCodeCommandRecord {
     pub parse_error: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../../src/types/generated/opencode/")]
 pub struct OpenCodePluginFileRecord {
     pub name: String,
     pub path: String,
     pub scope: String,
+    #[ts(as = "f64")]
     pub size: u64,
+}
+
+fn open_json(value: Value) -> Result<OpenJsonValueDto, String> {
+    value.try_into()
 }
 
 #[derive(Debug, Clone, Deserialize, Default)]
@@ -307,26 +317,26 @@ fn yaml_key(name: &str) -> YamlValue {
 
 fn yaml_string(mapping: &YamlMapping, key: &str) -> Option<String> {
     mapping
-        .get(&yaml_key(key))
+        .get(yaml_key(key))
         .and_then(YamlValue::as_str)
         .map(str::to_string)
 }
 
 fn yaml_bool(mapping: &YamlMapping, key: &str) -> Option<bool> {
-    mapping.get(&yaml_key(key)).and_then(YamlValue::as_bool)
+    mapping.get(yaml_key(key)).and_then(YamlValue::as_bool)
 }
 
 fn yaml_f64(mapping: &YamlMapping, key: &str) -> Option<f64> {
-    mapping.get(&yaml_key(key)).and_then(YamlValue::as_f64)
+    mapping.get(yaml_key(key)).and_then(YamlValue::as_f64)
 }
 
 fn yaml_u64(mapping: &YamlMapping, key: &str) -> Option<u64> {
-    mapping.get(&yaml_key(key)).and_then(YamlValue::as_u64)
+    mapping.get(yaml_key(key)).and_then(YamlValue::as_u64)
 }
 
 fn yaml_json(mapping: &YamlMapping, key: &str) -> Option<Value> {
     mapping
-        .get(&yaml_key(key))
+        .get(yaml_key(key))
         .and_then(|value| serde_json::to_value(value).ok())
 }
 
@@ -743,69 +753,79 @@ fn scan_plugin_files(dir: &Path, scope: &str) -> Result<Vec<OpenCodePluginFileRe
     Ok(files)
 }
 
-#[tauri::command]
-pub async fn opencode_get_settings() -> Result<Value, String> {
+#[ccr_tauri_command_macros::command]
+pub async fn opencode_get_settings() -> Result<OpenJsonValueDto, String> {
     let primary = opencode_config_path()?;
     let legacy = opencode_legacy_config_path()?;
-    read_json_file_with_fallback(&primary, &legacy)
+    open_json(read_json_file_with_fallback(&primary, &legacy)?)
 }
 
-#[tauri::command]
-pub async fn opencode_update_settings(settings: Value) -> Result<Value, String> {
+#[ccr_tauri_command_macros::command]
+pub async fn opencode_update_settings(
+    settings: OpenJsonValueDto,
+) -> Result<OpenJsonValueDto, String> {
     let primary = opencode_config_path()?;
     let legacy = opencode_legacy_config_path()?;
     let current = read_json_file_with_fallback(&primary, &legacy)?;
-    let merged = merge_json_objects(current, settings);
+    let merged = merge_json_objects(current, settings.into());
     write_json_file(&primary, &merged)?;
-    Ok(merged)
+    open_json(merged)
 }
 
-#[tauri::command]
-pub async fn opencode_get_tui_settings() -> Result<Value, String> {
+#[ccr_tauri_command_macros::command]
+pub async fn opencode_get_tui_settings() -> Result<OpenJsonValueDto, String> {
     let primary = opencode_tui_path()?;
     let legacy = opencode_legacy_keybindings_path()?;
     if primary.exists() {
-        return read_json_file(&primary);
+        return open_json(read_json_file(&primary)?);
     }
     if legacy.exists() {
         let keybinds = read_json_file(&legacy)?;
-        return Ok(json!({ "keybinds": keybinds }));
+        return open_json(json!({ "keybinds": keybinds }));
     }
-    Ok(json!({}))
+    open_json(json!({}))
 }
 
-#[tauri::command]
-pub async fn opencode_update_tui_settings(settings: Value) -> Result<Value, String> {
+#[ccr_tauri_command_macros::command]
+pub async fn opencode_update_tui_settings(
+    settings: OpenJsonValueDto,
+) -> Result<OpenJsonValueDto, String> {
     let primary = opencode_tui_path()?;
     let current = read_json_file(&primary)?;
-    let merged = merge_json_objects(current, settings);
+    let merged = merge_json_objects(current, settings.into());
     write_json_file(&primary, &merged)?;
-    Ok(merged)
+    open_json(merged)
 }
 
-#[tauri::command]
-pub async fn opencode_get_keybindings() -> Result<Value, String> {
-    let tui = opencode_get_tui_settings().await?;
-    Ok(tui
-        .as_object()
-        .and_then(|map| map.get("keybinds"))
-        .cloned()
-        .unwrap_or_else(|| json!({})))
+#[ccr_tauri_command_macros::command]
+pub async fn opencode_get_keybindings() -> Result<OpenJsonValueDto, String> {
+    let tui: Value = opencode_get_tui_settings().await?.into();
+    open_json(
+        tui.as_object()
+            .and_then(|map| map.get("keybinds"))
+            .cloned()
+            .unwrap_or_else(|| json!({})),
+    )
 }
 
-#[tauri::command]
-pub async fn opencode_update_keybindings(keybindings: Value) -> Result<Value, String> {
-    let updated = opencode_update_tui_settings(json!({ "keybinds": keybindings })).await?;
-    Ok(updated
-        .as_object()
-        .and_then(|map| map.get("keybinds"))
-        .cloned()
-        .unwrap_or_else(|| json!({})))
+#[ccr_tauri_command_macros::command]
+pub async fn opencode_update_keybindings(
+    keybindings: OpenJsonValueDto,
+) -> Result<OpenJsonValueDto, String> {
+    let request = open_json(json!({ "keybinds": Value::from(keybindings) }))?;
+    let updated: Value = opencode_update_tui_settings(request).await?.into();
+    open_json(
+        updated
+            .as_object()
+            .and_then(|map| map.get("keybinds"))
+            .cloned()
+            .unwrap_or_else(|| json!({})),
+    )
 }
 
-#[tauri::command]
-pub async fn opencode_list_themes() -> Result<Value, String> {
-    Ok(serde_json::to_value(vec![
+#[ccr_tauri_command_macros::command]
+pub async fn opencode_list_themes() -> Result<Vec<OpenCodeThemeRecord>, String> {
+    Ok(vec![
         OpenCodeThemeRecord {
             id: "dark".to_string(),
             name: "Dark".to_string(),
@@ -872,17 +892,19 @@ pub async fn opencode_list_themes() -> Result<Value, String> {
             theme_type: "dark".to_string(),
         },
     ])
-    .map_err(|e| format!("序列化主题列表失败: {e}"))?)
 }
 
-#[tauri::command]
-pub async fn opencode_list_agents() -> Result<Value, String> {
-    serde_json::to_value(list_agents_internal()?)
-        .map_err(|e| format!("序列化 OpenCode agents 失败: {e}"))
+#[ccr_tauri_command_macros::command]
+pub async fn opencode_list_agents() -> Result<OpenJsonValueDto, String> {
+    open_json(
+        serde_json::to_value(list_agents_internal()?)
+            .map_err(|e| format!("序列化 OpenCode agents 失败: {e}"))?,
+    )
 }
 
-#[tauri::command]
-pub async fn opencode_add_agent(config: Value) -> Result<Value, String> {
+#[ccr_tauri_command_macros::command]
+pub async fn opencode_add_agent(config: OpenJsonValueDto) -> Result<OpenJsonValueDto, String> {
+    let config: Value = config.into();
     let object = config
         .as_object()
         .ok_or_else(|| "OpenCode agent 配置必须是 JSON object".to_string())?;
@@ -893,34 +915,42 @@ pub async fn opencode_add_agent(config: Value) -> Result<Value, String> {
     let scoped: OpenCodeScopedRequest =
         serde_json::from_value(config.clone()).map_err(|e| format!("解析 scope 失败: {e}"))?;
     let scope = resolve_scope_dir(&scoped, "agents")?;
-    serde_json::to_value(upsert_agent_internal(name, object, &scope)?)
-        .map_err(|e| format!("序列化 OpenCode agent 失败: {e}"))
+    open_json(
+        serde_json::to_value(upsert_agent_internal(name, object, &scope)?)
+            .map_err(|e| format!("序列化 OpenCode agent 失败: {e}"))?,
+    )
 }
 
-#[tauri::command]
-pub async fn opencode_update_agent(config: Value) -> Result<Value, String> {
+#[ccr_tauri_command_macros::command]
+pub async fn opencode_update_agent(config: OpenJsonValueDto) -> Result<OpenJsonValueDto, String> {
     opencode_add_agent(config).await
 }
 
-#[tauri::command]
-pub async fn opencode_delete_agent(name: String, context: Option<Value>) -> Result<Value, String> {
+#[ccr_tauri_command_macros::command]
+pub async fn opencode_delete_agent(
+    name: String,
+    context: Option<OpenJsonValueDto>,
+) -> Result<String, String> {
     let scoped = context
+        .map(Value::from)
         .map(serde_json::from_value::<OpenCodeScopedRequest>)
         .transpose()
         .map_err(|e| format!("解析 OpenCode agent scope 失败: {e}"))?
         .unwrap_or_default();
-    serde_json::to_value(delete_markdown_doc(&name, &scoped, "agents")?)
-        .map_err(|e| format!("序列化删除结果失败: {e}"))
+    delete_markdown_doc(&name, &scoped, "agents")
 }
 
-#[tauri::command]
-pub async fn opencode_list_commands() -> Result<Value, String> {
-    serde_json::to_value(list_commands_internal()?)
-        .map_err(|e| format!("序列化 OpenCode commands 失败: {e}"))
+#[ccr_tauri_command_macros::command]
+pub async fn opencode_list_commands() -> Result<OpenJsonValueDto, String> {
+    open_json(
+        serde_json::to_value(list_commands_internal()?)
+            .map_err(|e| format!("序列化 OpenCode commands 失败: {e}"))?,
+    )
 }
 
-#[tauri::command]
-pub async fn opencode_add_command(config: Value) -> Result<Value, String> {
+#[ccr_tauri_command_macros::command]
+pub async fn opencode_add_command(config: OpenJsonValueDto) -> Result<OpenJsonValueDto, String> {
+    let config: Value = config.into();
     let object = config
         .as_object()
         .ok_or_else(|| "OpenCode command 配置必须是 JSON object".to_string())?;
@@ -931,31 +961,33 @@ pub async fn opencode_add_command(config: Value) -> Result<Value, String> {
     let scoped: OpenCodeScopedRequest =
         serde_json::from_value(config.clone()).map_err(|e| format!("解析 scope 失败: {e}"))?;
     let scope = resolve_scope_dir(&scoped, "commands")?;
-    serde_json::to_value(upsert_command_internal(name, object, &scope)?)
-        .map_err(|e| format!("序列化 OpenCode command 失败: {e}"))
+    open_json(
+        serde_json::to_value(upsert_command_internal(name, object, &scope)?)
+            .map_err(|e| format!("序列化 OpenCode command 失败: {e}"))?,
+    )
 }
 
-#[tauri::command]
-pub async fn opencode_update_command(config: Value) -> Result<Value, String> {
+#[ccr_tauri_command_macros::command]
+pub async fn opencode_update_command(config: OpenJsonValueDto) -> Result<OpenJsonValueDto, String> {
     opencode_add_command(config).await
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn opencode_delete_command(
     name: String,
-    context: Option<Value>,
-) -> Result<Value, String> {
+    context: Option<OpenJsonValueDto>,
+) -> Result<String, String> {
     let scoped = context
+        .map(Value::from)
         .map(serde_json::from_value::<OpenCodeScopedRequest>)
         .transpose()
         .map_err(|e| format!("解析 OpenCode command scope 失败: {e}"))?
         .unwrap_or_default();
-    serde_json::to_value(delete_markdown_doc(&name, &scoped, "commands")?)
-        .map_err(|e| format!("序列化删除结果失败: {e}"))
+    delete_markdown_doc(&name, &scoped, "commands")
 }
 
-#[tauri::command]
-pub async fn opencode_list_local_plugins() -> Result<Value, String> {
+#[ccr_tauri_command_macros::command]
+pub async fn opencode_list_local_plugins() -> Result<Vec<OpenCodePluginFileRecord>, String> {
     let mut records = Vec::new();
     records.extend(scan_plugin_files(
         &opencode_config_dir()?.join("plugins"),
@@ -967,7 +999,7 @@ pub async fn opencode_list_local_plugins() -> Result<Value, String> {
             "project",
         )?);
     }
-    serde_json::to_value(records).map_err(|e| format!("序列化 OpenCode 本地插件失败: {e}"))
+    Ok(records)
 }
 
 #[cfg(test)]

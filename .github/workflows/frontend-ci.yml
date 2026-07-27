@@ -2,138 +2,89 @@ name: Frontend CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop, dev]
     paths:
       - 'ccr-ui/**'
       - 'docs/**'
+      - 'justfile'
       - '.github/workflows/frontend-ci.yml'
   pull_request:
-    branches: [ main, develop ]
-    paths:
-      - 'ccr-ui/**'
-      - 'docs/**'
-      - '.github/workflows/frontend-ci.yml'
+    branches: [main, develop, dev]
+
+permissions:
+  contents: read
 
 jobs:
-  lint-and-typecheck:
-    name: Lint & Type Check
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ccr-ui
+  changes:
+    name: Frontend Change Detection
+    runs-on: ubuntu-24.04
+    outputs:
+      relevant: ${{ steps.relevance.outputs.relevant }}
     steps:
-      - uses: actions/checkout@v6
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
-          bun-version: latest
+          fetch-depth: 0
+      - name: Detect frontend changes
+        id: relevance
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ "$EVENT_NAME" = push ]; then
+            echo "relevant=true" >> "$GITHUB_OUTPUT"
+          else
+            python3 scripts/ci_surface_policy.py --surface frontend --base "$BASE_SHA" --head "$HEAD_SHA" >> "$GITHUB_OUTPUT"
+          fi
 
-      - name: Cache Bun dependencies
-        uses: actions/cache@v5
-        with:
-          path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-${{ hashFiles('ccr-ui/bun.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-bun-
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Type check
-        run: bun run type-check
-
-      - name: Lint
-        run: bun run lint
-
-      - name: Verify lint did not modify files
-        run: git diff --exit-code -- .
-
-      - name: Smoke tests
-        run: bun run test
-
-  build-frontend:
-    name: Build Frontend
-    runs-on: ubuntu-latest
-    needs: lint-and-typecheck
-    defaults:
-      run:
-        working-directory: ccr-ui
+  frontend-required:
+    name: Vue and Docs Validation
+    needs: changes
+    if: needs.changes.outputs.relevant == 'true'
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v6
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Setup Bun 1.3.10
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
-          bun-version: latest
-
-      - name: Cache Bun dependencies
-        uses: actions/cache@v5
+          bun-version: 1.3.10
+      - name: Setup Rust for just
+        uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable
         with:
-          path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-${{ hashFiles('ccr-ui/bun.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-bun-
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Build
-        run: bun run build
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v6
+          toolchain: 1.95.0
+      - name: Install just
+        run: cargo install just --version 1.57.0 --locked
+      - name: Run local frontend gate
+        run: just frontend-check
+      - name: Run Vue coverage gate
+        run: just frontend-coverage
+      - name: Audit frontend dependencies
+        run: just frontend-audit
+      - name: Upload Vue coverage
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
-          name: frontend-dist
-          path: ccr-ui/dist
-          retention-days: 7
+          name: vue-coverage
+          path: ccr-ui/coverage
+          if-no-files-found: error
+          retention-days: 14
 
-  build-docs:
-    name: Build Documentation
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        docs-dir: ['docs']
+  frontend-required-gate:
+    name: Vue and Docs Required
+    if: ${{ always() }}
+    needs: [changes, frontend-required]
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v6
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Cache Bun dependencies
-        uses: actions/cache@v5
-        with:
-          path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-docs-${{ matrix.docs-dir }}-${{ hashFiles(format('{0}/bun.lock', matrix.docs-dir)) }}
-          restore-keys: |
-            ${{ runner.os }}-bun-docs-${{ matrix.docs-dir }}-
-
-      - name: Install dependencies
-        working-directory: ${{ matrix.docs-dir }}
-        run: bun install
-
-      - name: Build docs
-        working-directory: ${{ matrix.docs-dir }}
-        run: bun run build
-
-  security-audit:
-    name: Security Audit
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ccr-ui
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Run security audit
-        run: bun audit --audit-level=high
+      - name: Enforce relevant frontend result
+        env:
+          DETECTION: ${{ needs.changes.result }}
+          RELEVANT: ${{ needs.changes.outputs.relevant }}
+          VALIDATION: ${{ needs.frontend-required.result }}
+        run: |
+          set -eu
+          test "$DETECTION" = success
+          if [ "$RELEVANT" != true ]; then
+            echo "Frontend validation is not relevant to this pull request."
+            exit 0
+          fi
+          test "$VALIDATION" = success

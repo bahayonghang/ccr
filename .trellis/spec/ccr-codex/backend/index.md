@@ -8,7 +8,7 @@
 | --------------------------------------------------------- | ------------------------------------------------------------------------------------ | -------- |
 | [Backend Guidelines](./backend-guidelines.md)             | Codex/OpenCode domain boundaries, auth safety, errors, logs, tests, and verification | Complete |
 | [Codex Session Recovery](./codex-session-recovery.md)     | sync-history visibility repair and recoverable session trash contracts               | Complete |
-| [Codex App-Server Cleanup](./codex-app-server-cleanup.md) | `ccr codex fix` narrow app-server cleanup + `codex doctor` diagnosis contracts       | Complete |
+| [Codex App-Server Cleanup](./codex-app-server-cleanup.md) | `ccr codex fix` process cleanup, local runtime reconciliation/repair, and doctor contracts | Complete |
 | [Test Fixtures](./test-fixtures.md)                       | Process-wide Codex and CCR env fixtures for tests                                    | Complete |
 
 ## Pre-Development Checklist

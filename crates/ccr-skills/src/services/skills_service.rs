@@ -2798,7 +2798,26 @@ struct ParsedGithubRef {
 mod tests {
     use super::*;
     use ccr_core::core::error::CcrError;
+    use std::future::Future;
+    use std::sync::Arc;
+    use std::task::{Context, Poll, Wake, Waker};
     use tempfile::tempdir;
+
+    struct NoopWake;
+
+    impl Wake for NoopWake {
+        fn wake(self: Arc<Self>) {}
+    }
+
+    fn run_ready<F: Future>(future: F) -> F::Output {
+        let waker = Waker::from(Arc::new(NoopWake));
+        let mut context = Context::from_waker(&waker);
+        let mut future = std::pin::pin!(future);
+        match future.as_mut().poll(&mut context) {
+            Poll::Ready(output) => output,
+            Poll::Pending => panic!("offline skills operation unexpectedly yielded"),
+        }
+    }
 
     fn build_test_service(root: &Path) -> SkillsService {
         SkillsService {
@@ -2985,5 +3004,396 @@ relative_path = ".iflow/skills"
 
         assert_eq!(content.path, "docs/guide.md");
         assert_eq!(content.content, "hello");
+    }
+
+    #[test]
+    fn local_source_install_sync_and_remove_lifecycle() {
+        let temp = tempdir().unwrap();
+        let service = build_test_service(temp.path());
+        let source_root = temp.path().join("source-repo");
+        let skill_dir = source_root.join("catalog").join("demo-skill");
+        fs::create_dir_all(skill_dir.join("docs")).unwrap();
+        fs::write(
+            source_root.join("skills.toml"),
+            "name = \"Local Catalog\"\ndescription = \"offline fixture\"\nskills_dir = \"catalog\"\n",
+        )
+        .unwrap();
+        fs::write(
+            skill_dir.join("SKILL.md"),
+            "---\nname: Demo Skill\ndescription: lifecycle fixture\ncategory: testing\ntags: [offline, lifecycle]\n---\n\n# Demo Skill\n",
+        )
+        .unwrap();
+        fs::write(skill_dir.join("docs").join("guide.md"), "source guide").unwrap();
+
+        let source = service
+            .source_add_local(source_root.to_string_lossy().as_ref())
+            .unwrap();
+        assert_eq!(source.name, "Local Catalog");
+        assert_eq!(source.skill_count, 1);
+        assert_eq!(source.skills[0].id, "demo-skill");
+        assert_eq!(service.sources_list().unwrap().len(), 1);
+        assert_eq!(service.source_sync(&source.id).unwrap().skill_count, 1);
+
+        let request = SkillsInstallRequest {
+            source_kind: "source".into(),
+            source_ref: source.id.clone(),
+            source_skill_id: Some("demo-skill".into()),
+            selected_skills: Vec::new(),
+            target_platforms: vec!["codex".into(), "claude-code".into()],
+            force: false,
+            scope: Some("global".into()),
+            copy_mode: Some(true),
+            all_mode: Some(false),
+        };
+        let review = run_ready(service.prepare_install(request.clone())).unwrap();
+        assert_eq!(review.source.resolved_name, "Demo Skill");
+        assert_eq!(review.targets.len(), 2);
+        assert_eq!(review.command_previews.len(), 1);
+
+        let installed = run_ready(service.install(request)).unwrap();
+        assert!(installed.results.iter().all(|result| result.ok));
+        assert_eq!(installed.results.len(), 2);
+
+        let inventory = service
+            .inventory(Some(SkillsInventoryQuery {
+                platform: Some("codex".into()),
+                origin: Some(SkillOrigin::Local),
+                q: Some("lifecycle".into()),
+                source_id: Some(source.id.clone()),
+            }))
+            .unwrap();
+        assert_eq!(inventory.total, 1);
+        let skill = inventory.skills.into_iter().next().unwrap();
+        assert_eq!(skill.name, "Demo Skill");
+        assert_eq!(skill.installations.len(), 2);
+
+        let detail = service.detail(&skill.id).unwrap();
+        let codex = detail
+            .installations
+            .iter()
+            .find(|installation| installation.platform_id == "codex")
+            .unwrap();
+        let content = service.content_get(&skill.id, Some(&codex.id)).unwrap();
+        assert!(content.raw.contains("lifecycle fixture"));
+        let files = service.files_list(&skill.id, Some(&codex.id)).unwrap();
+        assert!(files.iter().any(|entry| entry.path == "SKILL.md"));
+        assert_eq!(
+            service
+                .file_get(&skill.id, Some(&codex.id), "SKILL.md")
+                .unwrap()
+                .content,
+            content.raw
+        );
+
+        let updated_raw = "---\nname: Demo Skill\ndescription: updated fixture\n---\n\n# Updated\n";
+        let updated = service
+            .content_save(&skill.id, &codex.id, updated_raw)
+            .unwrap();
+        assert_eq!(updated.raw, updated_raw);
+
+        let synced = run_ready(service.sync(SkillsSyncRequest {
+            skill_id: skill.id.clone(),
+            installation_id: Some(codex.id.clone()),
+            target_platforms: vec!["codex".into(), "gemini".into()],
+            force: true,
+        }))
+        .unwrap();
+        assert!(synced.results.iter().all(|result| result.ok));
+        let detail = service.detail(&skill.id).unwrap();
+        assert_eq!(detail.installations.len(), 3);
+
+        let gemini = detail
+            .installations
+            .iter()
+            .find(|installation| installation.platform_id == "gemini")
+            .unwrap();
+        assert!(
+            service
+                .remove_installation(&skill.id, &gemini.id)
+                .unwrap()
+                .results[0]
+                .ok
+        );
+        assert_eq!(service.detail(&skill.id).unwrap().installations.len(), 2);
+        assert!(
+            service
+                .remove_skill(&skill.id)
+                .unwrap()
+                .results
+                .iter()
+                .all(|result| result.ok)
+        );
+        assert!(service.inventory(None).unwrap().skills.is_empty());
+
+        service.source_remove(&source.id).unwrap();
+        assert!(service.sources_list().unwrap().is_empty());
+    }
+
+    #[test]
+    fn local_skill_install_filters_inventory_and_rejects_duplicates() {
+        let temp = tempdir().unwrap();
+        let service = build_test_service(temp.path());
+        let source_dir = temp.path().join("standalone-skill");
+        fs::create_dir_all(&source_dir).unwrap();
+        fs::write(
+            source_dir.join("SKILL.md"),
+            "---\nname: Standalone Skill\ndescription: offline install fixture\ncategory: automation\nauthor: CCR Team\ntags: [local, testing]\n---\n\n# Standalone Skill\n",
+        )
+        .unwrap();
+
+        let request = SkillsInstallRequest {
+            source_kind: "local".into(),
+            source_ref: source_dir.to_string_lossy().to_string(),
+            source_skill_id: None,
+            selected_skills: Vec::new(),
+            target_platforms: vec!["codex".into()],
+            force: false,
+            scope: None,
+            copy_mode: None,
+            all_mode: None,
+        };
+        let review = run_ready(service.prepare_install(request.clone())).unwrap();
+        assert_eq!(review.source.resolved_name, "Standalone Skill");
+        assert_eq!(review.source.origin, SkillOrigin::Local);
+        assert_eq!(review.targets.len(), 1);
+
+        let installed = run_ready(service.install(request.clone())).unwrap();
+        assert!(installed.results[0].ok);
+        let duplicate = run_ready(service.install(request)).unwrap();
+        assert!(!duplicate.results[0].ok);
+        assert!(
+            duplicate.results[0]
+                .message
+                .as_deref()
+                .is_some_and(|message| message.contains("技能目录已存在"))
+        );
+
+        for query in ["standalone", "offline", "automation", "CCR Team", "testing"] {
+            let inventory = service
+                .inventory(Some(SkillsInventoryQuery {
+                    q: Some(query.into()),
+                    ..Default::default()
+                }))
+                .unwrap();
+            assert_eq!(inventory.total, 1, "query {query} should match");
+        }
+        assert_eq!(
+            service
+                .inventory(Some(SkillsInventoryQuery {
+                    platform: Some("codex".into()),
+                    origin: Some(SkillOrigin::Local),
+                    q: Some("   ".into()),
+                    source_id: None,
+                }))
+                .unwrap()
+                .total,
+            1
+        );
+        assert_eq!(
+            service
+                .inventory(Some(SkillsInventoryQuery {
+                    platform: Some("missing".into()),
+                    ..Default::default()
+                }))
+                .unwrap()
+                .total,
+            0
+        );
+        assert_eq!(
+            service
+                .inventory(Some(SkillsInventoryQuery {
+                    origin: Some(SkillOrigin::Github),
+                    ..Default::default()
+                }))
+                .unwrap()
+                .total,
+            0
+        );
+    }
+
+    #[test]
+    fn local_git_source_clone_pull_and_remove_lifecycle() {
+        let temp = tempdir().unwrap();
+        let service = build_test_service(temp.path());
+        let origin = temp.path().join("origin");
+        let skill_dir = origin.join("skills").join("git-skill");
+        fs::create_dir_all(&skill_dir).unwrap();
+        fs::write(
+            skill_dir.join("SKILL.md"),
+            "---\nname: Git Skill\ndescription: first revision\n---\n\n# Git Skill\n",
+        )
+        .unwrap();
+        SkillsService::run_git(&["init"], Some(&origin)).unwrap();
+        SkillsService::run_git(
+            &["config", "user.email", "tests@example.invalid"],
+            Some(&origin),
+        )
+        .unwrap();
+        SkillsService::run_git(&["config", "user.name", "CCR Tests"], Some(&origin)).unwrap();
+        SkillsService::run_git(&["add", "."], Some(&origin)).unwrap();
+        SkillsService::run_git(&["commit", "-m", "initial"], Some(&origin)).unwrap();
+
+        let source = service
+            .source_add_git(origin.to_string_lossy().as_ref())
+            .unwrap();
+        assert_eq!(source.source_type, SkillSourceType::Git);
+        assert_eq!(source.skill_count, 1);
+        assert_eq!(source.skills[0].name, "Git Skill");
+        let duplicate = service
+            .source_add_git(origin.to_string_lossy().as_ref())
+            .unwrap();
+        assert_eq!(duplicate.id, source.id);
+
+        fs::write(
+            skill_dir.join("SKILL.md"),
+            "---\nname: Git Skill\ndescription: second revision\n---\n\n# Git Skill\n",
+        )
+        .unwrap();
+        SkillsService::run_git(&["add", "."], Some(&origin)).unwrap();
+        SkillsService::run_git(&["commit", "-m", "update"], Some(&origin)).unwrap();
+        let synced = service.source_sync(&source.id).unwrap();
+        assert_eq!(synced.health, SkillSourceHealth::Ok);
+        let checkout = service.source_checkout_dir(&source.id);
+        assert!(
+            fs::read_to_string(checkout.join("skills/git-skill/SKILL.md"))
+                .unwrap()
+                .contains("second revision")
+        );
+
+        service.source_remove(&source.id).unwrap();
+        assert!(!checkout.exists());
+        assert!(service.sources_list().unwrap().is_empty());
+    }
+
+    #[test]
+    fn install_validation_reports_offline_request_errors() {
+        let temp = tempdir().unwrap();
+        let service = build_test_service(temp.path());
+        let skill_dir = temp.path().join("demo");
+        fs::create_dir_all(&skill_dir).unwrap();
+        fs::write(skill_dir.join("SKILL.md"), "---\nname: Demo\n---\n").unwrap();
+
+        let base = SkillsInstallRequest {
+            source_kind: "local".into(),
+            source_ref: skill_dir.to_string_lossy().to_string(),
+            source_skill_id: None,
+            selected_skills: Vec::new(),
+            target_platforms: vec!["codex".into()],
+            force: false,
+            scope: None,
+            copy_mode: None,
+            all_mode: None,
+        };
+
+        let mut request = base.clone();
+        request.source_kind = "unsupported".into();
+        assert!(matches!(
+            run_ready(service.prepare_install(request)).unwrap_err(),
+            CcrError::ConfigError(_)
+        ));
+
+        let mut request = base.clone();
+        request.target_platforms.clear();
+        assert!(matches!(
+            run_ready(service.prepare_install(request)).unwrap_err(),
+            CcrError::ConfigError(_)
+        ));
+
+        let mut request = base.clone();
+        request.target_platforms = vec!["missing".into()];
+        assert!(matches!(
+            run_ready(service.prepare_install(request)).unwrap_err(),
+            CcrError::ResourceNotFound(_)
+        ));
+
+        let mut request = base;
+        request.source_ref = temp.path().join("missing").to_string_lossy().to_string();
+        assert!(matches!(
+            run_ready(service.prepare_install(request)).unwrap_err(),
+            CcrError::ResourceNotFound(_)
+        ));
+        assert!(matches!(
+            service.source_add_local(temp.path().join("absent").to_string_lossy().as_ref()),
+            Err(CcrError::ResourceNotFound(_))
+        ));
+        assert!(matches!(
+            service.source_sync("missing"),
+            Err(CcrError::ResourceNotFound(_))
+        ));
+        assert!(matches!(
+            service.source_remove("missing"),
+            Err(CcrError::ResourceNotFound(_))
+        ));
+    }
+
+    #[test]
+    fn npx_command_builder_covers_selected_and_all_modes() {
+        let temp = tempdir().unwrap();
+        let service = build_test_service(temp.path());
+        let payload = InstallPayload {
+            requested_name: "Demo Skill".into(),
+            dir_name: "demo-skill".into(),
+            raw: "---\nname: Demo Skill\n---\n".into(),
+            origin: SkillOrigin::Npx,
+            source_url: Some("https://github.com/owner/repo".into()),
+            source_repo_id: Some("owner/repo".into()),
+            install_group_id: None,
+        };
+        let targets = service
+            .resolve_install_targets(&["codex".into(), "claude-code".into()], "demo-skill")
+            .unwrap();
+        let mut request = SkillsInstallRequest {
+            source_kind: "npx".into(),
+            source_ref: "owner/repo".into(),
+            source_skill_id: None,
+            selected_skills: vec!["alpha".into(), "beta".into()],
+            target_platforms: vec!["codex".into(), "claude-code".into()],
+            force: false,
+            scope: Some("project".into()),
+            copy_mode: Some(false),
+            all_mode: Some(false),
+        };
+
+        let selected = service
+            .build_npx_install_command(&request, &payload, &targets, true)
+            .unwrap();
+        assert!(selected.starts_with("npx skills add owner/repo"));
+        assert!(selected.contains("--agent"));
+        assert!(selected.contains("--skill alpha beta"));
+        assert!(selected.ends_with("--yes"));
+        assert!(!selected.contains("--global"));
+        assert!(!selected.contains("--copy"));
+
+        request.scope = Some("global".into());
+        request.copy_mode = Some(true);
+        request.all_mode = Some(true);
+        let all = service
+            .build_npx_install_command(&request, &payload, &targets, false)
+            .unwrap();
+        assert!(all.contains("--global"));
+        assert!(all.contains("--copy"));
+        assert!(all.ends_with("--all"));
+        assert!(!all.contains("--agent"));
+        assert!(!all.contains("--skill"));
+    }
+
+    #[test]
+    fn bundled_marketplace_fallback_and_parser_are_stable() {
+        let temp = tempdir().unwrap();
+        let service = build_test_service(temp.path());
+        let items = service.load_bundled_featured_marketplace_items().unwrap();
+        assert!(!items.is_empty());
+        assert!(items.iter().all(|item| !item.owner.is_empty()));
+
+        let parsed = SkillsService::parse_marketplace_item(&serde_json::json!({
+            "package": "owner/repo@demo",
+            "stars": 42,
+            "description": "fixture"
+        }))
+        .unwrap();
+        assert_eq!(parsed.owner, "owner");
+        assert_eq!(parsed.repo, "repo");
+        assert_eq!(parsed.skill.as_deref(), Some("demo"));
+        assert_eq!(parsed.stars, Some(42));
     }
 }

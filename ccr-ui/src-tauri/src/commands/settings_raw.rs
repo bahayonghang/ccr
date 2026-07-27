@@ -278,7 +278,7 @@ fn codex_config_layers(path: &Path) -> Result<Value, String> {
     Ok(json!({ "layers": layers }))
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn claude_get_settings_raw_text(state: State<'_, AppState>) -> Result<Value, String> {
     if let Some(response) = ensure_local_env(state.inner()).await {
         return Ok(response);
@@ -289,7 +289,7 @@ pub async fn claude_get_settings_raw_text(state: State<'_, AppState>) -> Result<
         .map_err(|error| format!("读取 Claude settings 后台任务失败: {error}"))?
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn claude_save_settings_raw_text(
     state: State<'_, AppState>,
     content: String,
@@ -307,7 +307,7 @@ pub async fn claude_save_settings_raw_text(
     .map_err(|error| format!("写入 Claude settings 后台任务失败: {error}"))?
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_get_config_raw_text(state: State<'_, AppState>) -> Result<Value, String> {
     if let Some(response) = ensure_local_env(state.inner()).await {
         return Ok(response);
@@ -318,7 +318,7 @@ pub async fn codex_get_config_raw_text(state: State<'_, AppState>) -> Result<Val
         .map_err(|error| format!("读取 Codex config 后台任务失败: {error}"))?
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_save_config_raw_text(
     state: State<'_, AppState>,
     content: String,
@@ -341,7 +341,7 @@ pub async fn codex_save_config_raw_text(
     Ok(response)
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn claude_list_settings_layers(state: State<'_, AppState>) -> Result<Value, String> {
     if let Some(response) = ensure_local_env(state.inner()).await {
         return Ok(response);
@@ -352,7 +352,7 @@ pub async fn claude_list_settings_layers(state: State<'_, AppState>) -> Result<V
         .map_err(|error| format!("探测 Claude settings 层级后台任务失败: {error}"))?
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_list_config_layers(state: State<'_, AppState>) -> Result<Value, String> {
     if let Some(response) = ensure_local_env(state.inner()).await {
         return Ok(response);

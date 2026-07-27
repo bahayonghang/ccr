@@ -72,26 +72,23 @@ cmd.args(&request.args);
 - The resolver is a short-term hardening layer until high-frequency commands migrate to shared typed use-case services.
 
 ### 2. Signatures
-- `resolve_checked_ccr_binary() -> Result<String, String>`
-- `probe_ccr_binary_version(binary: &str) -> Result<Option<String>, String>`
-- `parse_ccr_version_output(output: &str) -> Option<String>`
-- `build_ccr_command(binary: &str) -> tokio::process::Command`
+- `ProcessDescriptor::ccr_command() -> ProcessDescriptor`
+- `ProcessDescriptor::ccr_version_probe() -> ProcessDescriptor`
+- `ProcessGateway::command(&ProcessDescriptor) -> Result<tokio::process::Command, String>`
+- `ProcessGateway::execute(&ProcessDescriptor, &[OsString]) -> Result<CappedProcessOutput, String>`
 
 ### 3. Contracts
-- Candidate order is stable:
-  1. current desktop executable directory plus `ccr` / `ccr.exe`;
-  2. repo-root `target/debug/ccr(.exe)`;
-  3. repo-root `target/release/ccr(.exe)`;
-  4. PATH fallback name `ccr`.
-- PATH fallback is for diagnostics and development only; bundled desktop execution should prefer the same-directory sidecar.
-- Every passthrough execution path must call `resolve_checked_ccr_binary()` before spawning the user-requested command.
-- The resolver must probe `ccr --version` and require the parsed CLI version to equal the desktop crate `CARGO_PKG_VERSION`.
-- Version probe failures, timeouts, unparsable output, missing binaries, and version mismatches are terminal errors for that request.
+- Release builds resolve only the sidecar adjacent to the desktop executable, require compile-time `CCR_SIDECAR_SHA256`, and verify the file before execution.
+- Debug builds may resolve adjacent, repo `target/debug`, or repo `target/release` candidates. PATH fallback is forbidden in every build.
+- Every passthrough and help/version path uses a closed descriptor and the gateway's timeout/output bounds.
+- `ccr --version` remains a compatibility check; it is not the identity proof.
+- Version probe failures, timeouts, truncation, unparsable output, missing binaries, hash failures, and version mismatches are terminal errors for that request.
 
 ### 4. Validation & Error Matrix
-- Same-directory sidecar exists -> use it before dev targets and PATH.
-- Dev debug binary exists and sidecar does not -> use debug binary before release and PATH.
-- No file candidates exist -> try PATH name `ccr`, then report not-found if spawn fails.
+- Valid adjacent release sidecar + matching hash -> execute it.
+- Debug build without an adjacent sidecar -> try repo debug, then repo release.
+- No file candidates exist -> report `ccr_sidecar_not_found`; never try PATH.
+- Release hash missing/invalid/mismatched -> fail closed before spawn.
 - `--version` times out -> reject with a probe timeout error.
 - `--version` exits non-zero -> reject with the probe exit/error details.
 - Version token missing -> reject as invalid CCR CLI.
@@ -99,15 +96,14 @@ cmd.args(&request.args);
 
 ### 5. Good/Base/Bad Cases
 - Good: bundled desktop app executes the adjacent `ccr.exe` whose version matches `ccr-desktop`.
-- Base: local development uses `target/debug/ccr.exe` when no adjacent sidecar exists.
-- Base: PATH fallback is attempted only after local candidates are absent.
-- Bad: directly calling `tokio_command("ccr")` from a desktop command path.
-- Bad: executing a PATH `ccr` whose version does not match the desktop crate.
+- Base: local debug development uses `target/debug/ccr.exe` when no adjacent sidecar exists.
+- Bad: directly call `tokio_command("ccr")` from a desktop command path.
+- Bad: restore a PATH fallback, even with a version probe.
+- Bad: treat self-reported `--version` output as binary identity.
 
 ### 6. Tests Required
-- Unit test that same-directory sidecar wins.
-- Unit test that repo debug binary wins before PATH fallback.
-- Unit test that absent candidates fall back to PATH name only.
+- Unit test that release resolution requires a hash and never falls back to PATH.
+- Unit test that a hash mismatch is rejected.
 - Unit test that semver-like version output is parsed and invalid output is rejected.
 - Focused command-exec test target must remain green after resolver changes.
 
@@ -120,8 +116,8 @@ cmd.arg(&request.command).args(&request.args);
 
 #### Correct
 ```rust
-let binary = resolve_checked_ccr_binary().await?;
-let mut cmd = build_ccr_command(&binary);
+let descriptor = ProcessDescriptor::ccr_command();
+let mut cmd = ProcessGateway::command(&descriptor)?;
 cmd.arg(&request.command).args(&request.args);
 ```
 
@@ -184,4 +180,75 @@ snapshot.stdout_lines.push(line);
 ```rust
 insert_job(snapshot, cancel_token).await?;
 job.push_line(OutputChannel::Stdout, line);
+```
+
+---
+
+## Scenario: ProcessGateway capability, output, and cleanup boundary
+
+### 1. Scope / Trigger
+
+- Trigger: changing desktop foreground/background process execution, CLI probes, install execution, OAuth port discovery/opening, update, llmusage, PATH lookup, or SSH/SFTP helpers.
+- Applies to `ccr-ui/src-tauri/src/process/gateway.rs`, `ccr-core::ManagedProcess`, and every migrated caller.
+
+### 2. Signatures
+
+- `ProcessDescriptor` binds a closed `ProcessCapability`, `TrustedExecutable`, timeout, and per-stream byte limit.
+- `ProcessGateway::{command,execute,execute_command,spawn}` are the managed execution entry points.
+- `read_bounded_line(&mut AsyncBufRead, max_bytes) -> io::Result<Option<BoundedLine>>` caps allocation before a newline is found.
+- Background progress is `CommandJobDelta { job_id, seq, channel, lines, dropped_count, status }`.
+- Terminal status includes `cleanup_failed` when tree cleanup/reap cannot be proven.
+
+### 3. Contracts
+
+- Foreground output is read concurrently, defaults to 60 seconds and at most 1 MiB per stream, and terminates the owned tree on timeout or overflow.
+- Background readers use a bounded channel, at most 50 retained lines per 100 ms tick, independent dropped counters per stream, and delta-only progress events. Full snapshots are query/terminal payloads.
+- `AsyncBufReadExt::lines()` is forbidden for untrusted child output: a channel cap does not bound one unterminated line. Use `read_bounded_line` before parsing or batching.
+- OAuth URL opening accepts only the exact OpenAI authorize endpoint and fixed loopback callback origin. Port release requests cancellation only for matching registry records; unknown PIDs are report-only.
+- WSL's synchronous file adapter and SkillPort's intentional detached GUI handoff are explicit legacy adapters. Do not add callers to them; migrate them under a separately reviewed lifecycle contract rather than pretending a detached app is a reapable child.
+
+### 4. Validation & Error Matrix
+
+- Unknown capability/tool -> reject before spawn.
+- Foreground timeout -> terminate tree, reap, return `timed_out = true`.
+- Stream byte limit -> terminate tree and return per-stream truncation metadata.
+- Unterminated background line exceeds its cap -> retain bounded text, increment dropped/truncation metadata, keep memory bounded.
+- llmusage NDJSON line exceeds 1 MiB -> fail with `llmusage_stdout_line_too_long` and terminate/reap the process.
+- Cancellation cleanup fails -> terminal `cleanup_failed`, never `cancelled` success.
+- OAuth port belongs to an unregistered PID -> return it in `unknown_pids`; never send a kill signal.
+
+### 5. Good/Base/Bad Cases
+
+- Good: a flood producer is reduced to 100 ms deltas and observable dropped counts.
+- Good: stdout and stderr account for drops independently.
+- Base: a short foreground probe exits normally with complete capped output.
+- Bad: `BufReader::lines()` on a child pipe, even behind bounded mpsc.
+- Bad: generic `Command::new(renderer_value)`, PATH fallback for CCR, `taskkill /F`, or `kill -9` on a discovered PID.
+
+### 6. Tests Required
+
+- Gateway: timeout, stdout/stderr flood, unterminated bounded line, URL allowlist, sidecar hash, and PATH-precedence rejection.
+- Background jobs: stalled consumer, per-stream storage caps, delta sequence, dropped count, and `cleanup_failed` serialization.
+- Process tree: descendant termination/reap on Windows, Linux, and macOS CI.
+- OAuth: unsafe schemes/host confusion and unknown PID report-only behavior.
+- Run focused `command_exec`, `codex_auth`, SSH, install, llmusage, frontend type-check/smoke, then `just lint-strict` and `just test`.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```rust
+let mut lines = BufReader::new(child_stdout).lines();
+while let Some(line) = lines.next_line().await? {
+    tx.send(line).await?;
+}
+```
+
+#### Correct
+
+```rust
+let mut reader = BufReader::new(child_stdout);
+while let Some(line) = read_bounded_line(&mut reader, max_bytes).await? {
+    bounded_delta.try_send(line)?;
+}
 ```

@@ -70,7 +70,7 @@ onMounted(async () => {
     return
   }
   try {
-    const environment = await getCurrentEnvironment<{ env_type?: string } | null>()
+    const environment = await getCurrentEnvironment()
     isLocalEnvironment.value = !environment || environment.env_type === 'local'
   } catch {
     isLocalEnvironment.value = false

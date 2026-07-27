@@ -1,19 +1,19 @@
 use super::*;
 
 /// 读取 ~/.claude/settings.json，以 JSON Value 返回完整内容。
-#[tauri::command]
-pub async fn claude_get_settings(state: State<'_, AppState>) -> Result<Value, String> {
-    read_active_claude_settings_raw(state.inner()).await
+#[ccr_tauri_command_macros::command]
+pub async fn claude_get_settings(state: State<'_, AppState>) -> Result<OpenJsonValueDto, String> {
+    open_json(read_active_claude_settings_raw(state.inner()).await?)
 }
 
 /// 将调用方提供的 JSON 合并写入 ~/.claude/settings.json。
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn claude_update_settings(
     state: State<'_, AppState>,
-    settings: Value,
-) -> Result<Value, String> {
+    settings: OpenJsonValueDto,
+) -> Result<OpenJsonValueDto, String> {
     let mut current = read_active_claude_settings_raw(state.inner()).await?;
-    merge_settings_patch(&mut current, settings)?;
+    merge_settings_patch(&mut current, settings.into())?;
 
     let validated: ccr_types::ClaudeSettings =
         serde_json::from_value(current).map_err(|e| format!("Invalid settings payload: {e}"))?;
@@ -21,12 +21,12 @@ pub async fn claude_update_settings(
         serde_json::to_value(&validated).map_err(|e| format!("Serialization error: {e}"))?;
 
     write_active_claude_settings_raw(state.inner(), &result).await?;
-    Ok(result)
+    open_json(result)
 }
 
-#[tauri::command]
-pub async fn claude_get_output_styles() -> Result<Value, String> {
-    tokio::task::spawn_blocking(|| {
+#[ccr_tauri_command_macros::command]
+pub async fn claude_get_output_styles() -> Result<OpenJsonValueDto, String> {
+    tokio::task::spawn_blocking(|| -> Result<Value, String> {
         let dir = output_styles_dir()
             .map_err(|e| format!("Cannot determine output-styles dir: {}", e))?;
 
@@ -61,13 +61,17 @@ pub async fn claude_get_output_styles() -> Result<Value, String> {
         Ok(serde_json::json!({ "styles": result }))
     })
     .await
-    .map_err(|e| format!("Task join error: {}", e))?
+    .map_err(|e| format!("Task join error: {}", e))??
+    .try_into()
 }
 
 /// 写入或覆盖一个 output style 文件（styles 是 [{name, content}] 数组）。
-#[tauri::command]
-pub async fn claude_update_output_styles(styles: Value) -> Result<Value, String> {
-    tokio::task::spawn_blocking(move || {
+#[ccr_tauri_command_macros::command]
+pub async fn claude_update_output_styles(
+    styles: OpenJsonValueDto,
+) -> Result<OpenJsonValueDto, String> {
+    let styles: Value = styles.into();
+    tokio::task::spawn_blocking(move || -> Result<Value, String> {
         let dir = output_styles_dir()
             .map_err(|e| format!("Cannot determine output-styles dir: {}", e))?;
 
@@ -88,36 +92,38 @@ pub async fn claude_update_output_styles(styles: Value) -> Result<Value, String>
         Ok(serde_json::json!({ "styles": result }))
     })
     .await
-    .map_err(|e| format!("Task join error: {}", e))?
+    .map_err(|e| format!("Task join error: {}", e))??
+    .try_into()
 }
 
-#[tauri::command]
-pub async fn claude_get_statusline(state: State<'_, AppState>) -> Result<Value, String> {
+#[ccr_tauri_command_macros::command]
+pub async fn claude_get_statusline(state: State<'_, AppState>) -> Result<OpenJsonValueDto, String> {
     let settings = load_settings(state.inner()).await?;
     let statusline = settings
         .other
         .get("statusline")
         .cloned()
         .unwrap_or(Value::Null);
-    Ok(statusline)
+    open_json(statusline)
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn claude_update_statusline(
     state: State<'_, AppState>,
-    config: Value,
-) -> Result<Value, String> {
+    config: OpenJsonValueDto,
+) -> Result<OpenJsonValueDto, String> {
+    let config: Value = config.into();
     let mut settings = load_settings(state.inner()).await?;
     settings
         .other
         .insert("statusline".to_string(), config.clone());
     save_settings(state.inner(), &settings).await?;
-    Ok(config)
+    open_json(config)
 }
 
-#[tauri::command]
-pub async fn claude_get_budgets() -> Result<Value, String> {
-    tokio::task::spawn_blocking(|| {
+#[ccr_tauri_command_macros::command]
+pub async fn claude_get_budgets() -> Result<OpenJsonValueDto, String> {
+    tokio::task::spawn_blocking(|| -> Result<Value, String> {
         let budget_manager = BudgetManager::with_default()
             .map_err(|e| format!("BudgetManager init error: {}", e))?;
 
@@ -151,14 +157,16 @@ pub async fn claude_get_budgets() -> Result<Value, String> {
         }))
     })
     .await
-    .map_err(|e| format!("Task join error: {}", e))?
+    .map_err(|e| format!("Task join error: {}", e))??
+    .try_into()
 }
 
 /// 更新预算配置。budgets 可包含字段：enabled, dailyLimit, weeklyLimit, monthlyLimit,
 /// warnAtPercent。
-#[tauri::command]
-pub async fn claude_update_budgets(budgets: Value) -> Result<Value, String> {
-    tokio::task::spawn_blocking(move || {
+#[ccr_tauri_command_macros::command]
+pub async fn claude_update_budgets(budgets: OpenJsonValueDto) -> Result<OpenJsonValueDto, String> {
+    let budgets: Value = budgets.into();
+    tokio::task::spawn_blocking(move || -> Result<Value, String> {
         let mut budget_manager = BudgetManager::with_default()
             .map_err(|e| format!("BudgetManager init error: {}", e))?;
 
@@ -236,12 +244,13 @@ pub async fn claude_update_budgets(budgets: Value) -> Result<Value, String> {
         }))
     })
     .await
-    .map_err(|e| format!("Task join error: {}", e))?
+    .map_err(|e| format!("Task join error: {}", e))??
+    .try_into()
 }
 
-#[tauri::command]
-pub async fn claude_list_prompts() -> Result<Value, String> {
-    tokio::task::spawn_blocking(|| {
+#[ccr_tauri_command_macros::command]
+pub async fn claude_list_prompts() -> Result<OpenJsonValueDto, String> {
+    tokio::task::spawn_blocking(|| -> Result<Value, String> {
         let manager = PromptsManager::new(Platform::Claude)
             .map_err(|e| format!("PromptsManager init error: {}", e))?;
 
@@ -254,14 +263,16 @@ pub async fn claude_list_prompts() -> Result<Value, String> {
         Ok(serde_json::json!({ "presets": result }))
     })
     .await
-    .map_err(|e| format!("Task join error: {}", e))?
+    .map_err(|e| format!("Task join error: {}", e))??
+    .try_into()
 }
 
 /// 整体替换 prompt presets 列表，或添加/更新单个 preset。
 /// prompts 可以是 PromptPreset 数组，或单个 PromptPreset 对象（则执行 add/update）。
-#[tauri::command]
-pub async fn claude_update_prompts(prompts: Value) -> Result<Value, String> {
-    tokio::task::spawn_blocking(move || {
+#[ccr_tauri_command_macros::command]
+pub async fn claude_update_prompts(prompts: OpenJsonValueDto) -> Result<OpenJsonValueDto, String> {
+    let prompts: Value = prompts.into();
+    tokio::task::spawn_blocking(move || -> Result<Value, String> {
         let manager = PromptsManager::new(Platform::Claude)
             .map_err(|e| format!("PromptsManager init error: {}", e))?;
 
@@ -296,5 +307,6 @@ pub async fn claude_update_prompts(prompts: Value) -> Result<Value, String> {
         Ok(serde_json::json!({ "presets": result }))
     })
     .await
-    .map_err(|e| format!("Task join error: {}", e))?
+    .map_err(|e| format!("Task join error: {}", e))??
+    .try_into()
 }

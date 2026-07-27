@@ -94,6 +94,26 @@ bash scripts/check-dependency-drift.sh --verbose
 .\scripts\check-dependency-drift.ps1 -Verbose
 ```
 
+### `check_json_format.py`
+
+对显式列出的人工维护 JSON 配置执行严格解析和两空格规范化。检查模式已通过
+`just json-format-check` 接入 `just fmt-check`；修复模式使用 `just json-format`。
+lockfile、generated binding、JSONC/`tsconfig*.json`、数据目录和空白有语义的
+fixture 不在清单内。
+
+```powershell
+python scripts/check_json_format.py
+python scripts/check_json_format.py --write
+python -m unittest scripts/test_check_json_format.py
+```
+
+`check_dependency_drift.py` 还会扫描内部 `crates/*/Cargo.toml`，禁止通过 umbrella
+`ccr` 依赖实现跨 crate 复用；应直接依赖拥有该 API 的 domain crate。对应回归测试：
+
+```powershell
+python -m unittest scripts/test_check_dependency_drift.py
+```
+
 ## 推荐流程
 
 ```bash

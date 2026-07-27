@@ -27,9 +27,35 @@
  *  17. HTTP-only 桩函数 (无 Tauri 命令对应)
  */
 
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/api/invokeRuntime'
 import { isTauriRuntime } from '@/utils/tauriRuntime'
-import type { CommandJobSnapshot, StartCommandJobResponse } from '@/types'
+import {
+  cancelCcrCommandJob as cancelTypedCcrCommandJob,
+  executeCcrCommand,
+  getCcrCommandHelp as getTypedCcrCommandHelp,
+  getCcrCommandJobStatus as getTypedCcrCommandJobStatus,
+  listCcrCommands,
+  startCcrCommandJob as startTypedCcrCommandJob,
+} from './generated/commandExec'
+import {
+  listConfigsTyped,
+  switchConfigTyped,
+} from './generated/config'
+import {
+  getSkipExitConfirm as getSkipExitConfirmTyped,
+  setSkipExitConfirm as setSkipExitConfirmTyped,
+} from './generated/exitConfirm'
+import {
+  getBuiltinPrompt as getBuiltinPromptTyped,
+  getBuiltinPromptsByCategory as getBuiltinPromptsByCategoryTyped,
+  listBuiltinPrompts as listBuiltinPromptsTyped,
+} from './generated/builtinPrompts'
+import type {
+  CommandExecutionResult,
+  CommandHelpResponse,
+  CommandJobSnapshot,
+  StartCommandJobResponse,
+} from '@/types'
 
 import type { UnknownRecord } from '@/types/common'
 
@@ -39,17 +65,6 @@ const isRecord = (value: unknown): value is UnknownRecord => {
 
 const asRecord = (value: unknown): UnknownRecord => {
   return isRecord(value) ? value : {}
-}
-
-const asArray = (value: unknown): unknown[] => {
-  return Array.isArray(value) ? value : []
-}
-
-const pickArray = (value: unknown, key: string): unknown[] => {
-  if (!isRecord(value)) {
-    return []
-  }
-  return asArray(value[key])
 }
 
 // ════════════════════════════════════════════════════════════
@@ -115,7 +130,7 @@ const SKIP_EXIT_CONFIRM_KEY = 'ccr_skip_exit_confirm'
  */
 export const getSkipExitConfirm = async (): Promise<boolean> => {
   if (isTauriEnvironment()) {
-    return await invoke('get_skip_exit_confirm')
+    return await getSkipExitConfirmTyped()
   }
   return localStorage.getItem(SKIP_EXIT_CONFIRM_KEY) === '1'
 }
@@ -127,7 +142,7 @@ export const getSkipExitConfirm = async (): Promise<boolean> => {
  */
 export const setSkipExitConfirm = async (skip: boolean): Promise<void> => {
   if (isTauriEnvironment()) {
-    await invoke('set_skip_exit_confirm', { skip })
+    await setSkipExitConfirmTyped(skip)
     return
   }
   localStorage.setItem(SKIP_EXIT_CONFIRM_KEY, skip ? '1' : '0')
@@ -563,22 +578,22 @@ export const executeCommand = async (
     | string
     | { command: string; args?: string[]; confirmationToken?: string | null },
   args?: string[]
-): Promise<unknown> => {
+): Promise<CommandExecutionResult> => {
   const command = typeof commandOrPayload === 'string' ? commandOrPayload : commandOrPayload.command
   const resolvedArgs = typeof commandOrPayload === 'string' ? args : commandOrPayload.args
   const confirmationToken =
     typeof commandOrPayload === 'string' ? undefined : commandOrPayload.confirmationToken
-  return invoke('execute_ccr_command', { command, args: resolvedArgs, confirmationToken })
+  return executeCcrCommand({ command, args: resolvedArgs, confirmationToken })
 }
 
 /** 列出可用命令 */
-export const listCommands = async <T = UnknownRecord>(_client?: string): Promise<T> => {
-  return invoke('list_ccr_commands')
+export const listCommands = async (_client?: string) => {
+  return listCcrCommands()
 }
 
 /** 获取命令帮助 */
-export const getCommandHelp = async <T = UnknownRecord>(command: string): Promise<T> => {
-  return invoke('get_ccr_command_help', { command })
+export const getCommandHelp = async (command: string): Promise<CommandHelpResponse> => {
+  return getTypedCcrCommandHelp(command)
 }
 
 /** 启动 CCR 命令后台任务 */
@@ -587,7 +602,7 @@ export const startCcrCommandJob = async (payload: {
   args?: string[]
   confirmationToken?: string | null
 }): Promise<StartCommandJobResponse> => {
-  return invoke('start_ccr_command_job', {
+  return startTypedCcrCommandJob({
     command: payload.command,
     args: payload.args,
     confirmationToken: payload.confirmationToken,
@@ -596,17 +611,17 @@ export const startCcrCommandJob = async (payload: {
 
 /** 获取 CCR 命令后台任务状态 */
 export const getCcrCommandJobStatus = async (jobId: string): Promise<CommandJobSnapshot> => {
-  return invoke('get_ccr_command_job_status', { jobId })
+  return getTypedCcrCommandJobStatus(jobId)
 }
 
 /** 取消 CCR 命令后台任务 */
 export const cancelCcrCommandJob = async (jobId: string): Promise<CommandJobSnapshot> => {
-  return invoke('cancel_ccr_command_job', { jobId })
+  return cancelTypedCcrCommandJob(jobId)
 }
 
-/** 启用配置（等价于 switchConfig，直接 invoke 避免同文件 re-export 循环） */
-export const enableConfig = async <T = UnknownRecord>(name: string): Promise<T> => {
-  return invoke('switch_config', { name })
+/** 启用配置（等价于 switchConfig） */
+export const enableConfig = async (name: string): Promise<string> => {
+  return switchConfigTyped(name)
 }
 
 /** 禁用配置（通过 update_config 设置 enabled=false） */
@@ -615,11 +630,10 @@ export const disableConfig = async <T = UnknownRecord>(name: string): Promise<T>
 }
 
 /** 获取单个配置详情（通过列表后过滤实现） */
-export const getConfig = async <T = UnknownRecord>(name: string): Promise<T> => {
-  const result = await invoke<unknown>('list_configs')
-  const configs = Array.isArray(result) ? result : pickArray(result, 'configs')
+export const getConfig = async (name: string) => {
+  const configs = await listConfigsTyped()
   const found = configs.find((item) => isRecord(item) && String(item.name ?? '') === name)
-  return (found ?? null) as T
+  return found ?? null
 }
 
 // ── MCP 预设 / 同步 / 内置提示词 ──
@@ -701,21 +715,13 @@ export const syncAllMcpServers = async <T = UnknownRecord>(platforms?: string[])
 }
 
 /** 列出内置提示词 */
-export const listBuiltinPrompts = async <T = UnknownRecord>(): Promise<T> => {
-  return invoke('list_builtin_prompts')
-}
+export const listBuiltinPrompts = listBuiltinPromptsTyped
 
 /** 获取内置提示词 */
-export const getBuiltinPrompt = async <T = UnknownRecord>(id: string): Promise<T> => {
-  return invoke('get_builtin_prompt', { id })
-}
+export const getBuiltinPrompt = getBuiltinPromptTyped
 
 /** 按分类获取内置提示词 */
-export const getBuiltinPromptsByCategory = async <T = UnknownRecord>(
-  category: string
-): Promise<T> => {
-  return invoke('get_builtin_prompts_by_category', { category })
-}
+export const getBuiltinPromptsByCategory = getBuiltinPromptsByCategoryTyped
 
 // ── Axios / HTTP 核心（不再需要） ──
 

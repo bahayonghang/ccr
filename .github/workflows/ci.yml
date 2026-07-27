@@ -1,205 +1,149 @@
-name: CI
+name: Root CI
 
 on:
-  push:
-    branches: [ main, develop, dev ]
-    tags:
-      - '*'
-    paths:
-      - 'crates/**'
-      - 'Cargo.toml'
-      - 'Cargo.lock'
-      - 'justfile'
-      - 'scripts/**'
-      - '.github/workflows/ci.yml'
   pull_request:
-    branches: [ main, develop, dev ]
-    paths:
-      - 'crates/**'
-      - 'Cargo.toml'
-      - 'Cargo.lock'
-      - 'justfile'
-      - 'scripts/**'
-      - '.github/workflows/ci.yml'
+    branches: [main, develop, dev]
+
+permissions:
+  contents: read
 
 env:
   CARGO_TERM_COLOR: always
-  RUSTFLAGS: "-D warnings"
+  RUSTFLAGS: '-D warnings'
 
 jobs:
-  format:
-    name: Format Check
-    runs-on: ubuntu-latest
+  changes:
+    name: Root Change Detection
+    runs-on: ubuntu-24.04
+    outputs:
+      relevant: ${{ steps.relevance.outputs.relevant }}
     steps:
-      - uses: actions/checkout@v6
-
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
-          components: rustfmt
+          fetch-depth: 0
+      - name: Detect root workspace changes
+        id: relevance
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: python3 scripts/ci_surface_policy.py --surface root --base "$BASE_SHA" --head "$HEAD_SHA" >> "$GITHUB_OUTPUT"
 
-      - name: Check formatting
-        run: cargo fmt --all --check
-
-  clippy:
-    name: Clippy Lints
-    runs-on: ubuntu-latest
+  workspace-quality:
+    name: Root Workspace Validation
+    needs: changes
+    if: needs.changes.outputs.relevant == 'true'
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v6
-
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Setup Rust 1.95.0
+        uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable
         with:
-          components: clippy
-
-      - name: Install Linux native dependencies
+          toolchain: 1.95.0
+          components: clippy,rustfmt
+      - name: Install native and repository tools
         run: |
           sudo apt-get update
           sudo apt-get install -y pkg-config libwayland-dev
-          pkg-config --version
-          pkg-config --modversion wayland-client
+          cargo install just --version 1.57.0 --locked
+      - name: Version and governance checks
+        run: just version-check
+      - name: Workflow governance checks
+        run: just workflow-governance-check
+      - name: Format check
+        run: just fmt-check
+      - name: Strict clippy
+        run: just lint-strict
+      - name: Parallel workspace tests
+        run: just test
+      - name: Workspace build check
+        run: just check-workspace
 
-      - name: Cache cargo registry
-        uses: actions/cache@v5
+  workspace-coverage:
+    name: Root Coverage 70-85
+    needs: changes
+    if: needs.changes.outputs.relevant == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Setup Rust 1.95.0
+        uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable
         with:
-          path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Cache cargo index
-        uses: actions/cache@v5
-        with:
-          path: ~/.cargo/git
-          key: ${{ runner.os }}-cargo-git-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Cache target directory
-        uses: actions/cache@v5
-        with:
-          path: target
-          key: ${{ runner.os }}-target-${{ hashFiles('**/Cargo.lock') }}
-
-      # Standard clippy check with basic warnings as errors
-      - name: Run clippy (standard)
-        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
-
-      # Strict clippy check for backend with unwrap detection
-      # This prevents usage of .unwrap(), .expect(), panic!, etc.
-      # Forces proper error handling with Result, Option, and ?
-      - name: Run clippy (strict - backend only)
+          toolchain: 1.95.0
+          components: llvm-tools-preview
+      - name: Install coverage tools
         run: |
-          # Check main CLI crate with strict rules
-          cargo clippy -p ccr --all-targets --all-features -- \
-            -D warnings \
-            -W clippy::unwrap_used \
-            -W clippy::expect_used \
-            -W clippy::panic \
-            -W clippy::unimplemented \
-            -W clippy::todo
-        # Note: Frontend (ccr-ui) uses separate ESLint/TypeScript checks
+          sudo apt-get update
+          sudo apt-get install -y pkg-config libwayland-dev
+          cargo install just --version 1.57.0 --locked
+          cargo install cargo-llvm-cov --version 0.8.7 --locked
+      - name: Enforce coverage thresholds
+        run: just coverage-rust
+      - name: Upload Rust coverage
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: rust-workspace-coverage
+          path: target/coverage-workspace.json
+          if-no-files-found: error
+          retention-days: 14
 
-  test:
-    name: Test Suite
+  workspace-platform-tests:
+    name: Root Tests (${{ matrix.os }})
+    needs: changes
+    if: needs.changes.outputs.relevant == 'true'
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        rust: [stable]
+        os: [windows-2025, macos-15]
     steps:
-      - uses: actions/checkout@v6
-
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@master
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Setup Rust 1.95.0
+        uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable
         with:
-          toolchain: ${{ matrix.rust }}
+          toolchain: 1.95.0
+      - name: Install just
+        run: cargo install just --version 1.57.0 --locked
+      - name: Run parallel workspace tests
+        run: just test
 
-      - name: Install Linux native dependencies
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y pkg-config libwayland-dev
-          pkg-config --version
-          pkg-config --modversion wayland-client
-
-      - name: Cache cargo registry
-        uses: actions/cache@v5
-        with:
-          path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Cache cargo index
-        uses: actions/cache@v5
-        with:
-          path: ~/.cargo/git
-          key: ${{ runner.os }}-cargo-git-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Cache target directory
-        uses: actions/cache@v5
-        with:
-          path: target
-          key: ${{ runner.os }}-target-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Run tests
-        run: cargo test --workspace --all-features -- --test-threads=1
-
-  build:
-    name: Build Check
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - name: no-default-features
-            command: cargo build -p ccr --no-default-features
-          - name: tui
-            command: cargo build -p ccr --features tui
-          - name: all-features
-            command: cargo build -p ccr --all-features
-          - name: workspace
-            command: cargo build --workspace
+  security-audit:
+    name: Rust Security Audit
+    needs: changes
+    if: needs.changes.outputs.relevant == 'true'
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v6
-
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Install Linux native dependencies
-        if: matrix.name != 'no-default-features'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y pkg-config libwayland-dev
-          pkg-config --version
-          pkg-config --modversion wayland-client
-
-      - name: Cache cargo registry
-        uses: actions/cache@v5
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Setup Rust 1.95.0
+        uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable
         with:
-          path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Cache cargo index
-        uses: actions/cache@v5
-        with:
-          path: ~/.cargo/git
-          key: ${{ runner.os }}-cargo-git-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Cache target directory
-        uses: actions/cache@v5
-        with:
-          path: target
-          key: ${{ runner.os }}-build-${{ matrix.name }}-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Build with features
-        run: ${{ matrix.command }}
-
-  security:
-    name: Security Audit
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-
+          toolchain: 1.95.0
       - name: Install cargo-audit
-        run: cargo install cargo-audit
-
-      - name: Run security audit
+        run: cargo install cargo-audit --version 0.22.2 --locked
+      - name: Audit lockfile
         run: cargo audit
+
+  root-required:
+    name: Root Workspace Required
+    if: ${{ always() }}
+    needs: [changes, workspace-quality, workspace-coverage, workspace-platform-tests, security-audit]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Enforce relevant root results
+        env:
+          DETECTION: ${{ needs.changes.result }}
+          RELEVANT: ${{ needs.changes.outputs.relevant }}
+          QUALITY: ${{ needs.workspace-quality.result }}
+          COVERAGE: ${{ needs.workspace-coverage.result }}
+          PLATFORM: ${{ needs.workspace-platform-tests.result }}
+          AUDIT: ${{ needs.security-audit.result }}
+        run: |
+          set -eu
+          test "$DETECTION" = success
+          if [ "$RELEVANT" != true ]; then
+            echo "Root workspace validation is not relevant to this pull request."
+            exit 0
+          fi
+          for result in "$QUALITY" "$COVERAGE" "$PLATFORM" "$AUDIT"; do
+            test "$result" = success
+          done

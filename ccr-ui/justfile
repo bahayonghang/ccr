@@ -817,19 +817,19 @@ check-security:
 
 _check-security-linux:
     @echo "🔒 检查前端安全漏洞..."
-    bun audit --audit-level=high
+    bun run audit:dependencies
     @echo ""
     @echo "✅ 安全检查完成"
 
 _check-security-macos:
     @echo "🔒 检查前端安全漏洞..."
-    bun audit --audit-level=high
+    bun run audit:dependencies
     @echo ""
     @echo "✅ 安全检查完成"
 
 _check-security-windows:
     @Write-Output '🔒 检查前端安全漏洞...'
-    @bun audit --audit-level=high
+    @bun run audit:dependencies
     @Write-Output ''
     @Write-Output '✅ 安全检查完成'
 
@@ -1295,15 +1295,15 @@ ci-security:
 
 _ci-security-linux:
     @echo "🔒 检查安全漏洞..."
-    bun audit --audit-level=high
+    bun run audit:dependencies
 
 _ci-security-macos:
     @echo "🔒 检查安全漏洞..."
-    bun audit --audit-level=high
+    bun run audit:dependencies
 
 _ci-security-windows:
     @Write-Output '🔒 检查安全漏洞...'
-    @bun audit --audit-level=high
+    @bun run audit:dependencies
 
 # 准备发布
 prepare-release: clean build
@@ -1540,8 +1540,10 @@ _bindings-linux:
     set -euo pipefail
     echo "🔄 重新生成 TypeScript 绑定..."
     rm -rf src/types/generated
+    cargo test --manifest-path ../Cargo.toml -p ccr-cli --features ts export_bindings
     cargo test --manifest-path ../Cargo.toml -p ccr-usage --features ts export_bindings
-    cargo test --manifest-path src-tauri/Cargo.toml export_bindings
+    cargo --config ../.cargo/tauri-ci.toml test --manifest-path src-tauri/Cargo.toml export_bindings
+    bun ./scripts/normalize-generated-bindings.mjs
     echo "✅ 绑定已生成: src/types/generated/"
 
 _bindings-macos:
@@ -1549,15 +1551,19 @@ _bindings-macos:
     set -euo pipefail
     echo "🔄 重新生成 TypeScript 绑定..."
     rm -rf src/types/generated
+    cargo test --manifest-path ../Cargo.toml -p ccr-cli --features ts export_bindings
     cargo test --manifest-path ../Cargo.toml -p ccr-usage --features ts export_bindings
-    cargo test --manifest-path src-tauri/Cargo.toml export_bindings
+    cargo --config ../.cargo/tauri-ci.toml test --manifest-path src-tauri/Cargo.toml export_bindings
+    bun ./scripts/normalize-generated-bindings.mjs
     echo "✅ 绑定已生成: src/types/generated/"
 
 _bindings-windows:
     @Write-Output '🔄 重新生成 TypeScript 绑定...'
     @if (Test-Path src/types/generated) { Remove-Item -Recurse -Force src/types/generated }
+    @cargo test --manifest-path ../Cargo.toml -p ccr-cli --features ts export_bindings
     @cargo test --manifest-path ../Cargo.toml -p ccr-usage --features ts export_bindings
-    @cargo test --manifest-path src-tauri/Cargo.toml export_bindings
+    @cargo --config ../.cargo/tauri-ci.toml test --manifest-path src-tauri/Cargo.toml export_bindings
+    @bun ./scripts/normalize-generated-bindings.mjs
     @Write-Output '✅ 绑定已生成: src/types/generated/'
 
 # 🧪 TypeScript 绑定漂移守卫：重新生成后 git 必须无差异（含未跟踪新文件）

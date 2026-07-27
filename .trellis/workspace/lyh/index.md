@@ -7,9 +7,9 @@
 ## Current Status
 
 <!-- @@@auto:current-status -->
-- **Active File**: `journal-1.md`
-- **Total Sessions**: 46
-- **Last Active**: 2026-07-17
+- **Active File**: `journal-2.md`
+- **Total Sessions**: 62
+- **Last Active**: 2026-07-27
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,8 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1954 | Active |
+| `journal-2.md` | ~460 | Active |
+| `journal-1.md` | ~1987 | Archived |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +30,22 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 62 | 2026-07-27 | 优化 ccr-ui 开发资源占用 | `e86988d7` | `dev` |
+| 61 | 2026-07-27 | 完成审计整改并切换为无签名发布 | `0f6a8fb4` | `dev` |
+| 60 | 2026-07-27 | 补充 VSIX 签名运行器阻塞证据 | `776e21ae` | `dev` |
+| 59 | 2026-07-27 | 审计整改集成与托管验收证据 checkpoint | `6576b719` | `dev` |
+| 58 | 2026-07-27 | Release signing 仓库侧验收 checkpoint | `d2cabc6a`, `07f8b12f` | `dev` |
+| 57 | 2026-07-27 | 完成 Typed IPC 运行时能力策略 | `3de89558`, `b381e1ad` | `dev` |
+| 56 | 2026-07-27 | 完成 CI 与契约治理端到端验收 | `691fd0d5`, `bb46226b`, `7e7c4514`, `158b007c`, `6951839f`, `09acd6f2`, `133842b3`, `2ef69893` | `dev` |
+| 55 | 2026-07-27 | 完成审计 P3 轻量清理 | `a4e9dd3f` | `dev` |
+| 54 | 2026-07-26 | 完成 ProcessGateway 与进程能力治理 | `e5892e04` | `dev` |
+| 53 | 2026-07-26 | 完成持久化与 Migration 审计整改 | `3a3c9c55` | `dev` |
+| 52 | 2026-07-26 | 完成 WebDAV 同步安全加固 | `0e58e9e9` | `dev` |
+| 51 | 2026-07-26 | 完成 SSH 信任与传输加固 | `19cef4b2` | `dev` |
+| 50 | 2026-07-26 | Install opaque handle hardening | `b444b459` | `dev` |
+| 49 | 2026-07-23 | 实现 ccr project init 项目初始化命令 | `cdebd82c484a190babdf52ec3551cc1399875187` | `dev` |
+| 48 | 2026-07-23 | 修复 Codex fix 进程清理行为差异 | `14a3c677`, `ed780638` | `dev` |
+| 47 | 2026-07-23 | 完善 ccr codex fix 本地运行时诊断 | `a92d15ec` | `dev` |
 | 46 | 2026-07-17 | 归档 ccr-ui 配置管理增强任务树 | - | `dev` |
 | 45 | 2026-07-17 | 归档 Profiles TOML 直接编辑 | `efe4d874`, `76f11fe5`, `f0c66b49` | `dev` |
 | 44 | 2026-07-17 | 修复系统提示词编辑器生产环境空白 | `81dc31fc` | `dev` |

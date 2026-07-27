@@ -6,9 +6,9 @@ use crate::commands::profile_lifecycle::{
 use crate::commands::settings_raw::ensure_local_env;
 
 /// 列出所有 Claude Code Profiles（~/.ccr/platforms/claude/profiles.toml）。
-#[tauri::command]
-pub async fn claude_list_profiles() -> Result<Value, String> {
-    tokio::task::spawn_blocking(|| {
+#[ccr_tauri_command_macros::command]
+pub async fn claude_list_profiles() -> Result<OpenJsonValueDto, String> {
+    tokio::task::spawn_blocking(|| -> Result<Value, String> {
         let platform = ClaudePlatform::new().map_err(|e| format!("初始化 Claude 平台失败: {e}"))?;
         let current_profile = platform
             .get_current_profile()
@@ -26,13 +26,14 @@ pub async fn claude_list_profiles() -> Result<Value, String> {
         }))
     })
     .await
-    .map_err(|e| format!("任务执行失败: {e}"))?
+    .map_err(|e| format!("任务执行失败: {e}"))??
+    .try_into()
 }
 
 /// 获取单个 Profile 详情。
-#[tauri::command]
-pub async fn claude_get_profile(name: String) -> Result<Value, String> {
-    tokio::task::spawn_blocking(move || {
+#[ccr_tauri_command_macros::command]
+pub async fn claude_get_profile(name: String) -> Result<OpenJsonValueDto, String> {
+    tokio::task::spawn_blocking(move || -> Result<Value, String> {
         let platform = ClaudePlatform::new().map_err(|e| format!("初始化 Claude 平台失败: {e}"))?;
         let current_profile = platform
             .get_current_profile()
@@ -46,13 +47,15 @@ pub async fn claude_get_profile(name: String) -> Result<Value, String> {
         Ok(profile_to_json(current_profile.as_deref(), name, profile))
     })
     .await
-    .map_err(|e| format!("任务执行失败: {e}"))?
+    .map_err(|e| format!("任务执行失败: {e}"))??
+    .try_into()
 }
 
 /// 创建新 Profile。
-#[tauri::command]
-pub async fn claude_add_profile(request: Value) -> Result<Value, String> {
-    tokio::task::spawn_blocking(move || {
+#[ccr_tauri_command_macros::command]
+pub async fn claude_add_profile(request: OpenJsonValueDto) -> Result<OpenJsonValueDto, String> {
+    let request: Value = request.into();
+    tokio::task::spawn_blocking(move || -> Result<Value, String> {
         let name = request
             .get("name")
             .and_then(|v| v.as_str())
@@ -82,13 +85,18 @@ pub async fn claude_add_profile(request: Value) -> Result<Value, String> {
         Ok(profile_to_json(current_profile.as_deref(), name, profile))
     })
     .await
-    .map_err(|e| format!("任务执行失败: {e}"))?
+    .map_err(|e| format!("任务执行失败: {e}"))??
+    .try_into()
 }
 
 /// 更新 Profile。
-#[tauri::command]
-pub async fn claude_update_profile(name: String, request: Value) -> Result<Value, String> {
-    tokio::task::spawn_blocking(move || {
+#[ccr_tauri_command_macros::command]
+pub async fn claude_update_profile(
+    name: String,
+    request: OpenJsonValueDto,
+) -> Result<OpenJsonValueDto, String> {
+    let request: Value = request.into();
+    tokio::task::spawn_blocking(move || -> Result<Value, String> {
         let platform = ClaudePlatform::new().map_err(|e| format!("初始化 Claude 平台失败: {e}"))?;
         let profiles = platform
             .load_profiles()
@@ -136,13 +144,14 @@ pub async fn claude_update_profile(name: String, request: Value) -> Result<Value
         ))
     })
     .await
-    .map_err(|e| format!("任务执行失败: {e}"))?
+    .map_err(|e| format!("任务执行失败: {e}"))??
+    .try_into()
 }
 
 /// 删除 Profile。
-#[tauri::command]
-pub async fn claude_delete_profile(name: String) -> Result<Value, String> {
-    tokio::task::spawn_blocking(move || {
+#[ccr_tauri_command_macros::command]
+pub async fn claude_delete_profile(name: String) -> Result<OpenJsonValueDto, String> {
+    tokio::task::spawn_blocking(move || -> Result<Value, String> {
         let platform = ClaudePlatform::new().map_err(|e| format!("初始化 Claude 平台失败: {e}"))?;
         platform
             .delete_profile(&name)
@@ -150,34 +159,38 @@ pub async fn claude_delete_profile(name: String) -> Result<Value, String> {
         Ok(json!({ "message": format!("Claude Profile '{name}' 已删除") }))
     })
     .await
-    .map_err(|e| format!("任务执行失败: {e}"))?
+    .map_err(|e| format!("任务执行失败: {e}"))??
+    .try_into()
 }
 
-#[tauri::command]
-pub async fn claude_get_profiles_raw(state: State<'_, AppState>) -> Result<Value, String> {
+#[ccr_tauri_command_macros::command]
+pub async fn claude_get_profiles_raw(
+    state: State<'_, AppState>,
+) -> Result<OpenJsonValueDto, String> {
     if let Some(response) = ensure_local_env(state.inner()).await {
-        return Ok(response);
+        return response.try_into();
     }
     let paths = PlatformPaths::new(Platform::Claude)
         .map_err(|error| format!("解析 Claude Profiles 路径失败: {error}"))?;
     tokio::task::spawn_blocking(move || profiles_raw_payload_from_paths(&paths))
         .await
-        .map_err(|error| format!("读取 Claude Profiles 后台任务失败: {error}"))?
+        .map_err(|error| format!("读取 Claude Profiles 后台任务失败: {error}"))??
+        .try_into()
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn claude_save_profiles_raw(
     state: State<'_, AppState>,
     content: String,
     token: String,
     force: bool,
-) -> Result<Value, String> {
+) -> Result<OpenJsonValueDto, String> {
     if let Some(response) = ensure_local_env(state.inner()).await {
-        return Ok(response);
+        return response.try_into();
     }
     let paths = PlatformPaths::new(Platform::Claude)
         .map_err(|error| format!("解析 Claude Profiles 路径失败: {error}"))?;
-    tokio::task::spawn_blocking(move || {
+    tokio::task::spawn_blocking(move || -> Result<Value, String> {
         let platform =
             ClaudePlatform::new().map_err(|error| format!("初始化 Claude 平台失败: {error}"))?;
         let current = platform
@@ -186,22 +199,23 @@ pub async fn claude_save_profiles_raw(
         save_profiles_raw_to_paths(&paths, current.as_deref(), &content, &token, force)
     })
     .await
-    .map_err(|error| format!("写入 Claude Profiles 后台任务失败: {error}"))?
+    .map_err(|error| format!("写入 Claude Profiles 后台任务失败: {error}"))??
+    .try_into()
 }
 
-/// 应用 Profile。
-
+/// 构建 Claude profile 导出 payload。
 fn claude_profiles_export_payload(include_secrets: bool) -> Result<Value, String> {
     let paths = PlatformPaths::new(Platform::Claude)
         .map_err(|e| format!("Failed to resolve Claude Profiles path: {e}"))?;
     profiles_export_payload_from_path(&paths.profiles_file, "ccr-claude-profiles", include_secrets)
 }
 
-#[tauri::command]
-pub async fn claude_export_profiles(include_secrets: bool) -> Result<Value, String> {
+#[ccr_tauri_command_macros::command]
+pub async fn claude_export_profiles(include_secrets: bool) -> Result<OpenJsonValueDto, String> {
     tokio::task::spawn_blocking(move || claude_profiles_export_payload(include_secrets))
         .await
-        .map_err(|e| format!("任务执行失败: {e}"))?
+        .map_err(|e| format!("任务执行失败: {e}"))??
+        .try_into()
 }
 
 #[cfg(test)]
@@ -248,9 +262,9 @@ mod export_tests {
     }
 }
 
-#[tauri::command]
-pub async fn claude_apply_profile(name: String) -> Result<Value, String> {
-    tokio::task::spawn_blocking(move || {
+#[ccr_tauri_command_macros::command]
+pub async fn claude_apply_profile(name: String) -> Result<OpenJsonValueDto, String> {
+    tokio::task::spawn_blocking(move || -> Result<Value, String> {
         let platform = ClaudePlatform::new().map_err(|e| format!("初始化 Claude 平台失败: {e}"))?;
         platform
             .apply_profile(&name)
@@ -262,5 +276,6 @@ pub async fn claude_apply_profile(name: String) -> Result<Value, String> {
         }))
     })
     .await
-    .map_err(|e| format!("任务执行失败: {e}"))?
+    .map_err(|e| format!("任务执行失败: {e}"))??
+    .try_into()
 }

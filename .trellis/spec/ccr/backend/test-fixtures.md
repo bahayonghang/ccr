@@ -10,7 +10,7 @@
 - Trigger: adding or changing root `crates/ccr/tests/**` integration tests that resolve default CCR paths through process environment variables.
 - Applies to tests touching `CCR_ROOT` or `CCR_LOCK_DIR` through root `ccr` re-exported managers, platform helpers, or command helpers.
 - This fixture is test-binary local because root integration tests compile as separate binaries (`platforms`, `commands`, `managers`) and cannot share runtime state across those binaries.
-- Do not remove global serial test gates until env-heavy tests across crates are migrated, measured, and the remaining serial list is explicit.
+- Root workspace tests run with Cargo's default parallelism. Process-global environment mutations must use a test-binary-local mutex fixture; the executable serial-only annotation inventory is currently 0 with a target of 0.
 
 ### 2. Signatures
 - `crates/ccr/tests/support/env.rs`
@@ -44,13 +44,15 @@
 - Base: subprocess command integration tests can set `Command.env("CCR_ROOT", ...)` / `Command.env("CCR_LOCK_DIR", ...)` directly, because they do not mutate parent process globals.
 - Bad: saving/restoring `CCR_ROOT` by hand inside each integration test.
 - Bad: placing unused aliases/functions in `support/env.rs` and suppressing warnings with broad `#[allow(dead_code)]`.
-- Bad: removing global `--test-threads=1` solely because this fixture exists; other crates still have separate env-heavy candidates.
+- Bad: reintroducing global `--test-threads=1`, or adding `#[serial]` instead of isolating paths and guarding the smallest process-global mutation.
 
 ### 6. Tests Required
 - `cargo test -p ccr --test platforms -- --nocapture`
 - `cargo test -p ccr --test commands -- sync_content --nocapture`
 - `cargo test -p ccr --test managers -- --nocapture`
 - `cargo clippy -p ccr --all-targets --all-features -- -D warnings`
+- `just test` (default parallel workspace execution)
+- `python scripts/check_workflow_governance.py` (`Serial-only test annotations: 0 (target: 0)`)
 - `just fmt-check`
 - `git diff --check`
 

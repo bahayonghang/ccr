@@ -4,6 +4,7 @@
 
 - `ccr codex auth ...`：official auth 多账号管理
 - `ccr codex profile ...`：runtime/profile 路由管理
+- `ccr codex fix`：残留进程清理与本地 profile/runtime 一致性诊断
 - `ccr codex sync-history ...`：修复 provider namespace 切换后的历史可见性
 
 ## 常用命令
@@ -35,6 +36,42 @@ ccr codex profile off
 - `enable`
 - `disable`
 - `delete`
+
+## `fix`
+
+```bash
+# 先切换目标 profile，再诊断；裸命令不写 runtime
+ccr codex profile switch future
+ccr codex fix
+
+# 显式修复可安全处理的本地漂移
+ccr codex fix --repair-runtime
+
+# 仅预览进程清理与 runtime 重放，不发送信号、不写文件
+ccr codex fix --dry-run --repair-runtime
+```
+
+进程阶段只匹配当前用户的 native Codex / Node Codex wrapper `app-server`，不会匹配
+`codex exec`、`codex resume`、`codex login` 或仅把 `codex app-server` 当作参数的其他工具。
+实际清理会先发送 TERM，在约 3 秒宽限窗口内持续重查新 PID，再对截止时仍匹配的进程发送
+KILL；每次发信号前都会重新确认 owner、PID 启动时间和 argv。若无法安全读取当前 owner 或
+命令行，输出 `process_state = unavailable` 并停止发送信号，而不是误报 `clean`。
+
+诊断会区分 profile pointer、route、credential 与 Provider 有效性。CCR 自己的一致性判定只比较本地保存的 secret 和实际凭据来源，不新增第三方凭据探测，也不会输出 key、掩码片段、长度或 fingerprint。命令仍保留上游 `codex doctor` 作为补充证据，其具体检查行为由当前 Codex 版本决定。因此 `provider_auth_validity = not_checked` 不代表失败，也不代表 key 已被 Provider 接受。
+
+进程清理、CCR runtime inspection/repair 与上游 doctor 会分别报告。runtime 阶段失败时输出
+`runtime_consistency = unavailable`，doctor 在可执行时仍会继续运行；原始进程 argv 和阶段错误
+中的敏感内容不会回显。
+
+退出码：
+
+| 退出码 | 含义 |
+|---|---|
+| `0` | 未发现确定的本地漂移；Provider 有效性仍可能未检查 |
+| `1` | CCR runtime inspection/repair 阶段失败 |
+| `2` | app-server 仍存在，或无法安全完成进程发现/清理 |
+| `3` | 本地 profile/runtime 漂移仍存在，或 doctor 期间快照发生变化 |
+| `127` | `codex` 不在 `PATH` 中 |
 
 ## `sync-history`
 

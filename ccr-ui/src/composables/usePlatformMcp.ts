@@ -72,7 +72,7 @@ const platformApiMap: Record<
 > = {
   gemini: {
     listApi: async () => {
-      const servers = await listGeminiMcpServers<GeminiMcpServer[]>()
+      const servers = await listGeminiMcpServers()
       return servers.map(normalizeServer)
     },
     addApi: async (req) => {

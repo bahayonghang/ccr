@@ -1,0 +1,4 @@
+{"file":".trellis/spec/ccr-cli/backend/test-fixtures.md","reason":"Install regression fixture quality"}
+{"file":".trellis/spec/ccr/backend/typed-ipc-bindings.md","reason":"Binding generation and drift checks"}
+{"file":".trellis/spec/ccr/backend/desktop-command-policy.md","reason":"No renderer-controlled executable path"}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Rust to IPC to frontend flow audit"}

@@ -1,20 +1,20 @@
 //! 命令执行模块 — CCR CLI 命令白名单执行。
 
-use std::collections::HashMap;
-use std::io;
-use std::path::{Path, PathBuf};
+use std::collections::{HashMap, VecDeque};
+use std::ffi::OsString;
 use std::process::Stdio;
-use std::sync::LazyLock;
+use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
+use std::sync::{Arc, LazyLock};
 use std::time::{Duration, Instant};
 
-use crate::process::tokio_command;
+use crate::process::{ProcessDescriptor, ProcessGateway, read_bounded_line};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use tauri::{AppHandle, Emitter};
-use tokio::io::{AsyncBufReadExt, BufReader};
+use tokio::io::BufReader;
 use tokio::sync::{Mutex, mpsc};
 use tokio_util::sync::CancellationToken;
+use ts_rs::TS;
 use uuid::Uuid;
 
 const EVENT_COMMAND_JOB_PROGRESS: &str = "commands:job-progress";
@@ -25,7 +25,10 @@ const COMMAND_JOB_MAX_JOBS: usize = 64;
 const COMMAND_JOB_TTL_SECS: u64 = 30 * 60;
 const COMMAND_JOB_MAX_LINES_PER_CHANNEL: usize = 500;
 const COMMAND_JOB_MAX_BYTES_PER_CHANNEL: usize = 512 * 1024;
-const CCR_CLI_VERSION_PROBE_TIMEOUT_SECS: u64 = 3;
+const COMMAND_JOB_OUTPUT_CHANNEL_CAPACITY: usize = 256;
+const COMMAND_JOB_OUTPUT_BATCH_LINES: usize = 50;
+const COMMAND_JOB_OUTPUT_BATCH_INTERVAL: Duration = Duration::from_millis(100);
+const COMMAND_JOB_TERMINATION_GRACE: Duration = Duration::from_secs(5);
 
 /// 允许执行的 CCR 子命令白名单
 const ALLOWED_COMMANDS: &[&str] = &[
@@ -45,8 +48,9 @@ const ALLOWED_COMMANDS: &[&str] = &[
     "status",
 ];
 
-#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, PartialEq, Eq, TS)]
 #[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../../src/types/generated/command_exec/")]
 pub struct CommandArgSchema {
     pub name: &'static str,
     pub label: &'static str,
@@ -58,11 +62,11 @@ pub struct CommandArgSchema {
     pub description: &'static str,
 }
 
-#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, PartialEq, Eq, TS)]
 #[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../../src/types/generated/command_exec/")]
 pub struct CommandFlagSchema {
     pub name: &'static str,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub aliases: Vec<&'static str>,
     pub label: &'static str,
     pub description: &'static str,
@@ -72,8 +76,9 @@ pub struct CommandFlagSchema {
     pub default_value: Option<&'static str>,
 }
 
-#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, PartialEq, Eq, TS)]
 #[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../../src/types/generated/command_exec/")]
 pub struct CommandInfo {
     pub name: &'static str,
     pub path: Vec<&'static str>,
@@ -948,18 +953,21 @@ fn command_catalog() -> Vec<CommandInfo> {
     ]
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "lowercase")]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, TS)]
+#[serde(rename_all = "snake_case")]
+#[ts(export, export_to = "../../src/types/generated/command_exec/")]
 pub enum CommandJobStatus {
     Queued,
     Running,
     Success,
     Failed,
     Cancelled,
+    CleanupFailed,
     Unavailable,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, TS)]
+#[ts(export, export_to = "../../src/types/generated/command_exec/")]
 pub struct CommandJobSnapshot {
     pub job_id: String,
     pub command: String,
@@ -967,33 +975,88 @@ pub struct CommandJobSnapshot {
     pub status: CommandJobStatus,
     pub started_at: String,
     pub finished_at: Option<String>,
+    #[ts(as = "Option<f64>")]
     pub duration_ms: Option<u64>,
     pub exit_code: Option<i32>,
-    pub stdout_lines: Vec<String>,
-    pub stderr_lines: Vec<String>,
-    pub system_lines: Vec<String>,
+    #[ts(as = "Vec<String>")]
+    pub stdout_lines: VecDeque<String>,
+    #[ts(as = "Vec<String>")]
+    pub stderr_lines: VecDeque<String>,
+    #[ts(as = "Vec<String>")]
+    pub system_lines: VecDeque<String>,
     pub truncated: bool,
     pub dropped_lines: usize,
     pub error: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/command_exec/")]
 pub struct StartCommandJobResponse {
     pub job_id: String,
     pub snapshot: CommandJobSnapshot,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum OutputChannel {
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, TS)]
+#[serde(rename_all = "lowercase")]
+#[ts(export, export_to = "../../src/types/generated/command_exec/")]
+pub enum OutputChannel {
     Stdout,
     Stderr,
     System,
 }
 
+#[derive(Debug, Clone, Serialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/command_exec/")]
+pub struct CommandJobDelta {
+    pub job_id: String,
+    #[ts(as = "f64")]
+    pub seq: u64,
+    pub channel: OutputChannel,
+    pub lines: Vec<String>,
+    pub dropped_count: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub status: Option<CommandJobStatus>,
+}
+
+#[derive(Debug, Clone, Serialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/command_exec/")]
+pub struct CommandExecutionResult {
+    pub success: bool,
+    pub stdout: String,
+    pub stderr: String,
+    pub output: String,
+    pub error: String,
+    pub exit_code: i32,
+    #[ts(as = "f64")]
+    pub duration_ms: u64,
+    pub timed_out: bool,
+    pub truncated: bool,
+    pub stdout_bytes: usize,
+    pub stderr_bytes: usize,
+}
+
+#[derive(Debug, Clone, Serialize, TS)]
+#[serde(transparent)]
+#[ts(export, export_to = "../../src/types/generated/command_exec/")]
+pub struct CommandCatalog(pub Vec<CommandInfo>);
+
+#[derive(Debug, Clone, Serialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/command_exec/")]
+pub struct CommandHelpResponse {
+    pub command: String,
+    pub help: String,
+    pub stderr: String,
+    pub success: bool,
+    pub timed_out: bool,
+    pub truncated: bool,
+}
+
 #[derive(Debug)]
 struct OutputEvent {
     channel: OutputChannel,
-    line: String,
+    lines: Vec<String>,
+    dropped_count: usize,
 }
 
 #[derive(Default)]
@@ -1112,9 +1175,9 @@ impl CommandJobSnapshot {
             finished_at: None,
             duration_ms: None,
             exit_code: None,
-            stdout_lines: Vec::new(),
-            stderr_lines: Vec::new(),
-            system_lines: vec!["Job queued".to_string()],
+            stdout_lines: VecDeque::new(),
+            stderr_lines: VecDeque::new(),
+            system_lines: VecDeque::from(["Job queued".to_string()]),
             truncated: false,
             dropped_lines: 0,
             error: None,
@@ -1169,6 +1232,7 @@ impl CommandJobSnapshot {
             CommandJobStatus::Success
                 | CommandJobStatus::Failed
                 | CommandJobStatus::Cancelled
+                | CommandJobStatus::CleanupFailed
                 | CommandJobStatus::Unavailable
         )
     }
@@ -1196,7 +1260,7 @@ impl CommandJobSnapshot {
     }
 }
 
-fn channel_size_bytes(lines: &[String]) -> usize {
+fn channel_size_bytes(lines: &VecDeque<String>) -> usize {
     lines.iter().map(|line| line.len()).sum()
 }
 
@@ -1205,6 +1269,10 @@ fn truncate_line_to_bytes(line: String) -> (String, bool) {
         return (line, false);
     }
 
+    (append_truncation_marker(line), true)
+}
+
+fn append_truncation_marker(mut line: String) -> String {
     const MARKER: &str = "…";
     let budget = COMMAND_JOB_MAX_BYTES_PER_CHANNEL.saturating_sub(MARKER.len());
     let mut end = 0usize;
@@ -1216,15 +1284,27 @@ fn truncate_line_to_bytes(line: String) -> (String, bool) {
         end = next;
     }
 
-    let mut truncated = line[..end].to_string();
+    line.truncate(end);
     if COMMAND_JOB_MAX_BYTES_PER_CHANNEL >= MARKER.len() {
-        truncated.push_str(MARKER);
+        line.push_str(MARKER);
     }
-    (truncated, true)
+    line
+}
+
+fn cancellation_terminal_state(
+    cleanup_error: Option<String>,
+) -> (CommandJobStatus, Option<String>) {
+    match cleanup_error {
+        Some(error) => (CommandJobStatus::CleanupFailed, Some(error)),
+        None => (
+            CommandJobStatus::Cancelled,
+            Some("Command cancelled".to_string()),
+        ),
+    }
 }
 
 fn push_capped_line(
-    lines: &mut Vec<String>,
+    lines: &mut VecDeque<String>,
     truncated: &mut bool,
     dropped_lines: &mut usize,
     line: String,
@@ -1234,14 +1314,14 @@ fn push_capped_line(
         *truncated = true;
     }
 
-    lines.push(line);
+    lines.push_back(line);
     while lines.len() > COMMAND_JOB_MAX_LINES_PER_CHANNEL
         || channel_size_bytes(lines) > COMMAND_JOB_MAX_BYTES_PER_CHANNEL
     {
         if lines.is_empty() {
             break;
         }
-        lines.remove(0);
+        lines.pop_front();
         *truncated = true;
         *dropped_lines += 1;
     }
@@ -1292,136 +1372,34 @@ fn split_flag_arg(raw_arg: &str) -> Result<(&str, Option<ParsedFlagValue>), Stri
     }
 }
 
-fn ccr_executable_name() -> &'static str {
-    if cfg!(windows) { "ccr.exe" } else { "ccr" }
-}
-
-fn ccr_path_candidate_from_current_exe(current_exe: &Path) -> Option<PathBuf> {
-    let dir = current_exe.parent()?;
-    Some(dir.join(ccr_executable_name()))
-}
-
-fn ccr_dev_path_candidates_from_manifest(manifest_dir: &Path) -> Vec<PathBuf> {
-    let Some(repo_root) = manifest_dir.parent().and_then(Path::parent) else {
-        return Vec::new();
-    };
-    let exe_name = ccr_executable_name();
-    vec![
-        repo_root.join("target").join("debug").join(exe_name),
-        repo_root.join("target").join("release").join(exe_name),
-    ]
-}
-
-fn is_executable_file(path: &Path) -> bool {
-    path.is_file()
-}
-
-fn resolve_ccr_binary_candidate<F>(
-    current_exe: Option<&Path>,
-    manifest_dir: &Path,
-    exists: F,
-) -> String
-where
-    F: Fn(&Path) -> bool,
-{
-    let candidates = current_exe
-        .and_then(ccr_path_candidate_from_current_exe)
-        .into_iter()
-        .chain(ccr_dev_path_candidates_from_manifest(manifest_dir));
-
-    for candidate in candidates {
-        if exists(&candidate) {
-            return candidate.to_string_lossy().into_owned();
-        }
+async fn verify_ccr_sidecar_version() -> Result<(), String> {
+    let descriptor = ProcessDescriptor::ccr_version_probe();
+    let output = ProcessGateway::execute(&descriptor, &[OsString::from("--version")]).await?;
+    if output.timed_out {
+        return Err("ccr_version_probe_timeout".to_string());
     }
-
-    "ccr".to_string()
-}
-
-fn resolve_ccr_binary() -> String {
-    let current_exe = std::env::current_exe().ok();
-    resolve_ccr_binary_candidate(
-        current_exe.as_deref(),
-        Path::new(env!("CARGO_MANIFEST_DIR")),
-        is_executable_file,
-    )
-}
-
-fn ccr_binary_not_found_message(binary: &str) -> String {
-    if binary == "ccr" {
-        "CCR 二进制未找到，请确认已安装并在 PATH 中".to_string()
-    } else {
-        format!(
-            "CCR 二进制未找到，已尝试使用 '{}'。请确认桌面应用同目录存在 ccr 可执行文件，或已安装并在 PATH 中。",
-            binary
-        )
-    }
-}
-
-fn build_ccr_command(binary: &str) -> tokio::process::Command {
-    tokio_command(binary)
-}
-
-async fn probe_ccr_binary_version(binary: &str) -> Result<Option<String>, String> {
-    let mut command = build_ccr_command(binary);
-    command.arg("--version");
-    let output = tokio::time::timeout(
-        Duration::from_secs(CCR_CLI_VERSION_PROBE_TIMEOUT_SECS),
-        command.output(),
-    )
-    .await
-    .map_err(|_| {
-        format!(
-            "CCR 二进制版本探测超时（{} 秒）：{}",
-            CCR_CLI_VERSION_PROBE_TIMEOUT_SECS, binary
-        )
-    })?
-    .map_err(|error| {
-        if error.kind() == io::ErrorKind::NotFound {
-            ccr_binary_not_found_message(binary)
-        } else {
-            format!("CCR 二进制版本探测失败: {error}")
-        }
-    })?;
-
     if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
-        let suffix = if stderr.is_empty() {
-            String::new()
-        } else {
-            format!("：{stderr}")
-        };
         return Err(format!(
-            "CCR 二进制版本探测失败，退出码 {:?}{suffix}",
+            "ccr_version_probe_failed: exit code {:?}",
             output.status.code()
         ));
     }
-
-    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
-    Ok(parse_ccr_version_output(&stdout))
-}
-
-async fn resolve_checked_ccr_binary() -> Result<String, String> {
-    let binary = resolve_ccr_binary();
-    let actual_version = probe_ccr_binary_version(&binary).await?;
-    let expected_version = env!("CARGO_PKG_VERSION");
-
-    match actual_version.as_deref() {
-        Some(version) if version == expected_version => Ok(binary),
-        Some(version) => Err(format!(
-            "CCR 二进制版本不匹配：桌面版本 {expected_version}，CLI 版本 {version}（{binary}）。请使用同版本 ccr 可执行文件。"
-        )),
-        None => Err(format!(
-            "无法解析 CCR 二进制版本输出（{binary}）。请确认该可执行文件是有效的 ccr CLI。"
-        )),
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let actual = parse_ccr_version_output(&stdout)
+        .ok_or_else(|| "ccr_version_probe_invalid_output".to_string())?;
+    let expected = env!("CARGO_PKG_VERSION");
+    if actual != expected {
+        return Err(format!(
+            "ccr_version_mismatch: desktop {expected}, sidecar {actual}"
+        ));
     }
+    Ok(())
 }
 
-fn parse_ccr_version_output(output: &str) -> Option<String> {
+fn parse_ccr_version_output(output: &str) -> Option<&str> {
     output
         .split_whitespace()
         .find(|part| part.chars().next().is_some_and(|ch| ch.is_ascii_digit()))
-        .map(ToOwned::to_owned)
 }
 
 /// 校验子命令请求是否允许从桌面命令面板直接执行。
@@ -1516,43 +1494,162 @@ where
     }
 }
 
-async fn stream_reader<R>(reader: R, channel: OutputChannel, tx: mpsc::UnboundedSender<OutputEvent>)
-where
+fn try_send_output_batch(
+    tx: &mpsc::Sender<OutputEvent>,
+    channel: OutputChannel,
+    batch: &mut Vec<String>,
+    dropped: &AtomicUsize,
+) -> bool {
+    if batch.is_empty() {
+        return true;
+    }
+
+    let event = OutputEvent {
+        channel,
+        lines: std::mem::take(batch),
+        dropped_count: dropped.swap(0, Ordering::AcqRel),
+    };
+    match tx.try_send(event) {
+        Ok(()) => true,
+        Err(mpsc::error::TrySendError::Full(event)) => {
+            dropped.fetch_add(
+                event.lines.len().saturating_add(event.dropped_count),
+                Ordering::Relaxed,
+            );
+            true
+        }
+        Err(mpsc::error::TrySendError::Closed(_)) => false,
+    }
+}
+
+async fn stream_reader<R>(
+    reader: R,
+    channel: OutputChannel,
+    tx: mpsc::Sender<OutputEvent>,
+    dropped: Arc<AtomicUsize>,
+) where
     R: tokio::io::AsyncRead + Unpin,
 {
-    let mut lines = BufReader::new(reader).lines();
+    let mut reader = BufReader::new(reader);
+    let mut batch = Vec::with_capacity(COMMAND_JOB_OUTPUT_BATCH_LINES);
+    let mut interval = tokio::time::interval(COMMAND_JOB_OUTPUT_BATCH_INTERVAL);
+    interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+    interval.tick().await;
+
     loop {
-        match lines.next_line().await {
-            Ok(Some(line)) => {
-                if tx.send(OutputEvent { channel, line }).is_err() {
+        tokio::select! {
+            next = read_bounded_line(&mut reader, COMMAND_JOB_MAX_BYTES_PER_CHANNEL) => match next {
+                Ok(Some(line)) => {
+                    let line = if line.truncated {
+                        dropped.fetch_add(1, Ordering::Relaxed);
+                        append_truncation_marker(line.text)
+                    } else {
+                        line.text
+                    };
+                    if batch.len() < COMMAND_JOB_OUTPUT_BATCH_LINES {
+                        batch.push(line);
+                    } else {
+                        dropped.fetch_add(1, Ordering::Relaxed);
+                    }
+                }
+                Ok(None) => {
+                    let _ = try_send_output_batch(&tx, channel, &mut batch, &dropped);
                     break;
                 }
-            }
-            Ok(None) => break,
-            Err(error) => {
-                let _ = tx.send(OutputEvent {
-                    channel: OutputChannel::System,
-                    line: format!("Output stream read error: {error}"),
-                });
-                break;
+                Err(error) => {
+                    let _ = try_send_output_batch(&tx, channel, &mut batch, &dropped);
+                    let mut error_batch = vec![format!("Output stream read error: {error}")];
+                    let _ = try_send_output_batch(
+                        &tx,
+                        OutputChannel::System,
+                        &mut error_batch,
+                        &dropped,
+                    );
+                    break;
+                }
+            },
+            _ = interval.tick() => {
+                if !try_send_output_batch(&tx, channel, &mut batch, &dropped) {
+                    break;
+                }
             }
         }
     }
 }
 
+async fn apply_output_event(
+    app_handle: &AppHandle,
+    job_id: &str,
+    sequence: &AtomicU64,
+    event: OutputEvent,
+) {
+    let lines = event.lines;
+    let emitted_lines = lines.clone();
+    let dropped_count = event.dropped_count;
+    if update_job(job_id, |job| {
+        for line in lines {
+            job.push_line(event.channel, line);
+        }
+        if dropped_count > 0 {
+            job.truncated = true;
+            job.dropped_lines = job.dropped_lines.saturating_add(dropped_count);
+        }
+    })
+    .await
+    .is_none()
+    {
+        return;
+    }
+
+    let delta = CommandJobDelta {
+        job_id: job_id.to_string(),
+        seq: sequence.fetch_add(1, Ordering::Relaxed),
+        channel: event.channel,
+        lines: emitted_lines,
+        dropped_count,
+        status: None,
+    };
+    if let Err(error) = app_handle.emit(EVENT_COMMAND_JOB_PROGRESS, delta) {
+        tracing::warn!(?error, %job_id, "Failed to emit command job delta");
+    }
+}
+
 async fn run_command_job(app_handle: AppHandle, job_id: String, cancel_token: CancellationToken) {
     let started = Instant::now();
+    let sequence = AtomicU64::new(0);
     let Some(initial) = get_job(&job_id).await else {
         return;
     };
 
-    update_and_emit(&app_handle, EVENT_COMMAND_JOB_PROGRESS, &job_id, |job| {
+    update_job(&job_id, |job| {
         job.mark_running();
     })
     .await;
+    let started_delta = CommandJobDelta {
+        job_id: job_id.clone(),
+        seq: sequence.fetch_add(1, Ordering::Relaxed),
+        channel: OutputChannel::System,
+        lines: vec!["Process started".to_string()],
+        dropped_count: 0,
+        status: Some(CommandJobStatus::Running),
+    };
+    if let Err(error) = app_handle.emit(EVENT_COMMAND_JOB_PROGRESS, started_delta) {
+        tracing::warn!(?error, %job_id, "Failed to emit command job start delta");
+    }
 
-    let binary = match resolve_checked_ccr_binary().await {
-        Ok(binary) => binary,
+    if let Err(message) = verify_ccr_sidecar_version().await {
+        update_and_emit(&app_handle, EVENT_COMMAND_JOB_FINISHED, &job_id, |job| {
+            job.push_line(OutputChannel::System, message.clone());
+            job.mark_terminal(CommandJobStatus::Unavailable, started, None, Some(message));
+        })
+        .await;
+        remove_cancel_token(&job_id).await;
+        return;
+    }
+
+    let descriptor = ProcessDescriptor::ccr_command();
+    let mut cmd = match ProcessGateway::command(&descriptor) {
+        Ok(command) => command,
         Err(message) => {
             update_and_emit(&app_handle, EVENT_COMMAND_JOB_FINISHED, &job_id, |job| {
                 job.push_line(OutputChannel::System, message.clone());
@@ -1563,27 +1660,18 @@ async fn run_command_job(app_handle: AppHandle, job_id: String, cancel_token: Ca
             return;
         }
     };
-
-    let mut cmd = build_ccr_command(&binary);
     cmd.arg(&initial.command)
         .args(&initial.args)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
 
-    let mut child = match cmd.spawn() {
+    let mut child = match ProcessGateway::spawn(cmd, &descriptor, cancel_token.clone(), Vec::new())
+    {
         Ok(child) => child,
-        Err(error) => {
-            let (status, message) = if error.kind() == io::ErrorKind::NotFound {
-                (
-                    CommandJobStatus::Unavailable,
-                    ccr_binary_not_found_message(&binary),
-                )
-            } else {
-                (CommandJobStatus::Failed, format!("执行失败: {error}"))
-            };
+        Err(message) => {
             update_and_emit(&app_handle, EVENT_COMMAND_JOB_FINISHED, &job_id, |job| {
                 job.push_line(OutputChannel::System, message.clone());
-                job.mark_terminal(status, started, None, Some(message));
+                job.mark_terminal(CommandJobStatus::Failed, started, None, Some(message));
             })
             .await;
             remove_cancel_token(&job_id).await;
@@ -1591,26 +1679,38 @@ async fn run_command_job(app_handle: AppHandle, job_id: String, cancel_token: Ca
         }
     };
 
-    let (tx, mut rx) = mpsc::unbounded_channel::<OutputEvent>();
-    if let Some(stdout) = child.stdout.take() {
-        tauri::async_runtime::spawn(stream_reader(stdout, OutputChannel::Stdout, tx.clone()));
+    let (tx, mut rx) = mpsc::channel::<OutputEvent>(COMMAND_JOB_OUTPUT_CHANNEL_CAPACITY);
+    if let Some(stdout) = child.take_stdout() {
+        tauri::async_runtime::spawn(stream_reader(
+            stdout,
+            OutputChannel::Stdout,
+            tx.clone(),
+            Arc::new(AtomicUsize::new(0)),
+        ));
     }
-    if let Some(stderr) = child.stderr.take() {
-        tauri::async_runtime::spawn(stream_reader(stderr, OutputChannel::Stderr, tx.clone()));
+    if let Some(stderr) = child.take_stderr() {
+        tauri::async_runtime::spawn(stream_reader(
+            stderr,
+            OutputChannel::Stderr,
+            tx.clone(),
+            Arc::new(AtomicUsize::new(0)),
+        ));
     }
     drop(tx);
 
     let mut wait_finished = false;
     let mut final_code: Option<i32> = None;
     let mut cancel_requested = false;
+    let mut timed_out = false;
+    let mut cleanup_error: Option<String> = None;
+    let deadline = tokio::time::sleep(descriptor.timeout());
+    tokio::pin!(deadline);
 
-    while !wait_finished || !rx.is_closed() {
+    while !wait_finished || !rx.is_closed() || !rx.is_empty() {
         tokio::select! {
-            event = rx.recv(), if !rx.is_closed() => {
+            event = rx.recv(), if !rx.is_closed() || !rx.is_empty() => {
                 if let Some(event) = event {
-                    update_and_emit(&app_handle, EVENT_COMMAND_JOB_PROGRESS, &job_id, |job| {
-                        job.push_line(event.channel, event.line);
-                    }).await;
+                    apply_output_event(&app_handle, &job_id, &sequence, event).await;
                 }
             }
             status = child.wait(), if !wait_finished => {
@@ -1619,9 +1719,7 @@ async fn run_command_job(app_handle: AppHandle, job_id: String, cancel_token: Ca
                         final_code = Some(status.code().unwrap_or(-1));
                     }
                     Err(error) => {
-                        update_and_emit(&app_handle, EVENT_COMMAND_JOB_PROGRESS, &job_id, |job| {
-                            job.push_line(OutputChannel::System, format!("Process wait error: {error}"));
-                        }).await;
+                        cleanup_error = Some(format!("process_wait_failed: {error}"));
                         final_code = Some(-1);
                     }
                 }
@@ -1629,36 +1727,50 @@ async fn run_command_job(app_handle: AppHandle, job_id: String, cancel_token: Ca
             }
             _ = cancel_token.cancelled(), if !cancel_requested && !wait_finished => {
                 cancel_requested = true;
-                let kill_result = child.kill().await;
-                update_and_emit(&app_handle, EVENT_COMMAND_JOB_CANCELLED, &job_id, |job| {
-                    if let Err(error) = kill_result {
-                        job.push_line(OutputChannel::System, format!("Cancel signal failed: {error}"));
-                    } else {
-                        job.push_line(OutputChannel::System, "Cancel signal sent".to_string());
-                    }
-                    job.mark_terminal(
-                        CommandJobStatus::Cancelled,
-                        started,
-                        None,
-                        Some("Command cancelled".to_string()),
-                    );
-                }).await;
+                match child.terminate_tree(COMMAND_JOB_TERMINATION_GRACE).await {
+                    Ok(status) => final_code = Some(status.code().unwrap_or(-1)),
+                    Err(error) => cleanup_error = Some(format!("process_tree_cleanup_failed: {error}")),
+                }
+                wait_finished = true;
             }
-        }
-
-        if wait_finished && rx.is_closed() {
-            break;
+            _ = &mut deadline, if !wait_finished => {
+                timed_out = true;
+                match child.terminate_tree(COMMAND_JOB_TERMINATION_GRACE).await {
+                    Ok(status) => final_code = Some(status.code().unwrap_or(-1)),
+                    Err(error) => cleanup_error = Some(format!("process_tree_cleanup_failed: {error}")),
+                }
+                wait_finished = true;
+            }
         }
     }
 
     remove_cancel_token(&job_id).await;
 
     if cancel_requested {
+        let (status, error) = cancellation_terminal_state(cleanup_error);
+        update_and_emit(&app_handle, EVENT_COMMAND_JOB_CANCELLED, &job_id, |job| {
+            job.mark_terminal(status, started, final_code, error);
+        })
+        .await;
+        return;
+    }
+
+    if timed_out {
+        let status = if cleanup_error.is_some() {
+            CommandJobStatus::CleanupFailed
+        } else {
+            CommandJobStatus::Failed
+        };
+        let error = cleanup_error.or_else(|| Some("process_timeout".to_string()));
+        update_and_emit(&app_handle, EVENT_COMMAND_JOB_FINISHED, &job_id, |job| {
+            job.mark_terminal(status, started, final_code, error);
+        })
+        .await;
         return;
     }
 
     let exit_code = final_code.unwrap_or(-1);
-    let success = exit_code == 0;
+    let success = exit_code == 0 && cleanup_error.is_none();
     update_and_emit(&app_handle, EVENT_COMMAND_JOB_FINISHED, &job_id, |job| {
         job.mark_terminal(
             if success {
@@ -1671,7 +1783,7 @@ async fn run_command_job(app_handle: AppHandle, job_id: String, cancel_token: Ca
             if success {
                 None
             } else {
-                Some(format!("Command exited with code {exit_code}"))
+                cleanup_error.or_else(|| Some(format!("Command exited with code {exit_code}")))
             },
         );
     })
@@ -1681,51 +1793,50 @@ async fn run_command_job(app_handle: AppHandle, job_id: String, cancel_token: Ca
 /// 执行白名单内的 CCR CLI 子命令并返回输出
 ///
 /// 返回 `{ success, stdout, stderr, output, error, exit_code, duration_ms }`
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn execute_ccr_command(
     command: String,
     args: Option<Vec<String>>,
     confirmation_token: Option<String>,
-) -> Result<Value, String> {
+) -> Result<CommandExecutionResult, String> {
     let request = CommandExecutionRequest::foreground(command, args, confirmation_token);
     validate_command_request(&request)?;
 
-    let started = Instant::now();
-    let binary = resolve_checked_ccr_binary().await?;
-    let mut cmd = build_ccr_command(&binary);
-    cmd.arg(&request.command).args(&request.args);
-
-    let output = cmd.output().await.map_err(|e| {
-        if e.kind() == std::io::ErrorKind::NotFound {
-            ccr_binary_not_found_message(&binary)
-        } else {
-            format!("执行失败: {e}")
-        }
-    })?;
+    verify_ccr_sidecar_version().await?;
+    let descriptor = ProcessDescriptor::ccr_command();
+    let command_args = std::iter::once(OsString::from(&request.command))
+        .chain(request.args.iter().map(OsString::from))
+        .collect::<Vec<_>>();
+    let output = ProcessGateway::execute(&descriptor, &command_args).await?;
 
     let exit_code = output.status.code().unwrap_or(-1);
     let stdout = String::from_utf8_lossy(&output.stdout).into_owned();
     let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
+    let truncated = output.stdout_truncated || output.stderr_truncated;
 
-    Ok(serde_json::json!({
-        "success": output.status.success(),
-        "stdout": stdout,
-        "stderr": stderr,
-        "output": stdout,
-        "error": stderr,
-        "exit_code": exit_code,
-        "duration_ms": elapsed_ms(started),
-    }))
+    Ok(CommandExecutionResult {
+        success: output.status.success() && !output.timed_out && !truncated,
+        output: stdout.clone(),
+        error: stderr.clone(),
+        stdout,
+        stderr,
+        exit_code,
+        duration_ms: output.duration.as_millis().min(u128::from(u64::MAX)) as u64,
+        timed_out: output.timed_out,
+        truncated,
+        stdout_bytes: output.stdout_bytes,
+        stderr_bytes: output.stderr_bytes,
+    })
 }
 
 /// 启动一个 app session 内可跟踪、可取消的 CCR CLI 后台任务。
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn start_ccr_command_job(
     app_handle: AppHandle,
     command: String,
     args: Option<Vec<String>>,
     confirmation_token: Option<String>,
-) -> Result<Value, String> {
+) -> Result<StartCommandJobResponse, String> {
     let request = CommandExecutionRequest::background(command, args, confirmation_token);
     validate_command_request(&request)?;
 
@@ -1736,24 +1847,23 @@ pub async fn start_ccr_command_job(
 
     tauri::async_runtime::spawn(run_command_job(app_handle, job_id.clone(), cancel_token));
 
-    serde_json::to_value(StartCommandJobResponse { job_id, snapshot })
-        .map_err(|e| format!("Serialization error: {e}"))
+    Ok(StartCommandJobResponse { job_id, snapshot })
 }
 
-#[tauri::command]
-pub async fn get_ccr_command_job_status(job_id: String) -> Result<Value, String> {
+#[ccr_tauri_command_macros::command]
+pub async fn get_ccr_command_job_status(job_id: String) -> Result<CommandJobSnapshot, String> {
     let snapshot = get_job(&job_id)
         .await
         .ok_or_else(|| format!("Command job '{}' not found", job_id))?;
 
-    serde_json::to_value(snapshot).map_err(|e| format!("Serialization error: {e}"))
+    Ok(snapshot)
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn cancel_ccr_command_job(
-    app_handle: AppHandle,
+    _app_handle: AppHandle,
     job_id: String,
-) -> Result<Value, String> {
+) -> Result<CommandJobSnapshot, String> {
     if let Some(token) = COMMAND_JOBS
         .cancel_tokens
         .lock()
@@ -1770,58 +1880,58 @@ pub async fn cancel_ccr_command_job(
             CommandJobStatus::Success
                 | CommandJobStatus::Failed
                 | CommandJobStatus::Cancelled
+                | CommandJobStatus::CleanupFailed
                 | CommandJobStatus::Unavailable
         ) {
             job.push_line(OutputChannel::System, "Cancel requested".to_string());
-            job.status = CommandJobStatus::Cancelled;
-            job.finished_at = Some(now_rfc3339());
-            job.error = Some("Command cancelled".to_string());
         }
     })
     .await
     .ok_or_else(|| format!("Command job '{}' not found", job_id))?;
 
-    emit_job_snapshot(&app_handle, EVENT_COMMAND_JOB_CANCELLED, &snapshot).await;
-    serde_json::to_value(snapshot).map_err(|e| format!("Serialization error: {e}"))
+    Ok(snapshot)
 }
 
 /// 返回 CCR 命令目录和桌面执行元数据
 ///
 /// 返回 `CommandInfo[]`，其中 `executable=false` 的条目只能作为预览/跳转。
-#[tauri::command]
-pub async fn list_ccr_commands() -> Result<Value, String> {
-    serde_json::to_value(command_catalog()).map_err(|e| format!("Serialization error: {e}"))
+#[ccr_tauri_command_macros::command]
+pub async fn list_ccr_commands() -> Result<CommandCatalog, String> {
+    Ok(CommandCatalog(command_catalog()))
 }
 
 /// 执行 `ccr help <command>` 并返回帮助文本
-#[tauri::command]
-pub async fn get_ccr_command_help(command: String) -> Result<Value, String> {
+#[ccr_tauri_command_macros::command]
+pub async fn get_ccr_command_help(command: String) -> Result<CommandHelpResponse, String> {
     CommandPolicy::from_command(&command)?;
 
-    let binary = resolve_checked_ccr_binary().await?;
-    let mut cmd = build_ccr_command(&binary);
-    let output = cmd.args(["help", &command]).output().await.map_err(|e| {
-        if e.kind() == std::io::ErrorKind::NotFound {
-            ccr_binary_not_found_message(&binary)
-        } else {
-            format!("执行失败: {e}")
-        }
-    })?;
+    verify_ccr_sidecar_version().await?;
+    let output = ProcessGateway::execute(
+        &ProcessDescriptor::ccr_command(),
+        &[OsString::from("help"), OsString::from(&command)],
+    )
+    .await?;
 
     let stdout = String::from_utf8_lossy(&output.stdout).into_owned();
     let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
 
-    Ok(serde_json::json!({
-        "command": command,
-        "help": stdout,
-        "stderr": stderr,
-        "success": output.status.success(),
-    }))
+    Ok(CommandHelpResponse {
+        command,
+        help: stdout,
+        stderr,
+        success: output.status.success()
+            && !output.timed_out
+            && !output.stdout_truncated
+            && !output.stderr_truncated,
+        timed_out: output.timed_out,
+        truncated: output.stdout_truncated || output.stderr_truncated,
+    })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tokio::io::AsyncWriteExt;
 
     #[test]
     fn validate_command_rejects_non_whitelisted_command() {
@@ -1985,61 +2095,9 @@ mod tests {
     }
 
     #[test]
-    fn ccr_binary_resolver_prefers_same_directory_sidecar() {
-        let temp = tempfile::tempdir().expect("tempdir");
-        let app_dir = temp.path().join("app");
-        std::fs::create_dir_all(&app_dir).expect("app dir");
-        let sidecar = app_dir.join(ccr_executable_name());
-        std::fs::write(&sidecar, "fake ccr").expect("sidecar");
-        let current_exe = app_dir.join(if cfg!(windows) {
-            "ccr-desktop.exe"
-        } else {
-            "ccr-desktop"
-        });
-        let manifest_dir = temp.path().join("ccr-ui").join("src-tauri");
-
-        let resolved =
-            resolve_ccr_binary_candidate(Some(&current_exe), &manifest_dir, is_executable_file);
-
-        assert_eq!(resolved, sidecar.to_string_lossy());
-    }
-
-    #[test]
-    fn ccr_binary_resolver_uses_repo_debug_binary_before_path_fallback() {
-        let temp = tempfile::tempdir().expect("tempdir");
-        let manifest_dir = temp.path().join("ccr-ui").join("src-tauri");
-        let debug_binary = temp
-            .path()
-            .join("target")
-            .join("debug")
-            .join(ccr_executable_name());
-        std::fs::create_dir_all(debug_binary.parent().expect("debug parent"))
-            .expect("debug parent dir");
-        std::fs::create_dir_all(&manifest_dir).expect("manifest dir");
-        std::fs::write(&debug_binary, "fake ccr").expect("debug ccr");
-
-        let resolved = resolve_ccr_binary_candidate(None, &manifest_dir, is_executable_file);
-
-        assert_eq!(resolved, debug_binary.to_string_lossy());
-    }
-
-    #[test]
-    fn ccr_binary_resolver_falls_back_to_path_name_when_no_candidate_exists() {
-        let temp = tempfile::tempdir().expect("tempdir");
-        let manifest_dir = temp.path().join("ccr-ui").join("src-tauri");
-
-        let resolved = resolve_ccr_binary_candidate(None, &manifest_dir, |_| false);
-
-        assert_eq!(resolved, "ccr");
-    }
-
-    #[test]
     fn parse_ccr_version_output_extracts_semver_token() {
-        assert_eq!(
-            parse_ccr_version_output("ccr 6.3.0\n"),
-            Some("6.3.0".to_string())
-        );
-        assert_eq!(parse_ccr_version_output("6.3.0"), Some("6.3.0".to_string()));
+        assert_eq!(parse_ccr_version_output("ccr 6.3.0\n"), Some("6.3.0"));
+        assert_eq!(parse_ccr_version_output("6.3.0"), Some("6.3.0"));
         assert_eq!(parse_ccr_version_output("ccr"), None);
     }
 
@@ -2072,6 +2130,14 @@ mod tests {
     }
 
     #[test]
+    fn cleanup_failure_never_claims_cancelled_status() {
+        let (status, error) = cancellation_terminal_state(Some("access denied".to_string()));
+
+        assert_eq!(status, CommandJobStatus::CleanupFailed);
+        assert_eq!(error.as_deref(), Some("access denied"));
+    }
+
+    #[test]
     fn terminal_snapshot_keeps_non_zero_exit_as_failed_with_output() {
         let started = Instant::now();
         let mut snapshot =
@@ -2088,8 +2154,14 @@ mod tests {
 
         assert_eq!(snapshot.status, CommandJobStatus::Failed);
         assert_eq!(snapshot.exit_code, Some(2));
-        assert_eq!(snapshot.stdout_lines, vec!["partial stdout"]);
-        assert_eq!(snapshot.stderr_lines, vec!["validation failed"]);
+        assert_eq!(
+            snapshot.stdout_lines,
+            VecDeque::from(["partial stdout".to_string()])
+        );
+        assert_eq!(
+            snapshot.stderr_lines,
+            VecDeque::from(["validation failed".to_string()])
+        );
         assert!(snapshot.duration_ms.is_some());
         assert!(snapshot.error.as_deref().unwrap_or_default().contains('2'));
     }
@@ -2190,5 +2262,56 @@ mod tests {
 
         assert!(removed.is_empty());
         assert_eq!(jobs.len(), 3);
+    }
+
+    #[tokio::test]
+    async fn stalled_output_consumer_stays_bounded_and_reports_drops() {
+        let (mut writer, reader) = tokio::io::duplex(64 * 1024);
+        let (tx, mut rx) = mpsc::channel(1);
+        let dropped = Arc::new(AtomicUsize::new(0));
+        let reader_task = tokio::spawn(stream_reader(reader, OutputChannel::Stdout, tx, dropped));
+        let payload = (0..1_000)
+            .map(|index| format!("line-{index}\n"))
+            .collect::<String>();
+
+        writer
+            .write_all(payload.as_bytes())
+            .await
+            .expect("write flood");
+        writer.shutdown().await.expect("close writer");
+        reader_task.await.expect("reader task");
+
+        let event = rx.recv().await.expect("one bounded batch");
+        assert_eq!(event.lines.len(), COMMAND_JOB_OUTPUT_BATCH_LINES);
+        assert_eq!(event.dropped_count, 1_000 - COMMAND_JOB_OUTPUT_BATCH_LINES);
+        assert!(rx.try_recv().is_err());
+    }
+
+    #[tokio::test]
+    async fn unterminated_output_line_is_bounded_and_reported() {
+        let (mut writer, reader) = tokio::io::duplex(64 * 1024);
+        let (tx, mut rx) = mpsc::channel(1);
+        let reader_task = tokio::spawn(stream_reader(
+            reader,
+            OutputChannel::Stdout,
+            tx,
+            Arc::new(AtomicUsize::new(0)),
+        ));
+        let writer_task = tokio::spawn(async move {
+            writer
+                .write_all(&vec![b'x'; COMMAND_JOB_MAX_BYTES_PER_CHANNEL * 2])
+                .await
+                .unwrap();
+            writer.shutdown().await.unwrap();
+        });
+
+        writer_task.await.unwrap();
+        reader_task.await.unwrap();
+        let event = rx.recv().await.unwrap();
+
+        assert_eq!(event.lines.len(), 1);
+        assert!(event.lines[0].len() <= COMMAND_JOB_MAX_BYTES_PER_CHANNEL);
+        assert!(event.lines[0].ends_with('…'));
+        assert_eq!(event.dropped_count, 1);
     }
 }

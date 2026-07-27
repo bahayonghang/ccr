@@ -1,0 +1,6 @@
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Cross-child data flow and integration review"}
+{"file":".trellis/spec/ccr/backend/desktop-command-policy.md","reason":"Process capability and lifecycle invariants"}
+{"file":".trellis/spec/ccr/backend/typed-ipc-bindings.md","reason":"Generated IPC and drift contract"}
+{"file":".trellis/spec/ccr-core/backend/atomic-writer.md","reason":"Durable secret-safe mutation invariants"}
+{"file":".trellis/spec/ccr-sync/backend/backend-guidelines.md","reason":"Network and filesystem sync boundaries"}
+{"file":".trellis/spec/ccr-db/backend/backend-guidelines.md","reason":"Migration and database correctness"}

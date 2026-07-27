@@ -30,6 +30,11 @@ const ROOT_LONG_ABOUT: &str = "\
 const ROOT_AFTER_LONG_HELP: &str = "\
 常用任务:
 
+  初始化当前项目
+    先看: ccr project init --help
+    交互初始化: ccr project init
+    使用 Trellis 默认值: ccr -y project init
+
   切换平台
     先看: ccr platform --help
     查看平台: ccr platform list
@@ -65,6 +70,47 @@ const HELP_AFTER_LONG_HELP: &str = "\
   ccr help platform
   ccr help codex auth
   ccr help opencode auth";
+
+const PROJECT_LONG_ABOUT: &str = "\
+在当前工作目录中依次准备 Git 仓库、Trellis 工作流和 Agent 目录忽略规则。
+
+如果当前目录位于父级 Git 仓库中，会保留该仓库边界，不创建嵌套仓库。";
+
+const PROJECT_AFTER_LONG_HELP: &str = "\
+常用任务:
+  交互式初始化
+    ccr project init
+
+  使用 Trellis 默认值进行非交互初始化
+    ccr -y project init
+
+阶段顺序:
+  1. 检测 Git 工作树；必要时运行 git init
+  2. 在当前目录运行 trellis init
+  3. 向 .gitignore 合并 .agents/、.claude/、.codex/
+
+边界:
+  - 必须预先安装 git 和 trellis
+  - Trellis 的用户名和 Agent 平台选择由 trellis init 自己处理
+  - 任一阶段失败后可在同一目录安全重试";
+
+const PROJECT_INIT_LONG_ABOUT: &str = "\
+初始化当前工作目录的项目工作流。
+
+CCR 先检测或初始化 Git，再继承当前终端运行 trellis init，最后以原子写入方式把
+.agents/、.claude/ 和 .codex/ 合并到当前目录的 .gitignore。已有内容和换行风格会保留。";
+
+const PROJECT_INIT_AFTER_LONG_HELP: &str = "\
+用法:
+  交互选择 Trellis 用户名和 Agent 平台: ccr project init
+  将全局 --yes 转发给 Trellis: ccr -y project init
+
+父仓库:
+  当前目录位于父级 Git 工作树时会显示仓库根并跳过 git init；Trellis 和
+  .gitignore 仍作用于调用命令时的当前目录。
+
+恢复:
+  Git、Trellis 或 .gitignore 阶段失败后不会回滚已完成阶段；修复原因后重复运行即可。";
 
 const PLATFORM_LONG_ABOUT: &str = "\
 查看当前平台、切换平台、管理每个平台的 profile。";
@@ -204,11 +250,25 @@ pub fn build_cli_command() -> Command {
         .after_long_help(ROOT_AFTER_LONG_HELP)
         .subcommand_help_heading("Commands")
         .mut_subcommand("help", configure_help_command)
+        .mut_subcommand("project", configure_project_command)
         .mut_subcommand("platform", configure_platform_command)
         .mut_subcommand("version", configure_version_command)
         .mut_subcommand("codex", configure_codex_command)
         .mut_subcommand("opencode", configure_opencode_command)
         .mut_subcommand("clean", configure_clean_command)
+}
+
+fn configure_project_command(cmd: Command) -> Command {
+    cmd.help_template(SUBCOMMAND_HELP_TEMPLATE)
+        .long_about(PROJECT_LONG_ABOUT)
+        .after_long_help(PROJECT_AFTER_LONG_HELP)
+        .mut_subcommand("init", configure_project_init_command)
+}
+
+fn configure_project_init_command(cmd: Command) -> Command {
+    cmd.help_template(SUBCOMMAND_HELP_TEMPLATE)
+        .long_about(PROJECT_INIT_LONG_ABOUT)
+        .after_long_help(PROJECT_INIT_AFTER_LONG_HELP)
 }
 
 fn configure_help_command(cmd: Command) -> Command {

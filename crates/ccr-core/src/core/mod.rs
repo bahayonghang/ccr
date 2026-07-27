@@ -19,6 +19,7 @@ pub mod guarded_write;
 pub mod http;
 pub mod lock;
 pub mod logging;
+pub mod process_gateway;
 pub mod secret;
 pub mod sqlite;
 

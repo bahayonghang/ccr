@@ -19,6 +19,8 @@
 - `TestCodexEnv::ccr_codex_dir(&self) -> &Path`
 - `TestCodexEnv::codex_dir(&self) -> &Path`
 - `TestCodexEnv::lock_dir(&self) -> &Path`
+- `TestCodexEnv::set_env(&mut self, key, value)`
+- `TestCodexEnv::remove_env(&mut self, key)`
 
 ### 3. Contracts
 - `TestCodexEnv::new()` acquires the crate-local process-wide test env lock and holds it until `Drop`.
@@ -27,6 +29,7 @@
 - `TestCodexEnv::new()` sets `CCR_CODEX_DIR` to the isolated `.codex` runtime path.
 - `TestCodexEnv::new()` sets `CCR_LOCK_DIR` to the isolated `.locks` path.
 - `Drop` restores every captured environment variable in reverse order while the env lock is still held.
+- `set_env` / `remove_env` may add narrow Codex-runtime keys such as `CODEX_HOME` while the same lock is held.
 - The fixture is intentionally narrow; it must not grow to cover install-detection keys such as `PATH` or `CARGO_HOME`.
 
 ### 4. Validation & Error Matrix

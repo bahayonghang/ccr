@@ -126,7 +126,7 @@ struct WafRecoveryContext {
 /// WebView 内 JS 调用此命令将 cookie 字符串投递给等待的 open_waf_login。
 ///
 /// 此命令由注入的 JS 脚本通过 Tauri IPC invoke 调用，不应由前端直接调用。
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn waf_deliver_cookie(provider_id: String, cookie: String) -> Result<(), String> {
     if cookie.trim().is_empty() {
         return Ok(());
@@ -246,7 +246,7 @@ fn build_recovery_result(
 ///
 /// 返回结构化恢复结果，不包含 cookie 值。
 /// 只有 provider required cookies 齐全后才会写入 WafCookieManager。
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn open_waf_login(
     app: tauri::AppHandle,
     login_url: String,
@@ -401,7 +401,7 @@ pub async fn open_waf_login(
 }
 
 /// 查询指定 provider 的 WAF cookie 缓存状态。
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn get_waf_cookie_status(provider_id: String) -> Result<WafCookieStatus, String> {
     let provider_id_for_query = provider_id.clone();
 
@@ -453,7 +453,7 @@ pub async fn get_waf_cookie_status(provider_id: String) -> Result<WafCookieStatu
 }
 
 /// 验证缓存的 WAF Cookie 是否能通过用户信息接口。
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn validate_waf_cookie_for_account(
     state: State<'_, AppState>,
     account_id: String,

@@ -2,13 +2,16 @@
 name = "ccr-sync"
 version.workspace = true
 edition = "2024"
-rust-version = "1.90"
+rust-version = "1.95"
 authors = ["Yonghang Li"]
 description = "CCR WebDAV sync domain and folder registry"
 license = "MIT"
 repository = "https://github.com/bahayonghang/ccr"
 
 [dependencies]
+aes-gcm = { workspace = true }
+argon2 = { workspace = true }
+base64 = { workspace = true }
 ccr-config = { path = "../ccr-config" }
 ccr-core = { path = "../ccr-core" }
 chrono = { workspace = true }

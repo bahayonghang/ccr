@@ -60,15 +60,19 @@ pub struct TrayAnchor {
 }
 
 /// Tray 紧凑面板的手动位置（物理像素）
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq, ts_rs::TS)]
+#[ts(export, export_to = "../../src/types/generated/shell/")]
 pub struct TrayPanelManualPosition {
     pub x: i32,
     pub y: i32,
 }
 
 /// Tray 紧凑面板的定位模式
-#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize, PartialEq, Eq, Default)]
+#[derive(
+    Debug, Clone, Copy, serde::Serialize, serde::Deserialize, PartialEq, Eq, Default, ts_rs::TS,
+)]
 #[serde(rename_all = "snake_case")]
+#[ts(export, export_to = "../../src/types/generated/shell/")]
 pub enum TrayPanelPlacementMode {
     #[default]
     Anchored,
@@ -76,7 +80,8 @@ pub enum TrayPanelPlacementMode {
 }
 
 /// Tray 紧凑面板的持久化布局状态
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq, ts_rs::TS)]
+#[ts(export, export_to = "../../src/types/generated/shell/")]
 pub struct TrayPanelPlacementState {
     #[serde(default)]
     pub placement_mode: TrayPanelPlacementMode,
@@ -182,7 +187,8 @@ pub struct CacheEntry {
 }
 
 /// 桌面壳层偏好
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq, ts_rs::TS)]
+#[ts(export, export_to = "../../src/types/generated/shell/")]
 pub struct DesktopShellPreferences {
     #[serde(default = "default_confirm_before_exit")]
     pub confirm_before_exit: bool,

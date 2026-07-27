@@ -17,6 +17,8 @@ use tauri::State;
 use tempfile::NamedTempFile;
 use tokio::time::{Duration, sleep};
 
+use super::OpenJsonValueDto;
+
 const SOURCES_FILENAME: &str = "sources.json";
 const INSTALLS_FILENAME: &str = "installs.json";
 const CATALOGS_DIR: &str = "catalogs";
@@ -1126,19 +1128,21 @@ async fn fetch_repo_metadata(
     github_get_json::<GitHubRepoPayload>(state, &repo_url).await
 }
 
-#[tauri::command]
-pub async fn codex_list_agent_sources() -> Result<CodexAgentSourcesResponse, String> {
+#[ccr_tauri_command_macros::command]
+pub async fn codex_list_agent_sources() -> Result<OpenJsonValueDto, String> {
     let sources = load_sources()?;
-    Ok(CodexAgentSourcesResponse {
+    serde_json::to_value(CodexAgentSourcesResponse {
         sources: sources.sources.iter().map(source_record).collect(),
     })
+    .map_err(|error| format!("序列化 Codex agent sources 失败: {error}"))?
+    .try_into()
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_add_agent_source(
     state: State<'_, AppState>,
     request: CodexAgentSourceRequest,
-) -> Result<CodexAgentSourceRecord, String> {
+) -> Result<OpenJsonValueDto, String> {
     let repo = parse_github_repo(&request.url)?;
     let mut sources = load_sources()?;
 
@@ -1155,7 +1159,9 @@ pub async fn codex_add_agent_source(
         let _ = refresh_source_with_error_capture(&state, existing).await?;
         let response = source_record(existing);
         save_sources(&sources)?;
-        return Ok(response);
+        return serde_json::to_value(response)
+            .map_err(|error| format!("序列化 Codex agent source 失败: {error}"))?
+            .try_into();
     }
 
     let default_branch = fetch_repo_metadata(&state, &repo)
@@ -1182,10 +1188,12 @@ pub async fn codex_add_agent_source(
         .sources
         .sort_by(|left, right| left.repo_url.cmp(&right.repo_url));
     save_sources(&sources)?;
-    Ok(source_record(&entry))
+    serde_json::to_value(source_record(&entry))
+        .map_err(|error| format!("序列化 Codex agent source 失败: {error}"))?
+        .try_into()
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_remove_agent_source(source_id: String) -> Result<(), String> {
     let mut sources = load_sources()?;
     let initial_len = sources.sources.len();
@@ -1198,11 +1206,11 @@ pub async fn codex_remove_agent_source(source_id: String) -> Result<(), String> 
     Ok(())
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_sync_agent_source(
     state: State<'_, AppState>,
     source_id: String,
-) -> Result<CodexAgentSourceRecord, String> {
+) -> Result<OpenJsonValueDto, String> {
     let mut sources = load_sources()?;
     let source = sources
         .sources
@@ -1220,14 +1228,16 @@ pub async fn codex_sync_agent_source(
     let _ = refresh_source_with_error_capture(&state, source).await?;
     let response = source_record(source);
     save_sources(&sources)?;
-    Ok(response)
+    serde_json::to_value(response)
+        .map_err(|error| format!("序列化 Codex agent source 失败: {error}"))?
+        .try_into()
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_get_agent_source_catalog(
     state: State<'_, AppState>,
     source_id: String,
-) -> Result<CodexAgentSourceCatalogResponse, String> {
+) -> Result<OpenJsonValueDto, String> {
     let mut sources = load_sources()?;
     let source_index = sources
         .sources
@@ -1255,14 +1265,16 @@ pub async fn codex_get_agent_source_catalog(
         .get(source_index)
         .ok_or_else(|| format!("Source '{}' 不存在", source_id))?;
     let response = catalog_with_installs(source, &catalog, &installs.installs);
-    Ok(response)
+    serde_json::to_value(response)
+        .map_err(|error| format!("序列化 Codex agent source catalog 失败: {error}"))?
+        .try_into()
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_install_source_agent(
     state: State<'_, AppState>,
     request: CodexAgentSourceInstallRequest,
-) -> Result<Value, String> {
+) -> Result<OpenJsonValueDto, String> {
     let sources = load_sources()?;
     let source = sources
         .sources
@@ -1359,19 +1371,20 @@ pub async fn codex_install_source_agent(
     save_installs(&installs)?;
     invalidate_codex_dashboard_overview_cache(&state).await;
 
-    Ok(json!({
+    json!({
         "message": format!("Installed '{}' from {}", record.name, source.repo_url),
         "agent": record,
         "sourceId": source.id,
         "targetPath": target_path.to_string_lossy().to_string(),
-    }))
+    })
+    .try_into()
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_sync_source_install(
     state: State<'_, AppState>,
     request: CodexAgentSourceSyncRequest,
-) -> Result<Value, String> {
+) -> Result<OpenJsonValueDto, String> {
     let mut installs = load_installs()?;
     let install = installs
         .installs
@@ -1404,10 +1417,11 @@ pub async fn codex_sync_source_install(
 
     match (remote_changed, local_changed) {
         (false, false) => {
-            return Ok(json!({
+            return json!({
                 "message": "No upstream or local changes detected",
                 "status": "ok",
-            }));
+            })
+            .try_into();
         }
         (false, true) => {
             return Err(
@@ -1443,17 +1457,18 @@ pub async fn codex_sync_source_install(
     save_installs(&installs)?;
     invalidate_codex_dashboard_overview_cache(&state).await;
 
-    Ok(json!({
+    json!({
         "message": format!("Synced '{}' from upstream", installed_name),
         "status": "updated",
         "targetPath": target_path_text,
-    }))
+    })
+    .try_into()
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_accept_local_source_install(
     request: CodexAgentSourceInstallActionRequest,
-) -> Result<Value, String> {
+) -> Result<OpenJsonValueDto, String> {
     let mut installs = load_installs()?;
     let install = installs
         .installs
@@ -1468,16 +1483,17 @@ pub async fn codex_accept_local_source_install(
     let installed_name = install.installed_name.clone();
     save_installs(&installs)?;
 
-    Ok(json!({
+    json!({
         "message": format!("Accepted local changes for '{}'", installed_name),
         "status": "local-accepted",
-    }))
+    })
+    .try_into()
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_untrack_source_install(
     request: CodexAgentSourceInstallActionRequest,
-) -> Result<Value, String> {
+) -> Result<OpenJsonValueDto, String> {
     let mut installs = load_installs()?;
     let initial_len = installs.installs.len();
     let removed = installs
@@ -1495,10 +1511,11 @@ pub async fn codex_untrack_source_install(
     }
     save_installs(&installs)?;
 
-    Ok(json!({
+    json!({
         "message": format!("Stopped tracking '{}'", removed),
         "status": "untracked",
-    }))
+    })
+    .try_into()
 }
 
 #[cfg(test)]

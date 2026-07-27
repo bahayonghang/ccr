@@ -166,7 +166,7 @@ export function useCodexDashboard() {
     }
 
     overviewInflight = measureAsync('codex:overview-fetch', () => (
-      getCodexDashboardOverview<CodexDashboardOverview>({ force })
+      getCodexDashboardOverview({ force })
     ))
       .then((result) => {
         sharedOverview = result
@@ -190,7 +190,7 @@ export function useCodexDashboard() {
     }
 
     usageInflight = measureAsync('codex:usage-summary-fetch', () => (
-      getCodexDashboardUsageSummary<CodexDashboardUsageSummary>({ force })
+      getCodexDashboardUsageSummary({ force })
     ))
       .then((result) => {
         sharedUsageSummary = result
@@ -214,7 +214,7 @@ export function useCodexDashboard() {
     }
 
     versionInflight = measureAsync('codex:version-fetch', () => (
-      getCliVersion<CliVersionEntry>({
+      getCliVersion({
         tool: 'codex',
         timeoutMs: 1_500,
         force,

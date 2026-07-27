@@ -1,0 +1,31 @@
+{
+  "id": "ccr-codex-fix-provider-auth-diagnosis",
+  "name": "ccr-codex-fix-provider-auth-diagnosis",
+  "title": "优化 ccr codex fix 的自定义 Provider 凭据诊断",
+  "description": "让 ccr codex fix 区分残留进程、CCR profile 与 Codex runtime 漂移、以及 Provider 远端拒绝凭据，并对可本地修复的问题给出安全动作。",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-07-22",
+  "completedAt": "2026-07-23",
+  "branch": null,
+  "base_branch": "dev",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [
+    "crates/ccr-cli/src/commands/codex/fix.rs",
+    "crates/ccr-codex/src/platforms/codex.rs",
+    "crates/ccr-codex/src/services/codex_auth_service.rs",
+    "crates/ccr-codex/src/services/codex_runtime_service.rs"
+  ],
+  "notes": "已决策：裸 ccr codex fix 不重写 runtime；仅显式 --repair-runtime 可重放当前 profile。",
+  "meta": {}
+}

@@ -5,21 +5,26 @@
  * 以保持 `systemApi` 命名空间对外契约（api/index.ts 的 systemApi 指向此文件）。
  */
 
-import { invoke } from '@tauri-apps/api/core'
-import { isRecord, pickRecord, type UnknownRecord } from '../_shared'
-import type { VersionInfoResponse } from '../tauri'
+import { invoke } from '@/api/invokeRuntime'
+import { type UnknownRecord } from '../_shared'
+import {
+  checkVersion as checkVersionTyped,
+  getSystemInfo as getSystemInfoTyped,
+} from '../generated/systemInfo'
+import {
+  getCliVersion as getCliVersionTyped,
+  getCliVersions as getCliVersionsTyped,
+} from '../generated/systemExtended'
+import type { CliVersionOptions } from '@/types/generated/system/CliVersionOptions'
+import type { CliVersionsOptions } from '@/types/generated/system/CliVersionsOptions'
 
 // ── System 信息与版本 ──
 
 /** 获取系统信息（OS / arch / 时区 / 各 CLI 版本） */
-export const getSystemInfo = async <T = VersionInfoResponse>(): Promise<T> => {
-  return invoke('get_system_info')
-}
+export const getSystemInfo = getSystemInfoTyped
 
 /** 检查版本更新 */
-export const checkVersion = async <T = VersionInfoResponse>(): Promise<T> => {
-  return invoke('check_version')
-}
+export const checkVersion = checkVersionTyped
 
 /** 健康检查 */
 export const healthCheck = async <T = UnknownRecord>(): Promise<T> => {
@@ -27,9 +32,7 @@ export const healthCheck = async <T = UnknownRecord>(): Promise<T> => {
 }
 
 /** 获取版本号（对应 check_version 命令） */
-export const getVersion = async <T = UnknownRecord>(): Promise<T> => {
-  return invoke('check_version')
-}
+export const getVersion = checkVersionTyped
 
 /** 检查更新（checkVersion 别名） */
 export const checkUpdate = checkVersion
@@ -41,32 +44,21 @@ export const updateCCR = async <T = UnknownRecord>(_branch?: string): Promise<T>
 
 // ── CLI 版本探测 ──
 
-export interface CliVersionsCommandOptions {
-  mode?: 'fast' | 'full'
-  timeoutMs?: number
-  parallelism?: number
+export type CliVersionsCommandOptions = CliVersionsOptions & {
   /** 兼容历史调用参数（timeout → timeoutMs） */
   timeout?: number
 }
 
-export interface CliVersionCommandOptions {
-  tool: string
-  timeoutMs?: number
-  force?: boolean
-}
+export type CliVersionCommandOptions = CliVersionOptions
 
 /**
  * 获取所有 CLI 版本。
  *
- * 后端返回格式存在历史差异：
- * 1) 新格式：`{ entries: [...] }` 或 `{ versions: [...] }`（数组）
- * 2) 旧格式：`{ versions: { claude: "...", codex: "..." } }`（键值对）
- *
- * 此函数统一归一化为 `{ ..., versions: CliVersionEntry[] }`。
+ * 响应同时保留结构化 `entries` 和兼容旧调用方的 `versions` 字符串映射。
  */
-export const getCliVersions = async <T = UnknownRecord>(
+export const getCliVersions = async (
   options?: CliVersionsCommandOptions,
-): Promise<T> => {
+) => {
   const normalizedOptions = options
     ? {
         mode: options.mode,
@@ -75,50 +67,13 @@ export const getCliVersions = async <T = UnknownRecord>(
       }
     : undefined
 
-  const raw = await invoke<unknown>('get_cli_versions', { options: normalizedOptions })
-  if (!isRecord(raw)) {
-    return raw as T
-  }
-
-  const entries = Array.isArray(raw.entries)
-    ? raw.entries
-    : Array.isArray(raw.versions)
-      ? raw.versions
-      : Object.entries(pickRecord(raw, 'versions')).map(([platform, value]) => {
-          const text = String(value ?? '')
-          if (!text || text === 'not found') {
-            return {
-              platform,
-              installed: false,
-              status: 'not_installed',
-            }
-          }
-          return {
-            platform,
-            installed: true,
-            version: text,
-            status: 'ok',
-          }
-        })
-
-  return {
-    ...raw,
-    versions: entries,
-  } as T
+  return getCliVersionsTyped(normalizedOptions)
 }
 
 /** 获取单个工具的 CLI 版本 */
-export const getCliVersion = async <T = UnknownRecord>(
+export const getCliVersion = async (
   options: CliVersionCommandOptions,
-): Promise<T> => {
-  const normalizedOptions = {
-    tool: options.tool,
-    timeoutMs: options.timeoutMs,
-    force: options.force,
-  }
-
-  return invoke('get_cli_version', { options: normalizedOptions })
-}
+) => getCliVersionTyped(options)
 
 // ── Events / Runtime 指标（随 system 命名空间暴露，真实现见 domains/events） ──
 

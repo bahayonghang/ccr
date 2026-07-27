@@ -1952,3 +1952,36 @@ implement.md 第 7 项闭环。7a:UsageLogsTab loading 态从单行"加载中"�
 ### Next Steps
 
 - None - task complete
+
+
+## Session 47: 完善 ccr codex fix 本地运行时诊断
+
+**Date**: 2026-07-23
+**Task**: 完善 ccr codex fix 本地运行时诊断
+**Branch**: `dev`
+
+### Summary
+
+为 ccr codex fix 增加 profile/runtime/credential 分层诊断、显式 --repair-runtime、doctor 快照竞态与脱敏处理，并补齐状态矩阵测试、双语文档和代码规范。相关 Rust 测试、fmt、lint-strict 与 docs-check 通过；version-check 仍被任务外 ccr-ui/README.md 旧版本徽章阻塞。
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `a92d15ec` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

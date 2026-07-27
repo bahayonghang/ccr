@@ -90,6 +90,7 @@ impl BackupManifest {
 /// 多类型增量备份服务
 pub struct MultiBackupService {
     ccr_root: PathBuf,         // ~/.ccr
+    home_dir: PathBuf,         // user home or the parent of an explicit CCR root
     backup_root: PathBuf,      // ~/.ccr/backups
     manifest_path: PathBuf,    // ~/.ccr/backups/multi_manifest.json
     lock_manager: LockManager, // 备份区域的锁目录
@@ -101,12 +102,18 @@ impl MultiBackupService {
     /// 备份根目录为 CCR_ROOT/backups 或 ~/.ccr/backups
     pub fn with_default() -> Result<Self> {
         let ccr_root = Self::detect_ccr_root()?;
+        let home_dir = if std::env::var_os("CCR_ROOT").is_some() {
+            ccr_root.parent().unwrap_or(&ccr_root).to_path_buf()
+        } else {
+            dirs::home_dir().ok_or_else(|| CcrError::ConfigError("无法获取用户主目录".into()))?
+        };
         let backup_root = ccr_root.join("backups");
         let manifest_path = backup_root.join("multi_manifest.json");
         let lock_dir = backup_root.join(".locks");
         let lock_manager = LockManager::new(lock_dir);
         Ok(Self {
             ccr_root,
+            home_dir,
             backup_root,
             manifest_path,
             lock_manager,
@@ -115,12 +122,14 @@ impl MultiBackupService {
 
     /// 使用指定 CCR 根目录构建服务（测试与自定义场景）
     pub fn with_root(ccr_root: PathBuf) -> Result<Self> {
+        let home_dir = ccr_root.parent().unwrap_or(&ccr_root).to_path_buf();
         let backup_root = ccr_root.join("backups");
         let manifest_path = backup_root.join("multi_manifest.json");
         let lock_dir = backup_root.join(".locks");
         let lock_manager = LockManager::new(lock_dir);
         Ok(Self {
             ccr_root,
+            home_dir,
             backup_root,
             manifest_path,
             lock_manager,
@@ -222,8 +231,7 @@ impl MultiBackupService {
     fn collect_sources(&self) -> Result<Vec<BackupSource>> {
         let mut sources = Vec::new();
         let ccr_root = self.ccr_root.clone();
-        let home =
-            dirs::home_dir().ok_or_else(|| CcrError::ConfigError("无法获取用户主目录".into()))?;
+        let home = &self.home_dir;
 
         // 1) CCR config.toml（文件备份） → backups/ccr/config
         let ccr_config = ccr_root.join("config.toml");
@@ -485,22 +493,18 @@ fn should_exclude_from_backup(name: &str) -> bool {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
-    use tempfile::tempdir;
 
     #[test]
-    #[ignore = "Slow incremental backup test"]
     fn test_multi_backup_basic_and_incremental() {
-        let tmp = tempdir().unwrap();
-        let ccr_root = tmp.path().join(".ccr");
-        fs::create_dir_all(&ccr_root).unwrap();
+        let home = crate::test_support::TestHome::new_with_home_env();
+        let ccr_root = home.root().to_path_buf();
 
         // 创建 config.toml
         let config_path = ccr_root.join("config.toml");
         fs::write(&config_path, b"default_platform = 'claude'\n").unwrap();
 
-        // 创建统一模式平台目录（claude）
-        let claude_dir = ccr_root.join("platforms").join("claude");
-        fs::create_dir_all(&claude_dir).unwrap();
+        // TestHome isolates the real HOME/USERPROFILE path discovered by the service.
+        let claude_dir = home.home().join(".claude");
         fs::write(claude_dir.join("settings.json"), b"{\"env\":{}}\n").unwrap();
 
         let svc = MultiBackupService::with_root(ccr_root.clone()).unwrap();
@@ -561,8 +565,7 @@ mod tests {
         }
 
         // 第二次未修改，不应产生新的变化
-        // 注意：只检查测试完全控制的 ccr_config 项，因为真实的 ~/.claude 目录
-        // 可能包含正在变化的文件（日志、缓存等），导致测试不稳定
+        // The fixture owns both config and platform paths, so parallel host activity cannot leak in.
         let summary2 = svc.backup_all().unwrap();
         let ccr_config_unchanged = summary2
             .items

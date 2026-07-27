@@ -1,0 +1,4 @@
+{"file":".trellis/spec/ccr/backend/test-fixtures.md","reason":"Flood timeout descendant and spoof fixtures"}
+{"file":".trellis/spec/ccr/backend/desktop-command-policy.md","reason":"Trusted executable and cleanup audit"}
+{"file":".trellis/spec/ccr/backend/typed-ipc-bindings.md","reason":"Delta event wire review"}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Gateway caller migration review"}

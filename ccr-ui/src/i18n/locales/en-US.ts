@@ -2254,6 +2254,7 @@ export default {
       success: 'Success',
       failed: 'Failed',
       cancelled: 'Cancelled',
+      cleanup_failed: 'Cleanup failed',
       unavailable: 'Unavailable',
     },
   },
@@ -2360,6 +2361,7 @@ export default {
       total: '{count} assets',
       sensitiveHint: 'Sensitive values are masked',
       sensitive: 'Sensitive',
+      encryptionV2: 'v2 end-to-end encrypted',
       itemCount: '{count} items',
       kindDirectory: 'Directory',
       kindFile: 'File',
@@ -2375,8 +2377,18 @@ export default {
       safetyTitle: 'Safety boundary',
       safetyAllowlist:
         'Only fixed allowlist items sync; never the full ~/.claude or ~/.codex directories.',
-      safetyBackup: 'Pull creates a timestamped backup before replacing an existing local target.',
+      safetyBackup: 'Pull uses a staging transaction and restores the original content on failure.',
       safetyMask: 'API keys, tokens, passwords, and similar secrets are never shown in summaries.',
+    },
+    passphrase: {
+      title: 'Enter sync passphrase',
+      description: 'The passphrase is used only for this sync operation.',
+      allAssets: 'All sensitive assets',
+      label: 'Independent sync passphrase',
+      placeholder: 'Enter the cross-device restore passphrase',
+      migrateTitle: 'Allow plaintext v1 read',
+      migrateDescription: 'Use only for explicit legacy migration; new sensitive assets remain encrypted v2.',
+      continue: 'Continue sync',
     },
     assetGroups: {
       ccr: {

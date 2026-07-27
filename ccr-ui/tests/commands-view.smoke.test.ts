@@ -1,6 +1,8 @@
 import { createApp, nextTick, ref } from 'vue'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { CommandInfo, CommandJobSnapshot } from '@/types'
+import type { CommandInfo, CommandJobDelta, CommandJobSnapshot } from '@/types'
+
+type CommandJobEventPayload = CommandJobSnapshot | CommandJobDelta
 
 const apiMocks = vi.hoisted(() => ({
   cancelCcrCommandJob: vi.fn(),
@@ -19,9 +21,9 @@ const uiStateMocks = vi.hoisted(() => ({
 }))
 
 const eventMocks = vi.hoisted(() => ({
-  handlers: new Map<string, (event: { payload: CommandJobSnapshot }) => void>(),
+  handlers: new Map<string, (event: { payload: CommandJobEventPayload }) => void>(),
   unlisten: vi.fn(),
-  listen: vi.fn((event: string, handler: (event: { payload: CommandJobSnapshot }) => void) => {
+  listen: vi.fn((event: string, handler: (event: { payload: CommandJobEventPayload }) => void) => {
     eventMocks.handlers.set(event, handler)
     return Promise.resolve(eventMocks.unlisten)
   }),
@@ -124,6 +126,8 @@ const runningSnapshot: CommandJobSnapshot = {
   stdout_lines: ['\u001B[32mstatus ok\u001B[0m', '| profile | active | source |'],
   stderr_lines: [],
   system_lines: ['Process started'],
+  truncated: false,
+  dropped_lines: 0,
   error: null,
 }
 
@@ -219,6 +223,19 @@ describe('CommandsView smoke', () => {
       expect(el.querySelector('.commands-ledger__metrics')).toBeTruthy()
       expect(el.querySelector('.commands-terminal')).toBeTruthy()
       expect(el.querySelector('.commands-terminal__text .ansi-green-fg')).toBeTruthy()
+
+      eventMocks.handlers.get('commands:job-progress')?.({
+        payload: {
+          job_id: runningSnapshot.job_id,
+          seq: 0,
+          channel: 'stderr',
+          lines: ['bounded delta'],
+          dropped_count: 2,
+        },
+      })
+      await flush()
+
+      expect(el.textContent).toContain('bounded delta')
 
       eventMocks.handlers.get('commands:job-finished')?.({
         payload: {

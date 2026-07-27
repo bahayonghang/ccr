@@ -8,7 +8,7 @@ import {
   codexOpenExternalUrl,
   codexReleaseOAuthPort,
 } from '@/api'
-import type { CodexAuthMutationResponse, CodexOAuthStartResponse } from '@/types'
+import type { CodexAuthMutationResponse } from '@/types'
 import { useTf } from '@/composables/useTf'
 import { useUIStore } from '@/stores/ui'
 import { extractErrorMessage } from '@/utils/errorHandler'
@@ -69,7 +69,7 @@ export function useCodexOAuthFlow(deps: {
       return
     }
     try {
-      oauthPortBusy.value = await codexIsOAuthPortInUse<boolean>()
+      oauthPortBusy.value = await codexIsOAuthPortInUse()
     } catch (error) {
       logger.error('Failed to check oauth port:', error)
       oauthPortBusy.value = false
@@ -79,13 +79,21 @@ export function useCodexOAuthFlow(deps: {
   const handleReleaseOauthPort = async () => {
     try {
       oauthBusy.value = true
-      const killed = await codexReleaseOAuthPort<number>()
+      const report = await codexReleaseOAuthPort()
       await refreshOauthPortStatus()
+      if (report.unknownPids.length > 0) {
+        addAccountError.value = tf(
+          'codex.auth.oauth.portOwnedByOtherProcess',
+          'Port 1455 is owned by another process (PID: {pids}). Close that process manually.',
+          { pids: report.unknownPids.join(', ') }
+        )
+        return
+      }
       uiStore.showSuccess(
         tf(
           'codex.auth.oauth.releasePortSuccess',
           'Released the callback port ({count} process(es)).',
-          { count: killed }
+          { count: report.cancelRequested }
         )
       )
     } catch (error) {
@@ -115,7 +123,7 @@ export function useCodexOAuthFlow(deps: {
         return
       }
 
-      const result = await codexOAuthLoginStart<CodexOAuthStartResponse>()
+      const result = await codexOAuthLoginStart()
       oauthLoginId.value = result.loginId
       oauthAuthUrl.value = result.authUrl
       oauthPending.value = true
@@ -165,7 +173,7 @@ export function useCodexOAuthFlow(deps: {
     }
     try {
       oauthBusy.value = true
-      const result = await codexOAuthLoginCompleted<CodexAuthMutationResponse>(
+      const result = await codexOAuthLoginCompleted(
         loginId,
         effectivePreferredAccountName.value
       )

@@ -1,45 +1,42 @@
 import { isTauriRuntime } from '@/utils/tauriRuntime'
+import {
+  getCurrentEnvironment as getCurrentEnvironmentTyped,
+  listEnvironments as listEnvironmentsTyped,
+  refreshEnvironments as refreshEnvironmentsTyped,
+  switchEnvironment as switchEnvironmentTyped,
+} from '../generated/environment'
+import type { EnvironmentInfo } from '@/types/generated/environment/EnvironmentInfo'
+import {
+  shellBeginTrayPanelDrag as shellBeginTrayPanelDragTyped,
+  shellCompleteTrayPanelDrag as shellCompleteTrayPanelDragTyped,
+  shellDetectSkillportApp,
+  shellDetectSkillsManageApp,
+  shellGetPreferences as shellGetPreferencesTyped,
+  shellOpenSkillportApp,
+  shellOpenSkillsManageApp,
+  shellRequestQuit as shellRequestQuitTyped,
+  shellSetPreferences as shellSetPreferencesTyped,
+  shellShowMainWindow as shellShowMainWindowTyped,
+} from '../generated/shell'
+import type { DesktopShellPreferences as GeneratedDesktopShellPreferences } from '@/types/generated/shell/DesktopShellPreferences'
+import type { SkillportAppStatus as GeneratedSkillportAppStatus } from '@/types/generated/shell/SkillportAppStatus'
+import type { TrayPanelManualPosition as GeneratedTrayPanelManualPosition } from '@/types/generated/shell/TrayPanelManualPosition'
+import type { TrayPanelPlacementState as GeneratedTrayPanelPlacementState } from '@/types/generated/shell/TrayPanelPlacementState'
 
 const SKIP_EXIT_CONFIRM_KEY = 'ccr_skip_exit_confirm'
 
-export interface DesktopShellPreferences {
-  confirm_before_exit: boolean
-  close_to_tray: boolean
-  open_panel_on_tray_click: boolean
-  tray_panel: TrayPanelPlacementState
-}
-
-export interface TrayPanelManualPosition {
-  x: number
-  y: number
-}
-
-export interface TrayPanelPlacementState {
-  placement_mode: 'anchored' | 'manual'
-  manual_position: TrayPanelManualPosition | null
-}
-
-export type SkillportAppPlatform = 'windows' | 'macos' | 'other'
-export type SkillportAppSource = 'bundle_id' | 'registry' | 'known_path' | 'unsupported' | 'not_found'
-
-export interface SkillportAppStatus {
-  supported: boolean
-  installed: boolean
-  platform: SkillportAppPlatform
-  source: SkillportAppSource
-}
+export type DesktopShellPreferences = GeneratedDesktopShellPreferences
+export type TrayPanelManualPosition = GeneratedTrayPanelManualPosition
+export type TrayPanelPlacementState = GeneratedTrayPanelPlacementState
+export type SkillportAppStatus = GeneratedSkillportAppStatus
+export type SkillportAppPlatform = SkillportAppStatus['platform']
+export type SkillportAppSource = SkillportAppStatus['source']
 
 export type SkillsManageAppPlatform = SkillportAppPlatform
 export type SkillsManageAppSource = SkillportAppSource
 export type SkillsManageAppStatus = SkillportAppStatus
 
-export interface EnvironmentInfo {
-  id: string
-  name: string
-  env_type: string
-  is_active: boolean
-  description: string
-}
+export type { EnvironmentInfo }
 
 export const isTauriEnvironment = (): boolean => {
   return isTauriRuntime()
@@ -47,15 +44,6 @@ export const isTauriEnvironment = (): boolean => {
 
 export const getEnvironmentName = (): 'tauri' | 'web' => {
   return isTauriEnvironment() ? 'tauri' : 'web'
-}
-
-const invokeTauri = async <T>(command: string, args?: Record<string, unknown>): Promise<T> => {
-  if (!isTauriEnvironment()) {
-    throw new Error(`Tauri runtime is unavailable for ${command}`)
-  }
-
-  const { invoke } = await import('@tauri-apps/api/core')
-  return invoke<T>(command, args)
 }
 
 export const getTauriVersion = async (): Promise<string | null> => {
@@ -71,66 +59,86 @@ export const getTauriVersion = async (): Promise<string | null> => {
   }
 }
 
-export const listEnvironments = async (): Promise<EnvironmentInfo[]> => {
-  return invokeTauri('list_environments')
+const requireTauriEnvironment = (command: string): void => {
+  if (!isTauriEnvironment()) {
+    throw new Error(`Tauri runtime is unavailable for ${command}`)
+  }
 }
 
-export const getCurrentEnvironment = async (): Promise<EnvironmentInfo | null> => {
-  return invokeTauri('get_current_environment')
+export const listEnvironments = async (): Promise<EnvironmentInfo[]> => {
+  requireTauriEnvironment('list_environments')
+  return listEnvironmentsTyped()
+}
+
+export const getCurrentEnvironment = async (): Promise<EnvironmentInfo> => {
+  requireTauriEnvironment('get_current_environment')
+  return getCurrentEnvironmentTyped()
 }
 
 export const switchEnvironment = async (envId: string): Promise<void> => {
-  await invokeTauri('switch_environment', { envId })
+  requireTauriEnvironment('switch_environment')
+  await switchEnvironmentTyped(envId)
 }
 
 export const refreshEnvironments = async (): Promise<EnvironmentInfo[]> => {
-  return invokeTauri('refresh_environments')
+  requireTauriEnvironment('refresh_environments')
+  return refreshEnvironmentsTyped()
 }
 
 export const shellGetPreferences = async (): Promise<DesktopShellPreferences> => {
-  return invokeTauri('shell_get_preferences')
+  requireTauriEnvironment('shell_get_preferences')
+  return shellGetPreferencesTyped()
 }
 
 export const shellSetPreferences = async (
-  preferences: DesktopShellPreferences
+  preferences: DesktopShellPreferences,
 ): Promise<DesktopShellPreferences> => {
-  return invokeTauri('shell_set_preferences', { preferences })
+  requireTauriEnvironment('shell_set_preferences')
+  return shellSetPreferencesTyped(preferences)
 }
 
 export const shellShowMainWindow = async (targetRoute?: string): Promise<void> => {
-  await invokeTauri('shell_show_main_window', { targetRoute })
+  requireTauriEnvironment('shell_show_main_window')
+  await shellShowMainWindowTyped(targetRoute)
 }
 
 export const shellRequestQuit = async (): Promise<void> => {
-  await invokeTauri('shell_request_quit')
+  requireTauriEnvironment('shell_request_quit')
+  await shellRequestQuitTyped()
 }
 
 export const shellBeginTrayPanelDrag = async (): Promise<void> => {
-  await invokeTauri('shell_begin_tray_panel_drag')
+  requireTauriEnvironment('shell_begin_tray_panel_drag')
+  await shellBeginTrayPanelDragTyped()
 }
 
 export const shellCompleteTrayPanelDrag = async (
-  position?: TrayPanelManualPosition | null
+  position?: TrayPanelManualPosition | null,
 ): Promise<void> => {
-  await invokeTauri('shell_complete_tray_panel_drag', { position: position ?? null })
+  requireTauriEnvironment('shell_complete_tray_panel_drag')
+  await shellCompleteTrayPanelDragTyped(position)
 }
 
 export const detectSkillportApp = async (): Promise<SkillportAppStatus> => {
-  return invokeTauri('shell_detect_skillport_app')
+  requireTauriEnvironment('shell_detect_skillport_app')
+  return shellDetectSkillportApp()
 }
 
 export const openSkillportApp = async (): Promise<void> => {
-  await invokeTauri('shell_open_skillport_app')
+  requireTauriEnvironment('shell_open_skillport_app')
+  await shellOpenSkillportApp()
 }
 
 // Legacy aliases kept for migration period.
 export const detectSkillsManageApp = async (): Promise<SkillsManageAppStatus> => {
-  return detectSkillportApp()
+  requireTauriEnvironment('shell_detect_skills_manage_app')
+  return shellDetectSkillsManageApp()
 }
 
 // Legacy aliases kept for migration period.
 export const openSkillsManageApp = async (): Promise<void> => {
-  await openSkillportApp()
+  requireTauriEnvironment('shell_open_skills_manage_app')
+  await shellOpenSkillsManageApp()
 }
 
 export const getSkipExitConfirm = async (): Promise<boolean> => {

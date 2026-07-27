@@ -2,7 +2,7 @@
 name = "ccr-store"
 version.workspace = true
 edition = "2024"
-rust-version = "1.90"
+rust-version = "1.95"
 authors = ["Yonghang Li"]
 description = "CCR CLI-side SQLite history and session persistence"
 license = "MIT"

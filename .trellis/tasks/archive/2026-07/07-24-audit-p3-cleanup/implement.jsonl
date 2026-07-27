@@ -1,0 +1,6 @@
+{"file":".trellis/spec/ccr/backend/public-api-boundary.md","reason":"Facade deprecation and replacement contract"}
+{"file":".trellis/spec/ccr/backend/dependency-governance.md","reason":"Internal umbrella dependency guard"}
+{"file":".trellis/spec/ccr/backend/module-decomposition.md","reason":"Responsibility-based extraction gates"}
+{"file":".trellis/spec/ccr/backend/repository-json-formatting.md","reason":"Explicit JSON formatting inventory and exclusions"}
+{"file":".trellis/spec/ccr-db/backend/backend-guidelines.md","reason":"Migration module/comment ownership"}
+{"file":".trellis/spec/guides/code-reuse-thinking-guide.md","reason":"Responsibility-based module extraction"}

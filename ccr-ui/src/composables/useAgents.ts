@@ -5,17 +5,16 @@ import { listAgents, getAgent as apiGetAgent, addAgent, updateAgent, deleteAgent
 import { genericPlatformDescriptors } from '@/config/platformDescriptors'
 import { logger } from '@/utils/logger'
 import type { Agent, AgentRequest } from '@/types'
-import type { ConfigListResponse, HistoryResponse } from '@/types'
 
 type GenericAgentModule = (typeof genericPlatformDescriptors)[keyof typeof genericPlatformDescriptors]['agents']['module']
 type ModuleType = GenericAgentModule | 'agents'
 
 interface AgentApi {
     list: () => Promise<{ agents: Agent[], folders?: string[] }>
-    add: (req: AgentRequest) => Promise<string>
-    update: (name: string, req: AgentRequest) => Promise<string>
+    add: (req: AgentRequest) => Promise<unknown>
+    update: (name: string, req: AgentRequest) => Promise<unknown>
     delete: (name: string) => Promise<string>
-    toggle: (name: string) => Promise<string>
+    toggle: (name: string) => Promise<unknown>
 }
 
 function getErrorMessage(err: unknown): string {
@@ -59,10 +58,10 @@ export function useAgents(module: ModuleType) {
 
             // Load system info (optional, but kept for consistency with original views)
             try {
-                const configData = await listConfigs<ConfigListResponse>()
+                const configData = await listConfigs()
                 currentConfig.value = configData.current_config
                 totalConfigs.value = configData.configs.length
-                const historyData = await getHistory<HistoryResponse>()
+                const historyData = await getHistory()
                 historyCount.value = historyData.total
             } catch (err) {
                 logger.error('Failed to load system info', err)
@@ -80,7 +79,7 @@ export function useAgents(module: ModuleType) {
         try {
             // For now, only Claude Code (agents module) has the getAgent API
             if (module === 'agents') {
-                const fetchedAgent = await apiGetAgent<Agent>(name)
+                const fetchedAgent = await apiGetAgent(name)
                 if (!fetchedAgent) {
                     throw new Error(`Agent '${name}' not found`)
                 }

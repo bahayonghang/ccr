@@ -310,7 +310,9 @@ impl CodexOAuthTokenService {
         let content = serde_json::to_string_pretty(&value)
             .map_err(|e| CcrError::ConfigError(format!("序列化账号 auth 快照失败: {}", e)))?;
 
-        AtomicWriter::new(&path).write_string(&content)?;
+        AtomicWriter::new(&path)
+            .secret(true)
+            .write_string(&content)?;
         self.ensure_private_permissions(&path);
         Ok(())
     }
@@ -519,7 +521,10 @@ mod tests {
 
     fn write_json(path: &Path, value: &serde_json::Value) {
         let content = serde_json::to_string_pretty(value).unwrap();
-        AtomicWriter::new(path).write_string(&content).unwrap();
+        AtomicWriter::new(path)
+            .secret(true)
+            .write_string(&content)
+            .unwrap();
         crate::utils::ensure_private_permissions(path);
     }
 

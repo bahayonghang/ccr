@@ -2,7 +2,7 @@
 name = "ccr"
 version.workspace = true
 edition = "2024"
-rust-version = "1.90"
+rust-version = "1.95"
 authors = ["Yonghang Li"]
 description = "Claude Code Configuration Switcher (Rust implementation)"
 license = "MIT"

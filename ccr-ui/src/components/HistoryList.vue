@@ -206,7 +206,7 @@ const getOperationColor = (op: string) => ({
                     class="space-y-1 my-2"
                   >
                     <div
-                      v-for="change in entries[virtualRow.index].changes.slice(0, 3)"
+                      v-for="change in entries[virtualRow.index].changes?.slice(0, 3) ?? []"
                       :key="change.key"
                       class="text-xs font-mono p-1.5 rounded bg-bg-surface/60 border border-border-default/10 grid grid-cols-[auto_1fr] gap-2"
                     >
@@ -221,10 +221,10 @@ const getOperationColor = (op: string) => ({
                       </div>
                     </div>
                     <button
-                      v-if="entries[virtualRow.index].changes.length > 3"
+                      v-if="(entries[virtualRow.index].changes?.length ?? 0) > 3"
                       class="text-[10px] text-accent-primary hover:underline"
                     >
-                      + {{ entries[virtualRow.index].changes.length - 3 }} {{ t('common.historyPanel.moreChanges') }}
+                      + {{ (entries[virtualRow.index].changes?.length ?? 0) - 3 }} {{ t('common.historyPanel.moreChanges') }}
                     </button>
                   </div>
                     

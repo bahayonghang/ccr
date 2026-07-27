@@ -18,10 +18,10 @@ pub use crate::services::claude_observer::{
     BreakdownRow, CacheStatsDto, DailyPoint, HeatmapCell, InsightDto, SessionRow, TopToolRow,
 };
 
-// ── 9 个 #[tauri::command] ───────────────────────────────────────────────
+// ── 9 个 #[ccr_tauri_command_macros::command] ───────────────────────────────────────────────
 
 /// 一次性返回首屏 Hero 三卡 + 订阅 banner 所需的全部数值。
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn claude_observer_get_insight(
     state: State<'_, AppState>,
     range: Option<String>,
@@ -38,7 +38,7 @@ pub async fn claude_observer_get_insight(
 }
 
 /// 最近 `days` 天的每日趋势（按 claude 平台过滤）
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn claude_observer_daily_trend(
     state: State<'_, AppState>,
     days: Option<i64>,
@@ -50,7 +50,7 @@ pub async fn claude_observer_daily_trend(
 }
 
 /// 按 `dim ∈ {project, model}` 维度的 Top N 拆分（仅 claude 平台）
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn claude_observer_cost_breakdown(
     state: State<'_, AppState>,
     dim: String,
@@ -64,7 +64,7 @@ pub async fn claude_observer_cost_breakdown(
 }
 
 /// 缓存效率：命中率 + 4 个 token 总量
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn claude_observer_cache_stats(
     state: State<'_, AppState>,
 ) -> Result<CacheStatsDto, String> {
@@ -77,7 +77,7 @@ pub async fn claude_observer_cache_stats(
 /// 按 cost 或工具调用密度排序的 Top sessions（来自 claude_tool_calls 维度）
 ///
 /// `by` ∈ `cost | calls`，默认 cost。30 天窗口。
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn claude_observer_top_sessions(
     state: State<'_, AppState>,
     limit: Option<i64>,
@@ -90,7 +90,7 @@ pub async fn claude_observer_top_sessions(
 }
 
 /// 周×小时工具调用热力图
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn claude_observer_tool_heatmap(
     state: State<'_, AppState>,
     days: Option<i64>,
@@ -102,7 +102,7 @@ pub async fn claude_observer_tool_heatmap(
 }
 
 /// Top tools 排行
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn claude_observer_top_tools(
     state: State<'_, AppState>,
     days: Option<i64>,
@@ -115,7 +115,7 @@ pub async fn claude_observer_top_tools(
 }
 
 /// 读取订阅设置
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn claude_observer_subscription_get(
     state: State<'_, AppState>,
 ) -> Result<subscription::SubscriptionDto, String> {
@@ -129,7 +129,7 @@ pub async fn claude_observer_subscription_get(
 }
 
 /// 写入订阅设置
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn claude_observer_subscription_set(
     state: State<'_, AppState>,
     mode: String,

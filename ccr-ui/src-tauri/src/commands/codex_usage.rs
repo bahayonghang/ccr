@@ -58,47 +58,55 @@ pub(super) fn compute_codex_usage_payload() -> Result<Value, String> {
 }
 
 /// 查询所有 Codex 账号的配额余额
-#[tauri::command]
-pub async fn codex_get_all_quotas() -> Result<Value, String> {
+#[ccr_tauri_command_macros::command]
+pub async fn codex_get_all_quotas() -> Result<OpenJsonValueDto, String> {
     let service =
         ccr_codex::CodexQuotaService::new().map_err(|e| format!("初始化配额服务失败: {e}"))?;
     let quotas = service.fetch_all_quotas().await;
-    serde_json::to_value(&quotas).map_err(|e| format!("序列化配额数据失败: {e}"))
+    serde_json::to_value(&quotas)
+        .map_err(|e| format!("序列化配额数据失败: {e}"))?
+        .try_into()
 }
 
 /// 查询指定 Codex 账号的配额余额
-#[tauri::command]
-pub async fn codex_get_quota(account: String) -> Result<Value, String> {
+#[ccr_tauri_command_macros::command]
+pub async fn codex_get_quota(account: String) -> Result<OpenJsonValueDto, String> {
     let service =
         ccr_codex::CodexQuotaService::new().map_err(|e| format!("初始化配额服务失败: {e}"))?;
     let quota = service.fetch_account_quota(&account).await;
-    serde_json::to_value(&quota).map_err(|e| format!("序列化配额数据失败: {e}"))
+    serde_json::to_value(&quota)
+        .map_err(|e| format!("序列化配额数据失败: {e}"))?
+        .try_into()
 }
 
 /// 获取 Codex 使用量统计
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_get_usage(
     state: State<'_, AppState>,
     force: Option<bool>,
-) -> Result<Value, String> {
-    get_cached_codex_usage_payload(&state, force.unwrap_or(false)).await
+) -> Result<OpenJsonValueDto, String> {
+    get_cached_codex_usage_payload(&state, force.unwrap_or(false))
+        .await?
+        .try_into()
 }
 
 /// 获取 Codex 仪表盘概览（轻量数据）
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_get_dashboard_overview(
     state: State<'_, AppState>,
     force: Option<bool>,
-) -> Result<Value, String> {
-    get_cached_codex_dashboard_overview_payload(&state, force.unwrap_or(false)).await
+) -> Result<OpenJsonValueDto, String> {
+    get_cached_codex_dashboard_overview_payload(&state, force.unwrap_or(false))
+        .await?
+        .try_into()
 }
 
 /// 获取 Codex 仪表盘使用量摘要（重数据，独立异步加载）
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_get_dashboard_usage_summary(
     state: State<'_, AppState>,
     force: Option<bool>,
-) -> Result<Value, String> {
+) -> Result<OpenJsonValueDto, String> {
     let usage = get_cached_codex_usage_payload(&state, force.unwrap_or(false)).await?;
-    Ok(build_codex_usage_summary(&usage))
+    build_codex_usage_summary(&usage).try_into()
 }

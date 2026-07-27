@@ -1,10 +1,11 @@
+#![allow(deprecated)]
+
 use std::mem::size_of;
 
 #[test]
 fn legacy_public_paths_remain_available() {
-    // Compatibility contract: the root re-export bridge is legacy-only, but
-    // existing downstream imports must remain warning-free until a documented
-    // next-major breaking plan exists.
+    // Compatibility contract: deprecated 7.x paths remain callable until the
+    // documented 8.0 removal window.
     let _legacy_switch_platform = ccr::application::switch_platform;
     assert!(size_of::<ccr::application::SwitchPlatformRequest>() > 0);
     assert!(size_of::<ccr::commands::ImportMode>() > 0);
@@ -57,7 +58,55 @@ fn crate_root_public_reexport_snapshot_is_intentional() {
         "/// Keep this broad `ccr_cli` re-export available for existing consumers, but",
         "/// route new stable API through [`crate::prelude`] unless a breaking-release",
         "/// plan intentionally widens the crate root surface.",
-        "pub use ccr_cli::{application, commands, managers, models, platforms, services, sync};",
+        "#[deprecated(",
+        "since = \"7.0.0\",",
+        "note = \"use ccr_cli::application; removal is no earlier than 8.0.0\"",
+        ")]",
+        "pub mod application {",
+        "pub use ccr_cli::application::*;",
+        "}",
+        "#[deprecated(",
+        "since = \"7.0.0\",",
+        "note = \"use ccr_cli::commands; removal is no earlier than 8.0.0\"",
+        ")]",
+        "pub mod commands {",
+        "pub use ccr_cli::commands::*;",
+        "}",
+        "#[deprecated(",
+        "since = \"7.0.0\",",
+        "note = \"use ccr_cli::managers; removal is no earlier than 8.0.0\"",
+        ")]",
+        "pub mod managers {",
+        "pub use ccr_cli::managers::*;",
+        "}",
+        "#[deprecated(",
+        "since = \"7.0.0\",",
+        "note = \"use ccr_cli::models; removal is no earlier than 8.0.0\"",
+        ")]",
+        "pub mod models {",
+        "pub use ccr_cli::models::*;",
+        "}",
+        "#[deprecated(",
+        "since = \"7.0.0\",",
+        "note = \"use ccr_cli::platforms; removal is no earlier than 8.0.0\"",
+        ")]",
+        "pub mod platforms {",
+        "pub use ccr_cli::platforms::*;",
+        "}",
+        "#[deprecated(",
+        "since = \"7.0.0\",",
+        "note = \"use ccr_cli::services; removal is no earlier than 8.0.0\"",
+        ")]",
+        "pub mod services {",
+        "pub use ccr_cli::services::*;",
+        "}",
+        "#[deprecated(",
+        "since = \"7.0.0\",",
+        "note = \"use ccr_cli::sync; removal is no earlier than 8.0.0\"",
+        ")]",
+        "pub mod sync {",
+        "pub use ccr_cli::sync::*;",
+        "}",
         "#[cfg(feature = \"tui\")]",
         "pub use ccr_tui::tui;",
         "pub mod prelude {",
@@ -72,12 +121,12 @@ fn crate_root_public_reexport_snapshot_is_intentional() {
         "AutoCompletable, CONFIG_LOCK, CcrError, ColorOutput, FileLock, LockManager, Result,",
         "Validatable, init_file_only_logger, init_logger, mask_if_sensitive, mask_sensitive,",
         "};",
-        "pub use managers::{",
+        "pub use ccr_cli::managers::{",
         "BudgetManager, CcsConfig, ClaudeSettings, ConfigManager, ConfigSection, CostTracker,",
         "GlobalSettings, HistoryManager, PlatformConfigEntry, PlatformConfigManager, PricingManager,",
         "ProviderType, SettingsManager, TempOverride, TempOverrideManager, UnifiedConfig,",
         "};",
-        "pub use models::skills::{",
+        "pub use ccr_cli::models::skills::{",
         "MarketplaceListResponse, MarketplaceSkill, NpxPlatformSupport, NpxStatus, SkillContent,",
         "SkillFileContent, SkillFileEntry, SkillInstallMeta, SkillInstallMode, SkillInstallStrategy,",
         "SkillInstallationRecord, SkillLifecycleSummary, SkillOrigin, SkillPlatformConfig,",
@@ -88,29 +137,29 @@ fn crate_root_public_reexport_snapshot_is_intentional() {
         "SkillsInventoryResponse, SkillsNpxCapabilities, SkillsOnboardingCandidate,",
         "SkillsSourceManifest, SkillsSyncRequest,",
         "};",
-        "pub use models::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};",
-        "pub use models::stats::{",
+        "pub use ccr_cli::models::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};",
+        "pub use ccr_cli::models::stats::{",
         "Cost, CostRecord, CostStats, DailyCost, ModelPricing, TimeRange, TokenStats, TokenUsage,",
         "};",
-        "pub use models::budget::{",
+        "pub use ccr_cli::models::budget::{",
         "BudgetConfig, BudgetLimits, BudgetPeriod, BudgetStatus, BudgetWarning, LimitAction, PeriodCosts,",
         "};",
-        "pub use models::pricing::PricingConfig;",
-        "pub use platforms::{",
+        "pub use ccr_cli::models::pricing::PricingConfig;",
+        "pub use ccr_cli::platforms::{",
         "PlatformDetector, PlatformInfo, PlatformRegistry, PlatformStatus, create_platform,",
         "};",
-        "pub use services::{",
+        "pub use ccr_cli::services::{",
         "BackupService, ConfigService, HistoryService, SettingsService, SkillsService, ValidateService,",
+        "};",
+        "pub use ccr_cli::sync::{",
+        "FolderStats, SyncConfig, SyncConfigManager, SyncContentSelection, SyncContentSelector,",
+        "SyncContentType, SyncFolder, SyncFolderManager, SyncFoldersConfig, SyncService, WebDavConfig,",
+        "expand_path, get_ccr_sync_path,",
         "};",
         "pub use ccr_store::sessions;",
         "pub use ccr_store::{",
         "Database, Session, SessionEvent, SessionFilter, SessionIndexer, SessionStats, SessionStore,",
         "SessionSummary,",
-        "};",
-        "pub use sync::{",
-        "FolderStats, SyncConfig, SyncConfigManager, SyncContentSelection, SyncContentSelector,",
-        "SyncContentType, SyncFolder, SyncFolderManager, SyncFoldersConfig, SyncService, WebDavConfig,",
-        "expand_path, get_ccr_sync_path,",
         "};",
     ];
 
@@ -180,6 +229,14 @@ fn collect_public_surface(source: &str) -> Vec<&str> {
         if trimmed.starts_with("#[") {
             pending_attributes.push(trimmed);
             line_index += 1;
+            while !pending_attributes
+                .last()
+                .is_some_and(|attribute| attribute.ends_with(']'))
+                && line_index < lines.len()
+            {
+                pending_attributes.push(lines[line_index].trim());
+                line_index += 1;
+            }
             continue;
         }
 

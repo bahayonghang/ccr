@@ -441,6 +441,7 @@ impl SyncFolderManager {
         // 3. 创建新配置（直接在初始化时设置 webdav）
         let mut new_config = SyncFoldersConfig {
             webdav: WebDavConfig {
+                enabled: old_sync_config.enabled,
                 url: old_sync_config.webdav_url.clone(),
                 username: old_sync_config.username.clone(),
                 password: old_sync_config.password.clone(),
@@ -448,6 +449,7 @@ impl SyncFolderManager {
                     .remote_path
                     .trim_end_matches('/')
                     .to_string(),
+                auto_sync: old_sync_config.auto_sync,
             },
             ..Default::default()
         };

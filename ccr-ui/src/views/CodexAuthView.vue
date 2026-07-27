@@ -389,11 +389,8 @@ import type {
   CodexAccountQuota,
   CodexAuthAccountItem,
   CodexAuthCurrentInfo,
-  CodexAuthCurrentResponse,
-  CodexAuthListResponse,
   CodexModelProviderRecord,
   CodexProfile,
-  CodexProfilesResponse,
   LoginState,
 } from '@/types'
 import { logger } from '@/utils/logger'
@@ -585,7 +582,7 @@ const clearFilters = () => {
 
 const loadCurrentProfile = async () => {
   try {
-    const data = await listCodexProfiles<CodexProfilesResponse>()
+    const data = await listCodexProfiles()
     currentProfile.value =
       data.profiles.find((profile) => profile.name === data.current_profile) || null
   } catch (error) {
@@ -598,7 +595,7 @@ const loadAccounts = async () => {
   try {
     loading.value = true
     authActionError.value = null
-    const data = await listCodexAuthAccounts<CodexAuthListResponse>()
+    const data = await listCodexAuthAccounts()
     accounts.value = data.accounts || []
     loginState.value = data.login_state
   } catch (error) {
@@ -611,7 +608,7 @@ const loadAccounts = async () => {
 
 const loadCurrentInfo = async () => {
   try {
-    const data = await getCodexAuthCurrent<CodexAuthCurrentResponse>()
+    const data = await getCodexAuthCurrent()
     currentInfo.value = data.logged_in && data.info ? data.info : null
   } catch (error) {
     logger.error('Failed to load current auth info:', error)
@@ -621,7 +618,7 @@ const loadCurrentInfo = async () => {
 const loadQuotas = async () => {
   try {
     quotaLoading.value = true
-    const data = await getCodexAllQuotas<CodexAccountQuota[]>()
+    const data = await getCodexAllQuotas()
     const map = new Map<string, CodexAccountQuota>()
     for (const quota of data) {
       map.set(quota.account_name, quota)

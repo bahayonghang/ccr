@@ -585,7 +585,15 @@ import {
   getRecentItems,
   removeFavorite as removeFavoriteItem,
 } from '@/api/domains/uiState'
-import type { CommandInfo, CommandJobSnapshot, CommandJobStatus, ConfigItem } from '@/types'
+import type {
+  CommandInfo,
+  CommandJobDelta,
+  CommandJobSnapshot,
+  CommandJobStatus,
+  ConfigItem,
+} from '@/types'
+import type { CommandHistoryDto as CommandHistoryItem } from '@/types/generated/ui_state/CommandHistoryDto'
+import type { FavoriteCommandDto as FavoriteCommand } from '@/types/generated/ui_state/FavoriteCommandDto'
 import { normalizeCliClient, type CliClient } from '@/types/router'
 import { createAnsiRenderer } from '@/utils/ansiRenderer'
 import { logger } from '@/utils/logger'
@@ -615,25 +623,6 @@ type CommandCollection = 'catalog' | 'favorites' | 'history'
 // 账本最大渲染行数，与 useStream 默认上限对齐，超出部分仅保留最近行
 const MAX_LEDGER_LINES = 2000
 
-interface FavoriteCommand {
-  id: string
-  command: string
-  args: string[]
-  display_name?: string | null
-  module: string
-  created_at: string
-}
-
-interface CommandHistoryItem {
-  id: string
-  full_command: string
-  command: string
-  args: string[]
-  success: boolean
-  executed_at: string
-  duration_ms: number
-}
-
 const { t } = useI18n({ useScope: 'global' })
 const route = useRoute()
 const router = useRouter()
@@ -657,6 +646,7 @@ const activeCategory = ref('all')
 const activeCollection = ref<CommandCollection>('catalog')
 const dangerAccepted = ref(false)
 const currentSnapshot = shallowRef<CommandJobSnapshot | null>(null)
+let lastDeltaSeq = -1
 const configs = ref<ConfigItem[]>([])
 const favorites = ref<FavoriteCommand[]>([])
 const historyItems = ref<CommandHistoryItem[]>([])
@@ -939,7 +929,7 @@ const loadConfigs = async () => {
   }
 
   try {
-    const response = await listConfigs<{ configs: ConfigItem[] } | ConfigItem[]>()
+    const response = await listConfigs()
     configs.value = Array.isArray(response) ? response : response.configs
   } catch (error) {
     logger.error('Failed to load configs:', error)
@@ -955,8 +945,8 @@ const loadPersistedState = async () => {
 
   try {
     const [favoriteData, historyData] = await Promise.all([
-      getFavorites<FavoriteCommand[]>(),
-      getRecentItems<CommandHistoryItem[]>(20),
+      getFavorites(),
+      getRecentItems(20),
     ])
     favorites.value = favoriteData
     historyItems.value = historyData
@@ -972,7 +962,7 @@ const loadCommands = async () => {
   }
 
   try {
-    const data = await listCommands<CommandInfo[]>()
+    const data = await listCommands()
     applyCommandList('ccr', data.length > 0 ? data : fallbackCommandRegistry.ccr)
   } catch (error) {
     logger.error('Failed to load commands:', error)
@@ -982,31 +972,53 @@ const loadCommands = async () => {
 
 const installJobListeners = async () => {
   if (runtimeUnavailable.value) return
+  const handleDelta = (event: Event<CommandJobDelta>) => {
+    const snapshot = currentSnapshot.value
+    const delta = event.payload
+    if (!snapshot || delta.job_id !== snapshot.job_id || delta.seq <= lastDeltaSeq) return
+
+    lastDeltaSeq = delta.seq
+    const field =
+      delta.channel === 'stdout'
+        ? 'stdout_lines'
+        : delta.channel === 'stderr'
+          ? 'stderr_lines'
+          : 'system_lines'
+    const lines = [...snapshot[field], ...delta.lines]
+    currentSnapshot.value = {
+      ...snapshot,
+      [field]: lines.slice(-500),
+      status: delta.status ?? snapshot.status,
+      truncated: Boolean(snapshot.truncated) || delta.dropped_count > 0,
+      dropped_lines: (snapshot.dropped_lines ?? 0) + delta.dropped_count,
+    }
+  }
   const handleSnapshot = (event: Event<CommandJobSnapshot>) => {
     if (!currentSnapshot.value || event.payload.job_id === currentSnapshot.value.job_id) {
       currentSnapshot.value = event.payload
+      lastDeltaSeq = -1
     }
     void maybeRecordHistory(event.payload)
   }
 
-  unlisteners.push(await listen<CommandJobSnapshot>('commands:job-progress', handleSnapshot))
+  unlisteners.push(await listen<CommandJobDelta>('commands:job-progress', handleDelta))
   unlisteners.push(await listen<CommandJobSnapshot>('commands:job-finished', handleSnapshot))
   unlisteners.push(await listen<CommandJobSnapshot>('commands:job-cancelled', handleSnapshot))
 }
 
 const maybeRecordHistory = async (snapshot: CommandJobSnapshot) => {
   if (recordedJobIds.has(snapshot.job_id)) return
-  if (!['success', 'failed', 'cancelled'].includes(snapshot.status)) return
+  if (!['success', 'failed', 'cancelled', 'cleanup_failed'].includes(snapshot.status)) return
 
   recordedJobIds.add(snapshot.job_id)
   try {
-    await addRecentItem<CommandHistoryItem>(
+    await addRecentItem(
       snapshot.command,
       snapshot.args,
       snapshot.status === 'success',
       snapshot.duration_ms ?? 0
     )
-    historyItems.value = await getRecentItems<CommandHistoryItem[]>(20)
+    historyItems.value = await getRecentItems(20)
   } catch (error) {
     logger.error('Failed to persist command history:', error)
   }
@@ -1044,6 +1056,7 @@ watch(selectedClient, () => {
   args.value = ''
   dangerAccepted.value = false
   currentSnapshot.value = null
+  lastDeltaSeq = -1
   activeCollection.value = 'catalog'
   void loadCommands()
 
@@ -1115,6 +1128,7 @@ const handleExecute = async () => {
       confirmationToken: selectedConfirmationToken.value,
     })
     currentSnapshot.value = response.snapshot
+    lastDeltaSeq = -1
   } catch (error) {
     const message = error instanceof Error ? error.message : t('commands.unknownError')
     currentSnapshot.value = {
@@ -1129,6 +1143,8 @@ const handleExecute = async () => {
       stdout_lines: [],
       stderr_lines: [],
       system_lines: [message],
+      truncated: false,
+      dropped_lines: 0,
       error: message,
     }
   }
@@ -1155,7 +1171,7 @@ const handleToggleFavorite = async () => {
       return
     }
 
-    const favorite = await addFavoriteItem<FavoriteCommand>(
+    const favorite = await addFavoriteItem(
       selectedCommandInfo.value.name,
       selectedCommandArgs.value,
       selectedCommandInfo.value.title || selectedCommandInfo.value.name,
@@ -1189,6 +1205,7 @@ const handleCopyOutput = async () => {
 const handleClearOutput = () => {
   ansiRenderer.clear()
   currentSnapshot.value = null
+  lastDeltaSeq = -1
 }
 
 const categoryLabel = (category: string) => {

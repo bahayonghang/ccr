@@ -2108,7 +2108,11 @@ pub struct TodayCheckinStats {
 mod tests {
     use super::*;
     use ccr_db::database;
+    use std::sync::LazyLock;
     use tempfile::TempDir;
+
+    static SHARED_DB_TEST_LOCK: LazyLock<tokio::sync::Mutex<()>> =
+        LazyLock::new(|| tokio::sync::Mutex::new(()));
 
     fn setup() -> (TempDir, CheckinService) {
         // Initialize in-memory database for tests
@@ -2126,9 +2130,11 @@ mod tests {
         assert!(path.ends_with("checkin"));
     }
 
-    #[test]
-    fn test_get_today_stats_empty() {
+    #[tokio::test]
+    async fn test_get_today_stats_empty() {
+        let _db_guard = SHARED_DB_TEST_LOCK.lock().await;
         let (_temp_dir, service) = setup();
+        cleanup_checkin_tables();
         let stats = service.get_today_stats().unwrap();
         assert_eq!(stats.total_accounts, 0);
         assert_eq!(stats.checked_in, 0);
@@ -2768,6 +2774,7 @@ mod tests {
         use crate::managers::checkin::ProviderManager;
         use crate::models::checkin::{CreateAccountRequest, CreateProviderRequest};
 
+        let _db_guard = SHARED_DB_TEST_LOCK.lock().await;
         let (_temp_dir, service) = {
             database::initialize_for_test().unwrap();
             let temp_dir = TempDir::new().unwrap();
@@ -2775,7 +2782,7 @@ mod tests {
             (temp_dir, service)
         };
 
-        // 共享全局测试库（--test-threads=1），先后清场避免污染其它用例
+        // These integration-style cases share ccr-db's process-global test pool.
         cleanup_checkin_tables();
 
         let provider_manager = ProviderManager::new();
@@ -2830,6 +2837,7 @@ mod tests {
             CreateAccountRequest, CreateProviderRequest, UpdateAccountRequest,
         };
 
+        let _db_guard = SHARED_DB_TEST_LOCK.lock().await;
         database::initialize_for_test().unwrap();
         let temp_dir = TempDir::new().unwrap();
         let service = CheckinService::new(temp_dir.path().to_path_buf());

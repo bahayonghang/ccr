@@ -82,11 +82,11 @@ pub struct UsageSnapshotUpdatedPayload {
     pub generated_at: String,
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn get_usage_capabilities_v2(
     state: State<'_, AppState>,
 ) -> Result<CapabilityReport, String> {
-    Ok(state.llmusage.capabilities())
+    Ok(state.llmusage.capabilities().await)
 }
 
 fn record_command_duration(state: &AppState, command_started: Instant) {
@@ -885,7 +885,7 @@ async fn run_session_index_job(app_handle: AppHandle, job_id: String) {
 }
 
 /// 获取用量汇总数据
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn get_usage_summary_v2(
     state: State<'_, AppState>,
     platform: Option<String>,
@@ -909,7 +909,7 @@ pub async fn get_usage_summary_v2(
 }
 
 /// 获取用量趋势数据
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn get_usage_trends_v2(
     state: State<'_, AppState>,
     platform: Option<String>,
@@ -933,7 +933,7 @@ pub async fn get_usage_trends_v2(
 }
 
 /// 获取按模型聚合的用量统计
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn get_usage_by_model_v2(
     state: State<'_, AppState>,
     platform: Option<String>,
@@ -957,7 +957,7 @@ pub async fn get_usage_by_model_v2(
 }
 
 /// 获取按 provider 聚合的用量统计
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn get_usage_by_provider_v2(
     state: State<'_, AppState>,
     platform: Option<String>,
@@ -981,7 +981,7 @@ pub async fn get_usage_by_provider_v2(
 }
 
 /// 获取按项目聚合的用量统计
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn get_usage_by_project_v2(
     state: State<'_, AppState>,
     platform: Option<String>,
@@ -1005,7 +1005,7 @@ pub async fn get_usage_by_project_v2(
 }
 
 /// 获取热力图数据（V2，来自 llmusage usage_bucket_30m）
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn get_usage_heatmap_v2(
     state: State<'_, AppState>,
     platform: Option<String>,
@@ -1030,7 +1030,7 @@ pub async fn get_usage_heatmap_v2(
 }
 
 /// 获取用量日志列表，保持前端 cursor 分页契约
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn get_usage_logs_v2(
     state: State<'_, AppState>,
     query: UsageLogsQuery,
@@ -1089,7 +1089,7 @@ async fn compute_usage_dashboard_payload(
 }
 
 /// 获取用量仪表盘数据，聚合汇总、趋势、模型、项目统计与 usage snapshot 投影。
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn get_usage_dashboard_v2(
     state: State<'_, AppState>,
     platform: Option<String>,
@@ -1198,7 +1198,7 @@ pub async fn get_usage_dashboard_v2(
 }
 
 /// 获取首页工作区概览数据，统一 llmusage usage + ccr session 统计链路。
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn get_home_usage_overview_v2(
     state: State<'_, AppState>,
     days: Option<usize>,
@@ -1247,7 +1247,7 @@ pub async fn get_home_usage_overview_v2(
     Ok(payload)
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn ensure_session_index_v2(
     app_handle: tauri::AppHandle,
     state: State<'_, AppState>,
@@ -1268,7 +1268,7 @@ pub async fn ensure_session_index_v2(
     Ok(StartSessionIndexJobResponse { job_id, snapshot })
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn get_session_index_job_status_v2(
     state: State<'_, AppState>,
     job_id: String,
@@ -1280,7 +1280,7 @@ pub async fn get_session_index_job_status_v2(
 }
 
 /// 从 JSONL 文件导入单个平台的用量数据
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn import_usage_v2(
     app_handle: tauri::AppHandle,
     state: State<'_, AppState>,
@@ -1325,7 +1325,7 @@ pub async fn import_usage_v2(
     Ok(result)
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn import_all_usage_v2(
     app_handle: tauri::AppHandle,
     state: State<'_, AppState>,
@@ -1366,7 +1366,7 @@ pub async fn import_all_usage_v2(
     Ok(ImportAllUsageResponse { summary, results })
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn start_usage_import_job_v2(
     app_handle: tauri::AppHandle,
     state: State<'_, AppState>,
@@ -1409,7 +1409,7 @@ pub async fn start_usage_import_job_v2(
     Ok(StartUsageImportJobResponse { job_id, snapshot })
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn get_usage_import_job_status_v2(
     state: State<'_, AppState>,
     job_id: String,
@@ -1420,7 +1420,7 @@ pub async fn get_usage_import_job_status_v2(
         .ok_or_else(|| format!("Usage import job '{}' not found", job_id))
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn cancel_usage_import_job_v2(
     app_handle: tauri::AppHandle,
     state: State<'_, AppState>,

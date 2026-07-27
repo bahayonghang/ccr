@@ -62,25 +62,31 @@ const platforms: DashboardPlatformSource[] = [
 const systemInfo: SystemInfo = {
   hostname: 'workstation',
   os: 'windows',
+  os_name: 'Windows',
   os_version: '11',
   kernel_version: '10.0',
+  arch: 'x86_64',
   cpu_brand: 'Test CPU',
   cpu_cores: 12,
+  cpu_count: 12,
   cpu_usage: 11.4,
   total_memory_gb: 64,
   used_memory_gb: 17.5,
   memory_usage_percent: 27.3,
+  total_memory_mb: 65536,
   total_swap_gb: 0,
   used_swap_gb: 0,
   uptime_seconds: 1200,
+  ccr_version: '7.0.0',
 }
 
 const cliEntry = (platform: string, overrides: Partial<CliVersionEntry> = {}): CliVersionEntry => ({
-  platform,
-  installed: true,
-  version: '1.0.0',
-  status: 'ok',
   ...overrides,
+  platform: overrides.platform ?? platform,
+  installed: overrides.installed ?? true,
+  version: overrides.version === undefined ? '1.0.0' : overrides.version,
+  status: overrides.status ?? 'ok',
+  elapsed_ms: overrides.elapsed_ms ?? 0,
 })
 
 const createCliMap = (

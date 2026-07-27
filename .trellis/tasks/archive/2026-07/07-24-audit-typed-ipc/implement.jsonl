@@ -1,0 +1,4 @@
+{"file":".trellis/spec/ccr/backend/tauri-handler-registry.md","reason":"Single handler registry contract"}
+{"file":".trellis/spec/ccr/backend/typed-ipc-bindings.md","reason":"ts-rs wire and generation rules"}
+{"file":".trellis/spec/ccr-ui/frontend/api-facade-boundary.md","reason":"Direct invoke ownership and generated clients"}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Rust DTO to client to UI flow"}

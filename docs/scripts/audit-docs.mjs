@@ -237,8 +237,13 @@ function extractTopLevelCommands() {
 function checkCommandCoverage() {
   const excludedPages = new Set(['help'])
   const allowedExtraPages = new Set(['tui'])
+  const commandPageOverrides = new Map([['project', 'project-init']])
   const commands = extractTopLevelCommands()
-  const expectedPages = new Set(commands.filter(command => !excludedPages.has(command)))
+  const expectedPages = new Set(
+    commands
+      .filter(command => !excludedPages.has(command))
+      .map(command => commandPageOverrides.get(command) ?? command)
+  )
 
   for (const command of expectedPages) {
     assert(

@@ -9,30 +9,46 @@ use ccr_config::{
 use ccr_core::{CcrError, LockManager};
 use ccr_store::HistoryService;
 use std::path::{Component, Path, PathBuf};
+use ts_rs::TS;
 
 use crate::state::AppState;
 
 /// 配置项详情
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/config/")]
 pub struct ConfigInfo {
     pub name: String,
     pub description: String,
     pub base_url: String,
     pub auth_token: String, // masked
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
     pub model: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
     pub small_fast_model: Option<String>,
     pub is_current: bool,
     pub is_default: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
     pub provider: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
     pub provider_type: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
     pub account: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
     pub tags: Option<Vec<String>>,
+    #[ts(as = "f64")]
     pub usage_count: u64,
     pub enabled: bool,
 }
 
 /// 历史记录条目
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/config/")]
 pub struct HistoryEntry {
     pub id: String,
     pub timestamp: String,
@@ -41,7 +57,8 @@ pub struct HistoryEntry {
 }
 
 /// 导入结果
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/config/")]
 pub struct ImportResult {
     pub added: usize,
     pub updated: usize,
@@ -49,7 +66,8 @@ pub struct ImportResult {
 }
 
 /// 导出结果
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/config/")]
 pub struct ExportResult {
     pub content: String,
     pub filename: String,
@@ -133,7 +151,7 @@ fn restore_config_from_backup_path(backup_path: &Path) -> Result<(), CcrError> {
 
 // ── 配置管理 ──
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn list_configs(_state: State<'_, AppState>) -> Result<Vec<ConfigInfo>, String> {
     let result = tokio::task::spawn_blocking(move || {
         let manager = ConfigManager::with_default()
@@ -178,7 +196,7 @@ pub async fn list_configs(_state: State<'_, AppState>) -> Result<Vec<ConfigInfo>
     Ok(result)
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn switch_config(name: String) -> Result<String, String> {
     ccr::commands::switch_command(&name)
         .await
@@ -186,7 +204,7 @@ pub async fn switch_config(name: String) -> Result<String, String> {
     Ok(format!("Switched to config: {name}"))
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 #[allow(clippy::too_many_arguments)]
 pub async fn add_config(
     name: String,
@@ -249,7 +267,7 @@ pub async fn add_config(
     .map_err(|e| format!("Task join error: {e}"))?
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn delete_config(
     name: String,
     confirmation_token: Option<String>,
@@ -269,7 +287,7 @@ pub async fn delete_config(
     .map_err(|e| format!("Task join error: {e}"))?
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn rename_config(old_name: String, new_name: String) -> Result<String, String> {
     tokio::task::spawn_blocking(move || {
         let lock_manager = LockManager::with_default_path()
@@ -321,7 +339,7 @@ pub async fn rename_config(old_name: String, new_name: String) -> Result<String,
     .map_err(|e| format!("Task join error: {e}"))?
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn duplicate_config(source: String, target: String) -> Result<String, String> {
     tokio::task::spawn_blocking(move || {
         let lock_manager = LockManager::with_default_path()
@@ -362,7 +380,7 @@ pub async fn duplicate_config(source: String, target: String) -> Result<String, 
     .map_err(|e| format!("Task join error: {e}"))?
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn validate_configs() -> Result<String, String> {
     tokio::task::spawn_blocking(move || {
         let service = ConfigService::with_default()
@@ -376,7 +394,7 @@ pub async fn validate_configs() -> Result<String, String> {
     .map_err(|e| format!("Task join error: {e}"))?
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn import_config(
     content: String,
     mode: String,
@@ -409,7 +427,7 @@ pub async fn import_config(
     .map_err(|e| format!("Task join error: {e}"))?
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn restore_config(
     backup_path: String,
     confirmation_token: Option<String>,
@@ -429,7 +447,7 @@ pub async fn restore_config(
     .map_err(|e| format!("Task join error: {e}"))?
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn export_config(include_secrets: bool) -> Result<ExportResult, String> {
     tokio::task::spawn_blocking(move || {
         let service = ConfigService::with_default()
@@ -450,7 +468,7 @@ pub async fn export_config(include_secrets: bool) -> Result<ExportResult, String
 
 // ── 历史记录 ──
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn get_history(limit: Option<usize>) -> Result<Vec<HistoryEntry>, String> {
     let limit = limit.unwrap_or(100);
 
@@ -475,7 +493,7 @@ pub async fn get_history(limit: Option<usize>) -> Result<Vec<HistoryEntry>, Stri
     Ok(json_entries)
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn clear_history() -> Result<String, String> {
     let service = HistoryService::with_default()
         .map_err(|e| format!("Failed to create HistoryService: {e}"))?;
@@ -486,7 +504,7 @@ pub async fn clear_history() -> Result<String, String> {
     Ok("History cleared successfully".to_string())
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn update_config(name: String, data: serde_json::Value) -> Result<String, String> {
     tokio::task::spawn_blocking(move || {
         let lock_manager = LockManager::with_default_path()
@@ -651,12 +669,12 @@ current_config = 'default'
 
 // ── 退出确认设置 ──
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn get_skip_exit_confirm(state: State<'_, AppState>) -> Result<bool, String> {
     Ok(!state.desktop_shell_preferences().confirm_before_exit)
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn set_skip_exit_confirm(skip: bool, state: State<'_, AppState>) -> Result<(), String> {
     state.update_desktop_shell_preferences(|settings| {
         settings.confirm_before_exit = !skip;
@@ -666,7 +684,7 @@ pub async fn set_skip_exit_confirm(skip: bool, state: State<'_, AppState>) -> Re
 
 // ── 备份清理 ──
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn clean_backups() -> Result<String, String> {
     tokio::task::spawn_blocking(move || {
         // CCR 配置文件位于 ~/.ccr/ 目录下

@@ -166,7 +166,7 @@ import SIcon from '@/components/ui/SIcon.vue'
 import { useTf } from '@/composables/useTf'
 import { useUIStore } from '@/stores/ui'
 import { detectCodexProcess, saveCodexAuth } from '@/api'
-import type { CodexAuthCurrentInfo, CodexAuthProcessResponse, CodexAuthSaveRequest } from '@/types'
+import type { CodexAuthCurrentInfo, CodexAuthSaveRequest } from '@/types'
 import { extractErrorMessage } from '@/utils/errorHandler'
 import { logger } from '@/utils/logger'
 
@@ -204,7 +204,7 @@ watch(
     saveForm.description = ''
     saveForm.force = false
     try {
-      const processInfo = await detectCodexProcess<CodexAuthProcessResponse>()
+      const processInfo = await detectCodexProcess()
       processWarning.value = processInfo.has_running_process
         ? processInfo.warning ||
           t('codex.auth.processDetected', { pids: processInfo.pids.join(', ') })

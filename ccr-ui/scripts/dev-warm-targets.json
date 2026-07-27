@@ -1,34 +1,10 @@
 {
-  "probeUrls": ["/", "/settings"],
-  "requestUrls": ["/@vite/client", "/node_modules/vite/dist/client/env.mjs"],
+  "healthPath": "/",
   "clientFiles": [
     "./src/main.ts",
     "./src/App.vue",
     "./src/components/MainLayout.vue",
     "./src/router/index.ts",
-    "./src/i18n/index.ts",
-    "./src/i18n/bootMessages.ts",
-    "./src/i18n/formatMessage.ts",
-    "./src/config/iconRegistry.ts",
-    "./src/config/platformDescriptors.ts",
-    "./src/config/solarShellIconSubset.ts",
-    "./src/stores/ui.ts",
-    "./src/stores/shellPreferences.ts",
-    "./src/views/AppSettingsView.vue",
-    "./src/api/runtime/environment.ts",
-    "./src/components/BackendStatusBanner.vue",
-    "./src/components/common/GlobalConfirmDialog.vue",
-    "./src/components/common/ScrollToTopButton.vue",
-    "./src/components/common/ToastContainer.vue",
-    "./src/components/layout/Titlebar.vue",
-    "./src/components/ui/Button.vue",
-    "./src/components/ui/Card.vue",
-    "./src/components/ui/SIcon.vue",
-    "./src/utils/logger.ts",
-    "./src/utils/scheduling.ts",
-    "./src/utils/tauriRuntime.ts",
-    "./src/utils/tauriWindow.ts",
-    "./src/utils/themeBootstrap.ts",
-    "./src/utils/windowChrome.ts"
+    "./src/views/DashboardView.vue"
   ]
 }

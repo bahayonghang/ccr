@@ -7,6 +7,9 @@ mod current;
 #[path = "commands/codex_profile.rs"]
 mod codex_profile;
 
+#[path = "commands/codex_fix.rs"]
+mod codex_fix;
+
 #[path = "commands/claude_profile.rs"]
 mod claude_profile;
 
@@ -21,6 +24,9 @@ mod legacy_routing;
 
 #[path = "commands/platform_profile_surface.rs"]
 mod platform_profile_surface;
+
+#[path = "commands/project_init.rs"]
+mod project_init;
 
 #[path = "commands/validate.rs"]
 mod validate;

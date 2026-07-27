@@ -1,0 +1,77 @@
+name: VS Code CI
+
+on:
+  pull_request:
+    branches: [main, develop, dev]
+
+permissions:
+  contents: read
+
+jobs:
+  changes:
+    name: VS Code Change Detection
+    runs-on: ubuntu-24.04
+    outputs:
+      relevant: ${{ steps.relevance.outputs.relevant }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+      - name: Detect VS Code changes
+        id: relevance
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: python3 scripts/ci_surface_policy.py --surface vscode --base "$BASE_SHA" --head "$HEAD_SHA" >> "$GITHUB_OUTPUT"
+
+  vscode-required:
+    name: VS Code Validation
+    needs: changes
+    if: needs.changes.outputs.relevant == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Setup Node 24.18.0
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24.18.0
+          cache: npm
+          cache-dependency-path: ccr-vscode/package-lock.json
+      - name: Setup Rust for just
+        uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable
+        with:
+          toolchain: 1.95.0
+      - name: Install just
+        run: cargo install just --version 1.57.0 --locked
+      - name: Run local VS Code gate
+        run: just vscode-ci
+      - name: Run VS Code coverage gate
+        run: just vscode-coverage | tee vscode-coverage.txt
+      - name: Upload VS Code coverage
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: vscode-coverage
+          path: vscode-coverage.txt
+          if-no-files-found: error
+          retention-days: 14
+
+  vscode-required-gate:
+    name: VS Code Required
+    if: ${{ always() }}
+    needs: [changes, vscode-required]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Enforce relevant VS Code result
+        env:
+          DETECTION: ${{ needs.changes.result }}
+          RELEVANT: ${{ needs.changes.outputs.relevant }}
+          VALIDATION: ${{ needs.vscode-required.result }}
+        run: |
+          set -eu
+          test "$DETECTION" = success
+          if [ "$RELEVANT" != true ]; then
+            echo "VS Code validation is not relevant to this pull request."
+            exit 0
+          fi
+          test "$VALIDATION" = success

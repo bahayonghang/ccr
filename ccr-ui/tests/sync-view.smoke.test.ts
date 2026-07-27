@@ -75,12 +75,13 @@ const assetFixtures = [
     description: 'All platform configuration',
     kind: 'directory',
     sensitive: true,
-    local_path: '~/.ccr/platforms/',
-    resolved_local_path: 'C:/Users/test/.ccr/platforms',
-    remote_path: '/ccr/platforms/',
-    local_exists: true,
-    remote_exists: false,
-    canonical_name: null,
+    encryptionState: 'v2_required',
+    localPath: '~/.ccr/platforms/',
+    resolvedLocalPath: 'C:/Users/test/.ccr/platforms',
+    remotePath: '/ccr/platforms/',
+    localExists: true,
+    remoteExists: false,
+    canonicalName: null,
   },
   {
     id: 'claude-memory',
@@ -103,6 +104,7 @@ const assetFixtures = [
     description: 'Codex user config',
     kind: 'file',
     sensitive: true,
+    encryptionState: 'v2_required',
     localPath: '~/.codex/config.toml',
     resolvedLocalPath: 'C:/Users/test/.codex/config.toml',
     remotePath: '/ccr/codex/config.toml',
@@ -152,7 +154,32 @@ const findButton = (el: Element, label: string): HTMLButtonElement => {
   return button as HTMLButtonElement
 }
 
+const submitPassphrase = async (
+  passphrase = 'cross-device-passphrase',
+  migratePlaintextV1 = false,
+  continueLabel = 'Continue sync'
+) => {
+  await nextTick()
+  const input = document.body.querySelector('input[type="password"]') as HTMLInputElement | null
+  expect(input).toBeTruthy()
+  if (!input) return
+  input.value = passphrase
+  input.dispatchEvent(new Event('input', { bubbles: true }))
+
+  if (migratePlaintextV1) {
+    const checkbox = document.body.querySelector('input[type="checkbox"]') as HTMLInputElement | null
+    expect(checkbox).toBeTruthy()
+    checkbox?.click()
+  }
+
+  await nextTick()
+  findButton(document.body, continueLabel).click()
+  await flushAsync()
+  await nextTick()
+}
+
 beforeEach(() => {
+  Object.values(apiMocks).forEach(mock => mock.mockReset())
   apiMocks.getSyncStatus.mockResolvedValue({ configured: true, enabled: true, webdav_url: 'https://dav.example.com', username: 'tester' })
   apiMocks.listSyncAssets.mockResolvedValue(assetFixtures)
   apiMocks.pushSyncAsset.mockResolvedValue({ success: true, message: 'pushed', total: 1, successCount: 1, failed: [] })
@@ -191,24 +218,28 @@ describe('SyncView configuration asset console', () => {
 
     try {
       const firstCard = [...el.querySelectorAll('.sync-asset-card')]
-        .find(card => card.textContent?.includes('CCR Platforms')) as HTMLElement
+        .find(card => card.textContent?.includes('CLAUDE.md')) as HTMLElement
       expect(firstCard).toBeTruthy()
 
       findButton(firstCard, 'Push').click()
       await flushAsync()
-      expect(apiMocks.pushSyncAsset).toHaveBeenCalledWith('ccr-platforms', false)
+      expect(apiMocks.pushSyncAsset).toHaveBeenCalledWith('claude-memory', { force: false })
 
       findButton(firstCard, 'Pull').click()
       await flushAsync()
-      expect(apiMocks.pullSyncAsset).toHaveBeenCalledWith('ccr-platforms', false)
+      expect(apiMocks.pullSyncAsset).toHaveBeenCalledWith('claude-memory', { force: false })
 
       findButton(firstCard, 'Sync').click()
       await flushAsync()
-      expect(apiMocks.syncSingleAsset).toHaveBeenCalledWith('ccr-platforms', false)
+      expect(apiMocks.syncSingleAsset).toHaveBeenCalledWith('claude-memory', { force: false })
 
       findButton(el, 'Sync all once').click()
-      await flushAsync()
-      expect(apiMocks.syncAllAssets).toHaveBeenCalledWith(false)
+      await submitPassphrase()
+      expect(apiMocks.syncAllAssets).toHaveBeenCalledWith({
+        force: false,
+        passphrase: 'cross-device-passphrase',
+        migratePlaintextV1: false,
+      })
     } finally {
       unmount()
     }
@@ -226,9 +257,33 @@ describe('SyncView configuration asset console', () => {
       expect(syncButton.disabled).toBe(false)
 
       syncButton.click()
-      await flushAsync()
+      await submitPassphrase()
 
-      expect(apiMocks.syncSingleAsset).toHaveBeenCalledWith('codex-config', false)
+      expect(apiMocks.syncSingleAsset).toHaveBeenCalledWith('codex-config', {
+        force: false,
+        passphrase: 'cross-device-passphrase',
+        migratePlaintextV1: false,
+      })
+    } finally {
+      unmount()
+    }
+  })
+
+  it('sends plaintext migration only after explicit selection and clears the entered passphrase', async () => {
+    const { el, unmount } = await mountView()
+
+    try {
+      const sensitiveCard = [...el.querySelectorAll('.sync-asset-card')]
+        .find(card => card.textContent?.includes('config.toml')) as HTMLElement
+      findButton(sensitiveCard, 'Pull').click()
+      await submitPassphrase('legacy-migration-pass', true)
+
+      expect(apiMocks.pullSyncAsset).toHaveBeenCalledWith('codex-config', {
+        force: false,
+        passphrase: 'legacy-migration-pass',
+        migratePlaintextV1: true,
+      })
+      expect(document.body.textContent).not.toContain('legacy-migration-pass')
     } finally {
       unmount()
     }
@@ -245,16 +300,19 @@ describe('SyncView configuration asset console', () => {
       const firstCard = [...el.querySelectorAll('.sync-asset-card')]
         .find(card => card.textContent?.includes('CCR Platforms')) as HTMLElement
       findButton(firstCard, 'Push').click()
-      await flushAsync()
-      await nextTick()
+      await submitPassphrase()
 
       expect(el.textContent).toContain('Force retry')
       expect(el.textContent).toContain('api_key=••••••')
       expect(el.textContent).not.toContain('sk-testsecret')
 
       findButton(firstCard, 'Force retry').click()
-      await flushAsync()
-      expect(apiMocks.pushSyncAsset).toHaveBeenLastCalledWith('ccr-platforms', true)
+      await submitPassphrase('retry-passphrase')
+      expect(apiMocks.pushSyncAsset).toHaveBeenLastCalledWith('ccr-platforms', {
+        force: true,
+        passphrase: 'retry-passphrase',
+        migratePlaintextV1: false,
+      })
     } finally {
       unmount()
     }
@@ -279,8 +337,7 @@ describe('SyncView configuration asset console', () => {
 
     try {
       findButton(el, 'Sync all once').click()
-      await flushAsync()
-      await nextTick()
+      await submitPassphrase()
 
       expect(el.textContent).toContain('Partial success')
       expect(el.textContent).toContain('2/3 succeeded')
@@ -307,8 +364,7 @@ describe('SyncView configuration asset console', () => {
 
     try {
       findButton(el, 'Sync all once').click()
-      await flushAsync()
-      await nextTick()
+      await submitPassphrase()
 
       expect(el.textContent).toContain('Action needed')
       expect(el.textContent).toContain('Sync failed before folder-level diagnostics were returned.')
@@ -336,8 +392,7 @@ describe('SyncView configuration asset console', () => {
 
     try {
       findButton(el, '全部同步一次').click()
-      await flushAsync()
-      await nextTick()
+      await submitPassphrase('cross-device-passphrase', false, '继续同步')
 
       expect(el.textContent).toContain('远端父目录不存在')
       expect(el.textContent).toContain('请先在 WebDAV 中创建 /ccr/')
@@ -349,7 +404,12 @@ describe('SyncView configuration asset console', () => {
   it('masks JSON-like secret fields in raw sync output details', async () => {
     apiMocks.syncAllAssets.mockResolvedValueOnce({
       success: false,
-      message: 'Completed sync for 2/3 sync asset(s); 1 failed.',
+      message: JSON.stringify({
+        token: 'secret-token',
+        password: 'hidden-pass',
+        api_key: 'sk-testsecret123456',
+      }),
+      durationMs: 12,
       total: 3,
       successCount: 2,
       failed: [
@@ -358,19 +418,13 @@ describe('SyncView configuration asset console', () => {
           message: '409 AncestorNotFound: remote path /ccr/codex/config.toml cannot be checked.',
         },
       ],
-      output: JSON.stringify({
-        token: 'secret-token',
-        password: 'hidden-pass',
-        api_key: 'sk-testsecret123456',
-      }, null, 2),
     })
 
     const { el, unmount } = await mountView()
 
     try {
       findButton(el, 'Sync all once').click()
-      await flushAsync()
-      await nextTick()
+      await submitPassphrase()
 
       expect(el.textContent).toContain('token')
       expect(el.textContent).toContain('password')
@@ -404,15 +458,22 @@ describe('SyncView configuration asset console', () => {
 
     try {
       findButton(el, 'Sync all once').click()
-      await flushAsync()
-      await nextTick()
+      await submitPassphrase()
 
-      expect(apiMocks.syncAllAssets).toHaveBeenCalledWith(false)
+      expect(apiMocks.syncAllAssets).toHaveBeenCalledWith({
+        force: false,
+        passphrase: 'cross-device-passphrase',
+        migratePlaintextV1: false,
+      })
       expect(el.textContent).toContain('Force sync all')
 
       findButton(el, 'Force sync all').click()
-      await flushAsync()
-      expect(apiMocks.syncAllAssets).toHaveBeenLastCalledWith(true)
+      await submitPassphrase('force-passphrase')
+      expect(apiMocks.syncAllAssets).toHaveBeenLastCalledWith({
+        force: true,
+        passphrase: 'force-passphrase',
+        migratePlaintextV1: false,
+      })
     } finally {
       unmount()
     }

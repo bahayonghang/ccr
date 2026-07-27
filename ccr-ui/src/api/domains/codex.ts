@@ -9,7 +9,8 @@
  * 迁移时一并带入本文件作为内部实现细节。
  */
 
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/api/invokeRuntime'
+import * as codexClient from '../generated/codex'
 import {
   asRecord,
   isRecord,
@@ -24,25 +25,258 @@ import type {
   RawFileSaveResult,
   RawProfilesSaveResult,
 } from './configRawTypes'
+import type { OpenJsonValueDto } from '@/types/generated/common/OpenJsonValueDto'
+import type {
+  CodexAccountQuota,
+  CodexAgentMutationResponse,
+  CodexAgentSourceCatalogResponse,
+  CodexAgentSourceRecord,
+  CodexAgentSourcesResponse,
+  CodexAgentsResponse,
+  CodexCloneSessionResponse,
+  CodexConfig,
+  CodexMcpServersResponse,
+  CodexModelsResponse,
+  CodexProfile,
+  CodexProfilesResponse,
+  CodexSessionDetailResponse,
+  CodexSessionExportResponse,
+  CodexSessionsResponse,
+  CodexTraySnapshot,
+  CodexUsageResponse,
+} from '@/types/codex'
 
 // ── Internal Codex Agent helpers —— 与 _shared 中的 resolveName/resolveNameAndConfig 协同 ──
 
-function resolveCodexAgentContext(value: unknown): UnknownRecord | undefined {
+function toOpenJson(value: unknown): OpenJsonValueDto {
+  if (value === null || typeof value === 'string' || typeof value === 'boolean') return value
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (Array.isArray(value)) return value.map(toOpenJson)
+  if (isRecord(value)) {
+    return Object.fromEntries(
+      Object.entries(value)
+        .filter(([, item]) => item !== undefined)
+        .map(([key, item]) => [key, toOpenJson(item)]),
+    )
+  }
+  throw new TypeError('Codex command payload must be JSON-compatible')
+}
+
+function objectResponse(value: OpenJsonValueDto, label: string): object {
+  if (value === null || Array.isArray(value) || typeof value !== 'object') {
+    throw new Error(`${label} response is not an object`)
+  }
+  return value
+}
+
+function arrayResponse(value: OpenJsonValueDto, label: string): OpenJsonValueDto[] {
+  if (!Array.isArray(value)) throw new Error(`${label} response is not an array`)
+  return value
+}
+
+const recordOf = (value: object): UnknownRecord => asRecord(value)
+
+const isCodexConfig = (value: object): value is CodexConfig => !Array.isArray(value)
+
+const isCodexProfile = (value: object): value is CodexProfile =>
+  typeof recordOf(value).name === 'string'
+
+const isCodexProfilesResponse = (value: object): value is CodexProfilesResponse => {
+  const source = recordOf(value)
+  return Array.isArray(source.profiles)
+    && source.profiles.every(item => isRecord(item) && isCodexProfile(item))
+}
+
+const isCodexModelsResponse = (value: object): value is CodexModelsResponse => {
+  const source = recordOf(value)
+  return Array.isArray(source.models)
+    && Array.isArray(source.builtin_models)
+    && Array.isArray(source.custom_models)
+}
+
+const isCodexMcpServersResponse = (value: object): value is CodexMcpServersResponse =>
+  Array.isArray(recordOf(value).servers)
+
+const isCodexAgentsResponse = (value: object): value is CodexAgentsResponse => {
+  const source = recordOf(value)
+  return isRecord(source.context)
+    && Array.isArray(source.agents)
+    && Array.isArray(source.diagnostics)
+}
+
+const isCodexAgentMutationResponse = (value: object): value is CodexAgentMutationResponse => {
+  const source = recordOf(value)
+  return isRecord(source.context) && isRecord(source.agent)
+}
+
+const isCodexAgentSourceRecord = (value: object): value is CodexAgentSourceRecord => {
+  const source = recordOf(value)
+  return typeof source.id === 'string'
+    && typeof source.repoUrl === 'string'
+    && typeof source.owner === 'string'
+    && typeof source.repo === 'string'
+}
+
+const isCodexAgentSourcesResponse = (value: object): value is CodexAgentSourcesResponse => {
+  const sources = recordOf(value).sources
+  return Array.isArray(sources)
+    && sources.every(item => isRecord(item) && isCodexAgentSourceRecord(item))
+}
+
+const isCodexAgentSourceCatalogResponse = (
+  value: object,
+): value is CodexAgentSourceCatalogResponse => {
+  const source = recordOf(value)
+  return isRecord(source.source)
+    && isCodexAgentSourceRecord(source.source)
+    && Array.isArray(source.agents)
+    && Array.isArray(source.diagnostics)
+    && Array.isArray(source.installs)
+}
+
+const isCodexSessionsResponse = (value: object): value is CodexSessionsResponse =>
+  Array.isArray(recordOf(value).sessions)
+
+const isCodexSessionDetailResponse = (value: object): value is CodexSessionDetailResponse => {
+  const source = recordOf(value)
+  return isRecord(source.session)
+    && Array.isArray(source.messages)
+    && typeof source.clipped === 'boolean'
+    && typeof source.message_limit === 'number'
+}
+
+const isCodexSessionExportResponse = (value: object): value is CodexSessionExportResponse => {
+  const source = recordOf(value)
+  return typeof source.session_id === 'string'
+    && typeof source.file_name === 'string'
+    && typeof source.content === 'string'
+    && typeof source.truncated === 'boolean'
+    && typeof source.max_messages === 'number'
+}
+
+const isCodexCloneSessionResponse = (value: object): value is CodexCloneSessionResponse => {
+  const source = recordOf(value)
+  return typeof source.message === 'string' && isRecord(source.session)
+}
+
+const isCodexTraySnapshot = (value: object): value is CodexTraySnapshot => {
+  const source = recordOf(value)
+  return typeof source.fetched_at === 'string'
+    && typeof source.runtime_mode === 'string'
+    && Array.isArray(source.accounts)
+}
+
+const isCodexDashboardOverview = (value: object): value is CodexDashboardOverview => {
+  const source = recordOf(value)
+  return isRecord(source.auth)
+    && isRecord(source.profiles)
+    && isRecord(source.config)
+    && isRecord(source.inventory)
+}
+
+const isCodexDashboardUsageSummary = (
+  value: object,
+): value is CodexDashboardUsageSummary => {
+  const source = recordOf(value)
+  return typeof source.freshness === 'string'
+    && isRecord(source.five_hour)
+    && isRecord(source.seven_day)
+    && isRecord(source.all_time)
+}
+
+const isCodexUsageResponse = (value: object): value is CodexUsageResponse => {
+  const source = recordOf(value)
+  return isRecord(source.five_hour)
+    && isRecord(source.seven_day)
+    && isRecord(source.all_time)
+    && isRecord(source.by_model)
+}
+
+const isCodexAccountQuota = (value: object): value is CodexAccountQuota => {
+  const source = recordOf(value)
+  return typeof source.account_name === 'string' && typeof source.fetched_at === 'string'
+}
+
+function rawFileGetFrom(value: OpenJsonValueDto): RawFileGetResult {
+  const source = asRecord(value)
+  if (source.status === 'unsupported_environment' && typeof source.envType === 'string') {
+    return { status: source.status, envType: source.envType }
+  }
+  if (
+    source.status === 'ok'
+    && typeof source.content === 'string'
+    && typeof source.token === 'string'
+    && typeof source.path === 'string'
+    && typeof source.exists === 'boolean'
+  ) {
+    return {
+      status: source.status,
+      content: source.content,
+      token: source.token,
+      path: source.path,
+      exists: source.exists,
+    }
+  }
+  throw new Error('Codex profiles raw response is invalid')
+}
+
+function rawProfilesSaveFrom(value: OpenJsonValueDto): RawProfilesSaveResult {
+  const source = asRecord(value)
+  if (source.status === 'unsupported_environment' && typeof source.envType === 'string') {
+    return { status: source.status, envType: source.envType }
+  }
+  if (source.status === 'conflict') return { status: source.status }
+  if (source.status === 'activation_conflict' && typeof source.current === 'string') {
+    return { status: source.status, current: source.current }
+  }
+  if (
+    source.status === 'saved'
+    && typeof source.token === 'string'
+    && typeof source.profiles_count === 'number'
+  ) {
+    return { status: source.status, token: source.token, profiles_count: source.profiles_count }
+  }
+  if (
+    source.status === 'invalid'
+    && (source.kind === 'syntax' || source.kind === 'semantic')
+    && typeof source.message === 'string'
+  ) {
+    return {
+      status: source.status,
+      kind: source.kind,
+      message: source.message,
+      line: typeof source.line === 'number' ? source.line : undefined,
+      column: typeof source.column === 'number' ? source.column : undefined,
+    }
+  }
+  throw new Error('Codex profiles save response is invalid')
+}
+
+function resolveCodexAgentContext(
+  value: unknown,
+): codexClient.CodexAgentContextRequest | undefined {
   const request = asRecord(value)
   if (Object.keys(request).length === 0) {
     return undefined
   }
-  return request
+  return {
+    mode: typeof request.mode === 'string' ? request.mode : undefined,
+    projectRoot: typeof request.projectRoot === 'string' ? request.projectRoot : undefined,
+  }
 }
 
 function resolveCodexAgentMutation(
   arg1: string | object,
   arg2?: unknown,
-): { name: string; config: UnknownRecord; context?: UnknownRecord } {
+): {
+  name: string
+  config: OpenJsonValueDto
+  context?: codexClient.CodexAgentContextRequest
+} {
   if (typeof arg1 === 'string') {
     return {
       name: arg1,
-      config: asRecord(arg2),
+      config: toOpenJson(asRecord(arg2)),
     }
   }
 
@@ -53,12 +287,12 @@ function resolveCodexAgentMutation(
   delete request.id
   delete request.context
   delete request.agentContext
-  return { name, config: request, context }
+  return { name, config: toOpenJson(request), context }
 }
 
 function resolveCodexAgentNameAndContext(arg1: string | object): {
   name: string
-  context?: UnknownRecord
+  context?: codexClient.CodexAgentContextRequest
 } {
   if (typeof arg1 === 'string') {
     return { name: arg1 }
@@ -74,17 +308,26 @@ function resolveCodexAgentNameAndContext(arg1: string | object): {
 // ── Codex Profiles / Settings ──
 
 /** 列出 Codex Profiles */
-export const listCodexProfiles = async <T = UnknownRecord>(): Promise<T> => {
-  return invoke('codex_list_profiles')
+export const listCodexProfiles = async (): Promise<CodexProfilesResponse> => {
+  const value = objectResponse(await codexClient.listCodexProfiles(), 'Codex profiles')
+  if (!isCodexProfilesResponse(value)) throw new Error('Codex profiles response is invalid')
+  return value
 }
 
 /** 获取 Codex 配置 */
-export const exportCodexProfiles = async <T = UnknownRecord>(includeSecrets = true): Promise<T> => {
-  return invoke('codex_export_profiles', { includeSecrets })
+export const exportCodexProfiles = async (
+  includeSecrets = true,
+): Promise<{ content: string; filename: string }> => {
+  const value = objectResponse(await codexClient.exportCodexProfiles(includeSecrets), 'Codex export')
+  const source = recordOf(value)
+  if (typeof source.content !== 'string' || typeof source.filename !== 'string') {
+    throw new Error('Codex export response is invalid')
+  }
+  return { content: source.content, filename: source.filename }
 }
 
 export const getCodexProfilesRaw = async (): Promise<RawFileGetResult> => {
-  return invoke('codex_get_profiles_raw')
+  return rawFileGetFrom(await codexClient.getCodexProfilesRaw())
 }
 
 export const saveCodexProfilesRaw = async (
@@ -92,16 +335,23 @@ export const saveCodexProfilesRaw = async (
   token: string,
   force = false,
 ): Promise<RawProfilesSaveResult> => {
-  return invoke('codex_save_profiles_raw', { content, token, force })
+  return rawProfilesSaveFrom(await codexClient.saveCodexProfilesRaw(content, token, force))
 }
 
-export const getCodexConfig = async <T = UnknownRecord>(): Promise<T> => {
-  return invoke('codex_get_settings')
+export const getCodexConfig = async (): Promise<CodexConfig> => {
+  const value = objectResponse(await codexClient.getCodexSettings(), 'Codex config')
+  if (!isCodexConfig(value)) throw new Error('Codex config response is invalid')
+  return value
 }
 
 /** 更新 Codex 配置 */
-export const updateCodexConfig = async <T = UnknownRecord>(settings: unknown): Promise<T> => {
-  return invoke('codex_update_settings', { settings })
+export const updateCodexConfig = async (settings: unknown): Promise<CodexConfig> => {
+  const value = objectResponse(
+    await codexClient.updateCodexSettings(toOpenJson(settings)),
+    'Codex config update',
+  )
+  if (!isCodexConfig(value)) throw new Error('Codex config update response is invalid')
+  return value
 }
 
 export const getCodexConfigRaw = async (): Promise<RawFileGetResult> => {
@@ -123,212 +373,258 @@ export type { ConfigLayer, ConfigLayersResult, RawFileGetResult, RawFileSaveResu
 
 // ── Codex MCP Servers ──
 
-export const listCodexMcpServers = async <T = UnknownRecord>(): Promise<T> => {
-  return invoke('codex_list_mcp_servers')
+export const listCodexMcpServers = async (): Promise<CodexMcpServersResponse> => {
+  const value = objectResponse(await codexClient.listCodexMcpServers(), 'Codex MCP servers')
+  if (!isCodexMcpServersResponse(value)) throw new Error('Codex MCP servers response is invalid')
+  return value
 }
 
-export const addCodexMcpServer = async <T = UnknownRecord>(
+export const addCodexMcpServer = async (
   nameOrRequest: string | object,
   config?: unknown,
-): Promise<T> => {
+): Promise<OpenJsonValueDto> => {
   const { name, config: resolvedConfig } = resolveNameAndConfig(nameOrRequest, config)
-  return invoke('codex_add_mcp_server', { name, config: resolvedConfig })
+  return codexClient.addCodexMcpServer(name, toOpenJson(resolvedConfig))
 }
 
-export const updateCodexMcpServer = async <T = UnknownRecord>(
+export const updateCodexMcpServer = async (
   nameOrRequest: string | object,
   config?: unknown,
-): Promise<T> => {
+): Promise<OpenJsonValueDto> => {
   const { name, config: resolvedConfig } = resolveNameAndConfig(nameOrRequest, config)
-  return invoke('codex_update_mcp_server', { name, config: resolvedConfig })
+  return codexClient.updateCodexMcpServer(name, toOpenJson(resolvedConfig))
 }
 
-export const deleteCodexMcpServer = async <T = UnknownRecord>(
+export const deleteCodexMcpServer = async (
   nameOrRequest: string | object,
-): Promise<T> => {
+): Promise<string> => {
   const name = resolveName(nameOrRequest)
-  return invoke('codex_delete_mcp_server', { name })
+  return codexClient.deleteCodexMcpServer(name)
 }
 
 // ── Codex Agents ──
 
 /** 列出 Codex Agents */
-export const listCodexAgents = async <T = UnknownRecord>(context?: unknown): Promise<T> => {
-  return invoke('codex_list_agents', {
-    context: resolveCodexAgentContext(context),
-  })
+export const listCodexAgents = async (context?: unknown): Promise<CodexAgentsResponse> => {
+  const value = objectResponse(
+    await codexClient.listCodexAgents(resolveCodexAgentContext(context)),
+    'Codex agents',
+  )
+  if (!isCodexAgentsResponse(value)) throw new Error('Codex agents response is invalid')
+  return value
 }
 
 /** 添加 Codex Agent */
-export const addCodexAgent = async <T = UnknownRecord>(
+export const addCodexAgent = async (
   nameOrRequest: string | object,
   config?: unknown,
-): Promise<T> => {
+): Promise<CodexAgentMutationResponse> => {
   const { name, config: resolvedConfig, context } = resolveCodexAgentMutation(nameOrRequest, config)
-  return invoke('codex_add_agent', { name, config: resolvedConfig, context })
+  const value = objectResponse(
+    await codexClient.addCodexAgent(name, resolvedConfig, context),
+    'Codex agent add',
+  )
+  if (!isCodexAgentMutationResponse(value)) throw new Error('Codex agent add response is invalid')
+  return value
 }
 
 /** 更新 Codex Agent */
-export const updateCodexAgent = async <T = UnknownRecord>(
+export const updateCodexAgent = async (
   nameOrRequest: string | object,
   config?: unknown,
-): Promise<T> => {
+): Promise<CodexAgentMutationResponse> => {
   const { name, config: resolvedConfig, context } = resolveCodexAgentMutation(nameOrRequest, config)
-  return invoke('codex_update_agent', { name, config: resolvedConfig, context })
+  const value = objectResponse(
+    await codexClient.updateCodexAgent(name, resolvedConfig, context),
+    'Codex agent update',
+  )
+  if (!isCodexAgentMutationResponse(value)) throw new Error('Codex agent update response is invalid')
+  return value
 }
 
 /** 删除 Codex Agent */
-export const deleteCodexAgent = async <T = UnknownRecord>(
+export const deleteCodexAgent = async (
   nameOrRequest: string | object,
-): Promise<T> => {
+): Promise<string> => {
   const { name, context } = resolveCodexAgentNameAndContext(nameOrRequest)
-  return invoke('codex_delete_agent', { name, context })
+  return codexClient.deleteCodexAgent(name, context)
 }
 
 /** Codex custom agents 不支持 enabled/disabled 切换，直接拒绝 */
-export const toggleCodexAgent = async <T = UnknownRecord>(
+export const toggleCodexAgent = async (
   nameOrRequest: string | object,
   _enabled?: boolean,
-): Promise<T> => {
+): Promise<never> => {
   const { name } = resolveCodexAgentNameAndContext(nameOrRequest)
   return Promise.reject(new Error(`Codex agent '${name}' does not support toggle`))
 }
 
 /** 重命名 Codex Agent */
-export const renameCodexAgent = async <T = UnknownRecord>(payload: {
+export const renameCodexAgent = async (payload: {
   name: string
   newName: string
   context?: unknown
-}): Promise<T> => {
-  return invoke('codex_rename_agent', {
-    name: payload.name,
-    newName: payload.newName,
-    context: resolveCodexAgentContext(payload.context),
-  })
+}): Promise<CodexAgentMutationResponse> => {
+  const value = objectResponse(
+    await codexClient.renameCodexAgent(
+      payload.name,
+      payload.newName,
+      resolveCodexAgentContext(payload.context),
+    ),
+    'Codex agent rename',
+  )
+  if (!isCodexAgentMutationResponse(value)) throw new Error('Codex agent rename response is invalid')
+  return value
 }
 
 /** 复制 Codex Agent */
-export const copyCodexAgent = async <T = UnknownRecord>(payload: {
+export const copyCodexAgent = async (payload: {
   name: string
   sourceContext?: unknown
   targetContext?: unknown
   targetName?: string
-}): Promise<T> => {
-  return invoke('codex_copy_agent', {
-    name: payload.name,
-    sourceContext: resolveCodexAgentContext(payload.sourceContext),
-    targetContext: resolveCodexAgentContext(payload.targetContext),
-    targetName: payload.targetName ?? null,
-  })
+}): Promise<CodexAgentMutationResponse> => {
+  const value = objectResponse(
+    await codexClient.copyCodexAgent(
+      payload.name,
+      resolveCodexAgentContext(payload.sourceContext),
+      resolveCodexAgentContext(payload.targetContext),
+      payload.targetName,
+    ),
+    'Codex agent copy',
+  )
+  if (!isCodexAgentMutationResponse(value)) throw new Error('Codex agent copy response is invalid')
+  return value
 }
 
 /** 校验 Codex Agent 原始 TOML */
-export const validateCodexAgentToml = async <T = UnknownRecord>(payload: {
+export const validateCodexAgentToml = async (payload: {
   name: string
   context?: unknown
-}): Promise<T> => {
-  return invoke('codex_validate_agent_toml', {
-    name: payload.name,
-    context: resolveCodexAgentContext(payload.context),
-  })
+}): Promise<CodexAgentMutationResponse> => {
+  const value = objectResponse(
+    await codexClient.validateCodexAgentToml(
+      payload.name,
+      resolveCodexAgentContext(payload.context),
+    ),
+    'Codex agent validation',
+  )
+  if (!isCodexAgentMutationResponse(value)) {
+    throw new Error('Codex agent validation response is invalid')
+  }
+  return value
 }
 
 // ── Codex Agent Sources（GitHub 远程源） ──
 
-export const listCodexAgentSources = async <T = UnknownRecord>(): Promise<T> => {
-  return invoke('codex_list_agent_sources')
+export const listCodexAgentSources = async (): Promise<CodexAgentSourcesResponse> => {
+  const value = objectResponse(await codexClient.listCodexAgentSources(), 'Codex agent sources')
+  if (!isCodexAgentSourcesResponse(value)) throw new Error('Codex agent sources response is invalid')
+  return value
 }
 
-export const addCodexAgentSource = async <T = UnknownRecord>(url: string): Promise<T> => {
-  return invoke('codex_add_agent_source', { request: { url } })
+export const addCodexAgentSource = async (url: string): Promise<CodexAgentSourceRecord> => {
+  const value = objectResponse(
+    await codexClient.addCodexAgentSource(url),
+    'Codex agent source add',
+  )
+  if (!isCodexAgentSourceRecord(value)) throw new Error('Codex agent source add response is invalid')
+  return value
 }
 
-export const removeCodexAgentSource = async <T = UnknownRecord>(sourceId: string): Promise<T> => {
-  return invoke('codex_remove_agent_source', { sourceId })
+export const removeCodexAgentSource = async (sourceId: string): Promise<void> => {
+  return codexClient.removeCodexAgentSource(sourceId)
 }
 
-export const syncCodexAgentSource = async <T = UnknownRecord>(sourceId: string): Promise<T> => {
-  return invoke('codex_sync_agent_source', { sourceId })
+export const syncCodexAgentSource = async (sourceId: string): Promise<OpenJsonValueDto> => {
+  return codexClient.syncCodexAgentSource(sourceId)
 }
 
-export const getCodexAgentSourceCatalog = async <T = UnknownRecord>(
+export const getCodexAgentSourceCatalog = async (
   sourceId: string,
-): Promise<T> => {
-  return invoke('codex_get_agent_source_catalog', { sourceId })
+): Promise<CodexAgentSourceCatalogResponse> => {
+  const value = objectResponse(
+    await codexClient.getCodexAgentSourceCatalog(sourceId),
+    'Codex agent source catalog',
+  )
+  if (!isCodexAgentSourceCatalogResponse(value)) {
+    throw new Error('Codex agent source catalog response is invalid')
+  }
+  return value
 }
 
-export const installCodexSourceAgent = async <T = UnknownRecord>(payload: {
+export const installCodexSourceAgent = async (payload: {
   sourceId: string
   agentId: string
   targetName?: string | null
   conflictMode?: string | null
-}): Promise<T> => {
-  return invoke('codex_install_source_agent', {
-    request: {
-      sourceId: payload.sourceId,
-      agentId: payload.agentId,
-      targetName: payload.targetName ?? null,
-      conflictMode: payload.conflictMode ?? null,
-    },
+}): Promise<OpenJsonValueDto> => {
+  return codexClient.installCodexSourceAgent({
+    sourceId: payload.sourceId,
+    agentId: payload.agentId,
+    targetName: payload.targetName ?? null,
+    conflictMode: payload.conflictMode ?? null,
   })
 }
 
-export const syncCodexSourceInstall = async <T = UnknownRecord>(installId: string): Promise<T> => {
-  return invoke('codex_sync_source_install', { request: { installId } })
+export const syncCodexSourceInstall = async (installId: string): Promise<OpenJsonValueDto> => {
+  return codexClient.syncCodexSourceInstall({ installId })
 }
 
-export const forceSyncCodexSourceInstall = async <T = UnknownRecord>(
+export const forceSyncCodexSourceInstall = async (
   installId: string,
-): Promise<T> => {
-  return invoke('codex_sync_source_install', { request: { installId, force: true } })
+): Promise<OpenJsonValueDto> => {
+  return codexClient.syncCodexSourceInstall({ installId, force: true })
 }
 
-export const acceptLocalCodexSourceInstall = async <T = UnknownRecord>(
+export const acceptLocalCodexSourceInstall = async (
   installId: string,
-): Promise<T> => {
-  return invoke('codex_accept_local_source_install', { request: { installId } })
+): Promise<OpenJsonValueDto> => {
+  return codexClient.acceptLocalCodexSourceInstall(installId)
 }
 
-export const untrackCodexSourceInstall = async <T = UnknownRecord>(
+export const untrackCodexSourceInstall = async (
   installId: string,
-): Promise<T> => {
-  return invoke('codex_untrack_source_install', { request: { installId } })
+): Promise<OpenJsonValueDto> => {
+  return codexClient.untrackCodexSourceInstall(installId)
 }
 
 // ── Codex Models ──
 
-export const listCodexModels = async <T = UnknownRecord>(): Promise<T> => {
-  return invoke('codex_list_models')
+export const listCodexModels = async (): Promise<CodexModelsResponse> => {
+  const value = objectResponse(await codexClient.listCodexModels(), 'Codex models')
+  if (!isCodexModelsResponse(value)) throw new Error('Codex models response is invalid')
+  return value
 }
 
 // ── Codex Profile 管理（CCR profiles.toml） ──
 
-export const addCodexProfile = async <T = UnknownRecord>(
+export const addCodexProfile = async (
   profileOrName: string | object,
   config?: unknown,
-): Promise<T> => {
+): Promise<OpenJsonValueDto> => {
   const { name, config: resolvedConfig } = resolveNameAndConfig(profileOrName, config)
-  return invoke('codex_add_profile', { name, config: resolvedConfig })
+  return codexClient.addCodexProfile(name, toOpenJson(resolvedConfig))
 }
 
-export const updateCodexProfile = async <T = UnknownRecord>(
+export const updateCodexProfile = async (
   profileOrName: string | object,
   config?: unknown,
-): Promise<T> => {
+): Promise<OpenJsonValueDto> => {
   const { name, config: resolvedConfig } = resolveNameAndConfig(profileOrName, config)
-  return invoke('codex_update_profile', { name, config: resolvedConfig })
+  return codexClient.updateCodexProfile(name, toOpenJson(resolvedConfig))
 }
 
-export const deleteCodexProfile = async <T = UnknownRecord>(
+export const deleteCodexProfile = async (
   nameOrRequest: string | object,
-): Promise<T> => {
+): Promise<void> => {
   const name = resolveName(nameOrRequest)
-  return invoke('codex_delete_profile', { name })
+  await codexClient.deleteCodexProfile(name)
 }
 
 /** 获取 Codex Profile 详情（从列表过滤） */
-export const getCodexProfile = async <T = UnknownRecord>(name: string): Promise<T> => {
-  const profiles = await listCodexProfiles<unknown>()
+export const getCodexProfile = async (name: string): Promise<CodexProfile | null> => {
+  const profiles = await listCodexProfiles()
   const arr = Array.isArray(profiles) ? profiles : pickArray(profiles, 'profiles')
   const found = arr.find((item) => {
     if (!isRecord(item)) {
@@ -336,159 +632,112 @@ export const getCodexProfile = async <T = UnknownRecord>(name: string): Promise<
     }
     return String(item.name ?? '') === name
   })
-  return (found ?? null) as T
+  if (found === undefined || !isRecord(found)) return null
+  if (!isCodexProfile(found)) throw new Error('Codex profile response is invalid')
+  return found
 }
 
-export const getCodexProfileEnv = async <T = UnknownRecord>(name: string): Promise<T> => {
-  return invoke('codex_get_profile_env', { name })
+export const getCodexProfileEnv = async (name: string): Promise<OpenJsonValueDto> => {
+  return codexClient.getCodexProfileEnv(name)
 }
 
-export const applyCodexProfile = async <T = UnknownRecord>(name: string): Promise<T> => {
-  return invoke('codex_apply_profile', { name })
+export const applyCodexProfile = async (name: string): Promise<void> => {
+  await codexClient.applyCodexProfile(name)
 }
 
 // ── Codex Sessions ──
 
-export const listCodexSessions = async <T = UnknownRecord>(options?: {
+export const listCodexSessions = async (options?: {
   limit?: number
   query?: string
-}): Promise<T> => {
-  return invoke('codex_list_sessions', {
-    limit: options?.limit,
-    query: options?.query,
-  })
+}): Promise<CodexSessionsResponse> => {
+  const value = objectResponse(
+    await codexClient.listCodexSessions(options?.limit, options?.query),
+    'Codex sessions',
+  )
+  if (!isCodexSessionsResponse(value)) throw new Error('Codex sessions response is invalid')
+  return value
 }
 
-export const getCodexSessionDetail = async <T = UnknownRecord>(
+export const getCodexSessionDetail = async (
   filePath: string,
   messageLimit?: number,
-): Promise<T> => {
-  return invoke('codex_get_session_detail', { filePath, messageLimit })
+): Promise<CodexSessionDetailResponse> => {
+  const value = objectResponse(
+    await codexClient.getCodexSessionDetail(filePath, messageLimit),
+    'Codex session detail',
+  )
+  if (!isCodexSessionDetailResponse(value)) throw new Error('Codex session detail response is invalid')
+  return value
 }
 
-export const exportCodexSession = async <T = UnknownRecord>(
+export const exportCodexSession = async (
   filePath: string,
   maxMessages?: number,
-): Promise<T> => {
-  return invoke('codex_export_session', { filePath, maxMessages })
+): Promise<CodexSessionExportResponse> => {
+  const value = objectResponse(
+    await codexClient.exportCodexSession(filePath, maxMessages),
+    'Codex session export',
+  )
+  if (!isCodexSessionExportResponse(value)) throw new Error('Codex session export response is invalid')
+  return value
 }
 
-export const cloneCodexSession = async <T = UnknownRecord>(filePath: string): Promise<T> => {
-  return invoke('codex_clone_session', { filePath })
+export const cloneCodexSession = async (filePath: string): Promise<CodexCloneSessionResponse> => {
+  const value = objectResponse(
+    await codexClient.cloneCodexSession(filePath),
+    'Codex session clone',
+  )
+  if (!isCodexCloneSessionResponse(value)) throw new Error('Codex session clone response is invalid')
+  return value
 }
 
-export const deleteCodexSession = async <T = UnknownRecord>(filePath: string): Promise<T> => {
-  return invoke('codex_delete_session', { filePath })
+export const deleteCodexSession = async (filePath: string): Promise<OpenJsonValueDto> => {
+  return codexClient.deleteCodexSession(filePath)
 }
 
 // ── Codex Auth 管理 ──
 
-export const listCodexAuthAccounts = async <T = UnknownRecord>(): Promise<T> => {
-  return invoke('codex_list_auth_accounts')
-}
-
-export const getCodexAuthCurrent = async <T = UnknownRecord>(): Promise<T> => {
-  return invoke('codex_get_auth_current')
-}
-
-export const saveCodexAuth = async <T = UnknownRecord>(data: unknown): Promise<T> => {
-  return invoke('codex_save_auth', asRecord(data))
-}
-
-export const switchCodexAuth = async <T = UnknownRecord>(name: string): Promise<T> => {
-  return invoke('codex_switch_auth', { name })
-}
-
-export const deleteCodexAuth = async <T = UnknownRecord>(name: string): Promise<T> => {
-  return invoke('codex_delete_auth', { name })
-}
-
-export const renameCodexAuth = async <T = UnknownRecord>(
-  oldName: string,
-  newName: string,
-  force = false,
-): Promise<T> => {
-  return invoke('codex_rename_auth', { oldName, newName, force })
-}
+export {
+  deleteCodexAuth,
+  getCodexAuthCurrent,
+  listCodexAuthAccounts,
+  renameCodexAuth,
+  saveCodexAuth,
+  switchCodexAuth,
+  type CodexAuthSaveRequest,
+} from '../generated/codexAuth'
 
 // ── Codex Tray / Process ──
 
-export const getCodexTraySnapshot = async <T = UnknownRecord>(force?: boolean): Promise<T> => {
-  return invoke('codex_get_tray_snapshot', { force })
+export const getCodexTraySnapshot = async (force?: boolean): Promise<CodexTraySnapshot> => {
+  const value = objectResponse(
+    await codexClient.getCodexTraySnapshot(force),
+    'Codex tray snapshot',
+  )
+  if (!isCodexTraySnapshot(value)) throw new Error('Codex tray snapshot response is invalid')
+  return value
 }
 
-export const detectCodexProcess = async <T = UnknownRecord>(): Promise<T> => {
-  return invoke('codex_detect_process')
-}
+export { detectCodexProcess } from '../generated/codexAuth'
 
 // ── Codex OAuth ──
 
-export const codexOAuthLoginStart = async <T = UnknownRecord>(): Promise<T> => {
-  return invoke('codex_oauth_login_start')
-}
-
-export const codexOAuthLoginCompleted = async <T = UnknownRecord>(
-  loginId: string,
-  preferredAccountName?: string | null,
-): Promise<T> => {
-  return invoke('codex_oauth_login_completed', {
-    loginId,
-    preferredAccountName: preferredAccountName ?? null,
-  })
-}
-
-export const codexOAuthLoginCancel = async (loginId?: string | null): Promise<void> => {
-  await invoke('codex_oauth_login_cancel', { loginId: loginId ?? null })
-}
-
-export const codexOAuthSubmitCallbackUrl = async (
-  loginId: string,
-  callbackUrl: string,
-): Promise<void> => {
-  await invoke('codex_oauth_submit_callback_url', { loginId, callbackUrl })
-}
-
-export const codexIsOAuthPortInUse = async <T = boolean>(): Promise<T> => {
-  return invoke('codex_is_oauth_port_in_use')
-}
-
-export const codexReleaseOAuthPort = async <T = number>(): Promise<T> => {
-  return invoke('codex_release_oauth_port')
-}
-
-export const codexOpenExternalUrl = async (url: string): Promise<void> => {
-  await invoke('codex_open_external_url', { url })
-}
-
-export const codexImportAuthPayload = async <T = UnknownRecord>(payload: unknown): Promise<T> => {
-  return invoke('codex_import_auth_payload', { payload: asRecord(payload) })
-}
-
-export const codexImportAuthFromLocal = async <T = UnknownRecord>(
-  preferredAccountName?: string | null,
-): Promise<T> => {
-  return invoke('codex_import_auth_from_local', {
-    preferredAccountName: preferredAccountName ?? null,
-  })
-}
-
-export const codexAddAuthWithApiKey = async <T = UnknownRecord>(payload: unknown): Promise<T> => {
-  return invoke('codex_add_auth_with_api_key', { payload: asRecord(payload) })
-}
-
-export const codexListModelProviders = async <T = UnknownRecord>(): Promise<T> => {
-  return invoke('codex_list_model_providers')
-}
-
-export const codexSaveModelProvider = async <T = UnknownRecord>(payload: unknown): Promise<T> => {
-  return invoke('codex_save_model_provider', { payload: asRecord(payload) })
-}
-
-export const codexDeleteModelProvider = async <T = UnknownRecord>(
-  providerId: string,
-): Promise<T> => {
-  return invoke('codex_delete_model_provider', { providerId })
-}
+export {
+  codexAddAuthWithApiKey,
+  codexDeleteModelProvider,
+  codexImportAuthFromLocal,
+  codexImportAuthPayload,
+  codexIsOAuthPortInUse,
+  codexListModelProviders,
+  codexOAuthLoginCancel,
+  codexOAuthLoginCompleted,
+  codexOAuthLoginStart,
+  codexOAuthSubmitCallbackUrl,
+  codexOpenExternalUrl,
+  codexReleaseOAuthPort,
+  codexSaveModelProvider,
+} from '../generated/codexAuth'
 
 // ── Codex Dashboard 类型 ──
 
@@ -558,17 +807,29 @@ export interface CodexCommandOptions {
 }
 
 /** 获取 Codex 仪表盘概览 */
-export const getCodexDashboardOverview = async <T = CodexDashboardOverview>(
+export const getCodexDashboardOverview = async (
   options?: CodexCommandOptions,
-): Promise<T> => {
-  return invoke('codex_get_dashboard_overview', { force: options?.force })
+): Promise<CodexDashboardOverview> => {
+  const value = objectResponse(
+    await codexClient.getCodexDashboardOverview(options?.force),
+    'Codex dashboard overview',
+  )
+  if (!isCodexDashboardOverview(value)) throw new Error('Codex dashboard overview response is invalid')
+  return value
 }
 
 /** 获取 Codex 仪表盘用量摘要 */
-export const getCodexDashboardUsageSummary = async <T = CodexDashboardUsageSummary>(
+export const getCodexDashboardUsageSummary = async (
   options?: CodexCommandOptions,
-): Promise<T> => {
-  return invoke('codex_get_dashboard_usage_summary', { force: options?.force })
+): Promise<CodexDashboardUsageSummary> => {
+  const value = objectResponse(
+    await codexClient.getCodexDashboardUsageSummary(options?.force),
+    'Codex dashboard usage summary',
+  )
+  if (!isCodexDashboardUsageSummary(value)) {
+    throw new Error('Codex dashboard usage summary response is invalid')
+  }
+  return value
 }
 
 export interface CodexUsageCommandOptions {
@@ -576,78 +837,99 @@ export interface CodexUsageCommandOptions {
 }
 
 /** 获取 Codex 使用量 */
-export const getCodexUsage = async <T = UnknownRecord>(
+export const getCodexUsage = async (
   options?: CodexUsageCommandOptions,
-): Promise<T> => {
-  return invoke('codex_get_usage', { force: options?.force })
+): Promise<CodexUsageResponse> => {
+  const value = objectResponse(
+    await codexClient.getCodexUsage(options?.force),
+    'Codex usage',
+  )
+  if (!isCodexUsageResponse(value)) throw new Error('Codex usage response is invalid')
+  return value
 }
 
 /** 获取所有 Codex 账号的配额余额 */
-export const getCodexAllQuotas = async <T = UnknownRecord>(): Promise<T> => {
-  return invoke('codex_get_all_quotas')
+export const getCodexAllQuotas = async (): Promise<CodexAccountQuota[]> => {
+  return arrayResponse(await codexClient.getCodexAllQuotas(), 'Codex quotas').map((item) => {
+    const value = objectResponse(item, 'Codex quota')
+    if (!isCodexAccountQuota(value)) throw new Error('Codex quota response is invalid')
+    return value
+  })
 }
 
 /** 获取指定 Codex 账号的配额余额 */
-export const getCodexQuota = async <T = UnknownRecord>(account: string): Promise<T> => {
-  return invoke('codex_get_quota', { account })
+export const getCodexQuota = async (account: string): Promise<CodexAccountQuota> => {
+  const value = objectResponse(
+    await codexClient.getCodexQuota(account),
+    'Codex quota',
+  )
+  if (!isCodexAccountQuota(value)) throw new Error('Codex quota response is invalid')
+  return value
 }
 
 // ── 平台限制 —— Codex 不支持 Slash Commands 与 Plugins，保留桩函数 ──
 
-export const listCodexSlashCommands = async <T = UnknownRecord>(): Promise<T> => {
-  return { commands: [], folders: [] } as T
+export const listCodexSlashCommands = async (): Promise<{
+  commands: never[]
+  folders: never[]
+}> => {
+  return { commands: [], folders: [] }
 }
 
-export const addCodexSlashCommand = async <T = UnknownRecord>(
+export const addCodexSlashCommand = async (
   _name: string,
   _config: unknown,
-): Promise<T> => {
-  return { success: false, message: 'Codex 平台不支持斜杠命令' } as T
+): Promise<{ success: false; message: string }> => {
+  return { success: false, message: 'Codex 平台不支持斜杠命令' }
 }
 
-export const updateCodexSlashCommand = async <T = UnknownRecord>(
+export const updateCodexSlashCommand = async (
   _name: string,
   _config: unknown,
-): Promise<T> => {
-  return { success: false, message: 'Codex 平台不支持斜杠命令' } as T
+): Promise<{ success: false; message: string }> => {
+  return { success: false, message: 'Codex 平台不支持斜杠命令' }
 }
 
-export const deleteCodexSlashCommand = async <T = UnknownRecord>(_name: string): Promise<T> => {
-  return { success: false, message: 'Codex 平台不支持斜杠命令' } as T
+export const deleteCodexSlashCommand = async (
+  _name: string,
+): Promise<{ success: false; message: string }> => {
+  return { success: false, message: 'Codex 平台不支持斜杠命令' }
 }
 
-export const toggleCodexSlashCommand = async <T = UnknownRecord>(
+export const toggleCodexSlashCommand = async (
   _name: string,
   _enabled: boolean,
-): Promise<T> => {
-  return { success: false, message: 'Codex 平台不支持斜杠命令' } as T
+): Promise<{ success: false; message: string }> => {
+  return { success: false, message: 'Codex 平台不支持斜杠命令' }
 }
 
-export const listCodexPlugins = async <T = UnknownRecord>(): Promise<T> => {
-  return { plugins: [] } as T
+export const listCodexPlugins = async (): Promise<{ plugins: never[] }> => {
+  return { plugins: [] }
 }
 
-export const addCodexPlugin = async <T = UnknownRecord>(
+export const addCodexPlugin = async (
   _name: string,
   _config: unknown,
-): Promise<T> => {
-  return { success: false, message: 'Codex 平台不支持插件' } as T
+): Promise<{ success: false; message: string }> => {
+  return { success: false, message: 'Codex 平台不支持插件' }
 }
 
-export const updateCodexPlugin = async <T = UnknownRecord>(
+export const updateCodexPlugin = async (
   _pluginOrName: string | object,
   _config?: unknown,
-): Promise<T> => {
-  return { success: false, message: 'Codex 平台不支持插件' } as T
+): Promise<{ success: false; message: string }> => {
+  return { success: false, message: 'Codex 平台不支持插件' }
 }
 
-export const deleteCodexPlugin = async <T = UnknownRecord>(_name: string): Promise<T> => {
-  return { success: false, message: 'Codex 平台不支持插件' } as T
+export const deleteCodexPlugin = async (
+  _name: string,
+): Promise<{ success: false; message: string }> => {
+  return { success: false, message: 'Codex 平台不支持插件' }
 }
 
-export const toggleCodexPlugin = async <T = UnknownRecord>(
+export const toggleCodexPlugin = async (
   _name: string,
   _enabled: boolean,
-): Promise<T> => {
-  return { success: false, message: 'Codex 平台不支持插件' } as T
+): Promise<{ success: false; message: string }> => {
+  return { success: false, message: 'Codex 平台不支持插件' }
 }

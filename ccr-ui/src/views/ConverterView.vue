@@ -554,7 +554,7 @@
               </div>
 
               <textarea
-                :value="result.converted_data"
+                :value="result.content"
                 readonly
                 class="converter-textarea converter-textarea--result"
                 :style="{
@@ -731,7 +731,7 @@ const handleConvert = async () => {
       convert_agents: convertAgents.value
     }
 
-    const response = await convertConfig<ConverterResponse>(request)
+    const response = await convertConfig(request)
     result.value = response
     successMessage.value = t('converter.convertSuccess')
   } catch (err) {
@@ -742,15 +742,15 @@ const handleConvert = async () => {
 }
 
 const handleCopyResult = () => {
-  if (result.value?.converted_data) {
-    void copyText(result.value.converted_data)
+  if (result.value?.content) {
+    void copyText(result.value.content)
     flashSuccess(t('converter.copied'))
   }
 }
 
 const handleDownloadResult = () => {
-  if (result.value?.converted_data) {
-    const blob = new Blob([result.value.converted_data], { type: 'text/plain' })
+  if (result.value?.content) {
+    const blob = new Blob([result.value.content], { type: 'text/plain' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url

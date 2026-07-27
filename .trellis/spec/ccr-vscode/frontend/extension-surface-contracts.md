@@ -87,3 +87,59 @@
   }
 }
 ```
+
+## Scenario: Clean PR CI and line coverage
+
+### 1. Scope / Trigger
+- Trigger: changing `ccr-vscode/**`, its hosted workflow, package lock, test runner, or packaging recipe.
+- Applies because extension code previously built only during tag release and lacked a PR check.
+
+### 2. Signatures
+- Local required gate: root `just vscode-ci` -> `ccr-vscode/justfile` recipe `ci`.
+- Local coverage gate: root `just vscode-coverage` -> Node `--experimental-test-coverage --test-coverage-lines=70 --test-coverage-functions=70`.
+- Hosted entry: `.github/workflows/vscode-ci.yml`; heavy job `VS Code Validation`, stable branch-protection aggregator `VS Code Required`.
+- Relevance signature: `python scripts/ci_surface_policy.py --surface vscode --base <sha> --head <sha>`.
+
+### 3. Contracts
+- Hosted and local CI both run clean `npm ci`, TypeScript build checks, tests, `build:package`, VSIX creation, and artifact collection.
+- Node is pinned to 24.18.0 and third-party actions use immutable commit SHAs.
+- The coverage gate enforces at least 70% line coverage; the current function threshold is also 70%.
+- Every pull request to `main`, `develop`, or `dev` creates `VS Code Required`. Changes to `ccr-vscode/**`, the root justfile, the workflow, or `scripts/ci_surface_policy.py` set `relevant=true` and must run validation/coverage; other changes skip the heavy job and let only the aggregator pass.
+- Workflow presence does not prove required branch protection; remote protection evidence is separate.
+
+### 4. Validation & Error Matrix
+- Lockfile and package manifest disagree -> `npm ci` fails.
+- TypeScript source/test compile error -> `build-check` fails before packaging.
+- Tests or line/function coverage below 70 -> Node test gate fails.
+- VSIX cannot be created or collected -> `build:package`/artifact step fails.
+- Required check not visible in branch protection -> repository-setting acceptance remains `UNVERIFIED`.
+- Relevance detection fails, or a relevant validation is skipped/cancelled/failed -> `VS Code Required` fails closed.
+
+### 5. Good/Base/Bad Cases
+- Good: change a provider helper, add its `*.test.ts`, then run `just vscode-ci` and `just vscode-coverage` locally.
+- Base: documentation-only changes outside the extension create the lightweight `VS Code Required` context but skip install, test, coverage, and package work.
+- Bad: using a PR-level `paths` filter with `VS Code Required`; branch protection waits forever when the workflow is absent.
+- Bad: replacing `npm ci` with mutable install behavior or testing only during tag release.
+
+### 6. Tests Required
+- `just vscode-ci` -> clean install, compile, 50 tests, package, and VSIX collection pass.
+- `just vscode-coverage` -> line coverage at least 70% (current observed 91.79%).
+- `python -m unittest scripts/test_check_workflow_governance.py` and `python scripts/check_workflow_governance.py` -> path policy, stable context, and pinned actions pass.
+- Inspect an actual PR check run and protected-branch required-check list when remote permission is available.
+
+### 7. Wrong vs Correct
+#### Wrong
+```yaml
+on:
+  push:
+    tags: ['v*']
+```
+
+#### Correct
+```yaml
+on:
+  pull_request:
+    branches: [main, develop, dev]
+# scripts/ci_surface_policy.py owns the heavy-job path policy; the stable
+# required aggregator is created for every pull request.
+```

@@ -145,7 +145,7 @@ const applyCliVersions = (entries: CliVersionEntry[]) => {
 
 const loadSystemInfo = async () => {
   try {
-    systemInfo.value = await getSystemInfo<SystemInfo>()
+    systemInfo.value = await getSystemInfo()
     systemInfoError.value = null
     perfMark('dashboard:system-ready')
   } catch (error) {
@@ -157,12 +157,12 @@ const loadSystemInfo = async () => {
 const loadCliVersions = async () => {
   try {
     cliVersionsLoaded.value = false
-    const versions = await getCliVersions<CliVersionsResponse>({
+    const versions: CliVersionsResponse = await getCliVersions({
       mode: 'fast',
       timeoutMs: 3500,
       parallelism: 4,
     })
-    applyCliVersions(versions.versions ?? [])
+    applyCliVersions(versions.entries)
   } catch (error) {
     cliVersionsLoaded.value = true
     logger.error('[DashboardView] failed to load CLI versions', error)

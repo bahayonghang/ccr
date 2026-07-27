@@ -291,6 +291,10 @@ impl SyncFolderBuilder {
 /// 从 sync_config.rs 复用，所有文件夹共享此配置
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct WebDavConfig {
+    /// 是否启用 WebDAV 同步。
+    #[serde(default = "default_webdav_enabled")]
+    pub enabled: bool,
+
     /// 🌐 WebDAV 服务器地址
     pub url: String,
 
@@ -306,6 +310,14 @@ pub struct WebDavConfig {
     /// 所有文件夹的远程路径相对于此基础路径
     #[serde(default = "default_base_remote_path")]
     pub base_remote_path: String,
+
+    /// 是否启用自动同步。
+    #[serde(default)]
+    pub auto_sync: bool,
+}
+
+fn default_webdav_enabled() -> bool {
+    true
 }
 
 /// 默认基础远程路径
@@ -316,10 +328,12 @@ fn default_base_remote_path() -> String {
 impl Default for WebDavConfig {
     fn default() -> Self {
         Self {
+            enabled: true,
             url: "https://dav.jianguoyun.com/dav/".to_string(),
             username: String::new(),
             password: Secret::default(),
             base_remote_path: default_base_remote_path(),
+            auto_sync: false,
         }
     }
 }

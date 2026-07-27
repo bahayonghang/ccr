@@ -200,118 +200,22 @@ export interface CodexConfigResponse {
 
 // ============ Codex Auth Management Types ============
 
-/** 登录状态 (tagged union) */
-export type LoginState =
-  | { type: 'NotLoggedIn' }
-  | { type: 'LoggedInUnsaved' }
-  | { type: 'LoggedInSaved'; account_name: string }
-  | { type: 'ApiKeyActive' }
-  | { type: 'ProviderKeyActive'; env_key: string }
-  | { type: 'Unknown'; raw_type: string; raw: Record<string, unknown> }
+export type LoginState = import('./generated/codex_auth/CodexLoginState').CodexLoginState
+export type CodexAuthAccountItem = import('./generated/codex_auth/CodexAuthAccountItem').CodexAuthAccountItem
+export type CodexAuthCurrentInfo = import('./generated/codex_auth/CodexAuthCurrentInfo').CodexAuthCurrentInfo
+export type CodexAuthListResponse = import('./generated/codex_auth/CodexAuthListResponse').CodexAuthListResponse
+export type CodexAuthCurrentResponse = import('./generated/codex_auth/CodexAuthCurrentResponse').CodexAuthCurrentResponse
+export type CodexAuthSaveRequest = import('@/api/generated/codexAuth').CodexAuthSaveRequest
+export type CodexAuthProcessResponse = import('./generated/codex_auth/CodexAuthProcessResponse').CodexAuthProcessResponse
 
-/** Codex Auth 账号列表项 */
-export interface CodexAuthAccountItem {
-  name: string
-  description?: string
-  email?: string
-  is_current: boolean
-  is_virtual: boolean
-  auth_method?: 'chatgpt' | 'api' | string
-  api_base_url?: string
-  api_provider_name?: string
-  saved_at?: string
-  last_used?: string
-  last_refresh?: string
-  plan_type?: string
-}
+export type CodexOAuthStartResponse = import('./generated/codex_auth/CodexOAuthStartResponse').CodexOAuthStartResponse
+export type CodexAuthMutationResponse = import('./generated/codex_auth/CodexAuthMutationResponse').CodexAuthMutationResponse
+export type CodexImportAuthPayload = import('./generated/codex_auth/CodexAuthImportPayload').CodexAuthImportPayload
+export type CodexAddApiKeyAuthPayload = import('./generated/codex_auth/CodexApiKeyAddPayload').CodexApiKeyAddPayload
 
-/** Codex Auth 当前信息 */
-export interface CodexAuthCurrentInfo {
-  account_id: string
-  auth_method?: 'chatgpt' | 'api' | string
-  email?: string
-  plan_type?: string
-  last_refresh?: string
-}
-
-/** Codex Auth 账号列表响应 */
-export interface CodexAuthListResponse {
-  accounts: CodexAuthAccountItem[]
-  login_state: LoginState
-}
-
-/** Codex Auth 当前状态响应 */
-export interface CodexAuthCurrentResponse {
-  logged_in: boolean
-  info?: CodexAuthCurrentInfo
-  login_state: LoginState
-}
-
-/** Codex Auth 保存请求 */
-export interface CodexAuthSaveRequest {
-  name: string
-  description?: string
-  force?: boolean
-}
-
-/** Codex Auth 进程检测响应 */
-export interface CodexAuthProcessResponse {
-  has_running_process: boolean
-  pids: number[]
-  warning?: string
-}
-
-export interface CodexOAuthStartResponse {
-  loginId: string
-  authUrl: string
-}
-
-export interface CodexAuthMutationResponse {
-  success: boolean
-  account_name?: string
-  switched?: boolean
-  imported?: number
-  results?: unknown[]
-  message?: string
-}
-
-export interface CodexImportAuthPayload {
-  content: string
-  switchAfterImport?: boolean
-  preferredAccountName?: string | null
-}
-
-export interface CodexAddApiKeyAuthPayload {
-  apiKey: string
-  apiBaseUrl?: string | null
-  providerName?: string | null
-  saveProvider?: boolean
-  switchAfterAdd?: boolean
-  preferredAccountName?: string | null
-}
-
-export interface CodexModelProviderApiKey {
-  id: string
-  name: string
-  api_key: string
-  created_at: string
-  updated_at: string
-}
-
-export interface CodexModelProviderRecord {
-  id: string
-  name: string
-  base_url: string
-  website_url?: string | null
-  api_key_url?: string | null
-  api_keys: CodexModelProviderApiKey[]
-  created_at: string
-  updated_at: string
-}
-
-export interface CodexModelProvidersResponse {
-  providers: CodexModelProviderRecord[]
-}
+export type CodexModelProviderApiKey = import('./generated/codex_auth/CodexModelProviderApiKeyDto').CodexModelProviderApiKeyDto
+export type CodexModelProviderRecord = import('./generated/codex_auth/CodexModelProviderRecordDto').CodexModelProviderRecordDto
+export type CodexModelProvidersResponse = import('./generated/codex_auth/CodexModelProvidersResponse').CodexModelProvidersResponse
 
 // ============ Codex Agent Management Types ============
 

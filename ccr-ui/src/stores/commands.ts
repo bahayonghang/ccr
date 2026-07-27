@@ -32,7 +32,7 @@ export const useCommandsStore = defineStore('commands', () => {
   async function loadList(force = false) {
     try {
       error.value = null
-      return await commandsCache.fetch(() => listCommands<CommandInfo[]>(), force)
+      return await commandsCache.fetch(() => listCommands(), force)
     } catch (err: unknown) {
       error.value = getErrorMessage(err, '加载命令列表失败')
       throw err
@@ -51,7 +51,7 @@ export const useCommandsStore = defineStore('commands', () => {
     error.value = null
 
     try {
-      const result = await executeCommand(payload) as CommandResponse
+      const result = await executeCommand(payload)
       lastOutput.value = result
       return result
     } catch (err: unknown) {

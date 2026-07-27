@@ -21,14 +21,14 @@ use crate::platform::wsl::{WslEnvironment, detect_wsl_distros_with_cache};
 use crate::state::AppState;
 
 /// 列出所有已注册的执行环境。
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn list_environments(state: State<'_, AppState>) -> Result<Vec<EnvironmentInfo>, String> {
     let registry = state.env_registry.read().await;
     Ok(registry.list())
 }
 
 /// 获取当前激活的执行环境。
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn get_current_environment(
     state: State<'_, AppState>,
 ) -> Result<EnvironmentInfo, String> {
@@ -40,7 +40,7 @@ pub async fn get_current_environment(
 }
 
 /// 按环境 ID 切换当前执行环境。
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn switch_environment(
     app_handle: tauri::AppHandle,
     state: State<'_, AppState>,
@@ -83,7 +83,7 @@ pub async fn switch_environment(
 ///
 /// # 参数
 /// - `force_refresh`: 是否强制刷新 WSL 发行版缓存
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn refresh_environments(
     state: State<'_, AppState>,
     force_refresh: Option<bool>,
@@ -160,7 +160,7 @@ pub async fn refresh_environments(
 }
 
 /// 获取当前环境支持的平台列表。
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn env_list_platforms(state: State<'_, AppState>) -> Result<Value, String> {
     let registry = state.env_registry.read().await;
     let env = registry
@@ -177,7 +177,7 @@ pub async fn env_list_platforms(state: State<'_, AppState>) -> Result<Value, Str
 }
 
 /// 检测当前环境中的 CLI 状态。
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn env_detect_cli(state: State<'_, AppState>) -> Result<Value, String> {
     let registry = state.env_registry.read().await;
     let env = registry

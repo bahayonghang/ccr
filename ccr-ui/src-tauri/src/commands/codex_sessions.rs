@@ -1,11 +1,11 @@
 use super::*;
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_list_sessions(
     limit: Option<usize>,
     query: Option<String>,
-) -> Result<Value, String> {
-    tokio::task::spawn_blocking(move || {
+) -> Result<OpenJsonValueDto, String> {
+    tokio::task::spawn_blocking(move || -> Result<Value, String> {
         let codex_dir = dirs::home_dir()
             .ok_or_else(|| "无法获取用户主目录".to_string())?
             .join(".codex");
@@ -16,15 +16,16 @@ pub async fn codex_list_sessions(
         Ok(json!({ "sessions": sessions }))
     })
     .await
-    .map_err(|e| format!("任务执行失败: {e}"))?
+    .map_err(|e| format!("任务执行失败: {e}"))??
+    .try_into()
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_get_session_detail(
     file_path: String,
     message_limit: Option<usize>,
-) -> Result<Value, String> {
-    tokio::task::spawn_blocking(move || {
+) -> Result<OpenJsonValueDto, String> {
+    tokio::task::spawn_blocking(move || -> Result<Value, String> {
         let codex_dir = dirs::home_dir()
             .ok_or_else(|| "无法获取用户主目录".to_string())?
             .join(".codex");
@@ -35,15 +36,16 @@ pub async fn codex_get_session_detail(
         Ok(json!(detail))
     })
     .await
-    .map_err(|e| format!("任务执行失败: {e}"))?
+    .map_err(|e| format!("任务执行失败: {e}"))??
+    .try_into()
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_export_session(
     file_path: String,
     max_messages: Option<usize>,
-) -> Result<Value, String> {
-    tokio::task::spawn_blocking(move || {
+) -> Result<OpenJsonValueDto, String> {
+    tokio::task::spawn_blocking(move || -> Result<Value, String> {
         let codex_dir = dirs::home_dir()
             .ok_or_else(|| "无法获取用户主目录".to_string())?
             .join(".codex");
@@ -54,14 +56,15 @@ pub async fn codex_export_session(
         Ok(json!(export))
     })
     .await
-    .map_err(|e| format!("任务执行失败: {e}"))?
+    .map_err(|e| format!("任务执行失败: {e}"))??
+    .try_into()
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_clone_session(
     state: State<'_, AppState>,
     file_path: String,
-) -> Result<Value, String> {
+) -> Result<OpenJsonValueDto, String> {
     let response = tokio::task::spawn_blocking(move || -> Result<Value, String> {
         let codex_dir = dirs::home_dir()
             .ok_or_else(|| "无法获取用户主目录".to_string())?
@@ -81,14 +84,14 @@ pub async fn codex_clone_session(
     invalidate_codex_session_inventory_cache()?;
     invalidate_codex_dashboard_overview_cache(&state).await;
     invalidate_codex_usage_cache(&state).await;
-    Ok(response)
+    open_json(response)
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn codex_delete_session(
     state: State<'_, AppState>,
     file_path: String,
-) -> Result<Value, String> {
+) -> Result<OpenJsonValueDto, String> {
     let target_file_path = file_path.clone();
     let response = tokio::task::spawn_blocking(move || -> Result<Value, String> {
         let codex_dir = dirs::home_dir()
@@ -127,5 +130,5 @@ pub async fn codex_delete_session(
     invalidate_codex_session_inventory_cache()?;
     invalidate_codex_dashboard_overview_cache(&state).await;
     invalidate_codex_usage_cache(&state).await;
-    Ok(response)
+    open_json(response)
 }

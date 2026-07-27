@@ -1,174 +1,106 @@
 //! Platform-aware install plan generation.
 //!
 //! `generate_plan()` is a pure function over `(DetectionResult, HostCapabilities)`.
-//! It produces a total decision over `{ macOS, Linux, Windows } × { cargo, homebrew,
-//! scoop, winget, none }`, always returning either `Plan(InstallPlan)` or
-//! `Unsupported { reason }`.
-
-use std::collections::BTreeMap;
+//! It selects a closed backend action; executable details never enter a wire DTO.
 
 use crate::services::install_types::{
-    DetectionResult, DurationClass, HostCapabilities, InstallFlowError, InstallPlan,
-    PackageManager, PlanOutcome, Platform, UnsupportedReason,
+    DetectionResult, DurationClass, HostCapabilities, InstallAction, InstallFlowError,
+    PackageManager, Platform, UnsupportedReason,
 };
 
-/// The official llmusage crate name used in package registries.
-const LLMUSAGE_CRATE_NAME: &str = "llmusage";
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct GeneratedInstallPlan {
+    pub action: InstallAction,
+    pub platform: Platform,
+    pub package_manager: PackageManager,
+    pub duration_class: DurationClass,
+}
 
-/// Elevation-related tokens that must never appear in generated commands.
-const ELEVATION_TOKENS: &[&str] = &["sudo", "doas", "su", "runas"];
-
-/// Elevation substring patterns (for Windows PowerShell).
-const ELEVATION_SUBSTRINGS: &[&str] = &["Start-Process -Verb RunAs"];
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum GeneratedPlanOutcome {
+    Plan(GeneratedInstallPlan),
+    Unsupported { reason: UnsupportedReason },
+}
 
 /// Generate an install plan for the current host.
 ///
 /// This is a pure function: no I/O, no side effects.
-pub fn generate_plan(
+pub(crate) fn generate_plan(
     _detection: &DetectionResult,
     caps: &HostCapabilities,
-) -> Result<PlanOutcome, InstallFlowError> {
-    let outcome = match caps.platform {
+) -> Result<GeneratedPlanOutcome, InstallFlowError> {
+    Ok(match caps.platform {
         Platform::Macos => plan_macos(caps),
         Platform::Linux => plan_linux(caps),
         Platform::Windows => plan_windows(caps),
-    };
-
-    // Safety check: validate the generated plan does not contain elevation tokens.
-    if let PlanOutcome::Plan(ref plan) = outcome {
-        validate_command_safety(&plan.command, &plan.args)?;
-    }
-
-    Ok(outcome)
+    })
 }
 
-fn plan_macos(caps: &HostCapabilities) -> PlanOutcome {
+fn plan_macos(caps: &HostCapabilities) -> GeneratedPlanOutcome {
     if let Some(homebrew_path) = caps.homebrew_path.as_deref() {
-        PlanOutcome::Plan(make_plan(
-            Platform::Macos,
-            PackageManager::Homebrew,
-            &homebrew_path.to_string_lossy(),
-            &["install", LLMUSAGE_CRATE_NAME],
-            DurationClass::Medium,
-        ))
+        GeneratedPlanOutcome::Plan(GeneratedInstallPlan {
+            action: InstallAction::Homebrew {
+                homebrew_path: homebrew_path.to_path_buf(),
+            },
+            platform: Platform::Macos,
+            package_manager: PackageManager::Homebrew,
+            duration_class: DurationClass::Medium,
+        })
     } else if let Some(cargo_path) = caps.cargo_path.as_deref() {
-        PlanOutcome::Plan(make_cargo_plan_with_path(Platform::Macos, cargo_path))
+        GeneratedPlanOutcome::Plan(make_cargo_plan_with_path(Platform::Macos, cargo_path))
     } else {
-        PlanOutcome::Unsupported {
+        GeneratedPlanOutcome::Unsupported {
             reason: UnsupportedReason::NoPackageManager,
         }
     }
 }
 
-fn plan_linux(caps: &HostCapabilities) -> PlanOutcome {
+fn plan_linux(caps: &HostCapabilities) -> GeneratedPlanOutcome {
     if let Some(cargo_path) = caps.cargo_path.as_deref() {
-        PlanOutcome::Plan(make_cargo_plan_with_path(Platform::Linux, cargo_path))
+        GeneratedPlanOutcome::Plan(make_cargo_plan_with_path(Platform::Linux, cargo_path))
     } else {
-        PlanOutcome::Unsupported {
+        GeneratedPlanOutcome::Unsupported {
             reason: UnsupportedReason::NoPackageManager,
         }
     }
 }
 
-fn plan_windows(caps: &HostCapabilities) -> PlanOutcome {
+fn plan_windows(caps: &HostCapabilities) -> GeneratedPlanOutcome {
     if caps.has_winget {
-        PlanOutcome::Plan(make_plan(
-            Platform::Windows,
-            PackageManager::Winget,
-            "winget",
-            &["install", "--id", LLMUSAGE_CRATE_NAME, "--source", "winget"],
-            DurationClass::Fast,
-        ))
+        GeneratedPlanOutcome::Plan(GeneratedInstallPlan {
+            action: InstallAction::Winget,
+            platform: Platform::Windows,
+            package_manager: PackageManager::Winget,
+            duration_class: DurationClass::Fast,
+        })
     } else if caps.has_scoop {
-        PlanOutcome::Plan(make_plan(
-            Platform::Windows,
-            PackageManager::Scoop,
-            "scoop",
-            &["install", LLMUSAGE_CRATE_NAME],
-            DurationClass::Fast,
-        ))
+        GeneratedPlanOutcome::Plan(GeneratedInstallPlan {
+            action: InstallAction::Scoop,
+            platform: Platform::Windows,
+            package_manager: PackageManager::Scoop,
+            duration_class: DurationClass::Fast,
+        })
     } else if let Some(cargo_path) = caps.cargo_path.as_deref() {
-        PlanOutcome::Plan(make_cargo_plan_with_path(Platform::Windows, cargo_path))
+        GeneratedPlanOutcome::Plan(make_cargo_plan_with_path(Platform::Windows, cargo_path))
     } else {
-        PlanOutcome::Unsupported {
+        GeneratedPlanOutcome::Unsupported {
             reason: UnsupportedReason::NoPackageManager,
         }
     }
 }
 
-fn make_cargo_plan_with_path(platform: Platform, command: &std::path::Path) -> InstallPlan {
-    InstallPlan {
+fn make_cargo_plan_with_path(
+    platform: Platform,
+    cargo_path: &std::path::Path,
+) -> GeneratedInstallPlan {
+    GeneratedInstallPlan {
+        action: InstallAction::Cargo {
+            cargo_path: cargo_path.to_path_buf(),
+        },
         platform,
         package_manager: PackageManager::Cargo,
-        command: command.to_string_lossy().to_string(),
-        args: vec![
-            "install".to_string(),
-            "--locked".to_string(),
-            LLMUSAGE_CRATE_NAME.to_string(),
-        ],
-        envs: BTreeMap::new(),
-        elevation_required: false,
         duration_class: DurationClass::Slow,
-        plan_id: uuid::Uuid::new_v4(),
     }
-}
-
-fn make_plan(
-    platform: Platform,
-    pm: PackageManager,
-    command: &str,
-    args: &[&str],
-    duration_class: DurationClass,
-) -> InstallPlan {
-    InstallPlan {
-        platform,
-        package_manager: pm,
-        command: command.to_string(),
-        args: args.iter().map(|s| s.to_string()).collect(),
-        envs: BTreeMap::new(),
-        elevation_required: false,
-        duration_class,
-        plan_id: uuid::Uuid::new_v4(),
-    }
-}
-
-/// Validate that a command does not contain elevation constructs.
-///
-/// Rejects commands whose binary name or arguments match known elevation tokens.
-fn validate_command_safety(command: &str, args: &[String]) -> Result<(), InstallFlowError> {
-    // Check the command binary itself
-    let cmd_lower = command.to_lowercase();
-    for token in ELEVATION_TOKENS {
-        if cmd_lower == *token {
-            return Err(InstallFlowError::ElevationRejected {
-                token: token.to_string(),
-            });
-        }
-    }
-
-    // Check arguments for elevation tokens
-    for arg in args {
-        let arg_lower = arg.to_lowercase();
-        for token in ELEVATION_TOKENS {
-            if arg_lower == *token {
-                return Err(InstallFlowError::ElevationRejected {
-                    token: token.to_string(),
-                });
-            }
-        }
-    }
-
-    // Check the full command line for elevation substrings
-    let full_cmd = format!("{command} {}", args.join(" "));
-    for pattern in ELEVATION_SUBSTRINGS {
-        if full_cmd.contains(pattern) {
-            return Err(InstallFlowError::ElevationRejected {
-                token: pattern.to_string(),
-            });
-        }
-    }
-
-    Ok(())
 }
 
 #[cfg(test)]
@@ -221,10 +153,14 @@ mod tests {
         )
         .expect("should not error");
         match result {
-            PlanOutcome::Plan(plan) => {
+            GeneratedPlanOutcome::Plan(plan) => {
                 assert_eq!(plan.package_manager, PackageManager::Homebrew);
-                assert_eq!(plan.command, "/opt/homebrew/bin/brew");
-                assert!(!plan.elevation_required);
+                assert_eq!(
+                    plan.action,
+                    InstallAction::Homebrew {
+                        homebrew_path: PathBuf::from("/opt/homebrew/bin/brew")
+                    }
+                );
             }
             _ => panic!("expected Plan"),
         }
@@ -240,7 +176,7 @@ mod tests {
 
         assert_eq!(
             result,
-            PlanOutcome::Unsupported {
+            GeneratedPlanOutcome::Unsupported {
                 reason: UnsupportedReason::NoPackageManager
             }
         );
@@ -262,9 +198,14 @@ mod tests {
         )
         .expect("should not error");
         match result {
-            PlanOutcome::Plan(plan) => {
+            GeneratedPlanOutcome::Plan(plan) => {
                 assert_eq!(plan.package_manager, PackageManager::Cargo);
-                assert_eq!(plan.command, "/Users/example/.cargo/bin/cargo");
+                assert_eq!(
+                    plan.action,
+                    InstallAction::Cargo {
+                        cargo_path: PathBuf::from("/Users/example/.cargo/bin/cargo")
+                    }
+                );
                 assert_eq!(plan.duration_class, DurationClass::Slow);
             }
             _ => panic!("expected Plan"),
@@ -281,7 +222,7 @@ mod tests {
 
         assert_eq!(
             result,
-            PlanOutcome::Unsupported {
+            GeneratedPlanOutcome::Unsupported {
                 reason: UnsupportedReason::NoPackageManager
             }
         );
@@ -296,7 +237,7 @@ mod tests {
         .expect("should not error");
         assert_eq!(
             result,
-            PlanOutcome::Unsupported {
+            GeneratedPlanOutcome::Unsupported {
                 reason: UnsupportedReason::NoPackageManager
             }
         );
@@ -320,7 +261,7 @@ mod tests {
         )
         .expect("should not error");
         match result {
-            PlanOutcome::Plan(plan) => {
+            GeneratedPlanOutcome::Plan(plan) => {
                 assert_eq!(plan.package_manager, PackageManager::Cargo);
                 assert_eq!(plan.platform, Platform::Linux);
             }
@@ -337,7 +278,7 @@ mod tests {
         .expect("should not error");
         assert_eq!(
             result,
-            PlanOutcome::Unsupported {
+            GeneratedPlanOutcome::Unsupported {
                 reason: UnsupportedReason::NoPackageManager
             }
         );
@@ -361,7 +302,7 @@ mod tests {
         )
         .expect("should not error");
         match result {
-            PlanOutcome::Plan(plan) => {
+            GeneratedPlanOutcome::Plan(plan) => {
                 assert_eq!(plan.package_manager, PackageManager::Winget);
                 assert_eq!(plan.duration_class, DurationClass::Fast);
             }
@@ -385,7 +326,7 @@ mod tests {
         )
         .expect("should not error");
         match result {
-            PlanOutcome::Plan(plan) => {
+            GeneratedPlanOutcome::Plan(plan) => {
                 assert_eq!(plan.package_manager, PackageManager::Scoop);
             }
             _ => panic!("expected Plan"),
@@ -408,7 +349,7 @@ mod tests {
         )
         .expect("should not error");
         match result {
-            PlanOutcome::Plan(plan) => {
+            GeneratedPlanOutcome::Plan(plan) => {
                 assert_eq!(plan.package_manager, PackageManager::Cargo);
             }
             _ => panic!("expected Plan"),
@@ -424,38 +365,14 @@ mod tests {
         .expect("should not error");
         assert_eq!(
             result,
-            PlanOutcome::Unsupported {
+            GeneratedPlanOutcome::Unsupported {
                 reason: UnsupportedReason::NoPackageManager
             }
         );
     }
 
-    // ── Safety ───────────────────────────────────────────────────────────────
-
     #[test]
-    fn rejects_sudo_command() {
-        let err = validate_command_safety("sudo", &["cargo".to_string(), "install".to_string()])
-            .expect_err("should reject sudo");
-        assert!(matches!(err, InstallFlowError::ElevationRejected { .. }));
-    }
-
-    #[test]
-    fn rejects_doas_in_args() {
-        let err = validate_command_safety("cargo", &["doas".to_string()])
-            .expect_err("should reject doas");
-        assert!(matches!(err, InstallFlowError::ElevationRejected { .. }));
-    }
-
-    #[test]
-    fn accepts_safe_command() {
-        validate_command_safety("cargo", &["install".to_string(), "--locked".to_string()])
-            .expect("should accept safe command");
-    }
-
-    // ── All plans have elevation_required = false ────────────────────────────
-
-    #[test]
-    fn all_generated_plans_non_elevated() {
+    fn all_generated_plans_select_a_closed_action() {
         let platforms = [
             caps(
                 Platform::Macos,
@@ -514,12 +431,21 @@ mod tests {
         ];
 
         for c in &platforms {
-            if let PlanOutcome::Plan(plan) = generate_plan(&absent(), c).expect("should not error")
+            if let GeneratedPlanOutcome::Plan(plan) =
+                generate_plan(&absent(), c).expect("should not error")
             {
-                assert!(
-                    !plan.elevation_required,
-                    "plan for {:?}/{:?} should not require elevation",
-                    c.platform, plan.package_manager
+                assert_eq!(
+                    plan.action.kind(),
+                    match plan.package_manager {
+                        PackageManager::Cargo =>
+                            crate::services::install_types::InstallActionKind::Cargo,
+                        PackageManager::Homebrew =>
+                            crate::services::install_types::InstallActionKind::Homebrew,
+                        PackageManager::Scoop =>
+                            crate::services::install_types::InstallActionKind::Scoop,
+                        PackageManager::Winget =>
+                            crate::services::install_types::InstallActionKind::Winget,
+                    }
                 );
             }
         }

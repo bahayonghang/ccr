@@ -30,11 +30,16 @@
 //! crate root also keeps broad historical re-exports as a compatibility-only
 //! legacy surface for existing downstream users.
 //!
-//! In the 6.x line, these exports are intentionally not marked `#[deprecated]`
-//! because current consumers still compile through them. Any removal, rename,
-//! or warning-producing deprecation must first be listed in a documented
-//! next-major breaking-change list with a migration path to [`crate::prelude`]
-//! or a narrower domain crate.
+//! In the 7.x line, broad module paths emit deprecation warnings and name
+//! [`crate::prelude`] or the owning domain crate as the replacement. They remain
+//! available until 8.0.0 at the earliest; removal still requires a separately
+//! reviewed breaking-change inventory.
+//!
+//! ```compile_fail
+//! #![deny(deprecated)]
+//! use ccr::managers;
+//! # fn main() { let _ = std::mem::size_of::<managers::ConfigManager>(); }
+//! ```
 //!
 //! ### 模块组织
 //!
@@ -143,7 +148,61 @@ pub mod cli;
 /// Keep this broad `ccr_cli` re-export available for existing consumers, but
 /// route new stable API through [`crate::prelude`] unless a breaking-release
 /// plan intentionally widens the crate root surface.
-pub use ccr_cli::{application, commands, managers, models, platforms, services, sync};
+#[deprecated(
+    since = "7.0.0",
+    note = "use ccr_cli::application; removal is no earlier than 8.0.0"
+)]
+pub mod application {
+    pub use ccr_cli::application::*;
+}
+
+#[deprecated(
+    since = "7.0.0",
+    note = "use ccr_cli::commands; removal is no earlier than 8.0.0"
+)]
+pub mod commands {
+    pub use ccr_cli::commands::*;
+}
+
+#[deprecated(
+    since = "7.0.0",
+    note = "use ccr_cli::managers; removal is no earlier than 8.0.0"
+)]
+pub mod managers {
+    pub use ccr_cli::managers::*;
+}
+
+#[deprecated(
+    since = "7.0.0",
+    note = "use ccr_cli::models; removal is no earlier than 8.0.0"
+)]
+pub mod models {
+    pub use ccr_cli::models::*;
+}
+
+#[deprecated(
+    since = "7.0.0",
+    note = "use ccr_cli::platforms; removal is no earlier than 8.0.0"
+)]
+pub mod platforms {
+    pub use ccr_cli::platforms::*;
+}
+
+#[deprecated(
+    since = "7.0.0",
+    note = "use ccr_cli::services; removal is no earlier than 8.0.0"
+)]
+pub mod services {
+    pub use ccr_cli::services::*;
+}
+
+#[deprecated(
+    since = "7.0.0",
+    note = "use ccr_cli::sync; removal is no earlier than 8.0.0"
+)]
+pub mod sync {
+    pub use ccr_cli::sync::*;
+}
 
 #[cfg(feature = "tui")]
 pub use ccr_tui::tui;
@@ -203,13 +262,13 @@ pub use ccr_core::{
 /// - [`TempOverride`] - 临时覆盖配置
 ///
 /// - [`ProviderType`] - 提供商类型枚举
-pub use managers::{
+pub use ccr_cli::managers::{
     BudgetManager, CcsConfig, ClaudeSettings, ConfigManager, ConfigSection, CostTracker,
     GlobalSettings, HistoryManager, PlatformConfigEntry, PlatformConfigManager, PricingManager,
     ProviderType, SettingsManager, TempOverride, TempOverrideManager, UnifiedConfig,
 };
 
-pub use models::skills::{
+pub use ccr_cli::models::skills::{
     MarketplaceListResponse, MarketplaceSkill, NpxPlatformSupport, NpxStatus, SkillContent,
     SkillFileContent, SkillFileEntry, SkillInstallMeta, SkillInstallMode, SkillInstallStrategy,
     SkillInstallationRecord, SkillLifecycleSummary, SkillOrigin, SkillPlatformConfig,
@@ -251,20 +310,20 @@ pub use models::skills::{
 ///
 /// **价格表相关**:
 /// - [`PricingConfig`] - 价格表配置结构
-pub use models::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};
+pub use ccr_cli::models::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};
 
 // 成本追踪相关类型 (从 stats 子模块导入)
-pub use models::stats::{
+pub use ccr_cli::models::stats::{
     Cost, CostRecord, CostStats, DailyCost, ModelPricing, TimeRange, TokenStats, TokenUsage,
 };
 
 // 预算控制相关类型 (从 budget 子模块导入)
-pub use models::budget::{
+pub use ccr_cli::models::budget::{
     BudgetConfig, BudgetLimits, BudgetPeriod, BudgetStatus, BudgetWarning, LimitAction, PeriodCosts,
 };
 
 // 价格表相关类型 (从 pricing 子模块导入)
-pub use models::pricing::PricingConfig;
+pub use ccr_cli::models::pricing::PricingConfig;
 
 /// 平台实现和工厂
 ///
@@ -287,7 +346,7 @@ pub use models::pricing::PricingConfig;
 /// let profiles = claude.load_profiles()?;
 /// # Ok::<(), ccr::CcrError>(())
 /// ```
-pub use platforms::{
+pub use ccr_cli::platforms::{
     PlatformDetector, PlatformInfo, PlatformRegistry, PlatformStatus, create_platform,
 };
 
@@ -298,17 +357,17 @@ pub use platforms::{
 /// - [`HistoryService`] - 历史记录服务
 /// - [`BackupService`] - 备份和恢复服务
 /// - [`ValidateService`] - 验证服务
-pub use services::{
+pub use ccr_cli::services::{
     BackupService, ConfigService, HistoryService, SettingsService, SkillsService, ValidateService,
 };
 
+pub use ccr_cli::sync::{
+    FolderStats, SyncConfig, SyncConfigManager, SyncContentSelection, SyncContentSelector,
+    SyncContentType, SyncFolder, SyncFolderManager, SyncFoldersConfig, SyncService, WebDavConfig,
+    expand_path, get_ccr_sync_path,
+};
 pub use ccr_store::sessions;
 pub use ccr_store::{
     Database, Session, SessionEvent, SessionFilter, SessionIndexer, SessionStats, SessionStore,
     SessionSummary,
-};
-pub use sync::{
-    FolderStats, SyncConfig, SyncConfigManager, SyncContentSelection, SyncContentSelector,
-    SyncContentType, SyncFolder, SyncFolderManager, SyncFoldersConfig, SyncService, WebDavConfig,
-    expand_path, get_ccr_sync_path,
 };

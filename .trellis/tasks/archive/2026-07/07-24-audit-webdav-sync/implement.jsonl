@@ -1,0 +1,4 @@
+{"file":".trellis/spec/ccr-sync/backend/backend-guidelines.md","reason":"WebDAV network and path boundary"}
+{"file":".trellis/spec/ccr-core/backend/atomic-writer.md","reason":"Stage swap rollback and durability"}
+{"file":".trellis/spec/ccr/backend/typed-ipc-bindings.md","reason":"Sync conflict and encryption-state DTOs"}
+{"file":".trellis/spec/ccr-ui/frontend/api-facade-boundary.md","reason":"Frontend sync API ownership"}

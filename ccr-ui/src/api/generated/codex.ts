@@ -1,0 +1,52 @@
+/* Generated from commands/handler_registry.rs; do not edit. */
+
+import { invoke } from '@/api/invokeRuntime'
+import type { OpenJsonValueDto } from '@/types/generated/common/OpenJsonValueDto'
+
+export interface CodexAgentContextRequest { mode?: string; projectRoot?: string }
+export interface CodexAgentSourceInstallRequest { sourceId: string; agentId: string; targetName?: string | null; conflictMode?: string | null }
+export interface CodexAgentSourceSyncRequest { installId: string; force?: boolean }
+
+export const listCodexProfiles = (): Promise<OpenJsonValueDto> => invoke('codex_list_profiles')
+export const listCodexModels = (): Promise<OpenJsonValueDto> => invoke('codex_list_models')
+export const addCodexProfile = (name: string, config: OpenJsonValueDto): Promise<OpenJsonValueDto> => invoke('codex_add_profile', { name, config })
+export const updateCodexProfile = (name: string, config: OpenJsonValueDto): Promise<OpenJsonValueDto> => invoke('codex_update_profile', { name, config })
+export const deleteCodexProfile = (name: string): Promise<OpenJsonValueDto> => invoke('codex_delete_profile', { name })
+export const getCodexProfileEnv = (name: string): Promise<OpenJsonValueDto> => invoke('codex_get_profile_env', { name })
+export const applyCodexProfile = (name: string): Promise<OpenJsonValueDto> => invoke('codex_apply_profile', { name })
+export const exportCodexProfiles = (includeSecrets: boolean): Promise<OpenJsonValueDto> => invoke('codex_export_profiles', { includeSecrets })
+export const getCodexProfilesRaw = (): Promise<OpenJsonValueDto> => invoke('codex_get_profiles_raw')
+export const saveCodexProfilesRaw = (content: string, token: string, force: boolean): Promise<OpenJsonValueDto> => invoke('codex_save_profiles_raw', { content, token, force })
+export const getCodexSettings = (): Promise<OpenJsonValueDto> => invoke('codex_get_settings')
+export const updateCodexSettings = (settings: OpenJsonValueDto): Promise<OpenJsonValueDto> => invoke('codex_update_settings', { settings })
+export const listCodexMcpServers = (): Promise<OpenJsonValueDto> => invoke('codex_list_mcp_servers')
+export const addCodexMcpServer = (name: string, config: OpenJsonValueDto): Promise<OpenJsonValueDto> => invoke('codex_add_mcp_server', { name, config })
+export const updateCodexMcpServer = (name: string, config: OpenJsonValueDto): Promise<OpenJsonValueDto> => invoke('codex_update_mcp_server', { name, config })
+export const deleteCodexMcpServer = (name: string): Promise<string> => invoke('codex_delete_mcp_server', { name })
+export const listCodexAgents = (context?: CodexAgentContextRequest): Promise<OpenJsonValueDto> => invoke('codex_list_agents', { context })
+export const addCodexAgent = (name: string, config: OpenJsonValueDto, context?: CodexAgentContextRequest): Promise<OpenJsonValueDto> => invoke('codex_add_agent', { name, config, context })
+export const updateCodexAgent = (name: string, config: OpenJsonValueDto, context?: CodexAgentContextRequest): Promise<OpenJsonValueDto> => invoke('codex_update_agent', { name, config, context })
+export const deleteCodexAgent = (name: string, context?: CodexAgentContextRequest): Promise<string> => invoke('codex_delete_agent', { name, context })
+export const renameCodexAgent = (name: string, newName: string, context?: CodexAgentContextRequest): Promise<OpenJsonValueDto> => invoke('codex_rename_agent', { name, newName, context })
+export const copyCodexAgent = (name: string, sourceContext?: CodexAgentContextRequest, targetContext?: CodexAgentContextRequest, targetName?: string): Promise<OpenJsonValueDto> => invoke('codex_copy_agent', { name, sourceContext, targetContext, targetName })
+export const validateCodexAgentToml = (name: string, context?: CodexAgentContextRequest): Promise<OpenJsonValueDto> => invoke('codex_validate_agent_toml', { name, context })
+export const listCodexAgentSources = (): Promise<OpenJsonValueDto> => invoke('codex_list_agent_sources')
+export const addCodexAgentSource = (url: string): Promise<OpenJsonValueDto> => invoke('codex_add_agent_source', { request: { url } })
+export const removeCodexAgentSource = (sourceId: string): Promise<void> => invoke('codex_remove_agent_source', { sourceId })
+export const syncCodexAgentSource = (sourceId: string): Promise<OpenJsonValueDto> => invoke('codex_sync_agent_source', { sourceId })
+export const getCodexAgentSourceCatalog = (sourceId: string): Promise<OpenJsonValueDto> => invoke('codex_get_agent_source_catalog', { sourceId })
+export const installCodexSourceAgent = (request: CodexAgentSourceInstallRequest): Promise<OpenJsonValueDto> => invoke('codex_install_source_agent', { request })
+export const syncCodexSourceInstall = (request: CodexAgentSourceSyncRequest): Promise<OpenJsonValueDto> => invoke('codex_sync_source_install', { request })
+export const acceptLocalCodexSourceInstall = (installId: string): Promise<OpenJsonValueDto> => invoke('codex_accept_local_source_install', { request: { installId } })
+export const untrackCodexSourceInstall = (installId: string): Promise<OpenJsonValueDto> => invoke('codex_untrack_source_install', { request: { installId } })
+export const listCodexSessions = (limit?: number, query?: string): Promise<OpenJsonValueDto> => invoke('codex_list_sessions', { limit, query })
+export const getCodexSessionDetail = (filePath: string, messageLimit?: number): Promise<OpenJsonValueDto> => invoke('codex_get_session_detail', { filePath, messageLimit })
+export const exportCodexSession = (filePath: string, maxMessages?: number): Promise<OpenJsonValueDto> => invoke('codex_export_session', { filePath, maxMessages })
+export const cloneCodexSession = (filePath: string): Promise<OpenJsonValueDto> => invoke('codex_clone_session', { filePath })
+export const deleteCodexSession = (filePath: string): Promise<OpenJsonValueDto> => invoke('codex_delete_session', { filePath })
+export const getCodexUsage = (force?: boolean): Promise<OpenJsonValueDto> => invoke('codex_get_usage', { force })
+export const getCodexDashboardOverview = (force?: boolean): Promise<OpenJsonValueDto> => invoke('codex_get_dashboard_overview', { force })
+export const getCodexDashboardUsageSummary = (force?: boolean): Promise<OpenJsonValueDto> => invoke('codex_get_dashboard_usage_summary', { force })
+export const getCodexTraySnapshot = (force?: boolean): Promise<OpenJsonValueDto> => invoke('codex_get_tray_snapshot', { force })
+export const getCodexAllQuotas = (): Promise<OpenJsonValueDto> => invoke('codex_get_all_quotas')
+export const getCodexQuota = (account: string): Promise<OpenJsonValueDto> => invoke('codex_get_quota', { account })

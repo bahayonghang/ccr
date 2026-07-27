@@ -2,4 +2,5 @@
 
 pub mod auth;
 pub mod connection;
+pub mod security;
 pub mod sftp;

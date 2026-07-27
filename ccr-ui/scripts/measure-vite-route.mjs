@@ -2,6 +2,7 @@
 
 import { execFile, spawn } from 'node:child_process'
 import { promisify } from 'node:util'
+import { terminateProcessTree } from './process-tree.mjs'
 
 const execFileAsync = promisify(execFile)
 const ANSI_ESCAPE_PATTERN = new RegExp(String.raw`\x1b\[[0-9;?]*[ -/]*[@-~]`, 'g')
@@ -15,6 +16,8 @@ const includeFetchProbes = !withBrowser || args.has('--fetch-probes')
 const host = process.env.HOST || '127.0.0.1'
 const port = process.env.PORT || '5173'
 const base = `http://${host}:${port}`
+let measurementError
+let cleanupError
 
 const server = spawn(
   process.execPath,
@@ -27,7 +30,7 @@ const server = spawn(
 
 let output = ''
 let ready = false
-let warmed = false
+let healthReady = false
 const startedAt = Date.now()
 
 const appendOutput = (chunk) => {
@@ -38,16 +41,16 @@ const appendOutput = (chunk) => {
   if (/\bLocal:\s+https?:\/\//.test(plainText) || /https?:\/\/(?:localhost|127\.0\.0\.1|\[::1\])(?::\d+)?\//.test(plainText)) {
     ready = true
   }
-  if (/\[dev:web\] warmed/.test(plainText)) {
-    warmed = true
+  if (/\[dev:web\] ready\s+/.test(plainText)) {
+    healthReady = true
   }
 }
 
 server.stdout.on('data', appendOutput)
 server.stderr.on('data', appendOutput)
 server.on('exit', (code, signal) => {
-  if (!warmed) {
-    warmed = true
+  if (!healthReady) {
+    healthReady = true
   }
   if (!ready && code !== 0) {
     ready = true
@@ -265,21 +268,9 @@ const summarizeRequests = (requests) => {
     .slice(0, 20)
 }
 
-const stopServer = async () => {
-  if (server.killed) return
-
-  if (process.platform === 'win32') {
-    await execFileAsync('taskkill.exe', ['/PID', String(server.pid), '/F', '/T'], {
-      windowsHide: true,
-    }).catch(() => {})
-  } else {
-    server.kill('SIGTERM')
-  }
-}
-
 try {
   await waitFor(() => ready, requestTimeoutMs, 'Vite server readiness')
-  await waitFor(() => warmed, requestTimeoutMs, 'dev warmup')
+  await waitFor(() => healthReady, requestTimeoutMs, 'dev server health check')
   if (server.exitCode !== null) {
     throw new Error(`Vite dev server exited before measurement. Recent output:\n${output.slice(-4000)}`)
   }
@@ -307,6 +298,19 @@ try {
     viteProcess: snapshot,
   }
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`)
+} catch (error) {
+  measurementError = error
 } finally {
-  await stopServer()
+  try {
+    await terminateProcessTree(server)
+  } catch (error) {
+    cleanupError = error
+    if (measurementError) {
+      const message = error instanceof Error ? error.message : String(error)
+      process.stderr.write(`[measure:vite-route] cleanup failed: ${message}\n`)
+    }
+  }
 }
+
+if (measurementError) throw measurementError
+if (cleanupError) throw cleanupError

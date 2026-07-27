@@ -2,7 +2,7 @@
 name = "ccr-types"
 version.workspace = true
 edition = "2024"
-rust-version = "1.88"
+rust-version = "1.95"
 authors = ["Yonghang Li"]
 description = "Shared type definitions for CCR ecosystem"
 license = "MIT"

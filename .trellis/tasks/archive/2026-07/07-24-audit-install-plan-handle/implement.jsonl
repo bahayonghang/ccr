@@ -1,0 +1,4 @@
+{"file":".trellis/spec/ccr-cli/backend/backend-guidelines.md","reason":"Install service ownership and error conventions"}
+{"file":".trellis/spec/ccr/backend/typed-ipc-bindings.md","reason":"Generated PlanId and AttemptId DTO contract"}
+{"file":".trellis/spec/ccr/backend/desktop-command-policy.md","reason":"Executable capability boundary"}
+{"file":".trellis/spec/ccr-ui/frontend/api-facade-boundary.md","reason":"Frontend invoke ownership"}

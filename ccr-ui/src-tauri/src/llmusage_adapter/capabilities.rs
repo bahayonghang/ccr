@@ -1,10 +1,11 @@
 use std::collections::BTreeMap;
+use std::ffi::OsString;
 
 use serde::Serialize;
 use ts_rs::TS;
 
 use super::AppPaths;
-use crate::process::std_command;
+use crate::process::{ProcessDescriptor, ProcessGateway};
 
 pub use ccr_usage::{DbCapabilities, FeatureCapability, FeatureKey, UnsupportedReason};
 
@@ -26,8 +27,8 @@ pub struct CapabilityReport {
 }
 
 impl CapabilityReport {
-    pub fn detect(paths: &AppPaths) -> Self {
-        let cli_version = detect_cli_version();
+    pub async fn detect(paths: &AppPaths) -> Self {
+        let cli_version = detect_cli_version().await;
         let cli_available = cli_version.is_some();
         let db = DbCapabilities::detect(paths);
         let mut features = db.features;
@@ -65,10 +66,11 @@ impl CapabilityReport {
     }
 }
 
-fn detect_cli_version() -> Option<String> {
-    // 走 process::std_command：在 Windows release 下隐藏 conhost 窗口，避免应用启动时
-    // 探测 `llmusage --version` 一闪而过的弹窗。
-    let output = std_command("llmusage").arg("--version").output().ok()?;
+async fn detect_cli_version() -> Option<String> {
+    let descriptor = ProcessDescriptor::llmusage_version("llmusage").ok()?;
+    let output = ProcessGateway::execute(&descriptor, &[OsString::from("--version")])
+        .await
+        .ok()?;
     if !output.status.success() {
         return None;
     }
@@ -84,13 +86,13 @@ fn detect_cli_version() -> Option<String> {
 mod tests {
     use super::*;
 
-    #[test]
-    fn capability_report_merges_db_and_cli_features() {
+    #[tokio::test]
+    async fn capability_report_merges_db_and_cli_features() {
         // 无 DB 的临时目录：9 个 DB-backed 特征应统一 DbMissing，
         // CLI 域两键由 adapter 拼装（sync_json_events 的 supported 取决于本机
         // 是否安装 llmusage，这里只断言键存在与 cancel 的固定语义）。
         let temp = tempfile::TempDir::new().expect("temp dir should be created");
-        let report = CapabilityReport::detect(&AppPaths::from_root(temp.path()));
+        let report = CapabilityReport::detect(&AppPaths::from_root(temp.path())).await;
 
         assert!(!report.db_exists);
         assert!(!report.db_readable);

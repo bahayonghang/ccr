@@ -52,11 +52,19 @@ vi.mock('@/api/runtime/system', () => ({
     uptime_seconds: 1200,
   })),
   getCliVersions: vi.fn(async () => ({
-    versions: [
-      { platform: 'claude', installed: true, version: '1.0.0', status: 'ok' },
-      { platform: 'codex', installed: true, version: '2.1.0', status: 'ok' },
-      { platform: 'gemini', installed: true, version: '3.2.0', status: 'ok' },
+    versions: {
+      claude: '1.0.0',
+      codex: '2.1.0',
+      gemini: '3.2.0',
+    },
+    entries: [
+      { platform: 'claude', installed: true, version: '1.0.0', status: 'ok', elapsed_ms: 10 },
+      { platform: 'codex', installed: true, version: '2.1.0', status: 'ok', elapsed_ms: 10 },
+      { platform: 'gemini', installed: true, version: '3.2.0', status: 'ok', elapsed_ms: 10 },
     ],
+    mode: 'fast',
+    timeout_ms: 3500,
+    parallelism: 4,
   })),
 }))
 

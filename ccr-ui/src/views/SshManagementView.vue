@@ -133,12 +133,7 @@ async function confirmFingerprintAndConnect() {
   if (!pendingFingerprint.value || !activeEnvId.value) return
   error.value = ''
   try {
-    await sshConfirmHostFingerprint(
-      pendingFingerprint.value.host,
-      pendingFingerprint.value.key_type,
-      pendingFingerprint.value.fingerprint,
-      pendingFingerprint.value.port,
-    )
+    await sshConfirmHostFingerprint(pendingFingerprint.value.challenge_id)
     activeConnectionState.value = await sshConnect(activeEnvId.value, connectPassword.value || undefined)
     pendingFingerprint.value = null
   } catch (e: unknown) {
@@ -219,7 +214,12 @@ async function testConnect(host: SshHostConfig) {
   } catch (e: unknown) {
     testResults.value = {
       ...testResults.value,
-      [envId]: { success: false, latency_ms: 0, error: e?.toString?.() || tt('测试失败', 'Test failed') },
+      [envId]: {
+        success: false,
+        latency_ms: 0,
+        error_code: null,
+        error: e?.toString?.() || tt('测试失败', 'Test failed'),
+      },
     }
   } finally {
     const next = new Set(testingHosts.value)

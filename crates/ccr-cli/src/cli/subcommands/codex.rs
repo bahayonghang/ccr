@@ -133,10 +133,15 @@ pub enum CodexAction {
     /// 导致第三方 URL/Key 切换不生效的问题。清理后运行 `codex doctor` 展示实际配置。
     /// 示例: ccr codex fix
     ///       ccr codex fix --dry-run
+    ///       ccr codex fix --repair-runtime
     Fix {
         /// 只列出将被清理的 app-server 进程，不实际终止
         #[arg(long)]
         dry_run: bool,
+
+        /// 显式重放当前 CCR profile，修复可安全处理的本地 runtime 漂移
+        #[arg(long)]
+        repair_runtime: bool,
     },
 }
 

@@ -30,6 +30,8 @@ fn root_help_includes_guided_tasks() {
     assert!(stdout.contains("切换平台"));
     assert!(stdout.contains("切换 Codex Auth"));
     assert!(stdout.contains("把 Codex 订阅导入 OpenCode"));
+    assert!(stdout.contains("初始化当前项目"));
+    assert!(stdout.contains("project"));
 }
 
 #[test]
@@ -48,6 +50,15 @@ fn help_subcommand_supports_nested_codex_auth_path() {
     assert_eq!(help_command, direct_help);
     assert!(help_command.contains("ccr.exe codex auth") || help_command.contains("ccr codex auth"));
     assert!(help_command.contains("cli_auth_credentials_store = file"));
+}
+
+#[test]
+fn codex_fix_help_exposes_explicit_runtime_repair() {
+    let stdout = run_help(&["codex", "fix", "--help"]);
+
+    assert!(stdout.contains("--repair-runtime"));
+    assert!(stdout.contains("--dry-run"));
+    assert!(stdout.contains("显式重放当前 CCR profile"));
 }
 
 #[test]
@@ -72,6 +83,44 @@ fn help_subcommand_supports_clean_path() {
     assert!(help_command.contains("ccr clean planfiles --all --dry-run"));
     assert!(help_command.contains("ccr clean --all"));
     assert!(help_command.contains("ccr clean backups --dry-run"));
+}
+
+#[test]
+fn help_subcommand_supports_project_init_path() {
+    let project_help = run_help(&["project", "--help"]);
+    assert!(project_help.contains("Git"));
+    assert!(project_help.contains("Trellis"));
+    assert!(project_help.contains(".gitignore"));
+
+    let direct_help = run_help(&["project", "init", "--help"]);
+    let help_command = run_help(&["help", "project", "init"]);
+    assert_eq!(help_command, direct_help);
+    assert!(help_command.contains("git init"));
+    assert!(help_command.contains("trellis init"));
+    assert!(help_command.contains(".agents/"));
+    assert!(help_command.contains("--yes"));
+}
+
+#[test]
+fn legacy_init_help_remains_user_configuration_command() {
+    let stdout = run_help(&["init", "--help"]);
+
+    assert!(stdout.contains("初始化配置文件"));
+    assert!(stdout.contains("--force"));
+    assert!(!stdout.contains("trellis init"));
+}
+
+#[test]
+fn bare_project_requires_an_explicit_action() {
+    let output = Command::new(env!("CARGO_BIN_EXE_ccr"))
+        .arg("project")
+        .env("NO_COLOR", "1")
+        .env("CLICOLOR", "0")
+        .output()
+        .unwrap();
+
+    assert!(!output.status.success());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("Usage"));
 }
 
 #[test]

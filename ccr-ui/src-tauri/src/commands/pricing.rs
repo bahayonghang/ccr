@@ -3,7 +3,7 @@
 use ccr_store::{ModelPricing, PricingManager};
 use serde_json::Value;
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn set_pricing(model: String, pricing: Value) -> Result<Value, String> {
     let result = tokio::task::spawn_blocking(move || {
         let model_pricing: ModelPricing =
@@ -25,7 +25,7 @@ pub async fn set_pricing(model: String, pricing: Value) -> Result<Value, String>
     Ok(result)
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn get_pricing_list() -> Result<Value, String> {
     let result = tokio::task::spawn_blocking(|| {
         let manager = PricingManager::with_default()
@@ -50,7 +50,7 @@ pub async fn get_pricing_list() -> Result<Value, String> {
     Ok(result)
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn remove_pricing(model: String) -> Result<Value, String> {
     let result = tokio::task::spawn_blocking(move || {
         let mut manager = PricingManager::with_default()
@@ -71,7 +71,7 @@ pub async fn remove_pricing(model: String) -> Result<Value, String> {
     Ok(result)
 }
 
-#[tauri::command]
+#[ccr_tauri_command_macros::command]
 pub async fn reset_pricing() -> Result<Value, String> {
     let result = tokio::task::spawn_blocking(|| {
         let mut manager = PricingManager::with_default()

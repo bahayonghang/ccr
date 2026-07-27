@@ -4,8 +4,8 @@
 //! 测试新的交互式内容选择功能的完整流程
 
 use crate::setup_ccr_test_env;
-use ccr::commands::SyncContentSelector;
-use ccr::commands::sync_content_selector::{SyncContentSelection, SyncContentType};
+use ccr_cli::commands::SyncContentSelector;
+use ccr_cli::commands::sync_content_selector::{SyncContentSelection, SyncContentType};
 use std::fs;
 
 #[test]

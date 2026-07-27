@@ -434,11 +434,8 @@ import { formatRelativeTime, formatTimestamp } from '@/utils/codexHelpers'
 import { copyText } from '@/utils/clipboard'
 import { logger } from '@/utils/logger'
 import type {
-  CodexCloneSessionResponse,
   CodexSessionDetailResponse,
-  CodexSessionExportResponse,
   CodexSessionSummary,
-  CodexSessionsResponse,
 } from '@/types'
 
 defineOptions({ name: 'CodexSessionsView' })
@@ -510,7 +507,7 @@ async function loadSessionDetail(filePath: string) {
   detailLoading.value = true
   try {
     selectedFilePath.value = filePath
-    detail.value = await getCodexSessionDetail<CodexSessionDetailResponse>(filePath, DETAIL_LIMIT)
+    detail.value = await getCodexSessionDetail(filePath, DETAIL_LIMIT)
   } catch (error) {
     const message = extractErrorMessage(error)
     logger.error('Failed to load codex session detail:', error)
@@ -525,7 +522,7 @@ async function loadSessions(preferredFilePath?: string) {
   loadError.value = null
 
   try {
-    const response = await listCodexSessions<CodexSessionsResponse>({ limit: SESSION_LIMIT })
+    const response = await listCodexSessions({ limit: SESSION_LIMIT })
     sessions.value = response.sessions ?? []
 
     const nextFilePath = preferredFilePath ?? selectedFilePath.value ?? sessions.value[0]?.file_path
@@ -568,7 +565,7 @@ async function handleExport() {
 
   actionLoading.value = true
   try {
-    const payload = await exportCodexSession<CodexSessionExportResponse>(
+    const payload = await exportCodexSession(
       selectedSession.value.file_path,
       EXPORT_LIMIT
     )
@@ -598,7 +595,7 @@ async function handleClone() {
 
   actionLoading.value = true
   try {
-    const payload = await cloneCodexSession<CodexCloneSessionResponse>(
+    const payload = await cloneCodexSession(
       selectedSession.value.file_path
     )
     await loadSessions(payload.session.file_path)

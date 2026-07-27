@@ -58,7 +58,7 @@ impl LlmusageRuntime {
         open_dashboard(self.paths.clone()).map_err(|error| error.to_string())
     }
 
-    pub fn capabilities(&self) -> CapabilityReport {
-        CapabilityReport::detect(&self.paths)
+    pub async fn capabilities(&self) -> CapabilityReport {
+        CapabilityReport::detect(&self.paths).await
     }
 }

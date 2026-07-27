@@ -2,8 +2,11 @@
   "$schema": "https://schema.tauri.app/config/2.0.0/capability.json",
   "identifier": "main-capability",
   "description": "CCR Desktop main window capabilities - enables IPC invoke and dialog access",
-  "windows": ["main"],
+  "windows": [
+    "main"
+  ],
   "permissions": [
+    "main-command-inventory",
     "core:default",
     "core:window:allow-set-theme",
     "core:window:allow-set-background-color",

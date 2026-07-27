@@ -314,6 +314,8 @@ impl OpenCodeQuotaService {
         let serialized = serde_json::to_string_pretty(&auth)
             .map_err(|error| format!("序列化 OpenCode 账号快照失败: {error}"))?;
         AsyncAtomicWriter::new(path)
+            .secret(true)
+            .preserve_mode(true)
             .write_string_async(&serialized)
             .await
             .map_err(|error| format!("写回 OpenCode 账号快照失败: {error}"))?;
@@ -355,6 +357,8 @@ impl OpenCodeQuotaService {
         let serialized = serde_json::to_string_pretty(&root)
             .map_err(|error| format!("序列化 OpenCode auth.json 失败: {error}"))?;
         AsyncAtomicWriter::new(path)
+            .secret(true)
+            .preserve_mode(true)
             .write_string_async(&serialized)
             .await
             .map_err(|error| format!("写回 OpenCode auth.json 失败: {error}"))?;

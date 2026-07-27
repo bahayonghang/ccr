@@ -1,6 +1,6 @@
 //! Tauri 命令聚合模块 —— 按功能分组组织各子模块。
 //!
-//! 每个子模块对应一个平台或功能域，并提供 `#[tauri::command]` 命令实现。
+//! 每个子模块对应一个平台或功能域，并提供 `#[ccr_tauri_command_macros::command]` 命令实现。
 
 pub mod builtin_prompts;
 pub mod checkin;
@@ -31,6 +31,9 @@ pub mod waf;
 #[cfg(target_os = "windows")]
 pub mod wsl;
 
+mod wire;
+
 mod handler_registry;
+pub(crate) mod runtime_policy;
 
 pub use handler_registry::generate_handler;

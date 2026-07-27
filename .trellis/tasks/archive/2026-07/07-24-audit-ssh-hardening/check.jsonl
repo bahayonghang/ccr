@@ -1,0 +1,4 @@
+{"file":".trellis/spec/ccr/backend/test-fixtures.md","reason":"Hostile command and platform fixture coverage"}
+{"file":".trellis/spec/ccr/backend/desktop-command-policy.md","reason":"Option and process policy audit"}
+{"file":".trellis/spec/ccr-core/backend/atomic-writer.md","reason":"Known-hosts durability review"}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Probe-confirm-connect flow review"}

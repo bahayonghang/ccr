@@ -2,3 +2,13 @@
 
 # ts-rs 生成的 TypeScript 绑定：锁 LF 防止跨平台再生成造成假漂移；diff 折叠
 ccr-ui/src/types/generated/** text eol=lf linguist-generated=true
+
+# Trellis: append-only developer journals should merge cleanly across
+# parallel sessions/worktrees — each session only appends a new block, so
+# there is nothing to actually conflict on.
+#
+# Do NOT add a rule for workspace/*/index.md here — it is fully regenerated
+# every session, so a real conflict there is expected and safe to resolve by
+# picking either side (task state lives in task.json, not index.md). See
+# .trellis/spec/cli/backend/directory-structure.md for details.
+.trellis/workspace/*/journal-*.md merge=union

@@ -1,6 +1,9 @@
 /* eslint-disable no-console -- This is a logger utility, console output is expected */
 import { isTauriRuntime } from '@/utils/tauriRuntime'
 import { getErrorMessage } from '@/utils/errorHandler'
+import { appendFrontendLogs } from '@/api/generated/events'
+import type { FrontendLogInputDto as FrontendLogInput } from '@/types/generated/events/FrontendLogInputDto'
+import type { JsonValueDto } from '@/types/generated/events/JsonValueDto'
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error'
 
@@ -11,14 +14,6 @@ export interface LoggerEntry {
   timestamp: string
   source: string
   data?: unknown
-}
-
-interface FrontendLogInput {
-  level: LogLevel
-  message: string
-  source: string
-  timestamp?: string
-  fields?: unknown
 }
 
 type LoggerListener = (entry: LoggerEntry) => void
@@ -70,7 +65,7 @@ class Logger {
     }
   }
 
-  private normalizeFields(data: unknown): unknown {
+  private normalizeFields(data: unknown): JsonValueDto | undefined {
     if (typeof data === 'undefined') {
       return undefined
     }
@@ -84,7 +79,7 @@ class Logger {
     }
 
     try {
-      return JSON.parse(JSON.stringify(data))
+      return JSON.parse(JSON.stringify(data)) as JsonValueDto
     } catch {
       return { value: String(data) }
     }
@@ -132,8 +127,7 @@ class Logger {
     this.nativeBridgeInFlight = true
 
     try {
-      const { invoke } = await import('@tauri-apps/api/core')
-      await invoke('append_frontend_logs', { entries })
+      await appendFrontendLogs(entries)
       this.nativeBridgeStatus = 'ready'
     } catch (error) {
       if (this.shouldDisableNativeBridge(error)) {

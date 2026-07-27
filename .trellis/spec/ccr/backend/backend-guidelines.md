@@ -18,7 +18,11 @@ Reference files:
 
 ## Public API Boundary
 
-Prefer `crate::prelude` for new integration examples and public docs. The broad root re-exports in `src/lib.rs` are compatibility-only and should not be removed, renamed, or deprecated in the 6.x line without a next-major migration plan.
+Prefer `crate::prelude` for new integration examples and public docs. In the
+7.x line, the broad root module paths in `src/lib.rs` remain compatibility-only
+and are deprecated with an actionable narrow-crate replacement. Keep them
+callable until 8.0.0 at the earliest; removal still requires a separately
+reviewed breaking-change inventory.
 
 When adding a new cross-crate type that must be public, first ask whether it belongs in the domain crate (`ccr-types`, `ccr-config`, `ccr-codex`, etc.) and only then re-export it from `ccr`.
 
