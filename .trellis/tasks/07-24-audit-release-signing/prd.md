@@ -37,7 +37,7 @@
 
 - **需外部证书流程**：Apple Developer ID、Windows code signing cert、VSCode Marketplace publisher，涉及密钥管理与 secrets 配置，非纯代码任务
 - 报告 §11 指出 repo config 显示 null 但外部发布流程可能另有配置——落地前先盘点 release secret/process inventory
-- 2026-07-27 现场盘点：使用 keyring OAuth 回读确认远程 `release` environment 已存在并仅允许 `v*` tag，但 environment/repository secrets 与 variables 均为 0；本机 12 个 Apple/Windows/VSIX 身份环境变量也全部缺失。`main`/`dev` strict branch protection 已验证，但仓库仍没有可用于真实发布的签名身份。因此只能证明 workflow、校验脚本、托管回归和文档的仓库侧闭环，不能把真实签名 artifact 验证宣称为已通过
+- 2026-07-27 现场盘点：使用 keyring OAuth 回读确认远程 `release` environment 已存在并仅允许 `v*` tag，但 environment/repository secrets 与 variables 均为 0，Actions self-hosted runner inventory 也为 0；本机 12 个 Apple/Windows/VSIX 身份环境变量全部缺失。`main`/`dev` strict branch protection 已验证，但仓库仍没有可用于真实发布的签名身份，也没有 workflow 要求的 `[self-hosted, linux, vsix-signing]` runner。因此只能证明 workflow、校验脚本、托管回归和文档的仓库侧闭环，不能把真实签名 artifact 验证宣称为已通过
 - 优先级 P2，可在 P1 发版阻断组完成后进行
 
 ## Key Decision
@@ -59,6 +59,8 @@
   或暂存对应版本元数据。
 - 远程 `release` environment 已存在，custom deployment branch policy 为
   tag `v*`；environment/repository secrets 与 variables inventory 均为 0。
+  Actions runner inventory 为 0，VSIX 签名 job 所要求的受保护
+  `[self-hosted, linux, vsix-signing]` runner 尚不存在。
   `main`/`dev` 均启用 strict required checks、admin enforcement，并禁止
   force-push/deletion。PR #43（head `94eda6d0`）的四条 required contexts、
   Tauri Linux/Windows/macOS 和 gateway coverage 全部通过，但该 PR 不执行

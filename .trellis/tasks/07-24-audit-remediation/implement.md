@@ -52,7 +52,8 @@
   was neither overwritten nor accidentally included.
 - [ ] Verify real signing/artifact evidence required by the selected completion
   model. Hosted PR #43 and branch protection pass; release identity inventories
-  are empty, so real Apple/Windows/VSIX signatures and provenance remain blocked.
+  and Actions self-hosted runner inventory are empty, so real Apple/Windows/VSIX
+  signatures and provenance remain blocked.
 - [x] Commit an integration/spec evidence checkpoint without absorbing unrelated
   work.
 - [ ] After all external evidence passes, archive the parent and journal all work

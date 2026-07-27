@@ -69,7 +69,7 @@
 | `07-24-audit-process-gateway` | P1-06, P1-07, P2-01, P2-02, P2-08, P2-09, P3-04 | P1 | A2, A3, A5 | 完成；`e5892e04`；gateway/Windows process tree/Tauri/frontend/lint/workspace tests；PR #42 Linux/Windows/macOS hosted 通过 |
 | `07-24-audit-ci-governance` | P1-11, P2-03, P2-04, P2-15, P2-16, P2-17, P3-03 | P1 | E1-E3, E5-E7 | 完成；`691fd0d5`、`bb46226b`、`7e7c4514`、`158b007c`、`6951839f`、`09acd6f2`、`133842b3`；PR #42 四个稳定 contexts 与跨平台矩阵通过；`main`/`dev` strict required protection 已配置并回读 |
 | `07-24-audit-typed-ipc` | P2-11, P2-12 | P2 | A4, E4 | 完成；实现 `3de89558`、证据 `b381e1ad`、归档 `f8201d42`、journal `de6deaf1`；metadata 315/315、typed 252/315 (80.00%)、精确单一声明 252/252，runtime policy/ACL/confirmation/timeout ownership 已闭环 |
-| `07-24-audit-release-signing` | P2-14 | P2 | E8 | 仓库侧完成；实现 `d2cabc6a`、证据 `07f8b12f`、journal `94eda6d0`；fail-closed workflow、SBOM/provenance wiring、updater freeze、验证文档和 PR #43 托管回归通过；release environment 的 secrets/variables 均为空，真实 Apple/Windows/VSIX 身份与签名产物仍 `UNVERIFIED`，保持未归档 |
+| `07-24-audit-release-signing` | P2-14 | P2 | E8 | 仓库侧完成；实现 `d2cabc6a`、证据 `07f8b12f`、journal `94eda6d0`；fail-closed workflow、SBOM/provenance wiring、updater freeze、验证文档和 PR #43 托管回归通过；release environment 的 secrets/variables 与 Actions self-hosted runner inventory 均为空，真实 Apple/Windows/VSIX 身份与签名产物仍 `UNVERIFIED`，保持未归档 |
 | `07-24-audit-p3-cleanup` | P3-01, P3-02, P3-05 | P3 | - | 完成；`a4e9dd3f`；public API/doctest、dependency/JSON、migration、fmt、lint、workspace tests；`version-check` 仅被并行 README 版本事实阻塞 |
 
 ### 建议执行顺序
@@ -117,7 +117,7 @@
 | P2-11 | `3de89558`, `b381e1ad` | capability metadata 315/315；Tauri permissions 323；confirmation/ACL、module/singleton permit、queue/cooperative/completion-aware/business timeout ownership 全部有 runtime enforcement | PASS |
 | P2-12 | `3de89558`, `b381e1ad` | typed 34/315 (10.79%) → 252/315 (80.00%)；typed exact declaration 252/252；typed boundary `Value`=0 | PASS |
 | P2-13 | `b444b459` | UUID transparent aliases 与 generated binding drift tests | PASS |
-| P2-14 | `d2cabc6a`, `07f8b12f` | repo-side release security 6/6、PR #43 四条 required contexts PASS；release secrets/variables=0，真实签名/attestation artifact 不存在 | UNVERIFIED |
+| P2-14 | `d2cabc6a`, `07f8b12f` | repo-side release security 6/6、PR #43 四条 required contexts PASS；release secrets/variables=0、self-hosted runners=0，真实签名/attestation artifact 不存在 | UNVERIFIED |
 | P2-15 | `691fd0d5`, `09acd6f2` | serial-only 0；Rust 70.10%、gateway 93.20/95.57%、Vue 74.54%、VS Code 91.79%；hosted coverage 成功 | PASS |
 | P2-16 | `691fd0d5`, `133842b3` | Rust/Bun/Node/actions pinned；PR #42 同 SHA 四 workflow 成功，Tauri Linux 固定 Bun 1.3.10 | PASS |
 | P2-17 | `691fd0d5` | dependency/MSRV drift gate；19 repeated dependencies、1 active exception | PASS |
@@ -159,7 +159,7 @@
 | `just version-check` | FAIL：版本 7.0.0 全部一致；排除范围 `ccr-ui/README.md` 缺少 `version-7.0.0` 事实 |
 | Hosted PR matrix | PASS：PR #42 head `133842b3` 验证 CI governance；PR #43 head `94eda6d0` 验证最终 Typed IPC 集成，Root `30259859698`、Tauri `30259859694`、Frontend `30259859557`、VS Code `30259859538`；四条 required contexts 与 Tauri Linux/Windows/macOS、gateway coverage 全部成功；按 relevance policy 跳过的 Root/VS Code heavy jobs 未被冒充为执行 |
 | GitHub branch protection | PASS：`main`/`dev` protected；strict checks、admin enforcement；四 contexts 绑定 app `15368`；force-push/deletion disabled |
-| GitHub `release` environment | PARTIAL：environment 存在且仅允许 `v*` tag；repository/environment secrets 与 variables 均为 0；真实 Apple/Windows/VSIX/OIDC artifact `UNVERIFIED` |
+| GitHub `release` environment | PARTIAL：environment 存在且仅允许 `v*` tag；repository/environment secrets 与 variables 均为 0，Actions self-hosted runners 为 0；真实 Apple/Windows/VSIX/OIDC artifact `UNVERIFIED` |
 | Git boundary | checkpoint 前 index empty；任务外 tracked/version/Trellis/`CLAUDE.md`/`.gitattributes`、6 个 generated whitespace 文件与独立 Vite 任务均未 stage；父任务 6 files 仅进入本证据 checkpoint |
 
 ## Acceptance Criteria

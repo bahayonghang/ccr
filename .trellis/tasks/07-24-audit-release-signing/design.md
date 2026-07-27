@@ -62,7 +62,9 @@ Actions inventory. `main` and `dev` have strict required checks with admin
 enforcement, while repository/environment secrets and variables are all empty.
 The protected `release` environment exists and accepts only `v*` tags, but no
 production Apple, Windows, or Marketplace identity is available locally or
-remotely. This is an external activation boundary, not a repository-side pass.
+remotely. The repository also has zero Actions self-hosted runners, so the
+required `[self-hosted, linux, vsix-signing]` signing boundary cannot start.
+This is an external activation boundary, not a repository-side pass.
 
 ## Rollback
 

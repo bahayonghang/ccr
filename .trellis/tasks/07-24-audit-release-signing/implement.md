@@ -28,8 +28,9 @@
   release environment and verify a real signed/stapled artifact.
 - [ ] Configure Windows code-signing identity/timestamp access and verify a real
   signed installer on Windows.
-- [ ] Configure the Marketplace publisher identity and verify a published VSIX
-  signature.
+- [ ] Configure the Marketplace publisher identity and a protected
+  `[self-hosted, linux, vsix-signing]` runner with the publisher-managed
+  sign-tool, then verify a published VSIX signature.
 - [ ] Grant/verify GitHub OIDC and protected-environment policy, run a release,
   and verify provenance against downloaded artifact digests.
 
@@ -62,8 +63,9 @@ activation acceptance.
 | Required branch protection | PASS: `main`/`dev` use strict required checks with admin enforcement; Root/Vue/Tauri/VS Code contexts are bound to app `15368`; force-push and deletion are disabled |
 | Hosted regression PR #43 | PASS at head `94eda6d0`: Root `30259859698`, Tauri `30259859694`, Frontend `30259859557`, VS Code `30259859538`; all four required contexts passed, with Tauri Linux/Windows/macOS and gateway coverage successful. This PR did not run a tag release or receive signing identities |
 | Repository/environment secrets inventory | EXTERNAL BLOCK: authoritative keyring OAuth inventory reports 0 repository secrets, 0 release-environment secrets, 0 repository variables, and 0 release-environment variables |
+| Actions self-hosted runner inventory | EXTERNAL BLOCK: authoritative repository runner inventory reports 0 runners; the VSIX job requires protected labels `[self-hosted, linux, vsix-signing]` |
 | Latest real release | NO-GO: `v6.5.0` run `29002291872` predates signing workflow; assets expose checksums only and the sampled artifact digest has no GitHub attestation (HTTP 404) |
-| Real Apple/Windows/VSIX signatures and OIDC provenance | NOT RUN: all 12 local identity variables are absent, remote signing inventories are empty, and no post-remediation tag release exists |
+| Real Apple/Windows/VSIX signatures and OIDC provenance | NOT RUN: all 12 local identity variables are absent, remote signing inventories and runner inventory are empty, and no post-remediation tag release exists |
 
 This is a verified repository-side checkpoint only. Do not archive this task or
 mark its acceptance criteria complete until the external activation rows pass
