@@ -1,0 +1,4 @@
+{"file":".trellis/spec/ccr/backend/dependency-governance.md","reason":"Pinned release actions and artifact versions"}
+{"file":".trellis/spec/ccr-vscode/frontend/extension-surface-contracts.md","reason":"VSIX packaging and publisher surface"}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Build artifact to signature to updater flow"}
+{"file":".trellis/spec/ccr/backend/test-fixtures.md","reason":"Platform release verifier fixture conventions"}

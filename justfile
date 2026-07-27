@@ -999,6 +999,25 @@ _workflow-governance-check-macos:
     @python3 -m unittest scripts/test_check_workflow_governance.py
     @python3 scripts/check_workflow_governance.py
 
+# 🔏 Release 签名、attestation、集中发布与 updater 冻结策略
+release-security-check:
+    @just _release-security-check-{{os()}}
+
+[private]
+_release-security-check-windows:
+    @python -m unittest scripts/test_check_release_security.py
+    @python scripts/check_release_security.py check
+
+[private]
+_release-security-check-linux:
+    @python3 -m unittest scripts/test_check_release_security.py
+    @python3 scripts/check_release_security.py check
+
+[private]
+_release-security-check-macos:
+    @python3 -m unittest scripts/test_check_release_security.py
+    @python3 scripts/check_release_security.py check
+
 # 🔐 Root/Tauri dependency drift、例外 metadata 和 MSRV 治理
 dependency-governance-check:
     @just _dependency-governance-check-{{os()}}
@@ -1015,8 +1034,8 @@ _dependency-governance-check-linux:
 _dependency-governance-check-macos:
     @bash scripts/check-dependency-drift.sh --verbose
 
-# 🔐 CI 配置、依赖例外与命令清单完整治理
-ci-governance-check: workflow-governance-check dependency-governance-check tauri-command-inventory-check
+# 🔐 CI、release、依赖例外与命令清单完整治理
+ci-governance-check: workflow-governance-check release-security-check dependency-governance-check tauri-command-inventory-check
 
 # 📊 Rust workspace 覆盖率：总体 70%，安全 gateway 85%
 coverage-rust:

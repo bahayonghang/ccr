@@ -205,6 +205,87 @@ r2d2_sqlite = "0.34.0"
 "@tauri-apps/api": "2.11.0"
 ```
 
+## Scenario: Fail-closed release signing and provenance
+
+### 1. Scope / Trigger
+- Trigger: changing `.github/workflows/release.yml`, release actions, signing
+  secret names, updater dependencies/configuration, or artifact publication.
+- Applies because checksums prove transport integrity but do not identify the
+  publisher, and a build job must not publish before every required verifier.
+
+### 2. Signatures
+- Local gate: `python scripts/check_release_security.py check`.
+- Root gate: `just release-security-check`, included by
+  `just ci-governance-check` and `just ci`.
+- Release helpers:
+  `preflight <macos|windows|vsix>`,
+  `write-tauri-config <linux|macos|windows> <output>`, and
+  `checksums <asset-root> <output>`.
+- User verification: `gh attestation verify <artifact> --repo bahayonghang/ccr`.
+
+### 3. Contracts
+- Workflow default permission is `contents: read`; only attestation gets
+  `id-token: write` / `attestations: write`, and only the final GitHub Release
+  job gets `contents: write`.
+- Apple, Windows, and VSIX identities come only from the protected `release`
+  environment. Windows/Tauri config is generated in runner temp storage; no
+  certificate, password, PAT, or generated secret-bearing config enters Git.
+- macOS requires codesign, Gatekeeper, and stapler verification. Windows
+  requires `signtool verify /pa /all` plus a valid Authenticode status. VSIX
+  requires `vsce verify-signature` before Marketplace publication.
+- Build jobs upload workflow artifacts only. `verify-and-attest` downloads all
+  signed outputs, generates SPDX SBOM/checksums, and creates OIDC attestations.
+  `publish-release` waits for both attestation and Marketplace publication.
+- The updater remains disabled. Adding `tauri-plugin-updater`,
+  `@tauri-apps/plugin-updater`, or updater config is rejected until a signed
+  manifest/provenance verifier proves failure leaves the installed version
+  unchanged.
+
+### 4. Validation & Error Matrix
+- Missing identity env -> `preflight` fails while printing names only.
+- VSIX sign-tool missing/not executable -> fail before package/build.
+- Platform signature, notarization, VSIX verification, SBOM, or attestation
+  failure -> no GitHub Release publication.
+- Mutable action reference -> `check_workflow_governance.py` fails.
+- Updater dependency/config without verifier -> release security gate fails.
+- Real certificate/publisher/attestation evidence unavailable -> repository
+  checks may pass, but release acceptance remains incomplete.
+
+### 5. Good/Base/Bad Cases
+- Good: signed artifacts flow through one attestation bundle and only then into
+  Marketplace/GitHub publication.
+- Base: unsigned development builds remain available locally but never use the
+  official release channel or updater metadata.
+- Bad: `tauri-action` receives `tagName` in a build job and publishes before
+  signature verification.
+- Bad: treating `SHA256SUMS` or fixture signatures as publisher identity.
+
+### 6. Tests Required
+- `python -m unittest scripts/test_check_release_security.py` asserts early
+  publication and missing verifiers are rejected, secrets are not serialized,
+  checksums are deterministic, and updater enablement fails.
+- `python scripts/check_release_security.py check` asserts live workflow shape.
+- `python scripts/check_workflow_governance.py` asserts every action is pinned
+  to an immutable 40-character SHA.
+- `just ci-governance-check`, docs audit/build, and final `just ci` run before
+  repository-side delivery. Actual release acceptance additionally runs each
+  platform verifier and `gh attestation verify` against downloaded artifacts.
+
+### 7. Wrong vs Correct
+#### Wrong
+```yaml
+- uses: tauri-apps/tauri-action@v0
+  with:
+    tagName: ${{ github.ref_name }}
+```
+
+#### Correct
+```yaml
+- uses: tauri-apps/tauri-action@fce9c6108b31ea247710505d3aaaa893ee6768d4
+  with:
+    args: --config ${{ runner.temp }}/tauri-release.json
+```
+
 ## Scenario: Hosted workflow, tool pin, and coverage governance
 
 ### 1. Scope / Trigger
