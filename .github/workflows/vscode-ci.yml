@@ -3,17 +3,31 @@ name: VS Code CI
 on:
   pull_request:
     branches: [main, develop, dev]
-    paths:
-      - 'ccr-vscode/**'
-      - 'justfile'
-      - '.github/workflows/vscode-ci.yml'
 
 permissions:
   contents: read
 
 jobs:
+  changes:
+    name: VS Code Change Detection
+    runs-on: ubuntu-24.04
+    outputs:
+      relevant: ${{ steps.relevance.outputs.relevant }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+      - name: Detect VS Code changes
+        id: relevance
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: python3 scripts/ci_surface_policy.py --surface vscode --base "$BASE_SHA" --head "$HEAD_SHA" >> "$GITHUB_OUTPUT"
+
   vscode-required:
-    name: VS Code Required
+    name: VS Code Validation
+    needs: changes
+    if: needs.changes.outputs.relevant == 'true'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -41,3 +55,23 @@ jobs:
           path: vscode-coverage.txt
           if-no-files-found: error
           retention-days: 14
+
+  vscode-required-gate:
+    name: VS Code Required
+    if: ${{ always() }}
+    needs: [changes, vscode-required]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Enforce relevant VS Code result
+        env:
+          DETECTION: ${{ needs.changes.result }}
+          RELEVANT: ${{ needs.changes.outputs.relevant }}
+          VALIDATION: ${{ needs.vscode-required.result }}
+        run: |
+          set -eu
+          test "$DETECTION" = success
+          if [ "$RELEVANT" != true ]; then
+            echo "VS Code validation is not relevant to this pull request."
+            exit 0
+          fi
+          test "$VALIDATION" = success

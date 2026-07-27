@@ -20,6 +20,21 @@ does not reimplement lint/test rules that can drift from local `just ci`.
 Path filters include shared manifests/scripts/specs that can affect each lane,
 not only the surface directory.
 
+## Stable required contexts
+
+Pull-request workflow triggers do not use native `paths` filters because a
+branch-protected context that is never created remains pending forever. A
+repository-owned `ci_surface_policy.py` instead evaluates the merge-base diff.
+Each workflow always creates a lightweight change detector and a stable final
+context; heavy product jobs run only when that surface is relevant. The final
+context fails when detection fails or any relevant validation, coverage,
+audit, or platform matrix result is not successful.
+
+The exact protected contexts are `Root Workspace Required`, `Vue and Docs
+Required`, `Tauri Linux Required`, and `VS Code Required`. Changes to the
+shared relevance policy make all four surfaces relevant so the router cannot
+change without exercising every governed lane.
+
 ## Reproducible tooling
 
 Rust/MSRV is declared in one checked-in toolchain source and validated against

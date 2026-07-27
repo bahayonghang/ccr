@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import unittest
 
+from scripts.ci_surface_policy import SURFACE_PATHS, is_relevant, path_matches
 from scripts.check_workflow_governance import (
     duplicate_mapping_keys,
     workflow_event_values,
+    workflow_job_block,
 )
 
 
@@ -68,6 +70,43 @@ class WorkflowGovernanceParserTests(unittest.TestCase):
 """
 
         self.assertEqual(workflow_event_values(workflow, "push", "branches"), set())
+
+    def test_surface_paths_match_nested_and_exact_files(self) -> None:
+        self.assertTrue(path_matches("crates/ccr/src/main.rs", SURFACE_PATHS["root"]))
+        self.assertTrue(path_matches("justfile", SURFACE_PATHS["vscode"]))
+        self.assertTrue(
+            path_matches(
+                "ccr-ui/src-tauri/src/main.rs", SURFACE_PATHS["tauri"]
+            )
+        )
+        self.assertFalse(path_matches("README.md", SURFACE_PATHS["frontend"]))
+
+    def test_relevance_is_true_when_any_changed_path_matches(self) -> None:
+        self.assertTrue(
+            is_relevant("vscode", ["README.md", "ccr-vscode/src/extension.ts"])
+        )
+        self.assertFalse(is_relevant("vscode", ["README.md", "docs/index.md"]))
+
+    def test_policy_script_changes_validate_every_surface(self) -> None:
+        for surface in SURFACE_PATHS:
+            with self.subTest(surface=surface):
+                self.assertTrue(
+                    is_relevant(surface, ["scripts/ci_surface_policy.py"])
+                )
+
+    def test_job_block_stops_before_the_next_job(self) -> None:
+        workflow = """jobs:
+  validation:
+    name: Validation
+  required:
+    name: Required
+    if: ${{ always() }}
+"""
+
+        self.assertEqual(
+            workflow_job_block(workflow, "required"),
+            "  required:\n    name: Required\n    if: ${{ always() }}",
+        )
 
 
 if __name__ == "__main__":

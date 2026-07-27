@@ -3,26 +3,31 @@ name: Tauri Rust CI
 on:
   pull_request:
     branches: [main, develop, dev]
-    paths:
-      - 'ccr-ui/src-tauri/**'
-      - 'ccr-ui/src/types/generated/**'
-      - 'ccr-ui/justfile'
-      - 'crates/**'
-      - 'Cargo.toml'
-      - 'Cargo.lock'
-      - 'rust-toolchain.toml'
-      - 'justfile'
-      - 'scripts/**'
-      - 'docs/reference/tauri-command-inventory.md'
-      - '.trellis/spec/ccr/backend/**'
-      - '.github/workflows/tauri-rust-ci.yml'
 
 permissions:
   contents: read
 
 jobs:
+  changes:
+    name: Tauri Change Detection
+    runs-on: ubuntu-24.04
+    outputs:
+      relevant: ${{ steps.relevance.outputs.relevant }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+      - name: Detect Tauri changes
+        id: relevance
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: python3 scripts/ci_surface_policy.py --surface tauri --base "$BASE_SHA" --head "$HEAD_SHA" >> "$GITHUB_OUTPUT"
+
   tauri-linux-required:
-    name: Tauri Linux Required
+    name: Tauri Linux Validation
+    needs: changes
+    if: needs.changes.outputs.relevant == 'true'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -41,6 +46,8 @@ jobs:
 
   tauri-platform-smoke:
     name: Tauri Smoke (${{ matrix.os }})
+    needs: changes
+    if: needs.changes.outputs.relevant == 'true'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -59,6 +66,8 @@ jobs:
 
   tauri-coverage:
     name: Tauri Gateway Coverage 85
+    needs: changes
+    if: needs.changes.outputs.relevant == 'true'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -83,3 +92,27 @@ jobs:
           path: target/coverage-tauri.json
           if-no-files-found: error
           retention-days: 14
+
+  tauri-required:
+    name: Tauri Linux Required
+    if: ${{ always() }}
+    needs: [changes, tauri-linux-required, tauri-platform-smoke, tauri-coverage]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Enforce relevant Tauri results
+        env:
+          DETECTION: ${{ needs.changes.result }}
+          RELEVANT: ${{ needs.changes.outputs.relevant }}
+          LINUX: ${{ needs.tauri-linux-required.result }}
+          PLATFORM: ${{ needs.tauri-platform-smoke.result }}
+          COVERAGE: ${{ needs.tauri-coverage.result }}
+        run: |
+          set -eu
+          test "$DETECTION" = success
+          if [ "$RELEVANT" != true ]; then
+            echo "Tauri validation is not relevant to this pull request."
+            exit 0
+          fi
+          for result in "$LINUX" "$PLATFORM" "$COVERAGE"; do
+            test "$result" = success
+          done

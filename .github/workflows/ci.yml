@@ -3,15 +3,6 @@ name: Root CI
 on:
   pull_request:
     branches: [main, develop, dev]
-    paths:
-      - 'crates/**'
-      - 'Cargo.toml'
-      - 'Cargo.lock'
-      - 'rust-toolchain.toml'
-      - 'justfile'
-      - 'scripts/**'
-      - '.github/workflows/**'
-      - '.github/dependabot.yml'
 
 permissions:
   contents: read
@@ -21,8 +12,26 @@ env:
   RUSTFLAGS: '-D warnings'
 
 jobs:
+  changes:
+    name: Root Change Detection
+    runs-on: ubuntu-24.04
+    outputs:
+      relevant: ${{ steps.relevance.outputs.relevant }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+      - name: Detect root workspace changes
+        id: relevance
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: python3 scripts/ci_surface_policy.py --surface root --base "$BASE_SHA" --head "$HEAD_SHA" >> "$GITHUB_OUTPUT"
+
   workspace-quality:
-    name: Root Workspace Required
+    name: Root Workspace Validation
+    needs: changes
+    if: needs.changes.outputs.relevant == 'true'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -51,6 +60,8 @@ jobs:
 
   workspace-coverage:
     name: Root Coverage 70-85
+    needs: changes
+    if: needs.changes.outputs.relevant == 'true'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -78,6 +89,8 @@ jobs:
 
   workspace-platform-tests:
     name: Root Tests (${{ matrix.os }})
+    needs: changes
+    if: needs.changes.outputs.relevant == 'true'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -96,6 +109,8 @@ jobs:
 
   security-audit:
     name: Rust Security Audit
+    needs: changes
+    if: needs.changes.outputs.relevant == 'true'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -107,3 +122,28 @@ jobs:
         run: cargo install cargo-audit --version 0.22.2 --locked
       - name: Audit lockfile
         run: cargo audit
+
+  root-required:
+    name: Root Workspace Required
+    if: ${{ always() }}
+    needs: [changes, workspace-quality, workspace-coverage, workspace-platform-tests, security-audit]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Enforce relevant root results
+        env:
+          DETECTION: ${{ needs.changes.result }}
+          RELEVANT: ${{ needs.changes.outputs.relevant }}
+          QUALITY: ${{ needs.workspace-quality.result }}
+          COVERAGE: ${{ needs.workspace-coverage.result }}
+          PLATFORM: ${{ needs.workspace-platform-tests.result }}
+          AUDIT: ${{ needs.security-audit.result }}
+        run: |
+          set -eu
+          test "$DETECTION" = success
+          if [ "$RELEVANT" != true ]; then
+            echo "Root workspace validation is not relevant to this pull request."
+            exit 0
+          fi
+          for result in "$QUALITY" "$COVERAGE" "$PLATFORM" "$AUDIT"; do
+            test "$result" = success
+          done

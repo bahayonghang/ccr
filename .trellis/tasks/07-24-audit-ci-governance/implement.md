@@ -19,6 +19,8 @@
   until thresholds are genuinely met rather than lowering targets.
 - [x] Run workflow syntax/action pin/path-filter tests and compare each hosted
   job command to its local recipe.
+- [x] Replace PR-level path filters with centralized merge-base relevance
+  routing and fail-closed stable required aggregators for all four products.
 - [ ] Query/apply branch-protection required checks only with explicit
   repository permission; capture the resulting protected-branch evidence.
 - [x] Update dependency, handler-registry, typed-binding, and test-fixture specs.
@@ -36,6 +38,11 @@ just ci
 
 Also validate workflow syntax and inspect an actual PR check matrix. Local YAML
 parsing alone cannot prove trigger or required-check behavior.
+
+Current remote checkpoint: `dev@50771c9e` push run `30242564309` passed
+`Frontend CI`; keyring credentials can read repository settings, and both
+`main` and `dev` are confirmed unprotected. A real PR matrix and configured
+protection remain required before archive.
 
 ## Rollback checks
 

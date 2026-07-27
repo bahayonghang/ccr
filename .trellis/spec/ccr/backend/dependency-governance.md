@@ -294,6 +294,7 @@ r2d2_sqlite = "0.34.0"
 
 ### 2. Signatures
 - Governance validator: `python scripts/check_workflow_governance.py`.
+- Relevance resolver: `python scripts/ci_surface_policy.py --surface <root|frontend|tauri|vscode> --base <sha> --head <sha>`; writes `relevant=true|false` to `$GITHUB_OUTPUT`.
 - Coverage validator: `python scripts/check_coverage_thresholds.py <report.json> [--overall 70] --gateway 85 --gateway-pattern <path>`.
 - Frontend audit validator: `cd ccr-ui && bun run audit:dependencies`; policy: `ccr-ui/scripts/frontend-audit-allowlist.json`.
 - Local recipes: `workflow-governance-check`, `dependency-governance-check`, `frontend-audit`, `ci-governance-check`, `coverage-rust`, `coverage-tauri`, `frontend-coverage`, `vscode-coverage`, `tauri-ci`, and `vscode-ci`.
@@ -301,7 +302,9 @@ r2d2_sqlite = "0.34.0"
 
 ### 3. Contracts
 - Third-party `uses:` references are immutable 40-character commit SHAs; version comments are review hints, not executable refs.
-- Workflow YAML must reject duplicate mapping keys, and PR/push triggers must retain the exact governed branches and product path filters, including frontend `dev` pushes and PRs.
+- Workflow YAML must reject duplicate mapping keys. Pull requests to `main`, `develop`, and `dev` always instantiate the four stable required contexts; product path filters live only in `SURFACE_PATHS`, while frontend pushes retain their native `paths` filter and include `dev`.
+- Stable branch-protection contexts are `Root Workspace Required`, `Vue and Docs Required`, `Tauri Linux Required`, and `VS Code Required`. Each is a final aggregator: irrelevant changes pass after change detection, while relevant changes pass only when every heavy validation, coverage, audit, and platform matrix dependency succeeds.
+- Change detection checks out full history and uses the pull request's merge-base diff (`base...head`). Changing `scripts/ci_surface_policy.py` makes all four surfaces relevant. Detection failure must fail the aggregator; an empty or failed relevance output must never silently skip a required validation.
 - Rust is pinned to 1.95.0, Bun to 1.3.10, Node to 24.18.0, just to 1.57.0, and cargo-llvm-cov to 0.8.7.
 - Root Rust, Vue, and VS Code line coverage must be at least 70%; root and Tauri process gateways must be at least 85%.
 - Tauri uploads its full coverage baseline while the hard security threshold remains the gateway; a broad command-wrapper percentage cannot hide a gateway regression.
@@ -314,7 +317,9 @@ r2d2_sqlite = "0.34.0"
 - Bun 1.3.10 supports only top-level overrides. Do not force one `brace-expansion` major across `minimatch` 3.x/9.x/10.x: 5.x exports `{ expand }`, while the legacy consumers require the module itself as a function.
 
 ### 4. Validation & Error Matrix
-- Mutable action tag, duplicate YAML key, missing workflow, missing branch/path filter, or missing local recipe -> governance check fails.
+- Mutable action tag, duplicate YAML key, missing workflow, missing branch/relevance policy, PR-level `paths` filter, or missing local recipe -> governance check fails.
+- Relevant product job fails/skips/cancels -> its stable required aggregator fails.
+- Irrelevant product change -> heavy jobs skip, but the stable required aggregator completes successfully so branch protection never waits for a missing context.
 - Root/Vue/VS Code line coverage below 70 -> corresponding coverage recipe fails.
 - Root/Tauri gateway below 85 or gateway path not found -> coverage validator fails closed.
 - Global `--test-threads=1` or serial annotation count above 0 -> governance check fails.
@@ -324,24 +329,33 @@ r2d2_sqlite = "0.34.0"
 
 ### 5. Good/Base/Bad Cases
 - Good: hosted workflow calls `just coverage-rust`; local and hosted execute the same threshold script.
+- Good: a docs-only PR creates all four required contexts but runs only the frontend heavy gate; a `ccr-vscode/**` PR runs VS Code validation/coverage before `VS Code Required` succeeds.
 - Base: Tauri overall coverage is reported separately while its security gateway remains above 85%.
 - Base: Bun still reports `GHSA-mh99-v99m-4gvg` against legacy version numbers, while both installed legacy versions are runtime-identical to the pinned safe implementation and the expiring exception remains active.
+- Bad: keeping a PR-level `paths` filter on a branch-protected workflow, because an unrelated PR never creates the required context and remains pending forever.
 - Bad: copying lint/test commands into workflow YAML, pinning `actions/checkout@v6`, lowering the gateway threshold, or globally overriding all `brace-expansion` consumers to 5.x.
 
 ### 6. Tests Required
-- `python scripts/check_workflow_governance.py` -> 47 immutable action references and serial-only count 0.
+- `python -m unittest scripts/test_check_workflow_governance.py` -> path matching, event parsing, and duplicate-key cases pass.
+- `python scripts/check_workflow_governance.py` -> 51 immutable action references, stable relevance routing, and serial-only count 0.
 - `just ci-governance-check` -> dependency, workflow, and handler inventory gates pass.
 - `cd ccr-ui && bun install --frozen-lockfile && bun run audit:dependencies` -> both patches apply, runtime exports equal the safe 5.0.8 implementation, and only the active structured exception remains.
 - `cd ccr-ui && bun run test:smoke -- tests/frontend-dependency-audit.smoke.test.ts` -> exception limit, expiry, package match, stale detection, and GHSA extraction pass.
 - `just coverage-rust`, `just coverage-tauri`, `just frontend-coverage`, and `just vscode-coverage` -> configured line/gateway thresholds pass.
 - `just tauri-ci`, `just vscode-ci`, and final `just ci` when unrelated workspace metadata is clean.
-- Query protected-branch required checks with current GitHub permission; do not infer remote configuration from workflow files.
+- Inspect an actual relevant PR across Linux, Windows, and macOS, then query `main` and `dev` protection for all four exact context names; do not infer remote configuration from workflow files.
 
 ### 7. Wrong vs Correct
 #### Wrong
 ```yaml
-- uses: actions/checkout@v6
-- run: cargo test --workspace -- --test-threads=1
+on:
+  pull_request:
+    paths: ['ccr-vscode/**']
+jobs:
+  test:
+    steps:
+      - uses: actions/checkout@v6
+      - run: cargo test --workspace -- --test-threads=1
 ```
 
 ```json
@@ -350,8 +364,19 @@ r2d2_sqlite = "0.34.0"
 
 #### Correct
 ```yaml
-- uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-- run: just test
+on:
+  pull_request:
+    branches: [main, develop, dev]
+# Heavy-job relevance comes from scripts/ci_surface_policy.py; the required
+# aggregator is always created.
+jobs:
+  root-required:
+    name: Root Workspace Required
+    if: ${{ always() }}
+    needs: [changes, workspace-quality]
+    runs-on: ubuntu-24.04
+    steps:
+      - run: test "${{ needs.workspace-quality.result }}" = success
 ```
 
 ```json

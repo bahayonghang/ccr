@@ -10,18 +10,37 @@ on:
       - '.github/workflows/frontend-ci.yml'
   pull_request:
     branches: [main, develop, dev]
-    paths:
-      - 'ccr-ui/**'
-      - 'docs/**'
-      - 'justfile'
-      - '.github/workflows/frontend-ci.yml'
 
 permissions:
   contents: read
 
 jobs:
+  changes:
+    name: Frontend Change Detection
+    runs-on: ubuntu-24.04
+    outputs:
+      relevant: ${{ steps.relevance.outputs.relevant }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+      - name: Detect frontend changes
+        id: relevance
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ "$EVENT_NAME" = push ]; then
+            echo "relevant=true" >> "$GITHUB_OUTPUT"
+          else
+            python3 scripts/ci_surface_policy.py --surface frontend --base "$BASE_SHA" --head "$HEAD_SHA" >> "$GITHUB_OUTPUT"
+          fi
+
   frontend-required:
-    name: Vue and Docs Required
+    name: Vue and Docs Validation
+    needs: changes
+    if: needs.changes.outputs.relevant == 'true'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -49,3 +68,23 @@ jobs:
           path: ccr-ui/coverage
           if-no-files-found: error
           retention-days: 14
+
+  frontend-required-gate:
+    name: Vue and Docs Required
+    if: ${{ always() }}
+    needs: [changes, frontend-required]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Enforce relevant frontend result
+        env:
+          DETECTION: ${{ needs.changes.result }}
+          RELEVANT: ${{ needs.changes.outputs.relevant }}
+          VALIDATION: ${{ needs.frontend-required.result }}
+        run: |
+          set -eu
+          test "$DETECTION" = success
+          if [ "$RELEVANT" != true ]; then
+            echo "Frontend validation is not relevant to this pull request."
+            exit 0
+          fi
+          test "$VALIDATION" = success

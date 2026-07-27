@@ -23,7 +23,8 @@
 - [x] 新增 `tauri-rust-ci.yml`：fmt/check/clippy/test/bindings，Linux 每 PR，Win/macOS smoke（P1-11, E1）
 - [x] 新增 VSCode PR job：`npm ci && npm run lint && npm test && npm run build:package`（P2-03, E2）
 - [x] `frontend-ci.yml` PR branches 加 `dev`，与 root/Tauri/VS Code PR branch policy 统一（P2-04, E3）
-- [ ] 将 Tauri / VS Code checks 设为 required branch protection；当前读取保护规则返回 HTTP 403，保持 `UNVERIFIED`
+- [x] 四个 PR workflow 始终生成稳定 required context；集中 relevance policy 只在命中产品路径时运行重验证，避免 branch protection 因 context 缺失永久等待
+- [ ] 将 Tauri / VS Code checks 设为 required branch protection；当前已确认 `main`/`dev` 均未保护，保持 `FAIL`
 
 ### 治理 quick wins
 - [x] hosted 加 dependency drift job + bindings drift；allowlist 设 owner/rationale/expiry，当前 1 个、目标 ≤3（P2-17, E6）
@@ -53,13 +54,14 @@
 - CI 时间增加：Linux required、Win/macOS 起步可 nightly/smoke（报告阶段 0 回滚：drift job 可暂 non-blocking 一周）
 - 本子任务 quick wins（frontend-ci 加 dev、pin 版本、修文档计数）可最先做，成本 <1d
 - 测试并行化改动大，作为独立 PR，避免与门禁新增混在一起
-- 2026-07-26 现场查询 `main` branch protection 返回 HTTP 403；用户已选择严格端到端验收，required check 的远程设置必须在取得仓库权限并验证真实保护规则后才能标记完成
+- 2026-07-27 已使用 keyring 凭据读取 `main`/`dev` branch protection：两者均返回 `404 Branch not protected`，不再是权限未知；必须配置并复查真实规则后才能标记完成
 
 ## Verification evidence (2026-07-27)
 
 | Evidence | Result |
 | --- | --- |
-| `python scripts/check_workflow_governance.py` | PASS：47 immutable action refs；serial-only 0/0 |
+| `python -m unittest scripts/test_check_workflow_governance.py` | PASS：8/8，覆盖路径 relevance、稳定汇总 job、事件/YAML 解析 |
+| `python scripts/check_workflow_governance.py` | PASS：51 immutable action refs；serial-only 0/0；四个稳定 required context |
 | `just ci-governance-check` | PASS：19 repeated dependencies；1 active exception；315/323 registry doc |
 | `just coverage-rust` | PASS：workspace lines 70.18%；gateway 93.20% |
 | `just coverage-tauri` | PASS：full baseline 39.90% reported；gateway 95.57% enforced |
@@ -68,6 +70,9 @@
 | `just tauri-ci` / `just vscode-ci` | PASS；Tauri 293 + 2 tests；bindings/inventory 同步 |
 | `just frontend-check` | PASS：103 files / 460 smoke tests；docs audit/build PASS |
 | `just frontend-audit` | PASS：初始 1 critical + 9 high 已整改；仅余 `GHSA-mh99-v99m-4gvg` 的版本数据库命中，1.1.16/2.1.2 已通过 Bun patch 委托至安全 5.0.8，结构化 exception 为 1/1 且 2026-08-31 到期 |
-| Workflow YAML parse | PASS；`actionlint` unavailable locally |
-| `main` branch protection | UNVERIFIED：GitHub API HTTP 403 (`administration:read` unavailable) |
+| Workflow YAML parse | PASS |
+| `actionlint v1.7.7` | PASS：Root/Frontend/Tauri/VS Code 四个 workflow |
+| Hosted `dev` push | PASS：`Frontend CI` run `30242564309` 在 `50771c9e` 成功 |
+| `main` / `dev` branch protection | FAIL：GitHub API 可读，但两者当前均为 `404 Branch not protected` |
+| Hosted PR matrix | UNVERIFIED：当前没有开放的 `dev -> main` PR；需真实 PR 验证 Linux/Windows/macOS 与四个稳定 context |
 | `just version-check` / final `just ci` | BLOCKED by excluded parallel 7.0.0 metadata: `ccr-ui/README.md` lacks `version-7.0.0` |

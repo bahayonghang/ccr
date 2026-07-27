@@ -7,6 +7,11 @@ import re
 import sys
 from pathlib import Path
 
+try:
+    from scripts.ci_surface_policy import SURFACE_PATHS
+except ModuleNotFoundError:
+    from ci_surface_policy import SURFACE_PATHS
+
 
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW_DIR = ROOT / ".github" / "workflows"
@@ -96,6 +101,27 @@ def workflow_event_values(text: str, event: str, key: str) -> set[str]:
     return values
 
 
+def workflow_job_block(text: str, job_id: str) -> str:
+    lines = text.splitlines()
+    start = next(
+        (index for index, line in enumerate(lines) if line == f"  {job_id}:"),
+        None,
+    )
+    if start is None:
+        return ""
+    end = next(
+        (
+            index
+            for index in range(start + 1, len(lines))
+            if lines[index].startswith("  ")
+            and not lines[index].startswith("    ")
+            and lines[index].strip()
+        ),
+        len(lines),
+    )
+    return "\n".join(lines[start:end])
+
+
 def main() -> int:
     failures: list[str] = []
     workflow_paths = sorted(
@@ -124,21 +150,43 @@ def main() -> int:
             if not SHA_RE.fullmatch(ref):
                 failures.append(f"{name}: mutable action ref {action}@{ref}")
 
-    required_paths = {
-        "ci.yml": {"crates/**", "Cargo.toml", "Cargo.lock", "rust-toolchain.toml", "justfile", "scripts/**", ".github/workflows/**", ".github/dependabot.yml"},
-        "frontend-ci.yml": {"ccr-ui/**", "docs/**", "justfile", ".github/workflows/frontend-ci.yml"},
-        "tauri-rust-ci.yml": {"ccr-ui/src-tauri/**", "ccr-ui/src/types/generated/**", "ccr-ui/justfile", "crates/**", "Cargo.toml", "Cargo.lock", "rust-toolchain.toml", "justfile", "scripts/**", "docs/reference/tauri-command-inventory.md", ".trellis/spec/ccr/backend/**", ".github/workflows/tauri-rust-ci.yml"},
-        "vscode-ci.yml": {"ccr-vscode/**", "justfile", ".github/workflows/vscode-ci.yml"},
+    governed_surfaces = {
+        "ci.yml": "root",
+        "frontend-ci.yml": "frontend",
+        "tauri-rust-ci.yml": "tauri",
+        "vscode-ci.yml": "vscode",
     }
-    for name, expected_paths in required_paths.items():
+    required_gates = {
+        "ci.yml": ("root-required", "Root Workspace Required"),
+        "frontend-ci.yml": ("frontend-required-gate", "Vue and Docs Required"),
+        "tauri-rust-ci.yml": ("tauri-required", "Tauri Linux Required"),
+        "vscode-ci.yml": ("vscode-required-gate", "VS Code Required"),
+    }
+    for name, surface in governed_surfaces.items():
         text = workflows.get(name, "")
         branches = workflow_event_values(text, "pull_request", "branches")
         if branches != REQUIRED_BRANCHES:
             failures.append(f"{name}: pull_request branches must cover main/develop/dev")
         paths = workflow_event_values(text, "pull_request", "paths")
-        missing_paths = sorted(expected_paths - paths)
-        if missing_paths:
-            failures.append(f"{name}: pull_request paths missing {', '.join(missing_paths)}")
+        if paths:
+            failures.append(
+                f"{name}: pull_request paths must be delegated to the required-check relevance job"
+            )
+        if not SURFACE_PATHS.get(surface):
+            failures.append(f"{name}: missing path policy for CI surface {surface}")
+        if f"--surface {surface}" not in text:
+            failures.append(f"{name}: missing relevance detection for CI surface {surface}")
+        gate_id, context_name = required_gates[name]
+        gate = workflow_job_block(text, gate_id)
+        if not gate:
+            failures.append(f"{name}: missing stable required gate {gate_id}")
+        else:
+            if f"name: {context_name}" not in gate:
+                failures.append(f"{name}: required context must be named {context_name}")
+            if "if: ${{ always() }}" not in gate:
+                failures.append(f"{name}: required context must run with always()")
+            if "needs:" not in gate or "changes" not in gate:
+                failures.append(f"{name}: required context must depend on change detection")
 
     frontend_push_branches = workflow_event_values(
         workflows.get("frontend-ci.yml", ""), "push", "branches"
