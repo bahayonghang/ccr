@@ -307,3 +307,39 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 58: Release signing 仓库侧验收 checkpoint
+
+**Date**: 2026-07-27
+**Task**: Release signing 仓库侧验收 checkpoint
+**Branch**: `dev`
+
+### Summary
+
+完成发布签名与 provenance 的仓库侧实现和全量本地验收；严格外部签名验收仍因权限、证书与真实发布产物缺失而保持未完成。
+
+### Main Changes
+
+- 建立 Apple、Windows、VSIX 签名与 OIDC provenance 的 fail-closed 发布 DAG
+- 补充远程 environment、branch protection、secrets 与历史 release 的现场证据
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `d2cabc6a` | (see git log) |
+| `07f8b12f` | (see git log) |
+
+### Testing
+
+- [OK] actionlint 1.7.12、just release-security-check、just ci-governance-check、just vscode-ci、just ui-check、docs build/audit 通过
+- [OK] 最终 just ci 12 步全绿；just version-check 仅被并行 ccr-ui/README.md 版本文档漂移阻断
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 取得可读写 Actions/environment 权限与 Apple、Windows、Marketplace 身份后执行真实 tag release，并验证所有签名与 attestation
