@@ -203,3 +203,77 @@ The service atomically consumes the private canonical plan and passes only its c
 4. Type the domain's wrappers in `src/api/domains/<domain>.ts`; turn the domain's hand-written mirror types into a shim; drop caller generics.
 5. Add service unit tests (reuse `ccr_usage::fixtures` where the domain reads llmusage projections).
 6. Registry counts unchanged unless commands were added/removed intentionally.
+
+## Scenario: typed capability metadata at the invoke boundary
+
+### 1. Scope / Trigger
+
+- Trigger: changing command risk, timeout ownership, concurrency, confirmation, or generated manifest/client fields.
+- Applies across the Rust registry, `command-manifest.json`, `commandCapabilities.ts`, generated clients, and the frontend runtime facade.
+
+### 2. Signatures
+
+```rust
+pub(crate) enum CommandTimeoutEnforcement {
+    Cooperative,
+    CompletionAware,
+    BusinessOwned,
+}
+```
+
+```typescript
+type CommandCapability = {
+  timeout_ms: number
+  timeout_enforcement: 'cooperative' | 'completion_aware' | 'business_owned'
+  concurrency: 'parallel' | 'module_exclusive' | 'singleton'
+  confirmation: 'none' | 'user_gesture' | 'opaque_capability'
+}
+```
+
+### 3. Contracts
+
+- `timeout_enforcement` is required for every generated descriptor and is serialized from the Rust enum; TypeScript must not infer it from risk.
+- Risk defaults may select policy, but command-specific exceptions remain explicit backend rules and are covered by registry tests.
+- `user_gesture` is transport confirmation, not authorization. The frontend derives its token from the generated manifest and the backend independently verifies the exact command binding.
+- `opaque_capability` is backend-issued proof: install uses `planId`, SSH fingerprint confirmation uses `request.challenge_id`. The frontend must not synthesize these values from capability metadata.
+- Manifest audit fields remain metadata-only or redacted; payload bodies, environment values, secrets, and raw DTO debug output are never logged by generic runtime policy.
+
+### 4. Validation & Error Matrix
+
+- Missing `timeout_enforcement` in generated manifest -> inventory/schema test fails.
+- Unknown command at runtime -> reject before dispatch.
+- `user_gesture` token for another command -> confirmation validation fails.
+- Empty install `planId` or SSH `challenge_id` -> opaque capability validation fails.
+- Binary payload for a gesture-confirmed command -> frontend throws `Command <id> requires a JSON confirmation payload` before invoke.
+- `Cooperative` assigned to a command without cancellation proof -> policy review/test failure; use `CompletionAware` or `BusinessOwned`.
+
+### 5. Good / Base / Bad Cases
+
+- Good: regenerate both JSON and TypeScript capability artifacts from one descriptor after changing a command policy.
+- Good: keep a process command typed while its business layer owns cancellation.
+- Base: a read-only typed command has no confirmation and uses completion-aware admission.
+- Bad: add a second handwritten timeout-policy map in TypeScript.
+- Bad: treat `desktop-confirm:<command>` as a secret or durable authorization token.
+
+### 6. Tests Required
+
+- Registry tests assert complete timeout ownership and freeze the cooperative allowlist.
+- Runtime tests assert queue/permit behavior against real futures.
+- `just tauri-command-inventory` followed by `just tauri-command-inventory-check` proves deterministic cross-layer generation.
+- `just tauri-bindings` and `just tauri-bindings-check` prove DTO/client drift remains closed.
+- Frontend smoke tests assert gesture injection, opaque capability passthrough, and binary-payload rejection.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```typescript
+const timeoutMode = risk === 'process_execution' ? 'hard_timeout' : 'none'
+```
+
+#### Correct
+
+```typescript
+const capability = COMMAND_MANIFEST.commands.find(item => item.id === command)
+// Consume the backend-generated policy; do not reinterpret risk locally.
+```

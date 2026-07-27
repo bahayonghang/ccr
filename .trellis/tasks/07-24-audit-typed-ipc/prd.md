@@ -50,13 +50,18 @@
 | Evidence | Result |
 | --- | --- |
 | Generated command inventory | PASS：metadata 315/315；typed 252/315（80.00%）；精确单一声明 252/252；Windows 总数 323 |
-| `cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml handler_registry -- --test-threads=1` | PASS：15/15 |
-| `just tauri-bindings` / `just tauri-command-inventory` | PASS：141 desktop export tests；生成结果确定性一致 |
-| Typed/API facade focused smoke | PASS：8 files / 31 tests；另有 typed JSON boundary 5 tests |
-| `just frontend-check` | PASS：101 files / 453 smoke tests；docs audit/build PASS |
-| `just lint-strict` / `just test` | PASS |
+| `cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml handler_registry -- --test-threads=1` | PASS：20/20 |
+| `cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml runtime_policy -- --test-threads=1` | PASS：3/3；cooperative deadline、真实 future permit 生命周期、三类 timeout ownership |
+| `just tauri-bindings` / `just tauri-bindings-check` | PASS：21 CLI + 6 usage + 141 desktop export tests；隔离并恢复 6 个用户已有 generated whitespace hunk 后 drift 为零 |
+| `just tauri-command-inventory` / `just tauri-command-inventory-check` | PASS：manifest/docs/client 生成结果确定性一致 |
+| Typed/API facade focused smoke | PASS：6 files / 15 tests；全量前端 smoke 另行覆盖 |
+| `just frontend-check` | PASS：104 files / 464 smoke tests；type-check、lint、build、docs audit/build PASS |
+| Tauri / workspace lint | PASS：Tauri `cargo clippy -- -D warnings`；`just lint-strict` |
+| `just test` | PASS：workspace all-features tests + doctests |
+| Source boundary | PASS：323 managed command attributes、0 direct `#[tauri::command]`、仅 `invokeRuntime.ts` 直接导入 core invoke |
+| Scoped `git diff --check` | PASS；全局仅被明确排除的 6 个用户已有 generated TS 尾随空格阻断，原 SHA 已复核保持不变 |
 | Single declaration owns exact input/output type names | PASS：manifest schema v2；252/252 typed command 的 handler、精确类型与 client declaration 同处 registry 行；三个历史 pilot 豁免已删除 |
 | Generated client ownership | PASS：`stats.ts` / `install.ts` / `claudeObserver.ts` 不再 direct invoke；API facade smoke 无 typed exception |
-| Runtime capability enforcement | PARTIAL：Tauri AppManifest 从 registry manifest v2 生成 323 条 app permissions；主窗口全量、Codex tray 仅 6 条，authorization 在 handler 前由 ACL 执行；metadata-only/redacted audit 不读取 payload；timeout/concurrency/confirmation 尚未由统一 completion-aware 后端执行边界完成 |
+| Runtime capability enforcement | PASS：Tauri AppManifest 从 registry manifest v2 生成 323 条 app permissions；主窗口全量、Codex tray 仅 6 条；confirmation 在 dispatch 前校验；属性宏把真实 async future 纳入 runtime policy；module/singleton permit 持有至完成；queue deadline、cooperative hard deadline、completion-aware 与 business-owned timeout ownership 均有回归测试 |
 
-本状态仅为已验证 checkpoint，不得归档本子任务。`OpenJsonValueDto` 只解决 JSON 可序列化边界；稳定响应仍需具名 DTO，不能用递归 JSON 联合冒充最终 typed 契约。
+`OpenJsonValueDto` 只解决 JSON 可序列化边界；稳定响应仍需具名 DTO，不能用递归 JSON 联合冒充最终 typed 契约。`desktop-confirm:<command>` 是 UI 确认后的 action-scoped transport proof，不是秘密或授权令牌；授权由 Tauri ACL 执行，install/SSH 的高价值确认使用后端签发并消费的 opaque capability。

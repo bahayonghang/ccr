@@ -16,7 +16,7 @@
   zero-count guard per typed domain.
 - [x] Migrate remaining read-only commands until measured typed coverage is at
   least 80 percent; record every remaining command and owner in inventory.
-- [ ] Wire metadata into runtime timeout/confirmation enforcement rather than
+- [x] Wire metadata into runtime timeout/confirmation enforcement rather than
   leaving those descriptor fields passive. Authorization is enforced by
   registry-generated Tauri AppManifest ACLs, and metadata/redaction-class audit
   logging runs before dispatch without reading payloads.
@@ -27,8 +27,10 @@
 
 ```powershell
 cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml handler_registry -- --test-threads=1
+cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml runtime_policy -- --test-threads=1
 just tauri-bindings
 just tauri-bindings-check
+just tauri-command-inventory-check
 just frontend-check
 just lint-strict
 just test

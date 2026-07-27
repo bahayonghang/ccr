@@ -29,6 +29,22 @@ Audit policies define permitted field names and redaction classes. Raw DTOs,
 secrets, environments, and payload bodies cannot be emitted by a generic
 debug formatter.
 
+## Runtime completion ownership
+
+All registry commands use a local attribute macro that wraps the real async
+command body in the registry runtime policy. Module and singleton permits are
+therefore held until the real future completes. Queue admission is bounded by
+the descriptor deadline; a hard execution deadline is used only for explicitly
+cooperative work. Commands that can detach blocking work use completion-aware
+waiting, while process/install commands delegate cancellation and cleanup to
+their business-owned gateway or attempt lifecycle.
+
+The handler validates confirmation before dispatch. User-gesture confirmation
+uses the repository's action-scoped transport proof; install execution and SSH
+fingerprint acceptance use backend-issued opaque handles. A responder timeout
+race is explicitly rejected because it cannot observe or cancel the handler
+future and would release policy state before side effects finish.
+
 ## Typed DTO and client boundary
 
 Input and output DTOs derive serde and ts-rs under domain-specific generated

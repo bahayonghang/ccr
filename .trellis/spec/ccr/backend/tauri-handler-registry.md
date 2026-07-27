@@ -139,3 +139,88 @@ define_command_registry! {
 ```
 
 Keep command registration domain-shaped and testable, while `commands::mod` remains a small module index.
+
+---
+
+## Scenario: completion-aware command runtime policy
+
+### 1. Scope / Trigger
+
+- Trigger: adding or changing a registry command's timeout, concurrency, confirmation, or cancellation behavior.
+- Applies to all 323 desktop commands under `src/commands/**`, the local `command-macros` proc-macro crate, and `runtime_policy.rs`.
+
+### 2. Signatures
+
+```rust
+#[ccr_tauri_command_macros::command]
+pub async fn command_name(...) -> Result<T, String> { ... }
+
+pub(crate) async fn execute<T, F>(
+    command: &'static str,
+    future: F,
+) -> Result<T, String>
+where
+    F: Future<Output = Result<T, String>>;
+```
+
+The attribute macro accepts only `async fn` returning `Result<T, String>`, emits `#[tauri::command]`, and wraps the real command body in `runtime_policy::execute`.
+
+### 3. Contracts
+
+- Every registered command uses `#[ccr_tauri_command_macros::command]`; direct `#[tauri::command]` attributes under `src/commands/**` are forbidden.
+- `Parallel` acquires no permit. `ModuleExclusive` uses one permit per registry module. `Singleton` uses one global permit.
+- Queue admission is bounded by the descriptor's `timeout_ms`. Once admitted, the permit is held until the real command future completes or a cooperative deadline drops that future.
+- `Cooperative` is a hard deadline only for work known to be cancellation-safe at await points; currently only `test_webdav_config` qualifies.
+- `CompletionAware` bounds queue admission but awaits admitted work to completion. It must be used when dropping the future could detach `spawn_blocking`, filesystem mutation, or other side effects.
+- `BusinessOwned` delegates timeout, cancellation, and cleanup to the owning business boundary, such as `ProcessGateway` or an install attempt.
+- Confirmation is checked in `generate_handler` before dispatch. `user_gesture` requires `desktop-confirm:<command>`; opaque capability commands require non-empty backend-issued `planId` or `request.challenge_id`.
+- A cloned `InvokeResolver` race is not an execution boundary: it cannot observe or cancel the real handler future and must not release a permit early.
+
+### 4. Validation & Error Matrix
+
+- Descriptor missing -> `command_runtime_policy_missing:<command>`.
+- Per-module gate missing -> `command_runtime_module_missing:<module>`.
+- Queue wait exceeds `timeout_ms` -> `command_queue_timeout:<command>`.
+- Cooperative execution exceeds the deadline -> `command_timeout:<command>`.
+- Gate closed -> `command_runtime_gate_closed:<command>`.
+- Missing or invalid confirmation, or missing descriptor before dispatch -> reject with `command rejected by the capability manifest`; do not run the command body.
+- Non-async command or non-`Result<T, String>` return -> proc-macro compile error.
+
+### 5. Good / Base / Bad Cases
+
+- Good: a module-exclusive config write keeps its permit while its `spawn_blocking` join handle is awaited.
+- Good: a process command uses `BusinessOwned` and lets `ProcessGateway` own termination and cleanup.
+- Base: a read-only command runs in parallel with a completion-aware admission deadline.
+- Bad: wrap a responder in `tokio::time::timeout` and report timeout while the mutation continues.
+- Bad: classify a non-cooperative file write as `Cooperative` without proving cancellation safety.
+
+### 6. Tests Required
+
+- Assert exactly 323 managed command attributes and zero direct `#[tauri::command]` attributes under `src/commands/**`.
+- `cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml runtime_policy -- --test-threads=1`: prove cooperative timeout and permit lifetime.
+- `cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml handler_registry -- --test-threads=1`: prove timeout ownership and confirmation payload validation.
+- `cargo clippy --manifest-path ccr-ui/src-tauri/Cargo.toml --bin ccr-desktop -- -D warnings`.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```rust
+tokio::select! {
+    _ = sleep(deadline) => resolver.reject("timeout"),
+    _ = handler_started => {}
+}
+```
+
+#### Correct
+
+```rust
+#[ccr_tauri_command_macros::command]
+pub async fn update_config(...) -> Result<ConfigDto, String> {
+    tokio::task::spawn_blocking(move || service.update(...))
+        .await
+        .map_err(|error| format!("Task join error: {error}"))?
+}
+```
+
+The macro keeps the runtime permit around the actual future, including the join handle.

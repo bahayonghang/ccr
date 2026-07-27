@@ -63,6 +63,75 @@ export * as newFeatureApi from './domains/newFeature'
 
 ---
 
+## Scenario: generated invoke runtime facade
+
+### 1. Scope / Trigger
+
+- Trigger: adding or changing a Tauri invoke call, command confirmation policy, or generated command client.
+- Applies to all `ccr-ui/src/api/**` imports of `@tauri-apps/api/core`.
+
+### 2. Signatures
+
+```typescript
+export const invoke = <T>(
+  command: string,
+  args?: InvokeArgs,
+  options?: InvokeOptions,
+): Promise<T>
+```
+
+Only `src/api/invokeRuntime.ts` may import core `invoke`; domain wrappers and generated clients import this facade.
+
+### 3. Contracts
+
+- The facade looks up the command in generated `COMMAND_MANIFEST` metadata.
+- For `confirmation: 'user_gesture'`, it merges `confirmationToken: desktop-confirm:<command>` into JSON arguments immediately before invoking Tauri.
+- Existing arguments remain intact; the runtime token wins if a caller supplies a conflicting `confirmationToken`.
+- `none` and `opaque_capability` commands pass arguments unchanged. Opaque proof remains owned by the backend-issued plan/challenge workflow.
+- `ArrayBuffer`, `Uint8Array`, and array payloads cannot be augmented and are rejected locally for gesture-confirmed commands.
+- This facade does not implement timeout or cancellation. Those semantics belong to the completion-aware Rust runtime/business boundary.
+
+### 4. Validation & Error Matrix
+
+- Direct core `invoke` import outside `invokeRuntime.ts` -> API boundary smoke test fails.
+- Gesture-confirmed command with JSON args -> exact command token is injected.
+- Gesture-confirmed command without args -> invoke receives an object containing only the token.
+- Gesture-confirmed command with raw/binary args -> synchronous `TypeError` before Tauri invoke.
+- Opaque capability command -> no synthesized gesture token; the submitted `planId` or challenge is preserved.
+
+### 5. Good/Base/Bad Cases
+
+- Good: a generated sync client calls the runtime facade and receives token injection from manifest policy.
+- Good: install execute forwards a backend-issued `planId` unchanged.
+- Base: a read-only generated client invokes with no additional payload.
+- Bad: import `@tauri-apps/api/core` directly in each generated client.
+- Bad: add Promise timeout races in the frontend and claim backend cancellation.
+
+### 6. Tests Required
+
+- `cd ccr-ui && bun run test:smoke -- tests/command-runtime-policy.smoke.test.ts tests/api-facade-boundary.smoke.test.ts`.
+- `cd ccr-ui && bun run type-check`.
+- Search `src/api/**` and assert `invokeRuntime.ts` is the only core invoke import.
+- For broad generated-client changes, run `just frontend-check`.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```typescript
+import { invoke } from '@tauri-apps/api/core'
+await invoke('sync_push', { force: true })
+```
+
+#### Correct
+
+```typescript
+import { invoke } from '@/api/invokeRuntime'
+await invoke('sync_push', { force: true })
+```
+
+---
+
 ## Scenario: OpenCode settings map editors
 
 ### 1. Scope / Trigger
