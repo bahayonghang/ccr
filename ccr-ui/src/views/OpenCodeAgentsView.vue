@@ -350,7 +350,7 @@ const form = reactive({
 async function loadAgents() {
   loading.value = true
   try {
-    agents.value = await listOpenCodeAgents<OpenCodeAgent[]>()
+    agents.value = await listOpenCodeAgents()
   } catch (error) {
     uiStore.showError(getErrorMessage(error))
   } finally {

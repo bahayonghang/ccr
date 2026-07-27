@@ -1,0 +1,4 @@
+{"file":".trellis/spec/ccr/backend/tauri-handler-registry.md","reason":"315/323 metadata completeness and uniqueness"}
+{"file":".trellis/spec/ccr/backend/typed-ipc-bindings.md","reason":"Generated binding and integer wire audit"}
+{"file":".trellis/spec/ccr-ui/frontend/api-facade-boundary.md","reason":"No handwritten invoke or mirror regression"}
+{"file":".trellis/spec/ccr/backend/test-fixtures.md","reason":"High-risk command contract fixtures"}

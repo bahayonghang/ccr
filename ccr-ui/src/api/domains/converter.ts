@@ -5,10 +5,4 @@
  * 真迁移自 tauri.ts 第 14 分组。
  */
 
-import { invoke } from '@tauri-apps/api/core'
-import type { UnknownRecord } from '../_shared'
-
-/** 转换配置格式 */
-export const convertConfig = async <T = UnknownRecord>(request: unknown): Promise<T> => {
-  return invoke('convert_config', { request })
-}
+export { convertConfig } from '../generated/converter'

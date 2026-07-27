@@ -331,19 +331,7 @@ const maskSecrets = (value: string): string => {
     .replace(/(sk-[A-Za-z0-9_-]{8,})/g, 'sk-••••••')
 }
 
-const normalizeAsset = (asset: SyncAssetInfo): SyncAssetInfo => {
-  const raw = asset as SyncAssetInfo
-  return {
-    ...raw,
-    localPath: raw.localPath ?? raw.local_path ?? '',
-    resolvedLocalPath: raw.resolvedLocalPath ?? raw.resolved_local_path ?? raw.localPath ?? raw.local_path ?? '',
-    remotePath: raw.remotePath ?? raw.remote_path ?? '',
-    localExists: raw.localExists ?? raw.local_exists ?? false,
-    remoteExists: raw.remoteExists ?? raw.remote_exists ?? null,
-    canonicalName: raw.canonicalName ?? raw.canonical_name ?? null,
-    encryptionState: raw.encryptionState ?? raw.encryption_state ?? (raw.sensitive ? 'v2_required' : 'not_applicable'),
-  }
-}
+const normalizeAsset = (asset: SyncAssetInfo): SyncAssetInfo => asset
 
 const isAncestorNotFound = (message: string): boolean => {
   return /AncestorNotFound|ancestor\s+not\s+found|ancestor.*not.*found/i.test(message)
@@ -374,15 +362,13 @@ const buildOperationOutput = (
   fallback: string,
   targetAsset?: SyncAssetInfo,
 ): SyncOperationOutput => {
-  const resultFailures = result.failed || []
+  const resultFailures = result.failed
   const fallbackFailure = result.success === false && resultFailures.length === 0
     ? [{ folder: targetAsset?.id ?? t('sync.output.unknownAsset'), message: result.message || fallback }]
     : null
   const outputFailures = fallbackFailure ?? resultFailures
-  const total = result.total ?? (typeof result.successCount === 'number' || typeof result.success_count === 'number'
-    ? (result.successCount ?? result.success_count ?? 0) + outputFailures.length
-    : undefined)
-  const successCount = result.successCount ?? result.success_count ?? (result.success ? total : undefined)
+  const total = result.total
+  const successCount = result.successCount
   const failedCount = outputFailures.length
   const status: SyncOperationOutput['status'] = failedCount > 0
     ? ((successCount ?? 0) > 0 ? 'partial' : 'failed')
@@ -410,8 +396,7 @@ const buildOperationOutput = (
     }
   })
   const suggestions = [...new Set(failures.map(item => item.advice).filter((item): item is string => Boolean(item)))]
-  const output = result?.data?.output || result?.output
-  const rawLog = maskSecrets(output || JSON.stringify({
+  const rawLog = maskSecrets(JSON.stringify({
     title,
     summary,
     total,
@@ -421,7 +406,7 @@ const buildOperationOutput = (
       folder: failure.folder,
       message: failure.message,
     })),
-    durationMs: result.durationMs ?? result.duration_ms,
+    durationMs: result.durationMs,
   }, null, 2))
 
   return {
@@ -431,7 +416,7 @@ const buildOperationOutput = (
     total,
     successCount,
     failedCount,
-    durationMs: result.durationMs ?? result.duration_ms,
+    durationMs: result.durationMs,
     failures,
     suggestions,
     rawLog,
@@ -522,14 +507,14 @@ const assetGroups = computed<SyncAssetGroup[]>(() => {
 
 const fetchSyncStatus = async () => {
   try {
-    syncStatus.value = await getSyncStatus<SyncStatusView>()
+    syncStatus.value = await getSyncStatus()
   } catch (err: unknown) {
     logger.error('Failed to fetch sync status:', err)
   }
 }
 
 const fetchAssets = async () => {
-  const response = await listSyncAssets<SyncAssetInfo[]>()
+  const response = await listSyncAssets()
   assets.value = response.map(normalizeAsset)
 }
 
@@ -595,10 +580,10 @@ const runAsset = async (
   forceRetryAll.value = false
   try {
     const result = operation === 'push'
-      ? await pushSyncAsset<SyncOperationResult>(asset.id, options)
+      ? await pushSyncAsset(asset.id, options)
       : operation === 'pull'
-        ? await pullSyncAsset<SyncOperationResult>(asset.id, options)
-        : await syncSingleAsset<SyncOperationResult>(asset.id, options)
+        ? await pullSyncAsset(asset.id, options)
+        : await syncSingleAsset(asset.id, options)
 
     operationOutput.value = buildOperationOutput(result, t('sync.messages.operationComplete'), asset)
     if (result?.success === false) {
@@ -621,7 +606,7 @@ const runAllAssets = async (options: SyncAssetOperationOptions) => {
   forceRetry.value = null
   forceRetryAll.value = false
   try {
-    const result = await syncAllAssets<SyncOperationResult>(options)
+    const result = await syncAllAssets(options)
     operationOutput.value = buildOperationOutput(result, t('sync.messages.batchSyncComplete'))
     if (result?.success === false) {
       maybeOfferForceAll(`${result.message || ''}\n${(result.failed || []).map(failure => failure.message).join('\n')}`)

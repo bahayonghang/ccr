@@ -1065,9 +1065,11 @@ const handleImportPayload = async () => {
       content: importForm.content,
       switchAfterImport: importForm.switchAfterImport && props.canManageAuthAccounts,
       preferredAccountName:
-        importPayloadNamingState.value === 'single' ? effectivePreferredAccountName.value : null,
+        importPayloadNamingState.value === 'single'
+          ? effectivePreferredAccountName.value ?? undefined
+          : undefined,
     }
-    const result = await codexImportAuthPayload<CodexAuthMutationResponse>(payload)
+    const result = await codexImportAuthPayload(payload)
     await applyMutationSuccess(
       result,
       tf('codex.auth.import.success', 'Imported account payload successfully.')
@@ -1091,7 +1093,7 @@ const handleImportFromLocal = async () => {
   }
   try {
     localImportBusy.value = true
-    const result = await codexImportAuthFromLocal<CodexAuthMutationResponse>(
+    const result = await codexImportAuthFromLocal(
       effectivePreferredAccountName.value
     )
     await applyMutationSuccess(
@@ -1126,13 +1128,13 @@ const handleAddApiKeyAccount = async () => {
     apiKeyBusy.value = true
     const payload: CodexAddApiKeyAuthPayload = {
       apiKey: apiKeyForm.apiKey.trim(),
-      apiBaseUrl: apiKeyForm.apiBaseUrl.trim() || null,
-      providerName: apiKeyForm.providerName.trim() || null,
+      apiBaseUrl: apiKeyForm.apiBaseUrl.trim() || undefined,
+      providerName: apiKeyForm.providerName.trim() || undefined,
       saveProvider: apiKeyForm.saveProvider,
       switchAfterAdd: apiKeyForm.switchAfterAdd && props.canManageAuthAccounts,
-      preferredAccountName: effectivePreferredAccountName.value,
+      preferredAccountName: effectivePreferredAccountName.value ?? undefined,
     }
-    const result = await codexAddAuthWithApiKey<CodexAuthMutationResponse>(payload)
+    const result = await codexAddAuthWithApiKey(payload)
     await applyMutationSuccess(
       result,
       tf('codex.auth.api.success', 'API key account added successfully.')

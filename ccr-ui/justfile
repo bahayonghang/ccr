@@ -1543,6 +1543,7 @@ _bindings-linux:
     cargo test --manifest-path ../Cargo.toml -p ccr-cli --features ts export_bindings
     cargo test --manifest-path ../Cargo.toml -p ccr-usage --features ts export_bindings
     cargo test --manifest-path src-tauri/Cargo.toml export_bindings
+    bun ./scripts/normalize-generated-bindings.mjs
     echo "✅ 绑定已生成: src/types/generated/"
 
 _bindings-macos:
@@ -1553,6 +1554,7 @@ _bindings-macos:
     cargo test --manifest-path ../Cargo.toml -p ccr-cli --features ts export_bindings
     cargo test --manifest-path ../Cargo.toml -p ccr-usage --features ts export_bindings
     cargo test --manifest-path src-tauri/Cargo.toml export_bindings
+    bun ./scripts/normalize-generated-bindings.mjs
     echo "✅ 绑定已生成: src/types/generated/"
 
 _bindings-windows:
@@ -1561,6 +1563,7 @@ _bindings-windows:
     @cargo test --manifest-path ../Cargo.toml -p ccr-cli --features ts export_bindings
     @cargo test --manifest-path ../Cargo.toml -p ccr-usage --features ts export_bindings
     @cargo test --manifest-path src-tauri/Cargo.toml export_bindings
+    @bun ./scripts/normalize-generated-bindings.mjs
     @Write-Output '✅ 绑定已生成: src/types/generated/'
 
 # 🧪 TypeScript 绑定漂移守卫：重新生成后 git 必须无差异（含未跟踪新文件）

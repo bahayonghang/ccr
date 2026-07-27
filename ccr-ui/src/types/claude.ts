@@ -1,5 +1,7 @@
 // Claude Code feature type definitions: hooks, output styles, statusline
 
+import type { ClaudeProfileAuthMode as GeneratedClaudeProfileAuthMode } from './generated/claude_auth/ClaudeProfileAuthMode'
+
 export type HookType = string
 export type HookHandlerType = 'command' | 'http' | 'prompt' | 'agent' | string
 
@@ -121,84 +123,17 @@ export interface ClaudeProfilesResponse {
   current_profile: string | null
 }
 
-export type ClaudeProfileAuthMode = 'subscription' | 'api_key'
+export type ClaudeProfileAuthMode = GeneratedClaudeProfileAuthMode
+export type { ClaudeLoginState } from './generated/claude_auth/ClaudeLoginState'
+export type { ClaudeRuntimeMode } from './generated/claude_auth/ClaudeRuntimeMode'
+export type { ClaudeRuntimeSummary } from './generated/claude_auth/ClaudeRuntimeSummary'
+export type { ClaudeAuthAccountItem } from './generated/claude_auth/ClaudeAuthAccountItem'
+export type { ClaudeAuthCurrentInfo } from './generated/claude_auth/ClaudeAuthCurrentInfo'
+export type { ClaudeAuthListResponse } from './generated/claude_auth/ClaudeAuthListResponse'
+export type { ClaudeAuthCurrentResponse } from './generated/claude_auth/ClaudeAuthCurrentResponse'
+export type { ClaudeAuthSaveRequest } from '@/api/generated/claudeAuth'
 
-export type ClaudeLoginState =
-  | { type: 'NotLoggedIn' }
-  | { type: 'LoggedInUnsaved' }
-  | { type: 'LoggedInSaved'; account_name: string }
-  | { type: 'ApiKeyActive' }
-
-export type ClaudeRuntimeMode =
-  | 'profile_only'
-  | 'profile_with_auth'
-  | 'profile_pending_auth'
-  | 'runtime_only'
-  | 'unresolved'
-
-export interface ClaudeRuntimeSummary {
-  mode: ClaudeRuntimeMode
-  current_profile_name?: string | null
-  current_profile_provider?: string | null
-  current_profile_auth_mode?: ClaudeProfileAuthMode | null
-  current_profile_auth_source?: string | null
-  current_login_name?: string | null
-  official_login_state: ClaudeLoginState
-  current_auth_name?: string | null
-  login_state: ClaudeLoginState
-}
-
-export interface ClaudeAuthAccountItem {
-  name: string
-  description?: string | null
-  email?: string | null
-  billing_type?: string | null
-  subscription_type?: string | null
-  rate_limit_tier?: string | null
-  is_current: boolean
-  is_logged_in?: boolean
-  saved_at: string
-  last_used?: string | null
-  expires_at?: string | null
-}
-
-export interface ClaudeAuthCurrentInfo {
-  account_uuid?: string | null
-  email?: string | null
-  billing_type?: string | null
-  subscription_type?: string | null
-  rate_limit_tier?: string | null
-  expires_at?: string | null
-}
-
-export interface ClaudeAuthListResponse {
-  accounts: ClaudeAuthAccountItem[]
-  login_state: ClaudeLoginState
-  runtime_summary: ClaudeRuntimeSummary
-  current_profile_auth_mode?: ClaudeProfileAuthMode | null
-}
-
-export interface ClaudeAuthCurrentResponse {
-  logged_in: boolean
-  info?: ClaudeAuthCurrentInfo | null
-  runtime_summary: ClaudeRuntimeSummary
-  login_state: ClaudeLoginState
-}
-
-export interface ClaudeAuthSaveRequest {
-  name: string
-  description?: string | null
-  force?: boolean
-}
-
-export interface BuiltinPrompt {
-  id: string
-  name: string
-  description: string
-  category: string
-  tags: string[]
-  content: string
-}
+export type BuiltinPrompt = import('./generated/builtin_prompts/BuiltinPromptDto').BuiltinPromptDto
 
 export interface ClaudeSettingsData {
   model?: string

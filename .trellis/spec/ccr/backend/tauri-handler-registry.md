@@ -22,6 +22,9 @@
       pub(crate) key: &'static str,
       pub(crate) title: &'static str,
       pub(crate) commands: &'static [&'static str],
+      pub(crate) default_risk: CommandRisk,
+      pub(crate) schema: CommandSchema,
+      pub(crate) platform: CommandPlatform,
   }
   ```
 - Required focused test:
@@ -36,7 +39,10 @@
 - Windows-only WSL commands live in `WINDOWS_COMMAND_MODULES` and the Windows `generate_handler()` arm.
 - Each command path must appear once; duplicate command paths fail `command_registry_paths_are_unique`.
 - Registry metadata must remain non-empty and domain-keyed; empty module keys, titles, or command lists are invalid.
-- Count assertions intentionally freeze the current handler surface: 315 base commands and 323 commands on Windows across 30 base modules.
+- Count assertions intentionally freeze the current handler surface: 315 base commands and 323 commands on Windows across 36 base modules.
+- Capability descriptors cover every command ID and include risk, input/output schema, timeout, concurrency, confirmation, authorization, and audit policy.
+- Risk inference recognizes action verbs both at the start of an ID and after domain prefixes. For example, `claude_get_settings` is read-only and `codex_delete_session` is destructive; the module default still controls secret/system authorization and audit redaction.
+- Generated inventory artifacts are `docs/{en/,}reference/tauri-command-inventory.md`, `ccr-ui/src/api/generated/command-manifest.json`, `commandCapabilities.ts`, and the generated domain clients.
 
 ### 4. Validation & Error Matrix
 
@@ -56,6 +62,7 @@
 ### 6. Tests Required
 
 - Run `cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml commands::handler_registry -- --nocapture`.
+- Run `just tauri-command-inventory-check` after regeneration with `just tauri-command-inventory`.
 - Run `cargo check --manifest-path ccr-ui/src-tauri/Cargo.toml --bin ccr-desktop`.
 - Run `git diff --check`.
 - `cargo clippy --manifest-path ccr-ui/src-tauri/Cargo.toml --bin ccr-desktop -- -D warnings` is the intended full lint gate; if it fails on unrelated existing warnings, record the blocker rather than broadening this slice.

@@ -490,7 +490,7 @@ import ModuleSubnav from '@/components/ModuleSubnav.vue'
 import ProviderTemplateSelector from '@/components/provider-templates/ProviderTemplateSelector.vue'
 import SIcon from '@/components/ui/SIcon.vue'
 import { translateWithFallback } from '@/i18n/formatMessage'
-import type { ClaudeProfile, ClaudeProfileRequest, ClaudeProfilesResponse } from '@/types'
+import type { ClaudeProfile, ClaudeProfileRequest } from '@/types'
 import type {
   ClaudeProfileEditorForm,
   ClaudeProfileEditorSectionItem,
@@ -512,11 +512,6 @@ import { CLAUDE_PROFILE_FORM_SECTION_IDS } from '@/types/claudeProfileEditor'
 import { downloadTextFile } from '@/utils/download'
 import { useUIStore } from '@/stores/ui'
 import { mapTemplateToClaudeProfilePatch } from '@/utils/providerTemplates'
-
-interface ProfilesExportResponse {
-  content: string
-  filename: string
-}
 
 const { t } = useI18n()
 const uiStore = useUIStore()
@@ -1119,7 +1114,7 @@ const loadProfiles = async (options: { preserveData?: boolean } = {}) => {
   }
 
   try {
-    const data = await listClaudeProfiles<ClaudeProfilesResponse>()
+    const data = await listClaudeProfiles()
     const normalized = normalizeClaudeProfilesState(data.profiles || [], data.current_profile || null)
 
     profiles.value = normalized.profiles
@@ -1159,7 +1154,7 @@ const handleExportProfiles = async () => {
   isExporting.value = true
 
   try {
-    const payload = await exportClaudeProfiles<ProfilesExportResponse>(true)
+    const payload = await exportClaudeProfiles(true)
     downloadTextFile(payload.filename, payload.content, 'application/toml;charset=utf-8')
     uiStore.showSuccess(t('claudeProfiles.exportSuccess'))
   } catch (error) {
@@ -1172,7 +1167,7 @@ const handleExportProfiles = async () => {
 
 const loadActiveEnvironment = async () => {
   try {
-    const environment = await getCurrentEnvironment<{ env_type?: string } | null>()
+    const environment = await getCurrentEnvironment()
     rawLocal.value = !environment || environment.env_type === 'local'
   } catch {
     rawLocal.value = false

@@ -126,6 +126,8 @@ const runningSnapshot: CommandJobSnapshot = {
   stdout_lines: ['\u001B[32mstatus ok\u001B[0m', '| profile | active | source |'],
   stderr_lines: [],
   system_lines: ['Process started'],
+  truncated: false,
+  dropped_lines: 0,
   error: null,
 }
 

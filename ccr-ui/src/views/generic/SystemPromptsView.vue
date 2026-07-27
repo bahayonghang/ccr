@@ -392,7 +392,7 @@ async function save() {
 
 onMounted(async () => {
   try {
-    const environment = await getCurrentEnvironment<{ env_type?: string } | null>()
+    const environment = await getCurrentEnvironment()
     if (environment && environment.env_type !== 'local') {
       unsupportedEnvironment.value = true
       return

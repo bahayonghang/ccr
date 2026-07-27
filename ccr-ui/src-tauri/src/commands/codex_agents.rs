@@ -503,8 +503,10 @@ pub(crate) fn write_agent_file(path: &Path, table: &toml::value::Table) -> Resul
 }
 
 #[tauri::command]
-pub async fn codex_list_agents(context: Option<CodexAgentContextRequest>) -> Result<Value, String> {
-    tokio::task::spawn_blocking(move || {
+pub async fn codex_list_agents(
+    context: Option<CodexAgentContextRequest>,
+) -> Result<OpenJsonValueDto, String> {
+    tokio::task::spawn_blocking(move || -> Result<Value, String> {
         let context = resolve_codex_agent_context(context)?;
         let (agents, diagnostics) = list_codex_agents_for_context(&context)?;
         Ok(json!({
@@ -514,7 +516,8 @@ pub async fn codex_list_agents(context: Option<CodexAgentContextRequest>) -> Res
         }))
     })
     .await
-    .map_err(|e| format!("任务执行失败: {e}"))?
+    .map_err(|e| format!("任务执行失败: {e}"))??
+    .try_into()
 }
 
 #[tauri::command]
@@ -522,8 +525,9 @@ pub async fn codex_add_agent(
     state: State<'_, AppState>,
     context: Option<CodexAgentContextRequest>,
     name: String,
-    config: Value,
-) -> Result<Value, String> {
+    config: OpenJsonValueDto,
+) -> Result<OpenJsonValueDto, String> {
+    let config: Value = config.into();
     let response = tokio::task::spawn_blocking(move || -> Result<Value, String> {
         let context = resolve_codex_agent_context(context)?;
         ensure_agents_dir(&context.agents_dir)?;
@@ -563,7 +567,7 @@ pub async fn codex_add_agent(
     .map_err(|e| format!("任务执行失败: {e}"))??;
 
     invalidate_codex_dashboard_overview_cache(&state).await;
-    Ok(response)
+    open_json(response)
 }
 
 #[tauri::command]
@@ -571,8 +575,9 @@ pub async fn codex_update_agent(
     state: State<'_, AppState>,
     context: Option<CodexAgentContextRequest>,
     name: String,
-    config: Value,
-) -> Result<Value, String> {
+    config: OpenJsonValueDto,
+) -> Result<OpenJsonValueDto, String> {
+    let config: Value = config.into();
     let response = tokio::task::spawn_blocking(move || -> Result<Value, String> {
         let context = resolve_codex_agent_context(context)?;
         let file_path = agent_file_path(&context.agents_dir, &name);
@@ -624,7 +629,7 @@ pub async fn codex_update_agent(
     .map_err(|e| format!("任务执行失败: {e}"))??;
 
     invalidate_codex_dashboard_overview_cache(&state).await;
-    Ok(response)
+    open_json(response)
 }
 
 #[tauri::command]
@@ -660,7 +665,7 @@ pub async fn codex_rename_agent(
     context: Option<CodexAgentContextRequest>,
     name: String,
     new_name: String,
-) -> Result<Value, String> {
+) -> Result<OpenJsonValueDto, String> {
     let response = tokio::task::spawn_blocking(move || -> Result<Value, String> {
         let context = resolve_codex_agent_context(context)?;
         if new_name.trim().is_empty() {
@@ -704,7 +709,7 @@ pub async fn codex_rename_agent(
     .map_err(|e| format!("任务执行失败: {e}"))??;
 
     invalidate_codex_dashboard_overview_cache(&state).await;
-    Ok(response)
+    open_json(response)
 }
 
 #[tauri::command]
@@ -714,7 +719,7 @@ pub async fn codex_copy_agent(
     target_context: Option<CodexAgentContextRequest>,
     name: String,
     target_name: Option<String>,
-) -> Result<Value, String> {
+) -> Result<OpenJsonValueDto, String> {
     let response = tokio::task::spawn_blocking(move || -> Result<Value, String> {
         let source_context = resolve_codex_agent_context(source_context)?;
         let target_context = resolve_codex_agent_context(target_context)?;
@@ -759,14 +764,14 @@ pub async fn codex_copy_agent(
     .map_err(|e| format!("任务执行失败: {e}"))??;
 
     invalidate_codex_dashboard_overview_cache(&state).await;
-    Ok(response)
+    open_json(response)
 }
 
 #[tauri::command]
 pub async fn codex_validate_agent_toml(
     context: Option<CodexAgentContextRequest>,
     name: String,
-) -> Result<Value, String> {
+) -> Result<OpenJsonValueDto, String> {
     tokio::task::spawn_blocking(move || {
         let context = resolve_codex_agent_context(context)?;
         let file_path = agent_file_path(&context.agents_dir, &name);
@@ -799,7 +804,8 @@ pub async fn codex_validate_agent_toml(
         }))
     })
     .await
-    .map_err(|e| format!("任务执行失败: {e}"))?
+    .map_err(|e| format!("任务执行失败: {e}"))??
+    .try_into()
 }
 
 #[cfg(test)]

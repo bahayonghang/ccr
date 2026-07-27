@@ -84,12 +84,15 @@ pub async fn write_config(
 }
 
 /// 检测远端 CLI 安装状态。
-pub async fn detect_cli(state: &AppState, env_id: &str) -> Result<serde_json::Value, String> {
+pub async fn detect_cli(
+    state: &AppState,
+    env_id: &str,
+) -> Result<Vec<crate::platform::CliStatus>, String> {
     let selected = ensure_active_ssh_env(state, env_id).await?;
     let statuses = selected
         .detect_cli_status()
         .await
         .map_err(|e| format!("检测 SSH CLI 失败: {e}"))?;
 
-    serde_json::to_value(statuses).map_err(|e| format!("序列化结果失败: {e}"))
+    Ok(statuses)
 }

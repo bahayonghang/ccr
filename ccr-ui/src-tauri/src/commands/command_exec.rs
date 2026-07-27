@@ -10,11 +10,11 @@ use std::time::{Duration, Instant};
 use crate::process::{ProcessDescriptor, ProcessGateway, read_bounded_line};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use tauri::{AppHandle, Emitter};
 use tokio::io::BufReader;
 use tokio::sync::{Mutex, mpsc};
 use tokio_util::sync::CancellationToken;
+use ts_rs::TS;
 use uuid::Uuid;
 
 const EVENT_COMMAND_JOB_PROGRESS: &str = "commands:job-progress";
@@ -48,8 +48,9 @@ const ALLOWED_COMMANDS: &[&str] = &[
     "status",
 ];
 
-#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, PartialEq, Eq, TS)]
 #[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../../src/types/generated/command_exec/")]
 pub struct CommandArgSchema {
     pub name: &'static str,
     pub label: &'static str,
@@ -61,11 +62,11 @@ pub struct CommandArgSchema {
     pub description: &'static str,
 }
 
-#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, PartialEq, Eq, TS)]
 #[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../../src/types/generated/command_exec/")]
 pub struct CommandFlagSchema {
     pub name: &'static str,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub aliases: Vec<&'static str>,
     pub label: &'static str,
     pub description: &'static str,
@@ -75,8 +76,9 @@ pub struct CommandFlagSchema {
     pub default_value: Option<&'static str>,
 }
 
-#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, PartialEq, Eq, TS)]
 #[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../../src/types/generated/command_exec/")]
 pub struct CommandInfo {
     pub name: &'static str,
     pub path: Vec<&'static str>,
@@ -951,8 +953,9 @@ fn command_catalog() -> Vec<CommandInfo> {
     ]
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, TS)]
 #[serde(rename_all = "snake_case")]
+#[ts(export, export_to = "../../src/types/generated/command_exec/")]
 pub enum CommandJobStatus {
     Queued,
     Running,
@@ -963,7 +966,8 @@ pub enum CommandJobStatus {
     Unavailable,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, TS)]
+#[ts(export, export_to = "../../src/types/generated/command_exec/")]
 pub struct CommandJobSnapshot {
     pub job_id: String,
     pub command: String,
@@ -971,39 +975,81 @@ pub struct CommandJobSnapshot {
     pub status: CommandJobStatus,
     pub started_at: String,
     pub finished_at: Option<String>,
+    #[ts(as = "Option<f64>")]
     pub duration_ms: Option<u64>,
     pub exit_code: Option<i32>,
+    #[ts(as = "Vec<String>")]
     pub stdout_lines: VecDeque<String>,
+    #[ts(as = "Vec<String>")]
     pub stderr_lines: VecDeque<String>,
+    #[ts(as = "Vec<String>")]
     pub system_lines: VecDeque<String>,
     pub truncated: bool,
     pub dropped_lines: usize,
     pub error: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/command_exec/")]
 pub struct StartCommandJobResponse {
     pub job_id: String,
     pub snapshot: CommandJobSnapshot,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, TS)]
 #[serde(rename_all = "lowercase")]
+#[ts(export, export_to = "../../src/types/generated/command_exec/")]
 pub enum OutputChannel {
     Stdout,
     Stderr,
     System,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/command_exec/")]
 pub struct CommandJobDelta {
     pub job_id: String,
+    #[ts(as = "f64")]
     pub seq: u64,
     pub channel: OutputChannel,
     pub lines: Vec<String>,
     pub dropped_count: usize,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
     pub status: Option<CommandJobStatus>,
+}
+
+#[derive(Debug, Clone, Serialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/command_exec/")]
+pub struct CommandExecutionResult {
+    pub success: bool,
+    pub stdout: String,
+    pub stderr: String,
+    pub output: String,
+    pub error: String,
+    pub exit_code: i32,
+    #[ts(as = "f64")]
+    pub duration_ms: u64,
+    pub timed_out: bool,
+    pub truncated: bool,
+    pub stdout_bytes: usize,
+    pub stderr_bytes: usize,
+}
+
+#[derive(Debug, Clone, Serialize, TS)]
+#[serde(transparent)]
+#[ts(export, export_to = "../../src/types/generated/command_exec/")]
+pub struct CommandCatalog(pub Vec<CommandInfo>);
+
+#[derive(Debug, Clone, Serialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/command_exec/")]
+pub struct CommandHelpResponse {
+    pub command: String,
+    pub help: String,
+    pub stderr: String,
+    pub success: bool,
+    pub timed_out: bool,
+    pub truncated: bool,
 }
 
 #[derive(Debug)]
@@ -1752,7 +1798,7 @@ pub async fn execute_ccr_command(
     command: String,
     args: Option<Vec<String>>,
     confirmation_token: Option<String>,
-) -> Result<Value, String> {
+) -> Result<CommandExecutionResult, String> {
     let request = CommandExecutionRequest::foreground(command, args, confirmation_token);
     validate_command_request(&request)?;
 
@@ -1768,19 +1814,19 @@ pub async fn execute_ccr_command(
     let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
     let truncated = output.stdout_truncated || output.stderr_truncated;
 
-    Ok(serde_json::json!({
-        "success": output.status.success() && !output.timed_out && !truncated,
-        "stdout": stdout,
-        "stderr": stderr,
-        "output": stdout,
-        "error": stderr,
-        "exit_code": exit_code,
-        "duration_ms": output.duration.as_millis().min(u128::from(u64::MAX)) as u64,
-        "timed_out": output.timed_out,
-        "truncated": truncated,
-        "stdout_bytes": output.stdout_bytes,
-        "stderr_bytes": output.stderr_bytes,
-    }))
+    Ok(CommandExecutionResult {
+        success: output.status.success() && !output.timed_out && !truncated,
+        output: stdout.clone(),
+        error: stderr.clone(),
+        stdout,
+        stderr,
+        exit_code,
+        duration_ms: output.duration.as_millis().min(u128::from(u64::MAX)) as u64,
+        timed_out: output.timed_out,
+        truncated,
+        stdout_bytes: output.stdout_bytes,
+        stderr_bytes: output.stderr_bytes,
+    })
 }
 
 /// 启动一个 app session 内可跟踪、可取消的 CCR CLI 后台任务。
@@ -1790,7 +1836,7 @@ pub async fn start_ccr_command_job(
     command: String,
     args: Option<Vec<String>>,
     confirmation_token: Option<String>,
-) -> Result<Value, String> {
+) -> Result<StartCommandJobResponse, String> {
     let request = CommandExecutionRequest::background(command, args, confirmation_token);
     validate_command_request(&request)?;
 
@@ -1801,24 +1847,23 @@ pub async fn start_ccr_command_job(
 
     tauri::async_runtime::spawn(run_command_job(app_handle, job_id.clone(), cancel_token));
 
-    serde_json::to_value(StartCommandJobResponse { job_id, snapshot })
-        .map_err(|e| format!("Serialization error: {e}"))
+    Ok(StartCommandJobResponse { job_id, snapshot })
 }
 
 #[tauri::command]
-pub async fn get_ccr_command_job_status(job_id: String) -> Result<Value, String> {
+pub async fn get_ccr_command_job_status(job_id: String) -> Result<CommandJobSnapshot, String> {
     let snapshot = get_job(&job_id)
         .await
         .ok_or_else(|| format!("Command job '{}' not found", job_id))?;
 
-    serde_json::to_value(snapshot).map_err(|e| format!("Serialization error: {e}"))
+    Ok(snapshot)
 }
 
 #[tauri::command]
 pub async fn cancel_ccr_command_job(
     _app_handle: AppHandle,
     job_id: String,
-) -> Result<Value, String> {
+) -> Result<CommandJobSnapshot, String> {
     if let Some(token) = COMMAND_JOBS
         .cancel_tokens
         .lock()
@@ -1844,20 +1889,20 @@ pub async fn cancel_ccr_command_job(
     .await
     .ok_or_else(|| format!("Command job '{}' not found", job_id))?;
 
-    serde_json::to_value(snapshot).map_err(|e| format!("Serialization error: {e}"))
+    Ok(snapshot)
 }
 
 /// 返回 CCR 命令目录和桌面执行元数据
 ///
 /// 返回 `CommandInfo[]`，其中 `executable=false` 的条目只能作为预览/跳转。
 #[tauri::command]
-pub async fn list_ccr_commands() -> Result<Value, String> {
-    serde_json::to_value(command_catalog()).map_err(|e| format!("Serialization error: {e}"))
+pub async fn list_ccr_commands() -> Result<CommandCatalog, String> {
+    Ok(CommandCatalog(command_catalog()))
 }
 
 /// 执行 `ccr help <command>` 并返回帮助文本
 #[tauri::command]
-pub async fn get_ccr_command_help(command: String) -> Result<Value, String> {
+pub async fn get_ccr_command_help(command: String) -> Result<CommandHelpResponse, String> {
     CommandPolicy::from_command(&command)?;
 
     verify_ccr_sidecar_version().await?;
@@ -1870,14 +1915,17 @@ pub async fn get_ccr_command_help(command: String) -> Result<Value, String> {
     let stdout = String::from_utf8_lossy(&output.stdout).into_owned();
     let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
 
-    Ok(serde_json::json!({
-        "command": command,
-        "help": stdout,
-        "stderr": stderr,
-        "success": output.status.success() && !output.timed_out && !output.stdout_truncated && !output.stderr_truncated,
-        "timed_out": output.timed_out,
-        "truncated": output.stdout_truncated || output.stderr_truncated,
-    }))
+    Ok(CommandHelpResponse {
+        command,
+        help: stdout,
+        stderr,
+        success: output.status.success()
+            && !output.timed_out
+            && !output.stdout_truncated
+            && !output.stderr_truncated,
+        timed_out: output.timed_out,
+        truncated: output.stdout_truncated || output.stderr_truncated,
+    })
 }
 
 #[cfg(test)]

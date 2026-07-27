@@ -94,8 +94,11 @@ pub(crate) async fn compute_codex_tray_snapshot(force: bool) -> Result<CodexTray
 }
 
 #[tauri::command]
-pub async fn codex_get_tray_snapshot(force: Option<bool>) -> Result<CodexTraySnapshot, String> {
-    compute_codex_tray_snapshot(force.unwrap_or(false)).await
+pub async fn codex_get_tray_snapshot(force: Option<bool>) -> Result<OpenJsonValueDto, String> {
+    let snapshot = compute_codex_tray_snapshot(force.unwrap_or(false)).await?;
+    serde_json::to_value(snapshot)
+        .map_err(|error| format!("序列化 Codex tray snapshot 失败: {error}"))?
+        .try_into()
 }
 
 fn runtime_mode_to_string(mode: CodexRuntimeMode) -> String {

@@ -9,10 +9,13 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
+use ts_rs::TS;
+
 // ── 响应类型 ──
 
 /// 同步状态信息
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/sync/")]
 pub struct SyncStatusInfo {
     pub configured: bool,
     pub enabled: bool,
@@ -27,20 +30,25 @@ pub struct SyncStatusInfo {
 }
 
 /// 账号写入入参（前端 camelCase）
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../../src/types/generated/sync/")]
 pub struct WebDavConfigInput {
     pub webdav_url: String,
     pub username: String,
     /// UI 表单明文入参：Secret 包裹，payload Debug/日志不泄露
+    #[ts(type = "string")]
     pub password: ccr_core::Secret,
+    #[ts(optional)]
     pub remote_path: Option<String>,
+    #[ts(optional)]
     pub auto_sync: Option<bool>,
 }
 
 /// 账号详情（不含密码，前端 camelCase）
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../../src/types/generated/sync/")]
 pub struct WebDavConfigDetails {
     pub enabled: bool,
     pub webdav_url: String,
@@ -51,47 +59,54 @@ pub struct WebDavConfigDetails {
 }
 
 /// 连接测试结果（前端 camelCase）
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../../src/types/generated/sync/")]
 pub struct WebDavTestResult {
     pub ok: bool,
     pub message: String,
 }
 
 /// 固定同步资产类型。
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, TS)]
 #[serde(rename_all = "lowercase")]
+#[ts(export, export_to = "../../src/types/generated/sync/")]
 pub enum SyncAssetKind {
     Directory,
     File,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, TS)]
 #[serde(rename_all = "snake_case")]
+#[ts(export, export_to = "../../src/types/generated/sync/")]
 pub enum SyncEncryptionState {
     NotApplicable,
     V2Required,
 }
 
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../../src/types/generated/sync/")]
 pub struct SyncAssetOperationInput {
     pub id: String,
-    #[serde(default)]
-    pub force: bool,
+    #[ts(optional)]
+    pub force: Option<bool>,
+    #[ts(optional, type = "string")]
     pub passphrase: Option<ccr_core::Secret>,
-    #[serde(default)]
-    pub migrate_plaintext_v1: bool,
+    #[ts(optional)]
+    pub migrate_plaintext_v1: Option<bool>,
 }
 
-#[derive(Clone, Deserialize, Default)]
+#[derive(Clone, Deserialize, Default, TS)]
 #[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../../src/types/generated/sync/")]
 pub struct SyncAllAssetsInput {
-    #[serde(default)]
-    pub force: bool,
+    #[ts(optional)]
+    pub force: Option<bool>,
+    #[ts(optional, type = "string")]
     pub passphrase: Option<ccr_core::Secret>,
-    #[serde(default)]
-    pub migrate_plaintext_v1: bool,
+    #[ts(optional)]
+    pub migrate_plaintext_v1: Option<bool>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -125,8 +140,9 @@ struct SyncAssetDefinition {
 }
 
 /// 同步资产状态信息（前端 camelCase）。
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../../src/types/generated/sync/")]
 pub struct SyncAssetInfo {
     pub id: String,
     pub group: String,
@@ -202,7 +218,8 @@ const SYNC_ASSETS: &[SyncAssetDefinition] = &[
 ];
 
 /// 同步文件夹信息
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/sync/")]
 pub struct SyncFolderInfo {
     pub name: String,
     pub description: String,
@@ -213,19 +230,22 @@ pub struct SyncFolderInfo {
 }
 
 /// 同步操作失败项
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../../src/types/generated/sync/")]
 pub struct SyncOperationFailure {
     pub folder: String,
     pub message: String,
 }
 
 /// 同步操作结果
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../../src/types/generated/sync/")]
 pub struct SyncOperationResult {
     pub success: bool,
     pub message: String,
+    #[ts(as = "f64")]
     pub duration_ms: u64,
     pub total: usize,
     pub success_count: usize,
@@ -931,9 +951,9 @@ pub async fn sync_all_assets(
         &manager,
         SYNC_ASSETS.iter().collect(),
         SyncAssetDirection::Sync,
-        payload.force,
+        payload.force.unwrap_or(false),
         payload.passphrase.as_ref(),
-        payload.migrate_plaintext_v1,
+        payload.migrate_plaintext_v1.unwrap_or(false),
         start,
     )
     .await
@@ -958,9 +978,9 @@ async fn sync_one_asset(
         &manager,
         vec![asset],
         direction,
-        payload.force,
+        payload.force.unwrap_or(false),
         payload.passphrase.as_ref(),
-        payload.migrate_plaintext_v1,
+        payload.migrate_plaintext_v1.unwrap_or(false),
         start,
     )
     .await

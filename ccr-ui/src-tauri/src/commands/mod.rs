@@ -31,6 +31,8 @@ pub mod waf;
 #[cfg(target_os = "windows")]
 pub mod wsl;
 
+mod wire;
+
 mod handler_registry;
 
 pub use handler_registry::generate_handler;

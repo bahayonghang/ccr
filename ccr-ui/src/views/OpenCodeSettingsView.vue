@@ -257,9 +257,9 @@ const form = reactive({
 async function loadSettings() {
   try {
     const [config, tui, themeList] = await Promise.all([
-      getOpenCodeConfig<OpenCodeConfig>(),
-      getOpenCodeTuiSettings<OpenCodeTuiConfig>(),
-      listOpenCodeThemes<OpenCodeTheme[]>(),
+      getOpenCodeConfig(),
+      getOpenCodeTuiSettings(),
+      listOpenCodeThemes(),
     ])
 
     form.model = config.model || ''

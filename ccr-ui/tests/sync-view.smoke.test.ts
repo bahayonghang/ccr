@@ -75,13 +75,13 @@ const assetFixtures = [
     description: 'All platform configuration',
     kind: 'directory',
     sensitive: true,
-    encryption_state: 'v2_required',
-    local_path: '~/.ccr/platforms/',
-    resolved_local_path: 'C:/Users/test/.ccr/platforms',
-    remote_path: '/ccr/platforms/',
-    local_exists: true,
-    remote_exists: false,
-    canonical_name: null,
+    encryptionState: 'v2_required',
+    localPath: '~/.ccr/platforms/',
+    resolvedLocalPath: 'C:/Users/test/.ccr/platforms',
+    remotePath: '/ccr/platforms/',
+    localExists: true,
+    remoteExists: false,
+    canonicalName: null,
   },
   {
     id: 'claude-memory',
@@ -179,6 +179,7 @@ const submitPassphrase = async (
 }
 
 beforeEach(() => {
+  Object.values(apiMocks).forEach(mock => mock.mockReset())
   apiMocks.getSyncStatus.mockResolvedValue({ configured: true, enabled: true, webdav_url: 'https://dav.example.com', username: 'tester' })
   apiMocks.listSyncAssets.mockResolvedValue(assetFixtures)
   apiMocks.pushSyncAsset.mockResolvedValue({ success: true, message: 'pushed', total: 1, successCount: 1, failed: [] })
@@ -403,7 +404,12 @@ describe('SyncView configuration asset console', () => {
   it('masks JSON-like secret fields in raw sync output details', async () => {
     apiMocks.syncAllAssets.mockResolvedValueOnce({
       success: false,
-      message: 'Completed sync for 2/3 sync asset(s); 1 failed.',
+      message: JSON.stringify({
+        token: 'secret-token',
+        password: 'hidden-pass',
+        api_key: 'sk-testsecret123456',
+      }),
+      durationMs: 12,
       total: 3,
       successCount: 2,
       failed: [
@@ -412,11 +418,6 @@ describe('SyncView configuration asset console', () => {
           message: '409 AncestorNotFound: remote path /ccr/codex/config.toml cannot be checked.',
         },
       ],
-      output: JSON.stringify({
-        token: 'secret-token',
-        password: 'hidden-pass',
-        api_key: 'sk-testsecret123456',
-      }, null, 2),
     })
 
     const { el, unmount } = await mountView()

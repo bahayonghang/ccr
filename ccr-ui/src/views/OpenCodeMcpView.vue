@@ -342,7 +342,7 @@ const form = reactive({
 async function loadServers() {
   loading.value = true
   try {
-    servers.value = await listOpenCodeMcpServers<OpenCodeMcpServer[]>()
+    servers.value = await listOpenCodeMcpServers()
   } catch (error) {
     uiStore.showError(getErrorMessage(error))
   } finally {

@@ -23,6 +23,12 @@ use ccr_config::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};
 
 use crate::state::{AppState, CacheFillRegistration};
 
+use super::wire::OpenJsonValueDto;
+
+fn open_json(value: Value) -> Result<OpenJsonValueDto, String> {
+    value.try_into()
+}
+
 const CODEX_USAGE_CACHE_KEY: &str = "codex:rolling_usage";
 const CODEX_DASHBOARD_OVERVIEW_CACHE_KEY: &str = "codex:dashboard_overview";
 
@@ -2190,7 +2196,7 @@ model = "legacy-model"
                 .save_profile("real", &profile)
                 .map_err(|e| format!("写入 CCR profiles.toml 失败: {e}"))?;
 
-            let payload = codex_list_profiles().await?;
+            let payload: Value = codex_list_profiles().await?.into();
             let profiles = payload
                 .get("profiles")
                 .and_then(Value::as_array)

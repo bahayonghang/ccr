@@ -724,7 +724,7 @@ function buildGroupFromForm(): { event: string; group: HookMatcherGroup } {
 async function loadHooks() {
   loading.value = true
   try {
-    hooksConfig.value = await listHooks<HookMap>()
+    hooksConfig.value = await listHooks()
     if (selectedEvent.value !== allEventKey && !hooksConfig.value[selectedEvent.value]) selectedEvent.value = allEventKey
   } catch (error) {
     logger.error('Failed to load hooks:', error)
@@ -764,7 +764,7 @@ function removeHandlerForm(index: number) {
 async function persistHooks(nextHooks: HookMap, successMessage: string) {
   saving.value = true
   try {
-    hooksConfig.value = await updateHooks<HookMap>(nextHooks)
+    hooksConfig.value = await updateHooks(nextHooks)
     uiStore.showSuccess(successMessage)
     if (selectedEvent.value !== allEventKey && !hooksConfig.value[selectedEvent.value]) selectedEvent.value = allEventKey
   } catch (error) {

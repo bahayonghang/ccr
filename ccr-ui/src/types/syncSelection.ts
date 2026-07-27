@@ -1,7 +1,12 @@
-export interface SyncOperationFailure {
-  folder: string
-  message: string
-}
+import type { SyncAssetInfo as GeneratedSyncAssetInfo } from './generated/sync/SyncAssetInfo'
+import type { SyncAssetKind as GeneratedSyncAssetKind } from './generated/sync/SyncAssetKind'
+import type { SyncAssetOperationInput } from './generated/sync/SyncAssetOperationInput'
+import type { SyncEncryptionState as GeneratedSyncEncryptionState } from './generated/sync/SyncEncryptionState'
+import type { SyncOperationFailure as GeneratedSyncOperationFailure } from './generated/sync/SyncOperationFailure'
+import type { SyncOperationResult as GeneratedSyncOperationResult } from './generated/sync/SyncOperationResult'
+import type { SyncStatusInfo } from './generated/sync/SyncStatusInfo'
+
+export type SyncOperationFailure = GeneratedSyncOperationFailure
 
 export type SyncOperationOutputStatus = 'success' | 'partial' | 'failed'
 
@@ -28,53 +33,15 @@ export interface SyncOperationOutput {
   rawLog: string
 }
 
-export interface SyncOperationResult {
-  success?: boolean
-  message?: string
-  durationMs?: number
-  duration_ms?: number
-  total?: number
-  successCount?: number
-  success_count?: number
-  failed?: SyncOperationFailure[]
-  output?: string
-  data?: {
-    output?: string
-  }
-}
+export type SyncOperationResult = GeneratedSyncOperationResult
 
-export type SyncAssetKind = 'directory' | 'file'
+export type SyncAssetKind = GeneratedSyncAssetKind
 export type SyncAssetOperation = 'push' | 'pull' | 'sync'
-export type SyncEncryptionState = 'not_applicable' | 'v2_required'
+export type SyncEncryptionState = GeneratedSyncEncryptionState
 
-export interface SyncAssetOperationOptions {
-  force?: boolean
-  passphrase?: string
-  migratePlaintextV1?: boolean
-}
+export type SyncAssetOperationOptions = Omit<SyncAssetOperationInput, 'id'>
 
-export interface SyncAssetInfo {
-  id: string
-  group: 'ccr' | 'claude' | 'codex' | string
-  name: string
-  description: string
-  kind: SyncAssetKind
-  sensitive: boolean
-  encryptionState: SyncEncryptionState
-  encryption_state?: SyncEncryptionState
-  localPath: string
-  local_path?: string
-  resolvedLocalPath: string
-  resolved_local_path?: string
-  remotePath: string
-  remote_path?: string
-  localExists: boolean
-  local_exists?: boolean
-  remoteExists?: boolean | null
-  remote_exists?: boolean | null
-  canonicalName?: string | null
-  canonical_name?: string | null
-}
+export type SyncAssetInfo = GeneratedSyncAssetInfo
 
 export interface SyncAssetGroup {
   key: string
@@ -86,14 +53,4 @@ export interface SyncAssetGroup {
 /**
  * 与后端 SyncStatusInfo（commands/sync.rs）保持字段同名 snake_case
  */
-export interface SyncStatusView {
-  configured?: boolean
-  enabled?: boolean
-  webdav_url?: string
-  username?: string
-  remote_path?: string
-  auto_sync?: boolean
-  has_password?: boolean
-  remote_accessible?: boolean | null
-  remote_exists?: boolean | null
-}
+export type SyncStatusView = SyncStatusInfo

@@ -321,8 +321,6 @@ import {
 import type {
   ClaudeAuthAccountItem,
   ClaudeAuthCurrentInfo,
-  ClaudeAuthCurrentResponse,
-  ClaudeAuthListResponse,
   ClaudeAuthSaveRequest,
   ClaudeLoginState,
   ClaudeRuntimeSummary,
@@ -418,8 +416,8 @@ const refreshAll = async () => {
     authActionError.value = null
 
     const [accountsData, currentData] = await Promise.all([
-      listClaudeAuthAccounts<ClaudeAuthListResponse>(),
-      getClaudeAuthCurrent<ClaudeAuthCurrentResponse>(),
+      listClaudeAuthAccounts(),
+      getClaudeAuthCurrent(),
     ])
 
     accounts.value = accountsData.accounts || []

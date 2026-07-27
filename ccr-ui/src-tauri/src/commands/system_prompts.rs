@@ -12,6 +12,7 @@ use crate::state::AppState;
 
 use super::opencode::opencode_config_dir;
 use super::settings_raw::{ensure_local_env, read_raw_file, write_raw_file_versioned};
+use super::wire::OpenJsonValueDto;
 
 const SIZE_WARNING_BYTES: usize = 64 * 1024;
 const CODEX_LIMIT_HINT: usize = 32 * 1024;
@@ -224,9 +225,9 @@ fn save_prompt_file(
 pub async fn system_prompts_list(
     state: State<'_, AppState>,
     platform: String,
-) -> Result<Value, String> {
+) -> Result<OpenJsonValueDto, String> {
     if let Some(response) = ensure_local_env(state.inner()).await {
-        return Ok(response);
+        return response.try_into();
     }
     let normalized = normalize_platform(&platform)
         .ok_or_else(|| format!("不支持的系统提示词平台: {platform}"))?;
@@ -236,7 +237,7 @@ pub async fn system_prompts_list(
         .map(|spec| resolve_prompt_path(spec).map(|path| (*spec, path)))
         .collect::<Result<_, _>>()?;
     let home = dirs::home_dir().ok_or_else(|| "无法获取用户主目录".to_string())?;
-    tokio::task::spawn_blocking(move || {
+    tokio::task::spawn_blocking(move || -> Result<Value, String> {
         let files: Vec<_> = resolved
             .iter()
             .map(|(spec, path)| file_description(spec, path))
@@ -249,7 +250,8 @@ pub async fn system_prompts_list(
         Ok(json!({ "status": "ok", "files": files, "rules": rules }))
     })
     .await
-    .map_err(|error| format!("列出系统提示词后台任务失败: {error}"))?
+    .map_err(|error| format!("列出系统提示词后台任务失败: {error}"))??
+    .try_into()
 }
 
 #[tauri::command]
@@ -257,9 +259,9 @@ pub async fn system_prompts_get(
     state: State<'_, AppState>,
     platform: String,
     id: String,
-) -> Result<Value, String> {
+) -> Result<OpenJsonValueDto, String> {
     if let Some(response) = ensure_local_env(state.inner()).await {
-        return Ok(response);
+        return response.try_into();
     }
     let spec = prompt_spec(&platform, &id)?;
     let path = resolve_prompt_path(spec)?;
@@ -267,7 +269,8 @@ pub async fn system_prompts_get(
         read_raw_file(&path).map(|value| augment_file_result(value, spec))
     })
     .await
-    .map_err(|error| format!("读取系统提示词后台任务失败: {error}"))?
+    .map_err(|error| format!("读取系统提示词后台任务失败: {error}"))??
+    .try_into()
 }
 
 #[tauri::command]
@@ -277,16 +280,17 @@ pub async fn system_prompts_save(
     id: String,
     content: String,
     token: String,
-) -> Result<Value, String> {
+) -> Result<OpenJsonValueDto, String> {
     if let Some(response) = ensure_local_env(state.inner()).await {
-        return Ok(response);
+        return response.try_into();
     }
     let spec = prompt_spec(&platform, &id)?;
     let path = resolve_prompt_path(spec)?;
     let backups = backup_dir(spec)?;
     tokio::task::spawn_blocking(move || save_prompt_file(spec, &path, &backups, &content, &token))
         .await
-        .map_err(|error| format!("保存系统提示词后台任务失败: {error}"))?
+        .map_err(|error| format!("保存系统提示词后台任务失败: {error}"))??
+        .try_into()
 }
 
 #[tauri::command]
@@ -294,16 +298,17 @@ pub async fn system_prompts_create(
     state: State<'_, AppState>,
     platform: String,
     id: String,
-) -> Result<Value, String> {
+) -> Result<OpenJsonValueDto, String> {
     if let Some(response) = ensure_local_env(state.inner()).await {
-        return Ok(response);
+        return response.try_into();
     }
     let spec = prompt_spec(&platform, &id)?;
     let path = resolve_prompt_path(spec)?;
     let backups = backup_dir(spec)?;
     tokio::task::spawn_blocking(move || save_prompt_file(spec, &path, &backups, "", ""))
         .await
-        .map_err(|error| format!("创建系统提示词后台任务失败: {error}"))?
+        .map_err(|error| format!("创建系统提示词后台任务失败: {error}"))??
+        .try_into()
 }
 
 #[cfg(test)]

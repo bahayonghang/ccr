@@ -12,10 +12,12 @@ pub mod wsl;
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 /// 环境类型枚举
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "lowercase")]
+#[ts(export, export_to = "../../src/types/generated/environment/")]
 pub enum EnvironmentType {
     /// 本地环境（始终可用）
     Local,
@@ -204,7 +206,8 @@ impl Default for EnvironmentRegistry {
 }
 
 /// 环境概要信息（用于前端展示）
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/environment/")]
 pub struct EnvironmentInfo {
     pub id: String,
     pub env_type: EnvironmentType,

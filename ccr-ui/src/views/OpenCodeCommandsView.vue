@@ -266,7 +266,7 @@ const form = reactive({
 async function loadCommands() {
   loading.value = true
   try {
-    commands.value = await listOpenCodeCommands<OpenCodeCommand[]>()
+    commands.value = await listOpenCodeCommands()
   } catch (error) {
     uiStore.showError(getErrorMessage(error))
   } finally {

@@ -9,30 +9,46 @@ use ccr_config::{
 use ccr_core::{CcrError, LockManager};
 use ccr_store::HistoryService;
 use std::path::{Component, Path, PathBuf};
+use ts_rs::TS;
 
 use crate::state::AppState;
 
 /// 配置项详情
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/config/")]
 pub struct ConfigInfo {
     pub name: String,
     pub description: String,
     pub base_url: String,
     pub auth_token: String, // masked
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
     pub model: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
     pub small_fast_model: Option<String>,
     pub is_current: bool,
     pub is_default: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
     pub provider: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
     pub provider_type: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
     pub account: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
     pub tags: Option<Vec<String>>,
+    #[ts(as = "f64")]
     pub usage_count: u64,
     pub enabled: bool,
 }
 
 /// 历史记录条目
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/config/")]
 pub struct HistoryEntry {
     pub id: String,
     pub timestamp: String,
@@ -41,7 +57,8 @@ pub struct HistoryEntry {
 }
 
 /// 导入结果
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/config/")]
 pub struct ImportResult {
     pub added: usize,
     pub updated: usize,
@@ -49,7 +66,8 @@ pub struct ImportResult {
 }
 
 /// 导出结果
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/config/")]
 pub struct ExportResult {
     pub content: String,
     pub filename: String,

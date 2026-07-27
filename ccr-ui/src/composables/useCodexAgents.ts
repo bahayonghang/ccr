@@ -16,10 +16,7 @@ import type {
   CodexAgentContextRequest,
   CodexAgentDiagnostic,
   CodexAgentRecord,
-  CodexAgentMutationResponse,
   CodexAgentUpsertRequest,
-  CodexAgentsResponse,
-  CodexModelsResponse,
 } from '@/types'
 
 const LAST_PROJECT_ROOT_KEY = 'ccr.codexAgents.lastProjectRoot'
@@ -89,7 +86,7 @@ export function useCodexAgents() {
   const refresh = async (context?: CodexAgentContextRequest) => {
     loading.value = true
     try {
-      const response = await listCodexAgents<CodexAgentsResponse>(context ?? currentContextRequest.value)
+      const response = await listCodexAgents(context ?? currentContextRequest.value)
       agents.value = response.agents ?? []
       diagnostics.value = response.diagnostics ?? []
       activeContext.value = response.context
@@ -104,7 +101,7 @@ export function useCodexAgents() {
 
   const loadModels = async () => {
     try {
-      const response = await listCodexModels<CodexModelsResponse>()
+      const response = await listCodexModels()
       availableModels.value = response.models ?? []
     } catch (error) {
       logger.error(`Failed to load Codex models: ${getErrorMessage(error)}`, error)
@@ -113,7 +110,7 @@ export function useCodexAgents() {
 
   const loadRuntimeSummary = async () => {
     try {
-      const response = await getCodexDashboardOverview<{ inventory?: { sessions_total?: number } }>()
+      const response = await getCodexDashboardOverview()
       sessionsTotal.value = response.inventory?.sessions_total ?? null
     } catch (error) {
       logger.error(`Failed to load Codex runtime summary: ${getErrorMessage(error)}`, error)
@@ -216,7 +213,7 @@ export function useCodexAgents() {
   }
 
   const validateAgentRecord = async (name: string) => {
-    return validateCodexAgentToml<CodexAgentMutationResponse>({
+    return validateCodexAgentToml({
       name,
       context: currentContextRequest.value,
     })

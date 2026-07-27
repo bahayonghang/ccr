@@ -236,7 +236,7 @@ export function useUnifiedMcp() {
   /** 切换服务器启停 */
   async function toggleServer(server: UnifiedMcpServer): Promise<boolean> {
     try {
-      const result = await toggleUnifiedMcp<string | UnknownRecord>(
+      const result = await toggleUnifiedMcp(
         server.platform,
         server.name,
         !server.disabled,

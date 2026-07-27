@@ -1,23 +1,23 @@
 use super::*;
 
 #[tauri::command]
-pub async fn claude_list_plugins(state: State<'_, AppState>) -> Result<Value, String> {
+pub async fn claude_list_plugins(state: State<'_, AppState>) -> Result<OpenJsonValueDto, String> {
     let settings = load_settings(state.inner()).await?;
     let plugins = serde_json::to_value(&settings.plugins)
         .map_err(|e| format!("Serialization error: {}", e))?;
-    Ok(serde_json::json!({ "plugins": plugins }))
+    open_json(serde_json::json!({ "plugins": plugins }))
 }
 
 #[tauri::command]
 pub async fn claude_add_plugin(
     state: State<'_, AppState>,
     name: String,
-    config: Value,
-) -> Result<Value, String> {
+    config: OpenJsonValueDto,
+) -> Result<OpenJsonValueDto, String> {
     let mut settings = load_settings(state.inner()).await?;
 
     let mut plugin: ccr_types::Plugin =
-        serde_json::from_value(config).map_err(|e| format!("Invalid plugin config: {}", e))?;
+        serde_json::from_value(config.into()).map_err(|e| format!("Invalid plugin config: {}", e))?;
     plugin.name = name;
 
     settings.plugins.push(plugin);
@@ -25,15 +25,15 @@ pub async fn claude_add_plugin(
 
     let result = serde_json::to_value(&settings.plugins)
         .map_err(|e| format!("Serialization error: {}", e))?;
-    Ok(serde_json::json!({ "plugins": result }))
+    open_json(serde_json::json!({ "plugins": result }))
 }
 
 #[tauri::command]
 pub async fn claude_update_plugin(
     state: State<'_, AppState>,
     name: String,
-    config: Value,
-) -> Result<Value, String> {
+    config: OpenJsonValueDto,
+) -> Result<OpenJsonValueDto, String> {
     let mut settings = load_settings(state.inner()).await?;
 
     let pos = settings
@@ -43,14 +43,14 @@ pub async fn claude_update_plugin(
         .ok_or_else(|| format!("Plugin '{}' not found", name))?;
 
     let updated: ccr_types::Plugin =
-        serde_json::from_value(config).map_err(|e| format!("Invalid plugin config: {}", e))?;
+        serde_json::from_value(config.into()).map_err(|e| format!("Invalid plugin config: {}", e))?;
     settings.plugins[pos] = updated;
 
     save_settings(state.inner(), &settings).await?;
 
     let result = serde_json::to_value(&settings.plugins)
         .map_err(|e| format!("Serialization error: {}", e))?;
-    Ok(serde_json::json!({ "plugins": result }))
+    open_json(serde_json::json!({ "plugins": result }))
 }
 
 #[tauri::command]

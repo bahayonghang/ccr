@@ -8,7 +8,7 @@ import {
   codexOpenExternalUrl,
   codexReleaseOAuthPort,
 } from '@/api'
-import type { CodexAuthMutationResponse, CodexOAuthStartResponse } from '@/types'
+import type { CodexAuthMutationResponse } from '@/types'
 import { useTf } from '@/composables/useTf'
 import { useUIStore } from '@/stores/ui'
 import { extractErrorMessage } from '@/utils/errorHandler'
@@ -69,7 +69,7 @@ export function useCodexOAuthFlow(deps: {
       return
     }
     try {
-      oauthPortBusy.value = await codexIsOAuthPortInUse<boolean>()
+      oauthPortBusy.value = await codexIsOAuthPortInUse()
     } catch (error) {
       logger.error('Failed to check oauth port:', error)
       oauthPortBusy.value = false
@@ -123,7 +123,7 @@ export function useCodexOAuthFlow(deps: {
         return
       }
 
-      const result = await codexOAuthLoginStart<CodexOAuthStartResponse>()
+      const result = await codexOAuthLoginStart()
       oauthLoginId.value = result.loginId
       oauthAuthUrl.value = result.authUrl
       oauthPending.value = true
@@ -173,7 +173,7 @@ export function useCodexOAuthFlow(deps: {
     }
     try {
       oauthBusy.value = true
-      const result = await codexOAuthLoginCompleted<CodexAuthMutationResponse>(
+      const result = await codexOAuthLoginCompleted(
         loginId,
         effectivePreferredAccountName.value
       )

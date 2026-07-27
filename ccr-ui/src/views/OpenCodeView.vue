@@ -472,14 +472,14 @@ async function loadOverview() {
   loading.value = true
 
   const tasks = {
-    config: getOpenCodeConfig<OpenCodeConfig>(),
-    tui: getOpenCodeTuiSettings<OpenCodeTuiConfig>(),
-    providers: listOpenCodeProviders<OpenCodeProviderConfig[]>(),
-    mcp: listOpenCodeMcpServers<OpenCodeMcpServer[]>(),
-    agents: listOpenCodeAgents<OpenCodeAgent[]>(),
-    commands: listOpenCodeCommands<OpenCodeCommand[]>(),
-    plugins: listOpenCodePlugins<string[]>(),
-    localPlugins: listOpenCodeLocalPlugins<OpenCodeLocalPluginFile[]>(),
+    config: getOpenCodeConfig(),
+    tui: getOpenCodeTuiSettings(),
+    providers: listOpenCodeProviders(),
+    mcp: listOpenCodeMcpServers(),
+    agents: listOpenCodeAgents(),
+    commands: listOpenCodeCommands(),
+    plugins: listOpenCodePlugins(),
+    localPlugins: listOpenCodeLocalPlugins(),
   }
 
   const entries = Object.entries(tasks)

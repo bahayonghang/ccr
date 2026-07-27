@@ -52,7 +52,7 @@ export function useCodexTrayPanel() {
     error.value = null
 
     try {
-      snapshot.value = await getCodexTraySnapshot<CodexTraySnapshot>(force)
+      snapshot.value = await getCodexTraySnapshot(force)
     } catch (loadError) {
       logger.error('Failed to load Codex tray snapshot:', loadError)
       error.value = getErrorMessage(loadError)

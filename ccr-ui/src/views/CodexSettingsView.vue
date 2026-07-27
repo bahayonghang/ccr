@@ -686,7 +686,7 @@ async function handleRawSaved() {
 
 async function loadActiveEnvironment() {
   try {
-    const environment = await getCurrentEnvironment<{ env_type?: string }>()
+    const environment = await getCurrentEnvironment()
     rawLocal.value = !environment || environment.env_type === 'local'
   } catch {
     rawLocal.value = true

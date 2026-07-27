@@ -669,7 +669,7 @@ import Card from '@/components/ui/Card.vue'
 import SIcon from '@/components/ui/SIcon.vue'
 import { useUIStore } from '@/stores/ui'
 import { logger } from '@/utils/logger'
-import type { CodexMcpServer, CodexMcpServerRequest, CodexMcpServersResponse } from '@/types'
+import type { CodexMcpServer, CodexMcpServerRequest } from '@/types'
 import { REFRESH_TTL_MS } from '@/config/constants'
 
 type Transport = 'stdio' | 'http'
@@ -977,7 +977,7 @@ async function loadServers(force = false) {
   loading.value = true
   error.value = null
   try {
-    const data = await listCodexMcpServers<CodexMcpServersResponse>()
+    const data = await listCodexMcpServers()
     servers.value = Array.isArray(data.servers) ? data.servers.map(normalizeServer) : []
     lastLoadedAt.value = Date.now()
   } catch (reason) {

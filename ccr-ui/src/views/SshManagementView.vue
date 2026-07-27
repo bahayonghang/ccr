@@ -214,7 +214,12 @@ async function testConnect(host: SshHostConfig) {
   } catch (e: unknown) {
     testResults.value = {
       ...testResults.value,
-      [envId]: { success: false, latency_ms: 0, error: e?.toString?.() || tt('测试失败', 'Test failed') },
+      [envId]: {
+        success: false,
+        latency_ms: 0,
+        error_code: null,
+        error: e?.toString?.() || tt('测试失败', 'Test failed'),
+      },
     }
   } finally {
     const next = new Set(testingHosts.value)

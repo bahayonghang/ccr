@@ -1,22 +1,24 @@
 use super::*;
 
 #[tauri::command]
-pub async fn claude_list_slash_commands(state: State<'_, AppState>) -> Result<Value, String> {
+pub async fn claude_list_slash_commands(
+    state: State<'_, AppState>,
+) -> Result<OpenJsonValueDto, String> {
     let settings = load_settings(state.inner()).await?;
     let commands = serde_json::to_value(&settings.slash_commands)
         .map_err(|e| format!("Serialization error: {}", e))?;
-    Ok(serde_json::json!({ "commands": commands }))
+    open_json(serde_json::json!({ "commands": commands }))
 }
 
 #[tauri::command]
 pub async fn claude_add_slash_command(
     state: State<'_, AppState>,
     name: String,
-    config: Value,
-) -> Result<Value, String> {
+    config: OpenJsonValueDto,
+) -> Result<OpenJsonValueDto, String> {
     let mut settings = load_settings(state.inner()).await?;
 
-    let mut cmd: ccr_types::SlashCommand = serde_json::from_value(config)
+    let mut cmd: ccr_types::SlashCommand = serde_json::from_value(config.into())
         .map_err(|e| format!("Invalid slash command config: {}", e))?;
     cmd.name = name;
 
@@ -25,15 +27,15 @@ pub async fn claude_add_slash_command(
 
     let result = serde_json::to_value(&settings.slash_commands)
         .map_err(|e| format!("Serialization error: {}", e))?;
-    Ok(serde_json::json!({ "commands": result }))
+    open_json(serde_json::json!({ "commands": result }))
 }
 
 #[tauri::command]
 pub async fn claude_update_slash_command(
     state: State<'_, AppState>,
     name: String,
-    config: Value,
-) -> Result<Value, String> {
+    config: OpenJsonValueDto,
+) -> Result<OpenJsonValueDto, String> {
     let mut settings = load_settings(state.inner()).await?;
 
     let pos = settings
@@ -42,7 +44,7 @@ pub async fn claude_update_slash_command(
         .position(|c| c.name == name)
         .ok_or_else(|| format!("Slash command '{}' not found", name))?;
 
-    let updated: ccr_types::SlashCommand = serde_json::from_value(config)
+    let updated: ccr_types::SlashCommand = serde_json::from_value(config.into())
         .map_err(|e| format!("Invalid slash command config: {}", e))?;
     settings.slash_commands[pos] = updated;
 
@@ -50,7 +52,7 @@ pub async fn claude_update_slash_command(
 
     let result = serde_json::to_value(&settings.slash_commands)
         .map_err(|e| format!("Serialization error: {}", e))?;
-    Ok(serde_json::json!({ "commands": result }))
+    open_json(serde_json::json!({ "commands": result }))
 }
 
 #[tauri::command]

@@ -345,10 +345,8 @@ import {
 import { translateWithFallback } from '@/i18n/formatMessage'
 import { useUIStore } from '@/stores/ui'
 import type {
-  CodexModelsResponse,
   CodexProfile,
   CodexProfileAuthMode,
-  CodexProfilesResponse,
 } from '@/types'
 import type { ProviderTemplateDraftContext, ProviderTemplateSelection } from '@/types/providerTemplates'
 import { copyText } from '@/utils/clipboard'
@@ -372,8 +370,6 @@ import { mapTemplateToCodexProfilePatch } from '@/utils/providerTemplates'
 import { REFRESH_TTL_MS } from '@/config/constants'
 
 defineOptions({ name: 'CodexProfilesView' })
-
-interface ProfilesExportResponse { content: string, filename: string }
 
 const { t } = useI18n()
 const uiStore = useUIStore()
@@ -600,7 +596,7 @@ const copyProfileEnv = async (profile: CodexProfile) => {
 
 const loadModels = async () => {
   try {
-    const data = await listCodexModels<CodexModelsResponse>()
+    const data = await listCodexModels()
     codexBuiltinModels.value = data.builtin_models || []
   } catch (error) {
     logger.error('Failed to load codex models:', error)
@@ -615,7 +611,7 @@ const loadProfiles = async () => {
   try {
     loading.value = true
     const [profilesData] = await Promise.all([
-      listCodexProfiles<CodexProfilesResponse>(),
+      listCodexProfiles(),
       loadModels(),
     ])
     profiles.value = profilesData.profiles || []
@@ -640,7 +636,7 @@ const ensureLoaded = async (force = false) => {
 const handleExportProfiles = async () => {
   exporting.value = true
   try {
-    const payload = await exportCodexProfiles<ProfilesExportResponse>(true)
+    const payload = await exportCodexProfiles(true)
     downloadTextFile(payload.filename, payload.content, 'application/toml;charset=utf-8')
     uiStore.showSuccess(t('codex.profiles.exportSuccess'))
   } catch (error) {
@@ -653,7 +649,7 @@ const handleExportProfiles = async () => {
 
 const loadActiveEnvironment = async () => {
   try {
-    const environment = await getCurrentEnvironment<{ env_type?: string } | null>()
+    const environment = await getCurrentEnvironment()
     rawLocal.value = !environment || environment.env_type === 'local'
   } catch {
     rawLocal.value = false
@@ -710,7 +706,8 @@ const openFormModal = async (name?: string) => {
   resetForm()
   showForm.value = true
   if (!name) return
-  const profile = await getCodexProfile<CodexProfile>(name)
+  const profile = await getCodexProfile(name)
+  if (!profile) throw new Error(`Codex profile '${name}' not found`)
   applyProfileToForm(profile)
 }
 

@@ -14,6 +14,8 @@ use std::collections::HashMap;
 use std::io::Write as IoWrite;
 use std::path::PathBuf;
 
+use super::wire::OpenJsonValueDto;
+
 // ── Config file helpers ──
 
 fn antigravity_cli_dir() -> Result<PathBuf, String> {
@@ -255,27 +257,32 @@ fn find_command_file(
 // ── Settings ──
 
 #[tauri::command]
-pub async fn gemini_get_settings() -> Result<Value, String> {
+pub async fn gemini_get_settings() -> Result<OpenJsonValueDto, String> {
     tokio::task::spawn_blocking(read_gemini_config)
         .await
-        .map_err(|e| format!("任务执行失败: {e}"))?
+        .map_err(|e| format!("任务执行失败: {e}"))??
+        .try_into()
 }
 
 #[tauri::command]
-pub async fn gemini_update_settings(settings: Value) -> Result<Value, String> {
-    tokio::task::spawn_blocking(move || {
+pub async fn gemini_update_settings(
+    settings: OpenJsonValueDto,
+) -> Result<OpenJsonValueDto, String> {
+    let settings = settings.into();
+    tokio::task::spawn_blocking(move || -> Result<Value, String> {
         write_gemini_config(&settings)?;
         Ok(json!({ "message": "Antigravity CLI 配置更新成功" }))
     })
     .await
-    .map_err(|e| format!("任务执行失败: {e}"))?
+    .map_err(|e| format!("任务执行失败: {e}"))??
+    .try_into()
 }
 
 // ── MCP Servers ──
 
 #[tauri::command]
-pub async fn gemini_list_mcp_servers() -> Result<Value, String> {
-    tokio::task::spawn_blocking(|| {
+pub async fn gemini_list_mcp_servers() -> Result<OpenJsonValueDto, String> {
+    tokio::task::spawn_blocking(|| -> Result<Value, String> {
         let config = read_gemini_mcp_config()?;
         let servers = config
             .get("mcpServers")
@@ -289,12 +296,17 @@ pub async fn gemini_list_mcp_servers() -> Result<Value, String> {
         Ok(json!(list))
     })
     .await
-    .map_err(|e| format!("任务执行失败: {e}"))?
+    .map_err(|e| format!("任务执行失败: {e}"))??
+    .try_into()
 }
 
 #[tauri::command]
-pub async fn gemini_add_mcp_server(name: String, config: Value) -> Result<Value, String> {
-    tokio::task::spawn_blocking(move || {
+pub async fn gemini_add_mcp_server(
+    name: String,
+    config: OpenJsonValueDto,
+) -> Result<OpenJsonValueDto, String> {
+    let config = config.into();
+    tokio::task::spawn_blocking(move || -> Result<Value, String> {
         let mut full = read_gemini_mcp_config()?;
         let servers = full
             .as_object_mut()
@@ -311,12 +323,17 @@ pub async fn gemini_add_mcp_server(name: String, config: Value) -> Result<Value,
         Ok(json!({ "message": format!("MCP 服务器 '{name}' 添加成功") }))
     })
     .await
-    .map_err(|e| format!("任务执行失败: {e}"))?
+    .map_err(|e| format!("任务执行失败: {e}"))??
+    .try_into()
 }
 
 #[tauri::command]
-pub async fn gemini_update_mcp_server(name: String, config: Value) -> Result<Value, String> {
-    tokio::task::spawn_blocking(move || {
+pub async fn gemini_update_mcp_server(
+    name: String,
+    config: OpenJsonValueDto,
+) -> Result<OpenJsonValueDto, String> {
+    let config = config.into();
+    tokio::task::spawn_blocking(move || -> Result<Value, String> {
         let mut full = read_gemini_mcp_config()?;
         let servers = full
             .as_object_mut()
@@ -333,12 +350,13 @@ pub async fn gemini_update_mcp_server(name: String, config: Value) -> Result<Val
         Ok(json!({ "message": format!("MCP 服务器 '{name}' 更新成功") }))
     })
     .await
-    .map_err(|e| format!("任务执行失败: {e}"))?
+    .map_err(|e| format!("任务执行失败: {e}"))??
+    .try_into()
 }
 
 #[tauri::command]
 pub async fn gemini_delete_mcp_server(name: String) -> Result<String, String> {
-    tokio::task::spawn_blocking(move || {
+    tokio::task::spawn_blocking(move || -> Result<String, String> {
         let mut full = read_gemini_mcp_config()?;
         let servers = full
             .as_object_mut()
@@ -359,18 +377,23 @@ pub async fn gemini_delete_mcp_server(name: String) -> Result<String, String> {
 // ── Slash Commands ──
 
 #[tauri::command]
-pub async fn gemini_list_slash_commands() -> Result<Value, String> {
+pub async fn gemini_list_slash_commands() -> Result<OpenJsonValueDto, String> {
     tokio::task::spawn_blocking(|| {
         let (proj, user) = gemini_commands_dirs()?;
         list_toml_commands(&proj, &user)
     })
     .await
-    .map_err(|e| format!("任务执行失败: {e}"))?
+    .map_err(|e| format!("任务执行失败: {e}"))??
+    .try_into()
 }
 
 #[tauri::command]
-pub async fn gemini_add_slash_command(name: String, config: Value) -> Result<Value, String> {
-    tokio::task::spawn_blocking(move || {
+pub async fn gemini_add_slash_command(
+    name: String,
+    config: OpenJsonValueDto,
+) -> Result<OpenJsonValueDto, String> {
+    let config: Value = config.into();
+    tokio::task::spawn_blocking(move || -> Result<Value, String> {
         let (proj, _user) = gemini_commands_dirs()?;
         let folder = config
             .get("folder")
@@ -403,12 +426,17 @@ pub async fn gemini_add_slash_command(name: String, config: Value) -> Result<Val
         Ok(json!({ "message": format!("斜杠命令 '{name}' 添加成功") }))
     })
     .await
-    .map_err(|e| format!("任务执行失败: {e}"))?
+    .map_err(|e| format!("任务执行失败: {e}"))??
+    .try_into()
 }
 
 #[tauri::command]
-pub async fn gemini_update_slash_command(name: String, config: Value) -> Result<Value, String> {
-    tokio::task::spawn_blocking(move || {
+pub async fn gemini_update_slash_command(
+    name: String,
+    config: OpenJsonValueDto,
+) -> Result<OpenJsonValueDto, String> {
+    let config: Value = config.into();
+    tokio::task::spawn_blocking(move || -> Result<Value, String> {
         let (proj, user) = gemini_commands_dirs()?;
         let target = find_command_file(&proj, &user, &name)?
             .ok_or_else(|| format!("斜杠命令 '{name}' 不存在"))?;
@@ -431,7 +459,8 @@ pub async fn gemini_update_slash_command(name: String, config: Value) -> Result<
         Ok(json!({ "message": format!("斜杠命令 '{name}' 更新成功") }))
     })
     .await
-    .map_err(|e| format!("任务执行失败: {e}"))?
+    .map_err(|e| format!("任务执行失败: {e}"))??
+    .try_into()
 }
 
 #[tauri::command]
@@ -450,9 +479,9 @@ pub async fn gemini_delete_slash_command(name: String) -> Result<String, String>
 // ── Extensions ──
 
 #[tauri::command]
-pub async fn gemini_list_extensions() -> Result<Value, String> {
+pub async fn gemini_list_extensions() -> Result<OpenJsonValueDto, String> {
     // Antigravity plugins/extensions 通过 ~/.gemini/antigravity-cli/extensions/ 目录管理
-    tokio::task::spawn_blocking(|| {
+    tokio::task::spawn_blocking(|| -> Result<Value, String> {
         let ext_dir = antigravity_cli_dir()?.join("extensions");
         if !ext_dir.exists() {
             return Ok(json!([]));
@@ -495,5 +524,6 @@ pub async fn gemini_list_extensions() -> Result<Value, String> {
         Ok(json!(extensions))
     })
     .await
-    .map_err(|e| format!("任务执行失败: {e}"))?
+    .map_err(|e| format!("任务执行失败: {e}"))??
+    .try_into()
 }

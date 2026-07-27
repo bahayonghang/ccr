@@ -231,7 +231,7 @@ import {
   getHistory, deleteConfig, enableConfig, disableConfig
 } from '@/api'
 import { getUsageByProviderV2 } from '@/api'
-import type { ConfigItem, ConfigListResponse, HistoryEntry, HistoryResponse } from '@/types'
+import type { ConfigItem, HistoryEntry } from '@/types'
 import { useUIStore } from '@/stores/ui'
 import { logger } from '@/utils/logger'
 
@@ -365,7 +365,7 @@ const configSummary = computed(() => [
 const loadConfigs = async () => {
   loading.value = true
   try {
-    const data = await listConfigs<ConfigListResponse>()
+    const data = await listConfigs()
     configs.value = data.configs
   } catch (e: unknown) {
     const message = getErrorMessage(e)
@@ -378,7 +378,7 @@ const loadConfigs = async () => {
 const loadHistory = async () => {
   historyLoading.value = true
   try {
-    const data = await getHistory<HistoryResponse>()
+    const data = await getHistory()
     historyEntries.value = data.entries
   } catch (e: unknown) {
     logger.error('Failed to load history', e)

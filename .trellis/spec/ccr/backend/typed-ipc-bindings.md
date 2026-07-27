@@ -8,7 +8,7 @@
 
 - Trigger: adding/changing any wire DTO returned by (or accepted as input to) a typed Tauri command; typing a new command domain; upgrading `ts-rs`.
 - Applies to `ccr-ui/src-tauri/src/services/*`, `ccr-ui/src-tauri/src/llmusage_adapter/{queries,capabilities}.rs`, `ccr-ui/src-tauri/src/{usage_jobs,session_index_jobs}.rs`, `ccr-ui/src-tauri/src/claude_observer/subscription.rs`, `crates/ccr-usage/src/{queries,capabilities}.rs`, and the generated dir `ccr-ui/src/types/generated/`.
-- Typed domains: handler_registry "Usage V2" group (17 commands, pilot), "Claude Observer" group (9 commands, `services/claude_observer.rs` + `generated/claude_observer/`), and the llmusage install flow (`ccr_cli::services::install_types` + `generated/install/`). All typed commands are `Result<NamedDto, String>` — `Result<Value, String>` is banned in typed domains.
+- Typed coverage is generated from the command manifest: 252/315 base commands (80.00%). This includes the original Usage V2 (17), Claude Observer (9), and install (8) pilots plus generated clients for config, system prompts, sync, Claude, Codex, auth/provider, Gemini, OpenCode, SSH, command execution, and the smaller system/UI/environment/event/shell domains. All typed commands expose a concrete generated return type; `Result<Value, String>` is banned at the command boundary.
 
 ### 2. Signatures
 
@@ -45,6 +45,8 @@
 - **`export_to` paths resolve relative to `<manifest>/bindings/`**, not the manifest dir (one level deeper than intuition).
 - Generated files are **committed** (reviewers see contract diffs), `linguist-generated` + `eol=lf` via root `.gitattributes`, excluded from eslint (`ccr-ui/eslint.config.js` ignores `src/types/generated/**`), covered by `bun run type-check`.
 - TS consumption: domain wrappers (`src/api/domains/stats.ts`) import generated types directly and expose concrete return types — no `<T = UnknownRecord>` generics in a typed domain. `src/types/usage.ts` is a compat shim re-exporting generated types under legacy names plus hand-written view-only types (`UsagePlatform`, `HomeOverviewViewMode`, event payloads). Event payloads (`app_handle.emit`) are not command returns and stay hand-written until events join the pilot.
+- Structurally open configuration payloads use the generated recursive `OpenJsonValueDto` union at the command boundary. Handwritten wrappers must convert unknown inputs with `toOpenJsonValue`; unchecked `as OpenJsonValueDto` casts are forbidden because they admit bigint, non-finite numbers, symbols, and other non-JSON values.
+- Newly migrated commands are invoked only by registry-generated clients under `src/api/generated/`. The three pre-manifest typed pilots (`stats.ts`, `claudeObserver.ts`, and `install.ts`) retain their concrete manual clients until their generator migration; the manifest-aware smoke guard freezes that exception list.
 - Name uniqueness: one exported type name per generated dir. If a workspace crate and src-tauri both define a same-named type (e.g. `HomeOverview*`), only the wire-facing one gets `ts(export)`.
 - **Repository types never go on the wire directly**: when a domain returns rows owned by a ccr-db repository (e.g. `claude_tool_calls_repo::{HeatmapCell,TopToolRow}`), the service layer defines a same-shaped wire DTO with the `TS` derive and maps via `From`. ccr-db stays free of ts-rs/frontend-binding concerns, and the bindings recipe never needs a ccr-db export step.
 
@@ -72,6 +74,7 @@
 - `just tauri-bindings-check` (drift; also part of `just ci`).
 - Service unit tests without a Tauri app: src-tauri `cargo test services -- --test-threads=1` (fixture DB via `ccr_usage::fixtures`, temp ccr-db pool via `create_pool` + `run_all_migrations`; no real home-dir access — FS probes like `has_any_raw_sessions` are passed in as booleans by the command layer).
 - `cd ccr-ui && bun run type-check` (generated types + consumers).
+- `cd ccr-ui && bun run test:smoke -- tests/api-facade-boundary.smoke.test.ts tests/typed-json-boundary.smoke.test.ts tests/typed-command-boundary.smoke.test.ts` (generated-client ownership + JSON input boundary + zero raw-`Value` command returns).
 - `cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml commands::handler_registry -- --nocapture` (counts unchanged).
 
 ### 7. Wrong vs Correct

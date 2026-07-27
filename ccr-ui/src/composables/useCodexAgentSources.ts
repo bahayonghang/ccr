@@ -14,7 +14,6 @@ import {
 import type {
   CodexAgentSourceCatalogResponse,
   CodexAgentSourceRecord,
-  CodexAgentSourcesResponse,
 } from '@/types'
 
 export function useCodexAgentSources() {
@@ -31,7 +30,7 @@ export function useCodexAgentSources() {
   async function refreshSources() {
     loading.value = true
     try {
-      const response = await listCodexAgentSources<CodexAgentSourcesResponse>()
+      const response = await listCodexAgentSources()
       sources.value = response.sources ?? []
       if (!selectedSourceId.value && sources.value.length > 0) {
         selectedSourceId.value = sources.value[0]!.id
@@ -51,7 +50,7 @@ export function useCodexAgentSources() {
     loading.value = true
     try {
       selectedSourceId.value = targetId
-      catalog.value = await getCodexAgentSourceCatalog<CodexAgentSourceCatalogResponse>(targetId)
+      catalog.value = await getCodexAgentSourceCatalog(targetId)
     } finally {
       loading.value = false
     }
@@ -80,7 +79,7 @@ export function useCodexAgentSources() {
   async function addSource(url: string) {
     mutating.value = true
     try {
-      const source = await addCodexAgentSource<CodexAgentSourceRecord>(url)
+      const source = await addCodexAgentSource(url)
       selectedSourceId.value = source.id
       await refreshSelectedSourceLifecycle({ sourceId: source.id })
     } finally {

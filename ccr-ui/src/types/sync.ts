@@ -1,30 +1,13 @@
 // WebDAV sync type definitions
 
-export interface SyncConfigDetails {
-  enabled: boolean;
-  webdav_url: string;
-  username: string;
-  remote_path: string;
-  auto_sync: boolean;
-  remote_file_exists?: boolean | null;
-}
-
-export interface SyncStatusResponse {
-  success: boolean;
-  output: string;
-  configured: boolean;
-  config?: SyncConfigDetails | null;
-}
+export type { SyncFolderInfo, SyncFolderInfo as SyncFolderItem } from './generated/sync/SyncFolderInfo'
+export type { SyncStatusInfo, SyncStatusInfo as SyncStatusResponse } from './generated/sync/SyncStatusInfo'
+export type { WebDavConfigDetails } from './generated/sync/WebDavConfigDetails'
+export type { WebDavConfigInput } from './generated/sync/WebDavConfigInput'
+export type { WebDavTestResult } from './generated/sync/WebDavTestResult'
 
 export interface SyncOperationRequest {
   force?: boolean;
-}
-
-export interface SyncOperationResponse {
-  success: boolean;
-  output: string;
-  error: string;
-  duration_ms: number;
 }
 
 export interface SyncInfoResponse {
@@ -53,41 +36,8 @@ export const detectProvider = (url: string | undefined): WebDavProvider => {
   return 'custom'
 }
 
-/** set/test 命令入参（前端 camelCase，与后端 #[serde(rename_all="camelCase")] 对齐） */
-export interface WebDavConfigInput {
-  webdavUrl: string
-  username: string
-  password: string
-  remotePath?: string
-  autoSync?: boolean
-}
-
-/** set 命令返回值 */
-export interface WebDavConfigDetails {
-  enabled: boolean
-  webdavUrl: string
-  username: string
-  remotePath: string
-  autoSync: boolean
-  hasPassword: boolean
-}
-
-/** test 命令返回值 */
-export interface WebDavTestResult {
-  ok: boolean
-  message: string
-}
-
 export interface SyncResult {
   platform: string
   success: boolean
   message?: string
-}
-
-export interface SyncFolderItem {
-  name: string
-  enabled: boolean
-  localPath: string
-  remotePath: string
-  description?: string
 }

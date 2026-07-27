@@ -2,114 +2,48 @@
 
 // ============ Command Execution Types ============
 
+import type { CommandArgSchema as GeneratedCommandArgSchema } from './generated/command_exec/CommandArgSchema'
+import type { CommandInfo as GeneratedCommandInfo } from './generated/command_exec/CommandInfo'
+
 export interface CommandRequest {
   command: string;
-  args: string[];
+  args?: string[];
   confirmationToken?: string | null;
 }
 
-export interface CommandResponse {
-  success: boolean;
-  output: string;
-  error: string;
-  exit_code: number;
-  duration_ms: number;
-}
-
-export interface CommandInfo {
-  name: string;
-  path?: string[];
-  title?: string;
-  description: string;
-  usage: string;
-  examples: string[];
-  category?: CommandCategory;
-  risk?: CommandRisk;
-  executable?: boolean;
-  requiresConfirmation?: boolean;
-  args?: CommandArgSchema[];
-  flags?: CommandFlagSchema[];
-  aliases?: string[];
-  relatedRoute?: string | null;
-}
-
-export type CommandCategory = 'read' | 'write' | 'danger' | 'diagnostic' | 'preview' | 'blocked' | string;
-
-export type CommandRisk =
-  | 'safe'
-  | 'writes_config'
-  | 'destructive'
-  | 'interactive'
-  | 'preview_only'
-  | string;
-
-export interface CommandArgSchema {
-  name: string;
-  label: string;
-  type: 'text' | 'path' | 'select' | 'number' | 'boolean' | string;
-  required: boolean;
-  placeholder?: string | null;
-  source?: string | null;
-  description?: string;
-}
-
-export interface CommandFlagSchema {
-  name: string;
-  aliases?: string[];
-  label: string;
-  description?: string;
-  type: 'boolean' | 'text' | 'path' | 'number' | string;
-  takesValue: boolean;
-  defaultValue?: string | null;
-}
-
-export type CommandJobStatus =
-  | 'queued'
-  | 'running'
-  | 'success'
-  | 'failed'
-  | 'cancelled'
-  | 'cleanup_failed'
-  | 'unavailable';
-
-export interface CommandJobSnapshot {
-  job_id: string;
-  command: string;
-  args: string[];
-  status: CommandJobStatus;
-  started_at: string;
-  finished_at?: string | null;
-  duration_ms?: number | null;
-  exit_code?: number | null;
-  stdout_lines: string[];
-  stderr_lines: string[];
-  system_lines: string[];
-  truncated?: boolean;
-  dropped_lines?: number;
-  error?: string | null;
-}
-
-export interface StartCommandJobResponse {
-  job_id: string;
-  snapshot: CommandJobSnapshot;
-}
-
-export interface CommandJobDelta {
-  job_id: string;
-  seq: number;
-  channel: 'stdout' | 'stderr' | 'system';
-  lines: string[];
-  dropped_count: number;
-  status?: CommandJobStatus;
-}
+export type CommandArgSchema = Pick<
+  GeneratedCommandArgSchema,
+  'name' | 'label' | 'type' | 'required'
+> &
+  Partial<Omit<GeneratedCommandArgSchema, 'name' | 'label' | 'type' | 'required'>>
+export type { CommandCatalog } from './generated/command_exec/CommandCatalog'
+export type {
+  CommandExecutionResult,
+  CommandExecutionResult as CommandResponse,
+} from './generated/command_exec/CommandExecutionResult'
+export type { CommandFlagSchema } from './generated/command_exec/CommandFlagSchema'
+export type { CommandHelpResponse } from './generated/command_exec/CommandHelpResponse'
+export type CommandInfo = Pick<
+  GeneratedCommandInfo,
+  'name' | 'description' | 'usage' | 'examples'
+> &
+  Partial<Omit<GeneratedCommandInfo, 'name' | 'description' | 'usage' | 'examples' | 'args'>> & {
+    args?: CommandArgSchema[]
+  }
+export type { GeneratedCommandInfo }
+export type { CommandJobDelta } from './generated/command_exec/CommandJobDelta'
+export type { CommandJobSnapshot } from './generated/command_exec/CommandJobSnapshot'
+export type { CommandJobStatus } from './generated/command_exec/CommandJobStatus'
+export type { OutputChannel } from './generated/command_exec/OutputChannel'
+export type { StartCommandJobResponse } from './generated/command_exec/StartCommandJobResponse'
 
 // ============ Config Management Types ============
 
 export interface ConfigItem {
-  name: string;
-  description: string;
-  base_url: string;
-  auth_token: string;
+  name: import('./generated/config/ConfigInfo').ConfigInfo['name'];
+  description: import('./generated/config/ConfigInfo').ConfigInfo['description'];
+  base_url: import('./generated/config/ConfigInfo').ConfigInfo['base_url'];
+  auth_token: import('./generated/config/ConfigInfo').ConfigInfo['auth_token'];
   model?: string;
   small_fast_model?: string;
   is_current: boolean;
@@ -118,9 +52,8 @@ export interface ConfigItem {
   provider_type?: string;
   account?: string;
   tags?: string[];
-  // 📊 使用统计和状态字段
-  usage_count?: number;
-  enabled?: boolean;
+  usage_count: number;
+  enabled: boolean;
 }
 
 export interface ConfigListResponse {
@@ -148,14 +81,10 @@ export interface UpdateConfigRequest {
 
 // ============ History Types ============
 
-export interface HistoryEntry {
-  id: string;
-  timestamp: string;
-  operation: string;
-  actor: string;
+export type HistoryEntry = import('./generated/config/HistoryEntry').HistoryEntry & {
   from_config?: string;
   to_config?: string;
-  changes: EnvChange[];
+  changes?: EnvChange[];
 }
 
 export interface EnvChange {
@@ -171,21 +100,7 @@ export interface HistoryResponse {
 
 // ============ System Info Types ============
 
-export interface SystemInfo {
-  hostname: string;
-  os: string;
-  os_version: string;
-  kernel_version: string;
-  cpu_brand: string;
-  cpu_cores: number;
-  cpu_usage: number;
-  total_memory_gb: number;
-  used_memory_gb: number;
-  memory_usage_percent: number;
-  total_swap_gb: number;
-  used_swap_gb: number;
-  uptime_seconds: number;
-}
+export type SystemInfo = import('./generated/system/SystemInfo').SystemInfo
 
 // ============ Clean Backup Types ============
 
@@ -248,17 +163,8 @@ export interface UpdateExecutionResponse {
   exit_code: number;
 }
 
-export interface CliVersionEntry {
-  platform: string;
-  installed: boolean;
-  version?: string;
-  status?: 'ok' | 'not_installed' | 'timeout' | 'error';
-  elapsed_ms?: number;
-}
-
-export interface CliVersionsResponse {
-  versions: CliVersionEntry[];
-}
+export type CliVersionEntry = import('./generated/system/CliVersionEntry').CliVersionEntry
+export type CliVersionsResponse = import('./generated/system/CliVersionsResponse').CliVersionsResponse
 
 export type CliVersionsMode = 'fast' | 'full';
 

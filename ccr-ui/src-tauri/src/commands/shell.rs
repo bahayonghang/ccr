@@ -3,6 +3,7 @@
 use serde::Serialize;
 use std::process::Stdio;
 use tauri::{AppHandle, State};
+use ts_rs::TS;
 
 use crate::desktop_shell;
 use crate::process;
@@ -15,7 +16,8 @@ const SKILLPORT_BUNDLE_IDS: [&str; 2] =
 const SKILLPORT_APP_NAMES: [&str; 2] = ["skillport", "skills-manage"];
 
 /// `skillport` 检测结果。
-#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, PartialEq, Eq, TS)]
+#[ts(export, export_to = "../../src/types/generated/shell/")]
 pub struct SkillportAppStatus {
     pub supported: bool,
     pub installed: bool,

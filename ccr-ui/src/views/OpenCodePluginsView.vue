@@ -248,8 +248,8 @@ async function loadPlugins() {
   loading.value = true
   try {
     const [packageNames, localPluginList] = await Promise.all([
-      listOpenCodePlugins<string[]>(),
-      listOpenCodeLocalPlugins<OpenCodeLocalPluginFile[]>(),
+      listOpenCodePlugins(),
+      listOpenCodeLocalPlugins(),
     ])
     packages.value = packageNames.map((name) => ({ name }))
     localPlugins.value = localPluginList

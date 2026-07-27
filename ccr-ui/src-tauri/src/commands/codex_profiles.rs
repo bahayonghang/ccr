@@ -7,8 +7,8 @@ use crate::commands::settings_raw::ensure_local_env;
 
 /// 列出 CCR Codex profiles（~/.ccr/platforms/codex/profiles.toml）
 #[tauri::command]
-pub async fn codex_list_profiles() -> Result<Value, String> {
-    tokio::task::spawn_blocking(|| {
+pub async fn codex_list_profiles() -> Result<OpenJsonValueDto, String> {
+    tokio::task::spawn_blocking(|| -> Result<Value, String> {
         let platform = CodexPlatform::new().map_err(|e| format!("初始化 Codex 平台失败: {e}"))?;
         let current_profile = platform
             .get_current_profile()
@@ -34,19 +34,23 @@ pub async fn codex_list_profiles() -> Result<Value, String> {
         Ok(json!({ "profiles": profiles, "current_profile": current_profile }))
     })
     .await
-    .map_err(|e| format!("任务执行失败: {e}"))?
+    .map_err(|e| format!("任务执行失败: {e}"))??
+    .try_into()
 }
 
 #[tauri::command]
-pub async fn codex_get_profiles_raw(state: State<'_, AppState>) -> Result<Value, String> {
+pub async fn codex_get_profiles_raw(
+    state: State<'_, AppState>,
+) -> Result<OpenJsonValueDto, String> {
     if let Some(response) = ensure_local_env(state.inner()).await {
-        return Ok(response);
+        return response.try_into();
     }
     let paths = PlatformPaths::new(Platform::Codex)
         .map_err(|error| format!("解析 Codex Profiles 路径失败: {error}"))?;
     tokio::task::spawn_blocking(move || profiles_raw_payload_from_paths(&paths))
         .await
-        .map_err(|error| format!("读取 Codex Profiles 后台任务失败: {error}"))?
+        .map_err(|error| format!("读取 Codex Profiles 后台任务失败: {error}"))??
+        .try_into()
 }
 
 #[tauri::command]
@@ -55,13 +59,13 @@ pub async fn codex_save_profiles_raw(
     content: String,
     token: String,
     force: bool,
-) -> Result<Value, String> {
+) -> Result<OpenJsonValueDto, String> {
     if let Some(response) = ensure_local_env(state.inner()).await {
-        return Ok(response);
+        return response.try_into();
     }
     let paths = PlatformPaths::new(Platform::Codex)
         .map_err(|error| format!("解析 Codex Profiles 路径失败: {error}"))?;
-    tokio::task::spawn_blocking(move || {
+    tokio::task::spawn_blocking(move || -> Result<Value, String> {
         let platform =
             CodexPlatform::new().map_err(|error| format!("初始化 Codex 平台失败: {error}"))?;
         let current = platform
@@ -70,15 +74,17 @@ pub async fn codex_save_profiles_raw(
         save_profiles_raw_to_paths(&paths, current.as_deref(), &content, &token, force)
     })
     .await
-    .map_err(|error| format!("写入 Codex Profiles 后台任务失败: {error}"))?
+    .map_err(|error| format!("写入 Codex Profiles 后台任务失败: {error}"))??
+    .try_into()
 }
 
 /// 列出 Codex 可选模型（内置 + 自定义）
 #[tauri::command]
-pub async fn codex_list_models() -> Result<Value, String> {
+pub async fn codex_list_models() -> Result<OpenJsonValueDto, String> {
     tokio::task::spawn_blocking(codex_list_models_payload)
         .await
-        .map_err(|e| format!("任务执行失败: {e}"))?
+        .map_err(|e| format!("任务执行失败: {e}"))??
+        .try_into()
 }
 
 /// 新增 Codex profile（写入 CCR profiles.toml）
@@ -86,8 +92,9 @@ pub async fn codex_list_models() -> Result<Value, String> {
 pub async fn codex_add_profile(
     state: State<'_, AppState>,
     name: String,
-    config: Value,
-) -> Result<Value, String> {
+    config: OpenJsonValueDto,
+) -> Result<OpenJsonValueDto, String> {
+    let config: Value = config.into();
     let response = tokio::task::spawn_blocking(move || -> Result<Value, String> {
         let platform = CodexPlatform::new().map_err(|e| format!("初始化 Codex 平台失败: {e}"))?;
         let profiles = platform
@@ -108,7 +115,7 @@ pub async fn codex_add_profile(
     .map_err(|e| format!("任务执行失败: {e}"))??;
 
     invalidate_codex_dashboard_overview_cache(&state).await;
-    Ok(response)
+    open_json(response)
 }
 
 /// 更新 Codex profile（核心字段覆盖 + extra/platform_data 整体替换）
@@ -157,14 +164,15 @@ fn update_codex_profile_payload(name: String, config: Value) -> Result<Value, St
 pub async fn codex_update_profile(
     state: State<'_, AppState>,
     name: String,
-    config: Value,
-) -> Result<Value, String> {
+    config: OpenJsonValueDto,
+) -> Result<OpenJsonValueDto, String> {
+    let config: Value = config.into();
     let response = tokio::task::spawn_blocking(move || update_codex_profile_payload(name, config))
         .await
         .map_err(|e| format!("任务执行失败: {e}"))??;
 
     invalidate_codex_dashboard_overview_cache(&state).await;
-    Ok(response)
+    open_json(response)
 }
 
 /// 删除 Codex profile
@@ -172,7 +180,7 @@ pub async fn codex_update_profile(
 pub async fn codex_delete_profile(
     state: State<'_, AppState>,
     name: String,
-) -> Result<Value, String> {
+) -> Result<OpenJsonValueDto, String> {
     let response = tokio::task::spawn_blocking(move || -> Result<Value, String> {
         let platform = CodexPlatform::new().map_err(|e| format!("初始化 Codex 平台失败: {e}"))?;
         platform
@@ -184,7 +192,7 @@ pub async fn codex_delete_profile(
     .map_err(|e| format!("任务执行失败: {e}"))??;
 
     invalidate_codex_dashboard_overview_cache(&state).await;
-    Ok(response)
+    open_json(response)
 }
 
 /// 应用 Codex profile
@@ -192,7 +200,7 @@ pub async fn codex_delete_profile(
 pub async fn codex_apply_profile(
     state: State<'_, AppState>,
     name: String,
-) -> Result<Value, String> {
+) -> Result<OpenJsonValueDto, String> {
     let response = tokio::task::spawn_blocking(move || -> Result<Value, String> {
         let platform = CodexPlatform::new().map_err(|e| format!("初始化 Codex 平台失败: {e}"))?;
         platform
@@ -204,7 +212,7 @@ pub async fn codex_apply_profile(
     .map_err(|e| format!("任务执行失败: {e}"))??;
 
     invalidate_codex_dashboard_overview_cache(&state).await;
-    Ok(response)
+    open_json(response)
 }
 
 /// 获取 Codex profile 导出的环境变量与 shell 脚本
@@ -215,10 +223,11 @@ fn codex_profiles_export_payload(include_secrets: bool) -> Result<Value, String>
 }
 
 #[tauri::command]
-pub async fn codex_export_profiles(include_secrets: bool) -> Result<Value, String> {
+pub async fn codex_export_profiles(include_secrets: bool) -> Result<OpenJsonValueDto, String> {
     tokio::task::spawn_blocking(move || codex_profiles_export_payload(include_secrets))
         .await
-        .map_err(|e| format!("任务执行失败: {e}"))?
+        .map_err(|e| format!("任务执行失败: {e}"))??
+        .try_into()
 }
 
 #[cfg(test)]
@@ -576,8 +585,8 @@ mod update_tests {
 }
 
 #[tauri::command]
-pub async fn codex_get_profile_env(name: String) -> Result<Value, String> {
-    tokio::task::spawn_blocking(move || {
+pub async fn codex_get_profile_env(name: String) -> Result<OpenJsonValueDto, String> {
+    tokio::task::spawn_blocking(move || -> Result<Value, String> {
         let platform = CodexPlatform::new().map_err(|e| format!("初始化 Codex 平台失败: {e}"))?;
         let env_export = platform
             .export_profile_env(&name)
@@ -593,5 +602,6 @@ pub async fn codex_get_profile_env(name: String) -> Result<Value, String> {
         }))
     })
     .await
-    .map_err(|e| format!("任务执行失败: {e}"))?
+    .map_err(|e| format!("任务执行失败: {e}"))??
+    .try_into()
 }

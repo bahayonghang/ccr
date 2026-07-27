@@ -1,34 +1,85 @@
 //! 内置提示词命令
 
-use serde_json::Value;
+use ccr_skills::{BuiltinPrompt, PromptVariable};
+use serde::Serialize;
+use ts_rs::TS;
 
-#[tauri::command]
-pub async fn list_builtin_prompts() -> Result<Value, String> {
-    let prompts = tokio::task::spawn_blocking(|| {
-        let prompts = ccr_skills::get_builtin_prompts();
-        serde_json::to_value(prompts).map_err(|e| format!("Serialization error: {e}"))
-    })
-    .await
-    .map_err(|e| format!("Task join error: {e}"))??;
+#[derive(Debug, Clone, Serialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/builtin_prompts/")]
+pub struct PromptVariableDto {
+    pub name: String,
+    pub description: String,
+    pub default: Option<String>,
+    pub required: bool,
+}
 
-    Ok(prompts)
+impl From<PromptVariable> for PromptVariableDto {
+    fn from(value: PromptVariable) -> Self {
+        Self {
+            name: value.name,
+            description: value.description,
+            default: value.default,
+            required: value.required,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/builtin_prompts/")]
+pub struct BuiltinPromptDto {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub content: String,
+    pub category: String,
+    pub tags: Vec<String>,
+    pub variables: Vec<PromptVariableDto>,
+}
+
+impl From<BuiltinPrompt> for BuiltinPromptDto {
+    fn from(value: BuiltinPrompt) -> Self {
+        Self {
+            id: value.id,
+            name: value.name,
+            description: value.description,
+            content: value.content,
+            category: value.category.as_str().to_string(),
+            tags: value.tags,
+            variables: value
+                .variables
+                .into_iter()
+                .map(PromptVariableDto::from)
+                .collect(),
+        }
+    }
 }
 
 #[tauri::command]
-pub async fn get_builtin_prompt(id: String) -> Result<Value, String> {
-    let prompt = tokio::task::spawn_blocking(move || {
-        let result = ccr_skills::get_prompt_by_id(&id);
-        serde_json::to_value(result).map_err(|e| format!("Serialization error: {e}"))
+pub async fn list_builtin_prompts() -> Result<Vec<BuiltinPromptDto>, String> {
+    tokio::task::spawn_blocking(|| {
+        ccr_skills::get_builtin_prompts()
+            .into_iter()
+            .map(BuiltinPromptDto::from)
+            .collect()
     })
     .await
-    .map_err(|e| format!("Task join error: {e}"))??;
-
-    Ok(prompt)
+    .map_err(|e| format!("Task join error: {e}"))
 }
 
 #[tauri::command]
-pub async fn get_builtin_prompts_by_category(category: String) -> Result<Value, String> {
-    let prompts = tokio::task::spawn_blocking(move || {
+pub async fn get_builtin_prompt(id: String) -> Result<Option<BuiltinPromptDto>, String> {
+    tokio::task::spawn_blocking(move || {
+        ccr_skills::get_prompt_by_id(&id).map(BuiltinPromptDto::from)
+    })
+    .await
+    .map_err(|e| format!("Task join error: {e}"))
+}
+
+#[tauri::command]
+pub async fn get_builtin_prompts_by_category(
+    category: String,
+) -> Result<Vec<BuiltinPromptDto>, String> {
+    tokio::task::spawn_blocking(move || {
         use ccr_skills::PromptCategory;
 
         let cat = match category.as_str() {
@@ -41,11 +92,11 @@ pub async fn get_builtin_prompts_by_category(category: String) -> Result<Value, 
             _ => PromptCategory::General,
         };
 
-        let results = ccr_skills::get_prompts_by_category(cat);
-        serde_json::to_value(results).map_err(|e| format!("Serialization error: {e}"))
+        ccr_skills::get_prompts_by_category(cat)
+            .into_iter()
+            .map(BuiltinPromptDto::from)
+            .collect()
     })
     .await
-    .map_err(|e| format!("Task join error: {e}"))??;
-
-    Ok(prompts)
+    .map_err(|e| format!("Task join error: {e}"))
 }

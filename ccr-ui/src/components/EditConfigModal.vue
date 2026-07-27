@@ -366,6 +366,7 @@ const loadConfig = async () => {
   loading.value = true
   try {
     const data = await getConfig(props.configName)
+    if (!data) throw new Error(`Configuration not found: ${props.configName}`)
     formData.value = { ...data }
     tagsInput.value = Array.isArray(data.tags) ? data.tags.join(', ') : ''
   } catch (e) {

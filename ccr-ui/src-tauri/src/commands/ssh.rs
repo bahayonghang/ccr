@@ -4,8 +4,8 @@ use std::sync::Arc;
 
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use tauri::{Emitter, State};
+use ts_rs::TS;
 
 use ccr_db::database::repositories::ssh_repo;
 use ccr_db::models::ssh::{SshHost, SshKnownHost};
@@ -33,8 +33,27 @@ fn db_host_to_config(host: SshHost) -> SshHostConfig {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/ssh/")]
 pub struct AddSshHostRequest {
+    #[ts(optional)]
+    pub id: Option<String>,
+    #[ts(optional)]
+    pub name: Option<String>,
+    pub host: String,
+    #[ts(optional)]
+    pub port: Option<u16>,
+    #[ts(optional)]
+    pub user: Option<String>,
+    #[ts(optional)]
+    pub identity_file: Option<String>,
+    #[ts(optional)]
+    pub remote_home: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/ssh/")]
+pub struct SshHostConfigDto {
     pub id: Option<String>,
     pub name: Option<String>,
     pub host: String,
@@ -44,7 +63,22 @@ pub struct AddSshHostRequest {
     pub remote_home: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+impl From<SshHostConfig> for SshHostConfigDto {
+    fn from(config: SshHostConfig) -> Self {
+        Self {
+            id: config.id,
+            name: config.name,
+            host: config.host,
+            port: config.port,
+            user: config.user,
+            identity_file: config.identity_file,
+            remote_home: config.remote_home,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/ssh/")]
 pub struct SshConnectionState {
     pub env_id: String,
     pub connected: bool,
@@ -53,14 +87,58 @@ pub struct SshConnectionState {
     pub last_error: Option<String>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+impl From<crate::state::SshRuntimeState> for SshConnectionState {
+    fn from(state: crate::state::SshRuntimeState) -> Self {
+        Self {
+            env_id: state.env_id,
+            connected: state.connected,
+            has_password: state.has_password,
+            last_checked_at: state.last_checked_at,
+            last_error: state.last_error,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, TS)]
+#[serde(untagged)]
+#[ts(export, export_to = "../../src/types/generated/ssh/")]
+pub enum SshConnectionStateResponse {
+    One(SshConnectionState),
+    Many(Vec<SshConnectionState>),
+}
+
+#[derive(Debug, Clone, Deserialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/ssh/")]
 pub struct SshProbeFingerprintRequest {
+    #[ts(optional)]
     pub env_id: Option<String>,
+    #[ts(optional)]
     pub host: Option<String>,
+    #[ts(optional)]
     pub port: Option<u16>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Copy, Serialize, TS)]
+#[serde(rename_all = "snake_case")]
+#[ts(export, export_to = "../../src/types/generated/ssh/")]
+pub enum SshHostKeyStatus {
+    New,
+    Matched,
+    Mismatch,
+}
+
+impl From<HostKeyStatus> for SshHostKeyStatus {
+    fn from(status: HostKeyStatus) -> Self {
+        match status {
+            HostKeyStatus::New => Self::New,
+            HostKeyStatus::Matched => Self::Matched,
+            HostKeyStatus::Mismatch => Self::Mismatch,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/ssh/")]
 pub struct SshFingerprintProbeResult {
     pub challenge_id: String,
     pub host: String,
@@ -68,13 +146,75 @@ pub struct SshFingerprintProbeResult {
     pub key_type: String,
     pub public_key: String,
     pub fingerprint: String,
-    pub status: HostKeyStatus,
+    pub status: SshHostKeyStatus,
     pub stored_fingerprint: Option<String>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/ssh/")]
 pub struct SshConfirmFingerprintRequest {
     pub challenge_id: String,
+}
+
+#[derive(Debug, Clone, Serialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/ssh/")]
+pub struct SshCliStatusDto {
+    pub name: String,
+    pub installed: bool,
+    pub path: Option<String>,
+    pub version: Option<String>,
+}
+
+impl From<crate::platform::CliStatus> for SshCliStatusDto {
+    fn from(status: crate::platform::CliStatus) -> Self {
+        Self {
+            name: status.name,
+            installed: status.installed,
+            path: status.path,
+            version: status.version,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/ssh/")]
+pub struct SshConnectResultDto {
+    pub success: bool,
+    #[ts(as = "f64")]
+    pub latency_ms: u64,
+    pub error_code: Option<String>,
+    pub error: Option<String>,
+}
+
+impl From<SshConnectResult> for SshConnectResultDto {
+    fn from(result: SshConnectResult) -> Self {
+        Self {
+            success: result.success,
+            latency_ms: result.latency_ms,
+            error_code: result.error_code,
+            error: result.error,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/ssh/")]
+pub struct SshKeyInfoDto {
+    pub path: String,
+    pub key_type: String,
+    pub has_passphrase: bool,
+    pub fingerprint: Option<String>,
+}
+
+impl From<SshKeyInfo> for SshKeyInfoDto {
+    fn from(key: SshKeyInfo) -> Self {
+        Self {
+            path: key.path,
+            key_type: key.key_type,
+            has_passphrase: key.has_passphrase,
+            fingerprint: key.fingerprint,
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -290,7 +430,7 @@ fn deactivate_active_target(
 }
 
 #[tauri::command]
-pub async fn ssh_list_hosts(state: State<'_, AppState>) -> Result<Vec<SshHostConfig>, String> {
+pub async fn ssh_list_hosts(state: State<'_, AppState>) -> Result<Vec<SshHostConfigDto>, String> {
     let db_pool = state.db_pool.clone();
 
     let hosts = tokio::task::spawn_blocking(move || {
@@ -302,7 +442,11 @@ pub async fn ssh_list_hosts(state: State<'_, AppState>) -> Result<Vec<SshHostCon
     .await
     .map_err(|e| format!("读取 SSH 主机列表任务失败: {e}"))??;
 
-    Ok(hosts.into_iter().map(db_host_to_config).collect())
+    Ok(hosts
+        .into_iter()
+        .map(db_host_to_config)
+        .map(SshHostConfigDto::from)
+        .collect())
 }
 
 #[tauri::command]
@@ -310,7 +454,7 @@ pub async fn ssh_add_host(
     app_handle: tauri::AppHandle,
     state: State<'_, AppState>,
     host: AddSshHostRequest,
-) -> Result<SshHostConfig, String> {
+) -> Result<SshHostConfigDto, String> {
     let config = SshHostConfig {
         id: host.id.or_else(|| Some(host.host.clone())),
         name: host.name,
@@ -383,7 +527,7 @@ pub async fn ssh_add_host(
 
     let _ = app_handle.emit("env:refresh-requested", true);
 
-    Ok(config)
+    Ok(config.into())
 }
 
 #[tauri::command]
@@ -442,10 +586,10 @@ pub async fn ssh_disconnect(state: State<'_, AppState>) -> Result<SshConnectionS
 pub async fn ssh_get_connection_state(
     state: State<'_, AppState>,
     env_id: Option<String>,
-) -> Result<Value, String> {
+) -> Result<SshConnectionStateResponse, String> {
     if let Some(id) = env_id {
         if let Some(item) = SshConnectionManager::get_state(state.inner(), &id).await {
-            return serde_json::to_value(item).map_err(|e| format!("序列化连接状态失败: {e}"));
+            return Ok(SshConnectionStateResponse::One(item.into()));
         }
 
         let fallback = crate::state::SshRuntimeState {
@@ -455,11 +599,13 @@ pub async fn ssh_get_connection_state(
             last_checked_at: None,
             last_error: None,
         };
-        return serde_json::to_value(fallback).map_err(|e| format!("序列化连接状态失败: {e}"));
+        return Ok(SshConnectionStateResponse::One(fallback.into()));
     }
 
     let items = SshConnectionManager::list_states(state.inner()).await;
-    serde_json::to_value(items).map_err(|e| format!("序列化连接状态失败: {e}"))
+    Ok(SshConnectionStateResponse::Many(
+        items.into_iter().map(SshConnectionState::from).collect(),
+    ))
 }
 
 #[tauri::command]
@@ -507,7 +653,7 @@ pub async fn ssh_probe_host_fingerprint(
         key_type: scanned.key_type,
         public_key: scanned.key_data,
         fingerprint: scanned.fingerprint,
-        status,
+        status: status.into(),
         stored_fingerprint,
     })
 }
@@ -581,8 +727,15 @@ pub async fn ssh_write_config(
 }
 
 #[tauri::command]
-pub async fn ssh_detect_cli(state: State<'_, AppState>, env_id: String) -> Result<Value, String> {
-    sftp::detect_cli(state.inner(), &env_id).await
+pub async fn ssh_detect_cli(
+    state: State<'_, AppState>,
+    env_id: String,
+) -> Result<Vec<SshCliStatusDto>, String> {
+    Ok(sftp::detect_cli(state.inner(), &env_id)
+        .await?
+        .into_iter()
+        .map(SshCliStatusDto::from)
+        .collect())
 }
 
 /// 测试 SSH 连接连通性（从数据库解析主机配置）。
@@ -590,7 +743,7 @@ pub async fn ssh_detect_cli(state: State<'_, AppState>, env_id: String) -> Resul
 pub async fn ssh_test_connection(
     state: State<'_, AppState>,
     env_id: String,
-) -> Result<SshConnectResult, String> {
+) -> Result<SshConnectResultDto, String> {
     let host_id = env_id
         .strip_prefix("ssh:")
         .ok_or_else(|| format!("无效 SSH 环境 ID: {env_id}"))?
@@ -607,13 +760,19 @@ pub async fn ssh_test_connection(
     .map_err(|e| format!("读取 SSH 主机任务失败: {e}"))??
     .ok_or_else(|| format!("SSH 主机不存在: {env_id}"))?;
 
-    SshConnectionManager::test_connectivity(&db_host_to_config(host)).await
+    SshConnectionManager::test_connectivity(&db_host_to_config(host))
+        .await
+        .map(SshConnectResultDto::from)
 }
 
 /// 列出本机 `~/.ssh/` 目录中发现的所有 SSH 私钥文件信息。
 #[tauri::command]
-pub async fn ssh_list_keys() -> Result<Vec<SshKeyInfo>, String> {
-    Ok(auth::discover_keys().await)
+pub async fn ssh_list_keys() -> Result<Vec<SshKeyInfoDto>, String> {
+    Ok(auth::discover_keys()
+        .await
+        .into_iter()
+        .map(SshKeyInfoDto::from)
+        .collect())
 }
 
 #[cfg(test)]

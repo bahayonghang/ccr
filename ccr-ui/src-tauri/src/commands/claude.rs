@@ -22,6 +22,12 @@ use crate::platform::local::LocalEnvironment;
 use crate::platform::{EnvError, ExecutionEnvironment};
 use crate::state::AppState;
 
+use super::wire::OpenJsonValueDto;
+
+fn open_json(value: Value) -> Result<OpenJsonValueDto, String> {
+    value.try_into()
+}
+
 // ── Settings（~/.claude/settings.json）Helper ──
 //
 // ccr_types::ClaudeSettings 是全仓唯一 shape（ccr::ClaudeSettings 已是其 re-export），

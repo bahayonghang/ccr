@@ -18,7 +18,7 @@
 - Guard test: `ccr-ui/tests/api-facade-boundary.smoke.test.ts`
 
 ### 3. Contracts
-- New business API wrappers must live in `src/api/domains/*` or a future generated typed client.
+- New business API wrappers must live in `src/api/domains/*` or a generated typed client.
 - `src/api/index.ts` exposes domain APIs through namespace exports such as `configApi`, `codexApi`, `syncApi`, `platformApi`, `usageApi`, and `systemApi`, or via an explicit compatibility re-export when needed.
 - `src/api/tauri.ts` must keep a compatibility-only header that tells maintainers not to add new direct `invoke()` calls.
 - The smoke guard strips comments before collecting `invoke()` calls, so JSDoc examples do not affect the allowlist.
@@ -29,9 +29,11 @@
 - Missing compatibility header marker -> smoke test fails.
 - New wrapper in `src/api/domains/*` and exported through `src/api/index.ts` -> accepted.
 - Generated typed client added later -> must keep generated drift checks outside this manual facade guard.
+- A manifest-typed command invoked from a handwritten wrapper outside the three frozen pilot clients -> smoke guard fails; route it through `src/api/generated/*`.
 
 ### 5. Good/Base/Bad Cases
 - Good: add `src/api/domains/usage.ts` wrapper and expose it through `usageApi` in `src/api/index.ts`.
+- Good: call a migrated command through its registry-generated client and project the concrete result in a domain wrapper.
 - Good: add a temporary explicit compatibility re-export from `index.ts` with a migration reason.
 - Base: keep existing `tauri.ts` legacy wrappers unchanged while stores migrate gradually.
 - Bad: add `return invoke('new_backend_command')` directly to `tauri.ts`.

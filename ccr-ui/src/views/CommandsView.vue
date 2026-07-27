@@ -592,6 +592,8 @@ import type {
   CommandJobStatus,
   ConfigItem,
 } from '@/types'
+import type { CommandHistoryDto as CommandHistoryItem } from '@/types/generated/ui_state/CommandHistoryDto'
+import type { FavoriteCommandDto as FavoriteCommand } from '@/types/generated/ui_state/FavoriteCommandDto'
 import { normalizeCliClient, type CliClient } from '@/types/router'
 import { createAnsiRenderer } from '@/utils/ansiRenderer'
 import { logger } from '@/utils/logger'
@@ -620,25 +622,6 @@ type CommandCollection = 'catalog' | 'favorites' | 'history'
 
 // 账本最大渲染行数，与 useStream 默认上限对齐，超出部分仅保留最近行
 const MAX_LEDGER_LINES = 2000
-
-interface FavoriteCommand {
-  id: string
-  command: string
-  args: string[]
-  display_name?: string | null
-  module: string
-  created_at: string
-}
-
-interface CommandHistoryItem {
-  id: string
-  full_command: string
-  command: string
-  args: string[]
-  success: boolean
-  executed_at: string
-  duration_ms: number
-}
 
 const { t } = useI18n({ useScope: 'global' })
 const route = useRoute()
@@ -946,7 +929,7 @@ const loadConfigs = async () => {
   }
 
   try {
-    const response = await listConfigs<{ configs: ConfigItem[] } | ConfigItem[]>()
+    const response = await listConfigs()
     configs.value = Array.isArray(response) ? response : response.configs
   } catch (error) {
     logger.error('Failed to load configs:', error)
@@ -962,8 +945,8 @@ const loadPersistedState = async () => {
 
   try {
     const [favoriteData, historyData] = await Promise.all([
-      getFavorites<FavoriteCommand[]>(),
-      getRecentItems<CommandHistoryItem[]>(20),
+      getFavorites(),
+      getRecentItems(20),
     ])
     favorites.value = favoriteData
     historyItems.value = historyData
@@ -979,7 +962,7 @@ const loadCommands = async () => {
   }
 
   try {
-    const data = await listCommands<CommandInfo[]>()
+    const data = await listCommands()
     applyCommandList('ccr', data.length > 0 ? data : fallbackCommandRegistry.ccr)
   } catch (error) {
     logger.error('Failed to load commands:', error)
@@ -1029,13 +1012,13 @@ const maybeRecordHistory = async (snapshot: CommandJobSnapshot) => {
 
   recordedJobIds.add(snapshot.job_id)
   try {
-    await addRecentItem<CommandHistoryItem>(
+    await addRecentItem(
       snapshot.command,
       snapshot.args,
       snapshot.status === 'success',
       snapshot.duration_ms ?? 0
     )
-    historyItems.value = await getRecentItems<CommandHistoryItem[]>(20)
+    historyItems.value = await getRecentItems(20)
   } catch (error) {
     logger.error('Failed to persist command history:', error)
   }
@@ -1160,6 +1143,8 @@ const handleExecute = async () => {
       stdout_lines: [],
       stderr_lines: [],
       system_lines: [message],
+      truncated: false,
+      dropped_lines: 0,
       error: message,
     }
   }
@@ -1186,7 +1171,7 @@ const handleToggleFavorite = async () => {
       return
     }
 
-    const favorite = await addFavoriteItem<FavoriteCommand>(
+    const favorite = await addFavoriteItem(
       selectedCommandInfo.value.name,
       selectedCommandArgs.value,
       selectedCommandInfo.value.title || selectedCommandInfo.value.name,

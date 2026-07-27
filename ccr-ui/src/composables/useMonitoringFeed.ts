@@ -313,7 +313,7 @@ export function useMonitoringFeed(options: MonitoringFeedOptions = {}) {
     }
 
     try {
-      const entries = await getRecentEvents<unknown[]>(initialCount)
+      const entries = await getRecentEvents(initialCount)
       mergeEntries(
         entries
           .map(normalizeMonitoringEntry)

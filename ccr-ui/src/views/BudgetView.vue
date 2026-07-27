@@ -374,7 +374,7 @@ const loadData = async () => {
   error.value = null
 
   try {
-    const status = await getBudgetStatus<BudgetStatus>()
+    const status = await getBudgetStatus()
     budgetStatus.value = status
 
     form.value.enabled = status.enabled

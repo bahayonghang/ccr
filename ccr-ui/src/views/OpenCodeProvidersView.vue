@@ -401,8 +401,8 @@ async function loadProviders() {
   loading.value = true
   try {
     const [providerList, config] = await Promise.all([
-      listOpenCodeProviders<OpenCodeProviderConfig[]>(),
-      getOpenCodeConfig<OpenCodeConfig>(),
+      listOpenCodeProviders(),
+      getOpenCodeConfig(),
     ])
     providers.value = providerList
     configState.value = config
@@ -506,7 +506,7 @@ async function syncProviderVisibility(id: string, enabled: boolean) {
   if ((configState.value.enabled_providers || []).length > 0) {
     patch.enabled_providers = [...nextEnabled]
   }
-  configState.value = await updateOpenCodeConfig<OpenCodeConfig>(patch)
+  configState.value = await updateOpenCodeConfig(patch)
 }
 
 async function saveProvider() {
@@ -560,7 +560,7 @@ async function toggleEnabled(provider: OpenCodeProviderConfig) {
 async function removeProvider(provider: OpenCodeProviderConfig) {
   try {
     await deleteOpenCodeProvider(provider.id)
-    configState.value = await updateOpenCodeConfig<OpenCodeConfig>({
+    configState.value = await updateOpenCodeConfig({
       disabled_providers: (configState.value.disabled_providers || []).filter((item) => item !== provider.id),
       enabled_providers: (configState.value.enabled_providers || []).filter((item) => item !== provider.id),
     })

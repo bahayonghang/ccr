@@ -13,11 +13,13 @@ use reqwest::Url;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map as JsonMap, Value as JsonValue, json};
 use sha2::{Digest, Sha256};
+use std::collections::BTreeMap;
 use std::ffi::OsString;
 use std::io::ErrorKind;
 use std::path::PathBuf;
 use std::sync::{LazyLock, Mutex};
 use tauri::{AppHandle, Emitter, State};
+use ts_rs::TS;
 use uuid::Uuid;
 
 const OAUTH_CLIENT_ID: &str = "app_EMoamEEZ73f0CkXaXp7hrann";
@@ -52,35 +54,412 @@ struct CodexOAuthTokenResponse {
     refresh_token: Option<String>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../../src/types/generated/codex_auth/")]
 pub struct CodexAuthImportPayload {
     content: String,
+    #[ts(optional)]
     switch_after_import: Option<bool>,
+    #[ts(optional)]
     preferred_account_name: Option<String>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../../src/types/generated/codex_auth/")]
 pub struct CodexApiKeyAddPayload {
     api_key: String,
+    #[ts(optional)]
     api_base_url: Option<String>,
+    #[ts(optional)]
     provider_name: Option<String>,
+    #[ts(optional)]
     save_provider: Option<bool>,
+    #[ts(optional)]
     switch_after_add: Option<bool>,
+    #[ts(optional)]
     preferred_account_name: Option<String>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../../src/types/generated/codex_auth/")]
 pub struct CodexModelProviderUpsertPayload {
+    #[ts(optional)]
     id: Option<String>,
     name: String,
     base_url: String,
+    #[ts(optional)]
     website_url: Option<String>,
+    #[ts(optional)]
     api_key_url: Option<String>,
+    #[ts(optional)]
     api_key_name: Option<String>,
+    #[ts(optional)]
     api_key: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, TS)]
+#[serde(tag = "type")]
+#[ts(export, export_to = "../../src/types/generated/codex_auth/")]
+pub enum CodexLoginState {
+    NotLoggedIn,
+    LoggedInUnsaved,
+    LoggedInSaved {
+        account_name: String,
+    },
+    ApiKeyActive,
+    ProviderKeyActive {
+        env_key: String,
+    },
+    Unknown {
+        raw_type: String,
+        raw: CodexJsonValue,
+    },
+}
+
+#[derive(Debug, Clone, Serialize, TS)]
+#[serde(untagged)]
+#[ts(export, export_to = "../../src/types/generated/codex_auth/")]
+pub enum CodexJsonValue {
+    Null,
+    Bool(bool),
+    Number(f64),
+    String(String),
+    Array(Vec<CodexJsonValue>),
+    Object(BTreeMap<String, CodexJsonValue>),
+}
+
+impl From<JsonValue> for CodexJsonValue {
+    fn from(value: JsonValue) -> Self {
+        match value {
+            JsonValue::Null => Self::Null,
+            JsonValue::Bool(value) => Self::Bool(value),
+            JsonValue::Number(value) => Self::Number(value.as_f64().unwrap_or_default()),
+            JsonValue::String(value) => Self::String(value),
+            JsonValue::Array(values) => Self::Array(values.into_iter().map(Into::into).collect()),
+            JsonValue::Object(values) => Self::Object(
+                values
+                    .into_iter()
+                    .map(|(key, value)| (key, value.into()))
+                    .collect(),
+            ),
+        }
+    }
+}
+
+impl From<ccr_codex::LoginState> for CodexLoginState {
+    fn from(value: ccr_codex::LoginState) -> Self {
+        match value {
+            ccr_codex::LoginState::NotLoggedIn => Self::NotLoggedIn,
+            ccr_codex::LoginState::LoggedInUnsaved => Self::LoggedInUnsaved,
+            ccr_codex::LoginState::LoggedInSaved(account_name) => {
+                Self::LoggedInSaved { account_name }
+            }
+            ccr_codex::LoginState::ApiKeyActive => Self::ApiKeyActive,
+            ccr_codex::LoginState::ProviderKeyActive { env_key } => {
+                Self::ProviderKeyActive { env_key }
+            }
+            ccr_codex::LoginState::Unknown { type_name, raw } => Self::Unknown {
+                raw_type: type_name,
+                raw: raw.into(),
+            },
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/codex_auth/")]
+pub struct CodexAuthAccountItem {
+    pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub email: Option<String>,
+    pub is_current: bool,
+    pub is_virtual: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub auth_method: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub api_base_url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub api_provider_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub saved_at: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub last_used: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub last_refresh: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub plan_type: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/codex_auth/")]
+pub struct CodexAuthCurrentInfo {
+    pub account_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub auth_method: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub email: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub plan_type: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub last_refresh: Option<String>,
+}
+
+impl From<ccr_codex::CurrentAuthInfo> for CodexAuthCurrentInfo {
+    fn from(value: ccr_codex::CurrentAuthInfo) -> Self {
+        Self {
+            account_id: value.account_id,
+            auth_method: value.auth_method.map(auth_method_name),
+            email: value.email,
+            plan_type: value.plan_type,
+            last_refresh: value.last_refresh.map(|date| date.to_rfc3339()),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/codex_auth/")]
+pub struct CodexAuthListResponse {
+    pub accounts: Vec<CodexAuthAccountItem>,
+    pub login_state: CodexLoginState,
+}
+
+#[derive(Debug, Clone, Serialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/codex_auth/")]
+pub struct CodexAuthCurrentResponse {
+    pub logged_in: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub info: Option<CodexAuthCurrentInfo>,
+    pub login_state: CodexLoginState,
+}
+
+#[derive(Debug, Clone, Serialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/codex_auth/")]
+pub struct CodexAuthActionResponse {
+    pub success: bool,
+    pub message: String,
+}
+
+#[derive(Debug, Clone, Serialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/codex_auth/")]
+pub struct CodexAuthMutationResponse {
+    pub success: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub account_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub switched: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub imported: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub results: Option<Vec<CodexAuthMutationResponse>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub message: Option<String>,
+}
+
+impl CodexAuthMutationResponse {
+    fn account(account_name: String, switched: bool) -> Self {
+        Self {
+            success: true,
+            account_name: Some(account_name),
+            switched: Some(switched),
+            imported: None,
+            results: None,
+            message: None,
+        }
+    }
+
+    fn import(results: Vec<Self>, switched: bool) -> Self {
+        Self {
+            success: true,
+            account_name: None,
+            switched: Some(switched),
+            imported: Some(results.len()),
+            results: (!results.is_empty()).then_some(results),
+            message: None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../../src/types/generated/codex_auth/")]
+pub struct CodexOAuthStartResponse {
+    pub login_id: String,
+    pub auth_url: String,
+}
+
+#[derive(Debug, Clone, Serialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/codex_auth/")]
+pub struct CodexAuthAccountMetadata {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub description: Option<String>,
+    pub account_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub auth_method: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub api_base_url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub api_provider_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub email: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub plan_type: Option<String>,
+    pub saved_at: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub last_used: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub last_refresh: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub expires_at: Option<String>,
+}
+
+impl From<ccr_codex::CodexAuthAccount> for CodexAuthAccountMetadata {
+    fn from(value: ccr_codex::CodexAuthAccount) -> Self {
+        Self {
+            description: value.description,
+            account_id: value.account_id,
+            auth_method: value.auth_method.map(auth_method_name),
+            api_base_url: value.api_base_url,
+            api_provider_name: value.api_provider_name,
+            email: value.email,
+            plan_type: value.plan_type,
+            saved_at: value.saved_at.to_rfc3339(),
+            last_used: value.last_used.map(|date| date.to_rfc3339()),
+            last_refresh: value.last_refresh.map(|date| date.to_rfc3339()),
+            expires_at: value.expires_at.map(|date| date.to_rfc3339()),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/codex_auth/")]
+pub struct CodexAuthRenameResponse {
+    pub success: bool,
+    pub old_name: String,
+    pub new_name: String,
+    pub account: CodexAuthAccountMetadata,
+    pub message: String,
+}
+
+#[derive(Debug, Clone, Serialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/codex_auth/")]
+pub struct CodexAuthProcessResponse {
+    pub has_running_process: bool,
+    pub pids: Vec<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub warning: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/codex_auth/")]
+pub struct CodexModelProviderApiKeyDto {
+    pub id: String,
+    pub name: String,
+    pub api_key: String,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+impl From<CodexModelProviderApiKey> for CodexModelProviderApiKeyDto {
+    fn from(value: CodexModelProviderApiKey) -> Self {
+        Self {
+            id: value.id,
+            name: value.name,
+            api_key: value.api_key,
+            created_at: value.created_at.to_rfc3339(),
+            updated_at: value.updated_at.to_rfc3339(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/codex_auth/")]
+pub struct CodexModelProviderRecordDto {
+    pub id: String,
+    pub name: String,
+    pub base_url: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub website_url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub api_key_url: Option<String>,
+    pub api_keys: Vec<CodexModelProviderApiKeyDto>,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+impl From<CodexModelProviderRecord> for CodexModelProviderRecordDto {
+    fn from(value: CodexModelProviderRecord) -> Self {
+        Self {
+            id: value.id,
+            name: value.name,
+            base_url: value.base_url,
+            website_url: value.website_url,
+            api_key_url: value.api_key_url,
+            api_keys: value.api_keys.into_iter().map(Into::into).collect(),
+            created_at: value.created_at.to_rfc3339(),
+            updated_at: value.updated_at.to_rfc3339(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/codex_auth/")]
+pub struct CodexModelProvidersResponse {
+    pub providers: Vec<CodexModelProviderRecordDto>,
+}
+
+#[derive(Debug, Clone, Serialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/codex_auth/")]
+pub struct CodexModelProviderSaveResponse {
+    pub provider: CodexModelProviderRecordDto,
+}
+
+#[derive(Debug, Clone, Serialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/codex_auth/")]
+pub struct CodexModelProviderDeleteResponse {
+    pub success: bool,
+}
+
+fn auth_method_name(method: OpenAiAuthMethod) -> String {
+    match method {
+        OpenAiAuthMethod::Chatgpt => "chatgpt".to_string(),
+        OpenAiAuthMethod::Api => "api".to_string(),
+    }
 }
 
 fn now_ts() -> i64 {
@@ -635,8 +1014,9 @@ async fn discover_port_processes(port: u16) -> Result<Vec<u32>, String> {
     }
 }
 
-#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, PartialEq, Eq, TS)]
 #[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../../src/types/generated/codex_auth/")]
 pub struct OAuthPortReleaseReport {
     pub discovered_pids: Vec<u32>,
     pub owned_pids: Vec<u32>,
@@ -665,32 +1045,29 @@ fn build_port_release_report(
     }
 }
 
-fn account_item_to_value(
+fn account_item_to_dto(
     item: ccr_codex::CodexAuthItem,
     snapshot: &ccr_codex::AuthReadSnapshot,
-) -> Value {
+) -> CodexAuthAccountItem {
     let registry_account = snapshot.registry.accounts.get(&item.name);
     let auth_method = registry_account
         .and_then(|account| account.auth_method)
-        .map(|method| match method {
-            OpenAiAuthMethod::Chatgpt => "chatgpt".to_string(),
-            OpenAiAuthMethod::Api => "api".to_string(),
-        });
+        .map(auth_method_name);
 
-    json!({
-        "name": item.name,
-        "description": item.description,
-        "email": item.email,
-        "is_current": item.is_current,
-        "is_virtual": item.is_virtual,
-        "saved_at": item.saved_at.map(|dt| dt.to_rfc3339()),
-        "last_used": item.last_used.map(|dt| dt.to_rfc3339()),
-        "last_refresh": item.last_refresh.map(|dt| dt.to_rfc3339()),
-        "plan_type": item.plan_type,
-        "auth_method": auth_method,
-        "api_base_url": registry_account.and_then(|account| account.api_base_url.clone()),
-        "api_provider_name": registry_account.and_then(|account| account.api_provider_name.clone()),
-    })
+    CodexAuthAccountItem {
+        name: item.name,
+        description: item.description,
+        email: item.email,
+        is_current: item.is_current,
+        is_virtual: item.is_virtual,
+        saved_at: item.saved_at.map(|date| date.to_rfc3339()),
+        last_used: item.last_used.map(|date| date.to_rfc3339()),
+        last_refresh: item.last_refresh.map(|date| date.to_rfc3339()),
+        plan_type: item.plan_type,
+        auth_method,
+        api_base_url: registry_account.and_then(|account| account.api_base_url.clone()),
+        api_provider_name: registry_account.and_then(|account| account.api_provider_name.clone()),
+    }
 }
 
 fn finalize_account_mutation(
@@ -698,7 +1075,7 @@ fn finalize_account_mutation(
     export_account: ccr_codex::CodexAuthExportAccount,
     preferred_name: Option<String>,
     switch_after_import: bool,
-) -> Result<Value, String> {
+) -> Result<CodexAuthMutationResponse, String> {
     let explicit_name = normalize_account_name(preferred_name);
     let name_hint = explicit_name.clone().or_else(|| {
         derive_name_hint(
@@ -731,11 +1108,10 @@ fn finalize_account_mutation(
             .map_err(|e| format!("切换账号失败: {e}"))?;
     }
 
-    Ok(json!({
-        "success": true,
-        "account_name": account_name,
-        "switched": switch_after_import,
-    }))
+    Ok(CodexAuthMutationResponse::account(
+        account_name,
+        switch_after_import,
+    ))
 }
 
 fn parse_import_entries(content: &str) -> Result<Vec<(Option<String>, CodexAuthJson)>, String> {
@@ -775,7 +1151,7 @@ fn parse_import_entries(content: &str) -> Result<Vec<(Option<String>, CodexAuthJ
 
 /// 列出所有 Codex Auth 账号
 #[tauri::command]
-pub async fn codex_list_auth_accounts() -> Result<Value, String> {
+pub async fn codex_list_auth_accounts() -> Result<CodexAuthListResponse, String> {
     tokio::task::spawn_blocking(|| {
         let service =
             CodexAuthService::new().map_err(|e| format!("初始化 Codex Auth 服务失败: {e}"))?;
@@ -789,10 +1165,13 @@ pub async fn codex_list_auth_accounts() -> Result<Value, String> {
 
         let accounts = accounts
             .into_iter()
-            .map(|item| account_item_to_value(item, &snapshot))
+            .map(|item| account_item_to_dto(item, &snapshot))
             .collect::<Vec<_>>();
 
-        Ok(json!({ "accounts": accounts, "login_state": snapshot.login_state }))
+        Ok(CodexAuthListResponse {
+            accounts,
+            login_state: snapshot.login_state.into(),
+        })
     })
     .await
     .map_err(|e| format!("任务执行失败: {e}"))?
@@ -800,7 +1179,7 @@ pub async fn codex_list_auth_accounts() -> Result<Value, String> {
 
 /// 获取当前 Codex Auth 信息
 #[tauri::command]
-pub async fn codex_get_auth_current() -> Result<Value, String> {
+pub async fn codex_get_auth_current() -> Result<CodexAuthCurrentResponse, String> {
     tokio::task::spawn_blocking(|| {
         let service =
             CodexAuthService::new().map_err(|e| format!("初始化 Codex Auth 服务失败: {e}"))?;
@@ -809,24 +1188,13 @@ pub async fn codex_get_auth_current() -> Result<Value, String> {
             .read_auth_snapshot()
             .map_err(|e| format!("读取认证快照失败: {e}"))?;
 
-        let info = snapshot.current_info.as_ref().map(|current| {
-            json!({
-                "account_id": current.account_id,
-                "auth_method": current.auth_method.map(|method| match method {
-                    OpenAiAuthMethod::Chatgpt => "chatgpt",
-                    OpenAiAuthMethod::Api => "api",
-                }),
-                "email": current.email,
-                "plan_type": current.plan_type,
-                "last_refresh": current.last_refresh.map(|dt| dt.to_rfc3339()),
-            })
-        });
+        let info = snapshot.current_info.map(Into::into);
 
-        Ok(json!({
-            "logged_in": info.is_some(),
-            "info": info,
-            "login_state": snapshot.login_state,
-        }))
+        Ok(CodexAuthCurrentResponse {
+            logged_in: info.is_some(),
+            info,
+            login_state: snapshot.login_state.into(),
+        })
     })
     .await
     .map_err(|e| format!("任务执行失败: {e}"))?
@@ -840,8 +1208,8 @@ pub async fn codex_save_auth(
     name: String,
     description: Option<String>,
     force: Option<bool>,
-) -> Result<Value, String> {
-    let response = tokio::task::spawn_blocking(move || -> Result<Value, String> {
+) -> Result<CodexAuthActionResponse, String> {
+    let response = tokio::task::spawn_blocking(move || -> Result<_, String> {
         let service =
             CodexAuthService::new().map_err(|e| format!("初始化 Codex Auth 服务失败: {e}"))?;
 
@@ -849,7 +1217,10 @@ pub async fn codex_save_auth(
             .save_current(&name, description, force.unwrap_or(false))
             .map_err(|e| format!("{e}"))?;
 
-        Ok(json!({ "success": true, "message": format!("Codex Auth 账号 '{name}' 已成功保存") }))
+        Ok(CodexAuthActionResponse {
+            success: true,
+            message: format!("Codex Auth 账号 '{name}' 已成功保存"),
+        })
     })
     .await
     .map_err(|e| format!("任务执行失败: {e}"))??;
@@ -865,7 +1236,7 @@ pub async fn codex_switch_auth(
     app: AppHandle,
     state: State<'_, AppState>,
     name: String,
-) -> Result<Value, String> {
+) -> Result<CodexAuthActionResponse, String> {
     let name_resp = name.clone();
     tokio::task::spawn_blocking(move || {
         let service =
@@ -878,7 +1249,10 @@ pub async fn codex_switch_auth(
 
     invalidate_codex_dashboard_overview_cache(&state).await;
     let _ = desktop_shell::refresh_codex_tray(&app, true).await;
-    Ok(json!({ "success": true, "message": format!("已切换到 Codex Auth 账号 '{name_resp}'") }))
+    Ok(CodexAuthActionResponse {
+        success: true,
+        message: format!("已切换到 Codex Auth 账号 '{name_resp}'"),
+    })
 }
 
 /// 删除指定账号
@@ -887,7 +1261,7 @@ pub async fn codex_delete_auth(
     app: AppHandle,
     state: State<'_, AppState>,
     name: String,
-) -> Result<Value, String> {
+) -> Result<CodexAuthActionResponse, String> {
     let name_resp = name.clone();
     tokio::task::spawn_blocking(move || {
         let service =
@@ -900,7 +1274,10 @@ pub async fn codex_delete_auth(
 
     invalidate_codex_dashboard_overview_cache(&state).await;
     let _ = desktop_shell::refresh_codex_tray(&app, true).await;
-    Ok(json!({ "success": true, "message": format!("Codex Auth 账号 '{name_resp}' 已成功删除") }))
+    Ok(CodexAuthActionResponse {
+        success: true,
+        message: format!("Codex Auth 账号 '{name_resp}' 已成功删除"),
+    })
 }
 
 /// 重命名指定账号
@@ -914,36 +1291,36 @@ pub async fn codex_rename_auth(
     old_name: String,
     new_name: String,
     force: Option<bool>,
-) -> Result<Value, String> {
+) -> Result<CodexAuthRenameResponse, String> {
     let old_resp = old_name.clone();
     let new_resp = new_name.clone();
     let force_flag = force.unwrap_or(false);
 
-    let account = tokio::task::spawn_blocking(move || -> Result<Value, String> {
+    let account = tokio::task::spawn_blocking(move || -> Result<_, String> {
         let service =
             CodexAuthService::new().map_err(|e| format!("初始化 Codex Auth 服务失败: {e}"))?;
         let updated = service
             .rename_account(&old_name, &new_name, force_flag)
             .map_err(|e| format!("{e}"))?;
-        serde_json::to_value(&updated).map_err(|e| format!("序列化账号元数据失败: {e}"))
+        Ok(CodexAuthAccountMetadata::from(updated))
     })
     .await
     .map_err(|e| format!("任务执行失败: {e}"))??;
 
     invalidate_codex_dashboard_overview_cache(&state).await;
     let _ = desktop_shell::refresh_codex_tray(&app, true).await;
-    Ok(json!({
-        "success": true,
-        "old_name": old_resp,
-        "new_name": new_resp,
-        "account": account,
-        "message": format!("已重命名 Codex Auth '{old_resp}' -> '{new_resp}'"),
-    }))
+    Ok(CodexAuthRenameResponse {
+        success: true,
+        old_name: old_resp.clone(),
+        new_name: new_resp.clone(),
+        account,
+        message: format!("已重命名 Codex Auth '{old_resp}' -> '{new_resp}'"),
+    })
 }
 
 /// 检测运行中的 Codex 进程
 #[tauri::command]
-pub async fn codex_detect_process() -> Result<Value, String> {
+pub async fn codex_detect_process() -> Result<CodexAuthProcessResponse, String> {
     tokio::task::spawn_blocking(|| {
         let service =
             CodexAuthService::new().map_err(|e| format!("初始化 Codex Auth 服务失败: {e}"))?;
@@ -962,25 +1339,25 @@ pub async fn codex_detect_process() -> Result<Value, String> {
             )
         });
 
-        Ok(json!({
-            "has_running_process": has_running_process,
-            "pids": pids,
-            "warning": warning,
-        }))
+        Ok(CodexAuthProcessResponse {
+            has_running_process,
+            pids,
+            warning,
+        })
     })
     .await
     .map_err(|e| format!("任务执行失败: {e}"))?
 }
 
 #[tauri::command]
-pub async fn codex_oauth_login_start(app: AppHandle) -> Result<Value, String> {
+pub async fn codex_oauth_login_start(app: AppHandle) -> Result<CodexOAuthStartResponse, String> {
     hydrate_oauth_pending_if_needed()?;
     if let Some(existing) = current_pending_state()? {
         if existing.expires_at > now_ts() {
-            return Ok(json!({
-                "loginId": existing.login_id,
-                "authUrl": existing.auth_url,
-            }));
+            return Ok(CodexOAuthStartResponse {
+                login_id: existing.login_id,
+                auth_url: existing.auth_url,
+            });
         }
         set_oauth_pending(None)?;
     }
@@ -1009,7 +1386,7 @@ pub async fn codex_oauth_login_start(app: AppHandle) -> Result<Value, String> {
         let _ = start_oauth_callback_listener(app, pending).await;
     });
 
-    Ok(json!({ "loginId": login_id, "authUrl": auth_url }))
+    Ok(CodexOAuthStartResponse { login_id, auth_url })
 }
 
 #[tauri::command]
@@ -1018,7 +1395,7 @@ pub async fn codex_oauth_login_completed(
     state: State<'_, AppState>,
     login_id: String,
     preferred_account_name: Option<String>,
-) -> Result<Value, String> {
+) -> Result<CodexAuthMutationResponse, String> {
     let pending = oauth_state_from_login_id(&login_id)?;
     let callback_url = pending
         .callback_url
@@ -1153,7 +1530,7 @@ pub async fn codex_import_auth_payload(
     app: AppHandle,
     state: State<'_, AppState>,
     payload: CodexAuthImportPayload,
-) -> Result<Value, String> {
+) -> Result<CodexAuthMutationResponse, String> {
     let switch_after_import = payload.switch_after_import.unwrap_or(false);
     let content = payload.content;
     let preferred_account_name = normalize_account_name(payload.preferred_account_name);
@@ -1171,7 +1548,7 @@ pub async fn codex_import_auth_payload(
 
         match parse_import_entries(&content) {
             Ok(entries) if entries.is_empty() => {
-                Ok(json!({ "success": true, "imported": 0, "switched": false }))
+                Ok(CodexAuthMutationResponse::import(Vec::new(), false))
             }
             Ok(entries) => {
                 let mut imported = Vec::new();
@@ -1191,12 +1568,8 @@ pub async fn codex_import_auth_payload(
                     )?;
                     imported.push(response);
                 }
-                Ok(json!({
-                    "success": true,
-                    "imported": imported.len(),
-                    "results": imported,
-                    "switched": switch_after_import && !imported.is_empty(),
-                }))
+                let switched = switch_after_import && !imported.is_empty();
+                Ok(CodexAuthMutationResponse::import(imported, switched))
             }
             Err(error) => Err(error),
         }
@@ -1214,7 +1587,7 @@ pub async fn codex_import_auth_from_local(
     app: AppHandle,
     state: State<'_, AppState>,
     preferred_account_name: Option<String>,
-) -> Result<Value, String> {
+) -> Result<CodexAuthMutationResponse, String> {
     let result = tokio::task::spawn_blocking(move || {
         let service =
             CodexAuthService::new().map_err(|e| format!("初始化 Codex Auth 服务失败: {e}"))?;
@@ -1244,7 +1617,7 @@ pub async fn codex_add_auth_with_api_key(
     app: AppHandle,
     state: State<'_, AppState>,
     payload: CodexApiKeyAddPayload,
-) -> Result<Value, String> {
+) -> Result<CodexAuthMutationResponse, String> {
     let response = tokio::task::spawn_blocking(move || {
         let api_key = payload.api_key.trim().to_string();
         if api_key.is_empty() {
@@ -1318,14 +1691,16 @@ pub async fn codex_add_auth_with_api_key(
 }
 
 #[tauri::command]
-pub async fn codex_list_model_providers() -> Result<Value, String> {
+pub async fn codex_list_model_providers() -> Result<CodexModelProvidersResponse, String> {
     tokio::task::spawn_blocking(|| {
         let service = CodexModelProviderStoreService::new()
             .map_err(|e| format!("初始化供应商存储失败: {e}"))?;
         let store = service
             .load()
             .map_err(|e| format!("读取供应商列表失败: {e}"))?;
-        Ok(json!({ "providers": store.providers }))
+        Ok(CodexModelProvidersResponse {
+            providers: store.providers.into_iter().map(Into::into).collect(),
+        })
     })
     .await
     .map_err(|e| format!("任务执行失败: {e}"))?
@@ -1334,7 +1709,7 @@ pub async fn codex_list_model_providers() -> Result<Value, String> {
 #[tauri::command]
 pub async fn codex_save_model_provider(
     payload: CodexModelProviderUpsertPayload,
-) -> Result<Value, String> {
+) -> Result<CodexModelProviderSaveResponse, String> {
     tokio::task::spawn_blocking(move || {
         let service = CodexModelProviderStoreService::new()
             .map_err(|e| format!("初始化供应商存储失败: {e}"))?;
@@ -1357,21 +1732,25 @@ pub async fn codex_save_model_provider(
         let saved = service
             .upsert_provider(provider)
             .map_err(|e| format!("保存供应商失败: {e}"))?;
-        Ok(json!({ "provider": saved }))
+        Ok(CodexModelProviderSaveResponse {
+            provider: saved.into(),
+        })
     })
     .await
     .map_err(|e| format!("任务执行失败: {e}"))?
 }
 
 #[tauri::command]
-pub async fn codex_delete_model_provider(provider_id: String) -> Result<Value, String> {
+pub async fn codex_delete_model_provider(
+    provider_id: String,
+) -> Result<CodexModelProviderDeleteResponse, String> {
     tokio::task::spawn_blocking(move || {
         let service = CodexModelProviderStoreService::new()
             .map_err(|e| format!("初始化供应商存储失败: {e}"))?;
         service
             .delete_provider(&provider_id)
             .map_err(|e| format!("删除供应商失败: {e}"))?;
-        Ok(json!({ "success": true }))
+        Ok(CodexModelProviderDeleteResponse { success: true })
     })
     .await
     .map_err(|e| format!("任务执行失败: {e}"))?

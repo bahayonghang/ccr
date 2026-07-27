@@ -1,7 +1,7 @@
 import { computed, reactive, ref, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { codexDeleteModelProvider, codexListModelProviders, codexSaveModelProvider } from '@/api'
-import type { CodexModelProviderRecord, CodexModelProvidersResponse } from '@/types'
+import type { CodexModelProviderRecord } from '@/types'
 import type {
   ProviderTemplateDraftContext,
   ProviderTemplateSelection,
@@ -97,7 +97,7 @@ export function useCodexProviders(deps: {
     try {
       providerLoading.value = true
       providerError.value = null
-      const data = await codexListModelProviders<CodexModelProvidersResponse>()
+      const data = await codexListModelProviders()
       providers.value = data.providers || []
     } catch (error) {
       logger.error('Failed to load codex providers:', error)
@@ -171,14 +171,14 @@ export function useCodexProviders(deps: {
 
     try {
       providerSaving.value = true
-      await codexSaveModelProvider<{ provider: CodexModelProviderRecord }>({
+      await codexSaveModelProvider({
         id: providerForm.id || undefined,
         name: providerForm.name.trim(),
         baseUrl: providerForm.baseUrl.trim(),
-        websiteUrl: providerForm.websiteUrl.trim() || null,
-        apiKeyUrl: providerForm.apiKeyUrl.trim() || null,
-        apiKeyName: providerForm.apiKeyName.trim() || null,
-        apiKey: providerForm.apiKey.trim() || null,
+        websiteUrl: providerForm.websiteUrl.trim() || undefined,
+        apiKeyUrl: providerForm.apiKeyUrl.trim() || undefined,
+        apiKeyName: providerForm.apiKeyName.trim() || undefined,
+        apiKey: providerForm.apiKey.trim() || undefined,
       })
       await loadProviders()
       resetProviderForm()
