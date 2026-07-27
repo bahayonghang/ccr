@@ -153,3 +153,55 @@ apply_migration(conn, version, name, migrate, validate_postconditions, marker_na
 
 Success means committed schema/data plus verified postconditions and a marker,
 not merely that a backfill loop returned.
+
+## Scenario: UTF-8 migration source comments
+
+### 1. Scope / Trigger
+
+- Trigger: editing comments or string-adjacent documentation in
+  `crates/ccr-db/src/database/migrations.rs`.
+
+### 2. Signatures
+
+- Source encoding: UTF-8.
+- Corruption search:
+  `rg -n '鍔|浠|璇|鐨|鏁|鏍|锛|鈥|�' crates/ccr-db/src/database/migrations.rs`.
+
+### 3. Contracts
+
+- Preserve migration code and published SQL while repairing mojibake comments.
+- Reconstruct comment meaning from the adjacent operation; do not guess data or
+  change executable strings as part of an encoding-only repair.
+
+### 4. Validation & Error Matrix
+
+- Known corruption marker remains -> acceptance fails.
+- Executable SQL or migration behavior changes in an encoding-only diff ->
+  split and review as a migration change.
+
+### 5. Good/Base/Bad Cases
+
+- Good: replace a corrupted comment above the pricing query with
+  `// 加载定价表`.
+- Base: leave valid English or Chinese comments unchanged.
+- Bad: re-encode the whole file blindly or modify SQL while claiming a comment
+  repair.
+
+### 6. Tests Required
+
+- Run the corruption search and assert zero matches.
+- Run `cargo test -p ccr-db migration -- --test-threads=1` and `just fmt-check`.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```rust
+// 鍔犺浇瀹氫环琛?
+```
+
+#### Correct
+
+```rust
+// 加载定价表
+```

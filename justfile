@@ -407,8 +407,43 @@ fmt:
     cargo fmt
     @just success "代码格式化完成"
 
+# 🧾 格式化人工维护的 JSON 配置（显式排除 lock/generated/fixture/data）
+json-format:
+    @just _json-format-{{os()}}
+
+[private]
+_json-format-windows:
+    @python scripts/check_json_format.py --write
+
+[private]
+_json-format-linux:
+    @python3 scripts/check_json_format.py --write
+
+[private]
+_json-format-macos:
+    @python3 scripts/check_json_format.py --write
+
+# 🧾 检查人工维护的 JSON 配置格式
+json-format-check:
+    @just _json-format-check-{{os()}}
+
+[private]
+_json-format-check-windows:
+    @python -m unittest scripts/test_check_json_format.py
+    @python scripts/check_json_format.py
+
+[private]
+_json-format-check-linux:
+    @python3 -m unittest scripts/test_check_json_format.py
+    @python3 scripts/check_json_format.py
+
+[private]
+_json-format-check-macos:
+    @python3 -m unittest scripts/test_check_json_format.py
+    @python3 scripts/check_json_format.py
+
 # 🔍 检查代码格式 (不修改文件)
-fmt-check:
+fmt-check: json-format-check
     @just info "🔍 检查代码格式"
     @just info "📌 模式: 仅验证，不修改文件"
     cargo fmt -- --check
@@ -1024,14 +1059,17 @@ dependency-governance-check:
 
 [private]
 _dependency-governance-check-windows:
+    @python -m unittest scripts/test_check_dependency_drift.py
     @.\scripts\check-dependency-drift.ps1 -Verbose
 
 [private]
 _dependency-governance-check-linux:
+    @python3 -m unittest scripts/test_check_dependency_drift.py
     @bash scripts/check-dependency-drift.sh --verbose
 
 [private]
 _dependency-governance-check-macos:
+    @python3 -m unittest scripts/test_check_dependency_drift.py
     @bash scripts/check-dependency-drift.sh --verbose
 
 # 🔐 CI、release、依赖例外与命令清单完整治理

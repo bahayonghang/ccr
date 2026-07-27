@@ -4,9 +4,9 @@
 
 use ccr::LockManager;
 use ccr::Validatable;
-use ccr::managers::config::{CcsConfig, ConfigManager, ConfigSection};
-use ccr::managers::settings::{ClaudeSettings, SettingsManager};
-use ccr::managers::{
+use ccr_cli::managers::config::{CcsConfig, ConfigManager, ConfigSection};
+use ccr_cli::managers::settings::{ClaudeSettings, SettingsManager};
+use ccr_cli::managers::{
     HistoryEntry, HistoryManager, OperationDetails, OperationResult, OperationType,
 };
 use indexmap::IndexMap;
@@ -44,7 +44,7 @@ fn test_config_manager_lifecycle() {
     let mut config = CcsConfig {
         default_config: "anthropic".into(),
         current_config: "anthropic".into(),
-        settings: ccr::managers::config::GlobalSettings::default(),
+        settings: ccr_cli::managers::config::GlobalSettings::default(),
         sections: IndexMap::new(),
     };
     config
@@ -76,7 +76,7 @@ fn test_config_manager_section_operations() {
     let mut config = CcsConfig {
         default_config: "test".into(),
         current_config: "test".into(),
-        settings: ccr::managers::config::GlobalSettings::default(),
+        settings: ccr_cli::managers::config::GlobalSettings::default(),
         sections: IndexMap::new(),
     };
     config
@@ -152,7 +152,7 @@ fn test_config_sorting_and_filtering() {
     let mut config = CcsConfig {
         default_config: "c".into(),
         current_config: "c".into(),
-        settings: ccr::managers::config::GlobalSettings::default(),
+        settings: ccr_cli::managers::config::GlobalSettings::default(),
         sections: IndexMap::new(),
     };
 
@@ -569,7 +569,7 @@ fn test_config_and_settings_integration() {
     let mut config = CcsConfig {
         default_config: "test".into(),
         current_config: "test".into(),
-        settings: ccr::managers::config::GlobalSettings::default(),
+        settings: ccr_cli::managers::config::GlobalSettings::default(),
         sections: IndexMap::new(),
     };
     config

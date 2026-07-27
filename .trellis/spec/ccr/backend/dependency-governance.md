@@ -341,3 +341,59 @@ r2d2_sqlite = "0.34.0"
 - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 - run: just test
 ```
+
+## Scenario: internal crates do not depend on the umbrella facade
+
+### 1. Scope / Trigger
+
+- Trigger: adding or changing a dependency in `crates/*/Cargo.toml` or changing
+  `scripts/check_dependency_drift.py`.
+
+### 2. Signatures
+
+- Validator: `internal_umbrella_dependents(root) -> list[str]`.
+- Gate: `just dependency-governance-check`.
+
+### 3. Contracts
+
+- Recursively inspect normal, development, build, and target-specific
+  dependency tables in every internal crate manifest.
+- `crates/ccr/Cargo.toml` is the umbrella package itself and is excluded.
+- Internal crates import the owning domain crate (`ccr-cli`, `ccr-core`,
+  `ccr-db`, and so on), never `ccr`. Any exception requires an explicit path in
+  `INTERNAL_UMBRELLA_ALLOWLIST` and a reviewed compatibility rationale.
+
+### 4. Validation & Error Matrix
+
+- Internal manifest declares dependency key `ccr` -> fail with the manifest
+  path and narrow-crate instruction.
+- Dependency named `ccr-core` or another prefix match -> pass.
+- Target-specific `ccr` dev dependency -> fail like a top-level dependency.
+
+### 5. Good/Base/Bad Cases
+
+- Good: an integration test imports `ccr_cli::services` directly.
+- Base: the root `ccr` facade depends on its domain crates.
+- Bad: an internal crate adds `ccr = { path = "../ccr" }` for convenience.
+
+### 6. Tests Required
+
+- `python -m unittest scripts/test_check_dependency_drift.py` covers direct,
+  target-specific, prefix, and root-facade cases.
+- Run `just dependency-governance-check` and `just version-check`.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```toml
+[dev-dependencies]
+ccr = { path = "../ccr" }
+```
+
+#### Correct
+
+```toml
+[dev-dependencies]
+ccr-cli = { workspace = true }
+```

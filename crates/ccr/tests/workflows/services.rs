@@ -3,9 +3,9 @@
 // 测试 ConfigService, SettingsService, HistoryService, BackupService 的业务流程
 
 use ccr::LockManager;
-use ccr::managers::config::{CcsConfig, ConfigManager, ConfigSection};
-use ccr::managers::settings::SettingsManager;
-use ccr::services::{BackupService, ConfigService, HistoryService, SettingsService};
+use ccr_cli::managers::config::{CcsConfig, ConfigManager, ConfigSection};
+use ccr_cli::managers::settings::SettingsManager;
+use ccr_cli::services::{BackupService, ConfigService, HistoryService, SettingsService};
 use indexmap::IndexMap;
 use std::fs;
 use std::io::Write;
@@ -44,7 +44,7 @@ fn test_config_service_crud_workflow() {
     let mut config = CcsConfig {
         default_config: "initial".into(),
         current_config: "initial".into(),
-        settings: ccr::managers::config::GlobalSettings::default(),
+        settings: ccr_cli::managers::config::GlobalSettings::default(),
         sections: IndexMap::new(),
     };
     config
@@ -110,7 +110,7 @@ fn test_config_service_validation() {
     let mut config = CcsConfig {
         default_config: "valid".into(),
         current_config: "valid".into(),
-        settings: ccr::managers::config::GlobalSettings::default(),
+        settings: ccr_cli::managers::config::GlobalSettings::default(),
         sections: IndexMap::new(),
     };
     config
@@ -171,7 +171,7 @@ fn test_config_service_export_import() {
     let mut config = CcsConfig {
         default_config: "test".into(),
         current_config: "test".into(),
-        settings: ccr::managers::config::GlobalSettings::default(),
+        settings: ccr_cli::managers::config::GlobalSettings::default(),
         sections: IndexMap::new(),
     };
     config
@@ -206,7 +206,7 @@ auth_token = "sk-imported-token"
     let result = service
         .import_config(
             import_config,
-            ccr::services::config_service::ImportMode::Replace,
+            ccr_cli::services::config_service::ImportMode::Replace,
             false,
         )
         .unwrap();
@@ -307,19 +307,19 @@ fn test_history_service_record_and_query() {
     let db_path = temp_dir.path().join("test.db");
     let db = ccr::Database::init(&db_path).unwrap();
 
-    let history_manager = Arc::new(ccr::managers::HistoryManager::new(db));
+    let history_manager = Arc::new(ccr_cli::managers::HistoryManager::new(db));
     let service = HistoryService::new(history_manager);
 
     // 记录操作
-    let entry = ccr::managers::HistoryEntry::new(
-        ccr::managers::OperationType::Switch,
-        ccr::managers::OperationDetails {
+    let entry = ccr_cli::managers::HistoryEntry::new(
+        ccr_cli::managers::OperationType::Switch,
+        ccr_cli::managers::OperationDetails {
             from_config: Some("old".into()),
             to_config: Some("new".into()),
             backup_path: None,
             extra: None,
         },
-        ccr::managers::OperationResult::Success,
+        ccr_cli::managers::OperationResult::Success,
     );
 
     service.record_operation(entry).unwrap();
@@ -422,7 +422,7 @@ fn test_complete_config_switch_workflow() {
     let mut config = CcsConfig {
         default_config: "config1".into(),
         current_config: "config1".into(),
-        settings: ccr::managers::config::GlobalSettings::default(),
+        settings: ccr_cli::managers::config::GlobalSettings::default(),
         sections: IndexMap::new(),
     };
     config
@@ -503,18 +503,18 @@ fn test_config_service_list_with_classification() {
     let mut config = CcsConfig {
         default_config: "anthropic".into(),
         current_config: "anthropic".into(),
-        settings: ccr::managers::config::GlobalSettings::default(),
+        settings: ccr_cli::managers::config::GlobalSettings::default(),
         sections: IndexMap::new(),
     };
 
     let mut anthropic = create_test_section("anthropic");
     anthropic.provider = Some("anthropic".into());
-    anthropic.provider_type = Some(ccr::managers::config::ProviderType::OfficialRelay);
+    anthropic.provider_type = Some(ccr_cli::managers::config::ProviderType::OfficialRelay);
     anthropic.tags = Some(vec!["official".into(), "stable".into()]);
 
     let mut anyrouter = create_test_section("anyrouter");
     anyrouter.provider = Some("anyrouter".into());
-    anyrouter.provider_type = Some(ccr::managers::config::ProviderType::OfficialRelay);
+    anyrouter.provider_type = Some(ccr_cli::managers::config::ProviderType::OfficialRelay);
     anyrouter.tags = Some(vec!["relay".into(), "fast".into()]);
 
     config.sections.insert("anthropic".into(), anthropic);
@@ -582,24 +582,24 @@ fn test_history_service_workflow() {
     let db_path = temp_dir.path().join("test.db");
     let db = ccr::Database::init(&db_path).unwrap();
 
-    let history_manager = Arc::new(ccr::managers::HistoryManager::new(db));
+    let history_manager = Arc::new(ccr_cli::managers::HistoryManager::new(db));
     let service = HistoryService::new(history_manager);
 
     // 记录多个操作
     for i in 0..10 {
-        let entry = ccr::managers::HistoryEntry::new(
+        let entry = ccr_cli::managers::HistoryEntry::new(
             if i % 2 == 0 {
-                ccr::managers::OperationType::Switch
+                ccr_cli::managers::OperationType::Switch
             } else {
-                ccr::managers::OperationType::Backup
+                ccr_cli::managers::OperationType::Backup
             },
-            ccr::managers::OperationDetails {
+            ccr_cli::managers::OperationDetails {
                 from_config: Some(format!("config{}", i)),
                 to_config: Some(format!("config{}", i + 1)),
                 backup_path: None,
                 extra: None,
             },
-            ccr::managers::OperationResult::Success,
+            ccr_cli::managers::OperationResult::Success,
         );
         service.record_operation(entry).unwrap();
         std::thread::sleep(std::time::Duration::from_millis(5)); // 确保时间戳不同
@@ -611,12 +611,12 @@ fn test_history_service_workflow() {
 
     // 测试按类型筛选
     let switch_ops = service
-        .filter_by_type(ccr::managers::OperationType::Switch)
+        .filter_by_type(ccr_cli::managers::OperationType::Switch)
         .unwrap();
     assert_eq!(switch_ops.len(), 5);
 
     let backup_ops = service
-        .filter_by_type(ccr::managers::OperationType::Backup)
+        .filter_by_type(ccr_cli::managers::OperationType::Backup)
         .unwrap();
     assert_eq!(backup_ops.len(), 5);
 
@@ -639,7 +639,7 @@ fn test_config_service_error_handling() {
     let mut config = CcsConfig {
         default_config: "test".into(),
         current_config: "test".into(),
-        settings: ccr::managers::config::GlobalSettings::default(),
+        settings: ccr_cli::managers::config::GlobalSettings::default(),
         sections: IndexMap::new(),
     };
     config
@@ -705,7 +705,7 @@ fn test_enable_disable_config() {
     let mut config = CcsConfig {
         default_config: "test".into(),
         current_config: "test".into(),
-        settings: ccr::managers::config::GlobalSettings::default(),
+        settings: ccr_cli::managers::config::GlobalSettings::default(),
         sections: IndexMap::new(),
     };
 
@@ -742,7 +742,7 @@ fn test_usage_count_increment() {
     let mut config = CcsConfig {
         default_config: "config1".into(),
         current_config: "config1".into(),
-        settings: ccr::managers::config::GlobalSettings::default(),
+        settings: ccr_cli::managers::config::GlobalSettings::default(),
         sections: IndexMap::new(),
     };
 
@@ -816,7 +816,7 @@ fn test_disable_prevents_switch() {
     let mut config = CcsConfig {
         default_config: "config1".into(),
         current_config: "config1".into(),
-        settings: ccr::managers::config::GlobalSettings::default(),
+        settings: ccr_cli::managers::config::GlobalSettings::default(),
         sections: IndexMap::new(),
     };
 
@@ -850,7 +850,7 @@ fn test_enable_disable_nonexistent_config() {
     let mut config = CcsConfig {
         default_config: "test".into(),
         current_config: "test".into(),
-        settings: ccr::managers::config::GlobalSettings::default(),
+        settings: ccr_cli::managers::config::GlobalSettings::default(),
         sections: IndexMap::new(),
     };
     config

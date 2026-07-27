@@ -1,7 +1,7 @@
 #![allow(clippy::unwrap_used)]
 
 use crate::setup_ccr_test_env;
-use ccr::managers::{ConfigManager, PlatformConfigManager, UnifiedConfig};
+use ccr_cli::managers::{ConfigManager, PlatformConfigManager, UnifiedConfig};
 use std::fs;
 
 #[test]

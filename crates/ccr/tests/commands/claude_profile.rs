@@ -1,10 +1,10 @@
 #![allow(clippy::unwrap_used)]
 
-use ccr::managers::{
+use ccr_cli::managers::{
     CcsConfig, ConfigManager, GlobalSettings, PlatformConfigEntry, PlatformConfigManager,
     UnifiedConfig,
 };
-use ccr::models::ClaudeAuthRegistry;
+use ccr_cli::models::ClaudeAuthRegistry;
 use ccr_config::ProfileConfig;
 use indexmap::IndexMap;
 use serde_json::Value;

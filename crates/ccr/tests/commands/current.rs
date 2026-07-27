@@ -1,6 +1,6 @@
 #![allow(clippy::unwrap_used)]
 
-use ccr::managers::{
+use ccr_cli::managers::{
     CcsConfig, ClaudeSettings, ConfigManager, ConfigSection, GlobalSettings, PlatformConfigEntry,
     PlatformConfigManager, UnifiedConfig,
 };

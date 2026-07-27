@@ -1,6 +1,6 @@
 #![allow(clippy::unwrap_used)]
 
-use ccr::managers::{
+use ccr_cli::managers::{
     CcsConfig, ClaudeSettings, ConfigManager, ConfigSection, GlobalSettings, PlatformConfigEntry,
     PlatformConfigManager, UnifiedConfig,
 };
@@ -169,7 +169,7 @@ fn claude_glm_placeholder_section() -> ConfigSection {
         default_haiku_model: Some("glm-4.7".to_string()),
         default_fable_model: Some("glm-5.2[1m]".to_string()),
         provider: Some("glm".to_string()),
-        provider_type: Some(ccr::managers::ProviderType::ThirdPartyModel),
+        provider_type: Some(ccr_cli::managers::ProviderType::ThirdPartyModel),
         account: None,
         tags: None,
         usage_count: Some(0),
@@ -238,7 +238,7 @@ fn codex_no_auth_section() -> ConfigSection {
         model: Some("gpt-4.1".to_string()),
         small_fast_model: None,
         provider: Some("custom".to_string()),
-        provider_type: Some(ccr::managers::ProviderType::ThirdPartyModel),
+        provider_type: Some(ccr_cli::managers::ProviderType::ThirdPartyModel),
         account: None,
         tags: None,
         usage_count: Some(0),

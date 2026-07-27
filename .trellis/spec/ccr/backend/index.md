@@ -10,7 +10,9 @@
 | [Desktop Command Policy](./desktop-command-policy.md)                | Desktop request validation, ProcessGateway capabilities, output bounds, and lifecycle        | Complete |
 | [Dependency Governance](./dependency-governance.md)                  | Root/Tauri dependency drift gates                                                           | Complete |
 | [llmusage Provider Adapter Contract](./llmusage-provider-adapter.md) | Provider-scoped llmusage sync/read-only SQLite/Tauri dashboard contract                     | Complete |
+| [Module Decomposition](./module-decomposition.md)                  | Responsibility-based extraction gates for oversized authoritative modules                    | Complete |
 | [Public API Boundary](./public-api-boundary.md)                      | Stable prelude and root re-export compatibility guards                                      | Complete |
+| [Repository JSON Formatting](./repository-json-formatting.md)       | Canonical formatting inventory for human-authored JSON configuration                         | Complete |
 | [SSH Trust and Transport](./ssh-security.md)                        | Validated OpenSSH arguments, app-owned trust, real handshakes, and SFTP-only file operations | Complete |
 | [Tauri Handler Registry](./tauri-handler-registry.md)                | Domain command registry for the desktop invoke handler                                      | Complete |
 | [Test Fixtures](./test-fixtures.md)                                  | Root `ccr` integration test environment fixtures                                            | Complete |
@@ -22,6 +24,10 @@
 - Read [Public API Boundary](./public-api-boundary.md) before changing public re-exports or `prelude`.
 - Read [Test Fixtures](./test-fixtures.md) before adding root integration tests.
 - Read [Dependency Governance](./dependency-governance.md) before changing workspace/Tauri dependency versions.
+- Read [Module Decomposition](./module-decomposition.md) before splitting
+  `command_exec.rs`, `migrations.rs`, `codex_auth.rs`, or `sync.rs`.
+- Read [Repository JSON Formatting](./repository-json-formatting.md) before
+  changing the JSON format inventory or `just fmt-check` integration.
 - Read [Desktop Command Policy](./desktop-command-policy.md) and [Tauri Handler Registry](./tauri-handler-registry.md) before changing desktop command passthrough or handler registration.
 - Read [SSH Trust and Transport](./ssh-security.md) before changing SSH host persistence, trust confirmation, connection state, OpenSSH arguments, or remote config file operations.
 - Read [llmusage Provider Adapter Contract](./llmusage-provider-adapter.md) before changing provider-scoped usage sync, adapter filters, or dashboard payloads.

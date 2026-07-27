@@ -655,7 +655,7 @@ fn backfill_usage_records(
         rows.len()
     );
 
-    // 鍔犺浇瀹氫环琛?
+    // 加载定价表
     let mut pricing_stmt = conn
         .prepare(
             "SELECT model_id, input_cost_per_million, output_cost_per_million, cache_read_cost_per_million FROM model_pricing",

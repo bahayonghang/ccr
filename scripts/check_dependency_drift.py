@@ -19,6 +19,7 @@ ALLOWLIST = ROOT / "scripts" / "dependency-drift-allowlist.json"
 RUST_TOOLCHAIN = ROOT / "rust-toolchain.toml"
 EXPECTED_MSRV = "1.95"
 EXPECTED_TOOLCHAIN = "1.95.0"
+INTERNAL_UMBRELLA_ALLOWLIST: frozenset[str] = frozenset()
 
 
 def load_toml(path: Path) -> dict[str, Any]:
@@ -99,6 +100,29 @@ def validate_msrv() -> list[str]:
     return failures
 
 
+def declares_dependency(payload: Any, dependency: str) -> bool:
+    if not isinstance(payload, dict):
+        return False
+    for key, value in payload.items():
+        if key in {"dependencies", "dev-dependencies", "build-dependencies"}:
+            if isinstance(value, dict) and dependency in value:
+                return True
+        if declares_dependency(value, dependency):
+            return True
+    return False
+
+
+def internal_umbrella_dependents(root: Path = ROOT) -> list[str]:
+    dependents: list[str] = []
+    for manifest in sorted((root / "crates").glob("*/Cargo.toml")):
+        relative = manifest.relative_to(root).as_posix()
+        if relative == "crates/ccr/Cargo.toml" or relative in INTERNAL_UMBRELLA_ALLOWLIST:
+            continue
+        if declares_dependency(load_toml(manifest), "ccr"):
+            dependents.append(relative)
+    return dependents
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--verbose", "-v", action="store_true")
@@ -118,6 +142,10 @@ def main() -> int:
         else:
             drifts.append(detail)
     failures.extend(validate_msrv())
+    for manifest in internal_umbrella_dependents():
+        failures.append(
+            f"internal crate depends on umbrella ccr facade: {manifest}; use the owning domain crate"
+        )
 
     if failures:
         print("Root/Tauri dependency governance check failed:", file=sys.stderr)

@@ -1,7 +1,9 @@
 {
   "identifier": "default",
   "description": "Default capabilities for CCR Desktop",
-  "windows": ["main"],
+  "windows": [
+    "main"
+  ],
   "permissions": [
     "core:default",
     "core:window:allow-minimize",

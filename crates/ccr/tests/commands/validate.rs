@@ -1,6 +1,6 @@
 #![allow(clippy::unwrap_used)]
 
-use ccr::managers::{CcsConfig, ClaudeSettings, ConfigManager, ConfigSection, GlobalSettings};
+use ccr_cli::managers::{CcsConfig, ClaudeSettings, ConfigManager, ConfigSection, GlobalSettings};
 use indexmap::IndexMap;
 use std::collections::HashMap;
 use std::fs;

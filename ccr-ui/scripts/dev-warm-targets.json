@@ -1,6 +1,12 @@
 {
-  "probeUrls": ["/", "/settings"],
-  "requestUrls": ["/@vite/client", "/node_modules/vite/dist/client/env.mjs"],
+  "probeUrls": [
+    "/",
+    "/settings"
+  ],
+  "requestUrls": [
+    "/@vite/client",
+    "/node_modules/vite/dist/client/env.mjs"
+  ],
   "clientFiles": [
     "./src/main.ts",
     "./src/App.vue",
