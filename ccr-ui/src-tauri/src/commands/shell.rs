@@ -1,11 +1,13 @@
 //! 桌面壳层命令 —— tray 偏好、主窗口聚焦、显式退出，以及迁移页外部应用桥接。
 
 use serde::Serialize;
+#[cfg(any(target_os = "macos", target_os = "windows"))]
 use std::process::Stdio;
 use tauri::{AppHandle, State};
 use ts_rs::TS;
 
 use crate::desktop_shell;
+#[cfg(any(target_os = "macos", target_os = "windows"))]
 use crate::process;
 use crate::state::{AppState, DesktopShellPreferences, TrayPanelManualPosition};
 
@@ -52,6 +54,7 @@ impl SkillportAppStatus {
         }
     }
 
+    #[cfg(any(target_os = "macos", target_os = "windows"))]
     fn not_found() -> Self {
         Self {
             supported: cfg!(any(target_os = "macos", target_os = "windows")),
@@ -61,6 +64,7 @@ impl SkillportAppStatus {
         }
     }
 
+    #[cfg(any(target_os = "macos", target_os = "windows"))]
     fn installed(source: &'static str) -> Self {
         Self {
             supported: true,
@@ -264,6 +268,7 @@ fn detect_skillport_app() -> SkillportDiscovery {
     }
 }
 
+#[cfg(any(target_os = "macos", target_os = "windows"))]
 fn spawn_detached(mut command: std::process::Command, error_label: &str) -> Result<(), String> {
     command.stdout(Stdio::null()).stderr(Stdio::null());
     command
@@ -490,7 +495,7 @@ fn trim_wrapped_quotes(value: &str) -> &str {
     value.trim().trim_matches('"')
 }
 
-#[cfg(test)]
+#[cfg(all(test, target_os = "windows"))]
 mod tests {
     use super::*;
 

@@ -69,11 +69,27 @@ where
 }
 
 #[cfg(target_os = "macos")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct MacOsWindowChromeConfig {
+    decorations: bool,
+    title_bar_style: tauri::TitleBarStyle,
+}
+
+#[cfg(target_os = "macos")]
+fn macos_native_window_chrome_config() -> MacOsWindowChromeConfig {
+    MacOsWindowChromeConfig {
+        decorations: true,
+        title_bar_style: tauri::TitleBarStyle::Visible,
+    }
+}
+
+#[cfg(target_os = "macos")]
 pub(crate) fn configure_main_window_chrome<R: tauri::Runtime>(
     window: &tauri::WebviewWindow<R>,
 ) -> tauri::Result<()> {
-    window.set_decorations(true)?;
-    window.set_title_bar_style(tauri::TitleBarStyle::Visible)?;
+    let config = macos_native_window_chrome_config();
+    window.set_decorations(config.decorations)?;
+    window.set_title_bar_style(config.title_bar_style)?;
     Ok(())
 }
 

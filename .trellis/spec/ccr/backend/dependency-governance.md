@@ -311,6 +311,7 @@ r2d2_sqlite = "0.34.0"
 - Root workspace tests use default parallelism. `scripts/check_workflow_governance.py` counts `#[serial]` / `#[serial_test::serial]`; current and target counts are both 0.
 - Tauri command inventory is generated from the handler registry and freezes 315 base / 323 Windows commands across 30 base modules.
 - The Tauri Rust gate runs direct Cargo fmt/check/clippy/test plus repository governance recipes; it must not require Bun or the Vue dependency graph.
+- Fresh checkouts run Tauri Rust compile/test/coverage commands with `.cargo/tauri-ci.toml`, which overrides `frontendDist` to the tracked `ccr-ui/src-tauri/ci-dist/index.html` fixture. Production Tauri builds keep using `ccr-ui/dist`; the fixture must never replace the real `beforeBuildCommand` output in release packaging.
 - Hosted frontend dependency audit calls the repository-owned `frontend-audit` recipe and parses Bun's JSON report. Unexpected, expired, duplicate, package-mismatched, or stale advisory exceptions fail closed.
 - Frontend advisory exceptions require non-empty owner/rationale, ISO expiry, explicit patched versions, and must stay within `maxActiveExceptions` (currently 1).
 - `brace-expansion` 1.1.16/2.1.2 keep their CommonJS function contract through version-exact Bun patches that delegate to the pinned `brace-expansion-safe` alias at 5.0.8. The audit exception covers only the version-database false positive after those runtime patches are verified.
@@ -324,19 +325,23 @@ r2d2_sqlite = "0.34.0"
 - Root/Tauri gateway below 85 or gateway path not found -> coverage validator fails closed.
 - Global `--test-threads=1` or serial annotation count above 0 -> governance check fails.
 - Handler inventory differs from registry -> `command_inventory_document_matches_registry` fails.
+- Tauri Rust gate omits `.cargo/tauri-ci.toml`, or the tracked `ci-dist/index.html` fixture is missing -> a fresh checkout may fail in `tauri::generate_context!()` before tests run.
 - Missing patch/alias, inactive runtime delegation, unexpected high advisory, or stale/expired frontend exception -> `bun run audit:dependencies` fails.
 - Required branch protection not readable/configured -> local files may pass, but repository-setting evidence remains `UNVERIFIED`.
 
 ### 5. Good/Base/Bad Cases
 - Good: hosted workflow calls `just coverage-rust`; local and hosted execute the same threshold script.
+- Good: `just tauri-ci` succeeds in a clean worktree with no ignored `ccr-ui/dist` directory because Cargo receives the CI-only frontend fixture config.
 - Good: a docs-only PR creates all four required contexts but runs only the frontend heavy gate; a `ccr-vscode/**` PR runs VS Code validation/coverage before `VS Code Required` succeeds.
 - Base: Tauri overall coverage is reported separately while its security gateway remains above 85%.
 - Base: Bun still reports `GHSA-mh99-v99m-4gvg` against legacy version numbers, while both installed legacy versions are runtime-identical to the pinned safe implementation and the expiring exception remains active.
 - Bad: keeping a PR-level `paths` filter on a branch-protected workflow, because an unrelated PR never creates the required context and remains pending forever.
 - Bad: copying lint/test commands into workflow YAML, pinning `actions/checkout@v6`, lowering the gateway threshold, or globally overriding all `brace-expansion` consumers to 5.x.
+- Bad: creating an ignored `ccr-ui/dist` locally before testing and treating that residue-dependent pass as fresh-checkout evidence.
 
 ### 6. Tests Required
 - `python -m unittest scripts/test_check_workflow_governance.py` -> path matching, event parsing, and duplicate-key cases pass.
+- The workflow-governance unit suite asserts that root/UI Tauri Cargo recipes use `.cargo/tauri-ci.toml` and that the tracked CI frontend fixture exists.
 - `python scripts/check_workflow_governance.py` -> 51 immutable action references, stable relevance routing, and serial-only count 0.
 - `just ci-governance-check` -> dependency, workflow, and handler inventory gates pass.
 - `cd ccr-ui && bun install --frozen-lockfile && bun run audit:dependencies` -> both patches apply, runtime exports equal the safe 5.0.8 implementation, and only the active structured exception remains.

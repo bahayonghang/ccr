@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+from pathlib import Path
 
 from scripts.ci_surface_policy import SURFACE_PATHS, is_relevant, path_matches
 from scripts.check_workflow_governance import (
@@ -11,6 +12,8 @@ from scripts.check_workflow_governance import (
 
 
 class WorkflowGovernanceParserTests(unittest.TestCase):
+    ROOT = Path(__file__).resolve().parents[1]
+
     def test_duplicate_mapping_key_is_rejected(self) -> None:
         workflow = """jobs:
   build:
@@ -106,6 +109,27 @@ class WorkflowGovernanceParserTests(unittest.TestCase):
         self.assertEqual(
             workflow_job_block(workflow, "required"),
             "  required:\n    name: Required\n    if: ${{ always() }}",
+        )
+
+    def test_tauri_rust_gates_use_a_tracked_frontend_fixture(self) -> None:
+        cargo_config = (self.ROOT / ".cargo" / "tauri-ci.toml").read_text(
+            encoding="utf-8"
+        )
+        root_justfile = (self.ROOT / "justfile").read_text(encoding="utf-8")
+        ui_justfile = (self.ROOT / "ccr-ui" / "justfile").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn('frontendDist":"ci-dist"', cargo_config)
+        self.assertTrue(
+            (self.ROOT / "ccr-ui" / "src-tauri" / "ci-dist" / "index.html").is_file()
+        )
+        self.assertIn("cargo --config .cargo/tauri-ci.toml test", root_justfile)
+        self.assertIn(
+            "cargo --config .cargo/tauri-ci.toml llvm-cov", root_justfile
+        )
+        self.assertIn(
+            "cargo --config ../.cargo/tauri-ci.toml test", ui_justfile
         )
 
 

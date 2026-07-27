@@ -100,11 +100,7 @@ fn initializes_new_repository_then_trellis_and_gitignore() {
     assert!(calls[1].ends_with("|init"));
     assert!(calls[2].starts_with("trellis|"));
     assert!(calls[2].ends_with("|init"));
-    assert!(
-        calls
-            .iter()
-            .all(|call| call.contains(&format!("|{}|", fixture.project.display())))
-    );
+    assert_calls_run_in(&calls, &fixture.project);
     assert_eq!(
         fs::read_to_string(fixture.project.join(".gitignore")).unwrap(),
         ".agents/\n.claude/\n.codex/\n"
@@ -287,6 +283,14 @@ fn stdout(output: &Output) -> String {
 
 fn stderr(output: &Output) -> String {
     String::from_utf8_lossy(&output.stderr).into_owned()
+}
+
+fn assert_calls_run_in(calls: &[String], expected: &Path) {
+    let expected = fs::canonicalize(expected).unwrap();
+    for call in calls {
+        let cwd = call.split('|').nth(1).expect("fake command cwd field");
+        assert_eq!(fs::canonicalize(cwd).unwrap(), expected, "call: {call}");
+    }
 }
 
 #[cfg(windows)]

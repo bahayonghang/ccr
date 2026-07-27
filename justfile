@@ -1094,20 +1094,20 @@ _coverage-rust-check-macos:
 
 # 📊 Tauri backend 覆盖率：生成完整报告，安全 gateway ≥85%
 coverage-tauri:
-    cargo llvm-cov --manifest-path ccr-ui/src-tauri/Cargo.toml --json --output-path target/coverage-tauri.json
+    cargo --config .cargo/tauri-ci.toml llvm-cov --manifest-path ccr-ui/src-tauri/Cargo.toml --json --output-path ccr-ui/src-tauri/target/coverage-tauri.json
     @just _coverage-tauri-check-{{os()}}
 
 [private]
 _coverage-tauri-check-windows:
-    @python scripts/check_coverage_thresholds.py target/coverage-tauri.json --gateway 85 --gateway-pattern ccr-ui/src-tauri/src/process/gateway.rs
+    @python scripts/check_coverage_thresholds.py ccr-ui/src-tauri/target/coverage-tauri.json --gateway 85 --gateway-pattern ccr-ui/src-tauri/src/process/gateway.rs
 
 [private]
 _coverage-tauri-check-linux:
-    @python3 scripts/check_coverage_thresholds.py target/coverage-tauri.json --gateway 85 --gateway-pattern ccr-ui/src-tauri/src/process/gateway.rs
+    @python3 scripts/check_coverage_thresholds.py ccr-ui/src-tauri/target/coverage-tauri.json --gateway 85 --gateway-pattern ccr-ui/src-tauri/src/process/gateway.rs
 
 [private]
 _coverage-tauri-check-macos:
-    @python3 scripts/check_coverage_thresholds.py target/coverage-tauri.json --gateway 85 --gateway-pattern ccr-ui/src-tauri/src/process/gateway.rs
+    @python3 scripts/check_coverage_thresholds.py ccr-ui/src-tauri/target/coverage-tauri.json --gateway 85 --gateway-pattern ccr-ui/src-tauri/src/process/gateway.rs
 
 # 🧪 运行脚本测试 (Bats + Pester)
 test-scripts:
@@ -1410,31 +1410,31 @@ tauri-command-inventory:
 
 [private]
 _tauri-command-inventory-windows:
-    @$env:CCR_UPDATE_COMMAND_INVENTORY = '1'; cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml commands::handler_registry::tests::command_inventory_document_matches_registry -- --exact
+    @$env:CCR_UPDATE_COMMAND_INVENTORY = '1'; cargo --config .cargo/tauri-ci.toml test --manifest-path ccr-ui/src-tauri/Cargo.toml commands::handler_registry::tests::command_inventory_document_matches_registry -- --exact
 
 [private]
 _tauri-command-inventory-linux:
-    @CCR_UPDATE_COMMAND_INVENTORY=1 cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml commands::handler_registry::tests::command_inventory_document_matches_registry -- --exact
+    @CCR_UPDATE_COMMAND_INVENTORY=1 cargo --config .cargo/tauri-ci.toml test --manifest-path ccr-ui/src-tauri/Cargo.toml commands::handler_registry::tests::command_inventory_document_matches_registry -- --exact
 
 [private]
 _tauri-command-inventory-macos:
-    @CCR_UPDATE_COMMAND_INVENTORY=1 cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml commands::handler_registry::tests::command_inventory_document_matches_registry -- --exact
+    @CCR_UPDATE_COMMAND_INVENTORY=1 cargo --config .cargo/tauri-ci.toml test --manifest-path ccr-ui/src-tauri/Cargo.toml commands::handler_registry::tests::command_inventory_document_matches_registry -- --exact
 
 tauri-command-inventory-check:
-    @cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml commands::handler_registry::tests::command_inventory_document_matches_registry -- --exact
+    @cargo --config .cargo/tauri-ci.toml test --manifest-path ccr-ui/src-tauri/Cargo.toml commands::handler_registry::tests::command_inventory_document_matches_registry -- --exact
 
 # Hosted Tauri required lane and local execution share this fail-closed recipe.
 tauri-ci: dependency-governance-check
     cargo fmt --manifest-path ccr-ui/src-tauri/Cargo.toml -- --check
-    cargo check --manifest-path ccr-ui/src-tauri/Cargo.toml --bin ccr-desktop
-    cargo clippy --manifest-path ccr-ui/src-tauri/Cargo.toml --bin ccr-desktop -- -D warnings
-    cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml --all-features
+    cargo --config .cargo/tauri-ci.toml check --manifest-path ccr-ui/src-tauri/Cargo.toml --bin ccr-desktop
+    cargo --config .cargo/tauri-ci.toml clippy --manifest-path ccr-ui/src-tauri/Cargo.toml --bin ccr-desktop -- -D warnings
+    cargo --config .cargo/tauri-ci.toml test --manifest-path ccr-ui/src-tauri/Cargo.toml --all-features
     just tauri-bindings-check
     just tauri-command-inventory-check
     @just success "Tauri Rust CI passed"
 
 tauri-process-smoke:
-    cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml process::gateway
+    cargo --config .cargo/tauri-ci.toml test --manifest-path ccr-ui/src-tauri/Cargo.toml process::gateway
     cargo test -p ccr-core core::process_gateway
 
 ui-test:
