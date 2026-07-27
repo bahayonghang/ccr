@@ -437,3 +437,24 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 62: 优化 ccr-ui 开发资源占用
+
+**Date**: 2026-07-27
+**Task**: 优化 ccr-ui 开发资源占用
+**Branch**: `dev`
+
+### Summary
+
+排除 Vite 对 Rust target、ref 和 logs 的监视，统一预热与进程树清理，保留依赖缓存并限制 smoke worker；资源验证与前端质量门禁通过。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `e86988d7` | (see git log) |
+
+### Status
+
+[OK] **Completed**

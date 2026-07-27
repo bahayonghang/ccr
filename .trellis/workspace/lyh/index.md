@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 61
+- **Total Sessions**: 62
 - **Last Active**: 2026-07-27
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~439 | Active |
+| `journal-2.md` | ~460 | Active |
 | `journal-1.md` | ~1987 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 62 | 2026-07-27 | 优化 ccr-ui 开发资源占用 | `e86988d7` | `dev` |
 | 61 | 2026-07-27 | 完成审计整改并切换为无签名发布 | `0f6a8fb4` | `dev` |
 | 60 | 2026-07-27 | 补充 VSIX 签名运行器阻塞证据 | `776e21ae` | `dev` |
 | 59 | 2026-07-27 | 审计整改集成与托管验收证据 checkpoint | `6576b719` | `dev` |
