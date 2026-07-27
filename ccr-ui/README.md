@@ -20,7 +20,7 @@
 | --- | --- |
 | Bun | `bun@1.3.10` from `package.json#packageManager` |
 | Node.js | Use the version bundled/required by the installed Bun and tooling |
-| Rust | `>= 1.88` from `src-tauri/Cargo.toml#rust-version` |
+| Rust | `>= 1.95` from `src-tauri/Cargo.toml#rust-version` |
 | Rust edition | Edition 2024 |
 | Tauri | 2.x, pinned in `src-tauri/Cargo.toml` and `package.json` |
 
