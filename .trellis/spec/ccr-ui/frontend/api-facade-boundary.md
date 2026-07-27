@@ -29,7 +29,7 @@
 - Missing compatibility header marker -> smoke test fails.
 - New wrapper in `src/api/domains/*` and exported through `src/api/index.ts` -> accepted.
 - Generated typed client added later -> must keep generated drift checks outside this manual facade guard.
-- A manifest-typed command invoked from a handwritten wrapper outside the three frozen pilot clients -> smoke guard fails; route it through `src/api/generated/*`.
+- A manifest-typed command invoked from any handwritten wrapper -> smoke guard fails; route it through `src/api/generated/*`. There are no typed pilot exceptions.
 
 ### 5. Good/Base/Bad Cases
 - Good: add `src/api/domains/usage.ts` wrapper and expose it through `usageApi` in `src/api/index.ts`.

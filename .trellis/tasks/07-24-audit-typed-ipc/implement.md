@@ -2,7 +2,7 @@
 
 ## Ordered work
 
-- [ ] Define typed risk, authorization, confirmation, concurrency, timeout, and
+- [x] Define typed risk, authorization, confirmation, concurrency, timeout, and
   audit policy enums plus the expanded `CommandDescriptor`.
 - [x] Extend the registry macro so all base/Windows commands expand to complete
   descriptors and the Tauri handler list from one declaration.
@@ -12,7 +12,7 @@
   direct `invoke` outside the API facade/generated runtime.
 - [x] After each owning child stabilizes its API, migrate install/process, sync,
   SSH, auth/provider, and config-write DTOs and clients in that order.
-- [ ] Remove handwritten mirrors and `Value` from each migrated domain; add a
+- [x] Remove handwritten mirrors and command-boundary `Value` from each migrated domain; add a
   zero-count guard per typed domain.
 - [x] Migrate remaining read-only commands until measured typed coverage is at
   least 80 percent; record every remaining command and owner in inventory.

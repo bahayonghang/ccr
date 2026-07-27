@@ -13,12 +13,6 @@ const INVOKE_ALLOWED_PATHS = [
   'src/utils/logger.ts', // 日志桥：动态 import 后上报 append_frontend_logs
 ] as const
 
-const LEGACY_TYPED_CLIENT_PATHS = new Set([
-  'src/api/domains/claudeObserver.ts',
-  'src/api/domains/install.ts',
-  'src/api/domains/stats.ts',
-])
-
 const COMPATIBILITY_MARKERS = [
   'Tauri API compatibility facade for CCR Desktop',
   'Compatibility-only',
@@ -123,7 +117,7 @@ describe('API facade boundary', () => {
 
     for (const file of files) {
       const posixPath = toPosix(file)
-      if (posixPath.startsWith('src/api/generated/') || LEGACY_TYPED_CLIENT_PATHS.has(posixPath)) {
+      if (posixPath.startsWith('src/api/generated/')) {
         continue
       }
       const commands = extractInvokeCommands(await readFile(file, 'utf8'))

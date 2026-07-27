@@ -9,6 +9,8 @@
 - Capability metadata: 315/315
 - Generated typed commands: 252/315 (80.00%)
 
+- Exact input/output type declarations: 252/252
+
 | Module | Title | Platform | Commands | Default risk | Schema |
 | --- | --- | --- | ---: | --- | --- |
 | `config` | 配置管理 | base | 12 | `local_mutation` | `generated` |

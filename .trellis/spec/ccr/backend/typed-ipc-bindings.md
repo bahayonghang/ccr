@@ -8,7 +8,7 @@
 
 - Trigger: adding/changing any wire DTO returned by (or accepted as input to) a typed Tauri command; typing a new command domain; upgrading `ts-rs`.
 - Applies to `ccr-ui/src-tauri/src/services/*`, `ccr-ui/src-tauri/src/llmusage_adapter/{queries,capabilities}.rs`, `ccr-ui/src-tauri/src/{usage_jobs,session_index_jobs}.rs`, `ccr-ui/src-tauri/src/claude_observer/subscription.rs`, `crates/ccr-usage/src/{queries,capabilities}.rs`, and the generated dir `ccr-ui/src/types/generated/`.
-- Typed coverage is generated from the command manifest: 252/315 base commands (80.00%). This includes the original Usage V2 (17), Claude Observer (9), and install (8) pilots plus generated clients for config, system prompts, sync, Claude, Codex, auth/provider, Gemini, OpenCode, SSH, command execution, and the smaller system/UI/environment/event/shell domains. All typed commands expose a concrete generated return type; `Result<Value, String>` is banned at the command boundary.
+- Typed coverage is generated from the command manifest: 252/315 base commands (80.00%), with exact registry-owned input/output declarations for 252/252 typed commands. This includes Usage V2 (17), Claude Observer (9), install (8), config, system prompts, sync, Claude, Codex, auth/provider, Gemini, OpenCode, SSH, command execution, and the smaller system/UI/environment/event/shell domains. All typed commands expose a concrete generated return type; `Result<Value, String>` is banned at the command boundary.
 
 ### 2. Signatures
 
@@ -44,9 +44,9 @@
 - **`skip_serializing_if = "Option::is_none"` output fields**: wire is _absent key_, not `null` → also `#[ts(optional)]`.
 - **`export_to` paths resolve relative to `<manifest>/bindings/`**, not the manifest dir (one level deeper than intuition).
 - Generated files are **committed** (reviewers see contract diffs), `linguist-generated` + `eol=lf` via root `.gitattributes`, excluded from eslint (`ccr-ui/eslint.config.js` ignores `src/types/generated/**`), covered by `bun run type-check`.
-- TS consumption: domain wrappers (`src/api/domains/stats.ts`) import generated types directly and expose concrete return types — no `<T = UnknownRecord>` generics in a typed domain. `src/types/usage.ts` is a compat shim re-exporting generated types under legacy names plus hand-written view-only types (`UsagePlatform`, `HomeOverviewViewMode`, event payloads). Event payloads (`app_handle.emit`) are not command returns and stay hand-written until events join the pilot.
+- TS consumption: domain wrappers re-export registry-generated clients and expose concrete return types -- no direct typed `invoke()` or `<T = UnknownRecord>` generics in a typed domain. `src/types/usage.ts` is a compat shim re-exporting generated types under legacy names plus hand-written view-only types (`UsagePlatform`, `HomeOverviewViewMode`, event payloads). Event payloads (`app_handle.emit`) are not command returns and stay hand-written until events join the pilot.
 - Structurally open configuration payloads use the generated recursive `OpenJsonValueDto` union at the command boundary. Handwritten wrappers must convert unknown inputs with `toOpenJsonValue`; unchecked `as OpenJsonValueDto` casts are forbidden because they admit bigint, non-finite numbers, symbols, and other non-JSON values.
-- Newly migrated commands are invoked only by registry-generated clients under `src/api/generated/`. The three pre-manifest typed pilots (`stats.ts`, `claudeObserver.ts`, and `install.ts`) retain their concrete manual clients until their generator migration; the manifest-aware smoke guard freezes that exception list.
+- Typed commands are invoked only by registry-generated clients under `src/api/generated/`. `stats.ts`, `claudeObserver.ts`, and `install.ts` are compatibility re-export/projection surfaces, not direct invoke owners; the manifest-aware smoke guard has no typed-client exception list.
 - Name uniqueness: one exported type name per generated dir. If a workspace crate and src-tauri both define a same-named type (e.g. `HomeOverview*`), only the wire-facing one gets `ts(export)`.
 - **Repository types never go on the wire directly**: when a domain returns rows owned by a ccr-db repository (e.g. `claude_tool_calls_repo::{HeatmapCell,TopToolRow}`), the service layer defines a same-shaped wire DTO with the `TS` derive and maps via `From`. ccr-db stays free of ts-rs/frontend-binding concerns, and the bindings recipe never needs a ccr-db export step.
 
@@ -63,7 +63,7 @@
 
 - Good: add field `pub cache_hits: i64` with `#[ts(as = "f64")]`, run `just tauri-bindings`, commit code + regenerated `.ts` together.
 - Good: new service fn in `services/usage.rs` + unit test against `ccr_usage::fixtures::create_projection_db`.
-- Base: non-pilot domains keep `Result<Value, String>` until their own migration task (old/new styles coexist by design).
+- Base: legacy manifest domains keep `Result<Value, String>` until their own migration task; every domain marked `Generated` has exact registry-owned types and client declarations.
 - Bad: `serde_json::to_value(dto)` at the end of a typed command (reintroduces erasure).
 - Bad: editing files under `src/types/generated/` by hand, or adding new interfaces to `src/types/usage.ts` that mirror Rust structs.
 - Bad: giving frontend wrappers back their `<T = UnknownRecord>` escape hatch inside a typed domain.
