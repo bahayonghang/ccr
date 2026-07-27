@@ -1,0 +1,33 @@
+{
+  "id": "vite-dev-server-resource-optimization",
+  "name": "vite-dev-server-resource-optimization",
+  "title": "Vite 开发服务器资源占用优化",
+  "description": "修复 ccr-ui Vite 开发服务器在 Windows 长时间运行时的句柄、内存和 CPU 持续增长，并收紧开发与 smoke 测试的资源并发。",
+  "status": "completed",
+  "dev_type": "performance",
+  "scope": "ccr-ui dev tooling and smoke tests",
+  "package": "ccr-ui",
+  "priority": "P1",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-07-27",
+  "completedAt": "2026-07-27",
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [
+    "ccr-ui/vite.config.ts",
+    "ccr-ui/scripts/dev-web-warm-start.mjs",
+    "ccr-ui/scripts/dev-warm-targets.json",
+    "ccr-ui/scripts/dev-web-windows.ps1",
+    "ccr-ui/scripts/measure-vite-route.mjs",
+    "ccr-ui/vitest.smoke.config.ts"
+  ],
+  "notes": "Preserve unrelated dirty-tree changes, including the existing ccr-ui/package.json version change to 7.0.0.",
+  "meta": {}
+}
