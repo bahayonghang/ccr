@@ -16,8 +16,10 @@
   zero-count guard per typed domain.
 - [x] Migrate remaining read-only commands until measured typed coverage is at
   least 80 percent; record every remaining command and owner in inventory.
-- [ ] Wire metadata into runtime timeout/confirmation/audit enforcement rather
-  than leaving descriptors passive.
+- [ ] Wire metadata into runtime timeout/confirmation enforcement rather than
+  leaving those descriptor fields passive. Authorization is enforced by
+  registry-generated Tauri AppManifest ACLs, and metadata/redaction-class audit
+  logging runs before dispatch without reading payloads.
 - [x] Update handler-registry, typed-binding, API-facade, and desktop-command
   specs from generated evidence.
 

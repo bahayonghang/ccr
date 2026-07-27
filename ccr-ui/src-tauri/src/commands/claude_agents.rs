@@ -16,8 +16,8 @@ pub async fn claude_add_agent(
 ) -> Result<OpenJsonValueDto, String> {
     let mut settings = load_settings(state.inner()).await?;
 
-    let mut agent: ccr_types::Agent =
-        serde_json::from_value(config.into()).map_err(|e| format!("Invalid agent config: {}", e))?;
+    let mut agent: ccr_types::Agent = serde_json::from_value(config.into())
+        .map_err(|e| format!("Invalid agent config: {}", e))?;
     agent.name = name;
 
     settings.agents.push(agent);
@@ -42,8 +42,8 @@ pub async fn claude_update_agent(
         .position(|a| a.name == name)
         .ok_or_else(|| format!("Agent '{}' not found", name))?;
 
-    let updated: ccr_types::Agent =
-        serde_json::from_value(config.into()).map_err(|e| format!("Invalid agent config: {}", e))?;
+    let updated: ccr_types::Agent = serde_json::from_value(config.into())
+        .map_err(|e| format!("Invalid agent config: {}", e))?;
     settings.agents[pos] = updated;
 
     save_settings(state.inner(), &settings).await?;

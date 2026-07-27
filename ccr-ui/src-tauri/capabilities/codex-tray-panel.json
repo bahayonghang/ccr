@@ -6,6 +6,7 @@
     "codex-tray-panel"
   ],
   "permissions": [
+    "codex-tray-command-inventory",
     "core:default",
     "core:event:default",
     "core:event:allow-listen",

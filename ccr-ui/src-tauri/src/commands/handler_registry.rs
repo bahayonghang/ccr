@@ -844,10 +844,10 @@ mod tests {
     use std::path::PathBuf;
 
     use super::{
-        command_descriptor, command_descriptors, command_registry_is_well_formed,
-        registered_command_count, CommandAudit, CommandAuthorization, CommandConcurrency,
+        COMMAND_MODULES, CommandAudit, CommandAuthorization, CommandConcurrency,
         CommandConfirmation, CommandDescriptor, CommandPlatform, CommandRisk, CommandSchema,
-        COMMAND_MODULES, WINDOWS_COMMAND_MODULES,
+        WINDOWS_COMMAND_MODULES, command_descriptor, command_descriptors,
+        command_registry_is_well_formed, registered_command_count,
     };
 
     #[derive(serde::Serialize)]
@@ -966,6 +966,67 @@ mod tests {
         let mut output =
             serde_json::to_string_pretty(&command_manifest()).expect("serialize command manifest");
         output.push('\n');
+        output
+    }
+
+    const CODEX_TRAY_PANEL_COMMANDS: &[&str] = &[
+        "codex_get_tray_snapshot",
+        "codex_switch_auth",
+        "shell_show_main_window",
+        "shell_request_quit",
+        "shell_begin_tray_panel_drag",
+        "shell_complete_tray_panel_drag",
+    ];
+
+    fn command_permissions_toml() -> String {
+        fn append_permission_set(
+            output: &mut String,
+            identifier: &str,
+            description: &str,
+            commands: impl IntoIterator<Item = &'static str>,
+        ) {
+            writeln!(output, "[[set]]").expect("write permission set header");
+            writeln!(output, "identifier = \"{identifier}\"")
+                .expect("write permission set identifier");
+            writeln!(output, "description = \"{description}\"")
+                .expect("write permission set description");
+            writeln!(output, "permissions = [").expect("write permission set list");
+            for command in commands {
+                writeln!(output, "  \"allow-{}\",", command.replace('_', "-"))
+                    .expect("write app command permission");
+            }
+            writeln!(output, "]").expect("finish permission set");
+        }
+
+        let manifest = command_manifest();
+        let command_ids = manifest
+            .commands
+            .iter()
+            .map(|descriptor| descriptor.id)
+            .collect::<HashSet<_>>();
+        for command in CODEX_TRAY_PANEL_COMMANDS {
+            assert!(
+                command_ids.contains(command),
+                "tray command missing from command manifest: {command}"
+            );
+        }
+
+        let mut output = String::from(
+            "# Generated from commands/handler_registry.rs; do not edit manually.\n\n",
+        );
+        append_permission_set(
+            &mut output,
+            "main-command-inventory",
+            "Allows the main window to invoke every registry-owned application command.",
+            manifest.commands.iter().map(|descriptor| descriptor.id),
+        );
+        output.push('\n');
+        append_permission_set(
+            &mut output,
+            "codex-tray-command-inventory",
+            "Allows the Codex tray panel to invoke only its explicit application commands.",
+            CODEX_TRAY_PANEL_COMMANDS.iter().copied(),
+        );
         output
     }
 
@@ -1403,6 +1464,10 @@ mod tests {
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
         vec![
             (
+                root.join("ccr-ui/src-tauri/permissions/command-inventory.toml"),
+                command_permissions_toml(),
+            ),
+            (
                 root.join("docs/reference/tauri-command-inventory.md"),
                 command_inventory_markdown(),
             ),
@@ -1618,9 +1683,11 @@ mod tests {
             })
             .collect::<Vec<_>>();
         assert_eq!(exact_contract_modules.len(), 252);
-        assert!(exact_contract_modules
-            .iter()
-            .all(|descriptor| descriptor.has_exact_wire_types()));
+        assert!(
+            exact_contract_modules
+                .iter()
+                .all(|descriptor| descriptor.has_exact_wire_types())
+        );
     }
 
     #[test]
@@ -1784,9 +1851,11 @@ mod tests {
             .sum::<usize>();
 
         assert_eq!(modules.len(), 2);
-        assert!(modules
-            .iter()
-            .all(|module| module.schema == CommandSchema::Generated));
+        assert!(
+            modules
+                .iter()
+                .all(|module| module.schema == CommandSchema::Generated)
+        );
         assert_eq!(client.matches("invoke('").count(), command_count);
         for handler_path in modules.iter().flat_map(|module| module.commands) {
             let command = handler_path
@@ -1835,9 +1904,11 @@ mod tests {
             .collect::<Vec<_>>();
 
         assert_eq!(modules.len(), 2);
-        assert!(modules
-            .iter()
-            .all(|module| module.schema == CommandSchema::Generated));
+        assert!(
+            modules
+                .iter()
+                .all(|module| module.schema == CommandSchema::Generated)
+        );
         assert_eq!(
             client.matches("invoke('").count(),
             modules
@@ -1937,5 +2008,100 @@ mod tests {
             let actual = std::fs::read_to_string(&path).expect("read command inventory");
             assert_eq!(actual, expected, "run `just tauri-command-inventory`");
         }
+    }
+
+    #[test]
+    fn tray_panel_permission_set_excludes_unrelated_privileged_commands() {
+        let permissions = command_permissions_toml();
+
+        for command in CODEX_TRAY_PANEL_COMMANDS {
+            let permission = format!("allow-{}", command.replace('_', "-"));
+            assert_eq!(permissions.matches(&permission).count(), 2);
+        }
+        for command in [
+            "codex_delete_session",
+            "codex_save_config_raw_text",
+            "execute_ccr_command",
+            "llmusage_install_execute",
+        ] {
+            let permission = format!("allow-{}", command.replace('_', "-"));
+            assert_eq!(permissions.matches(&permission).count(), 1);
+        }
+    }
+
+    #[test]
+    fn generated_tauri_acl_scopes_application_commands_by_window() {
+        let acl: serde_json::Value = serde_json::from_str(include_str!(concat!(
+            env!("OUT_DIR"),
+            "/acl-manifests.json"
+        )))
+        .expect("parse generated Tauri ACL manifests");
+        let app_acl = &acl["__app-acl__"];
+        let permission_sets = app_acl["permission_sets"]
+            .as_object()
+            .expect("app permission sets");
+        let app_permissions = app_acl["permissions"]
+            .as_object()
+            .expect("generated app permissions");
+
+        let main_permissions = permission_sets["main-command-inventory"]["permissions"]
+            .as_array()
+            .expect("main command permissions");
+        assert_eq!(main_permissions.len(), command_manifest().commands.len());
+        for descriptor in command_manifest().commands {
+            let permission = format!("allow-{}", descriptor.id.replace('_', "-"));
+            assert!(
+                main_permissions.iter().any(|entry| entry == &permission),
+                "main window is missing app permission: {permission}"
+            );
+            assert!(
+                app_permissions.contains_key(&permission),
+                "Tauri did not generate app permission: {permission}"
+            );
+        }
+
+        let tray_permissions = permission_sets["codex-tray-command-inventory"]["permissions"]
+            .as_array()
+            .expect("tray command permissions")
+            .iter()
+            .map(|entry| entry.as_str().expect("tray permission string"))
+            .collect::<HashSet<_>>();
+        let expected_tray_permissions = CODEX_TRAY_PANEL_COMMANDS
+            .iter()
+            .map(|command| format!("allow-{}", command.replace('_', "-")))
+            .collect::<HashSet<_>>();
+        assert_eq!(
+            tray_permissions,
+            expected_tray_permissions
+                .iter()
+                .map(String::as_str)
+                .collect::<HashSet<_>>()
+        );
+
+        let capabilities: serde_json::Value =
+            serde_json::from_str(include_str!(concat!(env!("OUT_DIR"), "/capabilities.json")))
+                .expect("parse generated Tauri capabilities");
+        let main_capability_permissions = capabilities["main-capability"]["permissions"]
+            .as_array()
+            .expect("main capability permissions");
+        let tray_capability_permissions =
+            capabilities["codex-tray-panel-capability"]["permissions"]
+                .as_array()
+                .expect("tray capability permissions");
+        assert!(
+            main_capability_permissions
+                .iter()
+                .any(|entry| entry == "main-command-inventory")
+        );
+        assert!(
+            tray_capability_permissions
+                .iter()
+                .any(|entry| entry == "codex-tray-command-inventory")
+        );
+        assert!(
+            !tray_capability_permissions
+                .iter()
+                .any(|entry| entry == "main-command-inventory")
+        );
     }
 }

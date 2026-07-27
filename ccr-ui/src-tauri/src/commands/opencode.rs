@@ -800,11 +800,12 @@ pub async fn opencode_update_tui_settings(
 #[tauri::command]
 pub async fn opencode_get_keybindings() -> Result<OpenJsonValueDto, String> {
     let tui: Value = opencode_get_tui_settings().await?.into();
-    open_json(tui
-        .as_object()
-        .and_then(|map| map.get("keybinds"))
-        .cloned()
-        .unwrap_or_else(|| json!({})))
+    open_json(
+        tui.as_object()
+            .and_then(|map| map.get("keybinds"))
+            .cloned()
+            .unwrap_or_else(|| json!({})),
+    )
 }
 
 #[tauri::command]
@@ -813,11 +814,13 @@ pub async fn opencode_update_keybindings(
 ) -> Result<OpenJsonValueDto, String> {
     let request = open_json(json!({ "keybinds": Value::from(keybindings) }))?;
     let updated: Value = opencode_update_tui_settings(request).await?.into();
-    open_json(updated
-        .as_object()
-        .and_then(|map| map.get("keybinds"))
-        .cloned()
-        .unwrap_or_else(|| json!({})))
+    open_json(
+        updated
+            .as_object()
+            .and_then(|map| map.get("keybinds"))
+            .cloned()
+            .unwrap_or_else(|| json!({})),
+    )
 }
 
 #[tauri::command]
@@ -919,9 +922,7 @@ pub async fn opencode_add_agent(config: OpenJsonValueDto) -> Result<OpenJsonValu
 }
 
 #[tauri::command]
-pub async fn opencode_update_agent(
-    config: OpenJsonValueDto,
-) -> Result<OpenJsonValueDto, String> {
+pub async fn opencode_update_agent(config: OpenJsonValueDto) -> Result<OpenJsonValueDto, String> {
     opencode_add_agent(config).await
 }
 
@@ -967,9 +968,7 @@ pub async fn opencode_add_command(config: OpenJsonValueDto) -> Result<OpenJsonVa
 }
 
 #[tauri::command]
-pub async fn opencode_update_command(
-    config: OpenJsonValueDto,
-) -> Result<OpenJsonValueDto, String> {
+pub async fn opencode_update_command(config: OpenJsonValueDto) -> Result<OpenJsonValueDto, String> {
     opencode_add_command(config).await
 }
 

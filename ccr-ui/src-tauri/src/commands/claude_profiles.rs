@@ -53,9 +53,7 @@ pub async fn claude_get_profile(name: String) -> Result<OpenJsonValueDto, String
 
 /// 创建新 Profile。
 #[tauri::command]
-pub async fn claude_add_profile(
-    request: OpenJsonValueDto,
-) -> Result<OpenJsonValueDto, String> {
+pub async fn claude_add_profile(request: OpenJsonValueDto) -> Result<OpenJsonValueDto, String> {
     let request: Value = request.into();
     tokio::task::spawn_blocking(move || -> Result<Value, String> {
         let name = request
@@ -213,9 +211,7 @@ fn claude_profiles_export_payload(include_secrets: bool) -> Result<Value, String
 }
 
 #[tauri::command]
-pub async fn claude_export_profiles(
-    include_secrets: bool,
-) -> Result<OpenJsonValueDto, String> {
+pub async fn claude_export_profiles(include_secrets: bool) -> Result<OpenJsonValueDto, String> {
     tokio::task::spawn_blocking(move || claude_profiles_export_payload(include_secrets))
         .await
         .map_err(|e| format!("任务执行失败: {e}"))??

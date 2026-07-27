@@ -57,6 +57,6 @@
 | `just lint-strict` / `just test` | PASS |
 | Single declaration owns exact input/output type names | PASS：manifest schema v2；252/252 typed command 的 handler、精确类型与 client declaration 同处 registry 行；三个历史 pilot 豁免已删除 |
 | Generated client ownership | PASS：`stats.ts` / `install.ts` / `claudeObserver.ts` 不再 direct invoke；API facade smoke 无 typed exception |
-| Runtime capability enforcement | PARTIAL：未知 app command 由 manifest allowlist 在 handler 前拒绝，audit 不读取 payload；timeout/concurrency/confirmation/authorization 尚未由统一后端执行边界完成 |
+| Runtime capability enforcement | PARTIAL：Tauri AppManifest 从 registry manifest v2 生成 323 条 app permissions；主窗口全量、Codex tray 仅 6 条，authorization 在 handler 前由 ACL 执行；metadata-only/redacted audit 不读取 payload；timeout/concurrency/confirmation 尚未由统一 completion-aware 后端执行边界完成 |
 
 本状态仅为已验证 checkpoint，不得归档本子任务。`OpenJsonValueDto` 只解决 JSON 可序列化边界；稳定响应仍需具名 DTO，不能用递归 JSON 联合冒充最终 typed 契约。

@@ -16,8 +16,8 @@ pub async fn claude_add_plugin(
 ) -> Result<OpenJsonValueDto, String> {
     let mut settings = load_settings(state.inner()).await?;
 
-    let mut plugin: ccr_types::Plugin =
-        serde_json::from_value(config.into()).map_err(|e| format!("Invalid plugin config: {}", e))?;
+    let mut plugin: ccr_types::Plugin = serde_json::from_value(config.into())
+        .map_err(|e| format!("Invalid plugin config: {}", e))?;
     plugin.name = name;
 
     settings.plugins.push(plugin);
@@ -42,8 +42,8 @@ pub async fn claude_update_plugin(
         .position(|p| p.name == name)
         .ok_or_else(|| format!("Plugin '{}' not found", name))?;
 
-    let updated: ccr_types::Plugin =
-        serde_json::from_value(config.into()).map_err(|e| format!("Invalid plugin config: {}", e))?;
+    let updated: ccr_types::Plugin = serde_json::from_value(config.into())
+        .map_err(|e| format!("Invalid plugin config: {}", e))?;
     settings.plugins[pos] = updated;
 
     save_settings(state.inner(), &settings).await?;

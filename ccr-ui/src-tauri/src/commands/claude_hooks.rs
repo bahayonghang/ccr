@@ -16,8 +16,8 @@ pub async fn claude_update_hooks(
 ) -> Result<OpenJsonValueDto, String> {
     let mut settings = load_settings(state.inner()).await?;
 
-    let new_hooks: ccr_types::HooksConfig =
-        serde_json::from_value(hooks.into()).map_err(|e| format!("Invalid hooks payload: {}", e))?;
+    let new_hooks: ccr_types::HooksConfig = serde_json::from_value(hooks.into())
+        .map_err(|e| format!("Invalid hooks payload: {}", e))?;
     settings.hooks = new_hooks;
 
     save_settings(state.inner(), &settings).await?;
