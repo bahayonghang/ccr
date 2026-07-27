@@ -3,11 +3,11 @@
 /**
  * 周×小时热力图单元（wire 版，映射自 `claude_tool_calls_repo::HeatmapCell`）
  */
-export type HeatmapCell = {
+export type HeatmapCell = { 
 /**
  * 0=Sun..6=Sat
  */
-dow: number,
+dow: number, 
 /**
  * 0..23
  */
