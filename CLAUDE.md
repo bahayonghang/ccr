@@ -12,6 +12,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `just version-sync` and `just fmt` are repair-oriented steps that may modify files; after running them, inspect the diff before continuing.
 - If you run Rust tests directly instead of `just test`, include `-- --test-threads=1` to avoid concurrent-conflict flakes.
 - Set `CCR_LOG_LEVEL=debug` (or `trace|info|warn|error`) for runtime debug output.
+- For code review passes, ask for all findings regardless of severity and filter separately — do not instruct the model to limit findings upfront.
+- For effort control on long tasks: agentic coding and full audits use `xhigh`; single-file edits and quick lookups use `low`/`medium`.
 
 ## Tooling
 
@@ -23,6 +25,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - Internal implementation comments stay in Chinese; public API docs stay in English.
 - When changing config, settings, or sync persistence flows, preserve masking of secrets, backup-before-destructive-change behavior, file locking, and atomic writes.
+- When reviewing UI changes, provide all visual findings; don't pre-filter by severity.
 
 ## Version management
 
