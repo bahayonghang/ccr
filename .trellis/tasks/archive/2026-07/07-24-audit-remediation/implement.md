@@ -52,6 +52,6 @@
   `ACCEPTED_RISK` rather than `PASS`.
 - [x] Commit an integration/spec evidence checkpoint without absorbing unrelated
   work.
-- [ ] After final local validation passes, archive the parent and journal all
+- [x] After final local validation passes, archive the parent and journal all
   work commits. Do not merge PR #43, create a tag/release, or push further
   changes.
