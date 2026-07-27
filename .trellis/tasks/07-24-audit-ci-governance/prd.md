@@ -24,7 +24,7 @@
 - [x] 新增 VSCode PR job：`npm ci && npm run lint && npm test && npm run build:package`（P2-03, E2）
 - [x] `frontend-ci.yml` PR branches 加 `dev`，与 root/Tauri/VS Code PR branch policy 统一（P2-04, E3）
 - [x] 四个 PR workflow 始终生成稳定 required context；集中 relevance policy 只在命中产品路径时运行重验证，避免 branch protection 因 context 缺失永久等待
-- [ ] 将 Tauri / VS Code checks 设为 required branch protection；当前已确认 `main`/`dev` 均未保护，保持 `FAIL`
+- [x] 将 Tauri / VS Code checks 设为 required branch protection；`main`/`dev` 均已启用四个稳定 context、strict checks 与 admin enforcement
 
 ### 治理 quick wins
 - [x] hosted 加 dependency drift job + bindings drift；allowlist 设 owner/rationale/expiry，当前 1 个、目标 ≤3（P2-17, E6）
@@ -37,11 +37,11 @@
 
 ## Acceptance Criteria
 
-- [ ] 改 Tauri/VSCode 的 PR 必触发对应 check 并设 required branch protection（hosted 产品面 2/4→4/4）
-- [ ] dev push/PR 触发 frontend CI（branch coverage 3/3）
-- [ ] 依赖/bindings/docs drift PR 必失败
-- [ ] 同一 commit 重跑工具版本一致（pin 生效）
-- [ ] `just ci` 与 hosted workflow 调同一脚本，结果等价
+- [x] 改 Tauri/VSCode 的 PR 必触发对应 check 并设 required branch protection（hosted 产品面 2/4→4/4）
+- [x] dev push/PR 触发 frontend CI（branch coverage 3/3）
+- [x] 依赖/bindings/docs drift PR 必失败
+- [x] 同一 commit 重跑工具版本一致（pin 生效）
+- [x] `just ci` 与 hosted workflow 调同一脚本，结果等价
 
 ## Out of Scope
 
@@ -54,16 +54,16 @@
 - CI 时间增加：Linux required、Win/macOS 起步可 nightly/smoke（报告阶段 0 回滚：drift job 可暂 non-blocking 一周）
 - 本子任务 quick wins（frontend-ci 加 dev、pin 版本、修文档计数）可最先做，成本 <1d
 - 测试并行化改动大，作为独立 PR，避免与门禁新增混在一起
-- 2026-07-27 已使用 keyring 凭据读取 `main`/`dev` branch protection：两者均返回 `404 Branch not protected`，不再是权限未知；必须配置并复查真实规则后才能标记完成
+- 2026-07-27 已使用 keyring 凭据配置并回读 `main`/`dev` branch protection：两者均 `protected=true`、`strict=true`、`enforce_admins=true`，四个 required contexts 绑定 GitHub Actions app `15368`
 
 ## Verification evidence (2026-07-27)
 
 | Evidence | Result |
 | --- | --- |
-| `python -m unittest scripts/test_check_workflow_governance.py` | PASS：8/8，覆盖路径 relevance、稳定汇总 job、事件/YAML 解析 |
-| `python scripts/check_workflow_governance.py` | PASS：51 immutable action refs；serial-only 0/0；四个稳定 required context |
+| `python -m unittest scripts/test_check_workflow_governance.py` | PASS：10/10，覆盖路径 relevance、稳定汇总 job、事件/YAML 解析、Tauri Bun/fresh-checkout fixture |
+| `python scripts/check_workflow_governance.py` | PASS：52 immutable action refs；serial-only 0/0；四个稳定 required context；Tauri Linux 固定 Bun 1.3.10 |
 | `just ci-governance-check` | PASS：19 repeated dependencies；1 active exception；315/323 registry doc |
-| `just coverage-rust` | PASS：workspace lines 70.18%；gateway 93.20% |
+| `just coverage-rust` | PASS：workspace lines 70.10%；gateway 93.20% |
 | `just coverage-tauri` | PASS：full baseline 39.90% reported；gateway 95.57% enforced |
 | `just frontend-coverage` | PASS：Vue lines 74.54% |
 | `just vscode-coverage` | PASS：lines 91.79%；functions 86.87% |
@@ -73,6 +73,6 @@
 | Workflow YAML parse | PASS |
 | `actionlint v1.7.7` | PASS：Root/Frontend/Tauri/VS Code 四个 workflow |
 | Hosted `dev` push | PASS：`Frontend CI` run `30242564309` 在 `50771c9e` 成功 |
-| `main` / `dev` branch protection | FAIL：GitHub API 可读，但两者当前均为 `404 Branch not protected` |
-| Hosted PR matrix | UNVERIFIED：当前没有开放的 `dev -> main` PR；需真实 PR 验证 Linux/Windows/macOS 与四个稳定 context |
+| `main` / `dev` branch protection | PASS：两者均 protected；strict required checks + admin enforcement；四个 contexts 绑定 app `15368`；force-push/deletion disabled |
+| Hosted PR matrix | PASS：PR #42 head `133842b3`；Root `30252249630`、Tauri `30252249641`、Frontend `30252249690`、VS Code `30252249627`；四个稳定 contexts 与 Linux/Windows/macOS/coverage 全部 SUCCESS |
 | `just version-check` / final `just ci` | BLOCKED by excluded parallel 7.0.0 metadata: `ccr-ui/README.md` lacks `version-7.0.0` |

@@ -21,7 +21,7 @@
   job command to its local recipe.
 - [x] Replace PR-level path filters with centralized merge-base relevance
   routing and fail-closed stable required aggregators for all four products.
-- [ ] Query/apply branch-protection required checks only with explicit
+- [x] Query/apply branch-protection required checks only with explicit
   repository permission; capture the resulting protected-branch evidence.
 - [x] Update dependency, handler-registry, typed-binding, and test-fixture specs.
 
@@ -39,10 +39,12 @@ just ci
 Also validate workflow syntax and inspect an actual PR check matrix. Local YAML
 parsing alone cannot prove trigger or required-check behavior.
 
-Current remote checkpoint: `dev@50771c9e` push run `30242564309` passed
-`Frontend CI`; keyring credentials can read repository settings, and both
-`main` and `dev` are confirmed unprotected. A real PR matrix and configured
-protection remain required before archive.
+Final remote checkpoint: PR #42 `dev -> main` head `133842b3`; runs
+`30252249630` / `30252249641` / `30252249690` / `30252249627` passed all four
+stable required contexts plus Linux/Windows/macOS and coverage jobs. Keyring
+credentials configured and re-read identical strict protection on `main` and
+`dev`, with admin enforcement and the four exact contexts bound to GitHub
+Actions app `15368`.
 
 ## Rollback checks
 
