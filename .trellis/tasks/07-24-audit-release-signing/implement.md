@@ -58,11 +58,12 @@ activation acceptance.
 | docs build + audit | PASS |
 | `just version-check` | BLOCKED by unrelated parallel `7.0.0` metadata: `ccr-ui/README.md` lacks `version-7.0.0`; version values themselves are aligned |
 | `just ci` | PASS: all 12 steps green in 03:53.493, including workspace tests, release build, audit, bindings drift, 104/464 frontend smoke tests, docs, and VS Code packaging |
-| GitHub `release` environment | PARTIAL EXTERNAL PASS: environment exists; custom deployment policy allows only `v*` tags; secrets/variables inventory remains HTTP 403 |
-| Required branch protection | EXTERNAL BLOCK: branch-protection endpoint returns HTTP 403; repository rulesets and readable `dev` rules are empty, so required contexts are not verified |
-| Repository/environment secrets inventory | EXTERNAL BLOCK: HTTP 403, token lacks Actions secrets permission |
+| GitHub `release` environment | PARTIAL EXTERNAL PASS: environment exists; custom deployment policy allows only `v*` tags; repository/environment secrets and variables are all empty |
+| Required branch protection | PASS: `main`/`dev` use strict required checks with admin enforcement; Root/Vue/Tauri/VS Code contexts are bound to app `15368`; force-push and deletion are disabled |
+| Hosted regression PR #43 | PASS at head `94eda6d0`: Root `30259859698`, Tauri `30259859694`, Frontend `30259859557`, VS Code `30259859538`; all four required contexts passed, with Tauri Linux/Windows/macOS and gateway coverage successful. This PR did not run a tag release or receive signing identities |
+| Repository/environment secrets inventory | EXTERNAL BLOCK: authoritative keyring OAuth inventory reports 0 repository secrets, 0 release-environment secrets, 0 repository variables, and 0 release-environment variables |
 | Latest real release | NO-GO: `v6.5.0` run `29002291872` predates signing workflow; assets expose checksums only and the sampled artifact digest has no GitHub attestation (HTTP 404) |
-| Real Apple/Windows/VSIX signatures and OIDC provenance | NOT RUN: no readable certificate/publisher identity, no protected-environment secret evidence, and no post-remediation tag release |
+| Real Apple/Windows/VSIX signatures and OIDC provenance | NOT RUN: all 12 local identity variables are absent, remote signing inventories are empty, and no post-remediation tag release exists |
 
 This is a verified repository-side checkpoint only. Do not archive this task or
 mark its acceptance criteria complete until the external activation rows pass

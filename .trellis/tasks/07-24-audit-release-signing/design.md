@@ -57,10 +57,12 @@ acceptance additionally requires real Apple, Windows, Marketplace publisher,
 and GitHub release identities plus verification of artifacts from an actual
 release run.
 
-Current evidence (2026-07-26): the available GitHub token receives HTTP 403 for
-Actions secret inventory and branch protection. No production signing identity
-is discoverable in the working tree. This is an external activation boundary,
-not a repository-side pass.
+Current evidence (2026-07-27): keyring OAuth can read branch protection and
+Actions inventory. `main` and `dev` have strict required checks with admin
+enforcement, while repository/environment secrets and variables are all empty.
+The protected `release` environment exists and accepts only `v*` tags, but no
+production Apple, Windows, or Marketplace identity is available locally or
+remotely. This is an external activation boundary, not a repository-side pass.
 
 ## Rollback
 

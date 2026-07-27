@@ -37,7 +37,7 @@
 
 - **需外部证书流程**：Apple Developer ID、Windows code signing cert、VSCode Marketplace publisher，涉及密钥管理与 secrets 配置，非纯代码任务
 - 报告 §11 指出 repo config 显示 null 但外部发布流程可能另有配置——落地前先盘点 release secret/process inventory
-- 2026-07-27 现场盘点：远程 `release` environment 已存在并仅允许 `v*` tag，但当前 `gh` 凭据读取 environment/repository secrets、variables 与 branch protection 仍返回 HTTP 403；仓库内也没有可验证的 Apple/Windows/VSIX 签名身份。因此只能证明 workflow、校验脚本和文档的仓库侧闭环，不能把真实签名 artifact 验证宣称为已通过
+- 2026-07-27 现场盘点：使用 keyring OAuth 回读确认远程 `release` environment 已存在并仅允许 `v*` tag，但 environment/repository secrets 与 variables 均为 0；本机 12 个 Apple/Windows/VSIX 身份环境变量也全部缺失。`main`/`dev` strict branch protection 已验证，但仓库仍没有可用于真实发布的签名身份。因此只能证明 workflow、校验脚本、托管回归和文档的仓库侧闭环，不能把真实签名 artifact 验证宣称为已通过
 - 优先级 P2，可在 P1 发版阻断组完成后进行
 
 ## Key Decision
@@ -58,8 +58,11 @@
 - `just version-check` 被不属于本任务的并行 `7.0.0` doc-drift 阻塞；未修改
   或暂存对应版本元数据。
 - 远程 `release` environment 已存在，custom deployment branch policy 为
-  tag `v*`；environment/repository secrets inventory 与 branch protection
-  仍为 HTTP 403，repository rulesets 为空。最新 `v6.5.0` release 早于本整改，
+  tag `v*`；environment/repository secrets 与 variables inventory 均为 0。
+  `main`/`dev` 均启用 strict required checks、admin enforcement，并禁止
+  force-push/deletion。PR #43（head `94eda6d0`）的四条 required contexts、
+  Tauri Linux/Windows/macOS 和 gateway coverage 全部通过，但该 PR 不执行
+  tag release，不能替代真实签名验收。最新 `v6.5.0` release 早于本整改，
   只有 checksum 资产，其 artifact digest 的 attestation API 返回 404。
   没有真实 Apple/Windows/VSIX 身份或新 pipeline 签名 artifact，因此所有
   Acceptance Criteria 继续保持未勾选，本任务不得归档。

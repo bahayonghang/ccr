@@ -1,0 +1,6 @@
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Audit final cross-layer closure"}
+{"file":".trellis/spec/ccr/backend/test-fixtures.md","reason":"Desktop security regression fixtures"}
+{"file":".trellis/spec/ccr-core/backend/test-fixtures.md","reason":"Atomic writer regression evidence"}
+{"file":".trellis/spec/ccr-sync/backend/test-fixtures.md","reason":"Adversarial sync regression evidence"}
+{"file":".trellis/spec/ccr-db/backend/test-fixtures.md","reason":"Historical migration fixture evidence"}
+{"file":".trellis/spec/ccr/backend/dependency-governance.md","reason":"Final local and hosted governance gate"}
