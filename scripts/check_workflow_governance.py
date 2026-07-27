@@ -224,7 +224,6 @@ def main() -> int:
         "coverage-rust:",
         "coverage-tauri:",
         "frontend-audit:",
-        "release-security-check:",
         "tauri-ci:",
         "vscode-ci:",
     ):

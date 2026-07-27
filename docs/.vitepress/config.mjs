@@ -121,7 +121,6 @@ const zhTheme = {
           { text: '运行时流程', link: '/reference/internals/runtime-flows' },
           { text: '平台支持', link: '/reference/platforms/' },
           { text: '迁移指南', link: '/reference/migration' },
-          { text: 'Release 签名验证', link: '/reference/release-verification' },
           { text: '更新日志', link: '/reference/changelog' }
         ]
       },
@@ -298,7 +297,6 @@ const enTheme = {
           { text: 'Runtime Flows', link: '/en/reference/internals/runtime-flows' },
           { text: 'Platforms', link: '/en/reference/platforms/' },
           { text: 'Migration Guide', link: '/en/reference/migration' },
-          { text: 'Release Verification', link: '/en/reference/release-verification' },
           { text: 'Changelog', link: '/en/reference/changelog' }
         ]
       },

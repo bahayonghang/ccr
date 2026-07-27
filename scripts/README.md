@@ -94,22 +94,6 @@ bash scripts/check-dependency-drift.sh --verbose
 .\scripts\check-dependency-drift.ps1 -Verbose
 ```
 
-### `check_release_security.py`
-
-用于验证 release workflow 的 fail-closed 签名、SBOM、OIDC provenance、集中发布
-和 updater 禁用策略。`just release-security-check` 会先运行对应单测，再检查真实
-workflow；该 gate 已接入 `just ci-governance-check`。
-
-```bash
-python scripts/check_release_security.py check
-python scripts/check_release_security.py preflight macos
-python scripts/check_release_security.py write-tauri-config windows <temp-config>
-python scripts/check_release_security.py checksums <asset-root> <SHA256SUMS>
-```
-
-`preflight` 只输出缺失的 secret/variable 名称，不输出值。临时 Tauri 配置只包含
-签名 identity/thumbprint/timestamp policy，不写入证书、密码或 publisher token。
-
 ### `check_json_format.py`
 
 对显式列出的人工维护 JSON 配置执行严格解析和两空格规范化。检查模式已通过

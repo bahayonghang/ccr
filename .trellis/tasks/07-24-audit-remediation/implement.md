@@ -33,10 +33,6 @@
   归档 `f8201d42`、journal `de6deaf1`；metadata 315/315、typed 252/315、
   精确单一声明 252/252，以及 runtime policy/ACL/confirmation/timeout
   ownership 全部验证通过）
-- [ ] `07-24-audit-release-signing`（实现 `d2cabc6a`、证据 `07f8b12f`、
-  journal `94eda6d0`；fail-closed workflow、SBOM/provenance wiring、updater
-  freeze、文档、protected environment/branch protection 和 PR #43 已验证；
-  secrets/variables inventory 为空，真实身份与签名 artifact 未验收，保持未归档）
 - [x] `07-24-audit-p3-cleanup` (`a4e9dd3f`; facade deprecation、umbrella
   dependency guard、职责拆分契约、UTF-8/JSON 格式门禁；public API/doctest、
   scripts、migration、fmt、lint、workspace tests passed；`version-check` 仅被
@@ -50,11 +46,12 @@
   `version-check` 的唯一失败为任务外 `ccr-ui/README.md` 缺少 `version-7.0.0`。
 - [x] Inspect final tracked/untracked diff and prove unrelated pre-existing work
   was neither overwritten nor accidentally included.
-- [ ] Verify real signing/artifact evidence required by the selected completion
-  model. Hosted PR #43 and branch protection pass; release identity inventories
-  and Actions self-hosted runner inventory are empty, so real Apple/Windows/VSIX
-  signatures and provenance remain blocked.
+- [x] Record the superseding unsigned-release decision: delete the
+  `release-signing` child, revert signing/provenance gates, retain SHA-256 as an
+  integrity-only mechanism, keep the updater disabled, and classify P2-14 as
+  `ACCEPTED_RISK` rather than `PASS`.
 - [x] Commit an integration/spec evidence checkpoint without absorbing unrelated
   work.
-- [ ] After all external evidence passes, archive the parent and journal all work
-  commits. Do not merge PR #43, create a tag/release, or push further changes.
+- [ ] After final local validation passes, archive the parent and journal all
+  work commits. Do not merge PR #43, create a tag/release, or push further
+  changes.

@@ -3,47 +3,48 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      - 'v*'  # 触发条件：推送 v 开头的 tag (如 v2.4.2)
 
-# Build jobs are read-only. Only the final attestation and publication jobs
-# receive the additional permissions they require.
+# 🔐 权限配置 - 修复 "Resource not accessible by integration" 错误
 permissions:
-  contents: read
+  contents: write  # 需要写入权限以创建 release
 
 env:
   CARGO_TERM_COLOR: always
   PROJECT_NAME: ccr
 
 jobs:
-  build-cli:
-    name: Build CLI ${{ matrix.target }}
+  # 🏗️ 多平台构建并发布
+  build-and-release:
+    name: Build ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
-    environment: release
     strategy:
       fail-fast: false
       matrix:
         include:
+          # Linux GNU (主流发行版)
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
             archive: tar.gz
-            signing: linux
+
+          # Windows (主流桌面系统)
           - target: x86_64-pc-windows-msvc
             os: windows-latest
             archive: zip
-            signing: windows
+
+          # macOS Apple Silicon (M系列芯片)
           - target: aarch64-apple-darwin
             os: macos-latest
             archive: tar.gz
-            signing: macos
 
     steps:
       - name: Checkout code
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
-      - name: Resolve release version
-        id: version
+      - name: Get version from tag
+        id: get_version
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
         shell: bash
-        run: echo "value=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable
@@ -51,199 +52,166 @@ jobs:
           toolchain: 1.95.0
           targets: ${{ matrix.target }}
 
-      - name: Validate macOS release identity
-        if: matrix.signing == 'macos'
-        env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: python3 scripts/check_release_security.py preflight macos
-
-      - name: Import macOS signing identity
-        if: matrix.signing == 'macos'
-        env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          cert_path="$RUNNER_TEMP/ccr-signing.p12"
-          keychain_path="$RUNNER_TEMP/ccr-signing.keychain-db"
-          keychain_password="$(openssl rand -hex 24)"
-          export CCR_MACOS_CERT_PATH="$cert_path"
-          python3 - <<'PY'
-          import base64
-          import os
-          from pathlib import Path
-
-          Path(os.environ["CCR_MACOS_CERT_PATH"]).write_bytes(
-              base64.b64decode(os.environ["APPLE_CERTIFICATE"], validate=True)
-          )
-          PY
-          security create-keychain -p "$keychain_password" "$keychain_path"
-          security set-keychain-settings -lut 21600 "$keychain_path"
-          security unlock-keychain -p "$keychain_password" "$keychain_path"
-          security import "$cert_path" -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$keychain_path"
-          security set-key-partition-list -S apple-tool:,apple: -s -k "$keychain_password" "$keychain_path"
-          security list-keychains -d user -s "$keychain_path" login.keychain-db
-          echo "CCR_MACOS_KEYCHAIN=$keychain_path" >> "$GITHUB_ENV"
-
-      - name: Validate Windows release identity
-        if: matrix.signing == 'windows'
-        env:
-          WINDOWS_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
-          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
-          WINDOWS_CERTIFICATE_THUMBPRINT: ${{ secrets.WINDOWS_CERTIFICATE_THUMBPRINT }}
-          WINDOWS_TIMESTAMP_URL: ${{ vars.WINDOWS_TIMESTAMP_URL }}
-        run: python scripts/check_release_security.py preflight windows
-
-      - name: Import Windows signing identity
-        if: matrix.signing == 'windows'
-        shell: pwsh
-        env:
-          WINDOWS_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
-          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
-          WINDOWS_CERTIFICATE_THUMBPRINT: ${{ secrets.WINDOWS_CERTIFICATE_THUMBPRINT }}
-        run: |
-          $pfxPath = Join-Path $env:RUNNER_TEMP 'ccr-signing.pfx'
-          [IO.File]::WriteAllBytes($pfxPath, [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE_BASE64))
-          $password = ConvertTo-SecureString $env:WINDOWS_CERTIFICATE_PASSWORD -AsPlainText -Force
-          $certificate = Import-PfxCertificate -FilePath $pfxPath -CertStoreLocation Cert:\CurrentUser\My -Password $password
-          $expected = ($env:WINDOWS_CERTIFICATE_THUMBPRINT -replace '\s', '').ToUpperInvariant()
-          if ($certificate.Thumbprint -ne $expected) { throw 'Imported certificate thumbprint mismatch' }
-          "CCR_WINDOWS_CERT_THUMBPRINT=$($certificate.Thumbprint)" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
-          "CCR_WINDOWS_CERT_PATH=$pfxPath" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
-
-      - name: Build CLI
-        run: cargo build -p ccr --release --target ${{ matrix.target }} --all-features
-
-      - name: Sign and verify macOS CLI
-        if: matrix.signing == 'macos'
-        env:
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          binary="target/${{ matrix.target }}/release/ccr"
-          codesign --force --options runtime --timestamp --keychain "$CCR_MACOS_KEYCHAIN" --sign "$APPLE_SIGNING_IDENTITY" "$binary"
-          codesign --verify --deep --strict --verbose=2 "$binary"
-
-      - name: Sign and verify Windows CLI
-        if: matrix.signing == 'windows'
-        shell: pwsh
-        env:
-          WINDOWS_TIMESTAMP_URL: ${{ vars.WINDOWS_TIMESTAMP_URL }}
-        run: |
-          $binary = 'target/${{ matrix.target }}/release/ccr.exe'
-          $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" |
-            Sort-Object { [version]$_.VersionInfo.FileVersion } -Descending |
-            Select-Object -First 1 -ExpandProperty FullName
-          if (-not $signtool) { throw 'signtool.exe was not found in the Windows SDK' }
-          & $signtool sign /sha1 "$env:CCR_WINDOWS_CERT_THUMBPRINT" /fd SHA256 /tr "$env:WINDOWS_TIMESTAMP_URL" /td SHA256 "$binary"
-          & $signtool verify /pa /all /v "$binary"
-
-      - name: Package Unix CLI
-        if: matrix.archive == 'tar.gz'
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p release-assets
-          archive="ccr-${{ steps.version.outputs.value }}-${{ matrix.target }}.tar.gz"
-          tar -C "target/${{ matrix.target }}/release" -czf "release-assets/$archive" ccr
-
-      - name: Package Windows CLI
-        if: matrix.archive == 'zip'
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Force release-assets | Out-Null
-          $archive = "ccr-${{ steps.version.outputs.value }}-${{ matrix.target }}.zip"
-          Compress-Archive -Path "target/${{ matrix.target }}/release/ccr.exe" -DestinationPath "release-assets/$archive"
-
-      - name: Upload CLI artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - name: Cache cargo registry
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
         with:
-          name: cli-${{ matrix.target }}
-          path: release-assets/*
-          if-no-files-found: error
-          retention-days: 7
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Remove macOS signing identity
-        if: always() && matrix.signing == 'macos'
+      - name: Cache cargo index
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-git-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache target directory
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: target
+          key: ${{ matrix.target }}-release-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build release binary
+        run: cargo build -p ccr --release --target ${{ matrix.target }} --all-features
         shell: bash
-        run: |
-          security delete-keychain "${CCR_MACOS_KEYCHAIN:-$RUNNER_TEMP/ccr-signing.keychain-db}" 2>/dev/null || true
-          rm -f "$RUNNER_TEMP/ccr-signing.p12"
 
-      - name: Remove Windows signing identity
-        if: always() && matrix.signing == 'windows'
-        shell: pwsh
+      - name: Prepare release assets (Unix)
+        if: matrix.archive == 'tar.gz'
         run: |
-          if ($env:CCR_WINDOWS_CERT_THUMBPRINT) {
-            Remove-Item "Cert:\CurrentUser\My\$env:CCR_WINDOWS_CERT_THUMBPRINT" -Force -ErrorAction SilentlyContinue
-          }
-          if ($env:CCR_WINDOWS_CERT_PATH) {
-            Remove-Item $env:CCR_WINDOWS_CERT_PATH -Force -ErrorAction SilentlyContinue
-          }
+          cd target/${{ matrix.target }}/release
+          tar czf ${{ env.PROJECT_NAME }}-${{ steps.get_version.outputs.version }}-${{ matrix.target }}.tar.gz ${{ env.PROJECT_NAME }}
+          shasum -a 256 ${{ env.PROJECT_NAME }}-${{ steps.get_version.outputs.version }}-${{ matrix.target }}.tar.gz > ${{ env.PROJECT_NAME }}-${{ steps.get_version.outputs.version }}-${{ matrix.target }}.tar.gz.sha256
+          mv ${{ env.PROJECT_NAME }}-${{ steps.get_version.outputs.version }}-${{ matrix.target }}.tar.gz* ../../../
+        shell: bash
 
+      - name: Prepare release assets (Windows)
+        if: matrix.archive == 'zip'
+        run: |
+          cd target/${{ matrix.target }}/release
+          7z a ${{ env.PROJECT_NAME }}-${{ steps.get_version.outputs.version }}-${{ matrix.target }}.zip ${{ env.PROJECT_NAME }}.exe
+          sha256sum ${{ env.PROJECT_NAME }}-${{ steps.get_version.outputs.version }}-${{ matrix.target }}.zip > ${{ env.PROJECT_NAME }}-${{ steps.get_version.outputs.version }}-${{ matrix.target }}.zip.sha256
+          mv ${{ env.PROJECT_NAME }}-${{ steps.get_version.outputs.version }}-${{ matrix.target }}.zip* ../../../
+        shell: bash
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@c12583777ecdfd3be55c69cf75464299dc01057e # v3
+        with:
+          files: |
+            ${{ env.PROJECT_NAME }}-${{ steps.get_version.outputs.version }}-${{ matrix.target }}.${{ matrix.archive }}
+            ${{ env.PROJECT_NAME }}-${{ steps.get_version.outputs.version }}-${{ matrix.target }}.${{ matrix.archive }}.sha256
+          body: |
+            ## CCR ${{ steps.get_version.outputs.version }}
+
+            ### 📥 下载链接
+
+            选择适合你系统的版本：
+
+            - **Linux x86_64 (GNU)**：适用于大多数 Linux 发行版（Ubuntu/Debian/Fedora/Arch 等）
+            - **Windows x86_64**：适用于 Windows 10/11 64位系统
+            - **macOS Apple Silicon (ARM64)**：适用于 M1/M2/M3/M4 芯片的 Mac
+
+            ### 📋 更新日志
+
+            请查看 [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)
+
+            ### 🚀 快速安装
+
+            **Linux/macOS:**
+            ```bash
+            # 下载并安装 (替换为你的平台对应的文件)
+            curl -L https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/ccr-${{ steps.get_version.outputs.version }}-x86_64-unknown-linux-gnu.tar.gz | tar xz
+            sudo mv ccr /usr/local/bin/
+
+            # 验证安装
+            ccr --version
+            ```
+
+            **Windows:**
+            ```powershell
+            # 下载 zip 文件后解压到 PATH 路径
+            # 验证安装
+            ccr.exe --version
+            ```
+
+            **使用 Cargo 安装:**
+            ```bash
+            cargo install --git https://github.com/${{ github.repository }} --tag ${{ github.ref_name }}
+            ```
+
+            ### 🔒 校验和验证
+
+            所有文件都提供了 SHA256 校验和，请验证下载文件的完整性：
+
+            > 这些产物未使用 macOS、Windows 或 VSIX publisher 身份签名。
+            > SHA256 只能验证文件完整性，不能证明发布者身份；自动更新保持禁用。
+
+            ```bash
+            # Linux/macOS
+            sha256sum -c ccr-${{ steps.get_version.outputs.version }}-<target>.tar.gz.sha256
+
+            # Windows (PowerShell)
+            Get-FileHash ccr-${{ steps.get_version.outputs.version }}-<target>.zip -Algorithm SHA256
+            ```
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # 🧩 VS Code 扩展构建（.vsix）
   build-vscode:
-    name: Build and sign VS Code extension
-    runs-on: [self-hosted, linux, vsix-signing]
-    environment: release
+    name: Build VS Code Extension
+    runs-on: ubuntu-latest
+    needs: [build-and-release]
+
     steps:
       - name: Checkout code
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Get version from tag
+        id: get_version
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        shell: bash
 
       - name: Setup Node.js
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 24.18.0
-          cache: npm
+          cache: 'npm'
           cache-dependency-path: ccr-vscode/package-lock.json
 
-      - name: Validate VSIX signing identity
-        env:
-          VSCE_PAT: ${{ secrets.VSCE_PAT }}
-          VSIX_SIGN_TOOL_PATH: ${{ vars.VSIX_SIGN_TOOL_PATH }}
-        run: python3 scripts/check_release_security.py preflight vsix
+      - name: Install dependencies
+        working-directory: ccr-vscode
+        run: npm ci
 
-      - name: Install, lint, and test extension
+      - name: Lint and test extension
         working-directory: ccr-vscode
         run: |
-          npm ci
           npm run lint
           npm test
 
-      - name: Package signed VSIX
+      - name: Build + package VSIX
         working-directory: ccr-vscode
-        env:
-          VSIX_SIGN_TOOL_PATH: ${{ vars.VSIX_SIGN_TOOL_PATH }}
         run: |
-          set -euo pipefail
-          version="${GITHUB_REF#refs/tags/v}"
-          npx --no-install vsce package --no-dependencies --sign-tool "$VSIX_SIGN_TOOL_PATH" -o "ccr-vscode-$version.vsix"
-          manifest="$(find . -maxdepth 1 -type f -name '*.manifest' -print -quit)"
-          signature="$(find . -maxdepth 1 -type f -name '*.p7s' -print -quit)"
-          test -n "$manifest"
-          test -n "$signature"
-          npx --no-install vsce verify-signature -i "ccr-vscode-$version.vsix" -m "$manifest" -s "$signature"
-          mkdir -p release-assets
-          cp "ccr-vscode-$version.vsix" "$manifest" "$signature" release-assets/
+          npm run build -- --minify
+          npx vsce package --no-dependencies -o ccr-vscode-${{ steps.get_version.outputs.version }}.vsix
 
-      - name: Upload signed VSIX
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - name: Generate SHA256
+        working-directory: ccr-vscode
+        run: |
+          sha256sum ccr-vscode-${{ steps.get_version.outputs.version }}.vsix > ccr-vscode-${{ steps.get_version.outputs.version }}.vsix.sha256
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@c12583777ecdfd3be55c69cf75464299dc01057e # v3
         with:
-          name: vscode-signed
-          path: ccr-vscode/release-assets/*
-          if-no-files-found: error
-          retention-days: 7
+          files: |
+            ccr-vscode/ccr-vscode-${{ steps.get_version.outputs.version }}.vsix
+            ccr-vscode/ccr-vscode-${{ steps.get_version.outputs.version }}.vsix.sha256
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  # 🖥️ Tauri 桌面应用构建
   build-tauri:
     name: Build Tauri ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
-    environment: release
     strategy:
       fail-fast: false
       matrix:
@@ -284,273 +252,56 @@ jobs:
         working-directory: ccr-ui
         run: bun install --frozen-lockfile
 
-      - name: Validate macOS release identity
-        if: matrix.platform == 'macos'
-        env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: python3 scripts/check_release_security.py preflight macos
-
-      - name: Validate and import Windows release identity
-        if: matrix.platform == 'windows'
-        shell: pwsh
-        env:
-          WINDOWS_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
-          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
-          WINDOWS_CERTIFICATE_THUMBPRINT: ${{ secrets.WINDOWS_CERTIFICATE_THUMBPRINT }}
-          WINDOWS_TIMESTAMP_URL: ${{ vars.WINDOWS_TIMESTAMP_URL }}
-        run: |
-          python scripts/check_release_security.py preflight windows
-          $pfxPath = Join-Path $env:RUNNER_TEMP 'ccr-tauri-signing.pfx'
-          [IO.File]::WriteAllBytes($pfxPath, [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE_BASE64))
-          $password = ConvertTo-SecureString $env:WINDOWS_CERTIFICATE_PASSWORD -AsPlainText -Force
-          $certificate = Import-PfxCertificate -FilePath $pfxPath -CertStoreLocation Cert:\CurrentUser\My -Password $password
-          $expected = ($env:WINDOWS_CERTIFICATE_THUMBPRINT -replace '\s', '').ToUpperInvariant()
-          if ($certificate.Thumbprint -ne $expected) { throw 'Imported certificate thumbprint mismatch' }
-          "CCR_WINDOWS_CERT_THUMBPRINT=$($certificate.Thumbprint)" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
-          "CCR_WINDOWS_CERT_PATH=$pfxPath" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
-
-      - name: Write release-only Tauri configuration (Unix)
-        if: matrix.platform != 'windows'
-        shell: bash
-        env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          WINDOWS_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
-          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
-          WINDOWS_CERTIFICATE_THUMBPRINT: ${{ secrets.WINDOWS_CERTIFICATE_THUMBPRINT }}
-          WINDOWS_TIMESTAMP_URL: ${{ vars.WINDOWS_TIMESTAMP_URL }}
-        run: python3 scripts/check_release_security.py write-tauri-config ${{ matrix.platform }} "$RUNNER_TEMP/tauri-release.json"
-
-      - name: Write release-only Tauri configuration (Windows)
-        if: matrix.platform == 'windows'
-        shell: pwsh
-        env:
-          WINDOWS_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
-          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
-          WINDOWS_CERTIFICATE_THUMBPRINT: ${{ secrets.WINDOWS_CERTIFICATE_THUMBPRINT }}
-          WINDOWS_TIMESTAMP_URL: ${{ vars.WINDOWS_TIMESTAMP_URL }}
-        run: python scripts/check_release_security.py write-tauri-config windows "$env:RUNNER_TEMP/tauri-release.json"
-
-      - name: Build signed Tauri bundles
+      - name: Build Tauri app
         uses: tauri-apps/tauri-action@fce9c6108b31ea247710505d3aaaa893ee6768d4 # v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
           projectPath: ccr-ui
-          args: --config ${{ runner.temp }}/tauri-release.json
+          tagName: ${{ github.ref_name }}
+          releaseName: 'CCR ${{ github.ref_name }}'
+          releaseBody: 'See the release notes for details.'
+          releaseDraft: false
+          prerelease: false
 
-      - name: Verify Windows Tauri signatures
-        if: matrix.platform == 'windows'
-        shell: pwsh
-        run: |
-          $artifacts = @(Get-ChildItem ccr-ui/src-tauri/target/release/bundle -Recurse -File | Where-Object { $_.Extension -in '.exe', '.msi' })
-          if ($artifacts.Count -eq 0) { throw 'No Windows installer artifacts found' }
-          $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" |
-            Sort-Object { [version]$_.VersionInfo.FileVersion } -Descending |
-            Select-Object -First 1 -ExpandProperty FullName
-          if (-not $signtool) { throw 'signtool.exe was not found in the Windows SDK' }
-          foreach ($artifact in $artifacts) {
-            & $signtool verify /pa /all /v "$artifact"
-            if ((Get-AuthenticodeSignature $artifact).Status -ne 'Valid') { throw "Invalid signature: $artifact" }
-          }
-
-      - name: Verify macOS signing and notarization
-        if: matrix.platform == 'macos'
-        shell: bash
-        run: |
-          set -euo pipefail
-          app="$(find ccr-ui/src-tauri/target/release/bundle -type d -name '*.app' -print -quit)"
-          dmg="$(find ccr-ui/src-tauri/target/release/bundle -type f -name '*.dmg' -print -quit)"
-          test -n "$app"
-          test -n "$dmg"
-          codesign --verify --deep --strict --verbose=2 "$app"
-          spctl --assess --type execute --verbose=2 "$app"
-          xcrun stapler validate "$app"
-          xcrun stapler validate "$dmg"
-
-      - name: Upload Tauri bundles
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: tauri-${{ matrix.platform }}
-          path: ccr-ui/src-tauri/target/release/bundle/**/*
-          if-no-files-found: error
-          retention-days: 7
-
-      - name: Remove Windows signing identity
-        if: always() && matrix.platform == 'windows'
-        shell: pwsh
-        run: |
-          if ($env:CCR_WINDOWS_CERT_THUMBPRINT) {
-            Remove-Item "Cert:\CurrentUser\My\$env:CCR_WINDOWS_CERT_THUMBPRINT" -Force -ErrorAction SilentlyContinue
-          }
-          if ($env:CCR_WINDOWS_CERT_PATH) {
-            Remove-Item $env:CCR_WINDOWS_CERT_PATH -Force -ErrorAction SilentlyContinue
-          }
-
-  verify-and-attest:
-    name: Verify and attest release bundle
-    needs: [build-cli, build-vscode, build-tauri]
-    runs-on: ubuntu-latest
-    environment: release
-    permissions:
-      contents: read
-      id-token: write
-      attestations: write
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-
-      - name: Download signed artifacts
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-        with:
-          path: release-assets
-          merge-multiple: true
-
-      - name: Generate SPDX SBOM
-        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
-        with:
-          path: .
-          format: spdx-json
-          output-file: release-assets/ccr.spdx.json
-          upload-artifact: false
-          upload-release-assets: false
-          dependency-snapshot: false
-
-      - name: Generate final checksums
-        run: python3 scripts/check_release_security.py checksums release-assets release-assets/SHA256SUMS
-
-      - name: Attest build provenance
-        id: provenance
-        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
-        with:
-          subject-path: |
-            release-assets/**/*.tar.gz
-            release-assets/**/*.zip
-            release-assets/**/*.vsix
-            release-assets/**/*.AppImage
-            release-assets/**/*.deb
-            release-assets/**/*.rpm
-            release-assets/**/*.dmg
-            release-assets/**/*.msi
-            release-assets/**/*.exe
-
-      - name: Attest release SBOM
-        id: sbom
-        uses: actions/attest-sbom@4651f806c01d8637787e274ac3bdf724ef169f34 # v3
-        with:
-          subject-path: |
-            release-assets/**/*.tar.gz
-            release-assets/**/*.zip
-            release-assets/**/*.vsix
-            release-assets/**/*.AppImage
-            release-assets/**/*.deb
-            release-assets/**/*.rpm
-            release-assets/**/*.dmg
-            release-assets/**/*.msi
-            release-assets/**/*.exe
-          sbom-path: release-assets/ccr.spdx.json
-
-      - name: Include attestation bundles
-        shell: bash
-        run: |
-          cp "${{ steps.provenance.outputs.bundle-path }}" release-assets/provenance.intoto.jsonl
-          cp "${{ steps.sbom.outputs.bundle-path }}" release-assets/sbom-attestation.intoto.jsonl
-
-      - name: Upload verified release bundle
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: verified-release
-          path: release-assets/**/*
-          if-no-files-found: error
-          retention-days: 7
-
-  publish-vscode:
-    name: Publish signed VSIX
-    needs: verify-and-attest
-    runs-on: [self-hosted, linux, vsix-signing]
-    environment: release
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-
-      - name: Setup Node.js
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
-        with:
-          node-version: 24.18.0
-          cache: npm
-          cache-dependency-path: ccr-vscode/package-lock.json
-
-      - name: Download verified release bundle
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-        with:
-          name: verified-release
-          path: release-assets
-
-      - name: Publish signed extension to Marketplace
-        working-directory: ccr-vscode
-        env:
-          VSCE_PAT: ${{ secrets.VSCE_PAT }}
-        run: |
-          set -euo pipefail
-          npm ci
-          vsix="$(find ../release-assets -type f -name '*.vsix' -print -quit)"
-          manifest="$(find ../release-assets -type f -name '*.manifest' -print -quit)"
-          signature="$(find ../release-assets -type f -name '*.p7s' -print -quit)"
-          test -n "$vsix"
-          test -n "$manifest"
-          test -n "$signature"
-          npx --no-install vsce verify-signature -i "$vsix" -m "$manifest" -s "$signature"
-          npx --no-install vsce publish --packagePath "$vsix" --manifestPath "$manifest" --signaturePath "$signature"
-
-  publish-release:
-    name: Publish GitHub Release
-    needs: [verify-and-attest, publish-vscode]
-    runs-on: ubuntu-latest
-    environment: release
-    permissions:
-      contents: write
-    steps:
-      - name: Download verified release bundle
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-        with:
-          name: verified-release
-          path: release-assets
-
-      - name: Publish GitHub Release
-        uses: softprops/action-gh-release@c12583777ecdfd3be55c69cf75464299dc01057e # v3
-        with:
-          files: release-assets/**/*
-          fail_on_unmatched_files: true
-          generate_release_notes: true
-          body: |
-            All official artifacts in this release are signed and have GitHub build provenance.
-            Verify platform signatures, VSIX signatures, SHA256SUMS, and attestations before use.
-            See docs/reference/release-verification.md for commands and identity details.
-
+  # 📢 发布后汇总
   post-release:
-    name: Post release summary
-    needs: publish-release
+    name: Post Release Summary
+    needs: [build-and-release, build-vscode, build-tauri]
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     steps:
+      - name: Get version from tag
+        id: get_version
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
       - name: Summary
         run: |
-          echo "## Release ${GITHUB_REF#refs/tags/v} published" >> "$GITHUB_STEP_SUMMARY"
-          echo "Signed CLI, desktop, and VSIX artifacts passed centralized verification and attestation." >> "$GITHUB_STEP_SUMMARY"
-          echo "Verify with: gh attestation verify <artifact> --repo ${GITHUB_REPOSITORY}" >> "$GITHUB_STEP_SUMMARY"
+          echo "## ✅ Release ${{ steps.get_version.outputs.version }} 构建完成！" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📦 CLI 产物（3个主流平台）" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| 平台 | 文件 | 校验和 |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| 🐧 Linux | \`ccr-${{ steps.get_version.outputs.version }}-x86_64-unknown-linux-gnu.tar.gz\` | ✓ |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🪟 Windows | \`ccr-${{ steps.get_version.outputs.version }}-x86_64-pc-windows-msvc.zip\` | ✓ |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🍎 macOS ARM | \`ccr-${{ steps.get_version.outputs.version }}-aarch64-apple-darwin.tar.gz\` | ✓ |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🧩 VS Code 扩展" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- \`ccr-vscode-${{ steps.get_version.outputs.version }}.vsix\` (含 SHA256)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🖥️ 桌面应用 (Tauri)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| 平台 | 格式 |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|------|" >> $GITHUB_STEP_SUMMARY
+          echo "| 🐧 Linux | AppImage, deb |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🪟 Windows | msi, exe |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🍎 macOS | dmg, app |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔗 链接" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- [📥 下载 Release](https://github.com/${{ github.repository }}/releases/tag/v${{ steps.get_version.outputs.version }})" >> $GITHUB_STEP_SUMMARY
+          echo "- [📋 查看所有版本](https://github.com/${{ github.repository }}/releases)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "*构建时间: $(date -u '+%Y-%m-%d %H:%M:%S UTC')*" >> $GITHUB_STEP_SUMMARY

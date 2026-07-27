@@ -58,7 +58,7 @@
 | P3-04 | ✅ | `command_exec.rs:1244` `lines.remove(0)` O(n) 左移 |
 | P3-05 | ✅ | `migrations.rs:562-654` 注释 mojibake（GBK 乱码）；`tauri.conf.json` 单行压缩 |
 
-## 任务地图（9 个子任务）
+## 任务地图（8 个子任务）
 
 | 子任务 | 覆盖发现 | 优先级 | 对应报告 Epic | 状态 / 证据 |
 |---|---|---|---|---|
@@ -69,14 +69,13 @@
 | `07-24-audit-process-gateway` | P1-06, P1-07, P2-01, P2-02, P2-08, P2-09, P3-04 | P1 | A2, A3, A5 | 完成；`e5892e04`；gateway/Windows process tree/Tauri/frontend/lint/workspace tests；PR #42 Linux/Windows/macOS hosted 通过 |
 | `07-24-audit-ci-governance` | P1-11, P2-03, P2-04, P2-15, P2-16, P2-17, P3-03 | P1 | E1-E3, E5-E7 | 完成；`691fd0d5`、`bb46226b`、`7e7c4514`、`158b007c`、`6951839f`、`09acd6f2`、`133842b3`；PR #42 四个稳定 contexts 与跨平台矩阵通过；`main`/`dev` strict required protection 已配置并回读 |
 | `07-24-audit-typed-ipc` | P2-11, P2-12 | P2 | A4, E4 | 完成；实现 `3de89558`、证据 `b381e1ad`、归档 `f8201d42`、journal `de6deaf1`；metadata 315/315、typed 252/315 (80.00%)、精确单一声明 252/252，runtime policy/ACL/confirmation/timeout ownership 已闭环 |
-| `07-24-audit-release-signing` | P2-14 | P2 | E8 | 仓库侧完成；实现 `d2cabc6a`、证据 `07f8b12f`、journal `94eda6d0`；fail-closed workflow、SBOM/provenance wiring、updater freeze、验证文档和 PR #43 托管回归通过；release environment 的 secrets/variables 与 Actions self-hosted runner inventory 均为空，真实 Apple/Windows/VSIX 身份与签名产物仍 `UNVERIFIED`，保持未归档 |
 | `07-24-audit-p3-cleanup` | P3-01, P3-02, P3-05 | P3 | - | 完成；`a4e9dd3f`；public API/doctest、dependency/JSON、migration、fmt、lint、workspace tests；`version-check` 仅被并行 README 版本事实阻塞 |
 
 ### 建议执行顺序
 
 1. **发版阻断组（先行）**：install-plan-handle → ssh-hardening → webdav-sync → persistence-migration（对应报告"阶段 0 Release Blockers"）
 2. **稳定性组**：process-gateway、ci-governance（ci-governance 中 frontend-ci 加 dev、工具链 pin 等 quick win 可最先做）
-3. **中期组**：typed-ipc、release-signing
+3. **中期组**：typed-ipc
 4. **收尾**：p3-cleanup
 
 子任务间无硬依赖，可独立验收；typed-ipc 建议在 install/sync/ssh 整改后进行以避免迁移返工（顺序约束已写入其 prd.md）。
@@ -89,7 +88,7 @@
 
 ## 35 条发现整改证据矩阵（2026-07-27 interim）
 
-`PASS` 只表示对应审计发现已有代码与本地回归证据；需要 hosted、跨平台或真实身份的行在权威证据取得前保持 `PARTIAL`/`UNVERIFIED`。完整命令明细由对应子任务 PRD 的 Verification Evidence 持有。
+`PASS` 只表示对应审计发现已有代码与本地回归证据；`ACCEPTED_RISK` 表示发现仍成立且未整改，但用户已明确接受残余风险，绝不等同于通过。需要 hosted 或跨平台证据的行在权威证据取得前保持 `PARTIAL`/`UNVERIFIED`。完整命令明细由对应子任务 PRD 的 Verification Evidence 持有。
 
 | ID | 工作提交 | 回归 / 量化证据 | 当前状态 |
 |---|---|---|---|
@@ -117,7 +116,7 @@
 | P2-11 | `3de89558`, `b381e1ad` | capability metadata 315/315；Tauri permissions 323；confirmation/ACL、module/singleton permit、queue/cooperative/completion-aware/business timeout ownership 全部有 runtime enforcement | PASS |
 | P2-12 | `3de89558`, `b381e1ad` | typed 34/315 (10.79%) → 252/315 (80.00%)；typed exact declaration 252/252；typed boundary `Value`=0 | PASS |
 | P2-13 | `b444b459` | UUID transparent aliases 与 generated binding drift tests | PASS |
-| P2-14 | `d2cabc6a`, `07f8b12f` | repo-side release security 6/6、PR #43 四条 required contexts PASS；release secrets/variables=0、self-hosted runners=0，真实签名/attestation artifact 不存在 | UNVERIFIED |
+| P2-14 | `d2cabc6a`, `07f8b12f`（历史方案，已回退） | 用户无法提供 Apple/Windows/VSIX 发布身份并明确选择无签名发布；产物仅保留 SHA-256 完整性校验，不能证明发布者身份；updater 保持禁用 | ACCEPTED_RISK |
 | P2-15 | `691fd0d5`, `09acd6f2` | serial-only 0；Rust 70.10%、gateway 93.20/95.57%、Vue 74.54%、VS Code 91.79%；hosted coverage 成功 | PASS |
 | P2-16 | `691fd0d5`, `133842b3` | Rust/Bun/Node/actions pinned；PR #42 同 SHA 四 workflow 成功，Tauri Linux 固定 Bun 1.3.10 | PASS |
 | P2-17 | `691fd0d5` | dependency/MSRV drift gate；19 repeated dependencies、1 active exception | PASS |
@@ -144,41 +143,43 @@
 | Typed IPC | 34/315 (10.79%) | ≥80% | 252/315 (80.00%)；runtime policy/ACL/confirmation/timeout ownership 全部闭环；PASS |
 | Serial-only tests | 全局 `--test-threads=1` | 0 blanket serial annotations | 0；PASS |
 | Dependency exceptions | 未结构化/hosted 漂移 | owner/rationale/expiry，active ≤3 | 1；PASS |
-| Release identity | checksum-only；真实签名 0 | macOS/Windows/VSIX signed + provenance verified | repo DAG PASS；真实 artifact 0，`UNVERIFIED` |
+| Release identity | checksum-only；真实签名 0 | 用户修订目标：维持 unsigned；SHA-256 仅作完整性校验；updater 禁用；不声明 publisher identity | 真实签名 0；风险已明确接受，`ACCEPTED_RISK` |
 
-## Integration validation checkpoint (2026-07-27, local through `94eda6d0`; hosted PR #42/#43)
+## Integration validation checkpoint (2026-07-27 unsigned closeout; hosted history PR #42/#43)
 
 | Gate | Result |
 |---|---|
 | Child security regression targets | PASS：install 60；WebDAV 64；atomic writer 9；migration 16；Tauri SSH 26、sync 33、command gateway 33、handler registry 20、runtime policy 3；frontend focused 12 files / 46 tests；usage focused 14/14 |
-| `just fmt-check` / `just lint-strict` / `just test` | PASS |
+| Unsigned release boundary | PASS：`actionlint v1.7.7`；workflow governance 10/10、43 immutable action references、serial-only 0；签名 secret/tool/attestation gate 均不存在；updater dependency/config 不存在；release copy 明示 checksum 仅证明完整性 |
+| `just fmt-check` / `just lint-strict` / `just test` | PASS：当前 unsigned 集成树重跑通过 |
 | `just frontend-check` / `just ui-check` | PASS：104 files / 464 tests；type-check、lint、build、docs audit/build |
 | `just vscode-ci` | PASS：50/50；development VSIX package generated |
 | Coverage | PASS：root 70.14%、root gateway 93.20%、Tauri baseline 41.40%、Tauri gateway 95.57%、Vue 74.69%、VS Code 91.79% |
-| `just ci` | PASS：12 stages，03:53.493；含 release build、Rust audit、governance、bindings drift、104/464 frontend、docs 和 VS Code packaging |
+| `just ci` | PASS：12 stages，04:31.120；含 release build、Rust audit、governance、bindings drift、104/464 frontend、docs 和 VS Code packaging |
 | `just version-check` | FAIL：版本 7.0.0 全部一致；排除范围 `ccr-ui/README.md` 缺少 `version-7.0.0` 事实 |
-| Hosted PR matrix | PASS：PR #42 head `133842b3` 验证 CI governance；PR #43 head `94eda6d0` 验证最终 Typed IPC 集成，Root `30259859698`、Tauri `30259859694`、Frontend `30259859557`、VS Code `30259859538`；四条 required contexts 与 Tauri Linux/Windows/macOS、gateway coverage 全部成功；按 relevance policy 跳过的 Root/VS Code heavy jobs 未被冒充为执行 |
+| Hosted PR matrix | 历史 PASS：PR #42 head `133842b3` 验证 CI governance；PR #43 head `94eda6d0` 验证 Typed IPC 集成，四条 required contexts 与 Tauri Linux/Windows/macOS、gateway coverage 全部成功；当前 unsigned 回退按授权不 push，因此不把 PR #43 冒充为当前提交的 hosted 证据 |
 | GitHub branch protection | PASS：`main`/`dev` protected；strict checks、admin enforcement；四 contexts 绑定 app `15368`；force-push/deletion disabled |
-| GitHub `release` environment | PARTIAL：environment 存在且仅允许 `v*` tag；repository/environment secrets 与 variables 均为 0，Actions self-hosted runners 为 0；真实 Apple/Windows/VSIX/OIDC artifact `UNVERIFIED` |
-| Git boundary | checkpoint 前 index empty；任务外 tracked/version/Trellis/`CLAUDE.md`/`.gitattributes`、6 个 generated whitespace 文件与独立 Vite 任务均未 stage；父任务 6 files 仅进入本证据 checkpoint |
+| GitHub `release` environment | 不再作为父任务完成门槛：environment secrets/variables 与 self-hosted runners 均为 0；无签名身份，P2-14 记录为 `ACCEPTED_RISK` |
+| Git boundary | 任务外 tracked/version/Trellis/`CLAUDE.md`/`.gitattributes`、6 个 generated whitespace 文件与独立 Vite 任务均保持 unstaged；6 个 generated 文件验证前后 SHA-256 完全一致；当前提交仅包含 unsigned 回退、规范与父任务证据 |
 
 ## Acceptance Criteria
 
 - [x] 全部 11 条 P1 关闭或有等价的可验证阻断性 hotfix（发版门槛，见报告 §13）
 - [x] P2 中 process/sync/migration/CI 类问题进入连续整改而非零散 patch
-- [ ] 每个子任务归档时在本文件任务地图中标记完成状态
+- [x] 每个保留的子任务归档时在本文件任务地图中标记完成状态
 - [x] 最终跑通 `just ci` 且新增回归测试全部通过
 - [x] 集成复查：按报告 §6 量化指标表逐项核对 Before → Target
 
 ## Out of Scope
 
 - 不处理审计报告之外的功能需求或相邻重构
-- 不把缺失的跨平台、hosted CI、branch protection 或真实签名证据推断为通过
+- 不把缺失的跨平台、hosted CI 或 branch protection 证据推断为通过；无签名发布只能标记为 `ACCEPTED_RISK`，不得标记 `PASS`
 - 未单独授权时不 push、不发布 release、不修改生产 secrets/证书或远程仓库设置
 
 ## Key Decisions
 
-- 2026-07-26 用户选择严格端到端验收：`release-signing`、required branch protection 和真实签名产物在取得相应远程权限、证书/publisher 身份并完成实际验证前保持未完成；不得拆成仓库侧完成后即归档的两阶段口径
+- 2026-07-26 用户曾选择严格端到端签名验收；该决定已被 2026-07-27 的无签名决策覆盖，不再作为父任务完成门槛
+- 2026-07-27 用户明确无法提供发布身份，要求删除 `release-signing` 子任务并继续维持无签名发布；P2-14 保留为 `ACCEPTED_RISK`，SHA-256 只证明完整性，updater 保持禁用，任何文档或流程不得声称 unsigned artifact 已验证 publisher identity
 - 2026-07-26 用户同意 WebDAV v2 使用同步时输入的独立口令：口令仅在单次同步操作内存中存在，不落盘到 WebDAV 配置或本机 secret store；跨设备通过输入同一口令解密
 
 ## Notes

@@ -1,4 +1,0 @@
-{"file":".trellis/spec/ccr/backend/dependency-governance.md","reason":"Action pin and provenance dependency review"}
-{"file":".trellis/spec/ccr-vscode/frontend/extension-surface-contracts.md","reason":"VSIX validation evidence"}
-{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Signature verification before publication/apply"}
-{"file":".trellis/spec/ccr/backend/test-fixtures.md","reason":"Fail-closed release fixture quality"}
