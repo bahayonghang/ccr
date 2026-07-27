@@ -309,6 +309,20 @@ Use `tracing::warn!` for recoverable loading failures and diagnostics. Do not pr
 
 Prefer unit tests for state transitions, formatting, and helpers. Use temp dirs and fixture data for auth/config state; do not read real home-directory auth files.
 
+Theme style tests must not call `set_theme` or `toggle_theme`: `ACTIVE` is
+process-global, so one parallel test can change the palette between another
+test's style construction and assertion. Keep palette-dependent construction
+behind pure helpers and pass `&MOCHA` / `&LATTE` explicitly in tests.
+
+```rust
+// Wrong: races with every test that reads the active palette.
+set_theme(ThemeVariant::Mocha);
+assert_eq!(background_style().bg, Some(MOCHA.bg));
+
+// Correct: the production wrapper still reads palette(), while the test is pure.
+assert_eq!(background_style_for_palette(&MOCHA).bg, Some(MOCHA.bg));
+```
+
 ## Verification
 
 For TUI changes, run:

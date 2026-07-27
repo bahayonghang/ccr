@@ -159,15 +159,28 @@ pub enum ThemeVariant {
     Latte,
 }
 
+impl ThemeVariant {
+    fn palette(self) -> &'static Palette {
+        match self {
+            Self::Mocha => &MOCHA,
+            Self::Latte => &LATTE,
+        }
+    }
+
+    fn toggled(self) -> Self {
+        match self {
+            Self::Mocha => Self::Latte,
+            Self::Latte => Self::Mocha,
+        }
+    }
+}
+
 // 0 = Mocha, 1 = Latte。默认 Mocha,保证未调用 init_theme 的场景(含测试)有确定基线。
 static ACTIVE: AtomicU8 = AtomicU8::new(0);
 
 /// The palette for the active theme variant.
 pub fn palette() -> &'static Palette {
-    match ACTIVE.load(Ordering::Relaxed) {
-        1 => &LATTE,
-        _ => &MOCHA,
-    }
+    active_variant().palette()
 }
 
 /// The active theme variant.
@@ -189,10 +202,7 @@ pub fn set_theme(variant: ThemeVariant) {
 
 /// Toggle between Mocha and Latte (used by the in-app theme switch key).
 pub fn toggle_theme() -> ThemeVariant {
-    let next = match active_variant() {
-        ThemeVariant::Mocha => ThemeVariant::Latte,
-        ThemeVariant::Latte => ThemeVariant::Mocha,
-    };
+    let next = active_variant().toggled();
     set_theme(next);
     next
 }
@@ -376,13 +386,16 @@ pub fn opencode() -> Color {
 
 /// Identity accent color for a platform variant.
 pub fn accent_for(platform: Platform) -> Color {
-    let p = palette();
+    accent_for_palette(palette(), platform)
+}
+
+fn accent_for_palette(palette: &Palette, platform: Platform) -> Color {
     match platform {
-        Platform::Claude => p.claude,
-        Platform::Codex => p.codex,
-        Platform::Gemini => p.gemini,
-        Platform::Droid => p.droid,
-        _ => p.codex,
+        Platform::Claude => palette.claude,
+        Platform::Codex => palette.codex,
+        Platform::Gemini => palette.gemini,
+        Platform::Droid => palette.droid,
+        _ => palette.codex,
     }
 }
 
@@ -409,10 +422,14 @@ pub fn platform_style_for(platform: Platform) -> Style {
 /// Panel border style following the unified contract:
 /// focused/primary panels use the platform accent, others a neutral border.
 pub fn panel_border(platform: Platform, focused: bool) -> Style {
+    panel_border_for_palette(palette(), platform, focused)
+}
+
+fn panel_border_for_palette(palette: &Palette, platform: Platform, focused: bool) -> Style {
     if focused {
-        Style::default().fg(accent_for(platform))
+        Style::default().fg(accent_for_palette(palette, platform))
     } else {
-        Style::default().fg(border())
+        Style::default().fg(palette.border)
     }
 }
 
@@ -450,7 +467,11 @@ pub fn platform_style(platform: &str) -> Style {
 
 /// Primary body text style.
 pub fn primary_text_style() -> Style {
-    Style::default().fg(text())
+    primary_text_style_for_palette(palette())
+}
+
+fn primary_text_style_for_palette(palette: &Palette) -> Style {
+    Style::default().fg(palette.text)
 }
 
 /// Primary emphasized body text style.
@@ -460,7 +481,11 @@ pub fn primary_text_emphasis_style() -> Style {
 
 /// Secondary body text style.
 pub fn secondary_text_style() -> Style {
-    Style::default().fg(subtext())
+    secondary_text_style_for_palette(palette())
+}
+
+fn secondary_text_style_for_palette(palette: &Palette) -> Style {
+    Style::default().fg(palette.subtext)
 }
 
 /// Secondary emphasized body text style.
@@ -470,7 +495,13 @@ pub fn secondary_text_emphasis_style() -> Style {
 
 /// Muted/hint body text style.
 pub fn muted_text_style() -> Style {
-    Style::default().fg(muted()).add_modifier(Modifier::ITALIC)
+    muted_text_style_for_palette(palette())
+}
+
+fn muted_text_style_for_palette(palette: &Palette) -> Style {
+    Style::default()
+        .fg(palette.muted)
+        .add_modifier(Modifier::ITALIC)
 }
 
 /// Title style.
@@ -481,9 +512,13 @@ pub fn title_style() -> Style {
 
 /// Filled chip style for the active tab.
 pub fn tab_active_style_for(platform: Platform) -> Style {
+    tab_active_style_for_palette(palette(), platform)
+}
+
+fn tab_active_style_for_palette(palette: &Palette, platform: Platform) -> Style {
     Style::default()
-        .fg(selection_fg())
-        .bg(accent_for(platform))
+        .fg(palette.selection_fg)
+        .bg(accent_for_palette(palette, platform))
         .add_modifier(Modifier::BOLD)
 }
 
@@ -565,7 +600,11 @@ pub fn empty_hint_style() -> Style {
 /// Global background style — paints the Catppuccin surface so text contrast is
 /// controlled regardless of the host terminal being light or dark.
 pub fn background_style() -> Style {
-    Style::default().bg(bg()).fg(text())
+    background_style_for_palette(palette())
+}
+
+fn background_style_for_palette(palette: &Palette) -> Style {
+    Style::default().bg(palette.bg).fg(palette.text)
 }
 
 /// Claude platform style.
@@ -589,7 +628,11 @@ pub fn opencode_style() -> Style {
 
 /// Get quota color based on percentage (5-level gradient, high→low).
 pub fn quota_color(percentage: i32) -> Color {
-    let quota = palette().quota;
+    quota_color_for_palette(palette(), percentage)
+}
+
+fn quota_color_for_palette(palette: &Palette, percentage: i32) -> Color {
+    let quota = palette.quota;
     match percentage {
         90..=100 => quota[0],
         70..=89 => quota[1],
@@ -601,9 +644,13 @@ pub fn quota_color(percentage: i32) -> Color {
 
 /// Unified selected-row style (Mauve background, contrast-matched foreground).
 pub fn selected_row_style() -> Style {
+    selected_row_style_for_palette(palette())
+}
+
+fn selected_row_style_for_palette(palette: &Palette) -> Style {
     Style::default()
-        .bg(selection_bg())
-        .fg(selection_fg())
+        .bg(palette.selection_bg)
+        .fg(palette.selection_fg)
         .add_modifier(Modifier::BOLD)
 }
 
@@ -661,20 +708,11 @@ mod tests {
     }
 
     #[test]
-    fn set_and_toggle_theme_switch_active_palette() {
-        set_theme(ThemeVariant::Mocha);
-        assert_eq!(active_variant(), ThemeVariant::Mocha);
-        assert_eq!(palette().bg, MOCHA.bg);
-
-        toggle_theme();
-        assert_eq!(active_variant(), ThemeVariant::Latte);
-        assert_eq!(palette().bg, LATTE.bg);
-
-        toggle_theme();
-        assert_eq!(active_variant(), ThemeVariant::Mocha);
-
-        // 复位,避免污染其它串行测试。
-        set_theme(ThemeVariant::Mocha);
+    fn theme_variants_map_to_palettes_and_toggle() {
+        assert_eq!(ThemeVariant::Mocha.palette(), &MOCHA);
+        assert_eq!(ThemeVariant::Latte.palette(), &LATTE);
+        assert_eq!(ThemeVariant::Mocha.toggled(), ThemeVariant::Latte);
+        assert_eq!(ThemeVariant::Latte.toggled(), ThemeVariant::Mocha);
     }
 
     #[test]
@@ -702,27 +740,26 @@ mod tests {
 
     #[test]
     fn body_text_styles_use_explicit_palette_foreground() {
-        set_theme(ThemeVariant::Mocha);
-        assert_eq!(primary_text_style().fg, Some(MOCHA.text));
-        assert_eq!(secondary_text_style().fg, Some(MOCHA.subtext));
-        assert_eq!(muted_style().fg, Some(MOCHA.muted));
-        assert_eq!(background_style().bg, Some(MOCHA.bg));
-        assert_eq!(background_style().fg, Some(MOCHA.text));
+        assert_eq!(primary_text_style_for_palette(&MOCHA).fg, Some(MOCHA.text));
+        assert_eq!(
+            secondary_text_style_for_palette(&MOCHA).fg,
+            Some(MOCHA.subtext)
+        );
+        assert_eq!(muted_text_style_for_palette(&MOCHA).fg, Some(MOCHA.muted));
+        assert_eq!(background_style_for_palette(&MOCHA).bg, Some(MOCHA.bg));
+        assert_eq!(background_style_for_palette(&MOCHA).fg, Some(MOCHA.text));
     }
 
     #[test]
     fn background_and_text_track_active_variant() {
-        set_theme(ThemeVariant::Latte);
-        assert_eq!(background_style().bg, Some(LATTE.bg));
-        assert_eq!(primary_text_style().fg, Some(LATTE.text));
-        set_theme(ThemeVariant::Mocha);
-        assert_eq!(background_style().bg, Some(MOCHA.bg));
+        assert_eq!(background_style_for_palette(&LATTE).bg, Some(LATTE.bg));
+        assert_eq!(primary_text_style_for_palette(&LATTE).fg, Some(LATTE.text));
+        assert_eq!(background_style_for_palette(&MOCHA).bg, Some(MOCHA.bg));
     }
 
     #[test]
     fn selected_row_style_uses_mauve_selection_tokens() {
-        set_theme(ThemeVariant::Mocha);
-        let style = selected_row_style();
+        let style = selected_row_style_for_palette(&MOCHA);
         assert_eq!(style.bg, Some(MOCHA.selection_bg));
         assert_eq!(style.fg, Some(MOCHA.selection_fg));
         assert!(style.add_modifier.contains(Modifier::BOLD));
@@ -730,52 +767,51 @@ mod tests {
 
     #[test]
     fn panel_border_uses_accent_only_when_focused() {
-        set_theme(ThemeVariant::Mocha);
-        assert_eq!(panel_border(Platform::Claude, true).fg, Some(MOCHA.claude));
-        assert_eq!(panel_border(Platform::Claude, false).fg, Some(MOCHA.border));
+        assert_eq!(
+            panel_border_for_palette(&MOCHA, Platform::Claude, true).fg,
+            Some(MOCHA.claude)
+        );
+        assert_eq!(
+            panel_border_for_palette(&MOCHA, Platform::Claude, false).fg,
+            Some(MOCHA.border)
+        );
     }
 
     #[test]
     fn accent_for_distinguishes_platforms() {
-        set_theme(ThemeVariant::Mocha);
-        assert_eq!(accent_for(Platform::Claude), MOCHA.claude);
-        assert_eq!(accent_for(Platform::Codex), MOCHA.codex);
-        assert_ne!(accent_for(Platform::Claude), accent_for(Platform::Codex));
+        assert_eq!(accent_for_palette(&MOCHA, Platform::Claude), MOCHA.claude);
+        assert_eq!(accent_for_palette(&MOCHA, Platform::Codex), MOCHA.codex);
+        assert_ne!(
+            accent_for_palette(&MOCHA, Platform::Claude),
+            accent_for_palette(&MOCHA, Platform::Codex)
+        );
     }
 
     #[test]
     fn page_identity_accents_are_distinct() {
         // 三个页面共用外壳,但身份强调色必须可区分: Claude=Peach, Codex=Blue, OpenCode=Teal。
-        set_theme(ThemeVariant::Mocha);
-        assert_ne!(claude(), codex());
-        assert_ne!(claude(), opencode());
-        assert_ne!(codex(), opencode());
-        set_theme(ThemeVariant::Latte);
-        assert_ne!(claude(), codex());
-        assert_ne!(claude(), opencode());
-        assert_ne!(codex(), opencode());
-        set_theme(ThemeVariant::Mocha);
+        for palette in [&MOCHA, &LATTE] {
+            assert_ne!(palette.claude, palette.codex);
+            assert_ne!(palette.claude, palette.opencode);
+            assert_ne!(palette.codex, palette.opencode);
+        }
     }
 
     #[test]
     fn tab_highlight_style_is_platform_aware_filled_chip() {
-        set_theme(ThemeVariant::Mocha);
-        let codex = tab_highlight_style_for(Platform::Codex);
+        let codex = tab_active_style_for_palette(&MOCHA, Platform::Codex);
 
-        assert_eq!(codex.fg, Some(selection_fg()));
-        assert_eq!(codex.bg, Some(accent_for(Platform::Codex)));
-        assert_ne!(codex.bg, Some(accent_for(Platform::Claude)));
+        assert_eq!(codex.fg, Some(MOCHA.selection_fg));
+        assert_eq!(codex.bg, Some(MOCHA.codex));
+        assert_ne!(codex.bg, Some(MOCHA.claude));
         assert!(codex.add_modifier.contains(Modifier::BOLD));
         assert!(!codex.add_modifier.contains(Modifier::UNDERLINED));
     }
 
     #[test]
     fn quota_color_follows_active_palette_gradient() {
-        set_theme(ThemeVariant::Mocha);
-        assert_eq!(quota_color(95), MOCHA.quota[0]);
-        assert_eq!(quota_color(10), MOCHA.quota[4]);
-        set_theme(ThemeVariant::Latte);
-        assert_eq!(quota_color(95), LATTE.quota[0]);
-        set_theme(ThemeVariant::Mocha);
+        assert_eq!(quota_color_for_palette(&MOCHA, 95), MOCHA.quota[0]);
+        assert_eq!(quota_color_for_palette(&MOCHA, 10), MOCHA.quota[4]);
+        assert_eq!(quota_color_for_palette(&LATTE, 95), LATTE.quota[0]);
     }
 }
