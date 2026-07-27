@@ -242,3 +242,46 @@
 ### Next Steps
 
 - 继续 CI governance、typed IPC 与 release signing 的严格剩余验收，不降低远程/签名证据门槛。
+
+
+## Session 56: 完成 CI 与契约治理端到端验收
+
+**Date**: 2026-07-27
+**Task**: 完成 CI 与契约治理端到端验收
+**Branch**: `dev`
+
+### Summary
+
+补齐跨产品 hosted CI、覆盖率与依赖治理，修复 Root/Tauri 托管矩阵失败，并在同一 PR SHA 上验证四个 required contexts 后配置 main/dev strict branch protection。
+
+### Main Changes
+
+- PR #42 head 133842b3 的 Root、Vue/Docs、Tauri Linux、VS Code required contexts 与 Linux/Windows/macOS/coverage jobs 全部成功
+- main/dev 均启用 strict required checks、admin enforcement，四个 contexts 绑定 GitHub Actions app 15368
+- Root 主题测试改为显式 palette 纯 helper；Tauri Linux 固定安装 Bun 1.3.10 并由治理测试约束
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `691fd0d5` | (see git log) |
+| `bb46226b` | (see git log) |
+| `7e7c4514` | (see git log) |
+| `158b007c` | (see git log) |
+| `6951839f` | (see git log) |
+| `09acd6f2` | (see git log) |
+| `133842b3` | (see git log) |
+| `2ef69893` | (see git log) |
+
+### Testing
+
+- [OK] cargo test --workspace --all-features；just lint-strict；just coverage-rust（70.10% / gateway 93.20%）
+- [OK] just ci-governance-check；workflow governance 10/10；serial-only 0；PR #42 四 workflow SUCCESS
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 继续 07-24-audit-typed-ipc 的 completion-aware runtime policy 边界，不降低验收标准

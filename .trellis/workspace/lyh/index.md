@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 55
+- **Total Sessions**: 56
 - **Last Active**: 2026-07-27
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~244 | Active |
+| `journal-2.md` | ~287 | Active |
 | `journal-1.md` | ~1987 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 56 | 2026-07-27 | 完成 CI 与契约治理端到端验收 | `691fd0d5`, `bb46226b`, `7e7c4514`, `158b007c`, `6951839f`, `09acd6f2`, `133842b3`, `2ef69893` | `dev` |
 | 55 | 2026-07-27 | 完成审计 P3 轻量清理 | `a4e9dd3f` | `dev` |
 | 54 | 2026-07-26 | 完成 ProcessGateway 与进程能力治理 | `e5892e04` | `dev` |
 | 53 | 2026-07-26 | 完成持久化与 Migration 审计整改 | `3a3c9c55` | `dev` |
