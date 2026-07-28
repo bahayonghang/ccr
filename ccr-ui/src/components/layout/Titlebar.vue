@@ -373,8 +373,8 @@ onUnmounted(() => {
 
 .titlebar-dialog-backdrop {
   z-index: var(--layer-modal);
-  background: rgb(29 29 31 / 14%);
-  backdrop-filter: blur(16px);
+  background: var(--surface-modal-backdrop);
+  backdrop-filter: var(--surface-modal-blur);
 }
 
 .titlebar-control-btn {

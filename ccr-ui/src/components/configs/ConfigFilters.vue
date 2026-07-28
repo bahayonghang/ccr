@@ -146,9 +146,9 @@ const filters = computed(() => [
 <style scoped>
 /* Glass filter container */
 .glass-filter-container {
-  background: var(--glass-bg-light);
-  backdrop-filter: blur(12px);
-  border: 1px solid var(--glass-border-light);
+  background: var(--surface-status-bg);
+  backdrop-filter: var(--surface-status-blur);
+  border: 1px solid var(--surface-status-border);
   box-shadow: var(--shadow-sm);
 }
 
@@ -174,9 +174,9 @@ const filters = computed(() => [
 
 /* Sort select */
 .sort-select {
-  background: var(--glass-bg-light);
-  backdrop-filter: blur(10px);
-  border: 1px solid var(--glass-border-light);
+  background: var(--surface-status-bg);
+  backdrop-filter: var(--surface-status-blur);
+  border: 1px solid var(--surface-status-border);
   color: var(--text-primary);
   min-width: 140px;
 }

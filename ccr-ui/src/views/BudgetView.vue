@@ -467,7 +467,7 @@ onMounted(() => {
 }
 
 .budget-shell {
-  border: 1px solid rgb(255 255 255 / 20%);
+  border: 1px solid var(--color-border-default);
   border-radius: 1.5rem;
   padding: 1.25rem;
   box-shadow: var(--shadow-small);
@@ -615,7 +615,6 @@ onMounted(() => {
   background: rgb(239 68 68 / 10%);
   padding: 1rem;
   color: rgb(254 226 226);
-  backdrop-filter: blur(12px);
 }
 
 .budget-error__layout {
@@ -694,14 +693,13 @@ onMounted(() => {
 .budget-overview-card,
 .budget-limit-row,
 .budget-toggle-card {
-  border: 1px solid rgb(255 255 255 / 10%);
+  border: 1px solid var(--color-border-default);
   border-radius: 1rem;
-  background: rgb(var(--color-bg-surface-rgb, 255 255 255), 0.5);
+  background: var(--color-bg-surface);
 }
 
 .budget-overview-card {
   padding: 1rem;
-  backdrop-filter: blur(8px);
 }
 
 .budget-overview-card__value {
@@ -753,7 +751,7 @@ onMounted(() => {
 
 .budget-toggle-card {
   padding: 1rem;
-  background: rgb(var(--color-bg-surface-rgb, 255 255 255), 0.4);
+  background: var(--color-bg-surface);
 }
 
 .budget-toggle {

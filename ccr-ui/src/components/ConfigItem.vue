@@ -123,7 +123,6 @@ const avatarClass = computed(() => {
 .config-item--active {
   background: rgb(var(--color-accent-primary-rgb) / 10%);
   border: 1px solid rgb(var(--color-accent-primary-rgb) / 16%);
-  backdrop-filter: blur(12px);
   box-shadow: inset 2px 0 0 var(--color-accent-primary);
 }
 </style>
