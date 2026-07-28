@@ -160,6 +160,10 @@ pub async fn create_command(args: ProfileCreateActionArgs) -> Result<()> {
         account: args.account,
         tags: args.tags,
         auth_mode: args.auth_mode,
+        api_backend: None,
+        env_key: None,
+        context_window: None,
+        supports_backend_search: None,
         disabled: args.disabled,
         json: args.json,
     })

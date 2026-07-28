@@ -3,10 +3,10 @@
 use ccr::{Platform, ProfileConfig, create_platform};
 
 #[test]
-fn auth_profile_supported_is_limited_to_claude_and_codex() {
+fn auth_profile_supported_includes_grok_profile_runtime() {
     assert_eq!(
         Platform::auth_profile_supported(),
-        &[Platform::Claude, Platform::Codex]
+        &[Platform::Claude, Platform::Codex, Platform::Grok]
     );
 }
 
@@ -19,6 +19,7 @@ fn all_platforms_still_include_usage_and_sync_platforms() {
     assert!(all_platforms.contains(&Platform::Gemini));
     assert!(all_platforms.contains(&Platform::Qwen));
     assert!(all_platforms.contains(&Platform::Droid));
+    assert!(all_platforms.contains(&Platform::Grok));
 }
 
 #[test]

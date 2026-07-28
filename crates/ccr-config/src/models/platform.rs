@@ -117,7 +117,7 @@ impl Platform {
     /// Keep this narrower than [`Self::all`] because Gemini/Qwen/Droid remain
     /// valid in usage, sync, and session domains.
     pub fn auth_profile_supported() -> &'static [Platform] {
-        &[Platform::Claude, Platform::Codex]
+        &[Platform::Claude, Platform::Codex, Platform::Grok]
     }
 }
 
@@ -655,7 +655,10 @@ mod tests {
     #[test]
     fn test_auth_profile_supported_is_narrower_than_all_platforms() {
         let supported = Platform::auth_profile_supported();
-        assert_eq!(supported, &[Platform::Claude, Platform::Codex]);
+        assert_eq!(
+            supported,
+            &[Platform::Claude, Platform::Codex, Platform::Grok]
+        );
 
         let all = Platform::all();
         assert!(all.contains(&Platform::Gemini));
