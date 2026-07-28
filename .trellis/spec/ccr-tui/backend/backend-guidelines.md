@@ -305,6 +305,87 @@ let field = DetailField::new(DetailKey::Model, value, DetailTone::Accent {
 
 Use `tracing::warn!` for recoverable loading failures and diagnostics. Do not print directly from TUI code during active terminal rendering.
 
+## Scenario: Grok Profile Tab
+
+### 1. Scope / Trigger
+
+- Trigger: changing Grok profile discovery, tab ordering, profile details, or
+  apply behavior in the Ratatui application.
+- Applies to `tui/app.rs`, `tui/ui.rs`, the `TuiTabId::GrokProfile` preference,
+  and the Grok helpers exposed by `ccr-cli`.
+
+### 2. Signatures
+
+- `TuiTabId::GrokProfile` serializes as `grok_profile`.
+- `GrokPlatform::safe_base_url_for_display(&str) -> String` owns display URL
+  sanitization.
+- `GrokPlatform::profile_auth_mode(&ProfileConfig) -> Result<GrokProfileAuthMode>`
+  owns credential-source classification.
+- `PlatformConfig::apply_profile(&str)` remains the shared apply entry point.
+
+### 3. Contracts
+
+- Grok contributes exactly one `TabVariant::Profile`; it has no auth tab,
+  Claude runtime summary, Codex runtime summary, or embedded usage section.
+- Its full and compact labels are `Grok Profile` / `Grok 配置` and `Grok`.
+- Details show description, sanitized base URL, model, API backend, auth mode,
+  env-key name when applicable, context window, backend-search support, switch
+  count, and tags.
+- Details never render an inline token, including a masked token or any token
+  length signal. URL and auth semantics must call the Grok helpers above rather
+  than being reimplemented in the TUI.
+- Enter uses the existing profile apply path, toast reporting, reload, current
+  marker, and per-tab selection behavior without a Grok-only mutation path.
+
+### 4. Validation & Error Matrix
+
+- No Grok profiles -> render the existing profile empty state.
+- Profile or current-marker load failure -> render the existing `Where` / `What`
+  issue surface and keep the TUI running.
+- Conflicting or invalid auth fields -> render a localized invalid value without
+  exposing the underlying credential.
+- Apply validation, CAS, or I/O failure -> show the existing localized error
+  toast; do not change the current marker silently.
+
+### 5. Good/Base/Bad Cases
+
+- Good: an env-key profile shows `env_key (XAI_API_KEY)` and a URL without
+  userinfo, query, or fragment.
+- Base: a session profile with no explicit backend shows
+  `responses (default)` and no token row.
+- Bad: rendering `config.auth_token` through `mask_sensitive`; even the masked
+  shape leaks information and violates the Grok detail contract.
+
+### 6. Tests Required
+
+- Assert the Grok tab's config id, English/Chinese labels, default placement,
+  custom ordering, and empty-profile construction.
+- Assert env-key, inline-key, and session detail modes; URL sanitization; typed
+  Grok fields; and absence of plaintext and masked token output.
+- Run `cargo test -p ccr-config tui_config -- --test-threads=1`,
+  `cargo test -p ccr-tui -- --test-threads=1`, `just fmt-check`, and
+  `just lint-strict`.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```rust
+let url = config.base_url.clone();
+let token = config.auth_token.as_ref().map(mask_sensitive);
+```
+
+#### Correct
+
+```rust
+let url = config
+    .base_url
+    .as_deref()
+    .map(GrokPlatform::safe_base_url_for_display);
+let auth_mode = GrokPlatform::profile_auth_mode(config);
+// No token field is constructed for Grok details.
+```
+
 ## Testing
 
 Prefer unit tests for state transitions, formatting, and helpers. Use temp dirs and fixture data for auth/config state; do not read real home-directory auth files.

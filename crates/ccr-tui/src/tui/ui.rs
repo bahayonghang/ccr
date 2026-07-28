@@ -11,6 +11,7 @@ use super::toast::ToastKind;
 use super::usage::app::UsageLoadState;
 use super::usage::ui::{format_cost, format_count};
 use ccr_cli::models::{CodexRuntimeSummary, OpenAiAuthMethod, Platform, ProfileConfig};
+use ccr_cli::platforms::{GrokPlatform, GrokProfileAuthMode};
 use ccr_codex::CodexPlatform;
 use ccr_usage::{ProviderBreakdownDto, SourceKind};
 use ratatui::{
@@ -709,6 +710,8 @@ fn render_profile_details(f: &mut Frame, app: &mut App, area: Rect, mode: theme:
             usage_state,
             compact,
         )
+    } else if platform == Platform::Grok {
+        grok_profile_detail_lines(profile.name.as_str(), config, profile.is_current, compact)
     } else {
         generic_profile_detail_lines(
             profile.name.as_str(),
@@ -809,6 +812,9 @@ enum DetailKey {
     Token,
     OpenAiLogin,
     EnvKey,
+    ApiBackend,
+    ContextWindow,
+    BackendSearch,
     WireApi,
     RequiresOpenAi,
     Requests,
@@ -822,7 +828,7 @@ enum DetailKey {
 }
 
 impl DetailKey {
-    const ALL: [Self; 25] = [
+    const ALL: [Self; 28] = [
         Self::Description,
         Self::BaseUrl,
         Self::Model,
@@ -838,6 +844,9 @@ impl DetailKey {
         Self::Token,
         Self::OpenAiLogin,
         Self::EnvKey,
+        Self::ApiBackend,
+        Self::ContextWindow,
+        Self::BackendSearch,
         Self::WireApi,
         Self::RequiresOpenAi,
         Self::Requests,
@@ -867,6 +876,9 @@ impl DetailKey {
             Self::Token => crate::tui_text!("token", "令牌"),
             Self::OpenAiLogin => crate::tui_text!("openai_login", "OpenAI 登录"),
             Self::EnvKey => crate::tui_text!("env_key", "环境变量键"),
+            Self::ApiBackend => crate::tui_text!("api_backend", "API 后端"),
+            Self::ContextWindow => crate::tui_text!("context_window", "上下文窗口"),
+            Self::BackendSearch => crate::tui_text!("backend_search", "后端搜索"),
             Self::WireApi => crate::tui_text!("wire_api", "协议 API"),
             Self::RequiresOpenAi => crate::tui_text!("requires_openai", "需要 OpenAI"),
             Self::Requests => crate::tui_text!("requests", "请求数"),
@@ -997,6 +1009,126 @@ fn generic_profile_detail_lines(
     ]
 }
 
+fn grok_profile_detail_lines(
+    _name: &str,
+    config: &ProfileConfig,
+    _is_current: bool,
+    compact: bool,
+) -> Vec<Line<'static>> {
+    let description = opt_text(config.description.as_deref());
+    let base_url = config
+        .base_url
+        .as_deref()
+        .map(GrokPlatform::safe_base_url_for_display);
+    let base_url = opt_text(base_url.as_deref());
+    let model = opt_text(config.model.as_deref());
+    let api_backend = profile_platform_value(config, "api_backend")
+        .unwrap_or_else(|| "responses (default)".to_string());
+    let context_window =
+        profile_platform_value(config, "context_window").unwrap_or_else(|| "-".to_string());
+    let backend_search = match config.platform_data.get("supports_backend_search") {
+        Some(serde_json::Value::Bool(value)) => bool_text(Some(*value)).to_string(),
+        None | Some(serde_json::Value::Null) => "-".to_string(),
+        Some(_) => crate::tui_text!("invalid", "无效").to_string(),
+    };
+    let (auth_mode, auth_tone) = match GrokPlatform::profile_auth_mode(config) {
+        Ok(GrokProfileAuthMode::InlineApiKey) => ("inline_api_key".to_string(), DetailTone::Info),
+        Ok(GrokProfileAuthMode::EnvKey) => {
+            let env_key = profile_platform_value(config, "env_key");
+            (
+                env_key.map_or_else(
+                    || "env_key".to_string(),
+                    |env_key| format!("env_key ({env_key})"),
+                ),
+                DetailTone::Info,
+            )
+        }
+        Ok(GrokProfileAuthMode::Session) => ("session".to_string(), DetailTone::Info),
+        Err(_) => (
+            crate::tui_text!("invalid", "无效").to_string(),
+            DetailTone::Warning,
+        ),
+    };
+
+    vec![
+        section_line(" Overview "),
+        detail_line(
+            DetailField::new(
+                DetailKey::Description,
+                description.clone(),
+                optional_tone(&description, DetailTone::Primary),
+            ),
+            compact,
+        ),
+        Line::from(""),
+        section_line(" Engine "),
+        detail_line(
+            DetailField::new(
+                DetailKey::BaseUrl,
+                base_url.clone(),
+                optional_tone(&base_url, DetailTone::Info),
+            )
+            .emphasized(),
+            compact,
+        ),
+        detail_line(
+            DetailField::new(
+                DetailKey::Model,
+                model.clone(),
+                optional_tone(
+                    &model,
+                    DetailTone::Accent {
+                        platform: Platform::Grok,
+                        strong: true,
+                    },
+                ),
+            )
+            .emphasized(),
+            compact,
+        ),
+        detail_line(
+            DetailField::new(DetailKey::ApiBackend, api_backend, DetailTone::Info),
+            compact,
+        ),
+        detail_line(
+            DetailField::new(
+                DetailKey::ContextWindow,
+                context_window.clone(),
+                optional_tone(&context_window, DetailTone::Info),
+            ),
+            compact,
+        ),
+        detail_line(
+            DetailField::new(
+                DetailKey::BackendSearch,
+                backend_search.clone(),
+                optional_tone(&backend_search, DetailTone::Info),
+            ),
+            compact,
+        ),
+        Line::from(""),
+        section_line(" Routing/Auth "),
+        detail_line(
+            DetailField::new(DetailKey::AuthMode, auth_mode, auth_tone).emphasized(),
+            compact,
+        ),
+        Line::from(""),
+        section_line(" Activity "),
+        detail_line(
+            DetailField::new(
+                DetailKey::SwitchCount,
+                config.usage_count().to_string(),
+                DetailTone::Primary,
+            ),
+            compact,
+        ),
+        detail_line(
+            DetailField::new(DetailKey::Tags, tags_text(config), DetailTone::Primary),
+            compact,
+        ),
+    ]
+}
+
 fn codex_profile_detail_lines(
     _name: &str,
     config: &ProfileConfig,
@@ -1024,9 +1156,9 @@ fn codex_profile_detail_lines(
     let provider_type = opt_text(config.provider_type.as_deref());
     let provider = opt_text(config.provider.as_deref());
     let auth_source = CodexPlatform::profile_auth_source(config);
-    let env_key = opt_text(codex_platform_value(config, "env_key").as_deref());
-    let wire_api = opt_text(codex_platform_value(config, "wire_api").as_deref());
-    let requires_openai = codex_platform_value(config, "requires_openai_auth")
+    let env_key = opt_text(profile_platform_value(config, "env_key").as_deref());
+    let wire_api = opt_text(profile_platform_value(config, "wire_api").as_deref());
+    let requires_openai = profile_platform_value(config, "requires_openai_auth")
         .as_deref()
         .and_then(|value| match value {
             "true" => Some(true),
@@ -1703,7 +1835,7 @@ fn tags_text(config: &ProfileConfig) -> String {
         .unwrap_or_else(|| "-".to_string())
 }
 
-fn codex_platform_value(config: &ProfileConfig, key: &str) -> Option<String> {
+fn profile_platform_value(config: &ProfileConfig, key: &str) -> Option<String> {
     config.platform_data.get(key).and_then(|value| match value {
         serde_json::Value::String(text) if !text.trim().is_empty() => Some(text.trim().to_string()),
         serde_json::Value::Bool(flag) => Some(flag.to_string()),
@@ -2667,6 +2799,72 @@ mod tests {
 
     fn detail_texts(lines: &[Line<'_>]) -> Vec<String> {
         lines.iter().map(plain_line_text).collect()
+    }
+
+    #[test]
+    fn grok_details_show_typed_fields_and_sanitize_env_key_url() {
+        let mut config = ProfileConfig::new();
+        config.description = Some("relay".to_string());
+        config.base_url =
+            Some("https://user:password@grok.example.com/v1?api_key=secret#fragment".to_string());
+        config.model = Some("grok-4".to_string());
+        config
+            .platform_data
+            .insert("api_backend".to_string(), serde_json::json!("messages"));
+        config
+            .platform_data
+            .insert("env_key".to_string(), serde_json::json!("XAI_API_KEY"));
+        config
+            .platform_data
+            .insert("context_window".to_string(), serde_json::json!(1_000_000));
+        config.platform_data.insert(
+            "supports_backend_search".to_string(),
+            serde_json::json!(true),
+        );
+
+        let text =
+            detail_texts(&grok_profile_detail_lines("relay", &config, true, false)).join("\n");
+
+        assert!(text.contains("https://grok.example.com/v1"), "{text}");
+        assert!(!text.contains("user:password"), "{text}");
+        assert!(!text.contains("api_key=secret"), "{text}");
+        assert!(!text.contains("fragment"), "{text}");
+        assert!(text.contains("messages"), "{text}");
+        assert!(text.contains("env_key (XAI_API_KEY)"), "{text}");
+        assert!(text.contains("1000000"), "{text}");
+        assert!(text.contains("yes"), "{text}");
+    }
+
+    #[test]
+    fn grok_inline_auth_never_renders_plaintext_or_masked_token() {
+        let plaintext = "xai-secret-abcdef1234567890";
+        let mut config = ProfileConfig::new();
+        config.auth_token = Some(ccr_core::Secret::new(plaintext));
+
+        let texts = detail_texts(&grok_profile_detail_lines("inline", &config, false, false));
+        let text = texts.join("\n");
+
+        assert!(text.contains("inline_api_key"), "{text}");
+        assert!(!text.contains(plaintext), "{text}");
+        assert!(
+            !text.contains(&ccr_core::mask_sensitive(plaintext)),
+            "{text}"
+        );
+        assert!(!texts.iter().any(|line| line.starts_with("token")));
+    }
+
+    #[test]
+    fn grok_session_auth_uses_default_api_backend_label() {
+        let text = detail_texts(&grok_profile_detail_lines(
+            "session",
+            &ProfileConfig::new(),
+            false,
+            false,
+        ))
+        .join("\n");
+
+        assert!(text.contains("responses (default)"), "{text}");
+        assert!(text.contains("session"), "{text}");
     }
 
     fn token_line(texts: &[String]) -> String {
