@@ -21,10 +21,13 @@
     --accent-secondary: var(--color-accent-secondary);
     --accent-tertiary: var(--color-info);
     --accent-success: var(--color-success);
+    --accent-success-contrast: var(--color-success-contrast);
     --accent-warning: var(--color-warning);
     --accent-warning-rgb: var(--color-warning-rgb);
+    --accent-warning-contrast: var(--color-warning-contrast);
     --accent-danger: var(--color-danger);
     --accent-danger-rgb: var(--color-danger-rgb);
+    --accent-danger-contrast: var(--color-danger-contrast);
     --accent-info: var(--color-info);
     --platform-claude: var(--color-platform-claude);
     --platform-codex: var(--color-platform-codex);

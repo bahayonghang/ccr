@@ -17,6 +17,10 @@
   --color-bg-overlay: #dcdee3;
   --color-bg-overlay-rgb: 220 222 227;
 
+  /* --- 遮罩 scrim（唯一允许的常驻半透明：modal/抽屉背后的压暗层） --- */
+  --color-scrim: rgb(25 27 32 / 32%);
+  --color-scrim-rgb: 25 27 32;
+
   /* --- 边框与分隔 --- */
   --color-border-subtle: rgb(25 27 32 / 12%);
   --color-border-subtle-rgb: 25 27 32;
@@ -63,14 +67,26 @@
   --color-success-hover: #67996f;
   --color-success-rgb: 91 138 98;
   --color-success-glow: rgb(91 138 98 / 10%);
+
+  /* 对比文字：vs --color-success #5b8a62 = 3.79:1（≥3.5 契约） */
+  --color-success-contrast: #fff8f2;
+  --color-success-contrast-rgb: 255 248 242;
   --color-warning: #bc8540;
   --color-warning-hover: #ca9453;
   --color-warning-rgb: 188 133 64;
   --color-warning-glow: rgb(188 133 64 / 10%);
+
+  /* 对比文字：vs --color-warning #bc8540 = 5.61:1（近白仅 3.2:1 不达标，故用深色） */
+  --color-warning-contrast: #17181c;
+  --color-warning-contrast-rgb: 23 24 28;
   --color-danger: #c76953;
   --color-danger-hover: #d57a65;
   --color-danger-rgb: 199 105 83;
   --color-danger-glow: rgb(199 105 83 / 10%);
+
+  /* 对比文字：vs --color-danger #c76953 = 3.58:1（≥3.5 契约） */
+  --color-danger-contrast: #fff8f2;
+  --color-danger-contrast-rgb: 255 248 242;
   --color-info: #7d97b6;
   --color-info-hover: #8ea8c6;
   --color-info-rgb: 125 151 182;
@@ -125,6 +141,10 @@
   --color-bg-overlay: #2c2f37;
   --color-bg-overlay-rgb: 44 47 55;
 
+  /* --- 遮罩 scrim（唯一允许的常驻半透明：modal/抽屉背后的压暗层） --- */
+  --color-scrim: rgb(0 0 0 / 56%);
+  --color-scrim-rgb: 0 0 0;
+
   /* --- 边框与分隔 (暗色 ≥14% / ≥22% / ≥34% 保证卡片边界可辨) --- */
   --color-border-subtle: rgb(235 238 245 / 14%);
   --color-border-subtle-rgb: 235 238 245;
@@ -169,14 +189,26 @@
   --color-success-hover: #8bbb91;
   --color-success-rgb: 124 171 130;
   --color-success-glow: rgb(124 171 130 / 16%);
+
+  /* 对比文字：vs --color-success #7cab82 = 6.85:1（≥3.5 契约） */
+  --color-success-contrast: #17181c;
+  --color-success-contrast-rgb: 23 24 28;
   --color-warning: #d6a76d;
   --color-warning-hover: #dfb47d;
   --color-warning-rgb: 214 167 109;
   --color-warning-glow: rgb(214 167 109 / 16%);
+
+  /* 对比文字：vs --color-warning #d6a76d = 8.21:1（≥3.5 契约） */
+  --color-warning-contrast: #17181c;
+  --color-warning-contrast-rgb: 23 24 28;
   --color-danger: #db8a73;
   --color-danger-hover: #e59b86;
   --color-danger-rgb: 219 138 115;
   --color-danger-glow: rgb(219 138 115 / 16%);
+
+  /* 对比文字：vs --color-danger #db8a73 = 6.74:1（≥3.5 契约） */
+  --color-danger-contrast: #17181c;
+  --color-danger-contrast-rgb: 23 24 28;
   --color-info: #98afc9;
   --color-info-hover: #a7bdd4;
   --color-info-rgb: 152 175 201;
@@ -754,14 +786,26 @@
   --color-success-hover: var(--ctp-teal);
   --color-success-rgb: var(--ctp-green-rgb);
   --color-success-glow: rgb(var(--ctp-green-rgb) / var(--ctp-glow-opacity));
+
+  /* 对比文字：vs ctp-green #40a02b = 5.37:1（近白仅 3.34:1 不达标，故用深色） */
+  --color-success-contrast: #17181c;
+  --color-success-contrast-rgb: 23 24 28;
   --color-warning: var(--ctp-yellow);
   --color-warning-hover: var(--ctp-peach);
   --color-warning-rgb: var(--ctp-yellow-rgb);
   --color-warning-glow: rgb(var(--ctp-yellow-rgb) / var(--ctp-glow-opacity));
+
+  /* 对比文字：vs ctp-yellow #df8e1d = 6.86:1（≥3.5 契约） */
+  --color-warning-contrast: #17181c;
+  --color-warning-contrast-rgb: 23 24 28;
   --color-danger: var(--ctp-red);
   --color-danger-hover: var(--ctp-maroon);
   --color-danger-rgb: var(--ctp-red-rgb);
   --color-danger-glow: rgb(var(--ctp-red-rgb) / var(--ctp-glow-opacity));
+
+  /* 对比文字：vs ctp-red #d20f39 = 5.43:1（≥3.5 契约） */
+  --color-danger-contrast: #fff8f2;
+  --color-danger-contrast-rgb: 255 248 242;
   --color-info: var(--ctp-sky);
   --color-info-hover: var(--ctp-sapphire);
   --color-info-rgb: var(--ctp-sky-rgb);
@@ -910,14 +954,26 @@ html:root[data-resolved-flavor='mocha'] {
   --color-success-hover: var(--ctp-teal);
   --color-success-rgb: var(--ctp-green-rgb);
   --color-success-glow: rgb(var(--ctp-green-rgb) / var(--ctp-glow-opacity));
+
+  /* 对比文字：vs ctp-green #a6e3a1 ≈ 11.3:1（≥3.5 契约） */
+  --color-success-contrast: var(--ctp-crust);
+  --color-success-contrast-rgb: var(--ctp-crust-rgb);
   --color-warning: var(--ctp-yellow);
   --color-warning-hover: var(--ctp-peach);
   --color-warning-rgb: var(--ctp-yellow-rgb);
   --color-warning-glow: rgb(var(--ctp-yellow-rgb) / var(--ctp-glow-opacity));
+
+  /* 对比文字：vs ctp-yellow #f9e2af ≈ 15.5:1（≥3.5 契约） */
+  --color-warning-contrast: var(--ctp-crust);
+  --color-warning-contrast-rgb: var(--ctp-crust-rgb);
   --color-danger: var(--ctp-red);
   --color-danger-hover: var(--ctp-maroon);
   --color-danger-rgb: var(--ctp-red-rgb);
   --color-danger-glow: rgb(var(--ctp-red-rgb) / var(--ctp-glow-opacity));
+
+  /* 对比文字：vs ctp-red #f38ba8 ≈ 7.3:1（≥3.5 契约） */
+  --color-danger-contrast: var(--ctp-crust);
+  --color-danger-contrast-rgb: var(--ctp-crust-rgb);
   --color-info: var(--ctp-sky);
   --color-info-hover: var(--ctp-sapphire);
   --color-info-rgb: var(--ctp-sky-rgb);
