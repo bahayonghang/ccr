@@ -192,10 +192,12 @@ describe('AppSettingsView smoke', () => {
       mochaFlavorButton?.click()
       await flush()
 
-      expect(localStorage.getItem('ccr-flavor')).toBe('mocha')
-      expect(document.documentElement.getAttribute('data-flavor')).toBe('mocha')
+      // 旧选项值 mocha 在 store 写入路径被迁移为 catppuccin（暗色解析为 mocha）；
+      // 选项与新值域的激活态映射由子任务 C 重写，此处仅锁定迁移后的值域行为。
+      expect(localStorage.getItem('ccr-flavor')).toBe('catppuccin')
+      expect(document.documentElement.getAttribute('data-flavor')).toBe('catppuccin')
       expect(document.documentElement.getAttribute('data-resolved-flavor')).toBe('mocha')
-      expect(mochaFlavorButton?.getAttribute('aria-pressed')).toBe('true')
+      expect(mochaFlavorButton?.getAttribute('aria-pressed')).toBe('false')
 
       const chineseButton = el.querySelector<HTMLElement>('[data-testid="settings-language-zh-CN"]')
       chineseButton?.click()
@@ -247,24 +249,27 @@ describe('AppSettingsView smoke', () => {
     const { el, unmount } = await mountView()
 
     try {
+      // 存储值 latte 在初始化时迁移为 catppuccin 并写回；暗色解析为 mocha。
       expect(el.textContent).toContain('Follow system · Dark mode')
       expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
-      expect(document.documentElement.getAttribute('data-flavor')).toBe('latte')
-      expect(document.documentElement.getAttribute('data-resolved-flavor')).toBe('frappe')
+      expect(document.documentElement.getAttribute('data-flavor')).toBe('catppuccin')
+      expect(document.documentElement.getAttribute('data-resolved-flavor')).toBe('mocha')
+      expect(localStorage.getItem('ccr-flavor')).toBe('catppuccin')
 
       mediaController.setMatches(false)
       await flush()
 
       expect(el.textContent).toContain('Follow system · Light mode')
       expect(document.documentElement.getAttribute('data-theme')).toBe('light')
-      expect(document.documentElement.getAttribute('data-flavor')).toBe('latte')
+      expect(document.documentElement.getAttribute('data-flavor')).toBe('catppuccin')
       expect(document.documentElement.getAttribute('data-resolved-flavor')).toBe('latte')
 
       const mochaFlavorButton = el.querySelector<HTMLElement>('[data-testid="settings-flavor-mocha"]')
       mochaFlavorButton?.click()
       await flush()
 
-      expect(document.documentElement.getAttribute('data-flavor')).toBe('mocha')
+      // 旧选项值 mocha 同样迁移为 catppuccin；亮色下解析为 latte。
+      expect(document.documentElement.getAttribute('data-flavor')).toBe('catppuccin')
       expect(document.documentElement.getAttribute('data-resolved-flavor')).toBe('latte')
 
       mediaController.setMatches(true)
@@ -272,7 +277,7 @@ describe('AppSettingsView smoke', () => {
 
       expect(el.textContent).toContain('Follow system · Dark mode')
       expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
-      expect(document.documentElement.getAttribute('data-flavor')).toBe('mocha')
+      expect(document.documentElement.getAttribute('data-flavor')).toBe('catppuccin')
       expect(document.documentElement.getAttribute('data-resolved-flavor')).toBe('mocha')
     } finally {
       unmount()

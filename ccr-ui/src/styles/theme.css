@@ -17,6 +17,7 @@
     --border-color: var(--color-border-default);
     --accent-primary: var(--color-accent-primary);
     --accent-primary-rgb: var(--color-accent-primary-rgb);
+    --accent-primary-contrast: var(--color-accent-primary-contrast);
     --accent-secondary: var(--color-accent-secondary);
     --accent-tertiary: var(--color-info);
     --accent-success: var(--color-success);

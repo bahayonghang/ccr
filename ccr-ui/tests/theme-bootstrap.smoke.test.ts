@@ -45,6 +45,14 @@ const flushAsyncImport = async () => {
   await new Promise((resolve) => setTimeout(resolve, 20))
 }
 
+const readBootstrapScript = async (): Promise<string> => {
+  const source = await readFile('index.html', 'utf8')
+  const script = source.match(/<!-- 主题预初始化[\s\S]*?<script>\s*([\s\S]*?)\s*<\/script>/)?.[1]
+
+  expect(script).toBeTruthy()
+  return script ?? ''
+}
+
 beforeEach(() => {
   localStorage.clear()
   document.documentElement.className = ''
@@ -89,67 +97,92 @@ describe('themeBootstrap smoke', () => {
     await flushAsyncImport()
 
     expect(document.documentElement.getAttribute('data-theme')).toBe('light')
-    expect(document.documentElement.getAttribute('data-resolved-flavor')).toBe('clay')
+    expect(document.documentElement.getAttribute('data-resolved-flavor')).toBe('neutral')
     expect(document.documentElement.classList.contains('dark')).toBe(false)
     themeBootstrap.__resetThemeBootstrapForTests()
   })
 
-  it('defaults flavor and accent to clay when nothing is persisted and seeds DOM dataset attributes', async () => {
+  it('exposes the narrowed flavor and accent domains with neutral as the default flavor', async () => {
     installMatchMediaController(false)
 
     const themeBootstrap = await import('@/utils/themeBootstrap')
 
-    expect(themeBootstrap.readStoredFlavor()).toBe('clay')
+    expect(themeBootstrap.FLAVOR_MODES).toEqual(['neutral', 'clay', 'catppuccin'])
+    expect(themeBootstrap.ACCENT_MODES).toEqual(['clay', 'sage', 'sky', 'mauve'])
+    expect(themeBootstrap.DEFAULT_FLAVOR).toBe('neutral')
+    expect(themeBootstrap.DEFAULT_ACCENT).toBe('clay')
+    expect(themeBootstrap.CATPPUCCIN_FLAVORS).toEqual(['catppuccin'])
+    expect(themeBootstrap.isCatppuccinFlavor('catppuccin')).toBe(true)
+    expect(themeBootstrap.isCatppuccinFlavor('mocha')).toBe(false)
+    themeBootstrap.__resetThemeBootstrapForTests()
+  })
+
+  it('defaults flavor to neutral and accent to clay when nothing is persisted and seeds DOM dataset attributes', async () => {
+    installMatchMediaController(false)
+
+    const themeBootstrap = await import('@/utils/themeBootstrap')
+
+    expect(themeBootstrap.readStoredFlavor()).toBe('neutral')
     expect(themeBootstrap.readStoredAccent()).toBe('clay')
 
     themeBootstrap.applyInitialTheme()
     await flushAsyncImport()
 
-    expect(document.documentElement.getAttribute('data-flavor')).toBe('clay')
-    expect(document.documentElement.getAttribute('data-resolved-flavor')).toBe('clay')
+    expect(document.documentElement.getAttribute('data-flavor')).toBe('neutral')
+    expect(document.documentElement.getAttribute('data-resolved-flavor')).toBe('neutral')
     expect(document.documentElement.getAttribute('data-accent')).toBe('clay')
     themeBootstrap.__resetThemeBootstrapForTests()
   })
 
   it('persists and rehydrates non-default flavor and accent independently of theme mode', async () => {
     localStorage.setItem('ccr-theme', 'system')
-    localStorage.setItem('ccr-flavor', 'mocha')
+    localStorage.setItem('ccr-flavor', 'catppuccin')
     localStorage.setItem('ccr-accent', 'sage')
     installMatchMediaController(true)
 
     const themeBootstrap = await import('@/utils/themeBootstrap')
 
-    expect(themeBootstrap.readStoredFlavor()).toBe('mocha')
+    expect(themeBootstrap.readStoredFlavor()).toBe('catppuccin')
     expect(themeBootstrap.readStoredAccent()).toBe('sage')
 
     themeBootstrap.applyInitialTheme()
     await flushAsyncImport()
 
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
-    expect(document.documentElement.getAttribute('data-flavor')).toBe('mocha')
+    expect(document.documentElement.getAttribute('data-flavor')).toBe('catppuccin')
     expect(document.documentElement.getAttribute('data-resolved-flavor')).toBe('mocha')
     expect(document.documentElement.getAttribute('data-accent')).toBe('sage')
 
-    themeBootstrap.persistFlavor('latte')
-    themeBootstrap.applyFlavorToDocument('latte')
-    expect(localStorage.getItem('ccr-flavor')).toBe('latte')
-    expect(document.documentElement.getAttribute('data-flavor')).toBe('latte')
-    expect(document.documentElement.getAttribute('data-resolved-flavor')).toBe('frappe')
+    themeBootstrap.persistFlavor('clay')
+    themeBootstrap.applyFlavorToDocument('clay')
+    expect(localStorage.getItem('ccr-flavor')).toBe('clay')
+    expect(document.documentElement.getAttribute('data-flavor')).toBe('clay')
+    expect(document.documentElement.getAttribute('data-resolved-flavor')).toBe('clay')
 
-    themeBootstrap.persistAccent('amber')
-    themeBootstrap.applyAccentToDocument('amber')
-    expect(localStorage.getItem('ccr-accent')).toBe('amber')
-    expect(document.documentElement.getAttribute('data-accent')).toBe('amber')
+    themeBootstrap.persistAccent('sky')
+    themeBootstrap.applyAccentToDocument('sky')
+    expect(localStorage.getItem('ccr-accent')).toBe('sky')
+    expect(document.documentElement.getAttribute('data-accent')).toBe('sky')
 
     themeBootstrap.__resetThemeBootstrapForTests()
   })
 
-  it('accepts all Catppuccin flavor values from storage', async () => {
+  it('migrates legacy flavor values from storage into the narrowed flavor domain', async () => {
     installMatchMediaController(false)
 
     const themeBootstrap = await import('@/utils/themeBootstrap')
 
-    for (const flavor of ['latte', 'frappe', 'macchiato', 'mocha'] as const) {
+    for (const legacy of ['paper', 'graphite'] as const) {
+      localStorage.setItem('ccr-flavor', legacy)
+      expect(themeBootstrap.readStoredFlavor()).toBe('neutral')
+    }
+
+    for (const legacy of ['latte', 'frappe', 'macchiato', 'mocha'] as const) {
+      localStorage.setItem('ccr-flavor', legacy)
+      expect(themeBootstrap.readStoredFlavor()).toBe('catppuccin')
+    }
+
+    for (const flavor of ['neutral', 'clay', 'catppuccin'] as const) {
       localStorage.setItem('ccr-flavor', flavor)
       expect(themeBootstrap.readStoredFlavor()).toBe(flavor)
     }
@@ -157,7 +190,56 @@ describe('themeBootstrap smoke', () => {
     themeBootstrap.__resetThemeBootstrapForTests()
   })
 
-  it('resolves Catppuccin flavors from the final light or dark theme instead of raw storage flavor', async () => {
+  it('migrates legacy accent values from storage into the narrowed accent domain', async () => {
+    installMatchMediaController(false)
+
+    const themeBootstrap = await import('@/utils/themeBootstrap')
+
+    for (const legacy of ['sand', 'amber', 'rose'] as const) {
+      localStorage.setItem('ccr-accent', legacy)
+      expect(themeBootstrap.readStoredAccent()).toBe('clay')
+    }
+
+    localStorage.setItem('ccr-accent', 'slate')
+    expect(themeBootstrap.readStoredAccent()).toBe('sky')
+
+    for (const accent of ['clay', 'sage', 'sky', 'mauve'] as const) {
+      localStorage.setItem('ccr-accent', accent)
+      expect(themeBootstrap.readStoredAccent()).toBe(accent)
+    }
+
+    themeBootstrap.__resetThemeBootstrapForTests()
+  })
+
+  it('writes migrated flavor and accent values back to storage', async () => {
+    localStorage.setItem('ccr-flavor', 'graphite')
+    localStorage.setItem('ccr-accent', 'rose')
+    installMatchMediaController(false)
+
+    const themeBootstrap = await import('@/utils/themeBootstrap')
+
+    themeBootstrap.migratePersistedFlavor()
+    themeBootstrap.migratePersistedAccent()
+
+    expect(localStorage.getItem('ccr-flavor')).toBe('neutral')
+    expect(localStorage.getItem('ccr-accent')).toBe('clay')
+    themeBootstrap.__resetThemeBootstrapForTests()
+  })
+
+  it('does not seed default values into storage when nothing is persisted', async () => {
+    installMatchMediaController(false)
+
+    const themeBootstrap = await import('@/utils/themeBootstrap')
+
+    themeBootstrap.migratePersistedFlavor()
+    themeBootstrap.migratePersistedAccent()
+
+    expect(localStorage.getItem('ccr-flavor')).toBeNull()
+    expect(localStorage.getItem('ccr-accent')).toBeNull()
+    themeBootstrap.__resetThemeBootstrapForTests()
+  })
+
+  it('resolves the catppuccin flavor from the final light or dark theme instead of raw storage flavor', async () => {
     localStorage.setItem('ccr-theme', 'system')
     localStorage.setItem('ccr-flavor', 'latte')
     const controller = installMatchMediaController(true)
@@ -168,19 +250,20 @@ describe('themeBootstrap smoke', () => {
     await flushAsyncImport()
 
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
-    expect(document.documentElement.getAttribute('data-flavor')).toBe('latte')
-    expect(document.documentElement.getAttribute('data-resolved-flavor')).toBe('frappe')
-    expect(themeBootstrap.resolveFlavorMode('dark', 'latte')).toBe('frappe')
-    expect(themeBootstrap.resolveFlavorMode('dark', 'frappe')).toBe('frappe')
-    expect(themeBootstrap.resolveFlavorMode('dark', 'macchiato')).toBe('macchiato')
-    expect(themeBootstrap.resolveFlavorMode('dark', 'mocha')).toBe('mocha')
-    expect(themeBootstrap.resolveFlavorMode('light', 'mocha')).toBe('latte')
+    expect(document.documentElement.getAttribute('data-flavor')).toBe('catppuccin')
+    expect(document.documentElement.getAttribute('data-resolved-flavor')).toBe('mocha')
+    expect(themeBootstrap.resolveFlavorMode('dark', 'catppuccin')).toBe('mocha')
+    expect(themeBootstrap.resolveFlavorMode('light', 'catppuccin')).toBe('latte')
+    expect(themeBootstrap.resolveFlavorMode('dark', 'neutral')).toBe('neutral')
+    expect(themeBootstrap.resolveFlavorMode('light', 'neutral')).toBe('neutral')
+    expect(themeBootstrap.resolveFlavorMode('dark', 'clay')).toBe('clay')
+    expect(themeBootstrap.resolveFlavorMode('light', 'clay')).toBe('clay')
 
     controller.setMatches(false)
     await flushAsyncImport()
 
     expect(document.documentElement.getAttribute('data-theme')).toBe('light')
-    expect(document.documentElement.getAttribute('data-flavor')).toBe('latte')
+    expect(document.documentElement.getAttribute('data-flavor')).toBe('catppuccin')
     expect(document.documentElement.getAttribute('data-resolved-flavor')).toBe('latte')
 
     themeBootstrap.__resetThemeBootstrapForTests()
@@ -190,30 +273,72 @@ describe('themeBootstrap smoke', () => {
     const source = await readFile('src/styles/tokens.css', 'utf8')
 
     expect(source).toMatch(/\[data-resolved-flavor=["']latte["']\]/)
-    expect(source).toMatch(/\[data-resolved-flavor=["']frappe["']\]/)
-    expect(source).not.toMatch(/\[data-flavor=["']latte["']\]/)
-    expect(source).not.toMatch(/\[data-flavor=["']frappe["']\]/)
-    expect(source).not.toMatch(/\[data-flavor=["']macchiato["']\]/)
-    expect(source).not.toMatch(/\[data-flavor=["']mocha["']\]/)
+    expect(source).toMatch(/html:root\[data-resolved-flavor=["']mocha["']\]/)
+    // catppuccin 只解析为 latte|mocha：frappe/macchiato 调色板块与旧 data-flavor 直选块已删除。
+    expect(source).not.toMatch(/data-resolved-flavor=["']frappe["']/)
+    expect(source).not.toMatch(/data-resolved-flavor=["']macchiato["']/)
+    expect(source).not.toMatch(
+      /\[data-flavor=["'](?:latte|frappe|macchiato|mocha|paper|graphite)["']\]/
+    )
   })
 
   it('pre-initializes first paint with resolved theme and flavor attributes', async () => {
     localStorage.setItem('ccr-theme', 'system')
-    localStorage.setItem('ccr-flavor', 'latte')
+    localStorage.setItem('ccr-flavor', 'catppuccin')
     localStorage.setItem('ccr-accent', 'sage')
     installMatchMediaController(true)
 
-    const source = await readFile('index.html', 'utf8')
-    const script = source.match(/<!-- 主题预初始化[\s\S]*?<script>\s*([\s\S]*?)\s*<\/script>/)?.[1]
-
-    expect(script).toBeTruthy()
-    runInThisContext(script ?? '')
+    runInThisContext(await readBootstrapScript())
 
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
-    expect(document.documentElement.getAttribute('data-flavor')).toBe('latte')
-    expect(document.documentElement.getAttribute('data-resolved-flavor')).toBe('frappe')
+    expect(document.documentElement.getAttribute('data-flavor')).toBe('catppuccin')
+    expect(document.documentElement.getAttribute('data-resolved-flavor')).toBe('mocha')
     expect(document.documentElement.getAttribute('data-accent')).toBe('sage')
     expect(document.documentElement.classList.contains('dark')).toBe(true)
+  })
+
+  it('migrates legacy stored values in the first-paint script', async () => {
+    localStorage.setItem('ccr-flavor', 'graphite')
+    localStorage.setItem('ccr-accent', 'slate')
+    installMatchMediaController(true)
+
+    runInThisContext(await readBootstrapScript())
+
+    expect(document.documentElement.getAttribute('data-flavor')).toBe('neutral')
+    expect(document.documentElement.getAttribute('data-resolved-flavor')).toBe('neutral')
+    expect(document.documentElement.getAttribute('data-accent')).toBe('sky')
+  })
+
+  it('resolves legacy catppuccin storage by the resolved theme in the first-paint script', async () => {
+    localStorage.setItem('ccr-flavor', 'macchiato')
+    installMatchMediaController(false)
+
+    runInThisContext(await readBootstrapScript())
+
+    expect(document.documentElement.getAttribute('data-flavor')).toBe('catppuccin')
+    expect(document.documentElement.getAttribute('data-resolved-flavor')).toBe('latte')
+  })
+
+  it('falls back to neutral flavor and clay accent in the first-paint script when nothing is persisted', async () => {
+    installMatchMediaController(false)
+
+    runInThisContext(await readBootstrapScript())
+
+    expect(document.documentElement.getAttribute('data-flavor')).toBe('neutral')
+    expect(document.documentElement.getAttribute('data-resolved-flavor')).toBe('neutral')
+    expect(document.documentElement.getAttribute('data-accent')).toBe('clay')
+  })
+
+  it('rejects unknown flavor and accent values in the first-paint script and falls back to defaults', async () => {
+    localStorage.setItem('ccr-flavor', 'neko')
+    localStorage.setItem('ccr-accent', 'lavender')
+    installMatchMediaController(false)
+
+    runInThisContext(await readBootstrapScript())
+
+    expect(document.documentElement.getAttribute('data-flavor')).toBe('neutral')
+    expect(document.documentElement.getAttribute('data-resolved-flavor')).toBe('neutral')
+    expect(document.documentElement.getAttribute('data-accent')).toBe('clay')
   })
 
   it('pre-initializes first paint with font overrides prepended to the base stacks', async () => {
@@ -221,11 +346,7 @@ describe('themeBootstrap smoke', () => {
     localStorage.setItem('ccr-font-code', 'JetBrains Mono')
     installMatchMediaController(false)
 
-    const source = await readFile('index.html', 'utf8')
-    const script = source.match(/<!-- 主题预初始化[\s\S]*?<script>\s*([\s\S]*?)\s*<\/script>/)?.[1]
-
-    expect(script).toBeTruthy()
-    runInThisContext(script ?? '')
+    runInThisContext(await readBootstrapScript())
 
     const root = document.documentElement
     expect(root.style.getPropertyValue('--font-sans')).toContain('"Inter"')
@@ -239,9 +360,7 @@ describe('themeBootstrap smoke', () => {
     localStorage.setItem('ccr-font-ui', 'Evil"; color: red; }')
     installMatchMediaController(false)
 
-    const source = await readFile('index.html', 'utf8')
-    const script = source.match(/<!-- 主题预初始化[\s\S]*?<script>\s*([\s\S]*?)\s*<\/script>/)?.[1]
-    runInThisContext(script ?? '')
+    runInThisContext(await readBootstrapScript())
 
     const sans = document.documentElement.style.getPropertyValue('--font-sans')
     expect(sans).toContain('var(--font-sans-base)')
@@ -249,14 +368,14 @@ describe('themeBootstrap smoke', () => {
     expect(sans).not.toContain('}')
   })
 
-  it('rejects unknown flavor and accent values from storage and falls back to clay', async () => {
+  it('rejects unknown flavor and accent values from storage and falls back to defaults', async () => {
     localStorage.setItem('ccr-flavor', 'neko')
     localStorage.setItem('ccr-accent', 'lavender')
     installMatchMediaController(false)
 
     const themeBootstrap = await import('@/utils/themeBootstrap')
 
-    expect(themeBootstrap.readStoredFlavor()).toBe('clay')
+    expect(themeBootstrap.readStoredFlavor()).toBe('neutral')
     expect(themeBootstrap.readStoredAccent()).toBe('clay')
     themeBootstrap.__resetThemeBootstrapForTests()
   })

@@ -22,6 +22,12 @@
     background-color: var(--color-bg-base);
   }
 
+  /* 暗色模式关闭全局字体平滑，避免暗底上字形发灰 */
+  html[data-theme='dark'] {
+    -webkit-font-smoothing: auto;
+    -moz-osx-font-smoothing: auto;
+  }
+
   /* 基础 body 样式 */
   body {
     font-family: var(--font-sans);
@@ -306,11 +312,5 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
-  }
-
-  .premium-background,
-  .claude-background,
-  .background-layer {
-    display: none !important;
   }
 }

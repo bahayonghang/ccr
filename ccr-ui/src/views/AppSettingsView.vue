@@ -728,8 +728,12 @@ const themeOptions = computed(() => [
   },
 ])
 
+// 选项 UI 仍展示旧值域（子任务 C 统一重写）；store 写入路径会把旧值迁移进新值域。
+type LegacyFlavorOptionValue = 'paper' | 'graphite' | 'latte' | 'frappe' | 'macchiato' | 'mocha'
+type LegacyAccentOptionValue = 'sand' | 'amber' | 'rose' | 'slate'
+
 interface FlavorOption {
-  value: FlavorMode
+  value: FlavorMode | LegacyFlavorOptionValue
   label: string
   description: string
   badge: string
@@ -737,7 +741,7 @@ interface FlavorOption {
 }
 
 interface AccentOption {
-  value: AccentMode
+  value: AccentMode | LegacyAccentOptionValue
   label: string
   preview: string
 }
@@ -794,7 +798,7 @@ const flavorOptions = computed<FlavorOption[]>(() => [
   },
 ])
 
-const flavorLabelMap = computed<Record<FlavorMode, string>>(() => ({
+const flavorLabelMap = computed<Record<string, string>>(() => ({
   clay: t('settings.appearance.flavor.clay'),
   paper: t('settings.appearance.flavor.paper'),
   graphite: t('settings.appearance.flavor.graphite'),
@@ -868,12 +872,13 @@ const setTheme = (nextTheme: ThemeMode) => {
   shellPreferencesStore.setTheme(nextTheme)
 }
 
-const setFlavor = (nextFlavor: FlavorMode) => {
-  shellPreferencesStore.setFlavor(nextFlavor)
+// 旧值域选项值经 store 写入路径迁移到新值域（migrateFlavorValue/migrateAccentValue）。
+const setFlavor = (nextFlavor: FlavorOption['value']) => {
+  shellPreferencesStore.setFlavor(nextFlavor as FlavorMode)
 }
 
-const setAccent = (nextAccent: AccentMode) => {
-  shellPreferencesStore.setAccent(nextAccent)
+const setAccent = (nextAccent: AccentOption['value']) => {
+  shellPreferencesStore.setAccent(nextAccent as AccentMode)
 }
 
 // 预设清单集中在 @/utils/fontPreferences；自定义输入不受清单限制（空串=系统默认，回内置栈）。

@@ -136,11 +136,29 @@ describe('claude editorial surface contract', () => {
     expect(source).toMatch(/--surface-card-blur:\s*none/)
     expect(source).toMatch(/--surface-workspace-blur:\s*none/)
 
-    // mocha 覆盖块必须以 html:root 高优先级选择器携带 material 覆盖（specificity 契约）。
+    // 新玻璃契约：chrome/inline 全不透明（blur: none）；card/workspace 100% 不透明。
+    expect(source).toMatch(/--material-glass-chrome-bg:\s*var\(--color-bg-elevated\)/)
+    expect(source).toMatch(/--material-glass-chrome-blur:\s*none/)
+    expect(source).toMatch(/--material-glass-inline-bg:\s*var\(--color-bg-surface\)/)
+    expect(source).toMatch(/--material-glass-inline-blur:\s*none/)
+    expect(source).toMatch(/--surface-card-bg:\s*var\(--color-bg-surface\)/)
+    expect(source).toMatch(/--surface-workspace-bg:\s*var\(--color-bg-elevated\)/)
+
+    // floating 是唯一保留 backdrop-filter 的档：blur ≤12px、去 saturate、bg ≥88% 不透明。
+    const floatingBlur = source.match(/--material-glass-floating-blur:\s*([^;]+);/)?.[1] ?? ''
+
+    expect(floatingBlur).not.toContain('saturate')
+    expect(floatingBlur).toMatch(/blur\((?:[0-9]|1[0-2])px\)/)
+    expect(source).toMatch(/--material-glass-floating-bg:\s*rgb\(var\(--color-bg-elevated-rgb\) \/ (?:8[89]|9\d|100)%\)/)
+
+    // mocha 语义重映射块必须以 html:root 高优先级选择器携带（specificity 契约，
+    // 压过 [data-theme='dark'] (0,1,0)；accent 轴不在此块声明，保持三轴独立）。
     const mochaOverride = source.match(mochaOverridePattern)?.[0] ?? ''
 
-    expect(mochaOverride).toMatch(/--material-glass-floating-bg:/)
-    expect(mochaOverride).toMatch(/--material-glass-chrome-bg:/)
+    expect(mochaOverride).toMatch(/--color-bg-base:\s*var\(--ctp-crust\)/)
+    expect(mochaOverride).toMatch(/--color-bg-elevated:\s*var\(--ctp-base\)/)
+    expect(mochaOverride).toMatch(/--color-bg-surface:\s*var\(--ctp-surface0\)/)
+    expect(mochaOverride).not.toMatch(/--color-accent-primary:|--color-border-accent:/)
 
     // 玻璃预算注释存在（review 依据）。
     expect(source).toContain('同屏 backdrop-filter 元素 ≤ 3')
