@@ -530,3 +530,25 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 66: 完成 Grok TUI Profile 页签
+
+**Date**: 2026-07-29
+**Task**: 完成 Grok TUI Profile 页签
+**Branch**: `dev`
+
+### Summary
+
+迁移旧 TUI 页签顺序并新增 Grok Profile 页签、安全详情渲染与通用切换路径；配置与 TUI 聚焦测试、fmt、clippy 和工作区测试通过。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `ddaa7d2f` | (see git log) |
+| `01f414e5` | (see git log) |
+
+### Status
+
+[OK] **Completed**
