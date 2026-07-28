@@ -78,7 +78,7 @@ pub enum PlatformAction {
 pub enum PlatformProfileAction {
     /// 创建新的平台 Profile
     Create {
-        /// 平台名称（当前仅支持 claude / codex）
+        /// 平台名称（迁移目标支持 claude / codex / grok）
         platform_name: String,
         /// Profile 名称
         name: String,

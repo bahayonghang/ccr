@@ -163,6 +163,7 @@ impl CommandDispatcher {
             Some(Commands::OpenCode { action }) => Self::dispatch_opencode(action, tui).await,
 
             Some(Commands::Claude { action }) => Self::dispatch_claude(action, tui).await,
+            Some(Commands::Grok { action }) => Self::dispatch_grok(action).await,
 
             Some(Commands::Sessions(args)) => {
                 crate::commands::sessions_cmd::execute(args.clone()).await
@@ -571,6 +572,53 @@ impl CommandDispatcher {
                 }
                 CodexAuthAction::Import { replace, force } => {
                     crate::commands::codex::auth::import_command(*replace, *force).await
+                }
+            },
+        }
+    }
+
+    /// Grok Build profile command dispatch.
+    async fn dispatch_grok(
+        action: &Option<crate::cli::subcommands::GrokAction>,
+    ) -> Result<(), CcrError> {
+        use crate::cli::subcommands::{GrokAction, GrokProfileAction};
+
+        match action {
+            None | Some(GrokAction::Help) => {
+                help::print_subcommand_help("grok");
+                Ok(())
+            }
+            Some(GrokAction::Profile { action }) => match action.as_ref() {
+                GrokProfileAction::Help => {
+                    help::print_nested_subcommand_help(&["grok", "profile"]);
+                    Ok(())
+                }
+                GrokProfileAction::Current { json } => {
+                    crate::commands::grok::profile::current_command(*json).await
+                }
+                GrokProfileAction::List { json } => {
+                    crate::commands::grok::profile::list_command(*json).await
+                }
+                GrokProfileAction::Switch { name } => {
+                    crate::commands::grok::profile::switch_command(name).await
+                }
+                GrokProfileAction::Create(args) => {
+                    crate::commands::grok::profile::create_command(args.clone()).await
+                }
+                GrokProfileAction::SetField(args) => {
+                    crate::commands::grok::profile::set_field_command(args.clone()).await
+                }
+                GrokProfileAction::Enable(args) => {
+                    crate::commands::grok::profile::enable_command(args.clone()).await
+                }
+                GrokProfileAction::Disable(args) => {
+                    crate::commands::grok::profile::disable_command(args.clone()).await
+                }
+                GrokProfileAction::Delete(args) => {
+                    crate::commands::grok::profile::delete_command(args.clone()).await
+                }
+                GrokProfileAction::Off(args) => {
+                    crate::commands::grok::profile::off_command(args.json).await
                 }
             },
         }

@@ -28,9 +28,11 @@ ccr current
 |---|---|
 | `ccr platform switch claude` | `ccr claude profile switch <name>` 或 `ccr claude auth ...` |
 | `ccr platform switch codex` | `ccr codex profile switch <name>` 或 `ccr codex auth ...` |
+| `ccr platform switch grok` | `ccr grok profile switch <name>` |
 | `ccr platform current` | `ccr current` |
 | `ccr platform profile create claude ...` | `ccr claude profile create ...` |
 | `ccr platform profile create codex ...` | `ccr codex profile create ...` |
+| `ccr platform profile create grok ...` | `ccr grok profile create ...` |
 
 ## 说明
 

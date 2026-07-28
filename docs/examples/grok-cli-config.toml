@@ -1,0 +1,18 @@
+# Grok Build config.toml example
+# Copy to a GROK_HOME/config.toml only after reviewing the values.
+
+[models]
+default = "custom"
+
+[model.custom]
+name = "Example Grok-compatible relay"
+model = "grok-example"
+base_url = "https://api.example.com/v1"
+api_backend = "responses"
+env_key = "GROK_RELAY_API_KEY"
+context_window = 1000000
+supports_backend_search = true
+
+# CCR preserves unrelated sections structurally.
+[ui]
+theme = "system"

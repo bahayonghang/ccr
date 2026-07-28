@@ -124,3 +124,104 @@ if active_by_intent || runtime_matches_profile(name)? {
 ```
 
 This keeps deletion fail-closed until runtime restoration has completed.
+
+## Scenario: Grok CLI Profile Surface
+
+### 1. Scope / Trigger
+
+- Trigger: changing `ccr grok profile`, shared profile CRUD fields, Grok JSON
+  output, force-delete composition, help, or copy-ready Grok examples.
+
+### 2. Signatures
+
+- `Commands::Grok { action: Option<GrokAction> }`
+- `GrokProfileAction::{Current,List,Switch,Create,SetField,Enable,Disable,Delete,Off}`
+- Create-only fields: `api_backend: Option<String>`,
+  `env_key: Option<String>`, `context_window: Option<u64>`, and
+  `supports_backend_search: Option<bool>`.
+- Editable platform-data fields: `api_backend`, `env_key`, `context_window`,
+  and `supports_backend_search`.
+
+### 3. Contracts
+
+- The supported command path is `ccr grok profile ...`; retired
+  `ccr platform switch/profile` commands continue to return migration errors.
+- `api_backend` persists as a lowercase string, `env_key` as one string,
+  `context_window` as a positive JSON/TOML integer, and
+  `supports_backend_search` as a boolean. `--clear` removes any of them.
+- `current --json` and `list --json` omit `auth_token`. They expose only the
+  stable auth-mode identifier and a URL passed through
+  `safe_base_url_for_display`.
+- `delete --force` first attempts normal deletion. Only the core
+  active-profile rejection authorizes `off` followed by a second delete; do
+  not take an unrelated active profile offline when force-deleting an inactive
+  item.
+- Handwritten `profiles.toml` uses the shared `ConfigSection` encoding:
+  `provider_type` is omitted or is `official_relay`/`third_party_model`.
+  Grok route selection still comes from `base_url`, not provider type.
+- Copy-ready examples use `example.com` and `env_key`; inline secrets are
+  disclosure documentation, not example values.
+
+### 4. Validation & Error Matrix
+
+- Unsupported `api_backend` -> Chinese `ValidationError` listing the three
+  accepted values.
+- Array/comma-shaped `env_key` -> Chinese single-environment-variable error.
+- Zero/non-integer `context_window` -> Chinese positive-integer error.
+- Backend-search outside `true|false|1|0` -> Chinese boolean error.
+- `auth_token` plus `env_key` -> Clap conflict on create or core validation on
+  stored/set-field profiles.
+- Force delete receives a non-active validation/config error -> propagate it;
+  do not run `off`.
+
+### 5. Good/Base/Bad Cases
+
+- Good: create an `env_key` relay, switch, inspect masked JSON, update typed
+  fields, off, and delete.
+- Base: official profile with only `model` reports `session` auth mode.
+- Bad: serialize `ProfileConfig` directly in CLI JSON because it can expose
+  `auth_token` or an unsafe base URL.
+- Bad: unconditionally run `off` for every `delete --force`; the target may be
+  inactive while another profile is active.
+
+### 6. Tests Required
+
+- `cargo test -p ccr-cli platform -- --test-threads=1`
+  - Assert typed parsing, clearing, invalid values, and Grok editable fields.
+- `cargo test -p ccr --test commands grok_profile -- --test-threads=1`
+  - Assert create/switch/current/list/set/off/delete, output redaction, entry
+    restoration, drifted force deletion, and legacy-route rejection.
+- Parse `docs/examples/grok-profiles.toml` through `ccr grok profile list`.
+- Run local Grok `inspect --json` with a temporary `GROK_HOME` containing
+  `docs/examples/grok-cli-config.toml`; its `configSources` must name that
+  isolated file.
+- Run the docs build plus `just fmt-check`, `just lint-strict`, and `just test`.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```rust
+if force {
+    platform.clear_active_profile_runtime()?;
+}
+platform.delete_profile(name)?;
+```
+
+This can turn off a different active profile when the target is inactive.
+
+#### Correct
+
+```rust
+match platform.delete_profile(name) {
+    Ok(()) => {}
+    Err(error) if is_active_profile_error(&error) => {
+        platform.clear_active_profile_runtime()?;
+        platform.delete_profile(name)?;
+    }
+    Err(error) => return Err(error),
+}
+```
+
+The core guard remains the authority for whether force-delete needs runtime
+restoration.

@@ -445,6 +445,15 @@ pub enum Commands {
         action: Option<super::subcommands::claude::ClaudeAction>,
     },
 
+    /// Grok Build profile routing
+    ///
+    /// Examples: ccr grok profile list
+    ///           ccr grok profile switch relay
+    Grok {
+        #[command(subcommand)]
+        action: Option<super::subcommands::grok::GrokAction>,
+    },
+
     /// 📚 Session 管理
     ///
     /// 管理 AI CLI 的会话记录
@@ -552,7 +561,7 @@ pub struct CleanBackupsArgs {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
-    use crate::cli::subcommands::{CodexAction, ProjectAction};
+    use crate::cli::subcommands::{CodexAction, GrokAction, GrokProfileAction, ProjectAction};
     use clap::Parser;
 
     #[test]
@@ -912,6 +921,45 @@ mod tests {
                 assert!(dry_run);
                 assert!(repair_runtime);
             }
+            other => panic!("unexpected command: {:?}", other.map(|_| "other")),
+        }
+    }
+
+    #[test]
+    fn grok_profile_create_parses_platform_specific_fields() {
+        let cli = Cli::try_parse_from([
+            "ccr",
+            "grok",
+            "profile",
+            "create",
+            "relay",
+            "--base-url",
+            "https://api.example.com/v1",
+            "--env-key",
+            "GROK_RELAY_KEY",
+            "--model",
+            "grok-example",
+            "--api-backend",
+            "messages",
+            "--context-window",
+            "1000000",
+            "--supports-backend-search",
+        ])
+        .unwrap();
+
+        match cli.command {
+            Some(Commands::Grok {
+                action: Some(GrokAction::Profile { action }),
+            }) => match action.as_ref() {
+                GrokProfileAction::Create(args) => {
+                    assert_eq!(args.name, "relay");
+                    assert_eq!(args.env_key.as_deref(), Some("GROK_RELAY_KEY"));
+                    assert_eq!(args.api_backend.as_deref(), Some("messages"));
+                    assert_eq!(args.context_window, Some(1_000_000));
+                    assert_eq!(args.supports_backend_search, Some(true));
+                }
+                _ => panic!("unexpected Grok profile action"),
+            },
             other => panic!("unexpected command: {:?}", other.map(|_| "other")),
         }
     }

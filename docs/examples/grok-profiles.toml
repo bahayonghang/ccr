@@ -1,0 +1,28 @@
+# CCR Grok profiles
+# Copy to: ~/.ccr/platforms/grok/profiles.toml
+
+default_config = "official"
+current_config = ""
+
+[settings]
+skip_confirmation = false
+
+# Official Grok: select a model and leave authentication to Grok.
+[official]
+description = "Grok official model"
+model = "grok-example"
+provider = "xai"
+enabled = true
+
+# Third-party provider: CCR stores only the environment variable name.
+[relay]
+description = "Example Grok-compatible relay"
+base_url = "https://api.example.com/v1"
+model = "grok-example"
+provider = "example-relay"
+provider_type = "third_party_model"
+api_backend = "responses"
+env_key = "GROK_RELAY_API_KEY"
+context_window = 1000000
+supports_backend_search = true
+enabled = true
