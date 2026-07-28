@@ -401,9 +401,9 @@ bench:
 # ✨ 代码质量命令
 # ═══════════════════════════════════════════════════════════
 
-# ✨ 代码格式化
-fmt:
-    @just info "✨ 格式化代码"
+# ✨ 格式化 Rust 代码和人工维护的 JSON 配置
+fmt: json-format
+    @just info "✨ 格式化代码和 JSON 配置"
     cargo fmt
     @just success "代码格式化完成"
 

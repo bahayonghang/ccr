@@ -132,6 +132,12 @@ class WorkflowGovernanceParserTests(unittest.TestCase):
             "cargo --config ../.cargo/tauri-ci.toml test", ui_justfile
         )
 
+    def test_root_fmt_repairs_json_before_fmt_check(self) -> None:
+        root_justfile = (self.ROOT / "justfile").read_text(encoding="utf-8")
+
+        self.assertIn("fmt: json-format", root_justfile)
+        self.assertIn("fmt-check: json-format-check", root_justfile)
+
     def test_tauri_linux_gate_installs_pinned_bun_for_bindings(self) -> None:
         workflow = (
             self.ROOT / ".github" / "workflows" / "tauri-rust-ci.yml"
