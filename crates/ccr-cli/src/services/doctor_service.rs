@@ -1048,6 +1048,7 @@ impl DoctorService {
                 }
             }
             Platform::Qwen => DoctorCheck::skip(id, "Qwen settings validation is skipped."),
+            Platform::Grok => DoctorCheck::skip(id, "Grok settings validation is skipped."),
         }
     }
 
@@ -1425,6 +1426,7 @@ impl DoctorService {
                 "Droid local runtime health is covered by profile and settings validation.",
             ),
             Platform::Qwen => DoctorCheck::skip(id, "Qwen runtime validation is skipped."),
+            Platform::Grok => DoctorCheck::skip(id, "Grok runtime validation is skipped."),
         }
     }
 
@@ -1616,7 +1618,7 @@ impl DoctorService {
                 CodexPlatform::profile_auth_mode(profile).as_str(),
                 CodexPlatform::profile_auth_source(profile)
             ),
-            Platform::Gemini | Platform::Droid | Platform::Qwen => profile
+            Platform::Gemini | Platform::Droid | Platform::Qwen | Platform::Grok => profile
                 .model
                 .as_deref()
                 .map(|model| format!("model = {}.", model))

@@ -109,6 +109,7 @@ impl McpPresetManager {
             Platform::Gemini => home.join(".gemini").join("antigravity-cli"),
             Platform::Qwen => home.join(".qwen"),
             Platform::Droid => home.join(".factory"),
+            Platform::Grok => home.join(".grok"),
         };
 
         let ccr_dir = home.join(".ccr");
@@ -155,6 +156,9 @@ impl McpPresetManager {
             Platform::Gemini => self.install_to_gemini(&preset.id, &server_spec),
             Platform::Qwen => self.install_to_qwen(&preset.id, &server_spec),
             Platform::Droid => self.install_to_droid(&preset.id, &server_spec),
+            Platform::Grok => Err(CcrError::PlatformNotSupported(
+                "Grok 暂不支持 MCP preset 安装".into(),
+            )),
         }
     }
 
@@ -166,6 +170,9 @@ impl McpPresetManager {
             Platform::Gemini => self.install_to_gemini(name, spec),
             Platform::Qwen => self.install_to_qwen(name, spec),
             Platform::Droid => self.install_to_droid(name, spec),
+            Platform::Grok => Err(CcrError::PlatformNotSupported(
+                "Grok 暂不支持 MCP preset 安装".into(),
+            )),
         }
     }
 

@@ -452,6 +452,7 @@ async fn current_command_verbose() -> Result<()> {
             Platform::Gemini => "Antigravity CLI",
             Platform::Qwen => "Qwen",
             Platform::Droid => "Factory Droid",
+            Platform::Grok => "Grok",
         };
         ColorOutput::step(&format!("🌍 {} 环境变量状态", platform_display));
         println!();

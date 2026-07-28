@@ -68,12 +68,17 @@ Tests that mutate `CCR_ROOT` or `CCR_LOCK_DIR` must use `test_support::TestCcrEn
 - Parsing an empty document may return an empty collection at the core-library boundary. A UI workflow that forbids clearing all profiles must enforce that policy after parsing rather than changing shared parser compatibility.
 - Both profile registry saves and current-profile updates set `secret: true`; on Unix, resulting files must not expose credential-bearing content beyond owner read/write permissions.
 - Parser and persistence errors must not log or embed raw profile source or credential values.
+- `toml::de::Error` display text can include the offending source line. Secret-bearing
+  profile parsers must map it to a fixed message or position-only summary; never
+  interpolate the raw parser error into `CcrError`.
 
 ### 4. Validation & Error Matrix
 
 - Full config with `[profiles.<name>]` entries -> return those profiles.
 - Simplified top-level profile map -> return the equivalent profile collection.
 - Invalid TOML or incompatible profile fields -> return `CcrError`; do not partially accept entries.
+- Malformed credential line -> the returned error identifies invalid TOML without
+  containing any sentinel value from the source line.
 - Missing file through `load_profiles_from_toml` -> preserve the established empty/default result.
 - Empty parsed collection -> return empty from the shared parser; caller-specific destructive-action policy decides whether to reject it.
 - Structured write failure -> propagate the guarded-write error and preserve the previous file.
@@ -90,6 +95,7 @@ Tests that mutate `CCR_ROOT` or `CCR_LOCK_DIR` must use `test_support::TestCcrEn
 - Parse equivalent full and simplified fixtures and assert matching profile fields.
 - Assert empty input preserves the shared parser's empty-collection behavior.
 - Keep existing missing-file and malformed-file load tests passing.
+- Add a malformed `auth_token` sentinel and assert the returned error omits it.
 - Exercise both structured write paths and assert secret file permissions on Unix.
 - Run `cargo test -p ccr-config -- --test-threads=1` and clippy for `ccr-config` with warnings denied.
 

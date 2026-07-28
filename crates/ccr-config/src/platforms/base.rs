@@ -168,7 +168,7 @@ pub fn parse_profiles_from_str(content: &str) -> Result<IndexMap<String, Profile
     let sections = match toml::from_str::<CcsConfig>(content) {
         Ok(config) => config.sections,
         Err(_) => toml::from_str::<IndexMap<String, ConfigSection>>(content)
-            .map_err(|error| CcrError::ConfigFormatInvalid(format!("TOML 解析失败: {error}")))?,
+            .map_err(|_| CcrError::ConfigFormatInvalid("TOML 解析失败：配置包含无效语法".into()))?,
     };
 
     Ok(sections

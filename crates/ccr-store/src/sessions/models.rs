@@ -120,6 +120,7 @@ impl Session {
             Platform::Gemini => format!("agy --continue {}", self.id),
             Platform::Qwen => format!("qwen --resume {}", self.id),
             Platform::Droid => format!("droid --resume {}", self.id),
+            Platform::Grok => format!("grok --resume {}", self.id),
         }
     }
 }
