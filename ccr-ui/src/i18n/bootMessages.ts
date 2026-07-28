@@ -522,6 +522,8 @@ const zhCNBootMessages = {
         title: '界面语调',
         description:
           '选择整体底色族。Catppuccin 会跟随最终明暗解析：浅色统一使用 Latte，深色下 Latte/Frappé 解析为 Frappé，Macchiato/Mocha 保持各自深色底。',
+        neutral: '中性',
+        neutralDescription: '纯中性灰底色，对比扎实，不带冷暖倾向。',
         clay: '暖陶',
         clayDescription: '默认暖中性色，对齐 Anthropic 编辑式底色。',
         paper: '纸面',
@@ -536,6 +538,8 @@ const zhCNBootMessages = {
         macchiatoDescription: '自适应 Catppuccin 底色族：浅色解析为 Latte，深色保持 Macchiato。',
         mocha: 'Catppuccin Mocha',
         mochaDescription: '自适应 Catppuccin 底色族：浅色解析为 Latte，深色保持 Mocha。',
+        catppuccin: 'Catppuccin',
+        catppuccinDescription: '自适应 Catppuccin 底色族：浅色解析为 Latte，深色解析为 Mocha。',
       },
       accent: {
         eyebrow: 'Accent',
@@ -1147,6 +1151,9 @@ const enUSBootMessages = {
         title: 'Surface tone',
         description:
           'Pick the underlying neutral family. Catppuccin follows the resolved light or dark theme: light uses Latte; dark maps Latte/Frappé to Frappé and keeps Macchiato or Mocha dark.',
+        neutral: 'Neutral',
+        neutralDescription:
+          'Pure neutral gray surfaces with solid contrast and no warm or cool tint.',
         clay: 'Clay',
         clayDescription: 'Default warm-neutral, matches the Anthropic editorial baseline.',
         paper: 'Paper',
@@ -1165,6 +1172,9 @@ const enUSBootMessages = {
         mocha: 'Catppuccin Mocha',
         mochaDescription:
           'Adaptive Catppuccin family; light resolves to Latte and dark keeps Mocha.',
+        catppuccin: 'Catppuccin',
+        catppuccinDescription:
+          'Adaptive Catppuccin family; light resolves to Latte and dark resolves to Mocha.',
       },
       accent: {
         eyebrow: 'Accent',

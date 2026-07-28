@@ -2595,6 +2595,9 @@ export default {
         title: 'Surface tone',
         description:
           'Pick the underlying neutral family. Catppuccin follows the resolved light or dark theme: light uses Latte; dark maps Latte/Frappé to Frappé and keeps Macchiato or Mocha dark.',
+        neutral: 'Neutral',
+        neutralDescription:
+          'Pure neutral gray surfaces with solid contrast and no warm or cool tint.',
         clay: 'Clay',
         clayDescription: 'Default warm-neutral, matches the Anthropic editorial baseline.',
         paper: 'Paper',
@@ -2613,6 +2616,9 @@ export default {
         mocha: 'Catppuccin Mocha',
         mochaDescription:
           'Adaptive Catppuccin family; light resolves to Latte and dark keeps Mocha.',
+        catppuccin: 'Catppuccin',
+        catppuccinDescription:
+          'Adaptive Catppuccin family; light resolves to Latte and dark resolves to Mocha.',
       },
       accent: {
         eyebrow: 'Accent',
