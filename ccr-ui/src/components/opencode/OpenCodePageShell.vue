@@ -165,7 +165,7 @@ const toneClass = computed(() => ({
 }
 
 .opencode-page-shell__icon {
-  @apply flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border-default/15 bg-bg-surface/70 shadow-lg backdrop-blur-md;
+  @apply flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border-default/15 bg-bg-elevated shadow-lg;
 }
 
 .opencode-page-shell__tone--lime {

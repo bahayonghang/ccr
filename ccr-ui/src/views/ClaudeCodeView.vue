@@ -496,8 +496,7 @@ const copyCommand = (cmd: string) => {
     linear-gradient(180deg, rgb(255 251 245 / 16%), transparent 42%),
     linear-gradient(180deg, var(--color-warning-hover), var(--color-warning));
   box-shadow:
-    0 16px 34px rgb(var(--color-warning-rgb) / 18%),
-    0 1px 0 rgb(255 251 245 / 28%) inset;
+    0 16px 34px rgb(var(--color-warning-rgb) / 18%);
 
   @apply px-5 font-semibold shadow-sm;
 }
@@ -509,8 +508,7 @@ const copyCommand = (cmd: string) => {
     linear-gradient(180deg, rgb(255 251 245 / 20%), transparent 44%),
     linear-gradient(180deg, var(--color-warning-hover), rgb(var(--color-warning-rgb) / 92%));
   box-shadow:
-    0 18px 38px rgb(var(--color-warning-rgb) / 22%),
-    0 1px 0 rgb(255 251 245 / 32%) inset;
+    0 18px 38px rgb(var(--color-warning-rgb) / 22%);
 }
 
 .claude-hero__button :deep(svg) {
@@ -547,7 +545,7 @@ const copyCommand = (cmd: string) => {
   --claude-terminal-rule: rgb(var(--color-border-default-rgb) / 12%);
   --claude-terminal-shadow:
     0 24px 58px rgb(var(--color-bg-base-rgb) / 32%),
-    0 1px 0 rgb(255 255 255 / 72%) inset;
+    var(--inner-glow);
   --claude-terminal-command: var(--stage-text-primary);
   --claude-terminal-status: var(--stage-text-secondary);
   --claude-terminal-chip-bg: rgb(var(--color-bg-overlay-rgb) / 64%);
@@ -631,8 +629,7 @@ const copyCommand = (cmd: string) => {
   --claude-terminal-border: rgb(255 255 255 / 10%);
   --claude-terminal-rule: rgb(255 255 255 / 8%);
   --claude-terminal-shadow:
-    0 22px 56px rgb(0 0 0 / 30%),
-    0 1px 0 rgb(255 255 255 / 5%) inset;
+    0 22px 56px rgb(0 0 0 / 30%);
   --claude-terminal-command: rgb(245 238 228 / 94%);
   --claude-terminal-status: rgb(218 203 188 / 72%);
   --claude-terminal-chip-bg: rgb(255 255 255 / 7%);
@@ -725,7 +722,7 @@ const copyCommand = (cmd: string) => {
 }
 
 .claude-action-card__watermark {
-  @apply absolute bottom-3 right-3 rotate-12 text-text-muted/5 transition-colors group-hover:text-text-muted/10;
+  @apply absolute bottom-3 right-3 rotate-12 text-text-disabled transition-colors group-hover:text-text-ghost;
 }
 
 .claude-action-card__icon {

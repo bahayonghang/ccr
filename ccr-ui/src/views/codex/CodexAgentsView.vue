@@ -15,7 +15,7 @@
       >
         <template #meta>
           <span class="rounded-full border border-accent-primary/25 bg-accent-primary/10 px-3 py-1 text-sm font-medium text-accent-primary">{{ contextLabel }}</span>
-          <span class="rounded-full border border-border-default/60 bg-bg-surface/70 px-3 py-1 text-sm text-text-secondary">{{ activeContext?.agentsDir ?? '~/.codex/agents/' }}</span>
+          <span class="rounded-full border border-border-default/60 bg-bg-elevated px-3 py-1 text-sm text-text-secondary">{{ activeContext?.agentsDir ?? '~/.codex/agents/' }}</span>
         </template>
         <template #actions>
           <div class="flex flex-wrap justify-end gap-2">
@@ -79,7 +79,7 @@
           <button
             type="button"
             class="rounded-2xl border px-4 py-2 text-sm font-medium transition-colors"
-            :class="activePanel === 'installed' ? 'border-accent-primary/40 bg-accent-primary/10 text-accent-primary' : 'border-border-default/60 bg-bg-surface/60 text-text-secondary hover:bg-bg-surface'"
+            :class="activePanel === 'installed' ? 'border-accent-primary/40 bg-accent-primary/10 text-accent-primary' : 'border-border-default/60 bg-bg-elevated text-text-secondary hover:bg-bg-surface'"
             @click="activePanel = 'installed'"
           >
             {{ tt('已安装', 'Installed') }}
@@ -87,7 +87,7 @@
           <button
             type="button"
             class="rounded-2xl border px-4 py-2 text-sm font-medium transition-colors"
-            :class="activePanel === 'sources' ? 'border-accent-primary/40 bg-accent-primary/10 text-accent-primary' : 'border-border-default/60 bg-bg-surface/60 text-text-secondary hover:bg-bg-surface'"
+            :class="activePanel === 'sources' ? 'border-accent-primary/40 bg-accent-primary/10 text-accent-primary' : 'border-border-default/60 bg-bg-elevated text-text-secondary hover:bg-bg-surface'"
             @click="activePanel = 'sources'"
           >
             {{ tt('来源', 'Sources') }}
@@ -129,7 +129,7 @@
               </div>
             </div>
 
-            <div class="rounded-3xl border border-border-default/20 bg-bg-elevated/70 p-5 shadow-xl shadow-black/10 backdrop-blur-xl">
+            <div class="rounded-3xl border border-border-default/20 bg-bg-base p-5 shadow-xl shadow-black/10">
               <div class="mb-4 flex flex-wrap items-center gap-3">
                 <div class="relative min-w-[260px] flex-1">
                   <SIcon
@@ -141,7 +141,7 @@
                     v-model="searchQuery"
                     type="text"
                     :placeholder="$t('codex.agents.searchPlaceholder')"
-                    class="w-full rounded-2xl border border-border-default/60 bg-bg-surface/70 py-3 pl-10 pr-4 text-sm text-text-primary"
+                    class="w-full rounded-2xl border border-border-default/60 bg-bg-elevated py-3 pl-10 pr-4 text-sm text-text-primary"
                   >
                 </div>
                 <div class="flex flex-wrap gap-2">
@@ -221,9 +221,9 @@
               </div>
               <div
                 v-else-if="filteredAgents.length === 0"
-                class="rounded-3xl border border-dashed border-border-default/20 bg-bg-surface/35 px-6 py-16 text-center"
+                class="rounded-3xl border border-dashed border-border-default/20 bg-bg-elevated px-6 py-16 text-center"
               >
-                <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-bg-elevated/70">
+                <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-bg-base">
                   <SIcon
                     name="Bot"
                     size="w-8 h-8"
@@ -250,7 +250,7 @@
                 <article
                   v-for="agent in filteredAgents"
                   :key="agent.path"
-                  class="rounded-3xl border border-border-default/15 bg-bg-surface/55 p-4 transition-colors hover:border-accent-primary/30 hover:bg-bg-surface/75"
+                  class="rounded-3xl border border-border-default/15 bg-bg-elevated p-4 transition-colors hover:border-accent-primary/30 hover:bg-bg-surface/75"
                 >
                   <div class="flex flex-wrap items-start gap-3">
                     <input
@@ -264,7 +264,7 @@
                         <h3 class="text-base font-semibold text-text-primary">
                           {{ agent.name }}
                         </h3>
-                        <span class="rounded-full border border-border-default/60 bg-bg-elevated/70 px-2.5 py-1 text-xs text-text-secondary">{{ agent.fileName }}</span>
+                        <span class="rounded-full border border-border-default/60 bg-bg-base px-2.5 py-1 text-xs text-text-secondary">{{ agent.fileName }}</span>
                         <span
                           v-if="agent.parseError"
                           class="rounded-full border border-amber-400/30 bg-amber-500/10 px-2.5 py-1 text-xs text-amber-100"
@@ -406,7 +406,7 @@
                 <div
                   v-for="builtIn in builtInCodexAgents"
                   :key="builtIn.name"
-                  class="rounded-2xl border border-border-default/60 bg-bg-surface/55 px-3 py-3"
+                  class="rounded-2xl border border-border-default/60 bg-bg-elevated px-3 py-3"
                 >
                   <div class="flex items-center justify-between gap-3">
                     <div class="font-medium text-text-primary">
@@ -510,7 +510,7 @@
       @update:model-value="copyModalOpen = $event"
     >
       <div class="space-y-4">
-        <div class="rounded-2xl border border-border-default/60 bg-bg-surface/60 px-4 py-3 text-sm text-text-secondary">
+        <div class="rounded-2xl border border-border-default/60 bg-bg-elevated px-4 py-3 text-sm text-text-secondary">
           {{ tt('目标上下文：', 'Target context:') }} <span class="font-semibold text-text-primary">{{ copyTargetLabel }}</span>
         </div>
         <label class="space-y-2 text-sm text-text-secondary"><span class="font-semibold text-text-primary">{{ tt('目标名称', 'Target name') }}</span><input
@@ -1070,7 +1070,7 @@ function handleExportSelected() {
 
 .codex-agent-primary-button {
   background: var(--color-accent-primary);
-  color: white;
+  color: var(--color-accent-primary-contrast);
 }
 
 .codex-agent-primary-button:hover {

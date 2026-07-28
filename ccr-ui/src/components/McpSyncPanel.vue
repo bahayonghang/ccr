@@ -32,7 +32,7 @@
           {{ $t('common.refresh') }}
         </button>
         <button
-          class="min-h-[44px] px-4 py-2 rounded-xl font-bold text-sm text-white flex items-center gap-2 transition-transform hover:scale-105 bg-accent-success shadow-lg shadow-accent-success/20"
+          class="min-h-[44px] px-4 py-2 rounded-xl font-bold text-sm text-[color:var(--color-success-contrast)] flex items-center gap-2 transition-transform hover:scale-105 bg-accent-success shadow-lg shadow-accent-success/20"
           :disabled="syncing || sourceServers.length === 0"
           @click="handleSyncAll"
         >
@@ -98,7 +98,7 @@
       <!-- Empty State -->
       <div
         v-else-if="sourceServers.length === 0"
-        class="text-center py-8 bg-bg-surface/50 rounded-2xl border border-dashed border-border-default"
+        class="text-center py-8 bg-bg-elevated rounded-2xl border border-dashed border-border-default"
       >
         <SIcon
           name="Server"
@@ -121,7 +121,7 @@
         <div
           v-for="server in sourceServers"
           :key="server.name"
-          class="group p-4 rounded-2xl bg-bg-surface/50 border border-border-default/50 hover:border-accent-success/30 transition-colors"
+          class="group p-4 rounded-2xl bg-bg-elevated border border-border-default/50 hover:border-accent-success/30 transition-colors"
         >
           <div class="flex items-center justify-between">
             <div class="flex-1 min-w-0">

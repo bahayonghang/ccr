@@ -62,7 +62,7 @@ defineProps<{
   background:
     linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 92%), rgb(var(--color-bg-surface-rgb) / 76%)),
     radial-gradient(circle at 86% 0%, rgb(var(--usage-metric-rgb) / 10%), transparent 52%);
-  box-shadow: var(--elevation-1), inset 0 1px 0 rgb(255 255 255 / 8%);
+  box-shadow: var(--elevation-1);
 }
 
 .usage-cost-conclusion--rose {

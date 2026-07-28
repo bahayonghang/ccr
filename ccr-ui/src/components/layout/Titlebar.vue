@@ -205,7 +205,7 @@
               </div>
 
               <button 
-                class="w-full py-2 border border-border-default/60 rounded-xl text-sm font-medium text-text-primary transition-[color,background-color,transform] transform hover:scale-[1.01] active:scale-95 flex items-center justify-center focus:outline-none bg-bg-surface/80 hover:bg-bg-elevated"
+                class="w-full py-2 border border-border-default/60 rounded-xl text-sm font-medium text-text-primary transition-[color,background-color,transform] transform hover:scale-[1.01] active:scale-95 flex items-center justify-center focus:outline-none bg-bg-surface hover:bg-bg-elevated"
                 @click="showAboutDialog = false"
               >
                 {{ t('common.about.close') }}
@@ -384,7 +384,7 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   border-radius: 0.75rem;
-  color: rgb(var(--color-text-secondary-rgb) / 88%);
+  color: var(--color-text-secondary);
   transition:
     color var(--motion-feedback-duration) var(--motion-standard-ease),
     background-color var(--motion-feedback-duration) var(--motion-standard-ease),
@@ -394,9 +394,9 @@ onUnmounted(() => {
   outline: none;
 
   &:hover {
-    color: rgb(var(--color-text-primary-rgb) / 98%);
-    background: rgb(var(--color-text-primary-rgb) / 6%);
-    box-shadow: inset 0 0 0 1px rgb(var(--color-text-primary-rgb) / 4%);
+    color: var(--color-text-primary);
+    background: rgb(var(--color-bg-overlay-rgb) / 55%);
+    box-shadow: inset 0 0 0 1px var(--color-border-subtle);
   }
 
   &:active {
@@ -410,7 +410,7 @@ onUnmounted(() => {
 }
 
 .titlebar-control-btn--close:hover {
-  color: rgb(255 255 255 / 98%);
+  color: var(--color-danger-contrast);
   background: rgb(var(--color-danger-rgb) / 92%);
   box-shadow:
     inset 0 0 0 1px rgb(255 255 255 / 14%),
@@ -427,7 +427,7 @@ onUnmounted(() => {
 }
 
 .titlebar-title {
-  color: rgb(var(--color-text-muted-rgb) / 90%);
+  color: var(--color-text-muted);
 }
 
 .titlebar-menu-btn {
@@ -435,7 +435,7 @@ onUnmounted(() => {
   font-size: 0.75rem;
   line-height: 1rem;
   font-weight: 500;
-  color: rgb(var(--color-text-muted-rgb) / 85%);
+  color: var(--color-text-muted);
   border-radius: 0.375rem;
   transition: color 150ms, background-color 150ms;
   outline: none;

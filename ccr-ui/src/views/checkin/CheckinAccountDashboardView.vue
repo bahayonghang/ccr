@@ -672,7 +672,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 .action-btn.primary {
   border-color: transparent;
   background: var(--accent-primary);
-  color: white;
+  color: var(--color-accent-primary-contrast);
   box-shadow: 0 10px 22px rgb(var(--color-accent-primary-rgb) / 24%);
 }
 

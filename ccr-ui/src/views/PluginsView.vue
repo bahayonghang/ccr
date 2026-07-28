@@ -22,7 +22,7 @@
                   <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-accent-secondary/10 text-accent-secondary border border-accent-secondary/20">
                     {{ t('plugins.backToModule') }}
                   </span>
-                  <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-accent-secondary text-white shadow-sm">
+                  <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-accent-secondary text-[color:var(--color-accent-primary-contrast)] shadow-sm">
                     {{ plugins.length }}
                   </span>
                 </div>
@@ -187,7 +187,7 @@
                 <input
                   v-model="formData.id"
                   type="text"
-                  class="w-full px-4 py-3 rounded-xl bg-bg-surface/700 border border-border-default focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 outline-none transition-colors"
+                  class="w-full px-4 py-3 rounded-xl bg-bg-surface border border-border-default focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 outline-none transition-colors"
                   :placeholder="$t('plugins.form.idPlaceholder')"
                 >
               </div>
@@ -199,7 +199,7 @@
                 <input
                   v-model="formData.name"
                   type="text"
-                  class="w-full px-4 py-3 rounded-xl bg-bg-surface/700 border border-border-default focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 outline-none transition-colors"
+                  class="w-full px-4 py-3 rounded-xl bg-bg-surface border border-border-default focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 outline-none transition-colors"
                   :placeholder="$t('plugins.form.namePlaceholder')"
                 >
               </div>
@@ -211,7 +211,7 @@
                 <input
                   v-model="formData.version"
                   type="text"
-                  class="w-full px-4 py-3 rounded-xl bg-bg-surface/700 border border-border-default focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 outline-none transition-colors"
+                  class="w-full px-4 py-3 rounded-xl bg-bg-surface border border-border-default focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 outline-none transition-colors"
                   :placeholder="$t('plugins.form.versionPlaceholder')"
                 >
               </div>
@@ -223,7 +223,7 @@
                 <textarea
                   v-model="configJson"
                   rows="8"
-                  class="w-full px-4 py-3 rounded-xl font-mono text-sm bg-bg-surface/700 border border-border-default focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 outline-none transition-colors"
+                  class="w-full px-4 py-3 rounded-xl font-mono text-sm bg-bg-surface border border-border-default focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 outline-none transition-colors"
                   :placeholder="$t('plugins.form.configPlaceholder')"
                 />
                 <div class="text-xs mt-1.5 text-text-muted">
@@ -231,7 +231,7 @@
                 </div>
               </div>
 
-              <div class="flex items-center gap-3 p-4 rounded-xl bg-bg-surface/50 border border-border-default/50">
+              <div class="flex items-center gap-3 p-4 rounded-xl bg-bg-elevated border border-border-default/50">
                 <input
                   id="enabled"
                   v-model="formData.enabled"

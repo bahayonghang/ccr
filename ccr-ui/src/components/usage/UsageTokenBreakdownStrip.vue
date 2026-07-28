@@ -134,7 +134,7 @@ const cacheEfficiencyLabel = computed(() => formatPercent(props.summary.cache_ef
   background:
     linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 88%), rgb(var(--color-bg-surface-rgb) / 72%));
   padding: 0.85rem 0.95rem;
-  box-shadow: var(--elevation-1), inset 0 1px 0 rgb(255 255 255 / 7%);
+  box-shadow: var(--elevation-1);
 }
 
 .usage-token-strip__header {

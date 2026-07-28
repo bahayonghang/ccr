@@ -482,7 +482,6 @@ const getInsightTone = (id: string): InsightTone => insightToneById[id] ?? 'sand
       rgb(var(--color-bg-elevated-rgb) / 40%),
       rgb(var(--color-bg-surface-rgb) / 18%)
     );
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 4%);
 }
 
 .overview-tab__chart {

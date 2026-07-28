@@ -64,6 +64,6 @@ withDefaults(defineProps<Props>(), {
   border: 1px solid rgb(var(--color-border-default-rgb) / 10%);
   background:
     linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 100%), rgb(var(--color-bg-surface-rgb) / 88%));
-  box-shadow: inset 0 1px 0 rgb(255 251 245 / 70%);
+  box-shadow: var(--inner-glow);
 }
 </style>

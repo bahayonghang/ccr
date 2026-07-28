@@ -715,7 +715,7 @@ onMounted(async () => {
 }
 
 .sync-hero-button--primary {
-  border-color: rgb(var(--color-text-primary-rgb) / 8%);
+  border-color: var(--color-border-subtle);
   background: var(--color-text-primary);
   color: var(--color-bg-base);
 }
@@ -953,7 +953,7 @@ onMounted(async () => {
 }
 
 .sync-action-button--sync {
-  border-color: rgb(var(--color-text-primary-rgb) / 12%);
+  border-color: var(--color-border-subtle);
   background: var(--color-text-primary);
   color: var(--color-bg-base);
 }

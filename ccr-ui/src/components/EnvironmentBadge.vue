@@ -50,7 +50,7 @@ onMounted(async () => {
 
     <span
       v-if="isTauri && tauriVersion"
-      class="px-1.5 py-0.5 rounded bg-bg-surface/700 dark:bg-black/20 text-xs"
+      class="px-1.5 py-0.5 rounded bg-bg-surface dark:bg-black/20 text-xs"
     >
       {{ t('common.versionPrefix') }}{{ tauriVersion }}
     </span>

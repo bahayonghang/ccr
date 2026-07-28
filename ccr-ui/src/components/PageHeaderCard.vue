@@ -154,7 +154,7 @@ const toneClasses = computed(() => {
   height: 3.25rem;
   border-radius: 1rem;
   border: 1px solid rgb(var(--color-border-default-rgb) / 10%);
-  box-shadow: inset 0 1px 0 rgb(255 251 245 / 66%);
+  box-shadow: var(--inner-glow);
 }
 
 .page-header-card__icon--primary {

@@ -59,7 +59,7 @@
                 <span class="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-cyan-200">
                   {{ server.id }}
                 </span>
-                <span class="rounded-full bg-bg-base/45 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-text-secondary">
+                <span class="rounded-full bg-bg-base px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-text-secondary">
                   {{ server.type }}
                 </span>
                 <span
@@ -71,13 +71,13 @@
               </div>
 
               <div class="grid gap-3 md:grid-cols-3">
-                <div class="rounded-2xl border border-border-default/55 bg-bg-base/35 p-3 md:col-span-2">
+                <div class="rounded-2xl border border-border-default/55 bg-bg-base p-3 md:col-span-2">
                   <span class="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('入口', 'Entrypoint') }}</span>
                   <p class="mt-2 break-all font-mono text-sm text-text-primary">
                     {{ server.type === 'local' ? stringifyCommandInput(server.command) || tt('缺少 command', 'Missing command') : server.url || tt('缺少 URL', 'Missing URL') }}
                   </p>
                 </div>
-                <div class="rounded-2xl border border-border-default/55 bg-bg-base/35 p-3">
+                <div class="rounded-2xl border border-border-default/55 bg-bg-base p-3">
                   <span class="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('附加项', 'Extras') }}</span>
                   <p class="mt-2 text-sm text-text-primary">
                     {{ `${tt('环境变量', 'Env')} ${Object.keys(server.environment || {}).length} · ${tt('请求头', 'Headers')} ${Object.keys(server.headers || {}).length}` }}
@@ -166,19 +166,19 @@
           {{ tt('OpenCode 的 MCP OAuth 与调试动作本质上还是 CLI 能力，这里直接给你可执行命令。', 'OpenCode still handles MCP OAuth and debugging through the CLI, so this panel gives you the exact commands.') }}
         </p>
         <div class="mt-4 space-y-3">
-          <div class="rounded-2xl border border-border-default/55 bg-bg-base/35 p-3">
+          <div class="rounded-2xl border border-border-default/55 bg-bg-base p-3">
             <strong class="font-mono text-sm text-text-primary">{{ opencodeMcpAddCommand }}</strong>
             <p class="mt-2 text-sm text-text-secondary">
               {{ tt('交互式添加 local 或 remote server。', 'Interactively add a local or remote server.') }}
             </p>
           </div>
-          <div class="rounded-2xl border border-border-default/55 bg-bg-base/35 p-3">
+          <div class="rounded-2xl border border-border-default/55 bg-bg-base p-3">
             <strong class="font-mono text-sm text-text-primary">{{ opencodeMcpAuthCommand }}</strong>
             <p class="mt-2 text-sm text-text-secondary">
               {{ tt('OAuth-enabled remote server 登录。', 'Sign in to an OAuth-enabled remote server.') }}
             </p>
           </div>
-          <div class="rounded-2xl border border-border-default/55 bg-bg-base/35 p-3">
+          <div class="rounded-2xl border border-border-default/55 bg-bg-base p-3">
             <strong class="font-mono text-sm text-text-primary">{{ opencodeMcpDebugCommand }}</strong>
             <p class="mt-2 text-sm text-text-secondary">
               {{ tt('排查 OAuth / transport 连接问题。', 'Troubleshoot OAuth or transport connection issues.') }}
@@ -202,7 +202,7 @@
             <input
               v-model="form.id"
               :disabled="Boolean(editingId)"
-              class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 text-sm text-text-primary"
+              class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 text-sm text-text-primary"
               placeholder="github"
             >
           </div>
@@ -210,7 +210,7 @@
             <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('类型', 'Type') }}</label>
             <select
               v-model="form.type"
-              class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 text-sm text-text-primary"
+              class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 text-sm text-text-primary"
             >
               <option value="local">
                 {{ tt('本地', 'local') }}
@@ -222,7 +222,7 @@
           </div>
         </div>
 
-        <label class="flex items-center gap-3 rounded-2xl border border-border-default/55 bg-bg-base/35 px-4 py-3 text-sm text-text-primary">
+        <label class="flex items-center gap-3 rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 text-sm text-text-primary">
           <input
             v-model="form.enabled"
             type="checkbox"
@@ -234,7 +234,7 @@
           <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('命令', 'Command') }}</label>
           <input
             v-model="form.command"
-            class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 font-mono text-sm text-text-primary"
+            class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 font-mono text-sm text-text-primary"
             placeholder="npx -y @modelcontextprotocol/server-github"
           >
         </div>
@@ -243,7 +243,7 @@
           <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('URL', 'URL') }}</label>
           <input
             v-model="form.url"
-            class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 font-mono text-sm text-text-primary"
+            class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 font-mono text-sm text-text-primary"
             placeholder="https://mcp.example.com/sse"
           >
         </div>
@@ -254,7 +254,7 @@
             <textarea
               v-model="form.environmentJson"
               rows="6"
-              class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 font-mono text-sm text-text-primary"
+              class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 font-mono text-sm text-text-primary"
             />
           </div>
           <div>
@@ -262,7 +262,7 @@
             <textarea
               v-model="form.headersJson"
               rows="6"
-              class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 font-mono text-sm text-text-primary"
+              class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 font-mono text-sm text-text-primary"
             />
           </div>
         </div>

@@ -394,7 +394,7 @@ const handleClose = () => {
 }
 
 .field-hint.subtle {
-  @apply text-text-muted/80;
+  @apply text-text-ghost;
 }
 
 .password-header {

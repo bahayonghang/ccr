@@ -37,13 +37,13 @@
         </p>
 
         <div class="mt-4 space-y-3">
-          <div class="rounded-2xl border border-border-default/55 bg-bg-base/35 p-4">
+          <div class="rounded-2xl border border-border-default/55 bg-bg-base p-4">
             <strong class="font-mono text-sm text-text-primary">{{ reviewCommandExample }}</strong>
             <p class="mt-2 text-sm text-text-secondary">
               {{ tt('配合 `agent: plan` 或 `subtask: true`，让命令直接走分析链路。', 'Pair it with `agent: plan` or `subtask: true` so the command enters the analysis path directly.') }}
             </p>
           </div>
-          <div class="rounded-2xl border border-border-default/55 bg-bg-base/35 p-4">
+          <div class="rounded-2xl border border-border-default/55 bg-bg-base p-4">
             <strong class="font-mono text-sm text-text-primary">{{ shellInjectionExample }}</strong>
             <p class="mt-2 text-sm text-text-secondary">
               {{ tt('OpenCode 命令模板支持注入 shell 输出与文件内容。', 'OpenCode command templates can inject shell output and file contents.') }}
@@ -88,7 +88,7 @@
                 </span>
                 <span
                   v-if="command.agent"
-                  class="rounded-full bg-bg-base/45 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-text-secondary"
+                  class="rounded-full bg-bg-base px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-text-secondary"
                 >
                   {{ command.agent }}
                 </span>
@@ -103,7 +103,7 @@
               <h2 class="text-lg font-semibold text-text-primary">
                 {{ command.description || command.name }}
               </h2>
-              <pre class="mt-3 overflow-auto rounded-2xl border border-border-default/55 bg-bg-base/35 p-4 text-xs leading-6 text-text-primary">{{ command.template }}</pre>
+              <pre class="mt-3 overflow-auto rounded-2xl border border-border-default/55 bg-bg-base p-4 text-xs leading-6 text-text-primary">{{ command.template }}</pre>
             </div>
 
             <div class="flex flex-wrap gap-2">
@@ -145,7 +145,7 @@
             <input
               v-model="form.name"
               :disabled="Boolean(editingName)"
-              class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 text-sm text-text-primary"
+              class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 text-sm text-text-primary"
               placeholder="review"
             >
           </div>
@@ -153,7 +153,7 @@
             <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('agent', 'agent') }}</label>
             <input
               v-model="form.agent"
-              class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 text-sm text-text-primary"
+              class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 text-sm text-text-primary"
               placeholder="plan"
             >
           </div>
@@ -164,7 +164,7 @@
             <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('description *', 'description *') }}</label>
             <input
               v-model="form.description"
-              class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 text-sm text-text-primary"
+              class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 text-sm text-text-primary"
               placeholder="Review recent changes"
             >
           </div>
@@ -172,13 +172,13 @@
             <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('model', 'model') }}</label>
             <input
               v-model="form.model"
-              class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 text-sm text-text-primary"
+              class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 text-sm text-text-primary"
               placeholder="anthropic/claude-haiku-4-5"
             >
           </div>
         </div>
 
-        <label class="flex items-center gap-3 rounded-2xl border border-border-default/55 bg-bg-base/35 px-4 py-3 text-sm text-text-primary">
+        <label class="flex items-center gap-3 rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 text-sm text-text-primary">
           <input
             v-model="form.subtask"
             type="checkbox"
@@ -191,7 +191,7 @@
           <textarea
             v-model="form.template"
             rows="12"
-            class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 font-mono text-sm text-text-primary"
+            class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 font-mono text-sm text-text-primary"
           />
         </div>
 

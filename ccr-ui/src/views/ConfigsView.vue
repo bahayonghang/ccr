@@ -48,7 +48,7 @@
             </button>
           </div>
 
-          <div class="rounded-2xl border border-border-default/50 bg-bg-elevated/70 p-4 backdrop-blur-md">
+          <div class="rounded-2xl border border-border-default/50 bg-bg-base p-4">
             <div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
               <div class="space-y-2">
                 <p class="text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">
@@ -58,7 +58,7 @@
                   <span class="rounded-full border border-accent-primary/20 bg-accent-primary/10 px-3 py-1 font-medium text-accent-primary">
                     {{ t('configs.currentConfig') }}: {{ currentConfigName }}
                   </span>
-                  <span class="rounded-full border border-border-default/50 bg-bg-surface/70 px-3 py-1 font-medium">
+                  <span class="rounded-full border border-border-default/50 bg-bg-elevated px-3 py-1 font-medium">
                     {{ filteredConfigs.length }} / {{ configs.length }} {{ t('configs.availableConfigs') }}
                   </span>
                 </div>
@@ -90,13 +90,13 @@
                 class="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition-[border-color,background-color,color] duration-200"
                 :class="config.is_current
                   ? 'border-accent-primary/30 bg-accent-primary/10 text-accent-primary'
-                  : 'border-border-default/50 bg-bg-surface/60 text-text-secondary hover:border-accent-primary/20 hover:text-text-primary'"
+                  : 'border-border-default/50 bg-bg-elevated text-text-secondary hover:border-accent-primary/20 hover:text-text-primary'"
                 @click="handleConfigClick(config.name)"
               >
                 <span class="truncate max-w-[180px]">{{ config.name }}</span>
                 <span
                   class="rounded-full px-1.5 py-0.5 text-[11px] font-semibold"
-                  :class="config.is_current ? 'bg-accent-primary/15 text-accent-primary' : 'bg-bg-elevated/80 text-text-muted'"
+                  :class="config.is_current ? 'bg-accent-primary/15 text-accent-primary' : 'bg-bg-elevated text-text-muted'"
                 >
                   {{ config.usage_count || 0 }}
                 </span>
@@ -333,7 +333,7 @@ const configSummary = computed(() => [
     count: configs.value.length,
     icon: 'LayoutGrid',
     activeClass: 'border-emerald-400/30 bg-emerald-400/10 text-emerald-300',
-    idleClass: 'border-border-default/50 bg-bg-surface/60 text-text-secondary hover:border-emerald-400/20 hover:text-text-primary',
+    idleClass: 'border-border-default/50 bg-bg-elevated text-text-secondary hover:border-emerald-400/20 hover:text-text-primary',
   },
   {
     key: 'official_relay' as FilterType,
@@ -341,7 +341,7 @@ const configSummary = computed(() => [
     count: configs.value.filter(config => config.provider_type?.toLowerCase().includes('official')).length,
     icon: 'Zap',
     activeClass: 'border-cyan-400/30 bg-cyan-400/10 text-cyan-300',
-    idleClass: 'border-border-default/50 bg-bg-surface/60 text-text-secondary hover:border-cyan-400/20 hover:text-text-primary',
+    idleClass: 'border-border-default/50 bg-bg-elevated text-text-secondary hover:border-cyan-400/20 hover:text-text-primary',
   },
   {
     key: 'third_party_model' as FilterType,
@@ -349,7 +349,7 @@ const configSummary = computed(() => [
     count: configs.value.filter(config => config.provider_type?.toLowerCase().includes('third')).length,
     icon: 'Cpu',
     activeClass: 'border-violet-400/30 bg-violet-400/10 text-violet-300',
-    idleClass: 'border-border-default/50 bg-bg-surface/60 text-text-secondary hover:border-violet-400/20 hover:text-text-primary',
+    idleClass: 'border-border-default/50 bg-bg-elevated text-text-secondary hover:border-violet-400/20 hover:text-text-primary',
   },
   {
     key: 'uncategorized' as FilterType,
@@ -357,7 +357,7 @@ const configSummary = computed(() => [
     count: configs.value.filter(config => !config.provider_type).length,
     icon: 'HelpCircle',
     activeClass: 'border-amber-400/30 bg-amber-400/10 text-amber-300',
-    idleClass: 'border-border-default/50 bg-bg-surface/60 text-text-secondary hover:border-amber-400/20 hover:text-text-primary',
+    idleClass: 'border-border-default/50 bg-bg-elevated text-text-secondary hover:border-amber-400/20 hover:text-text-primary',
   },
 ])
 

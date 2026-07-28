@@ -521,7 +521,7 @@
               </div>
             </div>
 
-            <div class="mt-5 flex items-center justify-between rounded-lg border border-border-default/35 bg-bg-elevated/34 px-4 py-3">
+            <div class="mt-5 flex items-center justify-between rounded-lg border border-border-default/35 bg-bg-base px-4 py-3">
               <div>
                 <p class="text-sm font-semibold text-text-primary">
                   {{ $t('codex.profiles.fields.enabled') }}
@@ -789,12 +789,12 @@ watch(() => props.modelValue, (isOpen) => {
   --editor-input-border-strong: rgb(var(--color-platform-codex-rgb) / 34%);
   --editor-hairline: rgb(var(--color-border-default-rgb) / 72%);
   --editor-hairline-soft: rgb(var(--color-border-default-rgb) / 46%);
-  --editor-ink: rgb(var(--color-text-primary-rgb) / 96%);
-  --editor-ink-muted: rgb(var(--color-text-secondary-rgb) / 90%);
-  --editor-ink-soft: rgb(var(--color-text-muted-rgb) / 86%);
-  --editor-placeholder: rgb(var(--color-text-muted-rgb) / 74%);
-  --editor-panel-shadow: 0 20px 48px rgb(40 160 120 / 8%), inset 0 1px 0 rgb(255 255 255 / 64%);
-  --editor-muted-shadow: 0 14px 34px rgb(40 160 120 / 6%), inset 0 1px 0 rgb(255 255 255 / 42%);
+  --editor-ink: var(--color-text-primary);
+  --editor-ink-muted: var(--color-text-secondary);
+  --editor-ink-soft: var(--color-text-muted);
+  --editor-placeholder: var(--color-text-ghost);
+  --editor-panel-shadow: 0 20px 48px rgb(40 160 120 / 8%), var(--inner-glow);
+  --editor-muted-shadow: 0 14px 34px rgb(40 160 120 / 6%);
   --editor-ring: 0 0 0 3px rgb(var(--color-platform-codex-rgb) / 14%);
   --editor-scrollbar-thumb: rgb(var(--color-platform-codex-rgb) / 34%);
   --editor-scrollbar-track: rgb(var(--color-bg-overlay-rgb) / 30%);
@@ -830,8 +830,8 @@ watch(() => props.modelValue, (isOpen) => {
   --editor-ink-muted: rgb(194 232 216 / 86%);
   --editor-ink-soft: rgb(162 206 188 / 78%);
   --editor-placeholder: rgb(162 206 188 / 68%);
-  --editor-panel-shadow: 0 24px 60px rgb(6 3 10 / 42%), inset 0 1px 0 rgb(255 255 255 / 6%);
-  --editor-muted-shadow: 0 16px 40px rgb(6 3 10 / 34%), inset 0 1px 0 rgb(255 255 255 / 5%);
+  --editor-panel-shadow: 0 24px 60px rgb(6 3 10 / 42%);
+  --editor-muted-shadow: 0 16px 40px rgb(6 3 10 / 34%);
   --editor-ring: 0 0 0 3px rgb(var(--color-platform-codex-rgb) / 18%);
   --editor-scrollbar-thumb: rgb(var(--color-platform-codex-rgb) / 48%);
   --editor-scrollbar-track: rgb(23 18 30 / 36%);
@@ -951,7 +951,6 @@ watch(() => props.modelValue, (isOpen) => {
   border: 1px solid var(--editor-input-border);
   background: var(--editor-input-bg);
   color: var(--editor-ink);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 5%);
   transition: border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease, color 180ms ease;
 }
 

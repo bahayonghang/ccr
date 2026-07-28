@@ -1,6 +1,6 @@
 <template>
   <article
-    class="relative overflow-hidden rounded-xl border bg-bg-elevated/88 px-4 py-3.5 shadow-[0_14px_24px_rgba(0,0,0,0.08),inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-xl transition-[border-color,transform,box-shadow,background-color] duration-200 hover:-translate-y-0.5 hover:border-border-strong hover:shadow-[0_18px_30px_rgba(0,0,0,0.1)]"
+    class="relative overflow-hidden rounded-xl border bg-bg-elevated px-4 py-3.5 shadow-[0_14px_24px_rgba(0,0,0,0.08)] transition-[border-color,transform,box-shadow,background-color] duration-200 hover:-translate-y-0.5 hover:border-border-strong hover:shadow-[0_18px_30px_rgba(0,0,0,0.1)]"
     :class="profile.is_current
       ? 'border-transparent'
       : 'border-border-default/65'"
@@ -33,7 +33,7 @@
             </span>
 
             <span
-              class="inline-flex min-h-[26px] items-center gap-1.5 rounded-full border border-border-default/50 bg-bg-elevated/72 px-2.5 py-1 text-[11px]"
+              class="inline-flex min-h-[26px] items-center gap-1.5 rounded-full border border-border-default/50 bg-bg-elevated px-2.5 py-1 text-[11px]"
               :style="{ color: `rgb(var(${providerColor.rgbVar}))` }"
             >
               <span
@@ -45,7 +45,7 @@
 
             <span
               v-if="profile.provider_type"
-              class="inline-flex min-h-[26px] items-center rounded-full border border-border-default/40 bg-bg-surface/72 px-2.5 py-1 text-[11px] text-text-muted"
+              class="inline-flex min-h-[26px] items-center rounded-full border border-border-default/40 bg-bg-surface px-2.5 py-1 text-[11px] text-text-muted"
             >
               {{ profile.provider_type }}
             </span>
@@ -238,7 +238,7 @@ const statusBarClass = computed(() => {
 const currentCardStyle = computed(() => ({
   borderColor: `rgb(var(${props.providerColor.rgbVar}) / 0.3)`,
   backgroundColor: `rgb(var(${props.providerColor.rgbVar}) / 0.03)`,
-  boxShadow: `0 18px 38px rgb(var(${props.providerColor.rgbVar}) / 0.1), inset 0 1px 0 rgba(255,255,255,0.06)`,
+  boxShadow: `0 18px 38px rgb(var(${props.providerColor.rgbVar}) / 0.1)`,
 }))
 
 // 搜索高亮

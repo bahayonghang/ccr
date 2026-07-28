@@ -27,7 +27,7 @@
               </h1>
               <span
                 class="px-3 py-1 rounded-full text-sm font-medium"
-                :style="{ background: 'var(--color-accent-primary)', color: '#fff' }"
+                :style="{ background: 'var(--color-accent-primary)', color: 'var(--color-accent-primary-contrast)' }"
               >{{ plugins.length }}</span>
             </div>
             <div class="flex items-center gap-3">
@@ -42,7 +42,7 @@
                 /><span>{{ $t('common.back') }}</span>
               </RouterLink>
               <button
-                class="px-4 py-2 rounded-lg font-semibold text-sm text-white flex items-center gap-2"
+                class="px-4 py-2 rounded-lg font-semibold text-sm text-[color:var(--color-accent-primary-contrast)] flex items-center gap-2"
                 :style="{ background: 'linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary))', boxShadow: '0 0 20px var(--glow-primary)' }"
                 @click="openAddForm"
               >
@@ -103,7 +103,7 @@
                 <span
                   v-if="!plugin.enabled"
                   class="px-2 py-0.5 rounded text-xs font-semibold uppercase"
-                  :style="{ background: 'var(--color-danger)', color: 'white' }"
+                  :style="{ background: 'var(--color-danger)', color: 'var(--color-danger-contrast)' }"
                 >{{ $t(`${i18nPrefix}.disabledBadge`) }}</span>
               </div>
 
@@ -275,7 +275,7 @@
               <!-- Form Actions -->
               <div class="flex gap-3 mt-6">
                 <button
-                  class="flex-1 px-4 py-2 rounded-lg font-semibold text-white"
+                  class="flex-1 px-4 py-2 rounded-lg font-semibold text-[color:var(--color-accent-primary-contrast)]"
                   :style="{ background: 'linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary))' }"
                   @click="submitForm"
                 >

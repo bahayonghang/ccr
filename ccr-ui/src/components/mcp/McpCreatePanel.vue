@@ -413,7 +413,7 @@ const claudeUserScopePath = '~/.claude.json'
     box-shadow var(--motion-subtle-duration) var(--motion-subtle-ease);
 
 }
-.form-field__input::placeholder { color: rgb(var(--color-text-muted-rgb) / 60%); }
+.form-field__input::placeholder { color: var(--color-text-ghost); }
 
 .form-field__input:focus {
   border-color: rgb(var(--color-accent-primary-rgb) / 40%);

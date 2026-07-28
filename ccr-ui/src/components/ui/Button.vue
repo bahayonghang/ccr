@@ -228,8 +228,7 @@ const classes = computed(() => {
   border-color: var(--surface-status-border);
   backdrop-filter: var(--surface-status-blur);
   box-shadow:
-    var(--ui-button-shadow, var(--surface-status-shadow)),
-    inset 0 1px 0 rgb(255 251 245 / 14%);
+    var(--ui-button-shadow, var(--surface-status-shadow));
 }
 
 .ui-button--glass:hover:not(:disabled) {

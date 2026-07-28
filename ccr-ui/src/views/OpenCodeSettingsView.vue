@@ -46,28 +46,28 @@
               <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('模型', 'model') }}</label>
               <input
                 v-model="form.model"
-                class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 text-sm text-text-primary"
+                class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 text-sm text-text-primary"
               >
             </div>
             <div>
               <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('small_model', 'small_model') }}</label>
               <input
                 v-model="form.smallModel"
-                class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 text-sm text-text-primary"
+                class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 text-sm text-text-primary"
               >
             </div>
             <div>
               <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('default_agent', 'default_agent') }}</label>
               <input
                 v-model="form.defaultAgent"
-                class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 text-sm text-text-primary"
+                class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 text-sm text-text-primary"
               >
             </div>
             <div>
               <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('share', 'share') }}</label>
               <select
                 v-model="form.share"
-                class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 text-sm text-text-primary"
+                class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 text-sm text-text-primary"
               >
                 <option value="manual">
                   {{ tt('手动', 'manual') }}
@@ -83,14 +83,14 @@
           </div>
 
           <div class="mt-4 grid gap-4 md:grid-cols-2">
-            <label class="flex items-center gap-3 rounded-2xl border border-border-default/55 bg-bg-base/35 px-4 py-3 text-sm text-text-primary">
+            <label class="flex items-center gap-3 rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 text-sm text-text-primary">
               <input
                 v-model="form.snapshot"
                 type="checkbox"
               >
               {{ tt('启用 snapshot', 'Enable snapshot') }}
             </label>
-            <label class="flex items-center gap-3 rounded-2xl border border-border-default/55 bg-bg-base/35 px-4 py-3 text-sm text-text-primary">
+            <label class="flex items-center gap-3 rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 text-sm text-text-primary">
               <input
                 v-model="form.autoupdate"
                 type="checkbox"
@@ -112,17 +112,17 @@
               <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('端口', 'port') }}</label>
               <input
                 v-model="form.serverPort"
-                class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 text-sm text-text-primary"
+                class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 text-sm text-text-primary"
               >
             </div>
             <div>
               <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('主机名', 'hostname') }}</label>
               <input
                 v-model="form.serverHostname"
-                class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 text-sm text-text-primary"
+                class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 text-sm text-text-primary"
               >
             </div>
-            <label class="flex items-center gap-3 rounded-2xl border border-border-default/55 bg-bg-base/35 px-4 py-3 text-sm text-text-primary">
+            <label class="flex items-center gap-3 rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 text-sm text-text-primary">
               <input
                 v-model="form.serverMdns"
                 type="checkbox"
@@ -137,7 +137,7 @@
               <textarea
                 v-model="form.toolsJson"
                 rows="8"
-                class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 font-mono text-sm text-text-primary"
+                class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 font-mono text-sm text-text-primary"
               />
             </div>
             <div>
@@ -145,7 +145,7 @@
               <textarea
                 v-model="form.permissionJson"
                 rows="8"
-                class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 font-mono text-sm text-text-primary"
+                class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 font-mono text-sm text-text-primary"
               />
             </div>
           </div>
@@ -163,7 +163,7 @@
               <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('主题', 'theme') }}</label>
               <select
                 v-model="form.theme"
-                class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 text-sm text-text-primary"
+                class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 text-sm text-text-primary"
               >
                 <option
                   v-for="theme in themes"
@@ -174,7 +174,7 @@
                 </option>
               </select>
             </div>
-            <label class="flex items-center gap-3 rounded-2xl border border-border-default/55 bg-bg-base/35 px-4 py-3 text-sm text-text-primary">
+            <label class="flex items-center gap-3 rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 text-sm text-text-primary">
               <input
                 v-model="form.mouse"
                 type="checkbox"
@@ -188,7 +188,7 @@
             <textarea
               v-model="form.keybindsJson"
               rows="10"
-              class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 font-mono text-sm text-text-primary"
+              class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 font-mono text-sm text-text-primary"
             />
           </div>
         </Card>
@@ -208,7 +208,7 @@
           <textarea
             v-model="form.instructionsText"
             rows="10"
-            class="mt-4 w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 font-mono text-sm text-text-primary"
+            class="mt-4 w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 font-mono text-sm text-text-primary"
           />
         </Card>
       </div>

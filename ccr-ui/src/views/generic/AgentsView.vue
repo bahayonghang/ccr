@@ -86,14 +86,14 @@
               <span class="inline-flex items-center gap-2 rounded-full border border-accent-primary/20 bg-accent-primary/10 px-3 py-1 text-sm font-medium text-accent-primary">
                 {{ stats.active }} {{ statsActiveLabel }}
               </span>
-              <span class="inline-flex items-center gap-2 rounded-full border border-border-default/50 bg-bg-surface/70 px-3 py-1 text-sm font-medium text-text-secondary">
+              <span class="inline-flex items-center gap-2 rounded-full border border-border-default/50 bg-bg-elevated px-3 py-1 text-sm font-medium text-text-secondary">
                 {{ stats.disabled }} {{ statsDisabledLabel }}
               </span>
             </template>
 
             <template #actions>
               <button
-                class="min-h-[44px] px-4 py-2.5 rounded-xl font-medium transition-[color,background-color,border-color,transform] hover:scale-105 bg-accent-primary text-white shadow-lg shadow-accent-primary/20 hover:shadow-accent-primary/30 flex items-center text-sm"
+                class="min-h-[44px] px-4 py-2.5 rounded-xl font-medium transition-[color,background-color,border-color,transform] hover:scale-105 bg-accent-primary text-[color:var(--color-accent-primary-contrast)] shadow-lg shadow-accent-primary/20 hover:shadow-accent-primary/30 flex items-center text-sm"
                 @click="handleAdd"
               >
                 <SIcon
@@ -114,7 +114,7 @@
                 v-model="searchQuery"
                 type="text"
                 :placeholder="$t(`${tPrefix}.searchPlaceholder`)"
-                class="w-full pl-10 pr-10 py-2.5 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-accent-primary/20 bg-bg-surface/50 border border-border-default hover:bg-bg-surface text-text-primary placeholder:text-text-muted text-sm"
+                class="w-full pl-10 pr-10 py-2.5 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-accent-primary/20 bg-bg-elevated border border-border-default hover:bg-bg-surface text-text-primary placeholder:text-text-muted text-sm"
               >
               <button
                 v-if="searchQuery"
@@ -280,7 +280,7 @@
                     </div>
                    
                     <div class="mt-4 pt-3 border-t border-border-default/30 flex items-center justify-between gap-2">
-                      <div class="flex items-center gap-1.5 text-[10px] text-text-muted bg-bg-surface/50 px-2 py-1 rounded-md border border-border-default/30">
+                      <div class="flex items-center gap-1.5 text-[10px] text-text-muted bg-bg-elevated px-2 py-1 rounded-md border border-border-default/30">
                         <span class="w-1.5 h-1.5 rounded-full bg-accent-secondary/50" />
                         <span class="truncate max-w-[120px]">{{ agent.model }}</span>
                       </div>
@@ -313,7 +313,7 @@
                   v-if="agent.disabled"
                   class="absolute inset-0 bg-bg-base/40 backdrop-blur-[2px] flex items-center justify-center z-20 rounded-xl border border-text-muted/10"
                 >
-                  <span class="px-3 py-1 bg-text-muted/80 text-white text-xs font-bold rounded-full shadow-sm uppercase tracking-wider backdrop-blur-md">
+                  <span class="px-3 py-1 bg-text-muted/80 text-[color:var(--color-text-inverted)] text-xs font-bold rounded-full shadow-sm uppercase tracking-wider backdrop-blur-md">
                     {{ $t(`${tPrefix}.disabledBadge`) }}
                   </span>
                 </div>
@@ -335,7 +335,7 @@
     <!-- Add/Edit Modal -->
     <div
       v-if="showAddForm"
-      class="fixed inset-0 flex items-center justify-center z-50 bg-bg-overlay/20 backdrop-blur-md transition-colors p-4"
+      class="fixed inset-0 flex items-center justify-center z-50 bg-[color:var(--color-scrim)] backdrop-blur-md transition-colors p-4"
       @click="showAddForm = false"
     >
       <div
@@ -369,7 +369,7 @@
               <input
                 v-model="formData.name"
                 type="text"
-                class="w-full px-4 py-3 rounded-xl bg-bg-surface/700 border border-border-default focus:border-accent-primary focus:ring-4 focus:ring-accent-primary/10 outline-none transition-colors"
+                class="w-full px-4 py-3 rounded-xl bg-bg-surface border border-border-default focus:border-accent-primary focus:ring-4 focus:ring-accent-primary/10 outline-none transition-colors"
                 :placeholder="$t(`${tPrefix}.namePlaceholder` || 'Agent Name')"
               >
             </div>
@@ -379,7 +379,7 @@
               <div class="relative">
                 <select
                   v-model="formData.model"
-                  class="w-full px-4 py-3 rounded-xl bg-bg-surface/700 border border-border-default focus:border-accent-primary focus:ring-4 focus:ring-accent-primary/10 outline-none transition-colors appearance-none"
+                  class="w-full px-4 py-3 rounded-xl bg-bg-surface border border-border-default focus:border-accent-primary focus:ring-4 focus:ring-accent-primary/10 outline-none transition-colors appearance-none"
                 >
                   <option
                     v-for="option in defaultAgentModelOptions"
@@ -406,17 +406,17 @@
                 v-model="toolInput"
                 type="text"
                 :placeholder="$t(`${tPrefix}.toolPlaceholder`)"
-                class="flex-1 px-4 py-3 rounded-xl bg-bg-surface/700 border border-border-default focus:border-accent-primary focus:ring-4 focus:ring-accent-primary/10 outline-none transition-colors"
+                class="flex-1 px-4 py-3 rounded-xl bg-bg-surface border border-border-default focus:border-accent-primary focus:ring-4 focus:ring-accent-primary/10 outline-none transition-colors"
                 @keyup.enter="addTool"
               >
               <button
-                class="px-6 py-3 rounded-xl font-bold text-white bg-accent-primary hover:bg-accent-primary/90 transition-colors shadow-lg shadow-accent-primary/20"
+                class="px-6 py-3 rounded-xl font-bold text-[color:var(--color-accent-primary-contrast)] bg-accent-primary hover:bg-accent-primary/90 transition-colors shadow-lg shadow-accent-primary/20"
                 @click="addTool"
               >
                 {{ $t(`${tPrefix}.addTool`) }}
               </button>
             </div>
-            <div class="flex flex-wrap gap-2 min-h-[50px] p-4 rounded-xl bg-bg-elevated/50 border border-border-default/50 border-dashed">
+            <div class="flex flex-wrap gap-2 min-h-[50px] p-4 rounded-xl bg-bg-base border border-border-default/50 border-dashed">
               <span
                 v-if="!formData.tools || formData.tools.length === 0"
                 class="text-sm text-text-muted italic w-full text-center py-2"
@@ -443,7 +443,7 @@
             <textarea
               v-model="formData.system_prompt"
               rows="6"
-              class="w-full px-4 py-3 rounded-xl bg-bg-surface/700 border border-border-default focus:border-accent-primary focus:ring-4 focus:ring-accent-primary/10 outline-none transition-colors resize-y font-mono text-sm leading-relaxed"
+              class="w-full px-4 py-3 rounded-xl bg-bg-surface border border-border-default focus:border-accent-primary focus:ring-4 focus:ring-accent-primary/10 outline-none transition-colors resize-y font-mono text-sm leading-relaxed"
               :placeholder="$t(`${tPrefix}.systemPromptPlaceholder` || 'Enter system prompt...')"
             />
           </div>
@@ -457,7 +457,7 @@
             {{ $t('common.cancel') }}
           </button>
           <button
-            class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-[color,background-color,border-color,transform] bg-accent-primary text-white shadow-lg shadow-accent-primary/20 hover:shadow-xl hover:shadow-accent-primary/30 hover:-translate-y-0.5"
+            class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-[color,background-color,border-color,transform] bg-accent-primary text-[color:var(--color-accent-primary-contrast)] shadow-lg shadow-accent-primary/20 hover:shadow-xl hover:shadow-accent-primary/30 hover:-translate-y-0.5"
             @click="handleSubmit"
           >
             {{ editingAgent ? $t(`${tPrefix}.save`) : $t(`${tPrefix}.add`) }}

@@ -958,7 +958,7 @@ export default { components: { ToggleField } }
 }
 
 .codex-settings-header__icon {
-  @apply flex h-12 w-12 items-center justify-center rounded-2xl border shadow-lg backdrop-blur-md;
+  @apply flex h-12 w-12 items-center justify-center rounded-2xl border shadow-lg;
 
   border-color: rgb(var(--color-platform-codex-rgb) / 20%);
   background: rgb(var(--color-platform-codex-rgb) / 10%);
@@ -1040,15 +1040,17 @@ export default { components: { ToggleField } }
 }
 
 .codex-settings-toast {
-  @apply fixed bottom-6 right-6 z-50 px-5 py-3 rounded-xl shadow-lg text-sm font-medium text-white;
+  @apply fixed bottom-6 right-6 z-50 px-5 py-3 rounded-xl shadow-lg text-sm font-medium;
 }
 
 .codex-settings-toast--success {
   background: var(--color-success);
+  color: var(--color-success-contrast);
 }
 
 .codex-settings-toast--error {
   background: var(--color-danger);
+  color: var(--color-danger-contrast);
 }
 
 .fade-enter-active,

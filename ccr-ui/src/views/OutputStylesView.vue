@@ -15,7 +15,7 @@
       >
         <template #actions>
           <button
-            class="w-full sm:w-auto px-4 py-2 rounded-lg font-medium transition-[color,background-color,border-color,transform] hover:scale-105 bg-accent-secondary text-white shadow-md hover:shadow-lg flex items-center justify-center min-h-[44px]"
+            class="w-full sm:w-auto px-4 py-2 rounded-lg font-medium transition-[color,background-color,border-color,transform] hover:scale-105 bg-accent-secondary text-[color:var(--color-accent-primary-contrast)] shadow-md hover:shadow-lg flex items-center justify-center min-h-[44px]"
             :aria-label="$t('outputStyles.addStyle')"
             @click="handleAdd"
           >
@@ -41,7 +41,7 @@
             type="search"
             :placeholder="$t('outputStyles.searchPlaceholder')"
             :aria-label="$t('outputStyles.searchPlaceholder')"
-            class="w-full pl-10 pr-10 py-2.5 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-accent-secondary/20 bg-bg-surface/50 border border-border-default hover:bg-bg-surface text-text-primary placeholder-text-muted text-sm"
+            class="w-full pl-10 pr-10 py-2.5 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-accent-secondary/20 bg-bg-elevated border border-border-default hover:bg-bg-surface text-text-primary placeholder-text-muted text-sm"
           >
           <button
             v-if="searchQuery"
@@ -166,7 +166,7 @@
               :aria-label="$t('common.view') + ': ' + style.name"
               @click="handleView(style)"
             >
-              <div class="bg-bg-surface/50 rounded-lg p-3 border border-border-default/30">
+              <div class="bg-bg-elevated rounded-lg p-3 border border-border-default/30">
                 <p class="text-xs text-text-muted mb-1 font-semibold">
                   {{ $t('outputStyles.preview') }}:
                 </p>
@@ -234,7 +234,7 @@
             </button>
           </div>
 
-          <pre class="bg-bg-surface/50 rounded-xl p-4 overflow-auto max-h-[500px] border border-border-default/30">
+          <pre class="bg-bg-elevated rounded-xl p-4 overflow-auto max-h-[500px] border border-border-default/30">
             <code class="text-sm font-mono text-text-primary whitespace-pre-wrap break-words leading-relaxed">{{ viewingStyle.content }}</code>
           </pre>
 
@@ -342,7 +342,7 @@
               {{ $t('common.cancel') }}
             </button>
             <button
-              class="flex-1 px-6 py-3 rounded-xl font-bold transition-[color,background-color,border-color,transform] bg-accent-secondary text-white shadow-lg shadow-accent-secondary/20 hover:shadow-xl hover:shadow-accent-secondary/30 hover:-translate-y-0.5 min-h-[44px]"
+              class="flex-1 px-6 py-3 rounded-xl font-bold transition-[color,background-color,border-color,transform] bg-accent-secondary text-[color:var(--color-accent-primary-contrast)] shadow-lg shadow-accent-secondary/20 hover:shadow-xl hover:shadow-accent-secondary/30 hover:-translate-y-0.5 min-h-[44px]"
               :disabled="saving"
               @click="handleSubmit"
             >

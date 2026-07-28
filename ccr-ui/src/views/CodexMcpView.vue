@@ -11,7 +11,7 @@
           <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
             <div class="space-y-3">
               <div class="flex items-center gap-3">
-                <div class="flex h-12 w-12 items-center justify-center rounded-2xl border border-accent-primary/20 bg-accent-primary/10 shadow-lg backdrop-blur-md">
+                <div class="flex h-12 w-12 items-center justify-center rounded-2xl border border-accent-primary/20 bg-accent-primary/10 shadow-lg">
                   <SIcon
                     name="Server"
                     size="w-6 h-6"

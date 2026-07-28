@@ -45,7 +45,7 @@
 
           <div class="space-y-6">
             <!-- Enable Toggle -->
-            <div class="flex items-center justify-between p-4 bg-bg-surface/50 rounded-xl border border-border-default/30">
+            <div class="flex items-center justify-between p-4 bg-bg-elevated rounded-xl border border-border-default/30">
               <div>
                 <p
                   id="enabled-label"
@@ -75,7 +75,7 @@
             </div>
 
             <!-- Command Input -->
-            <div class="p-4 bg-bg-surface/50 rounded-xl border border-border-default/30">
+            <div class="p-4 bg-bg-elevated rounded-xl border border-border-default/30">
               <label
                 for="statusline-command"
                 class="block mb-2 font-semibold text-text-primary"
@@ -92,7 +92,7 @@
                 id="statusline-command"
                 v-model="config.command"
                 type="text"
-                class="w-full px-4 py-3 rounded-lg bg-bg-surface/700 border border-border-default focus:border-accent-secondary focus:ring-2 focus:ring-accent-secondary/20 outline-none transition-[border-color,box-shadow] font-mono text-sm"
+                class="w-full px-4 py-3 rounded-lg bg-bg-surface border border-border-default focus:border-accent-secondary focus:ring-2 focus:ring-accent-secondary/20 outline-none transition-[border-color,box-shadow] font-mono text-sm"
                 :placeholder="$t('statusline.commandPlaceholder')"
                 aria-describedby="command-description command-help"
               >
@@ -108,7 +108,7 @@
           <!-- Save Button -->
           <div class="flex justify-end mt-6 pt-4 border-t border-border-default/30">
             <button
-              class="px-6 py-2.5 rounded-lg font-medium transition-[box-shadow,transform] bg-accent-secondary text-white shadow-md hover:shadow-lg hover:-translate-y-0.5 flex items-center min-h-[44px]"
+              class="px-6 py-2.5 rounded-lg font-medium transition-[box-shadow,transform] bg-accent-secondary text-[color:var(--color-accent-primary-contrast)] shadow-md hover:shadow-lg hover:-translate-y-0.5 flex items-center min-h-[44px]"
               :disabled="saving"
               :aria-busy="saving"
               @click="handleSave"

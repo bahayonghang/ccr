@@ -38,7 +38,7 @@
                 /><span>{{ $t('common.back') }}</span>
               </RouterLink>
               <button
-                class="px-4 py-2 rounded-lg font-semibold text-sm text-white flex items-center gap-2"
+                class="px-4 py-2 rounded-lg font-semibold text-sm text-[color:var(--color-accent-primary-contrast)] flex items-center gap-2"
                 :style="{ background: 'linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary))', boxShadow: '0 0 20px var(--glow-primary)' }"
                 @click="openAddForm"
               >
@@ -93,12 +93,12 @@
                     <span
                       v-if="server.url"
                       class="px-2 py-0.5 rounded text-xs font-semibold"
-                      :style="{ background: 'var(--color-accent-secondary)', color: 'white' }"
+                      :style="{ background: 'var(--color-accent-secondary)', color: 'var(--color-accent-primary-contrast)' }"
                     >HTTP</span>
                     <span
                       v-else
                       class="px-2 py-0.5 rounded text-xs font-semibold"
-                      :style="{ background: 'var(--color-accent-primary)', color: 'white' }"
+                      :style="{ background: 'var(--color-accent-primary)', color: 'var(--color-accent-primary-contrast)' }"
                     >STDIO</span>
                   </div>
                   <div class="space-y-2 text-sm">
@@ -271,7 +271,7 @@
                       placeholder="VALUE"
                     >
                     <button
-                      class="px-4 py-2 rounded-lg font-semibold text-sm text-white"
+                      class="px-4 py-2 rounded-lg font-semibold text-sm text-[color:var(--color-accent-primary-contrast)]"
                       :style="{ background: 'var(--color-accent-primary)' }"
                       @click="addEnvVar"
                     >
@@ -304,7 +304,7 @@
               <!-- Form Actions -->
               <div class="flex gap-3 mt-6">
                 <button
-                  class="flex-1 px-4 py-2 rounded-lg font-semibold text-white"
+                  class="flex-1 px-4 py-2 rounded-lg font-semibold text-[color:var(--color-accent-primary-contrast)]"
                   :style="{ background: 'linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary))' }"
                   @click="submitForm"
                 >

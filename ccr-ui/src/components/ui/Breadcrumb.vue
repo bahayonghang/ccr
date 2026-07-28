@@ -24,7 +24,7 @@
         <SIcon
           name="ChevronRight"
           size="w-4 h-4"
-          class="text-text-muted/70"
+          class="text-text-ghost"
         />
       </template>
       

@@ -49,7 +49,7 @@
       <!-- Action buttons -->
       <div class="flex gap-3">
         <button
-          class="flex-1 rounded-xl px-4 py-3 text-sm font-medium bg-accent-primary text-white hover:bg-accent-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-accent-primary"
+          class="flex-1 rounded-xl px-4 py-3 text-sm font-medium bg-accent-primary text-[color:var(--color-accent-primary-contrast)] hover:bg-accent-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-accent-primary"
           :disabled="planOutcome?.kind !== 'plan'"
           @click="startAutoInstall"
         >
@@ -171,7 +171,7 @@
         </div>
         <div class="flex gap-3">
           <button
-            class="flex-1 rounded-xl px-4 py-2.5 text-sm font-medium bg-accent-primary text-white hover:bg-accent-primary/90"
+            class="flex-1 rounded-xl px-4 py-2.5 text-sm font-medium bg-accent-primary text-[color:var(--color-accent-primary-contrast)] hover:bg-accent-primary/90"
             @click="retryAutoInstall"
           >
             {{ t('usage.install.dialog.retry') }}
@@ -260,7 +260,7 @@
       <!-- Re-check button -->
       <div class="flex gap-3 pt-2">
         <button
-          class="flex-1 rounded-xl px-4 py-2.5 text-sm font-medium bg-accent-primary text-white hover:bg-accent-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+          class="flex-1 rounded-xl px-4 py-2.5 text-sm font-medium bg-accent-primary text-[color:var(--color-accent-primary-contrast)] hover:bg-accent-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
           :disabled="recheckLoading"
           @click="recheckInstallation"
         >

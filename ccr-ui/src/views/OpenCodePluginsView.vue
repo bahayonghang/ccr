@@ -53,7 +53,7 @@
 
           <div
             v-else-if="packages.length === 0"
-            class="rounded-2xl border border-border-default/55 bg-bg-base/35 p-4 text-sm text-text-secondary"
+            class="rounded-2xl border border-border-default/55 bg-bg-base p-4 text-sm text-text-secondary"
           >
             {{ tt('暂无 npm 插件配置。', 'No npm plugin packages configured.') }}
           </div>
@@ -65,7 +65,7 @@
             <div
               v-for="item in packages"
               :key="item.name"
-              class="flex items-center justify-between gap-3 rounded-2xl border border-border-default/55 bg-bg-base/35 p-4"
+              class="flex items-center justify-between gap-3 rounded-2xl border border-border-default/55 bg-bg-base p-4"
             >
               <div>
                 <strong class="block font-mono text-sm text-text-primary">{{ item.name }}</strong>
@@ -97,14 +97,14 @@
                 {{ tt('来自 `.opencode/plugins/` 和 `~/.config/opencode/plugins/` 的本地脚本文件。', 'Local script files discovered in `.opencode/plugins/` and `~/.config/opencode/plugins/`.') }}
               </p>
             </div>
-            <span class="rounded-full border border-border-default/55 bg-bg-base/35 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-text-secondary">
+            <span class="rounded-full border border-border-default/55 bg-bg-base px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-text-secondary">
               {{ localPlugins.length }}
             </span>
           </div>
 
           <div
             v-if="localPlugins.length === 0"
-            class="rounded-2xl border border-border-default/55 bg-bg-base/35 p-4 text-sm text-text-secondary"
+            class="rounded-2xl border border-border-default/55 bg-bg-base p-4 text-sm text-text-secondary"
           >
             {{ tt('未发现本地插件文件。', 'No local plugin files found.') }}
           </div>
@@ -116,14 +116,14 @@
             <div
               v-for="plugin in localPlugins"
               :key="plugin.path"
-              class="rounded-2xl border border-border-default/55 bg-bg-base/35 p-4"
+              class="rounded-2xl border border-border-default/55 bg-bg-base p-4"
             >
               <div class="flex items-center justify-between gap-3">
                 <div>
                   <strong class="block text-sm text-text-primary">{{ plugin.name }}</strong>
                   <span class="mt-1 block break-all font-mono text-xs text-text-muted">{{ plugin.path }}</span>
                 </div>
-                <span class="rounded-full bg-bg-base/45 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-text-secondary">
+                <span class="rounded-full bg-bg-base px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-text-secondary">
                   {{ plugin.scope }}
                 </span>
               </div>
@@ -144,19 +144,19 @@
         </p>
 
         <ol class="mt-4 space-y-3">
-          <li class="rounded-2xl border border-border-default/55 bg-bg-base/35 p-4">
+          <li class="rounded-2xl border border-border-default/55 bg-bg-base p-4">
             <strong class="block text-sm text-text-primary">{{ tt('1. 全局配置', '1. Global config') }}</strong>
             <span class="mt-1 block text-xs text-text-muted">{{ globalConfigPath }}</span>
           </li>
-          <li class="rounded-2xl border border-border-default/55 bg-bg-base/35 p-4">
+          <li class="rounded-2xl border border-border-default/55 bg-bg-base p-4">
             <strong class="block text-sm text-text-primary">{{ tt('2. 项目配置', '2. Project config') }}</strong>
             <span class="mt-1 block text-xs text-text-muted">{{ projectConfigPath }}</span>
           </li>
-          <li class="rounded-2xl border border-border-default/55 bg-bg-base/35 p-4">
+          <li class="rounded-2xl border border-border-default/55 bg-bg-base p-4">
             <strong class="block text-sm text-text-primary">{{ tt('3. 全局插件目录', '3. Global plugin directory') }}</strong>
             <span class="mt-1 block text-xs text-text-muted">{{ globalPluginDir }}</span>
           </li>
-          <li class="rounded-2xl border border-border-default/55 bg-bg-base/35 p-4">
+          <li class="rounded-2xl border border-border-default/55 bg-bg-base p-4">
             <strong class="block text-sm text-text-primary">{{ tt('4. 项目插件目录', '4. Project plugin directory') }}</strong>
             <span class="mt-1 block text-xs text-text-muted">{{ projectPluginDir }}</span>
           </li>
@@ -176,7 +176,7 @@
           <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('package name', 'package name') }}</label>
           <input
             v-model="newPackage"
-            class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 text-sm text-text-primary"
+            class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 text-sm text-text-primary"
             placeholder="@my-org/custom-plugin"
           >
         </div>

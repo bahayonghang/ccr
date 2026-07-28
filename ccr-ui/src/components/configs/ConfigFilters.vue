@@ -12,7 +12,7 @@
         <SIcon
           :name="filter.icon"
           size="w-4 h-4"
-          :class="currentFilter === filter.type ? 'text-white' : filter.iconColor"
+          :class="currentFilter === filter.type ? 'text-[color:var(--color-accent-primary-contrast)]' : filter.iconColor"
         />
         <span>{{ filter.label }}</span>
       </button>
@@ -68,7 +68,7 @@
 
       <!-- 添加配置按钮 -->
       <button
-        class="add-btn px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 text-white transition-[background-color,transform] duration-200 hover:scale-105"
+        class="add-btn px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 text-[color:var(--color-accent-primary-contrast)] transition-[background-color,transform] duration-200 hover:scale-105"
         @click="$emit('addConfig')"
       >
         <SIcon
@@ -167,11 +167,9 @@ const filters = computed(() => [
 /* Filter button active state */
 .filter-btn-active {
   background: linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary));
-  color: white;
+  color: var(--color-accent-primary-contrast);
   border-color: transparent;
-  box-shadow:
-    0 4px 16px rgb(var(--color-accent-primary-rgb) / 30%),
-    inset 0 1px 0 rgb(255 255 255 / 20%);
+  box-shadow: 0 4px 16px rgb(var(--color-accent-primary-rgb) / 30%);
 }
 
 /* Sort select */

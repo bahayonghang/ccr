@@ -993,7 +993,7 @@ defineExpose({ open })
 
 .checkin-accounts-tab__form-button--primary {
   min-width: 9.5rem;
-  color: white;
+  color: var(--color-accent-primary-contrast);
   background: var(--color-accent-primary);
   box-shadow: var(--shadow-sm);
 }

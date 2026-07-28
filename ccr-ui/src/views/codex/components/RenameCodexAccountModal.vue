@@ -39,7 +39,7 @@
         <label class="text-xs font-semibold uppercase tracking-wider text-text-muted">
           {{ tf('codex.auth.rename.currentLabel', '当前名称') }}
         </label>
-        <div class="px-3 py-2 rounded-lg bg-bg-surface/70 border border-border-default/15 font-mono text-sm text-text-secondary">
+        <div class="px-3 py-2 rounded-lg bg-bg-elevated border border-border-default/15 font-mono text-sm text-text-secondary">
           {{ renameForm.oldName || '—' }}
         </div>
       </div>

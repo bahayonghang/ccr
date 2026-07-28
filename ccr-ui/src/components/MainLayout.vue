@@ -70,7 +70,7 @@
         <button
           v-if="isMobileSidebar"
           type="button"
-          class="inline-flex h-11 w-11 flex-none items-center justify-center rounded-2xl border border-border-default/70 bg-bg-surface/80 text-text-primary shadow-sm transition-colors hover:border-accent-primary/30 hover:bg-bg-elevated/90 lg:hidden"
+          class="inline-flex h-11 w-11 flex-none items-center justify-center rounded-2xl border border-border-default/70 bg-bg-surface text-text-primary shadow-sm transition-colors hover:border-accent-primary/30 hover:bg-bg-elevated/90 lg:hidden"
           :aria-label="closeNavigationLabel"
           :title="closeNavigationLabel"
           @click="closeSidebar"
@@ -159,7 +159,7 @@
                   </div>
                 </div>
 
-                <div class="flex h-10 w-10 flex-none items-center justify-center rounded-2xl border border-border-default/60 bg-bg-elevated/82 text-text-primary shadow-sm transition-colors duration-200 group-hover:border-accent-primary/30 group-hover:bg-bg-surface/90 group-hover:text-accent-primary">
+                <div class="flex h-10 w-10 flex-none items-center justify-center rounded-2xl border border-border-default/60 bg-bg-elevated text-text-primary shadow-sm transition-colors duration-200 group-hover:border-accent-primary/30 group-hover:bg-bg-surface/90 group-hover:text-accent-primary">
                   <SIcon
                     name="SlidersHorizontal"
                     size="w-4 h-4"
@@ -199,7 +199,7 @@
           <button
             v-if="hasSidebar && isMobileSidebar"
             type="button"
-            class="inline-flex h-11 w-11 flex-none items-center justify-center rounded-2xl border border-border-default/70 bg-bg-surface/80 text-text-primary shadow-sm transition-colors hover:border-accent-primary/30 hover:bg-bg-elevated/90 lg:hidden"
+            class="inline-flex h-11 w-11 flex-none items-center justify-center rounded-2xl border border-border-default/70 bg-bg-surface text-text-primary shadow-sm transition-colors hover:border-accent-primary/30 hover:bg-bg-elevated/90 lg:hidden"
             :aria-expanded="isSidebarOpen"
             aria-controls="primary-navigation-panel"
             :aria-label="sidebarToggleLabel"

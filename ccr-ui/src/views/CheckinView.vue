@@ -801,7 +801,6 @@ const openAccountDashboard = (accountId: string) => {
   border: 1px solid transparent;
   border-radius: 0.875rem;
   padding: 0.55rem 1.05rem;
-  color: white;
   font-weight: 700;
   letter-spacing: -0.01em;
   white-space: nowrap;
@@ -827,6 +826,7 @@ const openAccountDashboard = (accountId: string) => {
 
 .checkin-view__action-button--checkin {
   background: var(--color-success);
+  color: var(--color-success-contrast);
 }
 
 .checkin-view__action-button--checkin:hover:not(:disabled) {
@@ -836,6 +836,7 @@ const openAccountDashboard = (accountId: string) => {
 
 .checkin-view__action-button--balance {
   background: var(--color-accent-primary);
+  color: var(--color-accent-primary-contrast);
 }
 
 .checkin-view__action-button--balance:hover:not(:disabled) {
@@ -1125,7 +1126,7 @@ const openAccountDashboard = (accountId: string) => {
   font-size: 0.75rem;
   line-height: 1rem;
   font-weight: 500;
-  color: white;
+  color: var(--color-warning-contrast);
   transition: background-color 0.2s ease;
 }
 
@@ -1332,7 +1333,7 @@ const openAccountDashboard = (accountId: string) => {
   font-size: 0.75rem;
   line-height: 1rem;
   font-weight: 600;
-  color: white;
+  color: var(--color-danger-contrast);
   transition: background-color 0.2s ease;
 }
 

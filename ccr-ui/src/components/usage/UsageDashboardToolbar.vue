@@ -197,7 +197,7 @@ const emitRange = (value: UsageRangePreset) => {
     linear-gradient(135deg, rgb(var(--color-bg-elevated-rgb) / 88%), rgb(var(--color-bg-surface-rgb) / 70%)),
     radial-gradient(circle at 12% 0%, rgb(var(--color-accent-primary-rgb) / 8%), transparent 38%);
   padding: 1rem 1.08rem;
-  box-shadow: var(--elevation-1), inset 0 1px 0 rgb(255 255 255 / 8%);
+  box-shadow: var(--elevation-1);
 }
 
 .usage-dashboard-toolbar__copy {
@@ -259,7 +259,6 @@ const emitRange = (value: UsageRangePreset) => {
   color: var(--color-text-primary);
   font-size: 0.84rem;
   outline: none;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 8%);
 }
 
 .usage-dashboard-toolbar__select:focus {

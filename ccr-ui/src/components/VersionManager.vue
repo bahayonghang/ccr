@@ -193,7 +193,7 @@ const handleCloseUpdateModal = () => {
       </button>
 
       <button
-        class="px-3 py-2 rounded-lg font-semibold text-xs transition-transform flex items-center justify-center space-x-1.5 text-white hover:scale-105"
+        class="px-3 py-2 rounded-lg font-semibold text-xs transition-transform flex items-center justify-center space-x-1.5 text-[color:var(--color-accent-primary-contrast)] hover:scale-105"
         :class="{ 'animate-pulse-subtle': updateInfo?.update_available }"
         :style="{
           background: updateInfo?.update_available

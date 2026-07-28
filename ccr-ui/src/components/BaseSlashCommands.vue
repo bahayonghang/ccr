@@ -9,7 +9,7 @@
       <!-- 主内容区 -->
       <main class="min-w-0">
         <!-- Sticky Header: 标题 + 添加按钮 -->
-        <div class="glass-effect rounded-2xl p-6 mb-6 border border-border-default/25 flex flex-col md:flex-row items-center justify-between gap-4 backdrop-blur-md shadow-sm">
+        <div class="glass-effect rounded-2xl p-6 mb-6 border border-border-default/25 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm">
           <div class="flex items-center gap-4">
             <div
               class="p-3 rounded-xl border"
@@ -78,7 +78,7 @@
             </button>
             <!-- 添加按钮 -->
             <button
-              class="px-5 py-2.5 rounded-xl font-bold text-sm text-white flex items-center gap-2 transition-transform hover:scale-105 shadow-lg"
+              class="px-5 py-2.5 rounded-xl font-bold text-sm text-[color:var(--color-accent-primary-contrast)] flex items-center gap-2 transition-transform hover:scale-105 shadow-lg"
               :style="{
                 background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))',
                 boxShadow: '0 0 20px var(--glow-primary)'

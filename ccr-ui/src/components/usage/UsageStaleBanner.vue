@@ -87,7 +87,7 @@ const toneIcon = computed(() => {
   border: 1px solid rgb(var(--usage-stale-rgb) / 20%);
   background: rgb(var(--usage-stale-rgb) / 8%);
   padding: 0.62rem 0.85rem;
-  box-shadow: var(--elevation-1), inset 0 1px 0 rgb(255 255 255 / 6%);
+  box-shadow: var(--elevation-1);
 }
 
 .usage-stale-banner--danger {

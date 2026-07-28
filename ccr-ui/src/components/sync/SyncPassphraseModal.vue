@@ -179,7 +179,7 @@ watch(() => props.modelValue, (isOpen) => {
 
 .sync-passphrase-button--primary {
   background: var(--color-accent-primary);
-  color: white;
+  color: var(--color-accent-primary-contrast);
 }
 
 .sync-passphrase-button--primary:disabled {

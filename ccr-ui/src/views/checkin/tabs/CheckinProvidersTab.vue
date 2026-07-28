@@ -774,7 +774,7 @@ const deleteProvider = async (id: string) => {
 
 .checkin-providers__primary-button {
   background: var(--color-accent-primary);
-  color: white;
+  color: var(--color-accent-primary-contrast);
 }
 
 .checkin-providers__primary-button:hover {
@@ -893,7 +893,7 @@ const deleteProvider = async (id: string) => {
 
 .checkin-providers__waf-action {
   background: var(--color-warning);
-  color: white;
+  color: var(--color-warning-contrast);
 }
 
 .checkin-providers__waf-action:hover:not(:disabled) {

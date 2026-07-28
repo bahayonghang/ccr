@@ -157,18 +157,18 @@ function goTo(page: number) {
 .mp-pagination__btn {
   @apply rounded-lg p-1.5 text-text-muted
          transition-colors
-         hover:bg-bg-surface/70 hover:text-white
+         hover:bg-bg-surface/70 hover:text-text-primary
          disabled:cursor-not-allowed disabled:opacity-30;
 }
 
 .mp-pagination__page {
   @apply h-8 min-w-[32px] rounded-lg text-sm font-medium text-text-primary
          transition-colors
-         hover:bg-bg-surface/70 hover:text-white;
+         hover:bg-bg-surface/70 hover:text-text-primary;
 }
 
 .mp-pagination__page--active {
-  @apply bg-accent-primary text-white hover:bg-accent-primary;
+  @apply bg-accent-primary text-[color:var(--color-accent-primary-contrast)] hover:bg-accent-primary;
 }
 
 .mp-pagination__ellipsis {

@@ -17,13 +17,13 @@
           <input
             v-model="sourceUrl"
             type="text"
-            class="w-full rounded-2xl border border-border-default/60 bg-bg-surface/70 px-3 py-2 text-sm text-text-primary"
+            class="w-full rounded-2xl border border-border-default/60 bg-bg-elevated px-3 py-2 text-sm text-text-primary"
             placeholder="https://github.com/VoltAgent/awesome-codex-subagents"
           >
         </label>
         <button
           type="button"
-          class="inline-flex min-h-11 items-center gap-2 rounded-2xl bg-accent-primary px-4 py-2 text-sm font-semibold text-white"
+          class="inline-flex min-h-11 items-center gap-2 rounded-2xl bg-accent-primary px-4 py-2 text-sm font-semibold text-[color:var(--color-accent-primary-contrast)]"
           :disabled="mutating || !sourceUrl.trim()"
           @click="handleAddSource"
         >
@@ -50,7 +50,7 @@
           :key="source.id"
           type="button"
           class="w-full rounded-2xl border px-3 py-3 text-left transition-colors"
-          :class="selectedSourceId === source.id ? 'border-accent-primary/40 bg-accent-primary/10' : 'border-border-default/60 bg-bg-surface/55 hover:border-accent-primary/25'"
+          :class="selectedSourceId === source.id ? 'border-accent-primary/40 bg-accent-primary/10' : 'border-border-default/60 bg-bg-elevated hover:border-accent-primary/25'"
           @click="handleSelectSource(source.id)"
         >
           <div class="flex items-start justify-between gap-3">
@@ -106,7 +106,7 @@
           >
             <button
               type="button"
-              class="inline-flex min-h-10 items-center gap-2 rounded-2xl border border-border-default/60 bg-bg-surface/70 px-3 py-2 text-sm text-text-primary"
+              class="inline-flex min-h-10 items-center gap-2 rounded-2xl border border-border-default/60 bg-bg-elevated px-3 py-2 text-sm text-text-primary"
               :disabled="mutating"
               @click="handleSyncSource(catalog.source.id)"
             >
@@ -133,7 +133,7 @@
           v-if="catalog"
           class="mt-4 grid gap-3 md:grid-cols-4"
         >
-          <div class="rounded-2xl border border-border-default/60 bg-bg-surface/60 px-3 py-3">
+          <div class="rounded-2xl border border-border-default/60 bg-bg-elevated px-3 py-3">
             <div class="text-[11px] uppercase tracking-wider text-text-muted">
               {{ t('codex.agents.sources.stats.status') }}
             </div>
@@ -141,7 +141,7 @@
               {{ statusText(catalog.source.status) }}
             </div>
           </div>
-          <div class="rounded-2xl border border-border-default/60 bg-bg-surface/60 px-3 py-3">
+          <div class="rounded-2xl border border-border-default/60 bg-bg-elevated px-3 py-3">
             <div class="text-[11px] uppercase tracking-wider text-text-muted">
               {{ t('codex.agents.sources.stats.agents') }}
             </div>
@@ -149,7 +149,7 @@
               {{ catalog.agents.length }}
             </div>
           </div>
-          <div class="rounded-2xl border border-border-default/60 bg-bg-surface/60 px-3 py-3">
+          <div class="rounded-2xl border border-border-default/60 bg-bg-elevated px-3 py-3">
             <div class="text-[11px] uppercase tracking-wider text-text-muted">
               {{ t('codex.agents.sources.stats.diagnostics') }}
             </div>
@@ -157,7 +157,7 @@
               {{ catalog.diagnostics.length }}
             </div>
           </div>
-          <div class="rounded-2xl border border-border-default/60 bg-bg-surface/60 px-3 py-3">
+          <div class="rounded-2xl border border-border-default/60 bg-bg-elevated px-3 py-3">
             <div class="text-[11px] uppercase tracking-wider text-text-muted">
               {{ t('codex.agents.sources.stats.tracked') }}
             </div>
@@ -195,7 +195,7 @@
           <article
             v-for="install in catalog.installs"
             :key="install.id"
-            class="rounded-2xl border border-border-default/60 bg-bg-surface/55 p-4"
+            class="rounded-2xl border border-border-default/60 bg-bg-elevated p-4"
           >
             <div class="flex flex-wrap items-start justify-between gap-3">
               <div class="min-w-0">
@@ -218,7 +218,7 @@
                 </span>
                 <button
                   type="button"
-                  class="inline-flex min-h-9 items-center gap-2 rounded-xl border border-border-default/60 bg-bg-surface/70 px-3 py-2 text-sm text-text-primary"
+                  class="inline-flex min-h-9 items-center gap-2 rounded-xl border border-border-default/60 bg-bg-elevated px-3 py-2 text-sm text-text-primary"
                   :disabled="mutating || !(install.hasUpstreamUpdate && !install.hasLocalChanges)"
                   @click="handleSyncInstall(install.id)"
                 >
@@ -242,7 +242,7 @@
                 <button
                   v-if="install.status === 'local-modified' || install.status === 'conflict'"
                   type="button"
-                  class="inline-flex min-h-9 items-center gap-2 rounded-xl border border-border-default/60 bg-bg-surface/70 px-3 py-2 text-sm text-text-primary"
+                  class="inline-flex min-h-9 items-center gap-2 rounded-xl border border-border-default/60 bg-bg-elevated px-3 py-2 text-sm text-text-primary"
                   :disabled="mutating"
                   @click="handleAcceptLocalInstall(install.id)"
                 >
@@ -254,7 +254,7 @@
                 <button
                   v-if="install.status === 'broken'"
                   type="button"
-                  class="inline-flex min-h-9 items-center gap-2 rounded-xl border border-border-default/60 bg-bg-surface/70 px-3 py-2 text-sm text-text-primary"
+                  class="inline-flex min-h-9 items-center gap-2 rounded-xl border border-border-default/60 bg-bg-elevated px-3 py-2 text-sm text-text-primary"
                   :disabled="mutating"
                   @click="handleUntrackInstall(install.id)"
                 >
@@ -321,7 +321,7 @@
             <article
               v-for="agent in group.items"
               :key="agent.id"
-              class="rounded-2xl border border-border-default/60 bg-bg-surface/55 p-4"
+              class="rounded-2xl border border-border-default/60 bg-bg-elevated p-4"
             >
               <div class="flex flex-wrap items-start justify-between gap-3">
                 <div class="min-w-0 flex-1">
@@ -352,7 +352,7 @@
                 <div class="flex items-center gap-2">
                   <button
                     type="button"
-                    class="inline-flex min-h-9 items-center gap-2 rounded-xl border border-border-default/60 bg-bg-surface/70 px-3 py-2 text-sm text-text-primary"
+                    class="inline-flex min-h-9 items-center gap-2 rounded-xl border border-border-default/60 bg-bg-elevated px-3 py-2 text-sm text-text-primary"
                     @click="previewAgent(agent)"
                   >
                     <SIcon
@@ -362,7 +362,7 @@
                   </button>
                   <button
                     type="button"
-                    class="inline-flex min-h-9 items-center gap-2 rounded-xl bg-accent-primary px-3 py-2 text-sm font-semibold text-white"
+                    class="inline-flex min-h-9 items-center gap-2 rounded-xl bg-accent-primary px-3 py-2 text-sm font-semibold text-[color:var(--color-accent-primary-contrast)]"
                     :disabled="!!agent.parseError || mutating"
                     @click="openInstallModal(agent)"
                   >
@@ -388,7 +388,7 @@
       <div class="space-y-3">
         <div
           v-if="previewTarget"
-          class="rounded-2xl border border-border-default/60 bg-bg-surface/60 px-4 py-3 text-sm text-text-secondary"
+          class="rounded-2xl border border-border-default/60 bg-bg-elevated px-4 py-3 text-sm text-text-secondary"
         >
           <div class="font-semibold text-text-primary">
             {{ previewTarget.name }}
@@ -401,7 +401,7 @@
           :value="previewTarget?.rawToml ?? ''"
           rows="22"
           readonly
-          class="w-full rounded-2xl border border-border-default/60 bg-bg-surface/70 px-4 py-3 font-mono text-[13px] text-text-primary"
+          class="w-full rounded-2xl border border-border-default/60 bg-bg-elevated px-4 py-3 font-mono text-[13px] text-text-primary"
         />
       </div>
     </BaseModal>
@@ -413,7 +413,7 @@
       @update:model-value="installOpen = $event"
     >
       <div class="space-y-4">
-        <div class="rounded-2xl border border-border-default/60 bg-bg-surface/60 px-4 py-3 text-sm text-text-secondary">
+        <div class="rounded-2xl border border-border-default/60 bg-bg-elevated px-4 py-3 text-sm text-text-secondary">
           <div class="font-semibold text-text-primary">
             {{ installTarget?.name }}
           </div>
@@ -426,7 +426,7 @@
           <input
             v-model="installTargetName"
             type="text"
-            class="w-full rounded-2xl border border-border-default/60 bg-bg-surface/70 px-3 py-2 text-sm text-text-primary"
+            class="w-full rounded-2xl border border-border-default/60 bg-bg-elevated px-3 py-2 text-sm text-text-primary"
             :placeholder="t('codex.agents.sources.targetNamePlaceholder')"
           >
         </label>
@@ -434,7 +434,7 @@
           <span class="font-medium text-text-primary">{{ t('codex.agents.sources.conflictPolicy') }}</span>
           <select
             v-model="installConflictMode"
-            class="w-full rounded-2xl border border-border-default/60 bg-bg-surface/70 px-3 py-2 text-sm text-text-primary"
+            class="w-full rounded-2xl border border-border-default/60 bg-bg-elevated px-3 py-2 text-sm text-text-primary"
           >
             <option value="">
               {{ t('codex.agents.sources.conflictAbort') }}
@@ -455,7 +455,7 @@
         </button>
         <button
           type="button"
-          class="inline-flex min-h-10 items-center rounded-2xl bg-accent-primary px-4 py-2 text-sm font-semibold text-white"
+          class="inline-flex min-h-10 items-center rounded-2xl bg-accent-primary px-4 py-2 text-sm font-semibold text-[color:var(--color-accent-primary-contrast)]"
           :disabled="mutating || !installTarget"
           @click="handleInstall"
         >
@@ -556,7 +556,7 @@ function statusTone(status: string) {
     case 'local-modified':
       return 'bg-amber-500/10 text-amber-100 border border-amber-400/25'
     default:
-      return 'bg-bg-elevated/70 text-text-secondary border border-border-default/50'
+      return 'bg-bg-base text-text-secondary border border-border-default/50'
   }
 }
 

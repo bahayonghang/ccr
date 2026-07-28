@@ -329,7 +329,7 @@ onMounted(() => {
   gap: 0.5rem;
   border: 1px solid transparent;
   padding: 0.5rem 1rem;
-  color: white;
+  color: var(--color-accent-primary-contrast);
   font-weight: 700;
   white-space: nowrap;
 }

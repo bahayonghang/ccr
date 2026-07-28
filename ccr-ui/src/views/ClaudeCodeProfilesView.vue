@@ -1359,11 +1359,11 @@ onBeforeUnmount(() => {
   --editor-input-border-strong: rgb(var(--color-accent-primary-rgb) / 38%);
   --editor-hairline: rgb(var(--color-border-default-rgb) / 64%);
   --editor-hairline-soft: rgb(var(--color-border-default-rgb) / 40%);
-  --editor-ink: rgb(var(--color-text-primary-rgb) / 96%);
-  --editor-ink-muted: rgb(var(--color-text-secondary-rgb) / 90%);
-  --editor-ink-soft: rgb(var(--color-text-muted-rgb) / 86%);
-  --editor-placeholder: rgb(var(--color-text-muted-rgb) / 74%);
-  --editor-panel-shadow: inset 0 1px 0 rgb(var(--color-bg-surface-rgb) / 60%), 0 12px 28px rgb(var(--color-text-primary-rgb) / 4%);
+  --editor-ink: var(--color-text-primary);
+  --editor-ink-muted: var(--color-text-secondary);
+  --editor-ink-soft: var(--color-text-muted);
+  --editor-placeholder: var(--color-text-ghost);
+  --editor-panel-shadow: var(--inner-glow), 0 12px 28px rgb(0 0 0 / 4%);
   --editor-muted-shadow: none;
   --editor-ring: 0 0 0 3px rgb(var(--color-accent-primary-rgb) / 16%);
   --editor-scrollbar-thumb: rgb(var(--color-accent-primary-rgb) / 34%);
@@ -1384,7 +1384,7 @@ onBeforeUnmount(() => {
 
 :root[class~='dark'] .claude-profile-editor-modal,
 [data-theme='dark'] .claude-profile-editor-modal {
-  --editor-panel-shadow: inset 0 1px 0 rgb(255 255 255 / 6%), 0 16px 32px rgb(0 0 0 / 24%);
+  --editor-panel-shadow: 0 16px 32px rgb(0 0 0 / 24%);
   --editor-muted-shadow: none;
   --editor-scrollbar-track: rgb(var(--color-bg-base-rgb) / 36%);
 }
@@ -1443,7 +1443,6 @@ onBeforeUnmount(() => {
   border: 1px solid var(--editor-hairline);
   background: rgb(var(--color-bg-elevated-rgb) / 70%);
   color: var(--editor-ink-soft);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 5%);
 }
 
 .claude-profile-editor-modal .editor-close-button:hover {
@@ -1593,7 +1592,6 @@ onBeforeUnmount(() => {
   border: 1px solid var(--editor-input-border);
   background: var(--editor-input-bg);
   color: var(--editor-ink);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 5%);
   transition: border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease, color 180ms ease;
 }
 

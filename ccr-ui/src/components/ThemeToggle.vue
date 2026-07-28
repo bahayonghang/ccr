@@ -8,7 +8,7 @@
       background: 'var(--surface-status-bg)',
       borderColor: 'var(--surface-status-border)',
       backdropFilter: 'var(--surface-status-blur)',
-      boxShadow: 'var(--surface-status-shadow), inset 0 1px 0 rgb(255 251 245 / 12%)',
+      boxShadow: 'var(--surface-status-shadow)',
     }"
     @click.stop="toggleTheme"
   >
