@@ -508,3 +508,25 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 65: 完成 Grok Profile CLI 与示例配置
+
+**Date**: 2026-07-28
+**Task**: 完成 Grok Profile CLI 与示例配置
+**Branch**: `dev`
+
+### Summary
+
+新增 ccr grok profile 全命令树、四个 Grok 类型化字段、脱敏 JSON 与 force/off 语义；补齐中英文文档和 docs/examples 两份配置，并通过 workspace 门禁、VitePress、本机 Grok inspect 与临时 CCR/GROK_HOME 验证。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `8cba1dba` | (see git log) |
+| `a5d66736` | (see git log) |
+
+### Status
+
+[OK] **Completed**
