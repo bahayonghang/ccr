@@ -147,8 +147,13 @@ write_toml_opts(
   of `tab_order`, so an otherwise valid custom order is preserved.
 - An unsupported or non-string `theme` falls back to Mocha independently of
   `language` and `tab_order`, preserving all other valid preferences.
-- Current tab ids: `codex_profile`, `claude_profile`, `codex_auth`, `claude_auth`, `opencode_auth`.
+- Current tab ids, in built-in order: `codex_profile`, `grok_profile`,
+  `claude_profile`, `codex_auth`, `claude_auth`, `opencode_auth`.
 - Deprecated id `usage` (standalone Usage tab retired 2026-07) stays parse-tolerant: the enum variant is kept `#[doc(hidden)]`, `load()` filters it out with a `tracing::warn!` **before** validation, and the user's custom order of the remaining tabs is preserved — never fall back to defaults just because `usage` appears.
+- `load()` treats a list that omits known current ids as an older configuration:
+  it preserves the listed order, appends every missing id in built-in relative
+  order, and emits one warning naming the appended ids. This migration applies
+  to any future current tab id, not only `grok_profile`.
 - Missing files return the built-in default order and must not block TUI startup.
 - `save` validates the complete tab order before calling
   `ccr_core::fileio::write_toml`; callers must pass the full loaded config so a
@@ -164,7 +169,13 @@ write_toml_opts(
 - Unknown or non-string `theme` -> warn and use Mocha, preserving language and
   tab order.
 - `tab_order` containing deprecated `usage` -> filter + warn, then validate the remaining list normally (custom order preserved).
-- Missing `tab_order`, duplicate ids, unknown ids, or incomplete lists (after `usage` filtering) -> return the full default order.
+- Missing `tab_order` -> use the full default order.
+- Incomplete list after `usage` filtering -> preserve the listed order and
+  append missing known ids in built-in relative order.
+- Duplicate ids or unknown ids -> reject `load`; `load_or_default` returns the
+  full default configuration.
+- Incomplete list passed directly to `save` -> reject before writing and keep
+  the existing file unchanged.
 - TOML parse failure -> return the full default order and let the TUI continue.
 - Invalid tab order passed to `save` -> return an error before writing; keep the
   existing file unchanged.
@@ -176,12 +187,16 @@ write_toml_opts(
 - Good: `language = "zh_cn"`, `theme = "latte"`, and a complete custom
   `tab_order` round-trip through `load` / `save`.
 - Good (legacy): a 6-item order containing `usage` loads with `usage` dropped and the custom order intact.
+- Good (migration): an older 5-item custom order loads unchanged in its first
+  five positions with `grok_profile` appended.
 - Base: no `tui.toml` exists, so English, Mocha, and the default order are used.
 - Bad: `language = "fr"` with a valid order must fall back only the language;
   it must not replace the valid order.
 - Bad: `theme = "solarized"` must not discard a valid Chinese language or
   custom tab order.
-- Bad: `tab_order = ["claude_auth"]`, because partial overrides are intentionally rejected.
+- Bad: constructing `TuiConfig { tab_order: vec![TuiTabId::ClaudeAuth], .. }`
+  and passing it directly to `save`; callers must save the complete loaded
+  configuration.
 
 ### 6. Tests Required
 
@@ -189,7 +204,11 @@ write_toml_opts(
   including assertions that valid custom ordering survives language fallback.
 - Unit tests for default/Latte/unknown/non-string theme values, including
   assertions that language and custom ordering survive theme fallback.
-- Unit tests for missing file, valid custom order, duplicate ids, missing ids, unknown ids, and legacy orders containing `usage` (order preserved, `usage` filtered).
+- Unit tests for missing file, valid custom order, duplicate ids, unknown ids,
+  and legacy orders containing `usage` (order preserved, `usage` filtered).
+- Migration tests must assert that an older complete order preserves every
+  listed position while new ids append, and that multiple missing ids append in
+  built-in relative order.
 - Save tests must assert language/theme/order round-trip and that validation
   failure does not overwrite an existing valid file.
 - Tests that resolve default paths through `CCR_ROOT` must use `test_support::TestCcrEnv`.
