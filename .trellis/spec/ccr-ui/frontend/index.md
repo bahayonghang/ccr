@@ -42,7 +42,7 @@
 - Run the backend and frontend focused checks from [Raw Config Editor Contracts](./raw-config-editor-contracts.md) when changing source editors or raw-file commands.
 - Run `cd ccr-ui && bun run test:smoke -- tests/provider-templates.smoke.test.ts` when changing provider template data, custom template persistence, selectors, or platform mappers.
 - Run the targeted theme smoke checks when changing theme/flavor/accent tokens:
-  - `cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/apple-glass-surface-contract.smoke.test.ts tests/theme-bootstrap.smoke.test.ts tests/app-settings.smoke.test.ts`
+  - `cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/apple-glass-surface-contract.smoke.test.ts tests/theme-bootstrap.smoke.test.ts tests/app-settings.smoke.test.ts tests/theme-contrast-contract.smoke.test.ts`
 - Additionally run the font-preference guard and i18n compile when changing font tracks, `fontPreferences.ts`, or the font controls/copy:
   - `cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/font-preferences.smoke.test.ts` and `cd ccr-ui && bun run test:i18n`
 - Run `cd ccr-ui && bun run icons:generate && bun run icons:ensure && bun run build` for brand-source or renderer changes, then verify deterministic hashes and generated image formats per the brand asset contract.
