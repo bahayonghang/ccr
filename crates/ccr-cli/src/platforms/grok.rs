@@ -939,6 +939,9 @@ mod tests {
             .platform_data
             .insert("context_window".into(), json!(1_000_000));
         profile
+            .platform_data
+            .insert("supports_backend_search".into(), json!(true));
+        profile
     }
 
     fn inline_profile() -> ProfileConfig {
@@ -1053,6 +1056,9 @@ auto_compact_threshold_percent = 85
 
 [ui]
 fork_secondary_model = "custom"
+
+[unknown]
+nested = "keep-me-too"
 "#,
         )
         .unwrap();
@@ -1095,6 +1101,15 @@ fork_secondary_model = "custom"
         assert_eq!(
             applied["session"]["auto_compact_threshold_percent"].as_integer(),
             Some(85)
+        );
+        assert_eq!(
+            applied["ui"]["fork_secondary_model"].as_str(),
+            Some("custom")
+        );
+        assert_eq!(applied["unknown"]["nested"].as_str(), Some("keep-me-too"));
+        assert_eq!(
+            applied["model"]["custom"]["supports_backend_search"].as_bool(),
+            Some(true)
         );
 
         platform.clear_active_profile_runtime().unwrap();

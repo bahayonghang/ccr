@@ -675,6 +675,10 @@ mod tests {
             Path::new("/tmp/.qwen/projects/workspace___repo/session-1.jsonl"),
             &Platform::Qwen
         ));
+        assert!(!SessionParser::is_session_file(
+            Path::new("/tmp/.grok/sessions/session-1.jsonl"),
+            &Platform::Grok
+        ));
     }
 
     #[test]
@@ -742,6 +746,13 @@ mod tests {
             assert_eq!(session.message_count, 2);
             assert_eq!(session.title.as_deref(), Some("Hello from dispatch"));
         }
+
+        let grok_path = dir.path().join("grok.jsonl");
+        std::fs::write(&grok_path, content).expect("Failed to write Grok dispatch fixture");
+        assert!(matches!(
+            SessionParser::parse_file_with_hash(&grok_path, Platform::Grok, "grok-hash".into()),
+            Err(CcrError::PlatformNotSupported(_))
+        ));
     }
 
     #[test]
