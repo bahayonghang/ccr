@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 66
+- **Total Sessions**: 67
 - **Last Active**: 2026-07-29
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~554 | Active |
+| `journal-2.md` | ~581 | Active |
 | `journal-1.md` | ~1987 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 67 | 2026-07-29 | 完成 Grok Profile 全链路支持 | `6ad1dfad`, `ce4e117b`, `8c2de46b`, `8cba1dba`, `a5d66736`, `ddaa7d2f`, `01f414e5` | `dev` |
 | 66 | 2026-07-29 | 完成 Grok TUI Profile 页签 | `ddaa7d2f`, `01f414e5` | `dev` |
 | 65 | 2026-07-28 | 完成 Grok Profile CLI 与示例配置 | `8cba1dba`, `a5d66736` | `dev` |
 | 64 | 2026-07-28 | 完成 Grok 平台底层与安全切换引擎 | `6ad1dfad`, `ce4e117b` | `dev` |

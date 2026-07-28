@@ -552,3 +552,30 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 67: 完成 Grok Profile 全链路支持
+
+**Date**: 2026-07-29
+**Task**: 完成 Grok Profile 全链路支持
+**Branch**: `dev`
+
+### Summary
+
+完成 Grok 平台切换引擎、CLI CRUD 与示例配置、TUI Profile 页签和旧 tab_order 无损迁移；本机 Grok inspect、聚焦测试及最终 just ci 全部通过。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `6ad1dfad` | (see git log) |
+| `ce4e117b` | (see git log) |
+| `8c2de46b` | (see git log) |
+| `8cba1dba` | (see git log) |
+| `a5d66736` | (see git log) |
+| `ddaa7d2f` | (see git log) |
+| `01f414e5` | (see git log) |
+
+### Status
+
+[OK] **Completed**
