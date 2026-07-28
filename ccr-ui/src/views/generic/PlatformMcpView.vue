@@ -79,10 +79,7 @@
             <div
               v-for="server in servers"
               :key="getServerIdentifier(server)"
-              class="group rounded-lg p-4 transition-[box-shadow,border-color] duration-300"
-              :style="{ background: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)', outline: 'none', cursor: 'default' }"
-              @mouseenter="(e) => onCardHover(e.currentTarget as HTMLElement, true)"
-              @mouseleave="(e) => onCardHover(e.currentTarget as HTMLElement, false)"
+              class="platform-card group rounded-lg p-4"
             >
               <div class="flex items-start justify-between">
                 <div class="flex-1">
@@ -403,19 +400,24 @@ async function handleDeleteServer(server: PlatformMcpServer): Promise<void> {
   })
   if (confirmed) await deleteServer(server)
 }
-
-/** 卡片悬停效果 */
-function onCardHover(el: HTMLElement, hover: boolean): void {
-  if (hover) {
-    el.style.background = 'rgba(255, 255, 255, 0.9)'
-    el.style.borderColor = 'rgba(99, 102, 241, 0.24)'
-    el.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.08)'
-    el.style.transform = 'translateY(-2px)'
-  } else {
-    el.style.background = 'rgba(255, 255, 255, 0.7)'
-    el.style.borderColor = 'rgba(99, 102, 241, 0.12)'
-    el.style.boxShadow = 'none'
-    el.style.transform = 'translateY(0)'
-  }
-}
 </script>
+
+<style scoped>
+.platform-card {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-default);
+  cursor: default;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+}
+
+.platform-card:hover {
+  background: var(--color-bg-overlay);
+  border-color: var(--color-border-strong);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+</style>

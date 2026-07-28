@@ -4,38 +4,6 @@
    ============================================ */
 
 /* Definition of background animations */
-@keyframes blob-bounce {
-    0% {
-        transform: translate(0, 0) scale(1);
-    }
-
-    33% {
-        transform: translate(30px, -50px) scale(1.1);
-    }
-
-    66% {
-        transform: translate(-20px, 20px) scale(0.9);
-    }
-
-    100% {
-        transform: translate(0, 0) scale(1);
-    }
-}
-
-@keyframes blob-spin {
-    0% {
-        transform: rotate(0deg) scale(1);
-    }
-
-    50% {
-        transform: rotate(180deg) scale(1.2);
-    }
-
-    100% {
-        transform: rotate(360deg) scale(1);
-    }
-}
-
 @keyframes gradient-shift {
     0% {
         background-position: 0% 50%;
@@ -50,22 +18,6 @@
     }
 }
 
-@keyframes aurora-wave {
-    0% {
-        transform: translateX(-100%) skewX(-15deg);
-        opacity: 0;
-    }
-
-    50% {
-        opacity: 0.5;
-    }
-
-    100% {
-        transform: translateX(100%) skewX(-15deg);
-        opacity: 0;
-    }
-}
-
 @keyframes float-gentle {
     0%,
     100% {
@@ -77,154 +29,18 @@
     }
 }
 
-.premium-background {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    z-index: -1;
-    overflow: hidden;
-    pointer-events: none;
-}
-
-/* ============================================
-   Light Mode Implementation
-   Style: Ice blue mesh + liquid glass haze
-   ============================================ */
+/* Aurora 渐变变量（.bg-aurora 消费） */
 :root {
-    --bg-mesh-1: rgb(var(--color-premium-pink-rgb) / 62%);
-    --bg-mesh-2: rgb(var(--color-premium-blue-rgb) / 58%);
-    --bg-mesh-3: rgb(125 211 252 / 28%);
-    --bg-pattern-color: rgb(59 130 246 / 4%);
     --aurora-1: rgb(59 130 246 / 14%);
     --aurora-2: rgb(14 165 233 / 12%);
     --aurora-3: rgb(34 211 238 / 10%);
 }
 
-/* Light Mode Elements */
-.premium-bg-orb {
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(80px);
-    opacity: 0.8;
-}
-
-[data-theme="light"] .premium-bg-orb {
-    opacity: 0.5;
-    filter: blur(100px);
-}
-
-.orb-1 {
-    top: -10%;
-    left: -10%;
-    width: 50vw;
-    height: 50vw;
-    background: var(--bg-mesh-1);
-    animation: blob-bounce 20s infinite ease-in-out;
-}
-
-.orb-2 {
-    bottom: -10%;
-    right: -10%;
-    width: 50vw;
-    height: 50vw;
-    background: var(--bg-mesh-2);
-    animation: blob-bounce 25s infinite ease-in-out reverse;
-}
-
-.orb-3 {
-    top: 40%;
-    left: 40%;
-    width: 30vw;
-    height: 30vw;
-    background: var(--bg-mesh-3);
-    animation: blob-spin 30s infinite linear;
-    mix-blend-mode: multiply;
-}
-
-[data-theme="light"] .premium-background {
-    background:
-        radial-gradient(circle at 12% 10%, rgb(var(--color-accent-primary-rgb) / 10%) 0%, transparent 28%),
-        radial-gradient(circle at 88% 18%, rgb(var(--color-accent-secondary-rgb) / 10%) 0%, transparent 26%),
-        linear-gradient(135deg, #F4F9FF 0%, #FDFEFF 48%, #E8F3FF 100%);
-}
-
-/* Dark Mode Premium Gradient: Deep Ocean Console */
-[data-theme="dark"] .premium-background {
-    background:
-        radial-gradient(circle at 50% 0%, rgb(var(--color-accent-primary-rgb) / 10%) 0%, transparent 58%),
-        radial-gradient(circle at 82% 82%, rgb(var(--color-accent-secondary-rgb) / 10%) 0%, transparent 46%),
-        radial-gradient(circle at 0% 100%, rgb(var(--color-info-rgb) / 9%) 0%, transparent 48%),
-        linear-gradient(180deg, var(--color-bg-base) 0%, #030915 100%);
-}
-
-/* Cat paw print pattern overlay */
-.premium-bg-pattern {
-    position: absolute;
-    inset: 0;
-    background-image:
-        radial-gradient(var(--bg-pattern-color) 2px, transparent 2px),
-        radial-gradient(var(--bg-pattern-color) 1.5px, transparent 1.5px),
-        radial-gradient(var(--bg-pattern-color) 1.5px, transparent 1.5px),
-        radial-gradient(var(--bg-pattern-color) 1.5px, transparent 1.5px);
-    background-size: 48px 48px;
-    background-position:
-        0 0,
-        -6px -10px,
-        6px -10px,
-        0 -16px;
-    mask-image: radial-gradient(circle at center, black 60%, transparent 100%);
-    opacity: 0.6;
-}
-
-/* ============================================
-   Dark Mode Implementation
-   Style: Deep blue night + neon cyan
-   ============================================ */
 :root[class~="dark"],
 [data-theme="dark"] {
-    --bg-mesh-1: rgb(96 165 250 / 18%);
-    --bg-mesh-2: rgb(56 189 248 / 14%);
-    --bg-mesh-3: rgb(34 211 238 / 10%);
-    --bg-grid-line: rgb(96 165 250 / 4%);
     --aurora-1: rgb(96 165 250 / 22%);
     --aurora-2: rgb(56 189 248 / 18%);
     --aurora-3: rgb(34 211 238 / 14%);
-}
-
-/* Dark Mode Overrides */
-[data-theme="dark"] .premium-bg-pattern {
-    background-image:
-        linear-gradient(to right, var(--bg-grid-line) 1px, transparent 1px),
-        linear-gradient(to bottom, var(--bg-grid-line) 1px, transparent 1px);
-    background-size: 40px 40px;
-    background-position: 0 0;
-
-    /* Soften the mask for a more expansive feel */
-    mask-image: radial-gradient(ellipse 120% 140% at 50% 30%, black 25%, transparent 85%);
-    opacity: 0.4;
-    mix-blend-mode: overlay;
-}
-
-[data-theme="dark"] .orb-1 {
-    opacity: 0.45;
-    mix-blend-mode: screen;
-    filter: blur(100px);
-
-    /* Softer blur for depth */
-}
-
-[data-theme="dark"] .orb-2 {
-    opacity: 0.45;
-    mix-blend-mode: screen;
-    filter: blur(100px);
-}
-
-[data-theme="dark"] .orb-3 {
-    opacity: 0.35;
-    mix-blend-mode: screen;
-    filter: blur(90px);
 }
 
 /* ============================================
@@ -263,14 +79,6 @@
     opacity: 0.6;
     animation: float-gentle 8s ease-in-out infinite;
 }
-
-
-
-
-
-
-
-
 
 /* Radial Glow Background */
 .bg-radial-glow {

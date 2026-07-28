@@ -250,7 +250,7 @@
               {{ $t('common.edit') }}
             </button>
             <button
-              class="flex-1 px-4 py-2.5 rounded-xl font-medium transition-colors bg-white text-text-secondary hover:bg-bg-surface border border-border-default min-h-[44px]"
+              class="flex-1 px-4 py-2.5 rounded-xl font-medium transition-colors bg-bg-surface text-text-secondary hover:bg-bg-overlay border border-border-default min-h-[44px]"
               @click="showViewModal = false"
             >
               {{ $t('common.close') }}
@@ -336,7 +336,7 @@
 
           <div class="flex gap-4 mt-8 pt-6 border-t border-border-default/50">
             <button
-              class="flex-1 px-6 py-3 rounded-xl font-bold transition-colors bg-white text-text-secondary hover:bg-bg-surface border border-border-default min-h-[44px]"
+              class="flex-1 px-6 py-3 rounded-xl font-bold transition-colors bg-bg-surface text-text-secondary hover:bg-bg-overlay border border-border-default min-h-[44px]"
               @click="closeEditModal"
             >
               {{ $t('common.cancel') }}

@@ -1,11 +1,5 @@
 <template>
   <section class="page-header-card">
-    <!-- Glow 装饰层已移除：与「深色工作台」扁平语言冲突（WS6 批次③） -->
-    <!-- <div
-      class="page-header-card__glow"
-      :class="toneClasses.glow"
-    /> -->
-
     <div class="page-header-card__content">
       <div class="page-header-card__top">
         <div class="page-header-card__intro">
@@ -89,33 +83,28 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const toneClasses = computed(() => {
-  const map: Record<HeaderTone, { glow: string; iconBox: string; icon: string; badge: string }> = {
+  const map: Record<HeaderTone, { iconBox: string; icon: string; badge: string }> = {
     primary: {
-      glow: 'page-header-card__glow--primary',
       iconBox: 'page-header-card__icon--primary',
       icon: 'text-accent-primary',
       badge: 'page-header-card__badge--primary',
     },
     secondary: {
-      glow: 'page-header-card__glow--secondary',
       iconBox: 'page-header-card__icon--secondary',
       icon: 'text-accent-primary',
       badge: 'page-header-card__badge--secondary',
     },
     success: {
-      glow: 'page-header-card__glow--success',
       iconBox: 'page-header-card__icon--success',
       icon: 'text-success',
       badge: 'page-header-card__badge--success',
     },
     danger: {
-      glow: 'page-header-card__glow--danger',
       iconBox: 'page-header-card__icon--danger',
       icon: 'text-danger',
       badge: 'page-header-card__badge--danger',
     },
     info: {
-      glow: 'page-header-card__glow--info',
       iconBox: 'page-header-card__icon--info',
       icon: 'text-info',
       badge: 'page-header-card__badge--info',
@@ -135,38 +124,6 @@ const toneClasses = computed(() => {
   background: var(--surface-card-bg);
   box-shadow: var(--surface-card-shadow), var(--glass-inner-glow);
   backdrop-filter: var(--surface-card-blur);
-}
-
-.page-header-card__glow {
-  position: absolute;
-  inset: auto auto 0 0;
-  width: 14rem;
-  height: 14rem;
-  border-radius: 9999px;
-  filter: blur(84px);
-  opacity: 0.24;
-  pointer-events: none;
-  transform: translate(-28%, 38%);
-}
-
-.page-header-card__glow--primary {
-  background: rgb(var(--color-accent-primary-rgb) / 12%);
-}
-
-.page-header-card__glow--secondary {
-  background: rgb(var(--color-premium-blue-rgb) / 48%);
-}
-
-.page-header-card__glow--success {
-  background: rgb(var(--color-success-rgb) / 14%);
-}
-
-.page-header-card__glow--danger {
-  background: rgb(var(--color-danger-rgb) / 14%);
-}
-
-.page-header-card__glow--info {
-  background: rgb(var(--color-info-rgb) / 14%);
 }
 
 .page-header-card__content {

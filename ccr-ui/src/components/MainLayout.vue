@@ -433,10 +433,7 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .layout-shell--theme-stage {
-  background:
-    radial-gradient(circle at top left, rgb(var(--color-accent-primary-rgb) / 6%) 0%, transparent 24%),
-    radial-gradient(circle at bottom right, rgb(var(--color-premium-blue-rgb) / 28%) 0%, transparent 30%),
-    linear-gradient(180deg, rgb(var(--color-bg-base-rgb) / 100%), rgb(var(--color-bg-base-rgb) / 96%));
+  background: var(--color-bg-base);
 }
 
 /* Sidebar Glass Effect - Unified Transparent Mode */
@@ -501,10 +498,7 @@ onBeforeUnmount(() => {
 }
 
 .content-main--theme-stage {
-  background:
-    radial-gradient(circle at top right, rgb(var(--color-accent-primary-rgb) / 8%) 0%, transparent 24%),
-    radial-gradient(circle at top left, rgb(var(--color-premium-blue-rgb) / 22%) 0%, transparent 24%),
-    linear-gradient(180deg, rgb(var(--color-bg-base-rgb) / 98%), rgb(var(--color-bg-base-rgb) / 94%));
+  background: var(--color-bg-base);
 }
 
 .content-scroll-area--theme-stage {
