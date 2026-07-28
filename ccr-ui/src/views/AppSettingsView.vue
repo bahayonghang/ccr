@@ -81,45 +81,52 @@
               <div class="app-settings-card__header">
                 <div>
                   <p class="app-settings-card__eyebrow">
-                    {{ t('settings.appearance.eyebrow') }}
+                    {{ t('settings.appearance.theme.eyebrow') }}
                   </p>
                   <h2 class="app-settings-card__title">
-                    {{ t('settings.appearance.title') }}
+                    {{ t('settings.appearance.theme.title') }}
                   </h2>
                 </div>
                 <p class="app-settings-card__description">
-                  {{ t('settings.appearance.description') }}
+                  {{ t('settings.appearance.theme.description') }}
                 </p>
               </div>
 
-              <div class="app-settings-option-grid">
+              <div
+                class="app-settings-segmented"
+                role="radiogroup"
+                :aria-label="t('settings.appearance.theme.title')"
+              >
                 <button
                   v-for="option in themeOptions"
                   :key="option.value"
                   type="button"
-                  class="app-settings-option"
-                  :class="{ 'app-settings-option--active': theme === option.value }"
+                  role="radio"
+                  class="app-settings-segmented__option"
+                  :class="{ 'app-settings-segmented__option--active': theme === option.value }"
                   :data-testid="`settings-theme-${option.value}`"
+                  :aria-checked="theme === option.value"
                   :aria-pressed="theme === option.value"
                   @click="setTheme(option.value)"
                 >
-                  <div class="app-settings-option__meta">
-                    <span class="app-settings-option__icon">
-                      <SIcon
-                        :name="option.icon"
-                        size="w-4 h-4"
-                      />
-                    </span>
-                    <span class="app-settings-option__copy">
-                      <span class="app-settings-option__title">{{ option.label }}</span>
-                      <span class="app-settings-option__caption">{{ option.description }}</span>
-                    </span>
-                  </div>
-                  <span class="app-settings-option__status">
-                    {{ theme === option.value ? t('settings.active') : option.badge }}
+                  <span class="app-settings-segmented__icon">
+                    <SIcon
+                      :name="option.icon"
+                      size="w-4 h-4"
+                    />
+                  </span>
+                  <span class="app-settings-segmented__copy">
+                    <span class="app-settings-segmented__title">{{ option.label }}</span>
+                    <span class="app-settings-segmented__caption">{{ option.description }}</span>
                   </span>
                 </button>
               </div>
+              <p
+                v-if="theme === 'system'"
+                class="app-settings-segmented__resolved"
+              >
+                {{ systemResolvedHint }}
+              </p>
             </Card>
 
             <Card
@@ -140,29 +147,43 @@
                 </p>
               </div>
 
-              <div class="app-settings-option-grid">
+              <div class="app-settings-flavor-grid">
                 <button
                   v-for="option in flavorOptions"
                   :key="option.value"
                   type="button"
-                  class="app-settings-option"
-                  :class="{ 'app-settings-option--active': flavor === option.value }"
+                  class="app-settings-flavor-card"
+                  :class="{ 'app-settings-flavor-card--active': flavor === option.value }"
                   :data-testid="`settings-flavor-${option.value}`"
                   :aria-pressed="flavor === option.value"
                   @click="setFlavor(option.value)"
                 >
-                  <div class="app-settings-option__meta">
-                    <span
-                      class="app-settings-option__swatch"
-                      :style="{ background: option.preview }"
-                    />
-                    <span class="app-settings-option__copy">
-                      <span class="app-settings-option__title">{{ option.label }}</span>
-                      <span class="app-settings-option__caption">{{ option.description }}</span>
+                  <span
+                    class="app-settings-flavor-card__preview"
+                    :data-preview-flavor="option.value"
+                    :style="flavorPreviewStyle(option.value)"
+                  >
+                    <span class="fp-surface">
+                      <span class="fp-text">{{ PREVIEW_GLYPH_SAMPLE }}</span>
+                      <span class="fp-muted">{{ PREVIEW_GLYPH_SAMPLE }}</span>
+                      <i class="fp-accent" />
                     </span>
-                  </div>
-                  <span class="app-settings-option__status">
-                    {{ flavorStatusLabel(option) }}
+                  </span>
+                  <span class="app-settings-flavor-card__copy">
+                    <span class="app-settings-option__title">{{ option.label }}</span>
+                    <span class="app-settings-option__caption">{{ option.description }}</span>
+                  </span>
+                  <span
+                    v-if="flavor === option.value"
+                    class="app-settings-flavor-card__footer"
+                  >
+                    <span
+                      class="app-settings-flavor-card__dot"
+                      aria-hidden="true"
+                    />
+                    <span class="app-settings-option__status app-settings-option__status--active">
+                      {{ flavorStatusLabel(option) }}
+                    </span>
                   </span>
                 </button>
               </div>
@@ -196,15 +217,29 @@
                   :key="option.value"
                   type="button"
                   role="radio"
-                  class="app-settings-accent-swatch"
-                  :class="{ 'app-settings-accent-swatch--active': accent === option.value }"
+                  class="app-settings-accent-option"
+                  :class="{ 'app-settings-accent-option--active': accent === option.value }"
                   :aria-checked="accent === option.value"
-                  :aria-label="option.label"
-                  :title="option.label"
                   :data-testid="`settings-accent-${option.value}`"
-                  :style="{ '--accent-swatch-color': option.preview }"
                   @click="setAccent(option.value)"
-                />
+                >
+                  <span
+                    class="app-settings-accent-option__preview"
+                    :data-preview-accent="option.value"
+                    :style="accentPreviewStyle(option.value)"
+                  >
+                    <span class="fp-accent-button">{{ PREVIEW_GLYPH_SAMPLE }}</span>
+                  </span>
+                  <span class="app-settings-accent-option__copy">
+                    <span class="app-settings-option__title">{{ option.label }}</span>
+                    <span class="app-settings-option__caption">{{ option.description }}</span>
+                  </span>
+                  <span
+                    v-if="accent === option.value"
+                    class="app-settings-accent-option__dot"
+                    aria-hidden="true"
+                  />
+                </button>
               </div>
             </Card>
 
@@ -625,6 +660,9 @@ import { CODE_FONT_PRESETS, UI_FONT_PRESETS } from '@/utils/fontPreferences'
 
 type SectionKey = 'appearance' | 'language' | 'shell' | 'diagnostics'
 
+// 预览卡的字形样例（装饰性，非文案）。
+const PREVIEW_GLYPH_SAMPLE = 'Aa'
+
 const { t } = useI18n()
 const shellPreferencesStore = useShellPreferencesStore()
 const {
@@ -710,111 +748,68 @@ const themeOptions = computed(() => [
     icon: 'Sun',
     label: t('theme.light'),
     description: t('settings.appearance.lightDescription'),
-    badge: t('settings.appearance.dayBadge'),
   },
   {
     value: 'dark' as ThemeMode,
     icon: 'Moon',
     label: t('theme.dark'),
     description: t('settings.appearance.darkDescription'),
-    badge: t('settings.appearance.nightBadge'),
   },
   {
     value: 'system' as ThemeMode,
     icon: 'Monitor',
     label: t('theme.system'),
     description: t('settings.appearance.systemDescription'),
-    badge: t('settings.appearance.autoBadge'),
   },
 ])
 
-// 选项 UI 仍展示旧值域（子任务 C 统一重写）；store 写入路径会把旧值迁移进新值域。
-type LegacyFlavorOptionValue = 'paper' | 'graphite' | 'latte' | 'frappe' | 'macchiato' | 'mocha'
-type LegacyAccentOptionValue = 'sand' | 'amber' | 'rose' | 'slate'
+const systemResolvedHint = computed(() => translateWithFallback(
+  t,
+  'settings.appearance.theme.resolvedHint',
+  `Resolved now: {resolved}`,
+  { resolved: t(`theme.${effectiveTheme.value}`) },
+))
 
 interface FlavorOption {
-  value: FlavorMode | LegacyFlavorOptionValue
+  value: FlavorMode
   label: string
   description: string
-  badge: string
-  preview: string
 }
 
 interface AccentOption {
-  value: AccentMode | LegacyAccentOptionValue
+  value: AccentMode
   label: string
-  preview: string
+  description: string
 }
 
 const flavorOptions = computed<FlavorOption[]>(() => [
   {
+    value: 'neutral',
+    label: t('settings.appearance.flavor.neutral'),
+    description: t('settings.appearance.flavor.neutralDescription'),
+  },
+  {
     value: 'clay',
     label: t('settings.appearance.flavor.clay'),
     description: t('settings.appearance.flavor.clayDescription'),
-    badge: t('settings.appearance.dayBadge'),
-    preview: 'linear-gradient(135deg, #f4ede3 0%, #fbf6ee 60%, #fffaf3 100%)',
   },
   {
-    value: 'paper',
-    label: t('settings.appearance.flavor.paper'),
-    description: t('settings.appearance.flavor.paperDescription'),
-    badge: t('settings.appearance.dayBadge'),
-    preview: 'linear-gradient(135deg, #fafafa 0%, #ffffff 60%, #f4f4f5 100%)',
-  },
-  {
-    value: 'graphite',
-    label: t('settings.appearance.flavor.graphite'),
-    description: t('settings.appearance.flavor.graphiteDescription'),
-    badge: t('settings.appearance.nightBadge'),
-    preview: 'linear-gradient(135deg, #ececee 0%, #f6f6f8 60%, #2e3036 100%)',
-  },
-  {
-    value: 'latte',
-    label: t('settings.appearance.flavor.latte'),
-    description: t('settings.appearance.flavor.latteDescription'),
-    badge: t('settings.appearance.autoBadge'),
-    preview: 'linear-gradient(135deg, #eff1f5 0%, #e6e9ef 58%, #7287fd 100%)',
-  },
-  {
-    value: 'frappe',
-    label: t('settings.appearance.flavor.frappe'),
-    description: t('settings.appearance.flavor.frappeDescription'),
-    badge: t('settings.appearance.autoBadge'),
-    preview: 'linear-gradient(135deg, #303446 0%, #414559 58%, #babbf1 100%)',
-  },
-  {
-    value: 'macchiato',
-    label: t('settings.appearance.flavor.macchiato'),
-    description: t('settings.appearance.flavor.macchiatoDescription'),
-    badge: t('settings.appearance.autoBadge'),
-    preview: 'linear-gradient(135deg, #24273a 0%, #363a4f 58%, #b7bdf8 100%)',
-  },
-  {
-    value: 'mocha',
-    label: t('settings.appearance.flavor.mocha'),
-    description: t('settings.appearance.flavor.mochaDescription'),
-    badge: t('settings.appearance.autoBadge'),
-    preview: 'linear-gradient(135deg, #1e1e2e 0%, #313244 58%, #b4befe 100%)',
+    value: 'catppuccin',
+    label: t('settings.appearance.flavor.catppuccin'),
+    description: t('settings.appearance.flavor.catppuccinDescription'),
   },
 ])
 
-const flavorLabelMap = computed<Record<string, string>>(() => ({
+const resolvedFlavorLabelMap = computed<Record<string, string>>(() => ({
+  neutral: t('settings.appearance.flavor.neutral'),
   clay: t('settings.appearance.flavor.clay'),
-  paper: t('settings.appearance.flavor.paper'),
-  graphite: t('settings.appearance.flavor.graphite'),
-  latte: t('settings.appearance.flavor.latte'),
-  frappe: t('settings.appearance.flavor.frappe'),
-  macchiato: t('settings.appearance.flavor.macchiato'),
-  mocha: t('settings.appearance.flavor.mocha'),
+  latte: t('settings.appearance.flavor.resolvedLatte'),
+  mocha: t('settings.appearance.flavor.resolvedMocha'),
 }))
 
-const resolvedFlavorLabel = computed(() => flavorLabelMap.value[resolvedFlavor.value])
+const resolvedFlavorLabel = computed(() => resolvedFlavorLabelMap.value[resolvedFlavor.value])
 
 const flavorStatusLabel = (option: FlavorOption): string => {
-  if (flavor.value !== option.value) {
-    return option.badge
-  }
-
   if (isCatppuccinFlavor(option.value) && resolvedFlavor.value !== option.value) {
     return `${t('settings.active')} · ${resolvedFlavorLabel.value}`
   }
@@ -822,15 +817,94 @@ const flavorStatusLabel = (option: FlavorOption): string => {
   return t('settings.active')
 }
 
+// 预览令牌子集静态复制自 tokens.css（与 tokens.css 同步）：
+// neutral/clay 取 :root 与 [data-theme='dark'] 两套；catppuccin 的 light/dark
+// 分别取 [data-resolved-flavor='latte'] 与 html:root[data-resolved-flavor='mocha'] 语义块。
+// accent 条引用实时的 var(--color-accent-primary)，不随预览覆写。
+interface SurfacePreviewTokens {
+  base: string
+  elevated: string
+  surface: string
+  text: string
+  muted: string
+}
+
+const FLAVOR_PREVIEW_TOKENS: Record<FlavorMode, { light: SurfacePreviewTokens; dark: SurfacePreviewTokens }> = {
+  neutral: {
+    light: { base: '#e8e9ec', elevated: '#f2f3f5', surface: '#fbfcfd', text: '#191b20', muted: '#5f646e' },
+    dark: { base: '#131316', elevated: '#1a1b1f', surface: '#22242a', text: '#f2f3f5', muted: '#9ba1ab' },
+  },
+  clay: {
+    light: { base: '#ebe1d0', elevated: '#f5eee1', surface: '#fefaf2', text: '#31241c', muted: '#715d4c' },
+    dark: { base: '#17120f', elevated: '#221b18', surface: '#2a221e', text: '#f3eadf', muted: '#b9a695' },
+  },
+  catppuccin: {
+    light: { base: '#e6e9ef', elevated: '#eff1f5', surface: '#fafbfe', text: '#2e3043', muted: '#6c6f85' },
+    dark: { base: '#11111b', elevated: '#1e1e2e', surface: '#313244', text: '#fafbff', muted: '#a6adc8' },
+  },
+}
+
+// accent 预览令牌静态复制自 tokens.css accent 块（与 tokens.css 同步）：
+// light/dark 取 [data-accent] 两套；latte/mocha 取 Catppuccin 作用域 accent 映射。
+interface AccentPreviewTokens {
+  bg: string
+  contrast: string
+}
+
+const ACCENT_PREVIEW_TOKENS: Record<AccentMode, Record<'light' | 'dark' | 'latte' | 'mocha', AccentPreviewTokens>> = {
+  clay: {
+    light: { bg: '#cf6239', contrast: '#fff8f2' },
+    dark: { bg: '#e8835b', contrast: '#1d1207' },
+    latte: { bg: '#fe640b', contrast: '#1e1e2e' },
+    mocha: { bg: '#fab387', contrast: '#11111b' },
+  },
+  sage: {
+    light: { bg: '#5b8a62', contrast: '#fff8f2' },
+    dark: { bg: '#6fbf73', contrast: '#0e1a0c' },
+    latte: { bg: '#40a02b', contrast: '#1e1e2e' },
+    mocha: { bg: '#a6e3a1', contrast: '#11111b' },
+  },
+  sky: {
+    light: { bg: '#5a7ba6', contrast: '#fff8f2' },
+    dark: { bg: '#6ea8e8', contrast: '#0b1521' },
+    latte: { bg: '#1e66f5', contrast: '#eff1f5' },
+    mocha: { bg: '#89b4fa', contrast: '#11111b' },
+  },
+  mauve: {
+    light: { bg: '#8a6d94', contrast: '#fff8f2' },
+    dark: { bg: '#b78fe0', contrast: '#190f22' },
+    latte: { bg: '#8839ef', contrast: '#eff1f5' },
+    mocha: { bg: '#cba6f7', contrast: '#11111b' },
+  },
+}
+
+const flavorPreviewStyle = (flavorValue: FlavorMode): Record<string, string> => {
+  const tokens = FLAVOR_PREVIEW_TOKENS[flavorValue][effectiveTheme.value]
+  return {
+    '--fp-bg-base': tokens.base,
+    '--fp-bg-elevated': tokens.elevated,
+    '--fp-bg-surface': tokens.surface,
+    '--fp-text-primary': tokens.text,
+    '--fp-text-muted': tokens.muted,
+  }
+}
+
+const accentPreviewStyle = (accentValue: AccentMode): Record<string, string> => {
+  const contextKey = resolvedFlavor.value === 'latte' || resolvedFlavor.value === 'mocha'
+    ? resolvedFlavor.value
+    : effectiveTheme.value
+  const tokens = ACCENT_PREVIEW_TOKENS[accentValue][contextKey]
+  return {
+    '--fp-accent-bg': tokens.bg,
+    '--fp-accent-contrast': tokens.contrast,
+  }
+}
+
 const accentOptions = computed<AccentOption[]>(() => [
-  { value: 'clay', label: t('settings.appearance.accent.clay'), preview: '#d97757' },
-  { value: 'sand', label: t('settings.appearance.accent.sand'), preview: '#b99666' },
-  { value: 'sage', label: t('settings.appearance.accent.sage'), preview: '#5b8a62' },
-  { value: 'sky', label: t('settings.appearance.accent.sky'), preview: '#7d97b6' },
-  { value: 'mauve', label: t('settings.appearance.accent.mauve'), preview: '#9c7f94' },
-  { value: 'amber', label: t('settings.appearance.accent.amber'), preview: '#bc8540' },
-  { value: 'rose', label: t('settings.appearance.accent.rose'), preview: '#c76953' },
-  { value: 'slate', label: t('settings.appearance.accent.slate'), preview: '#857367' },
+  { value: 'clay', label: t('settings.appearance.accent.clay'), description: t('settings.appearance.accent.clayDescription') },
+  { value: 'sage', label: t('settings.appearance.accent.sage'), description: t('settings.appearance.accent.sageDescription') },
+  { value: 'sky', label: t('settings.appearance.accent.sky'), description: t('settings.appearance.accent.skyDescription') },
+  { value: 'mauve', label: t('settings.appearance.accent.mauve'), description: t('settings.appearance.accent.mauveDescription') },
 ])
 
 const languageOptions = computed(() => [
@@ -872,13 +946,12 @@ const setTheme = (nextTheme: ThemeMode) => {
   shellPreferencesStore.setTheme(nextTheme)
 }
 
-// 旧值域选项值经 store 写入路径迁移到新值域（migrateFlavorValue/migrateAccentValue）。
-const setFlavor = (nextFlavor: FlavorOption['value']) => {
-  shellPreferencesStore.setFlavor(nextFlavor as FlavorMode)
+const setFlavor = (nextFlavor: FlavorMode) => {
+  shellPreferencesStore.setFlavor(nextFlavor)
 }
 
-const setAccent = (nextAccent: AccentOption['value']) => {
-  shellPreferencesStore.setAccent(nextAccent as AccentMode)
+const setAccent = (nextAccent: AccentMode) => {
+  shellPreferencesStore.setAccent(nextAccent)
 }
 
 // 预设清单集中在 @/utils/fontPreferences；自定义输入不受清单限制（空串=系统默认，回内置栈）。
@@ -1021,8 +1094,8 @@ onMounted(async () => {
 .app-settings-summary__pill {
   @apply inline-flex items-center rounded-md border px-2.5 py-1.5 text-[11px] font-semibold;
 
-  border-color: rgb(var(--color-border-default-rgb) / 56%);
-  background: rgb(var(--color-bg-base-rgb) / 72%);
+  border-color: var(--color-border-default);
+  background: var(--color-bg-elevated);
   color: var(--color-text-secondary);
 }
 
@@ -1045,20 +1118,20 @@ onMounted(async () => {
 .app-settings-nav__button {
   @apply flex min-h-[64px] min-w-[220px] items-start gap-3 rounded-lg border px-3.5 py-3 text-left transition-[border-color,background-color,box-shadow,transform] duration-200 xl:min-w-0;
 
-  border-color: rgb(var(--color-border-default-rgb) / 44%);
-  background: rgb(var(--color-bg-elevated-rgb) / 72%);
+  border-color: var(--color-border-default);
+  background: var(--color-bg-elevated);
   color: var(--color-text-secondary);
 }
 
 .app-settings-nav__button:hover {
   transform: translateY(-1px);
-  border-color: rgb(var(--color-accent-primary-rgb) / 18%);
-  background: rgb(var(--color-bg-surface-rgb) / 82%);
+  border-color: var(--color-border-strong);
+  background: var(--color-bg-surface);
 }
 
 .app-settings-nav__button--active {
-  border-color: rgb(var(--color-accent-primary-rgb) / 30%);
-  background: rgb(var(--color-accent-primary-rgb) / 10%);
+  border-color: var(--color-accent-primary);
+  background: var(--color-bg-surface);
   box-shadow: inset 2px 0 0 var(--color-accent-primary);
   color: var(--color-text-primary);
 }
@@ -1066,8 +1139,8 @@ onMounted(async () => {
 .app-settings-nav__icon {
   @apply mt-0.5 flex h-8 w-8 flex-none items-center justify-center rounded-md border;
 
-  border-color: rgb(var(--color-border-default-rgb) / 46%);
-  background: rgb(var(--color-bg-base-rgb) / 78%);
+  border-color: var(--color-border-default);
+  background: var(--color-bg-surface);
 }
 
 .app-settings-nav__title,
@@ -1114,20 +1187,20 @@ onMounted(async () => {
 .app-settings-option {
   @apply flex min-h-[112px] min-w-0 flex-col justify-between rounded-lg border p-3.5 text-left transition-[border-color,background-color,box-shadow,transform] duration-200;
 
-  border-color: rgb(var(--color-border-default-rgb) / 44%);
-  background: rgb(var(--color-bg-elevated-rgb) / 82%);
+  border-color: var(--color-border-default);
+  background: var(--color-bg-elevated);
 }
 
 .app-settings-option:hover {
   transform: translateY(-1px);
-  border-color: rgb(var(--color-accent-primary-rgb) / 18%);
+  border-color: var(--color-border-strong);
   box-shadow: var(--shadow-sm);
 }
 
 .app-settings-option--active {
-  border-color: rgb(var(--color-accent-primary-rgb) / 34%);
-  background: rgb(var(--color-accent-primary-rgb) / 8%);
-  box-shadow: inset 0 0 0 1px rgb(var(--color-accent-primary-rgb) / 12%);
+  border-color: var(--color-accent-primary);
+  background: var(--color-bg-surface);
+  box-shadow: inset 0 0 0 1px var(--color-accent-primary);
 }
 
 .app-settings-option__meta {
@@ -1141,8 +1214,8 @@ onMounted(async () => {
 .app-settings-option__icon {
   @apply flex h-9 w-9 flex-none items-center justify-center rounded-md border;
 
-  border-color: rgb(var(--color-border-default-rgb) / 46%);
-  background: rgb(var(--color-bg-base-rgb) / 82%);
+  border-color: var(--color-border-default);
+  background: var(--color-bg-surface);
   color: var(--color-text-primary);
 }
 
@@ -1153,60 +1226,198 @@ onMounted(async () => {
 .app-settings-option__status {
   @apply inline-flex w-fit items-center rounded-md border px-2 py-1 text-[10px] font-semibold;
 
-  border-color: rgb(var(--color-border-default-rgb) / 52%);
-  background: rgb(var(--color-bg-base-rgb) / 68%);
+  border-color: var(--color-border-default);
+  background: var(--color-bg-surface);
   color: var(--color-text-muted);
 }
 
+.app-settings-option__status--active,
 .app-settings-option--active .app-settings-option__status {
-  border-color: rgb(var(--color-accent-primary-rgb) / 24%);
-  background: rgb(var(--color-accent-primary-rgb) / 12%);
+  border-color: var(--color-border-accent);
+  background: rgb(var(--color-accent-primary-rgb) / 10%);
   color: var(--color-accent-primary);
-}
-
-.app-settings-option__swatch {
-  @apply flex h-9 w-9 flex-none items-center justify-center rounded-md border;
-
-  border-color: rgb(var(--color-border-default-rgb) / 46%);
-  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 8%);
 }
 
 .app-settings-card--tight {
   @apply p-4 sm:p-5;
 }
 
-.app-settings-accent-grid {
-  @apply mt-4 flex flex-wrap gap-2.5;
+/* --- 主题分段控件：radiogroup + 实心选中段 --- */
+.app-settings-segmented {
+  @apply mt-4 grid min-w-0 grid-cols-1 gap-2 rounded-lg border p-1.5 sm:grid-cols-3;
+
+  border-color: var(--color-border-default);
+  background: var(--color-bg-base);
 }
 
-.app-settings-accent-swatch {
-  @apply relative h-9 w-9 cursor-pointer rounded-md border transition-[transform,border-color,box-shadow] duration-200;
+.app-settings-segmented__option {
+  @apply flex min-w-0 items-start gap-3 rounded-md border border-transparent px-3 py-2.5 text-left transition-[border-color,background-color,box-shadow] duration-200;
 
-  background: var(--accent-swatch-color);
-  border-color: rgb(var(--color-border-default-rgb) / 46%);
-  box-shadow:
-    var(--inner-glow),
-    0 1px 2px rgb(0 0 0 / 6%);
+  color: var(--color-text-secondary);
 }
 
-.app-settings-accent-swatch:hover {
+.app-settings-segmented__option:hover {
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+}
+
+.app-settings-segmented__option--active {
+  border-color: var(--color-border-default);
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-sm);
+  color: var(--color-text-primary);
+}
+
+.app-settings-segmented__icon {
+  @apply mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-md border;
+
+  border-color: var(--color-border-default);
+  background: var(--color-bg-elevated);
+}
+
+.app-settings-segmented__option--active .app-settings-segmented__icon {
+  border-color: var(--color-border-accent);
+  color: var(--color-accent-primary);
+}
+
+.app-settings-segmented__copy {
+  @apply min-w-0;
+}
+
+.app-settings-segmented__title {
+  @apply block text-sm font-semibold;
+
+  color: var(--color-text-primary);
+}
+
+.app-settings-segmented__caption {
+  @apply mt-0.5 block text-xs leading-5;
+
+  color: var(--color-text-muted);
+}
+
+.app-settings-segmented__resolved {
+  @apply mt-3 text-xs font-semibold;
+
+  color: var(--color-text-muted);
+}
+
+/* --- flavor 真实 token 预览卡：预览元素上的 --fp-* 令牌子集为 tokens.css 的静态副本 --- */
+.app-settings-flavor-grid {
+  @apply mt-4 grid min-w-0 grid-cols-1 gap-3 md:grid-cols-3;
+}
+
+.app-settings-flavor-card {
+  @apply relative flex min-w-0 flex-col gap-3 rounded-lg border p-3.5 text-left transition-[border-color,background-color,box-shadow,transform] duration-200;
+
+  border-color: var(--color-border-default);
+  background: var(--color-bg-elevated);
+}
+
+.app-settings-flavor-card:hover {
   transform: translateY(-1px);
-  border-color: rgb(var(--color-border-default-rgb) / 72%);
+  border-color: var(--color-border-strong);
+  box-shadow: var(--shadow-sm);
 }
 
-.app-settings-accent-swatch:focus-visible {
-  outline: none;
-  box-shadow:
-    var(--inner-glow),
-    0 0 0 3px rgb(var(--color-accent-primary-rgb) / 30%);
-}
-
-.app-settings-accent-swatch--active {
-  transform: translateY(-1px);
+.app-settings-flavor-card--active {
   border-color: var(--color-accent-primary);
-  box-shadow:
-    inset 0 0 0 1px rgb(0 0 0 / 12%),
-    0 0 0 2px rgb(var(--color-accent-primary-rgb) / 34%);
+  background: var(--color-bg-surface);
+  box-shadow: inset 0 0 0 1px var(--color-accent-primary);
+}
+
+.app-settings-flavor-card__preview {
+  @apply flex h-20 items-center justify-center rounded-md border;
+
+  border-color: var(--color-border-subtle);
+  background: var(--fp-bg-base);
+}
+
+.fp-surface {
+  @apply flex items-center gap-2 rounded border px-3 py-2;
+
+  border-color: var(--color-border-subtle);
+  background: var(--fp-bg-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.fp-text {
+  @apply text-sm font-semibold;
+
+  color: var(--fp-text-primary);
+}
+
+.fp-muted {
+  @apply text-xs;
+
+  color: var(--fp-text-muted);
+}
+
+.fp-accent {
+  @apply h-3.5 w-6 rounded-sm;
+
+  background: var(--color-accent-primary);
+}
+
+.app-settings-flavor-card__copy {
+  @apply min-w-0;
+}
+
+.app-settings-flavor-card__footer {
+  @apply flex items-center gap-2;
+}
+
+.app-settings-flavor-card__dot,
+.app-settings-accent-option__dot {
+  @apply h-2 w-2 flex-none rounded-full;
+
+  background: var(--color-accent-primary);
+}
+
+.app-settings-accent-option__dot {
+  @apply absolute right-3 top-3;
+}
+
+/* --- accent 实心按钮预览 --- */
+.app-settings-accent-grid {
+  @apply mt-4 grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4;
+}
+
+.app-settings-accent-option {
+  @apply relative flex min-w-0 flex-col gap-3 rounded-lg border p-3.5 text-left transition-[border-color,background-color,box-shadow,transform] duration-200;
+
+  border-color: var(--color-border-default);
+  background: var(--color-bg-elevated);
+}
+
+.app-settings-accent-option:hover {
+  transform: translateY(-1px);
+  border-color: var(--color-border-strong);
+  box-shadow: var(--shadow-sm);
+}
+
+.app-settings-accent-option--active {
+  border-color: var(--color-accent-primary);
+  background: var(--color-bg-surface);
+  box-shadow: inset 0 0 0 1px var(--color-accent-primary);
+}
+
+.app-settings-accent-option__preview {
+  @apply flex h-14 items-center justify-center rounded-md border;
+
+  border-color: var(--color-border-subtle);
+  background: var(--color-bg-surface);
+}
+
+.fp-accent-button {
+  @apply rounded-md px-3.5 py-1.5 text-xs font-semibold;
+
+  background: var(--fp-accent-bg);
+  color: var(--fp-accent-contrast);
+}
+
+.app-settings-accent-option__copy {
+  @apply min-w-0;
 }
 
 .app-settings-stack {
@@ -1216,8 +1427,8 @@ onMounted(async () => {
 .app-settings-row {
   @apply flex min-w-0 flex-col gap-4 rounded-lg border px-4 py-4 lg:flex-row lg:items-center lg:justify-between;
 
-  border-color: rgb(var(--color-border-default-rgb) / 44%);
-  background: rgb(var(--color-bg-elevated-rgb) / 72%);
+  border-color: var(--color-border-default);
+  background: var(--color-bg-elevated);
 }
 
 .app-settings-row--slider {
@@ -1238,13 +1449,13 @@ onMounted(async () => {
 .app-settings-switch {
   @apply relative inline-flex items-center gap-3 rounded-lg border px-3 py-2 text-xs font-semibold transition-[border-color,background-color,box-shadow] duration-200;
 
-  border-color: rgb(var(--color-border-default-rgb) / 56%);
-  background: rgb(var(--color-bg-base-rgb) / 78%);
+  border-color: var(--color-border-default);
+  background: var(--color-bg-surface);
   color: var(--color-text-muted);
 }
 
 .app-settings-switch--active {
-  border-color: rgb(var(--color-accent-primary-rgb) / 24%);
+  border-color: var(--color-border-accent);
   background: rgb(var(--color-accent-primary-rgb) / 10%);
   color: var(--color-accent-primary);
 }
@@ -1252,24 +1463,24 @@ onMounted(async () => {
 .app-settings-switch__track {
   @apply relative h-6 w-10 rounded-full;
 
-  background: rgb(var(--color-border-default-rgb) / 55%);
+  background: var(--color-bg-overlay);
 }
 
 .app-settings-switch--active .app-settings-switch__track {
-  background: rgb(var(--color-accent-primary-rgb) / 24%);
+  background: rgb(var(--color-accent-primary-rgb) / 30%);
 }
 
 .app-settings-switch__thumb {
   @apply absolute left-3 top-1/2 h-5 w-5 rounded-full border transition-transform duration-200;
 
   transform: translateY(-50%);
-  border-color: rgb(var(--color-border-default-rgb) / 62%);
-  background: rgb(var(--color-bg-elevated-rgb) / 100%);
+  border-color: var(--color-border-strong);
+  background: var(--color-bg-surface);
 }
 
 .app-settings-switch--active .app-settings-switch__thumb {
   transform: translate(16px, -50%);
-  border-color: rgb(var(--color-accent-primary-rgb) / 24%);
+  border-color: var(--color-border-accent);
 }
 
 .app-settings-switch__label {
@@ -1279,8 +1490,8 @@ onMounted(async () => {
 .app-settings-slider {
   @apply w-full max-w-[360px] rounded-lg border px-4 py-3;
 
-  border-color: rgb(var(--color-border-default-rgb) / 46%);
-  background: rgb(var(--color-bg-base-rgb) / 74%);
+  border-color: var(--color-border-default);
+  background: var(--color-bg-surface);
 }
 
 .app-settings-slider__control {
@@ -1300,8 +1511,8 @@ onMounted(async () => {
 .app-settings-callout {
   @apply flex items-start gap-2 rounded-lg border px-4 py-3;
 
-  border-color: rgb(var(--color-accent-primary-rgb) / 18%);
-  background: rgb(var(--color-accent-primary-rgb) / 6%);
+  border-color: var(--color-border-accent);
+  background: rgb(var(--color-accent-primary-rgb) / 8%);
 }
 
 .app-settings-row--font {
@@ -1316,23 +1527,23 @@ onMounted(async () => {
 .app-settings-font-input {
   @apply w-full rounded-lg border px-3 py-2 text-sm;
 
-  border-color: rgb(var(--color-border-default-rgb) / 56%);
-  background: rgb(var(--color-bg-base-rgb) / 78%);
+  border-color: var(--color-border-default);
+  background: var(--color-bg-surface);
   color: var(--color-text-primary);
 }
 
 .app-settings-font-select:focus-visible,
 .app-settings-font-input:focus-visible {
   outline: none;
-  border-color: rgb(var(--color-accent-primary-rgb) / 40%);
+  border-color: var(--color-accent-primary);
   box-shadow: 0 0 0 3px rgb(var(--color-accent-primary-rgb) / 18%);
 }
 
 .app-settings-font-preview {
   @apply truncate rounded-lg border px-3 py-2 text-sm;
 
-  border-color: rgb(var(--color-border-default-rgb) / 40%);
-  background: rgb(var(--color-bg-elevated-rgb) / 60%);
+  border-color: var(--color-border-subtle);
+  background: var(--color-bg-elevated);
   color: var(--color-text-secondary);
 }
 
@@ -1341,16 +1552,20 @@ onMounted(async () => {
 }
 
 @media (width <= 1279px) {
+  /* z-20：内容区 Card 内层为 relative z-10，sticky 导航必须压过它，否则滚动时卡片盖住导航。 */
   .app-settings-nav {
-    @apply sticky top-0 z-10;
+    @apply sticky top-0 z-20;
   }
 
+  /* sticky 导航必须不透明：接入 surface 契约的 inline 档（现为不透明配方），
+     修复滚动时下方文字从 86% alpha 底透出的问题。 */
   .app-settings-nav__inner {
     @apply rounded-lg border p-2;
 
-    border-color: rgb(var(--color-border-default-rgb) / 44%);
-    background: rgb(var(--color-bg-base-rgb) / 86%);
+    border-color: var(--surface-status-border);
+    background: var(--surface-status-bg);
     backdrop-filter: var(--surface-status-blur);
+    box-shadow: var(--surface-status-shadow);
   }
 
   .app-settings-nav__button {

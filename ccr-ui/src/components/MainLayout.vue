@@ -134,8 +134,6 @@
             :aria-current="isSettingsRoute ? 'page' : undefined"
             @click="navigate"
           >
-            <div class="absolute inset-0 bg-gradient-to-br from-accent-primary/12 via-accent-secondary/10 to-transparent opacity-90" />
-
             <div class="relative flex flex-col gap-3 p-3.5">
               <div class="flex items-start justify-between gap-3">
                 <div class="space-y-1.5">
@@ -172,6 +170,9 @@
                   {{ currentThemeLabel }}
                 </span>
                 <span class="settings-dock-pill">
+                  {{ currentFlavorLabel }}
+                </span>
+                <span class="settings-dock-pill">
                   {{ currentLocaleLabel }}
                 </span>
                 <span class="settings-dock-pill font-mono">
@@ -179,8 +180,6 @@
                 </span>
               </div>
             </div>
-
-            <div class="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent-primary/60 to-transparent" />
           </a>
         </RouterLink>
       </div>
@@ -325,7 +324,7 @@ const contentScrollAreaRef = ref<HTMLElement | null>(null)
 const showScrollToTop = ref(false)
 let scrollVisibilityFrame = 0
 const shellPreferencesStore = useShellPreferencesStore()
-const { theme, effectiveTheme, locale } = storeToRefs(shellPreferencesStore)
+const { theme, effectiveTheme, flavor, locale } = storeToRefs(shellPreferencesStore)
 
 const currentPageTitle = computed(() => {
   const name = route.name as string
@@ -345,6 +344,8 @@ const isSettingsRoute = computed(() => route.name === 'settings')
 const currentLocaleLabel = computed(() => (
   locale.value === 'en-US' ? t('language.english') : t('language.chinese')
 ))
+// dock 摘要的 flavor 显示名映射（3 值值域，复用 settings flavor label）。
+const currentFlavorLabel = computed(() => t(`settings.appearance.flavor.${flavor.value}`))
 const currentThemeLabel = computed(() => {
   if (theme.value === 'system') {
     const resolvedLabel = t(`theme.${effectiveTheme.value}`)
@@ -571,8 +572,8 @@ onBeforeUnmount(() => {
   @apply inline-flex items-center border px-2.5 py-1 text-[10px] font-semibold tracking-[0.04em];
 
   border-radius: var(--radius-sm);
-  border-color: rgb(var(--color-border-default-rgb) / 56%);
-  background: rgb(var(--color-bg-elevated-rgb) / 84%);
+  border-color: var(--color-border-default);
+  background: var(--color-bg-elevated);
   color: var(--color-text-secondary);
 }
 

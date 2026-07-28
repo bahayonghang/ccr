@@ -2586,39 +2586,29 @@ export default {
       darkDescription: 'Higher contrast surfaces for focused low-light work.',
       systemDescription:
         'Follow the OS appearance and sync the resolved window theme automatically.',
-      dayBadge: 'Day',
-      nightBadge: 'Night',
-      autoBadge: 'Auto',
+      theme: {
+        eyebrow: 'Theme',
+        title: 'Theme mode',
+        description:
+          'Pin a light or dark surface, or follow the OS and let CCR UI resolve it for you.',
+        resolvedHint: 'Resolved now: {resolved}',
+      },
       systemSummary: 'Follow system · {resolved}',
       flavor: {
         eyebrow: 'Flavor',
         title: 'Surface tone',
         description:
-          'Pick the underlying neutral family. Catppuccin follows the resolved light or dark theme: light uses Latte; dark maps Latte/Frappé to Frappé and keeps Macchiato or Mocha dark.',
+          'Pick the surface family. Catppuccin adapts to the resolved theme: light uses Latte and dark uses Mocha.',
         neutral: 'Neutral',
         neutralDescription:
           'Pure neutral gray surfaces with solid contrast and no warm or cool tint.',
         clay: 'Clay',
-        clayDescription: 'Default warm-neutral, matches the Anthropic editorial baseline.',
-        paper: 'Paper',
-        paperDescription: 'Cleaner whites and cool ink, foregrounding content.',
-        graphite: 'Graphite',
-        graphiteDescription: 'Cooler neutral axis, easier on long focus sessions.',
-        latte: 'Catppuccin Latte',
-        latteDescription:
-          'Adaptive Catppuccin family; light resolves to Latte and dark resolves to Frappé.',
-        frappe: 'Catppuccin Frappé',
-        frappeDescription:
-          'Adaptive Catppuccin family; light resolves to Latte and dark resolves to Frappé.',
-        macchiato: 'Catppuccin Macchiato',
-        macchiatoDescription:
-          'Adaptive Catppuccin family; light resolves to Latte and dark keeps Macchiato.',
-        mocha: 'Catppuccin Mocha',
-        mochaDescription:
-          'Adaptive Catppuccin family; light resolves to Latte and dark keeps Mocha.',
+        clayDescription: 'Warm paper surfaces in the Anthropic editorial tone.',
         catppuccin: 'Catppuccin',
         catppuccinDescription:
           'Adaptive Catppuccin family; light resolves to Latte and dark resolves to Mocha.',
+        resolvedLatte: 'Latte',
+        resolvedMocha: 'Mocha',
       },
       accent: {
         eyebrow: 'Accent',
@@ -2626,13 +2616,13 @@ export default {
         description:
           'Recolor primary actions and highlights only. Functional colors stay the same.',
         clay: 'Clay',
-        sand: 'Sand',
+        clayDescription: 'Signature warm orange for primary actions.',
         sage: 'Sage',
+        sageDescription: 'Calm green with an organic, low-noise feel.',
         sky: 'Sky',
+        skyDescription: 'Clear blue for a cool, technical accent.',
         mauve: 'Mauve',
-        amber: 'Amber',
-        rose: 'Rose',
-        slate: 'Slate',
+        mauveDescription: 'Soft violet with a quiet, refined presence.',
       },
       typography: {
         eyebrow: 'Typography',
