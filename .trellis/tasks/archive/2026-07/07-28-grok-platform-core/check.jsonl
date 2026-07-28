@@ -1,0 +1,4 @@
+{"file": ".trellis/tasks/07-28-grok-platform-core/prd.md", "reason": "验收标准与 R1-R5 需求（检查基准）"}
+{"file": ".trellis/tasks/07-28-grok-profile-switch/research/platform-enum-impact-map.md", "reason": "核对每个穷举 match 臂决策与影响图一致、无 _ => 兜底"}
+{"file": ".trellis/spec/ccr-cli/backend/index.md", "reason": "ccr-cli 规范验证入口"}
+{"file": ".trellis/spec/ccr-config/backend/index.md", "reason": "ccr-config 规范验证入口"}
