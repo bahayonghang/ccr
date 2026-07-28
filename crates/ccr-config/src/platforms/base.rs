@@ -485,6 +485,33 @@ pub fn update_registry_current_profile_with_paths(
     Ok(())
 }
 
+/// Clear one platform's current profile under the shared registry RMW lock.
+pub fn clear_registry_current_profile_with_paths(
+    registry_path: &Path,
+    lock_dir: &Path,
+    platform_name: &str,
+) -> Result<()> {
+    let mut cleared = false;
+    save_platform_registry_with_paths(
+        registry_path.to_path_buf(),
+        lock_dir.to_path_buf(),
+        |unified_config| {
+            if let Ok(entry) = unified_config.get_platform_mut(platform_name)
+                && entry.current_profile.take().is_some()
+            {
+                entry.last_used = Some(chrono::Utc::now().to_rfc3339());
+                cleared = true;
+            }
+            Ok(())
+        },
+    )?;
+
+    if cleared && let Some(root) = registry_path.parent() {
+        crate::managers::provider_activation::record_clear(root, platform_name);
+    }
+    Ok(())
+}
+
 /// 🔀 删除当前 profile 后的重定向结果（用于记录激活时间线）
 enum ReconcileOutcome {
     Activate(String),
@@ -709,6 +736,36 @@ mod tests {
         assert_eq!(
             reloaded.get_platform("gemini").unwrap().current_profile,
             None
+        );
+    }
+
+    #[test]
+    fn test_clear_registry_current_profile_preserves_other_platforms() {
+        let env = TestCcrEnv::new();
+        let manager = PlatformConfigManager::with_default().unwrap();
+        let mut unified_config = UnifiedConfig::default();
+        for (platform, profile) in [("grok", "relay"), ("codex", "official")] {
+            unified_config
+                .register_platform(platform.into(), PlatformConfigEntry::default())
+                .unwrap();
+            unified_config
+                .set_platform_profile(platform, profile)
+                .unwrap();
+        }
+        manager.save(&unified_config).unwrap();
+
+        clear_registry_current_profile_with_paths(manager.config_path(), env.lock_dir(), "grok")
+            .unwrap();
+
+        let reloaded = manager.load().unwrap();
+        assert_eq!(reloaded.get_platform("grok").unwrap().current_profile, None);
+        assert_eq!(
+            reloaded
+                .get_platform("codex")
+                .unwrap()
+                .current_profile
+                .as_deref(),
+            Some("official")
         );
     }
 

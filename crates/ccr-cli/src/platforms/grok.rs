@@ -669,14 +669,11 @@ impl GrokPlatform {
         if !self.paths.registry_file.exists() {
             return Ok(());
         }
-        let manager = PlatformConfigManager::new(&self.paths.registry_file);
-        let mut config = manager.load()?;
-        if let Ok(entry) = config.get_platform_mut("grok") {
-            entry.current_profile = None;
-            entry.last_used = Some(chrono::Utc::now().to_rfc3339());
-            manager.save(&config)?;
-        }
-        Ok(())
+        base::clear_registry_current_profile_with_paths(
+            &self.paths.registry_file,
+            &self.registry_lock_dir(),
+            "grok",
+        )
     }
 
     fn current_profile_from_registry(&self) -> Result<Option<String>> {
@@ -767,6 +764,14 @@ impl PlatformConfig for GrokPlatform {
         let fallback_current = self.fallback_current_profile_from_file()?;
         let active_by_intent = self.current_profile_from_registry()?.as_deref() == Some(name)
             || fallback_current.as_deref() == Some(name);
+        if self.load_entry_state()?.is_none()
+            && (active_by_intent || self.runtime_has_managed_shape()?)
+        {
+            return Err(CcrError::ConfigError(
+                "Grok 入口配置状态缺失，拒绝删除 profile 以避免遗留凭据；请先备份 config.toml 并手工恢复 [model.custom] 与 [models].default"
+                    .into(),
+            ));
+        }
         let active_by_runtime = match profiles.get(name) {
             Some(profile) => self.runtime_matches_profile(name, profile)?,
             None => false,
@@ -1254,6 +1259,24 @@ fork_secondary_model = "custom"
 
         let result = platform.clear_active_profile_runtime();
         assert!(result.is_err());
+        assert_eq!(
+            read_config(&platform)["model"]["custom"]["api_key"].as_str(),
+            Some("INLINE_SECRET_SENTINEL")
+        );
+    }
+
+    #[test]
+    fn delete_rejects_managed_runtime_when_state_and_pointers_are_missing() {
+        let (_home, platform) = platform();
+        platform.save_profile("relay", &inline_profile()).unwrap();
+        platform.apply_profile("relay").unwrap();
+        fs::remove_file(platform.entry_state_path()).unwrap();
+        platform.clear_profiles_current_config().unwrap();
+        platform.clear_current_profile_registry().unwrap();
+
+        let result = platform.delete_profile("relay");
+        assert!(matches!(result, Err(CcrError::ConfigError(_))));
+        assert!(platform.load_profiles().unwrap().contains_key("relay"));
         assert_eq!(
             read_config(&platform)["model"]["custom"]["api_key"].as_str(),
             Some("INLINE_SECRET_SENTINEL")
