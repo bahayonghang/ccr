@@ -1,6 +1,6 @@
 # `grok` - Grok Build Profile Runtime
 
-`ccr grok` manages model and third-party provider profiles for Grok Build. CCR only manages `[model.custom]` and `[models].default` in `~/.grok/config.toml`. It never reads or writes `auth.json` or `mcp_credentials.json`.
+`ccr grok` manages model and third-party provider profiles for Grok Build. CCR manages `[model.custom]`, `[models].default`, and `[models].default_reasoning_effort` in `~/.grok/config.toml`. It never reads or writes `auth.json` or `mcp_credentials.json`.
 
 ## Commands
 
@@ -34,13 +34,21 @@ ccr grok profile create relay \
   --env-key GROK_RELAY_API_KEY \
   --api-backend responses \
   --context-window 1000000 \
+  --reasoning-effort high \
   --supports-backend-search
 
 ccr grok profile switch relay
 ccr grok profile current --json
 ```
 
-`api_backend` accepts `chat_completions`, `responses`, or `messages`. `set-field` supports `api_backend`, `env_key`, `context_window`, and `supports_backend_search`; use `--clear` to remove one.
+`api_backend` accepts `chat_completions`, `responses`, or `messages`. `reasoning_effort` accepts Grok Build's canonical `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, and `max` levels; other values are rejected. `set-field` supports `api_backend`, `env_key`, `context_window`, `supports_backend_search`, and `reasoning_effort`; use `--clear` to remove one:
+
+```bash
+ccr grok profile set-field relay reasoning_effort --value high
+ccr grok profile current --json
+```
+
+For third-party profiles, CCR writes `[model.custom].reasoning_effort`, derives `[model.custom].supports_reasoning_effort = true`, and synchronizes `[models].default_reasoning_effort`. Official profiles only set the global default. Switching to a profile without the field or running `off` restores the default reasoning effort captured on entry to profile mode.
 
 ## Credential Boundary
 

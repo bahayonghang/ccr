@@ -46,6 +46,8 @@ struct GrokProfileSummary {
     context_window: Option<u64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     supports_backend_search: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    reasoning_effort: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -106,6 +108,7 @@ fn profile_summary(
         .platform_data
         .get("supports_backend_search")
         .and_then(serde_json::Value::as_bool);
+    let reasoning_effort = profile_string(&profile, "reasoning_effort");
 
     Ok(GrokProfileSummary {
         is_current: current_profile == Some(name.as_str()),
@@ -120,6 +123,7 @@ fn profile_summary(
         env_key,
         context_window,
         supports_backend_search,
+        reasoning_effort,
     })
 }
 
@@ -262,6 +266,7 @@ pub async fn create_command(args: GrokProfileCreateActionArgs) -> Result<()> {
         env_key: args.env_key,
         context_window: args.context_window,
         supports_backend_search: args.supports_backend_search,
+        reasoning_effort: args.reasoning_effort,
         disabled: args.disabled,
         json: args.json,
     })

@@ -51,6 +51,7 @@ pub struct PlatformProfileCreateArgs {
     pub env_key: Option<String>,
     pub context_window: Option<u64>,
     pub supports_backend_search: Option<bool>,
+    pub reasoning_effort: Option<String>,
     pub disabled: bool,
     pub json: bool,
 }
@@ -254,6 +255,26 @@ fn update_profile_field(
                 );
             }
         }
+        "reasoning_effort" => {
+            if clear {
+                profile.platform_data.shift_remove("reasoning_effort");
+            } else {
+                if value_json.is_some() {
+                    return Err(CcrError::ValidationError(
+                        "reasoning_effort 需要非空字符串".into(),
+                    ));
+                }
+                let value = value.ok_or_else(|| {
+                    CcrError::ValidationError("reasoning_effort 需要非空字符串".into())
+                })?;
+                let normalized =
+                    crate::platforms::GrokPlatform::normalize_reasoning_effort(&value)?;
+                profile.platform_data.insert(
+                    "reasoning_effort".to_string(),
+                    serde_json::Value::String(normalized),
+                );
+            }
+        }
         "tags" => {
             if clear {
                 profile.tags = None;
@@ -304,6 +325,7 @@ pub async fn platform_profile_create_command(args: PlatformProfileCreateArgs) ->
         env_key,
         context_window,
         supports_backend_search,
+        reasoning_effort,
         disabled,
         json,
     } = args;
@@ -362,6 +384,13 @@ pub async fn platform_profile_create_command(args: PlatformProfileCreateArgs) ->
         (
             "supports_backend_search",
             supports_backend_search.map(serde_json::Value::Bool),
+        ),
+        (
+            "reasoning_effort",
+            reasoning_effort
+                .map(|value| crate::platforms::GrokPlatform::normalize_reasoning_effort(&value))
+                .transpose()?
+                .map(serde_json::Value::String),
         ),
     ] {
         if let Some(value) = value {
@@ -558,17 +587,27 @@ mod tests {
             false,
         )
         .unwrap();
+        update_profile_field(
+            &mut profile,
+            "reasoning_effort",
+            Some(" HIGH ".into()),
+            None,
+            false,
+        )
+        .unwrap();
 
         assert_eq!(profile.platform_data["api_backend"], "messages");
         assert_eq!(profile.platform_data["env_key"], "GROK_RELAY_KEY");
         assert_eq!(profile.platform_data["context_window"], 1_000_000);
         assert_eq!(profile.platform_data["supports_backend_search"], true);
+        assert_eq!(profile.platform_data["reasoning_effort"], "high");
 
         for field in [
             "api_backend",
             "env_key",
             "context_window",
             "supports_backend_search",
+            "reasoning_effort",
         ] {
             update_profile_field(&mut profile, field, None, None, true).unwrap();
             assert!(!profile.platform_data.contains_key(field));
@@ -582,6 +621,13 @@ mod tests {
             ("context_window", Some("0".to_string()), None),
             ("supports_backend_search", Some("maybe".to_string()), None),
             ("env_key", None, Some(r#"["A","B"]"#.to_string())),
+            ("reasoning_effort", Some("  ".to_string()), None),
+            (
+                "reasoning_effort",
+                Some("model-specific-option".to_string()),
+                None,
+            ),
+            ("reasoning_effort", None, Some(r#""high""#.to_string())),
         ];
 
         for (field, value, value_json) in invalid {

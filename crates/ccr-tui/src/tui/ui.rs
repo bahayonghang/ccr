@@ -1086,6 +1086,7 @@ fn grok_profile_detail_lines(
             .emphasized(),
             compact,
         ),
+        detail_line(grok_reasoning_effort_field(config), compact),
         detail_line(
             DetailField::new(DetailKey::ApiBackend, api_backend, DetailTone::Info),
             compact,
@@ -1867,6 +1868,46 @@ fn codex_reasoning_effort_field(config: &ProfileConfig) -> DetailField {
                 _ => DetailTone::Warning,
             };
             (normalized, tone)
+        }
+        Some(_) => (
+            crate::tui_text!("invalid", "无效").to_string(),
+            DetailTone::Warning,
+        ),
+    };
+
+    DetailField::new(DetailKey::ReasoningEffort, value, tone).emphasized()
+}
+
+fn grok_reasoning_effort_field(config: &ProfileConfig) -> DetailField {
+    let (value, tone) = match config.platform_data.get("reasoning_effort") {
+        None | Some(serde_json::Value::Null) => ("-".to_string(), DetailTone::Muted),
+        Some(serde_json::Value::String(raw)) if raw.trim().is_empty() => {
+            ("-".to_string(), DetailTone::Muted)
+        }
+        Some(serde_json::Value::String(raw)) => {
+            let trimmed = raw.trim();
+            let normalized = trimmed.to_ascii_lowercase();
+            let (value, tone) = match normalized.as_str() {
+                "none" | "minimal" => (normalized, DetailTone::Muted),
+                "low" => (normalized, DetailTone::Info),
+                "medium" => (
+                    normalized,
+                    DetailTone::Accent {
+                        platform: Platform::Grok,
+                        strong: false,
+                    },
+                ),
+                "high" => (
+                    normalized,
+                    DetailTone::Accent {
+                        platform: Platform::Grok,
+                        strong: true,
+                    },
+                ),
+                "xhigh" | "max" => (normalized, DetailTone::StrongWarning),
+                _ => (trimmed.to_string(), DetailTone::Warning),
+            };
+            (value, tone)
         }
         Some(_) => (
             crate::tui_text!("invalid", "无效").to_string(),
@@ -2878,6 +2919,9 @@ mod tests {
             "supports_backend_search".to_string(),
             serde_json::json!(true),
         );
+        config
+            .platform_data
+            .insert("reasoning_effort".to_string(), serde_json::json!("HIGH"));
 
         let text =
             detail_texts(&grok_profile_detail_lines("relay", &config, true, false)).join("\n");
@@ -2890,6 +2934,57 @@ mod tests {
         assert!(text.contains("env_key (XAI_API_KEY)"), "{text}");
         assert!(text.contains("1000000"), "{text}");
         assert!(text.contains("yes"), "{text}");
+        assert!(text.contains("reasoning_effort"), "{text}");
+        assert!(text.contains("high"), "{text}");
+    }
+
+    #[test]
+    fn grok_reasoning_effort_maps_missing_valid_and_invalid_values() {
+        let missing = grok_reasoning_effort_field(&ProfileConfig::new());
+        assert_eq!(missing.value, "-");
+        assert_eq!(missing.tone, DetailTone::Muted);
+
+        let cases = [
+            ("NONE", "none", DetailTone::Muted),
+            ("minimal", "minimal", DetailTone::Muted),
+            ("low", "low", DetailTone::Info),
+            (
+                "medium",
+                "medium",
+                DetailTone::Accent {
+                    platform: Platform::Grok,
+                    strong: false,
+                },
+            ),
+            (
+                "HIGH",
+                "high",
+                DetailTone::Accent {
+                    platform: Platform::Grok,
+                    strong: true,
+                },
+            ),
+            ("xhigh", "xhigh", DetailTone::StrongWarning),
+            ("MAX", "max", DetailTone::StrongWarning),
+            ("model-option", "model-option", DetailTone::Warning),
+        ];
+        for (raw, expected, tone) in cases {
+            let mut config = ProfileConfig::new();
+            config
+                .platform_data
+                .insert("reasoning_effort".to_string(), serde_json::json!(raw));
+            let field = grok_reasoning_effort_field(&config);
+            assert_eq!(field.value, expected);
+            assert_eq!(field.tone, tone);
+        }
+
+        let mut invalid = ProfileConfig::new();
+        invalid
+            .platform_data
+            .insert("reasoning_effort".to_string(), serde_json::json!(true));
+        let field = grok_reasoning_effort_field(&invalid);
+        assert_eq!(field.value, "invalid");
+        assert_eq!(field.tone, DetailTone::Warning);
     }
 
     #[test]

@@ -30,6 +30,74 @@ Surface recoverable profile/auth loading failures inside the UI as issue strings
 
 Do not let logs corrupt the terminal. The root binary selects file-only logging for TUI mode.
 
+## Scenario: Profile Load Issue Presentation
+
+### 1. Scope / Trigger
+
+- Trigger: displaying profile registry or current-profile load failures in the
+  TUI.
+- Applies to `format_issue`, `profile_source_path`,
+  `current_profile_source_path`, and profile-tab error rendering.
+
+### 2. Signatures
+
+- `format_issue(location: String, error: &dyn Display) -> String`
+- Shared profile parsing remains owned by `ccr-config`; the TUI receives an
+  already classified `CcrError`.
+
+### 3. Contracts
+
+- Render stable blocks as `Where:\n  <location>\n\nWhat:\n  <reason>`.
+- Indent every continuation line by two spaces so a long Windows path or a
+  fallback path cannot visually merge with `What`.
+- When the lower-layer error already contains the exact `Where` location,
+  remove one leading duplicate while preserving the error category and reason.
+- Do not parse TOML, infer fields, or expose source text in `ccr-tui`.
+
+### 4. Validation & Error Matrix
+
+- Single profile path + classified parse error -> one path and one reason.
+- Registry path plus fallback profile path -> both remain under `Where`, each
+  indented, with `What` starting after a blank line.
+- Error with one leading duplicate path -> strip only that matching prefix.
+- Non-matching path text inside the reason -> preserve it; do not perform broad
+  replacement.
+
+### 5. Good/Base/Bad Cases
+
+- Good: a long Grok `profiles.toml` path wraps inside `Where` while the profile
+  structure error remains separately scannable under `What`.
+- Base: a short config error uses the same block layout.
+- Bad: `Where: <path>\nWhat: <path>: <nested error>` duplicates the path and
+  lets terminal wrapping join the two labels visually.
+
+### 6. Tests Required
+
+- Assert the exact `Where` / blank-line / `What` block boundaries.
+- Assert a duplicated long Windows path occurs once and the actionable parser
+  reason survives.
+- Assert multiline fallback locations indent every continuation line.
+- Run `cargo test -p ccr-tui -- --test-threads=1` and strict Clippy.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```rust
+format!("Where: {location}\nWhat: {error}")
+```
+
+#### Correct
+
+```rust
+let reason = strip_duplicate_issue_location(&error.to_string(), &location);
+format!(
+    "Where:\n  {}\n\nWhat:\n  {}",
+    indent_issue_value(&location),
+    indent_issue_value(&reason),
+)
+```
+
 ## Interaction Rules
 
 Maintain stable tab/profile selection across refreshes where possible. Use explicit cached `Rect` fields for mouse hit-testing, as `App` does with `header_area`, `list_area`, and `detail_area`.

@@ -48,7 +48,7 @@ pub enum GrokProfileAction {
     Switch { name: String },
 
     /// Create a Grok profile
-    Create(GrokProfileCreateActionArgs),
+    Create(Box<GrokProfileCreateActionArgs>),
 
     /// Update one Grok profile field
     SetField(ProfileSetFieldActionArgs),
@@ -98,6 +98,8 @@ pub struct GrokProfileCreateActionArgs {
         default_missing_value = "true"
     )]
     pub supports_backend_search: Option<bool>,
+    #[arg(long = "reasoning-effort")]
+    pub reasoning_effort: Option<String>,
     #[arg(long)]
     pub disabled: bool,
     #[arg(long)]

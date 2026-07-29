@@ -141,11 +141,35 @@ fn current_profile_source_path(platform: Platform) -> String {
 }
 
 fn format_issue(location: String, error: &dyn std::fmt::Display) -> String {
+    let error = error.to_string();
+    let error = strip_duplicate_issue_location(&error, &location);
+    let location = indent_issue_value(&location);
+    let error = indent_issue_value(&error);
+
     format!(
-        "{}: {location}\n{}: {error}",
+        "{}:\n  {location}\n\n{}:\n  {error}",
         i18n::text(Message::Where),
         i18n::text(Message::What)
     )
+}
+
+fn strip_duplicate_issue_location(error: &str, location: &str) -> String {
+    let location_prefix = format!("{location}: ");
+    if let Some(reason) = error.strip_prefix(&location_prefix) {
+        return reason.to_string();
+    }
+
+    if let Some((category, detail)) = error.split_once(": ")
+        && let Some(reason) = detail.strip_prefix(&location_prefix)
+    {
+        return format!("{category}: {reason}");
+    }
+
+    error.to_string()
+}
+
+fn indent_issue_value(value: &str) -> String {
+    value.replace('\n', "\n  ")
 }
 
 fn tab_config_id(tab: &PlatformTab) -> Option<TuiTabId> {
@@ -2394,10 +2418,42 @@ mod tests {
         let tab_data = App::build_profile_tab_data(&platform);
         let error = tab_data.profile_load_error.unwrap();
 
-        assert!(error.contains("Where:"));
+        assert!(error.contains("Where:\n  "));
         assert!(error.contains("profiles.toml"));
-        assert!(error.contains("What:"));
+        assert!(error.contains("\n\nWhat:\n  "));
         assert!(error.contains("TOML 解析失败"));
+    }
+
+    #[test]
+    fn format_issue_separates_long_location_and_removes_duplicate_path() {
+        i18n::set_language(TuiLanguage::English);
+        let location = format!(
+            "C:\\Users\\lyh\\.ccr\\platforms\\grok\\{}\\profiles.toml",
+            "nested\\directory\\".repeat(8)
+        );
+        let error = CcrError::ConfigFormatInvalid(format!(
+            "{location}: profile 结构错误（第 13 行，第 17 列）：provider_type 的值不受支持"
+        ));
+
+        let formatted = format_issue(location.clone(), &error);
+
+        assert!(formatted.starts_with("Where:\n  "));
+        assert!(formatted.contains("\n\nWhat:\n  配置格式无效: profile 结构错误"));
+        assert!(formatted.contains("第 13 行，第 17 列"));
+        assert!(formatted.contains("provider_type 的值不受支持"));
+        assert_eq!(formatted.matches(&location).count(), 1);
+    }
+
+    #[test]
+    fn format_issue_indents_multiline_location_values() {
+        i18n::set_language(TuiLanguage::English);
+        let formatted = format_issue(
+            "C:\\registry.toml\nFallback: C:\\profiles.toml".to_string(),
+            &CcrError::ConfigError("registry broken".to_string()),
+        );
+
+        assert!(formatted.contains("Where:\n  C:\\registry.toml\n  Fallback: C:\\profiles.toml"));
+        assert!(formatted.contains("\n\nWhat:\n  配置文件错误: registry broken"));
     }
 
     #[test]
@@ -2411,11 +2467,11 @@ mod tests {
         let tab_data = App::build_profile_tab_data(&platform);
         let error = tab_data.current_profile_error.unwrap();
 
-        assert!(error.contains("Where:"));
+        assert!(error.contains("Where:\n  "));
         assert!(error.contains("config.toml"));
         assert!(error.contains("Fallback:"));
         assert!(error.contains("profiles.toml"));
-        assert!(error.contains("What:"));
+        assert!(error.contains("\n\nWhat:\n  "));
         assert!(error.contains("registry broken"));
     }
 

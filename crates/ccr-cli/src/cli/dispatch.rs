@@ -609,7 +609,7 @@ impl CommandDispatcher {
                     crate::commands::grok::profile::switch_command(name).await
                 }
                 GrokProfileAction::Create(args) => {
-                    crate::commands::grok::profile::create_command(args.clone()).await
+                    crate::commands::grok::profile::create_command(args.as_ref().clone()).await
                 }
                 GrokProfileAction::SetField(args) => {
                     crate::commands::grok::profile::set_field_command(args.clone()).await

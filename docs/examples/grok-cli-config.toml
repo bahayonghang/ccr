@@ -3,6 +3,7 @@
 
 [models]
 default = "custom"
+default_reasoning_effort = "high"
 
 [model.custom]
 name = "Example Grok-compatible relay"
@@ -12,6 +13,8 @@ api_backend = "responses"
 env_key = "GROK_RELAY_API_KEY"
 context_window = 1000000
 supports_backend_search = true
+supports_reasoning_effort = true
+reasoning_effort = "high"
 
 # CCR preserves unrelated sections structurally.
 [ui]

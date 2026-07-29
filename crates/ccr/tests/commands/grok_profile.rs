@@ -25,7 +25,7 @@ impl GrokProfileFixture {
         fs::create_dir_all(&grok_home).unwrap();
         fs::write(
             grok_home.join("config.toml"),
-            "[models]\ndefault = \"grok-native\"\n\n[ui]\ntheme = \"dark\"\n",
+            "[models]\ndefault = \"grok-native\"\ndefault_reasoning_effort = \"low\"\n\n[ui]\ntheme = \"dark\"\n",
         )
         .unwrap();
 
@@ -91,6 +91,8 @@ impl GrokProfileFixture {
             "--context-window",
             "1000000",
             "--supports-backend-search",
+            "--reasoning-effort",
+            "HIGH",
             "--json",
         ])
     }
@@ -266,8 +268,20 @@ fn grok_profile_command_flow_masks_secrets_and_restores_entry_runtime() {
     let runtime = fixture.runtime();
     assert_eq!(runtime["models"]["default"].as_str(), Some("custom"));
     assert_eq!(
+        runtime["models"]["default_reasoning_effort"].as_str(),
+        Some("high")
+    );
+    assert_eq!(
         runtime["model"]["custom"]["api_key"].as_str(),
         Some(INLINE_SECRET)
+    );
+    assert_eq!(
+        runtime["model"]["custom"]["supports_reasoning_effort"].as_bool(),
+        Some(true)
+    );
+    assert_eq!(
+        runtime["model"]["custom"]["reasoning_effort"].as_str(),
+        Some("high")
     );
     assert_eq!(runtime["ui"]["theme"].as_str(), Some("dark"));
 
@@ -278,6 +292,7 @@ fn grok_profile_command_flow_masks_secrets_and_restores_entry_runtime() {
     assert_eq!(current_json["platform"], "grok");
     assert_eq!(current_json["profile"], "relay");
     assert_eq!(current_json["details"]["auth_mode"], "inline_api_key");
+    assert_eq!(current_json["details"]["reasoning_effort"], "high");
     assert_eq!(
         current_json["details"]["base_url"],
         "https://api.example.com/v1"
@@ -289,6 +304,7 @@ fn grok_profile_command_flow_masks_secrets_and_restores_entry_runtime() {
     let (list_output, list_json) = fixture.run_json(&["grok", "profile", "list", "--json"]);
     assert_success(&list_output);
     assert_eq!(list_json["current_profile"], "relay");
+    assert_eq!(list_json["profiles"][0]["reasoning_effort"], "high");
     assert!(!String::from_utf8_lossy(&list_output.stdout).contains(INLINE_SECRET));
 
     let (set_output, set_json) = fixture.run_json(&[
@@ -304,9 +320,66 @@ fn grok_profile_command_flow_masks_secrets_and_restores_entry_runtime() {
     assert_success(&set_output);
     assert_eq!(set_json["name"], "relay");
 
+    let invalid_effort = fixture.run_output(&[
+        "grok",
+        "profile",
+        "set-field",
+        "relay",
+        "reasoning_effort",
+        "--value",
+        "model-option",
+    ]);
+    assert!(!invalid_effort.status.success());
+    assert!(String::from_utf8_lossy(&invalid_effort.stderr).contains("允许值为"));
+
+    assert_success(&fixture.run_output(&[
+        "grok",
+        "profile",
+        "set-field",
+        "relay",
+        "reasoning_effort",
+        "--value",
+        "XHIGH",
+    ]));
+    assert_success(&fixture.run_output(&["grok", "profile", "switch", "relay"]));
+    let runtime = fixture.runtime();
+    assert_eq!(
+        runtime["models"]["default_reasoning_effort"].as_str(),
+        Some("xhigh")
+    );
+    assert_eq!(
+        runtime["model"]["custom"]["reasoning_effort"].as_str(),
+        Some("xhigh")
+    );
+
+    assert_success(&fixture.run_output(&[
+        "grok",
+        "profile",
+        "set-field",
+        "relay",
+        "reasoning_effort",
+        "--clear",
+    ]));
+    assert_success(&fixture.run_output(&["grok", "profile", "switch", "relay"]));
+    let runtime = fixture.runtime();
+    assert_eq!(
+        runtime["models"]["default_reasoning_effort"].as_str(),
+        Some("low")
+    );
+    assert!(
+        runtime["model"]["custom"]
+            .get("supports_reasoning_effort")
+            .is_none()
+    );
+    assert!(runtime["model"]["custom"].get("reasoning_effort").is_none());
+
     assert_success(&fixture.run_output(&["grok", "profile", "off"]));
     let restored = fixture.runtime();
     assert_eq!(restored["models"]["default"].as_str(), Some("grok-native"));
+    assert_eq!(
+        restored["models"]["default_reasoning_effort"].as_str(),
+        Some("low")
+    );
     assert!(restored.get("model").is_none());
     assert_eq!(restored["ui"]["theme"].as_str(), Some("dark"));
 

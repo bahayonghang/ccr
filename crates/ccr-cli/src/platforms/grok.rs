@@ -32,6 +32,7 @@ const GROK_EDITABLE_FIELDS: &[&str] = &[
     "env_key",
     "context_window",
     "supports_backend_search",
+    "reasoning_effort",
 ];
 
 /// Credential source selected for one Grok profile.
@@ -62,6 +63,8 @@ struct ProfileEntryConfigState {
     content: Option<String>,
     original_custom_model: Option<toml::Value>,
     original_default_model: Option<String>,
+    #[serde(default)]
+    original_default_reasoning_effort: Option<toml::Value>,
 }
 
 /// Grok Build platform implementation.
@@ -74,6 +77,28 @@ impl GrokPlatform {
     /// Fields accepted by the shared profile command surface.
     pub fn editable_fields() -> &'static [&'static str] {
         GROK_EDITABLE_FIELDS
+    }
+
+    /// Normalize one of Grok Build's canonical reasoning-effort values.
+    pub fn normalize_reasoning_effort(value: &str) -> Result<String> {
+        let trimmed = value.trim();
+        if trimmed.is_empty() {
+            return Err(CcrError::ValidationError(
+                "Grok reasoning_effort 不能为空字符串".into(),
+            ));
+        }
+
+        let canonical = trimmed.to_ascii_lowercase();
+        if matches!(
+            canonical.as_str(),
+            "none" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max"
+        ) {
+            Ok(canonical)
+        } else {
+            Err(CcrError::ValidationError(format!(
+                "Grok reasoning_effort 不受支持: {trimmed}; 允许值为 none、minimal、low、medium、high、xhigh、max"
+            )))
+        }
     }
 
     /// Create a platform using the process environment.
@@ -260,6 +285,16 @@ impl GrokPlatform {
         }
     }
 
+    fn profile_reasoning_effort(profile: &ProfileConfig) -> Result<Option<String>> {
+        match profile.platform_data.get("reasoning_effort") {
+            None | Some(JsonValue::Null) => Ok(None),
+            Some(JsonValue::String(value)) => Self::normalize_reasoning_effort(value).map(Some),
+            Some(_) => Err(CcrError::ValidationError(
+                "Grok reasoning_effort 必须是字符串".into(),
+            )),
+        }
+    }
+
     fn is_valid_env_key(value: &str) -> bool {
         let mut chars = value.chars();
         let Some(first) = chars.next() else {
@@ -364,11 +399,17 @@ impl GrokPlatform {
             .and_then(|models| models.get("default"))
             .and_then(toml::Value::as_str)
             .map(str::to_string);
+        let original_default_reasoning_effort = config
+            .get("models")
+            .and_then(toml::Value::as_table)
+            .and_then(|models| models.get("default_reasoning_effort"))
+            .cloned();
         let state = ProfileEntryConfigState {
             exists,
             content,
             original_custom_model,
             original_default_model,
+            original_default_reasoning_effort,
         };
         let serialized = serde_json::to_string_pretty(&state).map_err(|error| {
             CcrError::ConfigError(format!("序列化 Grok 入口配置状态失败: {error}"))
@@ -456,6 +497,7 @@ impl GrokPlatform {
             }
             None => Self::remove_default_model(root)?,
         }
+        Self::restore_default_reasoning_effort(root, state)?;
         Ok(())
     }
 
@@ -472,12 +514,70 @@ impl GrokPlatform {
         Ok(())
     }
 
+    fn restore_default_reasoning_effort(
+        root: &mut toml::Table,
+        state: &ProfileEntryConfigState,
+    ) -> Result<()> {
+        let original = state
+            .original_default_reasoning_effort
+            .clone()
+            .or_else(|| Self::legacy_default_reasoning_effort(state));
+        match original {
+            Some(original) => {
+                Self::table_mut(root, "models")?
+                    .insert("default_reasoning_effort".into(), original);
+            }
+            None => {
+                if let Some(models) = root.get_mut("models") {
+                    let models = models.as_table_mut().ok_or_else(|| {
+                        CcrError::ConfigFormatInvalid(
+                            "Grok config.toml 的 [models] 必须是 table".into(),
+                        )
+                    })?;
+                    models.remove("default_reasoning_effort");
+                    if models.is_empty() {
+                        root.remove("models");
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn legacy_default_reasoning_effort(state: &ProfileEntryConfigState) -> Option<toml::Value> {
+        let content = state.content.as_deref()?;
+        let config = toml::from_str::<toml::Value>(content).ok()?;
+        config
+            .get("models")?
+            .as_table()?
+            .get("default_reasoning_effort")
+            .cloned()
+    }
+
+    fn apply_default_reasoning_effort(
+        root: &mut toml::Table,
+        effort: Option<&str>,
+        state: &ProfileEntryConfigState,
+    ) -> Result<()> {
+        match effort {
+            Some(effort) => {
+                Self::table_mut(root, "models")?.insert(
+                    "default_reasoning_effort".into(),
+                    toml::Value::String(effort.to_string()),
+                );
+                Ok(())
+            }
+            None => Self::restore_default_reasoning_effort(root, state),
+        }
+    }
+
     fn apply_profile_to_config(
         config: &mut toml::Value,
         name: &str,
         profile: &ProfileConfig,
         state: &ProfileEntryConfigState,
     ) -> Result<()> {
+        let reasoning_effort = Self::profile_reasoning_effort(profile)?;
         if Self::is_official_profile(profile) {
             Self::restore_entry_state(config, state)?;
             let root = Self::root_table_mut(config)?;
@@ -487,6 +587,7 @@ impl GrokPlatform {
             } else {
                 Self::remove_default_model(root)?;
             }
+            Self::apply_default_reasoning_effort(root, reasoning_effort.as_deref(), state)?;
             return Ok(());
         }
 
@@ -542,6 +643,16 @@ impl GrokPlatform {
                 toml::Value::Boolean(search),
             );
         }
+        if let Some(reasoning_effort) = reasoning_effort.as_deref() {
+            managed.insert(
+                "supports_reasoning_effort".into(),
+                toml::Value::Boolean(true),
+            );
+            managed.insert(
+                "reasoning_effort".into(),
+                toml::Value::String(reasoning_effort.to_string()),
+            );
+        }
 
         let root = Self::root_table_mut(config)?;
         Self::table_mut(root, "model")?
@@ -550,6 +661,7 @@ impl GrokPlatform {
             "default".into(),
             toml::Value::String(GROK_MANAGED_MODEL_KEY.into()),
         );
+        Self::apply_default_reasoning_effort(root, reasoning_effort.as_deref(), state)?;
         Ok(())
     }
 
@@ -752,9 +864,16 @@ impl PlatformConfig for GrokPlatform {
     }
 
     fn save_profile(&self, name: &str, profile: &ProfileConfig) -> Result<()> {
-        self.validate_profile(profile)?;
+        let mut normalized = profile.clone();
+        if let Some(reasoning_effort) = Self::profile_reasoning_effort(profile)? {
+            normalized.platform_data.insert(
+                "reasoning_effort".into(),
+                JsonValue::String(reasoning_effort),
+            );
+        }
+        self.validate_profile(&normalized)?;
         let mut profiles = self.load_profiles()?;
-        profiles.insert(name.to_string(), profile.clone());
+        profiles.insert(name.to_string(), normalized);
         self.save_profiles_to_file(&profiles)
     }
 
@@ -867,6 +986,7 @@ impl PlatformConfig for GrokPlatform {
         Self::profile_api_backend(profile)?;
         Self::profile_context_window(profile)?;
         Self::profile_backend_search(profile)?;
+        Self::profile_reasoning_effort(profile)?;
 
         if official {
             if Self::trimmed(profile.base_url.as_ref()).is_some() {
@@ -941,6 +1061,9 @@ mod tests {
         profile
             .platform_data
             .insert("supports_backend_search".into(), json!(true));
+        profile
+            .platform_data
+            .insert("reasoning_effort".into(), json!("high"));
         profile
     }
 
@@ -1030,10 +1153,63 @@ mod tests {
             .insert("supports_backend_search".into(), json!("yes"));
         assert!(platform.validate_profile(&invalid_backend_search).is_err());
 
+        let mut invalid_reasoning_effort = third_party_profile();
+        invalid_reasoning_effort
+            .platform_data
+            .insert("reasoning_effort".into(), json!(true));
+        assert!(
+            platform
+                .validate_profile(&invalid_reasoning_effort)
+                .is_err()
+        );
+
+        invalid_reasoning_effort
+            .platform_data
+            .insert("reasoning_effort".into(), json!("  "));
+        assert!(
+            platform
+                .validate_profile(&invalid_reasoning_effort)
+                .is_err()
+        );
+
+        invalid_reasoning_effort
+            .platform_data
+            .insert("reasoning_effort".into(), json!("model-option"));
+        assert!(
+            platform
+                .validate_profile(&invalid_reasoning_effort)
+                .is_err()
+        );
+
         let mut official_with_base_url = ProfileConfig::new();
         official_with_base_url.provider_type = Some("official".into());
         official_with_base_url.base_url = Some("https://api.example.com/v1".into());
         assert!(platform.validate_profile(&official_with_base_url).is_err());
+    }
+
+    #[test]
+    fn reasoning_effort_levels_round_trip_through_profile_storage() {
+        let (_home, platform) = platform();
+        let levels = ["none", "minimal", "low", "medium", "high", "xhigh", "max"];
+
+        for (index, level) in levels.iter().enumerate() {
+            let mut profile = third_party_profile();
+            profile.platform_data.insert(
+                "reasoning_effort".into(),
+                json!(format!(" {} ", level.to_ascii_uppercase())),
+            );
+            platform
+                .save_profile(&format!("relay-{index}"), &profile)
+                .unwrap();
+        }
+
+        let profiles = platform.load_profiles().unwrap();
+        for (index, level) in levels.iter().enumerate() {
+            assert_eq!(
+                profiles[&format!("relay-{index}")].platform_data["reasoning_effort"],
+                *level
+            );
+        }
     }
 
     #[test]
@@ -1050,6 +1226,7 @@ model = "keep-me"
 
 [models]
 default = "original"
+default_reasoning_effort = "low"
 
 [session]
 auto_compact_threshold_percent = 85
@@ -1084,6 +1261,10 @@ nested = "keep-me-too"
             Some("original-model")
         );
         assert_eq!(state.original_default_model.as_deref(), Some("original"));
+        assert_eq!(
+            state.original_default_reasoning_effort.as_ref(),
+            Some(&toml::Value::String("low".into()))
+        );
         assert!(
             !fs::read_dir(platform.config_path.parent().unwrap())
                 .unwrap()
@@ -1111,6 +1292,18 @@ nested = "keep-me-too"
             applied["model"]["custom"]["supports_backend_search"].as_bool(),
             Some(true)
         );
+        assert_eq!(
+            applied["model"]["custom"]["supports_reasoning_effort"].as_bool(),
+            Some(true)
+        );
+        assert_eq!(
+            applied["model"]["custom"]["reasoning_effort"].as_str(),
+            Some("high")
+        );
+        assert_eq!(
+            applied["models"]["default_reasoning_effort"].as_str(),
+            Some("high")
+        );
 
         platform.clear_active_profile_runtime().unwrap();
         let restored = read_config(&platform);
@@ -1119,6 +1312,10 @@ nested = "keep-me-too"
             Some("original-model")
         );
         assert_eq!(restored["models"]["default"].as_str(), Some("original"));
+        assert_eq!(
+            restored["models"]["default_reasoning_effort"].as_str(),
+            Some("low")
+        );
         assert!(!platform.entry_state_path().exists());
         assert_eq!(platform.get_current_profile().unwrap(), None);
     }
@@ -1153,11 +1350,44 @@ nested = "keep-me-too"
     }
 
     #[test]
+    fn official_reasoning_effort_only_updates_global_default() {
+        let (_home, platform) = platform();
+        fs::write(
+            &platform.config_path,
+            "[model.custom]\nmodel = \"entry\"\n\n[models]\ndefault = \"entry\"\ndefault_reasoning_effort = \"low\"\n",
+        )
+        .unwrap();
+        let mut official = ProfileConfig::new().with_model("grok-example".into());
+        official
+            .platform_data
+            .insert("reasoning_effort".into(), json!("HIGH"));
+        platform.save_profile("official", &official).unwrap();
+        platform.apply_profile("official").unwrap();
+
+        let config = read_config(&platform);
+        assert_eq!(config["model"]["custom"]["model"].as_str(), Some("entry"));
+        assert!(config["model"]["custom"].get("reasoning_effort").is_none());
+        assert!(
+            config["model"]["custom"]
+                .get("supports_reasoning_effort")
+                .is_none()
+        );
+        assert_eq!(
+            config["models"]["default_reasoning_effort"].as_str(),
+            Some("high")
+        );
+        assert_eq!(
+            platform.load_profiles().unwrap()["official"].platform_data["reasoning_effort"],
+            "high"
+        );
+    }
+
+    #[test]
     fn third_party_official_third_party_round_trip_keeps_entry_state() {
         let (_home, platform) = platform();
         fs::write(
             &platform.config_path,
-            "[model.custom]\nmodel = \"entry\"\n\n[models]\ndefault = \"entry\"\n",
+            "[model.custom]\nmodel = \"entry\"\n\n[models]\ndefault = \"entry\"\ndefault_reasoning_effort = \"minimal\"\n",
         )
         .unwrap();
         platform
@@ -1170,14 +1400,24 @@ nested = "keep-me-too"
         platform.apply_profile("relay").unwrap();
         let state_before = fs::read(platform.entry_state_path()).unwrap();
         platform.apply_profile("official").unwrap();
+        let official_config = read_config(&platform);
         assert_eq!(
-            read_config(&platform)["model"]["custom"]["model"].as_str(),
+            official_config["model"]["custom"]["model"].as_str(),
             Some("entry")
         );
-        platform.apply_profile("relay").unwrap();
         assert_eq!(
-            read_config(&platform)["model"]["custom"]["model"].as_str(),
+            official_config["models"]["default_reasoning_effort"].as_str(),
+            Some("minimal")
+        );
+        platform.apply_profile("relay").unwrap();
+        let relay_config = read_config(&platform);
+        assert_eq!(
+            relay_config["model"]["custom"]["model"].as_str(),
             Some("grok-4.5")
+        );
+        assert_eq!(
+            relay_config["models"]["default_reasoning_effort"].as_str(),
+            Some("high")
         );
         assert_eq!(fs::read(platform.entry_state_path()).unwrap(), state_before);
 
@@ -1185,6 +1425,40 @@ nested = "keep-me-too"
         let restored = read_config(&platform);
         assert_eq!(restored["model"]["custom"]["model"].as_str(), Some("entry"));
         assert_eq!(restored["models"]["default"].as_str(), Some("entry"));
+        assert_eq!(
+            restored["models"]["default_reasoning_effort"].as_str(),
+            Some("minimal")
+        );
+    }
+
+    #[test]
+    fn legacy_entry_state_recovers_reasoning_effort_from_content() {
+        let state: ProfileEntryConfigState = serde_json::from_str(
+            r#"{
+                "exists": true,
+                "content": "[models]\ndefault = \"entry\"\ndefault_reasoning_effort = \"low\"\n",
+                "original_custom_model": null,
+                "original_default_model": "entry"
+            }"#,
+        )
+        .unwrap();
+
+        assert_eq!(state.original_default_reasoning_effort, None);
+        let mut root = toml::Table::new();
+        root.insert(
+            "models".into(),
+            toml::toml! {
+                default = "custom"
+                default_reasoning_effort = "high"
+            }
+            .into(),
+        );
+
+        GrokPlatform::restore_default_reasoning_effort(&mut root, &state).unwrap();
+        assert_eq!(
+            root["models"]["default_reasoning_effort"].as_str(),
+            Some("low")
+        );
     }
 
     #[test]
@@ -1203,6 +1477,7 @@ nested = "keep-me-too"
             content: Some("api_key = \"RACE_SECRET_SENTINEL\"".into()),
             original_custom_model: None,
             original_default_model: Some("custom".into()),
+            original_default_reasoning_effort: Some(toml::Value::String("max".into())),
         };
         let replacement = serde_json::to_vec(&replacement).unwrap();
         assert_eq!(
@@ -1306,7 +1581,7 @@ nested = "keep-me-too"
             .unwrap();
         platform.apply_profile("relay").unwrap();
         let mut config = read_config(&platform);
-        config["models"]["default"] = toml::Value::String("other".into());
+        config["models"]["default_reasoning_effort"] = toml::Value::String("medium".into());
         fs::write(
             &platform.config_path,
             toml::to_string_pretty(&config).unwrap(),

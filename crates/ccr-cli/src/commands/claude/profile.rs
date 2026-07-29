@@ -173,6 +173,7 @@ pub async fn create_command(args: ProfileCreateActionArgs) -> Result<()> {
         env_key: None,
         context_window: None,
         supports_backend_search: None,
+        reasoning_effort: None,
         disabled: args.disabled,
         json: args.json,
     })

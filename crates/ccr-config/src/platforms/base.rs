@@ -23,6 +23,12 @@ use std::time::Duration;
 const PLATFORM_PROFILE_LOCK_TIMEOUT: Duration = Duration::from_secs(10);
 const PLATFORM_REGISTRY_LOCK_RESOURCE: &str = "platform_registry";
 
+#[derive(Clone, Copy)]
+enum ProfileDocumentShape {
+    Full,
+    Simplified,
+}
+
 fn profile_lock_resource(platform_name: &str) -> String {
     format!("platform_profiles_{}", platform_name)
 }
@@ -199,16 +205,235 @@ pub fn profile_to_section(profile: &ProfileConfig) -> Result<ConfigSection> {
 // 📖 从 TOML 文件加载 profiles
 // ═══════════════════════════════════════════════════════════
 
+fn profile_document_shape(document: &toml::Value) -> ProfileDocumentShape {
+    let has_scalar_metadata = document.as_table().is_some_and(|table| {
+        ["default_config", "current_config"].iter().any(|key| {
+            table
+                .get(*key)
+                .is_some_and(|value| value.as_table().is_none() && value.as_array().is_none())
+        })
+    });
+
+    if has_scalar_metadata {
+        ProfileDocumentShape::Full
+    } else {
+        ProfileDocumentShape::Simplified
+    }
+}
+
+fn line_column_at(content: &str, byte_offset: usize) -> (usize, usize) {
+    let byte_offset = byte_offset.min(content.len());
+    let mut line = 1;
+    let mut column = 1;
+
+    for (index, character) in content.char_indices() {
+        if index >= byte_offset {
+            break;
+        }
+
+        if character == '\n' {
+            line += 1;
+            column = 1;
+        } else {
+            column += 1;
+        }
+    }
+
+    (line, column)
+}
+
+fn safe_field_name_at(content: &str, byte_offset: usize) -> Option<String> {
+    let mut byte_offset = byte_offset.min(content.len());
+    while !content.is_char_boundary(byte_offset) {
+        byte_offset = byte_offset.saturating_sub(1);
+    }
+
+    let line_start = content[..byte_offset]
+        .rfind('\n')
+        .map_or(0, |index| index + 1);
+    let line_end = content[byte_offset..]
+        .find('\n')
+        .map_or(content.len(), |index| byte_offset + index);
+    let key = content[line_start..line_end]
+        .split_once('=')?
+        .0
+        .trim()
+        .rsplit('.')
+        .next()?
+        .trim();
+
+    (!key.is_empty()
+        && key
+            .chars()
+            .all(|character| character.is_ascii_alphanumeric() || matches!(character, '_' | '-')))
+    .then(|| key.to_string())
+}
+
+fn safe_expected_description(expected: &str) -> Option<&str> {
+    let expected = expected.trim();
+    (!expected.is_empty()
+        && expected.len() <= 200
+        && expected.chars().all(|character| {
+            character.is_ascii_alphanumeric()
+                || character.is_ascii_whitespace()
+                || matches!(
+                    character,
+                    '`' | '\'' | '"' | '_' | '-' | ',' | '.' | '(' | ')' | '[' | ']' | '/' | '|'
+                )
+        }))
+    .then_some(expected)
+}
+
+fn rejected_unknown_variant(message: &str) -> Option<&str> {
+    let (rejected, _) = message
+        .strip_prefix("unknown variant ")?
+        .split_once(", expected ")?;
+    let rejected = rejected.trim_matches(['`', '\'', '"']);
+    (!rejected.is_empty()).then_some(rejected)
+}
+
+fn assignment_value_offset(content: &str, field: &str, expected_value: &str) -> Option<usize> {
+    let mut line_offset = 0;
+
+    for line_with_ending in content.split_inclusive('\n') {
+        let line = line_with_ending.trim_end_matches(['\r', '\n']);
+        let Some((key, raw_value)) = line.split_once('=') else {
+            line_offset += line_with_ending.len();
+            continue;
+        };
+
+        if key.trim() == field {
+            let parsed = toml::from_str::<toml::Table>(line).ok();
+            let matches_value = parsed
+                .as_ref()
+                .and_then(|table| table.get(field))
+                .and_then(toml::Value::as_str)
+                == Some(expected_value);
+            if matches_value {
+                let leading_whitespace = raw_value.len() - raw_value.trim_start().len();
+                return Some(line_offset + key.len() + 1 + leading_whitespace);
+            }
+        }
+
+        line_offset += line_with_ending.len();
+    }
+
+    None
+}
+
+// Flattened full-profile tables can cause serde to report the root span. Recover
+// the precise provider_type value position without ever returning its contents.
+fn profile_error_context(
+    content: &str,
+    error: &toml::de::Error,
+) -> (Option<String>, Option<usize>) {
+    let message = error.message();
+    if message.contains("official_relay") && message.contains("third_party_model") {
+        let offset = rejected_unknown_variant(message)
+            .and_then(|value| assignment_value_offset(content, "provider_type", value));
+        return (Some("provider_type".to_string()), offset);
+    }
+
+    let offset = error.span().map(|span| span.start);
+    let field = offset.and_then(|offset| safe_field_name_at(content, offset));
+    (field, offset)
+}
+
+fn format_allowed_values(expected: &str) -> Option<String> {
+    let expected = safe_expected_description(expected)?
+        .strip_prefix("one of ")
+        .unwrap_or(expected);
+    let values = expected
+        .replace(" or ", "、")
+        .replace(", ", "、")
+        .replace(['`', '\'', '"'], "");
+    (!values.is_empty()).then_some(values)
+}
+
+fn safe_profile_error_reason(content: &str, error: &toml::de::Error) -> String {
+    let (field, _) = profile_error_context(content, error);
+    let field_label = field.as_deref().unwrap_or("profile 字段");
+    let message = error.message();
+
+    if message.starts_with("unknown variant ") {
+        if let Some((_, expected)) = message.split_once(", expected ")
+            && let Some(values) = format_allowed_values(expected)
+        {
+            return format!("{field_label} 的值不受支持；允许值为 {values}");
+        }
+        return format!("{field_label} 的值不受支持");
+    }
+
+    if message.starts_with("invalid type") || message.starts_with("invalid value") {
+        if let Some((_, expected)) = message.split_once(", expected ")
+            && let Some(expected) = safe_expected_description(expected)
+        {
+            return format!("{field_label} 的类型或值不符合要求；期望 {expected}");
+        }
+        return format!("{field_label} 的类型或值不符合要求");
+    }
+
+    if let Some(missing) = message
+        .strip_prefix("missing field `")
+        .and_then(|message| message.strip_suffix('`'))
+        && missing
+            .chars()
+            .all(|character| character.is_ascii_alphanumeric() || matches!(character, '_' | '-'))
+    {
+        return format!("缺少必需字段 {missing}");
+    }
+
+    match field {
+        Some(field) => format!("{field} 的配置内容不符合 profile 数据模型"),
+        None => "配置内容不符合 profile 数据模型".to_string(),
+    }
+}
+
+fn format_toml_diagnostic(content: &str, error: &toml::de::Error, syntax: bool) -> String {
+    let category = if syntax {
+        "TOML 语法错误"
+    } else {
+        "profile 结构错误"
+    };
+    let byte_offset = if syntax {
+        error.span().map(|span| span.start)
+    } else {
+        profile_error_context(content, error).1
+    };
+    let position = byte_offset.map(|byte_offset| {
+        let (line, column) = line_column_at(content, byte_offset);
+        format!("（第 {line} 行，第 {column} 列）")
+    });
+    let reason = if syntax {
+        error.message().to_string()
+    } else {
+        safe_profile_error_reason(content, error)
+    };
+
+    format!("{category}{}：{reason}", position.as_deref().unwrap_or(""))
+}
+
 /// 📖 从 TOML 文件加载 profiles (通用实现)
 ///
 /// 支持两种格式:
 /// 1. CcsConfig 完整格式 (包含 default_config, current_config, settings)
 /// 2. 简化格式 (仅包含 profile sections)
 pub fn parse_profiles_from_str(content: &str) -> Result<IndexMap<String, ProfileConfig>> {
-    let sections = match toml::from_str::<CcsConfig>(content) {
-        Ok(config) => config.sections,
-        Err(_) => toml::from_str::<IndexMap<String, ConfigSection>>(content)
-            .map_err(|_| CcrError::ConfigFormatInvalid("TOML 解析失败：配置包含无效语法".into()))?,
+    let document = toml::from_str::<toml::Value>(content).map_err(|error| {
+        CcrError::ConfigFormatInvalid(format_toml_diagnostic(content, &error, true))
+    })?;
+
+    let sections = match profile_document_shape(&document) {
+        ProfileDocumentShape::Full => toml::from_str::<CcsConfig>(content)
+            .map(|config| config.sections)
+            .map_err(|error| {
+                CcrError::ConfigFormatInvalid(format_toml_diagnostic(content, &error, false))
+            })?,
+        ProfileDocumentShape::Simplified => {
+            toml::from_str::<IndexMap<String, ConfigSection>>(content).map_err(|error| {
+                CcrError::ConfigFormatInvalid(format_toml_diagnostic(content, &error, false))
+            })?
+        }
     };
 
     Ok(sections
@@ -229,8 +454,11 @@ pub fn load_profiles_from_toml(profiles_path: &Path) -> Result<IndexMap<String, 
     let content = fs::read_to_string(profiles_path)
         .map_err(|e| CcrError::ConfigError(format!("读取配置文件失败 {}: {}", display_path, e)))?;
 
-    parse_profiles_from_str(&content).map_err(|error| {
-        CcrError::ConfigFormatInvalid(format!("TOML 解析失败 {display_path}: {error}"))
+    parse_profiles_from_str(&content).map_err(|error| match error {
+        CcrError::ConfigFormatInvalid(message) => {
+            CcrError::ConfigFormatInvalid(format!("{display_path}: {message}"))
+        }
+        other => other,
     })
 }
 
@@ -814,13 +1042,85 @@ mod tests {
     fn test_load_profiles_from_toml_reports_path_on_parse_error() {
         let temp_dir = tempfile::tempdir().unwrap();
         let profiles_path = temp_dir.path().join("profiles.toml");
-        fs::write(&profiles_path, "not = [valid toml").unwrap();
+        fs::write(
+            &profiles_path,
+            "[relay]\nauth_token = \"SYNTAX_SECRET_SENTINEL\n",
+        )
+        .unwrap();
 
         let err = load_profiles_from_toml(&profiles_path).unwrap_err();
         let err_text = err.to_string();
+        let display_path = profiles_path.display().to_string();
 
-        assert!(err_text.contains("profiles.toml"));
-        assert!(err_text.contains("TOML 解析失败"));
+        assert_eq!(err_text.matches(&display_path).count(), 1);
+        assert_eq!(err_text.matches("配置格式无效").count(), 1);
+        assert!(err_text.contains("TOML 语法错误"));
+        assert!(err_text.contains("第 2 行"), "{err_text}");
+        assert!(err_text.contains("第 37 列"), "{err_text}");
+        assert!(!err_text.contains("SYNTAX_SECRET_SENTINEL"));
+    }
+
+    #[test]
+    fn test_parse_profiles_from_str_reports_live_provider_type_error() {
+        let content = r#"default_config = "relay"
+current_config = "relay"
+
+[relay]
+description = "Grok relay"
+base_url = "https://example.com/v1"
+env_key = "XAI_API_KEY"
+model = "grok-4"
+api_backend = "responses"
+context_window = 131072
+supports_backend_search = true
+
+provider_type = "relay"
+"#;
+
+        let error = parse_profiles_from_str(content).unwrap_err().to_string();
+
+        assert!(error.contains("profile 结构错误"));
+        assert!(error.contains("第 13 行，第 17 列"), "{error}");
+        assert!(error.contains("provider_type 的值不受支持"));
+        assert!(error.contains("允许值为 official_relay、third_party_model"));
+        assert!(!error.contains("Grok relay"));
+        assert!(!error.contains("https://example.com/v1"));
+    }
+
+    #[test]
+    fn test_parse_profiles_from_str_redacts_typed_secret_field_failure() {
+        let content = r#"[relay]
+auth_token = ["PROFILE_SECRET_SENTINEL"]
+"#;
+
+        let error = parse_profiles_from_str(content).unwrap_err().to_string();
+
+        assert!(error.contains("profile 结构错误"));
+        assert!(error.contains("第 2 行"));
+        assert!(error.contains("auth_token"));
+        assert!(error.contains("类型或值不符合要求"));
+        assert!(!error.contains("PROFILE_SECRET_SENTINEL"));
+    }
+
+    #[test]
+    fn test_parse_profiles_from_str_redacts_rejected_enum_value() {
+        let content = r#"[relay]
+provider_type = "PROFILE_SECRET_SENTINEL"
+"#;
+
+        let error = parse_profiles_from_str(content).unwrap_err().to_string();
+
+        assert!(error.contains("provider_type"));
+        assert!(error.contains("official_relay、third_party_model"));
+        assert!(!error.contains("PROFILE_SECRET_SENTINEL"));
+    }
+
+    #[test]
+    fn test_line_column_at_counts_unicode_characters() {
+        let content = "description = \"中文\"\nprovider_type = \"relay\"";
+        let offset = content.find("relay").unwrap();
+
+        assert_eq!(line_column_at(content, offset), (2, 18));
     }
 
     #[test]

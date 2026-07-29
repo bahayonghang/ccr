@@ -64,19 +64,38 @@ Tests that mutate `CCR_ROOT` or `CCR_LOCK_DIR` must use `test_support::TestCcrEn
 ### 3. Contracts
 
 - `parse_profiles_from_str` is the single semantic parser for both full `CcsConfig` TOML and the legacy simplified profile map.
+- Parsing is two-phase: first parse `toml::Value` to distinguish invalid TOML,
+  then deserialize exactly one typed profile shape. Scalar `default_config` or
+  `current_config` selects the full `CcsConfig` shape; otherwise use the legacy
+  simplified map shape. Do not retry the other typed shape and replace the
+  relevant serde error.
 - `load_profiles_from_toml` preserves its missing-file behavior, reads bytes from disk, then delegates semantic parsing to `parse_profiles_from_str`.
+- Diagnostics use stable categories: `TOML 语法错误` for the generic parse and
+  `profile 结构错误` for typed deserialization. Include a 1-based line/Unicode
+  column when a safe span is available, plus a safe field and expected shape
+  when they can be derived.
+- `load_profiles_from_toml` prefixes the source path exactly once. It unwraps
+  the inner `ConfigFormatInvalid` message instead of formatting a second nested
+  `CcrError`.
 - Parsing an empty document may return an empty collection at the core-library boundary. A UI workflow that forbids clearing all profiles must enforce that policy after parsing rather than changing shared parser compatibility.
 - Both profile registry saves and current-profile updates set `secret: true`; on Unix, resulting files must not expose credential-bearing content beyond owner read/write permissions.
 - Parser and persistence errors must not log or embed raw profile source or credential values.
-- `toml::de::Error` display text can include the offending source line. Secret-bearing
-  profile parsers must map it to a fixed message or position-only summary; never
-  interpolate the raw parser error into `CcrError`.
+- `toml::de::Error` display text can include the offending source line. Use
+  `Error::message()`, never `Display`, and reduce semantic errors to safe field,
+  category, position, and expected-value information. Never include the
+  rejected literal, raw source line, or full document in `CcrError`.
 
 ### 4. Validation & Error Matrix
 
 - Full config with `[profiles.<name>]` entries -> return those profiles.
 - Simplified top-level profile map -> return the equivalent profile collection.
-- Invalid TOML or incompatible profile fields -> return `CcrError`; do not partially accept entries.
+- Invalid TOML -> `ConfigFormatInvalid` containing `TOML 语法错误`, safe
+  line/column when available, and no raw source line.
+- Valid TOML with an incompatible profile field/type ->
+  `ConfigFormatInvalid` containing `profile 结构错误`, safe field/position, and
+  expected type or allowed values when available; do not partially accept entries.
+- Unsupported `provider_type` -> identify `provider_type` and list
+  `official_relay` / `third_party_model` without echoing the rejected value.
 - Malformed credential line -> the returned error identifies invalid TOML without
   containing any sentinel value from the source line.
 - Missing file through `load_profiles_from_toml` -> preserve the established empty/default result.
@@ -86,16 +105,26 @@ Tests that mutate `CCR_ROOT` or `CCR_LOCK_DIR` must use `test_support::TestCcrEn
 ### 5. Good/Base/Bad Cases
 
 - Good: a raw editor parses with `parse_profiles_from_str`, applies its empty/activation policies, then writes the original bytes through a secret guarded-write path.
+- Good: a valid full document with `provider_type = "relay"` reports a profile
+  structure error at `provider_type` and lists the canonical enum values.
 - Base: an existing caller loads a simplified registry without behavior changes after parser extraction.
 - Bad: duplicate the full-versus-simplified fallback parser inside a Tauri command.
+- Bad: retry both typed shapes and replace the first meaningful serde error with
+  a generic "invalid syntax" message.
+- Bad: interpolate `toml::de::Error` with `{error}` because its display can
+  include credential-bearing source text.
 - Bad: serialize credential-bearing profiles with default `secret: false` permissions.
 
 ### 6. Tests Required
 
 - Parse equivalent full and simplified fixtures and assert matching profile fields.
 - Assert empty input preserves the shared parser's empty-collection behavior.
-- Keep existing missing-file and malformed-file load tests passing.
-- Add a malformed `auth_token` sentinel and assert the returned error omits it.
+- Assert malformed TOML reports the path once, the error category once, and a
+  1-based line/column without the source sentinel.
+- Assert valid TOML with an invalid `provider_type` reports the field and
+  allowed values without the rejected literal.
+- Add malformed and typed `auth_token` sentinels and assert the returned errors
+  omit them. Include a Unicode-before-span case for column calculation.
 - Exercise both structured write paths and assert secret file permissions on Unix.
 - Run `cargo test -p ccr-config -- --test-threads=1` and clippy for `ccr-config` with warnings denied.
 
@@ -104,22 +133,21 @@ Tests that mutate `CCR_ROOT` or `CCR_LOCK_DIR` must use `test_support::TestCcrEn
 #### Wrong
 
 ```rust
-let profiles: IndexMap<String, ProfileConfig> = toml::from_str(content)?;
-write_toml(path, &profiles)?;
+let sections = toml::from_str::<CcsConfig>(content)
+    .map(|config| config.sections)
+    .or_else(|_| toml::from_str::<IndexMap<String, ConfigSection>>(content))
+    .map_err(|error| CcrError::ConfigFormatInvalid(error.to_string()))?;
 ```
 
 #### Correct
 
 ```rust
-let profiles = parse_profiles_from_str(content)?;
-write_toml_opts(
-    path,
-    &profiles,
-    WriteOptions {
-        secret: true,
-        ..Default::default()
-    },
-)?;
+let document = toml::from_str::<toml::Value>(content)
+    .map_err(|error| safe_syntax_diagnostic(content, &error))?;
+let sections = match profile_document_shape(&document) {
+    Full => deserialize_full_with_safe_diagnostic(content)?,
+    Simplified => deserialize_simplified_with_safe_diagnostic(content)?,
+};
 ```
 
 ## Scenario: TUI Preference Config

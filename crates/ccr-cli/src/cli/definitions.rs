@@ -976,6 +976,8 @@ mod tests {
             "--context-window",
             "1000000",
             "--supports-backend-search",
+            "--reasoning-effort",
+            "high",
         ])
         .unwrap();
 
@@ -989,10 +991,32 @@ mod tests {
                     assert_eq!(args.api_backend.as_deref(), Some("messages"));
                     assert_eq!(args.context_window, Some(1_000_000));
                     assert_eq!(args.supports_backend_search, Some(true));
+                    assert_eq!(args.reasoning_effort.as_deref(), Some("high"));
                 }
                 _ => panic!("unexpected Grok profile action"),
             },
             other => panic!("unexpected command: {:?}", other.map(|_| "other")),
+        }
+    }
+
+    #[test]
+    fn reasoning_effort_create_flag_is_grok_only() {
+        for platform in ["claude", "codex"] {
+            let result = Cli::try_parse_from([
+                "ccr",
+                platform,
+                "profile",
+                "create",
+                "relay",
+                "--reasoning-effort",
+                "high",
+            ]);
+            let error = match result {
+                Ok(_) => panic!("{platform} unexpectedly accepted --reasoning-effort"),
+                Err(error) => error,
+            };
+
+            assert_eq!(error.kind(), clap::error::ErrorKind::UnknownArgument);
         }
     }
 }

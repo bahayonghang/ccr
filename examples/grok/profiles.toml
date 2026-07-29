@@ -27,8 +27,9 @@ api_backend = "responses"
 env_key = "GROK_RELAY_API_KEY"
 context_window = 1000000
 supports_backend_search = true
+reasoning_effort = "high"
 enabled = true
 
 # Inline credentials are supported but intentionally omitted from copy-ready
 # examples. To create one explicitly, use:
-# ccr grok profile create <name> --base-url <url> --model <model> --auth-token <token>
+# ccr grok profile create <name> --base-url <url> --model <model> --auth-token <token> --reasoning-effort high

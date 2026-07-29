@@ -27,6 +27,20 @@
 - Official profiles reject `base_url` and credentials. They restore the entry
   `[model.custom]`; an explicit model sets `models.default`, while no model
   removes that key.
+- `reasoning_effort` is stored in profile platform data and must be one of the
+  Grok Build `ReasoningEffort` values: `none`, `minimal`, `low`, `medium`,
+  `high`, `xhigh`, or `max`. Values are trimmed and normalized to lowercase.
+  Model-menu option ids are not valid substitutes for their canonical values.
+- Third-party profiles with `reasoning_effort` write
+  `model.custom.supports_reasoning_effort = true`,
+  `model.custom.reasoning_effort`, and `models.default_reasoning_effort`.
+  Official profiles write only `models.default_reasoning_effort` and never add
+  reasoning fields to the restored built-in model table.
+- Entry state captures the exact original `models.default_reasoning_effort`
+  TOML value. A profile without `reasoning_effort`, and `off`, restore that
+  value or remove the key when it was originally absent. Legacy entry-state
+  JSON without this field remains readable and recovers the value from its
+  captured original `content`.
 - The first apply captures the original runtime configuration in
   `profile_entry_config_state.json`. Creation is create-if-absent CAS: a later
   or concurrent capture may observe `Conflict` but must never replace the
@@ -60,6 +74,7 @@
   backend, non-positive context window, or non-boolean backend-search flag ->
   `ValidationError`.
 - Official profile with base URL or either credential -> `ValidationError`.
+- Empty, non-string, or non-canonical `reasoning_effort` -> `ValidationError`.
 - First runtime CAS conflict -> reload, rebuild, and retry; second conflict ->
   `ValidationError` containing `请重试` and no overwrite.
 - Concurrent CCR apply/off/delete -> serialize on `grok_profile_operation`;
@@ -75,6 +90,8 @@
 
 - Good: an `env_key` relay switches through `[model.custom]`, preserves `[ui]`
   and `[session]`, then `off` restores the original custom entry and default.
+- Good: a relay with `reasoning_effort = "high"` writes all three managed
+  reasoning values; switching to an unset profile restores the entry default.
 - Good: a registry write fails after runtime apply; `get_current_profile`
   recovers through profiles/runtime, and a retry converges the registry.
 - Base: an official profile without a model removes `models.default` and lets
@@ -90,7 +107,8 @@
 
 - `cargo test -p ccr-cli grok -- --test-threads=1`
   - Assert official/third-party validation, field mapping, unmanaged TOML
-    preservation, round-trip restoration, and entry-state non-overwrite.
+    preservation, reasoning-effort mapping, round-trip restoration, legacy
+    entry-state compatibility, and entry-state non-overwrite.
   - Assert first/second CAS conflict behavior and registry-failure recovery.
   - Assert a second multi-file mutation cannot acquire the operation lock while
     the first owner holds it.
@@ -138,9 +156,10 @@ This keeps deletion fail-closed until runtime restoration has completed.
 - `GrokProfileAction::{Current,List,Switch,Create,SetField,Enable,Disable,Delete,Off}`
 - Create-only fields: `api_backend: Option<String>`,
   `env_key: Option<String>`, `context_window: Option<u64>`, and
-  `supports_backend_search: Option<bool>`.
+  `supports_backend_search: Option<bool>`, and
+  `reasoning_effort: Option<String>`.
 - Editable platform-data fields: `api_backend`, `env_key`, `context_window`,
-  and `supports_backend_search`.
+  `supports_backend_search`, and `reasoning_effort`.
 
 ### 3. Contracts
 
@@ -149,6 +168,9 @@ This keeps deletion fail-closed until runtime restoration has completed.
 - `api_backend` persists as a lowercase string, `env_key` as one string,
   `context_window` as a positive JSON/TOML integer, and
   `supports_backend_search` as a boolean. `--clear` removes any of them.
+- `reasoning_effort` persists as one of the 7 canonical levels, trimmed and
+  normalized to lowercase. `--clear` removes it and JSON summaries expose it
+  when present.
 - `current --json` and `list --json` omit `auth_token`. They expose only the
   stable auth-mode identifier and a URL passed through
   `safe_base_url_for_display`.
@@ -169,6 +191,8 @@ This keeps deletion fail-closed until runtime restoration has completed.
 - Array/comma-shaped `env_key` -> Chinese single-environment-variable error.
 - Zero/non-integer `context_window` -> Chinese positive-integer error.
 - Backend-search outside `true|false|1|0` -> Chinese boolean error.
+- Empty, JSON/non-string, or non-canonical reasoning effort -> Chinese
+  validation error listing the allowed values.
 - `auth_token` plus `env_key` -> Clap conflict on create or core validation on
   stored/set-field profiles.
 - Force delete receives a non-active validation/config error -> propagate it;
@@ -177,7 +201,7 @@ This keeps deletion fail-closed until runtime restoration has completed.
 ### 5. Good/Base/Bad Cases
 
 - Good: create an `env_key` relay, switch, inspect masked JSON, update typed
-  fields, off, and delete.
+  fields including `reasoning_effort`, off, and delete.
 - Base: official profile with only `model` reports `session` auth mode.
 - Bad: serialize `ProfileConfig` directly in CLI JSON because it can expose
   `auth_token` or an unsafe base URL.
@@ -190,7 +214,8 @@ This keeps deletion fail-closed until runtime restoration has completed.
   - Assert typed parsing, clearing, invalid values, and Grok editable fields.
 - `cargo test -p ccr --test commands grok_profile -- --test-threads=1`
   - Assert create/switch/current/list/set/off/delete, output redaction, entry
-    restoration, drifted force deletion, and legacy-route rejection.
+    restoration, reasoning-effort mapping/clearing, drift detection, drifted
+    force deletion, and legacy-route rejection.
 - Parse `docs/examples/grok-profiles.toml` through `ccr grok profile list`.
 - Run local Grok `inspect --json` with a temporary `GROK_HOME` containing
   `docs/examples/grok-cli-config.toml`; its `configSources` must name that

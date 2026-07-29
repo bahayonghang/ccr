@@ -1,0 +1,6 @@
+{"file":".trellis/spec/ccr-config/backend/index.md","reason":"Discover the shared profile parser contract and required backend guidance."}
+{"file":".trellis/spec/ccr-config/backend/backend-guidelines.md","reason":"Preserve profile TOML compatibility, actionable CcrError behavior, and secret-safe diagnostics."}
+{"file":".trellis/spec/ccr-tui/backend/index.md","reason":"Discover the TUI backend rules that govern recoverable profile-load errors."}
+{"file":".trellis/spec/ccr-tui/backend/backend-guidelines.md","reason":"Keep parsing outside the TUI and follow the Where/What issue presentation pattern."}
+{"file":".trellis/spec/ccr-cli/backend/index.md","reason":"Discover the CLI backend contracts before changing Grok profile CRUD and runtime switching."}
+{"file":".trellis/spec/ccr-cli/backend/grok-profile-runtime.md","reason":"Use the canonical Grok provider_type values and handwritten profile compatibility contract."}
