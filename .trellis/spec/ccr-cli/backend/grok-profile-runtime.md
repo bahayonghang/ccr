@@ -22,8 +22,11 @@
 ## 3. Contracts
 
 - Third-party profiles require non-empty `base_url`, `model`, and exactly one
-  of inline `auth_token` or single-string `platform_data.env_key`. They replace
-  `[model.custom]` and set `[models].default = "custom"`.
+  of direct `platform_data.api_key`, compatibility `auth_token`, or
+  single-string `platform_data.env_key`. Direct keys map to
+  `[model.custom].api_key`; environment variable names map to
+  `[model.custom].env_key`. They replace `[model.custom]` and set
+  `[models].default = "custom"`.
 - Official profiles reject `base_url` and credentials. They restore the entry
   `[model.custom]`; an explicit model sets `models.default`, while no model
   removes that key.
@@ -70,9 +73,9 @@
 ## 4. Validation & Error Matrix
 
 - Third-party missing model/base URL/credential -> `ValidationError`.
-- Both `auth_token` and `env_key`, env-key array, invalid env name, unsupported
-  backend, non-positive context window, or non-boolean backend-search flag ->
-  `ValidationError`.
+- Multiple credential fields, empty/non-string `api_key`, env-key array,
+  invalid env name, unsupported backend, non-positive context window, or
+  non-boolean backend-search flag -> `ValidationError`.
 - Official profile with base URL or either credential -> `ValidationError`.
 - Empty, non-string, or non-canonical `reasoning_effort` -> `ValidationError`.
 - First runtime CAS conflict -> reload, rebuild, and retry; second conflict ->
@@ -88,8 +91,10 @@
 
 ## 5. Good/Base/Bad Cases
 
-- Good: an `env_key` relay switches through `[model.custom]`, preserves `[ui]`
-  and `[session]`, then `off` restores the original custom entry and default.
+- Good: an `api_key` relay switches through `[model.custom]`, preserves `[ui]`
+  and `[session]`, omits the key from command output, then `off` restores the
+  original custom entry and default.
+- Good: a legacy `env_key` relay still resolves one named environment variable.
 - Good: a relay with `reasoning_effort = "high"` writes all three managed
   reasoning values; switching to an unset profile restores the entry default.
 - Good: a registry write fails after runtime apply; `get_current_profile`
@@ -154,19 +159,20 @@ This keeps deletion fail-closed until runtime restoration has completed.
 
 - `Commands::Grok { action: Option<GrokAction> }`
 - `GrokProfileAction::{Current,List,Switch,Create,SetField,Enable,Disable,Delete,Off}`
-- Create-only fields: `api_backend: Option<String>`,
+- Create-only fields: `api_backend: Option<String>`, `api_key: Option<String>`,
   `env_key: Option<String>`, `context_window: Option<u64>`, and
   `supports_backend_search: Option<bool>`, and
   `reasoning_effort: Option<String>`.
-- Editable platform-data fields: `api_backend`, `env_key`, `context_window`,
-  `supports_backend_search`, and `reasoning_effort`.
+- Editable platform-data fields: `api_backend`, `api_key`, `env_key`,
+  `context_window`, `supports_backend_search`, and `reasoning_effort`.
 
 ### 3. Contracts
 
 - The supported command path is `ccr grok profile ...`; retired
   `ccr platform switch/profile` commands continue to return migration errors.
-- `api_backend` persists as a lowercase string, `env_key` as one string,
-  `context_window` as a positive JSON/TOML integer, and
+- `api_backend` persists as a lowercase string, `api_key` as one non-empty
+  string, `env_key` as one environment-variable-name string, `context_window`
+  as a positive JSON/TOML integer, and
   `supports_backend_search` as a boolean. `--clear` removes any of them.
 - `reasoning_effort` persists as one of the 7 canonical levels, trimmed and
   normalized to lowercase. `--clear` removes it and JSON summaries expose it
@@ -181,26 +187,28 @@ This keeps deletion fail-closed until runtime restoration has completed.
 - Handwritten `profiles.toml` uses the shared `ConfigSection` encoding:
   `provider_type` is omitted or is `official_relay`/`third_party_model`.
   Grok route selection still comes from `base_url`, not provider type.
-- Copy-ready examples use `example.com` and `env_key`; inline secrets are
-  disclosure documentation, not example values.
+- Copy-ready examples use `example.com` and an `api_key` placeholder, never a
+  real credential. `env_key` remains documented as the environment-reference
+  alternative.
 
 ### 4. Validation & Error Matrix
 
 - Unsupported `api_backend` -> Chinese `ValidationError` listing the three
   accepted values.
+- Empty/non-string `api_key` -> Chinese non-empty-string error.
 - Array/comma-shaped `env_key` -> Chinese single-environment-variable error.
 - Zero/non-integer `context_window` -> Chinese positive-integer error.
 - Backend-search outside `true|false|1|0` -> Chinese boolean error.
 - Empty, JSON/non-string, or non-canonical reasoning effort -> Chinese
   validation error listing the allowed values.
-- `auth_token` plus `env_key` -> Clap conflict on create or core validation on
-  stored/set-field profiles.
+- More than one of `api_key`, compatibility `auth_token`, and `env_key` -> Clap
+  conflict on create or core validation on stored/set-field profiles.
 - Force delete receives a non-active validation/config error -> propagate it;
   do not run `off`.
 
 ### 5. Good/Base/Bad Cases
 
-- Good: create an `env_key` relay, switch, inspect masked JSON, update typed
+- Good: create an `api_key` relay, switch, inspect redacted JSON, update typed
   fields including `reasoning_effort`, off, and delete.
 - Base: official profile with only `model` reports `session` auth mode.
 - Bad: serialize `ProfileConfig` directly in CLI JSON because it can expose

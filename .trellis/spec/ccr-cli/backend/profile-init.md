@@ -36,8 +36,9 @@
 - Human output identifies created versus existing state and gives edit, create,
   list, and switch next steps. JSON includes `ok`, `platform`, `profiles_file`,
   `created`, and `registered`.
-- Grok copy-ready profiles use session auth or one `env_key`; inline secrets
-  appear only in comments explaining explicit creation.
+- Grok copy-ready profiles use session auth or Grok Build's `api_key` field
+  with a non-secret placeholder. `env_key` remains supported only for an
+  environment variable name.
 
 ## 4. Validation & Error Matrix
 
