@@ -1,0 +1,6 @@
+{"file":".trellis/spec/ccr-config/backend/index.md","reason":"共享 ClaudeRuntimePaths 的归属与导出入口。"}
+{"file":".trellis/spec/ccr-config/backend/backend-guidelines.md","reason":"平台配置路径与环境覆盖契约。"}
+{"file":".trellis/spec/ccr-cli/backend/index.md","reason":"SettingsManager/AuthService/doctor 消费规则入口。"}
+{"file":".trellis/spec/ccr-cli/backend/test-fixtures.md","reason":"CLAUDE_CONFIG_DIR/CLAUDE_JSON_PATH/CCR_SETTINGS_PATH 的进程 env 隔离。"}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"保证 CLI、AuthService 与 Tauri 本地路径一致。"}
+{"file":".trellis/tasks/07-29-claude-json-write-strategy/research/claude-2.1.220-onboarding-probe.md","reason":"当前 Claude Code 在自定义 config dir 中创建 state_file 的实证。"}
