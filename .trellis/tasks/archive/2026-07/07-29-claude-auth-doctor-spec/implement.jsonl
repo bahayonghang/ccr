@@ -1,0 +1,7 @@
+{"file":".trellis/spec/ccr-cli/backend/index.md","reason":"doctor/AuthService/command 输出规范入口。"}
+{"file":".trellis/spec/ccr-cli/backend/backend-guidelines.md","reason":"现有 Claude runtime 与 secret 输出约束。"}
+{"file":".trellis/spec/ccr-types/backend/backend-guidelines.md","reason":"共享 auth/runtime DTO 与 env 所有权。"}
+{"file":".trellis/spec/ccr-tui/backend/backend-guidelines.md","reason":"Claude Auth TUI 的状态、错误与本地化输出规则。"}
+{"file":".trellis/spec/ccr-ui/frontend/api-facade-boundary.md","reason":"Tauri DTO 到前端 API facade/生成类型边界。"}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"doctor、CLI、TUI、Tauri/UI 必须消费同一诊断结论。"}
+{"file":".trellis/tasks/07-29-claude-auth-doctor-spec/research/claude-auth-source-matrix.md","reason":"来源优先级、证据等级与可观测边界。"}
