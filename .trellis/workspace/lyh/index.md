@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 70
+- **Total Sessions**: 71
 - **Last Active**: 2026-07-29
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~644 | Active |
+| `journal-2.md` | ~665 | Active |
 | `journal-1.md` | ~1987 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 71 | 2026-07-29 | 完成 Claude auth_mode 与 env 所有权隔离 | `c741d3da` | `dev` |
 | 70 | 2026-07-29 | 完成 Grok Profile 解析诊断与推理强度支持 | `a60ab8ac` | `dev` |
 | 69 | 2026-07-29 | 完成三平台 profile init 初始化命令 | `c06dad57` | `dev` |
 | 68 | 2026-07-29 | 修复 Grok TUI 顺序与空态命令 | `ff1f2819a7dbeece0eaec672c940d9e9a14b7169` | `dev` |

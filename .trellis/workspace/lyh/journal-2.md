@@ -642,3 +642,24 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 71: 完成 Claude auth_mode 与 env 所有权隔离
+
+**Date**: 2026-07-29
+**Task**: 完成 Claude auth_mode 与 env 所有权隔离
+**Branch**: `dev`
+
+### Summary
+
+统一 effective auth_mode 判定与 profile 自愈顺序，建立 CCR_MANAGED_KEYS 显式写删边界，保留用户自有 ANTHROPIC_* 配置；lint、workspace tests 与独立检查通过。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c741d3da` | (see git log) |
+
+### Status
+
+[OK] **Completed**
