@@ -209,11 +209,11 @@ fn clear_claude_profile_settings_overrides() -> Result<bool> {
         Err(error) => return Err(error),
     };
 
-    if !settings.has_anthropic_overrides() {
+    if !settings.has_managed_overrides() {
         return Ok(false);
     }
 
-    settings.clear_anthropic_vars();
+    settings.clear_ccr_managed_vars();
     manager.save_atomic(&settings)?;
     Ok(true)
 }
@@ -252,4 +252,45 @@ fn platform_profiles_file_has_current_config(platform_name: &str) -> Result<bool
     let manager = ConfigManager::for_platform(platform_name)?;
     let config = manager.load_with_autofix()?;
     Ok(!config.current_config.trim().is_empty())
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+    use super::*;
+    use crate::test_support::TestHome;
+    use ccr_types::{ClaudeSettings, env_keys};
+
+    #[test]
+    fn clear_claude_profile_settings_removes_managed_and_keeps_user_env() {
+        let _home = TestHome::new();
+        let manager = SettingsManager::with_default().unwrap();
+        let mut settings = ClaudeSettings::new();
+        for key in env_keys::CCR_MANAGED_KEYS {
+            settings.env.insert((*key).to_string(), "managed".into());
+        }
+        settings
+            .env
+            .insert("ANTHROPIC_API_KEY".into(), "user-api-key".into());
+        settings
+            .env
+            .insert("ANTHROPIC_CUSTOM_HEADERS".into(), "X-User: keep".into());
+        manager.save_atomic(&settings).unwrap();
+
+        assert!(clear_claude_profile_settings_overrides().unwrap());
+
+        let settings = manager.load().unwrap();
+        assert!(!settings.has_managed_overrides());
+        assert_eq!(
+            settings.env.get("ANTHROPIC_API_KEY").map(String::as_str),
+            Some("user-api-key")
+        );
+        assert_eq!(
+            settings
+                .env
+                .get("ANTHROPIC_CUSTOM_HEADERS")
+                .map(String::as_str),
+            Some("X-User: keep")
+        );
+    }
 }

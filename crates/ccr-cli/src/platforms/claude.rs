@@ -313,17 +313,15 @@ impl PlatformConfig for ClaudePlatform {
     }
 
     fn apply_profile(&self, name: &str) -> Result<()> {
-        // 加载 profile
-        let profiles = self.load_profiles()?;
-        let profile = profiles
+        // 加载并克隆 profile，防御性纠正必须先持久化，再修改 runtime settings。
+        let mut profiles = self.load_profiles()?;
+        let mut profile = profiles
             .get(name)
+            .cloned()
             .ok_or_else(|| CcrError::ProfileNotFound(name.to_string()))?;
 
-        // 转换为 ConfigSection
-        let section = Self::profile_to_section(profile)?;
-
-        let auth_mode = Self::profile_auth_mode(profile);
-        let literal_mode = crate::services::ClaudeAuthService::resolve_profile_auth_mode(profile);
+        let auth_mode = Self::profile_auth_mode(&profile);
+        let literal_mode = crate::services::ClaudeAuthService::resolve_profile_auth_mode(&profile);
         if literal_mode != auth_mode {
             // 应用时防御自愈: 既有 profile (如旧 chy) 无需重存即可正确生效。
             tracing::warn!(
@@ -333,8 +331,23 @@ impl PlatformConfig for ClaudePlatform {
                 literal_mode.as_str(),
                 auth_mode.as_str()
             );
+            profile
+                .platform_data
+                .insert(Self::AUTH_MODE_FIELD.to_string(), json!(auth_mode.as_str()));
         }
-        self.validate_profile(profile)?;
+        self.validate_profile(&profile)?;
+
+        if literal_mode != auth_mode {
+            profiles.insert(name.to_string(), profile.clone());
+            self.save_profiles(&profiles).map_err(|error| {
+                CcrError::ConfigError(format!(
+                    "Claude profile `{name}` 的 auth_mode 自动纠正写回失败: {error}；请重新保存该 profile 后重试"
+                ))
+            })?;
+        }
+
+        // 只有 profile 已处于正确持久态后，才构造 section 并进入 settings RMW。
+        let section = Self::profile_to_section(&profile)?;
 
         // 加载当前设置
         let mut settings = self
@@ -344,7 +357,7 @@ impl PlatformConfig for ClaudePlatform {
 
         match auth_mode {
             ClaudeProfileAuthMode::Subscription => {
-                settings.clear_managed_vars();
+                settings.clear_ccr_managed_vars();
             }
             ClaudeProfileAuthMode::ApiKey => {
                 settings.apply_managed_env(section.to_managed_env_pairs());
@@ -383,27 +396,10 @@ impl PlatformConfig for ClaudePlatform {
     }
 
     fn get_env_var_names(&self) -> Vec<String> {
-        vec![
-            "ANTHROPIC_BASE_URL".into(),
-            "ANTHROPIC_AUTH_TOKEN".into(),
-            "ANTHROPIC_MODEL".into(),
-            "ANTHROPIC_SMALL_FAST_MODEL".into(),
-            "ANTHROPIC_DEFAULT_OPUS_MODEL".into(),
-            "ANTHROPIC_DEFAULT_SONNET_MODEL".into(),
-            "ANTHROPIC_DEFAULT_HAIKU_MODEL".into(),
-            "ANTHROPIC_DEFAULT_FABLE_MODEL".into(),
-            "ANTHROPIC_DEFAULT_OPUS_MODEL_NAME".into(),
-            "ANTHROPIC_DEFAULT_SONNET_MODEL_NAME".into(),
-            "ANTHROPIC_DEFAULT_HAIKU_MODEL_NAME".into(),
-            "ANTHROPIC_DEFAULT_FABLE_MODEL_NAME".into(),
-            "CLAUDE_CODE_SUBAGENT_MODEL".into(),
-            "ANTHROPIC_CUSTOM_MODEL_OPTION".into(),
-            "ANTHROPIC_CUSTOM_MODEL_OPTION_NAME".into(),
-            "CLAUDE_CODE_EFFORT_LEVEL".into(),
-            "CLAUDE_CODE_AUTO_COMPACT_WINDOW".into(),
-            "API_TIMEOUT_MS".into(),
-            "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC".into(),
-        ]
+        ccr_types::env_keys::CCR_MANAGED_KEYS
+            .iter()
+            .map(|key| (*key).to_string())
+            .collect()
     }
 }
 
@@ -502,7 +498,51 @@ mod tests {
                     .unwrap()
                     .contains("claude")
             );
+            assert_eq!(
+                platform.get_env_var_names(),
+                ccr_types::env_keys::CCR_MANAGED_KEYS
+                    .iter()
+                    .map(|key| (*key).to_string())
+                    .collect::<Vec<_>>()
+            );
         }
+    }
+
+    #[test]
+    fn test_managed_env_registry_matches_config_section_mapping() {
+        let section = ConfigSection {
+            base_url: Some("https://api.example.com".into()),
+            auth_token: Some(ccr_core::Secret::from("sk-test")),
+            model: Some("model".into()),
+            small_fast_model: Some("small".into()),
+            default_opus_model: Some("opus".into()),
+            default_sonnet_model: Some("sonnet".into()),
+            default_haiku_model: Some("haiku".into()),
+            default_fable_model: Some("fable".into()),
+            default_opus_model_name: Some("Opus".into()),
+            default_sonnet_model_name: Some("Sonnet".into()),
+            default_haiku_model_name: Some("Haiku".into()),
+            default_fable_model_name: Some("Fable".into()),
+            subagent_model: Some("subagent".into()),
+            custom_model_option: Some("custom".into()),
+            custom_model_option_name: Some("Custom".into()),
+            effort_level: Some("max".into()),
+            claude_code_auto_compact_window: Some("1000000".into()),
+            api_timeout_ms: Some("3000000".into()),
+            claude_code_disable_nonessential_traffic: Some("1".into()),
+            ..Default::default()
+        };
+        let mapped = section
+            .to_managed_env_pairs()
+            .into_iter()
+            .map(|(key, _)| key)
+            .collect::<std::collections::HashSet<_>>();
+        let registered = ccr_types::env_keys::CCR_MANAGED_KEYS
+            .iter()
+            .map(|key| (*key).to_string())
+            .collect::<std::collections::HashSet<_>>();
+
+        assert_eq!(mapped, registered);
     }
 
     #[test]
@@ -679,7 +719,7 @@ mod tests {
     }
 
     #[test]
-    fn test_subscription_profile_apply_clears_only_anthropic_overrides() {
+    fn test_subscription_profile_apply_clears_only_ccr_managed_overrides() {
         let _env = TestEnv::new();
 
         let result = (|| -> Result<()> {
@@ -688,41 +728,36 @@ mod tests {
             platform.save_profile("official", &profile)?;
 
             let mut settings = ClaudeSettings::new();
-            settings.env.insert(
-                "ANTHROPIC_BASE_URL".into(),
-                "https://old.example.com".into(),
-            );
-            settings
-                .env
-                .insert("ANTHROPIC_AUTH_TOKEN".into(), "sk-old".into());
+            for key in ccr_types::env_keys::CCR_MANAGED_KEYS {
+                settings.env.insert((*key).to_string(), "managed".into());
+            }
             settings.env.insert("KEEP_ME".into(), "value".into());
             settings
                 .env
-                .insert("CLAUDE_CODE_AUTO_COMPACT_WINDOW".into(), "1000000".into());
+                .insert("ANTHROPIC_API_KEY".into(), "user-api-key".into());
             settings
                 .env
-                .insert("API_TIMEOUT_MS".into(), "3000000".into());
-            settings.env.insert(
-                "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC".into(),
-                "1".into(),
-            );
+                .insert("ANTHROPIC_CUSTOM_HEADERS".into(), "X-User: keep".into());
             SettingsManager::with_default()?.save_atomic(&settings)?;
 
             platform.apply_profile("official")?;
 
             let settings = SettingsManager::with_default()?.load()?;
-            assert!(!settings.env.contains_key("ANTHROPIC_BASE_URL"));
-            assert!(!settings.env.contains_key("ANTHROPIC_AUTH_TOKEN"));
-            assert!(!settings.env.contains_key("CLAUDE_CODE_AUTO_COMPACT_WINDOW"));
-            assert!(!settings.env.contains_key("API_TIMEOUT_MS"));
-            assert!(
-                !settings
-                    .env
-                    .contains_key("CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC")
-            );
+            assert!(!settings.has_managed_overrides());
             assert_eq!(
                 settings.env.get("KEEP_ME").map(String::as_str),
                 Some("value")
+            );
+            assert_eq!(
+                settings.env.get("ANTHROPIC_API_KEY").map(String::as_str),
+                Some("user-api-key")
+            );
+            assert_eq!(
+                settings
+                    .env
+                    .get("ANTHROPIC_CUSTOM_HEADERS")
+                    .map(String::as_str),
+                Some("X-User: keep")
             );
 
             Ok(())
@@ -777,6 +812,14 @@ mod tests {
         let result = (|| -> Result<()> {
             let platform = ClaudePlatform::new()?;
             platform.save_profile("chy", &make_mismarked_third_party_profile())?;
+            let mut settings = ClaudeSettings::new();
+            settings
+                .env
+                .insert("ANTHROPIC_API_KEY".into(), "user-api-key".into());
+            settings
+                .env
+                .insert("ANTHROPIC_CUSTOM_HEADERS".into(), "X-User: keep".into());
+            SettingsManager::with_default()?.save_atomic(&settings)?;
             platform.apply_profile("chy")?;
 
             let settings = SettingsManager::with_default()?.load()?;
@@ -794,6 +837,17 @@ mod tests {
                     .get("ANTHROPIC_DEFAULT_OPUS_MODEL")
                     .map(String::as_str),
                 Some("glm-5.2[1m]")
+            );
+            assert_eq!(
+                settings.env.get("ANTHROPIC_API_KEY").map(String::as_str),
+                Some("user-api-key")
+            );
+            assert_eq!(
+                settings
+                    .env
+                    .get("ANTHROPIC_CUSTOM_HEADERS")
+                    .map(String::as_str),
+                Some("X-User: keep")
             );
 
             Ok(())
@@ -925,6 +979,89 @@ auth_mode = "subscription"
                     .get("ANTHROPIC_DEFAULT_OPUS_MODEL")
                     .map(String::as_str),
                 Some("glm-5.2[1m]")
+            );
+
+            let persisted = read_profiles_config(env.root_path());
+            let section = persisted.sections.get("chy").expect("chy section 应存在");
+            assert_eq!(
+                section
+                    .other
+                    .get("auth_mode")
+                    .and_then(|value| value.as_str()),
+                Some("api_key")
+            );
+
+            // 第二次 apply 读取的已经是正确字面态，不再需要二次纠正。
+            platform.apply_profile("chy")?;
+            let persisted_again = read_profiles_config(env.root_path());
+            assert_eq!(
+                persisted_again.sections["chy"]
+                    .other
+                    .get("auth_mode")
+                    .and_then(|value| value.as_str()),
+                Some("api_key")
+            );
+
+            Ok(())
+        })();
+
+        drop(env);
+        result.unwrap();
+    }
+
+    #[test]
+    fn test_apply_self_heal_write_failure_keeps_settings_unchanged() {
+        let env = TestEnv::new();
+
+        let result = (|| -> Result<()> {
+            let profiles_path = env
+                .root_path()
+                .join("platforms")
+                .join("claude")
+                .join("profiles.toml");
+            fs::create_dir_all(profiles_path.parent().unwrap()).unwrap();
+            fs::write(
+                &profiles_path,
+                r#"default_config = "chy"
+current_config = "chy"
+
+[chy]
+base_url = "https://chy.example.com"
+auth_token = "sk-chy"
+provider = "chy"
+auth_mode = "subscription"
+"#,
+            )
+            .unwrap();
+
+            let settings_manager = SettingsManager::with_default()?;
+            let settings_bytes = br#"{"env":{"KEEP_ME":"before"}}"#;
+            fs::write(settings_manager.settings_path(), settings_bytes).unwrap();
+
+            let backups_parent = env.root_path().join("backups");
+            fs::create_dir_all(&backups_parent).unwrap();
+            fs::write(backups_parent.join("claude"), "blocks backup directory").unwrap();
+
+            let platform = ClaudePlatform::new()?;
+            let error = platform.apply_profile("chy").unwrap_err();
+            let message = error.to_string();
+            assert!(message.contains("chy"), "错误应包含 profile 名: {message}");
+            assert!(
+                message.contains("重新保存"),
+                "错误应指引用户重新保存 profile: {message}"
+            );
+            assert_eq!(
+                fs::read(settings_manager.settings_path()).unwrap(),
+                settings_bytes
+            );
+
+            let persisted = read_profiles_config(env.root_path());
+            assert_eq!(
+                persisted.sections["chy"]
+                    .other
+                    .get("auth_mode")
+                    .and_then(|value| value.as_str()),
+                Some("subscription")
             );
 
             Ok(())

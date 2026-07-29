@@ -265,18 +265,18 @@ impl ClaudeAuthService {
             return Ok(false);
         };
         if !matches!(
-            Self::resolve_profile_auth_mode(&profile),
+            Self::effective_auth_mode(&profile),
             ClaudeProfileAuthMode::ApiKey
         ) {
             return Ok(false);
         }
 
         let mut settings = self.load_settings()?;
-        if !settings.has_anthropic_overrides() {
+        if !settings.has_managed_overrides() {
             return Ok(false);
         }
 
-        settings.clear_anthropic_vars();
+        settings.clear_ccr_managed_vars();
         self.settings_manager().save_atomic(&settings)?;
         Ok(true)
     }
@@ -663,7 +663,7 @@ impl ClaudeAuthService {
         let snapshot = self.read_auth_snapshot()?;
         let platform = ClaudePlatform::new()?;
         let current_profile_name = platform.get_current_profile()?;
-        let settings_has_anthropic_overrides = self.load_settings()?.has_anthropic_overrides();
+        let settings_has_managed_overrides = self.load_settings()?.has_managed_overrides();
 
         let mut current_profile_provider = None;
         let mut current_profile_auth_mode = None;
@@ -674,11 +674,11 @@ impl ClaudeAuthService {
             let profiles = platform.load_profiles()?;
             if let Some(profile) = profiles.get(profile_name) {
                 current_profile_provider = profile.provider.clone();
-                let auth_mode = Self::resolve_profile_auth_mode(profile);
+                let auth_mode = Self::effective_auth_mode(profile);
                 current_profile_auth_source = Some(Self::profile_auth_source(profile, auth_mode));
                 api_key_profile_override_active =
                     matches!(auth_mode, ClaudeProfileAuthMode::ApiKey)
-                        && settings_has_anthropic_overrides;
+                        && settings_has_managed_overrides;
                 current_profile_auth_mode = Some(auth_mode);
             }
         }
@@ -1045,7 +1045,7 @@ mod tests {
     }
 
     #[test]
-    fn test_switch_account_clears_api_key_profile_overrides_and_reactivates_official_auth() {
+    fn test_switch_account_clears_mismarked_profile_overrides_and_reactivates_official_auth() {
         let env = TestEnv::new();
         env.write_credentials(Utc::now() + Duration::days(14));
         env.write_metadata();
@@ -1059,21 +1059,46 @@ current_config = "anyrouter"
 base_url = "https://example.com"
 auth_token = "sk-profile"
 provider = "anyrouter"
-auth_mode = "api_key"
+auth_mode = "subscription"
 "#,
         );
         env.write_settings(json!({
             "env": {
                 "ANTHROPIC_BASE_URL": "https://example.com",
                 "ANTHROPIC_AUTH_TOKEN": "sk-profile",
-                "ANTHROPIC_MODEL": "claude-3-7-sonnet"
+                "ANTHROPIC_MODEL": "claude-3-7-sonnet",
+                "CLAUDE_CODE_SUBAGENT_MODEL": "claude-haiku",
+                "CLAUDE_CODE_EFFORT_LEVEL": "max",
+                "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "1000000",
+                "API_TIMEOUT_MS": "3000000",
+                "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+                "ANTHROPIC_API_KEY": "user-api-key",
+                "ANTHROPIC_CUSTOM_HEADERS": "X-User: keep"
             }
         }));
+
+        let summary = env.service.get_runtime_summary().unwrap();
+        assert_eq!(summary.mode, ClaudeRuntimeMode::ProfileOnly);
+        assert_eq!(
+            summary.current_profile_auth_mode,
+            Some(ClaudeProfileAuthMode::ApiKey)
+        );
 
         env.service.switch_account("work").unwrap();
 
         let settings = env.service.load_settings().unwrap();
-        assert!(!settings.has_anthropic_overrides());
+        assert!(!settings.has_managed_overrides());
+        assert_eq!(
+            settings.env.get("ANTHROPIC_API_KEY").map(String::as_str),
+            Some("user-api-key")
+        );
+        assert_eq!(
+            settings
+                .env
+                .get("ANTHROPIC_CUSTOM_HEADERS")
+                .map(String::as_str),
+            Some("X-User: keep")
+        );
 
         let summary = env.service.get_runtime_summary().unwrap();
         assert_eq!(summary.mode, ClaudeRuntimeMode::ProfileWithAuth);

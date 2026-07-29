@@ -117,7 +117,7 @@ This preserves ownership boundaries and makes partial failures safely retryable.
 
 ## Claude Profile Auth Mode Contract
 
-`ClaudePlatform::apply_profile` branches on auth mode: `Subscription` calls `clear_managed_vars()` and writes **no** `ANTHROPIC_*` / `CLAUDE_CODE_*`; `ApiKey` calls `settings.apply_managed_env(section.to_managed_env_pairs())` and writes the overrides. A third-party profile therefore **only works under `api_key`**.
+`ClaudePlatform::apply_profile` branches on auth mode: `Subscription` calls `clear_ccr_managed_vars()` and writes no key from `CCR_MANAGED_KEYS`; `ApiKey` calls `settings.apply_managed_env(section.to_managed_env_pairs())` and writes the registered overrides. Keys outside the registry are user-owned and survive both branches. A third-party profile therefore **only works under `api_key`**.
 
 Auth mode has two layers — keep them separate:
 
@@ -126,9 +126,9 @@ Auth mode has two layers — keep them separate:
 
 `is_api_key_shaped` is intentionally conservative: `provider_type == "third_party_model"`, or `base_url` and `auth_token` both non-empty. **Do not** include model-mapping fields — `ANTHROPIC_DEFAULT_*_MODEL` is valid on official subscription (snapshot pinning), so that would false-positive and fail `section.validate()`.
 
-Correction happens at two points and must stay idempotent: `normalize_profile` (save — persists the corrected `auth_mode`) and `apply_profile` (defensive — self-heals stale on-disk profiles). Each emits a `tracing::warn` on correction; never log `auth_token` / full `base_url`.
+Correction happens at two points and must stay idempotent: `normalize_profile` (save - persists the corrected `auth_mode`) and `apply_profile` (defensive - self-heals stale on-disk profiles). Defensive apply must persist the corrected profile through the guarded profiles writer **before** loading or modifying runtime settings. If persistence fails, return an actionable error naming the profile and leave `settings.json` byte-for-byte unchanged. Each correction emits a `tracing::warn`; never log `auth_token` / full `base_url`.
 
-Model-mapping fields are typed on `ProfileConfig` / `ConfigSection` and mapped in `ConfigSection::to_managed_env_pairs` (ccr-config, keyed by `ccr_types::env_keys` constants); `custom_model_option`(`_name`) → `ANTHROPIC_CUSTOM_MODEL_OPTION`(`_NAME`). New env keys must also be registered in `ClaudePlatform::get_env_var_names`. Typing a previously-untyped key auto-migrates existing TOML (serde captures it into the typed slot instead of `other`/`platform_data`).
+Model-mapping fields are typed on `ProfileConfig` / `ConfigSection` and mapped in `ConfigSection::to_managed_env_pairs` (ccr-config, keyed by `ccr_types::env_keys` constants); `custom_model_option`(`_name`) -> `ANTHROPIC_CUSTOM_MODEL_OPTION`(`_NAME`). New env keys must be added to `ccr_types::env_keys::CCR_MANAGED_KEYS`; `ClaudePlatform::get_env_var_names` derives from that registry. Typing a previously-untyped key auto-migrates existing TOML (serde captures it into the typed slot instead of `other`/`platform_data`).
 
 `ClaudeSettings` itself is `ccr_types::ClaudeSettings` (single workspace shape); `managers/settings.rs` is a pure IO adapter (`SettingsManager`: load/save/backup/restore) plus a re-export, and must not grow local settings types or env-mutation logic.
 
@@ -144,7 +144,8 @@ Model-mapping fields are typed on `ProfileConfig` / `ConfigSection` and mapped i
 - `ConfigSection::{default_fable_model, default_*_model_name, claude_code_auto_compact_window, api_timeout_ms, claude_code_disable_nonessential_traffic}`
 - `ProfileConfig::{default_fable_model, default_*_model_name, claude_code_auto_compact_window, api_timeout_ms, claude_code_disable_nonessential_traffic}`
 - `ConfigSection::to_managed_env_pairs()` (ccr-config)
-- `ClaudeSettings::apply_managed_env(pairs)` / `ClaudeSettings::clear_managed_vars()` (ccr-types)
+- `env_keys::CCR_MANAGED_KEYS` (ccr-types)
+- `ClaudeSettings::{apply_managed_env, clear_ccr_managed_vars, has_managed_overrides, managed_env_entries}` (ccr-types)
 - `ClaudePlatform::get_env_var_names()`
 - `ClaudePlatform::apply_profile(name)`
 - Test fixtures: `TestHome` must isolate `CLAUDE_CONFIG_DIR`, `CLAUDE_JSON_PATH`, `CCR_SETTINGS_PATH`, and `CCR_BACKUP_DIR`.
@@ -152,8 +153,10 @@ Model-mapping fields are typed on `ProfileConfig` / `ConfigSection` and mapped i
 ### 3. Contracts
 
 - API-key Claude profiles write only typed, managed env keys into `~/.claude/settings.json.env`; do not add ad hoc env writes in command handlers.
-- Subscription profiles call `clear_managed_vars()` and must remove both `ANTHROPIC_*` keys and non-Anthropic CCR-managed Claude Code keys such as `CLAUDE_CODE_AUTO_COMPACT_WINDOW`, `API_TIMEOUT_MS`, and `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC`.
-- Every new typed env field must be added to both `ProfileConfig` and `ConfigSection`, both conversion directions, `ccr_types::env_keys` (constant + `NON_ANTHROPIC_MANAGED_KEYS` when unprefixed), `ConfigSection::to_managed_env_pairs`, `ClaudePlatform::get_env_var_names`, Tauri JSON parse/serialize, UI form state, and provider template mappers when templates can fill it. Clearing needs no extra wiring: `clear_managed_vars` covers the `ANTHROPIC_` prefix plus `NON_ANTHROPIC_MANAGED_KEYS`.
+- Subscription apply, auth switch, profile off, and lifecycle clear call `clear_ccr_managed_vars()` and remove every key in `CCR_MANAGED_KEYS`, including non-Anthropic runtime keys such as `CLAUDE_CODE_AUTO_COMPACT_WINDOW`, `API_TIMEOUT_MS`, and `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC`.
+- User-owned keys outside `CCR_MANAGED_KEYS`, including `ANTHROPIC_API_KEY` and `ANTHROPIC_CUSTOM_HEADERS`, are never written or deleted by profile operations. Unknown prefix keys may still affect Claude Code; doctor owns the warning path rather than cleanup guessing ownership.
+- `managed_env_entries()` is the single source for lifecycle clear preview, empty-state detection, confirmation count, and removal scope.
+- Every new typed env field must be added to both `ProfileConfig` and `ConfigSection`, both conversion directions, an `ccr_types::env_keys` constant, `CCR_MANAGED_KEYS` (and `NON_ANTHROPIC_MANAGED_KEYS` when unprefixed), `ConfigSection::to_managed_env_pairs`, Tauri JSON parse/serialize, UI form state, and provider template mappers when templates can fill it. Registry-to-mapping equality tests must fail if any path drifts.
 - API-key profile apply should try to set `hasCompletedOnboarding = true` in `~/.claude.json` or `CLAUDE_JSON_PATH`. This helper preserves unknown JSON fields. Failure to read/parse/write `.claude.json` is logged as a warning and must not prevent `settings.json` from being saved.
 - `ccr doctor` checks API-key profiles for placeholder-looking tokens, active-profile env mismatches, GLM 1M profiles missing compact-window configuration, and missing/corrupt onboarding state.
 
@@ -164,22 +167,31 @@ Model-mapping fields are typed on `ProfileConfig` / `ConfigSection` and mapped i
 - GLM model contains `[1m]` and `claude_code_auto_compact_window` is empty -> `doctor` warning recommending `1000000`.
 - `.claude.json` missing, unparsable, unreadable, or lacking `hasCompletedOnboarding = true` -> `doctor` warning.
 - `.claude.json` is corrupt during API-key apply -> keep applying `settings.json`, emit `tracing::warn`, and let `doctor` surface the onboarding state.
-- A new env key is written but not cleared on subscription/off switch -> regression; add a switch-cleanup test before merging.
+- A mismarked `subscription` profile with API-key shape -> use effective `api_key` in apply, auth switch, and runtime summary; persist the corrected literal before runtime mutation.
+- Corrected profile persistence fails -> return an actionable error and do not modify `settings.json`.
+- A registered env key is written but not cleared on subscription/off switch -> regression; add it to the registry/mapping equality fixture and switch-cleanup tests.
+- An unregistered pair reaches `apply_managed_env` -> ignore it and preserve any existing user-owned value.
 
 ### 5. Good/Base/Bad Cases
 
 - Good: typed GLM profile writes `ANTHROPIC_DEFAULT_FABLE_MODEL`, all `*_MODEL_NAME` vars, `CLAUDE_CODE_AUTO_COMPACT_WINDOW`, `API_TIMEOUT_MS`, and `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC`, then switching to subscription clears them.
+- Good: apply/off/auth switch/clear removes all registered keys while preserving `ANTHROPIC_API_KEY`, `ANTHROPIC_CUSTOM_HEADERS`, and unrelated env entries.
+- Good: applying a stale API-key-shaped profile persists `auth_mode = "api_key"` before settings mutation; a retry is idempotent.
 - Good: `.claude.json` with `oauthAccount` keeps that object and only adds `hasCompletedOnboarding = true`.
 - Base: missing `.claude.json` becomes a minimal JSON object with `hasCompletedOnboarding = true` during API-key apply.
+- Bad: `retain(|key, _| !key.starts_with("ANTHROPIC_"))` in a normal mutation path, because it deletes keys CCR does not own.
 - Bad: writing `hasCompletedOnboarding` into `~/.claude/settings.json`.
 - Bad: storing runtime env keys only in `platform_data` or UI-only state, because apply and doctor cannot round-trip them reliably.
 
 ### 6. Tests Required
 
 - `cargo test -p ccr-cli platforms::claude -- --test-threads=1`
-  - Assert API-key apply writes expected env and onboarding state.
+  - Assert API-key apply writes expected registered env, preserves unregistered Anthropic keys, and keeps onboarding behavior.
   - Assert corrupt `.claude.json` does not block `settings.json` apply.
-  - Assert subscription apply clears non-Anthropic managed keys.
+  - Assert subscription apply clears every registered key and preserves user-owned keys.
+  - Assert stale auth mode persists before runtime mutation and write failure leaves settings bytes unchanged.
+- `cargo test -p ccr-cli claude_auth -- --test-threads=1`
+  - Assert auth switch and runtime summary use effective auth mode and explicit managed override detection.
 - `cargo test -p ccr-config -- --test-threads=1`
   - Assert each typed field maps to the correct env key in `to_managed_env_pairs` and stale keys clear on profile switch (combined with `apply_managed_env`).
 - `cargo test -p ccr-cli managers::settings -- --test-threads=1`
@@ -194,20 +206,20 @@ Model-mapping fields are typed on `ProfileConfig` / `ConfigSection` and mapped i
 #### Wrong
 
 ```rust
-settings.env.insert("API_TIMEOUT_MS".into(), "3000000".into());
+settings.env.retain(|key, _| !key.starts_with("ANTHROPIC_"));
 ```
 
-This one-off write skips typed TOML migration, UI round-trip, doctor comparison, and cleanup.
+This deletes user-owned Anthropic variables and still misses CCR-managed non-Anthropic runtime keys.
 
 #### Correct
 
 ```rust
-profile.api_timeout_ms = Some("3000000".into());
-let section = ClaudePlatform::profile_to_section(&profile)?;
-settings.apply_managed_env(section.to_managed_env_pairs());
+let preview = settings.managed_env_entries();
+settings.clear_ccr_managed_vars();
+assert_eq!(preview.len(), removed_count);
 ```
 
-This keeps persistence, apply, diagnostics, and cleanup on the same typed contract.
+This keeps preview, count, and cleanup on the same explicit ownership registry while preserving user keys.
 
 ## Scenario: Retired Platform Command Discovery Boundary
 

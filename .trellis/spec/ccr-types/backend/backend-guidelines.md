@@ -42,9 +42,13 @@ Avoid application error types in this crate. Prefer pure constructors, validatio
 
 Ownership split for managed-env behavior:
 
-- **This crate** owns the pure data operations and key registry: `env_keys` constants (including `NON_ANTHROPIC_MANAGED_KEYS`), `clear_anthropic_vars`, `clear_managed_vars`, `apply_managed_env(pairs)` (clear-first, then insert), `anthropic_env_status`, `has_anthropic_overrides`, and validation (`validate`, `validate_api_key_mode`).
+- **This crate** owns the pure data operations and explicit ownership registry: `env_keys::CCR_MANAGED_KEYS`, the compatibility subset `NON_ANTHROPIC_MANAGED_KEYS`, `clear_ccr_managed_vars`, `has_managed_overrides`, `managed_env_entries`, `clear_managed_vars` (compatibility alias), `apply_managed_env(pairs)` (clear-first, then insert registered pairs), `anthropic_env_status`, `has_anthropic_overrides`, and validation (`validate`, `validate_api_key_mode`).
 - **`ccr-config`** owns the `ConfigSection -> pairs` mapping (`ConfigSection::to_managed_env_pairs`), referencing `env_keys` constants so key names cannot drift.
 - **`ccr-cli`** keeps only the IO adapter (`SettingsManager`: load/save/backup/restore).
+
+`CCR_MANAGED_KEYS` is the only set CCR may automatically write or remove from `settings.json.env`. Keys outside it are user-owned even when they start with `ANTHROPIC_`; for example, profile apply/off/auth switch/clear must preserve `ANTHROPIC_API_KEY` and `ANTHROPIC_CUSTOM_HEADERS`. `clear_anthropic_vars` and `has_anthropic_overrides` retain their historical prefix-wide semantics for compatibility and validation, but normal CCR mutation paths must use the explicit managed APIs.
+
+Keep `CCR_MANAGED_KEYS`, `ConfigSection::to_managed_env_pairs`, and `ClaudePlatform::get_env_var_names` equal. `apply_managed_env` ignores unregistered input pairs so a future caller cannot silently claim ownership of a user key without first updating the shared registry and its invariant tests. The tradeoff is that unknown keys left by older CCR versions or third-party tools are not deleted automatically; diagnostics should report them instead of cleanup code guessing ownership.
 
 Validation returns `Result<(), String>` with stable Chinese messages; callers wrap into their own error type (CLI uses `CcrError::ValidationError`). Do not add `Validatable` or other `ccr-core` trait impls here — this crate stays a leaf, and orphan rules prevent downstream impls anyway.
 
@@ -52,7 +56,7 @@ Intentional strictness kept by tests: invalid `hooks` types are a parse error (n
 
 ## Testing
 
-Add serialization round-trip tests and legacy-input tests for contract changes. `model_rate_catalog.rs`, `claude_settings.rs`, and auth modules are good examples of module-local tests.
+Add serialization round-trip tests and legacy-input tests for contract changes. Managed-env changes also require registry uniqueness/subset tests, mapping equality coverage, and assertions that unregistered `ANTHROPIC_*` keys survive clear and apply. `model_rate_catalog.rs`, `claude_settings.rs`, and auth modules are good examples of module-local tests.
 
 ## Verification
 
