@@ -148,16 +148,27 @@ Model-mapping fields are typed on `ProfileConfig` / `ConfigSection` and mapped i
 - `ClaudeSettings::{apply_managed_env, clear_ccr_managed_vars, has_managed_overrides, managed_env_entries}` (ccr-types)
 - `ClaudePlatform::get_env_var_names()`
 - `ClaudePlatform::apply_profile(name)`
+- `ccr_config::ClaudeRuntimePaths::{from_env, resolve_with}` owns all
+  user-level Claude settings/credentials/state/backup path priority.
 - Test fixtures: `TestHome` must isolate `CLAUDE_CONFIG_DIR`, `CLAUDE_JSON_PATH`, `CCR_SETTINGS_PATH`, and `CCR_BACKUP_DIR`.
 
 ### 3. Contracts
 
-- API-key Claude profiles write only typed, managed env keys into `~/.claude/settings.json.env`; do not add ad hoc env writes in command handlers.
+- `SettingsManager`, `ClaudePlatform`, `ClaudeAuthService`, and doctor consume
+  `ClaudeRuntimePaths`; they must not reimplement environment priority or
+  default `.claude` joins. The authoritative contract is in
+  `ccr-config/backend/backend-guidelines.md`.
+- API-key Claude profiles write only typed, managed env keys into the `env`
+  object stored at `ClaudeRuntimePaths::settings_file`; do not add ad hoc env
+  writes in command handlers.
 - Subscription apply, auth switch, profile off, and lifecycle clear call `clear_ccr_managed_vars()` and remove every key in `CCR_MANAGED_KEYS`, including non-Anthropic runtime keys such as `CLAUDE_CODE_AUTO_COMPACT_WINDOW`, `API_TIMEOUT_MS`, and `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC`.
 - User-owned keys outside `CCR_MANAGED_KEYS`, including `ANTHROPIC_API_KEY` and `ANTHROPIC_CUSTOM_HEADERS`, are never written or deleted by profile operations. Unknown prefix keys may still affect Claude Code; doctor owns the warning path rather than cleanup guessing ownership.
 - `managed_env_entries()` is the single source for lifecycle clear preview, empty-state detection, confirmation count, and removal scope.
 - Every new typed env field must be added to both `ProfileConfig` and `ConfigSection`, both conversion directions, an `ccr_types::env_keys` constant, `CCR_MANAGED_KEYS` (and `NON_ANTHROPIC_MANAGED_KEYS` when unprefixed), `ConfigSection::to_managed_env_pairs`, Tauri JSON parse/serialize, UI form state, and provider template mappers when templates can fill it. Registry-to-mapping equality tests must fail if any path drifts.
-- API-key profile apply should try to set `hasCompletedOnboarding = true` in `~/.claude.json` or `CLAUDE_JSON_PATH`. This helper preserves unknown JSON fields. Failure to read/parse/write `.claude.json` is logged as a warning and must not prevent `settings.json` from being saved.
+- API-key profile apply should try to set `hasCompletedOnboarding = true` in
+  `ClaudeRuntimePaths::state_file`. This helper preserves unknown JSON fields.
+  Failure to read/parse/write the state file is logged as a warning and must
+  not prevent `settings_file` from being saved.
 - `ccr doctor` checks API-key profiles for placeholder-looking tokens, active-profile env mismatches, GLM 1M profiles missing compact-window configuration, and missing/corrupt onboarding state.
 
 ### 4. Validation & Error Matrix
@@ -177,10 +188,14 @@ Model-mapping fields are typed on `ProfileConfig` / `ConfigSection` and mapped i
 - Good: typed GLM profile writes `ANTHROPIC_DEFAULT_FABLE_MODEL`, all `*_MODEL_NAME` vars, `CLAUDE_CODE_AUTO_COMPACT_WINDOW`, `API_TIMEOUT_MS`, and `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC`, then switching to subscription clears them.
 - Good: apply/off/auth switch/clear removes all registered keys while preserving `ANTHROPIC_API_KEY`, `ANTHROPIC_CUSTOM_HEADERS`, and unrelated env entries.
 - Good: applying a stale API-key-shaped profile persists `auth_mode = "api_key"` before settings mutation; a retry is idempotent.
-- Good: `.claude.json` with `oauthAccount` keeps that object and only adds `hasCompletedOnboarding = true`.
-- Base: missing `.claude.json` becomes a minimal JSON object with `hasCompletedOnboarding = true` during API-key apply.
+- Good: a custom `CLAUDE_CONFIG_DIR` makes profile apply, auth switching, and
+  doctor observe the same settings, credentials, and state files.
+- Good: a state file with `oauthAccount` keeps that object and only adds `hasCompletedOnboarding = true`.
+- Base: a missing resolved state file becomes a minimal JSON object with `hasCompletedOnboarding = true` during API-key apply.
 - Bad: `retain(|key, _| !key.starts_with("ANTHROPIC_"))` in a normal mutation path, because it deletes keys CCR does not own.
 - Bad: writing `hasCompletedOnboarding` into `~/.claude/settings.json`.
+- Bad: checking `CLAUDE_JSON_PATH` or joining `.claude/settings.json` directly
+  in a CLI consumer instead of using `ClaudeRuntimePaths`.
 - Bad: storing runtime env keys only in `platform_data` or UI-only state, because apply and doctor cannot round-trip them reliably.
 
 ### 6. Tests Required

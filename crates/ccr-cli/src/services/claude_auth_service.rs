@@ -7,6 +7,7 @@ use crate::models::{
     ClaudeProfileAuthMode, ClaudeRuntimeMode, ClaudeRuntimeSummary, PlatformConfig, ProfileConfig,
 };
 use crate::platforms::ClaudePlatform;
+use ccr_config::ClaudeRuntimePaths;
 use ccr_config::managers::config::CcsConfig;
 use ccr_config::platforms::base as platform_base;
 use ccr_core::core::LockManager;
@@ -53,8 +54,8 @@ struct RuntimeAuthRead {
 /// Claude auth 服务
 pub struct ClaudeAuthService {
     ccr_claude_dir: PathBuf,
-    claude_dir: PathBuf,
-    claude_json_path: PathBuf,
+    runtime_paths: ClaudeRuntimePaths,
+    lock_dir: PathBuf,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -156,15 +157,13 @@ impl ClaudeAuthService {
         let ccr_root = std::env::var("CCR_ROOT")
             .map(PathBuf::from)
             .unwrap_or_else(|_| home.join(".ccr"));
+        let runtime_paths = ClaudeRuntimePaths::from_env()?;
+        let lock_dir = LockManager::with_default_path()?.lock_dir().to_path_buf();
 
         Ok(Self {
             ccr_claude_dir: ccr_root.join("platforms").join("claude"),
-            claude_dir: std::env::var_os("CLAUDE_CONFIG_DIR")
-                .map(PathBuf::from)
-                .unwrap_or_else(|| home.join(".claude")),
-            claude_json_path: std::env::var_os("CLAUDE_JSON_PATH")
-                .map(PathBuf::from)
-                .unwrap_or_else(|| home.join(".claude.json")),
+            runtime_paths,
+            lock_dir,
         })
     }
 
@@ -174,15 +173,23 @@ impl ClaudeAuthService {
         claude_dir: PathBuf,
         claude_json_path: PathBuf,
     ) -> Self {
+        let lock_dir = claude_dir.join(".locks");
+        let runtime_paths = ClaudeRuntimePaths {
+            settings_file: claude_dir.join("settings.json"),
+            credentials_file: claude_dir.join(".credentials.json"),
+            state_file: claude_json_path,
+            backups_dir: claude_dir.join("backups"),
+            config_dir: claude_dir,
+        };
         Self {
             ccr_claude_dir,
-            claude_dir,
-            claude_json_path,
+            runtime_paths,
+            lock_dir,
         }
     }
 
     fn credentials_path(&self) -> PathBuf {
-        self.claude_dir.join(".credentials.json")
+        self.runtime_paths.credentials_file.clone()
     }
 
     fn registry_path(&self) -> PathBuf {
@@ -194,14 +201,14 @@ impl ClaudeAuthService {
     }
 
     fn settings_path(&self) -> PathBuf {
-        self.claude_dir.join("settings.json")
+        self.runtime_paths.settings_file.clone()
     }
 
     fn settings_manager(&self) -> SettingsManager {
         SettingsManager::new(
             self.settings_path(),
-            self.claude_dir.join("backups"),
-            LockManager::new(self.claude_dir.join(".locks")),
+            &self.runtime_paths.backups_dir,
+            LockManager::new(&self.lock_dir),
         )
     }
 
@@ -396,7 +403,8 @@ impl ClaudeAuthService {
         let credentials = self
             .read_optional_json::<ClaudeCredentialsDocument>(&self.credentials_path())
             .filter(|doc| doc.claude_ai_oauth.is_some());
-        let metadata = self.read_optional_json::<ClaudeMetadataDocument>(&self.claude_json_path);
+        let metadata =
+            self.read_optional_json::<ClaudeMetadataDocument>(&self.runtime_paths.state_file);
         let info = credentials
             .as_ref()
             .and_then(|doc| self.build_current_info(doc, metadata.as_ref()));
@@ -579,7 +587,8 @@ impl ClaudeAuthService {
             ));
         }
 
-        let metadata = self.read_optional_json::<ClaudeMetadataDocument>(&self.claude_json_path);
+        let metadata =
+            self.read_optional_json::<ClaudeMetadataDocument>(&self.runtime_paths.state_file);
         let info = self
             .build_current_info(&credentials, metadata.as_ref())
             .ok_or_else(|| {
@@ -918,11 +927,36 @@ mod tests {
                 }
             });
             fs::write(
-                &self.service.claude_json_path,
+                &self.service.runtime_paths.state_file,
                 serde_json::to_string_pretty(&value).unwrap(),
             )
             .unwrap();
         }
+    }
+
+    #[test]
+    fn claude_config_dir_controls_auth_runtime_paths() {
+        let mut home = TestHome::new_with_home_env();
+        let config_dir = home.home().join("claude-custom");
+        home.set_env("CLAUDE_CONFIG_DIR", config_dir.as_os_str());
+        home.remove_env("CCR_SETTINGS_PATH");
+        home.remove_env("CCR_BACKUP_DIR");
+        home.remove_env("CLAUDE_JSON_PATH");
+
+        let service = ClaudeAuthService::new().unwrap();
+        assert_eq!(service.settings_path(), config_dir.join("settings.json"));
+        assert_eq!(
+            service.credentials_path(),
+            config_dir.join(".credentials.json")
+        );
+        assert_eq!(
+            service.runtime_paths.state_file,
+            config_dir.join(".claude.json")
+        );
+        assert_eq!(
+            service.runtime_paths.backups_dir,
+            config_dir.join("backups")
+        );
     }
 
     #[test]

@@ -9,6 +9,7 @@
 // - 🔒 文件锁保证并发安全
 // - 💾 自动备份机制
 
+use ccr_config::ClaudeRuntimePaths;
 use ccr_core::core::atomic_writer::{AsyncAtomicWriter, AtomicWriter};
 use ccr_core::core::cache::ConfigCache;
 use ccr_core::core::error::{CcrError, Result};
@@ -60,6 +61,7 @@ impl SettingsManager {
     ///
     /// ⚙️ **开发者注意**：
     /// 可以通过环境变量覆盖默认路径：
+    /// - `CLAUDE_CONFIG_DIR`: Claude Code 配置目录
     /// - `CCR_SETTINGS_PATH`: 设置文件路径
     /// - `CCR_BACKUP_DIR`: 备份目录路径
     ///
@@ -70,23 +72,9 @@ impl SettingsManager {
     /// cargo run -- switch test
     /// ```
     pub fn with_default() -> Result<Self> {
-        // 🔍 检查环境变量
-        let settings_path = if let Ok(custom_path) = std::env::var("CCR_SETTINGS_PATH") {
-            std::path::PathBuf::from(custom_path)
-        } else {
-            let home = dirs::home_dir()
-                .ok_or_else(|| CcrError::SettingsError("无法获取用户主目录".into()))?;
-            home.join(".claude").join("settings.json")
-        };
-
-        let backup_dir = if let Ok(custom_dir) = std::env::var("CCR_BACKUP_DIR") {
-            std::path::PathBuf::from(custom_dir)
-        } else {
-            let home = dirs::home_dir()
-                .ok_or_else(|| CcrError::SettingsError("无法获取用户主目录".into()))?;
-            home.join(".claude").join("backups")
-        };
-
+        let runtime_paths = ClaudeRuntimePaths::from_env()?;
+        let settings_path = runtime_paths.settings_file;
+        let backup_dir = runtime_paths.backups_dir;
         let lock_manager = LockManager::with_default_path()?;
 
         tracing::debug!("使用设置路径: {:?}", settings_path);
@@ -496,44 +484,9 @@ impl SettingsManager {
     ///
     /// 返回 (settings_path, backup_dir)
     pub fn get_platform_paths(platform_name: &str) -> Result<(PathBuf, PathBuf)> {
-        // 特殊处理 Claude (支持 legacy 模式)
         if platform_name == "claude" {
-            // 检查是否在统一模式下
-            let home = dirs::home_dir()
-                .ok_or_else(|| CcrError::SettingsError("无法获取用户主目录".into()))?;
-
-            // 优先使用环境变量
-            if let Ok(custom_path) = std::env::var("CCR_SETTINGS_PATH") {
-                let settings_path = PathBuf::from(custom_path);
-                let backup_dir = if let Ok(custom_dir) = std::env::var("CCR_BACKUP_DIR") {
-                    PathBuf::from(custom_dir)
-                } else {
-                    home.join(".claude").join("backups")
-                };
-                return Ok((settings_path, backup_dir));
-            }
-
-            // 检查统一模式
-            let ccr_root = if let Ok(root) = std::env::var("CCR_ROOT") {
-                PathBuf::from(root)
-            } else {
-                home.join(".ccr")
-            };
-
-            if ccr_root.exists() {
-                // 统一模式
-                let platform_dir = ccr_root.join("platforms").join("claude");
-                return Ok((
-                    platform_dir.join("settings.json"),
-                    platform_dir.join("backups"),
-                ));
-            } else {
-                // Legacy 模式
-                return Ok((
-                    home.join(".claude").join("settings.json"),
-                    home.join(".claude").join("backups"),
-                ));
-            }
+            let runtime_paths = ClaudeRuntimePaths::from_env()?;
+            return Ok((runtime_paths.settings_file, runtime_paths.backups_dir));
         }
 
         if matches!(
@@ -717,6 +670,26 @@ impl CachedSettingsManager {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
+    use crate::test_support::TestHome;
+
+    #[test]
+    fn claude_config_dir_controls_default_and_platform_settings_paths() {
+        let mut home = TestHome::new_with_home_env();
+        let config_dir = home.home().join("claude-custom");
+        home.set_env("CLAUDE_CONFIG_DIR", config_dir.as_os_str());
+        home.remove_env("CCR_SETTINGS_PATH");
+        home.remove_env("CCR_BACKUP_DIR");
+
+        let manager = SettingsManager::with_default().unwrap();
+        assert_eq!(
+            manager.settings_path(),
+            config_dir.join("settings.json").as_path()
+        );
+
+        let (settings_path, backup_dir) = SettingsManager::get_platform_paths("claude").unwrap();
+        assert_eq!(settings_path, config_dir.join("settings.json"));
+        assert_eq!(backup_dir, config_dir.join("backups"));
+    }
 
     #[test]
     fn test_settings_manager_save_load() {

@@ -17,10 +17,10 @@ use crate::managers::settings::{ClaudeSettings, SettingsManager};
 use crate::models::{
     ClaudeProfileAuthMode, Platform, PlatformConfig, PlatformPaths, ProfileConfig,
 };
-use ccr_config::platforms::base;
+use ccr_config::{ClaudeRuntimePaths, platforms::base};
 use ccr_core::Validatable;
-use ccr_core::core::AtomicWriter;
 use ccr_core::core::error::{CcrError, Result};
+use ccr_core::core::{AtomicWriter, LockManager};
 use indexmap::IndexMap;
 use serde_json::json;
 use std::fs;
@@ -35,6 +35,7 @@ use std::path::PathBuf;
 /// - 支持多平台配置
 pub struct ClaudePlatform {
     paths: PlatformPaths,
+    runtime_paths: ClaudeRuntimePaths,
     settings_manager: SettingsManager,
 }
 
@@ -56,10 +57,16 @@ impl ClaudePlatform {
     /// 🏗️ 创建新的 Claude Platform 实例
     pub fn new() -> Result<Self> {
         let paths = PlatformPaths::new(Platform::Claude)?;
-        let settings_manager = SettingsManager::with_default()?;
+        let runtime_paths = ClaudeRuntimePaths::from_env()?;
+        let settings_manager = SettingsManager::new(
+            &runtime_paths.settings_file,
+            &runtime_paths.backups_dir,
+            LockManager::with_default_path()?,
+        );
 
         Ok(Self {
             paths,
+            runtime_paths,
             settings_manager,
         })
     }
@@ -75,20 +82,10 @@ impl ClaudePlatform {
         base::profile_to_section(profile)
     }
 
-    fn claude_json_path() -> Result<PathBuf> {
-        if let Some(path) = std::env::var_os("CLAUDE_JSON_PATH") {
-            return Ok(PathBuf::from(path));
-        }
-
-        let home =
-            dirs::home_dir().ok_or_else(|| CcrError::ConfigError("无法获取用户主目录".into()))?;
-        Ok(home.join(".claude.json"))
-    }
-
-    fn ensure_onboarding_completed() -> Result<bool> {
-        let path = Self::claude_json_path()?;
+    fn ensure_onboarding_completed(&self) -> Result<bool> {
+        let path = &self.runtime_paths.state_file;
         let mut document = if path.exists() {
-            let content = fs::read_to_string(&path)
+            let content = fs::read_to_string(path)
                 .map_err(|e| CcrError::ConfigError(format!("读取 Claude 状态文件失败: {e}")))?;
             serde_json::from_str::<serde_json::Value>(&content)
                 .map_err(|e| CcrError::ConfigError(format!("解析 Claude 状态文件失败: {e}")))?
@@ -112,7 +109,7 @@ impl ClaudePlatform {
         object.insert("hasCompletedOnboarding".to_string(), json!(true));
         let content = serde_json::to_string_pretty(&document)
             .map_err(|e| CcrError::ConfigError(format!("序列化 Claude 状态文件失败: {e}")))?;
-        AtomicWriter::new(&path)
+        AtomicWriter::new(path)
             .secret(true)
             .write_string(&content)?;
         Ok(true)
@@ -361,7 +358,7 @@ impl PlatformConfig for ClaudePlatform {
             }
             ClaudeProfileAuthMode::ApiKey => {
                 settings.apply_managed_env(section.to_managed_env_pairs());
-                if let Err(error) = Self::ensure_onboarding_completed() {
+                if let Err(error) = self.ensure_onboarding_completed() {
                     tracing::warn!(
                         error = %error,
                         "应用 Claude API-key profile 时无法补写 Claude Code onboarding 标记"
@@ -442,6 +439,29 @@ mod tests {
             json!("subscription"),
         );
         profile
+    }
+
+    #[test]
+    fn claude_config_dir_controls_profile_settings_and_state_paths() {
+        let mut home = TestHome::new_with_home_env();
+        let config_dir = home.home().join("claude-custom");
+        fs::create_dir_all(&config_dir).unwrap();
+        home.set_env("CLAUDE_CONFIG_DIR", config_dir.as_os_str());
+        home.remove_env("CCR_SETTINGS_PATH");
+        home.remove_env("CCR_BACKUP_DIR");
+        home.remove_env("CLAUDE_JSON_PATH");
+
+        let platform = ClaudePlatform::new().unwrap();
+        assert_eq!(
+            platform.get_settings_path(),
+            config_dir.join("settings.json")
+        );
+        assert_eq!(
+            platform.runtime_paths.state_file,
+            config_dir.join(".claude.json")
+        );
+        assert!(platform.ensure_onboarding_completed().unwrap());
+        assert!(config_dir.join(".claude.json").exists());
     }
 
     fn read_profiles_config(root: &std::path::Path) -> CcsConfig {

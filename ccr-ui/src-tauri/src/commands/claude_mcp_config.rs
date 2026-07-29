@@ -2,6 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use ccr_config::ClaudeRuntimePaths;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
 use tempfile::NamedTempFile;
@@ -34,22 +35,24 @@ impl ClaudeMcpScope {
 
 #[derive(Debug, Clone)]
 pub(crate) struct ClaudeMcpContext {
-    pub home_dir: PathBuf,
+    pub user_state_path: PathBuf,
     pub project_root: PathBuf,
 }
 
 impl ClaudeMcpContext {
     pub(crate) fn detect() -> Result<Self, String> {
-        let home_dir = home_dir()?;
+        let user_state_path = ClaudeRuntimePaths::from_env()
+            .map_err(|error| format!("Resolve Claude runtime paths: {error}"))?
+            .state_file;
         let project_root = detect_project_root()?;
         Ok(Self {
-            home_dir,
+            user_state_path,
             project_root,
         })
     }
 
     fn claude_json_path(&self) -> PathBuf {
-        self.home_dir.join(".claude.json")
+        self.user_state_path.clone()
     }
 
     fn project_mcp_path(&self) -> PathBuf {
@@ -137,14 +140,6 @@ struct ScopedConfig {
     scope: ClaudeMcpScope,
     path: PathBuf,
     servers: Map<String, Value>,
-}
-
-fn home_dir() -> Result<PathBuf, String> {
-    std::env::var("HOME")
-        .or_else(|_| std::env::var("USERPROFILE"))
-        .map(PathBuf::from)
-        .or_else(|_| dirs::home_dir().ok_or(std::env::VarError::NotPresent))
-        .map_err(|_| "HOME/USERPROFILE environment variable not set".to_string())
 }
 
 fn detect_project_root() -> Result<PathBuf, String> {
@@ -925,10 +920,31 @@ mod tests {
         let home = tempfile::tempdir().unwrap();
         let project = tempfile::tempdir().unwrap();
         let ctx = ClaudeMcpContext {
-            home_dir: home.path().to_path_buf(),
+            user_state_path: home.path().join(".claude.json"),
             project_root: project.path().to_path_buf(),
         };
         (home, project, ctx)
+    }
+
+    #[test]
+    fn custom_config_dir_moves_only_the_user_state_path() {
+        let home = tempfile::tempdir().unwrap();
+        let project = tempfile::tempdir().unwrap();
+        let config_dir = home.path().join("claude-custom");
+        let paths = ClaudeRuntimePaths::resolve_with(home.path(), |key| {
+            (key == "CLAUDE_CONFIG_DIR").then(|| config_dir.as_os_str().to_owned())
+        });
+        let ctx = ClaudeMcpContext {
+            user_state_path: paths.state_file,
+            project_root: project.path().to_path_buf(),
+        };
+
+        assert_eq!(ctx.claude_json_path(), config_dir.join(".claude.json"));
+        assert_eq!(ctx.project_mcp_path(), project.path().join(".mcp.json"));
+        assert_eq!(
+            ctx.project_settings_path(),
+            project.path().join(".claude/settings.json")
+        );
     }
 
     #[test]

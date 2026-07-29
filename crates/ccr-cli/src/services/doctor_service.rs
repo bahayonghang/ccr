@@ -10,7 +10,7 @@ use crate::platforms::gemini::GeminiSettings;
 use crate::platforms::{CodexPlatform, PlatformDetector, create_platform};
 use crate::services::health_check::{HealthCheckResult, HealthCheckService, HealthStatus};
 use crate::services::{ClaudeAuthService, CodexAuthService};
-use ccr_config::platforms::base;
+use ccr_config::{ClaudeRuntimePaths, platforms::base};
 use ccr_core::Validatable;
 use futures::future::BoxFuture;
 use serde::Serialize;
@@ -1101,11 +1101,9 @@ impl DoctorService {
     }
 
     fn claude_json_path() -> Option<PathBuf> {
-        if let Some(path) = std::env::var_os("CLAUDE_JSON_PATH") {
-            return Some(PathBuf::from(path));
-        }
-
-        dirs::home_dir().map(|home| home.join(".claude.json"))
+        ClaudeRuntimePaths::from_env()
+            .ok()
+            .map(|paths| paths.state_file)
     }
 
     fn claude_onboarding_warning() -> Option<String> {
@@ -1836,6 +1834,19 @@ current_profile = "{current_profile}"
             )
             .unwrap();
         }
+    }
+
+    #[test]
+    fn claude_config_dir_controls_doctor_state_path() {
+        let mut home = TestHome::new_with_home_env();
+        let config_dir = home.home().join("claude-custom");
+        home.set_env("CLAUDE_CONFIG_DIR", config_dir.as_os_str());
+        home.remove_env("CLAUDE_JSON_PATH");
+
+        assert_eq!(
+            DoctorService::claude_json_path(),
+            Some(config_dir.join(".claude.json"))
+        );
     }
 
     #[test]

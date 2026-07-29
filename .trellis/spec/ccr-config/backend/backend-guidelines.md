@@ -48,6 +48,93 @@ Use `tracing::debug!` for path decisions and autofix behavior. Do not log profil
 
 Tests that mutate `CCR_ROOT` or `CCR_LOCK_DIR` must use `test_support::TestCcrEnv`, which holds a process-wide lock and restores env vars on Drop.
 
+## Scenario: Resolve Claude user-level runtime paths once
+
+### 1. Scope / Trigger
+
+- Trigger: reading or writing Claude Code user-level settings, credentials,
+  state, or CCR-managed settings backups from any workspace crate.
+- `ccr-config` owns the path contract; CLI and Tauri consumers must not repeat
+  the environment-variable priority or default path joins.
+- Project `.mcp.json` / `.claude/settings*.json`, SSH/WSL paths, usage data,
+  skills, prompts, and session observation are separate domains.
+
+### 2. Signatures
+
+- `ClaudeRuntimePaths::from_env() -> ccr_core::Result<ClaudeRuntimePaths>`
+- `ClaudeRuntimePaths::resolve_with(home, env_getter) -> ClaudeRuntimePaths`
+- Fields: `config_dir`, `settings_file`, `credentials_file`, `state_file`,
+  `backups_dir`.
+
+### 3. Contracts
+
+- `config_dir`: non-empty `CLAUDE_CONFIG_DIR`, otherwise `<home>/.claude`.
+- `settings_file`: non-empty `CCR_SETTINGS_PATH`, otherwise
+  `<config_dir>/settings.json`.
+- `credentials_file`: `<config_dir>/.credentials.json`; per-file overrides do
+  not move it.
+- `state_file`: non-empty `CLAUDE_JSON_PATH`; otherwise
+  `<config_dir>/.claude.json` when `CLAUDE_CONFIG_DIR` is set, and
+  `<home>/.claude.json` in the legacy layout.
+- `backups_dir`: non-empty `CCR_BACKUP_DIR`, otherwise
+  `<config_dir>/backups`.
+- Empty override values are treated as absent. Resolution is lexical: do not
+  canonicalize or require targets to exist. Windows expands `%NAME%` segments
+  through the injected getter and preserves unknown segments literally;
+  non-Windows targets do not interpret `%...%`.
+
+### 4. Validation & Error Matrix
+
+- Home directory unavailable in `from_env` -> `ConfigError`; do not guess a
+  relative home.
+- Override is empty -> use the next priority, never the process current
+  directory.
+- Unknown Windows `%NAME%` -> preserve the segment so later I/O reports the
+  actual path; do not silently delete it.
+- Target does not exist -> return the lexical path; the owning read/write
+  operation decides whether missing is valid.
+
+### 5. Good/Base/Bad Cases
+
+- Good: `CLAUDE_CONFIG_DIR=D:\Claude Data` moves settings, credentials, state,
+  and default backups together.
+- Good: `CCR_SETTINGS_PATH` moves only settings while credentials and state
+  continue to follow `config_dir`.
+- Base: no overrides reproduces `~/.claude/settings.json`,
+  `~/.claude/.credentials.json`, `~/.claude.json`, and
+  `~/.claude/backups`.
+- Bad: a consumer independently checks `CLAUDE_CONFIG_DIR` and then hard-codes
+  `~/.claude.json`; profile and auth operations will observe different users.
+
+### 6. Tests Required
+
+- Pure resolver matrix for defaults, each override, combined priority, and
+  empty values.
+- Windows assertions for drive letters, backslashes, spaces, `%USERPROFILE%`,
+  and unknown `%NAME%`; non-Windows assertion that percent syntax is literal.
+- Consumer tests must inject paths or hold their crate-wide process env lock;
+  never mutate process env unsynchronized.
+- Run `cargo test -p ccr-config claude_runtime_paths -- --test-threads=1`,
+  affected consumer tests, `just lint-strict`, and `just test`.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```rust
+let home = dirs::home_dir().ok_or(error)?;
+let settings = home.join(".claude/settings.json");
+let state = home.join(".claude.json");
+```
+
+#### Correct
+
+```rust
+let paths = ccr_config::ClaudeRuntimePaths::from_env()?;
+read_settings(&paths.settings_file)?;
+read_state(&paths.state_file)?;
+```
+
 ## Scenario: Parse and persist profile TOML safely
 
 ### 1. Scope / Trigger

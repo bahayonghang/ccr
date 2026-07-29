@@ -139,6 +139,10 @@ pub(crate) mod test_support {
         pub(crate) fn set_env(&mut self, key: &'static str, value: &OsStr) {
             set_env_var(&mut self.previous_vars, key, value);
         }
+
+        pub(crate) fn remove_env(&mut self, key: &'static str) {
+            remove_env_var(&mut self.previous_vars, key);
+        }
     }
 
     impl TestHostEnv {

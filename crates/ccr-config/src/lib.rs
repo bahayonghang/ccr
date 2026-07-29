@@ -11,7 +11,7 @@ pub use managers::{
     PlatformConfigManager, ProviderType, TuiConfig, TuiConfigManager, TuiLanguage, TuiTabId,
     TuiTheme, UnifiedConfig, ValidationReport,
 };
-pub use models::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};
+pub use models::{ClaudeRuntimePaths, Platform, PlatformConfig, PlatformPaths, ProfileConfig};
 pub use platforms::base::{
     get_current_profile_from_registry, load_profiles_from_toml, parse_profiles_from_str,
     profile_to_section, reconcile_registry_current_profile_after_delete,
