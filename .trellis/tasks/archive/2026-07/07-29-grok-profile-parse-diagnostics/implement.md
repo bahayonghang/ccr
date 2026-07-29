@@ -44,4 +44,4 @@
 - [x] Capture an isolated profile switch proving all three `high` runtime values, then switch/off and prove the entry default is restored without unrelated TOML changes.
 - [x] Verify SHA-256 before/after the live diagnostic: the real `profiles.toml` and `~/.grok/config.toml` were unchanged.
 - [x] Update the executable Grok runtime, shared parser-diagnostic, and TUI issue-layout specs.
-- [ ] Commit the scoped code, tests, spec, and Trellis artifacts only after checks pass.
+- [x] Commit the scoped code, tests, spec, and Trellis artifacts only after checks pass (`a60ab8ac`).
