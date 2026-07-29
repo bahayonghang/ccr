@@ -3,9 +3,14 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use ccr_config::ClaudeRuntimePaths;
+use ccr_core::core::{
+    BackupPolicy, VersionedWriteOutcome, WriteOptions, content_version_token,
+    write_guarded_versioned,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
-use tempfile::NamedTempFile;
+
+const MCP_UPDATE_ATTEMPTS: usize = 3;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum ClaudeMcpScope {
@@ -174,37 +179,29 @@ fn normalize_existing_or_raw_path(path: PathBuf) -> Result<PathBuf, String> {
 }
 
 fn read_json_object(path: &Path) -> Result<Map<String, Value>, String> {
-    if !path.exists() {
-        return Ok(Map::new());
-    }
+    read_versioned_json_object(path).map(|(object, _)| object)
+}
 
-    let content = fs::read_to_string(path).map_err(|e| format!("Read {}: {e}", path.display()))?;
-    if content.trim().is_empty() {
-        return Ok(Map::new());
+fn read_versioned_json_object(path: &Path) -> Result<(Map<String, Value>, String), String> {
+    let bytes = match fs::read(path) {
+        Ok(bytes) => bytes,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            return Ok((Map::new(), String::new()));
+        }
+        Err(error) => return Err(format!("Read {}: {error}", path.display())),
+    };
+    let token = content_version_token(&bytes);
+    if bytes.iter().all(|byte| byte.is_ascii_whitespace()) {
+        return Ok((Map::new(), token));
     }
 
     let value: Value =
-        serde_json::from_str(&content).map_err(|e| format!("Parse {}: {e}", path.display()))?;
-    value
+        serde_json::from_slice(&bytes).map_err(|error| format!("Parse {}: {error}", path.display()))?;
+    let object = value
         .as_object()
         .cloned()
-        .ok_or_else(|| format!("{} must contain a JSON object", path.display()))
-}
-
-fn write_json_object(path: &Path, object: &Map<String, Value>) -> Result<(), String> {
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).map_err(|e| format!("Create {}: {e}", parent.display()))?;
-    }
-
-    let content = serde_json::to_string_pretty(object)
-        .map_err(|e| format!("Serialize {}: {e}", path.display()))?;
-    let parent = path.parent().unwrap_or_else(|| Path::new("."));
-    let tmp = NamedTempFile::new_in(parent)
-        .map_err(|e| format!("Create temp file for {}: {e}", path.display()))?;
-    fs::write(tmp.path(), content).map_err(|e| format!("Write {}: {e}", tmp.path().display()))?;
-    tmp.persist(path)
-        .map_err(|e| format!("Persist {}: {e}", path.display()))?;
-    Ok(())
+        .ok_or_else(|| format!("{} must contain a JSON object", path.display()))?;
+    Ok((object, token))
 }
 
 fn path_for_display(path: &Path) -> String {
@@ -585,27 +582,50 @@ pub(crate) fn list_claude_mcp_default() -> Result<ClaudeMcpList, String> {
     list_claude_mcp(&ctx)
 }
 
-fn read_root_for_scope(
-    ctx: &ClaudeMcpContext,
-    scope: ClaudeMcpScope,
-) -> Result<Map<String, Value>, String> {
+fn root_path_for_scope(ctx: &ClaudeMcpContext, scope: ClaudeMcpScope) -> PathBuf {
     match scope {
-        ClaudeMcpScope::Local | ClaudeMcpScope::User => read_json_object(&ctx.claude_json_path()),
-        ClaudeMcpScope::Project => read_json_object(&ctx.project_mcp_path()),
+        ClaudeMcpScope::Local | ClaudeMcpScope::User => ctx.claude_json_path(),
+        ClaudeMcpScope::Project => ctx.project_mcp_path(),
     }
 }
 
-fn write_root_for_scope(
+fn write_options_for_scope(scope: ClaudeMcpScope) -> WriteOptions {
+    WriteOptions {
+        backup: BackupPolicy::None,
+        secret: !matches!(scope, ClaudeMcpScope::Project),
+        ..Default::default()
+    }
+}
+
+fn update_root_for_scope<T, F>(
     ctx: &ClaudeMcpContext,
     scope: ClaudeMcpScope,
-    root: &Map<String, Value>,
-) -> Result<(), String> {
-    match scope {
-        ClaudeMcpScope::Local | ClaudeMcpScope::User => {
-            write_json_object(&ctx.claude_json_path(), root)
+    mut update: F,
+) -> Result<T, String>
+where
+    F: FnMut(&mut Map<String, Value>) -> Result<T, String>,
+{
+    let path = root_path_for_scope(ctx, scope);
+    let options = write_options_for_scope(scope);
+
+    for _ in 0..MCP_UPDATE_ATTEMPTS {
+        let (mut root, expected_token) = read_versioned_json_object(&path)?;
+        let result = update(&mut root)?;
+        let bytes = serde_json::to_vec_pretty(&root)
+            .map_err(|error| format!("Serialize {}: {error}", path.display()))?;
+
+        match write_guarded_versioned(&path, &bytes, &expected_token, &options)
+            .map_err(|error| format!("Write {}: {error}", path.display()))?
+        {
+            VersionedWriteOutcome::Written => return Ok(result),
+            VersionedWriteOutcome::Conflict => continue,
         }
-        ClaudeMcpScope::Project => write_json_object(&ctx.project_mcp_path(), root),
     }
+
+    Err(format!(
+        "Claude MCP {} scope changed concurrently after {MCP_UPDATE_ATTEMPTS} attempts; retry the operation",
+        scope.as_str()
+    ))
 }
 
 fn ensure_object_field<'a>(
@@ -810,10 +830,11 @@ pub(crate) fn add_claude_mcp_server(
         .or_else(|| scope_from_config(&config))
         .unwrap_or(ClaudeMcpScope::User);
     let clean = clean_config(config)?;
-    let mut root = read_root_for_scope(ctx, scope)?;
-    let servers = mcp_servers_for_write(ctx, scope, &mut root)?;
-    servers.insert(name.clone(), clean);
-    write_root_for_scope(ctx, scope, &root)?;
+    update_root_for_scope(ctx, scope, |root| {
+        let servers = mcp_servers_for_write(ctx, scope, root)?;
+        servers.insert(name.clone(), clean.clone());
+        Ok(())
+    })?;
 
     Ok(json!({
         "success": true,
@@ -842,17 +863,16 @@ pub(crate) fn update_claude_mcp_server(
         &name,
         requested_scope.or_else(|| scope_from_config(&patch)),
     )?;
-    let mut root = read_root_for_scope(ctx, scope)?;
-    let servers = mcp_servers_for_write(ctx, scope, &mut root)?;
-    let existing = servers.get_mut(&name).ok_or_else(|| {
-        format!(
-            "MCP server '{name}' not found in Claude {} scope",
-            scope.as_str()
-        )
+    update_root_for_scope(ctx, scope, |root| {
+        let servers = mcp_servers_for_write(ctx, scope, root)?;
+        let existing = servers.get_mut(&name).ok_or_else(|| {
+            format!(
+                "MCP server '{name}' not found in Claude {} scope",
+                scope.as_str()
+            )
+        })?;
+        merge_mcp_config(existing, patch.clone())
     })?;
-
-    merge_mcp_config(existing, patch)?;
-    write_root_for_scope(ctx, scope, &root)?;
 
     Ok(json!({
         "success": true,
@@ -876,15 +896,16 @@ pub(crate) fn delete_claude_mcp_server(
     requested_scope: Option<ClaudeMcpScope>,
 ) -> Result<String, String> {
     let scope = resolve_existing_scope(ctx, &name, requested_scope)?;
-    let mut root = read_root_for_scope(ctx, scope)?;
-    let servers = mcp_servers_for_write(ctx, scope, &mut root)?;
-    if servers.remove(&name).is_none() {
-        return Err(format!(
-            "MCP server '{name}' not found in Claude {} scope",
-            scope.as_str()
-        ));
-    }
-    write_root_for_scope(ctx, scope, &root)?;
+    update_root_for_scope(ctx, scope, |root| {
+        let servers = mcp_servers_for_write(ctx, scope, root)?;
+        if servers.remove(&name).is_none() {
+            return Err(format!(
+                "MCP server '{name}' not found in Claude {} scope",
+                scope.as_str()
+            ));
+        }
+        Ok(())
+    })?;
 
     Ok(format!(
         "MCP server '{name}' deleted from Claude {} scope",
@@ -907,6 +928,9 @@ pub(crate) fn parse_scope(value: Option<&str>) -> Option<ClaudeMcpScope> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_support::TestProcessEnv;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::{Arc, Barrier};
     use tempfile::TempDir;
 
     fn write_json(path: &Path, value: Value) {
@@ -916,14 +940,16 @@ mod tests {
         fs::write(path, serde_json::to_string_pretty(&value).unwrap()).unwrap();
     }
 
-    fn test_context() -> (TempDir, TempDir, ClaudeMcpContext) {
+    fn test_context() -> (TestProcessEnv, TempDir, TempDir, ClaudeMcpContext) {
         let home = tempfile::tempdir().unwrap();
         let project = tempfile::tempdir().unwrap();
+        let mut process_env = TestProcessEnv::new();
+        process_env.set("CCR_LOCK_DIR", home.path().join("locks").as_os_str());
         let ctx = ClaudeMcpContext {
             user_state_path: home.path().join(".claude.json"),
             project_root: project.path().to_path_buf(),
         };
-        (home, project, ctx)
+        (process_env, home, project, ctx)
     }
 
     #[test]
@@ -949,7 +975,7 @@ mod tests {
 
     #[test]
     fn claude_mcp_lists_user_local_project_and_marks_precedence_with_windows_key() {
-        let (_home, project, ctx) = test_context();
+        let (_process_env, _home, project, ctx) = test_context();
         let forward_project_key = path_for_display(project.path()).replace('\\', "/");
 
         write_json(
@@ -1008,7 +1034,7 @@ mod tests {
 
     #[test]
     fn claude_mcp_reports_project_approval_states() {
-        let (_home, _project, ctx) = test_context();
+        let (_process_env, _home, _project, ctx) = test_context();
         write_json(
             &ctx.project_mcp_path(),
             json!({
@@ -1045,7 +1071,7 @@ mod tests {
 
     #[test]
     fn claude_mcp_toggle_update_preserves_command_args_and_env() {
-        let (_home, _project, ctx) = test_context();
+        let (_process_env, _home, _project, ctx) = test_context();
         write_json(
             &ctx.claude_json_path(),
             json!({
@@ -1077,7 +1103,7 @@ mod tests {
 
     #[test]
     fn claude_mcp_empty_update_patch_does_not_clear_existing_config() {
-        let (_home, _project, ctx) = test_context();
+        let (_process_env, _home, _project, ctx) = test_context();
         write_json(
             &ctx.claude_json_path(),
             json!({
@@ -1119,7 +1145,7 @@ mod tests {
 
     #[test]
     fn claude_mcp_add_creates_missing_mcp_servers_object() {
-        let (_home, _project, ctx) = test_context();
+        let (_process_env, _home, _project, ctx) = test_context();
         write_json(&ctx.claude_json_path(), json!({ "other": true }));
 
         add_claude_mcp_server(
@@ -1140,7 +1166,7 @@ mod tests {
 
     #[test]
     fn claude_mcp_masked_env_is_not_written_back_over_real_secret() {
-        let (_home, _project, ctx) = test_context();
+        let (_process_env, _home, _project, ctx) = test_context();
         write_json(
             &ctx.claude_json_path(),
             json!({
@@ -1177,7 +1203,7 @@ mod tests {
 
     #[test]
     fn claude_mcp_env_patch_merges_instead_of_replacing_existing_keys() {
-        let (_home, _project, ctx) = test_context();
+        let (_process_env, _home, _project, ctx) = test_context();
         write_json(
             &ctx.claude_json_path(),
             json!({
@@ -1214,7 +1240,7 @@ mod tests {
 
     #[test]
     fn claude_mcp_add_normalizes_http_transport_without_empty_command() {
-        let (_home, _project, ctx) = test_context();
+        let (_process_env, _home, _project, ctx) = test_context();
 
         add_claude_mcp_server(
             &ctx,
@@ -1240,7 +1266,7 @@ mod tests {
 
     #[test]
     fn claude_mcp_update_can_switch_from_stdio_to_http() {
-        let (_home, _project, ctx) = test_context();
+        let (_process_env, _home, _project, ctx) = test_context();
         write_json(
             &ctx.claude_json_path(),
             json!({
@@ -1275,5 +1301,215 @@ mod tests {
         assert_eq!(server["headers"]["Authorization"], json!("Bearer token"));
         assert!(!server.contains_key("command"));
         assert!(!server.contains_key("args"));
+    }
+
+    #[test]
+    fn claude_mcp_user_mutations_preserve_unrelated_state_fields() {
+        let (_process_env, _home, _project, ctx) = test_context();
+        write_json(
+            &ctx.claude_json_path(),
+            json!({
+                "oauthAccount": { "emailAddress": "user@example.com" },
+                "primaryApiKey": "sk-private-state",
+                "customApiKeyResponses": { "approved": ["key-id"] },
+                "projects": { "other-project": { "allowedTools": ["Read"] } },
+                "unknownTopLevel": { "keep": true },
+                "mcpServers": {
+                    "existing": { "command": "node", "args": ["existing.js"] }
+                }
+            }),
+        );
+
+        add_claude_mcp_server(
+            &ctx,
+            "exa".into(),
+            json!({ "command": "npx", "args": ["exa"] }),
+            Some(ClaudeMcpScope::User),
+        )
+        .unwrap();
+        update_claude_mcp_server(
+            &ctx,
+            "exa".into(),
+            json!({ "disabled": true }),
+            Some(ClaudeMcpScope::User),
+        )
+        .unwrap();
+        delete_claude_mcp_server(&ctx, "exa".into(), Some(ClaudeMcpScope::User)).unwrap();
+
+        let root = read_json_object(&ctx.claude_json_path()).unwrap();
+        assert_eq!(
+            root["oauthAccount"]["emailAddress"],
+            json!("user@example.com")
+        );
+        assert_eq!(root["primaryApiKey"], json!("sk-private-state"));
+        assert_eq!(
+            root["customApiKeyResponses"]["approved"],
+            json!(["key-id"])
+        );
+        assert_eq!(root["unknownTopLevel"]["keep"], json!(true));
+        assert_eq!(
+            root["projects"]["other-project"]["allowedTools"],
+            json!(["Read"])
+        );
+        assert_eq!(
+            root["mcpServers"]["existing"]["command"],
+            json!("node")
+        );
+        assert!(root["mcpServers"].get("exa").is_none());
+    }
+
+    #[test]
+    fn claude_mcp_local_mutation_preserves_other_project_state() {
+        let (_process_env, _home, project, ctx) = test_context();
+        let project_key = path_for_display(project.path());
+        write_json(
+            &ctx.claude_json_path(),
+            json!({
+                "oauthAccount": { "accountUuid": "account-123" },
+                "projects": {
+                    project_key.clone(): {
+                        "allowedTools": ["Read"],
+                        "mcpServers": {
+                            "existing": { "command": "node" }
+                        }
+                    },
+                    "other-project": { "keep": true }
+                },
+                "unknownTopLevel": true
+            }),
+        );
+
+        add_claude_mcp_server(
+            &ctx,
+            "local-new".into(),
+            json!({ "command": "npx", "args": ["local"] }),
+            Some(ClaudeMcpScope::Local),
+        )
+        .unwrap();
+
+        let root = read_json_object(&ctx.claude_json_path()).unwrap();
+        assert_eq!(root["oauthAccount"]["accountUuid"], json!("account-123"));
+        assert_eq!(root["unknownTopLevel"], json!(true));
+        assert_eq!(root["projects"]["other-project"]["keep"], json!(true));
+        assert_eq!(
+            root["projects"][&project_key]["allowedTools"],
+            json!(["Read"])
+        );
+        assert_eq!(
+            root["projects"][&project_key]["mcpServers"]["existing"]["command"],
+            json!("node")
+        );
+        assert_eq!(
+            root["projects"][&project_key]["mcpServers"]["local-new"]["command"],
+            json!("npx")
+        );
+    }
+
+    #[test]
+    fn claude_mcp_cas_replays_after_one_external_change() {
+        let (_process_env, _home, _project, ctx) = test_context();
+        let path = ctx.claude_json_path();
+        let calls = AtomicUsize::new(0);
+
+        update_root_for_scope(&ctx, ClaudeMcpScope::User, |root| {
+            root.insert("ccrMutation".into(), json!(true));
+            if calls.fetch_add(1, Ordering::SeqCst) == 0 {
+                write_json(&path, json!({ "externalMutation": { "keep": true } }));
+            }
+            Ok(())
+        })
+        .unwrap();
+
+        let root = read_json_object(&path).unwrap();
+        assert_eq!(calls.load(Ordering::SeqCst), 2);
+        assert_eq!(root["ccrMutation"], json!(true));
+        assert_eq!(root["externalMutation"]["keep"], json!(true));
+    }
+
+    #[test]
+    fn claude_mcp_cas_fails_after_three_external_changes() {
+        let (_process_env, _home, _project, ctx) = test_context();
+        let path = ctx.claude_json_path();
+        let mut generation = 0;
+
+        let error = update_root_for_scope(&ctx, ClaudeMcpScope::User, |root| {
+            root.insert("ccrMutation".into(), json!(true));
+            generation += 1;
+            write_json(&path, json!({ "externalGeneration": generation }));
+            Ok(())
+        })
+        .unwrap_err();
+
+        let root = read_json_object(&path).unwrap();
+        assert!(error.contains("changed concurrently"));
+        assert!(error.contains("retry"));
+        assert_eq!(generation, MCP_UPDATE_ATTEMPTS);
+        assert_eq!(root["externalGeneration"], json!(MCP_UPDATE_ATTEMPTS));
+        assert!(root.get("ccrMutation").is_none());
+    }
+
+    #[test]
+    fn claude_mcp_concurrent_mutations_preserve_both_fields() {
+        let (_process_env, _home, _project, ctx) = test_context();
+        let first_mutation_ready = Arc::new(Barrier::new(2));
+        let second_write_finished = Arc::new(Barrier::new(2));
+        let first_calls = Arc::new(AtomicUsize::new(0));
+        let first_ctx = ctx.clone();
+        let first_thread = {
+            let first_mutation_ready = first_mutation_ready.clone();
+            let second_write_finished = second_write_finished.clone();
+            let first_calls = first_calls.clone();
+            std::thread::spawn(move || {
+                update_root_for_scope(&first_ctx, ClaudeMcpScope::User, |root| {
+                    root.insert("firstWriter".into(), json!(true));
+                    if first_calls.fetch_add(1, Ordering::SeqCst) == 0 {
+                        first_mutation_ready.wait();
+                        second_write_finished.wait();
+                    }
+                    Ok(())
+                })
+            })
+        };
+
+        first_mutation_ready.wait();
+        update_root_for_scope(&ctx, ClaudeMcpScope::User, |root| {
+            root.insert("secondWriter".into(), json!(true));
+            Ok(())
+        })
+        .unwrap();
+        second_write_finished.wait();
+        first_thread.join().unwrap().unwrap();
+
+        let root = read_json_object(&ctx.claude_json_path()).unwrap();
+        assert!(first_calls.load(Ordering::SeqCst) >= 2);
+        assert_eq!(root["firstWriter"], json!(true));
+        assert_eq!(root["secondWriter"], json!(true));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn claude_mcp_user_state_is_owner_only_without_same_dir_backup() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let (_process_env, _home, _project, ctx) = test_context();
+        add_claude_mcp_server(
+            &ctx,
+            "exa".into(),
+            json!({ "command": "npx" }),
+            Some(ClaudeMcpScope::User),
+        )
+        .unwrap();
+
+        let path = ctx.claude_json_path();
+        assert_eq!(fs::metadata(&path).unwrap().permissions().mode() & 0o777, 0o600);
+        assert!(
+            fs::read_dir(path.parent().unwrap())
+                .unwrap()
+                .all(|entry| !entry
+                    .unwrap()
+                    .file_name()
+                    .to_string_lossy()
+                    .ends_with(".bak"))
+        );
     }
 }

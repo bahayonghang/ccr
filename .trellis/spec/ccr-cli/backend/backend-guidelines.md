@@ -136,7 +136,7 @@ Model-mapping fields are typed on `ProfileConfig` / `ConfigSection` and mapped i
 
 ### 1. Scope / Trigger
 
-- Trigger: adding or changing Claude profile fields that write Claude Code environment variables, profile apply behavior, doctor diagnostics, or onboarding state.
+- Trigger: adding or changing Claude profile fields that write Claude Code environment variables, profile apply behavior, doctor diagnostics, or Claude state-file ownership.
 - Applies to `ProfileConfig`, `ConfigSection`, `ccr_config::profile_to_section`, `ccr_config::section_to_profile`, `ClaudeSettings`, `ClaudePlatform`, Tauri Claude profile JSON, and command integration tests.
 
 ### 2. Signatures
@@ -165,19 +165,33 @@ Model-mapping fields are typed on `ProfileConfig` / `ConfigSection` and mapped i
 - User-owned keys outside `CCR_MANAGED_KEYS`, including `ANTHROPIC_API_KEY` and `ANTHROPIC_CUSTOM_HEADERS`, are never written or deleted by profile operations. Unknown prefix keys may still affect Claude Code; doctor owns the warning path rather than cleanup guessing ownership.
 - `managed_env_entries()` is the single source for lifecycle clear preview, empty-state detection, confirmation count, and removal scope.
 - Every new typed env field must be added to both `ProfileConfig` and `ConfigSection`, both conversion directions, an `ccr_types::env_keys` constant, `CCR_MANAGED_KEYS` (and `NON_ANTHROPIC_MANAGED_KEYS` when unprefixed), `ConfigSection::to_managed_env_pairs`, Tauri JSON parse/serialize, UI form state, and provider template mappers when templates can fill it. Registry-to-mapping equality tests must fail if any path drifts.
-- API-key profile apply should try to set `hasCompletedOnboarding = true` in
-  `ClaudeRuntimePaths::state_file`. This helper preserves unknown JSON fields.
-  Failure to read/parse/write the state file is logged as a warning and must
-  not prevent `settings_file` from being saved.
-- `ccr doctor` checks API-key profiles for placeholder-looking tokens, active-profile env mismatches, GLM 1M profiles missing compact-window configuration, and missing/corrupt onboarding state.
+- Profile apply, auth switching, and doctor must not create or modify
+  `ClaudeRuntimePaths::state_file`. In particular, `hasCompletedOnboarding` is
+  private Claude Code state; API-key apply leaves an existing state file
+  byte-for-byte unchanged and does not create a missing one.
+- Tauri Claude MCP user/local mutations are the only CCR-owned state-file
+  write surface. They resolve the file through `ClaudeRuntimePaths`, replay
+  only the target `mcpServers` subtree on the latest JSON object, and use
+  guarded-write CAS for at most three attempts. Top-level fields such as
+  `oauthAccount` and `primaryApiKey`, unknown fields, and unrelated project
+  entries must round-trip unchanged.
+- User/local MCP state writes use `secret: true` with no backup. Project-scope
+  `.mcp.json` writes use the same CAS loop with `secret: false` and no backup.
+- `ccr doctor` checks API-key profiles for placeholder-looking tokens, active-profile env mismatches, and GLM 1M profiles missing compact-window configuration; it does not diagnose onboarding state.
 
 ### 4. Validation & Error Matrix
 
 - Profile token is placeholder-like -> `doctor` warning; do not print or infer a real token.
 - Profile expected env differs from `settings.json.env` -> `doctor` warning recommending re-apply.
 - GLM model contains `[1m]` and `claude_code_auto_compact_window` is empty -> `doctor` warning recommending `1000000`.
-- `.claude.json` missing, unparsable, unreadable, or lacking `hasCompletedOnboarding = true` -> `doctor` warning.
-- `.claude.json` is corrupt during API-key apply -> keep applying `settings.json`, emit `tracing::warn`, and let `doctor` surface the onboarding state.
+- `.claude.json` missing, unparsable, unreadable, or lacking
+  `hasCompletedOnboarding` -> no profile-apply or onboarding-doctor failure;
+  the profile/auth path does not own this file.
+- An MCP state root is not a JSON object -> return an actionable error and
+  leave the file unchanged.
+- One or two MCP CAS conflicts -> reread, replay the deterministic subtree
+  mutation, and retry. Three conflicts -> return an actionable retry error and
+  do not report the operation as successful.
 - A mismarked `subscription` profile with API-key shape -> use effective `api_key` in apply, auth switch, and runtime summary; persist the corrected literal before runtime mutation.
 - Corrected profile persistence fails -> return an actionable error and do not modify `settings.json`.
 - A registered env key is written but not cleared on subscription/off switch -> regression; add it to the registry/mapping equality fixture and switch-cleanup tests.
@@ -190,10 +204,16 @@ Model-mapping fields are typed on `ProfileConfig` / `ConfigSection` and mapped i
 - Good: applying a stale API-key-shaped profile persists `auth_mode = "api_key"` before settings mutation; a retry is idempotent.
 - Good: a custom `CLAUDE_CONFIG_DIR` makes profile apply, auth switching, and
   doctor observe the same settings, credentials, and state files.
-- Good: a state file with `oauthAccount` keeps that object and only adds `hasCompletedOnboarding = true`.
-- Base: a missing resolved state file becomes a minimal JSON object with `hasCompletedOnboarding = true` during API-key apply.
+- Good: API-key apply leaves a state file containing `oauthAccount`,
+  `primaryApiKey`, and unknown fields byte-for-byte unchanged.
+- Good: a Tauri user/local MCP mutation changes only the selected MCP subtree
+  while preserving the rest of the latest state-file object.
+- Base: API-key apply succeeds without creating a missing resolved state file.
 - Bad: `retain(|key, _| !key.starts_with("ANTHROPIC_"))` in a normal mutation path, because it deletes keys CCR does not own.
-- Bad: writing `hasCompletedOnboarding` into `~/.claude/settings.json`.
+- Bad: writing `hasCompletedOnboarding` into either `settings.json` or the
+  Claude state file.
+- Bad: describing the MCP path lock as protection against Claude Code itself;
+  non-cooperating external processes do not acquire CCR's lock.
 - Bad: checking `CLAUDE_JSON_PATH` or joining `.claude/settings.json` directly
   in a CLI consumer instead of using `ClaudeRuntimePaths`.
 - Bad: storing runtime env keys only in `platform_data` or UI-only state, because apply and doctor cannot round-trip them reliably.
@@ -201,8 +221,8 @@ Model-mapping fields are typed on `ProfileConfig` / `ConfigSection` and mapped i
 ### 6. Tests Required
 
 - `cargo test -p ccr-cli platforms::claude -- --test-threads=1`
-  - Assert API-key apply writes expected registered env, preserves unregistered Anthropic keys, and keeps onboarding behavior.
-  - Assert corrupt `.claude.json` does not block `settings.json` apply.
+  - Assert API-key apply writes expected registered env, preserves unregistered Anthropic keys, leaves existing state bytes unchanged, and does not create a missing state file.
+  - Assert corrupt `.claude.json` is unchanged and does not block `settings.json` apply.
   - Assert subscription apply clears every registered key and preserves user-owned keys.
   - Assert stale auth mode persists before runtime mutation and write failure leaves settings bytes unchanged.
 - `cargo test -p ccr-cli claude_auth -- --test-threads=1`
@@ -212,7 +232,9 @@ Model-mapping fields are typed on `ProfileConfig` / `ConfigSection` and mapped i
 - `cargo test -p ccr-cli managers::settings -- --test-threads=1`
   - Assert disk-level read→apply→write→read keeps unknown fields and non-managed env intact.
 - `cargo test -p ccr --test commands doctor -- --test-threads=1`
-  - Assert placeholder, mismatch, compact-window, and onboarding warnings.
+  - Assert placeholder, mismatch, and compact-window warnings without an onboarding warning.
+- `cargo test -p ccr-desktop --manifest-path ccr-ui/src-tauri/Cargo.toml claude_mcp -- --test-threads=1`
+  - Assert user/local add, update, and delete preserve unrelated state, replay a single conflict, fail after three conflicts, and do not silently lose concurrent mutations.
 - `cargo test -p ccr --test commands claude_profile -- --test-threads=1`
   - Assert command-level switch/off behavior remains compatible.
 

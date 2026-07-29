@@ -21,8 +21,8 @@ use crate::models::{
 };
 use ccr_config::{ClaudeRuntimePaths, platforms::base};
 use ccr_core::Validatable;
+use ccr_core::core::LockManager;
 use ccr_core::core::error::{CcrError, Result};
-use ccr_core::core::{AtomicWriter, LockManager};
 use indexmap::IndexMap;
 use serde_json::json;
 use std::fs;
@@ -37,7 +37,6 @@ use std::path::PathBuf;
 /// - 支持多平台配置
 pub struct ClaudePlatform {
     paths: PlatformPaths,
-    runtime_paths: ClaudeRuntimePaths,
     settings_manager: SettingsManager,
 }
 
@@ -68,7 +67,6 @@ impl ClaudePlatform {
 
         Ok(Self {
             paths,
-            runtime_paths,
             settings_manager,
         })
     }
@@ -82,39 +80,6 @@ impl ClaudePlatform {
     /// 📋 从 ProfileConfig 转换为 ConfigSection
     fn profile_to_section(profile: &ProfileConfig) -> Result<ConfigSection> {
         base::profile_to_section(profile)
-    }
-
-    fn ensure_onboarding_completed(&self) -> Result<bool> {
-        let path = &self.runtime_paths.state_file;
-        let mut document = if path.exists() {
-            let content = fs::read_to_string(path)
-                .map_err(|e| CcrError::ConfigError(format!("读取 Claude 状态文件失败: {e}")))?;
-            serde_json::from_str::<serde_json::Value>(&content)
-                .map_err(|e| CcrError::ConfigError(format!("解析 Claude 状态文件失败: {e}")))?
-        } else {
-            json!({})
-        };
-
-        let Some(object) = document.as_object_mut() else {
-            return Err(CcrError::ConfigError(
-                "Claude 状态文件必须是 JSON object".into(),
-            ));
-        };
-
-        if matches!(
-            object.get("hasCompletedOnboarding"),
-            Some(serde_json::Value::Bool(true))
-        ) {
-            return Ok(false);
-        }
-
-        object.insert("hasCompletedOnboarding".to_string(), json!(true));
-        let content = serde_json::to_string_pretty(&document)
-            .map_err(|e| CcrError::ConfigError(format!("序列化 Claude 状态文件失败: {e}")))?;
-        AtomicWriter::new(path)
-            .secret(true)
-            .write_string(&content)?;
-        Ok(true)
     }
 
     /// 💾 保存 profiles 到 TOML 文件
@@ -349,15 +314,6 @@ impl PlatformConfig for ClaudePlatform {
         let section = Self::profile_to_section(&profile)?;
 
         let managed_env = section.to_managed_env_pairs();
-        if matches!(auth_mode, ClaudeProfileAuthMode::ApiKey)
-            && let Err(error) = self.ensure_onboarding_completed()
-        {
-            tracing::warn!(
-                error = %error,
-                "应用 Claude API-key profile 时无法补写 Claude Code onboarding 标记"
-            );
-        }
-
         self.settings_manager.update_atomic(|settings| {
             match auth_mode {
                 ClaudeProfileAuthMode::Subscription => settings.clear_ccr_managed_vars(),
@@ -454,12 +410,7 @@ mod tests {
             platform.get_settings_path(),
             config_dir.join("settings.json")
         );
-        assert_eq!(
-            platform.runtime_paths.state_file,
-            config_dir.join(".claude.json")
-        );
-        assert!(platform.ensure_onboarding_completed().unwrap());
-        assert!(config_dir.join(".claude.json").exists());
+        assert!(!config_dir.join(".claude.json").exists());
     }
 
     fn read_profiles_config(root: &std::path::Path) -> CcsConfig {
@@ -875,33 +826,27 @@ mod tests {
     }
 
     #[test]
-    fn test_api_key_profile_apply_marks_onboarding_complete() {
+    fn test_api_key_profile_apply_preserves_existing_state_bytes() {
         let env = TestEnv::new();
 
         let result = (|| -> Result<()> {
-            fs::write(
-                env.home.claude_json_path(),
-                serde_json::to_string_pretty(&json!({
-                    "oauthAccount": {
-                        "accountUuid": "account-123",
-                        "emailAddress": "user@example.com"
-                    }
-                }))
-                .unwrap(),
-            )
+            let original = serde_json::to_string_pretty(&json!({
+                "oauthAccount": {
+                    "accountUuid": "account-123",
+                    "emailAddress": "user@example.com"
+                },
+                "unknownState": { "keep": true }
+            }))
             .unwrap();
+            fs::write(env.home.claude_json_path(), original.as_bytes()).unwrap();
 
             let platform = ClaudePlatform::new()?;
             platform.save_profile("glm", &make_profile("glm"))?;
             platform.apply_profile("glm")?;
 
-            let claude_json: serde_json::Value =
-                serde_json::from_str(&fs::read_to_string(env.home.claude_json_path()).unwrap())
-                    .unwrap();
-            assert_eq!(claude_json["hasCompletedOnboarding"], json!(true));
             assert_eq!(
-                claude_json["oauthAccount"]["emailAddress"],
-                json!("user@example.com")
+                fs::read_to_string(env.home.claude_json_path()).unwrap(),
+                original
             );
 
             Ok(())
@@ -912,7 +857,7 @@ mod tests {
     }
 
     #[test]
-    fn test_api_key_profile_apply_creates_missing_claude_json() {
+    fn test_api_key_profile_apply_does_not_create_missing_state_file() {
         let env = TestEnv::new();
 
         let result = (|| -> Result<()> {
@@ -920,10 +865,7 @@ mod tests {
             platform.save_profile("glm", &make_profile("glm"))?;
             platform.apply_profile("glm")?;
 
-            let claude_json: serde_json::Value =
-                serde_json::from_str(&fs::read_to_string(env.home.claude_json_path()).unwrap())
-                    .unwrap();
-            assert_eq!(claude_json["hasCompletedOnboarding"], json!(true));
+            assert!(!env.home.claude_json_path().exists());
 
             Ok(())
         })();
@@ -933,7 +875,7 @@ mod tests {
     }
 
     #[test]
-    fn test_api_key_profile_apply_keeps_settings_when_claude_json_is_invalid() {
+    fn test_api_key_profile_apply_preserves_invalid_state_and_updates_settings() {
         let env = TestEnv::new();
 
         let result = (|| -> Result<()> {
@@ -947,6 +889,10 @@ mod tests {
             assert_eq!(
                 settings.env.get("ANTHROPIC_BASE_URL").map(String::as_str),
                 Some("https://glm.example.com")
+            );
+            assert_eq!(
+                fs::read_to_string(env.home.claude_json_path()).unwrap(),
+                "{invalid json"
             );
 
             Ok(())

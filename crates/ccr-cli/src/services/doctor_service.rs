@@ -10,12 +10,12 @@ use crate::platforms::gemini::GeminiSettings;
 use crate::platforms::{CodexPlatform, PlatformDetector, create_platform};
 use crate::services::health_check::{HealthCheckResult, HealthCheckService, HealthStatus};
 use crate::services::{ClaudeAuthService, CodexAuthService};
-use ccr_config::{ClaudeRuntimePaths, platforms::base};
+use ccr_config::platforms::base;
 use ccr_core::Validatable;
 use futures::future::BoxFuture;
 use serde::Serialize;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -938,13 +938,6 @@ impl DoctorService {
                         if let Some(profile) = current_profile {
                             let warnings =
                                 Self::claude_profile_settings_warnings(profile, &settings);
-                            let mut warnings = warnings;
-                            if ClaudePlatform::profile_auth_mode(profile)
-                                == crate::models::ClaudeProfileAuthMode::ApiKey
-                                && let Some(warning) = Self::claude_onboarding_warning()
-                            {
-                                warnings.push(warning);
-                            }
                             if !warnings.is_empty() {
                                 return DoctorCheck::warn(
                                     id,
@@ -1098,55 +1091,6 @@ impl DoctorService {
         }
 
         warnings
-    }
-
-    fn claude_json_path() -> Option<PathBuf> {
-        ClaudeRuntimePaths::from_env()
-            .ok()
-            .map(|paths| paths.state_file)
-    }
-
-    fn claude_onboarding_warning() -> Option<String> {
-        let path = Self::claude_json_path()?;
-        if !path.exists() {
-            return Some(format!(
-                "{} is missing; Claude Code onboarding state has not been confirmed.",
-                path.display()
-            ));
-        }
-
-        let content = match fs::read_to_string(&path) {
-            Ok(content) => content,
-            Err(error) => {
-                return Some(format!(
-                    "{} could not be read to verify hasCompletedOnboarding: {error}",
-                    path.display()
-                ));
-            }
-        };
-
-        let value = match serde_json::from_str::<serde_json::Value>(&content) {
-            Ok(value) => value,
-            Err(error) => {
-                return Some(format!(
-                    "{} could not be parsed to verify hasCompletedOnboarding: {error}",
-                    path.display()
-                ));
-            }
-        };
-
-        if value
-            .get("hasCompletedOnboarding")
-            .and_then(serde_json::Value::as_bool)
-            == Some(true)
-        {
-            return None;
-        }
-
-        Some(format!(
-            "{} is missing hasCompletedOnboarding = true; re-apply the active Claude API-key profile.",
-            path.display()
-        ))
     }
 
     fn looks_like_placeholder_token(token: &str) -> bool {
@@ -1834,19 +1778,6 @@ current_profile = "{current_profile}"
             )
             .unwrap();
         }
-    }
-
-    #[test]
-    fn claude_config_dir_controls_doctor_state_path() {
-        let mut home = TestHome::new_with_home_env();
-        let config_dir = home.home().join("claude-custom");
-        home.set_env("CLAUDE_CONFIG_DIR", config_dir.as_os_str());
-        home.remove_env("CLAUDE_JSON_PATH");
-
-        assert_eq!(
-            DoctorService::claude_json_path(),
-            Some(config_dir.join(".claude.json"))
-        );
     }
 
     #[test]
