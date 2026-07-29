@@ -12,7 +12,7 @@ This directory contains copy-ready CCR configuration examples, including Codex-f
 | [`codex-cli-config.toml`](https://raw.githubusercontent.com/bahayonghang/ccr/main/docs/examples/codex-cli-config.toml) | Example `~/.codex/config.toml` |
 | [`codex-auth.example.json`](https://raw.githubusercontent.com/bahayonghang/ccr/main/docs/examples/codex-auth.example.json) | Example `~/.codex/auth.json` |
 | [`gemini-profiles.toml`](https://raw.githubusercontent.com/bahayonghang/ccr/main/docs/examples/gemini-profiles.toml) | Gemini profile examples |
-| [`grok-profiles.toml`](https://raw.githubusercontent.com/bahayonghang/ccr/main/docs/examples/grok-profiles.toml) | Grok profiles (official + third-party env_key) |
+| [`grok-profiles.toml`](https://raw.githubusercontent.com/bahayonghang/ccr/main/docs/examples/grok-profiles.toml) | Grok profiles (official + third-party api_key) |
 | [`grok-cli-config.toml`](https://raw.githubusercontent.com/bahayonghang/ccr/main/docs/examples/grok-cli-config.toml) | Example `~/.grok/config.toml` |
 | [`troubleshooting.md`](./troubleshooting) | Common troubleshooting |
 
@@ -43,5 +43,5 @@ ccr codex profile switch duckcoding
 ## Grok Quick Reference
 
 - Command guide: [`/en/reference/commands/grok`](../reference/commands/grok)
-- Prefer `env_key` so credentials do not enter CCR profile or Grok runtime files.
+- Use `api_key` for a direct Grok credential; `env_key` accepts only an environment variable name.
 - The examples contain no real provider, account, or credential.

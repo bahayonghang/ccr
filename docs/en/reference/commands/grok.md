@@ -25,13 +25,13 @@ ccr grok profile create official \
   --model grok-example
 ```
 
-For a third-party provider, prefer an environment variable reference:
+For a third-party provider, use Grok Build's `api_key` field directly:
 
 ```bash
 ccr grok profile create relay \
   --base-url https://api.example.com/v1 \
   --model grok-example \
-  --env-key GROK_RELAY_API_KEY \
+  --api-key sk-your-grok-relay-api-key \
   --api-backend responses \
   --context-window 1000000 \
   --reasoning-effort high \
@@ -41,7 +41,7 @@ ccr grok profile switch relay
 ccr grok profile current --json
 ```
 
-`api_backend` accepts `chat_completions`, `responses`, or `messages`. `reasoning_effort` accepts Grok Build's canonical `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, and `max` levels; other values are rejected. `set-field` supports `api_backend`, `env_key`, `context_window`, `supports_backend_search`, and `reasoning_effort`; use `--clear` to remove one:
+`api_backend` accepts `chat_completions`, `responses`, or `messages`. `reasoning_effort` accepts Grok Build's canonical `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, and `max` levels; other values are rejected. `set-field` supports `api_backend`, `api_key`, `env_key`, `context_window`, `supports_backend_search`, and `reasoning_effort`; use `--clear` to remove one:
 
 ```bash
 ccr grok profile set-field relay reasoning_effort --value high
@@ -52,9 +52,9 @@ For third-party profiles, CCR writes `[model.custom].reasoning_effort`, derives 
 
 ## Credential Boundary
 
-- Prefer `env_key`: CCR stores only the variable name.
-- `--auth-token` stores plaintext in CCR profiles, rotating backups, and Grok `config.toml`. Command output still masks or omits it.
-- Official profiles reject `auth_token` and `env_key`. Grok owns its login session and `XAI_API_KEY`.
+- `api_key` is Grok Build's direct credential field. `--api-key` stores plaintext in CCR profiles, rotating backups, and Grok `config.toml`, while command output omits it. The old `--auth-token` spelling remains a compatibility alias.
+- `env_key` remains available for an environment variable name; do not put an API key value in it.
+- Official profiles reject `api_key`, `auth_token`, and `env_key`. Grok owns its login session and `XAI_API_KEY`.
 - Displayed URLs omit userinfo, query, and fragment components.
 
 ## Examples

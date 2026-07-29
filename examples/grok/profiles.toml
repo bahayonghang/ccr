@@ -16,7 +16,7 @@ model = "grok-example"
 provider = "xai"
 enabled = true
 
-# Third-party relay: CCR stores only the environment variable name.
+# Third-party relay: replace the placeholder with the provider API key.
 [relay]
 description = "Example Grok-compatible relay"
 base_url = "https://api.example.com/v1"
@@ -24,12 +24,12 @@ model = "grok-example"
 provider = "example-relay"
 provider_type = "third_party_model"
 api_backend = "responses"
-env_key = "GROK_RELAY_API_KEY"
+api_key = "sk-your-grok-relay-api-key"
 context_window = 1000000
 supports_backend_search = true
 reasoning_effort = "high"
 enabled = true
 
-# Inline credentials are supported but intentionally omitted from copy-ready
-# examples. To create one explicitly, use:
-# ccr grok profile create <name> --base-url <url> --model <model> --auth-token <token> --reasoning-effort high
+# `env_key` remains available when the value is an environment variable name.
+# To create an inline-key profile explicitly, use:
+# ccr grok profile create <name> --base-url <url> --model <model> --api-key <key> --reasoning-effort high

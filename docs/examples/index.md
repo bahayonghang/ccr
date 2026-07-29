@@ -12,7 +12,7 @@
 | [`codex-cli-config.toml`](https://raw.githubusercontent.com/bahayonghang/ccr/main/docs/examples/codex-cli-config.toml) | `~/.codex/config.toml` 示例 |
 | [`codex-auth.example.json`](https://raw.githubusercontent.com/bahayonghang/ccr/main/docs/examples/codex-auth.example.json) | `~/.codex/auth.json` 示例 |
 | [`gemini-profiles.toml`](https://raw.githubusercontent.com/bahayonghang/ccr/main/docs/examples/gemini-profiles.toml) | Gemini profiles 示例 |
-| [`grok-profiles.toml`](https://raw.githubusercontent.com/bahayonghang/ccr/main/docs/examples/grok-profiles.toml) | Grok profiles（官方 + 第三方 env_key） |
+| [`grok-profiles.toml`](https://raw.githubusercontent.com/bahayonghang/ccr/main/docs/examples/grok-profiles.toml) | Grok profiles（官方 + 第三方 api_key） |
 | [`grok-cli-config.toml`](https://raw.githubusercontent.com/bahayonghang/ccr/main/docs/examples/grok-cli-config.toml) | `~/.grok/config.toml` 示例 |
 | [`troubleshooting.md`](./troubleshooting.md) | 常见故障排查 |
 
@@ -43,5 +43,5 @@ ccr codex profile switch duckcoding
 ## Grok 配置速查
 
 - 命令说明：[`/reference/commands/grok`](../reference/commands/grok)
-- 推荐使用 `env_key`，避免把密钥写入 profiles 和 Grok runtime 配置。
+- Grok 直接密钥使用 `api_key`；`env_key` 只填写环境变量名。
 - 示例不包含真实 provider、账号或凭据。

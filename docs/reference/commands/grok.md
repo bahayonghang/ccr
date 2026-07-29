@@ -25,13 +25,13 @@ ccr grok profile create official \
   --model grok-example
 ```
 
-第三方 provider 推荐引用环境变量：
+第三方 provider 可直接使用 Grok Build 的 `api_key` 字段：
 
 ```bash
 ccr grok profile create relay \
   --base-url https://api.example.com/v1 \
   --model grok-example \
-  --env-key GROK_RELAY_API_KEY \
+  --api-key sk-your-grok-relay-api-key \
   --api-backend responses \
   --context-window 1000000 \
   --reasoning-effort high \
@@ -41,7 +41,7 @@ ccr grok profile switch relay
 ccr grok profile current --json
 ```
 
-`api_backend` 允许 `chat_completions`、`responses`、`messages`。`reasoning_effort` 接受 Grok Build 的规范等级 `none`、`minimal`、`low`、`medium`、`high`、`xhigh`、`max`；其他值会被拒绝。`set-field` 支持 `api_backend`、`env_key`、`context_window`、`supports_backend_search`、`reasoning_effort`，并可用 `--clear` 删除字段：
+`api_backend` 允许 `chat_completions`、`responses`、`messages`。`reasoning_effort` 接受 Grok Build 的规范等级 `none`、`minimal`、`low`、`medium`、`high`、`xhigh`、`max`；其他值会被拒绝。`set-field` 支持 `api_backend`、`api_key`、`env_key`、`context_window`、`supports_backend_search`、`reasoning_effort`，并可用 `--clear` 删除字段：
 
 ```bash
 ccr grok profile set-field relay reasoning_effort --value high
@@ -52,9 +52,9 @@ ccr grok profile current --json
 
 ## 凭据边界
 
-- 推荐 `env_key`：CCR 只保存环境变量名，密钥由运行 Grok 的环境提供。
-- `--auth-token` 会把密钥明文写入 CCR profiles、其轮换备份以及 Grok `config.toml`；命令输出仍会掩码或省略该值。
-- 官方 profile 不接受 `auth_token` 或 `env_key`。Grok 自身的登录会话和 `XAI_API_KEY` 保持由 Grok 管理。
+- `api_key` 是 Grok Build 的直接密钥字段；`--api-key` 会把密钥明文写入 CCR profiles、其轮换备份以及 Grok `config.toml`，但命令输出会省略该值。旧的 `--auth-token` 是兼容别名。
+- `env_key` 仍用于环境变量名，不能填写实际 API key。
+- 官方 profile 不接受 `api_key`、`auth_token` 或 `env_key`。Grok 自身的登录会话和 `XAI_API_KEY` 保持由 Grok 管理。
 - URL 输出会移除 userinfo、query 和 fragment。
 
 ## 示例
