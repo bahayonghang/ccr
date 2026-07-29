@@ -127,13 +127,12 @@ pub async fn clear_command(force: bool) -> Result<()> {
 
     // 🧹 清空 CCR 托管的 Claude 环境变量
     ColorOutput::step("清空 CCR 托管的 Claude 环境变量...");
-    let mut updated_settings = current_settings;
-    updated_settings.clear_ccr_managed_vars();
-
-    // 💾 保存更新后的设置
     ColorOutput::step("保存更新后的设置...");
     settings_manager
-        .save_atomic_async(&updated_settings)
+        .update_atomic_async(|settings| {
+            settings.clear_ccr_managed_vars();
+            Ok(())
+        })
         .await?;
 
     println!();

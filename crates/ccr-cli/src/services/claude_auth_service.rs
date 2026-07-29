@@ -10,15 +10,16 @@ use crate::platforms::ClaudePlatform;
 use ccr_config::ClaudeRuntimePaths;
 use ccr_config::managers::config::CcsConfig;
 use ccr_config::platforms::base as platform_base;
-use ccr_core::core::LockManager;
 use ccr_core::core::error::{CcrError, Result};
+use ccr_core::core::{
+    BackupPolicy, LockManager, WriteOptions, content_version_token, write_guarded,
+};
 use chrono::{DateTime, TimeZone, Utc};
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map as JsonMap, Value as JsonValue};
 use std::fs;
 use std::path::{Path, PathBuf};
-use tempfile::NamedTempFile;
 
 /// Claude auth 读取快照
 pub struct ClaudeAuthReadSnapshot {
@@ -49,6 +50,7 @@ pub struct ClaudeAuthItem {
 struct RuntimeAuthRead {
     info: Option<ClaudeCurrentAuthInfo>,
     usable: bool,
+    matched_account_name: Option<String>,
 }
 
 /// Claude auth 服务
@@ -68,10 +70,10 @@ struct ClaudeCredentialsDocument {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct ClaudeAiOauth {
-    #[serde(rename = "accessToken")]
-    access_token: String,
-    #[serde(rename = "refreshToken")]
-    refresh_token: String,
+    #[serde(rename = "accessToken", serialize_with = "ccr_core::expose_plaintext")]
+    access_token: ccr_core::Secret,
+    #[serde(rename = "refreshToken", serialize_with = "ccr_core::expose_plaintext")]
+    refresh_token: ccr_core::Secret,
     #[serde(rename = "expiresAt")]
     expires_at: ClaudeExpiryValue,
     #[serde(default, rename = "subscriptionType")]
@@ -278,14 +280,21 @@ impl ClaudeAuthService {
             return Ok(false);
         }
 
-        let mut settings = self.load_settings()?;
+        let manager = self.settings_manager();
+        let settings = match manager.load() {
+            Ok(settings) => settings,
+            Err(CcrError::SettingsMissing(_)) => return Ok(false),
+            Err(error) => return Err(error),
+        };
         if !settings.has_managed_overrides() {
             return Ok(false);
         }
 
-        settings.clear_ccr_managed_vars();
-        self.settings_manager().save_atomic(&settings)?;
-        Ok(true)
+        manager.update_atomic(|settings| {
+            let changed = settings.has_managed_overrides();
+            settings.clear_ccr_managed_vars();
+            Ok(changed)
+        })
     }
 
     fn account_snapshot_path(&self, name: &str) -> PathBuf {
@@ -314,27 +323,30 @@ impl ClaudeAuthService {
         let path = self.registry_path();
         let content = toml::to_string_pretty(registry)
             .map_err(|e| CcrError::ConfigError(format!("序列化 Claude auth registry 失败: {e}")))?;
-        self.write_atomic(&path, content.as_bytes())
+        self.write_secret(&path, content.as_bytes())
     }
 
-    fn write_atomic(&self, path: &Path, bytes: &[u8]) -> Result<()> {
-        if let Some(parent) = path.parent() {
-            fs::create_dir_all(parent)?;
+    fn write_secret(&self, path: &Path, bytes: &[u8]) -> Result<()> {
+        write_guarded(
+            path,
+            bytes,
+            &WriteOptions {
+                backup: BackupPolicy::None,
+                secret: true,
+                ..Default::default()
+            },
+        )
+    }
+
+    fn ensure_file_credentials_supported() -> Result<()> {
+        #[cfg(target_os = "macos")]
+        {
+            return Err(CcrError::ValidationError(
+                "macOS 上 Claude Code 官方凭据由 Keychain 管理，暂不支持 auth save/switch".into(),
+            ));
         }
 
-        let temp_file = if let Some(parent) = path.parent() {
-            NamedTempFile::new_in(parent)
-        } else {
-            NamedTempFile::new()
-        }
-        .map_err(|e| CcrError::FileIoError(format!("创建临时文件失败: {e}")))?;
-
-        fs::write(temp_file.path(), bytes)
-            .map_err(|e| CcrError::FileIoError(format!("写入临时文件失败: {e}")))?;
-
-        temp_file
-            .persist(path)
-            .map_err(|e| CcrError::FileIoError(format!("原子写入失败: {e}")))?;
+        #[cfg(not(target_os = "macos"))]
         Ok(())
     }
 
@@ -399,27 +411,63 @@ impl ClaudeAuthService {
             .map_err(|e| CcrError::SettingsError(format!("解析 Claude 凭据失败: {e}")))
     }
 
-    fn load_current_runtime_auth(&self) -> RuntimeAuthRead {
+    fn credentials_identity_token(credentials: &ClaudeCredentialsDocument) -> Result<String> {
+        let bytes = serde_json::to_vec(credentials)
+            .map_err(|error| CcrError::SettingsError(format!("序列化凭据身份失败: {error}")))?;
+        Ok(content_version_token(&bytes))
+    }
+
+    fn find_matching_snapshot(
+        &self,
+        registry: &ClaudeAuthRegistry,
+        credentials: &ClaudeCredentialsDocument,
+    ) -> Option<(String, ClaudeAuthSnapshotFile)> {
+        let current_token = Self::credentials_identity_token(credentials).ok()?;
+        registry.accounts.keys().find_map(|name| {
+            let snapshot = self.load_snapshot(name).ok()?;
+            let snapshot_token = Self::credentials_identity_token(&snapshot.credentials).ok()?;
+            (snapshot_token == current_token).then(|| (name.clone(), snapshot))
+        })
+    }
+
+    fn load_current_runtime_auth(&self, registry: &ClaudeAuthRegistry) -> RuntimeAuthRead {
         let credentials = self
             .read_optional_json::<ClaudeCredentialsDocument>(&self.credentials_path())
             .filter(|doc| doc.claude_ai_oauth.is_some());
-        let metadata =
-            self.read_optional_json::<ClaudeMetadataDocument>(&self.runtime_paths.state_file);
+        let matched = credentials
+            .as_ref()
+            .and_then(|document| self.find_matching_snapshot(registry, document));
+        let matched_account_name = matched.as_ref().map(|(name, _)| name.clone());
+        let fallback_metadata = matched.is_none().then(|| {
+            self.read_optional_json::<ClaudeMetadataDocument>(&self.runtime_paths.state_file)
+        });
+        let oauth_account = matched
+            .as_ref()
+            .and_then(|(_, snapshot)| snapshot.oauth_account.as_ref())
+            .or_else(|| {
+                fallback_metadata
+                    .as_ref()
+                    .and_then(|metadata| metadata.as_ref())
+                    .and_then(|metadata| metadata.oauth_account.as_ref())
+            });
         let info = credentials
             .as_ref()
-            .and_then(|doc| self.build_current_info(doc, metadata.as_ref()));
+            .and_then(|document| self.build_current_info(document, oauth_account));
         let usable = info.is_some();
 
-        RuntimeAuthRead { info, usable }
+        RuntimeAuthRead {
+            info,
+            usable,
+            matched_account_name,
+        }
     }
 
     fn build_current_info(
         &self,
         credentials: &ClaudeCredentialsDocument,
-        metadata: Option<&ClaudeMetadataDocument>,
+        oauth_account: Option<&ClaudeOauthAccount>,
     ) -> Option<ClaudeCurrentAuthInfo> {
         let oauth = credentials.claude_ai_oauth.as_ref()?;
-        let oauth_account = metadata.and_then(|meta| meta.oauth_account.as_ref());
         let expires_at = oauth.expires_at.to_datetime();
 
         Some(ClaudeCurrentAuthInfo {
@@ -465,46 +513,10 @@ impl ClaudeAuthService {
             .map_err(|e| CcrError::SettingsError(format!("解析账号快照失败: {e}")))
     }
 
-    fn match_saved_account_name(
-        registry: &ClaudeAuthRegistry,
-        info: Option<&ClaudeCurrentAuthInfo>,
-    ) -> Option<String> {
-        let info = info?;
-
-        if let Some(account_uuid) = info.account_uuid.as_deref()
-            && let Some((name, _)) = registry
-                .accounts
-                .iter()
-                .find(|(_, account)| account.account_uuid.as_deref() == Some(account_uuid))
-        {
-            return Some(name.clone());
-        }
-
-        let masked_email = info.email.as_deref().map(|email| {
-            if let Some(at_pos) = email.find('@') {
-                let local = &email[..at_pos];
-                let domain = &email[at_pos..];
-                if local.len() <= 3 {
-                    format!("{local}***{domain}")
-                } else {
-                    format!("{}***{domain}", &local[..3])
-                }
-            } else {
-                email.to_string()
-            }
-        });
-
-        masked_email.and_then(|masked| {
-            registry.accounts.iter().find_map(|(name, account)| {
-                (account.email.as_deref() == Some(masked.as_str())).then(|| name.clone())
-            })
-        })
-    }
-
     pub fn read_auth_snapshot(&self) -> Result<ClaudeAuthReadSnapshot> {
         let registry = self.load_registry()?;
-        let runtime = self.load_current_runtime_auth();
-        let current_account_name = Self::match_saved_account_name(&registry, runtime.info.as_ref());
+        let runtime = self.load_current_runtime_auth(&registry);
+        let current_account_name = runtime.matched_account_name;
 
         let login_state = if runtime.info.is_none() {
             ClaudeLoginState::NotLoggedIn
@@ -578,6 +590,7 @@ impl ClaudeAuthService {
         description: Option<String>,
         force: bool,
     ) -> Result<ClaudeAuthAccount> {
+        Self::ensure_file_credentials_supported()?;
         self.validate_account_name(name)?;
 
         let credentials = self.load_current_credentials_strict()?;
@@ -590,7 +603,12 @@ impl ClaudeAuthService {
         let metadata =
             self.read_optional_json::<ClaudeMetadataDocument>(&self.runtime_paths.state_file);
         let info = self
-            .build_current_info(&credentials, metadata.as_ref())
+            .build_current_info(
+                &credentials,
+                metadata
+                    .as_ref()
+                    .and_then(|metadata| metadata.oauth_account.as_ref()),
+            )
             .ok_or_else(|| {
                 CcrError::ValidationError(
                     "未检测到 Claude 官方订阅登录，请先运行 `claude login`".into(),
@@ -615,33 +633,67 @@ impl ClaudeAuthService {
 
         let snapshot_content = serde_json::to_vec_pretty(&snapshot)
             .map_err(|e| CcrError::SettingsError(format!("序列化账号快照失败: {e}")))?;
-        self.write_atomic(&self.account_snapshot_path(name), &snapshot_content)?;
+        self.write_secret(&self.account_snapshot_path(name), &snapshot_content)?;
 
         let account = self.build_registry_account(description, &info);
         registry.accounts.insert(name.to_string(), account.clone());
 
-        if Self::match_saved_account_name(&registry, Some(&info)).as_deref() == Some(name) {
-            registry.current_auth = Some(name.to_string());
-        }
+        registry.current_auth = Some(name.to_string());
 
         self.save_registry(&registry)?;
         Ok(account)
     }
 
     pub fn switch_account(&self, name: &str) -> Result<()> {
+        Self::ensure_file_credentials_supported()?;
         let snapshot = self.load_snapshot(name)?;
         let mut registry = self.load_registry()?;
-        let account = registry
-            .accounts
-            .get_mut(name)
-            .ok_or_else(|| CcrError::ResourceNotFound(format!("Claude auth account '{}'", name)))?;
+        if !registry.accounts.contains_key(name) {
+            return Err(CcrError::ResourceNotFound(format!(
+                "Claude auth account '{}'",
+                name
+            )));
+        }
+
+        let previous_snapshot = if self.credentials_path().exists() {
+            let current_credentials = self.load_current_credentials_strict()?;
+            Some(
+                self.find_matching_snapshot(&registry, &current_credentials)
+                    .map(|(_, snapshot)| snapshot)
+                    .ok_or_else(|| {
+                        CcrError::ValidationError(
+                            "当前 Claude 登录尚未保存；请先运行 `ccr claude auth save <name>` 再切换"
+                                .into(),
+                        )
+                    })?,
+            )
+        } else {
+            None
+        };
 
         let runtime_content = serde_json::to_vec_pretty(&snapshot.credentials)
             .map_err(|e| CcrError::SettingsError(format!("序列化 Claude 凭据失败: {e}")))?;
-        self.write_atomic(&self.credentials_path(), &runtime_content)?;
-        self.clear_profile_api_key_overrides_if_needed()?;
+        self.write_secret(&self.credentials_path(), &runtime_content)?;
+        if let Err(update_error) = self.clear_profile_api_key_overrides_if_needed() {
+            if let Some(previous_snapshot) = previous_snapshot {
+                let previous_content = serde_json::to_vec_pretty(&previous_snapshot.credentials)
+                    .map_err(|error| {
+                        CcrError::SettingsError(format!("序列化原 Claude 凭据失败: {error}"))
+                    })?;
+                if let Err(restore_error) =
+                    self.write_secret(&self.credentials_path(), &previous_content)
+                {
+                    return Err(CcrError::SettingsError(format!(
+                        "切换账号后更新 settings 失败: {update_error}；恢复原凭据也失败: {restore_error}"
+                    )));
+                }
+            }
+            return Err(update_error);
+        }
 
-        account.last_used = Some(Utc::now());
+        if let Some(account) = registry.accounts.get_mut(name) {
+            account.last_used = Some(Utc::now());
+        }
         registry.current_auth = Some(name.to_string());
         self.save_registry(&registry)
     }
@@ -883,10 +935,14 @@ mod tests {
         }
 
         fn write_credentials(&self, expires_at: DateTime<Utc>) {
+            self.write_credentials_for("access-token", expires_at);
+        }
+
+        fn write_credentials_for(&self, access_token: &str, expires_at: DateTime<Utc>) {
             let value = json!({
                 "claudeAiOauth": {
-                    "accessToken": "access-token",
-                    "refreshToken": "refresh-token",
+                    "accessToken": access_token,
+                    "refreshToken": format!("refresh-{access_token}"),
                     "expiresAt": expires_at.to_rfc3339(),
                     "subscriptionType": "pro",
                     "rateLimitTier": "default_claude_ai",
@@ -919,10 +975,14 @@ mod tests {
         }
 
         fn write_metadata(&self) {
+            self.write_metadata_for("account-123", "user@example.com");
+        }
+
+        fn write_metadata_for(&self, account_uuid: &str, email: &str) {
             let value = json!({
                 "oauthAccount": {
-                    "accountUuid": "account-123",
-                    "emailAddress": "user@example.com",
+                    "accountUuid": account_uuid,
+                    "emailAddress": email,
                     "billingType": "apple_subscription"
                 }
             });
@@ -981,6 +1041,13 @@ mod tests {
             .unwrap();
         assert_eq!(saved.account_uuid.as_deref(), Some("account-123"));
 
+        let snapshot_bytes = fs::read(env.service.account_snapshot_path("work")).unwrap();
+        let snapshot_text = String::from_utf8(snapshot_bytes).unwrap();
+        assert!(snapshot_text.contains("access-token"));
+        assert!(snapshot_text.contains("refresh-access-token"));
+        let snapshot: ClaudeAuthSnapshotFile = serde_json::from_str(&snapshot_text).unwrap();
+        assert!(!format!("{snapshot:?}").contains("access-token"));
+
         let accounts = env.service.list_accounts().unwrap();
         assert_eq!(accounts.len(), 1);
         assert_eq!(accounts[0].name, "work");
@@ -993,6 +1060,223 @@ mod tests {
         let registry = env.service.load_registry().unwrap();
         assert!(registry.accounts.is_empty());
         assert!(registry.current_auth.is_none());
+    }
+
+    #[test]
+    fn test_switch_account_rejects_unsaved_current_credentials_without_leaking_token() {
+        let env = TestEnv::new();
+        let expires_at = Utc::now() + Duration::days(14);
+        env.write_credentials_for("saved-a-token", expires_at);
+        env.write_metadata_for("account-a", "a@example.com");
+        env.service.save_current("account_a", None, false).unwrap();
+
+        env.write_credentials_for("unsaved-private-token", expires_at);
+        let before = fs::read(env.service.credentials_path()).unwrap();
+        let error = env.service.switch_account("account_a").unwrap_err();
+        let message = error.to_string();
+
+        assert!(message.contains("ccr claude auth save"));
+        assert!(!message.contains("unsaved-private-token"));
+        assert_eq!(fs::read(env.service.credentials_path()).unwrap(), before);
+        assert_eq!(
+            env.service.load_registry().unwrap().current_auth.as_deref(),
+            Some("account_a")
+        );
+    }
+
+    #[test]
+    fn test_switch_account_rejects_corrupt_current_credentials_without_overwrite() {
+        let env = TestEnv::new();
+        let expires_at = Utc::now() + Duration::days(14);
+        env.write_credentials_for("saved-a-token", expires_at);
+        env.write_metadata_for("account-a", "a@example.com");
+        env.service.save_current("account_a", None, false).unwrap();
+
+        let corrupt = br#"{"claudeAiOauth": "#.to_vec();
+        fs::write(env.service.credentials_path(), &corrupt).unwrap();
+        let error = env.service.switch_account("account_a").unwrap_err();
+
+        assert!(error.to_string().contains("解析 Claude 凭据失败"));
+        assert_eq!(fs::read(env.service.credentials_path()).unwrap(), corrupt);
+    }
+
+    #[test]
+    fn test_switch_account_allows_missing_current_credentials() {
+        let env = TestEnv::new();
+        let expires_at = Utc::now() + Duration::days(14);
+        env.write_credentials_for("saved-a-token", expires_at);
+        env.write_metadata_for("account-a", "a@example.com");
+        env.service.save_current("account_a", None, false).unwrap();
+        fs::remove_file(env.service.credentials_path()).unwrap();
+
+        env.service.switch_account("account_a").unwrap();
+
+        let current = env.service.load_current_credentials_strict().unwrap();
+        assert_eq!(
+            current.claude_ai_oauth.unwrap().access_token.expose(),
+            "saved-a-token"
+        );
+    }
+
+    #[test]
+    fn test_switch_account_uses_matching_snapshot_metadata_instead_of_stale_state_file() {
+        let env = TestEnv::new();
+        let expires_at = Utc::now() + Duration::days(14);
+
+        env.write_credentials_for("access-a", expires_at);
+        env.write_metadata_for("account-a", "a@example.com");
+        env.service.save_current("account_a", None, false).unwrap();
+
+        env.write_credentials_for("access-b", expires_at);
+        env.write_metadata_for("account-b", "b@example.com");
+        env.service.save_current("account_b", None, false).unwrap();
+
+        env.service.switch_account("account_a").unwrap();
+        env.write_metadata_for("account-a", "a@example.com");
+        env.service.switch_account("account_b").unwrap();
+
+        let current_b = env.service.read_auth_snapshot().unwrap();
+        assert_eq!(
+            current_b.login_state,
+            ClaudeLoginState::LoggedInSaved {
+                account_name: "account_b".to_string()
+            }
+        );
+        assert_eq!(
+            current_b
+                .current_info
+                .as_ref()
+                .and_then(|info| info.email.as_deref()),
+            Some("b@example.com")
+        );
+        assert_eq!(
+            current_b
+                .current_info
+                .as_ref()
+                .and_then(|info| info.account_uuid.as_deref()),
+            Some("account-b")
+        );
+        assert_eq!(
+            env.service
+                .load_current_credentials_strict()
+                .unwrap()
+                .claude_ai_oauth
+                .unwrap()
+                .access_token
+                .expose(),
+            "access-b"
+        );
+
+        env.service.switch_account("account_a").unwrap();
+        let current_a = env.service.read_auth_snapshot().unwrap();
+        assert_eq!(
+            current_a
+                .current_info
+                .as_ref()
+                .and_then(|info| info.email.as_deref()),
+            Some("a@example.com")
+        );
+        assert_eq!(
+            current_a
+                .current_info
+                .as_ref()
+                .and_then(|info| info.account_uuid.as_deref()),
+            Some("account-a")
+        );
+    }
+
+    #[test]
+    fn test_switch_account_restores_previous_credentials_when_settings_update_fails() {
+        let env = TestEnv::new();
+        let expires_at = Utc::now() + Duration::days(14);
+
+        env.write_credentials_for("restore-a-token", expires_at);
+        env.write_metadata_for("account-a", "a@example.com");
+        env.service.save_current("account_a", None, false).unwrap();
+        env.write_credentials_for("target-b-token", expires_at);
+        env.write_metadata_for("account-b", "b@example.com");
+        env.service.save_current("account_b", None, false).unwrap();
+        env.service.switch_account("account_a").unwrap();
+
+        env.write_profiles(
+            r#"
+default_config = "api"
+current_config = "api"
+
+[api]
+base_url = "https://example.com"
+auth_token = "profile-token"
+provider = "test"
+auth_mode = "api_key"
+"#,
+        );
+        fs::write(env.service.settings_path(), b"{ invalid settings").unwrap();
+        let before = fs::read(env.service.credentials_path()).unwrap();
+
+        let error = env.service.switch_account("account_b").unwrap_err();
+        let message = error.to_string();
+
+        assert!(message.contains("解析设置文件失败"));
+        assert!(!message.contains("restore-a-token"));
+        assert!(!message.contains("target-b-token"));
+        assert_eq!(fs::read(env.service.credentials_path()).unwrap(), before);
+        assert_eq!(
+            env.service.load_registry().unwrap().current_auth.as_deref(),
+            Some("account_a")
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_auth_durable_files_are_owner_only_without_same_dir_backups() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let env = TestEnv::new();
+        env.write_credentials(Utc::now() + Duration::days(14));
+        env.write_metadata();
+        env.service.save_current("work", None, false).unwrap();
+        env.service.switch_account("work").unwrap();
+
+        for path in [
+            env.service.credentials_path(),
+            env.service.account_snapshot_path("work"),
+            env.service.registry_path(),
+        ] {
+            assert_eq!(
+                fs::metadata(path).unwrap().permissions().mode() & 0o777,
+                0o600
+            );
+        }
+        assert!(
+            fs::read_dir(&env.service.runtime_paths.config_dir)
+                .unwrap()
+                .all(|entry| !entry
+                    .unwrap()
+                    .file_name()
+                    .to_string_lossy()
+                    .ends_with(".bak"))
+        );
+        assert!(
+            fs::read_dir(env.service.auth_storage_dir())
+                .unwrap()
+                .all(|entry| !entry
+                    .unwrap()
+                    .file_name()
+                    .to_string_lossy()
+                    .ends_with(".bak"))
+        );
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn test_macos_save_and_switch_reject_file_credentials() {
+        let env = TestEnv::new();
+        let save_error = env.service.save_current("work", None, false).unwrap_err();
+        let switch_error = env.service.switch_account("work").unwrap_err();
+
+        assert!(save_error.to_string().contains("Keychain"));
+        assert!(switch_error.to_string().contains("Keychain"));
+        assert!(!env.service.credentials_path().exists());
     }
 
     #[test]

@@ -206,6 +206,10 @@ ccr_core::core::fileio::write_toml_opts(
 - A matching token delegates to the same lock-held backup and atomic-write body as `write_guarded`.
 - A mismatch returns `Ok(Conflict)` before backup or temp-file creation.
 - I/O, lock timeout, and async join failures remain errors. Do not extend the frozen `CcrError` enum for expected conflicts.
+- `ccr-cli::SettingsManager::update_atomic` is the managed Claude settings consumer: it reads bytes and a token, applies a deterministic mutation, and retries the complete read/mutate/CAS cycle at most three times.
+- A replayable mutation must not perform external side effects. Prepare external data before entering the closure and clone only the prepared values during replay.
+- Managed Claude settings writes use `secret: true` plus `BackupPolicy::Dir { prefix: "settings" }`. They must not combine CAS with the legacy fixed `claude_settings` lock or create same-directory backups.
+- Full replacement remains a distinct recovery operation; ordinary production read-modify-write call sites must not fall back to `load` followed by an unconditional replace.
 
 ### 4. Validation & Error Matrix
 
@@ -228,6 +232,7 @@ ccr_core::core::fileio::write_toml_opts(
 - Stale token produces `Conflict`, preserves external bytes, and creates no backup.
 - Empty-token first creation succeeds; a second empty-token write conflicts.
 - Four concurrent writers using one token yield exactly one `Written` and three `Conflict` outcomes.
+- `SettingsManager` conflict injection preserves both writers' independent fields and unknown user-owned JSON; exhausting three conflicts returns an actionable retry error.
 
 ### 7. Wrong vs Correct
 

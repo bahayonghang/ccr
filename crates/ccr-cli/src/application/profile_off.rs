@@ -203,19 +203,20 @@ fn codex_profile_off() -> Result<ProfileOffResult> {
 
 fn clear_claude_profile_settings_overrides() -> Result<bool> {
     let manager = SettingsManager::with_default()?;
-    let mut settings = match manager.load() {
+    let settings = match manager.load() {
         Ok(settings) => settings,
         Err(CcrError::SettingsMissing(_)) => return Ok(false),
         Err(error) => return Err(error),
     };
-
     if !settings.has_managed_overrides() {
         return Ok(false);
     }
 
-    settings.clear_ccr_managed_vars();
-    manager.save_atomic(&settings)?;
-    Ok(true)
+    manager.update_atomic(|settings| {
+        let changed = settings.has_managed_overrides();
+        settings.clear_ccr_managed_vars();
+        Ok(changed)
+    })
 }
 
 fn clear_platform_registry_pointer(platform_name: &str) -> Result<()> {
@@ -292,5 +293,14 @@ mod tests {
                 .map(String::as_str),
             Some("X-User: keep")
         );
+    }
+
+    #[test]
+    fn clear_claude_profile_settings_is_noop_when_settings_are_missing() {
+        let _home = TestHome::new();
+        let manager = SettingsManager::with_default().unwrap();
+
+        assert!(!clear_claude_profile_settings_overrides().unwrap());
+        assert!(!manager.settings_path().exists());
     }
 }

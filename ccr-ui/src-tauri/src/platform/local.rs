@@ -90,12 +90,7 @@ impl ExecutionEnvironment for LocalEnvironment {
         write_guarded_async(
             &full_path,
             content.as_bytes().to_vec(),
-            WriteOptions {
-                backup: BackupPolicy::SameDir {
-                    tag: Some("ccr_ui".to_string()),
-                },
-                ..Default::default()
-            },
+            config_write_options(platform, &full_path)?,
         )
         .await
         .map_err(|error| EnvError::Other(format!("guarded config write failed: {error}")))
@@ -145,6 +140,34 @@ fn resolve_config_path(
     Ok(base.join(safe_relative_path))
 }
 
+fn config_write_options(
+    platform: &str,
+    full_path: &std::path::Path,
+) -> Result<WriteOptions, EnvError> {
+    if platform == "claude" {
+        let runtime_paths = ClaudeRuntimePaths::from_env().map_err(|error| {
+            EnvError::Other(format!("Claude runtime path resolution failed: {error}"))
+        })?;
+        if full_path == runtime_paths.settings_file {
+            return Ok(WriteOptions {
+                backup: BackupPolicy::Dir {
+                    dir: runtime_paths.backups_dir,
+                    prefix: "settings".to_string(),
+                },
+                secret: true,
+                ..Default::default()
+            });
+        }
+    }
+
+    Ok(WriteOptions {
+        backup: BackupPolicy::SameDir {
+            tag: Some("ccr_ui".to_string()),
+        },
+        ..Default::default()
+    })
+}
+
 fn home_dir() -> Result<std::path::PathBuf, EnvError> {
     dirs::home_dir().ok_or_else(|| EnvError::Other("home directory not found".to_string()))
 }
@@ -182,10 +205,11 @@ mod tests {
     async fn claude_config_dir_controls_local_config_reads_and_writes() {
         let temp_dir = tempfile::tempdir().unwrap();
         let config_dir = temp_dir.path().join("claude-custom");
+        let backup_dir = temp_dir.path().join("claude-backups");
         let mut env = TestProcessEnv::new();
         env.set("CLAUDE_CONFIG_DIR", config_dir.as_os_str());
+        env.set("CCR_BACKUP_DIR", backup_dir.as_os_str());
         env.remove("CCR_SETTINGS_PATH");
-        env.remove("CCR_BACKUP_DIR");
         env.remove("CLAUDE_JSON_PATH");
 
         let local = LocalEnvironment::new();
@@ -193,11 +217,21 @@ mod tests {
             .write_config("claude", "settings.json", r#"{"env":{"TEST":"value"}}"#)
             .await
             .unwrap();
+        local
+            .write_config("claude", "settings.json", r#"{"env":{"TEST":"updated"}}"#)
+            .await
+            .unwrap();
 
         assert_eq!(
             local.read_config("claude", "settings.json").await.unwrap(),
-            r#"{"env":{"TEST":"value"}}"#
+            r#"{"env":{"TEST":"updated"}}"#
         );
         assert!(config_dir.join("settings.json").exists());
+        assert!(
+            std::fs::read_dir(&config_dir)
+                .unwrap()
+                .all(|entry| !entry.unwrap().file_name().to_string_lossy().ends_with(".bak"))
+        );
+        assert_eq!(std::fs::read_dir(&backup_dir).unwrap().count(), 1);
     }
 }

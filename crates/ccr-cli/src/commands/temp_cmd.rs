@@ -283,30 +283,25 @@ fn display_temp_config(base_url: &str, token: &str, model: Option<&str>) {
 /// 应用临时配置到 settings.json
 async fn apply_temp_config(base_url: &str, token: &str, model: Option<&str>) -> Result<()> {
     let settings_manager = SettingsManager::with_default()?;
-
-    // 加载当前设置
-    let mut current_settings = settings_manager.load_async().await?;
-
-    // 应用临时配置
-    current_settings
-        .env
-        .insert("ANTHROPIC_BASE_URL".to_string(), base_url.to_string());
-    current_settings
-        .env
-        .insert("ANTHROPIC_AUTH_TOKEN".to_string(), token.to_string());
-
-    if let Some(m) = model {
-        current_settings
-            .env
-            .insert("ANTHROPIC_MODEL".to_string(), m.to_string());
-    }
-
-    // 保存设置
+    let base_url = base_url.to_string();
+    let token = token.to_string();
+    let model = model.map(ToString::to_string);
     settings_manager
-        .save_atomic_async(&current_settings)
-        .await?;
-
-    Ok(())
+        .update_atomic_async(move |settings| {
+            settings
+                .env
+                .insert("ANTHROPIC_BASE_URL".to_string(), base_url.clone());
+            settings
+                .env
+                .insert("ANTHROPIC_AUTH_TOKEN".to_string(), token.clone());
+            if let Some(model) = &model {
+                settings
+                    .env
+                    .insert("ANTHROPIC_MODEL".to_string(), model.clone());
+            }
+            Ok(())
+        })
+        .await
 }
 
 #[cfg(test)]

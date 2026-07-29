@@ -12,15 +12,17 @@ pub async fn claude_update_settings(
     state: State<'_, AppState>,
     settings: OpenJsonValueDto,
 ) -> Result<OpenJsonValueDto, String> {
-    let mut current = read_active_claude_settings_raw(state.inner()).await?;
-    merge_settings_patch(&mut current, settings.into())?;
-
-    let validated: ccr_types::ClaudeSettings =
-        serde_json::from_value(current).map_err(|e| format!("Invalid settings payload: {e}"))?;
-    let result =
-        serde_json::to_value(&validated).map_err(|e| format!("Serialization error: {e}"))?;
-
-    write_active_claude_settings_raw(state.inner(), &result).await?;
+    let patch: Value = settings.into();
+    let result = update_settings(state.inner(), move |settings| {
+        let mut current = serde_json::to_value(&*settings)
+            .map_err(|error| format!("Serialization error: {error}"))?;
+        merge_settings_patch(&mut current, patch.clone())?;
+        let validated = serde_json::from_value(current)
+            .map_err(|error| format!("Invalid settings payload: {error}"))?;
+        *settings = validated;
+        serde_json::to_value(&*settings).map_err(|error| format!("Serialization error: {error}"))
+    })
+    .await?;
     open_json(result)
 }
 
@@ -113,11 +115,14 @@ pub async fn claude_update_statusline(
     config: OpenJsonValueDto,
 ) -> Result<OpenJsonValueDto, String> {
     let config: Value = config.into();
-    let mut settings = load_settings(state.inner()).await?;
-    settings
-        .other
-        .insert("statusline".to_string(), config.clone());
-    save_settings(state.inner(), &settings).await?;
+    let settings_value = config.clone();
+    update_settings(state.inner(), move |settings| {
+        settings
+            .other
+            .insert("statusline".to_string(), settings_value.clone());
+        Ok(())
+    })
+    .await?;
     open_json(config)
 }
 

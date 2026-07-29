@@ -14,15 +14,13 @@ pub async fn claude_update_hooks(
     state: State<'_, AppState>,
     hooks: OpenJsonValueDto,
 ) -> Result<OpenJsonValueDto, String> {
-    let mut settings = load_settings(state.inner()).await?;
-
     let new_hooks: ccr_types::HooksConfig = serde_json::from_value(hooks.into())
         .map_err(|e| format!("Invalid hooks payload: {}", e))?;
-    settings.hooks = new_hooks;
-
-    save_settings(state.inner(), &settings).await?;
-
-    let result =
-        serde_json::to_value(&settings.hooks).map_err(|e| format!("Serialization error: {}", e))?;
+    let result = update_settings(state.inner(), move |settings| {
+        settings.hooks = new_hooks.clone();
+        serde_json::to_value(&settings.hooks)
+            .map_err(|error| format!("Serialization error: {error}"))
+    })
+    .await?;
     open_json(serde_json::json!({ "hooks": result }))
 }

@@ -236,6 +236,34 @@ assert_eq!(preview.len(), removed_count);
 
 This keeps preview, count, and cleanup on the same explicit ownership registry while preserving user keys.
 
+## Scenario: Claude Credential Snapshots And Settings CAS
+
+### 1. Scope / Trigger
+
+- Trigger: changing Claude official-auth save/switch/list behavior or any local `settings.json` mutation in CLI/Tauri.
+- Applies to `ClaudeAuthService`, `SettingsManager`, Claude profile apply/off/clear/temp flows, and Tauri Claude agents/hooks/plugins/slash/settings/statusline commands.
+
+### 2. Contracts
+
+- Windows and Linux official credentials use `ClaudeRuntimePaths::credentials_file`. macOS save/switch returns an explicit Keychain-not-supported error before touching a credentials file.
+- `.credentials.json`, `auth/<name>.json`, and `auth_registry.toml` write through `write_guarded` with `secret: true` and `BackupPolicy::None`; credential fields are `Secret` with explicit plaintext persistence serializers.
+- Before switch overwrites an existing credentials file, its stable in-memory identity token must match a valid registry snapshot. Missing current credentials may switch; corrupt or unmatched credentials must be preserved and return guidance to run `ccr claude auth save`.
+- Runtime identity comes from the matching snapshot's `oauth_account`. Only an unmatched login may fall back to the current state-file `oauthAccount`; identity display never rewrites Claude's state file.
+- A switch writes target credentials, clears CCR-managed settings through `SettingsManager::update_atomic`, and only then updates the registry. Settings failure restores the previously matched credentials snapshot; combined errors contain categories only, never token content.
+- `SettingsManager::{update_atomic,update_atomic_async}` own local managed RMW. They use the guarded-write path lock, `secret: true`, centralized `settings` backups, and at most three deterministic conflict replays.
+- `save_atomic` is reserved for validated complete replacement and restore paths. Production mutation flows must not use `load -> save_atomic`.
+- Tauri Local mutations call the same `SettingsManager` API. SSH/WSL retain their environment-specific read/write protocol and are outside the local cross-process guarantee.
+- `LocalEnvironment::write_config` uses the same secret/central-backup policy when performing a complete local Claude settings replacement; it must not leave `*.bak` beside `settings.json`.
+
+### 3. Validation
+
+- `cargo test -p ccr-cli claude_auth -- --test-threads=1`
+- `cargo test -p ccr-cli managers::settings -- --test-threads=1`
+- `cargo test -p ccr-desktop --manifest-path ccr-ui/src-tauri/Cargo.toml claude -- --test-threads=1`
+- Assert A/B/A snapshot metadata follows credentials even while the state file remains stale.
+- Inject a real CAS conflict between independent CLI and local Tauri mutations; both fields and unknown user JSON must survive.
+- On Unix, assert auth durable files and settings replacements are owner-only. On Windows, verify inherited user-directory ACL behavior without claiming a Unix mode result.
+
 ## Scenario: Retired Platform Command Discovery Boundary
 
 ### 1. Scope / Trigger

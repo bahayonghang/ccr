@@ -480,9 +480,9 @@ fn test_complete_config_switch_workflow() {
         Some(&"https://api.config2.com".to_string())
     );
 
-    // 步骤 4: 验证备份存在
+    // 步骤 4: 验证手动备份和切换时的 CAS 备份都存在
     let backups = settings_service.list_backups().unwrap();
-    assert_eq!(backups.len(), 1);
+    assert_eq!(backups.len(), 2);
 
     // 步骤 5: 恢复到之前的配置
     settings_service.restore_settings(&backup_path).unwrap();
@@ -569,11 +569,10 @@ fn test_settings_service_multiple_switches() {
         assert!(settings.validate().is_ok());
     }
 
-    // 验证备份数量
+    // 首次创建没有旧文件可备份；后续切换由 CAS 写入自动集中备份。
+    // 备份名使用秒级时间戳，同一秒内的快速切换可能合并到同一路径。
     let backups = service.list_backups().unwrap();
-    // 注意：apply_config 不自动备份，所以备份数应该是 0
-    // 除非在切换前手动备份
-    assert_eq!(backups.len(), 0);
+    assert!((1..=4).contains(&backups.len()));
 }
 
 #[test]

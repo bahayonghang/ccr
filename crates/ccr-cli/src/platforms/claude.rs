@@ -13,7 +13,9 @@
 
 use crate::managers::PlatformConfigManager;
 use crate::managers::config::{CcsConfig, ConfigSection};
-use crate::managers::settings::{ClaudeSettings, SettingsManager};
+#[cfg(test)]
+use crate::managers::settings::ClaudeSettings;
+use crate::managers::settings::SettingsManager;
 use crate::models::{
     ClaudeProfileAuthMode, Platform, PlatformConfig, PlatformPaths, ProfileConfig,
 };
@@ -346,29 +348,25 @@ impl PlatformConfig for ClaudePlatform {
         // 只有 profile 已处于正确持久态后，才构造 section 并进入 settings RMW。
         let section = Self::profile_to_section(&profile)?;
 
-        // 加载当前设置
-        let mut settings = self
-            .settings_manager
-            .load()
-            .unwrap_or_else(|_| ClaudeSettings::new());
-
-        match auth_mode {
-            ClaudeProfileAuthMode::Subscription => {
-                settings.clear_ccr_managed_vars();
-            }
-            ClaudeProfileAuthMode::ApiKey => {
-                settings.apply_managed_env(section.to_managed_env_pairs());
-                if let Err(error) = self.ensure_onboarding_completed() {
-                    tracing::warn!(
-                        error = %error,
-                        "应用 Claude API-key profile 时无法补写 Claude Code onboarding 标记"
-                    );
-                }
-            }
+        let managed_env = section.to_managed_env_pairs();
+        if matches!(auth_mode, ClaudeProfileAuthMode::ApiKey)
+            && let Err(error) = self.ensure_onboarding_completed()
+        {
+            tracing::warn!(
+                error = %error,
+                "应用 Claude API-key profile 时无法补写 Claude Code onboarding 标记"
+            );
         }
 
-        // 原子保存
-        self.settings_manager.save_atomic(&settings)?;
+        self.settings_manager.update_atomic(|settings| {
+            match auth_mode {
+                ClaudeProfileAuthMode::Subscription => settings.clear_ccr_managed_vars(),
+                ClaudeProfileAuthMode::ApiKey => {
+                    settings.apply_managed_env(managed_env.clone());
+                }
+            }
+            Ok(())
+        })?;
 
         // 🔧 更新 profiles.toml 中的 current_config
         self.update_current_config_in_profiles(name)?;
