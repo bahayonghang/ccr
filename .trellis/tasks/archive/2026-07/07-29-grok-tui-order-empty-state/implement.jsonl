@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/ccr-config/backend/backend-guidelines.md", "reason": "TUI preference 默认顺序、缺失项补齐和自定义顺序持久化契约"}
+{"file": ".trellis/spec/ccr-tui/backend/backend-guidelines.md", "reason": "Ratatui 渲染、i18n 状态和空态测试规范"}
+{"file": ".trellis/spec/ccr-cli/backend/backend-guidelines.md", "reason": "CLI command/help 边界、错误传播和集成验证规范"}
+{"file": ".trellis/spec/ccr-cli/backend/grok-profile-runtime.md", "reason": "Grok 显式 profile 命令面与 legacy platform 路由退休契约"}
+{"file": "docs/reference/commands/platform.md", "reason": "现行 platform list 支持面和退休子命令迁移映射依据"}
