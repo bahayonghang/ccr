@@ -1,0 +1,8 @@
+{"file":".trellis/spec/ccr-core/backend/index.md","reason":"统一 guarded write/CAS 基础设施入口。"}
+{"file":".trellis/spec/ccr-core/backend/atomic-writer.md","reason":"锁、backup rotation、secret、fsync、versioned write 契约。"}
+{"file":".trellis/spec/ccr-cli/backend/index.md","reason":"Claude AuthService 与 SettingsManager 规范入口。"}
+{"file":".trellis/spec/ccr-cli/backend/backend-guidelines.md","reason":"认证、settings 与错误/secret 输出约束。"}
+{"file":".trellis/spec/ccr-cli/backend/test-fixtures.md","reason":"凭据和并发测试必须隔离 home/env。"}
+{"file":".trellis/spec/ccr-types/backend/backend-guidelines.md","reason":"Claude auth/runtime DTO 与 ClaudeSettings 单一 shape。"}
+{"file":".trellis/spec/ccr-ui/frontend/raw-config-editor-contracts.md","reason":"Tauri 是凭据类配置写入的安全执行边界。"}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"CLI/Tauri/TUI/UI 账号身份与写入协议保持一致。"}
