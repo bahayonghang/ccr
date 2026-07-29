@@ -6,7 +6,7 @@ use crate::tui::footer::{ShortcutHint, shortcut_line};
 use crate::tui::overlay::{Overlay, render_overlay};
 use crate::tui::theme;
 use crate::tui::toast::ToastKind;
-use ccr_cli::models::ClaudeLoginState;
+use ccr_cli::models::{ClaudeAuthSourceObservation, ClaudeLoginState};
 use ccr_cli::services::ClaudeAuthItem;
 use chrono::{DateTime, Local, Utc};
 use ratatui::{
@@ -706,8 +706,8 @@ fn draw_help_bar(f: &mut Frame, area: Rect, app: &ClaudeAuthApp) {
         crate::tui_format!("{}  │  Tab switch", "{}  │  Tab 切换", toast.message)
     } else {
         crate::tui_text!(
-            "Tab switch  │  ● active  ◐ logged-in only  ○ saved  │  official account switching only writes ~/.claude/.credentials.json  │  Ctrl+L language",
-            "Tab 切换  │  ● 当前生效  ◐ 仅已登录  ○ 已保存  │  官方账号切换只写入 ~/.claude/.credentials.json  │  Ctrl+L 语言"
+            "Tab switch  │  ● active  ◐ logged-in only  ○ saved  │  switch updates credentials and clears CCR-managed settings  │  Ctrl+L language",
+            "Tab 切换  │  ● 当前生效  ◐ 仅已登录  ○ 已保存  │  切换会更新凭据并清理 CCR 托管设置  │  Ctrl+L 语言"
         )
         .to_string()
     };
@@ -766,6 +766,57 @@ fn context_lines(app: &ClaudeAuthApp) -> Vec<Line<'static>> {
                 .clone()
                 .unwrap_or_else(|| "-".to_string()),
             theme::success(),
+        ));
+
+        lines.push(Line::from(""));
+        lines.push(section_title("Auth Source Diagnosis"));
+        let diagnosis = &summary.auth_diagnosis;
+        lines.push(kv_line(
+            "presumed_source",
+            diagnosis
+                .presumed_effective_source
+                .as_ref()
+                .map(format_diagnosed_auth_source)
+                .unwrap_or_else(|| {
+                    crate::tui_text!("unresolved or ambiguous", "未解析或存在歧义").to_string()
+                }),
+            if diagnosis.presumed_effective_source.is_some() {
+                theme::warning()
+            } else {
+                theme::muted()
+            },
+        ));
+        let suppressors = diagnosis.suppressors().collect::<Vec<_>>();
+        lines.push(kv_line(
+            "competing_sources",
+            suppressors.len().to_string(),
+            if suppressors.is_empty() {
+                theme::success()
+            } else {
+                theme::warning()
+            },
+        ));
+        for source in suppressors {
+            lines.push(kv_line(
+                "source",
+                format_diagnosed_auth_source(source),
+                theme::warning(),
+            ));
+        }
+        lines.push(kv_line(
+            "api_key_responses",
+            if diagnosis.custom_api_key_responses_present {
+                crate::tui_text!("present (context only)", "存在（仅解释信息）")
+            } else {
+                crate::tui_text!("not observed", "未观察到")
+            }
+            .to_string(),
+            theme::muted(),
+        ));
+        lines.push(kv_line(
+            "unobservable",
+            diagnosis.unobservable.len().to_string(),
+            theme::muted(),
         ));
     } else {
         lines.push(Line::from(crate::tui_text!(
@@ -893,6 +944,17 @@ fn context_lines(app: &ClaudeAuthApp) -> Vec<Line<'static>> {
     lines
 }
 
+fn format_diagnosed_auth_source(source: &ClaudeAuthSourceObservation) -> String {
+    format!(
+        "{} @ {} ({}; {}; {})",
+        source.kind.as_str(),
+        source.location.as_str(),
+        source.confidence.as_str(),
+        source.evidence.as_str(),
+        source.ownership.as_str()
+    )
+}
+
 fn detail_label_span(label: &str) -> Span<'static> {
     let label = localized_detail_label(label);
     Span::styled(
@@ -927,6 +989,9 @@ fn section_title(title: &str) -> Line<'static> {
             crate::tui_text!("Current Official Login", "当前官方登录")
         }
         "Selected Snapshot" => crate::tui_text!("Selected Snapshot", "所选快照"),
+        "Auth Source Diagnosis" => {
+            crate::tui_text!("Auth Source Diagnosis", "认证来源诊断")
+        }
         _ => title,
     };
     Line::from(Span::styled(
@@ -969,6 +1034,11 @@ fn localized_kv_key(key: &str) -> &str {
         "login" => crate::tui_text!("login", "登录"),
         "effective_auth" => crate::tui_text!("effective_auth", "生效认证"),
         "current_auth" => crate::tui_text!("current_auth", "当前认证"),
+        "presumed_source" => crate::tui_text!("presumed", "推定来源"),
+        "visible_suppressors" => crate::tui_text!("suppressors", "压制来源"),
+        "source" => crate::tui_text!("source", "来源"),
+        "api_key_responses" => crate::tui_text!("api_key_state", "API Key 状态"),
+        "unobservable" => crate::tui_text!("unobservable", "不可观测层"),
         "email" => crate::tui_text!("email", "邮箱"),
         "billing" => crate::tui_text!("billing", "计费"),
         "subscription" => crate::tui_text!("subscription", "订阅"),
@@ -1180,6 +1250,8 @@ mod tests {
 
     use super::*;
     use ccr_cli::models::{
+        ClaudeAuthConfidence, ClaudeAuthDiagnosis, ClaudeAuthEvidence, ClaudeAuthOwnership,
+        ClaudeAuthSourceKind, ClaudeAuthSourceLocation, ClaudeAuthSourceObservation,
         ClaudeCurrentAuthInfo, ClaudeProfileAuthMode, ClaudeRuntimeMode, ClaudeRuntimeSummary,
     };
     use ccr_cli::services::ClaudeAuthService;
@@ -1232,6 +1304,26 @@ mod tests {
             },
             current_auth_name: Some("effective:main_pro".to_string()),
             login_state: ClaudeLoginState::ApiKeyActive,
+            auth_diagnosis: ClaudeAuthDiagnosis {
+                observations: vec![ClaudeAuthSourceObservation {
+                    kind: ClaudeAuthSourceKind::AnthropicApiKey,
+                    location: ClaudeAuthSourceLocation::SettingsEnv,
+                    confidence: ClaudeAuthConfidence::Potential,
+                    evidence: ClaudeAuthEvidence::OfficialContract,
+                    ownership: ClaudeAuthOwnership::UserOwned,
+                    suppresses_subscription: true,
+                }],
+                presumed_effective_source: Some(ClaudeAuthSourceObservation {
+                    kind: ClaudeAuthSourceKind::AnthropicApiKey,
+                    location: ClaudeAuthSourceLocation::SettingsEnv,
+                    confidence: ClaudeAuthConfidence::Potential,
+                    evidence: ClaudeAuthEvidence::OfficialContract,
+                    ownership: ClaudeAuthOwnership::UserOwned,
+                    suppresses_subscription: true,
+                }),
+                custom_api_key_responses_present: true,
+                unobservable: vec!["other_shell_environment".to_string()],
+            },
         });
         app
     }
@@ -1348,6 +1440,7 @@ mod tests {
             },
             current_auth_name: None,
             login_state: ClaudeLoginState::ApiKeyActive,
+            auth_diagnosis: Default::default(),
         });
 
         assert_eq!(
@@ -1416,6 +1509,19 @@ mod tests {
         assert!(lines.iter().any(|line| line.contains("Selected Snapshot")));
         assert!(lines.iter().any(|line| line.contains("provider:anyrouter")));
         assert!(lines.iter().any(|line| line.contains("apple_subscription")));
+        assert!(
+            lines
+                .iter()
+                .any(|line| line.contains("Auth Source Diagnosis"))
+        );
+        assert!(lines.iter().any(|line| {
+            line.contains("anthropic_api_key @ settings_env") && line.contains("potential")
+        }));
+        assert!(
+            lines
+                .iter()
+                .any(|line| line.contains("present (context only)"))
+        );
     }
 
     #[test]

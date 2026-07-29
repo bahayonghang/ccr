@@ -3,7 +3,9 @@
 
 use crate::managers::{ClaudeSettings, SettingsManager};
 use crate::models::{
-    ClaudeAuthAccount, ClaudeAuthRegistry, ClaudeCurrentAuthInfo, ClaudeLoginState,
+    ClaudeAuthAccount, ClaudeAuthActionOutcome, ClaudeAuthConfidence, ClaudeAuthDiagnosis,
+    ClaudeAuthEvidence, ClaudeAuthOwnership, ClaudeAuthRegistry, ClaudeAuthSourceKind,
+    ClaudeAuthSourceLocation, ClaudeAuthSourceObservation, ClaudeCurrentAuthInfo, ClaudeLoginState,
     ClaudeProfileAuthMode, ClaudeRuntimeMode, ClaudeRuntimeSummary, PlatformConfig, ProfileConfig,
 };
 use crate::platforms::ClaudePlatform;
@@ -20,6 +22,48 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Map as JsonMap, Value as JsonValue};
 use std::fs;
 use std::path::{Path, PathBuf};
+
+const CLAUDE_AUTH_UNOBSERVABLE: &[&str] = &[
+    "other_shell_environment",
+    "project_settings_for_unknown_working_directories",
+    "external_process_cli_arguments",
+    "managed_settings_dynamic_policy",
+    "api_key_helper_result_and_external_secret_store",
+    "macos_keychain_contents",
+];
+
+const CLAUDE_AUTH_ENV_SOURCES: &[(&str, ClaudeAuthSourceKind, ClaudeAuthConfidence)] = &[
+    (
+        "CLAUDE_CODE_USE_BEDROCK",
+        ClaudeAuthSourceKind::Bedrock,
+        ClaudeAuthConfidence::Confirmed,
+    ),
+    (
+        "CLAUDE_CODE_USE_VERTEX",
+        ClaudeAuthSourceKind::Vertex,
+        ClaudeAuthConfidence::Confirmed,
+    ),
+    (
+        "CLAUDE_CODE_USE_FOUNDRY",
+        ClaudeAuthSourceKind::Foundry,
+        ClaudeAuthConfidence::Confirmed,
+    ),
+    (
+        "ANTHROPIC_AUTH_TOKEN",
+        ClaudeAuthSourceKind::AnthropicAuthToken,
+        ClaudeAuthConfidence::Confirmed,
+    ),
+    (
+        "ANTHROPIC_API_KEY",
+        ClaudeAuthSourceKind::AnthropicApiKey,
+        ClaudeAuthConfidence::Potential,
+    ),
+    (
+        "CLAUDE_CODE_OAUTH_TOKEN",
+        ClaudeAuthSourceKind::ClaudeCodeOauthToken,
+        ClaudeAuthConfidence::Confirmed,
+    ),
+];
 
 /// Claude auth 读取快照
 pub struct ClaudeAuthReadSnapshot {
@@ -269,32 +313,260 @@ impl ClaudeAuthService {
             .map(|profile| (current_name, profile)))
     }
 
-    fn clear_profile_api_key_overrides_if_needed(&self) -> Result<bool> {
+    fn clear_profile_api_key_overrides_if_needed(&self) -> Result<Vec<String>> {
         let Some((_, profile)) = self.current_profile()? else {
-            return Ok(false);
+            return Ok(Vec::new());
         };
         if !matches!(
             Self::effective_auth_mode(&profile),
             ClaudeProfileAuthMode::ApiKey
         ) {
-            return Ok(false);
+            return Ok(Vec::new());
         }
 
         let manager = self.settings_manager();
         let settings = match manager.load() {
             Ok(settings) => settings,
-            Err(CcrError::SettingsMissing(_)) => return Ok(false),
+            Err(CcrError::SettingsMissing(_)) => return Ok(Vec::new()),
             Err(error) => return Err(error),
         };
         if !settings.has_managed_overrides() {
-            return Ok(false);
+            return Ok(Vec::new());
         }
 
         manager.update_atomic(|settings| {
-            let changed = settings.has_managed_overrides();
+            let cleared = settings
+                .managed_env_entries()
+                .into_iter()
+                .map(|(key, _)| key)
+                .collect();
             settings.clear_ccr_managed_vars();
-            Ok(changed)
+            Ok(cleared)
         })
+    }
+
+    fn json_value_is_present(value: Option<&JsonValue>) -> bool {
+        match value {
+            Some(JsonValue::Null) | None => false,
+            Some(JsonValue::String(value)) => !value.trim().is_empty(),
+            Some(JsonValue::Bool(value)) => *value,
+            Some(JsonValue::Array(value)) => !value.is_empty(),
+            Some(JsonValue::Object(value)) => !value.is_empty(),
+            Some(JsonValue::Number(_)) => true,
+        }
+    }
+
+    fn read_state_object(&self) -> Result<JsonMap<String, JsonValue>> {
+        let path = &self.runtime_paths.state_file;
+        let content = match fs::read_to_string(path) {
+            Ok(content) => content,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                return Ok(JsonMap::new());
+            }
+            Err(error) => {
+                return Err(CcrError::ConfigError(format!(
+                    "读取 Claude state file 失败 {}: {error}",
+                    path.display()
+                )));
+            }
+        };
+        let value: JsonValue = serde_json::from_str(&content).map_err(|error| {
+            CcrError::ConfigError(format!(
+                "解析 Claude state file 失败 {}: {error}",
+                path.display()
+            ))
+        })?;
+        value.as_object().cloned().ok_or_else(|| {
+            CcrError::ConfigError(format!(
+                "Claude state file 必须是 JSON object: {}",
+                path.display()
+            ))
+        })
+    }
+
+    fn source_priority(kind: ClaudeAuthSourceKind) -> u8 {
+        match kind {
+            ClaudeAuthSourceKind::Bedrock
+            | ClaudeAuthSourceKind::Vertex
+            | ClaudeAuthSourceKind::Foundry => 0,
+            ClaudeAuthSourceKind::AnthropicAuthToken => 1,
+            ClaudeAuthSourceKind::AnthropicApiKey => 2,
+            ClaudeAuthSourceKind::ApiKeyHelper => 3,
+            ClaudeAuthSourceKind::ClaudeCodeOauthToken => 4,
+            ClaudeAuthSourceKind::PrimaryApiKey => 5,
+            ClaudeAuthSourceKind::SubscriptionOauth => 6,
+        }
+    }
+
+    fn observation(
+        kind: ClaudeAuthSourceKind,
+        location: ClaudeAuthSourceLocation,
+        confidence: ClaudeAuthConfidence,
+        evidence: ClaudeAuthEvidence,
+        ownership: ClaudeAuthOwnership,
+        suppresses_subscription: bool,
+    ) -> ClaudeAuthSourceObservation {
+        ClaudeAuthSourceObservation {
+            kind,
+            location,
+            confidence,
+            evidence,
+            ownership,
+            suppresses_subscription,
+        }
+    }
+
+    fn process_env_present(key: &str) -> bool {
+        std::env::var_os(key).is_some_and(|value| !value.to_string_lossy().trim().is_empty())
+    }
+
+    fn subscription_oauth_observed(&self) -> Result<bool> {
+        #[cfg(target_os = "macos")]
+        {
+            Ok(false)
+        }
+
+        #[cfg(not(target_os = "macos"))]
+        {
+            if !self.credentials_path().exists() {
+                return Ok(false);
+            }
+
+            let credentials = self.load_current_credentials_strict()?;
+            Ok(credentials.claude_ai_oauth.as_ref().is_some_and(|oauth| {
+                !oauth.access_token.expose().trim().is_empty()
+                    && !oauth.refresh_token.expose().trim().is_empty()
+            }))
+        }
+    }
+
+    /// Diagnose only sources visible to the current CCR process and resolved files.
+    pub fn diagnose_auth_sources(&self) -> Result<ClaudeAuthDiagnosis> {
+        let settings = self.load_settings()?;
+        let state = self.read_state_object()?;
+        let mut observations = Vec::new();
+
+        for (key, kind, confidence) in CLAUDE_AUTH_ENV_SOURCES {
+            if Self::process_env_present(key) {
+                observations.push(Self::observation(
+                    *kind,
+                    ClaudeAuthSourceLocation::ProcessEnv,
+                    *confidence,
+                    ClaudeAuthEvidence::OfficialContract,
+                    ClaudeAuthOwnership::ExternalRuntime,
+                    true,
+                ));
+            }
+            if settings
+                .env
+                .get(*key)
+                .is_some_and(|value| !value.trim().is_empty())
+            {
+                let ownership = if ccr_types::env_keys::CCR_MANAGED_KEYS.contains(key) {
+                    ClaudeAuthOwnership::CcrManaged
+                } else {
+                    ClaudeAuthOwnership::UserOwned
+                };
+                observations.push(Self::observation(
+                    *kind,
+                    ClaudeAuthSourceLocation::SettingsEnv,
+                    *confidence,
+                    ClaudeAuthEvidence::OfficialContract,
+                    ownership,
+                    true,
+                ));
+            }
+        }
+
+        if Self::json_value_is_present(settings.other.get("apiKeyHelper")) {
+            observations.push(Self::observation(
+                ClaudeAuthSourceKind::ApiKeyHelper,
+                ClaudeAuthSourceLocation::SettingsRoot,
+                ClaudeAuthConfidence::Potential,
+                ClaudeAuthEvidence::OfficialContract,
+                ClaudeAuthOwnership::UserOwned,
+                true,
+            ));
+        }
+
+        if Self::json_value_is_present(state.get("primaryApiKey")) {
+            observations.push(Self::observation(
+                ClaudeAuthSourceKind::PrimaryApiKey,
+                ClaudeAuthSourceLocation::StateFile,
+                ClaudeAuthConfidence::Potential,
+                ClaudeAuthEvidence::IssueReport,
+                ClaudeAuthOwnership::UserOwned,
+                true,
+            ));
+        }
+
+        if self.subscription_oauth_observed()? {
+            observations.push(Self::observation(
+                ClaudeAuthSourceKind::SubscriptionOauth,
+                ClaudeAuthSourceLocation::CredentialsFile,
+                ClaudeAuthConfidence::Confirmed,
+                ClaudeAuthEvidence::OfficialContract,
+                ClaudeAuthOwnership::ExternalRuntime,
+                false,
+            ));
+        }
+
+        observations.sort_by_key(|source| Self::source_priority(source.kind));
+        let highest_priority = observations
+            .first()
+            .map(|source| Self::source_priority(source.kind));
+        let presumed_effective_source = highest_priority.and_then(|priority| {
+            let mut highest = observations
+                .iter()
+                .filter(|source| Self::source_priority(source.kind) == priority);
+            let source = highest.next()?.clone();
+            highest.next().is_none().then_some(source)
+        });
+
+        Ok(ClaudeAuthDiagnosis {
+            observations,
+            presumed_effective_source,
+            custom_api_key_responses_present: Self::json_value_is_present(
+                state.get("customApiKeyResponses"),
+            ),
+            unobservable: CLAUDE_AUTH_UNOBSERVABLE
+                .iter()
+                .map(|value| (*value).to_string())
+                .collect(),
+        })
+    }
+
+    pub fn action_outcome(&self, cleared_managed_sources: Vec<String>) -> ClaudeAuthActionOutcome {
+        match self.diagnose_auth_sources() {
+            Ok(diagnosis) => {
+                let remaining_suppressors = diagnosis.suppressors().cloned().collect::<Vec<_>>();
+                let warnings = remaining_suppressors
+                    .iter()
+                    .map(|source| {
+                        format!(
+                            "{} at {} remains ({}; {}); CCR will not remove this {} source automatically",
+                            source.kind.as_str(),
+                            source.location.as_str(),
+                            source.confidence.as_str(),
+                            source.evidence.as_str(),
+                            source.ownership.as_str()
+                        )
+                    })
+                    .collect();
+                ClaudeAuthActionOutcome {
+                    cleared_managed_sources,
+                    remaining_suppressors,
+                    warnings,
+                }
+            }
+            Err(error) => ClaudeAuthActionOutcome {
+                cleared_managed_sources,
+                remaining_suppressors: Vec::new(),
+                warnings: vec![format!(
+                    "Auth source diagnosis could not be completed after the action: {error}"
+                )],
+            },
+        }
     }
 
     fn account_snapshot_path(&self, name: &str) -> PathBuf {
@@ -644,7 +916,7 @@ impl ClaudeAuthService {
         Ok(account)
     }
 
-    pub fn switch_account(&self, name: &str) -> Result<()> {
+    pub fn switch_account(&self, name: &str) -> Result<ClaudeAuthActionOutcome> {
         Self::ensure_file_credentials_supported()?;
         let snapshot = self.load_snapshot(name)?;
         let mut registry = self.load_registry()?;
@@ -674,28 +946,34 @@ impl ClaudeAuthService {
         let runtime_content = serde_json::to_vec_pretty(&snapshot.credentials)
             .map_err(|e| CcrError::SettingsError(format!("序列化 Claude 凭据失败: {e}")))?;
         self.write_secret(&self.credentials_path(), &runtime_content)?;
-        if let Err(update_error) = self.clear_profile_api_key_overrides_if_needed() {
-            if let Some(previous_snapshot) = previous_snapshot {
-                let previous_content = serde_json::to_vec_pretty(&previous_snapshot.credentials)
+        let cleared_managed_sources = match self.clear_profile_api_key_overrides_if_needed() {
+            Ok(cleared) => cleared,
+            Err(update_error) => {
+                if let Some(previous_snapshot) = previous_snapshot {
+                    let previous_content = serde_json::to_vec_pretty(
+                        &previous_snapshot.credentials,
+                    )
                     .map_err(|error| {
                         CcrError::SettingsError(format!("序列化原 Claude 凭据失败: {error}"))
                     })?;
-                if let Err(restore_error) =
-                    self.write_secret(&self.credentials_path(), &previous_content)
-                {
-                    return Err(CcrError::SettingsError(format!(
-                        "切换账号后更新 settings 失败: {update_error}；恢复原凭据也失败: {restore_error}"
-                    )));
+                    if let Err(restore_error) =
+                        self.write_secret(&self.credentials_path(), &previous_content)
+                    {
+                        return Err(CcrError::SettingsError(format!(
+                            "切换账号后更新 settings 失败: {update_error}；恢复原凭据也失败: {restore_error}"
+                        )));
+                    }
                 }
+                return Err(update_error);
             }
-            return Err(update_error);
-        }
+        };
 
         if let Some(account) = registry.accounts.get_mut(name) {
             account.last_used = Some(Utc::now());
         }
         registry.current_auth = Some(name.to_string());
-        self.save_registry(&registry)
+        self.save_registry(&registry)?;
+        Ok(self.action_outcome(cleared_managed_sources))
     }
 
     pub fn delete_account(&self, name: &str) -> Result<()> {
@@ -772,6 +1050,7 @@ impl ClaudeAuthService {
             official_login_state.clone()
         };
         let current_login_name = snapshot.current_account_name.clone();
+        let auth_diagnosis = self.diagnose_auth_sources()?;
 
         let current_auth_name = match mode {
             ClaudeRuntimeMode::ProfileWithAuth | ClaudeRuntimeMode::RuntimeOnly => {
@@ -792,6 +1071,7 @@ impl ClaudeAuthService {
             official_login_state,
             current_auth_name,
             login_state,
+            auth_diagnosis,
         })
     }
 
@@ -899,13 +1179,16 @@ mod tests {
     use serde_json::json;
 
     struct TestEnv {
-        _home: TestHome,
+        home: TestHome,
         service: ClaudeAuthService,
     }
 
     impl TestEnv {
         fn new() -> Self {
-            let home = TestHome::new();
+            let mut home = TestHome::new();
+            for (key, _, _) in CLAUDE_AUTH_ENV_SOURCES {
+                home.remove_env(key);
+            }
             let ccr_claude_dir = home.root().join("platforms").join("claude");
             let claude_dir = home.home().join(".claude");
             let claude_json_path = home.home().join(".claude.json");
@@ -918,8 +1201,12 @@ mod tests {
                     claude_dir,
                     claude_json_path,
                 ),
-                _home: home,
+                home,
             }
+        }
+
+        fn set_env(&mut self, key: &'static str, value: &str) {
+            self.home.set_env(key, std::ffi::OsStr::new(value));
         }
 
         fn write_settings(&self, value: JsonValue) {
@@ -932,6 +1219,14 @@ mod tests {
 
         fn write_profiles(&self, content: &str) {
             fs::write(self.service.profiles_path(), content).unwrap();
+        }
+
+        fn write_state(&self, value: JsonValue) {
+            fs::write(
+                &self.service.runtime_paths.state_file,
+                serde_json::to_string_pretty(&value).unwrap(),
+            )
+            .unwrap();
         }
 
         fn write_credentials(&self, expires_at: DateTime<Utc>) {
@@ -1027,6 +1322,220 @@ mod tests {
         assert_eq!(snapshot.login_state, ClaudeLoginState::NotLoggedIn);
         assert!(snapshot.current_info.is_none());
         assert!(!snapshot.runtime_usable);
+    }
+
+    #[test]
+    fn diagnose_auth_sources_orders_official_sources_and_confidence() {
+        let env = TestEnv::new();
+        env.write_settings(json!({
+            "apiKeyHelper": "secret-helper-command",
+            "env": {
+                "CLAUDE_CODE_USE_BEDROCK": "1",
+                "ANTHROPIC_AUTH_TOKEN": "diagnostic-auth-secret",
+                "ANTHROPIC_API_KEY": "diagnostic-api-secret",
+                "CLAUDE_CODE_OAUTH_TOKEN": "diagnostic-oauth-secret"
+            }
+        }));
+        env.write_credentials(Utc::now() + Duration::days(14));
+
+        let diagnosis = env.service.diagnose_auth_sources().unwrap();
+        assert_eq!(
+            diagnosis
+                .observations
+                .iter()
+                .map(|source| source.kind)
+                .collect::<Vec<_>>(),
+            vec![
+                ClaudeAuthSourceKind::Bedrock,
+                ClaudeAuthSourceKind::AnthropicAuthToken,
+                ClaudeAuthSourceKind::AnthropicApiKey,
+                ClaudeAuthSourceKind::ApiKeyHelper,
+                ClaudeAuthSourceKind::ClaudeCodeOauthToken,
+                ClaudeAuthSourceKind::SubscriptionOauth,
+            ]
+        );
+        assert_eq!(
+            diagnosis
+                .presumed_effective_source
+                .as_ref()
+                .map(|source| (source.kind, source.confidence)),
+            Some((
+                ClaudeAuthSourceKind::Bedrock,
+                ClaudeAuthConfidence::Confirmed
+            ))
+        );
+        assert_eq!(
+            diagnosis.observations[1].ownership,
+            ClaudeAuthOwnership::CcrManaged
+        );
+        assert_eq!(
+            diagnosis.observations[2].ownership,
+            ClaudeAuthOwnership::UserOwned
+        );
+        assert_eq!(
+            diagnosis.observations[2].confidence,
+            ClaudeAuthConfidence::Potential
+        );
+        assert_eq!(
+            diagnosis.observations[3].confidence,
+            ClaudeAuthConfidence::Potential
+        );
+
+        let serialized = serde_json::to_string(&diagnosis).unwrap();
+        for secret in [
+            "secret-helper-command",
+            "diagnostic-auth-secret",
+            "diagnostic-api-secret",
+            "diagnostic-oauth-secret",
+            "access-token",
+        ] {
+            assert!(!serialized.contains(secret));
+        }
+    }
+
+    #[test]
+    fn diagnose_auth_sources_reports_process_env_and_same_priority_ambiguity() {
+        let mut env = TestEnv::new();
+        env.set_env("CLAUDE_CODE_USE_BEDROCK", "1");
+        env.set_env("CLAUDE_CODE_USE_VERTEX", "1");
+
+        let diagnosis = env.service.diagnose_auth_sources().unwrap();
+        assert_eq!(diagnosis.observations.len(), 2);
+        assert!(diagnosis.observations.iter().all(|source| {
+            source.location == ClaudeAuthSourceLocation::ProcessEnv
+                && source.confidence == ClaudeAuthConfidence::Confirmed
+        }));
+        assert!(diagnosis.presumed_effective_source.is_none());
+    }
+
+    #[test]
+    fn diagnose_auth_sources_covers_each_supported_process_env_source() {
+        for (key, expected_kind, expected_confidence) in CLAUDE_AUTH_ENV_SOURCES {
+            let mut env = TestEnv::new();
+            env.set_env(key, "diagnostic-secret");
+
+            let diagnosis = env.service.diagnose_auth_sources().unwrap();
+            let source = diagnosis
+                .observations
+                .iter()
+                .find(|source| source.kind == *expected_kind)
+                .unwrap_or_else(|| panic!("missing diagnosis for {key}"));
+            assert_eq!(source.location, ClaudeAuthSourceLocation::ProcessEnv);
+            assert_eq!(source.confidence, *expected_confidence);
+            assert_eq!(source.evidence, ClaudeAuthEvidence::OfficialContract);
+            assert_eq!(source.ownership, ClaudeAuthOwnership::ExternalRuntime);
+            assert!(source.suppresses_subscription);
+            assert!(
+                !serde_json::to_string(source)
+                    .unwrap()
+                    .contains("diagnostic-secret")
+            );
+        }
+    }
+
+    #[test]
+    fn diagnose_auth_sources_keeps_custom_responses_explanatory_and_primary_issue_only() {
+        let env = TestEnv::new();
+        env.write_state(json!({
+            "customApiKeyResponses": { "approved": true },
+            "primaryApiKey": "diagnostic-primary-secret"
+        }));
+
+        let diagnosis = env.service.diagnose_auth_sources().unwrap();
+        assert!(diagnosis.custom_api_key_responses_present);
+        assert_eq!(diagnosis.observations.len(), 1);
+        let source = &diagnosis.observations[0];
+        assert_eq!(source.kind, ClaudeAuthSourceKind::PrimaryApiKey);
+        assert_eq!(source.confidence, ClaudeAuthConfidence::Potential);
+        assert_eq!(source.evidence, ClaudeAuthEvidence::IssueReport);
+        assert_eq!(source.ownership, ClaudeAuthOwnership::UserOwned);
+        assert!(source.suppresses_subscription);
+        assert_eq!(diagnosis.suppressors().count(), 1);
+        assert!(
+            !serde_json::to_string(&diagnosis)
+                .unwrap()
+                .contains("diagnostic-primary-secret")
+        );
+    }
+
+    #[test]
+    fn diagnose_auth_sources_lists_fixed_unobservable_boundaries() {
+        let env = TestEnv::new();
+        let diagnosis = env.service.diagnose_auth_sources().unwrap();
+
+        assert_eq!(
+            diagnosis.unobservable,
+            CLAUDE_AUTH_UNOBSERVABLE
+                .iter()
+                .map(|value| (*value).to_string())
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    #[test]
+    fn diagnose_auth_sources_fails_closed_for_corrupt_credentials_without_leaking_content() {
+        let env = TestEnv::new();
+        fs::write(
+            env.service.credentials_path(),
+            r#"{"private":"diagnostic-credentials-secret","claudeAiOauth":"#,
+        )
+        .unwrap();
+
+        let error = env.service.diagnose_auth_sources().unwrap_err();
+        let message = error.to_string();
+        assert!(message.contains("解析 Claude 凭据失败"));
+        assert!(!message.contains("diagnostic-credentials-secret"));
+    }
+
+    #[test]
+    fn diagnose_auth_sources_fails_closed_for_empty_state_file() {
+        let env = TestEnv::new();
+        fs::write(&env.service.runtime_paths.state_file, "").unwrap();
+
+        let error = env.service.diagnose_auth_sources().unwrap_err();
+        assert!(error.to_string().contains("解析 Claude state file 失败"));
+
+        let outcome = env.service.action_outcome(Vec::new());
+        assert!(outcome.remaining_suppressors.is_empty());
+        assert_eq!(outcome.warnings.len(), 1);
+        assert!(outcome.warnings[0].contains("diagnosis could not be completed"));
+    }
+
+    #[test]
+    fn switch_account_reports_user_owned_suppressor_without_removing_it() {
+        let env = TestEnv::new();
+        env.write_credentials(Utc::now() + Duration::days(14));
+        env.write_metadata();
+        env.service.save_current("work", None, false).unwrap();
+        env.write_settings(json!({
+            "env": {
+                "ANTHROPIC_API_KEY": "diagnostic-user-secret"
+            }
+        }));
+
+        let outcome = env.service.switch_account("work").unwrap();
+        assert!(outcome.cleared_managed_sources.is_empty());
+        assert_eq!(outcome.remaining_suppressors.len(), 1);
+        assert_eq!(
+            outcome.remaining_suppressors[0].kind,
+            ClaudeAuthSourceKind::AnthropicApiKey
+        );
+        assert_eq!(
+            outcome.remaining_suppressors[0].ownership,
+            ClaudeAuthOwnership::UserOwned
+        );
+        assert!(
+            !outcome
+                .warnings
+                .join(" ")
+                .contains("diagnostic-user-secret")
+        );
+        let settings = env.service.load_settings().unwrap();
+        assert_eq!(
+            settings.env.get("ANTHROPIC_API_KEY").map(String::as_str),
+            Some("diagnostic-user-secret")
+        );
     }
 
     #[test]
@@ -1299,6 +1808,7 @@ auth_mode = "api_key"
             official_login_state: snapshot.login_state.clone(),
             current_auth_name: None,
             login_state: ClaudeLoginState::ApiKeyActive,
+            auth_diagnosis: Default::default(),
         };
 
         let accounts = env

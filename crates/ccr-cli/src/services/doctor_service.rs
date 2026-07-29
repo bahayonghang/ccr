@@ -3,7 +3,10 @@
 
 use crate::managers::conflict_checker::{Conflict, ConflictChecker, ConflictSeverity};
 use crate::managers::{CcsConfig, ClaudeSettings, PlatformConfigManager, UnifiedConfig};
-use crate::models::{AuthStateStatus, Platform, PlatformPaths, ProfileConfig};
+use crate::models::{
+    AuthStateStatus, ClaudeAuthConfidence, ClaudeAuthDiagnosis, ClaudeAuthSourceKind, Platform,
+    PlatformPaths, ProfileConfig,
+};
 use crate::platforms::claude::ClaudePlatform;
 use crate::platforms::droid::DroidSettings;
 use crate::platforms::gemini::GeminiSettings;
@@ -680,6 +683,10 @@ impl DoctorService {
             .with_path(platform_impl.get_settings_path().display().to_string()),
         );
 
+        if platform == Platform::Claude {
+            report.push(self.validate_claude_auth_sources());
+        }
+
         if let Some(profile_name) = current_profile.as_deref() {
             if let Some(profile) = profiles.get(profile_name) {
                 match platform_impl.validate_profile(profile) {
@@ -930,7 +937,7 @@ impl DoctorService {
                     {
                         settings.validate_api_key_mode()
                     }
-                    _ => settings.validate(),
+                    _ => Ok(()),
                 };
 
                 match validation {
@@ -1091,6 +1098,111 @@ impl DoctorService {
         }
 
         warnings
+    }
+
+    fn validate_claude_auth_sources(&self) -> DoctorCheck {
+        let id = "platform.claude.auth_sources";
+        let service = match ClaudeAuthService::new() {
+            Ok(service) => service,
+            Err(error) => {
+                return DoctorCheck::fail(id, "Claude auth-source diagnosis could not start.")
+                    .with_detail(error.to_string());
+            }
+        };
+
+        let diagnosis = match service.diagnose_auth_sources() {
+            Ok(diagnosis) => diagnosis,
+            Err(error) => {
+                return DoctorCheck::fail(id, "Claude auth sources could not be read safely.")
+                    .with_detail(error.to_string())
+                    .with_recommendation(
+                        "Fix the resolved Claude settings/state/credentials files and rerun doctor.",
+                    );
+            }
+        };
+
+        let suppressors = diagnosis.suppressors().collect::<Vec<_>>();
+        let subscription_observed = diagnosis.observations.iter().any(|source| {
+            source.kind == ClaudeAuthSourceKind::SubscriptionOauth
+                && source.confidence == ClaudeAuthConfidence::Confirmed
+        });
+        let confirmed = suppressors
+            .iter()
+            .filter(|source| source.confidence == ClaudeAuthConfidence::Confirmed)
+            .count();
+        let detail = Self::format_claude_auth_diagnosis(&diagnosis);
+
+        if suppressors.is_empty() && subscription_observed {
+            DoctorCheck::ok(
+                id,
+                "No subscription suppressor was observed in this CCR process scope.",
+            )
+            .with_detail(detail)
+        } else if suppressors.is_empty() {
+            DoctorCheck::warn(
+                id,
+                "No Claude auth source was confirmed in this CCR process scope.",
+            )
+            .with_detail(detail)
+            .with_recommendation(
+                "Log in to Claude Code or review the explicitly listed unobservable layers, then rerun doctor.",
+            )
+        } else {
+            let summary = if confirmed > 0 {
+                format!(
+                    "Observed {confirmed} confirmed subscription suppressor(s) and {} potential competing auth source(s).",
+                    suppressors.len() - confirmed
+                )
+            } else {
+                format!(
+                    "Observed {} potential auth source(s) that may suppress the Claude subscription.",
+                    suppressors.len()
+                )
+            };
+            DoctorCheck::warn(id, summary)
+                .with_detail(detail)
+                .with_recommendation(
+                    "Review user-owned sources manually; CCR will not delete them. See https://code.claude.com/docs/en/authentication and https://github.com/anthropics/claude-code/issues/80713.",
+                )
+        }
+    }
+
+    fn format_claude_auth_diagnosis(diagnosis: &ClaudeAuthDiagnosis) -> String {
+        let mut parts = diagnosis
+            .observations
+            .iter()
+            .map(|source| {
+                format!(
+                    "source={} location={} confidence={} evidence={} ownership={} suppresses_subscription={}",
+                    source.kind.as_str(),
+                    source.location.as_str(),
+                    source.confidence.as_str(),
+                    source.evidence.as_str(),
+                    source.ownership.as_str(),
+                    source.suppresses_subscription
+                )
+            })
+            .collect::<Vec<_>>();
+
+        let presumed = diagnosis
+            .presumed_effective_source
+            .as_ref()
+            .map(|source| {
+                format!(
+                    "presumed_effective_source={}@{} ({})",
+                    source.kind.as_str(),
+                    source.location.as_str(),
+                    source.confidence.as_str()
+                )
+            })
+            .unwrap_or_else(|| "presumed_effective_source=unresolved".to_string());
+        parts.push(presumed);
+        parts.push(format!(
+            "custom_api_key_responses_present={}",
+            diagnosis.custom_api_key_responses_present
+        ));
+        parts.push(format!("unobservable={}", diagnosis.unobservable.join(",")));
+        parts.join(" | ")
     }
 
     fn looks_like_placeholder_token(token: &str) -> bool {

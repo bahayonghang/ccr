@@ -52,6 +52,16 @@ impl DoctorFixture {
         command.env("HOME", &self.home);
         command.env("USERPROFILE", &self.home);
         command.env("NO_COLOR", "1");
+        for key in [
+            "CLAUDE_CODE_USE_BEDROCK",
+            "CLAUDE_CODE_USE_VERTEX",
+            "CLAUDE_CODE_USE_FOUNDRY",
+            "ANTHROPIC_AUTH_TOKEN",
+            "ANTHROPIC_API_KEY",
+            "CLAUDE_CODE_OAUTH_TOKEN",
+        ] {
+            command.env_remove(key);
+        }
         command
     }
 
@@ -128,6 +138,30 @@ impl DoctorFixture {
         fs::write(
             &self.claude_settings_path,
             serde_json::to_string_pretty(&ClaudeSettings::default()).unwrap(),
+        )
+        .unwrap();
+    }
+
+    fn write_claude_credentials(&self) {
+        fs::write(
+            self.home.join(".claude").join(".credentials.json"),
+            serde_json::to_string_pretty(&serde_json::json!({
+                "claudeAiOauth": {
+                    "accessToken": "diagnostic-access-secret",
+                    "refreshToken": "diagnostic-refresh-secret",
+                    "expiresAt": "2027-07-29T00:00:00Z",
+                    "subscriptionType": "pro"
+                }
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+    }
+
+    fn write_claude_state(&self, value: Value) {
+        fs::write(
+            self.home.join(".claude").join(".claude.json"),
+            serde_json::to_string_pretty(&value).unwrap(),
         )
         .unwrap();
     }
@@ -298,6 +332,117 @@ fn doctor_fails_when_claude_subscription_is_missing() {
     assert!(json["checks"].as_array().unwrap().iter().any(|check| {
         check["id"] == "platform.claude.runtime_auth" && check["status"] == "fail"
     }));
+    let auth_sources = json["checks"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|check| check["id"] == "platform.claude.auth_sources")
+        .unwrap();
+    assert_eq!(auth_sources["status"], "warn");
+    assert!(
+        auth_sources["summary"]
+            .as_str()
+            .unwrap()
+            .contains("No Claude auth source was confirmed")
+    );
+}
+
+#[test]
+fn doctor_reports_confirmed_subscription_without_competing_sources_as_ok() {
+    let fixture = DoctorFixture::new();
+    fixture.write_unified_config("claude", &[("claude", "sub")]);
+    fixture.write_profile("claude", "sub", claude_subscription_section());
+    fixture.write_claude_empty_settings();
+    fixture.write_claude_credentials();
+
+    let (output, json) = fixture.run_json(&["doctor", "--platform", "claude", "--json"]);
+
+    assert!(output.status.success(), "{:?}", output.status);
+    let auth_sources = json["checks"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|check| check["id"] == "platform.claude.auth_sources")
+        .unwrap();
+    assert_eq!(auth_sources["status"], "ok");
+    assert!(
+        auth_sources["detail"]
+            .as_str()
+            .unwrap()
+            .contains("source=subscription_oauth")
+    );
+}
+
+#[test]
+fn doctor_reports_visible_auth_sources_without_leaking_credentials() {
+    let fixture = DoctorFixture::new();
+    fixture.write_unified_config("claude", &[("claude", "sub")]);
+    fixture.write_profile("claude", "sub", claude_subscription_section());
+    fs::write(
+        &fixture.claude_settings_path,
+        serde_json::to_string_pretty(&serde_json::json!({
+            "apiKeyHelper": "diagnostic-helper-secret",
+            "env": {
+                "CLAUDE_CODE_USE_BEDROCK": "1",
+                "ANTHROPIC_AUTH_TOKEN": "diagnostic-auth-secret",
+                "ANTHROPIC_API_KEY": "diagnostic-api-secret",
+                "CLAUDE_CODE_OAUTH_TOKEN": "diagnostic-oauth-secret"
+            }
+        }))
+        .unwrap(),
+    )
+    .unwrap();
+    fixture.write_claude_credentials();
+    fixture.write_claude_state(serde_json::json!({
+        "primaryApiKey": "diagnostic-primary-secret",
+        "customApiKeyResponses": { "approved": true }
+    }));
+
+    let (output, json) = fixture.run_json(&["doctor", "--platform", "claude", "--json"]);
+
+    assert!(output.status.success(), "{:?}", output.status);
+    let auth_sources = json["checks"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|check| check["id"] == "platform.claude.auth_sources")
+        .expect("Claude auth source check should exist");
+    assert_eq!(auth_sources["status"], "warn");
+    assert!(
+        auth_sources["summary"]
+            .as_str()
+            .unwrap()
+            .contains("potential competing auth source")
+    );
+    let detail = auth_sources["detail"].as_str().unwrap();
+    for marker in [
+        "source=bedrock",
+        "source=anthropic_auth_token",
+        "source=anthropic_api_key",
+        "source=api_key_helper",
+        "source=claude_code_oauth_token",
+        "source=primary_api_key",
+        "source=subscription_oauth",
+        "evidence=issue_report",
+        "custom_api_key_responses_present=true",
+        "project_settings_for_unknown_working_directories",
+        "managed_settings_dynamic_policy",
+    ] {
+        assert!(detail.contains(marker), "missing {marker}: {detail}");
+    }
+
+    let output_json = serde_json::to_string(&json).unwrap();
+    for secret in [
+        "diagnostic-helper-secret",
+        "diagnostic-auth-secret",
+        "diagnostic-api-secret",
+        "diagnostic-oauth-secret",
+        "diagnostic-primary-secret",
+        "diagnostic-access-secret",
+        "diagnostic-refresh-secret",
+    ] {
+        assert!(!output_json.contains(secret), "doctor leaked {secret}");
+    }
 }
 
 #[test]

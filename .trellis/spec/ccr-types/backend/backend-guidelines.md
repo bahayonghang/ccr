@@ -50,6 +50,8 @@ Ownership split for managed-env behavior:
 
 Keep `CCR_MANAGED_KEYS`, `ConfigSection::to_managed_env_pairs`, and `ClaudePlatform::get_env_var_names` equal. `apply_managed_env` ignores unregistered input pairs so a future caller cannot silently claim ownership of a user key without first updating the shared registry and its invariant tests. The tradeoff is that unknown keys left by older CCR versions or third-party tools are not deleted automatically; diagnostics should report them instead of cleanup code guessing ownership.
 
+Shared Claude Auth diagnosis types are serialization-only contracts: `ClaudeAuthSourceObservation`, `ClaudeAuthDiagnosis`, and `ClaudeAuthActionOutcome` contain source identifiers, confidence/evidence/ownership metadata, and key names cleared by CCR, never credential values or hashes. `ClaudeRuntimeSummary.auth_diagnosis` is additive and defaults during deserialization. Source ordering, confidence semantics, action fallback warnings, and client presentation are authoritative in [Claude Auth Runtime Diagnosis](../../ccr-cli/backend/claude-auth-runtime.md); do not duplicate that logic in this crate.
+
 Validation returns `Result<(), String>` with stable Chinese messages; callers wrap into their own error type (CLI uses `CcrError::ValidationError`). Do not add `Validatable` or other `ccr-core` trait impls here — this crate stays a leaf, and orphan rules prevent downstream impls anyway.
 
 Intentional strictness kept by tests: invalid `hooks` types are a parse error (not tolerated into `other`), legacy array hooks normalize to the canonical object format on write, and empty known containers are dropped on serialization. Unknown fields must survive read→modify→write round-trips at every nesting level.

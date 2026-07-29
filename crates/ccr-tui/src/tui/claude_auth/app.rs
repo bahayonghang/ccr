@@ -9,8 +9,8 @@ use crate::tui::pagination::{
 use crate::tui::runtime::TuiApp;
 use crate::tui::toast::{Toast, ToastManager};
 use ccr_cli::models::{
-    ClaudeAuthRegistry, ClaudeCurrentAuthInfo, ClaudeLoginState, ClaudeRuntimeMode,
-    ClaudeRuntimeSummary,
+    ClaudeAuthActionOutcome, ClaudeAuthRegistry, ClaudeAuthSourceObservation,
+    ClaudeCurrentAuthInfo, ClaudeLoginState, ClaudeRuntimeMode, ClaudeRuntimeSummary,
 };
 use ccr_cli::services::{ClaudeAuthItem, ClaudeAuthService};
 use ccr_core::core::error::Result;
@@ -21,6 +21,8 @@ use std::cell::Cell;
 use std::time::{Duration, Instant};
 
 const AUTH_SNAPSHOT_CACHE_TTL: Duration = Duration::from_secs(5);
+
+pub type ClaudeAuthActionRecord = (CompletedAction, String, bool, Option<String>, Vec<String>);
 
 /// Claude Auth TUI 应用
 pub struct ClaudeAuthApp {
@@ -49,7 +51,7 @@ pub struct ClaudeAuthApp {
     /// 服务实例
     service: ClaudeAuthService,
     /// 最近一次操作 (action, account_name, success, error)
-    pub last_action: Option<(CompletedAction, String, bool, Option<String>)>,
+    pub last_action: Option<ClaudeAuthActionRecord>,
     /// 账号列表区域（鼠标命中测试）
     pub list_area: Cell<Option<Rect>>,
     /// 最近一次从磁盘刷新快照的时间
@@ -271,8 +273,13 @@ impl ClaudeAuthApp {
 
                 match self.service.delete_account(&subject) {
                     Ok(()) => {
-                        self.last_action =
-                            Some((CompletedAction::Delete, subject.clone(), true, None));
+                        self.last_action = Some((
+                            CompletedAction::Delete,
+                            subject.clone(),
+                            true,
+                            None,
+                            Vec::new(),
+                        ));
                         self.toasts.push(Toast::success(crate::tui_format!(
                             "Deleted Claude account snapshot: {subject}",
                             "已删除 Claude 账号快照：{subject}"
@@ -285,6 +292,7 @@ impl ClaudeAuthApp {
                             subject.clone(),
                             false,
                             Some(err.to_string()),
+                            Vec::new(),
                         ));
                         self.toasts.push(Toast::error(crate::tui_format!(
                             "Delete failed: {err}",
@@ -334,7 +342,8 @@ impl ClaudeAuthApp {
 
                 match self.service.save_current(&name, None, false) {
                     Ok(_) => {
-                        self.last_action = Some((CompletedAction::Save, name.clone(), true, None));
+                        self.last_action =
+                            Some((CompletedAction::Save, name.clone(), true, None, Vec::new()));
                         self.toasts.push(Toast::success(crate::tui_format!(
                             "Saved Claude official account: {name}",
                             "已保存 Claude 官方账号：{name}"
@@ -347,6 +356,7 @@ impl ClaudeAuthApp {
                             name.clone(),
                             false,
                             Some(err.to_string()),
+                            Vec::new(),
                         ));
                         self.toasts.push(Toast::error(crate::tui_format!(
                             "Save failed: {err}",
@@ -442,15 +452,38 @@ impl ClaudeAuthApp {
         }
 
         match self.service.switch_account(&account.name) {
-            Ok(()) => {
-                self.last_action =
-                    Some((CompletedAction::Switch, account.name.clone(), true, None));
-                self.toasts.push(Toast::success(crate::tui_format!(
-                    "Switched Claude official account: {}",
-                    "已切换 Claude 官方账号：{}",
-                    account.name
-                )));
+            Ok(outcome) => {
+                let warnings = format_action_warnings(&outcome);
+                self.last_action = Some((
+                    CompletedAction::Switch,
+                    account.name.clone(),
+                    true,
+                    None,
+                    warnings.clone(),
+                ));
+                let cleared_count = outcome.cleared_managed_sources.len();
+                let success_message = if cleared_count > 0 {
+                    crate::tui_format!(
+                        "Switched Claude official account: {}; cleared {cleared_count} CCR-managed setting(s)",
+                        "已切换 Claude 官方账号：{}；已清理 {cleared_count} 个 CCR 托管设置",
+                        account.name
+                    )
+                } else {
+                    crate::tui_format!(
+                        "Switched Claude official account: {}",
+                        "已切换 Claude 官方账号：{}",
+                        account.name
+                    )
+                };
+                self.toasts.push(Toast::success(success_message));
                 self.reload_accounts()?;
+                if !warnings.is_empty() {
+                    self.toasts.push(Toast::warning(crate::tui_format!(
+                        "{} auth warning(s) remain after the switch",
+                        "切换后仍有 {} 条认证警告",
+                        warnings.len()
+                    )));
+                }
                 self.should_quit = true;
                 Ok(true)
             }
@@ -460,6 +493,7 @@ impl ClaudeAuthApp {
                     account.name.clone(),
                     false,
                     Some(err.to_string()),
+                    Vec::new(),
                 ));
                 self.toasts.push(Toast::error(crate::tui_format!(
                     "Switch failed: {err}",
@@ -472,6 +506,29 @@ impl ClaudeAuthApp {
 
     fn should_refresh(last_refresh_at: Option<Instant>, ttl: Duration, now: Instant) -> bool {
         last_refresh_at.is_none_or(|last_refresh_at| now.duration_since(last_refresh_at) >= ttl)
+    }
+}
+
+fn format_auth_source_warning(source: &ClaudeAuthSourceObservation) -> String {
+    format!(
+        "{} @ {} ({}; {}; {})",
+        source.kind.as_str(),
+        source.location.as_str(),
+        source.confidence.as_str(),
+        source.evidence.as_str(),
+        source.ownership.as_str()
+    )
+}
+
+fn format_action_warnings(outcome: &ClaudeAuthActionOutcome) -> Vec<String> {
+    if outcome.remaining_suppressors.is_empty() {
+        outcome.warnings.clone()
+    } else {
+        outcome
+            .remaining_suppressors
+            .iter()
+            .map(format_auth_source_warning)
+            .collect()
     }
 }
 
@@ -531,6 +588,10 @@ impl TuiApp for ClaudeAuthApp {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ccr_cli::models::{
+        ClaudeAuthConfidence, ClaudeAuthEvidence, ClaudeAuthOwnership, ClaudeAuthSourceKind,
+        ClaudeAuthSourceLocation,
+    };
     use chrono::Utc;
     use std::path::PathBuf;
 
@@ -667,5 +728,36 @@ mod tests {
     fn account_list_hit_test_ignores_blank_rows_when_page_has_fewer_items_than_space() {
         let area = Rect::new(4, 7, 60, 14);
         assert_eq!(account_list_hit_test(area, 15, 5), None);
+    }
+
+    #[test]
+    fn switch_warning_preserves_source_confidence_evidence_and_ownership() {
+        let warning = format_auth_source_warning(&ClaudeAuthSourceObservation {
+            kind: ClaudeAuthSourceKind::AnthropicApiKey,
+            location: ClaudeAuthSourceLocation::SettingsEnv,
+            confidence: ClaudeAuthConfidence::Potential,
+            evidence: ClaudeAuthEvidence::OfficialContract,
+            ownership: ClaudeAuthOwnership::UserOwned,
+            suppresses_subscription: true,
+        });
+
+        assert_eq!(
+            warning,
+            "anthropic_api_key @ settings_env (potential; official_contract; user_owned)"
+        );
+    }
+
+    #[test]
+    fn switch_warning_keeps_diagnosis_failure_fallback() {
+        let outcome = ClaudeAuthActionOutcome {
+            cleared_managed_sources: Vec::new(),
+            remaining_suppressors: Vec::new(),
+            warnings: vec!["diagnosis failed safely".to_string()],
+        };
+
+        assert_eq!(
+            format_action_warnings(&outcome),
+            vec!["diagnosis failed safely"]
+        );
     }
 }

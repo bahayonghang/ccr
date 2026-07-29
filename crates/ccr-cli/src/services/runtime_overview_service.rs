@@ -488,6 +488,7 @@ mod tests {
             official_login_state: login_state.clone(),
             current_auth_name: Some("official-work".to_string()),
             login_state,
+            auth_diagnosis: Default::default(),
         }
     }
 

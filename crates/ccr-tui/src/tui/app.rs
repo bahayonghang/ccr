@@ -17,7 +17,7 @@ use ratatui::widgets::{Block, Borders};
 use std::cell::Cell;
 use std::sync::Arc;
 
-use super::claude_auth::ClaudeAuthApp;
+use super::claude_auth::{ClaudeAuthActionRecord, ClaudeAuthApp};
 use super::codex_auth::CodexAuthApp;
 use super::opencode_auth::OpenCodeAuthApp;
 use super::pagination::{DEFAULT_PAGE_SIZE, page_for_index, page_slice, total_pages};
@@ -235,8 +235,8 @@ pub struct App {
     pub claude_auth_app: Option<ClaudeAuthApp>,
     /// Last Claude Auth initialization error for placeholder rendering
     pub claude_auth_error: Option<String>,
-    /// Last Claude auth action info (action_type, account_name, success, error)
-    pub last_claude_action: Option<(CompletedAction, String, bool, Option<String>)>,
+    /// Last Claude auth action info (action_type, account_name, success, error, warnings)
+    pub last_claude_action: Option<ClaudeAuthActionRecord>,
     /// Embedded Codex Auth app (lazy initialized)
     pub codex_auth_app: Option<CodexAuthApp>,
     /// Last Codex Auth initialization error for placeholder rendering

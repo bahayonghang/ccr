@@ -1,5 +1,7 @@
 use crate::managers::SettingsManager;
+use crate::models::ClaudeAuthActionOutcome;
 use crate::models::Platform;
+use crate::services::ClaudeAuthService;
 use ccr_config::ConfigManager;
 use ccr_config::PlatformConfigManager;
 use ccr_core::core::error::{CcrError, Result};
@@ -9,6 +11,7 @@ pub struct ProfileOffResult {
     pub platform: Platform,
     pub previous_profile: Option<String>,
     pub changed: bool,
+    pub auth_outcome: Option<ClaudeAuthActionOutcome>,
 }
 
 /// `profile_off` 写盘事务的 RAII 守卫。
@@ -131,6 +134,7 @@ pub fn profile_off_for_platform(platform: Platform) -> Result<ProfileOffResult> 
 }
 
 fn claude_profile_off() -> Result<ProfileOffResult> {
+    let auth_service = ClaudeAuthService::new()?;
     let previous_profile = platform_previous_profile_hint("claude")?;
     let had_profiles_file_pointer = platform_profiles_file_has_current_config("claude")?;
     let had_profile_routing = previous_profile.is_some() || had_profiles_file_pointer;
@@ -141,6 +145,7 @@ fn claude_profile_off() -> Result<ProfileOffResult> {
             platform: Platform::Claude,
             previous_profile,
             changed: false,
+            auth_outcome: Some(auth_service.action_outcome(Vec::new())),
         });
     }
 
@@ -153,10 +158,10 @@ fn claude_profile_off() -> Result<ProfileOffResult> {
     backup.snapshot(platform_manager.config_path())?;
     backup.snapshot(claude_config_manager.config_path())?;
 
-    let settings_cleared = clear_claude_profile_settings_overrides()?;
+    let cleared_managed_sources = clear_claude_profile_settings_overrides()?;
     clear_platform_registry_pointer("claude")?;
     clear_profiles_file_pointer("claude")?;
-    let changed = had_profile_routing || settings_cleared;
+    let changed = had_profile_routing || !cleared_managed_sources.is_empty();
 
     backup.commit();
 
@@ -164,6 +169,7 @@ fn claude_profile_off() -> Result<ProfileOffResult> {
         platform: Platform::Claude,
         previous_profile,
         changed,
+        auth_outcome: Some(auth_service.action_outcome(cleared_managed_sources)),
     })
 }
 
@@ -179,6 +185,7 @@ fn codex_profile_off() -> Result<ProfileOffResult> {
             platform: Platform::Codex,
             previous_profile,
             changed: false,
+            auth_outcome: None,
         });
     }
 
@@ -198,24 +205,29 @@ fn codex_profile_off() -> Result<ProfileOffResult> {
         platform: Platform::Codex,
         previous_profile,
         changed,
+        auth_outcome: None,
     })
 }
 
-fn clear_claude_profile_settings_overrides() -> Result<bool> {
+fn clear_claude_profile_settings_overrides() -> Result<Vec<String>> {
     let manager = SettingsManager::with_default()?;
     let settings = match manager.load() {
         Ok(settings) => settings,
-        Err(CcrError::SettingsMissing(_)) => return Ok(false),
+        Err(CcrError::SettingsMissing(_)) => return Ok(Vec::new()),
         Err(error) => return Err(error),
     };
     if !settings.has_managed_overrides() {
-        return Ok(false);
+        return Ok(Vec::new());
     }
 
     manager.update_atomic(|settings| {
-        let changed = settings.has_managed_overrides();
+        let cleared = settings
+            .managed_env_entries()
+            .into_iter()
+            .map(|(key, _)| key)
+            .collect();
         settings.clear_ccr_managed_vars();
-        Ok(changed)
+        Ok(cleared)
     })
 }
 
@@ -278,7 +290,11 @@ mod tests {
             .insert("ANTHROPIC_CUSTOM_HEADERS".into(), "X-User: keep".into());
         manager.save_atomic(&settings).unwrap();
 
-        assert!(clear_claude_profile_settings_overrides().unwrap());
+        assert!(
+            !clear_claude_profile_settings_overrides()
+                .unwrap()
+                .is_empty()
+        );
 
         let settings = manager.load().unwrap();
         assert!(!settings.has_managed_overrides());
@@ -300,7 +316,11 @@ mod tests {
         let _home = TestHome::new();
         let manager = SettingsManager::with_default().unwrap();
 
-        assert!(!clear_claude_profile_settings_overrides().unwrap());
+        assert!(
+            clear_claude_profile_settings_overrides()
+                .unwrap()
+                .is_empty()
+        );
         assert!(!manager.settings_path().exists());
     }
 }

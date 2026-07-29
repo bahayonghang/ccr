@@ -131,6 +131,158 @@ pub enum ClaudeRuntimeMode {
     Unresolved,
 }
 
+/// Credential source observed by CCR without exposing its value.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ClaudeAuthSourceKind {
+    Bedrock,
+    Vertex,
+    Foundry,
+    AnthropicAuthToken,
+    AnthropicApiKey,
+    ApiKeyHelper,
+    ClaudeCodeOauthToken,
+    SubscriptionOauth,
+    PrimaryApiKey,
+}
+
+impl ClaudeAuthSourceKind {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Bedrock => "bedrock",
+            Self::Vertex => "vertex",
+            Self::Foundry => "foundry",
+            Self::AnthropicAuthToken => "anthropic_auth_token",
+            Self::AnthropicApiKey => "anthropic_api_key",
+            Self::ApiKeyHelper => "api_key_helper",
+            Self::ClaudeCodeOauthToken => "claude_code_oauth_token",
+            Self::SubscriptionOauth => "subscription_oauth",
+            Self::PrimaryApiKey => "primary_api_key",
+        }
+    }
+}
+
+/// Location where CCR observed an auth source.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ClaudeAuthSourceLocation {
+    ProcessEnv,
+    SettingsEnv,
+    SettingsRoot,
+    StateFile,
+    CredentialsFile,
+}
+
+impl ClaudeAuthSourceLocation {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::ProcessEnv => "process_env",
+            Self::SettingsEnv => "settings_env",
+            Self::SettingsRoot => "settings_root",
+            Self::StateFile => "state_file",
+            Self::CredentialsFile => "credentials_file",
+        }
+    }
+}
+
+/// Strength of the conclusion CCR can draw from an observation.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ClaudeAuthConfidence {
+    Confirmed,
+    Potential,
+    Unobservable,
+}
+
+impl ClaudeAuthConfidence {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Confirmed => "confirmed",
+            Self::Potential => "potential",
+            Self::Unobservable => "unobservable",
+        }
+    }
+}
+
+/// Authority behind an auth-source rule.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ClaudeAuthEvidence {
+    OfficialContract,
+    IssueReport,
+}
+
+impl ClaudeAuthEvidence {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::OfficialContract => "official_contract",
+            Self::IssueReport => "issue_report",
+        }
+    }
+}
+
+/// Ownership boundary used to decide whether CCR may clear a source.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ClaudeAuthOwnership {
+    CcrManaged,
+    UserOwned,
+    ExternalRuntime,
+}
+
+impl ClaudeAuthOwnership {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::CcrManaged => "ccr_managed",
+            Self::UserOwned => "user_owned",
+            Self::ExternalRuntime => "external_runtime",
+        }
+    }
+}
+
+/// Secret-free observation of one possible Claude Code credential source.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ClaudeAuthSourceObservation {
+    pub kind: ClaudeAuthSourceKind,
+    pub location: ClaudeAuthSourceLocation,
+    pub confidence: ClaudeAuthConfidence,
+    pub evidence: ClaudeAuthEvidence,
+    pub ownership: ClaudeAuthOwnership,
+    pub suppresses_subscription: bool,
+}
+
+/// Read-only diagnosis shared by CLI, TUI, doctor, and desktop UI.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+pub struct ClaudeAuthDiagnosis {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub observations: Vec<ClaudeAuthSourceObservation>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub presumed_effective_source: Option<ClaudeAuthSourceObservation>,
+    #[serde(default)]
+    pub custom_api_key_responses_present: bool,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub unobservable: Vec<String>,
+}
+
+impl ClaudeAuthDiagnosis {
+    pub fn suppressors(&self) -> impl Iterator<Item = &ClaudeAuthSourceObservation> {
+        self.observations
+            .iter()
+            .filter(|source| source.suppresses_subscription)
+    }
+}
+
+/// Post-action diagnosis. Values are source identifiers only, never secrets.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+pub struct ClaudeAuthActionOutcome {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub cleared_managed_sources: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub remaining_suppressors: Vec<ClaudeAuthSourceObservation>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub warnings: Vec<String>,
+}
+
 impl ClaudeRuntimeMode {
     pub fn label(&self) -> &'static str {
         match self {
@@ -161,6 +313,8 @@ pub struct ClaudeRuntimeSummary {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub current_auth_name: Option<String>,
     pub login_state: ClaudeLoginState,
+    #[serde(default)]
+    pub auth_diagnosis: ClaudeAuthDiagnosis,
 }
 
 impl ClaudeRuntimeSummary {
@@ -274,6 +428,7 @@ mod tests {
             },
             current_auth_name: None,
             login_state: ClaudeLoginState::ApiKeyActive,
+            auth_diagnosis: ClaudeAuthDiagnosis::default(),
         };
 
         assert_eq!(
@@ -282,5 +437,39 @@ mod tests {
         );
         assert_eq!(summary.official_login_label(), "已登录: official-main");
         assert_eq!(summary.auth_label(), "Profile / provider:pro");
+    }
+
+    #[test]
+    fn auth_diagnosis_serialization_contains_no_credential_values() {
+        let diagnosis = ClaudeAuthDiagnosis {
+            observations: vec![ClaudeAuthSourceObservation {
+                kind: ClaudeAuthSourceKind::AnthropicApiKey,
+                location: ClaudeAuthSourceLocation::SettingsEnv,
+                confidence: ClaudeAuthConfidence::Potential,
+                evidence: ClaudeAuthEvidence::OfficialContract,
+                ownership: ClaudeAuthOwnership::UserOwned,
+                suppresses_subscription: true,
+            }],
+            presumed_effective_source: None,
+            custom_api_key_responses_present: true,
+            unobservable: vec!["other_shell_environment".to_string()],
+        };
+
+        let json = serde_json::to_string(&diagnosis).unwrap();
+        assert!(json.contains("anthropic_api_key"));
+        assert!(json.contains("potential"));
+        assert!(!json.contains("sk-secret"));
+    }
+
+    #[test]
+    fn runtime_summary_defaults_missing_diagnosis_for_compatibility() {
+        let summary: ClaudeRuntimeSummary = serde_json::from_value(serde_json::json!({
+            "mode": "unresolved",
+            "official_login_state": { "type": "NotLoggedIn" },
+            "login_state": { "type": "NotLoggedIn" }
+        }))
+        .unwrap();
+
+        assert_eq!(summary.auth_diagnosis, ClaudeAuthDiagnosis::default());
     }
 }
