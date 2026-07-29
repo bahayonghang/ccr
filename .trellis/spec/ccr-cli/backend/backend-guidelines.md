@@ -209,6 +209,96 @@ settings.apply_managed_env(section.to_managed_env_pairs());
 
 This keeps persistence, apply, diagnostics, and cleanup on the same typed contract.
 
+## Scenario: Retired Platform Command Discovery Boundary
+
+### 1. Scope / Trigger
+
+- Trigger: changing `ccr platform`, root/platform help text, or migration
+  behavior for the retired global platform-routing commands.
+- Applies to `PlatformAction`, `dispatch_platform`, `help_config`, and command
+  integration tests.
+
+### 2. Signatures
+
+- Supported discovery actions: `PlatformAction::{Help,List { json }}`.
+- Compatibility-only actions:
+  `PlatformAction::{Switch,Current,Info,Init,Profile}`.
+- Compatibility error:
+  `legacy_platform_command_error(command: &str) -> CcrError`.
+- Current profile entry points: `ccr claude profile ...`,
+  `ccr codex profile ...`, and `ccr grok profile ...`.
+
+### 3. Contracts
+
+- `ccr platform --help` and `ccr help platform` expose only `help` and `list`;
+  they must not advertise retired actions in the Commands list or examples.
+- Compatibility-only variants remain in the Clap tree with hidden help
+  metadata. A syntactically valid old invocation must still parse and reach
+  `dispatch_platform`, which returns the shared migration error.
+- Do not delete the hidden variants or restore writes to legacy
+  `current_platform` / `default_platform` state.
+- Root and platform help direct status checks to `ccr current`, registry
+  discovery to `ccr platform list`, and profile work to the explicit
+  Claude/Codex/Grok command trees.
+
+### 4. Validation & Error Matrix
+
+- `ccr platform list [--json]` -> execute the supported registry view.
+- `ccr platform --help` or `ccr help platform` -> success with identical,
+  migration-safe help.
+- Valid retired invocation such as `ccr platform init grok` -> non-zero
+  `legacy command retired` error containing `ccr grok profile ...` guidance.
+- Retired action with malformed/missing arguments -> normal Clap argument
+  error; do not initialize or mutate platform state.
+- Unknown platform subcommand -> normal Clap unknown-subcommand error.
+
+### 5. Good/Base/Bad Cases
+
+- Good: an old script receives an actionable migration error while a new user
+  cannot discover the retired action through help.
+- Base: `ccr platform list` remains visible and unchanged.
+- Bad: removing `PlatformAction::Init` makes old calls fail as unknown commands
+  and loses the platform-specific migration guidance.
+- Bad: leaving a hidden action in custom after-help examples still recommends
+  an operation that always fails.
+
+### 6. Tests Required
+
+- `cargo test -p ccr --test commands -- --test-threads=1`
+  - Assert root help contains `ccr current`, `ccr platform list`, and all three
+    explicit profile help paths.
+  - Assert direct and nested platform help are equal and omit every retired
+    action from both Commands and examples.
+  - Execute `ccr platform init grok`; assert non-zero status, the legacy error,
+    and Grok profile migration guidance.
+- `cargo test -p ccr-cli --test dispatch_routing -- --test-threads=1`
+  keeps supported platform-list routing green.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```rust
+pub enum PlatformAction {
+    List { json: bool },
+}
+```
+
+This removes the compatibility parse surface and downgrades old calls to a
+generic unknown-subcommand error.
+
+#### Correct
+
+```rust
+pub enum PlatformAction {
+    List { json: bool },
+    #[command(hide = true)]
+    Init { platform_name: String },
+}
+```
+
+The dispatcher then keeps returning `legacy_platform_command_error("init")`.
+
 ## Testing
 
 Use crate-local `test_support::TestHome` and `TestHostEnv` for env/path-sensitive command tests. These fixtures serialize process env mutation and restore variables on Drop.

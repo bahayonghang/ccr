@@ -1943,8 +1943,8 @@ mod tests {
             tab_order_ids(&tabs),
             vec![
                 TuiTabId::CodexProfile,
-                TuiTabId::GrokProfile,
                 TuiTabId::ClaudeProfile,
+                TuiTabId::GrokProfile,
                 TuiTabId::CodexAuth,
                 TuiTabId::ClaudeAuth,
                 TuiTabId::OpencodeAuth,

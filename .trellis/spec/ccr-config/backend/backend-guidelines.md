@@ -147,8 +147,8 @@ write_toml_opts(
   of `tab_order`, so an otherwise valid custom order is preserved.
 - An unsupported or non-string `theme` falls back to Mocha independently of
   `language` and `tab_order`, preserving all other valid preferences.
-- Current tab ids, in built-in order: `codex_profile`, `grok_profile`,
-  `claude_profile`, `codex_auth`, `claude_auth`, `opencode_auth`.
+- Current tab ids, in built-in order: `codex_profile`, `claude_profile`,
+  `grok_profile`, `codex_auth`, `claude_auth`, `opencode_auth`.
 - Deprecated id `usage` (standalone Usage tab retired 2026-07) stays parse-tolerant: the enum variant is kept `#[doc(hidden)]`, `load()` filters it out with a `tracing::warn!` **before** validation, and the user's custom order of the remaining tabs is preserved — never fall back to defaults just because `usage` appears.
 - `load()` treats a list that omits known current ids as an older configuration:
   it preserves the listed order, appends every missing id in built-in relative
@@ -186,6 +186,8 @@ write_toml_opts(
 
 - Good: `language = "zh_cn"`, `theme = "latte"`, and a complete custom
   `tab_order` round-trip through `load` / `save`.
+- Good (default): a missing file opens Profile tabs as Codex, Claude, then
+  Grok, followed by the existing Auth tabs.
 - Good (legacy): a 6-item order containing `usage` loads with `usage` dropped and the custom order intact.
 - Good (migration): an older 5-item custom order loads unchanged in its first
   five positions with `grok_profile` appended.
@@ -206,6 +208,8 @@ write_toml_opts(
   assertions that language and custom ordering survive theme fallback.
 - Unit tests for missing file, valid custom order, duplicate ids, unknown ids,
   and legacy orders containing `usage` (order preserved, `usage` filtered).
+- The built-in-order test must assert the complete vector so moving one
+  Profile tab cannot silently change startup order.
 - Migration tests must assert that an older complete order preserves every
   listed position while new ids append, and that multiple missing ids append in
   built-in relative order.

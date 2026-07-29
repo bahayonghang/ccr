@@ -7,8 +7,8 @@ use std::path::{Path, PathBuf};
 
 const DEFAULT_TAB_ORDER: [TuiTabId; 6] = [
     TuiTabId::CodexProfile,
-    TuiTabId::GrokProfile,
     TuiTabId::ClaudeProfile,
+    TuiTabId::GrokProfile,
     TuiTabId::CodexAuth,
     TuiTabId::ClaudeAuth,
     TuiTabId::OpencodeAuth,
@@ -332,8 +332,17 @@ mod tests {
     fn default_order_excludes_deprecated_usage_tab() {
         let order = TuiTabId::default_order();
 
-        assert_eq!(order.len(), 6);
-        assert_eq!(order[1], TuiTabId::GrokProfile);
+        assert_eq!(
+            order,
+            vec![
+                TuiTabId::CodexProfile,
+                TuiTabId::ClaudeProfile,
+                TuiTabId::GrokProfile,
+                TuiTabId::CodexAuth,
+                TuiTabId::ClaudeAuth,
+                TuiTabId::OpencodeAuth,
+            ]
+        );
         assert!(!order.contains(&TuiTabId::Usage));
     }
 
@@ -563,8 +572,8 @@ tab_order = [
             vec![
                 TuiTabId::ClaudeAuth,
                 TuiTabId::CodexProfile,
-                TuiTabId::GrokProfile,
                 TuiTabId::ClaudeProfile,
+                TuiTabId::GrokProfile,
                 TuiTabId::CodexAuth,
                 TuiTabId::OpencodeAuth,
             ]

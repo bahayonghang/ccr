@@ -27,7 +27,24 @@ fn root_help_includes_guided_tasks() {
     let stdout = run_help(&["--help"]);
 
     assert!(stdout.contains("常用任务:"));
-    assert!(stdout.contains("切换平台"));
+    assert!(stdout.contains("查看平台与 Profile"));
+    assert!(stdout.contains("ccr current"));
+    assert!(stdout.contains("ccr platform list"));
+    assert!(stdout.contains("ccr claude profile --help"));
+    assert!(stdout.contains("ccr codex profile --help"));
+    assert!(stdout.contains("ccr grok profile --help"));
+    for retired in [
+        "ccr platform switch",
+        "ccr platform current",
+        "ccr platform info",
+        "ccr platform init",
+        "ccr platform profile",
+    ] {
+        assert!(
+            !stdout.contains(retired),
+            "root help contains {retired}: {stdout}"
+        );
+    }
     assert!(stdout.contains("切换 Codex Auth"));
     assert!(stdout.contains("把 Codex 订阅导入 OpenCode"));
     assert!(stdout.contains("初始化当前项目"));
@@ -68,8 +85,49 @@ fn help_subcommand_supports_platform_path() {
 
     assert_eq!(help_command, direct_help);
     assert!(help_command.contains("ccr platform list"));
-    assert!(help_command.contains("ccr platform switch codex"));
-    assert!(help_command.contains("ccr platform current"));
+    assert!(help_command.contains("ccr current"));
+    assert!(help_command.contains("ccr claude profile --help"));
+    assert!(help_command.contains("ccr codex profile --help"));
+    assert!(help_command.contains("ccr grok profile --help"));
+
+    for retired in ["switch", "current", "info", "init", "profile"] {
+        assert!(
+            !help_command.lines().any(|line| {
+                line.trim_start()
+                    .strip_prefix(retired)
+                    .is_some_and(|rest| rest.starts_with(char::is_whitespace))
+            }),
+            "platform help exposes retired `{retired}` command: {help_command}"
+        );
+        assert!(
+            !help_command.contains(&format!("ccr platform {retired}")),
+            "platform help recommends retired `{retired}` command: {help_command}"
+        );
+    }
+}
+
+#[test]
+fn legacy_platform_init_grok_remains_parseable_and_returns_migration_error() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let lock_dir = temp_dir.path().join("locks");
+    std::fs::create_dir_all(&lock_dir).unwrap();
+
+    let output = Command::new(env!("CARGO_BIN_EXE_ccr"))
+        .args(["platform", "init", "grok"])
+        .env("HOME", temp_dir.path())
+        .env("USERPROFILE", temp_dir.path())
+        .env("CCR_ROOT", temp_dir.path())
+        .env("CCR_LOCK_DIR", lock_dir)
+        .env("NO_COLOR", "1")
+        .env("CLICOLOR", "0")
+        .output()
+        .unwrap();
+
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("legacy command retired"), "{stderr}");
+    assert!(stderr.contains("`ccr platform init`"), "{stderr}");
+    assert!(stderr.contains("`ccr grok profile ...`"), "{stderr}");
 }
 
 #[test]

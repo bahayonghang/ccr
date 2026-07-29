@@ -1972,11 +1972,45 @@ fn last_apply_message(
     }
 }
 
+fn empty_profile_state_lines(platform: Platform) -> Vec<Line<'static>> {
+    let platform_name = platform.display_name();
+    let short_name = platform.short_name();
+
+    vec![
+        Line::from(""),
+        Line::from(Span::styled(
+            crate::tui_format!(
+                "No {} configurations found",
+                "未找到 {} 配置",
+                platform_name
+            ),
+            theme::empty_hint_style(),
+        )),
+        Line::from(""),
+        Line::from(Span::styled(
+            crate::tui_format!(
+                "Run 'ccr {} profile create --help' to create a profile",
+                "运行 'ccr {} profile create --help' 查看创建方式",
+                short_name
+            ),
+            theme::secondary_text_style(),
+        )),
+        Line::from(""),
+        Line::from(Span::styled(
+            crate::tui_text!(
+                "After creating it, press 'r' to reload",
+                "创建后按 'r' 重新加载"
+            )
+            .to_string(),
+            theme::muted_style(),
+        )),
+    ]
+}
+
 /// Render empty state for current platform
 fn render_empty_state(f: &mut Frame, app: &App, area: Rect, block: Block) {
     let platform = app.current_platform();
     let platform_name = platform.display_name();
-    let short_name = platform.short_name();
 
     if let Some(error) = app.current_profile_load_error() {
         let error_text = vec![
@@ -2020,35 +2054,7 @@ fn render_empty_state(f: &mut Frame, app: &App, area: Rect, block: Block) {
         return;
     }
 
-    let empty_text = vec![
-        Line::from(""),
-        Line::from(Span::styled(
-            crate::tui_format!(
-                "No {} configurations found",
-                "未找到 {} 配置",
-                platform_name
-            ),
-            theme::empty_hint_style(),
-        )),
-        Line::from(""),
-        Line::from(Span::styled(
-            crate::tui_format!(
-                "Run 'ccr platform init {}' to initialize",
-                "运行 'ccr platform init {}' 进行初始化",
-                short_name
-            ),
-            theme::secondary_text_style(),
-        )),
-        Line::from(""),
-        Line::from(Span::styled(
-            crate::tui_text!(
-                "Or 'ccr add' to create a new configuration",
-                "或运行 'ccr add' 创建新配置"
-            )
-            .to_string(),
-            theme::muted_style(),
-        )),
-    ];
+    let empty_text = empty_profile_state_lines(platform);
 
     let paragraph = Paragraph::new(empty_text)
         .block(block)
@@ -2315,6 +2321,57 @@ mod tests {
             instance: None,
             saved_selection: None,
         }
+    }
+
+    #[test]
+    fn english_empty_profile_states_use_platform_specific_create_help() {
+        crate::tui::i18n::set_language(ccr_cli::managers::TuiLanguage::English);
+
+        for platform in [Platform::Claude, Platform::Codex, Platform::Grok] {
+            let rendered = empty_profile_state_lines(platform)
+                .iter()
+                .map(plain_line_text)
+                .collect::<Vec<_>>()
+                .join("\n");
+            let expected_command = format!("ccr {} profile create --help", platform.short_name());
+
+            assert!(
+                rendered.contains(&expected_command),
+                "{platform:?}: {rendered}"
+            );
+            assert!(
+                rendered.contains("press 'r' to reload"),
+                "{platform:?}: {rendered}"
+            );
+            assert!(
+                !rendered.contains("ccr platform init"),
+                "{platform:?}: {rendered}"
+            );
+            assert!(!rendered.contains("ccr add"), "{platform:?}: {rendered}");
+        }
+
+        crate::tui::i18n::set_language(ccr_cli::managers::TuiLanguage::English);
+    }
+
+    #[test]
+    fn simplified_chinese_grok_empty_profile_state_uses_create_help() {
+        crate::tui::i18n::set_language(ccr_cli::managers::TuiLanguage::SimplifiedChinese);
+
+        let rendered = empty_profile_state_lines(Platform::Grok)
+            .iter()
+            .map(plain_line_text)
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        assert!(
+            rendered.contains("ccr grok profile create --help"),
+            "{rendered}"
+        );
+        assert!(rendered.contains("按 'r' 重新加载"), "{rendered}");
+        assert!(!rendered.contains("ccr platform init"), "{rendered}");
+        assert!(!rendered.contains("ccr add"), "{rendered}");
+
+        crate::tui::i18n::set_language(ccr_cli::managers::TuiLanguage::English);
     }
 
     #[test]
