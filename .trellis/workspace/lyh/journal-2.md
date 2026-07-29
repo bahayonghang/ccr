@@ -718,3 +718,24 @@
 ### Next Steps
 
 - 实施 07-29-claude-json-write-strategy。
+
+
+## Session 74: Claude 状态文件写入策略收口
+
+**Date**: 2026-07-29
+**Task**: Claude 状态文件写入策略收口
+**Branch**: `dev`
+
+### Summary
+
+停止 API-key profile 和 doctor 维护 onboarding 私有状态；Tauri MCP user/local/project 写入迁移到三次 guarded CAS 重放，保留未知字段并记录外部进程残余竞态。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `24c362e3` | (see git log) |
+
+### Status
+
+[OK] **Completed**
