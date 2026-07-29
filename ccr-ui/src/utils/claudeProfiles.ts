@@ -5,6 +5,7 @@ import type {
   ProfilesInspectorField,
 } from '@/components/profiles/ProfilesInspector.vue'
 import type { ProfileDiffField } from '@/utils/profileDiff'
+import { formatBaseUrlDisplay } from '@/utils/text'
 import { useClaudeProfilesInsights } from '@/composables/useClaudeProfilesInsights'
 
 export const CLAUDE_PROFILE_UNSET_PROVIDER_KEY = '__unset_provider__'
@@ -38,21 +39,6 @@ export const resolveClaudePrimaryModel = (
   profile.default_haiku_model?.trim() ||
   profile.subagent_model?.trim() ||
   fallback
-
-/**
- * 密排场景的 base_url 展示：完整保留 host，只在路径过长时截断路径。
- * 非 URL 文本（例如官方直连文案）原样返回。
- */
-export const formatClaudeBaseUrlDisplay = (raw: string, maxPathLength = 18): string => {
-  try {
-    const url = new URL(raw)
-    const path = url.pathname === '/' ? '' : url.pathname
-    const shownPath = path.length > maxPathLength ? `${path.slice(0, maxPathLength - 1)}…` : path
-    return `${url.host}${shownPath}`
-  } catch {
-    return raw
-  }
-}
 
 /** base_url 展示值：空值回落到官方直连文案 */
 export const resolveClaudeDisplayBaseUrl = (
@@ -99,7 +85,7 @@ export const createClaudeRowDescriptor = (
   t: ClaudeTranslate
 ): ProfileRowDescriptor<ClaudeProfile> => ({
   // 列表密排：完整 host，仅截断路径
-  baseUrl: (profile) => formatClaudeBaseUrlDisplay(resolveClaudeDisplayBaseUrl(profile, t)),
+  baseUrl: (profile) => formatBaseUrlDisplay(resolveClaudeDisplayBaseUrl(profile, t)),
   model: (profile) => resolveClaudePrimaryModel(profile),
   authMode: (profile) => claudeAuthModeLabel(t, profile.auth_mode),
   editIcon: 'Pencil',

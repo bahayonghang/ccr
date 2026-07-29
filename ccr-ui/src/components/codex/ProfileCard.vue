@@ -1,228 +1,189 @@
-<!--
-  Codex Profile 单列宽卡片：只读视图 + 行动 icon。
-  编辑动作通过 emits 触发外层调用现有 CodexProfileEditorModal，不在此组件内编辑。
--->
+<!-- Codex Profile 卡片：密排信息卡（名称 + 状态 + provider + 关键字段）。
+     与 ClaudeProfileRow 同一视觉语言：统一消费视图注入的 --cp-* 令牌，
+     主操作固定为 Apply，编辑/删除收进角落 ··· 菜单；
+     Codex 独有的运行时环境变量导出保留为操作区图标按钮（不再铺开 <pre> 代码块）。 -->
 <template>
   <article
-    class="cp-card surface-card"
+    class="cp-card surface-status"
     :class="{
       'cp-card--active': isCurrent,
       'cp-card--off': !isEnabled,
     }"
     :data-profile-name="profile.name"
   >
-    <span
-      v-if="isCurrent"
-      class="cp-card__active-bar"
-      aria-hidden="true"
-    />
-
-    <header class="cp-card__head">
-      <h3 class="cp-card__name">
+    <div class="cp-card__head">
+      <span
+        class="cp-card__dot"
+        :class="{ 'cp-card__dot--good': isCurrent }"
+      />
+      <h3
+        class="cp-card__name"
+        :title="profile.name"
+      >
         {{ profile.name }}
       </h3>
 
       <span
-        class="cp-card__badge"
-        :class="isEnabled ? 'cp-card__badge--enabled' : 'cp-card__badge--off'"
-      >
-        {{ isEnabled ? $t('codex.states.enabled') : $t('codex.states.disabled') }}
-      </span>
+        class="cp-card__state"
+        :class="isEnabled ? 'cp-card__state--on' : 'cp-card__state--off'"
+      >{{ stateLabel }}</span>
 
       <span
-        v-if="isCurrent"
-        class="cp-card__badge cp-card__badge--current"
-      >
-        {{ $t('codex.profiles.currentBadge') }}
-      </span>
-
-      <p
-        v-if="profile.description"
-        class="cp-card__label"
-      >
-        {{ profile.description }}
-      </p>
+        v-if="profile.provider"
+        class="cp-card__provider"
+        :title="profile.provider"
+      >{{ profile.provider }}</span>
 
       <div class="cp-card__actions">
         <button
-          v-if="!isCurrent && isEnabled"
+          v-if="!isCurrent"
           type="button"
-          class="cp-icon-btn cp-icon-btn--accent"
-          :title="$t('codex.profiles.apply')"
-          :aria-label="$t('codex.profiles.apply')"
-          :disabled="disabled"
+          class="cp-card__apply"
+          :disabled="disabled || !isEnabled"
+          :title="t('codex.profiles.apply')"
           @click="emit('apply', profile.name)"
         >
           <SIcon
             :name="busyAction === 'apply' ? 'RefreshCw' : 'Play'"
-            size="w-3.5 h-3.5"
-            :class="{ 'cp-spin': busyAction === 'apply' }"
+            size="w-3 h-3"
+            :class="{ 'cp-card__spin': busyAction === 'apply' }"
           />
+          {{ t('codex.profiles.apply') }}
         </button>
+        <span
+          v-else
+          class="cp-card__current"
+        >
+          <span class="cp-card__current-dot" />
+          {{ t('codex.profiles.currentActive') }}
+        </span>
+
         <button
+          v-if="hasEnvExport"
           type="button"
-          class="cp-icon-btn"
-          :title="$t('codex.actions.edit')"
-          :aria-label="$t('codex.actions.edit')"
+          class="cp-card__icon-btn"
           :disabled="disabled"
-          @click="emit('edit', profile.name)"
-        >
-          <SIcon
-            name="Edit2"
-            size="w-3.5 h-3.5"
-          />
-        </button>
-        <button
-          type="button"
-          class="cp-icon-btn cp-icon-btn--danger"
-          :title="$t('codex.actions.delete')"
-          :aria-label="$t('codex.actions.delete')"
-          :disabled="disabled"
-          @click="emit('delete', profile.name)"
-        >
-          <SIcon
-            :name="busyAction === 'delete' ? 'RefreshCw' : 'Trash2'"
-            size="w-3.5 h-3.5"
-            :class="{ 'cp-spin': busyAction === 'delete' }"
-          />
-        </button>
-      </div>
-    </header>
-
-    <div class="cp-card__fields">
-      <div class="cp-field">
-        <div class="cp-field__label">
-          {{ $t('codex.profiles.fields.baseUrl') }}
-        </div>
-        <div
-          class="cp-field__value"
-          :title="profileBaseUrlText"
-        >
-          {{ truncatedBaseUrl }}
-        </div>
-      </div>
-
-      <div class="cp-field">
-        <div class="cp-field__label">
-          {{ $t('codex.profiles.fields.model') }}
-        </div>
-        <div class="cp-field__value cp-field__value--accent">
-          {{ profile.model || '—' }}
-        </div>
-      </div>
-
-      <div class="cp-field">
-        <div class="cp-field__label">
-          {{ $t('codex.profiles.fields.authMode') }}
-        </div>
-        <div class="cp-field__value cp-field__value--muted">
-          <span>{{ authModeText }}</span>
-          <span
-            v-if="profile.openai_login_method"
-            class="cp-tag cp-tag--good"
-          >{{ profile.openai_login_method }}</span>
-        </div>
-      </div>
-
-      <div class="cp-field">
-        <div class="cp-field__label">
-          {{ $t('codex.profiles.fields.authSource') }}
-        </div>
-        <div class="cp-field__value cp-field__value--muted">
-          <span>{{ profile.auth_source || $t('codex.profiles.notAvailable') }}</span>
-          <span
-            v-if="profile.credential_store"
-            class="cp-tag cp-tag--info"
-          >{{ profile.credential_store }}</span>
-        </div>
-      </div>
-
-      <div
-        v-if="profile.env_key"
-        class="cp-field cp-field--full"
-      >
-        <div class="cp-field__label">
-          {{ $t('codex.profiles.fields.envKey') }}
-        </div>
-        <div class="cp-field__value">
-          {{ profile.env_key }}
-        </div>
-      </div>
-    </div>
-
-    <div
-      v-if="profile.shell_export_script"
-      class="cp-export"
-    >
-      <div class="cp-export__head">
-        <div>
-          <div class="cp-export__title">
-            {{ $t('codex.profiles.envExportTitle') }}
-          </div>
-          <div class="cp-export__hint">
-            {{ $t('codex.profiles.envExportHint') }}
-          </div>
-        </div>
-        <button
-          type="button"
-          class="cp-btn cp-btn--ghost cp-btn--xs"
+          :aria-label="t('codex.profiles.copyEnvExport')"
+          :title="t('codex.profiles.copyEnvExport')"
           @click="emit('copyEnv', profile)"
         >
           <SIcon
             name="Copy"
             size="w-3.5 h-3.5"
           />
-          <span>{{ $t('codex.profiles.copyEnvExport') }}</span>
         </button>
+
+        <div class="cp-card__menu">
+          <button
+            ref="menuBtnRef"
+            type="button"
+            class="cp-card__icon-btn"
+            :disabled="disabled"
+            :aria-expanded="menuOpen"
+            aria-haspopup="menu"
+            :aria-label="t('codex.profiles.overflowMenu')"
+            :title="t('codex.profiles.overflowMenu')"
+            @click="toggleMenu"
+          >
+            <SIcon
+              name="MenuDots"
+              size="w-3.5 h-3.5"
+            />
+          </button>
+
+          <div
+            v-if="menuOpen"
+            ref="menuPopRef"
+            class="cp-card__menu-pop"
+            role="menu"
+            :aria-label="t('codex.profiles.overflowMenu')"
+            @keydown="onMenuKeydown"
+          >
+            <button
+              type="button"
+              role="menuitem"
+              class="cp-card__menu-item"
+              @click="onMenuItem('edit')"
+            >
+              <SIcon
+                name="Edit2"
+                size="w-3.5 h-3.5"
+              />
+              <span>{{ t('codex.actions.edit') }}</span>
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              class="cp-card__menu-item cp-card__menu-item--danger"
+              @click="onMenuItem('delete')"
+            >
+              <SIcon
+                :name="busyAction === 'delete' ? 'RefreshCw' : 'Trash2'"
+                size="w-3.5 h-3.5"
+                :class="{ 'cp-card__spin': busyAction === 'delete' }"
+              />
+              <span>{{ t('codex.actions.delete') }}</span>
+            </button>
+          </div>
+        </div>
       </div>
-      <pre class="cp-export__code"><code>{{ profile.shell_export_script }}</code></pre>
     </div>
 
-    <footer
-      v-if="hasFooter"
-      class="cp-card__foot"
+    <p
+      v-if="profile.description"
+      class="cp-card__desc"
     >
+      {{ profile.description }}
+    </p>
+
+    <dl class="cp-card__fields">
       <div
-        v-if="tagList.length > 0"
-        class="cp-tags"
+        v-for="field in fields"
+        :key="field.label"
+        class="cp-card__field"
       >
-        <span
-          v-for="tag in tagList"
-          :key="tag"
-          class="cp-tag"
-        >#{{ tag }}</span>
-      </div>
-      <div class="cp-card__meta">
-        <span
-          v-if="profile.provider"
-          class="cp-tag cp-tag--info"
-        >{{ profile.provider }}</span>
-        <span
-          v-if="typeof profile.usage_count === 'number'"
-          class="cp-card__meta-item"
-          :title="$t('codex.profiles.toolbar.sortRequests')"
+        <dt class="cp-card__field-label">
+          {{ field.label }}
+        </dt>
+        <dd
+          class="cp-card__field-value"
+          :class="{ 'cp-card__field-value--accent': field.accent }"
+          :title="field.title ?? field.value"
         >
-          <SIcon
-            name="BarChart3"
-            size="w-3 h-3"
-          />
-          {{ profile.usage_count.toLocaleString() }}
-        </span>
+          {{ field.value }}
+          <span
+            v-if="field.badge"
+            class="cp-card__badge"
+          >{{ field.badge }}</span>
+        </dd>
       </div>
-    </footer>
+    </dl>
+
+    <div
+      v-if="tagList.length > 0"
+      class="cp-card__tags"
+    >
+      <span
+        v-for="tag in tagList"
+        :key="tag"
+        class="cp-card__tag"
+      >#{{ tag }}</span>
+    </div>
   </article>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SIcon from '@/components/ui/SIcon.vue'
-import type { CodexProfile, CodexProfileAuthMode } from '@/types'
-import { truncateMiddle } from '@/utils/text'
+import type { CodexProfile } from '@/types'
+import { CODEX_FIELD_PLACEHOLDER, codexAuthModeLabel, resolveCodexBaseUrl } from '@/utils/codexProfiles'
+import { formatBaseUrlDisplay } from '@/utils/text'
 
 interface Props {
   profile: CodexProfile
   isCurrent: boolean
+  /** 进行中的操作，驱动图标转圈 */
   busyAction?: 'apply' | 'delete' | null
   disabled?: boolean
 }
@@ -242,27 +203,130 @@ const emit = defineEmits<{
 const { t } = useI18n()
 
 const isEnabled = computed(() => props.profile.enabled !== false)
-
-const profileBaseUrlText = computed(() => {
-  const raw = props.profile.base_url?.trim()
-  return raw && raw.length > 0 ? raw : t('codex.profiles.officialBaseUrl')
-})
-
-const truncatedBaseUrl = computed(() => truncateMiddle(profileBaseUrlText.value, 24, 14))
-
-const authModeText = computed(() => {
-  const mode = props.profile.auth_mode as CodexProfileAuthMode | undefined
-  return t(`codex.profiles.authModes.${mode || 'no_auth'}`)
-})
-
 const tagList = computed(() => props.profile.tags ?? [])
 
-const hasFooter = computed(
+const hasEnvExport = computed(
   () =>
-    tagList.value.length > 0
-    || Boolean(props.profile.provider)
-    || typeof props.profile.usage_count === 'number',
+    Boolean(props.profile.shell_export_script?.trim())
+    || Object.keys(props.profile.env_export ?? {}).length > 0,
 )
+
+const stateLabel = computed(() => {
+  if (isEnabled.value) {
+    return props.isCurrent ? t('codex.profiles.currentBadge') : t('codex.states.enabled')
+  }
+  return t('codex.states.disabled')
+})
+
+interface CardField {
+  label: string
+  value: string
+  title?: string
+  accent?: boolean
+  badge?: string
+}
+
+const fields = computed<CardField[]>(() => {
+  const fullBaseUrl = resolveCodexBaseUrl(props.profile, t)
+  const items: CardField[] = [
+    {
+      label: t('codex.profiles.fields.baseUrl'),
+      value: formatBaseUrlDisplay(fullBaseUrl),
+      title: fullBaseUrl,
+    },
+    {
+      label: t('codex.profiles.fields.model'),
+      value: props.profile.model?.trim() || CODEX_FIELD_PLACEHOLDER,
+      accent: true,
+    },
+    {
+      label: t('codex.profiles.fields.authMode'),
+      value: codexAuthModeLabel(t, props.profile.auth_mode),
+      badge: props.profile.openai_login_method ?? undefined,
+    },
+  ]
+
+  if (props.profile.auth_source?.trim()) {
+    items.push({
+      label: t('codex.profiles.fields.authSource'),
+      value: props.profile.auth_source.trim(),
+      badge: props.profile.credential_store ?? undefined,
+    })
+  }
+  if (props.profile.env_key?.trim()) {
+    items.push({
+      label: t('codex.profiles.fields.envKey'),
+      value: props.profile.env_key.trim(),
+    })
+  }
+
+  return items
+})
+
+/* ========================================================================
+ * 角落 ··· 菜单：Esc 关闭并还焦触发按钮；外部点击关闭；选中即关闭。
+ * ======================================================================== */
+
+const menuOpen = ref(false)
+const menuBtnRef = ref<HTMLButtonElement | null>(null)
+const menuPopRef = ref<HTMLElement | null>(null)
+
+const menuItems = () =>
+  Array.from(menuPopRef.value?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [])
+
+const closeMenu = (restoreFocus: boolean) => {
+  if (!menuOpen.value) return
+  menuOpen.value = false
+  if (restoreFocus) menuBtnRef.value?.focus()
+}
+
+const toggleMenu = async () => {
+  menuOpen.value = !menuOpen.value
+  if (menuOpen.value) {
+    await nextTick()
+    menuItems()[0]?.focus()
+  }
+}
+
+const onMenuKeydown = (event: KeyboardEvent) => {
+  const items = menuItems()
+  if (event.key === 'Escape') {
+    event.preventDefault()
+    event.stopPropagation()
+    closeMenu(true)
+    return
+  }
+  if (items.length === 0) return
+  const idx = items.indexOf(document.activeElement as HTMLElement)
+  if (event.key === 'ArrowDown') {
+    event.preventDefault()
+    items[(idx + 1) % items.length]?.focus()
+  } else if (event.key === 'ArrowUp') {
+    event.preventDefault()
+    items[(idx - 1 + items.length) % items.length]?.focus()
+  }
+}
+
+const onDocumentPointerDown = (event: MouseEvent) => {
+  if (!menuOpen.value) return
+  const target = event.target as Node
+  if (menuPopRef.value?.contains(target)) return
+  if (menuBtnRef.value?.contains(target)) return
+  closeMenu(false)
+}
+
+watch(menuOpen, (open) => {
+  if (open) document.addEventListener('mousedown', onDocumentPointerDown)
+  else document.removeEventListener('mousedown', onDocumentPointerDown)
+})
+
+onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentPointerDown))
+
+const onMenuItem = (action: 'edit' | 'delete') => {
+  if (action === 'edit') emit('edit', props.profile.name)
+  else emit('delete', props.profile.name)
+  closeMenu(true)
+}
 </script>
 
 <style scoped>
@@ -270,109 +334,139 @@ const hasFooter = computed(
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 16px 18px;
+  gap: 0.5rem;
+  padding: 0.75rem 0.875rem;
 
-  /* 背景/边框由 surface-card 工具类提供 */
+  /* 背景/边框由 surface-status 工具类提供 */
   border-radius: 12px;
-  transition: border-color 120ms ease, box-shadow 120ms ease;
+  color: var(--cp-ink-1);
 }
-
-.cp-card:hover .cp-card__actions { opacity: 1; }
-.cp-card:focus-within .cp-card__actions { opacity: 1; }
 
 .cp-card--active {
-  border-color: var(--cp-accent-line);
-  box-shadow: 0 0 0 1px rgb(var(--color-accent-primary-rgb) / 15%), 0 4px 18px rgb(0 0 0 / 25%);
+  border-left: 2px solid var(--cp-accent);
 }
 
-.cp-card--off { opacity: 0.62; }
-
-.cp-card__active-bar {
-  position: absolute;
-  left: 0;
-  top: 14px;
-  bottom: 14px;
-  width: 3px;
-  border-radius: 999px;
-  background: var(--cp-accent);
+.cp-card--off {
+  opacity: 0.6;
 }
 
 .cp-card__head {
-  display: grid;
-  grid-template-columns: auto auto auto 1fr auto;
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.cp-card__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--cp-ink-4);
+}
+
+.cp-card__dot--good {
+  background: var(--cp-good);
 }
 
 .cp-card__name {
   margin: 0;
-  font-size: 15px;
-  font-weight: 600;
-  font-family: var(--cp-mono);
-  color: var(--cp-ink-0);
-  letter-spacing: -0.3px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   min-width: 0;
-}
-
-.cp-card__badge {
-  flex-shrink: 0;
-  padding: 2px 7px;
-  border-radius: 4px;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.4px;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.cp-card__badge--enabled {
-  background: rgb(var(--color-success-rgb) / 15%);
-  color: var(--cp-good);
-  border: 1px solid rgb(var(--color-success-rgb) / 30%);
-}
-
-.cp-card__badge--off {
-  background: var(--cp-bg-3);
-  color: var(--cp-ink-3);
-  border: 1px solid var(--cp-line-2);
-}
-
-.cp-card__badge--current {
-  background: var(--cp-accent-soft);
-  color: var(--cp-accent);
-  border: 1px solid var(--cp-accent-line);
-}
-
-.cp-card__label {
-  margin: 0;
-  grid-column: 1 / -2;
-  margin-top: 4px;
-  color: var(--cp-ink-2);
-  font-size: 12.5px;
+  flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-family: var(--cp-mono);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--cp-ink-0);
+}
+
+.cp-card__state {
+  flex-shrink: 0;
+  padding: 0.0625rem 0.4375rem;
+  border-radius: 999px;
+  border: 1px solid var(--cp-line-2);
+  font-size: 0.75rem;
+}
+
+.cp-card__state--on {
+  color: var(--cp-ink-2);
+}
+
+.cp-card__state--off {
+  color: var(--cp-danger);
+  border-color: rgb(var(--color-danger-rgb) / 30%);
+}
+
+.cp-card__provider {
+  flex-shrink: 0;
+  max-width: 10rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--cp-ink-3);
+  font-size: 0.75rem;
 }
 
 .cp-card__actions {
-  grid-column: -1;
   display: flex;
-  gap: 4px;
+  align-items: center;
+  gap: 0.375rem;
   margin-left: auto;
-  opacity: 0.55;
-  transition: opacity 120ms ease;
 }
 
-.cp-icon-btn {
-  width: 28px;
-  height: 28px;
+.cp-card__apply {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3125rem;
+  padding: 0.25rem 0.5625rem;
+  border-radius: 6px;
+  border: 1px solid var(--cp-accent-line);
+  background: var(--cp-accent-soft);
+  color: var(--cp-accent);
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.cp-card__apply:hover:not(:disabled) {
+  background: var(--cp-accent);
+  color: var(--cp-on-accent);
+}
+
+.cp-card__apply:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cp-card__current {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3125rem;
+  padding: 0.25rem 0.5625rem;
+  border-radius: 6px;
+  color: var(--cp-good);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.cp-card__current-dot {
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 999px;
+  background: var(--cp-good);
+}
+
+.cp-card__icon-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
   border-radius: 6px;
   border: 1px solid transparent;
   background: transparent;
@@ -381,194 +475,156 @@ const hasFooter = computed(
   transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
 }
 
-.cp-icon-btn:hover:not(:disabled) {
+.cp-card__icon-btn:hover:not(:disabled) {
   background: var(--cp-bg-3);
   border-color: var(--cp-line-2);
   color: var(--cp-ink-0);
 }
 
-.cp-icon-btn--accent:hover:not(:disabled) { color: var(--cp-accent); }
-.cp-icon-btn--danger:hover:not(:disabled) { color: var(--cp-danger); }
-
-.cp-icon-btn:disabled {
+.cp-card__icon-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-.cp-card__fields {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px 12px;
+.cp-card__menu {
+  position: relative;
 }
 
-.cp-field {
+.cp-card__menu-pop {
+  position: absolute;
+  top: calc(100% + 0.25rem);
+  right: 0;
+  z-index: 20;
+  min-width: 8rem;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 0.125rem;
+  padding: 0.25rem;
+  border-radius: 8px;
+  border: 1px solid var(--cp-line-2);
+  background: var(--cp-bg-1);
+  box-shadow: 0 12px 24px rgb(0 0 0 / 12%);
+}
+
+.cp-card__menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.375rem 0.5rem;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--cp-ink-1);
+  font-family: inherit;
+  font-size: 0.8125rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cp-card__menu-item:hover {
+  background: var(--cp-bg-3);
+  color: var(--cp-ink-0);
+}
+
+.cp-card__menu-item--danger:hover {
+  color: var(--cp-danger);
+}
+
+.cp-card__desc {
+  margin: 0;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  color: var(--cp-ink-2);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.cp-card__fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 0.375rem 0.75rem;
+  margin: 0;
+}
+
+.cp-card__field {
   min-width: 0;
 }
-.cp-field--full { grid-column: 1 / -1; }
 
-.cp-field__label {
-  color: var(--cp-ink-3);
+.cp-card__field-label {
   font-family: var(--cp-mono);
-  font-size: 10px;
-  letter-spacing: 1px;
+  font-size: 0.75rem;
+  letter-spacing: 0.0625rem;
   text-transform: uppercase;
+  color: var(--cp-ink-3);
 }
 
-.cp-field__value {
+.cp-card__field-value {
+  margin: 0;
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+  gap: 0.375rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--cp-mono);
+  font-size: 0.8125rem;
   color: var(--cp-ink-0);
-  font-family: var(--cp-mono);
-  font-size: 12px;
-  word-break: break-all;
 }
 
-.cp-field__value--accent { color: var(--cp-accent); }
-.cp-field__value--muted { color: var(--cp-ink-2); }
-
-.cp-card__foot {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  padding-top: 10px;
-  border-top: 1px solid var(--cp-line);
+.cp-card__field-value--accent {
+  color: var(--cp-accent);
 }
 
-.cp-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-}
-
-.cp-tag {
-  padding: 2px 7px;
+.cp-card__badge {
+  flex-shrink: 0;
+  padding: 0.0625rem 0.375rem;
   border-radius: 4px;
-  background: var(--cp-bg-3);
-  color: var(--cp-ink-1);
   border: 1px solid var(--cp-line-2);
+  background: var(--cp-bg-3);
+  color: var(--cp-ink-2);
+  font-size: 0.75rem;
+}
+
+.cp-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.cp-card__tag {
+  padding: 0.0625rem 0.375rem;
+  border-radius: 4px;
+  border: 1px solid var(--cp-line-2);
+  background: var(--cp-bg-3);
+  color: var(--cp-ink-2);
   font-family: var(--cp-mono);
-  font-size: 10.5px;
+  font-size: 0.75rem;
   white-space: nowrap;
 }
 
-.cp-tag--good {
-  background: rgb(var(--color-success-rgb) / 12%);
-  color: var(--cp-good);
-  border-color: rgb(var(--color-success-rgb) / 35%);
+.cp-card__spin {
+  animation: cp-card-spin 1s linear infinite;
 }
 
-.cp-tag--info {
-  background: rgb(var(--color-info-rgb) / 12%);
-  color: var(--cp-info);
-  border-color: rgb(var(--color-info-rgb) / 35%);
+@keyframes cp-card-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
-
-.cp-card__meta {
-  margin-left: auto;
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  color: var(--cp-ink-3);
-  font-size: 11px;
-  font-family: var(--cp-mono);
-}
-
-.cp-card__meta-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.cp-export {
-  border: 1px solid rgb(var(--color-success-rgb) / 25%);
-  background: rgb(var(--color-success-rgb) / 6%);
-  border-radius: 10px;
-  padding: 12px;
-}
-
-.cp-export__head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.cp-export__title {
-  color: var(--cp-good);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-}
-
-.cp-export__hint {
-  margin-top: 2px;
-  color: var(--cp-ink-3);
-  font-size: 11px;
-}
-
-.cp-export__code {
-  margin: 10px 0 0;
-  padding: 10px 12px;
-  border-radius: 8px;
-  background: var(--cp-bg-0);
-  border: 1px solid var(--cp-line);
-  color: var(--cp-ink-0);
-  font-family: var(--cp-mono);
-  font-size: 11.5px;
-  overflow-x: auto;
-  white-space: pre;
-}
-
-.cp-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 500;
-  font-family: inherit;
-  background: var(--cp-bg-2);
-  border: 1px solid var(--cp-line-2);
-  color: var(--cp-ink-1);
-  cursor: pointer;
-  transition: background 120ms ease, color 120ms ease;
-}
-
-.cp-btn--ghost {
-  background: transparent;
-  border-color: var(--cp-line);
-  color: var(--cp-ink-2);
-}
-
-.cp-btn--xs {
-  padding: 4px 8px;
-  font-size: 11px;
-}
-
-.cp-btn:hover {
-  background: var(--cp-bg-3);
-  color: var(--cp-ink-0);
-}
-
-.cp-spin { animation: cp-spin 1s linear infinite; }
-
-@keyframes cp-spin { to { transform: rotate(360deg); } }
 
 @media (prefers-reduced-motion: reduce) {
-  .cp-card, .cp-icon-btn, .cp-btn { transition: none; }
-  .cp-spin { animation: none; }
-}
+  .cp-card__apply,
+  .cp-card__icon-btn {
+    transition: none;
+  }
 
-@media (width <= 720px) {
-  .cp-card__fields { grid-template-columns: minmax(0, 1fr); }
-  .cp-card__head { grid-template-columns: auto auto 1fr auto; }
+  .cp-card__spin {
+    animation: none;
+  }
 }
 </style>

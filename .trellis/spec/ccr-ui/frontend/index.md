@@ -16,9 +16,10 @@
 | [Usage Chart Stability Contracts](./usage-chart-stability-contracts.md)   | ApexCharts options/series reference discipline, redraw freeze flags, KeepAlive interplay                       | Complete |
 | [Confirm Interaction Contracts](./confirm-interaction-contracts.md)       | requestConfirm gate pattern, danger/warning semantics, no native dialogs, composable boundary                  | Complete |
 | [Raw Config Editor Contracts](./raw-config-editor-contracts.md)           | Local-only plaintext source editing, validation, versioned saves, and shared editor behavior                   | Complete |
-| [Brand Asset Pipeline Contract](./brand-asset-pipeline.md)                 | Brand SVG ownership, Cairo/Pillow rendering, generated outputs, and cross-surface verification                 | Complete |
-| [Sync Security Contracts](./sync-security-contracts.md)                    | Typed sync IPC, truth table, canonical WebDAV config, and operation passphrase lifecycle                       | Complete |
-| [Development Resource Contracts](./development-resource-contracts.md)       | Vite watcher scope, warmup ownership, process cleanup, cache preservation, and smoke worker budgets            | Complete |
+| [Brand Asset Pipeline Contract](./brand-asset-pipeline.md)                | Brand SVG ownership, Cairo/Pillow rendering, generated outputs, and cross-surface verification                 | Complete |
+| [Sync Security Contracts](./sync-security-contracts.md)                   | Typed sync IPC, truth table, canonical WebDAV config, and operation passphrase lifecycle                       | Complete |
+| [Development Resource Contracts](./development-resource-contracts.md)     | Vite watcher scope, warmup ownership, process cleanup, cache preservation, and smoke worker budgets            | Complete |
+| [Profiles Page Contracts](./profiles-page-contracts.md)                   | Codex form-derived auth fields and `env_key` serialization, two-page shared skeleton, `--cp-*`/`pe-*` boundary | Complete |
 
 ## Pre-Development Checklist
 
@@ -33,6 +34,7 @@
 - Read [Brand Asset Pipeline Contract](./brand-asset-pipeline.md) before changing `branding/`, `generate_icons.py`, or generated UI/Tauri/docs/VS Code brand assets.
 - Read [Sync Security Contracts](./sync-security-contracts.md) before changing fixed sync assets, sync IPC payloads, WebDAV configuration ownership, or the sensitive passphrase flow.
 - Read [Development Resource Contracts](./development-resource-contracts.md) before changing Vite/Vitest development startup, warmup, watcher, cache, or process-lifecycle tooling.
+- Read [Profiles Page Contracts](./profiles-page-contracts.md) before changing either Profiles page, the shared `components/profiles/*` family, a profile card / editor modal, or `utils/{claude,codex}Profile*.ts`.
 
 ## Quality Check
 
@@ -48,3 +50,4 @@
 - Run `cd ccr-ui && bun run icons:generate && bun run icons:ensure && bun run build` for brand-source or renderer changes, then verify deterministic hashes and generated image formats per the brand asset contract.
 - Run the focused Tauri sync tests plus frontend type-check, lint, and smoke tests from [Sync Security Contracts](./sync-security-contracts.md) for sync contract changes.
 - Run `cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/dev-tooling-resource.smoke.test.ts` for development resource tooling changes.
+- Run the focused Profiles smoke set from [Profiles Page Contracts](./profiles-page-contracts.md) when changing Profiles pages, shared profile components, or profile form serialization.

@@ -13,7 +13,8 @@
 
 - **派生字段单源化**：`syncDerivedAuthFields()` 从表单流程删除；`buildCodexProfileRequest` 内部由 `auth_mode` 计算 `requires_openai_auth` / `openai_login_method`。废弃模式（`openai_chatgpt` / `provider_env_key`）仅作为编辑遗留 profile 时的 select 追加项保留。
 - **`env_key` 序列化契约（易漏点）**：`syncDerivedAuthFields` 还承担「退出 `provider_env_key` 模式时清空 `env_key`」的隐藏职责（`CodexProfilesView.vue:790`），而当前 builder 无条件发送 `env_key`（`codexProfileEditor.ts:150`）。新契约：`env_key` 仅在 `auth_mode === 'provider_env_key'` 时序列化，其余模式一律置空；补模式切换回归测试（父 design §8.2）。
-- **fallback/标签单源化**：`resolveCodexBaseUrl(profile)` 与 `codexAuthModeLabel(mode)` 收进 `utils/codexProfileEditor.ts`；ProfileCard / descriptors / rail 全部引用。
+- **fallback/标签单源化**：`resolveCodexBaseUrl(profile)` 与 `codexAuthModeLabel(mode)` 收进展示侧 util；ProfileCard / descriptors / inspector 全部引用。
+  - 实施调整：落在新建的 `utils/codexProfiles.ts` 而非 `utils/codexProfileEditor.ts`，与已归档的 Claude 页结构（`claudeProfiles.ts` 放展示策略、`claudeProfileEditor.ts` 放表单序列化）对称。
 - **编辑器样式迁移**：模板结构不动，只换样式基底；`!important` 与硬编码 RGBA 随 `--editor-*` 一并删除。
 
 ## env-export 的归宿

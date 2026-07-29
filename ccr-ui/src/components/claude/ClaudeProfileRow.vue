@@ -164,12 +164,12 @@ import SIcon from '@/components/ui/SIcon.vue'
 import type { ClaudeProfile } from '@/types'
 import {
   claudeAuthModeLabel,
-  formatClaudeBaseUrlDisplay,
   highlightSearchMatch,
   resolveClaudePrimaryModel,
   resolveClaudeDisplayBaseUrl,
   resolveProviderColor,
 } from '@/utils/claudeProfiles'
+import { formatBaseUrlDisplay } from '@/utils/text'
 
 interface Props {
   profile: ClaudeProfile
@@ -242,7 +242,7 @@ const fields = computed<CardField[]>(() => {
   const items: CardField[] = [
     {
       label: t('claudeProfiles.fields.baseUrl'),
-      value: formatClaudeBaseUrlDisplay(fullBaseUrl),
+      value: formatBaseUrlDisplay(fullBaseUrl),
       title: fullBaseUrl,
     },
     {

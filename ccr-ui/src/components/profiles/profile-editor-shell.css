@@ -162,6 +162,13 @@
   border-color: rgb(var(--color-danger-rgb) / 55%);
 }
 
+/* 等宽变体：base_url / token / model 等需要逐字符核对的字段 */
+.pe-input--mono,
+.pe-select--mono {
+  font-family: var(--cp-mono, var(--font-mono));
+  letter-spacing: 0.01em;
+}
+
 .pe-textarea {
   min-height: 5rem;
   resize: vertical;

@@ -1,3 +1,7 @@
+<!-- Codex Profile 编辑器模态。
+     模板结构与既有表单字段不变，样式统一消费共享编辑器基底（pe-*），
+     不再维护平行的 --editor-* 令牌体系 / !important / 硬编码 RGBA 暗色覆盖块。
+     保存前在模态内完成校验，失败时顶部汇总条并可跳转到第一个错误分段。 -->
 <template>
   <BaseModal
     :model-value="modelValue"
@@ -7,37 +11,37 @@
     :close-on-backdrop="!saving"
     :close-on-escape="!saving"
     :persistent="saving"
-    content-class="codex-profile-editor-modal !max-w-[980px] !max-h-[90vh] rounded-2xl"
+    content-class="pe-modal !max-w-[980px] rounded-2xl"
     @update:model-value="handleModalModelValue"
   >
     <template #header="{ titleId }">
-      <div class="editor-shell-header flex items-start justify-between gap-4">
+      <div class="pe-modal__head">
         <div class="flex min-w-0 items-start gap-4">
-          <div class="editor-hero-icon flex h-14 w-14 shrink-0 items-center justify-center rounded-lg">
+          <div class="pe-panel-icon flex h-12 w-12 shrink-0 items-center justify-center">
             <SIcon
               name="Settings"
-              size="w-7 h-7"
+              size="w-6 h-6"
             />
           </div>
           <div class="min-w-0">
-            <p class="editor-shell-eyebrow text-xs font-semibold uppercase tracking-[0.26em]">
+            <p class="pe-modal__eyebrow">
               {{ isEditing ? $t('codex.profiles.editProfile') : $t('codex.profiles.addProfile') }}
             </p>
-            <div class="mt-2 flex flex-wrap items-center gap-2">
+            <div class="mt-1.5 flex flex-wrap items-center gap-2">
               <h2
                 :id="titleId"
-                class="editor-shell-title text-2xl font-semibold tracking-tight"
+                class="pe-modal__title"
               >
                 {{ form.name.trim() || editingName || $t('codex.profiles.addProfile') }}
               </h2>
               <span
-                class="editor-pill px-3 py-1 text-xs font-medium"
-                :class="form.enabled ? 'editor-pill--success' : 'editor-pill--danger'"
+                class="pe-pill"
+                :class="form.enabled ? 'pe-pill--accent' : 'pe-pill--danger'"
               >
                 {{ form.enabled ? $t('codex.states.enabled') : $t('codex.states.disabled') }}
               </span>
             </div>
-            <p class="editor-shell-description mt-2 max-w-3xl text-sm leading-6">
+            <p class="pe-modal__desc mt-1.5 max-w-3xl">
               {{ $t('codex.profiles.subtitle') }}
             </p>
           </div>
@@ -45,7 +49,7 @@
 
         <button
           type="button"
-          class="editor-close-button inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+          class="pe-icon-btn shrink-0"
           :aria-label="$t('common.close')"
           :disabled="saving"
           @click="requestClose"
@@ -58,31 +62,48 @@
       </div>
     </template>
 
-    <div class="flex max-h-[calc(90vh-8rem)] flex-col overflow-hidden">
-      <div class="editor-nav-rail mb-4 flex flex-wrap gap-2 border-b border-border-default/35 pb-4">
+    <div class="pe-shell max-h-[calc(90vh-9rem)] overflow-hidden">
+      <div
+        v-if="showValidation && validationErrors.length > 0"
+        class="pe-summary"
+        role="alert"
+      >
+        <SIcon
+          name="AlertTriangle"
+          size="w-4 h-4"
+        />
+        <span>{{ validationErrors[0].message }}</span>
+        <button
+          type="button"
+          class="pe-summary__jump"
+          @click="scrollToSection(validationErrors[0].section)"
+        >
+          {{ $t('codex.profiles.validationJump') }}
+        </button>
+      </div>
+
+      <div
+        class="pe-nav"
+        role="tablist"
+        :aria-label="$t('codex.profiles.sections.identity')"
+      >
         <button
           v-for="section in sectionItems"
           :key="section.id"
           type="button"
-          class="editor-nav-button inline-flex min-h-[40px] items-center gap-2 rounded-full px-3.5 py-2 text-sm transition-[background-color,border-color,transform] duration-200 hover:-translate-y-px"
-          :class="activeSectionId === section.id
-            ? 'editor-nav-button--active'
-            : 'editor-nav-button--idle'"
+          role="tab"
+          class="pe-nav__item"
+          :class="{ 'pe-nav__item--active': activeSectionId === section.id }"
+          :aria-selected="activeSectionId === section.id"
           @click="scrollToSection(section.id)"
         >
-          <span class="editor-nav-button__icon flex h-7 w-7 items-center justify-center rounded-full">
-            <SIcon
-              :name="section.icon"
-              size="w-3.5 h-3.5"
-            />
-          </span>
           {{ section.title }}
         </button>
       </div>
 
       <div
         ref="scrollRef"
-        class="editor-scroll-area min-h-0 flex-1 overflow-y-auto pr-1"
+        class="pe-scroll"
         @scroll="syncActiveSection"
       >
         <ProviderTemplateSelector
@@ -102,52 +123,52 @@
         <section
           id="identity"
           ref="identityRef"
-          class="editor-section space-y-4"
+          class="space-y-3"
         >
-          <div class="editor-section-head flex items-start gap-3">
-            <div class="editor-section-icon flex h-10 w-10 items-center justify-center rounded-2xl">
+          <div class="flex items-start gap-3">
+            <div class="pe-panel-icon flex h-9 w-9 shrink-0 items-center justify-center">
               <SIcon
                 name="Layers"
-                size="w-5 h-5"
+                size="w-4 h-4"
               />
             </div>
             <div class="min-w-0">
-              <h3 class="text-base font-semibold text-text-primary">
+              <h3 class="pe-section__title">
                 {{ $t('codex.profiles.sections.identity') }}
               </h3>
-              <p class="mt-1 text-sm text-text-secondary">
+              <p class="pe-section__desc mt-1">
                 {{ $t('codex.profiles.sectionHints.identity') }}
               </p>
             </div>
           </div>
 
-          <div class="editor-panel editor-panel-muted rounded-xl p-5">
+          <div class="pe-panel-muted p-4">
             <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div>
+              <div class="pe-field">
                 <label
                   for="codex-profile-name"
-                  class="mb-1.5 ml-1 block text-xs font-semibold tracking-wide text-text-muted"
+                  class="pe-field__label"
                 >
-                  {{ $t('codex.profiles.fields.name') }} <span class="text-red-500">*</span>
+                  {{ $t('codex.profiles.fields.name') }} <span class="text-accent-danger">*</span>
                 </label>
                 <input
                   id="codex-profile-name"
                   data-testid="codex-profile-name-input"
                   :value="form.name"
                   type="text"
-                  class="editor-input w-full rounded-lg px-4 py-3 text-sm"
+                  class="pe-input"
                   :placeholder="$t('codex.profiles.placeholders.name')"
                   @input="updateTextField('name', $event)"
                 >
-                <p class="mt-2 text-xs text-text-muted">
+                <p class="pe-field__hint">
                   {{ isEditing ? $t('codex.profiles.nameRenameHint') : $t('codex.profiles.nameCreateHint') }}
                 </p>
               </div>
 
-              <div>
+              <div class="pe-field">
                 <label
                   for="codex-profile-description"
-                  class="mb-1.5 ml-1 block text-xs font-semibold tracking-wide text-text-muted"
+                  class="pe-field__label"
                 >
                   {{ $t('codex.profiles.fields.description') }}
                 </label>
@@ -155,7 +176,7 @@
                   id="codex-profile-description"
                   :value="form.description"
                   type="text"
-                  class="editor-input w-full rounded-lg px-4 py-3 text-sm"
+                  class="pe-input"
                   :placeholder="$t('codex.profiles.placeholders.description')"
                   @input="updateTextField('description', $event)"
                 >
@@ -167,38 +188,38 @@
         <section
           id="auth"
           ref="authRef"
-          class="editor-section mt-6 space-y-4"
+          class="mt-5 space-y-3"
         >
-          <div class="editor-section-head flex items-start gap-3">
-            <div class="editor-section-icon flex h-10 w-10 items-center justify-center rounded-2xl">
+          <div class="flex items-start gap-3">
+            <div class="pe-panel-icon flex h-9 w-9 shrink-0 items-center justify-center">
               <SIcon
                 name="ShieldCheck"
-                size="w-5 h-5"
+                size="w-4 h-4"
               />
             </div>
             <div class="min-w-0">
-              <h3 class="text-base font-semibold text-text-primary">
+              <h3 class="pe-section__title">
                 {{ $t('codex.profiles.sections.authentication') }}
               </h3>
-              <p class="mt-1 text-sm text-text-secondary">
+              <p class="pe-section__desc mt-1">
                 {{ $t('codex.profiles.sectionHints.authentication') }}
               </p>
             </div>
           </div>
 
-          <div class="editor-panel rounded-xl p-5">
+          <div class="pe-panel space-y-4 p-4">
             <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
-              <div>
+              <div class="pe-field">
                 <label
                   for="codex-profile-auth-mode"
-                  class="mb-1.5 ml-1 block text-xs font-semibold tracking-wide text-text-muted"
+                  class="pe-field__label"
                 >
-                  {{ $t('codex.profiles.fields.authMode') }} <span class="text-red-500">*</span>
+                  {{ $t('codex.profiles.fields.authMode') }} <span class="text-accent-danger">*</span>
                 </label>
                 <select
                   id="codex-profile-auth-mode"
                   :value="form.auth_mode"
-                  class="editor-input w-full rounded-lg px-4 py-3 text-sm"
+                  class="pe-select"
                   @change="updateSelectField('auth_mode', $event)"
                 >
                   <option
@@ -211,60 +232,60 @@
                 </select>
                 <p
                   v-if="isDeprecatedAuthMode"
-                  class="mt-2 text-xs text-amber-300"
+                  class="pe-field__hint text-accent-warning"
                 >
                   {{ $t('codex.profiles.deprecatedAuthModeHint', { mode: authModeLabel(form.auth_mode) }) }}
                 </p>
               </div>
 
-              <div class="editor-panel-muted rounded-lg p-4">
-                <p class="text-xs font-semibold uppercase tracking-[0.24em] text-text-muted">
+              <div class="pe-panel-muted p-3">
+                <p class="pe-field__label">
                   {{ $t('codex.profiles.fields.openAiLoginMethod') }}
                 </p>
-                <p class="mt-2 flex flex-wrap items-center gap-2 text-sm text-text-secondary">
-                  <span class="editor-inline-chip rounded-full px-3 py-1 text-xs font-medium">
+                <p class="mt-2 flex flex-wrap items-center gap-2">
+                  <span class="pe-tag rounded-full px-2.5 py-0.5 text-xs">
                     {{ displayOpenAiLoginMethod }}
                   </span>
-                  <span class="editor-inline-chip rounded-full px-3 py-1 text-xs font-medium">
+                  <span class="pe-tag rounded-full px-2.5 py-0.5 text-xs">
                     {{ usesOpenAiAuthMode(form.auth_mode) ? $t('codex.profiles.openAiAuthOn') : $t('codex.profiles.openAiAuthOff') }}
                   </span>
                 </p>
               </div>
             </div>
 
-            <div class="mt-5">
+            <div class="pe-field">
               <label
                 for="codex-profile-base-url"
-                class="mb-1.5 ml-1 block text-xs font-semibold tracking-wide text-text-muted"
+                class="pe-field__label"
               >
                 {{ $t('codex.profiles.fields.baseUrl') }}
                 <span
                   v-if="requiresBaseUrl"
-                  class="text-red-500"
+                  class="text-accent-danger"
                 >*</span>
               </label>
               <input
                 id="codex-profile-base-url"
                 :value="form.base_url"
                 type="text"
-                class="editor-input editor-input--mono w-full rounded-lg px-4 py-3 text-sm"
+                class="pe-input pe-input--mono"
                 :placeholder="$t('codex.profiles.placeholders.baseUrl')"
                 @input="updateTextField('base_url', $event)"
               >
-              <p class="mt-2 text-xs text-text-muted">
+              <p class="pe-field__hint">
                 {{ requiresBaseUrl ? $t('codex.profiles.baseUrlRequiredHint') : $t('codex.profiles.baseUrlOptionalHint') }}
               </p>
             </div>
 
-            <div class="mt-5">
+            <div class="pe-field">
               <label
                 for="codex-profile-auth-token"
-                class="mb-1.5 ml-1 block text-xs font-semibold tracking-wide text-text-muted"
+                class="pe-field__label"
               >
                 {{ $t('codex.profiles.fields.authToken') }}
                 <span
                   v-if="requiresSecret"
-                  class="text-red-500"
+                  class="text-accent-danger"
                 >*</span>
               </label>
               <div class="relative">
@@ -273,62 +294,64 @@
                   :value="form.auth_token"
                   data-testid="codex-auth-token-input"
                   :type="showToken ? 'text' : 'password'"
-                  class="editor-input editor-input--mono w-full rounded-lg px-4 py-3 pr-24 text-sm"
+                  class="pe-input pe-input--mono pr-20"
                   :placeholder="$t('codex.profiles.placeholders.authToken')"
                   @input="updateTextField('auth_token', $event)"
                 >
-                <div class="absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-1">
+                <div class="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
                   <button
                     type="button"
                     data-testid="codex-auth-token-visibility"
-                    class="editor-icon-button"
+                    class="pe-icon-btn"
                     :title="showToken ? $t('codex.profiles.tokenActions.hide') : $t('codex.profiles.tokenActions.show')"
+                    :aria-label="showToken ? $t('codex.profiles.tokenActions.hide') : $t('codex.profiles.tokenActions.show')"
                     @click="showToken = !showToken"
                   >
                     <SIcon
                       :name="showToken ? 'EyeOff' : 'Eye'"
-                      size="w-4 h-4"
+                      size="w-3.5 h-3.5"
                     />
                   </button>
                   <button
                     type="button"
                     data-testid="codex-auth-token-copy"
-                    class="editor-icon-button"
+                    class="pe-icon-btn"
                     :disabled="!form.auth_token.trim()"
                     :title="$t('codex.profiles.tokenActions.copy')"
+                    :aria-label="$t('codex.profiles.tokenActions.copy')"
                     @click="copyToken"
                   >
                     <SIcon
                       name="Copy"
-                      size="w-4 h-4"
+                      size="w-3.5 h-3.5"
                     />
                   </button>
                 </div>
               </div>
-              <p class="mt-2 text-xs text-text-muted">
+              <p class="pe-field__hint">
                 {{ authTokenHint }}
               </p>
             </div>
 
             <div
               v-if="requiresEnvKey"
-              class="mt-5"
+              class="pe-field"
             >
               <label
                 for="codex-profile-env-key"
-                class="mb-1.5 ml-1 block text-xs font-semibold tracking-wide text-text-muted"
+                class="pe-field__label"
               >
-                {{ $t('codex.profiles.fields.envKey') }} <span class="text-red-500">*</span>
+                {{ $t('codex.profiles.fields.envKey') }} <span class="text-accent-danger">*</span>
               </label>
               <input
                 id="codex-profile-env-key"
                 :value="form.env_key"
                 type="text"
-                class="editor-input editor-input--mono w-full rounded-lg px-4 py-3 text-sm"
+                class="pe-input pe-input--mono"
                 :placeholder="$t('codex.profiles.placeholders.envKey')"
                 @input="updateTextField('env_key', $event)"
               >
-              <p class="mt-2 text-xs text-text-muted">
+              <p class="pe-field__hint">
                 {{ $t('codex.profiles.envKeyHint') }}
               </p>
             </div>
@@ -338,39 +361,39 @@
         <section
           id="runtime"
           ref="runtimeRef"
-          class="editor-section mt-6 space-y-4"
+          class="mt-5 space-y-3"
         >
-          <div class="editor-section-head flex items-start gap-3">
-            <div class="editor-section-icon flex h-10 w-10 items-center justify-center rounded-2xl">
+          <div class="flex items-start gap-3">
+            <div class="pe-panel-icon flex h-9 w-9 shrink-0 items-center justify-center">
               <SIcon
                 name="Bot"
-                size="w-5 h-5"
+                size="w-4 h-4"
               />
             </div>
             <div class="min-w-0">
-              <h3 class="text-base font-semibold text-text-primary">
+              <h3 class="pe-section__title">
                 {{ $t('codex.profiles.sections.runtime') }}
               </h3>
-              <p class="mt-1 text-sm text-text-secondary">
+              <p class="pe-section__desc mt-1">
                 {{ $t('codex.profiles.sectionHints.runtime') }}
               </p>
             </div>
           </div>
 
-          <div class="editor-panel rounded-xl p-5">
+          <div class="pe-panel space-y-4 p-4">
             <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div>
+              <div class="pe-field">
                 <label
                   for="codex-profile-model"
-                  class="mb-1.5 ml-1 block text-xs font-semibold tracking-wide text-text-muted"
+                  class="pe-field__label"
                 >
-                  {{ $t('codex.profiles.fields.model') }} <span class="text-red-500">*</span>
+                  {{ $t('codex.profiles.fields.model') }} <span class="text-accent-danger">*</span>
                 </label>
                 <select
                   id="codex-profile-model"
                   :value="selectedModelOption"
                   data-testid="codex-profile-model-select"
-                  class="editor-input editor-input--mono w-full rounded-lg px-4 py-3 text-sm"
+                  class="pe-select pe-select--mono"
                   @change="emitSelectedModelOption"
                 >
                   <option
@@ -388,19 +411,19 @@
                   v-if="selectedModelOption === CUSTOM_MODEL_OPTION"
                   :value="customModelInput"
                   type="text"
-                  class="editor-input editor-input--mono mt-3 w-full rounded-lg px-4 py-3 text-sm"
+                  class="pe-input pe-input--mono"
                   :placeholder="$t('codex.profiles.placeholders.customModel')"
                   @input="emitCustomModelInput"
                 >
-                <p class="mt-2 text-xs text-text-muted">
+                <p class="pe-field__hint">
                   {{ selectedModelOption === CUSTOM_MODEL_OPTION ? $t('codex.profiles.customModelHint') : $t('codex.profiles.modelPresetHint') }}
                 </p>
               </div>
 
-              <div>
+              <div class="pe-field">
                 <label
                   for="codex-profile-reasoning-effort"
-                  class="mb-1.5 ml-1 block text-xs font-semibold tracking-wide text-text-muted"
+                  class="pe-field__label"
                 >
                   {{ $t('codex.profiles.fields.reasoningEffort') }}
                 </label>
@@ -408,7 +431,7 @@
                   id="codex-profile-reasoning-effort"
                   :value="form.model_reasoning_effort"
                   data-testid="codex-reasoning-effort-select"
-                  class="editor-input w-full rounded-lg px-4 py-3 text-sm"
+                  class="pe-select"
                   @change="updateSelectField('model_reasoning_effort', $event)"
                 >
                   <option value="">
@@ -422,16 +445,16 @@
                     {{ effort }}
                   </option>
                 </select>
-                <p class="mt-2 text-xs text-text-muted">
+                <p class="pe-field__hint">
                   {{ $t('codex.profiles.reasoningEffortHint') }}
                 </p>
               </div>
             </div>
 
-            <div class="mt-5">
+            <div class="pe-field">
               <label
                 for="codex-profile-wire-api"
-                class="mb-1.5 ml-1 block text-xs font-semibold tracking-wide text-text-muted"
+                class="pe-field__label"
               >
                 {{ $t('codex.profiles.fields.wireApi') }}
               </label>
@@ -439,7 +462,7 @@
                 id="codex-profile-wire-api"
                 :value="form.wire_api"
                 type="text"
-                class="editor-input editor-input--mono w-full rounded-lg px-4 py-3 text-sm"
+                class="pe-input pe-input--mono"
                 :placeholder="$t('codex.profiles.placeholders.wireApi')"
                 @input="updateTextField('wire_api', $event)"
               >
@@ -450,31 +473,31 @@
         <section
           id="metadata"
           ref="metadataRef"
-          class="editor-section mt-6 space-y-4"
+          class="mt-5 space-y-3"
         >
-          <div class="editor-section-head flex items-start gap-3">
-            <div class="editor-section-icon flex h-10 w-10 items-center justify-center rounded-2xl">
+          <div class="flex items-start gap-3">
+            <div class="pe-panel-icon flex h-9 w-9 shrink-0 items-center justify-center">
               <SIcon
                 name="SlidersHorizontal"
-                size="w-5 h-5"
+                size="w-4 h-4"
               />
             </div>
             <div class="min-w-0">
-              <h3 class="text-base font-semibold text-text-primary">
+              <h3 class="pe-section__title">
                 {{ $t('codex.profiles.sections.metadata') }}
               </h3>
-              <p class="mt-1 text-sm text-text-secondary">
+              <p class="pe-section__desc mt-1">
                 {{ $t('codex.profiles.sectionHints.metadata') }}
               </p>
             </div>
           </div>
 
-          <div class="editor-panel rounded-xl p-5">
+          <div class="pe-panel space-y-4 p-4">
             <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-              <div>
+              <div class="pe-field">
                 <label
                   for="codex-profile-provider"
-                  class="mb-1.5 ml-1 block text-xs font-semibold tracking-wide text-text-muted"
+                  class="pe-field__label"
                 >
                   {{ $t('codex.profiles.fields.provider') }}
                 </label>
@@ -482,15 +505,15 @@
                   id="codex-profile-provider"
                   :value="form.provider"
                   type="text"
-                  class="editor-input w-full rounded-lg px-4 py-3 text-sm"
+                  class="pe-input"
                   :placeholder="$t('codex.profiles.placeholders.provider')"
                   @input="updateTextField('provider', $event)"
                 >
               </div>
-              <div>
+              <div class="pe-field">
                 <label
                   for="codex-profile-provider-type"
-                  class="mb-1.5 ml-1 block text-xs font-semibold tracking-wide text-text-muted"
+                  class="pe-field__label"
                 >
                   {{ $t('codex.profiles.fields.providerType') }}
                 </label>
@@ -498,15 +521,15 @@
                   id="codex-profile-provider-type"
                   :value="form.provider_type"
                   type="text"
-                  class="editor-input w-full rounded-lg px-4 py-3 text-sm"
+                  class="pe-input"
                   :placeholder="$t('codex.profiles.placeholders.providerType')"
                   @input="updateTextField('provider_type', $event)"
                 >
               </div>
-              <div>
+              <div class="pe-field">
                 <label
                   for="codex-profile-tags"
-                  class="mb-1.5 ml-1 block text-xs font-semibold tracking-wide text-text-muted"
+                  class="pe-field__label"
                 >
                   {{ $t('codex.profiles.fields.tags') }}
                 </label>
@@ -514,27 +537,27 @@
                   id="codex-profile-tags"
                   :value="form.tags_input"
                   type="text"
-                  class="editor-input w-full rounded-lg px-4 py-3 text-sm"
+                  class="pe-input"
                   :placeholder="$t('codex.profiles.placeholders.tags')"
                   @input="updateTextField('tags_input', $event)"
                 >
               </div>
             </div>
 
-            <div class="mt-5 flex items-center justify-between rounded-lg border border-border-default/35 bg-bg-base px-4 py-3">
-              <div>
+            <div class="pe-panel-muted flex items-center justify-between gap-4 p-3">
+              <div class="min-w-0">
                 <p class="text-sm font-semibold text-text-primary">
                   {{ $t('codex.profiles.fields.enabled') }}
                 </p>
-                <p class="mt-1 text-xs text-text-muted">
+                <p class="pe-section__desc mt-1">
                   {{ $t('codex.profiles.enabledHint') }}
                 </p>
               </div>
-              <label class="inline-flex cursor-pointer items-center gap-3">
+              <label class="inline-flex shrink-0 cursor-pointer items-center gap-2">
                 <input
                   :checked="form.enabled"
                   type="checkbox"
-                  class="h-5 w-5 rounded border-border-default/50 text-platform-codex focus:ring-platform-codex/30"
+                  class="h-4 w-4 rounded border-border-default/50 text-accent-primary focus:ring-accent-primary/30"
                   @change="updateCheckboxField('enabled', $event)"
                 >
                 <span class="text-sm text-text-secondary">
@@ -546,36 +569,32 @@
         </section>
       </div>
 
-      <div class="editor-footer mt-5 flex flex-col gap-3 pt-4 sm:flex-row sm:items-center sm:justify-between">
-        <p class="text-sm text-text-secondary">
+      <div class="pe-footer">
+        <p class="mr-auto text-xs text-text-secondary">
           {{ $t('codex.profiles.modalFooterHint') }}
         </p>
-        <div class="flex items-center justify-end gap-3">
-          <button
-            type="button"
-            class="editor-button editor-button--secondary min-h-[44px] rounded-2xl px-5 py-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-50"
-            :disabled="saving"
-            @click="requestClose"
-          >
-            {{ $t('common.cancel') }}
-          </button>
-          <button
-            type="button"
-            class="editor-button editor-button--primary min-h-[44px] rounded-2xl px-5 py-2.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
-            :disabled="saving || !form.name.trim()"
-            @click="$emit('save')"
-          >
-            <span class="inline-flex items-center gap-2">
-              <SIcon
-                v-if="saving"
-                name="RefreshCw"
-                size="w-4 h-4"
-                class="animate-spin"
-              />
-              {{ $t('codex.actions.save') }}
-            </span>
-          </button>
-        </div>
+        <button
+          type="button"
+          class="pe-btn"
+          :disabled="saving"
+          @click="requestClose"
+        >
+          {{ $t('common.cancel') }}
+        </button>
+        <button
+          type="button"
+          class="pe-btn pe-btn--primary"
+          :disabled="saving"
+          @click="handleSaveClick"
+        >
+          <SIcon
+            v-if="saving"
+            name="RefreshCw"
+            size="w-3.5 h-3.5"
+            class="animate-spin"
+          />
+          {{ $t('codex.actions.save') }}
+        </button>
       </div>
     </div>
   </BaseModal>
@@ -597,11 +616,13 @@ import {
   REASONING_EFFORT_OPTIONS,
   usesOpenAiAuthMode,
 } from '@/utils/codexProfileEditor'
+import '@/components/profiles/profile-editor-shell.css'
+
+type SectionId = 'identity' | 'auth' | 'runtime' | 'metadata'
 
 interface SectionItem {
-  id: 'identity' | 'auth' | 'runtime' | 'metadata'
+  id: SectionId
   title: string
-  icon: string
 }
 
 interface Props {
@@ -615,6 +636,8 @@ interface Props {
   currentModelOption?: string
   selectedModelOption: string
   customModelInput: string
+  /** 视图解析后的最终模型值（预设或自定义输入），保存前校验用 */
+  resolvedModel: string
   requiresBaseUrl: boolean
   requiresSecret: boolean
   requiresEnvKey: boolean
@@ -652,13 +675,54 @@ const metadataRef = ref<HTMLElement | null>(null)
 const isEditing = computed(() => Boolean(props.editingName))
 
 const sectionItems = computed<SectionItem[]>(() => ([
-  { id: 'identity', title: t('codex.profiles.sections.identity'), icon: 'Layers' },
-  { id: 'auth', title: t('codex.profiles.sections.authentication'), icon: 'ShieldCheck' },
-  { id: 'runtime', title: t('codex.profiles.sections.runtime'), icon: 'Bot' },
-  { id: 'metadata', title: t('codex.profiles.sections.metadata'), icon: 'SlidersHorizontal' },
+  { id: 'identity', title: t('codex.profiles.sections.identity') },
+  { id: 'auth', title: t('codex.profiles.sections.authentication') },
+  { id: 'runtime', title: t('codex.profiles.sections.runtime') },
+  { id: 'metadata', title: t('codex.profiles.sections.metadata') },
 ]))
 
-const activeSectionId = ref<SectionItem['id']>('identity')
+const activeSectionId = ref<SectionId>('identity')
+
+/* ========================================================================
+ * 保存前校验：失败时顶部汇总条 + 可跳转到第一个错误字段所在分段
+ * ======================================================================== */
+
+interface ValidationError {
+  section: SectionId
+  message: string
+}
+
+const showValidation = ref(false)
+
+const validationErrors = computed<ValidationError[]>(() => {
+  const errors: ValidationError[] = []
+  if (!props.form.name.trim()) {
+    errors.push({ section: 'identity', message: t('codex.profiles.validation.nameRequired') })
+  }
+  if (props.requiresBaseUrl && !props.form.base_url.trim()) {
+    errors.push({ section: 'auth', message: t('codex.profiles.validation.baseUrlRequired') })
+  }
+  if (props.requiresSecret && !props.form.auth_token.trim()) {
+    errors.push({ section: 'auth', message: t('codex.profiles.validation.authTokenRequired') })
+  }
+  if (props.requiresEnvKey && !props.form.env_key.trim()) {
+    errors.push({ section: 'auth', message: t('codex.profiles.validation.envKeyRequired') })
+  }
+  if (!props.resolvedModel.trim()) {
+    errors.push({ section: 'runtime', message: t('codex.profiles.validation.modelRequired') })
+  }
+  return errors
+})
+
+const handleSaveClick = () => {
+  if (validationErrors.value.length > 0) {
+    showValidation.value = true
+    void scrollToSection(validationErrors.value[0].section)
+    return
+  }
+  showValidation.value = false
+  emit('save')
+}
 
 const emitSelectedModelOption = (event: Event) => {
   const target = event.target as HTMLSelectElement
@@ -703,25 +767,26 @@ const handleModalModelValue = (value: boolean) => {
   }
 }
 
-const scrollToSection = async (id: SectionItem['id']) => {
+const scrollToSection = async (id: SectionId) => {
   activeSectionId.value = id
   await nextTick()
 
-  const map: Record<SectionItem['id'], HTMLElement | null> = {
+  const map: Record<SectionId, HTMLElement | null> = {
     identity: identityRef.value,
     auth: authRef.value,
     runtime: runtimeRef.value,
     metadata: metadataRef.value,
   }
 
-  map[id]?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+  // jsdom 下 scrollIntoView 未实现，缺失时静默跳过（分段高亮已由 activeSectionId 完成）
+  map[id]?.scrollIntoView?.({ block: 'start', behavior: 'smooth' })
 }
 
 const syncActiveSection = () => {
   const container = scrollRef.value
   if (!container) return
 
-  const entries: Array<{ id: SectionItem['id']; el: HTMLElement | null }> = [
+  const entries: Array<{ id: SectionId; el: HTMLElement | null }> = [
     { id: 'identity', el: identityRef.value },
     { id: 'auth', el: authRef.value },
     { id: 'runtime', el: runtimeRef.value },
@@ -729,7 +794,7 @@ const syncActiveSection = () => {
   ]
 
   const containerTop = container.getBoundingClientRect().top
-  let best: { id: SectionItem['id']; distance: number } | null = null
+  let best: { id: SectionId; distance: number } | null = null
 
   for (const entry of entries) {
     if (!entry.el) continue
@@ -758,264 +823,16 @@ const copyToken = async () => {
 }
 
 watch(() => props.modelValue, (isOpen) => {
-  if (!isOpen) {
-    showToken.value = false
-    return
-  }
-
   showToken.value = false
+  showValidation.value = false
+  if (!isOpen) return
+
   activeSectionId.value = 'identity'
   void nextTick(() => {
     scrollRef.value?.scrollTo({ top: 0 })
   })
 })
+
+// 模板填充后由视图驱动跳到认证段
+defineExpose({ scrollToSection })
 </script>
-
-<style>
-.codex-profile-editor-modal {
-  /* 外壳材质：floating 档玻璃令牌（modal/命令面板同档），内部 panel 单独维持不透明 */
-  --editor-shell-bg: var(--material-glass-floating-bg);
-  --editor-shell-border: var(--material-glass-floating-border);
-  --editor-shell-shadow: var(--material-glass-floating-shadow);
-  --editor-shell-highlight:
-    radial-gradient(circle at top right, rgb(var(--color-platform-codex-rgb) / 12%), transparent 40%),
-    radial-gradient(circle at top left, rgb(var(--color-accent-primary-rgb) / 10%), transparent 32%);
-  --editor-panel-bg: rgb(255 254 254 / 82%);
-  --editor-panel-muted-bg: linear-gradient(180deg, rgb(250 255 252 / 96%), rgb(242 252 247 / 90%));
-  --editor-input-bg: rgb(244 252 247 / 94%);
-  --editor-input-bg-hover: rgb(251 255 253 / 98%);
-  --editor-input-bg-focus: rgb(255 255 255 / 100%);
-  --editor-input-border: rgb(var(--color-border-default-rgb) / 84%);
-  --editor-input-border-strong: rgb(var(--color-platform-codex-rgb) / 34%);
-  --editor-hairline: rgb(var(--color-border-default-rgb) / 72%);
-  --editor-hairline-soft: rgb(var(--color-border-default-rgb) / 46%);
-  --editor-ink: var(--color-text-primary);
-  --editor-ink-muted: var(--color-text-secondary);
-  --editor-ink-soft: var(--color-text-muted);
-  --editor-placeholder: var(--color-text-ghost);
-  --editor-panel-shadow: 0 20px 48px rgb(40 160 120 / 8%), var(--inner-glow);
-  --editor-muted-shadow: 0 14px 34px rgb(40 160 120 / 6%);
-  --editor-ring: 0 0 0 3px rgb(var(--color-platform-codex-rgb) / 14%);
-  --editor-scrollbar-thumb: rgb(var(--color-platform-codex-rgb) / 34%);
-  --editor-scrollbar-track: rgb(var(--color-bg-overlay-rgb) / 30%);
-
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  background: var(--editor-shell-bg) !important;
-  border: 1px solid var(--editor-shell-border) !important;
-  box-shadow: var(--editor-shell-shadow) !important;
-  backdrop-filter: var(--material-glass-floating-blur) !important;
-
-  /* stylelint-disable-next-line property-no-vendor-prefix */
-  -webkit-backdrop-filter: var(--material-glass-floating-blur) !important;
-  color: var(--editor-ink);
-}
-
-:root[class~='dark'] .codex-profile-editor-modal,
-[data-theme='dark'] .codex-profile-editor-modal {
-  --editor-shell-highlight:
-    radial-gradient(circle at top right, rgb(var(--color-platform-codex-rgb) / 16%), transparent 44%),
-    radial-gradient(circle at top left, rgb(var(--color-accent-primary-rgb) / 11%), transparent 34%);
-  --editor-panel-bg: linear-gradient(180deg, rgb(36 30 47 / 86%), rgb(28 24 40 / 82%));
-  --editor-panel-muted-bg: linear-gradient(180deg, rgb(44 38 56 / 90%), rgb(34 30 48 / 84%));
-  --editor-input-bg: rgb(50 44 66 / 88%);
-  --editor-input-bg-hover: rgb(58 52 74 / 92%);
-  --editor-input-bg-focus: rgb(64 58 82 / 96%);
-  --editor-input-border: rgb(96 160 134 / 34%);
-  --editor-input-border-strong: rgb(var(--color-platform-codex-rgb) / 44%);
-  --editor-hairline: rgb(96 160 134 / 30%);
-  --editor-hairline-soft: rgb(96 160 134 / 22%);
-  --editor-ink: rgb(245 255 251 / 98%);
-  --editor-ink-muted: rgb(194 232 216 / 86%);
-  --editor-ink-soft: rgb(162 206 188 / 78%);
-  --editor-placeholder: rgb(162 206 188 / 68%);
-  --editor-panel-shadow: 0 24px 60px rgb(6 3 10 / 42%);
-  --editor-muted-shadow: 0 16px 40px rgb(6 3 10 / 34%);
-  --editor-ring: 0 0 0 3px rgb(var(--color-platform-codex-rgb) / 18%);
-  --editor-scrollbar-thumb: rgb(var(--color-platform-codex-rgb) / 48%);
-  --editor-scrollbar-track: rgb(23 18 30 / 36%);
-}
-
-.codex-profile-editor-modal::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: var(--editor-shell-highlight);
-  pointer-events: none;
-  z-index: 0;
-}
-
-.codex-profile-editor-modal > * {
-  position: relative;
-  z-index: 1;
-}
-
-.codex-profile-editor-modal .text-text-primary {
-  color: var(--editor-ink) !important;
-}
-
-.codex-profile-editor-modal .text-text-secondary {
-  color: var(--editor-ink-muted) !important;
-}
-
-.codex-profile-editor-modal .text-text-muted {
-  color: var(--editor-ink-soft) !important;
-}
-
-.codex-profile-editor-modal .editor-shell-header,
-.codex-profile-editor-modal .editor-footer {
-  border-color: var(--editor-hairline-soft);
-}
-
-.codex-profile-editor-modal .editor-hero-icon,
-.codex-profile-editor-modal .editor-section-icon {
-  background: rgb(var(--color-platform-codex-rgb) / 12%);
-  color: rgb(var(--color-platform-codex-rgb) / 92%);
-  box-shadow: 0 12px 24px rgb(var(--color-platform-codex-rgb) / 12%);
-}
-
-.codex-profile-editor-modal .editor-shell-eyebrow {
-  color: rgb(var(--color-platform-codex-rgb) / 92%);
-}
-
-.codex-profile-editor-modal .editor-close-button,
-.codex-profile-editor-modal .editor-nav-button,
-.codex-profile-editor-modal .editor-icon-button,
-.codex-profile-editor-modal .editor-button,
-.codex-profile-editor-modal .editor-inline-chip {
-  border: 1px solid var(--editor-hairline-soft);
-  background: rgb(var(--color-bg-elevated-rgb) / 56%);
-  color: var(--editor-ink-muted);
-}
-
-.codex-profile-editor-modal .editor-close-button:hover,
-.codex-profile-editor-modal .editor-nav-button:hover,
-.codex-profile-editor-modal .editor-icon-button:hover,
-.codex-profile-editor-modal .editor-button:hover {
-  border-color: var(--editor-hairline);
-  background: rgb(var(--color-bg-elevated-rgb) / 78%);
-  color: var(--editor-ink);
-}
-
-.codex-profile-editor-modal .editor-nav-button__icon {
-  border: 1px solid var(--editor-hairline-soft);
-  background: rgb(var(--color-bg-elevated-rgb) / 50%);
-  color: var(--editor-ink-soft);
-}
-
-.codex-profile-editor-modal .editor-nav-button--active {
-  border-color: rgb(var(--color-platform-codex-rgb) / 34%);
-  background: linear-gradient(180deg, rgb(var(--color-platform-codex-rgb) / 12%), rgb(var(--color-platform-codex-rgb) / 8%));
-  color: var(--editor-ink);
-  box-shadow: 0 14px 32px rgb(var(--color-platform-codex-rgb) / 12%);
-}
-
-.codex-profile-editor-modal .editor-nav-button--active .editor-nav-button__icon {
-  border-color: rgb(var(--color-platform-codex-rgb) / 30%);
-  background: rgb(var(--color-platform-codex-rgb) / 14%);
-  color: rgb(var(--color-platform-codex-rgb) / 98%);
-}
-
-.codex-profile-editor-modal .editor-panel {
-  border: 1px solid var(--editor-hairline);
-  background: var(--editor-panel-bg);
-  box-shadow: var(--editor-panel-shadow);
-}
-
-.codex-profile-editor-modal .editor-panel-muted {
-  border: 1px solid var(--editor-hairline-soft);
-  background: var(--editor-panel-muted-bg);
-  box-shadow: var(--editor-muted-shadow);
-}
-
-.codex-profile-editor-modal .editor-scroll-area {
-  scrollbar-color: var(--editor-scrollbar-thumb) var(--editor-scrollbar-track);
-}
-
-.codex-profile-editor-modal .editor-scroll-area::-webkit-scrollbar {
-  width: 10px;
-}
-
-.codex-profile-editor-modal .editor-scroll-area::-webkit-scrollbar-track {
-  background: var(--editor-scrollbar-track);
-  border-radius: 999px;
-}
-
-.codex-profile-editor-modal .editor-scroll-area::-webkit-scrollbar-thumb {
-  background: var(--editor-scrollbar-thumb);
-  border-radius: 999px;
-}
-
-.codex-profile-editor-modal .editor-input {
-  border: 1px solid var(--editor-input-border);
-  background: var(--editor-input-bg);
-  color: var(--editor-ink);
-  transition: border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease, color 180ms ease;
-}
-
-.codex-profile-editor-modal .editor-input::placeholder {
-  color: var(--editor-placeholder);
-}
-
-.codex-profile-editor-modal .editor-input:hover {
-  border-color: var(--editor-hairline);
-  background: var(--editor-input-bg-hover);
-}
-
-.codex-profile-editor-modal .editor-input:focus {
-  border-color: var(--editor-input-border-strong);
-  background: var(--editor-input-bg-focus);
-  outline: none;
-  box-shadow: var(--editor-ring);
-}
-
-.codex-profile-editor-modal .editor-input--mono {
-  font-family: var(--font-mono);
-  letter-spacing: 0.01em;
-}
-
-.codex-profile-editor-modal .editor-icon-button {
-  display: inline-flex;
-  height: 36px;
-  width: 36px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 14px;
-}
-
-.codex-profile-editor-modal .editor-icon-button:hover,
-.codex-profile-editor-modal .editor-button:hover {
-  transform: translateY(-1px);
-}
-
-.codex-profile-editor-modal .editor-icon-button:disabled,
-.codex-profile-editor-modal .editor-button:disabled,
-.codex-profile-editor-modal .editor-close-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
-  transform: none;
-}
-
-.codex-profile-editor-modal .editor-pill {
-  border: 1px solid transparent;
-}
-
-.codex-profile-editor-modal .editor-pill--success {
-  border-color: rgb(var(--color-success-rgb) / 20%);
-  background: rgb(var(--color-success-rgb) / 14%);
-  color: rgb(var(--color-success-rgb) / 100%);
-}
-
-.codex-profile-editor-modal .editor-pill--danger {
-  border-color: rgb(var(--color-danger-rgb) / 22%);
-  background: rgb(var(--color-danger-rgb) / 12%);
-  color: rgb(var(--color-danger-rgb) / 100%);
-}
-
-.codex-profile-editor-modal .editor-button--primary {
-  border-color: rgb(var(--color-platform-codex-rgb) / 28%);
-  background: linear-gradient(180deg, rgb(var(--color-platform-codex-rgb) / 18%), rgb(var(--color-platform-codex-rgb) / 10%));
-  color: rgb(var(--color-platform-codex-rgb) / 98%);
-}
-</style>

@@ -22,14 +22,12 @@ export interface CodexProfileEditorForm {
   enabled: boolean
   wire_api: string
   env_key: string
-  requires_openai_auth: boolean
   auth_mode: CodexProfileAuthMode
-  openai_login_method: OpenAiLoginMethod | null
   model_reasoning_effort: string
 }
 
 export const authModeToLoginMethod = (
-  authMode: CodexProfileAuthMode,
+  authMode: CodexProfileAuthMode
 ): OpenAiLoginMethod | undefined => {
   switch (authMode) {
     case 'openai_chatgpt':
@@ -51,10 +49,7 @@ export const isDeprecatedAuthMode = (authMode?: CodexProfileAuthMode | null) => 
 
 export const normalizeModelName = (value?: string | null) => value?.trim() || ''
 
-export const buildCodexProfileModelCatalog = (
-  presets: string[],
-  currentModel?: string | null,
-) => {
+export const buildCodexProfileModelCatalog = (presets: string[], currentModel?: string | null) => {
   const catalog = presets
     .map(normalizeModelName)
     .filter((model, index, models) => Boolean(model) && models.indexOf(model) === index)
@@ -78,9 +73,7 @@ export const createCodexProfileEditorForm = (): CodexProfileEditorForm => ({
   enabled: true,
   wire_api: '',
   env_key: '',
-  requires_openai_auth: false,
   auth_mode: 'no_auth',
-  openai_login_method: null,
   model_reasoning_effort: '',
 })
 
@@ -95,11 +88,7 @@ export const codexProfileToEditorForm = (profile: CodexProfile): CodexProfileEdi
   enabled: profile.enabled !== false,
   wire_api: profile.wire_api || '',
   env_key: profile.env_key || '',
-  requires_openai_auth:
-    profile.requires_openai_auth ?? usesOpenAiAuthMode(profile.auth_mode || 'no_auth'),
   auth_mode: profile.auth_mode || 'no_auth',
-  openai_login_method:
-    profile.openai_login_method || authModeToLoginMethod(profile.auth_mode || 'no_auth') || null,
   model_reasoning_effort: profile.model_reasoning_effort || '',
 })
 
@@ -126,15 +115,21 @@ export const normalizeOptionalText = (value: string) => {
 export const parseTagsInput = (raw: string): string[] | null => {
   const tags = raw
     .split(',')
-    .map(tag => tag.trim())
+    .map((tag) => tag.trim())
     .filter(Boolean)
 
   return tags.length > 0 ? tags : null
 }
 
+/**
+ * 序列化表单为后端请求。
+ * 派生字段单源：`requires_openai_auth` / `openai_login_method` 一律由 `auth_mode` 计算，
+ * 表单不再存这两个字段；`env_key` 只在 provider_env_key 模式下序列化，
+ * 其余模式一律清空（退出该模式时旧值不得残留到 profiles.toml）。
+ */
 export const buildCodexProfileRequest = (
   form: CodexProfileEditorForm,
-  resolvedModel: string,
+  resolvedModel: string
 ): CodexProfileRequest => ({
   name: form.name.trim(),
   description: normalizeOptionalText(form.description),
@@ -147,7 +142,7 @@ export const buildCodexProfileRequest = (
   tags: parseTagsInput(form.tags_input),
   enabled: form.enabled,
   wire_api: normalizeOptionalText(form.wire_api),
-  env_key: normalizeOptionalText(form.env_key),
+  env_key: form.auth_mode === 'provider_env_key' ? normalizeOptionalText(form.env_key) : null,
   requires_openai_auth: usesOpenAiAuthMode(form.auth_mode),
   auth_mode: form.auth_mode,
   openai_login_method: authModeToLoginMethod(form.auth_mode) ?? null,
