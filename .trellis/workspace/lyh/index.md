@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 72
+- **Total Sessions**: 73
 - **Last Active**: 2026-07-29
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~686 | Active |
+| `journal-2.md` | ~720 | Active |
 | `journal-1.md` | ~1987 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 73 | 2026-07-29 | Claude 凭据与 settings 并发写入加固 | `6d95d09f` | `dev` |
 | 72 | 2026-07-29 | 完成 Claude 自定义配置目录统一 | `b53f7c11` | `dev` |
 | 71 | 2026-07-29 | 完成 Claude auth_mode 与 env 所有权隔离 | `c741d3da` | `dev` |
 | 70 | 2026-07-29 | 完成 Grok Profile 解析诊断与推理强度支持 | `a60ab8ac` | `dev` |

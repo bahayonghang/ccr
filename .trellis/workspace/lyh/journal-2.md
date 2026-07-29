@@ -684,3 +684,37 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 73: Claude 凭据与 settings 并发写入加固
+
+**Date**: 2026-07-29
+**Task**: Claude 凭据与 settings 并发写入加固
+**Branch**: `dev`
+
+### Summary
+
+完成未保存登录切换保护、凭据快照身份匹配、guarded secret 写入，以及 CLI/Tauri 共享 settings CAS-RMW 与集中备份。
+
+### Main Changes
+
+- Claude auth save/switch 使用 Secret、guarded_write 和 A/B/A 身份回归。
+- SettingsManager 与本地 Tauri 统一三次 CAS 重放，迁移所有生产 RMW 调用。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `6d95d09f` | (see git log) |
+
+### Testing
+
+- [OK] just lint-strict、just test、just frontend-check-quick、focused Rust/Tauri tests 通过；just fmt-check 仅被排除的既有 JSON 格式改动阻断。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 实施 07-29-claude-json-write-strategy。
