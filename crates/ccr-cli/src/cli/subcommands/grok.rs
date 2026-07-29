@@ -74,8 +74,12 @@ pub struct GrokProfileCreateActionArgs {
     pub description: Option<String>,
     #[arg(long = "base-url")]
     pub base_url: Option<String>,
-    #[arg(long = "auth-token")]
-    pub auth_token: Option<String>,
+    #[arg(
+        long = "api-key",
+        visible_alias = "auth-token",
+        conflicts_with = "env_key"
+    )]
+    pub api_key: Option<String>,
     #[arg(long)]
     pub model: Option<String>,
     #[arg(long)]
@@ -88,7 +92,7 @@ pub struct GrokProfileCreateActionArgs {
     pub tags: Vec<String>,
     #[arg(long = "api-backend")]
     pub api_backend: Option<String>,
-    #[arg(long = "env-key", conflicts_with = "auth_token")]
+    #[arg(long = "env-key", conflicts_with = "api_key")]
     pub env_key: Option<String>,
     #[arg(long = "context-window")]
     pub context_window: Option<u64>,

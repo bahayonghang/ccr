@@ -40,6 +40,7 @@ pub struct PlatformProfileCreateArgs {
     pub description: Option<String>,
     pub base_url: Option<String>,
     pub auth_token: Option<String>,
+    pub api_key: Option<String>,
     pub model: Option<String>,
     pub small_fast_model: Option<String>,
     pub provider: Option<String>,
@@ -139,6 +140,25 @@ fn update_profile_field(
                 None
             } else {
                 value.map(ccr_core::Secret::new)
+            }
+        }
+        "api_key" => {
+            if clear {
+                profile.platform_data.shift_remove("api_key");
+            } else {
+                if value_json.is_some() {
+                    return Err(CcrError::ValidationError("api_key 需要非空字符串".into()));
+                }
+                let api_key = value
+                    .ok_or_else(|| CcrError::ValidationError("api_key 需要非空字符串".into()))?
+                    .trim()
+                    .to_string();
+                if api_key.is_empty() {
+                    return Err(CcrError::ValidationError("api_key 需要非空字符串".into()));
+                }
+                profile
+                    .platform_data
+                    .insert("api_key".to_string(), serde_json::Value::String(api_key));
             }
         }
         "model" => profile.model = if clear { None } else { value },
@@ -314,6 +334,7 @@ pub async fn platform_profile_create_command(args: PlatformProfileCreateArgs) ->
         description,
         base_url,
         auth_token,
+        api_key,
         model,
         small_fast_model,
         provider,
@@ -376,6 +397,7 @@ pub async fn platform_profile_create_command(args: PlatformProfileCreateArgs) ->
     }
     for (key, value) in [
         ("api_backend", api_backend.map(serde_json::Value::String)),
+        ("api_key", api_key.map(serde_json::Value::String)),
         ("env_key", env_key.map(serde_json::Value::String)),
         (
             "context_window",
@@ -565,6 +587,14 @@ mod tests {
         .unwrap();
         update_profile_field(
             &mut profile,
+            "api_key",
+            Some("INLINE_SECRET_SENTINEL".into()),
+            None,
+            false,
+        )
+        .unwrap();
+        update_profile_field(
+            &mut profile,
             "env_key",
             Some("GROK_RELAY_KEY".into()),
             None,
@@ -597,6 +627,7 @@ mod tests {
         .unwrap();
 
         assert_eq!(profile.platform_data["api_backend"], "messages");
+        assert_eq!(profile.platform_data["api_key"], "INLINE_SECRET_SENTINEL");
         assert_eq!(profile.platform_data["env_key"], "GROK_RELAY_KEY");
         assert_eq!(profile.platform_data["context_window"], 1_000_000);
         assert_eq!(profile.platform_data["supports_backend_search"], true);
@@ -604,6 +635,7 @@ mod tests {
 
         for field in [
             "api_backend",
+            "api_key",
             "env_key",
             "context_window",
             "supports_backend_search",
@@ -618,6 +650,7 @@ mod tests {
     fn test_update_profile_field_rejects_invalid_grok_specific_values() {
         let invalid = [
             ("api_backend", Some("legacy".to_string()), None),
+            ("api_key", Some("  ".to_string()), None),
             ("context_window", Some("0".to_string()), None),
             ("supports_backend_search", Some("maybe".to_string()), None),
             ("env_key", None, Some(r#"["A","B"]"#.to_string())),

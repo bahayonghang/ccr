@@ -967,8 +967,8 @@ mod tests {
             "relay",
             "--base-url",
             "https://api.example.com/v1",
-            "--env-key",
-            "GROK_RELAY_KEY",
+            "--api-key",
+            "INLINE_SECRET_SENTINEL",
             "--model",
             "grok-example",
             "--api-backend",
@@ -987,7 +987,7 @@ mod tests {
             }) => match action.as_ref() {
                 GrokProfileAction::Create(args) => {
                     assert_eq!(args.name, "relay");
-                    assert_eq!(args.env_key.as_deref(), Some("GROK_RELAY_KEY"));
+                    assert_eq!(args.api_key.as_deref(), Some("INLINE_SECRET_SENTINEL"));
                     assert_eq!(args.api_backend.as_deref(), Some("messages"));
                     assert_eq!(args.context_window, Some(1_000_000));
                     assert_eq!(args.supports_backend_search, Some(true));

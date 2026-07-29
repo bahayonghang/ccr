@@ -82,7 +82,7 @@ impl GrokProfileFixture {
             "Example relay",
             "--base-url",
             "https://user:password@api.example.com/v1?token=QUERY_SECRET",
-            "--auth-token",
+            "--api-key",
             INLINE_SECRET,
             "--model",
             "grok-example",

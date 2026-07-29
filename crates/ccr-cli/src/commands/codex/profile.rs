@@ -162,6 +162,7 @@ pub async fn create_command(args: ProfileCreateActionArgs) -> Result<()> {
         description: args.description,
         base_url: args.base_url,
         auth_token: args.auth_token,
+        api_key: None,
         model: args.model,
         small_fast_model: args.small_fast_model,
         provider: args.provider,

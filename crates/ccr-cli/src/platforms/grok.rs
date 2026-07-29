@@ -23,6 +23,7 @@ const GROK_EDITABLE_FIELDS: &[&str] = &[
     "description",
     "base_url",
     "auth_token",
+    "api_key",
     "model",
     "provider",
     "provider_type",
@@ -119,15 +120,12 @@ impl GrokPlatform {
 
     /// Resolve a profile's credential source without exposing the credential.
     pub fn profile_auth_mode(profile: &ProfileConfig) -> Result<GrokProfileAuthMode> {
-        let has_inline = profile
-            .auth_token
-            .as_ref()
-            .is_some_and(|secret| !secret.expose().trim().is_empty());
+        let has_inline = Self::profile_inline_api_key(profile)?.is_some();
         let has_env = Self::profile_env_key(profile)?.is_some();
 
         match (has_inline, has_env) {
             (true, true) => Err(CcrError::ValidationError(
-                "Grok profile 的 auth_token 与 env_key 不能同时设置".into(),
+                "Grok profile 的 api_key/auth_token 与 env_key 不能同时设置".into(),
             )),
             (true, false) => Ok(GrokProfileAuthMode::InlineApiKey),
             (false, true) => Ok(GrokProfileAuthMode::EnvKey),
@@ -224,6 +222,36 @@ impl GrokPlatform {
             Some(_) => Err(CcrError::ValidationError(
                 "Grok env_key 必须是字符串".into(),
             )),
+        }
+    }
+
+    fn profile_api_key(profile: &ProfileConfig) -> Result<Option<String>> {
+        match profile.platform_data.get("api_key") {
+            None | Some(JsonValue::Null) => Ok(None),
+            Some(JsonValue::String(value)) if value.trim().is_empty() => Err(
+                CcrError::ValidationError("Grok api_key 不能为空字符串".into()),
+            ),
+            Some(JsonValue::String(value)) => Ok(Some(value.trim().to_string())),
+            Some(_) => Err(CcrError::ValidationError(
+                "Grok api_key 必须是字符串".into(),
+            )),
+        }
+    }
+
+    fn profile_inline_api_key(profile: &ProfileConfig) -> Result<Option<String>> {
+        let auth_token = profile
+            .auth_token
+            .as_ref()
+            .map(|secret| secret.expose().trim())
+            .filter(|value| !value.is_empty());
+        let api_key = Self::profile_api_key(profile)?;
+
+        match (auth_token, api_key) {
+            (Some(_), Some(_)) => Err(CcrError::ValidationError(
+                "Grok profile 的 api_key 与兼容字段 auth_token 不能同时设置".into(),
+            )),
+            (Some(value), None) => Ok(Some(value.to_string())),
+            (None, api_key) => Ok(api_key),
         }
     }
 
@@ -611,13 +639,10 @@ impl GrokPlatform {
         );
         match auth_mode {
             GrokProfileAuthMode::InlineApiKey => {
-                let secret = profile.auth_token.as_ref().ok_or_else(|| {
-                    CcrError::ValidationError("Grok inline profile 缺少 auth_token".into())
+                let api_key = Self::profile_inline_api_key(profile)?.ok_or_else(|| {
+                    CcrError::ValidationError("Grok inline profile 缺少 api_key".into())
                 })?;
-                managed.insert(
-                    "api_key".into(),
-                    toml::Value::String(secret.expose().trim().to_string()),
-                );
+                managed.insert("api_key".into(), toml::Value::String(api_key));
             }
             GrokProfileAuthMode::EnvKey => {
                 let env_key = Self::profile_env_key(profile)?.ok_or_else(|| {
@@ -627,7 +652,7 @@ impl GrokPlatform {
             }
             GrokProfileAuthMode::Session => {
                 return Err(CcrError::ValidationError(
-                    "Grok 第三方 profile 必须设置 auth_token 或 env_key".into(),
+                    "Grok 第三方 profile 必须设置 api_key、auth_token 或 env_key".into(),
                 ));
             }
         }
@@ -996,7 +1021,7 @@ impl PlatformConfig for GrokPlatform {
             }
             if auth_mode != GrokProfileAuthMode::Session {
                 return Err(CcrError::ValidationError(
-                    "Grok 官方 profile 不允许设置 auth_token 或 env_key".into(),
+                    "Grok 官方 profile 不允许设置 api_key、auth_token 或 env_key".into(),
                 ));
             }
         } else {
@@ -1012,7 +1037,7 @@ impl PlatformConfig for GrokPlatform {
             }
             if auth_mode == GrokProfileAuthMode::Session {
                 return Err(CcrError::ValidationError(
-                    "Grok 第三方 profile 必须设置 auth_token 或 env_key".into(),
+                    "Grok 第三方 profile 必须设置 api_key、auth_token 或 env_key".into(),
                 ));
             }
         }
@@ -1091,6 +1116,25 @@ mod tests {
                 "user:secret@api.example.com/v1?token=secret#part"
             ),
             "api.example.com/v1"
+        );
+    }
+
+    #[test]
+    fn accepts_api_key_profile_and_writes_official_runtime_field() {
+        let (_home, platform) = platform();
+        let mut profile = third_party_profile();
+        profile.platform_data.shift_remove("env_key");
+        profile
+            .platform_data
+            .insert("api_key".into(), json!("INLINE_SECRET_SENTINEL"));
+
+        platform.validate_profile(&profile).unwrap();
+        platform.save_profile("relay", &profile).unwrap();
+        platform.apply_profile("relay").unwrap();
+
+        assert_eq!(
+            read_config(&platform)["model"]["custom"]["api_key"].as_str(),
+            Some("INLINE_SECRET_SENTINEL")
         );
     }
 
