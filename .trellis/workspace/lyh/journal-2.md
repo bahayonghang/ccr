@@ -739,3 +739,24 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 75: 完成 Claude 认证来源诊断与规范
+
+**Date**: 2026-07-30
+**Task**: 完成 Claude 认证来源诊断与规范
+**Branch**: `dev`
+
+### Summary
+
+新增无 secret 的统一认证来源诊断、doctor/runtime summary 与 CLI/TUI/UI 切换警告；覆盖六级优先级、置信度、所有权、不可观测边界和 primaryApiKey issue 证据，并补齐跨层 Trellis 规范。定向矩阵、lint-strict、just test、frontend-check-quick、cargo fmt 与 diff check 通过；fmt-check 仅被三个排除的既有非规范 JSON 阻断，bindings check 仅被既有 DailyTrendDto.ts 空格基线阻断。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `604b0569` | (see git log) |
+
+### Status
+
+[OK] **Completed**
