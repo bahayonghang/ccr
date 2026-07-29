@@ -579,3 +579,24 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 68: 修复 Grok TUI 顺序与空态命令
+
+**Date**: 2026-07-29
+**Task**: 修复 Grok TUI 顺序与空态命令
+**Branch**: `dev`
+
+### Summary
+
+将默认 Profile 页签调整为 Codex、Claude、Grok；空态改用平台 profile create 帮助并提示按 r 重载；从 CLI 帮助隐藏已退休 platform 子命令但保留迁移错误解析。相关测试、严格 lint、workspace 检查及 just ci 均通过。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `ff1f2819a7dbeece0eaec672c940d9e9a14b7169` | (see git log) |
+
+### Status
+
+[OK] **Completed**
