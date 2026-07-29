@@ -106,6 +106,153 @@ fn assert_success(output: &Output) {
     );
 }
 
+fn count_files(path: &std::path::Path) -> usize {
+    if !path.exists() {
+        return 0;
+    }
+    fs::read_dir(path)
+        .unwrap()
+        .map(|entry| entry.unwrap().path())
+        .map(|path| if path.is_dir() { count_files(&path) } else { 1 })
+        .sum()
+}
+
+#[test]
+fn grok_profile_init_creates_inactive_template_without_touching_runtime() {
+    let fixture = GrokProfileFixture::new();
+    let runtime_path = fixture.grok_home.join("config.toml");
+    let runtime_before = fs::read(&runtime_path).unwrap();
+    let profiles_path = fixture
+        .root
+        .join("platforms")
+        .join("grok")
+        .join("profiles.toml");
+
+    let first = fixture.run_output(&["grok", "profile", "init"]);
+    assert_success(&first);
+    assert_eq!(
+        fs::read(&profiles_path).unwrap(),
+        include_bytes!("../../../../examples/grok/profiles.toml")
+    );
+    assert_eq!(fs::read(&runtime_path).unwrap(), runtime_before);
+
+    let (list_output, list_json) = fixture.run_json(&["grok", "profile", "list", "--json"]);
+    assert_success(&list_output);
+    assert!(list_json["current_profile"].is_null());
+    let names = list_json["profiles"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|profile| profile["name"].as_str().unwrap())
+        .collect::<Vec<_>>();
+    assert_eq!(names, vec!["official", "relay"]);
+
+    let current = fixture.run_output(&["grok", "profile", "current"]);
+    assert_success(&current);
+    assert!(String::from_utf8_lossy(&current.stdout).contains("不在 Grok profile mode"));
+
+    let registry = ccr_config::PlatformConfigManager::new(fixture.root.join("config.toml"))
+        .load()
+        .unwrap();
+    assert_eq!(registry.get_platform("grok").unwrap().current_profile, None);
+
+    let profiles_before = fs::read(&profiles_path).unwrap();
+    let backups_before = count_files(&fixture.root.join("backups"));
+    let second = fixture.run_output(&["grok", "profile", "init"]);
+    assert_success(&second);
+    assert!(String::from_utf8_lossy(&second.stdout).contains("已存在"));
+    assert_eq!(fs::read(&profiles_path).unwrap(), profiles_before);
+    assert_eq!(count_files(&fixture.root.join("backups")), backups_before);
+    assert_eq!(fs::read(&runtime_path).unwrap(), runtime_before);
+}
+
+#[test]
+fn grok_profile_init_preserves_existing_unparseable_profiles_file() {
+    let fixture = GrokProfileFixture::new();
+    let profiles_path = fixture
+        .root
+        .join("platforms")
+        .join("grok")
+        .join("profiles.toml");
+    fs::create_dir_all(profiles_path.parent().unwrap()).unwrap();
+    let existing = b"auth_token = [\"do-not-read-or-replace\"\n";
+    fs::write(&profiles_path, existing).unwrap();
+
+    let (output, json) = fixture.run_json(&["grok", "profile", "init", "--json"]);
+    assert_success(&output);
+    assert_eq!(json["created"], false);
+    assert_eq!(fs::read(&profiles_path).unwrap(), existing);
+}
+
+#[test]
+fn grok_profile_init_json_reports_first_and_idempotent_runs() {
+    let fixture = GrokProfileFixture::new();
+
+    let (first_output, first) = fixture.run_json(&["grok", "profile", "init", "--json"]);
+    assert_success(&first_output);
+    assert_eq!(first["ok"], true);
+    assert_eq!(first["platform"], "grok");
+    assert_eq!(first["created"], true);
+    assert_eq!(first["registered"], true);
+    assert!(
+        first["profiles_file"]
+            .as_str()
+            .unwrap()
+            .ends_with("profiles.toml")
+    );
+
+    let (second_output, second) = fixture.run_json(&["grok", "profile", "init", "--json"]);
+    assert_success(&second_output);
+    assert_eq!(second["created"], false);
+    assert_eq!(second["registered"], false);
+}
+
+#[test]
+fn concurrent_grok_profile_init_is_lossless_and_idempotent() {
+    let fixture = GrokProfileFixture::new();
+    let mut first = fixture.command();
+    first.args(["grok", "profile", "init"]);
+    let mut second = fixture.command();
+    second.args(["grok", "profile", "init"]);
+
+    let first = first.spawn().unwrap();
+    let second = second.spawn().unwrap();
+    assert_success(&first.wait_with_output().unwrap());
+    assert_success(&second.wait_with_output().unwrap());
+
+    assert_eq!(
+        fs::read(
+            fixture
+                .root
+                .join("platforms")
+                .join("grok")
+                .join("profiles.toml")
+        )
+        .unwrap(),
+        include_bytes!("../../../../examples/grok/profiles.toml")
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn grok_profile_init_creates_owner_only_profiles_file() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let fixture = GrokProfileFixture::new();
+    assert_success(&fixture.run_output(&["grok", "profile", "init"]));
+    let mode = fs::metadata(
+        fixture
+            .root
+            .join("platforms")
+            .join("grok")
+            .join("profiles.toml"),
+    )
+    .unwrap()
+    .permissions()
+    .mode();
+    assert_eq!(mode & 0o777, 0o600);
+}
+
 #[test]
 fn grok_profile_command_flow_masks_secrets_and_restores_entry_runtime() {
     let fixture = GrokProfileFixture::new();

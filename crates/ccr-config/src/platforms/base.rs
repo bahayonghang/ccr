@@ -68,6 +68,46 @@ where
     )
 }
 
+/// Registers a platform in the unified registry if absent.
+///
+/// The complete read-modify-write sequence is protected by the shared
+/// platform registry lock. Existing entries return without writing or
+/// creating a backup.
+pub fn register_platform_if_missing(platform_name: &str, description: &str) -> Result<bool> {
+    let manager = PlatformConfigManager::with_default()?;
+    let lock_manager = LockManager::with_default_path()?;
+    let _lock = lock_manager.lock_resource(
+        PLATFORM_REGISTRY_LOCK_RESOURCE,
+        PLATFORM_PROFILE_LOCK_TIMEOUT,
+    )?;
+
+    let registry_exists = manager.config_path().exists();
+    let mut unified_config = manager.load()?;
+    if unified_config.get_platform(platform_name).is_ok() {
+        if registry_exists {
+            return Ok(false);
+        }
+
+        manager.save(&unified_config)?;
+        return Ok(true);
+    }
+
+    unified_config.register_platform(
+        platform_name.to_string(),
+        crate::managers::platform_config::PlatformConfigEntry {
+            description: Some(description.to_string()),
+            ..Default::default()
+        },
+    )?;
+
+    if registry_exists {
+        let tag = "platform_profile_mutation".to_string();
+        manager.backup(Some(&tag))?;
+    }
+    manager.save(&unified_config)?;
+    Ok(true)
+}
+
 // ═══════════════════════════════════════════════════════════
 // 📋 ProfileConfig ↔ ConfigSection 转换
 // ═══════════════════════════════════════════════════════════
@@ -635,6 +675,7 @@ mod tests {
     use super::*;
     use crate::managers::{PlatformConfigEntry, UnifiedConfig};
     use crate::test_support::TestCcrEnv;
+    use std::sync::{Arc, Barrier};
 
     #[test]
     fn test_section_to_profile_roundtrip() {
@@ -815,6 +856,81 @@ model = "example-model"
     #[test]
     fn test_parse_profiles_from_str_preserves_empty_collection_behavior() {
         assert!(parse_profiles_from_str("").unwrap().is_empty());
+    }
+
+    #[test]
+    fn test_register_platform_if_missing_is_idempotent() {
+        let env = TestCcrEnv::new();
+
+        assert!(register_platform_if_missing("grok", "Grok Build").unwrap());
+        let backups_after_first = PlatformConfigManager::with_default()
+            .unwrap()
+            .list_backups()
+            .unwrap();
+        assert!(backups_after_first.is_empty());
+
+        assert!(!register_platform_if_missing("grok", "changed").unwrap());
+        assert_eq!(
+            PlatformConfigManager::with_default()
+                .unwrap()
+                .list_backups()
+                .unwrap(),
+            backups_after_first
+        );
+
+        let config = PlatformConfigManager::new(env.root().join("config.toml"))
+            .load()
+            .unwrap();
+        let entry = config.get_platform("grok").unwrap();
+        assert_eq!(entry.description.as_deref(), Some("Grok Build"));
+        assert_eq!(entry.current_profile, None);
+    }
+
+    #[test]
+    fn test_register_platform_if_missing_persists_unsaved_default_entry() {
+        let env = TestCcrEnv::new();
+        let registry_path = env.root().join("config.toml");
+        assert!(!registry_path.exists());
+
+        assert!(register_platform_if_missing("claude", "Claude Code").unwrap());
+        assert!(registry_path.exists());
+        assert!(!register_platform_if_missing("claude", "changed").unwrap());
+
+        let config = PlatformConfigManager::new(registry_path).load().unwrap();
+        assert_eq!(config.get_platform("claude").unwrap().current_profile, None);
+    }
+
+    #[test]
+    fn test_register_platform_if_missing_serializes_concurrent_registration() {
+        let env = TestCcrEnv::new();
+        let barrier = Arc::new(Barrier::new(2));
+        let handles = (0..2)
+            .map(|_| {
+                let barrier = Arc::clone(&barrier);
+                std::thread::spawn(move || {
+                    barrier.wait();
+                    register_platform_if_missing("grok", "Grok Build").unwrap()
+                })
+            })
+            .collect::<Vec<_>>();
+
+        let outcomes = handles
+            .into_iter()
+            .map(|handle| handle.join().unwrap())
+            .collect::<Vec<_>>();
+        assert_eq!(outcomes.iter().filter(|created| **created).count(), 1);
+
+        let config = PlatformConfigManager::new(env.root().join("config.toml"))
+            .load()
+            .unwrap();
+        assert_eq!(
+            config
+                .platforms
+                .keys()
+                .filter(|name| *name == "grok")
+                .count(),
+            1
+        );
     }
 
     #[cfg(unix)]

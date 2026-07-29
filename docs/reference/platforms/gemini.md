@@ -36,8 +36,9 @@ CCR 继续把持久化平台 key 保持为 `gemini`，但面向用户的 Google 
 ## 快速开始
 
 ```bash
-# 初始化兼容平台命名空间
-ccr platform init gemini
+# Gemini 暂无 profile init 命令，请手工复制示例
+mkdir -p ~/.ccr/platforms/gemini
+cp examples/gemini/profiles.toml ~/.ccr/platforms/gemini/profiles.toml
 
 # 切换到 Google / Antigravity profile 命名空间
 ccr platform switch gemini
@@ -171,7 +172,7 @@ cat ~/.gemini/antigravity-cli/mcp_config.json
 ## 相关命令
 
 ```bash
-ccr platform init gemini
+# profile create 流程会自动创建目录，也可按上文手工复制示例
 ccr platform switch gemini
 ccr list
 ccr switch <profile>

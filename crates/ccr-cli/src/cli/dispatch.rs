@@ -355,9 +355,9 @@ impl CommandDispatcher {
             PlatformAction::Info { .. } => Err(
                 crate::commands::migration::legacy_platform_command_error("info"),
             ),
-            PlatformAction::Init { .. } => Err(
-                crate::commands::migration::legacy_platform_command_error("init"),
-            ),
+            PlatformAction::Init { .. } => {
+                Err(crate::commands::migration::legacy_platform_init_error())
+            }
             PlatformAction::Profile { .. } => Err(
                 crate::commands::migration::legacy_platform_command_error("profile"),
             ),
@@ -407,6 +407,9 @@ impl CommandDispatcher {
                 CodexProfileAction::Help => {
                     help::print_nested_subcommand_help(&["codex", "profile"]);
                     Ok(())
+                }
+                CodexProfileAction::Init { json } => {
+                    crate::commands::codex::profile::init_command(*json).await
                 }
                 CodexProfileAction::Current { json } => {
                     crate::commands::codex::profile::current_command(*json).await
@@ -593,6 +596,9 @@ impl CommandDispatcher {
                     help::print_nested_subcommand_help(&["grok", "profile"]);
                     Ok(())
                 }
+                GrokProfileAction::Init { json } => {
+                    crate::commands::grok::profile::init_command(*json).await
+                }
                 GrokProfileAction::Current { json } => {
                     crate::commands::grok::profile::current_command(*json).await
                 }
@@ -677,6 +683,9 @@ impl CommandDispatcher {
                 ClaudeProfileAction::Help => {
                     help::print_nested_subcommand_help(&["claude", "profile"]);
                     Ok(())
+                }
+                ClaudeProfileAction::Init { json } => {
+                    crate::commands::claude::profile::init_command(*json).await
                 }
                 ClaudeProfileAction::Current { json } => {
                     crate::commands::claude::profile::current_command(*json).await

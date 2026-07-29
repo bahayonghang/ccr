@@ -17,3 +17,10 @@ pub fn legacy_platform_command_error(command: &str) -> CcrError {
         "legacy command retired: `ccr platform {command}` no longer controls auth/profile routing through global current_platform/default_platform state. Use `ccr current` for runtime status, `ccr claude profile ...` for Claude profiles, `ccr codex profile ...` for Codex profiles, and `ccr grok profile ...` for Grok profiles."
     ))
 }
+
+pub fn legacy_platform_init_error() -> CcrError {
+    CcrError::ConfigError(
+        "legacy command retired: `ccr platform init` has moved to explicit profile commands. Use `ccr claude profile init`, `ccr codex profile init`, or `ccr grok profile init`."
+            .to_string(),
+    )
+}

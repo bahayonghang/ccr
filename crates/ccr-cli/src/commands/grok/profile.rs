@@ -20,6 +20,11 @@ use comfy_table::{
 };
 use serde::Serialize;
 
+const PROFILE_TEMPLATE: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../examples/grok/profiles.toml"
+));
+
 #[derive(Debug, Serialize)]
 struct GrokProfileSummary {
     name: String,
@@ -64,6 +69,10 @@ struct GrokProfileOffJson {
     changed: bool,
     previous_profile: Option<String>,
     runtime_mode: &'static str,
+}
+
+pub async fn init_command(json: bool) -> Result<()> {
+    crate::commands::platform::platform_profile_init_command("grok", PROFILE_TEMPLATE, json).await
 }
 
 fn profile_string(profile: &ProfileConfig, key: &str) -> Option<String> {

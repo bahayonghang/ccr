@@ -127,7 +127,61 @@ fn legacy_platform_init_grok_remains_parseable_and_returns_migration_error() {
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(stderr.contains("legacy command retired"), "{stderr}");
     assert!(stderr.contains("`ccr platform init`"), "{stderr}");
-    assert!(stderr.contains("`ccr grok profile ...`"), "{stderr}");
+    assert!(stderr.contains("`ccr claude profile init`"), "{stderr}");
+    assert!(stderr.contains("`ccr codex profile init`"), "{stderr}");
+    assert!(stderr.contains("`ccr grok profile init`"), "{stderr}");
+}
+
+#[test]
+fn platform_profile_help_lists_init_for_supported_platforms() {
+    for platform in ["claude", "codex", "grok"] {
+        let stdout = run_help(&[platform, "profile", "--help"]);
+        assert!(
+            stdout
+                .lines()
+                .any(|line| line.trim_start().starts_with("init")),
+            "{platform} profile help does not list init: {stdout}"
+        );
+
+        let direct_help_action = run_help(&[platform, "profile", "help"]);
+        assert_eq!(direct_help_action, stdout);
+
+        let help_command = run_help(&["help", platform, "profile"]);
+        assert_eq!(help_command, stdout);
+    }
+}
+
+#[test]
+fn initialized_ccr_init_output_does_not_recommend_retired_platform_init() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let root = temp_dir.path().join(".ccr");
+    std::fs::create_dir_all(&root).unwrap();
+    std::fs::write(root.join("config.toml"), "[claude]\nenabled = true\n").unwrap();
+
+    let output = Command::new(env!("CARGO_BIN_EXE_ccr"))
+        .arg("init")
+        .env("CCR_ROOT", &root)
+        .env("HOME", temp_dir.path())
+        .env("USERPROFILE", temp_dir.path())
+        .env("NO_COLOR", "1")
+        .env("CLICOLOR", "0")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(!stdout.contains("ccr platform init"), "{stdout}");
+    assert!(stdout.contains("profile init"), "{stdout}");
+}
+
+#[test]
+fn platform_not_found_message_recommends_supported_profile_init_commands() {
+    let message = ccr_core::CcrError::PlatformNotFound("unknown".to_string()).user_message();
+
+    assert!(!message.contains("ccr platform init"), "{message}");
+    assert!(message.contains("ccr claude profile init"), "{message}");
+    assert!(message.contains("ccr codex profile init"), "{message}");
+    assert!(message.contains("ccr grok profile init"), "{message}");
 }
 
 #[test]

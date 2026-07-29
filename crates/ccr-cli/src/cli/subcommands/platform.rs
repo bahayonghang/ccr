@@ -55,10 +55,9 @@ pub enum PlatformAction {
         json: bool,
     },
 
-    /// 初始化平台配置
+    /// 退休的平台注册入口，仅保留旧命令解析兼容
     ///
-    /// 为指定平台创建配置目录结构
-    /// 示例: ccr platform init codex
+    /// 使用 ccr claude/codex/grok profile init 的对应命令
     #[command(hide = true)]
     Init {
         /// 平台名称

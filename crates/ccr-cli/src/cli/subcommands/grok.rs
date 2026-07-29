@@ -26,6 +26,12 @@ pub enum GrokProfileAction {
     /// Show Grok profile command help
     Help,
 
+    /// Initialize the Grok profile directory and example template
+    Init {
+        #[arg(long)]
+        json: bool,
+    },
+
     /// Show the current Grok profile and runtime
     Current {
         #[arg(long)]

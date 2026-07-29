@@ -561,7 +561,10 @@ pub struct CleanBackupsArgs {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
-    use crate::cli::subcommands::{CodexAction, GrokAction, GrokProfileAction, ProjectAction};
+    use crate::cli::subcommands::{
+        ClaudeAction, ClaudeProfileAction, CodexAction, CodexProfileAction, GrokAction,
+        GrokProfileAction, ProjectAction,
+    };
     use clap::Parser;
 
     #[test]
@@ -578,6 +581,35 @@ mod tests {
         assert!(matches!(
             legacy.command,
             Some(Commands::Init { force: true })
+        ));
+    }
+
+    #[test]
+    fn platform_profile_init_json_flags_parse() {
+        let claude = Cli::try_parse_from(["ccr", "claude", "profile", "init", "--json"]).unwrap();
+        assert!(matches!(
+            claude.command,
+            Some(Commands::Claude {
+                action: Some(ClaudeAction::Profile { action })
+            }) if matches!(action.as_ref(), ClaudeProfileAction::Init { json: true })
+        ));
+
+        let codex = Cli::try_parse_from(["ccr", "codex", "profile", "init", "--json"]).unwrap();
+        assert!(matches!(
+            codex.command,
+            Some(Commands::Codex {
+                action: Some(CodexAction::Profile {
+                    action: CodexProfileAction::Init { json: true }
+                })
+            })
+        ));
+
+        let grok = Cli::try_parse_from(["ccr", "grok", "profile", "init", "--json"]).unwrap();
+        assert!(matches!(
+            grok.command,
+            Some(Commands::Grok {
+                action: Some(GrokAction::Profile { action })
+            }) if matches!(action.as_ref(), GrokProfileAction::Init { json: true })
         ));
     }
 

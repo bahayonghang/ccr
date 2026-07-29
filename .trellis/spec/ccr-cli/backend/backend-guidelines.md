@@ -223,8 +223,9 @@ This keeps persistence, apply, diagnostics, and cleanup on the same typed contra
 - Supported discovery actions: `PlatformAction::{Help,List { json }}`.
 - Compatibility-only actions:
   `PlatformAction::{Switch,Current,Info,Init,Profile}`.
-- Compatibility error:
-  `legacy_platform_command_error(command: &str) -> CcrError`.
+- Compatibility errors:
+  `legacy_platform_command_error(command: &str) -> CcrError` and the dedicated
+  `legacy_platform_init_error() -> CcrError`.
 - Current profile entry points: `ccr claude profile ...`,
   `ccr codex profile ...`, and `ccr grok profile ...`.
 
@@ -247,7 +248,8 @@ This keeps persistence, apply, diagnostics, and cleanup on the same typed contra
 - `ccr platform --help` or `ccr help platform` -> success with identical,
   migration-safe help.
 - Valid retired invocation such as `ccr platform init grok` -> non-zero
-  `legacy command retired` error containing `ccr grok profile ...` guidance.
+  `legacy command retired` error containing all three supported
+  `ccr <platform> profile init` replacements.
 - Retired action with malformed/missing arguments -> normal Clap argument
   error; do not initialize or mutate platform state.
 - Unknown platform subcommand -> normal Clap unknown-subcommand error.
@@ -297,7 +299,8 @@ pub enum PlatformAction {
 }
 ```
 
-The dispatcher then keeps returning `legacy_platform_command_error("init")`.
+The dispatcher then returns `legacy_platform_init_error()` for init and the
+shared compatibility error for the other retired actions.
 
 ## Testing
 

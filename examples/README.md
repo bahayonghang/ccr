@@ -1,6 +1,6 @@
 # CCR 配置示例（Unified）
 
-本目录提供 CCR（Claude Code Configuration Switcher）Unified 模式的示例平台配置，适用于 Claude、Codex CLI、Gemini CLI。将对应文件复制到 `~/.ccr/platforms/<platform>/profiles.toml` 后按需修改即可。
+本目录提供 CCR（Claude Code Configuration Switcher）Unified 模式的示例平台配置，适用于 Claude、Codex CLI、Grok、Gemini CLI 和 Droid。Claude、Codex 与 Grok 可通过各自的 `profile init` 命令安装模板；其余平台可手工复制对应文件。
 
 ## 📁 内容一览
 
@@ -12,8 +12,12 @@ examples/
 │   └── profiles.toml             # 旧文件（历史遗留，可能包含非 UTF-8 内容）
 ├── codex/
 │   └── profiles.toml             # Codex CLI 平台示例
-└── gemini/
-    └── profiles.toml             # Gemini CLI 平台示例
+├── droid/
+│   └── profiles.toml             # Droid 平台示例
+├── gemini/
+│   └── profiles.toml             # Gemini CLI 平台示例
+└── grok/
+    └── profiles.toml             # Grok 平台示例
 ```
 
 > 说明：当前仓库已移除 Legacy 模式示例（如 `.ccs_config.toml.example`、`auto_confirm_config.toml` 等），仅保留 Unified 平台配置示例。
@@ -22,28 +26,34 @@ examples/
 
 ```bash
 # Claude 平台
-ccr platform init claude
-cp examples/claude/profiles.example.toml ~/.ccr/platforms/claude/profiles.toml
+ccr claude profile init
 vim ~/.ccr/platforms/claude/profiles.toml
 
-# Gemini 平台
-ccr platform init gemini
-cp examples/gemini/profiles.toml ~/.ccr/platforms/gemini/profiles.toml
-
 # Codex CLI 平台
-ccr platform init codex
-cp examples/codex/profiles.toml ~/.ccr/platforms/codex/profiles.toml
+ccr codex profile init
+vim ~/.ccr/platforms/codex/profiles.toml
+
+# Grok 平台
+ccr grok profile init
+vim ~/.ccr/platforms/grok/profiles.toml
+
+# Gemini / Droid 当前通过 profile create 自动创建目录，或手工复制示例
+mkdir -p ~/.ccr/platforms/gemini ~/.ccr/platforms/droid
+cp examples/gemini/profiles.toml ~/.ccr/platforms/gemini/profiles.toml
+cp examples/droid/profiles.toml ~/.ccr/platforms/droid/profiles.toml
 
 # 切换/查看
-ccr platform switch claude
-ccr list
+ccr claude profile list
+ccr claude profile switch <name>
 ```
 
 ## 🗂️ 示例文件解读
 
 - `claude/profiles.toml`：Anthropic 官方、转发服务、第三方兼容、开发/测试、禁用示例。
 - `codex/profiles.toml`：OpenAI Codex 官方、中转站、自定义模板示例。
+- `grok/profiles.toml`：Grok 官方会话与使用环境变量凭据的中转站示例。
 - `gemini/profiles.toml`：Google Gemini 官方、Gemini Pro、开发/测试、禁用示例。
+- `droid/profiles.toml`：Factory Droid 平台示例。
 - `codex/config.example.toml` / `codex/auth.example.json`：Codex CLI（`~/.codex/`）的示例配置（与 CCR profiles 独立）。
 
 ## 🔑 常用字段

@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/ccr-cli/backend/grok-profile-runtime.md", "reason": "Grok profile 命令契约与示例安全规范（copy-ready 示例只用 example.com + env_key、inline secret 仅作披露说明、退休命令迁移错误路径）——examples/grok 模板与 init 命令必须遵守"}
+{"file": ".trellis/spec/ccr-cli/backend/backend-guidelines.md", "reason": "ccr-cli 层命令面/dispatch/输出风格规范，新增 Init variant 与 profile_init 模块需对齐"}
+{"file": ".trellis/spec/ccr-config/backend/backend-guidelines.md", "reason": "注册表 RMW 持锁契约与 guarded write 持久化策略所在层的规范，register_platform_if_missing 与 profiles.toml 写入需对齐"}
+{"file": ".trellis/tasks/07-29-profile-init-command/research/codex-review-verification.md", "reason": "Codex 审阅 6 项 P1 的逐条源码校验结论与已采纳的修正方向（guarded versioned write、加锁注册、安全未激活模板、grok 镜像同步、ccr-core 文案、清单填充）"}

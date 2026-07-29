@@ -25,16 +25,13 @@ This directory contains copy-ready CCR configuration examples, including Codex-f
 ## Quick Start (Codex)
 
 ```bash
-# 1) Initialize and switch to Codex platform
-ccr platform init codex
-ccr platform switch codex
+# 1) Initialize the Codex profiles template
+ccr codex profile init
 
-# 2) Copy Codex profile examples
-cp docs/examples/codex-profiles.toml ~/.ccr/platforms/codex/profiles.toml
-
-# 3) Validate and switch
+# 2) Edit, validate, and switch
+vim ~/.ccr/platforms/codex/profiles.toml
 ccr validate
-ccr switch duckcoding
+ccr codex profile switch duckcoding
 ```
 
 ## Notes

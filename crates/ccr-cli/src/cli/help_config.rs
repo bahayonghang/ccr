@@ -126,6 +126,9 @@ const PLATFORM_AFTER_LONG_HELP: &str = "\
   查看当前运行状态
     ccr current
 
+  初始化平台 Profile 目录
+    ccr <claude|codex|grok> profile init
+
   管理 Claude Profile
     ccr claude profile --help
 

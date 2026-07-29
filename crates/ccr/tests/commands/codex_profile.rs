@@ -164,6 +164,42 @@ requires_openai_auth = true
 }
 
 #[test]
+fn codex_profile_init_is_inactive_idempotent_and_preserves_runtime() {
+    let fixture = CodexProfileFixture::new();
+    let runtime_path = fixture.codex_dir.join("config.toml");
+    let runtime_before = b"model = \"gpt-existing\"\n";
+    fs::write(&runtime_path, runtime_before).unwrap();
+    let profiles_path = fixture
+        .root
+        .join("platforms")
+        .join("codex")
+        .join("profiles.toml");
+
+    let first = fixture.run_output(&["codex", "profile", "init"]);
+    assert!(first.status.success(), "{:?}", first.status);
+    let profiles_before = fs::read(&profiles_path).unwrap();
+    assert_eq!(
+        profiles_before,
+        include_bytes!("../../../../examples/codex/profiles.toml")
+    );
+    assert_eq!(fs::read(&runtime_path).unwrap(), runtime_before);
+
+    let registry = PlatformConfigManager::new(fixture.root.join("config.toml"))
+        .load()
+        .unwrap();
+    assert_eq!(
+        registry.get_platform("codex").unwrap().current_profile,
+        None
+    );
+
+    let second = fixture.run_output(&["codex", "profile", "init"]);
+    assert!(second.status.success(), "{:?}", second.status);
+    assert!(String::from_utf8_lossy(&second.stdout).contains("已存在"));
+    assert_eq!(fs::read(&profiles_path).unwrap(), profiles_before);
+    assert_eq!(fs::read(&runtime_path).unwrap(), runtime_before);
+}
+
+#[test]
 fn codex_profile_list_json_reports_current_profile() {
     let fixture = CodexProfileFixture::new();
     fixture.write_unified_codex_profile(Some("team"));

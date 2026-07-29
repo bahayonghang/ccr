@@ -25,16 +25,13 @@
 ## 快速使用（Codex）
 
 ```bash
-# 1) 初始化并切到 Codex 平台
-ccr platform init codex
-ccr platform switch codex
+# 1) 初始化 Codex profiles 模板
+ccr codex profile init
 
-# 2) 复制示例 profiles
-cp docs/examples/codex-profiles.toml ~/.ccr/platforms/codex/profiles.toml
-
-# 3) 校验并切换
+# 2) 编辑、校验并切换
+vim ~/.ccr/platforms/codex/profiles.toml
 ccr validate
-ccr switch duckcoding
+ccr codex profile switch duckcoding
 ```
 
 ## 说明

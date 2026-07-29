@@ -126,8 +126,9 @@ ccr init
 ccr platform list
 
 # 初始化其他平台
-ccr platform init codex
-ccr platform init gemini
+ccr claude profile init
+ccr codex profile init
+ccr grok profile init
 
 # 强制覆盖（会自动备份）
 ccr init --force
@@ -188,7 +189,7 @@ model = "claude-sonnet-4-5-20250929"
 ### Unified Mode 初始化后
 
 1. 查看所有平台：`ccr platform list`
-2. 初始化其他平台：`ccr platform init <platform>`
+2. 初始化平台 profiles 模板：运行上文对应平台的 `profile init` 命令
 3. 添加配置 profile：`ccr add`
 4. 查看配置列表：`ccr list`
 5. 如果仍保留旧单文件配置，把它当参考源并逐步搬到当前目录布局
@@ -202,7 +203,7 @@ model = "claude-sonnet-4-5-20250929"
 
 ## 相关命令
 
-- [platform init](../commands/platform#init) - 初始化特定平台
+- [platform](../commands/platform) - 查看退休命令的迁移映射
 - [platform list](../commands/platform#list) - 查看所有平台
 - [platform switch](../commands/platform#switch) - 切换平台
 - [list](./list) - 查看所有配置

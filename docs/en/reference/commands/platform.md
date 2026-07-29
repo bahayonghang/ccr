@@ -30,6 +30,9 @@ These subcommands now return migration guidance instead of acting as the main pa
 | `ccr platform switch codex` | `ccr codex profile switch <name>` or `ccr codex auth ...` |
 | `ccr platform switch grok` | `ccr grok profile switch <name>` |
 | `ccr platform current` | `ccr current` |
+| `ccr platform init claude` | `ccr claude profile init` |
+| `ccr platform init codex` | `ccr codex profile init` |
+| `ccr platform init grok` | `ccr grok profile init` |
 | `ccr platform profile create claude ...` | `ccr claude profile create ...` |
 | `ccr platform profile create codex ...` | `ccr codex profile create ...` |
 | `ccr platform profile create grok ...` | `ccr grok profile create ...` |

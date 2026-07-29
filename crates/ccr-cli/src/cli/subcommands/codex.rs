@@ -151,6 +151,13 @@ pub enum CodexProfileAction {
     /// 显示 Codex Profile 命令帮助
     Help,
 
+    /// Initialize the Codex profile directory and example template
+    Init {
+        /// 以 JSON 格式输出
+        #[arg(long)]
+        json: bool,
+    },
+
     /// 显示当前 Codex profile/runtime 状态
     Current {
         /// 以 JSON 格式输出
