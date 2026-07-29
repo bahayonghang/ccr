@@ -663,3 +663,24 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 72: 完成 Claude 自定义配置目录统一
+
+**Date**: 2026-07-29
+**Task**: 完成 Claude 自定义配置目录统一
+**Branch**: `dev`
+
+### Summary
+
+在 ccr-config 建立 ClaudeRuntimePaths 单一解析契约，统一 CLI 与 Tauri 的 settings、credentials、state 和 backups 路径，补齐 Windows/空覆盖值及跨消费者回归测试；严格 lint、workspace tests、前端快速门禁与独立检查通过。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b53f7c11` | (see git log) |
+
+### Status
+
+[OK] **Completed**
