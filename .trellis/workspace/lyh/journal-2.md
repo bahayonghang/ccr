@@ -621,3 +621,24 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 70: 完成 Grok Profile 解析诊断与推理强度支持
+
+**Date**: 2026-07-29
+**Task**: 完成 Grok Profile 解析诊断与推理强度支持
+**Branch**: `dev`
+
+### Summary
+
+改进 profiles.toml 安全解析诊断与 TUI 错误布局，仅为 Grok 增加 reasoning_effort 的创建、持久化、运行时映射和恢复，并补齐测试、文档与规范。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `a60ab8ac` | (see git log) |
+
+### Status
+
+[OK] **Completed**
