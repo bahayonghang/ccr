@@ -785,3 +785,24 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 77: Codex Profiles 页面接入共享层
+
+**Date**: 2026-07-30
+**Task**: Codex Profiles 页面接入共享层
+**Branch**: `dev`
+
+### Summary
+
+把 CodexProfilesView 切到 profiles 共享组件契约，与 Claude 页骨架同构（四槽 StatStrip + 钉选 QuickRail + Filters 弹层 + Inspector 预览 + diff 确认框 + 内联错误三态）。修正 env_key 序列化契约：原来的清理职责藏在 syncDerivedAuthFields 里、builder 却无条件发送，现改为仅 provider_env_key 模式序列化；requires_openai_auth / openai_login_method 从表单删除、改由 auth_mode 推导。编辑器模态删掉 247 行 --editor-* 平行令牌体系接共享 pe-* 基底并新增校验汇总条；新增 utils/codexProfiles.ts 收敛展示策略。新增 spec profiles-page-contracts.md。截图走查未做（缺 Tauri 运行态）。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `bb0e899f` | (see git log) |
+
+### Status
+
+[OK] **Completed**
