@@ -1,196 +1,191 @@
+<!-- Claude Profile 卡片：密排信息卡（名称 + 状态 + provider 色点 + 关键字段）。
+     统一消费视图注入的 --cp-* 令牌，不再按 provider 给整卡染色；
+     主操作固定为 Apply，编辑/删除收进角落 ··· 菜单（保留 aria-label）。 -->
 <template>
   <article
-    class="relative overflow-hidden rounded-xl border bg-bg-elevated px-4 py-3.5 shadow-[0_14px_24px_rgba(0,0,0,0.08)] transition-[border-color,transform,box-shadow,background-color] duration-200 hover:-translate-y-0.5 hover:border-border-strong hover:shadow-[0_18px_30px_rgba(0,0,0,0.1)]"
-    :class="profile.is_current
-      ? 'border-transparent'
-      : 'border-border-default/65'"
-    :style="profile.is_current ? currentCardStyle : {}"
+    class="cp-card surface-status"
+    :class="{
+      'cp-card--active': profile.is_current,
+      'cp-card--off': !isEnabled,
+    }"
   >
-    <!-- 左侧状态条 -->
-    <div
-      class="absolute bottom-3 left-0 top-3 w-1 rounded-full transition-all duration-300"
-      :class="statusBarClass"
-      :style="profile.is_current ? { backgroundColor: `rgb(var(${providerColor.rgbVar}))`, boxShadow: `0 0 12px rgb(var(${providerColor.rgbVar}) / 0.45)` } : {}"
-    />
+    <div class="cp-card__head">
+      <span
+        class="cp-card__dot"
+        :class="{ 'cp-card__dot--good': profile.is_current }"
+      />
+      <!-- eslint-disable vue/no-v-html -- highlightedName 由 claudeProfiles 转义后仅注入 <mark> -->
+      <h3
+        class="cp-card__name"
+        :title="profile.name"
+        v-html="highlightedName"
+      />
+      <!-- eslint-enable vue/no-v-html -->
 
-    <div class="flex flex-col gap-3">
-      <div class="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
-        <div class="min-w-0 space-y-2 pl-1">
-          <div class="flex flex-wrap items-center gap-2">
-            <!-- eslint-disable vue/no-v-html -- highlightedName 由 claudeProfiles 转义后仅注入 <mark> -->
-            <h3
-              class="max-w-full truncate text-[1.12rem] font-semibold tracking-tight text-text-primary"
-              :title="profile.name"
-              v-html="highlightedName"
+      <span
+        class="cp-card__state"
+        :class="stateClass"
+      >{{ stateLabel }}</span>
+
+      <span
+        class="cp-card__provider"
+        :title="providerLabel"
+      >
+        <span
+          class="cp-card__provider-dot"
+          :style="{ background: `rgb(var(${providerColor.rgbVar}))` }"
+        />
+        {{ providerLabel }}
+      </span>
+
+      <div class="cp-card__actions">
+        <button
+          v-if="!profile.is_current"
+          type="button"
+          class="cp-card__apply"
+          :disabled="disabled || !isEnabled"
+          :title="t('claudeProfiles.applyProfile')"
+          @click="emit('apply')"
+        >
+          <SIcon
+            :name="busyAction === 'apply' ? 'RefreshCw' : 'Play'"
+            size="w-3 h-3"
+            :class="{ 'cp-card__spin': busyAction === 'apply' }"
+          />
+          {{ t('claudeProfiles.applyProfile') }}
+        </button>
+        <span
+          v-else
+          class="cp-card__current"
+        >
+          <span class="cp-card__current-dot" />
+          {{ currentStatusLabel }}
+        </span>
+
+        <div class="cp-card__menu">
+          <button
+            ref="menuBtnRef"
+            type="button"
+            class="cp-card__icon-btn"
+            :disabled="disabled"
+            :aria-expanded="menuOpen"
+            aria-haspopup="menu"
+            :aria-label="t('claudeProfiles.overflowMenu')"
+            :title="t('claudeProfiles.overflowMenu')"
+            @click="toggleMenu"
+          >
+            <SIcon
+              name="MenuDots"
+              size="w-3.5 h-3.5"
             />
-            <!-- eslint-enable vue/no-v-html -->
+          </button>
 
-            <span
-              class="inline-flex min-h-[26px] items-center rounded-full px-2.5 py-1 text-[11px] font-medium"
-              :class="stateBadgeClass"
+          <div
+            v-if="menuOpen"
+            ref="menuPopRef"
+            class="cp-card__menu-pop"
+            role="menu"
+            :aria-label="t('claudeProfiles.overflowMenu')"
+            @keydown="onMenuKeydown"
+          >
+            <button
+              type="button"
+              role="menuitem"
+              class="cp-card__menu-item"
+              @click="onMenuItem('edit')"
             >
-              {{ stateLabel }}
-            </span>
-
-            <span
-              class="inline-flex min-h-[26px] items-center gap-1.5 rounded-full border border-border-default/50 bg-bg-elevated px-2.5 py-1 text-[11px]"
-              :style="{ color: `rgb(var(${providerColor.rgbVar}))` }"
-            >
-              <span
-                class="h-1.5 w-1.5 rounded-full"
-                :style="{ backgroundColor: `rgb(var(${providerColor.rgbVar}))` }"
+              <SIcon
+                name="Pencil"
+                size="w-3.5 h-3.5"
               />
-              {{ providerLabelValue }}
-            </span>
-
-            <span
-              v-if="profile.provider_type"
-              class="inline-flex min-h-[26px] items-center rounded-full border border-border-default/40 bg-bg-surface px-2.5 py-1 text-[11px] text-text-muted"
+              <span>{{ t('claudeProfiles.editTooltip') }}</span>
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              class="cp-card__menu-item cp-card__menu-item--danger"
+              @click="onMenuItem('delete')"
             >
-              {{ profile.provider_type }}
-            </span>
-
-            <span
-              v-for="tag in compactTags"
-              :key="tag"
-              class="inline-flex min-h-[24px] items-center rounded-full border border-accent-secondary/15 bg-accent-secondary/6 px-2 py-0.5 text-[11px] text-accent-secondary/85"
-            >
-              <span class="opacity-50">#</span>{{ tag }}
-            </span>
+              <SIcon
+                :name="busyAction === 'delete' ? 'RefreshCw' : 'Trash2'"
+                size="w-3.5 h-3.5"
+                :class="{ 'cp-card__spin': busyAction === 'delete' }"
+              />
+              <span>{{ t('claudeProfiles.deleteTooltip') }}</span>
+            </button>
           </div>
         </div>
-
-        <div class="flex shrink-0 items-center gap-2 self-start">
-          <span
-            v-if="profile.is_current"
-            class="inline-flex min-h-[36px] items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-medium"
-            :style="{
-              backgroundColor: `rgb(var(${providerColor.rgbVar}) / 0.1)`,
-              color: `rgb(var(${providerColor.rgbVar}))`,
-            }"
-          >
-            <span class="relative flex h-2 w-2">
-              <span
-                class="absolute inline-flex h-full w-full rounded-full opacity-60 animate-ping"
-                :style="{ backgroundColor: `rgb(var(${providerColor.rgbVar}))` }"
-              />
-              <span
-                class="relative inline-flex h-2 w-2 rounded-full"
-                :style="{ backgroundColor: `rgb(var(${providerColor.rgbVar}))` }"
-              />
-            </span>
-            {{ currentStatusLabel }}
-          </span>
-          <button
-            v-else
-            type="button"
-            :disabled="profile.enabled === false"
-            class="inline-flex h-7 items-center justify-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium transition-all duration-200 hover:shadow-md active:scale-[0.97] focus:outline-none focus:ring-2 focus:ring-offset-1"
-            :class="profile.enabled === false ? 'cursor-not-allowed opacity-55 hover:shadow-none active:scale-100' : ''"
-            :style="{
-              background: `linear-gradient(to bottom, rgb(var(${providerColor.rgbVar}) / 0.14), rgb(var(${providerColor.rgbVar}) / 0.08))`,
-              borderColor: `rgb(var(${providerColor.rgbVar}) / 0.28)`,
-              color: `rgb(var(${providerColor.rgbVar}))`,
-              '--tw-ring-color': `rgb(var(${providerColor.rgbVar}) / 0.2)`,
-            }"
-            @click="$emit('apply')"
-          >
-            <SIcon
-              name="Play"
-              size="w-3 h-3"
-            />
-            {{ $t('claudeProfiles.applyProfile') }}
-          </button>
-
-          <button
-            type="button"
-            class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border-default/50 bg-bg-surface text-text-secondary transition-colors hover:border-border-default hover:bg-bg-elevated hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-secondary/20"
-            :title="$t('claudeProfiles.editTooltip')"
-            @click="$emit('edit')"
-          >
-            <SIcon
-              name="Pencil"
-              size="w-4 h-4"
-            />
-          </button>
-
-          <button
-            type="button"
-            class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border-default/50 bg-bg-surface text-text-secondary transition-colors hover:border-accent-danger/30 hover:bg-accent-danger/10 hover:text-accent-danger focus:outline-none focus:ring-2 focus:ring-accent-danger/20"
-            :title="$t('claudeProfiles.deleteTooltip')"
-            @click="$emit('delete')"
-          >
-            <SIcon
-              name="Trash2"
-              size="w-4 h-4"
-            />
-          </button>
-        </div>
       </div>
+    </div>
 
-      <div class="grid gap-x-4 gap-y-2 border-t border-border-default/35 pt-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1.45fr)_repeat(4,minmax(0,0.9fr))]">
-        <div
-          class="min-w-0 md:col-span-2 xl:col-span-1"
-        >
-          <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-text-muted">
-            {{ $t('claudeProfiles.descLabel') }}
-          </p>
-          <!-- eslint-disable vue/no-v-html -- highlightedDescription 由 claudeProfiles 转义后仅注入 <mark> -->
-          <p
-            class="mt-1 line-clamp-2 text-sm leading-5"
-            :class="profile.description ? 'text-text-secondary' : 'text-text-muted'"
-            v-html="highlightedDescription"
-          />
-          <!-- eslint-enable vue/no-v-html -->
-        </div>
+    <!-- eslint-disable vue/no-v-html -- highlightedDescription 由 claudeProfiles 转义后仅注入 <mark> -->
+    <p
+      class="cp-card__desc"
+      v-html="highlightedDescription"
+    />
+    <!-- eslint-enable vue/no-v-html -->
 
-        <div
-          v-for="item in detailItems"
-          :key="item.label"
-          class="min-w-0"
+    <dl class="cp-card__fields">
+      <div
+        v-for="field in fields"
+        :key="field.label"
+        class="cp-card__field"
+      >
+        <dt class="cp-card__field-label">
+          {{ field.label }}
+        </dt>
+        <dd
+          class="cp-card__field-value"
+          :class="{ 'cp-card__field-value--accent': field.accent }"
+          :title="field.title ?? field.value"
         >
-          <dt class="text-[11px] font-semibold uppercase tracking-[0.2em] text-text-muted">
-            {{ item.label }}
-          </dt>
-          <dd
-            class="mt-1 truncate text-sm"
-            :class="item.mono ? 'font-mono text-[13px]' : ''"
-            :title="item.fullValue"
-          >
-            <template v-if="item.type === 'url'">
-              <span class="text-text-primary">{{ truncateMiddle(item.value, 22, 14) }}</span>
-            </template>
-            <template v-else-if="item.type === 'model' && item.value !== $t('claudeProfiles.notSet')">
-              <span
-                class="font-medium"
-                :style="{ color: `rgb(var(${providerColor.rgbVar}))` }"
-              >{{ item.value }}</span>
-            </template>
-            <template v-else>
-              <span class="text-text-primary">{{ item.value }}</span>
-            </template>
-          </dd>
-        </div>
+          {{ field.value }}
+        </dd>
       </div>
+    </dl>
+
+    <div
+      v-if="tagList.length > 0"
+      class="cp-card__tags"
+    >
+      <span
+        v-for="tag in tagList"
+        :key="tag"
+        class="cp-card__tag"
+      >#{{ tag }}</span>
     </div>
   </article>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SIcon from '@/components/ui/SIcon.vue'
 import type { ClaudeProfile } from '@/types'
-import { highlightSearchMatch, type ProviderColorConfig } from '@/utils/claudeProfiles'
-import { truncateMiddle } from '@/utils/text'
+import {
+  claudeAuthModeLabel,
+  formatClaudeBaseUrlDisplay,
+  highlightSearchMatch,
+  resolveClaudePrimaryModel,
+  resolveClaudeDisplayBaseUrl,
+  resolveProviderColor,
+} from '@/utils/claudeProfiles'
 
-const props = defineProps<{
+interface Props {
   profile: ClaudeProfile
-  providerColor: ProviderColorConfig
   searchQuery?: string
-}>()
+  disabled?: boolean
+  /** 进行中的操作，驱动图标转圈 */
+  busyAction?: 'apply' | 'delete' | null
+}
 
-defineEmits<{
+const props = withDefaults(defineProps<Props>(), {
+  searchQuery: '',
+  disabled: false,
+  busyAction: null,
+})
+
+const emit = defineEmits<{
   edit: []
   delete: []
   apply: []
@@ -198,123 +193,434 @@ defineEmits<{
 
 const { t } = useI18n()
 
-const displayValue = (value?: string | null): string => value?.trim() || t('claudeProfiles.notSet')
+const isEnabled = computed(() => props.profile.enabled !== false)
+const tagList = computed(() => props.profile.tags ?? [])
 
-const providerLabelValue = computed(() => displayValue(props.profile.provider || t('claudeProfiles.providerUnset')))
+// provider 只用色点弱表达，不再按 provider 给整卡/按钮染色
+const providerColor = computed(() => resolveProviderColor(props.profile.provider))
+const providerLabel = computed(
+  () => props.profile.provider?.trim() || t('claudeProfiles.providerUnset'),
+)
 
 const stateLabel = computed(() => {
   if (props.profile.is_current) {
-    return props.profile.enabled === false
-      ? t('claudeProfiles.currentDisabled')
-      : t('claudeProfiles.currentBadge')
+    return isEnabled.value
+      ? t('claudeProfiles.currentBadge')
+      : t('claudeProfiles.currentDisabled')
   }
-  return props.profile.enabled !== false ? t('claudeProfiles.enabledText') : t('claudeProfiles.disabledText')
+  return isEnabled.value ? t('claudeProfiles.enabledText') : t('claudeProfiles.disabledText')
 })
 
-const stateBadgeClass = computed(() => {
-  if (props.profile.is_current) {
-    return props.profile.enabled === false
-      ? 'border border-accent-danger/24 bg-accent-danger/10 text-accent-danger'
-      : 'border border-accent-secondary/24 bg-accent-secondary/10 text-accent-secondary'
-  }
-  return props.profile.enabled !== false
-    ? 'bg-accent-success/10 text-accent-success'
-    : 'bg-accent-danger/10 text-accent-danger'
-})
+const stateClass = computed(() =>
+  isEnabled.value ? 'cp-card__state--on' : 'cp-card__state--off',
+)
 
-const currentStatusLabel = computed(() => (
-  props.profile.enabled === false
-    ? t('claudeProfiles.currentDisabled')
-    : t('claudeProfiles.currentlyActive')
-))
+const currentStatusLabel = computed(() =>
+  isEnabled.value ? t('claudeProfiles.currentlyActive') : t('claudeProfiles.currentDisabled'),
+)
 
-// 左侧状态条样式 (非 current 使用 class, current 使用 inline style)
-const statusBarClass = computed(() => {
-  if (props.profile.is_current) return '' // current 由 :style 控制
-  return props.profile.enabled !== false ? 'bg-accent-success/55' : 'bg-accent-danger/55'
-})
-
-// 当前 profile 卡片的动态样式
-const currentCardStyle = computed(() => ({
-  borderColor: `rgb(var(${props.providerColor.rgbVar}) / 0.3)`,
-  backgroundColor: `rgb(var(${props.providerColor.rgbVar}) / 0.03)`,
-  boxShadow: `0 18px 38px rgb(var(${props.providerColor.rgbVar}) / 0.1)`,
-}))
-
-// 搜索高亮
 const highlightedName = computed(() =>
-  highlightSearchMatch(props.profile.name, props.searchQuery || ''),
+  highlightSearchMatch(props.profile.name, props.searchQuery),
 )
 
 const highlightedDescription = computed(() =>
   highlightSearchMatch(
     props.profile.description || t('claudeProfiles.descriptionFallback'),
-    props.searchQuery || '',
+    props.searchQuery,
   ),
 )
 
-const compactTags = computed(() => props.profile.tags ?? [])
-
-// 详情字段
-interface DetailItem {
+interface CardField {
   label: string
   value: string
-  fullValue: string
-  mono: boolean
-  type: 'url' | 'model' | 'text'
+  title?: string
+  accent?: boolean
 }
 
-const detailItems = computed<DetailItem[]>(() => {
-  const baseUrlValue = displayValue(props.profile.base_url)
-  const items: DetailItem[] = [
+const fields = computed<CardField[]>(() => {
+  const fullBaseUrl = resolveClaudeDisplayBaseUrl(props.profile, t)
+  const items: CardField[] = [
     {
-      label: t('claudeProfiles.baseUrlLabel'),
-      value: baseUrlValue,
-      fullValue: baseUrlValue,
-      mono: true,
-      type: 'url',
+      label: t('claudeProfiles.fields.baseUrl'),
+      value: formatClaudeBaseUrlDisplay(fullBaseUrl),
+      title: fullBaseUrl,
+    },
+    {
+      label: t('claudeProfiles.fields.model'),
+      value: resolveClaudePrimaryModel(props.profile),
+      accent: true,
+    },
+    {
+      label: t('claudeProfiles.fields.authMode'),
+      value: claudeAuthModeLabel(t, props.profile.auth_mode),
     },
   ]
 
-  const advancedFields: Array<{ value: string | null | undefined, label: string }> = [
-    { value: props.profile.default_opus_model, label: t('claudeProfiles.defaultOpusModelLabel') },
-    { value: props.profile.default_sonnet_model, label: t('claudeProfiles.defaultSonnetModelLabel') },
-    { value: props.profile.default_haiku_model, label: t('claudeProfiles.defaultHaikuModelLabel') },
-    { value: props.profile.subagent_model, label: t('claudeProfiles.subagentModelLabel') },
-  ]
-
-  for (const field of advancedFields) {
-    if (field.value?.trim()) {
-      items.push({
-        label: field.label,
-        value: field.value,
-        fullValue: field.value,
-        mono: true,
-        type: 'model',
-      })
-    }
-  }
-
-  if (props.profile.effort_level?.trim()) {
-    items.push({
-      label: t('claudeProfiles.effortLevelLabel'),
-      value: props.profile.effort_level,
-      fullValue: props.profile.effort_level,
-      mono: true,
-      type: 'text',
-    })
-  }
-
   if (props.profile.account?.trim()) {
-    items.push({
-      label: t('claudeProfiles.accountLabel'),
-      value: props.profile.account,
-      fullValue: props.profile.account,
-      mono: false,
-      type: 'text',
-    })
+    items.push({ label: t('claudeProfiles.accountLabel'), value: props.profile.account.trim() })
   }
 
   return items
 })
+
+/* ========================================================================
+ * 角落 ··· 菜单：Esc 关闭并还焦触发按钮；外部点击关闭；选中即关闭。
+ * ======================================================================== */
+
+const menuOpen = ref(false)
+const menuBtnRef = ref<HTMLButtonElement | null>(null)
+const menuPopRef = ref<HTMLElement | null>(null)
+
+const menuItems = () =>
+  Array.from(menuPopRef.value?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [])
+
+const closeMenu = (restoreFocus: boolean) => {
+  if (!menuOpen.value) return
+  menuOpen.value = false
+  if (restoreFocus) menuBtnRef.value?.focus()
+}
+
+const toggleMenu = async () => {
+  menuOpen.value = !menuOpen.value
+  if (menuOpen.value) {
+    await nextTick()
+    menuItems()[0]?.focus()
+  }
+}
+
+const onMenuKeydown = (event: KeyboardEvent) => {
+  const items = menuItems()
+  if (event.key === 'Escape') {
+    event.preventDefault()
+    event.stopPropagation()
+    closeMenu(true)
+    return
+  }
+  if (items.length === 0) return
+  const idx = items.indexOf(document.activeElement as HTMLElement)
+  if (event.key === 'ArrowDown') {
+    event.preventDefault()
+    items[(idx + 1) % items.length]?.focus()
+  } else if (event.key === 'ArrowUp') {
+    event.preventDefault()
+    items[(idx - 1 + items.length) % items.length]?.focus()
+  }
+}
+
+const onDocumentPointerDown = (event: MouseEvent) => {
+  if (!menuOpen.value) return
+  const target = event.target as Node
+  if (menuPopRef.value?.contains(target)) return
+  if (menuBtnRef.value?.contains(target)) return
+  closeMenu(false)
+}
+
+watch(menuOpen, (open) => {
+  if (open) document.addEventListener('mousedown', onDocumentPointerDown)
+  else document.removeEventListener('mousedown', onDocumentPointerDown)
+})
+
+onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentPointerDown))
+
+const onMenuItem = (action: 'edit' | 'delete') => {
+  if (action === 'edit') emit('edit')
+  else emit('delete')
+  closeMenu(true)
+}
 </script>
+
+<style scoped>
+.cp-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem 0.875rem;
+
+  /* 背景/边框由 surface-status 工具类提供 */
+  border-radius: 12px;
+  color: var(--cp-ink-1);
+}
+
+.cp-card--active {
+  border-left: 2px solid var(--cp-accent);
+}
+
+.cp-card--off {
+  opacity: 0.6;
+}
+
+.cp-card__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.cp-card__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--cp-ink-4);
+}
+
+.cp-card__dot--good {
+  background: var(--cp-good);
+}
+
+.cp-card__name {
+  margin: 0;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--cp-mono);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--cp-ink-0);
+}
+
+.cp-card__state {
+  flex-shrink: 0;
+  padding: 0.0625rem 0.4375rem;
+  border-radius: 999px;
+  border: 1px solid var(--cp-line-2);
+  font-size: 0.75rem;
+}
+
+.cp-card__state--on {
+  color: var(--cp-ink-2);
+}
+
+.cp-card__state--off {
+  color: var(--cp-danger);
+  border-color: rgb(var(--color-danger-rgb) / 30%);
+}
+
+.cp-card__provider {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3125rem;
+  flex-shrink: 0;
+  max-width: 10rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--cp-ink-3);
+  font-size: 0.75rem;
+}
+
+.cp-card__provider-dot {
+  width: 0.375rem;
+  height: 0.375rem;
+  flex-shrink: 0;
+  border-radius: 999px;
+}
+
+.cp-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin-left: auto;
+}
+
+.cp-card__apply {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3125rem;
+  padding: 0.25rem 0.5625rem;
+  border-radius: 6px;
+  border: 1px solid var(--cp-accent-line);
+  background: var(--cp-accent-soft);
+  color: var(--cp-accent);
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.cp-card__apply:hover:not(:disabled) {
+  background: var(--cp-accent);
+  color: var(--cp-on-accent);
+}
+
+.cp-card__apply:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cp-card__current {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3125rem;
+  padding: 0.25rem 0.5625rem;
+  border-radius: 6px;
+  color: var(--cp-good);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.cp-card__current-dot {
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 999px;
+  background: var(--cp-good);
+}
+
+.cp-card__icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--cp-ink-3);
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+
+.cp-card__icon-btn:hover:not(:disabled) {
+  background: var(--cp-bg-3);
+  border-color: var(--cp-line-2);
+  color: var(--cp-ink-0);
+}
+
+.cp-card__icon-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cp-card__menu {
+  position: relative;
+}
+
+.cp-card__menu-pop {
+  position: absolute;
+  top: calc(100% + 0.25rem);
+  right: 0;
+  z-index: 20;
+  min-width: 8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  padding: 0.25rem;
+  border-radius: 8px;
+  border: 1px solid var(--cp-line-2);
+  background: var(--cp-bg-1);
+  box-shadow: 0 12px 24px rgb(0 0 0 / 12%);
+}
+
+.cp-card__menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.375rem 0.5rem;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--cp-ink-1);
+  font-family: inherit;
+  font-size: 0.8125rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cp-card__menu-item:hover {
+  background: var(--cp-bg-3);
+  color: var(--cp-ink-0);
+}
+
+.cp-card__menu-item--danger:hover {
+  color: var(--cp-danger);
+}
+
+.cp-card__desc {
+  margin: 0;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  color: var(--cp-ink-2);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.cp-card__fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 0.375rem 0.75rem;
+  margin: 0;
+}
+
+.cp-card__field {
+  min-width: 0;
+}
+
+.cp-card__field-label {
+  font-family: var(--cp-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.0625rem;
+  text-transform: uppercase;
+  color: var(--cp-ink-3);
+}
+
+.cp-card__field-value {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--cp-mono);
+  font-size: 0.8125rem;
+  color: var(--cp-ink-0);
+}
+
+.cp-card__field-value--accent {
+  color: var(--cp-accent);
+}
+
+.cp-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.cp-card__tag {
+  padding: 0.0625rem 0.375rem;
+  border-radius: 4px;
+  border: 1px solid var(--cp-line-2);
+  background: var(--cp-bg-3);
+  color: var(--cp-ink-2);
+  font-family: var(--cp-mono);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.cp-card__spin {
+  animation: cp-card-spin 1s linear infinite;
+}
+
+@keyframes cp-card-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cp-card__apply,
+  .cp-card__icon-btn {
+    transition: none;
+  }
+
+  .cp-card__spin {
+    animation: none;
+  }
+}
+</style>

@@ -2,10 +2,10 @@
   <div class="space-y-5">
     <div
       v-if="saveError"
-      class="editor-banner editor-banner--error rounded-xl px-5 py-4"
+      class="pe-banner px-5 py-4"
     >
       <div class="flex items-start gap-3">
-        <div class="editor-banner__icon flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl">
+        <div class="pe-banner__icon flex h-10 w-10 shrink-0 items-center justify-center">
           <SIcon
             name="AlertTriangle"
             size="w-4 h-4"
@@ -24,10 +24,10 @@
 
     <section
       :ref="target => registerModalSectionRef('basic', target)"
-      class="editor-panel editor-panel--section rounded-xl p-5 lg:p-6"
+      class="pe-panel p-5 lg:p-6"
     >
       <div class="mb-5 flex items-start gap-3">
-        <div class="editor-section-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl">
+        <div class="pe-panel-icon flex h-11 w-11 shrink-0 items-center justify-center">
           <SIcon
             name="Layers"
             size="w-5 h-5"
@@ -88,10 +88,10 @@
 
     <section
       :ref="target => registerModalSectionRef('connection', target)"
-      class="editor-panel editor-panel--section rounded-xl p-5 lg:p-6"
+      class="pe-panel p-5 lg:p-6"
     >
       <div class="mb-5 flex items-start gap-3">
-        <div class="editor-section-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl">
+        <div class="pe-panel-icon flex h-11 w-11 shrink-0 items-center justify-center">
           <SIcon
             name="Globe"
             size="w-5 h-5"
@@ -149,7 +149,7 @@
         </div>
       </div>
 
-      <div class="mt-5 editor-panel-muted rounded-xl p-4">
+      <div class="mt-5 pe-panel-muted p-4">
         <button
           type="button"
           class="flex w-full items-start gap-3 text-left"
@@ -167,7 +167,7 @@
               {{ $t('claudeProfiles.advancedModelsTitle') }}
               <span
                 v-if="advancedFieldsFilledCount > 0"
-                class="editor-tag rounded-full px-2 py-0.5 text-[11px] font-normal text-text-secondary"
+                class="pe-tag rounded-full px-2 py-0.5 text-xs font-normal"
               >
                 {{ $t('claudeProfiles.advancedModelsConfiguredCount', { count: advancedFieldsFilledCount }) }}
               </span>
@@ -510,10 +510,10 @@
 
     <section
       :ref="target => registerModalSectionRef('auth', target)"
-      class="editor-panel editor-panel--section rounded-xl p-5 lg:p-6"
+      class="pe-panel p-5 lg:p-6"
     >
       <div class="mb-5 flex items-start gap-3">
-        <div class="editor-section-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl">
+        <div class="pe-panel-icon flex h-11 w-11 shrink-0 items-center justify-center">
           <SIcon
             name="ShieldCheck"
             size="w-5 h-5"
@@ -556,10 +556,10 @@
 
           <div
             v-if="showAuthModeMismatch"
-            class="editor-banner editor-banner--warn mt-3 rounded-xl px-4 py-3"
+            class="pe-banner pe-banner--warn mt-3 px-4 py-3"
           >
             <div class="flex items-start gap-3">
-              <div class="editor-banner__icon flex h-8 w-8 shrink-0 items-center justify-center rounded-xl">
+              <div class="pe-banner__icon flex h-8 w-8 shrink-0 items-center justify-center">
                 <SIcon
                   name="AlertTriangle"
                   size="w-4 h-4"
@@ -633,7 +633,7 @@
               <button
                 type="button"
                 data-testid="claude-auth-token-visibility"
-                class="editor-icon-button"
+                class="pe-icon-btn"
                 :aria-label="showAuthToken ? $t('claudeProfiles.authTokenActions.hide') : $t('claudeProfiles.authTokenActions.show')"
                 :title="showAuthToken ? $t('claudeProfiles.authTokenActions.hide') : $t('claudeProfiles.authTokenActions.show')"
                 @click="showAuthToken = !showAuthToken"
@@ -646,7 +646,7 @@
               <button
                 type="button"
                 data-testid="claude-auth-token-copy"
-                class="editor-icon-button"
+                class="pe-icon-btn"
                 :aria-label="$t('claudeProfiles.authTokenActions.copy')"
                 :disabled="!form.auth_token.trim()"
                 :title="$t('claudeProfiles.authTokenActions.copy')"
@@ -668,10 +668,10 @@
 
     <section
       :ref="target => registerModalSectionRef('status', target)"
-      class="editor-panel editor-panel--section rounded-xl p-5 lg:p-6"
+      class="pe-panel p-5 lg:p-6"
     >
       <div class="mb-5 flex items-start gap-3">
-        <div class="editor-section-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl">
+        <div class="pe-panel-icon flex h-11 w-11 shrink-0 items-center justify-center">
           <SIcon
             name="SlidersHorizontal"
             size="w-5 h-5"
@@ -714,14 +714,14 @@
             <span
               v-for="tag in parsedFormTags"
               :key="tag"
-              class="editor-tag rounded-full px-3 py-1 text-xs text-text-secondary"
+              class="pe-tag rounded-full px-3 py-1 text-xs"
             >
               #{{ tag }}
             </span>
           </div>
         </div>
 
-        <div class="editor-panel-muted rounded-xl p-4">
+        <div class="pe-panel-muted p-4">
           <label
             for="claude-profile-enabled"
             class="flex cursor-pointer items-start gap-3"

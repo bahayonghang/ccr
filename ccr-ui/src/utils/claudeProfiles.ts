@@ -1,6 +1,192 @@
 import type { ClaudeProfile } from '@/types'
+import type { ProfileRowDescriptor } from '@/components/profiles/ProfileListRow.vue'
+import type {
+  ProfilesInspectorDescriptor,
+  ProfilesInspectorField,
+} from '@/components/profiles/ProfilesInspector.vue'
+import type { ProfileDiffField } from '@/utils/profileDiff'
+import { useClaudeProfilesInsights } from '@/composables/useClaudeProfilesInsights'
 
 export const CLAUDE_PROFILE_UNSET_PROVIDER_KEY = '__unset_provider__'
+
+/** 字段缺失时的统一展示占位符（行/卡片/检查器共用） */
+export const CLAUDE_FIELD_PLACEHOLDER = '—'
+
+/** 视图注入的翻译函数形状，与 i18n/formatMessage 的 TranslateFn 保持一致 */
+type ClaudeTranslate = (
+  key: string,
+  values?: Record<string, string | number | boolean | null | undefined>
+) => string
+
+/** 参与主模型回退链解析的最小 profile 形状 */
+type ClaudeModelFields = Pick<
+  ClaudeProfile,
+  'model' | 'default_sonnet_model' | 'default_opus_model' | 'default_haiku_model' | 'subagent_model'
+>
+
+/**
+ * Claude 多模型主模型解析链：model → sonnet → opus → haiku → subagent。
+ * 行/卡片/快速切换/检查器统一引用此函数，避免各处各写一份回退顺序。
+ */
+export const resolveClaudePrimaryModel = (
+  profile: ClaudeModelFields,
+  fallback: string = CLAUDE_FIELD_PLACEHOLDER
+): string =>
+  profile.model?.trim() ||
+  profile.default_sonnet_model?.trim() ||
+  profile.default_opus_model?.trim() ||
+  profile.default_haiku_model?.trim() ||
+  profile.subagent_model?.trim() ||
+  fallback
+
+/**
+ * 密排场景的 base_url 展示：完整保留 host，只在路径过长时截断路径。
+ * 非 URL 文本（例如官方直连文案）原样返回。
+ */
+export const formatClaudeBaseUrlDisplay = (raw: string, maxPathLength = 18): string => {
+  try {
+    const url = new URL(raw)
+    const path = url.pathname === '/' ? '' : url.pathname
+    const shownPath = path.length > maxPathLength ? `${path.slice(0, maxPathLength - 1)}…` : path
+    return `${url.host}${shownPath}`
+  } catch {
+    return raw
+  }
+}
+
+/** base_url 展示值：空值回落到官方直连文案 */
+export const resolveClaudeDisplayBaseUrl = (
+  profile: Pick<ClaudeProfile, 'base_url'>,
+  t: ClaudeTranslate
+): string => profile.base_url?.trim() || t('claudeProfiles.officialBaseUrl')
+
+/** auth_mode 展示标签（缺省视为 subscription） */
+export const claudeAuthModeLabel = (t: ClaudeTranslate, mode?: string | null): string =>
+  mode === 'api_key' ? t('claudeProfiles.authModeApiKey') : t('claudeProfiles.authModeSubscription')
+
+/** 缺失字段消息（Inspector 健康审计条目） */
+const claudeMissingMessage = (t: ClaudeTranslate, missing: string[]): string =>
+  missing
+    .map((field) => {
+      if (field === 'base_url') return t('claudeProfiles.inspector.issues.missingBaseUrl')
+      if (field === 'model') return t('claudeProfiles.inspector.issues.missingModel')
+      return t('claudeProfiles.inspector.issues.missingAccount')
+    })
+    .join(' · ')
+
+/** 「当前 → 目标」diff 字段：base_url / model（回退链后）/ auth_mode */
+export const createClaudeDiffFields = (t: ClaudeTranslate): ProfileDiffField<ClaudeProfile>[] => [
+  {
+    key: 'base_url',
+    label: t('claudeProfiles.fields.baseUrl'),
+    value: (profile) => resolveClaudeDisplayBaseUrl(profile, t),
+  },
+  {
+    key: 'model',
+    label: t('claudeProfiles.fields.model'),
+    // 空串交给 buildProfileDiff 规整为 null，占位符由渲染层决定
+    value: (profile) => resolveClaudePrimaryModel(profile, ''),
+  },
+  {
+    key: 'auth_mode',
+    label: t('claudeProfiles.fields.authMode'),
+    value: (profile) => claudeAuthModeLabel(t, profile.auth_mode),
+  },
+]
+
+/** 列表行平台策略：字段解析 + 操作文案 + 编辑图标 */
+export const createClaudeRowDescriptor = (
+  t: ClaudeTranslate
+): ProfileRowDescriptor<ClaudeProfile> => ({
+  // 列表密排：完整 host，仅截断路径
+  baseUrl: (profile) => formatClaudeBaseUrlDisplay(resolveClaudeDisplayBaseUrl(profile, t)),
+  model: (profile) => resolveClaudePrimaryModel(profile),
+  authMode: (profile) => claudeAuthModeLabel(t, profile.auth_mode),
+  editIcon: 'Pencil',
+  labels: {
+    apply: t('claudeProfiles.applyProfile'),
+    edit: t('claudeProfiles.editTooltip'),
+    delete: t('claudeProfiles.deleteTooltip'),
+  },
+})
+
+/** 检查器预览字段：完整展示，不截断；仅跳过未填写的可选项 */
+const claudeInspectorFields = (
+  profile: ClaudeProfile,
+  t: ClaudeTranslate
+): ProfilesInspectorField[] => {
+  const fields: ProfilesInspectorField[] = [
+    { label: t('claudeProfiles.fields.baseUrl'), value: resolveClaudeDisplayBaseUrl(profile, t) },
+    {
+      label: t('claudeProfiles.fields.model'),
+      value: resolveClaudePrimaryModel(profile),
+      variant: 'accent',
+    },
+  ]
+
+  const optionalFields: Array<{ label: string; value?: string | null; variant?: 'muted' }> = [
+    {
+      label: t('claudeProfiles.defaultOpusModelLabel'),
+      value: profile.default_opus_model,
+      variant: 'muted',
+    },
+    {
+      label: t('claudeProfiles.defaultSonnetModelLabel'),
+      value: profile.default_sonnet_model,
+      variant: 'muted',
+    },
+    {
+      label: t('claudeProfiles.defaultHaikuModelLabel'),
+      value: profile.default_haiku_model,
+      variant: 'muted',
+    },
+    {
+      label: t('claudeProfiles.subagentModelLabel'),
+      value: profile.subagent_model,
+      variant: 'muted',
+    },
+    { label: t('claudeProfiles.effortLevelLabel'), value: profile.effort_level, variant: 'muted' },
+  ]
+
+  for (const field of optionalFields) {
+    const value = field.value?.trim()
+    if (value) fields.push({ label: field.label, value, variant: field.variant })
+  }
+
+  fields.push({
+    label: t('claudeProfiles.fields.authMode'),
+    value: claudeAuthModeLabel(t, profile.auth_mode),
+    variant: 'muted',
+  })
+
+  if (profile.provider?.trim()) {
+    fields.push({
+      label: t('claudeProfiles.providerLabel'),
+      value: profile.provider.trim(),
+      variant: 'muted',
+    })
+  }
+  if (profile.account?.trim()) {
+    fields.push({ label: t('claudeProfiles.accountLabel'), value: profile.account.trim() })
+  }
+
+  return fields
+}
+
+/** 检查器平台策略：洞察来源 + 预览字段 + diff 字段 + 文案/图标 */
+export const createClaudeInspectorDescriptor = (
+  t: ClaudeTranslate
+): ProfilesInspectorDescriptor<ClaudeProfile> => ({
+  editIcon: 'Pencil',
+  useInsights: useClaudeProfilesInsights,
+  activeFields: (profile) => claudeInspectorFields(profile, t),
+  diffFields: createClaudeDiffFields(t),
+  authModeLabel: (mode) => claudeAuthModeLabel(t, mode),
+  isDeprecatedMode: () => false,
+  missingMessage: (missing) => claudeMissingMessage(t, missing),
+  runtimeSummary: (profile) =>
+    `${resolveClaudePrimaryModel(profile)} · ${profile.base_url?.trim() || CLAUDE_FIELD_PLACEHOLDER}`,
+})
 
 // ── Provider 色彩映射系统 ─────────────────────────────────────────
 

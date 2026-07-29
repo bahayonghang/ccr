@@ -121,8 +121,10 @@ export interface ProfilesStatStripLabels {
   currentHint: string
   total: string
   totalHint: string
-  lastWrite: string
-  lastWriteHint: string
+  /** 旧 Last Write 槽文案；注入 health 后不再渲染，可省略
+      TODO(profiles-redesign): 集成步骤删除 */
+  lastWrite?: string
+  lastWriteHint?: string
 }
 
 /** 第三列（平台特定）：Claude=认证分布；Codex=配置模式 */

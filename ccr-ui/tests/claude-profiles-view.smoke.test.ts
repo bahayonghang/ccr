@@ -245,6 +245,25 @@ const findApplyButton = (card: HTMLElement | null) =>
     button.textContent?.includes('应用此 Profile')
   ) ?? null
 
+const findTriggerByIcon = (el: HTMLElement, icon: string) =>
+  (el.querySelector(`[data-icon="${icon}"]`)?.closest('button') as HTMLButtonElement | null) ?? null
+
+/** Reload / Export / Edit TOML 已收进页头 ··· 溢出菜单，需要先展开 */
+const openOverflowMenu = async (el: HTMLElement) => {
+  const trigger = findTriggerByIcon(el, 'MenuDots')
+  expect(trigger).not.toBeNull()
+  trigger!.click()
+  await flushPromises()
+}
+
+/** 标签 / provider / 排序已收进工具条 Filters 弹层，需要先展开 */
+const openFiltersPopover = async (el: HTMLElement) => {
+  const trigger = findTriggerByIcon(el, 'SlidersHorizontal')
+  expect(trigger).not.toBeNull()
+  trigger!.click()
+  await flushPromises()
+}
+
 beforeEach(() => {
   apiMocks.listClaudeProfiles.mockReset()
   apiMocks.addClaudeProfile.mockReset()
@@ -279,7 +298,7 @@ afterEach(() => {
 })
 
 describe('ClaudeCodeProfilesView smoke', () => {
-  it('renders the redesigned stat strip, filters, and context rail insights', async () => {
+  it('renders the redesigned stat strip, filters, and inspector insights', async () => {
     const { el, unmount } = await mountView()
 
     try {
@@ -290,7 +309,15 @@ describe('ClaudeCodeProfilesView smoke', () => {
       expect(el.textContent).toContain('3 启用 · 1 停用')
       expect(el.textContent).toContain('认证分布')
       expect(el.textContent).toContain('订阅 4 · API Key 0')
+      // 第四槽从 Last Write 客户端时钟换成 Health 计数
+      expect(el.textContent).toContain('2 个配置问题')
+      expect(el.textContent).not.toContain('最近写入')
+
+      // provider 下拉已收进 Filters 弹层
+      expect(el.textContent).not.toContain('全部 Provider')
+      await openFiltersPopover(el)
       expect(el.textContent).toContain('全部 Provider')
+
       expect(el.textContent).toContain('分布洞察')
       expect(el.textContent).toContain('Anthropic')
       expect(el.textContent).toContain('Zeta Relay')
@@ -408,6 +435,7 @@ describe('ClaudeCodeProfilesView smoke', () => {
 
     try {
       const searchInput = findSearchInput(el)
+      await openOverflowMenu(el)
       const refreshButton = findButtonByText(el, '重载')
 
       expect(searchInput).not.toBeNull()
@@ -457,9 +485,8 @@ describe('ClaudeCodeProfilesView smoke', () => {
     const { el, unmount } = await mountView()
 
     try {
-      const exportButton = el
-        .querySelector('[data-icon="Download"]')
-        ?.closest('button') as HTMLButtonElement | null
+      await openOverflowMenu(el)
+      const exportButton = findTriggerByIcon(el, 'Download')
 
       expect(exportButton).not.toBeNull()
 
@@ -479,6 +506,7 @@ describe('ClaudeCodeProfilesView smoke', () => {
     const { el, unmount } = await mountView()
 
     try {
+      await openOverflowMenu(el)
       const refreshButton = findButtonByText(el, '重载')
 
       expect(refreshButton).not.toBeNull()
@@ -517,6 +545,12 @@ describe('ClaudeCodeProfilesView smoke', () => {
       expect(dialog?.textContent).toContain(
         '确定要应用 Profile "anthropic-a" 吗？这将同步更新当前 Claude 配置。'
       )
+      // 「当前 → 目标」三行 diff：base_url / model / auth_mode
+      const diffRows = Array.from(dialog!.querySelectorAll<HTMLElement>('.cp-diff-row'))
+      expect(diffRows).toHaveLength(3)
+      expect(diffRows[0].textContent).toContain('https://relay.zeta.ai')
+      expect(diffRows[0].textContent).toContain('https://api.anthropic.com')
+      expect(diffRows[1].textContent).toContain('claude-opus-4-1')
       expect(apiMocks.applyClaudeProfile).not.toHaveBeenCalled()
 
       const footer = dialog!.querySelector<HTMLElement>('[data-slot="footer"]')
@@ -530,6 +564,38 @@ describe('ClaudeCodeProfilesView smoke', () => {
       await flushPromises()
 
       expect(apiMocks.applyClaudeProfile).toHaveBeenCalledWith('anthropic-a')
+    } finally {
+      unmount()
+    }
+  })
+
+  it('states the real backup location in the delete confirm dialog', async () => {
+    const { el, unmount } = await mountView()
+
+    try {
+      const targetCard = findProfileCard(el, 'anthropic-a')
+      const menuTrigger = Array.from(
+        targetCard?.querySelectorAll<HTMLButtonElement>('button') ?? []
+      ).find((button) => button.getAttribute('aria-haspopup') === 'menu')
+
+      expect(menuTrigger).not.toBeUndefined()
+      menuTrigger!.click()
+      await flushPromises()
+
+      const deleteItem = Array.from(
+        targetCard?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? []
+      ).find((button) => button.textContent?.includes('删除'))
+
+      expect(deleteItem).not.toBeUndefined()
+      deleteItem!.click()
+      await flushPromises()
+
+      const dialog = el.querySelector<HTMLElement>('[data-stub="BaseModal"]')
+      expect(dialog?.textContent).toContain('确定要删除 Profile "anthropic-a" 吗？')
+      expect(dialog?.textContent).toContain('~/.ccr/backups/claude/')
+      // 删除确认框不带 apply 的 diff 行
+      expect(dialog!.querySelectorAll('.cp-diff-row')).toHaveLength(0)
+      expect(apiMocks.deleteClaudeProfile).not.toHaveBeenCalled()
     } finally {
       unmount()
     }
