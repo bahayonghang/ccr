@@ -760,3 +760,28 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 76: 完成 Claude 认证与 profile 隔离加固
+
+**Date**: 2026-07-30
+**Task**: 完成 Claude 认证与 profile 隔离加固
+**Branch**: `dev`
+
+### Summary
+
+完成五个子任务：统一 auth_mode 与配置目录解析，加固凭据和 settings 并发写入，停止修改 Claude 状态文件，并补齐认证来源诊断、切换警告与规范；父级集成回归通过。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c741d3da` | (see git log) |
+| `b53f7c11` | (see git log) |
+| `6d95d09f` | (see git log) |
+| `24c362e3` | (see git log) |
+| `604b0569` | (see git log) |
+
+### Status
+
+[OK] **Completed**

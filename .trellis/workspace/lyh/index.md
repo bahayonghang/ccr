@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 75
+- **Total Sessions**: 76
 - **Last Active**: 2026-07-30
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~762 | Active |
+| `journal-2.md` | ~787 | Active |
 | `journal-1.md` | ~1987 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 76 | 2026-07-30 | 完成 Claude 认证与 profile 隔离加固 | `c741d3da`, `b53f7c11`, `6d95d09f`, `24c362e3`, `604b0569` | `dev` |
 | 75 | 2026-07-30 | 完成 Claude 认证来源诊断与规范 | `604b0569` | `dev` |
 | 74 | 2026-07-29 | Claude 状态文件写入策略收口 | `24c362e3` | `dev` |
 | 73 | 2026-07-29 | Claude 凭据与 settings 并发写入加固 | `6d95d09f` | `dev` |
