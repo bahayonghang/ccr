@@ -1,0 +1,3 @@
+{"file":".trellis/spec/ccr-cli/backend/backend-guidelines.md","reason":"检查不再写 onboarding 私有键且合法 MCP 功能保留。"}
+{"file":".trellis/spec/ccr-core/backend/atomic-writer.md","reason":"检查 CAS 冲突、secret 与未知字段保留语义。"}
+{"file":".trellis/tasks/07-29-claude-json-write-strategy/research/claude-2.1.220-onboarding-probe.md","reason":"核对实现结论没有超出探针证据边界。"}
