@@ -1,0 +1,6 @@
+{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file": ".trellis/spec/ccr-ui/frontend/index.md", "reason": "质量检查入口"}
+{"file": ".trellis/spec/ccr-ui/frontend/theme-token-contracts.md", "reason": "token 合规检查依据"}
+{"file": ".trellis/spec/ccr-ui/frontend/confirm-interaction-contracts.md", "reason": "确认交互检查依据"}
+{"file": ".trellis/spec/ccr-ui/frontend/provider-template-contracts.md", "reason": "编辑器模板填充行为检查依据"}
+{"file": ".trellis/spec/ccr-ui/frontend/raw-config-editor-contracts.md", "reason": "raw TOML 编辑入口行为回归检查依据"}

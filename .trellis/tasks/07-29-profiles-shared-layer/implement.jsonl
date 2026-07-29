@@ -1,0 +1,6 @@
+{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file": ".trellis/spec/ccr-ui/frontend/index.md", "reason": "ccr-ui 前端 spec 入口与质量门禁"}
+{"file": ".trellis/spec/ccr-ui/frontend/theme-token-contracts.md", "reason": "token/字阶/圆角契约，视觉统一依据"}
+{"file": ".trellis/spec/ccr-ui/frontend/confirm-interaction-contracts.md", "reason": "确认框 diff/备份提示扩展须遵守"}
+{"file": ".trellis/tasks/07-29-profiles-redesign/design.md", "reason": "总体重构契约 §2-§5"}
+{"file": ".trellis/tasks/07-29-profiles-redesign/research/current-state-analysis.md", "reason": "现状剖析/死代码清单/行为约束"}
