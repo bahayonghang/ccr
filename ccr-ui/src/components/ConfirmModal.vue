@@ -34,6 +34,21 @@
       <p class="confirm-modal__message mt-4 text-sm leading-relaxed">
         {{ message }}
       </p>
+
+      <!-- 结构化附加内容（如 Apply diff 行）：缺省不渲染，保持旧行为 -->
+      <div
+        v-if="$slots.details"
+        class="confirm-modal__details mt-3 w-full"
+      >
+        <slot name="details" />
+      </div>
+
+      <p
+        v-if="footnote"
+        class="confirm-modal__footnote mt-3 text-xs leading-relaxed"
+      >
+        {{ footnote }}
+      </p>
     </div>
 
     <template #footer>
@@ -70,6 +85,8 @@ interface Props {
   cancelText?: string
   type?: 'danger' | 'info' | 'warning'
   surface?: 'glass' | 'solid'
+  /** 底部补充说明行（如 delete 备份提示）；缺省不渲染 */
+  footnote?: string
 }
 
 const emit = defineEmits<{
@@ -83,6 +100,7 @@ const props = withDefaults(defineProps<Props>(), {
   surface: 'solid',
   confirmText: '',
   cancelText: '',
+  footnote: '',
 })
 
 const resolvedSurface = computed(() => props.surface)
@@ -221,6 +239,16 @@ function handleCancel() {
 
 .confirm-modal__message {
   color: var(--confirm-text-secondary);
+}
+
+.confirm-modal__details {
+  color: var(--confirm-text-primary);
+  text-align: left;
+}
+
+.confirm-modal__footnote {
+  color: var(--confirm-text-secondary);
+  opacity: 0.82;
 }
 
 .confirm-modal__footer {

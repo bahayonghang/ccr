@@ -243,6 +243,9 @@ const authModeText = computed(() => props.descriptor.authMode(props.profile))
   cursor: not-allowed;
 }
 
+/* scoped keyframes 按组件隔离，ProfilesHeader 也有一份；
+   统一收进共享样式属集成步骤范围。
+   TODO(profiles-redesign): 集成步骤删除（与 ProfilesHeader 的 cp-spin 去重） */
 .cp-spin { animation: cp-spin 1s linear infinite; }
 
 @keyframes cp-spin { to { transform: rotate(360deg); } }

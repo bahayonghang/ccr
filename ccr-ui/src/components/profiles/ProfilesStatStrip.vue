@@ -59,7 +59,35 @@
       </div>
     </div>
 
-    <div class="cp-stat surface-status">
+    <!-- 第四槽：health 注入时渲染 Health 槽（点击滚动到 Inspector Health 区） -->
+    <button
+      v-if="health"
+      type="button"
+      class="cp-stat cp-stat--clickable surface-status"
+      :class="{ 'cp-stat--warn': health.warn }"
+      @click="emit('healthClick')"
+    >
+      <div class="cp-stat__head">
+        <SIcon
+          :name="health.icon ?? 'ShieldCheck'"
+          size="w-3 h-3"
+        />
+        {{ health.title }}
+      </div>
+      <div class="cp-stat__value cp-stat__value--mono">
+        {{ health.value }}
+      </div>
+      <div class="cp-stat__hint">
+        {{ health.hint }}
+      </div>
+    </button>
+
+    <!-- 旧第四槽（Last Write 客户端时钟槽 + sparkline 死代码）：缺省保持原渲染。
+         TODO(profiles-redesign): 集成步骤删除 -->
+    <div
+      v-else
+      class="cp-stat surface-status"
+    >
       <div class="cp-stat__head">
         <SIcon
           name="RefreshCw"
@@ -107,22 +135,41 @@ export interface ProfilesStatStripSecondary {
   mono?: boolean
 }
 
+/** 可选第四槽：Health（问题数；注入时替换旧 Last Write 槽） */
+export interface ProfilesStatStripHealth {
+  title: string
+  value: string
+  hint: string
+  /** 缺省 'ShieldCheck' */
+  icon?: string
+  /** 有问题时 warn 高亮 */
+  warn?: boolean
+}
+
 interface Props {
   current: string | null
   total: number
   labels: ProfilesStatStripLabels
   secondary: ProfilesStatStripSecondary
   lastWrite?: string | null
-  /** 列 2/4 的装饰 sparkline（Codex 用，Claude 省略 → 不渲染） */
+  /** 列 2/4 的装饰 sparkline（Codex 用，Claude 省略 → 不渲染）
+      TODO(profiles-redesign): 集成步骤删除（两页均未传，死能力） */
   totalSpark?: number[] | null
   recentSpark?: number[] | null
+  /** 注入后第四槽渲染 Health 并支持点击定位；缺省保持旧 Last Write 槽 */
+  health?: ProfilesStatStripHealth | null
 }
 
 withDefaults(defineProps<Props>(), {
   lastWrite: null,
   totalSpark: null,
   recentSpark: null,
+  health: null,
 })
+
+const emit = defineEmits<{
+  (e: 'healthClick'): void
+}>()
 </script>
 
 <style scoped>
@@ -186,7 +233,27 @@ withDefaults(defineProps<Props>(), {
   opacity: 0.6;
 }
 
+.cp-stat--clickable {
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 120ms ease;
+}
+
+.cp-stat--clickable:hover {
+  border-color: var(--cp-accent-line);
+}
+
+.cp-stat--warn .cp-stat__head,
+.cp-stat--warn .cp-stat__value {
+  color: var(--cp-warn);
+}
+
 @media (width <= 1024px) {
   .cp-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cp-stat--clickable { transition: none; }
 }
 </style>

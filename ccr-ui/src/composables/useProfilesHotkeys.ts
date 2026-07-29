@@ -9,6 +9,11 @@ export interface UseProfilesHotkeysOptions<T extends { name: string }> {
   focusSearch: () => void
   /** ⌘1-9 可切换的 profile 列表（按显示顺序），惰性求值以读到最新值 */
   getApplicableProfiles: () => T[]
+  /**
+   * ⌘1-9 的稳定编号目标（钉选数组，来自 useProfilesQuickSwitch）。
+   * 注入后数字键改用该数组（与过滤/排序解耦）；未注入保持旧行为。
+   */
+  getStableTargets?: () => string[]
   /** ⌘1-9 命中时触发 */
   onApply: (name: string) => void
 }
@@ -22,7 +27,7 @@ const isEditableTarget = (el: EventTarget | null): boolean => {
 export function useProfilesHotkeys<T extends { name: string }>(
   options: UseProfilesHotkeysOptions<T>
 ) {
-  const { paletteOpen, focusSearch, getApplicableProfiles, onApply } = options
+  const { paletteOpen, focusSearch, getApplicableProfiles, getStableTargets, onApply } = options
 
   const onWindowKeyDown = (event: KeyboardEvent) => {
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
@@ -32,6 +37,14 @@ export function useProfilesHotkeys<T extends { name: string }>(
     }
     if ((event.metaKey || event.ctrlKey) && /^[1-9]$/.test(event.key)) {
       const idx = Number.parseInt(event.key, 10) - 1
+      if (getStableTargets) {
+        const name = getStableTargets()[idx]
+        if (name) {
+          event.preventDefault()
+          onApply(name)
+        }
+        return
+      }
       const target = getApplicableProfiles()[idx]
       if (target) {
         event.preventDefault()

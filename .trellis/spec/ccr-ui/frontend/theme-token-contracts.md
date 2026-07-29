@@ -2,6 +2,10 @@
 
 > Executable contracts for CCR UI theme, flavor, accent, and material token changes.
 
+## Registered Scale Extensions
+
+- **Font scale extension (registered by `07-29-profiles-shared-layer`)**: dense meta information (field labels, tag chips, diff rows, stat hints inside the Profiles shared layer) may use `0.75rem`, one step below the Label floor `0.8125rem`. This is the only sub-Label step; px literal font sizes remain forbidden.
+
 ---
 
 ## Scenario: Flavor/accent value domains and Catppuccin token overrides

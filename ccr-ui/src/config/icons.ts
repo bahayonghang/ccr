@@ -119,6 +119,10 @@ export const iconMap = {
   Filter:         'solar:filter-bold-duotone',
   FilterX:        'solar:filter-bold-duotone',
   ListFilter:     'solar:filter-bold-duotone',
+  Pin:            'solar:pin-bold-duotone',
+  PinOff:         'solar:pin-broken',
+  MenuDots:       'solar:menu-dots-bold-duotone',
+  Target:         'solar:target-bold-duotone',
   ToggleLeft:     'solar:close-circle-bold-duotone',
   ToggleRight:    'solar:check-circle-bold-duotone',
 
