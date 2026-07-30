@@ -32,7 +32,7 @@ const profiles: QuickRailProfile[] = [
 ]
 
 const mountRail = (options: {
-  quickSwitch?: ReturnType<typeof useProfilesQuickSwitch> | null
+  quickSwitch: ReturnType<typeof useProfilesQuickSwitch>
   moreCount?: number
   onApply?: (name: string) => void
   onMore?: () => void
@@ -48,7 +48,7 @@ const mountRail = (options: {
             profiles,
             currentName: 'alpha',
             i18nPrefix: 'claudeProfiles',
-            quickSwitch: options.quickSwitch ?? null,
+            quickSwitch: options.quickSwitch,
             moreCount: options.moreCount ?? 0,
             onApply: options.onApply,
             onMore: options.onMore,
@@ -174,21 +174,4 @@ describe('ProfilesQuickRail quickSwitch mode smoke', () => {
     expect(onMore).toHaveBeenCalledTimes(1)
   })
 
-  it('falls back to the legacy display-order rendering without quickSwitch', () => {
-    mounted = mountRail({})
-    const chips = Array.from(mounted.el.querySelectorAll<HTMLButtonElement>('.cp-chip'))
-
-    // 旧行为：启用 profile 按顺序编号（禁用 gamma 不出现）
-    expect(chips.map(chip => chip.querySelector('.cp-chip__name')?.textContent)).toEqual([
-      'alpha',
-      'beta',
-      'delta',
-    ])
-    expect(chips[0].querySelector('.cp-chip__kbd')?.textContent).toBe('1')
-    expect(chips[1].querySelector('.cp-chip__kbd')?.textContent).toBe('2')
-    expect(chips[2].querySelector('.cp-chip__kbd')?.textContent).toBe('3')
-    // 旧模式没有 toolbar 角色与 more 入口
-    expect(mounted.el.querySelector('[role="toolbar"]')).toBeNull()
-    expect(mounted.el.querySelector('.cp-chip--more')).toBeNull()
-  })
 })

@@ -58,6 +58,28 @@ describe('useProfilesQuickSwitch smoke', () => {
     expect(JSON.parse(localStorage.getItem(RECENT_KEY) ?? '[]')).toEqual(['keep'])
   })
 
+  it('preserves persisted names until the first profile snapshot is ready', () => {
+    localStorage.setItem(PINNED_KEY, JSON.stringify(['keep', 'gone']))
+    localStorage.setItem(RECENT_KEY, JSON.stringify(['keep', 'gone-recent']))
+    const names = ref<string[] | null>(null)
+
+    const switcher = useProfilesQuickSwitch({
+      platform: 'claude',
+      getProfileNames: () => names.value,
+    })
+
+    expect(switcher.pinned.value).toEqual(['keep', 'gone'])
+    expect(switcher.recent.value).toEqual(['keep', 'gone-recent'])
+    expect(JSON.parse(localStorage.getItem(PINNED_KEY) ?? '[]')).toEqual(['keep', 'gone'])
+
+    names.value = ['keep']
+
+    expect(switcher.pinned.value).toEqual(['keep'])
+    expect(switcher.recent.value).toEqual(['keep'])
+    expect(JSON.parse(localStorage.getItem(PINNED_KEY) ?? '[]')).toEqual(['keep'])
+    expect(JSON.parse(localStorage.getItem(RECENT_KEY) ?? '[]')).toEqual(['keep'])
+  })
+
   it('cleans names that disappear from the list later, but keeps disabled ones', () => {
     const names = ref(['a', 'b'])
     const switcher = useProfilesQuickSwitch({

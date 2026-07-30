@@ -8,8 +8,7 @@ interface MountedHotkeys {
 }
 
 const mountHotkeys = (options: {
-  getApplicableProfiles?: () => { name: string }[]
-  getStableTargets?: () => string[]
+  getStableTargets: () => string[]
   onApply: (name: string) => void
 }): MountedHotkeys => {
   const el = document.createElement('div')
@@ -21,7 +20,6 @@ const mountHotkeys = (options: {
         useProfilesHotkeys({
           paletteOpen: ref(false),
           focusSearch: () => undefined,
-          getApplicableProfiles: options.getApplicableProfiles ?? (() => []),
           getStableTargets: options.getStableTargets,
           onApply: options.onApply,
         })
@@ -51,21 +49,9 @@ describe('useProfilesHotkeys stable targets smoke', () => {
     mounted = null
   })
 
-  it('keeps legacy display-order numbering when getStableTargets is not injected', () => {
+  it('switches to stable targets for digit keys', () => {
     const onApply = vi.fn()
     mounted = mountHotkeys({
-      getApplicableProfiles: () => [{ name: 'first' }, { name: 'second' }],
-      onApply,
-    })
-
-    pressDigit('2')
-    expect(onApply).toHaveBeenCalledWith('second')
-  })
-
-  it('switches to injected stable targets for digit keys', () => {
-    const onApply = vi.fn()
-    mounted = mountHotkeys({
-      getApplicableProfiles: () => [{ name: 'filtered-a' }, { name: 'filtered-b' }],
       getStableTargets: () => ['pinned-a', 'pinned-b'],
       onApply,
     })
@@ -77,7 +63,6 @@ describe('useProfilesHotkeys stable targets smoke', () => {
   it('ignores digits beyond the pinned array instead of falling back', () => {
     const onApply = vi.fn()
     mounted = mountHotkeys({
-      getApplicableProfiles: () => [{ name: 'filtered-a' }, { name: 'filtered-b' }],
       getStableTargets: () => ['pinned-a'],
       onApply,
     })

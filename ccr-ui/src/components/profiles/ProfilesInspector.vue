@@ -1,5 +1,5 @@
 <!--
-  Profiles 右侧检查器（ProfilesContextRail 的 V2，旧文件保留至集成步骤删除）：
+  Profiles 右侧检查器：
   1) Profile 预览面板（hover/focus 驱动，目标 ≠ 当前时展示与当前的 diff 高亮）
   2) Health Audit（问题项点击 → @locate 定位卡片，而非直接开编辑器）
   3) Distribution（<details> 默认折叠；tag cloud 可点击 → @tag-select 写筛选）
@@ -977,7 +977,6 @@ const visibleAuthModeBreakdown = computed(() =>
   height: 100%;
   background: var(--cp-accent);
   border-radius: inherit;
-  transition: width 200ms ease;
 }
 
 .cp-inspector-bar__fill--warn { background: var(--cp-warn); }

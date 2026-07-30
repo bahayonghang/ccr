@@ -1,10 +1,8 @@
-<!-- 快速切换条：仅展示已启用 profile，附带 ⌘+数字键提示。
+<!-- 快速切换条：钉选项稳定编号，最近项不编号。
      平台差异通过 i18nPrefix 注入；样式靠视图的 --cp-* 继承换肤。 -->
 <template>
-  <!-- 新模式（quickSwitch 注入时）：钉选编号 chip + recent 无编号 chip + pin 操作 + more 入口。
-       编号只出现在钉选 chip 上；recent 只展示不编号。role="toolbar" + roving tabindex。 -->
+  <!-- 编号只出现在钉选 chip 上；recent 只展示不编号。role="toolbar" + roving tabindex。 -->
   <div
-    v-if="quickSwitch"
     v-show="railChips.length > 0"
     class="cp-rail surface-workspace"
   >
@@ -83,51 +81,6 @@
       {{ t(`${i18nPrefix}.quickRailModifierHint`, { modifier: modifierText }) }}
     </div>
   </div>
-
-  <!-- 旧模式（缺省）：渲染与行为保持原样。
-       TODO(profiles-redesign): 集成步骤删除 -->
-  <div
-    v-else-if="enabledProfiles.length > 0"
-    class="cp-rail surface-workspace"
-  >
-    <div class="cp-rail__head">
-      <SIcon
-        name="Sparkles"
-        size="w-3.5 h-3.5"
-        class="cp-rail__head-icon"
-      />
-      {{ t(`${i18nPrefix}.quickSwitch`) }}
-    </div>
-    <div class="cp-rail__list">
-      <button
-        v-for="(profile, index) in enabledProfiles"
-        :key="profile.name"
-        type="button"
-        class="cp-chip"
-        :class="{
-          'cp-chip--active': profile.name === currentName,
-          'cp-chip--busy': busyName === profile.name,
-        }"
-        :disabled="disabled"
-        :aria-pressed="profile.name === currentName"
-        :title="profile.description || profile.name"
-        @click="emit('apply', profile.name)"
-      >
-        <span
-          class="cp-chip__dot"
-          :class="{ 'cp-chip__dot--off': profile.name !== currentName }"
-        />
-        <span class="cp-chip__name">{{ profile.name }}</span>
-        <span
-          v-if="index < 9"
-          class="cp-chip__kbd"
-        >{{ index + 1 }}</span>
-      </button>
-    </div>
-    <div class="cp-rail__hint">
-      {{ t(`${i18nPrefix}.quickRailHint`) }}
-    </div>
-  </div>
 </template>
 
 <script setup lang="ts" generic="T extends QuickRailProfile">
@@ -150,8 +103,8 @@ interface Props {
   i18nPrefix: string
   disabled?: boolean
   busyName?: string | null
-  /** 快速切换状态（useProfilesQuickSwitch 返回值）；注入后启用钉选/最近新模式 */
-  quickSwitch?: ProfilesQuickSwitch | null
+  /** 快速切换状态（useProfilesQuickSwitch 返回值） */
+  quickSwitch: ProfilesQuickSwitch
   /** 栏容量之外的可用 profile 数（>0 时渲染「+N more → ⌘K」入口） */
   moreCount?: number
 }
@@ -159,7 +112,6 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   disabled: false,
   busyName: null,
-  quickSwitch: null,
   moreCount: 0,
 })
 
@@ -169,14 +121,6 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
-
-const enabledProfiles = computed(() =>
-  props.profiles.filter(p => p.enabled !== false),
-)
-
-/* ========================================================================
- * quickSwitch 新模式：钉选编号 + recent 无编号 + roving tabindex
- * ======================================================================== */
 
 interface SwitchChip {
   name: string
@@ -190,7 +134,6 @@ interface SwitchChip {
 
 const railChips = computed<SwitchChip[]>(() => {
   const quickSwitch = props.quickSwitch
-  if (!quickSwitch) return []
   const byName = new Map(props.profiles.map(profile => [profile.name, profile]))
   const toChip = (name: string, pinned: boolean, number: number | null): SwitchChip => {
     const profile = byName.get(name)
@@ -210,7 +153,7 @@ const railChips = computed<SwitchChip[]>(() => {
   return chips
 })
 
-const modifierText = computed(() => props.quickSwitch?.modifier.value ?? '')
+const modifierText = computed(() => props.quickSwitch.modifier.value)
 
 const switchListRef = ref<HTMLElement | null>(null)
 const switchFocusIdx = ref(0)
@@ -271,7 +214,7 @@ const onSwitchChipClick = (index: number, name: string) => {
   gap: 6px;
   flex-shrink: 0;
   color: var(--cp-ink-2);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 600;
 }
 
@@ -288,7 +231,7 @@ const onSwitchChipClick = (index: number, name: string) => {
 .cp-rail__hint {
   flex-shrink: 0;
   color: var(--cp-ink-4);
-  font-size: 10.5px;
+  font-size: 0.75rem;
   font-family: var(--cp-mono);
 }
 
@@ -302,7 +245,7 @@ const onSwitchChipClick = (index: number, name: string) => {
   background: var(--cp-bg-2);
   color: var(--cp-ink-1);
   font-family: var(--cp-mono);
-  font-size: 12px;
+  font-size: 0.75rem;
   cursor: pointer;
   transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
 }
@@ -406,7 +349,7 @@ const onSwitchChipClick = (index: number, name: string) => {
   border-radius: 3px;
   background: rgb(0 0 0 / 25%);
   color: inherit;
-  font-size: 10px;
+  font-size: 0.75rem;
   opacity: 0.65;
 }
 

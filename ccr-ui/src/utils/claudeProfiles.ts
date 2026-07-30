@@ -7,44 +7,25 @@ import type {
 import type { ProfileDiffField } from '@/utils/profileDiff'
 import { formatBaseUrlDisplay } from '@/utils/text'
 import { useClaudeProfilesInsights } from '@/composables/useClaudeProfilesInsights'
+import {
+  CLAUDE_FIELD_PLACEHOLDER,
+  resolveClaudeDisplayBaseUrl,
+  resolveClaudePrimaryModel,
+} from '@/utils/claudeProfileFields'
+
+export {
+  CLAUDE_FIELD_PLACEHOLDER,
+  resolveClaudeDisplayBaseUrl,
+  resolveClaudePrimaryModel,
+}
 
 export const CLAUDE_PROFILE_UNSET_PROVIDER_KEY = '__unset_provider__'
-
-/** 字段缺失时的统一展示占位符（行/卡片/检查器共用） */
-export const CLAUDE_FIELD_PLACEHOLDER = '—'
 
 /** 视图注入的翻译函数形状，与 i18n/formatMessage 的 TranslateFn 保持一致 */
 type ClaudeTranslate = (
   key: string,
   values?: Record<string, string | number | boolean | null | undefined>
 ) => string
-
-/** 参与主模型回退链解析的最小 profile 形状 */
-type ClaudeModelFields = Pick<
-  ClaudeProfile,
-  'model' | 'default_sonnet_model' | 'default_opus_model' | 'default_haiku_model' | 'subagent_model'
->
-
-/**
- * Claude 多模型主模型解析链：model → sonnet → opus → haiku → subagent。
- * 行/卡片/快速切换/检查器统一引用此函数，避免各处各写一份回退顺序。
- */
-export const resolveClaudePrimaryModel = (
-  profile: ClaudeModelFields,
-  fallback: string = CLAUDE_FIELD_PLACEHOLDER
-): string =>
-  profile.model?.trim() ||
-  profile.default_sonnet_model?.trim() ||
-  profile.default_opus_model?.trim() ||
-  profile.default_haiku_model?.trim() ||
-  profile.subagent_model?.trim() ||
-  fallback
-
-/** base_url 展示值：空值回落到官方直连文案 */
-export const resolveClaudeDisplayBaseUrl = (
-  profile: Pick<ClaudeProfile, 'base_url'>,
-  t: ClaudeTranslate
-): string => profile.base_url?.trim() || t('claudeProfiles.officialBaseUrl')
 
 /** auth_mode 展示标签（缺省视为 subscription） */
 export const claudeAuthModeLabel = (t: ClaudeTranslate, mode?: string | null): string =>

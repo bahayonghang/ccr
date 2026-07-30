@@ -36,115 +36,7 @@
         </button>
       </RouterLink>
 
-      <template v-if="actionsMenu">
-        <!-- actionsMenu 模式：Add / ⌘K / ··· 溢出（Reload / Export / Edit TOML） -->
-        <button
-          v-if="palette"
-          type="button"
-          class="cp-btn cp-btn--ghost"
-          :class="{ 'cp-btn--palette-open': paletteOpen }"
-          :disabled="loading"
-          :aria-pressed="paletteOpen"
-          aria-haspopup="dialog"
-          :title="palette.title"
-          @click="emit('openPalette')"
-        >
-          <SIcon
-            name="Command"
-            size="w-3.5 h-3.5"
-          />
-          <span>{{ palette.label }}</span>
-          <kbd class="cp-btn__kbd">{{ palette.shortcut }}</kbd>
-        </button>
-
-        <div class="cp-menu">
-          <button
-            ref="menuBtnRef"
-            type="button"
-            class="cp-btn cp-btn--ghost"
-            :disabled="loading"
-            :aria-expanded="menuOpen"
-            aria-haspopup="menu"
-            :aria-label="labels.overflow ?? '···'"
-            :title="labels.overflow"
-            @click="toggleMenu"
-          >
-            <SIcon
-              name="MenuDots"
-              size="w-3.5 h-3.5"
-            />
-          </button>
-
-          <div
-            v-if="menuOpen"
-            ref="menuPopRef"
-            class="cp-menu__pop"
-            role="menu"
-            :aria-label="labels.overflow"
-            @keydown="onMenuKeydown"
-          >
-            <button
-              type="button"
-              role="menuitem"
-              class="cp-menu__item"
-              :disabled="loading"
-              @click="onMenuItem('reload')"
-            >
-              <SIcon
-                name="RefreshCw"
-                size="w-3.5 h-3.5"
-                :class="{ 'cp-spin': loading }"
-              />
-              <span>{{ labels.reload }}</span>
-            </button>
-            <button
-              type="button"
-              role="menuitem"
-              class="cp-menu__item"
-              :disabled="exporting || loading"
-              @click="onMenuItem('export')"
-            >
-              <SIcon
-                name="Download"
-                size="w-3.5 h-3.5"
-              />
-              <span>{{ labels.export }}</span>
-            </button>
-            <button
-              v-if="labels.source"
-              type="button"
-              role="menuitem"
-              class="cp-menu__item"
-              :disabled="loading || sourceDisabled"
-              :title="sourceTitle"
-              @click="onMenuItem('editSource')"
-            >
-              <SIcon
-                name="FileCode2"
-                size="w-3.5 h-3.5"
-              />
-              <span>{{ labels.source }}</span>
-            </button>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          class="cp-btn cp-btn--primary"
-          :disabled="loading"
-          @click="emit('add')"
-        >
-          <SIcon
-            name="Plus"
-            size="w-3.5 h-3.5"
-          />
-          <span>{{ labels.add }}</span>
-        </button>
-      </template>
-
-      <!-- 旧平铺分支（缺省）：渲染与行为保持原样。
-           TODO(profiles-redesign): 集成步骤删除 -->
-      <template v-else>
+      <!-- Add / command palette / overflow menu (Reload / Export / Edit TOML). -->
       <button
         v-if="palette"
         type="button"
@@ -164,47 +56,76 @@
         <kbd class="cp-btn__kbd">{{ palette.shortcut }}</kbd>
       </button>
 
-      <button
-        v-if="labels.source"
-        type="button"
-        class="cp-btn cp-btn--ghost"
-        :disabled="loading || sourceDisabled"
-        :title="sourceTitle"
-        @click="emit('editSource')"
-      >
-        <SIcon
-          name="FileCode2"
-          size="w-3.5 h-3.5"
-        />
-        <span>{{ labels.source }}</span>
-      </button>
+      <div class="cp-menu">
+        <button
+          ref="menuBtnRef"
+          type="button"
+          class="cp-btn cp-btn--ghost"
+          :disabled="loading"
+          :aria-expanded="menuOpen"
+          aria-haspopup="menu"
+          :aria-label="labels.overflow ?? '···'"
+          :title="labels.overflow"
+          @click="toggleMenu"
+        >
+          <SIcon
+            name="MenuDots"
+            size="w-3.5 h-3.5"
+          />
+        </button>
 
-      <button
-        type="button"
-        class="cp-btn cp-btn--ghost"
-        :disabled="loading"
-        @click="emit('reload')"
-      >
-        <SIcon
-          name="RefreshCw"
-          size="w-3.5 h-3.5"
-          :class="{ 'cp-spin': loading }"
-        />
-        <span>{{ labels.reload }}</span>
-      </button>
-
-      <button
-        type="button"
-        class="cp-btn cp-btn--ghost"
-        :disabled="exporting || loading"
-        @click="emit('export')"
-      >
-        <SIcon
-          name="Download"
-          size="w-3.5 h-3.5"
-        />
-        <span>{{ labels.export }}</span>
-      </button>
+        <div
+          v-if="menuOpen"
+          ref="menuPopRef"
+          class="cp-menu__pop"
+          role="menu"
+          :aria-label="labels.overflow"
+          @keydown="onMenuKeydown"
+        >
+          <button
+            type="button"
+            role="menuitem"
+            class="cp-menu__item"
+            :disabled="loading"
+            @click="onMenuItem('reload')"
+          >
+            <SIcon
+              name="RefreshCw"
+              size="w-3.5 h-3.5"
+              :class="{ 'cp-spin': loading }"
+            />
+            <span>{{ labels.reload }}</span>
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            class="cp-menu__item"
+            :disabled="exporting || loading"
+            @click="onMenuItem('export')"
+          >
+            <SIcon
+              name="Download"
+              size="w-3.5 h-3.5"
+            />
+            <span>{{ labels.export }}</span>
+          </button>
+          <button
+            v-if="labels.source"
+            type="button"
+            role="menuitem"
+            class="cp-menu__item"
+            :disabled="loading || sourceDisabled"
+            :title="sourceTitle"
+            @click="onMenuItem('editSource')"
+          >
+            <SIcon
+              name="FileCode2"
+              size="w-3.5 h-3.5"
+            />
+            <span>{{ labels.source }}</span>
+          </button>
+        </div>
+      </div>
 
       <button
         type="button"
@@ -218,7 +139,6 @@
         />
         <span>{{ labels.add }}</span>
       </button>
-      </template>
     </div>
   </div>
 </template>
@@ -236,7 +156,7 @@ export interface ProfilesHeaderLabels {
   export: string
   add: string
   source?: string
-  /** ··· 溢出菜单文案（actionsMenu 模式） */
+  /** ··· 溢出菜单文案 */
   overflow?: string
 }
 
@@ -257,8 +177,6 @@ interface Props {
   paletteOpen?: boolean
   sourceDisabled?: boolean
   sourceTitle?: string
-  /** 溢出菜单模式：Add / ⌘K / ···；缺省 false 保持现有平铺按钮 */
-  actionsMenu?: boolean
 }
 
 withDefaults(defineProps<Props>(), {
@@ -268,7 +186,6 @@ withDefaults(defineProps<Props>(), {
   paletteOpen: false,
   sourceDisabled: false,
   sourceTitle: undefined,
-  actionsMenu: false,
 })
 
 const emit = defineEmits<{
@@ -280,7 +197,7 @@ const emit = defineEmits<{
 }>()
 
 /* ========================================================================
- * actionsMenu 模式：··· 溢出菜单
+ * ··· 溢出菜单
  * 行为契约（与 Filters 弹层一致）：Esc 关闭并还焦触发按钮；外部点击关闭；
  * 打开时焦点进第一项；Tab 在菜单内循环；方向键在选项间移动；选中即关闭。
  * ======================================================================== */
@@ -391,7 +308,7 @@ const onMenuItem = (action: 'editSource' | 'export' | 'reload') => {
 .cp-header__text { min-width: 0; }
 
 .cp-header__title {
-  font-size: 18px;
+  font-size: 1.125rem;
   font-weight: 600;
   color: var(--cp-ink-0);
   letter-spacing: -0.2px;
@@ -401,7 +318,7 @@ const onMenuItem = (action: 'editSource' | 'export' | 'reload') => {
 
 .cp-header__subtitle {
   margin: 2px 0 0;
-  font-size: 12px;
+  font-size: 0.75rem;
   color: var(--cp-ink-3);
 }
 
@@ -422,7 +339,7 @@ const onMenuItem = (action: 'editSource' | 'export' | 'reload') => {
   gap: 6px;
   padding: 7px 12px;
   border-radius: 7px;
-  font-size: 12.5px;
+  font-size: 0.8125rem;
   font-weight: 500;
   font-family: inherit;
   background: var(--cp-bg-2);
@@ -477,18 +394,14 @@ const onMenuItem = (action: 'editSource' | 'export' | 'reload') => {
   margin-left: 4px;
   padding: 1px 5px;
   font-family: var(--cp-mono);
-  font-size: 10px;
+  font-size: 0.75rem;
   color: var(--cp-ink-4);
   background: var(--cp-bg-0);
   border: 1px solid var(--cp-line-2);
   border-radius: 3px;
 }
 
-.cp-spin { animation: cp-spin 1s linear infinite; }
-
-@keyframes cp-spin { to { transform: rotate(360deg); } }
-
-/* actionsMenu 模式：··· 溢出菜单弹层（锚定触发按钮，右对齐防溢出视口） */
+/* Overflow menu popover anchored to its trigger. */
 .cp-menu {
   position: relative;
   display: inline-flex;
@@ -546,6 +459,5 @@ const onMenuItem = (action: 'editSource' | 'export' | 'reload') => {
 
 @media (prefers-reduced-motion: reduce) {
   .cp-btn, .cp-menu__item { transition: none; }
-  .cp-spin { animation: none; }
 }
 </style>

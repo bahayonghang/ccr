@@ -14,8 +14,11 @@ const RECENT_CAP = 16
 export interface UseProfilesQuickSwitchOptions {
   /** 平台键，例如 'claude' / 'codex'，用于 localStorage 键后缀 */
   platform: string
-  /** 当前存在的 profile 名列表（惰性求值，用于 stale 名称清理） */
-  getProfileNames: () => string[]
+  /**
+   * 当前存在的 profile 名列表（惰性求值，用于 stale 名称清理）。
+   * 首次成功加载前返回 null，避免用尚未就绪的空列表清空持久化状态。
+   */
+  getProfileNames: () => string[] | null
   /** 钉选已达上限时的提示回调（视图接 toast），缺省静默拒绝 */
   onPinLimit?: () => void
 }
@@ -75,8 +78,9 @@ export function useProfilesQuickSwitch(options: UseProfilesQuickSwitchOptions): 
   const persistRecent = () => writeNames(recentKey, recent.value)
 
   // stale 清理：列表加载/刷新后过滤已不存在的名称并回写；禁用不清理（仅视图置灰）
-  const cleanupStale = () => {
-    const valid = new Set(options.getProfileNames())
+  const cleanupStale = (profileNames: string[] | null) => {
+    if (profileNames === null) return
+    const valid = new Set(profileNames)
     const nextPinned = pinned.value.filter(name => valid.has(name))
     if (nextPinned.length !== pinned.value.length) {
       pinned.value = nextPinned

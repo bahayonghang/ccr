@@ -162,17 +162,55 @@ openai_login_method: authModeToLoginMethod(form.auth_mode) ?? null,
 那会同时带来 `!important` 覆盖、硬编码明暗 RGBA 和独立暗色覆盖块，
 并让主题/口味切换在该模态内失效。
 
-### Convention：数字快捷键只绑定钉选顺序
+### Convention：QuickSwitch 持久化与稳定编号
 
 **What**：`useProfilesQuickSwitch(platform)` 的 `pinned` 数组是 `⌘/Ctrl+1..8` 的唯一目标来源
 （`getStableTargets: () => quickSwitch.stableTargets.value`）。最近使用 chip 展示但不编号。
 
+**Storage**：按平台分离写入 `localStorage`：
+
+- `ccr:profiles:pinned:{platform}`：用户钉选顺序，最多 8 项。
+- `ccr:profiles:recent:{platform}`：Apply 成功后的最近使用顺序，不得参与数字键映射。
+
 **Why**：编号跟随「当前显示顺序」会随筛选/排序/Apply 漂移，快捷键语义不稳定。
 
-**配套调用点**（漏掉会导致钉选列表与真实 profile 脱节）：
+**不变量**：
+
+- `stableTargets` 只是 `pinned` 的最多 8 项副本；搜索、筛选、排序和 `recordUse()` 都不得改变其指向。
+- 首个成功 profile 快照就绪前，`getProfileNames()` 必须返回 `null`；只有后端已确认列表为空时才返回 `[]`，避免加载态误清持久化数据。
+- 列表加载或刷新时清理已删除的 stale 名称并回写 storage；禁用 profile 仍保留钉选，但不可 Apply。
+- 重命名必须同时替换 pinned/recent 中的旧名，不得将其静默丢弃。
+- Windows/Linux 提示使用 `Ctrl`，macOS 使用 `⌘`；平台检测只调用 `getClientPlatform()`。
+
+**配套调用点**（漏掉会导致持久化列表与真实 profile 脱节）：
+
 - Apply 成功后 `quickSwitch.recordUse(name)`
 - 重命名成功后 `quickSwitch.renamePinned(oldName, newName)`
 - profile 列表刷新由 composable 内部 watch 自动清理 stale 名称，视图无需处理
+
+**Tests**：`profiles-quick-switch.smoke.test.ts`、`profiles-hotkeys.smoke.test.ts` 和
+`profiles-quick-rail.smoke.test.ts` 分别覆盖 storage/stale/rename/上限、数字键目标、roving tabindex。
+
+### Convention：Profiles 弹层行为
+
+**What**：`ProfilesHeader` 溢出菜单与 `ProfilesToolbar` Filters popover 共享以下交互契约：
+
+- 打开后焦点进入第一个可操作项；`Tab` / `Shift+Tab` 在弹层内循环。
+- `ArrowDown` / `ArrowUp` 在可操作项间循环；`Escape` 关闭并将焦点还给触发按钮。
+- 点击弹层外关闭；Header 菜单执行项后关闭，Filters 选中项后保持打开，仅清空/外部点击/`Escape` 关闭。
+- 桌面窄布局仍锚定触发按钮并右对齐；`<=720px` 改为距视口边缘 12px 的底部全宽面板。
+
+**Why**：这两个弹层是页面的主要键盘操作入口；行为分歧会造成焦点丢失，也会让窄视口的控件溢出。
+
+### Convention：`0.75rem` 密排元数据字阶
+
+**What**：Profiles 工作台允许在短标签、键帽、字段元数据、列头和健康审计行使用 `0.75rem`。
+正文、操作说明、表单标签和按钮文案仍遵循 DESIGN.md 的 `0.8125rem` Label 或更大字阶。
+
+**Why**：Profiles 需要在专家密度下扫描多个配置字段。`0.75rem` 是有意的紧凑元数据层，
+不是把所有文本缩小的通用逃生口。
+
+**Don't**：不得新增 `10px` / `10.5px` / `11px` / `11.5px` 等任意字号，也不得把验证、备份或破坏性操作说明降到该字阶。
 
 ### Gotcha：删除确认框的备份文案必须与真实行为一致
 
@@ -190,7 +228,7 @@ openai_login_method: authModeToLoginMethod(form.auth_mode) ?? null,
 改动本文件覆盖的范围后运行：
 
 ```bash
-cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/codex-profiles-view.smoke.test.ts tests/codex-profile-editor.smoke.test.ts tests/claude-profiles-view.smoke.test.ts tests/profiles-quick-switch.smoke.test.ts tests/profiles-quick-rail.smoke.test.ts tests/profile-diff.smoke.test.ts
+cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/codex-profiles-view.smoke.test.ts tests/codex-profile-editor.smoke.test.ts tests/claude-profiles-view.smoke.test.ts tests/profiles-quick-switch.smoke.test.ts tests/profiles-quick-rail.smoke.test.ts tests/profiles-hotkeys.smoke.test.ts tests/profiles-toolbar.smoke.test.ts tests/profile-diff.smoke.test.ts
 ```
 
 再跑 `cd ccr-ui && bun run type-check`、`bun run lint`、`bun run test:i18n`（改动 i18n 键时）。

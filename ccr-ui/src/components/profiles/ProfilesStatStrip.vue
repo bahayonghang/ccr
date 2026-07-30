@@ -1,5 +1,5 @@
-<!-- 4 列统计条：当前 profile / 配置总数 / 平台特定列 / 最近写入。
-     平台差异通过 labels + secondary 列 + 可选 sparkline 注入；样式靠视图的 --cp-* 继承换肤。 -->
+<!-- 4 列统计条：当前 profile / 配置总数 / 平台特定列 / Health。
+     平台差异通过 labels + secondary 列注入；样式靠视图的 --cp-* 继承换肤。 -->
 <template>
   <div class="cp-stats">
     <div class="cp-stat surface-status">
@@ -32,12 +32,6 @@
       <div class="cp-stat__hint">
         {{ labels.totalHint }}
       </div>
-      <Sparkline
-        v-if="totalSpark"
-        :values="totalSpark"
-        stroke="var(--cp-info)"
-        class="cp-stat__spark"
-      />
     </div>
 
     <div class="cp-stat surface-status">
@@ -59,9 +53,8 @@
       </div>
     </div>
 
-    <!-- 第四槽：health 注入时渲染 Health 槽（点击滚动到 Inspector Health 区） -->
+    <!-- 第四槽：Health（点击滚动到 Inspector Health 区） -->
     <button
-      v-if="health"
       type="button"
       class="cp-stat cp-stat--clickable surface-status"
       :class="{ 'cp-stat--warn': health.warn }"
@@ -81,39 +74,11 @@
         {{ health.hint }}
       </div>
     </button>
-
-    <!-- 旧第四槽（Last Write 客户端时钟槽 + sparkline 死代码）：缺省保持原渲染。
-         TODO(profiles-redesign): 集成步骤删除 -->
-    <div
-      v-else
-      class="cp-stat surface-status"
-    >
-      <div class="cp-stat__head">
-        <SIcon
-          name="RefreshCw"
-          size="w-3 h-3"
-        />
-        {{ labels.lastWrite }}
-      </div>
-      <div class="cp-stat__value cp-stat__value--mono">
-        {{ lastWrite || '—' }}
-      </div>
-      <div class="cp-stat__hint">
-        {{ labels.lastWriteHint }}
-      </div>
-      <Sparkline
-        v-if="recentSpark"
-        :values="recentSpark"
-        stroke="var(--cp-good)"
-        class="cp-stat__spark"
-      />
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
-import Sparkline from '@/components/ui/Sparkline.vue'
 
 export interface ProfilesStatStripLabels {
   current: string
@@ -121,10 +86,6 @@ export interface ProfilesStatStripLabels {
   currentHint: string
   total: string
   totalHint: string
-  /** 旧 Last Write 槽文案；注入 health 后不再渲染，可省略
-      TODO(profiles-redesign): 集成步骤删除 */
-  lastWrite?: string
-  lastWriteHint?: string
 }
 
 /** 第三列（平台特定）：Claude=认证分布；Codex=配置模式 */
@@ -137,7 +98,7 @@ export interface ProfilesStatStripSecondary {
   mono?: boolean
 }
 
-/** 可选第四槽：Health（问题数；注入时替换旧 Last Write 槽） */
+/** 第四槽：Health（问题数） */
 export interface ProfilesStatStripHealth {
   title: string
   value: string
@@ -153,21 +114,10 @@ interface Props {
   total: number
   labels: ProfilesStatStripLabels
   secondary: ProfilesStatStripSecondary
-  lastWrite?: string | null
-  /** 列 2/4 的装饰 sparkline（Codex 用，Claude 省略 → 不渲染）
-      TODO(profiles-redesign): 集成步骤删除（两页均未传，死能力） */
-  totalSpark?: number[] | null
-  recentSpark?: number[] | null
-  /** 注入后第四槽渲染 Health 并支持点击定位；缺省保持旧 Last Write 槽 */
-  health?: ProfilesStatStripHealth | null
+  health: ProfilesStatStripHealth
 }
 
-withDefaults(defineProps<Props>(), {
-  lastWrite: null,
-  totalSpark: null,
-  recentSpark: null,
-  health: null,
-})
+defineProps<Props>()
 
 const emit = defineEmits<{
   (e: 'healthClick'): void
@@ -199,7 +149,7 @@ const emit = defineEmits<{
   align-items: center;
   gap: 6px;
   color: var(--cp-ink-3);
-  font-size: 10.5px;
+  font-size: 0.75rem;
   letter-spacing: 0.8px;
   text-transform: uppercase;
 }
@@ -215,7 +165,7 @@ const emit = defineEmits<{
 
 .cp-stat__value {
   color: var(--cp-ink-0);
-  font-size: 19px;
+  font-size: 1.1875rem;
   font-weight: 600;
   letter-spacing: -0.3px;
   word-break: break-all;
@@ -225,14 +175,7 @@ const emit = defineEmits<{
 
 .cp-stat__hint {
   color: var(--cp-ink-3);
-  font-size: 11px;
-}
-
-.cp-stat__spark {
-  position: absolute;
-  right: 10px;
-  top: 12px;
-  opacity: 0.6;
+  font-size: 0.75rem;
 }
 
 .cp-stat--clickable {

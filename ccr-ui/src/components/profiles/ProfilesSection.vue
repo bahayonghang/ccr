@@ -1,7 +1,4 @@
-<!-- 简易分组容器：标题 + 计数 + 内容插槽。
-     从两平台视图内联定义的同名 functional component 提取（视图接入在子任务 ②③；
-     接入后两视图的内联定义与重复样式由集成步骤删除）。
-     TODO(profiles-redesign): 集成步骤删除两视图内联 ProfilesSection 与 .cp-section 重复样式 -->
+<!-- Shared profile group container: heading, count, and content slot. -->
 <template>
   <section class="cp-section">
     <div class="cp-section__head">

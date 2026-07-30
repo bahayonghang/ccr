@@ -354,7 +354,7 @@ const onKeyDown = (event: KeyboardEvent) => {
 .cp-palette__eyebrow {
   color: var(--color-text-muted);
   font-family: var(--font-mono, 'MapleBright', monospace);
-  font-size: 10.5px;
+  font-size: 0.75rem;
   letter-spacing: 1.1px;
   line-height: 1.2;
   text-transform: uppercase;
@@ -363,7 +363,7 @@ const onKeyDown = (event: KeyboardEvent) => {
 .cp-palette__title {
   margin: 4px 0 0;
   color: var(--color-text-primary);
-  font-size: 18px;
+  font-size: 1.125rem;
   font-weight: 650;
   letter-spacing: -0.3px;
   line-height: 1.25;
@@ -378,7 +378,7 @@ const onKeyDown = (event: KeyboardEvent) => {
   background: var(--color-bg-surface);
   color: var(--color-text-muted);
   font-family: var(--font-mono, 'MapleBright', monospace);
-  font-size: 11px;
+  font-size: 0.75rem;
   line-height: 1.2;
   text-align: right;
 }
@@ -407,7 +407,7 @@ const onKeyDown = (event: KeyboardEvent) => {
   border: 1px solid var(--color-border-default);
   border-radius: 12px;
   color: var(--color-text-primary);
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-family: inherit;
   outline: none;
   transition: border-color 120ms ease, box-shadow 120ms ease, background 120ms ease;
@@ -443,7 +443,7 @@ const onKeyDown = (event: KeyboardEvent) => {
   padding: 0 4px 7px;
   color: var(--color-text-muted);
   font-family: var(--font-mono, 'MapleBright', monospace);
-  font-size: 11px;
+  font-size: 0.75rem;
   letter-spacing: 0.9px;
   line-height: 1.2;
   text-transform: uppercase;
@@ -517,7 +517,7 @@ const onKeyDown = (event: KeyboardEvent) => {
 .cp-palette__label {
   overflow: hidden;
   color: var(--color-text-primary);
-  font-size: 14.5px;
+  font-size: 0.875rem;
   font-weight: 550;
   line-height: 1.25;
   text-overflow: ellipsis;
@@ -526,14 +526,14 @@ const onKeyDown = (event: KeyboardEvent) => {
 
 .cp-palette__label--mono {
   font-family: var(--font-mono, 'MapleBright', monospace);
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 
 .cp-palette__sub {
   overflow: hidden;
   margin-top: 3px;
   color: var(--color-text-muted);
-  font-size: 12.5px;
+  font-size: 0.8125rem;
   line-height: 1.25;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -547,7 +547,7 @@ const onKeyDown = (event: KeyboardEvent) => {
   background: var(--color-bg-surface);
   color: var(--color-text-muted);
   font-family: var(--font-mono, 'MapleBright', monospace);
-  font-size: 10.5px;
+  font-size: 0.75rem;
   letter-spacing: 0.6px;
   line-height: 1.2;
   text-transform: uppercase;
@@ -559,7 +559,7 @@ const onKeyDown = (event: KeyboardEvent) => {
   border: 1px dashed var(--color-border-default);
   border-radius: 12px;
   color: var(--color-text-muted);
-  font-size: 13px;
+  font-size: 0.8125rem;
   text-align: center;
 }
 
@@ -571,7 +571,7 @@ const onKeyDown = (event: KeyboardEvent) => {
   width: 100%;
   color: var(--color-text-muted);
   font-family: var(--font-mono, 'MapleBright', monospace);
-  font-size: 11px;
+  font-size: 0.75rem;
   line-height: 1.5;
 }
 
@@ -586,7 +586,7 @@ const onKeyDown = (event: KeyboardEvent) => {
   background: var(--color-bg-surface);
   color: var(--color-text-secondary);
   font-family: var(--font-mono, 'MapleBright', monospace);
-  font-size: 10.5px;
+  font-size: 0.75rem;
   line-height: 1.4;
   box-shadow: inset 0 -1px 0 rgb(0 0 0 / 8%);
 }

@@ -39,204 +39,133 @@
       </button>
     </div>
 
-    <!-- compactFilters 模式：标签/provider/排序收进 Filters 弹层；缺省保持现有平铺。
-         TODO(profiles-redesign): 集成步骤删除平铺分支 -->
-    <template v-if="compactFilters">
-      <span class="cp-toolbar__sep" />
+    <span class="cp-toolbar__sep" />
 
-      <div class="cp-filters">
-        <button
-          ref="filtersBtnRef"
-          type="button"
-          class="cp-pill cp-filters__trigger"
-          :class="{ 'cp-pill--active': activeFilterCount > 0 || filtersOpen }"
-          :aria-expanded="filtersOpen"
-          aria-haspopup="dialog"
-          @click="toggleFilters"
-        >
-          <SIcon
-            name="SlidersHorizontal"
-            size="w-3.5 h-3.5"
-          />
-          {{ t(`${i18nPrefix}.filtersButton`) }}
-          <span
-            v-if="activeFilterCount > 0"
-            class="cp-filters__badge"
-          >{{ activeFilterCount }}</span>
-          <SIcon
-            name="ChevronDown"
-            size="w-3 h-3"
-          />
-        </button>
+    <div class="cp-filters">
+      <button
+        ref="filtersBtnRef"
+        type="button"
+        class="cp-pill cp-filters__trigger"
+        :class="{ 'cp-pill--active': activeFilterCount > 0 || filtersOpen }"
+        :aria-expanded="filtersOpen"
+        aria-haspopup="dialog"
+        @click="toggleFilters"
+      >
+        <SIcon
+          name="SlidersHorizontal"
+          size="w-3.5 h-3.5"
+        />
+        {{ t(`${i18nPrefix}.filtersButton`) }}
+        <span
+          v-if="activeFilterCount > 0"
+          class="cp-filters__badge"
+        >{{ activeFilterCount }}</span>
+        <SIcon
+          name="ChevronDown"
+          size="w-3 h-3"
+        />
+      </button>
 
+      <div
+        v-if="filtersOpen"
+        ref="filtersPopRef"
+        class="cp-filters__pop"
+        role="dialog"
+        :aria-label="t(`${i18nPrefix}.filtersButton`)"
+        @keydown="onFiltersKeydown"
+      >
         <div
-          v-if="filtersOpen"
-          ref="filtersPopRef"
-          class="cp-filters__pop"
-          role="dialog"
-          :aria-label="t(`${i18nPrefix}.filtersButton`)"
-          @keydown="onFiltersKeydown"
+          v-if="allTags.length > 0"
+          class="cp-filters__section"
         >
+          <div class="cp-filters__label">
+            {{ t(`${i18nPrefix}.tagGroupLabel`) }}
+          </div>
           <div
-            v-if="allTags.length > 0"
-            class="cp-filters__section"
+            class="cp-pill-row"
+            role="group"
+            :aria-label="t(`${i18nPrefix}.tagGroupLabel`)"
           >
-            <div class="cp-filters__label">
-              {{ t(`${i18nPrefix}.tagGroupLabel`) }}
-            </div>
-            <div
-              class="cp-pill-row"
-              role="group"
-              :aria-label="t(`${i18nPrefix}.tagGroupLabel`)"
-            >
-              <button
-                v-for="tag in allTags"
-                :key="tag"
-                type="button"
-                class="cp-pill"
-                :class="{ 'cp-pill--active': tagFilter === tag }"
-                :aria-pressed="tagFilter === tag"
-                @click="emit('update:tagFilter', tagFilter === tag ? null : tag)"
-              >
-                #{{ tag }}
-              </button>
-            </div>
-          </div>
-
-          <div
-            v-if="allProviders && allProviders.length > 1"
-            class="cp-filters__section"
-          >
-            <div class="cp-filters__label">
-              {{ t(`${i18nPrefix}.providerLabel`) }}
-            </div>
-            <select
-              :value="providerFilter ?? ''"
-              class="cp-toolbar__sort cp-filters__select"
-              :aria-label="t(`${i18nPrefix}.providerLabel`)"
-              @change="onProviderChange"
-            >
-              <option value="">
-                {{ t(`${i18nPrefix}.providerAll`) }}
-              </option>
-              <option
-                v-for="provider in allProviders"
-                :key="provider.key"
-                :value="provider.key"
-              >
-                {{ provider.label }}
-              </option>
-            </select>
-          </div>
-
-          <div class="cp-filters__section">
-            <div class="cp-filters__label">
-              {{ t(`${i18nPrefix}.sortLabel`) }}
-            </div>
-            <select
-              :value="sortBy"
-              class="cp-toolbar__sort cp-filters__select"
-              :aria-label="t(`${i18nPrefix}.sortLabel`)"
-              @change="onSortChange"
-            >
-              <option value="recent">
-                {{ t(`${i18nPrefix}.sortRecent`) }}
-              </option>
-              <option value="name">
-                {{ t(`${i18nPrefix}.sortName`) }}
-              </option>
-              <option value="requests">
-                {{ t(`${i18nPrefix}.sortRequests`) }}
-              </option>
-              <option value="enabled">
-                {{ t(`${i18nPrefix}.sortEnabled`) }}
-              </option>
-            </select>
-          </div>
-
-          <div class="cp-filters__foot">
             <button
+              v-for="tag in allTags"
+              :key="tag"
               type="button"
               class="cp-pill"
-              :disabled="activeFilterCount === 0"
-              @click="clearAllFilters"
+              :class="{ 'cp-pill--active': tagFilter === tag }"
+              :aria-pressed="tagFilter === tag"
+              @click="emit('update:tagFilter', tagFilter === tag ? null : tag)"
             >
-              {{ t(`${i18nPrefix}.clearAll`) }}
+              #{{ tag }}
             </button>
           </div>
         </div>
-      </div>
-    </template>
 
-    <template v-else>
-      <span
-        v-if="allTags.length > 0"
-        class="cp-toolbar__sep"
-      />
-
-      <div
-        v-if="allTags.length > 0"
-        class="cp-pill-row"
-        role="group"
-        :aria-label="t(`${i18nPrefix}.tagGroupLabel`)"
-      >
-        <button
-          v-for="tag in allTags"
-          :key="tag"
-          type="button"
-          class="cp-pill"
-          :class="{ 'cp-pill--active': tagFilter === tag }"
-          :aria-pressed="tagFilter === tag"
-          @click="emit('update:tagFilter', tagFilter === tag ? null : tag)"
+        <div
+          v-if="allProviders && allProviders.length > 1"
+          class="cp-filters__section"
         >
-          #{{ tag }}
-        </button>
+          <div class="cp-filters__label">
+            {{ t(`${i18nPrefix}.providerLabel`) }}
+          </div>
+          <select
+            :value="providerFilter ?? ''"
+            class="cp-toolbar__sort cp-filters__select"
+            :aria-label="t(`${i18nPrefix}.providerLabel`)"
+            @change="onProviderChange"
+          >
+            <option value="">
+              {{ t(`${i18nPrefix}.providerAll`) }}
+            </option>
+            <option
+              v-for="provider in allProviders"
+              :key="provider.key"
+              :value="provider.key"
+            >
+              {{ provider.label }}
+            </option>
+          </select>
+        </div>
+
+        <div class="cp-filters__section">
+          <div class="cp-filters__label">
+            {{ t(`${i18nPrefix}.sortLabel`) }}
+          </div>
+          <select
+            :value="sortBy"
+            class="cp-toolbar__sort cp-filters__select"
+            :aria-label="t(`${i18nPrefix}.sortLabel`)"
+            @change="onSortChange"
+          >
+            <option value="recent">
+              {{ t(`${i18nPrefix}.sortRecent`) }}
+            </option>
+            <option value="name">
+              {{ t(`${i18nPrefix}.sortName`) }}
+            </option>
+            <option value="requests">
+              {{ t(`${i18nPrefix}.sortRequests`) }}
+            </option>
+            <option value="enabled">
+              {{ t(`${i18nPrefix}.sortEnabled`) }}
+            </option>
+          </select>
+        </div>
+
+        <div class="cp-filters__foot">
+          <button
+            type="button"
+            class="cp-pill"
+            :disabled="activeFilterCount === 0"
+            @click="clearAllFilters"
+          >
+            {{ t(`${i18nPrefix}.clearAll`) }}
+          </button>
+        </div>
       </div>
-    </template>
+    </div>
 
     <div class="cp-toolbar__right">
       <span class="cp-toolbar__meta">{{ resultCount }}/{{ total }}</span>
-
-      <template v-if="!compactFilters">
-        <select
-          v-if="allProviders && allProviders.length > 1"
-          :value="providerFilter ?? ''"
-          class="cp-toolbar__sort"
-          :aria-label="t(`${i18nPrefix}.providerLabel`)"
-          @change="onProviderChange"
-        >
-          <option value="">
-            {{ t(`${i18nPrefix}.providerAll`) }}
-          </option>
-          <option
-            v-for="provider in allProviders"
-            :key="provider.key"
-            :value="provider.key"
-          >
-            {{ provider.label }}
-          </option>
-        </select>
-
-        <select
-          :value="sortBy"
-          class="cp-toolbar__sort"
-          :aria-label="t(`${i18nPrefix}.sortLabel`)"
-          @change="onSortChange"
-        >
-          <option value="recent">
-            {{ t(`${i18nPrefix}.sortRecent`) }}
-          </option>
-          <option value="name">
-            {{ t(`${i18nPrefix}.sortName`) }}
-          </option>
-          <option value="requests">
-            {{ t(`${i18nPrefix}.sortRequests`) }}
-          </option>
-          <option value="enabled">
-            {{ t(`${i18nPrefix}.sortEnabled`) }}
-          </option>
-        </select>
-      </template>
 
       <div
         class="cp-seg"
@@ -300,14 +229,11 @@ interface Props {
   /** provider 维度（Claude 用，Codex 省略 → 不渲染 provider 下拉） */
   providerFilter?: string | null
   allProviders?: ProviderOption[]
-  /** 筛选收敛模式：标签/provider/排序收进 Filters 弹层；缺省 false 保持平铺 */
-  compactFilters?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   providerFilter: null,
   allProviders: undefined,
-  compactFilters: false,
 })
 
 const emit = defineEmits<{
@@ -322,11 +248,7 @@ const emit = defineEmits<{
 const { t } = useI18n()
 const searchRef = ref<HTMLInputElement | null>(null)
 
-/* ========================================================================
- * compactFilters 模式：Filters 弹层
- * 行为契约：Esc 关闭并还焦触发按钮；外部点击关闭；选中项后保持打开；
- * 仅「清除全部」/外部点击/Esc 关闭；打开时焦点进弹层；Tab 在弹层内循环。
- * ======================================================================== */
+/* Filters: Esc restores trigger focus; outside click closes; selections keep it open. */
 
 const filtersOpen = ref(false)
 const filtersBtnRef = ref<HTMLButtonElement | null>(null)
@@ -381,6 +303,19 @@ const onFiltersKeydown = (event: KeyboardEvent) => {
       event.preventDefault()
       first.focus()
     }
+    return
+  }
+  if (
+    event.target instanceof HTMLButtonElement
+    && ['ArrowDown', 'ArrowRight', 'ArrowUp', 'ArrowLeft'].includes(event.key)
+  ) {
+    const focusable = focusableInPopover()
+    if (focusable.length === 0) return
+    const activeIndex = focusable.indexOf(document.activeElement as HTMLElement)
+    if (activeIndex < 0) return
+    const delta = event.key === 'ArrowDown' || event.key === 'ArrowRight' ? 1 : -1
+    event.preventDefault()
+    focusable[(activeIndex + delta + focusable.length) % focusable.length]?.focus()
   }
 }
 
@@ -470,7 +405,7 @@ defineExpose({ focusSearch })
   border: 1px solid var(--cp-line-2);
   border-radius: 7px;
   color: var(--cp-ink-0);
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-family: inherit;
   outline: none;
   transition: border-color 120ms ease;
@@ -486,7 +421,7 @@ defineExpose({ focusSearch })
   transform: translateY(-50%);
   padding: 2px 6px;
   font-family: var(--cp-mono);
-  font-size: 10px;
+  font-size: 0.75rem;
   color: var(--cp-ink-4);
   background: var(--cp-bg-2);
   border: 1px solid var(--cp-line-2);
@@ -512,7 +447,7 @@ defineExpose({ focusSearch })
   background: var(--cp-bg-2);
   color: var(--cp-ink-2);
   font-family: var(--cp-mono);
-  font-size: 11px;
+  font-size: 0.75rem;
   letter-spacing: 0.2px;
   cursor: pointer;
   transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
@@ -539,7 +474,7 @@ defineExpose({ focusSearch })
 
 .cp-toolbar__meta {
   color: var(--cp-ink-3);
-  font-size: 11.5px;
+  font-size: 0.75rem;
   font-family: var(--cp-mono);
 }
 
@@ -550,7 +485,7 @@ defineExpose({ focusSearch })
   border-radius: 7px;
   color: var(--cp-ink-1);
   font-family: var(--cp-mono);
-  font-size: 12px;
+  font-size: 0.75rem;
   max-width: 160px;
 }
 
@@ -585,7 +520,7 @@ defineExpose({ focusSearch })
   box-shadow: inset 0 0 0 1px var(--cp-line-2);
 }
 
-/* compactFilters 模式：Filters 弹层（锚定触发按钮，右对齐防溢出视口） */
+/* Filters popover anchored to its trigger and right-aligned to avoid overflow. */
 .cp-filters {
   position: relative;
   display: inline-flex;

@@ -1,5 +1,5 @@
 <template>
-  <div class="claude-profiles-view">
+  <div class="profiles-view claude-profiles-view">
     <ModuleSubnav module="claude-code" />
 
     <main class="cp-shell">
@@ -7,7 +7,6 @@
         <ProfilesHeader
           icon="Layers"
           back-to="/claude-code"
-          actions-menu
           :labels="{
             title: $t('claudeProfiles.title'),
             subtitle: $t('claudeProfiles.subtitle'),
@@ -71,7 +70,6 @@
         <ProfilesToolbar
           ref="toolbarRef"
           i18n-prefix="claudeProfiles.toolbar"
-          compact-filters
           :query="searchQuery"
           :status-filter="statusFilter"
           :tag-filter="tagFilter"
@@ -329,6 +327,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import '@/styles/profiles-page.css'
 import {
   addClaudeProfile,
   applyClaudeProfile,
@@ -395,6 +394,7 @@ const isExporting = ref(false)
 const loadError = ref<string | null>(null)
 const refreshError = ref<string | null>(null)
 const profiles = ref<ClaudeProfile[]>([])
+const profileNamesReady = ref(false)
 const showForm = ref(false)
 const isEditing = ref(false)
 const isSaving = ref(false)
@@ -437,7 +437,9 @@ const inspectorDescriptor = createClaudeInspectorDescriptor(t)
 // 快速切换：钉选（数字编号唯一来源）+ 最近使用，按平台键持久化
 const quickSwitch = useProfilesQuickSwitch({
   platform: 'claude',
-  getProfileNames: () => profiles.value.map(profile => profile.name),
+  getProfileNames: () => profileNamesReady.value
+    ? profiles.value.map(profile => profile.name)
+    : null,
   onPinLimit: () => uiStore.showWarning(t('claudeProfiles.pinLimitReached')),
 })
 
@@ -692,6 +694,7 @@ const loadProfiles = async (options: { preserveData?: boolean } = {}) => {
     isRefreshing.value = true
     refreshError.value = null
   } else {
+    profileNamesReady.value = false
     loading.value = true
     loadError.value = null
   }
@@ -701,6 +704,7 @@ const loadProfiles = async (options: { preserveData?: boolean } = {}) => {
     const normalized = normalizeClaudeProfilesState(data.profiles || [], data.current_profile || null)
 
     profiles.value = normalized.profiles
+    profileNamesReady.value = true
     loadError.value = null
     refreshError.value = null
 
@@ -922,7 +926,6 @@ watch(showConfirmModal, (isOpen) => {
 useProfilesHotkeys({
   paletteOpen,
   focusSearch: () => toolbarRef.value?.focusSearch(),
-  getApplicableProfiles: () => profiles.value.filter(p => p.enabled !== false),
   getStableTargets: () => quickSwitch.stableTargets.value,
   onApply: handleApply,
 })
@@ -932,226 +935,3 @@ onMounted(() => {
   void loadActiveEnvironment()
 })
 </script>
-
-<style>
-/* ===========================================================
-   作用域设计令牌：仅在本视图内生效，子组件靠继承解析 --cp-*
-   主色跟随共享 accent-primary（与 Codex Profiles 页一致）
-   =========================================================== */
-.claude-profiles-view {
-  /* 背景层 → 全局 token */
-  --cp-bg-0: var(--color-bg-base);
-  --cp-bg-1: var(--color-bg-elevated);
-  --cp-bg-2: var(--color-bg-surface);
-  --cp-bg-3: var(--color-bg-overlay);
-  --cp-bg-4: rgb(var(--color-bg-overlay-rgb) / 88%);
-
-  /* 边框 → 全局 token */
-  --cp-line: var(--color-border-subtle);
-  --cp-line-2: var(--color-border-default);
-
-  /* 文字阶 → 全局 token */
-  --cp-ink-0: var(--color-text-primary);
-  --cp-ink-1: var(--color-text-secondary);
-  --cp-ink-2: var(--color-text-muted);
-  --cp-ink-3: var(--color-text-ghost);
-  --cp-ink-4: var(--color-text-disabled);
-
-  /* 主色 → 共享 accent-primary（跟随用户 data-accent 选择，两平台一致） */
-  --cp-accent: var(--color-accent-primary);
-  --cp-accent-soft: rgb(var(--color-accent-primary-rgb) / 14%);
-  --cp-accent-line: rgb(var(--color-accent-primary-rgb) / 35%);
-  --cp-accent-hover: var(--color-accent-primary-hover);
-  --cp-on-accent: var(--color-text-inverted);
-
-  /* 平台识别色：仅用于页头图标徽章，不跟随用户 accent 选择 */
-  --cp-icon-color: var(--color-platform-claude);
-  --cp-icon-soft: rgb(var(--color-platform-claude-rgb) / 14%);
-  --cp-icon-line: rgb(var(--color-platform-claude-rgb) / 35%);
-
-  /* 状态色 → 全局 token */
-  --cp-good: var(--color-success);
-  --cp-warn: var(--color-warning);
-  --cp-danger: var(--color-danger);
-  --cp-info: var(--color-info);
-  --cp-mono: var(--font-mono, 'MapleBright', monospace);
-
-  min-height: 100%;
-  padding: 24px;
-  background: var(--color-bg-base);
-  color: var(--cp-ink-1);
-  font-size: 0.8125rem;
-  line-height: 1.5;
-}
-
-.cp-shell {
-  max-width: 1680px;
-  margin: 16px auto 0;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 16px;
-  align-items: start;
-}
-
-@media (width >= 1280px) {
-  .cp-shell {
-    grid-template-columns: minmax(0, 1fr) 340px;
-  }
-}
-
-.cp-main {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-/* 卡片视图栅格：≥1280px 双列，≥1680px 视口宽度可到三列 */
-.cp-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
-  gap: 10px;
-}
-
-@media (width <= 1279px) {
-  .cp-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-/* 列表视图 */
-.cp-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.cp-list-head {
-  display: grid;
-  grid-template-columns: 12px minmax(120px, 160px) minmax(0, 1.2fr) minmax(0, 1.5fr) minmax(
-      80px,
-      110px
-    ) minmax(80px, 120px) minmax(60px, 1fr) auto;
-  gap: 12px;
-  padding: 2px 14px 4px;
-  font-family: var(--cp-mono);
-  font-size: 0.75rem;
-  letter-spacing: 0.05rem;
-  text-transform: uppercase;
-  color: var(--cp-ink-3);
-}
-
-.cp-list-head__right {
-  text-align: right;
-}
-
-@media (width <= 1024px) {
-  .cp-list-head {
-    display: none;
-  }
-}
-
-/* Health 审计条目定位后的短暂高亮 */
-.cp-locate-flash {
-  outline: 2px solid var(--cp-accent);
-  outline-offset: 2px;
-  transition: outline-color 200ms ease;
-}
-
-/* 加载/空/错误三态 */
-.cp-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 8px;
-  padding: 48px 16px;
-  border-radius: 12px;
-  border: 1px dashed var(--cp-line-2);
-  background: var(--cp-bg-2);
-  color: var(--cp-ink-3);
-}
-
-.cp-state--error {
-  border-style: solid;
-  border-color: rgb(var(--color-danger-rgb) / 30%);
-  color: var(--cp-danger);
-}
-
-.cp-state--warn {
-  border-style: solid;
-  border-color: rgb(var(--color-warning-rgb) / 30%);
-  color: var(--cp-warn);
-}
-
-.cp-state__title {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--cp-ink-0);
-}
-
-.cp-state__hint {
-  font-size: 0.8125rem;
-  color: var(--cp-ink-2);
-  max-width: 420px;
-}
-
-.cp-state__btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 4px;
-  padding: 7px 14px;
-  border-radius: 8px;
-  border: 1px solid var(--cp-line-2);
-  background: var(--cp-bg-3);
-  color: var(--cp-ink-1);
-  font-size: 0.8125rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition:
-    background 120ms ease,
-    color 120ms ease;
-}
-
-.cp-state__btn:hover:not(:disabled) {
-  background: var(--cp-accent-soft);
-  border-color: var(--cp-accent-line);
-  color: var(--cp-accent);
-}
-
-.cp-state__btn:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.cp-state__btn--primary {
-  background: var(--cp-accent);
-  border-color: var(--cp-accent);
-  color: var(--cp-on-accent);
-}
-
-.cp-state__spinner {
-  width: 32px;
-  height: 32px;
-  border-radius: 999px;
-  border: 2px solid var(--cp-line-2);
-  border-top-color: var(--cp-accent);
-  animation: cp-state-spin 1s linear infinite;
-}
-
-@keyframes cp-state-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .cp-state__spinner {
-    animation: none;
-  }
-
-  .cp-state__btn {
-    transition: none;
-  }
-}
-</style>
