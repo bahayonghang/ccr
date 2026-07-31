@@ -138,6 +138,18 @@ class WorkflowGovernanceParserTests(unittest.TestCase):
         self.assertIn("fmt: json-format", root_justfile)
         self.assertIn("fmt-check: json-format-check", root_justfile)
 
+    def test_tauri_bindings_check_compares_against_the_worktree_baseline(self) -> None:
+        ui_justfile = (self.ROOT / "ccr-ui" / "justfile").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("scripts/check-generated-bindings.mjs", ui_justfile)
+        self.assertIn("scripts/normalize-generated-bindings.mjs", ui_justfile)
+        self.assertNotIn("git status --porcelain -- src/types/generated", ui_justfile)
+        self.assertTrue(
+            (self.ROOT / "ccr-ui" / "scripts" / "check-generated-bindings.mjs").is_file()
+        )
+
     def test_tauri_linux_gate_installs_pinned_bun_for_bindings(self) -> None:
         workflow = (
             self.ROOT / ".github" / "workflows" / "tauri-rust-ci.yml"

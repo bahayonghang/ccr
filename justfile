@@ -1381,7 +1381,7 @@ tauri-test:
 tauri-bindings:
     @just _ui-run bindings
 
-# 🧪 TypeScript 绑定漂移守卫（重新生成后 git 必须无差异）
+# 🧪 TypeScript 绑定漂移守卫（自动修复空白后验证重新生成结果；结构漂移仍阻断）
 tauri-bindings-check:
     @just _ui-run bindings-check
 

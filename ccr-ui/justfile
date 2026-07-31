@@ -1566,37 +1566,22 @@ _bindings-windows:
     @bun ./scripts/normalize-generated-bindings.mjs
     @Write-Output '✅ 绑定已生成: src/types/generated/'
 
-# 🧪 TypeScript 绑定漂移守卫：重新生成后 git 必须无差异（含未跟踪新文件）
+# 🧪 TypeScript 绑定漂移守卫：先自动规范化空白，再验证重新生成与当前工作区生成物一致
 bindings-check:
     @just _bindings-check-{{os()}}
 
 _bindings-check-linux:
     #!/usr/bin/env bash
     set -euo pipefail
-    just bindings
-    status=$(git status --porcelain -- src/types/generated)
-    if [ -n "$status" ]; then
-        echo "$status"
-        echo "❌ TypeScript 绑定漂移：Rust DTO 与入库生成物不一致，运行 just tauri-bindings 后提交"
-        exit 1
-    fi
-    echo "✅ TypeScript 绑定与 Rust DTO 同步"
+    bun ./scripts/check-generated-bindings.mjs
 
 _bindings-check-macos:
     #!/usr/bin/env bash
     set -euo pipefail
-    just bindings
-    status=$(git status --porcelain -- src/types/generated)
-    if [ -n "$status" ]; then
-        echo "$status"
-        echo "❌ TypeScript 绑定漂移：Rust DTO 与入库生成物不一致，运行 just tauri-bindings 后提交"
-        exit 1
-    fi
-    echo "✅ TypeScript 绑定与 Rust DTO 同步"
+    bun ./scripts/check-generated-bindings.mjs
 
 _bindings-check-windows:
-    @just bindings
-    @$status = git status --porcelain -- src/types/generated; if ($status) { Write-Output $status; Write-Output '❌ TypeScript 绑定漂移：Rust DTO 与入库生成物不一致，运行 just tauri-bindings 后提交'; exit 1 } else { Write-Output '✅ TypeScript 绑定与 Rust DTO 同步' }
+    @bun ./scripts/check-generated-bindings.mjs
 
 # 清理 Tauri 构建产物
 tauri-clean:
