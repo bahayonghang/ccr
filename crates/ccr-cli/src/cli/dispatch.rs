@@ -411,6 +411,9 @@ impl CommandDispatcher {
                 CodexProfileAction::Init { json } => {
                     crate::commands::codex::profile::init_command(*json).await
                 }
+                CodexProfileAction::Open { json } => {
+                    crate::commands::codex::profile::open_command(*json).await
+                }
                 CodexProfileAction::Current { json } => {
                     crate::commands::codex::profile::current_command(*json).await
                 }
@@ -599,6 +602,9 @@ impl CommandDispatcher {
                 GrokProfileAction::Init { json } => {
                     crate::commands::grok::profile::init_command(*json).await
                 }
+                GrokProfileAction::Open { json } => {
+                    crate::commands::grok::profile::open_command(*json).await
+                }
                 GrokProfileAction::Current { json } => {
                     crate::commands::grok::profile::current_command(*json).await
                 }
@@ -686,6 +692,9 @@ impl CommandDispatcher {
                 }
                 ClaudeProfileAction::Init { json } => {
                     crate::commands::claude::profile::init_command(*json).await
+                }
+                ClaudeProfileAction::Open { json } => {
+                    crate::commands::claude::profile::open_command(*json).await
                 }
                 ClaudeProfileAction::Current { json } => {
                     crate::commands::claude::profile::current_command(*json).await

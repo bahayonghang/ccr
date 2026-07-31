@@ -22,11 +22,6 @@ use comfy_table::{
 };
 use serde::Serialize;
 
-const PROFILE_TEMPLATE: &str = include_str!(concat!(
-    env!("CARGO_MANIFEST_DIR"),
-    "/../../examples/codex/profiles.toml"
-));
-
 #[derive(Debug, Serialize)]
 struct CodexProfileSummary {
     name: String,
@@ -54,7 +49,12 @@ struct CodexProfileOffJson {
 }
 
 pub async fn init_command(json: bool) -> Result<()> {
-    crate::commands::platform::platform_profile_init_command("codex", PROFILE_TEMPLATE, json).await
+    let template = crate::commands::platform::profile_open::template_for(Platform::Codex);
+    crate::commands::platform::platform_profile_init_command("codex", template, json).await
+}
+
+pub async fn open_command(json: bool) -> Result<()> {
+    crate::commands::platform::platform_profile_open_command("codex", json).await
 }
 
 pub async fn current_command(json: bool) -> Result<()> {

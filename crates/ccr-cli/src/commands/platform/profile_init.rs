@@ -4,6 +4,7 @@ use ccr_core::core::error::{CcrError, Result};
 use ccr_core::core::logging::ColorOutput;
 use ccr_core::core::{BackupPolicy, VersionedWriteOutcome, WriteOptions, write_guarded_versioned};
 use serde::Serialize;
+use std::path::PathBuf;
 use std::str::FromStr;
 
 #[derive(Serialize)]
@@ -15,18 +16,21 @@ struct ProfileInitOutput<'a> {
     registered: bool,
 }
 
-/// Initializes one platform's profile directory and copy-ready template.
-pub async fn platform_profile_init_command(
+/// ensure_profiles_file 的结果
+pub(super) struct ProfileFileEnsured {
+    pub path: PathBuf,
+    pub created: bool,
+    pub registered: bool,
+}
+
+/// 确保 profiles.toml 存在（不存在时创建），并注册平台
+///
+/// 纯逻辑函数，不输出到终端。调用方负责根据返回值决定输出内容。
+pub(super) fn ensure_profiles_file(
+    platform: Platform,
     platform_name: &str,
     template: &str,
-    json: bool,
-) -> Result<()> {
-    let platform = Platform::from_str(platform_name)
-        .map_err(|_| CcrError::PlatformNotFound(platform_name.to_string()))?;
-    if !Platform::auth_profile_supported().contains(&platform) {
-        return Err(CcrError::PlatformNotSupported(platform_name.to_string()));
-    }
-
+) -> Result<ProfileFileEnsured> {
     let paths = PlatformPaths::new(platform)?;
     paths.ensure_directories()?;
 
@@ -53,7 +57,28 @@ pub async fn platform_profile_init_command(
         )
     };
     let registered = register_platform_if_missing(platform_name, platform.display_name())?;
-    let profiles_file = paths.profiles_file.display().to_string();
+
+    Ok(ProfileFileEnsured {
+        path: paths.profiles_file,
+        created,
+        registered,
+    })
+}
+
+/// Initializes one platform's profile directory and copy-ready template.
+pub async fn platform_profile_init_command(
+    platform_name: &str,
+    template: &str,
+    json: bool,
+) -> Result<()> {
+    let platform = Platform::from_str(platform_name)
+        .map_err(|_| CcrError::PlatformNotFound(platform_name.to_string()))?;
+    if !Platform::auth_profile_supported().contains(&platform) {
+        return Err(CcrError::PlatformNotSupported(platform_name.to_string()));
+    }
+
+    let ensured = ensure_profiles_file(platform, platform_name, template)?;
+    let profiles_file = ensured.path.display().to_string();
 
     if json {
         println!(
@@ -62,8 +87,8 @@ pub async fn platform_profile_init_command(
                 ok: true,
                 platform: platform_name,
                 profiles_file,
-                created,
-                registered,
+                created: ensured.created,
+                registered: ensured.registered,
             })?
         );
         return Ok(());
@@ -71,12 +96,12 @@ pub async fn platform_profile_init_command(
 
     ColorOutput::title(&format!("初始化 {} Profiles", platform.display_name()));
     println!();
-    if created {
+    if ensured.created {
         ColorOutput::success(&format!("已创建 profiles 模板: {profiles_file}"));
     } else {
         ColorOutput::info(&format!("profiles 文件已存在，保持不变: {profiles_file}"));
     }
-    if registered {
+    if ensured.registered {
         ColorOutput::success(&format!("已注册平台: {platform_name}"));
     } else {
         ColorOutput::info(&format!("平台已注册: {platform_name}"));

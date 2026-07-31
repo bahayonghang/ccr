@@ -14,6 +14,7 @@
 | `ccr grok profile enable <name>` | 启用 profile |
 | `ccr grok profile disable <name>` | 禁用 profile |
 | `ccr grok profile delete <name>` | 删除 profile；活动项需先 off，或使用 `--force` |
+| `ccr grok profile open` | 用 $VISUAL/$EDITOR 或系统关联程序打开 profiles.toml；文件不存在时先从模板创建 |
 | `ccr grok profile off` | 恢复进入 CCR profile mode 前的 Grok 配置 |
 
 ## 创建 Profile

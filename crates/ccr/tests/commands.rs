@@ -34,6 +34,9 @@ mod project_init;
 #[path = "commands/validate.rs"]
 mod validate;
 
+#[path = "commands/profile_open.rs"]
+mod profile_open;
+
 #[path = "commands/sync_content.rs"]
 mod sync_content;
 

@@ -57,6 +57,7 @@ ts-rs = { workspace = true, optional = true, features = ["no-serde-warnings"] }
 tokio-util = { workspace = true }
 uuid = { workspace = true }
 walkdir = { workspace = true }
+open = { workspace = true }
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"

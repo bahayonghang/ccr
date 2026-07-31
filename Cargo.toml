@@ -92,6 +92,7 @@ walkdir = "2.5"
 futures = "0.3.32"
 async-stream = "0.3"
 tokio-util = { version = "0.7", features = ["rt"] }
+open = "5.4.0"
 
 # Web framework
 axum = { version = "0.8.6", default-features = false, features = [

@@ -18,6 +18,7 @@ mod list;
 mod profile;
 mod profile_card;
 mod profile_init;
+pub(crate) mod profile_open;
 mod switch;
 
 // 公共数据结构
@@ -34,6 +35,7 @@ pub use profile::{
 };
 pub use profile_card::print_status_card;
 pub use profile_init::platform_profile_init_command;
+pub use profile_open::{platform_profile_open_command, template_for};
 pub use switch::platform_switch_command;
 
 // 内部类型（供子模块使用）

@@ -26,6 +26,13 @@ pub enum GrokProfileAction {
     /// Show Grok profile command help
     Help,
 
+    /// Open the Grok profiles.toml in your editor.
+    /// Creates the file from the example template if it does not exist.
+    Open {
+        #[arg(long)]
+        json: bool,
+    },
+
     /// Initialize the Grok profile directory and example template
     Init {
         #[arg(long)]

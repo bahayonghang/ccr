@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### ✨ 新功能
+
+- **`ccr <claude|codex|grok> profile open`**：用 `$VISUAL`/`$EDITOR` 或系统关联程序打开该平台的 `profiles.toml`；文件不存在时自动从内嵌模板创建。`--json` 输出含 `ok` / `platform` / `profiles_file` / `created` / `registered` / `editor` 字段。
+
 ### 🔧 改进
 
 - **ccr-ui 使用统计迁移到 llmusage**：

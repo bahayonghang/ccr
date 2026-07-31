@@ -10,7 +10,7 @@ use crate::commands::platform::{
     platform_profile_set_field_command,
 };
 use crate::commands::profile::switch_command_for_platform;
-use crate::models::{PlatformConfig, ProfileConfig};
+use crate::models::{Platform, PlatformConfig, ProfileConfig};
 use crate::platforms::GrokPlatform;
 use ccr_core::core::error::{CcrError, Result};
 use ccr_core::core::logging::ColorOutput;
@@ -19,11 +19,6 @@ use comfy_table::{
     Attribute, Cell, Color as TableColor, ContentArrangement, Table, presets::UTF8_FULL,
 };
 use serde::Serialize;
-
-const PROFILE_TEMPLATE: &str = include_str!(concat!(
-    env!("CARGO_MANIFEST_DIR"),
-    "/../../examples/grok/profiles.toml"
-));
 
 #[derive(Debug, Serialize)]
 struct GrokProfileSummary {
@@ -74,7 +69,12 @@ struct GrokProfileOffJson {
 }
 
 pub async fn init_command(json: bool) -> Result<()> {
-    crate::commands::platform::platform_profile_init_command("grok", PROFILE_TEMPLATE, json).await
+    let template = crate::commands::platform::profile_open::template_for(Platform::Grok);
+    crate::commands::platform::platform_profile_init_command("grok", template, json).await
+}
+
+pub async fn open_command(json: bool) -> Result<()> {
+    crate::commands::platform::platform_profile_open_command("grok", json).await
 }
 
 fn profile_string(profile: &ProfileConfig, key: &str) -> Option<String> {

@@ -585,6 +585,44 @@ mod tests {
     }
 
     #[test]
+    fn profile_open_flags_parse_for_all_platforms() {
+        // claude: no flag
+        let cli = Cli::try_parse_from(["ccr", "claude", "profile", "open"]).unwrap();
+        assert!(matches!(
+            cli.command,
+            Some(Commands::Claude {
+                action: Some(ClaudeAction::Profile { action })
+            }) if matches!(action.as_ref(), ClaudeProfileAction::Open { json: false })
+        ));
+        // claude: --json
+        let cli = Cli::try_parse_from(["ccr", "claude", "profile", "open", "--json"]).unwrap();
+        assert!(matches!(
+            cli.command,
+            Some(Commands::Claude {
+                action: Some(ClaudeAction::Profile { action })
+            }) if matches!(action.as_ref(), ClaudeProfileAction::Open { json: true })
+        ));
+        // codex: --json
+        let codex = Cli::try_parse_from(["ccr", "codex", "profile", "open", "--json"]).unwrap();
+        assert!(matches!(
+            codex.command,
+            Some(Commands::Codex {
+                action: Some(CodexAction::Profile {
+                    action: CodexProfileAction::Open { json: true }
+                })
+            })
+        ));
+        // grok: --json
+        let grok = Cli::try_parse_from(["ccr", "grok", "profile", "open", "--json"]).unwrap();
+        assert!(matches!(
+            grok.command,
+            Some(Commands::Grok {
+                action: Some(GrokAction::Profile { action })
+            }) if matches!(action.as_ref(), GrokProfileAction::Open { json: true })
+        ));
+    }
+
+    #[test]
     fn platform_profile_init_json_flags_parse() {
         let claude = Cli::try_parse_from(["ccr", "claude", "profile", "init", "--json"]).unwrap();
         assert!(matches!(

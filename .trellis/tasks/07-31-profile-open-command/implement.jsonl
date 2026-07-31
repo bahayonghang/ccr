@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/ccr-cli/backend/profile-init.md", "reason": "ensure-exists 必须复用 init 的 create-if-absent 契约；§3 禁止第二份 command-only 模板，决定了模板集中方案"}
+{"file": ".trellis/spec/ccr-cli/backend/index.md", "reason": "ccr-cli 层开发前检查清单与质量门"}
+{"file": ".trellis/spec/ccr-cli/backend/backend-guidelines.md", "reason": "ccr-cli 命令分层、错误处理与输出约定"}
+{"file": ".trellis/spec/ccr-core/backend/atomic-writer.md", "reason": "ensure_profiles_file 复用 write_guarded_versioned，需守住原子写与 secret 权限契约"}
