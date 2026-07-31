@@ -241,6 +241,7 @@ mod tests {
 
     #[test]
     fn which_on_path_finds_common_binary() {
+        let _env = TestHostEnv::new();
         // `ls` (Unix) or `cmd` (Windows) should always be on PATH in CI/dev.
         #[cfg(unix)]
         let result = which_on_path("ls");
