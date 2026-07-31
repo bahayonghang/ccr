@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 78
-- **Last Active**: 2026-07-30
+- **Total Sessions**: 79
+- **Last Active**: 2026-07-31
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~829 | Active |
+| `journal-2.md` | ~862 | Active |
 | `journal-1.md` | ~1987 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 79 | 2026-07-31 | 完成开发交付流程审计并归档 profile open | `e6e3025db95e5fcd9a45885a619d64b14a8070fa`, `a09cf340953724771edd0ac8f2eea9cf63826840` | `dev` |
 | 78 | 2026-07-30 | 完成 Profiles 页面重构父任务集成 | `97e72d04` | `dev` |
 | 77 | 2026-07-30 | Codex Profiles 页面接入共享层 | `bb0e899f` | `dev` |
 | 76 | 2026-07-30 | 完成 Claude 认证与 profile 隔离加固 | `c741d3da`, `b53f7c11`, `6d95d09f`, `24c362e3`, `604b0569` | `dev` |
