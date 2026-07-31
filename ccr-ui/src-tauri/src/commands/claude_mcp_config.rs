@@ -195,8 +195,8 @@ fn read_versioned_json_object(path: &Path) -> Result<(Map<String, Value>, String
         return Ok((Map::new(), token));
     }
 
-    let value: Value =
-        serde_json::from_slice(&bytes).map_err(|error| format!("Parse {}: {error}", path.display()))?;
+    let value: Value = serde_json::from_slice(&bytes)
+        .map_err(|error| format!("Parse {}: {error}", path.display()))?;
     let object = value
         .as_object()
         .cloned()
@@ -1342,19 +1342,13 @@ mod tests {
             json!("user@example.com")
         );
         assert_eq!(root["primaryApiKey"], json!("sk-private-state"));
-        assert_eq!(
-            root["customApiKeyResponses"]["approved"],
-            json!(["key-id"])
-        );
+        assert_eq!(root["customApiKeyResponses"]["approved"], json!(["key-id"]));
         assert_eq!(root["unknownTopLevel"]["keep"], json!(true));
         assert_eq!(
             root["projects"]["other-project"]["allowedTools"],
             json!(["Read"])
         );
-        assert_eq!(
-            root["mcpServers"]["existing"]["command"],
-            json!("node")
-        );
+        assert_eq!(root["mcpServers"]["existing"]["command"], json!("node"));
         assert!(root["mcpServers"].get("exa").is_none());
     }
 
@@ -1501,15 +1495,16 @@ mod tests {
         .unwrap();
 
         let path = ctx.claude_json_path();
-        assert_eq!(fs::metadata(&path).unwrap().permissions().mode() & 0o777, 0o600);
-        assert!(
-            fs::read_dir(path.parent().unwrap())
-                .unwrap()
-                .all(|entry| !entry
-                    .unwrap()
-                    .file_name()
-                    .to_string_lossy()
-                    .ends_with(".bak"))
+        assert_eq!(
+            fs::metadata(&path).unwrap().permissions().mode() & 0o777,
+            0o600
         );
+        assert!(fs::read_dir(path.parent().unwrap()).unwrap().all(|entry| {
+            !entry
+                .unwrap()
+                .file_name()
+                .to_string_lossy()
+                .ends_with(".bak")
+        }));
     }
 }

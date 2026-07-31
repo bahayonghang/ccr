@@ -4,6 +4,7 @@ use ccr_cli::managers::{
     CcsConfig, ConfigManager, GlobalSettings, PlatformConfigEntry, PlatformConfigManager,
     UnifiedConfig,
 };
+#[cfg(not(target_os = "macos"))]
 use ccr_cli::models::ClaudeAuthRegistry;
 use ccr_config::ProfileConfig;
 use indexmap::IndexMap;
@@ -136,6 +137,7 @@ impl ClaudeProfileFixture {
             .unwrap();
     }
 
+    #[cfg(not(target_os = "macos"))]
     fn write_official_runtime_login(&self) {
         fs::write(
             self.claude_dir.join(".credentials.json"),
@@ -182,6 +184,7 @@ impl ClaudeProfileFixture {
         .unwrap();
     }
 
+    #[cfg(not(target_os = "macos"))]
     fn save_official_account_snapshot(&self, name: &str) {
         let output = self.run_output(&["claude", "auth", "save", name]);
         assert!(
@@ -264,6 +267,7 @@ fn claude_profile_current_json_returns_single_claude_card() {
     assert!(json.get("codex").is_none());
 }
 
+#[cfg(not(target_os = "macos"))]
 #[test]
 fn claude_profile_switch_and_off_keep_official_auth_current() {
     let fixture = ClaudeProfileFixture::new();
@@ -361,6 +365,7 @@ fn claude_profile_switch_and_off_keep_official_auth_current() {
     );
 }
 
+#[cfg(not(target_os = "macos"))]
 #[test]
 fn claude_profile_off_is_idempotent_when_no_active_profile() {
     let fixture = ClaudeProfileFixture::new();

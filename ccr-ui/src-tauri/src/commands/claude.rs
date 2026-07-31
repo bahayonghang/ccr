@@ -12,9 +12,9 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
 use tauri::State;
 
+use ccr::SettingsManager;
 use ccr::platforms::ClaudePlatform;
 use ccr::services::ClaudeAuthService;
-use ccr::SettingsManager;
 use ccr_config::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};
 use ccr_skills::{PromptPreset, PromptsManager};
 use ccr_store::{BudgetManager, CostTracker};
@@ -951,10 +951,7 @@ mod tests {
             final_settings.env.get("CLI_FIELD").map(String::as_str),
             Some("saved")
         );
-        assert_eq!(
-            final_settings.other.get("ui_field"),
-            Some(&json!("saved"))
-        );
+        assert_eq!(final_settings.other.get("ui_field"), Some(&json!("saved")));
         assert_eq!(
             final_settings.other.get("future_top_level"),
             Some(&json!({ "enabled": true }))

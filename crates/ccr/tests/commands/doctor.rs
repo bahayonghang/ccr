@@ -49,6 +49,10 @@ impl DoctorFixture {
         command.env("CCR_BACKUP_DIR", self.home.join(".claude").join("backups"));
         command.env("CCR_CODEX_DIR", &self.codex_dir);
         command.env("CLAUDE_CONFIG_DIR", self.home.join(".claude"));
+        command.env(
+            "CLAUDE_JSON_PATH",
+            self.home.join(".claude").join(".claude.json"),
+        );
         command.env("HOME", &self.home);
         command.env("USERPROFILE", &self.home);
         command.env("NO_COLOR", "1");
@@ -348,7 +352,7 @@ fn doctor_fails_when_claude_subscription_is_missing() {
 }
 
 #[test]
-fn doctor_reports_confirmed_subscription_without_competing_sources_as_ok() {
+fn doctor_reports_platform_visible_subscription_state_without_competing_sources() {
     let fixture = DoctorFixture::new();
     fixture.write_unified_config("claude", &[("claude", "sub")]);
     fixture.write_profile("claude", "sub", claude_subscription_section());
@@ -364,13 +368,18 @@ fn doctor_reports_confirmed_subscription_without_competing_sources_as_ok() {
         .iter()
         .find(|check| check["id"] == "platform.claude.auth_sources")
         .unwrap();
-    assert_eq!(auth_sources["status"], "ok");
-    assert!(
-        auth_sources["detail"]
-            .as_str()
-            .unwrap()
-            .contains("source=subscription_oauth")
-    );
+    let detail = auth_sources["detail"].as_str().unwrap();
+    #[cfg(not(target_os = "macos"))]
+    {
+        assert_eq!(auth_sources["status"], "ok");
+        assert!(detail.contains("source=subscription_oauth"));
+    }
+    #[cfg(target_os = "macos")]
+    {
+        assert_eq!(auth_sources["status"], "warn");
+        assert!(!detail.contains("source=subscription_oauth"));
+        assert!(detail.contains("macos_keychain_contents"));
+    }
 }
 
 #[test]
@@ -415,19 +424,23 @@ fn doctor_reports_visible_auth_sources_without_leaking_credentials() {
             .contains("potential competing auth source")
     );
     let detail = auth_sources["detail"].as_str().unwrap();
-    for marker in [
+    let mut markers = vec![
         "source=bedrock",
         "source=anthropic_auth_token",
         "source=anthropic_api_key",
         "source=api_key_helper",
         "source=claude_code_oauth_token",
         "source=primary_api_key",
-        "source=subscription_oauth",
         "evidence=issue_report",
         "custom_api_key_responses_present=true",
         "project_settings_for_unknown_working_directories",
         "managed_settings_dynamic_policy",
-    ] {
+    ];
+    #[cfg(not(target_os = "macos"))]
+    markers.push("source=subscription_oauth");
+    #[cfg(target_os = "macos")]
+    markers.push("macos_keychain_contents");
+    for marker in markers {
         assert!(detail.contains(marker), "missing {marker}: {detail}");
     }
 

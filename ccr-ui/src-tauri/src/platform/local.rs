@@ -125,11 +125,13 @@ fn resolve_config_path(
     relative_path: &str,
 ) -> Result<std::path::PathBuf, EnvError> {
     let base = match platform {
-        "claude" => ClaudeRuntimePaths::from_env()
-            .map_err(|error| {
-                EnvError::Other(format!("Claude runtime path resolution failed: {error}"))
-            })?
-            .config_dir,
+        "claude" => {
+            ClaudeRuntimePaths::from_env()
+                .map_err(|error| {
+                    EnvError::Other(format!("Claude runtime path resolution failed: {error}"))
+                })?
+                .config_dir
+        }
         "codex" => home_dir()?.join(".codex"),
         "gemini" => home_dir()?.join(".gemini").join("antigravity-cli"),
         "opencode" => home_dir()?.join(".opencode"),
@@ -227,11 +229,13 @@ mod tests {
             r#"{"env":{"TEST":"updated"}}"#
         );
         assert!(config_dir.join("settings.json").exists());
-        assert!(
-            std::fs::read_dir(&config_dir)
+        assert!(std::fs::read_dir(&config_dir).unwrap().all(|entry| {
+            !entry
                 .unwrap()
-                .all(|entry| !entry.unwrap().file_name().to_string_lossy().ends_with(".bak"))
-        );
+                .file_name()
+                .to_string_lossy()
+                .ends_with(".bak")
+        }));
         assert_eq!(std::fs::read_dir(&backup_dir).unwrap().count(), 1);
     }
 }

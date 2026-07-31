@@ -59,7 +59,9 @@ pub async fn claude_delete_slash_command(
     let deleted_name = name.clone();
     update_settings(state.inner(), move |settings| {
         let original_len = settings.slash_commands.len();
-        settings.slash_commands.retain(|command| command.name != name);
+        settings
+            .slash_commands
+            .retain(|command| command.name != name);
         if settings.slash_commands.len() == original_len {
             return Err(format!("Slash command '{name}' not found"));
         }

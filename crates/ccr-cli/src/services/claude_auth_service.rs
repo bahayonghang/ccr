@@ -1217,6 +1217,7 @@ mod tests {
             .unwrap();
         }
 
+        #[cfg(not(target_os = "macos"))]
         fn write_profiles(&self, content: &str) {
             fs::write(self.service.profiles_path(), content).unwrap();
         }
@@ -1229,10 +1230,12 @@ mod tests {
             .unwrap();
         }
 
+        #[cfg(not(target_os = "macos"))]
         fn write_credentials(&self, expires_at: DateTime<Utc>) {
             self.write_credentials_for("access-token", expires_at);
         }
 
+        #[cfg(not(target_os = "macos"))]
         fn write_credentials_for(&self, access_token: &str, expires_at: DateTime<Utc>) {
             let value = json!({
                 "claudeAiOauth": {
@@ -1324,6 +1327,7 @@ mod tests {
         assert!(!snapshot.runtime_usable);
     }
 
+    #[cfg(not(target_os = "macos"))]
     #[test]
     fn diagnose_auth_sources_orders_official_sources_and_confidence() {
         let env = TestEnv::new();
@@ -1502,6 +1506,7 @@ mod tests {
         assert!(outcome.warnings[0].contains("diagnosis could not be completed"));
     }
 
+    #[cfg(not(target_os = "macos"))]
     #[test]
     fn switch_account_reports_user_owned_suppressor_without_removing_it() {
         let env = TestEnv::new();
@@ -1538,6 +1543,7 @@ mod tests {
         );
     }
 
+    #[cfg(not(target_os = "macos"))]
     #[test]
     fn test_save_switch_delete_account_roundtrip() {
         let env = TestEnv::new();
@@ -1571,6 +1577,7 @@ mod tests {
         assert!(registry.current_auth.is_none());
     }
 
+    #[cfg(not(target_os = "macos"))]
     #[test]
     fn test_switch_account_rejects_unsaved_current_credentials_without_leaking_token() {
         let env = TestEnv::new();
@@ -1593,6 +1600,7 @@ mod tests {
         );
     }
 
+    #[cfg(not(target_os = "macos"))]
     #[test]
     fn test_switch_account_rejects_corrupt_current_credentials_without_overwrite() {
         let env = TestEnv::new();
@@ -1609,6 +1617,7 @@ mod tests {
         assert_eq!(fs::read(env.service.credentials_path()).unwrap(), corrupt);
     }
 
+    #[cfg(not(target_os = "macos"))]
     #[test]
     fn test_switch_account_allows_missing_current_credentials() {
         let env = TestEnv::new();
@@ -1627,6 +1636,7 @@ mod tests {
         );
     }
 
+    #[cfg(not(target_os = "macos"))]
     #[test]
     fn test_switch_account_uses_matching_snapshot_metadata_instead_of_stale_state_file() {
         let env = TestEnv::new();
@@ -1694,6 +1704,7 @@ mod tests {
         );
     }
 
+    #[cfg(not(target_os = "macos"))]
     #[test]
     fn test_switch_account_restores_previous_credentials_when_settings_update_fails() {
         let env = TestEnv::new();
@@ -1735,7 +1746,7 @@ auth_mode = "api_key"
         );
     }
 
-    #[cfg(unix)]
+    #[cfg(all(unix, not(target_os = "macos")))]
     #[test]
     fn test_auth_durable_files_are_owner_only_without_same_dir_backups() {
         use std::os::unix::fs::PermissionsExt;
@@ -1788,6 +1799,7 @@ auth_mode = "api_key"
         assert!(!env.service.credentials_path().exists());
     }
 
+    #[cfg(not(target_os = "macos"))]
     #[test]
     fn test_build_account_items_distinguishes_logged_in_from_effective_auth() {
         let env = TestEnv::new();
@@ -1872,6 +1884,7 @@ auth_mode = "api_key"
         );
     }
 
+    #[cfg(not(target_os = "macos"))]
     #[test]
     fn test_switch_account_clears_mismarked_profile_overrides_and_reactivates_official_auth() {
         let env = TestEnv::new();
