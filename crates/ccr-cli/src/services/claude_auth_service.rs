@@ -1209,6 +1209,7 @@ mod tests {
             self.home.set_env(key, std::ffi::OsStr::new(value));
         }
 
+        #[cfg(not(target_os = "macos"))]
         fn write_settings(&self, value: JsonValue) {
             fs::write(
                 self.service.settings_path(),
