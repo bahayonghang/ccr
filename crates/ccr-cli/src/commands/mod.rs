@@ -18,6 +18,7 @@ pub mod claude;
 pub mod codex;
 pub mod data;
 pub mod doctor_cmd;
+pub mod grok;
 pub mod lifecycle;
 pub mod migration;
 pub mod opencode;

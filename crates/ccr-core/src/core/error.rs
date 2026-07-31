@@ -313,7 +313,7 @@ impl CcrError {
                     • qwen    - Alibaba Qwen CLI (🚧 计划中)\n\n\
                     建议:\n\
                     • 运行 'ccr platform list' 查看所有平台\n\
-                    • 运行 'ccr platform init <平台名>' 初始化平台\n\
+                    • 运行 'ccr claude profile init'、'ccr codex profile init' 或 'ccr grok profile init' 初始化平台\n\
                     • 查看文档: https://github.com/bahayonghang/ccr/blob/main/docs/platforms/",
                     name
                 )

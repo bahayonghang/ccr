@@ -11,20 +11,24 @@
       (function(){
         var root=document.documentElement;
         var theme=localStorage.getItem('ccr-theme')||'light';
-        var flavor=localStorage.getItem('ccr-flavor')||'clay';
+        var flavor=localStorage.getItem('ccr-flavor')||'neutral';
         var accent=localStorage.getItem('ccr-accent')||'clay';
-        var flavors=['clay','paper','graphite','latte','frappe','macchiato','mocha'];
-        var accents=['clay','sand','sage','sky','mauve','amber','rose','slate'];
-        var catppuccin=['latte','frappe','macchiato','mocha'];
-        if(flavors.indexOf(flavor)<0){flavor='clay';}
+        var flavors=['neutral','clay','catppuccin'];
+        var accents=['clay','sage','sky','mauve'];
+        // 与 src/utils/themeBootstrap.ts 的迁移表保持一致：旧值域映射 → 白名单校验 → 默认回退。
+        var flavorMigration={paper:'neutral',graphite:'neutral',latte:'catppuccin',frappe:'catppuccin',macchiato:'catppuccin',mocha:'catppuccin'};
+        var accentMigration={sand:'clay',amber:'clay',rose:'clay',slate:'sky'};
+        if(Object.prototype.hasOwnProperty.call(flavorMigration,flavor)){flavor=flavorMigration[flavor];}
+        if(Object.prototype.hasOwnProperty.call(accentMigration,accent)){accent=accentMigration[accent];}
+        if(flavors.indexOf(flavor)<0){flavor='neutral';}
         if(accents.indexOf(accent)<0){accent='clay';}
         var resolvedTheme=theme==='dark'?'dark':'light';
         if(theme==='system'){
           resolvedTheme=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';
         }
         var resolvedFlavor=flavor;
-        if(catppuccin.indexOf(flavor)>=0){
-          resolvedFlavor=resolvedTheme==='light'?'latte':(flavor==='macchiato'||flavor==='mocha'?flavor:'frappe');
+        if(flavor==='catppuccin'){
+          resolvedFlavor=resolvedTheme==='light'?'latte':'mocha';
         }
         root.classList.toggle('dark',resolvedTheme==='dark');
         root.setAttribute('data-theme',resolvedTheme);

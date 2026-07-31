@@ -153,8 +153,7 @@ const snapshotStatusLabel = computed(() =>
   background:
     linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 97%), rgb(var(--color-bg-surface-rgb) / 92%));
   box-shadow:
-    0 30px 68px rgb(32 28 24 / 18%),
-    inset 0 1px 0 rgb(255 255 255 / 10%);
+    0 30px 68px rgb(32 28 24 / 18%);
   padding: 16px;
 }
 

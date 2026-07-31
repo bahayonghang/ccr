@@ -264,7 +264,7 @@ const onSave = async () => {
 .subscription-dialog__btn--primary {
   border: 1px solid rgb(var(--color-accent-primary-rgb) / 35%);
   background: var(--color-accent-primary);
-  color: white;
+  color: var(--color-accent-primary-contrast);
 }
 
 .subscription-dialog__btn--primary:hover {

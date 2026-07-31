@@ -46,6 +46,17 @@ struct ClaudeProfileOffJson {
     changed: bool,
     previous_profile: Option<String>,
     runtime_mode: &'static str,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    warnings: Vec<String>,
+}
+
+pub async fn init_command(json: bool) -> Result<()> {
+    let template = crate::commands::platform::profile_open::template_for(Platform::Claude);
+    crate::commands::platform::platform_profile_init_command("claude", template, json).await
+}
+
+pub async fn open_command(json: bool) -> Result<()> {
+    crate::commands::platform::platform_profile_open_command("claude", json).await
 }
 
 pub async fn current_command(json: bool) -> Result<()> {
@@ -153,6 +164,7 @@ pub async fn create_command(args: ProfileCreateActionArgs) -> Result<()> {
         description: args.description,
         base_url: args.base_url,
         auth_token: args.auth_token,
+        api_key: None,
         model: args.model,
         small_fast_model: args.small_fast_model,
         provider: args.provider,
@@ -160,6 +172,11 @@ pub async fn create_command(args: ProfileCreateActionArgs) -> Result<()> {
         account: args.account,
         tags: args.tags,
         auth_mode: args.auth_mode,
+        api_backend: None,
+        env_key: None,
+        context_window: None,
+        supports_backend_search: None,
+        reasoning_effort: None,
         disabled: args.disabled,
         json: args.json,
     })
@@ -200,6 +217,11 @@ pub async fn off_command(json: bool) -> Result<()> {
             changed: result.changed,
             previous_profile: result.previous_profile,
             runtime_mode: "official_auth",
+            warnings: result
+                .auth_outcome
+                .as_ref()
+                .map(|outcome| outcome.warnings.clone())
+                .unwrap_or_default(),
         };
         println!("{}", serde_json::to_string_pretty(&output)?);
         return Ok(());
@@ -216,6 +238,29 @@ pub async fn off_command(json: bool) -> Result<()> {
         ));
     } else {
         ColorOutput::info("当前不在 Claude profile mode；无需执行 profile off");
+    }
+
+    if let Some(outcome) = &result.auth_outcome {
+        if !outcome.remaining_suppressors.is_empty() {
+            ColorOutput::warning(
+                "退出 Profile 后仍存在 CCR 不会自动清理的认证来源（请按置信度判断）:",
+            );
+            for source in &outcome.remaining_suppressors {
+                println!(
+                    "  • {} @ {} ({}; {}; {})",
+                    source.kind.as_str(),
+                    source.location.as_str(),
+                    source.confidence.as_str(),
+                    source.evidence.as_str(),
+                    source.ownership.as_str()
+                );
+            }
+        } else if !outcome.warnings.is_empty() {
+            ColorOutput::warning("退出 Profile 后认证来源诊断未完成:");
+            for warning in &outcome.warnings {
+                println!("  • {warning}");
+            }
+        }
     }
 
     Ok(())

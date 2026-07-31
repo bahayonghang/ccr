@@ -1,0 +1,21 @@
+# Reasoning-effort official-source verification
+
+Checked on 2026-07-29 against first-party documentation and commit-pinned source code.
+
+## Platform configuration contracts
+
+| Platform | Persisted configuration | Official evidence | Risk judgment |
+| --- | --- | --- | --- |
+| Claude Code | JSON setting `effortLevel`; persisted values are `low`, `medium`, `high`, and `xhigh`. `max` and `ultracode` are session-only and are not accepted as persisted `effortLevel` values. | [Settings reference, `effortLevel` section](https://code.claude.com/docs/en/settings.md#available-settings); [Model configuration, effort-level section](https://code.claude.com/docs/en/model-config.md#adjust-effort-level) | **High risk if mapped to Grok.** Claude uses a different setting name, storage format, and value contract. Adding Grok's `reasoning_effort` to Claude profiles would expose an unsupported CCR/runtime contract. |
+| OpenAI Codex | TOML field `model_reasoning_effort`; allowed schema values are `minimal`, `low`, `medium`, `high`, and `xhigh`. | [Configuration reference, `model_reasoning_effort`](https://developers.openai.com/codex/config-reference.md#configtoml); [official `config.schema.json`, `model_reasoning_effort`](https://github.com/openai/codex/blob/fe01054a28fa4bd04716d9ceadb410f2443a50ce/codex-rs/core/config.schema.json) | **High risk if renamed or shared.** Codex already has an independently named runtime field. Treating Grok's `reasoning_effort` as an alias could silently write the wrong profile schema or broaden the CLI surface. |
+| xAI Grok Build | Per-model fields are `reasoning_effort`, `supports_reasoning_effort`, and `reasoning_efforts`; the global default is `[models].default_reasoning_effort`. Canonical scalar values are `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, and `max`. | [`ReasoningEffort` and `ReasoningEffortOption` in `types.rs`](https://github.com/xai-org/grok-build/blob/5da6962e4adb9c857f3def762542b52b4ec3e522/crates/codegen/xai-grok-sampling-types/src/types.rs); [`ModelConfig` and `ModelsConfig` in `config.rs`](https://github.com/xai-org/grok-build/blob/5da6962e4adb9c857f3def762542b52b4ec3e522/crates/codegen/xai-grok-shell/src/agent/config.rs); [custom-model guide, reasoning fields](https://github.com/xai-org/grok-build/blob/5da6962e4adb9c857f3def762542b52b4ec3e522/crates/codegen/xai-grok-pager/docs/user-guide/11-custom-models.md); [default model entries](https://github.com/xai-org/grok-build/blob/5da6962e4adb9c857f3def762542b52b4ec3e522/crates/codegen/xai-grok-models/default_models.json) | **High risk if arbitrary strings are accepted.** `ReasoningEffortOption.id` is presentation/input text, while `.value` is the canonical enum sent on the wire. CCR should validate the scalar field against the seven enum values and reject arbitrary option IDs. |
+
+## CCR change-surface verification
+
+- The user-facing `--reasoning-effort` argument is declared only on `GrokProfileCreateActionArgs` in `crates/ccr-cli/src/cli/subcommands/grok.rs`. Claude and Codex continue to use `ProfileCreateActionArgs`, which has no reasoning-effort field. **Risk: low** while this separation and the CLI regression test remain in place.
+- The `reasoning_effort: None` values in the Claude and Codex command adapters only satisfy the expanded internal `PlatformProfileCreateArgs` constructor. `None` neither inserts platform data nor writes either runtime. **Risk: low**, but a future non-`None` mapping would be a cross-platform contract change requiring separate design and tests.
+- The current Grok implementation validates the seven canonical xAI values. This matches the closed upstream enum and intentionally rejects custom `ReasoningEffortOption.id` strings. **Risk: low** against the pinned upstream contract; upstream enum expansion would require an explicit CCR update.
+
+## Conclusion
+
+Keep Grok's `reasoning_effort` platform-specific and persist the requested value as `reasoning_effort = "high"` in the Grok profile TOML. Do not map it to Codex's `model_reasoning_effort` or Claude Code's `effortLevel`. The acceptance gate should prove that `--reasoning-effort` is available only under `ccr grok profile create`, that unsupported values fail with the seven allowed values, and that the saved Grok TOML contains the canonical scalar value.

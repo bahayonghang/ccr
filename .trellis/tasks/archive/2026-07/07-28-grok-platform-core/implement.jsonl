@@ -1,0 +1,5 @@
+{"file": ".trellis/tasks/07-28-grok-profile-switch/research/grok-config-format.md", "reason": "Grok config.toml schema、auth.json 边界、三层凭据优先级、custom 别名接管与恢复依据（rev2）"}
+{"file": ".trellis/tasks/07-28-grok-profile-switch/research/platform-enum-impact-map.md", "reason": "Platform 枚举穷举 match 全影响图与逐域 capability 决策（ARCH-002）"}
+{"file": ".trellis/tasks/07-28-grok-profile-switch/prd.md", "reason": "父任务需求集：三项核心决策、明文披露矩阵、跨子任务验收"}
+{"file": ".trellis/spec/ccr-cli/backend/index.md", "reason": "ccr-cli 后端规范索引与 pre-dev checklist"}
+{"file": ".trellis/spec/ccr-config/backend/index.md", "reason": "ccr-config 后端规范索引与 pre-dev checklist"}

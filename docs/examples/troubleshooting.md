@@ -52,8 +52,8 @@ ccr platform info codex
 
 #### 问题: `创建目录失败: Permission denied`
 ```bash
-$ ccr platform init gemini
-Error: 创建目录失败 "/home/user/.ccr/platforms/gemini": Permission denied
+$ ccr claude profile init
+Error: 创建目录失败 "/home/user/.ccr/platforms/claude": Permission denied
 ```
 
 **原因**: 没有权限在 `~/.ccr/` 目录创建子目录
@@ -66,7 +66,7 @@ chmod 755 ~/.ccr/platforms
 
 # 或删除后重新创建
 rm -rf ~/.ccr
-ccr platform init claude
+ccr claude profile init
 ```
 
 ---
@@ -299,7 +299,7 @@ $ ccr platform current
 ```bash
 # 方案 1: 使用共享配置目录
 export CCR_ROOT=/shared/ccr
-ccr platform init claude
+ccr claude profile init
 
 # 方案 2: 导出/导入配置
 # user1
@@ -393,7 +393,7 @@ rm ~/.claude/settings.json
 
 # 重新初始化
 ccr init
-ccr platform init claude
+ccr claude profile init
 ccr add official
 ```
 

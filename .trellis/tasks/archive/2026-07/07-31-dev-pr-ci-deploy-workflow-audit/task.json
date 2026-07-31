@@ -1,0 +1,28 @@
+{
+  "id": "dev-pr-ci-deploy-workflow-audit",
+  "name": "dev-pr-ci-deploy-workflow-audit",
+  "title": "审计开发、PR、CI、合并与部署流程",
+  "description": "",
+  "status": "completed",
+  "dev_type": null,
+  "scope": "repo-workflow-audit",
+  "package": null,
+  "priority": "P2",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-07-31",
+  "completedAt": "2026-07-31",
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "description": "只读审计本地开发、PR、CI、合并、发布与部署流程，并用官方行业实践形成分级优化路线图"
+  }
+}

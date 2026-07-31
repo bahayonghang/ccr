@@ -361,14 +361,6 @@ td {
   font-variant-numeric: tabular-nums;
 }
 
-.usage-page :deep(.glass-panel) {
-  border-color: rgb(var(--color-border-default-rgb) / 14%);
-  background:
-    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 90%), rgb(var(--color-bg-surface-rgb) / 72%));
-  backdrop-filter: none;
-  box-shadow: var(--elevation-1), inset 0 1px 0 rgb(255 255 255 / 6%);
-}
-
 @media (width < 1280px) {
   .usage-hero-row {
     grid-template-columns: minmax(0, 1fr);

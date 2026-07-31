@@ -293,9 +293,9 @@ ccr sync push            # 备份到云端
 
 ```bash
 # 设备 A（主设备）- 配置多平台
-ccr platform init claude
-ccr platform init codex
-ccr platform init gemini
+ccr claude profile init
+ccr codex profile init
+ccr grok profile init
 
 # 添加各平台的配置
 ccr platform switch claude

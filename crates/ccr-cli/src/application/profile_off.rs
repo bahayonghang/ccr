@@ -1,5 +1,7 @@
 use crate::managers::SettingsManager;
+use crate::models::ClaudeAuthActionOutcome;
 use crate::models::Platform;
+use crate::services::ClaudeAuthService;
 use ccr_config::ConfigManager;
 use ccr_config::PlatformConfigManager;
 use ccr_core::core::error::{CcrError, Result};
@@ -9,6 +11,7 @@ pub struct ProfileOffResult {
     pub platform: Platform,
     pub previous_profile: Option<String>,
     pub changed: bool,
+    pub auth_outcome: Option<ClaudeAuthActionOutcome>,
 }
 
 /// `profile_off` 写盘事务的 RAII 守卫。
@@ -131,6 +134,7 @@ pub fn profile_off_for_platform(platform: Platform) -> Result<ProfileOffResult> 
 }
 
 fn claude_profile_off() -> Result<ProfileOffResult> {
+    let auth_service = ClaudeAuthService::new()?;
     let previous_profile = platform_previous_profile_hint("claude")?;
     let had_profiles_file_pointer = platform_profiles_file_has_current_config("claude")?;
     let had_profile_routing = previous_profile.is_some() || had_profiles_file_pointer;
@@ -141,6 +145,7 @@ fn claude_profile_off() -> Result<ProfileOffResult> {
             platform: Platform::Claude,
             previous_profile,
             changed: false,
+            auth_outcome: Some(auth_service.action_outcome(Vec::new())),
         });
     }
 
@@ -153,10 +158,10 @@ fn claude_profile_off() -> Result<ProfileOffResult> {
     backup.snapshot(platform_manager.config_path())?;
     backup.snapshot(claude_config_manager.config_path())?;
 
-    let settings_cleared = clear_claude_profile_settings_overrides()?;
+    let cleared_managed_sources = clear_claude_profile_settings_overrides()?;
     clear_platform_registry_pointer("claude")?;
     clear_profiles_file_pointer("claude")?;
-    let changed = had_profile_routing || settings_cleared;
+    let changed = had_profile_routing || !cleared_managed_sources.is_empty();
 
     backup.commit();
 
@@ -164,6 +169,7 @@ fn claude_profile_off() -> Result<ProfileOffResult> {
         platform: Platform::Claude,
         previous_profile,
         changed,
+        auth_outcome: Some(auth_service.action_outcome(cleared_managed_sources)),
     })
 }
 
@@ -179,6 +185,7 @@ fn codex_profile_off() -> Result<ProfileOffResult> {
             platform: Platform::Codex,
             previous_profile,
             changed: false,
+            auth_outcome: None,
         });
     }
 
@@ -198,24 +205,30 @@ fn codex_profile_off() -> Result<ProfileOffResult> {
         platform: Platform::Codex,
         previous_profile,
         changed,
+        auth_outcome: None,
     })
 }
 
-fn clear_claude_profile_settings_overrides() -> Result<bool> {
+fn clear_claude_profile_settings_overrides() -> Result<Vec<String>> {
     let manager = SettingsManager::with_default()?;
-    let mut settings = match manager.load() {
+    let settings = match manager.load() {
         Ok(settings) => settings,
-        Err(CcrError::SettingsMissing(_)) => return Ok(false),
+        Err(CcrError::SettingsMissing(_)) => return Ok(Vec::new()),
         Err(error) => return Err(error),
     };
-
-    if !settings.has_anthropic_overrides() {
-        return Ok(false);
+    if !settings.has_managed_overrides() {
+        return Ok(Vec::new());
     }
 
-    settings.clear_anthropic_vars();
-    manager.save_atomic(&settings)?;
-    Ok(true)
+    manager.update_atomic(|settings| {
+        let cleared = settings
+            .managed_env_entries()
+            .into_iter()
+            .map(|(key, _)| key)
+            .collect();
+        settings.clear_ccr_managed_vars();
+        Ok(cleared)
+    })
 }
 
 fn clear_platform_registry_pointer(platform_name: &str) -> Result<()> {
@@ -252,4 +265,62 @@ fn platform_profiles_file_has_current_config(platform_name: &str) -> Result<bool
     let manager = ConfigManager::for_platform(platform_name)?;
     let config = manager.load_with_autofix()?;
     Ok(!config.current_config.trim().is_empty())
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+    use super::*;
+    use crate::test_support::TestHome;
+    use ccr_types::{ClaudeSettings, env_keys};
+
+    #[test]
+    fn clear_claude_profile_settings_removes_managed_and_keeps_user_env() {
+        let _home = TestHome::new();
+        let manager = SettingsManager::with_default().unwrap();
+        let mut settings = ClaudeSettings::new();
+        for key in env_keys::CCR_MANAGED_KEYS {
+            settings.env.insert((*key).to_string(), "managed".into());
+        }
+        settings
+            .env
+            .insert("ANTHROPIC_API_KEY".into(), "user-api-key".into());
+        settings
+            .env
+            .insert("ANTHROPIC_CUSTOM_HEADERS".into(), "X-User: keep".into());
+        manager.save_atomic(&settings).unwrap();
+
+        assert!(
+            !clear_claude_profile_settings_overrides()
+                .unwrap()
+                .is_empty()
+        );
+
+        let settings = manager.load().unwrap();
+        assert!(!settings.has_managed_overrides());
+        assert_eq!(
+            settings.env.get("ANTHROPIC_API_KEY").map(String::as_str),
+            Some("user-api-key")
+        );
+        assert_eq!(
+            settings
+                .env
+                .get("ANTHROPIC_CUSTOM_HEADERS")
+                .map(String::as_str),
+            Some("X-User: keep")
+        );
+    }
+
+    #[test]
+    fn clear_claude_profile_settings_is_noop_when_settings_are_missing() {
+        let _home = TestHome::new();
+        let manager = SettingsManager::with_default().unwrap();
+
+        assert!(
+            clear_claude_profile_settings_overrides()
+                .unwrap()
+                .is_empty()
+        );
+        assert!(!manager.settings_path().exists());
+    }
 }

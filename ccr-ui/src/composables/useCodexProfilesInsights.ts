@@ -1,5 +1,5 @@
 // Codex Profiles 派生洞察：薄包装，注入 Codex 平台差异（四 auth 模式、弃用模式、单模型缺失判定）
-// 后委托平台无关核心 useProfilesInsights。公共 API 保持稳定，供 ContextRail 复用。
+// 后委托平台无关核心 useProfilesInsights。公共 API 保持稳定，供 ProfilesInspector 复用。
 import type { Ref } from 'vue'
 import type { CodexProfile, CodexProfileAuthMode } from '@/types'
 import { useProfilesInsights, type ProfilesInsights } from './useProfilesInsights'

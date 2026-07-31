@@ -84,7 +84,7 @@ const sparklineValues = computed(() => props.card.sparkline.map((point) => point
   background:
     linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 90%), rgb(var(--color-bg-surface-rgb) / 74%)),
     radial-gradient(circle at 82% 0%, rgb(var(--usage-metric-rgb) / 8%), transparent 48%);
-  box-shadow: var(--elevation-1), inset 0 1px 0 rgb(255 255 255 / 8%);
+  box-shadow: var(--elevation-1);
   transition:
     border-color var(--motion-subtle-duration) var(--motion-subtle-ease),
     box-shadow var(--motion-subtle-duration) var(--motion-subtle-ease),
@@ -94,7 +94,7 @@ const sparklineValues = computed(() => props.card.sparkline.map((point) => point
 .usage-metric-card:hover {
   transform: translateY(-1px);
   border-color: rgb(var(--usage-metric-rgb) / 20%);
-  box-shadow: var(--elevation-2), inset 0 1px 0 rgb(255 255 255 / 12%);
+  box-shadow: var(--elevation-2);
 }
 
 .usage-metric-card--rose {

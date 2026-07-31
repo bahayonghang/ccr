@@ -220,8 +220,8 @@ const onboardingSteps: Array<{ id: string; path: string; icon: IconName; titleKe
 }
 
 .dashboard-action--primary .dashboard-action__icon {
-  border-color: rgb(var(--color-text-inverted-rgb) / 24%);
-  background: rgb(var(--color-text-inverted-rgb) / 16%);
+  border-color: rgb(var(--color-accent-primary-contrast-rgb) / 24%);
+  background: rgb(var(--color-accent-primary-contrast-rgb) / 16%);
   color: var(--color-text-inverted);
 }
 
@@ -231,11 +231,11 @@ const onboardingSteps: Array<{ id: string; path: string; icon: IconName; titleKe
 
 .dashboard-action--primary .dashboard-action__copy span,
 .dashboard-action--primary .dashboard-action__copy em {
-  color: rgb(var(--color-text-inverted-rgb) / 78%);
+  color: rgb(var(--color-accent-primary-contrast-rgb) / 78%);
 }
 
 .dashboard-action--primary .dashboard-action__cta {
-  color: rgb(var(--color-text-inverted-rgb) / 78%);
+  color: rgb(var(--color-accent-primary-contrast-rgb) / 78%);
 }
 
 .dashboard-action--primary:hover .dashboard-action__cta,

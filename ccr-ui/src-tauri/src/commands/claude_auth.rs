@@ -1,5 +1,10 @@
 use super::*;
 use ccr_cli::models::{
+    ClaudeAuthConfidence as ServiceAuthConfidence, ClaudeAuthDiagnosis as ServiceAuthDiagnosis,
+    ClaudeAuthEvidence as ServiceAuthEvidence, ClaudeAuthOwnership as ServiceAuthOwnership,
+    ClaudeAuthSourceKind as ServiceAuthSourceKind,
+    ClaudeAuthSourceLocation as ServiceAuthSourceLocation,
+    ClaudeAuthSourceObservation as ServiceAuthSourceObservation,
     ClaudeCurrentAuthInfo as ServiceCurrentAuthInfo, ClaudeLoginState as ServiceLoginState,
     ClaudeProfileAuthMode as ServiceProfileAuthMode, ClaudeRuntimeMode as ServiceRuntimeMode,
     ClaudeRuntimeSummary as ServiceRuntimeSummary,
@@ -43,6 +48,159 @@ impl From<ServiceRuntimeMode> for ClaudeRuntimeMode {
             ServiceRuntimeMode::ProfilePendingAuth => Self::ProfilePendingAuth,
             ServiceRuntimeMode::RuntimeOnly => Self::RuntimeOnly,
             ServiceRuntimeMode::Unresolved => Self::Unresolved,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Serialize, TS)]
+#[serde(rename_all = "snake_case")]
+#[ts(export, export_to = "../../src/types/generated/claude_auth/")]
+pub enum ClaudeAuthSourceKind {
+    Bedrock,
+    Vertex,
+    Foundry,
+    AnthropicAuthToken,
+    AnthropicApiKey,
+    ApiKeyHelper,
+    ClaudeCodeOauthToken,
+    SubscriptionOauth,
+    PrimaryApiKey,
+}
+
+impl From<ServiceAuthSourceKind> for ClaudeAuthSourceKind {
+    fn from(value: ServiceAuthSourceKind) -> Self {
+        match value {
+            ServiceAuthSourceKind::Bedrock => Self::Bedrock,
+            ServiceAuthSourceKind::Vertex => Self::Vertex,
+            ServiceAuthSourceKind::Foundry => Self::Foundry,
+            ServiceAuthSourceKind::AnthropicAuthToken => Self::AnthropicAuthToken,
+            ServiceAuthSourceKind::AnthropicApiKey => Self::AnthropicApiKey,
+            ServiceAuthSourceKind::ApiKeyHelper => Self::ApiKeyHelper,
+            ServiceAuthSourceKind::ClaudeCodeOauthToken => Self::ClaudeCodeOauthToken,
+            ServiceAuthSourceKind::SubscriptionOauth => Self::SubscriptionOauth,
+            ServiceAuthSourceKind::PrimaryApiKey => Self::PrimaryApiKey,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Serialize, TS)]
+#[serde(rename_all = "snake_case")]
+#[ts(export, export_to = "../../src/types/generated/claude_auth/")]
+pub enum ClaudeAuthSourceLocation {
+    ProcessEnv,
+    SettingsEnv,
+    SettingsRoot,
+    StateFile,
+    CredentialsFile,
+}
+
+impl From<ServiceAuthSourceLocation> for ClaudeAuthSourceLocation {
+    fn from(value: ServiceAuthSourceLocation) -> Self {
+        match value {
+            ServiceAuthSourceLocation::ProcessEnv => Self::ProcessEnv,
+            ServiceAuthSourceLocation::SettingsEnv => Self::SettingsEnv,
+            ServiceAuthSourceLocation::SettingsRoot => Self::SettingsRoot,
+            ServiceAuthSourceLocation::StateFile => Self::StateFile,
+            ServiceAuthSourceLocation::CredentialsFile => Self::CredentialsFile,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Serialize, TS)]
+#[serde(rename_all = "snake_case")]
+#[ts(export, export_to = "../../src/types/generated/claude_auth/")]
+pub enum ClaudeAuthConfidence {
+    Confirmed,
+    Potential,
+    Unobservable,
+}
+
+impl From<ServiceAuthConfidence> for ClaudeAuthConfidence {
+    fn from(value: ServiceAuthConfidence) -> Self {
+        match value {
+            ServiceAuthConfidence::Confirmed => Self::Confirmed,
+            ServiceAuthConfidence::Potential => Self::Potential,
+            ServiceAuthConfidence::Unobservable => Self::Unobservable,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Serialize, TS)]
+#[serde(rename_all = "snake_case")]
+#[ts(export, export_to = "../../src/types/generated/claude_auth/")]
+pub enum ClaudeAuthEvidence {
+    OfficialContract,
+    IssueReport,
+}
+
+impl From<ServiceAuthEvidence> for ClaudeAuthEvidence {
+    fn from(value: ServiceAuthEvidence) -> Self {
+        match value {
+            ServiceAuthEvidence::OfficialContract => Self::OfficialContract,
+            ServiceAuthEvidence::IssueReport => Self::IssueReport,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Serialize, TS)]
+#[serde(rename_all = "snake_case")]
+#[ts(export, export_to = "../../src/types/generated/claude_auth/")]
+pub enum ClaudeAuthOwnership {
+    CcrManaged,
+    UserOwned,
+    ExternalRuntime,
+}
+
+impl From<ServiceAuthOwnership> for ClaudeAuthOwnership {
+    fn from(value: ServiceAuthOwnership) -> Self {
+        match value {
+            ServiceAuthOwnership::CcrManaged => Self::CcrManaged,
+            ServiceAuthOwnership::UserOwned => Self::UserOwned,
+            ServiceAuthOwnership::ExternalRuntime => Self::ExternalRuntime,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/claude_auth/")]
+pub struct ClaudeAuthSourceObservation {
+    pub kind: ClaudeAuthSourceKind,
+    pub location: ClaudeAuthSourceLocation,
+    pub confidence: ClaudeAuthConfidence,
+    pub evidence: ClaudeAuthEvidence,
+    pub ownership: ClaudeAuthOwnership,
+    pub suppresses_subscription: bool,
+}
+
+impl From<ServiceAuthSourceObservation> for ClaudeAuthSourceObservation {
+    fn from(value: ServiceAuthSourceObservation) -> Self {
+        Self {
+            kind: value.kind.into(),
+            location: value.location.into(),
+            confidence: value.confidence.into(),
+            evidence: value.evidence.into(),
+            ownership: value.ownership.into(),
+            suppresses_subscription: value.suppresses_subscription,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/claude_auth/")]
+pub struct ClaudeAuthDiagnosis {
+    pub observations: Vec<ClaudeAuthSourceObservation>,
+    pub presumed_effective_source: Option<ClaudeAuthSourceObservation>,
+    pub custom_api_key_responses_present: bool,
+    pub unobservable: Vec<String>,
+}
+
+impl From<ServiceAuthDiagnosis> for ClaudeAuthDiagnosis {
+    fn from(value: ServiceAuthDiagnosis) -> Self {
+        Self {
+            observations: value.observations.into_iter().map(Into::into).collect(),
+            presumed_effective_source: value.presumed_effective_source.map(Into::into),
+            custom_api_key_responses_present: value.custom_api_key_responses_present,
+            unobservable: value.unobservable,
         }
     }
 }
@@ -94,6 +252,7 @@ pub struct ClaudeRuntimeSummary {
     #[ts(optional)]
     pub current_auth_name: Option<String>,
     pub login_state: ClaudeLoginState,
+    pub auth_diagnosis: ClaudeAuthDiagnosis,
 }
 
 impl From<ServiceRuntimeSummary> for ClaudeRuntimeSummary {
@@ -108,6 +267,7 @@ impl From<ServiceRuntimeSummary> for ClaudeRuntimeSummary {
             official_login_state: value.official_login_state.into(),
             current_auth_name: value.current_auth_name,
             login_state: value.login_state.into(),
+            auth_diagnosis: value.auth_diagnosis.into(),
         }
     }
 }
@@ -193,6 +353,9 @@ pub struct ClaudeAuthCurrentResponse {
 pub struct ClaudeAuthActionResponse {
     pub success: bool,
     pub message: String,
+    pub cleared_managed_sources: Vec<String>,
+    pub remaining_suppressors: Vec<ClaudeAuthSourceObservation>,
+    pub warnings: Vec<String>,
 }
 
 #[ccr_tauri_command_macros::command]
@@ -260,6 +423,9 @@ pub async fn claude_save_auth(
         Ok(ClaudeAuthActionResponse {
             success: true,
             message: format!("Claude 官方账号 '{name}' 已成功保存"),
+            cleared_managed_sources: Vec::new(),
+            remaining_suppressors: Vec::new(),
+            warnings: Vec::new(),
         })
     })
     .await
@@ -269,11 +435,10 @@ pub async fn claude_save_auth(
 #[ccr_tauri_command_macros::command]
 pub async fn claude_switch_auth(name: String) -> Result<ClaudeAuthActionResponse, String> {
     let name_resp = name.clone();
-    tokio::task::spawn_blocking(move || {
+    let outcome = tokio::task::spawn_blocking(move || {
         let service =
             ClaudeAuthService::new().map_err(|e| format!("初始化 Claude Auth 服务失败: {e}"))?;
-        service.switch_account(&name).map_err(|e| format!("{e}"))?;
-        Ok::<_, String>(())
+        service.switch_account(&name).map_err(|e| format!("{e}"))
     })
     .await
     .map_err(|e| format!("任务执行失败: {e}"))??;
@@ -281,6 +446,13 @@ pub async fn claude_switch_auth(name: String) -> Result<ClaudeAuthActionResponse
     Ok(ClaudeAuthActionResponse {
         success: true,
         message: format!("已切换到 Claude 官方账号 '{name_resp}'"),
+        cleared_managed_sources: outcome.cleared_managed_sources,
+        remaining_suppressors: outcome
+            .remaining_suppressors
+            .into_iter()
+            .map(Into::into)
+            .collect(),
+        warnings: outcome.warnings,
     })
 }
 
@@ -299,6 +471,9 @@ pub async fn claude_delete_auth(name: String) -> Result<ClaudeAuthActionResponse
     Ok(ClaudeAuthActionResponse {
         success: true,
         message: format!("Claude 官方账号 '{name_resp}' 已成功删除"),
+        cleared_managed_sources: Vec::new(),
+        remaining_suppressors: Vec::new(),
+        warnings: Vec::new(),
     })
 }
 
@@ -342,6 +517,7 @@ mod tests {
             official_login_state: ServiceLoginState::NotLoggedIn,
             current_auth_name: None,
             login_state: ServiceLoginState::NotLoggedIn,
+            auth_diagnosis: ServiceAuthDiagnosis::default(),
         });
 
         let value = serde_json::to_value(summary).unwrap();
@@ -353,5 +529,49 @@ mod tests {
                 .unwrap()
                 .contains_key("current_profile_name")
         );
+    }
+
+    #[test]
+    fn runtime_summary_preserves_secret_free_auth_diagnosis_metadata() {
+        let source = ServiceAuthSourceObservation {
+            kind: ServiceAuthSourceKind::PrimaryApiKey,
+            location: ServiceAuthSourceLocation::StateFile,
+            confidence: ServiceAuthConfidence::Potential,
+            evidence: ServiceAuthEvidence::IssueReport,
+            ownership: ServiceAuthOwnership::UserOwned,
+            suppresses_subscription: true,
+        };
+        let summary = ClaudeRuntimeSummary::from(ServiceRuntimeSummary {
+            mode: ServiceRuntimeMode::RuntimeOnly,
+            current_profile_name: None,
+            current_profile_provider: None,
+            current_profile_auth_mode: None,
+            current_profile_auth_source: None,
+            current_login_name: None,
+            official_login_state: ServiceLoginState::LoggedInUnsaved,
+            current_auth_name: None,
+            login_state: ServiceLoginState::LoggedInUnsaved,
+            auth_diagnosis: ServiceAuthDiagnosis {
+                observations: vec![source.clone()],
+                presumed_effective_source: Some(source),
+                custom_api_key_responses_present: true,
+                unobservable: vec!["other_shell_environment".to_string()],
+            },
+        });
+
+        let value = serde_json::to_value(summary).unwrap();
+        assert_eq!(
+            value["auth_diagnosis"]["observations"][0]["kind"],
+            "primary_api_key"
+        );
+        assert_eq!(
+            value["auth_diagnosis"]["observations"][0]["confidence"],
+            "potential"
+        );
+        assert_eq!(
+            value["auth_diagnosis"]["observations"][0]["evidence"],
+            "issue_report"
+        );
+        assert!(!value.to_string().contains("diagnostic-secret"));
     }
 }

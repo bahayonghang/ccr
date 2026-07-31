@@ -1,21 +1,26 @@
 /* ===================================
    图表配色 - 编辑式中性色 + 克制强调色
    =================================== */
+
+/* 五色 ramp 直接引用 tokens.css 规范令牌（不经 theme.css 短名桥接）：
+   暗色 neutral 下为 橙 #e8835b / 绿 #7cab82 / 琥珀 #d6a76d / 蓝 #98afc9 / 珊瑚 #db8a73，
+   色相分散、暗底可读；槽位语义锚点保持 validate→2(warning)、delete→4(danger)，
+   槽位 1 对齐 TokenDetailTab 既定语义（output 用 success 绿）。 */
 :root {
   /* 0: Primary accent */
-  --chart-color-0: var(--accent-primary);
+  --chart-color-0: var(--color-accent-primary);
 
-  /* 1: Secondary accent */
-  --chart-color-1: var(--accent-secondary);
+  /* 1: Success accent */
+  --chart-color-1: var(--color-success);
 
   /* 2: Warning accent */
-  --chart-color-2: var(--accent-warning);
+  --chart-color-2: var(--color-warning);
 
-  /* 3: Tertiary accent */
-  --chart-color-3: var(--accent-tertiary);
+  /* 3: Info accent */
+  --chart-color-3: var(--color-info);
 
   /* 4: Danger accent */
-  --chart-color-4: var(--accent-danger);
+  --chart-color-4: var(--color-danger);
 }
 
 /* 柱状图颜色类 */

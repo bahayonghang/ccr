@@ -47,22 +47,24 @@ fn cleanup_test_env(temp_dir: TempDir) {
 #[test]
 fn test_platform_all() {
     let platforms = Platform::all();
-    assert_eq!(platforms.len(), 5);
+    assert_eq!(platforms.len(), 6);
     assert!(platforms.contains(&Platform::Claude));
     assert!(platforms.contains(&Platform::Codex));
     assert!(platforms.contains(&Platform::Gemini));
     assert!(platforms.contains(&Platform::Qwen));
     assert!(platforms.contains(&Platform::Droid));
+    assert!(platforms.contains(&Platform::Grok));
 }
 
 #[test]
 fn test_platform_implemented() {
     let implemented = Platform::implemented();
-    assert_eq!(implemented.len(), 4);
+    assert_eq!(implemented.len(), 5);
     assert!(implemented.contains(&Platform::Claude));
     assert!(implemented.contains(&Platform::Codex));
     assert!(implemented.contains(&Platform::Gemini));
     assert!(implemented.contains(&Platform::Droid));
+    assert!(implemented.contains(&Platform::Grok));
     assert!(!implemented.contains(&Platform::Qwen));
 }
 
@@ -72,6 +74,7 @@ fn test_platform_display_name() {
     assert_eq!(Platform::Codex.display_name(), "Codex");
     assert_eq!(Platform::Gemini.display_name(), "Antigravity CLI");
     assert_eq!(Platform::Qwen.display_name(), "Qwen CLI");
+    assert_eq!(Platform::Grok.display_name(), "Grok Build");
 }
 
 #[test]
@@ -80,6 +83,7 @@ fn test_platform_short_name() {
     assert_eq!(Platform::Codex.short_name(), "codex");
     assert_eq!(Platform::Gemini.short_name(), "gemini");
     assert_eq!(Platform::Qwen.short_name(), "qwen");
+    assert_eq!(Platform::Grok.short_name(), "grok");
 }
 
 #[test]
@@ -88,6 +92,7 @@ fn test_platform_icon() {
     assert_eq!(Platform::Codex.icon(), "💻");
     assert_eq!(Platform::Gemini.icon(), "✨");
     assert_eq!(Platform::Qwen.icon(), "🌟");
+    assert_eq!(Platform::Grok.icon(), "🌌");
 }
 
 // ═══════════════════════════════════════════════════════════

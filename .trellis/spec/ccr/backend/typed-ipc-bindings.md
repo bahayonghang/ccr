@@ -35,7 +35,7 @@
 
 - Command shape: `#[tauri::command]` is a thin adapter (timing/State extraction/spawn_blocking/cache); business logic lives in State-free sync functions in `services/usage.rs` taking `&LlmusageRuntime` / `&DbPool` + plain args, returning `Result<NamedDto, String>`. `LlmusageRuntime::from_paths(AppPaths)` exists for tests.
 - Regeneration: `just tauri-bindings` (root) → deletes `ccr-ui/src/types/generated/`, runs `cargo test -p ccr-cli --features ts export_bindings` + `cargo test -p ccr-usage --features ts export_bindings` + `cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml export_bindings`.
-- Drift guard: `just tauri-bindings-check` → regenerate then `git status --porcelain -- src/types/generated` must be empty. Wired into `just ci` before `frontend-check`. Independent of the api-facade-boundary smoke (per that spec).
+- Drift guard: `just tauri-bindings-check` first runs the existing generated-file normalizer to repair deterministic whitespace, then snapshots `src/types/generated/`, regenerates, and compares the result with the normalized pre-generation worktree snapshot. Formatting-only drift is repaired automatically; DTO/file-shape drift still fails. Wired into `just ci` before `frontend-check`. Independent of the api-facade-boundary smoke (per that spec).
 
 ### 3. Contracts
 
@@ -53,11 +53,11 @@
 ### 4. Validation & Error Matrix
 
 - i64/u64 field missing `ts(as)` → `bigint` appears in generated file → consumer `bun run type-check` fails + drift diff shows `bigint`.
-- Rust DTO changed without regeneration → `just tauri-bindings-check` exits 1 listing the dirty/untracked paths.
-- Hand-edited generated file → same guard failure (regeneration restores canonical output).
+- Rust DTO changed without regeneration → `just tauri-bindings-check` exits 1 listing the generated paths changed by regeneration.
+- Hand-edited generated file that changes its generated shape → same guard failure; deterministic whitespace is repaired by the normalizer.
 - New typed command added → handler-registry contract still applies unchanged (`define_command_registry!`, frozen counts 315 base / 323 Windows).
 - `serde(alias)` on input DTOs is ignored by ts-rs but remains active for deserialization; keep the desktop dependency's `no-serde-warnings` feature enabled so this intentional compatibility alias does not emit macro warnings. The generated shape remains canonical snake_case.
-- Plain `cargo test` in src-tauri reruns export tests and rewrites generated files idempotently — a dirty tree afterwards means Rust and committed bindings genuinely diverged.
+- Plain `cargo test` in src-tauri reruns export tests and rewrites generated files idempotently — `just tauri-bindings-check` normalizes those side effects before comparing the regenerated output with the current worktree baseline.
 
 ### 5. Good / Base / Bad Cases
 

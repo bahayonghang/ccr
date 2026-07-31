@@ -1,0 +1,4 @@
+{"file":".trellis/tasks/07-31-dev-pr-ci-deploy-workflow-audit/research/repository-workflow-baseline.md","reason":"当前仓库、GitHub、PR、CI 与发布流程的只读事实基线"}
+{"file":".trellis/tasks/07-31-dev-pr-ci-deploy-workflow-audit/research/industry-practices.md","reason":"官方和一方资料形成的行业对照、适用条件与反模式"}
+{"file":".trellis/spec/ccr/backend/dependency-governance.md","reason":"仓库既有 CI workflow、required context、action pin 与依赖治理合同"}
+{"file":".trellis/spec/ccr-ui/frontend/development-resource-contracts.md","reason":"本地 Vite/Vitest 资源、缓存、worker 与进程清理的既有约束"}

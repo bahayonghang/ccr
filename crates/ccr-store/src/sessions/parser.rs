@@ -40,6 +40,9 @@ impl SessionParser {
             Platform::Gemini => Self::parse_gemini_with_hash(path, file_hash),
             Platform::Qwen => Self::parse_qwen_with_hash(path, file_hash),
             Platform::Droid => Self::parse_generic_with_hash(path, platform, file_hash),
+            Platform::Grok => Err(CcrError::PlatformNotSupported(
+                "Grok session parsing".into(),
+            )),
         }
     }
 
@@ -508,7 +511,8 @@ impl SessionParser {
                 extension == Some("jsonl") || extension == Some("json")
             }
             Platform::Qwen => is_qwen_chat_file(path),
-            _ => extension == Some("jsonl"),
+            Platform::Droid => extension == Some("jsonl"),
+            Platform::Grok => false,
         }
     }
 
@@ -520,6 +524,7 @@ impl SessionParser {
             Platform::Gemini => dirs::home_dir()?.join(".gemini").join("tmp"),
             Platform::Qwen => qwen_projects_dir()?,
             Platform::Droid => dirs::home_dir()?.join(".factory").join("sessions"),
+            Platform::Grok => return None,
         };
 
         if path.exists() { Some(path) } else { None }
@@ -670,6 +675,10 @@ mod tests {
             Path::new("/tmp/.qwen/projects/workspace___repo/session-1.jsonl"),
             &Platform::Qwen
         ));
+        assert!(!SessionParser::is_session_file(
+            Path::new("/tmp/.grok/sessions/session-1.jsonl"),
+            &Platform::Grok
+        ));
     }
 
     #[test]
@@ -737,6 +746,13 @@ mod tests {
             assert_eq!(session.message_count, 2);
             assert_eq!(session.title.as_deref(), Some("Hello from dispatch"));
         }
+
+        let grok_path = dir.path().join("grok.jsonl");
+        std::fs::write(&grok_path, content).expect("Failed to write Grok dispatch fixture");
+        assert!(matches!(
+            SessionParser::parse_file_with_hash(&grok_path, Platform::Grok, "grok-hash".into()),
+            Err(CcrError::PlatformNotSupported(_))
+        ));
     }
 
     #[test]

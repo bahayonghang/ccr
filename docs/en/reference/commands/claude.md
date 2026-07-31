@@ -37,6 +37,7 @@ Without a subcommand, TUI-enabled builds enter the Claude Auth tab. Calls withou
 | `ccr claude profile enable <name>` | enable a profile |
 | `ccr claude profile disable <name>` | disable a profile; the current item requires `--force` |
 | `ccr claude profile delete <name>` | delete a profile; supports `--force` |
+| `ccr claude profile open` | Open profiles.toml in your editor ($VISUAL/$EDITOR or system default); creates the file from the template if it does not exist |
 | `ccr claude profile off` | leave profile mode and return to official auth runtime |
 
 Create a third-party API profile:

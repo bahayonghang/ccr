@@ -4,7 +4,7 @@
 mod app;
 pub(crate) mod ui;
 
-pub use app::ClaudeAuthApp;
+pub use app::{ClaudeAuthActionRecord, ClaudeAuthApp};
 
 use ccr_core::core::error::Result;
 

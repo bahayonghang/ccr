@@ -1,0 +1,5 @@
+{"file":".trellis/spec/ccr-cli/backend/index.md","reason":"ClaudePlatform/doctor 与 Tauri command 共享契约入口。"}
+{"file":".trellis/spec/ccr-cli/backend/backend-guidelines.md","reason":"现有 onboarding 与 .claude.json 行为条款需要按实证修订。"}
+{"file":".trellis/spec/ccr-cli/backend/test-fixtures.md","reason":"state_file 与 config dir 测试不得碰真实 home。"}
+{"file":".trellis/spec/ccr-core/backend/atomic-writer.md","reason":"versioned guarded write、secret 与残余并发边界。"}
+{"file":".trellis/tasks/07-29-claude-json-write-strategy/research/claude-2.1.220-onboarding-probe.md","reason":"删除 onboarding 写入的当前版本实证。"}

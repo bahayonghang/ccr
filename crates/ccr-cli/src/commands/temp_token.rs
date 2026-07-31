@@ -39,9 +39,6 @@ pub async fn temp_token_set(
     // 创建设置管理器
     let settings_manager = SettingsManager::with_default()?;
 
-    // 读取当前设置
-    let mut current_settings = settings_manager.load_async().await?;
-
     // 创建临时配置
     let mut temp_override = TempOverride::new(token.to_string());
     temp_override.base_url = base_url.clone();
@@ -49,37 +46,34 @@ pub async fn temp_token_set(
 
     ColorOutput::info("🎯 正在应用临时配置到当前设置...");
 
-    // 应用临时覆盖到当前设置
-    if let Some(temp_token) = &temp_override.auth_token {
-        // env 注入是临时 token 的合法明文消费点
-        current_settings.env.insert(
-            "ANTHROPIC_AUTH_TOKEN".to_string(),
-            temp_token.expose().to_string(),
-        );
-    }
-
-    if let Some(temp_base_url) = &temp_override.base_url {
-        current_settings
-            .env
-            .insert("ANTHROPIC_BASE_URL".to_string(), temp_base_url.clone());
-    }
-
-    if let Some(temp_model) = &temp_override.model {
-        current_settings
-            .env
-            .insert("ANTHROPIC_MODEL".to_string(), temp_model.clone());
-    }
-
-    if let Some(temp_small_model) = &temp_override.small_fast_model {
-        current_settings.env.insert(
-            "ANTHROPIC_SMALL_FAST_MODEL".to_string(),
-            temp_small_model.clone(),
-        );
-    }
-
-    // 保存更新后的设置
+    let settings_update = temp_override.clone();
     settings_manager
-        .save_atomic_async(&current_settings)
+        .update_atomic_async(move |settings| {
+            if let Some(temp_token) = &settings_update.auth_token {
+                // env 注入是临时 token 的合法明文消费点
+                settings.env.insert(
+                    "ANTHROPIC_AUTH_TOKEN".to_string(),
+                    temp_token.expose().to_string(),
+                );
+            }
+            if let Some(temp_base_url) = &settings_update.base_url {
+                settings
+                    .env
+                    .insert("ANTHROPIC_BASE_URL".to_string(), temp_base_url.clone());
+            }
+            if let Some(temp_model) = &settings_update.model {
+                settings
+                    .env
+                    .insert("ANTHROPIC_MODEL".to_string(), temp_model.clone());
+            }
+            if let Some(temp_small_model) = &settings_update.small_fast_model {
+                settings.env.insert(
+                    "ANTHROPIC_SMALL_FAST_MODEL".to_string(),
+                    temp_small_model.clone(),
+                );
+            }
+            Ok(())
+        })
         .await?;
 
     ColorOutput::success("✅ 临时配置已应用到当前设置");

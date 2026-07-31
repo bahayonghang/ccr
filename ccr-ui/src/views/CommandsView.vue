@@ -1471,7 +1471,7 @@ const formatDuration = (duration?: number | null) => (duration == null ? '—' :
 }
 
 .commands-notice--neutral {
-  @apply border-border-default/55 bg-bg-surface/70 text-text-secondary;
+  @apply border-border-default/55 bg-bg-elevated text-text-secondary;
 }
 
 .command-strip {

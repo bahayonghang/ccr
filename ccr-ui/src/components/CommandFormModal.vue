@@ -146,7 +146,7 @@
           class="px-4 py-2 rounded-lg inline-flex items-center transition-colors hover:opacity-90"
           :style="{
             background: 'var(--color-accent-primary)',
-            color: '#fff',
+            color: 'var(--color-accent-primary-contrast)',
             opacity: loading ? 0.7 : 1,
             cursor: loading ? 'not-allowed' : 'pointer'
           }"

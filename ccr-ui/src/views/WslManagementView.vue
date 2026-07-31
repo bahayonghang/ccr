@@ -175,7 +175,7 @@ onMounted(() => fetchDistros())
           />
         </div>
         <div>
-          <h1 class="text-xl font-bold text-white">
+          <h1 class="text-xl font-bold text-text-primary">
             {{ tt('WSL 环境管理', 'WSL Environment Management') }}
           </h1>
           <p class="text-sm text-text-muted">
@@ -185,7 +185,7 @@ onMounted(() => fetchDistros())
       </div>
       <div class="flex items-center gap-2">
         <button
-          class="flex items-center gap-2 px-4 py-2 rounded-lg glass-surface border border-border-default/25 text-text-primary hover:text-white hover:border-accent-primary/30 transition-colors text-sm"
+          class="flex items-center gap-2 px-4 py-2 rounded-lg glass-surface border border-border-default/25 text-text-primary hover:border-accent-primary/30 transition-colors text-sm"
           :disabled="isRefreshing"
           @click="refresh"
         >
@@ -236,7 +236,7 @@ onMounted(() => fetchDistros())
         >
           <span class="text-text-muted">|</span>
           <span class="text-text-primary">{{ `${tt('缓存时间', 'Cache age')}:` }}</span>
-          <span class="text-white">{{ formatCacheAge(cacheStatus.age_secs) }}</span>
+          <span class="text-text-primary">{{ formatCacheAge(cacheStatus.age_secs) }}</span>
           <span
             v-if="cacheStatus.is_expired"
             class="px-1.5 py-0.5 rounded text-[10px] bg-amber-500/20 text-amber-400"
@@ -298,7 +298,7 @@ onMounted(() => fetchDistros())
             v-for="distro in distros"
             :key="distro.name"
             class="w-full flex items-center gap-3 p-3 rounded-xl border transition-colors text-left"
-            :class="[ selectedDistro === distro.name ? 'bg-accent-primary/10 border-accent-primary/30 text-accent-primary' : 'glass-surface border-border-default/25 text-text-primary hover:text-white hover:border-border-accent' ]"
+            :class="[ selectedDistro === distro.name ? 'bg-accent-primary/10 border-accent-primary/30 text-accent-primary' : 'glass-surface border-border-default/25 text-text-primary hover:border-border-accent' ]"
             @click="selectDistro(distro.name)"
           >
             <SIcon
@@ -329,7 +329,7 @@ onMounted(() => fetchDistros())
       <div class="col-span-8 space-y-6">
         <!-- CLI 工具检测 -->
         <div class="rounded-xl border border-border-default/15 glass-surface p-4">
-          <h3 class="text-sm font-semibold text-white mb-3">
+          <h3 class="text-sm font-semibold text-text-primary mb-3">
             {{ tt('AI CLI 工具状态', 'AI CLI tool status') }}
           </h3>
           <div class="grid grid-cols-3 gap-3">
@@ -350,7 +350,7 @@ onMounted(() => fetchDistros())
                 size="w-4 h-4"
                 class="text-text-muted"
               />
-              <span :class="installed ? 'text-white' : 'text-text-muted'">
+              <span :class="installed ? 'text-text-primary' : 'text-text-muted'">
                 {{ tool }}
               </span>
             </div>
@@ -360,7 +360,7 @@ onMounted(() => fetchDistros())
         <!-- 配置浏览 -->
         <div class="rounded-xl border border-border-default/15 glass-surface p-4">
           <div class="flex items-center justify-between mb-3">
-            <h3 class="text-sm font-semibold text-white flex items-center gap-2">
+            <h3 class="text-sm font-semibold text-text-primary flex items-center gap-2">
               <SIcon
                 name="FileText"
                 size="w-4 h-4"
@@ -386,7 +386,7 @@ onMounted(() => fetchDistros())
 
         <!-- 同步操作 -->
         <div class="rounded-xl border border-border-default/15 glass-surface p-4">
-          <h3 class="text-sm font-semibold text-white mb-3">
+          <h3 class="text-sm font-semibold text-text-primary mb-3">
             {{ tt('配置同步', 'Config sync') }}
           </h3>
           <div class="flex items-center gap-3">
@@ -402,7 +402,7 @@ onMounted(() => fetchDistros())
               {{ tt('推送到 WSL', 'Push to WSL') }}
             </button>
             <button
-              class="flex items-center gap-2 px-4 py-2 rounded-lg border border-border-default/15 text-text-primary text-sm font-medium hover:text-white hover:border-accent-primary/30 transition-colors"
+              class="flex items-center gap-2 px-4 py-2 rounded-lg border border-border-default/15 text-text-primary text-sm font-medium hover:border-accent-primary/30 transition-colors"
               :disabled="isSyncing"
               @click="syncConfig('wslToLocal')"
             >

@@ -6,7 +6,7 @@
 
 | Guide | Description | Status |
 |-------|-------------|--------|
-| [Backend Guidelines](./backend-guidelines.md) | Config crate boundaries, TOML persistence, errors, logs, and verification | Complete |
+| [Backend Guidelines](./backend-guidelines.md) | Config crate boundaries, Claude runtime paths, TOML persistence, errors, logs, and verification | Complete |
 | [Test Fixtures](./test-fixtures.md) | Process-wide CCR env fixtures for config tests | Complete |
 
 ## Pre-Development Checklist

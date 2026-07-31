@@ -401,9 +401,9 @@ bench:
 # ✨ 代码质量命令
 # ═══════════════════════════════════════════════════════════
 
-# ✨ 代码格式化
-fmt:
-    @just info "✨ 格式化代码"
+# ✨ 格式化 Rust 代码和人工维护的 JSON 配置
+fmt: json-format
+    @just info "✨ 格式化代码和 JSON 配置"
     cargo fmt
     @just success "代码格式化完成"
 
@@ -1381,7 +1381,7 @@ tauri-test:
 tauri-bindings:
     @just _ui-run bindings
 
-# 🧪 TypeScript 绑定漂移守卫（重新生成后 git 必须无差异）
+# 🧪 TypeScript 绑定漂移守卫（自动修复空白后验证重新生成结果；结构漂移仍阻断）
 tauri-bindings-check:
     @just _ui-run bindings-check
 

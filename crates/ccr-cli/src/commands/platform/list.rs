@@ -108,7 +108,9 @@ pub async fn platform_list_command(json: bool) -> Result<()> {
     println!();
     ColorOutput::info("Hints:");
     println!("  - Use 'ccr current' to view Claude/Codex runtime status");
-    println!("  - Use 'ccr claude profile list' or 'ccr codex profile list' for profiles");
+    println!(
+        "  - Use 'ccr claude profile list', 'ccr codex profile list', or 'ccr grok profile list' for profiles"
+    );
 
     Ok(())
 }

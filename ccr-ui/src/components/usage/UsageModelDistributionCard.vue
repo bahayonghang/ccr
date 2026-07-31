@@ -285,7 +285,7 @@ const formatSliceMeta = (slice: ModelDistributionSlice) =>
   width: 0.72rem;
   flex-shrink: 0;
   border-radius: 9999px;
-  box-shadow: 0 0 0 4px rgb(255 255 255 / 3%);
+  box-shadow: 0 0 0 4px var(--color-border-subtle);
 }
 
 .distribution-card__label-row {

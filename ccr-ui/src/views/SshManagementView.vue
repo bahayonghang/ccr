@@ -263,7 +263,7 @@ defineExpose({ sshListKeys, discoveredKeys })
   <div class="space-y-6">
     <div class="flex items-center justify-between gap-4">
       <div>
-        <h1 class="text-xl font-bold text-white">
+        <h1 class="text-xl font-bold text-text-primary">
           {{ tt('SSH 远程管理', 'SSH Remote Management') }}
         </h1>
         <p class="text-sm text-text-muted">
@@ -288,7 +288,7 @@ defineExpose({ sshListKeys, discoveredKeys })
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <section class="rounded-xl border border-border-default/15 glass-surface p-4 space-y-3">
-        <h2 class="text-base font-semibold text-white">
+        <h2 class="text-base font-semibold text-text-primary">
           {{ tt('新增 SSH 主机', 'Add SSH host') }}
         </h2>
         <div class="grid grid-cols-2 gap-3">
@@ -339,7 +339,7 @@ defineExpose({ sshListKeys, discoveredKeys })
       </section>
 
       <section class="rounded-xl border border-border-default/15 glass-surface p-4 space-y-3">
-        <h2 class="text-base font-semibold text-white">
+        <h2 class="text-base font-semibold text-text-primary">
           {{ tt('主机列表', 'Host list') }}
         </h2>
         <div
@@ -355,7 +355,7 @@ defineExpose({ sshListKeys, discoveredKeys })
         >
           <div class="flex items-center justify-between gap-3">
             <div>
-              <div class="text-sm font-medium text-white">
+              <div class="text-sm font-medium text-text-primary">
                 {{ host.name || host.host }}
               </div>
               <div class="text-xs text-text-muted">
@@ -394,7 +394,7 @@ defineExpose({ sshListKeys, discoveredKeys })
 
     <section class="rounded-xl border border-border-default/15 glass-surface p-4 space-y-3">
       <div class="flex items-center justify-between gap-3">
-        <h2 class="text-base font-semibold text-white">
+        <h2 class="text-base font-semibold text-text-primary">
           {{ tt('已连接主机', 'Connected host') }}
         </h2>
         <div class="flex items-center gap-2">

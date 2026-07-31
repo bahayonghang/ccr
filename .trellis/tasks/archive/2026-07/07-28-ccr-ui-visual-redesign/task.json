@@ -1,0 +1,30 @@
+{
+  "id": "ccr-ui-visual-redesign",
+  "name": "ccr-ui-visual-redesign",
+  "title": "CCR UI 视觉系统重设计：中性高对比配色 + 设置系统",
+  "description": "",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-07-28",
+  "completedAt": "2026-07-28",
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "07-28-color-system-rebuild",
+    "07-28-surface-contract-migration",
+    "07-28-settings-redesign"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}

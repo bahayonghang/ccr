@@ -340,24 +340,6 @@ const onKeyDown = (event: KeyboardEvent) => {
   backdrop-filter: none !important;
 }
 
-.cp-palette,
-.cp-palette__header,
-.cp-palette__foot {
-  --palette-bg: var(--color-bg-elevated);
-  --palette-bg-soft: var(--color-bg-surface);
-  --palette-bg-muted: var(--color-bg-overlay);
-  --palette-ink: var(--color-text-primary);
-  --palette-ink-soft: var(--color-text-secondary);
-  --palette-ink-muted: var(--color-text-muted);
-  --palette-ink-faint: var(--color-text-disabled);
-  --palette-line: var(--color-border-subtle);
-  --palette-line-strong: var(--color-border-default);
-  --palette-accent: var(--color-accent-primary);
-  --palette-accent-soft: rgb(var(--color-accent-primary-rgb) / 12%);
-  --palette-accent-line: rgb(var(--color-accent-primary-rgb) / 32%);
-  --palette-mono: var(--font-mono, 'MapleBright', monospace);
-}
-
 .cp-palette__header {
   display: flex;
   align-items: flex-start;
@@ -370,9 +352,9 @@ const onKeyDown = (event: KeyboardEvent) => {
 }
 
 .cp-palette__eyebrow {
-  color: var(--palette-ink-muted);
-  font-family: var(--palette-mono);
-  font-size: 10.5px;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono, 'MapleBright', monospace);
+  font-size: 0.75rem;
   letter-spacing: 1.1px;
   line-height: 1.2;
   text-transform: uppercase;
@@ -380,8 +362,8 @@ const onKeyDown = (event: KeyboardEvent) => {
 
 .cp-palette__title {
   margin: 4px 0 0;
-  color: var(--palette-ink);
-  font-size: 18px;
+  color: var(--color-text-primary);
+  font-size: 1.125rem;
   font-weight: 650;
   letter-spacing: -0.3px;
   line-height: 1.25;
@@ -391,18 +373,18 @@ const onKeyDown = (event: KeyboardEvent) => {
   flex-shrink: 0;
   max-width: 240px;
   padding: 5px 9px;
-  border: 1px solid var(--palette-line);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 999px;
-  background: var(--palette-bg-soft);
-  color: var(--palette-ink-muted);
-  font-family: var(--palette-mono);
-  font-size: 11px;
+  background: var(--color-bg-surface);
+  color: var(--color-text-muted);
+  font-family: var(--font-mono, 'MapleBright', monospace);
+  font-size: 0.75rem;
   line-height: 1.2;
   text-align: right;
 }
 
 .cp-palette {
-  color: var(--palette-ink-soft);
+  color: var(--color-text-secondary);
 }
 
 .cp-palette__search-wrap {
@@ -413,7 +395,7 @@ const onKeyDown = (event: KeyboardEvent) => {
   position: absolute;
   top: 50%;
   left: 13px;
-  color: var(--palette-ink-muted);
+  color: var(--color-text-muted);
   pointer-events: none;
   transform: translateY(-50%);
 }
@@ -421,24 +403,24 @@ const onKeyDown = (event: KeyboardEvent) => {
 .cp-palette__search {
   width: 100%;
   padding: 12px 14px 12px 40px;
-  background: var(--palette-bg-soft);
-  border: 1px solid var(--palette-line-strong);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-default);
   border-radius: 12px;
-  color: var(--palette-ink);
-  font-size: 15px;
+  color: var(--color-text-primary);
+  font-size: 0.9375rem;
   font-family: inherit;
   outline: none;
   transition: border-color 120ms ease, box-shadow 120ms ease, background 120ms ease;
 }
 
 .cp-palette__search:focus {
-  border-color: var(--palette-accent-line);
-  background: var(--palette-bg);
+  border-color: rgb(var(--color-accent-primary-rgb) / 32%);
+  background: var(--color-bg-elevated);
   box-shadow: 0 0 0 3px rgb(var(--color-accent-primary-rgb) / 10%);
 }
 
 .cp-palette__search::placeholder {
-  color: var(--palette-ink-faint);
+  color: var(--color-text-disabled);
 }
 
 .cp-palette__list {
@@ -446,7 +428,7 @@ const onKeyDown = (event: KeyboardEvent) => {
   max-height: min(60vh, 520px);
   overflow-y: auto;
   padding-right: 2px;
-  scrollbar-color: var(--palette-line-strong) transparent;
+  scrollbar-color: var(--color-border-default) transparent;
 }
 
 .cp-palette__group + .cp-palette__group {
@@ -459,16 +441,16 @@ const onKeyDown = (event: KeyboardEvent) => {
   justify-content: space-between;
   gap: 10px;
   padding: 0 4px 7px;
-  color: var(--palette-ink-muted);
-  font-family: var(--palette-mono);
-  font-size: 11px;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono, 'MapleBright', monospace);
+  font-size: 0.75rem;
   letter-spacing: 0.9px;
   line-height: 1.2;
   text-transform: uppercase;
 }
 
 .cp-palette__group-count {
-  color: var(--palette-ink-faint);
+  color: var(--color-text-disabled);
 }
 
 .cp-palette__row {
@@ -501,13 +483,13 @@ const onKeyDown = (event: KeyboardEvent) => {
 }
 
 .cp-palette__row--active {
-  background: var(--palette-accent-soft);
-  border-color: var(--palette-accent-line);
+  background: rgb(var(--color-accent-primary-rgb) / 12%);
+  border-color: rgb(var(--color-accent-primary-rgb) / 32%);
   box-shadow: 0 8px 22px rgb(var(--color-accent-primary-rgb) / 8%);
 }
 
 .cp-palette__row--active::before {
-  background: var(--palette-accent);
+  background: var(--color-accent-primary);
 }
 
 .cp-palette__icon-box {
@@ -515,17 +497,17 @@ const onKeyDown = (event: KeyboardEvent) => {
   place-items: center;
   width: 28px;
   height: 28px;
-  border: 1px solid var(--palette-line);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 9px;
-  background: var(--palette-bg-soft);
+  background: var(--color-bg-surface);
 }
 
 .cp-palette__icon {
-  color: var(--palette-ink-muted);
+  color: var(--color-text-muted);
 }
 
 .cp-palette__icon--accent {
-  color: var(--palette-accent);
+  color: var(--color-accent-primary);
 }
 
 .cp-palette__main {
@@ -534,8 +516,8 @@ const onKeyDown = (event: KeyboardEvent) => {
 
 .cp-palette__label {
   overflow: hidden;
-  color: var(--palette-ink);
-  font-size: 14.5px;
+  color: var(--color-text-primary);
+  font-size: 0.875rem;
   font-weight: 550;
   line-height: 1.25;
   text-overflow: ellipsis;
@@ -543,15 +525,15 @@ const onKeyDown = (event: KeyboardEvent) => {
 }
 
 .cp-palette__label--mono {
-  font-family: var(--palette-mono);
-  font-size: 14px;
+  font-family: var(--font-mono, 'MapleBright', monospace);
+  font-size: 0.875rem;
 }
 
 .cp-palette__sub {
   overflow: hidden;
   margin-top: 3px;
-  color: var(--palette-ink-muted);
-  font-size: 12.5px;
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
   line-height: 1.25;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -560,12 +542,12 @@ const onKeyDown = (event: KeyboardEvent) => {
 .cp-palette__badge {
   align-self: center;
   padding: 3px 7px;
-  border: 1px solid var(--palette-line);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 999px;
-  background: var(--palette-bg-soft);
-  color: var(--palette-ink-muted);
-  font-family: var(--palette-mono);
-  font-size: 10.5px;
+  background: var(--color-bg-surface);
+  color: var(--color-text-muted);
+  font-family: var(--font-mono, 'MapleBright', monospace);
+  font-size: 0.75rem;
   letter-spacing: 0.6px;
   line-height: 1.2;
   text-transform: uppercase;
@@ -574,10 +556,10 @@ const onKeyDown = (event: KeyboardEvent) => {
 
 .cp-palette__empty {
   padding: 34px 16px;
-  border: 1px dashed var(--palette-line-strong);
+  border: 1px dashed var(--color-border-default);
   border-radius: 12px;
-  color: var(--palette-ink-muted);
-  font-size: 13px;
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
   text-align: center;
 }
 
@@ -587,9 +569,9 @@ const onKeyDown = (event: KeyboardEvent) => {
   gap: 8px 14px;
   justify-content: flex-start;
   width: 100%;
-  color: var(--palette-ink-muted);
-  font-family: var(--palette-mono);
-  font-size: 11px;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono, 'MapleBright', monospace);
+  font-size: 0.75rem;
   line-height: 1.5;
 }
 
@@ -599,12 +581,12 @@ const onKeyDown = (event: KeyboardEvent) => {
   justify-content: center;
   min-width: 22px;
   padding: 1px 6px;
-  border: 1px solid var(--palette-line-strong);
+  border: 1px solid var(--color-border-default);
   border-radius: 5px;
-  background: var(--palette-bg-soft);
-  color: var(--palette-ink-soft);
-  font-family: var(--palette-mono);
-  font-size: 10.5px;
+  background: var(--color-bg-surface);
+  color: var(--color-text-secondary);
+  font-family: var(--font-mono, 'MapleBright', monospace);
+  font-size: 0.75rem;
   line-height: 1.4;
   box-shadow: inset 0 -1px 0 rgb(0 0 0 / 8%);
 }

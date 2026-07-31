@@ -244,7 +244,7 @@ const generatedLabel = computed(() =>
     linear-gradient(135deg, rgb(var(--color-bg-elevated-rgb) / 78%), rgb(var(--color-bg-surface-rgb) / 58%)),
     var(--stage-surface-soft);
   padding: clamp(1rem, 2vw, 1.45rem);
-  box-shadow: var(--elevation-1), inset 0 1px 0 rgb(255 255 255 / 10%);
+  box-shadow: var(--elevation-1);
   backdrop-filter: var(--surface-workspace-blur);
 }
 

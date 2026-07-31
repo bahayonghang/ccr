@@ -63,8 +63,8 @@ const getIcon = (type: 'success' | 'error' | 'warning' | 'info') => {
   gap: 0.75rem;
   padding: 0.875rem 1rem;
   border-radius: 1rem;
-  background: var(--glass-bg-strong);
-  backdrop-filter: blur(16px);
+  background: var(--surface-modal-bg);
+  backdrop-filter: var(--surface-modal-blur);
   color: var(--color-text-primary);
   box-shadow: var(--shadow-lg);
   cursor: pointer;

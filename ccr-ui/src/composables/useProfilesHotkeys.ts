@@ -2,13 +2,13 @@
 // Claude/Codex 两页共用，取代各自重复的 window keydown 实现。
 import { onBeforeUnmount, onMounted, type Ref } from 'vue'
 
-export interface UseProfilesHotkeysOptions<T extends { name: string }> {
+export interface UseProfilesHotkeysOptions {
   /** 命令面板开关状态 */
   paletteOpen: Ref<boolean>
   /** 聚焦搜索框（工具栏 focusSearch） */
   focusSearch: () => void
-  /** ⌘1-9 可切换的 profile 列表（按显示顺序），惰性求值以读到最新值 */
-  getApplicableProfiles: () => T[]
+  /** ⌘1-9 的稳定编号目标（钉选数组，来自 useProfilesQuickSwitch） */
+  getStableTargets: () => string[]
   /** ⌘1-9 命中时触发 */
   onApply: (name: string) => void
 }
@@ -19,10 +19,8 @@ const isEditableTarget = (el: EventTarget | null): boolean => {
   return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable
 }
 
-export function useProfilesHotkeys<T extends { name: string }>(
-  options: UseProfilesHotkeysOptions<T>
-) {
-  const { paletteOpen, focusSearch, getApplicableProfiles, onApply } = options
+export function useProfilesHotkeys(options: UseProfilesHotkeysOptions) {
+  const { paletteOpen, focusSearch, getStableTargets, onApply } = options
 
   const onWindowKeyDown = (event: KeyboardEvent) => {
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
@@ -32,10 +30,10 @@ export function useProfilesHotkeys<T extends { name: string }>(
     }
     if ((event.metaKey || event.ctrlKey) && /^[1-9]$/.test(event.key)) {
       const idx = Number.parseInt(event.key, 10) - 1
-      const target = getApplicableProfiles()[idx]
-      if (target) {
+      const name = getStableTargets()[idx]
+      if (name) {
         event.preventDefault()
-        onApply(target.name)
+        onApply(name)
       }
       return
     }

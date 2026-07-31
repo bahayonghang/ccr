@@ -1,0 +1,30 @@
+{
+  "id": "grok-profile-switch",
+  "name": "grok-profile-switch",
+  "title": "Grok CLI profile 切换支持（底层 + TUI）",
+  "description": "以 ~/.grok/config.toml 的 [model.*]/[models].default 模型为基础，参照 ccr codex 第三方 profile 切换架构，为 Grok CLI (xAI Grok Build) 提供 CCR profile 切换：Platform 枚举/GrokPlatform 底层引擎、CLI 命令面、TUI Grok Profile tab。不含 ccr-ui 页面。",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P1",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-07-28",
+  "completedAt": "2026-07-29",
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "07-28-grok-platform-core",
+    "07-28-grok-cli-surface",
+    "07-28-grok-tui-tab"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}

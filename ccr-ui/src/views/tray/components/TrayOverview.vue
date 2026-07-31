@@ -304,7 +304,6 @@ const formatResetDetailed = (timestamp: number) => {
     radial-gradient(circle at top, rgb(var(--color-accent-primary-rgb) / 16%), transparent 72%),
     rgb(var(--color-bg-elevated-rgb) / 92%);
   color: var(--color-accent-primary);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 12%);
 }
 
 .tray-overview__eyebrow {

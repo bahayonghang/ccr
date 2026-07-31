@@ -1,0 +1,4 @@
+{"file": ".trellis/tasks/07-28-grok-cli-surface/prd.md", "reason": "验收标准（类型化字段、off/--force 语义、legacy 面不复活、JSON 掩码）"}
+{"file": "docs/reference/commands/platform.md", "reason": "核对迁移映射补行且退休语义未被破坏"}
+{"file": "docs/examples/index.md", "reason": "核对 Grok 示例文件、中英文索引和无真实凭据约束"}
+{"file": ".trellis/spec/ccr-cli/backend/index.md", "reason": "ccr-cli 规范验证入口"}

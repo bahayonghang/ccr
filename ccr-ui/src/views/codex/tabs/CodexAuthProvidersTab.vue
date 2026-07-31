@@ -249,13 +249,13 @@
           <div
             v-for="index in 3"
             :key="index"
-            class="h-24 rounded-2xl bg-bg-surface/70 animate-pulse"
+            class="h-24 rounded-2xl bg-bg-elevated animate-pulse"
           />
         </div>
 
         <div
           v-else-if="providers.length === 0"
-          class="empty-state rounded-2xl border border-border-default/10 bg-bg-surface/40"
+          class="empty-state rounded-2xl border border-border-default/10 bg-bg-elevated"
         >
           <div class="p-4 rounded-full glass-surface mb-4">
             <SIcon

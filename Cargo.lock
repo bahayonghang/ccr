@@ -325,7 +325,7 @@ dependencies = [
 
 [[package]]
 name = "ccr"
-version = "7.0.0"
+version = "7.1.1"
 dependencies = [
  "ccr-cli",
  "ccr-config",
@@ -343,7 +343,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-checkin"
-version = "7.0.0"
+version = "7.1.1"
 dependencies = [
  "aes-gcm",
  "base64",
@@ -367,7 +367,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-cli"
-version = "7.0.0"
+version = "7.1.1"
 dependencies = [
  "anyhow",
  "base64",
@@ -391,6 +391,7 @@ dependencies = [
  "indexmap",
  "libc",
  "once_cell",
+ "open",
  "rayon",
  "reqwest",
  "reqwest_dav",
@@ -416,7 +417,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-codex"
-version = "7.0.0"
+version = "7.1.1"
 dependencies = [
  "aes-gcm",
  "argon2",
@@ -444,7 +445,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-config"
-version = "7.0.0"
+version = "7.1.1"
 dependencies = [
  "ccr-core",
  "ccr-types",
@@ -460,7 +461,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-core"
-version = "7.0.0"
+version = "7.1.1"
 dependencies = [
  "anyhow",
  "blake3",
@@ -488,7 +489,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-db"
-version = "7.0.0"
+version = "7.1.1"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -519,7 +520,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-skills"
-version = "7.0.0"
+version = "7.1.1"
 dependencies = [
  "blake3",
  "ccr-config",
@@ -538,7 +539,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-store"
-version = "7.0.0"
+version = "7.1.1"
 dependencies = [
  "blake3",
  "ccr-config",
@@ -561,7 +562,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-sync"
-version = "7.0.0"
+version = "7.1.1"
 dependencies = [
  "aes-gcm",
  "argon2",
@@ -584,7 +585,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-tui"
-version = "7.0.0"
+version = "7.1.1"
 dependencies = [
  "base64",
  "ccr-cli",
@@ -607,7 +608,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-types"
-version = "7.0.0"
+version = "7.1.1"
 dependencies = [
  "chrono",
  "serde",
@@ -617,7 +618,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-usage"
-version = "7.0.0"
+version = "7.1.1"
 dependencies = [
  "base64",
  "chrono",
@@ -1876,6 +1877,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "is-docker"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "928bae27f42bc99b60d9ac7334e3a21d10ad8f1835a4e12ec3ec0464765ed1b3"
+dependencies = [
+ "once_cell",
+]
+
+[[package]]
+name = "is-wsl"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "173609498df190136aa7dea1a91db051746d339e18476eed5ca40521f02d7aa5"
+dependencies = [
+ "is-docker",
+ "once_cell",
+]
+
+[[package]]
 name = "is_terminal_polyfill"
 version = "1.70.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2254,6 +2274,16 @@ name = "opaque-debug"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c08d65885ee38876c4f86fa503fb49d7b507c2b62552df7c70b2fce627e06381"
+
+[[package]]
+name = "open"
+version = "5.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a0b3d059e795d52b8a72fef45658620edd4d9c359b338564aa14391ffa511ed5"
+dependencies = [
+ "is-wsl",
+ "libc",
+]
 
 [[package]]
 name = "openssl"

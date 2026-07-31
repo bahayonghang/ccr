@@ -142,7 +142,7 @@ const authModeText = computed(() => props.descriptor.authMode(props.profile))
   padding: 9px 14px;
 
   /* 背景/边框由 surface-status 工具类提供 */
-  font-size: 12px;
+  font-size: 0.75rem;
   color: var(--cp-ink-1);
 }
 
@@ -211,7 +211,7 @@ const authModeText = computed(() => props.descriptor.authMode(props.profile))
   color: var(--cp-ink-1);
   border: 1px solid var(--cp-line-2);
   font-family: var(--cp-mono);
-  font-size: 10.5px;
+  font-size: 0.75rem;
   white-space: nowrap;
 }
 
@@ -243,12 +243,7 @@ const authModeText = computed(() => props.descriptor.authMode(props.profile))
   cursor: not-allowed;
 }
 
-.cp-spin { animation: cp-spin 1s linear infinite; }
-
-@keyframes cp-spin { to { transform: rotate(360deg); } }
-
 @media (prefers-reduced-motion: reduce) {
   .cp-icon-btn { transition: none; }
-  .cp-spin { animation: none; }
 }
 </style>

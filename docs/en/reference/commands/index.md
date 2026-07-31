@@ -20,6 +20,7 @@ ccr <command> --help
 | [`current`](./current) | Claude/Codex runtime overview |
 | [`claude`](./claude) | Claude official auth and profile runtime |
 | [`codex`](./codex) | Codex auth, profiles, quota, and history sync |
+| [`grok`](./grok) | Grok Build model and third-party provider profiles |
 | [`opencode`](./opencode) | OpenCode auth compatibility and Codex import |
 | [`platform`](./platform) | platform registry; `list` is the primary stable operation |
 | [`switch`](./switch) | legacy profile switch and migration guidance |

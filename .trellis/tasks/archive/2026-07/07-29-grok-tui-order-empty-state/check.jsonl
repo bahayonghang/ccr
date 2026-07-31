@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/ccr-config/backend/backend-guidelines.md", "reason": "核对默认顺序变化未重排完整自定义配置，并同步规范"}
+{"file": ".trellis/spec/ccr-tui/backend/backend-guidelines.md", "reason": "核对双语空态、平台显式命令与旧提示负断言"}
+{"file": ".trellis/spec/ccr-cli/backend/backend-guidelines.md", "reason": "核对帮助隐藏不破坏 legacy 解析与迁移错误"}
+{"file": "docs/reference/commands/platform.md", "reason": "核对公开 platform 帮助与已记录的退休边界一致"}

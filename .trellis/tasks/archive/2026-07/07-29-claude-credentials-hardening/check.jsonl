@@ -1,0 +1,4 @@
+{"file":".trellis/spec/ccr-core/backend/atomic-writer.md","reason":"检查所有 durable auth/settings 写入的锁、权限、备份与 CAS。"}
+{"file":".trellis/spec/ccr-cli/backend/backend-guidelines.md","reason":"检查未保存登录保护、C10 元数据与错误语义。"}
+{"file":".trellis/spec/ccr-cli/backend/test-fixtures.md","reason":"检查测试不读取真实凭据或污染进程 env。"}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"检查 CLI/TUI/Tauri/UI 的身份结果与并发行为一致。"}

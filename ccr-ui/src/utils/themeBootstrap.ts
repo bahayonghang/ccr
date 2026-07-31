@@ -1,22 +1,8 @@
 export type ThemeMode = 'light' | 'dark' | 'system'
 export type ResolvedThemeMode = 'light' | 'dark'
-export type FlavorMode =
-  | 'clay'
-  | 'paper'
-  | 'graphite'
-  | 'latte'
-  | 'frappe'
-  | 'macchiato'
-  | 'mocha'
-export type AccentMode =
-  | 'clay'
-  | 'sand'
-  | 'sage'
-  | 'sky'
-  | 'mauve'
-  | 'amber'
-  | 'rose'
-  | 'slate'
+export type FlavorMode = 'neutral' | 'clay' | 'catppuccin'
+export type ResolvedFlavor = 'neutral' | 'clay' | 'latte' | 'mocha'
+export type AccentMode = 'clay' | 'sage' | 'sky' | 'mauve'
 
 const THEME_STORAGE_KEY = 'ccr-theme'
 const FLAVOR_STORAGE_KEY = 'ccr-flavor'
@@ -28,37 +14,43 @@ export interface ThemeResolutionChangeDetail {
   theme: ThemeMode
   resolvedTheme: ResolvedThemeMode
   flavor: FlavorMode
-  resolvedFlavor: FlavorMode
+  resolvedFlavor: ResolvedFlavor
 }
 
 export const FLAVOR_MODES: readonly FlavorMode[] = [
+  'neutral',
   'clay',
-  'paper',
-  'graphite',
-  'latte',
-  'frappe',
-  'macchiato',
-  'mocha',
+  'catppuccin',
 ] as const
 export const ACCENT_MODES: readonly AccentMode[] = [
   'clay',
-  'sand',
   'sage',
   'sky',
   'mauve',
-  'amber',
-  'rose',
-  'slate',
 ] as const
 
-export const DEFAULT_FLAVOR: FlavorMode = 'clay'
+export const DEFAULT_FLAVOR: FlavorMode = 'neutral'
 export const DEFAULT_ACCENT: AccentMode = 'clay'
 export const CATPPUCCIN_FLAVORS: readonly FlavorMode[] = [
-  'latte',
-  'frappe',
-  'macchiato',
-  'mocha',
+  'catppuccin',
 ] as const
+
+// 旧值域 → 新值域迁移表（flavor 7→3、accent 8→4）。
+// 读取侧映射；store 初始化时把迁移结果写回 localStorage，index.html 首帧 IIFE 内联同一份逻辑。
+const FLAVOR_MIGRATION: Readonly<Partial<Record<string, FlavorMode>>> = {
+  paper: 'neutral',
+  graphite: 'neutral',
+  latte: 'catppuccin',
+  frappe: 'catppuccin',
+  macchiato: 'catppuccin',
+  mocha: 'catppuccin',
+}
+const ACCENT_MIGRATION: Readonly<Partial<Record<string, AccentMode>>> = {
+  sand: 'clay',
+  amber: 'clay',
+  rose: 'clay',
+  slate: 'sky',
+}
 
 let systemThemeMediaQuery: MediaQueryList | null = null
 let systemThemeListenerRegistered = false
@@ -75,23 +67,20 @@ export const resolveThemeMode = (theme: ThemeMode): ResolvedThemeMode => {
   return theme === 'system' ? resolveSystemTheme() : theme
 }
 
-export const isCatppuccinFlavor = (flavor: FlavorMode): boolean => {
-  return CATPPUCCIN_FLAVORS.includes(flavor)
+export const isCatppuccinFlavor = (flavor: string): boolean => {
+  return (CATPPUCCIN_FLAVORS as readonly string[]).includes(flavor)
 }
 
 export const resolveFlavorMode = (
   resolvedTheme: ResolvedThemeMode,
   flavor: FlavorMode,
-): FlavorMode => {
-  if (!isCatppuccinFlavor(flavor)) {
+): ResolvedFlavor => {
+  // catppuccin 是唯一自适应入口：light → latte、dark → mocha，其余直通。
+  if (flavor !== 'catppuccin') {
     return flavor
   }
 
-  if (resolvedTheme === 'light') {
-    return 'latte'
-  }
-
-  return flavor === 'macchiato' || flavor === 'mocha' ? flavor : 'frappe'
+  return resolvedTheme === 'light' ? 'latte' : 'mocha'
 }
 
 const notifyThemeResolutionChange = (detail: ThemeResolutionChangeDetail): void => {
@@ -123,7 +112,7 @@ const syncResolvedTheme = (theme: ResolvedThemeMode): void => {
     })
 }
 
-const syncResolvedFlavor = (theme: ResolvedThemeMode, flavor: FlavorMode): FlavorMode => {
+const syncResolvedFlavor = (theme: ResolvedThemeMode, flavor: FlavorMode): ResolvedFlavor => {
   const resolvedFlavor = resolveFlavorMode(theme, flavor)
 
   if (typeof document !== 'undefined') {
@@ -213,14 +202,44 @@ const isAccentMode = (value: unknown): value is AccentMode => {
   return typeof value === 'string' && (ACCENT_MODES as readonly string[]).includes(value)
 }
 
+// 迁移表 → 白名单校验 → 非法值回退默认。
+export const migrateFlavorValue = (stored: string | null | undefined): FlavorMode => {
+  if (stored) {
+    const migrated = FLAVOR_MIGRATION[stored]
+    if (migrated) {
+      return migrated
+    }
+
+    if (isFlavorMode(stored)) {
+      return stored
+    }
+  }
+
+  return DEFAULT_FLAVOR
+}
+
+export const migrateAccentValue = (stored: string | null | undefined): AccentMode => {
+  if (stored) {
+    const migrated = ACCENT_MIGRATION[stored]
+    if (migrated) {
+      return migrated
+    }
+
+    if (isAccentMode(stored)) {
+      return stored
+    }
+  }
+
+  return DEFAULT_ACCENT
+}
+
 export const readStoredFlavor = (): FlavorMode => {
   if (typeof window === 'undefined') {
     return DEFAULT_FLAVOR
   }
 
   try {
-    const stored = localStorage.getItem(FLAVOR_STORAGE_KEY)
-    return isFlavorMode(stored) ? stored : DEFAULT_FLAVOR
+    return migrateFlavorValue(localStorage.getItem(FLAVOR_STORAGE_KEY))
   } catch {
     return DEFAULT_FLAVOR
   }
@@ -232,8 +251,7 @@ export const readStoredAccent = (): AccentMode => {
   }
 
   try {
-    const stored = localStorage.getItem(ACCENT_STORAGE_KEY)
-    return isAccentMode(stored) ? stored : DEFAULT_ACCENT
+    return migrateAccentValue(localStorage.getItem(ACCENT_STORAGE_KEY))
   } catch {
     return DEFAULT_ACCENT
   }
@@ -256,6 +274,39 @@ export const persistAccent = (accent: AccentMode): void => {
     localStorage.setItem(ACCENT_STORAGE_KEY, accent)
   } catch {
     // 忽略存储异常，保留当前 UI 状态即可。
+  }
+}
+
+// 存储值 ≠ 迁移值时写回，完成一次性迁移；键不存在时不播种默认值。
+export const migratePersistedFlavor = (): void => {
+  if (typeof window === 'undefined') return
+
+  try {
+    const stored = localStorage.getItem(FLAVOR_STORAGE_KEY)
+    if (stored === null) return
+
+    const migrated = migrateFlavorValue(stored)
+    if (migrated !== stored) {
+      persistFlavor(migrated)
+    }
+  } catch {
+    // 忽略存储异常，读取侧仍会按迁移表回退。
+  }
+}
+
+export const migratePersistedAccent = (): void => {
+  if (typeof window === 'undefined') return
+
+  try {
+    const stored = localStorage.getItem(ACCENT_STORAGE_KEY)
+    if (stored === null) return
+
+    const migrated = migrateAccentValue(stored)
+    if (migrated !== stored) {
+      persistAccent(migrated)
+    }
+  } catch {
+    // 忽略存储异常，读取侧仍会按迁移表回退。
   }
 }
 

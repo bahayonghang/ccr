@@ -62,25 +62,22 @@ impl SettingsService {
     /// 4. 原子保存设置文件
     #[allow(dead_code)]
     pub fn apply_config(&self, section: &ConfigSection) -> Result<()> {
-        let mut settings = self
-            .settings_manager
-            .load()
-            .unwrap_or_else(|_| ClaudeSettings::new());
-
-        settings.apply_managed_env(section.to_managed_env_pairs());
-        self.settings_manager.save_atomic(&settings)?;
-
-        Ok(())
+        let managed_env = section.to_managed_env_pairs();
+        self.settings_manager.update_atomic(|settings| {
+            settings.apply_managed_env(managed_env.clone());
+            Ok(())
+        })
     }
 
     /// 🔄 异步应用配置到设置
     pub async fn apply_config_async(&self, section: &ConfigSection) -> Result<()> {
-        let mut settings = self.settings_manager.load_async().await.unwrap_or_default();
-
-        settings.apply_managed_env(section.to_managed_env_pairs());
-        self.settings_manager.save_atomic_async(&settings).await?;
-
-        Ok(())
+        let managed_env = section.to_managed_env_pairs();
+        self.settings_manager
+            .update_atomic_async(move |settings| {
+                settings.apply_managed_env(managed_env.clone());
+                Ok(())
+            })
+            .await
     }
 
     /// 🔄 从备份恢复设置

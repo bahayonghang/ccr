@@ -445,6 +445,15 @@ pub enum Commands {
         action: Option<super::subcommands::claude::ClaudeAction>,
     },
 
+    /// Grok Build profile routing
+    ///
+    /// Examples: ccr grok profile list
+    ///           ccr grok profile switch relay
+    Grok {
+        #[command(subcommand)]
+        action: Option<super::subcommands::grok::GrokAction>,
+    },
+
     /// 📚 Session 管理
     ///
     /// 管理 AI CLI 的会话记录
@@ -552,7 +561,10 @@ pub struct CleanBackupsArgs {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
-    use crate::cli::subcommands::{CodexAction, ProjectAction};
+    use crate::cli::subcommands::{
+        ClaudeAction, ClaudeProfileAction, CodexAction, CodexProfileAction, GrokAction,
+        GrokProfileAction, ProjectAction,
+    };
     use clap::Parser;
 
     #[test]
@@ -569,6 +581,73 @@ mod tests {
         assert!(matches!(
             legacy.command,
             Some(Commands::Init { force: true })
+        ));
+    }
+
+    #[test]
+    fn profile_open_flags_parse_for_all_platforms() {
+        // claude: no flag
+        let cli = Cli::try_parse_from(["ccr", "claude", "profile", "open"]).unwrap();
+        assert!(matches!(
+            cli.command,
+            Some(Commands::Claude {
+                action: Some(ClaudeAction::Profile { action })
+            }) if matches!(action.as_ref(), ClaudeProfileAction::Open { json: false })
+        ));
+        // claude: --json
+        let cli = Cli::try_parse_from(["ccr", "claude", "profile", "open", "--json"]).unwrap();
+        assert!(matches!(
+            cli.command,
+            Some(Commands::Claude {
+                action: Some(ClaudeAction::Profile { action })
+            }) if matches!(action.as_ref(), ClaudeProfileAction::Open { json: true })
+        ));
+        // codex: --json
+        let codex = Cli::try_parse_from(["ccr", "codex", "profile", "open", "--json"]).unwrap();
+        assert!(matches!(
+            codex.command,
+            Some(Commands::Codex {
+                action: Some(CodexAction::Profile {
+                    action: CodexProfileAction::Open { json: true }
+                })
+            })
+        ));
+        // grok: --json
+        let grok = Cli::try_parse_from(["ccr", "grok", "profile", "open", "--json"]).unwrap();
+        assert!(matches!(
+            grok.command,
+            Some(Commands::Grok {
+                action: Some(GrokAction::Profile { action })
+            }) if matches!(action.as_ref(), GrokProfileAction::Open { json: true })
+        ));
+    }
+
+    #[test]
+    fn platform_profile_init_json_flags_parse() {
+        let claude = Cli::try_parse_from(["ccr", "claude", "profile", "init", "--json"]).unwrap();
+        assert!(matches!(
+            claude.command,
+            Some(Commands::Claude {
+                action: Some(ClaudeAction::Profile { action })
+            }) if matches!(action.as_ref(), ClaudeProfileAction::Init { json: true })
+        ));
+
+        let codex = Cli::try_parse_from(["ccr", "codex", "profile", "init", "--json"]).unwrap();
+        assert!(matches!(
+            codex.command,
+            Some(Commands::Codex {
+                action: Some(CodexAction::Profile {
+                    action: CodexProfileAction::Init { json: true }
+                })
+            })
+        ));
+
+        let grok = Cli::try_parse_from(["ccr", "grok", "profile", "init", "--json"]).unwrap();
+        assert!(matches!(
+            grok.command,
+            Some(Commands::Grok {
+                action: Some(GrokAction::Profile { action })
+            }) if matches!(action.as_ref(), GrokProfileAction::Init { json: true })
         ));
     }
 
@@ -913,6 +992,69 @@ mod tests {
                 assert!(repair_runtime);
             }
             other => panic!("unexpected command: {:?}", other.map(|_| "other")),
+        }
+    }
+
+    #[test]
+    fn grok_profile_create_parses_platform_specific_fields() {
+        let cli = Cli::try_parse_from([
+            "ccr",
+            "grok",
+            "profile",
+            "create",
+            "relay",
+            "--base-url",
+            "https://api.example.com/v1",
+            "--api-key",
+            "INLINE_SECRET_SENTINEL",
+            "--model",
+            "grok-example",
+            "--api-backend",
+            "messages",
+            "--context-window",
+            "1000000",
+            "--supports-backend-search",
+            "--reasoning-effort",
+            "high",
+        ])
+        .unwrap();
+
+        match cli.command {
+            Some(Commands::Grok {
+                action: Some(GrokAction::Profile { action }),
+            }) => match action.as_ref() {
+                GrokProfileAction::Create(args) => {
+                    assert_eq!(args.name, "relay");
+                    assert_eq!(args.api_key.as_deref(), Some("INLINE_SECRET_SENTINEL"));
+                    assert_eq!(args.api_backend.as_deref(), Some("messages"));
+                    assert_eq!(args.context_window, Some(1_000_000));
+                    assert_eq!(args.supports_backend_search, Some(true));
+                    assert_eq!(args.reasoning_effort.as_deref(), Some("high"));
+                }
+                _ => panic!("unexpected Grok profile action"),
+            },
+            other => panic!("unexpected command: {:?}", other.map(|_| "other")),
+        }
+    }
+
+    #[test]
+    fn reasoning_effort_create_flag_is_grok_only() {
+        for platform in ["claude", "codex"] {
+            let result = Cli::try_parse_from([
+                "ccr",
+                platform,
+                "profile",
+                "create",
+                "relay",
+                "--reasoning-effort",
+                "high",
+            ]);
+            let error = match result {
+                Ok(_) => panic!("{platform} unexpectedly accepted --reasoning-effort"),
+                Err(error) => error,
+            };
+
+            assert_eq!(error.kind(), clap::error::ErrorKind::UnknownArgument);
         }
     }
 }

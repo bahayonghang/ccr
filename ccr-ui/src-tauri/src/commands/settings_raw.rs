@@ -4,7 +4,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::UNIX_EPOCH;
 
-use ccr_config::{Platform, PlatformPaths};
+use ccr_config::{ClaudeRuntimePaths, Platform, PlatformPaths};
 use ccr_core::core::{
     BackupPolicy, VersionedWriteOutcome, WriteOptions, content_version_token,
     write_guarded_versioned,
@@ -48,9 +48,8 @@ fn unsupported_environment(environment: &dyn ExecutionEnvironment) -> Option<Val
     }))
 }
 
-fn claude_settings_path() -> Result<PathBuf, String> {
-    let home = dirs::home_dir().ok_or_else(|| "无法获取用户主目录".to_string())?;
-    Ok(home.join(".claude").join("settings.json"))
+fn claude_runtime_paths() -> Result<ClaudeRuntimePaths, String> {
+    ClaudeRuntimePaths::from_env().map_err(|error| format!("解析 Claude 运行时路径失败: {error}"))
 }
 
 fn backup_dir(platform: Platform) -> Result<PathBuf, String> {
@@ -283,7 +282,7 @@ pub async fn claude_get_settings_raw_text(state: State<'_, AppState>) -> Result<
     if let Some(response) = ensure_local_env(state.inner()).await {
         return Ok(response);
     }
-    let path = claude_settings_path()?;
+    let path = claude_runtime_paths()?.settings_file;
     tokio::task::spawn_blocking(move || read_raw_file(&path))
         .await
         .map_err(|error| format!("读取 Claude settings 后台任务失败: {error}"))?
@@ -298,8 +297,9 @@ pub async fn claude_save_settings_raw_text(
     if let Some(response) = ensure_local_env(state.inner()).await {
         return Ok(response);
     }
-    let path = claude_settings_path()?;
-    let backup_dir = backup_dir(Platform::Claude)?;
+    let runtime_paths = claude_runtime_paths()?;
+    let path = runtime_paths.settings_file;
+    let backup_dir = runtime_paths.backups_dir;
     tokio::task::spawn_blocking(move || {
         save_raw_file(RawConfigKind::Claude, &path, &backup_dir, &content, &token)
     })
@@ -346,7 +346,7 @@ pub async fn claude_list_settings_layers(state: State<'_, AppState>) -> Result<V
     if let Some(response) = ensure_local_env(state.inner()).await {
         return Ok(response);
     }
-    let path = claude_settings_path()?;
+    let path = claude_runtime_paths()?.settings_file;
     tokio::task::spawn_blocking(move || Ok(claude_settings_layers(&path)))
         .await
         .map_err(|error| format!("探测 Claude settings 层级后台任务失败: {error}"))?
@@ -367,9 +367,27 @@ pub async fn codex_list_config_layers(state: State<'_, AppState>) -> Result<Valu
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
+    use crate::test_support::TestProcessEnv;
     use ccr_core::core::content_version_token;
     use std::fs;
     use tempfile::tempdir;
+
+    #[test]
+    fn claude_raw_settings_use_shared_path_priority() {
+        let temp_dir = tempdir().unwrap();
+        let config_dir = temp_dir.path().join("claude-custom");
+        let settings_file = temp_dir.path().join("overrides/settings.json");
+        let backups_dir = temp_dir.path().join("overrides/backups");
+        let mut env = TestProcessEnv::new();
+        env.set("CLAUDE_CONFIG_DIR", config_dir.as_os_str());
+        env.set("CCR_SETTINGS_PATH", settings_file.as_os_str());
+        env.set("CCR_BACKUP_DIR", backups_dir.as_os_str());
+
+        let paths = claude_runtime_paths().unwrap();
+        assert_eq!(paths.config_dir, config_dir);
+        assert_eq!(paths.settings_file, settings_file);
+        assert_eq!(paths.backups_dir, backups_dir);
+    }
 
     #[test]
     fn get_raw_file_reports_missing_target() {

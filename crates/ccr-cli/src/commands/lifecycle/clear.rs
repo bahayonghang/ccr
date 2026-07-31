@@ -1,9 +1,9 @@
 // 🧹 clear 命令实现 - 清理 ccr 写入的配置
-// 💎 用于清空 settings.json 中的 ANTHROPIC_* 环境变量，使其恢复默认状态
+// 💎 用于清空 settings.json 中由 CCR 托管的 Claude 环境变量，使其恢复默认状态
 //
 // 执行流程:
 // 1. 加载当前 settings.json
-// 2. 清空所有 ANTHROPIC_* 前缀的环境变量
+// 2. 清空 CCR 显式托管的 Claude 环境变量
 // 3. 备份并保存更新后的设置
 
 #![allow(clippy::unused_async)]
@@ -23,7 +23,7 @@ use comfy_table::{
 /// 2. 📊 显示将被清除的环境变量
 /// 3. ❓ 确认执行（除非 --force 或 YOLO 模式）
 /// 4. 💾 备份当前设置
-/// 5. 🧹 清空所有 ANTHROPIC_* 环境变量
+/// 5. 🧹 清空 CCR 显式托管的 Claude 环境变量
 /// 6. 💾 保存更新后的设置
 ///
 /// 参数:
@@ -46,22 +46,17 @@ pub async fn clear_command(force: bool) -> Result<()> {
     let current_settings = settings_manager.load_async().await?;
 
     // 📊 收集将被清除的环境变量
-    let anthropic_vars: Vec<(String, String)> = current_settings
-        .env
-        .iter()
-        .filter(|(k, _)| k.starts_with("ANTHROPIC_"))
-        .map(|(k, v)| (k.clone(), v.clone()))
-        .collect();
+    let managed_vars = current_settings.managed_env_entries();
 
-    if anthropic_vars.is_empty() {
-        ColorOutput::success("✅ settings.json 中没有 ANTHROPIC_* 环境变量，无需清理");
+    if managed_vars.is_empty() {
+        ColorOutput::success("✅ settings.json 中没有 CCR 托管的 Claude 环境变量，无需清理");
         return Ok(());
     }
 
     // 📊 显示将被清除的变量
     ColorOutput::info(&format!(
-        "📋 将清除 {} 个 ANTHROPIC_* 环境变量:",
-        anthropic_vars.len()
+        "📋 将清除 {} 个 CCR 托管的 Claude 环境变量:",
+        managed_vars.len()
     ));
     println!();
 
@@ -78,7 +73,7 @@ pub async fn clear_command(force: bool) -> Result<()> {
                 .fg(TableColor::Cyan),
         ]);
 
-    for (key, value) in &anthropic_vars {
+    for (key, value) in &managed_vars {
         let masked_value = if key.contains("TOKEN") || key.contains("KEY") {
             ccr_core::mask_sensitive(value)
         } else {
@@ -95,7 +90,9 @@ pub async fn clear_command(force: bool) -> Result<()> {
     // 🚨 确认执行（除非 YOLO 模式）
     if !skip_confirmation {
         println!();
-        ColorOutput::warning("⚠️  警告: 此操作将清空 settings.json 中的所有 ANTHROPIC_* 配置！");
+        ColorOutput::warning(
+            "⚠️  警告: 此操作将清空 settings.json 中由 CCR 托管的 Claude 环境变量！",
+        );
         ColorOutput::info(
             "💡 提示: Claude Code 将无法正常工作，直到您重新执行 ccr switch 切换配置",
         );
@@ -128,15 +125,14 @@ pub async fn clear_command(force: bool) -> Result<()> {
     let backup_path = settings_manager.backup_async(Some("pre_clear")).await?;
     ColorOutput::success(&format!("✅ 已备份到: {}", backup_path.display()));
 
-    // 🧹 清空 ANTHROPIC_* 环境变量
-    ColorOutput::step("清空 ANTHROPIC_* 环境变量...");
-    let mut updated_settings = current_settings;
-    updated_settings.clear_anthropic_vars();
-
-    // 💾 保存更新后的设置
+    // 🧹 清空 CCR 托管的 Claude 环境变量
+    ColorOutput::step("清空 CCR 托管的 Claude 环境变量...");
     ColorOutput::step("保存更新后的设置...");
     settings_manager
-        .save_atomic_async(&updated_settings)
+        .update_atomic_async(|settings| {
+            settings.clear_ccr_managed_vars();
+            Ok(())
+        })
         .await?;
 
     println!();
@@ -146,7 +142,7 @@ pub async fn clear_command(force: bool) -> Result<()> {
     // 📊 显示结果
     ColorOutput::title("清理完成");
     println!();
-    ColorOutput::success(&format!("✅ 已清除 {} 个环境变量", anthropic_vars.len()));
+    ColorOutput::success(&format!("✅ 已清除 {} 个环境变量", managed_vars.len()));
     ColorOutput::info(&format!(
         "📁 settings.json: {}",
         settings_manager.settings_path().display()
@@ -162,4 +158,45 @@ pub async fn clear_command(force: bool) -> Result<()> {
     ));
 
     Ok(())
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+    use ccr_types::{ClaudeSettings, env_keys};
+
+    #[test]
+    fn managed_preview_matches_clear_scope() {
+        let mut settings = ClaudeSettings::new();
+        for key in env_keys::CCR_MANAGED_KEYS {
+            settings.env.insert((*key).to_string(), "managed".into());
+        }
+        settings
+            .env
+            .insert("ANTHROPIC_API_KEY".into(), "user-api-key".into());
+        settings
+            .env
+            .insert("ANTHROPIC_CUSTOM_HEADERS".into(), "X-User: keep".into());
+
+        let preview = settings.managed_env_entries();
+        settings.clear_ccr_managed_vars();
+
+        assert_eq!(preview.len(), env_keys::CCR_MANAGED_KEYS.len());
+        assert!(
+            preview
+                .iter()
+                .all(|(key, _)| !settings.env.contains_key(key))
+        );
+        assert_eq!(
+            settings.env.get("ANTHROPIC_API_KEY").map(String::as_str),
+            Some("user-api-key")
+        );
+        assert_eq!(
+            settings
+                .env
+                .get("ANTHROPIC_CUSTOM_HEADERS")
+                .map(String::as_str),
+            Some("X-User: keep")
+        );
+    }
 }

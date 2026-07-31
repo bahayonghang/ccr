@@ -15,7 +15,7 @@
   >
     <template #header="{ titleId }">
       <div
-        class="px-6 py-4 border-b border-border-default/10 flex items-center justify-between sticky top-0 bg-bg-elevated/95 backdrop-blur z-10"
+        class="px-6 py-4 border-b border-border-default/10 flex items-center justify-between sticky top-0 bg-bg-elevated z-10"
       >
         <div>
           <h2
@@ -584,7 +584,7 @@
 
               <div
                 v-if="providers.length === 0"
-                class="empty-state rounded-2xl border border-border-default/10 bg-bg-surface/40"
+                class="empty-state rounded-2xl border border-border-default/10 bg-bg-elevated"
               >
                 <p class="text-text-primary">
                   {{ tf('codex.auth.api.noPresets', 'No saved providers yet') }}

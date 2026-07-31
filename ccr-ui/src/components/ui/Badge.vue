@@ -93,7 +93,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 // Variant classes
 const variantClasses = {
-  default: 'bg-bg-overlay/70 text-text-secondary border-border-default/60',
+  default: 'bg-bg-surface text-text-secondary border-border-default/60',
   primary: 'bg-accent-primary/10 text-accent-primary border-accent-primary/18',
   secondary: 'bg-accent-secondary/10 text-accent-secondary border-accent-secondary/18',
   success: 'bg-success/10 text-success border-success/18',

@@ -458,3 +458,405 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 63: ccr-ui 视觉系统重设计：中性高对比配色 + 设置系统
+
+**Date**: 2026-07-28
+**Task**: ccr-ui 视觉系统重设计：中性高对比配色 + 设置系统
+**Branch**: `dev`
+
+### Summary
+
+完成 ccr-ui 视觉重设计任务树（父 + A/B/C 三子任务，全部归档）。A：tokens.css 重建为中性高对比体系，flavor 7→3（neutral/clay/catppuccin）、accent 8→4 含双端存储迁移，氛围层收敛（玻璃仅 floating、背景光晕删除），新增对比度契约测试 32 断言。B：247 处 alpha 表面收敛至 22 白名单，按钮文字改 *-contrast 令牌，壳层/模态接入表面契约。C：设置页重设计（主题分段控件、真实 token 预览卡），i18n 与 dock 同步。父任务验收：补扫 backdrop-filter 裸值修复 8 处漏网（含 BudgetView 无效逗号语法），18 组视觉矩阵（3 路由 × 明暗 × 3 flavor）截图 + dataset 断言，just ui-check 全绿（冒烟 514/514）。证据见 archive/2026-07/07-28-ccr-ui-visual-redesign/research/visual-verification.md。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `784d84f9` | (see git log) |
+| `928603c5` | (see git log) |
+| `d550d515` | (see git log) |
+| `2dedcdb9` | (see git log) |
+| `ebace451` | (see git log) |
+| `0e8b6464` | (see git log) |
+| `46a40f7f` | (see git log) |
+| `6d4cab20` | (see git log) |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 64: 完成 Grok 平台底层与安全切换引擎
+
+**Date**: 2026-07-28
+**Task**: 完成 Grok 平台底层与安全切换引擎
+**Branch**: `dev`
+
+### Summary
+
+新增 Platform::Grok、workspace capability 分支与 GrokPlatform；实现入口状态恢复、CAS、多进程锁、删除保护和凭据脱敏，并通过 fmt、strict lint 与完整 workspace 测试。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `6ad1dfad` | (see git log) |
+| `ce4e117b` | (see git log) |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 65: 完成 Grok Profile CLI 与示例配置
+
+**Date**: 2026-07-28
+**Task**: 完成 Grok Profile CLI 与示例配置
+**Branch**: `dev`
+
+### Summary
+
+新增 ccr grok profile 全命令树、四个 Grok 类型化字段、脱敏 JSON 与 force/off 语义；补齐中英文文档和 docs/examples 两份配置，并通过 workspace 门禁、VitePress、本机 Grok inspect 与临时 CCR/GROK_HOME 验证。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `8cba1dba` | (see git log) |
+| `a5d66736` | (see git log) |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 66: 完成 Grok TUI Profile 页签
+
+**Date**: 2026-07-29
+**Task**: 完成 Grok TUI Profile 页签
+**Branch**: `dev`
+
+### Summary
+
+迁移旧 TUI 页签顺序并新增 Grok Profile 页签、安全详情渲染与通用切换路径；配置与 TUI 聚焦测试、fmt、clippy 和工作区测试通过。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `ddaa7d2f` | (see git log) |
+| `01f414e5` | (see git log) |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 67: 完成 Grok Profile 全链路支持
+
+**Date**: 2026-07-29
+**Task**: 完成 Grok Profile 全链路支持
+**Branch**: `dev`
+
+### Summary
+
+完成 Grok 平台切换引擎、CLI CRUD 与示例配置、TUI Profile 页签和旧 tab_order 无损迁移；本机 Grok inspect、聚焦测试及最终 just ci 全部通过。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `6ad1dfad` | (see git log) |
+| `ce4e117b` | (see git log) |
+| `8c2de46b` | (see git log) |
+| `8cba1dba` | (see git log) |
+| `a5d66736` | (see git log) |
+| `ddaa7d2f` | (see git log) |
+| `01f414e5` | (see git log) |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 68: 修复 Grok TUI 顺序与空态命令
+
+**Date**: 2026-07-29
+**Task**: 修复 Grok TUI 顺序与空态命令
+**Branch**: `dev`
+
+### Summary
+
+将默认 Profile 页签调整为 Codex、Claude、Grok；空态改用平台 profile create 帮助并提示按 r 重载；从 CLI 帮助隐藏已退休 platform 子命令但保留迁移错误解析。相关测试、严格 lint、workspace 检查及 just ci 均通过。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `ff1f2819a7dbeece0eaec672c940d9e9a14b7169` | (see git log) |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 69: 完成三平台 profile init 初始化命令
+
+**Date**: 2026-07-29
+**Task**: 完成三平台 profile init 初始化命令
+**Branch**: `dev`
+
+### Summary
+
+为 Claude、Codex 和 Grok 增加幂等 profile init 脚手架，补齐安全模板写入、平台注册、示例、文档、测试与 CLI 规范。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c06dad57` | (see git log) |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 70: 完成 Grok Profile 解析诊断与推理强度支持
+
+**Date**: 2026-07-29
+**Task**: 完成 Grok Profile 解析诊断与推理强度支持
+**Branch**: `dev`
+
+### Summary
+
+改进 profiles.toml 安全解析诊断与 TUI 错误布局，仅为 Grok 增加 reasoning_effort 的创建、持久化、运行时映射和恢复，并补齐测试、文档与规范。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `a60ab8ac` | (see git log) |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 71: 完成 Claude auth_mode 与 env 所有权隔离
+
+**Date**: 2026-07-29
+**Task**: 完成 Claude auth_mode 与 env 所有权隔离
+**Branch**: `dev`
+
+### Summary
+
+统一 effective auth_mode 判定与 profile 自愈顺序，建立 CCR_MANAGED_KEYS 显式写删边界，保留用户自有 ANTHROPIC_* 配置；lint、workspace tests 与独立检查通过。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c741d3da` | (see git log) |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 72: 完成 Claude 自定义配置目录统一
+
+**Date**: 2026-07-29
+**Task**: 完成 Claude 自定义配置目录统一
+**Branch**: `dev`
+
+### Summary
+
+在 ccr-config 建立 ClaudeRuntimePaths 单一解析契约，统一 CLI 与 Tauri 的 settings、credentials、state 和 backups 路径，补齐 Windows/空覆盖值及跨消费者回归测试；严格 lint、workspace tests、前端快速门禁与独立检查通过。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b53f7c11` | (see git log) |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 73: Claude 凭据与 settings 并发写入加固
+
+**Date**: 2026-07-29
+**Task**: Claude 凭据与 settings 并发写入加固
+**Branch**: `dev`
+
+### Summary
+
+完成未保存登录切换保护、凭据快照身份匹配、guarded secret 写入，以及 CLI/Tauri 共享 settings CAS-RMW 与集中备份。
+
+### Main Changes
+
+- Claude auth save/switch 使用 Secret、guarded_write 和 A/B/A 身份回归。
+- SettingsManager 与本地 Tauri 统一三次 CAS 重放，迁移所有生产 RMW 调用。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `6d95d09f` | (see git log) |
+
+### Testing
+
+- [OK] just lint-strict、just test、just frontend-check-quick、focused Rust/Tauri tests 通过；just fmt-check 仅被排除的既有 JSON 格式改动阻断。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 实施 07-29-claude-json-write-strategy。
+
+
+## Session 74: Claude 状态文件写入策略收口
+
+**Date**: 2026-07-29
+**Task**: Claude 状态文件写入策略收口
+**Branch**: `dev`
+
+### Summary
+
+停止 API-key profile 和 doctor 维护 onboarding 私有状态；Tauri MCP user/local/project 写入迁移到三次 guarded CAS 重放，保留未知字段并记录外部进程残余竞态。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `24c362e3` | (see git log) |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 75: 完成 Claude 认证来源诊断与规范
+
+**Date**: 2026-07-30
+**Task**: 完成 Claude 认证来源诊断与规范
+**Branch**: `dev`
+
+### Summary
+
+新增无 secret 的统一认证来源诊断、doctor/runtime summary 与 CLI/TUI/UI 切换警告；覆盖六级优先级、置信度、所有权、不可观测边界和 primaryApiKey issue 证据，并补齐跨层 Trellis 规范。定向矩阵、lint-strict、just test、frontend-check-quick、cargo fmt 与 diff check 通过；fmt-check 仅被三个排除的既有非规范 JSON 阻断，bindings check 仅被既有 DailyTrendDto.ts 空格基线阻断。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `604b0569` | (see git log) |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 76: 完成 Claude 认证与 profile 隔离加固
+
+**Date**: 2026-07-30
+**Task**: 完成 Claude 认证与 profile 隔离加固
+**Branch**: `dev`
+
+### Summary
+
+完成五个子任务：统一 auth_mode 与配置目录解析，加固凭据和 settings 并发写入，停止修改 Claude 状态文件，并补齐认证来源诊断、切换警告与规范；父级集成回归通过。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c741d3da` | (see git log) |
+| `b53f7c11` | (see git log) |
+| `6d95d09f` | (see git log) |
+| `24c362e3` | (see git log) |
+| `604b0569` | (see git log) |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 77: Codex Profiles 页面接入共享层
+
+**Date**: 2026-07-30
+**Task**: Codex Profiles 页面接入共享层
+**Branch**: `dev`
+
+### Summary
+
+把 CodexProfilesView 切到 profiles 共享组件契约，与 Claude 页骨架同构（四槽 StatStrip + 钉选 QuickRail + Filters 弹层 + Inspector 预览 + diff 确认框 + 内联错误三态）。修正 env_key 序列化契约：原来的清理职责藏在 syncDerivedAuthFields 里、builder 却无条件发送，现改为仅 provider_env_key 模式序列化；requires_openai_auth / openai_login_method 从表单删除、改由 auth_mode 推导。编辑器模态删掉 247 行 --editor-* 平行令牌体系接共享 pe-* 基底并新增校验汇总条；新增 utils/codexProfiles.ts 收敛展示策略。新增 spec profiles-page-contracts.md。截图走查未做（缺 Tauri 运行态）。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `bb0e899f` | (see git log) |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 78: 完成 Profiles 页面重构父任务集成
+
+**Date**: 2026-07-30
+**Task**: 完成 Profiles 页面重构父任务集成
+**Branch**: `dev`
+
+### Summary
+
+清理旧 ContextRail、兼容分支与重复样式，修复 QuickSwitch 首屏误清持久化和 Filters 键盘导航，补齐 1-11 验收与前端规范；type-check、lint、547 tests、just ui-check 通过，Tauri 双页双主题双视口由用户人工确认。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `97e72d04` | (see git log) |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 79: 完成开发交付流程审计并归档 profile open
+
+**Date**: 2026-07-31
+**Task**: 完成开发交付流程审计并归档 profile open
+**Branch**: `dev`
+
+### Summary
+
+完成开发、PR、CI、合并与部署流程审计，形成 11 项发现及 P0/P1/P2 路线图；归档审计任务与用户指定的 profile-open-command 任务。
+
+### Main Changes
+
+- 新增基于仓库证据和行业官方资料的流程审计报告。
+- 归档 07-31-dev-pr-ci-deploy-workflow-audit 与 07-31-profile-open-command。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `e6e3025db95e5fcd9a45885a619d64b14a8070fa` | (see git log) |
+| `a09cf340953724771edd0ac8f2eea9cf63826840` | (see git log) |
+
+### Testing
+
+- [OK] task.py validate：两个任务的 implement/check 上下文均通过。
+- [OK] just workflow-governance-check：43 个 immutable action refs、12 个测试通过。
+- [OK] profile open 的全量门禁未在本次重跑；just version-check 存在 README 版本漂移阻塞，未标记其 PRD AC 为已验证。
+
+### Status
+
+[OK] **Completed**

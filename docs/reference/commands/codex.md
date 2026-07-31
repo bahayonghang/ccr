@@ -36,6 +36,7 @@ ccr codex profile off
 - `enable`
 - `disable`
 - `delete`
+- `open`
 
 ## `fix`
 

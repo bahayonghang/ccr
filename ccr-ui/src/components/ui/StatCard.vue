@@ -25,7 +25,7 @@
       
       <!-- 数值 -->
       <div class="flex items-baseline gap-2 mt-1">
-        <span class="text-2xl font-bold text-white tabular-nums">
+        <span class="text-2xl font-bold text-text-primary tabular-nums">
           <slot name="value">{{ formattedValue }}</slot>
         </span>
         

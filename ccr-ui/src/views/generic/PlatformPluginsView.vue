@@ -27,7 +27,7 @@
               </h1>
               <span
                 class="px-3 py-1 rounded-full text-sm font-medium"
-                :style="{ background: 'var(--color-accent-primary)', color: '#fff' }"
+                :style="{ background: 'var(--color-accent-primary)', color: 'var(--color-accent-primary-contrast)' }"
               >{{ plugins.length }}</span>
             </div>
             <div class="flex items-center gap-3">
@@ -42,7 +42,7 @@
                 /><span>{{ $t('common.back') }}</span>
               </RouterLink>
               <button
-                class="px-4 py-2 rounded-lg font-semibold text-sm text-white flex items-center gap-2"
+                class="px-4 py-2 rounded-lg font-semibold text-sm text-[color:var(--color-accent-primary-contrast)] flex items-center gap-2"
                 :style="{ background: 'linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary))', boxShadow: '0 0 20px var(--glow-primary)' }"
                 @click="openAddForm"
               >
@@ -82,10 +82,7 @@
             <div
               v-for="plugin in plugins"
               :key="plugin.id"
-              class="group rounded-lg p-5 transition-[box-shadow,border-color] duration-300"
-              :style="{ background: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)', outline: 'none', cursor: 'default' }"
-              @mouseenter="(e) => onCardHover(e.currentTarget as HTMLElement, true)"
-              @mouseleave="(e) => onCardHover(e.currentTarget as HTMLElement, false)"
+              class="platform-card group rounded-lg p-5"
             >
               <!-- Plugin Header -->
               <div class="flex items-start justify-between mb-3">
@@ -106,7 +103,7 @@
                 <span
                   v-if="!plugin.enabled"
                   class="px-2 py-0.5 rounded text-xs font-semibold uppercase"
-                  :style="{ background: 'var(--color-danger)', color: 'white' }"
+                  :style="{ background: 'var(--color-danger)', color: 'var(--color-danger-contrast)' }"
                 >{{ $t(`${i18nPrefix}.disabledBadge`) }}</span>
               </div>
 
@@ -278,7 +275,7 @@
               <!-- Form Actions -->
               <div class="flex gap-3 mt-6">
                 <button
-                  class="flex-1 px-4 py-2 rounded-lg font-semibold text-white"
+                  class="flex-1 px-4 py-2 rounded-lg font-semibold text-[color:var(--color-accent-primary-contrast)]"
                   :style="{ background: 'linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary))' }"
                   @click="submitForm"
                 >
@@ -364,19 +361,24 @@ async function handleDeletePlugin(plugin: Plugin): Promise<void> {
   })
   if (confirmed) await deletePlugin(plugin)
 }
-
-/** 卡片悬停效果 */
-function onCardHover(el: HTMLElement, hover: boolean): void {
-  if (hover) {
-    el.style.background = 'rgba(255, 255, 255, 0.9)'
-    el.style.borderColor = 'rgba(99, 102, 241, 0.24)'
-    el.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.08)'
-    el.style.transform = 'translateY(-2px)'
-  } else {
-    el.style.background = 'rgba(255, 255, 255, 0.7)'
-    el.style.borderColor = 'rgba(99, 102, 241, 0.12)'
-    el.style.boxShadow = 'none'
-    el.style.transform = 'translateY(0)'
-  }
-}
 </script>
+
+<style scoped>
+.platform-card {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-default);
+  cursor: default;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+}
+
+.platform-card:hover {
+  background: var(--color-bg-overlay);
+  border-color: var(--color-border-strong);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+</style>

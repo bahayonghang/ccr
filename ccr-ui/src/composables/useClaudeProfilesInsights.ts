@@ -1,7 +1,8 @@
 // Claude Profiles 派生洞察：薄包装，注入 Claude 平台差异（双 auth 模式、多模型缺失判定）
-// 后委托平台无关核心 useProfilesInsights。公共 API 保持稳定，供 ContextRail 复用。
+// 后委托平台无关核心 useProfilesInsights。公共 API 保持稳定，供 ProfilesInspector 复用。
 import type { Ref } from 'vue'
 import type { ClaudeProfile, ClaudeProfileAuthMode } from '@/types'
+import { resolveClaudePrimaryModel } from '@/utils/claudeProfileFields'
 import { useProfilesInsights, type ProfilesInsights } from './useProfilesInsights'
 
 export type {
@@ -32,24 +33,13 @@ const profileAuthMode = (profile: ClaudeProfile): ClaudeProfileAuthMode =>
  * 是否配置了任意模型。Claude 多模型：主模型与四个映射全空才算缺失。
  */
 const hasAnyModel = (profile: ClaudeProfile): boolean =>
-  !isBlank(profile.model) ||
-  !isBlank(profile.default_opus_model) ||
-  !isBlank(profile.default_sonnet_model) ||
-  !isBlank(profile.default_haiku_model) ||
-  !isBlank(profile.subagent_model)
+  Boolean(resolveClaudePrimaryModel(profile, ''))
 
 /**
  * base_url 为空是否需要报告：仅 api_key 模式必须有 base_url；
  * subscription 模式空 base_url 合法（回落本机官方登录）。
  */
 const requiresBaseUrl = (profile: ClaudeProfile): boolean => profileAuthMode(profile) === 'api_key'
-
-/** 运行时去重所用的主模型：优先 model，回退 sonnet/opus 映射。 */
-const primaryRuntimeModel = (profile: ClaudeProfile): string =>
-  profile.model?.trim() ||
-  profile.default_sonnet_model?.trim() ||
-  profile.default_opus_model?.trim() ||
-  ''
 
 const missingFieldsOf = (profile: ClaudeProfile): ClaudeMissingField[] => {
   const missing: ClaudeMissingField[] = []
@@ -64,6 +54,6 @@ export function useClaudeProfilesInsights(profiles: Ref<ClaudeProfile[]>): Claud
     authModes: ALL_AUTH_MODES,
     authModeOf: profileAuthMode,
     missingFieldsOf,
-    primaryRuntimeModel,
+    primaryRuntimeModel: (profile) => resolveClaudePrimaryModel(profile, ''),
   })
 }

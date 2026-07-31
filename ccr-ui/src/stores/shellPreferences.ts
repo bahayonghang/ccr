@@ -21,6 +21,10 @@ import {
   applyAccentToDocument,
   applyFlavorToDocument,
   applyThemeToDocument,
+  migrateAccentValue,
+  migrateFlavorValue,
+  migratePersistedAccent,
+  migratePersistedFlavor,
   persistAccent,
   persistFlavor,
   persistTheme,
@@ -32,6 +36,7 @@ import {
   THEME_RESOLUTION_CHANGE_EVENT,
   type AccentMode,
   type FlavorMode,
+  type ResolvedFlavor,
   type ResolvedThemeMode,
   type ThemeResolutionChangeDetail,
   type ThemeMode,
@@ -75,7 +80,7 @@ export const useShellPreferencesStore = defineStore('shellPreferences', () => {
   const theme = ref<ThemeMode>(readStoredTheme())
   const effectiveTheme = ref<ResolvedThemeMode>(resolveThemeMode(theme.value))
   const flavor = ref<FlavorMode>(readStoredFlavor())
-  const resolvedFlavor = ref<FlavorMode>(resolveFlavorMode(effectiveTheme.value, flavor.value))
+  const resolvedFlavor = ref<ResolvedFlavor>(resolveFlavorMode(effectiveTheme.value, flavor.value))
   const accent = ref<AccentMode>(readStoredAccent())
   const uiFont = ref<string>(readStoredUiFont())
   const codeFont = ref<string>(readStoredCodeFont())
@@ -91,6 +96,9 @@ export const useShellPreferencesStore = defineStore('shellPreferences', () => {
 
   const initializeTheme = (): void => {
     theme.value = readStoredTheme()
+    // 旧值域存储值先写回迁移结果，再按迁移后值域读取。
+    migratePersistedFlavor()
+    migratePersistedAccent()
     flavor.value = readStoredFlavor()
     accent.value = readStoredAccent()
     effectiveTheme.value = applyThemeToDocument(theme.value, flavor.value)
@@ -114,16 +122,19 @@ export const useShellPreferencesStore = defineStore('shellPreferences', () => {
   }
 
   const setFlavorPreference = (nextFlavor: FlavorMode): void => {
-    flavor.value = nextFlavor
-    persistFlavor(nextFlavor)
-    applyFlavorToDocument(nextFlavor, theme.value)
-    resolvedFlavor.value = resolveFlavorMode(effectiveTheme.value, nextFlavor)
+    // 兼容旧选项 UI 传入的旧值域：写入前统一迁移到新值域。
+    const normalizedFlavor = migrateFlavorValue(nextFlavor)
+    flavor.value = normalizedFlavor
+    persistFlavor(normalizedFlavor)
+    applyFlavorToDocument(normalizedFlavor, theme.value)
+    resolvedFlavor.value = resolveFlavorMode(effectiveTheme.value, normalizedFlavor)
   }
 
   const setAccentPreference = (nextAccent: AccentMode): void => {
-    accent.value = nextAccent
-    persistAccent(nextAccent)
-    applyAccentToDocument(nextAccent)
+    const normalizedAccent = migrateAccentValue(nextAccent)
+    accent.value = normalizedAccent
+    persistAccent(normalizedAccent)
+    applyAccentToDocument(normalizedAccent)
   }
 
   // 字体偏好：空串表示回到内置栈。净化后统一走 persist + apply。

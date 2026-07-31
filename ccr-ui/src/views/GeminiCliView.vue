@@ -529,8 +529,7 @@ onBeforeUnmount(() => {
     linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 76%), rgb(var(--color-bg-surface-rgb) / 58%)),
     var(--stage-surface-soft);
   box-shadow:
-    0 24px 60px rgb(var(--color-bg-base-rgb) / 22%),
-    inset 0 1px 0 rgb(255 251 245 / 10%);
+    0 24px 60px rgb(var(--color-bg-base-rgb) / 22%);
 }
 
 .gemini-hero__copy {
@@ -577,7 +576,7 @@ onBeforeUnmount(() => {
 }
 
 .gemini-brand-mark {
-  @apply flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border shadow-lg backdrop-blur-md;
+  @apply flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border shadow-lg;
 
   color: var(--platform-gemini);
   background: rgb(var(--color-platform-gemini-rgb) / 12%);
@@ -839,8 +838,7 @@ onBeforeUnmount(() => {
 .gemini-module-card:hover {
   border-color: rgb(var(--module-rgb) / 32%);
   box-shadow:
-    0 24px 50px rgb(var(--module-rgb) / 12%),
-    inset 0 1px 0 rgb(255 251 245 / 12%);
+    0 24px 50px rgb(var(--module-rgb) / 12%);
   transform: translateY(-3px);
 }
 

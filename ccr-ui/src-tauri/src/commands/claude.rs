@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
 use tauri::State;
 
+use ccr::SettingsManager;
 use ccr::platforms::ClaudePlatform;
 use ccr::services::ClaudeAuthService;
 use ccr_config::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};
@@ -19,7 +20,7 @@ use ccr_skills::{PromptPreset, PromptsManager};
 use ccr_store::{BudgetManager, CostTracker};
 
 use crate::platform::local::LocalEnvironment;
-use crate::platform::{EnvError, ExecutionEnvironment};
+use crate::platform::{EnvError, EnvironmentType, ExecutionEnvironment};
 use crate::state::AppState;
 
 use super::wire::OpenJsonValueDto;
@@ -126,6 +127,37 @@ async fn save_settings(
     let raw =
         serde_json::to_value(settings).map_err(|e| format!("Failed to serialize settings: {e}"))?;
     write_active_claude_settings_raw(state, &raw).await
+}
+
+async fn update_settings<T, F>(state: &AppState, mut update: F) -> Result<T, String>
+where
+    T: Send + 'static,
+    F: FnMut(&mut ccr_types::ClaudeSettings) -> Result<T, String> + Send + 'static,
+{
+    let environment = active_environment(state).await;
+    if environment.env_type() == EnvironmentType::Local {
+        return update_local_settings(update).await;
+    }
+
+    let mut settings = load_settings(state).await?;
+    let result = update(&mut settings)?;
+    save_settings(state, &settings).await?;
+    Ok(result)
+}
+
+async fn update_local_settings<T, F>(mut update: F) -> Result<T, String>
+where
+    T: Send + 'static,
+    F: FnMut(&mut ccr_types::ClaudeSettings) -> Result<T, String> + Send + 'static,
+{
+    let manager = SettingsManager::with_default()
+        .map_err(|error| format!("SettingsManager init error: {error}"))?;
+    manager
+        .update_atomic_async(move |settings| {
+            update(settings).map_err(ccr_core::core::error::CcrError::SettingsError)
+        })
+        .await
+        .map_err(|error| format!("Failed to update Claude settings: {error}"))
 }
 
 // ── Output Styles directory ──
@@ -492,9 +524,11 @@ fn profile_to_json(current_profile: Option<&str>, name: String, profile: Profile
 mod tests {
     use super::*;
     use std::collections::HashMap;
-    use std::sync::Mutex;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::{Arc, Barrier, Mutex};
 
     use crate::platform::{CliStatus, EnvironmentType, PlatformInfo};
+    use crate::test_support::TestProcessEnv;
 
     #[derive(Clone)]
     enum MockReadBehavior {
@@ -845,6 +879,82 @@ mod tests {
         assert_eq!(
             written["hooks"]["PreToolUse"][0]["hooks"][0]["command"],
             json!("./security-check.sh")
+        );
+    }
+
+    #[tokio::test]
+    async fn local_settings_update_replays_concurrent_cli_mutation() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let settings_path = temp_dir.path().join("settings.json");
+        let backup_dir = temp_dir.path().join("backups");
+        let lock_dir = temp_dir.path().join("locks");
+        let mut process_env = TestProcessEnv::new();
+        process_env.set("CCR_SETTINGS_PATH", settings_path.as_os_str());
+        process_env.set("CCR_BACKUP_DIR", backup_dir.as_os_str());
+        process_env.set("CCR_LOCK_DIR", lock_dir.as_os_str());
+        std::fs::write(
+            &settings_path,
+            r#"{
+                "env": { "USER_OWNED": "keep" },
+                "future_top_level": { "enabled": true }
+            }"#,
+        )
+        .unwrap();
+
+        let first_ui_mutation = Arc::new(Barrier::new(2));
+        let cli_write_finished = Arc::new(Barrier::new(2));
+        let mutation_calls = Arc::new(AtomicUsize::new(0));
+        let cli_thread = {
+            let first_ui_mutation = first_ui_mutation.clone();
+            let cli_write_finished = cli_write_finished.clone();
+            std::thread::spawn(move || {
+                first_ui_mutation.wait();
+                SettingsManager::with_default()
+                    .unwrap()
+                    .update_atomic(|settings| {
+                        settings
+                            .env
+                            .insert("CLI_FIELD".to_string(), "saved".to_string());
+                        Ok(())
+                    })
+                    .unwrap();
+                cli_write_finished.wait();
+            })
+        };
+
+        update_local_settings({
+            let first_ui_mutation = first_ui_mutation.clone();
+            let cli_write_finished = cli_write_finished.clone();
+            let mutation_calls = mutation_calls.clone();
+            move |settings| {
+                if mutation_calls.fetch_add(1, Ordering::SeqCst) == 0 {
+                    first_ui_mutation.wait();
+                    cli_write_finished.wait();
+                }
+                settings
+                    .other
+                    .insert("ui_field".to_string(), json!("saved"));
+                Ok(())
+            }
+        })
+        .await
+        .unwrap();
+        cli_thread.join().unwrap();
+
+        let final_settings = SettingsManager::with_default().unwrap().load().unwrap();
+        assert!(mutation_calls.load(Ordering::SeqCst) >= 2);
+        assert_eq!(
+            final_settings.env.get("USER_OWNED").map(String::as_str),
+            Some("keep")
+        );
+        assert_eq!(
+            final_settings.env.get("CLI_FIELD").map(String::as_str),
+            Some("saved")
+        );
+        assert_eq!(final_settings.other.get("ui_field"), Some(&json!("saved")));
+        assert_eq!(
+            final_settings.other.get("future_top_level"),
+            Some(&json!({ "enabled": true }))
         );
     }
 }

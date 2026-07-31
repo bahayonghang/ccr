@@ -28,7 +28,9 @@ pub async fn init_command(force: bool) -> Result<()> {
             ColorOutput::info("配置已经初始化，无需重复执行");
             ColorOutput::info("提示:");
             println!("  • 查看平台列表: ccr platform list");
-            println!("  • 初始化特定平台: ccr platform init <平台名>");
+            println!("  • 初始化 Claude 模板: ccr claude profile init");
+            println!("  • 初始化 Codex 模板: ccr codex profile init");
+            println!("  • 初始化 Grok 模板: ccr grok profile init");
             println!("  • 强制重新初始化: ccr init --force");
             println!();
             return Ok(());
@@ -153,7 +155,9 @@ pub async fn init_command(force: bool) -> Result<()> {
 
     ColorOutput::info("后续步骤:");
     println!("  1. 使用 'ccr platform list' 查看所有平台");
-    println!("  2. 使用 'ccr platform init <平台>' 初始化其他平台");
+    println!(
+        "  2. 使用 'ccr claude profile init'、'ccr codex profile init' 或 'ccr grok profile init' 初始化平台模板"
+    );
     println!("  3. 使用 'ccr add' 添加配置 profile");
     println!("  4. 使用 'ccr list' 查看配置列表");
     println!();

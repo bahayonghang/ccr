@@ -5,9 +5,10 @@ use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
-const DEFAULT_TAB_ORDER: [TuiTabId; 5] = [
+const DEFAULT_TAB_ORDER: [TuiTabId; 6] = [
     TuiTabId::CodexProfile,
     TuiTabId::ClaudeProfile,
+    TuiTabId::GrokProfile,
     TuiTabId::CodexAuth,
     TuiTabId::ClaudeAuth,
     TuiTabId::OpencodeAuth,
@@ -107,6 +108,7 @@ where
 #[serde(rename_all = "snake_case")]
 pub enum TuiTabId {
     CodexProfile,
+    GrokProfile,
     ClaudeProfile,
     /// Deprecated: 独立 Usage tab 已下线(用量内嵌到 profile 详情面板)。
     /// 仅为解析旧版 `tui.toml` 保留;`load()` 会过滤该项并记录 warn,
@@ -122,6 +124,7 @@ impl TuiTabId {
     pub fn as_str(self) -> &'static str {
         match self {
             TuiTabId::CodexProfile => "codex_profile",
+            TuiTabId::GrokProfile => "grok_profile",
             TuiTabId::ClaudeProfile => "claude_profile",
             TuiTabId::Usage => "usage",
             TuiTabId::CodexAuth => "codex_auth",
@@ -198,6 +201,24 @@ impl TuiConfigManager {
                 self.config_path.display()
             );
             config.tab_order.retain(|tab_id| *tab_id != TuiTabId::Usage);
+        }
+
+        let missing = DEFAULT_TAB_ORDER
+            .iter()
+            .copied()
+            .filter(|tab_id| !config.tab_order.contains(tab_id))
+            .collect::<Vec<_>>();
+        if !missing.is_empty() {
+            tracing::warn!(
+                "TUI config {} is missing tab(s) {}; appending them in default order",
+                self.config_path.display(),
+                missing
+                    .iter()
+                    .map(|tab_id| format!("`{}`", tab_id.as_str()))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            );
+            config.tab_order.extend(missing);
         }
         validate_tab_order(&config.tab_order)?;
         Ok(config)
@@ -311,12 +332,22 @@ mod tests {
     fn default_order_excludes_deprecated_usage_tab() {
         let order = TuiTabId::default_order();
 
-        assert_eq!(order.len(), 5);
+        assert_eq!(
+            order,
+            vec![
+                TuiTabId::CodexProfile,
+                TuiTabId::ClaudeProfile,
+                TuiTabId::GrokProfile,
+                TuiTabId::CodexAuth,
+                TuiTabId::ClaudeAuth,
+                TuiTabId::OpencodeAuth,
+            ]
+        );
         assert!(!order.contains(&TuiTabId::Usage));
     }
 
     #[test]
-    fn load_accepts_five_item_tab_order_without_usage() {
+    fn load_migrates_five_item_tab_order_without_losing_custom_order() {
         let env = TestCcrEnv::new();
         let manager = TuiConfigManager::new(env.root().join("tui.toml"));
 
@@ -343,6 +374,7 @@ mod tests {
                 TuiTabId::CodexAuth,
                 TuiTabId::ClaudeAuth,
                 TuiTabId::OpencodeAuth,
+                TuiTabId::GrokProfile,
             ]
         );
     }
@@ -431,6 +463,7 @@ tab_order = [
             tab_order: vec![
                 TuiTabId::ClaudeProfile,
                 TuiTabId::CodexProfile,
+                TuiTabId::GrokProfile,
                 TuiTabId::CodexAuth,
                 TuiTabId::ClaudeAuth,
                 TuiTabId::OpencodeAuth,
@@ -491,6 +524,7 @@ tab_order = [
                 TuiTabId::ClaudeProfile,
                 TuiTabId::CodexAuth,
                 TuiTabId::OpencodeAuth,
+                TuiTabId::GrokProfile,
             ]
         );
     }
@@ -519,25 +553,31 @@ tab_order = [
     }
 
     #[test]
-    fn load_or_default_falls_back_for_missing_tab_ids() {
+    fn load_appends_multiple_missing_tabs_in_default_relative_order() {
         let env = TestCcrEnv::new();
         let manager = TuiConfigManager::new(env.root().join("tui.toml"));
 
         std::fs::write(
             manager.config_path(),
             r#"tab_order = [
-  "codex_profile",
-  "claude_profile",
-  "usage",
-  "codex_auth",
   "claude_auth",
+  "codex_profile",
 ]
 "#,
         )
         .unwrap();
 
-        assert!(manager.load().is_err());
-        assert_eq!(manager.load_or_default(), TuiConfig::default());
+        assert_eq!(
+            manager.load().unwrap().tab_order,
+            vec![
+                TuiTabId::ClaudeAuth,
+                TuiTabId::CodexProfile,
+                TuiTabId::ClaudeProfile,
+                TuiTabId::GrokProfile,
+                TuiTabId::CodexAuth,
+                TuiTabId::OpencodeAuth,
+            ]
+        );
     }
 
     #[test]

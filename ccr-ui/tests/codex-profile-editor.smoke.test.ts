@@ -205,6 +205,14 @@ const i18n = createI18n({
             tokenCopied: 'Token copied',
             tokenCopyFailed: 'Token copy failed',
           },
+          validationJump: 'Jump',
+          validation: {
+            nameRequired: 'Profile name is required',
+            baseUrlRequired: 'Base URL is required',
+            authTokenRequired: 'Auth token is required',
+            envKeyRequired: 'Env key is required',
+            modelRequired: 'Model is required',
+          },
         },
       },
     },
@@ -238,6 +246,8 @@ const mountModal = async (
     currentModelOption?: string
     selectedModelOption?: string
     customModelInput?: string
+    resolvedModel?: string
+    onSave?: () => void
   } = {}
 ) => {
   const el = document.createElement('div')
@@ -262,6 +272,7 @@ const mountModal = async (
             currentModelOption: options.currentModelOption,
             selectedModelOption: options.selectedModelOption ?? modelPresets[0],
             customModelInput: options.customModelInput ?? '',
+            resolvedModel: options.resolvedModel ?? modelPresets[0],
             requiresBaseUrl: true,
             requiresSecret: true,
             requiresEnvKey: false,
@@ -277,6 +288,7 @@ const mountModal = async (
             'onUpdate:customModelInput': () => undefined,
             onSelectTemplate: options.onSelectTemplate,
             onManualTemplate: options.onManualTemplate,
+            onSave: options.onSave,
           })
       },
     })
@@ -310,10 +322,7 @@ describe('codex profile editor helpers', () => {
   it('builds a stable preset catalog with an optional current profile value', () => {
     expect(buildCodexProfileModelCatalog(modelPresets)).toEqual(modelPresets)
     expect(
-      buildCodexProfileModelCatalog(
-        [...modelPresets, 'gpt-5.6-luna', ''],
-        ' gpt-5.4 ',
-      ),
+      buildCodexProfileModelCatalog([...modelPresets, 'gpt-5.6-luna', ''], ' gpt-5.4 ')
     ).toEqual([...modelPresets, 'gpt-5.4'])
   })
 
@@ -332,6 +341,38 @@ describe('codex profile editor helpers', () => {
     expect(request.tags).toEqual(['free', 'stable'])
     expect(request.small_fast_model).toBeNull()
     expect(request.extra).toBeNull()
+  })
+
+  it('derives the OpenAI auth flags from auth_mode instead of stored form state', () => {
+    const apiKeyRequest = buildCodexProfileRequest(
+      { ...createForm(), auth_mode: 'openai_api_key' },
+      'gpt-5.4'
+    )
+    expect(apiKeyRequest.requires_openai_auth).toBe(true)
+    expect(apiKeyRequest.openai_login_method).toBe('api')
+
+    const noAuthRequest = buildCodexProfileRequest(
+      { ...createForm(), auth_mode: 'no_auth' },
+      'gpt-5.4'
+    )
+    expect(noAuthRequest.requires_openai_auth).toBe(false)
+    expect(noAuthRequest.openai_login_method).toBeNull()
+  })
+
+  it('serializes env_key only in provider_env_key mode', () => {
+    const envKeyForm: CodexProfileEditorForm = {
+      ...createForm(),
+      auth_mode: 'provider_env_key',
+      env_key: 'MISTRAL_API_KEY',
+    }
+
+    expect(buildCodexProfileRequest(envKeyForm, 'gpt-5.4').env_key).toBe('MISTRAL_API_KEY')
+
+    // 模式切走后旧 env_key 仍留在表单上，但绝不能再写回 profiles.toml
+    for (const authMode of ['openai_api_key', 'no_auth', 'openai_chatgpt'] as const) {
+      const request = buildCodexProfileRequest({ ...envKeyForm, auth_mode: authMode }, 'gpt-5.4')
+      expect(request.env_key).toBeNull()
+    }
   })
 })
 
@@ -355,8 +396,12 @@ describe('CodexProfileEditorModal smoke', () => {
     })
 
     try {
-      const select = el.querySelector<HTMLSelectElement>('[data-testid="codex-profile-model-select"]')
-      const values = Array.from(select?.querySelectorAll('option') ?? []).map(option => option.value)
+      const select = el.querySelector<HTMLSelectElement>(
+        '[data-testid="codex-profile-model-select"]'
+      )
+      const values = Array.from(select?.querySelectorAll('option') ?? []).map(
+        (option) => option.value
+      )
 
       expect(values).toEqual([...modelPresets, CUSTOM_MODEL_OPTION])
       expect(el.textContent).not.toContain('current profile value')
@@ -374,16 +419,18 @@ describe('CodexProfileEditorModal smoke', () => {
     })
 
     try {
-      const select = el.querySelector<HTMLSelectElement>('[data-testid="codex-profile-model-select"]')
+      const select = el.querySelector<HTMLSelectElement>(
+        '[data-testid="codex-profile-model-select"]'
+      )
       const options = Array.from(select?.querySelectorAll('option') ?? [])
 
-      expect(options.map(option => option.value)).toEqual([
+      expect(options.map((option) => option.value)).toEqual([
         ...modelPresets,
         currentModel,
         CUSTOM_MODEL_OPTION,
       ])
-      expect(options.find(option => option.value === currentModel)?.textContent).toContain(
-        'current profile value',
+      expect(options.find((option) => option.value === currentModel)?.textContent).toContain(
+        'current profile value'
       )
     } finally {
       unmount()
@@ -461,6 +508,58 @@ describe('CodexProfileEditorModal smoke', () => {
       )
 
       expect(values).toEqual(['', ...REASONING_EFFORT_OPTIONS])
+    } finally {
+      unmount()
+    }
+  })
+
+  it('blocks save behind a validation summary until the model is resolved', async () => {
+    const onSave = vi.fn()
+    const { el, unmount } = await mountModal(createForm(), { resolvedModel: '', onSave })
+
+    try {
+      const saveButton = Array.from(
+        el.querySelectorAll<HTMLButtonElement>('.pe-footer button')
+      ).find((button) => button.textContent?.includes('Save'))
+      expect(saveButton).not.toBeUndefined()
+
+      saveButton!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await nextTick()
+
+      expect(onSave).not.toHaveBeenCalled()
+      expect(el.querySelector('.pe-summary')?.textContent).toContain('Model is required')
+    } finally {
+      unmount()
+    }
+  })
+
+  it('emits save once every required field resolves', async () => {
+    const onSave = vi.fn()
+    const { el, unmount } = await mountModal(createForm(), { onSave })
+
+    try {
+      const saveButton = Array.from(
+        el.querySelectorAll<HTMLButtonElement>('.pe-footer button')
+      ).find((button) => button.textContent?.includes('Save'))
+
+      saveButton!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await nextTick()
+
+      expect(onSave).toHaveBeenCalledTimes(1)
+      expect(el.querySelector('.pe-summary')).toBeNull()
+    } finally {
+      unmount()
+    }
+  })
+
+  it('drops the legacy --editor-* token shell in favour of the shared pe-* base', async () => {
+    const { el, unmount } = await mountModal(createForm())
+
+    try {
+      expect(el.querySelector('.pe-modal')).not.toBeNull()
+      expect(el.querySelector('.codex-profile-editor-modal')).toBeNull()
+      expect(el.querySelector('.editor-input')).toBeNull()
+      expect(el.querySelector('.editor-panel')).toBeNull()
     } finally {
       unmount()
     }

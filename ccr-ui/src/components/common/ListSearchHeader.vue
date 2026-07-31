@@ -84,7 +84,7 @@ defineEmits<{
 }
 
 .list-search-header__input::placeholder {
-  color: rgb(var(--color-text-muted-rgb) / 70%);
+  color: var(--color-text-ghost);
 }
 
 .list-search-header__actions {

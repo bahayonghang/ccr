@@ -315,7 +315,7 @@ provider = "Google"
 | `ccr platform switch <name>` | 切换到指定平台 | `ccr platform switch codex` |
 | `ccr platform current` | 显示当前平台信息 | `ccr platform current` |
 | `ccr platform info <name>` | 显示平台详细信息 | `ccr platform info gemini` |
-| `ccr platform init <name>` | 初始化新平台 | `ccr platform init qwen` |
+| `ccr <platform> profile init` | 初始化 Claude、Codex 或 Grok profiles 模板 | `ccr grok profile init` |
 
 ### Profile 管理命令
 

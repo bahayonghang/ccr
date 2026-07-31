@@ -1,0 +1,35 @@
+# CCR Grok profiles
+# Initialize this file with: ccr grok profile init
+# Target path: ~/.ccr/platforms/grok/profiles.toml
+
+default_config = "official"
+current_config = ""
+
+[settings]
+skip_confirmation = false
+
+# Official Grok uses Grok's own session authentication. XAI_API_KEY may also
+# be configured globally for Grok; CCR does not copy that credential here.
+[official]
+description = "Grok official model"
+model = "grok-example"
+provider = "xai"
+enabled = true
+
+# Third-party relay: replace the placeholder with the provider API key.
+[relay]
+description = "Example Grok-compatible relay"
+base_url = "https://api.example.com/v1"
+model = "grok-example"
+provider = "example-relay"
+provider_type = "third_party_model"
+api_backend = "responses"
+api_key = "sk-your-grok-relay-api-key"
+context_window = 1000000
+supports_backend_search = true
+reasoning_effort = "high"
+enabled = true
+
+# `env_key` remains available when the value is an environment variable name.
+# To create an inline-key profile explicitly, use:
+# ccr grok profile create <name> --base-url <url> --model <model> --api-key <key> --reasoning-effort high

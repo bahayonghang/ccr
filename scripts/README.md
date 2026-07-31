@@ -97,7 +97,8 @@ bash scripts/check-dependency-drift.sh --verbose
 ### `check_json_format.py`
 
 对显式列出的人工维护 JSON 配置执行严格解析和两空格规范化。检查模式已通过
-`just json-format-check` 接入 `just fmt-check`；修复模式使用 `just json-format`。
+`just fmt` 会先执行 `just json-format`，因此 `just ci` 会在 `fmt-check` 前自动修复
+受管 JSON 的格式；只验证时使用 `just json-format-check`。
 lockfile、generated binding、JSONC/`tsconfig*.json`、数据目录和空白有语义的
 fixture 不在清单内。
 

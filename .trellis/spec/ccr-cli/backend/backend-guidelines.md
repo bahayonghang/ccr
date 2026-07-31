@@ -117,7 +117,7 @@ This preserves ownership boundaries and makes partial failures safely retryable.
 
 ## Claude Profile Auth Mode Contract
 
-`ClaudePlatform::apply_profile` branches on auth mode: `Subscription` calls `clear_managed_vars()` and writes **no** `ANTHROPIC_*` / `CLAUDE_CODE_*`; `ApiKey` calls `settings.apply_managed_env(section.to_managed_env_pairs())` and writes the overrides. A third-party profile therefore **only works under `api_key`**.
+`ClaudePlatform::apply_profile` branches on auth mode: `Subscription` calls `clear_ccr_managed_vars()` and writes no key from `CCR_MANAGED_KEYS`; `ApiKey` calls `settings.apply_managed_env(section.to_managed_env_pairs())` and writes the registered overrides. Keys outside the registry are user-owned and survive both branches. A third-party profile therefore **only works under `api_key`**.
 
 Auth mode has two layers — keep them separate:
 
@@ -126,9 +126,9 @@ Auth mode has two layers — keep them separate:
 
 `is_api_key_shaped` is intentionally conservative: `provider_type == "third_party_model"`, or `base_url` and `auth_token` both non-empty. **Do not** include model-mapping fields — `ANTHROPIC_DEFAULT_*_MODEL` is valid on official subscription (snapshot pinning), so that would false-positive and fail `section.validate()`.
 
-Correction happens at two points and must stay idempotent: `normalize_profile` (save — persists the corrected `auth_mode`) and `apply_profile` (defensive — self-heals stale on-disk profiles). Each emits a `tracing::warn` on correction; never log `auth_token` / full `base_url`.
+Correction happens at two points and must stay idempotent: `normalize_profile` (save - persists the corrected `auth_mode`) and `apply_profile` (defensive - self-heals stale on-disk profiles). Defensive apply must persist the corrected profile through the guarded profiles writer **before** loading or modifying runtime settings. If persistence fails, return an actionable error naming the profile and leave `settings.json` byte-for-byte unchanged. Each correction emits a `tracing::warn`; never log `auth_token` / full `base_url`.
 
-Model-mapping fields are typed on `ProfileConfig` / `ConfigSection` and mapped in `ConfigSection::to_managed_env_pairs` (ccr-config, keyed by `ccr_types::env_keys` constants); `custom_model_option`(`_name`) → `ANTHROPIC_CUSTOM_MODEL_OPTION`(`_NAME`). New env keys must also be registered in `ClaudePlatform::get_env_var_names`. Typing a previously-untyped key auto-migrates existing TOML (serde captures it into the typed slot instead of `other`/`platform_data`).
+Model-mapping fields are typed on `ProfileConfig` / `ConfigSection` and mapped in `ConfigSection::to_managed_env_pairs` (ccr-config, keyed by `ccr_types::env_keys` constants); `custom_model_option`(`_name`) -> `ANTHROPIC_CUSTOM_MODEL_OPTION`(`_NAME`). New env keys must be added to `ccr_types::env_keys::CCR_MANAGED_KEYS`; `ClaudePlatform::get_env_var_names` derives from that registry. Typing a previously-untyped key auto-migrates existing TOML (serde captures it into the typed slot instead of `other`/`platform_data`).
 
 `ClaudeSettings` itself is `ccr_types::ClaudeSettings` (single workspace shape); `managers/settings.rs` is a pure IO adapter (`SettingsManager`: load/save/backup/restore) plus a re-export, and must not grow local settings types or env-mutation logic.
 
@@ -136,7 +136,7 @@ Model-mapping fields are typed on `ProfileConfig` / `ConfigSection` and mapped i
 
 ### 1. Scope / Trigger
 
-- Trigger: adding or changing Claude profile fields that write Claude Code environment variables, profile apply behavior, doctor diagnostics, or onboarding state.
+- Trigger: adding or changing Claude profile fields that write Claude Code environment variables, profile apply behavior, doctor diagnostics, or Claude state-file ownership.
 - Applies to `ProfileConfig`, `ConfigSection`, `ccr_config::profile_to_section`, `ccr_config::section_to_profile`, `ClaudeSettings`, `ClaudePlatform`, Tauri Claude profile JSON, and command integration tests.
 
 ### 2. Signatures
@@ -144,48 +144,97 @@ Model-mapping fields are typed on `ProfileConfig` / `ConfigSection` and mapped i
 - `ConfigSection::{default_fable_model, default_*_model_name, claude_code_auto_compact_window, api_timeout_ms, claude_code_disable_nonessential_traffic}`
 - `ProfileConfig::{default_fable_model, default_*_model_name, claude_code_auto_compact_window, api_timeout_ms, claude_code_disable_nonessential_traffic}`
 - `ConfigSection::to_managed_env_pairs()` (ccr-config)
-- `ClaudeSettings::apply_managed_env(pairs)` / `ClaudeSettings::clear_managed_vars()` (ccr-types)
+- `env_keys::CCR_MANAGED_KEYS` (ccr-types)
+- `ClaudeSettings::{apply_managed_env, clear_ccr_managed_vars, has_managed_overrides, managed_env_entries}` (ccr-types)
 - `ClaudePlatform::get_env_var_names()`
 - `ClaudePlatform::apply_profile(name)`
+- `ccr_config::ClaudeRuntimePaths::{from_env, resolve_with}` owns all
+  user-level Claude settings/credentials/state/backup path priority.
 - Test fixtures: `TestHome` must isolate `CLAUDE_CONFIG_DIR`, `CLAUDE_JSON_PATH`, `CCR_SETTINGS_PATH`, and `CCR_BACKUP_DIR`.
 
 ### 3. Contracts
 
-- API-key Claude profiles write only typed, managed env keys into `~/.claude/settings.json.env`; do not add ad hoc env writes in command handlers.
-- Subscription profiles call `clear_managed_vars()` and must remove both `ANTHROPIC_*` keys and non-Anthropic CCR-managed Claude Code keys such as `CLAUDE_CODE_AUTO_COMPACT_WINDOW`, `API_TIMEOUT_MS`, and `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC`.
-- Every new typed env field must be added to both `ProfileConfig` and `ConfigSection`, both conversion directions, `ccr_types::env_keys` (constant + `NON_ANTHROPIC_MANAGED_KEYS` when unprefixed), `ConfigSection::to_managed_env_pairs`, `ClaudePlatform::get_env_var_names`, Tauri JSON parse/serialize, UI form state, and provider template mappers when templates can fill it. Clearing needs no extra wiring: `clear_managed_vars` covers the `ANTHROPIC_` prefix plus `NON_ANTHROPIC_MANAGED_KEYS`.
-- API-key profile apply should try to set `hasCompletedOnboarding = true` in `~/.claude.json` or `CLAUDE_JSON_PATH`. This helper preserves unknown JSON fields. Failure to read/parse/write `.claude.json` is logged as a warning and must not prevent `settings.json` from being saved.
-- `ccr doctor` checks API-key profiles for placeholder-looking tokens, active-profile env mismatches, GLM 1M profiles missing compact-window configuration, and missing/corrupt onboarding state.
+- `SettingsManager`, `ClaudePlatform`, `ClaudeAuthService`, and doctor consume
+  `ClaudeRuntimePaths`; they must not reimplement environment priority or
+  default `.claude` joins. The authoritative contract is in
+  `ccr-config/backend/backend-guidelines.md`.
+- API-key Claude profiles write only typed, managed env keys into the `env`
+  object stored at `ClaudeRuntimePaths::settings_file`; do not add ad hoc env
+  writes in command handlers.
+- Subscription apply, auth switch, profile off, and lifecycle clear call `clear_ccr_managed_vars()` and remove every key in `CCR_MANAGED_KEYS`, including non-Anthropic runtime keys such as `CLAUDE_CODE_AUTO_COMPACT_WINDOW`, `API_TIMEOUT_MS`, and `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC`.
+- User-owned keys outside `CCR_MANAGED_KEYS`, including `ANTHROPIC_API_KEY` and `ANTHROPIC_CUSTOM_HEADERS`, are never written or deleted by profile operations. Unknown prefix keys may still affect Claude Code; doctor owns the warning path rather than cleanup guessing ownership.
+- `managed_env_entries()` is the single source for lifecycle clear preview, empty-state detection, confirmation count, and removal scope.
+- Every new typed env field must be added to both `ProfileConfig` and `ConfigSection`, both conversion directions, an `ccr_types::env_keys` constant, `CCR_MANAGED_KEYS` (and `NON_ANTHROPIC_MANAGED_KEYS` when unprefixed), `ConfigSection::to_managed_env_pairs`, Tauri JSON parse/serialize, UI form state, and provider template mappers when templates can fill it. Registry-to-mapping equality tests must fail if any path drifts.
+- Profile apply, auth switching, and doctor must not create or modify
+  `ClaudeRuntimePaths::state_file`. In particular, `hasCompletedOnboarding` is
+  private Claude Code state; API-key apply leaves an existing state file
+  byte-for-byte unchanged and does not create a missing one.
+- Tauri Claude MCP user/local mutations are the only CCR-owned state-file
+  write surface. They resolve the file through `ClaudeRuntimePaths`, replay
+  only the target `mcpServers` subtree on the latest JSON object, and use
+  guarded-write CAS for at most three attempts. Top-level fields such as
+  `oauthAccount` and `primaryApiKey`, unknown fields, and unrelated project
+  entries must round-trip unchanged.
+- User/local MCP state writes use `secret: true` with no backup. Project-scope
+  `.mcp.json` writes use the same CAS loop with `secret: false` and no backup.
+- `ccr doctor` checks API-key profiles for placeholder-looking tokens, active-profile env mismatches, and GLM 1M profiles missing compact-window configuration; it does not diagnose onboarding state.
 
 ### 4. Validation & Error Matrix
 
 - Profile token is placeholder-like -> `doctor` warning; do not print or infer a real token.
 - Profile expected env differs from `settings.json.env` -> `doctor` warning recommending re-apply.
 - GLM model contains `[1m]` and `claude_code_auto_compact_window` is empty -> `doctor` warning recommending `1000000`.
-- `.claude.json` missing, unparsable, unreadable, or lacking `hasCompletedOnboarding = true` -> `doctor` warning.
-- `.claude.json` is corrupt during API-key apply -> keep applying `settings.json`, emit `tracing::warn`, and let `doctor` surface the onboarding state.
-- A new env key is written but not cleared on subscription/off switch -> regression; add a switch-cleanup test before merging.
+- `.claude.json` missing, unparsable, unreadable, or lacking
+  `hasCompletedOnboarding` -> no profile-apply or onboarding-doctor failure;
+  the profile/auth path does not own this file.
+- An MCP state root is not a JSON object -> return an actionable error and
+  leave the file unchanged.
+- One or two MCP CAS conflicts -> reread, replay the deterministic subtree
+  mutation, and retry. Three conflicts -> return an actionable retry error and
+  do not report the operation as successful.
+- A mismarked `subscription` profile with API-key shape -> use effective `api_key` in apply, auth switch, and runtime summary; persist the corrected literal before runtime mutation.
+- Corrected profile persistence fails -> return an actionable error and do not modify `settings.json`.
+- A registered env key is written but not cleared on subscription/off switch -> regression; add it to the registry/mapping equality fixture and switch-cleanup tests.
+- An unregistered pair reaches `apply_managed_env` -> ignore it and preserve any existing user-owned value.
 
 ### 5. Good/Base/Bad Cases
 
 - Good: typed GLM profile writes `ANTHROPIC_DEFAULT_FABLE_MODEL`, all `*_MODEL_NAME` vars, `CLAUDE_CODE_AUTO_COMPACT_WINDOW`, `API_TIMEOUT_MS`, and `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC`, then switching to subscription clears them.
-- Good: `.claude.json` with `oauthAccount` keeps that object and only adds `hasCompletedOnboarding = true`.
-- Base: missing `.claude.json` becomes a minimal JSON object with `hasCompletedOnboarding = true` during API-key apply.
-- Bad: writing `hasCompletedOnboarding` into `~/.claude/settings.json`.
+- Good: apply/off/auth switch/clear removes all registered keys while preserving `ANTHROPIC_API_KEY`, `ANTHROPIC_CUSTOM_HEADERS`, and unrelated env entries.
+- Good: applying a stale API-key-shaped profile persists `auth_mode = "api_key"` before settings mutation; a retry is idempotent.
+- Good: a custom `CLAUDE_CONFIG_DIR` makes profile apply, auth switching, and
+  doctor observe the same settings, credentials, and state files.
+- Good: API-key apply leaves a state file containing `oauthAccount`,
+  `primaryApiKey`, and unknown fields byte-for-byte unchanged.
+- Good: a Tauri user/local MCP mutation changes only the selected MCP subtree
+  while preserving the rest of the latest state-file object.
+- Base: API-key apply succeeds without creating a missing resolved state file.
+- Bad: `retain(|key, _| !key.starts_with("ANTHROPIC_"))` in a normal mutation path, because it deletes keys CCR does not own.
+- Bad: writing `hasCompletedOnboarding` into either `settings.json` or the
+  Claude state file.
+- Bad: describing the MCP path lock as protection against Claude Code itself;
+  non-cooperating external processes do not acquire CCR's lock.
+- Bad: checking `CLAUDE_JSON_PATH` or joining `.claude/settings.json` directly
+  in a CLI consumer instead of using `ClaudeRuntimePaths`.
 - Bad: storing runtime env keys only in `platform_data` or UI-only state, because apply and doctor cannot round-trip them reliably.
 
 ### 6. Tests Required
 
 - `cargo test -p ccr-cli platforms::claude -- --test-threads=1`
-  - Assert API-key apply writes expected env and onboarding state.
-  - Assert corrupt `.claude.json` does not block `settings.json` apply.
-  - Assert subscription apply clears non-Anthropic managed keys.
+  - Assert API-key apply writes expected registered env, preserves unregistered Anthropic keys, leaves existing state bytes unchanged, and does not create a missing state file.
+  - Assert corrupt `.claude.json` is unchanged and does not block `settings.json` apply.
+  - Assert subscription apply clears every registered key and preserves user-owned keys.
+  - Assert stale auth mode persists before runtime mutation and write failure leaves settings bytes unchanged.
+- `cargo test -p ccr-cli claude_auth -- --test-threads=1`
+  - Assert auth switch and runtime summary use effective auth mode and explicit managed override detection.
 - `cargo test -p ccr-config -- --test-threads=1`
   - Assert each typed field maps to the correct env key in `to_managed_env_pairs` and stale keys clear on profile switch (combined with `apply_managed_env`).
 - `cargo test -p ccr-cli managers::settings -- --test-threads=1`
   - Assert disk-level read→apply→write→read keeps unknown fields and non-managed env intact.
 - `cargo test -p ccr --test commands doctor -- --test-threads=1`
-  - Assert placeholder, mismatch, compact-window, and onboarding warnings.
+  - Assert placeholder, mismatch, and compact-window warnings without an onboarding warning.
+- `cargo test -p ccr-desktop --manifest-path ccr-ui/src-tauri/Cargo.toml claude_mcp -- --test-threads=1`
+  - Assert user/local add, update, and delete preserve unrelated state, replay a single conflict, fail after three conflicts, and do not silently lose concurrent mutations.
 - `cargo test -p ccr --test commands claude_profile -- --test-threads=1`
   - Assert command-level switch/off behavior remains compatible.
 
@@ -194,20 +243,141 @@ Model-mapping fields are typed on `ProfileConfig` / `ConfigSection` and mapped i
 #### Wrong
 
 ```rust
-settings.env.insert("API_TIMEOUT_MS".into(), "3000000".into());
+settings.env.retain(|key, _| !key.starts_with("ANTHROPIC_"));
 ```
 
-This one-off write skips typed TOML migration, UI round-trip, doctor comparison, and cleanup.
+This deletes user-owned Anthropic variables and still misses CCR-managed non-Anthropic runtime keys.
 
 #### Correct
 
 ```rust
-profile.api_timeout_ms = Some("3000000".into());
-let section = ClaudePlatform::profile_to_section(&profile)?;
-settings.apply_managed_env(section.to_managed_env_pairs());
+let preview = settings.managed_env_entries();
+settings.clear_ccr_managed_vars();
+assert_eq!(preview.len(), removed_count);
 ```
 
-This keeps persistence, apply, diagnostics, and cleanup on the same typed contract.
+This keeps preview, count, and cleanup on the same explicit ownership registry while preserving user keys.
+
+## Scenario: Claude Credential Snapshots And Settings CAS
+
+### 1. Scope / Trigger
+
+- Trigger: changing Claude official-auth save/switch/list behavior or any local `settings.json` mutation in CLI/Tauri.
+- Applies to `ClaudeAuthService`, `SettingsManager`, Claude profile apply/off/clear/temp flows, and Tauri Claude agents/hooks/plugins/slash/settings/statusline commands.
+
+### 2. Contracts
+
+- Windows and Linux official credentials use `ClaudeRuntimePaths::credentials_file`. macOS save/switch returns an explicit Keychain-not-supported error before touching a credentials file.
+- `.credentials.json`, `auth/<name>.json`, and `auth_registry.toml` write through `write_guarded` with `secret: true` and `BackupPolicy::None`; credential fields are `Secret` with explicit plaintext persistence serializers.
+- Before switch overwrites an existing credentials file, its stable in-memory identity token must match a valid registry snapshot. Missing current credentials may switch; corrupt or unmatched credentials must be preserved and return guidance to run `ccr claude auth save`.
+- Runtime identity comes from the matching snapshot's `oauth_account`. Only an unmatched login may fall back to the current state-file `oauthAccount`; identity display never rewrites Claude's state file.
+- A switch writes target credentials, clears CCR-managed settings through `SettingsManager::update_atomic`, and only then updates the registry. Settings failure restores the previously matched credentials snapshot; combined errors contain categories only, never token content.
+- `SettingsManager::{update_atomic,update_atomic_async}` own local managed RMW. They use the guarded-write path lock, `secret: true`, centralized `settings` backups, and at most three deterministic conflict replays.
+- `save_atomic` is reserved for validated complete replacement and restore paths. Production mutation flows must not use `load -> save_atomic`.
+- Tauri Local mutations call the same `SettingsManager` API. SSH/WSL retain their environment-specific read/write protocol and are outside the local cross-process guarantee.
+- `LocalEnvironment::write_config` uses the same secret/central-backup policy when performing a complete local Claude settings replacement; it must not leave `*.bak` beside `settings.json`.
+
+### 3. Validation
+
+- `cargo test -p ccr-cli claude_auth -- --test-threads=1`
+- `cargo test -p ccr-cli managers::settings -- --test-threads=1`
+- `cargo test -p ccr-desktop --manifest-path ccr-ui/src-tauri/Cargo.toml claude -- --test-threads=1`
+- Assert A/B/A snapshot metadata follows credentials even while the state file remains stale.
+- Inject a real CAS conflict between independent CLI and local Tauri mutations; both fields and unknown user JSON must survive.
+- On Unix, assert auth durable files and settings replacements are owner-only. On Windows, verify inherited user-directory ACL behavior without claiming a Unix mode result.
+
+## Scenario: Retired Platform Command Discovery Boundary
+
+### 1. Scope / Trigger
+
+- Trigger: changing `ccr platform`, root/platform help text, or migration
+  behavior for the retired global platform-routing commands.
+- Applies to `PlatformAction`, `dispatch_platform`, `help_config`, and command
+  integration tests.
+
+### 2. Signatures
+
+- Supported discovery actions: `PlatformAction::{Help,List { json }}`.
+- Compatibility-only actions:
+  `PlatformAction::{Switch,Current,Info,Init,Profile}`.
+- Compatibility errors:
+  `legacy_platform_command_error(command: &str) -> CcrError` and the dedicated
+  `legacy_platform_init_error() -> CcrError`.
+- Current profile entry points: `ccr claude profile ...`,
+  `ccr codex profile ...`, and `ccr grok profile ...`.
+
+### 3. Contracts
+
+- `ccr platform --help` and `ccr help platform` expose only `help` and `list`;
+  they must not advertise retired actions in the Commands list or examples.
+- Compatibility-only variants remain in the Clap tree with hidden help
+  metadata. A syntactically valid old invocation must still parse and reach
+  `dispatch_platform`, which returns the shared migration error.
+- Do not delete the hidden variants or restore writes to legacy
+  `current_platform` / `default_platform` state.
+- Root and platform help direct status checks to `ccr current`, registry
+  discovery to `ccr platform list`, and profile work to the explicit
+  Claude/Codex/Grok command trees.
+
+### 4. Validation & Error Matrix
+
+- `ccr platform list [--json]` -> execute the supported registry view.
+- `ccr platform --help` or `ccr help platform` -> success with identical,
+  migration-safe help.
+- Valid retired invocation such as `ccr platform init grok` -> non-zero
+  `legacy command retired` error containing all three supported
+  `ccr <platform> profile init` replacements.
+- Retired action with malformed/missing arguments -> normal Clap argument
+  error; do not initialize or mutate platform state.
+- Unknown platform subcommand -> normal Clap unknown-subcommand error.
+
+### 5. Good/Base/Bad Cases
+
+- Good: an old script receives an actionable migration error while a new user
+  cannot discover the retired action through help.
+- Base: `ccr platform list` remains visible and unchanged.
+- Bad: removing `PlatformAction::Init` makes old calls fail as unknown commands
+  and loses the platform-specific migration guidance.
+- Bad: leaving a hidden action in custom after-help examples still recommends
+  an operation that always fails.
+
+### 6. Tests Required
+
+- `cargo test -p ccr --test commands -- --test-threads=1`
+  - Assert root help contains `ccr current`, `ccr platform list`, and all three
+    explicit profile help paths.
+  - Assert direct and nested platform help are equal and omit every retired
+    action from both Commands and examples.
+  - Execute `ccr platform init grok`; assert non-zero status, the legacy error,
+    and Grok profile migration guidance.
+- `cargo test -p ccr-cli --test dispatch_routing -- --test-threads=1`
+  keeps supported platform-list routing green.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```rust
+pub enum PlatformAction {
+    List { json: bool },
+}
+```
+
+This removes the compatibility parse surface and downgrades old calls to a
+generic unknown-subcommand error.
+
+#### Correct
+
+```rust
+pub enum PlatformAction {
+    List { json: bool },
+    #[command(hide = true)]
+    Init { platform_name: String },
+}
+```
+
+The dispatcher then returns `legacy_platform_init_error()` for init and the
+shared compatibility error for the other retired actions.
 
 ## Testing
 

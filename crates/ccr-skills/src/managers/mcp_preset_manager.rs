@@ -109,6 +109,7 @@ impl McpPresetManager {
             Platform::Gemini => home.join(".gemini").join("antigravity-cli"),
             Platform::Qwen => home.join(".qwen"),
             Platform::Droid => home.join(".factory"),
+            Platform::Grok => home.join(".grok"),
         };
 
         let ccr_dir = home.join(".ccr");
@@ -155,6 +156,9 @@ impl McpPresetManager {
             Platform::Gemini => self.install_to_gemini(&preset.id, &server_spec),
             Platform::Qwen => self.install_to_qwen(&preset.id, &server_spec),
             Platform::Droid => self.install_to_droid(&preset.id, &server_spec),
+            Platform::Grok => Err(CcrError::PlatformNotSupported(
+                "Grok 暂不支持 MCP preset 安装".into(),
+            )),
         }
     }
 
@@ -166,6 +170,9 @@ impl McpPresetManager {
             Platform::Gemini => self.install_to_gemini(name, spec),
             Platform::Qwen => self.install_to_qwen(name, spec),
             Platform::Droid => self.install_to_droid(name, spec),
+            Platform::Grok => Err(CcrError::PlatformNotSupported(
+                "Grok 暂不支持 MCP preset 安装".into(),
+            )),
         }
     }
 
@@ -632,5 +639,24 @@ mod tests {
 
         let nonexistent = manager.get_preset("nonexistent");
         assert!(nonexistent.is_none());
+    }
+
+    #[test]
+    fn grok_maps_home_but_rejects_mcp_preset_installation() {
+        let manager = McpPresetManager::new(Platform::Grok)
+            .expect("Failed to create Grok McpPresetManager for test");
+
+        assert_eq!(
+            manager
+                .platform_dir
+                .file_name()
+                .and_then(|name| name.to_str()),
+            Some(".grok")
+        );
+        assert!(matches!(
+            manager.install_preset("fetch", None),
+            Err(CcrError::PlatformNotSupported(message))
+                if message.contains("Grok 暂不支持 MCP preset 安装")
+        ));
     }
 }

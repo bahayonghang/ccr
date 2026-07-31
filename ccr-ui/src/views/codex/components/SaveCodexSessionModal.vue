@@ -10,7 +10,7 @@
   >
     <template #header="{ titleId }">
       <div
-        class="px-6 py-4 border-b border-border-default/10 flex items-center justify-between sticky top-0 bg-bg-elevated/95 backdrop-blur z-10"
+        class="px-6 py-4 border-b border-border-default/10 flex items-center justify-between sticky top-0 bg-bg-elevated z-10"
       >
         <h2
           :id="titleId"
@@ -125,7 +125,7 @@
 
     <template #footer>
       <div
-        class="px-6 py-4 border-t border-border-default/10 flex justify-end gap-3 bg-bg-surface/70"
+        class="px-6 py-4 border-t border-border-default/10 flex justify-end gap-3 bg-bg-elevated"
       >
         <Button
           variant="secondary"

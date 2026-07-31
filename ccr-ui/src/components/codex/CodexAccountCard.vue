@@ -79,11 +79,11 @@
         class="space-y-1"
       >
         <div class="flex justify-between">
-          <div class="h-3 w-16 rounded bg-bg-surface/70 animate-pulse" />
-          <div class="h-3 w-8 rounded bg-bg-surface/70 animate-pulse" />
+          <div class="h-3 w-16 rounded bg-bg-elevated animate-pulse" />
+          <div class="h-3 w-8 rounded bg-bg-elevated animate-pulse" />
         </div>
-        <div class="h-1.5 rounded-full bg-bg-surface/70 overflow-hidden">
-          <div class="h-full w-1/2 rounded-full bg-bg-overlay/50 animate-pulse" />
+        <div class="h-1.5 rounded-full bg-bg-elevated overflow-hidden">
+          <div class="h-full w-1/2 rounded-full bg-bg-surface animate-pulse" />
         </div>
       </div>
     </div>
@@ -109,7 +109,7 @@
             :class="textColorClass(quota.quota.hourly_percentage)"
           >{{ quota.quota.hourly_percentage }}%</span>
         </div>
-        <div class="h-1.5 rounded-full bg-bg-surface/70 overflow-hidden">
+        <div class="h-1.5 rounded-full bg-bg-elevated overflow-hidden">
           <div
             class="h-full w-full rounded-full origin-left transition-transform duration-500"
             :class="barColorClass(quota.quota.hourly_percentage)"
@@ -142,7 +142,7 @@
             :class="textColorClass(quota.quota.weekly_percentage)"
           >{{ quota.quota.weekly_percentage }}%</span>
         </div>
-        <div class="h-1.5 rounded-full bg-bg-surface/70 overflow-hidden">
+        <div class="h-1.5 rounded-full bg-bg-elevated overflow-hidden">
           <div
             class="h-full w-full rounded-full origin-left transition-transform duration-500"
             :class="barColorClass(quota.quota.weekly_percentage)"
@@ -330,7 +330,7 @@ const planBadgeClass = (plan: string) => {
   if (lower === 'pro') return 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
   if (lower === 'plus') return 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
   if (lower === 'team') return 'bg-teal-500/20 text-teal-400 border border-teal-500/30'
-  return 'bg-bg-elevated/80 text-text-muted border border-border-default/15'
+  return 'bg-bg-elevated text-text-muted border border-border-default/15'
 }
 
 const authMethodLabel = (method?: string) => {
@@ -426,7 +426,7 @@ const formatSavedAt = (raw?: string | null) => {
 }
 
 .codex-account-chip {
-  @apply inline-flex items-center rounded-full border border-border-default/20 bg-bg-surface/70 px-2 py-0.5;
+  @apply inline-flex items-center rounded-full border border-border-default/20 bg-bg-elevated px-2 py-0.5;
 }
 
 .codex-account-chip--muted {

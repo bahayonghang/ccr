@@ -566,7 +566,7 @@ onMounted(() => {
 .opencode-identity-panel,
 .opencode-metrics-panel,
 .opencode-actions-panel {
-  @apply rounded-[1.75rem] border border-border-default/55 bg-bg-base/35 p-4;
+  @apply rounded-[1.75rem] border border-border-default/55 bg-bg-base p-4;
 }
 
 .opencode-identity-panel__head,
@@ -614,7 +614,7 @@ onMounted(() => {
 }
 
 .opencode-path-chip {
-  @apply max-w-full gap-2 border-border-default/55 bg-bg-base/45 text-text-secondary;
+  @apply max-w-full gap-2 border-border-default/55 bg-bg-base text-text-secondary;
 }
 
 .opencode-path-chip strong {
@@ -626,7 +626,7 @@ onMounted(() => {
 }
 
 .opencode-live-metric {
-  @apply rounded-2xl border border-border-default/50 bg-bg-base/40 p-3;
+  @apply rounded-2xl border border-border-default/50 bg-bg-base p-3;
 }
 
 .opencode-live-metric strong {
@@ -638,7 +638,7 @@ onMounted(() => {
 }
 
 .opencode-runtime-chip {
-  @apply gap-2 border-border-default/55 bg-bg-base/45 text-text-secondary;
+  @apply gap-2 border-border-default/55 bg-bg-base text-text-secondary;
 }
 
 .opencode-runtime-chip strong {
@@ -670,11 +670,11 @@ onMounted(() => {
 }
 
 .opencode-refresh-button {
-  @apply gap-2 border-border-default/60 bg-bg-elevated/60 text-text-primary transition hover:border-lime-300/35 hover:text-lime-100 disabled:cursor-not-allowed disabled:opacity-60;
+  @apply gap-2 border-border-default/60 bg-bg-base text-text-primary transition hover:border-lime-300/35 hover:text-lime-100 disabled:cursor-not-allowed disabled:opacity-60;
 }
 
 .opencode-action-link {
-  @apply flex flex-1 basis-full items-center justify-between gap-3 rounded-2xl border border-border-default/55 bg-bg-base/40 px-3 py-2 text-sm text-text-secondary transition hover:border-lime-300/30 hover:bg-lime-300/10 hover:text-text-primary;
+  @apply flex flex-1 basis-full items-center justify-between gap-3 rounded-2xl border border-border-default/55 bg-bg-base px-3 py-2 text-sm text-text-secondary transition hover:border-lime-300/30 hover:bg-lime-300/10 hover:text-text-primary;
 }
 
 .opencode-action-link strong {
@@ -723,7 +723,7 @@ onMounted(() => {
 }
 
 .opencode-capability-card__badge {
-  @apply border-border-default/55 bg-bg-base/45 font-mono text-text-secondary;
+  @apply border-border-default/55 bg-bg-base font-mono text-text-secondary;
 }
 
 .opencode-capability-card__title,
@@ -752,7 +752,7 @@ onMounted(() => {
 }
 
 .opencode-inspector-tab {
-  @apply border-border-default/55 bg-bg-base/35 text-text-secondary transition hover:border-cyan-300/30 hover:text-text-primary;
+  @apply border-border-default/55 bg-bg-base text-text-secondary transition hover:border-cyan-300/30 hover:text-text-primary;
 }
 
 .opencode-inspector-tab--active {
@@ -774,7 +774,7 @@ onMounted(() => {
 .opencode-tool-card,
 .opencode-topology-item,
 .opencode-discovery-card {
-  @apply rounded-2xl border border-border-default/55 bg-bg-base/35 p-3;
+  @apply rounded-2xl border border-border-default/55 bg-bg-base p-3;
 }
 
 .opencode-command-row code,
@@ -805,7 +805,7 @@ onMounted(() => {
 }
 
 .opencode-tool-card div span {
-  @apply rounded-full bg-bg-base/55 px-2 py-1 font-mono text-[11px] uppercase tracking-[0.14em] text-text-muted;
+  @apply rounded-full bg-bg-base px-2 py-1 font-mono text-[11px] uppercase tracking-[0.14em] text-text-muted;
 }
 
 .opencode-discovery-card strong {

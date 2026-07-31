@@ -83,7 +83,7 @@
         </p>
 
         <!-- Command Preview -->
-        <div class="flex items-center gap-1.5 text-[10px] font-mono text-text-muted bg-bg-surface/50 rounded-lg px-2 py-1.5 overflow-hidden">
+        <div class="flex items-center gap-1.5 text-[10px] font-mono text-text-muted bg-bg-elevated rounded-lg px-2 py-1.5 overflow-hidden">
           <SIcon
             name="Terminal"
             size="w-3 h-3"
@@ -95,7 +95,7 @@
         <!-- Hover Install Button -->
         <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl flex items-end justify-center pb-4">
           <button
-            class="px-4 py-2 rounded-lg bg-accent-secondary text-white text-xs font-bold flex items-center gap-2 hover:bg-accent-secondary/90 transition-colors shadow-lg"
+            class="px-4 py-2 rounded-lg bg-accent-secondary text-[color:var(--color-accent-primary-contrast)] text-xs font-bold flex items-center gap-2 hover:bg-accent-secondary/90 transition-colors shadow-lg"
             @click.stop="handleInstall(preset)"
           >
             <SIcon
@@ -120,7 +120,7 @@
       >
         <!-- Header -->
         <div class="flex items-center gap-4 mb-6">
-          <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-accent-secondary to-accent-primary flex items-center justify-center text-white">
+          <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-accent-secondary to-accent-primary flex items-center justify-center text-[color:var(--color-accent-primary-contrast)]">
             <SIcon
               name="Sparkles"
               size="w-6 h-6"
@@ -172,7 +172,7 @@
           <input
             v-model="apiKeyValue"
             type="password"
-            class="w-full px-4 py-3 rounded-xl bg-bg-surface/70 border border-border-default focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 outline-none transition-[border-color,box-shadow] font-mono text-sm"
+            class="w-full px-4 py-3 rounded-xl bg-bg-elevated border border-border-default focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 outline-none transition-[border-color,box-shadow] font-mono text-sm"
             :placeholder="`${$t('mcp.presets.enterApiKey')} ${selectedPreset.api_key_env}`"
           >
           <p class="text-xs text-text-muted mt-2">
@@ -181,7 +181,7 @@
         </div>
 
         <!-- Command Preview -->
-        <div class="mb-6 p-4 rounded-xl bg-bg-surface/50 border border-border-default/50">
+        <div class="mb-6 p-4 rounded-xl bg-bg-elevated border border-border-default/50">
           <div class="text-xs font-medium text-text-muted mb-2">
             {{ $t('mcp.presets.commandPreview') }}
           </div>
@@ -260,7 +260,7 @@
             {{ $t('common.cancel') }}
           </button>
           <button
-            class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-[box-shadow,transform] bg-accent-secondary text-white shadow-lg shadow-accent-secondary/20 hover:shadow-xl hover:shadow-accent-secondary/30 hover:-translate-y-0.5 flex items-center justify-center gap-2"
+            class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-[box-shadow,transform] bg-accent-secondary text-[color:var(--color-accent-primary-contrast)] shadow-lg shadow-accent-secondary/20 hover:shadow-xl hover:shadow-accent-secondary/30 hover:-translate-y-0.5 flex items-center justify-center gap-2"
             :disabled="installing || selectedPlatforms.length === 0"
             @click="confirmInstall"
           >

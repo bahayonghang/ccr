@@ -10,7 +10,7 @@
       <div class="mb-6 flex items-center gap-3">
         <RouterLink
           to="/agents"
-          class="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-border-default/60 bg-bg-surface/70 px-4 py-2 text-sm font-medium text-text-secondary transition-colors hover:border-accent-secondary/30 hover:bg-bg-elevated hover:text-text-primary"
+          class="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-border-default/60 bg-bg-elevated px-4 py-2 text-sm font-medium text-text-secondary transition-colors hover:border-accent-secondary/30 hover:bg-bg-elevated hover:text-text-primary"
         >
           <SIcon
             name="ArrowLeft"
@@ -188,7 +188,7 @@
             v-if="agent.system_prompt"
             class="relative"
           >
-            <pre class="bg-bg-surface/50 rounded-xl p-4 overflow-auto max-h-[600px] border border-border-default/30">
+            <pre class="bg-bg-elevated rounded-xl p-4 overflow-auto max-h-[600px] border border-border-default/30">
               <code class="text-sm font-mono text-text-primary whitespace-pre-wrap break-words leading-relaxed">{{ agent.system_prompt }}</code>
             </pre>
           </div>
@@ -245,7 +245,7 @@
                 :value="agent?.name"
                 type="text"
                 disabled
-                class="w-full px-4 py-3 rounded-xl bg-bg-surface/50 border border-border-default opacity-60 cursor-not-allowed"
+                class="w-full px-4 py-3 rounded-xl bg-bg-elevated border border-border-default opacity-60 cursor-not-allowed"
               >
             </div>
 
@@ -254,7 +254,7 @@
               <div class="relative">
                 <select
                   v-model="formData.model"
-                  class="w-full px-4 py-3 rounded-xl bg-bg-surface/700 border border-border-default focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 outline-none transition-colors appearance-none"
+                  class="w-full px-4 py-3 rounded-xl bg-bg-surface border border-border-default focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 outline-none transition-colors appearance-none"
                 >
                   <option
                     v-for="option in defaultAgentModelOptions"
@@ -281,17 +281,17 @@
                 v-model="toolInput"
                 type="text"
                 :placeholder="$t('agents.toolPlaceholder')"
-                class="flex-1 px-4 py-3 rounded-xl bg-bg-surface/700 border border-border-default focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 outline-none transition-colors"
+                class="flex-1 px-4 py-3 rounded-xl bg-bg-surface border border-border-default focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 outline-none transition-colors"
                 @keyup.enter="addTool"
               >
               <button
-                class="px-6 py-3 rounded-xl font-bold text-white bg-accent-secondary hover:bg-accent-secondary/90 transition-colors shadow-lg shadow-accent-secondary/20"
+                class="px-6 py-3 rounded-xl font-bold text-[color:var(--color-accent-primary-contrast)] bg-accent-secondary hover:bg-accent-secondary/90 transition-colors shadow-lg shadow-accent-secondary/20"
                 @click="addTool"
               >
                 {{ $t('agents.addTool') }}
               </button>
             </div>
-            <div class="flex flex-wrap gap-2 min-h-[50px] p-4 rounded-xl bg-bg-elevated/50 border border-border-default/50 border-dashed">
+            <div class="flex flex-wrap gap-2 min-h-[50px] p-4 rounded-xl bg-bg-base border border-border-default/50 border-dashed">
               <span
                 v-if="!formData.tools || formData.tools.length === 0"
                 class="text-sm text-text-muted italic w-full text-center py-2"
@@ -318,7 +318,7 @@
             <textarea
               v-model="formData.system_prompt"
               rows="8"
-              class="w-full px-4 py-3 rounded-xl bg-bg-surface/70 border border-border-default focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 outline-none transition-colors resize-y font-mono text-sm leading-relaxed"
+              class="w-full px-4 py-3 rounded-xl bg-bg-elevated border border-border-default focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 outline-none transition-colors resize-y font-mono text-sm leading-relaxed"
               :placeholder="$t('agents.systemPromptPlaceholder')"
             />
           </div>
@@ -332,7 +332,7 @@
             {{ $t('common.cancel') }}
           </button>
           <button
-            class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-[color,background-color,border-color,transform] bg-accent-secondary text-white shadow-lg shadow-accent-secondary/20 hover:shadow-xl hover:shadow-accent-secondary/30 hover:-translate-y-0.5"
+            class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-[color,background-color,border-color,transform] bg-accent-secondary text-[color:var(--color-accent-primary-contrast)] shadow-lg shadow-accent-secondary/20 hover:shadow-xl hover:shadow-accent-secondary/30 hover:-translate-y-0.5"
             :disabled="saving"
             @click="handleSave"
           >

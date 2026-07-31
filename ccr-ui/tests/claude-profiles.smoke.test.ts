@@ -4,6 +4,7 @@ import {
   filterClaudeProfiles,
   getClaudeProfileProviderKey,
   normalizeClaudeProfilesState,
+  resolveClaudePrimaryModel,
 } from '@/utils/claudeProfiles'
 import type { ClaudeProfile } from '@/types'
 
@@ -99,6 +100,23 @@ describe('claude profiles utils', () => {
 
   it('returns an empty result when the query does not match any searchable field', () => {
     expect(filterClaudeProfiles(sampleProfiles, 'no-such-profile')).toEqual([])
+  })
+
+  it('uses one stable model fallback chain across profile consumers', () => {
+    expect(resolveClaudePrimaryModel({
+      model: '',
+      default_sonnet_model: '',
+      default_opus_model: '',
+      default_haiku_model: 'haiku-fallback',
+      subagent_model: 'subagent-fallback',
+    })).toBe('haiku-fallback')
+    expect(resolveClaudePrimaryModel({
+      model: '',
+      default_sonnet_model: '',
+      default_opus_model: '',
+      default_haiku_model: '',
+      subagent_model: 'subagent-fallback',
+    })).toBe('subagent-fallback')
   })
 
   it('normalizes mismatched current profile sources into one canonical current profile', () => {

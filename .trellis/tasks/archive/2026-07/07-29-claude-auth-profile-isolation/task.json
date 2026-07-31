@@ -1,0 +1,32 @@
+{
+  "id": "claude-auth-profile-isolation",
+  "name": "claude-auth-profile-isolation",
+  "title": "Claude profile 与官方账号切换互不影响加固",
+  "description": "父任务:修复 ccr 在 Claude 第三方 profile 与官方订阅账号(OAuth)之间切换时的互相干扰缺陷(auth_mode 判定不一致、env 清理不彻底、凭据文件安全、CLAUDE_CONFIG_DIR 不一致、apiKeyHelper 盲区),对照 Claude Code 官方认证优先级规则逐项整改。",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P0",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-07-29",
+  "completedAt": "2026-07-30",
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "07-29-claude-authmode-consistency",
+    "07-29-claude-config-dir-consistency",
+    "07-29-claude-credentials-hardening",
+    "07-29-claude-json-write-strategy",
+    "07-29-claude-auth-doctor-spec"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}

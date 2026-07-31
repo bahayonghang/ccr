@@ -291,7 +291,7 @@ const nameColorClass = computed(() => {
 /* === Switch Button === */
 .switch-btn {
   background: linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary));
-  color: white;
+  color: var(--color-accent-primary-contrast);
   box-shadow: 0 2px 8px rgb(var(--color-accent-primary-rgb) / 25%);
 }
 

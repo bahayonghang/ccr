@@ -36,8 +36,9 @@ The old `/gemini-cli` UI route and `gemini` platform key remain compatibility al
 ## Quick Start
 
 ```bash
-# Initialize the compatibility platform namespace
-ccr platform init gemini
+# Gemini has no profile init command yet; copy the example manually
+mkdir -p ~/.ccr/platforms/gemini
+cp examples/gemini/profiles.toml ~/.ccr/platforms/gemini/profiles.toml
 
 # Switch to the Google/Antigravity profile namespace
 ccr platform switch gemini
@@ -171,7 +172,7 @@ They should not be documented as the primary Antigravity settings or MCP paths.
 ## Related Commands
 
 ```bash
-ccr platform init gemini
+# Profile creation creates the directory automatically; manual copying also works
 ccr platform switch gemini
 ccr list
 ccr switch <profile>

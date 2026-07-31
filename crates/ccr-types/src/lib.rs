@@ -20,7 +20,9 @@ mod model_rate_catalog;
 mod monitoring;
 
 pub use claude_auth::{
-    ClaudeAuthAccount, ClaudeAuthRegistry, ClaudeCurrentAuthInfo, ClaudeLoginState,
+    ClaudeAuthAccount, ClaudeAuthActionOutcome, ClaudeAuthConfidence, ClaudeAuthDiagnosis,
+    ClaudeAuthEvidence, ClaudeAuthOwnership, ClaudeAuthRegistry, ClaudeAuthSourceKind,
+    ClaudeAuthSourceLocation, ClaudeAuthSourceObservation, ClaudeCurrentAuthInfo, ClaudeLoginState,
     ClaudeProfileAuthMode, ClaudeRuntimeMode, ClaudeRuntimeSummary,
 };
 pub use claude_settings::{

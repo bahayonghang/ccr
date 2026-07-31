@@ -9,6 +9,8 @@ export interface ConfirmActionOptions {
   message: string
   confirmText: string
   type: ConfirmActionType
+  /** 可选补充说明行（如 delete 备份提示）；缺省不渲染，保持旧行为 */
+  footnote?: string
   action: () => Promise<void>
 }
 
@@ -17,6 +19,7 @@ export interface ConfirmActionDialogState {
   message: string
   confirmText: string
   type: ConfirmActionType
+  footnote: string
 }
 
 export function useConfirmAction() {
@@ -27,6 +30,7 @@ export function useConfirmAction() {
     message: '',
     confirmText: '',
     type: 'warning',
+    footnote: '',
   })
 
   let pendingAction: (() => Promise<void>) | null = null
@@ -36,6 +40,7 @@ export function useConfirmAction() {
     dialog.message = options.message
     dialog.confirmText = options.confirmText
     dialog.type = options.type
+    dialog.footnote = options.footnote ?? ''
     pendingAction = options.action
     isOpen.value = true
   }

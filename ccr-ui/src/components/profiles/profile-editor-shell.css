@@ -1,0 +1,405 @@
+/* ==========================================================================
+   Profiles 编辑器模态共享样式基底（profile-editor-shell）
+   供 ClaudeProfileEditorModal（新抽取）与 CodexProfileEditorModal（迁移）统一消费。
+   契约：
+   - 只消费 --cp-*（页内别名，带回退到同值全局 --color-* token——模态经 Teleport
+     脱离 --cp-* 作用域时回退生效，视觉一致）；
+   - 字号一律 rem（Label 0.8125rem 为密排下限，元信息用 0.75rem 扩展档）；
+   - 圆角走 6/8/12/16px 刻度；禁止 !important 与硬编码色值；
+   - 平台差异（accent）由视图 --cp-accent 注入，不在本文件出现平台色。
+   ========================================================================== */
+
+/* 外壳：模态内容区纵向布局 */
+.pe-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  color: var(--cp-ink-1, var(--color-text-secondary));
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+/* 校验失败汇总条：显示在模态顶部，点击可滚动到第一个错误字段 */
+.pe-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid rgb(var(--color-danger-rgb) / 35%);
+  background: rgb(var(--color-danger-rgb) / 10%);
+  color: var(--cp-danger, var(--color-danger));
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+/* 分段导航（4 段 + scroll-spy） */
+.pe-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  padding: 0.25rem;
+  border-radius: 8px;
+  border: 1px solid var(--cp-line, var(--color-border-subtle));
+  background: var(--cp-bg-0, var(--color-bg-base));
+}
+
+.pe-nav__item {
+  flex: 1;
+  min-width: 0;
+  padding: 0.375rem 0.625rem;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--cp-ink-2, var(--color-text-muted));
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.pe-nav__item:hover {
+  color: var(--cp-ink-0, var(--color-text-primary));
+}
+
+.pe-nav__item--active {
+  background: var(--cp-accent-soft, rgb(var(--color-accent-primary-rgb) / 14%));
+  color: var(--cp-accent, var(--color-accent-primary));
+  box-shadow: inset 0 0 0 1px var(--cp-accent-line, rgb(var(--color-accent-primary-rgb) / 35%));
+}
+
+/* 表单分段 */
+.pe-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--cp-line, var(--color-border-subtle));
+  background: var(--cp-bg-2, var(--color-bg-surface));
+}
+
+.pe-section__title {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.0375rem;
+  text-transform: uppercase;
+  color: var(--cp-ink-2, var(--color-text-muted));
+}
+
+.pe-section__desc {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--cp-ink-3, var(--color-text-ghost));
+}
+
+/* 字段行 */
+.pe-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.pe-field__label {
+  font-family: var(--cp-mono, var(--font-mono));
+  font-size: 0.75rem;
+  letter-spacing: 0.0625rem;
+  text-transform: uppercase;
+  color: var(--cp-ink-3, var(--color-text-ghost));
+}
+
+.pe-field__hint {
+  font-size: 0.75rem;
+  color: var(--cp-ink-3, var(--color-text-ghost));
+}
+
+.pe-field__error {
+  font-size: 0.75rem;
+  color: var(--cp-danger, var(--color-danger));
+}
+
+/* 输入控件（input / textarea / select 共用） */
+.pe-input,
+.pe-textarea,
+.pe-select {
+  width: 100%;
+  padding: 0.5rem 0.625rem;
+  border-radius: 6px;
+  border: 1px solid var(--cp-line-2, var(--color-border-default));
+  background: var(--cp-bg-0, var(--color-bg-base));
+  color: var(--cp-ink-0, var(--color-text-primary));
+  font-family: inherit;
+  font-size: 0.8125rem;
+  outline: none;
+  transition: border-color 120ms ease, box-shadow 120ms ease, background 120ms ease;
+}
+
+.pe-input:hover,
+.pe-textarea:hover,
+.pe-select:hover {
+  background: var(--cp-bg-1, var(--color-bg-elevated));
+}
+
+.pe-input:focus,
+.pe-textarea:focus,
+.pe-select:focus {
+  border-color: var(--cp-accent-line, rgb(var(--color-accent-primary-rgb) / 35%));
+  box-shadow: 0 0 0 3px rgb(var(--color-accent-primary-rgb) / 10%);
+}
+
+.pe-input::placeholder,
+.pe-textarea::placeholder {
+  color: var(--cp-ink-4, var(--color-text-disabled));
+}
+
+.pe-input--invalid,
+.pe-textarea--invalid,
+.pe-select--invalid {
+  border-color: rgb(var(--color-danger-rgb) / 55%);
+}
+
+/* 等宽变体：base_url / token / model 等需要逐字符核对的字段 */
+.pe-input--mono,
+.pe-select--mono {
+  font-family: var(--cp-mono, var(--font-mono));
+  letter-spacing: 0.01em;
+}
+
+.pe-textarea {
+  min-height: 5rem;
+  resize: vertical;
+}
+
+/* 底部操作区 */
+.pe-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--cp-line, var(--color-border-subtle));
+}
+
+.pe-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.4375rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--cp-line-2, var(--color-border-default));
+  background: var(--cp-bg-2, var(--color-bg-surface));
+  color: var(--cp-ink-1, var(--color-text-secondary));
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.pe-btn:hover:not(:disabled) {
+  background: var(--cp-bg-3, var(--color-bg-overlay));
+  color: var(--cp-ink-0, var(--color-text-primary));
+}
+
+.pe-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.pe-btn--primary {
+  background: var(--cp-accent, var(--color-accent-primary));
+  border-color: var(--cp-accent, var(--color-accent-primary));
+  color: var(--cp-on-accent, var(--color-text-inverted));
+  font-weight: 600;
+}
+
+.pe-btn--primary:hover:not(:disabled) {
+  background: var(--cp-accent-hover, var(--color-accent-primary-hover));
+  border-color: var(--cp-accent-hover, var(--color-accent-primary-hover));
+  color: var(--cp-on-accent, var(--color-text-inverted));
+}
+
+/* ==========================================================================
+   模态外壳皮肤：由 BaseModal contentClass 与编辑器分段组件共同消费。
+   替代旧 --editor-* 体系（平行令牌 + !important + 硬编码 light RGBA）。
+   ========================================================================== */
+
+.pe-modal {
+  max-height: 90vh;
+  background: var(--material-glass-floating-bg);
+  border: 1px solid var(--material-glass-floating-border);
+  box-shadow: var(--material-glass-floating-shadow);
+  backdrop-filter: var(--material-glass-floating-blur);
+
+  /* stylelint-disable-next-line property-no-vendor-prefix */
+  -webkit-backdrop-filter: var(--material-glass-floating-blur);
+  color: var(--cp-ink-0, var(--color-text-primary));
+}
+
+/* 模态头部：图标 + eyebrow/标题/状态 pill + 描述 + 关闭 */
+.pe-modal__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 0.875rem;
+  border-bottom: 1px solid var(--cp-line, var(--color-border-subtle));
+}
+
+.pe-modal__eyebrow {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.125rem;
+  text-transform: uppercase;
+  color: var(--cp-accent, var(--color-accent-primary));
+}
+
+.pe-modal__title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--cp-ink-0, var(--color-text-primary));
+}
+
+.pe-modal__desc {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--cp-ink-2, var(--color-text-muted));
+}
+
+/* 模态滚动区（段导航 scroll-spy 的 root） */
+.pe-scroll {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+  scrollbar-color: var(--cp-accent-line, rgb(var(--color-accent-primary-rgb) / 35%)) transparent;
+}
+
+/* 状态 pill（当前激活 / 编辑中 / 已停用 / 草稿） */
+.pe-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--cp-line-2, var(--color-border-default));
+  background: var(--cp-bg-3, var(--color-bg-overlay));
+  color: var(--cp-ink-2, var(--color-text-muted));
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.pe-pill--accent {
+  border-color: var(--cp-accent-line, rgb(var(--color-accent-primary-rgb) / 35%));
+  background: var(--cp-accent-soft, rgb(var(--color-accent-primary-rgb) / 14%));
+  color: var(--cp-accent, var(--color-accent-primary));
+}
+
+.pe-pill--danger {
+  border-color: rgb(var(--color-danger-rgb) / 35%);
+  background: rgb(var(--color-danger-rgb) / 12%);
+  color: var(--cp-danger, var(--color-danger));
+}
+
+/* 面板：表单分段容器与其内部弱化子面板 */
+.pe-panel {
+  border-radius: 12px;
+  border: 1px solid var(--cp-line, var(--color-border-subtle));
+  background: var(--cp-bg-2, var(--color-bg-surface));
+}
+
+.pe-panel-muted {
+  border-radius: 12px;
+  border: 1px solid var(--cp-line, var(--color-border-subtle));
+  background: var(--cp-bg-3, var(--color-bg-overlay));
+}
+
+.pe-panel-icon {
+  border-radius: 12px;
+  background: var(--cp-accent-soft, rgb(var(--color-accent-primary-rgb) / 14%));
+  color: var(--cp-accent, var(--color-accent-primary));
+}
+
+/* 内联提示条：错误（默认）与警告变体 */
+.pe-banner {
+  border-radius: 12px;
+  border: 1px solid rgb(var(--color-danger-rgb) / 30%);
+  background: rgb(var(--color-danger-rgb) / 10%);
+}
+
+.pe-banner__icon {
+  border-radius: 12px;
+  background: rgb(var(--color-danger-rgb) / 14%);
+  color: var(--cp-danger, var(--color-danger));
+}
+
+.pe-banner--warn {
+  border-color: rgb(var(--color-warning-rgb) / 32%);
+  background: rgb(var(--color-warning-rgb) / 10%);
+}
+
+.pe-banner--warn .pe-banner__icon {
+  background: rgb(var(--color-warning-rgb) / 16%);
+  color: var(--cp-warn, var(--color-warning));
+}
+
+/* 标签 chip 与图标按钮 */
+.pe-tag {
+  border: 1px solid var(--cp-line-2, var(--color-border-default));
+  background: var(--cp-bg-3, var(--color-bg-overlay));
+  color: var(--cp-ink-1, var(--color-text-secondary));
+}
+
+.pe-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 6px;
+  border: 1px solid var(--cp-line-2, var(--color-border-default));
+  background: var(--cp-bg-1, var(--color-bg-elevated));
+  color: var(--cp-ink-2, var(--color-text-muted));
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+
+.pe-icon-btn:hover:not(:disabled) {
+  background: var(--cp-bg-3, var(--color-bg-overlay));
+  color: var(--cp-ink-0, var(--color-text-primary));
+}
+
+.pe-icon-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 校验汇总条内的跳转按钮 */
+.pe-summary__jump {
+  margin-left: auto;
+  padding: 0.125rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid rgb(var(--color-danger-rgb) / 35%);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pe-nav__item,
+  .pe-input,
+  .pe-textarea,
+  .pe-select,
+  .pe-btn,
+  .pe-icon-btn {
+    transition: none;
+  }
+}

@@ -53,7 +53,7 @@
 
     <!-- 悬停背景效果 -->
     <div
-      class="absolute inset-0 rounded-lg bg-bg-elevated/80 opacity-0 transition-opacity duration-200 -z-10"
+      class="absolute inset-0 rounded-lg bg-bg-elevated opacity-0 transition-opacity duration-200 -z-10"
       :class="{ 'group-hover:opacity-100': !isActive }"
     />
   </component>
@@ -117,7 +117,7 @@ const itemClasses = computed(() => [
   // 活跃状态
   props.isActive
     ? 'bg-gradient-to-r from-accent-primary/10 to-transparent text-accent-primary font-medium pl-5'
-    : 'text-text-primary hover:text-white',
+    : 'text-text-primary',
   
   // 禁用状态
   props.disabled

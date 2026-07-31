@@ -1,0 +1,4 @@
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"父任务跨 ccr-types/ccr-config/ccr-core/ccr-cli/TUI/Tauri/UI,用于核对端到端数据流与边界。"}
+{"file":".trellis/spec/ccr-cli/backend/index.md","reason":"Claude profile/auth/doctor 主契约与子任务规范入口。"}
+{"file":".trellis/spec/ccr-core/backend/atomic-writer.md","reason":"凭据与 settings 持久化的锁、备份、secret、CAS 契约。"}
+{"file":".trellis/tasks/archive/2026-07/07-29-claude-json-write-strategy/research/claude-2.1.220-onboarding-probe.md","reason":"停止写入 .claude.json 与共享路径解析的当前版本证据。"}

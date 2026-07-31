@@ -24,6 +24,7 @@ use std::str::FromStr;
 /// - ✅ **Claude**: 完全支持（Claude Code）
 /// - ✅ **Codex**: 完全支持（Codex CLI）
 /// - ✅ **Gemini**: 完全支持（Antigravity CLI，内部 key 保持 gemini）
+/// - ✅ **Grok**: 完全支持（xAI Grok Build）
 /// - 🚧 **Qwen**: 计划支持（阿里通义千问 CLI）
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -38,6 +39,8 @@ pub enum Platform {
     Qwen,
     /// Factory Droid CLI - Factory AI Droid CLI
     Droid,
+    /// Grok Build - xAI 官方 CLI
+    Grok,
 }
 
 impl Platform {
@@ -49,6 +52,7 @@ impl Platform {
             Platform::Gemini => "Antigravity CLI",
             Platform::Qwen => "Qwen CLI",
             Platform::Droid => "Factory Droid",
+            Platform::Grok => "Grok Build",
         }
     }
 
@@ -60,6 +64,7 @@ impl Platform {
             Platform::Gemini => "gemini",
             Platform::Qwen => "qwen",
             Platform::Droid => "droid",
+            Platform::Grok => "grok",
         }
     }
 
@@ -71,6 +76,7 @@ impl Platform {
             Platform::Gemini => "✨",
             Platform::Qwen => "🌟",
             Platform::Droid => "🏭",
+            Platform::Grok => "🌌",
         }
     }
 
@@ -78,7 +84,11 @@ impl Platform {
     pub fn is_implemented(&self) -> bool {
         matches!(
             self,
-            Platform::Claude | Platform::Codex | Platform::Gemini | Platform::Droid
+            Platform::Claude
+                | Platform::Codex
+                | Platform::Gemini
+                | Platform::Droid
+                | Platform::Grok
         )
     }
 
@@ -90,6 +100,7 @@ impl Platform {
             Platform::Gemini,
             Platform::Qwen,
             Platform::Droid,
+            Platform::Grok,
         ]
     }
 
@@ -106,7 +117,7 @@ impl Platform {
     /// Keep this narrower than [`Self::all`] because Gemini/Qwen/Droid remain
     /// valid in usage, sync, and session domains.
     pub fn auth_profile_supported() -> &'static [Platform] {
-        &[Platform::Claude, Platform::Codex]
+        &[Platform::Claude, Platform::Codex, Platform::Grok]
     }
 }
 
@@ -128,6 +139,7 @@ impl FromStr for Platform {
             }
             "qwen" => Ok(Platform::Qwen),
             "droid" | "factory" => Ok(Platform::Droid),
+            "grok" | "grok-build" | "grok-cli" => Ok(Platform::Grok),
             _ => Err(ccr_core::core::error::CcrError::PlatformNotFound(
                 s.to_string(),
             )),
@@ -590,6 +602,7 @@ mod tests {
         assert_eq!(Platform::Claude.to_string(), "claude");
         assert_eq!(Platform::Codex.to_string(), "codex");
         assert_eq!(Platform::Gemini.to_string(), "gemini");
+        assert_eq!(Platform::Grok.to_string(), "grok");
     }
 
     #[test]
@@ -603,6 +616,9 @@ mod tests {
             Platform::Gemini
         );
         assert_eq!(Platform::from_str("agy").unwrap(), Platform::Gemini);
+        assert_eq!(Platform::from_str("grok").unwrap(), Platform::Grok);
+        assert_eq!(Platform::from_str("GROK-BUILD").unwrap(), Platform::Grok);
+        assert_eq!(Platform::from_str("grok-cli").unwrap(), Platform::Grok);
         assert!(Platform::from_str("invalid").is_err());
     }
 
@@ -611,37 +627,44 @@ mod tests {
         assert!(Platform::Claude.is_implemented());
         assert!(Platform::Codex.is_implemented());
         assert!(Platform::Gemini.is_implemented());
+        assert!(Platform::Grok.is_implemented());
         assert!(!Platform::Qwen.is_implemented());
     }
 
     #[test]
     fn test_platform_all() {
         let platforms = Platform::all();
-        assert_eq!(platforms.len(), 5);
+        assert_eq!(platforms.len(), 6);
         assert!(platforms.contains(&Platform::Claude));
         assert!(platforms.contains(&Platform::Gemini));
         assert!(platforms.contains(&Platform::Qwen));
         assert!(platforms.contains(&Platform::Droid));
+        assert!(platforms.contains(&Platform::Grok));
     }
 
     #[test]
     fn test_platform_implemented() {
         let implemented = Platform::implemented();
-        assert_eq!(implemented.len(), 4);
+        assert_eq!(implemented.len(), 5);
         assert!(implemented.contains(&Platform::Claude));
         assert!(implemented.contains(&Platform::Droid));
+        assert!(implemented.contains(&Platform::Grok));
         assert!(!implemented.contains(&Platform::Qwen));
     }
 
     #[test]
     fn test_auth_profile_supported_is_narrower_than_all_platforms() {
         let supported = Platform::auth_profile_supported();
-        assert_eq!(supported, &[Platform::Claude, Platform::Codex]);
+        assert_eq!(
+            supported,
+            &[Platform::Claude, Platform::Codex, Platform::Grok]
+        );
 
         let all = Platform::all();
         assert!(all.contains(&Platform::Gemini));
         assert!(all.contains(&Platform::Qwen));
         assert!(all.contains(&Platform::Droid));
+        assert!(all.contains(&Platform::Grok));
     }
 
     #[test]

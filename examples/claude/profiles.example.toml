@@ -2,7 +2,7 @@
 # 复制到: ~/.ccr/platforms/claude/profiles.toml
 
 default_config = "anthropic"
-current_config = "anthropic"
+current_config = ""
 
 [settings]
 skip_confirmation = false

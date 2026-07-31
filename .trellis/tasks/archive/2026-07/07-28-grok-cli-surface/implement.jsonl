@@ -1,0 +1,6 @@
+{"file": ".trellis/tasks/07-28-grok-profile-switch/research/grok-config-format.md", "reason": "Grok 字段语义与 env_key 单字符串决策（editable_fields 白名单与类型化解析依据）"}
+{"file": ".trellis/tasks/07-28-grok-profile-switch/prd.md", "reason": "父任务决策与验收（off/delete 语义、明文披露口径）"}
+{"file": "docs/reference/commands/platform.md", "reason": "platform 命令退休事实与迁移映射（不得复活的边界 + 需补 grok 行）"}
+{"file": "docs/reference/commands/CLAUDE.md", "reason": "现行 per-platform profile 命令面契约样板（ccr claude 命令页）"}
+{"file": "docs/examples/index.md", "reason": "仓库示例配置目录、命名和中英文索引同步约定"}
+{"file": ".trellis/spec/ccr-cli/backend/index.md", "reason": "ccr-cli 后端规范索引与 pre-dev checklist"}

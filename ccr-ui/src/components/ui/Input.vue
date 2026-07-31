@@ -30,7 +30,7 @@
         :type="props.type"
         :disabled="props.disabled"
         :placeholder="props.placeholder"
-        class="peer rounded-lg border border-border-default/70 text-text-primary placeholder:text-text-muted/80 focus:outline-none focus:ring-2 focus:ring-accent-primary/24 focus:border-accent-primary/50 disabled:cursor-not-allowed disabled:opacity-50"
+        class="peer rounded-lg border border-border-default/70 text-text-primary placeholder:text-text-ghost focus:outline-none focus:ring-2 focus:ring-accent-primary/24 focus:border-accent-primary/50 disabled:cursor-not-allowed disabled:opacity-50"
         :class="[
           ...inputClasses,
           inputDensityClass,
@@ -141,9 +141,7 @@ export default {
   transition-property: background-color, border-color, box-shadow, color, transform;
   transition-duration: var(--ui-input-duration, var(--motion-subtle-duration));
   transition-timing-function: var(--ui-input-ease, var(--motion-subtle-ease));
-  box-shadow:
-    var(--ui-input-shadow, var(--shadow-sm)),
-    inset 0 1px 0 rgb(255 255 255 / 8%);
+  box-shadow: var(--ui-input-shadow, var(--shadow-sm));
 }
 
 .ui-input:hover:not(:disabled) {

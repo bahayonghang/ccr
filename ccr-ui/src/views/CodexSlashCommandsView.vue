@@ -263,7 +263,7 @@ const shortcuts = [
 }
 
 .codex-slash-note {
-  @apply rounded-2xl border border-border-default/15 bg-bg-surface/70 p-4;
+  @apply rounded-2xl border border-border-default/15 bg-bg-elevated p-4;
 }
 
 .codex-slash-note__title {
@@ -279,11 +279,11 @@ const shortcuts = [
 }
 
 .codex-slash-shortcut {
-  @apply flex items-start gap-3 rounded-2xl border border-border-default/15 bg-bg-surface/70 p-4 transition-all duration-200 hover:border-accent-warning/25 hover:bg-bg-elevated/80;
+  @apply flex items-start gap-3 rounded-2xl border border-border-default/15 bg-bg-elevated p-4 transition-all duration-200 hover:border-accent-warning/25 hover:bg-bg-elevated/80;
 }
 
 .codex-slash-shortcut__icon {
-  @apply mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border-default/15 bg-bg-surface/70 text-text-secondary;
+  @apply mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border-default/15 bg-bg-elevated text-text-secondary;
 }
 
 .codex-slash-shortcut__title {

@@ -162,7 +162,7 @@
         v-else
         class="space-y-3"
       >
-        <div class="rounded-2xl border border-border-default/50 bg-bg-surface/70 px-4 py-3 text-sm text-text-secondary">
+        <div class="rounded-2xl border border-border-default/50 bg-bg-elevated px-4 py-3 text-sm text-text-secondary">
           {{ t('codex.agents.rawEditorDescription') }}
         </div>
         <textarea
@@ -190,7 +190,7 @@
       </button>
       <button
         type="button"
-        class="rounded-xl bg-accent-primary px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-accent-primary/20 transition-transform hover:scale-[1.02]"
+        class="rounded-xl bg-accent-primary px-4 py-2 text-sm font-semibold text-[color:var(--color-accent-primary-contrast)] shadow-lg shadow-accent-primary/20 transition-transform hover:scale-[1.02]"
         @click="handleSubmit"
       >
         {{ editingName ? t('common.save') : t('codex.agents.editorCreate') }}
@@ -239,7 +239,7 @@ const availableModels = computed(() => props.availableModels ?? [])
 
 const panelButtonClass = {
   active: 'border-accent-primary/40 bg-accent-primary/10 text-accent-primary',
-  inactive: 'border-border-default/60 bg-bg-surface/60 text-text-secondary hover:bg-bg-surface',
+  inactive: 'border-border-default/60 bg-bg-elevated text-text-secondary hover:bg-bg-surface',
 }
 
 function resetForm() {
@@ -334,10 +334,10 @@ function handleSubmit() {
   --agent-input-border-strong: rgb(var(--color-accent-primary-rgb) / 34%);
   --agent-hairline: rgb(var(--color-border-default-rgb) / 70%);
   --agent-hairline-soft: rgb(var(--color-border-default-rgb) / 48%);
-  --agent-ink: rgb(var(--color-text-primary-rgb) / 96%);
-  --agent-ink-muted: rgb(var(--color-text-secondary-rgb) / 90%);
-  --agent-ink-soft: rgb(var(--color-text-muted-rgb) / 82%);
-  --agent-placeholder: rgb(var(--color-text-muted-rgb) / 72%);
+  --agent-ink: var(--color-text-primary);
+  --agent-ink-muted: var(--color-text-secondary);
+  --agent-ink-soft: var(--color-text-muted);
+  --agent-placeholder: var(--color-text-ghost);
   --agent-ring: 0 0 0 3px rgb(var(--color-accent-primary-rgb) / 14%);
 
   position: relative;

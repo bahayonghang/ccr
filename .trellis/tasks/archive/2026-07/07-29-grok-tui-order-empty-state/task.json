@@ -1,0 +1,32 @@
+{
+  "id": "grok-tui-order-empty-state",
+  "name": "grok-tui-order-empty-state",
+  "title": "修复 Grok TUI 顺序与空态命令",
+  "description": "调整默认 Profile 页签顺序，修复 TUI 空态的退休命令提示，并从 CLI 帮助中隐藏但保留 legacy platform 子命令解析。",
+  "status": "completed",
+  "dev_type": "bugfix",
+  "scope": "ccr-config/backend + ccr-tui/backend + ccr-cli/help",
+  "package": "single-repo",
+  "priority": "P2",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-07-29",
+  "completedAt": "2026-07-29",
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [
+    "crates/ccr-config/src/managers/tui_config.rs",
+    "crates/ccr-tui/src/tui/ui.rs",
+    "crates/ccr-cli/src/cli/subcommands/platform.rs",
+    "crates/ccr-cli/src/cli/help_config.rs",
+    "crates/ccr/tests/commands/help.rs"
+  ],
+  "notes": "保留完整自定义 tab_order；不恢复 legacy platform 路由；不触碰真实 Grok 配置或无关 DailyTrendDto.ts；公共文档旧命令迁移延期。",
+  "meta": {}
+}

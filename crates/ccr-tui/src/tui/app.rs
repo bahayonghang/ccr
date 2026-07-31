@@ -1,4 +1,4 @@
-// TUI application state — Tab-based dispatch (Claude + Codex only)
+// TUI application state — Tab-based dispatch
 
 use crate::tui::CompletedAction;
 use crate::tui::action::Action;
@@ -17,7 +17,7 @@ use ratatui::widgets::{Block, Borders};
 use std::cell::Cell;
 use std::sync::Arc;
 
-use super::claude_auth::ClaudeAuthApp;
+use super::claude_auth::{ClaudeAuthActionRecord, ClaudeAuthApp};
 use super::codex_auth::CodexAuthApp;
 use super::opencode_auth::OpenCodeAuthApp;
 use super::pagination::{DEFAULT_PAGE_SIZE, page_for_index, page_slice, total_pages};
@@ -36,7 +36,7 @@ pub struct ProfileItem {
 /// Distinguishes tab types for the same platform
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TabVariant {
-    /// Standard profile switching (Claude, Codex Profile)
+    /// Standard profile switching (Claude, Codex, Grok)
     Profile,
     /// Claude official subscription account/auth management
     ClaudeAuth,
@@ -71,6 +71,9 @@ impl PlatformTab {
             (Platform::Codex, TabVariant::Profile) => {
                 crate::tui_text!("Codex Profile", "Codex 配置")
             }
+            (Platform::Grok, TabVariant::Profile) => {
+                crate::tui_text!("Grok Profile", "Grok 配置")
+            }
             (_, TabVariant::ClaudeAuth) => {
                 crate::tui_text!("Claude Auth", "Claude 认证")
             }
@@ -86,6 +89,7 @@ impl PlatformTab {
         match (self.platform, self.variant) {
             (Platform::Claude, TabVariant::Profile) => "Claude",
             (Platform::Codex, TabVariant::Profile) => "Codex",
+            (Platform::Grok, TabVariant::Profile) => "Grok",
             (_, TabVariant::ClaudeAuth | TabVariant::CodexAuth) => {
                 crate::tui_text!("Auth", "认证")
             }
@@ -137,16 +141,41 @@ fn current_profile_source_path(platform: Platform) -> String {
 }
 
 fn format_issue(location: String, error: &dyn std::fmt::Display) -> String {
+    let error = error.to_string();
+    let error = strip_duplicate_issue_location(&error, &location);
+    let location = indent_issue_value(&location);
+    let error = indent_issue_value(&error);
+
     format!(
-        "{}: {location}\n{}: {error}",
+        "{}:\n  {location}\n\n{}:\n  {error}",
         i18n::text(Message::Where),
         i18n::text(Message::What)
     )
 }
 
+fn strip_duplicate_issue_location(error: &str, location: &str) -> String {
+    let location_prefix = format!("{location}: ");
+    if let Some(reason) = error.strip_prefix(&location_prefix) {
+        return reason.to_string();
+    }
+
+    if let Some((category, detail)) = error.split_once(": ")
+        && let Some(reason) = detail.strip_prefix(&location_prefix)
+    {
+        return format!("{category}: {reason}");
+    }
+
+    error.to_string()
+}
+
+fn indent_issue_value(value: &str) -> String {
+    value.replace('\n', "\n  ")
+}
+
 fn tab_config_id(tab: &PlatformTab) -> Option<TuiTabId> {
     match (tab.platform, tab.variant) {
         (Platform::Codex, TabVariant::Profile) => Some(TuiTabId::CodexProfile),
+        (Platform::Grok, TabVariant::Profile) => Some(TuiTabId::GrokProfile),
         (Platform::Claude, TabVariant::Profile) => Some(TuiTabId::ClaudeProfile),
         (_, TabVariant::CodexAuth) => Some(TuiTabId::CodexAuth),
         (_, TabVariant::ClaudeAuth) => Some(TuiTabId::ClaudeAuth),
@@ -186,7 +215,7 @@ fn reorder_tabs(mut tabs: Vec<PlatformTab>, tab_order: &[TuiTabId]) -> Vec<Platf
 
 /// Main TUI application state
 pub struct App {
-    /// Dynamic list of platform tabs (Claude + Codex only)
+    /// Dynamic list of platform tabs
     pub tabs: Vec<PlatformTab>,
     /// Index of the currently active tab
     pub active_tab: usize,
@@ -206,8 +235,8 @@ pub struct App {
     pub claude_auth_app: Option<ClaudeAuthApp>,
     /// Last Claude Auth initialization error for placeholder rendering
     pub claude_auth_error: Option<String>,
-    /// Last Claude auth action info (action_type, account_name, success, error)
-    pub last_claude_action: Option<(CompletedAction, String, bool, Option<String>)>,
+    /// Last Claude auth action info (action_type, account_name, success, error, warnings)
+    pub last_claude_action: Option<ClaudeAuthActionRecord>,
     /// Embedded Codex Auth app (lazy initialized)
     pub codex_auth_app: Option<CodexAuthApp>,
     /// Last Codex Auth initialization error for placeholder rendering
@@ -462,7 +491,7 @@ impl App {
         self.reset_profile_detail_scroll();
     }
 
-    /// Build the app with Claude + Codex tabs only.
+    /// Build the app with supported profile and auth tabs.
     #[allow(dead_code)]
     pub fn new() -> Result<Self> {
         Self::with_task_executor(AsyncTaskExecutor::from_current_or_test())
@@ -481,8 +510,10 @@ impl App {
         let mut tabs = Vec::new();
 
         for platform in Platform::implemented() {
-            // Only keep Claude and Codex platforms
-            if !matches!(platform, Platform::Claude | Platform::Codex) {
+            if !matches!(
+                platform,
+                Platform::Claude | Platform::Codex | Platform::Grok
+            ) {
                 continue;
             }
 
@@ -559,6 +590,21 @@ impl App {
                                 current_profile_error: tab_data.current_profile_error,
                                 claude_runtime_summary: None,
                                 codex_runtime_summary: tab_data.codex_runtime_summary,
+                                instance: Some(instance),
+                                saved_selection: None,
+                            });
+                        }
+                        Platform::Grok => {
+                            tabs.push(PlatformTab {
+                                platform,
+                                variant: TabVariant::Profile,
+                                label: "Grok Profile".to_string(),
+                                profiles: tab_data.profiles,
+                                profile_configs: tab_data.profile_configs,
+                                profile_load_error: tab_data.profile_load_error,
+                                current_profile_error: tab_data.current_profile_error,
+                                claude_runtime_summary: None,
+                                codex_runtime_summary: None,
                                 instance: Some(instance),
                                 saved_selection: None,
                             });
@@ -1635,11 +1681,26 @@ mod tests {
             empty_tab(Platform::Codex, TabVariant::CodexAuth, "Codex Auth"),
             empty_tab(Platform::Codex, TabVariant::OpenCodeAuth, "OpenCode Auth"),
             empty_tab(Platform::Codex, TabVariant::Profile, "Codex Profile"),
+            empty_tab(Platform::Grok, TabVariant::Profile, "Grok Profile"),
         ]
     }
 
     fn tab_order_ids(tabs: &[PlatformTab]) -> Vec<TuiTabId> {
         tabs.iter().filter_map(tab_config_id).collect()
+    }
+
+    #[test]
+    fn grok_profile_tab_has_stable_config_id_and_labels() {
+        let tab = empty_tab(Platform::Grok, TabVariant::Profile, "Grok Profile");
+
+        assert_eq!(tab_config_id(&tab), Some(TuiTabId::GrokProfile));
+        assert_eq!(tab.compact_display_label(), "Grok");
+
+        i18n::set_language(TuiLanguage::English);
+        assert_eq!(tab.display_label(), "Grok Profile");
+        i18n::set_language(TuiLanguage::SimplifiedChinese);
+        assert_eq!(tab.display_label(), "Grok 配置");
+        i18n::set_language(TuiLanguage::English);
     }
 
     fn tab_switching_app(active_tab: usize) -> App {
@@ -1907,6 +1968,7 @@ mod tests {
             vec![
                 TuiTabId::CodexProfile,
                 TuiTabId::ClaudeProfile,
+                TuiTabId::GrokProfile,
                 TuiTabId::CodexAuth,
                 TuiTabId::ClaudeAuth,
                 TuiTabId::OpencodeAuth,
@@ -1924,6 +1986,7 @@ mod tests {
                 TuiTabId::OpencodeAuth,
                 TuiTabId::ClaudeProfile,
                 TuiTabId::CodexProfile,
+                TuiTabId::GrokProfile,
             ],
         );
 
@@ -1935,6 +1998,7 @@ mod tests {
                 TuiTabId::OpencodeAuth,
                 TuiTabId::ClaudeProfile,
                 TuiTabId::CodexProfile,
+                TuiTabId::GrokProfile,
             ]
         );
     }
@@ -2207,7 +2271,7 @@ mod tests {
         }
         .with_codex_tab();
 
-        assert_eq!(app.active_tab, 2);
+        assert_eq!(app.active_tab, 3);
         assert!(app.is_codex_auth_tab());
     }
 
@@ -2354,10 +2418,42 @@ mod tests {
         let tab_data = App::build_profile_tab_data(&platform);
         let error = tab_data.profile_load_error.unwrap();
 
-        assert!(error.contains("Where:"));
+        assert!(error.contains("Where:\n  "));
         assert!(error.contains("profiles.toml"));
-        assert!(error.contains("What:"));
+        assert!(error.contains("\n\nWhat:\n  "));
         assert!(error.contains("TOML 解析失败"));
+    }
+
+    #[test]
+    fn format_issue_separates_long_location_and_removes_duplicate_path() {
+        i18n::set_language(TuiLanguage::English);
+        let location = format!(
+            "C:\\Users\\lyh\\.ccr\\platforms\\grok\\{}\\profiles.toml",
+            "nested\\directory\\".repeat(8)
+        );
+        let error = CcrError::ConfigFormatInvalid(format!(
+            "{location}: profile 结构错误（第 13 行，第 17 列）：provider_type 的值不受支持"
+        ));
+
+        let formatted = format_issue(location.clone(), &error);
+
+        assert!(formatted.starts_with("Where:\n  "));
+        assert!(formatted.contains("\n\nWhat:\n  配置格式无效: profile 结构错误"));
+        assert!(formatted.contains("第 13 行，第 17 列"));
+        assert!(formatted.contains("provider_type 的值不受支持"));
+        assert_eq!(formatted.matches(&location).count(), 1);
+    }
+
+    #[test]
+    fn format_issue_indents_multiline_location_values() {
+        i18n::set_language(TuiLanguage::English);
+        let formatted = format_issue(
+            "C:\\registry.toml\nFallback: C:\\profiles.toml".to_string(),
+            &CcrError::ConfigError("registry broken".to_string()),
+        );
+
+        assert!(formatted.contains("Where:\n  C:\\registry.toml\n  Fallback: C:\\profiles.toml"));
+        assert!(formatted.contains("\n\nWhat:\n  配置文件错误: registry broken"));
     }
 
     #[test]
@@ -2371,11 +2467,29 @@ mod tests {
         let tab_data = App::build_profile_tab_data(&platform);
         let error = tab_data.current_profile_error.unwrap();
 
-        assert!(error.contains("Where:"));
+        assert!(error.contains("Where:\n  "));
         assert!(error.contains("config.toml"));
         assert!(error.contains("Fallback:"));
         assert!(error.contains("profiles.toml"));
-        assert!(error.contains("What:"));
+        assert!(error.contains("\n\nWhat:\n  "));
         assert!(error.contains("registry broken"));
+    }
+
+    #[test]
+    fn build_grok_profile_tab_data_allows_an_empty_profile_set() {
+        let platform: Arc<dyn PlatformConfig> = Arc::new(FailingPlatform {
+            platform: Platform::Grok,
+            current_profile_error: None,
+            profile_load_error: None,
+        });
+
+        let tab_data = App::build_profile_tab_data(&platform);
+
+        assert!(tab_data.profiles.is_empty());
+        assert!(tab_data.profile_configs.is_empty());
+        assert!(tab_data.profile_load_error.is_none());
+        assert!(tab_data.current_profile_error.is_none());
+        assert!(tab_data.claude_runtime_summary.is_none());
+        assert!(tab_data.codex_runtime_summary.is_none());
     }
 }

@@ -37,6 +37,7 @@ ccr help claude profile
 | `ccr claude profile enable <name>` | 启用 profile |
 | `ccr claude profile disable <name>` | 禁用 profile；当前项需要 `--force` |
 | `ccr claude profile delete <name>` | 删除 profile；支持 `--force` |
+| `ccr claude profile open` | 用 $VISUAL/$EDITOR 或系统关联程序打开 profiles.toml；文件不存在时先从模板创建 |
 | `ccr claude profile off` | 退出 profile mode，回到 official auth runtime |
 
 创建第三方 API profile：

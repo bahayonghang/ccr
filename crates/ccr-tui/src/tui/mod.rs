@@ -85,7 +85,7 @@ fn print_exit_info(app: &App) {
     }
 
     // Claude auth action result
-    if let Some((action, name, success, error)) = &app.last_claude_action {
+    if let Some((action, name, success, error, warnings)) = &app.last_claude_action {
         if *success {
             println!(
                 "{}",
@@ -96,6 +96,16 @@ fn print_exit_info(app: &App) {
                     name
                 )
             );
+            for warning in warnings {
+                eprintln!(
+                    "{}",
+                    crate::tui_format!(
+                        "Warning: auth source remains after switch: {}",
+                        "警告：切换后仍有认证来源：{}",
+                        warning
+                    )
+                );
+            }
         } else if let Some(err) = error {
             eprintln!(
                 "{}",

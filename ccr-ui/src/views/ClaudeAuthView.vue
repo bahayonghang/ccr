@@ -12,8 +12,8 @@
             {{ tt('官方账号管理', 'Official account management') }}
           </h1>
           <p class="claude-auth-view__subtitle">
-            {{ tt('保存、切换、删除 Claude Code 官方订阅账号快照；切换只会改写', 'Save, switch, or delete Claude Code official subscription snapshots. Switching only rewrites') }}
-            <code>{{ credentialsFile }}</code>{{ tt('。', '.') }}
+            {{ tt('保存、切换、删除 Claude Code 官方订阅账号快照；切换会更新', 'Save, switch, or delete Claude Code official subscription snapshots. Switching updates') }}
+            <code>{{ credentialsFile }}</code>{{ tt('，并只清理 CCR 托管的 Profile 设置。', ' and clears only CCR-managed profile settings.') }}
           </p>
         </div>
 
@@ -83,6 +83,83 @@
             {{ accounts.length }}
           </p>
         </article>
+      </section>
+
+      <section
+        v-if="runtimeSummary"
+        class="claude-auth-view__panel"
+        data-testid="claude-auth-diagnosis"
+      >
+        <div class="claude-auth-view__panel-header">
+          <div>
+            <h2 class="claude-auth-view__panel-title">
+              {{ tt('认证来源诊断', 'Auth source diagnosis') }}
+            </h2>
+            <p class="claude-auth-view__panel-subtitle">
+              {{ tt('范围限于当前 CCR 进程和已解析的用户级文件。', 'Scope is limited to this CCR process and the resolved user-level files.') }}
+            </p>
+          </div>
+          <span
+            class="claude-auth-view__diagnosis-state"
+            :class="visibleSuppressors.length > 0 ? 'claude-auth-view__diagnosis-state--warning' : 'claude-auth-view__diagnosis-state--clear'"
+          >
+            {{ visibleSuppressors.length > 0 ? tt(`${visibleSuppressors.length} 个可见竞争来源`, `${visibleSuppressors.length} visible competing source(s)`) : tt('未发现可见竞争来源', 'No visible competing source') }}
+          </span>
+        </div>
+
+        <dl class="claude-auth-view__diagnosis-facts">
+          <div>
+            <dt>{{ tt('当前推定来源', 'Presumed source') }}</dt>
+            <dd data-testid="claude-auth-presumed-source">
+              {{ presumedSourceLabel }}
+            </dd>
+          </div>
+          <div>
+            <dt>{{ tt('置信度', 'Confidence') }}</dt>
+            <dd>{{ presumedConfidenceLabel }}</dd>
+          </div>
+          <div>
+            <dt>{{ tt('API Key 批准记录', 'API key response state') }}</dt>
+            <dd>
+              {{ authDiagnosis?.custom_api_key_responses_present ? tt('存在，仅作解释', 'Present, context only') : tt('未观察到', 'Not observed') }}
+            </dd>
+          </div>
+        </dl>
+
+        <div
+          v-if="visibleSuppressors.length > 0"
+          class="claude-auth-view__source-list"
+        >
+          <div
+            v-for="(source, index) in visibleSuppressors"
+            :key="`${source.kind}-${source.location}-${index}`"
+            class="claude-auth-view__source-row"
+          >
+            <div class="claude-auth-view__source-main">
+              <strong>{{ authSourceKindLabel(source.kind) }}</strong>
+              <span>{{ authSourceLocationLabel(source.location) }}</span>
+            </div>
+            <div class="claude-auth-view__source-meta">
+              <span>{{ authConfidenceLabel(source.confidence) }}</span>
+              <span>{{ authEvidenceLabel(source.evidence) }}</span>
+              <span>{{ authOwnershipLabel(source.ownership) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <details class="claude-auth-view__scope-details">
+          <summary>
+            {{ tt(`${unobservableLabels.length} 个不可观测层`, `${unobservableLabels.length} unobservable layer(s)`) }}
+          </summary>
+          <ul>
+            <li
+              v-for="item in unobservableLabels"
+              :key="item"
+            >
+              {{ item }}
+            </li>
+          </ul>
+        </details>
       </section>
 
       <section
@@ -322,6 +399,7 @@ import type {
   ClaudeAuthAccountItem,
   ClaudeAuthCurrentInfo,
   ClaudeAuthSaveRequest,
+  ClaudeAuthSourceObservation,
   ClaudeLoginState,
   ClaudeRuntimeSummary,
 } from '@/types'
@@ -347,6 +425,87 @@ const accounts = ref<ClaudeAuthAccountItem[]>([])
 const currentInfo = ref<ClaudeAuthCurrentInfo | null>(null)
 const runtimeSummary = ref<ClaudeRuntimeSummary | null>(null)
 const loginState = ref<ClaudeLoginState>({ type: 'NotLoggedIn' })
+
+const authDiagnosis = computed(() => runtimeSummary.value?.auth_diagnosis ?? null)
+const visibleSuppressors = computed(() =>
+  authDiagnosis.value?.observations.filter(source => source.suppresses_subscription) ?? []
+)
+
+const authSourceKindLabel = (kind: ClaudeAuthSourceObservation['kind']) => {
+  const labels: Record<ClaudeAuthSourceObservation['kind'], [string, string]> = {
+    bedrock: ['Amazon Bedrock', 'Amazon Bedrock'],
+    vertex: ['Google Vertex AI', 'Google Vertex AI'],
+    foundry: ['Microsoft Foundry', 'Microsoft Foundry'],
+    anthropic_auth_token: ['ANTHROPIC_AUTH_TOKEN', 'ANTHROPIC_AUTH_TOKEN'],
+    anthropic_api_key: ['ANTHROPIC_API_KEY', 'ANTHROPIC_API_KEY'],
+    api_key_helper: ['apiKeyHelper', 'apiKeyHelper'],
+    claude_code_oauth_token: ['CLAUDE_CODE_OAUTH_TOKEN', 'CLAUDE_CODE_OAUTH_TOKEN'],
+    subscription_oauth: ['官方订阅 OAuth', 'Official subscription OAuth'],
+    primary_api_key: ['primaryApiKey', 'primaryApiKey'],
+  }
+  return tt(...labels[kind])
+}
+
+const authSourceLocationLabel = (location: ClaudeAuthSourceObservation['location']) => {
+  const labels: Record<ClaudeAuthSourceObservation['location'], [string, string]> = {
+    process_env: ['当前进程环境', 'Current process environment'],
+    settings_env: ['settings.json env', 'settings.json env'],
+    settings_root: ['settings.json 顶层', 'settings.json root'],
+    state_file: ['Claude state file', 'Claude state file'],
+    credentials_file: ['credentials file', 'credentials file'],
+  }
+  return tt(...labels[location])
+}
+
+const authConfidenceLabel = (confidence: ClaudeAuthSourceObservation['confidence']) => {
+  const labels: Record<ClaudeAuthSourceObservation['confidence'], [string, string]> = {
+    confirmed: ['已确认', 'Confirmed'],
+    potential: ['潜在', 'Potential'],
+    unobservable: ['不可观测', 'Unobservable'],
+  }
+  return tt(...labels[confidence])
+}
+
+const authEvidenceLabel = (evidence: ClaudeAuthSourceObservation['evidence']) =>
+  evidence === 'issue_report'
+    ? tt('Issue 报告行为', 'Issue-reported behavior')
+    : tt('官方契约', 'Official contract')
+
+const authOwnershipLabel = (ownership: ClaudeAuthSourceObservation['ownership']) => {
+  const labels: Record<ClaudeAuthSourceObservation['ownership'], [string, string]> = {
+    ccr_managed: ['CCR 托管', 'CCR-managed'],
+    user_owned: ['用户自有', 'User-owned'],
+    external_runtime: ['外部运行时', 'External runtime'],
+  }
+  return tt(...labels[ownership])
+}
+
+const formatAuthSource = (source: ClaudeAuthSourceObservation) =>
+  `${authSourceKindLabel(source.kind)} · ${authSourceLocationLabel(source.location)}`
+
+const presumedSourceLabel = computed(() => {
+  const source = authDiagnosis.value?.presumed_effective_source
+  return source
+    ? formatAuthSource(source)
+    : tt('未解析或存在同级歧义', 'Unresolved or same-priority ambiguity')
+})
+
+const presumedConfidenceLabel = computed(() => {
+  const source = authDiagnosis.value?.presumed_effective_source
+  return source ? authConfidenceLabel(source.confidence) : '-'
+})
+
+const unobservableLabels = computed(() => {
+  const labels: Record<string, [string, string]> = {
+    other_shell_environment: ['其他 shell 的环境变量', 'Environment variables in other shells'],
+    project_settings_for_unknown_working_directories: ['未知工作目录下的项目级 settings', 'Project settings under unknown working directories'],
+    external_process_cli_arguments: ['外部 Claude Code 进程的 CLI 参数', 'CLI arguments of external Claude Code processes'],
+    managed_settings_dynamic_policy: ['组织级 managed settings 动态策略', 'Dynamic organization-managed settings policy'],
+    api_key_helper_result_and_external_secret_store: ['apiKeyHelper 返回值与外部 secret store', 'apiKeyHelper output and external secret stores'],
+    macos_keychain_contents: ['macOS Keychain 内容', 'macOS Keychain contents'],
+  }
+  return authDiagnosis.value?.unobservable.map(item => labels[item] ? tt(...labels[item]) : item) ?? []
+})
 
 const saveForm = reactive({
   name: '',
@@ -478,8 +637,24 @@ const handleSwitch = async (name: string) => {
   try {
     busyName.value = name
     authActionError.value = null
-    await switchClaudeAuth(name)
-    uiStore.showSuccess(tt(`已切换到 ${name}`, `Switched to ${name}`))
+    const result = await switchClaudeAuth(name)
+    const clearedCount = result.cleared_managed_sources.length
+    uiStore.showSuccess(clearedCount > 0
+      ? tt(
+        `已切换到 ${name}，并清理 ${clearedCount} 个 CCR 托管设置`,
+        `Switched to ${name} and cleared ${clearedCount} CCR-managed setting(s)`,
+      )
+      : tt(`已切换到 ${name}`, `Switched to ${name}`))
+    const structuredWarnings = result.remaining_suppressors.map(source =>
+      tt(
+        `切换后仍存在${authOwnershipLabel(source.ownership)}认证来源：${formatAuthSource(source)}（${authConfidenceLabel(source.confidence)}）`,
+        `${authOwnershipLabel(source.ownership)} auth source remains after switching: ${formatAuthSource(source)} (${authConfidenceLabel(source.confidence)})`,
+      )
+    )
+    const warningMessages = structuredWarnings.length > 0 ? structuredWarnings : result.warnings
+    for (const warning of warningMessages) {
+      uiStore.showWarning(warning, 6000)
+    }
     await refreshAll()
   } catch (error) {
     logger.error('Failed to switch Claude auth:', error)
@@ -670,6 +845,126 @@ onActivated(() => {
   overflow-wrap: anywhere;
 }
 
+.claude-auth-view__diagnosis-state {
+  flex: none;
+  border: 1px solid var(--stage-border-medium);
+  border-radius: 9999px;
+  padding: 0.35rem 0.65rem;
+  color: var(--stage-text-primary);
+  font-size: 0.8125rem;
+  line-height: 1.2;
+  font-weight: 600;
+}
+
+.claude-auth-view__diagnosis-state--warning {
+  border-color: rgb(var(--color-warning-rgb) / 42%);
+  background: var(--color-warning-glow);
+}
+
+.claude-auth-view__diagnosis-state--clear {
+  border-color: rgb(var(--color-success-rgb) / 42%);
+  background: var(--color-success-glow);
+}
+
+.claude-auth-view__diagnosis-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+  padding-block: 1rem;
+  border-block: 1px solid var(--stage-border-soft);
+}
+
+.claude-auth-view__diagnosis-facts > div,
+.claude-auth-view__source-main,
+.claude-auth-view__source-meta {
+  min-width: 0;
+}
+
+.claude-auth-view__diagnosis-facts dt {
+  color: var(--stage-text-quiet);
+  font-size: 0.8125rem;
+  line-height: 1.3;
+  font-weight: 600;
+}
+
+.claude-auth-view__diagnosis-facts dd {
+  margin-top: 0.3rem;
+  color: var(--stage-text-primary);
+  font-size: 1rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.claude-auth-view__source-list {
+  margin-top: 0.5rem;
+}
+
+.claude-auth-view__source-row {
+  display: grid;
+  grid-template-columns: minmax(13rem, 1fr) minmax(18rem, 1.3fr);
+  gap: 1rem;
+  align-items: center;
+  padding-block: 0.75rem;
+  border-bottom: 1px solid var(--stage-border-soft);
+}
+
+.claude-auth-view__source-main,
+.claude-auth-view__source-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.claude-auth-view__source-main strong {
+  color: var(--stage-text-primary);
+  overflow-wrap: anywhere;
+}
+
+.claude-auth-view__source-main span,
+.claude-auth-view__source-meta span {
+  color: var(--stage-text-secondary);
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.claude-auth-view__source-meta span {
+  border: 1px solid var(--stage-border-soft);
+  border-radius: 9999px;
+  padding: 0.2rem 0.5rem;
+  background: var(--stage-surface-soft);
+}
+
+.claude-auth-view__scope-details {
+  margin-top: 1rem;
+  color: var(--stage-text-secondary);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.claude-auth-view__scope-details summary {
+  width: fit-content;
+  cursor: pointer;
+  color: var(--stage-text-primary);
+  font-weight: 600;
+}
+
+.claude-auth-view__scope-details summary:focus-visible {
+  outline: 2px solid var(--color-accent-primary);
+  outline-offset: 3px;
+}
+
+.claude-auth-view__scope-details ul {
+  margin-top: 0.6rem;
+  padding-inline-start: 1.25rem;
+}
+
+.claude-auth-view__scope-details li {
+  overflow-wrap: anywhere;
+}
+
 .claude-auth-view__freshness {
   display: inline-flex;
   align-items: center;
@@ -783,6 +1078,11 @@ onActivated(() => {
   .claude-auth-view__detail-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .claude-auth-view__source-row {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
 }
 
 @media (width <= 768px) {
@@ -794,7 +1094,8 @@ onActivated(() => {
   }
 
   .claude-auth-view__stats,
-  .claude-auth-view__detail-grid {
+  .claude-auth-view__detail-grid,
+  .claude-auth-view__diagnosis-facts {
     grid-template-columns: 1fr;
   }
 

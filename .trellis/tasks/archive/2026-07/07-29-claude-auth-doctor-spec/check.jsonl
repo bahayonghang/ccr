@@ -1,0 +1,5 @@
+{"file":".trellis/spec/ccr-cli/backend/backend-guidelines.md","reason":"检查 runtime/doctor/命令输出符合既有边界。"}
+{"file":".trellis/spec/ccr-types/backend/backend-guidelines.md","reason":"检查共享 DTO 无 secret 且 serde 兼容。"}
+{"file":".trellis/spec/ccr-tui/backend/backend-guidelines.md","reason":"检查 TUI 不在后台线程本地化且状态语义稳定。"}
+{"file":".trellis/spec/ccr-ui/frontend/api-facade-boundary.md","reason":"检查 DTO、生成类型与前端消费一致。"}
+{"file":".trellis/tasks/07-29-claude-auth-doctor-spec/research/claude-auth-source-matrix.md","reason":"逐项核对来源顺序、confidence 和 evidence。"}

@@ -65,7 +65,7 @@ const getOperationColor = (op: string) => ({
   <div class="h-[600px] flex flex-col">
     <div class="flex items-center justify-between mb-4 flex-shrink-0">
       <div>
-        <h2 class="text-xl font-bold text-white">
+        <h2 class="text-xl font-bold text-text-primary">
           {{ t('common.historyPanel.title') }}
         </h2>
         <p class="text-sm text-text-primary">
@@ -161,7 +161,7 @@ const getOperationColor = (op: string) => ({
                 <div class="flex-1 min-w-0">
                   <div class="flex justify-between items-start mb-2">
                     <div>
-                      <h3 class="font-bold text-white">
+                      <h3 class="font-bold text-text-primary">
                         {{ getOperationLabel(entries[virtualRow.index].operation) }}
                       </h3>
                       <div class="flex items-center gap-3 text-xs text-text-primary mt-1">
@@ -189,7 +189,7 @@ const getOperationColor = (op: string) => ({
                   <!-- Config Change -->
                   <div
                     v-if="entries[virtualRow.index].from_config && entries[virtualRow.index].to_config"
-                    class="flex items-center gap-2 p-2 rounded bg-bg-surface/70 border border-border-default/15 mb-2"
+                    class="flex items-center gap-2 p-2 rounded bg-bg-elevated border border-border-default/15 mb-2"
                   >
                     <code class="text-xs text-accent-danger bg-accent-danger/10 px-1.5 py-0.5 rounded">{{ entries[virtualRow.index].from_config }}</code>
                     <SIcon
@@ -208,16 +208,16 @@ const getOperationColor = (op: string) => ({
                     <div
                       v-for="change in entries[virtualRow.index].changes?.slice(0, 3) ?? []"
                       :key="change.key"
-                      class="text-xs font-mono p-1.5 rounded bg-bg-surface/60 border border-border-default/10 grid grid-cols-[auto_1fr] gap-2"
+                      class="text-xs font-mono p-1.5 rounded bg-bg-elevated border border-border-default/10 grid grid-cols-[auto_1fr] gap-2"
                     >
-                      <span class="font-bold text-white">{{ change.key }}</span>
+                      <span class="font-bold text-text-primary">{{ change.key }}</span>
                       <div class="flex items-center gap-1 truncate text-text-muted">
                         <span class="truncate">{{ change.old_value || '_' }}</span>
                         <SIcon
                           name="ArrowRight"
                           size="h-3 w-3"
                         />
-                        <span class="text-white truncate">{{ change.new_value || '_' }}</span>
+                        <span class="text-text-primary truncate">{{ change.new_value || '_' }}</span>
                       </div>
                     </div>
                     <button

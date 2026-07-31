@@ -1,0 +1,4 @@
+{"file":".trellis/spec/ccr-config/backend/backend-guidelines.md","reason":"Check parser compatibility, error safety, required tests, and validation commands."}
+{"file":".trellis/spec/ccr-tui/backend/backend-guidelines.md","reason":"Check recoverable error layout and ensure no parsing logic leaked into the TUI."}
+{"file":".trellis/spec/ccr-cli/backend/index.md","reason":"Check that Grok CLI and runtime changes follow the package-specific contract index."}
+{"file":".trellis/spec/ccr-cli/backend/grok-profile-runtime.md","reason":"Verify the diagnosed provider_type contract and Grok behavior remain correct."}

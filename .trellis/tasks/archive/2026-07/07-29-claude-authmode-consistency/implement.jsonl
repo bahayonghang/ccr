@@ -1,0 +1,6 @@
+{"file":".trellis/spec/ccr-types/backend/index.md","reason":"ClaudeSettings 单一 shape 与 env 所有权规范入口。"}
+{"file":".trellis/spec/ccr-types/backend/backend-guidelines.md","reason":"纯数据变更、托管键注册表与兼容 API 契约。"}
+{"file":".trellis/spec/ccr-cli/backend/index.md","reason":"Claude profile/auth 命令与测试入口。"}
+{"file":".trellis/spec/ccr-cli/backend/backend-guidelines.md","reason":"resolve/effective auth_mode、apply 与 settings 契约。"}
+{"file":".trellis/spec/ccr-config/backend/backend-guidelines.md","reason":"ConfigSection 到托管 env pairs 的唯一映射。"}
+{"file":".trellis/spec/guides/code-reuse-thinking-guide.md","reason":"注册表、预览和清理必须复用同一键集合。"}

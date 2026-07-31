@@ -35,11 +35,12 @@ const ROOT_AFTER_LONG_HELP: &str = "\
     交互初始化: ccr project init
     使用 Trellis 默认值: ccr -y project init
 
-  切换平台
-    先看: ccr platform --help
-    查看平台: ccr platform list
-    执行切换: ccr platform switch codex
-    确认结果: ccr platform current
+  查看平台与 Profile
+    查看运行状态: ccr current
+    查看支持平台: ccr platform list
+    Claude Profile: ccr claude profile --help
+    Codex Profile: ccr codex profile --help
+    Grok Profile: ccr grok profile --help
 
   切换 Codex Auth
     先看: ccr codex auth --help
@@ -113,22 +114,32 @@ const PROJECT_INIT_AFTER_LONG_HELP: &str = "\
   Git、Trellis 或 .gitignore 阶段失败后不会回滚已完成阶段；修复原因后重复运行即可。";
 
 const PLATFORM_LONG_ABOUT: &str = "\
-查看当前平台、切换平台、管理每个平台的 profile。";
+列出 CCR 可识别的 AI CLI 平台。
+
+运行状态和 Profile 管理已迁移到各自的显式命令入口。";
 
 const PLATFORM_AFTER_LONG_HELP: &str = "\
 常用任务:
-  先看当前有哪些平台
+  查看 CCR 支持的平台
     ccr platform list
 
-  切换到目标平台
-    ccr platform switch codex
+  查看当前运行状态
+    ccr current
 
-  确认当前平台
-    ccr platform current
+  初始化平台 Profile 目录
+    ccr <claude|codex|grok> profile init
 
-更多:
-  查看单个平台详情: ccr platform info codex
-  管理 profile: ccr platform profile --help";
+  管理 Claude Profile
+    ccr claude profile --help
+
+  管理 Codex Profile
+    ccr codex profile --help
+
+  管理 Grok Profile
+    ccr grok profile --help
+
+边界:
+  旧的平台路由入口已退休；现有脚本仍会收到明确的迁移错误。";
 
 const CODEX_LONG_ABOUT: &str = "\
 管理 Codex CLI 的账号、配额和历史同步。";

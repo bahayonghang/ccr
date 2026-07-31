@@ -104,7 +104,7 @@ const iconClass = computed(() => {
 const iconContainerClass = computed(() => {
   if (props.state === 'error') return 'bg-danger/10 border-danger/18'
   if (props.state === 'runtime-unavailable') return 'bg-accent-primary/10 border-accent-primary/18'
-  return 'bg-bg-surface/90 border-border-default/55'
+  return 'bg-bg-surface border-border-default/55'
 })
 
 const panelClass = computed(() => (props.compact ? 'async-state-panel--compact' : ''))

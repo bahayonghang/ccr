@@ -131,7 +131,7 @@
                     <span
                       v-if="sourceFormat === type.value"
                       class="converter-option-badge"
-                      :style="{ background: 'var(--accent-primary)', color: 'white' }"
+                      :style="{ background: 'var(--accent-primary)', color: 'var(--color-accent-primary-contrast)' }"
                     >
                       {{ $t('converter.selected') }}
                     </span>
@@ -206,7 +206,7 @@
                     <span
                       v-if="targetFormat === type.value && sourceFormat !== type.value"
                       class="converter-option-badge"
-                      :style="{ background: 'var(--accent-secondary)', color: 'white' }"
+                      :style="{ background: 'var(--accent-secondary)', color: 'var(--color-accent-primary-contrast)' }"
                     >
                       {{ $t('converter.selected') }}
                     </span>
@@ -1036,7 +1036,7 @@ const handleLoadExample = () => {
 
 .converter-primary-action {
   padding: 0.75rem 2rem;
-  color: white;
+  color: var(--color-accent-primary-contrast);
   font-weight: 600;
 }
 

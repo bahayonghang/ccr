@@ -10,6 +10,9 @@ mod codex_profile;
 #[path = "commands/codex_fix.rs"]
 mod codex_fix;
 
+#[path = "commands/grok_profile.rs"]
+mod grok_profile;
+
 #[path = "commands/claude_profile.rs"]
 mod claude_profile;
 
@@ -30,6 +33,9 @@ mod project_init;
 
 #[path = "commands/validate.rs"]
 mod validate;
+
+#[path = "commands/profile_open.rs"]
+mod profile_open;
 
 #[path = "commands/sync_content.rs"]
 mod sync_content;

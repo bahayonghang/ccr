@@ -1,0 +1,3 @@
+{"file":".trellis/spec/ccr-types/backend/backend-guidelines.md","reason":"检查显式所有权模型与 ClaudeSettings 单一 shape。"}
+{"file":".trellis/spec/ccr-cli/backend/backend-guidelines.md","reason":"检查 literal/effective 分层、自愈顺序和用户配置保留。"}
+{"file":".trellis/spec/ccr-config/backend/backend-guidelines.md","reason":"检查所有可写 env key 都进入显式注册表。"}

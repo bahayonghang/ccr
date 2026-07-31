@@ -34,6 +34,21 @@
       <p class="confirm-modal__message mt-4 text-sm leading-relaxed">
         {{ message }}
       </p>
+
+      <!-- 结构化附加内容（如 Apply diff 行）：缺省不渲染，保持旧行为 -->
+      <div
+        v-if="$slots.details"
+        class="confirm-modal__details mt-3 w-full"
+      >
+        <slot name="details" />
+      </div>
+
+      <p
+        v-if="footnote"
+        class="confirm-modal__footnote mt-3 text-xs leading-relaxed"
+      >
+        {{ footnote }}
+      </p>
     </div>
 
     <template #footer>
@@ -70,6 +85,8 @@ interface Props {
   cancelText?: string
   type?: 'danger' | 'info' | 'warning'
   surface?: 'glass' | 'solid'
+  /** 底部补充说明行（如 delete 备份提示）；缺省不渲染 */
+  footnote?: string
 }
 
 const emit = defineEmits<{
@@ -83,6 +100,7 @@ const props = withDefaults(defineProps<Props>(), {
   surface: 'solid',
   confirmText: '',
   cancelText: '',
+  footnote: '',
 })
 
 const resolvedSurface = computed(() => props.surface)
@@ -122,22 +140,25 @@ const iconClasses = computed(() => {
 
 const confirmButtonClasses = computed(() => {
   const baseClasses = [
-    'shadow-sm text-white',
+    'shadow-sm',
   ]
 
   const typeClasses: Record<string, string[]> = {
     danger: [
       'bg-accent-danger',
+      'text-[color:var(--color-danger-contrast)]',
       'hover:bg-accent-danger/90',
       'focus:ring-accent-danger/30',
     ],
     warning: [
       'bg-accent-warning',
+      'text-[color:var(--color-warning-contrast)]',
       'hover:bg-accent-warning/90',
       'focus:ring-accent-warning/30',
     ],
     info: [
       'bg-accent-primary',
+      'text-[color:var(--color-accent-primary-contrast)]',
       'hover:bg-accent-primary/90',
       'focus:ring-accent-primary/30',
     ],
@@ -169,8 +190,8 @@ function handleCancel() {
   --confirm-shell-highlight:
     radial-gradient(circle at top center, rgb(var(--color-accent-primary-rgb) / 10%), transparent 42%),
     radial-gradient(circle at bottom right, rgb(var(--color-warning-rgb) / 8%), transparent 36%);
-  --confirm-text-primary: rgb(var(--color-text-primary-rgb) / 96%);
-  --confirm-text-secondary: rgb(var(--color-text-secondary-rgb) / 92%);
+  --confirm-text-primary: var(--color-text-primary);
+  --confirm-text-secondary: var(--color-text-secondary);
   --confirm-hairline: rgb(var(--color-border-default-rgb) / 58%);
   --confirm-muted-bg: rgb(var(--color-bg-surface-rgb) / 72%);
   --confirm-muted-hover: rgb(var(--color-bg-overlay-rgb) / 80%);
@@ -191,8 +212,8 @@ function handleCancel() {
   --confirm-shell-highlight:
     radial-gradient(circle at top center, rgb(var(--color-accent-primary-rgb) / 16%), transparent 42%),
     radial-gradient(circle at bottom right, rgb(var(--color-warning-rgb) / 12%), transparent 38%);
-  --confirm-text-primary: rgb(var(--color-text-primary-rgb) / 98%);
-  --confirm-text-secondary: rgb(var(--color-text-secondary-rgb) / 92%);
+  --confirm-text-primary: var(--color-text-primary);
+  --confirm-text-secondary: var(--color-text-secondary);
   --confirm-hairline: rgb(78 84 115 / 74%);
   --confirm-muted-bg: rgb(42 47 74 / 56%);
   --confirm-muted-hover: rgb(53 60 92 / 72%);
@@ -218,6 +239,16 @@ function handleCancel() {
 
 .confirm-modal__message {
   color: var(--confirm-text-secondary);
+}
+
+.confirm-modal__details {
+  color: var(--confirm-text-primary);
+  text-align: left;
+}
+
+.confirm-modal__footnote {
+  color: var(--confirm-text-secondary);
+  opacity: 0.82;
 }
 
 .confirm-modal__footer {

@@ -779,7 +779,7 @@ onActivated(() => {
 }
 
 .codex-session-row {
-  @apply w-full rounded-2xl border border-border-default/15 bg-bg-surface/70 p-4 text-left transition-all duration-200 hover:border-platform-codex/25 hover:bg-bg-elevated/80;
+  @apply w-full rounded-2xl border border-border-default/15 bg-bg-elevated p-4 text-left transition-all duration-200 hover:border-platform-codex/25 hover:bg-bg-elevated/80;
 }
 
 .codex-session-row--active {
@@ -799,7 +799,7 @@ onActivated(() => {
 }
 
 .codex-session-row__badge {
-  @apply shrink-0 rounded-full border border-border-default/15 bg-bg-surface/70 px-2.5 py-1 text-[11px] text-text-secondary;
+  @apply shrink-0 rounded-full border border-border-default/15 bg-bg-elevated px-2.5 py-1 text-[11px] text-text-secondary;
 }
 
 .codex-session-row__preview {
@@ -819,7 +819,7 @@ onActivated(() => {
 }
 
 .codex-detail-summary {
-  @apply rounded-2xl border border-border-default/15 bg-bg-surface/70 p-4;
+  @apply rounded-2xl border border-border-default/15 bg-bg-elevated p-4;
 }
 
 .codex-detail-summary__title-row {
@@ -843,7 +843,7 @@ onActivated(() => {
 }
 
 .codex-detail-field {
-  @apply rounded-2xl border border-border-default/15 bg-bg-base/35 px-3 py-3;
+  @apply rounded-2xl border border-border-default/15 bg-bg-base px-3 py-3;
 }
 
 .codex-detail-field__label {
@@ -877,7 +877,7 @@ onActivated(() => {
 }
 
 .codex-message--user {
-  @apply border-border-default/15 bg-bg-surface/70;
+  @apply border-border-default/15 bg-bg-elevated;
 }
 
 .codex-message__meta {

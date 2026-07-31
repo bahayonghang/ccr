@@ -26,6 +26,8 @@ pub use ccr_codex::models::opencode_auth::{
 pub use ccr_config::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};
 #[allow(unused_imports)]
 pub use ccr_types::{
-    ClaudeAuthAccount, ClaudeAuthRegistry, ClaudeCurrentAuthInfo, ClaudeLoginState,
+    ClaudeAuthAccount, ClaudeAuthActionOutcome, ClaudeAuthConfidence, ClaudeAuthDiagnosis,
+    ClaudeAuthEvidence, ClaudeAuthOwnership, ClaudeAuthRegistry, ClaudeAuthSourceKind,
+    ClaudeAuthSourceLocation, ClaudeAuthSourceObservation, ClaudeCurrentAuthInfo, ClaudeLoginState,
     ClaudeProfileAuthMode, ClaudeRuntimeMode, ClaudeRuntimeSummary,
 };

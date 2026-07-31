@@ -48,6 +48,93 @@ Use `tracing::debug!` for path decisions and autofix behavior. Do not log profil
 
 Tests that mutate `CCR_ROOT` or `CCR_LOCK_DIR` must use `test_support::TestCcrEnv`, which holds a process-wide lock and restores env vars on Drop.
 
+## Scenario: Resolve Claude user-level runtime paths once
+
+### 1. Scope / Trigger
+
+- Trigger: reading or writing Claude Code user-level settings, credentials,
+  state, or CCR-managed settings backups from any workspace crate.
+- `ccr-config` owns the path contract; CLI and Tauri consumers must not repeat
+  the environment-variable priority or default path joins.
+- Project `.mcp.json` / `.claude/settings*.json`, SSH/WSL paths, usage data,
+  skills, prompts, and session observation are separate domains.
+
+### 2. Signatures
+
+- `ClaudeRuntimePaths::from_env() -> ccr_core::Result<ClaudeRuntimePaths>`
+- `ClaudeRuntimePaths::resolve_with(home, env_getter) -> ClaudeRuntimePaths`
+- Fields: `config_dir`, `settings_file`, `credentials_file`, `state_file`,
+  `backups_dir`.
+
+### 3. Contracts
+
+- `config_dir`: non-empty `CLAUDE_CONFIG_DIR`, otherwise `<home>/.claude`.
+- `settings_file`: non-empty `CCR_SETTINGS_PATH`, otherwise
+  `<config_dir>/settings.json`.
+- `credentials_file`: `<config_dir>/.credentials.json`; per-file overrides do
+  not move it.
+- `state_file`: non-empty `CLAUDE_JSON_PATH`; otherwise
+  `<config_dir>/.claude.json` when `CLAUDE_CONFIG_DIR` is set, and
+  `<home>/.claude.json` in the legacy layout.
+- `backups_dir`: non-empty `CCR_BACKUP_DIR`, otherwise
+  `<config_dir>/backups`.
+- Empty override values are treated as absent. Resolution is lexical: do not
+  canonicalize or require targets to exist. Windows expands `%NAME%` segments
+  through the injected getter and preserves unknown segments literally;
+  non-Windows targets do not interpret `%...%`.
+
+### 4. Validation & Error Matrix
+
+- Home directory unavailable in `from_env` -> `ConfigError`; do not guess a
+  relative home.
+- Override is empty -> use the next priority, never the process current
+  directory.
+- Unknown Windows `%NAME%` -> preserve the segment so later I/O reports the
+  actual path; do not silently delete it.
+- Target does not exist -> return the lexical path; the owning read/write
+  operation decides whether missing is valid.
+
+### 5. Good/Base/Bad Cases
+
+- Good: `CLAUDE_CONFIG_DIR=D:\Claude Data` moves settings, credentials, state,
+  and default backups together.
+- Good: `CCR_SETTINGS_PATH` moves only settings while credentials and state
+  continue to follow `config_dir`.
+- Base: no overrides reproduces `~/.claude/settings.json`,
+  `~/.claude/.credentials.json`, `~/.claude.json`, and
+  `~/.claude/backups`.
+- Bad: a consumer independently checks `CLAUDE_CONFIG_DIR` and then hard-codes
+  `~/.claude.json`; profile and auth operations will observe different users.
+
+### 6. Tests Required
+
+- Pure resolver matrix for defaults, each override, combined priority, and
+  empty values.
+- Windows assertions for drive letters, backslashes, spaces, `%USERPROFILE%`,
+  and unknown `%NAME%`; non-Windows assertion that percent syntax is literal.
+- Consumer tests must inject paths or hold their crate-wide process env lock;
+  never mutate process env unsynchronized.
+- Run `cargo test -p ccr-config claude_runtime_paths -- --test-threads=1`,
+  affected consumer tests, `just lint-strict`, and `just test`.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```rust
+let home = dirs::home_dir().ok_or(error)?;
+let settings = home.join(".claude/settings.json");
+let state = home.join(".claude.json");
+```
+
+#### Correct
+
+```rust
+let paths = ccr_config::ClaudeRuntimePaths::from_env()?;
+read_settings(&paths.settings_file)?;
+read_state(&paths.state_file)?;
+```
+
 ## Scenario: Parse and persist profile TOML safely
 
 ### 1. Scope / Trigger
@@ -64,16 +151,40 @@ Tests that mutate `CCR_ROOT` or `CCR_LOCK_DIR` must use `test_support::TestCcrEn
 ### 3. Contracts
 
 - `parse_profiles_from_str` is the single semantic parser for both full `CcsConfig` TOML and the legacy simplified profile map.
+- Parsing is two-phase: first parse `toml::Value` to distinguish invalid TOML,
+  then deserialize exactly one typed profile shape. Scalar `default_config` or
+  `current_config` selects the full `CcsConfig` shape; otherwise use the legacy
+  simplified map shape. Do not retry the other typed shape and replace the
+  relevant serde error.
 - `load_profiles_from_toml` preserves its missing-file behavior, reads bytes from disk, then delegates semantic parsing to `parse_profiles_from_str`.
+- Diagnostics use stable categories: `TOML 语法错误` for the generic parse and
+  `profile 结构错误` for typed deserialization. Include a 1-based line/Unicode
+  column when a safe span is available, plus a safe field and expected shape
+  when they can be derived.
+- `load_profiles_from_toml` prefixes the source path exactly once. It unwraps
+  the inner `ConfigFormatInvalid` message instead of formatting a second nested
+  `CcrError`.
 - Parsing an empty document may return an empty collection at the core-library boundary. A UI workflow that forbids clearing all profiles must enforce that policy after parsing rather than changing shared parser compatibility.
 - Both profile registry saves and current-profile updates set `secret: true`; on Unix, resulting files must not expose credential-bearing content beyond owner read/write permissions.
 - Parser and persistence errors must not log or embed raw profile source or credential values.
+- `toml::de::Error` display text can include the offending source line. Use
+  `Error::message()`, never `Display`, and reduce semantic errors to safe field,
+  category, position, and expected-value information. Never include the
+  rejected literal, raw source line, or full document in `CcrError`.
 
 ### 4. Validation & Error Matrix
 
 - Full config with `[profiles.<name>]` entries -> return those profiles.
 - Simplified top-level profile map -> return the equivalent profile collection.
-- Invalid TOML or incompatible profile fields -> return `CcrError`; do not partially accept entries.
+- Invalid TOML -> `ConfigFormatInvalid` containing `TOML 语法错误`, safe
+  line/column when available, and no raw source line.
+- Valid TOML with an incompatible profile field/type ->
+  `ConfigFormatInvalid` containing `profile 结构错误`, safe field/position, and
+  expected type or allowed values when available; do not partially accept entries.
+- Unsupported `provider_type` -> identify `provider_type` and list
+  `official_relay` / `third_party_model` without echoing the rejected value.
+- Malformed credential line -> the returned error identifies invalid TOML without
+  containing any sentinel value from the source line.
 - Missing file through `load_profiles_from_toml` -> preserve the established empty/default result.
 - Empty parsed collection -> return empty from the shared parser; caller-specific destructive-action policy decides whether to reject it.
 - Structured write failure -> propagate the guarded-write error and preserve the previous file.
@@ -81,15 +192,26 @@ Tests that mutate `CCR_ROOT` or `CCR_LOCK_DIR` must use `test_support::TestCcrEn
 ### 5. Good/Base/Bad Cases
 
 - Good: a raw editor parses with `parse_profiles_from_str`, applies its empty/activation policies, then writes the original bytes through a secret guarded-write path.
+- Good: a valid full document with `provider_type = "relay"` reports a profile
+  structure error at `provider_type` and lists the canonical enum values.
 - Base: an existing caller loads a simplified registry without behavior changes after parser extraction.
 - Bad: duplicate the full-versus-simplified fallback parser inside a Tauri command.
+- Bad: retry both typed shapes and replace the first meaningful serde error with
+  a generic "invalid syntax" message.
+- Bad: interpolate `toml::de::Error` with `{error}` because its display can
+  include credential-bearing source text.
 - Bad: serialize credential-bearing profiles with default `secret: false` permissions.
 
 ### 6. Tests Required
 
 - Parse equivalent full and simplified fixtures and assert matching profile fields.
 - Assert empty input preserves the shared parser's empty-collection behavior.
-- Keep existing missing-file and malformed-file load tests passing.
+- Assert malformed TOML reports the path once, the error category once, and a
+  1-based line/column without the source sentinel.
+- Assert valid TOML with an invalid `provider_type` reports the field and
+  allowed values without the rejected literal.
+- Add malformed and typed `auth_token` sentinels and assert the returned errors
+  omit them. Include a Unicode-before-span case for column calculation.
 - Exercise both structured write paths and assert secret file permissions on Unix.
 - Run `cargo test -p ccr-config -- --test-threads=1` and clippy for `ccr-config` with warnings denied.
 
@@ -98,22 +220,21 @@ Tests that mutate `CCR_ROOT` or `CCR_LOCK_DIR` must use `test_support::TestCcrEn
 #### Wrong
 
 ```rust
-let profiles: IndexMap<String, ProfileConfig> = toml::from_str(content)?;
-write_toml(path, &profiles)?;
+let sections = toml::from_str::<CcsConfig>(content)
+    .map(|config| config.sections)
+    .or_else(|_| toml::from_str::<IndexMap<String, ConfigSection>>(content))
+    .map_err(|error| CcrError::ConfigFormatInvalid(error.to_string()))?;
 ```
 
 #### Correct
 
 ```rust
-let profiles = parse_profiles_from_str(content)?;
-write_toml_opts(
-    path,
-    &profiles,
-    WriteOptions {
-        secret: true,
-        ..Default::default()
-    },
-)?;
+let document = toml::from_str::<toml::Value>(content)
+    .map_err(|error| safe_syntax_diagnostic(content, &error))?;
+let sections = match profile_document_shape(&document) {
+    Full => deserialize_full_with_safe_diagnostic(content)?,
+    Simplified => deserialize_simplified_with_safe_diagnostic(content)?,
+};
 ```
 
 ## Scenario: TUI Preference Config
@@ -141,8 +262,13 @@ write_toml_opts(
   of `tab_order`, so an otherwise valid custom order is preserved.
 - An unsupported or non-string `theme` falls back to Mocha independently of
   `language` and `tab_order`, preserving all other valid preferences.
-- Current tab ids: `codex_profile`, `claude_profile`, `codex_auth`, `claude_auth`, `opencode_auth`.
+- Current tab ids, in built-in order: `codex_profile`, `claude_profile`,
+  `grok_profile`, `codex_auth`, `claude_auth`, `opencode_auth`.
 - Deprecated id `usage` (standalone Usage tab retired 2026-07) stays parse-tolerant: the enum variant is kept `#[doc(hidden)]`, `load()` filters it out with a `tracing::warn!` **before** validation, and the user's custom order of the remaining tabs is preserved — never fall back to defaults just because `usage` appears.
+- `load()` treats a list that omits known current ids as an older configuration:
+  it preserves the listed order, appends every missing id in built-in relative
+  order, and emits one warning naming the appended ids. This migration applies
+  to any future current tab id, not only `grok_profile`.
 - Missing files return the built-in default order and must not block TUI startup.
 - `save` validates the complete tab order before calling
   `ccr_core::fileio::write_toml`; callers must pass the full loaded config so a
@@ -158,7 +284,13 @@ write_toml_opts(
 - Unknown or non-string `theme` -> warn and use Mocha, preserving language and
   tab order.
 - `tab_order` containing deprecated `usage` -> filter + warn, then validate the remaining list normally (custom order preserved).
-- Missing `tab_order`, duplicate ids, unknown ids, or incomplete lists (after `usage` filtering) -> return the full default order.
+- Missing `tab_order` -> use the full default order.
+- Incomplete list after `usage` filtering -> preserve the listed order and
+  append missing known ids in built-in relative order.
+- Duplicate ids or unknown ids -> reject `load`; `load_or_default` returns the
+  full default configuration.
+- Incomplete list passed directly to `save` -> reject before writing and keep
+  the existing file unchanged.
 - TOML parse failure -> return the full default order and let the TUI continue.
 - Invalid tab order passed to `save` -> return an error before writing; keep the
   existing file unchanged.
@@ -169,13 +301,19 @@ write_toml_opts(
 
 - Good: `language = "zh_cn"`, `theme = "latte"`, and a complete custom
   `tab_order` round-trip through `load` / `save`.
+- Good (default): a missing file opens Profile tabs as Codex, Claude, then
+  Grok, followed by the existing Auth tabs.
 - Good (legacy): a 6-item order containing `usage` loads with `usage` dropped and the custom order intact.
+- Good (migration): an older 5-item custom order loads unchanged in its first
+  five positions with `grok_profile` appended.
 - Base: no `tui.toml` exists, so English, Mocha, and the default order are used.
 - Bad: `language = "fr"` with a valid order must fall back only the language;
   it must not replace the valid order.
 - Bad: `theme = "solarized"` must not discard a valid Chinese language or
   custom tab order.
-- Bad: `tab_order = ["claude_auth"]`, because partial overrides are intentionally rejected.
+- Bad: constructing `TuiConfig { tab_order: vec![TuiTabId::ClaudeAuth], .. }`
+  and passing it directly to `save`; callers must save the complete loaded
+  configuration.
 
 ### 6. Tests Required
 
@@ -183,7 +321,13 @@ write_toml_opts(
   including assertions that valid custom ordering survives language fallback.
 - Unit tests for default/Latte/unknown/non-string theme values, including
   assertions that language and custom ordering survive theme fallback.
-- Unit tests for missing file, valid custom order, duplicate ids, missing ids, unknown ids, and legacy orders containing `usage` (order preserved, `usage` filtered).
+- Unit tests for missing file, valid custom order, duplicate ids, unknown ids,
+  and legacy orders containing `usage` (order preserved, `usage` filtered).
+- The built-in-order test must assert the complete vector so moving one
+  Profile tab cannot silently change startup order.
+- Migration tests must assert that an older complete order preserves every
+  listed position while new ids append, and that multiple missing ids append in
+  built-in relative order.
 - Save tests must assert language/theme/order round-trip and that validation
   failure does not overwrite an existing valid file.
 - Tests that resolve default paths through `CCR_ROOT` must use `test_support::TestCcrEnv`.

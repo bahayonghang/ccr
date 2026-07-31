@@ -350,7 +350,7 @@
                 {{ t('common.cancel') }}
               </button>
               <button
-                class="px-5 py-2.5 rounded-lg font-semibold text-sm transition-transform text-white hover:scale-105"
+                class="px-5 py-2.5 rounded-lg font-semibold text-sm transition-transform text-[color:var(--color-accent-primary-contrast)] hover:scale-105"
                 :style="{
                   background: 'var(--accent-primary)'
                 }"
@@ -384,7 +384,7 @@
               </button>
               <button
                 v-if="stage === 'success'"
-                class="px-5 py-2.5 rounded-lg font-semibold text-sm transition-transform text-white hover:scale-105"
+                class="px-5 py-2.5 rounded-lg font-semibold text-sm transition-transform text-[color:var(--color-success-contrast)] hover:scale-105"
                 :style="{
                   background: 'var(--accent-success)'
                 }"

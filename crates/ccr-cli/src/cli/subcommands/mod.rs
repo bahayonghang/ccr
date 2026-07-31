@@ -5,6 +5,7 @@
 pub mod check;
 pub mod claude;
 pub mod codex;
+pub mod grok;
 pub mod opencode;
 pub mod platform;
 pub mod profile_args;
@@ -15,6 +16,7 @@ pub mod ui;
 pub use check::CheckAction;
 pub use claude::{ClaudeAction, ClaudeAuthAction, ClaudeProfileAction};
 pub use codex::{CodexAction, CodexAuthAction, CodexProfileAction};
+pub use grok::{GrokAction, GrokProfileAction};
 pub use opencode::{OpenCodeAction, OpenCodeAuthAction};
 pub use platform::PlatformAction;
 pub use project::ProjectAction;

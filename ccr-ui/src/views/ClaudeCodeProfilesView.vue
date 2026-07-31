@@ -1,5 +1,5 @@
 <template>
-  <div class="claude-profiles-view">
+  <div class="profiles-view claude-profiles-view">
     <ModuleSubnav module="claude-code" />
 
     <main class="cp-shell">
@@ -15,10 +15,11 @@
             export: $t('common.export'),
             add: $t('claudeProfiles.addProfile'),
             source: $t('profilesRaw.edit'),
+            overflow: $t('claudeProfiles.overflowMenu'),
           }"
           :palette="{
             label: $t('claudeProfiles.commandPaletteButton'),
-            shortcut: '⌘K',
+            shortcut: `${quickSwitch.modifier.value}K`,
             title: $t('claudeProfiles.commandPaletteShortcut'),
           }"
           :loading="loading || isRefreshing"
@@ -42,8 +43,6 @@
             currentHint: $t('claudeProfiles.statStrip.profileSubtitle'),
             total: $t('claudeProfiles.totalCount'),
             totalHint: $t('claudeProfiles.statStrip.totalHint', { enabled: enabledProfilesCount, disabled: profiles.length - enabledProfilesCount }),
-            lastWrite: $t('claudeProfiles.statStrip.lastWrite'),
-            lastWriteHint: $t('claudeProfiles.statStrip.lastWriteHint'),
           }"
           :secondary="{
             icon: 'ShieldCheck',
@@ -52,7 +51,8 @@
             hint: $t('claudeProfiles.statStrip.authSplit', { subscription: subscriptionCount, apiKey: apiKeyCount }),
             mono: true,
           }"
-          :last-write="lastWriteHint"
+          :health="healthSlot"
+          @health-click="focusInspector"
         />
 
         <ProfilesQuickRail
@@ -60,7 +60,11 @@
           :current-name="currentProfileName"
           i18n-prefix="claudeProfiles"
           :disabled="loading || isRefreshing || isSaving || confirmActionBusy"
+          :busy-name="pendingAction?.kind === 'apply' ? pendingAction.name : null"
+          :quick-switch="quickSwitch"
+          :more-count="quickRailMoreCount"
           @apply="handleApply"
+          @more="paletteOpen = true"
         />
 
         <ProfilesToolbar
@@ -188,11 +192,15 @@
           </button>
         </div>
 
-        <template v-else>
+        <div
+          v-else
+          ref="listRef"
+        >
           <ProfilesSection
-            v-if="enabledList.length > 0"
-            :title="$t('claudeProfiles.groups.enabled')"
-            :count="enabledList.length"
+            v-for="section in listSections"
+            :key="section.id"
+            :title="section.title"
+            :count="section.profiles.length"
           >
             <div
               v-if="viewMode === 'list'"
@@ -209,12 +217,14 @@
                 <span class="cp-list-head__right">{{ $t('claudeProfiles.toolbar.actionsLabel') }}</span>
               </div>
               <ProfileListRow
-                v-for="profile in enabledList"
+                v-for="profile in section.profiles"
                 :key="profile.name"
+                v-bind="rowInteraction(profile.name)"
                 :profile="profile"
                 :descriptor="rowDescriptor"
                 :is-current="profile.is_current"
-                :disabled="loading || isRefreshing || isSaving || confirmActionBusy"
+                :disabled="rowsDisabled"
+                :busy-action="busyActionFor(profile.name)"
                 @apply="handleApply"
                 @edit="openEditForm(findProfile($event))"
                 @delete="handleDelete"
@@ -225,208 +235,56 @@
               class="cp-grid"
             >
               <ClaudeProfileRow
-                v-for="profile in enabledList"
+                v-for="profile in section.profiles"
                 :key="profile.name"
+                v-bind="rowInteraction(profile.name)"
                 :profile="profile"
-                :provider-color="resolveProviderColor(profile.provider)"
                 :search-query="trimmedSearchQuery"
+                :disabled="rowsDisabled"
+                :busy-action="busyActionFor(profile.name)"
                 @apply="handleApply(profile.name)"
                 @edit="openEditForm(profile)"
                 @delete="handleDelete(profile.name)"
               />
             </div>
           </ProfilesSection>
-
-          <ProfilesSection
-            v-if="disabledList.length > 0"
-            :title="$t('claudeProfiles.groups.disabled')"
-            :count="disabledList.length"
-          >
-            <div
-              v-if="viewMode === 'list'"
-              class="cp-list"
-            >
-              <ProfileListRow
-                v-for="profile in disabledList"
-                :key="profile.name"
-                :profile="profile"
-                :descriptor="rowDescriptor"
-                :is-current="profile.is_current"
-                :disabled="loading || isRefreshing || isSaving || confirmActionBusy"
-                @apply="handleApply"
-                @edit="openEditForm(findProfile($event))"
-                @delete="handleDelete"
-              />
-            </div>
-            <div
-              v-else
-              class="cp-grid"
-            >
-              <ClaudeProfileRow
-                v-for="profile in disabledList"
-                :key="profile.name"
-                :profile="profile"
-                :provider-color="resolveProviderColor(profile.provider)"
-                :search-query="trimmedSearchQuery"
-                @apply="handleApply(profile.name)"
-                @edit="openEditForm(profile)"
-                @delete="handleDelete(profile.name)"
-              />
-            </div>
-          </ProfilesSection>
-        </template>
+        </div>
       </div>
 
-      <ProfilesContextRail
+      <ProfilesInspector
+        ref="inspectorRef"
         :profiles="profiles"
-        :current="currentProfileName"
-        :active-profile="activeProfile"
-        i18n-prefix="claudeProfiles.contextRail"
-        :descriptor="railDescriptor"
+        :preview-profile="previewProfile"
+        :current-profile="currentProfileRecord"
+        i18n-prefix="claudeProfiles.inspector"
+        :descriptor="inspectorDescriptor"
+        :session-write-at="isPreviewingCurrent ? lastWriteHint : null"
+        :selected-tag="tagFilter"
         @edit="openEditForm(findProfile($event))"
+        @locate="locateProfile"
+        @tag-select="onInspectorTagSelect"
       />
     </main>
 
-    <BaseModal
+    <ClaudeProfileEditorModal
+      ref="editorModalRef"
       v-model="showForm"
-      :persistent="isSaving"
-      :show-close="false"
-      size="xl"
-      content-class="claude-profile-editor-modal !max-w-[980px] !max-h-[90vh] rounded-2xl"
-    >
-      <template #header="{ titleId }">
-        <div class="editor-shell-header flex items-start justify-between gap-4">
-          <div class="flex min-w-0 items-start gap-4">
-            <div class="editor-hero-icon flex h-14 w-14 shrink-0 items-center justify-center rounded-lg">
-              <SIcon
-                name="Layers"
-                size="w-7 h-7"
-              />
-            </div>
-            <div class="min-w-0">
-              <p class="editor-shell-eyebrow text-xs font-semibold uppercase tracking-[0.26em]">
-                {{ modalEyebrow }}
-              </p>
-              <div class="mt-2 flex flex-wrap items-center gap-2">
-                <h2
-                  :id="titleId"
-                  class="editor-shell-title text-2xl font-semibold tracking-tight"
-                >
-                  {{ modalTitle }}
-                </h2>
-                <span
-                  class="editor-pill px-3 py-1 text-xs font-medium"
-                  :class="modalStatusClass"
-                >
-                  {{ modalStatus }}
-                </span>
-              </div>
-              <p class="editor-shell-description mt-2 max-w-3xl text-sm leading-6">
-                {{ modalDescription }}
-              </p>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            class="editor-close-button inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-            :aria-label="$t('claudeProfiles.closeModal')"
-            :disabled="isSaving"
-            @click="closeForm"
-          >
-            <SIcon
-              name="X"
-              size="w-4 h-4"
-            />
-          </button>
-        </div>
-      </template>
-
-      <div class="flex max-h-[calc(90vh-8rem)] flex-col overflow-hidden">
-        <div class="editor-nav-rail mb-4 flex flex-wrap gap-2 border-b border-border-default/35 pb-4">
-          <button
-            v-for="section in modalSectionItems"
-            :key="section.id"
-            type="button"
-            class="editor-nav-button inline-flex min-h-[40px] items-center gap-2 rounded-full px-3.5 py-2 text-sm transition-[background-color,border-color,transform] duration-200 hover:-translate-y-px"
-            :class="activeFormSectionId === section.id
-              ? 'editor-nav-button--active'
-              : 'editor-nav-button--idle'"
-            @click="scrollToFormSection(section.id)"
-          >
-            <span class="editor-nav-button__icon flex h-7 w-7 items-center justify-center rounded-full">
-              <SIcon
-                :name="section.icon"
-                size="w-3.5 h-3.5"
-              />
-            </span>
-            {{ section.title }}
-          </button>
-        </div>
-
-        <div
-          ref="modalScrollRef"
-          class="editor-scroll-area min-h-0 flex-1 overflow-y-auto pr-1"
-        >
-          <ProviderTemplateSelector
-            class="mb-4"
-            platform="claude"
-            :selected-template-id="selectedProviderTemplate"
-            :selected-endpoint="selectedProviderEndpoint"
-            :draft-context="claudeTemplateDraft"
-            label="Provider template"
-            helper="Fill non-secret provider, endpoint, and model defaults from a reusable template."
-            @select="applyClaudeProviderTemplate"
-            @manual="useManualProviderTemplate"
-          />
-
-          <ClaudeProfileEditorSections
-            :editing-name="editingName"
-            :form="form"
-            :is-editing="isEditing"
-            :monospace-field-class="monospaceFieldClass"
-            :parsed-form-tags="parsedFormTags"
-            :register-modal-section-ref="registerModalSectionRef"
-            :save-error="saveError"
-            :textarea-class="textareaClass"
-            :text-field-class="textFieldClass"
-            :update-form-field="updateFormField"
-          />
-        </div>
-
-        <div class="editor-footer mt-5 flex flex-col gap-3 pt-4 sm:flex-row sm:items-center sm:justify-between">
-          <p class="text-sm text-text-secondary">
-            {{ $t('claudeProfiles.modalFooterHint') }}
-          </p>
-          <div class="flex items-center justify-end gap-3">
-            <button
-              type="button"
-              class="editor-button editor-button--secondary min-h-[44px] rounded-2xl px-5 py-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-50"
-              :disabled="isSaving"
-              @click="closeForm"
-            >
-              {{ $t('claudeProfiles.cancel') }}
-            </button>
-            <button
-              type="button"
-              class="editor-button editor-button--primary min-h-[44px] rounded-2xl px-5 py-2.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
-              :disabled="!form.name.trim() || isSaving"
-              @click="handleSave()"
-            >
-              <span class="inline-flex items-center gap-2">
-                <SIcon
-                  v-if="isSaving"
-                  name="RefreshCw"
-                  size="w-4 h-4"
-                  class="animate-spin"
-                />
-                {{ isEditing ? $t('claudeProfiles.save') : $t('claudeProfiles.create') }}
-              </span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </BaseModal>
+      :form="form"
+      :update-form-field="updateFormField"
+      :parsed-form-tags="parsedFormTags"
+      :is-editing="isEditing"
+      :is-editing-current="isEditingCurrent"
+      :editing-name="editingName"
+      :saving="isSaving"
+      :save-error="saveError"
+      :selected-provider-template="selectedProviderTemplate"
+      :selected-provider-endpoint="selectedProviderEndpoint"
+      :template-draft="claudeTemplateDraft"
+      @close="closeForm"
+      @save="handleSave"
+      @select-template="applyClaudeProviderTemplate"
+      @manual-template="useManualProviderTemplate"
+    />
 
     <ProfilesCommandPalette
       :open="paletteOpen"
@@ -453,14 +311,23 @@
       :message="confirmDialog.message"
       :confirm-text="confirmDialog.confirmText"
       :cancel-text="$t('claudeProfiles.cancel')"
+      :footnote="confirmDialog.footnote"
       @confirm="executeConfirmedAction"
-    />
+    >
+      <template
+        v-if="confirmDiffRows.length > 0"
+        #details
+      >
+        <ProfileDiffRows :rows="confirmDiffRows" />
+      </template>
+    </ConfirmModal>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, h, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch, type FunctionalComponent } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import '@/styles/profiles-page.css'
 import {
   addClaudeProfile,
   applyClaudeProfile,
@@ -471,47 +338,52 @@ import {
   updateClaudeProfile,
 } from '@/api'
 import { getClaudeProfilesRaw, saveClaudeProfilesRaw } from '@/api/domains/claude'
-import ClaudeProfileEditorSections from '@/components/claude/ClaudeProfileEditorSections.vue'
+import ClaudeProfileEditorModal from '@/components/claude/ClaudeProfileEditorModal.vue'
 import ClaudeProfileRow from '@/components/claude/ClaudeProfileRow.vue'
+import ProfileDiffRows from '@/components/profiles/ProfileDiffRows.vue'
 import ProfilesCommandPalette, { type ProfilesCommandPaletteAction, type ProfilesCommandPaletteDescriptor } from '@/components/profiles/ProfilesCommandPalette.vue'
-import ProfilesContextRail, { type ContextRailDescriptor, type ContextRailActiveField } from '@/components/profiles/ProfilesContextRail.vue'
-import { useClaudeProfilesInsights } from '@/composables/useClaudeProfilesInsights'
+import ProfilesInspector from '@/components/profiles/ProfilesInspector.vue'
+import ProfilesSection from '@/components/profiles/ProfilesSection.vue'
 import { useConfirmAction } from '@/composables/useConfirmAction'
 import { useProfilesHotkeys } from '@/composables/useProfilesHotkeys'
+import { useProfilesQuickSwitch } from '@/composables/useProfilesQuickSwitch'
 import ProfilesHeader from '@/components/profiles/ProfilesHeader.vue'
 import ProfilesRawEditorPanel from '@/components/profiles/ProfilesRawEditorPanel.vue'
-import ProfileListRow, { type ProfileRowDescriptor } from '@/components/profiles/ProfileListRow.vue'
+import ProfileListRow from '@/components/profiles/ProfileListRow.vue'
 import ProfilesQuickRail from '@/components/profiles/ProfilesQuickRail.vue'
-import ProfilesStatStrip from '@/components/profiles/ProfilesStatStrip.vue'
+import ProfilesStatStrip, { type ProfilesStatStripHealth } from '@/components/profiles/ProfilesStatStrip.vue'
 import ProfilesToolbar, { type ProfilesViewMode } from '@/components/profiles/ProfilesToolbar.vue'
-import BaseModal from '@/components/common/BaseModal.vue'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import ModuleSubnav from '@/components/ModuleSubnav.vue'
-import ProviderTemplateSelector from '@/components/provider-templates/ProviderTemplateSelector.vue'
 import SIcon from '@/components/ui/SIcon.vue'
-import { translateWithFallback } from '@/i18n/formatMessage'
-import type { ClaudeProfile, ClaudeProfileRequest } from '@/types'
-import type {
-  ClaudeProfileEditorForm,
-  ClaudeProfileEditorSectionItem,
-  ClaudeProfileFormSectionId,
-} from '@/types/claudeProfileEditor'
-import type { ProviderTemplateDraftContext, ProviderTemplateSelection } from '@/types/providerTemplates'
+import type { ClaudeProfile } from '@/types'
+import type { ClaudeProfileEditorForm } from '@/types/claudeProfileEditor'
+import type { ProviderTemplateSelection } from '@/types/providerTemplates'
 import { getErrorMessage } from '@/types/api'
 import {
+  applyClaudeTemplateToForm,
+  buildClaudeProfileRequest,
+  buildClaudeTemplateDraft,
+  createClaudeProfileForm,
+  fillClaudeProfileForm,
+  parseClaudeProfileTags,
+  resetClaudeProfileForm,
+} from '@/utils/claudeProfileEditor'
+import {
+  createClaudeDiffFields,
+  createClaudeInspectorDescriptor,
+  createClaudeRowDescriptor,
   normalizeClaudeProfilesState,
-  resolveProviderColor,
 } from '@/utils/claudeProfiles'
+import { buildProfileDiff, type ProfileDiffRow } from '@/utils/profileDiff'
 import {
   useClaudeProfilesFilter,
   type ClaudeProfilesSortBy,
   type ClaudeProfilesStatusFilter,
 } from '@/composables/useClaudeProfilesFilter'
 import { logger } from '@/utils/logger'
-import { CLAUDE_PROFILE_FORM_SECTION_IDS } from '@/types/claudeProfileEditor'
 import { downloadTextFile } from '@/utils/download'
 import { useUIStore } from '@/stores/ui'
-import { mapTemplateToClaudeProfilePatch } from '@/utils/providerTemplates'
 
 const { t } = useI18n()
 const uiStore = useUIStore()
@@ -522,6 +394,7 @@ const isExporting = ref(false)
 const loadError = ref<string | null>(null)
 const refreshError = ref<string | null>(null)
 const profiles = ref<ClaudeProfile[]>([])
+const profileNamesReady = ref(false)
 const showForm = ref(false)
 const isEditing = ref(false)
 const isSaving = ref(false)
@@ -547,128 +420,36 @@ const {
   executeConfirmedAction,
 } = useConfirmAction()
 
-// 列表行平台策略：base_url/model/authMode 解析 + 操作文案 + 编辑图标
-const rowDescriptor = computed<ProfileRowDescriptor<ClaudeProfile>>(() => ({
-  baseUrl: (profile) => {
-    const raw = profile.base_url?.trim()
-    return raw && raw.length > 0 ? raw : t('claudeProfiles.officialBaseUrl')
-  },
-  // Claude 多模型：优先主模型，回退 sonnet/opus/haiku/subagent 映射
-  model: (profile) =>
-    profile.model?.trim()
-    || profile.default_sonnet_model?.trim()
-    || profile.default_opus_model?.trim()
-    || profile.default_haiku_model?.trim()
-    || profile.subagent_model?.trim()
-    || '—',
-  authMode: (profile) =>
-    profile.auth_mode === 'api_key'
-      ? t('claudeProfiles.authModeApiKey')
-      : t('claudeProfiles.authModeSubscription'),
-  editIcon: 'Pencil',
-  labels: {
-    apply: t('claudeProfiles.applyProfile'),
-    edit: t('claudeProfiles.editTooltip'),
-    delete: t('claudeProfiles.deleteTooltip'),
-  },
-}))
-
-const claudeAuthModeLabel = (mode: string): string =>
-  mode === 'api_key' ? t('claudeProfiles.authModeApiKey') : t('claudeProfiles.authModeSubscription')
-
-// 上下文侧栏平台策略：洞察来源 + 当前 profile 字段列表 + 文案/图标
-const railDescriptor: ContextRailDescriptor<ClaudeProfile> = {
-  editIcon: 'Pencil',
-  useInsights: useClaudeProfilesInsights,
-  activeFields: (profile) => {
-    const baseUrl = profile.base_url?.trim() || t('claudeProfiles.officialBaseUrl')
-    // Claude 多模型：优先主模型，回退 sonnet/opus/haiku/subagent 映射
-    const model = profile.model?.trim()
-      || profile.default_sonnet_model?.trim()
-      || profile.default_opus_model?.trim()
-      || profile.default_haiku_model?.trim()
-      || profile.subagent_model?.trim()
-      || '—'
-    const fields: ContextRailActiveField[] = [
-      { label: t('claudeProfiles.fields.baseUrl'), value: baseUrl },
-      { label: t('claudeProfiles.fields.model'), value: model, variant: 'accent' },
-      {
-        label: t('claudeProfiles.fields.authMode'),
-        value: claudeAuthModeLabel(profile.auth_mode ?? 'subscription'),
-        variant: 'muted',
-      },
-    ]
-    if (profile.provider) {
-      fields.push({ label: t('claudeProfiles.providerLabel'), value: profile.provider, variant: 'muted' })
-    }
-    if (profile.account) {
-      fields.push({ label: t('claudeProfiles.accountLabel'), value: profile.account })
-    }
-    return fields
-  },
-  authModeLabel: claudeAuthModeLabel,
-  isDeprecatedMode: () => false,
-  missingMessage: missing =>
-    missing
-      .map(field =>
-        field === 'base_url'
-          ? t('claudeProfiles.contextRail.issues.missingBaseUrl')
-          : field === 'model'
-            ? t('claudeProfiles.contextRail.issues.missingModel')
-            : t('claudeProfiles.contextRail.issues.missingAccount'),
-      )
-      .join(' · '),
-  runtimeSummary: (profile) => {
-    const model = profile.model?.trim()
-      || profile.default_sonnet_model?.trim()
-      || profile.default_opus_model?.trim()
-      || '—'
-    const baseUrl = profile.base_url?.trim() || '—'
-    return `${model} · ${baseUrl}`
-  },
-}
-const toolbarRef = ref<InstanceType<typeof ProfilesToolbar> | null>(null)
-const modalScrollRef = ref<HTMLElement | null>(null)
-const activeFormSectionId = ref<ClaudeProfileFormSectionId>('basic')
-const modalSectionRefs = ref<Record<ClaudeProfileFormSectionId, HTMLElement | null>>({
-  basic: null,
-  connection: null,
-  auth: null,
-  status: null,
-})
-
-const form = reactive<ClaudeProfileEditorForm>({
-  name: '',
-  description: '',
-  auth_mode: 'subscription',
-  base_url: '',
-  auth_token: '',
-  default_opus_model: '',
-  default_sonnet_model: '',
-  default_haiku_model: '',
-  default_fable_model: '',
-  default_opus_model_name: '',
-  default_sonnet_model_name: '',
-  default_haiku_model_name: '',
-  default_fable_model_name: '',
-  subagent_model: '',
-  custom_model_option: '',
-  custom_model_option_name: '',
-  effort_level: '',
-  claude_code_auto_compact_window: '',
-  api_timeout_ms: '',
-  claude_code_disable_nonessential_traffic: '',
-  provider: '',
-  provider_type: '',
-  account: '',
-  tagsInput: '',
-  enabled: true,
-})
+// 确认框附加的「当前 → 目标」diff（仅 apply 场景填充）
+const confirmDiffRows = ref<ProfileDiffRow[]>([])
+// 待确认/执行中的行级操作，驱动行内 busy 反馈
+const pendingAction = ref<{ name: string, kind: 'apply' | 'delete' } | null>(null)
 
 const currentProfileRecord = computed(() => profiles.value.find(profile => profile.is_current) ?? null)
 const currentProfileName = computed(() => currentProfileRecord.value?.name ?? null)
 const providerUnsetLabel = computed(() => t('claudeProfiles.providerUnset'))
 const isEditingCurrent = computed(() => isEditing.value && editingName.value === currentProfileRecord.value?.name)
+
+// 平台策略：列表行与检查器的字段解析/文案/图标统一由 utils 组装
+const rowDescriptor = computed(() => createClaudeRowDescriptor(t))
+const inspectorDescriptor = createClaudeInspectorDescriptor(t)
+
+// 快速切换：钉选（数字编号唯一来源）+ 最近使用，按平台键持久化
+const quickSwitch = useProfilesQuickSwitch({
+  platform: 'claude',
+  getProfileNames: () => profileNamesReady.value
+    ? profiles.value.map(profile => profile.name)
+    : null,
+  onPinLimit: () => uiStore.showWarning(t('claudeProfiles.pinLimitReached')),
+})
+
+const toolbarRef = ref<InstanceType<typeof ProfilesToolbar> | null>(null)
+// Inspector 是泛型组件，InstanceType 无法解析，只取滚动定位需要的 $el
+const inspectorRef = ref<{ $el?: unknown } | null>(null)
+const editorModalRef = ref<InstanceType<typeof ClaudeProfileEditorModal> | null>(null)
+const listRef = ref<HTMLElement | null>(null)
+
+const form = reactive<ClaudeProfileEditorForm>(createClaudeProfileForm())
 
 // 过滤/排序/分组逻辑下沉到 composable
 const {
@@ -677,7 +458,6 @@ const {
   filtered,
   enabledList,
   disabledList,
-  activeProfile,
 } = useClaudeProfilesFilter({
   profiles,
   currentProfile: currentProfileName,
@@ -702,6 +482,118 @@ const enabledProfilesCount = computed(
 
 const trimmedSearchQuery = computed(() => searchQuery.value.trim())
 
+// 启用/停用两个分组共用同一套行渲染，空分组不出现
+const listSections = computed(() =>
+  [
+    { id: 'enabled', title: t('claudeProfiles.groups.enabled'), profiles: enabledList.value },
+    { id: 'disabled', title: t('claudeProfiles.groups.disabled'), profiles: disabledList.value },
+  ].filter(section => section.profiles.length > 0),
+)
+const rowsDisabled = computed(
+  () => loading.value || isRefreshing.value || isSaving.value || confirmActionBusy.value,
+)
+
+const busyActionFor = (name: string): 'apply' | 'delete' | null => {
+  if (!confirmActionBusy.value || pendingAction.value?.name !== name) return null
+  return pendingAction.value.kind
+}
+
+/* ========================================================================
+ * 统计条 Health 槽 + 检查器预览目标
+ * ======================================================================== */
+
+const insights = inspectorDescriptor.useInsights(profiles)
+
+const healthSlot = computed<ProfilesStatStripHealth>(() => {
+  const count = insights.totalIssueCount.value
+  return {
+    title: t('claudeProfiles.statStrip.healthTitle'),
+    value: String(count),
+    hint: count === 0
+      ? t('claudeProfiles.statStrip.healthHintOk')
+      : t('claudeProfiles.statStrip.healthHintIssues', { count }),
+    warn: count > 0,
+  }
+})
+
+// 预览目标：hover 优先于 focus，两者皆空时回落当前 profile
+const hoveredName = ref<string | null>(null)
+const focusedName = ref<string | null>(null)
+
+const previewProfile = computed<ClaudeProfile | null>(() => {
+  const name = hoveredName.value ?? focusedName.value
+  if (name) {
+    const match = profiles.value.find(profile => profile.name === name)
+    if (match) return match
+  }
+  return currentProfileRecord.value
+})
+
+const isPreviewingCurrent = computed(
+  () => !!previewProfile.value && previewProfile.value.name === currentProfileName.value,
+)
+
+const clearHovered = (name: string) => {
+  if (hoveredName.value === name) hoveredName.value = null
+}
+
+const onRowFocusOut = (name: string, event: FocusEvent) => {
+  const container = event.currentTarget as HTMLElement | null
+  const next = event.relatedTarget as Node | null
+  // 焦点仍留在同一行/卡片内部（例如角落菜单按钮）时保持预览
+  if (next && container?.contains(next)) return
+  if (focusedName.value === name) focusedName.value = null
+}
+
+/**
+ * 行/卡片的预览联动与定位标记：以 v-bind 透传原生监听与 data 属性，
+ * 避免给两套行组件的 props 契约塞入平台特有的交互字段。
+ */
+const rowInteraction = (name: string): Record<string, unknown> => ({
+  'data-profile-name': name,
+  onMouseenter: () => { hoveredName.value = name },
+  onMouseleave: () => clearHovered(name),
+  onFocusin: () => { focusedName.value = name },
+  onFocusout: (event: FocusEvent) => onRowFocusOut(name, event),
+})
+
+const focusInspector = () => {
+  const element = inspectorRef.value?.$el
+  if (element instanceof HTMLElement) {
+    element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+}
+
+// Health 条目 → 滚动定位到对应卡片并短暂高亮
+const locateProfile = (name: string) => {
+  void nextTick(() => {
+    const escaped = typeof CSS !== 'undefined' && CSS.escape
+      ? CSS.escape(name)
+      : name.replace(/["\\]/g, '\\$&')
+    const target = listRef.value?.querySelector<HTMLElement>(`[data-profile-name="${escaped}"]`)
+    if (!target) return
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    target.classList.add('cp-locate-flash')
+    window.setTimeout(() => target.classList.remove('cp-locate-flash'), 1600)
+  })
+}
+
+const onInspectorTagSelect = (tag: string) => {
+  tagFilter.value = tagFilter.value === tag ? null : tag
+}
+
+/* ========================================================================
+ * 快速切换条：钉选/最近 chip 之外的可用 profile 数走「+N more → ⌘K」
+ * ======================================================================== */
+
+const quickRailMoreCount = computed(() => {
+  const shown = Math.min(
+    quickSwitch.pinned.value.length + quickSwitch.recentNotPinned.value.length,
+    8,
+  )
+  return Math.max(0, enabledProfilesCount.value - shown)
+})
+
 // 列表行只发 name，编辑需要完整 profile 记录
 const findProfile = (name: string): ClaudeProfile => {
   const profile = profiles.value.find(item => item.name === name)
@@ -711,123 +603,8 @@ const findProfile = (name: string): ClaudeProfile => {
   return profile
 }
 
-// 简易分组容器：标题 + 计数 + 内容插槽（functional component）
-const ProfilesSection: FunctionalComponent<{ title: string, count: number }> = (
-  props,
-  { slots },
-) => {
-  const children = (slots.default?.() ?? []) as never
-  return h('section', { class: 'cp-section' }, [
-    h('div', { class: 'cp-section__head' }, [
-      h(SIcon, { name: 'Folder', size: 'w-3.5 h-3.5', class: 'cp-section__icon' }),
-      h('span', { class: 'cp-section__title' }, props.title),
-      h('span', { class: 'cp-section__count' }, String(props.count)),
-    ]),
-    h('div', { class: 'cp-section__body' }, children),
-  ])
-}
-ProfilesSection.props = ['title', 'count']
-
-const modalEyebrow = computed(() => (
-  isEditing.value
-    ? t('claudeProfiles.modalEditEyebrow')
-    : t('claudeProfiles.modalNewEyebrow')
-))
-const modalTitle = computed(() => (
-  isEditing.value
-    ? editingName.value || t('claudeProfiles.editProfileTitle')
-    : t('claudeProfiles.newProfileTitle')
-))
-const modalDescription = computed(() => (
-  isEditing.value
-    ? t('claudeProfiles.modalEditDescription')
-    : t('claudeProfiles.modalNewDescription')
-))
-const modalStatus = computed(() => {
-  if (isEditingCurrent.value) return t('claudeProfiles.modalStatusCurrent')
-  if (isEditing.value) return form.enabled ? t('claudeProfiles.modalStatusEditing') : t('claudeProfiles.modalStatusDisabled')
-  return t('claudeProfiles.modalStatusDraft')
-})
-const modalStatusClass = computed(() => {
-  if (isEditingCurrent.value) return 'editor-pill--current'
-  if (isEditing.value && !form.enabled) return 'editor-pill--danger'
-  if (isEditing.value) return 'editor-pill--info'
-  return 'editor-pill--neutral'
-})
-
-const textFieldClass = 'editor-input w-full rounded-lg px-4 py-3 text-sm'
-const monospaceFieldClass = `${textFieldClass} editor-input--mono`
-const textareaClass = `${textFieldClass} editor-input--textarea min-h-[116px] resize-y`
-
-const normalizeOptional = (value: string): string | undefined => {
-  const trimmed = value.trim()
-  return trimmed ? trimmed : undefined
-}
-
-const parseTags = (input: string): string[] | undefined => {
-  const tags = input
-    .split(',')
-    .map(tag => tag.trim())
-    .filter(Boolean)
-
-  return tags.length > 0 ? tags : undefined
-}
-
-const parsedFormTags = computed(() => parseTags(form.tagsInput) ?? [])
-const claudeTemplateDraft = computed<ProviderTemplateDraftContext>(() => ({
-  platform: 'claude',
-  defaultName: form.provider || form.name || 'Claude provider',
-  name: form.provider || form.name,
-  category: 'third_party',
-  baseUrls: form.base_url.trim() ? [form.base_url.trim()] : [],
-  modelCatalog: [
-    form.default_opus_model,
-    form.default_sonnet_model,
-    form.default_haiku_model,
-    form.default_fable_model,
-    form.subagent_model,
-  ].filter(Boolean),
-  platformOverride: {
-    baseUrl: form.base_url,
-    provider: form.provider,
-    providerType: form.provider_type,
-    defaultOpusModel: form.default_opus_model,
-    defaultSonnetModel: form.default_sonnet_model,
-    defaultHaikuModel: form.default_haiku_model,
-    defaultFableModel: form.default_fable_model,
-    subagentModel: form.subagent_model,
-    claudeCodeAutoCompactWindow: form.claude_code_auto_compact_window,
-    apiTimeoutMs: form.api_timeout_ms,
-    claudeCodeDisableNonessentialTraffic: form.claude_code_disable_nonessential_traffic,
-    description: form.description,
-  },
-}))
-const modalSectionItems = computed<ClaudeProfileEditorSectionItem[]>(() => ([
-  {
-    id: 'basic' as const,
-    title: t('claudeProfiles.sections.basic.title'),
-    description: t('claudeProfiles.sections.basic.description'),
-    icon: 'Layers',
-  },
-  {
-    id: 'connection' as const,
-    title: t('claudeProfiles.sections.connection.title'),
-    description: t('claudeProfiles.sections.connection.description'),
-    icon: 'Globe',
-  },
-  {
-    id: 'auth' as const,
-    title: t('claudeProfiles.sections.auth.title'),
-    description: t('claudeProfiles.sections.auth.description'),
-    icon: 'ShieldCheck',
-  },
-  {
-    id: 'status' as const,
-    title: t('claudeProfiles.sections.status.title'),
-    description: t('claudeProfiles.sections.status.description'),
-    icon: 'SlidersHorizontal',
-  },
-]))
+const parsedFormTags = computed(() => parseClaudeProfileTags(form.tagsInput) ?? [])
+const claudeTemplateDraft = computed(() => buildClaudeTemplateDraft(form))
 
 function updateFormField(field: keyof ClaudeProfileEditorForm, value: string | boolean) {
   if (field === 'enabled') {
@@ -843,122 +620,24 @@ function updateFormField(field: keyof ClaudeProfileEditorForm, value: string | b
   form[field] = String(value) as ClaudeProfileEditorForm[typeof field]
 }
 
-const buildRequest = (): ClaudeProfileRequest => ({
-  name: form.name.trim(),
-  description: normalizeOptional(form.description),
-  auth_mode: form.auth_mode,
-  base_url: normalizeOptional(form.base_url),
-  auth_token: normalizeOptional(form.auth_token),
-  model: null,
-  small_fast_model: null,
-  default_opus_model: normalizeOptional(form.default_opus_model) ?? null,
-  default_sonnet_model: normalizeOptional(form.default_sonnet_model) ?? null,
-  default_haiku_model: normalizeOptional(form.default_haiku_model) ?? null,
-  default_fable_model: normalizeOptional(form.default_fable_model) ?? null,
-  default_opus_model_name: normalizeOptional(form.default_opus_model_name) ?? null,
-  default_sonnet_model_name: normalizeOptional(form.default_sonnet_model_name) ?? null,
-  default_haiku_model_name: normalizeOptional(form.default_haiku_model_name) ?? null,
-  default_fable_model_name: normalizeOptional(form.default_fable_model_name) ?? null,
-  subagent_model: normalizeOptional(form.subagent_model) ?? null,
-  custom_model_option: normalizeOptional(form.custom_model_option) ?? null,
-  custom_model_option_name: normalizeOptional(form.custom_model_option_name) ?? null,
-  effort_level: normalizeOptional(form.effort_level) ?? null,
-  claude_code_auto_compact_window:
-    normalizeOptional(form.claude_code_auto_compact_window) ?? null,
-  api_timeout_ms: normalizeOptional(form.api_timeout_ms) ?? null,
-  claude_code_disable_nonessential_traffic:
-    normalizeOptional(form.claude_code_disable_nonessential_traffic) ?? null,
-  provider: normalizeOptional(form.provider),
-  provider_type: normalizeOptional(form.provider_type),
-  account: normalizeOptional(form.account),
-  tags: parseTags(form.tagsInput),
-  enabled: form.enabled,
-})
-
-const resetForm = () => {
-  form.name = ''
-  form.description = ''
-  form.auth_mode = 'subscription'
-  form.base_url = ''
-  form.auth_token = ''
-  form.default_opus_model = ''
-  form.default_sonnet_model = ''
-  form.default_haiku_model = ''
-  form.default_fable_model = ''
-  form.default_opus_model_name = ''
-  form.default_sonnet_model_name = ''
-  form.default_haiku_model_name = ''
-  form.default_fable_model_name = ''
-  form.subagent_model = ''
-  form.custom_model_option = ''
-  form.custom_model_option_name = ''
-  form.effort_level = ''
-  form.claude_code_auto_compact_window = ''
-  form.api_timeout_ms = ''
-  form.claude_code_disable_nonessential_traffic = ''
-  form.provider = ''
-  form.provider_type = ''
-  form.account = ''
-  form.tagsInput = ''
-  form.enabled = true
+const openAddForm = () => {
+  resetClaudeProfileForm(form)
   selectedProviderTemplate.value = null
   selectedProviderEndpoint.value = ''
-}
-
-const prepareFormWorkspace = () => {
   saveError.value = null
-  activeFormSectionId.value = 'basic'
-
-  void nextTick(() => {
-    modalScrollRef.value?.scrollTo({ top: 0 })
-    setupSectionObserver()
-  })
-}
-
-const openAddForm = () => {
-  resetForm()
   isEditing.value = false
   editingName.value = ''
   showForm.value = true
-  prepareFormWorkspace()
 }
 
-const VALID_EFFORT_LEVELS = ['low', 'medium', 'high', 'xhigh', 'max'] as const
-
 const openEditForm = (profile: ClaudeProfile) => {
-  form.name = profile.name
-  form.description = profile.description || ''
-  form.auth_mode = profile.auth_mode || 'subscription'
-  form.base_url = profile.base_url || ''
-  form.auth_token = profile.auth_token || ''
-  form.default_opus_model = profile.default_opus_model || ''
-  form.default_sonnet_model = profile.default_sonnet_model || ''
-  form.default_haiku_model = profile.default_haiku_model || ''
-  form.default_fable_model = profile.default_fable_model || ''
-  form.default_opus_model_name = profile.default_opus_model_name || ''
-  form.default_sonnet_model_name = profile.default_sonnet_model_name || ''
-  form.default_haiku_model_name = profile.default_haiku_model_name || ''
-  form.default_fable_model_name = profile.default_fable_model_name || ''
-  form.subagent_model = profile.subagent_model || ''
-  form.custom_model_option = profile.custom_model_option || ''
-  form.custom_model_option_name = profile.custom_model_option_name || ''
-  const rawEffort = profile.effort_level || ''
-  form.effort_level = (VALID_EFFORT_LEVELS as readonly string[]).includes(rawEffort) ? rawEffort : ''
-  form.claude_code_auto_compact_window = profile.claude_code_auto_compact_window || ''
-  form.api_timeout_ms = profile.api_timeout_ms || ''
-  form.claude_code_disable_nonessential_traffic =
-    profile.claude_code_disable_nonessential_traffic || ''
-  form.provider = profile.provider || ''
-  form.provider_type = profile.provider_type || ''
-  form.account = profile.account || ''
-  form.tagsInput = (profile.tags || []).join(', ')
-  form.enabled = profile.enabled !== false
+  fillClaudeProfileForm(form, profile)
   selectedProviderTemplate.value = null
   selectedProviderEndpoint.value = ''
+  saveError.value = null
   isEditing.value = true
   editingName.value = profile.name
   showForm.value = true
-  prepareFormWorkspace()
 }
 
 const closeForm = () => {
@@ -966,7 +645,6 @@ const closeForm = () => {
 
   showForm.value = false
   saveError.value = null
-  activeFormSectionId.value = 'basic'
 }
 
 const useManualProviderTemplate = () => {
@@ -975,57 +653,15 @@ const useManualProviderTemplate = () => {
 }
 
 const applyClaudeProviderTemplate = (selection: ProviderTemplateSelection) => {
-  const patch = mapTemplateToClaudeProfilePatch(selection.template, selection.endpoint)
+  const switchedAuthMode = applyClaudeTemplateToForm(form, selection)
 
   selectedProviderTemplate.value = selection.template.id
   selectedProviderEndpoint.value = selection.endpoint || ''
-  form.base_url = patch.base_url || ''
-  form.provider = patch.provider || selection.template.name
-  form.provider_type = patch.provider_type || ''
-  form.default_opus_model = patch.default_opus_model || ''
-  form.default_sonnet_model = patch.default_sonnet_model || ''
-  form.default_haiku_model = patch.default_haiku_model || ''
-  form.default_fable_model = patch.default_fable_model || ''
-  form.subagent_model = patch.subagent_model || ''
-  form.claude_code_auto_compact_window = patch.claude_code_auto_compact_window || ''
-  form.api_timeout_ms = patch.api_timeout_ms || ''
-  form.claude_code_disable_nonessential_traffic =
-    patch.claude_code_disable_nonessential_traffic || ''
 
-  // 选用 provider 模板即意味着走第三方/中转端点 → 默认 api_key 鉴权，
-  // 避免落到 subscription 被后端清空。
-  if (patch.base_url) {
-    form.auth_mode = 'api_key'
-  }
+  // 模板自动改写 auth_mode 时给出可见提示，避免静默变更鉴权语义
+  if (switchedAuthMode) uiStore.showInfo(t('claudeProfiles.templateAuthModeSwitched'))
 
-  if (!form.name.trim()) {
-    form.name = patch.suggestedName || selection.template.id
-  }
-  if (!form.description.trim() && patch.description) {
-    form.description = patch.description
-  }
-
-  activeFormSectionId.value = 'connection'
-}
-
-type SectionRefTarget = Element | { $el?: unknown } | null
-
-const resolveSectionElement = (target: SectionRefTarget): HTMLElement | null => {
-  if (!target) return null
-  if (target instanceof HTMLElement) return target
-
-  if ('$el' in target) {
-    const { $el } = target
-    return $el instanceof HTMLElement ? $el : null
-  }
-
-  return null
-}
-
-const registerModalSectionRef = (sectionId: ClaudeProfileFormSectionId, target: SectionRefTarget) => {
-  const resolvedElement = resolveSectionElement(target)
-
-  modalSectionRefs.value[sectionId] = resolvedElement
+  editorModalRef.value?.scrollToSection('connection')
 }
 
 const resetFilters = () => {
@@ -1047,57 +683,6 @@ const paletteActions = computed<ProfilesCommandPaletteAction[]>(() => [
   { id: '__export', icon: 'Download', labelKey: 'claudeProfiles.commandPalette.actionExport', handler: () => { void handleExportProfiles() } },
 ])
 
-// 分区高亮改 IntersectionObserver 追踪(顶部 -140px 锚线)，取代逐帧 @scroll 计算。
-let sectionObserver: IntersectionObserver | null = null
-
-const teardownSectionObserver = () => {
-  sectionObserver?.disconnect()
-  sectionObserver = null
-}
-
-const setupSectionObserver = () => {
-  teardownSectionObserver()
-  const container = modalScrollRef.value
-  if (!container) return
-
-  const elementToSection = new Map<Element, ClaudeProfileFormSectionId>()
-  CLAUDE_PROFILE_FORM_SECTION_IDS.forEach((sectionId) => {
-    const element = modalSectionRefs.value[sectionId]
-    if (element) elementToSection.set(element, sectionId)
-  })
-  if (elementToSection.size === 0) return
-
-  const visibility = new Map<ClaudeProfileFormSectionId, boolean>()
-
-  sectionObserver = new IntersectionObserver(
-    (entries) => {
-      for (const entry of entries) {
-        const sectionId = elementToSection.get(entry.target)
-        if (sectionId) visibility.set(sectionId, entry.isIntersecting)
-      }
-      const activeId = CLAUDE_PROFILE_FORM_SECTION_IDS.find(id => visibility.get(id))
-      if (activeId) activeFormSectionId.value = activeId
-    },
-    { root: container, rootMargin: '-140px 0px -70% 0px', threshold: 0 },
-  )
-
-  elementToSection.forEach((_sectionId, element) => sectionObserver?.observe(element))
-}
-
-const scrollToFormSection = (sectionId: ClaudeProfileFormSectionId) => {
-  const container = modalScrollRef.value
-  const element = modalSectionRefs.value[sectionId]
-
-  activeFormSectionId.value = sectionId
-
-  if (!container || !element) return
-
-  container.scrollTo({
-    top: Math.max(element.offsetTop - 16, 0),
-    behavior: 'smooth',
-  })
-}
-
 const markWrite = () => {
   lastWriteHint.value = new Date().toLocaleTimeString()
 }
@@ -1109,6 +694,7 @@ const loadProfiles = async (options: { preserveData?: boolean } = {}) => {
     isRefreshing.value = true
     refreshError.value = null
   } else {
+    profileNamesReady.value = false
     loading.value = true
     loadError.value = null
   }
@@ -1118,6 +704,7 @@ const loadProfiles = async (options: { preserveData?: boolean } = {}) => {
     const normalized = normalizeClaudeProfilesState(data.profiles || [], data.current_profile || null)
 
     profiles.value = normalized.profiles
+    profileNamesReady.value = true
     loadError.value = null
     refreshError.value = null
 
@@ -1201,16 +788,18 @@ const performSave = async () => {
   saveError.value = null
 
   try {
-    const request = buildRequest()
+    const request = buildClaudeProfileRequest(form)
+    const previousName = editingName.value
 
     if (isEditing.value) {
-      await updateClaudeProfile(editingName.value, request)
+      await updateClaudeProfile(previousName, request)
+      // 重命名跟随：钉选/最近列表里的旧名替换为新名，保持数字编号稳定
+      if (request.name !== previousName) quickSwitch.renamePinned(previousName, request.name)
     } else {
       await addClaudeProfile(request)
     }
 
     showForm.value = false
-    activeFormSectionId.value = 'basic'
     markWrite()
     await loadProfiles({ preserveData: profiles.value.length > 0 })
   } catch (error) {
@@ -1230,23 +819,15 @@ const handleSave = () => {
   if (isRenaming) {
     const collision = profiles.value.some(p => p.name === trimmedName && p.name !== editingName.value)
     if (collision) {
-      saveError.value = translateWithFallback(
-        t,
-        'claudeProfiles.renameConflict',
-        '名称 "{name}" 已被其它 Profile 占用，请换一个名称。',
-        { name: trimmedName },
-      )
+      saveError.value = t('claudeProfiles.renameConflict', { name: trimmedName })
       return
     }
 
+    confirmDiffRows.value = []
+    pendingAction.value = null
     openConfirmDialog({
       title: t('claudeProfiles.renameConfirmTitle'),
-      message: translateWithFallback(
-        t,
-        'claudeProfiles.renameConfirmBody',
-        '将 "{old}" 重命名为 "{new}"。旧名称会被删除；若当前激活，激活指针会自动迁移到新名。',
-        { old: editingName.value, new: trimmedName },
-      ),
+      message: t('claudeProfiles.renameConfirmBody', { old: editingName.value, new: trimmedName }),
       confirmText: t('claudeProfiles.renameConfirmCta'),
       type: 'warning',
       action: performSave,
@@ -1258,16 +839,14 @@ const handleSave = () => {
 }
 
 const handleDelete = (name: string) => {
+  confirmDiffRows.value = []
+  pendingAction.value = { name, kind: 'delete' }
   openConfirmDialog({
     title: t('claudeProfiles.deleteTooltip'),
-    message: translateWithFallback(
-      t,
-      'claudeProfiles.deleteConfirm',
-      '确定要删除 Profile "{name}" 吗？',
-      { name },
-    ),
+    message: t('claudeProfiles.deleteConfirm', { name }),
     confirmText: t('claudeProfiles.deleteTooltip'),
     type: 'danger',
+    footnote: t('claudeProfiles.confirmDeleteBackupFootnote'),
     action: async () => {
       try {
         await deleteClaudeProfile(name)
@@ -1276,6 +855,8 @@ const handleDelete = (name: string) => {
       } catch (error) {
         logger.error('Failed to delete Claude profile:', error)
         uiStore.showError(getErrorMessage(error, t('claudeProfiles.deleteFailed')))
+      } finally {
+        pendingAction.value = null
       }
     },
   })
@@ -1285,24 +866,31 @@ const handleApply = (name: string) => {
   const targetProfile = profiles.value.find(profile => profile.name === name)
   if (!targetProfile || targetProfile.is_current || targetProfile.enabled === false) return
 
+  // 确认框内展示 base_url / model / auth_mode 三行「当前 → 目标」对比
+  confirmDiffRows.value = buildProfileDiff(
+    currentProfileRecord.value,
+    targetProfile,
+    createClaudeDiffFields(t),
+  )
+  pendingAction.value = { name, kind: 'apply' }
+
   openConfirmDialog({
     title: t('claudeProfiles.applyProfile'),
-    message: translateWithFallback(
-      t,
-      'claudeProfiles.confirmApply',
-      '确定要应用 Profile "{name}" 吗？这将同步更新当前 Claude 配置。',
-      { name },
-    ),
+    message: t('claudeProfiles.confirmApply', { name }),
     confirmText: t('claudeProfiles.applyProfile'),
     type: 'warning',
     action: async () => {
       try {
         await applyClaudeProfile(name)
+        quickSwitch.recordUse(name)
         markWrite()
         await loadProfiles({ preserveData: profiles.value.length > 0 })
       } catch (error) {
         logger.error('Failed to apply Claude profile:', error)
         uiStore.showError(getErrorMessage(error, t('claudeProfiles.applyFailed')))
+      } finally {
+        pendingAction.value = null
+        confirmDiffRows.value = []
       }
     },
   })
@@ -1316,19 +904,29 @@ watch([allProviders, providerFilter], ([providers, provider]) => {
   if (provider && !providers.some(item => item.key === provider)) providerFilter.value = null
 })
 
-watch(showForm, (isOpen) => {
-  if (isOpen) return
+// 预览目标被删除/重命名后立即回落到当前 profile
+watch(profiles, (list) => {
+  const names = new Set(list.map(profile => profile.name))
+  if (hoveredName.value && !names.has(hoveredName.value)) hoveredName.value = null
+  if (focusedName.value && !names.has(focusedName.value)) focusedName.value = null
+})
 
-  saveError.value = null
-  activeFormSectionId.value = 'basic'
-  teardownSectionObserver()
+watch(showForm, (isOpen) => {
+  if (!isOpen) saveError.value = null
+})
+
+// 取消确认框时清掉行内 busy 标记与 diff 数据，避免残留到下一次确认
+watch(showConfirmModal, (isOpen) => {
+  if (isOpen || confirmActionBusy.value) return
+  pendingAction.value = null
+  confirmDiffRows.value = []
 })
 
 // ===== 键盘快捷键：/ ⌘K ⌘1-9 Esc（两页共用实现） =====
 useProfilesHotkeys({
   paletteOpen,
   focusSearch: () => toolbarRef.value?.focusSearch(),
-  getApplicableProfiles: () => profiles.value.filter(p => p.enabled !== false),
+  getStableTargets: () => quickSwitch.stableTargets.value,
   onApply: handleApply,
 })
 
@@ -1336,638 +934,4 @@ onMounted(() => {
   void loadProfiles()
   void loadActiveEnvironment()
 })
-
-onBeforeUnmount(() => {
-  teardownSectionObserver()
-})
 </script>
-
-<style>
-.claude-profile-editor-modal {
-  /* 外壳材质：floating 档玻璃令牌（modal/命令面板同档），内部 panel 单独维持不透明 */
-  --editor-shell-bg: var(--material-glass-floating-bg);
-  --editor-shell-border: var(--material-glass-floating-border);
-  --editor-shell-shadow: var(--material-glass-floating-shadow);
-  --editor-shell-highlight: radial-gradient(circle at top right, rgb(var(--color-accent-primary-rgb) / 10%), transparent 42%);
-  --editor-panel-bg: rgb(var(--color-bg-surface-rgb) / 88%);
-  --editor-panel-muted-bg: rgb(var(--color-bg-overlay-rgb) / 60%);
-  --editor-panel-head-bg: rgb(var(--color-bg-elevated-rgb) / 96%);
-  --editor-input-bg: rgb(var(--color-bg-elevated-rgb) / 94%);
-  --editor-input-bg-hover: rgb(var(--color-bg-surface-rgb) / 96%);
-  --editor-input-bg-focus: rgb(var(--color-bg-surface-rgb) / 100%);
-  --editor-input-border: rgb(var(--color-border-default-rgb) / 80%);
-  --editor-input-border-strong: rgb(var(--color-accent-primary-rgb) / 38%);
-  --editor-hairline: rgb(var(--color-border-default-rgb) / 64%);
-  --editor-hairline-soft: rgb(var(--color-border-default-rgb) / 40%);
-  --editor-ink: rgb(var(--color-text-primary-rgb) / 96%);
-  --editor-ink-muted: rgb(var(--color-text-secondary-rgb) / 90%);
-  --editor-ink-soft: rgb(var(--color-text-muted-rgb) / 86%);
-  --editor-placeholder: rgb(var(--color-text-muted-rgb) / 74%);
-  --editor-panel-shadow: inset 0 1px 0 rgb(var(--color-bg-surface-rgb) / 60%), 0 12px 28px rgb(var(--color-text-primary-rgb) / 4%);
-  --editor-muted-shadow: none;
-  --editor-ring: 0 0 0 3px rgb(var(--color-accent-primary-rgb) / 16%);
-  --editor-scrollbar-thumb: rgb(var(--color-accent-primary-rgb) / 34%);
-  --editor-scrollbar-track: rgb(var(--color-bg-overlay-rgb) / 30%);
-
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  background: var(--editor-shell-bg) !important;
-  border: 1px solid var(--editor-shell-border) !important;
-  box-shadow: var(--editor-shell-shadow) !important;
-  backdrop-filter: var(--material-glass-floating-blur) !important;
-
-  /* stylelint-disable-next-line property-no-vendor-prefix */
-  -webkit-backdrop-filter: var(--material-glass-floating-blur) !important;
-  color: var(--editor-ink);
-}
-
-:root[class~='dark'] .claude-profile-editor-modal,
-[data-theme='dark'] .claude-profile-editor-modal {
-  --editor-panel-shadow: inset 0 1px 0 rgb(255 255 255 / 6%), 0 16px 32px rgb(0 0 0 / 24%);
-  --editor-muted-shadow: none;
-  --editor-scrollbar-track: rgb(var(--color-bg-base-rgb) / 36%);
-}
-
-.claude-profile-editor-modal::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: var(--editor-shell-highlight);
-  pointer-events: none;
-  z-index: 0;
-}
-
-.claude-profile-editor-modal > * {
-  position: relative;
-  z-index: 1;
-}
-
-.claude-profile-editor-modal .text-text-primary {
-  color: var(--editor-ink) !important;
-}
-
-.claude-profile-editor-modal .text-text-secondary {
-  color: var(--editor-ink-muted) !important;
-}
-
-.claude-profile-editor-modal .text-text-muted {
-  color: var(--editor-ink-soft) !important;
-}
-
-.claude-profile-editor-modal .editor-shell-header {
-  border-bottom: 1px solid var(--editor-hairline-soft);
-}
-
-.claude-profile-editor-modal .editor-hero-icon,
-.claude-profile-editor-modal .editor-summary-icon,
-.claude-profile-editor-modal .editor-section-icon {
-  background: rgb(var(--color-accent-primary-rgb) / 12%);
-  color: rgb(var(--color-accent-primary-rgb) / 100%);
-  box-shadow: 0 12px 24px rgb(var(--color-accent-primary-rgb) / 12%);
-}
-
-.claude-profile-editor-modal .editor-shell-eyebrow {
-  color: rgb(var(--color-accent-primary-rgb) / 90%);
-}
-
-.claude-profile-editor-modal .editor-shell-title {
-  color: var(--editor-ink);
-}
-
-.claude-profile-editor-modal .editor-shell-description {
-  color: var(--editor-ink-muted);
-}
-
-.claude-profile-editor-modal .editor-close-button {
-  border: 1px solid var(--editor-hairline);
-  background: rgb(var(--color-bg-elevated-rgb) / 70%);
-  color: var(--editor-ink-soft);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 5%);
-}
-
-.claude-profile-editor-modal .editor-close-button:hover {
-  background: rgb(var(--color-bg-elevated-rgb) / 92%);
-  color: var(--editor-ink);
-}
-
-.claude-profile-editor-modal .editor-icon-button {
-  display: inline-flex;
-  height: 36px;
-  width: 36px;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--editor-hairline-soft);
-  border-radius: 14px;
-  background: rgb(var(--color-bg-elevated-rgb) / 56%);
-  color: var(--editor-ink-muted);
-  transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease, transform 180ms ease;
-}
-
-.claude-profile-editor-modal .editor-icon-button:hover {
-  border-color: var(--editor-hairline);
-  background: rgb(var(--color-bg-elevated-rgb) / 78%);
-  color: var(--editor-ink);
-  transform: translateY(-1px);
-}
-
-.claude-profile-editor-modal .editor-icon-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
-  transform: none;
-}
-
-.claude-profile-editor-modal .editor-close-button:focus-visible,
-.claude-profile-editor-modal .editor-button:focus-visible,
-.claude-profile-editor-modal .editor-icon-button:focus-visible,
-.claude-profile-editor-modal .editor-input:focus-visible,
-.claude-profile-editor-modal .editor-nav-button:focus-visible {
-  outline: 2px solid rgb(var(--color-accent-primary-rgb) / 50%);
-  outline-offset: 2px;
-  box-shadow: var(--editor-ring);
-}
-
-.claude-profile-editor-modal .editor-scroll-area {
-  scrollbar-color: var(--editor-scrollbar-thumb) var(--editor-scrollbar-track);
-}
-
-.claude-profile-editor-modal .editor-scroll-area::-webkit-scrollbar {
-  width: 10px;
-}
-
-.claude-profile-editor-modal .editor-scroll-area::-webkit-scrollbar-track {
-  background: var(--editor-scrollbar-track);
-  border-radius: 999px;
-}
-
-.claude-profile-editor-modal .editor-scroll-area::-webkit-scrollbar-thumb {
-  background: var(--editor-scrollbar-thumb);
-  border-radius: 999px;
-}
-
-.claude-profile-editor-modal .editor-panel {
-  border: 1px solid var(--editor-hairline);
-  background: var(--editor-panel-bg);
-  box-shadow: var(--editor-panel-shadow);
-}
-
-.claude-profile-editor-modal .editor-panel-head {
-  border-color: var(--editor-hairline-soft);
-  background: var(--editor-panel-head-bg);
-}
-
-.claude-profile-editor-modal .editor-panel-muted,
-.claude-profile-editor-modal .editor-info-card,
-.claude-profile-editor-modal .editor-inline-card,
-.claude-profile-editor-modal .editor-empty-hint {
-  border: 1px solid var(--editor-hairline-soft);
-  background: var(--editor-panel-muted-bg);
-}
-
-.claude-profile-editor-modal .editor-info-icon {
-  border: 1px solid var(--editor-hairline-soft);
-  background: rgb(var(--color-bg-elevated-rgb) / 78%);
-  color: var(--editor-ink-muted);
-}
-
-.claude-profile-editor-modal .editor-nav-button {
-  border: 1px solid var(--editor-hairline-soft);
-  background: rgb(var(--color-bg-elevated-rgb) / 34%);
-  color: var(--editor-ink-muted);
-}
-
-.claude-profile-editor-modal .editor-nav-button:hover {
-  border-color: var(--editor-hairline);
-  background: var(--editor-panel-muted-bg);
-  color: var(--editor-ink);
-}
-
-.claude-profile-editor-modal .editor-nav-button__icon {
-  border: 1px solid var(--editor-hairline-soft);
-  background: rgb(var(--color-bg-elevated-rgb) / 56%);
-  color: var(--editor-ink-soft);
-}
-
-.claude-profile-editor-modal .editor-nav-button--active {
-  border-color: rgb(var(--color-accent-primary-rgb) / 34%);
-  background: linear-gradient(180deg, rgb(var(--color-accent-primary-rgb) / 12%), rgb(var(--color-accent-primary-rgb) / 8%));
-  color: var(--editor-ink);
-  box-shadow: 0 14px 32px rgb(var(--color-accent-primary-rgb) / 12%);
-}
-
-.claude-profile-editor-modal .editor-nav-button--active .editor-nav-button__icon {
-  border-color: rgb(var(--color-accent-primary-rgb) / 30%);
-  background: rgb(var(--color-accent-primary-rgb) / 14%);
-  color: rgb(var(--color-accent-primary-rgb) / 100%);
-}
-
-.claude-profile-editor-modal .editor-tag,
-.claude-profile-editor-modal .editor-inline-chip {
-  border: 1px solid var(--editor-hairline-soft);
-  background: rgb(var(--color-bg-elevated-rgb) / 50%);
-}
-
-.claude-profile-editor-modal .editor-banner {
-  border: 1px solid rgb(var(--color-danger-rgb) / 22%);
-  background: linear-gradient(180deg, rgb(var(--color-danger-rgb) / 12%), rgb(var(--color-danger-rgb) / 6%));
-  box-shadow: 0 18px 40px rgb(var(--color-danger-rgb) / 8%);
-}
-
-.claude-profile-editor-modal .editor-banner__icon {
-  background: rgb(var(--color-danger-rgb) / 12%);
-  color: rgb(var(--color-danger-rgb) / 100%);
-}
-
-.claude-profile-editor-modal .editor-banner--warn {
-  border-color: rgb(var(--color-warning-rgb) / 28%);
-  background: linear-gradient(180deg, rgb(var(--color-warning-rgb) / 12%), rgb(var(--color-warning-rgb) / 6%));
-  box-shadow: 0 18px 40px rgb(var(--color-warning-rgb) / 8%);
-}
-
-.claude-profile-editor-modal .editor-banner--warn .editor-banner__icon {
-  background: rgb(var(--color-warning-rgb) / 14%);
-  color: rgb(var(--color-warning-rgb) / 100%);
-}
-
-.claude-profile-editor-modal .editor-input {
-  border: 1px solid var(--editor-input-border);
-  background: var(--editor-input-bg);
-  color: var(--editor-ink);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 5%);
-  transition: border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease, color 180ms ease;
-}
-
-.claude-profile-editor-modal .editor-input::placeholder {
-  color: var(--editor-placeholder);
-}
-
-.claude-profile-editor-modal .editor-input:hover {
-  border-color: var(--editor-hairline);
-  background: var(--editor-input-bg-hover);
-}
-
-.claude-profile-editor-modal .editor-input:focus {
-  border-color: var(--editor-input-border-strong);
-  background: var(--editor-input-bg-focus);
-  outline: none;
-  box-shadow: var(--editor-ring);
-}
-
-.claude-profile-editor-modal .editor-input:focus-visible {
-  outline: 2px solid rgb(var(--color-accent-primary-rgb) / 50%);
-  outline-offset: 2px;
-}
-
-.claude-profile-editor-modal .editor-input:disabled,
-.claude-profile-editor-modal .editor-input[readonly] {
-  background: rgb(var(--color-bg-elevated-rgb) / 42%);
-  color: var(--editor-ink-soft);
-}
-
-.claude-profile-editor-modal .editor-input--mono {
-  font-family: var(--font-mono);
-  letter-spacing: 0.01em;
-}
-
-.claude-profile-editor-modal .editor-input--textarea {
-  line-height: 1.65;
-}
-
-.claude-profile-editor-modal input[type='checkbox'] {
-  border-color: var(--editor-input-border);
-  background: rgb(var(--color-bg-elevated-rgb) / 62%);
-  color: rgb(var(--color-accent-primary-rgb) / 100%);
-}
-
-.claude-profile-editor-modal input[type='checkbox']:focus {
-  box-shadow: var(--editor-ring);
-}
-
-.claude-profile-editor-modal .editor-pill {
-  border: 1px solid transparent;
-}
-
-.claude-profile-editor-modal .editor-pill--neutral {
-  border-color: var(--editor-hairline-soft);
-  background: rgb(var(--color-bg-elevated-rgb) / 52%);
-  color: var(--editor-ink-muted);
-}
-
-.claude-profile-editor-modal .editor-pill--current,
-.claude-profile-editor-modal .editor-pill--info {
-  border-color: rgb(var(--color-accent-primary-rgb) / 22%);
-  background: rgb(var(--color-accent-primary-rgb) / 12%);
-  color: rgb(var(--color-accent-primary-rgb) / 100%);
-}
-
-.claude-profile-editor-modal .editor-pill--success {
-  border-color: rgb(var(--color-success-rgb) / 20%);
-  background: rgb(var(--color-success-rgb) / 14%);
-  color: rgb(var(--color-success-rgb) / 100%);
-}
-
-.claude-profile-editor-modal .editor-pill--danger {
-  border-color: rgb(var(--color-danger-rgb) / 24%);
-  background: rgb(var(--color-danger-rgb) / 12%);
-  color: rgb(var(--color-danger-rgb) / 100%);
-}
-
-.claude-profile-editor-modal .editor-footer {
-  position: sticky;
-  bottom: 0;
-  border-top: 1px solid var(--editor-hairline-soft);
-  background: linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 72%), rgb(var(--color-bg-elevated-rgb) / 92%));
-  box-shadow: 0 -12px 32px rgb(0 0 0 / 4%);
-}
-
-:root[class~='dark'] .claude-profile-editor-modal .editor-footer,
-[data-theme='dark'] .claude-profile-editor-modal .editor-footer {
-  box-shadow: 0 -16px 36px rgb(6 3 10 / 28%);
-}
-
-.claude-profile-editor-modal .editor-button {
-  border: 1px solid transparent;
-  transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
-}
-
-.claude-profile-editor-modal .editor-button:hover {
-  transform: translateY(-1px);
-}
-
-.claude-profile-editor-modal .editor-button--secondary {
-  border-color: var(--editor-hairline);
-  background: rgb(var(--color-bg-elevated-rgb) / 68%);
-  color: var(--editor-ink-muted);
-}
-
-.claude-profile-editor-modal .editor-button--secondary:hover {
-  background: rgb(var(--color-bg-elevated-rgb) / 94%);
-  color: var(--editor-ink);
-}
-
-.claude-profile-editor-modal .editor-button--primary {
-  border-color: rgb(var(--color-accent-primary-rgb) / 28%);
-  background: linear-gradient(180deg, rgb(var(--color-accent-primary-rgb) / 18%), rgb(var(--color-accent-primary-rgb) / 12%));
-  color: rgb(var(--color-accent-primary-rgb) / 100%);
-  box-shadow: 0 12px 24px rgb(var(--color-accent-primary-rgb) / 14%);
-}
-
-.claude-profile-editor-modal .editor-button--primary:hover {
-  background: linear-gradient(180deg, rgb(var(--color-accent-primary-rgb) / 24%), rgb(var(--color-accent-primary-rgb) / 16%));
-}
-
-
-/* ===========================================================
-   作用域设计令牌：仅在本视图内生效，子组件靠继承解析 --cp-*
-   主色跟随共享 accent-primary（与 Codex Profiles 页一致）
-   =========================================================== */
-.claude-profiles-view {
-  /* 背景层 → 全局 token */
-  --cp-bg-0: var(--color-bg-base);
-  --cp-bg-1: var(--color-bg-elevated);
-  --cp-bg-2: var(--color-bg-surface);
-  --cp-bg-3: var(--color-bg-overlay);
-  --cp-bg-4: rgb(var(--color-bg-overlay-rgb) / 88%);
-
-  /* 边框 → 全局 token */
-  --cp-line: var(--color-border-subtle);
-  --cp-line-2: var(--color-border-default);
-
-  /* 文字阶 → 全局 token */
-  --cp-ink-0: var(--color-text-primary);
-  --cp-ink-1: var(--color-text-secondary);
-  --cp-ink-2: var(--color-text-muted);
-  --cp-ink-3: var(--color-text-ghost);
-  --cp-ink-4: var(--color-text-disabled);
-
-  /* 主色 → 共享 accent-primary（跟随用户 data-accent 选择，两平台一致） */
-  --cp-accent: var(--color-accent-primary);
-  --cp-accent-soft: rgb(var(--color-accent-primary-rgb) / 14%);
-  --cp-accent-line: rgb(var(--color-accent-primary-rgb) / 35%);
-  --cp-accent-hover: var(--color-accent-primary-hover);
-  --cp-on-accent: var(--color-text-inverted);
-
-  /* 平台识别色：仅用于页头图标徽章，不跟随用户 accent 选择 */
-  --cp-icon-color: var(--color-platform-claude);
-  --cp-icon-soft: rgb(var(--color-platform-claude-rgb) / 14%);
-  --cp-icon-line: rgb(var(--color-platform-claude-rgb) / 35%);
-
-  /* 状态色 → 全局 token */
-  --cp-good: var(--color-success);
-  --cp-warn: var(--color-warning);
-  --cp-danger: var(--color-danger);
-  --cp-info: var(--color-info);
-  --cp-mono: var(--font-mono, 'MapleBright', monospace);
-
-  min-height: 100%;
-  padding: 24px;
-  background: var(--color-bg-base);
-  color: var(--cp-ink-1);
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-.cp-shell {
-  max-width: 1680px;
-  margin: 16px auto 0;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 16px;
-  align-items: start;
-}
-
-@media (width >= 1280px) {
-  .cp-shell {
-    grid-template-columns: minmax(0, 1fr) 320px;
-  }
-}
-
-.cp-main {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-/* 分组容器 */
-.cp-section {
-  margin-bottom: 18px;
-}
-
-.cp-section__head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 10px;
-}
-
-.cp-section__icon {
-  color: var(--cp-ink-3);
-}
-
-.cp-section__title {
-  font-size: 11.5px;
-  font-weight: 600;
-  letter-spacing: 0.6px;
-  text-transform: uppercase;
-  color: var(--cp-ink-2);
-}
-
-.cp-section__count {
-  padding: 1px 7px;
-  border-radius: 999px;
-  background: var(--cp-bg-3);
-  border: 1px solid var(--cp-line-2);
-  color: var(--cp-ink-3);
-  font-family: var(--cp-mono);
-  font-size: 10.5px;
-}
-
-.cp-section__body {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-/* 卡片视图栅格：≥1280px 双列，≥1680px 视口宽度可到三列 */
-.cp-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
-  gap: 10px;
-}
-
-@media (width <= 1279px) {
-  .cp-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-/* 列表视图 */
-.cp-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.cp-list-head {
-  display: grid;
-  grid-template-columns: 12px minmax(120px, 160px) minmax(0, 1.2fr) minmax(0, 1.5fr) minmax(
-      80px,
-      110px
-    ) minmax(80px, 120px) minmax(60px, 1fr) auto;
-  gap: 12px;
-  padding: 2px 14px 4px;
-  font-family: var(--cp-mono);
-  font-size: 9.5px;
-  letter-spacing: 0.8px;
-  text-transform: uppercase;
-  color: var(--cp-ink-3);
-}
-
-.cp-list-head__right {
-  text-align: right;
-}
-
-@media (width <= 1024px) {
-  .cp-list-head {
-    display: none;
-  }
-}
-
-/* 加载/空/错误三态 */
-.cp-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 8px;
-  padding: 48px 16px;
-  border-radius: 12px;
-  border: 1px dashed var(--cp-line-2);
-  background: var(--cp-bg-2);
-  color: var(--cp-ink-3);
-}
-
-.cp-state--error {
-  border-style: solid;
-  border-color: rgb(var(--color-danger-rgb) / 30%);
-  color: var(--cp-danger);
-}
-
-.cp-state--warn {
-  border-style: solid;
-  border-color: rgb(var(--color-warning-rgb) / 30%);
-  color: var(--cp-warn);
-}
-
-.cp-state__title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--cp-ink-0);
-}
-
-.cp-state__hint {
-  font-size: 12px;
-  color: var(--cp-ink-2);
-  max-width: 420px;
-}
-
-.cp-state__btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 4px;
-  padding: 7px 14px;
-  border-radius: 7px;
-  border: 1px solid var(--cp-line-2);
-  background: var(--cp-bg-3);
-  color: var(--cp-ink-1);
-  font-size: 12.5px;
-  font-weight: 500;
-  cursor: pointer;
-  transition:
-    background 120ms ease,
-    color 120ms ease;
-}
-
-.cp-state__btn:hover:not(:disabled) {
-  background: var(--cp-accent-soft);
-  border-color: var(--cp-accent-line);
-  color: var(--cp-accent);
-}
-
-.cp-state__btn:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.cp-state__btn--primary {
-  background: var(--cp-accent);
-  border-color: var(--cp-accent);
-  color: var(--cp-on-accent);
-}
-
-.cp-state__spinner {
-  width: 32px;
-  height: 32px;
-  border-radius: 999px;
-  border: 2px solid var(--cp-line-2);
-  border-top-color: var(--cp-accent);
-  animation: cp-state-spin 1s linear infinite;
-}
-
-@keyframes cp-state-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .cp-state__spinner {
-    animation: none;
-  }
-
-  .cp-state__btn {
-    transition: none;
-  }
-}
-</style>

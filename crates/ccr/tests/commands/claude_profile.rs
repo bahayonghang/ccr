@@ -4,6 +4,7 @@ use ccr_cli::managers::{
     CcsConfig, ConfigManager, GlobalSettings, PlatformConfigEntry, PlatformConfigManager,
     UnifiedConfig,
 };
+#[cfg(not(target_os = "macos"))]
 use ccr_cli::models::ClaudeAuthRegistry;
 use ccr_config::ProfileConfig;
 use indexmap::IndexMap;
@@ -136,6 +137,7 @@ impl ClaudeProfileFixture {
             .unwrap();
     }
 
+    #[cfg(not(target_os = "macos"))]
     fn write_official_runtime_login(&self) {
         fs::write(
             self.claude_dir.join(".credentials.json"),
@@ -182,6 +184,7 @@ impl ClaudeProfileFixture {
         .unwrap();
     }
 
+    #[cfg(not(target_os = "macos"))]
     fn save_official_account_snapshot(&self, name: &str) {
         let output = self.run_output(&["claude", "auth", "save", name]);
         assert!(
@@ -192,6 +195,42 @@ impl ClaudeProfileFixture {
             String::from_utf8_lossy(&output.stderr)
         );
     }
+}
+
+#[test]
+fn claude_profile_init_is_inactive_idempotent_and_preserves_runtime() {
+    let fixture = ClaudeProfileFixture::new();
+    let runtime_path = fixture.claude_dir.join("settings.json");
+    let runtime_before = br#"{"theme":"dark"}"#;
+    fs::write(&runtime_path, runtime_before).unwrap();
+    let profiles_path = fixture
+        .root
+        .join("platforms")
+        .join("claude")
+        .join("profiles.toml");
+
+    let first = fixture.run_output(&["claude", "profile", "init"]);
+    assert!(first.status.success(), "{:?}", first.status);
+    let profiles_before = fs::read(&profiles_path).unwrap();
+    assert_eq!(
+        profiles_before,
+        include_bytes!("../../../../examples/claude/profiles.example.toml")
+    );
+    assert_eq!(fs::read(&runtime_path).unwrap(), runtime_before);
+
+    let registry = PlatformConfigManager::new(fixture.root.join("config.toml"))
+        .load()
+        .unwrap();
+    assert_eq!(
+        registry.get_platform("claude").unwrap().current_profile,
+        None
+    );
+
+    let second = fixture.run_output(&["claude", "profile", "init"]);
+    assert!(second.status.success(), "{:?}", second.status);
+    assert!(String::from_utf8_lossy(&second.stdout).contains("已存在"));
+    assert_eq!(fs::read(&profiles_path).unwrap(), profiles_before);
+    assert_eq!(fs::read(&runtime_path).unwrap(), runtime_before);
 }
 
 #[test]
@@ -228,6 +267,7 @@ fn claude_profile_current_json_returns_single_claude_card() {
     assert!(json.get("codex").is_none());
 }
 
+#[cfg(not(target_os = "macos"))]
 #[test]
 fn claude_profile_switch_and_off_keep_official_auth_current() {
     let fixture = ClaudeProfileFixture::new();
@@ -325,6 +365,7 @@ fn claude_profile_switch_and_off_keep_official_auth_current() {
     );
 }
 
+#[cfg(not(target_os = "macos"))]
 #[test]
 fn claude_profile_off_is_idempotent_when_no_active_profile() {
     let fixture = ClaudeProfileFixture::new();

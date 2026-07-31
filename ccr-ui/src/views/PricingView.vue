@@ -599,7 +599,7 @@ onMounted(() => {
 .pricing-loading {
   border: 1px solid rgb(var(--color-border-default-rgb) / 14%);
   background: rgb(var(--color-bg-elevated-rgb) / 78%);
-  box-shadow: var(--elevation-1), inset 0 1px 0 rgb(255 255 255 / 7%);
+  box-shadow: var(--elevation-1);
 }
 
 .pricing-hero {

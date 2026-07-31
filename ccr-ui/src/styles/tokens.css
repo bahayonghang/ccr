@@ -4,48 +4,56 @@
    ============================================ */
 
 /* ========== 颜色系统 ========== */
+
+/* neutral 为默认 flavor：:root 即 neutral light（桌面压暗、卡片最亮；表面/文本令牌 100% 不透明）。 */
 :root {
-  /* --- 背景层级 (亮色主题 - 默认；卡片最亮、桌面压暗，相邻层 OKLCH ΔL ≥ 3) --- */
-  --color-bg-base: #ebe1d0;
-  --color-bg-base-rgb: 235 225 208;
-  --color-bg-elevated: #f5eee1;
-  --color-bg-elevated-rgb: 245 238 225;
-  --color-bg-surface: #fefaf2;
-  --color-bg-surface-rgb: 254 250 242;
-  --color-bg-overlay: #e2d6c3;
-  --color-bg-overlay-rgb: 226 214 195;
+  /* --- 背景层级（亮色：桌面压暗、卡片最亮；overlay 为下沉/chip 层） --- */
+  --color-bg-base: #e8e9ec;
+  --color-bg-base-rgb: 232 233 236;
+  --color-bg-elevated: #f2f3f5;
+  --color-bg-elevated-rgb: 242 243 245;
+  --color-bg-surface: #fbfcfd;
+  --color-bg-surface-rgb: 251 252 253;
+  --color-bg-overlay: #dcdee3;
+  --color-bg-overlay-rgb: 220 222 227;
+
+  /* --- 遮罩 scrim（唯一允许的常驻半透明：modal/抽屉背后的压暗层） --- */
+  --color-scrim: rgb(25 27 32 / 32%);
+  --color-scrim-rgb: 25 27 32;
 
   /* --- 边框与分隔 --- */
-  --color-border-subtle: rgb(70 53 41 / 12%);
-  --color-border-subtle-rgb: 70 53 41;
-  --color-border-default: rgb(70 53 41 / 19%);
-  --color-border-default-rgb: 70 53 41;
-  --color-border-strong: rgb(70 53 41 / 30%);
-  --color-border-strong-rgb: 70 53 41;
-  --color-border-accent: rgb(217 119 87 / 18%);
+  --color-border-subtle: rgb(25 27 32 / 12%);
+  --color-border-subtle-rgb: 25 27 32;
+  --color-border-default: rgb(25 27 32 / 19%);
+  --color-border-default-rgb: 25 27 32;
+  --color-border-strong: rgb(25 27 32 / 30%);
+  --color-border-strong-rgb: 25 27 32;
+  --color-border-accent: rgb(var(--color-accent-primary-rgb) / 18%);
   --color-border-interactive: var(--color-accent-primary);
   --color-border-interactive-rgb: var(--color-accent-primary-rgb);
 
-  /* --- 文字层级 --- */
-  --color-text-primary: #31241c;
-  --color-text-primary-rgb: 49 36 28;
-  --color-text-secondary: #5f4d3f;
-  --color-text-secondary-rgb: 95 77 63;
-  --color-text-muted: #715d4c;
-  --color-text-muted-rgb: 113 93 76;
-  --color-text-ghost: #9a8373;
-  --color-text-ghost-rgb: 154 131 115;
-  --color-text-disabled: #b4a08f;
-  --color-text-disabled-rgb: 180 160 143;
-  --color-text-inverted: #fff8f0;
-  --color-text-inverted-rgb: 255 248 240;
+  /* --- 文字层级（实心：对 bg-surface ≥ 12 / 7 / 4.5） --- */
+  --color-text-primary: #191b20;
+  --color-text-primary-rgb: 25 27 32;
+  --color-text-secondary: #3f434c;
+  --color-text-secondary-rgb: 63 67 76;
+  --color-text-muted: #5f646e;
+  --color-text-muted-rgb: 95 100 110;
+  --color-text-ghost: #878d98;
+  --color-text-ghost-rgb: 135 141 152;
+  --color-text-disabled: #b3b8c0;
+  --color-text-disabled-rgb: 179 184 192;
+  --color-text-inverted: #f7f8fa;
+  --color-text-inverted-rgb: 247 248 250;
 
-  /* --- 主强调色 - Claude Clay --- */
-  --color-accent-primary: #d97757;
-  --color-accent-primary-hover: #e48667;
-  --color-accent-primary-active: #c96c4d;
-  --color-accent-primary-rgb: 217 119 87;
-  --color-accent-primary-glow: rgb(217 119 87 / 10%);
+  /* --- 主强调色 - Clay（与 [data-accent='clay'] 对齐的默认值） --- */
+  --color-accent-primary: #cf6239;
+  --color-accent-primary-hover: #d9714a;
+  --color-accent-primary-active: #b8542f;
+  --color-accent-primary-rgb: 207 98 57;
+  --color-accent-primary-glow: rgb(207 98 57 / 10%);
+  --color-accent-primary-contrast: #fff8f2;
+  --color-accent-primary-contrast-rgb: 255 248 242;
 
   /* --- 辅助强调色 - Warm Sand --- */
   --color-accent-secondary: #b99666;
@@ -59,14 +67,26 @@
   --color-success-hover: #67996f;
   --color-success-rgb: 91 138 98;
   --color-success-glow: rgb(91 138 98 / 10%);
+
+  /* 对比文字：vs --color-success #5b8a62 = 3.79:1（≥3.5 契约） */
+  --color-success-contrast: #fff8f2;
+  --color-success-contrast-rgb: 255 248 242;
   --color-warning: #bc8540;
   --color-warning-hover: #ca9453;
   --color-warning-rgb: 188 133 64;
   --color-warning-glow: rgb(188 133 64 / 10%);
+
+  /* 对比文字：vs --color-warning #bc8540 = 5.61:1（近白仅 3.2:1 不达标，故用深色） */
+  --color-warning-contrast: #17181c;
+  --color-warning-contrast-rgb: 23 24 28;
   --color-danger: #c76953;
   --color-danger-hover: #d57a65;
   --color-danger-rgb: 199 105 83;
   --color-danger-glow: rgb(199 105 83 / 10%);
+
+  /* 对比文字：vs --color-danger #c76953 = 3.58:1（≥3.5 契约） */
+  --color-danger-contrast: #fff8f2;
+  --color-danger-contrast-rgb: 255 248 242;
   --color-info: #7d97b6;
   --color-info-hover: #8ea8c6;
   --color-info-rgb: 125 151 182;
@@ -88,84 +108,74 @@
   --color-platform-gemini: #7d97b6;
   --color-platform-gemini-rgb: 125 151 182;
 
-  /* --- 环境色场（替代旧装饰色） --- */
-  --color-premium-pink: #efe3d6;
-  --color-premium-pink-rgb: 239 227 214;
-  --color-premium-blue: #e6dccd;
-  --color-premium-blue-rgb: 230 220 205;
-
   /* --- 全局状态语义 --- */
   --state-loading: var(--color-info);
   --state-error: var(--color-danger);
   --animation-state: running;
 
-  /* --- Stage 页面语义层（亮色优先保证可读性） --- */
-  --color-stage-text-primary: rgb(var(--color-text-primary-rgb) / 98%);
-  --color-stage-text-secondary: rgb(var(--color-text-secondary-rgb) / 86%);
-  --color-stage-text-muted: rgb(var(--color-text-muted-rgb) / 76%);
-  --color-stage-text-quiet: rgb(var(--color-text-muted-rgb) / 62%);
-  --color-stage-surface-soft: rgb(var(--color-bg-surface-rgb) / 76%);
-  --color-stage-surface-medium: rgb(var(--color-bg-elevated-rgb) / 84%);
-  --color-stage-surface-strong: rgb(var(--color-bg-elevated-rgb) / 93%);
-  --color-stage-border-soft: rgb(var(--color-border-default-rgb) / 14%);
-  --color-stage-border-medium: rgb(var(--color-border-strong-rgb) / 17%);
-  --color-stage-chip-neutral-bg: rgb(var(--color-bg-overlay-rgb) / 78%);
-  --color-stage-chip-neutral-border: rgb(var(--color-border-default-rgb) / 14%);
-  --color-stage-chip-neutral-text: rgb(var(--color-text-secondary-rgb) / 92%);
-  --stage-bg-grid-opacity: 0%;
-  --stage-bg-grid-opacity-dark: 0%;
-  --stage-bg-noise-opacity: 0.018;
-  --stage-bg-noise-opacity-dark: 0.024;
-  --stage-bg-mesh-primary-opacity: 6%;
-  --stage-bg-mesh-secondary-opacity: 4%;
-  --stage-bg-mesh-info-opacity: 3%;
-  --stage-bg-aurora-primary-opacity: 5%;
-  --stage-bg-aurora-secondary-opacity: 4%;
-  --stage-bg-orb-primary-opacity: 4%;
-  --stage-bg-orb-secondary-opacity: 3%;
+  /* --- Stage 页面语义层（统一引用实心文本 / 不透明表面语义令牌，
+     全 theme/flavor 经 var() 自动跟随，无需逐块覆盖；旧 98/90/76/62% alpha 配方已移除） --- */
+  --color-stage-text-primary: var(--color-text-primary);
+  --color-stage-text-secondary: var(--color-text-secondary);
+  --color-stage-text-muted: var(--color-text-muted);
+  --color-stage-text-quiet: var(--color-text-ghost);
+  --color-stage-surface-soft: var(--color-bg-surface);
+  --color-stage-surface-medium: var(--color-bg-elevated);
+  --color-stage-surface-strong: var(--color-bg-overlay);
+  --color-stage-border-soft: var(--color-border-subtle);
+  --color-stage-border-medium: var(--color-border-default);
+  --color-stage-chip-neutral-bg: var(--color-bg-overlay);
+  --color-stage-chip-neutral-border: var(--color-border-default);
+  --color-stage-chip-neutral-text: var(--color-text-secondary);
 }
 
-/* ========== 暗色主题 ========== */
+/* ========== 暗色主题（neutral dark：elevated 逐级提亮） ========== */
 [data-theme='dark'] {
-  /* --- 背景层级 --- */
-  --color-bg-base: #17120f;
-  --color-bg-base-rgb: 23 18 15;
-  --color-bg-elevated: #221b18;
-  --color-bg-elevated-rgb: 34 27 24;
-  --color-bg-surface: #2a221e;
-  --color-bg-surface-rgb: 42 34 30;
-  --color-bg-overlay: #342b26;
-  --color-bg-overlay-rgb: 52 43 38;
+  /* --- 背景层级（base < elevated < surface < overlay 明度递增） --- */
+  --color-bg-base: #131316;
+  --color-bg-base-rgb: 19 19 22;
+  --color-bg-elevated: #1a1b1f;
+  --color-bg-elevated-rgb: 26 27 31;
+  --color-bg-surface: #22242a;
+  --color-bg-surface-rgb: 34 36 42;
+  --color-bg-overlay: #2c2f37;
+  --color-bg-overlay-rgb: 44 47 55;
 
-  /* --- 边框与分隔 (暗色下需 ≥16% / ≥26% 保证卡片边界可辨) --- */
-  --color-border-subtle: rgb(243 234 223 / 10%);
-  --color-border-subtle-rgb: 243 234 223;
-  --color-border-default: rgb(243 234 223 / 16%);
-  --color-border-default-rgb: 243 234 223;
-  --color-border-strong: rgb(243 234 223 / 26%);
-  --color-border-strong-rgb: 243 234 223;
-  --color-border-accent: rgb(231 154 119 / 24%);
+  /* --- 遮罩 scrim（唯一允许的常驻半透明：modal/抽屉背后的压暗层） --- */
+  --color-scrim: rgb(0 0 0 / 56%);
+  --color-scrim-rgb: 0 0 0;
 
-  /* --- 文字层级 --- */
-  --color-text-primary: #f3eadf;
-  --color-text-primary-rgb: 243 234 223;
-  --color-text-secondary: #dacbbc;
-  --color-text-secondary-rgb: 218 203 188;
-  --color-text-muted: #b9a695;
-  --color-text-muted-rgb: 185 166 149;
-  --color-text-ghost: #977f6d;
-  --color-text-ghost-rgb: 151 127 109;
-  --color-text-disabled: #735f52;
-  --color-text-disabled-rgb: 115 95 82;
-  --color-text-inverted: #211915;
-  --color-text-inverted-rgb: 33 25 21;
+  /* --- 边框与分隔 (暗色 ≥14% / ≥22% / ≥34% 保证卡片边界可辨) --- */
+  --color-border-subtle: rgb(235 238 245 / 14%);
+  --color-border-subtle-rgb: 235 238 245;
+  --color-border-default: rgb(235 238 245 / 22%);
+  --color-border-default-rgb: 235 238 245;
+  --color-border-strong: rgb(235 238 245 / 34%);
+  --color-border-strong-rgb: 235 238 245;
+  --color-border-accent: rgb(var(--color-accent-primary-rgb) / 24%);
 
-  /* --- 主强调色 - Warm Clay on dark --- */
-  --color-accent-primary: #e79a77;
-  --color-accent-primary-hover: #efaa89;
-  --color-accent-primary-active: #d88b69;
-  --color-accent-primary-rgb: 231 154 119;
-  --color-accent-primary-glow: rgb(231 154 119 / 16%);
+  /* --- 文字层级（实心高对比） --- */
+  --color-text-primary: #f2f3f5;
+  --color-text-primary-rgb: 242 243 245;
+  --color-text-secondary: #c9ccd3;
+  --color-text-secondary-rgb: 201 204 211;
+  --color-text-muted: #9ba1ab;
+  --color-text-muted-rgb: 155 161 171;
+  --color-text-ghost: #6d727c;
+  --color-text-ghost-rgb: 109 114 124;
+  --color-text-disabled: #4f545d;
+  --color-text-disabled-rgb: 79 84 93;
+  --color-text-inverted: #17181c;
+  --color-text-inverted-rgb: 23 24 28;
+
+  /* --- 主强调色 - Clay on dark（高彩度，非粉彩） --- */
+  --color-accent-primary: #e8835b;
+  --color-accent-primary-hover: #f0926c;
+  --color-accent-primary-active: #d4744a;
+  --color-accent-primary-rgb: 232 131 91;
+  --color-accent-primary-glow: rgb(232 131 91 / 16%);
+  --color-accent-primary-contrast: #1d1207;
+  --color-accent-primary-contrast-rgb: 29 18 7;
 
   /* --- 辅助强调色 - Warm Sand on dark --- */
   --color-accent-secondary: #d0ae86;
@@ -179,78 +189,32 @@
   --color-success-hover: #8bbb91;
   --color-success-rgb: 124 171 130;
   --color-success-glow: rgb(124 171 130 / 16%);
+
+  /* 对比文字：vs --color-success #7cab82 = 6.85:1（≥3.5 契约） */
+  --color-success-contrast: #17181c;
+  --color-success-contrast-rgb: 23 24 28;
   --color-warning: #d6a76d;
   --color-warning-hover: #dfb47d;
   --color-warning-rgb: 214 167 109;
   --color-warning-glow: rgb(214 167 109 / 16%);
+
+  /* 对比文字：vs --color-warning #d6a76d = 8.21:1（≥3.5 契约） */
+  --color-warning-contrast: #17181c;
+  --color-warning-contrast-rgb: 23 24 28;
   --color-danger: #db8a73;
   --color-danger-hover: #e59b86;
   --color-danger-rgb: 219 138 115;
   --color-danger-glow: rgb(219 138 115 / 16%);
+
+  /* 对比文字：vs --color-danger #db8a73 = 6.74:1（≥3.5 契约） */
+  --color-danger-contrast: #17181c;
+  --color-danger-contrast-rgb: 23 24 28;
   --color-info: #98afc9;
   --color-info-hover: #a7bdd4;
   --color-info-rgb: 152 175 201;
   --color-info-glow: rgb(152 175 201 / 16%);
 
-  /* --- 环境色场（暗色氛围） --- */
-  --color-premium-pink: #3b2d24;
-  --color-premium-pink-rgb: 59 45 36;
-  --color-premium-blue: #2d241d;
-  --color-premium-blue-rgb: 45 36 29;
-
-  /* --- Stage 页面语义层（暗色维持高可读） --- */
-  --color-stage-text-primary: rgb(var(--color-text-primary-rgb) / 98%);
-  --color-stage-text-secondary: rgb(var(--color-text-secondary-rgb) / 90%);
-  --color-stage-text-muted: rgb(var(--color-text-muted-rgb) / 76%);
-  --color-stage-text-quiet: rgb(var(--color-text-muted-rgb) / 62%);
-  --color-stage-surface-soft: rgb(var(--color-bg-surface-rgb) / 58%);
-  --color-stage-surface-medium: rgb(var(--color-bg-elevated-rgb) / 72%);
-  --color-stage-surface-strong: rgb(var(--color-bg-elevated-rgb) / 84%);
-  --color-stage-border-soft: rgb(var(--color-border-default-rgb) / 12%);
-  --color-stage-border-medium: rgb(var(--color-border-strong-rgb) / 16%);
-  --color-stage-chip-neutral-bg: rgb(255 255 255 / 5%);
-  --color-stage-chip-neutral-border: rgb(255 255 255 / 9%);
-  --color-stage-chip-neutral-text: rgb(var(--color-text-secondary-rgb) / 94%);
-  --stage-bg-grid-opacity: 0%;
-  --stage-bg-grid-opacity-dark: 0%;
-  --stage-bg-noise-opacity: 0.026;
-  --stage-bg-noise-opacity-dark: 0.03;
-  --stage-bg-mesh-primary-opacity: 8%;
-  --stage-bg-mesh-secondary-opacity: 6%;
-  --stage-bg-mesh-info-opacity: 4%;
-  --stage-bg-aurora-primary-opacity: 6%;
-  --stage-bg-aurora-secondary-opacity: 5%;
-  --stage-bg-orb-primary-opacity: 5%;
-  --stage-bg-orb-secondary-opacity: 4%;
-}
-
-/* ========== 亮色主题覆盖 ========== */
-[data-theme='light'] {
-  /* --- 背景层级（与 :root 暖 clay 基线保持一致） --- */
-  --color-bg-base: #ebe1d0;
-  --color-bg-elevated: #f5eee1;
-  --color-bg-surface: #fefaf2;
-  --color-bg-overlay: #e2d6c3;
-
-  /* --- 边框与分隔 --- */
-  --color-border-subtle: rgb(70 53 41 / 12%);
-  --color-border-default: rgb(70 53 41 / 19%);
-  --color-border-strong: rgb(70 53 41 / 30%);
-  --color-border-accent: rgb(217 119 87 / 18%);
-
-  /* --- 文字层级 --- */
-  --color-text-primary: #31241c;
-  --color-text-secondary: #5f4d3f;
-  --color-text-muted: #715d4c;
-  --color-text-disabled: #b4a08f;
-
-  /* --- 发光效果（亮色模式保持克制） --- */
-  --color-accent-primary-glow: rgb(217 119 87 / 8%);
-  --color-accent-secondary-glow: rgb(185 150 102 / 8%);
-  --color-success-glow: rgb(91 138 98 / 8%);
-  --color-warning-glow: rgb(188 133 64 / 8%);
-  --color-danger-glow: rgb(199 105 83 / 8%);
-  --color-info-glow: rgb(125 151 182 / 8%);
+  /* stage 语义层由 :root 的 var() 引用自动跟随暗色令牌，无需覆盖。 */
 }
 
 /* ========== 间距系统 (4px 基准) ========== */
@@ -414,14 +378,14 @@
 
 /* ========== 阴影与光效系统 ========== */
 :root:where(:root):where(:root):where(:root):where(:root) {
-  /* --- 标准阴影（暖褐 tint，elevation 三档肉眼可分：sm ≥ 8%、md ≥ 12%） --- */
-  --shadow-xs: 0 1px 2px rgb(73 54 40 / 6%);
-  --shadow-sm: 0 2px 6px rgb(73 54 40 / 9%);
-  --shadow-md: 0 10px 24px rgb(73 54 40 / 13%);
-  --shadow-lg: 0 18px 38px rgb(73 54 40 / 16%);
-  --shadow-xl: 0 26px 54px rgb(73 54 40 / 19%);
-  --shadow-2xl: 0 34px 72px rgb(73 54 40 / 22%);
-  --shadow-inner: inset 0 1px 0 rgb(255 251 245 / 46%);
+  /* --- 标准阴影（中性墨色 tint，elevation 三档肉眼可分：sm ≥ 8%、md ≥ 12%） --- */
+  --shadow-xs: 0 1px 2px rgb(25 27 32 / 6%);
+  --shadow-sm: 0 2px 6px rgb(25 27 32 / 9%);
+  --shadow-md: 0 10px 24px rgb(25 27 32 / 13%);
+  --shadow-lg: 0 18px 38px rgb(25 27 32 / 16%);
+  --shadow-xl: 0 26px 54px rgb(25 27 32 / 19%);
+  --shadow-2xl: 0 34px 72px rgb(25 27 32 / 22%);
+  --shadow-inner: inset 0 1px 0 rgb(255 255 255 / 46%);
 
   /* --- 柔和交互光晕 --- */
   --glow-primary:
@@ -438,7 +402,7 @@
   --glow-info: 0 0 0 1px rgb(var(--color-info-rgb) / 10%), 0 12px 24px var(--color-info-glow);
 
   /* --- 内发光 --- */
-  --inner-glow: inset 0 1px 0 rgb(255 251 245 / 38%);
+  --inner-glow: inset 0 1px 0 rgb(255 255 255 / 38%);
 
   /* --- 品牌渐变（仅用于少量强调） --- */
   --gradient-border: linear-gradient(
@@ -468,8 +432,10 @@
   --shadow-lg: 0 20px 44px rgb(0 0 0 / 36%);
   --shadow-xl: 0 28px 60px rgb(0 0 0 / 44%);
   --shadow-2xl: 0 36px 78px rgb(0 0 0 / 50%);
-  --shadow-inner: inset 0 1px 0 rgb(255 248 240 / 5%);
-  --inner-glow: inset 0 1px 0 rgb(255 248 240 / 4%);
+
+  /* 暗色 inner-glow 压到 ≤3%（design §3） */
+  --shadow-inner: inset 0 1px 0 rgb(235 238 245 / 3%);
+  --inner-glow: inset 0 1px 0 rgb(235 238 245 / 3%);
 }
 
 /* ========== 玻璃效果系统 ========== */
@@ -477,27 +443,28 @@
 /* 玻璃预算（review 依据）：同屏 backdrop-filter 元素 ≤ 3；禁止嵌套玻璃；
    禁止在滚动内容区内部使用玻璃。普通内容卡片一律走不透明 card/workspace 语义。 */
 :root:where(:root):where(:root):where(:root):where(:root):where(:root) {
-  /* --- 三档 material 液态玻璃令牌（blur + saturate + 分层边框 + inset 高光，亮色参数） --- */
+  /* --- 三档 material 玻璃令牌（新表面契约：chrome/inline 全不透明、blur: none；
+     floating 是唯一保留 backdrop-filter 的档，bg ≥88% 不透明、blur ≤12px、去 saturate） --- */
 
-  /* floating：模态 / 命令面板 / 浮层（最强，同屏最多 1 个） */
-  --material-glass-floating-bg: rgb(var(--color-bg-elevated-rgb) / 72%);
-  --material-glass-floating-blur: blur(16px) saturate(170%);
-  --material-glass-floating-border: rgb(var(--color-border-strong-rgb) / 26%);
-  --material-glass-floating-highlight: inset 0 1px 0 rgb(255 251 245 / 55%);
-  --material-glass-floating-shadow: 0 24px 64px rgb(73 54 40 / 20%);
+  /* floating：模态 / 命令面板 / 浮层（同屏最多 1 个） */
+  --material-glass-floating-bg: rgb(var(--color-bg-elevated-rgb) / 92%);
+  --material-glass-floating-blur: blur(12px);
+  --material-glass-floating-border: var(--color-border-strong);
+  --material-glass-floating-highlight: inset 0 1px 0 rgb(255 255 255 / 40%);
+  --material-glass-floating-shadow: 0 24px 64px rgb(25 27 32 / 20%);
 
-  /* chrome：侧栏 / 顶栏（常驻，同屏 ≤ 2 个） */
-  --material-glass-chrome-bg: rgb(var(--color-bg-elevated-rgb) / 82%);
-  --material-glass-chrome-blur: blur(10px) saturate(150%);
-  --material-glass-chrome-border: rgb(var(--color-border-default-rgb) / 22%);
-  --material-glass-chrome-highlight: inset 0 1px 0 rgb(255 251 245 / 45%);
-  --material-glass-chrome-shadow: 0 10px 30px rgb(73 54 40 / 10%);
+  /* chrome：侧栏 / 顶栏（常驻，同屏 ≤ 2 个；不透明 elevated） */
+  --material-glass-chrome-bg: var(--color-bg-elevated);
+  --material-glass-chrome-blur: none;
+  --material-glass-chrome-border: var(--color-border-default);
+  --material-glass-chrome-highlight: inset 0 1px 0 rgb(255 255 255 / 30%);
+  --material-glass-chrome-shadow: var(--shadow-sm);
 
-  /* inline：页面内悬浮条（sticky 工具条等，少用） */
-  --material-glass-inline-bg: rgb(var(--color-bg-elevated-rgb) / 88%);
-  --material-glass-inline-blur: blur(8px) saturate(140%);
+  /* inline：页面内悬浮条（sticky 工具条等，少用；不透明 surface） */
+  --material-glass-inline-bg: var(--color-bg-surface);
+  --material-glass-inline-blur: none;
   --material-glass-inline-border: var(--color-border-default);
-  --material-glass-inline-highlight: inset 0 1px 0 rgb(255 251 245 / 38%);
+  --material-glass-inline-highlight: inset 0 1px 0 rgb(255 255 255 / 30%);
   --material-glass-inline-shadow: var(--shadow-sm);
 
   /* --- 玻璃背景 (deprecated：改用 --material-glass-* 三档) --- */
@@ -529,16 +496,16 @@
   --liquid-glass-shadow: 0 12px 30px rgb(73 54 40 / 10%);
 
   /* --- 语义化 Surface Contract ---
-     modal→floating / shell→chrome / status→inline；card/workspace 退出玻璃改不透明。 */
+     modal→floating / shell→chrome / status→inline；card/workspace 退出玻璃改 100% 不透明。 */
   --surface-shell-bg: var(--material-glass-chrome-bg);
   --surface-shell-blur: var(--material-glass-chrome-blur);
   --surface-shell-border: var(--material-glass-chrome-border);
   --surface-shell-shadow: var(--material-glass-chrome-shadow);
-  --surface-workspace-bg: rgb(var(--color-bg-elevated-rgb) / 98%);
+  --surface-workspace-bg: var(--color-bg-elevated);
   --surface-workspace-blur: none;
   --surface-workspace-border: var(--color-border-default);
   --surface-workspace-shadow: var(--shadow-sm);
-  --surface-card-bg: rgb(var(--color-bg-surface-rgb) / 98%);
+  --surface-card-bg: var(--color-bg-surface);
   --surface-card-blur: none;
   --surface-card-border: var(--color-border-default);
   --surface-card-shadow: var(--shadow-md);
@@ -552,21 +519,15 @@
   --surface-status-shadow: var(--material-glass-inline-shadow);
 }
 
-/* 暗色主题玻璃效果 */
+/* 暗色主题玻璃效果（bg/border 经语义 rgb 变量自动映射，仅收紧高光与阴影） */
 [data-theme='dark']:where([data-theme='dark']):where([data-theme='dark']) {
-  /* --- 三档 material 液态玻璃（暗色参数：bg 更透、高光降到 6%~9%） --- */
-  --material-glass-floating-bg: rgb(var(--color-bg-elevated-rgb) / 66%);
-  --material-glass-floating-border: rgb(var(--color-border-strong-rgb) / 30%);
-  --material-glass-floating-highlight: inset 0 1px 0 rgb(255 248 240 / 9%);
+  /* --- 三档 material 玻璃（暗色：inset 高光 ≤3%） --- */
+  --material-glass-floating-highlight: inset 0 1px 0 rgb(235 238 245 / 3%);
   --material-glass-floating-shadow: 0 24px 64px rgb(0 0 0 / 52%);
-  --material-glass-chrome-bg: rgb(var(--color-bg-elevated-rgb) / 78%);
-  --material-glass-chrome-border: rgb(var(--color-border-default-rgb) / 24%);
-  --material-glass-chrome-highlight: inset 0 1px 0 rgb(255 248 240 / 7%);
-  --material-glass-chrome-shadow: 0 10px 30px rgb(0 0 0 / 34%);
-  --material-glass-inline-bg: rgb(var(--color-bg-elevated-rgb) / 86%);
-  --material-glass-inline-highlight: inset 0 1px 0 rgb(255 248 240 / 6%);
+  --material-glass-chrome-highlight: inset 0 1px 0 rgb(235 238 245 / 3%);
+  --material-glass-inline-highlight: inset 0 1px 0 rgb(235 238 245 / 3%);
 
-  /* --- 旧玻璃档位 (deprecated：改用 --material-glass-* 三档) --- */
+  /* --- 旧玻璃档位 (deprecated：改用 --material-glass-* 三档；保持薄值不动) --- */
   --glass-bg-light: rgb(34 27 24 / 92%);
   --glass-bg-medium: rgb(34 27 24 / 96%);
   --glass-bg-strong: rgb(42 34 30 / 98%);
@@ -577,7 +538,7 @@
   --glass-shadow-elevated: 0 20px 46px rgb(0 0 0 / 42%);
   --glass-inner-glow: inset 0 1px 0 rgb(255 248 240 / 5%);
 
-  /* --- 液态玻璃效果 (deprecated：改用 --material-glass-* 三档) --- */
+  /* --- 液态玻璃效果 (deprecated：改用 --material-glass-* 三档；保持薄值不动) --- */
   --liquid-glass-bg: rgb(34 27 24 / 96%);
   --liquid-glass-blur: blur(4px) saturate(106%);
   --liquid-glass-border: rgb(243 234 223 / 16%);
@@ -653,106 +614,78 @@
 
 /* ========== Flavor：底色族（与 data-theme 正交） ========== */
 
-/* clay 为默认，等价 :root + [data-theme="light/dark"]，无需显式块 */
+/* neutral 为默认 flavor：:root + [data-theme='dark'] 即 neutral 明暗两套，无需显式块。
+   catppuccin 为自适应入口，经 data-resolved-flavor 解析为 latte|mocha（见下方 Catppuccin 区）。 */
 
-/* --- paper（亮）：更纯净的纸面感（中性灰阶，卡片最亮、相邻层 ΔL ≥ 3） --- */
-[data-flavor='paper'] {
-  --color-bg-base: #e7e7e7;
-  --color-bg-base-rgb: 231 231 231;
-  --color-bg-elevated: #f2f2f2;
-  --color-bg-elevated-rgb: 242 242 242;
-  --color-bg-surface: #fdfdfd;
-  --color-bg-surface-rgb: 253 253 253;
-  --color-bg-overlay: #dbdbdb;
-  --color-bg-overlay-rgb: 219 219 219;
-  --color-text-primary: #1a1a1c;
-  --color-text-primary-rgb: 26 26 28;
-  --color-text-secondary: #3f3f46;
-  --color-text-secondary-rgb: 63 63 70;
-  --color-text-muted: #626268;
-  --color-text-muted-rgb: 98 98 104;
-  --color-border-subtle: rgb(20 20 22 / 12%);
-  --color-border-subtle-rgb: 20 20 22;
-  --color-border-default: rgb(20 20 22 / 19%);
-  --color-border-default-rgb: 20 20 22;
-  --color-border-strong: rgb(20 20 22 / 30%);
-  --color-border-strong-rgb: 20 20 22;
+/* --- clay（亮）：暖纸面 identity（同 neutral 亮色几何：桌面压暗、卡片最亮） --- */
+[data-flavor='clay'] {
+  --color-bg-base: #ebe1d0;
+  --color-bg-base-rgb: 235 225 208;
+  --color-bg-elevated: #f5eee1;
+  --color-bg-elevated-rgb: 245 238 225;
+  --color-bg-surface: #fefaf2;
+  --color-bg-surface-rgb: 254 250 242;
+  --color-bg-overlay: #e2d6c3;
+  --color-bg-overlay-rgb: 226 214 195;
+  --color-border-subtle: rgb(70 53 41 / 12%);
+  --color-border-subtle-rgb: 70 53 41;
+  --color-border-default: rgb(70 53 41 / 19%);
+  --color-border-default-rgb: 70 53 41;
+  --color-border-strong: rgb(70 53 41 / 30%);
+  --color-border-strong-rgb: 70 53 41;
+  --color-text-primary: #31241c;
+  --color-text-primary-rgb: 49 36 28;
+  --color-text-secondary: #5f4d3f;
+  --color-text-secondary-rgb: 95 77 63;
+  --color-text-muted: #715d4c;
+  --color-text-muted-rgb: 113 93 76;
+  --color-text-ghost: #9a8373;
+  --color-text-ghost-rgb: 154 131 115;
+  --color-text-disabled: #b4a08f;
+  --color-text-disabled-rgb: 180 160 143;
+  --color-text-inverted: #fff8f0;
+  --color-text-inverted-rgb: 255 248 240;
 }
 
-/* --- paper（暗）--- */
-[data-theme='dark'][data-flavor='paper'] {
-  --color-bg-base: #1a1a1c;
-  --color-bg-base-rgb: 26 26 28;
-  --color-bg-elevated: #232325;
-  --color-bg-elevated-rgb: 35 35 37;
-  --color-bg-surface: #2a2a2d;
-  --color-bg-surface-rgb: 42 42 45;
-  --color-bg-overlay: #34343a;
-  --color-bg-overlay-rgb: 52 52 58;
-  --color-text-primary: #f2f2f4;
-  --color-text-primary-rgb: 242 242 244;
-  --color-text-secondary: #d4d4d8;
-  --color-text-secondary-rgb: 212 212 216;
-  --color-text-muted: #a1a1a8;
-  --color-text-muted-rgb: 161 161 168;
-  --color-border-subtle: rgb(240 240 244 / 10%);
-  --color-border-subtle-rgb: 240 240 244;
-  --color-border-default: rgb(240 240 244 / 16%);
-  --color-border-default-rgb: 240 240 244;
-  --color-border-strong: rgb(240 240 244 / 26%);
-  --color-border-strong-rgb: 240 240 244;
+/* --- clay（暗）：暖墨 identity（base < elevated < surface < overlay 逐级提亮，border 提到 14/22/34） --- */
+[data-theme='dark'][data-flavor='clay'] {
+  --color-bg-base: #17120f;
+  --color-bg-base-rgb: 23 18 15;
+  --color-bg-elevated: #221b18;
+  --color-bg-elevated-rgb: 34 27 24;
+  --color-bg-surface: #2a221e;
+  --color-bg-surface-rgb: 42 34 30;
+  --color-bg-overlay: #342b26;
+  --color-bg-overlay-rgb: 52 43 38;
+  --color-border-subtle: rgb(243 234 223 / 14%);
+  --color-border-subtle-rgb: 243 234 223;
+  --color-border-default: rgb(243 234 223 / 22%);
+  --color-border-default-rgb: 243 234 223;
+  --color-border-strong: rgb(243 234 223 / 34%);
+  --color-border-strong-rgb: 243 234 223;
+  --color-text-primary: #f3eadf;
+  --color-text-primary-rgb: 243 234 223;
+  --color-text-secondary: #dacbbc;
+  --color-text-secondary-rgb: 218 203 188;
+  --color-text-muted: #b9a695;
+  --color-text-muted-rgb: 185 166 149;
+  --color-text-ghost: #977f6d;
+  --color-text-ghost-rgb: 151 127 109;
+  --color-text-disabled: #735f52;
+  --color-text-disabled-rgb: 115 95 82;
+  --color-text-inverted: #211915;
+  --color-text-inverted-rgb: 33 25 21;
 }
 
-/* --- graphite（亮）：冷中性轴（保持微冷色相，卡片最亮、相邻层 ΔL ≥ 3） --- */
-[data-flavor='graphite'] {
-  --color-bg-base: #e4e4e9;
-  --color-bg-base-rgb: 228 228 233;
-  --color-bg-elevated: #f0f0f4;
-  --color-bg-elevated-rgb: 240 240 244;
-  --color-bg-surface: #fbfbfd;
-  --color-bg-surface-rgb: 251 251 253;
-  --color-bg-overlay: #d8d8de;
-  --color-bg-overlay-rgb: 216 216 222;
-  --color-text-primary: #1f2024;
-  --color-text-primary-rgb: 31 32 36;
-  --color-text-secondary: #43464c;
-  --color-text-secondary-rgb: 67 70 76;
-  --color-text-muted: #5f636c;
-  --color-text-muted-rgb: 95 99 108;
-  --color-border-subtle: rgb(31 32 36 / 12%);
-  --color-border-subtle-rgb: 31 32 36;
-  --color-border-default: rgb(31 32 36 / 19%);
-  --color-border-default-rgb: 31 32 36;
-  --color-border-strong: rgb(31 32 36 / 30%);
-  --color-border-strong-rgb: 31 32 36;
-}
+/* ========== Catppuccin：自适应 flavor（light→latte / dark→mocha） ========== */
 
-/* --- graphite（暗）--- */
-[data-theme='dark'][data-flavor='graphite'] {
-  --color-bg-base: #14161a;
-  --color-bg-base-rgb: 20 22 26;
-  --color-bg-elevated: #1d1f23;
-  --color-bg-elevated-rgb: 29 31 35;
-  --color-bg-surface: #25272c;
-  --color-bg-surface-rgb: 37 39 44;
-  --color-bg-overlay: #2e3036;
-  --color-bg-overlay-rgb: 46 48 54;
-  --color-text-primary: #eceef2;
-  --color-text-primary-rgb: 236 238 242;
-  --color-text-secondary: #c7cad1;
-  --color-text-secondary-rgb: 199 202 209;
-  --color-text-muted: #989ca6;
-  --color-text-muted-rgb: 152 156 166;
-  --color-border-subtle: rgb(236 238 242 / 10%);
-  --color-border-subtle-rgb: 236 238 242;
-  --color-border-default: rgb(236 238 242 / 16%);
-  --color-border-default-rgb: 236 238 242;
-  --color-border-strong: rgb(236 238 242 / 26%);
-  --color-border-strong-rgb: 236 238 242;
-}
+/* 旧四档 ctp 调色板块已随 flavor 精简删除；catppuccin 只解析为 latte|mocha。 */
 
-/* --- Catppuccin Latte：浅色底色族 --- */
+/* --- Catppuccin Latte：调色板 + 完整语义重映射 ---
+   修复历史 elevation 反转：base=mantle < elevated=base < surface=近白卡片 < overlay=surface0（下沉层）；
+   文本实心：secondary/muted 直接引用 ctp 实心色，primary 用 ctp-text 同色相加深值以满足 ≥12:1。 */
 [data-resolved-flavor='latte'] {
+  /* --- 调色板 --- */
   --ctp-rosewater: #dc8a78;
   --ctp-rosewater-rgb: 220 138 120;
   --ctp-flamingo: #dd7878;
@@ -814,142 +747,107 @@
   --ctp-glass-light-opacity: 72%;
   --ctp-glass-medium-opacity: 84%;
   --ctp-glass-strong-opacity: 92%;
-  --ctp-stage-noise-opacity: 0.018;
+
+  /* --- 语义重映射 --- */
+  --color-bg-base: var(--ctp-mantle);
+  --color-bg-base-rgb: var(--ctp-mantle-rgb);
+  --color-bg-elevated: var(--ctp-base);
+  --color-bg-elevated-rgb: var(--ctp-base-rgb);
+  --color-bg-surface: #fafbfe;
+  --color-bg-surface-rgb: 250 251 254;
+  --color-bg-overlay: var(--ctp-surface0);
+  --color-bg-overlay-rgb: var(--ctp-surface0-rgb);
+  --color-border-subtle: rgb(var(--ctp-surface1-rgb) / 44%);
+  --color-border-subtle-rgb: var(--ctp-surface1-rgb);
+  --color-border-default: rgb(var(--ctp-surface2-rgb) / 58%);
+  --color-border-default-rgb: var(--ctp-surface2-rgb);
+  --color-border-strong: rgb(var(--ctp-overlay0-rgb) / 72%);
+  --color-border-strong-rgb: var(--ctp-overlay0-rgb);
+  --color-border-interactive: var(--color-accent-primary);
+  --color-border-interactive-rgb: var(--color-accent-primary-rgb);
+  --color-text-primary: #2e3043;
+  --color-text-primary-rgb: 46 48 67;
+  --color-text-secondary: var(--ctp-text);
+  --color-text-secondary-rgb: var(--ctp-text-rgb);
+  --color-text-muted: var(--ctp-subtext0);
+  --color-text-muted-rgb: var(--ctp-subtext0-rgb);
+  --color-text-ghost: var(--ctp-overlay1);
+  --color-text-ghost-rgb: var(--ctp-overlay1-rgb);
+  --color-text-disabled: var(--ctp-overlay0);
+  --color-text-disabled-rgb: var(--ctp-overlay0-rgb);
+  --color-text-inverted: var(--ctp-base);
+  --color-text-inverted-rgb: var(--ctp-base-rgb);
+  --color-accent-secondary: var(--ctp-rosewater);
+  --color-accent-secondary-hover: var(--ctp-flamingo);
+  --color-accent-secondary-active: var(--ctp-peach);
+  --color-accent-secondary-rgb: var(--ctp-rosewater-rgb);
+  --color-accent-secondary-glow: rgb(var(--ctp-rosewater-rgb) / var(--ctp-glow-opacity));
+  --color-success: var(--ctp-green);
+  --color-success-hover: var(--ctp-teal);
+  --color-success-rgb: var(--ctp-green-rgb);
+  --color-success-glow: rgb(var(--ctp-green-rgb) / var(--ctp-glow-opacity));
+
+  /* 对比文字：vs ctp-green #40a02b = 5.37:1（近白仅 3.34:1 不达标，故用深色） */
+  --color-success-contrast: #17181c;
+  --color-success-contrast-rgb: 23 24 28;
+  --color-warning: var(--ctp-yellow);
+  --color-warning-hover: var(--ctp-peach);
+  --color-warning-rgb: var(--ctp-yellow-rgb);
+  --color-warning-glow: rgb(var(--ctp-yellow-rgb) / var(--ctp-glow-opacity));
+
+  /* 对比文字：vs ctp-yellow #df8e1d = 6.86:1（≥3.5 契约） */
+  --color-warning-contrast: #17181c;
+  --color-warning-contrast-rgb: 23 24 28;
+  --color-danger: var(--ctp-red);
+  --color-danger-hover: var(--ctp-maroon);
+  --color-danger-rgb: var(--ctp-red-rgb);
+  --color-danger-glow: rgb(var(--ctp-red-rgb) / var(--ctp-glow-opacity));
+
+  /* 对比文字：vs ctp-red #d20f39 = 5.43:1（≥3.5 契约） */
+  --color-danger-contrast: #fff8f2;
+  --color-danger-contrast-rgb: 255 248 242;
+  --color-info: var(--ctp-sky);
+  --color-info-hover: var(--ctp-sapphire);
+  --color-info-rgb: var(--ctp-sky-rgb);
+  --color-info-glow: rgb(var(--ctp-sky-rgb) / var(--ctp-glow-opacity));
+  --color-cyan: var(--ctp-sapphire);
+  --color-cyan-rgb: var(--ctp-sapphire-rgb);
+  --color-teal: var(--ctp-teal);
+  --color-teal-rgb: var(--ctp-teal-rgb);
+  --color-gray: var(--ctp-overlay1);
+  --color-gray-rgb: var(--ctp-overlay1-rgb);
+  --color-platform-claude: var(--ctp-peach);
+  --color-platform-claude-rgb: var(--ctp-peach-rgb);
+  --color-platform-codex: var(--ctp-green);
+  --color-platform-codex-rgb: var(--ctp-green-rgb);
+  --color-platform-gemini: var(--ctp-blue);
+  --color-platform-gemini-rgb: var(--ctp-blue-rgb);
+  --shadow-xs: 0 1px 2px rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-xs-opacity));
+  --shadow-sm: 0 2px 6px rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-sm-opacity));
+  --shadow-md: 0 10px 24px rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-md-opacity));
+  --shadow-lg: 0 18px 38px rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-lg-opacity));
+  --shadow-xl: 0 26px 54px rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-lg-opacity));
+  --shadow-2xl: 0 34px 72px rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-lg-opacity));
+  --shadow-inner: inset 0 1px 0 rgb(var(--ctp-text-rgb) / 4%);
+  --inner-glow: inset 0 1px 0 rgb(var(--ctp-text-rgb) / 4%);
+
+  /* --- 旧玻璃档 (deprecated：保持薄值不动) --- */
+  --glass-bg-light: rgb(var(--ctp-mantle-rgb) / var(--ctp-glass-light-opacity));
+  --glass-bg-medium: rgb(var(--ctp-mantle-rgb) / var(--ctp-glass-medium-opacity));
+  --glass-bg-strong: rgb(var(--ctp-mantle-rgb) / var(--ctp-glass-strong-opacity));
+  --glass-border-light: rgb(var(--ctp-surface2-rgb) / 24%);
+  --glass-border-medium: rgb(var(--ctp-surface2-rgb) / 32%);
+  --glass-border-strong: rgb(var(--ctp-overlay0-rgb) / 40%);
+  --glass-shadow: 0 10px 24px rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-md-opacity));
+  --glass-shadow-elevated: 0 18px 40px rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-lg-opacity));
+  --glass-inner-glow: inset 0 1px 0 rgb(var(--ctp-text-rgb) / 4%);
+  --liquid-glass-bg: rgb(var(--ctp-mantle-rgb) / 92%);
+  --liquid-glass-border: rgb(var(--ctp-surface2-rgb) / 28%);
+  --liquid-glass-highlight: inset 0 1px 0 rgb(var(--ctp-text-rgb) / 4%);
+  --liquid-glass-shadow: 0 12px 30px rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-md-opacity));
 }
 
-/* --- Catppuccin Frappé：柔和深色底色族 --- */
-[data-resolved-flavor='frappe'] {
-  --ctp-rosewater: #f2d5cf;
-  --ctp-rosewater-rgb: 242 213 207;
-  --ctp-flamingo: #eebebe;
-  --ctp-flamingo-rgb: 238 190 190;
-  --ctp-pink: #f4b8e4;
-  --ctp-pink-rgb: 244 184 228;
-  --ctp-mauve: #ca9ee6;
-  --ctp-mauve-rgb: 202 158 230;
-  --ctp-red: #e78284;
-  --ctp-red-rgb: 231 130 132;
-  --ctp-maroon: #ea9a97;
-  --ctp-maroon-rgb: 234 154 151;
-  --ctp-peach: #ef9f76;
-  --ctp-peach-rgb: 239 159 118;
-  --ctp-yellow: #e5c890;
-  --ctp-yellow-rgb: 229 200 144;
-  --ctp-green: #a6d189;
-  --ctp-green-rgb: 166 209 137;
-  --ctp-teal: #81c8be;
-  --ctp-teal-rgb: 129 200 190;
-  --ctp-sky: #99d1db;
-  --ctp-sky-rgb: 153 209 219;
-  --ctp-sapphire: #85c1dc;
-  --ctp-sapphire-rgb: 133 193 220;
-  --ctp-blue: #8caaee;
-  --ctp-blue-rgb: 140 170 238;
-  --ctp-lavender: #babbf1;
-  --ctp-lavender-rgb: 186 187 241;
-  --ctp-text: #c6d0f5;
-  --ctp-text-rgb: 198 208 245;
-  --ctp-subtext1: #b5bfe2;
-  --ctp-subtext1-rgb: 181 191 226;
-  --ctp-subtext0: #a5adce;
-  --ctp-subtext0-rgb: 165 173 206;
-  --ctp-overlay2: #949cbb;
-  --ctp-overlay2-rgb: 148 156 187;
-  --ctp-overlay1: #838ba7;
-  --ctp-overlay1-rgb: 131 139 167;
-  --ctp-overlay0: #737994;
-  --ctp-overlay0-rgb: 115 121 148;
-  --ctp-surface2: #626880;
-  --ctp-surface2-rgb: 98 104 128;
-  --ctp-surface1: #51576d;
-  --ctp-surface1-rgb: 81 87 109;
-  --ctp-surface0: #414559;
-  --ctp-surface0-rgb: 65 69 89;
-  --ctp-base: #303446;
-  --ctp-base-rgb: 48 52 70;
-  --ctp-mantle: #292c3c;
-  --ctp-mantle-rgb: 41 44 60;
-  --ctp-crust: #232634;
-  --ctp-crust-rgb: 35 38 52;
-  --ctp-shadow-rgb: 0 0 0;
-  --ctp-shadow-xs-opacity: 24%;
-  --ctp-shadow-sm-opacity: 30%;
-  --ctp-shadow-md-opacity: 38%;
-  --ctp-shadow-lg-opacity: 48%;
-  --ctp-glow-opacity: 12%;
-  --ctp-glass-light-opacity: 54%;
-  --ctp-glass-medium-opacity: 66%;
-  --ctp-glass-strong-opacity: 80%;
-  --ctp-stage-noise-opacity: 0.024;
-}
-
-/* --- Catppuccin Macchiato：中等对比深色底色族 --- */
-[data-resolved-flavor='macchiato'] {
-  --ctp-rosewater: #f4dbd6;
-  --ctp-rosewater-rgb: 244 219 214;
-  --ctp-flamingo: #f0c6c6;
-  --ctp-flamingo-rgb: 240 198 198;
-  --ctp-pink: #f5bde6;
-  --ctp-pink-rgb: 245 189 230;
-  --ctp-mauve: #c6a0f6;
-  --ctp-mauve-rgb: 198 160 246;
-  --ctp-red: #ed8796;
-  --ctp-red-rgb: 237 135 150;
-  --ctp-maroon: #ee99a0;
-  --ctp-maroon-rgb: 238 153 160;
-  --ctp-peach: #f5a97f;
-  --ctp-peach-rgb: 245 169 127;
-  --ctp-yellow: #eed49f;
-  --ctp-yellow-rgb: 238 212 159;
-  --ctp-green: #a6da95;
-  --ctp-green-rgb: 166 218 149;
-  --ctp-teal: #8bd5ca;
-  --ctp-teal-rgb: 139 213 202;
-  --ctp-sky: #91d7e3;
-  --ctp-sky-rgb: 145 215 227;
-  --ctp-sapphire: #7dc4e4;
-  --ctp-sapphire-rgb: 125 196 228;
-  --ctp-blue: #8aadf4;
-  --ctp-blue-rgb: 138 173 244;
-  --ctp-lavender: #b7bdf8;
-  --ctp-lavender-rgb: 183 189 248;
-  --ctp-text: #cad3f5;
-  --ctp-text-rgb: 202 211 245;
-  --ctp-subtext1: #b8c0e0;
-  --ctp-subtext1-rgb: 184 192 224;
-  --ctp-subtext0: #a5adcb;
-  --ctp-subtext0-rgb: 165 173 203;
-  --ctp-overlay2: #939ab7;
-  --ctp-overlay2-rgb: 147 154 183;
-  --ctp-overlay1: #8087a2;
-  --ctp-overlay1-rgb: 128 135 162;
-  --ctp-overlay0: #6e738d;
-  --ctp-overlay0-rgb: 110 115 141;
-  --ctp-surface2: #5b6078;
-  --ctp-surface2-rgb: 91 96 120;
-  --ctp-surface1: #494d64;
-  --ctp-surface1-rgb: 73 77 100;
-  --ctp-surface0: #363a4f;
-  --ctp-surface0-rgb: 54 58 79;
-  --ctp-base: #24273a;
-  --ctp-base-rgb: 36 39 58;
-  --ctp-mantle: #1e2030;
-  --ctp-mantle-rgb: 30 32 48;
-  --ctp-crust: #181926;
-  --ctp-crust-rgb: 24 25 38;
-  --ctp-shadow-rgb: 0 0 0;
-  --ctp-shadow-xs-opacity: 24%;
-  --ctp-shadow-sm-opacity: 30%;
-  --ctp-shadow-md-opacity: 38%;
-  --ctp-shadow-lg-opacity: 48%;
-  --ctp-glow-opacity: 12%;
-  --ctp-glass-light-opacity: 54%;
-  --ctp-glass-medium-opacity: 66%;
-  --ctp-glass-strong-opacity: 80%;
-  --ctp-stage-noise-opacity: 0.024;
-}
-
-/* --- Catppuccin Mocha：高专注深色底色族 --- */
+/* --- Catppuccin Mocha：调色板（语义重映射在下方 html:root 高优先级块） --- */
 [data-resolved-flavor='mocha'] {
   --ctp-rosewater: #f5e0dc;
   --ctp-rosewater-rgb: 245 224 220;
@@ -1012,34 +910,33 @@
   --ctp-glass-light-opacity: 52%;
   --ctp-glass-medium-opacity: 64%;
   --ctp-glass-strong-opacity: 78%;
-  --ctp-stage-noise-opacity: 0.024;
 }
 
-[data-resolved-flavor='latte'],
-[data-resolved-flavor='frappe'],
-[data-resolved-flavor='macchiato'],
-[data-resolved-flavor='mocha'] {
-  --color-bg-base: var(--ctp-base);
-  --color-bg-base-rgb: var(--ctp-base-rgb);
-  --color-bg-elevated: var(--ctp-mantle);
-  --color-bg-elevated-rgb: var(--ctp-mantle-rgb);
+/* --- Catppuccin Mocha 语义重映射 ---
+   几何：crust < base < surface0 < surface1（elevated 逐级提亮）；文本实心高对比。
+   specificity 契约：html:root[data-resolved-flavor='mocha'] (0,2,1) 压过 [data-theme='dark'] (0,1,0)
+   与 latte 块 (0,1,0)；accent-primary 家族 / border-accent 不在此块声明，保持 accent 轴独立。 */
+html:root[data-resolved-flavor='mocha'] {
+  --color-bg-base: var(--ctp-crust);
+  --color-bg-base-rgb: var(--ctp-crust-rgb);
+  --color-bg-elevated: var(--ctp-base);
+  --color-bg-elevated-rgb: var(--ctp-base-rgb);
   --color-bg-surface: var(--ctp-surface0);
   --color-bg-surface-rgb: var(--ctp-surface0-rgb);
   --color-bg-overlay: var(--ctp-surface1);
   --color-bg-overlay-rgb: var(--ctp-surface1-rgb);
-  --color-border-subtle: rgb(var(--ctp-surface1-rgb) / 44%);
-  --color-border-subtle-rgb: var(--ctp-surface1-rgb);
-  --color-border-default: rgb(var(--ctp-surface2-rgb) / 58%);
-  --color-border-default-rgb: var(--ctp-surface2-rgb);
-  --color-border-strong: rgb(var(--ctp-overlay0-rgb) / 72%);
-  --color-border-strong-rgb: var(--ctp-overlay0-rgb);
-  --color-border-accent: rgb(var(--ctp-lavender-rgb) / 28%);
+  --color-border-subtle: rgb(var(--ctp-surface2-rgb) / 28%);
+  --color-border-subtle-rgb: var(--ctp-surface2-rgb);
+  --color-border-default: rgb(var(--ctp-overlay0-rgb) / 44%);
+  --color-border-default-rgb: var(--ctp-overlay0-rgb);
+  --color-border-strong: rgb(var(--ctp-overlay1-rgb) / 68%);
+  --color-border-strong-rgb: var(--ctp-overlay1-rgb);
   --color-border-interactive: var(--color-accent-primary);
   --color-border-interactive-rgb: var(--color-accent-primary-rgb);
-  --color-text-primary: var(--ctp-text);
-  --color-text-primary-rgb: var(--ctp-text-rgb);
-  --color-text-secondary: var(--ctp-subtext1);
-  --color-text-secondary-rgb: var(--ctp-subtext1-rgb);
+  --color-text-primary: #fafbff;
+  --color-text-primary-rgb: 250 251 255;
+  --color-text-secondary: var(--ctp-text);
+  --color-text-secondary-rgb: var(--ctp-text-rgb);
   --color-text-muted: var(--ctp-subtext0);
   --color-text-muted-rgb: var(--ctp-subtext0-rgb);
   --color-text-ghost: var(--ctp-overlay1);
@@ -1048,11 +945,6 @@
   --color-text-disabled-rgb: var(--ctp-overlay0-rgb);
   --color-text-inverted: var(--ctp-base);
   --color-text-inverted-rgb: var(--ctp-base-rgb);
-  --color-accent-primary: var(--ctp-lavender);
-  --color-accent-primary-hover: var(--ctp-blue);
-  --color-accent-primary-active: var(--ctp-mauve);
-  --color-accent-primary-rgb: var(--ctp-lavender-rgb);
-  --color-accent-primary-glow: rgb(var(--ctp-lavender-rgb) / var(--ctp-glow-opacity));
   --color-accent-secondary: var(--ctp-rosewater);
   --color-accent-secondary-hover: var(--ctp-flamingo);
   --color-accent-secondary-active: var(--ctp-peach);
@@ -1062,14 +954,26 @@
   --color-success-hover: var(--ctp-teal);
   --color-success-rgb: var(--ctp-green-rgb);
   --color-success-glow: rgb(var(--ctp-green-rgb) / var(--ctp-glow-opacity));
+
+  /* 对比文字：vs ctp-green #a6e3a1 ≈ 11.3:1（≥3.5 契约） */
+  --color-success-contrast: var(--ctp-crust);
+  --color-success-contrast-rgb: var(--ctp-crust-rgb);
   --color-warning: var(--ctp-yellow);
   --color-warning-hover: var(--ctp-peach);
   --color-warning-rgb: var(--ctp-yellow-rgb);
   --color-warning-glow: rgb(var(--ctp-yellow-rgb) / var(--ctp-glow-opacity));
+
+  /* 对比文字：vs ctp-yellow #f9e2af ≈ 15.5:1（≥3.5 契约） */
+  --color-warning-contrast: var(--ctp-crust);
+  --color-warning-contrast-rgb: var(--ctp-crust-rgb);
   --color-danger: var(--ctp-red);
   --color-danger-hover: var(--ctp-maroon);
   --color-danger-rgb: var(--ctp-red-rgb);
   --color-danger-glow: rgb(var(--ctp-red-rgb) / var(--ctp-glow-opacity));
+
+  /* 对比文字：vs ctp-red #f38ba8 ≈ 7.3:1（≥3.5 契约） */
+  --color-danger-contrast: var(--ctp-crust);
+  --color-danger-contrast-rgb: var(--ctp-crust-rgb);
   --color-info: var(--ctp-sky);
   --color-info-hover: var(--ctp-sapphire);
   --color-info-rgb: var(--ctp-sky-rgb);
@@ -1086,97 +990,16 @@
   --color-platform-codex-rgb: var(--ctp-green-rgb);
   --color-platform-gemini: var(--ctp-blue);
   --color-platform-gemini-rgb: var(--ctp-blue-rgb);
-  --color-premium-pink: var(--ctp-surface0);
-  --color-premium-pink-rgb: var(--ctp-surface0-rgb);
-  --color-premium-blue: var(--ctp-surface1);
-  --color-premium-blue-rgb: var(--ctp-surface1-rgb);
-  --color-stage-text-primary: rgb(var(--ctp-text-rgb) / 98%);
-  --color-stage-text-secondary: rgb(var(--ctp-subtext1-rgb) / 90%);
-  --color-stage-text-muted: rgb(var(--ctp-subtext0-rgb) / 76%);
-  --color-stage-text-quiet: rgb(var(--ctp-overlay1-rgb) / 62%);
-  --color-stage-surface-soft: rgb(var(--ctp-surface0-rgb) / 58%);
-  --color-stage-surface-medium: rgb(var(--ctp-mantle-rgb) / 74%);
-  --color-stage-surface-strong: rgb(var(--ctp-mantle-rgb) / 88%);
-  --color-stage-border-soft: rgb(var(--ctp-surface2-rgb) / 16%);
-  --color-stage-border-medium: rgb(var(--ctp-overlay0-rgb) / 22%);
-  --color-stage-chip-neutral-bg: rgb(var(--ctp-surface1-rgb) / 54%);
-  --color-stage-chip-neutral-border: rgb(var(--ctp-surface2-rgb) / 24%);
-  --color-stage-chip-neutral-text: rgb(var(--ctp-subtext1-rgb) / 94%);
-  --stage-bg-grid-opacity: 0%;
-  --stage-bg-grid-opacity-dark: 0%;
-  --stage-bg-noise-opacity: var(--ctp-stage-noise-opacity);
-  --stage-bg-noise-opacity-dark: var(--ctp-stage-noise-opacity);
-  --stage-bg-mesh-primary-opacity: 5%;
-  --stage-bg-mesh-secondary-opacity: 4%;
-  --stage-bg-mesh-info-opacity: 3%;
-  --stage-bg-aurora-primary-opacity: 4%;
-  --stage-bg-aurora-secondary-opacity: 3%;
-  --stage-bg-orb-primary-opacity: 3%;
-  --stage-bg-orb-secondary-opacity: 2%;
-  --shadow-xs: 0 1px 2px rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-xs-opacity));
-  --shadow-sm: 0 2px 6px rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-sm-opacity));
-  --shadow-md: 0 10px 24px rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-md-opacity));
-  --shadow-lg: 0 18px 38px rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-lg-opacity));
-  --shadow-xl: 0 26px 54px rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-lg-opacity));
-  --shadow-2xl: 0 34px 72px rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-lg-opacity));
-  --shadow-inner: inset 0 1px 0 rgb(var(--ctp-text-rgb) / 4%);
-  --inner-glow: inset 0 1px 0 rgb(var(--ctp-text-rgb) / 4%);
-  --glass-bg-light: rgb(var(--ctp-mantle-rgb) / var(--ctp-glass-light-opacity));
-  --glass-bg-medium: rgb(var(--ctp-mantle-rgb) / var(--ctp-glass-medium-opacity));
-  --glass-bg-strong: rgb(var(--ctp-mantle-rgb) / var(--ctp-glass-strong-opacity));
-  --glass-border-light: rgb(var(--ctp-surface2-rgb) / 24%);
-  --glass-border-medium: rgb(var(--ctp-surface2-rgb) / 32%);
-  --glass-border-strong: rgb(var(--ctp-overlay0-rgb) / 40%);
-  --glass-shadow: 0 10px 24px rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-md-opacity));
-  --glass-shadow-elevated: 0 18px 40px rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-lg-opacity));
-  --glass-inner-glow: inset 0 1px 0 rgb(var(--ctp-text-rgb) / 4%);
-  --liquid-glass-bg: rgb(var(--ctp-mantle-rgb) / 92%);
-  --liquid-glass-border: rgb(var(--ctp-surface2-rgb) / 28%);
-  --liquid-glass-highlight: inset 0 1px 0 rgb(var(--ctp-text-rgb) / 4%);
-  --liquid-glass-shadow: 0 12px 30px rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-md-opacity));
-
-  /* --- 三档 material 液态玻璃（Catppuccin：bg/blur 经语义 rgb 变量自动映射，此处覆盖边框/高光/阴影） --- */
-  --material-glass-floating-border: rgb(var(--ctp-overlay0-rgb) / 60%);
-  --material-glass-floating-highlight: inset 0 1px 0 rgb(var(--ctp-text-rgb) / 6%);
-  --material-glass-floating-shadow: 0 24px 64px
-    rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-lg-opacity));
-  --material-glass-chrome-border: rgb(var(--ctp-surface2-rgb) / 52%);
-  --material-glass-chrome-highlight: inset 0 1px 0 rgb(var(--ctp-text-rgb) / 5%);
-  --material-glass-chrome-shadow: 0 10px 30px
-    rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-md-opacity));
-  --material-glass-inline-highlight: inset 0 1px 0 rgb(var(--ctp-text-rgb) / 4%);
-}
-
-/* mocha 的 brand/mono 字体分离已上移为全局默认（见“字体系统” :root 块），此处不再重复声明。 */
-html:root[data-resolved-flavor='mocha'] {
-  --color-bg-base: var(--ctp-crust);
-  --color-bg-base-rgb: var(--ctp-crust-rgb);
-  --color-bg-elevated: var(--ctp-base);
-  --color-bg-elevated-rgb: var(--ctp-base-rgb);
-  --color-bg-surface: var(--ctp-surface0);
-  --color-bg-surface-rgb: var(--ctp-surface0-rgb);
-  --color-bg-overlay: var(--ctp-surface1);
-  --color-bg-overlay-rgb: var(--ctp-surface1-rgb);
-  --color-border-subtle: rgb(var(--ctp-surface2-rgb) / 28%);
-  --color-border-default: rgb(var(--ctp-overlay0-rgb) / 44%);
-  --color-border-strong: rgb(var(--ctp-overlay1-rgb) / 68%);
-  --color-border-accent: rgb(var(--ctp-lavender-rgb) / 34%);
-  --color-text-secondary: rgb(var(--ctp-subtext1-rgb) / 96%);
-  --color-text-muted: rgb(var(--ctp-subtext0-rgb) / 86%);
-  --color-text-ghost: rgb(var(--ctp-overlay1-rgb) / 78%);
-  --color-stage-surface-soft: rgb(var(--ctp-surface0-rgb) / 72%);
-  --color-stage-surface-medium: rgb(var(--ctp-base-rgb) / 88%);
-  --color-stage-surface-strong: rgb(var(--ctp-base-rgb) / 96%);
-  --color-stage-border-soft: rgb(var(--ctp-surface2-rgb) / 24%);
-  --color-stage-border-medium: rgb(var(--ctp-overlay0-rgb) / 32%);
-  --color-stage-chip-neutral-bg: rgb(var(--ctp-surface0-rgb) / 72%);
-  --color-stage-chip-neutral-border: rgb(var(--ctp-surface2-rgb) / 32%);
   --shadow-xs: 0 1px 2px rgb(0 0 0 / 34%);
   --shadow-sm: 0 2px 6px rgb(0 0 0 / 34%);
   --shadow-md: 0 10px 24px rgb(0 0 0 / 38%);
   --shadow-lg: 0 18px 38px rgb(0 0 0 / 44%);
   --shadow-xl: 0 26px 54px rgb(0 0 0 / 50%);
   --shadow-2xl: 0 34px 72px rgb(0 0 0 / 56%);
+  --shadow-inner: inset 0 1px 0 rgb(var(--ctp-text-rgb) / 3%);
+  --inner-glow: inset 0 1px 0 rgb(var(--ctp-text-rgb) / 3%);
+
+  /* --- 旧玻璃档 (deprecated：保持薄值不动) --- */
   --glass-bg-light: rgb(var(--ctp-base-rgb) / 94%);
   --glass-bg-medium: rgb(var(--ctp-base-rgb) / 96%);
   --glass-bg-strong: rgb(var(--ctp-surface0-rgb) / 98%);
@@ -1185,28 +1008,19 @@ html:root[data-resolved-flavor='mocha'] {
   --glass-border-strong: rgb(var(--ctp-overlay1-rgb) / 40%);
   --glass-shadow: 0 10px 24px rgb(0 0 0 / 38%);
   --glass-shadow-elevated: 0 18px 40px rgb(0 0 0 / 48%);
-  --glass-inner-glow: inset 0 1px 0 rgb(var(--ctp-text-rgb) / 4%);
+  --glass-inner-glow: inset 0 1px 0 rgb(var(--ctp-text-rgb) / 3%);
   --liquid-glass-bg: rgb(var(--ctp-base-rgb) / 96%);
   --liquid-glass-border: rgb(var(--ctp-surface2-rgb) / 26%);
-  --liquid-glass-highlight: inset 0 1px 0 rgb(var(--ctp-text-rgb) / 4%);
+  --liquid-glass-highlight: inset 0 1px 0 rgb(var(--ctp-text-rgb) / 3%);
   --liquid-glass-shadow: 0 14px 32px rgb(0 0 0 / 42%);
-
-  /* --- 三档 material 液态玻璃（mocha：更致密、边界更锐的高专注玻璃） --- */
-  --material-glass-floating-bg: rgb(var(--ctp-base-rgb) / 78%);
-  --material-glass-floating-border: rgb(var(--ctp-overlay1-rgb) / 48%);
-  --material-glass-floating-shadow: 0 24px 64px rgb(0 0 0 / 52%);
-  --material-glass-chrome-bg: rgb(var(--ctp-crust-rgb) / 86%);
-  --material-glass-chrome-border: rgb(var(--ctp-surface2-rgb) / 32%);
-  --material-glass-chrome-shadow: 0 12px 32px rgb(0 0 0 / 40%);
-  --material-glass-inline-bg: rgb(var(--ctp-base-rgb) / 90%);
 }
 
 /* ========== 无障碍：减少透明度（prefers-reduced-transparency） ========== */
 
-/* 三档 material 与旧玻璃档全部回退为对应档的不透明表面并关闭模糊。
-   specificity 说明：mocha 覆盖块是 html:root[data-resolved-flavor='mocha'] (0,2,1)，
-   查询内的 html:root (0,1,1) 压不过它对 bg 令牌的覆盖，
-   因此查询内必须再带一条 mocha 同级作用域的重置规则（smoke 已锁定，勿删）。 */
+/* floating 玻璃与旧玻璃档全部回退为不透明表面并关闭模糊（chrome/inline 本就不透明，幂等重置）。
+   specificity 说明：mocha 语义块 html:root[data-resolved-flavor='mocha'] (0,2,1) 压得过
+   查询内的 html:root (0,1,1)，其作用域内覆盖的 deprecated 玻璃 bg 必须同级重置
+   （smoke 已锁定，勿删）；material 三档在同作用域保留防御性重置。 */
 @media (prefers-reduced-transparency: reduce) {
   html:root {
     --material-glass-floating-bg: var(--color-bg-elevated);
@@ -1226,8 +1040,7 @@ html:root[data-resolved-flavor='mocha'] {
     --liquid-glass-blur: none;
   }
 
-  /* mocha：主覆盖块以 (0,2,1) 直接覆盖 material bg 与旧玻璃 bg，
-     必须同级作用域重置（本规则源顺序在主覆盖块之后，故生效）。 */
+  /* mocha：同级作用域重置（本规则源顺序在 mocha 语义块之后，故生效）。 */
   html:root[data-resolved-flavor='mocha'] {
     --material-glass-floating-bg: var(--color-bg-elevated);
     --material-glass-floating-blur: none;
@@ -1242,46 +1055,32 @@ html:root[data-resolved-flavor='mocha'] {
   }
 }
 
-/* ========== Accent：强调色覆盖（仅 primary 家族 + border-accent） ========== */
+/* ========== Accent：强调色覆盖（仅 primary 家族 + contrast + border-accent） ========== */
 
-/* 每个 accent 提供 light/dark 两套覆盖。clay 显式声明以便从其他 accent 切回时恢复。 */
+/* 每个 accent 提供 light/dark 两套覆盖。clay 显式声明以便从其他 accent 切回时恢复。
+   --color-accent-primary-contrast 为实心 accent 按钮上的对比文字令牌（亮色近白 / 暗色深色）。 */
 
-/* --- clay（默认）--- */
+/* --- clay（默认） --- */
 [data-accent='clay'] {
-  --color-accent-primary: #d97757;
-  --color-accent-primary-hover: #e48667;
-  --color-accent-primary-active: #c96c4d;
-  --color-accent-primary-rgb: 217 119 87;
-  --color-accent-primary-glow: rgb(217 119 87 / 10%);
-  --color-border-accent: rgb(217 119 87 / 18%);
+  --color-accent-primary: #cf6239;
+  --color-accent-primary-hover: #d9714a;
+  --color-accent-primary-active: #b8542f;
+  --color-accent-primary-rgb: 207 98 57;
+  --color-accent-primary-glow: rgb(207 98 57 / 10%);
+  --color-accent-primary-contrast: #fff8f2;
+  --color-accent-primary-contrast-rgb: 255 248 242;
+  --color-border-accent: rgb(207 98 57 / 18%);
 }
 
 [data-theme='dark'][data-accent='clay'] {
-  --color-accent-primary: #e79a77;
-  --color-accent-primary-hover: #efaa89;
-  --color-accent-primary-active: #d88b69;
-  --color-accent-primary-rgb: 231 154 119;
-  --color-accent-primary-glow: rgb(231 154 119 / 16%);
-  --color-border-accent: rgb(231 154 119 / 24%);
-}
-
-/* --- sand --- */
-[data-accent='sand'] {
-  --color-accent-primary: #b99666;
-  --color-accent-primary-hover: #c6a777;
-  --color-accent-primary-active: #a98658;
-  --color-accent-primary-rgb: 185 150 102;
-  --color-accent-primary-glow: rgb(185 150 102 / 10%);
-  --color-border-accent: rgb(185 150 102 / 18%);
-}
-
-[data-theme='dark'][data-accent='sand'] {
-  --color-accent-primary: #d0ae86;
-  --color-accent-primary-hover: #d9bb96;
-  --color-accent-primary-active: #c3a177;
-  --color-accent-primary-rgb: 208 174 134;
-  --color-accent-primary-glow: rgb(208 174 134 / 16%);
-  --color-border-accent: rgb(208 174 134 / 24%);
+  --color-accent-primary: #e8835b;
+  --color-accent-primary-hover: #f0926c;
+  --color-accent-primary-active: #d4744a;
+  --color-accent-primary-rgb: 232 131 91;
+  --color-accent-primary-glow: rgb(232 131 91 / 16%);
+  --color-accent-primary-contrast: #1d1207;
+  --color-accent-primary-contrast-rgb: 29 18 7;
+  --color-border-accent: rgb(232 131 91 / 24%);
 }
 
 /* --- sage --- */
@@ -1291,198 +1090,154 @@ html:root[data-resolved-flavor='mocha'] {
   --color-accent-primary-active: #4f7855;
   --color-accent-primary-rgb: 91 138 98;
   --color-accent-primary-glow: rgb(91 138 98 / 10%);
+  --color-accent-primary-contrast: #fff8f2;
+  --color-accent-primary-contrast-rgb: 255 248 242;
   --color-border-accent: rgb(91 138 98 / 18%);
 }
 
 [data-theme='dark'][data-accent='sage'] {
-  --color-accent-primary: #7cab82;
-  --color-accent-primary-hover: #8bbb91;
-  --color-accent-primary-active: #6fa176;
-  --color-accent-primary-rgb: 124 171 130;
-  --color-accent-primary-glow: rgb(124 171 130 / 16%);
-  --color-border-accent: rgb(124 171 130 / 24%);
+  --color-accent-primary: #6fbf73;
+  --color-accent-primary-hover: #7fcd84;
+  --color-accent-primary-active: #5fae64;
+  --color-accent-primary-rgb: 111 191 115;
+  --color-accent-primary-glow: rgb(111 191 115 / 16%);
+  --color-accent-primary-contrast: #0e1a0c;
+  --color-accent-primary-contrast-rgb: 14 26 12;
+  --color-border-accent: rgb(111 191 115 / 24%);
 }
 
 /* --- sky --- */
 [data-accent='sky'] {
-  --color-accent-primary: #7d97b6;
-  --color-accent-primary-hover: #8ea8c6;
-  --color-accent-primary-active: #6e88a8;
-  --color-accent-primary-rgb: 125 151 182;
-  --color-accent-primary-glow: rgb(125 151 182 / 10%);
-  --color-border-accent: rgb(125 151 182 / 18%);
+  --color-accent-primary: #5a7ba6;
+  --color-accent-primary-hover: #6a8ab2;
+  --color-accent-primary-active: #4e6d94;
+  --color-accent-primary-rgb: 90 123 166;
+  --color-accent-primary-glow: rgb(90 123 166 / 10%);
+  --color-accent-primary-contrast: #fff8f2;
+  --color-accent-primary-contrast-rgb: 255 248 242;
+  --color-border-accent: rgb(90 123 166 / 18%);
 }
 
 [data-theme='dark'][data-accent='sky'] {
-  --color-accent-primary: #98afc9;
-  --color-accent-primary-hover: #a7bdd4;
-  --color-accent-primary-active: #88a0bd;
-  --color-accent-primary-rgb: 152 175 201;
-  --color-accent-primary-glow: rgb(152 175 201 / 16%);
-  --color-border-accent: rgb(152 175 201 / 24%);
+  --color-accent-primary: #6ea8e8;
+  --color-accent-primary-hover: #7fb6ec;
+  --color-accent-primary-active: #5d97d9;
+  --color-accent-primary-rgb: 110 168 232;
+  --color-accent-primary-glow: rgb(110 168 232 / 16%);
+  --color-accent-primary-contrast: #0b1521;
+  --color-accent-primary-contrast-rgb: 11 21 33;
+  --color-border-accent: rgb(110 168 232 / 24%);
 }
 
 /* --- mauve --- */
 [data-accent='mauve'] {
-  --color-accent-primary: #9c7f94;
-  --color-accent-primary-hover: #ac8ea4;
-  --color-accent-primary-active: #8a6f83;
-  --color-accent-primary-rgb: 156 127 148;
-  --color-accent-primary-glow: rgb(156 127 148 / 10%);
-  --color-border-accent: rgb(156 127 148 / 18%);
+  --color-accent-primary: #8a6d94;
+  --color-accent-primary-hover: #997da3;
+  --color-accent-primary-active: #7a5f84;
+  --color-accent-primary-rgb: 138 109 148;
+  --color-accent-primary-glow: rgb(138 109 148 / 10%);
+  --color-accent-primary-contrast: #fff8f2;
+  --color-accent-primary-contrast-rgb: 255 248 242;
+  --color-border-accent: rgb(138 109 148 / 18%);
 }
 
 [data-theme='dark'][data-accent='mauve'] {
-  --color-accent-primary: #b89bb0;
-  --color-accent-primary-hover: #c4abbc;
-  --color-accent-primary-active: #a78ca0;
-  --color-accent-primary-rgb: 184 155 176;
-  --color-accent-primary-glow: rgb(184 155 176 / 16%);
-  --color-border-accent: rgb(184 155 176 / 24%);
+  --color-accent-primary: #b78fe0;
+  --color-accent-primary-hover: #c39ce6;
+  --color-accent-primary-active: #a87bd4;
+  --color-accent-primary-rgb: 183 143 224;
+  --color-accent-primary-glow: rgb(183 143 224 / 16%);
+  --color-accent-primary-contrast: #190f22;
+  --color-accent-primary-contrast-rgb: 25 15 34;
+  --color-border-accent: rgb(183 143 224 / 24%);
 }
 
-/* --- amber --- */
-[data-accent='amber'] {
-  --color-accent-primary: #bc8540;
-  --color-accent-primary-hover: #ca9453;
-  --color-accent-primary-active: #a87534;
-  --color-accent-primary-rgb: 188 133 64;
-  --color-accent-primary-glow: rgb(188 133 64 / 10%);
-  --color-border-accent: rgb(188 133 64 / 18%);
+/* --- Catppuccin 作用域：accent 映射到 ctp 高彩度色（直接引用，不 pastel 化） ---
+   contrast 按明暗自适应：latte 的 peach/green 高明度配深色文字，blue/mauve 配近白文字。 */
+[data-resolved-flavor='latte'][data-accent='clay'] {
+  --color-accent-primary: var(--ctp-peach);
+  --color-accent-primary-hover: var(--ctp-rosewater);
+  --color-accent-primary-active: var(--ctp-maroon);
+  --color-accent-primary-rgb: var(--ctp-peach-rgb);
+  --color-accent-primary-glow: rgb(var(--ctp-peach-rgb) / var(--ctp-glow-opacity));
+  --color-accent-primary-contrast: #1e1e2e;
+  --color-accent-primary-contrast-rgb: 30 30 46;
+  --color-border-accent: rgb(var(--ctp-peach-rgb) / 28%);
 }
 
-[data-theme='dark'][data-accent='amber'] {
-  --color-accent-primary: #d6a76d;
-  --color-accent-primary-hover: #dfb47d;
-  --color-accent-primary-active: #c4965d;
-  --color-accent-primary-rgb: 214 167 109;
-  --color-accent-primary-glow: rgb(214 167 109 / 16%);
-  --color-border-accent: rgb(214 167 109 / 24%);
+[data-resolved-flavor='latte'][data-accent='sage'] {
+  --color-accent-primary: var(--ctp-green);
+  --color-accent-primary-hover: var(--ctp-teal);
+  --color-accent-primary-active: var(--ctp-green);
+  --color-accent-primary-rgb: var(--ctp-green-rgb);
+  --color-accent-primary-glow: rgb(var(--ctp-green-rgb) / var(--ctp-glow-opacity));
+  --color-accent-primary-contrast: #1e1e2e;
+  --color-accent-primary-contrast-rgb: 30 30 46;
+  --color-border-accent: rgb(var(--ctp-green-rgb) / 28%);
 }
 
-/* --- rose --- */
-[data-accent='rose'] {
-  --color-accent-primary: #c76953;
-  --color-accent-primary-hover: #d57a65;
-  --color-accent-primary-active: #b35a47;
-  --color-accent-primary-rgb: 199 105 83;
-  --color-accent-primary-glow: rgb(199 105 83 / 10%);
-  --color-border-accent: rgb(199 105 83 / 18%);
+[data-resolved-flavor='latte'][data-accent='sky'] {
+  --color-accent-primary: var(--ctp-blue);
+  --color-accent-primary-hover: var(--ctp-sky);
+  --color-accent-primary-active: var(--ctp-sapphire);
+  --color-accent-primary-rgb: var(--ctp-blue-rgb);
+  --color-accent-primary-glow: rgb(var(--ctp-blue-rgb) / var(--ctp-glow-opacity));
+  --color-accent-primary-contrast: var(--ctp-base);
+  --color-accent-primary-contrast-rgb: var(--ctp-base-rgb);
+  --color-border-accent: rgb(var(--ctp-blue-rgb) / 28%);
 }
 
-[data-theme='dark'][data-accent='rose'] {
-  --color-accent-primary: #db8a73;
-  --color-accent-primary-hover: #e59b86;
-  --color-accent-primary-active: #c87a63;
-  --color-accent-primary-rgb: 219 138 115;
-  --color-accent-primary-glow: rgb(219 138 115 / 16%);
-  --color-border-accent: rgb(219 138 115 / 24%);
+[data-resolved-flavor='latte'][data-accent='mauve'] {
+  --color-accent-primary: var(--ctp-mauve);
+  --color-accent-primary-hover: var(--ctp-pink);
+  --color-accent-primary-active: var(--ctp-lavender);
+  --color-accent-primary-rgb: var(--ctp-mauve-rgb);
+  --color-accent-primary-glow: rgb(var(--ctp-mauve-rgb) / var(--ctp-glow-opacity));
+  --color-accent-primary-contrast: var(--ctp-base);
+  --color-accent-primary-contrast-rgb: var(--ctp-base-rgb);
+  --color-border-accent: rgb(var(--ctp-mauve-rgb) / 28%);
 }
 
-/* --- slate --- */
-[data-accent='slate'] {
-  --color-accent-primary: #857367;
-  --color-accent-primary-hover: #948276;
-  --color-accent-primary-active: #74635a;
-  --color-accent-primary-rgb: 133 115 103;
-  --color-accent-primary-glow: rgb(133 115 103 / 10%);
-  --color-border-accent: rgb(133 115 103 / 18%);
-}
-
-[data-theme='dark'][data-accent='slate'] {
-  --color-accent-primary: #b9a695;
-  --color-accent-primary-hover: #c4b3a3;
-  --color-accent-primary-active: #a69585;
-  --color-accent-primary-rgb: 185 166 149;
-  --color-accent-primary-glow: rgb(185 166 149 / 16%);
-  --color-border-accent: rgb(185 166 149 / 24%);
-}
-
-/* Catppuccin flavor 下复用现有 8 个 accent 入口，但映射回 Catppuccin 色板。 */
-[data-resolved-flavor='latte'][data-accent='clay'],
-[data-resolved-flavor='frappe'][data-accent='clay'],
-[data-resolved-flavor='macchiato'][data-accent='clay'],
 [data-resolved-flavor='mocha'][data-accent='clay'] {
   --color-accent-primary: var(--ctp-peach);
   --color-accent-primary-hover: var(--ctp-rosewater);
   --color-accent-primary-active: var(--ctp-maroon);
   --color-accent-primary-rgb: var(--ctp-peach-rgb);
   --color-accent-primary-glow: rgb(var(--ctp-peach-rgb) / var(--ctp-glow-opacity));
+  --color-accent-primary-contrast: var(--ctp-crust);
+  --color-accent-primary-contrast-rgb: var(--ctp-crust-rgb);
   --color-border-accent: rgb(var(--ctp-peach-rgb) / 28%);
 }
 
-[data-resolved-flavor='latte'][data-accent='sand'],
-[data-resolved-flavor='frappe'][data-accent='sand'],
-[data-resolved-flavor='macchiato'][data-accent='sand'],
-[data-resolved-flavor='mocha'][data-accent='sand'],
-[data-resolved-flavor='latte'][data-accent='amber'],
-[data-resolved-flavor='frappe'][data-accent='amber'],
-[data-resolved-flavor='macchiato'][data-accent='amber'],
-[data-resolved-flavor='mocha'][data-accent='amber'] {
-  --color-accent-primary: var(--ctp-yellow);
-  --color-accent-primary-hover: var(--ctp-peach);
-  --color-accent-primary-active: var(--ctp-rosewater);
-  --color-accent-primary-rgb: var(--ctp-yellow-rgb);
-  --color-accent-primary-glow: rgb(var(--ctp-yellow-rgb) / var(--ctp-glow-opacity));
-  --color-border-accent: rgb(var(--ctp-yellow-rgb) / 28%);
-}
-
-[data-resolved-flavor='latte'][data-accent='sage'],
-[data-resolved-flavor='frappe'][data-accent='sage'],
-[data-resolved-flavor='macchiato'][data-accent='sage'],
 [data-resolved-flavor='mocha'][data-accent='sage'] {
   --color-accent-primary: var(--ctp-green);
   --color-accent-primary-hover: var(--ctp-teal);
   --color-accent-primary-active: var(--ctp-green);
   --color-accent-primary-rgb: var(--ctp-green-rgb);
   --color-accent-primary-glow: rgb(var(--ctp-green-rgb) / var(--ctp-glow-opacity));
+  --color-accent-primary-contrast: var(--ctp-crust);
+  --color-accent-primary-contrast-rgb: var(--ctp-crust-rgb);
   --color-border-accent: rgb(var(--ctp-green-rgb) / 28%);
 }
 
-[data-resolved-flavor='latte'][data-accent='sky'],
-[data-resolved-flavor='frappe'][data-accent='sky'],
-[data-resolved-flavor='macchiato'][data-accent='sky'],
 [data-resolved-flavor='mocha'][data-accent='sky'] {
   --color-accent-primary: var(--ctp-blue);
   --color-accent-primary-hover: var(--ctp-sky);
   --color-accent-primary-active: var(--ctp-sapphire);
   --color-accent-primary-rgb: var(--ctp-blue-rgb);
   --color-accent-primary-glow: rgb(var(--ctp-blue-rgb) / var(--ctp-glow-opacity));
+  --color-accent-primary-contrast: var(--ctp-crust);
+  --color-accent-primary-contrast-rgb: var(--ctp-crust-rgb);
   --color-border-accent: rgb(var(--ctp-blue-rgb) / 28%);
 }
 
-[data-resolved-flavor='latte'][data-accent='mauve'],
-[data-resolved-flavor='frappe'][data-accent='mauve'],
-[data-resolved-flavor='macchiato'][data-accent='mauve'],
 [data-resolved-flavor='mocha'][data-accent='mauve'] {
   --color-accent-primary: var(--ctp-mauve);
   --color-accent-primary-hover: var(--ctp-pink);
   --color-accent-primary-active: var(--ctp-lavender);
   --color-accent-primary-rgb: var(--ctp-mauve-rgb);
   --color-accent-primary-glow: rgb(var(--ctp-mauve-rgb) / var(--ctp-glow-opacity));
+  --color-accent-primary-contrast: var(--ctp-crust);
+  --color-accent-primary-contrast-rgb: var(--ctp-crust-rgb);
   --color-border-accent: rgb(var(--ctp-mauve-rgb) / 28%);
-}
-
-[data-resolved-flavor='latte'][data-accent='rose'],
-[data-resolved-flavor='frappe'][data-accent='rose'],
-[data-resolved-flavor='macchiato'][data-accent='rose'],
-[data-resolved-flavor='mocha'][data-accent='rose'] {
-  --color-accent-primary: var(--ctp-red);
-  --color-accent-primary-hover: var(--ctp-maroon);
-  --color-accent-primary-active: var(--ctp-flamingo);
-  --color-accent-primary-rgb: var(--ctp-red-rgb);
-  --color-accent-primary-glow: rgb(var(--ctp-red-rgb) / var(--ctp-glow-opacity));
-  --color-border-accent: rgb(var(--ctp-red-rgb) / 28%);
-}
-
-[data-resolved-flavor='latte'][data-accent='slate'],
-[data-resolved-flavor='frappe'][data-accent='slate'],
-[data-resolved-flavor='macchiato'][data-accent='slate'],
-[data-resolved-flavor='mocha'][data-accent='slate'] {
-  --color-accent-primary: var(--ctp-overlay1);
-  --color-accent-primary-hover: var(--ctp-overlay2);
-  --color-accent-primary-active: var(--ctp-overlay0);
-  --color-accent-primary-rgb: var(--ctp-overlay1-rgb);
-  --color-accent-primary-glow: rgb(var(--ctp-overlay1-rgb) / var(--ctp-glow-opacity));
-  --color-border-accent: rgb(var(--ctp-overlay1-rgb) / 28%);
 }

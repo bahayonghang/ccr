@@ -39,71 +39,133 @@
       </button>
     </div>
 
-    <span
-      v-if="allTags.length > 0"
-      class="cp-toolbar__sep"
-    />
+    <span class="cp-toolbar__sep" />
 
-    <div
-      v-if="allTags.length > 0"
-      class="cp-pill-row"
-      role="group"
-      :aria-label="t(`${i18nPrefix}.tagGroupLabel`)"
-    >
+    <div class="cp-filters">
       <button
-        v-for="tag in allTags"
-        :key="tag"
+        ref="filtersBtnRef"
         type="button"
-        class="cp-pill"
-        :class="{ 'cp-pill--active': tagFilter === tag }"
-        :aria-pressed="tagFilter === tag"
-        @click="emit('update:tagFilter', tagFilter === tag ? null : tag)"
+        class="cp-pill cp-filters__trigger"
+        :class="{ 'cp-pill--active': activeFilterCount > 0 || filtersOpen }"
+        :aria-expanded="filtersOpen"
+        aria-haspopup="dialog"
+        @click="toggleFilters"
       >
-        #{{ tag }}
+        <SIcon
+          name="SlidersHorizontal"
+          size="w-3.5 h-3.5"
+        />
+        {{ t(`${i18nPrefix}.filtersButton`) }}
+        <span
+          v-if="activeFilterCount > 0"
+          class="cp-filters__badge"
+        >{{ activeFilterCount }}</span>
+        <SIcon
+          name="ChevronDown"
+          size="w-3 h-3"
+        />
       </button>
+
+      <div
+        v-if="filtersOpen"
+        ref="filtersPopRef"
+        class="cp-filters__pop"
+        role="dialog"
+        :aria-label="t(`${i18nPrefix}.filtersButton`)"
+        @keydown="onFiltersKeydown"
+      >
+        <div
+          v-if="allTags.length > 0"
+          class="cp-filters__section"
+        >
+          <div class="cp-filters__label">
+            {{ t(`${i18nPrefix}.tagGroupLabel`) }}
+          </div>
+          <div
+            class="cp-pill-row"
+            role="group"
+            :aria-label="t(`${i18nPrefix}.tagGroupLabel`)"
+          >
+            <button
+              v-for="tag in allTags"
+              :key="tag"
+              type="button"
+              class="cp-pill"
+              :class="{ 'cp-pill--active': tagFilter === tag }"
+              :aria-pressed="tagFilter === tag"
+              @click="emit('update:tagFilter', tagFilter === tag ? null : tag)"
+            >
+              #{{ tag }}
+            </button>
+          </div>
+        </div>
+
+        <div
+          v-if="allProviders && allProviders.length > 1"
+          class="cp-filters__section"
+        >
+          <div class="cp-filters__label">
+            {{ t(`${i18nPrefix}.providerLabel`) }}
+          </div>
+          <select
+            :value="providerFilter ?? ''"
+            class="cp-toolbar__sort cp-filters__select"
+            :aria-label="t(`${i18nPrefix}.providerLabel`)"
+            @change="onProviderChange"
+          >
+            <option value="">
+              {{ t(`${i18nPrefix}.providerAll`) }}
+            </option>
+            <option
+              v-for="provider in allProviders"
+              :key="provider.key"
+              :value="provider.key"
+            >
+              {{ provider.label }}
+            </option>
+          </select>
+        </div>
+
+        <div class="cp-filters__section">
+          <div class="cp-filters__label">
+            {{ t(`${i18nPrefix}.sortLabel`) }}
+          </div>
+          <select
+            :value="sortBy"
+            class="cp-toolbar__sort cp-filters__select"
+            :aria-label="t(`${i18nPrefix}.sortLabel`)"
+            @change="onSortChange"
+          >
+            <option value="recent">
+              {{ t(`${i18nPrefix}.sortRecent`) }}
+            </option>
+            <option value="name">
+              {{ t(`${i18nPrefix}.sortName`) }}
+            </option>
+            <option value="requests">
+              {{ t(`${i18nPrefix}.sortRequests`) }}
+            </option>
+            <option value="enabled">
+              {{ t(`${i18nPrefix}.sortEnabled`) }}
+            </option>
+          </select>
+        </div>
+
+        <div class="cp-filters__foot">
+          <button
+            type="button"
+            class="cp-pill"
+            :disabled="activeFilterCount === 0"
+            @click="clearAllFilters"
+          >
+            {{ t(`${i18nPrefix}.clearAll`) }}
+          </button>
+        </div>
+      </div>
     </div>
 
     <div class="cp-toolbar__right">
       <span class="cp-toolbar__meta">{{ resultCount }}/{{ total }}</span>
-
-      <select
-        v-if="allProviders && allProviders.length > 1"
-        :value="providerFilter ?? ''"
-        class="cp-toolbar__sort"
-        :aria-label="t(`${i18nPrefix}.providerLabel`)"
-        @change="onProviderChange"
-      >
-        <option value="">
-          {{ t(`${i18nPrefix}.providerAll`) }}
-        </option>
-        <option
-          v-for="provider in allProviders"
-          :key="provider.key"
-          :value="provider.key"
-        >
-          {{ provider.label }}
-        </option>
-      </select>
-
-      <select
-        :value="sortBy"
-        class="cp-toolbar__sort"
-        :aria-label="t(`${i18nPrefix}.sortLabel`)"
-        @change="onSortChange"
-      >
-        <option value="recent">
-          {{ t(`${i18nPrefix}.sortRecent`) }}
-        </option>
-        <option value="name">
-          {{ t(`${i18nPrefix}.sortName`) }}
-        </option>
-        <option value="requests">
-          {{ t(`${i18nPrefix}.sortRequests`) }}
-        </option>
-        <option value="enabled">
-          {{ t(`${i18nPrefix}.sortEnabled`) }}
-        </option>
-      </select>
 
       <div
         class="cp-seg"
@@ -142,7 +204,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SIcon from '@/components/ui/SIcon.vue'
 import type {
@@ -169,7 +231,10 @@ interface Props {
   allProviders?: ProviderOption[]
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  providerFilter: null,
+  allProviders: undefined,
+})
 
 const emit = defineEmits<{
   (e: 'update:query', value: string): void
@@ -182,6 +247,99 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const searchRef = ref<HTMLInputElement | null>(null)
+
+/* Filters: Esc restores trigger focus; outside click closes; selections keep it open. */
+
+const filtersOpen = ref(false)
+const filtersBtnRef = ref<HTMLButtonElement | null>(null)
+const filtersPopRef = ref<HTMLElement | null>(null)
+
+/** 生效筛选数徽标：标签 + provider + 非默认排序 */
+const activeFilterCount = computed(() => {
+  let count = 0
+  if (props.tagFilter) count += 1
+  if (props.providerFilter) count += 1
+  if (props.sortBy !== 'recent') count += 1
+  return count
+})
+
+const FOCUSABLE_SELECTOR = 'button:not(:disabled), select, input, [tabindex]:not([tabindex="-1"])'
+
+const focusableInPopover = () =>
+  Array.from(filtersPopRef.value?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR) ?? [])
+
+const closeFilters = (restoreFocus: boolean) => {
+  if (!filtersOpen.value) return
+  filtersOpen.value = false
+  if (restoreFocus) filtersBtnRef.value?.focus()
+}
+
+const toggleFilters = async () => {
+  filtersOpen.value = !filtersOpen.value
+  if (filtersOpen.value) {
+    await nextTick()
+    focusableInPopover()[0]?.focus()
+  }
+}
+
+const onFiltersKeydown = (event: KeyboardEvent) => {
+  if (event.key === 'Escape') {
+    event.preventDefault()
+    event.stopPropagation()
+    closeFilters(true)
+    return
+  }
+  if (event.key === 'Tab') {
+    // 轻量 focus trap：Tab 在弹层内循环
+    const focusable = focusableInPopover()
+    if (focusable.length === 0) return
+    const first = focusable[0]
+    const last = focusable[focusable.length - 1]
+    const active = document.activeElement
+    if (event.shiftKey && active === first) {
+      event.preventDefault()
+      last.focus()
+    } else if (!event.shiftKey && active === last) {
+      event.preventDefault()
+      first.focus()
+    }
+    return
+  }
+  if (
+    event.target instanceof HTMLButtonElement
+    && ['ArrowDown', 'ArrowRight', 'ArrowUp', 'ArrowLeft'].includes(event.key)
+  ) {
+    const focusable = focusableInPopover()
+    if (focusable.length === 0) return
+    const activeIndex = focusable.indexOf(document.activeElement as HTMLElement)
+    if (activeIndex < 0) return
+    const delta = event.key === 'ArrowDown' || event.key === 'ArrowRight' ? 1 : -1
+    event.preventDefault()
+    focusable[(activeIndex + delta + focusable.length) % focusable.length]?.focus()
+  }
+}
+
+const onDocumentPointerDown = (event: MouseEvent) => {
+  if (!filtersOpen.value) return
+  const target = event.target as Node
+  if (filtersPopRef.value?.contains(target)) return
+  if (filtersBtnRef.value?.contains(target)) return
+  closeFilters(false)
+}
+
+watch(filtersOpen, (open) => {
+  if (open) document.addEventListener('mousedown', onDocumentPointerDown)
+  else document.removeEventListener('mousedown', onDocumentPointerDown)
+})
+
+onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentPointerDown))
+
+const clearAllFilters = () => {
+  emit('update:tagFilter', null)
+  emit('update:providerFilter', null)
+  emit('update:sortBy', 'recent')
+  closeFilters(true)
+}
 
 const statusOptions = computed<{ id: ProfilesStatusFilter; label: string }[]>(() => [
   { id: 'all', label: t(`${props.i18nPrefix}.statusAll`) },
@@ -247,7 +405,7 @@ defineExpose({ focusSearch })
   border: 1px solid var(--cp-line-2);
   border-radius: 7px;
   color: var(--cp-ink-0);
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-family: inherit;
   outline: none;
   transition: border-color 120ms ease;
@@ -263,7 +421,7 @@ defineExpose({ focusSearch })
   transform: translateY(-50%);
   padding: 2px 6px;
   font-family: var(--cp-mono);
-  font-size: 10px;
+  font-size: 0.75rem;
   color: var(--cp-ink-4);
   background: var(--cp-bg-2);
   border: 1px solid var(--cp-line-2);
@@ -289,7 +447,7 @@ defineExpose({ focusSearch })
   background: var(--cp-bg-2);
   color: var(--cp-ink-2);
   font-family: var(--cp-mono);
-  font-size: 11px;
+  font-size: 0.75rem;
   letter-spacing: 0.2px;
   cursor: pointer;
   transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
@@ -316,7 +474,7 @@ defineExpose({ focusSearch })
 
 .cp-toolbar__meta {
   color: var(--cp-ink-3);
-  font-size: 11.5px;
+  font-size: 0.75rem;
   font-family: var(--cp-mono);
 }
 
@@ -327,7 +485,7 @@ defineExpose({ focusSearch })
   border-radius: 7px;
   color: var(--cp-ink-1);
   font-family: var(--cp-mono);
-  font-size: 12px;
+  font-size: 0.75rem;
   max-width: 160px;
 }
 
@@ -360,6 +518,84 @@ defineExpose({ focusSearch })
   background: var(--cp-bg-3);
   color: var(--cp-ink-0);
   box-shadow: inset 0 0 0 1px var(--cp-line-2);
+}
+
+/* Filters popover anchored to its trigger and right-aligned to avoid overflow. */
+.cp-filters {
+  position: relative;
+  display: inline-flex;
+}
+
+.cp-filters__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.cp-filters__badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--cp-accent);
+  color: var(--cp-on-accent);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.cp-filters__pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: var(--layer-popover);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 260px;
+  max-width: min(340px, calc(100vw - 24px));
+  max-height: min(420px, calc(100vh - 96px));
+  overflow-y: auto;
+  padding: 12px;
+  background: var(--cp-bg-1);
+  border: 1px solid var(--cp-line-2);
+  border-radius: 12px;
+  box-shadow: 0 16px 40px rgb(0 0 0 / 22%);
+}
+
+.cp-filters__section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cp-filters__label {
+  font-family: var(--cp-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.05rem;
+  text-transform: uppercase;
+  color: var(--cp-ink-3);
+}
+
+.cp-filters__select { width: 100%; }
+
+.cp-filters__foot {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 8px;
+  border-top: 1px solid var(--cp-line);
+}
+
+/* 窄窗口退化为全宽面板（跟随视口而非触发按钮宽度） */
+@media (width <= 720px) {
+  .cp-filters__pop {
+    position: fixed;
+    inset: auto 12px 12px;
+    max-width: none;
+    max-height: 60vh;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -190,7 +190,9 @@ ccr_core::core::fileio::write_toml_opts(
 ### 1. Scope / Trigger
 
 - Trigger: a caller reads editable file content, later writes the edited content, and must reject intervening external changes.
-- Applies to raw config/prompt/profile editors and any future compare-and-swap persistence built on `guarded_write`.
+- Applies to raw config/prompt/profile editors, Tauri Claude MCP state
+  mutations, and any future compare-and-swap persistence built on
+  `guarded_write`.
 
 ### 2. Signatures
 
@@ -206,20 +208,45 @@ ccr_core::core::fileio::write_toml_opts(
 - A matching token delegates to the same lock-held backup and atomic-write body as `write_guarded`.
 - A mismatch returns `Ok(Conflict)` before backup or temp-file creation.
 - I/O, lock timeout, and async join failures remain errors. Do not extend the frozen `CcrError` enum for expected conflicts.
+- `ccr-cli::SettingsManager::update_atomic` is the managed Claude settings consumer: it reads bytes and a token, applies a deterministic mutation, and retries the complete read/mutate/CAS cycle at most three times.
+- `ccr-ui::commands::claude_mcp_config::update_root_for_scope` applies the same
+  at-most-three-attempt read/mutate/CAS loop to Claude MCP user/local state and
+  project `.mcp.json`. Each replay relocates the current project key and
+  changes only the requested MCP subtree on the latest full JSON object.
+- A replayable mutation must not perform external side effects. Prepare external data before entering the closure and clone only the prepared values during replay.
+- Managed Claude settings writes use `secret: true` plus `BackupPolicy::Dir { prefix: "settings" }`. They must not combine CAS with the legacy fixed `claude_settings` lock or create same-directory backups.
+- Claude MCP user/local state writes use `secret: true` and
+  `BackupPolicy::None`; project `.mcp.json` uses `secret: false` and
+  `BackupPolicy::None`. State backups are forbidden because unrelated fields
+  can contain credentials such as `primaryApiKey`.
+- The path lock coordinates CCR writers only. A non-cooperating Claude Code
+  process can still change the file between CCR's lock-held comparison and
+  replacement, or overwrite it after replacement. CAS narrows the overwrite
+  window and exposes observed conflicts; it does not provide a cross-process
+  transaction or a guarantee that external updates cannot be lost.
+- Full replacement remains a distinct recovery operation; ordinary production read-modify-write call sites must not fall back to `load` followed by an unconditional replace.
 
 ### 4. Validation & Error Matrix
 
 - Target missing + empty expected token -> `Written`.
 - Target exists + matching BLAKE3 token -> backup according to policy, then `Written`.
 - Target state differs from expected token -> `Conflict`; target and backup set remain unchanged.
+- A replaying caller observes three consecutive conflicts -> return an
+  actionable retry error; never convert the last attempted mutation into an
+  unconditional write or report success.
 - Lock timeout / read / backup / replacement failure -> existing `CcrError`; never map to `Conflict`.
 
 ### 5. Good/Base/Bad Cases
 
 - Good: a raw editor returns the token from its read command and passes it unchanged on save.
+- Good: a Claude MCP mutation rereads the complete JSON object after conflict,
+  preserves `oauthAccount`, `primaryApiKey`, unknown fields, and unrelated
+  projects, then replays only its target subtree.
 - Base: first creation uses an empty token and succeeds only while the file remains absent.
 - Bad: compare bytes before acquiring the guarded-write path lock, then call `write_guarded` separately.
 - Bad: treat conflict as an I/O error or add `CcrError::WriteConflict`.
+- Bad: claim that CCR's path lock prevents a Claude Code process from writing
+  concurrently when that process does not participate in the lock protocol.
 
 ### 6. Tests Required
 
@@ -228,6 +255,10 @@ ccr_core::core::fileio::write_toml_opts(
 - Stale token produces `Conflict`, preserves external bytes, and creates no backup.
 - Empty-token first creation succeeds; a second empty-token write conflicts.
 - Four concurrent writers using one token yield exactly one `Written` and three `Conflict` outcomes.
+- `SettingsManager` conflict injection preserves both writers' independent fields and unknown user-owned JSON; exhausting three conflicts returns an actionable retry error.
+- Claude MCP tests cover unknown-field round trips, one-conflict replay,
+  three-conflict failure, two concurrent deterministic mutations, and Unix
+  owner-only permissions without same-directory backups.
 
 ### 7. Wrong vs Correct
 

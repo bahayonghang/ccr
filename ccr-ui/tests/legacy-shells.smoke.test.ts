@@ -325,6 +325,12 @@ describe('legacy shell pages smoke', () => {
       await nextTick()
       await nextTick()
 
+      // Export 已收进页头 ··· 溢出菜单，需要先展开
+      const overflowTrigger = el.querySelector('[data-icon="MenuDots"]')?.closest('button') as HTMLButtonElement | null
+      expect(overflowTrigger).not.toBeNull()
+      overflowTrigger!.click()
+      await nextTick()
+
       const exportButton = el.querySelector('[data-icon="Download"]')?.closest('button') as HTMLButtonElement | null
 
       expect(exportButton).not.toBeNull()

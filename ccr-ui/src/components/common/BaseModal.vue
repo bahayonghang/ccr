@@ -210,7 +210,7 @@ const sizeClasses = {
 
 const surfaceClasses: Record<NonNullable<Props['surface']>, string> = {
   glass: '',
-  solid: '!bg-bg-elevated !backdrop-blur-none !backdrop-saturate-100 !border-border-default shadow-2xl shadow-black/10 dark:shadow-black/40',
+  solid: '!bg-bg-elevated !backdrop-blur-none !border-border-default shadow-2xl shadow-black/10 dark:shadow-black/40',
 }
 
 
@@ -227,13 +227,8 @@ const modalClasses = computed(() => [
   'relative w-full overflow-hidden rounded-2xl',
   // 滚动布局：固定头/脚 + 主体滚动
   props.scrollable ? 'flex flex-col max-h-[90vh]' : '',
-  // 玻璃态效果
-  'bg-white/80 dark:bg-bg-elevated/90 backdrop-blur-xl backdrop-saturate-150',
-  'border border-border-color/50',
-  'shadow-xl shadow-black/10',
-  // 暗黑模式调整
-  'dark:border-border-color/30',
-  'dark:shadow-2xl dark:shadow-black/30',
+  // 玻璃态效果：floating 档四件套（92% 不透明 + blur(12px)，无 saturate）
+  'base-modal-panel',
   surfaceClasses[props.surface],
   // 尺寸
   sizeClasses[props.size],
@@ -351,6 +346,16 @@ defineExpose({
 <style scoped>
 .base-modal-root {
   z-index: var(--layer-modal);
+}
+
+/* floating 档模态面板：走 --surface-modal-* 契约（bg ≥88% 不透明、blur ≤12px、无 saturate） */
+.base-modal-panel {
+  background: var(--surface-modal-bg);
+  border: 1px solid var(--surface-modal-border);
+  box-shadow: var(--surface-modal-shadow);
+  backdrop-filter: var(--surface-modal-blur);
+  /* stylelint-disable-next-line property-no-vendor-prefix */
+  -webkit-backdrop-filter: var(--surface-modal-blur);
 }
 
 .base-modal-fade-enter-active {

@@ -65,14 +65,12 @@ Supports OpenRouter, Ollama, vLLM, and other OpenAI-compatible services.
 
 ## Quick Start
 
-### Initialize Droid Platform
+### Prepare the Droid Profiles File
 
 ```bash
-# Initialize Droid platform (creates directory structure)
-ccr platform init droid
-
-# Verify initialization
-ccr platform info droid
+# Droid does not have a profile init command yet; copy the example manually
+mkdir -p ~/.ccr/platforms/droid
+cp examples/droid/profiles.toml ~/.ccr/platforms/droid/profiles.toml
 ```
 
 ### Switch to Droid Platform

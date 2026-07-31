@@ -6,16 +6,20 @@ This page describes the migration patterns still supported by the current CCR co
 
 - there is no documented `ccr migrate`
 - there is no `ccr platform migrate`
-- migration happens through `platform init`, `export`, `import`, and manual token replacement
+- the retired `ccr platform init` command is replaced by each platform's `profile init`; see the [platform migration map](../commands/platform)
+- Gemini and Droid templates are copied manually until those platforms expose their own init command
 
 ## Pattern 1: Keep platforms side by side
 
 This is the safest path for most users.
 
 ```bash
-ccr platform init claude
-ccr platform init codex
-ccr platform init gemini
+ccr claude profile init
+ccr codex profile init
+ccr grok profile init
+
+mkdir -p ~/.ccr/platforms/gemini
+cp examples/gemini/profiles.toml ~/.ccr/platforms/gemini/profiles.toml
 
 ccr platform switch claude
 ccr platform switch codex
@@ -33,8 +37,9 @@ Use export/import for structure, then update platform-specific credentials manua
 ccr platform switch claude
 ccr export -o claude-profiles.toml --no-secrets
 
-# Prepare the target platform
-ccr platform init gemini
+# Prepare the Gemini target manually
+mkdir -p ~/.ccr/platforms/gemini
+cp examples/gemini/profiles.toml ~/.ccr/platforms/gemini/profiles.toml
 ccr platform switch gemini
 
 # Import the structure
@@ -58,7 +63,7 @@ Recommended order:
 
 ```bash
 ccr init
-ccr platform init claude
+ccr claude profile init
 ccr platform switch claude
 ccr add
 ccr list

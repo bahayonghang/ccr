@@ -70,7 +70,7 @@
         <button
           v-if="isMobileSidebar"
           type="button"
-          class="inline-flex h-11 w-11 flex-none items-center justify-center rounded-2xl border border-border-default/70 bg-bg-surface/80 text-text-primary shadow-sm transition-colors hover:border-accent-primary/30 hover:bg-bg-elevated/90 lg:hidden"
+          class="inline-flex h-11 w-11 flex-none items-center justify-center rounded-2xl border border-border-default/70 bg-bg-surface text-text-primary shadow-sm transition-colors hover:border-accent-primary/30 hover:bg-bg-elevated/90 lg:hidden"
           :aria-label="closeNavigationLabel"
           :title="closeNavigationLabel"
           @click="closeSidebar"
@@ -134,8 +134,6 @@
             :aria-current="isSettingsRoute ? 'page' : undefined"
             @click="navigate"
           >
-            <div class="absolute inset-0 bg-gradient-to-br from-accent-primary/12 via-accent-secondary/10 to-transparent opacity-90" />
-
             <div class="relative flex flex-col gap-3 p-3.5">
               <div class="flex items-start justify-between gap-3">
                 <div class="space-y-1.5">
@@ -159,7 +157,7 @@
                   </div>
                 </div>
 
-                <div class="flex h-10 w-10 flex-none items-center justify-center rounded-2xl border border-border-default/60 bg-bg-elevated/82 text-text-primary shadow-sm transition-colors duration-200 group-hover:border-accent-primary/30 group-hover:bg-bg-surface/90 group-hover:text-accent-primary">
+                <div class="flex h-10 w-10 flex-none items-center justify-center rounded-2xl border border-border-default/60 bg-bg-elevated text-text-primary shadow-sm transition-colors duration-200 group-hover:border-accent-primary/30 group-hover:bg-bg-surface/90 group-hover:text-accent-primary">
                   <SIcon
                     name="SlidersHorizontal"
                     size="w-4 h-4"
@@ -172,6 +170,9 @@
                   {{ currentThemeLabel }}
                 </span>
                 <span class="settings-dock-pill">
+                  {{ currentFlavorLabel }}
+                </span>
+                <span class="settings-dock-pill">
                   {{ currentLocaleLabel }}
                 </span>
                 <span class="settings-dock-pill font-mono">
@@ -179,8 +180,6 @@
                 </span>
               </div>
             </div>
-
-            <div class="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent-primary/60 to-transparent" />
           </a>
         </RouterLink>
       </div>
@@ -199,7 +198,7 @@
           <button
             v-if="hasSidebar && isMobileSidebar"
             type="button"
-            class="inline-flex h-11 w-11 flex-none items-center justify-center rounded-2xl border border-border-default/70 bg-bg-surface/80 text-text-primary shadow-sm transition-colors hover:border-accent-primary/30 hover:bg-bg-elevated/90 lg:hidden"
+            class="inline-flex h-11 w-11 flex-none items-center justify-center rounded-2xl border border-border-default/70 bg-bg-surface text-text-primary shadow-sm transition-colors hover:border-accent-primary/30 hover:bg-bg-elevated/90 lg:hidden"
             :aria-expanded="isSidebarOpen"
             aria-controls="primary-navigation-panel"
             :aria-label="sidebarToggleLabel"
@@ -325,7 +324,7 @@ const contentScrollAreaRef = ref<HTMLElement | null>(null)
 const showScrollToTop = ref(false)
 let scrollVisibilityFrame = 0
 const shellPreferencesStore = useShellPreferencesStore()
-const { theme, effectiveTheme, locale } = storeToRefs(shellPreferencesStore)
+const { theme, effectiveTheme, flavor, locale } = storeToRefs(shellPreferencesStore)
 
 const currentPageTitle = computed(() => {
   const name = route.name as string
@@ -345,6 +344,8 @@ const isSettingsRoute = computed(() => route.name === 'settings')
 const currentLocaleLabel = computed(() => (
   locale.value === 'en-US' ? t('language.english') : t('language.chinese')
 ))
+// dock 摘要的 flavor 显示名映射（3 值值域，复用 settings flavor label）。
+const currentFlavorLabel = computed(() => t(`settings.appearance.flavor.${flavor.value}`))
 const currentThemeLabel = computed(() => {
   if (theme.value === 'system') {
     const resolvedLabel = t(`theme.${effectiveTheme.value}`)
@@ -433,10 +434,7 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .layout-shell--theme-stage {
-  background:
-    radial-gradient(circle at top left, rgb(var(--color-accent-primary-rgb) / 6%) 0%, transparent 24%),
-    radial-gradient(circle at bottom right, rgb(var(--color-premium-blue-rgb) / 28%) 0%, transparent 30%),
-    linear-gradient(180deg, rgb(var(--color-bg-base-rgb) / 100%), rgb(var(--color-bg-base-rgb) / 96%));
+  background: var(--color-bg-base);
 }
 
 /* Sidebar Glass Effect - Unified Transparent Mode */
@@ -501,10 +499,7 @@ onBeforeUnmount(() => {
 }
 
 .content-main--theme-stage {
-  background:
-    radial-gradient(circle at top right, rgb(var(--color-accent-primary-rgb) / 8%) 0%, transparent 24%),
-    radial-gradient(circle at top left, rgb(var(--color-premium-blue-rgb) / 22%) 0%, transparent 24%),
-    linear-gradient(180deg, rgb(var(--color-bg-base-rgb) / 98%), rgb(var(--color-bg-base-rgb) / 94%));
+  background: var(--color-bg-base);
 }
 
 .content-scroll-area--theme-stage {
@@ -577,8 +572,8 @@ onBeforeUnmount(() => {
   @apply inline-flex items-center border px-2.5 py-1 text-[10px] font-semibold tracking-[0.04em];
 
   border-radius: var(--radius-sm);
-  border-color: rgb(var(--color-border-default-rgb) / 56%);
-  background: rgb(var(--color-bg-elevated-rgb) / 84%);
+  border-color: var(--color-border-default);
+  background: var(--color-bg-elevated);
   color: var(--color-text-secondary);
 }
 

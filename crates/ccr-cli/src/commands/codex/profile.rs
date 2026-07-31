@@ -48,6 +48,15 @@ struct CodexProfileOffJson {
     runtime_mode: &'static str,
 }
 
+pub async fn init_command(json: bool) -> Result<()> {
+    let template = crate::commands::platform::profile_open::template_for(Platform::Codex);
+    crate::commands::platform::platform_profile_init_command("codex", template, json).await
+}
+
+pub async fn open_command(json: bool) -> Result<()> {
+    crate::commands::platform::platform_profile_open_command("codex", json).await
+}
+
 pub async fn current_command(json: bool) -> Result<()> {
     let overview = RuntimeOverviewService::load()?;
     if json {
@@ -153,6 +162,7 @@ pub async fn create_command(args: ProfileCreateActionArgs) -> Result<()> {
         description: args.description,
         base_url: args.base_url,
         auth_token: args.auth_token,
+        api_key: None,
         model: args.model,
         small_fast_model: args.small_fast_model,
         provider: args.provider,
@@ -160,6 +170,11 @@ pub async fn create_command(args: ProfileCreateActionArgs) -> Result<()> {
         account: args.account,
         tags: args.tags,
         auth_mode: args.auth_mode,
+        api_backend: None,
+        env_key: None,
+        context_window: None,
+        supports_backend_search: None,
+        reasoning_effort: None,
         disabled: args.disabled,
         json: args.json,
     })

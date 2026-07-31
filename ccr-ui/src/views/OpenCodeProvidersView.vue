@@ -71,19 +71,19 @@
                 {{ provider.name || provider.id }}
               </h2>
               <div class="mt-3 grid gap-3 md:grid-cols-3">
-                <div class="rounded-2xl border border-border-default/55 bg-bg-base/35 p-3">
+                <div class="rounded-2xl border border-border-default/55 bg-bg-base p-3">
                   <span class="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('API key', 'API key') }}</span>
                   <p class="mt-2 text-sm text-text-primary">
                     {{ maskSecret(provider.options?.apiKey) }}
                   </p>
                 </div>
-                <div class="rounded-2xl border border-border-default/55 bg-bg-base/35 p-3">
+                <div class="rounded-2xl border border-border-default/55 bg-bg-base p-3">
                   <span class="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('baseURL', 'baseURL') }}</span>
                   <p class="mt-2 break-all text-sm text-text-primary">
                     {{ provider.options?.baseURL || 'default' }}
                   </p>
                 </div>
-                <div class="rounded-2xl border border-border-default/55 bg-bg-base/35 p-3">
+                <div class="rounded-2xl border border-border-default/55 bg-bg-base p-3">
                   <span class="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('models', 'models') }}</span>
                   <p class="mt-2 text-sm text-text-primary">
                     {{ Object.keys(provider.models || {}).length }}
@@ -194,7 +194,7 @@
             <input
               v-model="form.id"
               :disabled="Boolean(editingId)"
-              class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 text-sm text-text-primary"
+              class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 text-sm text-text-primary"
               placeholder="anthropic"
             >
           </div>
@@ -202,7 +202,7 @@
             <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('display name', 'display name') }}</label>
             <input
               v-model="form.name"
-              class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 text-sm text-text-primary"
+              class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 text-sm text-text-primary"
               placeholder="Anthropic"
             >
           </div>
@@ -210,7 +210,7 @@
             <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('npm package', 'npm package') }}</label>
             <input
               v-model="form.npm"
-              class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 text-sm text-text-primary"
+              class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 text-sm text-text-primary"
               placeholder="@ai-sdk/openai-compatible"
             >
           </div>
@@ -221,7 +221,7 @@
             <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('api key', 'api key') }}</label>
             <input
               v-model="form.apiKey"
-              class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 text-sm text-text-primary"
+              class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 text-sm text-text-primary"
               placeholder="{env:ANTHROPIC_API_KEY}"
             >
           </div>
@@ -229,13 +229,13 @@
             <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('baseURL', 'baseURL') }}</label>
             <input
               v-model="form.baseURL"
-              class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 text-sm text-text-primary"
+              class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 text-sm text-text-primary"
               placeholder="https://api.example.com"
             >
           </div>
         </div>
 
-        <label class="flex items-center gap-3 rounded-2xl border border-border-default/55 bg-bg-base/35 px-4 py-3 text-sm text-text-primary">
+        <label class="flex items-center gap-3 rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 text-sm text-text-primary">
           <input
             v-model="form.enabled"
             type="checkbox"
@@ -248,7 +248,7 @@
           <textarea
             v-model="form.modelsJson"
             rows="8"
-            class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 font-mono text-sm text-text-primary"
+            class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 font-mono text-sm text-text-primary"
             placeholder="{&#10;  &quot;claude-sonnet-4-5&quot;: { &quot;name&quot;: &quot;claude-sonnet-4-5&quot; }&#10;}"
           />
         </div>
@@ -258,7 +258,7 @@
           <textarea
             v-model="form.extraOptionsJson"
             rows="6"
-            class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 font-mono text-sm text-text-primary"
+            class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 font-mono text-sm text-text-primary"
             placeholder="{&#10;  &quot;timeout&quot;: 600000&#10;}"
           />
         </div>
@@ -268,7 +268,7 @@
           <textarea
             v-model="form.rootExtraJson"
             rows="5"
-            class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 font-mono text-sm text-text-primary"
+            class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 font-mono text-sm text-text-primary"
             placeholder="{&#10;  &quot;api&quot;: &quot;chat&quot;&#10;}"
           />
         </div>

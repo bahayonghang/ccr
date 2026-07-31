@@ -15,6 +15,7 @@ use std::sync::Arc;
 pub mod claude;
 pub mod droid;
 pub mod gemini;
+pub mod grok;
 pub mod qwen;
 
 // 重新导出平台实现
@@ -22,6 +23,7 @@ pub use ccr_codex::CodexPlatform;
 pub use claude::ClaudePlatform;
 pub use droid::DroidPlatform;
 pub use gemini::GeminiPlatform;
+pub use grok::{GrokPlatform, GrokProfileAuthMode};
 pub use qwen::QwenPlatform;
 
 /// 🏭 平台工厂函数
@@ -65,6 +67,10 @@ pub fn create_platform(platform: Platform) -> Result<Arc<dyn PlatformConfig>> {
         Platform::Droid => {
             let droid = DroidPlatform::new()?;
             Ok(Arc::new(droid))
+        }
+        Platform::Grok => {
+            let grok = GrokPlatform::new()?;
+            Ok(Arc::new(grok))
         }
     }
 }
@@ -310,14 +316,15 @@ mod tests {
     #[test]
     fn test_platform_registry() {
         let registry = PlatformRegistry::new();
-        assert_eq!(registry.all_platforms().len(), 5);
+        assert_eq!(registry.all_platforms().len(), 6);
 
         let implemented = registry.implemented_platforms();
-        assert_eq!(implemented.len(), 4);
+        assert_eq!(implemented.len(), 5);
         assert!(implemented.contains(&Platform::Claude));
         assert!(implemented.contains(&Platform::Codex));
         assert!(implemented.contains(&Platform::Gemini));
         assert!(implemented.contains(&Platform::Droid));
+        assert!(implemented.contains(&Platform::Grok));
     }
 
     #[test]
@@ -342,6 +349,6 @@ mod tests {
     #[test]
     fn test_platform_detector() {
         let detector = PlatformDetector::new();
-        assert_eq!(detector.registry().all_platforms().len(), 5);
+        assert_eq!(detector.registry().all_platforms().len(), 6);
     }
 }

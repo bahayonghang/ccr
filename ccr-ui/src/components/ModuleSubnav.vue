@@ -85,9 +85,9 @@ onMounted(async () => {
   gap: 0.5rem;
   padding: 0.75rem;
   border-radius: 1rem;
-  background: rgb(var(--color-bg-elevated-rgb) / 72%);
-  border: 1px solid rgb(var(--color-border-default-rgb) / 55%);
-  backdrop-filter: blur(16px);
+  background: var(--surface-status-bg);
+  border: 1px solid var(--surface-status-border);
+  backdrop-filter: var(--surface-status-blur);
 }
 
 .module-subnav__item {

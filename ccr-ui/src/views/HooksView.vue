@@ -50,7 +50,7 @@
           v-for="eventName in eventTabs"
           :key="eventName"
           class="min-h-[44px] whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition-colors"
-          :class="selectedEvent === eventName ? 'bg-accent-secondary text-white shadow-md' : 'border border-border-default bg-bg-elevated text-text-secondary hover:bg-bg-surface'"
+          :class="selectedEvent === eventName ? 'bg-accent-secondary text-[color:var(--color-accent-primary-contrast)] shadow-md' : 'border border-border-default bg-bg-elevated text-text-secondary hover:bg-bg-surface'"
           @click="selectedEvent = eventName"
         >
           {{ eventName === allEventKey ? tt('全部', 'All') : eventName }}
@@ -127,7 +127,7 @@
               <div
                 v-for="(group, groupIndex) in groups"
                 :key="`${eventName}-${groupIndex}`"
-                class="rounded-2xl border border-border-default/60 bg-bg-surface/60 p-4"
+                class="rounded-2xl border border-border-default/60 bg-bg-elevated p-4"
               >
                 <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div class="space-y-2">
@@ -171,7 +171,7 @@
                   <div
                     v-for="(handler, handlerIndex) in group.hooks"
                     :key="`${eventName}-${groupIndex}-${handlerIndex}`"
-                    class="rounded-xl border border-border-default/50 bg-bg-elevated/50 p-3"
+                    class="rounded-xl border border-border-default/50 bg-bg-base p-3"
                   >
                     <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div class="space-y-2">
@@ -299,7 +299,7 @@
                 <div
                   v-for="(handler, handlerIndex) in groupForm.handlers"
                   :key="handlerIndex"
-                  class="space-y-4 rounded-2xl border border-border-default/60 bg-bg-surface/60 p-4"
+                  class="space-y-4 rounded-2xl border border-border-default/60 bg-bg-elevated p-4"
                 >
                   <div class="flex items-center justify-between">
                     <h5 class="text-sm font-semibold uppercase tracking-wide text-text-muted">
@@ -842,7 +842,7 @@ onMounted(() => {
 }
 
 .hooks-primary-button {
-  @apply flex w-full items-center justify-center rounded-lg bg-accent-secondary px-4 py-2 font-medium text-white shadow-md;
+  @apply flex w-full items-center justify-center rounded-lg bg-accent-secondary px-4 py-2 font-medium text-[color:var(--color-accent-primary-contrast)] shadow-md;
   @apply transition-[color,background-color,border-color,transform] hover:scale-105 hover:shadow-lg sm:w-auto;
 
   min-height: 44px;
@@ -921,7 +921,7 @@ onMounted(() => {
 }
 
 .hooks-footer-button--primary {
-  @apply border-transparent bg-accent-secondary text-white shadow-md;
+  @apply border-transparent bg-accent-secondary text-[color:var(--color-accent-primary-contrast)] shadow-md;
   @apply transition-[color,background-color,border-color,transform] hover:-translate-y-0.5 hover:shadow-lg;
 }
 </style>

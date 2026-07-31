@@ -197,6 +197,33 @@ pub mod env_keys {
     pub const CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: &str =
         "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC";
 
+    /// Complete set of environment keys CCR may write and remove.
+    ///
+    /// Keep this registry aligned with `ConfigSection::to_managed_env_pairs`
+    /// in `ccr-config`. Keys outside this list are user-owned, even when they
+    /// use the `ANTHROPIC_` prefix.
+    pub const CCR_MANAGED_KEYS: &[&str] = &[
+        ANTHROPIC_BASE_URL,
+        ANTHROPIC_AUTH_TOKEN,
+        ANTHROPIC_MODEL,
+        ANTHROPIC_SMALL_FAST_MODEL,
+        ANTHROPIC_DEFAULT_OPUS_MODEL,
+        ANTHROPIC_DEFAULT_SONNET_MODEL,
+        ANTHROPIC_DEFAULT_HAIKU_MODEL,
+        ANTHROPIC_DEFAULT_FABLE_MODEL,
+        ANTHROPIC_DEFAULT_OPUS_MODEL_NAME,
+        ANTHROPIC_DEFAULT_SONNET_MODEL_NAME,
+        ANTHROPIC_DEFAULT_HAIKU_MODEL_NAME,
+        ANTHROPIC_DEFAULT_FABLE_MODEL_NAME,
+        ANTHROPIC_CUSTOM_MODEL_OPTION,
+        ANTHROPIC_CUSTOM_MODEL_OPTION_NAME,
+        CLAUDE_CODE_SUBAGENT_MODEL,
+        CLAUDE_CODE_EFFORT_LEVEL,
+        CLAUDE_CODE_AUTO_COMPACT_WINDOW,
+        API_TIMEOUT_MS,
+        CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC,
+    ];
+
     /// Managed env keys that do not carry the `ANTHROPIC_` prefix.
     ///
     /// These are explicitly configured by profiles, so profile switching must
@@ -221,27 +248,44 @@ impl ClaudeSettings {
         self.env.retain(|key, _| !key.starts_with("ANTHROPIC_"));
     }
 
-    /// Remove every CCR-managed entry from `env`.
-    ///
-    /// Covers all `ANTHROPIC_*` keys plus [`env_keys::NON_ANTHROPIC_MANAGED_KEYS`].
-    pub fn clear_managed_vars(&mut self) {
-        self.clear_anthropic_vars();
-        for key in env_keys::NON_ANTHROPIC_MANAGED_KEYS {
+    /// Remove every explicitly CCR-managed entry from `env`.
+    pub fn clear_ccr_managed_vars(&mut self) {
+        for key in env_keys::CCR_MANAGED_KEYS {
             self.env.remove(*key);
         }
+    }
+
+    /// Backward-compatible alias for [`Self::clear_ccr_managed_vars`].
+    pub fn clear_managed_vars(&mut self) {
+        self.clear_ccr_managed_vars();
     }
 
     /// Replace the managed portion of `env` with `pairs`.
     ///
     /// Clears all managed keys first (see [`Self::clear_managed_vars`]), then
-    /// inserts each pair. Non-managed env entries are untouched. This is the
-    /// data-side core of profile switching; callers obtain `pairs` from
+    /// inserts each registered pair. Unregistered pairs and existing
+    /// non-managed env entries are untouched. This is the data-side core of
+    /// profile switching; callers obtain `pairs` from
     /// `ConfigSection::to_managed_env_pairs` in `ccr-config`.
     pub fn apply_managed_env(&mut self, pairs: impl IntoIterator<Item = (String, String)>) {
-        self.clear_managed_vars();
+        self.clear_ccr_managed_vars();
         for (key, value) in pairs {
-            self.env.insert(key, value);
+            if env_keys::CCR_MANAGED_KEYS.contains(&key.as_str()) {
+                self.env.insert(key, value);
+            }
         }
+    }
+
+    /// Return the CCR-managed env entries currently present, in registry order.
+    pub fn managed_env_entries(&self) -> Vec<(String, String)> {
+        env_keys::CCR_MANAGED_KEYS
+            .iter()
+            .filter_map(|key| {
+                self.env
+                    .get(*key)
+                    .map(|value| ((*key).to_string(), value.clone()))
+            })
+            .collect()
     }
 
     /// Snapshot of the managed `ANTHROPIC_*`/runtime env values for display.
@@ -276,6 +320,13 @@ impl ClaudeSettings {
     /// Whether any `ANTHROPIC_*` override is present in `env`.
     pub fn has_anthropic_overrides(&self) -> bool {
         self.env.keys().any(|key| key.starts_with("ANTHROPIC_"))
+    }
+
+    /// Whether any explicitly CCR-managed override is present in `env`.
+    pub fn has_managed_overrides(&self) -> bool {
+        env_keys::CCR_MANAGED_KEYS
+            .iter()
+            .any(|key| self.env.contains_key(*key))
     }
 
     /// Strictly validate the env vars required by API-key mode.
@@ -767,7 +818,20 @@ mod tests {
     }
 
     #[test]
-    fn test_clear_managed_vars_drops_claude_code_keys() {
+    fn test_managed_key_registry_is_unique_and_contains_non_anthropic_subset() {
+        let unique = env_keys::CCR_MANAGED_KEYS
+            .iter()
+            .copied()
+            .collect::<std::collections::HashSet<_>>();
+
+        assert_eq!(unique.len(), env_keys::CCR_MANAGED_KEYS.len());
+        for key in env_keys::NON_ANTHROPIC_MANAGED_KEYS {
+            assert!(unique.contains(key), "{key} 应属于 CCR_MANAGED_KEYS");
+        }
+    }
+
+    #[test]
+    fn test_clear_managed_vars_drops_only_ccr_managed_keys() {
         let mut settings = ClaudeSettings::new();
         settings
             .env
@@ -788,15 +852,63 @@ mod tests {
             "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC".into(),
             "1".into(),
         );
+        settings
+            .env
+            .insert("ANTHROPIC_API_KEY".into(), "user-api-key".into());
+        settings
+            .env
+            .insert("ANTHROPIC_CUSTOM_HEADERS".into(), "X-User: keep".into());
         settings.env.insert("OTHER_VAR".into(), "keep".into());
 
         settings.clear_managed_vars();
 
-        for key in env_keys::NON_ANTHROPIC_MANAGED_KEYS {
+        for key in env_keys::CCR_MANAGED_KEYS {
             assert!(!settings.env.contains_key(*key), "{key} 应被清除");
         }
-        assert!(!settings.env.contains_key("ANTHROPIC_BASE_URL"));
+        assert_eq!(
+            settings.env.get("ANTHROPIC_API_KEY").map(String::as_str),
+            Some("user-api-key")
+        );
+        assert_eq!(
+            settings
+                .env
+                .get("ANTHROPIC_CUSTOM_HEADERS")
+                .map(String::as_str),
+            Some("X-User: keep")
+        );
         assert!(settings.env.contains_key("OTHER_VAR"));
+    }
+
+    #[test]
+    fn test_managed_env_entries_and_detection_use_explicit_registry() {
+        let mut settings = ClaudeSettings::new();
+        settings
+            .env
+            .insert("ANTHROPIC_AUTH_TOKEN".into(), "managed".into());
+        settings
+            .env
+            .insert("ANTHROPIC_API_KEY".into(), "user-owned".into());
+        settings
+            .env
+            .insert("API_TIMEOUT_MS".into(), "3000000".into());
+
+        assert!(settings.has_managed_overrides());
+        assert_eq!(
+            settings.managed_env_entries(),
+            vec![
+                ("ANTHROPIC_AUTH_TOKEN".to_string(), "managed".to_string()),
+                ("API_TIMEOUT_MS".to_string(), "3000000".to_string()),
+            ]
+        );
+
+        settings.clear_ccr_managed_vars();
+
+        assert!(!settings.has_managed_overrides());
+        assert!(settings.has_anthropic_overrides());
+        assert_eq!(
+            settings.env.get("ANTHROPIC_API_KEY").map(String::as_str),
+            Some("user-owned")
+        );
     }
 
     #[test]
@@ -806,6 +918,12 @@ mod tests {
             "ANTHROPIC_BASE_URL".into(),
             "https://old.example.com".into(),
         );
+        settings
+            .env
+            .insert("ANTHROPIC_API_KEY".into(), "user-api-key".into());
+        settings
+            .env
+            .insert("ANTHROPIC_CUSTOM_HEADERS".into(), "X-User: keep".into());
         settings.env.insert("KEEP_ME".into(), "value".into());
 
         settings.apply_managed_env([
@@ -814,6 +932,10 @@ mod tests {
                 "https://new.example.com".to_string(),
             ),
             ("ANTHROPIC_AUTH_TOKEN".to_string(), "sk-new".to_string()),
+            (
+                "ANTHROPIC_API_KEY".to_string(),
+                "attempted-overwrite".to_string(),
+            ),
         ]);
 
         assert_eq!(
@@ -823,6 +945,14 @@ mod tests {
         assert_eq!(
             settings.env.get("ANTHROPIC_AUTH_TOKEN"),
             Some(&"sk-new".to_string())
+        );
+        assert_eq!(
+            settings.env.get("ANTHROPIC_API_KEY"),
+            Some(&"user-api-key".to_string())
+        );
+        assert_eq!(
+            settings.env.get("ANTHROPIC_CUSTOM_HEADERS"),
+            Some(&"X-User: keep".to_string())
         );
         assert_eq!(settings.env.get("KEEP_ME"), Some(&"value".to_string()));
     }

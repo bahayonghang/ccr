@@ -965,7 +965,7 @@ async function createAccount() {
 
 .oauth-wizard__button--primary {
   background: var(--color-accent-primary);
-  color: white;
+  color: var(--color-accent-primary-contrast);
 }
 
 .oauth-wizard__button--primary:hover:not(:disabled) {
@@ -974,7 +974,7 @@ async function createAccount() {
 
 .oauth-wizard__button--success {
   background: var(--color-success);
-  color: white;
+  color: var(--color-success-contrast);
 }
 
 .oauth-wizard__button--success:hover:not(:disabled) {

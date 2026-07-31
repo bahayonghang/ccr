@@ -1,7 +1,7 @@
 <template>
   <main class="min-h-full bg-bg-base">
     <section class="flex w-full max-w-none flex-col gap-4">
-      <header class="rounded-xl border border-border-default/55 bg-bg-elevated/80 p-4 shadow-sm shadow-black/5">
+      <header class="rounded-xl border border-border-default/55 bg-bg-elevated p-4 shadow-sm shadow-black/5">
         <div class="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div class="max-w-3xl">
             <p class="text-xs font-semibold uppercase tracking-[0.28em] text-text-muted">
@@ -32,7 +32,7 @@
 
             <button
               type="button"
-              class="inline-flex items-center gap-2 rounded-xl border border-border-default/55 bg-bg-surface/80 px-3 py-2 text-xs font-medium text-text-secondary transition-colors hover:border-accent-secondary/30 hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-60"
+              class="inline-flex items-center gap-2 rounded-xl border border-border-default/55 bg-bg-surface px-3 py-2 text-xs font-medium text-text-secondary transition-colors hover:border-accent-secondary/30 hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-60"
               :disabled="usageLoading"
               @click="refreshMonitoring"
             >
@@ -46,7 +46,7 @@
 
             <button
               type="button"
-              class="inline-flex items-center gap-2 rounded-xl border border-border-default/55 bg-bg-surface/80 px-3 py-2 text-xs font-medium text-text-secondary transition-colors hover:border-accent-danger/25 hover:text-accent-danger"
+              class="inline-flex items-center gap-2 rounded-xl border border-border-default/55 bg-bg-surface px-3 py-2 text-xs font-medium text-text-secondary transition-colors hover:border-accent-danger/25 hover:text-accent-danger"
               @click="clearLocalLogs"
             >
               <SIcon
@@ -61,7 +61,7 @@
 
       <div class="grid min-w-0 gap-4 xl:grid-cols-[minmax(320px,360px)_minmax(0,1fr)] 2xl:grid-cols-[minmax(340px,380px)_minmax(0,1fr)]">
         <aside class="min-w-0 space-y-4">
-          <section class="rounded-xl border border-border-default/55 bg-bg-elevated/80 p-4 shadow-sm shadow-black/5">
+          <section class="rounded-xl border border-border-default/55 bg-bg-elevated p-4 shadow-sm shadow-black/5">
             <div class="flex items-start justify-between gap-4">
               <div>
                 <p class="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">
@@ -105,7 +105,7 @@
               <div
                 v-for="card in usageMetricCards"
                 :key="card.id"
-                class="rounded-2xl border border-border-default/45 bg-bg-surface/68 p-3"
+                class="rounded-2xl border border-border-default/45 bg-bg-elevated p-3"
                 :data-testid="`monitoring-usage-card-${card.id}`"
               >
                 <div class="flex items-center justify-between gap-3">
@@ -128,7 +128,7 @@
             </div>
           </section>
 
-          <section class="rounded-xl border border-border-default/55 bg-bg-elevated/80 p-4 shadow-sm shadow-black/5">
+          <section class="rounded-xl border border-border-default/55 bg-bg-elevated p-4 shadow-sm shadow-black/5">
             <div class="flex items-center justify-between gap-3">
               <div>
                 <p class="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">
@@ -154,7 +154,7 @@
                 class="rounded-2xl border px-3 py-3 text-left transition-colors"
                 :class="filterLevel === level
                   ? 'border-accent-secondary/35 bg-accent-secondary/10'
-                  : 'border-border-default/45 bg-bg-surface/60 hover:border-border-default'"
+                  : 'border-border-default/45 bg-bg-elevated hover:border-border-default'"
                 @click="filterLevel = level"
               >
                 <div class="flex items-center justify-between gap-2">
@@ -172,7 +172,7 @@
               </button>
             </div>
 
-            <div class="mt-3 rounded-2xl border border-border-default/45 bg-bg-surface/60 p-3">
+            <div class="mt-3 rounded-2xl border border-border-default/45 bg-bg-elevated p-3">
               <p class="text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">
                 {{ t('monitoring.recentUsageImport') }}
               </p>
@@ -202,7 +202,7 @@
               </p>
             </div>
 
-            <div class="mt-3 rounded-2xl border border-border-default/45 bg-bg-surface/60 p-3">
+            <div class="mt-3 rounded-2xl border border-border-default/45 bg-bg-elevated p-3">
               <p class="text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">
                 {{ t('monitoring.recentIssues') }}
               </p>
@@ -213,7 +213,7 @@
                 <div
                   v-for="event in recentIssueEvents"
                   :key="event.id"
-                  class="rounded-xl border border-border-default/35 bg-bg-elevated/50 px-3 py-2"
+                  class="rounded-xl border border-border-default/35 bg-bg-base px-3 py-2"
                 >
                   <div class="flex items-center gap-2 text-[11px] text-text-muted">
                     <span
@@ -240,7 +240,7 @@
           </section>
         </aside>
 
-        <section class="min-w-0 overflow-hidden rounded-xl border border-border-default/55 bg-bg-elevated/80 shadow-sm shadow-black/5">
+        <section class="min-w-0 overflow-hidden rounded-xl border border-border-default/55 bg-bg-elevated shadow-sm shadow-black/5">
           <div class="flex flex-col gap-4 border-b border-border-default/45 p-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <p class="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">
@@ -259,14 +259,14 @@
             <div class="flex flex-wrap items-center gap-2">
               <span
                 data-testid="monitoring-filtered-count"
-                class="rounded-full border border-border-default/45 bg-bg-surface/70 px-3 py-1.5 text-xs font-medium text-text-secondary"
+                class="rounded-full border border-border-default/45 bg-bg-elevated px-3 py-1.5 text-xs font-medium text-text-secondary"
               >
                 {{ filteredCountLabel }}
               </span>
               <select
                 v-model="filterLevel"
                 data-testid="monitoring-level-filter"
-                class="rounded-xl border border-border-default/55 bg-bg-surface/80 px-3 py-2 text-xs font-medium text-text-secondary outline-none transition-colors focus:border-accent-secondary/45"
+                class="rounded-xl border border-border-default/55 bg-bg-surface px-3 py-2 text-xs font-medium text-text-secondary outline-none transition-colors focus:border-accent-secondary/45"
               >
                 <option value="all">
                   {{ t('monitoring.allLevels') }}
@@ -284,7 +284,7 @@
 
           <div class="overflow-hidden p-3">
             <div class="overflow-x-auto">
-              <div class="w-full min-w-[640px] rounded-2xl border border-border-default/45 bg-bg-surface/55 font-mono text-xs">
+              <div class="w-full min-w-[640px] rounded-2xl border border-border-default/45 bg-bg-elevated font-mono text-xs">
                 <div class="grid grid-cols-[72px_62px_94px_94px_minmax(0,1fr)] gap-2 border-b border-border-default/45 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
                   <span>{{ t('monitoring.columnTime') }}</span>
                   <span>{{ t('monitoring.columnLevel') }}</span>
@@ -467,7 +467,7 @@ const healthStatusClass = computed(() => {
     case 'healthy':
       return 'border-accent-success/30 bg-accent-success/10 text-accent-success'
     default:
-      return 'border-border-default/45 bg-bg-surface/70 text-text-secondary'
+      return 'border-border-default/45 bg-bg-elevated text-text-secondary'
   }
 })
 
@@ -481,10 +481,10 @@ const usageStatusLabel = computed(() => {
 })
 
 const usageStatusClass = computed(() => {
-  if (usageLoading.value) return 'border-border-default/45 bg-bg-surface/70 text-text-secondary'
+  if (usageLoading.value) return 'border-border-default/45 bg-bg-elevated text-text-secondary'
   if (usageStatus.value === 'ready') return 'border-accent-success/30 bg-accent-success/10 text-accent-success'
   if (usageStatus.value === 'unavailable') return 'border-accent-warning/30 bg-accent-warning/10 text-accent-warning'
-  return 'border-border-default/45 bg-bg-surface/70 text-text-secondary'
+  return 'border-border-default/45 bg-bg-elevated text-text-secondary'
 })
 
 const usageMetricValue = (value: number | null | undefined, formatter: (value: number) => string) => {

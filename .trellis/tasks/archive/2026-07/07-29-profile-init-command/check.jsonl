@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/ccr-cli/backend/grok-profile-runtime.md", "reason": "验收时核对 grok 示例安全契约（example.com + env_key、无 inline 示例值）与命令面契约未被破坏"}
+{"file": ".trellis/spec/ccr-cli/backend/test-fixtures.md", "reason": "CLI 集成测试 fixture / CCR_ROOT+GROK_HOME 隔离约定，init 首次/幂等/并发/权限用例需遵循"}
+{"file": ".trellis/spec/ccr-config/backend/test-fixtures.md", "reason": "ccr-config 层测试约定，register_platform_if_missing 单测需遵循"}
+{"file": ".trellis/tasks/07-29-profile-init-command/research/codex-review-verification.md", "reason": "检查清单来源：6 项 P1 逐条必须在实现与测试中有对应落点（TOCTOU、注册锁、未激活模板、镜像同步、可达提示清理、清单非空）"}

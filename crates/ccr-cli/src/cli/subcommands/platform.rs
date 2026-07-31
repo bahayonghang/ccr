@@ -22,6 +22,7 @@ pub enum PlatformAction {
     ///
     /// 切换当前激活的平台
     /// 示例: ccr platform switch codex
+    #[command(hide = true)]
     Switch {
         /// 平台名称 (claude, codex, gemini, qwen, droid)
         platform_name: String,
@@ -32,6 +33,7 @@ pub enum PlatformAction {
     /// 查看当前激活平台的详细信息
     /// 示例: ccr platform current
     /// 示例: ccr platform current --json
+    #[command(hide = true)]
     Current {
         /// 以 JSON 格式输出 (用于脚本和工具集成)
         #[arg(long)]
@@ -43,6 +45,7 @@ pub enum PlatformAction {
     /// 查看指定平台的配置和状态
     /// 示例: ccr platform info claude
     /// 示例: ccr platform info claude --json
+    #[command(hide = true)]
     Info {
         /// 平台名称
         platform_name: String,
@@ -52,10 +55,10 @@ pub enum PlatformAction {
         json: bool,
     },
 
-    /// 初始化平台配置
+    /// 退休的平台注册入口，仅保留旧命令解析兼容
     ///
-    /// 为指定平台创建配置目录结构
-    /// 示例: ccr platform init codex
+    /// 使用 ccr claude/codex/grok profile init 的对应命令
+    #[command(hide = true)]
     Init {
         /// 平台名称
         platform_name: String,
@@ -67,6 +70,7 @@ pub enum PlatformAction {
     /// 示例: ccr platform profile set-field claude work model --value claude-sonnet-4-5
     ///       ccr platform profile create codex prod --model gpt-5-codex --provider OpenAI
     ///       ccr platform profile delete codex old --force
+    #[command(hide = true)]
     Profile {
         #[command(subcommand)]
         action: Box<PlatformProfileAction>,
@@ -78,7 +82,7 @@ pub enum PlatformAction {
 pub enum PlatformProfileAction {
     /// 创建新的平台 Profile
     Create {
-        /// 平台名称（当前仅支持 claude / codex）
+        /// 平台名称（迁移目标支持 claude / codex / grok）
         platform_name: String,
         /// Profile 名称
         name: String,

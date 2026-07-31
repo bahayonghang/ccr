@@ -84,6 +84,20 @@ pub enum ClaudeProfileAction {
     /// 显示 Claude Profile 命令帮助
     Help,
 
+    /// Open the Claude profiles.toml in your editor.
+    /// Creates the file from the example template if it does not exist.
+    Open {
+        #[arg(long)]
+        json: bool,
+    },
+
+    /// Initialize the Claude profile directory and example template
+    Init {
+        /// 以 JSON 格式输出
+        #[arg(long)]
+        json: bool,
+    },
+
     /// 显示当前 Claude profile/runtime 状态
     Current {
         /// 以 JSON 格式输出

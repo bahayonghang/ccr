@@ -9,14 +9,20 @@
 // - 🔒 文件锁保证并发安全
 // - 💾 自动备份机制
 
-use ccr_core::core::atomic_writer::{AsyncAtomicWriter, AtomicWriter};
+use ccr_config::ClaudeRuntimePaths;
 use ccr_core::core::cache::ConfigCache;
 use ccr_core::core::error::{CcrError, Result};
 use ccr_core::core::lock::LockManager;
+use ccr_core::core::{
+    BackupPolicy, VersionedWriteOutcome, WriteOptions, content_version_token, write_guarded,
+    write_guarded_async, write_guarded_versioned,
+};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 use tokio::fs as async_fs;
+
+const SETTINGS_UPDATE_ATTEMPTS: usize = 3;
 
 // 🎯 唯一 shape:富类型定义与托管 env 变更/查询/验证逻辑均在 ccr-types
 pub use ccr_types::ClaudeSettings;
@@ -60,6 +66,7 @@ impl SettingsManager {
     ///
     /// ⚙️ **开发者注意**：
     /// 可以通过环境变量覆盖默认路径：
+    /// - `CLAUDE_CONFIG_DIR`: Claude Code 配置目录
     /// - `CCR_SETTINGS_PATH`: 设置文件路径
     /// - `CCR_BACKUP_DIR`: 备份目录路径
     ///
@@ -70,23 +77,9 @@ impl SettingsManager {
     /// cargo run -- switch test
     /// ```
     pub fn with_default() -> Result<Self> {
-        // 🔍 检查环境变量
-        let settings_path = if let Ok(custom_path) = std::env::var("CCR_SETTINGS_PATH") {
-            std::path::PathBuf::from(custom_path)
-        } else {
-            let home = dirs::home_dir()
-                .ok_or_else(|| CcrError::SettingsError("无法获取用户主目录".into()))?;
-            home.join(".claude").join("settings.json")
-        };
-
-        let backup_dir = if let Ok(custom_dir) = std::env::var("CCR_BACKUP_DIR") {
-            std::path::PathBuf::from(custom_dir)
-        } else {
-            let home = dirs::home_dir()
-                .ok_or_else(|| CcrError::SettingsError("无法获取用户主目录".into()))?;
-            home.join(".claude").join("backups")
-        };
-
+        let runtime_paths = ClaudeRuntimePaths::from_env()?;
+        let settings_path = runtime_paths.settings_file;
+        let backup_dir = runtime_paths.backups_dir;
         let lock_manager = LockManager::with_default_path()?;
 
         tracing::debug!("使用设置路径: {:?}", settings_path);
@@ -98,6 +91,78 @@ impl SettingsManager {
     /// 📁 获取设置文件路径
     pub fn settings_path(&self) -> &Path {
         &self.settings_path
+    }
+
+    fn write_options(&self) -> WriteOptions {
+        WriteOptions {
+            backup: BackupPolicy::Dir {
+                dir: self.backup_dir.clone(),
+                prefix: "settings".to_string(),
+            },
+            secret: true,
+            ..Default::default()
+        }
+    }
+
+    fn load_versioned(&self) -> Result<(ClaudeSettings, String)> {
+        match fs::read(&self.settings_path) {
+            Ok(bytes) => {
+                let settings = serde_json::from_slice(&bytes).map_err(|error| {
+                    CcrError::SettingsError(format!("解析设置文件失败: {error}"))
+                })?;
+                Ok((settings, content_version_token(&bytes)))
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                Ok((ClaudeSettings::new(), String::new()))
+            }
+            Err(error) => Err(CcrError::SettingsError(format!(
+                "读取设置文件失败: {error}"
+            ))),
+        }
+    }
+
+    /// Replays a deterministic settings mutation after concurrent conflicts.
+    pub fn update_atomic<F, T>(&self, mut update: F) -> Result<T>
+    where
+        F: FnMut(&mut ClaudeSettings) -> Result<T>,
+    {
+        for _ in 0..SETTINGS_UPDATE_ATTEMPTS {
+            let (mut settings, expected_token) = self.load_versioned()?;
+            let result = update(&mut settings)?;
+            let content = serde_json::to_vec_pretty(&settings)
+                .map_err(|error| CcrError::SettingsError(format!("序列化设置失败: {error}")))?;
+
+            match write_guarded_versioned(
+                &self.settings_path,
+                &content,
+                &expected_token,
+                &self.write_options(),
+            )? {
+                VersionedWriteOutcome::Written => return Ok(result),
+                VersionedWriteOutcome::Conflict => continue,
+            }
+        }
+
+        Err(CcrError::SettingsError(
+            "settings.json 被其他进程连续修改，请重试".into(),
+        ))
+    }
+
+    pub async fn update_atomic_async<F, T>(&self, update: F) -> Result<T>
+    where
+        F: FnMut(&mut ClaudeSettings) -> Result<T> + Send + 'static,
+        T: Send + 'static,
+    {
+        let manager = Self::new(
+            &self.settings_path,
+            &self.backup_dir,
+            LockManager::new(self.lock_manager.lock_dir()),
+        );
+        tokio::task::spawn_blocking(move || manager.update_atomic(update))
+            .await
+            .map_err(|error| {
+                CcrError::SettingsError(format!("settings 更新后台任务失败: {error}"))
+            })?
     }
 
     /// 📖 加载设置文件
@@ -150,36 +215,16 @@ impl SettingsManager {
 
     /// 💾 原子保存设置文件
     ///
-    /// ⚠️ 这是核心方法,确保写入的原子性和安全性
-    ///
-    /// 执行步骤:
-    /// 1. 🔒 获取文件锁(超时 10 秒)
-    /// 2. 📁 确保目标目录存在
-    /// 3. 📝 序列化为 JSON(美化格式)
-    /// 4. 📄 写入临时文件
-    /// 5. 🔄 原子替换(rename)
-    ///
-    /// 原子性保证:
-    /// - 使用 tempfile + persist 实现原子替换
-    /// - 即使进程崩溃也不会损坏原文件
+    /// 完整替换 settings.json，并在集中备份目录保留旧版本。
+    /// 常规 read-modify-write 调用必须使用 [`Self::update_atomic`]。
     pub fn save_atomic(&self, settings: &ClaudeSettings) -> Result<()> {
-        // 🔒 获取文件锁(防止并发写入)
-        let _lock = self.lock_manager.lock_settings(Duration::from_secs(10))?;
-
-        // 📁 确保目录存在
-        if let Some(parent) = self.settings_path.parent() {
-            fs::create_dir_all(parent)
-                .map_err(|e| CcrError::SettingsError(format!("创建设置目录失败: {}", e)))?;
-        }
-
-        // 📝 序列化为 JSON(美化格式)
         let content = serde_json::to_string_pretty(settings)
             .map_err(|e| CcrError::SettingsError(format!("序列化设置失败: {}", e)))?;
-
-        AtomicWriter::new(&self.settings_path)
-            .secret(true)
-            .write_string(&content)
-            .map_err(|e| CcrError::SettingsError(format!("原子保存设置失败: {}", e)))?;
+        write_guarded(
+            &self.settings_path,
+            content.as_bytes(),
+            &self.write_options(),
+        )?;
 
         tracing::info!("✅ 设置文件已原子保存: {:?}", self.settings_path);
         Ok(())
@@ -187,18 +232,14 @@ impl SettingsManager {
 
     /// 💾 异步原子保存设置文件
     pub async fn save_atomic_async(&self, settings: &ClaudeSettings) -> Result<()> {
-        let _lock = self.lock_manager.lock_settings(Duration::from_secs(10))?;
-
         let content = serde_json::to_string_pretty(settings)
             .map_err(|e| CcrError::SettingsError(format!("序列化设置失败: {}", e)))?;
-
-        let writer = AsyncAtomicWriter::new(&self.settings_path)
-            .secret(true)
-            .preserve_mode(true);
-        writer
-            .write_string_async(&content)
-            .await
-            .map_err(|e| CcrError::SettingsError(format!("原子保存设置失败: {}", e)))?;
+        write_guarded_async(
+            &self.settings_path,
+            content.into_bytes(),
+            self.write_options(),
+        )
+        .await?;
 
         tracing::info!("✅ 设置文件已原子保存: {:?}", self.settings_path);
         Ok(())
@@ -322,14 +363,8 @@ impl SettingsManager {
 
     /// 🔄 从备份恢复设置文件
     ///
-    /// 执行流程:
-    /// 1. ✅ 验证备份文件存在
-    /// 2. 🔍 验证备份文件格式有效
-    /// 3. 💾 备份当前设置(pre_restore)
-    /// 4. 🔒 获取文件锁
-    /// 5. 📋 复制备份文件到目标位置
-    ///
-    /// ⚠️ 注意: 恢复前会自动备份当前设置
+    /// 备份内容验证成功后，通过统一 guarded replace 恢复；当前设置会在
+    /// 同一路径锁内备份到集中目录。
     pub fn restore<P: AsRef<Path>>(&self, backup_path: P) -> Result<()> {
         let backup_path = backup_path.as_ref();
 
@@ -342,20 +377,10 @@ impl SettingsManager {
         let content = fs::read_to_string(backup_path)
             .map_err(|e| CcrError::SettingsError(format!("读取备份文件失败: {}", e)))?;
 
-        let _: ClaudeSettings = serde_json::from_str(&content)
+        let settings: ClaudeSettings = serde_json::from_str(&content)
             .map_err(|e| CcrError::SettingsError(format!("备份文件格式无效: {}", e)))?;
 
-        // 💾 恢复前先备份当前设置(安全措施)
-        if self.settings_path.exists() {
-            self.backup(Some("pre_restore"))?;
-        }
-
-        // 🔒 获取文件锁
-        let _lock = self.lock_manager.lock_settings(Duration::from_secs(10))?;
-
-        // 📋 执行恢复
-        fs::copy(backup_path, &self.settings_path)
-            .map_err(|e| CcrError::SettingsError(format!("恢复设置文件失败: {}", e)))?;
+        self.save_atomic(&settings)?;
 
         tracing::info!("✅ 设置文件已从备份恢复: {:?}", backup_path);
         Ok(())
@@ -376,21 +401,10 @@ impl SettingsManager {
             .await
             .map_err(|e| CcrError::SettingsError(format!("读取备份文件失败: {}", e)))?;
 
-        let _: ClaudeSettings = serde_json::from_str(&content)
+        let settings: ClaudeSettings = serde_json::from_str(&content)
             .map_err(|e| CcrError::SettingsError(format!("备份文件格式无效: {}", e)))?;
 
-        let settings_exists = async_fs::try_exists(&self.settings_path)
-            .await
-            .map_err(|e| CcrError::SettingsError(format!("检查设置文件失败: {}", e)))?;
-        if settings_exists {
-            self.backup_async(Some("pre_restore")).await?;
-        }
-
-        let _lock = self.lock_manager.lock_settings(Duration::from_secs(10))?;
-
-        async_fs::copy(backup_path, &self.settings_path)
-            .await
-            .map_err(|e| CcrError::SettingsError(format!("恢复设置文件失败: {}", e)))?;
+        self.save_atomic_async(&settings).await?;
 
         tracing::info!("✅ 设置文件已从备份恢复: {:?}", backup_path);
         Ok(())
@@ -496,44 +510,9 @@ impl SettingsManager {
     ///
     /// 返回 (settings_path, backup_dir)
     pub fn get_platform_paths(platform_name: &str) -> Result<(PathBuf, PathBuf)> {
-        // 特殊处理 Claude (支持 legacy 模式)
         if platform_name == "claude" {
-            // 检查是否在统一模式下
-            let home = dirs::home_dir()
-                .ok_or_else(|| CcrError::SettingsError("无法获取用户主目录".into()))?;
-
-            // 优先使用环境变量
-            if let Ok(custom_path) = std::env::var("CCR_SETTINGS_PATH") {
-                let settings_path = PathBuf::from(custom_path);
-                let backup_dir = if let Ok(custom_dir) = std::env::var("CCR_BACKUP_DIR") {
-                    PathBuf::from(custom_dir)
-                } else {
-                    home.join(".claude").join("backups")
-                };
-                return Ok((settings_path, backup_dir));
-            }
-
-            // 检查统一模式
-            let ccr_root = if let Ok(root) = std::env::var("CCR_ROOT") {
-                PathBuf::from(root)
-            } else {
-                home.join(".ccr")
-            };
-
-            if ccr_root.exists() {
-                // 统一模式
-                let platform_dir = ccr_root.join("platforms").join("claude");
-                return Ok((
-                    platform_dir.join("settings.json"),
-                    platform_dir.join("backups"),
-                ));
-            } else {
-                // Legacy 模式
-                return Ok((
-                    home.join(".claude").join("settings.json"),
-                    home.join(".claude").join("backups"),
-                ));
-            }
+            let runtime_paths = ClaudeRuntimePaths::from_env()?;
+            return Ok((runtime_paths.settings_file, runtime_paths.backups_dir));
         }
 
         if matches!(
@@ -717,6 +696,28 @@ impl CachedSettingsManager {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
+    use crate::test_support::TestHome;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::{Arc, Barrier};
+
+    #[test]
+    fn claude_config_dir_controls_default_and_platform_settings_paths() {
+        let mut home = TestHome::new_with_home_env();
+        let config_dir = home.home().join("claude-custom");
+        home.set_env("CLAUDE_CONFIG_DIR", config_dir.as_os_str());
+        home.remove_env("CCR_SETTINGS_PATH");
+        home.remove_env("CCR_BACKUP_DIR");
+
+        let manager = SettingsManager::with_default().unwrap();
+        assert_eq!(
+            manager.settings_path(),
+            config_dir.join("settings.json").as_path()
+        );
+
+        let (settings_path, backup_dir) = SettingsManager::get_platform_paths("claude").unwrap();
+        assert_eq!(settings_path, config_dir.join("settings.json"));
+        assert_eq!(backup_dir, config_dir.join("backups"));
+    }
 
     #[test]
     fn test_settings_manager_save_load() {
@@ -784,6 +785,113 @@ mod tests {
         assert!(reloaded.mcp_servers.contains_key("fs"));
         assert!(reloaded.other.contains_key("statusline"));
         assert!(reloaded.other.contains_key("future_top_level"));
+    }
+
+    #[test]
+    fn test_update_atomic_replays_conflict_and_preserves_both_mutations() {
+        let home = TestHome::new();
+        fs::write(
+            home.settings_path(),
+            r#"{
+                "env": { "USER_OWNED": "keep" },
+                "future_top_level": { "enabled": true }
+            }"#,
+        )
+        .unwrap();
+
+        let ui_manager = SettingsManager::new(
+            home.settings_path(),
+            home.backup_dir(),
+            LockManager::new(home.lock_dir()),
+        );
+        let cli_manager = SettingsManager::new(
+            home.settings_path(),
+            home.backup_dir(),
+            LockManager::new(home.lock_dir()),
+        );
+        let first_mutation_ready = Arc::new(Barrier::new(2));
+        let cli_write_finished = Arc::new(Barrier::new(2));
+        let mutation_calls = Arc::new(AtomicUsize::new(0));
+
+        let ui_thread = {
+            let first_mutation_ready = first_mutation_ready.clone();
+            let cli_write_finished = cli_write_finished.clone();
+            let mutation_calls = mutation_calls.clone();
+            std::thread::spawn(move || {
+                ui_manager.update_atomic(move |settings| {
+                    if mutation_calls.fetch_add(1, Ordering::SeqCst) == 0 {
+                        first_mutation_ready.wait();
+                        cli_write_finished.wait();
+                    }
+                    settings
+                        .other
+                        .insert("ui_field".to_string(), serde_json::json!("saved"));
+                    Ok(())
+                })
+            })
+        };
+
+        first_mutation_ready.wait();
+        cli_manager
+            .update_atomic(|settings| {
+                settings
+                    .env
+                    .insert("CLI_FIELD".to_string(), "saved".to_string());
+                Ok(())
+            })
+            .unwrap();
+        cli_write_finished.wait();
+        ui_thread.join().unwrap().unwrap();
+
+        let final_settings = cli_manager.load().unwrap();
+        assert!(mutation_calls.load(Ordering::SeqCst) >= 2);
+        assert_eq!(
+            final_settings.env.get("USER_OWNED").map(String::as_str),
+            Some("keep")
+        );
+        assert_eq!(
+            final_settings.env.get("CLI_FIELD").map(String::as_str),
+            Some("saved")
+        );
+        assert_eq!(
+            final_settings.other.get("ui_field"),
+            Some(&serde_json::json!("saved"))
+        );
+        assert_eq!(
+            final_settings.other.get("future_top_level"),
+            Some(&serde_json::json!({ "enabled": true }))
+        );
+    }
+
+    #[test]
+    fn test_update_atomic_uses_only_central_backup_directory() {
+        let home = TestHome::new();
+        fs::write(home.settings_path(), r#"{"env":{"USER_OWNED":"keep"}}"#).unwrap();
+        let manager = SettingsManager::new(
+            home.settings_path(),
+            home.backup_dir(),
+            LockManager::new(home.lock_dir()),
+        );
+
+        manager
+            .update_atomic(|settings| {
+                settings
+                    .env
+                    .insert("UPDATED".to_string(), "yes".to_string());
+                Ok(())
+            })
+            .unwrap();
+
+        assert_eq!(fs::read_dir(home.backup_dir()).unwrap().count(), 1);
+        assert!(
+            fs::read_dir(home.settings_path().parent().unwrap())
+                .unwrap()
+                .all(|entry| !entry
+                    .unwrap()
+                    .file_name()
+                    .to_string_lossy()
+                    .ends_with(".bak"))
+        );
     }
 
     #[test]
