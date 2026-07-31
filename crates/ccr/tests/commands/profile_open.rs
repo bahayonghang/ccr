@@ -35,9 +35,13 @@ impl ProfileOpenFixture {
         cmd.env("CLICOLOR", "0");
         cmd.env("COLUMNS", "120");
         cmd.env("CCR_LOG_LEVEL", "off");
-        // 清除终端编辑器变量，确保走 SystemAssociation 分支，避免 CI 环境阻塞
+        // 使用立即退出的编辑器，避免托管 Windows 测试启动系统关联 GUI 后继承输出管道。
         cmd.env_remove("VISUAL");
-        cmd.env_remove("EDITOR");
+        if cfg!(windows) {
+            cmd.env("EDITOR", "cmd.exe /C exit /B 0");
+        } else {
+            cmd.env("EDITOR", "true");
+        }
         cmd
     }
 
@@ -61,17 +65,12 @@ impl ProfileOpenFixture {
 }
 
 fn assert_success(output: &Output) {
-    // `open::that` may fail in headless CI; we treat that as an allowed external failure.
-    // The key invariant is that ensure-exists ran (file created) before the open call.
-    // If the command failed, it must be due to the open call, not ensure-exists.
     let stderr = String::from_utf8_lossy(&output.stderr);
-    if !output.status.success() {
-        assert!(
-            stderr.contains("系统关联程序启动失败") || stderr.contains("ExternalCommandError"),
-            "unexpected failure: status={:?}\nstderr={stderr}",
-            output.status,
-        );
-    }
+    assert!(
+        output.status.success(),
+        "unexpected failure: status={:?}\nstderr={stderr}",
+        output.status,
+    );
 }
 
 #[test]
@@ -80,6 +79,7 @@ fn profile_open_creates_claude_file_when_missing() {
     assert!(!fixture.profiles_file("claude").exists());
 
     let (output, json_opt) = fixture.run_json_opt(&["claude", "profile", "open", "--json"]);
+    assert_success(&output);
 
     // 文件必须在 ensure-exists 阶段创建（open 调用之前），与 open 是否成功无关
     assert!(
@@ -87,23 +87,18 @@ fn profile_open_creates_claude_file_when_missing() {
         "profiles.toml must be created before open is called"
     );
 
-    // 若 open 成功，验证 JSON 字段
-    if output.status.success() {
-        let json = json_opt.expect("expected valid JSON on success");
-        assert_eq!(json["ok"], true);
-        assert_eq!(json["platform"], "claude");
-        assert_eq!(json["created"], true);
-        assert_eq!(json["registered"], true);
-        assert!(
-            json["profiles_file"]
-                .as_str()
-                .unwrap()
-                .ends_with("profiles.toml")
-        );
-        assert_eq!(json["editor"], "system");
-    } else {
-        assert_success(&output);
-    }
+    let json = json_opt.expect("expected valid JSON on success");
+    assert_eq!(json["ok"], true);
+    assert_eq!(json["platform"], "claude");
+    assert_eq!(json["created"], true);
+    assert_eq!(json["registered"], true);
+    assert!(
+        json["profiles_file"]
+            .as_str()
+            .unwrap()
+            .ends_with("profiles.toml")
+    );
+    assert_eq!(json["editor"], "$EDITOR");
 }
 
 #[test]
@@ -145,6 +140,7 @@ fn profile_open_idempotent_does_not_overwrite_existing_file() {
     fs::write(&profiles_path, sentinel).unwrap();
 
     let (output, json_opt) = fixture.run_json_opt(&["grok", "profile", "open", "--json"]);
+    assert_success(&output);
 
     // 文件内容不得被覆盖
     assert_eq!(
@@ -153,12 +149,8 @@ fn profile_open_idempotent_does_not_overwrite_existing_file() {
         "existing file must not be overwritten"
     );
 
-    if output.status.success() {
-        let json = json_opt.expect("expected valid JSON");
-        assert_eq!(json["created"], false);
-    } else {
-        assert_success(&output);
-    }
+    let json = json_opt.expect("expected valid JSON");
+    assert_eq!(json["created"], false);
 }
 
 #[test]
@@ -166,17 +158,14 @@ fn profile_open_json_has_all_required_fields() {
     let fixture = ProfileOpenFixture::new();
 
     let (output, json_opt) = fixture.run_json_opt(&["claude", "profile", "open", "--json"]);
+    assert_success(&output);
 
-    if output.status.success() {
-        let json = json_opt.expect("expected valid JSON");
-        // 六个必需字段齐全
-        assert!(json.get("ok").is_some(), "missing ok");
-        assert!(json.get("platform").is_some(), "missing platform");
-        assert!(json.get("profiles_file").is_some(), "missing profiles_file");
-        assert!(json.get("created").is_some(), "missing created");
-        assert!(json.get("registered").is_some(), "missing registered");
-        assert!(json.get("editor").is_some(), "missing editor");
-    } else {
-        assert_success(&output);
-    }
+    let json = json_opt.expect("expected valid JSON");
+    // 六个必需字段齐全
+    assert!(json.get("ok").is_some(), "missing ok");
+    assert!(json.get("platform").is_some(), "missing platform");
+    assert!(json.get("profiles_file").is_some(), "missing profiles_file");
+    assert!(json.get("created").is_some(), "missing created");
+    assert!(json.get("registered").is_some(), "missing registered");
+    assert!(json.get("editor").is_some(), "missing editor");
 }
