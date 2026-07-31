@@ -9,6 +9,7 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::{Map, Value};
+use ccr_core::AtomicWriter;
 
 use crate::commands::claude_mcp_config::{
     ClaudeMcpDiagnostic, add_claude_mcp_server_default, delete_claude_mcp_server_default,
@@ -475,7 +476,7 @@ pub async fn unified_add_mcp_server(
                     .as_object_mut()
                     .ok_or("mcpServers is not an object")?
                     .insert(name.clone(), config);
-                write_json_config(&path, &cfg)?;
+                write_json_config(&path, &cfg, platform == "codex")?;
             }
             _ => return Err(format!("Unsupported platform: {platform}")),
         }
@@ -532,7 +533,7 @@ pub async fn unified_delete_mcp_server(
                 if removed.is_none() {
                     return Err(format!("MCP server '{name}' not found on {platform}"));
                 }
-                write_json_config(&path, &cfg)?;
+                write_json_config(&path, &cfg, platform == "codex")?;
             }
             _ => return Err(format!("Unsupported platform: {platform}")),
         }
@@ -569,11 +570,7 @@ fn read_json_config(path: &PathBuf) -> Result<Value, String> {
     serde_json::from_str(&content).map_err(|e| format!("Parse JSON: {e}"))
 }
 
-fn write_json_config(path: &PathBuf, config: &Value) -> Result<(), String> {
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).map_err(|e| format!("Create dir: {e}"))?;
-    }
-
+fn write_json_config(path: &PathBuf, config: &Value, secret: bool) -> Result<(), String> {
     let content = if path.extension().and_then(|e| e.to_str()) == Some("toml") {
         let toml_val: toml::Value =
             serde_json::from_value(config.clone()).map_err(|e| format!("Convert to TOML: {e}"))?;
@@ -582,8 +579,44 @@ fn write_json_config(path: &PathBuf, config: &Value) -> Result<(), String> {
         serde_json::to_string_pretty(config).map_err(|e| format!("Serialize JSON: {e}"))?
     };
 
-    let tmp = path.with_extension("tmp");
-    fs::write(&tmp, &content).map_err(|e| format!("Write temp file: {e}"))?;
-    fs::rename(&tmp, path).map_err(|e| format!("Rename config: {e}"))?;
-    Ok(())
+    AtomicWriter::new(path)
+        .secret(secret)
+        .write_string(&content)
+        .map_err(|e| format!("Write config: {e}"))
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn codex_toml_write_preserves_deepseek_fields() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let path = temp_dir.path().join("config.toml");
+        let config = serde_json::json!({
+            "model_catalog_json": "~/.codex/models.json",
+            "preferred_auth_method": "apikey",
+            "forced_login_method": "api",
+            "model_providers": {
+                "custom": {
+                    "experimental_bearer_token": "deepseek-secret"
+                }
+            },
+            "mcp_servers": {
+                "test": { "command": "example" }
+            }
+        });
+
+        write_json_config(&path, &config, true).unwrap();
+        let written = read_json_config(&path).unwrap();
+
+        assert_eq!(written["model_catalog_json"], "~/.codex/models.json");
+        assert_eq!(written["preferred_auth_method"], "apikey");
+        assert_eq!(written["forced_login_method"], "api");
+        assert_eq!(
+            written["model_providers"]["custom"]["experimental_bearer_token"],
+            "deepseek-secret"
+        );
+    }
 }

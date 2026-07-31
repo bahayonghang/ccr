@@ -19,8 +19,10 @@ use crate::services::{
 use ccr_config::CcsConfig;
 use ccr_config::PlatformConfigManager;
 use ccr_config::platforms::base;
+use ccr_core::Secret;
 use ccr_core::core::AtomicWriter;
 use ccr_core::core::error::{CcrError, Result};
+use ccr_core::core::logging::ColorOutput;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
@@ -59,6 +61,7 @@ enum RouteSelection {
 enum AuthSelection {
     EnsureChatgpt,
     WriteOpenAiApiKey(String),
+    WriteProviderBearerToken(Secret),
     ClearOpenAi,
 }
 
@@ -68,6 +71,8 @@ struct SwitchSpec {
     auth: Option<AuthSelection>,
     auth_mode: CodexProfileAuthMode,
     model: Option<String>,
+    model_catalog_json: Option<String>,
+    preferred_auth_method: Option<String>,
     approval_policy: Option<String>,
     sandbox_mode: Option<String>,
     reasoning_effort: Option<String>,
@@ -164,6 +169,7 @@ impl CodexPlatform {
             "openai_chatgpt" => Some(CodexProfileAuthMode::OpenAiChatgpt),
             "openai_api_key" => Some(CodexProfileAuthMode::OpenAiApiKey),
             "provider_env_key" => Some(CodexProfileAuthMode::ProviderEnvKey),
+            "provider_bearer_token" => Some(CodexProfileAuthMode::ProviderBearerToken),
             "no_auth" => Some(CodexProfileAuthMode::NoAuth),
             _ => None,
         }
@@ -327,6 +333,24 @@ impl CodexPlatform {
         }
     }
 
+    fn resolve_model_catalog_json(profile: &ProfileConfig) -> Option<String> {
+        Self::platform_string(profile, "model_catalog_json")
+    }
+
+    fn resolve_preferred_auth_method(profile: &ProfileConfig) -> Result<Option<String>> {
+        let Some(method) = Self::platform_string(profile, "preferred_auth_method") else {
+            return Ok(None);
+        };
+
+        let normalized = method.to_ascii_lowercase();
+        match normalized.as_str() {
+            "apikey" | "chatgpt" => Ok(Some(normalized)),
+            _ => Err(CcrError::ValidationError(format!(
+                "preferred_auth_method 必须为 apikey/chatgpt，当前值: {method}"
+            ))),
+        }
+    }
+
     fn resolve_provider_name(name: &str, profile: &ProfileConfig) -> String {
         profile
             .description
@@ -431,6 +455,25 @@ impl CodexPlatform {
                 Self::set_platform_string(profile, "openai_login_method", None);
                 Self::set_platform_string(profile, "forced_login_method", None);
                 Self::set_platform_bool(profile, "requires_openai_auth", Some(false));
+            }
+            CodexProfileAuthMode::ProviderBearerToken => {
+                let preferred_auth_method = Self::platform_string(profile, "preferred_auth_method")
+                    .unwrap_or_else(|| "apikey".to_string());
+                let forced_login_method = Self::platform_string(profile, "forced_login_method")
+                    .unwrap_or_else(|| "api".to_string());
+                Self::set_platform_string(
+                    profile,
+                    "preferred_auth_method",
+                    Some(&preferred_auth_method),
+                );
+                Self::set_platform_string(
+                    profile,
+                    "forced_login_method",
+                    Some(&forced_login_method),
+                );
+                Self::set_platform_string(profile, "openai_login_method", None);
+                Self::set_platform_bool(profile, "requires_openai_auth", Some(false));
+                Self::set_platform_string(profile, "env_key", None);
             }
             CodexProfileAuthMode::NoAuth => {
                 Self::set_platform_string(profile, "openai_login_method", None);
@@ -543,6 +586,14 @@ impl CodexPlatform {
             .and_then(|v| v.as_bool())
             .unwrap_or(false);
 
+        if provider
+            .get("experimental_bearer_token")
+            .and_then(toml::Value::as_str)
+            .is_some_and(|token| !token.trim().is_empty())
+        {
+            return AuthIntent::ProviderBearerToken;
+        }
+
         if requires_openai_auth {
             let forced = root
                 .get("forced_login_method")
@@ -620,8 +671,11 @@ impl CodexPlatform {
         config: &toml::Value,
         auth: &serde_json::Map<String, serde_json::Value>,
     ) -> AuthIntent {
-        Self::parse_auth_intent_from_auth_map(auth)
-            .unwrap_or_else(|| Self::parse_current_auth_intent(config))
+        let config_intent = Self::parse_current_auth_intent(config);
+        if matches!(config_intent, AuthIntent::ProviderBearerToken) {
+            return config_intent;
+        }
+        Self::parse_auth_intent_from_auth_map(auth).unwrap_or(config_intent)
     }
 
     fn is_provider_api_key_field(key: &str) -> bool {
@@ -672,7 +726,7 @@ impl CodexPlatform {
                     JsonValue::String(token.clone()),
                 );
             }
-            AuthSelection::ClearOpenAi => {
+            AuthSelection::WriteProviderBearerToken(_) | AuthSelection::ClearOpenAi => {
                 Self::remove_provider_keys(auth);
                 Self::remove_openai_tokens(auth);
                 Self::remove_openai_api_key(auth);
@@ -701,6 +755,36 @@ impl CodexPlatform {
             root.insert(key.to_string(), toml::Value::Boolean(value));
         } else {
             root.remove(key);
+        }
+    }
+
+    fn warn_if_model_catalog_missing(model_catalog_json: Option<&String>) {
+        let Some(raw_path) = model_catalog_json else {
+            return;
+        };
+        let path = if let Some(relative) = raw_path
+            .strip_prefix("~/")
+            .or_else(|| raw_path.strip_prefix("~\\"))
+        {
+            let Some(home) = dirs::home_dir() else {
+                return;
+            };
+            home.join(relative)
+        } else {
+            let path = PathBuf::from(raw_path);
+            if !path.is_absolute() {
+                return;
+            }
+            path
+        };
+
+        if !path.exists() {
+            let message = format!(
+                "Codex model catalog 不存在: {}；请先运行 DeepSeek 官方配置脚本生成 models.json",
+                path.display()
+            );
+            ColorOutput::warning(&message);
+            tracing::warn!("{}", message);
         }
     }
 
@@ -773,6 +857,14 @@ impl CodexPlatform {
                 })?;
                 Ok(Some(AuthSelection::WriteOpenAiApiKey(token)))
             }
+            CodexProfileAuthMode::ProviderBearerToken => {
+                let token = auth_token.ok_or_else(|| {
+                    CcrError::ValidationError("provider_bearer_token 模式需要 auth_token".into())
+                })?;
+                Ok(Some(AuthSelection::WriteProviderBearerToken(Secret::new(
+                    token,
+                ))))
+            }
             CodexProfileAuthMode::ProviderEnvKey | CodexProfileAuthMode::NoAuth => {
                 if matches!(current_auth_intent, AuthIntent::OpenAiAuth { .. }) {
                     Ok(Some(AuthSelection::ClearOpenAi))
@@ -790,6 +882,7 @@ impl CodexPlatform {
     ) -> Result<SwitchSpec> {
         let auth_token = Self::trimmed_secret(profile.auth_token.as_ref());
         let model = Self::trimmed(profile.model.as_ref());
+        let model_catalog_json = Self::resolve_model_catalog_json(profile);
         let approval_policy = Self::platform_string(profile, "approval_policy");
         let sandbox_mode = Self::platform_string(profile, "sandbox_mode");
         let reasoning_effort = Self::resolve_model_reasoning_effort(profile)?;
@@ -797,7 +890,16 @@ impl CodexPlatform {
         let disable_response_storage = Self::platform_bool(profile, "disable_response_storage");
         let explicit_credential_store = Self::resolve_credential_store_override(profile)?;
         let auth_mode = Self::resolve_profile_auth_mode(profile);
+        let preferred_auth_method = Self::resolve_preferred_auth_method(profile)?.or_else(|| {
+            matches!(auth_mode, CodexProfileAuthMode::ProviderBearerToken)
+                .then(|| "apikey".to_string())
+        });
         let (route, effective_auth_mode) = if Self::is_official_profile(profile) {
+            if matches!(auth_mode, CodexProfileAuthMode::ProviderBearerToken) {
+                return Err(CcrError::ValidationError(
+                    "官方 OpenAI profile 不支持 provider_bearer_token".into(),
+                ));
+            }
             let relay_base_url = Self::trimmed(profile.base_url.as_ref());
             (RouteSelection::Official { relay_base_url }, auth_mode)
         } else {
@@ -806,7 +908,11 @@ impl CodexPlatform {
             })?;
             let wire_api = Self::resolve_wire_api(profile)?;
             let mut requires_openai_auth = Self::resolve_requires_openai_auth(profile);
-            let env_key = Self::platform_string(profile, "env_key");
+            let mut env_key = Self::platform_string(profile, "env_key");
+            if matches!(auth_mode, CodexProfileAuthMode::ProviderBearerToken) {
+                requires_openai_auth = false;
+                env_key = None;
+            }
             if matches!(auth_mode, CodexProfileAuthMode::ProviderEnvKey)
                 && !env_key
                     .as_deref()
@@ -853,12 +959,16 @@ impl CodexPlatform {
 
         let auth =
             Self::resolve_auth_selection(effective_auth_mode, auth_token, current_auth_intent)?;
-        let forced_login_method = matches!(
-            effective_auth_mode,
-            CodexProfileAuthMode::OpenAiChatgpt | CodexProfileAuthMode::OpenAiApiKey
-        )
-        .then(|| Self::platform_string(profile, "forced_login_method"))
-        .flatten();
+        let forced_login_method = match effective_auth_mode {
+            CodexProfileAuthMode::OpenAiChatgpt | CodexProfileAuthMode::OpenAiApiKey => {
+                Self::platform_string(profile, "forced_login_method")
+            }
+            CodexProfileAuthMode::ProviderBearerToken => Some(
+                Self::platform_string(profile, "forced_login_method")
+                    .unwrap_or_else(|| "api".to_string()),
+            ),
+            CodexProfileAuthMode::ProviderEnvKey | CodexProfileAuthMode::NoAuth => None,
+        };
 
         // 未显式配置凭据存储时，仅 API key 模式需要强制 file 存储
         // （确保 CCR 写入的 auth.json 被 Codex 正确读取）
@@ -873,6 +983,8 @@ impl CodexPlatform {
             auth,
             auth_mode: effective_auth_mode,
             model,
+            model_catalog_json,
+            preferred_auth_method,
             approval_policy,
             sandbox_mode,
             reasoning_effort,
@@ -888,6 +1000,16 @@ impl CodexPlatform {
         spec: &SwitchSpec,
     ) -> Result<()> {
         Self::set_optional_root_string(root, "model", spec.model.as_ref());
+        Self::set_optional_root_string(
+            root,
+            "model_catalog_json",
+            spec.model_catalog_json.as_ref(),
+        );
+        Self::set_optional_root_string(
+            root,
+            "preferred_auth_method",
+            spec.preferred_auth_method.as_ref(),
+        );
         Self::set_optional_root_string(root, "approval_policy", spec.approval_policy.as_ref());
         Self::set_optional_root_string(root, "sandbox_mode", spec.sandbox_mode.as_ref());
         Self::set_optional_root_string(
@@ -979,6 +1101,12 @@ impl CodexPlatform {
                 if !requires_openai_auth && let Some(env_key) = env_key {
                     provider_table.insert("env_key".into(), toml::Value::String(env_key.clone()));
                 }
+                if let Some(AuthSelection::WriteProviderBearerToken(token)) = spec.auth.as_ref() {
+                    provider_table.insert(
+                        "experimental_bearer_token".into(),
+                        toml::Value::String(token.expose().to_string()),
+                    );
+                }
                 providers.insert(
                     THIRD_PARTY_RUNTIME_PROVIDER_KEY.to_string(),
                     toml::Value::Table(provider_table),
@@ -1055,7 +1183,9 @@ impl CodexPlatform {
         self.runtime_service.commit_plan(CodexRuntimeCommitPlan {
             config: Some(config),
             auth_cache,
-        })
+        })?;
+        Self::warn_if_model_catalog_missing(spec.model_catalog_json.as_ref());
+        Ok(())
     }
 
     fn capture_profile_entry_auth_state(&self) -> Result<()> {
@@ -1153,6 +1283,8 @@ impl CodexPlatform {
         let root = Self::ensure_toml_table(&mut config)?;
 
         root.remove("model");
+        root.remove("model_catalog_json");
+        root.remove("preferred_auth_method");
         root.remove("approval_policy");
         root.remove("sandbox_mode");
         root.remove("model_reasoning_effort");
@@ -1274,6 +1406,9 @@ impl CodexPlatform {
             CodexProfileAuthMode::ProviderEnvKey => Self::platform_string(profile, "env_key")
                 .map(|env_key| format!("provider:{env_key}"))
                 .unwrap_or_else(|| "provider".to_string()),
+            CodexProfileAuthMode::ProviderBearerToken => {
+                "config:experimental_bearer_token".to_string()
+            }
             CodexProfileAuthMode::NoAuth => "none".to_string(),
         }
     }
@@ -1453,6 +1588,7 @@ impl CodexPlatform {
                     spec,
                     secret.as_deref(),
                     credential_store,
+                    &config,
                     &auth,
                     &env_values,
                 );
@@ -1625,6 +1761,16 @@ impl CodexPlatform {
         }
 
         let common_matches = Self::root_string_matches(root, "model", spec.model.as_ref())
+            && Self::root_string_matches(
+                root,
+                "model_catalog_json",
+                spec.model_catalog_json.as_ref(),
+            )
+            && Self::root_string_matches(
+                root,
+                "preferred_auth_method",
+                spec.preferred_auth_method.as_ref(),
+            )
             && Self::root_string_matches(root, "approval_policy", spec.approval_policy.as_ref())
             && Self::root_string_matches(root, "sandbox_mode", spec.sandbox_mode.as_ref())
             && Self::root_string_matches(
@@ -1707,6 +1853,7 @@ impl CodexPlatform {
         spec: &SwitchSpec,
         expected_secret: Option<&str>,
         store: CredentialStoreKind,
+        config: &toml::Value,
         auth: &serde_json::Map<String, serde_json::Value>,
         env: &IndexMap<String, Option<String>>,
     ) -> (RuntimeMatchStatus, bool) {
@@ -1794,6 +1941,30 @@ impl CodexPlatform {
                     Some(_) => (RuntimeMatchStatus::Match, true),
                 }
             }
+            CodexProfileAuthMode::ProviderBearerToken => {
+                let Some(expected) = expected_secret else {
+                    return (RuntimeMatchStatus::Missing, false);
+                };
+                let provider = Self::current_custom_provider(config);
+                let actual = provider
+                    .as_ref()
+                    .and_then(|provider| provider.get("experimental_bearer_token"))
+                    .and_then(toml::Value::as_str)
+                    .map(str::trim)
+                    .filter(|value| !value.is_empty());
+                match actual {
+                    None => (RuntimeMatchStatus::Missing, true),
+                    Some(actual)
+                        if actual != expected.trim()
+                            || has_provider_key
+                            || has_openai_key
+                            || has_chatgpt_tokens =>
+                    {
+                        (RuntimeMatchStatus::Mismatch, true)
+                    }
+                    Some(_) => (RuntimeMatchStatus::Match, true),
+                }
+            }
             CodexProfileAuthMode::NoAuth => {
                 if has_provider_key {
                     (RuntimeMatchStatus::Mismatch, false)
@@ -1821,6 +1992,7 @@ impl CodexPlatform {
                     CodexRuntimeAuthSource::EnvironmentInvalid
                 }
             }
+            AuthIntent::ProviderBearerToken => CodexRuntimeAuthSource::ConfigBearerToken,
             AuthIntent::NoAuth => CodexRuntimeAuthSource::None,
             AuthIntent::OpenAiAuth { .. } => match store {
                 CredentialStoreKind::Keyring => CodexRuntimeAuthSource::KeyringUnreadable,
@@ -1850,6 +2022,16 @@ impl CodexPlatform {
         let Some(root) = config.as_table() else {
             return false;
         };
+
+        if !Self::root_string_matches(root, "model_catalog_json", spec.model_catalog_json.as_ref())
+            || !Self::root_string_matches(
+                root,
+                "preferred_auth_method",
+                spec.preferred_auth_method.as_ref(),
+            )
+        {
+            return false;
+        }
 
         match &spec.route {
             RouteSelection::Official { relay_base_url } => {
@@ -2138,13 +2320,27 @@ impl PlatformConfig for CodexPlatform {
                     ));
                 }
             }
+            CodexProfileAuthMode::ProviderBearerToken => {
+                if Self::trimmed_secret(profile.auth_token.as_ref()).is_none() {
+                    return Err(CcrError::ValidationError(
+                        "provider_bearer_token 模式需要 auth_token".into(),
+                    ));
+                }
+                if Self::trimmed(profile.base_url.as_ref()).is_none() {
+                    return Err(CcrError::ValidationError(
+                        "provider_bearer_token 模式需要 base_url".into(),
+                    ));
+                }
+            }
             CodexProfileAuthMode::OpenAiChatgpt | CodexProfileAuthMode::NoAuth => {}
         }
 
         if Self::is_official_profile(profile)
             && matches!(
                 auth_mode,
-                CodexProfileAuthMode::ProviderEnvKey | CodexProfileAuthMode::NoAuth
+                CodexProfileAuthMode::ProviderEnvKey
+                    | CodexProfileAuthMode::ProviderBearerToken
+                    | CodexProfileAuthMode::NoAuth
             )
         {
             return Err(CcrError::ValidationError(
@@ -2325,6 +2521,219 @@ mod tests {
             .platform_data
             .insert("wire_api".into(), json!("invalid"));
         assert!(platform.validate_profile(&custom_profile).is_err());
+    }
+
+    #[test]
+    fn deepseek_bearer_profile_roundtrip_is_idempotent_and_clearable() {
+        let env = TestCodexEnv::new();
+        write_file_store_config(env.codex_dir());
+        let platform = CodexPlatform::new().unwrap();
+        let bearer = "deepseek-test-secret";
+        let catalog = env.codex_dir().join("models.json");
+        std::fs::write(&catalog, "[]").unwrap();
+
+        let mut profile = ProfileConfig {
+            description: Some("DeepSeek".to_string()),
+            base_url: Some("https://api.deepseek.com/".to_string()),
+            auth_token: Some(Secret::from(bearer)),
+            model: Some("deepseek-v4-flash".to_string()),
+            provider: Some("deepseek".to_string()),
+            provider_type: Some("third_party".to_string()),
+            enabled: Some(true),
+            ..Default::default()
+        };
+        profile.platform_data.insert(
+            "auth_mode".into(),
+            JsonValue::String("provider_bearer_token".into()),
+        );
+        profile.platform_data.insert(
+            "model_catalog_json".into(),
+            JsonValue::String(catalog.display().to_string()),
+        );
+        profile.platform_data.insert(
+            "model_reasoning_effort".into(),
+            JsonValue::String("high".into()),
+        );
+
+        platform.save_profile("deepseek", &profile).unwrap();
+        let stored_profiles = std::fs::read_to_string(&platform.paths.profiles_file).unwrap();
+        assert!(!stored_profiles.contains(bearer));
+
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+
+            let secret_store_mode = std::fs::metadata(platform.runtime_service.secret_store_path())
+                .unwrap()
+                .permissions()
+                .mode()
+                & 0o777;
+            assert_eq!(secret_store_mode, 0o600);
+        }
+
+        platform.apply_profile("deepseek").unwrap();
+        let first = std::fs::read_to_string(platform.config_manager.config_path()).unwrap();
+        let config: toml::Value = toml::from_str(&first).unwrap();
+        let root = config.as_table().unwrap();
+        assert_eq!(
+            root.get("model").and_then(toml::Value::as_str),
+            Some("deepseek-v4-flash")
+        );
+        assert_eq!(
+            root.get("model_catalog_json").and_then(toml::Value::as_str),
+            Some(catalog.display().to_string().as_str())
+        );
+        assert_eq!(
+            root.get("preferred_auth_method")
+                .and_then(toml::Value::as_str),
+            Some("apikey")
+        );
+        assert_eq!(
+            root.get("forced_login_method")
+                .and_then(toml::Value::as_str),
+            Some("api")
+        );
+        let provider = CodexPlatform::current_custom_provider(&config).unwrap();
+        assert_eq!(
+            provider
+                .get("experimental_bearer_token")
+                .and_then(toml::Value::as_str),
+            Some(bearer)
+        );
+        assert_eq!(
+            provider
+                .get("requires_openai_auth")
+                .and_then(toml::Value::as_bool),
+            Some(false)
+        );
+        assert!(provider.get("env_key").is_none());
+        assert!(
+            !platform
+                .config_manager
+                .load_auth()
+                .unwrap()
+                .contains_key("OPENAI_API_KEY")
+        );
+
+        let diagnostic = platform.inspect_runtime().unwrap();
+        assert_eq!(diagnostic.route_status, RuntimeMatchStatus::Match);
+        assert_eq!(diagnostic.credential_status, RuntimeMatchStatus::Match);
+        assert_eq!(
+            diagnostic.auth_source,
+            CodexRuntimeAuthSource::ConfigBearerToken
+        );
+
+        platform.apply_profile("deepseek").unwrap();
+        let second = std::fs::read_to_string(platform.config_manager.config_path()).unwrap();
+        assert_eq!(first, second);
+
+        platform.clear_active_profile_runtime().unwrap();
+        let cleared = platform.config_manager.load_config().unwrap();
+        let root = cleared.as_table().unwrap();
+        assert!(root.get("model_catalog_json").is_none());
+        assert!(root.get("preferred_auth_method").is_none());
+        assert!(root.get("forced_login_method").is_none());
+        assert!(
+            CodexPlatform::current_custom_provider(&cleared)
+                .unwrap()
+                .get("experimental_bearer_token")
+                .is_none()
+        );
+    }
+
+    #[test]
+    fn runtime_diagnostic_repairs_deepseek_fields_without_exposing_bearer() {
+        const PROFILE_BEARER: &str = "deepseek-profile-bearer-must-not-leak";
+        const DRIFTED_BEARER: &str = "deepseek-drifted-bearer-must-not-leak";
+
+        let env = TestCodexEnv::new();
+        write_file_store_config(env.codex_dir());
+        let catalog = env.codex_dir().join("models.json");
+        std::fs::write(&catalog, "[]").unwrap();
+        let platform = CodexPlatform::new().unwrap();
+        let profile = runtime_deepseek_profile(PROFILE_BEARER, &catalog);
+
+        platform.save_profile("deepseek", &profile).unwrap();
+        platform.apply_profile("deepseek").unwrap();
+
+        let matched = platform.inspect_runtime_with_env(|_| None).unwrap();
+        assert_eq!(matched.runtime_consistency(), RuntimeMatchStatus::Match);
+        assert_diagnostic_excludes_secrets(&matched, &[PROFILE_BEARER, DRIFTED_BEARER]);
+
+        for (field, drifted_value) in [
+            ("model_catalog_json", "C:/missing/deepseek-models.json"),
+            ("preferred_auth_method", "chatgpt"),
+        ] {
+            let mut config = platform.config_manager.load_config().unwrap();
+            config
+                .as_table_mut()
+                .unwrap()
+                .insert(field.into(), toml::Value::String(drifted_value.into()));
+            platform.config_manager.save_config_atomic(&config).unwrap();
+
+            let drifted = platform.inspect_runtime_with_env(|_| None).unwrap();
+            assert_eq!(drifted.route_status, RuntimeMatchStatus::Mismatch);
+            assert_eq!(drifted.credential_status, RuntimeMatchStatus::Match);
+            assert!(drifted.repairable);
+            assert_diagnostic_excludes_secrets(&drifted, &[PROFILE_BEARER, DRIFTED_BEARER]);
+
+            platform
+                .repair_runtime_with_env(&drifted, |_| None)
+                .unwrap();
+            let repaired = platform.inspect_runtime_with_env(|_| None).unwrap();
+            assert_eq!(repaired.runtime_consistency(), RuntimeMatchStatus::Match);
+        }
+
+        let mut config = platform.config_manager.load_config().unwrap();
+        config
+            .as_table_mut()
+            .unwrap()
+            .get_mut("model_providers")
+            .and_then(toml::Value::as_table_mut)
+            .and_then(|providers| providers.get_mut(THIRD_PARTY_RUNTIME_PROVIDER_KEY))
+            .and_then(toml::Value::as_table_mut)
+            .unwrap()
+            .insert(
+                "experimental_bearer_token".into(),
+                toml::Value::String(DRIFTED_BEARER.into()),
+            );
+        platform.config_manager.save_config_atomic(&config).unwrap();
+
+        let drifted = platform.inspect_runtime_with_env(|_| None).unwrap();
+        assert_eq!(drifted.route_status, RuntimeMatchStatus::Match);
+        assert_eq!(drifted.credential_status, RuntimeMatchStatus::Mismatch);
+        assert!(drifted.repairable);
+        assert_diagnostic_excludes_secrets(&drifted, &[PROFILE_BEARER, DRIFTED_BEARER]);
+
+        platform
+            .repair_runtime_with_env(&drifted, |_| None)
+            .unwrap();
+        let repaired = platform.inspect_runtime_with_env(|_| None).unwrap();
+        assert_eq!(repaired.runtime_consistency(), RuntimeMatchStatus::Match);
+        assert_diagnostic_excludes_secrets(&repaired, &[PROFILE_BEARER, DRIFTED_BEARER]);
+    }
+
+    #[test]
+    fn provider_bearer_mode_validates_preferred_auth_method() {
+        let _env = TestCodexEnv::new();
+        let platform = CodexPlatform::new().unwrap();
+        let mut profile = ProfileConfig {
+            base_url: Some("https://api.deepseek.com/".into()),
+            auth_token: Some(Secret::from("test-secret")),
+            provider_type: Some("third_party".into()),
+            ..Default::default()
+        };
+        profile.platform_data.insert(
+            "auth_mode".into(),
+            JsonValue::String("provider_bearer_token".into()),
+        );
+        profile.platform_data.insert(
+            "preferred_auth_method".into(),
+            JsonValue::String("invalid".into()),
+        );
+
+        let error = platform.validate_profile(&profile).unwrap_err();
+        assert!(error.to_string().contains("preferred_auth_method"));
     }
 
     #[test]
@@ -3990,5 +4399,41 @@ env_key = "MISTRAL_API_KEY"
             .platform_data
             .insert("auth_mode".into(), json!("openai_api_key"));
         profile
+    }
+
+    fn runtime_deepseek_profile(secret: &str, catalog: &Path) -> ProfileConfig {
+        let mut profile = ProfileConfig {
+            description: Some("DeepSeek".to_string()),
+            base_url: Some("https://api.deepseek.com/".to_string()),
+            auth_token: Some(Secret::from(secret)),
+            model: Some("deepseek-v4-flash".to_string()),
+            provider: Some("deepseek".to_string()),
+            provider_type: Some("third_party_model".to_string()),
+            enabled: Some(true),
+            ..Default::default()
+        };
+        profile
+            .platform_data
+            .insert("wire_api".into(), json!("responses"));
+        profile
+            .platform_data
+            .insert("auth_mode".into(), json!("provider_bearer_token"));
+        profile.platform_data.insert(
+            "model_catalog_json".into(),
+            json!(catalog.display().to_string()),
+        );
+        profile
+            .platform_data
+            .insert("model_reasoning_effort".into(), json!("high"));
+        profile
+    }
+
+    fn assert_diagnostic_excludes_secrets(diagnostic: &CodexRuntimeDiagnostic, secrets: &[&str]) {
+        let serialized = serde_json::to_string(diagnostic).unwrap();
+        let debug = format!("{diagnostic:?}");
+        for secret in secrets {
+            assert!(!serialized.contains(secret));
+            assert!(!debug.contains(secret));
+        }
     }
 }

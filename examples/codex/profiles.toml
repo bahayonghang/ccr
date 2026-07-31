@@ -37,6 +37,25 @@ enabled = true
 
 
 # ═══════════════════════════════════════════════════════════════
+# DeepSeek Responses API
+# <DEEPSEEK_API_KEY> 仅为占位符。请在 ccr-ui 中替换它；保存后真实密钥由
+# runtime secret store 单独托管，不会留在 profiles.toml。
+# ═══════════════════════════════════════════════════════════════
+[deepseek]
+description = "DeepSeek Responses API"
+base_url = "https://api.deepseek.com/"
+auth_token = "<DEEPSEEK_API_KEY>"
+model = "deepseek-v4-flash"
+provider = "deepseek"
+provider_type = "third_party_model"
+wire_api = "responses"
+auth_mode = "provider_bearer_token"
+model_catalog_json = "~/.codex/models.json"
+model_reasoning_effort = "high"
+enabled = true
+
+
+# ═══════════════════════════════════════════════════════════════
 # 自定义中转站模板
 # ═══════════════════════════════════════════════════════════════
 # [custom]

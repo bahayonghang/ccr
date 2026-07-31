@@ -49,6 +49,7 @@ impl ProviderAuthValidity {
 pub enum CodexRuntimeAuthSource {
     AuthJsonOpenAiApiKey,
     AuthJsonChatgptTokens,
+    ConfigBearerToken,
     Environment { variable: String },
     EnvironmentInvalid,
     KeyringUnreadable,
@@ -61,6 +62,7 @@ impl CodexRuntimeAuthSource {
         match self {
             Self::AuthJsonOpenAiApiKey => "auth_json:OPENAI_API_KEY".to_string(),
             Self::AuthJsonChatgptTokens => "auth_json:tokens".to_string(),
+            Self::ConfigBearerToken => "config:experimental_bearer_token".to_string(),
             Self::Environment { variable } => format!("env:{variable}"),
             Self::EnvironmentInvalid => "env:invalid_name".to_string(),
             Self::KeyringUnreadable => "keyring:unreadable".to_string(),

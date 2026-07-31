@@ -104,6 +104,7 @@ import CodexProfileEditorModal from '@/components/codex/CodexProfileEditorModal.
 import {
   buildCodexProfileModelCatalog,
   buildCodexProfileRequest,
+  codexProfileToEditorForm,
   createCodexProfileEditorForm,
   CUSTOM_MODEL_OPTION,
   REASONING_EFFORT_OPTIONS,
@@ -154,6 +155,9 @@ const i18n = createI18n({
             placeholder: 'Choose a Codex provider template',
           },
           reasoningEffortHint: 'Reasoning hint',
+          modelCatalogJsonHint: 'Model catalog hint',
+          bearerAdvanced: 'Advanced overrides',
+          bearerDerivedDefault: 'Default ({value})',
           enabledHint: 'Enabled hint',
           deprecatedAuthModeHint: 'Deprecated {mode}',
           sections: {
@@ -178,11 +182,14 @@ const i18n = createI18n({
             description: 'Description',
             authMode: 'Auth Mode',
             openAiLoginMethod: 'OpenAI Login Method',
+            preferredAuthMethod: 'Preferred Auth Method',
+            forcedLoginMethod: 'Forced Login Method',
             baseUrl: 'Base URL',
             authToken: 'Auth Token',
             envKey: 'Env Key',
             model: 'Model',
             reasoningEffort: 'Reasoning Effort',
+            modelCatalogJson: 'Model Catalog JSON',
             wireApi: 'Wire API',
             provider: 'Provider',
             providerType: 'Provider Type',
@@ -197,6 +204,7 @@ const i18n = createI18n({
             envKey: 'EXAMPLE_KEY',
             customModel: 'custom-model',
             wireApi: 'responses',
+            modelCatalogJson: '~/.codex/models.json',
             provider: 'provider',
             providerType: 'provider-type',
             tags: 'free, stable',
@@ -267,7 +275,7 @@ const mountModal = async (
             updateField: (field: keyof CodexProfileEditorForm, value: string | boolean) => {
               state[field] = value as never
             },
-            availableAuthModeOptions: ['openai_api_key', 'no_auth'],
+            availableAuthModeOptions: ['openai_api_key', 'provider_bearer_token', 'no_auth'],
             modelCatalog: options.modelCatalog ?? modelPresets,
             currentModelOption: options.currentModelOption,
             selectedModelOption: options.selectedModelOption ?? modelPresets[0],
@@ -373,6 +381,39 @@ describe('codex profile editor helpers', () => {
       const request = buildCodexProfileRequest({ ...envKeyForm, auth_mode: authMode }, 'gpt-5.4')
       expect(request.env_key).toBeNull()
     }
+  })
+
+  it('round-trips bearer fields and derives official defaults', () => {
+    const form = codexProfileToEditorForm({
+      name: 'deepseek',
+      auth_mode: 'provider_bearer_token',
+      model_catalog_json: '~/.codex/models.json',
+      preferred_auth_method: 'chatgpt',
+      forced_login_method: 'chatgpt',
+    })
+
+    expect(form.auth_mode).toBe('provider_bearer_token')
+    expect(form.model_catalog_json).toBe('~/.codex/models.json')
+    expect(form.preferred_auth_method).toBe('chatgpt')
+    expect(form.forced_login_method).toBe('chatgpt')
+
+    const explicit = buildCodexProfileRequest(form, 'deepseek-v4-flash')
+    expect(explicit.preferred_auth_method).toBe('chatgpt')
+    expect(explicit.forced_login_method).toBe('chatgpt')
+
+    const derived = buildCodexProfileRequest(
+      { ...form, preferred_auth_method: '', forced_login_method: '' },
+      'deepseek-v4-flash'
+    )
+    expect(derived.preferred_auth_method).toBe('apikey')
+    expect(derived.forced_login_method).toBe('api')
+
+    const switched = buildCodexProfileRequest(
+      { ...form, auth_mode: 'no_auth' },
+      'deepseek-v4-flash'
+    )
+    expect(switched.preferred_auth_method).toBeNull()
+    expect(switched.forced_login_method).toBeNull()
   })
 })
 
@@ -508,6 +549,35 @@ describe('CodexProfileEditorModal smoke', () => {
       )
 
       expect(values).toEqual(['', ...REASONING_EFFORT_OPTIONS])
+    } finally {
+      unmount()
+    }
+  })
+
+  it('shows bearer defaults and the model catalog path', async () => {
+    const form: CodexProfileEditorForm = {
+      ...createForm(),
+      auth_mode: 'provider_bearer_token',
+      model_catalog_json: '~/.codex/models.json',
+      preferred_auth_method: '',
+      forced_login_method: '',
+    }
+    const { el, unmount } = await mountModal(form)
+
+    try {
+      const derived = el.querySelector('[data-testid="codex-bearer-derived-settings"]')
+      expect(derived?.textContent).toContain('Preferred Auth Method: apikey')
+      expect(derived?.textContent).toContain('Forced Login Method: api')
+      expect(
+        el.querySelector<HTMLInputElement>('[data-testid="codex-model-catalog-json-input"]')?.value
+      ).toBe('~/.codex/models.json')
+
+      el.querySelector<HTMLButtonElement>('[data-testid="codex-bearer-advanced-toggle"]')
+        ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await nextTick()
+
+      expect(el.querySelector('#codex-profile-preferred-auth-method')).not.toBeNull()
+      expect(el.querySelector('#codex-profile-forced-login-method')).not.toBeNull()
     } finally {
       unmount()
     }

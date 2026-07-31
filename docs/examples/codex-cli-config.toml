@@ -1,19 +1,18 @@
-# Codex CLI config.toml 示例（第三方 OpenAI 兼容 Provider）
-# 复制到: ~/.codex/config.toml
-# 参考: docs/reference/platforms/codex.md
+# Codex CLI config.toml 示例（DeepSeek Responses API）
+# CCR 切换 provider_bearer_token profile 后会生成等价配置。
+# 要求 Codex >= 0.144.0，并先按 DeepSeek 官方说明生成 models.json。
+# 替换占位密钥后，本文件及其备份都包含明文凭据，请勿提交或分享。
 
-model_provider = "duckcoding"
-model = "gpt-5-codex"
-# 允许值: minimal | low | medium | high | xhigh
+model = "deepseek-v4-flash"
+model_provider = "custom"
+preferred_auth_method = "apikey"
+forced_login_method = "api"
 model_reasoning_effort = "high"
-approval_policy = "on-request"
-sandbox_mode = "workspace-write"
-network_access = "enabled"
-disable_response_storage = true
+model_catalog_json = "~/.codex/models.json"
 
-[model_providers.duckcoding]
-name = "DuckCoding OpenAI compatible"
-base_url = "https://jp.duckcoding.com/v1"
+[model_providers.custom]
+name = "DeepSeek"
+base_url = "https://api.deepseek.com/"
 wire_api = "responses"
 requires_openai_auth = false
-env_key = "DUCKCODING_API_KEY"
+experimental_bearer_token = "<DEEPSEEK_API_KEY>"

@@ -355,6 +355,90 @@
                 {{ $t('codex.profiles.envKeyHint') }}
               </p>
             </div>
+
+            <div
+              v-if="isBearerAuthMode"
+              class="pe-panel-muted space-y-3 p-3"
+              data-testid="codex-bearer-derived-settings"
+            >
+              <div class="flex flex-wrap items-center justify-between gap-3">
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="pe-tag rounded-full px-2.5 py-0.5 text-xs">
+                    {{ $t('codex.profiles.fields.preferredAuthMethod') }}: {{ effectivePreferredAuthMethod }}
+                  </span>
+                  <span class="pe-tag rounded-full px-2.5 py-0.5 text-xs">
+                    {{ $t('codex.profiles.fields.forcedLoginMethod') }}: {{ effectiveForcedLoginMethod }}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  class="pe-btn"
+                  data-testid="codex-bearer-advanced-toggle"
+                  @click="showBearerAdvanced = !showBearerAdvanced"
+                >
+                  <SIcon
+                    name="SlidersHorizontal"
+                    size="w-3.5 h-3.5"
+                  />
+                  {{ $t('codex.profiles.bearerAdvanced') }}
+                </button>
+              </div>
+
+              <div
+                v-if="showBearerAdvanced"
+                class="grid grid-cols-1 gap-4 md:grid-cols-2"
+              >
+                <div class="pe-field">
+                  <label
+                    for="codex-profile-preferred-auth-method"
+                    class="pe-field__label"
+                  >
+                    {{ $t('codex.profiles.fields.preferredAuthMethod') }}
+                  </label>
+                  <select
+                    id="codex-profile-preferred-auth-method"
+                    :value="form.preferred_auth_method"
+                    class="pe-select"
+                    @change="updateSelectField('preferred_auth_method', $event)"
+                  >
+                    <option value="">
+                      {{ $t('codex.profiles.bearerDerivedDefault', { value: DEFAULT_PREFERRED_AUTH_METHOD }) }}
+                    </option>
+                    <option :value="DEFAULT_PREFERRED_AUTH_METHOD">
+                      {{ DEFAULT_PREFERRED_AUTH_METHOD }}
+                    </option>
+                    <option :value="CHATGPT_AUTH_METHOD">
+                      {{ CHATGPT_AUTH_METHOD }}
+                    </option>
+                  </select>
+                </div>
+
+                <div class="pe-field">
+                  <label
+                    for="codex-profile-forced-login-method"
+                    class="pe-field__label"
+                  >
+                    {{ $t('codex.profiles.fields.forcedLoginMethod') }}
+                  </label>
+                  <select
+                    id="codex-profile-forced-login-method"
+                    :value="form.forced_login_method"
+                    class="pe-select"
+                    @change="updateSelectField('forced_login_method', $event)"
+                  >
+                    <option value="">
+                      {{ $t('codex.profiles.bearerDerivedDefault', { value: DEFAULT_FORCED_LOGIN_METHOD }) }}
+                    </option>
+                    <option :value="DEFAULT_FORCED_LOGIN_METHOD">
+                      {{ DEFAULT_FORCED_LOGIN_METHOD }}
+                    </option>
+                    <option :value="CHATGPT_AUTH_METHOD">
+                      {{ CHATGPT_AUTH_METHOD }}
+                    </option>
+                  </select>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -466,6 +550,27 @@
                 :placeholder="$t('codex.profiles.placeholders.wireApi')"
                 @input="updateTextField('wire_api', $event)"
               >
+            </div>
+
+            <div class="pe-field">
+              <label
+                for="codex-profile-model-catalog-json"
+                class="pe-field__label"
+              >
+                {{ $t('codex.profiles.fields.modelCatalogJson') }}
+              </label>
+              <input
+                id="codex-profile-model-catalog-json"
+                :value="form.model_catalog_json"
+                data-testid="codex-model-catalog-json-input"
+                type="text"
+                class="pe-input pe-input--mono"
+                :placeholder="$t('codex.profiles.placeholders.modelCatalogJson')"
+                @input="updateTextField('model_catalog_json', $event)"
+              >
+              <p class="pe-field__hint">
+                {{ $t('codex.profiles.modelCatalogJsonHint') }}
+              </p>
             </div>
           </div>
         </section>
@@ -665,7 +770,12 @@ const emit = defineEmits<{
 const { t } = useI18n()
 const uiStore = useUIStore()
 
+const DEFAULT_PREFERRED_AUTH_METHOD = 'apikey'
+const DEFAULT_FORCED_LOGIN_METHOD = 'api'
+const CHATGPT_AUTH_METHOD = 'chatgpt'
+
 const showToken = ref(false)
+const showBearerAdvanced = ref(false)
 const scrollRef = ref<HTMLElement | null>(null)
 const identityRef = ref<HTMLElement | null>(null)
 const authRef = ref<HTMLElement | null>(null)
@@ -673,6 +783,13 @@ const runtimeRef = ref<HTMLElement | null>(null)
 const metadataRef = ref<HTMLElement | null>(null)
 
 const isEditing = computed(() => Boolean(props.editingName))
+const isBearerAuthMode = computed(() => props.form.auth_mode === 'provider_bearer_token')
+const effectivePreferredAuthMethod = computed(
+  () => props.form.preferred_auth_method.trim() || DEFAULT_PREFERRED_AUTH_METHOD,
+)
+const effectiveForcedLoginMethod = computed(
+  () => props.form.forced_login_method.trim() || DEFAULT_FORCED_LOGIN_METHOD,
+)
 
 const sectionItems = computed<SectionItem[]>(() => ([
   { id: 'identity', title: t('codex.profiles.sections.identity') },
@@ -824,6 +941,7 @@ const copyToken = async () => {
 
 watch(() => props.modelValue, (isOpen) => {
   showToken.value = false
+  showBearerAdvanced.value = false
   showValidation.value = false
   if (!isOpen) return
 

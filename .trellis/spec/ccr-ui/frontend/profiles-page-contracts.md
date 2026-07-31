@@ -35,8 +35,11 @@ export interface CodexProfileEditorForm {
   enabled: boolean
   wire_api: string
   env_key: string
-  auth_mode: CodexProfileAuthMode // 'openai_chatgpt' | 'openai_api_key' | 'provider_env_key' | 'no_auth'
+  auth_mode: CodexProfileAuthMode // also includes 'provider_bearer_token'
   model_reasoning_effort: string
+  model_catalog_json: string
+  preferred_auth_method: string
+  forced_login_method: string
 }
 
 export const buildCodexProfileRequest: (
@@ -58,6 +61,9 @@ export const buildCodexProfileRequest: (
 | `requires_openai_auth` | `usesOpenAiAuthMode(auth_mode)` | `openai_chatgpt` / `openai_api_key` → `true`；其余 → `false` |
 | `openai_login_method` | `authModeToLoginMethod(auth_mode) ?? null` | `openai_chatgpt` → `'chatgpt'`；`openai_api_key` → `'api'`；其余 → `null` |
 | `env_key` | 仅 `auth_mode === 'provider_env_key'` 时 `normalizeOptionalText(form.env_key)` | 其余模式恒为 `null` |
+| `model_catalog_json` | `normalizeOptionalText(form.model_catalog_json)` | 与 auth mode 独立；空值为 `null` |
+| `preferred_auth_method` | bearer 模式下显式值或 `'apikey'` | 离开 bearer 模式后为 `null` |
+| `forced_login_method` | bearer 模式下显式值或 `'api'` | 离开 bearer 模式后为 `null` |
 
 `env_key` 条件序列化是**表单侧唯一必须显式清理的字段**：表单在模式切走后仍保留旧值（用户切回来不丢输入），但请求里不能带。
 
@@ -73,16 +79,22 @@ export const buildCodexProfileRequest: (
 | `requiresEnvKey && !form.env_key.trim()` | `auth` | `codex.profiles.validation.envKeyRequired` |
 | `!resolvedModel.trim()` | `runtime` | `codex.profiles.validation.modelRequired` |
 
-其中 `requiresBaseUrl = !usesOpenAiAuthMode(auth_mode)`、`requiresSecret = auth_mode === 'openai_api_key'`、
+其中 `requiresBaseUrl = !usesOpenAiAuthMode(auth_mode)`、`requiresSecret` 覆盖 `openai_api_key` / `provider_env_key` / `provider_bearer_token`、
 `requiresEnvKey = auth_mode === 'provider_env_key'`。校验未通过时 `save` 事件不发出。
+
+bearer 派生字段在普通状态只显示有效值，高级入口允许显式选择；模板应用不得修改
+`auth_token`、`auth_mode` 或这些认证派生字段。`model_catalog_json` 是独立运行时字段，切换
+auth mode 时不自动清空。
 
 后端侧独立校验：`provider_env_key` 模式缺少合法变量名 → `"provider_env_key 模式需要合法的 env_key 变量名"`。
 
 ### 5. Good / Base / Bad Cases
 
 - **Good**：`auth_mode: 'provider_env_key'` + `env_key: 'MISTRAL_API_KEY'` → 请求带 `env_key: 'MISTRAL_API_KEY'`、`requires_openai_auth: false`、`openai_login_method: null`。
+- **Good**：`auth_mode: 'provider_bearer_token'` + 空高级覆盖 → 请求带 `preferred_auth_method: 'apikey'`、`forced_login_method: 'api'`，且模板不提供 token。
 - **Base**：`auth_mode: 'no_auth'`，表单里 `env_key` 为空 → 请求 `env_key: null`。
 - **Bad**：用户先选 `provider_env_key` 填了 `env_key`，再切到 `no_auth` 保存 → 请求**不得**带上残留的 `env_key`。
+- **Bad**：用户从 bearer 切到其他 auth mode 后，请求仍携带 bearer 派生字段。
 
 ### 6. Tests Required
 
@@ -90,6 +102,8 @@ export const buildCodexProfileRequest: (
 
 - `serializes env_key only in provider_env_key mode`：断言 `provider_env_key` 下透传，切到 `openai_api_key` / `no_auth` / `openai_chatgpt` 后 `env_key === null`。
 - `derives the OpenAI auth flags from auth_mode instead of stored form state`：断言 `requires_openai_auth` / `openai_login_method` 随 `auth_mode` 变化。
+- bearer 往返：断言新 auth mode 不回落、`model_catalog_json` 保留、默认值派生、显式覆盖保留、切离 bearer 后派生字段清空。
+- Provider 模板：断言 DeepSeek 模板只填非密 endpoint/model，不包含 `auth_token` 或其他凭据字段。
 - `blocks save behind a validation summary until the model is resolved`：断言 `resolvedModel: ''` 时不发 `save`，且 `.pe-summary` 出现对应文案。
 
 ### 7. Wrong vs Correct

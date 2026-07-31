@@ -6,13 +6,13 @@ use crate::models::{
     CodexProfileAuthMode, CodexProfileSecret, CodexProfileSecretStore, CredentialStoreKind,
     Platform, PlatformPaths, ProfileConfig,
 };
+use ccr_core::core::AtomicWriter;
 use ccr_core::core::error::{CcrError, Result};
 use chrono::Utc;
 use indexmap::IndexMap;
 use serde_json::{Map as JsonMap, Value as JsonValue};
 use std::fs;
 use std::path::{Path, PathBuf};
-use tempfile::NamedTempFile;
 
 #[derive(Debug, Clone)]
 pub enum CodexAuthCacheAction {
@@ -101,7 +101,9 @@ impl CodexRuntimeService {
 
             if matches!(
                 secret.auth_mode,
-                CodexProfileAuthMode::OpenAiApiKey | CodexProfileAuthMode::ProviderEnvKey
+                CodexProfileAuthMode::OpenAiApiKey
+                    | CodexProfileAuthMode::ProviderEnvKey
+                    | CodexProfileAuthMode::ProviderBearerToken
             ) {
                 profile.auth_token = Some(ccr_core::Secret::new(secret.secret.clone()));
             }
@@ -128,7 +130,9 @@ impl CodexRuntimeService {
         let mut store = self.load_secret_store()?;
 
         match auth_mode {
-            CodexProfileAuthMode::OpenAiApiKey | CodexProfileAuthMode::ProviderEnvKey => {
+            CodexProfileAuthMode::OpenAiApiKey
+            | CodexProfileAuthMode::ProviderEnvKey
+            | CodexProfileAuthMode::ProviderBearerToken => {
                 let secret = secret.ok_or_else(|| {
                     CcrError::ValidationError("当前认证模式需要 auth_token / secret".into())
                 })?;
@@ -183,7 +187,9 @@ impl CodexRuntimeService {
                     })?;
                 env.insert(key, secret.secret.clone());
             }
-            CodexProfileAuthMode::OpenAiChatgpt | CodexProfileAuthMode::NoAuth => {}
+            CodexProfileAuthMode::ProviderBearerToken
+            | CodexProfileAuthMode::OpenAiChatgpt
+            | CodexProfileAuthMode::NoAuth => {}
         }
 
         Ok(env)
@@ -210,7 +216,9 @@ impl CodexRuntimeService {
     ) {
         if matches!(
             auth_mode,
-            CodexProfileAuthMode::OpenAiApiKey | CodexProfileAuthMode::ProviderEnvKey
+            CodexProfileAuthMode::OpenAiApiKey
+                | CodexProfileAuthMode::ProviderEnvKey
+                | CodexProfileAuthMode::ProviderBearerToken
         ) {
             profile.auth_token = None;
         }
@@ -315,11 +323,6 @@ impl CodexRuntimeService {
 
     fn save_secret_store(&self, store: &CodexProfileSecretStore) -> Result<()> {
         let path = self.secret_store_path();
-        if let Some(parent) = path.parent() {
-            fs::create_dir_all(parent)
-                .map_err(|e| CcrError::ConfigError(format!("创建 secret store 目录失败: {}", e)))?;
-        }
-
         if store.profiles.is_empty() {
             remove_if_exists(&path)?;
             return Ok(());
@@ -327,7 +330,9 @@ impl CodexRuntimeService {
 
         let content = serde_json::to_string_pretty(store)
             .map_err(|e| CcrError::ConfigError(format!("序列化 secret store 失败: {}", e)))?;
-        atomic_write(&path, content.as_bytes())
+        AtomicWriter::new(&path)
+            .secret(true)
+            .write(content.as_bytes())
     }
 
     #[allow(dead_code)]
@@ -342,25 +347,6 @@ fn detect_auth_store(config: &toml::Value) -> CredentialStoreKind {
         .and_then(|t| t.get("cli_auth_credentials_store"))
         .and_then(|v| v.as_str());
     CredentialStoreKind::from_config_value(store)
-}
-
-fn atomic_write(path: &Path, data: &[u8]) -> Result<()> {
-    let parent = path
-        .parent()
-        .ok_or_else(|| CcrError::ConfigError("无效的目标路径".into()))?;
-    fs::create_dir_all(parent)
-        .map_err(|e| CcrError::ConfigError(format!("创建目录失败: {}", e)))?;
-
-    let temp = NamedTempFile::new_in(parent)
-        .map_err(|e| CcrError::ConfigError(format!("创建临时文件失败: {}", e)))?;
-    fs::write(temp.path(), data)
-        .map_err(|e| CcrError::ConfigError(format!("写入临时文件失败: {}", e)))?;
-    temp.persist(path)
-        .map_err(|e| CcrError::ConfigError(format!("原子写入失败: {}", e)))?;
-
-    crate::utils::ensure_private_permissions(path);
-
-    Ok(())
 }
 
 fn remove_if_exists(path: &Path) -> Result<()> {

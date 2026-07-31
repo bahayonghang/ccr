@@ -24,6 +24,7 @@ const ALL_AUTH_MODES: readonly CodexProfileAuthMode[] = [
   'openai_chatgpt',
   'openai_api_key',
   'provider_env_key',
+  'provider_bearer_token',
   'no_auth',
 ]
 

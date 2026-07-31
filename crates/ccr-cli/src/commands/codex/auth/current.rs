@@ -237,6 +237,7 @@ fn render_intent(intent: &AuthIntent) -> String {
             crate::models::OpenAiAuthMethod::Api => "OpenAI / API Key".to_string(),
         },
         AuthIntent::ProviderEnvKey { env_key } => format!("Provider / {env_key}"),
+        AuthIntent::ProviderBearerToken => "Provider / Bearer Token".to_string(),
         AuthIntent::NoAuth => "No Auth".to_string(),
     }
 }

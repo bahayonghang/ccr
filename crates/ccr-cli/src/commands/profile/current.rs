@@ -561,14 +561,40 @@ fn render_auth_source(auth_state: &AuthState, profile: &crate::models::ProfileCo
             OpenAiAuthMethod::Api => "openai_api_key".to_string(),
         },
         AuthIntent::ProviderEnvKey { env_key } => format!("provider:{env_key}"),
-        AuthIntent::NoAuth => {
-            if ccr_codex::CodexPlatform::profile_auth_mode(profile)
-                == crate::models::CodexProfileAuthMode::ProviderEnvKey
-            {
+        AuthIntent::ProviderBearerToken => "config:experimental_bearer_token".to_string(),
+        AuthIntent::NoAuth => match ccr_codex::CodexPlatform::profile_auth_mode(profile) {
+            crate::models::CodexProfileAuthMode::ProviderEnvKey
+            | crate::models::CodexProfileAuthMode::ProviderBearerToken => {
                 ccr_codex::CodexPlatform::profile_auth_source(profile)
-            } else {
-                "none".to_string()
             }
-        }
+            _ => "none".to_string(),
+        },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::{CodexProfileAuthMode, CredentialStoreKind, ProfileConfig};
+    use serde_json::json;
+
+    #[test]
+    fn render_auth_source_uses_profile_bearer_source_when_auth_json_is_empty() {
+        let auth_state = AuthState {
+            intent: AuthIntent::NoAuth,
+            store: CredentialStoreKind::File,
+            status: AuthStateStatus::Missing,
+            reason: "auth.json not found".to_string(),
+        };
+        let mut profile = ProfileConfig::new();
+        profile.platform_data.insert(
+            "auth_mode".to_string(),
+            json!(CodexProfileAuthMode::ProviderBearerToken.as_str()),
+        );
+
+        assert_eq!(
+            render_auth_source(&auth_state, &profile),
+            "config:experimental_bearer_token"
+        );
     }
 }

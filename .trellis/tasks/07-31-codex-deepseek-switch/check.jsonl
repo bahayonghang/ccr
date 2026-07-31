@@ -1,0 +1,10 @@
+{"file": ".trellis/tasks/07-31-codex-deepseek-switch/research/deepseek-codex-requirements.md", "reason": "验收对照的上游要求与官方 config.toml 样例"}
+{"file": ".trellis/tasks/07-31-codex-deepseek-switch/research/review-verification-rev2.md", "reason": "核对实现是否落实 7 项审阅处置（明文边界/写入契约/不变量/修复命令）"}
+{"file": ".trellis/spec/ccr-codex/backend/backend-guidelines.md", "reason": "检查 auth 安全/脱敏/原子写红线是否守住"}
+{"file": ".trellis/spec/ccr-codex/backend/test-fixtures.md", "reason": "核对测试是否按夹具约定编写、避免并发脏环境"}
+{"file": ".trellis/spec/ccr-codex/backend/codex-app-server-cleanup.md", "reason": "核对 fix/doctor 契约未被诊断链路改动破坏"}
+{"file": ".trellis/spec/ccr-core/backend/atomic-writer.md", "reason": "核对四个写入点全部满足 secret 权限先于内容契约"}
+{"file": ".trellis/spec/ccr-ui/frontend/provider-template-contracts.md", "reason": "核对模板无密钥、编辑器映射与 smoke 覆盖符合契约"}
+{"file": ".trellis/spec/ccr-ui/frontend/profiles-page-contracts.md", "reason": "核对 Profiles 页面契约在新字段/新模式下不回归"}
+{"file": ".trellis/spec/ccr-ui/frontend/raw-config-editor-contracts.md", "reason": "核对 Raw Source 通道行为与含密备份提示符合契约"}
+{"file": ".trellis/spec/ccr-ui/frontend/sync-security-contracts.md", "reason": "核对 bearer 随 codex-config 加密信封同步的披露与契约一致"}

@@ -34,6 +34,23 @@ disable_response_storage = true
 usage_count = 0
 enabled = true
 
+# DeepSeek Responses API
+# <DEEPSEEK_API_KEY> 仅为占位符。请在 ccr-ui 中替换它；保存后真实密钥由
+# runtime secret store 单独托管，不会留在 profiles.toml。
+[deepseek]
+description = "DeepSeek Responses API"
+base_url = "https://api.deepseek.com/"
+auth_token = "<DEEPSEEK_API_KEY>"
+model = "deepseek-v4-flash"
+provider = "deepseek"
+provider_type = "third_party_model"
+wire_api = "responses"
+auth_mode = "provider_bearer_token"
+model_catalog_json = "~/.codex/models.json"
+model_reasoning_effort = "high"
+usage_count = 0
+enabled = true
+
 # 第三方模式（OpenAI 认证语义）
 # 注意：requires_openai_auth=true 时 env_key 会被忽略
 [openai-proxy]
