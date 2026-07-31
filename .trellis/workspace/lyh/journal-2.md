@@ -860,3 +860,24 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 80: 实现 Codex DeepSeek bearer 接入
+
+**Date**: 2026-08-01
+**Task**: 实现 Codex DeepSeek bearer 接入
+**Branch**: `dev`
+
+### Summary
+
+新增 provider bearer 认证、DeepSeek 模型目录字段、secret-aware 原子写、Tauri/Vue/双语文档与诊断修复覆盖；just ci 全量通过。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `a3b063a1` | (see git log) |
+
+### Status
+
+[OK] **Completed**
