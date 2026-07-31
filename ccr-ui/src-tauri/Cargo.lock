@@ -465,7 +465,7 @@ dependencies = [
 
 [[package]]
 name = "ccr"
-version = "7.1.0"
+version = "7.1.1"
 dependencies = [
  "ccr-cli",
  "ccr-core",
@@ -476,7 +476,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-checkin"
-version = "7.1.0"
+version = "7.1.1"
 dependencies = [
  "aes-gcm",
  "base64 0.22.1",
@@ -499,7 +499,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-cli"
-version = "7.1.0"
+version = "7.1.1"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -548,7 +548,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-codex"
-version = "7.1.0"
+version = "7.1.1"
 dependencies = [
  "aes-gcm",
  "argon2",
@@ -576,7 +576,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-config"
-version = "7.1.0"
+version = "7.1.1"
 dependencies = [
  "ccr-core",
  "ccr-types",
@@ -592,7 +592,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-core"
-version = "7.1.0"
+version = "7.1.1"
 dependencies = [
  "anyhow",
  "blake3",
@@ -620,7 +620,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-db"
-version = "7.1.0"
+version = "7.1.1"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -651,7 +651,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-desktop"
-version = "7.1.0"
+version = "7.1.1"
 dependencies = [
  "aes-gcm",
  "arc-swap",
@@ -702,7 +702,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-skills"
-version = "7.1.0"
+version = "7.1.1"
 dependencies = [
  "blake3",
  "ccr-config",
@@ -720,7 +720,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-store"
-version = "7.1.0"
+version = "7.1.1"
 dependencies = [
  "blake3",
  "ccr-config",
@@ -743,7 +743,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-sync"
-version = "7.1.0"
+version = "7.1.1"
 dependencies = [
  "aes-gcm",
  "argon2",
@@ -772,7 +772,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-types"
-version = "7.1.0"
+version = "7.1.1"
 dependencies = [
  "chrono",
  "serde",
@@ -782,7 +782,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-usage"
-version = "7.1.0"
+version = "7.1.1"
 dependencies = [
  "base64 0.22.1",
  "chrono",
