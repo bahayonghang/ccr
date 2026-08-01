@@ -925,3 +925,24 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 83: 完成 Grok Profiles 管理页面
+
+**Date**: 2026-08-01
+**Task**: 完成 Grok Profiles 管理页面
+**Branch**: `dev`
+
+### Summary
+
+实现 Grok Profiles 列表、过滤、编辑、切换、删除与恢复流程，补齐凭据只写不读和 model 清除契约，并通过前端与 Tauri 检查。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `33c51ab2` | (see git log) |
+
+### Status
+
+[OK] **Completed**
