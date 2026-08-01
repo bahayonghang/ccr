@@ -1,0 +1,7 @@
+{"file": ".trellis/spec/ccr-cli/backend/grok-profile-runtime.md", "reason": "Grok 运行时行为权威契约(脱敏/锁/CAS/备份红线)"}
+{"file": ".trellis/spec/ccr/backend/tauri-handler-registry.md", "reason": "命令注册、capability manifest 与清单再生契约"}
+{"file": ".trellis/spec/ccr/backend/typed-ipc-bindings.md", "reason": "ts-rs 生成绑定与漂移守卫"}
+{"file": ".trellis/spec/ccr-core/backend/atomic-writer.md", "reason": "secret-safe 原子写与 BackupPolicy 不变量"}
+{"file": ".trellis/tasks/08-01-grok-ui-platform/research/tauri-command-layer.md", "reason": "命令层现状调查与文件清单"}
+{"file": ".trellis/tasks/08-01-grok-ui-platform/research/grok-backend-capabilities.md", "reason": "GrokPlatform 可复用 API 与配置格式"}
+{"file": ".trellis/tasks/08-01-grok-ui-platform/design.md", "reason": "父任务共享决策 D1-D9(契约权威:命令面/DTO patch/CAS/inspection/Local-only)"}

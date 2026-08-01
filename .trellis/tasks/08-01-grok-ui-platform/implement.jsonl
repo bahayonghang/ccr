@@ -1,0 +1,3 @@
+{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "集成评审的跨层数据流方法论"}
+{"file": ".trellis/tasks/08-01-grok-ui-platform/research/grok-backend-capabilities.md", "reason": "后端能力与配置层级(集成评审基线)"}

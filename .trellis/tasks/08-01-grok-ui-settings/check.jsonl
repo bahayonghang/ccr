@@ -1,0 +1,4 @@
+{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file": ".trellis/spec/ccr-ui/frontend/raw-config-editor-contracts.md", "reason": "source tab 契约逐条核查(备份文案例外)"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "dirtyKeys→patch→CAS merge→磁盘 diff 链路检查"}
+{"file": ".trellis/tasks/08-01-grok-ui-platform/prd.md", "reason": "父任务凭据边界与数据完整性验收清单"}

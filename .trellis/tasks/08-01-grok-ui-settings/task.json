@@ -1,0 +1,28 @@
+{
+  "id": "grok-ui-settings",
+  "name": "grok-ui-settings",
+  "title": "Grok 可视化 Settings 页面",
+  "description": "",
+  "status": "planning",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-08-01",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "08-01-grok-ui-platform",
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "description": "GrokSettingsView 双模式:模型|会话界面|CLI 三个可视化 tab(托管键锁定+未知表保留)+ ConfigSourcePanel source tab(无备份文案)"
+  }
+}

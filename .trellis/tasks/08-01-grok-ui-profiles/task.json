@@ -1,0 +1,28 @@
+{
+  "id": "grok-ui-profiles",
+  "name": "grok-ui-profiles",
+  "title": "Grok Profiles 管理页面",
+  "description": "",
+  "status": "planning",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-08-01",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "08-01-grok-ui-platform",
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "description": "GrokProfilesView 复用共享 profiles 组件库:列表/切换(diff 确认)/官方与第三方编辑弹窗(凭据只写不读)/off/激活删除引导 force/raw 编辑"
+  }
+}

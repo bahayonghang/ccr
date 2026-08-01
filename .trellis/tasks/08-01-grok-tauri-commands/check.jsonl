@@ -1,0 +1,5 @@
+{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file": ".trellis/spec/ccr-cli/backend/grok-profile-runtime.md", "reason": "对照运行时契约与凭据红线逐条核查"}
+{"file": ".trellis/spec/ccr-core/backend/atomic-writer.md", "reason": "CAS/BackupPolicy 写入不变量核查"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "命令层-核心层跨层数据流检查"}
+{"file": ".trellis/tasks/08-01-grok-ui-platform/prd.md", "reason": "父任务凭据边界与状态机验收清单"}

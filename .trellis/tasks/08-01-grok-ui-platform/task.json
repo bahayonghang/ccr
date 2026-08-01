@@ -1,0 +1,33 @@
+{
+  "id": "grok-ui-platform",
+  "name": "grok-ui-platform",
+  "title": "Grok UI 平台支持总控(首页/Profiles/可视化 Settings)",
+  "description": "",
+  "status": "in_progress",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-08-01",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "08-01-grok-ui-settings",
+    "08-01-grok-ui-profiles",
+    "08-01-grok-ui-home",
+    "08-01-grok-tauri-commands"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "description": "Grok Build 平台三页面(首页/Profiles/可视化 Settings)总控:持有需求集、任务地图、安全红线与集成验收;实现全在 4 个子任务"
+  }
+}
