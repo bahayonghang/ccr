@@ -3,7 +3,7 @@ members = ["command-macros"]
 
 [package]
 name = "ccr-desktop"
-version = "7.1.1"
+version = "7.1.2"
 description = "CCR Desktop - Tauri Application"
 authors = ["Geekyhang"]
 edition = "2024"
