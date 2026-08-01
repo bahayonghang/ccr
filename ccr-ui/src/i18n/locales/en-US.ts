@@ -2662,8 +2662,12 @@ export default {
     platforms: {
       claude: 'Claude',
       codex: 'Codex',
-      gemini: 'Gemini',
       opencode: 'OpenCode',
+      antigravity: 'Antigravity CLI',
+      kimi_code: 'Kimi Code',
+      pi: 'Pi / Oh My Pi',
+      grok: 'Grok Build',
+      gemini: 'Antigravity CLI',
     },
 
     actions: {
@@ -2757,7 +2761,7 @@ export default {
         title: 'llmusage Not Installed',
         detecting: 'Detecting llmusage installation status...',
         description:
-          'llmusage is the core dependency for CCR usage analytics. It parses and aggregates token usage data from each AI platform (Claude Code, Codex, Gemini, OpenCode).',
+          'llmusage is the core dependency for CCR usage analytics. It aggregates Claude, Codex, OpenCode, Antigravity, Kimi Code, Pi, and Grok Build usage.',
         detectedAbsent:
           'llmusage was not found on this system, so import cannot proceed. Choose how to install it:',
         detectedPlatform: 'Detected platform:',
@@ -2867,7 +2871,7 @@ export default {
         eyebrow: 'Source Mix',
         title: 'Usage by source',
         subtitle:
-          'Compare Claude, Codex, Antigravity, and OpenCode in the current window. Selecting a source applies the dashboard filter.',
+          'Compare all seven llmusage sources in the current window. Selecting a source applies the dashboard filter.',
         sources: 'sources',
         requests: 'requests',
         activeDays: 'active days',
@@ -5351,10 +5355,10 @@ export default {
         label: 'Antigravity CLI',
         title: 'Antigravity usage insight',
         description:
-          'Reads the legacy gemini usage key while presenting the current Antigravity CLI brand and compatibility boundary.',
+          'Tracks Antigravity usage with the current source key while remaining compatible with legacy Gemini database rows.',
         emptyTitle: 'No Antigravity usage imported',
         emptyDescription:
-          'Antigravity still uses the legacy gemini platform key; import usage logs from the Usage dashboard when available.',
+          'Import Antigravity usage logs from the Usage dashboard when local history is available.',
       },
       opencode: {
         label: 'OpenCode',

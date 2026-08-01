@@ -486,8 +486,14 @@ async fn bridge_llmusage_import_event(
         JobEvent::BootstrapStarted
         | JobEvent::MigrationStarted { .. }
         | JobEvent::MigrationFinished { .. }
+        | JobEvent::PricingUpgradeStarted { .. }
+        | JobEvent::PricingUpgradeProgress { .. }
+        | JobEvent::PricingBucketReconcileStarted { .. }
+        | JobEvent::PricingUpgradeFinished { .. }
         | JobEvent::LockWaiting { .. }
-        | JobEvent::LockAcquired { .. } => {
+        | JobEvent::LockAcquired { .. }
+        | JobEvent::TokenAccountingRepairStarted { .. }
+        | JobEvent::TokenAccountingRepairFinished { .. } => {
             update_usage_job_progress(app_handle, job_id, |job| {
                 job.mark_running(UsageImportJobStage::ImportingRecent, job.files_total, None);
             })
@@ -1316,7 +1322,7 @@ pub async fn import_usage_v2(
     .await;
 
     // 步骤N: 单平台导入完成后，仅当目标平台是 claude 时跑一次 claude_observer 增量解析。
-    // 其他平台（codex / gemini / opencode / droid）的 JSONL 不在
+    // 其他平台的 JSONL 不在
     // `~/.claude/projects/` 树下，scanner 跑出来也是 0 文件，没必要发事件。
     if source.as_str() == "claude" {
         spawn_claude_observer_ingest_tail(app_handle.clone(), &state, "import_usage_v2");

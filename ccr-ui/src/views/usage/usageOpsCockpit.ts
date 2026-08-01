@@ -12,6 +12,7 @@ import {
   formatSourceCounts,
   type UsageDashboardTranslate,
 } from './usageOverviewInsights'
+import { usageSourceFallbackLabel } from './usageSources'
 
 export type UsageOpsTone = 'success' | 'warning' | 'danger' | 'info' | 'muted'
 export type UsageOpsAction = 'import' | 'diagnostics' | 'none'
@@ -124,14 +125,6 @@ const sourceRank: Record<UsageSourceHealthState, number> = {
   live: 2,
 }
 
-const sourceLabels: Record<string, string> = {
-  claude: 'Claude',
-  codex: 'Codex',
-  gemini: 'Antigravity',
-  opencode: 'OpenCode',
-  unknown: 'Unknown',
-}
-
 const translateWithFallback = (
   translate: UsageDashboardTranslate,
   key: string,
@@ -220,8 +213,6 @@ const actionLabel = (
   )
 }
 
-const sourceLabel = (source: string) => sourceLabels[source] ?? source
-
 const buildSourceItems = ({
   locale,
   sourceHealth,
@@ -244,7 +235,7 @@ const buildSourceItems = ({
 
     return {
       id: source.source,
-      label: sourceLabel(source.source),
+      label: usageSourceFallbackLabel(source.source),
       statusLabel: translateWithFallback(
         translate,
         `usage.dashboard.ops.sourceStates.${source.state}`,

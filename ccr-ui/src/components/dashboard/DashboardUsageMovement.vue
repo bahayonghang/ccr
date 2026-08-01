@@ -246,7 +246,7 @@ const summaryItems = computed(() => [
 const getSeriesValue = (item: NonNullable<HomeUsageOverviewResponse['series']>[number]) => {
   return item.claude[selectedMetric.value]
     + item.codex[selectedMetric.value]
-    + item.gemini[selectedMetric.value]
+    + item.antigravity[selectedMetric.value]
     + (item.opencode?.[selectedMetric.value] ?? 0)
 }
 

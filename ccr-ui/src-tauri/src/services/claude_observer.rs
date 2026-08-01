@@ -604,7 +604,7 @@ mod service_tests {
             provider_label: "anthropic".to_string(),
             model: "claude-opus".to_string(),
             hour_start: local_noon_utc(Local::now().date_naive()),
-            project_path: Some("/repo/a".to_string()),
+            project_ref: Some("/repo/a".to_string()),
             ..SeedBucket::default()
         }
     }
@@ -656,7 +656,7 @@ mod service_tests {
                 model: "claude-haiku".to_string(),
                 project_hash: "p2".to_string(),
                 project_label: "Project 2".to_string(),
-                project_path: Some("/repo/b".to_string()),
+                project_ref: Some("/repo/b".to_string()),
                 cost_with_cache_usd: 0.30,
                 ..claude_bucket_today()
             },

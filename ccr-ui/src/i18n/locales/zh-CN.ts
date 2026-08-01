@@ -2572,8 +2572,12 @@ export default {
     platforms: {
       claude: 'Claude',
       codex: 'Codex',
-      gemini: 'Antigravity',
       opencode: 'OpenCode',
+      antigravity: 'Antigravity CLI',
+      kimi_code: 'Kimi Code',
+      pi: 'Pi / Oh My Pi',
+      grok: 'Grok Build',
+      gemini: 'Antigravity CLI',
     },
 
     actions: {
@@ -2659,7 +2663,7 @@ export default {
       dialog: {
         title: 'llmusage 未安装',
         detecting: '正在检测 llmusage 安装状态...',
-        description: 'llmusage 用于解析和聚合 Claude Code、Codex、Antigravity 与 OpenCode 的 Token 用量。',
+        description: 'llmusage 用于聚合 Claude、Codex、OpenCode、Antigravity、Kimi Code、Pi 与 Grok Build 的 Token 用量。',
         detectedAbsent: '当前未安装 llmusage，导入不可用。请选择安装方式：',
         detectedPlatform: '检测到平台：',
         recommend: '推荐：',
@@ -2766,7 +2770,7 @@ export default {
       sources: {
         eyebrow: '来源构成',
         title: '按来源查看使用量',
-        subtitle: '在当前窗口内对比 Claude、Codex、Antigravity 和 OpenCode；点击某个来源会应用看板筛选。',
+        subtitle: '在当前窗口内对比 llmusage 的七个来源；点击某个来源会应用看板筛选。',
         sources: '个来源',
         requests: '请求',
         activeDays: '活跃天',
@@ -5201,9 +5205,9 @@ export default {
       antigravity: {
         label: 'Antigravity CLI',
         title: 'Antigravity 用量洞察',
-        description: '读取 legacy gemini key，并在展示层保留 Antigravity 品牌边界。',
+        description: '使用当前 Antigravity 来源键统计用量，并兼容旧数据库中的 Gemini 记录。',
         emptyTitle: '暂无 Antigravity 用量导入',
-        emptyDescription: 'Antigravity 仍使用 legacy gemini key；可用时从用量面板导入。',
+        emptyDescription: '本机存在历史记录时，可从用量面板导入 Antigravity 用量。',
       },
       opencode: {
         label: 'OpenCode',

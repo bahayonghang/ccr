@@ -25,7 +25,15 @@ use crate::llmusage_adapter::{
 use crate::session_index_jobs::SessionIndexJobSnapshot;
 use crate::usage_jobs::UsageImportJobSnapshot;
 
-pub(crate) const HOME_USAGE_PLATFORMS: [&str; 4] = ["claude", "codex", "gemini", "opencode"];
+pub(crate) const HOME_USAGE_PLATFORMS: [&str; 7] = [
+    "claude",
+    "codex",
+    "opencode",
+    "antigravity",
+    "kimi_code",
+    "pi",
+    "grok",
+];
 pub(crate) const USAGE_SNAPSHOT_CACHE_PREFIX: &str = "usage:snapshot:";
 pub(crate) const USAGE_SNAPSHOT_CACHE_TTL_SECS: u64 = 30;
 pub(crate) const USAGE_FRESHNESS_STALE_AFTER_SECS: i64 = 24 * 60 * 60;
@@ -307,7 +315,7 @@ pub struct HomeOverviewSeriesItem {
     pub date: String,
     pub claude: HomeOverviewPlatformStats,
     pub codex: HomeOverviewPlatformStats,
-    pub gemini: HomeOverviewPlatformStats,
+    pub antigravity: HomeOverviewPlatformStats,
     pub opencode: HomeOverviewPlatformStats,
 }
 
@@ -629,10 +637,18 @@ pub fn normalize_home_platform(raw: &str) -> Option<&'static str> {
     match raw.trim().to_lowercase().as_str() {
         "claude" | "claude-code" | "claude code" => Some("claude"),
         "codex" | "openai-codex" | "openai codex" => Some("codex"),
-        "gemini" | "gemini-cli" | "gemini cli" | "google-gemini" | "google gemini" => {
-            Some("gemini")
+        "antigravity"
+        | "gemini"
+        | "gemini-cli"
+        | "gemini cli"
+        | "google-gemini"
+        | "google gemini" => {
+            Some("antigravity")
         }
         "opencode" | "open-code" | "open code" => Some("opencode"),
+        "kimi_code" | "kimi-code" | "kimi code" => Some("kimi_code"),
+        "pi" | "oh-my-pi" | "oh my pi" | "omp" => Some("pi"),
+        "grok" | "grok-build" | "grok build" => Some("grok"),
         _ => None,
     }
 }
@@ -725,9 +741,9 @@ pub fn load_home_usage_snapshot(
             stats.requests = non_negative_i64(item.codex.requests);
             stats.tokens = non_negative_i64(item.codex.tokens);
         }
-        if let Some(stats) = day_stats.get_mut("gemini") {
-            stats.requests = non_negative_i64(item.gemini.requests);
-            stats.tokens = non_negative_i64(item.gemini.tokens);
+        if let Some(stats) = day_stats.get_mut("antigravity") {
+            stats.requests = non_negative_i64(item.antigravity.requests);
+            stats.tokens = non_negative_i64(item.antigravity.tokens);
         }
         if let Some(stats) = day_stats.get_mut("opencode") {
             stats.requests = non_negative_i64(item.opencode.requests);
@@ -1169,7 +1185,7 @@ pub fn compute_home_overview(
                 date,
                 claude: day_stats.remove("claude").unwrap_or_default(),
                 codex: day_stats.remove("codex").unwrap_or_default(),
-                gemini: day_stats.remove("gemini").unwrap_or_default(),
+                antigravity: day_stats.remove("antigravity").unwrap_or_default(),
                 opencode: day_stats.remove("opencode").unwrap_or_default(),
             }
         })
@@ -1240,8 +1256,14 @@ mod tests {
     fn normalize_home_platform_supports_common_aliases() {
         assert_eq!(normalize_home_platform("Claude Code"), Some("claude"));
         assert_eq!(normalize_home_platform("openai-codex"), Some("codex"));
-        assert_eq!(normalize_home_platform("gemini-cli"), Some("gemini"));
+        assert_eq!(
+            normalize_home_platform("gemini-cli"),
+            Some("antigravity")
+        );
         assert_eq!(normalize_home_platform("Open Code"), Some("opencode"));
+        assert_eq!(normalize_home_platform("Kimi Code"), Some("kimi_code"));
+        assert_eq!(normalize_home_platform("oh-my-pi"), Some("pi"));
+        assert_eq!(normalize_home_platform("Grok Build"), Some("grok"));
         assert_eq!(normalize_home_platform("legacy-cli"), None);
         assert_eq!(normalize_home_platform("unknown"), None);
     }
@@ -1365,7 +1387,7 @@ mod tests {
                 is_optional_absent: false,
             },
             UsageImportResultV2 {
-                platform: "gemini".into(),
+                platform: "antigravity".into(),
                 files_processed: 0,
                 records_imported: 0,
                 records_skipped: 0,
@@ -1651,7 +1673,7 @@ mod service_tests {
                 hour_start: "2026-07-02T12:00:00Z".to_string(),
                 project_hash: "p2".to_string(),
                 project_label: "Project 2".to_string(),
-                project_path: None,
+                project_ref: None,
                 input_tokens: 20,
                 cache_read_tokens: 0,
                 cache_creation_tokens: 0,
@@ -1867,7 +1889,7 @@ mod service_tests {
     }
 
     #[test]
-    fn usage_by_project_prefers_path_and_excludes_empty_hash() {
+    fn usage_by_project_prefers_ref_and_excludes_empty_hash() {
         let temp = TempDir::new().expect("temp dir should be created");
         let (runtime, conn) = open_fixture(&temp);
         seed_reference_buckets(&conn);
@@ -1888,7 +1910,7 @@ mod service_tests {
         assert_eq!(stats[0].project_path, "/repo/p1");
         assert_eq!(stats[0].total_tokens, 120);
         assert_eq!(stats[0].request_count, 3);
-        // path/ref 均缺 → project_label 兜底
+        // project_ref 缺失时回退到 project_label。
         assert_eq!(stats[1].project_path, "Project 2");
         assert_eq!(stats[1].total_tokens, 50);
         assert_eq!(stats.iter().map(|s| s.total_tokens).sum::<i64>(), 170);
@@ -2088,7 +2110,15 @@ mod service_tests {
                 .keys()
                 .map(String::as_str)
                 .collect::<Vec<_>>(),
-            vec!["claude", "codex", "gemini", "opencode"]
+            vec![
+                "antigravity",
+                "claude",
+                "codex",
+                "grok",
+                "kimi_code",
+                "opencode",
+                "pi",
+            ]
         );
         assert_eq!(response.summary.total_sessions, 0);
         assert_eq!(response.summary.total_requests, 0);

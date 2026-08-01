@@ -2,6 +2,7 @@ import type { ModelStat, ProjectStat, UsageArchiveDiagnostics, UsageSummary } fr
 import type { UsageTrendBucket } from './usageDashboardPresentation'
 import type { UsageRangePreset } from './dateWindow'
 import { formatCost, formatPercent, formatTokens } from './usageSummaryCards'
+import { usageSourceFallbackLabel } from './usageSources'
 
 export type UsageDashboardTranslate = (
   key: string,
@@ -67,17 +68,10 @@ export const buildSelectedPlatformLabel = (
     return translate('usage.dashboard.allPlatforms', undefined, 'All Platforms')
   }
 
-  const fallbackLabels: Record<string, string> = {
-    claude: 'Claude',
-    codex: 'Codex',
-    gemini: 'Gemini',
-    opencode: 'OpenCode',
-  }
-
   return translate(
     `usage.platforms.${selectedPlatform}`,
     undefined,
-    fallbackLabels[selectedPlatform] ?? selectedPlatform
+    usageSourceFallbackLabel(selectedPlatform)
   )
 }
 

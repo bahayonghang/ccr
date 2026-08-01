@@ -86,10 +86,19 @@ const createOverview = (
   by_platform: {
     claude: { sessions: 0, requests: 0, tokens: 0 },
     codex: { sessions: 0, requests: 0, tokens: 0 },
-    gemini: { sessions: 0, requests: 0, tokens: 0 },
+    antigravity: { sessions: 0, requests: 0, tokens: 0 },
     opencode: { sessions: 0, requests: 0, tokens: 0 },
+    kimi_code: { sessions: 0, requests: 0, tokens: 0 },
+    pi: { sessions: 0, requests: 0, tokens: 0 },
+    grok: { sessions: 0, requests: 0, tokens: 0 },
   },
-  series: [],
+  series: [{
+    date: '2026-04-08',
+    claude: { sessions: 0, requests: 0, tokens: 0 },
+    codex: { sessions: 0, requests: 0, tokens: 0 },
+    antigravity: { sessions: 0, requests: 0, tokens: 0 },
+    opencode: { sessions: 0, requests: 0, tokens: 0 },
+  }],
   archive: makeArchiveDiagnostics({
     archive_root: 'C:/Users/test/.ccr/analytics/usage.db',
     live_sources: 0,
