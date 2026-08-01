@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 83
+- **Total Sessions**: 84
 - **Last Active**: 2026-08-01
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~948 | Active |
+| `journal-2.md` | ~969 | Active |
 | `journal-1.md` | ~1987 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 84 | 2026-08-01 | 完成 Grok 可视化 Settings 页面 | `2050652e` | `dev` |
 | 83 | 2026-08-01 | 完成 Grok Profiles 管理页面 | `33c51ab2` | `dev` |
 | 82 | 2026-08-01 | 实现 Grok UI 首页 | `2cfb0152` | `dev` |
 | 81 | 2026-08-01 | 完成 Grok Tauri 命令桥接层 | `f8287100a181510dd3cfb6d2971bdef022e8033e`, `e11fcdf0c24e5590ce5995bcc34b83c9325f3b4d`, `dcd153eb4d52a08667cfc97ff44696fd2f1064d5` | `dev` |

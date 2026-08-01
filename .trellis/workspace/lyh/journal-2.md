@@ -946,3 +946,24 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 84: 完成 Grok 可视化 Settings 页面
+
+**Date**: 2026-08-01
+**Task**: 完成 Grok 可视化 Settings 页面
+**Branch**: `dev`
+
+### Summary
+
+交付 Grok 可视化 Settings、原始配置与配置层界面，完成前端/Tauri/生产构建验证并记录手工验收边界。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `2050652e` | (see git log) |
+
+### Status
+
+[OK] **Completed**
