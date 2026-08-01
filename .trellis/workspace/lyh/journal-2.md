@@ -904,3 +904,24 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 82: 实现 Grok UI 首页
+
+**Date**: 2026-08-01
+**Task**: 实现 Grok UI 首页
+**Branch**: `dev`
+
+### Summary
+
+完成 Grok 首页、前端公共接线、环境作用域缓存契约与 smoke 覆盖；frontend-check-quick、bindings 与主题专项通过；应用内 Browser 不可用，截图矩阵留待父任务集成验收。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `2cfb0152` | (see git log) |
+
+### Status
+
+[OK] **Completed**

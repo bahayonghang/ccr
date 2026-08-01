@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 81
+- **Total Sessions**: 82
 - **Last Active**: 2026-08-01
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~906 | Active |
+| `journal-2.md` | ~927 | Active |
 | `journal-1.md` | ~1987 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 82 | 2026-08-01 | 实现 Grok UI 首页 | `2cfb0152` | `dev` |
 | 81 | 2026-08-01 | 完成 Grok Tauri 命令桥接层 | `f8287100a181510dd3cfb6d2971bdef022e8033e`, `e11fcdf0c24e5590ce5995bcc34b83c9325f3b4d`, `dcd153eb4d52a08667cfc97ff44696fd2f1064d5` | `dev` |
 | 80 | 2026-08-01 | 实现 Codex DeepSeek bearer 接入 | `a3b063a1` | `dev` |
 | 79 | 2026-07-31 | 完成开发交付流程审计并归档 profile open | `e6e3025db95e5fcd9a45885a619d64b14a8070fa`, `a09cf340953724771edd0ac8f2eea9cf63826840` | `dev` |
