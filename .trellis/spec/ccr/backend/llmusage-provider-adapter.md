@@ -2,11 +2,11 @@
 
 > Executable contract for the CCR desktop llmusage provider dimension.
 
-## Scenario: provider-scoped usage analytics from llmusage schema 14
+## Scenario: current llmusage read-only analytics across schema 10+
 
 ### 1. Scope / Trigger
 
-- Trigger: changing provider usage attribution, sync import wiring, usage dashboard filters, or the llmusage read-only adapter.
+- Trigger: changing llmusage sources, schema compatibility, sync NDJSON events, usage queries, provider attribution, dashboard filters, or the read-only adapter.
 - Applies to `crates/ccr-usage/**`, `ccr-ui/src-tauri/src/llmusage_adapter/**`, `ccr-ui/src-tauri/src/commands/usage.rs`, TUI usage readers, and the matching frontend usage API/types.
 - CCR must keep the upstream no-crate boundary: invoke the installed `llmusage` CLI for sync and read the SQLite DB read-only; do not link the upstream `llmusage` Rust crate. The local `ccr-usage` crate is allowed and is the shared read-only projection owner: **every** usage SQL statement (overview, trends, model/provider/project/source breakdowns, heatmap, logs, diagnostics, home overview) lives in `crates/ccr-usage`. Review checklist: `rg 'usage_bucket_30m' --type rust` must only hit `crates/ccr-usage` for SQL (doc/comment hits elsewhere are fine).
 
@@ -30,9 +30,16 @@
   pub enum SourceKind {
       Claude,
       Codex,
-      Gemini,
       Opencode,
+      Antigravity,
+      KimiCode,
+      Pi,
+      Grok,
   }
+
+  // Canonical stored/wire ids:
+  // claude, codex, opencode, antigravity, kimi_code, pi, grok.
+  // gemini and existing Gemini spellings remain input aliases for Antigravity.
 
   pub struct QueryFilter {
       pub source: Option<SourceKind>,
@@ -45,6 +52,13 @@
   }
 
   pub fn open_dashboard(paths: AppPaths) -> Result<Dashboard, UsageError>;
+
+  pub struct Dashboard {
+      paths: AppPaths,
+      conn: rusqlite::Connection,
+      capabilities: DbCapabilitySnapshot,
+      local_zone: ResolvedZone,
+  }
 
   // Dashboard owns the full read-only query surface:
   // overview / trends_daily / model_breakdown / provider_breakdown /
@@ -90,12 +104,20 @@
 
 - Provider data comes from llmusage schema 14 columns: `usage_event.provider_label` and `usage_bucket_30m.provider_label`.
 - `FeatureKey::ProviderBreakdown` requires schema `>= 14` and both provider columns. Existing non-provider features keep their existing minimum schema unless a provider filter is supplied.
+- Base projections support schema 10 and later by minimum version plus required table/column checks. Schema 13 changes persisted `gemini` to `antigravity`; schema 14 adds provider columns; schema 18 adds the event range index; schema 19 adds only an Activity covering index. Compatible future additive schemas remain readable and must never be migrated by CCR.
+- `SourceKind::Antigravity::storage_key(schema_version)` resolves to `gemini` for schema 10-12 and `antigravity` for schema 13+. SQL projections for source breakdown, logs, diagnostics, and home overview canonicalize returned legacy `gemini` values to `antigravity` before they reach Tauri or the frontend.
+- The current source set is exactly `claude`, `codex`, `opencode`, `antigravity`, `kimi_code`, `pi`, and `grok`. Usage filtering and source-share denominators include all seven; unknown database sources may remain visible as raw labels but are not promoted into typed frontend filters.
 - `crates/ccr-usage` owns `Dashboard::provider_breakdown` and **all** usage SQL (overview, trends, model/provider/project/source breakdowns, heatmap, logs, diagnostics, home overview) for all CCR surfaces. Tauri and TUI code must delegate to this crate instead of duplicating any aggregation query; the Tauri adapter `Dashboard` is a thin wrapper that only maps `UsageError` to `LlmusageAdapterError`.
-- `Dashboard::provider_breakdown` opens `llmusage.db` read-only, groups `usage_bucket_30m` by `provider_label`, returns token splits and both cache-aware/cache-free costs, and maps empty provider labels to `provider = null`.
+- `Dashboard::open` opens one `SQLITE_OPEN_READ_ONLY | SQLITE_OPEN_URI` connection, registers the DST-aware SQLite function, reads schema/required columns once into an immutable capability snapshot, and reuses both for every section. Section feature gates must not reopen the database.
+- Date API bounds are inclusive local calendar dates. Query SQL converts them to typed RFC 3339 UTC half-open bounds (`timestamp >= ? AND timestamp < ?`), preserving `hour_start` and `event_at` index use. Local grouping uses the machine IANA zone with historical DST rules; an unavailable or unknown IANA zone is an explicit `UsageError::Query`, never a current-offset fallback.
+- `overview` performs one bucket conditional aggregate and one run-log conditional aggregate. `home_overview` performs one date/source bucket aggregate. Project breakdown uses bucket `project_hash`/`project_label`/`project_ref`; `project_path` exists only on `usage_event` and must not be probed on buckets.
+- `Dashboard::provider_breakdown` groups `usage_bucket_30m` by `provider_label`, returns token splits and both cache-aware/cache-free costs, and maps empty provider labels to `provider = null`.
 - `AppPaths::discover()` honors `LLMUSAGE_HOME`, otherwise uses `<home>/.llmusage`; Tauri may use `AppPaths::from_root(existing_root)` to preserve its existing path contract.
 - A provider filter must apply to overview, daily trends, model breakdown, source breakdown, project breakdown, heatmap, and logs through the shared `QueryFilter`.
 - `get_usage_dashboard_v2` includes `provider_stats` and its cache key must include the provider filter.
 - When no provider filter is supplied and provider capability is unavailable, dashboard payloads degrade to `provider_stats: []`; an explicit provider filter must surface the unsupported error.
+- Sync NDJSON accepts the current pricing upgrade, bucket reconcile, and token-accounting repair lifecycle events in addition to migration/lock/source/terminal events. These additive lifecycle events keep the existing running/importing stage; malformed or unknown brace-prefixed JSON remains a protocol error.
+- Home `by_platform` and summary include all detected sources. The fixed daily wire series remains `claude`, `codex`, `antigravity`, and `opencode`; do not invent Kimi/Pi/Grok fixed series fields. Frontend typed filters and the Usage toolbar expose the seven canonical ids while retaining backend `gemini` alias input compatibility.
 - TUI usage surfaces (the profile-detail Usage section; the standalone Usage tab was retired 2026-07) should load the shared projection on a background task through an injectable loader seam (`UsageLoader`), consume `TaggedProviderBreakdown` directly (no per-surface shadow row structs), request `SourceKind::Claude` and `SourceKind::Codex` separately when rendering those platform sections (via `provider_breakdown_by_source`), and display `provider = null` as `unattributed` (`ProviderBreakdownDto::display_provider`).
 - Only pass `--provider-map <path>` when `$CCR_ROOT/analytics/provider_activation.jsonl` exists. The installed llmusage CLI treats an explicit missing provider-map path as a hard sync error.
 - New frontend business wrappers belong in `src/api/domains/*`; `src/api/tauri.ts` remains a compatibility facade.
@@ -108,7 +130,10 @@
 - Dashboard without provider filter on an old DB -> success with `provider_stats: []`.
 - Dashboard with explicit provider filter on an old DB -> error; do not silently return unfiltered data.
 - `ccr-usage::open_dashboard` missing DB -> `UsageError::DbMissing`.
-- `ccr-usage::open_dashboard` unreadable DB/home resolution failure -> `UsageError::DbUnreadable`.
+- `ccr-usage::open_dashboard` cannot open the DB -> `UsageError::DbUnreadable`.
+- Capability detection can open the DB but cannot read schema metadata -> every DB-backed feature is unsupported with `UnsupportedReason::DbUnreadable`; never return an empty feature map.
+- Schema `< 10` or absent/malformed textual schema version -> `UsageError::SchemaUnsupported` for dashboard open.
+- Machine IANA timezone lookup/parsing or SQLite function registration failure -> `UsageError::Query`; do not silently use `Local::now()` as a fixed offset.
 - `ccr-usage::provider_breakdown` missing provider table/column -> `UsageError::FeatureUnavailable`.
 - Missing activation log file -> omit `--provider-map`; sync should still run.
 - Existing activation log file -> pass `--provider-map <path>` after other sync options.
@@ -116,9 +141,15 @@
 ### 5. Good / Base / Bad Cases
 
 - Good: schema 14 fixture with `openai`, `anthropic`, and empty labels; provider totals sum to source totals and empty labels serialize as `null`.
+- Good: schema 10 `gemini` rows filter and return as canonical `antigravity`; schema 13+ uses only the current stored key.
+- Good: schemas 18, 19, and a compatible future schema return equivalent overview results; bucket/event range plans name the upstream time indexes.
 - Good: `provider = "openai"` narrows overview/model/source totals to only OpenAI-attributed rows.
 - Good: Tauri provider dashboard and the TUI profile-detail Usage section both call `ccr-usage` and differ only in DTO/error mapping and presentation.
 - Base: old llmusage DB still renders the dashboard, but provider stats are empty until the user upgrades/syncs.
+- Base: an additive unknown database source contributes to home/source totals and displays its raw label, but cannot be emitted as a typed filter until the source contract is updated.
+- Bad: wrapping `hour_start` or `event_at` in `date(..., 'localtime')` inside `WHERE`; this disables the range-index path and uses a current offset instead of historical DST.
+- Bad: resolving an unavailable IANA zone to the current fixed offset; results become seasonally wrong without surfacing an error.
+- Bad: querying `usage_bucket_30m.project_path`; upstream has never defined that bucket column.
 - Bad: adding provider filtering only to `provider_breakdown`; dashboard cards would show mixed-provider totals.
 - Bad: copying any usage SQL (provider breakdown or otherwise) into `ccr-ui` or `ccr-tui`; future schema/capability fixes would diverge.
 - Bad: re-introducing a per-surface shadow row struct (field-by-field copy of a ccr-usage DTO plus a tag) instead of consuming `TaggedProviderBreakdown`.
@@ -127,12 +158,14 @@
 
 ### 6. Tests Required
 
-- `cargo test -p ccr-usage`
+- `cargo test -p ccr-usage -- --test-threads=1` with assertions for schema 10/13 source cutover, typed UTC/DST bounds, query plans, one-connection capability reuse, aggregation equivalence, logs/diagnostics canonicalization, and unreadable capability snapshots.
+- `cargo test -p ccr-usage --features test-fixtures -- --test-threads=1` with schema 18/19/future overview compatibility and the full projection fixture.
 - `cargo test -p ccr-tui -- --test-threads=1` when adding or changing TUI usage surfaces
 - `cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml llmusage_adapter -- --nocapture`
+- `cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml services::usage::service_tests -- --nocapture --test-threads=1`
 - `cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml commands::handler_registry -- --nocapture`
 - `cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml --test llmusage_no_crate_guard -- --nocapture`
-- `cd ccr-ui && bun run test:smoke -- tests/usage-dashboard-payload.smoke.test.ts`
+- `cd ccr-ui && bun run test:smoke -- tests/usage-dashboard-payload.smoke.test.ts tests/usage-dashboard-toolbar.smoke.test.ts tests/usage-source-summary-card.smoke.test.ts tests/home-usage-overview.store.smoke.test.ts`
 - `cd ccr-ui && bun run test:smoke -- tests/api-facade-boundary.smoke.test.ts`
 - `cd ccr-ui && bun run type-check`
 - `cd ccr-ui && bun run lint`
@@ -182,6 +215,23 @@ let rows = dashboard.provider_breakdown(&ccr_usage::QueryFilter {
 ```
 
 Keep provider attribution in `crates/ccr-usage`; presentation layers only map DTOs, errors, and UI labels.
+
+#### Wrong
+
+```sql
+WHERE date(hour_start, 'localtime') >= ?
+  AND date(hour_start, 'localtime') <= ?
+```
+
+This wraps the indexed column, prevents a sargable range scan, and uses SQLite's process-local offset behavior instead of the resolved IANA zone.
+
+#### Correct
+
+```sql
+WHERE hour_start >= ? AND hour_start < ?
+```
+
+Bind typed RFC 3339 UTC instants computed from the requested local dates and the dashboard's resolved IANA zone. Keep the local-date function for grouping only.
 
 ## Scenario: Adopt upstream llmusage static model pricing in CCR
 

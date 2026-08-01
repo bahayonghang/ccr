@@ -1,0 +1,4 @@
+{"file":".trellis/spec/ccr/backend/llmusage-provider-adapter.md","reason":"Defines the no-crate, read-only SQL ownership, schema/provider gates and Tauri adapter boundary that implementation must preserve."}
+{"file":".trellis/spec/ccr/backend/dependency-governance.md","reason":"Governs the approved chrono-tz, iana-time-zone and rusqlite feature dependency changes across workspace and Tauri manifests."}
+{"file":".trellis/spec/ccr-ui/frontend/index.md","reason":"Defines frontend API, type-check, lint and focused smoke validation expectations for Usage wire and toolbar changes."}
+{"file":".trellis/tasks/08-01-adapt-llmusage-database-refactor/research/upstream-impact.md","reason":"Provides the verified llmusage 1.1.1 schema, source, protocol, query-plan and performance baseline for the implementation."}
