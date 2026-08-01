@@ -7,9 +7,9 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 
+use ccr_core::AtomicWriter;
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::{Map, Value};
-use ccr_core::AtomicWriter;
 
 use crate::commands::claude_mcp_config::{
     ClaudeMcpDiagnostic, add_claude_mcp_server_default, delete_claude_mcp_server_default,

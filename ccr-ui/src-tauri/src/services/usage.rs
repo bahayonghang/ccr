@@ -637,14 +637,8 @@ pub fn normalize_home_platform(raw: &str) -> Option<&'static str> {
     match raw.trim().to_lowercase().as_str() {
         "claude" | "claude-code" | "claude code" => Some("claude"),
         "codex" | "openai-codex" | "openai codex" => Some("codex"),
-        "antigravity"
-        | "gemini"
-        | "gemini-cli"
-        | "gemini cli"
-        | "google-gemini"
-        | "google gemini" => {
-            Some("antigravity")
-        }
+        "antigravity" | "gemini" | "gemini-cli" | "gemini cli" | "google-gemini"
+        | "google gemini" => Some("antigravity"),
         "opencode" | "open-code" | "open code" => Some("opencode"),
         "kimi_code" | "kimi-code" | "kimi code" => Some("kimi_code"),
         "pi" | "oh-my-pi" | "oh my pi" | "omp" => Some("pi"),
@@ -1256,10 +1250,7 @@ mod tests {
     fn normalize_home_platform_supports_common_aliases() {
         assert_eq!(normalize_home_platform("Claude Code"), Some("claude"));
         assert_eq!(normalize_home_platform("openai-codex"), Some("codex"));
-        assert_eq!(
-            normalize_home_platform("gemini-cli"),
-            Some("antigravity")
-        );
+        assert_eq!(normalize_home_platform("gemini-cli"), Some("antigravity"));
         assert_eq!(normalize_home_platform("Open Code"), Some("opencode"));
         assert_eq!(normalize_home_platform("Kimi Code"), Some("kimi_code"));
         assert_eq!(normalize_home_platform("oh-my-pi"), Some("pi"));

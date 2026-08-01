@@ -1955,14 +1955,12 @@ mod tests {
             let platform =
                 CodexPlatform::new().map_err(|e| format!("create Codex platform: {e}"))?;
             let mut profile = ProfileConfig::new();
-            profile.platform_data.insert(
-                "auth_mode".into(),
-                json!("provider_bearer_token"),
-            );
-            profile.platform_data.insert(
-                "model_catalog_json".into(),
-                json!("~/.codex/models.json"),
-            );
+            profile
+                .platform_data
+                .insert("auth_mode".into(), json!("provider_bearer_token"));
+            profile
+                .platform_data
+                .insert("model_catalog_json".into(), json!("~/.codex/models.json"));
             profile
                 .platform_data
                 .insert("preferred_auth_method".into(), json!("apikey"));

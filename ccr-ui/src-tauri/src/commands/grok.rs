@@ -120,12 +120,8 @@ pub enum GrokProfilesCommandResponse {
 #[serde(tag = "status", rename_all = "snake_case")]
 #[ts(export, export_to = "../../src/types/generated/grok/")]
 pub enum GrokProfileCommandResponse {
-    Ok {
-        profile: Box<GrokProfileDto>,
-    },
-    UnsupportedEnvironment {
-        env_type: String,
-    },
+    Ok { profile: Box<GrokProfileDto> },
+    UnsupportedEnvironment { env_type: String },
 }
 
 #[derive(Debug, Clone, Serialize, TS)]
@@ -357,7 +353,9 @@ fn unsupported_env_type(value: &JsonValue) -> String {
 }
 
 async fn non_local_env(state: &AppState) -> Option<String> {
-    ensure_local_env(state).await.map(|value| unsupported_env_type(&value))
+    ensure_local_env(state)
+        .await
+        .map(|value| unsupported_env_type(&value))
 }
 
 fn activation_parts(state: GrokActivationState) -> (GrokActivationDto, Option<String>) {
@@ -571,7 +569,10 @@ fn apply_credential_action(
             profile.platform_data.shift_remove("env_key");
             Ok(())
         }
-        _ => Err("credential_action 必须是 preserve、replace_api_key、replace_env_key 或 clear".to_string()),
+        _ => Err(
+            "credential_action 必须是 preserve、replace_api_key、replace_env_key 或 clear"
+                .to_string(),
+        ),
     }
 }
 
@@ -640,7 +641,10 @@ fn add_profile(request: OpenJsonValueDto) -> Result<GrokProfileActionResponse, S
     let mut object = request_object(request)?;
     let name = take_required_name(&mut object)?;
     if !object.contains_key("credential_action") {
-        match (object.contains_key("api_key"), object.contains_key("env_key")) {
+        match (
+            object.contains_key("api_key"),
+            object.contains_key("env_key"),
+        ) {
             (true, false) => {
                 object.insert(
                     "credential_action".to_string(),
@@ -757,9 +761,7 @@ where
     A: FnOnce(&str) -> Result<(), String>,
     D: FnOnce(&str) -> Result<(), String>,
 {
-    if was_active
-        && apply(&new_name).is_err()
-    {
+    if was_active && apply(&new_name).is_err() {
         return Ok(GrokProfileActionResponse::RenameApplyFailed {
             old_name,
             new_name,
@@ -771,14 +773,12 @@ where
         return Ok(GrokProfileActionResponse::RenameCleanupFailed {
             old_name,
             new_name,
-            message: "新 profile 已保存，但旧 profile 未能删除；请确认运行状态后重试删除旧 profile。"
-                .to_string(),
+            message:
+                "新 profile 已保存，但旧 profile 未能删除；请确认运行状态后重试删除旧 profile。"
+                    .to_string(),
         });
     }
-    Ok(GrokProfileActionResponse::Renamed {
-        old_name,
-        new_name,
-    })
+    Ok(GrokProfileActionResponse::Renamed { old_name, new_name })
 }
 
 fn blocked_delete_response(
@@ -799,10 +799,7 @@ fn blocked_delete_response(
     } else {
         "该 Grok profile 仍处于激活或漂移状态；请先 off，或确认后执行 force 删除".to_string()
     };
-    Ok(GrokProfileActionResponse::Blocked {
-        reason,
-        message,
-    })
+    Ok(GrokProfileActionResponse::Blocked { reason, message })
 }
 
 fn delete_profile(name: String, force: bool) -> Result<GrokProfileActionResponse, String> {
@@ -879,14 +876,21 @@ fn read_config(path: &Path) -> Result<(toml::Value, String, bool), String> {
             let token = content_version_token(&bytes);
             let content = String::from_utf8(bytes)
                 .map_err(|error| format!("Grok config.toml 不是有效 UTF-8: {error}"))?;
-            let value = toml::from_str(&content)
-                .map_err(|_| format!("解析 Grok config.toml 失败 {}: 文件包含无效 TOML", path.display()))?;
+            let value = toml::from_str(&content).map_err(|_| {
+                format!(
+                    "解析 Grok config.toml 失败 {}: 文件包含无效 TOML",
+                    path.display()
+                )
+            })?;
             Ok((value, token, true))
         }
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
             Ok((toml::Value::Table(Default::default()), String::new(), false))
         }
-        Err(error) => Err(format!("读取 Grok config.toml {} 失败: {error}", path.display())),
+        Err(error) => Err(format!(
+            "读取 Grok config.toml {} 失败: {error}",
+            path.display()
+        )),
     }
 }
 
@@ -900,8 +904,14 @@ fn custom_models(root: &toml::Value) -> Vec<GrokCustomModelDto> {
                     let table = value.as_table()?;
                     Some(GrokCustomModelDto {
                         id: id.clone(),
-                        name: table.get("name").and_then(toml::Value::as_str).map(str::to_string),
-                        model: table.get("model").and_then(toml::Value::as_str).map(str::to_string),
+                        name: table
+                            .get("name")
+                            .and_then(toml::Value::as_str)
+                            .map(str::to_string),
+                        model: table
+                            .get("model")
+                            .and_then(toml::Value::as_str)
+                            .map(str::to_string),
                         base_url_display: table
                             .get("base_url")
                             .and_then(toml::Value::as_str)
@@ -953,10 +963,7 @@ fn settings_response(platform: &GrokPlatform) -> Result<GrokSettingsResponse, St
                 &config,
                 &["hints", "new_session_worktree_mode"],
             ),
-            fork_worktree_mode: get_toml_string(
-                &config,
-                &["hints", "fork_worktree_mode"],
-            ),
+            fork_worktree_mode: get_toml_string(&config, &["hints", "fork_worktree_mode"]),
         },
         custom_models: custom_models(&config),
     })
@@ -977,9 +984,9 @@ fn validate_settings_patch(patch: &GrokSettingsPatchDto) -> Result<(), String> {
     for (key, value) in &patch.set {
         let value = JsonValue::from(value.clone());
         let valid = match key.as_str() {
-            "session.auto_compact_threshold_percent" => {
-                value.as_i64().is_some_and(|value| (0..=100).contains(&value))
-            }
+            "session.auto_compact_threshold_percent" => value
+                .as_i64()
+                .is_some_and(|value| (0..=100).contains(&value)),
             "session.load_envrc" | "cli.auto_update" | "cli.show_tips" => value.is_boolean(),
             "models.default_reasoning_effort" => value.as_str().is_some_and(|value| {
                 matches!(
@@ -1135,7 +1142,10 @@ fn read_raw_config(path: &Path) -> Result<GrokRawConfigResponse, String> {
                 exists: false,
             })
         }
-        Err(error) => Err(format!("读取 Grok config.toml {} 失败: {error}", path.display())),
+        Err(error) => Err(format!(
+            "读取 Grok config.toml {} 失败: {error}",
+            path.display()
+        )),
     }
 }
 
@@ -1232,8 +1242,8 @@ pub async fn grok_list_profiles(
         return Ok(GrokProfilesCommandResponse::UnsupportedEnvironment { env_type });
     }
     tokio::task::spawn_blocking(|| {
-        let platform = GrokPlatform::new()
-            .map_err(|error| format!("初始化 Grok 平台失败: {error}"))?;
+        let platform =
+            GrokPlatform::new().map_err(|error| format!("初始化 Grok 平台失败: {error}"))?;
         Ok(GrokProfilesCommandResponse::Ok {
             data: profiles_response(&platform)?,
         })
@@ -1251,8 +1261,8 @@ pub async fn grok_get_profile(
         return Ok(GrokProfileCommandResponse::UnsupportedEnvironment { env_type });
     }
     tokio::task::spawn_blocking(move || {
-        let platform = GrokPlatform::new()
-            .map_err(|error| format!("初始化 Grok 平台失败: {error}"))?;
+        let platform =
+            GrokPlatform::new().map_err(|error| format!("初始化 Grok 平台失败: {error}"))?;
         let profile = load_profile(&platform, &name)?;
         Ok(GrokProfileCommandResponse::Ok {
             profile: Box::new(profile_to_dto(name, &profile)?),
@@ -1312,8 +1322,8 @@ pub async fn grok_apply_profile(
         return Ok(GrokProfileActionResponse::UnsupportedEnvironment { env_type });
     }
     tokio::task::spawn_blocking(move || {
-        let platform = GrokPlatform::new()
-            .map_err(|error| format!("初始化 Grok 平台失败: {error}"))?;
+        let platform =
+            GrokPlatform::new().map_err(|error| format!("初始化 Grok 平台失败: {error}"))?;
         platform
             .apply_profile(&name)
             .map_err(|error| format!("切换 Grok profile '{name}' 失败: {error}"))?;
@@ -1331,8 +1341,8 @@ pub async fn grok_profile_off(
         return Ok(GrokProfileActionResponse::UnsupportedEnvironment { env_type });
     }
     tokio::task::spawn_blocking(|| {
-        let platform = GrokPlatform::new()
-            .map_err(|error| format!("初始化 Grok 平台失败: {error}"))?;
+        let platform =
+            GrokPlatform::new().map_err(|error| format!("初始化 Grok 平台失败: {error}"))?;
         let (_, previous_profile) = activation_parts(
             platform
                 .inspect_activation_state()
@@ -1358,8 +1368,8 @@ pub async fn grok_get_settings(
         return Ok(GrokSettingsCommandResponse::UnsupportedEnvironment { env_type });
     }
     tokio::task::spawn_blocking(|| {
-        let platform = GrokPlatform::new()
-            .map_err(|error| format!("初始化 Grok 平台失败: {error}"))?;
+        let platform =
+            GrokPlatform::new().map_err(|error| format!("初始化 Grok 平台失败: {error}"))?;
         Ok(GrokSettingsCommandResponse::Ok {
             data: Box::new(settings_response(&platform)?),
         })
@@ -1377,8 +1387,8 @@ pub async fn grok_update_settings(
         return Ok(GrokSettingsUpdateResponse::UnsupportedEnvironment { env_type });
     }
     tokio::task::spawn_blocking(move || {
-        let platform = GrokPlatform::new()
-            .map_err(|error| format!("初始化 Grok 平台失败: {error}"))?;
+        let platform =
+            GrokPlatform::new().map_err(|error| format!("初始化 Grok 平台失败: {error}"))?;
         update_settings(&platform, patch)
     })
     .await
@@ -1444,8 +1454,8 @@ pub async fn grok_get_dashboard_overview(
         return Ok(GrokDashboardCommandResponse::UnsupportedEnvironment { env_type });
     }
     tokio::task::spawn_blocking(|| {
-        let platform = GrokPlatform::new()
-            .map_err(|error| format!("初始化 Grok 平台失败: {error}"))?;
+        let platform =
+            GrokPlatform::new().map_err(|error| format!("初始化 Grok 平台失败: {error}"))?;
         let profiles = platform
             .load_profiles()
             .map_err(|error| format!("读取 Grok profiles 失败: {error}"))?;
@@ -1468,8 +1478,10 @@ pub async fn grok_get_dashboard_overview(
                 activation_name,
                 auth_mode,
                 profiles_total: profiles.len() as u32,
-                profiles_enabled: profiles.values().filter(|profile| profile.is_enabled()).count()
-                    as u32,
+                profiles_enabled: profiles
+                    .values()
+                    .filter(|profile| profile.is_enabled())
+                    .count() as u32,
                 config_exists: config_path.exists(),
                 config_path_display: config_path.display().to_string(),
             },
@@ -1624,9 +1636,7 @@ mod tests {
 
         let mut cleared = original;
         apply_credential_action(
-            json!({ "credential_action": "clear" })
-                .as_object()
-                .unwrap(),
+            json!({ "credential_action": "clear" }).as_object().unwrap(),
             &mut cleared,
         )
         .unwrap();
@@ -1635,20 +1645,14 @@ mod tests {
         assert!(!cleared.platform_data.contains_key("env_key"));
 
         let error = apply_credential_action(
-            json!({ "credential_action": null })
-                .as_object()
-                .unwrap(),
+            json!({ "credential_action": null }).as_object().unwrap(),
             &mut cleared,
         )
         .unwrap_err();
         assert!(error.contains("credential_action"));
 
         let mut official = ProfileConfig::new().with_model("grok-4".to_string());
-        apply_profile_patch(
-            &mut official,
-            json!({ "model": null }).as_object().unwrap(),
-        )
-        .unwrap();
+        apply_profile_patch(&mut official, json!({ "model": null }).as_object().unwrap()).unwrap();
         assert!(official.model.is_none());
     }
 
@@ -1670,7 +1674,10 @@ mod tests {
             },
         )
         .unwrap();
-        assert!(matches!(response, GrokProfileActionResponse::Renamed { .. }));
+        assert!(matches!(
+            response,
+            GrokProfileActionResponse::Renamed { .. }
+        ));
         assert_eq!(apply_calls.get(), 0);
         assert_eq!(delete_calls.get(), 1);
 
@@ -1728,7 +1735,10 @@ mod tests {
             OpenJsonValueDto::try_from(json!({ "name": "new" })).unwrap(),
         )
         .unwrap();
-        assert!(matches!(response, GrokProfileActionResponse::Renamed { .. }));
+        assert!(matches!(
+            response,
+            GrokProfileActionResponse::Renamed { .. }
+        ));
         let profiles = inactive_platform.load_profiles().unwrap();
         assert!(!profiles.contains_key("old"));
         assert!(profiles.contains_key("new"));
@@ -1752,7 +1762,10 @@ mod tests {
             OpenJsonValueDto::try_from(json!({ "name": "new" })).unwrap(),
         )
         .unwrap();
-        assert!(matches!(response, GrokProfileActionResponse::Renamed { .. }));
+        assert!(matches!(
+            response,
+            GrokProfileActionResponse::Renamed { .. }
+        ));
         let profiles = active_platform.load_profiles().unwrap();
         assert!(!profiles.contains_key("old"));
         assert!(profiles.contains_key("new"));
@@ -1886,10 +1899,16 @@ mod tests {
             ("session.auto_compact_threshold_percent", json!(101)),
         ] {
             let patch = GrokSettingsPatchDto {
-                set: BTreeMap::from([(key.to_string(), OpenJsonValueDto::try_from(value).unwrap())]),
+                set: BTreeMap::from([(
+                    key.to_string(),
+                    OpenJsonValueDto::try_from(value).unwrap(),
+                )]),
                 unset: Vec::new(),
             };
-            assert!(validate_settings_patch(&patch).is_err(), "{key} should reject invalid value");
+            assert!(
+                validate_settings_patch(&patch).is_err(),
+                "{key} should reject invalid value"
+            );
         }
 
         let unsupported = GrokSettingsPatchDto {
@@ -1908,11 +1927,7 @@ mod tests {
     fn settings_patch_preserves_unknown_tables_and_writes_no_backup() {
         let temp = tempdir().unwrap();
         let path = temp.path().join("config.toml");
-        fs::write(
-            &path,
-            "[ui]\ntheme = 'dark'\n[unknown]\nkeep = 'yes'\n",
-        )
-        .unwrap();
+        fs::write(&path, "[ui]\ntheme = 'dark'\n[unknown]\nkeep = 'yes'\n").unwrap();
         let platform = test_platform(path.clone(), temp.path().join("ccr"));
         let patch = GrokSettingsPatchDto {
             set: BTreeMap::from([(
@@ -1930,13 +1945,11 @@ mod tests {
         assert!(saved.contains("theme = \"light\""));
         assert!(saved.contains("keep = \"yes\""));
         assert!(!temp.path().join("backups").exists());
-        assert!(fs::read_dir(temp.path()).unwrap().all(|entry| {
-            !entry
+        assert!(
+            fs::read_dir(temp.path())
                 .unwrap()
-                .file_name()
-                .to_string_lossy()
-                .contains("bak")
-        }));
+                .all(|entry| { !entry.unwrap().file_name().to_string_lossy().contains("bak") })
+        );
     }
 
     #[test]
@@ -2005,26 +2018,27 @@ mod tests {
         };
         let attempts = Cell::new(0);
 
-        let response = update_settings_with_writer(
-            &platform,
-            patch,
-            |target, content, token, options| {
+        let response =
+            update_settings_with_writer(&platform, patch, |target, content, token, options| {
                 attempts.set(attempts.get() + 1);
                 if attempts.get() == 1 {
                     platform.apply_profile("relay").unwrap();
                 }
                 write_guarded_versioned(target, content, token, options)
                     .map_err(|error| error.to_string())
-            },
-        )
-        .unwrap();
+            })
+            .unwrap();
 
         assert!(matches!(
             response,
             GrokSettingsUpdateResponse::ManagedLocked { .. }
         ));
         assert_eq!(attempts.get(), 1);
-        assert!(fs::read_to_string(&path).unwrap().contains("default = \"custom\""));
+        assert!(
+            fs::read_to_string(&path)
+                .unwrap()
+                .contains("default = \"custom\"")
+        );
         platform.clear_active_profile_runtime().unwrap();
     }
 
@@ -2077,13 +2091,11 @@ mod tests {
             fs::read_to_string(&path).unwrap(),
             "[ui]\ntheme = 'external'\n"
         );
-        assert!(fs::read_dir(temp.path()).unwrap().all(|entry| {
-            !entry
+        assert!(
+            fs::read_dir(temp.path())
                 .unwrap()
-                .file_name()
-                .to_string_lossy()
-                .contains("bak")
-        }));
+                .all(|entry| { !entry.unwrap().file_name().to_string_lossy().contains("bak") })
+        );
     }
 
     #[test]
@@ -2104,7 +2116,10 @@ mod tests {
             );
             let gate = section.find("non_local_env").unwrap();
             let blocking_work = section.find("spawn_blocking").unwrap_or(usize::MAX);
-            assert!(gate < blocking_work, "{signature} performs work before the Local-only gate");
+            assert!(
+                gate < blocking_work,
+                "{signature} performs work before the Local-only gate"
+            );
         }
     }
 }
