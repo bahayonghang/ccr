@@ -1,13 +1,24 @@
 import * as grokClient from '../generated/grok'
 import { toOpenJsonValue } from '../_shared'
 import type {
+  GrokConfigLayersResponse,
   GrokDashboardCommandResponse,
   GrokProfileActionResponse,
   GrokProfileCommandResponse,
   GrokProfileCreateRequest,
   GrokProfilePatch,
   GrokProfilesCommandResponse,
+  GrokRawConfigResponse,
+  GrokRawSaveResponse,
+  GrokSettingsCommandResponse,
+  GrokSettingsPatchDto,
+  GrokSettingsUpdateResponse,
 } from '@/types/grok'
+import type {
+  ConfigLayersResult,
+  RawFileGetResult,
+  RawFileSaveResult,
+} from './configRawTypes'
 
 export interface GrokDashboardRequestOptions {
   force?: boolean
@@ -89,4 +100,61 @@ export const grokProfileOff = async (): Promise<GrokProfileActionResponse> => as
   'Grok profile off',
 )
 
-// Settings commands are added by the Grok Settings child task.
+export const getGrokSettings = async (): Promise<GrokSettingsCommandResponse> => assertStatus(
+  await grokClient.getGrokSettings(),
+  ['ok', 'unsupported_environment'],
+  'Grok settings',
+)
+
+export const updateGrokSettings = async (
+  patch: GrokSettingsPatchDto,
+): Promise<GrokSettingsUpdateResponse> => assertStatus(
+  await grokClient.updateGrokSettings(patch),
+  ['saved', 'conflict', 'managed_locked', 'unsupported_environment'],
+  'Grok settings update',
+)
+
+const normalizeRawUnsupported = (
+  response: Extract<GrokRawConfigResponse | GrokRawSaveResponse | GrokConfigLayersResponse, {
+    status: 'unsupported_environment'
+  }>,
+) => ({ status: 'unsupported_environment' as const, envType: response.env_type })
+
+export const getGrokConfigRaw = async (): Promise<RawFileGetResult> => {
+  const response = assertStatus(
+    await grokClient.getGrokConfigRaw(),
+    ['ok', 'unsupported_environment'],
+    'Grok raw config',
+  )
+  return response.status === 'unsupported_environment'
+    ? normalizeRawUnsupported(response)
+    : response
+}
+
+export const saveGrokConfigRaw = async (
+  content: string,
+  token: string,
+): Promise<RawFileSaveResult> => {
+  const response = assertStatus(
+    await grokClient.saveGrokConfigRaw(content, token),
+    ['saved', 'conflict', 'invalid', 'unsupported_environment'],
+    'Grok raw config save',
+  )
+  if (response.status === 'unsupported_environment') return normalizeRawUnsupported(response)
+  if (response.status !== 'invalid') return response
+  return {
+    ...response,
+    kind: response.kind === 'syntax' ? 'syntax' : 'semantic',
+  }
+}
+
+export const listGrokConfigLayers = async (): Promise<ConfigLayersResult> => {
+  const response = assertStatus(
+    await grokClient.listGrokConfigLayers(),
+    ['ok', 'unsupported_environment'],
+    'Grok config layers',
+  )
+  return response.status === 'unsupported_environment'
+    ? normalizeRawUnsupported(response)
+    : { layers: response.layers }
+}

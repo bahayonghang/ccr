@@ -75,7 +75,7 @@ describe('router smoke', () => {
     expect(dashboardRoute?.meta.cacheKey).toBe('DashboardView')
   })
 
-  it('registers the cached Grok home and both placeholder child routes', () => {
+  it('registers the cached Grok home and both management child routes', () => {
     const homeRoute = router.getRoutes().find((route) => route.name === 'grok')
     const profilesRoute = router.getRoutes().find((route) => route.name === 'grok-profiles')
     const settingsRoute = router.getRoutes().find((route) => route.name === 'grok-settings')

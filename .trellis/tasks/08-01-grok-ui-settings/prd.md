@@ -30,14 +30,16 @@
 ## Acceptance Criteria
 
 - [ ] 手工冒烟(临时 `GROK_HOME`,config.toml 含 `[mcp_servers]`/`[permission]`/section 内未知键):改 theme/auto_compact/channel → 保存 → 文件 diff **只含被改 key,未知表与 section 内未知键原样保留**
-- [ ] 并发场景:保存前另开进程改文件(或 apply profile)→ 后端重试收敛或返回 conflict → 前端冲突条 + 重载可用,无数据丢失
-- [ ] 托管锁:激活 profile 时模型 tab 锁定 + 提示条;off 后恢复可编辑;绕过前端直发托管键(手工构造)被后端拒绝且前端呈现该错误
-- [ ] source tab:双开窗口模拟并发 → conflict 横幅与重载;语法错误 → 行/列 errorMarker;保存成功后 `~/.ccr/backups/grok/` 无 config 备份新增;备份相关文案正确
-- [ ] layers 面板:managed/requirements 文件存在时(临时构造)显示与策略提示正确
+- [x] 并发场景:保存前另开进程改文件(或 apply profile)→ 后端重试收敛或返回 conflict → 前端冲突条 + 重载可用,无数据丢失
+- [x] 托管锁:激活 profile 时模型 tab 锁定 + 提示条;off 后恢复可编辑;绕过前端直发托管键(手工构造)被后端拒绝且前端呈现该错误
+- [x] source tab:双开窗口模拟并发 → conflict 横幅与重载;语法错误 → 行/列 errorMarker;保存成功后 `~/.ccr/backups/grok/` 无 config 备份新增;备份相关文案正确
+- [x] layers 面板:managed/requirements 文件存在时(临时构造)显示与策略提示正确
 - [ ] config.toml 不存在 → 默认态 → 保存创建成功
-- [ ] `just frontend-check-quick` 全绿;`raw-config-editor-contracts.md` 契约自查通过
+- [x] `just frontend-check-quick` 全绿;`raw-config-editor-contracts.md` 契约自查通过
 - [ ] **生产构建验证**:`just tauri-build`(或产物)下 source tab 编辑器渲染正常(CodeMirror CSP nonce,契约已知 WebView2 风险)
-- [ ] 桌面 + 窄视口 × 明暗主题截图走查通过
+- [x] 桌面 + 窄视口 × 明暗主题截图走查通过
+
+> 2026-08-01 验证边界:并发/托管/raw/layers 条目由 Tauri + frontend smoke 与 Web 预览覆盖;真实临时 `GROK_HOME` 写入、缺失文件首次创建、production WebView2 运行时 CSP 仍待手工验收。`just tauri-build` 与 CSP nonce smoke 已通过。
 
 ## Out of scope
 

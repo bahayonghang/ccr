@@ -49,6 +49,19 @@
     </div>
 
     <div
+      v-if="backupNotice"
+      class="config-source-panel__notice config-source-panel__notice--warning"
+      data-testid="config-source-backup-notice"
+      role="note"
+    >
+      <SIcon
+        name="ShieldAlert"
+        size="w-4 h-4"
+      />
+      <span>{{ backupNotice }}</span>
+    </div>
+
+    <div
       v-if="conflict"
       class="config-source-panel__message config-source-panel__message--warning"
       role="alert"
@@ -101,6 +114,14 @@
         </div>
         <span>{{ layers.length }}</span>
       </div>
+      <div
+        v-if="hasPolicyLayer && policyNotice"
+        class="config-source-panel__message config-source-panel__message--warning"
+        data-testid="config-source-policy-notice"
+        role="status"
+      >
+        {{ policyNotice }}
+      </div>
       <div class="config-source-panel__layer-list">
         <div
           v-for="layer in layers"
@@ -144,6 +165,9 @@ const props = defineProps<{
   getRaw: () => Promise<RawFileGetResult>
   saveRaw: (content: string, token: string) => Promise<RawFileSaveResult>
   listLayers: () => Promise<ConfigLayersResult>
+  backupNotice?: string
+  policyNotice?: string
+  policyLayerIds?: string[]
 }>()
 
 const emit = defineEmits<{
@@ -165,6 +189,9 @@ const conflict = ref(false)
 const unsupportedEnvironment = ref(false)
 const errorMarker = ref<EditorErrorMarker | null>(null)
 const dirty = computed(() => content.value !== baseline.value)
+const hasPolicyLayer = computed(() => layers.value.some(layer => (
+  layer.exists === true && (props.policyLayerIds ?? []).includes(layer.id)
+)))
 
 watch(dirty, value => emit('dirty-change', value), { immediate: true })
 
@@ -350,6 +377,10 @@ onBeforeUnmount(() => emit('dirty-change', false))
   color: var(--text-secondary);
   background: var(--bg-secondary);
   font-size: 0.8125rem;
+}
+
+.config-source-panel__notice--warning {
+  border-color: color-mix(in srgb, var(--color-warning) 35%, var(--border-subtle));
 }
 
 .config-source-panel__message {

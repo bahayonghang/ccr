@@ -139,8 +139,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'grok/settings',
         name: 'grok-settings',
-        component: () => import('@/views/grok/GrokPlaceholderView.vue'),
-        props: { section: 'settings' },
+        component: () => import('@/views/grok/GrokSettingsView.vue'),
         meta: { depth: 2, group: 'grok' },
       },
       {
