@@ -988,3 +988,26 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 86: 适配 llmusage 数据库重构并优化 Usage 查询
+
+**Date**: 2026-08-01
+**Task**: 适配 llmusage 数据库重构并优化 Usage 查询
+**Branch**: `dev`
+
+### Summary
+
+完成 llmusage schema 10+ 只读兼容、七来源与 NDJSON 协议适配、DST 感知半开区间查询、capability snapshot 和聚合扫描优化；代表数据库四项性能目标均通过，最终 just ci 全绿。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c6c4f23608b778e1677b035490ddeb674a8cf69f` | (see git log) |
+| `e000eb99a8de5fb5738dc120f7618c9644665898` | (see git log) |
+| `5e46deac1a445fc1a1e94c82a1a9bc9ade14624c` | (see git log) |
+
+### Status
+
+[OK] **Completed**

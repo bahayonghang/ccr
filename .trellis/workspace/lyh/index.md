@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 85
+- **Total Sessions**: 86
 - **Last Active**: 2026-08-01
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~990 | Active |
+| `journal-2.md` | ~1013 | Active |
 | `journal-1.md` | ~1987 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 86 | 2026-08-01 | 适配 llmusage 数据库重构并优化 Usage 查询 | `c6c4f23608b778e1677b035490ddeb674a8cf69f`, `e000eb99a8de5fb5738dc120f7618c9644665898`, `5e46deac1a445fc1a1e94c82a1a9bc9ade14624c` | `dev` |
 | 85 | 2026-08-01 | 完成 Grok UI 平台父任务集成 | `4d5c0387` | `dev` |
 | 84 | 2026-08-01 | 完成 Grok 可视化 Settings 页面 | `2050652e` | `dev` |
 | 83 | 2026-08-01 | 完成 Grok Profiles 管理页面 | `33c51ab2` | `dev` |
