@@ -217,6 +217,7 @@ export default {
     usage: 'Usage',
     claudeCode: 'Claude Code',
     codex: 'Codex',
+    grok: 'Grok',
     gemini: 'Antigravity',
     mcp: 'MCP Servers',
     mcpManager: 'MCP Manager',
@@ -4766,6 +4767,151 @@ export default {
         deleteFailed: 'Delete failed: {error}',
         toggleFailed: 'Toggle failed: {error}',
       },
+    },
+  },
+
+  grok: {
+    overview: {
+      title: 'Grok',
+      subtitle: 'Local profile and runtime readiness for Grok Build.',
+    },
+    dashboard: {
+      header: {
+        eyebrow: 'Grok Build',
+        refresh: 'Refresh',
+        version: 'Version',
+        profile: 'Profile',
+        auth: 'Authentication',
+      },
+      localOnly: {
+        title: 'Grok management is local only',
+        description: 'Switch to the local execution environment to inspect or change Grok files on this machine.',
+        environment: 'Current environment: {env}',
+      },
+      readiness: {
+        eyebrow: 'Readiness',
+        title: 'Runtime checks',
+        subtitle: 'Installation, profile intent, and config state are evaluated independently.',
+        installation: {
+          title: 'Installation',
+          checking: 'Checking the local Grok executable.',
+          installed: 'Grok is available on this machine.',
+          notInstalled: 'The Grok executable was not found.',
+          timeout: 'Version detection timed out.',
+          error: 'Version detection could not complete.',
+        },
+        profiles: {
+          title: 'Profiles',
+          value: '{count} total',
+          detail: '{enabled} enabled · current {current}',
+          empty: 'Create a profile before selecting a runtime configuration.',
+        },
+        config: {
+          title: 'Configuration',
+          exists: 'config.toml found',
+          missing: 'config.toml not found',
+          path: '{path} · {state}',
+          noPath: 'No local config path · {state}',
+        },
+      },
+      actions: {
+        eyebrow: 'Next actions',
+        title: 'Resolve the next blocker',
+        subtitle: 'Actions are ordered by what prevents a usable Grok setup first.',
+        install: {
+          title: 'Open Grok installation docs',
+          description: 'Install the Grok CLI before configuring local profiles.',
+        },
+        createProfile: {
+          title: 'Create the first profile',
+          description: 'Add a profile with the provider, model, and authentication mode you need.',
+        },
+        activateProfile: {
+          title: 'Activate a profile',
+          description: 'Choose an enabled profile to make its settings effective.',
+        },
+        repairDrift: {
+          title: 'Repair profile drift',
+          description: 'Open Profiles to turn profile mode off or restore the intended runtime state.',
+        },
+        inspectUnsafe: {
+          title: 'Inspect the unsafe activation state',
+          description: 'The entry-state record is missing. Review Profiles before making further changes.',
+        },
+        openSettings: {
+          title: 'Review Grok settings',
+          description: 'The runtime is ready. Check model and session defaults in Settings.',
+        },
+      },
+      management: {
+        eyebrow: 'Management',
+        title: 'Grok workspace',
+        subtitle: 'Open the two local configuration surfaces.',
+        profiles: {
+          title: 'Profiles',
+          description: 'Create, inspect, switch, and turn off Grok profiles.',
+          badge: '{count} profiles',
+        },
+        settings: {
+          title: 'Settings',
+          description: 'Manage typed config.toml settings and configuration layers.',
+          configured: 'Config found',
+          missing: 'Config missing',
+        },
+      },
+      commands: {
+        eyebrow: 'Command reference',
+        title: 'Common Grok commands',
+        copied: 'Copied',
+        copy: 'Copy command',
+        copyFailed: 'Could not copy the command.',
+      },
+      statusLabels: {
+        ready: 'Ready',
+        attention: 'Attention',
+        blocked: 'Blocked',
+        checking: 'Checking',
+      },
+      empty: {
+        title: 'Grok overview is unavailable',
+        description: 'CCR could not read the local Grok dashboard overview.',
+      },
+      error: {
+        refreshFailed: 'The latest Grok state could not be loaded. Existing data is still shown.',
+      },
+    },
+    states: {
+      notSet: 'Not set',
+      unknown: 'Unknown',
+      activation: {
+        inactive: 'Inactive',
+        active: 'Active',
+        drifted: 'Drifted',
+        unsafeMissingEntryState: 'Missing entry state',
+      },
+      activationWarning: {
+        drifted: 'Drifted: {name}',
+        unsafeMissingEntryState: 'Unsafe state: {name}',
+      },
+      authMode: {
+        inlineApiKey: 'Inline API key',
+        envKey: 'Environment key',
+        session: 'Session auth',
+      },
+      version: {
+        checking: 'Checking',
+        timeout: 'Timed out',
+        error: 'Unavailable',
+        notInstalled: 'Not installed',
+        installed: 'Installed',
+      },
+    },
+    placeholder: {
+      eyebrow: 'Grok Build',
+      profilesTitle: 'Grok Profiles',
+      settingsTitle: 'Grok Settings',
+      description: 'This route is wired and ready for its dedicated management view.',
+      back: 'Back to Grok',
     },
   },
 

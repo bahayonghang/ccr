@@ -45,6 +45,12 @@ export const mainLayoutNavSections: MainLayoutNavSection[] = [
         iconClass: 'text-platform-codex/90 group-hover:text-platform-codex transition-colors',
       },
       {
+        to: '/grok',
+        labelKey: 'nav.grok',
+        icon: 'Zap',
+        iconClass: 'text-platform-grok/90 group-hover:text-platform-grok transition-colors',
+      },
+      {
         to: '/antigravity',
         labelKey: 'nav.gemini',
         icon: 'Sparkles',
@@ -81,6 +87,9 @@ export const mainLayoutRouteTitleMap: Record<string, string> = {
   'claude-code-settings': 'common.settings',
   'claude-code-profiles': 'nav.profiles',
   codex: 'nav.codex',
+  grok: 'nav.grok',
+  'grok-profiles': 'nav.profiles',
+  'grok-settings': 'common.settings',
   'codex-mcp': 'nav.mcp',
   'codex-profiles': 'nav.profiles',
   'codex-agents': 'nav.agents',
@@ -134,6 +143,7 @@ export const mainLayoutGroupTitleMap: Record<string, string> = {
   environment: 'nav.environments',
   'claude-code': 'nav.claudeCode',
   codex: 'nav.codex',
+  grok: 'nav.grok',
   gemini: 'nav.gemini',
   opencode: 'nav.opencode',
 }

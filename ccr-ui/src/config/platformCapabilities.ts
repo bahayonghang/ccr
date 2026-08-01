@@ -1,4 +1,4 @@
-export type PlatformCapabilityId = 'claude' | 'codex' | 'gemini' | 'qwen' | 'droid'
+export type PlatformCapabilityId = 'claude' | 'codex' | 'grok' | 'gemini' | 'qwen' | 'droid'
 
 export interface PlatformCapability {
   id: PlatformCapabilityId
@@ -28,6 +28,15 @@ export const platformCapabilities = {
     supportsMcp: true,
     supportsAgents: true,
     supportsStatusBar: true,
+  },
+  grok: {
+    id: 'grok',
+    displayName: 'Grok',
+    implemented: true,
+    supportsProfiles: true,
+    supportsMcp: false,
+    supportsAgents: false,
+    supportsStatusBar: false,
   },
   gemini: {
     id: 'gemini',

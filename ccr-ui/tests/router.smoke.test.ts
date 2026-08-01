@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { mainLayoutNavSections, mainLayoutRouteTitleMap } from '@/config/mainLayoutShell'
+import {
+  mainLayoutGroupTitleMap,
+  mainLayoutNavSections,
+  mainLayoutRouteTitleMap,
+} from '@/config/mainLayoutShell'
+import { getModuleSubnavItems } from '@/config/moduleSubnav'
 import router from '@/router'
 
 describe('router smoke', () => {
@@ -8,6 +13,9 @@ describe('router smoke', () => {
       'dashboard',
       'settings',
       'codex',
+      'grok',
+      'grok-profiles',
+      'grok-settings',
       'antigravity',
       'gemini-mcp',
       'gemini-agents',
@@ -65,6 +73,41 @@ describe('router smoke', () => {
 
     expect(dashboardRoute?.path).toBe('/')
     expect(dashboardRoute?.meta.cacheKey).toBe('DashboardView')
+  })
+
+  it('registers the cached Grok home and both placeholder child routes', () => {
+    const homeRoute = router.getRoutes().find((route) => route.name === 'grok')
+    const profilesRoute = router.getRoutes().find((route) => route.name === 'grok-profiles')
+    const settingsRoute = router.getRoutes().find((route) => route.name === 'grok-settings')
+
+    expect(homeRoute).toMatchObject({
+      path: '/grok',
+      meta: { cache: true, cacheKey: 'GrokView', depth: 1, group: 'grok' },
+    })
+    expect(profilesRoute).toMatchObject({
+      path: '/grok/profiles',
+      meta: { depth: 2, group: 'grok' },
+    })
+    expect(settingsRoute).toMatchObject({
+      path: '/grok/settings',
+      meta: { depth: 2, group: 'grok' },
+    })
+
+    const modulesSection = mainLayoutNavSections.find((section) => section.id === 'modules')
+    expect(modulesSection?.items).toContainEqual(expect.objectContaining({
+      to: '/grok',
+      labelKey: 'nav.grok',
+      icon: 'Zap',
+    }))
+    expect(mainLayoutRouteTitleMap.grok).toBe('nav.grok')
+    expect(mainLayoutRouteTitleMap['grok-profiles']).toBe('nav.profiles')
+    expect(mainLayoutRouteTitleMap['grok-settings']).toBe('common.settings')
+    expect(mainLayoutGroupTitleMap.grok).toBe('nav.grok')
+    expect(getModuleSubnavItems('grok').map((item) => item.href)).toEqual([
+      '/grok',
+      '/grok/profiles',
+      '/grok/settings',
+    ])
   })
 
   it('keeps legacy Gemini CLI routes redirected to Antigravity', () => {

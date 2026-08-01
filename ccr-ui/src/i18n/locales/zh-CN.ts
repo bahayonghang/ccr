@@ -213,6 +213,7 @@ export default {
     usage: '用量',
     claudeCode: 'Claude Code',
     codex: 'Codex',
+    grok: 'Grok',
     gemini: 'Antigravity',
     mcp: 'MCP 服务器',
     mcpManager: 'MCP 管理',
@@ -4619,6 +4620,151 @@ export default {
         deleteFailed: '删除失败: {error}',
         toggleFailed: '切换状态失败: {error}',
       },
+    },
+  },
+
+  grok: {
+    overview: {
+      title: 'Grok',
+      subtitle: '集中查看 Grok Build 的本机 Profile 与运行时就绪状态。',
+    },
+    dashboard: {
+      header: {
+        eyebrow: 'Grok Build',
+        refresh: '刷新',
+        version: '版本',
+        profile: 'Profile',
+        auth: '认证',
+      },
+      localOnly: {
+        title: 'Grok 管理仅支持本机环境',
+        description: '请切换到本机执行环境，再读取或修改这台机器上的 Grok 文件。',
+        environment: '当前环境：{env}',
+      },
+      readiness: {
+        eyebrow: 'Readiness',
+        title: '运行时检查',
+        subtitle: '分别检查安装、Profile 激活意图和配置文件状态。',
+        installation: {
+          title: '安装状态',
+          checking: '正在检查本机 Grok 可执行文件。',
+          installed: '这台机器可以使用 Grok。',
+          notInstalled: '未找到 Grok 可执行文件。',
+          timeout: '版本探测超时。',
+          error: '版本探测未能完成。',
+        },
+        profiles: {
+          title: 'Profiles',
+          value: '共 {count} 个',
+          detail: '启用 {enabled} 个 · 当前 {current}',
+          empty: '先创建 Profile，再选择运行时配置。',
+        },
+        config: {
+          title: '配置文件',
+          exists: '已找到 config.toml',
+          missing: '未找到 config.toml',
+          path: '{path} · {state}',
+          noPath: '暂无本机配置路径 · {state}',
+        },
+      },
+      actions: {
+        eyebrow: 'Next actions',
+        title: '处理下一项阻塞',
+        subtitle: '按照影响 Grok 可用性的优先级排列。',
+        install: {
+          title: '打开 Grok 安装文档',
+          description: '先安装 Grok CLI，再配置本机 Profiles。',
+        },
+        createProfile: {
+          title: '创建第一个 Profile',
+          description: '填写所需的提供商、模型和认证方式。',
+        },
+        activateProfile: {
+          title: '激活一个 Profile',
+          description: '选择已启用的 Profile，让对应配置生效。',
+        },
+        repairDrift: {
+          title: '修复 Profile 漂移',
+          description: '打开 Profiles，执行 off 或恢复预期的运行时状态。',
+        },
+        inspectUnsafe: {
+          title: '检查不安全的激活状态',
+          description: '入口状态记录缺失，请先在 Profiles 中核对后再继续修改。',
+        },
+        openSettings: {
+          title: '检查 Grok 设置',
+          description: '运行时已就绪，可继续核对模型与会话默认值。',
+        },
+      },
+      management: {
+        eyebrow: 'Management',
+        title: 'Grok 工作区',
+        subtitle: '进入两个本机配置入口。',
+        profiles: {
+          title: 'Profiles',
+          description: '创建、检查、切换或退出 Grok Profile。',
+          badge: '{count} 个 Profiles',
+        },
+        settings: {
+          title: 'Settings',
+          description: '管理 config.toml 类型化设置与配置层级。',
+          configured: '已找到配置',
+          missing: '缺少配置',
+        },
+      },
+      commands: {
+        eyebrow: 'Command reference',
+        title: '常用 Grok 命令',
+        copied: '已复制',
+        copy: '复制命令',
+        copyFailed: '无法复制命令。',
+      },
+      statusLabels: {
+        ready: '就绪',
+        attention: '需处理',
+        blocked: '阻塞',
+        checking: '检查中',
+      },
+      empty: {
+        title: 'Grok 概览不可用',
+        description: 'CCR 无法读取本机 Grok 仪表盘概览。',
+      },
+      error: {
+        refreshFailed: '最新 Grok 状态加载失败，当前仍显示已有数据。',
+      },
+    },
+    states: {
+      notSet: '未设置',
+      unknown: '未知',
+      activation: {
+        inactive: '未激活',
+        active: '已激活',
+        drifted: '已漂移',
+        unsafeMissingEntryState: '入口状态缺失',
+      },
+      activationWarning: {
+        drifted: '已漂移：{name}',
+        unsafeMissingEntryState: '不安全状态：{name}',
+      },
+      authMode: {
+        inlineApiKey: '内联 API Key',
+        envKey: '环境变量',
+        session: '会话认证',
+      },
+      version: {
+        checking: '检查中',
+        timeout: '已超时',
+        error: '不可用',
+        notInstalled: '未安装',
+        installed: '已安装',
+      },
+    },
+    placeholder: {
+      eyebrow: 'Grok Build',
+      profilesTitle: 'Grok Profiles',
+      settingsTitle: 'Grok Settings',
+      description: '路由与导航已接通，等待对应管理页面接入。',
+      back: '返回 Grok',
     },
   },
 

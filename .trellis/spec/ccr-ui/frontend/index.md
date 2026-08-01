@@ -20,6 +20,7 @@
 | [Sync Security Contracts](./sync-security-contracts.md)                   | Typed sync IPC, truth table, canonical WebDAV config, and operation passphrase lifecycle                       | Complete |
 | [Development Resource Contracts](./development-resource-contracts.md)     | Vite watcher scope, warmup ownership, process cleanup, cache preservation, and smoke worker budgets            | Complete |
 | [Profiles Page Contracts](./profiles-page-contracts.md)                   | Codex form-derived auth fields and `env_key` serialization, two-page shared skeleton, `--cp-*`/`pe-*` boundary | Complete |
+| [Environment-Scoped Dashboard Contracts](./environment-scoped-dashboard-contracts.md) | Local-only environment gates, cache invalidation, and stale refresh behavior                                  | Complete |
 
 ## Pre-Development Checklist
 
@@ -35,6 +36,7 @@
 - Read [Sync Security Contracts](./sync-security-contracts.md) before changing fixed sync assets, sync IPC payloads, WebDAV configuration ownership, or the sensitive passphrase flow.
 - Read [Development Resource Contracts](./development-resource-contracts.md) before changing Vite/Vitest development startup, warmup, watcher, cache, or process-lifecycle tooling.
 - Read [Profiles Page Contracts](./profiles-page-contracts.md) before changing either Profiles page, the shared `components/profiles/*` family, a profile card / editor modal, or `utils/{claude,codex}Profile*.ts`.
+- Read [Environment-Scoped Dashboard Contracts](./environment-scoped-dashboard-contracts.md) before adding or changing a Local-only dashboard with environment-scoped caches or CLI version detection.
 
 ## Quality Check
 
@@ -51,3 +53,4 @@
 - Run the focused Tauri sync tests plus frontend type-check, lint, and smoke tests from [Sync Security Contracts](./sync-security-contracts.md) for sync contract changes.
 - Run `cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/dev-tooling-resource.smoke.test.ts` for development resource tooling changes.
 - Run the focused Profiles smoke set from [Profiles Page Contracts](./profiles-page-contracts.md) when changing Profiles pages, shared profile components, or profile form serialization.
+- Run the focused dashboard smoke tests from [Environment-Scoped Dashboard Contracts](./environment-scoped-dashboard-contracts.md) when changing Local-only dashboard refresh ordering or cache behavior.

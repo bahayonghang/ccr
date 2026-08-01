@@ -31,6 +31,7 @@
     --accent-info: var(--color-info);
     --platform-claude: var(--color-platform-claude);
     --platform-codex: var(--color-platform-codex);
+    --platform-grok: var(--color-platform-grok);
     --platform-gemini: var(--color-platform-gemini);
     --color-accent-danger: var(--color-danger);
     --color-accent-info: var(--color-info);

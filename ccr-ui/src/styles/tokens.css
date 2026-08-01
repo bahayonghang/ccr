@@ -105,6 +105,8 @@
   --color-platform-claude-rgb: 217 119 87;
   --color-platform-codex: #5b8a62;
   --color-platform-codex-rgb: 91 138 98;
+  --color-platform-grok: #716b80;
+  --color-platform-grok-rgb: 113 107 128;
   --color-platform-gemini: #7d97b6;
   --color-platform-gemini-rgb: 125 151 182;
 
@@ -820,6 +822,8 @@
   --color-platform-claude-rgb: var(--ctp-peach-rgb);
   --color-platform-codex: var(--ctp-green);
   --color-platform-codex-rgb: var(--ctp-green-rgb);
+  --color-platform-grok: var(--ctp-mauve);
+  --color-platform-grok-rgb: var(--ctp-mauve-rgb);
   --color-platform-gemini: var(--ctp-blue);
   --color-platform-gemini-rgb: var(--ctp-blue-rgb);
   --shadow-xs: 0 1px 2px rgb(var(--ctp-shadow-rgb) / var(--ctp-shadow-xs-opacity));
@@ -988,6 +992,8 @@ html:root[data-resolved-flavor='mocha'] {
   --color-platform-claude-rgb: var(--ctp-peach-rgb);
   --color-platform-codex: var(--ctp-green);
   --color-platform-codex-rgb: var(--ctp-green-rgb);
+  --color-platform-grok: var(--ctp-mauve);
+  --color-platform-grok-rgb: var(--ctp-mauve-rgb);
   --color-platform-gemini: var(--ctp-blue);
   --color-platform-gemini-rgb: var(--ctp-blue-rgb);
   --shadow-xs: 0 1px 2px rgb(0 0 0 / 34%);
