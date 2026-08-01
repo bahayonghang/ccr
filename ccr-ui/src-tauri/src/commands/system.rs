@@ -320,7 +320,7 @@ enum CliProbeMode {
     Full,
 }
 
-const CLI_VERSION_TOOLS: [&str; 4] = ["ccr", "claude", "codex", "gemini"];
+const CLI_VERSION_TOOLS: [&str; 5] = ["ccr", "claude", "codex", "gemini", "grok"];
 
 #[derive(Debug, Clone)]
 struct CliProbeTarget {
@@ -585,6 +585,7 @@ fn cli_command_name(tool: &str) -> Option<&'static str> {
         "claude" => Some("claude"),
         "codex" => Some("codex"),
         "gemini" => Some("agy"),
+        "grok" => Some("grok"),
         _ => None,
     }
 }
@@ -752,6 +753,7 @@ fn normalize_cli_tool(tool: &str) -> Option<&'static str> {
         "claude-code" => Some("claude"),
         "codex" => Some("codex"),
         "gemini" | "gemini-cli" | "antigravity" | "antigravity-cli" | "agy" => Some("gemini"),
+        "grok" | "grok-build" | "grok-cli" => Some("grok"),
         _ => None,
     }
 }
@@ -1017,8 +1019,8 @@ mod tests {
 
         assert_eq!(payload.mode, "fast");
         assert_eq!(payload.timeout_ms, 3_500);
-        assert_eq!(payload.versions.len(), 4);
-        assert_eq!(payload.entries.len(), 4);
+        assert_eq!(payload.versions.len(), 5);
+        assert_eq!(payload.entries.len(), 5);
 
         // fast 模式下应在合理时间内返回，避免回归导致探测超时
         assert!(started_at.elapsed() <= Duration::from_millis(5_000));
@@ -1028,6 +1030,7 @@ mod tests {
     fn normalize_cli_tool_rejects_unknown_tool() {
         assert_eq!(normalize_cli_tool("codex"), Some("codex"));
         assert_eq!(normalize_cli_tool(" CODEX "), Some("codex"));
+        assert_eq!(normalize_cli_tool("grok-build"), Some("grok"));
         assert_eq!(normalize_cli_tool("unknown"), None);
     }
 
@@ -1050,7 +1053,7 @@ mod tests {
 
         let targets = build_cli_probe_targets(Some(&statuses));
 
-        assert_eq!(targets.len(), 4);
+        assert_eq!(targets.len(), 5);
         assert_eq!(targets[0].platform, "ccr");
         assert_eq!(targets[1].platform, "claude");
         assert_eq!(targets[1].installed, Some(false));
@@ -1059,6 +1062,9 @@ mod tests {
         assert_eq!(targets[2].installed, Some(true));
         assert_eq!(targets[3].platform, "gemini");
         assert_eq!(targets[3].installed, Some(false));
+        assert_eq!(targets[4].platform, "grok");
+        assert_eq!(targets[4].program, "grok");
+        assert_eq!(targets[4].installed, Some(false));
     }
 
     #[cfg(target_os = "windows")]

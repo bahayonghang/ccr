@@ -2,14 +2,14 @@
 
 > Generated from `commands/handler_registry.rs`; do not edit manually.
 
-- Base commands: 315
-- Windows commands: 323
-- Base modules: 36
+- Base commands: 328
+- Windows commands: 336
+- Base modules: 37
 
-- Capability metadata: 315/315
-- Generated typed commands: 252/315 (80.00%)
+- Capability metadata: 328/328
+- Generated typed commands: 265/328 (80.79%)
 
-- Exact input/output type declarations: 252/252
+- Exact input/output type declarations: 265/265
 
 | Module | Title | Platform | Commands | Default risk | Schema |
 | --- | --- | --- | ---: | --- | --- |
@@ -24,6 +24,7 @@
 | `codex_auth` | Codex Auth | base | 17 | `secret_mutation` | `generated` |
 | `codex_model_providers` | Codex Model Providers | base | 3 | `secret_mutation` | `generated` |
 | `gemini` | Gemini | base | 11 | `secret_mutation` | `generated` |
+| `grok` | Grok Build | base | 13 | `secret_mutation` | `generated` |
 | `opencode` | OpenCode | base | 16 | `secret_mutation` | `generated` |
 | `checkin` | CheckIn | base | 25 | `network_mutation` | `legacy_json` |
 | `system_info` | 系统信息 | base | 2 | `read_only` | `generated` |

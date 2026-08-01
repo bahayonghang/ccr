@@ -56,9 +56,9 @@
 - Windows-only WSL commands live in `WINDOWS_COMMAND_MODULES` and the Windows `generate_handler()` arm.
 - Each command path must appear once; duplicate command paths fail `command_registry_paths_are_unique`.
 - Registry metadata must remain non-empty and domain-keyed; empty module keys, titles, or command lists are invalid.
-- Count assertions intentionally freeze the current handler surface: 315 base commands and 323 commands on Windows across 36 base modules.
+- Count assertions intentionally freeze the current handler surface: 328 base commands and 336 commands on Windows across 37 base modules.
 - Capability descriptors cover every command ID and include risk, input/output schema, timeout, concurrency, confirmation, authorization, and audit policy.
-- Every generated command row owns its handler path, exact TypeScript input/output type names, and client declaration. The manifest v2 exact count is 252/252 typed commands; generated-client functions may contain imports/type aliases only and must append declarations from the registry.
+- Every generated command row owns its handler path, exact TypeScript input/output type names, and client declaration. The manifest v2 exact count is 265/265 typed commands; generated-client functions may contain imports/type aliases only and must append declarations from the registry.
 - Risk inference recognizes action verbs both at the start of an ID and after domain prefixes. For example, `claude_get_settings` is read-only and `codex_delete_session` is destructive; the module default still controls secret/system authorization and audit redaction.
 - Generated inventory artifacts are `docs/{en/,}reference/tauri-command-inventory.md`, `ccr-ui/src/api/generated/command-manifest.json`, `commandCapabilities.ts`, and the generated domain clients.
 - The manifest is an authoritative backend allowlist: an app command without a descriptor is rejected before the generated handler runs. Audit logging records descriptor metadata only and never logs the invoke payload.
@@ -92,7 +92,7 @@
 ### 6. Tests Required
 
 - Run `cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml commands::handler_registry -- --nocapture`.
-- The registry tests must read Tauri's generated `acl-manifests.json` and `capabilities.json`, assert 323 main permissions, assert the exact tray subset, and prove the tray does not inherit the main permission set.
+- The registry tests must read Tauri's generated `acl-manifests.json` and `capabilities.json`, assert 336 main permissions, assert the exact tray subset, and prove the tray does not inherit the main permission set.
 - Run `just tauri-command-inventory-check` after regeneration with `just tauri-command-inventory`.
 - Run `cargo check --manifest-path ccr-ui/src-tauri/Cargo.toml --bin ccr-desktop`.
 - Run `git diff --check`.
@@ -147,7 +147,7 @@ Keep command registration domain-shaped and testable, while `commands::mod` rema
 ### 1. Scope / Trigger
 
 - Trigger: adding or changing a registry command's timeout, concurrency, confirmation, or cancellation behavior.
-- Applies to all 323 desktop commands under `src/commands/**`, the local `command-macros` proc-macro crate, and `runtime_policy.rs`.
+- Applies to all 336 desktop commands under `src/commands/**`, the local `command-macros` proc-macro crate, and `runtime_policy.rs`.
 
 ### 2. Signatures
 
@@ -196,7 +196,7 @@ The attribute macro accepts only `async fn` returning `Result<T, String>`, emits
 
 ### 6. Tests Required
 
-- Assert exactly 323 managed command attributes and zero direct `#[tauri::command]` attributes under `src/commands/**`.
+- Assert exactly 336 managed command attributes and zero direct `#[tauri::command]` attributes under `src/commands/**`.
 - `cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml runtime_policy -- --test-threads=1`: prove cooperative timeout and permit lifetime.
 - `cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml handler_registry -- --test-threads=1`: prove timeout ownership and confirmation payload validation.
 - `cargo clippy --manifest-path ccr-ui/src-tauri/Cargo.toml --bin ccr-desktop -- -D warnings`.
