@@ -47,6 +47,19 @@ pub enum GrokProfileAuthMode {
     Session,
 }
 
+/// Read-only view of CCR's Grok profile activation state.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum GrokActivationState {
+    /// No profile activation intent is recorded.
+    Inactive,
+    /// The recorded profile matches the current Grok runtime configuration.
+    Active { name: String },
+    /// A profile is recorded as active, but the runtime configuration differs.
+    Drifted { name: String },
+    /// CCR cannot safely restore the runtime because its entry state is missing.
+    UnsafeMissingEntryState { name: Option<String> },
+}
+
 impl GrokProfileAuthMode {
     /// Stable identifier used by CLI and TUI presentation.
     pub fn as_str(self) -> &'static str {
@@ -155,6 +168,34 @@ impl GrokPlatform {
         )
     }
 
+    /// Inspect profile activation without reconciling or mutating any pointer.
+    pub fn inspect_activation_state(&self) -> Result<GrokActivationState> {
+        let intended_name = self
+            .current_profile_from_registry()?
+            .or(self.fallback_current_profile_from_file()?);
+        if self.load_entry_state()?.is_none()
+            && (intended_name.is_some() || self.runtime_has_managed_shape()?)
+        {
+            return Ok(GrokActivationState::UnsafeMissingEntryState {
+                name: intended_name,
+            });
+        }
+
+        let Some(name) = intended_name else {
+            return Ok(GrokActivationState::Inactive);
+        };
+        let profiles = self.load_profiles()?;
+        let runtime_matches = match profiles.get(&name) {
+            Some(profile) => self.runtime_matches_profile(&name, profile)?,
+            None => false,
+        };
+        if runtime_matches {
+            Ok(GrokActivationState::Active { name })
+        } else {
+            Ok(GrokActivationState::Drifted { name })
+        }
+    }
+
     /// Restore the entry configuration and leave CCR profile mode.
     pub fn clear_active_profile_runtime(&self) -> Result<()> {
         let _operation_lock = self.lock_profile_operation()?;
@@ -201,7 +242,13 @@ impl GrokPlatform {
     }
 
     fn save_profiles_to_file(&self, profiles: &IndexMap<String, ProfileConfig>) -> Result<()> {
-        base::save_profiles_to_toml(&self.paths.profiles_file, profiles, "grok", &self.paths)
+        let preserve_inactive = self.current_profile_from_registry()?.is_none()
+            && self.fallback_current_profile_from_file()?.is_none();
+        base::save_profiles_to_toml(&self.paths.profiles_file, profiles, "grok", &self.paths)?;
+        if preserve_inactive {
+            self.clear_profiles_current_config()?;
+        }
+        Ok(())
     }
 
     fn trimmed(value: Option<&String>) -> Option<String> {
@@ -889,6 +936,7 @@ impl PlatformConfig for GrokPlatform {
     }
 
     fn save_profile(&self, name: &str, profile: &ProfileConfig) -> Result<()> {
+        let _operation_lock = self.lock_profile_operation()?;
         let mut normalized = profile.clone();
         if let Some(reasoning_effort) = Self::profile_reasoning_effort(profile)? {
             normalized.platform_data.insert(
@@ -1101,6 +1149,125 @@ mod tests {
 
     fn read_config(platform: &GrokPlatform) -> toml::Value {
         toml::from_str(&fs::read_to_string(&platform.config_path).unwrap()).unwrap()
+    }
+
+    fn activation_files(platform: &GrokPlatform) -> Vec<Option<Vec<u8>>> {
+        [
+            &platform.config_path,
+            &platform.paths.profiles_file,
+            &platform.paths.registry_file,
+            &platform.entry_state_path(),
+        ]
+        .into_iter()
+        .map(|path| fs::read(path).ok())
+        .collect()
+    }
+
+    #[test]
+    fn activation_inspection_reports_all_states_without_writing() {
+        let (_home, platform) = platform();
+        let before = activation_files(&platform);
+        assert_eq!(
+            platform.inspect_activation_state().unwrap(),
+            GrokActivationState::Inactive
+        );
+        assert_eq!(activation_files(&platform), before);
+
+        platform
+            .save_profile("relay", &third_party_profile())
+            .unwrap();
+        platform.apply_profile("relay").unwrap();
+        let before = activation_files(&platform);
+        assert_eq!(
+            platform.inspect_activation_state().unwrap(),
+            GrokActivationState::Active {
+                name: "relay".into()
+            }
+        );
+        assert_eq!(activation_files(&platform), before);
+
+        let mut config = read_config(&platform);
+        config["models"]["default"] = toml::Value::String("other".into());
+        fs::write(
+            &platform.config_path,
+            toml::to_string_pretty(&config).unwrap(),
+        )
+        .unwrap();
+        let before = activation_files(&platform);
+        let drifted = GrokActivationState::Drifted {
+            name: "relay".into(),
+        };
+        assert_eq!(platform.inspect_activation_state().unwrap(), drifted);
+        assert_eq!(activation_files(&platform), before);
+
+        assert_eq!(platform.get_current_profile().unwrap(), None);
+        let before = activation_files(&platform);
+        assert_eq!(platform.inspect_activation_state().unwrap(), drifted);
+        assert_eq!(activation_files(&platform), before);
+
+        fs::remove_file(platform.entry_state_path()).unwrap();
+        let before = activation_files(&platform);
+        assert_eq!(
+            platform.inspect_activation_state().unwrap(),
+            GrokActivationState::UnsafeMissingEntryState {
+                name: Some("relay".into())
+            }
+        );
+        assert_eq!(activation_files(&platform), before);
+    }
+
+    #[test]
+    fn activation_inspection_reports_unnamed_unsafe_managed_runtime() {
+        let (_home, platform) = platform();
+        fs::write(
+            &platform.config_path,
+            r#"[model.custom]
+model = "grok-4.5"
+base_url = "https://api.example.com/v1"
+api_backend = "responses"
+api_key = "INLINE_SECRET_SENTINEL"
+"#,
+        )
+        .unwrap();
+
+        assert_eq!(
+            platform.inspect_activation_state().unwrap(),
+            GrokActivationState::UnsafeMissingEntryState { name: None }
+        );
+    }
+
+    #[test]
+    fn profile_saves_preserve_inactive_current_pointer() {
+        let (_home, platform) = platform();
+        platform
+            .save_profile("relay", &third_party_profile())
+            .unwrap();
+
+        assert_eq!(
+            platform.inspect_activation_state().unwrap(),
+            GrokActivationState::Inactive
+        );
+        let (profiles, _) = GrokPlatform::load_config_value(&platform.paths.profiles_file).unwrap();
+        assert_eq!(
+            profiles.get("current_config").and_then(toml::Value::as_str),
+            Some("")
+        );
+
+        platform.delete_profile("relay").unwrap();
+        assert!(platform.load_profiles().unwrap().is_empty());
+
+        platform
+            .save_profile("relay", &third_party_profile())
+            .unwrap();
+        platform.apply_profile("relay").unwrap();
+        platform.clear_active_profile_runtime().unwrap();
+        platform
+            .save_profile("relay", &third_party_profile())
+            .unwrap();
+        assert_eq!(
+            platform.inspect_activation_state().unwrap(),
+            GrokActivationState::Inactive
+        );
     }
 
     #[test]

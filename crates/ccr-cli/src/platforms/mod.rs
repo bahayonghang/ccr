@@ -23,7 +23,7 @@ pub use ccr_codex::CodexPlatform;
 pub use claude::ClaudePlatform;
 pub use droid::DroidPlatform;
 pub use gemini::GeminiPlatform;
-pub use grok::{GrokPlatform, GrokProfileAuthMode};
+pub use grok::{GrokActivationState, GrokPlatform, GrokProfileAuthMode};
 pub use qwen::QwenPlatform;
 
 /// 🏭 平台工厂函数

@@ -13,6 +13,7 @@
 - `GrokPlatform::{apply_profile, delete_profile, get_current_profile}` through
   `PlatformConfig`
 - `GrokPlatform::clear_active_profile_runtime() -> Result<()>`
+- `GrokPlatform::inspect_activation_state() -> Result<GrokActivationState>`
 - `GrokPlatform::profile_auth_mode(&ProfileConfig) -> Result<GrokProfileAuthMode>`
 - `GrokPlatform::safe_base_url_for_display(&str) -> String`
 - Cross-process operation lock resource: `grok_profile_operation`
@@ -53,6 +54,9 @@
 - `apply_profile`, `clear_active_profile_runtime`, and `delete_profile` hold the
   same cross-process operation lock across their complete multi-file sequence.
   CAS still handles external Grok/user edits that do not honor this CCR lock.
+- `save_profile` holds that operation lock and preserves an empty
+  `profiles.toml current_config`; creating or editing a profile while off must
+  not manufacture activation intent through the shared profile serializer.
 - Write order is entry state, runtime config, profiles `current_config`, then
   registry pointer. Runtime config is the truth source; a late registry failure
   remains retryable through the profiles pointer and runtime comparison.
@@ -64,6 +68,11 @@
   fails closed and leaves pointers/runtime unchanged for manual recovery.
 - Delete checks raw registry and profiles intent plus runtime equality without
   calling drift detection. A drifted active profile still requires `off`.
+- `inspect_activation_state` is the only activation-state authority for UI
+  callers. It reports `Inactive`, `Active`, `Drifted`, or
+  `UnsafeMissingEntryState` from raw registry/profile intent, runtime equality,
+  and entry-state presence. It is read-only, has no pointer reconciliation or
+  other side effects, and never exposes credential values.
 - `auth.json` and `mcp_credentials.json` are never read, written, backed up, or
   validated. Grok owns session authentication.
 - Errors and logs never contain tokens, complete credential-bearing TOML
