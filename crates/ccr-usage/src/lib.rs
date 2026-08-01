@@ -12,6 +12,7 @@ pub mod fixtures;
 mod paths;
 mod queries;
 mod source;
+mod timezone;
 
 pub use capabilities::{
     DB_BACKED_FEATURES, DbCapabilities, FeatureCapability, FeatureKey,

@@ -11,7 +11,9 @@ repository = "https://github.com/bahayonghang/ccr"
 [dependencies]
 base64 = { workspace = true }
 chrono = { workspace = true }
+chrono-tz = { workspace = true }
 dirs = { workspace = true }
+iana-time-zone = { workspace = true }
 rusqlite = { workspace = true }
 serde = { workspace = true }
 thiserror = { workspace = true }

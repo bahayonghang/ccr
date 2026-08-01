@@ -5,6 +5,11 @@ use serde::Serialize;
 
 use crate::{AppPaths, UsageError};
 
+#[cfg(test)]
+std::thread_local! {
+    static CAPABILITY_CONNECTION_OPENS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
 pub const MIN_SUPPORTED_SCHEMA_VERSION: i64 = 10;
 pub const PROVIDER_BREAKDOWN_SCHEMA_VERSION: i64 = 14;
 
@@ -119,11 +124,20 @@ impl DbCapabilities {
         let mut db_readable = false;
         let mut schema_version = None;
         let mut features = BTreeMap::new();
+        let mut read_error = None;
 
-        if db_exists && let Ok(conn) = open_readonly_for_capabilities(paths) {
-            db_readable = true;
-            schema_version = read_schema_version(&conn).ok().flatten();
-            populate_db_features(&conn, schema_version, &mut features);
+        if db_exists {
+            match open_readonly_for_capabilities(paths) {
+                Ok(conn) => match DbCapabilitySnapshot::from_connection(&conn) {
+                    Ok(snapshot) => {
+                        db_readable = true;
+                        schema_version = snapshot.schema_version;
+                        features = snapshot.features;
+                    }
+                    Err(error) => read_error = Some(error.to_string()),
+                },
+                Err(error) => read_error = Some(error.to_string()),
+            }
         }
 
         if !db_exists || !db_readable {
@@ -133,7 +147,13 @@ impl DbCapabilities {
                 UnsupportedReason::DbMissing
             };
             let detail = if db_exists {
-                format!("llmusage DB is not readable at {}", paths.db_path.display())
+                match read_error {
+                    Some(error) => format!(
+                        "llmusage DB is not readable at {}: {error}",
+                        paths.db_path.display()
+                    ),
+                    None => format!("llmusage DB is not readable at {}", paths.db_path.display()),
+                }
             } else {
                 format!("llmusage DB does not exist at {}", paths.db_path.display())
             };
@@ -154,38 +174,48 @@ impl DbCapabilities {
     }
 }
 
-pub(crate) fn ensure_feature(paths: &AppPaths, feature: FeatureKey) -> Result<(), UsageError> {
-    if !paths.db_path.is_file() {
-        return Err(UsageError::DbMissing(paths.db_path.clone()));
+#[derive(Debug, Clone)]
+pub(crate) struct DbCapabilitySnapshot {
+    pub(crate) schema_version: Option<i64>,
+    features: BTreeMap<String, FeatureCapability>,
+}
+
+impl DbCapabilitySnapshot {
+    pub(crate) fn from_connection(conn: &Connection) -> Result<Self, UsageError> {
+        let schema_version = read_schema_version(conn)?;
+        let mut features = BTreeMap::new();
+        populate_db_features(conn, schema_version, &mut features);
+        Ok(Self {
+            schema_version,
+            features,
+        })
     }
-    let conn = open_readonly_for_capabilities(paths).map_err(|error| {
-        UsageError::DbUnreadable(format!("{}: {error}", paths.db_path.display()))
-    })?;
-    let schema_version = read_schema_version(&conn)?;
-    let expected_schema_version = min_schema_version(feature);
-    if schema_version.unwrap_or_default() < expected_schema_version {
-        return Err(UsageError::SchemaUnsupported {
-            expected: expected_schema_version,
-            actual: schema_version,
-        });
-    }
-    for (table, columns) in required_columns(feature) {
-        if !table_exists(&conn, table)? {
-            return Err(UsageError::FeatureUnavailable {
-                feature: feature.as_str(),
-                reason: format!("missing required table `{table}`"),
+
+    pub(crate) fn ensure(&self, feature: FeatureKey) -> Result<(), UsageError> {
+        let expected = min_schema_version(feature);
+        if self.schema_version.unwrap_or_default() < expected {
+            return Err(UsageError::SchemaUnsupported {
+                expected,
+                actual: self.schema_version,
             });
         }
-        for column in columns {
-            if !column_exists(&conn, table, column)? {
-                return Err(UsageError::FeatureUnavailable {
-                    feature: feature.as_str(),
-                    reason: format!("missing required column `{table}.{column}`"),
-                });
-            }
+        let Some(capability) = self.features.get(feature.as_str()) else {
+            return Err(UsageError::FeatureUnavailable {
+                feature: feature.as_str(),
+                reason: "capability snapshot is missing the feature".to_string(),
+            });
+        };
+        if capability.supported {
+            return Ok(());
         }
+        Err(UsageError::FeatureUnavailable {
+            feature: feature.as_str(),
+            reason: capability
+                .detail
+                .clone()
+                .unwrap_or_else(|| "required database capability is unavailable".to_string()),
+        })
     }
-    Ok(())
 }
 
 pub(crate) fn populate_db_features(
@@ -358,12 +388,24 @@ pub fn required_columns(feature: FeatureKey) -> Vec<(&'static str, Vec<&'static 
 }
 
 pub(crate) fn open_readonly_for_capabilities(paths: &AppPaths) -> rusqlite::Result<Connection> {
+    #[cfg(test)]
+    CAPABILITY_CONNECTION_OPENS.with(|opens| opens.set(opens.get().saturating_add(1)));
     let conn = Connection::open_with_flags(
         &paths.db_path,
         OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_URI,
     )?;
     conn.busy_timeout(std::time::Duration::from_secs(5))?;
     Ok(conn)
+}
+
+#[cfg(test)]
+pub(crate) fn reset_capability_connection_open_count() {
+    CAPABILITY_CONNECTION_OPENS.with(|opens| opens.set(0));
+}
+
+#[cfg(test)]
+pub(crate) fn capability_connection_open_count() -> usize {
+    CAPABILITY_CONNECTION_OPENS.with(std::cell::Cell::get)
 }
 
 pub(crate) fn read_schema_version(conn: &Connection) -> rusqlite::Result<Option<i64>> {
@@ -544,6 +586,34 @@ mod tests {
             assert_eq!(
                 capability.reason.as_ref(),
                 Some(&UnsupportedReason::DbMissing)
+            );
+        }
+    }
+
+    #[test]
+    fn db_capabilities_mark_schema_read_failure_as_unreadable() {
+        let temp = tempfile::TempDir::new().expect("temp dir should be created");
+        let paths = AppPaths::from_root(temp.path());
+        let conn = Connection::open(&paths.db_path).expect("fixture db should open");
+        conn.execute_batch(
+            "CREATE TABLE meta(key TEXT PRIMARY KEY, value TEXT NOT NULL);
+             INSERT INTO meta(key, value) VALUES ('schema_version', X'80');",
+        )
+        .expect("malformed schema value should be created");
+        drop(conn);
+
+        let caps = DbCapabilities::detect(&paths);
+
+        assert!(caps.db_exists);
+        assert!(!caps.db_readable);
+        assert_eq!(caps.schema_version, None);
+        assert_eq!(caps.features.len(), DB_BACKED_FEATURES.len());
+        for key in DB_BACKED_FEATURES {
+            let capability = caps.features.get(key.as_str()).expect("feature present");
+            assert!(!capability.supported);
+            assert_eq!(
+                capability.reason.as_ref(),
+                Some(&UnsupportedReason::DbUnreadable)
             );
         }
     }
