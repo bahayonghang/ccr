@@ -47,35 +47,42 @@
 
 ### 凭据边界(全部子任务一票否决项)
 
-- [ ] **结构化响应零明文**:所有结构化 DTO/IPC 响应(list/get/overview/settings typed)不含 `api_key` / `auth_token` 明文;凭据字段"只写不读"(编辑表单不预填明文,区别于 claude/codex 现状)
-- [ ] **唯一受控例外**:Settings 页 source tab 的 config.toml 原文读取,遵守 `raw-config-editor-contracts.md` 全部约束——Local-only 后端强制门控、进入前明文警告确认、内容不得进入 Pinia store/日志/监控字段/localStorage/路由 state
-- [ ] base_url 展示一律经 `safe_base_url_for_display`;**脱敏值永不作为写回值**(patch 语义:未提交 = 保留原值)
-- [ ] runtime `config.toml` 写入 `BackupPolicy::None`(不新增明文凭据副本)
-- [ ] `auth.json` / `mcp_credentials.json` 永不读写
-- [ ] 错误消息不回显凭据 TOML 原文
-- [ ] force delete 仅在 blocked-active 状态时才 off + 重删
+- [x] **结构化响应零明文**:所有结构化 DTO/IPC 响应(list/get/overview/settings typed)不含 `api_key` / `auth_token` 明文;凭据字段"只写不读"(编辑表单不预填明文,区别于 claude/codex 现状)
+- [x] **唯一受控例外**:Settings 页 source tab 的 config.toml 原文读取,遵守 `raw-config-editor-contracts.md` 全部约束——Local-only 后端强制门控、进入前明文警告确认、内容不得进入 Pinia store/日志/监控字段/localStorage/路由 state
+- [x] base_url 展示一律经 `safe_base_url_for_display`;**脱敏值永不作为写回值**(patch 语义:未提交 = 保留原值)
+- [x] runtime `config.toml` 写入 `BackupPolicy::None`(不新增明文凭据副本)
+- [x] `auth.json` / `mcp_credentials.json` 永不读写
+- [x] 错误消息不回显凭据 TOML 原文
+- [x] force delete 仅在 blocked-active 状态时才 off + 重删
 
 ### 状态机与数据完整性(2026-08-01 评审新增)
 
-- [ ] active/drift 判定统一走核心层新增的**只读 activation inspection**(`inactive | active | drifted | unsafe_missing_entry_state`),禁止用 `get_current_profile()`(有清指针副作用且 drift 时返回 None)作为 active intent 依据
-- [ ] Settings typed 保存为**字段级 patch + read/merge/CAS 重试(≤3 次,每次重新检查托管锁)**,不得整 section 覆盖;并发 apply/off 与外部编辑不丢失未知键/未知表
-- [ ] 改名(rename)采用「存新名 → apply 新名(若原为激活)→ 删旧名」顺序,部分失败返回结构化状态并有明确恢复路径
-- [ ] 跨层错误传递用结构化 status envelope(如 `deleted | blocked_active`),前端禁止错误文案字符串匹配
+- [x] active/drift 判定统一走核心层新增的**只读 activation inspection**(`inactive | active | drifted | unsafe_missing_entry_state`),禁止用 `get_current_profile()`(有清指针副作用且 drift 时返回 None)作为 active intent 依据
+- [x] Settings typed 保存为**字段级 patch + read/merge/CAS 重试(≤3 次,每次重新检查托管锁)**,不得整 section 覆盖;并发 apply/off 与外部编辑不丢失未知键/未知表
+- [x] 改名(rename)采用「存新名 → apply 新名(若原为激活)→ 删旧名」顺序,部分失败返回结构化状态并有明确恢复路径
+- [x] 跨层错误传递用结构化 status envelope(如 `deleted | blocked_active`),前端禁止错误文案字符串匹配
 
 ### 一致性
 
-- [ ] 遵守 `.trellis/spec/ccr/backend/tauri-handler-registry.md`、`.trellis/spec/ccr-ui/frontend/api-facade-boundary.md`、`profiles-page-contracts.md`、`raw-config-editor-contracts.md`
-- [ ] i18n 中英双语同步(check-i18n 通过),文案聚合在顶层 `grok: {}` 命名空间
-- [ ] 交互模式与 Codex 页对齐:确认优先(apply/delete 弹 ConfirmModal + diff)、成功后整体重载、toast 走 uiStore
+- [x] 遵守 `.trellis/spec/ccr/backend/tauri-handler-registry.md`、`.trellis/spec/ccr-ui/frontend/api-facade-boundary.md`、`profiles-page-contracts.md`、`raw-config-editor-contracts.md`
+- [x] i18n 中英双语同步(check-i18n 通过),文案聚合在顶层 `grok: {}` 命名空间
+- [x] 交互模式与 Codex 页对齐:确认优先(apply/delete 弹 ConfirmModal + diff)、成功后整体重载、toast 走 uiStore
 
 ### 集成验收(父任务收尾评审)
 
-- [ ] 三个页面在侧边栏/子导航/面包屑中完整可达,与 Claude Code / Codex 入口并列;占位视图文件已删除且无引用残留
+- [x] 三个页面在侧边栏/子导航/面包屑中完整可达,与 Claude Code / Codex 入口并列;占位视图文件已删除且无引用残留
 - [ ] 全链路手工冒烟:创建第三方 profile → 切换(检查 `~/.grok/config.toml` 写入)→ 首页显示当前 profile → **改名激活中的 profile**(验证存新→apply→删旧顺序)→ settings 可视化改 `[ui]`/`[session]` 字段并保存(验证未知表保留)→ source tab 冲突提示可复现 → 制造 drift(手改 config.toml)验证各页呈现与删除引导 → off → 删除
-- [ ] 非 local 环境(如 WSL)下三个页面显示 Local-only 提示且命令被后端拒绝
-- [ ] 门禁:`just fmt-check`、`just lint-strict`、`just test`、`just tauri-command-inventory-check`、`just tauri-bindings-check`、`just frontend-check-quick` 全绿
-- [ ] `docs/reference/tauri-command-inventory.md`(中英)含 grok 命令条目(由再生流程产出)
-- [ ] `grok-profile-runtime.md` spec 已补 activation inspection 签名与契约(3.3 spec update 完成)
+- [x] 非 local 环境(如 WSL)下三个页面显示 Local-only 提示且命令被后端拒绝
+- [x] 门禁:`just fmt-check`、`just lint-strict`、`just test`、`just tauri-command-inventory-check`、`just tauri-bindings-check`、`just frontend-check-quick` 全绿
+- [x] `docs/reference/tauri-command-inventory.md`(中英)含 grok 命令条目(由再生流程产出)
+- [x] `grok-profile-runtime.md` spec 已补 activation inspection 签名与契约(3.3 spec update 完成)
+
+## 集成验收记录(2026-08-01)
+
+- 自动门禁通过:`just fmt-check`、`just lint-strict`、`just test`、`just tauri-command-inventory-check`、`just tauri-bindings-check`、`just frontend-check-quick`(117 files / 586 tests)与最终 `just ci`。
+- 静态与自动化安全核验通过:结构化 Grok 响应 DTO 不含 `api_key`/`auth_token`;profile 序列化脱敏、Local-only 入口门控、raw 内容不进入 store/storage/log、CAS/托管锁/未知键保留/rename/delete 状态机均有聚焦回归。
+- 路由与导航 smoke 覆盖 `/grok`、`/grok/profiles`、`/grok/settings`;`GrokPlaceholderView.vue` 已删除,`GrokPlaceholderView`/`grok.placeholder` 无引用。
+- UNVERIFIED:真实桌面 DevTools 全量响应检查、临时 `GROK_HOME` 端到端写入/首次创建/drift 流程、Home/Profiles 的桌面与窄视口明暗主题走查、production WebView2 下 CodeMirror `style.sheet`/gutter 对齐。Settings 已完成 Web 预览四象限走查与 production build,但不能替代这些真实 Tauri 验收。
 
 ## 参考资料
 

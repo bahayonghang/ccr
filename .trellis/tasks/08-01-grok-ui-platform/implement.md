@@ -20,11 +20,13 @@
 
 ## 集成评审清单(全部子任务归档前,父任务执行)
 
-- [ ] 删除 `GrokPlaceholderView.vue`,`rg -i placeholder ccr-ui/src/views/grok ccr-ui/src/router` 无残留引用
+- [x] 删除 `GrokPlaceholderView.vue`,`GrokPlaceholderView` / `grok.placeholder` 无残留引用
 - [ ] 跑父 prd「集成验收」全部条目(含改名激活 profile、drift 场景、非 local 环境、五个 just 门禁)
 - [ ] 对照父 prd「凭据边界」逐条终审(重点:DevTools 网络面板全量 grok 响应无明文;source tab 内容未进入 store/日志)
-- [ ] 3.3 spec 更新核验:`grok-profile-runtime.md`(inspection API)已更新;若前端沉淀了新契约(如 status 信封消费约定),评估补 `.trellis/spec/ccr-ui/frontend/` 条目
+- [x] 3.3 spec 更新核验:`grok-profile-runtime.md`(inspection API)已更新;前端已补 `environment-scoped-dashboard-contracts.md`、`profiles-page-contracts.md` 与 `grok-settings-contracts.md`
 - [ ] 桌面 + 窄视口截图走查三个页面(明暗主题)
+
+集成记录(2026-08-01):六项父 PRD 门禁与最终 `just ci` 全绿;Tauri inventory、bindings、路由/导航、i18n、结构化脱敏、Local-only、CAS/rename/delete 契约均由静态检查与自动化覆盖。真实 DevTools 全响应检查与临时 `GROK_HOME` 全链路未执行,故上面两项集成/凭据终审保持未勾选;Home/Profiles 四象限与 production WebView2 CodeMirror 运行时也保持 UNVERIFIED。
 
 ## 回滚点
 
