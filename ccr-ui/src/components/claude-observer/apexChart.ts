@@ -14,7 +14,7 @@ import ChartPreparingState from './ChartPreparingState.vue'
  */
 const RealApexChart = defineAsyncComponent({
   loader: async () => {
-    const module = await import('vue3-apexcharts')
+    const module = await import('@/utils/apexChartsCore')
     return module.default as unknown as Component
   },
   loadingComponent: {

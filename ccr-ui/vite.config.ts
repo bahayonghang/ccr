@@ -32,7 +32,9 @@ export default defineConfig(({ command }) => {
           manualChunks: {
             'vue-vendor': ['vue', 'vue-router', 'pinia'],
             'ui-vendor': ['@iconify/vue'],
-            'charts-vendor': ['apexcharts', 'vue3-apexcharts'],
+            // 图表库统一走 src/utils/apexChartsCore.ts 的按需入口，并全程 await import()；
+            // 这里固定成单一 charts-vendor chunk，避免多个懒加载点各自复制一份 core。
+            'charts-vendor': ['apexcharts/core', 'vue3-apexcharts/core'],
             'i18n-vendor': ['vue-i18n'],
             'markdown-vendor': ['dompurify'],
             'search-vendor': ['fuse.js'],
@@ -49,11 +51,7 @@ export default defineConfig(({ command }) => {
       port: 15173,
       strictPort: true,
       watch: {
-        ignored: [
-          '**/src-tauri/target/**',
-          '**/ref/**',
-          '**/logs/**',
-        ],
+        ignored: ['**/src-tauri/target/**', '**/ref/**', '**/logs/**'],
       },
       fs: {
         // providers-catalog.json 位于仓库根 crates/ 下（前后端共享单一数据源），
