@@ -30,7 +30,7 @@ export const parseClaudeProfileTags = (input: string): string[] | undefined => {
 export const createClaudeProfileForm = (): ClaudeProfileEditorForm => ({
   name: '',
   description: '',
-  auth_mode: 'subscription',
+  auth_mode: 'api_key',
   base_url: '',
   auth_token: '',
   default_opus_model: '',
