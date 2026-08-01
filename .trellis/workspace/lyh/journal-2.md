@@ -967,3 +967,24 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 85: 完成 Grok UI 平台父任务集成
+
+**Date**: 2026-08-01
+**Task**: 完成 Grok UI 平台父任务集成
+**Branch**: `dev`
+
+### Summary
+
+完成 Grok Home、Profiles、Settings 与 Tauri 命令桥的父级集成验收，删除占位视图，通过全仓 CI，并记录真实 Tauri 手工验收边界。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `4d5c0387` | (see git log) |
+
+### Status
+
+[OK] **Completed**
