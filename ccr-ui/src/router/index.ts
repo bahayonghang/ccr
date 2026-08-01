@@ -133,8 +133,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'grok/profiles',
         name: 'grok-profiles',
-        component: () => import('@/views/grok/GrokPlaceholderView.vue'),
-        props: { section: 'profiles' },
+        component: () => import('@/views/grok/GrokProfilesView.vue'),
         meta: { depth: 2, group: 'grok' },
       },
       {

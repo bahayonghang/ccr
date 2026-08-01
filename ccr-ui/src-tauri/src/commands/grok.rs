@@ -581,7 +581,7 @@ fn apply_profile_patch(
 ) -> Result<(), String> {
     patch_optional_string(object, "description", &mut profile.description, true)?;
     patch_optional_string(object, "base_url", &mut profile.base_url, true)?;
-    patch_optional_string(object, "model", &mut profile.model, false)?;
+    patch_optional_string(object, "model", &mut profile.model, true)?;
     patch_optional_string(object, "provider", &mut profile.provider, true)?;
     patch_optional_string(object, "provider_type", &mut profile.provider_type, true)?;
 
@@ -1643,12 +1643,13 @@ mod tests {
         .unwrap_err();
         assert!(error.contains("credential_action"));
 
-        let error = apply_profile_patch(
-            &mut relay_profile(),
+        let mut official = ProfileConfig::new().with_model("grok-4".to_string());
+        apply_profile_patch(
+            &mut official,
             json!({ "model": null }).as_object().unwrap(),
         )
-        .unwrap_err();
-        assert!(error.contains("model"));
+        .unwrap();
+        assert!(official.model.is_none());
     }
 
     #[test]

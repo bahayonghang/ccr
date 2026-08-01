@@ -23,3 +23,48 @@ export type { GrokSettingsPatchDto } from './generated/grok/GrokSettingsPatchDto
 export type { GrokSettingsResponse } from './generated/grok/GrokSettingsResponse'
 export type { GrokSettingsUpdateResponse } from './generated/grok/GrokSettingsUpdateResponse'
 export type { GrokUiSettingsDto } from './generated/grok/GrokUiSettingsDto'
+
+export type GrokCredentialAction =
+  | 'preserve'
+  | 'replace_api_key'
+  | 'replace_env_key'
+  | 'clear'
+
+export type GrokApiBackend = 'chat_completions' | 'responses' | 'messages'
+export type GrokReasoningEffort = 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max'
+
+export interface GrokProfileCreateRequest {
+  name: string
+  description: string | null
+  profile_kind: import('./generated/grok/GrokProfileKindDto').GrokProfileKindDto
+  base_url?: string
+  model?: string
+  provider: string | null
+  enabled: boolean
+  tags: string[] | null
+  api_backend?: GrokApiBackend
+  context_window?: number
+  supports_backend_search?: boolean
+  reasoning_effort?: GrokReasoningEffort
+  credential_action: GrokCredentialAction
+  api_key?: string
+  env_key?: string
+}
+
+export interface GrokProfilePatch {
+  name?: string
+  description?: string | null
+  profile_kind?: import('./generated/grok/GrokProfileKindDto').GrokProfileKindDto
+  base_url?: string | null
+  model?: string | null
+  provider?: string | null
+  enabled?: boolean
+  tags?: string[] | null
+  api_backend?: GrokApiBackend | null
+  context_window?: number | null
+  supports_backend_search?: boolean | null
+  reasoning_effort?: GrokReasoningEffort | null
+  credential_action?: GrokCredentialAction
+  api_key?: string
+  env_key?: string
+}

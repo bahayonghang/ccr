@@ -19,7 +19,7 @@
 | [Brand Asset Pipeline Contract](./brand-asset-pipeline.md)                | Brand SVG ownership, Cairo/Pillow rendering, generated outputs, and cross-surface verification                 | Complete |
 | [Sync Security Contracts](./sync-security-contracts.md)                   | Typed sync IPC, truth table, canonical WebDAV config, and operation passphrase lifecycle                       | Complete |
 | [Development Resource Contracts](./development-resource-contracts.md)     | Vite watcher scope, warmup ownership, process cleanup, cache preservation, and smoke worker budgets            | Complete |
-| [Profiles Page Contracts](./profiles-page-contracts.md)                   | Codex form-derived auth fields and `env_key` serialization, two-page shared skeleton, `--cp-*`/`pe-*` boundary | Complete |
+| [Profiles Page Contracts](./profiles-page-contracts.md)                   | Codex/Grok patch serialization, three-page shared skeleton, and `--cp-*`/`pe-*` boundary                       | Complete |
 | [Environment-Scoped Dashboard Contracts](./environment-scoped-dashboard-contracts.md) | Local-only environment gates, cache invalidation, and stale refresh behavior                                  | Complete |
 
 ## Pre-Development Checklist

@@ -57,6 +57,13 @@
 - `save_profile` holds that operation lock and preserves an empty
   `profiles.toml current_config`; creating or editing a profile while off must
   not manufacture activation intent through the shared profile serializer.
+- Tauri profile patches preserve absent fields and use `null` to clear optional
+  values. In particular, the patch decoder accepts `model: null`: official
+  profiles may remove their explicit model, while the existing core validation
+  still rejects a third-party profile after its required model is cleared.
+- Tauri credential patches use `credential_action`; `preserve` sends no value,
+  `replace_api_key` and `replace_env_key` accept exactly their matching value,
+  and `clear` removes every direct/compatibility/environment credential field.
 - Write order is entry state, runtime config, profiles `current_config`, then
   registry pointer. Runtime config is the truth source; a late registry failure
   remains retryable through the profiles pointer and runtime comparison.
@@ -87,6 +94,8 @@
   non-boolean backend-search flag -> `ValidationError`.
 - Official profile with base URL or either credential -> `ValidationError`.
 - Empty, non-string, or non-canonical `reasoning_effort` -> `ValidationError`.
+- `model: null` on an official profile -> accepted clear; the same final shape
+  on a third-party profile -> core validation error for the required model.
 - First runtime CAS conflict -> reload, rebuild, and retry; second conflict ->
   `ValidationError` containing `请重试` and no overwrite.
 - Concurrent CCR apply/off/delete -> serialize on `grok_profile_operation`;
@@ -110,6 +119,8 @@
   recovers through profiles/runtime, and a retry converges the registry.
 - Base: an official profile without a model removes `models.default` and lets
   Grok choose its upstream default.
+- Good: editing an official profile sends `model: null`, the Tauri patch helper
+  clears the stored model, and the next apply removes `models.default`.
 - Bad: delete through `get_current_profile()` after drift, because that helper
   clears the registry and can bypass the active-intent guard.
 - Bad: interpolate `toml::de::Error` into a terminal error; its display text can
@@ -131,6 +142,8 @@
   - Assert runtime/profile malformed-TOML sentinel values are absent from
     returned errors and unsafe URL forms lose userinfo/query/fragment.
 - Run `just fmt-check`, `just lint-strict`, and `just test` before delivery.
+- For Tauri profile patch/status changes, also run
+  `cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml commands::grok::tests -- --test-threads=1`.
 
 ## 7. Wrong vs Correct
 
@@ -156,6 +169,24 @@ if active_by_intent || runtime_matches_profile(name)? {
 ```
 
 This keeps deletion fail-closed until runtime restoration has completed.
+
+#### Wrong: reject every model clear in the patch decoder
+
+```rust
+patch_optional_string(object, "model", &mut profile.model, false)?;
+```
+
+This prevents an official profile from returning to Grok's upstream default.
+
+#### Correct: decode the optional clear, then validate the complete profile
+
+```rust
+patch_optional_string(object, "model", &mut profile.model, true)?;
+platform.validate_profile(&profile)?;
+```
+
+The decoder preserves patch semantics; the domain validator retains the
+third-party required-model invariant.
 
 ## Scenario: Grok CLI Profile Surface
 
