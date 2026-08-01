@@ -20,11 +20,41 @@ pub enum JobEvent {
         name: String,
         elapsed_ms: u64,
     },
+    PricingUpgradeStarted {
+        from_version: String,
+        to_version: String,
+        total_events: usize,
+    },
+    PricingUpgradeProgress {
+        from_version: String,
+        to_version: String,
+        processed_events: usize,
+        total_events: usize,
+        elapsed_ms: u64,
+    },
+    PricingBucketReconcileStarted {
+        to_version: String,
+        bucket_count: usize,
+    },
+    PricingUpgradeFinished {
+        from_version: String,
+        to_version: String,
+        updated_events: usize,
+        bucket_count: usize,
+        deleted_orphan_buckets: usize,
+        elapsed_ms: u64,
+    },
     LockWaiting {
         timeout_ms: u64,
     },
     LockAcquired {
         wait_ms: u64,
+    },
+    TokenAccountingRepairStarted {
+        sources: Vec<SourceKind>,
+    },
+    TokenAccountingRepairFinished {
+        sources: Vec<SourceKind>,
     },
     SourceStarted {
         source: SourceKind,
@@ -168,5 +198,24 @@ mod tests {
         assert!(noise.is_none());
         assert!(matches!(started, JobEvent::Started { .. }));
         assert!(matches!(finished, JobEvent::Finished { .. }));
+    }
+
+    #[test]
+    fn parses_current_pricing_and_accounting_lifecycle_events() {
+        let fixtures = [
+            r#"{"event":"pricing_upgrade_started","from_version":"v1","to_version":"v2","total_events":10}"#,
+            r#"{"event":"pricing_upgrade_progress","from_version":"v1","to_version":"v2","processed_events":5,"total_events":10,"elapsed_ms":12}"#,
+            r#"{"event":"pricing_bucket_reconcile_started","to_version":"v2","bucket_count":4}"#,
+            r#"{"event":"pricing_upgrade_finished","from_version":"v1","to_version":"v2","updated_events":10,"bucket_count":4,"deleted_orphan_buckets":1,"elapsed_ms":20}"#,
+            r#"{"event":"token_accounting_repair_started","sources":["kimi_code","pi","grok"]}"#,
+            r#"{"event":"token_accounting_repair_finished","sources":["antigravity"]}"#,
+        ];
+
+        for fixture in fixtures {
+            assert!(
+                parse_ndjson_event(fixture).unwrap().is_some(),
+                "current event must parse: {fixture}"
+            );
+        }
     }
 }

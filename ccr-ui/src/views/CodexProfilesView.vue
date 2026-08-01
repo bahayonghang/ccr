@@ -644,7 +644,9 @@ const updateFormField = (field: keyof CodexProfileEditorForm, value: string | bo
 }
 
 const requiresBaseUrl = computed(() => !usesOpenAiAuthMode(form.auth_mode))
-const requiresSecret = computed(() => form.auth_mode === 'openai_api_key')
+const requiresSecret = computed(() =>
+  ['openai_api_key', 'provider_env_key', 'provider_bearer_token'].includes(form.auth_mode),
+)
 const requiresEnvKey = computed(() => form.auth_mode === 'provider_env_key')
 const displayOpenAiLoginMethod = computed(
   () => authModeToLoginMethod(form.auth_mode) || t('codex.profiles.notAvailable'),

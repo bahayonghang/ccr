@@ -27,6 +27,11 @@ const moduleSubnavMap: Record<string, ModuleSubnavItem[]> = {
     { label: 'Agents', labelKey: 'nav.agents', href: '/codex/agents', icon: 'Bot' },
     { label: 'Sessions', labelKey: 'nav.sessions', href: '/codex/sessions', icon: 'MessagesSquare' },
   ],
+  grok: [
+    { label: 'Home', labelKey: 'nav.home', href: '/grok', icon: 'Home' },
+    { label: 'Profiles', labelKey: 'nav.profiles', href: '/grok/profiles', icon: 'Folders' },
+    { label: 'Settings', labelKey: 'common.settings', href: '/grok/settings', icon: 'SlidersHorizontal' },
+  ],
   antigravity: [
     { label: 'System Prompts', labelKey: 'systemPrompts.nav', href: '/antigravity/system-prompts', icon: 'ScrollText', localOnly: true },
     { label: 'MCP', labelKey: 'nav.mcp', href: '/antigravity/mcp', icon: 'Server' },

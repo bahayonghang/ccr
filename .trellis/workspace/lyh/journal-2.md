@@ -860,3 +860,154 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 80: 实现 Codex DeepSeek bearer 接入
+
+**Date**: 2026-08-01
+**Task**: 实现 Codex DeepSeek bearer 接入
+**Branch**: `dev`
+
+### Summary
+
+新增 provider bearer 认证、DeepSeek 模型目录字段、secret-aware 原子写、Tauri/Vue/双语文档与诊断修复覆盖；just ci 全量通过。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `a3b063a1` | (see git log) |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 81: 完成 Grok Tauri 命令桥接层
+
+**Date**: 2026-08-01
+**Task**: 完成 Grok Tauri 命令桥接层
+**Branch**: `dev`
+
+### Summary
+
+完成 Grok UI 父子任务规划、只读激活状态契约与 13 个 Tauri 命令的类型化桥接、安全门和回归覆盖。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f8287100a181510dd3cfb6d2971bdef022e8033e` | (see git log) |
+| `e11fcdf0c24e5590ce5995bcc34b83c9325f3b4d` | (see git log) |
+| `dcd153eb4d52a08667cfc97ff44696fd2f1064d5` | (see git log) |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 82: 实现 Grok UI 首页
+
+**Date**: 2026-08-01
+**Task**: 实现 Grok UI 首页
+**Branch**: `dev`
+
+### Summary
+
+完成 Grok 首页、前端公共接线、环境作用域缓存契约与 smoke 覆盖；frontend-check-quick、bindings 与主题专项通过；应用内 Browser 不可用，截图矩阵留待父任务集成验收。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `2cfb0152` | (see git log) |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 83: 完成 Grok Profiles 管理页面
+
+**Date**: 2026-08-01
+**Task**: 完成 Grok Profiles 管理页面
+**Branch**: `dev`
+
+### Summary
+
+实现 Grok Profiles 列表、过滤、编辑、切换、删除与恢复流程，补齐凭据只写不读和 model 清除契约，并通过前端与 Tauri 检查。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `33c51ab2` | (see git log) |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 84: 完成 Grok 可视化 Settings 页面
+
+**Date**: 2026-08-01
+**Task**: 完成 Grok 可视化 Settings 页面
+**Branch**: `dev`
+
+### Summary
+
+交付 Grok 可视化 Settings、原始配置与配置层界面，完成前端/Tauri/生产构建验证并记录手工验收边界。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `2050652e` | (see git log) |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 85: 完成 Grok UI 平台父任务集成
+
+**Date**: 2026-08-01
+**Task**: 完成 Grok UI 平台父任务集成
+**Branch**: `dev`
+
+### Summary
+
+完成 Grok Home、Profiles、Settings 与 Tauri 命令桥的父级集成验收，删除占位视图，通过全仓 CI，并记录真实 Tauri 手工验收边界。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `4d5c0387` | (see git log) |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 86: 适配 llmusage 数据库重构并优化 Usage 查询
+
+**Date**: 2026-08-01
+**Task**: 适配 llmusage 数据库重构并优化 Usage 查询
+**Branch**: `dev`
+
+### Summary
+
+完成 llmusage schema 10+ 只读兼容、七来源与 NDJSON 协议适配、DST 感知半开区间查询、capability snapshot 和聚合扫描优化；代表数据库四项性能目标均通过，最终 just ci 全绿。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c6c4f23608b778e1677b035490ddeb674a8cf69f` | (see git log) |
+| `e000eb99a8de5fb5738dc120f7618c9644665898` | (see git log) |
+| `5e46deac1a445fc1a1e94c82a1a9bc9ade14624c` | (see git log) |
+
+### Status
+
+[OK] **Completed**

@@ -27,6 +27,52 @@ ccr codex fix
 - Profiles：`~/.ccr/platforms/codex/profiles.toml`
 - Registry pointer：`~/.ccr/config.toml` 中 `[codex].current_profile`
 
+## DeepSeek Responses API
+
+DeepSeek 的 Codex 接入需要 **Codex >= 0.144.0**。当前可用模型为
+`deepseek-v4-flash`；模型目录 `~/.codex/models.json` 不由 CCR 下载或覆盖，请先按
+[DeepSeek 官方 Codex 接入文档](https://api-docs.deepseek.com/zh-cn/quick_start/agent_integrations/codex/)
+生成。官方同时提供
+[Shell 配置脚本](https://cdn.deepseek.com/api-docs/codex-deepseek-setup.sh) 与
+[PowerShell 配置脚本](https://cdn.deepseek.com/api-docs/codex-deepseek-setup-en.ps1)。
+
+在 ccr-ui 的 Codex Profiles 页面选择 DeepSeek Provider 模板，然后：
+
+1. 认证模式选择 `Provider Bearer Token` 并输入 DeepSeek API Key。
+2. 模型保留 `deepseek-v4-flash`，模型目录填写 `~/.codex/models.json`。
+3. 推理强度选择 `high`，保存并应用 profile。
+
+模板只填充非敏感的 Provider、端点和模型，不保存或覆盖 API Key。保存后的 profile
+会使用以下非密字段；bearer 由 CCR runtime secret store 单独托管，不应手工写入
+`profiles.toml`：
+
+```toml
+[deepseek]
+description = "DeepSeek"
+base_url = "https://api.deepseek.com/"
+model = "deepseek-v4-flash"
+provider = "deepseek"
+provider_type = "third_party_model"
+wire_api = "responses"
+auth_mode = "provider_bearer_token"
+model_catalog_json = "~/.codex/models.json"
+model_reasoning_effort = "high"
+enabled = true
+```
+
+应用时 CCR 固定使用 `[model_providers.custom]`，并自动派生
+`preferred_auth_method = "apikey"` 与 `forced_login_method = "api"`。最终 runtime
+形态见 [`codex-cli-config.toml`](https://raw.githubusercontent.com/bahayonghang/ccr/main/docs/examples/codex-cli-config.toml)。
+切换到其他 profile 或执行 `ccr codex profile off` 会清除上述根字段与
+`experimental_bearer_token`。
+
+::: warning 凭据与同步边界
+`~/.codex/config.toml` 和 CCR 创建的 `~/.codex/backups/config.*.bak` 会包含明文 bearer，
+不得提交、分享或作为普通诊断附件。`config.toml` 同时是敏感同步资产
+`codex-config`：同步到 WebDAV 时 bearer 会包含在 v2 加密信封内，需要独立的操作口令；
+它不会从同步内容中被剔除。
+:::
+
 ## Runtime 诊断与修复
 
 先切换到需要排查的 profile，再运行诊断：

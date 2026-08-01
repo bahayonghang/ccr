@@ -7,7 +7,11 @@ import type {
 
 export const CUSTOM_MODEL_OPTION = '__custom__'
 
-export const AVAILABLE_AUTH_MODES: CodexProfileAuthMode[] = ['openai_api_key', 'no_auth']
+export const AVAILABLE_AUTH_MODES: CodexProfileAuthMode[] = [
+  'openai_api_key',
+  'provider_bearer_token',
+  'no_auth',
+]
 export const DEPRECATED_AUTH_MODES: CodexProfileAuthMode[] = ['openai_chatgpt', 'provider_env_key']
 export const REASONING_EFFORT_OPTIONS = ['minimal', 'low', 'medium', 'high', 'xhigh'] as const
 
@@ -24,6 +28,9 @@ export interface CodexProfileEditorForm {
   env_key: string
   auth_mode: CodexProfileAuthMode
   model_reasoning_effort: string
+  model_catalog_json: string
+  preferred_auth_method: string
+  forced_login_method: string
 }
 
 export const authModeToLoginMethod = (
@@ -75,6 +82,9 @@ export const createCodexProfileEditorForm = (): CodexProfileEditorForm => ({
   env_key: '',
   auth_mode: 'no_auth',
   model_reasoning_effort: '',
+  model_catalog_json: '',
+  preferred_auth_method: '',
+  forced_login_method: '',
 })
 
 export const codexProfileToEditorForm = (profile: CodexProfile): CodexProfileEditorForm => ({
@@ -90,6 +100,9 @@ export const codexProfileToEditorForm = (profile: CodexProfile): CodexProfileEdi
   env_key: profile.env_key || '',
   auth_mode: profile.auth_mode || 'no_auth',
   model_reasoning_effort: profile.model_reasoning_effort || '',
+  model_catalog_json: profile.model_catalog_json || '',
+  preferred_auth_method: profile.preferred_auth_method || '',
+  forced_login_method: profile.forced_login_method || '',
 })
 
 export const resolveModelSelection = (model: string | null | undefined, catalog: string[]) => {
@@ -125,7 +138,7 @@ export const parseTagsInput = (raw: string): string[] | null => {
  * 序列化表单为后端请求。
  * 派生字段单源：`requires_openai_auth` / `openai_login_method` 一律由 `auth_mode` 计算，
  * 表单不再存这两个字段；`env_key` 只在 provider_env_key 模式下序列化，
- * 其余模式一律清空（退出该模式时旧值不得残留到 profiles.toml）。
+ * bearer 根字段只在 provider_bearer_token 模式下序列化，显式留空时使用 Codex 官方默认值。
  */
 export const buildCodexProfileRequest = (
   form: CodexProfileEditorForm,
@@ -147,5 +160,14 @@ export const buildCodexProfileRequest = (
   auth_mode: form.auth_mode,
   openai_login_method: authModeToLoginMethod(form.auth_mode) ?? null,
   model_reasoning_effort: normalizeOptionalText(form.model_reasoning_effort),
+  model_catalog_json: normalizeOptionalText(form.model_catalog_json),
+  preferred_auth_method:
+    form.auth_mode === 'provider_bearer_token'
+      ? normalizeOptionalText(form.preferred_auth_method) || 'apikey'
+      : null,
+  forced_login_method:
+    form.auth_mode === 'provider_bearer_token'
+      ? normalizeOptionalText(form.forced_login_method) || 'api'
+      : null,
   extra: null,
 })

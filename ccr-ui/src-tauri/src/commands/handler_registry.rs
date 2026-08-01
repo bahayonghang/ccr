@@ -657,6 +657,21 @@ define_command_registry! {
         super::gemini::gemini_delete_slash_command => ["string", "string", "export const deleteGeminiSlashCommand = (name: string): Promise<string> => invoke('gemini_delete_slash_command', { name })\n"],
         super::gemini::gemini_list_extensions => ["void", "OpenJsonValueDto", "export const listGeminiExtensions = (): Promise<OpenJsonValueDto> => invoke('gemini_list_extensions')\n"],
     ],
+    grok: "Grok Build" [SecretMutation, Generated] => [
+        super::grok::grok_list_profiles => ["void", "GrokProfilesCommandResponse", "export const listGrokProfiles = (): Promise<GrokProfilesCommandResponse> => invoke('grok_list_profiles')\n"],
+        super::grok::grok_get_profile => ["string", "GrokProfileCommandResponse", "export const getGrokProfile = (name: string): Promise<GrokProfileCommandResponse> => invoke('grok_get_profile', { name })\n"],
+        super::grok::grok_add_profile => ["OpenJsonValueDto", "GrokProfileActionResponse", "export const addGrokProfile = (request: OpenJsonValueDto): Promise<GrokProfileActionResponse> => invoke('grok_add_profile', { request })\n"],
+        super::grok::grok_update_profile => ["{ name: string; patch: OpenJsonValueDto }", "GrokProfileActionResponse", "export const updateGrokProfile = (name: string, patch: OpenJsonValueDto): Promise<GrokProfileActionResponse> => invoke('grok_update_profile', { name, patch })\n"],
+        super::grok::grok_delete_profile => ["{ name: string; force?: boolean }", "GrokProfileActionResponse", "export const deleteGrokProfile = (name: string, options?: { force?: boolean }): Promise<GrokProfileActionResponse> => invoke('grok_delete_profile', { name, force: options?.force })\n"],
+        super::grok::grok_apply_profile => ["string", "GrokProfileActionResponse", "export const applyGrokProfile = (name: string): Promise<GrokProfileActionResponse> => invoke('grok_apply_profile', { name })\n"],
+        super::grok::grok_profile_off => ["void", "GrokProfileActionResponse", "export const grokProfileOff = (): Promise<GrokProfileActionResponse> => invoke('grok_profile_off')\n"],
+        super::grok::grok_get_settings => ["void", "GrokSettingsCommandResponse", "export const getGrokSettings = (): Promise<GrokSettingsCommandResponse> => invoke('grok_get_settings')\n"],
+        super::grok::grok_update_settings => ["GrokSettingsPatchDto", "GrokSettingsUpdateResponse", "export const updateGrokSettings = (patch: GrokSettingsPatchDto): Promise<GrokSettingsUpdateResponse> => invoke('grok_update_settings', { patch })\n"],
+        super::grok::grok_get_config_raw_text => ["void", "GrokRawConfigResponse", "export const getGrokConfigRaw = (): Promise<GrokRawConfigResponse> => invoke('grok_get_config_raw_text')\n"],
+        super::grok::grok_save_config_raw_text => ["{ content: string; token: string }", "GrokRawSaveResponse", "export const saveGrokConfigRaw = (content: string, token: string): Promise<GrokRawSaveResponse> => invoke('grok_save_config_raw_text', { content, token })\n"],
+        super::grok::grok_list_config_layers => ["void", "GrokConfigLayersResponse", "export const listGrokConfigLayers = (): Promise<GrokConfigLayersResponse> => invoke('grok_list_config_layers')\n"],
+        super::grok::grok_get_dashboard_overview => ["void", "GrokDashboardCommandResponse", "export const getGrokDashboardOverview = (): Promise<GrokDashboardCommandResponse> => invoke('grok_get_dashboard_overview')\n"],
+    ],
     opencode: "OpenCode" [SecretMutation, Generated] => [
         super::opencode::opencode_get_settings => ["void", "OpenJsonValueDto", "export const getOpenCodeSettings = (): Promise<OpenJsonValueDto> => invoke('opencode_get_settings')\n"],
         super::opencode::opencode_update_settings => ["OpenJsonValueDto", "OpenJsonValueDto", "export const updateOpenCodeSettings = (settings: OpenJsonValueDto): Promise<OpenJsonValueDto> => invoke('opencode_update_settings', { settings })\n"],
@@ -1439,6 +1454,27 @@ mod tests {
         output
     }
 
+    fn grok_client_typescript() -> String {
+        let mut output = [
+            "/* Generated from commands/handler_registry.rs; do not edit. */\n\n",
+            "import { invoke } from '@/api/invokeRuntime'\n",
+            "import type { OpenJsonValueDto } from '@/types/generated/common/OpenJsonValueDto'\n",
+            "import type { GrokConfigLayersResponse } from '@/types/generated/grok/GrokConfigLayersResponse'\n",
+            "import type { GrokDashboardCommandResponse } from '@/types/generated/grok/GrokDashboardCommandResponse'\n",
+            "import type { GrokProfileActionResponse } from '@/types/generated/grok/GrokProfileActionResponse'\n",
+            "import type { GrokProfileCommandResponse } from '@/types/generated/grok/GrokProfileCommandResponse'\n",
+            "import type { GrokProfilesCommandResponse } from '@/types/generated/grok/GrokProfilesCommandResponse'\n",
+            "import type { GrokRawConfigResponse } from '@/types/generated/grok/GrokRawConfigResponse'\n",
+            "import type { GrokRawSaveResponse } from '@/types/generated/grok/GrokRawSaveResponse'\n",
+            "import type { GrokSettingsCommandResponse } from '@/types/generated/grok/GrokSettingsCommandResponse'\n",
+            "import type { GrokSettingsPatchDto } from '@/types/generated/grok/GrokSettingsPatchDto'\n",
+            "import type { GrokSettingsUpdateResponse } from '@/types/generated/grok/GrokSettingsUpdateResponse'\n\n",
+        ]
+        .concat();
+        append_module_client_declarations(&mut output, "grok");
+        output
+    }
+
     fn opencode_client_typescript() -> String {
         let mut output = [
             "/* Generated from commands/handler_registry.rs; do not edit. */\n\n",
@@ -1645,6 +1681,10 @@ mod tests {
                 gemini_client_typescript(),
             ),
             (
+                root.join("ccr-ui/src/api/generated/grok.ts"),
+                grok_client_typescript(),
+            ),
+            (
                 root.join("ccr-ui/src/api/generated/openCode.ts"),
                 opencode_client_typescript(),
             ),
@@ -1677,13 +1717,13 @@ mod tests {
 
     #[test]
     fn command_registry_shape_matches_current_handler_surface() {
-        assert_eq!(COMMAND_MODULES.len(), 36);
+        assert_eq!(COMMAND_MODULES.len(), 37);
 
         #[cfg(target_os = "windows")]
-        assert_eq!(registered_command_count(), 323);
+        assert_eq!(registered_command_count(), 336);
 
         #[cfg(not(target_os = "windows"))]
-        assert_eq!(registered_command_count(), 315);
+        assert_eq!(registered_command_count(), 328);
     }
 
     #[test]
@@ -1718,7 +1758,7 @@ mod tests {
     #[test]
     fn command_capability_descriptors_are_complete_and_unique() {
         let descriptors = command_descriptors().collect::<Vec<_>>();
-        assert_eq!(descriptors.len(), 323);
+        assert_eq!(descriptors.len(), 336);
 
         let mut ids = HashSet::new();
         let mut paths = HashSet::new();
@@ -1747,10 +1787,10 @@ mod tests {
         }
 
         let manifest = command_manifest();
-        assert_eq!(manifest.base_command_count, 315);
-        assert_eq!(manifest.windows_command_count, 323);
-        assert_eq!(manifest.typed_command_count, 252);
-        assert_eq!(manifest.exact_wire_type_count, 252);
+        assert_eq!(manifest.base_command_count, 328);
+        assert_eq!(manifest.windows_command_count, 336);
+        assert_eq!(manifest.typed_command_count, 265);
+        assert_eq!(manifest.exact_wire_type_count, 265);
 
         let exact_contract_modules = descriptors
             .iter()
@@ -1775,6 +1815,7 @@ mod tests {
                         | "shell"
                         | "system_extended"
                         | "gemini"
+                        | "grok"
                         | "opencode"
                         | "claude"
                         | "claude_profiles"
@@ -1785,7 +1826,7 @@ mod tests {
                 )
             })
             .collect::<Vec<_>>();
-        assert_eq!(exact_contract_modules.len(), 252);
+        assert_eq!(exact_contract_modules.len(), 265);
         assert!(
             exact_contract_modules
                 .iter()
@@ -2141,6 +2182,7 @@ mod tests {
             ("system_extended", system_extended_client_typescript()),
             ("builtin_prompts", builtin_prompts_client_typescript()),
             ("gemini", gemini_client_typescript()),
+            ("grok", grok_client_typescript()),
             ("opencode", opencode_client_typescript()),
             ("system_prompts", system_prompts_client_typescript()),
             ("usage_v2", usage_v2_client_typescript()),

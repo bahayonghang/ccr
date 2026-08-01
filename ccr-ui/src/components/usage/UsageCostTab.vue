@@ -137,21 +137,15 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { ModelStat, UsagePlatform } from '@/types/usage'
+import type { ModelStat } from '@/types/usage'
 import { formatPercent } from '@/views/usage/usageSummaryCards'
 import { buildChartAnimations, buildChartTheme, type ChartThemeState } from '@/views/usage/usageChartOptions'
 import { useUsageDashboardContext } from '@/views/usage/usageDashboardContext'
+import { usageSourceFallbackLabel } from '@/views/usage/usageSources'
 
 const ctx = useUsageDashboardContext()
 
 const { t } = useI18n()
-
-const sourceLabels: Record<UsagePlatform, string> = {
-  claude: 'Claude',
-  codex: 'Codex',
-  gemini: 'Antigravity',
-  opencode: 'OpenCode',
-}
 
 const theme = computed<ChartThemeState>(() => buildChartTheme())
 const totalCost = computed(() =>
@@ -238,7 +232,7 @@ const modelRankings = computed(() =>
 )
 
 // wire 上 source 是 string；已知平台显示品牌名，未知值原样回显
-const sourceLabel = (source: string) => sourceLabels[source as UsagePlatform] ?? source
+const sourceLabel = (source: string) => usageSourceFallbackLabel(source)
 const modelCost = (model: ModelStat) => model.cost_with_cache ?? model.total_cost
 const modelShare = (model: ModelStat) =>
   totalCost.value > 0 ? modelCost(model) / totalCost.value : 0

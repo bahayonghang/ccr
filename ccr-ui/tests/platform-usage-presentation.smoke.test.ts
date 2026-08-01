@@ -135,16 +135,16 @@ describe('platform usage presentation smoke', () => {
     expect(result.cards).toEqual([])
   })
 
-  it('keeps the Antigravity label while using the legacy gemini platform key', () => {
+  it('uses the canonical Antigravity usage platform key', () => {
     const messages: Record<string, string> = {
       'platformUsage.platforms.antigravity.label': 'Antigravity CLI',
       'platformUsage.platforms.antigravity.title': 'Antigravity Usage Insight',
     }
-    const spec = buildPlatformUsageSpec((key) => messages[key] ?? key, 'gemini')
+    const spec = buildPlatformUsageSpec((key) => messages[key] ?? key, 'antigravity')
 
     expect(spec.label).toBe('Antigravity CLI')
     expect(spec.title).toBe('Antigravity Usage Insight')
-    expect(spec.primaryActionTo).toBe('/usage?platform=gemini')
-    expect(spec.platform).toBe('gemini')
+    expect(spec.primaryActionTo).toBe('/usage?platform=antigravity')
+    expect(spec.platform).toBe('antigravity')
   })
 })

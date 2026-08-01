@@ -27,6 +27,53 @@ ccr codex fix
 - Profiles: `~/.ccr/platforms/codex/profiles.toml`
 - Registry pointer: `[codex].current_profile` in `~/.ccr/config.toml`
 
+## DeepSeek Responses API
+
+DeepSeek integration requires **Codex >= 0.144.0**. The currently supported model is
+`deepseek-v4-flash`. CCR does not download or overwrite the `~/.codex/models.json` catalog;
+generate it first with the
+[official DeepSeek Codex guide](https://api-docs.deepseek.com/quick_start/agent_integrations/codex/),
+the official [shell setup script](https://cdn.deepseek.com/api-docs/codex-deepseek-setup.sh),
+or the official [PowerShell setup script](https://cdn.deepseek.com/api-docs/codex-deepseek-setup-en.ps1).
+
+In the ccr-ui Codex Profiles page, select the DeepSeek provider template, then:
+
+1. Select `Provider Bearer Token` and enter the DeepSeek API key.
+2. Keep `deepseek-v4-flash` as the model and set the model catalog to `~/.codex/models.json`.
+3. Select `high` reasoning effort, save, and apply the profile.
+
+The template fills non-secret provider, endpoint, and model fields only. It never stores or
+overwrites the API key. The stored profile contains the following non-secret fields; CCR keeps
+the bearer in its runtime secret store, so do not add it manually to `profiles.toml`:
+
+```toml
+[deepseek]
+description = "DeepSeek"
+base_url = "https://api.deepseek.com/"
+model = "deepseek-v4-flash"
+provider = "deepseek"
+provider_type = "third_party_model"
+wire_api = "responses"
+auth_mode = "provider_bearer_token"
+model_catalog_json = "~/.codex/models.json"
+model_reasoning_effort = "high"
+enabled = true
+```
+
+When applied, CCR keeps the provider id fixed at `[model_providers.custom]` and derives
+`preferred_auth_method = "apikey"` plus `forced_login_method = "api"`. See the resulting runtime
+shape in [`codex-cli-config.toml`](https://raw.githubusercontent.com/bahayonghang/ccr/main/docs/examples/codex-cli-config.toml).
+Switching to another profile or running `ccr codex profile off` removes these root fields and
+`experimental_bearer_token`.
+
+::: warning Credential and sync boundary
+`~/.codex/config.toml` and CCR-created `~/.codex/backups/config.*.bak` files contain the bearer in
+plaintext. Do not commit, share, or attach them as ordinary diagnostic files. `config.toml` is also
+the sensitive `codex-config` sync asset: WebDAV sync includes the bearer inside the encrypted v2
+envelope and requires an independent operation passphrase; the bearer is not omitted from the
+synced content.
+:::
+
 ## Runtime diagnosis and repair
 
 Switch to the profile you intend to diagnose before running `fix`:

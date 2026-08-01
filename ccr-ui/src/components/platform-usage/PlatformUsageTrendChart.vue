@@ -57,7 +57,7 @@ const props = defineProps<{
 }>()
 
 const ApexChart = defineAsyncComponent({
-  loader: () => import('vue3-apexcharts'),
+  loader: () => import('@/utils/apexChartsCore'),
   suspensible: false,
 })
 

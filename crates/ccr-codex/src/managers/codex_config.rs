@@ -8,6 +8,7 @@
 // - 🔒 文件锁保证并发安全
 // - 💾 自动备份机制
 
+use ccr_core::core::atomic_writer::AtomicWriter;
 use ccr_core::core::cache::ConfigCache;
 use ccr_core::core::error::{CcrError, Result};
 use ccr_core::core::lock::LockManager;
@@ -15,7 +16,6 @@ use serde_json::{Map as JsonMap, Value as JsonValue};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
-use tempfile::NamedTempFile;
 
 /// ⚙️ Codex 配置管理器
 ///
@@ -200,23 +200,7 @@ impl CodexConfigManager {
 
     /// 🔄 原子写入文件 (临时文件 + persist)
     fn atomic_write(&self, target: &Path, data: &[u8]) -> Result<()> {
-        let temp_file = if let Some(parent) = target.parent() {
-            fs::create_dir_all(parent)
-                .map_err(|e| CcrError::SettingsError(format!("创建目录失败: {}", e)))?;
-            NamedTempFile::new_in(parent)
-        } else {
-            NamedTempFile::new()
-        }
-        .map_err(|e| CcrError::SettingsError(format!("创建临时文件失败: {}", e)))?;
-
-        fs::write(temp_file.path(), data)
-            .map_err(|e| CcrError::SettingsError(format!("写入临时文件失败: {}", e)))?;
-
-        temp_file
-            .persist(target)
-            .map_err(|e| CcrError::SettingsError(format!("原子替换文件失败: {}", e)))?;
-
-        Ok(())
+        AtomicWriter::new(target).secret(true).write(data)
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -257,8 +241,11 @@ impl CodexConfigManager {
         let filename = format!("{}.{}.{}.{}.bak", prefix, label, timestamp, ext);
         let backup_path = self.backup_dir.join(filename);
 
-        fs::copy(source, &backup_path)
-            .map_err(|e| CcrError::SettingsError(format!("备份文件失败: {}", e)))?;
+        let content = fs::read(source)
+            .map_err(|e| CcrError::SettingsError(format!("读取备份源文件失败: {}", e)))?;
+        AtomicWriter::new(&backup_path)
+            .secret(true)
+            .write(&content)?;
 
         tracing::info!("💾 已备份 {:?} → {:?}", source, backup_path);
 
@@ -528,6 +515,33 @@ mod tests {
             loaded.get("OPENAI_API_KEY").and_then(|v| v.as_str()),
             Some("sk-test-key")
         );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn secret_runtime_and_backup_files_are_owner_only() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let temp_dir = tempfile::tempdir().unwrap();
+        let manager = create_test_manager(temp_dir.path());
+        let config = toml::toml! {
+            [model_providers.custom]
+            experimental_bearer_token = "secret-value"
+        };
+        manager
+            .save_config_atomic(&toml::Value::Table(config))
+            .unwrap();
+
+        let config_mode = std::fs::metadata(manager.config_path())
+            .unwrap()
+            .permissions()
+            .mode()
+            & 0o777;
+        assert_eq!(config_mode, 0o600);
+
+        let backup = manager.backup_config("permissions").unwrap().unwrap();
+        let backup_mode = std::fs::metadata(backup).unwrap().permissions().mode() & 0o777;
+        assert_eq!(backup_mode, 0o600);
     }
 
     #[test]

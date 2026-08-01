@@ -1,0 +1,4 @@
+{"file":".trellis/spec/ccr/backend/llmusage-provider-adapter.md","reason":"Check SQL ownership, read-only behavior, schema/provider compatibility, source contracts and adapter delegation."}
+{"file":".trellis/spec/ccr/backend/dependency-governance.md","reason":"Check production dependency declarations stay synchronized and limited to the approved timezone implementation."}
+{"file":".trellis/spec/ccr-ui/frontend/index.md","reason":"Check generated bindings, frontend type safety, i18n and focused Usage smoke coverage."}
+{"file":".trellis/tasks/08-01-adapt-llmusage-database-refactor/research/upstream-impact.md","reason":"Compare final query counts, plans, compatibility matrix and representative performance against the recorded baseline."}

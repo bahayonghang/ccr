@@ -1,0 +1,28 @@
+{
+  "id": "codex-deepseek-switch",
+  "name": "codex-deepseek-switch",
+  "title": "Codex DeepSeek 第三方接入支持",
+  "description": "",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-07-31",
+  "completedAt": "2026-08-01",
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "description": "为 Codex 第三方切换补齐 DeepSeek 官方接入所需字段：根级 model_catalog_json/preferred_auth_method 透传 + model_providers.custom 段 experimental_bearer_token 新认证模式，含诊断/清场/UI 编辑器与 DeepSeek 模板同步"
+  }
+}

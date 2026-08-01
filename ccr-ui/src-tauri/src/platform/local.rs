@@ -62,6 +62,12 @@ impl ExecutionEnvironment for LocalEnvironment {
                 installed: true,
                 version: None,
             },
+            PlatformInfo {
+                name: "grok".to_string(),
+                display_name: "Grok Build".to_string(),
+                installed: true,
+                version: None,
+            },
         ];
         Ok(platforms)
     }
@@ -102,6 +108,7 @@ impl ExecutionEnvironment for LocalEnvironment {
             ("codex", "codex"),
             ("gemini", "agy"),
             ("opencode", "opencode"),
+            ("grok", "grok"),
         ];
         let mut statuses = Vec::new();
 
@@ -135,6 +142,10 @@ fn resolve_config_path(
         "codex" => home_dir()?.join(".codex"),
         "gemini" => home_dir()?.join(".gemini").join("antigravity-cli"),
         "opencode" => home_dir()?.join(".opencode"),
+        "grok" => std::env::var_os("GROK_HOME")
+            .filter(|value| !value.is_empty())
+            .map(std::path::PathBuf::from)
+            .unwrap_or(home_dir()?.join(".grok")),
         _ => return Err(EnvError::PlatformNotSupported(platform.to_string())),
     };
 
@@ -160,6 +171,14 @@ fn config_write_options(
                 ..Default::default()
             });
         }
+    }
+
+    if platform == "grok" {
+        return Ok(WriteOptions {
+            backup: BackupPolicy::None,
+            secret: true,
+            ..Default::default()
+        });
     }
 
     Ok(WriteOptions {
@@ -237,5 +256,35 @@ mod tests {
                 .ends_with(".bak")
         }));
         assert_eq!(std::fs::read_dir(&backup_dir).unwrap().count(), 1);
+    }
+
+    #[tokio::test]
+    async fn grok_home_controls_config_path_without_plaintext_backups() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let grok_home = temp_dir.path().join("grok-custom");
+        let mut env = TestProcessEnv::new();
+        env.set("GROK_HOME", grok_home.as_os_str());
+
+        let local = LocalEnvironment::new();
+        local
+            .write_config("grok", "config.toml", "[ui]\ntheme = 'dark'\n")
+            .await
+            .unwrap();
+        local
+            .write_config("grok", "config.toml", "[ui]\ntheme = 'light'\n")
+            .await
+            .unwrap();
+
+        assert_eq!(
+            local.read_config("grok", "config.toml").await.unwrap(),
+            "[ui]\ntheme = 'light'\n"
+        );
+        assert!(std::fs::read_dir(&grok_home).unwrap().all(|entry| {
+            !entry
+                .unwrap()
+                .file_name()
+                .to_string_lossy()
+                .contains(".bak")
+        }));
     }
 }

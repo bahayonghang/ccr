@@ -1,0 +1,4 @@
+{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file": ".trellis/spec/ccr-ui/frontend/api-facade-boundary.md", "reason": "domain 边界与生成物纪律核查"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "overview/版本探测跨层数据流检查"}
+{"file": ".trellis/tasks/08-01-grok-ui-platform/prd.md", "reason": "父任务跨子任务验收标准"}

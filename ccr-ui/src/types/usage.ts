@@ -53,7 +53,17 @@ export type { StartSessionIndexJobResponse } from './generated/usage/StartSessio
 export type HomeOverviewViewMode = 'sessions' | 'requests' | 'tokens'
 
 /** 平台类型（视图层收窄；wire 上是 string） */
-export type UsagePlatform = 'claude' | 'codex' | 'gemini' | 'opencode'
+export const USAGE_PLATFORM_IDS = [
+  'claude',
+  'codex',
+  'opencode',
+  'antigravity',
+  'kimi_code',
+  'pi',
+  'grok',
+] as const
+
+export type UsagePlatform = (typeof USAGE_PLATFORM_IDS)[number]
 
 /** Tauri 事件 `usage:snapshot-updated` 的 payload（事件不走命令返回，不在生成范围） */
 export interface UsageSnapshotUpdatedPayload {

@@ -2,6 +2,7 @@ import { createApp, nextTick } from 'vue'
 import { describe, expect, it, vi } from 'vitest'
 import UsageSourceSummaryCard from '@/components/usage/UsageSourceSummaryCard.vue'
 import type { SourceBreakdown } from '@/types/usage'
+import { USAGE_SOURCE_DEFINITIONS } from '@/views/usage/usageSources'
 import { createI18nStub } from './helpers/i18n-stub'
 
 const sourceStats: SourceBreakdown[] = [
@@ -25,12 +26,15 @@ const sourceStats: SourceBreakdown[] = [
   },
 ]
 
-const mountSourceCard = async (onSelect = vi.fn()) => {
+const mountSourceCard = async (
+  onSelect = vi.fn(),
+  stats: SourceBreakdown[] = sourceStats
+) => {
   const el = document.createElement('div')
   document.body.appendChild(el)
 
   const app = createApp(UsageSourceSummaryCard, {
-    sourceStats,
+    sourceStats: stats,
     selectedPlatform: 'codex',
     formatCost: (value: number) => `$${value.toFixed(2)}`,
     formatTokens: (value: number) => value.toLocaleString(),
@@ -52,6 +56,20 @@ const mountSourceCard = async (onSelect = vi.fn()) => {
 }
 
 describe('UsageSourceSummaryCard smoke', () => {
+  it('exposes the seven canonical llmusage source filters', () => {
+    expect(USAGE_SOURCE_DEFINITIONS.map((source) => source.id)).toEqual([
+      'claude',
+      'codex',
+      'opencode',
+      'antigravity',
+      'kimi_code',
+      'pi',
+      'grok',
+    ])
+    expect(USAGE_SOURCE_DEFINITIONS.find((source) => source.id === 'antigravity')?.fallbackLabel)
+      .toBe('Antigravity CLI')
+  })
+
   it('renders source ranking and emits selected source filters', async () => {
     const mounted = await mountSourceCard()
 
@@ -68,6 +86,27 @@ describe('UsageSourceSummaryCard smoke', () => {
       const secondButton = rows[1] as HTMLButtonElement
       secondButton.click()
       expect(mounted.onSelect).toHaveBeenCalledWith('claude')
+    } finally {
+      mounted.unmount()
+    }
+  })
+
+  it('emits the canonical Antigravity filter from source rows', async () => {
+    const mounted = await mountSourceCard(vi.fn(), [{
+      source: 'antigravity',
+      event_count: 3,
+      total_tokens: 700,
+      total_cost: 0.4,
+      active_days: 1,
+      share_tokens: 1,
+      share_cost: 1,
+    }])
+
+    try {
+      const row = mounted.el.querySelector('.source-card__item') as HTMLButtonElement
+      expect(row.textContent).toContain('Antigravity CLI')
+      row.click()
+      expect(mounted.onSelect).toHaveBeenCalledWith('antigravity')
     } finally {
       mounted.unmount()
     }

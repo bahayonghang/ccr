@@ -12,6 +12,7 @@ export type { McpPreset, McpServerInfo, McpSyncResult as SyncResult } from '@/ty
 export * as configApi from './domains/config'
 export * as claudeApi from './domains/claude'
 export * as codexApi from './domains/codex'
+export * as grokApi from './domains/grok'
 export * as syncApi from './domains/sync'
 export * as platformApi from './domains/platforms'
 export * as usageApi from './domains/usage'

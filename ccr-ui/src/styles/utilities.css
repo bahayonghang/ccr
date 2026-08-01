@@ -484,6 +484,10 @@
         color: var(--color-platform-codex);
     }
 
+    .platform-grok {
+        color: var(--color-platform-grok);
+    }
+
     .platform-gemini {
         color: var(--color-platform-gemini);
     }
@@ -494,6 +498,10 @@
 
     .bg-platform-codex {
         background: var(--color-platform-codex);
+    }
+
+    .bg-platform-grok {
+        background: var(--color-platform-grok);
     }
 
     .bg-platform-gemini {

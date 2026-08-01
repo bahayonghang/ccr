@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/ccr-ui/frontend/raw-config-editor-contracts.md", "reason": "ConfigSourcePanel 契约(token/conflict/守卫)"}
+{"file": ".trellis/spec/ccr-ui/frontend/api-facade-boundary.md", "reason": "API domain 边界规则"}
+{"file": ".trellis/tasks/08-01-grok-ui-platform/research/grok-backend-capabilities.md", "reason": "config.toml section 范围与红线(§8)"}
+{"file": ".trellis/tasks/08-01-grok-ui-platform/design.md", "reason": "父任务共享决策 D4/D5/D8/D9(字段级 patch/CAS/无备份/Local-only)"}

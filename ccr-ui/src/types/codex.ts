@@ -62,6 +62,7 @@ export type CodexProfileAuthMode =
   | 'openai_chatgpt'
   | 'openai_api_key'
   | 'provider_env_key'
+  | 'provider_bearer_token'
   | 'no_auth'
 
 export type OpenAiLoginMethod = 'chatgpt' | 'api'
@@ -85,6 +86,9 @@ export interface CodexProfile {
   approval_policy?: string
   sandbox_mode?: string
   model_reasoning_effort?: string
+  model_catalog_json?: string | null
+  preferred_auth_method?: string | null
+  forced_login_method?: string | null
   network_access?: string | boolean | null
   disable_response_storage?: boolean | null
   auth_mode?: CodexProfileAuthMode
@@ -115,6 +119,9 @@ export interface CodexProfileRequest {
   approval_policy?: string | null
   sandbox_mode?: string | null
   model_reasoning_effort?: string | null
+  model_catalog_json?: string | null
+  preferred_auth_method?: string | null
+  forced_login_method?: string | null
   network_access?: string | boolean | null
   disable_response_storage?: boolean | null
   auth_mode?: CodexProfileAuthMode | null

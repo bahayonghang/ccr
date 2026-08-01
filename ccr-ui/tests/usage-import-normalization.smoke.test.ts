@@ -83,10 +83,10 @@ describe('usage import normalization helpers', () => {
           records_imported: 0,
           records_skipped: 2,
         }),
-        'gemini'
+        'antigravity'
       )
     ).toEqual({
-      results: [expect.objectContaining({ platform: 'gemini' })],
+      results: [expect.objectContaining({ platform: 'antigravity' })],
       summary: {
         success_count: 1,
         failure_count: 0,

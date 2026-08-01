@@ -29,6 +29,7 @@ pub enum CodexProfileAuthMode {
     OpenAiChatgpt,
     OpenAiApiKey,
     ProviderEnvKey,
+    ProviderBearerToken,
     NoAuth,
 }
 
@@ -38,6 +39,7 @@ impl CodexProfileAuthMode {
             CodexProfileAuthMode::OpenAiChatgpt => "openai_chatgpt",
             CodexProfileAuthMode::OpenAiApiKey => "openai_api_key",
             CodexProfileAuthMode::ProviderEnvKey => "provider_env_key",
+            CodexProfileAuthMode::ProviderBearerToken => "provider_bearer_token",
             CodexProfileAuthMode::NoAuth => "no_auth",
         }
     }
@@ -53,7 +55,9 @@ impl CodexProfileAuthMode {
         match self {
             CodexProfileAuthMode::OpenAiChatgpt => Some(OpenAiAuthMethod::Chatgpt),
             CodexProfileAuthMode::OpenAiApiKey => Some(OpenAiAuthMethod::Api),
-            CodexProfileAuthMode::ProviderEnvKey | CodexProfileAuthMode::NoAuth => None,
+            CodexProfileAuthMode::ProviderEnvKey
+            | CodexProfileAuthMode::ProviderBearerToken
+            | CodexProfileAuthMode::NoAuth => None,
         }
     }
 }
@@ -89,6 +93,8 @@ pub enum AuthIntent {
     OpenAiAuth { method: OpenAiAuthMethod },
     /// 自定义 provider 的 env_key 认证
     ProviderEnvKey { env_key: String },
+    /// 自定义 provider 的 config.toml bearer token 认证
+    ProviderBearerToken,
     /// 无认证（本地模型等）
     NoAuth,
 }
@@ -163,7 +169,7 @@ pub fn normalize_auth_map_for_intent(
                 normalized.insert(env_key.clone(), JsonValue::String(value.to_string()));
             }
         }
-        AuthIntent::NoAuth => {}
+        AuthIntent::ProviderBearerToken | AuthIntent::NoAuth => {}
     }
 
     normalized
@@ -435,7 +441,9 @@ impl CodexRuntimeSummary {
         }
 
         match self.current_profile_auth_mode {
-            Some(CodexProfileAuthMode::ProviderEnvKey) => {
+            Some(
+                CodexProfileAuthMode::ProviderEnvKey | CodexProfileAuthMode::ProviderBearerToken,
+            ) => {
                 if let Some(source) = self
                     .current_profile_auth_source
                     .as_deref()
@@ -501,6 +509,7 @@ fn auth_intent_label(intent: &AuthIntent) -> String {
             OpenAiAuthMethod::Api => "OpenAI / API Key".to_string(),
         },
         AuthIntent::ProviderEnvKey { env_key } => format!("Provider / {env_key}"),
+        AuthIntent::ProviderBearerToken => "Provider / Bearer Token".to_string(),
         AuthIntent::NoAuth => "No Auth".to_string(),
     }
 }
@@ -510,6 +519,7 @@ fn expected_auth_label(mode: CodexProfileAuthMode) -> String {
         CodexProfileAuthMode::OpenAiChatgpt => "OpenAI / ChatGPT".to_string(),
         CodexProfileAuthMode::OpenAiApiKey => "OpenAI / API Key".to_string(),
         CodexProfileAuthMode::ProviderEnvKey => "Provider Key".to_string(),
+        CodexProfileAuthMode::ProviderBearerToken => "Provider Bearer Token".to_string(),
         CodexProfileAuthMode::NoAuth => "No Auth".to_string(),
     }
 }

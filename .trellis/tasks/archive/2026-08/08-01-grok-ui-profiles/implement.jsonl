@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/ccr-ui/frontend/profiles-page-contracts.md", "reason": "共享 profiles 页面契约"}
+{"file": ".trellis/spec/ccr-ui/frontend/api-facade-boundary.md", "reason": "API domain 边界规则"}
+{"file": ".trellis/spec/ccr-cli/backend/grok-profile-runtime.md", "reason": "auth_mode/off/force-delete 语义来源"}
+{"file": ".trellis/tasks/08-01-grok-ui-platform/research/frontend-platform-patterns.md", "reason": "profiles 页骨架与共享组件调查"}
+{"file": ".trellis/tasks/08-01-grok-ui-platform/design.md", "reason": "父任务共享决策 D2/D3/D8/D9(patch/credential_action/status 信封/Local-only)"}

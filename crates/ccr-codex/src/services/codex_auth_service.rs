@@ -648,7 +648,9 @@ impl CodexAuthService {
 
         let auth_method = match &auth_state.intent {
             AuthIntent::OpenAiAuth { method } => Some(*method),
-            AuthIntent::ProviderEnvKey { .. } | AuthIntent::NoAuth => None,
+            AuthIntent::ProviderEnvKey { .. }
+            | AuthIntent::ProviderBearerToken
+            | AuthIntent::NoAuth => None,
         };
 
         Ok(CurrentAuthInfo {
@@ -685,6 +687,9 @@ impl CodexAuthService {
             } => LoginState::ApiKeyActive,
             AuthIntent::ProviderEnvKey { env_key } => LoginState::ProviderKeyActive {
                 env_key: env_key.clone(),
+            },
+            AuthIntent::ProviderBearerToken => LoginState::ProviderKeyActive {
+                env_key: "experimental_bearer_token".to_string(),
             },
             AuthIntent::NoAuth => LoginState::NotLoggedIn,
             AuthIntent::OpenAiAuth {
@@ -863,7 +868,9 @@ impl CodexAuthService {
 
         let auth_method = match auth_state.intent {
             AuthIntent::OpenAiAuth { method } => method,
-            AuthIntent::ProviderEnvKey { .. } | AuthIntent::NoAuth => {
+            AuthIntent::ProviderEnvKey { .. }
+            | AuthIntent::ProviderBearerToken
+            | AuthIntent::NoAuth => {
                 return Err(CcrError::ValidationError(
                     "当前 runtime 不是 OpenAI 登录态，不能保存为 Codex Auth 账号".into(),
                 ));
@@ -948,7 +955,9 @@ impl CodexAuthService {
 
         let auth_method = match auth_state.intent {
             AuthIntent::OpenAiAuth { method } => Some(method),
-            AuthIntent::ProviderEnvKey { .. } | AuthIntent::NoAuth => None,
+            AuthIntent::ProviderEnvKey { .. }
+            | AuthIntent::ProviderBearerToken
+            | AuthIntent::NoAuth => None,
         };
 
         let account_id = self.resolve_account_id_from_auth(&auth, &raw);
@@ -1115,7 +1124,9 @@ impl CodexAuthService {
         let (target_intent, _, _) = Self::infer_auth_intent(&incoming);
         let auth_method = match target_intent {
             AuthIntent::OpenAiAuth { method } => method,
-            AuthIntent::ProviderEnvKey { .. } | AuthIntent::NoAuth => {
+            AuthIntent::ProviderEnvKey { .. }
+            | AuthIntent::ProviderBearerToken
+            | AuthIntent::NoAuth => {
                 return Err(CcrError::ValidationError(
                     "Codex Auth 账号只支持 OpenAI 登录态".into(),
                 ));

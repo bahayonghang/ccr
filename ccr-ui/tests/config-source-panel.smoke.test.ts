@@ -125,4 +125,53 @@ describe('ConfigSourcePanel', () => {
       app.unmount()
     }
   })
+
+  it('shows opt-in no-backup and policy-layer notices without changing default consumers', async () => {
+    const uiStore = useUIStore()
+    vi.spyOn(uiStore, 'requestConfirm').mockResolvedValue(true)
+    const el = document.createElement('div')
+    document.body.appendChild(el)
+    const app = createApp(defineComponent({
+      setup() {
+        return () => h(ConfigSourcePanel, {
+          language: 'toml',
+          getRaw: () => Promise.resolve({
+            status: 'ok' as const,
+            content: '',
+            token: '',
+            path: 'C:/Users/test/.grok/config.toml',
+            exists: false,
+          }),
+          saveRaw: () => Promise.resolve({ status: 'saved' as const, token: 'next' }),
+          listLayers: () => Promise.resolve({
+            layers: [{
+              id: 'managed_user',
+              label: 'Managed (user)',
+              path: 'C:/Users/test/.grok/managed_config.toml',
+              exists: true,
+              size: 10,
+              mtime: 1,
+              editable: false,
+            }],
+          }),
+          backupNotice: 'No automatic backup',
+          policyNotice: 'Policy may override user settings',
+          policyLayerIds: ['managed_user', 'requirements_user'],
+        })
+      },
+    }))
+    app.use(i18n)
+    app.use(pinia)
+    app.mount(el)
+
+    try {
+      await settle()
+      expect(el.querySelector('[data-testid="config-source-backup-notice"]')?.textContent)
+        .toContain('No automatic backup')
+      expect(el.querySelector('[data-testid="config-source-policy-notice"]')?.textContent)
+        .toContain('Policy may override user settings')
+    } finally {
+      app.unmount()
+    }
+  })
 })

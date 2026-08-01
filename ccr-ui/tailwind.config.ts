@@ -72,6 +72,7 @@ export default {
         platform: {
           claude: 'rgb(var(--color-platform-claude-rgb) / <alpha-value>)',
           codex: 'rgb(var(--color-platform-codex-rgb) / <alpha-value>)',
+          grok: 'rgb(var(--color-platform-grok-rgb) / <alpha-value>)',
           gemini: 'rgb(var(--color-platform-gemini-rgb) / <alpha-value>)',
         },
         border: {

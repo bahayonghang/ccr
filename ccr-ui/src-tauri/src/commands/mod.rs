@@ -13,6 +13,7 @@ pub mod config;
 pub mod converter;
 pub mod environment;
 pub mod gemini;
+pub mod grok;
 pub mod install;
 pub mod mcp_presets;
 pub mod opencode;

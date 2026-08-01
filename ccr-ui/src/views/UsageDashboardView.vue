@@ -169,7 +169,7 @@ import {
 
 const apexchart = defineAsyncComponent(async () => {
   perfMark('usage_chart_import_start')
-  const module = await import('vue3-apexcharts')
+  const module = await import('@/utils/apexChartsCore')
   perfMark('usage_chart_import_end')
   perfMeasure('usage_chart_import_ms', 'usage_chart_import_start', 'usage_chart_import_end')
   return module.default

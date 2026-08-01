@@ -116,6 +116,14 @@ describe('provider template mapping', () => {
     expect(codexProfilePatch.suggestedName).toBe('openrouter')
     expect(JSON.stringify(codexProfilePatch)).not.toMatch(/apiKey":|api_key":|auth_token|password/i)
 
+    const deepseekCodexPatch = mapTemplateToCodexProfilePatch(deepseek!)
+    expect(deepseekCodexPatch.base_url).toBe('https://api.deepseek.com/')
+    expect(deepseekCodexPatch.provider).toBe('DeepSeek')
+    expect(deepseekCodexPatch.model).toBe('deepseek-v4-flash')
+    expect(JSON.stringify(deepseekCodexPatch)).not.toMatch(
+      /apiKey":|api_key":|auth_token|bearer|secret|password/i
+    )
+
     const opencodePatch = mapTemplateToOpenCodeProviderPatch(local!)
     expect(opencodePatch.id).toBe('openai')
     expect(opencodePatch.npm).toBe('@ai-sdk/openai-compatible')

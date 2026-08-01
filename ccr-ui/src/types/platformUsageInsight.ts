@@ -1,6 +1,6 @@
 import type { DailyTrend, ModelStat, ProjectStat, UsageDashboardResponse, UsageSummary } from './usage'
 
-export type PlatformUsageId = 'codex' | 'gemini' | 'opencode'
+export type PlatformUsageId = 'codex' | 'antigravity' | 'opencode'
 export type PlatformUsageMetric = 'cost' | 'tokens' | 'requests'
 export type PlatformUsageTone = 'codex' | 'antigravity' | 'opencode' | 'neutral'
 export type PlatformUsagePricingState = 'available' | 'token_only' | 'empty'

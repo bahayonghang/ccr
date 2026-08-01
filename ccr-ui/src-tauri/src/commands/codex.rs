@@ -20,6 +20,7 @@ use ccr_codex::{
     CodexAuthService, CodexPlatform, CodexSessionService, CodexUsageService, OpenAiAuthMethod,
 };
 use ccr_config::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};
+use ccr_core::AtomicWriter;
 
 use crate::state::{AppState, CacheFillRegistration};
 
@@ -270,6 +271,9 @@ const EXPLICIT_PLATFORM_STRING_FIELDS: &[&str] = &[
     "approval_policy",
     "sandbox_mode",
     "model_reasoning_effort",
+    "model_catalog_json",
+    "preferred_auth_method",
+    "forced_login_method",
     "network_access",
 ];
 const EXPLICIT_PLATFORM_BOOL_FIELDS: &[&str] =
@@ -833,19 +837,12 @@ pub(crate) fn validate_codex_config_raw(content: &str) -> Result<(), toml::de::E
 }
 
 fn write_codex_config(path: &PathBuf, config: &CodexConfig) -> Result<(), String> {
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).map_err(|e| format!("创建配置目录失败: {e}"))?;
-    }
     let content =
         toml::to_string_pretty(config).map_err(|e| format!("序列化 Codex 配置失败: {e}"))?;
-    // 原子写入: 写到同目录临时文件再 rename
-    let parent = path.parent().ok_or("无效的文件路径")?;
-    let tmp =
-        tempfile::NamedTempFile::new_in(parent).map_err(|e| format!("创建临时文件失败: {e}"))?;
-    fs::write(tmp.path(), &content).map_err(|e| format!("写入临时文件失败: {e}"))?;
-    tmp.persist(path)
-        .map_err(|e| format!("持久化配置文件失败: {e}"))?;
-    Ok(())
+    AtomicWriter::new(path)
+        .secret(true)
+        .write_string(&content)
+        .map_err(|e| format!("写入 Codex 配置失败: {e}"))
 }
 
 fn parse_string_field(raw: &Value, field_name: &str) -> Result<Option<String>, String> {
@@ -1637,6 +1634,9 @@ fn profile_to_json(
         "approval_policy": profile.platform_data.get("approval_policy").cloned(),
         "sandbox_mode": profile.platform_data.get("sandbox_mode").cloned(),
         "model_reasoning_effort": profile.platform_data.get("model_reasoning_effort").cloned(),
+        "model_catalog_json": profile.platform_data.get("model_catalog_json").cloned(),
+        "preferred_auth_method": profile.platform_data.get("preferred_auth_method").cloned(),
+        "forced_login_method": profile.platform_data.get("forced_login_method").cloned(),
         "network_access": profile.platform_data.get("network_access").cloned(),
         "disable_response_storage": profile.platform_data.get("disable_response_storage").cloned(),
         "auth_mode": auth_mode.as_str(),
@@ -1900,6 +1900,120 @@ mod tests {
             profile.platform_data.get("model_reasoning_effort"),
             Some(&json!("high"))
         );
+    }
+
+    #[test]
+    fn patch_profile_with_config_accepts_deepseek_platform_fields() {
+        let mut profile = ProfileConfig::new();
+
+        patch_profile_with_config(
+            &mut profile,
+            &json!({
+                "auth_mode": "provider_bearer_token",
+                "model_catalog_json": "~/.codex/models.json",
+                "preferred_auth_method": "apikey",
+                "forced_login_method": "api"
+            }),
+        )
+        .unwrap();
+
+        assert_eq!(
+            profile.platform_data.get("auth_mode"),
+            Some(&json!("provider_bearer_token"))
+        );
+        assert_eq!(
+            profile.platform_data.get("model_catalog_json"),
+            Some(&json!("~/.codex/models.json"))
+        );
+        assert_eq!(
+            profile.platform_data.get("preferred_auth_method"),
+            Some(&json!("apikey"))
+        );
+        assert_eq!(
+            profile.platform_data.get("forced_login_method"),
+            Some(&json!("api"))
+        );
+    }
+
+    #[test]
+    fn profile_to_json_projects_deepseek_fields_without_duplicating_extra() {
+        let _guard = crate::test_support::lock_env();
+        let temp_dir = tempfile::tempdir().unwrap();
+        let ccr_root = temp_dir.path().join("ccr-root");
+        let codex_dir = temp_dir.path().join("official-codex");
+        fs::create_dir_all(&ccr_root).unwrap();
+        fs::create_dir_all(&codex_dir).unwrap();
+
+        let previous_root = std::env::var("CCR_ROOT").ok();
+        let previous_codex_dir = std::env::var("CCR_CODEX_DIR").ok();
+        unsafe {
+            std::env::set_var("CCR_ROOT", &ccr_root);
+            std::env::set_var("CCR_CODEX_DIR", &codex_dir);
+        }
+
+        let result = (|| {
+            let platform =
+                CodexPlatform::new().map_err(|e| format!("create Codex platform: {e}"))?;
+            let mut profile = ProfileConfig::new();
+            profile
+                .platform_data
+                .insert("auth_mode".into(), json!("provider_bearer_token"));
+            profile
+                .platform_data
+                .insert("model_catalog_json".into(), json!("~/.codex/models.json"));
+            profile
+                .platform_data
+                .insert("preferred_auth_method".into(), json!("apikey"));
+            profile
+                .platform_data
+                .insert("forced_login_method".into(), json!("api"));
+            profile
+                .platform_data
+                .insert("custom_unknown".into(), json!("preserved"));
+
+            let projected = profile_to_json(&platform, None, None, "deepseek".into(), profile);
+            assert_eq!(projected["auth_mode"], "provider_bearer_token");
+            assert_eq!(projected["model_catalog_json"], "~/.codex/models.json");
+            assert_eq!(projected["preferred_auth_method"], "apikey");
+            assert_eq!(projected["forced_login_method"], "api");
+            assert_eq!(projected["extra"], json!({ "custom_unknown": "preserved" }));
+            Ok::<(), String>(())
+        })();
+
+        restore_env_var("CCR_ROOT", previous_root);
+        restore_env_var("CCR_CODEX_DIR", previous_codex_dir);
+        result.unwrap();
+    }
+
+    #[test]
+    fn codex_config_write_preserves_deepseek_flatten_fields() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let path = temp_dir.path().join("config.toml");
+        std::fs::write(
+            &path,
+            r#"model = "deepseek-v4-flash"
+model_catalog_json = "~/.codex/models.json"
+preferred_auth_method = "apikey"
+forced_login_method = "api"
+
+[model_providers.custom]
+name = "deepseek"
+base_url = "https://api.deepseek.com/"
+wire_api = "responses"
+experimental_bearer_token = "deepseek-secret"
+"#,
+        )
+        .unwrap();
+
+        let mut config = read_codex_config(&path).unwrap();
+        config.model_reasoning_effort = Some("high".to_string());
+        write_codex_config(&path, &config).unwrap();
+
+        let written = std::fs::read_to_string(&path).unwrap();
+        assert!(written.contains("model_catalog_json = \"~/.codex/models.json\""));
+        assert!(written.contains("preferred_auth_method = \"apikey\""));
+        assert!(written.contains("forced_login_method = \"api\""));
+        assert!(written.contains("experimental_bearer_token = \"deepseek-secret\""));
     }
 
     #[test]

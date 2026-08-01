@@ -146,6 +146,89 @@ requires_openai_auth = true
         .unwrap();
     }
 
+    fn write_deepseek_profile_state(&self) {
+        let catalog = self.codex_dir.join("models.json");
+        fs::write(&catalog, "[]").unwrap();
+        let mut profile = ProfileConfig {
+            description: Some("DeepSeek".to_string()),
+            base_url: Some("https://api.deepseek.com/".to_string()),
+            model: Some("deepseek-v4-flash".to_string()),
+            provider: Some("deepseek".to_string()),
+            provider_type: Some("third_party_model".to_string()),
+            enabled: Some(true),
+            ..Default::default()
+        };
+        profile
+            .platform_data
+            .insert("wire_api".to_string(), json!("responses"));
+        profile
+            .platform_data
+            .insert("auth_mode".to_string(), json!("provider_bearer_token"));
+        profile.platform_data.insert(
+            "model_catalog_json".to_string(),
+            json!(catalog.display().to_string()),
+        );
+        profile
+            .platform_data
+            .insert("model_reasoning_effort".to_string(), json!("high"));
+
+        let mut sections = IndexMap::new();
+        sections.insert(
+            "future".to_string(),
+            ccr_config::profile_to_section(&profile).unwrap(),
+        );
+        ConfigManager::new(self.root.join("platforms/codex/profiles.toml"))
+            .save(&CcsConfig {
+                default_config: "future".to_string(),
+                current_config: "future".to_string(),
+                settings: GlobalSettings::default(),
+                sections,
+            })
+            .unwrap();
+
+        fs::write(
+            self.root.join("platforms/codex/profile_secrets.json"),
+            serde_json::to_vec_pretty(&json!({
+                "version": "1.0",
+                "profiles": {
+                    "future": {
+                        "auth_mode": "provider_bearer_token",
+                        "secret": PROFILE_SECRET,
+                        "updated_at": "2026-07-22T00:00:00Z"
+                    }
+                }
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+
+        fs::write(
+            self.codex_dir.join("config.toml"),
+            format!(
+                r#"cli_auth_credentials_store = "file"
+model = "deepseek-v4-flash"
+model_provider = "custom"
+model_catalog_json = "C:/missing/deepseek-models.json"
+preferred_auth_method = "chatgpt"
+forced_login_method = "chatgpt"
+
+[model_providers.custom]
+name = "DeepSeek"
+base_url = "https://api.deepseek.com/"
+wire_api = "responses"
+requires_openai_auth = false
+experimental_bearer_token = "{RUNTIME_SECRET}"
+"#
+            ),
+        )
+        .unwrap();
+        fs::write(
+            self.codex_dir.join("auth.json"),
+            serde_json::to_vec_pretty(&json!({ "OPENAI_API_KEY": RUNTIME_SECRET })).unwrap(),
+        )
+        .unwrap();
+    }
+
     fn managed_paths(&self) -> Vec<PathBuf> {
         vec![
             self.root.join("config.toml"),
@@ -198,6 +281,55 @@ fn codex_fix_dry_run_repair_reports_drift_without_writing_runtime() {
 
     let after = snapshot_files(&fixture.managed_paths());
     assert!(before == after);
+}
+
+#[test]
+fn codex_fix_repair_runtime_restores_deepseek_fields_without_secret_output() {
+    let fixture = CodexFixFixture::new();
+    fixture.write_deepseek_profile_state();
+
+    let output = fixture
+        .command()
+        .env("PATH", "")
+        .args(["codex", "fix", "--repair-runtime"])
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(127));
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("Codex runtime 本地漂移已修复"));
+    assert!(!stdout.contains(PROFILE_SECRET));
+    assert!(!stdout.contains(RUNTIME_SECRET));
+
+    let config: toml::Value =
+        toml::from_str(&fs::read_to_string(fixture.codex_dir.join("config.toml")).unwrap())
+            .unwrap();
+    let root = config.as_table().unwrap();
+    assert_eq!(
+        root["model_catalog_json"].as_str(),
+        Some(
+            fixture
+                .codex_dir
+                .join("models.json")
+                .display()
+                .to_string()
+                .as_str()
+        )
+    );
+    assert_eq!(root["preferred_auth_method"].as_str(), Some("apikey"));
+    assert_eq!(root["forced_login_method"].as_str(), Some("api"));
+    assert_eq!(
+        root["model_providers"]["custom"]["experimental_bearer_token"].as_str(),
+        Some(PROFILE_SECRET)
+    );
+    let auth_path = fixture.codex_dir.join("auth.json");
+    let auth: serde_json::Value = if auth_path.exists() {
+        serde_json::from_str(&fs::read_to_string(auth_path).unwrap()).unwrap()
+    } else {
+        json!({})
+    };
+    assert!(auth.get("OPENAI_API_KEY").is_none());
+    assert!(auth.get("tokens").is_none());
 }
 
 #[cfg(unix)]

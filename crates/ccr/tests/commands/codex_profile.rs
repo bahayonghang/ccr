@@ -127,6 +127,54 @@ impl CodexProfileFixture {
             .unwrap();
     }
 
+    fn save_deepseek_profile(&self) {
+        let catalog = self.codex_dir.join("models.json");
+        fs::write(&catalog, "[]").unwrap();
+        let mut deepseek = ProfileConfig {
+            description: Some("DeepSeek".to_string()),
+            base_url: Some("https://api.deepseek.com/".to_string()),
+            auth_token: Some(ccr_core::Secret::from("deepseek-command-secret")),
+            model: Some("deepseek-v4-flash".to_string()),
+            provider: Some("deepseek".to_string()),
+            provider_type: Some("third_party_model".to_string()),
+            enabled: Some(true),
+            ..Default::default()
+        };
+        deepseek
+            .platform_data
+            .insert("wire_api".into(), serde_json::json!("responses"));
+        deepseek.platform_data.insert(
+            "auth_mode".into(),
+            serde_json::json!("provider_bearer_token"),
+        );
+        deepseek.platform_data.insert(
+            "model_catalog_json".into(),
+            serde_json::json!(catalog.display().to_string()),
+        );
+        deepseek
+            .platform_data
+            .insert("model_reasoning_effort".into(), serde_json::json!("high"));
+
+        let mut sections = IndexMap::new();
+        sections.insert(
+            "deepseek".to_string(),
+            ccr_config::profile_to_section(&deepseek).unwrap(),
+        );
+        ConfigManager::new(
+            self.root
+                .join("platforms")
+                .join("codex")
+                .join("profiles.toml"),
+        )
+        .save(&CcsConfig {
+            default_config: "deepseek".to_string(),
+            current_config: String::new(),
+            settings: GlobalSettings::default(),
+            sections,
+        })
+        .unwrap();
+    }
+
     fn write_codex_runtime_official(&self) {
         self.write_codex_runtime_official_with_credential_store("file");
     }
@@ -313,6 +361,72 @@ fn codex_profile_switch_and_off_are_consistent_and_off_keeps_auth_json() {
 
     let auth_after = fs::read_to_string(fixture.codex_dir.join("auth.json")).unwrap();
     assert_eq!(auth_after, auth_before);
+}
+
+#[test]
+fn codex_profile_switches_deepseek_bearer_and_clears_runtime_on_off() {
+    const BEARER: &str = "deepseek-command-secret";
+
+    let fixture = CodexProfileFixture::new();
+    fixture.write_unified_codex_profile(None);
+    fixture.save_deepseek_profile();
+    fixture.write_codex_runtime_official();
+    fixture.write_auth_json_with_oauth();
+
+    let switch = fixture.run_output(&["codex", "profile", "switch", "deepseek"]);
+    let switch_stdout = String::from_utf8_lossy(&switch.stdout);
+    assert!(
+        switch.status.success(),
+        "status={:?}\nstdout:\n{}\nstderr:\n{}",
+        switch.status,
+        switch_stdout,
+        String::from_utf8_lossy(&switch.stderr)
+    );
+    assert!(!switch_stdout.contains(BEARER));
+
+    let runtime: toml::Value =
+        toml::from_str(&fs::read_to_string(fixture.codex_dir.join("config.toml")).unwrap())
+            .unwrap();
+    let root = runtime.as_table().unwrap();
+    assert_eq!(root["model"].as_str(), Some("deepseek-v4-flash"));
+    assert_eq!(root["preferred_auth_method"].as_str(), Some("apikey"));
+    assert_eq!(root["forced_login_method"].as_str(), Some("api"));
+    assert_eq!(root["model_provider"].as_str(), Some("custom"));
+    assert_eq!(
+        root["model_providers"]["custom"]["experimental_bearer_token"].as_str(),
+        Some(BEARER)
+    );
+
+    let auth_path = fixture.codex_dir.join("auth.json");
+    let auth: Value = if auth_path.exists() {
+        serde_json::from_str(&fs::read_to_string(auth_path).unwrap()).unwrap()
+    } else {
+        Value::Object(Default::default())
+    };
+    assert!(auth.get("OPENAI_API_KEY").is_none());
+    assert!(auth.get("tokens").is_none());
+
+    let (_, current) = fixture.run_json(&["codex", "profile", "current", "--json"]);
+    assert_eq!(current["profile"], "deepseek");
+    assert!(!current.to_string().contains(BEARER));
+
+    let off = fixture.run_output(&["codex", "profile", "off"]);
+    assert!(off.status.success(), "{:?}", off.status);
+    let cleared: toml::Value =
+        toml::from_str(&fs::read_to_string(fixture.codex_dir.join("config.toml")).unwrap())
+            .unwrap();
+    let root = cleared.as_table().unwrap();
+    assert!(root.get("model_catalog_json").is_none());
+    assert!(root.get("preferred_auth_method").is_none());
+    assert!(root.get("forced_login_method").is_none());
+    assert!(
+        root.get("model_providers")
+            .and_then(toml::Value::as_table)
+            .and_then(|providers| providers.get("custom"))
+            .and_then(toml::Value::as_table)
+            .and_then(|provider| provider.get("experimental_bearer_token"))
+            .is_none()
+    );
 }
 
 #[test]

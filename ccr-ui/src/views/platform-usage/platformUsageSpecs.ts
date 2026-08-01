@@ -9,13 +9,13 @@ type Translate = (key: string) => string
 
 const platformToneMap: Record<PlatformUsageId, PlatformUsageTone> = {
   codex: 'codex',
-  gemini: 'antigravity',
+  antigravity: 'antigravity',
   opencode: 'opencode',
 }
 
 const platformCopyKeyMap: Record<PlatformUsageId, 'codex' | 'antigravity' | 'opencode'> = {
   codex: 'codex',
-  gemini: 'antigravity',
+  antigravity: 'antigravity',
   opencode: 'opencode',
 }
 

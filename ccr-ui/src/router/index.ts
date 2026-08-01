@@ -125,6 +125,24 @@ const routes: RouteRecordRaw[] = [
         meta: { depth: 1, group: 'codex' },
       },
       {
+        path: 'grok',
+        name: 'grok',
+        component: () => import('@/views/grok/GrokView.vue'),
+        meta: { cache: true, cacheKey: 'GrokView', depth: 1, group: 'grok' },
+      },
+      {
+        path: 'grok/profiles',
+        name: 'grok-profiles',
+        component: () => import('@/views/grok/GrokProfilesView.vue'),
+        meta: { depth: 2, group: 'grok' },
+      },
+      {
+        path: 'grok/settings',
+        name: 'grok-settings',
+        component: () => import('@/views/grok/GrokSettingsView.vue'),
+        meta: { depth: 2, group: 'grok' },
+      },
+      {
         path: 'antigravity',
         name: 'antigravity',
         component: () => import('@/views/GeminiCliView.vue'),

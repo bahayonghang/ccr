@@ -1,8 +1,8 @@
 # Profiles Page Contracts
 
-> Claude Code / Codex 两个 Profiles 页面的共享骨架契约，以及 Codex profile 表单的序列化契约。
+> Claude Code / Codex / Grok Profiles 页面的共享骨架契约，以及平台 profile 表单的序列化契约。
 >
-> 适用范围：`ccr-ui/src/views/{ClaudeCodeProfilesView,CodexProfilesView}.vue`、
+> 适用范围：`ccr-ui/src/views/{ClaudeCodeProfilesView,CodexProfilesView,grok/GrokProfilesView}.vue`、
 > `ccr-ui/src/components/profiles/*`、`ccr-ui/src/components/{claude,codex}/` 下的 profile 卡片与编辑器模态、
 > `ccr-ui/src/utils/{claudeProfiles,claudeProfileEditor,codexProfiles,codexProfileEditor}.ts`。
 
@@ -35,8 +35,11 @@ export interface CodexProfileEditorForm {
   enabled: boolean
   wire_api: string
   env_key: string
-  auth_mode: CodexProfileAuthMode // 'openai_chatgpt' | 'openai_api_key' | 'provider_env_key' | 'no_auth'
+  auth_mode: CodexProfileAuthMode // also includes 'provider_bearer_token'
   model_reasoning_effort: string
+  model_catalog_json: string
+  preferred_auth_method: string
+  forced_login_method: string
 }
 
 export const buildCodexProfileRequest: (
@@ -58,6 +61,9 @@ export const buildCodexProfileRequest: (
 | `requires_openai_auth` | `usesOpenAiAuthMode(auth_mode)` | `openai_chatgpt` / `openai_api_key` → `true`；其余 → `false` |
 | `openai_login_method` | `authModeToLoginMethod(auth_mode) ?? null` | `openai_chatgpt` → `'chatgpt'`；`openai_api_key` → `'api'`；其余 → `null` |
 | `env_key` | 仅 `auth_mode === 'provider_env_key'` 时 `normalizeOptionalText(form.env_key)` | 其余模式恒为 `null` |
+| `model_catalog_json` | `normalizeOptionalText(form.model_catalog_json)` | 与 auth mode 独立；空值为 `null` |
+| `preferred_auth_method` | bearer 模式下显式值或 `'apikey'` | 离开 bearer 模式后为 `null` |
+| `forced_login_method` | bearer 模式下显式值或 `'api'` | 离开 bearer 模式后为 `null` |
 
 `env_key` 条件序列化是**表单侧唯一必须显式清理的字段**：表单在模式切走后仍保留旧值（用户切回来不丢输入），但请求里不能带。
 
@@ -73,16 +79,22 @@ export const buildCodexProfileRequest: (
 | `requiresEnvKey && !form.env_key.trim()` | `auth` | `codex.profiles.validation.envKeyRequired` |
 | `!resolvedModel.trim()` | `runtime` | `codex.profiles.validation.modelRequired` |
 
-其中 `requiresBaseUrl = !usesOpenAiAuthMode(auth_mode)`、`requiresSecret = auth_mode === 'openai_api_key'`、
+其中 `requiresBaseUrl = !usesOpenAiAuthMode(auth_mode)`、`requiresSecret` 覆盖 `openai_api_key` / `provider_env_key` / `provider_bearer_token`、
 `requiresEnvKey = auth_mode === 'provider_env_key'`。校验未通过时 `save` 事件不发出。
+
+bearer 派生字段在普通状态只显示有效值，高级入口允许显式选择；模板应用不得修改
+`auth_token`、`auth_mode` 或这些认证派生字段。`model_catalog_json` 是独立运行时字段，切换
+auth mode 时不自动清空。
 
 后端侧独立校验：`provider_env_key` 模式缺少合法变量名 → `"provider_env_key 模式需要合法的 env_key 变量名"`。
 
 ### 5. Good / Base / Bad Cases
 
 - **Good**：`auth_mode: 'provider_env_key'` + `env_key: 'MISTRAL_API_KEY'` → 请求带 `env_key: 'MISTRAL_API_KEY'`、`requires_openai_auth: false`、`openai_login_method: null`。
+- **Good**：`auth_mode: 'provider_bearer_token'` + 空高级覆盖 → 请求带 `preferred_auth_method: 'apikey'`、`forced_login_method: 'api'`，且模板不提供 token。
 - **Base**：`auth_mode: 'no_auth'`，表单里 `env_key` 为空 → 请求 `env_key: null`。
 - **Bad**：用户先选 `provider_env_key` 填了 `env_key`，再切到 `no_auth` 保存 → 请求**不得**带上残留的 `env_key`。
+- **Bad**：用户从 bearer 切到其他 auth mode 后，请求仍携带 bearer 派生字段。
 
 ### 6. Tests Required
 
@@ -90,6 +102,8 @@ export const buildCodexProfileRequest: (
 
 - `serializes env_key only in provider_env_key mode`：断言 `provider_env_key` 下透传，切到 `openai_api_key` / `no_auth` / `openai_chatgpt` 后 `env_key === null`。
 - `derives the OpenAI auth flags from auth_mode instead of stored form state`：断言 `requires_openai_auth` / `openai_login_method` 随 `auth_mode` 变化。
+- bearer 往返：断言新 auth mode 不回落、`model_catalog_json` 保留、默认值派生、显式覆盖保留、切离 bearer 后派生字段清空。
+- Provider 模板：断言 DeepSeek 模板只填非密 endpoint/model，不包含 `auth_token` 或其他凭据字段。
 - `blocks save behind a validation summary until the model is resolved`：断言 `resolvedModel: ''` 时不发 `save`，且 `.pe-summary` 出现对应文案。
 
 ### 7. Wrong vs Correct
@@ -223,6 +237,94 @@ openai_login_method: authModeToLoginMethod(form.auth_mode) ?? null,
 
 ---
 
+## 场景三：Grok write-only patch 与状态信封
+
+### 1. Scope / Trigger
+
+- 修改 `GrokProfileEditorModal`、`grokProfileEditor.ts`、`GrokProfilesView` 或 Grok profile domain wrapper。
+- 新增 Grok profile 字段、凭据动作、删除/改名分支或 Local-only 行为。
+- 这是 UI → generated client → Tauri patch helper → `GrokPlatform::validate_profile` 的跨层契约。
+
+### 2. Signatures
+
+```ts
+type GrokCredentialAction =
+  | 'preserve'
+  | 'replace_api_key'
+  | 'replace_env_key'
+  | 'clear'
+
+buildGrokPatch(
+  form: GrokProfileEditorForm,
+  dirtyFields: ReadonlySet<keyof GrokProfileEditorForm>,
+): GrokProfilePatch
+
+updateGrokProfile(name: string, patch: GrokProfilePatch): Promise<GrokProfileActionResponse>
+deleteGrokProfile(name: string, options?: { force?: boolean }): Promise<GrokProfileActionResponse>
+```
+
+DTO authority: `GrokProfileDto` exposes `profile_kind`, `base_url_display`,
+`auth_mode`, `has_inline_credential`, and optional `env_key`; it never exposes
+`api_key` or compatibility `auth_token`.
+
+### 3. Contracts
+
+- `profile_kind` comes only from the backend DTO. Editing keeps it read-only; the frontend never infers it from URL/provider/auth fields.
+- `base_url_display` is display-only. The editable `baseUrl` and credential inputs start blank and no builder serializes `base_url_display`.
+- Patch fields use presence semantics: absent preserves, `null` clears an optional field, and a value replaces it. Only dirty ordinary fields are serialized.
+- Clearing an official profile's optional model sends `model: null`. The Tauri decoder accepts the clear; core validation still rejects a third-party profile without a model.
+- Credential actions are mutually exclusive. Only `replace_api_key` sends `api_key`; only `replace_env_key` sends `env_key`; `preserve` and `clear` send neither value field.
+- Delete branches only on `{ status, reason }`. `active|drifted` may offer one force retry; `unsafe_missing_entry_state` shows durable manual recovery and never offers force. A blocked force retry surfaces the backend message and must not reopen another force dialog.
+- Rename pin migration follows the real intermediate state: `rename_apply_failed` keeps the old pin until retry apply succeeds; `rename_cleanup_failed` migrates immediately because the new name is already active.
+- Before a successful local list snapshot, `getProfileNames()` returns `null`. An unsupported environment must not return `[]` or erase persisted local pins. Local-only mode closes write surfaces and guards action handlers.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| third-party create lacks base URL/model/credential action | editor validation summary; no save event |
+| replace action lacks matching value | editor validation summary; no request |
+| edited display URL/credential remains untouched | fields absent from patch |
+| official model is cleared | `model: null`; Tauri clears it |
+| third-party model is cleared | core `validate_profile` rejects save |
+| delete returns `blocked(unsafe_missing_entry_state)` | manual recovery banner; no force call |
+| force delete returns `blocked` again | one error; no confirmation loop |
+| environment is not local | no Grok profile command; pins preserved; mutations disabled |
+
+### 5. Good / Base / Bad Cases
+
+- **Good**: changing only reasoning effort sends `{ reasoning_effort: 'high' }` and preserves URL/credentials.
+- **Good**: `rename_apply_failed` keeps `old-name` pinned, then retry apply migrates pinned/recent to `new-name`.
+- **Base**: an official profile with session auth renders no provider, base URL, or credential controls.
+- **Bad**: copying `base_url_display` into `base_url`; the safe display form may omit query/userinfo and corrupt the stored URL.
+- **Bad**: treating non-local as a successful empty snapshot; this deletes valid local quick-switch pins.
+
+### 6. Tests Required
+
+- `tests/grok-profile-editor.smoke.test.ts`: reasoning-only patch exclusion, display URL non-serialization, credential action field exclusivity, official-only controls, and explicit model clear.
+- `tests/grok-profiles-view.smoke.test.ts`: Local-only fail-closed/pin preservation, delete blocked/force branches, no force loop, rename recovery pin timing, and enabled/total health summary.
+- `cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml commands::grok::tests -- --test-threads=1`: Tauri patch/status/redaction/local-only contracts.
+- Run the shared Profiles matrix, `bun run type-check`, `bun run lint`, `node scripts/check-i18n.mjs`, `just tauri-bindings-check`, and `just frontend-check-quick`.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```ts
+const patch = { ...profile, base_url: profile.base_url_display, api_key: form.apiKey }
+```
+
+This writes a lossy display URL and can resend a credential that the user did not choose to replace.
+
+#### Correct
+
+```ts
+const patch = buildGrokPatch(form, dirtyFields)
+// Only a selected replacement action adds exactly one credential value field.
+```
+
+---
+
 ## Quality Check
 
 改动本文件覆盖的范围后运行：
@@ -232,3 +334,6 @@ cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/codex-profile
 ```
 
 再跑 `cd ccr-ui && bun run type-check`、`bun run lint`、`bun run test:i18n`（改动 i18n 键时）。
+
+Grok Profiles 改动还必须把 `tests/grok-profile-editor.smoke.test.ts` 与
+`tests/grok-profiles-view.smoke.test.ts` 加入同一次矩阵。

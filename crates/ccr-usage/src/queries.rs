@@ -227,7 +227,7 @@ pub struct HomeOverviewSeriesItem {
     pub date: String,
     pub claude: HomeOverviewPlatformStats,
     pub codex: HomeOverviewPlatformStats,
-    pub gemini: HomeOverviewPlatformStats,
+    pub antigravity: HomeOverviewPlatformStats,
     pub opencode: HomeOverviewPlatformStats,
 }
 

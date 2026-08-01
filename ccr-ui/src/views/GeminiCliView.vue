@@ -326,11 +326,11 @@ let copyResetTimer: number | undefined
 
 const antigravityUsageLabels = computed(() => buildPlatformUsageI18nLabels(t))
 const antigravityUsage = usePlatformUsageInsight({
-  platform: 'gemini',
+  platform: 'antigravity',
   labels: antigravityUsageLabels,
   tone: 'antigravity',
 })
-const antigravityUsageSpec = computed(() => buildPlatformUsageSpec(t, 'gemini'))
+const antigravityUsageSpec = computed(() => buildPlatformUsageSpec(t, 'antigravity'))
 const antigravityUsagePresentation = computed(() => antigravityUsage.presentation.value)
 
 const heroTags = computed<HeroTag[]>(() => [

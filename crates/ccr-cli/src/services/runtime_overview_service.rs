@@ -330,6 +330,10 @@ fn codex_auth_display(
                 StatusAuthKind::ProviderKey,
             )
         }
+        Some(CodexProfileAuthMode::ProviderBearerToken) => (
+            "Provider Bearer Token".to_string(),
+            StatusAuthKind::ProviderKey,
+        ),
         Some(CodexProfileAuthMode::NoAuth) => ("No Auth".to_string(), StatusAuthKind::NoAuth),
         None => ("未解析".to_string(), StatusAuthKind::Unknown),
     }
@@ -344,6 +348,7 @@ fn codex_openai_kind(intent: &AuthIntent) -> StatusAuthKind {
             method: OpenAiAuthMethod::Api,
         } => StatusAuthKind::ThirdPartyApi,
         AuthIntent::ProviderEnvKey { .. } => StatusAuthKind::ProviderKey,
+        AuthIntent::ProviderBearerToken => StatusAuthKind::ProviderKey,
         AuthIntent::NoAuth => StatusAuthKind::NoAuth,
     }
 }

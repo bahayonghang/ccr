@@ -65,10 +65,11 @@ const codexOverrides: Record<string, CodexProviderTemplateOverride> = {
     modelCatalog: ['claude-sonnet-4-5', 'claude-haiku-4-5'],
   },
   deepseek: {
-    baseUrl: 'https://api.deepseek.com/v1',
+    baseUrl: 'https://api.deepseek.com/',
     websiteUrl: 'https://platform.deepseek.com',
     apiKeyUrl: 'https://platform.deepseek.com/api_keys',
-    modelCatalog: ['deepseek-chat', 'deepseek-reasoner'],
+    modelCatalog: ['deepseek-v4-flash'],
+    model: 'deepseek-v4-flash',
   },
   kimi: {
     baseUrl: 'https://api.moonshot.cn/v1',

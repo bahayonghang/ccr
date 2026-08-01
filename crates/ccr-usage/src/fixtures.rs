@@ -5,7 +5,7 @@
 //! `usage_event`, `usage_event_raw`, `run_log`, `source_file`,
 //! `source_sync_status` and `meta`. Column sets follow the real SQL in
 //! `src/db.rs` and the capability gates in `src/capabilities.rs` (schema
-//! version 14, so the provider-breakdown gate is satisfied too).
+//! version 19, including the current upstream range indexes).
 //!
 //! Consumers: this crate's own tests and `ccr-ui/src-tauri` service tests via
 //! the `test-fixtures` feature. Helpers panic on failure by design (test-only
@@ -27,7 +27,7 @@ pub fn create_projection_db(root: &Path) -> AppPaths {
     conn.execute_batch(
         r#"
         CREATE TABLE meta(key TEXT PRIMARY KEY, value TEXT NOT NULL);
-        INSERT INTO meta(key, value) VALUES ('schema_version', '14');
+        INSERT INTO meta(key, value) VALUES ('schema_version', '19');
         CREATE TABLE usage_bucket_30m(
             source TEXT NOT NULL,
             provider_label TEXT NOT NULL DEFAULT '',
@@ -36,7 +36,6 @@ pub fn create_projection_db(root: &Path) -> AppPaths {
             project_hash TEXT NOT NULL DEFAULT '',
             project_label TEXT NOT NULL DEFAULT '',
             project_ref TEXT,
-            project_path TEXT,
             input_tokens INTEGER NOT NULL,
             cache_read_tokens INTEGER NOT NULL,
             cache_creation_tokens INTEGER NOT NULL,
@@ -50,6 +49,7 @@ pub fn create_projection_db(root: &Path) -> AppPaths {
             pricing_source TEXT,
             pricing_rate TEXT
         );
+        CREATE INDEX idx_usage_bucket_30m_hour_start ON usage_bucket_30m(hour_start);
         CREATE TABLE usage_event(
             event_key TEXT PRIMARY KEY,
             source TEXT NOT NULL,
@@ -71,6 +71,9 @@ pub fn create_projection_db(root: &Path) -> AppPaths {
             pricing_status TEXT NOT NULL,
             pricing_source TEXT
         );
+        CREATE INDEX idx_usage_event_event_at ON usage_event(event_at);
+        CREATE INDEX idx_usage_event_activity_cost
+            ON usage_event(event_at, source, model, cost_with_cache_usd);
         CREATE TABLE usage_event_raw(
             event_key TEXT PRIMARY KEY,
             raw_json TEXT NOT NULL
@@ -104,7 +107,6 @@ pub struct SeedBucket {
     pub project_hash: String,
     pub project_label: String,
     pub project_ref: Option<String>,
-    pub project_path: Option<String>,
     pub input_tokens: i64,
     pub cache_read_tokens: i64,
     pub cache_creation_tokens: i64,
@@ -130,8 +132,7 @@ impl Default for SeedBucket {
             hour_start: "2026-07-01T12:00:00Z".to_string(),
             project_hash: "p1".to_string(),
             project_label: "Project 1".to_string(),
-            project_ref: None,
-            project_path: Some("/repo/p1".to_string()),
+            project_ref: Some("/repo/p1".to_string()),
             input_tokens: 40,
             cache_read_tokens: 10,
             cache_creation_tokens: 5,
@@ -154,12 +155,12 @@ pub fn seed_bucket(conn: &Connection, seed: &SeedBucket) {
         r#"
         INSERT INTO usage_bucket_30m(
             source, provider_label, model, hour_start,
-            project_hash, project_label, project_ref, project_path,
+            project_hash, project_label, project_ref,
             input_tokens, cache_read_tokens, cache_creation_tokens,
             output_tokens, reasoning_output_tokens, total_tokens, event_count,
             cost_with_cache_usd, cost_without_cache_usd,
             pricing_status, pricing_source, pricing_rate
-        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20)
+        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19)
         "#,
         params![
             seed.source,
@@ -169,7 +170,6 @@ pub fn seed_bucket(conn: &Connection, seed: &SeedBucket) {
             seed.project_hash,
             seed.project_label,
             seed.project_ref,
-            seed.project_path,
             seed.input_tokens,
             seed.cache_read_tokens,
             seed.cache_creation_tokens,
@@ -341,7 +341,7 @@ mod tests {
 
         // 能力探测覆盖全部 DB-backed feature 的建表/列门槛（含 provider schema 14）。
         let caps = DbCapabilities::detect(&paths);
-        assert_eq!(caps.schema_version, Some(14));
+        assert_eq!(caps.schema_version, Some(19));
         for key in DB_BACKED_FEATURES {
             let capability = caps.features.get(key.as_str()).expect("feature present");
             assert!(
@@ -363,6 +363,38 @@ mod tests {
             overview.last_sync_at.as_deref(),
             Some("2026-07-01T10:00:00Z")
         );
+    }
+
+    #[test]
+    fn schema_18_19_and_future_20_keep_compatible_projection_support() {
+        for schema_version in [18_i64, 19, 20] {
+            let temp = tempfile::TempDir::new().expect("temp dir should be created");
+            let paths = create_projection_db(temp.path());
+            let conn = Connection::open(&paths.db_path).expect("fixture db should reopen");
+            conn.execute(
+                "UPDATE meta SET value = ?1 WHERE key = 'schema_version'",
+                [schema_version.to_string()],
+            )
+            .expect("schema version should update");
+            seed_bucket(&conn, &SeedBucket::default());
+            drop(conn);
+
+            let caps = DbCapabilities::detect(&paths);
+            assert_eq!(caps.schema_version, Some(schema_version));
+            assert!(
+                caps.features
+                    .get("overview")
+                    .expect("overview capability present")
+                    .supported,
+                "schema {schema_version} should retain compatible overview support"
+            );
+
+            let overview = Dashboard::open(paths)
+                .expect("compatible schema should open")
+                .overview(&QueryFilter::default())
+                .expect("overview should query");
+            assert_eq!(overview.total.total_tokens, 100, "schema {schema_version}");
+        }
     }
 
     #[test]

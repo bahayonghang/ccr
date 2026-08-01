@@ -1,0 +1,10 @@
+{"file": ".trellis/tasks/07-31-codex-deepseek-switch/research/deepseek-codex-requirements.md", "reason": "DeepSeek 官方接入要求全文与 CCR 差距矩阵——实现的事实来源"}
+{"file": ".trellis/tasks/07-31-codex-deepseek-switch/research/review-verification-rev2.md", "reason": "审阅 7 项发现的核验结论与处置——rev2 修订依据，含明文边界定案"}
+{"file": ".trellis/spec/ccr-codex/backend/backend-guidelines.md", "reason": "Codex 域边界、auth 安全、错误/日志/测试约定，改 auth 与切换链路前必读"}
+{"file": ".trellis/spec/ccr-codex/backend/test-fixtures.md", "reason": "TestCodexEnv 等进程级夹具约定，阶段 A7 写测试前必读"}
+{"file": ".trellis/spec/ccr-codex/backend/codex-app-server-cleanup.md", "reason": "ccr codex fix / doctor 契约——A5 诊断修复链路改动前必读"}
+{"file": ".trellis/spec/ccr-core/backend/atomic-writer.md", "reason": "AtomicWriter secret 模式契约（权限先于内容）——A0/B0 写入统一的依据"}
+{"file": ".trellis/spec/ccr-ui/frontend/provider-template-contracts.md", "reason": "DeepSeek 模板与 Profile 编辑器映射的非密字段契约与必跑 smoke 清单（B3）"}
+{"file": ".trellis/spec/ccr-ui/frontend/profiles-page-contracts.md", "reason": "Codex Profiles 页面契约——B2 编辑器改动的既有约束"}
+{"file": ".trellis/spec/ccr-ui/frontend/raw-config-editor-contracts.md", "reason": "Raw Source 编辑器契约——明文通道 B 的边界约束"}
+{"file": ".trellis/spec/ccr-ui/frontend/sync-security-contracts.md", "reason": "codex-config 加密同步资产（v2 信封）契约——同步披露（C2）依据"}

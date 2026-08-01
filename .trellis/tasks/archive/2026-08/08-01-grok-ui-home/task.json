@@ -1,0 +1,28 @@
+{
+  "id": "grok-ui-home",
+  "name": "grok-ui-home",
+  "title": "Grok 平台首页与前端接线",
+  "description": "",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-08-01",
+  "completedAt": "2026-08-01",
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "08-01-grok-ui-platform",
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "description": "GrokView 仪表盘首页 + 全部前端接线(路由/侧边栏/子导航/i18n/平台色/types/api domain 骨架/子页占位)"
+  }
+}

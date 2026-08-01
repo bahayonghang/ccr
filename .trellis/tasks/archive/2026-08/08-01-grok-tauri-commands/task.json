@@ -1,0 +1,28 @@
+{
+  "id": "grok-tauri-commands",
+  "name": "grok-tauri-commands",
+  "title": "Grok Tauri 命令桥接层",
+  "description": "",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-08-01",
+  "completedAt": "2026-08-01",
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "08-01-grok-ui-platform",
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "description": "src-tauri 暴露 grok profiles CRUD/apply/off/raw + settings typed/raw + 首页聚合 + 版本探测;复用 ccr::platforms::GrokPlatform,脱敏 DTO,config.toml 无备份"
+  }
+}

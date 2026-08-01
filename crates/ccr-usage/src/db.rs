@@ -1,11 +1,10 @@
-use chrono::NaiveDate;
-use rusqlite::{Connection, OpenFlags, ToSql, params_from_iter};
+use chrono::{NaiveDate, SecondsFormat};
+use rusqlite::{Connection, OpenFlags, ToSql, params_from_iter, types::Value};
 
 use crate::{
     AppPaths, FeatureKey, UsageError,
     capabilities::{
-        MIN_SUPPORTED_SCHEMA_VERSION, column_exists, ensure_feature, read_schema_version,
-        table_exists,
+        DbCapabilitySnapshot, MIN_SUPPORTED_SCHEMA_VERSION, read_schema_version, table_exists,
     },
     queries::{
         DailyTrendDto, HeatmapPoint, HomeOverviewPayload, HomeOverviewPlatformStats,
@@ -14,6 +13,7 @@ use crate::{
         TokenSummary, UsageRecordDto, generated_at,
     },
     source::{SourceKind, parse_source_filter},
+    timezone::{ResolvedZone, register_functions},
 };
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
@@ -37,7 +37,7 @@ pub struct QueryFilter {
 #[derive(Debug, Clone)]
 struct SqlFilter {
     clauses: Vec<String>,
-    params: Vec<String>,
+    params: Vec<Value>,
 }
 
 impl SqlFilter {
@@ -48,7 +48,7 @@ impl SqlFilter {
         }
     }
 
-    fn push(&mut self, clause: impl Into<String>, value: impl Into<String>) {
+    fn push(&mut self, clause: impl Into<String>, value: impl Into<Value>) {
         self.clauses.push(clause.into());
         self.params.push(value.into());
     }
@@ -74,83 +74,63 @@ impl SqlFilter {
 }
 
 impl QueryFilter {
-    fn local_time_modifier(&self) -> &'static str {
-        match self.timezone {
-            ReportTimezone::Local => "localtime",
-            ReportTimezone::Utc => "utc",
-        }
+    fn bucket_filter(
+        &self,
+        alias: Option<&str>,
+        zone: &ResolvedZone,
+        schema_version: i64,
+    ) -> Result<SqlFilter, UsageError> {
+        self.sql_filter(alias, "hour_start", zone, schema_version)
     }
 
-    fn bucket_filter(&self, alias: Option<&str>) -> SqlFilter {
+    fn event_filter(
+        &self,
+        alias: Option<&str>,
+        zone: &ResolvedZone,
+        schema_version: i64,
+    ) -> Result<SqlFilter, UsageError> {
+        self.sql_filter(alias, "event_at", zone, schema_version)
+    }
+
+    fn sql_filter(
+        &self,
+        alias: Option<&str>,
+        time_column: &str,
+        zone: &ResolvedZone,
+        schema_version: i64,
+    ) -> Result<SqlFilter, UsageError> {
         let prefix = alias.map(|value| format!("{value}.")).unwrap_or_default();
         let mut filter = SqlFilter::new();
         if let Some(source) = self.source {
-            filter.push(format!("{prefix}source = ?"), source.as_str());
+            filter.push(
+                format!("{prefix}source = ?"),
+                source.storage_key(schema_version).to_string(),
+            );
         }
         if let Some(model) = self.model.as_ref() {
-            filter.push(format!("{prefix}model = ?"), model);
+            filter.push(format!("{prefix}model = ?"), model.clone());
         }
         if let Some(provider) = self.provider.as_ref() {
-            filter.push(format!("{prefix}provider_label = ?"), provider);
+            filter.push(format!("{prefix}provider_label = ?"), provider.clone());
         }
         if let Some(since) = self.since {
             filter.push(
-                format!(
-                    "date({prefix}hour_start, '{}') >= ?",
-                    self.local_time_modifier()
-                ),
-                since.to_string(),
+                format!("{prefix}{time_column} >= ?"),
+                zone.local_date_start_utc(since)?
+                    .to_rfc3339_opts(SecondsFormat::Secs, true),
             );
         }
-        if let Some(until) = self.until {
+        if let Some(until) = self.until.and_then(|date| date.succ_opt()) {
             filter.push(
-                format!(
-                    "date({prefix}hour_start, '{}') <= ?",
-                    self.local_time_modifier()
-                ),
-                until.to_string(),
+                format!("{prefix}{time_column} < ?"),
+                zone.local_date_start_utc(until)?
+                    .to_rfc3339_opts(SecondsFormat::Secs, true),
             );
         }
         if let Some(project_hash) = self.project_hash.as_ref() {
-            filter.push(format!("{prefix}project_hash = ?"), project_hash);
+            filter.push(format!("{prefix}project_hash = ?"), project_hash.clone());
         }
-        filter
-    }
-
-    fn event_filter(&self, alias: Option<&str>) -> SqlFilter {
-        let prefix = alias.map(|value| format!("{value}.")).unwrap_or_default();
-        let mut filter = SqlFilter::new();
-        if let Some(source) = self.source {
-            filter.push(format!("{prefix}source = ?"), source.as_str());
-        }
-        if let Some(model) = self.model.as_ref() {
-            filter.push(format!("{prefix}model = ?"), model);
-        }
-        if let Some(provider) = self.provider.as_ref() {
-            filter.push(format!("{prefix}provider_label = ?"), provider);
-        }
-        if let Some(since) = self.since {
-            filter.push(
-                format!(
-                    "date({prefix}event_at, '{}') >= ?",
-                    self.local_time_modifier()
-                ),
-                since.to_string(),
-            );
-        }
-        if let Some(until) = self.until {
-            filter.push(
-                format!(
-                    "date({prefix}event_at, '{}') <= ?",
-                    self.local_time_modifier()
-                ),
-                until.to_string(),
-            );
-        }
-        if let Some(project_hash) = self.project_hash.as_ref() {
-            filter.push(format!("{prefix}project_hash = ?"), project_hash);
-        }
-        filter
+        Ok(filter)
     }
 
     fn without_source(&self) -> Self {
@@ -206,6 +186,8 @@ fn non_empty_string(value: String) -> Option<String> {
 pub struct Dashboard {
     paths: AppPaths,
     conn: Connection,
+    capabilities: DbCapabilitySnapshot,
+    local_zone: ResolvedZone,
 }
 
 pub fn open_dashboard(paths: AppPaths) -> Result<Dashboard, UsageError> {
@@ -223,6 +205,7 @@ impl Dashboard {
         )
         .map_err(|error| UsageError::DbUnreadable(error.to_string()))?;
         conn.busy_timeout(std::time::Duration::from_secs(5))?;
+        register_functions(&conn)?;
         let schema_version = read_schema_version(&conn)?;
         if schema_version.unwrap_or_default() < MIN_SUPPORTED_SCHEMA_VERSION {
             return Err(UsageError::SchemaUnsupported {
@@ -230,7 +213,13 @@ impl Dashboard {
                 actual: schema_version,
             });
         }
-        Ok(Self { paths, conn })
+        let capabilities = DbCapabilitySnapshot::from_connection(&conn)?;
+        Ok(Self {
+            paths,
+            conn,
+            capabilities,
+            local_zone: ResolvedZone::local()?,
+        })
     }
 
     // provider filter 附着在任意查询上时都要求 ProviderBreakdown 能力，
@@ -240,57 +229,107 @@ impl Dashboard {
         feature: FeatureKey,
         filter: &QueryFilter,
     ) -> Result<(), UsageError> {
-        ensure_feature(&self.paths, feature)?;
+        self.capabilities.ensure(feature)?;
         if filter.provider.is_some() && feature != FeatureKey::ProviderBreakdown {
-            ensure_feature(&self.paths, FeatureKey::ProviderBreakdown)?;
+            self.capabilities.ensure(FeatureKey::ProviderBreakdown)?;
         }
         Ok(())
     }
 
+    fn schema_version(&self) -> i64 {
+        self.capabilities.schema_version.unwrap_or_default()
+    }
+
+    fn zone(&self, timezone: ReportTimezone) -> ResolvedZone {
+        match timezone {
+            ReportTimezone::Local => self.local_zone.clone(),
+            ReportTimezone::Utc => ResolvedZone::utc(),
+        }
+    }
+
     pub fn overview(&self, filter: &QueryFilter) -> Result<OverviewPayload, UsageError> {
         self.ensure_feature_for_filter(FeatureKey::Overview, filter)?;
-        let total = self.query_token_summary(filter, None)?;
-        let cutoff = (chrono::Utc::now() - chrono::Duration::hours(24)).to_rfc3339();
-        let last_24h = self.query_token_summary(filter, Some(&cutoff))?;
-        let total_events = self.query_event_count(filter, None)?;
-        let last_24h_events = self.query_event_count(filter, Some(&cutoff))?;
-        let total_cost_usd = self.query_cost_with_cache(filter, None)?;
-        let bucket_filter = filter.bucket_filter(None);
-        let source_count = scalar_i64(
-            &self.conn,
-            &format!(
-                "SELECT COUNT(DISTINCT source) FROM usage_bucket_30m{}",
-                bucket_filter.where_sql()
-            ),
-            &bucket_filter.param_refs(),
-        )?;
-        let bucket_count = scalar_i64(
-            &self.conn,
-            &format!(
-                "SELECT COUNT(*) FROM usage_bucket_30m{}",
-                bucket_filter.where_sql()
-            ),
-            &bucket_filter.param_refs(),
-        )?;
-        // last_sync_at / last_export_at 仅作展示字段，遇到 DB 层意外错误时降级为 None
-        // 但记 warn 以便排查；以前用 unwrap_or(None) 会把任何 rusqlite::Error 都当无数据处理。
-        let last_sync_at = scalar_optional_string(
-            &self.conn,
-            "SELECT MAX(finished_at) FROM run_log WHERE command IN ('sync', 'hook-run') AND status = 'success'",
-            &[],
-        )
-        .unwrap_or_else(|error| {
-            tracing::warn!(?error, "llmusage overview: last_sync_at query failed");
-            None
-        });
-        let last_export_at = scalar_optional_string(
-            &self.conn,
-            "SELECT MAX(finished_at) FROM run_log WHERE command = 'export html' AND status = 'success'",
-            &[],
-        )
-        .unwrap_or_else(|error| {
-            tracing::warn!(?error, "llmusage overview: last_export_at query failed");
-            None
+        let zone = self.zone(filter.timezone);
+        let bucket_filter = filter.bucket_filter(None, &zone, self.schema_version())?;
+        let cutoff = (chrono::Utc::now() - chrono::Duration::hours(24))
+            .to_rfc3339_opts(SecondsFormat::Secs, true);
+        let sql = format!(
+            r#"
+            WITH filtered AS (
+                SELECT * FROM usage_bucket_30m{}
+            )
+            SELECT
+                COALESCE(SUM(input_tokens), 0),
+                COALESCE(SUM(cache_read_tokens), 0),
+                COALESCE(SUM(output_tokens), 0),
+                COALESCE(SUM(reasoning_output_tokens), 0),
+                COALESCE(SUM(total_tokens), 0),
+                COALESCE(SUM(CASE WHEN hour_start >= cutoff.value THEN input_tokens ELSE 0 END), 0),
+                COALESCE(SUM(CASE WHEN hour_start >= cutoff.value THEN cache_read_tokens ELSE 0 END), 0),
+                COALESCE(SUM(CASE WHEN hour_start >= cutoff.value THEN output_tokens ELSE 0 END), 0),
+                COALESCE(SUM(CASE WHEN hour_start >= cutoff.value THEN reasoning_output_tokens ELSE 0 END), 0),
+                COALESCE(SUM(CASE WHEN hour_start >= cutoff.value THEN total_tokens ELSE 0 END), 0),
+                COALESCE(SUM(event_count), 0),
+                COALESCE(SUM(CASE WHEN hour_start >= cutoff.value THEN event_count ELSE 0 END), 0),
+                COALESCE(SUM(cost_with_cache_usd), 0.0),
+                COUNT(DISTINCT source),
+                COUNT(*)
+            FROM filtered
+            CROSS JOIN (SELECT ? AS value) AS cutoff
+            "#,
+            bucket_filter.where_sql()
+        );
+        let mut params = bucket_filter.params.clone();
+        params.push(Value::Text(cutoff));
+        let values = self
+            .conn
+            .query_row(&sql, params_from_iter(params.iter()), |row| {
+                Ok((
+                    TokenSummary {
+                        input_tokens: row.get(0)?,
+                        cache_read_tokens: row.get(1)?,
+                        output_tokens: row.get(2)?,
+                        reasoning_output_tokens: row.get(3)?,
+                        total_tokens: row.get(4)?,
+                    },
+                    TokenSummary {
+                        input_tokens: row.get(5)?,
+                        cache_read_tokens: row.get(6)?,
+                        output_tokens: row.get(7)?,
+                        reasoning_output_tokens: row.get(8)?,
+                        total_tokens: row.get(9)?,
+                    },
+                    row.get(10)?,
+                    row.get(11)?,
+                    row.get(12)?,
+                    row.get(13)?,
+                    row.get(14)?,
+                ))
+            })?;
+        let (
+            total,
+            last_24h,
+            total_events,
+            last_24h_events,
+            total_cost_usd,
+            source_count,
+            bucket_count,
+        ) = values;
+
+        let freshness = self.conn.query_row(
+            r#"
+            SELECT
+                MAX(CASE WHEN command IN ('sync', 'hook-run') THEN finished_at END),
+                MAX(CASE WHEN command = 'export html' THEN finished_at END)
+            FROM run_log
+            WHERE status = 'success'
+            "#,
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        );
+        let (last_sync_at, last_export_at) = freshness.unwrap_or_else(|error| {
+            tracing::warn!(?error, "llmusage overview: freshness query failed");
+            (None, None)
         });
         Ok(OverviewPayload {
             generated_at: generated_at(),
@@ -309,12 +348,13 @@ impl Dashboard {
 
     pub fn trends_daily(&self, filter: &QueryFilter) -> Result<Vec<DailyTrendDto>, UsageError> {
         self.ensure_feature_for_filter(FeatureKey::DailyTrends, filter)?;
-        let sql_filter = filter.bucket_filter(None);
-        let modifier = filter.local_time_modifier();
+        let zone = self.zone(filter.timezone);
+        let sql_filter = filter.bucket_filter(None, &zone, self.schema_version())?;
+        let local_date = zone.local_date_expr("hour_start");
         let sql = format!(
             r#"
             SELECT
-                date(hour_start, '{modifier}') AS local_date,
+                {local_date} AS local_date,
                 COALESCE(SUM(input_tokens), 0),
                 COALESCE(SUM(cache_read_tokens), 0),
                 COALESCE(SUM(cache_creation_tokens), 0),
@@ -349,7 +389,8 @@ impl Dashboard {
 
     pub fn model_breakdown(&self, filter: &QueryFilter) -> Result<Vec<ModelBreakdown>, UsageError> {
         self.ensure_feature_for_filter(FeatureKey::ModelBreakdown, filter)?;
-        let sql_filter = filter.bucket_filter(None);
+        let zone = self.zone(filter.timezone);
+        let sql_filter = filter.bucket_filter(None, &zone, self.schema_version())?;
         let sql = format!(
             r#"
             SELECT
@@ -404,7 +445,8 @@ impl Dashboard {
         filter: &QueryFilter,
     ) -> Result<Vec<ProviderBreakdownDto>, UsageError> {
         self.ensure_feature_for_filter(FeatureKey::ProviderBreakdown, filter)?;
-        let sql_filter = filter.bucket_filter(None);
+        let zone = self.zone(filter.timezone);
+        let sql_filter = filter.bucket_filter(None, &zone, self.schema_version())?;
         let sql = format!(
             r#"
             SELECT
@@ -473,17 +515,9 @@ impl Dashboard {
         filter: &QueryFilter,
     ) -> Result<Vec<ProjectBreakdown>, UsageError> {
         self.ensure_feature_for_filter(FeatureKey::ProjectBreakdown, filter)?;
-        let mut sql_filter = filter.bucket_filter(None);
+        let zone = self.zone(filter.timezone);
+        let mut sql_filter = filter.bucket_filter(None, &zone, self.schema_version())?;
         sql_filter.push_raw("project_hash <> ''");
-        // 老版本 llmusage 的 usage_bucket_30m 没有 project_path 列，select 时改 NULL；
-        // 之前用 sql.replace 容易因换行/空格漂移失效，改成在拼 SQL 时直接选定表达式。
-        let has_project_path =
-            column_exists(&self.conn, "usage_bucket_30m", "project_path").unwrap_or(false);
-        let project_path_expr = if has_project_path {
-            "MAX(project_path)"
-        } else {
-            "NULL"
-        };
         let sql = format!(
             r#"
             SELECT
@@ -492,8 +526,7 @@ impl Dashboard {
                 MAX(project_ref),
                 SUM(total_tokens),
                 SUM(event_count),
-                SUM(cost_with_cache_usd),
-                {project_path_expr}
+                SUM(cost_with_cache_usd)
             FROM usage_bucket_30m
             {where_clause}
             GROUP BY project_hash
@@ -507,7 +540,6 @@ impl Dashboard {
                 .get::<_, Option<String>>(1)?
                 .unwrap_or_else(|| "unknown-project".to_string());
             let project_ref: Option<String> = row.get(2)?;
-            let project_path: Option<String> = row.get(6)?;
             Ok(ProjectBreakdown {
                 project_hash: row.get(0)?,
                 project_label: project_label.clone(),
@@ -515,7 +547,7 @@ impl Dashboard {
                 total_tokens: row.get::<_, Option<i64>>(3)?.unwrap_or_default(),
                 event_count: row.get::<_, Option<i64>>(4)?.unwrap_or_default(),
                 total_cost_usd: row.get::<_, Option<f64>>(5)?.unwrap_or_default(),
-                project_path: project_path.or(project_ref).or(Some(project_label)),
+                project_path: project_ref.or(Some(project_label)),
             })
         })?;
         Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
@@ -527,20 +559,21 @@ impl Dashboard {
     ) -> Result<Vec<SourceBreakdownDto>, UsageError> {
         self.ensure_feature_for_filter(FeatureKey::HomeOverview, filter)?;
         let source_filter = filter.without_source();
-        let sql_filter = source_filter.bucket_filter(None);
-        let modifier = source_filter.local_time_modifier();
+        let zone = self.zone(source_filter.timezone);
+        let sql_filter = source_filter.bucket_filter(None, &zone, self.schema_version())?;
+        let local_date = zone.local_date_expr("hour_start");
         let sql = format!(
             r#"
             SELECT
-                source,
+                CASE WHEN source = 'gemini' THEN 'antigravity' ELSE source END AS canonical_source,
                 COALESCE(SUM(event_count), 0),
                 COALESCE(SUM(total_tokens), 0),
                 COALESCE(SUM(cost_with_cache_usd), 0.0),
-                COUNT(DISTINCT date(hour_start, '{modifier}'))
+                COUNT(DISTINCT {local_date})
             FROM usage_bucket_30m
             {}
-            GROUP BY source
-            ORDER BY SUM(total_tokens) DESC, source ASC
+            GROUP BY canonical_source
+            ORDER BY SUM(total_tokens) DESC, canonical_source ASC
         "#,
             sql_filter.where_sql()
         );
@@ -559,19 +592,10 @@ impl Dashboard {
             })?
             .collect::<rusqlite::Result<Vec<_>>>()?;
 
-        let canonical_rows = raw_rows
-            .into_iter()
-            .filter(|row| {
-                matches!(
-                    row.source.as_str(),
-                    "claude" | "codex" | "gemini" | "opencode"
-                )
-            })
-            .collect::<Vec<_>>();
-        let total_tokens: i64 = canonical_rows.iter().map(|row| row.total_tokens).sum();
-        let total_cost: f64 = canonical_rows.iter().map(|row| row.total_cost).sum();
+        let total_tokens: i64 = raw_rows.iter().map(|row| row.total_tokens).sum();
+        let total_cost: f64 = raw_rows.iter().map(|row| row.total_cost).sum();
 
-        Ok(canonical_rows
+        Ok(raw_rows
             .into_iter()
             .map(|mut row| {
                 row.share_tokens = if total_tokens > 0 {
@@ -596,7 +620,8 @@ impl Dashboard {
     ) -> Result<Vec<HeatmapPoint>, UsageError> {
         self.ensure_feature_for_filter(FeatureKey::Heatmap, filter)?;
         let days = days.clamp(1, 366);
-        let end = chrono::Local::now().date_naive();
+        let zone = self.zone(filter.timezone);
+        let end = zone.date_at(chrono::Utc::now());
         let start = end - chrono::Duration::days((days - 1) as i64);
         // 用 heatmap 自身的滚动窗口覆盖 caller 透传的 since/until，
         // 避免 bucket_filter() 在 WHERE 里推出两份 date(...) 约束。
@@ -606,11 +631,11 @@ impl Dashboard {
             until: Some(end),
             ..filter.clone()
         };
-        let sql_filter = scoped_filter.bucket_filter(None);
-        let modifier = scoped_filter.local_time_modifier();
+        let sql_filter = scoped_filter.bucket_filter(None, &zone, self.schema_version())?;
+        let local_date = zone.local_date_expr("hour_start");
         let sql = format!(
             r#"
-            SELECT date(hour_start, '{modifier}') AS date, COALESCE(SUM(event_count), 0)
+            SELECT {local_date} AS date, COALESCE(SUM(event_count), 0)
             FROM usage_bucket_30m
             {}
             GROUP BY date
@@ -641,12 +666,15 @@ impl Dashboard {
 
     pub fn logs(&self, query: &LogsQuery) -> Result<LogsPage, UsageError> {
         self.ensure_feature_for_filter(FeatureKey::Logs, &query.filter)?;
-        let mut sql_filter = query.filter.event_filter(Some("e"));
+        let zone = self.zone(query.filter.timezone);
+        let mut sql_filter = query
+            .filter
+            .event_filter(Some("e"), &zone, self.schema_version())?;
         if let Some(cursor) = query.cursor.as_ref().and_then(|value| decode_cursor(value)) {
             sql_filter.push_raw("(e.event_at < ? OR (e.event_at = ? AND e.event_key < ?))");
-            sql_filter.params.push(cursor.0.clone());
-            sql_filter.params.push(cursor.0);
-            sql_filter.params.push(cursor.1);
+            sql_filter.params.push(Value::Text(cursor.0.clone()));
+            sql_filter.params.push(Value::Text(cursor.0));
+            sql_filter.params.push(Value::Text(cursor.1));
         }
         let raw_join = if table_exists(&self.conn, "usage_event_raw").unwrap_or(false) {
             "LEFT JOIN usage_event_raw raw ON raw.event_key = e.event_key"
@@ -662,11 +690,11 @@ impl Dashboard {
             r#"
             SELECT
                 e.event_key,
-                e.source,
+                CASE WHEN e.source = 'gemini' THEN 'antigravity' ELSE e.source END,
                 COALESCE(e.project_path, e.project_ref, e.project_label, e.project_hash, ''),
                 COALESCE({raw_expr}, ''),
                 e.event_at,
-                e.source,
+                CASE WHEN e.source = 'gemini' THEN 'antigravity' ELSE e.source END,
                 e.model,
                 e.input_tokens,
                 e.output_tokens + e.reasoning_output_tokens,
@@ -687,7 +715,7 @@ impl Dashboard {
             sql_filter.where_sql()
         );
         let mut params = sql_filter.params.clone();
-        params.push((query.page_size + 1).to_string());
+        params.push(Value::Integer(i64::from(query.page_size) + 1));
         let param_refs: Vec<&dyn ToSql> = params.iter().map(|value| value as &dyn ToSql).collect();
         let mut stmt = self.conn.prepare(&sql)?;
         let mut rows = stmt
@@ -704,7 +732,10 @@ impl Dashboard {
             None
         };
         let total = if query.include_total {
-            let count_filter = query.filter.event_filter(Some("e"));
+            let count_filter =
+                query
+                    .filter
+                    .event_filter(Some("e"), &zone, self.schema_version())?;
             Some(scalar_i64(
                 &self.conn,
                 &format!(
@@ -724,19 +755,19 @@ impl Dashboard {
     }
 
     pub fn diagnostics(&self) -> Result<DiagnosticsPayload, UsageError> {
-        ensure_feature(&self.paths, FeatureKey::Diagnostics)?;
+        self.capabilities.ensure(FeatureKey::Diagnostics)?;
         let sql = r#"
             SELECT
-                f.source,
+                CASE WHEN f.source = 'gemini' THEN 'antigravity' ELSE f.source END AS canonical_source,
                 SUM(CASE WHEN f.state = 'live' THEN 1 ELSE 0 END),
                 SUM(CASE WHEN f.state = 'missing' THEN 1 ELSE 0 END),
                 SUM(CASE WHEN f.state = 'deleted_by_user' THEN 1 ELSE 0 END),
-                s.recent_completed_at,
-                s.history_completed_at
+                MAX(s.recent_completed_at),
+                MAX(s.history_completed_at)
             FROM source_file f
             LEFT JOIN source_sync_status s ON s.source = f.source
-            GROUP BY f.source, s.recent_completed_at, s.history_completed_at
-            ORDER BY f.source ASC
+            GROUP BY canonical_source
+            ORDER BY canonical_source ASC
         "#;
         let mut stmt = self.conn.prepare(sql)?;
         let rows = stmt.query_map([], |row| {
@@ -757,24 +788,31 @@ impl Dashboard {
 
     pub fn home_overview(&self, filter: &QueryFilter) -> Result<HomeOverviewPayload, UsageError> {
         self.ensure_feature_for_filter(FeatureKey::HomeOverview, filter)?;
-        let trends = self.trends_daily(filter)?;
         let mut by_platform = std::collections::BTreeMap::new();
-        for source in ["claude", "codex", "gemini", "opencode"] {
-            by_platform.insert(source.to_string(), HomeOverviewPlatformStats::default());
+        for source in SourceKind::ALL {
+            by_platform.insert(
+                source.as_str().to_string(),
+                HomeOverviewPlatformStats::default(),
+            );
         }
         let mut by_day = std::collections::BTreeMap::<
             String,
             std::collections::BTreeMap<String, HomeOverviewPlatformStats>,
         >::new();
 
-        let sql_filter = filter.bucket_filter(None);
-        let modifier = filter.local_time_modifier();
+        let zone = self.zone(filter.timezone);
+        let sql_filter = filter.bucket_filter(None, &zone, self.schema_version())?;
+        let local_date = zone.local_date_expr("hour_start");
         let sql = format!(
             r#"
-            SELECT date(hour_start, '{modifier}'), source, COALESCE(SUM(event_count), 0), COALESCE(SUM(total_tokens), 0)
+            SELECT
+                {local_date},
+                CASE WHEN source = 'gemini' THEN 'antigravity' ELSE source END AS canonical_source,
+                COALESCE(SUM(event_count), 0),
+                COALESCE(SUM(total_tokens), 0)
             FROM usage_bucket_30m
             {}
-            GROUP BY date(hour_start, '{modifier}'), source
+            GROUP BY 1, canonical_source
             ORDER BY 1 ASC, 2 ASC
         "#,
             sql_filter.where_sql()
@@ -795,10 +833,9 @@ impl Dashboard {
                 requests,
                 tokens,
             };
-            if let Some(total) = by_platform.get_mut(&source) {
-                total.requests += requests;
-                total.tokens += tokens;
-            }
+            let total = by_platform.entry(source.clone()).or_default();
+            total.requests += requests;
+            total.tokens += tokens;
             by_day.entry(date).or_default().insert(source, stats);
         }
         let series = by_day
@@ -807,7 +844,7 @@ impl Dashboard {
                 date,
                 claude: day.remove("claude").unwrap_or_default(),
                 codex: day.remove("codex").unwrap_or_default(),
-                gemini: day.remove("gemini").unwrap_or_default(),
+                antigravity: day.remove("antigravity").unwrap_or_default(),
                 opencode: day.remove("opencode").unwrap_or_default(),
             })
             .collect::<Vec<_>>();
@@ -822,81 +859,12 @@ impl Dashboard {
                 total_sessions: 0,
                 total_requests,
                 total_tokens,
-                active_days: trends.len() as i64,
+                active_days: series.len() as i64,
                 platforms,
             },
             by_platform,
             series,
         })
-    }
-
-    fn query_token_summary(
-        &self,
-        filter: &QueryFilter,
-        cutoff: Option<&str>,
-    ) -> Result<TokenSummary, UsageError> {
-        let mut sql_filter = filter.bucket_filter(None);
-        if let Some(cutoff) = cutoff {
-            sql_filter.push("hour_start >= ?", cutoff);
-        }
-        let sql = format!(
-            r#"
-            SELECT COALESCE(SUM(input_tokens), 0), COALESCE(SUM(cache_read_tokens), 0), COALESCE(SUM(output_tokens), 0), COALESCE(SUM(reasoning_output_tokens), 0), COALESCE(SUM(total_tokens), 0)
-            FROM usage_bucket_30m{}
-        "#,
-            sql_filter.where_sql()
-        );
-        self.conn
-            .query_row(&sql, params_from_iter(sql_filter.param_refs()), |row| {
-                Ok(TokenSummary {
-                    input_tokens: row.get(0)?,
-                    cache_read_tokens: row.get(1)?,
-                    output_tokens: row.get(2)?,
-                    reasoning_output_tokens: row.get(3)?,
-                    total_tokens: row.get(4)?,
-                })
-            })
-            .map_err(Into::into)
-    }
-
-    fn query_event_count(
-        &self,
-        filter: &QueryFilter,
-        cutoff: Option<&str>,
-    ) -> Result<i64, UsageError> {
-        let mut sql_filter = filter.bucket_filter(None);
-        if let Some(cutoff) = cutoff {
-            sql_filter.push("hour_start >= ?", cutoff);
-        }
-        scalar_i64(
-            &self.conn,
-            &format!(
-                "SELECT COALESCE(SUM(event_count), 0) FROM usage_bucket_30m{}",
-                sql_filter.where_sql()
-            ),
-            &sql_filter.param_refs(),
-        )
-        .map_err(Into::into)
-    }
-
-    fn query_cost_with_cache(
-        &self,
-        filter: &QueryFilter,
-        cutoff: Option<&str>,
-    ) -> Result<f64, UsageError> {
-        let mut sql_filter = filter.bucket_filter(None);
-        if let Some(cutoff) = cutoff {
-            sql_filter.push("hour_start >= ?", cutoff);
-        }
-        scalar_f64(
-            &self.conn,
-            &format!(
-                "SELECT COALESCE(SUM(cost_with_cache_usd), 0.0) FROM usage_bucket_30m{}",
-                sql_filter.where_sql()
-            ),
-            &sql_filter.param_refs(),
-        )
-        .map_err(Into::into)
     }
 }
 
@@ -937,29 +905,6 @@ fn scalar_i64(conn: &Connection, sql: &str, params: &[&dyn ToSql]) -> rusqlite::
         row.get::<_, Option<i64>>(0)
     })
     .map(|value| value.unwrap_or_default())
-}
-
-fn scalar_f64(conn: &Connection, sql: &str, params: &[&dyn ToSql]) -> rusqlite::Result<f64> {
-    conn.query_row(sql, params_from_iter(params.iter().copied()), |row| {
-        row.get::<_, Option<f64>>(0)
-    })
-    .map(|value| value.unwrap_or_default())
-}
-
-fn scalar_optional_string(
-    conn: &Connection,
-    sql: &str,
-    params: &[&dyn ToSql],
-) -> rusqlite::Result<Option<String>> {
-    // 没有匹配行时 SQLite 返回 QueryReturnedNoRows；语义上等价于 None，避免上层
-    // 误把"无数据"当成真实错误吞掉。其他 rusqlite::Error 继续向上传播。
-    match conn.query_row(sql, params_from_iter(params.iter().copied()), |row| {
-        row.get::<_, Option<String>>(0)
-    }) {
-        Ok(value) => Ok(value),
-        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
-        Err(error) => Err(error),
-    }
 }
 
 fn map_usage_record(row: &rusqlite::Row<'_>) -> rusqlite::Result<UsageRecordDto> {
@@ -1005,6 +950,9 @@ fn decode_cursor(cursor: &str) -> Option<(String, String)> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::capabilities::{
+        capability_connection_open_count, reset_capability_connection_open_count,
+    };
     use rusqlite::Connection;
 
     #[test]
@@ -1026,10 +974,15 @@ mod tests {
     #[test]
     fn empty_filter_emits_no_where_clause() {
         let filter = QueryFilter::default();
-        let bucket = filter.bucket_filter(None);
+        let zone = ResolvedZone::utc();
+        let bucket = filter
+            .bucket_filter(None, &zone, 19)
+            .expect("empty bucket filter should build");
         assert_eq!(bucket.where_sql(), "");
         assert!(bucket.params.is_empty());
-        let event = filter.event_filter(None);
+        let event = filter
+            .event_filter(None, &zone, 19)
+            .expect("empty event filter should build");
         assert_eq!(event.where_sql(), "");
         assert!(event.params.is_empty());
     }
@@ -1040,46 +993,90 @@ mod tests {
             source: Some(SourceKind::Claude),
             ..QueryFilter::default()
         };
-        let bucket = filter.bucket_filter(None);
+        let bucket = filter
+            .bucket_filter(None, &ResolvedZone::utc(), 19)
+            .expect("source bucket filter should build");
         assert_eq!(bucket.where_sql(), " WHERE source = ?");
-        assert_eq!(bucket.params, vec!["claude".to_string()]);
+        assert_eq!(bucket.params, vec![Value::Text("claude".to_string())]);
     }
 
     #[test]
-    fn since_until_use_local_modifier_in_local_timezone() {
+    fn since_until_use_dst_aware_utc_half_open_bounds() {
         let filter = QueryFilter {
             since: NaiveDate::from_ymd_opt(2026, 5, 1),
             until: NaiveDate::from_ymd_opt(2026, 5, 9),
             ..QueryFilter::default()
         };
-        let bucket = filter.bucket_filter(None);
+        let zone = ResolvedZone::Iana(chrono_tz::America::New_York);
+        let bucket = filter
+            .bucket_filter(None, &zone, 19)
+            .expect("DST-aware bucket filter should build");
         let sql = bucket.where_sql();
-        assert!(
-            sql.contains("date(hour_start, 'localtime') >= ?"),
-            "since clause must use localtime modifier; got {sql}"
+        assert_eq!(sql, " WHERE hour_start >= ? AND hour_start < ?");
+        assert_eq!(
+            bucket.params,
+            vec![
+                Value::Text("2026-05-01T04:00:00Z".to_string()),
+                Value::Text("2026-05-10T04:00:00Z".to_string()),
+            ]
         );
-        assert!(
-            sql.contains("date(hour_start, 'localtime') <= ?"),
-            "until clause must use localtime modifier; got {sql}"
-        );
-        assert_eq!(bucket.params, vec!["2026-05-01", "2026-05-09"]);
     }
 
     #[test]
-    fn since_until_switch_to_utc_modifier_in_utc_timezone() {
+    fn dst_transition_days_emit_23_and_25_hour_half_open_bounds() {
+        let zone = ResolvedZone::Iana(chrono_tz::America::New_York);
+        for (date, expected_start, expected_end) in [
+            (
+                NaiveDate::from_ymd_opt(2026, 3, 8).expect("spring-forward date should be valid"),
+                "2026-03-08T05:00:00Z",
+                "2026-03-09T04:00:00Z",
+            ),
+            (
+                NaiveDate::from_ymd_opt(2026, 11, 1).expect("fall-back date should be valid"),
+                "2026-11-01T04:00:00Z",
+                "2026-11-02T05:00:00Z",
+            ),
+        ] {
+            let filter = QueryFilter {
+                since: Some(date),
+                until: Some(date),
+                ..QueryFilter::default()
+            };
+            let bucket = filter
+                .bucket_filter(None, &zone, 19)
+                .expect("DST transition filter should build");
+
+            assert_eq!(
+                bucket.params,
+                vec![
+                    Value::Text(expected_start.to_string()),
+                    Value::Text(expected_end.to_string()),
+                ]
+            );
+        }
+    }
+
+    #[test]
+    fn utc_dates_emit_midnight_z_bounds() {
         let filter = QueryFilter {
             since: NaiveDate::from_ymd_opt(2026, 5, 1),
+            until: NaiveDate::from_ymd_opt(2026, 5, 1),
             timezone: ReportTimezone::Utc,
             ..QueryFilter::default()
         };
-        let sql = filter.bucket_filter(None).where_sql();
-        assert!(
-            sql.contains("date(hour_start, 'utc') >= ?"),
-            "utc tz must emit utc modifier; got {sql}"
+        let bucket = filter
+            .bucket_filter(None, &ResolvedZone::utc(), 19)
+            .expect("UTC bucket filter should build");
+        assert_eq!(
+            bucket.where_sql(),
+            " WHERE hour_start >= ? AND hour_start < ?"
         );
-        assert!(
-            !sql.contains("localtime"),
-            "utc tz must not emit localtime; got {sql}"
+        assert_eq!(
+            bucket.params,
+            vec![
+                Value::Text("2026-05-01T00:00:00Z".to_string()),
+                Value::Text("2026-05-02T00:00:00Z".to_string()),
+            ]
         );
     }
 
@@ -1092,11 +1089,13 @@ mod tests {
             project_hash: Some("hash-abc".to_string()),
             ..QueryFilter::default()
         };
-        let event = filter.event_filter(Some("e"));
+        let event = filter
+            .event_filter(Some("e"), &ResolvedZone::utc(), 19)
+            .expect("aliased event filter should build");
         let sql = event.where_sql();
         assert!(sql.contains("e.source = ?"));
         assert!(sql.contains("e.model = ?"));
-        assert!(sql.contains("date(e.event_at, 'localtime') >= ?"));
+        assert!(sql.contains("e.event_at >= ?"));
         assert!(sql.contains("e.project_hash = ?"));
         assert!(
             !sql.contains(" source = ?") || sql.contains("e.source = ?"),
@@ -1110,12 +1109,95 @@ mod tests {
             project_hash: Some("hash-xyz".to_string()),
             ..QueryFilter::default()
         };
-        let bucket = filter.bucket_filter(None);
-        let event = filter.event_filter(None);
+        let zone = ResolvedZone::utc();
+        let bucket = filter
+            .bucket_filter(None, &zone, 19)
+            .expect("project bucket filter should build");
+        let event = filter
+            .event_filter(None, &zone, 19)
+            .expect("project event filter should build");
         assert!(bucket.where_sql().contains("project_hash = ?"));
         assert!(event.where_sql().contains("project_hash = ?"));
-        assert_eq!(bucket.params, vec!["hash-xyz".to_string()]);
-        assert_eq!(event.params, vec!["hash-xyz".to_string()]);
+        assert_eq!(bucket.params, vec![Value::Text("hash-xyz".to_string())]);
+        assert_eq!(event.params, vec![Value::Text("hash-xyz".to_string())]);
+    }
+
+    #[test]
+    fn antigravity_filter_uses_legacy_storage_key_before_schema_13() {
+        let filter = QueryFilter {
+            source: Some(SourceKind::Antigravity),
+            ..QueryFilter::default()
+        };
+        let zone = ResolvedZone::utc();
+        assert_eq!(
+            filter
+                .bucket_filter(None, &zone, 10)
+                .expect("legacy Antigravity filter should build")
+                .params,
+            vec![Value::Text("gemini".to_string())]
+        );
+        assert_eq!(
+            filter
+                .bucket_filter(None, &zone, 13)
+                .expect("current Antigravity filter should build")
+                .params,
+            vec![Value::Text("antigravity".to_string())]
+        );
+    }
+
+    #[test]
+    fn half_open_ranges_use_upstream_time_indexes() {
+        let conn = Connection::open_in_memory().expect("in-memory DB should open");
+        conn.execute_batch(
+            r#"
+            CREATE TABLE usage_bucket_30m(hour_start TEXT NOT NULL);
+            CREATE INDEX idx_usage_bucket_30m_hour_start ON usage_bucket_30m(hour_start);
+            CREATE TABLE usage_event(event_at TEXT NOT NULL);
+            CREATE INDEX idx_usage_event_event_at ON usage_event(event_at);
+            "#,
+        )
+        .expect("range index fixture should be created");
+        let filter = QueryFilter {
+            since: NaiveDate::from_ymd_opt(2026, 5, 1),
+            until: NaiveDate::from_ymd_opt(2026, 5, 9),
+            timezone: ReportTimezone::Utc,
+            ..QueryFilter::default()
+        };
+        let zone = ResolvedZone::utc();
+        for (table, sql_filter, expected_index) in [
+            (
+                "usage_bucket_30m",
+                filter
+                    .bucket_filter(None, &zone, 19)
+                    .expect("indexed bucket filter should build"),
+                "idx_usage_bucket_30m_hour_start",
+            ),
+            (
+                "usage_event",
+                filter
+                    .event_filter(None, &zone, 19)
+                    .expect("indexed event filter should build"),
+                "idx_usage_event_event_at",
+            ),
+        ] {
+            let sql = format!(
+                "EXPLAIN QUERY PLAN SELECT * FROM {table}{}",
+                sql_filter.where_sql()
+            );
+            let mut stmt = conn.prepare(&sql).expect("query plan should prepare");
+            let details = stmt
+                .query_map(params_from_iter(sql_filter.param_refs()), |row| {
+                    row.get::<_, String>(3)
+                })
+                .expect("query plan rows should execute")
+                .collect::<rusqlite::Result<Vec<_>>>()
+                .expect("query plan rows should decode")
+                .join("\n");
+            assert!(
+                details.contains(expected_index),
+                "unexpected plan: {details}"
+            );
+        }
     }
 
     fn create_provider_fixture(root: &std::path::Path) -> Dashboard {
@@ -1194,6 +1276,25 @@ mod tests {
             .find(|row| row.provider.is_none())
             .expect("empty provider label should map to unattributed");
         assert_eq!(unattributed.total_tokens, 30);
+    }
+
+    #[test]
+    fn dashboard_sections_reuse_the_open_connection_capability_snapshot() {
+        let temp = tempfile::TempDir::new().expect("temp dir should be created");
+        reset_capability_connection_open_count();
+        let dashboard = create_provider_fixture(temp.path());
+
+        dashboard
+            .overview(&QueryFilter::default())
+            .expect("overview should query");
+        dashboard
+            .model_breakdown(&QueryFilter::default())
+            .expect("model breakdown should query");
+        dashboard
+            .provider_breakdown(&QueryFilter::default())
+            .expect("provider breakdown should query");
+
+        assert_eq!(capability_connection_open_count(), 0);
     }
 
     #[test]
@@ -1413,6 +1514,49 @@ mod tests {
     }
 
     #[test]
+    fn antigravity_filter_reads_both_sides_of_schema_13_cutover() {
+        for (schema_version, stored_source) in [(10, "gemini"), (13, "antigravity")] {
+            let temp = tempfile::TempDir::new().expect("temp dir should be created");
+            let db_path = temp.path().join("llmusage.db");
+            let conn = Connection::open(&db_path).expect("test db should open");
+            conn.execute_batch(&format!(
+                r#"
+                CREATE TABLE meta(key TEXT PRIMARY KEY, value TEXT NOT NULL);
+                INSERT INTO meta(key, value) VALUES ('schema_version', '{schema_version}');
+                CREATE TABLE usage_bucket_30m(
+                    source TEXT NOT NULL,
+                    hour_start TEXT NOT NULL,
+                    input_tokens INTEGER NOT NULL,
+                    cache_read_tokens INTEGER NOT NULL,
+                    cache_creation_tokens INTEGER NOT NULL,
+                    output_tokens INTEGER NOT NULL,
+                    reasoning_output_tokens INTEGER NOT NULL,
+                    total_tokens INTEGER NOT NULL,
+                    event_count INTEGER NOT NULL,
+                    cost_with_cache_usd REAL NOT NULL
+                );
+                INSERT INTO usage_bucket_30m VALUES
+                  ('{stored_source}', '2026-05-21T00:00:00Z', 10, 0, 0, 5, 0, 15, 1, 0.30);
+                "#
+            ))
+            .expect("cutover fixture should be created");
+            drop(conn);
+
+            let dashboard = Dashboard::open(AppPaths::from_root(temp.path()))
+                .expect("cutover fixture dashboard should open");
+            let rows = dashboard
+                .trends_daily(&QueryFilter {
+                    source: Some(SourceKind::Antigravity),
+                    timezone: ReportTimezone::Utc,
+                    ..QueryFilter::default()
+                })
+                .expect("cutover trend query should succeed");
+            assert_eq!(rows.len(), 1, "schema {schema_version}");
+            assert_eq!(rows[0].total_tokens, 15, "schema {schema_version}");
+        }
+    }
+
+    #[test]
     fn source_breakdown_respects_date_range_and_ignores_source_filter() {
         let temp = tempfile::TempDir::new().expect("temp dir should be created");
         let db_path = temp.path().join("llmusage.db");
@@ -1460,9 +1604,9 @@ mod tests {
                 .iter()
                 .map(|row| row.source.as_str())
                 .collect::<Vec<_>>(),
-            vec!["gemini", "codex", "claude"]
+            vec!["legacy", "antigravity", "codex", "claude"]
         );
-        assert_eq!(stats.iter().map(|row| row.total_tokens).sum::<i64>(), 105);
+        assert_eq!(stats.iter().map(|row| row.total_tokens).sum::<i64>(), 705);
         assert_eq!(
             stats
                 .iter()
@@ -1472,11 +1616,7 @@ mod tests {
             2
         );
         assert!((stats.iter().map(|row| row.share_tokens).sum::<f64>() - 1.0).abs() < f64::EPSILON);
-        assert!(
-            stats
-                .iter()
-                .all(|row| row.source != "opencode" && row.total_cost < 5.0)
-        );
+        assert!(stats.iter().all(|row| row.source != "opencode"));
     }
 
     #[test]
@@ -1491,7 +1631,14 @@ mod tests {
         assert_eq!(payload.summary.total_tokens, 200);
         assert_eq!(payload.summary.total_requests, 5);
         assert_eq!(payload.summary.platforms, 2);
-        for (platform, expected_tokens) in [("codex", 150), ("claude", 50), ("gemini", 0)] {
+        for (platform, expected_tokens) in [
+            ("codex", 150),
+            ("claude", 50),
+            ("antigravity", 0),
+            ("kimi_code", 0),
+            ("pi", 0),
+            ("grok", 0),
+        ] {
             assert_eq!(
                 payload
                     .by_platform
@@ -1534,7 +1681,7 @@ mod tests {
             );
             INSERT INTO usage_event VALUES
               ('ev-3', 'codex', 'gpt-5', '2026-07-01T02:00:00Z', 10, 0, 0, 5, 1, 16, 'p1', 'Project 1', NULL, '/repo/p1', 0.03, 0.04, 'priced', 'catalog'),
-              ('ev-2', 'codex', 'gpt-5', '2026-07-01T01:00:00Z', 10, 0, 0, 5, 1, 16, 'p1', 'Project 1', NULL, '/repo/p1', 0.03, 0.04, 'priced', 'catalog'),
+              ('ev-2', 'gemini', 'gemini-pro', '2026-07-01T01:00:00Z', 10, 0, 0, 5, 1, 16, 'p1', 'Project 1', NULL, '/repo/p1', 0.03, 0.04, 'priced', 'catalog'),
               ('ev-1', 'claude', 'claude-sonnet', '2026-07-01T00:00:00Z', 10, 0, 0, 5, 1, 16, 'p2', 'Project 2', NULL, NULL, 0.03, 0.04, 'priced', 'catalog');
             "#,
         )
@@ -1565,6 +1712,8 @@ mod tests {
         assert_eq!(first_page.records[0].output_tokens, 6);
         assert_eq!(first_page.records[0].project_path, "/repo/p1");
         assert_eq!(first_page.records[1].id, "ev-2");
+        assert_eq!(first_page.records[1].platform, "antigravity");
+        assert_eq!(first_page.records[1].source_id, "antigravity");
         let cursor = first_page.next_cursor.expect("first page must have cursor");
 
         let second_page = dashboard
@@ -1602,7 +1751,7 @@ mod tests {
             );
             INSERT INTO source_file VALUES
               ('claude', 'live'), ('claude', 'live'), ('claude', 'missing'),
-              ('codex', 'live'), ('codex', 'deleted_by_user');
+              ('gemini', 'live'), ('gemini', 'deleted_by_user');
             INSERT INTO source_sync_status VALUES
               ('claude', '2026-07-01T00:00:00Z', '2026-06-30T00:00:00Z');
             "#,
@@ -1615,7 +1764,12 @@ mod tests {
         let payload = dashboard.diagnostics().expect("diagnostics should query");
 
         assert_eq!(payload.by_source.len(), 2);
-        let claude = &payload.by_source[0];
+        let antigravity = &payload.by_source[0];
+        assert_eq!(antigravity.source, "antigravity");
+        assert_eq!(antigravity.live_files, 1);
+        assert_eq!(antigravity.deleted_files, 1);
+        assert_eq!(antigravity.recent_completed_at, None);
+        let claude = &payload.by_source[1];
         assert_eq!(claude.source, "claude");
         assert_eq!(claude.live_files, 2);
         assert_eq!(claude.missing_files, 1);
@@ -1623,8 +1777,5 @@ mod tests {
             claude.recent_completed_at.as_deref(),
             Some("2026-07-01T00:00:00Z")
         );
-        let codex = &payload.by_source[1];
-        assert_eq!(codex.deleted_files, 1);
-        assert_eq!(codex.recent_completed_at, None);
     }
 }

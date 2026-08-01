@@ -112,11 +112,13 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import Button from '@/components/ui/Button.vue'
 import SIcon from '@/components/ui/SIcon.vue'
 import type { UsageRangePreset } from '@/views/usage/dateWindow'
 import type { DashboardMetaItem } from '@/views/usage/usageOverviewInsights'
+import { USAGE_SOURCE_DEFINITIONS } from '@/views/usage/usageSources'
 
 interface Props {
   selectedPlatform: string
@@ -128,6 +130,7 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+const { t } = useI18n()
 
 const emit = defineEmits<{
   'update:selectedPlatform': [value: string]
@@ -165,12 +168,14 @@ const rangeOptions: Array<{ value: UsageRangePreset; key: string }> = [
   { value: 'last_30d', key: 'usage.dashboard.range.last30' },
   { value: 'all_time', key: 'usage.dashboard.range.allTime' },
 ]
-const platformOptions = [
-  { value: 'claude', label: 'Claude' },
-  { value: 'codex', label: 'Codex' },
-  { value: 'gemini', label: 'Antigravity CLI' },
-  { value: 'opencode', label: 'OpenCode' },
-]
+const platformOptions = computed(() => USAGE_SOURCE_DEFINITIONS.map((source) => {
+  const key = `usage.platforms.${source.id}`
+  const translated = t(key)
+  return {
+    value: source.id,
+    label: translated === key ? source.fallbackLabel : translated,
+  }
+}))
 
 const emitPlatform = (value: string) => {
   if (value !== props.selectedPlatform) {
