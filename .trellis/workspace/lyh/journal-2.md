@@ -881,3 +881,26 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 81: 完成 Grok Tauri 命令桥接层
+
+**Date**: 2026-08-01
+**Task**: 完成 Grok Tauri 命令桥接层
+**Branch**: `dev`
+
+### Summary
+
+完成 Grok UI 父子任务规划、只读激活状态契约与 13 个 Tauri 命令的类型化桥接、安全门和回归覆盖。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f8287100a181510dd3cfb6d2971bdef022e8033e` | (see git log) |
+| `e11fcdf0c24e5590ce5995bcc34b83c9325f3b4d` | (see git log) |
+| `dcd153eb4d52a08667cfc97ff44696fd2f1064d5` | (see git log) |
+
+### Status
+
+[OK] **Completed**
