@@ -15,6 +15,7 @@
 // 特性：只需 legend（图例）；所有图表的 toolbar 均为 `show: false`，
 // 亦未使用 annotations / exports / keyboard / morph / drilldown，故一律不注册。
 import VueApexCharts from 'vue3-apexcharts/core'
+import 'apexcharts/dist/apexcharts.css'
 
 import 'apexcharts/area'
 import 'apexcharts/line'

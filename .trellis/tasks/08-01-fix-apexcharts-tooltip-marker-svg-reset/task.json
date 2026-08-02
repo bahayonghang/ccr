@@ -1,0 +1,31 @@
+{
+  "id": "fix-apexcharts-tooltip-marker-svg-reset",
+  "name": "fix-apexcharts-tooltip-marker-svg-reset",
+  "title": "Harden ApexCharts CSS delivery against tooltip marker expansion",
+  "description": "",
+  "status": "in_progress",
+  "dev_type": "frontend",
+  "scope": "ccr-ui ApexCharts style delivery",
+  "package": "ccr-ui",
+  "priority": "P2",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-08-01",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [
+    "ccr-ui/src/utils/apexChartsCore.ts",
+    "ccr-ui/tests/apexcharts-style-contract.smoke.test.ts",
+    ".trellis/spec/ccr-ui/frontend/usage-chart-stability-contracts.md",
+    ".trellis/tasks/08-01-fix-apexcharts-tooltip-marker-svg-reset/verification.md"
+  ],
+  "notes": "Implementation and acceptance checks passed. Root-cause mechanism is confirmed; the natural runtime-style failure trigger remains unknown.",
+  "meta": {}
+}
