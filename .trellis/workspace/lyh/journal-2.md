@@ -1011,3 +1011,24 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 87: 修复 ApexCharts tooltip marker 异常放大
+
+**Date**: 2026-08-02
+**Task**: 修复 ApexCharts tooltip marker 异常放大
+**Branch**: `dev`
+
+### Summary
+
+在按需装配入口静态导入完整上游 CSS，并保留运行时注入形成双路径；补充 contract smoke、WebView2 故障注入和 bundle 验收，完整前端门禁通过。故障机制已确认，现场自然触发源仍未知。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `68d5740a` | (see git log) |
+
+### Status
+
+[OK] **Completed**
