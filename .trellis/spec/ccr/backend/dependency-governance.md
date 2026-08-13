@@ -292,7 +292,7 @@ authenticate the publisher; automatic updates remain disabled.
 
 ### 3. Contracts
 - Third-party `uses:` references are immutable 40-character commit SHAs; version comments are review hints, not executable refs.
-- Workflow YAML must reject duplicate mapping keys. Pull requests to `main`, `develop`, and `dev` always instantiate the four stable required contexts; product path filters live only in `SURFACE_PATHS`, while frontend pushes retain their native `paths` filter and include `dev`.
+- Workflow YAML must reject duplicate mapping keys. Pull requests to `main`, `develop`, and `dev` always instantiate the four stable required contexts; product path filters live only in `SURFACE_PATHS`. Quality workflows (`ci.yml`, `frontend-ci.yml`, `tauri-rust-ci.yml`, `vscode-ci.yml`) are `pull_request`-only. `release.yml` remains tag-push only.
 - Stable branch-protection contexts are `Root Workspace Required`, `Vue and Docs Required`, `Tauri Linux Required`, and `VS Code Required`. Each is a final aggregator: irrelevant changes pass after change detection, while relevant changes pass only when every heavy validation, coverage, audit, and platform matrix dependency succeeds.
 - Change detection checks out full history and uses the pull request's merge-base diff (`base...head`). Changing `scripts/ci_surface_policy.py` makes all four surfaces relevant. Detection failure must fail the aggregator; an empty or failed relevance output must never silently skip a required validation.
 - Rust is pinned to 1.95.0, Bun to 1.3.10, Node to 24.18.0, just to 1.57.0, and cargo-llvm-cov to 0.8.7.
@@ -303,9 +303,9 @@ authenticate the publisher; automatic updates remain disabled.
 - The Tauri Rust gate runs direct Cargo fmt/check/clippy/test plus repository governance recipes. Its Linux job installs pinned Bun 1.3.10 because `tauri-bindings-check` formats and compares generated TypeScript; it does not install the Vue dependency graph.
 - Fresh checkouts run Tauri Rust compile/test/coverage commands with `.cargo/tauri-ci.toml`, which overrides `frontendDist` to the tracked `ccr-ui/src-tauri/ci-dist/index.html` fixture. Production Tauri builds keep using `ccr-ui/dist`; the fixture must never replace the real `beforeBuildCommand` output in release packaging.
 - Hosted frontend dependency audit calls the repository-owned `frontend-audit` recipe and parses Bun's JSON report. Unexpected, expired, duplicate, package-mismatched, or stale advisory exceptions fail closed.
-- Frontend advisory exceptions require non-empty owner/rationale, ISO expiry, explicit patched versions, and must stay within `maxActiveExceptions` (currently 1).
-- `brace-expansion` 1.1.16/2.1.2 keep their CommonJS function contract through version-exact Bun patches that delegate to the pinned `brace-expansion-safe` alias at 5.0.8. The audit exception covers only the version-database false positive after those runtime patches are verified.
-- Bun 1.3.10 supports only top-level overrides. Do not force one `brace-expansion` major across `minimatch` 3.x/9.x/10.x: 5.x exports `{ expand }`, while the legacy consumers require the module itself as a function.
+- Frontend advisory exceptions require non-empty owner/rationale, ISO expiry, explicit patched versions, and must stay within `maxActiveExceptions` (currently 0).
+- Prefer upstream patched releases. Current frontend overrides pin `fast-uri` 3.1.5, `js-yaml` 4.3.1, and `nanoid` 3.3.17; `dompurify` tracks `^3.4.13`. Nested `brace-expansion` copies are lockfile-pinned per major: `1.1.18`, `2.1.4`, and `5.0.9`.
+- Bun 1.3.10 supports only top-level overrides. Do not force one `brace-expansion` major across `minimatch` 3.x/9.x/10.x: 5.x exports `{ expand }`, while the legacy consumers require the module itself as a function. When a nested copy needs a patched release, bump that lockfile path inside its existing major instead of adding a Bun patch or alias.
 
 ### 4. Validation & Error Matrix
 - Mutable action tag, duplicate YAML key, missing workflow, missing branch/relevance policy, PR-level `paths` filter, or missing local recipe -> governance check fails.
@@ -317,7 +317,7 @@ authenticate the publisher; automatic updates remain disabled.
 - Handler inventory differs from registry -> `command_inventory_document_matches_registry` fails.
 - Tauri Rust gate omits `.cargo/tauri-ci.toml`, or the tracked `ci-dist/index.html` fixture is missing -> a fresh checkout may fail in `tauri::generate_context!()` before tests run.
 - Tauri Linux validation omits pinned Bun 1.3.10 -> `tauri-bindings-check` fails at the TypeScript formatting step even when every Rust test passes.
-- Missing patch/alias, inactive runtime delegation, unexpected high advisory, or stale/expired frontend exception -> `bun run audit:dependencies` fails.
+- Unexpected high advisory, leftover `patchedDependencies` while the allowlist is empty, or stale/expired frontend exception -> `bun run audit:dependencies` fails.
 - Required branch protection not readable/configured -> local files may pass, but repository-setting evidence remains `UNVERIFIED`.
 
 ### 5. Good/Base/Bad Cases
@@ -326,7 +326,7 @@ authenticate the publisher; automatic updates remain disabled.
 - Good: `tauri-linux-required` installs pinned Bun before `just tauri-ci`, so the bindings drift gate runs in a fresh hosted checkout without installing frontend packages.
 - Good: a docs-only PR creates all four required contexts but runs only the frontend heavy gate; a `ccr-vscode/**` PR runs VS Code validation/coverage before `VS Code Required` succeeds.
 - Base: Tauri overall coverage is reported separately while its security gateway remains above 85%.
-- Base: Bun still reports `GHSA-mh99-v99m-4gvg` against legacy version numbers, while both installed legacy versions are runtime-identical to the pinned safe implementation and the expiring exception remains active.
+- Base: nested `brace-expansion` stays on patched majors `1.1.18` / `2.1.4` / `5.0.9`, `bun audit --json` is empty, and `maxActiveExceptions` remains 0.
 - Bad: keeping a PR-level `paths` filter on a branch-protected workflow, because an unrelated PR never creates the required context and remains pending forever.
 - Bad: copying lint/test commands into workflow YAML, pinning `actions/checkout@v6`, lowering the gateway threshold, or globally overriding all `brace-expansion` consumers to 5.x.
 - Bad: creating an ignored `ccr-ui/dist` locally before testing and treating that residue-dependent pass as fresh-checkout evidence.
@@ -336,7 +336,7 @@ authenticate the publisher; automatic updates remain disabled.
 - The workflow-governance unit suite asserts that root/UI Tauri Cargo recipes use `.cargo/tauri-ci.toml`, the tracked CI frontend fixture exists, and the Tauri Linux job installs pinned Bun 1.3.10.
 - `python scripts/check_workflow_governance.py` -> 52 immutable action references, stable relevance routing, Tauri Linux Bun setup, and serial-only count 0.
 - `just ci-governance-check` -> dependency, workflow, and handler inventory gates pass.
-- `cd ccr-ui && bun install --frozen-lockfile && bun run audit:dependencies` -> both patches apply, runtime exports equal the safe 5.0.8 implementation, and only the active structured exception remains.
+- `cd ccr-ui && bun install --frozen-lockfile && bun run audit:dependencies` -> nested `brace-expansion` is 1.1.18/2.1.4/5.0.9, the audit JSON is empty, and the allowlist has 0/0 active exceptions.
 - `cd ccr-ui && bun run test:smoke -- tests/frontend-dependency-audit.smoke.test.ts` -> exception limit, expiry, package match, stale detection, and GHSA extraction pass.
 - `just coverage-rust`, `just coverage-tauri`, `just frontend-coverage`, and `just vscode-coverage` -> configured line/gateway thresholds pass.
 - `just tauri-ci`, `just vscode-ci`, and final `just ci` when unrelated workspace metadata is clean.
@@ -378,10 +378,11 @@ jobs:
 
 ```json
 {
-  "devDependencies": {"brace-expansion-safe":"npm:brace-expansion@5.0.8"},
-  "patchedDependencies": {
-    "brace-expansion@1.1.16":"patches/brace-expansion@1.1.16.patch",
-    "brace-expansion@2.1.2":"patches/brace-expansion@2.1.2.patch"
+  "dependencies": {"dompurify":"^3.4.13"},
+  "overrides": {
+    "fast-uri":"3.1.5",
+    "js-yaml":"4.3.1",
+    "nanoid":"3.3.17"
   }
 }
 ```

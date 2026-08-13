@@ -3,13 +3,11 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
-import { createRequire } from 'node:module'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 
 const scriptPath = fileURLToPath(import.meta.url)
 const uiRoot = path.resolve(path.dirname(scriptPath), '..')
-const require = createRequire(import.meta.url)
 
 export function validateAllowlist(policy, now = new Date()) {
   const failures = []
@@ -87,48 +85,20 @@ function loadJson(relativePath) {
 
 function validatePatches(manifest, policy) {
   const failures = []
-  const expectedSafeDependency = 'npm:brace-expansion@5.0.8'
-  const safeDependency = manifest.devDependencies?.['brace-expansion-safe']
-  if (safeDependency !== expectedSafeDependency) {
-    failures.push(`brace-expansion-safe must be ${expectedSafeDependency}`)
+  if (!Array.isArray(policy?.exceptions) || policy.exceptions.length === 0) {
+    if (manifest.patchedDependencies && Object.keys(manifest.patchedDependencies).length > 0) {
+      failures.push('patchedDependencies must be empty when no advisory exceptions are active')
+    }
+    return failures
   }
 
   for (const exception of policy.exceptions) {
-    for (const version of exception.patchedVersions) {
+    for (const version of exception.patchedVersions ?? []) {
       const packageKey = `${exception.package}@${version}`
       const patchPath = manifest.patchedDependencies?.[packageKey]
       if (typeof patchPath !== 'string') {
         failures.push(`${packageKey}: missing patchedDependencies entry`)
-        continue
       }
-
-      const absolutePatchPath = path.join(uiRoot, patchPath)
-      if (!fs.existsSync(absolutePatchPath)) {
-        failures.push(`${packageKey}: missing patch file ${patchPath}`)
-        continue
-      }
-
-      const patch = fs.readFileSync(absolutePatchPath, 'utf8')
-      if (!patch.includes("module.exports = require('brace-expansion-safe').expand;")) {
-        failures.push(`${packageKey}: patch does not delegate to the safe implementation`)
-      }
-    }
-  }
-
-  const safeExpand = require(path.join(uiRoot, 'node_modules', 'brace-expansion-safe')).expand
-  const legacyPaths = [
-    path.join(uiRoot, 'node_modules', 'brace-expansion'),
-    path.join(uiRoot, 'node_modules', 'glob', 'node_modules', 'minimatch', 'node_modules', 'brace-expansion'),
-    path.join(uiRoot, 'node_modules', '@vue', 'language-core', 'node_modules', 'minimatch', 'node_modules', 'brace-expansion'),
-  ]
-
-  for (const legacyPath of legacyPaths) {
-    if (!fs.existsSync(legacyPath)) {
-      failures.push(`patched runtime path is missing: ${path.relative(uiRoot, legacyPath)}`)
-      continue
-    }
-    if (require(legacyPath) !== safeExpand) {
-      failures.push(`patch is not active at runtime: ${path.relative(uiRoot, legacyPath)}`)
     }
   }
 
@@ -164,7 +134,7 @@ function main() {
 
   const advisories = collectAdvisories(report)
   process.stdout.write(
-    `frontend dependency audit passed: ${advisories.length} patched advisory exception, ${policy.exceptions.length}/${policy.maxActiveExceptions} active\n`,
+    `frontend dependency audit passed: ${advisories.length} reported advisories, ${policy.exceptions.length}/${policy.maxActiveExceptions} active exceptions\n`,
   )
 }
 
