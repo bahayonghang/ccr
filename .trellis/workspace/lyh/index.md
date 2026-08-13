@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 87
-- **Last Active**: 2026-08-02
+- **Total Sessions**: 88
+- **Last Active**: 2026-08-13
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~1034 | Active |
+| `journal-2.md` | ~1058 | Active |
 | `journal-1.md` | ~1987 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 88 | 2026-08-13 | Profile 登录预备清理 | `594428d3`, `9b2dbcc3`, `d4726b55`, `ab34984e` | `dev` |
 | 87 | 2026-08-02 | 修复 ApexCharts tooltip marker 异常放大 | `68d5740a` | `dev` |
 | 86 | 2026-08-01 | 适配 llmusage 数据库重构并优化 Usage 查询 | `c6c4f23608b778e1677b035490ddeb674a8cf69f`, `e000eb99a8de5fb5738dc120f7618c9644665898`, `5e46deac1a445fc1a1e94c82a1a9bc9ade14624c` | `dev` |
 | 85 | 2026-08-01 | 完成 Grok UI 平台父任务集成 | `4d5c0387` | `dev` |
