@@ -11,6 +11,7 @@ const apiMocks = vi.hoisted(() => ({
   deleteClaudeProfile: vi.fn(),
   applyClaudeProfile: vi.fn(),
   exportClaudeProfiles: vi.fn(),
+  claudeProfileOff: vi.fn(),
 }))
 
 vi.mock('@/api', () => ({
@@ -21,6 +22,14 @@ vi.mock('@/api', () => ({
   applyClaudeProfile: apiMocks.applyClaudeProfile,
   exportClaudeProfiles: apiMocks.exportClaudeProfiles,
 }))
+
+vi.mock('@/api/domains/claude', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/api/domains/claude')>()
+  return {
+    ...actual,
+    claudeProfileOff: apiMocks.claudeProfileOff,
+  }
+})
 
 vi.mock('vue-router', () => ({
   useRoute: () => ({
@@ -271,10 +280,21 @@ beforeEach(() => {
   apiMocks.deleteClaudeProfile.mockReset()
   apiMocks.applyClaudeProfile.mockReset()
   apiMocks.exportClaudeProfiles.mockReset()
+  apiMocks.claudeProfileOff.mockReset()
 
   apiMocks.listClaudeProfiles.mockResolvedValue({
     profiles: cloneProfiles(),
     current_profile: 'zeta-current',
+    can_off: true,
+  })
+  apiMocks.claudeProfileOff.mockResolvedValue({
+    ok: true,
+    changed: true,
+    previous_profile: 'zeta-current',
+    runtime_mode: 'official_auth',
+    warnings: [],
+    remaining_suppressors: [],
+    cleared_managed_sources: [],
   })
   apiMocks.exportClaudeProfiles.mockResolvedValue({
     content: '[profiles.zeta-current]\nauth_token = "secret"\n',
@@ -497,6 +517,53 @@ describe('ClaudeCodeProfilesView smoke', () => {
       expect(URL.createObjectURL).toHaveBeenCalled()
       expect(HTMLAnchorElement.prototype.click).toHaveBeenCalled()
       expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:ccr-claude-profiles-test')
+    } finally {
+      unmount()
+    }
+  })
+
+  it('shows the login-prep banner when the backend reports can_off', async () => {
+    const { el, unmount } = await mountView()
+
+    try {
+      const banner = el.querySelector('[data-testid="claude-profile-off-banner"]')
+      expect(banner).not.toBeNull()
+      expect(banner?.textContent).toContain('退出 Profile')
+    } finally {
+      unmount()
+    }
+  })
+
+  it('hides the login-prep banner when the backend reports can_off is false', async () => {
+    apiMocks.listClaudeProfiles.mockResolvedValue({
+      profiles: cloneProfiles(),
+      current_profile: 'zeta-current',
+      can_off: false,
+    })
+    const { el, unmount } = await mountView()
+
+    try {
+      expect(el.querySelector('[data-testid="claude-profile-off-banner"]')).toBeNull()
+    } finally {
+      unmount()
+    }
+  })
+
+  it('does not write when the exit-profile confirmation is cancelled', async () => {
+    const { el, unmount } = await mountView()
+
+    try {
+      findButtonByText(el, '退出 Profile')?.click()
+      await flushPromises()
+      expect(el.querySelector('[data-stub="BaseModal"]')).not.toBeNull()
+      expect(el.textContent).toContain('退出当前 Profile')
+
+      const cancel = el.querySelector<HTMLButtonElement>('.confirm-modal__button--cancel')
+      expect(cancel).not.toBeNull()
+      cancel?.click()
+      await flushPromises()
+
+      expect(apiMocks.claudeProfileOff).not.toHaveBeenCalled()
     } finally {
       unmount()
     }

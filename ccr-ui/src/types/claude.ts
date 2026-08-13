@@ -121,6 +121,7 @@ export interface ClaudeProfileRequest {
 export interface ClaudeProfilesResponse {
   profiles: ClaudeProfile[]
   current_profile: string | null
+  can_off?: boolean
 }
 
 export type ClaudeProfileAuthMode = GeneratedClaudeProfileAuthMode
@@ -134,6 +135,17 @@ export type { ClaudeAuthOwnership } from './generated/claude_auth/ClaudeAuthOwne
 export type { ClaudeAuthSourceKind } from './generated/claude_auth/ClaudeAuthSourceKind'
 export type { ClaudeAuthSourceLocation } from './generated/claude_auth/ClaudeAuthSourceLocation'
 export type { ClaudeAuthSourceObservation } from './generated/claude_auth/ClaudeAuthSourceObservation'
+
+export interface ClaudeProfileOffResult {
+  ok: boolean
+  changed: boolean
+  previous_profile: string | null
+  runtime_mode: string
+  warnings: string[]
+  remaining_suppressors: import('./generated/claude_auth/ClaudeAuthSourceObservation').ClaudeAuthSourceObservation[]
+  cleared_managed_sources: string[]
+}
+
 export type { ClaudeAuthAccountItem } from './generated/claude_auth/ClaudeAuthAccountItem'
 export type { ClaudeAuthCurrentInfo } from './generated/claude_auth/ClaudeAuthCurrentInfo'
 export type { ClaudeAuthListResponse } from './generated/claude_auth/ClaudeAuthListResponse'

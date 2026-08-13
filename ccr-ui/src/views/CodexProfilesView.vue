@@ -39,6 +39,33 @@
           @edit-source="openRawEditor"
         />
 
+        <section
+          v-if="canOff"
+          class="codex-profiles-banner"
+          data-testid="codex-profile-off-banner"
+        >
+          <SIcon
+            name="Power"
+            size="w-5 h-5"
+          />
+          <div>
+            <strong>{{ $t('codex.profiles.runtimeBanner.title') }}</strong>
+            <p>{{ $t('codex.profiles.runtimeBanner.description') }}</p>
+          </div>
+          <button
+            type="button"
+            class="codex-profiles-banner__action"
+            :disabled="rowsDisabled"
+            @click="handleOff"
+          >
+            <SIcon
+              name="Power"
+              size="w-4 h-4"
+            />
+            {{ $t('codex.profiles.actions.off') }}
+          </button>
+        </section>
+
         <ProfilesStatStrip
           :current="currentProfile"
           :total="profiles.length"
@@ -350,7 +377,7 @@ import {
   listCodexProfiles,
   updateCodexProfile,
 } from '@/api'
-import { getCodexProfilesRaw, saveCodexProfilesRaw } from '@/api/domains/codex'
+import { codexProfileOff, getCodexProfilesRaw, saveCodexProfilesRaw } from '@/api/domains/codex'
 import CodexProfileEditorModal from '@/components/codex/CodexProfileEditorModal.vue'
 import ProfileCard from '@/components/codex/ProfileCard.vue'
 import ProfileDiffRows from '@/components/profiles/ProfileDiffRows.vue'
@@ -421,6 +448,7 @@ const loadError = ref<string | null>(null)
 const refreshError = ref<string | null>(null)
 
 const profiles = ref<CodexProfile[]>([])
+const canOff = ref(false)
 const profileNamesReady = ref(false)
 const currentProfile = ref<string | null>(null)
 const codexBuiltinModels = ref<string[]>([])
@@ -729,6 +757,7 @@ const loadProfiles = async (options: { preserveData?: boolean } = {}) => {
       loadModels(),
     ])
     profiles.value = profilesData.profiles || []
+    canOff.value = profilesData.can_off === true
     profileNamesReady.value = true
     currentProfile.value = profilesData.current_profile ?? null
     lastLoadedAt.value = Date.now()
@@ -742,6 +771,7 @@ const loadProfiles = async (options: { preserveData?: boolean } = {}) => {
       refreshError.value = message
     } else {
       profiles.value = []
+      canOff.value = false
       loadError.value = message
       uiStore.showError(message)
     }
@@ -952,6 +982,28 @@ const handleDelete = (name: string) => {
   })
 }
 
+const handleOff = () => {
+  if (!canOff.value) return
+  confirmDiffRows.value = []
+  openConfirmDialog({
+    title: t('codex.profiles.confirm.offTitle'),
+    message: t('codex.profiles.confirm.offMessage'),
+    confirmText: t('codex.profiles.actions.off'),
+    type: 'warning',
+    action: async () => {
+      try {
+        await codexProfileOff()
+        markWrite()
+        await loadProfiles({ preserveData: profiles.value.length > 0 })
+        uiStore.showSuccess(t('codex.profiles.messages.offSuccess'))
+      } catch (error) {
+        logger.error('Failed to exit Codex profile mode:', error)
+        uiStore.showError(getErrorMessage(error, t('codex.profiles.messages.offFailed')))
+      }
+    },
+  })
+}
+
 const handleApply = (name: string) => {
   const targetProfile = profiles.value.find(profile => profile.name === name)
   if (!targetProfile || targetProfile.name === currentProfile.value || targetProfile.enabled === false) return
@@ -999,11 +1051,22 @@ const paletteDescriptor: ProfilesCommandPaletteDescriptor<CodexProfile> = {
   hint: profile => profile.description || profile.base_url || undefined,
 }
 
-const paletteActions = computed<ProfilesCommandPaletteAction[]>(() => [
-  { id: '__add', icon: 'Plus', labelKey: 'codex.profiles.commandPalette.actionAdd', handler: () => { void handleAdd() } },
-  { id: '__reload', icon: 'RefreshCw', labelKey: 'codex.profiles.commandPalette.actionReload', handler: () => { void refreshProfiles() } },
-  { id: '__export', icon: 'Download', labelKey: 'codex.profiles.commandPalette.actionExport', handler: () => { void handleExportProfiles() } },
-])
+const paletteActions = computed<ProfilesCommandPaletteAction[]>(() => {
+  const actions: ProfilesCommandPaletteAction[] = [
+    { id: '__add', icon: 'Plus', labelKey: 'codex.profiles.commandPalette.actionAdd', handler: () => { void handleAdd() } },
+    { id: '__reload', icon: 'RefreshCw', labelKey: 'codex.profiles.commandPalette.actionReload', handler: () => { void refreshProfiles() } },
+    { id: '__export', icon: 'Download', labelKey: 'codex.profiles.commandPalette.actionExport', handler: () => { void handleExportProfiles() } },
+  ]
+  if (canOff.value) {
+    actions.push({
+      id: '__off',
+      icon: 'Power',
+      labelKey: 'codex.profiles.commandPalette.actionOff',
+      handler: handleOff,
+    })
+  }
+  return actions
+})
 
 // 当前激活的标签若因数据变化而失效，自动回退到"全部"
 watch([allTags, tagFilter], ([tags, tag]) => {
@@ -1041,3 +1104,65 @@ onActivated(() => {
   void loadActiveEnvironment()
 })
 </script>
+
+<style scoped>
+.codex-profiles-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  margin-bottom: 0.875rem;
+  padding: 0.875rem 1rem;
+  color: var(--cp-ink-1);
+  background: var(--cp-bg-2);
+  border: 1px solid var(--cp-line-2);
+  border-left: 3px solid var(--cp-warn);
+  border-radius: var(--radius-md);
+}
+
+.codex-profiles-banner > div {
+  min-width: 0;
+  flex: 1;
+}
+
+.codex-profiles-banner strong {
+  color: var(--cp-ink-0);
+  font-size: 0.875rem;
+}
+
+.codex-profiles-banner p {
+  margin: 0.25rem 0 0;
+  color: var(--cp-ink-2);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.codex-profiles-banner__action {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.75rem;
+  color: var(--cp-accent);
+  background: var(--cp-accent-soft);
+  border: 1px solid var(--cp-accent-line);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.codex-profiles-banner__action:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+@media (width <= 720px) {
+  .codex-profiles-banner {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .codex-profiles-banner__action {
+    width: 100%;
+    justify-content: center;
+  }
+}
+</style>

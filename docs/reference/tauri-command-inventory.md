@@ -2,14 +2,14 @@
 
 > Generated from `commands/handler_registry.rs`; do not edit manually.
 
-- Base commands: 328
-- Windows commands: 336
+- Base commands: 330
+- Windows commands: 338
 - Base modules: 37
 
-- Capability metadata: 328/328
-- Generated typed commands: 265/328 (80.79%)
+- Capability metadata: 330/330
+- Generated typed commands: 267/330 (80.91%)
 
-- Exact input/output type declarations: 265/265
+- Exact input/output type declarations: 267/267
 
 | Module | Title | Platform | Commands | Default risk | Schema |
 | --- | --- | --- | ---: | --- | --- |
@@ -18,9 +18,9 @@
 | `system_prompts` | 系统提示词 | base | 4 | `local_mutation` | `generated` |
 | `sync` | 同步 | base | 17 | `network_mutation` | `generated` |
 | `claude` | Claude Code | base | 28 | `secret_mutation` | `generated` |
-| `claude_profiles` | Claude Code Profiles | base | 9 | `secret_mutation` | `generated` |
+| `claude_profiles` | Claude Code Profiles | base | 10 | `secret_mutation` | `generated` |
 | `claude_auth` | Claude Auth | base | 5 | `secret_mutation` | `generated` |
-| `codex` | Codex | base | 43 | `secret_mutation` | `generated` |
+| `codex` | Codex | base | 44 | `secret_mutation` | `generated` |
 | `codex_auth` | Codex Auth | base | 17 | `secret_mutation` | `generated` |
 | `codex_model_providers` | Codex Model Providers | base | 3 | `secret_mutation` | `generated` |
 | `gemini` | Gemini | base | 11 | `secret_mutation` | `generated` |

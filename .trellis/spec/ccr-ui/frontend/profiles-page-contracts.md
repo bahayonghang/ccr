@@ -144,9 +144,11 @@ openai_login_method: authModeToLoginMethod(form.auth_mode) ?? null,
 ### Convention：平台页只注入策略，不重写骨架
 
 **What**：Claude Code 与 Codex 两个 Profiles 页面消费同一套 `components/profiles/*` 组件族，
-布局骨架必须完全一致：`ProfilesHeader`（`actions-menu`）→ `ProfilesStatStrip`（四槽）→
+布局骨架必须完全一致：`ProfilesHeader`（`actions-menu`）→ 可选 Off 横幅 → `ProfilesStatStrip`（四槽）→
 `ProfilesQuickRail` → `ProfilesToolbar`（`compact-filters`）→ 主列表 → `ProfilesInspector` 右栏。
 平台差异只允许出现在三个地方：StatStrip 的**特色槽**、字段集、i18n 前缀。
+Off 横幅仅在后端 `can_off === true` 时出现，放在 Header 与 StatStrip 之间；确认框 `type=warning`。
+命令面板可加 `__off`，不得把 Off 放进 Header 溢出菜单。
 
 **Why**：两页此前各自演化出不同的信息架构与视觉语言，是 Profiles 重构要解决的核心问题。
 骨架同构是可验证的验收标准，不是审美偏好。

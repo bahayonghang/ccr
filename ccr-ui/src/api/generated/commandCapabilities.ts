@@ -25,10 +25,10 @@ export interface CommandCapability {
 
 export const COMMAND_MANIFEST = {
   "schema_version": 2,
-  "base_command_count": 328,
-  "windows_command_count": 336,
-  "typed_command_count": 265,
-  "exact_wire_type_count": 265,
+  "base_command_count": 330,
+  "windows_command_count": 338,
+  "typed_command_count": 267,
+  "exact_wire_type_count": 267,
   "commands": [
     {
       "id": "list_configs",
@@ -1333,6 +1333,24 @@ export const COMMAND_MANIFEST = {
       "audit": "redacted"
     },
     {
+      "id": "claude_profile_off",
+      "handler_path": "super::claude::claude_profile_off",
+      "module": "claude_profiles",
+      "title": "Claude Code Profiles",
+      "platform": "base",
+      "risk": "secret_mutation",
+      "input_schema": "generated",
+      "output_schema": "generated",
+      "input_type": "void",
+      "output_type": "OpenJsonValueDto",
+      "timeout_ms": 30000,
+      "timeout_enforcement": "completion_aware",
+      "concurrency": "module_exclusive",
+      "confirmation": "user_gesture",
+      "authorization": "secret_access",
+      "audit": "redacted"
+    },
+    {
       "id": "claude_export_profiles",
       "handler_path": "super::claude::claude_export_profiles",
       "module": "claude_profiles",
@@ -1594,6 +1612,24 @@ export const COMMAND_MANIFEST = {
       "input_schema": "generated",
       "output_schema": "generated",
       "input_type": "string",
+      "output_type": "OpenJsonValueDto",
+      "timeout_ms": 30000,
+      "timeout_enforcement": "completion_aware",
+      "concurrency": "module_exclusive",
+      "confirmation": "user_gesture",
+      "authorization": "secret_access",
+      "audit": "redacted"
+    },
+    {
+      "id": "codex_profile_off",
+      "handler_path": "super::codex::codex_profile_off",
+      "module": "codex",
+      "title": "Codex",
+      "platform": "base",
+      "risk": "secret_mutation",
+      "input_schema": "generated",
+      "output_schema": "generated",
+      "input_type": "void",
       "output_type": "OpenJsonValueDto",
       "timeout_ms": 30000,
       "timeout_enforcement": "completion_aware",

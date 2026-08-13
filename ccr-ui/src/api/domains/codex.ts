@@ -38,6 +38,7 @@ import type {
   CodexMcpServersResponse,
   CodexModelsResponse,
   CodexProfile,
+  CodexProfileOffResult,
   CodexProfilesResponse,
   CodexSessionDetailResponse,
   CodexSessionExportResponse,
@@ -85,6 +86,7 @@ const isCodexProfilesResponse = (value: object): value is CodexProfilesResponse 
   const source = recordOf(value)
   return Array.isArray(source.profiles)
     && source.profiles.every(item => isRecord(item) && isCodexProfile(item))
+    && (source.can_off === undefined || typeof source.can_off === 'boolean')
 }
 
 const isCodexModelsResponse = (value: object): value is CodexModelsResponse => {
@@ -643,6 +645,20 @@ export const getCodexProfileEnv = async (name: string): Promise<OpenJsonValueDto
 
 export const applyCodexProfile = async (name: string): Promise<void> => {
   await codexClient.applyCodexProfile(name)
+}
+
+export const codexProfileOff = async (): Promise<CodexProfileOffResult> => {
+  const value = objectResponse(await codexClient.codexProfileOff(), 'Codex profile off')
+  const source = recordOf(value)
+  if (source.status === 'unsupported_environment') {
+    throw new Error('Codex profile off is only available in the local environment')
+  }
+  return {
+    ok: source.ok === true,
+    changed: source.changed === true,
+    previous_profile: typeof source.previous_profile === 'string' ? source.previous_profile : null,
+    runtime_mode: typeof source.runtime_mode === 'string' ? source.runtime_mode : 'official_auth',
+  }
 }
 
 // ── Codex Sessions ──

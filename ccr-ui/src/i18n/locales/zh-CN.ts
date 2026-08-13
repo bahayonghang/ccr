@@ -1112,6 +1112,21 @@ export default {
     operationFailed: '操作失败',
     deleteFailed: '删除失败',
     applyFailed: '应用失败',
+    actions: {
+      off: '退出 Profile',
+    },
+    runtimeBanner: {
+      title: '当前处于 Profile 模式或仍有登录残留',
+      description: '退出 Profile 会清掉 CCR 写入的运行时配置，官方登录不再被残留凭据压制。已保存的 Profile 和账号快照会保留。',
+    },
+    confirm: {
+      offTitle: '退出 Profile',
+      offMessage: '退出当前 Profile 并清理会压制官方登录的 CCR 运行时残留？已保存的账号不会删除。',
+    },
+    messages: {
+      offSuccess: '已退出 Profile 并清理登录残留',
+      offFailed: '退出 Profile 失败',
+    },
     officialBaseUrl: '官方直连（api.anthropic.com）',
     reloadAction: '重载',
     commandPaletteButton: '命令',
@@ -1207,6 +1222,7 @@ export default {
       actionExport: '导出 profiles.toml',
       actionReload: '重新加载配置',
       actionApply: '切换到 {name}',
+      actionOff: '退出 Profile',
     },
   },
   settingsRaw: {
@@ -3771,6 +3787,17 @@ export default {
       deleteConfirm: '确定删除 Profile "{name}" 吗？此操作不可撤销。',
       deleteConfirmShort: '确定要删除 Profile "{name}" 吗？',
       confirmApply: '确定切换到 Profile "{name}" 吗？',
+      actions: {
+        off: '退出 Profile',
+      },
+      runtimeBanner: {
+        title: '当前处于 Profile 模式或仍有登录残留',
+        description: '退出 Profile 会清掉 CCR 写入的运行时配置，官方登录不再被残留凭据压制。已保存的 Profile 和账号快照会保留。',
+      },
+      confirm: {
+        offTitle: '退出 Profile',
+        offMessage: '退出当前 Profile 并清理会压制官方登录的 CCR 运行时残留？已保存的账号不会删除。',
+      },
       setActive: '设为活跃',
       currentActive: '当前活跃',
       placeholders: {
@@ -3876,6 +3903,8 @@ export default {
         tokenCopyFailed: '复制 Auth Token 失败',
         operationFailed: '操作失败: {error}',
         deleteFailed: '删除失败: {error}',
+        offSuccess: '已退出 Profile 并清理登录残留',
+        offFailed: '退出 Profile 失败',
       },
       // 新增翻译 key
       officialConfig: '官方配置',
@@ -3952,6 +3981,7 @@ export default {
         actionExport: '导出 profiles.toml',
         actionReload: '重新加载配置',
         actionApply: '切换到 {name}',
+        actionOff: '退出 Profile',
       },
       inspector: {
         ariaLabel: 'Codex Profiles 检查器侧栏',
@@ -4116,6 +4146,14 @@ export default {
       subtitle: '管理 Codex 认证账户',
       breadcrumb: '认证管理',
       backToCodex: '返回 Codex',
+      off: {
+        title: '退出 Profile',
+        description: '当前仍有会压制官方登录的 CCR 运行时残留。',
+        confirm: '退出当前 Profile 并清理会压制官方登录的 CCR 运行时残留？已保存的账号不会删除。',
+        action: '退出 Profile',
+        success: '已退出 Profile 并清理登录残留',
+        failed: '退出 Profile 失败',
+      },
       saveAccount: '保存账户',
       currentSession: '当前会话',
       quickSwitch: '快速切换',

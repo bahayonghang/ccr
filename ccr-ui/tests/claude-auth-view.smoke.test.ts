@@ -10,6 +10,8 @@ const apiMocks = vi.hoisted(() => ({
   listClaudeAuthAccounts: vi.fn(),
   saveClaudeAuth: vi.fn(),
   switchClaudeAuth: vi.fn(),
+  listClaudeProfiles: vi.fn(),
+  claudeProfileOff: vi.fn(),
 }))
 
 const uiMocks = vi.hoisted(() => ({
@@ -20,6 +22,15 @@ const uiMocks = vi.hoisted(() => ({
 }))
 
 vi.mock('@/api', () => ({ ...apiMocks }))
+
+vi.mock('@/api/domains/claude', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/api/domains/claude')>()
+  return {
+    ...actual,
+    listClaudeProfiles: apiMocks.listClaudeProfiles,
+    claudeProfileOff: apiMocks.claudeProfileOff,
+  }
+})
 
 vi.mock('@/stores/ui', () => ({
   useUIStore: () => uiMocks,
@@ -161,6 +172,20 @@ beforeEach(() => {
   })
   apiMocks.saveClaudeAuth.mockResolvedValue({ success: true, message: 'saved' })
   apiMocks.deleteClaudeAuth.mockResolvedValue({ success: true, message: 'deleted' })
+  apiMocks.listClaudeProfiles.mockResolvedValue({
+    profiles: [],
+    current_profile: null,
+    can_off: true,
+  })
+  apiMocks.claudeProfileOff.mockResolvedValue({
+    ok: true,
+    changed: true,
+    previous_profile: 'work',
+    runtime_mode: 'official_auth',
+    warnings: [],
+    remaining_suppressors: [],
+    cleared_managed_sources: [],
+  })
 })
 
 afterEach(() => {
@@ -209,6 +234,33 @@ describe('ClaudeAuthView diagnosis', () => {
       expect(uiMocks.showSuccess).toHaveBeenCalledWith(
         expect.stringContaining('cleared 1 CCR-managed setting'),
       )
+    } finally {
+      unmount()
+    }
+  })
+
+  it('shows the diagnosis off button when the backend reports can_off', async () => {
+    const { el, unmount } = await mountView()
+
+    try {
+      expect(el.querySelector('[data-testid="claude-auth-profile-off"]')).not.toBeNull()
+    } finally {
+      unmount()
+    }
+  })
+
+  it('does not write when the diagnosis off confirmation is cancelled', async () => {
+    uiMocks.requestConfirm.mockResolvedValue(false)
+    const { el, unmount } = await mountView()
+
+    try {
+      el.querySelector<HTMLButtonElement>('[data-testid="claude-auth-profile-off"]')?.click()
+      await vi.waitFor(() => {
+        expect(uiMocks.requestConfirm).toHaveBeenCalledWith(
+          expect.objectContaining({ type: 'warning' }),
+        )
+      })
+      expect(apiMocks.claudeProfileOff).not.toHaveBeenCalled()
     } finally {
       unmount()
     }

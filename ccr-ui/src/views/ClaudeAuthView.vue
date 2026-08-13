@@ -99,12 +99,24 @@
               {{ tt('范围限于当前 CCR 进程和已解析的用户级文件。', 'Scope is limited to this CCR process and the resolved user-level files.') }}
             </p>
           </div>
-          <span
-            class="claude-auth-view__diagnosis-state"
-            :class="visibleSuppressors.length > 0 ? 'claude-auth-view__diagnosis-state--warning' : 'claude-auth-view__diagnosis-state--clear'"
-          >
-            {{ visibleSuppressors.length > 0 ? tt(`${visibleSuppressors.length} 个可见竞争来源`, `${visibleSuppressors.length} visible competing source(s)`) : tt('未发现可见竞争来源', 'No visible competing source') }}
-          </span>
+          <div class="claude-auth-view__diagnosis-actions">
+            <button
+              v-if="canOff"
+              type="button"
+              class="claude-auth-view__ghost-button"
+              data-testid="claude-auth-profile-off"
+              :disabled="loading"
+              @click="handleOff"
+            >
+              {{ tt('退出 Profile', 'Exit profile') }}
+            </button>
+            <span
+              class="claude-auth-view__diagnosis-state"
+              :class="visibleSuppressors.length > 0 ? 'claude-auth-view__diagnosis-state--warning' : 'claude-auth-view__diagnosis-state--clear'"
+            >
+              {{ visibleSuppressors.length > 0 ? tt(`${visibleSuppressors.length} 个可见竞争来源`, `${visibleSuppressors.length} visible competing source(s)`) : tt('未发现可见竞争来源', 'No visible competing source') }}
+            </span>
+          </div>
         </div>
 
         <dl class="claude-auth-view__diagnosis-facts">
@@ -395,6 +407,7 @@ import {
   saveClaudeAuth,
   switchClaudeAuth,
 } from '@/api'
+import { claudeProfileOff, listClaudeProfiles } from '@/api/domains/claude'
 import type {
   ClaudeAuthAccountItem,
   ClaudeAuthCurrentInfo,
@@ -425,6 +438,7 @@ const accounts = ref<ClaudeAuthAccountItem[]>([])
 const currentInfo = ref<ClaudeAuthCurrentInfo | null>(null)
 const runtimeSummary = ref<ClaudeRuntimeSummary | null>(null)
 const loginState = ref<ClaudeLoginState>({ type: 'NotLoggedIn' })
+const canOff = ref(false)
 
 const authDiagnosis = computed(() => runtimeSummary.value?.auth_diagnosis ?? null)
 const visibleSuppressors = computed(() =>
@@ -574,15 +588,17 @@ const refreshAll = async () => {
     loading.value = true
     authActionError.value = null
 
-    const [accountsData, currentData] = await Promise.all([
+    const [accountsData, currentData, profilesData] = await Promise.all([
       listClaudeAuthAccounts(),
       getClaudeAuthCurrent(),
+      listClaudeProfiles().catch(() => ({ can_off: false })),
     ])
 
     accounts.value = accountsData.accounts || []
     runtimeSummary.value = accountsData.runtime_summary || currentData.runtime_summary
     loginState.value = accountsData.login_state || currentData.login_state
     currentInfo.value = currentData.info || null
+    canOff.value = profilesData.can_off === true
   } catch (error) {
     logger.error('Failed to load Claude auth data:', error)
     authActionError.value = extractErrorMessage(error)
@@ -621,6 +637,44 @@ const handleSave = async () => {
     uiStore.showError(authActionError.value)
   } finally {
     saving.value = false
+  }
+}
+
+const handleOff = async () => {
+  if (!canOff.value) return
+  const confirmed = await uiStore.requestConfirm({
+    title: tt('退出 Profile', 'Exit profile'),
+    message: tt(
+      '退出当前 Profile 并清理会压制官方登录的 CCR 运行时残留？已保存的账号不会删除。',
+      'Exit the current profile and clear CCR leftovers that can suppress official login? Saved accounts stay.',
+    ),
+    confirmText: tt('退出 Profile', 'Exit profile'),
+    cancelText: tt('取消', 'Cancel'),
+    type: 'warning',
+  })
+  if (!confirmed) return
+
+  try {
+    loading.value = true
+    authActionError.value = null
+    const result = await claudeProfileOff()
+    uiStore.showSuccess(tt('已退出 Profile 并清理登录残留', 'Exited profile mode and cleared login leftovers'))
+    const suppressorWarnings = result.remaining_suppressors.map(source =>
+      tt(
+        `退出 Profile 后仍存在${authOwnershipLabel(source.ownership)}认证来源：${formatAuthSource(source)}（${authConfidenceLabel(source.confidence)}）`,
+        `${authOwnershipLabel(source.ownership)} auth source remains after exit profile: ${formatAuthSource(source)} (${authConfidenceLabel(source.confidence)})`,
+      ),
+    )
+    for (const warning of suppressorWarnings.length > 0 ? suppressorWarnings : result.warnings) {
+      uiStore.showWarning(warning, 6000)
+    }
+    await refreshAll()
+  } catch (error) {
+    logger.error('Failed to exit Claude profile mode:', error)
+    authActionError.value = extractErrorMessage(error)
+    uiStore.showError(authActionError.value)
+  } finally {
+    loading.value = false
   }
 }
 
@@ -843,6 +897,13 @@ onActivated(() => {
   line-height: 1.4;
   margin-top: 0.25rem;
   overflow-wrap: anywhere;
+}
+
+.claude-auth-view__diagnosis-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: none;
 }
 
 .claude-auth-view__diagnosis-state {
