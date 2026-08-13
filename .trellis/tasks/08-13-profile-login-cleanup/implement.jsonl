@@ -1,0 +1,12 @@
+{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file": ".trellis/spec/ccr-cli/backend/claude-auth-runtime.md", "reason": "Claude 托管键清理边界与 remaining_suppressors 契约"}
+{"file": ".trellis/spec/ccr-cli/backend/grok-profile-runtime.md", "reason": "Grok off 失败关闭与入口状态恢复"}
+{"file": ".trellis/spec/ccr-codex/backend/codex-provider-bearer-runtime.md", "reason": "Codex bearer / forced_login_method 与 off 清场"}
+{"file": ".trellis/spec/ccr-cli/backend/backend-guidelines.md", "reason": "CLI 命令输出、JSON、禁止打印密钥"}
+{"file": ".trellis/spec/ccr-tui/backend/backend-guidelines.md", "reason": "TUI 按键、可恢复错误、toast"}
+{"file": ".trellis/spec/ccr-ui/frontend/profiles-page-contracts.md", "reason": "三页 Profiles 骨架与横幅槽"}
+{"file": ".trellis/spec/ccr-ui/frontend/confirm-interaction-contracts.md", "reason": "Off 确认框 warning / 禁止原生 confirm"}
+{"file": ".trellis/spec/ccr/backend/tauri-handler-registry.md", "reason": "新 Tauri off 命令注册与计数冻结"}
+{"file": ".trellis/spec/ccr-ui/frontend/api-facade-boundary.md", "reason": "domain API 包装，不直连 invoke 散落"}
+{"file": ".trellis/tasks/08-13-profile-login-cleanup/research/profile-switch-runtime-cleanup.md", "reason": "三家 switch 写入面与现有 off 缺口"}
+{"file": ".trellis/tasks/08-13-profile-login-cleanup/research/ui-tui-surfaces.md", "reason": "UI 横幅与 TUI 接入点"}
