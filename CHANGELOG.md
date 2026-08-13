@@ -65,6 +65,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [7.1.3] - 2026-08-13
+
+### 📦 依赖更新
+
+- 前端将嵌套 `brace-expansion` 提升到上游补丁版本 `1.1.18` / `2.1.4` / `5.0.9`，并钉死 `dompurify` `^3.4.13`、`fast-uri` `3.1.5`、`js-yaml` `4.3.1`、`nanoid` `3.3.17`，清掉 Frontend CI 审计失败。
+- 移除已无必要的 `brace-expansion` Bun patch、alias 与 advisory allowlist 例外。
+
+### 🔧 改进
+
+- 质量类 GitHub Actions（含 Frontend CI）改为仅在 `pull_request` 上运行，与 Root / Tauri / VS Code 门禁对齐。
+
+---
+
 ## [4.3.0] - 2026-02-28
 
 ### ✨ 新功能

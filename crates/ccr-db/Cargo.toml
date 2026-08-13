@@ -1,6 +1,6 @@
 [package]
 name = "ccr-db"
-version = "7.1.2"
+version = "7.1.3"
 edition = "2024"
 rust-version = "1.95"
 description = "CCR Desktop database layer - SQLite storage, CheckIn services, and data models"
