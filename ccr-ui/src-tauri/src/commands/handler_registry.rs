@@ -564,6 +564,7 @@ define_command_registry! {
         super::claude::claude_update_profile => ["{ name: string; request: OpenJsonValueDto }", "OpenJsonValueDto", "export const updateClaudeProfile = (name: string, request: OpenJsonValueDto): Promise<OpenJsonValueDto> => invoke('claude_update_profile', { name, request })\n"],
         super::claude::claude_delete_profile => ["string", "OpenJsonValueDto", "export const deleteClaudeProfile = (name: string): Promise<OpenJsonValueDto> => invoke('claude_delete_profile', { name })\n"],
         super::claude::claude_apply_profile => ["string", "OpenJsonValueDto", "export const applyClaudeProfile = (name: string): Promise<OpenJsonValueDto> => invoke('claude_apply_profile', { name })\n"],
+        super::claude::claude_profile_off => ["void", "OpenJsonValueDto", "export const claudeProfileOff = (): Promise<OpenJsonValueDto> => invoke('claude_profile_off')\n"],
         super::claude::claude_export_profiles => ["boolean", "OpenJsonValueDto", "export const exportClaudeProfiles = (includeSecrets: boolean): Promise<OpenJsonValueDto> => invoke('claude_export_profiles', { includeSecrets })\n"],
         super::claude::claude_get_profiles_raw => ["void", "OpenJsonValueDto", "export const getClaudeProfilesRaw = (): Promise<OpenJsonValueDto> => invoke('claude_get_profiles_raw')\n"],
         super::claude::claude_save_profiles_raw => ["{ content: string; token: string; force: boolean }", "OpenJsonValueDto", "export const saveClaudeProfilesRaw = (content: string, token: string, force: boolean): Promise<OpenJsonValueDto> => invoke('claude_save_profiles_raw', { content, token, force })\n"],
@@ -583,6 +584,7 @@ define_command_registry! {
         super::codex::codex_delete_profile => ["string", "OpenJsonValueDto", "export const deleteCodexProfile = (name: string): Promise<OpenJsonValueDto> => invoke('codex_delete_profile', { name })\n"],
         super::codex::codex_get_profile_env => ["string", "OpenJsonValueDto", "export const getCodexProfileEnv = (name: string): Promise<OpenJsonValueDto> => invoke('codex_get_profile_env', { name })\n"],
         super::codex::codex_apply_profile => ["string", "OpenJsonValueDto", "export const applyCodexProfile = (name: string): Promise<OpenJsonValueDto> => invoke('codex_apply_profile', { name })\n"],
+        super::codex::codex_profile_off => ["void", "OpenJsonValueDto", "export const codexProfileOff = (): Promise<OpenJsonValueDto> => invoke('codex_profile_off')\n"],
         super::codex::codex_export_profiles => ["boolean", "OpenJsonValueDto", "export const exportCodexProfiles = (includeSecrets: boolean): Promise<OpenJsonValueDto> => invoke('codex_export_profiles', { includeSecrets })\n"],
         super::codex::codex_get_profiles_raw => ["void", "OpenJsonValueDto", "export const getCodexProfilesRaw = (): Promise<OpenJsonValueDto> => invoke('codex_get_profiles_raw')\n"],
         super::codex::codex_save_profiles_raw => ["{ content: string; token: string; force: boolean }", "OpenJsonValueDto", "export const saveCodexProfilesRaw = (content: string, token: string, force: boolean): Promise<OpenJsonValueDto> => invoke('codex_save_profiles_raw', { content, token, force })\n"],
@@ -1720,10 +1722,10 @@ mod tests {
         assert_eq!(COMMAND_MODULES.len(), 37);
 
         #[cfg(target_os = "windows")]
-        assert_eq!(registered_command_count(), 336);
+        assert_eq!(registered_command_count(), 338);
 
         #[cfg(not(target_os = "windows"))]
-        assert_eq!(registered_command_count(), 328);
+        assert_eq!(registered_command_count(), 330);
     }
 
     #[test]
@@ -1758,7 +1760,7 @@ mod tests {
     #[test]
     fn command_capability_descriptors_are_complete_and_unique() {
         let descriptors = command_descriptors().collect::<Vec<_>>();
-        assert_eq!(descriptors.len(), 336);
+        assert_eq!(descriptors.len(), 338);
 
         let mut ids = HashSet::new();
         let mut paths = HashSet::new();
@@ -1787,10 +1789,10 @@ mod tests {
         }
 
         let manifest = command_manifest();
-        assert_eq!(manifest.base_command_count, 328);
-        assert_eq!(manifest.windows_command_count, 336);
-        assert_eq!(manifest.typed_command_count, 265);
-        assert_eq!(manifest.exact_wire_type_count, 265);
+        assert_eq!(manifest.base_command_count, 330);
+        assert_eq!(manifest.windows_command_count, 338);
+        assert_eq!(manifest.typed_command_count, 267);
+        assert_eq!(manifest.exact_wire_type_count, 267);
 
         let exact_contract_modules = descriptors
             .iter()
@@ -1826,7 +1828,7 @@ mod tests {
                 )
             })
             .collect::<Vec<_>>();
-        assert_eq!(exact_contract_modules.len(), 265);
+        assert_eq!(exact_contract_modules.len(), 267);
         assert!(
             exact_contract_modules
                 .iter()

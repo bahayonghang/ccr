@@ -1,5 +1,6 @@
 #![allow(clippy::unused_async)]
 
+use crate::application::profile_off_for_platform;
 use crate::cli::subcommands::grok::GrokProfileCreateActionArgs;
 use crate::cli::subcommands::profile_args::{
     ProfileDisableActionArgs, ProfileNameJsonActionArgs, ProfileSetFieldActionArgs,
@@ -329,27 +330,29 @@ pub async fn delete_command(args: ProfileDisableActionArgs) -> Result<()> {
 }
 
 pub async fn off_command(json: bool) -> Result<()> {
-    let platform = GrokPlatform::new()?;
-    let previous_profile = platform.get_current_profile()?;
-    platform.clear_active_profile_runtime()?;
+    let result = profile_off_for_platform(Platform::Grok)?;
 
     if json {
         println!(
             "{}",
             serde_json::to_string_pretty(&GrokProfileOffJson {
                 ok: true,
-                changed: previous_profile.is_some(),
-                previous_profile,
-                runtime_mode: "grok_native",
+                changed: result.changed,
+                previous_profile: result.previous_profile,
+                runtime_mode: result.runtime_mode,
             })?
         );
         return Ok(());
     }
 
-    if let Some(previous_profile) = previous_profile {
+    if result.changed {
         ColorOutput::success(&format!(
             "已退出 Grok profile '{}'，并恢复进入 profile mode 前的 config.toml",
-            previous_profile.bright_yellow()
+            result
+                .previous_profile
+                .as_deref()
+                .unwrap_or("-")
+                .bright_yellow()
         ));
     } else {
         ColorOutput::info("当前不在 Grok profile mode；无需执行 profile off");

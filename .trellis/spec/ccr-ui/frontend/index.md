@@ -13,7 +13,7 @@
 | [Provider Template Contracts](./provider-template-contracts.md)           | Non-secret global provider templates, platform overrides, and saved-provider separation                        | Complete |
 | [Theme Token Contracts](./theme-token-contracts.md)                       | Theme/flavor/accent/font token layering, font-preference fallback override, and visual verification guardrails | Complete |
 | [Dashboard Presentation Contracts](./dashboard-presentation-contracts.md) | Signal severity gating, readiness reason shape, first-run heuristic, compact-card empty states                 | Complete |
-| [Usage Chart Stability Contracts](./usage-chart-stability-contracts.md)   | ApexCharts options/series reference discipline, redraw freeze flags, KeepAlive interplay                       | Complete |
+| [Usage Chart Stability Contracts](./usage-chart-stability-contracts.md)   | ApexCharts options/series discipline, KeepAlive interplay, and dual-path complete CSS delivery                 | Complete |
 | [Confirm Interaction Contracts](./confirm-interaction-contracts.md)       | requestConfirm gate pattern, danger/warning semantics, no native dialogs, composable boundary                  | Complete |
 | [Raw Config Editor Contracts](./raw-config-editor-contracts.md)           | Local-only plaintext source editing, validation, versioned saves, and shared editor behavior                   | Complete |
 | [Brand Asset Pipeline Contract](./brand-asset-pipeline.md)                | Brand SVG ownership, Cairo/Pillow rendering, generated outputs, and cross-surface verification                 | Complete |
@@ -57,3 +57,4 @@
 - Run the focused Profiles smoke set from [Profiles Page Contracts](./profiles-page-contracts.md) when changing Profiles pages, shared profile components, or profile form serialization.
 - Run the focused dashboard smoke tests from [Environment-Scoped Dashboard Contracts](./environment-scoped-dashboard-contracts.md) when changing Local-only dashboard refresh ordering or cache behavior.
 - Run the focused frontend/Tauri checks from [Grok Settings Contracts](./grok-settings-contracts.md) when changing Grok Settings typed or raw-source behavior.
+- Run `cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/apexcharts-style-contract.smoke.test.ts` and a production build when changing `apexChartsCore.ts`, ApexCharts versions, or chart style delivery. Confirm the complete CSS remains a lazy preload dependency and is not linked directly from `index.html`.

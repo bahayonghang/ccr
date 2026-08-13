@@ -34,6 +34,33 @@
           @edit-source="openRawEditor"
         />
 
+        <section
+          v-if="canOff"
+          class="claude-profiles-banner"
+          data-testid="claude-profile-off-banner"
+        >
+          <SIcon
+            name="Power"
+            size="w-5 h-5"
+          />
+          <div>
+            <strong>{{ t('claudeProfiles.runtimeBanner.title') }}</strong>
+            <p>{{ t('claudeProfiles.runtimeBanner.description') }}</p>
+          </div>
+          <button
+            type="button"
+            class="claude-profiles-banner__action"
+            :disabled="loading || isRefreshing || confirmActionBusy"
+            @click="handleOff"
+          >
+            <SIcon
+              name="Power"
+              size="w-4 h-4"
+            />
+            {{ t('claudeProfiles.actions.off') }}
+          </button>
+        </section>
+
         <ProfilesStatStrip
           :current="currentProfileName"
           :total="profiles.length"
@@ -337,6 +364,7 @@ import {
   listClaudeProfiles,
   updateClaudeProfile,
 } from '@/api'
+import { claudeProfileOff } from '@/api/domains/claude'
 import { getClaudeProfilesRaw, saveClaudeProfilesRaw } from '@/api/domains/claude'
 import ClaudeProfileEditorModal from '@/components/claude/ClaudeProfileEditorModal.vue'
 import ClaudeProfileRow from '@/components/claude/ClaudeProfileRow.vue'
@@ -394,6 +422,7 @@ const isExporting = ref(false)
 const loadError = ref<string | null>(null)
 const refreshError = ref<string | null>(null)
 const profiles = ref<ClaudeProfile[]>([])
+const canOff = ref(false)
 const profileNamesReady = ref(false)
 const showForm = ref(false)
 const isEditing = ref(false)
@@ -677,11 +706,22 @@ const paletteDescriptor: ProfilesCommandPaletteDescriptor<ClaudeProfile> = {
   hint: profile => profile.description || profile.base_url || undefined,
 }
 
-const paletteActions = computed<ProfilesCommandPaletteAction[]>(() => [
-  { id: '__add', icon: 'Plus', labelKey: 'claudeProfiles.commandPalette.actionAdd', handler: openAddForm },
-  { id: '__reload', icon: 'RefreshCw', labelKey: 'claudeProfiles.commandPalette.actionReload', handler: () => { void refreshProfiles() } },
-  { id: '__export', icon: 'Download', labelKey: 'claudeProfiles.commandPalette.actionExport', handler: () => { void handleExportProfiles() } },
-])
+const paletteActions = computed<ProfilesCommandPaletteAction[]>(() => {
+  const actions: ProfilesCommandPaletteAction[] = [
+    { id: '__add', icon: 'Plus', labelKey: 'claudeProfiles.commandPalette.actionAdd', handler: openAddForm },
+    { id: '__reload', icon: 'RefreshCw', labelKey: 'claudeProfiles.commandPalette.actionReload', handler: () => { void refreshProfiles() } },
+    { id: '__export', icon: 'Download', labelKey: 'claudeProfiles.commandPalette.actionExport', handler: () => { void handleExportProfiles() } },
+  ]
+  if (canOff.value) {
+    actions.push({
+      id: '__off',
+      icon: 'Power',
+      labelKey: 'claudeProfiles.commandPalette.actionOff',
+      handler: handleOff,
+    })
+  }
+  return actions
+})
 
 const markWrite = () => {
   lastWriteHint.value = new Date().toLocaleTimeString()
@@ -703,6 +743,7 @@ const loadProfiles = async (options: { preserveData?: boolean } = {}) => {
     const data = await listClaudeProfiles()
     const normalized = normalizeClaudeProfilesState(data.profiles || [], data.current_profile || null)
 
+    canOff.value = data.can_off === true
     profiles.value = normalized.profiles
     profileNamesReady.value = true
     loadError.value = null
@@ -722,6 +763,7 @@ const loadProfiles = async (options: { preserveData?: boolean } = {}) => {
       refreshError.value = message
     } else {
       profiles.value = []
+      canOff.value = false
       loadError.value = message
     }
   } finally {
@@ -862,6 +904,34 @@ const handleDelete = (name: string) => {
   })
 }
 
+const handleOff = () => {
+  if (!canOff.value) return
+  confirmDiffRows.value = []
+  openConfirmDialog({
+    title: t('claudeProfiles.confirm.offTitle'),
+    message: t('claudeProfiles.confirm.offMessage'),
+    confirmText: t('claudeProfiles.actions.off'),
+    type: 'warning',
+    action: async () => {
+      try {
+        const result = await claudeProfileOff()
+        markWrite()
+        await loadProfiles({ preserveData: profiles.value.length > 0 })
+        uiStore.showSuccess(t('claudeProfiles.messages.offSuccess'))
+        const suppressorWarnings = result.remaining_suppressors.map(source =>
+          `${source.kind} @ ${source.location} (${source.confidence}; ${source.ownership})`,
+        )
+        for (const warning of suppressorWarnings.length > 0 ? suppressorWarnings : result.warnings) {
+          uiStore.showWarning(warning, 6000)
+        }
+      } catch (error) {
+        logger.error('Failed to exit Claude profile mode:', error)
+        uiStore.showError(getErrorMessage(error, t('claudeProfiles.messages.offFailed')))
+      }
+    },
+  })
+}
+
 const handleApply = (name: string) => {
   const targetProfile = profiles.value.find(profile => profile.name === name)
   if (!targetProfile || targetProfile.is_current || targetProfile.enabled === false) return
@@ -935,3 +1005,65 @@ onMounted(() => {
   void loadActiveEnvironment()
 })
 </script>
+
+<style scoped>
+.claude-profiles-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  margin-bottom: 0.875rem;
+  padding: 0.875rem 1rem;
+  color: var(--cp-ink-1);
+  background: var(--cp-bg-2);
+  border: 1px solid var(--cp-line-2);
+  border-left: 3px solid var(--cp-warn);
+  border-radius: var(--radius-md);
+}
+
+.claude-profiles-banner > div {
+  min-width: 0;
+  flex: 1;
+}
+
+.claude-profiles-banner strong {
+  color: var(--cp-ink-0);
+  font-size: 0.875rem;
+}
+
+.claude-profiles-banner p {
+  margin: 0.25rem 0 0;
+  color: var(--cp-ink-2);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.claude-profiles-banner__action {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.75rem;
+  color: var(--cp-accent);
+  background: var(--cp-accent-soft);
+  border: 1px solid var(--cp-accent-line);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.claude-profiles-banner__action:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+@media (width <= 720px) {
+  .claude-profiles-banner {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .claude-profiles-banner__action {
+    width: 100%;
+    justify-content: center;
+  }
+}
+</style>

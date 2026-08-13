@@ -20,9 +20,18 @@ const apiMocks = vi.hoisted(() => ({
   applyCodexProfile: vi.fn(),
   exportCodexProfiles: vi.fn(),
   getCurrentEnvironment: vi.fn(),
+  codexProfileOff: vi.fn(),
 }))
 
 vi.mock('@/api', () => ({ ...apiMocks }))
+
+vi.mock('@/api/domains/codex', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/api/domains/codex')>()
+  return {
+    ...actual,
+    codexProfileOff: apiMocks.codexProfileOff,
+  }
+})
 
 vi.mock('vue-router', () => ({
   useRoute: () => ({ path: '/codex/profiles' }),
@@ -225,6 +234,13 @@ describe('CodexProfilesView smoke', () => {
     apiMocks.listCodexProfiles.mockResolvedValue({
       profiles: cloneProfiles(),
       current_profile: 'relay-current',
+      can_off: true,
+    })
+    apiMocks.codexProfileOff.mockResolvedValue({
+      ok: true,
+      changed: true,
+      previous_profile: 'relay-current',
+      runtime_mode: 'official_auth',
     })
     apiMocks.listCodexModels.mockResolvedValue({ builtin_models: ['gpt-5.6-luna'] })
     apiMocks.exportCodexProfiles.mockResolvedValue({
@@ -244,6 +260,55 @@ describe('CodexProfilesView smoke', () => {
   afterEach(() => {
     document.body.innerHTML = ''
     vi.restoreAllMocks()
+  })
+
+  it('shows the login-prep banner when the backend reports can_off', async () => {
+    const { el, unmount } = await mountView()
+
+    try {
+      const banner = el.querySelector('[data-testid="codex-profile-off-banner"]')
+      expect(banner).not.toBeNull()
+      expect(banner?.textContent).toContain('退出 Profile')
+    } finally {
+      unmount()
+    }
+  })
+
+  it('hides the login-prep banner when the backend reports can_off is false', async () => {
+    apiMocks.listCodexProfiles.mockResolvedValue({
+      profiles: cloneProfiles(),
+      current_profile: 'relay-current',
+      can_off: false,
+    })
+    const { el, unmount } = await mountView()
+
+    try {
+      expect(el.querySelector('[data-testid="codex-profile-off-banner"]')).toBeNull()
+    } finally {
+      unmount()
+    }
+  })
+
+  it('does not write when the exit-profile confirmation is cancelled', async () => {
+    const { el, unmount } = await mountView()
+
+    try {
+      const offButton = Array.from(el.querySelectorAll<HTMLButtonElement>('button')).find(button =>
+        button.textContent?.includes('退出 Profile'),
+      )
+      offButton?.click()
+      await flushPromises()
+      expect(el.querySelector('[data-stub="BaseModal"]')).not.toBeNull()
+
+      const cancel = el.querySelector<HTMLButtonElement>('.confirm-modal__button--cancel')
+      expect(cancel).not.toBeNull()
+      cancel?.click()
+      await flushPromises()
+
+      expect(apiMocks.codexProfileOff).not.toHaveBeenCalled()
+    } finally {
+      unmount()
+    }
   })
 
   it('renders the four-slot stat strip with the config-mode specialty slot and health count', async () => {

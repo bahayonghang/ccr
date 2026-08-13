@@ -27,11 +27,27 @@ const apiMocks = vi.hoisted(() => ({
   codexListModelProviders: vi.fn(),
   codexSaveModelProvider: vi.fn(),
   codexDeleteModelProvider: vi.fn(),
+  codexProfileOff: vi.fn(),
+}))
+
+const uiMocks = vi.hoisted(() => ({
+  requestConfirm: vi.fn(),
+  showError: vi.fn(),
+  showSuccess: vi.fn(),
+  showInfo: vi.fn(),
 }))
 
 vi.mock('@/api', () => ({
   ...apiMocks,
 }))
+
+vi.mock('@/api/domains/codex', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/api/domains/codex')>()
+  return {
+    ...actual,
+    codexProfileOff: apiMocks.codexProfileOff,
+  }
+})
 
 vi.mock('@/components/ui/SIcon.vue', () => ({
   default: defineComponent({
@@ -131,11 +147,7 @@ vi.mock('@/components/codex/CodexAccountCard.vue', () => ({
 }))
 
 vi.mock('@/stores/ui', () => ({
-  useUIStore: () => ({
-    showError: vi.fn(),
-    showSuccess: vi.fn(),
-    showInfo: vi.fn(),
-  }),
+  useUIStore: () => uiMocks,
 }))
 
 const i18n = createI18n({
@@ -198,14 +210,22 @@ const mountView = async () => {
 beforeEach(() => {
   vi.clearAllMocks()
 
+  uiMocks.requestConfirm.mockResolvedValue(true)
   apiMocks.listCodexProfiles.mockResolvedValue({
     current_profile: 'default',
+    can_off: true,
     profiles: [
       {
         name: 'default',
         auth_mode: 'openai_chatgpt',
       },
     ],
+  })
+  apiMocks.codexProfileOff.mockResolvedValue({
+    ok: true,
+    changed: true,
+    previous_profile: 'default',
+    runtime_mode: 'official_auth',
   })
 
   apiMocks.listCodexAuthAccounts.mockResolvedValue({
@@ -285,6 +305,32 @@ describe('CodexAuthView smoke', () => {
       expect(el.textContent).toContain('Logged in (qq_pro)')
       expect(el.textContent).not.toContain('{name}')
       expect(el.querySelectorAll('[data-testid="codex-account-card"]')).toHaveLength(3)
+    } finally {
+      unmount()
+    }
+  })
+
+  it('shows the runtime off banner when the backend reports can_off', async () => {
+    const { el, unmount } = await mountView()
+
+    try {
+      expect(el.querySelector('[data-testid="codex-auth-profile-off"]')).not.toBeNull()
+    } finally {
+      unmount()
+    }
+  })
+
+  it('does not write when the runtime off confirmation is cancelled', async () => {
+    uiMocks.requestConfirm.mockResolvedValue(false)
+    const { el, unmount } = await mountView()
+
+    try {
+      el.querySelector<HTMLButtonElement>('[data-testid="codex-auth-profile-off"] button')?.click()
+      await flush()
+      expect(uiMocks.requestConfirm).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'warning' }),
+      )
+      expect(apiMocks.codexProfileOff).not.toHaveBeenCalled()
     } finally {
       unmount()
     }

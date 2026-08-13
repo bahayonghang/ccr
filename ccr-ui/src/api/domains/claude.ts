@@ -21,6 +21,7 @@ import type {
   AgentsResponse,
   BudgetStatus,
   ClaudeProfile,
+  ClaudeProfileOffResult,
   ClaudeProfilesResponse,
   ClaudeSettingsData,
   HookMap,
@@ -140,6 +141,7 @@ const profilesFrom = (value: OpenJsonValueDto): ClaudeProfilesResponse => {
   return {
     profiles: pickArray(source, 'profiles').filter(isRecord) as unknown as ClaudeProfile[],
     current_profile: typeof source.current_profile === 'string' ? source.current_profile : null,
+    can_off: source.can_off === true,
   }
 }
 
@@ -586,6 +588,27 @@ export const deleteClaudeProfile = async (name: string): Promise<OpenJsonValueDt
 
 export const applyClaudeProfile = async (name: string): Promise<OpenJsonValueDto> => {
   return await claudeGenerated.applyClaudeProfile(name)
+}
+
+export const claudeProfileOff = async (): Promise<ClaudeProfileOffResult> => {
+  const value = await claudeGenerated.claudeProfileOff()
+  const source = asRecord(value)
+  if (source.status === 'unsupported_environment') {
+    throw new Error('Claude profile off is only available in the local environment')
+  }
+  return {
+    ok: source.ok === true,
+    changed: source.changed === true,
+    previous_profile: typeof source.previous_profile === 'string' ? source.previous_profile : null,
+    runtime_mode: typeof source.runtime_mode === 'string' ? source.runtime_mode : 'official_auth',
+    warnings: Array.isArray(source.warnings)
+      ? source.warnings.filter((item): item is string => typeof item === 'string')
+      : [],
+    remaining_suppressors: pickArray(source, 'remaining_suppressors').filter(isRecord) as unknown as ClaudeProfileOffResult['remaining_suppressors'],
+    cleared_managed_sources: Array.isArray(source.cleared_managed_sources)
+      ? source.cleared_managed_sources.filter((item): item is string => typeof item === 'string')
+      : [],
+  }
 }
 
 // ── Claude Auth ──

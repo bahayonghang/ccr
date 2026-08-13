@@ -4,6 +4,7 @@ use crate::tui::CompletedAction;
 use crate::tui::action::Action;
 use crate::tui::i18n::{self, Message};
 use crate::tui::toast::{Toast, ToastManager};
+use ccr_cli::application::profile_off_for_platform;
 use ccr_cli::managers::{TuiConfig, TuiConfigManager, TuiTabId};
 use ccr_cli::models::{ClaudeRuntimeSummary, CodexRuntimeSummary};
 use ccr_cli::models::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};
@@ -756,6 +757,7 @@ impl App {
             KeyCode::Down | KeyCode::Char('j') => Action::SelectNext,
             KeyCode::Enter => Action::ApplyAndQuit,
             KeyCode::Char(' ') => Action::ApplySelected,
+            KeyCode::Char('o') | KeyCode::Char('O') => Action::ProfileOff,
             KeyCode::Char('r') => Action::Reload,
             _ => Action::Noop,
         }
@@ -848,8 +850,12 @@ impl App {
                 self.apply_selected();
             }
             Action::ApplyAndQuit => {
-                self.apply_selected();
-                return Ok(true);
+                if self.apply_selected() {
+                    return Ok(true);
+                }
+            }
+            Action::ProfileOff => {
+                self.off_selected();
             }
             Action::Reload => {
                 self.reload_profiles();
@@ -918,54 +924,117 @@ impl App {
         }
     }
 
-    fn apply_selected(&mut self) {
+    fn apply_selected(&mut self) -> bool {
         let Some(selected) = self.selected_profile() else {
             self.toasts.push(Toast::warning(crate::tui_text!(
                 "No profiles available",
                 "没有可用的配置"
             )));
-            return;
+            return false;
         };
 
         let tab = &self.tabs[self.active_tab];
+        if tab.variant != TabVariant::Profile {
+            return false;
+        }
+        let platform = tab.platform;
         let platform_label = tab.label.clone();
         let profile_name = selected.name.clone();
         self.selected_profile_name = Some(profile_name.clone());
 
-        if let Some(instance) = &tab.instance {
-            match instance.apply_profile(&profile_name) {
-                Ok(()) => {
-                    self.toasts.push(Toast::success(crate::tui_format!(
-                        "Switched to: {}",
-                        "已切换到：{}",
-                        profile_name
-                    )));
-                    self.last_applied = Some((platform_label, profile_name.clone(), true, None));
-
-                    if let Ok(profiles) = instance.load_profiles()
-                        && let Some(mut profile) = profiles.get(&profile_name).cloned()
-                    {
-                        profile.increment_usage();
-                        let _ = instance.save_profile(&profile_name, &profile);
-                    }
-
-                    self.reload_profiles();
-                }
-                Err(e) => {
-                    let err_msg = e.to_string();
-                    self.toasts.push(Toast::error(crate::tui_format!(
-                        "Switch failed: {}",
-                        "切换失败：{}",
-                        err_msg
-                    )));
-                    self.last_applied = Some((platform_label, profile_name, false, Some(err_msg)));
-                }
-            }
-        } else {
+        if self.tabs[self.active_tab].instance.is_none() {
             self.toasts.push(Toast::error(crate::tui_text!(
                 "Platform is not initialized",
                 "平台未初始化"
             )));
+            return false;
+        }
+
+        if let Err(error) = profile_off_for_platform(platform) {
+            let err_msg = error.to_string();
+            self.toasts.push(Toast::error(crate::tui_format!(
+                "Exit profile failed: {}",
+                "退出 Profile 失败：{}",
+                err_msg
+            )));
+            self.last_applied = Some((platform_label, profile_name, false, Some(err_msg)));
+            return false;
+        }
+
+        let Some(instance) = &self.tabs[self.active_tab].instance else {
+            self.toasts.push(Toast::error(crate::tui_text!(
+                "Platform is not initialized",
+                "平台未初始化"
+            )));
+            return false;
+        };
+
+        match instance.apply_profile(&profile_name) {
+            Ok(()) => {
+                self.toasts.push(Toast::success(crate::tui_format!(
+                    "Switched to: {}",
+                    "已切换到：{}",
+                    profile_name
+                )));
+                self.last_applied = Some((platform_label, profile_name.clone(), true, None));
+
+                if let Ok(profiles) = instance.load_profiles()
+                    && let Some(mut profile) = profiles.get(&profile_name).cloned()
+                {
+                    profile.increment_usage();
+                    let _ = instance.save_profile(&profile_name, &profile);
+                }
+
+                self.reload_profiles();
+                true
+            }
+            Err(e) => {
+                let err_msg = e.to_string();
+                self.toasts.push(Toast::error(crate::tui_format!(
+                    "Switch failed: {}",
+                    "切换失败：{}",
+                    err_msg
+                )));
+                self.last_applied = Some((platform_label, profile_name, false, Some(err_msg)));
+                false
+            }
+        }
+    }
+
+    fn off_selected(&mut self) {
+        if self.tabs[self.active_tab].variant != TabVariant::Profile {
+            return;
+        }
+        if self.tabs[self.active_tab].instance.is_none() {
+            self.toasts.push(Toast::error(crate::tui_text!(
+                "Platform is not initialized",
+                "平台未初始化"
+            )));
+            return;
+        }
+
+        match profile_off_for_platform(self.current_platform()) {
+            Ok(result) => {
+                if result.changed {
+                    self.toasts.push(Toast::success(crate::tui_text!(
+                        "Exited profile mode and cleared login leftovers",
+                        "已退出 Profile 并清理登录残留"
+                    )));
+                } else {
+                    self.toasts.push(Toast::info(crate::tui_text!(
+                        "No profile leftovers to clear",
+                        "当前没有可清理的 Profile 残留"
+                    )));
+                }
+                self.reload_profiles();
+            }
+            Err(error) => {
+                self.toasts.push(Toast::error(crate::tui_format!(
+                    "Exit profile failed: {}",
+                    "退出 Profile 失败：{}",
+                    error
+                )));
+            }
         }
     }
 
@@ -1608,6 +1677,22 @@ mod tests {
         assert!(toast.message.contains("无法保存设置"));
 
         i18n::set_language(TuiLanguage::English);
+    }
+
+    #[test]
+    fn map_key_o_is_profile_off() {
+        let app = profile_navigation_app(1, 0, 0);
+        let key = KeyEvent::new(KeyCode::Char('o'), KeyModifiers::NONE);
+        assert!(matches!(app.map_key(key), Action::ProfileOff));
+        let apply = KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE);
+        assert!(matches!(app.map_key(apply), Action::ApplyAndQuit));
+    }
+
+    #[test]
+    fn apply_selected_without_instance_does_not_mark_success() {
+        let mut app = profile_navigation_app(1, 0, 0);
+        assert!(!app.apply_selected());
+        assert!(app.last_applied.is_none());
     }
 
     fn profile_navigation_app(count: usize, selected_index: usize, current_page: usize) -> App {

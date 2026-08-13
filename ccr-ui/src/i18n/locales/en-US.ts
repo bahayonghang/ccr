@@ -1154,6 +1154,21 @@ export default {
     operationFailed: 'Operation failed',
     deleteFailed: 'Delete failed',
     applyFailed: 'Apply failed',
+    actions: {
+      off: 'Exit profile',
+    },
+    runtimeBanner: {
+      title: 'Profile mode or login leftovers are active',
+      description: 'Exit profile to clear CCR runtime leftovers so official login is not suppressed. Saved profiles and account snapshots stay.',
+    },
+    confirm: {
+      offTitle: 'Exit profile',
+      offMessage: 'Exit the current profile and clear CCR leftovers that can suppress official login? Saved accounts stay.',
+    },
+    messages: {
+      offSuccess: 'Exited profile mode and cleared login leftovers',
+      offFailed: 'Failed to exit profile mode',
+    },
     officialBaseUrl: 'Official direct (api.anthropic.com)',
     reloadAction: 'Reload',
     commandPaletteButton: 'Command',
@@ -1249,6 +1264,7 @@ export default {
       actionExport: 'Export profiles.toml',
       actionReload: 'Reload configuration',
       actionApply: 'Switch to {name}',
+      actionOff: 'Exit profile',
     },
   },
   settingsRaw: {
@@ -3898,6 +3914,17 @@ export default {
       deleteConfirm: 'Delete Profile "{name}"? This action cannot be undone.',
       deleteConfirmShort: 'Are you sure to delete Profile "{name}"?',
       confirmApply: 'Switch to Profile "{name}"?',
+      actions: {
+        off: 'Exit profile',
+      },
+      runtimeBanner: {
+        title: 'Profile mode or login leftovers are active',
+        description: 'Exit profile to clear CCR runtime leftovers so official login is not suppressed. Saved profiles and account snapshots stay.',
+      },
+      confirm: {
+        offTitle: 'Exit profile',
+        offMessage: 'Exit the current profile and clear CCR leftovers that can suppress official login? Saved accounts stay.',
+      },
       setActive: 'Set Active',
       currentActive: 'Current Active',
       placeholders: {
@@ -4010,6 +4037,8 @@ export default {
         tokenCopyFailed: 'Failed to copy auth token',
         operationFailed: 'Operation failed: {error}',
         deleteFailed: 'Delete failed: {error}',
+        offSuccess: 'Exited profile mode and cleared login leftovers',
+        offFailed: 'Failed to exit profile mode',
       },
       // New translation keys
       officialConfig: 'Official Config',
@@ -4086,6 +4115,7 @@ export default {
         actionExport: 'Export profiles.toml',
         actionReload: 'Reload configuration',
         actionApply: 'Switch to {name}',
+        actionOff: 'Exit profile',
       },
       inspector: {
         ariaLabel: 'Codex profiles inspector sidebar',
@@ -4251,6 +4281,14 @@ export default {
       subtitle: 'Manage Codex authentication accounts',
       breadcrumb: 'Auth Management',
       backToCodex: 'Back to Codex',
+      off: {
+        title: 'Exit profile',
+        description: 'CCR runtime leftovers that can suppress official login are still present.',
+        confirm: 'Exit the current profile and clear CCR leftovers that can suppress official login? Saved accounts stay.',
+        action: 'Exit profile',
+        success: 'Exited profile mode and cleared login leftovers',
+        failed: 'Failed to exit profile mode',
+      },
       saveAccount: 'Save Account',
       currentSession: 'Current Session',
       quickSwitch: 'Quick Switch',

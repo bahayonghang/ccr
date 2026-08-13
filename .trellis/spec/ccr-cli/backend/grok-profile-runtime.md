@@ -70,7 +70,9 @@
 - Runtime config writes use `secret: true` and `BackupPolicy::None`. The entry
   state owns restoration; creating same-directory runtime backups would add an
   undisclosed plaintext credential location.
-- `off` restores runtime state before clearing pointers. If the entry state is
+- `off` restores runtime state before clearing pointers. CLI, TUI, and Tauri
+  call `profile_off_for_platform(Platform::Grok)`; they must not call
+  `clear_active_profile_runtime` as a second write path. If the entry state is
   missing while activation intent or CCR-managed runtime shape remains, it
   fails closed and leaves pointers/runtime unchanged for manual recovery.
 - Delete checks raw registry and profiles intent plus runtime equality without

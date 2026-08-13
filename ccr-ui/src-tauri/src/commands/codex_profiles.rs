@@ -4,6 +4,7 @@ use crate::commands::profile_lifecycle::{
     resolve_profile_target_name, save_profiles_raw_to_paths,
 };
 use crate::commands::settings_raw::ensure_local_env;
+use ccr_cli::application::{needs_login_prep, profile_off_for_platform};
 
 /// 列出 CCR Codex profiles（~/.ccr/platforms/codex/profiles.toml）
 #[ccr_tauri_command_macros::command]
@@ -31,7 +32,14 @@ pub async fn codex_list_profiles() -> Result<OpenJsonValueDto, String> {
             })
             .collect();
 
-        Ok(json!({ "profiles": profiles, "current_profile": current_profile }))
+        // can_off 仅用于横幅；探测失败时仍返回列表，避免 runtime 文件异常拖垮整个 Profiles 页。
+        let can_off = needs_login_prep(Platform::Codex).unwrap_or(false);
+
+        Ok(json!({
+            "profiles": profiles,
+            "current_profile": current_profile,
+            "can_off": can_off,
+        }))
     })
     .await
     .map_err(|e| format!("任务执行失败: {e}"))??
@@ -190,6 +198,29 @@ pub async fn codex_delete_profile(
     })
     .await
     .map_err(|e| format!("任务执行失败: {e}"))??;
+
+    invalidate_codex_dashboard_overview_cache(&state).await;
+    open_json(response)
+}
+
+/// 退出 Codex profile 并清理会压制官方登录的 CCR 运行时残留。
+#[ccr_tauri_command_macros::command]
+pub async fn codex_profile_off(state: State<'_, AppState>) -> Result<OpenJsonValueDto, String> {
+    if let Some(response) = ensure_local_env(state.inner()).await {
+        return response.try_into();
+    }
+    let response = tokio::task::spawn_blocking(|| -> Result<Value, String> {
+        let result = profile_off_for_platform(Platform::Codex)
+            .map_err(|error| format!("退出 Codex profile 模式失败: {error}"))?;
+        Ok(json!({
+            "ok": true,
+            "changed": result.changed,
+            "previous_profile": result.previous_profile,
+            "runtime_mode": result.runtime_mode,
+        }))
+    })
+    .await
+    .map_err(|error| format!("退出 Codex profile 模式后台任务失败: {error}"))??;
 
     invalidate_codex_dashboard_overview_cache(&state).await;
     open_json(response)

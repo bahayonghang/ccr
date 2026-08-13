@@ -1,0 +1,9 @@
+{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file": ".trellis/spec/ccr-cli/backend/claude-auth-runtime.md", "reason": "核对 Claude 不删用户自有凭据且诊断无密钥"}
+{"file": ".trellis/spec/ccr-cli/backend/grok-profile-runtime.md", "reason": "核对 Grok 入口缺失失败关闭"}
+{"file": ".trellis/spec/ccr-codex/backend/codex-provider-bearer-runtime.md", "reason": "核对 Codex off 清 bearer 与 forced_login_method"}
+{"file": ".trellis/spec/ccr-ui/frontend/profiles-page-contracts.md", "reason": "核对三页骨架与横幅位置"}
+{"file": ".trellis/spec/ccr-ui/frontend/confirm-interaction-contracts.md", "reason": "核对确认框分级与取消不写盘"}
+{"file": ".trellis/spec/ccr/backend/tauri-handler-registry.md", "reason": "核对新命令注册与绑定"}
+{"file": ".trellis/spec/ccr-tui/backend/backend-guidelines.md", "reason": "核对 TUI off 失败不继续 apply/switch"}
+{"file": ".trellis/tasks/08-13-profile-login-cleanup/research/profile-switch-runtime-cleanup.md", "reason": "对照三家写入面验收残留是否清干净"}

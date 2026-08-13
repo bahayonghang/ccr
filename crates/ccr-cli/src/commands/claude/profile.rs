@@ -216,12 +216,8 @@ pub async fn off_command(json: bool) -> Result<()> {
             ok: true,
             changed: result.changed,
             previous_profile: result.previous_profile,
-            runtime_mode: "official_auth",
-            warnings: result
-                .auth_outcome
-                .as_ref()
-                .map(|outcome| outcome.warnings.clone())
-                .unwrap_or_default(),
+            runtime_mode: result.runtime_mode,
+            warnings: result.warnings,
         };
         println!("{}", serde_json::to_string_pretty(&output)?);
         return Ok(());

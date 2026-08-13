@@ -6,8 +6,9 @@ use crate::tui::overlay::Overlay;
 use crate::tui::pagination::{
     DEFAULT_PAGE_SIZE, index_in_page, page_for_index, page_slice, total_pages,
 };
+use ccr_cli::application::profile_off_for_platform;
 use ccr_cli::models::{
-    CodexAccountQuota, CodexAuthItem, CodexAuthRegistry, CodexRuntimeSummary, LoginState,
+    CodexAccountQuota, CodexAuthItem, CodexAuthRegistry, CodexRuntimeSummary, LoginState, Platform,
 };
 use ccr_cli::services::AuthReadSnapshot;
 use ccr_cli::services::{
@@ -1302,6 +1303,15 @@ impl CodexAuthApp {
                     "警告：检测到 {} 个 Codex 进程正在运行",
                     running.len()
                 )));
+            }
+
+            if let Err(error) = profile_off_for_platform(Platform::Codex) {
+                self.toasts.push(Toast::error(crate::tui_format!(
+                    "Exit profile failed: {}",
+                    "退出 Profile 失败：{}",
+                    error
+                )));
+                return Ok(false);
             }
 
             match self.service.switch_account(&account.name) {

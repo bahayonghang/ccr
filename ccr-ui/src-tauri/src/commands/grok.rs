@@ -7,6 +7,7 @@ use std::time::UNIX_EPOCH;
 
 use ccr::platforms::{GrokActivationState, GrokPlatform, GrokProfileAuthMode};
 use ccr::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};
+use ccr_cli::application::profile_off_for_platform;
 use ccr_core::core::{
     BackupPolicy, VersionedWriteOutcome, WriteOptions, content_version_token,
     write_guarded_versioned,
@@ -1341,19 +1342,11 @@ pub async fn grok_profile_off(
         return Ok(GrokProfileActionResponse::UnsupportedEnvironment { env_type });
     }
     tokio::task::spawn_blocking(|| {
-        let platform =
-            GrokPlatform::new().map_err(|error| format!("初始化 Grok 平台失败: {error}"))?;
-        let (_, previous_profile) = activation_parts(
-            platform
-                .inspect_activation_state()
-                .map_err(|error| format!("检查 Grok profile 激活状态失败: {error}"))?,
-        );
-        platform
-            .clear_active_profile_runtime()
+        let result = profile_off_for_platform(Platform::Grok)
             .map_err(|error| format!("退出 Grok profile 模式失败: {error}"))?;
         Ok(GrokProfileActionResponse::Off {
-            changed: previous_profile.is_some(),
-            previous_profile,
+            changed: result.changed,
+            previous_profile: result.previous_profile,
         })
     })
     .await

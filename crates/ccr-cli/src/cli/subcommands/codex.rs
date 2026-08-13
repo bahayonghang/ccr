@@ -185,7 +185,6 @@ pub enum CodexProfileAction {
         name: String,
     },
 
-    /// 退出当前 profile 路由，回到 official auth runtime
     /// Create a new Codex profile
     Create(ProfileCreateActionArgs),
 
@@ -201,6 +200,7 @@ pub enum CodexProfileAction {
     /// Delete a Codex profile
     Delete(ProfileDisableActionArgs),
 
+    /// 退出当前 profile，并清理会压制官方登录的 CCR 运行时残留
     Off(ProfileOffActionArgs),
 }
 

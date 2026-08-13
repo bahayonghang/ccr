@@ -1,0 +1,28 @@
+{
+  "id": "profile-login-cleanup",
+  "name": "profile-login-cleanup",
+  "title": "Codex/Claude/Grok profile 登录清理",
+  "description": "",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-08-13",
+  "completedAt": "2026-08-13",
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "description": "清理 Claude/Codex/Grok profile 切换写入的运行时配置，使官方登录不再被残留压制"
+  }
+}

@@ -103,6 +103,33 @@
             </div>
           </div>
 
+          <section
+            v-if="canOff"
+            class="codex-auth-view__off-banner"
+            data-testid="codex-auth-profile-off"
+          >
+            <div>
+              <strong>{{ $t('codex.auth.off.title') }}</strong>
+              <p>{{ $t('codex.auth.off.description') }}</p>
+            </div>
+            <Button
+              variant="secondary"
+              surface="status"
+              density="compact"
+              motion="subtle"
+              :disabled="loading"
+              @click="handleOff"
+            >
+              <template #leading>
+                <SIcon
+                  name="Power"
+                  size="w-4 h-4"
+                />
+              </template>
+              {{ $t('codex.auth.off.action') }}
+            </Button>
+          </section>
+
           <div class="codex-auth-view__status-grid">
             <Card
               surface="status"
@@ -375,6 +402,7 @@ import {
   deleteCodexAuth,
   getCodexAllQuotas,
 } from '@/api'
+import { codexProfileOff } from '@/api/domains/codex'
 import {
   filterAndSortCodexAccounts,
   getLoginStateIcon,
@@ -415,6 +443,7 @@ const accounts = ref<CodexAuthAccountItem[]>([])
 const loginState = ref<LoginState>({ type: 'NotLoggedIn' })
 const currentInfo = ref<CodexAuthCurrentInfo | null>(null)
 const currentProfile = ref<CodexProfile | null>(null)
+const canOff = ref(false)
 const authActionError = ref<string | null>(null)
 const quotaMap = ref<Map<string, CodexAccountQuota>>(new Map())
 
@@ -583,11 +612,37 @@ const clearFilters = () => {
 const loadCurrentProfile = async () => {
   try {
     const data = await listCodexProfiles()
+    canOff.value = data.can_off === true
     currentProfile.value =
       data.profiles.find((profile) => profile.name === data.current_profile) || null
   } catch (error) {
     logger.error('Failed to load current codex profile:', error)
     currentProfile.value = null
+    canOff.value = false
+  }
+}
+
+const handleOff = async () => {
+  if (!canOff.value) return
+  const confirmed = await uiStore.requestConfirm({
+    title: t('codex.auth.off.title'),
+    message: t('codex.auth.off.confirm'),
+    confirmText: t('codex.auth.off.action'),
+    cancelText: t('common.cancel'),
+    type: 'warning',
+  })
+  if (!confirmed) return
+
+  try {
+    loading.value = true
+    await codexProfileOff()
+    uiStore.showSuccess(t('codex.auth.off.success'))
+    await Promise.all([loadCurrentProfile(), loadAccounts(), loadCurrentInfo()])
+  } catch (error) {
+    logger.error('Failed to exit Codex profile mode:', error)
+    uiStore.showError(extractErrorMessage(error) || t('codex.auth.off.failed'))
+  } finally {
+    loading.value = false
   }
 }
 
@@ -820,4 +875,32 @@ onActivated(() => {
 /* codex-auth-view__* 结构样式已抽至全局共享层 src/styles/codex-auth-shared.css，
    供主视图、Accounts/Providers Tab 与各 Modal 共用，此处不再重复定义。 */
 
+.codex-auth-view__off-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  margin-bottom: 0.875rem;
+  padding: 0.875rem 1rem;
+  border: 1px solid var(--stage-border-soft);
+  border-left: 3px solid var(--color-warning);
+  border-radius: 1rem;
+  background: var(--stage-surface-elevated);
+}
+
+.codex-auth-view__off-banner > div {
+  min-width: 0;
+  flex: 1;
+}
+
+.codex-auth-view__off-banner strong {
+  color: var(--stage-text-primary);
+  font-size: 0.875rem;
+}
+
+.codex-auth-view__off-banner p {
+  margin: 0.25rem 0 0;
+  color: var(--stage-text-quiet);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
 </style>

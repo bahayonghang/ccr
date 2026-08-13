@@ -14,6 +14,7 @@ export const updateCodexProfile = (name: string, config: OpenJsonValueDto): Prom
 export const deleteCodexProfile = (name: string): Promise<OpenJsonValueDto> => invoke('codex_delete_profile', { name })
 export const getCodexProfileEnv = (name: string): Promise<OpenJsonValueDto> => invoke('codex_get_profile_env', { name })
 export const applyCodexProfile = (name: string): Promise<OpenJsonValueDto> => invoke('codex_apply_profile', { name })
+export const codexProfileOff = (): Promise<OpenJsonValueDto> => invoke('codex_profile_off')
 export const exportCodexProfiles = (includeSecrets: boolean): Promise<OpenJsonValueDto> => invoke('codex_export_profiles', { includeSecrets })
 export const getCodexProfilesRaw = (): Promise<OpenJsonValueDto> => invoke('codex_get_profiles_raw')
 export const saveCodexProfilesRaw = (content: string, token: string, force: boolean): Promise<OpenJsonValueDto> => invoke('codex_save_profiles_raw', { content, token, force })

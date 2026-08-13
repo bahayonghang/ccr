@@ -483,6 +483,55 @@ fn codex_profile_off_clears_stale_profiles_file_pointer_without_touching_auth_js
 }
 
 #[test]
+fn codex_profile_off_scrubs_api_key_without_snapshot_when_pointer_exists() {
+    let fixture = CodexProfileFixture::new();
+    fixture.write_unified_codex_profile(None);
+    fixture.save_codex_profiles("team");
+    fixture.write_codex_runtime_official();
+    fs::write(
+        fixture.codex_dir.join("auth.json"),
+        r#"{"OPENAI_API_KEY":"sk-stale-codex-key"}"#,
+    )
+    .unwrap();
+
+    let output = fixture.run_output(&["codex", "profile", "off"]);
+    assert!(output.status.success(), "{:?}", output.status);
+    let visible = format!(
+        "{}{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(!visible.contains("sk-stale-codex-key"));
+
+    assert!(!fixture.codex_dir.join("auth.json").exists());
+    let profiles = ConfigManager::new(
+        fixture
+            .root
+            .join("platforms")
+            .join("codex")
+            .join("profiles.toml"),
+    )
+    .load()
+    .unwrap();
+    assert_eq!(profiles.current_config, "");
+}
+
+#[test]
+fn codex_profile_off_keeps_official_api_key_without_pointer() {
+    let fixture = CodexProfileFixture::new();
+    fixture.write_unified_codex_profile(None);
+    fixture.save_codex_profiles("");
+    fixture.write_codex_runtime_official();
+    let auth_before = r#"{"OPENAI_API_KEY":"sk-official-keep"}"#;
+    fs::write(fixture.codex_dir.join("auth.json"), auth_before).unwrap();
+
+    let output = fixture.run_output(&["codex", "profile", "off"]);
+    assert!(output.status.success(), "{:?}", output.status);
+    let auth_after = fs::read_to_string(fixture.codex_dir.join("auth.json")).unwrap();
+    assert_eq!(auth_after, auth_before);
+}
+
+#[test]
 fn codex_profile_crud_commands_support_vscode_surface() {
     let fixture = CodexProfileFixture::new();
 

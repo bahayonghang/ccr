@@ -1011,3 +1011,48 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 87: 修复 ApexCharts tooltip marker 异常放大
+
+**Date**: 2026-08-02
+**Task**: 修复 ApexCharts tooltip marker 异常放大
+**Branch**: `dev`
+
+### Summary
+
+在按需装配入口静态导入完整上游 CSS，并保留运行时注入形成双路径；补充 contract smoke、WebView2 故障注入和 bundle 验收，完整前端门禁通过。故障机制已确认，现场自然触发源仍未知。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `68d5740a` | (see git log) |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 88: Profile 登录预备清理
+
+**Date**: 2026-08-13
+**Task**: Profile 登录预备清理
+**Branch**: `dev`
+
+### Summary
+
+加强 Claude/Codex/Grok profile off：清切换残留以便官方登录。TUI 切换时自动执行；ccr-ui 增加 Off 横幅与 Auth 按钮。备份走 CCR_ROOT 并按密文权限写入。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `594428d3` | (see git log) |
+| `9b2dbcc3` | (see git log) |
+| `d4726b55` | (see git log) |
+| `ab34984e` | (see git log) |
+
+### Status
+
+[OK] **Completed**

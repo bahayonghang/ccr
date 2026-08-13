@@ -69,7 +69,7 @@ pub enum GrokProfileAction {
     /// Delete a Grok profile; --force restores the entry runtime first
     Delete(ProfileDisableActionArgs),
 
-    /// Restore the Grok configuration that preceded CCR profile mode
+    /// Exit the current profile and clear CCR login leftovers
     Off(ProfileOffActionArgs),
 }
 

@@ -132,6 +132,14 @@ export interface CodexProfileRequest {
 export interface CodexProfilesResponse {
   profiles: CodexProfile[]
   current_profile?: string | null
+  can_off?: boolean
+}
+
+export interface CodexProfileOffResult {
+  ok: boolean
+  changed: boolean
+  previous_profile: string | null
+  runtime_mode: string
 }
 
 export interface CodexProfileResponse {

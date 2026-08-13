@@ -118,7 +118,6 @@ pub enum ClaudeProfileAction {
         name: String,
     },
 
-    /// 退出当前 profile 路由，回到 official auth runtime
     /// Create a new Claude profile
     Create(ProfileCreateActionArgs),
 
@@ -134,5 +133,6 @@ pub enum ClaudeProfileAction {
     /// Delete a Claude profile
     Delete(ProfileDisableActionArgs),
 
+    /// 退出当前 profile，并清理会压制官方登录的 CCR 运行时残留
     Off(ProfileOffActionArgs),
 }

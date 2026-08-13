@@ -24,9 +24,10 @@ describe('typed Codex and system prompts clients', () => {
       readFile('src/api/generated/systemPrompts.ts', 'utf8'),
     ])
 
-    expect(invokeCommands(codex)).toHaveLength(43)
+    expect(invokeCommands(codex)).toHaveLength(44)
     expect(invokeCommands(codex)).toEqual(expect.arrayContaining([
       'codex_list_profiles',
+      'codex_profile_off',
       'codex_update_settings',
       'codex_validate_agent_toml',
       'codex_sync_source_install',

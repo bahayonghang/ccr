@@ -37,6 +37,7 @@ export const addClaudeProfile = (request: OpenJsonValueDto): Promise<OpenJsonVal
 export const updateClaudeProfile = (name: string, request: OpenJsonValueDto): Promise<OpenJsonValueDto> => invoke('claude_update_profile', { name, request })
 export const deleteClaudeProfile = (name: string): Promise<OpenJsonValueDto> => invoke('claude_delete_profile', { name })
 export const applyClaudeProfile = (name: string): Promise<OpenJsonValueDto> => invoke('claude_apply_profile', { name })
+export const claudeProfileOff = (): Promise<OpenJsonValueDto> => invoke('claude_profile_off')
 export const exportClaudeProfiles = (includeSecrets: boolean): Promise<OpenJsonValueDto> => invoke('claude_export_profiles', { includeSecrets })
 export const getClaudeProfilesRaw = (): Promise<OpenJsonValueDto> => invoke('claude_get_profiles_raw')
 export const saveClaudeProfilesRaw = (content: string, token: string, force: boolean): Promise<OpenJsonValueDto> => invoke('claude_save_profiles_raw', { content, token, force })

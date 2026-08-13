@@ -150,6 +150,21 @@ class WorkflowGovernanceParserTests(unittest.TestCase):
             (self.ROOT / "ccr-ui" / "scripts" / "check-generated-bindings.mjs").is_file()
         )
 
+    def test_quality_workflows_are_pull_request_only(self) -> None:
+        for name in ("ci.yml", "frontend-ci.yml", "tauri-rust-ci.yml", "vscode-ci.yml"):
+            workflow = (self.ROOT / ".github" / "workflows" / name).read_text(
+                encoding="utf-8"
+            )
+            self.assertEqual(
+                workflow_event_values(workflow, "push", "branches"),
+                set(),
+                msg=f"{name} must not trigger on branch push",
+            )
+            self.assertEqual(
+                workflow_event_values(workflow, "pull_request", "branches"),
+                {"main", "develop", "dev"},
+            )
+
     def test_tauri_linux_gate_installs_pinned_bun_for_bindings(self) -> None:
         workflow = (
             self.ROOT / ".github" / "workflows" / "tauri-rust-ci.yml"

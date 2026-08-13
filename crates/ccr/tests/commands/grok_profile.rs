@@ -455,3 +455,61 @@ fn grok_profile_rejects_array_env_key_and_legacy_platform_switch() {
     assert!(stderr.contains("legacy"));
     assert!(stderr.contains("ccr grok profile"));
 }
+
+#[test]
+fn grok_profile_off_uses_shared_core_and_is_idempotent() {
+    let fixture = GrokProfileFixture::new();
+    assert_success(&fixture.create_inline("relay").0);
+    assert_success(&fixture.run_output(&["grok", "profile", "switch", "relay"]));
+
+    let (off, json) = fixture.run_json(&["grok", "profile", "off", "--json"]);
+    assert_success(&off);
+    assert_eq!(json["ok"], true);
+    assert_eq!(json["changed"], true);
+    assert_eq!(json["previous_profile"], "relay");
+    assert_eq!(json["runtime_mode"], "grok_native");
+    let visible = format!(
+        "{}{}",
+        String::from_utf8_lossy(&off.stdout),
+        String::from_utf8_lossy(&off.stderr)
+    );
+    assert!(!visible.contains(INLINE_SECRET));
+    assert_eq!(
+        fixture.runtime()["models"]["default"].as_str(),
+        Some("grok-native")
+    );
+
+    let (again, again_json) = fixture.run_json(&["grok", "profile", "off", "--json"]);
+    assert_success(&again);
+    assert_eq!(again_json["changed"], false);
+    assert!(again_json["previous_profile"].is_null());
+}
+
+#[test]
+fn grok_profile_off_fails_closed_when_entry_state_is_missing() {
+    let fixture = GrokProfileFixture::new();
+    assert_success(&fixture.create_inline("relay").0);
+    assert_success(&fixture.run_output(&["grok", "profile", "switch", "relay"]));
+
+    let entry_state = fixture
+        .root
+        .join("platforms")
+        .join("grok")
+        .join("profile_entry_config_state.json");
+    fs::remove_file(&entry_state).unwrap();
+    let before = fs::read(fixture.grok_home.join("config.toml")).unwrap();
+
+    let output = fixture.run_output(&["grok", "profile", "off"]);
+    assert!(!output.status.success(), "{:?}", output.status);
+    let visible = format!(
+        "{}{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(visible.contains("入口配置状态缺失"));
+    assert!(!visible.contains(INLINE_SECRET));
+    assert_eq!(
+        fs::read(fixture.grok_home.join("config.toml")).unwrap(),
+        before
+    );
+}

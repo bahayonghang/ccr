@@ -4,6 +4,7 @@ use crate::commands::profile_lifecycle::{
     resolve_profile_target_name, save_profiles_raw_to_paths,
 };
 use crate::commands::settings_raw::ensure_local_env;
+use ccr_cli::application::{needs_login_prep, profile_off_for_platform};
 
 /// 列出所有 Claude Code Profiles（~/.ccr/platforms/claude/profiles.toml）。
 #[ccr_tauri_command_macros::command]
@@ -20,9 +21,13 @@ pub async fn claude_list_profiles() -> Result<OpenJsonValueDto, String> {
             .map(|(name, profile)| profile_to_json(current_profile.as_deref(), name, profile))
             .collect();
 
+        // can_off 仅用于横幅；探测失败时仍返回列表，避免 settings 异常拖垮整个 Profiles 页。
+        let can_off = needs_login_prep(Platform::Claude).unwrap_or(false);
+
         Ok(json!({
             "profiles": profiles,
             "current_profile": current_profile,
+            "can_off": can_off,
         }))
     })
     .await
@@ -260,6 +265,30 @@ mod export_tests {
 
         assert_eq!(error, "Redacted profiles export is not supported");
     }
+}
+
+#[ccr_tauri_command_macros::command]
+pub async fn claude_profile_off(state: State<'_, AppState>) -> Result<OpenJsonValueDto, String> {
+    if let Some(response) = ensure_local_env(state.inner()).await {
+        return response.try_into();
+    }
+    tokio::task::spawn_blocking(|| -> Result<Value, String> {
+        let result = profile_off_for_platform(Platform::Claude)
+            .map_err(|error| format!("退出 Claude profile 模式失败: {error}"))?;
+        let outcome = result.auth_outcome.unwrap_or_default();
+        Ok(json!({
+            "ok": true,
+            "changed": result.changed,
+            "previous_profile": result.previous_profile,
+            "runtime_mode": result.runtime_mode,
+            "warnings": result.warnings,
+            "remaining_suppressors": outcome.remaining_suppressors,
+            "cleared_managed_sources": outcome.cleared_managed_sources,
+        }))
+    })
+    .await
+    .map_err(|error| format!("退出 Claude profile 模式后台任务失败: {error}"))??
+    .try_into()
 }
 
 #[ccr_tauri_command_macros::command]

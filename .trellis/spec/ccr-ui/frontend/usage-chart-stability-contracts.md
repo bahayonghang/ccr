@@ -68,7 +68,44 @@
 - 刷新期间已有内容不拆树:loading 面板只在"尚无可渲染数据"时接管
   (`hasDashboardData` 门控),数据刷新交给 series 记忆化 + updateSeries。
 
-## 5. 验证方法(回归复测口径)
+## 5. ApexCharts 完整 CSS 双路径交付
+
+`src/utils/apexChartsCore.ts` 是 ApexCharts 的唯一模块化装配入口。该入口必须同时满足：
+
+```ts
+import VueApexCharts from 'vue3-apexcharts/core'
+import 'apexcharts/dist/apexcharts.css'
+
+import 'apexcharts/area'
+// 继续按实际使用注册 chart type / feature
+```
+
+- 构建路径：静态导入上游发布的完整 `apexcharts.css`，由 Vite 随
+  `apexChartsCore` 异步 chunk 交付。
+- 运行时路径：保留 ApexCharts 默认的 `chart.injectStyleSheet: true`，不得为了消除重复
+  规则而关闭 `#apexcharts-css` 注入。两条路径内容相同，任一路径可用时都应满足完整布局
+  契约。
+- 懒加载边界：CSS import 必须与模块化装配入口共置，不得提升到 `main.ts`。生产构建需
+  确认 CSS 是图表调用方的 preload 依赖，且 `index.html` 没有首屏直链它。
+
+这不是单一 marker 的视觉补丁。完整样式同时负责 tooltip 的绝对定位、series group 初始
+隐藏、marker host 的 `12x12` 尺寸及内部 SVG 缩放。不得复制一组 ApexCharts 私有 selector、
+修改全局 SVG reset，或只给 marker 补宽高；这些做法会留下静态占位、错误 tooltip 布局或
+升级漂移。
+
+依赖升级或装配入口调整时，`tests/apexcharts-style-contract.smoke.test.ts` 必须继续断言：
+
+- `vue3-apexcharts/core` wrapper 与所有实际使用的模块注册保持唯一；
+- 完整 CSS import 保持唯一；
+- `.apexcharts-tooltip` 为绝对定位；
+- `.apexcharts-tooltip-series-group` 初始隐藏；
+- `.apexcharts-tooltip-marker` 为 `12x12`，其 SVG 为 `100% x 100%`。
+
+故障复测应在首次图表挂载前阻止运行时 `#apexcharts-css` append，而不是挂载后临时删除。
+此时构建管理的 CSS 仍须让上述契约全部成立，tooltip hover 不得改变卡片高度。该故障注入
+只证明双路径容错，不等于找到了现场使运行时样式缺失或失效的自然触发源。
+
+## 6. 验证方法(回归复测口径)
 
 - 浏览器桩 + 测量脚本在归档任务 `07-07-ui-usage-dashboard/research/perf-harness/`:
   `tauri-shim.js`(伪造 Tauri IPC 的 fixture 桩)、`measure-after.mjs`(基线同口径

@@ -176,6 +176,9 @@ def main() -> int:
             failures.append(f"{name}: missing path policy for CI surface {surface}")
         if f"--surface {surface}" not in text:
             failures.append(f"{name}: missing relevance detection for CI surface {surface}")
+        push_branches = workflow_event_values(text, "push", "branches")
+        if push_branches:
+            failures.append(f"{name}: quality workflows must be pull_request-only")
         gate_id, context_name = required_gates[name]
         gate = workflow_job_block(text, gate_id)
         if not gate:
@@ -187,12 +190,6 @@ def main() -> int:
                 failures.append(f"{name}: required context must run with always()")
             if "needs:" not in gate or "changes" not in gate:
                 failures.append(f"{name}: required context must depend on change detection")
-
-    frontend_push_branches = workflow_event_values(
-        workflows.get("frontend-ci.yml", ""), "push", "branches"
-    )
-    if frontend_push_branches != REQUIRED_BRANCHES:
-        failures.append("frontend-ci.yml: push branches must cover main/develop/dev")
 
     root_workflow = workflows.get("ci.yml", "")
     for runner in ("ubuntu-24.04", "windows-2025", "macos-15"):
