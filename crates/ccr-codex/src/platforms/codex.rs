@@ -129,6 +129,149 @@ impl CodexPlatform {
         self.profile_entry_auth_state_path().exists()
     }
 
+    /// Raw CCR pointer, including a stale `profiles.toml` `current_config`.
+    pub fn has_raw_profile_pointer(&self) -> Result<bool> {
+        if self
+            .current_profile_from_registry()?
+            .as_deref()
+            .is_some_and(|name| !name.trim().is_empty())
+        {
+            return Ok(true);
+        }
+        self.profiles_file_has_current_config()
+    }
+
+    fn profiles_file_has_current_config(&self) -> Result<bool> {
+        if !self.paths.profiles_file.exists() {
+            return Ok(false);
+        }
+        let content = std::fs::read_to_string(&self.paths.profiles_file).map_err(|error| {
+            CcrError::ConfigError(format!(
+                "读取 Codex profiles.toml 失败 {}: {error}",
+                self.paths.profiles_file.display()
+            ))
+        })?;
+        let parsed: toml::Value = toml::from_str(&content).map_err(|error| {
+            CcrError::ConfigError(format!(
+                "解析 Codex profiles.toml 失败 {}: {error}",
+                self.paths.profiles_file.display()
+            ))
+        })?;
+        Ok(parsed
+            .get("current_config")
+            .and_then(toml::Value::as_str)
+            .is_some_and(|value| !value.trim().is_empty()))
+    }
+
+    /// CCR third-party runtime leftovers that can suppress official Codex login.
+    pub fn has_third_party_ccr_runtime(&self) -> Result<bool> {
+        let config = self.config_manager.load_config()?;
+        Ok(Self::config_has_third_party_ccr_runtime(&config))
+    }
+
+    fn config_has_third_party_ccr_runtime(config: &toml::Value) -> bool {
+        let Some(root) = config.as_table() else {
+            return false;
+        };
+        let Some(provider) = Self::current_custom_provider(config) else {
+            return false;
+        };
+
+        if provider
+            .get("experimental_bearer_token")
+            .and_then(toml::Value::as_str)
+            .is_some_and(|token| !token.trim().is_empty())
+        {
+            return true;
+        }
+
+        let forced_api = root
+            .get("forced_login_method")
+            .and_then(|value| value.as_str())
+            .is_some_and(|value| value.eq_ignore_ascii_case("api"));
+        forced_api && !Self::is_official_openai_custom_provider(&provider)
+    }
+
+    fn is_official_openai_custom_provider(provider: &toml::map::Map<String, toml::Value>) -> bool {
+        let name = provider.get("name").and_then(toml::Value::as_str);
+        let base_url = provider.get("base_url").and_then(toml::Value::as_str);
+        let requires_openai_auth = provider
+            .get("requires_openai_auth")
+            .and_then(toml::Value::as_bool)
+            .unwrap_or(false);
+        let has_bearer = provider
+            .get("experimental_bearer_token")
+            .and_then(toml::Value::as_str)
+            .is_some_and(|token| !token.trim().is_empty());
+        let has_env_key = provider
+            .get("env_key")
+            .and_then(toml::Value::as_str)
+            .is_some_and(|value| !value.trim().is_empty());
+
+        name == Some(OPENAI_PROVIDER_KEY)
+            && base_url == Some(OPENAI_DEFAULT_BASE_URL)
+            && requires_openai_auth
+            && !has_bearer
+            && !has_env_key
+    }
+
+    fn auth_has_openai_api_key_without_tokens(
+        auth: &serde_json::Map<String, serde_json::Value>,
+    ) -> bool {
+        let has_key = auth
+            .get("OPENAI_API_KEY")
+            .and_then(|value| value.as_str())
+            .is_some_and(|value| !value.trim().is_empty());
+        if !has_key {
+            return false;
+        }
+        !Self::auth_has_oauth_tokens(auth)
+    }
+
+    fn auth_has_oauth_tokens(auth: &serde_json::Map<String, serde_json::Value>) -> bool {
+        auth.get("tokens")
+            .and_then(|value| value.as_object())
+            .is_some_and(|tokens| {
+                ["id_token", "access_token", "refresh_token"]
+                    .iter()
+                    .any(|key| {
+                        tokens
+                            .get(*key)
+                            .and_then(|value| value.as_str())
+                            .is_some_and(|value| !value.trim().is_empty())
+                    })
+            })
+    }
+
+    fn scrub_stale_openai_api_key(&self) -> Result<bool> {
+        let auth_path = self.config_manager.auth_path();
+        if !auth_path.exists() {
+            return Ok(false);
+        }
+        let mut auth = self.config_manager.load_auth()?;
+        if !Self::auth_has_openai_api_key_without_tokens(&auth) {
+            return Ok(false);
+        }
+        auth.remove("OPENAI_API_KEY");
+        if auth.is_empty() {
+            std::fs::remove_file(auth_path).map_err(|error| {
+                CcrError::ConfigError(format!(
+                    "删除 Codex auth.json 失败 {}: {error}",
+                    auth_path.display()
+                ))
+            })?;
+        } else {
+            let serialized = serde_json::to_string_pretty(&auth).map_err(|error| {
+                CcrError::ConfigError(format!("序列化 Codex auth.json 失败: {error}"))
+            })?;
+            AtomicWriter::new(auth_path)
+                .secret(true)
+                .write_string(&serialized)?;
+            crate::utils::ensure_private_permissions(auth_path);
+        }
+        Ok(true)
+    }
+
     /// 🏗️ 创建新的 Codex Platform 实例
     pub fn new() -> Result<Self> {
         let paths = PlatformPaths::new(Platform::Codex)?;
@@ -1355,13 +1498,24 @@ impl CodexPlatform {
     }
 
     pub fn clear_active_profile_runtime(&self) -> Result<()> {
+        // 先记录指针/第三方形态；apply_runtime_route 会改写 config.toml。
+        let had_pointer = self.has_raw_profile_pointer()?;
+        let had_third_party = self.has_third_party_ccr_runtime()?;
+        let had_snapshot = self.has_profile_entry_auth_backup();
+
         self.apply_runtime_route_without_auth(
             &RouteSelection::Official {
                 relay_base_url: None,
             },
             Some(CredentialStoreKind::File),
         )?;
-        self.restore_profile_entry_auth_state()?;
+
+        if had_snapshot {
+            self.restore_profile_entry_auth_state()?;
+        } else if had_pointer || had_third_party {
+            self.scrub_stale_openai_api_key()?;
+        }
+
         self.clear_current_profile_registry()?;
         Ok(())
     }
@@ -2639,6 +2793,59 @@ mod tests {
                 .get("experimental_bearer_token")
                 .is_none()
         );
+    }
+
+    #[test]
+    fn clear_runtime_scrubs_openai_api_key_without_snapshot_when_pointer_exists() {
+        let env = TestCodexEnv::new();
+        write_file_store_config(env.codex_dir());
+        std::fs::write(
+            env.ccr_codex_dir().join("profiles.toml"),
+            "current_config = \"team\"\n\n[profiles.team]\nprovider = \"openai\"\n",
+        )
+        .unwrap();
+        std::fs::write(
+            env.codex_dir().join("auth.json"),
+            r#"{"OPENAI_API_KEY":"sk-stale-profile-key"}"#,
+        )
+        .unwrap();
+        let platform = CodexPlatform::new().unwrap();
+
+        assert!(platform.has_raw_profile_pointer().unwrap());
+        assert!(!platform.has_profile_entry_auth_backup());
+        platform.clear_active_profile_runtime().unwrap();
+
+        assert!(!env.codex_dir().join("auth.json").exists());
+    }
+
+    #[test]
+    fn clear_runtime_keeps_official_api_key_without_pointer_or_third_party() {
+        let env = TestCodexEnv::new();
+        write_file_store_config(env.codex_dir());
+        std::fs::write(
+            env.codex_dir().join("config.toml"),
+            r#"
+cli_auth_credentials_store = "file"
+model_provider = "custom"
+
+[model_providers.custom]
+name = "openai"
+base_url = "https://api.openai.com/v1"
+wire_api = "responses"
+requires_openai_auth = true
+"#,
+        )
+        .unwrap();
+        let auth = r#"{"OPENAI_API_KEY":"sk-official-keep"}"#;
+        std::fs::write(env.codex_dir().join("auth.json"), auth).unwrap();
+        let platform = CodexPlatform::new().unwrap();
+
+        assert!(!platform.has_raw_profile_pointer().unwrap());
+        assert!(!platform.has_third_party_ccr_runtime().unwrap());
+        platform.clear_active_profile_runtime().unwrap();
+
+        let auth_after = std::fs::read_to_string(env.codex_dir().join("auth.json")).unwrap();
+        assert_eq!(auth_after, auth);
     }
 
     #[test]

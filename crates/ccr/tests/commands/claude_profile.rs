@@ -479,3 +479,46 @@ fn claude_profile_crud_commands_support_vscode_surface() {
     assert!(delete_output.status.success(), "{:?}", delete_output.status);
     assert_eq!(delete_json["name"], "work");
 }
+
+#[test]
+fn claude_profile_off_clears_managed_env_without_pointer_and_keeps_user_key() {
+    let fixture = ClaudeProfileFixture::new();
+    fixture.write_unified_claude_profile(None);
+    fixture.save_claude_profiles("");
+    fs::write(
+        fixture.claude_dir.join("settings.json"),
+        serde_json::to_string_pretty(&serde_json::json!({
+            "env": {
+                "ANTHROPIC_BASE_URL": "https://anthropic-proxy.example.com",
+                "ANTHROPIC_AUTH_TOKEN": "sk-claude-proxy",
+                "ANTHROPIC_MODEL": "claude-sonnet-4-20250514",
+                "ANTHROPIC_API_KEY": "user-owned-key"
+            }
+        }))
+        .unwrap(),
+    )
+    .unwrap();
+
+    let (output, json) = fixture.run_json(&["claude", "profile", "off", "--json"]);
+    assert!(output.status.success(), "{:?}", output.status);
+    assert_eq!(json["ok"], true);
+    assert_eq!(json["changed"], true);
+    assert_eq!(json["runtime_mode"], "official_auth");
+    assert!(!output_contains_secret(&output, "sk-claude-proxy"));
+    assert!(!output_contains_secret(&output, "user-owned-key"));
+
+    let settings_after: Value = serde_json::from_str(
+        &fs::read_to_string(fixture.claude_dir.join("settings.json")).unwrap(),
+    )
+    .unwrap();
+    let env = settings_after["env"].as_object().unwrap();
+    assert!(!env.contains_key("ANTHROPIC_BASE_URL"));
+    assert!(!env.contains_key("ANTHROPIC_AUTH_TOKEN"));
+    assert!(!env.contains_key("ANTHROPIC_MODEL"));
+    assert_eq!(env["ANTHROPIC_API_KEY"], "user-owned-key");
+}
+
+fn output_contains_secret(output: &Output, secret: &str) -> bool {
+    String::from_utf8_lossy(&output.stdout).contains(secret)
+        || String::from_utf8_lossy(&output.stderr).contains(secret)
+}

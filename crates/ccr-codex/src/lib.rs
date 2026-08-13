@@ -70,6 +70,11 @@ pub(crate) mod test_support {
             set_env_var(&mut previous_vars, "CCR_DATA_DIR", root.as_os_str());
             set_env_var(&mut previous_vars, "CCR_CODEX_DIR", codex_dir.as_os_str());
             set_env_var(&mut previous_vars, "CCR_LOCK_DIR", lock_dir.as_os_str());
+            // inspect_runtime treats host CODEX_HOME / OpenAI env as overrides.
+            remove_env_var(&mut previous_vars, "CODEX_HOME");
+            remove_env_var(&mut previous_vars, "OPENAI_BASE_URL");
+            remove_env_var(&mut previous_vars, "OPENAI_API_KEY");
+            remove_env_var(&mut previous_vars, "CODEX_API_KEY");
 
             Self {
                 temp_dir,
@@ -138,6 +143,17 @@ pub(crate) mod test_support {
         // SAFETY: TestCodexEnv holds the process-wide ccr-codex test env lock until Drop.
         unsafe {
             std::env::set_var(key, value);
+        }
+    }
+
+    fn remove_env_var(
+        previous_vars: &mut Vec<(&'static str, Option<OsString>)>,
+        key: &'static str,
+    ) {
+        previous_vars.push((key, std::env::var_os(key)));
+        // SAFETY: TestCodexEnv holds the process-wide ccr-codex test env lock until Drop.
+        unsafe {
+            std::env::remove_var(key);
         }
     }
 

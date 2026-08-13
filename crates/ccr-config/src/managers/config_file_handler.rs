@@ -10,6 +10,7 @@ use crate::managers::config::CcsConfig;
 use ccr_core::AutoCompletable;
 use ccr_core::core::error::{CcrError, Result};
 use ccr_core::core::fileio;
+use ccr_core::core::guarded_write::WriteOptions;
 use ccr_core::core::{BackupPolicy, backup_guarded};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -109,8 +110,15 @@ impl ConfigFileHandler {
     ///
     /// ⚠️ **并发安全**: 此方法不加锁，调用方需要在外层使用 CONFIG_LOCK 保护 RMW 序列
     pub fn save(&self, config: &CcsConfig) -> Result<()> {
-        // 使用统一的 fileio 写入 TOML
-        fileio::write_toml(&self.config_path, config)?;
+        // profiles.toml 含明文 auth_token，必须按密文文件写盘。
+        fileio::write_toml_opts(
+            &self.config_path,
+            config,
+            &WriteOptions {
+                secret: true,
+                ..Default::default()
+            },
+        )?;
 
         tracing::debug!("✅ 配置文件已保存: {:?}", self.config_path);
         Ok(())
