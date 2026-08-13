@@ -1,7 +1,7 @@
 // TUI UI rendering module
 // Renders dynamic multi-platform profile switcher interface
 
-use super::app::App;
+use super::app::{App, TabVariant};
 use super::claude_auth;
 use super::codex_auth;
 use super::footer::{ShortcutHint, shortcut_line};
@@ -2209,15 +2209,23 @@ fn footer_text_for_width(app: &App, width: u16) -> String {
 }
 
 fn footer_hints_for_width(app: &App, width: u16) -> Vec<ShortcutHint<'static>> {
+    let is_profile = matches!(app.current_tab().variant, TabVariant::Profile);
+
     if width < 90 {
-        return vec![
+        let mut hints = vec![
             ShortcutHint::new("Tab", ""),
             ShortcutHint::new("↑↓", crate::tui_text!("select", "选择")),
             ShortcutHint::new("PgUp/PgDn", crate::tui_text!("details", "详情")),
             ShortcutHint::new("Enter", crate::tui_text!("apply", "应用")),
+        ];
+        if is_profile {
+            hints.push(ShortcutHint::new("o", ""));
+        }
+        hints.extend([
             ShortcutHint::new("Ctrl+L", crate::tui_text!("lang", "语言")),
             ShortcutHint::new("q", crate::tui_text!("quit", "退出")),
-        ];
+        ]);
+        return hints;
     }
 
     let mut hints = vec![ShortcutHint::new(
@@ -2231,6 +2239,14 @@ fn footer_hints_for_width(app: &App, width: u16) -> Vec<ShortcutHint<'static>> {
         ShortcutHint::new("↑↓/jk", crate::tui_text!("select", "选择")),
         ShortcutHint::new("PgUp/PgDn", crate::tui_text!("details", "详情")),
         ShortcutHint::new("Enter", crate::tui_text!("apply", "应用")),
+    ]);
+    if is_profile {
+        hints.push(ShortcutHint::new(
+            "o",
+            crate::tui_text!("off", "退出 Profile"),
+        ));
+    }
+    hints.extend([
         ShortcutHint::new("r", crate::tui_text!("reload", "刷新")),
         ShortcutHint::new("Ctrl+L", crate::tui_text!("language", "语言")),
         ShortcutHint::new("q", crate::tui_text!("quit", "退出")),
@@ -2453,12 +2469,27 @@ mod tests {
         let app = sample_profile_app(profile, ProfileConfig::new());
 
         assert!(footer_text(&app).contains("Tab/Shift+Tab switch"));
+        assert!(footer_text(&app).contains("o off"));
         // 快捷键只保留 footer 一处, Selection 面板不再重复
         assert!(
             !profile_meta_strings(1, 0, 1, app.selected_profile())
                 .iter()
                 .any(|line| line.contains("Tab/Shift+Tab switch"))
         );
+    }
+
+    #[test]
+    fn footer_omits_profile_off_on_auth_tabs() {
+        let profile = ProfileItem {
+            name: "default".to_string(),
+            description: Some("Default profile".to_string()),
+            is_current: false,
+        };
+        let mut app = sample_profile_app(profile, ProfileConfig::new());
+        app.tabs[0].variant = TabVariant::ClaudeAuth;
+
+        assert!(!footer_text(&app).contains("o off"));
+        assert!(!footer_text_for_width(&app, 80).contains(" o "));
     }
 
     #[test]

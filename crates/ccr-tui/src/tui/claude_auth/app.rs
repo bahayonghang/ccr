@@ -8,9 +8,10 @@ use crate::tui::pagination::{
 };
 use crate::tui::runtime::TuiApp;
 use crate::tui::toast::{Toast, ToastManager};
+use ccr_cli::application::profile_off_for_platform;
 use ccr_cli::models::{
     ClaudeAuthActionOutcome, ClaudeAuthRegistry, ClaudeAuthSourceObservation,
-    ClaudeCurrentAuthInfo, ClaudeLoginState, ClaudeRuntimeMode, ClaudeRuntimeSummary,
+    ClaudeCurrentAuthInfo, ClaudeLoginState, ClaudeRuntimeMode, ClaudeRuntimeSummary, Platform,
 };
 use ccr_cli::services::{ClaudeAuthItem, ClaudeAuthService};
 use ccr_core::core::error::Result;
@@ -448,6 +449,15 @@ impl ClaudeAuthApp {
                 .to_string(),
             };
             self.toasts.push(Toast::info(message));
+            return Ok(false);
+        }
+
+        if let Err(err) = profile_off_for_platform(Platform::Claude) {
+            self.toasts.push(Toast::error(crate::tui_format!(
+                "Exit profile failed: {}",
+                "退出 Profile 失败：{}",
+                err
+            )));
             return Ok(false);
         }
 

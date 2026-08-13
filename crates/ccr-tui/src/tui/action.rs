@@ -32,6 +32,8 @@ pub enum Action {
     ApplySelected,
     /// Apply the currently selected profile and quit
     ApplyAndQuit,
+    /// Exit profile mode and clear CCR login leftovers
+    ProfileOff,
     /// Refresh data from disk
     Reload,
 }
