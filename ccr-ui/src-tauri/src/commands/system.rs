@@ -13,6 +13,7 @@ use tokio::sync::Semaphore;
 use tokio::time::Duration;
 use ts_rs::TS;
 
+use crate::commands::wire::json_number_from_f64;
 use crate::monitoring::{
     event_to_monitoring_entry, frontend_log_entry, record_monitoring_entry, should_persist,
 };
@@ -113,9 +114,7 @@ impl From<JsonValueDto> for serde_json::Value {
         match value {
             JsonValueDto::Null => Self::Null,
             JsonValueDto::Bool(value) => Self::Bool(value),
-            JsonValueDto::Number(value) => serde_json::Number::from_f64(value)
-                .map(Self::Number)
-                .unwrap_or(Self::Null),
+            JsonValueDto::Number(value) => json_number_from_f64(value),
             JsonValueDto::String(value) => Self::String(value),
             JsonValueDto::Array(values) => {
                 Self::Array(values.into_iter().map(Self::from).collect())

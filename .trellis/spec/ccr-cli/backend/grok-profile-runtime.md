@@ -214,7 +214,8 @@ third-party required-model invariant.
   `ccr platform switch/profile` commands continue to return migration errors.
 - `api_backend` persists as a lowercase string, `api_key` as one non-empty
   string, `env_key` as one environment-variable-name string, `context_window`
-  as a positive JSON/TOML integer, and
+  as a positive integer (integer JSON, whole-number JSON floats from the Tauri
+  `f64` IPC path, or a numeric string; persist as TOML integer), and
   `supports_backend_search` as a boolean. `--clear` removes any of them.
 - `reasoning_effort` persists as one of the 7 canonical levels, trimmed and
   normalized to lowercase. `--clear` removes it and JSON summaries expose it
@@ -239,7 +240,9 @@ third-party required-model invariant.
   accepted values.
 - Empty/non-string `api_key` -> Chinese non-empty-string error.
 - Array/comma-shaped `env_key` -> Chinese single-environment-variable error.
-- Zero/non-integer `context_window` -> Chinese positive-integer error.
+- Zero/negative/fractional/non-numeric `context_window` -> Chinese
+  positive-integer error. `Number::from_f64(500_000.0)` is accepted;
+  `from_f64(1.5)` is rejected.
 - Backend-search outside `true|false|1|0` -> Chinese boolean error.
 - Empty, JSON/non-string, or non-canonical reasoning effort -> Chinese
   validation error listing the allowed values.
@@ -262,6 +265,10 @@ third-party required-model invariant.
 
 - `cargo test -p ccr-cli platform -- --test-threads=1`
   - Assert typed parsing, clearing, invalid values, and Grok editable fields.
+  - Assert `context_window` accepts IPC whole-number floats (`500_000.0`) and
+    rejects fractional floats (`1.5`).
+- `cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml ipc_f64_context_window -- --test-threads=1`
+  - Assert `OpenJsonValueDto::Number(500_000.0)` survives patch + `as_u64()`.
 - `cargo test -p ccr --test commands grok_profile -- --test-threads=1`
   - Assert create/switch/current/list/set/off/delete, output redaction, entry
     restoration, reasoning-effort mapping/clearing, drift detection, drifted

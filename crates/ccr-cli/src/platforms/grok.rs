@@ -36,6 +36,31 @@ const GROK_EDITABLE_FIELDS: &[&str] = &[
     "reasoning_effort",
 ];
 
+fn json_positive_i64(value: &JsonValue) -> Option<i64> {
+    match value {
+        JsonValue::Number(number) => {
+            if let Some(value) = number
+                .as_u64()
+                .and_then(|value| i64::try_from(value).ok())
+                .filter(|value| *value > 0)
+            {
+                return Some(value);
+            }
+            if let Some(value) = number.as_i64().filter(|value| *value > 0) {
+                return Some(value);
+            }
+            let value = number.as_f64()?;
+            if !value.is_finite() || value <= 0.0 {
+                return None;
+            }
+            let as_i = value as i64;
+            (as_i as f64 == value && as_i > 0).then_some(as_i)
+        }
+        JsonValue::String(value) => value.trim().parse::<i64>().ok().filter(|value| *value > 0),
+        _ => None,
+    }
+}
+
 /// Credential source selected for one Grok profile.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GrokProfileAuthMode {
@@ -327,26 +352,9 @@ impl GrokPlatform {
     fn profile_context_window(profile: &ProfileConfig) -> Result<Option<i64>> {
         match profile.platform_data.get("context_window") {
             None | Some(JsonValue::Null) => Ok(None),
-            Some(JsonValue::Number(value)) => value
-                .as_u64()
-                .filter(|value| *value > 0)
-                .and_then(|value| i64::try_from(value).ok())
-                .map(Some)
-                .ok_or_else(|| {
-                    CcrError::ValidationError("Grok context_window 必须是正整数".into())
-                }),
-            Some(JsonValue::String(value)) => value
-                .trim()
-                .parse::<i64>()
-                .ok()
-                .filter(|value| *value > 0)
-                .map(Some)
-                .ok_or_else(|| {
-                    CcrError::ValidationError("Grok context_window 必须是正整数".into())
-                }),
-            Some(_) => Err(CcrError::ValidationError(
-                "Grok context_window 必须是正整数".into(),
-            )),
+            Some(value) => json_positive_i64(value).map(Some).ok_or_else(|| {
+                CcrError::ValidationError("Grok context_window 必须是正整数".into())
+            }),
         }
     }
 
@@ -1328,6 +1336,16 @@ api_key = "INLINE_SECRET_SENTINEL"
         profile
             .platform_data
             .insert("context_window".into(), json!(0));
+        assert!(platform.validate_profile(&profile).is_err());
+        profile.platform_data.insert(
+            "context_window".into(),
+            JsonValue::Number(serde_json::Number::from_f64(500_000.0).expect("finite")),
+        );
+        assert!(platform.validate_profile(&profile).is_ok());
+        profile.platform_data.insert(
+            "context_window".into(),
+            JsonValue::Number(serde_json::Number::from_f64(1.5).expect("finite")),
+        );
         assert!(platform.validate_profile(&profile).is_err());
 
         let mut profile = third_party_profile();
