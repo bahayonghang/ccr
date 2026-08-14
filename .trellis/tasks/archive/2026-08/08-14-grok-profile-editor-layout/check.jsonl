@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/ccr-ui/frontend/profiles-page-contracts.md", "reason": "Verify Grok patch/kind contracts and required Profiles smoke set"}
+{"file": ".trellis/spec/ccr-ui/frontend/theme-token-contracts.md", "reason": "Verify no parallel tokens and visual checks stay on theme contracts"}
