@@ -3,8 +3,8 @@
 > Claude Code / Codex / Grok Profiles 页面的共享骨架契约，以及平台 profile 表单的序列化契约。
 >
 > 适用范围：`ccr-ui/src/views/{ClaudeCodeProfilesView,CodexProfilesView,grok/GrokProfilesView}.vue`、
-> `ccr-ui/src/components/profiles/*`、`ccr-ui/src/components/{claude,codex}/` 下的 profile 卡片与编辑器模态、
-> `ccr-ui/src/utils/{claudeProfiles,claudeProfileEditor,codexProfiles,codexProfileEditor}.ts`。
+> `ccr-ui/src/components/profiles/*`、`ccr-ui/src/components/{claude,codex,grok}/` 下的 profile 卡片与编辑器模态、
+> `ccr-ui/src/utils/{claudeProfiles,claudeProfileEditor,codexProfiles,codexProfileEditor,grokProfiles,grokProfileEditor}.ts`。
 
 ---
 
@@ -177,6 +177,23 @@ Off 横幅仅在后端 `can_off === true` 时出现，放在 Header 与 StatStri
 **Don't**：不要为某个平台的编辑器再建一套平行令牌（历史上的 `--editor-*` / `--agent-*` 体系）。
 那会同时带来 `!important` 覆盖、硬编码明暗 RGBA 和独立暗色覆盖块，
 并让主题/口味切换在该模态内失效。
+
+### Convention：编辑器模态的限高与唯一滚动根
+
+**What**：Claude / Codex / Grok 编辑器把 `pe-shell` 放在 BaseModal **默认槽**内，并加上
+`max-h-[calc(90vh-9rem)] overflow-hidden`。`.pe-scroll` 是该壳内唯一的 `overflow-y: auto`
+根；段导航与 `pe-footer` 留在壳内、不进滚动区。`content-class` 只打 `pe-modal`（可加平台钩子），
+不要把 `pe-shell` 打在 BaseModal 面板上。不要开 `BaseModal.scrollable`。
+
+**Why**：`.pe-scroll` 的 `flex: 1; min-height: 0; overflow-y: auto` 只在祖先已限高时生效。
+打开模态时 `document.body` 会被锁滚动。若面板无限高，整卡被视口裁切，页脚不可达。
+`scrollable` 会让 BaseModal body 自己滚动；再套 `.pe-scroll` 就会双滚动。
+
+**Don't**：不要用 `scrollable` 当长表单的快捷修复；不要指望把 `pe-shell` 写进 `content-class`
+就能限高。
+
+> **Warning**：Grok 第三方创建态曾把 `pe-shell` 打在面板上、内部再包 `.pe-scroll`、且未开
+> `scrollable`。结果是内部滚不动、页面也滚不动，Enabled 与保存被裁切。
 
 ### Convention：QuickSwitch 持久化与稳定编号
 

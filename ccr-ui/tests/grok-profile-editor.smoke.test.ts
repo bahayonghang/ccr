@@ -215,6 +215,115 @@ describe('GrokProfileEditorModal smoke', () => {
       element.remove()
     }
   })
+
+  it('renders the shared pe-shell navigation, scroll root, and footer for third-party profiles', async () => {
+    const element = document.createElement('div')
+    document.body.appendChild(element)
+    const form = reactive(editorForm())
+    const app = createApp(defineComponent({
+      setup() {
+        return () => h(GrokProfileEditorModal, {
+          modelValue: true,
+          editingName: 'relay',
+          saving: false,
+          form,
+          updateField: vi.fn(),
+        })
+      },
+    }))
+
+    app.mount(element)
+    await nextTick()
+
+    try {
+      const shell = element.querySelector('.pe-shell')
+      expect(shell).not.toBeNull()
+      expect(shell?.className).toMatch(/max-h-\[calc\(90vh-9rem\)\]/)
+      expect(shell?.classList.contains('overflow-hidden')).toBe(true)
+      expect(element.querySelector('.pe-nav')).not.toBeNull()
+      expect(element.querySelector('.pe-scroll')).not.toBeNull()
+      expect(element.querySelector('.pe-footer')).not.toBeNull()
+      expect(Array.from(element.querySelectorAll('.pe-nav__item')).map(item => item.textContent))
+        .toContain('grok.profiles.editor.connection')
+    } finally {
+      app.unmount()
+      element.remove()
+    }
+  })
+
+  it('omits the connection nav item for official profiles', async () => {
+    const element = document.createElement('div')
+    document.body.appendChild(element)
+    const form = reactive(fillGrokForm(officialProfile))
+    const app = createApp(defineComponent({
+      setup() {
+        return () => h(GrokProfileEditorModal, {
+          modelValue: true,
+          editingName: 'official',
+          saving: false,
+          form,
+          updateField: vi.fn(),
+        })
+      },
+    }))
+
+    app.mount(element)
+    await nextTick()
+
+    try {
+      const navItems = Array.from(element.querySelectorAll('.pe-nav__item')).map(item => item.textContent)
+      expect(navItems).toContain('grok.profiles.editor.identity')
+      expect(navItems).toContain('grok.profiles.editor.runtime')
+      expect(navItems).toContain('grok.profiles.editor.status')
+      expect(navItems).not.toContain('grok.profiles.editor.connection')
+      expect(element.querySelector('#connection')).toBeNull()
+      expect(element.querySelector('.pe-scroll')).not.toBeNull()
+      expect(element.querySelector('.pe-footer')).not.toBeNull()
+    } finally {
+      app.unmount()
+      element.remove()
+    }
+  })
+
+  it('shows a jump control when save validation fails', async () => {
+    const element = document.createElement('div')
+    document.body.appendChild(element)
+    const form = reactive(createEmptyGrokForm())
+    form.profileKind = 'third_party'
+    const save = vi.fn()
+    const app = createApp(defineComponent({
+      setup() {
+        return () => h(GrokProfileEditorModal, {
+          modelValue: true,
+          editingName: null,
+          saving: false,
+          form,
+          updateField: vi.fn(),
+          onSave: save,
+        })
+      },
+    }))
+
+    app.mount(element)
+    await nextTick()
+
+    try {
+      const saveButton = Array.from(element.querySelectorAll('button'))
+        .find(button => button.textContent?.includes('grok.profiles.actions.save'))
+      expect(saveButton).toBeDefined()
+      saveButton?.click()
+      await nextTick()
+
+      expect(save).not.toHaveBeenCalled()
+      expect(element.querySelector('.pe-summary')).not.toBeNull()
+      expect(element.querySelector('.pe-summary__jump')).not.toBeNull()
+      expect(element.querySelector('.pe-summary__jump')?.textContent)
+        .toContain('grok.profiles.editor.validationJump')
+    } finally {
+      app.unmount()
+      element.remove()
+    }
+  })
 })
 
 describe('GrokProfileCard smoke', () => {
