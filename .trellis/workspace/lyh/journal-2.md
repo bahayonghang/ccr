@@ -1056,3 +1056,39 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 89: Grok 编辑器滚动与 IPC 整数
+
+**Date**: 2026-08-14
+**Task**: Grok 编辑器滚动与 IPC 整数
+**Branch**: `dev`
+
+### Summary
+
+对齐 Grok Profile 编辑器限高 pe-shell，修复第三方长表单无法滚动；IPC 把整值 f64 还原为整数，context_window=500000 可通过校验。
+
+### Main Changes
+
+- Grok 编辑器改为限高 pe-shell + 唯一 pe-scroll，页脚固定
+- IPC json_number_from_f64 还原无损整数，Grok context_window 接受整值 float
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `4b44c637` | (see git log) |
+| `466cc409` | (see git log) |
+
+### Testing
+
+- [OK] grok-profile-editor smoke 与 1280/1440 视觉核对
+- [OK] cargo test wire/grok f64；ccr-cli validates_credential
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 重启 Tauri 后端后保存 context_window=500000 做现场确认
