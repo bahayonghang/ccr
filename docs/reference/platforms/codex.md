@@ -18,7 +18,7 @@ ccr codex fix
 
 - `ccr codex auth ...`：保存 / 切换 / 导入导出 official auth 账号
 - `ccr codex profile ...`：把 profile 写入 `~/.codex/config.toml` 与 `~/.codex/auth.json`
-- `ccr codex profile off`：退出 profile mode，恢复到 official auth runtime
+- `ccr codex profile off`：退出 profile mode，清除 CCR profile 路由与运行期 `auth.json`，为 `codex login` 准备干净的 official runtime
 
 ## 关键路径
 
@@ -63,8 +63,10 @@ enabled = true
 应用时 CCR 固定使用 `[model_providers.custom]`，并自动派生
 `preferred_auth_method = "apikey"` 与 `forced_login_method = "api"`。最终 runtime
 形态见 [`codex-cli-config.toml`](https://raw.githubusercontent.com/bahayonghang/ccr/main/docs/examples/codex-cli-config.toml)。
-切换到其他 profile 或执行 `ccr codex profile off` 会清除上述根字段与
-`experimental_bearer_token`。
+切换到其他 profile 会替换上述字段。执行 `ccr codex profile off` 会删除根级
+`model_provider`、CCR 管理的 `model_providers.custom`、其他 profile 根字段和运行期
+`auth.json`，但会原样保留 `model_reasoning_effort`。没有 profile 指针、旧版入口快照或
+第三方 runtime 时，命令保持现有 official `auth.json` 不变。
 
 ::: warning 凭据与同步边界
 `~/.codex/config.toml` 和 CCR 创建的 `~/.codex/backups/config.*.bak` 会包含明文 bearer，

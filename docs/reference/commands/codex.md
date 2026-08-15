@@ -23,7 +23,7 @@ ccr codex profile off
 | 命令组 | 作用 |
 |---|---|
 | `ccr codex auth ...` | 保存、切换、导出、导入 official auth 账号 |
-| `ccr codex profile ...` | 把某个 CCR profile 应用到 Codex runtime，或退出回到 official auth runtime |
+| `ccr codex profile ...` | 把某个 CCR profile 应用到 Codex runtime，或清理 profile 路由与运行期凭据 |
 
 ## `profile` 当前支持面
 

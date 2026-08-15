@@ -18,7 +18,7 @@ ccr codex fix
 
 - `ccr codex auth ...`: save / switch / import / export official-auth accounts
 - `ccr codex profile ...`: write a CCR profile into `~/.codex/config.toml` and `~/.codex/auth.json`
-- `ccr codex profile off`: leave profile mode and restore the official-auth runtime
+- `ccr codex profile off`: leave profile mode, remove the CCR profile route and runtime `auth.json`, and prepare a clean official runtime for `codex login`
 
 ## Key paths
 
@@ -63,8 +63,11 @@ enabled = true
 When applied, CCR keeps the provider id fixed at `[model_providers.custom]` and derives
 `preferred_auth_method = "apikey"` plus `forced_login_method = "api"`. See the resulting runtime
 shape in [`codex-cli-config.toml`](https://raw.githubusercontent.com/bahayonghang/ccr/main/docs/examples/codex-cli-config.toml).
-Switching to another profile or running `ccr codex profile off` removes these root fields and
-`experimental_bearer_token`.
+Switching to another profile replaces these fields. Running `ccr codex profile off` removes the
+root `model_provider`, the CCR-managed `model_providers.custom` entry, other profile root fields,
+and runtime `auth.json`, while preserving `model_reasoning_effort` verbatim. When there is no
+profile pointer, legacy entry snapshot, or third-party runtime, the command leaves the existing
+official `auth.json` unchanged.
 
 ::: warning Credential and sync boundary
 `~/.codex/config.toml` and CCR-created `~/.codex/backups/config.*.bak` files contain the bearer in

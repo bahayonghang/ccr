@@ -23,7 +23,7 @@ ccr codex profile off
 | Command family | Purpose |
 |---|---|
 | `ccr codex auth ...` | save, switch, export, and import official auth accounts |
-| `ccr codex profile ...` | apply a CCR profile into the Codex runtime or exit back to official-auth runtime |
+| `ccr codex profile ...` | apply a CCR profile into the Codex runtime or clear its route and runtime credentials |
 
 ## Current `profile` surface
 
