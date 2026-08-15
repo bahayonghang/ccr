@@ -284,12 +284,12 @@ fn codex_profile_current_json_returns_single_codex_card() {
 }
 
 #[test]
-fn codex_profile_switch_and_off_are_consistent_and_off_keeps_auth_json() {
+fn codex_profile_switch_and_off_clears_runtime_route_and_auth_json() {
     let fixture = CodexProfileFixture::new();
     fixture.write_unified_codex_profile(Some("official"));
     fixture.save_codex_profiles("official");
     fixture.write_codex_runtime_official_with_credential_store("keyring");
-    let auth_before = fixture.write_auth_json_with_oauth();
+    fixture.write_auth_json_with_oauth();
 
     let switch_output = fixture.run_output(&["codex", "profile", "switch", "team"]);
     assert!(
@@ -333,6 +333,15 @@ fn codex_profile_switch_and_off_are_consistent_and_off_keeps_auth_json() {
         "API-key profile switching must clear stale OAuth tokens"
     );
 
+    let config_path = fixture.codex_dir.join("config.toml");
+    let mut runtime_config: toml::Value =
+        toml::from_str(&fs::read_to_string(&config_path).unwrap()).unwrap();
+    runtime_config.as_table_mut().unwrap().insert(
+        "model_reasoning_effort".into(),
+        toml::Value::String("xhigh".into()),
+    );
+    fs::write(&config_path, toml::to_string(&runtime_config).unwrap()).unwrap();
+
     let off_output = fixture.run_output(&["codex", "profile", "off"]);
     assert!(off_output.status.success(), "{:?}", off_output.status);
 
@@ -359,8 +368,25 @@ fn codex_profile_switch_and_off_are_consistent_and_off_keeps_auth_json() {
     .unwrap();
     assert_eq!(profiles.current_config, "");
 
-    let auth_after = fs::read_to_string(fixture.codex_dir.join("auth.json")).unwrap();
-    assert_eq!(auth_after, auth_before);
+    let cleared_config: toml::Value =
+        toml::from_str(&fs::read_to_string(fixture.codex_dir.join("config.toml")).unwrap())
+            .unwrap();
+    let cleared_root = cleared_config.as_table().unwrap();
+    assert!(cleared_root.get("model_provider").is_none());
+    assert_eq!(
+        cleared_root
+            .get("model_reasoning_effort")
+            .and_then(toml::Value::as_str),
+        Some("xhigh")
+    );
+    assert!(
+        cleared_root
+            .get("model_providers")
+            .and_then(toml::Value::as_table)
+            .and_then(|providers| providers.get("custom"))
+            .is_none()
+    );
+    assert!(!fixture.codex_dir.join("auth.json").exists());
 }
 
 #[test]
@@ -399,7 +425,7 @@ fn codex_profile_switches_deepseek_bearer_and_clears_runtime_on_off() {
 
     let auth_path = fixture.codex_dir.join("auth.json");
     let auth: Value = if auth_path.exists() {
-        serde_json::from_str(&fs::read_to_string(auth_path).unwrap()).unwrap()
+        serde_json::from_str(&fs::read_to_string(&auth_path).unwrap()).unwrap()
     } else {
         Value::Object(Default::default())
     };
@@ -416,6 +442,7 @@ fn codex_profile_switches_deepseek_bearer_and_clears_runtime_on_off() {
         toml::from_str(&fs::read_to_string(fixture.codex_dir.join("config.toml")).unwrap())
             .unwrap();
     let root = cleared.as_table().unwrap();
+    assert!(root.get("model_provider").is_none());
     assert!(root.get("model_catalog_json").is_none());
     assert!(root.get("preferred_auth_method").is_none());
     assert!(root.get("forced_login_method").is_none());
@@ -427,6 +454,7 @@ fn codex_profile_switches_deepseek_bearer_and_clears_runtime_on_off() {
             .and_then(|provider| provider.get("experimental_bearer_token"))
             .is_none()
     );
+    assert!(!auth_path.exists());
 }
 
 #[test]
@@ -445,12 +473,12 @@ fn codex_profile_off_is_idempotent_when_no_active_profile() {
 }
 
 #[test]
-fn codex_profile_off_clears_stale_profiles_file_pointer_without_touching_auth_json() {
+fn codex_profile_off_clears_stale_profiles_file_pointer_and_auth_json() {
     let fixture = CodexProfileFixture::new();
     fixture.write_unified_codex_profile(None);
     fixture.save_codex_profiles("team");
     fixture.write_codex_runtime_official();
-    let auth_before = fixture.write_auth_json_with_oauth();
+    fixture.write_auth_json_with_oauth();
 
     let output = fixture.run_output(&["codex", "profile", "off"]);
     assert!(output.status.success(), "{:?}", output.status);
@@ -478,8 +506,7 @@ fn codex_profile_off_clears_stale_profiles_file_pointer_without_touching_auth_js
     .unwrap();
     assert_eq!(profiles.current_config, "");
 
-    let auth_after = fs::read_to_string(fixture.codex_dir.join("auth.json")).unwrap();
-    assert_eq!(auth_after, auth_before);
+    assert!(!fixture.codex_dir.join("auth.json").exists());
 }
 
 #[test]

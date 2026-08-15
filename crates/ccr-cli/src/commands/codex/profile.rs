@@ -222,7 +222,7 @@ pub async fn off_command(json: bool) -> Result<()> {
 
     if result.changed {
         ColorOutput::success(&format!(
-            "已退出 Codex profile '{}'，当前回到 official auth runtime",
+            "已退出 Codex profile '{}'，已清理 profile 路由与 auth.json；可重新执行 codex login",
             result
                 .previous_profile
                 .as_deref()
