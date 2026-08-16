@@ -70,11 +70,14 @@
 - Runtime config writes use `secret: true` and `BackupPolicy::None`. The entry
   state owns restoration; creating same-directory runtime backups would add an
   undisclosed plaintext credential location.
-- `off` restores runtime state before clearing pointers. CLI, TUI, and Tauri
-  call `profile_off_for_platform(Platform::Grok)`; they must not call
+- `off` removes `[model.custom]` and `[models].default`, restores the entry
+  `models.default_reasoning_effort`, and preserves unrelated TOML before
+  clearing pointers. CLI, TUI, and Tauri call
+  `profile_off_for_platform(Platform::Grok)`; they must not call
   `clear_active_profile_runtime` as a second write path. If the entry state is
-  missing while activation intent or CCR-managed runtime shape remains, it
-  fails closed and leaves pointers/runtime unchanged for manual recovery.
+  missing while activation intent or CCR-managed runtime shape remains, `off`
+  performs bounded cleanup of `[model.custom]` and `[models].default`, leaves
+  `models.default_reasoning_effort` unchanged, and clears profile pointers.
 - Delete checks raw registry and profiles intent plus runtime equality without
   calling drift detection. A drifted active profile still requires `off`.
 - `inspect_activation_state` is the only activation-state authority for UI
@@ -102,8 +105,9 @@
   `ValidationError` containing `请重试` and no overwrite.
 - Concurrent CCR apply/off/delete -> serialize on `grok_profile_operation`;
   lock timeout -> propagate the lock error without starting a mutation.
-- Missing entry state with active intent/managed shape -> `ConfigError`; do not
-  clear pointers or delete a profile.
+- Missing entry state with active intent/managed shape -> `off` performs
+  bounded route cleanup without changing `models.default_reasoning_effort`.
+  Direct profile deletion still fails closed until `off` has completed.
 - Malformed runtime/profile TOML -> sanitized `ConfigFormatInvalid`; never echo
   the offending credential line.
 - Active or drifted-active delete -> `ValidationError` directing the caller to
@@ -112,8 +116,8 @@
 ## 5. Good/Base/Bad Cases
 
 - Good: an `api_key` relay switches through `[model.custom]`, preserves `[ui]`
-  and `[session]`, omits the key from command output, then `off` restores the
-  original custom entry and default.
+  and `[session]`, omits the key from command output, then `off` removes the
+  custom entry and `models.default` while restoring the entry reasoning effort.
 - Good: a legacy `env_key` relay still resolves one named environment variable.
 - Good: a relay with `reasoning_effort = "high"` writes all three managed
   reasoning values; switching to an unset profile restores the entry default.
@@ -134,13 +138,13 @@
 
 - `cargo test -p ccr-cli grok -- --test-threads=1`
   - Assert official/third-party validation, field mapping, unmanaged TOML
-    preservation, reasoning-effort mapping, round-trip restoration, legacy
-    entry-state compatibility, and entry-state non-overwrite.
+    preservation, reasoning-effort mapping, profile-switch restoration, off
+    cleanup, legacy entry-state compatibility, and entry-state non-overwrite.
   - Assert first/second CAS conflict behavior and registry-failure recovery.
   - Assert a second multi-file mutation cannot acquire the operation lock while
     the first owner holds it.
-  - Assert missing-state `off` fails closed and drifted inline profiles cannot
-    be deleted before `off`.
+  - Assert missing-state `off` performs bounded cleanup and drifted inline
+    profiles cannot be deleted before `off`.
   - Assert runtime/profile malformed-TOML sentinel values are absent from
     returned errors and unsafe URL forms lose userinfo/query/fragment.
 - Run `just fmt-check`, `just lint-strict`, and `just test` before delivery.
@@ -270,9 +274,9 @@ third-party required-model invariant.
 - `cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml ipc_f64_context_window -- --test-threads=1`
   - Assert `OpenJsonValueDto::Number(500_000.0)` survives patch + `as_u64()`.
 - `cargo test -p ccr --test commands grok_profile -- --test-threads=1`
-  - Assert create/switch/current/list/set/off/delete, output redaction, entry
-    restoration, reasoning-effort mapping/clearing, drift detection, drifted
-    force deletion, and legacy-route rejection.
+  - Assert create/switch/current/list/set/off/delete, output redaction, managed
+    route cleanup, reasoning-effort mapping/restoration, drift detection,
+    drifted force deletion, and legacy-route rejection.
 - Parse `docs/examples/grok-profiles.toml` through `ccr grok profile list`.
 - Run local Grok `inspect --json` with a temporary `GROK_HOME` containing
   `docs/examples/grok-cli-config.toml`; its `configSources` must name that

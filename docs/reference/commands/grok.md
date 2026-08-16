@@ -15,7 +15,7 @@
 | `ccr grok profile disable <name>` | 禁用 profile |
 | `ccr grok profile delete <name>` | 删除 profile；活动项需先 off，或使用 `--force` |
 | `ccr grok profile open` | 用 $VISUAL/$EDITOR 或系统关联程序打开 profiles.toml；文件不存在时先从模板创建 |
-| `ccr grok profile off` | 恢复进入 CCR profile mode 前的 Grok 配置 |
+| `ccr grok profile off` | 退出 profile mode，并删除 `[model.custom]` 与 `[models].default` |
 
 ## 创建 Profile
 

@@ -23,7 +23,7 @@
 - `needs_login_prep` is the only `can_off` source for UI. Frontends must not inspect home files.
 - Claude: true when registry/`profiles.toml` pointer is set, or `settings.json` has any `CCR_MANAGED_KEYS`. Clear those keys. Keep user `ANTHROPIC_API_KEY`. Report it in `remaining_suppressors`.
 - Codex: true when raw pointer, legacy entry auth snapshot, or CCR third-party runtime exists. A non-official `model_providers.custom` shape counts as third-party runtime even without a bearer or `forced_login_method`. New profile switches do not persist an entry auth snapshot. Off removes the root `model_provider`, the CCR-managed `model_providers.custom` entry, and other CCR profile fields, but preserves `model_reasoning_effort` verbatim, deletes runtime `auth.json`, then discards any legacy entry auth snapshot. Official API-key `auth.json` without pointer, snapshot, or third-party runtime stays unchanged.
-- Grok: true when `inspect_activation_state` is not `Inactive`. Missing entry state with intent/managed shape fails closed. Do not guess-delete.
+- Grok: true when `inspect_activation_state` is not `Inactive`. Off removes `[model.custom]` and `[models].default`, restores the entry `models.default_reasoning_effort`, and preserves unrelated TOML. When entry state is missing, off performs the same bounded route cleanup but leaves `models.default_reasoning_effort` unchanged. Direct profile deletion still fails closed until off completes.
 - Backup dir is `$CCR_ROOT/backups/profile-off/` (fallback `~/.ccr`). Snapshots use `AtomicWriter.secret(true)`. Unix backup dir mode is `0o700`. Codex snapshots include `profiles.toml`, registry, `config.toml`, and `auth.json`.
 - `ConfigFileHandler::save` writes `profiles.toml` with `secret: true`.
 - JSON/DTO/logs contain no credential values.
@@ -31,7 +31,7 @@
 ### 4. Validation & Error Matrix
 
 - No leftover and no pointer -> success, `changed=false`, no backup dir.
-- Grok unsafe missing entry state -> `ConfigError`, runtime bytes unchanged.
+- Grok missing entry state -> remove only `[model.custom]` and `[models].default`, preserve other runtime values, then clear pointers.
 - TUI apply/auth switch: off `Err` aborts apply/`switch_account`.
 - Non-local Tauri env -> `unsupported_environment`, no write.
 
@@ -45,7 +45,7 @@
 
 ### 6. Tests Required
 
-- `cargo test -p ccr-cli profile_off -- --test-threads=1`: leftover env, Grok fail-closed, backup under `CCR_ROOT`.
+- `cargo test -p ccr-cli profile_off -- --test-threads=1`: leftover env, Grok missing-state cleanup, backup under `CCR_ROOT`.
 - `cargo test -p ccr --test commands -- {claude,codex,grok}_profile -- --test-threads=1`: switch/off, Codex route and auth deletion, inactive official key kept.
 - `cargo test -p ccr-tui -- --test-threads=1`: Profile tab shows `o`; Auth tab does not.
 - UI smoke: banner visibility and confirm cancel does not invoke off.
