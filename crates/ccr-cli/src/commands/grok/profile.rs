@@ -347,7 +347,7 @@ pub async fn off_command(json: bool) -> Result<()> {
 
     if result.changed {
         ColorOutput::success(&format!(
-            "已退出 Grok profile '{}'，并恢复进入 profile mode 前的 config.toml",
+            "已退出 Grok profile '{}'，已清理 config.toml 中的 [model.custom] 与 [models].default",
             result
                 .previous_profile
                 .as_deref()

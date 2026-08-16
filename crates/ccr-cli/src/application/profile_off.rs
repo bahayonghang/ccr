@@ -527,7 +527,7 @@ mod tests {
     }
 
     #[test]
-    fn grok_profile_off_fails_closed_when_entry_state_is_missing() {
+    fn grok_profile_off_clears_managed_route_when_entry_state_is_missing() {
         let (home, grok_home) = grok_platform_home();
         let platform = GrokPlatform::new().unwrap();
         platform
@@ -543,17 +543,18 @@ mod tests {
         std::fs::remove_file(entry_state).unwrap();
 
         let runtime = grok_home.join("config.toml");
-        let before = std::fs::read(&runtime).unwrap();
         assert!(needs_login_prep(Platform::Grok).unwrap());
 
-        let error = match profile_off_for_platform(Platform::Grok) {
-            Err(error) => error,
-            Ok(_) => panic!("expected fail-closed Grok profile off"),
-        };
-        let message = error.to_string();
-        assert!(message.contains("入口配置状态缺失"));
-        assert!(!message.contains("EXAMPLE_GROK_API_KEY"));
-        assert_eq!(std::fs::read(&runtime).unwrap(), before);
+        let result = profile_off_for_platform(Platform::Grok).unwrap();
+        assert!(result.changed);
+        assert_eq!(result.previous_profile.as_deref(), Some("relay"));
+        assert_eq!(result.runtime_mode, "grok_native");
+
+        let raw = std::fs::read_to_string(runtime).unwrap();
+        assert!(!raw.contains("EXAMPLE_GROK_API_KEY"));
+        let config: toml::Value = toml::from_str(&raw).unwrap();
+        assert!(config.get("model").is_none());
+        assert!(config.get("models").is_none());
     }
 
     #[test]
