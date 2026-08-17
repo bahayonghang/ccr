@@ -1192,3 +1192,32 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 93: 根 scripts 分类与调用对齐
+
+**Date**: 2026-08-18
+**Task**: 根 scripts 分类与调用对齐
+**Branch**: `dev`
+
+### Summary
+
+将根 scripts 按职责拆成 version/drift/ci/quality，文档漂移收成单一 Python，并更新 just、CI 与 spec 调用。
+
+### Main Changes
+
+- 根 scripts 按职责分类并改齐调用路径
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `27aa9530` | (see git log) |
+
+### Testing
+
+- [OK] python unittest 28; just json-format-check secret-write-check version-check workflow-governance-check dependency-governance-check
+
+### Status
+
+[OK] **Completed**
