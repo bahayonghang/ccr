@@ -70,6 +70,7 @@ cmake-build-*/
 .workflow/
 .opencode/
 .antigravitycli/
+.impeccable/
 
 
 
