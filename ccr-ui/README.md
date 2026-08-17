@@ -2,7 +2,7 @@
 
 > CCR Desktop UI for advanced AI CLI configuration, runtime monitoring, sync, and usage insight workflows.
 
-[![Version](https://img.shields.io/badge/version-7.1.4-blue.svg)](../Cargo.toml)
+[![Version](https://img.shields.io/badge/version-7.1.5-blue.svg)](../Cargo.toml)
 [![Vue](https://img.shields.io/badge/Vue-3.5-4FC08D.svg)](https://vuejs.org/)
 [![Tauri](https://img.shields.io/badge/Tauri-2.10-FFC131.svg)](https://tauri.app/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6.svg)](https://www.typescriptlang.org/)
