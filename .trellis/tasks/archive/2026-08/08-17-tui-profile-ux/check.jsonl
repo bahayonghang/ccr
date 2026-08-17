@@ -1,0 +1,3 @@
+{"file": ".trellis/spec/ccr-tui/backend/index.md", "reason": "ccr-tui spec 入口与 Quality Check 约定"}
+{"file": ".trellis/spec/ccr-tui/backend/backend-guidelines.md", "reason": "check 阶段对照的 TUI 状态/渲染/错误处理/测试规范"}
+{"file": ".trellis/tasks/08-17-tui-profile-ux/research/critique-snapshot.md", "reason": "评审发现原文,验收时逐条核对 5 个优先问题是否闭环"}
