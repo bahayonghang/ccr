@@ -14,8 +14,8 @@ use tempfile::TempDir;
 
 const PROFILE_SECRET: &str = "fix-profile-secret-must-not-leak";
 const RUNTIME_SECRET: &str = "fix-runtime-secret-must-not-leak";
-#[cfg(unix)]
 const INVALID_STORE_SENTINEL: &str = "invalid-store-secret-must-not-leak";
+const DOCTOR_SECRET: &str = "doctor-secret-must-not-leak";
 
 struct CodexFixFixture {
     _temp_dir: TempDir,
@@ -239,23 +239,159 @@ experimental_bearer_token = "{RUNTIME_SECRET}"
         ]
     }
 
-    #[cfg(unix)]
-    fn install_fake_codex_doctor(&self) -> PathBuf {
-        use std::os::unix::fs::PermissionsExt;
+    fn doctor_count_path(&self) -> PathBuf {
+        self.home.join("doctor-count.txt")
+    }
 
+    fn doctor_spawn_count(&self) -> usize {
+        fs::read_to_string(self.doctor_count_path())
+            .map(|text| text.lines().filter(|line| !line.is_empty()).count())
+            .unwrap_or(0)
+    }
+
+    fn install_fake_codex(&self, payload: &str) -> PathBuf {
         let bin_dir = self.home.join("bin");
         fs::create_dir_all(&bin_dir).unwrap();
-        let codex = bin_dir.join("codex");
-        fs::write(
-            &codex,
-            "#!/bin/sh\nprintf '%s\\n' '{\"schemaVersion\":1,\"overallStatus\":\"ok\",\"codexVersion\":\"fixture-doctor\",\"checks\":{}}'\n",
-        )
-        .unwrap();
-        let mut permissions = fs::metadata(&codex).unwrap().permissions();
-        permissions.set_mode(0o755);
-        fs::set_permissions(&codex, permissions).unwrap();
+        let payload_path = self.home.join("doctor-payload.txt");
+        fs::write(&payload_path, payload).unwrap();
+        write_fake_codex_script(&bin_dir, &self.doctor_count_path(), &payload_path);
         bin_dir
     }
+
+    fn install_fake_codex_json(&self) -> PathBuf {
+        self.install_fake_codex(
+            r#"{"schemaVersion":1,"overallStatus":"ok","codexVersion":"fixture-doctor","checks":{}}"#,
+        )
+    }
+
+    fn install_fake_codex_json_with_secret(&self) -> PathBuf {
+        self.install_fake_codex(&format!(
+            r#"{{"schemaVersion":1,"overallStatus":"ok","codexVersion":"fixture-doctor","checks":{{"auth.credentials":{{"status":"ok","details":{{"OPENAI_API_KEY":"{DOCTOR_SECRET}"}}}}}}}}"#
+        ))
+    }
+
+    fn install_fake_codex_text(&self) -> PathBuf {
+        self.install_fake_codex("not-json-doctor-output\n")
+    }
+
+    fn install_fake_codex_warning(&self) -> PathBuf {
+        self.install_fake_codex(
+            r#"{"schemaVersion":1,"overallStatus":"warning","codexVersion":"fixture-doctor","checks":{"state.rollout_db_parity":{"status":"warning","details":{"search provider":"none","configured servers":[]}},"config.load":{"status":"ok","details":{"model provider":"custom"}}}}"#,
+        )
+    }
+
+    fn make_runtime_match(&self) {
+        fs::write(
+            self.codex_dir.join("auth.json"),
+            serde_json::to_vec_pretty(&json!({ "OPENAI_API_KEY": PROFILE_SECRET })).unwrap(),
+        )
+        .unwrap();
+    }
+
+    fn install_fake_codex_mutating_profiles(&self) -> PathBuf {
+        let profiles = self.root.join("platforms/codex/profiles.toml");
+        let mutated = self.home.join("mutated-profiles.toml");
+        let original = fs::read_to_string(&profiles).unwrap();
+        fs::write(
+            &mutated,
+            original.replace(
+                "current_config = \"future\"",
+                "current_config = \"mutated\"",
+            ),
+        )
+        .unwrap();
+        let bin_dir = self.home.join("bin");
+        fs::create_dir_all(&bin_dir).unwrap();
+        let payload_path = self.home.join("doctor-payload.txt");
+        fs::write(
+            &payload_path,
+            r#"{"schemaVersion":1,"overallStatus":"ok","codexVersion":"fixture-doctor","checks":{}}"#,
+        )
+        .unwrap();
+        write_fake_codex_script_with_copy(
+            &bin_dir,
+            &self.doctor_count_path(),
+            &payload_path,
+            &mutated,
+            &profiles,
+        );
+        bin_dir
+    }
+}
+
+#[cfg(windows)]
+fn write_fake_codex_script(bin_dir: &Path, count_path: &Path, payload_path: &Path) {
+    let count = format!("\"{}\"", count_path.display());
+    let payload = format!("\"{}\"", payload_path.display());
+    let script = format!("@echo off\r\n>>{count} echo 1\r\ntype {payload}\r\n");
+    fs::write(bin_dir.join("codex.cmd"), script).unwrap();
+}
+
+#[cfg(unix)]
+fn write_fake_codex_script(bin_dir: &Path, count_path: &Path, payload_path: &Path) {
+    use std::os::unix::fs::PermissionsExt;
+
+    let count = format!(
+        "'{}'",
+        count_path.display().to_string().replace('\'', "'\\''")
+    );
+    let payload = format!(
+        "'{}'",
+        payload_path.display().to_string().replace('\'', "'\\''")
+    );
+    let script = format!("#!/bin/sh\nprintf '1\\n' >> {count}\n/bin/cat {payload}\n");
+    let path = bin_dir.join("codex");
+    fs::write(&path, script).unwrap();
+    let mut permissions = fs::metadata(&path).unwrap().permissions();
+    permissions.set_mode(0o755);
+    fs::set_permissions(path, permissions).unwrap();
+}
+
+#[cfg(windows)]
+fn write_fake_codex_script_with_copy(
+    bin_dir: &Path,
+    count_path: &Path,
+    payload_path: &Path,
+    source: &Path,
+    dest: &Path,
+) {
+    let script = format!(
+        "@echo off\r\n>>{count} echo 1\r\ncopy /Y {source} {dest} >NUL\r\ntype {payload}\r\n",
+        count = format!("\"{}\"", count_path.display()),
+        source = format!("\"{}\"", source.display()),
+        dest = format!("\"{}\"", dest.display()),
+        payload = format!("\"{}\"", payload_path.display()),
+    );
+    fs::write(bin_dir.join("codex.cmd"), script).unwrap();
+}
+
+#[cfg(unix)]
+fn write_fake_codex_script_with_copy(
+    bin_dir: &Path,
+    count_path: &Path,
+    payload_path: &Path,
+    source: &Path,
+    dest: &Path,
+) {
+    use std::os::unix::fs::PermissionsExt;
+
+    let script = format!(
+        "#!/bin/sh\nprintf '1\\n' >> {count}\n/bin/cp {source} {dest}\n/bin/cat {payload}\n",
+        count = sh_single_quote(count_path),
+        source = sh_single_quote(source),
+        dest = sh_single_quote(dest),
+        payload = sh_single_quote(payload_path),
+    );
+    let path = bin_dir.join("codex");
+    fs::write(&path, script).unwrap();
+    let mut permissions = fs::metadata(&path).unwrap().permissions();
+    permissions.set_mode(0o755);
+    fs::set_permissions(path, permissions).unwrap();
+}
+
+#[cfg(unix)]
+fn sh_single_quote(path: &Path) -> String {
+    format!("'{}'", path.display().to_string().replace('\'', "'\\''"))
 }
 
 #[test]
@@ -269,13 +405,15 @@ fn codex_fix_dry_run_repair_reports_drift_without_writing_runtime() {
         .output()
         .unwrap();
 
-    assert_eq!(output.status.code(), Some(127));
+    assert_eq!(output.status.code(), Some(3));
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("process_state ="));
     assert!(stdout.contains("resolved profile = future"));
     assert!(stdout.contains("credential consistency = mismatch"));
     assert!(stdout.contains("provider_auth_validity = not_checked"));
     assert!(stdout.contains("--dry-run"));
+    assert!(stdout.contains("doctor = skipped"));
+    assert!(stdout.contains("ccr codex fix --doctor"));
     assert!(!stdout.contains(PROFILE_SECRET));
     assert!(!stdout.contains(RUNTIME_SECRET));
 
@@ -295,9 +433,10 @@ fn codex_fix_repair_runtime_restores_deepseek_fields_without_secret_output() {
         .output()
         .unwrap();
 
-    assert_eq!(output.status.code(), Some(127));
+    assert_eq!(output.status.code(), Some(0));
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("Codex runtime 本地漂移已修复"));
+    assert!(stdout.contains("doctor = skipped"));
     assert!(!stdout.contains(PROFILE_SECRET));
     assert!(!stdout.contains(RUNTIME_SECRET));
 
@@ -332,11 +471,10 @@ fn codex_fix_repair_runtime_restores_deepseek_fields_without_secret_output() {
     assert!(auth.get("tokens").is_none());
 }
 
-#[cfg(unix)]
 #[test]
 fn codex_fix_runs_doctor_when_runtime_inspection_is_unavailable() {
     let fixture = CodexFixFixture::new();
-    let fake_bin = fixture.install_fake_codex_doctor();
+    let fake_bin = fixture.install_fake_codex_json();
     let secret_store = fixture.root.join("platforms/codex/profile_secrets.json");
     fs::write(
         &secret_store,
@@ -348,7 +486,7 @@ fn codex_fix_runs_doctor_when_runtime_inspection_is_unavailable() {
     let output = fixture
         .command()
         .env("PATH", fake_bin)
-        .args(["codex", "fix", "--dry-run"])
+        .args(["codex", "fix", "--dry-run", "--doctor"])
         .output()
         .unwrap();
 
@@ -363,6 +501,151 @@ fn codex_fix_runs_doctor_when_runtime_inspection_is_unavailable() {
 
     let after = snapshot_files(&fixture.managed_paths());
     assert_eq!(before, after);
+}
+
+#[test]
+fn codex_fix_default_path_does_not_invoke_codex_binary() {
+    let fixture = CodexFixFixture::new();
+    let fake_bin = fixture.install_fake_codex_json();
+
+    let output = fixture
+        .command()
+        .env("PATH", fake_bin)
+        .args(["codex", "fix", "--dry-run"])
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(3));
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("doctor = skipped"));
+    assert!(stdout.contains("ccr codex fix --doctor"));
+    assert!(stdout.contains("进程清理"));
+    assert!(stdout.contains("本地诊断"));
+    assert!(stdout.contains("skipped"));
+    assert!(!stdout.contains("codexVersion = fixture-doctor"));
+    assert_eq!(fixture.doctor_spawn_count(), 0);
+}
+
+#[test]
+fn codex_fix_doctor_missing_binary_exits_127() {
+    let fixture = CodexFixFixture::new();
+    let output = fixture
+        .command()
+        .env("PATH", "")
+        .args(["codex", "fix", "--dry-run", "--doctor"])
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(127));
+}
+
+#[test]
+fn codex_fix_doctor_json_renders_version_and_status() {
+    let fixture = CodexFixFixture::new();
+    let fake_bin = fixture.install_fake_codex_json();
+
+    let output = fixture
+        .command()
+        .env("PATH", &fake_bin)
+        .args(["codex", "fix", "--dry-run", "--doctor"])
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(3));
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("codexVersion = fixture-doctor"));
+    assert!(stdout.contains("overallStatus = ok"));
+    assert!(!stdout.contains("完整报告已保存到"));
+    assert_eq!(fixture.doctor_spawn_count(), 1);
+}
+
+#[test]
+fn codex_fix_doctor_non_json_spawns_once_and_renders_text() {
+    let fixture = CodexFixFixture::new();
+    let fake_bin = fixture.install_fake_codex_text();
+
+    let output = fixture
+        .command()
+        .env("PATH", fake_bin)
+        .args(["codex", "fix", "--dry-run", "--doctor"])
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(3));
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("not-json-doctor-output"));
+    assert!(stdout.contains("未返回有效 JSON"));
+    assert_eq!(fixture.doctor_spawn_count(), 1);
+}
+
+#[test]
+fn codex_fix_doctor_persists_sanitized_report_when_not_dry_run() {
+    let fixture = CodexFixFixture::new();
+    let fake_bin = fixture.install_fake_codex_json_with_secret();
+
+    let output = fixture
+        .command()
+        .env("PATH", fake_bin)
+        .args(["codex", "fix", "--doctor"])
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(3));
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(!stdout.contains(DOCTOR_SECRET));
+    assert!(!stdout.contains(PROFILE_SECRET));
+    assert!(!stdout.contains(RUNTIME_SECRET));
+    let report_path = persist_path_from_stdout(&stdout).expect("report path");
+    let saved = fs::read_to_string(&report_path).unwrap();
+    assert!(!saved.contains(DOCTOR_SECRET));
+    assert!(saved.contains("<redacted>"));
+    let _ = fs::remove_file(report_path);
+}
+
+#[test]
+fn codex_fix_doctor_warning_prints_non_ok_check_id() {
+    let fixture = CodexFixFixture::new();
+    let fake_bin = fixture.install_fake_codex_warning();
+
+    let output = fixture
+        .command()
+        .env("PATH", fake_bin)
+        .args(["codex", "fix", "--dry-run", "--doctor"])
+        .output()
+        .unwrap();
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("overallStatus = warning"));
+    assert!(stdout.contains("state.rollout_db_parity = warning"));
+    assert!(!stdout.contains("search provider"));
+    assert!(!stdout.contains("configured servers"));
+    assert!(!stdout.contains("model provider = custom"));
+}
+
+#[test]
+fn codex_fix_doctor_snapshot_change_exits_3_and_does_not_keep_old_profile() {
+    let fixture = CodexFixFixture::new();
+    fixture.make_runtime_match();
+    let fake_bin = fixture.install_fake_codex_mutating_profiles();
+
+    let output = fixture
+        .command()
+        .env("PATH", fake_bin)
+        .args(["codex", "fix", "--dry-run", "--doctor"])
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(3));
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("<changed_during_doctor>"));
+    assert!(stdout.contains("profile/runtime 状态发生变化"));
+}
+
+fn persist_path_from_stdout(stdout: &str) -> Option<PathBuf> {
+    stdout.lines().find_map(|line| {
+        line.split_once("完整报告已保存到：")
+            .map(|(_, path)| PathBuf::from(path.trim()))
+    })
 }
 
 fn snapshot_files(paths: &[PathBuf]) -> Vec<(PathBuf, Vec<u8>)> {

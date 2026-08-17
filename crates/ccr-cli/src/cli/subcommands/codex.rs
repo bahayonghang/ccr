@@ -129,11 +129,13 @@ pub enum CodexAction {
 
     /// 清理残留 Codex app-server 进程并诊断实际加载的配置/认证来源
     ///
+    /// 默认只做本地进程清理与 CCR profile/runtime 诊断，不调用上游 `codex doctor`。
     /// 修复 SSH / Desktop / VS Code Remote 断开后 app-server 仍锁定旧登录态、
-    /// 导致第三方 URL/Key 切换不生效的问题。清理后运行 `codex doctor` 展示实际配置。
+    /// 导致第三方 URL/Key 切换不生效的问题。需要上游健康检查时传入 `--doctor`。
     /// 示例: ccr codex fix
     ///       ccr codex fix --dry-run
     ///       ccr codex fix --repair-runtime
+    ///       ccr codex fix --doctor
     Fix {
         /// 只列出将被清理的 app-server 进程，不实际终止
         #[arg(long)]
@@ -142,6 +144,10 @@ pub enum CodexAction {
         /// 显式重放当前 CCR profile，修复可安全处理的本地 runtime 漂移
         #[arg(long)]
         repair_runtime: bool,
+
+        /// 运行上游 `codex doctor` 作为补充证据（默认不运行）
+        #[arg(long)]
+        doctor: bool,
     },
 }
 

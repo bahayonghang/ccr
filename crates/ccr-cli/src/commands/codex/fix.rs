@@ -1,13 +1,14 @@
 //! 🧹 codex fix 命令实现
 //!
-//! 清理残留 Codex `app-server` 进程，并运行 `codex doctor` 展示实际加载的配置/认证来源。
-//! 等价于用户手写的 `codexfix` bash 脚本：修复 SSH / Desktop / VS Code Remote 断开后
-//! app-server 仍锁定旧登录态、导致第三方 URL/Key 切换不生效的问题。
+//! 清理残留 Codex `app-server` 进程，并对 CCR profile / Codex runtime 做本地诊断。
+//! 默认不调用上游 `codex doctor`；需要补充证据时传入 `--doctor`。
+//! 用于修复 SSH / Desktop / VS Code Remote 断开后 app-server 仍锁定旧登录态、
+//! 导致第三方 URL/Key 切换不生效的问题。
 
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use ccr_codex::{
     CodexAppServerCleanupReport, CodexPlatform, CodexProcessService, CodexRuntimeDiagnostic,
@@ -15,30 +16,30 @@ use ccr_codex::{
 };
 use ccr_core::core::error::Result;
 use ccr_core::core::logging::ColorOutput;
+use ccr_core::core::process_gateway::{ManagedProcess, read_bounded_line};
 use serde_json::Value;
+use tokio::io::BufReader;
 
 use crate::services::install_detect::which_on_path;
 
 /// `codex doctor` 外部调用（含网络探活）的超时上限。
 const DOCTOR_TIMEOUT: Duration = Duration::from_secs(30);
+/// 超时后回收进程树的宽限。
+const DOCTOR_TERMINATE_GRACE: Duration = Duration::from_secs(1);
+const DOCTOR_MAX_LINE_BYTES: usize = 1024 * 1024;
+const DOCTOR_MAX_TOTAL_BYTES: usize = 2 * 1024 * 1024;
 
 /// 本地 profile/runtime 漂移（未修复或修复后仍不一致）。
 const LOCAL_DRIFT_EXIT_CODE: i32 = 3;
 
-/// codex doctor 报告中优先高亮的字段（键名子串，大小写不敏感）。
-const HIGHLIGHT_KEYS: &[&str] = &[
-    "codex_home",
-    "config",
-    "provider",
-    "auth",
-    "base_url",
-    "endpoint",
-    "model",
-];
-
-pub async fn fix_command(dry_run: bool, repair_runtime: bool) -> Result<()> {
+pub async fn fix_command(dry_run: bool, repair_runtime: bool, doctor: bool) -> Result<()> {
     // A. 进程清理（dry-run 时只枚举、不终止）。
+    let cleanup_started = Instant::now();
     let cleanup_report = CodexProcessService::new().cleanup_report(dry_run);
+    ColorOutput::step(&format!(
+        "进程清理（{} ms）",
+        cleanup_started.elapsed().as_millis()
+    ));
     render_cleanup(&cleanup_report);
 
     // B. 在调用任何会 reconcile pointer 的路径前，采集只读 profile/runtime 快照。
@@ -51,6 +52,7 @@ pub async fn fix_command(dry_run: bool, repair_runtime: bool) -> Result<()> {
             None
         }
     };
+    let inspect_started = Instant::now();
     let mut final_diagnostic = platform.as_ref().and_then(|platform| {
         let before = match platform.inspect_runtime() {
             Ok(diagnostic) => diagnostic,
@@ -82,12 +84,7 @@ pub async fn fix_command(dry_run: bool, repair_runtime: bool) -> Result<()> {
                 } else {
                     match platform.inspect_runtime() {
                         Ok(after) => {
-                            render_runtime_diagnostic(&after, "Runtime 修复后二次验证");
-                            if after.runtime_consistency() == RuntimeMatchStatus::Match {
-                                ColorOutput::success("Codex runtime 本地漂移已修复");
-                            } else {
-                                ColorOutput::warning("重放 profile 后本地 runtime 仍不一致");
-                            }
+                            render_repair_result(&after);
                             after
                         }
                         Err(_) => {
@@ -107,45 +104,60 @@ pub async fn fix_command(dry_run: bool, repair_runtime: bool) -> Result<()> {
         };
         Some(final_state)
     });
+    ColorOutput::step(&format!(
+        "本地诊断（{} ms）",
+        inspect_started.elapsed().as_millis()
+    ));
 
-    // D. 环境提示（脱敏）。
+    // D. 环境提示（脱敏，只展开已设置的变量）。
     render_env_hints(final_diagnostic.as_ref());
 
-    // E. 校验 codex 存在性；缺失时以退出码 127 结束（最高优先级）。
-    let Some(codex_bin) = which_on_path("codex") else {
-        ColorOutput::error("PATH 中找不到 codex 命令，跳过配置诊断");
-        ColorOutput::info("请确认 Codex CLI 已安装且在 PATH 中后重试");
-        exit_after_flush(127);
-    };
-
-    // F. codex doctor 诊断。
-    let doctor_profile = final_diagnostic
-        .as_ref()
-        .and_then(|diagnostic| diagnostic.resolved_profile.clone());
-    let doctor = run_codex_doctor(&codex_bin, !dry_run).await;
+    // E/F. 仅 `--doctor` 才查找 PATH 并运行上游 doctor。
     let mut snapshot_changed = false;
-    if let (Some(platform), Some(before_doctor)) = (platform.as_ref(), final_diagnostic.as_ref()) {
-        match platform.inspect_runtime() {
-            Ok(after_doctor) => {
-                snapshot_changed = after_doctor != *before_doctor;
-                if snapshot_changed {
-                    ColorOutput::warning(
-                        "codex doctor 运行期间 profile/runtime 状态发生变化，doctor 输出不能归属于原快照",
-                    );
-                    render_runtime_diagnostic(&after_doctor, "Doctor 后的最新本地诊断");
-                    final_diagnostic = Some(after_doctor);
+    if doctor {
+        let Some(codex_bin) = which_on_path("codex") else {
+            ColorOutput::error("PATH 中找不到 codex 命令，跳过配置诊断");
+            ColorOutput::info("请确认 Codex CLI 已安装且在 PATH 中后重试");
+            exit_after_flush(127);
+        };
+
+        let doctor_profile = final_diagnostic
+            .as_ref()
+            .and_then(|diagnostic| diagnostic.resolved_profile.clone());
+        let doctor_started = Instant::now();
+        let doctor_outcome = run_codex_doctor(&codex_bin, !dry_run, DOCTOR_TIMEOUT).await;
+        ColorOutput::step(&format!(
+            "上游 doctor（{} ms）",
+            doctor_started.elapsed().as_millis()
+        ));
+        if let (Some(platform), Some(before_doctor)) =
+            (platform.as_ref(), final_diagnostic.as_ref())
+        {
+            match platform.inspect_runtime() {
+                Ok(after_doctor) => {
+                    snapshot_changed = after_doctor != *before_doctor;
+                    if snapshot_changed {
+                        ColorOutput::warning(
+                            "codex doctor 运行期间 profile/runtime 状态发生变化，doctor 输出不能归属于原快照",
+                        );
+                        render_runtime_diagnostic(&after_doctor, "Doctor 后的最新本地诊断");
+                        final_diagnostic = Some(after_doctor);
+                    }
+                }
+                Err(_) => {
+                    runtime_failed = true;
+                    render_runtime_unavailable("Doctor 后的 runtime inspection 失败");
                 }
             }
-            Err(_) => {
-                runtime_failed = true;
-                render_runtime_unavailable("Doctor 后的 runtime inspection 失败");
-            }
         }
+        render_doctor(&doctor_outcome, doctor_profile.as_deref(), snapshot_changed);
+    } else {
+        ColorOutput::step("上游 doctor（skipped）");
+        ColorOutput::info("doctor = skipped");
+        ColorOutput::info("需要上游健康检查时运行 ccr codex fix --doctor");
     }
-    render_doctor(&doctor, doctor_profile.as_deref(), snapshot_changed);
 
-    // G. 固定优先级：process(2) > runtime failure(1) > local drift(3)。
-    // PATH missing(127) 已提前返回。
+    // G. 固定优先级：127（仅 --doctor 且 PATH 缺失，已提前返回）> process(2) > runtime failure(1) > local drift(3)。
     if let Some(code) = diagnostic_exit_code(
         &cleanup_report,
         final_diagnostic.as_ref(),
@@ -379,6 +391,18 @@ fn render_runtime_diagnostic(diagnostic: &CodexRuntimeDiagnostic, title: &str) {
     }
 }
 
+fn render_repair_result(diagnostic: &CodexRuntimeDiagnostic) {
+    if diagnostic.runtime_consistency() == RuntimeMatchStatus::Match {
+        ColorOutput::success("Codex runtime 本地漂移已修复");
+    } else {
+        ColorOutput::warning("重放 profile 后本地 runtime 仍不一致");
+    }
+    ColorOutput::info(&format!(
+        "runtime_consistency = {}",
+        diagnostic.runtime_consistency().as_str()
+    ));
+}
+
 fn render_runtime_unavailable(stage: &str) {
     ColorOutput::warning("runtime_consistency = unavailable");
     ColorOutput::warning(&format!(
@@ -447,37 +471,35 @@ fn optional_label(value: Option<&str>) -> &str {
 }
 
 fn render_env_hints(diagnostic: Option<&CodexRuntimeDiagnostic>) {
-    ColorOutput::info("当前进程中可能影响 Codex 的环境变量：");
-    print_env_value("CODEX_HOME");
-    print_env_value("CCR_CODEX_DIR");
-    print_env_presence("OPENAI_BASE_URL");
+    let mut lines = Vec::new();
+    if let Ok(value) = std::env::var("CODEX_HOME")
+        && !value.is_empty()
+    {
+        lines.push(format!("  CODEX_HOME={value}"));
+    }
+    if let Ok(value) = std::env::var("CCR_CODEX_DIR")
+        && !value.is_empty()
+    {
+        lines.push(format!("  CCR_CODEX_DIR={value}"));
+    }
+    if let Ok(value) = std::env::var("OPENAI_BASE_URL")
+        && !value.trim().is_empty()
+    {
+        lines.push("  OPENAI_BASE_URL=<已设置，值已隐藏>".to_string());
+    }
     if let Some(diagnostic) = diagnostic {
         for presence in &diagnostic.environment {
-            let state = if presence.is_set {
-                "<已设置，值已隐藏>"
-            } else {
-                "<未设置>"
-            };
-            ColorOutput::info(&format!("  {}={state}", presence.variable));
+            if presence.is_set {
+                lines.push(format!("  {}=<已设置，值已隐藏>", presence.variable));
+            }
         }
-    } else {
-        ColorOutput::warning("  provider-specific 环境采样不可用（runtime inspection 未完成）");
     }
-}
-
-fn print_env_value(name: &str) {
-    match std::env::var(name) {
-        Ok(v) if !v.is_empty() => ColorOutput::info(&format!("  {name}={v}")),
-        _ => ColorOutput::info(&format!("  {name}=<未设置>")),
+    if lines.is_empty() {
+        return;
     }
-}
-
-fn print_env_presence(name: &str) {
-    match std::env::var(name) {
-        Ok(value) if !value.trim().is_empty() => {
-            ColorOutput::info(&format!("  {name}=<已设置，值已隐藏>"))
-        }
-        _ => ColorOutput::info(&format!("  {name}=<未设置>")),
+    ColorOutput::info("当前进程中可能影响 Codex 的环境变量：");
+    for line in lines {
+        ColorOutput::info(&line);
     }
 }
 
@@ -509,10 +531,10 @@ impl DoctorOutcome {
     }
 }
 
-async fn run_codex_doctor(bin: &Path, persist_report: bool) -> DoctorOutcome {
+async fn run_codex_doctor(bin: &Path, persist_report: bool, timeout: Duration) -> DoctorOutcome {
     // 首选 `codex doctor --json`：以「是否拿到有效 JSON」判断，而非退出码
     // （检查项失败时 doctor 可能返回非 0，但 stdout 仍是有效报告，应照常展示）。
-    match capture_doctor(bin, &["doctor", "--json"]).await {
+    match capture_doctor(bin, &["doctor", "--json"], timeout).await {
         Ok(stdout) => {
             if let Ok(json) = serde_json::from_slice::<Value>(&stdout) {
                 let sanitized = sanitize_doctor_json(&json);
@@ -528,8 +550,17 @@ async fn run_codex_doctor(bin: &Path, persist_report: bool) -> DoctorOutcome {
                     note: None,
                 };
             }
-            // --json 无效（旧版 codex 不支持）→ 回退纯文本。
-            fallback_plain_doctor(bin, persist_report).await
+            // --json 已返回非 JSON 文本：脱敏后当文本渲染，不再二次 spawn。
+            let text = sanitize_doctor_text(String::from_utf8_lossy(&stdout).trim());
+            DoctorOutcome {
+                report_path: persist_report
+                    .then(|| save_report(text.as_bytes(), "txt"))
+                    .flatten(),
+                highlights: Vec::new(),
+                raw_text: (!text.is_empty()).then_some(text),
+                failed: false,
+                note: Some("codex doctor --json 未返回有效 JSON，已按文本展示".to_string()),
+            }
         }
         Err(DoctorError::Timeout) => {
             DoctorOutcome::failed_with("codex doctor 超时（可能卡在网络探活），已跳过诊断")
@@ -540,44 +571,81 @@ async fn run_codex_doctor(bin: &Path, persist_report: bool) -> DoctorOutcome {
     }
 }
 
-async fn fallback_plain_doctor(bin: &Path, persist_report: bool) -> DoctorOutcome {
-    match capture_doctor(bin, &["doctor"]).await {
-        Ok(stdout) => {
-            let text = sanitize_doctor_text(String::from_utf8_lossy(&stdout).trim());
-            DoctorOutcome {
-                report_path: persist_report
-                    .then(|| save_report(text.as_bytes(), "txt"))
-                    .flatten(),
-                highlights: Vec::new(),
-                raw_text: (!text.is_empty()).then_some(text),
-                failed: false,
-                note: Some("当前 codex 版本不支持 doctor --json，已回退文本输出".to_string()),
-            }
-        }
-        Err(_) => DoctorOutcome::failed_with("codex doctor 执行失败"),
-    }
-}
-
+#[derive(Debug, PartialEq, Eq)]
 enum DoctorError {
     Timeout,
     Spawn(String),
 }
 
-/// 运行 `codex <args>` 并在超时上限内捕获 stdout。
+/// 运行 `codex <args>`，在 `timeout` 内捕获受限 stdout。
 ///
-/// 超时时不阻塞本命令；残留的 doctor 子进程会在其自身网络超时后自行退出。
-async fn capture_doctor(bin: &Path, args: &[&str]) -> std::result::Result<Vec<u8>, DoctorError> {
+/// 通过 `ManagedProcess` 托管整棵进程树：正常路径 `wait`，超时路径
+/// `terminate_tree` 并 await reap。不得把 Drop 当作正常超时回收。
+async fn capture_doctor(
+    bin: &Path,
+    args: &[&str],
+    timeout: Duration,
+) -> std::result::Result<Vec<u8>, DoctorError> {
     let mut cmd = tokio::process::Command::new(bin);
     cmd.args(args)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
 
-    match tokio::time::timeout(DOCTOR_TIMEOUT, cmd.output()).await {
-        Ok(Ok(output)) => Ok(output.stdout),
-        Ok(Err(e)) => Err(DoctorError::Spawn(e.to_string())),
-        Err(_) => Err(DoctorError::Timeout),
+    let mut child =
+        ManagedProcess::spawn(cmd).map_err(|error| DoctorError::Spawn(error.to_string()))?;
+    let stdout = child.take_stdout();
+    let stderr = child.take_stderr();
+    let stdout_task = tokio::spawn(drain_bounded_pipe(stdout));
+    let stderr_task = tokio::spawn(drain_bounded_pipe(stderr));
+
+    let wait_result = tokio::time::timeout(timeout, child.wait()).await;
+    match wait_result {
+        Ok(Ok(_status)) => {
+            let _ = stderr_task.await;
+            match stdout_task.await {
+                Ok(bytes) => Ok(bytes),
+                Err(error) => Err(DoctorError::Spawn(error.to_string())),
+            }
+        }
+        Ok(Err(error)) => {
+            let _ = stdout_task.await;
+            let _ = stderr_task.await;
+            Err(DoctorError::Spawn(error.to_string()))
+        }
+        Err(_) => {
+            if let Err(error) = child.terminate_tree(DOCTOR_TERMINATE_GRACE).await {
+                tracing::warn!(%error, "codex doctor 进程树回收失败");
+            }
+            let _ = stdout_task.await;
+            let _ = stderr_task.await;
+            Err(DoctorError::Timeout)
+        }
     }
+}
+
+async fn drain_bounded_pipe<R>(pipe: Option<R>) -> Vec<u8>
+where
+    R: tokio::io::AsyncRead + Unpin + Send + 'static,
+{
+    let Some(pipe) = pipe else {
+        return Vec::new();
+    };
+    let mut reader = BufReader::new(pipe);
+    let mut out = Vec::new();
+    while let Ok(Some(line)) = read_bounded_line(&mut reader, DOCTOR_MAX_LINE_BYTES).await {
+        if out.len() >= DOCTOR_MAX_TOTAL_BYTES {
+            break;
+        }
+        let remaining = DOCTOR_MAX_TOTAL_BYTES - out.len();
+        let bytes = line.text.as_bytes();
+        let take = bytes.len().min(remaining);
+        out.extend_from_slice(&bytes[..take]);
+        if out.len() < DOCTOR_MAX_TOTAL_BYTES {
+            out.push(b'\n');
+        }
+    }
+    out
 }
 
 /// 将完整报告写入临时文件，返回其路径（写入失败则返回 None）。
@@ -698,35 +766,27 @@ fn safe_url_for_display(value: &str) -> String {
     format!("{scheme}://{host_and_path}")
 }
 
-/// 从 doctor JSON 报告中 best-effort 提取关键配置字段。
+/// 从 doctor JSON 报告中提取定位字段与非 ok 检查。
 ///
 /// 报告结构（schemaVersion 1）：顶层含 `codexVersion` / `overallStatus`，
-/// 各检查项在 `checks.<id>.details`（key/value）下携带具体字段，且已由 codex 脱敏
-/// （敏感值呈现为 `<redacted>` 或仅存在性）。仅按键名子串匹配感兴趣的标签字段，不触碰 token。
+/// 各检查项在 `checks.<id>` 下带 `status`。只展示顶层字段和 `status != "ok"` 的检查 id。
 fn extract_highlights(json: &Value) -> Vec<(String, String)> {
     let mut highlights = Vec::new();
 
-    // 顶层定位信息。
     for key in ["codexVersion", "overallStatus"] {
         if let Some(value) = json.get(key) {
             highlights.push((key.to_string(), value_to_display(value)));
         }
     }
 
-    // checks.<id>.details.<key> 中匹配关键标签的字段。
     if let Some(checks) = json.get("checks").and_then(Value::as_object) {
-        for check in checks.values() {
-            let Some(details) = check.get("details").and_then(Value::as_object) else {
-                continue;
-            };
-            for (key, value) in details {
-                let key_lower = key.to_lowercase();
-                if HIGHLIGHT_KEYS
-                    .iter()
-                    .any(|needle| key_lower.contains(needle))
-                {
-                    highlights.push((key.clone(), value_to_display(value)));
-                }
+        for (id, check) in checks {
+            let status = check
+                .get("status")
+                .map(value_to_display)
+                .unwrap_or_else(|| "unknown".to_string());
+            if status != "ok" {
+                highlights.push((id.clone(), status));
             }
         }
     }
@@ -790,9 +850,10 @@ fn render_doctor(outcome: &DoctorOutcome, profile: Option<&str>, snapshot_change
 #[cfg(test)]
 mod tests {
     use super::{
-        LOCAL_DRIFT_EXIT_CODE, RuntimeRepairAction, cleanup_process_state, decide_runtime_repair,
-        diagnostic_exit_code, extract_highlights, runtime_diagnostic_lines, sanitize_doctor_json,
-        sanitize_doctor_text, value_to_display,
+        DoctorError, LOCAL_DRIFT_EXIT_CODE, RuntimeRepairAction, capture_doctor,
+        cleanup_process_state, decide_runtime_repair, diagnostic_exit_code, extract_highlights,
+        run_codex_doctor, runtime_diagnostic_lines, sanitize_doctor_json, sanitize_doctor_text,
+        value_to_display,
     };
     use ccr_codex::{
         CodexAppServer, CodexAppServerCleanupReport, CodexProcessDiscoveryIssue,
@@ -801,14 +862,13 @@ mod tests {
     };
     use serde_json::json;
     use std::path::PathBuf;
+    use std::time::Duration;
 
     #[test]
-    fn extracts_labeled_config_fields_from_checks_details() {
-        // 对齐 codex doctor --json schemaVersion 1 的真实结构：
-        // details 嵌套在 checks.<id> 之下，而非顶层。
+    fn extracts_version_status_and_non_ok_check_ids() {
         let report = json!({
             "schemaVersion": 1,
-            "overallStatus": "fail",
+            "overallStatus": "warning",
             "codexVersion": "0.144.6",
             "checks": {
                 "config.load": {
@@ -817,17 +877,22 @@ mod tests {
                     "details": {
                         "CODEX_HOME": "/home/lyh/.codex",
                         "config.toml": "/home/lyh/.codex/config.toml",
-                        "cwd": "/work/repo",
-                        "log dir": "/home/lyh/.codex/log"
+                        "model provider": "openai"
+                    }
+                },
+                "state.rollout_db_parity": {
+                    "category": "state",
+                    "status": "warning",
+                    "details": {
+                        "search provider": "none",
+                        "configured servers": []
                     }
                 },
                 "auth.credentials": {
                     "category": "auth",
                     "status": "ok",
                     "details": {
-                        "auth file": "/home/lyh/.codex/auth.json",
-                        "stored auth mode": "api_key",
-                        "model provider": "thirdparty"
+                        "auth file": "/home/lyh/.codex/auth.json"
                     }
                 }
             }
@@ -835,7 +900,6 @@ mod tests {
 
         let highlights = extract_highlights(&report);
 
-        // 顶层定位信息。
         assert!(
             highlights
                 .iter()
@@ -844,21 +908,20 @@ mod tests {
         assert!(
             highlights
                 .iter()
-                .any(|(k, v)| k == "overallStatus" && v == "fail")
+                .any(|(k, v)| k == "overallStatus" && v == "warning")
         );
-        // checks.*.details 中的关键标签字段命中。
         assert!(
             highlights
                 .iter()
-                .any(|(k, v)| k == "CODEX_HOME" && v == "/home/lyh/.codex")
+                .any(|(k, v)| k == "state.rollout_db_parity" && v == "warning")
         );
-        assert!(highlights.iter().any(|(k, _)| k == "config.toml"));
-        assert!(highlights.iter().any(|(k, _)| k == "auth file"));
-        assert!(highlights.iter().any(|(k, _)| k == "stored auth mode"));
-        assert!(highlights.iter().any(|(k, _)| k == "model provider"));
-        // 无关字段被忽略。
-        assert!(!highlights.iter().any(|(k, _)| k == "cwd"));
-        assert!(!highlights.iter().any(|(k, _)| k == "log dir"));
+        assert!(!highlights.iter().any(|(k, _)| k == "CODEX_HOME"));
+        assert!(!highlights.iter().any(|(k, _)| k == "config.toml"));
+        assert!(!highlights.iter().any(|(k, _)| k == "model provider"));
+        assert!(!highlights.iter().any(|(k, _)| k == "search provider"));
+        assert!(!highlights.iter().any(|(k, _)| k == "configured servers"));
+        assert!(!highlights.iter().any(|(k, _)| k == "auth file"));
+        assert!(!highlights.iter().any(|(k, _)| k == "config.load"));
     }
 
     #[test]
@@ -989,6 +1052,269 @@ mod tests {
             Some(2)
         );
         assert_eq!(cleanup_process_state(&report), "unavailable");
+    }
+
+    #[tokio::test]
+    async fn non_json_doctor_stdout_does_not_spawn_a_second_doctor() {
+        let fixture = FakeDoctorScript::write("not-json-doctor-output\n");
+        let outcome = run_codex_doctor(&fixture.bin, false, Duration::from_secs(5)).await;
+        assert!(!outcome.failed);
+        assert!(
+            outcome
+                .raw_text
+                .as_deref()
+                .is_some_and(|text| text.contains("not-json-doctor-output"))
+        );
+        assert!(outcome.highlights.is_empty());
+        assert_eq!(fixture.spawn_count(), 1);
+    }
+
+    #[tokio::test]
+    async fn json_doctor_stdout_extracts_version_and_status() {
+        let fixture = FakeDoctorScript::write(
+            r#"{"schemaVersion":1,"overallStatus":"ok","codexVersion":"fixture-doctor","checks":{}}"#,
+        );
+        let outcome = run_codex_doctor(&fixture.bin, false, Duration::from_secs(5)).await;
+        assert!(!outcome.failed);
+        assert!(
+            outcome
+                .highlights
+                .iter()
+                .any(|(key, value)| key == "codexVersion" && value == "fixture-doctor")
+        );
+        assert!(
+            outcome
+                .highlights
+                .iter()
+                .any(|(key, value)| key == "overallStatus" && value == "ok")
+        );
+        assert!(outcome.report_path.is_none());
+        assert_eq!(fixture.spawn_count(), 1);
+    }
+
+    #[tokio::test]
+    async fn dry_run_doctor_does_not_persist_report() {
+        let fixture = FakeDoctorScript::write(
+            r#"{"schemaVersion":1,"overallStatus":"ok","codexVersion":"fixture-doctor","checks":{}}"#,
+        );
+        let outcome = run_codex_doctor(&fixture.bin, false, Duration::from_secs(5)).await;
+        assert!(outcome.report_path.is_none());
+    }
+
+    #[tokio::test]
+    async fn non_dry_run_doctor_persists_sanitized_report() {
+        const SENTINEL: &str = "doctor-secret-must-not-leak";
+        let payload = format!(
+            r#"{{"schemaVersion":1,"overallStatus":"ok","codexVersion":"fixture-doctor","checks":{{"auth.credentials":{{"status":"ok","details":{{"OPENAI_API_KEY":"{SENTINEL}"}}}}}}}}"#
+        );
+        let fixture = FakeDoctorScript::write(&payload);
+        let outcome = run_codex_doctor(&fixture.bin, true, Duration::from_secs(5)).await;
+        let path = outcome.report_path.expect("report should be persisted");
+        let saved = std::fs::read_to_string(&path).unwrap_or_default();
+        assert!(!saved.contains(SENTINEL));
+        assert!(saved.contains("<redacted>"));
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[tokio::test]
+    async fn doctor_timeout_terminates_parent_and_grandchild() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        let parent_pid = temp.path().join("parent.pid");
+        let child_pid = temp.path().join("grandchild.pid");
+        let (bin, args) = hanging_doctor_command(&parent_pid, &child_pid);
+        let arg_refs: Vec<&str> = args.iter().map(String::as_str).collect();
+        let timeout = if cfg!(windows) {
+            Duration::from_secs(4)
+        } else {
+            Duration::from_secs(2)
+        };
+
+        let result = capture_doctor(&bin, &arg_refs, timeout).await;
+        assert_eq!(result, Err(DoctorError::Timeout));
+
+        let parent = wait_for_pid_file(&parent_pid).await;
+        let grandchild = wait_for_pid_file(&child_pid).await;
+        wait_until_process_gone(parent).await;
+        wait_until_process_gone(grandchild).await;
+    }
+
+    struct FakeDoctorScript {
+        _temp: tempfile::TempDir,
+        bin: PathBuf,
+        count_path: PathBuf,
+    }
+
+    impl FakeDoctorScript {
+        fn write(payload: &str) -> Self {
+            let temp = tempfile::tempdir().expect("tempdir");
+            let count_path = temp.path().join("spawn-count.txt");
+            let payload_path = temp.path().join("payload.txt");
+            std::fs::write(&payload_path, payload).expect("write payload");
+            let bin = write_fake_doctor_bin(temp.path(), &count_path, &payload_path);
+            Self {
+                _temp: temp,
+                bin,
+                count_path,
+            }
+        }
+
+        fn spawn_count(&self) -> usize {
+            std::fs::read_to_string(&self.count_path)
+                .map(|text| text.lines().filter(|line| !line.is_empty()).count())
+                .unwrap_or(0)
+        }
+    }
+
+    #[cfg(windows)]
+    fn write_fake_doctor_bin(
+        dir: &std::path::Path,
+        count_path: &std::path::Path,
+        payload_path: &std::path::Path,
+    ) -> PathBuf {
+        let bin = dir.join("codex.cmd");
+        let script = format!(
+            "@echo off\r\n>>{count} echo 1\r\ntype {payload}\r\n",
+            count = cmd_quote(count_path),
+            payload = cmd_quote(payload_path),
+        );
+        std::fs::write(&bin, script).expect("write fake doctor");
+        bin
+    }
+
+    #[cfg(unix)]
+    fn write_fake_doctor_bin(
+        dir: &std::path::Path,
+        count_path: &std::path::Path,
+        payload_path: &std::path::Path,
+    ) -> PathBuf {
+        use std::os::unix::fs::PermissionsExt;
+        let bin = dir.join("codex");
+        let script = format!(
+            "#!/bin/sh\nprintf '1\\n' >> {count}\n/bin/cat {payload}\n",
+            count = sh_single_quote(count_path),
+            payload = sh_single_quote(payload_path),
+        );
+        std::fs::write(&bin, script).expect("write fake doctor");
+        let mut permissions = std::fs::metadata(&bin)
+            .expect("stat fake doctor")
+            .permissions();
+        permissions.set_mode(0o755);
+        std::fs::set_permissions(&bin, permissions).expect("chmod fake doctor");
+        bin
+    }
+
+    #[cfg(windows)]
+    fn hanging_doctor_command(
+        parent_pid: &std::path::Path,
+        child_pid: &std::path::Path,
+    ) -> (PathBuf, Vec<String>) {
+        let script = format!(
+            "$ErrorActionPreference='Stop'; \
+             [IO.File]::WriteAllText('{}', [string]$PID); \
+             $child=Start-Process -FilePath 'cmd.exe' -ArgumentList '/C','ping -n 30 127.0.0.1 >NUL' -PassThru; \
+             [IO.File]::WriteAllText('{}', [string]$child.Id); \
+             Start-Sleep -Seconds 30",
+            parent_pid.to_string_lossy().replace('\'', "''"),
+            child_pid.to_string_lossy().replace('\'', "''"),
+        );
+        (
+            PathBuf::from("powershell.exe"),
+            vec![
+                "-NoProfile".to_string(),
+                "-NonInteractive".to_string(),
+                "-Command".to_string(),
+                script,
+            ],
+        )
+    }
+
+    #[cfg(unix)]
+    fn hanging_doctor_command(
+        parent_pid: &std::path::Path,
+        child_pid: &std::path::Path,
+    ) -> (PathBuf, Vec<String>) {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = parent_pid.parent().expect("pid file parent");
+        let bin = dir.join("hanging-doctor");
+        let script = format!(
+            "#!/bin/sh\nprintf '%s\\n' \"$$\" > {parent}\n/bin/sleep 30 &\nprintf '%s\\n' \"$!\" > {child}\nwait\n",
+            parent = sh_single_quote(parent_pid),
+            child = sh_single_quote(child_pid),
+        );
+        std::fs::write(&bin, script).expect("write hanging doctor");
+        let mut permissions = std::fs::metadata(&bin)
+            .expect("stat hanging doctor")
+            .permissions();
+        permissions.set_mode(0o755);
+        std::fs::set_permissions(&bin, permissions).expect("chmod hanging doctor");
+        (bin, vec!["doctor".to_string(), "--json".to_string()])
+    }
+
+    #[cfg(windows)]
+    fn cmd_quote(path: &std::path::Path) -> String {
+        format!("\"{}\"", path.display())
+    }
+
+    #[cfg(unix)]
+    fn sh_single_quote(path: &std::path::Path) -> String {
+        format!("'{}'", path.display().to_string().replace('\'', "'\\''"))
+    }
+
+    async fn wait_for_pid_file(path: &std::path::Path) -> u32 {
+        for _ in 0..100 {
+            if let Ok(raw) = std::fs::read_to_string(path)
+                && let Ok(pid) = raw.trim().parse()
+            {
+                return pid;
+            }
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        }
+        panic!("pid file was not written: {}", path.display());
+    }
+
+    async fn wait_until_process_gone(pid: u32) {
+        for _ in 0..80 {
+            if !test_process_is_running(pid) {
+                return;
+            }
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        }
+        panic!("process {pid} is still running");
+    }
+
+    #[cfg(windows)]
+    fn test_process_is_running(pid: u32) -> bool {
+        const SYNCHRONIZE: u32 = 0x0010_0000;
+        const WAIT_TIMEOUT: u32 = 258;
+        unsafe extern "system" {
+            fn OpenProcess(
+                desired_access: u32,
+                inherit_handle: i32,
+                process_id: u32,
+            ) -> *mut std::ffi::c_void;
+            fn WaitForSingleObject(handle: *mut std::ffi::c_void, milliseconds: u32) -> u32;
+            fn CloseHandle(handle: *mut std::ffi::c_void) -> i32;
+        }
+
+        // SAFETY: 打开的同步句柄在返回前关闭。
+        unsafe {
+            let handle = OpenProcess(SYNCHRONIZE, 0, pid);
+            if handle.is_null() {
+                return false;
+            }
+            let running = WaitForSingleObject(handle, 0) == WAIT_TIMEOUT;
+            CloseHandle(handle);
+            running
+        }
+    }
+
+    #[cfg(unix)]
+    fn test_process_is_running(pid: u32) -> bool {
+        unsafe extern "C" {
+            fn kill(pid: i32, signal: i32) -> i32;
+        }
+        // SAFETY: signal 0 只检查进程是否存在，不发送信号。
+        unsafe { kill(pid as i32, 0) == 0 }
     }
 
     fn test_diagnostic(

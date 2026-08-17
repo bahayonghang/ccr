@@ -402,7 +402,10 @@ impl CommandDispatcher {
             Some(CodexAction::Fix {
                 dry_run,
                 repair_runtime,
-            }) => crate::commands::codex::fix::fix_command(*dry_run, *repair_runtime).await,
+                doctor,
+            }) => {
+                crate::commands::codex::fix::fix_command(*dry_run, *repair_runtime, *doctor).await
+            }
             Some(CodexAction::Profile { action }) => match action {
                 CodexProfileAction::Help => {
                     help::print_nested_subcommand_help(&["codex", "profile"]);

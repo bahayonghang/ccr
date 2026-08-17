@@ -75,7 +75,9 @@ fn codex_fix_help_exposes_explicit_runtime_repair() {
 
     assert!(stdout.contains("--repair-runtime"));
     assert!(stdout.contains("--dry-run"));
+    assert!(stdout.contains("--doctor"));
     assert!(stdout.contains("显式重放当前 CCR profile"));
+    assert!(stdout.contains("默认只做本地进程清理与 CCR profile/runtime 诊断，不调用上游"));
 }
 
 #[test]
