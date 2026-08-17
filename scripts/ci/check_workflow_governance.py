@@ -8,13 +8,23 @@ import sys
 from pathlib import Path
 
 try:
-    from scripts.ci_surface_policy import SURFACE_PATHS
+    from scripts.common import REPO_ROOT
+except ModuleNotFoundError:
+    # pywin32 在 site-packages 注册了同名 namespace package `scripts`
+    _scripts_dir = Path(__file__).resolve().parent
+    while _scripts_dir.name != "scripts":
+        _scripts_dir = _scripts_dir.parent
+    sys.path.insert(0, str(_scripts_dir.parent))
+    sys.modules.pop("scripts", None)
+    from scripts.common import REPO_ROOT
+
+try:
+    from scripts.ci.ci_surface_policy import SURFACE_PATHS
 except ModuleNotFoundError:
     from ci_surface_policy import SURFACE_PATHS
 
 
-ROOT = Path(__file__).resolve().parents[1]
-WORKFLOW_DIR = ROOT / ".github" / "workflows"
+WORKFLOW_DIR = REPO_ROOT / ".github" / "workflows"
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 USES_RE = re.compile(r"^\s*-?\s*uses:\s*([^\s#]+)", re.MULTILINE)
 MAPPING_KEY_RE = re.compile(
@@ -210,7 +220,7 @@ def main() -> int:
     if "node-version: 24.18.0" not in all_workflows:
         failures.append("Node 24.18.0 pin is missing")
 
-    justfile = (ROOT / "justfile").read_text(encoding="utf-8")
+    justfile = (REPO_ROOT / "justfile").read_text(encoding="utf-8")
     forbidden = "--test-threads=1"
     if forbidden in justfile or forbidden in all_workflows:
         failures.append("global --test-threads=1 remains in justfile or hosted workflows")
@@ -230,20 +240,20 @@ def main() -> int:
         failures.append("70% overall / 85% security-gateway coverage policy is missing")
     if "--coverage.thresholds.lines=70" not in justfile:
         failures.append("Vue 70% line-coverage policy is missing")
-    if "--test-coverage-lines=70" not in (ROOT / "ccr-vscode" / "justfile").read_text(
+    if "--test-coverage-lines=70" not in (REPO_ROOT / "ccr-vscode" / "justfile").read_text(
         encoding="utf-8"
     ):
         failures.append("VS Code 70% line-coverage policy is missing")
 
     serial_tests = 0
-    for source_root in (ROOT / "crates", ROOT / "ccr-ui" / "src-tauri" / "src"):
+    for source_root in (REPO_ROOT / "crates", REPO_ROOT / "ccr-ui" / "src-tauri" / "src"):
         for source in source_root.rglob("*.rs"):
             serial_tests += len(SERIAL_TEST_RE.findall(source.read_text(encoding="utf-8")))
     if serial_tests > MAX_SERIAL_TESTS:
         failures.append(
             f"serial-only test annotations {serial_tests} exceed target {MAX_SERIAL_TESTS}"
         )
-    if not (ROOT / ".github" / "dependabot.yml").is_file():
+    if not (REPO_ROOT / ".github" / "dependabot.yml").is_file():
         failures.append(".github/dependabot.yml is missing")
 
     if failures:

@@ -125,7 +125,7 @@ const trackedFiles = execFileSync('git', ['ls-files', '-z'], {
   .filter(Boolean)
 
 for (const relativePath of trackedFiles) {
-  if (relativePath === 'scripts/check-copilot-assets.mjs') {
+  if (relativePath === 'scripts/quality/check-copilot-assets.mjs') {
     continue
   }
 

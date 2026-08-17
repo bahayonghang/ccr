@@ -81,8 +81,8 @@ EOF
 EOF
 
   # 复制脚本到测试目录
-  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && cd .. && pwd)"
-  cp "$SCRIPT_DIR/scripts/version-sync.sh" "$TEST_DIR/"
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && cd ../.. && pwd)"
+  cp "$SCRIPT_DIR/scripts/version/version-sync.sh" "$TEST_DIR/"
   chmod +x "$TEST_DIR/version-sync.sh"
 }
 
@@ -96,7 +96,7 @@ teardown() {
 # 临时修改脚本使其使用测试目录
 patch_script_for_test() {
   # 替换 ROOT_DIR 获取方式为测试目录
-  sed -i "s|ROOT_DIR=\"\$(cd \"\$(dirname \"\${BASH_SOURCE[0]}\")\"/.. && pwd)\"|ROOT_DIR=\"$ROOT_DIR\"|" "$TEST_DIR/version-sync.sh"
+  sed -i "s|ROOT_DIR=\"\$(cd \"\$(dirname \"\${BASH_SOURCE[0]}\")\"/../.. && pwd)\"|ROOT_DIR=\"$ROOT_DIR\"|" "$TEST_DIR/version-sync.sh"
 }
 
 @test "版本一致时 --check 返回 0" {

@@ -9,8 +9,16 @@ import sys
 from pathlib import Path
 from typing import Any, Iterable
 
-
-ROOT = Path(__file__).resolve().parents[1]
+try:
+    from scripts.common import REPO_ROOT
+except ModuleNotFoundError:
+    # pywin32 在 site-packages 注册了同名 namespace package `scripts`
+    _scripts_dir = Path(__file__).resolve().parent
+    while _scripts_dir.name != "scripts":
+        _scripts_dir = _scripts_dir.parent
+    sys.path.insert(0, str(_scripts_dir.parent))
+    sys.modules.pop("scripts", None)
+    from scripts.common import REPO_ROOT
 
 # Package/config manifests are included. Locks, generated bindings, JSONC
 # (including tsconfig files), data catalogs, third-party assets, and
@@ -26,7 +34,7 @@ JSON_CONFIG_PATHS = (
     "ccr-ui/src-tauri/tauri.conf.json",
     "ccr-vscode/package.json",
     "docs/package.json",
-    "scripts/dependency-drift-allowlist.json",
+    "scripts/drift/dependency-drift-allowlist.json",
 )
 
 
@@ -35,7 +43,7 @@ def canonical_json(value: Any) -> str:
 
 
 def process_json_configs(
-    root: Path = ROOT,
+    root: Path = REPO_ROOT,
     paths: Iterable[str] = JSON_CONFIG_PATHS,
     *,
     write: bool = False,

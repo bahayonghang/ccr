@@ -7,8 +7,17 @@ import re
 import sys
 from pathlib import Path
 
+try:
+    from scripts.common import REPO_ROOT
+except ModuleNotFoundError:
+    # pywin32 在 site-packages 注册了同名 namespace package `scripts`
+    _scripts_dir = Path(__file__).resolve().parent
+    while _scripts_dir.name != "scripts":
+        _scripts_dir = _scripts_dir.parent
+    sys.path.insert(0, str(_scripts_dir.parent))
+    sys.modules.pop("scripts", None)
+    from scripts.common import REPO_ROOT
 
-ROOT = Path(__file__).resolve().parents[1]
 SENSITIVE_MODULES = (
     "crates/ccr-cli/src/managers/settings.rs",
     "crates/ccr-cli/src/platforms/claude.rs",
@@ -28,7 +37,7 @@ ATOMIC_WRITE = re.compile(
 def main() -> int:
     violations: list[str] = []
     for relative in SENSITIVE_MODULES:
-        path = ROOT / relative
+        path = REPO_ROOT / relative
         source = path.read_text(encoding="utf-8")
         for match in DIRECT_ASYNC_WRITE.finditer(source):
             line = source.count("\n", 0, match.start()) + 1

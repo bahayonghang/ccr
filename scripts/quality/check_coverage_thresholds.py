@@ -8,6 +8,17 @@ import json
 import sys
 from pathlib import Path
 
+try:
+    from scripts.common import REPO_ROOT
+except ModuleNotFoundError:
+    # pywin32 在 site-packages 注册了同名 namespace package `scripts`
+    _scripts_dir = Path(__file__).resolve().parent
+    while _scripts_dir.name != "scripts":
+        _scripts_dir = _scripts_dir.parent
+    sys.path.insert(0, str(_scripts_dir.parent))
+    sys.modules.pop("scripts", None)
+    from scripts.common import REPO_ROOT
+
 
 def main() -> int:
     parser = argparse.ArgumentParser()
@@ -17,7 +28,8 @@ def main() -> int:
     parser.add_argument("--gateway-pattern", action="append", required=True)
     args = parser.parse_args()
 
-    payload = json.loads(args.report.read_text(encoding="utf-8"))
+    report = args.report if args.report.is_absolute() else REPO_ROOT / args.report
+    payload = json.loads(report.read_text(encoding="utf-8"))
     data = payload.get("data", [])
     if len(data) != 1:
         print("coverage report must contain exactly one data record", file=sys.stderr)

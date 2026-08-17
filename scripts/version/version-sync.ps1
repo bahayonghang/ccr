@@ -35,7 +35,7 @@ try { chcp 65001 | Out-Null } catch {
 $ErrorActionPreference = "Stop"
 
 # 获取脚本根目录
-$ROOT_DIR = Split-Path -Parent (Split-Path -Parent $PSCommandPath)
+$ROOT_DIR = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 
 # 配置文件路径
 $ROOT_CARGO = Join-Path $ROOT_DIR "Cargo.toml"

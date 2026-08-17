@@ -4,13 +4,17 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.check_dependency_drift import (
+from scripts.common import REPO_ROOT
+from scripts.drift.check_dependency_drift import (
     declares_dependency,
     internal_umbrella_dependents,
 )
 
 
 class InternalUmbrellaDependencyTests(unittest.TestCase):
+    def test_shared_repo_root_is_importable(self) -> None:
+        self.assertTrue((REPO_ROOT / "scripts" / "common.py").is_file())
+
     def test_detects_direct_and_target_specific_dependencies(self) -> None:
         self.assertTrue(declares_dependency({"dependencies": {"ccr": "7"}}, "ccr"))
         self.assertTrue(

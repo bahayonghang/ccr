@@ -5,10 +5,14 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.check_json_format import canonical_json, process_json_configs
+from scripts.common import REPO_ROOT
+from scripts.quality.check_json_format import canonical_json, process_json_configs
 
 
 class JsonFormatTests(unittest.TestCase):
+    def test_shared_repo_root_is_importable(self) -> None:
+        self.assertTrue((REPO_ROOT / "scripts" / "common.py").is_file())
+
     def test_noncanonical_json_fails_without_mutation(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

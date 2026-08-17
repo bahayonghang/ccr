@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import unittest
-from pathlib import Path
 
-from scripts.ci_surface_policy import SURFACE_PATHS, is_relevant, path_matches
-from scripts.check_workflow_governance import (
+from scripts.common import REPO_ROOT
+from scripts.ci.ci_surface_policy import SURFACE_PATHS, is_relevant, path_matches
+from scripts.ci.check_workflow_governance import (
     duplicate_mapping_keys,
     workflow_event_values,
     workflow_job_block,
@@ -12,7 +12,7 @@ from scripts.check_workflow_governance import (
 
 
 class WorkflowGovernanceParserTests(unittest.TestCase):
-    ROOT = Path(__file__).resolve().parents[1]
+    ROOT = REPO_ROOT
 
     def test_duplicate_mapping_key_is_rejected(self) -> None:
         workflow = """jobs:
@@ -94,7 +94,7 @@ class WorkflowGovernanceParserTests(unittest.TestCase):
         for surface in SURFACE_PATHS:
             with self.subTest(surface=surface):
                 self.assertTrue(
-                    is_relevant(surface, ["scripts/ci_surface_policy.py"])
+                    is_relevant(surface, ["scripts/ci/ci_surface_policy.py"])
                 )
 
     def test_job_block_stops_before_the_next_job(self) -> None:

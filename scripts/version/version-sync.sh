@@ -22,7 +22,7 @@ SYNC_TARGETS=(
 )
 # ═══════════════════════════════════════════════════════════
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. && pwd)"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")"/../.. && pwd)"
 
 # 安全：确保脚本退出时清理所有临时文件
 TEMP_FILES=()

@@ -38,7 +38,7 @@ If the repository ever needs GitHub Copilot-specific skills, that can be introdu
 - three scoped instruction files for Rust, UI, and docs
 - three reusable prompt files
 - three reusable custom agents: `researcher`, `implementer`, and `reviewer`
-- `just copilot-check` plus `scripts/check-copilot-assets.mjs` to verify the asset set and catch naming drift between GitHub Copilot and Codex CLI
+- `just copilot-check` plus `scripts/quality/check-copilot-assets.mjs` to verify the asset set and catch naming drift between GitHub Copilot and Codex CLI
 
 ## Maintenance Rules
 

@@ -98,13 +98,13 @@
 - Local required gate: root `just vscode-ci` -> `ccr-vscode/justfile` recipe `ci`.
 - Local coverage gate: root `just vscode-coverage` -> Node `--experimental-test-coverage --test-coverage-lines=70 --test-coverage-functions=70`.
 - Hosted entry: `.github/workflows/vscode-ci.yml`; heavy job `VS Code Validation`, stable branch-protection aggregator `VS Code Required`.
-- Relevance signature: `python scripts/ci_surface_policy.py --surface vscode --base <sha> --head <sha>`.
+- Relevance signature: `python scripts/ci/ci_surface_policy.py --surface vscode --base <sha> --head <sha>`.
 
 ### 3. Contracts
 - Hosted and local CI both run clean `npm ci`, TypeScript build checks, tests, `build:package`, VSIX creation, and artifact collection.
 - Node is pinned to 24.18.0 and third-party actions use immutable commit SHAs.
 - The coverage gate enforces at least 70% line coverage; the current function threshold is also 70%.
-- Every pull request to `main`, `develop`, or `dev` creates `VS Code Required`. Changes to `ccr-vscode/**`, the root justfile, the workflow, or `scripts/ci_surface_policy.py` set `relevant=true` and must run validation/coverage; other changes skip the heavy job and let only the aggregator pass.
+- Every pull request to `main`, `develop`, or `dev` creates `VS Code Required`. Changes to `ccr-vscode/**`, the root justfile, the workflow, or `scripts/ci/ci_surface_policy.py` set `relevant=true` and must run validation/coverage; other changes skip the heavy job and let only the aggregator pass.
 - Workflow presence does not prove required branch protection; remote protection evidence is separate.
 
 ### 4. Validation & Error Matrix
@@ -124,7 +124,7 @@
 ### 6. Tests Required
 - `just vscode-ci` -> clean install, compile, 50 tests, package, and VSIX collection pass.
 - `just vscode-coverage` -> line coverage at least 70% (current observed 91.79%).
-- `python -m unittest scripts/test_check_workflow_governance.py` and `python scripts/check_workflow_governance.py` -> path policy, stable context, and pinned actions pass.
+- `python -m unittest scripts.ci.test_check_workflow_governance` and `python scripts/ci/check_workflow_governance.py` -> path policy, stable context, and pinned actions pass.
 - Inspect an actual PR check run and protected-branch required-check list when remote permission is available.
 
 ### 7. Wrong vs Correct
@@ -140,6 +140,6 @@ on:
 on:
   pull_request:
     branches: [main, develop, dev]
-# scripts/ci_surface_policy.py owns the heavy-job path policy; the stable
+# scripts/ci/ci_surface_policy.py owns the heavy-job path policy; the stable
 # required aggregator is created for every pull request.
 ```

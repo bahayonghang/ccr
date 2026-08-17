@@ -38,7 +38,7 @@ GitHub Copilot 支持从 `.claude/skills/`、`.github/skills/`、`.agents/skills
 - Rust / UI / 文档三类 scoped instructions
 - Rust / UI / 文档三类 prompt files
 - `researcher`、`implementer`、`reviewer` 三个自定义 agents
-- `just copilot-check` 与 `scripts/check-copilot-assets.mjs` 用于校验这些资产是否齐全，且文档中没有把 GitHub Copilot 和 Codex CLI 混写
+- `just copilot-check` 与 `scripts/quality/check-copilot-assets.mjs` 用于校验这些资产是否齐全，且文档中没有把 GitHub Copilot 和 Codex CLI 混写
 
 ## 维护约定
 

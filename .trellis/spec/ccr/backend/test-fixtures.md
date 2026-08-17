@@ -52,7 +52,7 @@
 - `cargo test -p ccr --test managers -- --nocapture`
 - `cargo clippy -p ccr --all-targets --all-features -- -D warnings`
 - `just test` (default parallel workspace execution)
-- `python scripts/check_workflow_governance.py` (`Serial-only test annotations: 0 (target: 0)`)
+- `python scripts/ci/check_workflow_governance.py` (`Serial-only test annotations: 0 (target: 0)`)
 - `just fmt-check`
 - `git diff --check`
 

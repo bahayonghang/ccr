@@ -26,7 +26,7 @@ jobs:
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: python3 scripts/ci_surface_policy.py --surface root --base "$BASE_SHA" --head "$HEAD_SHA" >> "$GITHUB_OUTPUT"
+        run: python3 scripts/ci/ci_surface_policy.py --surface root --base "$BASE_SHA" --head "$HEAD_SHA" >> "$GITHUB_OUTPUT"
 
   workspace-quality:
     name: Root Workspace Validation

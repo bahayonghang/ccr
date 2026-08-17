@@ -11,12 +11,22 @@ import tomllib
 from pathlib import Path
 from typing import Any
 
+try:
+    from scripts.common import REPO_ROOT
+except ModuleNotFoundError:
+    # pywin32 在 site-packages 注册了同名 namespace package `scripts`
+    _scripts_dir = Path(__file__).resolve().parent
+    while _scripts_dir.name != "scripts":
+        _scripts_dir = _scripts_dir.parent
+    sys.path.insert(0, str(_scripts_dir.parent))
+    sys.modules.pop("scripts", None)
+    from scripts.common import REPO_ROOT
 
-ROOT = Path(__file__).resolve().parents[1]
-ROOT_CARGO = ROOT / "Cargo.toml"
-TAURI_CARGO = ROOT / "ccr-ui" / "src-tauri" / "Cargo.toml"
-ALLOWLIST = ROOT / "scripts" / "dependency-drift-allowlist.json"
-RUST_TOOLCHAIN = ROOT / "rust-toolchain.toml"
+
+ROOT_CARGO = REPO_ROOT / "Cargo.toml"
+TAURI_CARGO = REPO_ROOT / "ccr-ui" / "src-tauri" / "Cargo.toml"
+ALLOWLIST = REPO_ROOT / "scripts" / "drift" / "dependency-drift-allowlist.json"
+RUST_TOOLCHAIN = REPO_ROOT / "rust-toolchain.toml"
 EXPECTED_MSRV = "1.95"
 EXPECTED_TOOLCHAIN = "1.95.0"
 INTERNAL_UMBRELLA_ALLOWLIST: frozenset[str] = frozenset()
@@ -84,13 +94,13 @@ def validate_exceptions(
 
 def validate_msrv() -> list[str]:
     failures: list[str] = []
-    manifests = sorted((ROOT / "crates").glob("*/Cargo.toml")) + [TAURI_CARGO]
+    manifests = sorted((REPO_ROOT / "crates").glob("*/Cargo.toml")) + [TAURI_CARGO]
     for manifest in manifests:
         package = load_toml(manifest).get("package", {})
         actual = package.get("rust-version")
         if actual != EXPECTED_MSRV:
             failures.append(
-                f"{manifest.relative_to(ROOT)} rust-version={actual!r}, expected {EXPECTED_MSRV!r}"
+                f"{manifest.relative_to(REPO_ROOT)} rust-version={actual!r}, expected {EXPECTED_MSRV!r}"
             )
     channel = load_toml(RUST_TOOLCHAIN).get("toolchain", {}).get("channel")
     if channel != EXPECTED_TOOLCHAIN:
@@ -112,7 +122,7 @@ def declares_dependency(payload: Any, dependency: str) -> bool:
     return False
 
 
-def internal_umbrella_dependents(root: Path = ROOT) -> list[str]:
+def internal_umbrella_dependents(root: Path = REPO_ROOT) -> list[str]:
     dependents: list[str] = []
     for manifest in sorted((root / "crates").glob("*/Cargo.toml")):
         relative = manifest.relative_to(root).as_posix()

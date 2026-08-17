@@ -7,19 +7,19 @@
 ## Scenario: Version sync target registry
 
 ### 1. Scope / Trigger
-- Trigger: changing version surfaces, UI shell version labels, `scripts/version-sync.ps1`, `scripts/version-sync.sh`, or paths listed in either script's `SYNC_TARGETS`.
+- Trigger: changing version surfaces, UI shell version labels, `scripts/version/version-sync.ps1`, `scripts/version/version-sync.sh`, or paths listed in either script's `SYNC_TARGETS`.
 - Applies because `just ci` starts with `just version-sync`; stale required paths fail the full gate before Rust or frontend checks run.
 
 ### 2. Signatures
-- Windows sync: `scripts/version-sync.ps1 [-Check] [-Verbose]`
-- Unix sync: `bash scripts/version-sync.sh [--check|-c] [--verbose|-v]`
+- Windows sync: `scripts/version/version-sync.ps1 [-Check] [-Verbose]`
+- Unix sync: `bash scripts/version/version-sync.sh [--check|-c] [--verbose|-v]`
 - Root gate: `just version-sync` and `just version-check`
 
 ### 3. Contracts
 - `SYNC_TARGETS` must list only current canonical version targets that exist in the working tree.
 - If a UI file that used to carry a version label is deleted, moved, or replaced by a package-driven label such as `APP_VERSION_LABEL`, remove the stale target instead of recreating an unused compatibility file.
 - Keep PowerShell and Bash target lists behaviorally aligned.
-- Keep `scripts/version-sync.Tests.ps1`, `scripts/version-sync.bats`, and `scripts/README.md` aligned with the active target list.
+- Keep `scripts/version/version-sync.Tests.ps1`, `scripts/version/version-sync.bats`, and `scripts/README.md` aligned with the active target list.
 
 ### 4. Validation & Error Matrix
 - Target path listed but missing -> fail in `just version-sync`.
@@ -33,8 +33,8 @@
 - Bad: leaving `ccr-ui/src/layouts/MainLayout.vue` in `SYNC_TARGETS` after the file is deleted.
 
 ### 6. Tests Required
-- Run `./scripts/version-sync.ps1 -Check -Verbose` after editing Windows sync behavior.
-- Run `bash -n scripts/version-sync.sh` after editing Bash sync behavior.
+- Run `./scripts/version/version-sync.ps1 -Check -Verbose` after editing Windows sync behavior.
+- Run `bash -n scripts/version/version-sync.sh` after editing Bash sync behavior.
 - Run `just version-sync` to prove the first `just ci` step no longer fails.
 - Run final `just ci` for release-ready version-sync changes.
 
@@ -59,11 +59,10 @@ Test-RequiredFile $COMPONENT_MAIN_LAYOUT
 - The gate detects new repeated dependency version drift before CI or release builds silently diverge.
 
 ### 2. Signatures
-- Canonical validator: `python scripts/check_dependency_drift.py [--verbose]`
-- Metadata: `scripts/dependency-drift-allowlist.json`
-- Platform wrappers: `scripts/check-dependency-drift.ps1 [-Verbose]` and `bash scripts/check-dependency-drift.sh [--verbose|-v]`
+- Canonical validator: `python scripts/drift/check_dependency_drift.py [--verbose]`
+- Metadata: `scripts/drift/dependency-drift-allowlist.json`
 - Toolchain source: `rust-toolchain.toml` with channel `1.95.0`; crate manifests use `rust-version = "1.95"`.
-- Root gate: `just version-check` must invoke the dependency drift wrapper for Windows, Linux, and macOS recipe variants.
+- Root gate: `just version-check` must invoke the Python dependency drift checker for Windows, Linux, and macOS recipe variants.
 
 ### 3. Contracts
 - Parse root `Cargo.toml` `[workspace.dependencies]`.
@@ -74,7 +73,7 @@ Test-RequiredFile $COMPONENT_MAIN_LAYOUT
 - Expired, duplicate, stale, or ownerless exceptions fail; active exceptions must not exceed `max_active_exceptions` (currently 3).
 - A stale allowlist entry fails when the dependency disappears from either manifest or the two versions become equal.
 - Every crate plus the independent Tauri manifest must declare MSRV 1.95, matching the pinned 1.95.0 toolchain patch.
-- PowerShell and Bash are thin launchers for the same Python validator so their results cannot drift.
+- Windows recipes call `python`; Linux and macOS recipes call `python3`. Both invoke the same Python validator.
 
 ### 4. Validation & Error Matrix
 - Root Cargo manifest missing -> fail.
@@ -92,12 +91,10 @@ Test-RequiredFile $COMPONENT_MAIN_LAYOUT
 - Base: `toml` differs with owner `desktop-platform`, a migration rationale, and a future expiry while parser compatibility is being evaluated.
 - Bad: adding `anyhow = "1.0.90"` to Tauri while root workspace uses `1.0.102` without an allowlist reason.
 - Bad: leaving an allowlist entry after the Tauri version is aligned with root.
-- Bad: duplicating parsing logic in the PowerShell/Bash wrappers or leaving an exception without an accountable owner and expiry.
+- Bad: duplicating parsing logic outside the Python validator or leaving an exception without an accountable owner and expiry.
 
 ### 6. Tests Required
-- Run `python scripts/check_dependency_drift.py --verbose` after validator, manifest, toolchain, or exception changes.
-- Run `bash -n scripts/check-dependency-drift.sh` and `bash scripts/check-dependency-drift.sh --verbose` after editing the Bash wrapper.
-- Run `./scripts/check-dependency-drift.ps1 -Verbose` for the Windows wrapper.
+- Run `python scripts/drift/check_dependency_drift.py --verbose` after validator, manifest, toolchain, or exception changes.
 - Run `just version-check` to prove the root gate includes version, doc, and dependency drift checks.
 - Run `git diff --check` before commit.
 
@@ -110,7 +107,7 @@ declare -A ALLOWED_DRIFT=([toml]="temporary")
 
 #### Correct
 ```bash
-python3 scripts/check_dependency_drift.py "$@"
+python3 scripts/drift/check_dependency_drift.py "$@"
 ```
 
 ## Scenario: SQLite native link compatibility
@@ -220,7 +217,7 @@ r2d2_sqlite = "0.34.0"
 - Disabled updater indicators: no `tauri-plugin-updater`,
   `@tauri-apps/plugin-updater`, or Tauri `plugins.updater` configuration.
 - Local validation: `actionlint .github/workflows/release.yml` and
-  `python scripts/check_workflow_governance.py`.
+  `python scripts/ci/check_workflow_governance.py`.
 
 ### 3. Contracts
 - macOS, Windows, and VSIX release artifacts may remain unsigned. The workflow
@@ -257,8 +254,8 @@ r2d2_sqlite = "0.34.0"
 ### 6. Tests Required
 - `go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.7 .github/workflows/release.yml`
   validates the release workflow when `actionlint` is not installed directly.
-- `python -m unittest scripts/test_check_workflow_governance.py` and
-  `python scripts/check_workflow_governance.py` validate pinned actions and
+- `python -m unittest scripts.ci.test_check_workflow_governance` and
+  `python scripts/ci/check_workflow_governance.py` validate pinned actions and
   workflow governance.
 - Search manifests/config for `tauri-plugin-updater`,
   `@tauri-apps/plugin-updater`, and `plugins.updater`; all must be absent.
@@ -283,9 +280,9 @@ authenticate the publisher; automatic updates remain disabled.
 - Applies because hosted checks must call repository-owned gates and must not silently weaken local acceptance.
 
 ### 2. Signatures
-- Governance validator: `python scripts/check_workflow_governance.py`.
-- Relevance resolver: `python scripts/ci_surface_policy.py --surface <root|frontend|tauri|vscode> --base <sha> --head <sha>`; writes `relevant=true|false` to `$GITHUB_OUTPUT`.
-- Coverage validator: `python scripts/check_coverage_thresholds.py <report.json> [--overall 70] --gateway 85 --gateway-pattern <path>`.
+- Governance validator: `python scripts/ci/check_workflow_governance.py`.
+- Relevance resolver: `python scripts/ci/ci_surface_policy.py --surface <root|frontend|tauri|vscode> --base <sha> --head <sha>`; writes `relevant=true|false` to `$GITHUB_OUTPUT`.
+- Coverage validator: `python scripts/quality/check_coverage_thresholds.py <report.json> [--overall 70] --gateway 85 --gateway-pattern <path>`.
 - Frontend audit validator: `cd ccr-ui && bun run audit:dependencies`; policy: `ccr-ui/scripts/frontend-audit-allowlist.json`.
 - Local recipes: `workflow-governance-check`, `dependency-governance-check`, `frontend-audit`, `ci-governance-check`, `coverage-rust`, `coverage-tauri`, `frontend-coverage`, `vscode-coverage`, `tauri-ci`, and `vscode-ci`.
 - Hosted files: `ci.yml`, `frontend-ci.yml`, `tauri-rust-ci.yml`, and `vscode-ci.yml`.
@@ -294,11 +291,11 @@ authenticate the publisher; automatic updates remain disabled.
 - Third-party `uses:` references are immutable 40-character commit SHAs; version comments are review hints, not executable refs.
 - Workflow YAML must reject duplicate mapping keys. Pull requests to `main`, `develop`, and `dev` always instantiate the four stable required contexts; product path filters live only in `SURFACE_PATHS`. Quality workflows (`ci.yml`, `frontend-ci.yml`, `tauri-rust-ci.yml`, `vscode-ci.yml`) are `pull_request`-only. `release.yml` remains tag-push only.
 - Stable branch-protection contexts are `Root Workspace Required`, `Vue and Docs Required`, `Tauri Linux Required`, and `VS Code Required`. Each is a final aggregator: irrelevant changes pass after change detection, while relevant changes pass only when every heavy validation, coverage, audit, and platform matrix dependency succeeds.
-- Change detection checks out full history and uses the pull request's merge-base diff (`base...head`). Changing `scripts/ci_surface_policy.py` makes all four surfaces relevant. Detection failure must fail the aggregator; an empty or failed relevance output must never silently skip a required validation.
+- Change detection checks out full history and uses the pull request's merge-base diff (`base...head`). Changing `scripts/ci/ci_surface_policy.py` makes all four surfaces relevant. Detection failure must fail the aggregator; an empty or failed relevance output must never silently skip a required validation.
 - Rust is pinned to 1.95.0, Bun to 1.3.10, Node to 24.18.0, just to 1.57.0, and cargo-llvm-cov to 0.8.7.
 - Root Rust, Vue, and VS Code line coverage must be at least 70%; root and Tauri process gateways must be at least 85%.
 - Tauri uploads its full coverage baseline while the hard security threshold remains the gateway; a broad command-wrapper percentage cannot hide a gateway regression.
-- Root workspace tests use default parallelism. `scripts/check_workflow_governance.py` counts `#[serial]` / `#[serial_test::serial]`; current and target counts are both 0.
+- Root workspace tests use default parallelism. `scripts/ci/check_workflow_governance.py` counts `#[serial]` / `#[serial_test::serial]`; current and target counts are both 0.
 - Tauri command inventory is generated from the handler registry and freezes 315 base / 323 Windows commands across 30 base modules.
 - The Tauri Rust gate runs direct Cargo fmt/check/clippy/test plus repository governance recipes. Its Linux job installs pinned Bun 1.3.10 because `tauri-bindings-check` formats and compares generated TypeScript; it does not install the Vue dependency graph.
 - Fresh checkouts run Tauri Rust compile/test/coverage commands with `.cargo/tauri-ci.toml`, which overrides `frontendDist` to the tracked `ccr-ui/src-tauri/ci-dist/index.html` fixture. Production Tauri builds keep using `ccr-ui/dist`; the fixture must never replace the real `beforeBuildCommand` output in release packaging.
@@ -332,9 +329,9 @@ authenticate the publisher; automatic updates remain disabled.
 - Bad: creating an ignored `ccr-ui/dist` locally before testing and treating that residue-dependent pass as fresh-checkout evidence.
 
 ### 6. Tests Required
-- `python -m unittest scripts/test_check_workflow_governance.py` -> path matching, event parsing, and duplicate-key cases pass.
+- `python -m unittest scripts.ci.test_check_workflow_governance` -> path matching, event parsing, and duplicate-key cases pass.
 - The workflow-governance unit suite asserts that root/UI Tauri Cargo recipes use `.cargo/tauri-ci.toml`, the tracked CI frontend fixture exists, and the Tauri Linux job installs pinned Bun 1.3.10.
-- `python scripts/check_workflow_governance.py` -> 52 immutable action references, stable relevance routing, Tauri Linux Bun setup, and serial-only count 0.
+- `python scripts/ci/check_workflow_governance.py` -> 52 immutable action references, stable relevance routing, Tauri Linux Bun setup, and serial-only count 0.
 - `just ci-governance-check` -> dependency, workflow, and handler inventory gates pass.
 - `cd ccr-ui && bun install --frozen-lockfile && bun run audit:dependencies` -> nested `brace-expansion` is 1.1.18/2.1.4/5.0.9, the audit JSON is empty, and the allowlist has 0/0 active exceptions.
 - `cd ccr-ui && bun run test:smoke -- tests/frontend-dependency-audit.smoke.test.ts` -> exception limit, expiry, package match, stale detection, and GHSA extraction pass.
@@ -364,7 +361,7 @@ jobs:
 on:
   pull_request:
     branches: [main, develop, dev]
-# Heavy-job relevance comes from scripts/ci_surface_policy.py; the required
+# Heavy-job relevance comes from scripts/ci/ci_surface_policy.py; the required
 # aggregator is always created.
 jobs:
   root-required:
@@ -392,7 +389,7 @@ jobs:
 ### 1. Scope / Trigger
 
 - Trigger: adding or changing a dependency in `crates/*/Cargo.toml` or changing
-  `scripts/check_dependency_drift.py`.
+  `scripts/drift/check_dependency_drift.py`.
 
 ### 2. Signatures
 
@@ -423,7 +420,7 @@ jobs:
 
 ### 6. Tests Required
 
-- `python -m unittest scripts/test_check_dependency_drift.py` covers direct,
+- `python -m unittest scripts.drift.test_check_dependency_drift` covers direct,
   target-specific, prefix, and root-facade cases.
 - Run `just dependency-governance-check` and `just version-check`.
 
