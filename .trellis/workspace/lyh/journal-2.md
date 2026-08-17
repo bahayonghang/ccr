@@ -1168,3 +1168,27 @@
 ### Next Steps
 
 - 无
+
+
+## Session 92: TUI Profile 界面设计优化(操作安全闭环+信息层级+界面减负)
+
+**Date**: 2026-08-17
+**Task**: TUI Profile 界面设计优化(操作安全闭环+信息层级+界面减负)
+**Branch**: `dev`
+
+### Summary
+
+完成 tui-profile-ux 任务全部 6 个 WS:Enter/Space 应用并停留(删除 ApplyAndQuit),Focus 常驻切换反馈,页脚标注同步;Codex banner 改 current chip 并去内部术语;删除 Wide Selection 面板,图例入列表 title_bottom;详情未设置字段显式 unset 折叠(x 展开),requires_openai=false 中性化;docs/CHANGELOG/spec 同步。另修复 codex_fix 预存 clippy 告警。238+195 测试全绿,lint-strict/fmt/docs audit 通过。AC12 手动实机验证待用户核对。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `d1ed6511` | (see git log) |
+| `87f2ddc0` | (see git log) |
+| `529273ae` | (see git log) |
+| `edfbe20e` | (see git log) |
+
+### Status
+
+[OK] **Completed**
