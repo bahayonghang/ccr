@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/ccr/backend/dependency-governance.md", "reason": "Version-sync, dependency-drift, workflow-governance path contracts"}
+{"file": ".trellis/spec/ccr/backend/repository-json-formatting.md", "reason": "JSON format inventory and just fmt-check signatures"}
+{"file": ".trellis/spec/ccr-core/backend/atomic-writer.md", "reason": "secret-write checker path in atomic-writer validation"}
+{"file": ".trellis/tasks/08-17-scripts-classify/research/current-inventory.md", "reason": "Current file inventory and approved taxonomy"}
