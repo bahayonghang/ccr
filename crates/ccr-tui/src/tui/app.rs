@@ -260,6 +260,8 @@ pub struct App {
     pub detail_area: Cell<Option<Rect>>,
     /// Vertical scroll offset for the selected profile detail panel
     pub profile_detail_scroll: u16,
+    /// Whether unset profile detail fields are expanded (default: collapsed summary)
+    pub profile_details_expanded: bool,
     /// 异步后台任务执行器
     pub(crate) task_executor: AsyncTaskExecutor,
 }
@@ -673,6 +675,7 @@ impl App {
             list_area: Cell::new(None),
             detail_area: Cell::new(None),
             profile_detail_scroll: 0,
+            profile_details_expanded: false,
             task_executor,
         };
         app.focus_current_profile();
@@ -755,9 +758,9 @@ impl App {
             KeyCode::PageDown => Action::ScrollDetailsDown,
             KeyCode::Up | KeyCode::Char('k') => Action::SelectPrev,
             KeyCode::Down | KeyCode::Char('j') => Action::SelectNext,
-            KeyCode::Enter => Action::ApplyAndQuit,
-            KeyCode::Char(' ') => Action::ApplySelected,
+            KeyCode::Enter | KeyCode::Char(' ') => Action::ApplySelected,
             KeyCode::Char('o') | KeyCode::Char('O') => Action::ProfileOff,
+            KeyCode::Char('x') => Action::ToggleDetailsExpanded,
             KeyCode::Char('r') => Action::Reload,
             _ => Action::Noop,
         }
@@ -849,10 +852,8 @@ impl App {
             Action::ApplySelected => {
                 self.apply_selected();
             }
-            Action::ApplyAndQuit => {
-                if self.apply_selected() {
-                    return Ok(true);
-                }
+            Action::ToggleDetailsExpanded => {
+                self.profile_details_expanded = !self.profile_details_expanded;
             }
             Action::ProfileOff => {
                 self.off_selected();
@@ -1685,7 +1686,37 @@ mod tests {
         let key = KeyEvent::new(KeyCode::Char('o'), KeyModifiers::NONE);
         assert!(matches!(app.map_key(key), Action::ProfileOff));
         let apply = KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE);
-        assert!(matches!(app.map_key(apply), Action::ApplyAndQuit));
+        assert!(matches!(app.map_key(apply), Action::ApplySelected));
+    }
+
+    #[test]
+    fn enter_and_space_both_map_to_apply_selected() {
+        // Enter 与 Space 同义: 应用并停留, 不再存在单键 apply+quit
+        // (Action 枚举已删除 ApplyAndQuit, 由编译期保证)
+        let app = profile_navigation_app(1, 0, 0);
+        let enter = KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE);
+        let space = KeyEvent::new(KeyCode::Char(' '), KeyModifiers::NONE);
+        assert!(matches!(app.map_key(enter), Action::ApplySelected));
+        assert!(matches!(app.map_key(space), Action::ApplySelected));
+    }
+
+    #[test]
+    fn map_key_x_toggles_details_expansion() {
+        let app = profile_navigation_app(1, 0, 0);
+        let key = KeyEvent::new(KeyCode::Char('x'), KeyModifiers::NONE);
+        assert!(matches!(app.map_key(key), Action::ToggleDetailsExpanded));
+    }
+
+    #[test]
+    fn toggle_details_expanded_flips_app_flag() {
+        let mut app = profile_navigation_app(1, 0, 0);
+        assert!(!app.profile_details_expanded);
+
+        app.dispatch(Action::ToggleDetailsExpanded).unwrap();
+        assert!(app.profile_details_expanded);
+
+        app.dispatch(Action::ToggleDetailsExpanded).unwrap();
+        assert!(!app.profile_details_expanded);
     }
 
     #[test]
@@ -1739,6 +1770,7 @@ mod tests {
             list_area: Cell::new(None),
             detail_area: Cell::new(None),
             profile_detail_scroll: 0,
+            profile_details_expanded: false,
             task_executor: AsyncTaskExecutor::from_current_or_test(),
         }
     }
@@ -1816,6 +1848,7 @@ mod tests {
             list_area: Cell::new(None),
             detail_area: Cell::new(None),
             profile_detail_scroll: 0,
+            profile_details_expanded: false,
             task_executor: AsyncTaskExecutor::from_current_or_test(),
         }
     }
@@ -1873,6 +1906,7 @@ mod tests {
             list_area: Cell::new(None),
             detail_area: Cell::new(None),
             profile_detail_scroll: 0,
+            profile_details_expanded: false,
             task_executor: AsyncTaskExecutor::from_current_or_test(),
         }
     }
@@ -2116,6 +2150,7 @@ mod tests {
             list_area: Cell::new(None),
             detail_area: Cell::new(None),
             profile_detail_scroll: 0,
+            profile_details_expanded: false,
             task_executor: AsyncTaskExecutor::from_current_or_test(),
         };
 
@@ -2255,6 +2290,7 @@ mod tests {
             list_area: Cell::new(None),
             detail_area: Cell::new(None),
             profile_detail_scroll: 0,
+            profile_details_expanded: false,
             task_executor: AsyncTaskExecutor::from_current_or_test(),
         };
 
@@ -2316,6 +2352,7 @@ mod tests {
             list_area: Cell::new(None),
             detail_area: Cell::new(None),
             profile_detail_scroll: 0,
+            profile_details_expanded: false,
             task_executor: AsyncTaskExecutor::from_current_or_test(),
         }
         .with_claude_auth_tab();
@@ -2352,6 +2389,7 @@ mod tests {
             list_area: Cell::new(None),
             detail_area: Cell::new(None),
             profile_detail_scroll: 0,
+            profile_details_expanded: false,
             task_executor: AsyncTaskExecutor::from_current_or_test(),
         }
         .with_codex_tab();
@@ -2412,6 +2450,7 @@ mod tests {
             list_area: Cell::new(None),
             detail_area: Cell::new(None),
             profile_detail_scroll: 0,
+            profile_details_expanded: false,
             task_executor: AsyncTaskExecutor::from_current_or_test(),
         }
         .with_opencode_auth_tab();
