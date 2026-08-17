@@ -84,26 +84,29 @@ ccr codex profile switch future
 ccr codex fix
 ```
 
-`ccr codex fix` 会清理残留 app-server，并比较调用瞬间的 registry pointer、`profiles.toml`、`config.toml`、`auth.json` 与当前进程环境。结果分别报告 `process_state`、`runtime_consistency` 和 `provider_auth_validity`。
+`ccr codex fix` 会清理残留 app-server，并比较调用瞬间的 registry pointer、`profiles.toml`、`config.toml`、`auth.json` 与当前进程环境。结果分别报告 `process_state`、`runtime_consistency` 和 `provider_auth_validity`。默认不调用上游 `codex doctor`。
 
 进程发现显式读取 cmdline 与 owner，只处理当前用户的 Codex `app-server`。清理期间按
-`PID + start_time` 识别进程，TERM 宽限窗口内持续发现替换 PID，并在每次信号前重新验证
+`PID + start_time` 识别进程。TERM 之后每 300ms 重查，匹配目标已空则结束宽限；
+settle 里才出现的新身份记为 `respawned`，不补发 deadline KILL。每次信号前重新验证
 owner 与 argv；输出只显示脱敏摘要。无法建立安全快照时会报告
 `process_state = unavailable`，不会把未知状态当成 `clean`。
 
-裸命令只诊断，不重写 runtime。发现可安全修复的本地漂移后，显式运行：
+裸命令只做本地诊断，不重写 runtime，也不运行上游 doctor。发现可安全修复的本地漂移后，显式运行：
 
 ```bash
 ccr codex fix --repair-runtime
 ccr codex fix --dry-run --repair-runtime
+ccr codex fix --doctor
 ```
 
-`--repair-runtime` 只通过既有原子应用路径重放当前保存的 profile，不修改或轮换保存的 secret。组合 `--dry-run` 时既不终止进程，也不写 `config.toml` / `auth.json`。
+`--repair-runtime` 只通过既有原子应用路径重放当前保存的 profile，不修改或轮换保存的 secret。组合 `--dry-run` 时既不终止进程，也不写 `config.toml` / `auth.json`。`--repair-runtime` 不隐含 `--doctor`。
 
-进程、runtime inspection/repair 和 doctor 是独立阶段。runtime 阶段不可用时命令仍会运行
-可用的 doctor，并以退出码 `1` 报告；进程仍存在或进程发现不可用时退出码 `2` 优先。
+进程、runtime inspection/repair 和 doctor 是独立阶段。默认跳过 doctor。runtime 阶段不可用时
+以退出码 `1` 报告；进程仍存在或进程发现不可用时退出码 `2` 优先。只有传入 `--doctor`
+且 PATH 中没有 `codex` 时才退出 `127`。
 
-CCR 自己的 reconciliation 不新增第三方凭据探测；命令仍会运行上游 `codex doctor`，其具体检查行为由当前 Codex 版本决定。即使 `runtime_consistency = match`，`provider_auth_validity` 仍为 `not_checked`；若此时 Provider 返回 `INVALID_API_KEY`，应核验或更新该 profile 保存的 key，而不是继续清理 app-server。
+CCR 自己的 reconciliation 不新增第三方凭据探测。需要上游健康检查时再运行 `ccr codex fix --doctor`，其具体检查行为由当前 Codex 版本决定。即使 `runtime_consistency = match`，`provider_auth_validity` 仍为 `not_checked`；若此时 Provider 返回 `INVALID_API_KEY`，应核验或更新该 profile 保存的 key，而不是继续清理 app-server。
 
 ## 历史同步补充
 
