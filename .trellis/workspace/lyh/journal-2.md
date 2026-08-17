@@ -1127,3 +1127,44 @@
 ### Next Steps
 
 - 无；任务已归档
+
+
+## Session 91: 优化 ccr codex fix 执行速度
+
+**Date**: 2026-08-17
+**Task**: 优化 ccr codex fix 执行速度
+**Branch**: `dev`
+
+### Summary
+
+默认 ccr codex fix 不再调用上游 doctor；宽限早停；--doctor 用 ManagedProcess 回收进程树。干净路径本地阶段约 20–30 ms。
+
+### Main Changes
+
+- 默认跳过 doctor，新增 --doctor；127 仅在 --doctor 且 PATH 缺失时出现
+- 进程宽限在目标已空时结束；settle 新身份记为 respawned
+- doctor 走 ManagedProcess terminate_tree；非 JSON 不再二次启动
+- 同步双语文档与 codex-app-server-cleanup 规范
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `6d119fbf` | (see git log) |
+| `94a669d8` | (see git log) |
+
+### Testing
+
+- [OK] cargo test -p ccr-codex codex_process_service / runtime_diagnostic
+- [OK] cargo test -p ccr-cli --lib fix / --lib codex_fix
+- [OK] cargo test -p ccr --test commands codex_fix / help
+- [OK] just lint-strict; just fmt-check; just docs-check
+- [OK] 手工 5 次 cargo run --dry-run 中位数 737 ms（含 debug 启动），doctor skipped
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 无
