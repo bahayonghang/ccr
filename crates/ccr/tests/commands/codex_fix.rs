@@ -355,12 +355,12 @@ fn write_fake_codex_script_with_copy(
     source: &Path,
     dest: &Path,
 ) {
+    let count = format!("\"{}\"", count_path.display());
+    let source = format!("\"{}\"", source.display());
+    let dest = format!("\"{}\"", dest.display());
+    let payload = format!("\"{}\"", payload_path.display());
     let script = format!(
-        "@echo off\r\n>>{count} echo 1\r\ncopy /Y {source} {dest} >NUL\r\ntype {payload}\r\n",
-        count = format!("\"{}\"", count_path.display()),
-        source = format!("\"{}\"", source.display()),
-        dest = format!("\"{}\"", dest.display()),
-        payload = format!("\"{}\"", payload_path.display()),
+        "@echo off\r\n>>{count} echo 1\r\ncopy /Y {source} {dest} >NUL\r\ntype {payload}\r\n"
     );
     fs::write(bin_dir.join("codex.cmd"), script).unwrap();
 }
