@@ -26,8 +26,7 @@ ccr opencode
 | `Tab` | 在可用页签之间切换 |
 | `←` / `→` / `h` / `l` | 翻页 |
 | `↑` / `↓` / `j` / `k` | 选择配置 |
-| `Enter` | 应用并退出 |
-| `Space` | 应用但保持在 TUI 内 |
+| `Enter` / `Space` | 应用选中配置并保持在 TUI 内（结果显示在 Focus 面板） |
 | `q` / `Esc` | 退出 |
 
 ## 当前定位
@@ -49,7 +48,7 @@ ccr opencode
 ccr
 # Tab 切平台
 # ↑↓ 选配置
-# Enter 应用并退出
+# Enter/Space 应用并停留（按 q 或 Esc 退出）
 
 ccr opencode
 # 在 OpenCode Auth 页签按 i，预览并确认导入兼容的已保存 Codex 账号

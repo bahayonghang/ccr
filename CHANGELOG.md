@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 🔧 改进
 
+- **TUI Profile 键位语义调整（UX 破坏性变更）**：
+  - `Enter` 应用选中 profile 后不再退出 TUI，与 `Space` 同义（应用并停留）；不再存在任何单键「应用并退出」路径，退出请按 `q` / `Esc`
+  - 应用结果常驻显示在 Focus 面板（「已切换到 X」/ "Switched to X"，失败显示错误详情），三档视口均可见；Wide 视口的 Status strip 改为纯 toast 通道
+  - 页脚标注同步为 `Enter/Space apply`、`o deactivate` /「o 解绑」，并新增 `x` 键展开/折叠详情面板中未设置的字段
 - **ccr-ui 使用统计迁移到 llmusage**：
   - Usage Dashboard / Home Overview / Logs / Heatmap / Import Job 改由 llmusage 0.5.1 本地 SQLite 运行时提供数据
   - llmusage 数据默认遵循 `LLMUSAGE_HOME`，未设置时写入 `~/.llmusage/llmusage.db`；不自动读取、合并或迁移旧 `~/.ccr/llmusage`
