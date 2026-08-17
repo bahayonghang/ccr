@@ -1092,3 +1092,38 @@
 ### Next Steps
 
 - 重启 Tauri 后端后保存 context_window=500000 做现场确认
+
+
+## Session 90: 日志系统安全与可观测优化
+
+**Date**: 2026-08-17
+**Task**: 日志系统安全与可观测优化
+**Branch**: `dev`
+
+### Summary
+
+加固 crates 与 ccr-ui 日志写出边界，接通 Desktop Monitoring 桥，just ci 通过后提交。
+
+### Main Changes
+
+- ccr-core 识别层、日切权限、有界桥接队列
+- 前端 logger 与 append_frontend_logs 硬限额脱敏
+- runtime 频道、2s flush、Dashboard 排除诊断频道
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `756f896a` | (see git log) |
+
+### Testing
+
+- [OK] just ci
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 无；任务已归档

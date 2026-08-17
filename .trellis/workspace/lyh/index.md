@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 89
-- **Last Active**: 2026-08-14
+- **Total Sessions**: 90
+- **Last Active**: 2026-08-17
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~1094 | Active |
+| `journal-2.md` | ~1129 | Active |
 | `journal-1.md` | ~1987 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 90 | 2026-08-17 | 日志系统安全与可观测优化 | `756f896a` | `dev` |
 | 89 | 2026-08-14 | Grok 编辑器滚动与 IPC 整数 | `4b44c637`, `466cc409` | `dev` |
 | 88 | 2026-08-13 | Profile 登录预备清理 | `594428d3`, `9b2dbcc3`, `d4726b55`, `ab34984e` | `dev` |
 | 87 | 2026-08-02 | 修复 ApexCharts tooltip marker 异常放大 | `68d5740a` | `dev` |
