@@ -2,6 +2,7 @@
 import { isTauriRuntime } from '@/utils/tauriRuntime'
 import { getErrorMessage } from '@/utils/errorHandler'
 import { appendFrontendLogs } from '@/api/generated/events'
+import { redactLogText, redactLogValue } from '@/utils/logRedact'
 import type { FrontendLogInputDto as FrontendLogInput } from '@/types/generated/events/FrontendLogInputDto'
 import type { JsonValueDto } from '@/types/generated/events/JsonValueDto'
 
@@ -13,20 +14,89 @@ export interface LoggerEntry {
   message: string
   timestamp: string
   source: string
+  correlationId: string
   data?: unknown
 }
 
+export const MAX_MESSAGE_CHARS = 2000
+export const MAX_SOURCE_CHARS = 64
+export const MAX_CORR_CHARS = 64
+export const MAX_FIELDS_JSON_BYTES = 8192
+export const MAX_BRIDGE_QUEUE = 100
+export const MAX_BRIDGE_ATTEMPTS = 3
+
 type LoggerListener = (entry: LoggerEntry) => void
+
+export interface LoggerOptions {
+  isTauriRuntime?: () => boolean
+  appendFrontendLogs?: (entries: FrontendLogInput[]) => Promise<void>
+  now?: () => Date
+  sessionId?: string
+}
 
 let logSequence = 0
 
-const createLogId = (): string => {
+const createLogId = (now: Date): string => {
   logSequence += 1
-  return `frontend-${Date.now()}-${logSequence}`
+  return `frontend-${now.getTime()}-${logSequence}`
 }
 
-class Logger {
-  private isDevelopment = import.meta.env.DEV
+const createSessionId = (): string => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+  return `frontend-session-${Date.now()}`
+}
+
+const truncateChars = (value: string, maxChars: number): string => {
+  return Array.from(value).slice(0, maxChars).join('')
+}
+
+const estimateJsonBytes = (value: unknown): number => {
+  try {
+    return new TextEncoder().encode(JSON.stringify(value)).length
+  } catch {
+    return MAX_FIELDS_JSON_BYTES + 1
+  }
+}
+
+export const sanitizeLoggerData = (data: unknown): unknown => {
+  if (typeof data === 'undefined') {
+    return undefined
+  }
+
+  if (data instanceof Error) {
+    return redactLogValue({
+      name: data.name,
+      message: data.message,
+    })
+  }
+
+  try {
+    const cloned = JSON.parse(JSON.stringify(data)) as unknown
+    const redacted = redactLogValue(cloned)
+    if (estimateJsonBytes(redacted) > MAX_FIELDS_JSON_BYTES) {
+      return { truncated: true }
+    }
+    return redacted
+  } catch {
+    return redactLogValue({ value: String(data) })
+  }
+}
+
+const toJsonFields = (data: unknown): JsonValueDto | undefined => {
+  if (typeof data === 'undefined') {
+    return undefined
+  }
+  return data as JsonValueDto
+}
+
+export class Logger {
+  private readonly isDevelopment = import.meta.env.DEV
+  private readonly sessionId: string
+  private readonly resolveRuntime: () => boolean
+  private readonly appendLogs: (entries: FrontendLogInput[]) => Promise<void>
+  private readonly now: () => Date
   private logHistory: LoggerEntry[] = []
   private listeners = new Set<LoggerListener>()
   private maxHistorySize = 100
@@ -34,15 +104,34 @@ class Logger {
   private nativeBridgeTimer: ReturnType<typeof setTimeout> | null = null
   private nativeBridgeInFlight = false
   private nativeBridgeStatus: 'unknown' | 'ready' | 'disabled' = 'unknown'
+  private nativeBridgeAttempts = 0
+
+  constructor(options: LoggerOptions = {}) {
+    this.sessionId = truncateChars(options.sessionId ?? createSessionId(), MAX_CORR_CHARS)
+    this.resolveRuntime = options.isTauriRuntime ?? isTauriRuntime
+    this.appendLogs = options.appendFrontendLogs ?? appendFrontendLogs
+    this.now = options.now ?? (() => new Date())
+  }
+
+  getSessionId(): string {
+    return this.sessionId
+  }
+
+  getBridgeQueueLength(): number {
+    return this.nativeBridgeQueue.length
+  }
 
   private formatMessage(level: LogLevel, message: string, data?: unknown): LoggerEntry {
+    const timestamp = this.now().toISOString()
+    const redactedMessage = truncateChars(redactLogText(message), MAX_MESSAGE_CHARS)
     return {
-      id: createLogId(),
+      id: createLogId(this.now()),
       level,
-      message,
-      timestamp: new Date().toISOString(),
+      message: redactedMessage,
+      timestamp,
       source: 'frontend',
-      data,
+      correlationId: this.sessionId,
+      data: sanitizeLoggerData(data),
     }
   }
 
@@ -65,37 +154,22 @@ class Logger {
     }
   }
 
-  private normalizeFields(data: unknown): JsonValueDto | undefined {
-    if (typeof data === 'undefined') {
-      return undefined
-    }
-
-    if (data instanceof Error) {
-      return {
-        name: data.name,
-        message: data.message,
-        stack: data.stack,
-      }
-    }
-
-    try {
-      return JSON.parse(JSON.stringify(data)) as JsonValueDto
-    } catch {
-      return { value: String(data) }
-    }
-  }
-
   private enqueueNativeBridge(entry: LoggerEntry): void {
-    if (!isTauriRuntime() || this.nativeBridgeStatus === 'disabled') {
+    if (!this.resolveRuntime() || this.nativeBridgeStatus === 'disabled') {
       return
+    }
+
+    while (this.nativeBridgeQueue.length >= MAX_BRIDGE_QUEUE) {
+      this.nativeBridgeQueue.shift()
     }
 
     this.nativeBridgeQueue.push({
       level: entry.level,
       message: entry.message,
-      source: entry.source,
+      source: truncateChars(entry.source, MAX_SOURCE_CHARS) || 'frontend',
       timestamp: entry.timestamp,
-      fields: this.normalizeFields(entry.data),
+      correlationId: entry.correlationId,
+      fields: toJsonFields(entry.data),
     })
 
     if (this.nativeBridgeTimer) {
@@ -113,12 +187,12 @@ class Logger {
     return /append_frontend_logs/i.test(message) || /unknown command|not found|unsupported/i.test(message)
   }
 
-  private async flushNativeBridge(): Promise<void> {
+  async flushNativeBridge(): Promise<void> {
     if (
       this.nativeBridgeInFlight
       || this.nativeBridgeStatus === 'disabled'
       || this.nativeBridgeQueue.length === 0
-      || !isTauriRuntime()
+      || !this.resolveRuntime()
     ) {
       return
     }
@@ -127,12 +201,17 @@ class Logger {
     this.nativeBridgeInFlight = true
 
     try {
-      await appendFrontendLogs(entries)
+      await this.appendLogs(entries)
       this.nativeBridgeStatus = 'ready'
+      this.nativeBridgeAttempts = 0
     } catch (error) {
-      if (this.shouldDisableNativeBridge(error)) {
-        this.nativeBridgeStatus = 'disabled'
-        this.nativeBridgeQueue = []
+      this.nativeBridgeAttempts += 1
+      const unknownCommand = this.shouldDisableNativeBridge(error)
+      if (this.nativeBridgeAttempts >= MAX_BRIDGE_ATTEMPTS) {
+        this.nativeBridgeAttempts = 0
+        if (unknownCommand) {
+          this.nativeBridgeStatus = 'disabled'
+        }
       } else {
         this.nativeBridgeQueue.unshift(...entries)
         if (!this.nativeBridgeTimer) {
@@ -168,10 +247,10 @@ class Logger {
       level === 'warn' ? console.warn : level === 'error' ? console.error : console.log
     const prefix = `[${entry.timestamp}] [${level.toUpperCase()}]`
 
-    if (typeof data !== 'undefined') {
-      logMethod(prefix, message, data)
+    if (typeof entry.data !== 'undefined') {
+      logMethod(prefix, entry.message, entry.data)
     } else {
-      logMethod(prefix, message)
+      logMethod(prefix, entry.message)
     }
   }
 

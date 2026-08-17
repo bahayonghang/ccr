@@ -934,11 +934,12 @@ impl CheckinService {
                 let error_code = e.error_code().to_string();
                 let error_msg = e.to_string();
                 tracing::error!(
-                    "[签到失败] 账号: {} | 提供商: {} | 错误: {} | 分类: {}",
-                    account.name,
-                    provider.name,
-                    error_msg,
-                    error_code
+                    account = %account.name,
+                    provider = %provider.name,
+                    error = %error_msg,
+                    error_code = %error_code,
+                    corr = ccr_core::current_log_correlation_id(),
+                    "checkin failed"
                 );
 
                 let record = CheckinRecord::failed(

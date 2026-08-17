@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/ccr-ui/frontend/dashboard-presentation-contracts.md", "reason": "runtime excluded from core signals"}
+{"file": ".trellis/tasks/08-17-logging-observability-bridge/prd.md", "reason": "child AC"}
+{"file": ".trellis/spec/ccr-db/backend/backend-guidelines.md", "reason": "flush errors must not recurse"}
+{"file": ".trellis/spec/ccr-cli/backend/backend-guidelines.md", "reason": "hot-path logs stay diagnostic"}
+{"file": ".trellis/tasks/08-17-logging-system-optimization/prd.md", "reason": "parent AC12 AC13"}

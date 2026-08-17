@@ -2226,7 +2226,11 @@ impl PlatformConfig for CodexPlatform {
         );
         let _ = service.sync_current_auth_registry();
 
-        tracing::info!("✅ 已应用 Codex profile: {}", name);
+        tracing::info!(
+            profile = name,
+            corr = ccr_core::current_log_correlation_id(),
+            "applied Codex profile"
+        );
         Ok(())
     }
 

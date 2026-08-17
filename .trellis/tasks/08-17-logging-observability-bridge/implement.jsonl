@@ -1,0 +1,9 @@
+{"file": ".trellis/spec/ccr-ui/frontend/dashboard-presentation-contracts.md", "reason": "extend diagnostic channel exclusion"}
+{"file": ".trellis/tasks/08-17-logging-system-optimization/design.md", "reason": "runtime bridge mapping"}
+{"file": ".trellis/spec/ccr-cli/backend/backend-guidelines.md", "reason": "CLI output vs tracing on hot paths"}
+{"file": ".trellis/spec/ccr-codex/backend/backend-guidelines.md", "reason": "Codex apply logs must not leak tokens"}
+{"file": ".trellis/spec/ccr-checkin/backend/backend-guidelines.md", "reason": "checkin tracing milestones"}
+{"file": ".trellis/spec/ccr-config/backend/backend-guidelines.md", "reason": "config save debug logs"}
+{"file": ".trellis/spec/ccr-db/backend/backend-guidelines.md", "reason": "monitoring persist flush contract"}
+{"file": ".trellis/spec/ccr-core/backend/backend-guidelines.md", "reason": "init and mask_sensitive freeze"}
+{"file": ".trellis/tasks/08-17-logging-system-optimization/research/codex-review-verification.md", "reason": "closed P1 contracts"}

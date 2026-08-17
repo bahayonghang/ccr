@@ -66,7 +66,7 @@ Recover from poisoned test/runtime locks with `unwrap_or_else(|poisoned| poisone
 
 ## Logging
 
-Use `tracing` in infrastructure helpers. Logging setup is centralized in `init_logger()` and `init_file_only_logger()`. Respect `CCR_LOG_LEVEL` and avoid printing directly from shared primitives.
+Use `tracing` in infrastructure helpers. Logging setup is centralized in `init_logger()` and `init_file_only_logger()`. Respect `CCR_LOG_LEVEL` and avoid printing directly from shared primitives. File names are `~/.ccr/logs/ccr.log.YYYY-MM-DD` (UTC). Write-boundary redaction lives in `log_redact`; do not pass whole sentences to `mask_sensitive`. See [Logging Contracts](./logging-contracts.md).
 
 Internal implementation comments may be Chinese; public API docs should remain English.
 

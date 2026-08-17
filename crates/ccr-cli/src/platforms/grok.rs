@@ -1050,7 +1050,11 @@ impl PlatformConfig for GrokPlatform {
             "grok",
             name,
         )?;
-        tracing::info!(profile = name, "已应用 Grok profile");
+        tracing::info!(
+            profile = name,
+            corr = ccr_core::current_log_correlation_id(),
+            "applied Grok profile"
+        );
         Ok(())
     }
 

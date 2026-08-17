@@ -126,7 +126,11 @@ impl DroidPlatform {
         fs::write(&self.settings_path, content)
             .map_err(|e| CcrError::SettingsError(format!("写入 Droid 设置失败: {}", e)))?;
 
-        tracing::info!("✅ 已保存 Droid 设置: {:?}", self.settings_path);
+        tracing::info!(
+            path = ?self.settings_path,
+            corr = ccr_core::current_log_correlation_id(),
+            "saved Droid settings"
+        );
         Ok(())
     }
 
@@ -253,7 +257,11 @@ impl PlatformConfig for DroidPlatform {
         platform_config_mgr.save(&unified_config)?;
 
         tracing::debug!("✅ 已更新注册表 current_profile: {}", name);
-        tracing::info!("✅ 已应用 Droid profile: {}", name);
+        tracing::info!(
+            profile = name,
+            corr = ccr_core::current_log_correlation_id(),
+            "applied Droid profile"
+        );
         Ok(())
     }
 

@@ -268,9 +268,10 @@ const buildPlatformRows = (input: DashboardPresentationInput): DashboardPlatform
   })
 }
 
-// 前端 UI 日志(如保存重试失败)只归入事件流展示，不参与阻塞叙事 / 红色 tile / 行动队列的驱动，
-// 避免同一条噪声在首屏被放大三次；只有非 frontend 频道的信号才算"核心"信号。
-const isCoreSignal = (entry: MonitoringEntry) => entry.channel !== 'frontend'
+// 前端 UI 日志与 tracing 桥接的 runtime 诊断只归入事件流展示，
+// 不参与阻塞叙事 / 红色 tile / 行动队列的驱动。
+const DIAGNOSTIC_CHANNELS = new Set(['frontend', 'runtime'])
+const isCoreSignal = (entry: MonitoringEntry) => !DIAGNOSTIC_CHANNELS.has(entry.channel)
 
 const countSignals = (logs: MonitoringEntry[]): DashboardSignalCounts => {
   const coreLogs = logs.filter(isCoreSignal)

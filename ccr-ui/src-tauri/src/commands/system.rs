@@ -194,6 +194,8 @@ pub struct FrontendLogInputDto {
     #[ts(optional)]
     pub timestamp: Option<String>,
     #[ts(optional)]
+    pub correlation_id: Option<String>,
+    #[ts(optional)]
     pub fields: Option<JsonValueDto>,
 }
 
@@ -204,6 +206,7 @@ impl From<FrontendLogInputDto> for FrontendLogInput {
             message: value.message,
             source: value.source,
             timestamp: value.timestamp,
+            correlation_id: value.correlation_id,
             fields: value.fields.map(serde_json::Value::from),
         }
     }
@@ -506,8 +509,10 @@ pub async fn append_frontend_logs(
     app_handle: tauri::AppHandle,
     entries: Vec<FrontendLogInputDto>,
 ) -> Result<(), String> {
-    for input in entries {
-        let entry = frontend_log_entry(input.into());
+    for input in crate::log_sanitize::take_frontend_log_batch(
+        entries.into_iter().map(FrontendLogInput::from).collect(),
+    ) {
+        let entry = frontend_log_entry(input);
         let persist = should_persist(entry.level, &entry.event_type);
         record_monitoring_entry(&app_handle, entry, persist).await;
     }

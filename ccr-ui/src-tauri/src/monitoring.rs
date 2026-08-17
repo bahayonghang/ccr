@@ -6,16 +6,18 @@ use crate::checkin_jobs::CheckinJobSnapshot;
 use crate::events::{self, AppEvent, EnvironmentEventPayload, UsageImportPayload};
 
 pub fn should_persist(level: MonitoringLevel, event_type: &str) -> bool {
-    matches!(level, MonitoringLevel::Warn | MonitoringLevel::Error)
-        || matches!(
-            event_type,
-            "environment.changed"
-                | "usage.import.completed"
-                | "checkin.job.finished"
-                | "checkin.job.timeout"
-                | "frontend.warn"
-                | "frontend.error"
-        )
+    if matches!(level, MonitoringLevel::Error) {
+        return true;
+    }
+    matches!(
+        event_type,
+        "environment.changed"
+            | "usage.import.completed"
+            | "checkin.job.finished"
+            | "checkin.job.timeout"
+            | "frontend.warn"
+            | "frontend.error"
+    )
 }
 
 pub async fn record_monitoring_entry(
@@ -31,11 +33,13 @@ pub async fn record_monitoring_entry(
 
     if persist {
         state.monitoring_logs.append_entry(&entry).await;
-        state.monitoring_logs.force_flush().await;
     }
 
-    if let Err(error) = app_handle.emit(events::channels::MONITORING_ENTRY, entry) {
-        tracing::warn!(?error, "failed to emit monitoring entry");
+    if app_handle
+        .emit(events::channels::MONITORING_ENTRY, entry)
+        .is_err()
+    {
+        crate::bridge::note_bridge_io_failure();
     }
 }
 
@@ -48,8 +52,8 @@ pub async fn emit_and_record_monitoring_event<T>(
 ) where
     T: Serialize + Clone,
 {
-    if let Err(error) = app_handle.emit(channel, payload.clone()) {
-        tracing::warn!(channel, ?error, "failed to emit business event");
+    if app_handle.emit(channel, payload.clone()).is_err() {
+        crate::bridge::note_bridge_io_failure();
     }
 
     record_monitoring_entry(app_handle, entry, persist).await;
@@ -114,7 +118,9 @@ pub fn frontend_log_entry(input: FrontendLogInput) -> MonitoringEntry {
         event_type: event_type.to_string(),
         source,
         message: input.message,
-        correlation_id: None,
+        correlation_id: input
+            .correlation_id
+            .filter(|value| !value.trim().is_empty()),
         fields: input.fields,
     }
 }
@@ -174,7 +180,10 @@ mod tests {
 
     #[test]
     fn should_persist_warn_and_whitelisted_events() {
-        assert!(should_persist(MonitoringLevel::Warn, "frontend.info"));
+        assert!(!should_persist(MonitoringLevel::Warn, "frontend.info"));
+        assert!(should_persist(MonitoringLevel::Warn, "frontend.warn"));
+        assert!(!should_persist(MonitoringLevel::Warn, "runtime.warn"));
+        assert!(should_persist(MonitoringLevel::Error, "runtime.error"));
         assert!(should_persist(MonitoringLevel::Info, "environment.changed"));
         assert!(should_persist(MonitoringLevel::Info, "frontend.error"));
         assert!(!should_persist(MonitoringLevel::Info, "frontend.info"));
@@ -187,8 +196,10 @@ mod tests {
             message: "frontend failed".to_string(),
             source: String::new(),
             timestamp: Some("2026-03-07T00:00:00Z".to_string()),
+            correlation_id: Some("session-1".to_string()),
             fields: Some(json!({ "code": 500 })),
         });
+        assert_eq!(entry.correlation_id.as_deref(), Some("session-1"));
 
         assert_eq!(entry.level, MonitoringLevel::Error);
         assert_eq!(entry.channel, "frontend");

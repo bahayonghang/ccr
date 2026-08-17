@@ -1,0 +1,5 @@
+{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file": ".trellis/spec/ccr-core/backend/backend-guidelines.md", "reason": "init_logger contract"}
+{"file": ".trellis/spec/ccr-core/backend/test-fixtures.md", "reason": "TestLogEnv"}
+{"file": ".trellis/tasks/08-17-logging-system-optimization/design.md", "reason": "filter perms redact sink"}
+{"file": ".trellis/tasks/08-17-logging-system-optimization/research/codex-review-verification.md", "reason": "file name chmod redact queue"}

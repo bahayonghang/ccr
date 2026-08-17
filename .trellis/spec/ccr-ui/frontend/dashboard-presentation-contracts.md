@@ -13,20 +13,20 @@
 
 ### 2. Signatures
 
-- `isCoreSignal(entry: MonitoringEntry): boolean` — `entry.channel !== 'frontend'` (`dashboardPresentation.ts`).
+- `isCoreSignal(entry: MonitoringEntry): boolean` — `entry.channel` is not in `{frontend, runtime}` (`dashboardPresentation.ts`).
 - `countSignals(logs: MonitoringEntry[]): DashboardSignalCounts` — filters through `isCoreSignal` before computing `errors`/`warnings`/`total`.
-- `channel: 'frontend'` is set exclusively by `normalizeLoggerEntry` in `ccr-ui/src/composables/useMonitoringFeed.ts` — i.e. any entry that reached the feed via `logger.warn()`/`logger.error()` calls in Vue code, as opposed to a real backend/Tauri-emitted event (`checkin`, `usage`, `environment`, `sync`, `task`, `app`, `system`, ...).
+- `channel: 'frontend'` comes from `normalizeLoggerEntry`. `channel: 'runtime'` comes from the Tauri tracing bridge. Neither drives readiness. Domain events stay `checkin`, `usage`, `environment`, `sync`, `task`, `app`, `system`.
 
 ### 3. Contracts
 
-- `signalCounts` (and therefore the readiness "attention" branch, the signals status tile's tone, and the `open-monitoring` action) must only be driven by non-`frontend`-channel entries.
-- `DashboardSignalStream.vue` (the actual event list) must keep rendering **all** entries including `channel: 'frontend'` ones — the gate is only on the aggregate counts that drive blocking/tile/action UI, not on visibility of the underlying event.
-- Genuine backend/checkin/sync-channel errors are **not** exempt from driving all three surfaces — the gate is specifically about frontend UI retry/log noise, not about suppressing real errors.
+- `signalCounts` (and therefore the readiness "attention" branch, the signals status tile's tone, and the `open-monitoring` action) must only be driven by non-diagnostic channels.
+- `DashboardSignalStream.vue` must keep rendering **all** entries including `frontend` and `runtime`.
+- Genuine backend/checkin/sync-channel errors still drive all three surfaces.
 
 ### 4. Validation & Error Matrix
 
-- New frontend `logger.error(...)` call added in a view -> will appear in the event stream but must not, by itself, flip readiness/tile/action. If it does, check whether the new count path bypassed `countSignals`/`isCoreSignal`.
-- A new "core" signal source is added (new `channel` value from a real backend event) -> no change needed here, it's counted correctly by default since only `'frontend'` is excluded.
+- New frontend `logger.error(...)` or bridged `runtime` warn/error -> event stream only; must not flip readiness/tile/action.
+- A new core channel from a domain backend event is counted unless added to `DIAGNOSTIC_CHANNELS`.
 
 ### 5. Good/Base/Bad Cases
 

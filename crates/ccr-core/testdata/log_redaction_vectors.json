@@ -1,0 +1,58 @@
+[
+  {
+    "id": "bearer-text",
+    "kind": "text",
+    "input": "proxy failed Bearer abcdefghijklmnopqrstuv",
+    "must_not_contain": ["abcdefghijklmnopqrstuv"],
+    "must_contain": ["Bearer ", "proxy failed"]
+  },
+  {
+    "id": "sk-ant-text",
+    "kind": "text",
+    "input": "using key sk-ant-1234567890abcdef for request",
+    "must_not_contain": ["sk-ant-1234567890abcdef"],
+    "must_contain": ["using key ", " for request"]
+  },
+  {
+    "id": "jwt-text",
+    "kind": "text",
+    "input": "token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0In0.abc_def-ghi",
+    "must_not_contain": ["eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0In0.abc_def-ghi"],
+    "must_contain": ["token "]
+  },
+  {
+    "id": "cookie-header-text",
+    "kind": "text",
+    "input": "Cookie: session=supersecretcookievalue; path=/\nnext line stays",
+    "must_not_contain": ["supersecretcookievalue"],
+    "must_contain": ["Cookie:", "next line stays"]
+  },
+  {
+    "id": "ordinary-sentence",
+    "kind": "text",
+    "input": "profile applied successfully",
+    "must_not_contain": [],
+    "must_contain": ["profile applied successfully"]
+  },
+  {
+    "id": "api-key-object",
+    "kind": "value",
+    "input": { "api_key": "sk-ant-1234567890abcdef", "name": "work" },
+    "must_not_contain": ["sk-ant-1234567890abcdef"],
+    "must_contain": ["work"]
+  },
+  {
+    "id": "nested-cookies-array",
+    "kind": "value",
+    "input": { "cookies": ["session=supersecretcookievalue", "theme=dark"] },
+    "must_not_contain": ["supersecretcookievalue"],
+    "must_contain": []
+  },
+  {
+    "id": "json-string-text",
+    "kind": "text",
+    "input": "{\"apiKey\":\"sk-ant-1234567890abcdef\"}",
+    "must_not_contain": ["sk-ant-1234567890abcdef"],
+    "must_contain": []
+  }
+]
