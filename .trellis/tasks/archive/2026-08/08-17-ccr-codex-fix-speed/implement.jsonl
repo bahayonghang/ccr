@@ -1,0 +1,9 @@
+{"file": ".trellis/spec/ccr-codex/backend/codex-app-server-cleanup.md", "reason": "fix 命令进程清理、inspection/repair、doctor 调用与退出码契约"}
+{"file": ".trellis/spec/ccr-codex/backend/backend-guidelines.md", "reason": "Codex 域边界、错误与日志、验证命令"}
+{"file": ".trellis/spec/ccr-codex/backend/test-fixtures.md", "reason": "Codex 环境隔离；进程服务测试不得污染 CCR_CODEX_DIR"}
+{"file": ".trellis/spec/ccr-cli/backend/backend-guidelines.md", "reason": "CLI 输出、退出码与命令边界"}
+{"file": ".trellis/spec/ccr-cli/backend/test-fixtures.md", "reason": "PATH/fake 二进制隔离必须用 TestHostEnv；Unix fake 不得依赖掏空 PATH 的助手"}
+{"file": ".trellis/spec/ccr-core/backend/index.md", "reason": "改子进程生命周期前先读 managed-process 索引"}
+{"file": ".trellis/spec/ccr-core/backend/managed-process.md", "reason": "doctor 必须 spawn/terminate_tree/reap 整棵进程树，禁止只靠 kill_on_drop"}
+{"file": ".trellis/tasks/08-17-ccr-codex-fix-speed/research/command-chain-analysis.md", "reason": "逻辑链、计时与问题清单"}
+{"file": ".trellis/tasks/08-17-ccr-codex-fix-speed/research/review-verification.md", "reason": "审阅四条阻塞项的源码核验与规划修订依据"}

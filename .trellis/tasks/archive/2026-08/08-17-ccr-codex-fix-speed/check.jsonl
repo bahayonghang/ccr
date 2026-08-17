@@ -1,0 +1,6 @@
+{"file": ".trellis/spec/ccr-codex/backend/codex-app-server-cleanup.md", "reason": "核对宽限早停、respawned 语义、doctor 默认跳过与退出码 127 收窄"}
+{"file": ".trellis/spec/ccr-core/backend/managed-process.md", "reason": "核对 --doctor 超时走 terminate_tree+reap，而不是 kill_on_drop 单进程"}
+{"file": ".trellis/spec/ccr-cli/backend/test-fixtures.md", "reason": "核对 PATH/fake doctor 集成测试的环境隔离"}
+{"file": ".trellis/spec/ccr-codex/backend/test-fixtures.md", "reason": "核对进程服务测试未泄漏真实 Codex home"}
+{"file": ".trellis/tasks/08-17-ccr-codex-fix-speed/research/review-verification.md", "reason": "核对四条阻塞项对应的测试与契约都已落地"}
+{"file": ".trellis/tasks/08-17-ccr-codex-fix-speed/research/command-chain-analysis.md", "reason": "核对优化项覆盖已确认耗时主因，且未把 R4 CAS 改写门槛"}
