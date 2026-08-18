@@ -13,6 +13,7 @@ pub const MONITORING_EXIT_FLUSH_TIMEOUT: Duration = Duration::from_millis(500);
 
 static BRIDGE_IO_FAILURES: AtomicU64 = AtomicU64::new(0);
 
+#[cfg(test)]
 pub fn bridge_io_failure_count() -> u64 {
     BRIDGE_IO_FAILURES.load(Ordering::Relaxed)
 }
