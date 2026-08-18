@@ -1244,3 +1244,41 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 95: Overview 铺满工作区与指标徽章
+
+**Date**: 2026-08-18
+**Task**: Overview 铺满工作区与指标徽章
+**Branch**: `dev`
+
+### Summary
+
+去掉 Overview 与 PageShell 的居中空底，就绪条和用量摘要数字加上 tone 徽章。
+
+### Main Changes
+
+- 删除 Dashboard 1440 与 PageShell 1480 居中上限
+- StatTile 增加可选 tone 浅壳，数字保持主文本色
+- 就绪条透传 metric.tone；用量摘要用 neutral
+- 1680 以下就绪条改为上下排列，避免徽章断行
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `dbb8e973` | (see git log) |
+
+### Testing
+
+- [OK] bun type-check / lint
+- [OK] ui-primitives + dashboard-view + dashboard-presentation smoke
+- [OK] web preview 1440/1920 dark/light 与 Claude Code 1920
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 桌面端用真实本机/用量数据再看一遍徽章 tone
