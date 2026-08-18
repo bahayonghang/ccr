@@ -1,0 +1,17 @@
+{"file": ".trellis/spec/ccr-ui/frontend/theme-token-contracts.md", "reason": "主题/flavor/accent 值域收窄、IIFE 与 TS 迁移字节等价、对比度阈值不降级、glass 预算与 surface 语义别名（Wave 0/2/6）"}
+{"file": "ccr-ui/DESIGN.md", "reason": "Editorial Control Room 权威定义；Wave 0 按 design.md §0 修订 frontmatter/排版/按钮/输入/Glow"}
+{"file": "ccr-ui/AGENTS.md", "reason": "ccr-ui 本地验证、web preview 而非 Tauri shell、美学方向"}
+{"file": ".trellis/tasks/08-18-ui-visual-refactor/research/visual-audit.md", "reason": "违和感根因与复核计数；Wave 7 对账用附录而非初审 49/73"}
+{"file": ".trellis/tasks/08-18-ui-visual-refactor/design.md", "reason": "实施配方、权威链、迁移/回滚/取舍、DESIGN.md 修订对照表"}
+{"file": ".trellis/tasks/08-18-ui-visual-refactor/views-inventory.md", "reason": "51 视图勾销与原语适用列；禁止对未标适用的页强塞三件套"}
+{"file": ".trellis/spec/ccr-ui/frontend/dashboard-presentation-contracts.md", "reason": "Wave 3 不得破坏 dashboardPresentation.ts 的 signal/readiness 语义"}
+{"file": ".trellis/spec/ccr-ui/frontend/profiles-page-contracts.md", "reason": "Wave 4 三平台 profiles 共享层"}
+{"file": ".trellis/spec/ccr-ui/frontend/grok-settings-contracts.md", "reason": "Wave 4 GrokSettingsView 的 dirty-key/CAS/Local-only 契约"}
+{"file": ".trellis/spec/ccr-ui/frontend/environment-scoped-dashboard-contracts.md", "reason": "Wave 5 Wsl/Ssh 环境看板缓存与刷新顺序"}
+{"file": ".trellis/spec/ccr-ui/frontend/raw-config-editor-contracts.md", "reason": "Wave 5 源文件编辑入口的明文与版本令牌契约"}
+{"file": ".trellis/spec/ccr-ui/frontend/confirm-interaction-contracts.md", "reason": "Wave 6 ConfirmModal 只换外壳，不改 requestConfirm"}
+{"file": ".trellis/spec/ccr-ui/frontend/usage-chart-stability-contracts.md", "reason": "Wave 5 Usage 图去渐变时不得拆完整 CSS 加载"}
+{"file": ".trellis/spec/ccr-ui/frontend/checkin-ux-contracts.md", "reason": "Wave 5 Checkin 族 UX；同步改 apple-glass styleLockedPaths"}
+{"file": ".trellis/spec/ccr-ui/frontend/monitoring-log-contracts.md", "reason": "Wave 5 MonitoringView 日志呈现"}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "原语提取与死组件处置（删 StatCard/ConfigItem.vue，留 Sparkline/ListSearchHeader/ConfigCard）"}
+{"file": ".codex/skills/ccr-ui-visual-workflow/SKILL.md", "reason": "web preview 启动命令与截图证据规范"}
