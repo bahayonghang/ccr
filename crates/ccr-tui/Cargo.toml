@@ -21,7 +21,7 @@ chrono = { workspace = true }
 crossterm = "0.29.0"
 dirs = { workspace = true }
 indexmap = { workspace = true }
-ratatui = "0.30.0"
+ratatui = "0.30.2"
 serde_json = { workspace = true }
 termbg = "0.6.2"
 tokio = { workspace = true }
