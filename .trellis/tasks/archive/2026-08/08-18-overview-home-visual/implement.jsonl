@@ -1,0 +1,5 @@
+{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file": ".trellis/spec/ccr-ui/frontend/dashboard-presentation-contracts.md", "reason": "tone 只驱动徽章壳；signal/readiness/first-run 判定不得改"}
+{"file": ".trellis/spec/ccr-ui/frontend/theme-token-contracts.md", "reason": "徽章必须走语义 token；对比度与不合层约束"}
+{"file": ".trellis/spec/ccr-ui/frontend/index.md", "reason": "改 Dashboard 子组件与 token 前的清单"}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "扩展 StatTile，不新建平行徽章组件"}
