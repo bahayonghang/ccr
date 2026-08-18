@@ -39,8 +39,8 @@
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
-  max-width: 1480px;
-  margin-inline: auto;
+  width: 100%;
+  min-width: 0;
 }
 
 .page-shell__header,

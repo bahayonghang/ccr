@@ -97,6 +97,14 @@ describe('Wave 1 UI primitives', () => {
     expect(openCodeShell).not.toContain('opencode-page-shell__glow')
     expect(openCodeShell).toContain('PageShell')
     expect(openCodeShell).toContain('PageHeader')
+    expect(pageShell).not.toContain('1480px')
+    expect(pageShell).not.toContain('margin-inline: auto')
+  })
+
+  it('keeps Overview and PageShell workspaces uncapped', async () => {
+    const dashboard = await readSource('../src/views/DashboardView.vue')
+    expect(dashboard).not.toContain('min(100%, 1440px)')
+    expect(dashboard).not.toMatch(/\.dashboard-workbench[\s\S]*margin:\s*0 auto/)
   })
 
   it('renders PageHeader with a Latin eyebrow marked lang=en', async () => {
@@ -150,6 +158,31 @@ describe('Wave 1 UI primitives', () => {
       expect(el.querySelector('.ui-card')).toBeNull()
       const value = el.querySelector('.stat-tile__value') as HTMLElement
       expect(value.textContent).toContain('12')
+      expect(value.classList.contains('stat-tile__value--badge')).toBe(false)
+      expect(value.getAttribute('data-tone')).toBeNull()
+      const tileSource = await readSource('../src/components/ui/StatTile.vue')
+      expect(tileSource).toContain('tabular-nums')
+      expect(tileSource).not.toContain('ui-card')
+    } finally {
+      unmount()
+    }
+  })
+
+  it('wraps only the StatTile value in a tone badge shell', async () => {
+    const { default: StatTile } = await import('@/components/ui/StatTile.vue')
+    const { el, unmount } = await mount(StatTile, {
+      label: 'Host',
+      value: '35.5% / 76.2%',
+      tone: 'success',
+    })
+
+    try {
+      expect(el.querySelector('.ui-card')).toBeNull()
+      const value = el.querySelector('.stat-tile__value') as HTMLElement
+      expect(value).toBeTruthy()
+      expect(value.classList.contains('stat-tile__value--badge')).toBe(true)
+      expect(value.getAttribute('data-tone')).toBe('success')
+      expect(value.textContent).toContain('35.5% / 76.2%')
       const tileSource = await readSource('../src/components/ui/StatTile.vue')
       expect(tileSource).toContain('tabular-nums')
       expect(tileSource).not.toContain('ui-card')

@@ -28,6 +28,7 @@
           :key="item.label"
           :label="item.label"
           :value="item.value"
+          tone="neutral"
         />
       </div>
 

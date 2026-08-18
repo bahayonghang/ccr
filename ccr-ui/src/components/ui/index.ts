@@ -3,6 +3,7 @@
 
 export { default as NavItem } from './NavItem.vue'
 export { default as StatTile } from './StatTile.vue'
+export type { StatTileTone } from './StatTile.vue'
 export { default as IconWrapper } from './IconWrapper.vue'
 export { default as Button } from './Button.vue'
 export { default as Input } from './Input.vue'

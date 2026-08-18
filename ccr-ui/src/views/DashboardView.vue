@@ -330,8 +330,8 @@ const dashboardPresentation = computed(() => buildDashboardPresentation({
 .dashboard-workbench {
   display: grid;
   gap: var(--home-section-gap);
-  width: min(100%, 1440px);
-  margin: 0 auto;
+  width: 100%;
+  min-width: 0;
 }
 
 .dashboard-header {

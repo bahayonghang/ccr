@@ -134,3 +134,30 @@ const countSignals = (logs: MonitoringEntry[]): DashboardSignalCounts => {
 
 - Good: `DashboardNextActions.vue` renders its 3-step onboarding list inline, reusing `.dashboard-action`-adjacent styling at the card's own scale.
 - Bad: `<EmptyState v-if="showOnboarding" .../>` inside a `dashboard-grid__actions` slot — forces the card (and, via `align-items: stretch`, its sibling) to at least 300px+ regardless of the grid's actual space budget.
+
+---
+
+## Scenario: Status-metric `tone` drives the StatTile shell only
+
+### 1. Scope / Trigger
+
+- Trigger: changing `StatTile.vue` badge rendering, wiring `tone` in `DashboardReadinessLedger.vue` / `DashboardUsageMovement.vue`, or changing `buildStatusMetrics()` tone assignment.
+- Introduced by `08-18-overview-home-visual`: `DashboardStatusMetric.tone` was already computed, but the ledger dropped it and usage summary tiles stayed bare.
+
+### 2. Signatures
+
+- `DashboardStatusMetric.tone: DashboardTone` (`neutral | success | warning | danger | accent`) — assigned in `buildStatusMetrics()`.
+- `StatTile` optional `tone?: 'neutral' | 'success' | 'warning' | 'danger' | 'accent'` — the union lives on the primitive. Do not import `DashboardTone` into `StatTile`.
+- Ledger: `:tone="metric.tone"`. Usage summary tiles: `:tone="'neutral'"`.
+
+### 3. Contracts
+
+- `tone` drives only the value's square badge shell (`.stat-tile__value--badge` + `data-tone`): 10% fill, 18% border, optional 6px tone dot. Digits stay `--color-text-primary` + `tabular-nums`.
+- Omit `tone` → bare tile (label + value + hint), no shell, no `data-tone`. Other StatTile call sites stay bare unless they already pass `tone`.
+- Do not change `countSignals`, `buildReadiness`, `isFirstRun`, or `buildStatusMetrics()` tone assignment on this visual path.
+- Do not wrap StatTile in `ui-card`. Do not paint digits with semantic or accent ink. Do not use a solid accent fill on the number or the whole tile.
+
+### 4. Tests Required
+
+- `ccr-ui/tests/ui-primitives.smoke.test.ts` — bare tile without `tone`; `tone: 'success'` has `data-tone`, the badge class, no `ui-card`, and source still contains `tabular-nums`.
+- `ccr-ui/tests/dashboard-presentation.smoke.test.ts` — existing judgment expectations stay green.

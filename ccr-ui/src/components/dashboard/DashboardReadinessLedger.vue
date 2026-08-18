@@ -44,6 +44,7 @@
         :label="t(metric.labelKey)"
         :value="resolveValue(metric)"
         :hint="resolveHint(metric)"
+        :tone="metric.tone"
       />
     </div>
   </section>
@@ -181,13 +182,21 @@ const stripTrailingPeriod = (text: string) => text.replace(/[。.]$/, '')
 
 .dashboard-ledger__metrics {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
   gap: 0.85rem 1rem;
   align-content: start;
   min-width: 0;
 }
 
-@media (width <= 960px) {
+/* 右侧指标栏大约要 ≥800px 才容得下五列不拆「Web 预览」/ 双百分数 */
+@media (width >= 1680px) {
+  .dashboard-ledger__metrics {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+/* 与指标五列同一门槛：更窄时左右分栏会把第 5 项挤到下一行 */
+@media (width < 1680px) {
   .dashboard-ledger {
     grid-template-columns: 1fr;
   }

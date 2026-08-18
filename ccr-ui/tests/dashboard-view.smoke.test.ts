@@ -284,6 +284,10 @@ describe('DashboardView smoke', () => {
       expect(el.textContent).toContain('Usage archive refreshed')
       expect(el.textContent).toContain('1.2K')
       expect(el.textContent).toContain('更新于')
+      const readinessBadges = el.querySelectorAll('[data-dashboard-readiness] .stat-tile__value--badge[data-tone]')
+      expect(readinessBadges.length).toBe(5)
+      const usageBadges = el.querySelectorAll('[data-dashboard-usage-movement] .stat-tile__value--badge[data-tone="neutral"]')
+      expect(usageBadges.length).toBe(4)
       expect(el.textContent).not.toContain('Factory Droid')
       expect(findPlaceholderLeaks(el.textContent || '')).toEqual([])
     } finally {
