@@ -139,7 +139,7 @@ function handleModalChange(value: boolean) {
   width: 2.75rem;
   height: 2.75rem;
   border-radius: 50%;
-  background: rgb(245 158 11 / 10%);
+  background: rgb(var(--color-warning-rgb) / 10%);
 }
 
 .bulk-delete__message {
@@ -214,14 +214,14 @@ function handleModalChange(value: boolean) {
 }
 
 .bulk-delete__btn--confirm {
-  border: 1px solid rgb(239 68 68 / 30%);
-  background: rgb(239 68 68 / 10%);
-  color: rgb(239 68 68);
+  border: 1px solid rgb(var(--color-danger-rgb) / 30%);
+  background: rgb(var(--color-danger-rgb) / 10%);
+  color: var(--color-danger);
 }
 
 .bulk-delete__btn--confirm:hover:not(:disabled) {
-  background: rgb(239 68 68 / 18%);
-  border-color: rgb(239 68 68 / 45%);
+  background: rgb(var(--color-danger-rgb) / 18%);
+  border-color: rgb(var(--color-danger-rgb) / 45%);
 }
 
 .bulk-delete__btn--confirm:disabled {

@@ -1,128 +1,96 @@
 <template>
-  <div class="grok-view stage-page">
-    <div class="grok-shell">
-      <ModuleSubnav module="grok" />
-
-      <section
+  <PageShell class="grok-view">
+    <template #header>
+      <PageHeader
         v-if="localOnly"
-        class="grok-local-only"
-        role="status"
+        :title="t('grok.dashboard.localOnly.title')"
+        :eyebrow="t('grok.dashboard.header.eyebrow')"
+        :description="t('grok.dashboard.localOnly.description')"
       >
-        <div class="grok-local-only__icon">
-          <SIcon
-            name="Monitor"
-            size="w-6 h-6"
-          />
-        </div>
-        <div>
-          <p class="grok-kicker">
-            {{ t('grok.dashboard.header.eyebrow') }}
-          </p>
-          <h1>{{ t('grok.dashboard.localOnly.title') }}</h1>
-          <p>{{ t('grok.dashboard.localOnly.description') }}</p>
-          <span>
+        <template #status>
+          <span class="grok-env-note">
             {{ t('grok.dashboard.localOnly.environment', {
               env: localOnlyEnvType || t('grok.states.unknown'),
             }) }}
           </span>
-        </div>
-      </section>
-
-      <template v-else>
-        <header class="grok-hero">
-          <div class="grok-hero__main">
-            <div class="grok-identity">
-              <div class="grok-mark">
-                <SIcon
-                  name="Zap"
-                  size="w-6 h-6"
-                />
-              </div>
-              <div class="grok-identity__copy">
-                <p class="grok-kicker">
-                  {{ t('grok.dashboard.header.eyebrow') }}
-                </p>
-                <h1>{{ t('grok.overview.title') }}</h1>
-                <p>{{ t('grok.overview.subtitle') }}</p>
-              </div>
-            </div>
-
-            <div class="grok-hero__actions">
-              <Button
-                variant="ghost"
-                size="sm"
-                :disabled="loading"
-                @click="refresh(true)"
-              >
-                <SIcon
-                  name="RefreshCw"
-                  size="w-4 h-4"
-                  class="mr-2"
-                  :class="{ 'animate-spin': loading }"
-                />
-                {{ t('grok.dashboard.header.refresh') }}
-              </Button>
-
-              <a
-                v-if="overview && primaryAction.external"
-                :href="primaryAction.to"
-                target="_blank"
-                rel="noreferrer"
-              >
-                <Button :variant="primaryButtonVariant">
-                  <SIcon
-                    :name="primaryAction.icon"
-                    size="w-4 h-4"
-                    class="mr-2"
-                  />
-                  {{ primaryAction.title }}
-                </Button>
-              </a>
-              <RouterLink
-                v-else-if="overview"
-                :to="primaryAction.to"
-              >
-                <Button :variant="primaryButtonVariant">
-                  <SIcon
-                    :name="primaryAction.icon"
-                    size="w-4 h-4"
-                    class="mr-2"
-                  />
-                  {{ primaryAction.title }}
-                </Button>
-              </RouterLink>
-            </div>
-          </div>
-
-          <div class="grok-meta">
-            <div
-              class="grok-chip"
-              :class="`grok-chip--${versionTone}`"
-            >
-              <span>{{ t('grok.dashboard.header.version') }}</span>
-              <strong>{{ versionLabel }}</strong>
-            </div>
-            <div class="grok-chip grok-chip--neutral">
-              <span>{{ t('grok.dashboard.header.profile') }}</span>
-              <strong :title="currentProfileLabel">{{ currentProfileLabel }}</strong>
-            </div>
-            <div class="grok-chip grok-chip--neutral">
-              <span>{{ t('grok.dashboard.header.auth') }}</span>
-              <strong>{{ authModeLabel }}</strong>
-            </div>
-            <div
-              v-if="activationWarning"
-              class="grok-chip"
-              :class="`grok-chip--${activationWarning.tone}`"
-            >
+        </template>
+      </PageHeader>
+      <PageHeader
+        v-else
+        :title="t('grok.overview.title')"
+        :eyebrow="t('grok.dashboard.header.eyebrow')"
+        :description="t('grok.overview.subtitle')"
+      >
+        <template #actions>
+          <Button
+            variant="ghost"
+            size="sm"
+            :disabled="loading"
+            @click="refresh(true)"
+          >
+            <SIcon
+              name="RefreshCw"
+              size="w-4 h-4"
+              class="mr-2"
+              :class="{ 'animate-spin': loading }"
+            />
+            {{ t('grok.dashboard.header.refresh') }}
+          </Button>
+          <a
+            v-if="overview && primaryAction.external"
+            :href="primaryAction.to"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <Button :variant="primaryButtonVariant">
               <SIcon
-                :name="activationWarning.icon"
+                :name="primaryAction.icon"
                 size="w-4 h-4"
+                class="mr-2"
               />
-              <strong :title="activationWarning.label">{{ activationWarning.label }}</strong>
-            </div>
-          </div>
-        </header>
+              {{ primaryAction.title }}
+            </Button>
+          </a>
+          <RouterLink
+            v-else-if="overview"
+            :to="primaryAction.to"
+          >
+            <Button :variant="primaryButtonVariant">
+              <SIcon
+                :name="primaryAction.icon"
+                size="w-4 h-4"
+                class="mr-2"
+              />
+              {{ primaryAction.title }}
+            </Button>
+          </RouterLink>
+        </template>
+      </PageHeader>
+    </template>
+
+    <template #subnav>
+      <ModuleSubnav module="grok" />
+    </template>
+
+    <template v-if="!localOnly">
+        <div
+          v-if="overview"
+          class="grok-stats"
+        >
+          <StatTile
+            :label="t('grok.dashboard.header.version')"
+            :value="versionLabel"
+          />
+          <StatTile
+            :label="t('grok.dashboard.header.profile')"
+            :value="currentProfileLabel"
+          />
+          <StatTile
+            :label="t('grok.dashboard.header.auth')"
+            :value="authModeLabel"
+            :hint="activationWarning?.label"
+          />
+        </div>
 
         <div
           v-if="initialLoading"
@@ -348,9 +316,8 @@
             </div>
           </section>
         </template>
-      </template>
-    </div>
-  </div>
+    </template>
+  </PageShell>
 </template>
 
 <script setup lang="ts">
@@ -360,6 +327,9 @@ import ModuleSubnav from '@/components/ModuleSubnav.vue'
 import Button from '@/components/ui/Button.vue'
 import Card from '@/components/ui/Card.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
+import PageHeader from '@/components/ui/PageHeader.vue'
+import PageShell from '@/components/ui/PageShell.vue'
+import StatTile from '@/components/ui/StatTile.vue'
 import SIcon from '@/components/ui/SIcon.vue'
 import {
   useGrokDashboard,
@@ -391,7 +361,6 @@ const {
   localOnly,
   localOnlyEnvType,
   versionLabel,
-  versionTone,
   currentProfileLabel,
   authModeLabel,
   activationWarning,
@@ -449,14 +418,22 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .grok-view {
-  min-height: 100%;
-  padding: 1.5rem;
-  overflow: hidden;
+  background: var(--color-bg-elevated);
 }
 
-.grok-shell {
-  width: min(100%, 80rem);
-  margin: 0 auto;
+.grok-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 12px;
+  background: var(--color-bg-surface);
+}
+
+.grok-env-note {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
 }
 
 .grok-hero {

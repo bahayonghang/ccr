@@ -8,19 +8,6 @@
 
 .codex-auth-view {
   min-height: 100%;
-  padding: 1.5rem;
-}
-
-.codex-auth-view__container {
-  max-width: 1800px;
-  margin: 0 auto;
-}
-
-.codex-auth-view__stack {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  margin-top: 1.5rem;
 }
 
 .codex-auth-view__main {
@@ -100,13 +87,7 @@
 .codex-auth-view__composer-card {
   border: 1px solid var(--stage-border-soft);
   border-radius: 1.25rem;
-  background:
-    linear-gradient(
-      180deg,
-      rgb(var(--color-bg-overlay-rgb) / 72%),
-      rgb(var(--color-bg-overlay-rgb) / 42%)
-    ),
-    var(--stage-surface-soft);
+  background: var(--color-bg-surface);
   padding: 1.1rem 1.15rem;
 }
 

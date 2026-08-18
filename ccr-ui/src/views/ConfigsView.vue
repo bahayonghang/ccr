@@ -1,27 +1,24 @@
 <template>
-  <div class="min-h-full relative p-6">
-    <AnimatedBackground
-      contained
-      variant="minimal"
-    />
-
-    <div class="relative z-10 mx-auto max-w-[1800px] space-y-6">
-      <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-        <ModuleSubnav
-          module="claude-code"
-          class="flex-1"
-        />
-        <div class="flex justify-end">
+  <PageShell class="configs-page">
+    <template #header>
+      <PageHeader
+        :title="t('configs.title')"
+        :description="t('configs.description')"
+      >
+        <template #status>
           <EnvironmentBadge />
-        </div>
-      </div>
+        </template>
+      </PageHeader>
+    </template>
+    <template #subnav>
+      <ModuleSubnav module="claude-code" />
+    </template>
 
       <Card
         surface="workspace"
         :elevation="2"
         motion="subtle"
         density="compact"
-        glow
         class="p-6 h-fit min-h-[600px] flex flex-col"
       >
         <div class="space-y-6">
@@ -34,7 +31,7 @@
               :class="summary.key === currentFilter ? summary.activeClass : summary.idleClass"
               @click="currentFilter = summary.key"
             >
-              <p class="text-xs font-semibold uppercase tracking-[0.18em] opacity-70">
+              <p class="text-xs font-medium text-text-muted">
                 {{ summary.label }}
               </p>
               <div class="mt-3 flex items-end justify-between gap-3">
@@ -51,7 +48,7 @@
           <div class="rounded-2xl border border-border-default/50 bg-bg-base p-4">
             <div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
               <div class="space-y-2">
-                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">
+                <p class="text-xs font-medium text-text-muted">
                   {{ t('configs.description') }}
                 </p>
                 <div class="flex flex-wrap items-center gap-2 text-sm text-text-secondary">
@@ -171,7 +168,6 @@
           </div>
         </div>
       </Card>
-    </div>
 
     <!-- Modals -->
     <EditConfigModal
@@ -203,7 +199,7 @@
       :cancel-text="$t('common.cancel')"
       @confirm="executeConfirmedAction"
     />
-  </div>
+  </PageShell>
 </template>
 
 <script setup lang="ts">
@@ -211,9 +207,10 @@ import SIcon from '@/components/ui/SIcon.vue'
 import { getErrorMessage } from '@/utils/errorHandler'
 import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
-import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
 import Card from '@/components/ui/Card.vue'
 import Button from '@/components/ui/Button.vue'
+import PageHeader from '@/components/ui/PageHeader.vue'
+import PageShell from '@/components/ui/PageShell.vue'
 import EnvironmentBadge from '@/components/EnvironmentBadge.vue'
 import ModuleSubnav from '@/components/ModuleSubnav.vue'
 import HistoryList from '@/components/HistoryList.vue'

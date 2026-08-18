@@ -170,8 +170,7 @@ describe('AppSettingsView smoke', () => {
       const sidebarSlider = el.querySelector<HTMLInputElement>('[data-testid="settings-sidebar-width-slider"]')
       const exitToggle = el.querySelector('[data-testid="settings-confirm-exit-toggle"]')
       const perfToggle = el.querySelector('[data-testid="settings-perf-toggle"]')
-      const flavorOptions = ['neutral', 'clay', 'catppuccin']
-      const accentOptions = ['clay', 'sage', 'sky', 'mauve']
+      const flavorOptions = ['neutral', 'clay']
 
       expect(systemThemeButton?.getAttribute('aria-pressed')).toBe('true')
       expect(systemThemeButton?.getAttribute('aria-checked')).toBe('true')
@@ -186,7 +185,7 @@ describe('AppSettingsView smoke', () => {
       expect(themeGroup).toBeTruthy()
       expect(el.textContent).toContain('Resolved now: Dark mode')
 
-      // 新值域：3 flavor + 4 accent，且每项渲染真实 token 预览（作用域覆写令牌变量）。
+      // 新值域：2 flavor 双卡，无 accent 选择器；色板预览 hex 白名单保留。
       expect(document.documentElement.getAttribute('data-flavor')).toBe('neutral')
       expect(el.querySelector('[data-testid="settings-flavor-neutral"]')?.getAttribute('aria-pressed')).toBe('true')
       for (const option of flavorOptions) {
@@ -195,16 +194,17 @@ describe('AppSettingsView smoke', () => {
         expect(preview).toBeTruthy()
         expect(preview?.getAttribute('style')).toContain('--fp-bg-base')
       }
-      for (const option of accentOptions) {
-        expect(el.querySelector(`[data-testid="settings-accent-${option}"]`)).toBeTruthy()
-        const preview = el.querySelector(`[data-preview-accent="${option}"]`)
-        expect(preview).toBeTruthy()
-        expect(preview?.getAttribute('style')).toContain('--fp-accent-bg')
-      }
       expect(el.querySelector('[data-testid="settings-flavor-paper"]')).toBeNull()
       expect(el.querySelector('[data-testid="settings-flavor-mocha"]')).toBeNull()
+      expect(el.querySelector('[data-testid="settings-flavor-catppuccin"]')).toBeNull()
+      expect(el.querySelector('[data-testid="settings-accent-clay"]')).toBeNull()
       expect(el.querySelector('[data-testid="settings-accent-sand"]')).toBeNull()
       expect(el.querySelector('[data-testid="settings-accent-slate"]')).toBeNull()
+      expect(el.querySelector('[data-testid="settings-accent-sage"]')).toBeNull()
+      expect(el.querySelector('[data-testid="settings-accent-sky"]')).toBeNull()
+      expect(el.querySelector('[data-testid="settings-accent-mauve"]')).toBeNull()
+      expect(el.textContent).not.toContain('Accent color')
+      expect(el.textContent).not.toContain('强调色')
 
       const darkThemeButton = el.querySelector<HTMLElement>('[data-testid="settings-theme-dark"]')
       darkThemeButton?.click()
@@ -213,16 +213,16 @@ describe('AppSettingsView smoke', () => {
       expect(localStorage.getItem('ccr-theme')).toBe('dark')
       expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
 
-      const catppuccinFlavorButton = el.querySelector<HTMLElement>('[data-testid="settings-flavor-catppuccin"]')
-      catppuccinFlavorButton?.click()
+      const clayFlavorButton = el.querySelector<HTMLElement>('[data-testid="settings-flavor-clay"]')
+      clayFlavorButton?.click()
       await flush()
 
-      // catppuccin 直接落库；暗色解析为 mocha，且新值域激活态按 data-flavor 命中。
-      expect(localStorage.getItem('ccr-flavor')).toBe('catppuccin')
-      expect(document.documentElement.getAttribute('data-flavor')).toBe('catppuccin')
-      expect(document.documentElement.getAttribute('data-resolved-flavor')).toBe('mocha')
-      expect(catppuccinFlavorButton?.getAttribute('aria-pressed')).toBe('true')
-      expect(el.textContent).toContain('Mocha')
+      expect(localStorage.getItem('ccr-flavor')).toBe('clay')
+      expect(document.documentElement.getAttribute('data-flavor')).toBe('clay')
+      expect(document.documentElement.getAttribute('data-resolved-flavor')).toBe('clay')
+      expect(clayFlavorButton?.getAttribute('aria-pressed')).toBe('true')
+      expect(el.textContent).not.toContain('Mocha')
+      expect(el.textContent).not.toContain('Catppuccin')
 
       const chineseButton = el.querySelector<HTMLElement>('[data-testid="settings-language-zh-CN"]')
       chineseButton?.click()
@@ -266,7 +266,7 @@ describe('AppSettingsView smoke', () => {
     }
   })
 
-  it('keeps system theme summary and resolved Catppuccin flavor in sync with OS preference changes', async () => {
+  it('keeps system theme summary in sync with OS preference and migrates retired flavors to neutral', async () => {
     localStorage.setItem('ccr-theme', 'system')
     localStorage.setItem('ccr-flavor', 'latte')
     localStorage.setItem('ccr-ui-locale', 'en-US')
@@ -274,37 +274,35 @@ describe('AppSettingsView smoke', () => {
     const { el, unmount } = await mountView()
 
     try {
-      // 存储值 latte 在初始化时迁移为 catppuccin 并写回；暗色解析为 mocha。
       expect(el.textContent).toContain('Follow system · Dark mode')
       expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
-      expect(document.documentElement.getAttribute('data-flavor')).toBe('catppuccin')
-      expect(document.documentElement.getAttribute('data-resolved-flavor')).toBe('mocha')
-      expect(localStorage.getItem('ccr-flavor')).toBe('catppuccin')
+      expect(document.documentElement.getAttribute('data-flavor')).toBe('neutral')
+      expect(document.documentElement.getAttribute('data-resolved-flavor')).toBe('neutral')
+      expect(localStorage.getItem('ccr-flavor')).toBe('neutral')
 
       mediaController.setMatches(false)
       await flush()
 
       expect(el.textContent).toContain('Follow system · Light mode')
       expect(document.documentElement.getAttribute('data-theme')).toBe('light')
-      expect(document.documentElement.getAttribute('data-flavor')).toBe('catppuccin')
-      expect(document.documentElement.getAttribute('data-resolved-flavor')).toBe('latte')
+      expect(document.documentElement.getAttribute('data-flavor')).toBe('neutral')
+      expect(document.documentElement.getAttribute('data-resolved-flavor')).toBe('neutral')
 
-      const catppuccinFlavorButton = el.querySelector<HTMLElement>('[data-testid="settings-flavor-catppuccin"]')
-      catppuccinFlavorButton?.click()
+      const clayFlavorButton = el.querySelector<HTMLElement>('[data-testid="settings-flavor-clay"]')
+      clayFlavorButton?.click()
       await flush()
 
-      // catppuccin 为真实选项值：亮色下解析为 latte。
-      expect(document.documentElement.getAttribute('data-flavor')).toBe('catppuccin')
-      expect(document.documentElement.getAttribute('data-resolved-flavor')).toBe('latte')
-      expect(catppuccinFlavorButton?.getAttribute('aria-pressed')).toBe('true')
+      expect(document.documentElement.getAttribute('data-flavor')).toBe('clay')
+      expect(document.documentElement.getAttribute('data-resolved-flavor')).toBe('clay')
+      expect(clayFlavorButton?.getAttribute('aria-pressed')).toBe('true')
 
       mediaController.setMatches(true)
       await flush()
 
       expect(el.textContent).toContain('Follow system · Dark mode')
       expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
-      expect(document.documentElement.getAttribute('data-flavor')).toBe('catppuccin')
-      expect(document.documentElement.getAttribute('data-resolved-flavor')).toBe('mocha')
+      expect(document.documentElement.getAttribute('data-flavor')).toBe('clay')
+      expect(document.documentElement.getAttribute('data-resolved-flavor')).toBe('clay')
     } finally {
       unmount()
     }
@@ -342,8 +340,8 @@ describe('AppSettingsView smoke', () => {
 
       // AC3：首屏副本与语言包键集合一致，且旧 flavor/accent 键无残留。
       expect(bootKeys).toEqual(fullKeys)
-      expect(bootKeys.join('\n')).not.toMatch(/flavor\.(paper|graphite|latte|frappe|macchiato|mocha)/)
-      expect(bootKeys.join('\n')).not.toMatch(/accent\.(sand|amber|rose|slate)/)
+      expect(bootKeys.join('\n')).not.toMatch(/flavor\.(paper|graphite|latte|frappe|macchiato|mocha|catppuccin)/)
+      expect(bootKeys.join('\n')).not.toMatch(/appearance\.accent/)
     }
   })
 })

@@ -259,9 +259,7 @@ const barWidth = (tokens: number) => {
   align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
-  background:
-    linear-gradient(135deg, rgb(var(--color-bg-elevated-rgb) / 90%), rgb(var(--color-bg-surface-rgb) / 72%)),
-    radial-gradient(circle at 100% 0%, rgb(var(--color-info-rgb) / 12%), transparent 42%);
+  background: var(--color-bg-surface);
 }
 
 .providers-tab__eyebrow {
@@ -343,9 +341,7 @@ const barWidth = (tokens: number) => {
   gap: 0.28rem;
   border-radius: 1rem;
   border: 1px solid rgb(var(--color-border-default-rgb) / 14%);
-  background:
-    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 54%), rgb(var(--color-bg-surface-rgb) / 28%)),
-    radial-gradient(circle at 100% 0%, rgb(var(--color-info-rgb) / 8%), transparent 46%);
+  background: var(--color-bg-surface);
   padding: 0.82rem 0.92rem;
 }
 
@@ -470,11 +466,7 @@ const barWidth = (tokens: number) => {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(
-    90deg,
-    rgb(var(--color-info-rgb) / 82%),
-    rgb(var(--color-accent-secondary-rgb) / 74%)
-  );
+  background: var(--color-accent-primary);
 }
 
 .providers-tab__empty {

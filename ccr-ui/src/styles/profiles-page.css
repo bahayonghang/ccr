@@ -24,9 +24,6 @@
   --cp-info: var(--color-info);
   --cp-mono: var(--font-mono);
 
-  min-height: 100%;
-  padding: 24px;
-  background: var(--color-bg-base);
   color: var(--cp-ink-1);
   font-size: 0.8125rem;
   line-height: 1.5;
@@ -46,7 +43,7 @@
 
 .profiles-view .cp-shell {
   max-width: 1680px;
-  margin: 16px auto 0;
+  margin: 0 auto;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 16px;
@@ -81,8 +78,7 @@
   padding: 2px 14px 4px;
   font-family: var(--cp-mono);
   font-size: 0.75rem;
-  letter-spacing: 0.05rem;
-  text-transform: uppercase;
+  letter-spacing: 0;
   color: var(--cp-ink-3);
 }
 

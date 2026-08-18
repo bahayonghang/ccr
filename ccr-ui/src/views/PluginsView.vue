@@ -1,53 +1,30 @@
 <template>
-  <div class="min-h-full p-6 transition-colors duration-300">
-    <div class="max-w-[1800px] mx-auto">
-      <div class="space-y-6">
-        <ModuleSubnav module="claude-code" />
-
-        <main class="min-w-0">
-          <!-- Header -->
-          <div class="plugins-header-shell mb-6 flex flex-col items-center justify-between gap-4 rounded-2xl p-6 md:flex-row">
-            <div class="flex items-center gap-4">
-              <div class="p-3 rounded-xl bg-accent-secondary/10 text-accent-secondary">
-                <SIcon
-                  name="Puzzle"
-                  size="w-6 h-6"
-                />
-              </div>
-              <div>
-                <div class="flex items-center gap-3">
-                  <h1 class="text-2xl font-bold text-text-primary">
-                    {{ $t('plugins.title') }}
-                  </h1>
-                  <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-accent-secondary/10 text-accent-secondary border border-accent-secondary/20">
-                    {{ t('plugins.backToModule') }}
-                  </span>
-                  <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-accent-secondary text-[color:var(--color-accent-primary-contrast)] shadow-sm">
-                    {{ plugins.length }}
-                  </span>
-                </div>
-                <p class="text-sm mt-1 text-text-secondary">
-                  {{ $t('plugins.subtitle') }}
-                </p>
-              </div>
-            </div>
-            
-            <div class="flex items-center gap-3">
-              <Button
-                variant="primary"
-                density="compact"
-                surface="card"
-                motion="standard"
-                @click="handleAdd"
-              >
-                <SIcon
-                  name="Plus"
-                  size="w-5 h-5"
-                />
-                {{ $t('plugins.addPlugin') }}
-              </Button>
-            </div>
-          </div>
+  <PageShell>
+    <template #header>
+      <PageHeader
+        :title="$t('plugins.title')"
+        :description="$t('plugins.subtitle')"
+      >
+        <template #status>
+          <span>{{ plugins.length }}</span>
+        </template>
+        <template #actions>
+          <Button
+            variant="primary"
+            @click="handleAdd"
+          >
+            <SIcon
+              name="Plus"
+              size="w-5 h-5"
+            />
+            {{ $t('plugins.addPlugin') }}
+          </Button>
+        </template>
+      </PageHeader>
+    </template>
+    <template #subnav>
+      <ModuleSubnav module="claude-code" />
+    </template>
 
           <!-- Content -->
           <div
@@ -280,10 +257,7 @@
             :cancel-text="$t('common.cancel')"
             @confirm="confirmDelete"
           />
-        </main>
-      </div>
-    </div>
-  </div>
+  </PageShell>
 </template>
 
 <script setup lang="ts">
@@ -293,6 +267,8 @@ import { useI18n } from 'vue-i18n'
 import { listPlugins, addPlugin, updatePlugin, deletePlugin, togglePlugin } from '@/api'
 import type { Plugin as PluginType, PluginRequest } from '@/types'
 import ModuleSubnav from '@/components/ModuleSubnav.vue'
+import PageHeader from '@/components/ui/PageHeader.vue'
+import PageShell from '@/components/ui/PageShell.vue'
 import { logger } from '@/utils/logger'
 import BaseModal from '@/components/common/BaseModal.vue'
 import Button from '@/components/ui/Button.vue'

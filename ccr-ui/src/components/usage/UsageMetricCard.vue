@@ -78,23 +78,10 @@ const sparklineValues = computed(() => props.card.sparkline.map((point) => point
   display: grid;
   gap: 0.62rem;
   min-height: 11.25rem;
-  border-radius: 1.35rem;
-  border: 1px solid rgb(var(--color-border-default-rgb) / 14%);
+  border-radius: 0.75rem;
+  border: 1px solid var(--color-border-subtle);
   padding: 0.92rem 1rem 0.95rem;
-  background:
-    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 90%), rgb(var(--color-bg-surface-rgb) / 74%)),
-    radial-gradient(circle at 82% 0%, rgb(var(--usage-metric-rgb) / 8%), transparent 48%);
-  box-shadow: var(--elevation-1);
-  transition:
-    border-color var(--motion-subtle-duration) var(--motion-subtle-ease),
-    box-shadow var(--motion-subtle-duration) var(--motion-subtle-ease),
-    transform var(--motion-subtle-duration) var(--motion-subtle-ease);
-}
-
-.usage-metric-card:hover {
-  transform: translateY(-1px);
-  border-color: rgb(var(--usage-metric-rgb) / 20%);
-  box-shadow: var(--elevation-2);
+  background: var(--color-bg-surface);
 }
 
 .usage-metric-card--rose {
@@ -113,24 +100,9 @@ const sparklineValues = computed(() => props.card.sparkline.map((point) => point
   --usage-metric-rgb: var(--color-warning-rgb);
 }
 
-.usage-metric-card::before {
-  content: '';
-  position: absolute;
-  inset: 0 auto 0 0;
-  z-index: var(--z-behind);
-  width: 3px;
-  background: linear-gradient(180deg, rgb(var(--usage-metric-rgb) / 82%), transparent);
-}
-
+.usage-metric-card::before,
 .usage-metric-card::after {
-  content: '';
-  position: absolute;
-  inset: auto -16% -36% auto;
-  z-index: var(--z-behind);
-  width: 9rem;
-  height: 9rem;
-  border-radius: 9999px;
-  background: radial-gradient(circle, rgb(var(--usage-metric-rgb) / 10%), transparent 62%);
+  display: none;
 }
 
 .usage-metric-card__topline,
@@ -162,18 +134,17 @@ const sparklineValues = computed(() => props.card.sparkline.map((point) => point
 .usage-metric-card__label {
   margin-right: auto;
   color: var(--color-text-muted);
-  font-size: 0.68rem;
-  font-weight: 750;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0;
 }
 
 .usage-metric-card__value {
   min-width: 0;
   color: var(--color-text-primary);
-  font-size: clamp(1.72rem, 1.6vw + 1rem, 2.35rem);
-  font-weight: 760;
-  letter-spacing: -0.04em;
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: 0;
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }

@@ -12,24 +12,12 @@
           {{ t('dashboard.signals.title') }}
         </h2>
       </div>
-      <div
-        class="dashboard-signals__filters"
-        role="group"
-        :aria-label="t('dashboard.signals.title')"
-      >
-        <button
-          v-for="option in filterOptions"
-          :key="option.id"
-          type="button"
-          class="dashboard-signals-filter"
-          :data-active="filter === option.id ? 'true' : 'false'"
-          :aria-pressed="filter === option.id"
-          @click="filter = option.id"
-        >
-          {{ option.label }}
-          <span>{{ option.count }}</span>
-        </button>
-      </div>
+      <PillToggleGroup
+        :options="filterOptions"
+        :model-value="filter"
+        v-bind="{ ariaLabel: t('dashboard.signals.title') }"
+        @update:model-value="filter = $event"
+      />
     </header>
 
     <ol
@@ -107,6 +95,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import PillToggleGroup from '@/components/ui/PillToggleGroup.vue'
 import SIcon from '@/components/ui/SIcon.vue'
 import type { MonitoringEntry } from '@/composables/useMonitoringFeed'
 
@@ -158,9 +147,9 @@ const filteredEntries = computed(() => aggregatedEntries.value.filter((entry) =>
 const visibleEntries = computed(() => filteredEntries.value.slice(0, props.limit))
 
 const filterOptions = computed(() => ([
-  { id: 'all' as const, label: t('dashboard.signals.filterAll'), count: aggregatedEntries.value.length },
-  { id: 'warn' as const, label: t('dashboard.signals.filterWarn'), count: aggregatedEntries.value.filter((entry) => matchesFilter(entry, 'warn')).length },
-  { id: 'error' as const, label: t('dashboard.signals.filterError'), count: aggregatedEntries.value.filter((entry) => matchesFilter(entry, 'error')).length },
+  { value: 'all' as const, label: `${t('dashboard.signals.filterAll')} ${aggregatedEntries.value.length}` },
+  { value: 'warn' as const, label: `${t('dashboard.signals.filterWarn')} ${aggregatedEntries.value.filter((entry) => matchesFilter(entry, 'warn')).length}` },
+  { value: 'error' as const, label: `${t('dashboard.signals.filterError')} ${aggregatedEntries.value.filter((entry) => matchesFilter(entry, 'error')).length}` },
 ]))
 
 const formatTime = (timestamp: string) => {
@@ -181,10 +170,9 @@ const formatTime = (timestamp: string) => {
   gap: 0.75rem;
   height: 100%;
   padding: var(--home-card-pad);
-  border: 1px solid var(--home-border-card);
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--home-card-radius);
-  background: var(--home-surface-card);
-  box-shadow: var(--home-elevation-raised);
+  background: var(--color-bg-surface);
 }
 
 .dashboard-signals__header {
@@ -202,72 +190,24 @@ const formatTime = (timestamp: string) => {
 .dashboard-signals__eyebrow {
   margin: 0;
   color: var(--color-text-muted);
-  font-size: var(--home-text-meta);
-  font-weight: 800;
-  letter-spacing: var(--home-tracking-eyebrow);
-  text-transform: uppercase;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.24;
+  letter-spacing: 0;
 }
 
 .dashboard-signals__title {
   margin: 0;
   color: var(--color-text-primary);
-  font-family: var(--font-brand);
-  font-size: var(--home-text-section);
-  font-weight: 640;
-  letter-spacing: var(--home-tracking-display);
-}
-
-.dashboard-signals__filters {
-  display: inline-flex;
-  gap: 0.25rem;
-  padding: 0.18rem;
-  border: 1px solid var(--home-border-hairline);
-  border-radius: 999px;
-  background: var(--home-surface-sunk);
-  box-shadow: var(--home-elevation-sunk);
-}
-
-.dashboard-signals-filter {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.22rem 0.62rem;
-  border: 0;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  font-size: var(--home-text-meta);
-  font-weight: 800;
-  letter-spacing: var(--home-tracking-eyebrow);
-  text-transform: uppercase;
-  transition:
-    background-color var(--home-motion-duration) var(--home-motion-ease),
-    color var(--home-motion-duration) var(--home-motion-ease);
-}
-
-.dashboard-signals-filter:hover {
-  color: var(--color-text-primary);
-}
-
-.dashboard-signals-filter:focus-visible {
-  outline: 0;
-  box-shadow: var(--home-focus-ring);
-}
-
-.dashboard-signals-filter[data-active='true'] {
-  background: rgb(var(--color-accent-primary-rgb) / 14%);
-  color: var(--color-accent-primary);
-}
-
-.dashboard-signals-filter span {
-  font-family: var(--font-mono);
-  font-feature-settings: var(--home-mono-feature);
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0;
 }
 
 .dashboard-signals__list {
   display: grid;
-  gap: 0.2rem;
+  gap: 0.15rem;
   flex: 1;
   min-height: 0;
   margin: 0;
@@ -279,10 +219,9 @@ const formatTime = (timestamp: string) => {
   display: grid;
   grid-template-columns: auto auto auto minmax(0, 1fr);
   align-items: start;
-  gap: 0.52rem;
-  padding: 0.42rem 0.52rem;
+  gap: 0.5rem;
+  padding: 0.38rem 0.4rem;
   border-radius: 8px;
-  transition: background-color var(--home-motion-duration) var(--home-motion-ease);
 }
 
 .dashboard-signal__time,
@@ -297,11 +236,10 @@ const formatTime = (timestamp: string) => {
 
 .dashboard-signal__time {
   color: var(--color-text-muted);
-  font-family: var(--font-mono);
-  font-feature-settings: var(--home-mono-feature);
-  font-size: var(--home-text-meta);
-  font-weight: 800;
-  letter-spacing: 0.01em;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  letter-spacing: 0;
   min-width: 2.8rem;
 }
 
@@ -326,12 +264,9 @@ const formatTime = (timestamp: string) => {
 
 .dashboard-signal__channel {
   color: var(--color-text-disabled);
-  font-family: var(--font-mono);
-  font-feature-settings: var(--home-mono-feature);
-  font-size: 0.625rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  text-transform: lowercase;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0;
 }
 
 .dashboard-signal__message-group {
@@ -348,7 +283,7 @@ const formatTime = (timestamp: string) => {
   min-width: 0;
   margin: 0;
   color: var(--color-text-secondary);
-  font-size: var(--home-text-body);
+  font-size: 0.875rem;
   line-height: 1.4;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -357,10 +292,9 @@ const formatTime = (timestamp: string) => {
 .dashboard-signal__count {
   flex-shrink: 0;
   color: var(--color-text-muted);
-  font-family: var(--font-mono);
-  font-feature-settings: var(--home-mono-feature);
-  font-size: var(--home-text-meta);
-  font-weight: 800;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
 }
 
 .dashboard-signals__empty {
@@ -371,8 +305,8 @@ const formatTime = (timestamp: string) => {
   flex: 1;
   min-height: 8rem;
   padding: 1rem;
-  border: 1px dashed var(--home-border-hairline);
-  border-radius: 10px;
+  border: 1px dashed var(--color-border-subtle);
+  border-radius: 8px;
 }
 
 .dashboard-signals__empty-icon {
@@ -380,23 +314,23 @@ const formatTime = (timestamp: string) => {
   place-items: center;
   width: 2.25rem;
   height: 2.25rem;
-  border-radius: 999px;
-  background: rgb(var(--color-bg-surface-rgb) / 70%);
+  border-radius: 8px;
+  background: var(--color-bg-elevated);
   color: var(--color-text-muted);
 }
 
 .dashboard-signals__empty h3 {
   margin: 0;
   color: var(--color-text-primary);
-  font-size: var(--home-text-body);
-  font-weight: 650;
+  font-size: 0.875rem;
+  font-weight: 600;
 }
 
 .dashboard-signals__empty p {
   margin: 0.15rem 0 0;
   color: var(--color-text-secondary);
-  font-size: var(--home-text-meta);
-  line-height: var(--home-leading-body);
+  font-size: 0.75rem;
+  line-height: 1.5;
 }
 
 .dashboard-signals__empty-cta {
@@ -405,23 +339,28 @@ const formatTime = (timestamp: string) => {
   align-items: center;
   justify-self: start;
   gap: 0.35rem;
-  padding: 0.38rem 0.7rem;
-  border: 1px solid rgb(var(--color-accent-primary-rgb) / 36%);
-  border-radius: 999px;
-  background: rgb(var(--color-accent-primary-rgb) / 8%);
-  color: var(--color-accent-primary);
-  font-size: var(--home-text-meta);
-  font-weight: 800;
-  letter-spacing: var(--home-tracking-eyebrow);
+  padding: 0.35rem 0.65rem;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 8px;
+  background: var(--color-bg-elevated);
+  color: var(--color-text-secondary);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0;
   text-decoration: none;
-  text-transform: uppercase;
+}
+
+.dashboard-signals__empty-cta:hover,
+.dashboard-signals__empty-cta:focus-visible {
+  color: var(--color-text-primary);
+  outline: 0;
 }
 
 .dashboard-signals__footer {
   display: flex;
   justify-content: flex-end;
   padding-top: 0.4rem;
-  border-top: 1px solid var(--home-border-hairline);
+  border-top: 1px solid var(--color-border-subtle);
 }
 
 .dashboard-signals__footer a {
@@ -429,17 +368,15 @@ const formatTime = (timestamp: string) => {
   align-items: center;
   gap: 0.35rem;
   color: var(--color-text-muted);
-  font-size: var(--home-text-meta);
-  font-weight: 800;
-  letter-spacing: var(--home-tracking-eyebrow);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0;
   text-decoration: none;
-  text-transform: uppercase;
-  transition: color var(--home-motion-duration) var(--home-motion-ease);
 }
 
 .dashboard-signals__footer a:hover,
 .dashboard-signals__footer a:focus-visible {
-  color: var(--color-accent-primary);
+  color: var(--color-text-primary);
   outline: 0;
 }
 
@@ -448,13 +385,4 @@ const formatTime = (timestamp: string) => {
     flex-direction: column;
   }
 }
-
-@media (prefers-reduced-motion: reduce) {
-  .dashboard-signal,
-  .dashboard-signals-filter,
-  .dashboard-signals__footer a {
-    transition: none;
-  }
-}
 </style>
-

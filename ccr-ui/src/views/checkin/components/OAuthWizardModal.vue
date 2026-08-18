@@ -3,6 +3,7 @@
     v-model="isVisible"
     :title="t('checkin.actions.oauthLoginTitle')"
     size="lg"
+    surface="solid"
     :persistent="loading"
     @close="handleClose"
   >
@@ -751,7 +752,7 @@ async function createAccount() {
   font-size: 0.875rem;
   line-height: 1.25rem;
   font-weight: 500;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .oauth-wizard__input {
@@ -762,7 +763,7 @@ async function createAccount() {
   padding: 0.5rem 0.75rem;
   font-size: 0.875rem;
   line-height: 1.25rem;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
 }
 
 .oauth-wizard__input:focus {
@@ -804,7 +805,7 @@ async function createAccount() {
 .oauth-wizard__choice--inactive {
   border-color: var(--color-border-default);
   background: var(--color-bg-surface);
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .oauth-wizard__choice--inactive:hover {
@@ -884,7 +885,7 @@ async function createAccount() {
 }
 
 .oauth-wizard__panel-title--neutral {
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .oauth-wizard__error-text {
@@ -923,7 +924,7 @@ async function createAccount() {
   font-family: var(--font-mono);
   font-size: 0.75rem;
   line-height: 1rem;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .oauth-wizard__button {
@@ -951,7 +952,7 @@ async function createAccount() {
 }
 
 .oauth-wizard__button--ghost:hover {
-  color: var(--text-primary);
+  color: var(--color-text-primary);
 }
 
 .oauth-wizard__button--secondary {
@@ -960,7 +961,7 @@ async function createAccount() {
 }
 
 .oauth-wizard__button--secondary:hover {
-  color: var(--text-primary);
+  color: var(--color-text-primary);
 }
 
 .oauth-wizard__button--primary {
@@ -1026,7 +1027,7 @@ async function createAccount() {
 }
 
 .oauth-wizard__summary-value {
-  color: var(--text-primary);
+  color: var(--color-text-primary);
 }
 
 @media (width >= 640px) {

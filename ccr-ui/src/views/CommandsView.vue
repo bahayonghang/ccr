@@ -1,23 +1,11 @@
 <template>
-  <div class="commands-page">
-    <div class="commands-shell">
-      <Card
-        surface="workspace"
-        :elevation="2"
-        motion="subtle"
-        class="commands-run-strip"
+  <PageShell class="commands-page">
+    <template #header>
+      <PageHeader
+        :title="t('commands.title')"
+        :description="t('commands.description')"
       >
-        <div class="commands-run-strip__identity">
-          <p class="commands-panel__eyebrow">
-            {{ t('commands.operatorBadge') }}
-          </p>
-          <div>
-            <h1>{{ t('commands.title') }}</h1>
-            <p>{{ t('commands.description') }}</p>
-          </div>
-        </div>
-
-        <div class="commands-run-strip__signals">
+        <template #status>
           <span
             class="commands-chip"
             :class="canRun ? 'commands-chip--success' : 'commands-chip--warning'"
@@ -49,8 +37,9 @@
             />
             {{ currentSnapshot ? statusLabel(currentSnapshot.status) : t('commands.cardJobIdle') }}
           </span>
-        </div>
-      </Card>
+        </template>
+      </PageHeader>
+    </template>
 
       <div class="commands-workbench">
         <aside class="commands-palette">
@@ -87,26 +76,12 @@
               </div>
             </div>
 
-            <div class="commands-client-switcher">
-              <button
-                v-for="client in CLI_CLIENTS"
-                :key="client.id"
-                type="button"
-                class="commands-client-pill"
-                :class="{
-                  'commands-client-pill--active': selectedClient === client.id,
-                  'commands-client-pill--disabled': !client.executable,
-                }"
-                @click="setSelectedClient(client.id)"
-              >
-                <SIcon
-                  :name="client.icon"
-                  size="w-4 h-4"
-                />
-                <span>{{ client.name }}</span>
-                <small v-if="!client.executable">{{ t('commands.clientPreview') }}</small>
-              </button>
-            </div>
+            <PillToggleGroup
+              class="commands-client-switcher"
+              :options="clientToggleOptions"
+              :model-value="selectedClient"
+              @update:model-value="setSelectedClient"
+            />
 
             <div class="commands-source-tabs">
               <button
@@ -564,8 +539,7 @@
           </Card>
         </section>
       </div>
-    </div>
-  </div>
+  </PageShell>
 </template>
 
 <script setup lang="ts">
@@ -575,6 +549,9 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import Button from '@/components/ui/Button.vue'
 import Card from '@/components/ui/Card.vue'
+import PageHeader from '@/components/ui/PageHeader.vue'
+import PageShell from '@/components/ui/PageShell.vue'
+import PillToggleGroup from '@/components/ui/PillToggleGroup.vue'
 import SIcon from '@/components/ui/SIcon.vue'
 import { cancelCcrCommandJob, listCommands, listConfigs, startCcrCommandJob } from '@/api'
 import {
@@ -638,6 +615,14 @@ const CLI_CLIENTS: CommandClient[] = [
 ]
 
 const selectedClient = ref<CliClient>('ccr')
+const clientToggleOptions = computed(() =>
+  CLI_CLIENTS.map((client) => ({
+    value: client.id,
+    label: client.executable
+      ? client.name
+      : `${client.name} · ${t('commands.clientPreview')}`,
+  })),
+)
 const commands = ref<CommandUiInfo[]>([])
 const selectedCommand = ref('')
 const args = ref('')
@@ -1258,30 +1243,9 @@ const formatDuration = (duration?: number | null) => (duration == null ? '—' :
 
 <style scoped>
 .commands-page {
-  @apply px-4 py-4 sm:px-6 sm:py-6;
+  min-width: 0;
 }
 
-.commands-shell {
-  @apply mx-auto flex max-w-[1480px] flex-col gap-4;
-}
-
-.commands-run-strip {
-  @apply flex flex-col gap-3 p-3 md:flex-row md:items-center md:justify-between;
-}
-
-.commands-run-strip__identity {
-  @apply flex min-w-0 flex-1 items-center gap-3;
-}
-
-.commands-run-strip__identity h1 {
-  @apply text-lg font-semibold tracking-[-0.02em] text-text-primary;
-}
-
-.commands-run-strip__identity p:not(.commands-panel__eyebrow) {
-  @apply mt-0.5 max-w-2xl text-xs leading-relaxed text-text-secondary;
-}
-
-.commands-run-strip__signals,
 .commands-panel__actions,
 .commands-composer__actions {
   @apply flex flex-wrap items-center gap-2;
@@ -1306,7 +1270,12 @@ const formatDuration = (duration?: number | null) => (duration == null ? '—' :
 }
 
 .commands-panel__eyebrow {
-  @apply text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted;
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.24;
+  letter-spacing: 0;
+  color: var(--color-text-muted);
 }
 
 .commands-workbench {
@@ -1363,7 +1332,6 @@ const formatDuration = (duration?: number | null) => (duration == null ? '—' :
   @apply mb-4 flex flex-wrap gap-2;
 }
 
-.commands-client-pill,
 .commands-source-tabs__item,
 .commands-category-tabs__item {
   @apply inline-flex items-center gap-2 rounded-full border border-border-default/50 px-3 py-2 text-xs font-medium text-text-secondary transition-colors duration-200;
@@ -1371,17 +1339,11 @@ const formatDuration = (duration?: number | null) => (duration == null ? '—' :
   background-color: rgb(var(--color-bg-elevated-rgb) / 56%);
 }
 
-.commands-client-pill:hover,
 .commands-source-tabs__item:hover,
 .commands-category-tabs__item:hover,
 .commands-source-tabs__item--active,
-.commands-category-tabs__item--active,
-.commands-client-pill--active {
+.commands-category-tabs__item--active {
   @apply border-accent-primary/25 bg-accent-primary/10 text-text-primary;
-}
-
-.commands-client-pill--disabled small {
-  @apply text-[10px] uppercase tracking-[0.12em] text-text-muted;
 }
 
 .commands-search {
@@ -1435,7 +1397,7 @@ const formatDuration = (duration?: number | null) => (duration == null ? '—' :
 }
 
 .command-badge {
-  @apply rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.11em];
+  @apply rounded-md border px-2 py-0.5 text-[10px] font-semibold;
 }
 
 .command-badge--safe,

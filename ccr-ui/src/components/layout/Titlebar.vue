@@ -167,16 +167,13 @@
           @click.self="showAboutDialog = false"
         >
           <div class="surface-modal relative w-full max-w-sm overflow-hidden overflow-y-auto rounded-2xl border border-border-default/70">
-            <div class="h-px w-full bg-gradient-to-r from-transparent via-accent-primary/60 to-transparent" />
-            
             <div class="p-6 flex flex-col items-center">
-              <div class="w-24 h-24 rounded-2xl mb-4 relative overflow-hidden shadow-lg border border-border-default/30 ring-4 ring-bg-elevated/70">
+              <div class="w-24 h-24 rounded-2xl mb-4 relative overflow-hidden border border-border-default/30">
                 <img
                   :src="appLogoUrl"
                   :alt="`${appName} logo`"
                   class="w-full h-full object-cover"
                 >
-                <div class="absolute inset-0 bg-gradient-to-tr from-accent-primary/12 to-transparent mix-blend-overlay" />
               </div>
               
               <h2 class="text-2xl font-bold text-text-primary tracking-tight mb-1">
@@ -356,9 +353,9 @@ onUnmounted(() => {
 
 .titlebar-shell {
   z-index: var(--layer-sticky);
-  background: var(--surface-status-bg);
-  backdrop-filter: var(--surface-status-blur);
-  box-shadow: var(--surface-status-shadow);
+  background: var(--surface-shell-bg);
+  backdrop-filter: var(--surface-shell-blur);
+  box-shadow: var(--surface-shell-shadow);
   transition: background-color var(--motion-subtle-duration) var(--motion-subtle-ease),
     border-color var(--motion-subtle-duration) var(--motion-subtle-ease);
 }
@@ -412,9 +409,7 @@ onUnmounted(() => {
 .titlebar-control-btn--close:hover {
   color: var(--color-danger-contrast);
   background: rgb(var(--color-danger-rgb) / 92%);
-  box-shadow:
-    inset 0 0 0 1px rgb(255 255 255 / 14%),
-    0 10px 22px rgb(var(--color-danger-rgb) / 20%);
+  box-shadow: none;
 }
 
 .titlebar-control-btn--close:focus-visible {

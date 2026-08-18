@@ -1,33 +1,24 @@
 <template>
-  <div class="hooks-view">
-    <div class="mb-6" />
-    <div class="mx-auto max-w-[1600px]">
-      <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div class="flex items-center gap-4">
-          <h2 class="flex items-center text-xl font-bold text-text-primary sm:text-2xl">
+  <PageShell class="hooks-view">
+    <template #header>
+      <PageHeader
+        :title="tt('Hooks 管理', 'Hooks Management')"
+      >
+        <template #status>
+          <span>{{ totalHandlers }}</span>
+        </template>
+        <template #actions>
+          <Button @click="openCreateGroup()">
             <SIcon
-              name="Webhook"
-              size="w-6 h-6"
-              class="mr-2 text-accent-secondary sm:w-7 sm:h-7"
+              name="Plus"
+              size="w-5 h-5"
+              class="mr-2"
             />
-            {{ tt('Hooks 管理', 'Hooks Management') }}
-          </h2>
-          <span class="rounded-full border border-accent-secondary/20 bg-accent-secondary/10 px-3 py-1 text-sm font-medium text-accent-secondary">
-            {{ totalHandlers }}
-          </span>
-        </div>
-        <button
-          class="hooks-primary-button"
-          @click="openCreateGroup()"
-        >
-          <SIcon
-            name="Plus"
-            size="w-5 h-5"
-            class="mr-2"
-          />
-          {{ tt('添加 Hook 组', 'Add Hook Group') }}
-        </button>
-      </div>
+            {{ tt('添加 Hook 组', 'Add Hook Group') }}
+          </Button>
+        </template>
+      </PageHeader>
+    </template>
 
       <Card
         variant="glass"
@@ -485,15 +476,17 @@
           :value="handlerType"
         />
       </datalist>
-    </div>
-  </div>
+  </PageShell>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SIcon from '@/components/ui/SIcon.vue'
+import Button from '@/components/ui/Button.vue'
 import Card from '@/components/ui/Card.vue'
+import PageHeader from '@/components/ui/PageHeader.vue'
+import PageShell from '@/components/ui/PageShell.vue'
 import { listHooks, updateHooks } from '@/api'
 import { useUIStore } from '@/stores/ui'
 import type { Hook, HookMap, HookMatcherGroup } from '@/types'

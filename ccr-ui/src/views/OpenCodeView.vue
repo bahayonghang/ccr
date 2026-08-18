@@ -1,37 +1,42 @@
 <template>
-  <div class="opencode-view stage-page">
-    <div class="opencode-shell">
-      <Card
-        variant="glass"
-        class="opencode-ops-board"
+  <PageShell class="opencode-view">
+    <template #header>
+      <PageHeader
+        :title="tt('操作总台', 'Operational console')"
+        eyebrow="OpenCode operator deck"
+        eyebrow-lang="en"
+        :description="tt('高密度收敛 provider、MCP、agents、commands、plugins 与 runtime 配置；首屏直接进入可操作状态。', 'Bring providers, MCP, agents, commands, plugins, and runtime config into one dense surface that is actionable on first load.')"
       >
-        <div class="opencode-ops-board__glow opencode-ops-board__glow--lime" />
-        <div class="opencode-ops-board__glow opencode-ops-board__glow--cyan" />
+        <template #actions>
+          <button
+            type="button"
+            class="opencode-refresh-button"
+            :disabled="loading"
+            @click="loadOverview()"
+          >
+            <SIcon
+              name="RefreshCw"
+              size="w-4 h-4"
+              :class="{ 'animate-spin': loading }"
+            />
+            <span>{{ loading ? tt('加载中', 'Loading') : tt('刷新', 'Refresh') }}</span>
+          </button>
+        </template>
+      </PageHeader>
+    </template>
 
-        <div class="opencode-ops-board__content">
+    <div class="opencode-stats">
+      <StatTile
+        v-for="metric in liveMetrics"
+        :key="metric.label"
+        :label="metric.label"
+        :value="metric.value"
+        :hint="metric.detail"
+      />
+    </div>
+
+    <div class="opencode-ops-board">
           <section class="opencode-identity-panel">
-            <div class="opencode-identity-panel__head">
-              <div class="opencode-hero-icon">
-                <SIcon
-                  name="TerminalSquare"
-                  size="w-5 h-5"
-                  class="text-lime-300"
-                />
-              </div>
-              <div>
-                <div class="opencode-eyebrow">
-                  {{ tt('OpenCode 操作台', 'OpenCode operator deck') }}
-                </div>
-                <h1 class="opencode-title">
-                  {{ tt('操作总台', 'Operational console') }}
-                </h1>
-              </div>
-            </div>
-
-            <p class="opencode-subtitle">
-              {{ tt('高密度收敛 provider、MCP、agents、commands、plugins 与 runtime 配置；首屏直接进入可操作状态。', 'Bring providers, MCP, agents, commands, plugins, and runtime config into one dense surface that is actionable on first load.') }}
-            </p>
-
             <div class="opencode-path-stack">
               <div
                 v-for="item in identityItems"
@@ -48,20 +53,6 @@
             class="opencode-metrics-panel"
             aria-label="OpenCode live metrics"
           >
-            <div class="opencode-panel-kicker">
-              {{ tt('实时指标', 'Live metrics') }}
-            </div>
-            <div class="opencode-live-grid">
-              <div
-                v-for="metric in liveMetrics"
-                :key="metric.label"
-                class="opencode-live-metric"
-              >
-                <span>{{ metric.label }}</span>
-                <strong>{{ metric.value }}</strong>
-                <small>{{ metric.detail }}</small>
-              </div>
-            </div>
 
             <div class="opencode-runtime-strip">
               <div
@@ -87,19 +78,6 @@
                 </div>
                 <p>{{ overviewStatusLabel }}</p>
               </div>
-              <button
-                type="button"
-                class="opencode-refresh-button"
-                :disabled="loading"
-                @click="loadOverview()"
-              >
-                <SIcon
-                  name="RefreshCw"
-                  size="w-4 h-4"
-                  :class="{ 'animate-spin': loading }"
-                />
-                <span>{{ loading ? tt('加载中', 'Loading') : tt('刷新', 'Refresh') }}</span>
-              </button>
             </div>
 
             <div class="opencode-action-stack">
@@ -128,8 +106,7 @@
               </span>
             </div>
           </aside>
-        </div>
-      </Card>
+    </div>
 
       <PlatformUsageInsightPanel
         :spec="opencodeUsageSpec"
@@ -295,8 +272,7 @@
           </div>
         </div>
       </Card>
-    </div>
-  </div>
+  </PageShell>
 </template>
 
 <script setup lang="ts">
@@ -305,6 +281,9 @@ import { getErrorMessage } from '@/utils/errorHandler'
 import { RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import Card from '@/components/ui/Card.vue'
+import PageHeader from '@/components/ui/PageHeader.vue'
+import PageShell from '@/components/ui/PageShell.vue'
+import StatTile from '@/components/ui/StatTile.vue'
 import SIcon from '@/components/ui/SIcon.vue'
 import PlatformUsageInsightPanel from '@/components/platform-usage/PlatformUsageInsightPanel.vue'
 import {
@@ -535,32 +514,22 @@ onMounted(() => {
 
 <style scoped>
 .opencode-view {
-  @apply relative min-h-full px-4 py-4 sm:px-6;
+  background: var(--color-bg-elevated);
 }
 
-.opencode-shell {
-  @apply mx-auto flex max-w-[1480px] flex-col gap-4;
+.opencode-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 12px;
+  background: var(--color-bg-surface);
 }
 
 .opencode-ops-board,
 .opencode-inspector {
-  @apply relative overflow-hidden p-4 sm:p-5;
-}
-
-.opencode-ops-board__glow {
-  @apply pointer-events-none absolute rounded-full blur-3xl;
-}
-
-.opencode-ops-board__glow--lime {
-  @apply right-[-5rem] top-[-6rem] h-56 w-56 bg-lime-300/20;
-}
-
-.opencode-ops-board__glow--cyan {
-  @apply bottom-[-7rem] left-[30%] h-52 w-52 bg-cyan-300/10;
-}
-
-.opencode-ops-board__content {
-  @apply relative z-10 grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(420px,1fr)_340px];
+  @apply relative grid gap-4 p-0 xl:grid-cols-[minmax(0,1.2fr)_minmax(420px,1fr)_340px];
 }
 
 .opencode-identity-panel,

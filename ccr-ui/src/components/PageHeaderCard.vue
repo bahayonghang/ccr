@@ -122,7 +122,7 @@ const toneClasses = computed(() => {
   border-radius: var(--radius-2xl);
   border: 1px solid var(--surface-card-border);
   background: var(--surface-card-bg);
-  box-shadow: var(--surface-card-shadow), var(--glass-inner-glow);
+  box-shadow: var(--surface-card-shadow);
   backdrop-filter: var(--surface-card-blur);
 }
 
@@ -154,27 +154,27 @@ const toneClasses = computed(() => {
   height: 3.25rem;
   border-radius: 1rem;
   border: 1px solid rgb(var(--color-border-default-rgb) / 10%);
-  box-shadow: var(--inner-glow);
+  box-shadow: none;
 }
 
 .page-header-card__icon--primary {
-  background: linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 100%), rgb(var(--color-bg-surface-rgb) / 82%));
+  background: var(--color-bg-elevated);
 }
 
 .page-header-card__icon--secondary {
-  background: linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 100%), rgb(var(--color-bg-surface-rgb) / 82%));
+  background: var(--color-bg-elevated);
 }
 
 .page-header-card__icon--success {
-  background: linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 100%), rgb(var(--color-bg-surface-rgb) / 82%));
+  background: var(--color-bg-elevated);
 }
 
 .page-header-card__icon--danger {
-  background: linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 100%), rgb(var(--color-bg-surface-rgb) / 82%));
+  background: var(--color-bg-elevated);
 }
 
 .page-header-card__icon--info {
-  background: linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 100%), rgb(var(--color-bg-surface-rgb) / 82%));
+  background: var(--color-bg-elevated);
 }
 
 .page-header-card__title-row {

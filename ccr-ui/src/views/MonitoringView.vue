@@ -1,70 +1,60 @@
 <template>
-  <main class="min-h-full bg-bg-base">
-    <section class="flex w-full max-w-none flex-col gap-4">
-      <header class="rounded-xl border border-border-default/55 bg-bg-elevated p-4 shadow-sm shadow-black/5">
-        <div class="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-          <div class="max-w-3xl">
-            <p class="text-xs font-semibold uppercase tracking-[0.28em] text-text-muted">
-              {{ t('monitoring.eyebrow') }}
-            </p>
-            <h1 class="mt-2 text-2xl font-semibold tracking-tight text-text-primary sm:text-3xl">
-              {{ t('monitoring.title') }}
-            </h1>
-            <p class="mt-2 max-w-2xl text-sm leading-6 text-text-secondary">
-              {{ t('monitoring.subtitle') }}
-            </p>
+  <PageShell class="monitoring-page">
+    <template #header>
+      <PageHeader
+        :title="t('monitoring.title')"
+        :description="t('monitoring.subtitle')"
+      >
+        <template #status>
+          <div
+            data-testid="monitoring-connection-status"
+            class="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium"
+            :class="isConnected
+              ? 'border-accent-success/30 bg-accent-success/8 text-accent-success'
+              : 'border-accent-danger/30 bg-accent-danger/8 text-accent-danger'"
+          >
+            <span
+              class="h-2 w-2 rounded-full"
+              :class="isConnected ? 'bg-accent-success' : 'bg-accent-danger'"
+            />
+            {{ isConnected ? t('monitoring.connected') : t('monitoring.disconnected') }}
           </div>
-
-          <div class="flex flex-wrap items-center gap-2">
-            <div
-              data-testid="monitoring-connection-status"
-              class="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium"
-              :class="isConnected
-                ? 'border-accent-success/30 bg-accent-success/8 text-accent-success'
-                : 'border-accent-danger/30 bg-accent-danger/8 text-accent-danger'"
-            >
-              <span
-                class="h-2 w-2 rounded-full"
-                :class="isConnected ? 'bg-accent-success' : 'bg-accent-danger'"
-              />
-              {{ isConnected ? t('monitoring.connected') : t('monitoring.disconnected') }}
-            </div>
-
-            <button
-              type="button"
-              class="inline-flex items-center gap-2 rounded-xl border border-border-default/55 bg-bg-surface px-3 py-2 text-xs font-medium text-text-secondary transition-colors hover:border-accent-secondary/30 hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-60"
-              :disabled="usageLoading"
-              @click="refreshMonitoring"
-            >
-              <SIcon
-                name="RefreshCw"
-                size="w-3.5 h-3.5"
-                :class="usageLoading ? 'animate-spin' : ''"
-              />
-              {{ t('monitoring.refresh') }}
-            </button>
-
-            <button
-              type="button"
-              class="inline-flex items-center gap-2 rounded-xl border border-border-default/55 bg-bg-surface px-3 py-2 text-xs font-medium text-text-secondary transition-colors hover:border-accent-danger/25 hover:text-accent-danger"
-              @click="clearLocalLogs"
-            >
-              <SIcon
-                name="Trash2"
-                size="w-3.5 h-3.5"
-              />
-              {{ t('monitoring.clearView') }}
-            </button>
-          </div>
-        </div>
-      </header>
+        </template>
+        <template #actions>
+          <button
+            type="button"
+            class="inline-flex items-center gap-2 rounded-lg border border-border-default/55 bg-bg-surface px-3 py-2 text-xs font-medium text-text-secondary transition-colors hover:border-accent-secondary/30 hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-60"
+            :disabled="usageLoading"
+            @click="refreshMonitoring"
+          >
+            <SIcon
+              name="RefreshCw"
+              size="w-3.5 h-3.5"
+              :class="usageLoading ? 'animate-spin' : ''"
+            />
+            {{ t('monitoring.refresh') }}
+          </button>
+          <button
+            type="button"
+            class="inline-flex items-center gap-2 rounded-lg border border-border-default/55 bg-bg-surface px-3 py-2 text-xs font-medium text-text-secondary transition-colors hover:border-accent-danger/25 hover:text-accent-danger"
+            @click="clearLocalLogs"
+          >
+            <SIcon
+              name="Trash2"
+              size="w-3.5 h-3.5"
+            />
+            {{ t('monitoring.clearView') }}
+          </button>
+        </template>
+      </PageHeader>
+    </template>
 
       <div class="grid min-w-0 gap-4 xl:grid-cols-[minmax(320px,360px)_minmax(0,1fr)] 2xl:grid-cols-[minmax(340px,380px)_minmax(0,1fr)]">
         <aside class="min-w-0 space-y-4">
           <section class="rounded-xl border border-border-default/55 bg-bg-elevated p-4 shadow-sm shadow-black/5">
             <div class="flex items-start justify-between gap-4">
               <div>
-                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">
+                <p class="text-xs font-medium text-text-muted">
                   {{ t('monitoring.usageEyebrow') }}
                 </p>
                 <h2 class="mt-1 text-lg font-semibold text-text-primary">
@@ -131,7 +121,7 @@
           <section class="rounded-xl border border-border-default/55 bg-bg-elevated p-4 shadow-sm shadow-black/5">
             <div class="flex items-center justify-between gap-3">
               <div>
-                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">
+                <p class="text-xs font-medium text-text-muted">
                   {{ t('monitoring.healthEyebrow') }}
                 </p>
                 <h2 class="mt-1 text-lg font-semibold text-text-primary">
@@ -146,34 +136,16 @@
               </span>
             </div>
 
-            <div class="mt-3 grid grid-cols-2 gap-2">
-              <button
-                v-for="level in monitoringLevels"
-                :key="level"
-                type="button"
-                class="rounded-2xl border px-3 py-3 text-left transition-colors"
-                :class="filterLevel === level
-                  ? 'border-accent-secondary/35 bg-accent-secondary/10'
-                  : 'border-border-default/45 bg-bg-elevated hover:border-border-default'"
-                @click="filterLevel = level"
-              >
-                <div class="flex items-center justify-between gap-2">
-                  <span class="inline-flex items-center gap-2 text-xs font-medium uppercase tracking-[0.14em] text-text-secondary">
-                    <span
-                      class="h-2 w-2 rounded-full"
-                      :class="getLevelDotClass(level)"
-                    />
-                    {{ getLevelLabel(level) }}
-                  </span>
-                  <span class="font-mono text-sm font-semibold text-text-primary">
-                    {{ levelCounts[level] }}
-                  </span>
-                </div>
-              </button>
+            <div class="mt-3">
+              <PillToggleGroup
+                :options="levelToggleOptions"
+                :model-value="filterLevel"
+                @update:model-value="filterLevel = $event"
+              />
             </div>
 
             <div class="mt-3 rounded-2xl border border-border-default/45 bg-bg-elevated p-3">
-              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">
+              <p class="text-xs font-medium text-text-muted">
                 {{ t('monitoring.recentUsageImport') }}
               </p>
               <div
@@ -203,7 +175,7 @@
             </div>
 
             <div class="mt-3 rounded-2xl border border-border-default/45 bg-bg-elevated p-3">
-              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">
+              <p class="text-xs font-medium text-text-muted">
                 {{ t('monitoring.recentIssues') }}
               </p>
               <div
@@ -243,7 +215,7 @@
         <section class="min-w-0 overflow-hidden rounded-xl border border-border-default/55 bg-bg-elevated shadow-sm shadow-black/5">
           <div class="flex flex-col gap-4 border-b border-border-default/45 p-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p class="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">
+              <p class="text-xs font-medium text-text-muted">
                 {{ t('monitoring.logsEyebrow') }}
               </p>
               <h2 class="mt-1 flex items-center gap-2 text-lg font-semibold text-text-primary">
@@ -285,7 +257,7 @@
           <div class="overflow-hidden p-3">
             <div class="overflow-x-auto">
               <div class="w-full min-w-[640px] rounded-2xl border border-border-default/45 bg-bg-elevated font-mono text-xs">
-                <div class="grid grid-cols-[72px_62px_94px_94px_minmax(0,1fr)] gap-2 border-b border-border-default/45 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                <div class="grid grid-cols-[72px_62px_94px_94px_minmax(0,1fr)] gap-2 border-b border-border-default/45 px-3 py-2 text-[11px] font-medium text-text-muted">
                   <span>{{ t('monitoring.columnTime') }}</span>
                   <span>{{ t('monitoring.columnLevel') }}</span>
                   <span>{{ t('monitoring.columnChannel') }}</span>
@@ -365,11 +337,13 @@
           </div>
         </section>
       </div>
-    </section>
-  </main>
+  </PageShell>
 </template>
 
 <script setup lang="ts">
+import PageHeader from '@/components/ui/PageHeader.vue'
+import PageShell from '@/components/ui/PageShell.vue'
+import PillToggleGroup from '@/components/ui/PillToggleGroup.vue'
 import SIcon from '@/components/ui/SIcon.vue'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -388,6 +362,13 @@ const { isConnected, logs, clearLogs, refresh } = useMonitoringFeed()
 
 const monitoringLevels: MonitoringLevel[] = ['error', 'warn', 'info', 'debug']
 const filterLevel = ref<'all' | MonitoringLevel>('all')
+const levelToggleOptions = computed(() => [
+  { value: 'all' as const, label: t('monitoring.allLevels') },
+  ...monitoringLevels.map((level) => ({
+    value: level,
+    label: `${getLevelLabel(level)} ${levelCounts.value[level]}`,
+  })),
+])
 const logContainer = ref<HTMLElement | null>(null)
 
 const usageSummary = ref<UsageSummary | null>(null)
@@ -715,16 +696,4 @@ function getLevelClass(level: MonitoringLevel) {
   }
 }
 
-function getLevelDotClass(level: MonitoringLevel) {
-  switch (level) {
-    case 'error':
-      return 'bg-accent-danger'
-    case 'warn':
-      return 'bg-accent-warning'
-    case 'info':
-      return 'bg-accent-primary'
-    default:
-      return 'bg-text-muted'
-  }
-}
 </script>

@@ -56,11 +56,11 @@
           <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div class="min-w-0">
               <div class="mb-3 flex flex-wrap items-center gap-2">
-                <span class="rounded-full border border-lime-300/20 bg-lime-300/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-lime-200">
+                <span class="rounded-full border border-lime-300/20 bg-lime-300/10 px-3 py-1 text-xs font-semibold text-lime-200">
                   {{ provider.id }}
                 </span>
                 <span
-                  class="rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em]"
+                  class="rounded-full px-3 py-1 text-xs font-semibold"
                   :class="providerEnabled(provider.id) ? 'bg-emerald-300/10 text-emerald-200' : 'bg-amber-300/10 text-amber-200'"
                 >
                   {{ providerEnabled(provider.id) ? tt('已启用', 'enabled') : tt('已禁用', 'disabled') }}
@@ -72,19 +72,19 @@
               </h2>
               <div class="mt-3 grid gap-3 md:grid-cols-3">
                 <div class="rounded-2xl border border-border-default/55 bg-bg-base p-3">
-                  <span class="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('API key', 'API key') }}</span>
+                  <span class="text-[11px] font-semibold text-text-muted">{{ tt('API key', 'API key') }}</span>
                   <p class="mt-2 text-sm text-text-primary">
                     {{ maskSecret(provider.options?.apiKey) }}
                   </p>
                 </div>
                 <div class="rounded-2xl border border-border-default/55 bg-bg-base p-3">
-                  <span class="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('baseURL', 'baseURL') }}</span>
+                  <span class="text-[11px] font-semibold text-text-muted">{{ tt('baseURL', 'baseURL') }}</span>
                   <p class="mt-2 break-all text-sm text-text-primary">
                     {{ provider.options?.baseURL || 'default' }}
                   </p>
                 </div>
                 <div class="rounded-2xl border border-border-default/55 bg-bg-base p-3">
-                  <span class="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('models', 'models') }}</span>
+                  <span class="text-[11px] font-semibold text-text-muted">{{ tt('models', 'models') }}</span>
                   <p class="mt-2 text-sm text-text-primary">
                     {{ Object.keys(provider.models || {}).length }}
                   </p>
@@ -190,7 +190,7 @@
 
         <div class="grid gap-4 md:grid-cols-2">
           <div>
-            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('provider id *', 'provider id *') }}</label>
+            <label class="mb-2 block text-xs font-semibold text-text-muted">{{ tt('provider id *', 'provider id *') }}</label>
             <input
               v-model="form.id"
               :disabled="Boolean(editingId)"
@@ -199,7 +199,7 @@
             >
           </div>
           <div>
-            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('display name', 'display name') }}</label>
+            <label class="mb-2 block text-xs font-semibold text-text-muted">{{ tt('display name', 'display name') }}</label>
             <input
               v-model="form.name"
               class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 text-sm text-text-primary"
@@ -207,7 +207,7 @@
             >
           </div>
           <div class="md:col-span-2">
-            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('npm package', 'npm package') }}</label>
+            <label class="mb-2 block text-xs font-semibold text-text-muted">{{ tt('npm package', 'npm package') }}</label>
             <input
               v-model="form.npm"
               class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 text-sm text-text-primary"
@@ -218,7 +218,7 @@
 
         <div class="grid gap-4 md:grid-cols-2">
           <div>
-            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('api key', 'api key') }}</label>
+            <label class="mb-2 block text-xs font-semibold text-text-muted">{{ tt('api key', 'api key') }}</label>
             <input
               v-model="form.apiKey"
               class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 text-sm text-text-primary"
@@ -226,7 +226,7 @@
             >
           </div>
           <div>
-            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('baseURL', 'baseURL') }}</label>
+            <label class="mb-2 block text-xs font-semibold text-text-muted">{{ tt('baseURL', 'baseURL') }}</label>
             <input
               v-model="form.baseURL"
               class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 text-sm text-text-primary"
@@ -244,7 +244,7 @@
         </label>
 
         <div>
-          <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('models JSON', 'models JSON') }}</label>
+          <label class="mb-2 block text-xs font-semibold text-text-muted">{{ tt('models JSON', 'models JSON') }}</label>
           <textarea
             v-model="form.modelsJson"
             rows="8"
@@ -254,7 +254,7 @@
         </div>
 
         <div>
-          <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('extra options JSON', 'extra options JSON') }}</label>
+          <label class="mb-2 block text-xs font-semibold text-text-muted">{{ tt('extra options JSON', 'extra options JSON') }}</label>
           <textarea
             v-model="form.extraOptionsJson"
             rows="6"
@@ -264,7 +264,7 @@
         </div>
 
         <div>
-          <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('root extra JSON', 'root extra JSON') }}</label>
+          <label class="mb-2 block text-xs font-semibold text-text-muted">{{ tt('root extra JSON', 'root extra JSON') }}</label>
           <textarea
             v-model="form.rootExtraJson"
             rows="5"

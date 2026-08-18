@@ -194,15 +194,9 @@ const handleCloseUpdateModal = () => {
 
       <button
         class="px-3 py-2 rounded-lg font-semibold text-xs transition-transform flex items-center justify-center space-x-1.5 text-[color:var(--color-accent-primary-contrast)] hover:scale-105"
-        :class="{ 'animate-pulse-subtle': updateInfo?.update_available }"
-        :style="{
-          background: updateInfo?.update_available
-            ? 'linear-gradient(135deg, var(--accent-success), var(--accent-primary))'
-            : 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))',
-          boxShadow: updateInfo?.update_available
-            ? '0 0 20px var(--glow-success)'
-            : '0 0 20px var(--glow-primary)'
-        }"
+        :class="[
+          updateInfo?.update_available ? 'animate-pulse-subtle bg-accent-success' : 'bg-accent-primary',
+        ]"
         @click="handleOpenUpdateModal"
       >
         <SIcon

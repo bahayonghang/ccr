@@ -39,7 +39,7 @@
                 {{ tt('这些条目来自 `opencode.json` 的 `plugin` 数组，会在启动时通过 Bun 自动安装。', 'These entries come from the `plugin` array in `opencode.json` and are installed by Bun on startup.') }}
               </p>
             </div>
-            <span class="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-emerald-200">
+            <span class="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1 text-xs font-semibold text-emerald-200">
               {{ packages.length }}
             </span>
           </div>
@@ -97,7 +97,7 @@
                 {{ tt('来自 `.opencode/plugins/` 和 `~/.config/opencode/plugins/` 的本地脚本文件。', 'Local script files discovered in `.opencode/plugins/` and `~/.config/opencode/plugins/`.') }}
               </p>
             </div>
-            <span class="rounded-full border border-border-default/55 bg-bg-base px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-text-secondary">
+            <span class="rounded-full border border-border-default/55 bg-bg-base px-3 py-1 text-xs font-semibold text-text-secondary">
               {{ localPlugins.length }}
             </span>
           </div>
@@ -123,7 +123,7 @@
                   <strong class="block text-sm text-text-primary">{{ plugin.name }}</strong>
                   <span class="mt-1 block break-all font-mono text-xs text-text-muted">{{ plugin.path }}</span>
                 </div>
-                <span class="rounded-full bg-bg-base px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-text-secondary">
+                <span class="rounded-full bg-bg-base px-3 py-1 text-xs font-semibold text-text-secondary">
                   {{ plugin.scope }}
                 </span>
               </div>
@@ -173,7 +173,7 @@
     >
       <div class="space-y-4">
         <div>
-          <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('package name', 'package name') }}</label>
+          <label class="mb-2 block text-xs font-semibold text-text-muted">{{ tt('package name', 'package name') }}</label>
           <input
             v-model="newPackage"
             class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 text-sm text-text-primary"

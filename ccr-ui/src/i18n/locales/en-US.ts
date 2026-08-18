@@ -2575,32 +2575,12 @@ export default {
       flavor: {
         eyebrow: 'Flavor',
         title: 'Surface tone',
-        description:
-          'Pick the surface family. Catppuccin adapts to the resolved theme: light uses Latte and dark uses Mocha.',
+        description: 'Pick the surface family: neutral gray or warm clay paper.',
         neutral: 'Neutral',
         neutralDescription:
           'Pure neutral gray surfaces with solid contrast and no warm or cool tint.',
         clay: 'Clay',
         clayDescription: 'Warm paper surfaces in the Anthropic editorial tone.',
-        catppuccin: 'Catppuccin',
-        catppuccinDescription:
-          'Adaptive Catppuccin family; light resolves to Latte and dark resolves to Mocha.',
-        resolvedLatte: 'Latte',
-        resolvedMocha: 'Mocha',
-      },
-      accent: {
-        eyebrow: 'Accent',
-        title: 'Accent color',
-        description:
-          'Recolor primary actions and highlights only. Functional colors stay the same.',
-        clay: 'Clay',
-        clayDescription: 'Signature warm orange for primary actions.',
-        sage: 'Sage',
-        sageDescription: 'Calm green with an organic, low-noise feel.',
-        sky: 'Sky',
-        skyDescription: 'Clear blue for a cool, technical accent.',
-        mauve: 'Mauve',
-        mauveDescription: 'Soft violet with a quiet, refined presence.',
       },
       typography: {
         eyebrow: 'Typography',

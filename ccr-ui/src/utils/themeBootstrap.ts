@@ -1,8 +1,8 @@
 export type ThemeMode = 'light' | 'dark' | 'system'
 export type ResolvedThemeMode = 'light' | 'dark'
-export type FlavorMode = 'neutral' | 'clay' | 'catppuccin'
-export type ResolvedFlavor = 'neutral' | 'clay' | 'latte' | 'mocha'
-export type AccentMode = 'clay' | 'sage' | 'sky' | 'mauve'
+export type FlavorMode = 'neutral' | 'clay'
+export type ResolvedFlavor = FlavorMode
+export type AccentMode = 'clay'
 
 const THEME_STORAGE_KEY = 'ccr-theme'
 const FLAVOR_STORAGE_KEY = 'ccr-flavor'
@@ -20,36 +20,33 @@ export interface ThemeResolutionChangeDetail {
 export const FLAVOR_MODES: readonly FlavorMode[] = [
   'neutral',
   'clay',
-  'catppuccin',
 ] as const
 export const ACCENT_MODES: readonly AccentMode[] = [
   'clay',
-  'sage',
-  'sky',
-  'mauve',
 ] as const
 
 export const DEFAULT_FLAVOR: FlavorMode = 'neutral'
 export const DEFAULT_ACCENT: AccentMode = 'clay'
-export const CATPPUCCIN_FLAVORS: readonly FlavorMode[] = [
-  'catppuccin',
-] as const
 
-// 旧值域 → 新值域迁移表（flavor 7→3、accent 8→4）。
+// 旧值域 → 新值域迁移表（flavor → neutral|clay、accent → clay）。
 // 读取侧映射；store 初始化时把迁移结果写回 localStorage，index.html 首帧 IIFE 内联同一份逻辑。
 const FLAVOR_MIGRATION: Readonly<Partial<Record<string, FlavorMode>>> = {
   paper: 'neutral',
   graphite: 'neutral',
-  latte: 'catppuccin',
-  frappe: 'catppuccin',
-  macchiato: 'catppuccin',
-  mocha: 'catppuccin',
+  catppuccin: 'neutral',
+  latte: 'neutral',
+  frappe: 'neutral',
+  macchiato: 'neutral',
+  mocha: 'neutral',
 }
 const ACCENT_MIGRATION: Readonly<Partial<Record<string, AccentMode>>> = {
+  mauve: 'clay',
+  sage: 'clay',
+  sky: 'clay',
+  slate: 'clay',
   sand: 'clay',
   amber: 'clay',
   rose: 'clay',
-  slate: 'sky',
 }
 
 let systemThemeMediaQuery: MediaQueryList | null = null
@@ -67,20 +64,11 @@ export const resolveThemeMode = (theme: ThemeMode): ResolvedThemeMode => {
   return theme === 'system' ? resolveSystemTheme() : theme
 }
 
-export const isCatppuccinFlavor = (flavor: string): boolean => {
-  return (CATPPUCCIN_FLAVORS as readonly string[]).includes(flavor)
-}
-
 export const resolveFlavorMode = (
-  resolvedTheme: ResolvedThemeMode,
+  _resolvedTheme: ResolvedThemeMode,
   flavor: FlavorMode,
 ): ResolvedFlavor => {
-  // catppuccin 是唯一自适应入口：light → latte、dark → mocha，其余直通。
-  if (flavor !== 'catppuccin') {
-    return flavor
-  }
-
-  return resolvedTheme === 'light' ? 'latte' : 'mocha'
+  return flavor
 }
 
 const notifyThemeResolutionChange = (detail: ThemeResolutionChangeDetail): void => {

@@ -103,12 +103,7 @@ const toneIcon = computed(() => {
 }
 
 .usage-stale-banner::before {
-  content: '';
-  position: absolute;
-  inset: 0 auto 0 0;
-  z-index: var(--z-behind);
-  width: 3px;
-  background: linear-gradient(180deg, rgb(var(--usage-stale-rgb) / 82%), transparent);
+  display: none;
 }
 
 .usage-stale-banner__icon {

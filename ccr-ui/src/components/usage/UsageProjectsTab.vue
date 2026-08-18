@@ -138,9 +138,7 @@ const projectName = (path: string) => {
   align-items: start;
   border-radius: 1.18rem;
   border: 1px solid rgb(var(--color-border-default-rgb) / 14%);
-  background:
-    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 50%), rgb(var(--color-bg-surface-rgb) / 26%)),
-    radial-gradient(circle at 100% 0%, rgb(var(--color-accent-secondary-rgb) / 8%), transparent 42%);
+  background: var(--color-bg-surface);
   padding: 0.82rem 0.9rem;
   transition:
     border-color var(--motion-subtle-duration) var(--motion-subtle-ease),
@@ -225,7 +223,7 @@ const projectName = (path: string) => {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, rgb(var(--color-accent-primary-rgb) / 86%), rgb(var(--color-info-rgb) / 82%));
+  background: var(--color-accent-primary);
 }
 
 .projects-tab__empty {

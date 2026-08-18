@@ -1,80 +1,53 @@
 <template>
-  <div class="claude-view stage-page">
-    <AnimatedBackground
-      contained
-      variant="minimal"
-    />
+  <PageShell class="claude-view">
+    <template #header>
+      <PageHeader
+        :title="$t('claudeCode.title')"
+        :eyebrow="$t('claudeCode.hero.eyebrow')"
+        :description="$t('claudeCode.subtitle')"
+      >
+        <template #actions>
+          <RouterLink to="/claude-code/auth">
+            <Button>
+              <SIcon
+                name="KeyRound"
+                size="w-4 h-4"
+                class="mr-2"
+              />
+              {{ $t('claudeCode.hero.primaryAction') }}
+            </Button>
+          </RouterLink>
+          <RouterLink to="/claude-code/profiles">
+            <Button variant="ghost">
+              <SIcon
+                name="Settings"
+                size="w-4 h-4"
+                class="mr-2"
+              />
+              {{ $t('claudeCode.hero.secondaryAction') }}
+            </Button>
+          </RouterLink>
+        </template>
+      </PageHeader>
+    </template>
 
-    <div class="claude-shell">
-      <header class="claude-hero animate-slide-up">
-        <div class="claude-hero__copy">
-          <div class="claude-hero__eyebrow">
-            <SIcon
-              name="Terminal"
-              size="w-4 h-4"
-            />
-            {{ $t('claudeCode.hero.eyebrow') }}
-          </div>
-          <h1 class="claude-hero__title">
-            {{ $t('claudeCode.title') }}
-          </h1>
-          <p class="claude-hero__subtitle">
-            {{ $t('claudeCode.subtitle') }}
-          </p>
-          <div class="claude-hero__actions">
-            <RouterLink to="/claude-code/auth">
-              <Button class="claude-hero__button">
-                <SIcon
-                  name="KeyRound"
-                  size="w-4 h-4"
-                  class="mr-2"
-                />
-                {{ $t('claudeCode.hero.primaryAction') }}
-              </Button>
-            </RouterLink>
-            <RouterLink to="/claude-code/profiles">
-              <Button
-                variant="ghost"
-                class="claude-hero__button claude-hero__button--ghost"
-              >
-                <SIcon
-                  name="Settings"
-                  size="w-4 h-4"
-                  class="mr-2"
-                />
-                {{ $t('claudeCode.hero.secondaryAction') }}
-              </Button>
-            </RouterLink>
-          </div>
-        </div>
-
-        <div class="claude-hero__console">
-          <div class="claude-terminal-card">
-            <div class="claude-terminal-card__bar">
-              <span />
-              <span />
-              <span />
-            </div>
-            <div class="claude-terminal-card__body">
-              <p class="claude-terminal-card__line">
-                <span>$</span> {{ currentConfigCommand }}
-              </p>
-              <p class="claude-terminal-card__status">
-                {{ $t('claudeCode.hero.consoleStatus') }}
-              </p>
-              <div class="claude-terminal-card__chips">
-                <span
-                  v-for="chip in heroChips"
-                  :key="chip"
-                  class="claude-chip"
-                >
-                  {{ chip }}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+    <div class="claude-console">
+      <p class="claude-console__line">
+        <span>$</span> {{ currentConfigCommand }}
+      </p>
+      <p class="claude-console__status">
+        {{ $t('claudeCode.hero.consoleStatus') }}
+      </p>
+      <div class="claude-console__chips">
+        <span
+          v-for="chip in heroChips"
+          :key="chip"
+          class="claude-chip"
+        >
+          {{ chip }}
+        </span>
+      </div>
+    </div>
 
       <section
         class="claude-section animate-slide-up claude-section--observer"
@@ -324,17 +297,17 @@
           </Card>
         </div>
       </section>
-    </div>
-  </div>
+  </PageShell>
 </template>
 
 <script setup lang="ts">
 import { computed, defineAsyncComponent } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
-import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
 import Button from '@/components/ui/Button.vue'
 import Card from '@/components/ui/Card.vue'
+import PageHeader from '@/components/ui/PageHeader.vue'
+import PageShell from '@/components/ui/PageShell.vue'
 import SIcon from '@/components/ui/SIcon.vue'
 import { copyText } from '@/utils/clipboard'
 
@@ -443,204 +416,50 @@ const copyCommand = (cmd: string) => {
 
 <style scoped>
 .claude-view {
-  @apply relative min-h-full overflow-hidden p-6 lg:p-10;
-
-  background:
-    radial-gradient(circle at 18% 0%, rgb(var(--color-warning-rgb) / 8%), transparent 28%),
-    linear-gradient(180deg, rgb(var(--color-bg-base-rgb) / 96%), rgb(var(--color-bg-base-rgb)) 52%);
+  background: var(--color-bg-elevated);
 }
 
-.claude-shell {
-  @apply relative z-10 mx-auto max-w-7xl space-y-10;
+.claude-console {
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 12px;
+  background: var(--color-bg-surface);
+  font-family: var(--font-mono);
 }
 
-.claude-hero {
-  @apply grid gap-8 rounded-[2rem] border p-6 shadow-2xl md:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)] lg:p-8;
-
-  background: linear-gradient(135deg, rgb(var(--color-bg-elevated-rgb) / 92%), rgb(var(--color-bg-surface-rgb) / 74%));
-  border-color: rgb(var(--color-border-rgb) / 56%);
-  box-shadow: 0 24px 80px rgb(0 0 0 / 24%);
+.claude-console__line {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-text-primary);
 }
 
-.claude-hero__copy {
-  @apply flex flex-col justify-center;
+.claude-console__line span {
+  margin-right: 0.5rem;
+  color: var(--color-text-muted);
 }
 
-.claude-hero__eyebrow {
-  color: var(--stage-text-muted);
-
-  @apply mb-4 flex w-fit items-center gap-2 rounded-full border border-accent-warning/25 bg-accent-warning/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em];
+.claude-console__status {
+  margin: 0.5rem 0 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
 }
 
-.claude-hero__title {
-  color: var(--stage-text-primary);
-  font-family: var(--font-brand);
-
-  @apply text-[2.85rem] font-semibold leading-none tracking-[-0.05em] lg:text-6xl;
-}
-
-.claude-hero__subtitle {
-  color: var(--stage-text-secondary);
-
-  @apply mt-4 max-w-3xl text-base leading-7 lg:text-lg;
-}
-
-.claude-hero__actions {
-  @apply mt-6 flex flex-wrap gap-3;
-}
-
-.claude-hero__button {
-  color: var(--color-text-inverted);
-  border-color: rgb(var(--color-warning-rgb) / 46%);
-  background:
-    linear-gradient(180deg, rgb(255 251 245 / 16%), transparent 42%),
-    linear-gradient(180deg, var(--color-warning-hover), var(--color-warning));
-  box-shadow:
-    0 16px 34px rgb(var(--color-warning-rgb) / 18%);
-
-  @apply px-5 font-semibold shadow-sm;
-}
-
-.claude-hero__button:hover:not(:disabled) {
-  color: var(--color-text-inverted);
-  border-color: rgb(var(--color-warning-rgb) / 66%);
-  background:
-    linear-gradient(180deg, rgb(255 251 245 / 20%), transparent 44%),
-    linear-gradient(180deg, var(--color-warning-hover), rgb(var(--color-warning-rgb) / 92%));
-  box-shadow:
-    0 18px 38px rgb(var(--color-warning-rgb) / 22%);
-}
-
-.claude-hero__button :deep(svg) {
-  filter: drop-shadow(0 1px 0 rgb(255 251 245 / 18%));
-}
-
-.claude-hero__button--ghost {
-  color: var(--stage-text-secondary);
-  background: rgb(var(--color-bg-surface-rgb) / 42%);
-  border-color: var(--stage-border-medium);
-  box-shadow: none;
-}
-
-.claude-hero__button--ghost:hover:not(:disabled) {
-  color: var(--stage-text-primary);
-  background: rgb(var(--color-bg-surface-rgb) / 66%);
-  border-color: rgb(var(--color-border-strong-rgb) / 24%);
-  box-shadow: none;
-}
-
-.claude-hero__button--ghost :deep(svg) {
-  filter: none;
-}
-
-.claude-hero__console {
-  @apply flex items-center;
-}
-
-.claude-terminal-card {
-  --claude-terminal-bg:
-    radial-gradient(circle at 86% 0%, rgb(var(--color-warning-rgb) / 12%), transparent 30%),
-    linear-gradient(145deg, rgb(var(--color-bg-elevated-rgb) / 96%), rgb(var(--color-bg-surface-rgb) / 86%));
-  --claude-terminal-border: rgb(var(--color-border-strong-rgb) / 18%);
-  --claude-terminal-rule: rgb(var(--color-border-default-rgb) / 12%);
-  --claude-terminal-shadow:
-    0 24px 58px rgb(var(--color-bg-base-rgb) / 32%),
-    var(--inner-glow);
-  --claude-terminal-command: var(--stage-text-primary);
-  --claude-terminal-status: var(--stage-text-secondary);
-  --claude-terminal-chip-bg: rgb(var(--color-bg-overlay-rgb) / 64%);
-  --claude-terminal-chip-border: rgb(var(--color-border-default-rgb) / 16%);
-  --claude-terminal-chip-text: var(--stage-chip-neutral-text);
-
-  @apply relative w-full overflow-hidden rounded-2xl border font-mono;
-
-  background: var(--claude-terminal-bg);
-  border-color: var(--claude-terminal-border);
-  box-shadow: var(--claude-terminal-shadow);
-}
-
-.claude-terminal-card::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(90deg, rgb(var(--color-warning-rgb) / 10%), transparent 32%),
-    repeating-linear-gradient(0deg, transparent 0 2.85rem, rgb(var(--color-border-default-rgb) / 4%) 2.85rem 2.9rem);
-  mask-image: linear-gradient(90deg, #000, transparent 84%);
-  pointer-events: none;
-}
-
-.claude-terminal-card__bar {
-  @apply relative z-10 flex gap-2 border-b px-4 py-3;
-
-  border-color: var(--claude-terminal-rule);
-}
-
-.claude-terminal-card__bar span {
-  @apply h-2.5 w-2.5 rounded-full;
-
-  background: rgb(var(--color-warning-rgb) / 70%);
-}
-
-.claude-terminal-card__bar span:nth-child(2) {
-  background: rgb(var(--color-accent-secondary-rgb) / 62%);
-}
-
-.claude-terminal-card__bar span:nth-child(3) {
-  background: rgb(var(--color-success-rgb) / 62%);
-}
-
-.claude-terminal-card__body {
-  @apply relative z-10 space-y-4 p-5;
-}
-
-.claude-terminal-card__line {
-  color: var(--claude-terminal-command);
-
-  @apply text-sm;
-}
-
-.claude-terminal-card__line span {
-  @apply mr-2 text-accent-success;
-}
-
-.claude-terminal-card__status {
-  color: var(--claude-terminal-status);
-
-  @apply text-sm leading-6;
-}
-
-.claude-terminal-card__chips {
-  @apply flex flex-wrap gap-2;
+.claude-console__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
 }
 
 .claude-chip {
-  color: var(--claude-terminal-chip-text);
-  background: var(--claude-terminal-chip-bg);
-  border: 1px solid var(--claude-terminal-chip-border);
-
-  @apply rounded-full px-2.5 py-1 text-[11px] font-semibold;
-}
-
-:global([data-theme='dark'] .claude-terminal-card) {
-  --claude-terminal-bg:
-    radial-gradient(circle at 82% 4%, rgb(var(--color-warning-rgb) / 14%), transparent 28%),
-    linear-gradient(180deg, rgb(10 12 16 / 92%), rgb(7 9 12 / 96%));
-  --claude-terminal-border: rgb(255 255 255 / 10%);
-  --claude-terminal-rule: rgb(255 255 255 / 8%);
-  --claude-terminal-shadow:
-    0 22px 56px rgb(0 0 0 / 30%);
-  --claude-terminal-command: rgb(245 238 228 / 94%);
-  --claude-terminal-status: rgb(218 203 188 / 72%);
-  --claude-terminal-chip-bg: rgb(255 255 255 / 7%);
-  --claude-terminal-chip-border: rgb(255 255 255 / 10%);
-  --claude-terminal-chip-text: rgb(218 203 188 / 82%);
-}
-
-:global([data-theme='dark'] .claude-terminal-card::before) {
-  background:
-    linear-gradient(90deg, rgb(var(--color-warning-rgb) / 8%), transparent 34%),
-    repeating-linear-gradient(0deg, transparent 0 2.85rem, rgb(255 255 255 / 3%) 2.85rem 2.9rem);
+  padding: 0.25rem 0.625rem;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 8px;
+  background: var(--color-bg-elevated);
+  color: var(--color-text-secondary);
+  font-size: 0.6875rem;
+  font-weight: 500;
 }
 
 .claude-tag-row {
@@ -648,9 +467,7 @@ const copyCommand = (cmd: string) => {
 }
 
 .claude-tag {
-  @apply flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold;
-
-  letter-spacing: 0.04em;
+  @apply flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-medium;
 }
 
 .claude-tag--primary {
@@ -682,7 +499,7 @@ const copyCommand = (cmd: string) => {
 .claude-section-heading__eyebrow {
   color: var(--stage-text-muted);
 
-  @apply text-xs font-semibold uppercase tracking-[0.14em];
+  @apply text-xs font-medium;
 }
 
 .claude-section-heading__title {
@@ -706,7 +523,7 @@ const copyCommand = (cmd: string) => {
 .claude-action-card {
   @apply relative flex h-full min-h-[190px] flex-col justify-between gap-5 overflow-hidden p-5 transition-transform duration-300 group-hover:-translate-y-1;
 
-  background: linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 86%), rgb(var(--color-bg-surface-rgb) / 72%));
+  background: var(--color-bg-surface);
 }
 
 .claude-action-card--primary {
@@ -763,7 +580,7 @@ const copyCommand = (cmd: string) => {
 .claude-extension-card {
   @apply flex h-full min-h-[150px] flex-col justify-between gap-4 p-4;
 
-  background: linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 76%), rgb(var(--color-bg-surface-rgb) / 68%));
+  background: var(--color-bg-surface);
 }
 
 .claude-extension-card__header {
@@ -821,7 +638,7 @@ const copyCommand = (cmd: string) => {
 .claude-panel {
   @apply p-6;
 
-  background: linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 72%), rgb(var(--color-bg-surface-rgb) / 64%));
+  background: var(--color-bg-surface);
 }
 
 .claude-panel__title {

@@ -391,11 +391,7 @@ const getInsightTone = (id: string): InsightTone => insightToneById[id] ?? 'sand
   padding: 0 0.72rem;
   border-radius: 9999px;
   border: 1px solid rgb(var(--color-accent-primary-rgb) / 18%);
-  background: linear-gradient(
-    135deg,
-    rgb(var(--color-accent-primary-rgb) / 12%),
-    rgb(var(--color-accent-secondary-rgb) / 10%)
-  );
+  background: var(--color-bg-surface);
   color: var(--color-text-primary);
   font-size: 0.7rem;
   font-weight: 700;
@@ -475,13 +471,7 @@ const getInsightTone = (id: string): InsightTone => insightToneById[id] ?? 'sand
   overflow: hidden;
   border-radius: 1.3rem;
   border: 1px solid rgb(var(--color-border-default-rgb) / 16%);
-  background:
-    radial-gradient(circle at 22% 14%, rgb(var(--color-accent-primary-rgb) / 10%), transparent 34%),
-    linear-gradient(
-      180deg,
-      rgb(var(--color-bg-elevated-rgb) / 40%),
-      rgb(var(--color-bg-surface-rgb) / 18%)
-    );
+  background: var(--color-bg-surface);
 }
 
 .overview-tab__chart {
@@ -528,12 +518,7 @@ const getInsightTone = (id: string): InsightTone => insightToneById[id] ?? 'sand
   min-width: 0;
   border-radius: 1.15rem;
   border: 1px solid rgb(var(--color-border-default-rgb) / 16%);
-  background: linear-gradient(
-    135deg,
-    rgb(var(--overview-insight-rgb) / 11%),
-    rgb(var(--color-bg-elevated-rgb) / 54%) 36%,
-    rgb(var(--color-bg-surface-rgb) / 18%)
-  );
+  background: var(--color-bg-surface);
   padding: 0.95rem 1rem;
   transition:
     border-color var(--motion-subtle-duration) var(--motion-subtle-ease),
@@ -692,11 +677,7 @@ const getInsightTone = (id: string): InsightTone => insightToneById[id] ?? 'sand
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(
-    90deg,
-    rgb(var(--color-accent-primary-rgb) / 86%),
-    rgb(var(--color-accent-secondary-rgb) / 82%)
-  );
+  background: var(--color-accent-primary);
 }
 
 @media (width < 1280px) {

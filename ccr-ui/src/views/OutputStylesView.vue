@@ -1,22 +1,12 @@
 <template>
-  <div class="min-h-full p-5 transition-colors duration-300">
-    <div class="max-w-[1600px] mx-auto">
-      <ModuleSubnav
-        module="claude-code"
-        class="mb-6"
-      />
-
-      <PageHeaderCard
-        :title="$t('outputStyles.pageTitle')"
-        icon="Palette"
-        :badge="String(outputStyles.length)"
-        tone="secondary"
-        class="mb-6"
-      >
+  <PageShell>
+    <template #header>
+      <PageHeader :title="$t('outputStyles.pageTitle')">
+        <template #status>
+          <span>{{ outputStyles.length }}</span>
+        </template>
         <template #actions>
-          <button
-            class="w-full sm:w-auto px-4 py-2 rounded-lg font-medium transition-[color,background-color,border-color,transform] hover:scale-105 bg-accent-secondary text-[color:var(--color-accent-primary-contrast)] shadow-md hover:shadow-lg flex items-center justify-center min-h-[44px]"
-            :aria-label="$t('outputStyles.addStyle')"
+          <Button
             @click="handleAdd"
           >
             <SIcon
@@ -24,163 +14,166 @@
               size="w-5 h-5"
               class="mr-2"
             />{{ $t('outputStyles.addStyle') }}
-          </button>
+          </Button>
         </template>
-      </PageHeaderCard>
+      </PageHeader>
+    </template>
+    <template #subnav>
+      <ModuleSubnav module="claude-code" />
+    </template>
 
-      <!-- Search Bar -->
-      <div class="mb-6">
-        <div class="relative max-w-md">
-          <SIcon
-            name="Search"
-            size="w-4 h-4"
-            class="absolute left-3 top-1/2 transform -translate-y-1/2 text-text-muted"
-          />
-          <input
-            v-model="searchQuery"
-            type="search"
-            :placeholder="$t('outputStyles.searchPlaceholder')"
-            :aria-label="$t('outputStyles.searchPlaceholder')"
-            class="w-full pl-10 pr-10 py-2.5 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-accent-secondary/20 bg-bg-elevated border border-border-default hover:bg-bg-surface text-text-primary placeholder-text-muted text-sm"
-          >
-          <button
-            v-if="searchQuery"
-            class="absolute right-2 top-1/2 transform -translate-y-1/2 rounded-full hover:bg-bg-base/35 text-text-muted transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
-            :aria-label="$t('common.clearSearch')"
-            @click="searchQuery = ''"
-          >
-            <SIcon
-              name="X"
-              size="w-3 h-3"
-            />
-          </button>
-        </div>
-      </div>
-
-      <!-- Loading State -->
-      <div
-        v-if="loading"
-        class="text-center py-20 text-text-muted"
-        role="status"
-        aria-live="polite"
-      >
-        <div
-          class="loading-spinner mx-auto mb-4 w-8 h-8 border-accent-secondary/30 border-t-accent-secondary"
-          aria-hidden="true"
+    <!-- Search Bar -->
+    <div class="mb-6">
+      <div class="relative max-w-md">
+        <SIcon
+          name="Search"
+          size="w-4 h-4"
+          class="absolute left-3 top-1/2 transform -translate-y-1/2 text-text-muted"
         />
-        <span>{{ $t('common.loading') }}</span>
-      </div>
-
-      <!-- Empty State -->
-      <div
-        v-else-if="filteredStyles.length === 0"
-        class="text-center py-20 text-text-muted"
-        role="status"
-        aria-live="polite"
-      >
-        <div class="bg-bg-elevated w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+        <input
+          v-model="searchQuery"
+          type="search"
+          :placeholder="$t('outputStyles.searchPlaceholder')"
+          :aria-label="$t('outputStyles.searchPlaceholder')"
+          class="w-full pl-10 pr-10 py-2.5 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-accent-secondary/20 bg-bg-elevated border border-border-default hover:bg-bg-surface text-text-primary placeholder-text-muted text-sm"
+        >
+        <button
+          v-if="searchQuery"
+          class="absolute right-2 top-1/2 transform -translate-y-1/2 rounded-full hover:bg-bg-base/35 text-text-muted transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+          :aria-label="$t('common.clearSearch')"
+          @click="searchQuery = ''"
+        >
           <SIcon
-            name="Palette"
-            size="w-10 h-10"
-            class="opacity-50"
+            name="X"
+            size="w-3 h-3"
           />
-        </div>
-        <p class="text-lg font-medium">
-          {{ searchQuery ? $t('outputStyles.noResults') : $t('outputStyles.noStyles') }}
-        </p>
-        <p
-          v-if="!searchQuery"
-          class="text-sm mt-2 text-text-muted"
-        >
-          {{ $t('outputStyles.noStylesHint') }}
-        </p>
+        </button>
       </div>
+    </div>
 
-      <!-- Styles Grid -->
+    <!-- Loading State -->
+    <div
+      v-if="loading"
+      class="text-center py-20 text-text-muted"
+      role="status"
+      aria-live="polite"
+    >
       <div
-        v-else
-        class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4"
-        role="list"
-        :aria-label="$t('outputStyles.stylesList')"
+        class="loading-spinner mx-auto mb-4 w-8 h-8 border-accent-secondary/30 border-t-accent-secondary"
+        aria-hidden="true"
+      />
+      <span>{{ $t('common.loading') }}</span>
+    </div>
+
+    <!-- Empty State -->
+    <div
+      v-else-if="filteredStyles.length === 0"
+      class="text-center py-20 text-text-muted"
+      role="status"
+      aria-live="polite"
+    >
+      <div class="bg-bg-elevated w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+        <SIcon
+          name="Palette"
+          size="w-10 h-10"
+          class="opacity-50"
+        />
+      </div>
+      <p class="text-lg font-medium">
+        {{ searchQuery ? $t('outputStyles.noResults') : $t('outputStyles.noStyles') }}
+      </p>
+      <p
+        v-if="!searchQuery"
+        class="text-sm mt-2 text-text-muted"
       >
-        <Card
-          v-for="style in filteredStyles"
-          :key="style.name"
-          variant="glass"
-          pattern
+        {{ $t('outputStyles.noStylesHint') }}
+      </p>
+    </div>
+
+    <!-- Styles Grid -->
+    <div
+      v-else
+      class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4"
+      role="list"
+      :aria-label="$t('outputStyles.stylesList')"
+    >
+      <Card
+        v-for="style in filteredStyles"
+        :key="style.name"
+        variant="glass"
+        pattern
+      >
+        <article
+          class="relative z-10 h-full"
+          role="listitem"
         >
-          <article
-            class="relative z-10 h-full"
-            role="listitem"
+          <div class="flex items-start justify-between mb-3">
+            <div class="flex items-center gap-2">
+              <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-accent-secondary/10 to-accent-secondary/10 flex items-center justify-center text-lg shadow-sm border border-border-default/25">
+                <SIcon
+                  name="Palette"
+                  size="w-5 h-5"
+                  class="text-accent-secondary"
+                />
+              </div>
+              <h3 class="text-lg font-bold text-text-primary">
+                {{ style.name }}
+              </h3>
+            </div>
+            <div class="flex gap-1">
+              <button
+                class="p-1.5 rounded-md text-text-secondary hover:text-accent-secondary hover:bg-accent-secondary/10 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                :aria-label="$t('common.view') + ': ' + style.name"
+                @click.stop="handleView(style)"
+              >
+                <SIcon
+                  name="Eye"
+                  size="w-4 h-4"
+                />
+              </button>
+              <button
+                class="p-1.5 rounded-md text-text-secondary hover:text-accent-secondary hover:bg-accent-secondary/10 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                :aria-label="$t('common.edit') + ': ' + style.name"
+                @click.stop="handleEdit(style)"
+              >
+                <SIcon
+                  name="Edit2"
+                  size="w-4 h-4"
+                />
+              </button>
+              <button
+                class="p-1.5 rounded-md text-text-secondary hover:text-accent-danger hover:bg-accent-danger/10 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                :aria-label="$t('common.delete') + ': ' + style.name"
+                @click.stop="handleDelete(style.name)"
+              >
+                <SIcon
+                  name="Trash2"
+                  size="w-4 h-4"
+                />
+              </button>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            class="block w-full rounded-2xl text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-secondary/30"
+            :aria-label="$t('common.view') + ': ' + style.name"
+            @click="handleView(style)"
           >
-            <div class="flex items-start justify-between mb-3">
-              <div class="flex items-center gap-2">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-accent-secondary/10 to-accent-secondary/10 flex items-center justify-center text-lg shadow-sm border border-border-default/25">
-                  <SIcon
-                    name="Palette"
-                    size="w-5 h-5"
-                    class="text-accent-secondary"
-                  />
-                </div>
-                <h3 class="text-lg font-bold text-text-primary">
-                  {{ style.name }}
-                </h3>
-              </div>
-              <div class="flex gap-1">
-                <button
-                  class="p-1.5 rounded-md text-text-secondary hover:text-accent-secondary hover:bg-accent-secondary/10 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
-                  :aria-label="$t('common.view') + ': ' + style.name"
-                  @click.stop="handleView(style)"
-                >
-                  <SIcon
-                    name="Eye"
-                    size="w-4 h-4"
-                  />
-                </button>
-                <button
-                  class="p-1.5 rounded-md text-text-secondary hover:text-accent-secondary hover:bg-accent-secondary/10 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
-                  :aria-label="$t('common.edit') + ': ' + style.name"
-                  @click.stop="handleEdit(style)"
-                >
-                  <SIcon
-                    name="Edit2"
-                    size="w-4 h-4"
-                  />
-                </button>
-                <button
-                  class="p-1.5 rounded-md text-text-secondary hover:text-accent-danger hover:bg-accent-danger/10 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
-                  :aria-label="$t('common.delete') + ': ' + style.name"
-                  @click.stop="handleDelete(style.name)"
-                >
-                  <SIcon
-                    name="Trash2"
-                    size="w-4 h-4"
-                  />
-                </button>
-              </div>
+            <div class="bg-bg-elevated rounded-lg p-3 border border-border-default/30">
+              <p class="text-xs text-text-muted mb-1 font-semibold">
+                {{ $t('outputStyles.preview') }}:
+              </p>
+              <pre class="text-xs font-mono text-text-secondary line-clamp-4 whitespace-pre-wrap break-words">{{ previewContent(style.content) }}</pre>
             </div>
 
-            <button
-              type="button"
-              class="block w-full rounded-2xl text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-secondary/30"
-              :aria-label="$t('common.view') + ': ' + style.name"
-              @click="handleView(style)"
-            >
-              <div class="bg-bg-elevated rounded-lg p-3 border border-border-default/30">
-                <p class="text-xs text-text-muted mb-1 font-semibold">
-                  {{ $t('outputStyles.preview') }}:
-                </p>
-                <pre class="text-xs font-mono text-text-secondary line-clamp-4 whitespace-pre-wrap break-words">{{ previewContent(style.content) }}</pre>
-              </div>
-
-              <div class="mt-3 flex items-center justify-between text-xs text-text-muted">
-                <span>{{ style.content.length }} {{ $t('outputStyles.characters') }}</span>
-                <span>{{ style.content.split('\n').length }} {{ $t('outputStyles.lines') }}</span>
-              </div>
-            </button>
-          </article>
-        </Card>
-      </div>
+            <div class="mt-3 flex items-center justify-between text-xs text-text-muted">
+              <span>{{ style.content.length }} {{ $t('outputStyles.characters') }}</span>
+              <span>{{ style.content.split('\n').length }} {{ $t('outputStyles.lines') }}</span>
+            </div>
+          </button>
+        </article>
+      </Card>
     </div>
 
     <!-- View Modal -->
@@ -362,16 +355,18 @@
         </div>
       </div>
     </Teleport>
-  </div>
+  </PageShell>
 </template>
 
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
+import Button from '@/components/ui/Button.vue'
 import Card from '@/components/ui/Card.vue'
 import ModuleSubnav from '@/components/ModuleSubnav.vue'
-import PageHeaderCard from '@/components/PageHeaderCard.vue'
+import PageHeader from '@/components/ui/PageHeader.vue'
+import PageShell from '@/components/ui/PageShell.vue'
 import {
   listOutputStyles,
   createOutputStyle,

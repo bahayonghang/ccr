@@ -1,17 +1,11 @@
 <template>
-  <div class="min-h-full p-5 transition-colors duration-300">
-    <div class="max-w-[1200px] mx-auto">
-      <ModuleSubnav
-        module="claude-code"
-        class="mb-6"
-      />
-
-      <PageHeaderCard
-        :title="$t('statusline.pageTitle')"
-        icon="Monitor"
-        tone="secondary"
-        class="mb-6"
-      />
+  <PageShell>
+    <template #header>
+      <PageHeader :title="$t('statusline.pageTitle')" />
+    </template>
+    <template #subnav>
+      <ModuleSubnav module="claude-code" />
+    </template>
 
       <!-- Loading State -->
       <div
@@ -177,8 +171,7 @@
           </div>
         </div>
       </div>
-    </div>
-  </div>
+  </PageShell>
 </template>
 
 <script setup lang="ts">
@@ -186,7 +179,8 @@ import SIcon from '@/components/ui/SIcon.vue'
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ModuleSubnav from '@/components/ModuleSubnav.vue'
-import PageHeaderCard from '@/components/PageHeaderCard.vue'
+import PageHeader from '@/components/ui/PageHeader.vue'
+import PageShell from '@/components/ui/PageShell.vue'
 import { getStatusline, updateStatusline } from '@/api'
 import { useUIStore } from '@/stores/ui'
 import type { StatuslineConfig } from '@/types'

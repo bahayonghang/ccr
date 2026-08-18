@@ -1,58 +1,48 @@
 <template>
-  <div class="mcp-manager-view">
-    <header class="mcp-manager-hero">
-      <div class="mcp-manager-hero__copy">
-        <p class="mcp-manager-hero__eyebrow">
-          {{ t('mcp.manager.hero.eyebrow') }}
-        </p>
-        <h1>{{ t('mcp.manager.hero.title') }}</h1>
-        <p>
-          {{ t('mcp.manager.hero.subtitle') }}
-        </p>
-      </div>
-      <div class="mcp-manager-hero__actions">
-        <button
-          type="button"
-          class="mcp-action mcp-action--ghost"
-          @click="refresh"
-        >
-          <SIcon
-            name="RefreshCw"
-            size="w-4 h-4"
-            :class="{ 'animate-spin': loading }"
-          />
-          {{ t('common.refresh') }}
-        </button>
-        <button
-          type="button"
-          class="mcp-action mcp-action--ghost"
-          @click="openImport"
-        >
-          <SIcon
-            name="Download"
-            size="w-4 h-4"
-          />
-          {{ t('common.import') }}
-        </button>
-        <button
-          type="button"
-          class="mcp-action mcp-action--primary"
-          @click="openCreate"
-        >
-          <SIcon
-            name="Plus"
-            size="w-4 h-4"
-          />
-          {{ t('mcp.manager.actions.addServer') }}
-        </button>
-      </div>
-      <div class="mcp-manager-hero__metrics">
-        <span><strong>{{ scopeCounts.effective }}</strong> {{ t('mcp.manager.metrics.effective') }}</span>
-        <span><strong>{{ scopeCounts.local }}</strong> {{ t('mcp.manager.metrics.local') }}</span>
-        <span><strong>{{ scopeCounts.project }}</strong> {{ t('mcp.manager.metrics.project') }}</span>
-        <span><strong>{{ scopeCounts.user }}</strong> {{ t('mcp.manager.metrics.user') }}</span>
-      </div>
-    </header>
+  <PageShell class="mcp-manager-view">
+    <template #header>
+      <PageHeader
+        :title="t('mcp.manager.hero.title')"
+        :description="t('mcp.manager.hero.subtitle')"
+      >
+        <template #actions>
+          <button
+            type="button"
+            class="mcp-action mcp-action--ghost"
+            @click="refresh"
+          >
+            <SIcon
+              name="RefreshCw"
+              size="w-4 h-4"
+              :class="{ 'animate-spin': loading }"
+            />
+            {{ t('common.refresh') }}
+          </button>
+          <button
+            type="button"
+            class="mcp-action mcp-action--ghost"
+            @click="openImport"
+          >
+            <SIcon
+              name="Download"
+              size="w-4 h-4"
+            />
+            {{ t('common.import') }}
+          </button>
+          <button
+            type="button"
+            class="mcp-action mcp-action--primary"
+            @click="openCreate"
+          >
+            <SIcon
+              name="Plus"
+              size="w-4 h-4"
+            />
+            {{ t('mcp.manager.actions.addServer') }}
+          </button>
+        </template>
+      </PageHeader>
+    </template>
 
     <details
       class="mcp-presets-drawer"
@@ -71,19 +61,12 @@
       </div>
     </details>
 
-    <div class="mcp-scope-rail">
-      <button
-        v-for="scope in scopeFilterOptions"
-        :key="scope.value"
-        type="button"
-        class="mcp-scope-chip"
-        :class="{ 'mcp-scope-chip--active': filterScope === scope.value }"
-        @click="filterScope = scope.value"
-      >
-        <span>{{ t(scope.labelKey) }}</span>
-        <strong>{{ scopeCounts[scope.value] }}</strong>
-      </button>
-    </div>
+    <PillToggleGroup
+      class="mcp-scope-rail"
+      :options="scopeToggleOptions"
+      :model-value="filterScope"
+      @update:model-value="filterScope = $event"
+    />
 
     <div
       v-if="error"
@@ -201,7 +184,7 @@
       @confirm="confirmBulkDelete"
       @cancel="showBulkDeleteDialog = false"
     />
-  </div>
+  </PageShell>
 </template>
 
 <script setup lang="ts">
@@ -211,6 +194,9 @@ import { useI18n } from 'vue-i18n'
 import MasterDetailLayout from '@/components/common/MasterDetailLayout.vue'
 import BulkDeleteDialog from '@/components/common/BulkDeleteDialog.vue'
 import type { BulkDeleteItem } from '@/components/common/BulkDeleteDialog.vue'
+import PageHeader from '@/components/ui/PageHeader.vue'
+import PageShell from '@/components/ui/PageShell.vue'
+import PillToggleGroup from '@/components/ui/PillToggleGroup.vue'
 import SIcon from '@/components/ui/SIcon.vue'
 import McpListPanel from '@/components/mcp/McpListPanel.vue'
 import McpDetailPanel from '@/components/mcp/McpDetailPanel.vue'
@@ -274,6 +260,12 @@ const scopeFilterOptions: Array<{ value: McpScopeFilter; labelKey: string }> = [
   { value: 'user', labelKey: 'mcp.manager.scopes.user' },
   { value: 'hidden', labelKey: 'mcp.manager.scopes.hidden' },
 ]
+const scopeToggleOptions = computed(() =>
+  scopeFilterOptions.map((scope) => ({
+    value: scope.value,
+    label: `${t(scope.labelKey)} ${scopeCounts.value[scope.value]}`,
+  })),
+)
 
 // 批量删除状态
 const showBulkDeleteDialog = ref(false)
@@ -403,80 +395,7 @@ async function handleImportServers(
 
 <style scoped>
 .mcp-manager-view {
-  height: 100%;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  background:
-    radial-gradient(circle at 8% 0%, rgb(var(--color-accent-primary-rgb) / 8%), transparent 30%),
-    linear-gradient(180deg, rgb(var(--color-bg-base-rgb) / 98%), rgb(var(--color-bg-elevated-rgb) / 72%));
-}
-
-.mcp-manager-hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 1rem 1.5rem;
-  padding: 1.5rem 1.75rem 1.1rem;
-  border-bottom: 1px solid rgb(var(--color-border-default-rgb) / 42%);
-}
-
-.mcp-manager-hero__copy {
-  max-width: 52rem;
-}
-
-.mcp-manager-hero__eyebrow {
-  margin-bottom: 0.35rem;
-  color: rgb(var(--color-accent-primary-rgb) / 92%);
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-}
-
-.mcp-manager-hero h1 {
-  color: var(--color-text-primary);
-  font-family: Georgia, 'Times New Roman', var(--font-sans);
-  font-size: clamp(1.55rem, 2.8vw, 2.45rem);
-  line-height: 1.05;
-  letter-spacing: -0.04em;
-}
-
-.mcp-manager-hero p:not(.mcp-manager-hero__eyebrow) {
-  margin-top: 0.55rem;
-  color: var(--color-text-secondary);
-  font-size: 0.9rem;
-  line-height: 1.55;
-}
-
-.mcp-manager-hero__actions {
-  display: flex;
-  align-items: flex-start;
-  justify-content: flex-end;
-  gap: 0.55rem;
-}
-
-.mcp-manager-hero__metrics {
-  grid-column: 1 / -1;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.55rem;
-}
-
-.mcp-manager-hero__metrics span,
-.mcp-scope-chip {
-  border: 1px solid rgb(var(--color-border-default-rgb) / 44%);
-  border-radius: 999px;
-  background: rgb(var(--color-bg-surface-rgb) / 52%);
-  color: var(--color-text-muted);
-}
-
-.mcp-manager-hero__metrics span {
-  padding: 0.32rem 0.65rem;
-  font-size: 0.72rem;
-}
-
-.mcp-manager-hero__metrics strong {
-  color: var(--color-text-primary);
+  min-width: 0;
 }
 
 .mcp-presets-drawer {
@@ -501,9 +420,8 @@ async function handleImportServers(
 .mcp-presets-drawer summary span {
   color: var(--color-text-primary);
   font-size: 0.8rem;
-  font-weight: 760;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0;
 }
 
 .mcp-presets-drawer summary em {
@@ -545,16 +463,14 @@ async function handleImportServers(
 }
 
 .mcp-action--primary {
-  border: 1px solid rgb(var(--color-accent-primary-rgb) / 28%);
-  background: linear-gradient(180deg, rgb(var(--color-accent-primary-rgb) / 20%), rgb(var(--color-accent-primary-rgb) / 10%));
-  color: var(--color-text-primary);
+  border: 1px solid transparent;
+  background: var(--color-accent-primary);
+  color: var(--color-accent-primary-contrast);
 }
 
 .mcp-scope-rail {
   display: flex;
   gap: 0.5rem;
-  padding: 0.85rem 1.75rem;
-  border-bottom: 1px solid rgb(var(--color-border-default-rgb) / 36%);
 }
 
 .mcp-scope-chip {
@@ -593,8 +509,8 @@ async function handleImportServers(
 }
 
 .mcp-alert--error {
-  border: 1px solid rgb(var(--color-danger-rgb, 239 68 68) / 26%);
-  background: rgb(var(--color-danger-rgb, 239 68 68) / 8%);
+  border: 1px solid rgb(var(--color-danger-rgb) / 26%);
+  background: rgb(var(--color-danger-rgb) / 8%);
   color: var(--color-danger);
 }
 
@@ -603,13 +519,5 @@ async function handleImportServers(
   min-height: 0;
 }
 
-@media (width <= 980px) {
-  .mcp-manager-hero {
-    grid-template-columns: 1fr;
-  }
 
-  .mcp-manager-hero__actions {
-    justify-content: flex-start;
-  }
-}
 </style>

@@ -268,6 +268,9 @@ describe('DashboardView smoke', () => {
 
     try {
       expect(el.querySelector('[data-dashboard-hero]')).not.toBeNull()
+      expect(el.querySelector('.page-header')).not.toBeNull()
+      expect(el.querySelector('.dashboard-hero__title')).toBeNull()
+      expect(el.querySelector('[data-dashboard-readiness]')).not.toBeNull()
       expect(el.querySelector('[data-dashboard-actions]')).not.toBeNull()
       expect(el.querySelector('[data-dashboard-signals]')).not.toBeNull()
       expect(el.querySelector('[data-dashboard-platforms]')).not.toBeNull()

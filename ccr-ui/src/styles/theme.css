@@ -70,10 +70,6 @@
     --stage-chip-neutral-text: var(--color-stage-chip-neutral-text);
     --shadow-small: var(--shadow-sm);
     --shadow-medium: var(--shadow-md);
-    --gradient-secondary: linear-gradient(
-      135deg,
-      rgb(var(--color-info-rgb) / 92%),
-      rgb(var(--color-accent-secondary-rgb) / 84%)
-    );
+    --gradient-secondary: var(--color-info);
   }
 }

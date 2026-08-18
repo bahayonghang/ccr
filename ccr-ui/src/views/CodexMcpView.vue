@@ -1,660 +1,637 @@
 <template>
-  <div class="codex-mcp-view">
-    <div class="codex-mcp-shell">
-      <ModuleSubnav module="codex" />
-
-      <section class="grid gap-4 xl:grid-cols-2">
-        <Card
-          variant="glass"
-          class="p-5"
-        >
-          <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-            <div class="space-y-3">
-              <div class="flex items-center gap-3">
-                <div class="flex h-12 w-12 items-center justify-center rounded-2xl border border-accent-primary/20 bg-accent-primary/10 shadow-lg">
-                  <SIcon
-                    name="Server"
-                    size="w-6 h-6"
-                    class="text-accent-primary"
-                  />
-                </div>
-                <div>
-                  <p class="eyebrow">
-                    {{ tt('Codex / MCP control plane', 'Codex / MCP control plane') }}
-                  </p>
-                  <h1 class="title">
-                    {{ tt('Codex MCP 控制台', 'Codex MCP Console') }}
-                  </h1>
-                  <p class="lead">
-                    {{ tt('按官方 mcp_servers 配置面管理 transport、tool scope、auth 注入与启动策略。', 'Manage transport, tool scope, auth injection, and startup policy through the official mcp_servers surface.') }}
-                  </p>
-                </div>
-              </div>
-
-              <div class="flex flex-wrap gap-2">
-                <span class="chip chip-primary">{{ tt('控制面', 'control plane') }}</span>
-                <span class="chip chip-neutral">{{ tt('官方 mcp_servers', 'official mcp_servers') }}</span>
-                <span class="chip chip-success">{{ tt('高密度工作台', 'power-user density') }}</span>
-              </div>
-            </div>
-
-            <div class="flex flex-wrap gap-2">
-              <RouterLink to="/codex">
-                <Button
-                  variant="glass"
-                  size="sm"
-                >
-                  <SIcon
-                    name="ArrowLeft"
-                    size="w-4 h-4"
-                    class="mr-2"
-                  />
-                  {{ tt('返回概览', 'Back') }}
-                </Button>
-              </RouterLink>
-              <Button
-                variant="glass"
-                size="sm"
-                @click="startCreate('stdio')"
-              >
-                <SIcon
-                  name="Terminal"
-                  size="w-4 h-4"
-                  class="mr-2"
-                />
-                {{ tt('新建 STDIO', 'New STDIO') }}
-              </Button>
-              <Button
-                variant="glass"
-                size="sm"
-                @click="startCreate('http')"
-              >
-                <SIcon
-                  name="Globe"
-                  size="w-4 h-4"
-                  class="mr-2"
-                />
-                {{ tt('新建 HTTP', 'New HTTP') }}
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                :loading="loading"
-                @click="void loadServers(true)"
-              >
-                <SIcon
-                  name="RefreshCw"
-                  size="w-4 h-4"
-                  class="mr-2"
-                />
-                {{ tt('刷新', 'Refresh') }}
-              </Button>
-            </div>
-          </div>
-
-          <div class="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <div class="stat-card">
-              <p class="stat-label">
-                {{ tt('Server 总数', 'Total servers') }}
-              </p>
-              <p class="stat-value">
-                {{ servers.length }}
-              </p>
-              <p class="stat-detail">
-                {{ `${activeCount} ${tt('在线', 'live')}` }}
-              </p>
-            </div>
-            <div class="stat-card">
-              <p class="stat-label">
-                {{ tt('HTTP transport', 'HTTP transport') }}
-              </p>
-              <p class="stat-value">
-                {{ httpCount }}
-              </p>
-              <p class="stat-detail">
-                {{ `${authAwareCount} ${tt('鉴权感知', 'auth-aware')}` }}
-              </p>
-            </div>
-            <div class="stat-card">
-              <p class="stat-label">
-                {{ tt('Scoped tools', 'Scoped tools') }}
-              </p>
-              <p class="stat-value">
-                {{ scopedCount }}
-              </p>
-              <p class="stat-detail">
-                {{ `${requiredCount} ${tt('必需', 'required')}` }}
-              </p>
-            </div>
-            <div class="stat-card">
-              <p class="stat-label">
-                {{ tt('Legacy', 'Legacy') }}
-              </p>
-              <p class="stat-value">
-                {{ legacyCount }}
-              </p>
-              <p class="stat-detail">
-                {{ tt('startup_timeout_ms / bearer_token', 'startup_timeout_ms / bearer_token') }}
-              </p>
-            </div>
-          </div>
-        </Card>
-
-        <Card
-          variant="glass"
-          class="p-5"
-        >
-          <div class="space-y-4">
-            <div>
-              <p class="eyebrow">
-                {{ tt('一手资料', 'First-party docs') }}
-              </p>
-              <h2 class="panel-title">
-                {{ tt('官方能力面', 'Official surface') }}
-              </h2>
-              <p class="lead">
-                {{ tt('这页按官方 Codex 与 MCP 文档重建，不再停留在旧 CRUD 壳层。', 'This page is rebuilt from official Codex and MCP docs instead of the old CRUD shell.') }}
-              </p>
-            </div>
-
-            <div class="space-y-3">
-              <div class="note-row">
-                <SIcon
-                  name="ArrowRight"
-                  size="w-4 h-4"
-                  class="text-accent-primary"
-                /><span>{{ tt('STDIO 更适合本地工具链，HTTP 更适合远程或托管 MCP 服务。', 'Use STDIO for local toolchains and HTTP for remote or hosted MCP services.') }}</span>
-              </div>
-              <div class="note-row">
-                <SIcon
-                  name="ArrowRight"
-                  size="w-4 h-4"
-                  class="text-accent-primary"
-                /><span>{{ tt('enabled_tools / disabled_tools 用来缩小 Codex 可见的工具面。', 'enabled_tools / disabled_tools shrink what Codex can see.') }}</span>
-              </div>
-              <div class="note-row">
-                <SIcon
-                  name="ArrowRight"
-                  size="w-4 h-4"
-                  class="text-accent-primary"
-                /><span>{{ tt('bearer_token_env_var 与 env_http_headers 比明文 token 更可控。', 'bearer_token_env_var and env_http_headers are safer than literal tokens.') }}</span>
-              </div>
-              <div class="note-row">
-                <SIcon
-                  name="ArrowRight"
-                  size="w-4 h-4"
-                  class="text-accent-primary"
-                /><span>{{ tt('required=true 会把 server 升级成启动时必须可用的依赖。', 'required=true upgrades a server into a startup dependency.') }}</span>
-              </div>
-            </div>
-
-            <div class="grid gap-3 md:grid-cols-2">
-              <a
-                href="https://developers.openai.com/codex/config-reference#mcp_servers"
-                target="_blank"
-                rel="noreferrer"
-                class="doc-link"
-              ><span>{{ tt('Codex Config Reference', 'Codex Config Reference') }}</span><SIcon
-                name="ArrowUpRight"
-                size="w-4 h-4"
-              /></a>
-              <a
-                href="https://platform.openai.com/docs/docs-mcp"
-                target="_blank"
-                rel="noreferrer"
-                class="doc-link"
-              ><span>{{ tt('OpenAI Docs MCP', 'OpenAI Docs MCP') }}</span><SIcon
-                name="ArrowUpRight"
-                size="w-4 h-4"
-              /></a>
-            </div>
-
-            <button
-              type="button"
-              class="doc-link text-left"
-              @click="prefillDocsPreset"
+  <PageShell class="codex-mcp-view">
+    <template #header>
+      <PageHeader
+        :title="tt('Codex MCP 控制台', 'Codex MCP Console')"
+        eyebrow="Codex / MCP control plane"
+        :description="tt('按官方 mcp_servers 配置面管理 transport、tool scope、auth 注入与启动策略。', 'Manage transport, tool scope, auth injection, and startup policy through the official mcp_servers surface.')"
+      >
+        <template #actions>
+          <RouterLink to="/codex">
+            <Button
+              variant="glass"
+              size="sm"
             >
-              <span>{{ tt('填入 OpenAI Docs MCP 模板', 'Prefill OpenAI Docs MCP preset') }}</span>
               <SIcon
-                name="Sparkles"
+                name="ArrowLeft"
                 size="w-4 h-4"
-                class="text-accent-primary"
+                class="mr-2"
               />
-            </button>
+              {{ tt('返回概览', 'Back') }}
+            </Button>
+          </RouterLink>
+          <Button
+            variant="glass"
+            size="sm"
+            @click="startCreate('stdio')"
+          >
+            <SIcon
+              name="Terminal"
+              size="w-4 h-4"
+              class="mr-2"
+            />
+            {{ tt('新建 STDIO', 'New STDIO') }}
+          </Button>
+          <Button
+            variant="glass"
+            size="sm"
+            @click="startCreate('http')"
+          >
+            <SIcon
+              name="Globe"
+              size="w-4 h-4"
+              class="mr-2"
+            />
+            {{ tt('新建 HTTP', 'New HTTP') }}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            :loading="loading"
+            @click="void loadServers(true)"
+          >
+            <SIcon
+              name="RefreshCw"
+              size="w-4 h-4"
+              class="mr-2"
+            />
+            {{ tt('刷新', 'Refresh') }}
+          </Button>
+        </template>
+      </PageHeader>
+    </template>
+
+    <template #subnav>
+      <ModuleSubnav module="codex" />
+    </template>
+
+    <section class="grid gap-4 xl:grid-cols-2">
+      <Card
+        variant="glass"
+        class="p-5"
+      >
+        <div class="mt-0 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div class="stat-card">
+            <p class="stat-label">
+              {{ tt('Server 总数', 'Total servers') }}
+            </p>
+            <p class="stat-value">
+              {{ servers.length }}
+            </p>
+            <p class="stat-detail">
+              {{ `${activeCount} ${tt('在线', 'live')}` }}
+            </p>
           </div>
-        </Card>
-      </section>
+          <div class="stat-card">
+            <p class="stat-label">
+              {{ tt('HTTP transport', 'HTTP transport') }}
+            </p>
+            <p class="stat-value">
+              {{ httpCount }}
+            </p>
+            <p class="stat-detail">
+              {{ `${authAwareCount} ${tt('鉴权感知', 'auth-aware')}` }}
+            </p>
+          </div>
+          <div class="stat-card">
+            <p class="stat-label">
+              {{ tt('Scoped tools', 'Scoped tools') }}
+            </p>
+            <p class="stat-value">
+              {{ scopedCount }}
+            </p>
+            <p class="stat-detail">
+              {{ `${requiredCount} ${tt('必需', 'required')}` }}
+            </p>
+          </div>
+          <div class="stat-card">
+            <p class="stat-label">
+              {{ tt('Legacy', 'Legacy') }}
+            </p>
+            <p class="stat-value">
+              {{ legacyCount }}
+            </p>
+            <p class="stat-detail">
+              {{ tt('startup_timeout_ms / bearer_token', 'startup_timeout_ms / bearer_token') }}
+            </p>
+          </div>
+        </div>
+      </Card>
 
       <Card
         variant="glass"
         class="p-5"
       >
-        <div class="grid gap-4 xl:grid-cols-4">
-          <label class="search-box xl:col-span-1">
-            <SIcon
-              name="Search"
-              size="w-4 h-4"
-            />
-            <input
-              v-model="searchQuery"
-              type="text"
-              :placeholder="tt('搜索 name、command、url 或 tool scope', 'Search by name, command, URL, or tool scope')"
-            >
-          </label>
-
+        <div class="space-y-4">
           <div>
-            <p class="filter-label">
-              {{ tt('传输层', 'Transport') }}
-            </p>
-            <div class="filter-row">
-              <button
-                v-for="item in transportOptions"
-                :key="item.value"
-                type="button"
-                class="filter-pill"
-                :class="{ 'filter-pill--active': transportFilter === item.value }"
-                @click="transportFilter = item.value"
-              >
-                {{ item.label }}
-              </button>
-            </div>
-          </div>
-
-          <div>
-            <p class="filter-label">
-              {{ tt('状态', 'State') }}
-            </p>
-            <div class="filter-row">
-              <button
-                v-for="item in stateOptions"
-                :key="item.value"
-                type="button"
-                class="filter-pill"
-                :class="{ 'filter-pill--active': stateFilter === item.value }"
-                @click="stateFilter = item.value"
-              >
-                {{ item.label }}
-              </button>
-            </div>
-          </div>
-
-          <div>
-            <p class="filter-label">
-              {{ tt('关注项', 'Focus') }}
-            </p>
-            <div class="filter-row">
-              <button
-                v-for="item in focusOptions"
-                :key="item.value"
-                type="button"
-                class="filter-pill"
-                :class="{ 'filter-pill--active': focusFilter === item.value }"
-                @click="focusFilter = item.value"
-              >
-                {{ item.label }}
-              </button>
-            </div>
-          </div>
-        </div>
-      </Card>
-
-      <section class="workspace-grid">
-        <Card
-          variant="glass"
-          class="p-5"
-        >
-          <div class="mb-4">
             <p class="eyebrow">
-              {{ tt('清单', 'Inventory') }}
+              {{ tt('一手资料', 'First-party docs') }}
             </p>
             <h2 class="panel-title">
-              {{ tt('Servers', 'Servers') }}
+              {{ tt('官方能力面', 'Official surface') }}
             </h2>
             <p class="lead">
-              {{ filteredServers.length }} / {{ servers.length }}
+              {{ tt('这页按官方 Codex 与 MCP 文档重建，不再停留在旧 CRUD 壳层。', 'This page is rebuilt from official Codex and MCP docs instead of the old CRUD shell.') }}
             </p>
           </div>
-          <div
-            v-if="error && !servers.length"
-            class="alert-box"
-          >
-            {{ tt('加载 Codex MCP 服务器失败', 'Failed to load Codex MCP servers') }}: {{ error }}
-          </div>
 
-          <div
-            v-else-if="!servers.length && !loading"
-            class="empty-box"
-          >
-            <SIcon
-              name="Server"
-              size="w-8 h-8"
-            />
-            <h3>{{ tt('还没有 Codex MCP 服务器', 'No Codex MCP servers yet') }}</h3>
-            <p>{{ tt('可以先从空白模板开始，或直接填入 OpenAI Docs MCP。', 'Start from a blank template or prefill OpenAI Docs MCP.') }}</p>
-            <div class="flex flex-wrap gap-2">
-              <Button
-                variant="glass"
-                size="sm"
-                @click="startCreate('stdio')"
-              >
-                {{ tt('新建 STDIO', 'New STDIO') }}
-              </Button>
-              <Button
-                variant="glass"
-                size="sm"
-                @click="prefillDocsPreset"
-              >
-                {{ tt('Docs MCP', 'Docs MCP') }}
-              </Button>
+          <div class="space-y-3">
+            <div class="note-row">
+              <SIcon
+                name="ArrowRight"
+                size="w-4 h-4"
+                class="text-accent-primary"
+              /><span>{{ tt('STDIO 更适合本地工具链，HTTP 更适合远程或托管 MCP 服务。', 'Use STDIO for local toolchains and HTTP for remote or hosted MCP services.') }}</span>
+            </div>
+            <div class="note-row">
+              <SIcon
+                name="ArrowRight"
+                size="w-4 h-4"
+                class="text-accent-primary"
+              /><span>{{ tt('enabled_tools / disabled_tools 用来缩小 Codex 可见的工具面。', 'enabled_tools / disabled_tools shrink what Codex can see.') }}</span>
+            </div>
+            <div class="note-row">
+              <SIcon
+                name="ArrowRight"
+                size="w-4 h-4"
+                class="text-accent-primary"
+              /><span>{{ tt('bearer_token_env_var 与 env_http_headers 比明文 token 更可控。', 'bearer_token_env_var and env_http_headers are safer than literal tokens.') }}</span>
+            </div>
+            <div class="note-row">
+              <SIcon
+                name="ArrowRight"
+                size="w-4 h-4"
+                class="text-accent-primary"
+              /><span>{{ tt('required=true 会把 server 升级成启动时必须可用的依赖。', 'required=true upgrades a server into a startup dependency.') }}</span>
             </div>
           </div>
 
-          <div
-            v-else-if="!filteredServers.length && !loading"
-            class="empty-box"
+          <div class="grid gap-3 md:grid-cols-2">
+            <a
+              href="https://developers.openai.com/codex/config-reference#mcp_servers"
+              target="_blank"
+              rel="noreferrer"
+              class="doc-link"
+            ><span>{{ tt('Codex Config Reference', 'Codex Config Reference') }}</span><SIcon
+              name="ArrowUpRight"
+              size="w-4 h-4"
+            /></a>
+            <a
+              href="https://platform.openai.com/docs/docs-mcp"
+              target="_blank"
+              rel="noreferrer"
+              class="doc-link"
+            ><span>{{ tt('OpenAI Docs MCP', 'OpenAI Docs MCP') }}</span><SIcon
+              name="ArrowUpRight"
+              size="w-4 h-4"
+            /></a>
+          </div>
+
+          <button
+            type="button"
+            class="doc-link text-left"
+            @click="prefillDocsPreset"
           >
+            <span>{{ tt('填入 OpenAI Docs MCP 模板', 'Prefill OpenAI Docs MCP preset') }}</span>
             <SIcon
-              name="SearchX"
-              size="w-8 h-8"
+              name="Sparkles"
+              size="w-4 h-4"
+              class="text-accent-primary"
             />
-            <h3>{{ tt('没有匹配的服务器', 'No matching servers') }}</h3>
-            <p>{{ tt('换个关键词或清空筛选再试一次。', 'Try another keyword or clear the filters.') }}</p>
+          </button>
+        </div>
+      </Card>
+    </section>
+
+    <Card
+      variant="glass"
+      class="p-5"
+    >
+      <div class="grid gap-4 xl:grid-cols-4">
+        <label class="search-box xl:col-span-1">
+          <SIcon
+            name="Search"
+            size="w-4 h-4"
+          />
+          <input
+            v-model="searchQuery"
+            type="text"
+            :placeholder="tt('搜索 name、command、url 或 tool scope', 'Search by name, command, URL, or tool scope')"
+          >
+        </label>
+
+        <div>
+          <p class="filter-label">
+            {{ tt('传输层', 'Transport') }}
+          </p>
+          <div class="filter-row">
+            <button
+              v-for="item in transportOptions"
+              :key="item.value"
+              type="button"
+              class="filter-pill"
+              :class="{ 'filter-pill--active': transportFilter === item.value }"
+              @click="transportFilter = item.value"
+            >
+              {{ item.label }}
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <p class="filter-label">
+            {{ tt('状态', 'State') }}
+          </p>
+          <div class="filter-row">
+            <button
+              v-for="item in stateOptions"
+              :key="item.value"
+              type="button"
+              class="filter-pill"
+              :class="{ 'filter-pill--active': stateFilter === item.value }"
+              @click="stateFilter = item.value"
+            >
+              {{ item.label }}
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <p class="filter-label">
+            {{ tt('关注项', 'Focus') }}
+          </p>
+          <div class="filter-row">
+            <button
+              v-for="item in focusOptions"
+              :key="item.value"
+              type="button"
+              class="filter-pill"
+              :class="{ 'filter-pill--active': focusFilter === item.value }"
+              @click="focusFilter = item.value"
+            >
+              {{ item.label }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Card>
+
+    <section class="workspace-grid">
+      <Card
+        variant="glass"
+        class="p-5"
+      >
+        <div class="mb-4">
+          <p class="eyebrow">
+            {{ tt('清单', 'Inventory') }}
+          </p>
+          <h2 class="panel-title">
+            {{ tt('Servers', 'Servers') }}
+          </h2>
+          <p class="lead">
+            {{ filteredServers.length }} / {{ servers.length }}
+          </p>
+        </div>
+        <div
+          v-if="error && !servers.length"
+          class="alert-box"
+        >
+          {{ tt('加载 Codex MCP 服务器失败', 'Failed to load Codex MCP servers') }}: {{ error }}
+        </div>
+
+        <div
+          v-else-if="!servers.length && !loading"
+          class="empty-box"
+        >
+          <SIcon
+            name="Server"
+            size="w-8 h-8"
+          />
+          <h3>{{ tt('还没有 Codex MCP 服务器', 'No Codex MCP servers yet') }}</h3>
+          <p>{{ tt('可以先从空白模板开始，或直接填入 OpenAI Docs MCP。', 'Start from a blank template or prefill OpenAI Docs MCP.') }}</p>
+          <div class="flex flex-wrap gap-2">
             <Button
               variant="glass"
               size="sm"
-              @click="clearFilters"
+              @click="startCreate('stdio')"
             >
-              {{ tt('清空筛选', 'Clear filters') }}
+              {{ tt('新建 STDIO', 'New STDIO') }}
+            </Button>
+            <Button
+              variant="glass"
+              size="sm"
+              @click="prefillDocsPreset"
+            >
+              {{ tt('Docs MCP', 'Docs MCP') }}
             </Button>
           </div>
+        </div>
 
-          <div
-            v-else
-            class="space-y-3"
-          >
-            <article
-              v-for="server in filteredServers"
-              :key="server.name"
-              class="server-card"
-              :class="{ 'server-card--active': selectedServerName === server.name }"
-              @click="selectServer(server)"
-            >
-              <div class="flex items-start justify-between gap-3">
-                <div class="min-w-0 space-y-2">
-                  <div class="flex flex-wrap items-center gap-2">
-                    <span
-                      class="state-dot"
-                      :class="server.enabled ? 'state-dot--live' : 'state-dot--paused'"
-                    />
-                    <h3 class="server-name">
-                      {{ server.name }}
-                    </h3>
-                    <span class="mini-chip mini-chip--neutral">{{ server.transport.toUpperCase() }}</span>
-                    <span
-                      v-if="!server.enabled"
-                      class="mini-chip mini-chip--amber"
-                    >{{ tt('已暂停', 'paused') }}</span>
-                    <span
-                      v-if="server.required"
-                      class="mini-chip mini-chip--rose"
-                    >{{ tt('必需', 'required') }}</span>
-                    <span
-                      v-if="hasScopedTools(server)"
-                      class="mini-chip mini-chip--success"
-                    >{{ tt('已限制', 'scoped') }}</span>
-                    <span
-                      v-if="hasLegacyCompatibility(server)"
-                      class="mini-chip mini-chip--amber"
-                    >{{ tt('旧兼容', 'legacy') }}</span>
-                  </div>
-                  <p class="endpoint-text">
-                    {{ server.transport === 'http' ? server.url : server.command }}
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  class="icon-button"
-                  @click.stop="void toggleServer(server)"
-                >
-                  <SIcon
-                    :name="server.enabled ? 'ToggleRight' : 'ToggleLeft'"
-                    size="w-4 h-4"
-                  />
-                </button>
-              </div>
-
-              <div class="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
-                <div class="metric-card">
-                  <span>{{ tt('参数', 'Args') }}</span><strong>{{ server.args.length }}</strong>
-                </div>
-                <div class="metric-card">
-                  <span>{{ tt('环境', 'Env') }}</span><strong>{{ countEnvInputs(server) }}</strong>
-                </div>
-                <div class="metric-card">
-                  <span>{{ tt('请求头', 'Headers') }}</span><strong>{{ countHeaderInputs(server) }}</strong>
-                </div>
-                <div class="metric-card">
-                  <span>{{ tt('超时', 'Timeout') }}</span><strong>{{ timeoutLabel(server) }}</strong>
-                </div>
-              </div>
-
-              <p class="card-note mt-4">
-                {{ describeServer(server) }}
-              </p>
-            </article>
-          </div>
-        </Card>
-
-        <Card
-          variant="glass"
-          class="p-5 xl:sticky xl:top-6"
+        <div
+          v-else-if="!filteredServers.length && !loading"
+          class="empty-box"
         >
-          <div class="mb-4 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-            <div>
-              <p class="eyebrow">
-                {{ editorMode === 'edit' ? tt('Edit', 'Edit') : tt('Create', 'Create') }}
-              </p>
-              <h2 class="panel-title">
-                {{ editorMode === 'edit' ? tt('编辑当前 server', 'Edit current server') : tt('新建 Codex MCP server', 'Create a Codex MCP server') }}
-              </h2>
-              <p class="lead">
-                {{ editorMode ? tt('这里直接编辑 Codex 的 transport、tool scope、headers、env 和 timeout。', 'Edit transport, tool scope, headers, env injection, and timeout policy in one place.') : tt('选中一个 server，或者先创建新配置。', 'Select a server or create a new one.') }}
-              </p>
+          <SIcon
+            name="SearchX"
+            size="w-8 h-8"
+          />
+          <h3>{{ tt('没有匹配的服务器', 'No matching servers') }}</h3>
+          <p>{{ tt('换个关键词或清空筛选再试一次。', 'Try another keyword or clear the filters.') }}</p>
+          <Button
+            variant="glass"
+            size="sm"
+            @click="clearFilters"
+          >
+            {{ tt('清空筛选', 'Clear filters') }}
+          </Button>
+        </div>
+
+        <div
+          v-else
+          class="space-y-3"
+        >
+          <article
+            v-for="server in filteredServers"
+            :key="server.name"
+            class="server-card"
+            :class="{ 'server-card--active': selectedServerName === server.name }"
+            @click="selectServer(server)"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0 space-y-2">
+                <div class="flex flex-wrap items-center gap-2">
+                  <span
+                    class="state-dot"
+                    :class="server.enabled ? 'state-dot--live' : 'state-dot--paused'"
+                  />
+                  <h3 class="server-name">
+                    {{ server.name }}
+                  </h3>
+                  <span class="mini-chip mini-chip--neutral">{{ server.transport.toUpperCase() }}</span>
+                  <span
+                    v-if="!server.enabled"
+                    class="mini-chip mini-chip--amber"
+                  >{{ tt('已暂停', 'paused') }}</span>
+                  <span
+                    v-if="server.required"
+                    class="mini-chip mini-chip--rose"
+                  >{{ tt('必需', 'required') }}</span>
+                  <span
+                    v-if="hasScopedTools(server)"
+                    class="mini-chip mini-chip--success"
+                  >{{ tt('已限制', 'scoped') }}</span>
+                  <span
+                    v-if="hasLegacyCompatibility(server)"
+                    class="mini-chip mini-chip--amber"
+                  >{{ tt('旧兼容', 'legacy') }}</span>
+                </div>
+                <p class="endpoint-text">
+                  {{ server.transport === 'http' ? server.url : server.command }}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                class="icon-button"
+                @click.stop="void toggleServer(server)"
+              >
+                <SIcon
+                  :name="server.enabled ? 'ToggleRight' : 'ToggleLeft'"
+                  size="w-4 h-4"
+                />
+              </button>
             </div>
-          </div>
 
-          <div
-            v-if="!editorMode"
-            class="empty-box"
-          >
-            <SIcon
-              name="Sparkles"
-              size="w-8 h-8"
-            />
-            <h3>{{ tt('选中一个 server，或者先创建新配置', 'Select a server or create a new one') }}</h3>
-            <p>{{ tt('旧版页面只覆盖少量字段；这里已经扩到官方 Codex MCP 配置面。', 'The old page only covered a narrow slice; this editor maps the official Codex MCP surface.') }}</p>
-          </div>
+            <div class="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
+              <div class="metric-card">
+                <span>{{ tt('参数', 'Args') }}</span><strong>{{ server.args.length }}</strong>
+              </div>
+              <div class="metric-card">
+                <span>{{ tt('环境', 'Env') }}</span><strong>{{ countEnvInputs(server) }}</strong>
+              </div>
+              <div class="metric-card">
+                <span>{{ tt('请求头', 'Headers') }}</span><strong>{{ countHeaderInputs(server) }}</strong>
+              </div>
+              <div class="metric-card">
+                <span>{{ tt('超时', 'Timeout') }}</span><strong>{{ timeoutLabel(server) }}</strong>
+              </div>
+            </div>
 
-          <form
-            v-else
-            class="space-y-4"
-            @submit.prevent="void saveDraft()"
-          >
-            <div class="form-section">
-              <div class="grid gap-4 xl:grid-cols-2">
-                <label class="field-block">
-                  <span>{{ tt('Server 名称', 'Server name') }}</span>
-                  <input
-                    v-model="draft.name"
-                    class="field-input"
-                    type="text"
-                    :disabled="editorMode === 'edit'"
-                    placeholder="openaiDeveloperDocs"
+            <p class="card-note mt-4">
+              {{ describeServer(server) }}
+            </p>
+          </article>
+        </div>
+      </Card>
+
+      <Card
+        variant="glass"
+        class="p-5 xl:sticky xl:top-6"
+      >
+        <div class="mb-4 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+          <div>
+            <p class="eyebrow">
+              {{ editorMode === 'edit' ? tt('Edit', 'Edit') : tt('Create', 'Create') }}
+            </p>
+            <h2 class="panel-title">
+              {{ editorMode === 'edit' ? tt('编辑当前 server', 'Edit current server') : tt('新建 Codex MCP server', 'Create a Codex MCP server') }}
+            </h2>
+            <p class="lead">
+              {{ editorMode ? tt('这里直接编辑 Codex 的 transport、tool scope、headers、env 和 timeout。', 'Edit transport, tool scope, headers, env injection, and timeout policy in one place.') : tt('选中一个 server，或者先创建新配置。', 'Select a server or create a new one.') }}
+            </p>
+          </div>
+        </div>
+
+        <div
+          v-if="!editorMode"
+          class="empty-box"
+        >
+          <SIcon
+            name="Sparkles"
+            size="w-8 h-8"
+          />
+          <h3>{{ tt('选中一个 server，或者先创建新配置', 'Select a server or create a new one') }}</h3>
+          <p>{{ tt('旧版页面只覆盖少量字段；这里已经扩到官方 Codex MCP 配置面。', 'The old page only covered a narrow slice; this editor maps the official Codex MCP surface.') }}</p>
+        </div>
+
+        <form
+          v-else
+          class="space-y-4"
+          @submit.prevent="void saveDraft()"
+        >
+          <div class="form-section">
+            <div class="grid gap-4 xl:grid-cols-2">
+              <label class="field-block">
+                <span>{{ tt('Server 名称', 'Server name') }}</span>
+                <input
+                  v-model="draft.name"
+                  class="field-input"
+                  type="text"
+                  :disabled="editorMode === 'edit'"
+                  placeholder="openaiDeveloperDocs"
+                >
+                <small
+                  v-if="editorMode === 'edit'"
+                  class="field-hint"
+                >{{ tt('现有 server 名称保持锁定；如需改名，建议新建后删除旧项。', 'Existing server keys stay locked. Create a new one and remove the old entry if you need a rename.') }}</small>
+              </label>
+
+              <div class="field-block">
+                <span>{{ tt('传输层', 'Transport') }}</span>
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    class="toggle-pill"
+                    :class="{ 'toggle-pill--active': draft.transport === 'stdio' }"
+                    @click="draft.transport = 'stdio'"
                   >
-                  <small
-                    v-if="editorMode === 'edit'"
-                    class="field-hint"
-                  >{{ tt('现有 server 名称保持锁定；如需改名，建议新建后删除旧项。', 'Existing server keys stay locked. Create a new one and remove the old entry if you need a rename.') }}</small>
-                </label>
-
-                <div class="field-block">
-                  <span>{{ tt('传输层', 'Transport') }}</span>
-                  <div class="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      class="toggle-pill"
-                      :class="{ 'toggle-pill--active': draft.transport === 'stdio' }"
-                      @click="draft.transport = 'stdio'"
-                    >
-                      STDIO
-                    </button>
-                    <button
-                      type="button"
-                      class="toggle-pill"
-                      :class="{ 'toggle-pill--active': draft.transport === 'http' }"
-                      @click="draft.transport = 'http'"
-                    >
-                      HTTP
-                    </button>
-                  </div>
+                    STDIO
+                  </button>
+                  <button
+                    type="button"
+                    class="toggle-pill"
+                    :class="{ 'toggle-pill--active': draft.transport === 'http' }"
+                    @click="draft.transport = 'http'"
+                  >
+                    HTTP
+                  </button>
                 </div>
               </div>
-
-              <div class="mt-4 flex flex-wrap gap-2">
-                <label class="switch-pill"><input
-                  v-model="draft.enabled"
-                  type="checkbox"
-                ><span>{{ tt('已启用', 'Enabled') }}</span></label>
-                <label class="switch-pill"><input
-                  v-model="draft.required"
-                  type="checkbox"
-                ><span>{{ tt('必需', 'Required') }}</span></label>
-              </div>
             </div>
 
-            <div class="form-section">
-              <div class="grid gap-4 xl:grid-cols-2">
-                <label class="field-block">
-                  <span>{{ tt('enabled_tools', 'enabled_tools') }}</span>
-                  <textarea
-                    v-model="draft.enabledToolsText"
-                    class="field-textarea"
-                    rows="3"
-                    placeholder="search&#10;read"
-                  />
-                </label>
-                <label class="field-block">
-                  <span>{{ tt('disabled_tools', 'disabled_tools') }}</span>
-                  <textarea
-                    v-model="draft.disabledToolsText"
-                    class="field-textarea"
-                    rows="3"
-                    placeholder="write"
-                  />
-                </label>
-              </div>
+            <div class="mt-4 flex flex-wrap gap-2">
+              <label class="switch-pill"><input
+                v-model="draft.enabled"
+                type="checkbox"
+              ><span>{{ tt('已启用', 'Enabled') }}</span></label>
+              <label class="switch-pill"><input
+                v-model="draft.required"
+                type="checkbox"
+              ><span>{{ tt('必需', 'Required') }}</span></label>
             </div>
+          </div>
 
-            <div class="form-section">
-              <div class="grid gap-4 xl:grid-cols-2">
-                <label
-                  v-if="draft.transport === 'http'"
-                  class="field-block"
-                ><span>{{ tt('URL', 'URL') }}</span><input
-                  v-model="draft.url"
-                  class="field-input"
-                  type="text"
-                  placeholder="https://api.openai.com/mcp"
-                ></label>
-                <label
-                  v-else
-                  class="field-block"
-                ><span>{{ tt('命令', 'Command') }}</span><input
-                  v-model="draft.command"
-                  class="field-input"
-                  type="text"
-                  placeholder="npx"
-                ></label>
-                <label
-                  v-if="draft.transport === 'stdio'"
-                  class="field-block"
-                ><span>{{ tt('cwd', 'cwd') }}</span><input
-                  v-model="draft.cwd"
-                  class="field-input"
-                  type="text"
-                  placeholder="/workspace/project"
-                ></label>
-                <label
-                  v-else
-                  class="field-block"
-                ><span>{{ tt('bearer_token_env_var', 'bearer_token_env_var') }}</span><input
-                  v-model="draft.bearer_token_env_var"
-                  class="field-input"
-                  type="text"
-                  placeholder="OPENAI_API_KEY"
-                ></label>
-              </div>
-
-              <label
-                v-if="draft.transport === 'stdio'"
-                class="field-block mt-4"
-              >
-                <span>{{ tt('参数', 'Args') }}</span>
+          <div class="form-section">
+            <div class="grid gap-4 xl:grid-cols-2">
+              <label class="field-block">
+                <span>{{ tt('enabled_tools', 'enabled_tools') }}</span>
                 <textarea
-                  v-model="draft.argsText"
+                  v-model="draft.enabledToolsText"
                   class="field-textarea"
-                  rows="4"
-                  placeholder="-y&#10;@modelcontextprotocol/server-filesystem&#10;/workspace/project"
+                  rows="3"
+                  placeholder="search&#10;read"
                 />
-                <small class="field-hint">{{ tt('建议一行一个参数；如果只写一行，保存时会按空格拆分。', 'Prefer one arg per line. A single-line entry is split on whitespace when saved.') }}</small>
+              </label>
+              <label class="field-block">
+                <span>{{ tt('disabled_tools', 'disabled_tools') }}</span>
+                <textarea
+                  v-model="draft.disabledToolsText"
+                  class="field-textarea"
+                  rows="3"
+                  placeholder="write"
+                />
               </label>
             </div>
+          </div>
 
-            <div class="flex flex-wrap gap-2">
-              <Button
-                variant="primary"
-                type="submit"
-                :loading="submitting"
-              >
-                <SIcon
-                  name="Save"
-                  size="w-4 h-4"
-                  class="mr-2"
-                />{{ editorMode === 'edit' ? tt('保存变更', 'Save changes') : tt('创建服务器', 'Create server') }}
-              </Button>
-              <Button
-                variant="glass"
-                type="button"
-                @click="resetDraftFromBaseline"
-              >
-                {{ tt('恢复表单', 'Reset form') }}
-              </Button>
-              <Button
-                variant="ghost"
-                type="button"
-                @click="cancelEditor"
-              >
-                {{ tt('取消编辑', 'Cancel') }}
-              </Button>
-              <Button
-                v-if="editorMode === 'edit'"
-                :variant="deleteArmed ? 'danger' : 'outline'"
-                type="button"
-                @click="armOrDeleteSelected"
-              >
-                <SIcon
-                  name="Trash2"
-                  size="w-4 h-4"
-                  class="mr-2"
-                />{{ deleteArmed ? tt('确认删除', 'Confirm delete') : tt('准备删除', 'Arm delete') }}
-              </Button>
+          <div class="form-section">
+            <div class="grid gap-4 xl:grid-cols-2">
+              <label
+                v-if="draft.transport === 'http'"
+                class="field-block"
+              ><span>{{ tt('URL', 'URL') }}</span><input
+                v-model="draft.url"
+                class="field-input"
+                type="text"
+                placeholder="https://api.openai.com/mcp"
+              ></label>
+              <label
+                v-else
+                class="field-block"
+              ><span>{{ tt('命令', 'Command') }}</span><input
+                v-model="draft.command"
+                class="field-input"
+                type="text"
+                placeholder="npx"
+              ></label>
+              <label
+                v-if="draft.transport === 'stdio'"
+                class="field-block"
+              ><span>{{ tt('cwd', 'cwd') }}</span><input
+                v-model="draft.cwd"
+                class="field-input"
+                type="text"
+                placeholder="/workspace/project"
+              ></label>
+              <label
+                v-else
+                class="field-block"
+              ><span>{{ tt('bearer_token_env_var', 'bearer_token_env_var') }}</span><input
+                v-model="draft.bearer_token_env_var"
+                class="field-input"
+                type="text"
+                placeholder="OPENAI_API_KEY"
+              ></label>
             </div>
-          </form>
-        </Card>
-      </section>
-    </div>
-  </div>
+
+            <label
+              v-if="draft.transport === 'stdio'"
+              class="field-block mt-4"
+            >
+              <span>{{ tt('参数', 'Args') }}</span>
+              <textarea
+                v-model="draft.argsText"
+                class="field-textarea"
+                rows="4"
+                placeholder="-y&#10;@modelcontextprotocol/server-filesystem&#10;/workspace/project"
+              />
+              <small class="field-hint">{{ tt('建议一行一个参数；如果只写一行，保存时会按空格拆分。', 'Prefer one arg per line. A single-line entry is split on whitespace when saved.') }}</small>
+            </label>
+          </div>
+
+          <div class="flex flex-wrap gap-2">
+            <Button
+              variant="primary"
+              type="submit"
+              :loading="submitting"
+            >
+              <SIcon
+                name="Save"
+                size="w-4 h-4"
+                class="mr-2"
+              />{{ editorMode === 'edit' ? tt('保存变更', 'Save changes') : tt('创建服务器', 'Create server') }}
+            </Button>
+            <Button
+              variant="glass"
+              type="button"
+              @click="resetDraftFromBaseline"
+            >
+              {{ tt('恢复表单', 'Reset form') }}
+            </Button>
+            <Button
+              variant="ghost"
+              type="button"
+              @click="cancelEditor"
+            >
+              {{ tt('取消编辑', 'Cancel') }}
+            </Button>
+            <Button
+              v-if="editorMode === 'edit'"
+              :variant="deleteArmed ? 'danger' : 'outline'"
+              type="button"
+              @click="armOrDeleteSelected"
+            >
+              <SIcon
+                name="Trash2"
+                size="w-4 h-4"
+                class="mr-2"
+              />{{ deleteArmed ? tt('确认删除', 'Confirm delete') : tt('准备删除', 'Arm delete') }}
+            </Button>
+          </div>
+        </form>
+      </Card>
+    </section>
+  </PageShell>
 </template>
 
 <script setup lang="ts">
@@ -666,6 +643,8 @@ import { addCodexMcpServer, deleteCodexMcpServer, listCodexMcpServers, updateCod
 import ModuleSubnav from '@/components/ModuleSubnav.vue'
 import Button from '@/components/ui/Button.vue'
 import Card from '@/components/ui/Card.vue'
+import PageHeader from '@/components/ui/PageHeader.vue'
+import PageShell from '@/components/ui/PageShell.vue'
 import SIcon from '@/components/ui/SIcon.vue'
 import { useUIStore } from '@/stores/ui'
 import { logger } from '@/utils/logger'
@@ -1083,34 +1062,17 @@ onActivated(() => {
 </script>
 
 <style scoped>
-.codex-mcp-view {
-  @apply min-h-full p-6;
-}
-
-.codex-mcp-shell {
-  @apply mx-auto max-w-[1800px] space-y-5;
-}
-
-.eyebrow,
 .stat-label,
 .filter-label {
   color: var(--stage-text-quiet);
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
+  letter-spacing: 0;
   font-size: 0.75rem;
+  font-weight: 500;
 }
 
-.title,
 .panel-title,
 .server-name {
   color: var(--stage-text-primary);
-}
-
-.title {
-  font-family: var(--font-brand);
-  font-size: 1.875rem;
-  font-weight: 700;
-  line-height: 1.1;
 }
 
 .lead,
@@ -1245,17 +1207,17 @@ onActivated(() => {
   align-items: center;
   justify-content: center;
   gap: 0.75rem;
-  border-radius: 1rem;
-  border: 1px dashed rgb(255 255 255 / 10%);
+  border-radius: 0.75rem;
+  border: 1px dashed var(--stage-border-soft);
   padding: 2rem;
   text-align: center;
 }
 
 .alert-box {
   min-height: 7rem;
-  color: rgb(255 225 233 / 92%);
-  background: rgb(120 27 56 / 22%);
-  border-color: rgb(234 143 170 / 28%);
+  color: var(--color-danger);
+  background: rgb(var(--color-danger-rgb) / 10%);
+  border-color: rgb(var(--color-danger-rgb) / 28%);
 }
 
 .server-card {
@@ -1265,7 +1227,7 @@ onActivated(() => {
 
 .server-card:hover,
 .server-card--active {
-  border-color: rgb(236 72 153 / 30%);
+  border-color: rgb(var(--color-accent-primary-rgb) / 30%);
 }
 
 .state-dot {
@@ -1275,11 +1237,11 @@ onActivated(() => {
 }
 
 .state-dot--live {
-  background: rgb(16 185 129 / 80%);
+  background: var(--color-success);
 }
 
 .state-dot--paused {
-  background: rgb(245 158 11 / 80%);
+  background: var(--color-warning);
 }
 
 .icon-button {
@@ -1301,8 +1263,8 @@ onActivated(() => {
   display: block;
   color: var(--stage-text-quiet);
   font-size: 0.75rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  letter-spacing: 0;
+  font-weight: 500;
 }
 
 .metric-card strong {

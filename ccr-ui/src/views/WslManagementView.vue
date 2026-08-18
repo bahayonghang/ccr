@@ -2,6 +2,8 @@
 /**
  * WSL 管理视图 — WSL 发行版列表、配置浏览、同步操作
  */
+import PageHeader from '@/components/ui/PageHeader.vue'
+import PageShell from '@/components/ui/PageShell.vue'
 import SIcon from '@/components/ui/SIcon.vue'
 import { computed, ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -38,9 +40,9 @@ const platforms = ['claude', 'codex', 'gemini']
 
 const stateColor = (state: string) => {
   switch (state.toLowerCase()) {
-    case 'running': return 'text-emerald-400'
+    case 'running': return 'text-accent-success'
     case 'stopped': return 'text-text-muted'
-    default: return 'text-amber-400'
+    default: return 'text-accent-warning'
   }
 }
 
@@ -163,58 +165,45 @@ onMounted(() => fetchDistros())
 </script>
 
 <template>
-  <div class="space-y-6">
-    <!-- 标题 -->
-    <div class="flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <div class="p-2 rounded-xl bg-orange-500/10">
-          <SIcon
-            name="Terminal"
-            size="w-6 h-6"
-            class="text-orange-400"
-          />
-        </div>
-        <div>
-          <h1 class="text-xl font-bold text-text-primary">
-            {{ tt('WSL 环境管理', 'WSL Environment Management') }}
-          </h1>
-          <p class="text-sm text-text-muted">
-            {{ tt('管理 Windows Subsystem for Linux 发行版配置', 'Manage Windows Subsystem for Linux distribution configuration') }}
-          </p>
-        </div>
-      </div>
-      <div class="flex items-center gap-2">
-        <button
-          class="flex items-center gap-2 px-4 py-2 rounded-lg glass-surface border border-border-default/25 text-text-primary hover:border-accent-primary/30 transition-colors text-sm"
-          :disabled="isRefreshing"
-          @click="refresh"
-        >
-          <SIcon
-            name="RefreshCw"
-            size="w-4 h-4"
-            :class="{ 'animate-spin': isRefreshing }"
-          />
-          {{ tt('刷新', 'Refresh') }}
-        </button>
-        <button
-          class="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent-primary/10 border border-accent-primary/30 text-accent-primary hover:bg-accent-primary/20 transition-colors text-sm"
-          :disabled="isRefreshing"
-          @click="forceRefresh"
-        >
-          <SIcon
-            name="RefreshCw"
-            size="w-4 h-4"
-            :class="{ 'animate-spin': isRefreshing }"
-          />
-          {{ tt('强制刷新', 'Force refresh') }}
-        </button>
-      </div>
-    </div>
+  <PageShell class="wsl-page">
+    <template #header>
+      <PageHeader
+        :title="tt('WSL 环境管理', 'WSL Environment Management')"
+        :description="tt('管理 Windows Subsystem for Linux 发行版配置', 'Manage Windows Subsystem for Linux distribution configuration')"
+      >
+        <template #actions>
+          <button
+            class="flex items-center gap-2 px-4 py-2 rounded-lg border border-border-default/25 text-text-primary hover:border-accent-primary/30 transition-colors text-sm"
+            :disabled="isRefreshing"
+            @click="refresh"
+          >
+            <SIcon
+              name="RefreshCw"
+              size="w-4 h-4"
+              :class="{ 'animate-spin': isRefreshing }"
+            />
+            {{ tt('刷新', 'Refresh') }}
+          </button>
+          <button
+            class="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent-primary/10 border border-accent-primary/30 text-accent-primary hover:bg-accent-primary/20 transition-colors text-sm"
+            :disabled="isRefreshing"
+            @click="forceRefresh"
+          >
+            <SIcon
+              name="RefreshCw"
+              size="w-4 h-4"
+              :class="{ 'animate-spin': isRefreshing }"
+            />
+            {{ tt('强制刷新', 'Force refresh') }}
+          </button>
+        </template>
+      </PageHeader>
+    </template>
 
     <!-- 缓存状态 -->
     <div
       v-if="cacheStatus"
-      class="flex items-center justify-between px-4 py-2 rounded-lg glass-surface border border-border-default/25 text-sm"
+      class="flex items-center justify-between px-4 py-2 rounded-lg border border-border-default/25 bg-bg-surface text-sm"
     >
       <div class="flex items-center gap-4">
         <div class="flex items-center gap-2">
@@ -225,7 +214,7 @@ onMounted(() => fetchDistros())
           />
           <span class="text-text-primary">{{ `${tt('缓存状态', 'Cache status')}:` }}</span>
           <span
-            :class="cacheStatus.has_disk_cache ? 'text-emerald-400' : 'text-text-muted'"
+            :class="cacheStatus.has_disk_cache ? 'text-accent-success' : 'text-text-muted'"
           >
             {{ cacheStatus.has_disk_cache ? tt('已缓存', 'Cached') : tt('未缓存', 'Not cached') }}
           </span>
@@ -239,7 +228,7 @@ onMounted(() => fetchDistros())
           <span class="text-text-primary">{{ formatCacheAge(cacheStatus.age_secs) }}</span>
           <span
             v-if="cacheStatus.is_expired"
-            class="px-1.5 py-0.5 rounded text-[10px] bg-amber-500/20 text-amber-400"
+            class="px-1.5 py-0.5 rounded text-[10px] bg-accent-warning/20 text-accent-warning"
           >
             {{ tt('已过期', 'Expired') }}
           </span>
@@ -268,7 +257,7 @@ onMounted(() => fetchDistros())
     <!-- 无发行版 -->
     <div
       v-else-if="distros.length === 0"
-      class="rounded-xl border border-border-default/15 glass-surface p-8 text-center"
+      class="rounded-xl border border-border-default/15 bg-bg-surface p-8 text-center"
     >
       <SIcon
         name="Terminal"
@@ -290,7 +279,7 @@ onMounted(() => fetchDistros())
     >
       <!-- 左侧：发行版列表 -->
       <div class="col-span-4 space-y-3">
-        <h2 class="text-xs font-bold uppercase tracking-wider text-text-muted px-1">
+        <h2 class="text-xs font-medium text-text-muted px-1">
           {{ tt('发行版', 'Distributions') }}
         </h2>
         <div class="space-y-2">
@@ -298,7 +287,7 @@ onMounted(() => fetchDistros())
             v-for="distro in distros"
             :key="distro.name"
             class="w-full flex items-center gap-3 p-3 rounded-xl border transition-colors text-left"
-            :class="[ selectedDistro === distro.name ? 'bg-accent-primary/10 border-accent-primary/30 text-accent-primary' : 'glass-surface border-border-default/25 text-text-primary hover:border-border-accent' ]"
+            :class="[ selectedDistro === distro.name ? 'bg-accent-primary/10 border-accent-primary/30 text-accent-primary' : 'bg-bg-surface border-border-default/25 text-text-primary hover:border-border-accent' ]"
             @click="selectDistro(distro.name)"
           >
             <SIcon
@@ -328,7 +317,7 @@ onMounted(() => fetchDistros())
       <!-- 右侧：详情面板 -->
       <div class="col-span-8 space-y-6">
         <!-- CLI 工具检测 -->
-        <div class="rounded-xl border border-border-default/15 glass-surface p-4">
+        <div class="rounded-xl border border-border-default/15 bg-bg-surface p-4">
           <h3 class="text-sm font-semibold text-text-primary mb-3">
             {{ tt('AI CLI 工具状态', 'AI CLI tool status') }}
           </h3>
@@ -342,7 +331,7 @@ onMounted(() => fetchDistros())
                 v-if="installed"
                 name="CheckCircle2"
                 size="w-4 h-4"
-                class="text-emerald-400"
+                class="text-accent-success"
               />
               <SIcon
                 v-else
@@ -358,7 +347,7 @@ onMounted(() => fetchDistros())
         </div>
 
         <!-- 配置浏览 -->
-        <div class="rounded-xl border border-border-default/15 glass-surface p-4">
+        <div class="rounded-xl border border-border-default/15 bg-bg-surface p-4">
           <div class="flex items-center justify-between mb-3">
             <h3 class="text-sm font-semibold text-text-primary flex items-center gap-2">
               <SIcon
@@ -385,7 +374,7 @@ onMounted(() => fetchDistros())
         </div>
 
         <!-- 同步操作 -->
-        <div class="rounded-xl border border-border-default/15 glass-surface p-4">
+        <div class="rounded-xl border border-border-default/15 bg-bg-surface p-4">
           <h3 class="text-sm font-semibold text-text-primary mb-3">
             {{ tt('配置同步', 'Config sync') }}
           </h3>
@@ -422,5 +411,5 @@ onMounted(() => fetchDistros())
         </div>
       </div>
     </div>
-  </div>
+  </PageShell>
 </template>

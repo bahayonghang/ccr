@@ -206,9 +206,7 @@ const chartOptions = computed<ApexOptions>(() => {
   min-width: 0;
   border: 1px solid rgb(var(--color-border-default-rgb) / 13%);
   border-radius: 1.25rem;
-  background:
-    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 68%), rgb(var(--color-bg-surface-rgb) / 42%)),
-    radial-gradient(circle at 20% 10%, rgb(var(--color-accent-primary-rgb) / 10%), transparent 34rem);
+  background: var(--color-bg-surface);
   padding: 1rem;
 }
 
@@ -269,14 +267,13 @@ const chartOptions = computed<ApexOptions>(() => {
   align-items: end;
   gap: 0.22rem;
   padding: 1rem;
-  background:
-    linear-gradient(180deg, transparent 0 24%, rgb(var(--color-border-default-rgb) / 8%) 24% 24.5%, transparent 24.5% 49%, rgb(var(--color-border-default-rgb) / 8%) 49% 49.5%, transparent 49.5% 74%, rgb(var(--color-border-default-rgb) / 8%) 74% 74.5%, transparent 74.5%);
+  background: transparent;
 }
 
 .platform-usage-chart__fallback span {
   flex: 1;
   min-width: 0.16rem;
   border-radius: 999px 999px 0 0;
-  background: linear-gradient(180deg, rgb(var(--color-accent-primary-rgb) / 76%), rgb(var(--color-accent-primary-rgb) / 18%));
+  background: rgb(var(--color-accent-primary-rgb) / 55%);
 }
 </style>

@@ -6,7 +6,7 @@
     <!-- Label -->
     <label 
       v-if="props.label"
-      class="mb-1.5 ml-1 block text-xs font-semibold tracking-wide text-text-muted transition-colors group-hover:text-text-secondary group-focus-within:text-accent-primary"
+      class="ui-input-label mb-1.5 ml-1 block text-text-muted transition-colors group-hover:text-text-secondary group-focus-within:text-accent-primary"
       :for="props.id"
     >
       {{ props.label }}
@@ -30,7 +30,7 @@
         :type="props.type"
         :disabled="props.disabled"
         :placeholder="props.placeholder"
-        class="peer rounded-lg border border-border-default/70 text-text-primary placeholder:text-text-ghost focus:outline-none focus:ring-2 focus:ring-accent-primary/24 focus:border-accent-primary/50 disabled:cursor-not-allowed disabled:opacity-50"
+        class="peer border border-border-default/70 text-text-primary placeholder:text-text-ghost focus:outline-none focus:ring-2 focus:ring-accent-primary/24 focus:border-accent-primary/50 disabled:cursor-not-allowed disabled:opacity-50"
         :class="[
           ...inputClasses,
           inputDensityClass,
@@ -104,14 +104,14 @@ const props = withDefaults(defineProps<Props>(), {
   fullWidth: true,
   placeholder: '',
   surface: 'workspace',
-  elevation: 1,
+  elevation: 0,
   motion: 'subtle',
   density: 'default',
 })
 
 const emit = defineEmits(['update:modelValue'])
 const inputRef = ref<HTMLInputElement | null>(null)
-const inputDensityClass = computed(() => (props.density === 'compact' ? 'px-3 py-2 text-sm' : 'px-4 py-2.5 text-sm'))
+const inputDensityClass = computed(() => (props.density === 'compact' ? 'ui-input--compact px-3 py-2 text-sm' : 'px-4 py-2.5 text-sm'))
 const inputClasses = computed(() => [
   'ui-input',
   `ui-input--surface-${props.surface}`,
@@ -137,11 +137,24 @@ export default {
 </script>
 
 <style scoped>
+.ui-input-label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.24;
+  letter-spacing: 0;
+}
+
 .ui-input {
+  min-height: 44px;
+  border-radius: var(--radius-lg);
   transition-property: background-color, border-color, box-shadow, color, transform;
   transition-duration: var(--ui-input-duration, var(--motion-subtle-duration));
   transition-timing-function: var(--ui-input-ease, var(--motion-subtle-ease));
-  box-shadow: var(--ui-input-shadow, var(--shadow-sm));
+  box-shadow: none;
+}
+
+.ui-input--compact {
+  min-height: 2.25rem;
 }
 
 .ui-input:hover:not(:disabled) {
@@ -149,23 +162,19 @@ export default {
 }
 
 .ui-input--surface-workspace {
-  background: var(--surface-workspace-bg);
-  backdrop-filter: var(--surface-workspace-blur);
+  background: var(--color-bg-elevated);
 }
 
 .ui-input--surface-card {
-  background: var(--surface-card-bg);
-  backdrop-filter: var(--surface-card-blur);
+  background: var(--color-bg-surface);
 }
 
 .ui-input--surface-modal {
   background: var(--surface-modal-bg);
-  backdrop-filter: var(--surface-modal-blur);
 }
 
 .ui-input--surface-status {
-  background: var(--surface-status-bg);
-  backdrop-filter: var(--surface-status-blur);
+  background: var(--color-bg-surface);
 }
 
 .ui-input--elevation-0 {

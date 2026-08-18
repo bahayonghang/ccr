@@ -128,58 +128,39 @@
         >
           <a
             :href="href"
-            class="settings-dock group relative block overflow-hidden rounded-[1.6rem] transition-interactive duration-300"
+            class="settings-dock group"
             :class="{ 'settings-dock--active': isSettingsRoute }"
             data-testid="settings-dock-link"
             :aria-current="isSettingsRoute ? 'page' : undefined"
             @click="navigate"
           >
-            <div class="relative flex flex-col gap-3 p-3.5">
-              <div class="flex items-start justify-between gap-3">
-                <div class="space-y-1.5">
-                  <p class="flex items-center gap-2 text-[11px] font-mono tracking-wide">
-                    <span class="text-text-muted">{{ t('common.shell.session') }}:</span>
-                    <span class="flex items-center gap-1.5 font-semibold text-success">
-                      <span class="relative flex h-2 w-2">
-                        <span class="absolute inline-flex h-full w-full rounded-full bg-success/30" />
-                        <span class="relative inline-flex h-2 w-2 rounded-full bg-success" />
-                      </span>
-                      {{ t('common.shell.active') }}
-                    </span>
-                  </p>
-                  <div>
-                    <p class="text-sm font-semibold tracking-[-0.02em] text-text-primary">
-                      {{ t('nav.settings') }}
-                    </p>
-                    <p class="text-[11px] leading-5 text-text-secondary">
-                      {{ t('settings.dock.summary') }}
-                    </p>
-                  </div>
-                </div>
-
-                <div class="flex h-10 w-10 flex-none items-center justify-center rounded-2xl border border-border-default/60 bg-bg-elevated text-text-primary shadow-sm transition-colors duration-200 group-hover:border-accent-primary/30 group-hover:bg-bg-surface/90 group-hover:text-accent-primary">
-                  <SIcon
-                    name="SlidersHorizontal"
-                    size="w-4 h-4"
-                  />
-                </div>
-              </div>
-
-              <div class="flex flex-wrap items-center gap-2">
-                <span class="settings-dock-pill">
-                  {{ currentThemeLabel }}
-                </span>
-                <span class="settings-dock-pill">
-                  {{ currentFlavorLabel }}
-                </span>
-                <span class="settings-dock-pill">
-                  {{ currentLocaleLabel }}
-                </span>
-                <span class="settings-dock-pill font-mono">
-                  {{ appVersionLabel }}
-                </span>
-              </div>
-            </div>
+            <span class="settings-dock__icon">
+              <SIcon
+                name="SlidersHorizontal"
+                size="w-4 h-4"
+              />
+            </span>
+            <span class="settings-dock__copy">
+              <span class="settings-dock__title">{{ t('nav.settings') }}</span>
+              <span class="settings-dock__meta">
+                <span>{{ currentThemeLabel }}</span>
+                <span
+                  class="settings-dock__sep"
+                  aria-hidden="true"
+                >·</span>
+                <span>{{ currentFlavorLabel }}</span>
+                <span
+                  class="settings-dock__sep"
+                  aria-hidden="true"
+                >·</span>
+                <span>{{ currentLocaleLabel }}</span>
+                <span
+                  class="settings-dock__sep"
+                  aria-hidden="true"
+                >·</span>
+                <span class="settings-dock__version">{{ appVersionLabel }}</span>
+              </span>
+            </span>
           </a>
         </RouterLink>
       </div>
@@ -344,7 +325,7 @@ const isSettingsRoute = computed(() => route.name === 'settings')
 const currentLocaleLabel = computed(() => (
   locale.value === 'en-US' ? t('language.english') : t('language.chinese')
 ))
-// dock 摘要的 flavor 显示名映射（3 值值域，复用 settings flavor label）。
+// dock 摘要的 flavor 显示名映射（neutral | clay）。
 const currentFlavorLabel = computed(() => t(`settings.appearance.flavor.${flavor.value}`))
 const currentThemeLabel = computed(() => {
   if (theme.value === 'system') {
@@ -437,16 +418,13 @@ onBeforeUnmount(() => {
   background: var(--color-bg-base);
 }
 
-/* Sidebar Glass Effect - Unified Transparent Mode */
+/* 侧栏 / 顶栏：不透明 chrome，无内高光、无装饰玻璃 */
 :root[data-theme="dark"] .sidebar-glass,
 .sidebar-glass {
   background: var(--surface-shell-bg);
   backdrop-filter: var(--surface-shell-blur);
   border-right: 1px solid var(--surface-shell-border);
-  box-shadow:
-    var(--surface-shell-shadow),
-    inset -1px 0 0 rgb(var(--color-border-default-rgb) / 10%),
-    var(--glass-inner-glow);
+  box-shadow: var(--surface-shell-shadow);
 }
 
 /* 拖拽 resize 全程重模糊会拖累合成帧;拖拽期间临时降级为不透明 */
@@ -454,14 +432,10 @@ onBeforeUnmount(() => {
   backdrop-filter: none;
 }
 
-/* 顶栏与侧栏同属常驻 chrome 玻璃预算(≤2),复用同一档令牌 */
 .topbar-glass {
   background: var(--surface-shell-bg);
   backdrop-filter: var(--surface-shell-blur);
-  box-shadow:
-    inset 0 -1px 0 rgb(var(--color-border-default-rgb) / 18%),
-    var(--glass-inner-glow),
-    var(--surface-shell-shadow);
+  box-shadow: var(--surface-shell-shadow);
 }
 
 .layout-layer-dropdown {
@@ -503,18 +477,17 @@ onBeforeUnmount(() => {
 }
 
 .content-scroll-area--theme-stage {
-  background:
-    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 16%), transparent 14rem);
+  background: transparent;
 }
 
-/* Nav Item Styles */
+/* 导航激活态：tonal 底 + 主文本 + 细描边，无左侧竖条、无渐变 */
 .nav-item {
-  @apply relative flex items-center gap-3 overflow-hidden px-3 py-2.5 text-sm font-medium text-text-secondary
+  @apply relative flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-text-secondary
          transition-interactive duration-200;
 
-  border: 1px solid rgb(var(--color-border-default-rgb) / 0%);
+  border: 1px solid transparent;
   border-radius: var(--radius-lg);
-  background: linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 0%), rgb(var(--color-bg-surface-rgb) / 0%));
+  background: transparent;
 }
 
 .nav-item:focus-visible {
@@ -524,57 +497,93 @@ onBeforeUnmount(() => {
 .nav-item:hover {
   @apply text-text-primary;
 
-  background:
-    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 92%), rgb(var(--color-bg-surface-rgb) / 82%));
-  border-color: rgb(var(--color-border-default-rgb) / 54%);
-  box-shadow: var(--shadow-md);
+  background: var(--color-bg-overlay);
+  border-color: var(--color-border-subtle);
 }
 
-/* 激活态：去发光，改用边框 + 内描边强调（左侧 accent 标记保留） */
 .nav-item.router-link-active:not(.nav-item--root),
 .nav-item.router-link-exact-active.nav-item--root {
   @apply text-text-primary;
 
-  background:
-    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 94%), rgb(var(--color-bg-surface-rgb) / 86%));
+  background: rgb(var(--color-accent-primary-rgb) / 10%);
   border-color: rgb(var(--color-accent-primary-rgb) / 24%);
-  box-shadow: inset 0 0 0 1px rgb(var(--color-accent-primary-rgb) / 10%);
 }
 
-/* Active indicator strip */
-.nav-item.router-link-active:not(.nav-item--root)::before,
-.nav-item.router-link-exact-active.nav-item--root::before {
-  content: '';
-
-  @apply absolute left-0 top-1/2 -translate-y-1/2 h-4 w-1 rounded-r-full;
-
-  background: rgb(var(--color-accent-primary-rgb) / 100%);
-}
-
-/* 设置坞：扁平不透明表面 + 语义边框，去 backdrop-filter / 去发光 / 去 accent mesh */
 .settings-dock {
-  background: var(--surface-card-bg);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0.75rem;
   border: 1px solid var(--surface-card-border);
+  border-radius: var(--radius-lg);
+  background: var(--surface-card-bg);
   box-shadow: var(--surface-card-shadow);
+  transition:
+    border-color var(--motion-subtle-duration) var(--motion-subtle-ease),
+    background-color var(--motion-subtle-duration) var(--motion-subtle-ease);
 }
 
 .settings-dock:hover {
-  border-color: rgb(var(--color-accent-primary-rgb) / 20%);
-  box-shadow: var(--shadow-md);
+  border-color: var(--color-border-strong);
+  background: var(--color-bg-surface);
 }
 
 .settings-dock--active {
-  border-color: rgb(var(--color-accent-primary-rgb) / 28%);
-  box-shadow: inset 0 0 0 1px rgb(var(--color-accent-primary-rgb) / 12%);
+  background: rgb(var(--color-accent-primary-rgb) / 10%);
+  border-color: rgb(var(--color-accent-primary-rgb) / 24%);
 }
 
-.settings-dock-pill {
-  @apply inline-flex items-center border px-2.5 py-1 text-[10px] font-semibold tracking-[0.04em];
-
-  border-radius: var(--radius-sm);
-  border-color: var(--color-border-default);
+.settings-dock__icon {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
   background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+}
+
+.settings-dock--active .settings-dock__icon {
+  border-color: rgb(var(--color-accent-primary-rgb) / 24%);
+  background: rgb(var(--color-accent-primary-rgb) / 12%);
+  color: var(--color-text-primary);
+}
+
+.settings-dock__copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.settings-dock__title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--color-text-primary);
+}
+
+.settings-dock__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.15rem 0.2rem;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  line-height: 1.24;
   color: var(--color-text-secondary);
+}
+
+.settings-dock__sep {
+  color: var(--color-text-muted);
+}
+
+.settings-dock__version {
+  font-family: var(--font-mono);
 }
 
 </style>

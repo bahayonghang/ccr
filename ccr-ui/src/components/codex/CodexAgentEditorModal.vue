@@ -321,70 +321,29 @@ function handleSubmit() {
 
 <style>
 .codex-agent-editor-modal {
-  --agent-shell-bg: linear-gradient(180deg, rgb(255 253 253 / 98%), rgb(245 250 255 / 96%));
-  --agent-shell-border: rgb(var(--color-border-default-rgb) / 82%);
-  --agent-shell-shadow: 0 28px 72px rgb(53 83 143 / 12%), 0 16px 36px rgb(40 160 120 / 8%);
-  --agent-panel-bg: rgb(255 255 255 / 88%);
-  --agent-panel-bg-hover: rgb(255 255 255 / 96%);
-  --agent-panel-muted-bg: linear-gradient(180deg, rgb(247 250 255 / 95%), rgb(241 247 255 / 92%));
-  --agent-input-bg: rgb(239 245 255 / 95%);
-  --agent-input-bg-hover: rgb(246 250 255 / 98%);
-  --agent-input-bg-focus: rgb(255 255 255 / 100%);
-  --agent-input-border: rgb(var(--color-border-default-rgb) / 84%);
+  --agent-shell-bg: var(--surface-modal-bg);
+  --agent-shell-border: var(--surface-modal-border);
+  --agent-shell-shadow: var(--surface-modal-shadow);
+  --agent-panel-bg: var(--color-bg-surface);
+  --agent-panel-bg-hover: var(--color-bg-overlay);
+  --agent-panel-muted-bg: var(--color-bg-elevated);
+  --agent-input-bg: var(--color-bg-surface);
+  --agent-input-bg-hover: var(--color-bg-overlay);
+  --agent-input-bg-focus: var(--color-bg-surface);
+  --agent-input-border: var(--color-border-subtle);
   --agent-input-border-strong: rgb(var(--color-accent-primary-rgb) / 34%);
-  --agent-hairline: rgb(var(--color-border-default-rgb) / 70%);
-  --agent-hairline-soft: rgb(var(--color-border-default-rgb) / 48%);
+  --agent-hairline: var(--color-border-default);
+  --agent-hairline-soft: var(--color-border-subtle);
   --agent-ink: var(--color-text-primary);
   --agent-ink-muted: var(--color-text-secondary);
   --agent-ink-soft: var(--color-text-muted);
   --agent-placeholder: var(--color-text-ghost);
   --agent-ring: 0 0 0 3px rgb(var(--color-accent-primary-rgb) / 14%);
 
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
   background: var(--agent-shell-bg) !important;
   border: 1px solid var(--agent-shell-border) !important;
   box-shadow: var(--agent-shell-shadow) !important;
   color: var(--agent-ink);
-}
-
-:root[class~='dark'] .codex-agent-editor-modal,
-[data-theme='dark'] .codex-agent-editor-modal {
-  --agent-shell-bg: linear-gradient(180deg, rgb(22 18 31 / 97%), rgb(16 14 24 / 95%));
-  --agent-shell-border: rgb(92 134 188 / 34%);
-  --agent-shell-shadow: 0 34px 96px rgb(7 5 13 / 62%), 0 18px 40px rgb(10 8 20 / 46%);
-  --agent-panel-bg: linear-gradient(180deg, rgb(36 34 50 / 88%), rgb(27 25 40 / 84%));
-  --agent-panel-bg-hover: linear-gradient(180deg, rgb(44 42 60 / 92%), rgb(31 29 45 / 88%));
-  --agent-panel-muted-bg: linear-gradient(180deg, rgb(44 40 58 / 92%), rgb(33 30 47 / 86%));
-  --agent-input-bg: rgb(51 53 75 / 88%);
-  --agent-input-bg-hover: rgb(58 61 85 / 92%);
-  --agent-input-bg-focus: rgb(65 68 94 / 96%);
-  --agent-input-border: rgb(112 148 198 / 36%);
-  --agent-input-border-strong: rgb(var(--color-accent-primary-rgb) / 48%);
-  --agent-hairline: rgb(112 148 198 / 34%);
-  --agent-hairline-soft: rgb(112 148 198 / 24%);
-  --agent-ink: rgb(246 249 255 / 98%);
-  --agent-ink-muted: rgb(204 217 238 / 88%);
-  --agent-ink-soft: rgb(168 186 216 / 76%);
-  --agent-placeholder: rgb(168 186 216 / 66%);
-  --agent-ring: 0 0 0 3px rgb(var(--color-accent-primary-rgb) / 18%);
-}
-
-.codex-agent-editor-modal::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(circle at top right, rgb(var(--color-accent-primary-rgb) / 14%), transparent 42%),
-    radial-gradient(circle at top left, rgb(var(--color-platform-codex-rgb) / 12%), transparent 34%);
-  pointer-events: none;
-  z-index: 0;
-}
-
-.codex-agent-editor-modal > * {
-  position: relative;
-  z-index: 1;
 }
 
 .codex-agent-editor-modal .text-text-primary,
@@ -421,11 +380,7 @@ function handleSubmit() {
 }
 
 .codex-agent-editor-modal .bg-accent-primary {
-  box-shadow: 0 18px 32px rgb(var(--color-accent-primary-rgb) / 24%);
-}
-
-.codex-agent-editor-modal .bg-accent-primary:hover {
-  filter: saturate(1.05) brightness(1.03);
+  box-shadow: none;
 }
 
 .codex-agent-editor-modal .rounded-2xl.border.border-border-default\/50 {

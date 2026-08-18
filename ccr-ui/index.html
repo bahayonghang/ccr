@@ -13,11 +13,11 @@
         var theme=localStorage.getItem('ccr-theme')||'light';
         var flavor=localStorage.getItem('ccr-flavor')||'neutral';
         var accent=localStorage.getItem('ccr-accent')||'clay';
-        var flavors=['neutral','clay','catppuccin'];
-        var accents=['clay','sage','sky','mauve'];
+        var flavors=['neutral','clay'];
+        var accents=['clay'];
         // 与 src/utils/themeBootstrap.ts 的迁移表保持一致：旧值域映射 → 白名单校验 → 默认回退。
-        var flavorMigration={paper:'neutral',graphite:'neutral',latte:'catppuccin',frappe:'catppuccin',macchiato:'catppuccin',mocha:'catppuccin'};
-        var accentMigration={sand:'clay',amber:'clay',rose:'clay',slate:'sky'};
+        var flavorMigration={paper:'neutral',graphite:'neutral',catppuccin:'neutral',latte:'neutral',frappe:'neutral',macchiato:'neutral',mocha:'neutral'};
+        var accentMigration={mauve:'clay',sage:'clay',sky:'clay',slate:'clay',sand:'clay',amber:'clay',rose:'clay'};
         if(Object.prototype.hasOwnProperty.call(flavorMigration,flavor)){flavor=flavorMigration[flavor];}
         if(Object.prototype.hasOwnProperty.call(accentMigration,accent)){accent=accentMigration[accent];}
         if(flavors.indexOf(flavor)<0){flavor='neutral';}
@@ -27,9 +27,6 @@
           resolvedTheme=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';
         }
         var resolvedFlavor=flavor;
-        if(flavor==='catppuccin'){
-          resolvedFlavor=resolvedTheme==='light'?'latte':'mocha';
-        }
         root.classList.toggle('dark',resolvedTheme==='dark');
         root.setAttribute('data-theme',resolvedTheme);
         root.setAttribute('data-flavor',flavor);

@@ -1,112 +1,74 @@
 <template>
-  <div class="codex-view stage-page">
-    <div class="codex-shell">
-      <section class="codex-command-header">
-        <div class="codex-command-header__status" />
-
-        <div class="codex-command-header__main">
-          <div class="codex-command-header__copy">
-            <div class="codex-eyebrow-row">
-              <span class="codex-eyebrow">{{ $t('codex.dashboard.header.eyebrow') }}</span>
-              <span class="codex-status-dot" />
-              <span class="codex-eyebrow codex-eyebrow--muted">{{ $t('codex.dashboard.header.workflow') }}</span>
-            </div>
-
-            <div class="codex-title-row">
-              <div class="codex-mark">
-                <SIcon
-                  name="Code2"
-                  size="w-6 h-6"
-                />
-              </div>
-              <div>
-                <h1 class="codex-title">
-                  {{ t('codex.overview.title') }}
-                </h1>
-                <p class="codex-subtitle">
-                  {{ $t('codex.dashboard.header.subtitle') }}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div class="codex-command-actions">
-            <Button
-              variant="ghost"
-              size="sm"
-              :disabled="loading"
-              @click="refresh(true)"
-            >
+  <PageShell class="codex-view">
+    <template #header>
+      <PageHeader
+        :title="t('codex.overview.title')"
+        :eyebrow="$t('codex.dashboard.header.eyebrow')"
+        :description="$t('codex.dashboard.header.subtitle')"
+      >
+        <template #actions>
+          <Button
+            variant="ghost"
+            size="sm"
+            :disabled="loading"
+            @click="refresh(true)"
+          >
+            <SIcon
+              name="RefreshCw"
+              size="w-4 h-4"
+              class="mr-2"
+              :class="{ 'animate-spin': loading }"
+            />
+            {{ $t('codex.dashboard.header.refresh') }}
+          </Button>
+          <RouterLink :to="primaryAction.to">
+            <Button :variant="primaryButtonVariant">
               <SIcon
-                name="RefreshCw"
+                :name="primaryAction.icon"
                 size="w-4 h-4"
                 class="mr-2"
-                :class="{ 'animate-spin': loading }"
               />
-              {{ $t('codex.dashboard.header.refresh') }}
+              {{ primaryAction.title }}
             </Button>
+          </RouterLink>
+          <RouterLink to="/codex/auth">
+            <Button variant="secondary">
+              <SIcon
+                name="KeyRound"
+                size="w-4 h-4"
+                class="mr-2"
+              />
+              {{ $t('codex.dashboard.header.authConfig') }}
+            </Button>
+          </RouterLink>
+          <RouterLink to="/codex/profiles">
+            <Button variant="secondary">
+              <SIcon
+                name="Folders"
+                size="w-4 h-4"
+                class="mr-2"
+              />
+              {{ $t('codex.dashboard.header.profileConfig') }}
+            </Button>
+          </RouterLink>
+        </template>
+      </PageHeader>
+    </template>
 
-            <RouterLink :to="primaryAction.to">
-              <Button
-                :variant="primaryButtonVariant"
-                size="md"
-              >
-                <SIcon
-                  :name="primaryAction.icon"
-                  size="w-4 h-4"
-                  class="mr-2"
-                />
-                {{ primaryAction.title }}
-              </Button>
-            </RouterLink>
-
-            <RouterLink to="/codex/auth">
-              <Button
-                variant="glass"
-                size="md"
-                class="codex-command-actions__config"
-              >
-                <SIcon
-                  name="KeyRound"
-                  size="w-4 h-4"
-                  class="mr-2"
-                />
-                {{ $t('codex.dashboard.header.authConfig') }}
-              </Button>
-            </RouterLink>
-
-            <RouterLink to="/codex/profiles">
-              <Button
-                variant="glass"
-                size="md"
-                class="codex-command-actions__config"
-              >
-                <SIcon
-                  name="Folders"
-                  size="w-4 h-4"
-                  class="mr-2"
-                />
-                {{ $t('codex.dashboard.header.profileConfig') }}
-              </Button>
-            </RouterLink>
-          </div>
-        </div>
-
-        <div class="codex-command-meta">
-          <div class="codex-meta-chip">
-            <span>{{ $t('codex.dashboard.header.version') }}</span>
-            <strong>{{ versionLabel }}</strong>
-          </div>
-          <div class="codex-meta-chip">
-            <span>{{ $t('codex.dashboard.header.profile') }}</span>
-            <strong>{{ currentProfileLabel }}</strong>
-          </div>
-          <div class="codex-meta-chip codex-meta-chip--wide">
-            <span>{{ $t('codex.dashboard.header.account') }}</span>
-            <strong :title="currentAccountLabel">{{ currentAccountLabel }}</strong>
-          </div>
-        </div>
-      </section>
+    <div class="codex-stats">
+      <StatTile
+        :label="$t('codex.dashboard.header.version')"
+        :value="versionLabel"
+      />
+      <StatTile
+        :label="$t('codex.dashboard.header.profile')"
+        :value="currentProfileLabel"
+      />
+      <StatTile
+        :label="$t('codex.dashboard.header.account')"
+        :value="currentAccountLabel"
+      />
+    </div>
 
       <PlatformUsageInsightPanel
         :spec="codexUsageSpec"
@@ -395,8 +357,7 @@
           />
         </Card>
       </section>
-    </div>
-  </div>
+  </PageShell>
 </template>
 
 <script setup lang="ts">
@@ -405,6 +366,9 @@ import { useI18n } from 'vue-i18n'
 import Button from '@/components/ui/Button.vue'
 import Card from '@/components/ui/Card.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
+import PageHeader from '@/components/ui/PageHeader.vue'
+import PageShell from '@/components/ui/PageShell.vue'
+import StatTile from '@/components/ui/StatTile.vue'
 import SIcon from '@/components/ui/SIcon.vue'
 import PlatformUsageInsightPanel from '@/components/platform-usage/PlatformUsageInsightPanel.vue'
 import { useCodexDashboard, type CodexDashboardTone } from '@/composables/useCodexDashboard'
@@ -474,32 +438,24 @@ onActivated(() => {
 
 <style scoped>
 .codex-view {
-  @apply relative min-h-full overflow-hidden p-6 lg:p-10;
+  background: var(--color-bg-elevated);
 }
 
-.codex-shell {
-  @apply mx-auto max-w-7xl space-y-5;
+.codex-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 12px;
+  background: var(--color-bg-surface);
 }
 
-.codex-command-header,
 .codex-readiness-board,
 .codex-console-card {
-  border: 1px solid var(--stage-border-soft);
-  background:
-    linear-gradient(135deg, rgb(var(--color-bg-elevated-rgb) / 92%), rgb(var(--color-bg-surface-rgb) / 84%)),
-    var(--stage-surface-medium);
-
-  @apply relative overflow-hidden rounded-[2rem];
-}
-
-.codex-command-header {
-  @apply p-5 lg:p-6;
-}
-
-.codex-command-header__status {
-  @apply pointer-events-none absolute inset-x-6 top-0 h-px;
-
-  background: linear-gradient(90deg, transparent, rgb(var(--color-accent-primary-rgb) / 52%), transparent);
+  border: 1px solid var(--color-border-subtle);
+  background: var(--color-bg-surface);
+  border-radius: 12px;
 }
 
 .codex-command-header__main {
@@ -632,25 +588,11 @@ onActivated(() => {
 
 .codex-readiness-item--danger,
 .codex-readiness-item--warning {
-  background: linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 94%), rgb(var(--color-bg-surface-rgb) / 86%));
+  background: var(--color-bg-surface);
 }
 
 .codex-readiness-item__axis {
-  @apply absolute inset-y-4 left-0 w-1 rounded-full;
-
-  background: var(--stage-border-default);
-}
-
-.codex-readiness-item--success .codex-readiness-item__axis {
-  background: var(--color-success);
-}
-
-.codex-readiness-item--warning .codex-readiness-item__axis {
-  background: var(--color-warning);
-}
-
-.codex-readiness-item--danger .codex-readiness-item__axis {
-  background: var(--color-danger);
+  display: none;
 }
 
 .codex-readiness-item__body {
@@ -666,13 +608,13 @@ onActivated(() => {
   border: 1px solid var(--stage-chip-neutral-border);
   color: var(--stage-chip-neutral-text);
 
-  @apply rounded-full px-2.5 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.12em];
+  @apply rounded-md px-2.5 py-1 text-[0.68rem] font-medium;
 }
 
 .codex-readiness-label {
   color: var(--stage-text-quiet);
 
-  @apply text-xs font-medium uppercase tracking-[0.14em];
+  @apply text-xs font-medium;
 }
 
 .codex-readiness-value {

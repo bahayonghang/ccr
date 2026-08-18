@@ -1,41 +1,36 @@
 <template>
-  <div class="pricing-view">
-    <header class="pricing-hero">
-      <div class="pricing-hero__copy">
-        <p class="pricing-hero__eyebrow">
-          {{ t('pricing.eyebrow') }}
-        </p>
-        <div class="pricing-hero__title-row">
-          <h1>{{ t('pricing.title') }}</h1>
+  <PageShell class="pricing-view">
+    <template #header>
+      <PageHeader
+        :title="t('pricing.title')"
+        :description="t('pricing.subtitle')"
+      >
+        <template #status>
           <span class="pricing-badge">{{ t('pricing.legacyBadge') }}</span>
-        </div>
-        <p class="pricing-hero__subtitle">
-          {{ t('pricing.subtitle') }}
-        </p>
-      </div>
-
-      <div class="pricing-hero__actions">
-        <a
-          class="pricing-button pricing-button--secondary"
-          href="/usage"
-        >
-          {{ t('pricing.actions.openUsage') }}
-        </a>
-        <button
-          type="button"
-          :disabled="loading"
-          class="pricing-button pricing-button--primary"
-          @click="loadData"
-        >
-          <span
-            class="pricing-button__spinner"
-            :class="{ 'pricing-button__spinner--active': loading }"
-            aria-hidden="true"
-          />
-          {{ t('pricing.actions.refresh') }}
-        </button>
-      </div>
-    </header>
+        </template>
+        <template #actions>
+          <a
+            class="pricing-button pricing-button--secondary"
+            href="/usage"
+          >
+            {{ t('pricing.actions.openUsage') }}
+          </a>
+          <button
+            type="button"
+            :disabled="loading"
+            class="pricing-button pricing-button--primary"
+            @click="loadData"
+          >
+            <span
+              class="pricing-button__spinner"
+              :class="{ 'pricing-button__spinner--active': loading }"
+              aria-hidden="true"
+            />
+            {{ t('pricing.actions.refresh') }}
+          </button>
+        </template>
+      </PageHeader>
+    </template>
 
     <section
       class="pricing-boundary"
@@ -313,12 +308,14 @@
         </div>
       </section>
     </main>
-  </div>
+  </PageShell>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import PageHeader from '@/components/ui/PageHeader.vue'
+import PageShell from '@/components/ui/PageShell.vue'
 import { getPricingList, removePricing, resetPricing, setPricing } from '@/api'
 import type { ModelPricing, SetPricingRequest } from '@/types'
 import { logger } from '@/utils/logger'
@@ -586,32 +583,16 @@ onMounted(() => {
 
 <style scoped>
 .pricing-view {
-  display: grid;
-  gap: 1rem;
-  padding: 1.1rem;
+  min-width: 0;
 }
 
-.pricing-hero,
 .pricing-boundary,
 .pricing-card,
 .pricing-confirm,
 .pricing-status,
 .pricing-loading {
-  border: 1px solid rgb(var(--color-border-default-rgb) / 14%);
-  background: rgb(var(--color-bg-elevated-rgb) / 78%);
-  box-shadow: var(--elevation-1);
-}
-
-.pricing-hero {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 1rem;
-  border-radius: 1.45rem;
-  background:
-    linear-gradient(135deg, rgb(var(--color-bg-elevated-rgb) / 90%), rgb(var(--color-bg-surface-rgb) / 72%)),
-    radial-gradient(circle at 12% 0%, rgb(var(--color-accent-primary-rgb) / 7%), transparent 38%);
-  padding: 1rem 1.08rem;
+  border: 1px solid var(--color-border-subtle);
+  background: var(--color-bg-surface);
 }
 
 .pricing-hero__copy {
@@ -620,16 +601,14 @@ onMounted(() => {
   max-width: 54rem;
 }
 
-.pricing-hero__eyebrow,
 .pricing-section-heading__eyebrow,
 .pricing-confirm__eyebrow,
 .pricing-boundary__item span,
 .pricing-field span {
   color: var(--color-text-muted);
-  font-size: 0.66rem;
-  font-weight: 760;
-  letter-spacing: 0.11em;
-  text-transform: uppercase;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0;
 }
 
 .pricing-hero__title-row {
@@ -640,11 +619,7 @@ onMounted(() => {
 }
 
 .pricing-hero h1 {
-  color: var(--color-text-primary);
-  font-size: clamp(1.45rem, 1.1vw + 1rem, 2.05rem);
-  font-weight: 780;
-  letter-spacing: -0.04em;
-  line-height: 1.05;
+  display: none;
 }
 
 .pricing-hero__subtitle,
@@ -744,21 +719,16 @@ onMounted(() => {
 
 .pricing-button--danger,
 .pricing-button--ghost-danger {
-  border-color: rgb(185 93 75 / 25%);
-  color: rgb(150 62 46);
+  border-color: rgb(var(--color-danger-rgb) / 25%);
+  color: var(--color-danger);
 }
 
 .pricing-button--danger {
-  background: rgb(185 93 75 / 14%);
+  background: rgb(var(--color-danger-rgb) / 14%);
 }
 
 .pricing-button--ghost-danger {
-  background: rgb(185 93 75 / 7%);
-}
-
-:global(.dark) .pricing-button--danger,
-:global(.dark) .pricing-button--ghost-danger {
-  color: rgb(244 173 153);
+  background: rgb(var(--color-danger-rgb) / 7%);
 }
 
 .pricing-button--compact {

@@ -1,67 +1,56 @@
 <template>
-  <div class="checkin-view">
-    <!-- 页面标题与操作 -->
-    <div class="checkin-view__header">
-      <div class="checkin-view__header-copy">
-        <h1 class="checkin-view__title">
-          <span class="checkin-view__title-icon-shell">
-            <SIcon
-              name="ClipboardList"
-              size="w-6 h-6"
-              class="checkin-view__title-icon"
-            />
-          </span>
-          <span class="checkin-view__title-label">{{ t('checkin.title') }}</span>
-        </h1>
-        <p class="checkin-view__subtitle">
-          {{ t('checkin.description') }}
-        </p>
-      </div>
-      <div class="checkin-view__actions">
-        <button
-          :disabled="loading || checkinLoading || enabledAccounts.length === 0"
-          class="checkin-view__action-button checkin-view__action-button--checkin"
-          @click="showCheckinConfirm = true"
-        >
-          <svg
-            class="w-5 h-5"
-            :class="{ 'animate-spin': checkinLoading }"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+  <PageShell class="checkin-view">
+    <template #header>
+      <PageHeader
+        :title="t('checkin.title')"
+        :description="t('checkin.description')"
+      >
+        <template #actions>
+          <button
+            :disabled="loading || checkinLoading || enabledAccounts.length === 0"
+            class="checkin-view__action-button checkin-view__action-button--checkin"
+            @click="showCheckinConfirm = true"
           >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
-          <span>{{ checkinLoading ? t('checkin.actions.checkingAll') : t('checkin.actions.checkAll') }}</span>
-        </button>
-        <button
-          :disabled="balanceRefreshing || accounts.length === 0"
-          class="checkin-view__action-button checkin-view__action-button--balance"
-          @click="refreshAllBalances"
-        >
-          <svg
-            class="w-5 h-5"
-            :class="{ 'animate-spin': balanceRefreshing }"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+            <svg
+              class="w-5 h-5"
+              :class="{ 'animate-spin': checkinLoading }"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <span>{{ checkinLoading ? t('checkin.actions.checkingAll') : t('checkin.actions.checkAll') }}</span>
+          </button>
+          <button
+            :disabled="balanceRefreshing || accounts.length === 0"
+            class="checkin-view__action-button checkin-view__action-button--balance"
+            @click="refreshAllBalances"
           >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-            />
-          </svg>
-          <span>{{ balanceRefreshing ? t('checkin.actions.refreshing') : t('checkin.actions.refreshBalances') }}</span>
-        </button>
-      </div>
-    </div>
+            <svg
+              class="w-5 h-5"
+              :class="{ 'animate-spin': balanceRefreshing }"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
+            </svg>
+            <span>{{ balanceRefreshing ? t('checkin.actions.refreshing') : t('checkin.actions.refreshBalances') }}</span>
+          </button>
+        </template>
+      </PageHeader>
+    </template>
 
     <!-- 加载状态 -->
     <div
@@ -462,109 +451,27 @@
       v-if="!loading && !error"
       class="checkin-view__content"
     >
-      <!-- 顶部统计卡片 -->
       <div class="checkin-view__stats">
-        <!-- 当前余额 -->
-        <div class="checkin-view__stat-card">
-          <div>
-            <p class="checkin-view__stat-label">
-              {{ t('checkin.stats.currentBalance') }}
-            </p>
-            <p class="checkin-view__stat-value checkin-view__stat-value--success">
-              ${{ totalStatistics.currentBalance.toFixed(2) }}
-            </p>
-          </div>
-          <div class="checkin-view__stat-icon checkin-view__stat-icon--success">
-            <svg
-              class="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
-              />
-            </svg>
-          </div>
-        </div>
-        <!-- 总额度-->
-        <div class="checkin-view__stat-card">
-          <div>
-            <p class="checkin-view__stat-label">
-              {{ t('checkin.stats.totalQuota') }}
-            </p>
-            <p class="checkin-view__stat-value checkin-view__stat-value--info">
-              ${{ totalStatistics.totalQuota.toFixed(2) }}
-            </p>
-          </div>
-          <div class="checkin-view__stat-icon checkin-view__stat-icon--info">
-            <svg
-              class="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
-              />
-            </svg>
-          </div>
-        </div>
-        <!-- 已消耗-->
-        <div class="checkin-view__stat-card">
-          <div>
-            <p class="checkin-view__stat-label">
-              {{ t('checkin.stats.totalConsumed') }}
-            </p>
-            <p class="checkin-view__stat-value checkin-view__stat-value--warning">
-              ${{ totalStatistics.totalConsumed.toFixed(2) }}
-            </p>
-          </div>
-          <div class="checkin-view__stat-icon checkin-view__stat-icon--warning">
-            <svg
-              class="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-          </div>
-        </div>
+        <StatTile
+          :label="t('checkin.stats.currentBalance')"
+          :value="`$${totalStatistics.currentBalance.toFixed(2)}`"
+        />
+        <StatTile
+          :label="t('checkin.stats.totalQuota')"
+          :value="`$${totalStatistics.totalQuota.toFixed(2)}`"
+        />
+        <StatTile
+          :label="t('checkin.stats.totalConsumed')"
+          :value="`$${totalStatistics.totalConsumed.toFixed(2)}`"
+        />
       </div>
 
-      <!-- Tab 导航 -->
       <div class="checkin-view__tabs-shell">
-        <nav class="checkin-view__tabs">
-          <button
-            v-for="tab in tabs"
-            :key="tab.id"
-            :class="[
-              'checkin-view__tab-button',
-              activeTab === tab.id
-                ? 'checkin-view__tab-button--active'
-                : 'checkin-view__tab-button--inactive',
-            ]"
-            @click="activeTab = tab.id"
-          >
-            <SIcon
-              :name="tab.icon"
-              size="w-4 h-4"
-            />
-            {{ t(tab.nameKey) }}
-          </button>
-        </nav>
+        <PillToggleGroup
+          :options="tabToggleOptions"
+          :model-value="activeTab"
+          @update:model-value="activeTab = $event"
+        />
       </div>
 
       <!-- Tab 内容 -->
@@ -639,13 +546,18 @@
       @close="showOAuthWizard = false"
       @success="handleOAuthSuccess"
     />
-  </div>
+  </PageShell>
 </template>
 
 <script setup lang="ts">
 defineOptions({ name: 'CheckinView' })
 
+import PageHeader from '@/components/ui/PageHeader.vue'
+import PageShell from '@/components/ui/PageShell.vue'
+import PillToggleGroup from '@/components/ui/PillToggleGroup.vue'
+import StatTile from '@/components/ui/StatTile.vue'
 import SIcon from '@/components/ui/SIcon.vue'
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useCheckinState } from './checkin/composables/useCheckinState'
@@ -720,6 +632,13 @@ const {
   getErrorLabel,
 } = useCheckinState()
 
+const tabToggleOptions = computed(() =>
+  tabs.map((tab) => ({
+    value: tab.id,
+    label: t(tab.nameKey),
+  })),
+)
+
 const openAccountDashboard = (accountId: string) => {
   router.push({ name: 'checkin-account-dashboard', params: { accountId } })
 }
@@ -727,10 +646,7 @@ const openAccountDashboard = (accountId: string) => {
 
 <style scoped>
 .checkin-view {
-  padding: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
+  min-width: 0;
 }
 
 .checkin-view__header {
@@ -748,7 +664,7 @@ const openAccountDashboard = (accountId: string) => {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   font-size: 2rem;
   line-height: 1.1;
   font-weight: 600;
@@ -770,7 +686,7 @@ const openAccountDashboard = (accountId: string) => {
 }
 
 .checkin-view__title-icon {
-  color: var(--accent-primary);
+  color: var(--color-accent-primary);
 }
 
 
@@ -781,7 +697,7 @@ const openAccountDashboard = (accountId: string) => {
 .checkin-view__subtitle {
   max-width: 40ch;
   margin-top: 0.625rem;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   font-size: 0.9375rem;
   line-height: 1.5rem;
 }
@@ -1014,13 +930,13 @@ const openAccountDashboard = (accountId: string) => {
 
 .checkin-view__result-badge--neutral {
   background: var(--color-bg-overlay);
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 
 .checkin-view__result-badge--muted {
   background: var(--color-bg-overlay);
-  color: var(--text-muted);
+  color: var(--color-text-muted);
 }
 
 
@@ -1170,7 +1086,7 @@ const openAccountDashboard = (accountId: string) => {
 
 
 .checkin-view__result-section-title--muted {
-  color: var(--text-muted);
+  color: var(--color-text-muted);
 }
 
 
@@ -1229,7 +1145,7 @@ const openAccountDashboard = (accountId: string) => {
 }
 
 .checkin-view__result-item-icon--muted {
-  color: var(--text-muted);
+  color: var(--color-text-muted);
 }
 
 .checkin-view__result-item-body {
@@ -1266,7 +1182,7 @@ const openAccountDashboard = (accountId: string) => {
 
 
 .checkin-view__result-item-name--muted {
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 
@@ -1318,7 +1234,7 @@ const openAccountDashboard = (accountId: string) => {
 
 .checkin-view__result-tag--muted {
   background: var(--color-bg-overlay);
-  color: var(--text-muted);
+  color: var(--color-text-muted);
 }
 
 
@@ -1362,7 +1278,7 @@ const openAccountDashboard = (accountId: string) => {
 
 
 .checkin-view__result-message--muted {
-  color: var(--text-muted);
+  color: var(--color-text-muted);
 }
 
 
@@ -1425,7 +1341,7 @@ const openAccountDashboard = (accountId: string) => {
 
 
 .checkin-view__stat-label {
-  color: var(--text-muted);
+  color: var(--color-text-muted);
   font-size: 0.875rem;
   line-height: 1.25rem;
   font-weight: 500;
@@ -1504,18 +1420,18 @@ const openAccountDashboard = (accountId: string) => {
 }
 
 .checkin-view__tab-button--active {
-  border-color: var(--accent-primary);
-  color: var(--accent-primary);
+  border-color: var(--color-accent-primary);
+  color: var(--color-accent-primary);
 }
 
 .checkin-view__tab-button--inactive {
   border-color: transparent;
-  color: var(--text-muted);
+  color: var(--color-text-muted);
 }
 
 .checkin-view__tab-button--inactive:hover {
   border-color: rgb(var(--color-border-default-rgb) / 42%);
-  color: var(--text-primary);
+  color: var(--color-text-primary);
 }
 
 @media (width <= 900px) {

@@ -69,8 +69,10 @@ interface Props {
   dot?: boolean
   /** 是否可移除 */
   removable?: boolean
-  /** 是否为圆角药丸形状 */
+  /** 是否为圆角药丸形状。仅用于状态点 + 短词。 */
   pill?: boolean
+  /** square=6–8px 方角；pill 仅状态点 + 短词。 */
+  shape?: 'square' | 'pill'
   /** 平台专属颜色 */
   platform?: 'claude' | 'codex' | 'gemini'
 }
@@ -88,8 +90,11 @@ const props = withDefaults(defineProps<Props>(), {
   dot: false,
   removable: false,
   pill: false,
+  shape: 'square',
   platform: undefined,
 })
+
+const isPill = computed(() => props.pill || props.shape === 'pill')
 
 // Variant classes
 const variantClasses = {
@@ -120,16 +125,9 @@ const sizeClasses = {
 
 // Badge classes
 const badgeClasses = computed(() => [
-  // Base styles
-  'inline-flex items-center font-medium border transition-[color,background-color,border-color] duration-150',
-
-  // Size
+  'ui-badge inline-flex items-center font-medium border transition-[color,background-color,border-color] duration-150',
+  isPill.value ? 'ui-badge--pill' : 'ui-badge--square',
   sizeClasses[props.size],
-
-  // Shape
-  props.pill ? 'rounded-full' : 'rounded-md',
-
-  // Variant or Platform
   props.platform
     ? platformClasses[props.platform]
     : variantClasses[props.variant],
@@ -174,7 +172,7 @@ const dotClasses = computed(() => {
   }
 
   return [
-    'rounded-full animate-pulse',
+    'rounded-full',
     dotSizes[props.size],
     props.platform
       ? platformDotColors[props.platform]
@@ -190,3 +188,14 @@ const removeButtonClasses = computed(() => [
   'transition-colors duration-150',
 ])
 </script>
+
+<style scoped>
+.ui-badge--square {
+  border-radius: var(--radius-lg);
+}
+
+.ui-badge--pill {
+  border-radius: var(--radius-full);
+}
+</style>
+

@@ -131,8 +131,7 @@ const cacheEfficiencyLabel = computed(() => formatPercent(props.summary.cache_ef
   gap: 0.7rem;
   border-radius: 1.28rem;
   border: 1px solid rgb(var(--color-border-default-rgb) / 13%);
-  background:
-    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 88%), rgb(var(--color-bg-surface-rgb) / 72%));
+  background: var(--color-bg-surface);
   padding: 0.85rem 0.95rem;
   box-shadow: var(--elevation-1);
 }

@@ -637,7 +637,7 @@ defineExpose({ open })
   gap: 0.5rem;
   font-size: 1.2rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
 }
 
 .checkin-accounts-tab__modal-title-icon {
@@ -648,7 +648,7 @@ defineExpose({ open })
   max-width: 36rem;
   font-size: 0.8125rem;
   line-height: 1.45;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .checkin-accounts-tab__modal-badge-row {
@@ -664,7 +664,7 @@ defineExpose({ open })
   background: var(--color-bg-elevated);
   padding: 0.4rem 0.75rem;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .checkin-accounts-tab__modal-badge--warning {
@@ -762,7 +762,7 @@ defineExpose({ open })
 .checkin-accounts-tab__label {
   font-size: 0.875rem;
   font-weight: 500;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .checkin-accounts-tab__label--amber {
@@ -772,7 +772,7 @@ defineExpose({ open })
 .checkin-accounts-tab__control {
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border-default);
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   transition:
     border-color 0.2s ease,
     box-shadow 0.2s ease,
@@ -805,7 +805,7 @@ defineExpose({ open })
 
 .checkin-accounts-tab__control option {
   background: rgb(var(--color-bg-elevated-rgb) / 100%);
-  color: var(--text-primary);
+  color: var(--color-text-primary);
 }
 
 .checkin-accounts-tab__control option:disabled {
@@ -959,7 +959,7 @@ defineExpose({ open })
   cursor: pointer;
   user-select: none;
   font-size: 0.875rem;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .checkin-accounts-tab__form-button {
@@ -982,13 +982,13 @@ defineExpose({ open })
 .checkin-accounts-tab__form-button--secondary {
   border: 1px solid var(--color-border-default);
   background: var(--color-bg-surface);
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   box-shadow: var(--shadow-xs);
 }
 
 .checkin-accounts-tab__form-button--secondary:hover {
   background: var(--color-bg-elevated);
-  color: var(--text-primary);
+  color: var(--color-text-primary);
 }
 
 .checkin-accounts-tab__form-button--primary {

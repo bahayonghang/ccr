@@ -35,10 +35,10 @@ import SIcon from '@/components/ui/SIcon.vue'
 
 /** agent 元数据定义 */
 const AGENT_META: Record<string, { label: string; icon: string; color: string }> = {
-  claude: { label: 'Claude', icon: 'Code2', color: 'var(--color-platform-claude, #c96442)' },
-  codex: { label: 'Codex', icon: 'Settings', color: 'var(--color-platform-codex, #10a37f)' },
-  gemini: { label: 'Gemini', icon: 'Sparkles', color: 'var(--color-platform-gemini, #4285f4)' },
-  opencode: { label: 'OpenCode', icon: 'TerminalSquare', color: 'var(--color-platform-opencode, #6b7280)' },
+  claude: { label: 'Claude', icon: 'Code2', color: 'var(--color-platform-claude)' },
+  codex: { label: 'Codex', icon: 'Settings', color: 'var(--color-platform-codex)' },
+  gemini: { label: 'Gemini', icon: 'Sparkles', color: 'var(--color-platform-gemini)' },
+  opencode: { label: 'OpenCode', icon: 'TerminalSquare', color: 'var(--color-platform-opencode)' },
 }
 
 const props = withDefaults(defineProps<{

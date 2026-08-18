@@ -1,146 +1,124 @@
 <template>
-  <div class="codex-slash-view">
-    <div class="codex-slash-shell">
-      <ModuleSubnav module="codex" />
+  <PageShell class="codex-slash-view">
+    <template #header>
+      <PageHeader
+        :title="tt('Codex 目前没有可管理的 Slash Commands', 'Codex currently has no manageable slash commands')"
+        :eyebrow="tt('仅兼容入口', 'Compatibility Only')"
+        :description="tt('这个页面保留为兼容入口，用来解释为什么 Codex 模块没有接入 Slash Commands 管理。 当前工作流重点已经切到 Sessions、Agents、Profiles 和 MCP。', 'This page remains as a compatibility entry so it can explain why the Codex module does not expose slash-command management. The active workflow focus has shifted to Sessions, Agents, Profiles, and MCP.')"
+      >
+        <template #actions>
+          <RouterLink
+            to="/codex/sessions"
+            class="btn btn-primary"
+          >
+            <SIcon
+              name="MessagesSquare"
+              size="w-4 h-4"
+            />
+            <span>{{ tt('打开 Sessions', 'Open Sessions') }}</span>
+          </RouterLink>
+          <RouterLink
+            to="/codex/agents"
+            class="btn btn-secondary"
+          >
+            <SIcon
+              name="Bot"
+              size="w-4 h-4"
+            />
+            <span>{{ tt('管理 Agents', 'Manage Agents') }}</span>
+          </RouterLink>
+        </template>
+      </PageHeader>
+    </template>
 
-      <div class="codex-slash-stack">
-        <Card
-          variant="glass"
-          class="codex-slash-hero"
-        >
-          <div class="codex-slash-hero__glow" />
-          <div class="codex-slash-hero__content">
-            <div class="codex-slash-hero__icon">
+    <template #subnav>
+      <ModuleSubnav module="codex" />
+    </template>
+
+    <div class="codex-slash-grid">
+      <Card
+        variant="glass"
+        class="codex-slash-panel"
+      >
+        <div class="codex-slash-panel__header">
+          <div class="codex-slash-panel__icon codex-slash-panel__icon--rose">
+            <SIcon
+              name="AlertTriangle"
+              size="w-5 h-5"
+            />
+          </div>
+          <div>
+            <h2 class="codex-slash-panel__title">
+              {{ tt('当前状态', 'Current state') }}
+            </h2>
+            <p class="codex-slash-panel__subtitle">
+              {{ tt('后端没有对应的 Slash Commands 命令集', 'The backend has no matching slash-command command set') }}
+            </p>
+          </div>
+        </div>
+
+        <div class="codex-slash-note">
+          <p class="codex-slash-note__title">
+            {{ tt('为什么不继续沿用通用页面', 'Why not keep the generic page') }}
+          </p>
+          <p class="codex-slash-note__body">
+            {{ tt('Codex 在 CCR 中没有对应的 slash command CRUD 能力，之前的页面只是复用通用容器后返回“平台不支持”。现在把它降级成说明页，避免把一个不存在的能力放进主导航。', 'CCR does not expose slash-command CRUD for Codex. The old page only reused the generic container and returned “platform not supported”. It is now downgraded into an explainer page so a nonexistent capability does not stay in the main navigation.') }}
+          </p>
+        </div>
+      </Card>
+
+      <Card
+        variant="glass"
+        class="codex-slash-panel"
+      >
+        <div class="codex-slash-panel__header">
+          <div class="codex-slash-panel__icon codex-slash-panel__icon--emerald">
+            <SIcon
+              name="Workflow"
+              size="w-5 h-5"
+            />
+          </div>
+          <div>
+            <h2 class="codex-slash-panel__title">
+              {{ tt('推荐入口', 'Recommended entries') }}
+            </h2>
+            <p class="codex-slash-panel__subtitle">
+              {{ tt('真实可用的 Codex 工作面板', 'The Codex surfaces that actually work') }}
+            </p>
+          </div>
+        </div>
+
+        <div class="codex-slash-shortcuts">
+          <RouterLink
+            v-for="item in shortcuts"
+            :key="item.to"
+            :to="item.to"
+            class="codex-slash-shortcut"
+          >
+            <div class="codex-slash-shortcut__icon">
               <SIcon
-                name="Command"
-                size="w-6 h-6"
-                class="text-accent-warning"
+                :name="item.icon"
+                size="w-4 h-4"
               />
             </div>
-
-            <div class="codex-slash-hero__copy">
-              <p class="codex-slash-kicker">
-                {{ tt('仅兼容入口', 'Compatibility Only') }}
+            <div class="min-w-0 flex-1">
+              <p class="codex-slash-shortcut__title">
+                {{ item.title }}
               </p>
-              <h1 class="codex-slash-title">
-                {{ tt('Codex 目前没有可管理的 Slash Commands', 'Codex currently has no manageable slash commands') }}
-              </h1>
-              <p class="codex-slash-subtitle">
-                {{ tt('这个页面保留为兼容入口，用来解释为什么 Codex 模块没有接入 Slash Commands 管理。 当前工作流重点已经切到 Sessions、Agents、Profiles 和 MCP。', 'This page remains as a compatibility entry so it can explain why the Codex module does not expose slash-command management. The active workflow focus has shifted to Sessions, Agents, Profiles, and MCP.') }}
+              <p class="codex-slash-shortcut__desc">
+                {{ item.description }}
               </p>
             </div>
-
-            <div class="codex-slash-actions">
-              <RouterLink
-                to="/codex/sessions"
-                class="btn btn-primary"
-              >
-                <SIcon
-                  name="MessagesSquare"
-                  size="w-4 h-4"
-                />
-                <span>{{ tt('打开 Sessions', 'Open Sessions') }}</span>
-              </RouterLink>
-              <RouterLink
-                to="/codex/agents"
-                class="btn btn-secondary"
-              >
-                <SIcon
-                  name="Bot"
-                  size="w-4 h-4"
-                />
-                <span>{{ tt('管理 Agents', 'Manage Agents') }}</span>
-              </RouterLink>
-            </div>
-          </div>
-        </Card>
-
-        <div class="codex-slash-grid">
-          <Card
-            variant="glass"
-            class="codex-slash-panel"
-          >
-            <div class="codex-slash-panel__header">
-              <div class="codex-slash-panel__icon codex-slash-panel__icon--rose">
-                <SIcon
-                  name="AlertTriangle"
-                  size="w-5 h-5"
-                />
-              </div>
-              <div>
-                <h2 class="codex-slash-panel__title">
-                  {{ tt('当前状态', 'Current state') }}
-                </h2>
-                <p class="codex-slash-panel__subtitle">
-                  {{ tt('后端没有对应的 Slash Commands 命令集', 'The backend has no matching slash-command command set') }}
-                </p>
-              </div>
-            </div>
-
-            <div class="codex-slash-note">
-              <p class="codex-slash-note__title">
-                {{ tt('为什么不继续沿用通用页面', 'Why not keep the generic page') }}
-              </p>
-              <p class="codex-slash-note__body">
-                {{ tt('Codex 在 CCR 中没有对应的 slash command CRUD 能力，之前的页面只是复用通用容器后返回“平台不支持”。现在把它降级成说明页，避免把一个不存在的能力放进主导航。', 'CCR does not expose slash-command CRUD for Codex. The old page only reused the generic container and returned “platform not supported”. It is now downgraded into an explainer page so a nonexistent capability does not stay in the main navigation.') }}
-              </p>
-            </div>
-          </Card>
-
-          <Card
-            variant="glass"
-            class="codex-slash-panel"
-          >
-            <div class="codex-slash-panel__header">
-              <div class="codex-slash-panel__icon codex-slash-panel__icon--emerald">
-                <SIcon
-                  name="Workflow"
-                  size="w-5 h-5"
-                />
-              </div>
-              <div>
-                <h2 class="codex-slash-panel__title">
-                  {{ tt('推荐入口', 'Recommended entries') }}
-                </h2>
-                <p class="codex-slash-panel__subtitle">
-                  {{ tt('真实可用的 Codex 工作面板', 'The Codex surfaces that actually work') }}
-                </p>
-              </div>
-            </div>
-
-            <div class="codex-slash-shortcuts">
-              <RouterLink
-                v-for="item in shortcuts"
-                :key="item.to"
-                :to="item.to"
-                class="codex-slash-shortcut"
-              >
-                <div class="codex-slash-shortcut__icon">
-                  <SIcon
-                    :name="item.icon"
-                    size="w-4 h-4"
-                  />
-                </div>
-                <div class="min-w-0 flex-1">
-                  <p class="codex-slash-shortcut__title">
-                    {{ item.title }}
-                  </p>
-                  <p class="codex-slash-shortcut__desc">
-                    {{ item.description }}
-                  </p>
-                </div>
-                <SIcon
-                  name="ArrowRight"
-                  size="w-4 h-4"
-                  class="text-text-ghost"
-                />
-              </RouterLink>
-            </div>
-          </Card>
+            <SIcon
+              name="ArrowRight"
+              size="w-4 h-4"
+              class="text-text-ghost"
+            />
+          </RouterLink>
         </div>
-      </div>
+      </Card>
     </div>
-  </div>
+  </PageShell>
 </template>
 
 <script setup lang="ts">
@@ -148,6 +126,8 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Card from '@/components/ui/Card.vue'
 import ModuleSubnav from '@/components/ModuleSubnav.vue'
+import PageHeader from '@/components/ui/PageHeader.vue'
+import PageShell from '@/components/ui/PageShell.vue'
 import SIcon from '@/components/ui/SIcon.vue'
 
 defineOptions({ name: 'CodexSlashCommandsView' })
@@ -179,55 +159,7 @@ const shortcuts = [
 
 <style scoped>
 .codex-slash-view {
-  @apply min-h-full p-6 lg:p-8;
-}
-
-.codex-slash-shell {
-  @apply mx-auto max-w-6xl space-y-6;
-}
-
-.codex-slash-stack {
-  @apply space-y-4;
-}
-
-.codex-slash-hero {
-  @apply relative overflow-hidden p-6;
-}
-
-.codex-slash-hero__glow {
-  @apply pointer-events-none absolute inset-y-0 right-0 w-72;
-
-  background: linear-gradient(270deg, rgb(245 158 11 / 16%), rgb(244 114 182 / 10%), transparent);
-}
-
-.codex-slash-hero__content {
-  @apply relative z-10 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between;
-}
-
-.codex-slash-hero__icon {
-  @apply flex h-14 w-14 items-center justify-center rounded-2xl border border-accent-warning/20 bg-accent-warning/10;
-}
-
-.codex-slash-hero__copy {
-  @apply min-w-0 flex-1 space-y-2;
-}
-
-.codex-slash-kicker {
-  @apply text-xs font-semibold tracking-[0.08em] text-accent-warning;
-}
-
-.codex-slash-title {
-  @apply text-2xl font-bold text-text-primary lg:text-3xl;
-
-  font-family: var(--font-brand);
-}
-
-.codex-slash-subtitle {
-  @apply max-w-3xl text-sm leading-7 text-text-secondary;
-}
-
-.codex-slash-actions {
-  @apply flex flex-wrap gap-3;
+  min-width: 0;
 }
 
 .codex-slash-grid {

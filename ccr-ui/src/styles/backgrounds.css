@@ -29,55 +29,13 @@
     }
 }
 
-/* Aurora 渐变变量（.bg-aurora 消费） */
-:root {
-    --aurora-1: rgb(59 130 246 / 14%);
-    --aurora-2: rgb(14 165 233 / 12%);
-    --aurora-3: rgb(34 211 238 / 10%);
-}
-
-:root[class~="dark"],
-[data-theme="dark"] {
-    --aurora-1: rgb(96 165 250 / 22%);
-    --aurora-2: rgb(56 189 248 / 18%);
-    --aurora-3: rgb(34 211 238 / 14%);
-}
-
 /* ============================================
    Enhanced Background Variants
    ============================================ */
 
 /* Animated Gradient Background */
 .bg-animated-gradient {
-    background: linear-gradient(-45deg,
-            var(--color-bg-base),
-            rgb(var(--color-accent-primary-rgb) / 5%),
-            var(--color-bg-base),
-            rgb(var(--color-accent-secondary-rgb) / 5%));
-    background-size: 400% 400%;
-    animation: gradient-shift 15s ease infinite;
-}
-
-/* Aurora Effect Background */
-.bg-aurora {
-    position: relative;
-    overflow: hidden;
-}
-
-.bg-aurora::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 60%;
-    background: linear-gradient(180deg,
-            var(--aurora-1) 0%,
-            var(--aurora-2) 50%,
-            transparent 100%);
-    filter: blur(60px);
-    opacity: 0.6;
-    animation: float-gentle 8s ease-in-out infinite;
+    background: var(--color-bg-base);
 }
 
 /* Radial Glow Background */
@@ -92,27 +50,6 @@
     background:
         radial-gradient(ellipse 80% 50% at 50% -20%, rgb(var(--color-accent-primary-rgb) / 20%), transparent),
         radial-gradient(ellipse 60% 40% at 100% 100%, rgb(var(--color-accent-secondary-rgb) / 15%), transparent),
-        var(--color-bg-base);
-}
-
-/* Mesh Gradient Background */
-.bg-mesh-gradient {
-    background:
-        radial-gradient(at 40% 20%, rgb(var(--color-accent-primary-rgb) / 10%) 0, transparent 50%),
-        radial-gradient(at 80% 0%, rgb(var(--color-info-rgb) / 8%) 0, transparent 50%),
-        radial-gradient(at 0% 50%, rgb(var(--color-accent-secondary-rgb) / 8%) 0, transparent 50%),
-        radial-gradient(at 80% 50%, rgb(var(--color-success-rgb) / 6%) 0, transparent 50%),
-        radial-gradient(at 0% 100%, rgb(var(--color-warning-rgb) / 6%) 0, transparent 50%),
-        var(--color-bg-base);
-}
-
-[data-theme="dark"] .bg-mesh-gradient {
-    background:
-        radial-gradient(at 40% 20%, rgb(var(--color-accent-primary-rgb) / 15%) 0, transparent 50%),
-        radial-gradient(at 80% 0%, rgb(var(--color-info-rgb) / 12%) 0, transparent 50%),
-        radial-gradient(at 0% 50%, rgb(var(--color-accent-secondary-rgb) / 12%) 0, transparent 50%),
-        radial-gradient(at 80% 50%, rgb(var(--color-success-rgb) / 10%) 0, transparent 50%),
-        radial-gradient(at 0% 100%, rgb(var(--color-warning-rgb) / 10%) 0, transparent 50%),
         var(--color-bg-base);
 }
 

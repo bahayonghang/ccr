@@ -154,10 +154,10 @@ defineEmits<Emits>()
 // 状态样式 - 使用 CSS 变量
 const statusStyle = (enabled: boolean) => ({
   background: enabled
-    ? 'color-mix(in srgb, var(--success-color, #22c55e) 15%, transparent)'
-    : 'color-mix(in srgb, var(--error-color, #ef4444) 15%, transparent)',
+    ? 'rgb(var(--color-success-rgb) / 15%)'
+    : 'rgb(var(--color-danger-rgb) / 15%)',
   color: enabled
-    ? 'var(--success-color, #22c55e)'
-    : 'var(--error-color, #ef4444)'
+    ? 'var(--color-success)'
+    : 'var(--color-danger)',
 })
 </script>

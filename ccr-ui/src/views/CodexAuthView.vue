@@ -1,382 +1,372 @@
 <template>
-  <div class="codex-auth-view">
-    <div class="codex-auth-view__container">
-      <div class="codex-auth-view__stack">
-        <ModuleSubnav module="codex" />
-
-        <main class="codex-auth-view__main">
-          <div class="codex-auth-view__header">
-            <div class="codex-auth-view__title-group">
-              <div class="codex-auth-view__title-icon-shell">
-                <SIcon
-                  name="KeyRound"
-                  size="w-6 h-6"
-                  class="codex-auth-view__title-icon"
-                />
-              </div>
-              <div>
-                <h1 class="codex-auth-view__title">
-                  {{ $t('codex.auth.title') }}
-                </h1>
-                <p class="codex-auth-view__subtitle">
-                  {{
-                    tf(
-                      'codex.auth.managerSubtitle',
-                      'Use one surface to add, import, switch, and review Codex accounts and model providers.'
-                    )
-                  }}
-                </p>
-              </div>
-            </div>
-
-            <div class="codex-auth-view__actions">
-              <RouterLink
-                to="/codex"
-                class="inline-flex"
-              >
-                <Button
-                  variant="secondary"
-                  surface="status"
-                  density="compact"
-                  motion="subtle"
-                >
-                  <template #leading>
-                    <SIcon
-                      name="ArrowLeft"
-                      size="w-4 h-4"
-                    />
-                  </template>
-                  {{ $t('codex.auth.backToCodex') }}
-                </Button>
-              </RouterLink>
-
-              <Button
-                variant="secondary"
-                surface="status"
-                density="compact"
-                motion="subtle"
-                :disabled="loading"
-                @click="handleRefresh"
-              >
-                <template #leading>
-                  <SIcon
-                    name="RefreshCw"
-                    size="w-4 h-4"
-                    :class="{ 'animate-spin': loading }"
-                  />
-                </template>
-                {{ $t('codex.auth.refresh') }}
-              </Button>
-
-              <Button
-                variant="secondary"
-                surface="status"
-                density="compact"
-                motion="subtle"
-                :disabled="!canSave"
-                @click="handleSave"
-              >
-                <template #leading>
-                  <SIcon
-                    name="Save"
-                    size="w-4 h-4"
-                  />
-                </template>
-                {{ tf('codex.auth.actions.saveCurrent', 'Save current session') }}
-              </Button>
-
-              <Button
-                variant="primary"
-                surface="card"
-                density="compact"
-                motion="standard"
-                @click="openAddAccountModal()"
-              >
-                <template #leading>
-                  <SIcon
-                    name="Plus"
-                    size="w-4 h-4"
-                  />
-                </template>
-                {{ tf('codex.auth.actions.addAccount', 'Add account') }}
-              </Button>
-            </div>
+  <PageShell class="codex-auth-view">
+    <template #header>
+      <PageHeader
+        :title="$t('codex.auth.title')"
+        :description="tf(
+          'codex.auth.managerSubtitle',
+          'Use one surface to add, import, switch, and review Codex accounts and model providers.',
+        )"
+      >
+        <template #leading>
+          <div class="codex-auth-view__title-icon-shell">
+            <SIcon
+              name="KeyRound"
+              size="w-6 h-6"
+              class="codex-auth-view__title-icon"
+            />
           </div>
-
-          <section
-            v-if="canOff"
-            class="codex-auth-view__off-banner"
-            data-testid="codex-auth-profile-off"
+        </template>
+        <template #actions>
+          <RouterLink
+            to="/codex"
+            class="inline-flex"
           >
-            <div>
-              <strong>{{ $t('codex.auth.off.title') }}</strong>
-              <p>{{ $t('codex.auth.off.description') }}</p>
-            </div>
             <Button
               variant="secondary"
               surface="status"
               density="compact"
               motion="subtle"
-              :disabled="loading"
-              @click="handleOff"
             >
               <template #leading>
                 <SIcon
-                  name="Power"
+                  name="ArrowLeft"
                   size="w-4 h-4"
                 />
               </template>
-              {{ $t('codex.auth.off.action') }}
+              {{ $t('codex.auth.backToCodex') }}
             </Button>
-          </section>
+          </RouterLink>
 
-          <div class="codex-auth-view__status-grid">
-            <Card
-              surface="status"
-              :elevation="2"
-              motion="subtle"
-              :gradient-border="true"
-              :glow-color="loginStateColor"
-              class="codex-auth-view__status-card"
-            >
-              <div class="codex-auth-view__status-row">
-                <div
-                  class="codex-auth-view__status-icon-shell"
-                  :class="loginStateIconClass"
-                >
-                  <SIcon
-                    :name="loginStateIcon"
-                    size="w-6 h-6"
-                  />
-                </div>
-                <div>
-                  <p class="codex-auth-view__status-label">
-                    {{ $t('codex.auth.status.loginState') }}
-                  </p>
-                  <p class="codex-auth-view__status-value codex-auth-view__status-value--truncate">
-                    {{ loginStateText }}
-                  </p>
-                </div>
-              </div>
-            </Card>
-
-            <Card
-              surface="status"
-              :elevation="2"
-              motion="subtle"
-              class="codex-auth-view__status-card"
-            >
-              <div class="codex-auth-view__status-row">
-                <div
-                  class="codex-auth-view__status-icon-shell codex-auth-view__status-icon-shell--info"
-                >
-                  <SIcon
-                    name="Users"
-                    size="w-6 h-6"
-                  />
-                </div>
-                <div>
-                  <p class="codex-auth-view__status-label">
-                    {{ $t('codex.auth.status.totalAccounts') }}
-                  </p>
-                  <p class="codex-auth-view__status-value">
-                    {{ accounts.length }}
-                  </p>
-                </div>
-              </div>
-            </Card>
-
-            <Card
-              surface="status"
-              :elevation="2"
-              motion="subtle"
-              class="codex-auth-view__status-card"
-            >
-              <div class="codex-auth-view__status-row">
-                <div
-                  class="codex-auth-view__status-icon-shell"
-                  :class="
-                    currentAccount
-                      ? 'bg-emerald-500/10 text-emerald-500'
-                      : 'bg-gray-500/10 text-text-muted'
-                  "
-                >
-                  <SIcon
-                    name="UserCheck"
-                    size="w-6 h-6"
-                  />
-                </div>
-                <div>
-                  <p class="codex-auth-view__status-label">
-                    {{ $t('codex.auth.status.currentAccount') }}
-                  </p>
-                  <p class="codex-auth-view__status-value codex-auth-view__status-value--truncate">
-                    {{
-                      currentAccount?.email ||
-                        currentAccount?.name ||
-                        $t('codex.auth.status.noAccount')
-                    }}
-                  </p>
-                </div>
-              </div>
-            </Card>
-
-            <Card
-              surface="status"
-              :elevation="2"
-              motion="subtle"
-              class="codex-auth-view__status-card"
-            >
-              <div class="codex-auth-view__status-row">
-                <div
-                  class="codex-auth-view__status-icon-shell codex-auth-view__status-icon-shell--neutral"
-                >
-                  <SIcon
-                    name="Globe"
-                    size="w-6 h-6"
-                  />
-                </div>
-                <div>
-                  <p class="codex-auth-view__status-label">
-                    {{ tf('codex.auth.status.providerCount', 'Model providers') }}
-                  </p>
-                  <p class="codex-auth-view__status-value">
-                    {{ providers.length }}
-                  </p>
-                </div>
-              </div>
-            </Card>
-          </div>
-
-          <Card
-            surface="workspace"
-            :elevation="2"
+          <Button
+            variant="secondary"
+            surface="status"
+            density="compact"
             motion="subtle"
-            padding="lg"
-            class="codex-auth-view__segment-card"
+            :disabled="loading"
+            @click="handleRefresh"
           >
-            <div class="codex-auth-view__segment-row">
-              <button
-                type="button"
-                class="codex-auth-view__segment"
-                :class="{ 'codex-auth-view__segment--active': activeManagerTab === 'accounts' }"
-                @click="activeManagerTab = 'accounts'"
-              >
-                <SIcon
-                  name="LayoutGrid"
-                  size="w-4 h-4"
-                />
-                <span>{{ $t('codex.auth.accountOverview') }}</span>
-                <span class="codex-auth-view__segment-count">{{ accounts.length }}</span>
-              </button>
-              <button
-                type="button"
-                class="codex-auth-view__segment"
-                :class="{ 'codex-auth-view__segment--active': activeManagerTab === 'providers' }"
-                @click="activeManagerTab = 'providers'"
-              >
-                <SIcon
-                  name="Blocks"
-                  size="w-4 h-4"
-                />
-                <span>{{ tf('codex.auth.providers.title', 'Model providers') }}</span>
-                <span class="codex-auth-view__segment-count">{{ providers.length }}</span>
-              </button>
+            <template #leading>
+              <SIcon
+                name="RefreshCw"
+                size="w-4 h-4"
+                :class="{ 'animate-spin': loading }"
+              />
+            </template>
+            {{ $t('codex.auth.refresh') }}
+          </Button>
+
+          <Button
+            variant="secondary"
+            surface="status"
+            density="compact"
+            motion="subtle"
+            :disabled="!canSave"
+            @click="handleSave"
+          >
+            <template #leading>
+              <SIcon
+                name="Save"
+                size="w-4 h-4"
+              />
+            </template>
+            {{ tf('codex.auth.actions.saveCurrent', 'Save current session') }}
+          </Button>
+
+          <Button
+            variant="primary"
+            surface="card"
+            density="compact"
+            motion="standard"
+            @click="openAddAccountModal()"
+          >
+            <template #leading>
+              <SIcon
+                name="Plus"
+                size="w-4 h-4"
+              />
+            </template>
+            {{ tf('codex.auth.actions.addAccount', 'Add account') }}
+          </Button>
+        </template>
+      </PageHeader>
+    </template>
+
+    <template #subnav>
+      <ModuleSubnav module="codex" />
+    </template>
+
+    <main class="codex-auth-view__main">
+      <section
+        v-if="canOff"
+        class="codex-auth-view__off-banner"
+        data-testid="codex-auth-profile-off"
+      >
+        <div>
+          <strong>{{ $t('codex.auth.off.title') }}</strong>
+          <p>{{ $t('codex.auth.off.description') }}</p>
+        </div>
+        <Button
+          variant="secondary"
+          surface="status"
+          density="compact"
+          motion="subtle"
+          :disabled="loading"
+          @click="handleOff"
+        >
+          <template #leading>
+            <SIcon
+              name="Power"
+              size="w-4 h-4"
+            />
+          </template>
+          {{ $t('codex.auth.off.action') }}
+        </Button>
+      </section>
+
+      <div class="codex-auth-view__status-grid">
+        <Card
+          surface="status"
+          :elevation="2"
+          motion="subtle"
+          class="codex-auth-view__status-card"
+        >
+          <div class="codex-auth-view__status-row">
+            <div
+              class="codex-auth-view__status-icon-shell"
+              :class="loginStateIconClass"
+            >
+              <SIcon
+                :name="loginStateIcon"
+                size="w-6 h-6"
+              />
             </div>
-          </Card>
+            <div>
+              <p class="codex-auth-view__status-label">
+                {{ $t('codex.auth.status.loginState') }}
+              </p>
+              <p class="codex-auth-view__status-value codex-auth-view__status-value--truncate">
+                {{ loginStateText }}
+              </p>
+            </div>
+          </div>
+        </Card>
 
+        <Card
+          surface="status"
+          :elevation="2"
+          motion="subtle"
+          class="codex-auth-view__status-card"
+        >
+          <div class="codex-auth-view__status-row">
+            <div
+              class="codex-auth-view__status-icon-shell codex-auth-view__status-icon-shell--info"
+            >
+              <SIcon
+                name="Users"
+                size="w-6 h-6"
+              />
+            </div>
+            <div>
+              <p class="codex-auth-view__status-label">
+                {{ $t('codex.auth.status.totalAccounts') }}
+              </p>
+              <p class="codex-auth-view__status-value">
+                {{ accounts.length }}
+              </p>
+            </div>
+          </div>
+        </Card>
 
-          <CodexAuthAccountsTab
-            v-if="activeManagerTab === 'accounts'"
-            v-model:search-query="searchQuery"
-            v-model:status-filter="statusFilter"
-            v-model:plan-filter="planFilter"
-            v-model:sort-by="sortBy"
-            :loading="loading"
-            :accounts="accounts"
-            :current-info="currentInfo"
-            :can-manage-auth-accounts="canManageAuthAccounts"
-            :profile-guard-message="profileGuardMessage"
-            :auth-action-error="authActionError"
-            :status-options="statusOptions"
-            :plan-options="planOptions"
-            :sort-options="sortOptions"
-            :filtered-accounts="filteredAccounts"
-            :filters-results-count="filtersResultsCount"
-            :has-active-filters="hasActiveFilters"
-            :quota-map="quotaMap"
-            :quota-loading="quotaLoading"
-            :busy-name="busyName"
-            :busy-action="busyAction"
-            :action-loading="actionLoading"
-            :format-auth-method="formatAuthMethod"
-            @clear-filters="clearFilters"
-            @open-add-account="openAddAccountModal()"
-            @switch="handleSwitch"
-            @delete="handleDelete"
-            @refresh="handleRefreshSingle"
-            @tag="handleTag"
-            @export="handleExport"
-            @rename="handleRename"
-          />
+        <Card
+          surface="status"
+          :elevation="2"
+          motion="subtle"
+          class="codex-auth-view__status-card"
+        >
+          <div class="codex-auth-view__status-row">
+            <div
+              class="codex-auth-view__status-icon-shell"
+              :class="
+                currentAccount
+                  ? 'bg-emerald-500/10 text-emerald-500'
+                  : 'bg-gray-500/10 text-text-muted'
+              "
+            >
+              <SIcon
+                name="UserCheck"
+                size="w-6 h-6"
+              />
+            </div>
+            <div>
+              <p class="codex-auth-view__status-label">
+                {{ $t('codex.auth.status.currentAccount') }}
+              </p>
+              <p class="codex-auth-view__status-value codex-auth-view__status-value--truncate">
+                {{
+                  currentAccount?.email ||
+                    currentAccount?.name ||
+                    $t('codex.auth.status.noAccount')
+                }}
+              </p>
+            </div>
+          </div>
+        </Card>
 
-          <CodexAuthProvidersTab
-            v-else
-            :provider-form="providerForm"
-            :provider-error="providerError"
-            :provider-saving="providerSaving"
-            :provider-loading="providerLoading"
-            :providers="providers"
-            :selected-provider-template="selectedProviderTemplate"
-            :selected-provider-endpoint="selectedProviderEndpoint"
-            :codex-template-draft="codexTemplateDraft"
-            :format-provider-updated-at="formatProviderUpdatedAt"
-            @update:provider-form="(val) => Object.assign(providerForm, val)"
-            @reset-form="resetProviderForm"
-            @apply-template="applyCodexProviderTemplate"
-            @use-manual-template="useManualProviderTemplate"
-            @save-provider="handleSaveProvider"
-            @load-providers="loadProviders"
-            @use-in-api-form="handleUseProviderInApiForm"
-            @edit-provider="editProvider"
-            @delete-provider="requestDeleteProvider"
-          />
-
-          <SaveCodexSessionModal
-            v-model="showSaveForm"
-            :current-info="currentInfo"
-            :format-auth-method="formatAuthMethod"
-            @saved="handleRefresh"
-          />
-
-          <AddCodexAccountModal
-            v-model="showAddAccountModal"
-            :providers="providers"
-            :can-manage-auth-accounts="canManageAuthAccounts"
-            :initial-method="addAccountInitialMethod"
-            :preset-provider="addAccountPresetProvider"
-            :refresh-on-mutation="handleRefresh"
-          />
-
-          <ConfirmModal
-            v-model:is-open="showConfirmModal"
-            :type="confirmDialog.type"
-            :title="confirmDialog.title"
-            :message="confirmDialog.message"
-            :confirm-text="confirmDialog.confirmText"
-            :cancel-text="$t('common.cancel')"
-            @confirm="executeConfirmedAction"
-          />
-
-          <RenameCodexAccountModal
-            v-model="showRenameDialog"
-            :account-name="renameTarget"
-            @renamed="handleRefresh"
-          />
-        </main>
+        <Card
+          surface="status"
+          :elevation="2"
+          motion="subtle"
+          class="codex-auth-view__status-card"
+        >
+          <div class="codex-auth-view__status-row">
+            <div
+              class="codex-auth-view__status-icon-shell codex-auth-view__status-icon-shell--neutral"
+            >
+              <SIcon
+                name="Globe"
+                size="w-6 h-6"
+              />
+            </div>
+            <div>
+              <p class="codex-auth-view__status-label">
+                {{ tf('codex.auth.status.providerCount', 'Model providers') }}
+              </p>
+              <p class="codex-auth-view__status-value">
+                {{ providers.length }}
+              </p>
+            </div>
+          </div>
+        </Card>
       </div>
-    </div>
-  </div>
+
+      <Card
+        surface="workspace"
+        :elevation="2"
+        motion="subtle"
+        padding="lg"
+        class="codex-auth-view__segment-card"
+      >
+        <div class="codex-auth-view__segment-row">
+          <button
+            type="button"
+            class="codex-auth-view__segment"
+            :class="{ 'codex-auth-view__segment--active': activeManagerTab === 'accounts' }"
+            @click="activeManagerTab = 'accounts'"
+          >
+            <SIcon
+              name="LayoutGrid"
+              size="w-4 h-4"
+            />
+            <span>{{ $t('codex.auth.accountOverview') }}</span>
+            <span class="codex-auth-view__segment-count">{{ accounts.length }}</span>
+          </button>
+          <button
+            type="button"
+            class="codex-auth-view__segment"
+            :class="{ 'codex-auth-view__segment--active': activeManagerTab === 'providers' }"
+            @click="activeManagerTab = 'providers'"
+          >
+            <SIcon
+              name="Blocks"
+              size="w-4 h-4"
+            />
+            <span>{{ tf('codex.auth.providers.title', 'Model providers') }}</span>
+            <span class="codex-auth-view__segment-count">{{ providers.length }}</span>
+          </button>
+        </div>
+      </Card>
+
+
+      <CodexAuthAccountsTab
+        v-if="activeManagerTab === 'accounts'"
+        v-model:search-query="searchQuery"
+        v-model:status-filter="statusFilter"
+        v-model:plan-filter="planFilter"
+        v-model:sort-by="sortBy"
+        :loading="loading"
+        :accounts="accounts"
+        :current-info="currentInfo"
+        :can-manage-auth-accounts="canManageAuthAccounts"
+        :profile-guard-message="profileGuardMessage"
+        :auth-action-error="authActionError"
+        :status-options="statusOptions"
+        :plan-options="planOptions"
+        :sort-options="sortOptions"
+        :filtered-accounts="filteredAccounts"
+        :filters-results-count="filtersResultsCount"
+        :has-active-filters="hasActiveFilters"
+        :quota-map="quotaMap"
+        :quota-loading="quotaLoading"
+        :busy-name="busyName"
+        :busy-action="busyAction"
+        :action-loading="actionLoading"
+        :format-auth-method="formatAuthMethod"
+        @clear-filters="clearFilters"
+        @open-add-account="openAddAccountModal()"
+        @switch="handleSwitch"
+        @delete="handleDelete"
+        @refresh="handleRefreshSingle"
+        @tag="handleTag"
+        @export="handleExport"
+        @rename="handleRename"
+      />
+
+      <CodexAuthProvidersTab
+        v-else
+        :provider-form="providerForm"
+        :provider-error="providerError"
+        :provider-saving="providerSaving"
+        :provider-loading="providerLoading"
+        :providers="providers"
+        :selected-provider-template="selectedProviderTemplate"
+        :selected-provider-endpoint="selectedProviderEndpoint"
+        :codex-template-draft="codexTemplateDraft"
+        :format-provider-updated-at="formatProviderUpdatedAt"
+        @update:provider-form="(val) => Object.assign(providerForm, val)"
+        @reset-form="resetProviderForm"
+        @apply-template="applyCodexProviderTemplate"
+        @use-manual-template="useManualProviderTemplate"
+        @save-provider="handleSaveProvider"
+        @load-providers="loadProviders"
+        @use-in-api-form="handleUseProviderInApiForm"
+        @edit-provider="editProvider"
+        @delete-provider="requestDeleteProvider"
+      />
+
+      <SaveCodexSessionModal
+        v-model="showSaveForm"
+        :current-info="currentInfo"
+        :format-auth-method="formatAuthMethod"
+        @saved="handleRefresh"
+      />
+
+      <AddCodexAccountModal
+        v-model="showAddAccountModal"
+        :providers="providers"
+        :can-manage-auth-accounts="canManageAuthAccounts"
+        :initial-method="addAccountInitialMethod"
+        :preset-provider="addAccountPresetProvider"
+        :refresh-on-mutation="handleRefresh"
+      />
+
+      <ConfirmModal
+        v-model:is-open="showConfirmModal"
+        :type="confirmDialog.type"
+        :title="confirmDialog.title"
+        :message="confirmDialog.message"
+        :confirm-text="confirmDialog.confirmText"
+        :cancel-text="$t('common.cancel')"
+        @confirm="executeConfirmedAction"
+      />
+
+      <RenameCodexAccountModal
+        v-model="showRenameDialog"
+        :account-name="renameTarget"
+        @renamed="handleRefresh"
+      />
+    </main>
+  </PageShell>
 </template>
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
@@ -386,6 +376,8 @@ import { useI18n } from 'vue-i18n'
 import ModuleSubnav from '@/components/ModuleSubnav.vue'
 import Button from '@/components/ui/Button.vue'
 import Card from '@/components/ui/Card.vue'
+import PageHeader from '@/components/ui/PageHeader.vue'
+import PageShell from '@/components/ui/PageShell.vue'
 import CodexAuthAccountsTab from './codex/tabs/CodexAuthAccountsTab.vue'
 import CodexAuthProvidersTab from './codex/tabs/CodexAuthProvidersTab.vue'
 import RenameCodexAccountModal from './codex/components/RenameCodexAccountModal.vue'
@@ -407,7 +399,6 @@ import {
   filterAndSortCodexAccounts,
   getLoginStateIcon,
   getLoginStateIconClass,
-  getLoginStateTone,
   usesOpenAiAuthMode,
   type AccountPlanFilter,
   type AccountSort,
@@ -511,8 +502,6 @@ const canSave = computed(() => {
     (loginState.value.type === 'LoggedInUnsaved' || loginState.value.type === 'LoggedInSaved')
   )
 })
-
-const loginStateColor = computed(() => getLoginStateTone(loginState.value))
 
 const loginStateIcon = computed(() => getLoginStateIcon(loginState.value))
 

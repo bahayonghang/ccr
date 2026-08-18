@@ -161,8 +161,7 @@ const barWidth = (share: number) => Math.min(100, Math.max(share * 100, share > 
   gap: 0.48rem;
   border-radius: 1.15rem;
   border: 1px solid rgb(var(--color-border-default-rgb) / 14%);
-  background:
-    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 58%), rgb(var(--color-bg-surface-rgb) / 34%));
+  background: var(--color-bg-surface);
   padding: 0.82rem 0.9rem;
   text-align: left;
   transition:
@@ -175,8 +174,7 @@ const barWidth = (share: number) => Math.min(100, Math.max(share * 100, share > 
 .source-card__item--active {
   transform: translateY(-1px);
   border-color: rgb(var(--color-accent-secondary-rgb) / 28%);
-  background:
-    linear-gradient(180deg, rgb(var(--color-accent-secondary-rgb) / 10%), rgb(var(--color-bg-elevated-rgb) / 58%));
+  background: var(--color-bg-surface);
 }
 
 .source-card__source-row,
@@ -237,11 +235,7 @@ const barWidth = (share: number) => Math.min(100, Math.max(share * 100, share > 
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(
-    90deg,
-    rgb(var(--color-accent-secondary-rgb) / 86%),
-    rgb(var(--color-warning-rgb) / 74%)
-  );
+  background: var(--color-accent-primary);
 }
 
 .source-card__empty {

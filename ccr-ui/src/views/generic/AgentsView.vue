@@ -1,333 +1,319 @@
 <!-- -->
 <template>
-  <div class="min-h-full p-6 transition-colors duration-300">
-    <div class="max-w-[1800px] mx-auto">
-      <ModuleSubnav
-        :module="moduleNavModule"
-        class="mb-6"
-      />
+  <PageShell class="agents-view">
+    <template #header>
+      <PageHeader
+        :title="$t(`${tPrefix}.pageTitle`)"
+        :description="`${stats.active} ${statsActiveLabel} · ${stats.disabled} ${statsDisabledLabel}`"
+      >
+        <template #status>
+          <span class="agents-view__count">{{ stats.total }}</span>
+        </template>
+        <template #actions>
+          <Button @click="handleAdd">
+            <SIcon
+              name="Plus"
+              size="w-4 h-4"
+              class="mr-2"
+            />{{ $t(`${tPrefix}.addAgent`) }}
+          </Button>
+        </template>
+      </PageHeader>
+    </template>
 
-      <div class="flex gap-6 items-start">
-        <!-- Left Sidebar (Folders) -->
-        <div class="w-64 flex-shrink-0 space-y-4 hidden lg:block sticky top-6">
-          <div class="glass-effect rounded-2xl p-4 border border-border-default/25 shadow-sm">
-            <h3 class="text-xs font-bold text-text-muted uppercase tracking-wider mb-3 px-2 flex items-center justify-between">
-              {{ $t(`${tPrefix}.folders.label`) }}
-              <span class="bg-bg-surface px-1.5 py-0.5 rounded text-[10px]">{{ stats.total }}</span>
-            </h3>
+    <template #subnav>
+      <ModuleSubnav :module="moduleNavModule" />
+    </template>
+
+    <div class="flex gap-6 items-start">
+      <!-- Left Sidebar (Folders) -->
+      <div class="w-64 flex-shrink-0 space-y-4 hidden lg:block sticky top-6">
+        <div class="glass-effect rounded-2xl p-4 border border-border-default/25 shadow-sm">
+          <h3 class="text-xs font-medium text-text-muted mb-3 px-2 flex items-center justify-between">
+            {{ $t(`${tPrefix}.folders.label`) }}
+            <span class="bg-bg-surface px-1.5 py-0.5 rounded text-[10px]">{{ stats.total }}</span>
+          </h3>
              
-            <div class="space-y-1">
-              <button
-                v-for="folder in folderOptions"
-                :key="folder.value"
-                type="button"
-                class="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm transition-colors duration-200 group min-h-[44px]"
-                :class="[
-                  selectedFolder === folder.value 
-                    ? 'bg-accent-primary/10 text-accent-primary font-medium shadow-sm border border-accent-primary/20' 
-                    : 'text-text-secondary hover:bg-bg-surface hover:text-text-primary'
-                ]"
-                @click="selectedFolder = folder.value"
+          <div class="space-y-1">
+            <button
+              v-for="folder in folderOptions"
+              :key="folder.value"
+              type="button"
+              class="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm transition-colors duration-200 group min-h-[44px]"
+              :class="[
+                selectedFolder === folder.value 
+                  ? 'bg-accent-primary/10 text-accent-primary font-medium shadow-sm border border-accent-primary/20' 
+                  : 'text-text-secondary hover:bg-bg-surface hover:text-text-primary'
+              ]"
+              @click="selectedFolder = folder.value"
+            >
+              <SIcon
+                :name="folder.icon"
+                size="w-4 h-4"
+                class="transition-transform group-hover:scale-110"
+                :class="selectedFolder === folder.value ? 'text-accent-primary' : 'text-text-muted'"
+              />
+              <span class="flex-1 truncate">{{ folder.label }}</span>
+              <span 
+                class="text-xs px-1.5 py-0.5 rounded-md transition-colors"
+                :class="selectedFolder === folder.value ? 'bg-accent-primary/20 text-accent-primary' : 'bg-bg-surface text-text-muted'"
               >
-                <SIcon
-                  :name="folder.icon"
-                  size="w-4 h-4"
-                  class="transition-transform group-hover:scale-110"
-                  :class="selectedFolder === folder.value ? 'text-accent-primary' : 'text-text-muted'"
-                />
-                <span class="flex-1 truncate">{{ folder.label }}</span>
-                <span 
-                  class="text-xs px-1.5 py-0.5 rounded-md transition-colors"
-                  :class="selectedFolder === folder.value ? 'bg-accent-primary/20 text-accent-primary' : 'bg-bg-surface text-text-muted'"
-                >
-                  {{ folder.count }}
-                </span>
-              </button>
-            </div>
+                {{ folder.count }}
+              </span>
+            </button>
           </div>
+        </div>
 
-          <!-- Stats Card -->
-          <div class="glass-effect rounded-2xl p-5 border border-border-default/25 shadow-sm relative overflow-hidden group">
-            <div class="absolute top-0 right-0 w-24 h-24 bg-accent-primary/10 rounded-full blur-2xl -mr-8 -mt-8 transition-colors group-hover:bg-accent-primary/20" />
-            <h4 class="text-sm font-bold text-text-primary mb-1">
-              {{ agentStatusLabel }}
-            </h4>
-            <div class="flex items-center gap-2 mt-3">
-              <div class="flex-1 bg-bg-surface rounded-lg p-2 text-center">
-                <div class="text-lg font-bold text-accent-primary">
-                  {{ stats.active }}
-                </div>
-                <div class="text-[10px] text-text-muted uppercase">
-                  {{ statsActiveLabel }}
-                </div>
+        <!-- Stats Card -->
+        <div class="rounded-xl p-5 border border-border-default/25 bg-bg-surface">
+          <h4 class="text-sm font-bold text-text-primary mb-1">
+            {{ agentStatusLabel }}
+          </h4>
+          <div class="flex items-center gap-2 mt-3">
+            <div class="flex-1 bg-bg-surface rounded-lg p-2 text-center">
+              <div class="text-lg font-bold text-accent-primary">
+                {{ stats.active }}
               </div>
-              <div class="flex-1 bg-bg-surface rounded-lg p-2 text-center">
-                <div class="text-lg font-bold text-text-muted">
-                  {{ stats.disabled }}
-                </div>
-                <div class="text-[10px] text-text-muted uppercase">
-                  {{ statsDisabledLabel }}
-                </div>
+              <div class="text-[10px] text-text-muted uppercase">
+                {{ statsActiveLabel }}
+              </div>
+            </div>
+            <div class="flex-1 bg-bg-surface rounded-lg p-2 text-center">
+              <div class="text-lg font-bold text-text-muted">
+                {{ stats.disabled }}
+              </div>
+              <div class="text-[10px] text-text-muted uppercase">
+                {{ statsDisabledLabel }}
               </div>
             </div>
           </div>
         </div>
+      </div>
 
-        <!-- Main Content -->
-        <div class="flex-1 min-w-0">
-          <PageHeaderCard
-            :title="$t(`${tPrefix}.pageTitle`)"
-            icon="Bot"
-            :badge="String(stats.total)"
-            tone="primary"
-            class="mb-6"
+      <!-- Main Content -->
+      <div class="flex-1 min-w-0">
+        <div class="relative max-w-md mb-6">
+          <SIcon
+            name="Search"
+            size="w-4 h-4"
+            class="absolute left-3 top-1/2 transform -translate-y-1/2 text-text-muted"
+          />
+          <input
+            v-model="searchQuery"
+            type="text"
+            :placeholder="$t(`${tPrefix}.searchPlaceholder`)"
+            class="w-full pl-10 pr-10 py-2.5 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-accent-primary/20 bg-bg-elevated border border-border-default hover:bg-bg-surface text-text-primary placeholder:text-text-muted text-sm"
           >
-            <template #meta>
-              <span class="inline-flex items-center gap-2 rounded-full border border-accent-primary/20 bg-accent-primary/10 px-3 py-1 text-sm font-medium text-accent-primary">
-                {{ stats.active }} {{ statsActiveLabel }}
-              </span>
-              <span class="inline-flex items-center gap-2 rounded-full border border-border-default/50 bg-bg-elevated px-3 py-1 text-sm font-medium text-text-secondary">
-                {{ stats.disabled }} {{ statsDisabledLabel }}
-              </span>
-            </template>
-
-            <template #actions>
-              <button
-                class="min-h-[44px] px-4 py-2.5 rounded-xl font-medium transition-[color,background-color,border-color,transform] hover:scale-105 bg-accent-primary text-[color:var(--color-accent-primary-contrast)] shadow-lg shadow-accent-primary/20 hover:shadow-accent-primary/30 flex items-center text-sm"
-                @click="handleAdd"
-              >
-                <SIcon
-                  name="Plus"
-                  size="w-4 h-4"
-                  class="mr-2"
-                />{{ $t(`${tPrefix}.addAgent`) }}
-              </button>
-            </template>
-
-            <div class="relative max-w-md">
-              <SIcon
-                name="Search"
-                size="w-4 h-4"
-                class="absolute left-3 top-1/2 transform -translate-y-1/2 text-text-muted"
-              />
-              <input
-                v-model="searchQuery"
-                type="text"
-                :placeholder="$t(`${tPrefix}.searchPlaceholder`)"
-                class="w-full pl-10 pr-10 py-2.5 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-accent-primary/20 bg-bg-elevated border border-border-default hover:bg-bg-surface text-text-primary placeholder:text-text-muted text-sm"
-              >
-              <button
-                v-if="searchQuery"
-                class="absolute right-2 top-1/2 transform -translate-y-1/2 rounded-full hover:bg-bg-base/35 text-text-muted transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
-                :aria-label="$t('common.clearSearch')"
-                @click="searchQuery = ''"
-              >
-                <SIcon
-                  name="X"
-                  size="w-3 h-3"
-                />
-              </button>
-            </div>
-          </PageHeaderCard>
-
-          <!-- Agent Grid -->
-          <div
-            v-if="loading"
-            class="text-center py-20 text-text-muted"
+          <button
+            v-if="searchQuery"
+            class="absolute right-2 top-1/2 transform -translate-y-1/2 rounded-full hover:bg-bg-base/35 text-text-muted transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+            :aria-label="$t('common.clearSearch')"
+            @click="searchQuery = ''"
           >
-            <div class="loading-spinner mx-auto mb-4 w-8 h-8 border-accent-primary/30 border-t-accent-primary" />
-            {{ $t(`${tPrefix}.loading`) }}
-          </div>
+            <SIcon
+              name="X"
+              size="w-3 h-3"
+            />
+          </button>
+        </div>
+
+        <!-- Agent Grid -->
+        <div
+          v-if="loading"
+          class="text-center py-20 text-text-muted"
+        >
+          <div class="loading-spinner mx-auto mb-4 w-8 h-8 border-accent-primary/30 border-t-accent-primary" />
+          {{ $t(`${tPrefix}.loading`) }}
+        </div>
            
-          <div
-            v-else-if="filteredAgents.length === 0"
-            class="text-center py-24 glass-effect rounded-3xl border border-border-default/25 border-dashed"
-          >
-            <div class="bg-bg-elevated w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
-              <SIcon
-                name="Search"
-                size="w-10 h-10"
-                class="opacity-30 text-text-muted"
-              />
-            </div>
-            <p class="text-lg font-bold text-text-primary">
-              {{ $t(`${tPrefix}.noResults`) }}
-            </p>
-            <p class="text-sm mt-2 text-text-muted">
-              {{ $t(`${tPrefix}.noResultsHint`) }}
-            </p>
-            <button 
-              class="mt-6 min-h-[44px] px-4 py-2 text-sm text-accent-primary hover:bg-accent-primary/5 rounded-lg transition-colors"
-              @click="searchQuery = ''; selectedFolder = ''"
-            >
-              {{ $t(`${tPrefix}.tryOtherKeywords`) }}
-            </button>
-          </div>
-
-          <div
-            v-else
-          >
-            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
-              <Card
-                v-for="agent in paginatedAgents"
-                :key="agent.name"
-                variant="glass"
-                pattern
-                class="h-full flex flex-col group"
-              >
-                <div class="relative z-10 flex flex-col h-full">
-                  <div class="flex items-start justify-between mb-3">
-                    <div class="flex items-center gap-3 overflow-hidden">
-                      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-accent-primary/10 to-accent-info/10 flex items-center justify-center text-lg shadow-sm border border-border-default/25 group-hover:scale-110 transition-transform duration-300">
-                        <SIcon
-                          name="Bot"
-                          size="w-5 h-5"
-                          class="text-accent-primary"
-                        />
-                      </div>
-                      <div class="min-w-0">
-                        <h3 class="text-base font-bold text-text-primary group-hover:text-accent-primary transition-colors truncate">
-                          {{ agent.name }}
-                        </h3>
-                        <div class="flex items-center gap-1.5 mt-0.5">
-                          <span
-                            v-if="agent.folder"
-                            class="flex items-center gap-1 text-[10px] text-text-muted bg-bg-surface px-1.5 py-0.5 rounded border border-border-default/50"
-                          >
-                            <SIcon
-                              name="Folder"
-                              size="w-3 h-3"
-                            /> {{ agent.folder }}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                   
-                    <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                      <button
-                        class="min-h-[44px] min-w-[44px] rounded-lg transition-colors hover:bg-bg-surface flex items-center justify-center"
-                        :class="agent.disabled ? 'text-text-muted hover:text-accent-primary' : 'text-accent-primary hover:text-text-muted'"
-                        :title="agent.disabled ? $t(`${tPrefix}.enable`) : $t(`${tPrefix}.disable`)"
-                        @click.stop="handleToggle(agent)"
-                      >
-                        <SIcon
-                          v-if="agent.disabled"
-                          name="PowerOff"
-                          size="w-4 h-4"
-                        />
-                        <SIcon
-                          v-else
-                          name="Power"
-                          size="w-4 h-4"
-                        />
-                      </button>
-                      <button
-                        v-if="module === 'agents'"
-                        class="min-h-[44px] min-w-[44px] rounded-lg text-text-secondary hover:text-accent-primary hover:bg-accent-primary/10 transition-colors flex items-center justify-center"
-                        :title="$t('common.view')"
-                        @click.stop="navigateToDetail(agent)"
-                      >
-                        <SIcon
-                          name="Eye"
-                          size="w-4 h-4"
-                        />
-                      </button>
-                      <button
-                        class="min-h-[44px] min-w-[44px] rounded-lg text-text-secondary hover:text-accent-info hover:bg-accent-info/10 transition-colors flex items-center justify-center"
-                        :title="$t('common.edit')"
-                        @click.stop="handleEdit(agent)"
-                      >
-                        <SIcon
-                          name="Edit2"
-                          size="w-4 h-4"
-                        />
-                      </button>
-                      <button
-                        class="min-h-[44px] min-w-[44px] rounded-lg text-text-secondary hover:text-accent-danger hover:bg-accent-danger/10 transition-colors flex items-center justify-center"
-                        :title="$t('common.delete')"
-                        @click.stop="handleDelete(agent)"
-                      >
-                        <SIcon
-                          name="Trash2"
-                          size="w-4 h-4"
-                        />
-                      </button>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    class="flex h-full flex-col text-left rounded-2xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/25"
-                    :aria-label="$t('common.view') + ': ' + agent.name"
-                    @click="navigateToDetail(agent)"
-                  >
-                    <div class="flex-1 space-y-3">
-                      <div
-                        v-if="agent.system_prompt"
-                        class="relative"
-                      >
-                        <div class="absolute left-0 top-0 bottom-0 w-0.5 bg-accent-primary/30 rounded-full" />
-                        <p class="pl-3 text-xs text-text-secondary line-clamp-3 leading-relaxed italic">
-                          {{ agent.system_prompt }}
-                        </p>
-                      </div>
-                      <div
-                        v-else
-                        class="text-xs text-text-muted italic pl-3"
-                      >
-                        {{ noSystemPromptLabel }}
-                      </div>
-                    </div>
-                   
-                    <div class="mt-4 pt-3 border-t border-border-default/30 flex items-center justify-between gap-2">
-                      <div class="flex items-center gap-1.5 text-[10px] text-text-muted bg-bg-elevated px-2 py-1 rounded-md border border-border-default/30">
-                        <span class="w-1.5 h-1.5 rounded-full bg-accent-secondary/50" />
-                        <span class="truncate max-w-[120px]">{{ agent.model }}</span>
-                      </div>
-
-                      <div
-                        v-if="agent.tools && agent.tools.length > 0"
-                        class="flex -space-x-1.5"
-                      >
-                        <div
-                          v-for="(tool, i) in agent.tools.slice(0, 3)"
-                          :key="i" 
-                          class="w-6 h-6 rounded-full bg-bg-elevated border border-border-default flex items-center justify-center text-[10px] shadow-sm text-text-secondary"
-                          :title="tool"
-                        >
-                          {{ tool.charAt(0).toUpperCase() }}
-                        </div>
-                        <div
-                          v-if="agent.tools.length > 3"
-                          class="w-6 h-6 rounded-full bg-bg-surface border border-border-default flex items-center justify-center text-[9px] font-medium text-text-muted"
-                        >
-                          +{{ agent.tools.length - 3 }}
-                        </div>
-                      </div>
-                    </div>
-                  </button>
-                </div>
-               
-                <!-- Disabled Overlay -->
-                <div
-                  v-if="agent.disabled"
-                  class="absolute inset-0 bg-bg-base/40 backdrop-blur-[2px] flex items-center justify-center z-20 rounded-xl border border-text-muted/10"
-                >
-                  <span class="px-3 py-1 bg-text-muted/80 text-[color:var(--color-text-inverted)] text-xs font-bold rounded-full shadow-sm uppercase tracking-wider backdrop-blur-md">
-                    {{ $t(`${tPrefix}.disabledBadge`) }}
-                  </span>
-                </div>
-              </Card>
-            </div>
-
-            <MarketplacePagination
-              :current-page="currentPage"
-              :total-items="filteredAgents.length"
-              :page-size="PAGE_SIZE"
-              class="mt-6"
-              @page-change="currentPage = $event"
+        <div
+          v-else-if="filteredAgents.length === 0"
+          class="text-center py-24 rounded-xl border border-border-default/25 border-dashed bg-bg-surface"
+        >
+          <div class="bg-bg-elevated w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <SIcon
+              name="Search"
+              size="w-10 h-10"
+              class="opacity-30 text-text-muted"
             />
           </div>
+          <p class="text-lg font-bold text-text-primary">
+            {{ $t(`${tPrefix}.noResults`) }}
+          </p>
+          <p class="text-sm mt-2 text-text-muted">
+            {{ $t(`${tPrefix}.noResultsHint`) }}
+          </p>
+          <button 
+            class="mt-6 min-h-[44px] px-4 py-2 text-sm text-accent-primary hover:bg-accent-primary/5 rounded-lg transition-colors"
+            @click="searchQuery = ''; selectedFolder = ''"
+          >
+            {{ $t(`${tPrefix}.tryOtherKeywords`) }}
+          </button>
+        </div>
+
+        <div
+          v-else
+        >
+          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
+            <Card
+              v-for="agent in paginatedAgents"
+              :key="agent.name"
+              variant="glass"
+              pattern
+              class="h-full flex flex-col group"
+            >
+              <div class="relative z-10 flex flex-col h-full">
+                <div class="flex items-start justify-between mb-3">
+                  <div class="flex items-center gap-3 overflow-hidden">
+                    <div class="w-10 h-10 rounded-xl bg-bg-elevated flex items-center justify-center text-lg border border-border-default/25">
+                      <SIcon
+                        name="Bot"
+                        size="w-5 h-5"
+                        class="text-accent-primary"
+                      />
+                    </div>
+                    <div class="min-w-0">
+                      <h3 class="text-base font-bold text-text-primary group-hover:text-accent-primary transition-colors truncate">
+                        {{ agent.name }}
+                      </h3>
+                      <div class="flex items-center gap-1.5 mt-0.5">
+                        <span
+                          v-if="agent.folder"
+                          class="flex items-center gap-1 text-[10px] text-text-muted bg-bg-surface px-1.5 py-0.5 rounded border border-border-default/50"
+                        >
+                          <SIcon
+                            name="Folder"
+                            size="w-3 h-3"
+                          /> {{ agent.folder }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                   
+                  <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    <button
+                      class="min-h-[44px] min-w-[44px] rounded-lg transition-colors hover:bg-bg-surface flex items-center justify-center"
+                      :class="agent.disabled ? 'text-text-muted hover:text-accent-primary' : 'text-accent-primary hover:text-text-muted'"
+                      :title="agent.disabled ? $t(`${tPrefix}.enable`) : $t(`${tPrefix}.disable`)"
+                      @click.stop="handleToggle(agent)"
+                    >
+                      <SIcon
+                        v-if="agent.disabled"
+                        name="PowerOff"
+                        size="w-4 h-4"
+                      />
+                      <SIcon
+                        v-else
+                        name="Power"
+                        size="w-4 h-4"
+                      />
+                    </button>
+                    <button
+                      v-if="module === 'agents'"
+                      class="min-h-[44px] min-w-[44px] rounded-lg text-text-secondary hover:text-accent-primary hover:bg-accent-primary/10 transition-colors flex items-center justify-center"
+                      :title="$t('common.view')"
+                      @click.stop="navigateToDetail(agent)"
+                    >
+                      <SIcon
+                        name="Eye"
+                        size="w-4 h-4"
+                      />
+                    </button>
+                    <button
+                      class="min-h-[44px] min-w-[44px] rounded-lg text-text-secondary hover:text-accent-info hover:bg-accent-info/10 transition-colors flex items-center justify-center"
+                      :title="$t('common.edit')"
+                      @click.stop="handleEdit(agent)"
+                    >
+                      <SIcon
+                        name="Edit2"
+                        size="w-4 h-4"
+                      />
+                    </button>
+                    <button
+                      class="min-h-[44px] min-w-[44px] rounded-lg text-text-secondary hover:text-accent-danger hover:bg-accent-danger/10 transition-colors flex items-center justify-center"
+                      :title="$t('common.delete')"
+                      @click.stop="handleDelete(agent)"
+                    >
+                      <SIcon
+                        name="Trash2"
+                        size="w-4 h-4"
+                      />
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  class="flex h-full flex-col text-left rounded-2xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/25"
+                  :aria-label="$t('common.view') + ': ' + agent.name"
+                  @click="navigateToDetail(agent)"
+                >
+                  <div class="flex-1 space-y-3">
+                    <div
+                      v-if="agent.system_prompt"
+                      class="relative"
+                    >
+                      <div class="absolute left-0 top-0 bottom-0 w-px bg-border-default" />
+                      <p class="pl-3 text-xs text-text-secondary line-clamp-3 leading-relaxed italic">
+                        {{ agent.system_prompt }}
+                      </p>
+                    </div>
+                    <div
+                      v-else
+                      class="text-xs text-text-muted italic pl-3"
+                    >
+                      {{ noSystemPromptLabel }}
+                    </div>
+                  </div>
+                   
+                  <div class="mt-4 pt-3 border-t border-border-default/30 flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-1.5 text-[10px] text-text-muted bg-bg-elevated px-2 py-1 rounded-md border border-border-default/30">
+                      <span class="w-1.5 h-1.5 rounded-full bg-accent-secondary/50" />
+                      <span class="truncate max-w-[120px]">{{ agent.model }}</span>
+                    </div>
+
+                    <div
+                      v-if="agent.tools && agent.tools.length > 0"
+                      class="flex -space-x-1.5"
+                    >
+                      <div
+                        v-for="(tool, i) in agent.tools.slice(0, 3)"
+                        :key="i" 
+                        class="w-6 h-6 rounded-full bg-bg-elevated border border-border-default flex items-center justify-center text-[10px] shadow-sm text-text-secondary"
+                        :title="tool"
+                      >
+                        {{ tool.charAt(0).toUpperCase() }}
+                      </div>
+                      <div
+                        v-if="agent.tools.length > 3"
+                        class="w-6 h-6 rounded-full bg-bg-surface border border-border-default flex items-center justify-center text-[9px] font-medium text-text-muted"
+                      >
+                        +{{ agent.tools.length - 3 }}
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              </div>
+               
+              <!-- Disabled Overlay -->
+              <div
+                v-if="agent.disabled"
+                class="absolute inset-0 bg-bg-base/40 backdrop-blur-[2px] flex items-center justify-center z-20 rounded-xl border border-text-muted/10"
+              >
+                <span class="px-3 py-1 bg-text-muted/80 text-[color:var(--color-text-inverted)] text-xs font-medium rounded-md">
+                  {{ $t(`${tPrefix}.disabledBadge`) }}
+                </span>
+              </div>
+            </Card>
+          </div>
+
+          <MarketplacePagination
+            :current-page="currentPage"
+            :total-items="filteredAgents.length"
+            :page-size="PAGE_SIZE"
+            class="mt-6"
+            @page-change="currentPage = $event"
+          />
         </div>
       </div>
     </div>
@@ -339,7 +325,7 @@
       @click="showAddForm = false"
     >
       <div
-        class="glass-effect p-8 rounded-3xl w-full max-w-2xl max-h-[85vh] overflow-y-auto shadow-2xl border border-border-default/30 relative"
+        class="bg-bg-surface p-8 rounded-xl w-full max-w-2xl max-h-[85vh] overflow-y-auto border border-border-default/30 relative"
         @click.stop
       >
         <button 
@@ -410,7 +396,7 @@
                 @keyup.enter="addTool"
               >
               <button
-                class="px-6 py-3 rounded-xl font-bold text-[color:var(--color-accent-primary-contrast)] bg-accent-primary hover:bg-accent-primary/90 transition-colors shadow-lg shadow-accent-primary/20"
+                class="px-6 py-3 rounded-lg font-medium text-[color:var(--color-accent-primary-contrast)] bg-accent-primary hover:bg-accent-primary/90 transition-colors"
                 @click="addTool"
               >
                 {{ $t(`${tPrefix}.addTool`) }}
@@ -457,7 +443,7 @@
             {{ $t('common.cancel') }}
           </button>
           <button
-            class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-[color,background-color,border-color,transform] bg-accent-primary text-[color:var(--color-accent-primary-contrast)] shadow-lg shadow-accent-primary/20 hover:shadow-xl hover:shadow-accent-primary/30 hover:-translate-y-0.5"
+            class="flex-1 px-6 py-3.5 rounded-lg font-medium transition-colors bg-accent-primary text-[color:var(--color-accent-primary-contrast)]"
             @click="handleSubmit"
           >
             {{ editingAgent ? $t(`${tPrefix}.save`) : $t(`${tPrefix}.add`) }}
@@ -465,7 +451,7 @@
         </div>
       </div>
     </div>
-  </div>
+  </PageShell>
 </template>
 
 <script setup lang="ts">
@@ -473,8 +459,10 @@ import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
+import Button from '@/components/ui/Button.vue'
 import Card from '@/components/ui/Card.vue'
-import PageHeaderCard from '@/components/PageHeaderCard.vue'
+import PageHeader from '@/components/ui/PageHeader.vue'
+import PageShell from '@/components/ui/PageShell.vue'
 import ModuleSubnav from '@/components/ModuleSubnav.vue'
 import MarketplacePagination from '@/components/common/MarketplacePagination.vue'
 import { useAgents } from '@/composables/useAgents'
@@ -723,5 +711,15 @@ const navigateToDetail = (agent: Agent) => {
 
 ::-webkit-scrollbar-thumb:hover {
   background: rgb(var(--color-border-default-rgb) / 70%);
+}
+
+.agents-view__count {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
 }
 </style>

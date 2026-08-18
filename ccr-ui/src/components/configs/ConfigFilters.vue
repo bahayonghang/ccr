@@ -166,10 +166,10 @@ const filters = computed(() => [
 
 /* Filter button active state */
 .filter-btn-active {
-  background: linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary));
+  background: var(--color-accent-primary);
   color: var(--color-accent-primary-contrast);
   border-color: transparent;
-  box-shadow: 0 4px 16px rgb(var(--color-accent-primary-rgb) / 30%);
+  box-shadow: none;
 }
 
 /* Sort select */
@@ -205,8 +205,8 @@ const filters = computed(() => [
 
 /* Add button */
 .add-btn {
-  background: linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary));
-  box-shadow: 0 4px 16px rgb(var(--color-accent-primary-rgb) / 30%);
+  background: var(--color-accent-primary);
+  box-shadow: none;
 }
 
 .add-btn:hover {

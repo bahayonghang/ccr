@@ -239,10 +239,7 @@ const generatedLabel = computed(() =>
   gap: 1rem;
   border: 1px solid rgb(var(--color-border-default-rgb) / 14%);
   border-radius: 1.75rem;
-  background:
-    radial-gradient(circle at 16% 0%, rgb(var(--platform-usage-accent-rgb, var(--color-accent-primary-rgb)) / 12%), transparent 36rem),
-    linear-gradient(135deg, rgb(var(--color-bg-elevated-rgb) / 78%), rgb(var(--color-bg-surface-rgb) / 58%)),
-    var(--stage-surface-soft);
+  background: var(--color-bg-surface);
   padding: clamp(1rem, 2vw, 1.45rem);
   box-shadow: var(--elevation-1);
   backdrop-filter: var(--surface-workspace-blur);
@@ -365,11 +362,7 @@ const generatedLabel = computed(() =>
 .platform-usage-panel__skeleton {
   min-height: 8.5rem;
   border-radius: 1.15rem;
-  background:
-    linear-gradient(90deg, transparent, rgb(var(--color-bg-elevated-rgb) / 62%), transparent),
-    rgb(var(--color-border-default-rgb) / 8%);
-  background-size: 220% 100%;
-  animation: platform-usage-shimmer 1.4s ease-in-out infinite;
+  background: rgb(var(--color-border-default-rgb) / 10%);
 }
 
 .platform-usage-panel__kpi {

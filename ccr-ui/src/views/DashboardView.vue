@@ -2,42 +2,33 @@
   <main class="dashboard-view">
     <div class="dashboard-workbench">
       <section
-        class="dashboard-hero"
+        class="dashboard-header"
         data-dashboard-hero
       >
-        <div class="dashboard-hero__lede">
-          <p class="dashboard-hero__eyebrow">
-            <span class="dashboard-hero__eyebrow-anchor" />
-            {{ t('dashboard.eyebrow') }}
-          </p>
-          <h1 class="dashboard-hero__title">
-            {{ t('dashboard.title') }}
-          </h1>
-          <p class="dashboard-hero__description">
-            {{ t('dashboard.description') }}
-          </p>
-        </div>
-        <button
-          type="button"
-          class="dashboard-hero__badge"
-          :data-tone="heroBadgeTone"
-          :aria-label="t('dashboard.readiness.label')"
-          @click="scrollToReadiness"
+        <PageHeader
+          :title="t('dashboard.title')"
+          :eyebrow="t('dashboard.eyebrow')"
+          :description="t('dashboard.description')"
         >
-          <span
-            class="dashboard-hero__badge-dot"
-            aria-hidden="true"
-          />
-          {{ t(heroBadgeLabelKey) }}
-        </button>
+          <template #status>
+            <button
+              type="button"
+              class="dashboard-header__badge"
+              :data-status="dashboardPresentation.readiness.status"
+              :aria-label="t('dashboard.readiness.label')"
+              @click="scrollToReadiness"
+            >
+              <span
+                class="dashboard-header__badge-dot"
+                aria-hidden="true"
+              />
+              {{ t(dashboardPresentation.readiness.labelKey) }}
+            </button>
+          </template>
+        </PageHeader>
       </section>
 
-      <section class="dashboard-grid dashboard-grid--top">
-        <DashboardNextActions
-          class="dashboard-grid__actions"
-          :actions="dashboardPresentation.actions"
-          :show-onboarding="dashboardPresentation.isFirstRun"
-        />
+      <section class="dashboard-grid dashboard-grid--status">
         <DashboardReadinessLedger
           class="dashboard-grid__readiness"
           :readiness="dashboardPresentation.readiness"
@@ -45,7 +36,15 @@
         />
       </section>
 
-      <section class="dashboard-grid dashboard-grid--middle">
+      <section class="dashboard-grid dashboard-grid--actions">
+        <DashboardNextActions
+          class="dashboard-grid__actions"
+          :actions="dashboardPresentation.actions"
+          :show-onboarding="dashboardPresentation.isFirstRun"
+        />
+      </section>
+
+      <section class="dashboard-grid dashboard-grid--insight">
         <DashboardUsageMovement
           class="dashboard-grid__usage"
           :overview="overview"
@@ -62,6 +61,7 @@
       </section>
 
       <DashboardPlatformMatrix
+        class="dashboard-grid__entries"
         :rows="dashboardPresentation.platformRows"
         :installed-cli-count="dashboardPresentation.installedCliCount"
         :runtime-cli-count="dashboardPresentation.runtimeCliCount"
@@ -80,6 +80,7 @@ import DashboardPlatformMatrix from '@/components/dashboard/DashboardPlatformMat
 import DashboardReadinessLedger from '@/components/dashboard/DashboardReadinessLedger.vue'
 import DashboardSignalStream from '@/components/dashboard/DashboardSignalStream.vue'
 import DashboardUsageMovement from '@/components/dashboard/DashboardUsageMovement.vue'
+import PageHeader from '@/components/ui/PageHeader.vue'
 import { getCliVersions, getSystemInfo } from '@/api/runtime/system'
 import { useMonitoringFeed } from '@/composables/useMonitoringFeed'
 import { useHomeUsageOverviewStore } from '@/stores/homeUsageOverview'
@@ -247,27 +248,6 @@ const backendStatus = computed<DashboardBackendStatus>(() => {
   return 'checking'
 })
 
-const heroBadgeTone = computed<'ok' | 'checking' | 'error'>(() => {
-  if (backendStatus.value === 'ok') return 'ok'
-  if (backendStatus.value === 'error') return 'error'
-  return 'checking'
-})
-
-const heroBadgeLabelKey = computed(() => {
-  switch (backendStatus.value) {
-    case 'ok':
-      return 'dashboard.metrics.backendReady'
-    case 'error':
-      return 'dashboard.metrics.backendError'
-    case 'checking':
-      return 'dashboard.metrics.backendChecking'
-    case 'unsupported':
-      return 'dashboard.metrics.backendUnsupported'
-    default:
-      return 'dashboard.metrics.backendUnknown'
-  }
-})
-
 const scrollToReadiness = () => {
   const target = document.querySelector('[data-dashboard-readiness]')
   const reduceMotion = typeof window.matchMedia === 'function'
@@ -354,115 +334,81 @@ const dashboardPresentation = computed(() => buildDashboardPresentation({
   margin: 0 auto;
 }
 
-.dashboard-hero {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 1rem;
-  padding: 1rem 0 0.15rem;
-  color: var(--color-text-primary);
-}
-
-.dashboard-hero__lede {
-  display: grid;
-  gap: 0.35rem;
+.dashboard-header {
   min-width: 0;
-  flex: 1 1 28rem;
+  padding-top: 0.25rem;
 }
 
-.dashboard-hero__badge {
+.dashboard-header__badge {
   display: inline-flex;
   flex-shrink: 0;
   align-items: center;
   gap: 0.45rem;
-  padding: 0.4rem 0.85rem;
-  border: 1px solid var(--home-border-card);
-  border-radius: 999px;
-  background: var(--home-surface-card);
-  box-shadow: var(--home-elevation-sunk);
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-elevated);
   color: var(--color-text-secondary);
-  font-size: var(--home-text-meta);
-  font-weight: 800;
-  letter-spacing: var(--home-tracking-eyebrow);
-  text-transform: uppercase;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.24;
+  letter-spacing: 0;
   cursor: pointer;
   transition:
     border-color var(--home-motion-duration) var(--home-motion-ease),
-    background-color var(--home-motion-duration) var(--home-motion-ease);
+    background-color var(--home-motion-duration) var(--home-motion-ease),
+    color var(--home-motion-duration) var(--home-motion-ease);
 }
 
-.dashboard-hero__badge:hover {
-  border-color: var(--home-border-card-hover);
-  background: var(--home-surface-card-hover);
+.dashboard-header__badge:hover {
+  border-color: var(--color-border-strong);
+  color: var(--color-text-primary);
 }
 
-.dashboard-hero__badge:focus-visible {
-  outline: 0;
-  box-shadow: var(--home-focus-ring);
+.dashboard-header__badge:focus-visible {
+  outline: 2px solid var(--color-accent-primary);
+  outline-offset: 2px;
 }
 
-.dashboard-hero__badge-dot {
-  width: 0.5rem;
-  height: 0.5rem;
+.dashboard-header__badge-dot {
+  width: 0.45rem;
+  height: 0.45rem;
   border-radius: 999px;
   background: var(--color-text-muted);
 }
 
-.dashboard-hero__badge[data-tone='ok'] {
+.dashboard-header__badge[data-status='ready'] {
   color: var(--color-success);
+  background: rgb(var(--color-success-rgb) / 10%);
+  border-color: rgb(var(--color-success-rgb) / 18%);
 }
 
-.dashboard-hero__badge[data-tone='ok'] .dashboard-hero__badge-dot {
+.dashboard-header__badge[data-status='ready'] .dashboard-header__badge-dot {
   background: var(--color-success);
 }
 
-.dashboard-hero__badge[data-tone='error'] {
-  color: var(--color-danger);
+.dashboard-header__badge[data-status='attention'] {
+  color: var(--color-warning);
+  background: rgb(var(--color-warning-rgb) / 10%);
+  border-color: rgb(var(--color-warning-rgb) / 18%);
 }
 
-.dashboard-hero__badge[data-tone='error'] .dashboard-hero__badge-dot {
-  background: var(--color-danger);
+.dashboard-header__badge[data-status='attention'] .dashboard-header__badge-dot {
+  background: var(--color-warning);
 }
 
-.dashboard-hero__eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.55rem;
-  margin: 0;
-  color: var(--color-text-muted);
-  font-size: var(--home-text-meta);
-  font-weight: 800;
-  letter-spacing: var(--home-tracking-eyebrow);
-  text-transform: uppercase;
+.dashboard-header__badge[data-status='warming'] .dashboard-header__badge-dot {
+  background: var(--color-info);
 }
 
-.dashboard-hero__eyebrow-anchor {
-  display: inline-block;
-  width: 16px;
-  height: 2px;
-  border-radius: 2px;
-  background: var(--color-accent-primary);
+.dashboard-header__badge[data-status='web-preview'] {
+  color: var(--color-info);
+  background: rgb(var(--color-info-rgb) / 10%);
+  border-color: rgb(var(--color-info-rgb) / 18%);
 }
 
-.dashboard-hero__title {
-  max-width: 42rem;
-  margin: 0;
-  color: var(--color-text-primary);
-  font-family: var(--font-brand);
-  font-size: clamp(1.8rem, 3.8vw, 3.2rem);
-  font-weight: 640;
-  letter-spacing: -0.06em;
-  line-height: 0.96;
-}
-
-.dashboard-hero__description {
-  max-width: 58rem;
-  margin: 0.2rem 0 0;
-  color: var(--color-text-secondary);
-  font-size: var(--home-text-body);
-  letter-spacing: var(--home-tracking-body);
-  line-height: var(--home-leading-body);
+.dashboard-header__badge[data-status='web-preview'] .dashboard-header__badge-dot {
+  background: var(--color-info);
 }
 
 .dashboard-grid {
@@ -476,25 +422,22 @@ const dashboardPresentation = computed(() => buildDashboardPresentation({
   min-width: 0;
 }
 
+.dashboard-grid__readiness,
 .dashboard-grid__actions,
-.dashboard-grid__usage {
-  grid-column: span 8;
+.dashboard-grid__entries {
+  grid-column: 1 / -1;
 }
 
-.dashboard-grid__readiness,
+.dashboard-grid__usage {
+  grid-column: span 7;
+}
+
 .dashboard-grid__signals {
-  grid-column: span 4;
+  grid-column: span 5;
 }
 
 @media (width <= 1180px) {
-  .dashboard-hero {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .dashboard-grid__readiness,
   .dashboard-grid__usage,
-  .dashboard-grid__actions,
   .dashboard-grid__signals {
     grid-column: 1 / -1;
   }
@@ -506,4 +449,3 @@ const dashboardPresentation = computed(() => buildDashboardPresentation({
   }
 }
 </style>
-
