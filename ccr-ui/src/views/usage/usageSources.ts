@@ -13,6 +13,8 @@ const fallbackLabels = {
   kimi_code: 'Kimi Code',
   pi: 'Pi / Oh My Pi',
   grok: 'Grok Build',
+  zcode: 'ZCode',
+  deepseek_harness: 'DeepSeek Harness',
 } satisfies Record<UsagePlatform, string>
 
 export const USAGE_SOURCE_DEFINITIONS: readonly UsageSourceDefinition[] =

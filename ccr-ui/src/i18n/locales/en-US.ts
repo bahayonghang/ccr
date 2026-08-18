@@ -2663,6 +2663,8 @@ export default {
       kimi_code: 'Kimi Code',
       pi: 'Pi / Oh My Pi',
       grok: 'Grok Build',
+      zcode: 'ZCode',
+      deepseek_harness: 'DeepSeek Harness',
       gemini: 'Antigravity CLI',
     },
 
@@ -2867,7 +2869,7 @@ export default {
         eyebrow: 'Source Mix',
         title: 'Usage by source',
         subtitle:
-          'Compare all seven llmusage sources in the current window. Selecting a source applies the dashboard filter.',
+          'Compare llmusage sources in the current window. Selecting a source applies the dashboard filter.',
         sources: 'sources',
         requests: 'requests',
         activeDays: 'active days',

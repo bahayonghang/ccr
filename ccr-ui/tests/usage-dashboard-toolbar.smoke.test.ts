@@ -4,7 +4,7 @@ import UsageDashboardToolbar from '@/components/usage/UsageDashboardToolbar.vue'
 import { createI18nStub } from './helpers/i18n-stub'
 
 describe('UsageDashboardToolbar smoke', () => {
-  it('renders and emits all seven canonical llmusage source filters', async () => {
+  it('renders and emits all canonical llmusage source filters', async () => {
     const el = document.createElement('div')
     document.body.appendChild(el)
     const onPlatformUpdate = vi.fn()
@@ -34,6 +34,8 @@ describe('UsageDashboardToolbar smoke', () => {
         'kimi_code',
         'pi',
         'grok',
+        'zcode',
+        'deepseek_harness',
       ])
       expect(options.map((option) => option.textContent?.trim())).toEqual([
         'All Platforms',
@@ -44,6 +46,8 @@ describe('UsageDashboardToolbar smoke', () => {
         'Kimi Code',
         'Pi / Oh My Pi',
         'Grok Build',
+        'ZCode',
+        'DeepSeek Harness',
       ])
 
       select.value = 'antigravity'

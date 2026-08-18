@@ -2576,6 +2576,8 @@ export default {
       kimi_code: 'Kimi Code',
       pi: 'Pi / Oh My Pi',
       grok: 'Grok Build',
+      zcode: 'ZCode',
+      deepseek_harness: 'DeepSeek Harness',
       gemini: 'Antigravity CLI',
     },
 
@@ -2769,7 +2771,7 @@ export default {
       sources: {
         eyebrow: '来源构成',
         title: '按来源查看使用量',
-        subtitle: '在当前窗口内对比 llmusage 的七个来源；点击某个来源会应用看板筛选。',
+        subtitle: '在当前窗口内对比 llmusage 来源；点击某个来源会应用看板筛选。',
         sources: '个来源',
         requests: '请求',
         activeDays: '活跃天',

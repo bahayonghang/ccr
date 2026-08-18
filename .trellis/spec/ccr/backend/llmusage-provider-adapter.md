@@ -35,10 +35,12 @@
       KimiCode,
       Pi,
       Grok,
+      Zcode,
+      DeepseekHarness,
   }
 
   // Canonical stored/wire ids:
-  // claude, codex, opencode, antigravity, kimi_code, pi, grok.
+  // claude, codex, opencode, antigravity, kimi_code, pi, grok, zcode, deepseek_harness.
   // gemini and existing Gemini spellings remain input aliases for Antigravity.
 
   pub struct QueryFilter {
@@ -106,7 +108,7 @@
 - `FeatureKey::ProviderBreakdown` requires schema `>= 14` and both provider columns. Existing non-provider features keep their existing minimum schema unless a provider filter is supplied.
 - Base projections support schema 10 and later by minimum version plus required table/column checks. Schema 13 changes persisted `gemini` to `antigravity`; schema 14 adds provider columns; schema 18 adds the event range index; schema 19 adds only an Activity covering index. Compatible future additive schemas remain readable and must never be migrated by CCR.
 - `SourceKind::Antigravity::storage_key(schema_version)` resolves to `gemini` for schema 10-12 and `antigravity` for schema 13+. SQL projections for source breakdown, logs, diagnostics, and home overview canonicalize returned legacy `gemini` values to `antigravity` before they reach Tauri or the frontend.
-- The current source set is exactly `claude`, `codex`, `opencode`, `antigravity`, `kimi_code`, `pi`, and `grok`. Usage filtering and source-share denominators include all seven; unknown database sources may remain visible as raw labels but are not promoted into typed frontend filters.
+- The current source set is exactly `claude`, `codex`, `opencode`, `antigravity`, `kimi_code`, `pi`, `grok`, `zcode`, and `deepseek_harness`. Usage filtering and source-share denominators include all nine; unknown database sources may remain visible as raw labels but are not promoted into typed frontend filters.
 - `crates/ccr-usage` owns `Dashboard::provider_breakdown` and **all** usage SQL (overview, trends, model/provider/project/source breakdowns, heatmap, logs, diagnostics, home overview) for all CCR surfaces. Tauri and TUI code must delegate to this crate instead of duplicating any aggregation query; the Tauri adapter `Dashboard` is a thin wrapper that only maps `UsageError` to `LlmusageAdapterError`.
 - `Dashboard::open` opens one `SQLITE_OPEN_READ_ONLY | SQLITE_OPEN_URI` connection, registers the DST-aware SQLite function, reads schema/required columns once into an immutable capability snapshot, and reuses both for every section. Section feature gates must not reopen the database.
 - Date API bounds are inclusive local calendar dates. Query SQL converts them to typed RFC 3339 UTC half-open bounds (`timestamp >= ? AND timestamp < ?`), preserving `hour_start` and `event_at` index use. Local grouping uses the machine IANA zone with historical DST rules; an unavailable or unknown IANA zone is an explicit `UsageError::Query`, never a current-offset fallback.
@@ -117,7 +119,7 @@
 - `get_usage_dashboard_v2` includes `provider_stats` and its cache key must include the provider filter.
 - When no provider filter is supplied and provider capability is unavailable, dashboard payloads degrade to `provider_stats: []`; an explicit provider filter must surface the unsupported error.
 - Sync NDJSON accepts the current pricing upgrade, bucket reconcile, and token-accounting repair lifecycle events in addition to migration/lock/source/terminal events. These additive lifecycle events keep the existing running/importing stage; malformed or unknown brace-prefixed JSON remains a protocol error.
-- Home `by_platform` and summary include all detected sources. The fixed daily wire series remains `claude`, `codex`, `antigravity`, and `opencode`; do not invent Kimi/Pi/Grok fixed series fields. Frontend typed filters and the Usage toolbar expose the seven canonical ids while retaining backend `gemini` alias input compatibility.
+- Home `by_platform` and summary include all detected sources. The fixed daily wire series remains `claude`, `codex`, `antigravity`, and `opencode`; do not invent Kimi/Pi/Grok/ZCode/DeepSeek Harness fixed series fields. Frontend typed filters and the Usage toolbar expose the nine canonical ids while retaining backend `gemini` alias input compatibility.
 - TUI usage surfaces (the profile-detail Usage section; the standalone Usage tab was retired 2026-07) should load the shared projection on a background task through an injectable loader seam (`UsageLoader`), consume `TaggedProviderBreakdown` directly (no per-surface shadow row structs), request `SourceKind::Claude` and `SourceKind::Codex` separately when rendering those platform sections (via `provider_breakdown_by_source`), and display `provider = null` as `unattributed` (`ProviderBreakdownDto::display_provider`).
 - Only pass `--provider-map <path>` when `$CCR_ROOT/analytics/provider_activation.jsonl` exists. The installed llmusage CLI treats an explicit missing provider-map path as a hard sync error.
 - New frontend business wrappers belong in `src/api/domains/*`; `src/api/tauri.ts` remains a compatibility facade.

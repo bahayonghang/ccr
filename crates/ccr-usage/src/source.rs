@@ -26,10 +26,14 @@ pub enum SourceKind {
     Pi,
     #[serde(alias = "grok-build", alias = "grok build")]
     Grok,
+    #[serde(alias = "z-code", alias = "z code")]
+    Zcode,
+    #[serde(alias = "deepseek-harness", alias = "deepseek harness")]
+    DeepseekHarness,
 }
 
 impl SourceKind {
-    pub const ALL: [Self; 7] = [
+    pub const ALL: [Self; 9] = [
         Self::Claude,
         Self::Codex,
         Self::Opencode,
@@ -37,6 +41,8 @@ impl SourceKind {
         Self::KimiCode,
         Self::Pi,
         Self::Grok,
+        Self::Zcode,
+        Self::DeepseekHarness,
     ];
 
     pub fn as_str(self) -> &'static str {
@@ -48,6 +54,8 @@ impl SourceKind {
             Self::KimiCode => "kimi_code",
             Self::Pi => "pi",
             Self::Grok => "grok",
+            Self::Zcode => "zcode",
+            Self::DeepseekHarness => "deepseek_harness",
         }
     }
 
@@ -70,6 +78,10 @@ impl SourceKind {
             "kimi_code" | "kimi-code" | "kimi code" => Some(Self::KimiCode),
             "pi" | "oh-my-pi" | "oh my pi" | "omp" => Some(Self::Pi),
             "grok" | "grok-build" | "grok build" => Some(Self::Grok),
+            "zcode" | "z-code" | "z code" => Some(Self::Zcode),
+            "deepseek_harness" | "deepseek-harness" | "deepseek harness" => {
+                Some(Self::DeepseekHarness)
+            }
             _ => None,
         }
     }
@@ -128,6 +140,11 @@ mod tests {
         assert_eq!(
             canonical_source_id(Some("Grok Build")).as_deref(),
             Some("grok")
+        );
+        assert_eq!(canonical_source_id(Some("zcode")).as_deref(), Some("zcode"));
+        assert_eq!(
+            canonical_source_id(Some("deepseek-harness")).as_deref(),
+            Some("deepseek_harness")
         );
     }
 
