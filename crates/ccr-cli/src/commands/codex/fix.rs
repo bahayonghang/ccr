@@ -1124,16 +1124,18 @@ mod tests {
         let (bin, args) = hanging_doctor_command(&parent_pid, &child_pid);
         let arg_refs: Vec<&str> = args.iter().map(String::as_str).collect();
         let timeout = if cfg!(windows) {
-            Duration::from_secs(4)
+            Duration::from_secs(12)
         } else {
             Duration::from_secs(2)
         };
 
-        let result = capture_doctor(&bin, &arg_refs, timeout).await;
+        // 在超时杀树的同时等 pid 文件，避免 Windows 并行负载下 PowerShell 还没写完就被杀掉。
+        let (result, parent, grandchild) = tokio::join!(
+            capture_doctor(&bin, &arg_refs, timeout),
+            wait_for_pid_file(&parent_pid),
+            wait_for_pid_file(&child_pid),
+        );
         assert_eq!(result, Err(DoctorError::Timeout));
-
-        let parent = wait_for_pid_file(&parent_pid).await;
-        let grandchild = wait_for_pid_file(&child_pid).await;
         wait_until_process_gone(parent).await;
         wait_until_process_gone(grandchild).await;
     }
@@ -1261,23 +1263,23 @@ mod tests {
     }
 
     async fn wait_for_pid_file(path: &std::path::Path) -> u32 {
-        for _ in 0..100 {
+        for _ in 0..200 {
             if let Ok(raw) = std::fs::read_to_string(path)
                 && let Ok(pid) = raw.trim().parse()
             {
                 return pid;
             }
-            tokio::time::sleep(Duration::from_millis(50)).await;
+            tokio::time::sleep(Duration::from_millis(100)).await;
         }
         panic!("pid file was not written: {}", path.display());
     }
 
     async fn wait_until_process_gone(pid: u32) {
-        for _ in 0..80 {
+        for _ in 0..200 {
             if !test_process_is_running(pid) {
                 return;
             }
-            tokio::time::sleep(Duration::from_millis(50)).await;
+            tokio::time::sleep(Duration::from_millis(100)).await;
         }
         panic!("process {pid} is still running");
     }
