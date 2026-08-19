@@ -61,6 +61,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **CI 合入门禁**：
   - 将前端嵌套 `nanoid` 钉到 `3.3.18`，清掉 GHSA-2v37-7h3g-55p8
   - Unix 日志权限测试改为 `std::fs`，避免与其他测试模块的 `fs` 路径冲突
+  - 覆盖率任务改为校验并安装预编译 `cargo-llvm-cov` 0.8.7，避免从源码编译卡住
 
 - **CI Linux 构建依赖补齐**：
   - 为 CI 的 `clippy`、`build`、`test`（Linux 分支）补充 `pkg-config` 与 `libwayland-dev`

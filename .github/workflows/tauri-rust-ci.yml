@@ -85,7 +85,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y pkg-config libwayland-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
           cargo install just --version 1.57.0 --locked
-          cargo install cargo-llvm-cov --version 0.8.7 --locked
+          curl -L --fail --retry 3 -o cargo-llvm-cov.tar.gz https://github.com/taiki-e/cargo-llvm-cov/releases/download/v0.8.7/cargo-llvm-cov-x86_64-unknown-linux-gnu.tar.gz
+          echo "9a75fe29538d3800b3da57f6f6efb64cba5c720a257bf0cb8b51f39d495a9168  cargo-llvm-cov.tar.gz" | sha256sum -c -
+          tar -xzf cargo-llvm-cov.tar.gz -C "${CARGO_HOME:-$HOME/.cargo}/bin"
       - name: Collect Tauri coverage and enforce gateway threshold
         run: just coverage-tauri
       - name: Upload Tauri coverage
