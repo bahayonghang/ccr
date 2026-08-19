@@ -268,6 +268,9 @@ describe('DashboardView smoke', () => {
 
     try {
       expect(el.querySelector('[data-dashboard-hero]')).not.toBeNull()
+      expect(el.querySelector('.page-header')).not.toBeNull()
+      expect(el.querySelector('.dashboard-hero__title')).toBeNull()
+      expect(el.querySelector('[data-dashboard-readiness]')).not.toBeNull()
       expect(el.querySelector('[data-dashboard-actions]')).not.toBeNull()
       expect(el.querySelector('[data-dashboard-signals]')).not.toBeNull()
       expect(el.querySelector('[data-dashboard-platforms]')).not.toBeNull()
@@ -281,6 +284,10 @@ describe('DashboardView smoke', () => {
       expect(el.textContent).toContain('Usage archive refreshed')
       expect(el.textContent).toContain('1.2K')
       expect(el.textContent).toContain('更新于')
+      const readinessBadges = el.querySelectorAll('[data-dashboard-readiness] .stat-tile__value--badge[data-tone]')
+      expect(readinessBadges.length).toBe(5)
+      const usageBadges = el.querySelectorAll('[data-dashboard-usage-movement] .stat-tile__value--badge[data-tone="neutral"]')
+      expect(usageBadges.length).toBe(4)
       expect(el.textContent).not.toContain('Factory Droid')
       expect(findPlaceholderLeaks(el.textContent || '')).toEqual([])
     } finally {

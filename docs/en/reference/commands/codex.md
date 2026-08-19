@@ -23,7 +23,7 @@ ccr codex profile off
 | Command family | Purpose |
 |---|---|
 | `ccr codex auth ...` | save, switch, export, and import official auth accounts |
-| `ccr codex profile ...` | apply a CCR profile into the Codex runtime or exit back to official-auth runtime |
+| `ccr codex profile ...` | apply a CCR profile into the Codex runtime or clear its route and runtime credentials |
 
 ## Current `profile` surface
 
@@ -41,7 +41,8 @@ ccr codex profile off
 ## `fix`
 
 ```bash
-# Switch the target profile first. The bare command does not write runtime files.
+# Switch the target profile first. The bare command does not write runtime files
+# and does not run upstream doctor.
 ccr codex profile switch future
 ccr codex fix
 
@@ -50,21 +51,28 @@ ccr codex fix --repair-runtime
 
 # Preview process cleanup and profile replay without signals or file writes.
 ccr codex fix --dry-run --repair-runtime
+
+# Run upstream doctor only when you need that extra evidence.
+ccr codex fix --doctor
 ```
 
 The process stage only matches native Codex or the Node Codex wrapper running `app-server` under
 the current owner. It does not match `codex exec`, `codex resume`, `codex login`, or unrelated tools
-that merely contain `codex app-server` in their arguments. Cleanup sends TERM first, keeps
-rediscovering replacement PIDs during an approximately three-second grace window, and sends KILL
-to every matching process still present at the deadline. Owner, PID start time, and argv are checked
-again before every signal. If the current owner or command line cannot be read safely, CCR reports
+that merely contain `codex app-server` in their arguments. Cleanup sends TERM first, then rediscovers
+matching targets every 300 ms for up to about three seconds. The grace loop stops as soon as the
+target set is empty. Every matching process still present at the deadline receives KILL. After any
+signal in this run, CCR still waits about one second and takes a final snapshot. Identities that
+appear only in that settle snapshot go into `respawned`; they do not receive a deadline KILL, and
+the command exits with code 2. Owner, PID start time, and argv are checked again before every
+signal. If the current owner or command line cannot be read safely, CCR reports
 `process_state = unavailable` and sends no further signals instead of claiming `clean`.
 
-The diagnosis separates profile pointers, route, credential consistency, and provider validity. CCR's reconciliation only compares the locally saved secret with the configured credential source; it adds no third-party credential probe and never prints key values, masked fragments, lengths, or fingerprints. The command still runs upstream `codex doctor` as supplemental evidence, whose checks depend on the installed Codex version. `provider_auth_validity = not_checked` therefore means neither success nor failure at the provider.
+The diagnosis separates profile pointers, route, credential consistency, and provider validity. CCR's reconciliation only compares the locally saved secret with the configured credential source; it adds no third-party credential probe and never prints key values, masked fragments, lengths, or fingerprints. The default path does not run upstream `codex doctor`. Pass `--doctor` when you need that extra evidence. `provider_auth_validity = not_checked` therefore means neither success nor failure at the provider.
 
-Process cleanup, CCR runtime inspection/repair, and upstream doctor report independently. A runtime
-stage failure reports `runtime_consistency = unavailable`; doctor still runs when it is available.
+Process cleanup, CCR runtime inspection/repair, and optional upstream doctor report independently. A runtime
+stage failure reports `runtime_consistency = unavailable`; later independent stages still run.
 Raw process argv and sensitive stage-error content are never rendered.
+`--repair-runtime` does not imply `--doctor`.
 
 Exit codes:
 
@@ -74,7 +82,7 @@ Exit codes:
 | `1` | CCR runtime inspection or repair failed |
 | `2` | An app-server remains, or process discovery/cleanup could not be completed safely |
 | `3` | Local profile/runtime drift remains, or the snapshot changed during doctor |
-| `127` | `codex` is not available on `PATH` |
+| `127` | `--doctor` was passed and `codex` is not available on `PATH` |
 
 ## `sync-history`
 

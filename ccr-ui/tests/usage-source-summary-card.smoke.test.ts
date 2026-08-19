@@ -56,7 +56,7 @@ const mountSourceCard = async (
 }
 
 describe('UsageSourceSummaryCard smoke', () => {
-  it('exposes the seven canonical llmusage source filters', () => {
+  it('exposes the canonical llmusage source filters', () => {
     expect(USAGE_SOURCE_DEFINITIONS.map((source) => source.id)).toEqual([
       'claude',
       'codex',
@@ -65,6 +65,8 @@ describe('UsageSourceSummaryCard smoke', () => {
       'kimi_code',
       'pi',
       'grok',
+      'zcode',
+      'deepseek_harness',
     ])
     expect(USAGE_SOURCE_DEFINITIONS.find((source) => source.id === 'antigravity')?.fallbackLabel)
       .toBe('Antigravity CLI')

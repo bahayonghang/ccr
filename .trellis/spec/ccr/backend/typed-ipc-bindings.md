@@ -6,8 +6,8 @@
 
 ### 1. Scope / Trigger
 
-- Trigger: adding/changing any wire DTO returned by (or accepted as input to) a typed Tauri command; typing a new command domain; upgrading `ts-rs`.
-- Applies to `ccr-ui/src-tauri/src/services/*`, `ccr-ui/src-tauri/src/llmusage_adapter/{queries,capabilities}.rs`, `ccr-ui/src-tauri/src/{usage_jobs,session_index_jobs}.rs`, `ccr-ui/src-tauri/src/claude_observer/subscription.rs`, `crates/ccr-usage/src/{queries,capabilities}.rs`, and the generated dir `ccr-ui/src/types/generated/`.
+- Trigger: adding/changing any wire DTO returned by (or accepted as input to) a typed Tauri command; typing a new command domain; upgrading `ts-rs`; converting `OpenJsonValueDto` / `JsonValueDto` numbers to `serde_json::Value`.
+- Applies to `ccr-ui/src-tauri/src/services/*`, `ccr-ui/src-tauri/src/commands/{wire,system,grok}.rs`, `ccr-ui/src-tauri/src/llmusage_adapter/{queries,capabilities}.rs`, `ccr-ui/src-tauri/src/{usage_jobs,session_index_jobs}.rs`, `ccr-ui/src-tauri/src/claude_observer/subscription.rs`, `crates/ccr-usage/src/{queries,capabilities}.rs`, and the generated dir `ccr-ui/src/types/generated/`.
 - Typed coverage is generated from the command manifest: 265/328 base commands (80.79%), with exact registry-owned input/output declarations for 265/265 typed commands. This includes Usage V2 (17), Claude Observer (9), install (8), config, system prompts, sync, Claude, Codex, auth/provider, Gemini, Grok, OpenCode, SSH, command execution, and the smaller system/UI/environment/event/shell domains. All typed commands expose a concrete generated return type; `Result<Value, String>` is banned at the command boundary.
 
 ### 2. Signatures
@@ -46,6 +46,7 @@
 - Generated files are **committed** (reviewers see contract diffs), `linguist-generated` + `eol=lf` via root `.gitattributes`, excluded from eslint (`ccr-ui/eslint.config.js` ignores `src/types/generated/**`), covered by `bun run type-check`.
 - TS consumption: domain wrappers re-export registry-generated clients and expose concrete return types -- no direct typed `invoke()` or `<T = UnknownRecord>` generics in a typed domain. `src/types/usage.ts` is a compat shim re-exporting generated types under legacy names plus hand-written view-only types (`UsagePlatform`, `HomeOverviewViewMode`, event payloads). Event payloads (`app_handle.emit`) are not command returns and stay hand-written until events join the pilot.
 - Structurally open configuration payloads use the generated recursive `OpenJsonValueDto` union at the command boundary. Handwritten wrappers must convert unknown inputs with `toOpenJsonValue`; unchecked `as OpenJsonValueDto` casts are forbidden because they admit bigint, non-finite numbers, symbols, and other non-JSON values.
+- **Open JSON numbers**: JS/Tauri collapse every JSON number into `f64` (`OpenJsonValueDto::Number` / `JsonValueDto::Number`). `From` conversion MUST go through `json_number_from_f64` in `commands/wire.rs` (shared by `system.rs`). Values that round-trip as `u64`/`i64` become integer `serde_json::Number`; fractions stay Float; non-finite become Null. Do not call `Number::from_f64` alone — serde_json 1.0.x keeps that as `N::Float`, so `as_u64()` / `as_i64()` are `None` even for `500000.0`.
 - Typed commands are invoked only by registry-generated clients under `src/api/generated/`. `stats.ts`, `claudeObserver.ts`, and `install.ts` are compatibility re-export/projection surfaces, not direct invoke owners; the manifest-aware smoke guard has no typed-client exception list.
 - Name uniqueness: one exported type name per generated dir. If a workspace crate and src-tauri both define a same-named type (e.g. `HomeOverview*`), only the wire-facing one gets `ts(export)`.
 - **Repository types never go on the wire directly**: when a domain returns rows owned by a ccr-db repository (e.g. `claude_tool_calls_repo::{HeatmapCell,TopToolRow}`), the service layer defines a same-shaped wire DTO with the `TS` derive and maps via `From`. ccr-db stays free of ts-rs/frontend-binding concerns, and the bindings recipe never needs a ccr-db export step.
@@ -53,6 +54,7 @@
 ### 4. Validation & Error Matrix
 
 - i64/u64 field missing `ts(as)` → `bigint` appears in generated file → consumer `bun run type-check` fails + drift diff shows `bigint`.
+- `OpenJsonValueDto::Number(500_000.0)` converted with `Number::from_f64` → `as_u64()` is `None` → domain validators that require a positive integer reject a legal whole number. Conversion via `json_number_from_f64` must yield `as_u64() == Some(500_000)`. Fractional `1.5` stays Float; negative whole `-8.0` yields `as_i64() == Some(-8)`.
 - Rust DTO changed without regeneration → `just tauri-bindings-check` exits 1 listing the generated paths changed by regeneration.
 - Hand-edited generated file that changes its generated shape → same guard failure; deterministic whitespace is repaired by the normalizer.
 - New typed command added → handler-registry contract still applies unchanged (`define_command_registry!`, frozen counts 328 base / 336 Windows).
@@ -62,6 +64,8 @@
 ### 5. Good / Base / Bad Cases
 
 - Good: add field `pub cache_hits: i64` with `#[ts(as = "f64")]`, run `just tauri-bindings`, commit code + regenerated `.ts` together.
+- Good: force `OpenJsonValueDto::Number(500_000.0)` in a unit test; `json!(500_000)` is already an integer Number and does not exercise the IPC f64 path.
+- Bad: `serde_json::Number::from_f64(n)` then `as_u64()` for integers that arrived from the UI.
 - Good: new service fn in `services/usage.rs` + unit test against `ccr_usage::fixtures::create_projection_db`.
 - Base: legacy manifest domains keep `Result<Value, String>` until their own migration task; every domain marked `Generated` has exact registry-owned types and client declarations.
 - Bad: `serde_json::to_value(dto)` at the end of a typed command (reintroduces erasure).
@@ -76,6 +80,7 @@
 - `cd ccr-ui && bun run type-check` (generated types + consumers).
 - `cd ccr-ui && bun run test:smoke -- tests/api-facade-boundary.smoke.test.ts tests/typed-json-boundary.smoke.test.ts tests/typed-command-boundary.smoke.test.ts` (generated-client ownership + JSON input boundary + zero raw-`Value` command returns).
 - `cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml commands::handler_registry -- --nocapture` (counts unchanged).
+- `cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml commands::wire::tests -- --test-threads=1` (whole f64 → integer Number; fraction stays float).
 
 ### 7. Wrong vs Correct
 
@@ -113,6 +118,24 @@ pub async fn get_stats(state: State<'_, AppState>) -> Result<StatsDto, String> {
         .map_err(|e| format!("Task join error: {e}"))?
 }
 ```
+
+#### Wrong (open JSON numbers)
+
+```rust
+OpenJsonValueDto::Number(value) => Number::from_f64(value)
+    .map(Value::Number)
+    .unwrap_or(Value::Null),
+```
+
+`500000.0` becomes Float; later `as_u64()` is `None`.
+
+#### Correct (open JSON numbers)
+
+```rust
+OpenJsonValueDto::Number(value) => json_number_from_f64(value),
+```
+
+Whole f64 values become integer JSON numbers so `as_u64()` / `as_i64()` work.
 
 ## Scenario: llmusage install opaque plan handle
 

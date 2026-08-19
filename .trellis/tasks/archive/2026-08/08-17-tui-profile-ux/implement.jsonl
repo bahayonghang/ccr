@@ -1,0 +1,3 @@
+{"file": ".trellis/spec/ccr-tui/backend/index.md", "reason": "ccr-tui spec 入口,含改 TUI 状态/渲染/键位处理前的 Pre-Development Checklist"}
+{"file": ".trellis/spec/ccr-tui/backend/backend-guidelines.md", "reason": "TUI 状态/渲染边界、可恢复错误、测试与验证约定,WS1-WS5 全部适用"}
+{"file": ".trellis/tasks/08-17-tui-profile-ux/research/critique-snapshot.md", "reason": "设计评审完整发现(含行号定位),本任务全部需求的来源与验收对照"}

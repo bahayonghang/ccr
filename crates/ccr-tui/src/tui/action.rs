@@ -30,8 +30,8 @@ pub enum Action {
     ScrollDetailsDown,
     /// Apply the currently selected profile (stay in TUI)
     ApplySelected,
-    /// Apply the currently selected profile and quit
-    ApplyAndQuit,
+    /// Toggle visibility of unset profile detail fields (collapsed summary vs full list)
+    ToggleDetailsExpanded,
     /// Exit profile mode and clear CCR login leftovers
     ProfileOff,
     /// Refresh data from disk

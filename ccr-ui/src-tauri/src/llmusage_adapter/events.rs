@@ -207,7 +207,7 @@ mod tests {
             r#"{"event":"pricing_upgrade_progress","from_version":"v1","to_version":"v2","processed_events":5,"total_events":10,"elapsed_ms":12}"#,
             r#"{"event":"pricing_bucket_reconcile_started","to_version":"v2","bucket_count":4}"#,
             r#"{"event":"pricing_upgrade_finished","from_version":"v1","to_version":"v2","updated_events":10,"bucket_count":4,"deleted_orphan_buckets":1,"elapsed_ms":20}"#,
-            r#"{"event":"token_accounting_repair_started","sources":["kimi_code","pi","grok"]}"#,
+            r#"{"event":"token_accounting_repair_started","sources":["kimi_code","pi","grok","zcode","deepseek_harness"]}"#,
             r#"{"event":"token_accounting_repair_finished","sources":["antigravity"]}"#,
         ];
 
@@ -216,6 +216,38 @@ mod tests {
                 parse_ndjson_event(fixture).unwrap().is_some(),
                 "current event must parse: {fixture}"
             );
+        }
+    }
+
+    #[test]
+    fn parses_zcode_and_deepseek_harness_source_events() {
+        let started =
+            parse_ndjson_event(r#"{"event":"source_started","source":"zcode","files_total":1}"#)
+                .unwrap()
+                .expect("zcode source_started must parse");
+        match started {
+            JobEvent::SourceStarted {
+                source,
+                files_total,
+            } => {
+                assert_eq!(source, SourceKind::Zcode);
+                assert_eq!(files_total, 1);
+            }
+            other => panic!("unexpected event: {other:?}"),
+        }
+
+        let finished = parse_ndjson_event(
+            r#"{"event":"source_finished","source":"deepseek_harness","stats":{"source":"deepseek_harness","files_processed":2}}"#,
+        )
+        .unwrap()
+        .expect("deepseek_harness source_finished must parse");
+        match finished {
+            JobEvent::SourceFinished { source, stats } => {
+                assert_eq!(source, SourceKind::DeepseekHarness);
+                assert_eq!(stats.source, SourceKind::DeepseekHarness);
+                assert_eq!(stats.files_processed, 2);
+            }
+            other => panic!("unexpected event: {other:?}"),
         }
     }
 }

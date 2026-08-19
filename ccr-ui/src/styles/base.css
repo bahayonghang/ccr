@@ -219,7 +219,7 @@
     background: var(--surface-card-bg);
     backdrop-filter: var(--surface-card-blur);
     border: 1px solid var(--surface-card-border);
-    box-shadow: var(--surface-card-shadow), var(--glass-inner-glow);
+    box-shadow: var(--surface-card-shadow);
     border-radius: var(--radius-xl);
     overflow: hidden;
     color: var(--color-text-primary);
@@ -297,9 +297,7 @@
 
   /* 品牌强调文字 */
   .brand-gradient-text {
-    background: var(--gradient-brand);
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: var(--color-accent-primary);
   }
 }
 

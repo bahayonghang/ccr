@@ -1,13 +1,13 @@
 <template>
-  <div class="sync-page">
-    <main class="sync-shell">
-      <PageHeaderCard
+  <PageShell class="sync-page">
+    <template #header>
+      <PageHeader
         :title="$t('sync.title')"
         :description="$t('sync.subtitle')"
-        :badge="$t('sync.assets.badge')"
-        icon="Cloud"
-        tone="secondary"
       >
+        <template #status>
+          <span class="sync-badge">{{ $t('sync.assets.badge') }}</span>
+        </template>
         <template #actions>
           <button
             type="button"
@@ -58,6 +58,8 @@
             <span>{{ $t('sync.backHome') }}</span>
           </RouterLink>
         </template>
+      </PageHeader>
+    </template>
 
         <div class="sync-scope-strip">
           <div
@@ -69,7 +71,6 @@
             <strong>{{ item.value }}</strong>
           </div>
         </div>
-      </PageHeaderCard>
 
       <AsyncStatePanel
         v-if="loading"
@@ -266,14 +267,13 @@
           />
         </aside>
       </div>
-    </main>
 
     <SyncPassphraseModal
       v-model="passphraseModalOpen"
       :asset-name="pendingSensitiveOperation?.asset?.name"
       @submit="submitSensitiveOperation"
     />
-  </div>
+  </PageShell>
 </template>
 
 <script setup lang="ts">
@@ -282,7 +282,8 @@ import { ref, onMounted, computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import AsyncStatePanel from '@/components/ui/AsyncStatePanel.vue'
-import PageHeaderCard from '@/components/PageHeaderCard.vue'
+import PageHeader from '@/components/ui/PageHeader.vue'
+import PageShell from '@/components/ui/PageShell.vue'
 import {
   getSyncStatus,
   listSyncAssets,
@@ -689,11 +690,13 @@ onMounted(async () => {
 
 <style scoped>
 .sync-page {
-  @apply px-4 py-4 sm:px-6 sm:py-6;
+  background: var(--color-bg-elevated);
 }
 
-.sync-shell {
-  @apply mx-auto flex max-w-[1440px] flex-col gap-5;
+.sync-badge {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
 }
 
 .sync-back-link,
@@ -759,7 +762,7 @@ onMounted(async () => {
   @apply rounded-3xl p-5;
 
   border: 1px solid rgb(var(--color-border-default-rgb) / 38%);
-  background: linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 84%), rgb(var(--color-bg-surface-rgb) / 72%));
+  background: var(--color-bg-surface);
   box-shadow: var(--surface-card-shadow);
 }
 

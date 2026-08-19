@@ -15,7 +15,7 @@
 | `ccr grok profile disable <name>` | disable a profile |
 | `ccr grok profile delete <name>` | delete a profile; active profiles require off or `--force` |
 | `ccr grok profile open` | Open profiles.toml in your editor; creates the file from the template if it does not exist |
-| `ccr grok profile off` | restore the Grok configuration from before CCR profile mode |
+| `ccr grok profile off` | leave profile mode and remove `[model.custom]` and `[models].default` |
 
 ## Create A Profile
 

@@ -460,13 +460,13 @@ function maskValue(value: string): string {
 }
 
 .detail-btn--danger {
-  color: rgb(var(--color-danger-rgb, 239 68 68) / 85%);
+  color: rgb(var(--color-danger-rgb) / 85%);
 }
 
 .detail-btn--danger:hover {
-  border-color: rgb(var(--color-danger-rgb, 239 68 68) / 22%);
-  background: rgb(var(--color-danger-rgb, 239 68 68) / 8%);
-  color: rgb(var(--color-danger-rgb, 239 68 68));
+  border-color: rgb(var(--color-danger-rgb) / 22%);
+  background: rgb(var(--color-danger-rgb) / 8%);
+  color: rgb(var(--color-danger-rgb));
 }
 
 .detail-btn--sm {
@@ -482,9 +482,7 @@ function maskValue(value: string): string {
 }
 
 .detail-section--effective {
-  background:
-    linear-gradient(135deg, rgb(var(--color-accent-primary-rgb) / 9%), transparent 46%),
-    var(--surface-card-bg);
+  background: var(--surface-card-bg);
 }
 
 .detail-section__heading {
@@ -559,8 +557,8 @@ function maskValue(value: string): string {
 }
 
 .precedence-row--active {
-  border-color: rgb(var(--color-success-rgb, 34 197 94) / 24%);
-  background: rgb(var(--color-success-rgb, 34 197 94) / 6%);
+  border-color: rgb(var(--color-success-rgb) / 24%);
+  background: rgb(var(--color-success-rgb) / 6%);
 }
 
 .precedence-row__dot {
@@ -571,7 +569,7 @@ function maskValue(value: string): string {
 }
 
 .precedence-row--active .precedence-row__dot {
-  background: rgb(var(--color-success-rgb, 34 197 94));
+  background: rgb(var(--color-success-rgb));
 }
 
 .precedence-row__body {
@@ -613,21 +611,21 @@ function maskValue(value: string): string {
 }
 
 .state-pill--ok {
-  border-color: rgb(var(--color-success-rgb, 34 197 94) / 24%);
-  background: rgb(var(--color-success-rgb, 34 197 94) / 10%);
-  color: rgb(var(--color-success-rgb, 34 197 94));
+  border-color: rgb(var(--color-success-rgb) / 24%);
+  background: rgb(var(--color-success-rgb) / 10%);
+  color: rgb(var(--color-success-rgb));
 }
 
 .state-pill--warning {
-  border-color: rgb(var(--color-warning-rgb, 245 158 11) / 26%);
-  background: rgb(var(--color-warning-rgb, 245 158 11) / 10%);
-  color: rgb(var(--color-warning-rgb, 245 158 11));
+  border-color: rgb(var(--color-warning-rgb) / 26%);
+  background: rgb(var(--color-warning-rgb) / 10%);
+  color: rgb(var(--color-warning-rgb));
 }
 
 .state-pill--danger {
-  border-color: rgb(var(--color-danger-rgb, 239 68 68) / 24%);
-  background: rgb(var(--color-danger-rgb, 239 68 68) / 9%);
-  color: rgb(var(--color-danger-rgb, 239 68 68));
+  border-color: rgb(var(--color-danger-rgb) / 24%);
+  background: rgb(var(--color-danger-rgb) / 9%);
+  color: rgb(var(--color-danger-rgb));
 }
 
 .state-pill--muted {
@@ -661,7 +659,7 @@ function maskValue(value: string): string {
 }
 
 .detail-agent-status--active {
-  color: rgb(var(--color-success-rgb, 34 197 94));
+  color: rgb(var(--color-success-rgb));
 }
 
 .detail-agent-status--disabled {

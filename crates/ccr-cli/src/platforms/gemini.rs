@@ -122,7 +122,11 @@ impl GeminiPlatform {
         fs::write(&self.settings_path, content)
             .map_err(|e| CcrError::SettingsError(format!("写入 Antigravity 设置失败: {}", e)))?;
 
-        tracing::info!("✅ 已保存 Antigravity settings: {:?}", self.settings_path);
+        tracing::info!(
+            path = ?self.settings_path,
+            corr = ccr_core::current_log_correlation_id(),
+            "saved Antigravity settings"
+        );
         Ok(())
     }
 
@@ -257,7 +261,11 @@ impl PlatformConfig for GeminiPlatform {
         // 使用 base 模块更新注册表
         base::update_registry_current_profile("gemini", name)?;
 
-        tracing::info!("✅ 已应用 Antigravity profile: {}", name);
+        tracing::info!(
+            profile = name,
+            corr = ccr_core::current_log_correlation_id(),
+            "applied Antigravity profile"
+        );
         Ok(())
     }
 

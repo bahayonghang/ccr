@@ -1,26 +1,20 @@
 <template>
-  <div class="grok-settings stage-page">
-    <div class="grok-settings__shell">
-      <ModuleSubnav module="grok" />
-
-      <header class="grok-settings__header">
-        <div class="grok-settings__identity">
+  <PageShell class="grok-settings stage-page">
+    <template #header>
+      <PageHeader
+        :title="t('grok.settings.title')"
+        :eyebrow="t('grok.settings.eyebrow')"
+        :description="t('grok.settings.subtitle')"
+      >
+        <template #leading>
           <div class="grok-settings__mark">
             <SIcon
               name="Settings2"
               size="w-6 h-6"
             />
           </div>
-          <div>
-            <p class="grok-settings__eyebrow">
-              {{ t('grok.settings.eyebrow') }}
-            </p>
-            <h1>{{ t('grok.settings.title') }}</h1>
-            <p>{{ t('grok.settings.subtitle') }}</p>
-          </div>
-        </div>
-
-        <div class="grok-settings__actions">
+        </template>
+        <template #actions>
           <RouterLink to="/grok">
             <Button
               variant="secondary"
@@ -55,536 +49,540 @@
             </template>
             {{ saving ? t('grok.settings.saving') : t('grok.settings.save') }}
           </Button>
-        </div>
-      </header>
+        </template>
+      </PageHeader>
+    </template>
 
-      <section
-        v-if="localOnly"
-        class="grok-settings__local-only"
-        data-testid="grok-settings-local-only"
+    <template #subnav>
+      <ModuleSubnav module="grok" />
+    </template>
+
+    <section
+      v-if="localOnly"
+      class="grok-settings__local-only"
+      data-testid="grok-settings-local-only"
+    >
+      <SIcon
+        name="Monitor"
+        size="w-6 h-6"
+      />
+      <div>
+        <h2>{{ t('grok.settings.localOnly.title') }}</h2>
+        <p>{{ t('grok.settings.localOnly.description') }}</p>
+        <span>{{ t('grok.settings.localOnly.environment', { env: localOnlyEnvType ?? t('grok.states.unknown') }) }}</span>
+      </div>
+    </section>
+
+    <section
+      v-else-if="loading"
+      class="grok-settings__loading"
+    >
+      <div class="grok-settings__spinner" />
+      <span>{{ t('grok.settings.loading') }}</span>
+    </section>
+
+    <section
+      v-else-if="loadError"
+      class="grok-settings__error"
+      role="alert"
+    >
+      <SIcon
+        name="AlertCircle"
+        size="w-5 h-5"
+      />
+      <div>
+        <h2>{{ t('grok.settings.messages.loadFailed') }}</h2>
+        <p>{{ loadError }}</p>
+      </div>
+      <Button
+        variant="secondary"
+        density="compact"
+        @click="loadSettings"
       >
-        <SIcon
-          name="Monitor"
-          size="w-6 h-6"
-        />
+        {{ t('grok.settings.reload') }}
+      </Button>
+    </section>
+
+    <template v-else>
+      <div class="grok-settings__status-strip">
         <div>
-          <h2>{{ t('grok.settings.localOnly.title') }}</h2>
-          <p>{{ t('grok.settings.localOnly.description') }}</p>
-          <span>{{ t('grok.settings.localOnly.environment', { env: localOnlyEnvType ?? t('grok.states.unknown') }) }}</span>
+          <span>{{ t('grok.settings.status.file') }}</span>
+          <strong>{{ settings?.exists ? t('grok.settings.status.exists') : t('grok.settings.status.missing') }}</strong>
         </div>
-      </section>
+        <div>
+          <span>{{ t('grok.settings.status.activation') }}</span>
+          <strong>{{ activationLabel }}</strong>
+        </div>
+        <div>
+          <span>{{ t('grok.settings.status.pending') }}</span>
+          <strong>{{ t('grok.settings.status.pendingCount', { count: dirtyKeys.size }) }}</strong>
+        </div>
+      </div>
 
-      <section
-        v-else-if="loading"
-        class="grok-settings__loading"
+      <nav
+        class="grok-settings__tabs"
+        role="tablist"
+        :aria-label="t('grok.settings.tabs.label')"
       >
-        <div class="grok-settings__spinner" />
-        <span>{{ t('grok.settings.loading') }}</span>
-      </section>
+        <button
+          v-for="tab in tabs"
+          :key="tab.key"
+          type="button"
+          role="tab"
+          :aria-selected="activeTab === tab.key"
+          :class="{ 'grok-settings__tab--active': activeTab === tab.key }"
+          @click="changeTab(tab.key)"
+        >
+          <SIcon
+            :name="tab.icon"
+            size="w-4 h-4"
+          />
+          {{ tab.label }}
+        </button>
+      </nav>
 
       <section
-        v-else-if="loadError"
-        class="grok-settings__error"
+        v-if="saveState === 'conflict'"
+        class="grok-settings__banner grok-settings__banner--warning"
+        data-testid="grok-settings-conflict"
         role="alert"
       >
         <SIcon
-          name="AlertCircle"
+          name="RefreshCw"
           size="w-5 h-5"
         />
         <div>
-          <h2>{{ t('grok.settings.messages.loadFailed') }}</h2>
-          <p>{{ loadError }}</p>
+          <strong>{{ t('grok.settings.conflict.title') }}</strong>
+          <p>{{ t('grok.settings.conflict.description') }}</p>
         </div>
-        <Button
-          variant="secondary"
-          density="compact"
-          @click="loadSettings"
+        <button
+          type="button"
+          @click="reloadLatest"
         >
-          {{ t('grok.settings.reload') }}
-        </Button>
+          {{ t('grok.settings.conflict.reload') }}
+        </button>
       </section>
 
-      <template v-else>
-        <div class="grok-settings__status-strip">
-          <div>
-            <span>{{ t('grok.settings.status.file') }}</span>
-            <strong>{{ settings?.exists ? t('grok.settings.status.exists') : t('grok.settings.status.missing') }}</strong>
-          </div>
-          <div>
-            <span>{{ t('grok.settings.status.activation') }}</span>
-            <strong>{{ activationLabel }}</strong>
-          </div>
-          <div>
-            <span>{{ t('grok.settings.status.pending') }}</span>
-            <strong>{{ t('grok.settings.status.pendingCount', { count: dirtyKeys.size }) }}</strong>
-          </div>
+      <section
+        v-if="saveState === 'managed_locked'"
+        class="grok-settings__banner grok-settings__banner--warning"
+        data-testid="grok-settings-managed-error"
+        role="alert"
+      >
+        <SIcon
+          name="Lock"
+          size="w-5 h-5"
+        />
+        <div>
+          <strong>{{ t('grok.settings.managed.rejectedTitle') }}</strong>
+          <p>{{ managedError || t('grok.settings.managed.description') }}</p>
         </div>
+        <RouterLink to="/grok/profiles">
+          {{ t('grok.settings.managed.action') }}
+        </RouterLink>
+      </section>
 
-        <nav
-          class="grok-settings__tabs"
-          role="tablist"
-          :aria-label="t('grok.settings.tabs.label')"
+      <main class="grok-settings__content">
+        <div
+          v-show="activeTab === 'model'"
+          class="grok-settings__tab-panel"
         >
-          <button
-            v-for="tab in tabs"
-            :key="tab.key"
-            type="button"
-            role="tab"
-            :aria-selected="activeTab === tab.key"
-            :class="{ 'grok-settings__tab--active': activeTab === tab.key }"
-            @click="changeTab(tab.key)"
+          <section
+            v-if="settings?.managed_keys_locked"
+            class="grok-settings__managed"
+            data-testid="grok-settings-managed-banner"
           >
             <SIcon
-              :name="tab.icon"
-              size="w-4 h-4"
+              name="Lock"
+              size="w-5 h-5"
             />
-            {{ tab.label }}
-          </button>
-        </nav>
+            <div>
+              <strong>{{ t('grok.settings.managed.title') }}</strong>
+              <p>{{ t('grok.settings.managed.description') }}</p>
+            </div>
+            <RouterLink to="/grok/profiles">
+              {{ t('grok.settings.managed.action') }}
+            </RouterLink>
+          </section>
 
-        <section
-          v-if="saveState === 'conflict'"
-          class="grok-settings__banner grok-settings__banner--warning"
-          data-testid="grok-settings-conflict"
-          role="alert"
+          <section class="grok-settings__section">
+            <div class="grok-settings__section-heading">
+              <div>
+                <p>{{ t('grok.settings.model.eyebrow') }}</p>
+                <h2>{{ t('grok.settings.model.title') }}</h2>
+              </div>
+              <span>{{ t('grok.settings.model.description') }}</span>
+            </div>
+
+            <div class="grok-settings__fields">
+              <label class="grok-settings__field">
+                <span>{{ t('grok.settings.fields.defaultModel') }}</span>
+                <input
+                  data-testid="grok-settings-model"
+                  type="text"
+                  :value="form['models.default'] ?? ''"
+                  :disabled="settings?.managed_keys_locked"
+                  :placeholder="t('grok.settings.placeholders.defaultModel')"
+                  @input="setInputValue('models.default', $event)"
+                >
+                <small>{{ t('grok.settings.helpers.defaultModel') }}</small>
+              </label>
+
+              <label class="grok-settings__field">
+                <span>{{ t('grok.settings.fields.reasoningEffort') }}</span>
+                <select
+                  data-testid="grok-settings-reasoning"
+                  :value="form['models.default_reasoning_effort'] ?? ''"
+                  :disabled="settings?.managed_keys_locked"
+                  @change="setSelectValue('models.default_reasoning_effort', $event)"
+                >
+                  <option value="">
+                    {{ t('grok.settings.options.unset') }}
+                  </option>
+                  <option
+                    v-if="hasUnknownOption('models.default_reasoning_effort', reasoningEfforts)"
+                    :value="form['models.default_reasoning_effort'] as string"
+                  >
+                    {{ t('grok.settings.options.currentValue', { value: form['models.default_reasoning_effort'] }) }}
+                  </option>
+                  <option
+                    v-for="option in reasoningEfforts"
+                    :key="option"
+                    :value="option"
+                  >
+                    {{ option }}
+                  </option>
+                </select>
+                <small>{{ t('grok.settings.helpers.reasoningEffort') }}</small>
+              </label>
+            </div>
+          </section>
+
+          <section class="grok-settings__section">
+            <div class="grok-settings__section-heading">
+              <div>
+                <p>{{ t('grok.settings.customModels.eyebrow') }}</p>
+                <h2>{{ t('grok.settings.customModels.title') }}</h2>
+              </div>
+              <button
+                type="button"
+                @click="changeTab('source')"
+              >
+                {{ t('grok.settings.customModels.sourceAction') }}
+              </button>
+            </div>
+
+            <div
+              v-if="settings?.custom_models.length"
+              class="grok-settings__model-list"
+            >
+              <article
+                v-for="model in settings.custom_models"
+                :key="model.id"
+                class="grok-settings__model-row"
+              >
+                <div class="grok-settings__model-id">
+                  <span>{{ model.name || model.id }}</span>
+                  <code>{{ model.id }}</code>
+                </div>
+                <div>
+                  <span>{{ t('grok.settings.customModels.model') }}</span>
+                  <strong>{{ model.model || t('grok.settings.options.unset') }}</strong>
+                </div>
+                <div>
+                  <span>{{ t('grok.settings.customModels.baseUrl') }}</span>
+                  <strong>{{ model.base_url_display || t('grok.settings.options.unset') }}</strong>
+                </div>
+              </article>
+            </div>
+            <p
+              v-else
+              class="grok-settings__empty"
+            >
+              {{ t('grok.settings.customModels.empty') }}
+            </p>
+          </section>
+        </div>
+
+        <div
+          v-show="activeTab === 'sessionUi'"
+          class="grok-settings__tab-panel"
         >
-          <SIcon
-            name="RefreshCw"
-            size="w-5 h-5"
-          />
-          <div>
-            <strong>{{ t('grok.settings.conflict.title') }}</strong>
-            <p>{{ t('grok.settings.conflict.description') }}</p>
-          </div>
+          <section class="grok-settings__section">
+            <div class="grok-settings__section-heading">
+              <div>
+                <p>{{ t('grok.settings.sessionUi.uiEyebrow') }}</p>
+                <h2>{{ t('grok.settings.sessionUi.uiTitle') }}</h2>
+              </div>
+              <span>{{ t('grok.settings.sessionUi.uiDescription') }}</span>
+            </div>
+
+            <div class="grok-settings__fields grok-settings__fields--single">
+              <label class="grok-settings__field">
+                <span>{{ t('grok.settings.fields.theme') }}</span>
+                <select
+                  data-testid="grok-settings-theme"
+                  :value="form['ui.theme'] ?? ''"
+                  @change="setSelectValue('ui.theme', $event)"
+                >
+                  <option value="">
+                    {{ t('grok.settings.options.unset') }}
+                  </option>
+                  <option
+                    v-if="hasUnknownOption('ui.theme', themes)"
+                    :value="form['ui.theme'] as string"
+                  >
+                    {{ t('grok.settings.options.currentValue', { value: form['ui.theme'] }) }}
+                  </option>
+                  <option
+                    v-for="option in themes"
+                    :key="option"
+                    :value="option"
+                  >
+                    {{ t(`grok.settings.themeOptions.${option}`) }}
+                  </option>
+                </select>
+                <small>{{ t('grok.settings.helpers.theme') }}</small>
+              </label>
+            </div>
+          </section>
+
+          <section class="grok-settings__section">
+            <div class="grok-settings__section-heading">
+              <div>
+                <p>{{ t('grok.settings.sessionUi.sessionEyebrow') }}</p>
+                <h2>{{ t('grok.settings.sessionUi.sessionTitle') }}</h2>
+              </div>
+              <span>{{ t('grok.settings.sessionUi.sessionDescription') }}</span>
+            </div>
+
+            <div class="grok-settings__fields">
+              <label class="grok-settings__field">
+                <span>{{ t('grok.settings.fields.autoCompact') }}</span>
+                <input
+                  data-testid="grok-settings-auto-compact"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="1"
+                  :value="form['session.auto_compact_threshold_percent'] ?? ''"
+                  :aria-invalid="validationErrorKey === 'session.auto_compact_threshold_percent'"
+                  @input="setInputValue('session.auto_compact_threshold_percent', $event)"
+                >
+                <small :class="{ 'grok-settings__field-error': validationErrorKey === 'session.auto_compact_threshold_percent' }">
+                  {{ validationErrorKey === 'session.auto_compact_threshold_percent'
+                    ? t('grok.settings.validation.autoCompact')
+                    : t('grok.settings.helpers.autoCompact') }}
+                </small>
+              </label>
+
+              <div class="grok-settings__field">
+                <span>{{ t('grok.settings.fields.loadEnvrc') }}</span>
+                <div
+                  class="grok-settings__segmented"
+                  role="group"
+                  :aria-label="t('grok.settings.fields.loadEnvrc')"
+                >
+                  <button
+                    v-for="option in booleanOptions"
+                    :key="String(option.value)"
+                    type="button"
+                    :class="{ 'grok-settings__segmented--active': form['session.load_envrc'] === option.value }"
+                    @click="setBooleanValue('session.load_envrc', option.value)"
+                  >
+                    {{ option.label }}
+                  </button>
+                </div>
+                <small>{{ t('grok.settings.helpers.loadEnvrc') }}</small>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div
+          v-show="activeTab === 'cli'"
+          class="grok-settings__tab-panel"
+        >
+          <section class="grok-settings__section">
+            <div class="grok-settings__section-heading">
+              <div>
+                <p>{{ t('grok.settings.cli.eyebrow') }}</p>
+                <h2>{{ t('grok.settings.cli.title') }}</h2>
+              </div>
+              <span>{{ t('grok.settings.cli.description') }}</span>
+            </div>
+
+            <div class="grok-settings__fields">
+              <div class="grok-settings__field">
+                <span>{{ t('grok.settings.fields.autoUpdate') }}</span>
+                <div
+                  class="grok-settings__segmented"
+                  role="group"
+                  :aria-label="t('grok.settings.fields.autoUpdate')"
+                >
+                  <button
+                    v-for="option in booleanOptions"
+                    :key="String(option.value)"
+                    type="button"
+                    :class="{ 'grok-settings__segmented--active': form['cli.auto_update'] === option.value }"
+                    @click="setBooleanValue('cli.auto_update', option.value)"
+                  >
+                    {{ option.label }}
+                  </button>
+                </div>
+                <small>{{ t('grok.settings.helpers.autoUpdate') }}</small>
+              </div>
+
+              <label class="grok-settings__field">
+                <span>{{ t('grok.settings.fields.channel') }}</span>
+                <select
+                  data-testid="grok-settings-channel"
+                  :value="form['cli.channel'] ?? ''"
+                  @change="setSelectValue('cli.channel', $event)"
+                >
+                  <option value="">
+                    {{ t('grok.settings.options.unset') }}
+                  </option>
+                  <option
+                    v-if="hasUnknownOption('cli.channel', channels)"
+                    :value="form['cli.channel'] as string"
+                  >
+                    {{ t('grok.settings.options.currentValue', { value: form['cli.channel'] }) }}
+                  </option>
+                  <option
+                    v-for="option in channels"
+                    :key="option"
+                    :value="option"
+                  >
+                    {{ option }}
+                  </option>
+                </select>
+                <small>{{ t('grok.settings.helpers.channel') }}</small>
+              </label>
+
+              <div class="grok-settings__field">
+                <span>{{ t('grok.settings.fields.showTips') }}</span>
+                <div
+                  class="grok-settings__segmented"
+                  role="group"
+                  :aria-label="t('grok.settings.fields.showTips')"
+                >
+                  <button
+                    v-for="option in booleanOptions"
+                    :key="String(option.value)"
+                    type="button"
+                    :class="{ 'grok-settings__segmented--active': form['cli.show_tips'] === option.value }"
+                    @click="setBooleanValue('cli.show_tips', option.value)"
+                  >
+                    {{ option.label }}
+                  </button>
+                </div>
+                <small>{{ t('grok.settings.helpers.showTips') }}</small>
+              </div>
+            </div>
+          </section>
+
+          <section class="grok-settings__section">
+            <div class="grok-settings__section-heading">
+              <div>
+                <p>{{ t('grok.settings.worktrees.eyebrow') }}</p>
+                <h2>{{ t('grok.settings.worktrees.title') }}</h2>
+              </div>
+              <span>{{ t('grok.settings.worktrees.description') }}</span>
+            </div>
+
+            <div class="grok-settings__fields">
+              <label class="grok-settings__field">
+                <span>{{ t('grok.settings.fields.newSessionWorktree') }}</span>
+                <select
+                  :value="form['hints.new_session_worktree_mode'] ?? ''"
+                  @change="setSelectValue('hints.new_session_worktree_mode', $event)"
+                >
+                  <option value="">
+                    {{ t('grok.settings.options.unset') }}
+                  </option>
+                  <option
+                    v-if="hasUnknownOption('hints.new_session_worktree_mode', worktreeModes)"
+                    :value="form['hints.new_session_worktree_mode'] as string"
+                  >
+                    {{ t('grok.settings.options.currentValue', { value: form['hints.new_session_worktree_mode'] }) }}
+                  </option>
+                  <option
+                    v-for="option in worktreeModes"
+                    :key="option"
+                    :value="option"
+                  >
+                    {{ t(`grok.settings.worktreeOptions.${option}`) }}
+                  </option>
+                </select>
+                <small>{{ t('grok.settings.helpers.newSessionWorktree') }}</small>
+              </label>
+
+              <label class="grok-settings__field">
+                <span>{{ t('grok.settings.fields.forkWorktree') }}</span>
+                <select
+                  :value="form['hints.fork_worktree_mode'] ?? ''"
+                  @change="setSelectValue('hints.fork_worktree_mode', $event)"
+                >
+                  <option value="">
+                    {{ t('grok.settings.options.unset') }}
+                  </option>
+                  <option
+                    v-if="hasUnknownOption('hints.fork_worktree_mode', worktreeModes)"
+                    :value="form['hints.fork_worktree_mode'] as string"
+                  >
+                    {{ t('grok.settings.options.currentValue', { value: form['hints.fork_worktree_mode'] }) }}
+                  </option>
+                  <option
+                    v-for="option in worktreeModes"
+                    :key="option"
+                    :value="option"
+                  >
+                    {{ t(`grok.settings.worktreeOptions.${option}`) }}
+                  </option>
+                </select>
+                <small>{{ t('grok.settings.helpers.forkWorktree') }}</small>
+              </label>
+            </div>
+          </section>
+        </div>
+
+        <ConfigSourcePanel
+          v-if="activeTab === 'source'"
+          language="toml"
+          :get-raw="grokApi.getGrokConfigRaw"
+          :save-raw="grokApi.saveGrokConfigRaw"
+          :list-layers="grokApi.listGrokConfigLayers"
+          :backup-notice="t('grok.settings.source.noBackup')"
+          :policy-notice="t('grok.settings.source.policyNotice')"
+          :policy-layer-ids="policyLayerIds"
+          @saved="handleRawSaved"
+          @close="activeTab = 'model'"
+          @dirty-change="sourceDirty = $event"
+        />
+      </main>
+
+      <footer
+        v-if="activeTab !== 'source'"
+        class="grok-settings__footer"
+      >
+        <SIcon
+          name="Info"
+          size="w-4 h-4"
+        />
+        <p>
+          {{ t('grok.settings.footer.moreConfig') }}
           <button
             type="button"
-            @click="reloadLatest"
+            @click="changeTab('source')"
           >
-            {{ t('grok.settings.conflict.reload') }}
+            {{ t('grok.settings.footer.openSource') }}
           </button>
-        </section>
-
-        <section
-          v-if="saveState === 'managed_locked'"
-          class="grok-settings__banner grok-settings__banner--warning"
-          data-testid="grok-settings-managed-error"
-          role="alert"
-        >
-          <SIcon
-            name="Lock"
-            size="w-5 h-5"
-          />
-          <div>
-            <strong>{{ t('grok.settings.managed.rejectedTitle') }}</strong>
-            <p>{{ managedError || t('grok.settings.managed.description') }}</p>
-          </div>
-          <RouterLink to="/grok/profiles">
-            {{ t('grok.settings.managed.action') }}
-          </RouterLink>
-        </section>
-
-        <main class="grok-settings__content">
-          <div
-            v-show="activeTab === 'model'"
-            class="grok-settings__tab-panel"
-          >
-            <section
-              v-if="settings?.managed_keys_locked"
-              class="grok-settings__managed"
-              data-testid="grok-settings-managed-banner"
-            >
-              <SIcon
-                name="Lock"
-                size="w-5 h-5"
-              />
-              <div>
-                <strong>{{ t('grok.settings.managed.title') }}</strong>
-                <p>{{ t('grok.settings.managed.description') }}</p>
-              </div>
-              <RouterLink to="/grok/profiles">
-                {{ t('grok.settings.managed.action') }}
-              </RouterLink>
-            </section>
-
-            <section class="grok-settings__section">
-              <div class="grok-settings__section-heading">
-                <div>
-                  <p>{{ t('grok.settings.model.eyebrow') }}</p>
-                  <h2>{{ t('grok.settings.model.title') }}</h2>
-                </div>
-                <span>{{ t('grok.settings.model.description') }}</span>
-              </div>
-
-              <div class="grok-settings__fields">
-                <label class="grok-settings__field">
-                  <span>{{ t('grok.settings.fields.defaultModel') }}</span>
-                  <input
-                    data-testid="grok-settings-model"
-                    type="text"
-                    :value="form['models.default'] ?? ''"
-                    :disabled="settings?.managed_keys_locked"
-                    :placeholder="t('grok.settings.placeholders.defaultModel')"
-                    @input="setInputValue('models.default', $event)"
-                  >
-                  <small>{{ t('grok.settings.helpers.defaultModel') }}</small>
-                </label>
-
-                <label class="grok-settings__field">
-                  <span>{{ t('grok.settings.fields.reasoningEffort') }}</span>
-                  <select
-                    data-testid="grok-settings-reasoning"
-                    :value="form['models.default_reasoning_effort'] ?? ''"
-                    :disabled="settings?.managed_keys_locked"
-                    @change="setSelectValue('models.default_reasoning_effort', $event)"
-                  >
-                    <option value="">
-                      {{ t('grok.settings.options.unset') }}
-                    </option>
-                    <option
-                      v-if="hasUnknownOption('models.default_reasoning_effort', reasoningEfforts)"
-                      :value="form['models.default_reasoning_effort'] as string"
-                    >
-                      {{ t('grok.settings.options.currentValue', { value: form['models.default_reasoning_effort'] }) }}
-                    </option>
-                    <option
-                      v-for="option in reasoningEfforts"
-                      :key="option"
-                      :value="option"
-                    >
-                      {{ option }}
-                    </option>
-                  </select>
-                  <small>{{ t('grok.settings.helpers.reasoningEffort') }}</small>
-                </label>
-              </div>
-            </section>
-
-            <section class="grok-settings__section">
-              <div class="grok-settings__section-heading">
-                <div>
-                  <p>{{ t('grok.settings.customModels.eyebrow') }}</p>
-                  <h2>{{ t('grok.settings.customModels.title') }}</h2>
-                </div>
-                <button
-                  type="button"
-                  @click="changeTab('source')"
-                >
-                  {{ t('grok.settings.customModels.sourceAction') }}
-                </button>
-              </div>
-
-              <div
-                v-if="settings?.custom_models.length"
-                class="grok-settings__model-list"
-              >
-                <article
-                  v-for="model in settings.custom_models"
-                  :key="model.id"
-                  class="grok-settings__model-row"
-                >
-                  <div class="grok-settings__model-id">
-                    <span>{{ model.name || model.id }}</span>
-                    <code>{{ model.id }}</code>
-                  </div>
-                  <div>
-                    <span>{{ t('grok.settings.customModels.model') }}</span>
-                    <strong>{{ model.model || t('grok.settings.options.unset') }}</strong>
-                  </div>
-                  <div>
-                    <span>{{ t('grok.settings.customModels.baseUrl') }}</span>
-                    <strong>{{ model.base_url_display || t('grok.settings.options.unset') }}</strong>
-                  </div>
-                </article>
-              </div>
-              <p
-                v-else
-                class="grok-settings__empty"
-              >
-                {{ t('grok.settings.customModels.empty') }}
-              </p>
-            </section>
-          </div>
-
-          <div
-            v-show="activeTab === 'sessionUi'"
-            class="grok-settings__tab-panel"
-          >
-            <section class="grok-settings__section">
-              <div class="grok-settings__section-heading">
-                <div>
-                  <p>{{ t('grok.settings.sessionUi.uiEyebrow') }}</p>
-                  <h2>{{ t('grok.settings.sessionUi.uiTitle') }}</h2>
-                </div>
-                <span>{{ t('grok.settings.sessionUi.uiDescription') }}</span>
-              </div>
-
-              <div class="grok-settings__fields grok-settings__fields--single">
-                <label class="grok-settings__field">
-                  <span>{{ t('grok.settings.fields.theme') }}</span>
-                  <select
-                    data-testid="grok-settings-theme"
-                    :value="form['ui.theme'] ?? ''"
-                    @change="setSelectValue('ui.theme', $event)"
-                  >
-                    <option value="">
-                      {{ t('grok.settings.options.unset') }}
-                    </option>
-                    <option
-                      v-if="hasUnknownOption('ui.theme', themes)"
-                      :value="form['ui.theme'] as string"
-                    >
-                      {{ t('grok.settings.options.currentValue', { value: form['ui.theme'] }) }}
-                    </option>
-                    <option
-                      v-for="option in themes"
-                      :key="option"
-                      :value="option"
-                    >
-                      {{ t(`grok.settings.themeOptions.${option}`) }}
-                    </option>
-                  </select>
-                  <small>{{ t('grok.settings.helpers.theme') }}</small>
-                </label>
-              </div>
-            </section>
-
-            <section class="grok-settings__section">
-              <div class="grok-settings__section-heading">
-                <div>
-                  <p>{{ t('grok.settings.sessionUi.sessionEyebrow') }}</p>
-                  <h2>{{ t('grok.settings.sessionUi.sessionTitle') }}</h2>
-                </div>
-                <span>{{ t('grok.settings.sessionUi.sessionDescription') }}</span>
-              </div>
-
-              <div class="grok-settings__fields">
-                <label class="grok-settings__field">
-                  <span>{{ t('grok.settings.fields.autoCompact') }}</span>
-                  <input
-                    data-testid="grok-settings-auto-compact"
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="1"
-                    :value="form['session.auto_compact_threshold_percent'] ?? ''"
-                    :aria-invalid="validationErrorKey === 'session.auto_compact_threshold_percent'"
-                    @input="setInputValue('session.auto_compact_threshold_percent', $event)"
-                  >
-                  <small :class="{ 'grok-settings__field-error': validationErrorKey === 'session.auto_compact_threshold_percent' }">
-                    {{ validationErrorKey === 'session.auto_compact_threshold_percent'
-                      ? t('grok.settings.validation.autoCompact')
-                      : t('grok.settings.helpers.autoCompact') }}
-                  </small>
-                </label>
-
-                <div class="grok-settings__field">
-                  <span>{{ t('grok.settings.fields.loadEnvrc') }}</span>
-                  <div
-                    class="grok-settings__segmented"
-                    role="group"
-                    :aria-label="t('grok.settings.fields.loadEnvrc')"
-                  >
-                    <button
-                      v-for="option in booleanOptions"
-                      :key="String(option.value)"
-                      type="button"
-                      :class="{ 'grok-settings__segmented--active': form['session.load_envrc'] === option.value }"
-                      @click="setBooleanValue('session.load_envrc', option.value)"
-                    >
-                      {{ option.label }}
-                    </button>
-                  </div>
-                  <small>{{ t('grok.settings.helpers.loadEnvrc') }}</small>
-                </div>
-              </div>
-            </section>
-          </div>
-
-          <div
-            v-show="activeTab === 'cli'"
-            class="grok-settings__tab-panel"
-          >
-            <section class="grok-settings__section">
-              <div class="grok-settings__section-heading">
-                <div>
-                  <p>{{ t('grok.settings.cli.eyebrow') }}</p>
-                  <h2>{{ t('grok.settings.cli.title') }}</h2>
-                </div>
-                <span>{{ t('grok.settings.cli.description') }}</span>
-              </div>
-
-              <div class="grok-settings__fields">
-                <div class="grok-settings__field">
-                  <span>{{ t('grok.settings.fields.autoUpdate') }}</span>
-                  <div
-                    class="grok-settings__segmented"
-                    role="group"
-                    :aria-label="t('grok.settings.fields.autoUpdate')"
-                  >
-                    <button
-                      v-for="option in booleanOptions"
-                      :key="String(option.value)"
-                      type="button"
-                      :class="{ 'grok-settings__segmented--active': form['cli.auto_update'] === option.value }"
-                      @click="setBooleanValue('cli.auto_update', option.value)"
-                    >
-                      {{ option.label }}
-                    </button>
-                  </div>
-                  <small>{{ t('grok.settings.helpers.autoUpdate') }}</small>
-                </div>
-
-                <label class="grok-settings__field">
-                  <span>{{ t('grok.settings.fields.channel') }}</span>
-                  <select
-                    data-testid="grok-settings-channel"
-                    :value="form['cli.channel'] ?? ''"
-                    @change="setSelectValue('cli.channel', $event)"
-                  >
-                    <option value="">
-                      {{ t('grok.settings.options.unset') }}
-                    </option>
-                    <option
-                      v-if="hasUnknownOption('cli.channel', channels)"
-                      :value="form['cli.channel'] as string"
-                    >
-                      {{ t('grok.settings.options.currentValue', { value: form['cli.channel'] }) }}
-                    </option>
-                    <option
-                      v-for="option in channels"
-                      :key="option"
-                      :value="option"
-                    >
-                      {{ option }}
-                    </option>
-                  </select>
-                  <small>{{ t('grok.settings.helpers.channel') }}</small>
-                </label>
-
-                <div class="grok-settings__field">
-                  <span>{{ t('grok.settings.fields.showTips') }}</span>
-                  <div
-                    class="grok-settings__segmented"
-                    role="group"
-                    :aria-label="t('grok.settings.fields.showTips')"
-                  >
-                    <button
-                      v-for="option in booleanOptions"
-                      :key="String(option.value)"
-                      type="button"
-                      :class="{ 'grok-settings__segmented--active': form['cli.show_tips'] === option.value }"
-                      @click="setBooleanValue('cli.show_tips', option.value)"
-                    >
-                      {{ option.label }}
-                    </button>
-                  </div>
-                  <small>{{ t('grok.settings.helpers.showTips') }}</small>
-                </div>
-              </div>
-            </section>
-
-            <section class="grok-settings__section">
-              <div class="grok-settings__section-heading">
-                <div>
-                  <p>{{ t('grok.settings.worktrees.eyebrow') }}</p>
-                  <h2>{{ t('grok.settings.worktrees.title') }}</h2>
-                </div>
-                <span>{{ t('grok.settings.worktrees.description') }}</span>
-              </div>
-
-              <div class="grok-settings__fields">
-                <label class="grok-settings__field">
-                  <span>{{ t('grok.settings.fields.newSessionWorktree') }}</span>
-                  <select
-                    :value="form['hints.new_session_worktree_mode'] ?? ''"
-                    @change="setSelectValue('hints.new_session_worktree_mode', $event)"
-                  >
-                    <option value="">
-                      {{ t('grok.settings.options.unset') }}
-                    </option>
-                    <option
-                      v-if="hasUnknownOption('hints.new_session_worktree_mode', worktreeModes)"
-                      :value="form['hints.new_session_worktree_mode'] as string"
-                    >
-                      {{ t('grok.settings.options.currentValue', { value: form['hints.new_session_worktree_mode'] }) }}
-                    </option>
-                    <option
-                      v-for="option in worktreeModes"
-                      :key="option"
-                      :value="option"
-                    >
-                      {{ t(`grok.settings.worktreeOptions.${option}`) }}
-                    </option>
-                  </select>
-                  <small>{{ t('grok.settings.helpers.newSessionWorktree') }}</small>
-                </label>
-
-                <label class="grok-settings__field">
-                  <span>{{ t('grok.settings.fields.forkWorktree') }}</span>
-                  <select
-                    :value="form['hints.fork_worktree_mode'] ?? ''"
-                    @change="setSelectValue('hints.fork_worktree_mode', $event)"
-                  >
-                    <option value="">
-                      {{ t('grok.settings.options.unset') }}
-                    </option>
-                    <option
-                      v-if="hasUnknownOption('hints.fork_worktree_mode', worktreeModes)"
-                      :value="form['hints.fork_worktree_mode'] as string"
-                    >
-                      {{ t('grok.settings.options.currentValue', { value: form['hints.fork_worktree_mode'] }) }}
-                    </option>
-                    <option
-                      v-for="option in worktreeModes"
-                      :key="option"
-                      :value="option"
-                    >
-                      {{ t(`grok.settings.worktreeOptions.${option}`) }}
-                    </option>
-                  </select>
-                  <small>{{ t('grok.settings.helpers.forkWorktree') }}</small>
-                </label>
-              </div>
-            </section>
-          </div>
-
-          <ConfigSourcePanel
-            v-if="activeTab === 'source'"
-            language="toml"
-            :get-raw="grokApi.getGrokConfigRaw"
-            :save-raw="grokApi.saveGrokConfigRaw"
-            :list-layers="grokApi.listGrokConfigLayers"
-            :backup-notice="t('grok.settings.source.noBackup')"
-            :policy-notice="t('grok.settings.source.policyNotice')"
-            :policy-layer-ids="policyLayerIds"
-            @saved="handleRawSaved"
-            @close="activeTab = 'model'"
-            @dirty-change="sourceDirty = $event"
-          />
-        </main>
-
-        <footer
-          v-if="activeTab !== 'source'"
-          class="grok-settings__footer"
-        >
-          <SIcon
-            name="Info"
-            size="w-4 h-4"
-          />
-          <p>
-            {{ t('grok.settings.footer.moreConfig') }}
-            <button
-              type="button"
-              @click="changeTab('source')"
-            >
-              {{ t('grok.settings.footer.openSource') }}
-            </button>
-            {{ t('grok.settings.footer.formatting') }}
-          </p>
-        </footer>
-      </template>
-    </div>
-  </div>
+          {{ t('grok.settings.footer.formatting') }}
+        </p>
+      </footer>
+    </template>
+  </PageShell>
 </template>
 
 <script setup lang="ts">
@@ -595,6 +593,8 @@ import { getCurrentEnvironment } from '@/api/runtime/environment'
 import ConfigSourcePanel from '@/components/editor/ConfigSourcePanel.vue'
 import ModuleSubnav from '@/components/ModuleSubnav.vue'
 import Button from '@/components/ui/Button.vue'
+import PageHeader from '@/components/ui/PageHeader.vue'
+import PageShell from '@/components/ui/PageShell.vue'
 import SIcon from '@/components/ui/SIcon.vue'
 import { useUIStore } from '@/stores/ui'
 import type { GrokSettingsCommandResponse } from '@/types'
@@ -805,19 +805,6 @@ onMounted(loadSettings)
 </script>
 
 <style scoped>
-.grok-settings {
-  min-height: 100%;
-  padding: 1.5rem;
-}
-
-.grok-settings__shell {
-  width: min(100%, 80rem);
-  margin: 0 auto;
-}
-
-.grok-settings__header,
-.grok-settings__identity,
-.grok-settings__actions,
 .grok-settings__status-strip,
 .grok-settings__tabs,
 .grok-settings__banner,
@@ -829,19 +816,6 @@ onMounted(loadSettings)
 .grok-settings__error {
   display: flex;
   align-items: center;
-}
-
-.grok-settings__header {
-  justify-content: space-between;
-  gap: 1.5rem;
-  padding: 1.75rem 0 1.25rem;
-  border-bottom: 1px solid var(--stage-border-soft);
-}
-
-.grok-settings__identity {
-  min-width: 0;
-  align-items: flex-start;
-  gap: 1rem;
 }
 
 .grok-settings__mark {
@@ -857,35 +831,12 @@ onMounted(loadSettings)
   border-radius: var(--radius-lg);
 }
 
-.grok-settings__eyebrow,
 .grok-settings__section-heading p {
   margin: 0;
   color: var(--color-platform-grok);
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0;
-}
-
-.grok-settings__identity h1 {
-  margin: 0.35rem 0 0;
-  color: var(--stage-text-primary);
-  font-family: var(--font-brand);
-  font-size: 1.75rem;
-  font-weight: 600;
-  letter-spacing: 0;
-}
-
-.grok-settings__identity > div > p:last-child {
-  max-width: 42rem;
-  margin: 0.5rem 0 0;
-  color: var(--stage-text-secondary);
-  font-size: 0.875rem;
-  line-height: 1.55;
-}
-
-.grok-settings__actions {
-  flex: 0 0 auto;
-  gap: 0.5rem;
 }
 
 .grok-settings__status-strip {
@@ -1249,21 +1200,11 @@ onMounted(loadSettings)
 }
 
 @media (width <= 760px) {
-  .grok-settings {
-    padding: 1rem;
-  }
-
-  .grok-settings__header,
   .grok-settings__section-heading,
   .grok-settings__local-only,
   .grok-settings__error {
     align-items: flex-start;
     flex-direction: column;
-  }
-
-  .grok-settings__actions {
-    width: 100%;
-    flex-wrap: wrap;
   }
 
   .grok-settings__status-strip,

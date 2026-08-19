@@ -1,787 +1,788 @@
 <template>
-  <div class="claude-settings-page">
-    <div class="claude-settings-spacer" />
-
-    <div class="claude-settings-shell">
-      <!-- Header -->
-      <div class="claude-settings-header">
-        <div class="claude-settings-title-row">
-          <h2 class="claude-settings-title">
-            <SIcon
-              name="Settings2"
-              size="w-6 h-6"
-              class="claude-settings-title-icon"
-            />
-            {{ $t('claudeSettings.title') }}
-          </h2>
-        </div>
-        <div class="claude-settings-actions">
+  <PageShell class="claude-settings-page">
+    <template #header>
+      <PageHeader :title="$t('claudeSettings.title')">
+        <template #leading>
+          <SIcon
+            name="Settings2"
+            size="w-6 h-6"
+            class="claude-settings-title-icon"
+          />
+        </template>
+        <template #actions>
           <RouterLink to="/claude-code">
-            <button class="claude-settings-button claude-settings-button--secondary">
+            <Button variant="secondary">
               <SIcon
                 name="ArrowLeft"
                 size="w-4 h-4"
-                class="claude-settings-button__icon"
+                class="mr-2"
               />
               {{ $t('claudeSettings.back') }}
-            </button>
+            </Button>
           </RouterLink>
-          <button
+          <Button
             v-if="activeTab !== 'source'"
-            class="claude-settings-button claude-settings-button--primary"
             :disabled="saving"
             @click="handleSave"
           >
             <SIcon
               name="Save"
               size="w-4 h-4"
-              class="claude-settings-button__icon"
+              class="mr-2"
             />
             {{ saving ? $t('claudeSettings.saving') : $t('claudeSettings.save') }}
-          </button>
-        </div>
-      </div>
+          </Button>
+        </template>
+      </PageHeader>
+    </template>
 
-      <!-- Loading -->
+    <template #subnav>
+      <ModuleSubnav module="claude-code" />
+    </template>
+
+    <!-- Loading -->
+    <div
+      v-if="loading"
+      class="claude-settings-loading"
+    >
+      <div class="loading-spinner claude-settings-loading__spinner" />
+      <span>{{ loadingLabel }}</span>
+    </div>
+
+    <template v-else>
+      <!-- Tab Navigation -->
       <div
-        v-if="loading"
-        class="claude-settings-loading"
+        class="claude-settings-tabs"
+        role="tablist"
       >
-        <div class="loading-spinner claude-settings-loading__spinner" />
-        <span>{{ loadingLabel }}</span>
+        <button
+          v-for="tab in tabs"
+          :key="tab.key"
+          role="tab"
+          :aria-selected="activeTab === tab.key"
+          :disabled="tab.disabled"
+          :title="tab.disabled ? $t('settingsRaw.unsupportedEnvironment') : undefined"
+          class="claude-settings-tab"
+          :class="activeTab === tab.key ? 'claude-settings-tab--active' : 'claude-settings-tab--inactive'"
+          @click="changeTab(tab.key)"
+        >
+          <SIcon
+            :name="tab.icon"
+            size="w-4 h-4"
+          />
+          {{ tab.label }}
+        </button>
       </div>
 
-      <template v-else>
-        <!-- Tab Navigation -->
-        <div
-          class="claude-settings-tabs"
-          role="tablist"
+      <!-- Tab: 模型与推理 -->
+      <div
+        v-show="activeTab === 'model'"
+        class="claude-settings-panel"
+      >
+        <Card
+          variant="glass"
+          pattern
         >
-          <button
-            v-for="tab in tabs"
-            :key="tab.key"
-            role="tab"
-            :aria-selected="activeTab === tab.key"
-            :disabled="tab.disabled"
-            :title="tab.disabled ? $t('settingsRaw.unsupportedEnvironment') : undefined"
-            class="claude-settings-tab"
-            :class="activeTab === tab.key ? 'claude-settings-tab--active' : 'claude-settings-tab--inactive'"
-            @click="changeTab(tab.key)"
-          >
-            <SIcon
-              :name="tab.icon"
-              size="w-4 h-4"
-            />
-            {{ tab.label }}
-          </button>
-        </div>
+          <div class="claude-settings-panel-body">
+            <h3 class="claude-settings-section-title">
+              {{ $t('claudeSettings.tabs.model') }}
+            </h3>
 
-        <!-- Tab: 模型与推理 -->
-        <div
-          v-show="activeTab === 'model'"
-          class="claude-settings-panel"
-        >
-          <Card
-            variant="glass"
-            pattern
-          >
-            <div class="claude-settings-panel-body">
-              <h3 class="claude-settings-section-title">
-                {{ $t('claudeSettings.tabs.model') }}
-              </h3>
-
-              <div>
-                <label class="claude-settings-field-label">{{ $t('claudeSettings.model.defaultModel') }}</label>
-                <select
-                  v-model="form.model"
-                  class="claude-settings-control"
+            <div>
+              <label class="claude-settings-field-label">{{ $t('claudeSettings.model.defaultModel') }}</label>
+              <select
+                v-model="form.model"
+                class="claude-settings-control"
+              >
+                <option value="">
+                  {{ $t('claudeSettings.model.noOverride') }}
+                </option>
+                <option
+                  v-for="m in modelOptions"
+                  :key="m"
+                  :value="m"
                 >
-                  <option value="">
-                    {{ $t('claudeSettings.model.noOverride') }}
-                  </option>
-                  <option
-                    v-for="m in modelOptions"
-                    :key="m"
-                    :value="m"
-                  >
-                    {{ m }}
-                  </option>
-                </select>
-              </div>
+                  {{ m }}
+                </option>
+              </select>
+            </div>
 
+            <div>
+              <label class="claude-settings-field-label">{{ $t('claudeSettings.model.effortLevel') }}</label>
+              <select
+                v-model="form.effortLevel"
+                class="claude-settings-control"
+              >
+                <option value="">
+                  {{ $t('claudeSettings.model.noOverride') }}
+                </option>
+                <option value="low">
+                  low
+                </option>
+                <option value="medium">
+                  medium
+                </option>
+                <option value="high">
+                  high
+                </option>
+              </select>
+            </div>
+
+            <!-- Toggle: alwaysThinkingEnabled -->
+            <label class="claude-settings-checkbox">
+              <input
+                v-model="form.alwaysThinkingEnabled"
+                type="checkbox"
+                class="claude-settings-checkbox__input"
+              >
+              <span class="claude-settings-checkbox__label">{{ $t('claudeSettings.model.alwaysThinking') }}</span>
+            </label>
+
+            <div class="claude-settings-grid">
               <div>
-                <label class="claude-settings-field-label">{{ $t('claudeSettings.model.effortLevel') }}</label>
-                <select
-                  v-model="form.effortLevel"
-                  class="claude-settings-control"
-                >
-                  <option value="">
-                    {{ $t('claudeSettings.model.noOverride') }}
-                  </option>
-                  <option value="low">
-                    low
-                  </option>
-                  <option value="medium">
-                    medium
-                  </option>
-                  <option value="high">
-                    high
-                  </option>
-                </select>
-              </div>
-
-              <!-- Toggle: alwaysThinkingEnabled -->
-              <label class="claude-settings-checkbox">
+                <label class="claude-settings-field-label">{{ $t('claudeSettings.model.maxThinkingTokens') }}</label>
                 <input
-                  v-model="form.alwaysThinkingEnabled"
-                  type="checkbox"
-                  class="claude-settings-checkbox__input"
+                  v-model="form.maxThinkingTokens"
+                  type="text"
+                  placeholder="31999"
+                  class="claude-settings-control"
                 >
-                <span class="claude-settings-checkbox__label">{{ $t('claudeSettings.model.alwaysThinking') }}</span>
-              </label>
-
-              <div class="claude-settings-grid">
-                <div>
-                  <label class="claude-settings-field-label">{{ $t('claudeSettings.model.maxThinkingTokens') }}</label>
-                  <input
-                    v-model="form.maxThinkingTokens"
-                    type="text"
-                    placeholder="31999"
-                    class="claude-settings-control"
-                  >
-                </div>
-                <div>
-                  <label class="claude-settings-field-label">{{ $t('claudeSettings.model.maxOutputTokens') }}</label>
-                  <input
-                    v-model="form.maxOutputTokens"
-                    type="text"
-                    placeholder="64000"
-                    class="claude-settings-control"
-                  >
-                </div>
               </div>
-
-              <!-- TagList: availableModels -->
               <div>
-                <label class="claude-settings-field-label">{{ $t('claudeSettings.model.availableModels') }}</label>
-                <div
-                  v-if="form.availableModels.length > 0"
-                  class="claude-settings-chip-list"
+                <label class="claude-settings-field-label">{{ $t('claudeSettings.model.maxOutputTokens') }}</label>
+                <input
+                  v-model="form.maxOutputTokens"
+                  type="text"
+                  placeholder="64000"
+                  class="claude-settings-control"
                 >
-                  <span
-                    v-for="(item, i) in form.availableModels"
-                    :key="i"
-                    class="claude-settings-chip"
-                  >
-                    {{ item }}
-                    <button
-                      class="claude-settings-chip-remove"
-                      @click="form.availableModels.splice(i, 1)"
-                    ><SIcon
-                      name="X"
-                      size="w-3 h-3"
-                    /></button>
-                  </span>
-                </div>
-                <div class="claude-settings-chip-entry">
-                  <input
-                    v-model="tagInputs.availableModels"
-                    :placeholder="$t('claudeSettings.model.addModel')"
-                    class="claude-settings-chip-input"
-                    @keydown.enter.prevent="addTag('availableModels', form.availableModels)"
-                  >
-                  <button
-                    class="claude-settings-chip-button"
-                    @click="addTag('availableModels', form.availableModels)"
-                  >
-                    <SIcon
-                      name="Plus"
-                      size="w-4 h-4"
-                    />
-                  </button>
-                </div>
               </div>
             </div>
-          </Card>
-        </div>
 
-        <!-- Tab: 权限管理 -->
-        <div
-          v-show="activeTab === 'permissions'"
-          class="claude-settings-panel"
-        >
-          <Card
-            variant="glass"
-            pattern
-          >
-            <div class="claude-settings-panel-body">
-              <h3 class="claude-settings-section-title">
-                {{ $t('claudeSettings.tabs.permissions') }}
-              </h3>
-
-              <div>
-                <label class="claude-settings-field-label">{{ $t('claudeSettings.permissions.defaultMode') }}</label>
-                <select
-                  v-model="permDefaultMode"
-                  class="claude-settings-control"
+            <!-- TagList: availableModels -->
+            <div>
+              <label class="claude-settings-field-label">{{ $t('claudeSettings.model.availableModels') }}</label>
+              <div
+                v-if="form.availableModels.length > 0"
+                class="claude-settings-chip-list"
+              >
+                <span
+                  v-for="(item, i) in form.availableModels"
+                  :key="i"
+                  class="claude-settings-chip"
                 >
-                  <option value="">
-                    {{ $t('claudeSettings.model.noOverride') }}
-                  </option>
-                  <option
-                    v-for="mode in permissionModeOptions"
-                    :key="mode"
-                    :value="mode"
-                  >
-                    {{ mode }}
-                  </option>
-                </select>
+                  {{ item }}
+                  <button
+                    class="claude-settings-chip-remove"
+                    @click="form.availableModels.splice(i, 1)"
+                  ><SIcon
+                    name="X"
+                    size="w-3 h-3"
+                  /></button>
+                </span>
               </div>
-
-              <!-- Toggle: skipDangerousModePermissionPrompt -->
-              <label class="claude-settings-checkbox">
+              <div class="claude-settings-chip-entry">
                 <input
-                  v-model="form.skipDangerousModePermissionPrompt"
-                  type="checkbox"
-                  class="claude-settings-checkbox__input"
+                  v-model="tagInputs.availableModels"
+                  :placeholder="$t('claudeSettings.model.addModel')"
+                  class="claude-settings-chip-input"
+                  @keydown.enter.prevent="addTag('availableModels', form.availableModels)"
                 >
-                <span class="claude-settings-checkbox__label">{{ $t('claudeSettings.permissions.skipDangerous') }}</span>
-              </label>
-
-              <!-- TagList: permAllow -->
-              <div>
-                <label class="claude-settings-field-label">{{ $t('claudeSettings.permissions.allow') }}</label>
-                <div
-                  v-if="permAllow.length > 0"
-                  class="claude-settings-chip-list"
-                >
-                  <span
-                    v-for="(item, i) in permAllow"
-                    :key="i"
-                    class="claude-settings-chip"
-                  >
-                    {{ item }}
-                    <button
-                      class="claude-settings-chip-remove"
-                      @click="permAllow.splice(i, 1)"
-                    ><SIcon
-                      name="X"
-                      size="w-3 h-3"
-                    /></button>
-                  </span>
-                </div>
-                <div class="claude-settings-chip-entry">
-                  <input
-                    v-model="tagInputs.permAllow"
-                    placeholder="Bash, Read, Write..."
-                    class="claude-settings-chip-input"
-                    @keydown.enter.prevent="addTag('permAllow', permAllow)"
-                  >
-                  <button
-                    class="claude-settings-chip-button"
-                    @click="addTag('permAllow', permAllow)"
-                  >
-                    <SIcon
-                      name="Plus"
-                      size="w-4 h-4"
-                    />
-                  </button>
-                </div>
-              </div>
-
-              <!-- TagList: permDeny -->
-              <div>
-                <label class="claude-settings-field-label">{{ $t('claudeSettings.permissions.deny') }}</label>
-                <div
-                  v-if="permDeny.length > 0"
-                  class="claude-settings-chip-list"
-                >
-                  <span
-                    v-for="(item, i) in permDeny"
-                    :key="i"
-                    class="claude-settings-chip"
-                  >
-                    {{ item }}
-                    <button
-                      class="claude-settings-chip-remove"
-                      @click="permDeny.splice(i, 1)"
-                    ><SIcon
-                      name="X"
-                      size="w-3 h-3"
-                    /></button>
-                  </span>
-                </div>
-                <div class="claude-settings-chip-entry">
-                  <input
-                    v-model="tagInputs.permDeny"
-                    placeholder="mcp__dangerous..."
-                    class="claude-settings-chip-input"
-                    @keydown.enter.prevent="addTag('permDeny', permDeny)"
-                  >
-                  <button
-                    class="claude-settings-chip-button"
-                    @click="addTag('permDeny', permDeny)"
-                  >
-                    <SIcon
-                      name="Plus"
-                      size="w-4 h-4"
-                    />
-                  </button>
-                </div>
-              </div>
-
-              <!-- TagList: permAdditionalDirs -->
-              <div>
-                <label class="claude-settings-field-label">{{ $t('claudeSettings.permissions.additionalDirs') }}</label>
-                <div
-                  v-if="permAdditionalDirs.length > 0"
-                  class="claude-settings-chip-list"
-                >
-                  <span
-                    v-for="(item, i) in permAdditionalDirs"
-                    :key="i"
-                    class="claude-settings-chip"
-                  >
-                    {{ item }}
-                    <button
-                      class="claude-settings-chip-remove"
-                      @click="permAdditionalDirs.splice(i, 1)"
-                    ><SIcon
-                      name="X"
-                      size="w-3 h-3"
-                    /></button>
-                  </span>
-                </div>
-                <div class="claude-settings-chip-entry">
-                  <input
-                    v-model="tagInputs.permAdditionalDirs"
-                    placeholder="/path/to/dir"
-                    class="claude-settings-chip-input"
-                    @keydown.enter.prevent="addTag('permAdditionalDirs', permAdditionalDirs)"
-                  >
-                  <button
-                    class="claude-settings-chip-button"
-                    @click="addTag('permAdditionalDirs', permAdditionalDirs)"
-                  >
-                    <SIcon
-                      name="Plus"
-                      size="w-4 h-4"
-                    />
-                  </button>
-                </div>
-              </div>
-            </div>
-          </Card>
-        </div>
-
-        <!-- Tab: 环境变量 -->
-        <div
-          v-show="activeTab === 'env'"
-          class="claude-settings-panel"
-        >
-          <Card
-            variant="glass"
-            pattern
-          >
-            <div class="claude-settings-panel-body">
-              <div class="claude-settings-panel-header">
-                <h3 class="claude-settings-section-title">
-                  {{ $t('claudeSettings.tabs.env') }}
-                </h3>
                 <button
-                  class="claude-settings-chip-button claude-settings-chip-button--wide"
-                  @click="addEnvVar"
+                  class="claude-settings-chip-button"
+                  @click="addTag('availableModels', form.availableModels)"
                 >
                   <SIcon
                     name="Plus"
-                    size="w-4 h-4"
-                  /> {{ $t('claudeSettings.env.add') }}
-                </button>
-              </div>
-
-              <div
-                v-if="envEntries.length === 0"
-                class="claude-settings-empty"
-              >
-                {{ $t('claudeSettings.env.empty') }}
-              </div>
-
-              <div
-                v-for="(entry, idx) in envEntries"
-                :key="idx"
-                class="claude-settings-env-row"
-              >
-                <input
-                  v-model="entry.key"
-                  placeholder="KEY"
-                  class="claude-settings-chip-input claude-settings-control--mono"
-                >
-                <input
-                  v-model="entry.value"
-                  placeholder="value"
-                  :type="entry.key.includes('TOKEN') || entry.key.includes('KEY') || entry.key.includes('SECRET') ? 'password' : 'text'"
-                  class="claude-settings-chip-input claude-settings-control--mono claude-settings-control--value"
-                >
-                <button
-                  class="claude-settings-delete-button"
-                  @click="envEntries.splice(idx, 1)"
-                >
-                  <SIcon
-                    name="Trash2"
                     size="w-4 h-4"
                   />
                 </button>
               </div>
             </div>
-          </Card>
-        </div>
+          </div>
+        </Card>
+      </div>
 
-        <!-- Tab: UI 体验 -->
-        <div
-          v-show="activeTab === 'ui'"
-          class="claude-settings-panel"
+      <!-- Tab: 权限管理 -->
+      <div
+        v-show="activeTab === 'permissions'"
+        class="claude-settings-panel"
+      >
+        <Card
+          variant="glass"
+          pattern
         >
-          <Card
-            variant="glass"
-            pattern
-          >
-            <div class="claude-settings-panel-body">
-              <h3 class="claude-settings-section-title">
-                {{ $t('claudeSettings.tabs.ui') }}
-              </h3>
+          <div class="claude-settings-panel-body">
+            <h3 class="claude-settings-section-title">
+              {{ $t('claudeSettings.tabs.permissions') }}
+            </h3>
 
-              <div class="claude-settings-grid">
-                <div>
-                  <label class="claude-settings-field-label">{{ $t('claudeSettings.ui.theme') }}</label>
-                  <input
-                    v-model="form.theme"
-                    type="text"
-                    placeholder="dark, light, dark-daltonized..."
-                    class="claude-settings-control"
-                  >
-                </div>
-                <div>
-                  <label class="claude-settings-field-label">{{ $t('claudeSettings.ui.language') }}</label>
-                  <input
-                    v-model="form.language"
-                    type="text"
-                    placeholder="zh-CN, en, ja..."
-                    class="claude-settings-control"
-                  >
-                </div>
-              </div>
-
-              <div class="claude-settings-checkbox-group">
-                <label class="claude-settings-checkbox">
-                  <input
-                    v-model="form.showTurnDuration"
-                    type="checkbox"
-                    class="claude-settings-checkbox__input"
-                  >
-                  <span class="claude-settings-checkbox__label">{{ $t('claudeSettings.ui.showTurnDuration') }}</span>
-                </label>
-                <label class="claude-settings-checkbox">
-                  <input
-                    v-model="form.spinnerTipsEnabled"
-                    type="checkbox"
-                    class="claude-settings-checkbox__input"
-                  >
-                  <span class="claude-settings-checkbox__label">{{ $t('claudeSettings.ui.spinnerTips') }}</span>
-                </label>
-                <label class="claude-settings-checkbox">
-                  <input
-                    v-model="form.terminalProgressBarEnabled"
-                    type="checkbox"
-                    class="claude-settings-checkbox__input"
-                  >
-                  <span class="claude-settings-checkbox__label">{{ $t('claudeSettings.ui.progressBar') }}</span>
-                </label>
-                <label class="claude-settings-checkbox">
-                  <input
-                    v-model="form.showSpinnerTree"
-                    type="checkbox"
-                    class="claude-settings-checkbox__input"
-                  >
-                  <span class="claude-settings-checkbox__label">{{ $t('claudeSettings.ui.spinnerTree') }}</span>
-                </label>
-                <label class="claude-settings-checkbox">
-                  <input
-                    v-model="form.prefersReducedMotion"
-                    type="checkbox"
-                    class="claude-settings-checkbox__input"
-                  >
-                  <span class="claude-settings-checkbox__label">{{ $t('claudeSettings.ui.reducedMotion') }}</span>
-                </label>
-              </div>
+            <div>
+              <label class="claude-settings-field-label">{{ $t('claudeSettings.permissions.defaultMode') }}</label>
+              <select
+                v-model="permDefaultMode"
+                class="claude-settings-control"
+              >
+                <option value="">
+                  {{ $t('claudeSettings.model.noOverride') }}
+                </option>
+                <option
+                  v-for="mode in permissionModeOptions"
+                  :key="mode"
+                  :value="mode"
+                >
+                  {{ mode }}
+                </option>
+              </select>
             </div>
-          </Card>
 
-          <Card
-            variant="glass"
-            pattern
-          >
-            <div class="claude-settings-panel-body">
-              <h3 class="claude-settings-section-title">
-                {{ $t('claudeSettings.ui.misc') }}
-              </h3>
-              <div class="claude-settings-grid">
-                <div>
-                  <label class="claude-settings-field-label">{{ $t('claudeSettings.ui.updateChannel') }}</label>
-                  <select
-                    v-model="form.autoUpdatesChannel"
-                    class="claude-settings-control"
-                  >
-                    <option value="">
-                      {{ $t('claudeSettings.model.noOverride') }}
-                    </option>
-                    <option
-                      v-for="channel in updateChannelOptions"
-                      :key="channel"
-                      :value="channel"
-                    >
-                      {{ channel }}
-                    </option>
-                  </select>
-                </div>
-                <div>
-                  <label class="claude-settings-field-label">{{ $t('claudeSettings.ui.cleanupDays') }}</label>
-                  <input
-                    v-model.number="form.cleanupPeriodDays"
-                    type="number"
-                    placeholder="30"
-                    class="claude-settings-control"
-                  >
-                </div>
-              </div>
-              <label class="claude-settings-checkbox">
-                <input
-                  v-model="form.autoUpdates"
-                  type="checkbox"
-                  class="claude-settings-checkbox__input"
-                >
-                <span class="claude-settings-checkbox__label">{{ $t('claudeSettings.ui.autoUpdates') }}</span>
-              </label>
-              <label class="claude-settings-checkbox">
-                <input
-                  v-model="form.respectGitignore"
-                  type="checkbox"
-                  class="claude-settings-checkbox__input"
-                >
-                <span class="claude-settings-checkbox__label">{{ $t('claudeSettings.ui.respectGitignore') }}</span>
-              </label>
-            </div>
-          </Card>
-        </div>
+            <!-- Toggle: skipDangerousModePermissionPrompt -->
+            <label class="claude-settings-checkbox">
+              <input
+                v-model="form.skipDangerousModePermissionPrompt"
+                type="checkbox"
+                class="claude-settings-checkbox__input"
+              >
+              <span class="claude-settings-checkbox__label">{{ $t('claudeSettings.permissions.skipDangerous') }}</span>
+            </label>
 
-        <!-- Tab: 沙箱安全 -->
-        <div
-          v-show="activeTab === 'sandbox'"
-          class="claude-settings-panel"
-        >
-          <Card
-            variant="glass"
-            pattern
-          >
-            <div class="claude-settings-panel-body">
-              <h3 class="claude-settings-section-title">
-                {{ $t('claudeSettings.tabs.sandbox') }}
-              </h3>
-
-              <label class="claude-settings-checkbox">
-                <input
-                  v-model="sandboxEnabled"
-                  type="checkbox"
-                  class="claude-settings-checkbox__input"
+            <!-- TagList: permAllow -->
+            <div>
+              <label class="claude-settings-field-label">{{ $t('claudeSettings.permissions.allow') }}</label>
+              <div
+                v-if="permAllow.length > 0"
+                class="claude-settings-chip-list"
+              >
+                <span
+                  v-for="(item, i) in permAllow"
+                  :key="i"
+                  class="claude-settings-chip"
                 >
-                <span class="claude-settings-checkbox__label">{{ $t('claudeSettings.sandbox.enabled') }}</span>
-              </label>
-              <label class="claude-settings-checkbox">
-                <input
-                  v-model="sandboxAutoAllow"
-                  type="checkbox"
-                  class="claude-settings-checkbox__input"
-                >
-                <span class="claude-settings-checkbox__label">{{ $t('claudeSettings.sandbox.autoAllowBash') }}</span>
-              </label>
-              <label class="claude-settings-checkbox">
-                <input
-                  v-model="sandboxAllowLocal"
-                  type="checkbox"
-                  class="claude-settings-checkbox__input"
-                >
-                <span class="claude-settings-checkbox__label">{{ $t('claudeSettings.sandbox.allowLocalBinding') }}</span>
-              </label>
-
-              <!-- TagList: sandboxAllowedDomains -->
-              <div>
-                <label class="claude-settings-field-label">{{ $t('claudeSettings.sandbox.allowedDomains') }}</label>
-                <div
-                  v-if="sandboxAllowedDomains.length > 0"
-                  class="claude-settings-chip-list"
-                >
-                  <span
-                    v-for="(item, i) in sandboxAllowedDomains"
-                    :key="i"
-                    class="claude-settings-chip"
-                  >
-                    {{ item }}
-                    <button
-                      class="claude-settings-chip-remove"
-                      @click="sandboxAllowedDomains.splice(i, 1)"
-                    ><SIcon
-                      name="X"
-                      size="w-3 h-3"
-                    /></button>
-                  </span>
-                </div>
-                <div class="claude-settings-chip-entry">
-                  <input
-                    v-model="tagInputs.sandboxAllowedDomains"
-                    placeholder="api.anthropic.com"
-                    class="claude-settings-chip-input"
-                    @keydown.enter.prevent="addTag('sandboxAllowedDomains', sandboxAllowedDomains)"
-                  >
+                  {{ item }}
                   <button
-                    class="claude-settings-chip-button"
-                    @click="addTag('sandboxAllowedDomains', sandboxAllowedDomains)"
-                  >
-                    <SIcon
-                      name="Plus"
-                      size="w-4 h-4"
-                    />
-                  </button>
-                </div>
+                    class="claude-settings-chip-remove"
+                    @click="permAllow.splice(i, 1)"
+                  ><SIcon
+                    name="X"
+                    size="w-3 h-3"
+                  /></button>
+                </span>
               </div>
-
-              <!-- TagList: sandboxExcludedCmds -->
-              <div>
-                <label class="claude-settings-field-label">{{ $t('claudeSettings.sandbox.excludedCommands') }}</label>
-                <div
-                  v-if="sandboxExcludedCmds.length > 0"
-                  class="claude-settings-chip-list"
+              <div class="claude-settings-chip-entry">
+                <input
+                  v-model="tagInputs.permAllow"
+                  placeholder="Bash, Read, Write..."
+                  class="claude-settings-chip-input"
+                  @keydown.enter.prevent="addTag('permAllow', permAllow)"
                 >
-                  <span
-                    v-for="(item, i) in sandboxExcludedCmds"
-                    :key="i"
-                    class="claude-settings-chip"
-                  >
-                    {{ item }}
-                    <button
-                      class="claude-settings-chip-remove"
-                      @click="sandboxExcludedCmds.splice(i, 1)"
-                    ><SIcon
-                      name="X"
-                      size="w-3 h-3"
-                    /></button>
-                  </span>
-                </div>
-                <div class="claude-settings-chip-entry">
-                  <input
-                    v-model="tagInputs.sandboxExcludedCmds"
-                    placeholder="docker, npm..."
-                    class="claude-settings-chip-input"
-                    @keydown.enter.prevent="addTag('sandboxExcludedCmds', sandboxExcludedCmds)"
-                  >
-                  <button
-                    class="claude-settings-chip-button"
-                    @click="addTag('sandboxExcludedCmds', sandboxExcludedCmds)"
-                  >
-                    <SIcon
-                      name="Plus"
-                      size="w-4 h-4"
-                    />
-                  </button>
-                </div>
+                <button
+                  class="claude-settings-chip-button"
+                  @click="addTag('permAllow', permAllow)"
+                >
+                  <SIcon
+                    name="Plus"
+                    size="w-4 h-4"
+                  />
+                </button>
               </div>
             </div>
-          </Card>
-        </div>
 
-        <!-- Tab: Git 归属 -->
-        <div
-          v-show="activeTab === 'git'"
-          class="claude-settings-panel"
-        >
-          <Card
-            variant="glass"
-            pattern
-          >
-            <div class="claude-settings-panel-body">
-              <h3 class="claude-settings-section-title">
-                {{ $t('claudeSettings.tabs.git') }}
-              </h3>
-
-              <div class="claude-settings-grid">
-                <div>
-                  <label class="claude-settings-field-label">{{ $t('claudeSettings.git.commitAttribution') }}</label>
-                  <select
-                    v-model="attrCommit"
-                    class="claude-settings-control"
-                  >
-                    <option value="">
-                      {{ $t('claudeSettings.model.noOverride') }}
-                    </option>
-                    <option
-                      v-for="option in attributionOptions"
-                      :key="option"
-                      :value="option"
-                    >
-                      {{ option }}
-                    </option>
-                  </select>
-                </div>
-                <div>
-                  <label class="claude-settings-field-label">{{ $t('claudeSettings.git.prAttribution') }}</label>
-                  <select
-                    v-model="attrPr"
-                    class="claude-settings-control"
-                  >
-                    <option value="">
-                      {{ $t('claudeSettings.model.noOverride') }}
-                    </option>
-                    <option
-                      v-for="option in attributionOptions"
-                      :key="option"
-                      :value="option"
-                    >
-                      {{ option }}
-                    </option>
-                  </select>
-                </div>
+            <!-- TagList: permDeny -->
+            <div>
+              <label class="claude-settings-field-label">{{ $t('claudeSettings.permissions.deny') }}</label>
+              <div
+                v-if="permDeny.length > 0"
+                class="claude-settings-chip-list"
+              >
+                <span
+                  v-for="(item, i) in permDeny"
+                  :key="i"
+                  class="claude-settings-chip"
+                >
+                  {{ item }}
+                  <button
+                    class="claude-settings-chip-remove"
+                    @click="permDeny.splice(i, 1)"
+                  ><SIcon
+                    name="X"
+                    size="w-3 h-3"
+                  /></button>
+                </span>
               </div>
+              <div class="claude-settings-chip-entry">
+                <input
+                  v-model="tagInputs.permDeny"
+                  placeholder="mcp__dangerous..."
+                  class="claude-settings-chip-input"
+                  @keydown.enter.prevent="addTag('permDeny', permDeny)"
+                >
+                <button
+                  class="claude-settings-chip-button"
+                  @click="addTag('permDeny', permDeny)"
+                >
+                  <SIcon
+                    name="Plus"
+                    size="w-4 h-4"
+                  />
+                </button>
+              </div>
+            </div>
 
+            <!-- TagList: permAdditionalDirs -->
+            <div>
+              <label class="claude-settings-field-label">{{ $t('claudeSettings.permissions.additionalDirs') }}</label>
+              <div
+                v-if="permAdditionalDirs.length > 0"
+                class="claude-settings-chip-list"
+              >
+                <span
+                  v-for="(item, i) in permAdditionalDirs"
+                  :key="i"
+                  class="claude-settings-chip"
+                >
+                  {{ item }}
+                  <button
+                    class="claude-settings-chip-remove"
+                    @click="permAdditionalDirs.splice(i, 1)"
+                  ><SIcon
+                    name="X"
+                    size="w-3 h-3"
+                  /></button>
+                </span>
+              </div>
+              <div class="claude-settings-chip-entry">
+                <input
+                  v-model="tagInputs.permAdditionalDirs"
+                  placeholder="/path/to/dir"
+                  class="claude-settings-chip-input"
+                  @keydown.enter.prevent="addTag('permAdditionalDirs', permAdditionalDirs)"
+                >
+                <button
+                  class="claude-settings-chip-button"
+                  @click="addTag('permAdditionalDirs', permAdditionalDirs)"
+                >
+                  <SIcon
+                    name="Plus"
+                    size="w-4 h-4"
+                  />
+                </button>
+              </div>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      <!-- Tab: 环境变量 -->
+      <div
+        v-show="activeTab === 'env'"
+        class="claude-settings-panel"
+      >
+        <Card
+          variant="glass"
+          pattern
+        >
+          <div class="claude-settings-panel-body">
+            <div class="claude-settings-panel-header">
+              <h3 class="claude-settings-section-title">
+                {{ $t('claudeSettings.tabs.env') }}
+              </h3>
+              <button
+                class="claude-settings-chip-button claude-settings-chip-button--wide"
+                @click="addEnvVar"
+              >
+                <SIcon
+                  name="Plus"
+                  size="w-4 h-4"
+                /> {{ $t('claudeSettings.env.add') }}
+              </button>
+            </div>
+
+            <div
+              v-if="envEntries.length === 0"
+              class="claude-settings-empty"
+            >
+              {{ $t('claudeSettings.env.empty') }}
+            </div>
+
+            <div
+              v-for="(entry, idx) in envEntries"
+              :key="idx"
+              class="claude-settings-env-row"
+            >
+              <input
+                v-model="entry.key"
+                placeholder="KEY"
+                class="claude-settings-chip-input claude-settings-control--mono"
+              >
+              <input
+                v-model="entry.value"
+                placeholder="value"
+                :type="entry.key.includes('TOKEN') || entry.key.includes('KEY') || entry.key.includes('SECRET') ? 'password' : 'text'"
+                class="claude-settings-chip-input claude-settings-control--mono claude-settings-control--value"
+              >
+              <button
+                class="claude-settings-delete-button"
+                @click="envEntries.splice(idx, 1)"
+              >
+                <SIcon
+                  name="Trash2"
+                  size="w-4 h-4"
+                />
+              </button>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      <!-- Tab: UI 体验 -->
+      <div
+        v-show="activeTab === 'ui'"
+        class="claude-settings-panel"
+      >
+        <Card
+          variant="glass"
+          pattern
+        >
+          <div class="claude-settings-panel-body">
+            <h3 class="claude-settings-section-title">
+              {{ $t('claudeSettings.tabs.ui') }}
+            </h3>
+
+            <div class="claude-settings-grid">
+              <div>
+                <label class="claude-settings-field-label">{{ $t('claudeSettings.ui.theme') }}</label>
+                <input
+                  v-model="form.theme"
+                  type="text"
+                  placeholder="dark, light, dark-daltonized..."
+                  class="claude-settings-control"
+                >
+              </div>
+              <div>
+                <label class="claude-settings-field-label">{{ $t('claudeSettings.ui.language') }}</label>
+                <input
+                  v-model="form.language"
+                  type="text"
+                  placeholder="zh-CN, en, ja..."
+                  class="claude-settings-control"
+                >
+              </div>
+            </div>
+
+            <div class="claude-settings-checkbox-group">
               <label class="claude-settings-checkbox">
                 <input
-                  v-model="form.includeCoAuthoredBy"
+                  v-model="form.showTurnDuration"
                   type="checkbox"
                   class="claude-settings-checkbox__input"
                 >
-                <span class="claude-settings-checkbox__label">{{ $t('claudeSettings.git.includeCoAuthored') }}</span>
+                <span class="claude-settings-checkbox__label">{{ $t('claudeSettings.ui.showTurnDuration') }}</span>
+              </label>
+              <label class="claude-settings-checkbox">
+                <input
+                  v-model="form.spinnerTipsEnabled"
+                  type="checkbox"
+                  class="claude-settings-checkbox__input"
+                >
+                <span class="claude-settings-checkbox__label">{{ $t('claudeSettings.ui.spinnerTips') }}</span>
+              </label>
+              <label class="claude-settings-checkbox">
+                <input
+                  v-model="form.terminalProgressBarEnabled"
+                  type="checkbox"
+                  class="claude-settings-checkbox__input"
+                >
+                <span class="claude-settings-checkbox__label">{{ $t('claudeSettings.ui.progressBar') }}</span>
+              </label>
+              <label class="claude-settings-checkbox">
+                <input
+                  v-model="form.showSpinnerTree"
+                  type="checkbox"
+                  class="claude-settings-checkbox__input"
+                >
+                <span class="claude-settings-checkbox__label">{{ $t('claudeSettings.ui.spinnerTree') }}</span>
+              </label>
+              <label class="claude-settings-checkbox">
+                <input
+                  v-model="form.prefersReducedMotion"
+                  type="checkbox"
+                  class="claude-settings-checkbox__input"
+                >
+                <span class="claude-settings-checkbox__label">{{ $t('claudeSettings.ui.reducedMotion') }}</span>
               </label>
             </div>
-          </Card>
-        </div>
+          </div>
+        </Card>
 
-        <ConfigSourcePanel
-          v-if="activeTab === 'source'"
-          language="json"
-          :get-raw="getClaudeSettingsRaw"
-          :save-raw="saveClaudeSettingsRaw"
-          :list-layers="listClaudeSettingsLayers"
-          @saved="handleRawSaved"
-          @close="activeTab = 'model'"
-          @dirty-change="sourceDirty = $event"
-        />
-      </template>
-    </div>
-  </div>
+        <Card
+          variant="glass"
+          pattern
+        >
+          <div class="claude-settings-panel-body">
+            <h3 class="claude-settings-section-title">
+              {{ $t('claudeSettings.ui.misc') }}
+            </h3>
+            <div class="claude-settings-grid">
+              <div>
+                <label class="claude-settings-field-label">{{ $t('claudeSettings.ui.updateChannel') }}</label>
+                <select
+                  v-model="form.autoUpdatesChannel"
+                  class="claude-settings-control"
+                >
+                  <option value="">
+                    {{ $t('claudeSettings.model.noOverride') }}
+                  </option>
+                  <option
+                    v-for="channel in updateChannelOptions"
+                    :key="channel"
+                    :value="channel"
+                  >
+                    {{ channel }}
+                  </option>
+                </select>
+              </div>
+              <div>
+                <label class="claude-settings-field-label">{{ $t('claudeSettings.ui.cleanupDays') }}</label>
+                <input
+                  v-model.number="form.cleanupPeriodDays"
+                  type="number"
+                  placeholder="30"
+                  class="claude-settings-control"
+                >
+              </div>
+            </div>
+            <label class="claude-settings-checkbox">
+              <input
+                v-model="form.autoUpdates"
+                type="checkbox"
+                class="claude-settings-checkbox__input"
+              >
+              <span class="claude-settings-checkbox__label">{{ $t('claudeSettings.ui.autoUpdates') }}</span>
+            </label>
+            <label class="claude-settings-checkbox">
+              <input
+                v-model="form.respectGitignore"
+                type="checkbox"
+                class="claude-settings-checkbox__input"
+              >
+              <span class="claude-settings-checkbox__label">{{ $t('claudeSettings.ui.respectGitignore') }}</span>
+            </label>
+          </div>
+        </Card>
+      </div>
+
+      <!-- Tab: 沙箱安全 -->
+      <div
+        v-show="activeTab === 'sandbox'"
+        class="claude-settings-panel"
+      >
+        <Card
+          variant="glass"
+          pattern
+        >
+          <div class="claude-settings-panel-body">
+            <h3 class="claude-settings-section-title">
+              {{ $t('claudeSettings.tabs.sandbox') }}
+            </h3>
+
+            <label class="claude-settings-checkbox">
+              <input
+                v-model="sandboxEnabled"
+                type="checkbox"
+                class="claude-settings-checkbox__input"
+              >
+              <span class="claude-settings-checkbox__label">{{ $t('claudeSettings.sandbox.enabled') }}</span>
+            </label>
+            <label class="claude-settings-checkbox">
+              <input
+                v-model="sandboxAutoAllow"
+                type="checkbox"
+                class="claude-settings-checkbox__input"
+              >
+              <span class="claude-settings-checkbox__label">{{ $t('claudeSettings.sandbox.autoAllowBash') }}</span>
+            </label>
+            <label class="claude-settings-checkbox">
+              <input
+                v-model="sandboxAllowLocal"
+                type="checkbox"
+                class="claude-settings-checkbox__input"
+              >
+              <span class="claude-settings-checkbox__label">{{ $t('claudeSettings.sandbox.allowLocalBinding') }}</span>
+            </label>
+
+            <!-- TagList: sandboxAllowedDomains -->
+            <div>
+              <label class="claude-settings-field-label">{{ $t('claudeSettings.sandbox.allowedDomains') }}</label>
+              <div
+                v-if="sandboxAllowedDomains.length > 0"
+                class="claude-settings-chip-list"
+              >
+                <span
+                  v-for="(item, i) in sandboxAllowedDomains"
+                  :key="i"
+                  class="claude-settings-chip"
+                >
+                  {{ item }}
+                  <button
+                    class="claude-settings-chip-remove"
+                    @click="sandboxAllowedDomains.splice(i, 1)"
+                  ><SIcon
+                    name="X"
+                    size="w-3 h-3"
+                  /></button>
+                </span>
+              </div>
+              <div class="claude-settings-chip-entry">
+                <input
+                  v-model="tagInputs.sandboxAllowedDomains"
+                  placeholder="api.anthropic.com"
+                  class="claude-settings-chip-input"
+                  @keydown.enter.prevent="addTag('sandboxAllowedDomains', sandboxAllowedDomains)"
+                >
+                <button
+                  class="claude-settings-chip-button"
+                  @click="addTag('sandboxAllowedDomains', sandboxAllowedDomains)"
+                >
+                  <SIcon
+                    name="Plus"
+                    size="w-4 h-4"
+                  />
+                </button>
+              </div>
+            </div>
+
+            <!-- TagList: sandboxExcludedCmds -->
+            <div>
+              <label class="claude-settings-field-label">{{ $t('claudeSettings.sandbox.excludedCommands') }}</label>
+              <div
+                v-if="sandboxExcludedCmds.length > 0"
+                class="claude-settings-chip-list"
+              >
+                <span
+                  v-for="(item, i) in sandboxExcludedCmds"
+                  :key="i"
+                  class="claude-settings-chip"
+                >
+                  {{ item }}
+                  <button
+                    class="claude-settings-chip-remove"
+                    @click="sandboxExcludedCmds.splice(i, 1)"
+                  ><SIcon
+                    name="X"
+                    size="w-3 h-3"
+                  /></button>
+                </span>
+              </div>
+              <div class="claude-settings-chip-entry">
+                <input
+                  v-model="tagInputs.sandboxExcludedCmds"
+                  placeholder="docker, npm..."
+                  class="claude-settings-chip-input"
+                  @keydown.enter.prevent="addTag('sandboxExcludedCmds', sandboxExcludedCmds)"
+                >
+                <button
+                  class="claude-settings-chip-button"
+                  @click="addTag('sandboxExcludedCmds', sandboxExcludedCmds)"
+                >
+                  <SIcon
+                    name="Plus"
+                    size="w-4 h-4"
+                  />
+                </button>
+              </div>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      <!-- Tab: Git 归属 -->
+      <div
+        v-show="activeTab === 'git'"
+        class="claude-settings-panel"
+      >
+        <Card
+          variant="glass"
+          pattern
+        >
+          <div class="claude-settings-panel-body">
+            <h3 class="claude-settings-section-title">
+              {{ $t('claudeSettings.tabs.git') }}
+            </h3>
+
+            <div class="claude-settings-grid">
+              <div>
+                <label class="claude-settings-field-label">{{ $t('claudeSettings.git.commitAttribution') }}</label>
+                <select
+                  v-model="attrCommit"
+                  class="claude-settings-control"
+                >
+                  <option value="">
+                    {{ $t('claudeSettings.model.noOverride') }}
+                  </option>
+                  <option
+                    v-for="option in attributionOptions"
+                    :key="option"
+                    :value="option"
+                  >
+                    {{ option }}
+                  </option>
+                </select>
+              </div>
+              <div>
+                <label class="claude-settings-field-label">{{ $t('claudeSettings.git.prAttribution') }}</label>
+                <select
+                  v-model="attrPr"
+                  class="claude-settings-control"
+                >
+                  <option value="">
+                    {{ $t('claudeSettings.model.noOverride') }}
+                  </option>
+                  <option
+                    v-for="option in attributionOptions"
+                    :key="option"
+                    :value="option"
+                  >
+                    {{ option }}
+                  </option>
+                </select>
+              </div>
+            </div>
+
+            <label class="claude-settings-checkbox">
+              <input
+                v-model="form.includeCoAuthoredBy"
+                type="checkbox"
+                class="claude-settings-checkbox__input"
+              >
+              <span class="claude-settings-checkbox__label">{{ $t('claudeSettings.git.includeCoAuthored') }}</span>
+            </label>
+          </div>
+        </Card>
+      </div>
+
+      <ConfigSourcePanel
+        v-if="activeTab === 'source'"
+        language="json"
+        :get-raw="getClaudeSettingsRaw"
+        :save-raw="saveClaudeSettingsRaw"
+        :list-layers="listClaudeSettingsLayers"
+        @saved="handleRawSaved"
+        @close="activeTab = 'model'"
+        @dirty-change="sourceDirty = $event"
+      />
+    </template>
+  </PageShell>
 </template>
 
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import Button from '@/components/ui/Button.vue'
 import Card from '@/components/ui/Card.vue'
+import ModuleSubnav from '@/components/ModuleSubnav.vue'
+import PageHeader from '@/components/ui/PageHeader.vue'
+import PageShell from '@/components/ui/PageShell.vue'
 import ConfigSourcePanel from '@/components/editor/ConfigSourcePanel.vue'
 import {
   getClaudeSettings,
@@ -1051,71 +1052,22 @@ onMounted(() => {
 
 <style scoped>
 .claude-settings-page {
-  min-height: 100%;
-  padding: 1.25rem;
   transition: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
 }
 
-.claude-settings-spacer {
-  margin-bottom: 1.5rem;
-}
-
-.claude-settings-shell {
-  width: 100%;
-  max-width: 75rem;
-  margin: 0 auto;
-}
-
-.claude-settings-header {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.claude-settings-title-row,
-.claude-settings-title,
-.claude-settings-actions,
 .claude-settings-panel-header,
 .claude-settings-chip-entry,
 .claude-settings-env-row,
 .claude-settings-checkbox,
-.claude-settings-tab,
-.claude-settings-button {
+.claude-settings-tab {
   display: flex;
   align-items: center;
 }
 
-.claude-settings-title-row {
-  gap: 1rem;
-}
-
-.claude-settings-title {
-  gap: 0.5rem;
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--color-text-primary);
-}
-
 .claude-settings-title-icon {
-  margin-right: 0.5rem;
   color: var(--color-accent-secondary);
 }
 
-.claude-settings-actions {
-  gap: 0.75rem;
-}
-
-.claude-settings-button {
-  min-height: 2.75rem;
-  padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
-  font-weight: 500;
-  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.claude-settings-button:disabled,
 .claude-settings-tab:disabled,
 .claude-settings-chip-button:disabled,
 .claude-settings-delete-button:disabled {
@@ -1123,39 +1075,13 @@ onMounted(() => {
   cursor: not-allowed;
 }
 
-.claude-settings-button__icon {
-  margin-right: 0.5rem;
-}
-
-.claude-settings-button--secondary {
-  background: var(--color-bg-elevated);
-  color: var(--color-text-secondary);
-  border: 1px solid var(--color-border-default);
-}
-
-.claude-settings-button--secondary:hover {
-  background: var(--color-bg-surface);
-}
-
-.claude-settings-button--primary,
 .claude-settings-chip-button,
 .claude-settings-chip-button--wide {
   background: var(--color-accent-secondary);
-  color: #fff;
-}
-
-.claude-settings-button--primary {
-  box-shadow: var(--shadow-md);
-}
-
-.claude-settings-button--primary:hover,
-.claude-settings-chip-button:hover,
-.claude-settings-chip-button--wide:hover {
-  transform: scale(1.05);
-}
-
-.claude-settings-button--primary:hover {
-  box-shadow: var(--shadow-lg);
+  color: var(--color-accent-primary-contrast);
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .claude-settings-loading,
@@ -1198,9 +1124,9 @@ onMounted(() => {
 }
 
 .claude-settings-tab--active {
-  background: var(--color-accent-secondary);
-  color: #fff;
-  box-shadow: var(--shadow-md);
+  background: rgb(var(--color-accent-primary-rgb) / 10%);
+  color: var(--color-text-primary);
+  border: 1px solid rgb(var(--color-accent-primary-rgb) / 18%);
 }
 
 .claude-settings-tab--inactive {
@@ -1341,18 +1267,11 @@ onMounted(() => {
 }
 
 .claude-settings-chip-remove:hover {
-  color: #f87171;
+  color: var(--color-danger);
 }
 
 .claude-settings-chip-entry {
   gap: 0.5rem;
-}
-
-.claude-settings-chip-button,
-.claude-settings-chip-button--wide {
-  border-radius: 0.5rem;
-  font-size: 0.875rem;
-  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
 }
 
 .claude-settings-chip-button {
@@ -1382,29 +1301,15 @@ onMounted(() => {
   min-height: 2.25rem;
   padding: 0.5rem;
   border-radius: 0.5rem;
-  color: #f87171;
+  color: var(--color-danger);
   transition: color 0.2s ease, background-color 0.2s ease;
 }
 
 .claude-settings-delete-button:hover {
-  background: rgb(239 68 68 / 10%);
+  background: rgb(var(--color-danger-rgb) / 10%);
 }
 
 @media (width >= 640px) {
-  .claude-settings-header {
-    flex-direction: row;
-    align-items: center;
-  }
-
-  .claude-settings-title {
-    font-size: 1.5rem;
-  }
-
-  .claude-settings-title-icon {
-    width: 1.75rem;
-    height: 1.75rem;
-  }
-
   .claude-settings-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

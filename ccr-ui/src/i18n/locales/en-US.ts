@@ -2575,32 +2575,12 @@ export default {
       flavor: {
         eyebrow: 'Flavor',
         title: 'Surface tone',
-        description:
-          'Pick the surface family. Catppuccin adapts to the resolved theme: light uses Latte and dark uses Mocha.',
+        description: 'Pick the surface family: neutral gray or warm clay paper.',
         neutral: 'Neutral',
         neutralDescription:
           'Pure neutral gray surfaces with solid contrast and no warm or cool tint.',
         clay: 'Clay',
         clayDescription: 'Warm paper surfaces in the Anthropic editorial tone.',
-        catppuccin: 'Catppuccin',
-        catppuccinDescription:
-          'Adaptive Catppuccin family; light resolves to Latte and dark resolves to Mocha.',
-        resolvedLatte: 'Latte',
-        resolvedMocha: 'Mocha',
-      },
-      accent: {
-        eyebrow: 'Accent',
-        title: 'Accent color',
-        description:
-          'Recolor primary actions and highlights only. Functional colors stay the same.',
-        clay: 'Clay',
-        clayDescription: 'Signature warm orange for primary actions.',
-        sage: 'Sage',
-        sageDescription: 'Calm green with an organic, low-noise feel.',
-        sky: 'Sky',
-        skyDescription: 'Clear blue for a cool, technical accent.',
-        mauve: 'Mauve',
-        mauveDescription: 'Soft violet with a quiet, refined presence.',
       },
       typography: {
         eyebrow: 'Typography',
@@ -2683,6 +2663,8 @@ export default {
       kimi_code: 'Kimi Code',
       pi: 'Pi / Oh My Pi',
       grok: 'Grok Build',
+      zcode: 'ZCode',
+      deepseek_harness: 'DeepSeek Harness',
       gemini: 'Antigravity CLI',
     },
 
@@ -2887,7 +2869,7 @@ export default {
         eyebrow: 'Source Mix',
         title: 'Usage by source',
         subtitle:
-          'Compare all seven llmusage sources in the current window. Selecting a source applies the dashboard filter.',
+          'Compare llmusage sources in the current window. Selecting a source applies the dashboard filter.',
         sources: 'sources',
         requests: 'requests',
         activeDays: 'active days',
@@ -5039,11 +5021,14 @@ export default {
         currentCredential: 'Current credential',
         runtime: 'Runtime',
         runtimeHint: 'Configure the model and supported Grok runtime capabilities.',
+        status: 'Status',
+        statusHint: 'Organize the profile with tags and control whether it can be applied.',
         notSet: 'Not set',
         backendSearchHint: 'Allow this profile to use backend search when supported.',
         tagsPlaceholder: 'relay, production',
         enabledHint: 'Disabled profiles stay visible but cannot be applied.',
         footerHint: 'Only fields changed in this form are sent while editing.',
+        validationJump: 'Jump',
       },
       validation: {
         nameRequired: 'Profile name is required',

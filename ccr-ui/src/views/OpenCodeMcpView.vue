@@ -56,14 +56,14 @@
           <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div class="min-w-0">
               <div class="mb-3 flex flex-wrap items-center gap-2">
-                <span class="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-cyan-200">
+                <span class="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs font-semibold text-cyan-200">
                   {{ server.id }}
                 </span>
-                <span class="rounded-full bg-bg-base px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-text-secondary">
+                <span class="rounded-full bg-bg-base px-3 py-1 text-xs font-semibold text-text-secondary">
                   {{ server.type }}
                 </span>
                 <span
-                  class="rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em]"
+                  class="rounded-full px-3 py-1 text-xs font-semibold"
                   :class="server.enabled === false ? 'bg-amber-300/10 text-amber-200' : 'bg-emerald-300/10 text-emerald-200'"
                 >
                   {{ server.enabled === false ? tt('已禁用', 'Disabled') : tt('已启用', 'Enabled') }}
@@ -72,13 +72,13 @@
 
               <div class="grid gap-3 md:grid-cols-3">
                 <div class="rounded-2xl border border-border-default/55 bg-bg-base p-3 md:col-span-2">
-                  <span class="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('入口', 'Entrypoint') }}</span>
+                  <span class="text-[11px] font-semibold text-text-muted">{{ tt('入口', 'Entrypoint') }}</span>
                   <p class="mt-2 break-all font-mono text-sm text-text-primary">
                     {{ server.type === 'local' ? stringifyCommandInput(server.command) || tt('缺少 command', 'Missing command') : server.url || tt('缺少 URL', 'Missing URL') }}
                   </p>
                 </div>
                 <div class="rounded-2xl border border-border-default/55 bg-bg-base p-3">
-                  <span class="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('附加项', 'Extras') }}</span>
+                  <span class="text-[11px] font-semibold text-text-muted">{{ tt('附加项', 'Extras') }}</span>
                   <p class="mt-2 text-sm text-text-primary">
                     {{ `${tt('环境变量', 'Env')} ${Object.keys(server.environment || {}).length} · ${tt('请求头', 'Headers')} ${Object.keys(server.headers || {}).length}` }}
                   </p>
@@ -198,7 +198,7 @@
       <div class="space-y-4">
         <div class="grid gap-4 md:grid-cols-2">
           <div>
-            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('服务器 ID *', 'Server ID *') }}</label>
+            <label class="mb-2 block text-xs font-semibold text-text-muted">{{ tt('服务器 ID *', 'Server ID *') }}</label>
             <input
               v-model="form.id"
               :disabled="Boolean(editingId)"
@@ -207,7 +207,7 @@
             >
           </div>
           <div>
-            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('类型', 'Type') }}</label>
+            <label class="mb-2 block text-xs font-semibold text-text-muted">{{ tt('类型', 'Type') }}</label>
             <select
               v-model="form.type"
               class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 text-sm text-text-primary"
@@ -231,7 +231,7 @@
         </label>
 
         <div v-if="form.type === 'local'">
-          <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('命令', 'Command') }}</label>
+          <label class="mb-2 block text-xs font-semibold text-text-muted">{{ tt('命令', 'Command') }}</label>
           <input
             v-model="form.command"
             class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 font-mono text-sm text-text-primary"
@@ -240,7 +240,7 @@
         </div>
 
         <div v-else>
-          <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('URL', 'URL') }}</label>
+          <label class="mb-2 block text-xs font-semibold text-text-muted">{{ tt('URL', 'URL') }}</label>
           <input
             v-model="form.url"
             class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 font-mono text-sm text-text-primary"
@@ -250,7 +250,7 @@
 
         <div class="grid gap-4 md:grid-cols-2">
           <div>
-            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('环境变量 JSON', 'Environment JSON') }}</label>
+            <label class="mb-2 block text-xs font-semibold text-text-muted">{{ tt('环境变量 JSON', 'Environment JSON') }}</label>
             <textarea
               v-model="form.environmentJson"
               rows="6"
@@ -258,7 +258,7 @@
             />
           </div>
           <div>
-            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('请求头 JSON', 'Headers JSON') }}</label>
+            <label class="mb-2 block text-xs font-semibold text-text-muted">{{ tt('请求头 JSON', 'Headers JSON') }}</label>
             <textarea
               v-model="form.headersJson"
               rows="6"

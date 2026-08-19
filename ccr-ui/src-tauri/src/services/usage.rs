@@ -25,15 +25,9 @@ use crate::llmusage_adapter::{
 use crate::session_index_jobs::SessionIndexJobSnapshot;
 use crate::usage_jobs::UsageImportJobSnapshot;
 
-pub(crate) const HOME_USAGE_PLATFORMS: [&str; 7] = [
-    "claude",
-    "codex",
-    "opencode",
-    "antigravity",
-    "kimi_code",
-    "pi",
-    "grok",
-];
+pub(crate) fn home_usage_platforms() -> impl Iterator<Item = &'static str> {
+    SourceKind::ALL.into_iter().map(SourceKind::as_str)
+}
 pub(crate) const USAGE_SNAPSHOT_CACHE_PREFIX: &str = "usage:snapshot:";
 pub(crate) const USAGE_SNAPSHOT_CACHE_TTL_SECS: u64 = 30;
 pub(crate) const USAGE_FRESHNESS_STALE_AFTER_SECS: i64 = 24 * 60 * 60;
@@ -560,12 +554,7 @@ pub fn build_import_summary(results: &[UsageImportResultV2]) -> UsageImportSumma
 pub fn default_import_results(platform: Option<&str>) -> Vec<UsageImportResultV2> {
     platform
         .map(|platform| vec![platform.to_string()])
-        .unwrap_or_else(|| {
-            HOME_USAGE_PLATFORMS
-                .iter()
-                .map(|platform| (*platform).to_string())
-                .collect()
-        })
+        .unwrap_or_else(|| home_usage_platforms().map(str::to_string).collect())
         .into_iter()
         .map(|platform| UsageImportResultV2 {
             platform,
@@ -626,7 +615,7 @@ pub fn collect_llmusage_sync_results(
 
 pub fn empty_home_platform_map() -> BTreeMap<String, HomeOverviewPlatformStats> {
     let mut map = BTreeMap::new();
-    for platform in HOME_USAGE_PLATFORMS {
+    for platform in home_usage_platforms() {
         map.insert(platform.to_string(), HomeOverviewPlatformStats::default());
     }
     map
@@ -634,17 +623,7 @@ pub fn empty_home_platform_map() -> BTreeMap<String, HomeOverviewPlatformStats> 
 
 #[cfg(test)]
 pub fn normalize_home_platform(raw: &str) -> Option<&'static str> {
-    match raw.trim().to_lowercase().as_str() {
-        "claude" | "claude-code" | "claude code" => Some("claude"),
-        "codex" | "openai-codex" | "openai codex" => Some("codex"),
-        "antigravity" | "gemini" | "gemini-cli" | "gemini cli" | "google-gemini"
-        | "google gemini" => Some("antigravity"),
-        "opencode" | "open-code" | "open code" => Some("opencode"),
-        "kimi_code" | "kimi-code" | "kimi code" => Some("kimi_code"),
-        "pi" | "oh-my-pi" | "oh my pi" | "omp" => Some("pi"),
-        "grok" | "grok-build" | "grok build" => Some("grok"),
-        _ => None,
-    }
+    SourceKind::parse_id(raw).map(SourceKind::as_str)
 }
 
 pub fn non_negative_i64(value: i64) -> u64 {
@@ -1255,6 +1234,11 @@ mod tests {
         assert_eq!(normalize_home_platform("Kimi Code"), Some("kimi_code"));
         assert_eq!(normalize_home_platform("oh-my-pi"), Some("pi"));
         assert_eq!(normalize_home_platform("Grok Build"), Some("grok"));
+        assert_eq!(normalize_home_platform("zcode"), Some("zcode"));
+        assert_eq!(
+            normalize_home_platform("deepseek-harness"),
+            Some("deepseek_harness")
+        );
         assert_eq!(normalize_home_platform("legacy-cli"), None);
         assert_eq!(normalize_home_platform("unknown"), None);
     }
@@ -2105,10 +2089,12 @@ mod service_tests {
                 "antigravity",
                 "claude",
                 "codex",
+                "deepseek_harness",
                 "grok",
                 "kimi_code",
                 "opencode",
                 "pi",
+                "zcode",
             ]
         );
         assert_eq!(response.summary.total_sessions, 0);

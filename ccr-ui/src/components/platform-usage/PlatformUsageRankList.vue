@@ -54,9 +54,7 @@ defineProps<{
   min-width: 0;
   border: 1px solid rgb(var(--color-border-default-rgb) / 13%);
   border-radius: 1.2rem;
-  background:
-    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 62%), rgb(var(--color-bg-surface-rgb) / 42%)),
-    var(--stage-surface-soft);
+  background: var(--color-bg-surface);
   padding: 1rem;
 }
 
@@ -142,7 +140,7 @@ defineProps<{
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, rgb(var(--color-accent-primary-rgb) / 62%), rgb(var(--color-accent-secondary-rgb) / 36%));
+  background: rgb(var(--color-accent-primary-rgb) / 50%);
 }
 
 .platform-usage-rank__empty {

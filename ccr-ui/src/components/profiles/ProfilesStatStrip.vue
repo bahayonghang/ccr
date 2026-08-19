@@ -150,8 +150,7 @@ const emit = defineEmits<{
   gap: 6px;
   color: var(--cp-ink-3);
   font-size: 0.75rem;
-  letter-spacing: 0.8px;
-  text-transform: uppercase;
+  letter-spacing: 0;
 }
 
 .cp-stat__dot {
@@ -167,7 +166,8 @@ const emit = defineEmits<{
   color: var(--cp-ink-0);
   font-size: 1.1875rem;
   font-weight: 600;
-  letter-spacing: -0.3px;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
   word-break: break-all;
 }
 

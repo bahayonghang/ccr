@@ -179,7 +179,7 @@ const copyRawDetails = async () => {
   @apply rounded-3xl p-5;
 
   border: 1px solid rgb(var(--color-border-default-rgb) / 38%);
-  background: linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 88%), rgb(var(--color-bg-surface-rgb) / 72%));
+  background: var(--color-bg-surface);
   box-shadow: var(--surface-card-shadow);
 }
 

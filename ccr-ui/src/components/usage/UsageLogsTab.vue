@@ -292,13 +292,12 @@ const skeletonRowCount = computed(() => Math.min(ctx.logsPageSize, 12))
   align-items: center;
   justify-content: center;
   border-radius: 1rem;
-  border: 1px solid rgb(var(--color-accent-primary-rgb) / 24%);
-  background: linear-gradient(135deg, rgb(var(--color-accent-primary-rgb) / 92%), rgb(var(--color-accent-secondary-rgb) / 84%));
+  border: 1px solid transparent;
+  background: var(--color-accent-primary);
   padding: 0 1rem;
-  color: var(--color-text-inverted);
+  color: var(--color-accent-primary-contrast);
   font-size: 0.84rem;
-  font-weight: 700;
-  box-shadow: 0 12px 26px rgb(var(--color-accent-primary-rgb) / 18%);
+  font-weight: 600;
   transition: transform var(--motion-subtle-duration) var(--motion-subtle-ease);
 }
 
@@ -386,7 +385,7 @@ const skeletonRowCount = computed(() => Math.min(ctx.logsPageSize, 12))
   gap: 1rem;
   border-radius: 1.15rem;
   border: 1px solid rgb(var(--color-warning-rgb) / 26%);
-  background: linear-gradient(135deg, rgb(var(--color-warning-rgb) / 14%), rgb(var(--color-accent-primary-rgb) / 8%));
+  background: var(--color-bg-surface);
   padding: 1rem;
 }
 

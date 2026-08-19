@@ -110,11 +110,9 @@ describe('claude editorial surface contract', () => {
     expect(fontTrackBlock).toMatch(/--font-brand:\s*var\(--font-brand-base\)/)
     expect(fontTrackBlock).toMatch(/--font-mono:\s*var\(--font-mono-base\)/)
 
-    // mocha 覆盖块的字体分离已上移为全局默认，不得再在覆盖块内重复声明。
-    const mochaOverride = source.match(mochaOverridePattern)?.[0] ?? ''
-
-    expect(mochaOverride).toContain('--color-bg-base: var(--ctp-crust)')
-    expect(mochaOverride).not.toMatch(/--font-brand|--font-mono/)
+    // mocha 覆盖块已退役，不得再出现。
+    expect(source.match(mochaOverridePattern)?.[0] ?? '').toBe('')
+    expect(source).not.toMatch(/html:root\[data-resolved-flavor=["']mocha["']\]/)
     expect(source).not.toMatch(/#0071E3|#2997FF/)
   })
 
@@ -134,6 +132,8 @@ describe('claude editorial surface contract', () => {
     expect(source).toMatch(/--surface-shell-bg:\s*var\(--material-glass-chrome-bg\)/)
     expect(source).toMatch(/--surface-status-bg:\s*var\(--material-glass-inline-bg\)/)
     expect(source).toMatch(/--surface-card-blur:\s*none/)
+    expect(source).toMatch(/--surface-card-border:\s*var\(--color-border-subtle\)/)
+    expect(source).toMatch(/--surface-card-shadow:\s*none/)
     expect(source).toMatch(/--surface-workspace-blur:\s*none/)
 
     // 新玻璃契约：chrome/inline 全不透明（blur: none）；card/workspace 100% 不透明。
@@ -151,14 +151,10 @@ describe('claude editorial surface contract', () => {
     expect(floatingBlur).toMatch(/blur\((?:[0-9]|1[0-2])px\)/)
     expect(source).toMatch(/--material-glass-floating-bg:\s*rgb\(var\(--color-bg-elevated-rgb\) \/ (?:8[89]|9\d|100)%\)/)
 
-    // mocha 语义重映射块必须以 html:root 高优先级选择器携带（specificity 契约，
-    // 压过 [data-theme='dark'] (0,1,0)；accent 轴不在此块声明，保持三轴独立）。
-    const mochaOverride = source.match(mochaOverridePattern)?.[0] ?? ''
-
-    expect(mochaOverride).toMatch(/--color-bg-base:\s*var\(--ctp-crust\)/)
-    expect(mochaOverride).toMatch(/--color-bg-elevated:\s*var\(--ctp-base\)/)
-    expect(mochaOverride).toMatch(/--color-bg-surface:\s*var\(--ctp-surface0\)/)
-    expect(mochaOverride).not.toMatch(/--color-accent-primary:|--color-border-accent:/)
+    // mocha 语义重映射块不得存在；accent 轴仍独立于 flavor。
+    expect(source.match(mochaOverridePattern)?.[0] ?? '').toBe('')
+    expect(source).not.toMatch(/--ctp-crust/)
+    expect(source).not.toMatch(/\[data-resolved-flavor=["'](?:latte|mocha)["']\].*--color-accent-primary:/s)
 
     // 玻璃预算注释存在（review 依据）。
     expect(source).toContain('同屏 backdrop-filter 元素 ≤ 3')
@@ -173,15 +169,14 @@ describe('claude editorial surface contract', () => {
     expect(reducedBlocks).toMatch(/--material-glass-chrome-blur:\s*none/)
     expect(reducedBlocks).toMatch(/--material-glass-inline-blur:\s*none/)
 
-    // mocha 主覆盖块 (0,2,1) 压得过查询内的 html:root (0,1,1)：
-    // 降级查询内必须携带 mocha 同级作用域的 bg/blur 重置，否则 mocha 下玻璃残留半透明（PRD R3）。
-    const reducedMochaReset =
-      reducedBlocks.match(/html:root\[data-resolved-flavor=["']mocha["']\] {[\s\S]*?}/)?.[0] ?? ''
-
-    expect(reducedMochaReset).toMatch(/--material-glass-floating-bg:\s*var\(--color-bg-elevated\)/)
-    expect(reducedMochaReset).toMatch(/--material-glass-chrome-bg:\s*var\(--color-bg-elevated\)/)
-    expect(reducedMochaReset).toMatch(/--material-glass-inline-bg:\s*var\(--color-bg-elevated\)/)
-    expect(reducedMochaReset).toMatch(/--material-glass-floating-blur:\s*none/)
+    // mocha 作用域重置已迁到剩余 flavor 选择器。
+    expect(reducedBlocks).not.toMatch(/html:root\[data-resolved-flavor=["']mocha["']\]/)
+    expect(reducedBlocks).toMatch(/html:root\[data-flavor=["']neutral["']\]/)
+    expect(reducedBlocks).toMatch(/html:root\[data-flavor=["']clay["']\]/)
+    expect(reducedBlocks).toMatch(/--material-glass-floating-bg:\s*var\(--color-bg-elevated\)/)
+    expect(reducedBlocks).toMatch(/--material-glass-chrome-bg:\s*var\(--color-bg-elevated\)/)
+    expect(reducedBlocks).toMatch(/--material-glass-inline-bg:\s*var\(--color-bg-elevated\)/)
+    expect(reducedBlocks).toMatch(/--material-glass-floating-blur:\s*none/)
   })
 
   it('ships glass utility classes with paint containment and reduced-transparency fallback', async () => {

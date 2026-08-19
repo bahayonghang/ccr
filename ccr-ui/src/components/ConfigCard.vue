@@ -247,19 +247,14 @@ const nameColorClass = computed(() => {
 
 /* === Current Config Highlight === */
 .config-row--current {
-  background: linear-gradient(135deg,
-    rgb(6 182 212 / 6%) 0%,
-    rgb(139 92 246 / 4%) 100%
-  );
-  border-color: rgb(6 182 212 / 15%);
-  box-shadow: var(--glow-primary);
+  background: rgb(var(--color-accent-primary-rgb) / 10%);
+  border-color: rgb(var(--color-accent-primary-rgb) / 24%);
+  box-shadow: none;
 }
 
 .config-row--current:hover {
-  border-color: rgb(6 182 212 / 25%);
-  box-shadow:
-    var(--glow-primary),
-    var(--shadow-md);
+  border-color: rgb(var(--color-accent-primary-rgb) / 34%);
+  box-shadow: none;
 }
 
 /* === Disabled Config === */
@@ -290,14 +285,13 @@ const nameColorClass = computed(() => {
 
 /* === Switch Button === */
 .switch-btn {
-  background: linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary));
+  background: var(--color-accent-primary);
   color: var(--color-accent-primary-contrast);
-  box-shadow: 0 2px 8px rgb(var(--color-accent-primary-rgb) / 25%);
+  box-shadow: none;
 }
 
 .switch-btn:hover {
-  box-shadow: 0 4px 16px rgb(var(--color-accent-primary-rgb) / 40%);
-  transform: translateY(-1px);
+  box-shadow: none;
 }
 
 /* === Edit Button === */
@@ -318,21 +312,20 @@ const nameColorClass = computed(() => {
 
 @keyframes row-highlight-pulse {
   0% {
-    box-shadow: 0 0 0 0 rgb(6 182 212 / 40%);
+    box-shadow: 0 0 0 0 rgb(var(--color-accent-primary-rgb) / 28%);
   }
 
   50% {
-    box-shadow: 0 0 0 6px rgb(6 182 212 / 10%);
+    box-shadow: 0 0 0 6px rgb(var(--color-accent-primary-rgb) / 10%);
   }
 
   100% {
-    box-shadow: 0 0 0 0 rgb(6 182 212 / 0%);
+    box-shadow: 0 0 0 0 rgb(var(--color-accent-primary-rgb) / 0%);
   }
 }
 
-/* === Accent bar glow for current === */
 .config-row--current .accent-bar {
-  box-shadow: 2px 0 8px rgb(6 182 212 / 30%);
+  box-shadow: none;
 }
 </style>
 

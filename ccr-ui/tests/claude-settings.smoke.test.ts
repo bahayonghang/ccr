@@ -25,6 +25,12 @@ vi.mock('@/components/ui/SIcon.vue', () => ({
   }),
 }))
 
+vi.mock('@/components/ModuleSubnav.vue', () => ({
+  default: defineComponent({
+    template: '<div data-testid="module-subnav" />',
+  }),
+}))
+
 import ClaudeCodeSettingsView from '@/views/ClaudeCodeSettingsView.vue'
 
 const i18n = createI18n({

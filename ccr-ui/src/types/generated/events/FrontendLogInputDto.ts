@@ -2,4 +2,4 @@
 import type { JsonValueDto } from "./JsonValueDto";
 import type { MonitoringLevelDto } from "./MonitoringLevelDto";
 
-export type FrontendLogInputDto = { level: MonitoringLevelDto, message: string, source: string, timestamp?: string, fields?: JsonValueDto, };
+export type FrontendLogInputDto = { level: MonitoringLevelDto, message: string, source: string, timestamp?: string, correlationId?: string, fields?: JsonValueDto, };

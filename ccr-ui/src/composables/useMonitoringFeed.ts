@@ -195,6 +195,7 @@ const normalizeLoggerEntry = (entry: LoggerEntry): MonitoringEntry => {
     eventType: `frontend.${entry.level}`,
     source: entry.source,
     message: entry.message,
+    correlationId: entry.correlationId,
     fields: entry.data,
   }
 }

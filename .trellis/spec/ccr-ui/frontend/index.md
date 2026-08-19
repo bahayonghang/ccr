@@ -12,6 +12,7 @@
 | [Check-in UX Concurrency Contracts](./checkin-ux-contracts.md)            | Balance refresh per-origin queue/throttle, event-based job waiting, 4-state display, toast-only errors         | Complete |
 | [Provider Template Contracts](./provider-template-contracts.md)           | Non-secret global provider templates, platform overrides, and saved-provider separation                        | Complete |
 | [Theme Token Contracts](./theme-token-contracts.md)                       | Theme/flavor/accent/font token layering, font-preference fallback override, and visual verification guardrails | Complete |
+| [Monitoring Log Contracts](./monitoring-log-contracts.md) | Runtime bridge, persist deadline, frontend IPC limits | Complete |
 | [Dashboard Presentation Contracts](./dashboard-presentation-contracts.md) | Signal severity gating, readiness reason shape, first-run heuristic, compact-card empty states                 | Complete |
 | [Usage Chart Stability Contracts](./usage-chart-stability-contracts.md)   | ApexCharts options/series discipline, KeepAlive interplay, and dual-path complete CSS delivery                 | Complete |
 | [Confirm Interaction Contracts](./confirm-interaction-contracts.md)       | requestConfirm gate pattern, danger/warning semantics, no native dialogs, composable boundary                  | Complete |

@@ -18,6 +18,9 @@ pub mod fileio;
 pub mod guarded_write;
 pub mod http;
 pub mod lock;
+pub mod log_bridge;
+pub mod log_redact;
+pub mod log_writer;
 pub mod logging;
 pub mod process_gateway;
 pub mod secret;
@@ -56,6 +59,12 @@ pub use http::HTTP_CLIENT;
 #[allow(unused_imports)]
 pub use lock::{CONFIG_LOCK, FileLock, LockManager};
 #[allow(unused_imports)]
+pub use log_bridge::{
+    BridgedLogEvent, EnqueueResult, close_bridged_log_sender, current_log_correlation_id,
+    dropped_bridged_log_count, enter_bridge_consumer, take_bridged_log_receiver,
+    try_enqueue_bridged_log,
+};
+pub use log_redact::{is_sensitive_log_key, normalize_log_key, redact_log_text, redact_log_value};
 pub use logging::{ColorOutput, init_file_only_logger, init_logger};
 #[allow(unused_imports)]
 pub use secret::{Secret, expose_plaintext, expose_plaintext_option};

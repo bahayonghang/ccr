@@ -272,8 +272,8 @@ function formatScopeList(scopes: string[]): string {
   flex-shrink: 0;
   border-radius: 999px;
   padding: 0.06rem 0.35rem;
-  background: rgb(var(--color-warning-rgb, 245 158 11) / 10%);
-  color: rgb(var(--color-warning-rgb, 245 158 11) / 92%);
+  background: rgb(var(--color-warning-rgb) / 10%);
+  color: rgb(var(--color-warning-rgb) / 92%);
   font-size: 0.58rem;
   font-weight: 700;
   letter-spacing: 0.04em;

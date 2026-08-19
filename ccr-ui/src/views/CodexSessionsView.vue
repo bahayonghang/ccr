@@ -1,415 +1,415 @@
 <template>
-  <div class="codex-sessions-view">
-    <div class="codex-sessions-shell">
-      <ModuleSubnav module="codex" />
-
-      <div class="codex-sessions-stack">
-        <div class="codex-sessions-header">
-          <div class="codex-sessions-header__copy">
-            <div class="codex-sessions-header__icon">
+  <PageShell class="codex-sessions-view">
+    <template #header>
+      <PageHeader
+        :title="tt('Codex 会话', 'Codex Sessions')"
+        :description="tt('直接读取本地 `~/.codex/sessions`，集中查看会话上下文、导出记录和复制工作流样本。', 'Read local `~/.codex/sessions` directly to inspect session context, export records, and copy workflow samples.')"
+      >
+        <template #leading>
+          <div class="codex-sessions-header__icon">
+            <SIcon
+              name="MessagesSquare"
+              size="w-6 h-6"
+              class="text-platform-codex"
+            />
+          </div>
+        </template>
+        <template #actions>
+          <RouterLink
+            to="/codex"
+            class="btn btn-secondary"
+          >
+            <SIcon
+              name="ArrowLeft"
+              size="w-4 h-4"
+            />
+            <span>{{ tt('返回 Codex', 'Back to Codex') }}</span>
+          </RouterLink>
+          <button
+            class="hidden"
+            :disabled="loading"
+            @click="refreshSessions()"
+          />
+          <Button
+            variant="primary"
+            surface="card"
+            density="compact"
+            motion="standard"
+            :disabled="loading"
+            @click="refreshSessions()"
+          >
+            <template #leading>
               <SIcon
-                name="MessagesSquare"
-                size="w-6 h-6"
-                class="text-platform-codex"
+                name="RefreshCw"
+                size="w-4 h-4"
+                :class="{ 'animate-spin': loading }"
               />
-            </div>
-            <div>
-              <h1 class="codex-sessions-title">
-                {{ tt('Codex 会话', 'Codex Sessions') }}
-              </h1>
-              <p class="codex-sessions-subtitle">
-                {{ tt('直接读取本地 `~/.codex/sessions`，集中查看会话上下文、导出记录和复制工作流样本。', 'Read local `~/.codex/sessions` directly to inspect session context, export records, and copy workflow samples.') }}
-              </p>
-            </div>
+            </template>
+            {{ tt('刷新列表', 'Refresh list') }}
+          </Button>
+        </template>
+      </PageHeader>
+    </template>
+
+    <template #subnav>
+      <ModuleSubnav module="codex" />
+    </template>
+
+    <div class="codex-sessions-stats">
+      <Card
+        surface="status"
+        :elevation="2"
+        motion="subtle"
+        class="codex-sessions-stat"
+      >
+        <p class="codex-sessions-stat__label">
+          {{ tt('已加载会话', 'Loaded sessions') }}
+        </p>
+        <p class="codex-sessions-stat__value">
+          {{ sessions.length }}
+        </p>
+        <p class="codex-sessions-stat__hint">
+          {{ tt(`当前窗口最多展示 ${SESSION_LIMIT} 条最近记录`, `This window shows up to ${SESSION_LIMIT} recent records`) }}
+        </p>
+      </Card>
+      <Card
+        surface="status"
+        :elevation="2"
+        motion="subtle"
+        class="codex-sessions-stat"
+      >
+        <p class="codex-sessions-stat__label">
+          {{ tt('列表 Tokens', 'List tokens') }}
+        </p>
+        <p class="codex-sessions-stat__value">
+          {{ formatTokenCount(totalTokens) }}
+        </p>
+        <p class="codex-sessions-stat__hint">
+          {{ tt('来自当前已加载的会话摘要', 'From the currently loaded session summaries') }}
+        </p>
+      </Card>
+      <Card
+        surface="status"
+        :elevation="2"
+        motion="subtle"
+        class="codex-sessions-stat"
+      >
+        <p class="codex-sessions-stat__label">
+          {{ tt('当前会话消息', 'Current session messages') }}
+        </p>
+        <p class="codex-sessions-stat__value">
+          {{ selectedSession?.message_count ?? 0 }}
+        </p>
+        <p class="codex-sessions-stat__hint">
+          {{ tt('仅统计用户与助手消息', 'Only user and assistant messages are counted') }}
+        </p>
+      </Card>
+    </div>
+
+    <div
+      v-if="loadError"
+      class="codex-sessions-error"
+    >
+      <SIcon
+        name="AlertTriangle"
+        size="w-4 h-4"
+      />
+      <span>{{ loadError }}</span>
+    </div>
+
+    <div class="codex-sessions-workspace">
+      <Card
+        surface="workspace"
+        :elevation="2"
+        motion="subtle"
+        class="codex-sessions-panel codex-sessions-panel--list"
+      >
+        <div class="codex-sessions-panel__header">
+          <div>
+            <h2 class="codex-sessions-panel__title">
+              {{ tt('最近会话', 'Recent sessions') }}
+            </h2>
+            <p class="codex-sessions-panel__subtitle">
+              {{ tt('左侧列表用于快速切换，右侧查看详情和导出', 'Use the left list for quick switching and the right panel for details and export') }}
+            </p>
+            <PillToggleGroup
+              class="mt-3"
+              :options="sessionSortOptions"
+              :model-value="sessionSort"
+              @update:model-value="sessionSort = $event"
+            />
           </div>
 
-          <div class="codex-sessions-header__actions">
-            <RouterLink
-              to="/codex"
-              class="btn btn-secondary"
-            >
-              <SIcon
-                name="ArrowLeft"
-                size="w-4 h-4"
-              />
-              <span>{{ tt('返回 Codex', 'Back to Codex') }}</span>
-            </RouterLink>
-            <button
-              class="hidden"
-              :disabled="loading"
-              @click="refreshSessions()"
-            />
-            <Button
-              variant="primary"
-              surface="card"
+          <div class="codex-sessions-search">
+            <Input
+              v-model="searchQuery"
+              type="text"
+              surface="status"
+              :elevation="1"
+              motion="subtle"
               density="compact"
-              motion="standard"
-              :disabled="loading"
-              @click="refreshSessions()"
+              :full-width="true"
+              :placeholder="tt('搜索 session id / cwd / model', 'Search session id / cwd / model')"
             >
               <template #leading>
                 <SIcon
-                  name="RefreshCw"
+                  name="Search"
                   size="w-4 h-4"
-                  :class="{ 'animate-spin': loading }"
                 />
               </template>
-              {{ tt('刷新列表', 'Refresh list') }}
+            </Input>
+          </div>
+        </div>
+
+        <div
+          v-if="loading"
+          class="codex-sessions-loading"
+        >
+          <div class="codex-sessions-loading__spinner" />
+          <span>{{ tt('正在读取本地会话记录…', 'Loading local session records...') }}</span>
+        </div>
+
+        <EmptyState
+          v-else-if="filteredSessions.length === 0"
+          icon="Inbox"
+          :title="tt('没有匹配的会话', 'No matching sessions')"
+          :description="tt('当前过滤条件下没有找到会话，试试清空搜索或刷新列表。', 'No sessions match the current filters. Try clearing the search or refreshing the list.')"
+          :action-text="tt('清空搜索', 'Clear search')"
+          action-icon="RotateCcw"
+          :on-action="clearSearch"
+        />
+
+        <div
+          v-else
+          class="codex-sessions-list"
+        >
+          <button
+            v-for="session in filteredSessions"
+            :key="session.file_path"
+            type="button"
+            class="codex-session-row"
+            :class="{
+              'codex-session-row--active': session.file_path === selectedFilePath,
+            }"
+            @click="openSession(session.file_path)"
+          >
+            <div class="codex-session-row__top">
+              <div class="min-w-0">
+                <p class="codex-session-row__id">
+                  {{ session.session_id }}
+                </p>
+                <p class="codex-session-row__meta">
+                  {{ session.model || tt('未知模型', 'Unknown model') }} ·
+                  {{ formatRelative(session.updated_at) }}
+                </p>
+              </div>
+
+              <span class="codex-session-row__badge"> {{ tt(`${session.message_count} 条消息`, `${session.message_count} msg`) }} </span>
+            </div>
+
+            <p
+              v-if="session.preview"
+              class="codex-session-row__preview"
+            >
+              {{ session.preview }}
+            </p>
+
+            <div class="codex-session-row__footer">
+              <span class="truncate">{{ session.cwd || session.relative_path }}</span>
+              <span>{{
+                formatTokenCount(session.total_input_tokens + session.total_output_tokens)
+              }}</span>
+            </div>
+          </button>
+        </div>
+      </Card>
+
+      <Card
+        surface="workspace"
+        :elevation="2"
+        motion="subtle"
+        class="codex-sessions-panel codex-sessions-panel--detail"
+      >
+        <div class="codex-sessions-panel__header">
+          <div>
+            <h2 class="codex-sessions-panel__title">
+              {{ tt('会话详情', 'Session details') }}
+            </h2>
+            <p class="codex-sessions-panel__subtitle">
+              {{ tt('当前默认只展示用户与助手消息，避免把系统提示词刷满工作台', 'By default, only user and assistant messages are shown so system prompts do not flood the workspace') }}
+            </p>
+          </div>
+
+          <div class="codex-detail-actions">
+            <Button
+              variant="glass"
+              surface="status"
+              density="compact"
+              motion="subtle"
+              :disabled="!selectedSession || actionLoading"
+              @click="copyFilePath"
+            >
+              <template #leading>
+                <SIcon
+                  name="Copy"
+                  size="w-4 h-4"
+                />
+              </template>
+              {{ tt('复制路径', 'Copy path') }}
+            </Button>
+            <Button
+              variant="glass"
+              surface="status"
+              density="compact"
+              motion="subtle"
+              :disabled="!selectedSession || actionLoading"
+              @click="handleExport"
+            >
+              <template #leading>
+                <SIcon
+                  name="Download"
+                  size="w-4 h-4"
+                />
+              </template>
+              {{ tt('导出', 'Export') }}
+            </Button>
+            <Button
+              variant="glass"
+              surface="status"
+              density="compact"
+              motion="subtle"
+              :disabled="!selectedSession || actionLoading"
+              @click="handleClone"
+            >
+              <template #leading>
+                <SIcon
+                  name="CopyPlus"
+                  size="w-4 h-4"
+                />
+              </template>
+              {{ tt('克隆', 'Clone') }}
+            </Button>
+            <Button
+              variant="danger"
+              surface="status"
+              density="compact"
+              motion="subtle"
+              :disabled="!selectedSession || actionLoading"
+              @click="handleDelete"
+            >
+              <template #leading>
+                <SIcon
+                  name="Trash2"
+                  size="w-4 h-4"
+                />
+              </template>
+              {{ tt('删除', 'Delete') }}
             </Button>
           </div>
         </div>
 
-        <div class="codex-sessions-stats">
-          <Card
-            surface="status"
-            :elevation="2"
-            motion="subtle"
-            class="codex-sessions-stat"
-          >
-            <p class="codex-sessions-stat__label">
-              {{ tt('已加载会话', 'Loaded sessions') }}
-            </p>
-            <p class="codex-sessions-stat__value">
-              {{ sessions.length }}
-            </p>
-            <p class="codex-sessions-stat__hint">
-              {{ tt(`当前窗口最多展示 ${SESSION_LIMIT} 条最近记录`, `This window shows up to ${SESSION_LIMIT} recent records`) }}
-            </p>
-          </Card>
-          <Card
-            surface="status"
-            :elevation="2"
-            motion="subtle"
-            class="codex-sessions-stat"
-          >
-            <p class="codex-sessions-stat__label">
-              {{ tt('列表 Tokens', 'List tokens') }}
-            </p>
-            <p class="codex-sessions-stat__value">
-              {{ formatTokenCount(totalTokens) }}
-            </p>
-            <p class="codex-sessions-stat__hint">
-              {{ tt('来自当前已加载的会话摘要', 'From the currently loaded session summaries') }}
-            </p>
-          </Card>
-          <Card
-            surface="status"
-            :elevation="2"
-            motion="subtle"
-            class="codex-sessions-stat"
-          >
-            <p class="codex-sessions-stat__label">
-              {{ tt('当前会话消息', 'Current session messages') }}
-            </p>
-            <p class="codex-sessions-stat__value">
-              {{ selectedSession?.message_count ?? 0 }}
-            </p>
-            <p class="codex-sessions-stat__hint">
-              {{ tt('仅统计用户与助手消息', 'Only user and assistant messages are counted') }}
-            </p>
-          </Card>
+        <div
+          v-if="detailLoading"
+          class="codex-sessions-loading"
+        >
+          <div class="codex-sessions-loading__spinner" />
+          <span>{{ tt('正在读取会话详情…', 'Loading session details...') }}</span>
         </div>
+
+        <EmptyState
+          v-else-if="!detail"
+          icon="MessagesSquare"
+          :title="tt('还没有选中会话', 'No session selected yet')"
+          :description="tt('从左侧选择一个最近会话，就可以在这里查看详细上下文。', 'Select a recent session on the left to inspect its full context here.')"
+        />
 
         <div
-          v-if="loadError"
-          class="codex-sessions-error"
+          v-else
+          class="codex-detail"
         >
-          <SIcon
-            name="AlertTriangle"
-            size="w-4 h-4"
-          />
-          <span>{{ loadError }}</span>
-        </div>
-
-        <div class="codex-sessions-workspace">
-          <Card
-            surface="workspace"
-            :elevation="2"
-            motion="subtle"
-            class="codex-sessions-panel codex-sessions-panel--list"
-          >
-            <div class="codex-sessions-panel__header">
+          <div class="codex-detail-summary">
+            <div class="codex-detail-summary__title-row">
               <div>
-                <h2 class="codex-sessions-panel__title">
-                  {{ tt('最近会话', 'Recent sessions') }}
-                </h2>
-                <p class="codex-sessions-panel__subtitle">
-                  {{ tt('左侧列表用于快速切换，右侧查看详情和导出', 'Use the left list for quick switching and the right panel for details and export') }}
+                <h3 class="codex-detail-summary__title">
+                  {{ selectedSession?.session_id }}
+                </h3>
+                <p class="codex-detail-summary__meta">
+                  {{ selectedSession?.model || tt('未知模型', 'Unknown model') }} ·
+                  {{ formatAbsolute(selectedSession?.updated_at) }}
                 </p>
               </div>
+              <span class="codex-detail-summary__pill">
+                {{ tt(`${selectedSession?.total_requests ?? 0} 次请求`, `${selectedSession?.total_requests ?? 0} req`) }}
+              </span>
+            </div>
 
-              <div class="codex-sessions-search">
-                <Input
-                  v-model="searchQuery"
-                  type="text"
-                  surface="status"
-                  :elevation="1"
-                  motion="subtle"
-                  density="compact"
-                  :full-width="true"
-                  :placeholder="tt('搜索 session id / cwd / model', 'Search session id / cwd / model')"
+            <div class="codex-detail-grid">
+              <div class="codex-detail-field">
+                <span class="codex-detail-field__label">{{ tt('工作目录', 'Working directory') }}</span>
+                <button
+                  type="button"
+                  class="codex-detail-field__value codex-detail-field__value--button"
+                  @click="copyCwd"
                 >
-                  <template #leading>
-                    <SIcon
-                      name="Search"
-                      size="w-4 h-4"
-                    />
-                  </template>
-                </Input>
+                  {{ selectedSession?.cwd || tt('N/A', 'N/A') }}
+                </button>
+              </div>
+              <div class="codex-detail-field">
+                <span class="codex-detail-field__label">{{ tt('相对路径', 'Relative path') }}</span>
+                <span class="codex-detail-field__value">
+                  {{ selectedSession?.relative_path }}
+                </span>
+              </div>
+              <div class="codex-detail-field">
+                <span class="codex-detail-field__label">{{ tt('输入 / 输出', 'Input / output') }}</span>
+                <span class="codex-detail-field__value">
+                  {{ formatTokenCount(selectedSession?.total_input_tokens ?? 0) }}
+                  /
+                  {{ formatTokenCount(selectedSession?.total_output_tokens ?? 0) }}
+                </span>
+              </div>
+              <div class="codex-detail-field">
+                <span class="codex-detail-field__label">{{ tt('CLI 版本', 'CLI version') }}</span>
+                <span class="codex-detail-field__value">
+                  {{ selectedSession?.cli_version || tt('N/A', 'N/A') }}
+                </span>
               </div>
             </div>
 
             <div
-              v-if="loading"
-              class="codex-sessions-loading"
+              v-if="detail.clipped"
+              class="codex-detail-tip"
             >
-              <div class="codex-sessions-loading__spinner" />
-              <span>{{ tt('正在读取本地会话记录…', 'Loading local session records...') }}</span>
+              {{ tt(`详情面板只展示最近 ${detail.message_limit} 条消息，导出会沿用同样的窗口上限。`, `The detail panel only shows the most recent ${detail.message_limit} messages, and export uses the same window limit.`) }}
             </div>
+          </div>
 
-            <EmptyState
-              v-else-if="filteredSessions.length === 0"
-              icon="Inbox"
-              :title="tt('没有匹配的会话', 'No matching sessions')"
-              :description="tt('当前过滤条件下没有找到会话，试试清空搜索或刷新列表。', 'No sessions match the current filters. Try clearing the search or refreshing the list.')"
-              :action-text="tt('清空搜索', 'Clear search')"
-              action-icon="RotateCcw"
-              :on-action="clearSearch"
-            />
-
-            <div
-              v-else
-              class="codex-sessions-list"
+          <div class="codex-detail-messages">
+            <article
+              v-for="(message, index) in detail.messages"
+              :key="`${message.timestamp || 'none'}-${index}`"
+              class="codex-message"
+              :class="
+                message.role === 'assistant'
+                  ? 'codex-message--assistant'
+                  : 'codex-message--user'
+              "
             >
-              <button
-                v-for="session in filteredSessions"
-                :key="session.file_path"
-                type="button"
-                class="codex-session-row"
-                :class="{
-                  'codex-session-row--active': session.file_path === selectedFilePath,
-                }"
-                @click="openSession(session.file_path)"
-              >
-                <div class="codex-session-row__top">
-                  <div class="min-w-0">
-                    <p class="codex-session-row__id">
-                      {{ session.session_id }}
-                    </p>
-                    <p class="codex-session-row__meta">
-                      {{ session.model || tt('未知模型', 'Unknown model') }} ·
-                      {{ formatRelative(session.updated_at) }}
-                    </p>
-                  </div>
-
-                  <span class="codex-session-row__badge"> {{ tt(`${session.message_count} 条消息`, `${session.message_count} msg`) }} </span>
-                </div>
-
-                <p
-                  v-if="session.preview"
-                  class="codex-session-row__preview"
-                >
-                  {{ session.preview }}
-                </p>
-
-                <div class="codex-session-row__footer">
-                  <span class="truncate">{{ session.cwd || session.relative_path }}</span>
-                  <span>{{
-                    formatTokenCount(session.total_input_tokens + session.total_output_tokens)
-                  }}</span>
-                </div>
-              </button>
-            </div>
-          </Card>
-
-          <Card
-            surface="workspace"
-            :elevation="2"
-            motion="subtle"
-            class="codex-sessions-panel codex-sessions-panel--detail"
-          >
-            <div class="codex-sessions-panel__header">
-              <div>
-                <h2 class="codex-sessions-panel__title">
-                  {{ tt('会话详情', 'Session details') }}
-                </h2>
-                <p class="codex-sessions-panel__subtitle">
-                  {{ tt('当前默认只展示用户与助手消息，避免把系统提示词刷满工作台', 'By default, only user and assistant messages are shown so system prompts do not flood the workspace') }}
-                </p>
+              <div class="codex-message__meta">
+                <span class="codex-message__role">
+                  {{ message.role === 'assistant' ? tt('助手', 'Assistant') : tt('用户', 'User') }}
+                </span>
+                <span class="codex-message__time">
+                  {{ formatAbsolute(message.timestamp) }}
+                </span>
               </div>
-
-              <div class="codex-detail-actions">
-                <Button
-                  variant="glass"
-                  surface="status"
-                  density="compact"
-                  motion="subtle"
-                  :disabled="!selectedSession || actionLoading"
-                  @click="copyFilePath"
-                >
-                  <template #leading>
-                    <SIcon
-                      name="Copy"
-                      size="w-4 h-4"
-                    />
-                  </template>
-                  {{ tt('复制路径', 'Copy path') }}
-                </Button>
-                <Button
-                  variant="glass"
-                  surface="status"
-                  density="compact"
-                  motion="subtle"
-                  :disabled="!selectedSession || actionLoading"
-                  @click="handleExport"
-                >
-                  <template #leading>
-                    <SIcon
-                      name="Download"
-                      size="w-4 h-4"
-                    />
-                  </template>
-                  {{ tt('导出', 'Export') }}
-                </Button>
-                <Button
-                  variant="glass"
-                  surface="status"
-                  density="compact"
-                  motion="subtle"
-                  :disabled="!selectedSession || actionLoading"
-                  @click="handleClone"
-                >
-                  <template #leading>
-                    <SIcon
-                      name="CopyPlus"
-                      size="w-4 h-4"
-                    />
-                  </template>
-                  {{ tt('克隆', 'Clone') }}
-                </Button>
-                <Button
-                  variant="danger"
-                  surface="status"
-                  density="compact"
-                  motion="subtle"
-                  :disabled="!selectedSession || actionLoading"
-                  @click="handleDelete"
-                >
-                  <template #leading>
-                    <SIcon
-                      name="Trash2"
-                      size="w-4 h-4"
-                    />
-                  </template>
-                  {{ tt('删除', 'Delete') }}
-                </Button>
-              </div>
-            </div>
-
-            <div
-              v-if="detailLoading"
-              class="codex-sessions-loading"
-            >
-              <div class="codex-sessions-loading__spinner" />
-              <span>{{ tt('正在读取会话详情…', 'Loading session details...') }}</span>
-            </div>
-
-            <EmptyState
-              v-else-if="!detail"
-              icon="MessagesSquare"
-              :title="tt('还没有选中会话', 'No session selected yet')"
-              :description="tt('从左侧选择一个最近会话，就可以在这里查看详细上下文。', 'Select a recent session on the left to inspect its full context here.')"
-            />
-
-            <div
-              v-else
-              class="codex-detail"
-            >
-              <div class="codex-detail-summary">
-                <div class="codex-detail-summary__title-row">
-                  <div>
-                    <h3 class="codex-detail-summary__title">
-                      {{ selectedSession?.session_id }}
-                    </h3>
-                    <p class="codex-detail-summary__meta">
-                      {{ selectedSession?.model || tt('未知模型', 'Unknown model') }} ·
-                      {{ formatAbsolute(selectedSession?.updated_at) }}
-                    </p>
-                  </div>
-                  <span class="codex-detail-summary__pill">
-                    {{ tt(`${selectedSession?.total_requests ?? 0} 次请求`, `${selectedSession?.total_requests ?? 0} req`) }}
-                  </span>
-                </div>
-
-                <div class="codex-detail-grid">
-                  <div class="codex-detail-field">
-                    <span class="codex-detail-field__label">{{ tt('工作目录', 'Working directory') }}</span>
-                    <button
-                      type="button"
-                      class="codex-detail-field__value codex-detail-field__value--button"
-                      @click="copyCwd"
-                    >
-                      {{ selectedSession?.cwd || tt('N/A', 'N/A') }}
-                    </button>
-                  </div>
-                  <div class="codex-detail-field">
-                    <span class="codex-detail-field__label">{{ tt('相对路径', 'Relative path') }}</span>
-                    <span class="codex-detail-field__value">
-                      {{ selectedSession?.relative_path }}
-                    </span>
-                  </div>
-                  <div class="codex-detail-field">
-                    <span class="codex-detail-field__label">{{ tt('输入 / 输出', 'Input / output') }}</span>
-                    <span class="codex-detail-field__value">
-                      {{ formatTokenCount(selectedSession?.total_input_tokens ?? 0) }}
-                      /
-                      {{ formatTokenCount(selectedSession?.total_output_tokens ?? 0) }}
-                    </span>
-                  </div>
-                  <div class="codex-detail-field">
-                    <span class="codex-detail-field__label">{{ tt('CLI 版本', 'CLI version') }}</span>
-                    <span class="codex-detail-field__value">
-                      {{ selectedSession?.cli_version || tt('N/A', 'N/A') }}
-                    </span>
-                  </div>
-                </div>
-
-                <div
-                  v-if="detail.clipped"
-                  class="codex-detail-tip"
-                >
-                  {{ tt(`详情面板只展示最近 ${detail.message_limit} 条消息，导出会沿用同样的窗口上限。`, `The detail panel only shows the most recent ${detail.message_limit} messages, and export uses the same window limit.`) }}
-                </div>
-              </div>
-
-              <div class="codex-detail-messages">
-                <article
-                  v-for="(message, index) in detail.messages"
-                  :key="`${message.timestamp || 'none'}-${index}`"
-                  class="codex-message"
-                  :class="
-                    message.role === 'assistant'
-                      ? 'codex-message--assistant'
-                      : 'codex-message--user'
-                  "
-                >
-                  <div class="codex-message__meta">
-                    <span class="codex-message__role">
-                      {{ message.role === 'assistant' ? tt('助手', 'Assistant') : tt('用户', 'User') }}
-                    </span>
-                    <span class="codex-message__time">
-                      {{ formatAbsolute(message.timestamp) }}
-                    </span>
-                  </div>
-                  <pre class="codex-message__body"><code>{{ message.text }}</code></pre>
-                </article>
-              </div>
-            </div>
-          </Card>
+              <pre class="codex-message__body"><code>{{ message.text }}</code></pre>
+            </article>
+          </div>
         </div>
-      </div>
+      </Card>
     </div>
-  </div>
+  </PageShell>
 </template>
 
 <script setup lang="ts">
@@ -421,6 +421,9 @@ import Card from '@/components/ui/Card.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import Input from '@/components/ui/Input.vue'
 import ModuleSubnav from '@/components/ModuleSubnav.vue'
+import PageHeader from '@/components/ui/PageHeader.vue'
+import PageShell from '@/components/ui/PageShell.vue'
+import PillToggleGroup from '@/components/ui/PillToggleGroup.vue'
 import SIcon from '@/components/ui/SIcon.vue'
 import {
   cloneCodexSession,
@@ -457,24 +460,38 @@ const sessions = ref<CodexSessionSummary[]>([])
 const detail = ref<CodexSessionDetailResponse | null>(null)
 const selectedFilePath = ref('')
 const searchQuery = ref('')
+const sessionSort = ref<'recent' | 'tokens'>('recent')
 
 const selectedSession = computed(() => detail.value?.session ?? null)
 
+const sessionSortOptions = computed(() => [
+  { value: 'recent' as const, label: tt('最近', 'Recent') },
+  { value: 'tokens' as const, label: 'Tokens' },
+])
+
 const filteredSessions = computed(() => {
   const query = searchQuery.value.trim().toLowerCase()
-  if (!query) {
-    return sessions.value
+  const matched = query
+    ? sessions.value.filter((session) => {
+        return [
+          session.session_id,
+          session.cwd ?? '',
+          session.model ?? '',
+          session.preview ?? '',
+          session.relative_path,
+        ].some((value) => value.toLowerCase().includes(query))
+      })
+    : [...sessions.value]
+
+  if (sessionSort.value === 'tokens') {
+    return matched.sort((left, right) => {
+      const rightTokens = right.total_input_tokens + right.total_output_tokens
+      const leftTokens = left.total_input_tokens + left.total_output_tokens
+      return rightTokens - leftTokens
+    })
   }
 
-  return sessions.value.filter((session) => {
-    return [
-      session.session_id,
-      session.cwd ?? '',
-      session.model ?? '',
-      session.preview ?? '',
-      session.relative_path,
-    ].some((value) => value.toLowerCase().includes(query))
-  })
+  return matched
 })
 
 const totalTokens = computed(() => {
@@ -677,42 +694,8 @@ onActivated(() => {
 </script>
 
 <style scoped>
-.codex-sessions-view {
-  @apply min-h-full p-6 lg:p-8;
-}
-
-.codex-sessions-shell {
-  @apply mx-auto max-w-[1800px] space-y-6;
-}
-
-.codex-sessions-stack {
-  @apply space-y-4;
-}
-
-.codex-sessions-header {
-  @apply flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between;
-}
-
-.codex-sessions-header__copy {
-  @apply flex items-start gap-4;
-}
-
 .codex-sessions-header__icon {
-  @apply flex h-14 w-14 items-center justify-center rounded-2xl border border-platform-codex/20 bg-platform-codex/10;
-}
-
-.codex-sessions-title {
-  @apply text-2xl font-bold text-text-primary lg:text-3xl;
-
-  font-family: var(--font-brand);
-}
-
-.codex-sessions-subtitle {
-  @apply mt-1 max-w-3xl text-sm leading-7 text-text-secondary;
-}
-
-.codex-sessions-header__actions {
-  @apply flex flex-wrap gap-3;
+  @apply flex h-10 w-10 items-center justify-center rounded-xl border border-platform-codex/20 bg-platform-codex/10;
 }
 
 .codex-sessions-stats {
@@ -724,11 +707,11 @@ onActivated(() => {
 }
 
 .codex-sessions-stat__label {
-  @apply text-xs uppercase tracking-[0.2em] text-text-ghost;
+  @apply text-xs font-medium text-text-ghost;
 }
 
 .codex-sessions-stat__value {
-  @apply mt-2 text-2xl font-semibold text-text-primary;
+  @apply mt-2 text-2xl font-semibold tabular-nums text-text-primary;
 }
 
 .codex-sessions-stat__hint {
@@ -736,7 +719,7 @@ onActivated(() => {
 }
 
 .codex-sessions-error {
-  @apply flex items-center gap-2 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-200;
+  @apply flex items-center gap-2 rounded-xl border border-accent-danger/20 bg-accent-danger/10 px-4 py-3 text-sm text-accent-danger;
 }
 
 .codex-sessions-workspace {
@@ -783,7 +766,7 @@ onActivated(() => {
 }
 
 .codex-session-row--active {
-  @apply border-platform-codex/35 bg-platform-codex/10 shadow-lg shadow-platform-codex/10;
+  @apply border-platform-codex/35 bg-platform-codex/10;
 }
 
 .codex-session-row__top {
@@ -835,7 +818,7 @@ onActivated(() => {
 }
 
 .codex-detail-summary__pill {
-  @apply inline-flex items-center rounded-full border border-platform-codex/20 bg-platform-codex/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-platform-codex;
+  @apply inline-flex items-center rounded-md border border-platform-codex/20 bg-platform-codex/10 px-3 py-1 text-xs font-medium text-platform-codex;
 }
 
 .codex-detail-grid {
@@ -847,7 +830,7 @@ onActivated(() => {
 }
 
 .codex-detail-field__label {
-  @apply text-[11px] uppercase tracking-[0.18em] text-text-ghost;
+  @apply text-xs font-medium text-text-ghost;
 }
 
 .codex-detail-field__value {

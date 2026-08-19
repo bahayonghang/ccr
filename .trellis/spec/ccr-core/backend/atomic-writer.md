@@ -80,7 +80,7 @@
 - Unix regressions (single test thread): umask `000`/`022`/`077` all create
   `0o600`; overwrite `0o400`/`0o600`/`0o644` produces
   `0o400`/`0o600`/`0o600`.
-- `python scripts/check-secret-writes.py` rejects direct async writes and
+- `python scripts/quality/check_secret_writes.py` rejects direct async writes and
   sensitive writer chains without `.secret(true)`.
 - Run `cargo test -p ccr-core` and `cargo clippy -p ccr-core --all-targets --all-features -- -D warnings` after changes.
 

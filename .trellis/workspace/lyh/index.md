@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 88
-- **Last Active**: 2026-08-13
+- **Total Sessions**: 95
+- **Last Active**: 2026-08-18
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~1058 | Active |
+| `journal-2.md` | ~1284 | Active |
 | `journal-1.md` | ~1987 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,13 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 95 | 2026-08-18 | Overview 铺满工作区与指标徽章 | `dbb8e973` | `dev` |
+| 94 | 2026-08-18 | UI 视觉重构与审计依赖修复 | `98b08252`, `941ba9ca`, `5ce63c7d` | `feature/ui-visual-refactor` |
+| 93 | 2026-08-18 | 根 scripts 分类与调用对齐 | `27aa9530` | `dev` |
+| 92 | 2026-08-17 | TUI Profile 界面设计优化(操作安全闭环+信息层级+界面减负) | `d1ed6511`, `87f2ddc0`, `529273ae`, `edfbe20e` | `dev` |
+| 91 | 2026-08-17 | 优化 ccr codex fix 执行速度 | `6d119fbf`, `94a669d8` | `dev` |
+| 90 | 2026-08-17 | 日志系统安全与可观测优化 | `756f896a` | `dev` |
+| 89 | 2026-08-14 | Grok 编辑器滚动与 IPC 整数 | `4b44c637`, `466cc409` | `dev` |
 | 88 | 2026-08-13 | Profile 登录预备清理 | `594428d3`, `9b2dbcc3`, `d4726b55`, `ab34984e` | `dev` |
 | 87 | 2026-08-02 | 修复 ApexCharts tooltip marker 异常放大 | `68d5740a` | `dev` |
 | 86 | 2026-08-01 | 适配 llmusage 数据库重构并优化 Usage 查询 | `c6c4f23608b778e1677b035490ddeb674a8cf69f`, `e000eb99a8de5fb5738dc120f7618c9644665898`, `5e46deac1a445fc1a1e94c82a1a9bc9ade14624c` | `dev` |

@@ -314,9 +314,7 @@ const formatShare = (value: number) => {
   min-width: 0;
   border-radius: 1rem;
   border: 1px solid rgb(var(--color-border-default-rgb) / 14%);
-  background:
-    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 54%), rgb(var(--color-bg-surface-rgb) / 28%)),
-    radial-gradient(circle at 100% 0%, rgb(var(--color-accent-primary-rgb) / 9%), transparent 46%);
+  background: var(--color-bg-surface);
   padding: 0.82rem 0.92rem;
 }
 

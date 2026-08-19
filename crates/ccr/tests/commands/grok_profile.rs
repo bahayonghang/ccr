@@ -256,7 +256,7 @@ fn grok_profile_init_creates_owner_only_profiles_file() {
 }
 
 #[test]
-fn grok_profile_command_flow_masks_secrets_and_restores_entry_runtime() {
+fn grok_profile_command_flow_masks_secrets_and_clears_managed_runtime() {
     let fixture = GrokProfileFixture::new();
 
     let (create_output, create_json) = fixture.create_inline("relay");
@@ -373,9 +373,14 @@ fn grok_profile_command_flow_masks_secrets_and_restores_entry_runtime() {
     );
     assert!(runtime["model"]["custom"].get("reasoning_effort").is_none());
 
-    assert_success(&fixture.run_output(&["grok", "profile", "off"]));
+    let off = fixture.run_output(&["grok", "profile", "off"]);
+    assert_success(&off);
+    assert!(
+        String::from_utf8_lossy(&off.stdout)
+            .contains("已清理 config.toml 中的 [model.custom] 与 [models].default")
+    );
     let restored = fixture.runtime();
-    assert_eq!(restored["models"]["default"].as_str(), Some("grok-native"));
+    assert!(restored["models"].get("default").is_none());
     assert_eq!(
         restored["models"]["default_reasoning_effort"].as_str(),
         Some("low")
@@ -390,7 +395,7 @@ fn grok_profile_command_flow_masks_secrets_and_restores_entry_runtime() {
 }
 
 #[test]
-fn grok_profile_force_delete_restores_runtime_before_removing_profile() {
+fn grok_profile_force_delete_clears_runtime_before_removing_profile() {
     let fixture = GrokProfileFixture::new();
     assert_success(&fixture.create_inline("relay").0);
     assert_success(&fixture.run_output(&["grok", "profile", "switch", "relay"]));
@@ -417,10 +422,9 @@ fn grok_profile_force_delete_restores_runtime_before_removing_profile() {
         fixture.run_json(&["grok", "profile", "delete", "relay", "--force", "--json"]);
     assert_success(&delete_output);
     assert_eq!(delete_json["name"], "relay");
-    assert_eq!(
-        fixture.runtime()["models"]["default"].as_str(),
-        Some("grok-native")
-    );
+    let runtime = fixture.runtime();
+    assert!(runtime.get("model").is_none());
+    assert!(runtime["models"].get("default").is_none());
 }
 
 #[test]
@@ -474,10 +478,9 @@ fn grok_profile_off_uses_shared_core_and_is_idempotent() {
         String::from_utf8_lossy(&off.stderr)
     );
     assert!(!visible.contains(INLINE_SECRET));
-    assert_eq!(
-        fixture.runtime()["models"]["default"].as_str(),
-        Some("grok-native")
-    );
+    let runtime = fixture.runtime();
+    assert!(runtime.get("model").is_none());
+    assert!(runtime["models"].get("default").is_none());
 
     let (again, again_json) = fixture.run_json(&["grok", "profile", "off", "--json"]);
     assert_success(&again);
@@ -486,7 +489,7 @@ fn grok_profile_off_uses_shared_core_and_is_idempotent() {
 }
 
 #[test]
-fn grok_profile_off_fails_closed_when_entry_state_is_missing() {
+fn grok_profile_off_clears_managed_route_when_entry_state_is_missing() {
     let fixture = GrokProfileFixture::new();
     assert_success(&fixture.create_inline("relay").0);
     assert_success(&fixture.run_output(&["grok", "profile", "switch", "relay"]));
@@ -497,19 +500,25 @@ fn grok_profile_off_fails_closed_when_entry_state_is_missing() {
         .join("grok")
         .join("profile_entry_config_state.json");
     fs::remove_file(&entry_state).unwrap();
-    let before = fs::read(fixture.grok_home.join("config.toml")).unwrap();
 
     let output = fixture.run_output(&["grok", "profile", "off"]);
-    assert!(!output.status.success(), "{:?}", output.status);
+    assert_success(&output);
     let visible = format!(
         "{}{}",
         String::from_utf8_lossy(&output.stdout),
         String::from_utf8_lossy(&output.stderr)
     );
-    assert!(visible.contains("入口配置状态缺失"));
+    assert!(visible.contains("已清理 config.toml 中的 [model.custom] 与 [models].default"));
     assert!(!visible.contains(INLINE_SECRET));
+    let runtime = fixture.runtime();
+    assert!(runtime.get("model").is_none());
+    assert!(runtime["models"].get("default").is_none());
     assert_eq!(
-        fs::read(fixture.grok_home.join("config.toml")).unwrap(),
-        before
+        runtime["models"]["default_reasoning_effort"].as_str(),
+        Some("high")
     );
+
+    let (again, again_json) = fixture.run_json(&["grok", "profile", "off", "--json"]);
+    assert_success(&again);
+    assert_eq!(again_json["changed"], false);
 }

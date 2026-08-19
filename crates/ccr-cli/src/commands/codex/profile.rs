@@ -46,6 +46,8 @@ struct CodexProfileOffJson {
     changed: bool,
     previous_profile: Option<String>,
     runtime_mode: &'static str,
+    runtime_dirs: Vec<String>,
+    removed_auth_json: Vec<String>,
 }
 
 pub async fn init_command(json: bool) -> Result<()> {
@@ -215,6 +217,16 @@ pub async fn off_command(json: bool) -> Result<()> {
             changed: result.changed,
             previous_profile: result.previous_profile,
             runtime_mode: result.runtime_mode,
+            runtime_dirs: result
+                .runtime_dirs
+                .iter()
+                .map(|path| path.display().to_string())
+                .collect(),
+            removed_auth_json: result
+                .removed_auth_paths
+                .iter()
+                .map(|path| path.display().to_string())
+                .collect(),
         };
         println!("{}", serde_json::to_string_pretty(&output)?);
         return Ok(());
@@ -222,13 +234,16 @@ pub async fn off_command(json: bool) -> Result<()> {
 
     if result.changed {
         ColorOutput::success(&format!(
-            "已退出 Codex profile '{}'，当前回到 official auth runtime",
+            "已退出 Codex profile '{}'，已清理 profile 路由与 auth.json；可重新执行 codex login",
             result
                 .previous_profile
                 .as_deref()
                 .unwrap_or("-")
                 .bright_yellow()
         ));
+        for path in &result.removed_auth_paths {
+            ColorOutput::info(&format!("已删除 {}", path.display()));
+        }
     } else {
         ColorOutput::info("当前不在 Codex profile mode；无需执行 profile off");
     }

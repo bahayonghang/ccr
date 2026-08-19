@@ -1,17 +1,25 @@
+use super::log_bridge::BridgeEnqueueLayer;
+use super::log_redact::{is_sensitive_log_key, redact_log_text};
+use super::log_writer::{
+    SecureDailyWriter, is_managed_log_file, set_owner_only_dir, tighten_existing_log_files,
+};
+use crate::utils::mask_sensitive;
 use colored::*;
+use std::fmt as std_fmt;
 use std::io::{self, Write};
 use std::path::PathBuf;
 use std::sync::{Mutex, OnceLock};
-use tracing_appender::{
-    non_blocking::{NonBlocking, WorkerGuard},
-    rolling::{RollingFileAppender, Rotation},
-};
+use tracing::field::{Field, Visit};
+use tracing_appender::non_blocking::{NonBlocking, WorkerGuard};
 use tracing_log::LogTracer;
-use tracing_subscriber::{
-    EnvFilter,
-    fmt::{self, format::FmtSpan},
-    layer::SubscriberExt,
-    util::SubscriberInitExt,
+use tracing_subscriber::field::RecordFields;
+use tracing_subscriber::fmt::format::{FmtSpan, FormatFields, Writer};
+use tracing_subscriber::{EnvFilter, fmt, layer::SubscriberExt, util::SubscriberInitExt};
+
+pub use super::log_bridge::{
+    BridgedLogEvent, EnqueueResult, close_bridged_log_sender, current_log_correlation_id,
+    dropped_bridged_log_count, enter_bridge_consumer, take_bridged_log_receiver,
+    try_enqueue_bridged_log,
 };
 
 static LOG_GUARDS: OnceLock<Mutex<Vec<WorkerGuard>>> = OnceLock::new();
@@ -175,22 +183,100 @@ fn cleanup_old_logs(log_dir: &std::path::Path) {
     }
 }
 
-fn is_managed_log_file(path: &std::path::Path) -> bool {
-    path.file_name()
-        .and_then(|name| name.to_str())
-        .is_some_and(|name| name == "ccr.log" || name.starts_with("ccr.log."))
-}
+const THIRD_PARTY_WARN: &str = "hyper=warn,reqwest=warn,h2=warn,rustls=warn,tokio=warn";
+const DEFAULT_LOG_FILTER: &str = "info,hyper=warn,reqwest=warn,h2=warn,rustls=warn,tokio=warn";
 
 fn resolve_log_filter() -> String {
-    std::env::var("CCR_LOG_LEVEL")
+    let raw = std::env::var("CCR_LOG_LEVEL")
         .ok()
         .filter(|value| !value.trim().is_empty())
         .or_else(|| {
             std::env::var("RUST_LOG")
                 .ok()
                 .filter(|value| !value.trim().is_empty())
-        })
-        .unwrap_or_else(|| "info".to_string())
+        });
+
+    match raw {
+        None => DEFAULT_LOG_FILTER.to_string(),
+        Some(value) => normalize_filter_directive(&value),
+    }
+}
+
+fn normalize_filter_directive(value: &str) -> String {
+    let trimmed = value.trim();
+    if trimmed.is_empty() {
+        return DEFAULT_LOG_FILTER.to_string();
+    }
+
+    if is_bare_level(trimmed) {
+        return format!("{},{THIRD_PARTY_WARN}", trimmed.to_ascii_lowercase());
+    }
+
+    match EnvFilter::try_new(trimmed) {
+        Ok(_) => trimmed.to_string(),
+        Err(_) => DEFAULT_LOG_FILTER.to_string(),
+    }
+}
+
+fn is_bare_level(value: &str) -> bool {
+    matches!(
+        value.to_ascii_lowercase().as_str(),
+        "trace" | "debug" | "info" | "warn" | "error" | "off"
+    )
+}
+
+struct RedactingFormat;
+
+impl<'writer> FormatFields<'writer> for RedactingFormat {
+    fn format_fields<R: RecordFields>(
+        &self,
+        writer: Writer<'writer>,
+        fields: R,
+    ) -> std_fmt::Result {
+        let mut visitor = RedactingVisitor {
+            writer,
+            result: Ok(()),
+            first: true,
+        };
+        fields.record(&mut visitor);
+        visitor.result
+    }
+}
+
+struct RedactingVisitor<'a> {
+    writer: Writer<'a>,
+    result: std_fmt::Result,
+    first: bool,
+}
+
+impl RedactingVisitor<'_> {
+    fn write_field(&mut self, name: &str, value: &str) {
+        if self.result.is_err() {
+            return;
+        }
+        let redacted = if is_sensitive_log_key(name) {
+            mask_sensitive(value)
+        } else {
+            redact_log_text(value)
+        };
+        let prefix = if self.first { "" } else { " " };
+        self.first = false;
+        if name == "message" {
+            self.result = write!(self.writer, "{prefix}{redacted}");
+        } else {
+            self.result = write!(self.writer, "{prefix}{name}={redacted}");
+        }
+    }
+}
+
+impl Visit for RedactingVisitor<'_> {
+    fn record_debug(&mut self, field: &Field, value: &dyn std_fmt::Debug) {
+        self.write_field(field.name(), &format!("{value:?}"));
+    }
+
+    fn record_str(&mut self, field: &Field, value: &str) {
+        self.write_field(field.name(), value);
+    }
 }
 
 fn store_worker_guard(guard: WorkerGuard) {
@@ -205,22 +291,31 @@ fn build_file_writer() -> Option<NonBlocking> {
     if std::fs::create_dir_all(&log_dir).is_err() {
         return None;
     }
+    if set_owner_only_dir(&log_dir).is_err() {
+        return None;
+    }
 
     cleanup_old_logs(&log_dir);
+    tighten_existing_log_files(&log_dir);
 
-    let file_appender = RollingFileAppender::new(Rotation::DAILY, &log_dir, "ccr.log");
-    let (writer, guard) = tracing_appender::non_blocking(file_appender);
+    let writer = SecureDailyWriter::new(log_dir);
+    let (non_blocking, guard) = tracing_appender::non_blocking(writer);
     store_worker_guard(guard);
-    Some(writer)
+    Some(non_blocking)
+}
+
+fn build_env_filter() -> EnvFilter {
+    EnvFilter::try_new(resolve_log_filter()).unwrap_or_else(|_| EnvFilter::new(DEFAULT_LOG_FILTER))
 }
 
 pub fn init_logger() {
     let _ = LogTracer::init();
+    super::log_bridge::ensure_log_bridge_queue();
+    let _ = current_log_correlation_id();
 
-    let log_level = resolve_log_filter();
-    let env_filter = EnvFilter::new(log_level);
-
+    let env_filter = build_env_filter();
     let stdout_layer = fmt::layer()
+        .fmt_fields(RedactingFormat)
         .with_target(true)
         .with_thread_ids(false)
         .with_thread_names(false)
@@ -228,9 +323,9 @@ pub fn init_logger() {
         .with_line_number(false)
         .with_span_events(FmtSpan::NONE)
         .with_ansi(true);
-
     let file_layer = build_file_writer().map(|writer| {
         fmt::layer()
+            .fmt_fields(RedactingFormat)
             .with_target(true)
             .with_thread_ids(false)
             .with_thread_names(false)
@@ -245,17 +340,19 @@ pub fn init_logger() {
         .with(env_filter)
         .with(stdout_layer)
         .with(file_layer)
+        .with(BridgeEnqueueLayer)
         .try_init();
 }
 
 pub fn init_file_only_logger() {
     let _ = LogTracer::init();
+    super::log_bridge::ensure_log_bridge_queue();
+    let _ = current_log_correlation_id();
 
-    let log_level = resolve_log_filter();
-    let env_filter = EnvFilter::new(log_level);
-
+    let env_filter = build_env_filter();
     let file_layer = build_file_writer().map(|writer| {
         fmt::layer()
+            .fmt_fields(RedactingFormat)
             .with_target(true)
             .with_thread_ids(false)
             .with_thread_names(false)
@@ -269,6 +366,7 @@ pub fn init_file_only_logger() {
     let _ = tracing_subscriber::registry()
         .with(env_filter)
         .with(file_layer)
+        .with(BridgeEnqueueLayer)
         .try_init();
 }
 
@@ -287,10 +385,26 @@ mod tests {
 
         env.set_env("RUST_LOG", OsStr::new("warn"));
         env.remove_env("CCR_LOG_LEVEL");
-        assert_eq!(resolve_log_filter(), "warn");
+        assert_eq!(resolve_log_filter(), format!("warn,{THIRD_PARTY_WARN}"));
 
         env.set_env("CCR_LOG_LEVEL", OsStr::new("debug"));
-        assert_eq!(resolve_log_filter(), "debug");
+        assert_eq!(resolve_log_filter(), format!("debug,{THIRD_PARTY_WARN}"));
+    }
+
+    #[test]
+    fn test_resolve_log_filter_invalid_falls_back() {
+        let mut env = TestLogEnv::new();
+        env.remove_env("RUST_LOG");
+        env.set_env("CCR_LOG_LEVEL", OsStr::new("!!!not-a-filter"));
+        assert_eq!(resolve_log_filter(), DEFAULT_LOG_FILTER);
+    }
+
+    #[test]
+    fn test_resolve_log_filter_keeps_full_directive() {
+        let mut env = TestLogEnv::new();
+        env.remove_env("RUST_LOG");
+        env.set_env("CCR_LOG_LEVEL", OsStr::new("ccr_core=debug,hyper=error"));
+        assert_eq!(resolve_log_filter(), "ccr_core=debug,hyper=error");
     }
 
     #[test]
@@ -320,8 +434,8 @@ mod tests {
     }
 
     #[test]
-    fn managed_log_name_matches_active_and_rolling_files() {
-        assert!(is_managed_log_file(std::path::Path::new("ccr.log")));
+    fn managed_log_name_matches_daily_files() {
+        assert!(!is_managed_log_file(std::path::Path::new("ccr.log")));
         assert!(is_managed_log_file(std::path::Path::new(
             "ccr.log.2026-07-12"
         )));

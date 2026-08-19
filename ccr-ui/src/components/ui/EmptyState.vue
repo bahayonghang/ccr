@@ -56,14 +56,13 @@ withDefaults(defineProps<Props>(), {
   border: 1px solid var(--surface-card-border);
   border-radius: var(--radius-2xl);
   background: var(--surface-card-bg);
-  box-shadow: var(--surface-card-shadow), var(--glass-inner-glow);
+  box-shadow: var(--surface-card-shadow);
   backdrop-filter: var(--surface-card-blur);
 }
 
 .empty-state__icon {
   border: 1px solid rgb(var(--color-border-default-rgb) / 10%);
-  background:
-    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 100%), rgb(var(--color-bg-surface-rgb) / 88%));
-  box-shadow: var(--inner-glow);
+  background: var(--color-bg-elevated);
+  box-shadow: none;
 }
 </style>

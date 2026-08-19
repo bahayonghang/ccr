@@ -99,9 +99,7 @@ const resolvedSurface = computed<ButtonSurface>(() => props.surface ?? 'status')
 const resolvedMotion = computed<ButtonMotion>(() => props.motion ?? 'standard')
 const resolvedElevation = computed<ButtonElevation>(() => {
   if (props.elevation !== undefined) return props.elevation
-  if (props.variant === 'ghost' || props.variant === 'outline') return 0
-  if (props.variant === 'primary' || props.variant === 'danger' || props.variant === 'success') return 2
-  return 1
+  return 0
 })
 
 const classes = computed(() => {
@@ -120,19 +118,23 @@ const classes = computed(() => {
 
 <style scoped>
 .ui-button {
-  @apply inline-flex min-h-[44px] items-center justify-center rounded-lg font-medium;
+  @apply inline-flex min-h-[44px] items-center justify-center font-medium;
   @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/30 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-base;
 
+  border-radius: var(--radius-lg);
   transform: translateZ(0);
   letter-spacing: var(--tracking-normal);
-  backdrop-filter: var(--surface-status-blur);
   transition-property: transform, box-shadow, background-color, border-color, color, opacity;
   transition-duration: var(--ui-button-duration, var(--motion-standard-duration));
   transition-timing-function: var(--ui-button-ease, var(--motion-standard-ease));
 }
 
+.ui-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
 .ui-button:active {
-  transform: translateY(1px) scale(var(--ui-button-active-scale, 0.985));
+  transform: translateY(0) scale(var(--ui-button-active-scale, 0.985));
 }
 
 .ui-button:disabled {
@@ -164,9 +166,10 @@ const classes = computed(() => {
 .ui-button--primary {
   @apply border text-text-inverted;
 
+  border-radius: var(--radius-full);
   border-color: rgb(var(--color-accent-primary-rgb) / 16%);
   background: var(--color-accent-primary);
-  box-shadow: var(--ui-button-shadow, none);
+  box-shadow: none;
 }
 
 .ui-button--primary:hover:not(:disabled) {
@@ -174,11 +177,12 @@ const classes = computed(() => {
 }
 
 .ui-button--secondary {
-  @apply border text-text-primary shadow-sm;
+  @apply border text-text-primary;
 
-  border-color: var(--surface-status-border);
-  background: rgb(var(--color-bg-elevated-rgb) / 96%);
-  box-shadow: var(--ui-button-shadow, var(--surface-status-shadow));
+  border-radius: var(--radius-lg);
+  border-color: var(--color-border-subtle);
+  background: var(--color-bg-elevated);
+  box-shadow: none;
 }
 
 .ui-button--secondary:hover:not(:disabled) {
@@ -191,7 +195,7 @@ const classes = computed(() => {
 
   border-color: rgb(var(--color-accent-secondary-rgb) / 16%);
   background: var(--color-accent-secondary);
-  box-shadow: var(--ui-button-shadow, none);
+  box-shadow: none;
 }
 
 .ui-button--accent:hover:not(:disabled) {
@@ -222,13 +226,11 @@ const classes = computed(() => {
 }
 
 .ui-button--glass {
-  @apply border text-text-primary shadow-sm;
+  @apply border text-text-primary;
 
-  background: var(--surface-status-bg);
-  border-color: var(--surface-status-border);
-  backdrop-filter: var(--surface-status-blur);
-  box-shadow:
-    var(--ui-button-shadow, var(--surface-status-shadow));
+  background: var(--color-bg-elevated);
+  border-color: var(--color-border-subtle);
+  box-shadow: none;
 }
 
 .ui-button--glass:hover:not(:disabled) {
@@ -241,7 +243,7 @@ const classes = computed(() => {
 
   border-color: rgb(var(--color-danger-rgb) / 16%);
   background: var(--color-danger);
-  box-shadow: var(--ui-button-shadow, none);
+  box-shadow: none;
 }
 
 .ui-button--danger:hover:not(:disabled) {
@@ -253,7 +255,7 @@ const classes = computed(() => {
 
   border-color: rgb(var(--color-success-rgb) / 16%);
   background: var(--color-success);
-  box-shadow: var(--ui-button-shadow, none);
+  box-shadow: none;
 }
 
 .ui-button--success:hover:not(:disabled) {
@@ -261,18 +263,15 @@ const classes = computed(() => {
 }
 
 .ui-button--surface-workspace.ui-button--glass {
-  background: var(--surface-workspace-bg);
-  backdrop-filter: var(--surface-workspace-blur);
+  background: var(--color-bg-elevated);
 }
 
 .ui-button--surface-card.ui-button--glass {
-  background: var(--surface-card-bg);
-  backdrop-filter: var(--surface-card-blur);
+  background: var(--color-bg-surface);
 }
 
 .ui-button--surface-modal.ui-button--glass {
   background: var(--surface-modal-bg);
-  backdrop-filter: var(--surface-modal-blur);
 }
 
 .ui-button--elevation-0 {

@@ -1,6 +1,24 @@
 <!-- eslint-disable vue/no-template-shadow -->
 <template>
-  <div class="usage-page">
+  <PageShell class="usage-page">
+    <template #header>
+      <PageHeader
+        :title="$t('usage.title')"
+        :description="$t('usage.subtitle')"
+      >
+        <template
+          v-if="costSummaryCard"
+          #status
+        >
+          <StatTile
+            :label="costSummaryCard.label"
+            :value="costSummaryCard.value"
+            :hint="costSummaryCard.detail"
+          />
+        </template>
+      </PageHeader>
+    </template>
+
     <div class="usage-shell">
       <UsageDashboardToolbar
         :selected-platform="selectedPlatform"
@@ -57,17 +75,11 @@
         </section>
 
         <div class="usage-workspace-switcher">
-          <div class="usage-tabs">
-            <button
-              v-for="tab in tabKeys"
-              :key="tab"
-              class="usage-tab"
-              :class="{ 'usage-tab--active': activeTab === tab }"
-              @click="activeTab = tab"
-            >
-              {{ $t(`usage.dashboard.tabs.${tab}`) }}
-            </button>
-          </div>
+          <PillToggleGroup
+            :options="tabToggleOptions"
+            :model-value="activeTab"
+            @update:model-value="activeTab = $event"
+          />
           <p class="usage-workspace-switcher__summary">
             {{ selectedPlatformLabel }} · {{ selectedWindowLabel }}
           </p>
@@ -141,12 +153,17 @@
       :presentation="opsCockpit"
       @refresh="doImport"
     />
-  </div>
+  </PageShell>
 </template>
 
 <script setup lang="ts">
 import { computed, defineAsyncComponent, ref, type Component } from 'vue'
+import { useI18n } from 'vue-i18n'
 import AsyncStatePanel from '@/components/ui/AsyncStatePanel.vue'
+import PageHeader from '@/components/ui/PageHeader.vue'
+import PageShell from '@/components/ui/PageShell.vue'
+import PillToggleGroup from '@/components/ui/PillToggleGroup.vue'
+import StatTile from '@/components/ui/StatTile.vue'
 import UsageCostConclusionCard from '@/components/usage/UsageCostConclusionCard.vue'
 import UsageDashboardToolbar from '@/components/usage/UsageDashboardToolbar.vue'
 import UsageDiagnosticsDrawer from '@/components/usage/UsageDiagnosticsDrawer.vue'
@@ -241,6 +258,14 @@ const updateSelectedRange = (value: UsageRangePreset) => {
 }
 
 const diagnosticsOpen = ref(false)
+const { t } = useI18n()
+
+const tabToggleOptions = computed(() =>
+  tabKeys.map((tab) => ({
+    value: tab,
+    label: t(`usage.dashboard.tabs.${tab}`),
+  })),
+)
 
 // 费用结论卡拎出 cost 卡单独放大展示，其余 3 张沿用 UsageMetricCard 排进右侧 2 列指标格。
 const costSummaryCard = computed(() => summaryCards.value.find((card) => card.id === 'cost') ?? null)
@@ -265,16 +290,11 @@ const runtimeCopy = computed(() => getRuntimeUnavailableCopy('usage'))
 
 <style scoped>
 .usage-page {
-  position: relative;
-  padding: 1rem 1rem 1.5rem;
+  min-width: 0;
 }
 
 .usage-shell {
-  position: relative;
-  z-index: 1;
-  margin: 0 auto;
   display: flex;
-  max-width: 1520px;
   flex-direction: column;
   gap: 0.85rem;
 }
@@ -299,50 +319,11 @@ const runtimeCopy = computed(() => getRuntimeUnavailableCopy('usage'))
   align-items: center;
   justify-content: space-between;
   gap: 0.6rem;
-  border-radius: 1.35rem;
-  border: 1px solid rgb(var(--color-border-default-rgb) / 14%);
-  padding: 0.58rem 0.65rem;
-  background:
-    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 86%), rgb(var(--color-bg-surface-rgb) / 72%));
-  box-shadow: var(--elevation-1);
 }
 
 .usage-workspace-switcher__summary {
   color: var(--color-text-secondary);
   font-size: 0.84rem;
-}
-
-.usage-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
-}
-
-.usage-tab {
-  border-radius: 1rem;
-  border: 1px solid transparent;
-  padding: 0.62rem 0.95rem;
-  font-size: 0.88rem;
-  font-weight: 600;
-  color: var(--color-text-secondary);
-  transition:
-    color var(--motion-subtle-duration) var(--motion-subtle-ease),
-    background-color var(--motion-subtle-duration) var(--motion-subtle-ease),
-    border-color var(--motion-subtle-duration) var(--motion-subtle-ease),
-    transform var(--motion-subtle-duration) var(--motion-subtle-ease);
-}
-
-.usage-tab:hover {
-  color: var(--color-text-primary);
-  background: var(--surface-status-bg);
-  transform: translateY(-1px);
-}
-
-.usage-tab--active {
-  color: var(--color-text-primary);
-  background: linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 96%), rgb(var(--color-bg-surface-rgb) / 88%));
-  border-color: rgb(var(--color-accent-primary-rgb) / 16%);
-  box-shadow: 0 10px 24px rgb(var(--color-accent-primary-rgb) / 8%);
 }
 
 .usage-content {

@@ -297,7 +297,7 @@ describe('MainLayout theme stage smoke', () => {
 
       expect(settingsDockLink).not.toBeNull()
       expect(settingsDockLink?.textContent).toContain('nav.settings')
-      // dock 摘要按 3 值 flavor 显示名映射（默认 neutral）。
+      // dock 摘要按 2 值 flavor 显示名映射（默认 neutral）。
       expect(settingsDockLink?.textContent).toContain('settings.appearance.flavor.neutral')
       expect(el.querySelector('[data-stub="LanguageSwitcher"]')).toBeNull()
       expect(el.querySelector('[data-stub="ThemeToggle"]')).toBeNull()

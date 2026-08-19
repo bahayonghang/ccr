@@ -228,8 +228,8 @@ const statusClass = (account: CodexTrayAccountRow) => {
 .tray-switch__row,
 .tray-switch__empty {
   border: 1px solid rgb(var(--color-border-default-rgb) / 42%);
-  border-radius: 22px;
-  background: linear-gradient(180deg, rgb(var(--color-bg-base-rgb) / 66%), rgb(var(--color-bg-base-rgb) / 50%));
+  border-radius: 12px;
+  background: var(--color-bg-surface);
   padding: 14px;
 }
 
@@ -307,7 +307,7 @@ const statusClass = (account: CodexTrayAccountRow) => {
 
 .tray-switch__row--current {
   border-color: rgb(var(--color-accent-primary-rgb) / 24%);
-  background: linear-gradient(180deg, rgb(var(--color-accent-primary-rgb) / 9%), rgb(var(--color-accent-primary-rgb) / 4%));
+  background: rgb(var(--color-accent-primary-rgb) / 8%);
 }
 
 .tray-switch__row-main {
@@ -338,8 +338,8 @@ const statusClass = (account: CodexTrayAccountRow) => {
 }
 
 .tray-switch__status--current {
-  background: rgb(96 143 88 / 14%);
-  color: rgb(96 143 88 / 100%);
+  background: rgb(var(--color-success-rgb) / 14%);
+  color: var(--color-success);
 }
 
 .tray-switch__status--danger {

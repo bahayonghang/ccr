@@ -43,8 +43,8 @@ ccr codex profile off
 ```
 
 适用场景：
-- 保留 Codex official auth 登录态，同时切换第三方 profile
-- 在 `~/.codex/config.toml` / `~/.codex/auth.json` 间应用或退出 profile runtime
+- 切换第三方 profile，并在退出时清理 CCR 路由与运行期 `auth.json`
+- 执行 `profile off` 后，通过 `codex login` 或 `ccr codex auth switch <name>` 进入 official auth 登录态
 - 明确区分 `codex auth`（账号）与 `codex profile`（运行时路由）
 
 ## 工作流 4：校验与诊断

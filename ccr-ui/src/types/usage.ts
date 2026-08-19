@@ -61,6 +61,8 @@ export const USAGE_PLATFORM_IDS = [
   'kimi_code',
   'pi',
   'grok',
+  'zcode',
+  'deepseek_harness',
 ] as const
 
 export type UsagePlatform = (typeof USAGE_PLATFORM_IDS)[number]

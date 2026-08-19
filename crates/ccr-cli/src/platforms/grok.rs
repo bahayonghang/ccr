@@ -36,6 +36,31 @@ const GROK_EDITABLE_FIELDS: &[&str] = &[
     "reasoning_effort",
 ];
 
+fn json_positive_i64(value: &JsonValue) -> Option<i64> {
+    match value {
+        JsonValue::Number(number) => {
+            if let Some(value) = number
+                .as_u64()
+                .and_then(|value| i64::try_from(value).ok())
+                .filter(|value| *value > 0)
+            {
+                return Some(value);
+            }
+            if let Some(value) = number.as_i64().filter(|value| *value > 0) {
+                return Some(value);
+            }
+            let value = number.as_f64()?;
+            if !value.is_finite() || value <= 0.0 {
+                return None;
+            }
+            let as_i = value as i64;
+            (as_i as f64 == value && as_i > 0).then_some(as_i)
+        }
+        JsonValue::String(value) => value.trim().parse::<i64>().ok().filter(|value| *value > 0),
+        _ => None,
+    }
+}
+
 /// Credential source selected for one Grok profile.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GrokProfileAuthMode {
@@ -56,7 +81,7 @@ pub enum GrokActivationState {
     Active { name: String },
     /// A profile is recorded as active, but the runtime configuration differs.
     Drifted { name: String },
-    /// CCR cannot safely restore the runtime because its entry state is missing.
+    /// The entry baseline is missing, so only bounded managed-route cleanup is safe.
     UnsafeMissingEntryState { name: Option<String> },
 }
 
@@ -196,22 +221,21 @@ impl GrokPlatform {
         }
     }
 
-    /// Restore the entry configuration and leave CCR profile mode.
+    /// Clear CCR's managed route and leave profile mode.
     pub fn clear_active_profile_runtime(&self) -> Result<()> {
         let _operation_lock = self.lock_profile_operation()?;
         let state = self.load_entry_state()?;
-        if state.is_none() {
-            let has_active_intent = self.current_profile_from_registry()?.is_some()
-                || self.fallback_current_profile_from_file()?.is_some();
-            if has_active_intent || self.runtime_has_managed_shape()? {
-                return Err(CcrError::ConfigError(
-                    "Grok 入口配置状态缺失，拒绝执行 off 以避免遗留或误删凭据；请先备份 config.toml 并手工恢复 [model.custom] 与 [models].default"
-                        .into(),
-                ));
+        match state.as_ref() {
+            Some(state) => {
+                self.update_runtime_config(|config| Self::clear_managed_runtime(config, state))?;
             }
-        }
-        if let Some(state) = state {
-            self.update_runtime_config(|config| Self::restore_entry_state(config, &state))?;
+            None => {
+                let has_active_intent = self.current_profile_from_registry()?.is_some()
+                    || self.fallback_current_profile_from_file()?.is_some();
+                if has_active_intent || self.runtime_has_managed_shape()? {
+                    self.update_runtime_config(Self::clear_managed_route)?;
+                }
+            }
         }
         self.clear_profiles_current_config()?;
         self.clear_current_profile_registry()?;
@@ -327,26 +351,9 @@ impl GrokPlatform {
     fn profile_context_window(profile: &ProfileConfig) -> Result<Option<i64>> {
         match profile.platform_data.get("context_window") {
             None | Some(JsonValue::Null) => Ok(None),
-            Some(JsonValue::Number(value)) => value
-                .as_u64()
-                .filter(|value| *value > 0)
-                .and_then(|value| i64::try_from(value).ok())
-                .map(Some)
-                .ok_or_else(|| {
-                    CcrError::ValidationError("Grok context_window 必须是正整数".into())
-                }),
-            Some(JsonValue::String(value)) => value
-                .trim()
-                .parse::<i64>()
-                .ok()
-                .filter(|value| *value > 0)
-                .map(Some)
-                .ok_or_else(|| {
-                    CcrError::ValidationError("Grok context_window 必须是正整数".into())
-                }),
-            Some(_) => Err(CcrError::ValidationError(
-                "Grok context_window 必须是正整数".into(),
-            )),
+            Some(value) => json_positive_i64(value).map(Some).ok_or_else(|| {
+                CcrError::ValidationError("Grok context_window 必须是正整数".into())
+            }),
         }
     }
 
@@ -550,19 +557,7 @@ impl GrokPlatform {
                 Self::table_mut(root, "model")?
                     .insert(GROK_MANAGED_MODEL_KEY.into(), original.clone());
             }
-            None => {
-                if let Some(models) = root.get_mut("model") {
-                    let models = models.as_table_mut().ok_or_else(|| {
-                        CcrError::ConfigFormatInvalid(
-                            "Grok config.toml 的 [model] 必须是 table".into(),
-                        )
-                    })?;
-                    models.remove(GROK_MANAGED_MODEL_KEY);
-                    if models.is_empty() {
-                        root.remove("model");
-                    }
-                }
-            }
+            None => Self::remove_custom_model(root)?,
         }
 
         match state.original_default_model.as_ref() {
@@ -573,6 +568,38 @@ impl GrokPlatform {
             None => Self::remove_default_model(root)?,
         }
         Self::restore_default_reasoning_effort(root, state)?;
+        Ok(())
+    }
+
+    fn clear_managed_runtime(
+        config: &mut toml::Value,
+        state: &ProfileEntryConfigState,
+    ) -> Result<()> {
+        let root = Self::root_table_mut(config)?;
+        Self::clear_managed_route_from_root(root)?;
+        Self::restore_default_reasoning_effort(root, state)
+    }
+
+    fn clear_managed_route(config: &mut toml::Value) -> Result<()> {
+        let root = Self::root_table_mut(config)?;
+        Self::clear_managed_route_from_root(root)
+    }
+
+    fn clear_managed_route_from_root(root: &mut toml::Table) -> Result<()> {
+        Self::remove_custom_model(root)?;
+        Self::remove_default_model(root)
+    }
+
+    fn remove_custom_model(root: &mut toml::Table) -> Result<()> {
+        if let Some(models) = root.get_mut("model") {
+            let models = models.as_table_mut().ok_or_else(|| {
+                CcrError::ConfigFormatInvalid("Grok config.toml 的 [model] 必须是 table".into())
+            })?;
+            models.remove(GROK_MANAGED_MODEL_KEY);
+            if models.is_empty() {
+                root.remove("model");
+            }
+        }
         Ok(())
     }
 
@@ -960,7 +987,7 @@ impl PlatformConfig for GrokPlatform {
             && (active_by_intent || self.runtime_has_managed_shape()?)
         {
             return Err(CcrError::ConfigError(
-                "Grok 入口配置状态缺失，拒绝删除 profile 以避免遗留凭据；请先备份 config.toml 并手工恢复 [model.custom] 与 [models].default"
+                "Grok 入口配置状态缺失，拒绝删除 profile 以避免遗留凭据；请先备份 config.toml 并手工清理 [model.custom] 与 [models].default"
                     .into(),
             ));
         }
@@ -1023,7 +1050,11 @@ impl PlatformConfig for GrokPlatform {
             "grok",
             name,
         )?;
-        tracing::info!(profile = name, "已应用 Grok profile");
+        tracing::info!(
+            profile = name,
+            corr = ccr_core::current_log_correlation_id(),
+            "applied Grok profile"
+        );
         Ok(())
     }
 
@@ -1329,6 +1360,16 @@ api_key = "INLINE_SECRET_SENTINEL"
             .platform_data
             .insert("context_window".into(), json!(0));
         assert!(platform.validate_profile(&profile).is_err());
+        profile.platform_data.insert(
+            "context_window".into(),
+            JsonValue::Number(serde_json::Number::from_f64(500_000.0).expect("finite")),
+        );
+        assert!(platform.validate_profile(&profile).is_ok());
+        profile.platform_data.insert(
+            "context_window".into(),
+            JsonValue::Number(serde_json::Number::from_f64(1.5).expect("finite")),
+        );
+        assert!(platform.validate_profile(&profile).is_err());
 
         let mut profile = third_party_profile();
         profile
@@ -1424,7 +1465,7 @@ api_key = "INLINE_SECRET_SENTINEL"
     }
 
     #[test]
-    fn third_party_apply_preserves_unmanaged_tables_and_restores_entry_state() {
+    fn third_party_apply_preserves_unmanaged_tables_and_off_clears_managed_route() {
         let (_home, platform) = platform();
         fs::write(
             &platform.config_path,
@@ -1518,15 +1559,21 @@ nested = "keep-me-too"
 
         platform.clear_active_profile_runtime().unwrap();
         let restored = read_config(&platform);
+        assert!(restored["model"].get("custom").is_none());
         assert_eq!(
-            restored["model"]["custom"]["model"].as_str(),
-            Some("original-model")
+            restored["model"]["other"]["model"].as_str(),
+            Some("keep-me")
         );
-        assert_eq!(restored["models"]["default"].as_str(), Some("original"));
+        assert!(restored["models"].get("default").is_none());
         assert_eq!(
             restored["models"]["default_reasoning_effort"].as_str(),
             Some("low")
         );
+        assert_eq!(
+            restored["session"]["auto_compact_threshold_percent"].as_integer(),
+            Some(85)
+        );
+        assert_eq!(restored["unknown"]["nested"].as_str(), Some("keep-me-too"));
         assert!(!platform.entry_state_path().exists());
         assert_eq!(platform.get_current_profile().unwrap(), None);
     }
@@ -1634,8 +1681,8 @@ nested = "keep-me-too"
 
         platform.clear_active_profile_runtime().unwrap();
         let restored = read_config(&platform);
-        assert_eq!(restored["model"]["custom"]["model"].as_str(), Some("entry"));
-        assert_eq!(restored["models"]["default"].as_str(), Some("entry"));
+        assert!(restored.get("model").is_none());
+        assert!(restored["models"].get("default").is_none());
         assert_eq!(
             restored["models"]["default_reasoning_effort"].as_str(),
             Some("minimal")
@@ -1729,7 +1776,7 @@ nested = "keep-me-too"
     }
 
     #[test]
-    fn off_rejects_missing_entry_state_while_profile_is_active() {
+    fn off_clears_managed_route_when_entry_state_is_missing() {
         let (_home, platform) = platform();
         platform
             .save_profile("relay", &third_party_profile())
@@ -1737,20 +1784,19 @@ nested = "keep-me-too"
         platform.apply_profile("relay").unwrap();
         fs::remove_file(platform.entry_state_path()).unwrap();
 
-        let result = platform.clear_active_profile_runtime();
-        assert!(result.is_err());
+        platform.clear_active_profile_runtime().unwrap();
+        let config = read_config(&platform);
+        assert!(config.get("model").is_none());
         assert_eq!(
-            read_config(&platform)["models"]["default"].as_str(),
-            Some("custom")
+            config["models"]["default_reasoning_effort"].as_str(),
+            Some("high")
         );
-        assert_eq!(
-            platform.current_profile_from_registry().unwrap().as_deref(),
-            Some("relay")
-        );
+        assert!(config["models"].get("default").is_none());
+        assert_eq!(platform.current_profile_from_registry().unwrap(), None);
     }
 
     #[test]
-    fn off_rejects_managed_runtime_when_state_and_pointers_are_missing() {
+    fn off_clears_managed_runtime_when_state_and_pointers_are_missing() {
         let (_home, platform) = platform();
         platform.save_profile("relay", &inline_profile()).unwrap();
         platform.apply_profile("relay").unwrap();
@@ -1758,12 +1804,10 @@ nested = "keep-me-too"
         platform.clear_profiles_current_config().unwrap();
         platform.clear_current_profile_registry().unwrap();
 
-        let result = platform.clear_active_profile_runtime();
-        assert!(result.is_err());
-        assert_eq!(
-            read_config(&platform)["model"]["custom"]["api_key"].as_str(),
-            Some("INLINE_SECRET_SENTINEL")
-        );
+        platform.clear_active_profile_runtime().unwrap();
+        let config = read_config(&platform);
+        assert!(config.get("model").is_none());
+        assert!(config["models"].get("default").is_none());
     }
 
     #[test]

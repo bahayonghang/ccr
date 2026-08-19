@@ -8,24 +8,24 @@
 
 ---
 
-## Scenario: Flavor/accent value domains and Catppuccin token overrides
+## Scenario: Flavor/accent value domains and token overrides
 
 ### 1. Scope / Trigger
 
 - Trigger: changing `ccr-ui/src/styles/tokens.css`, `ccr-ui/src/styles/home.css`, theme bootstrap behavior, or tests that guard theme/flavor/accent semantics.
 - Applies to the three-layer model: `data-theme` controls light/dark/system resolution, `data-flavor` controls the palette family, and `data-accent` controls emphasis color.
-- Since `07-28-color-system-rebuild`: default flavor is `neutral` (explicitly migrated away from `clay` by that task; the "do not replace default clay" rule required — and got — an explicit task declaration).
+- Since `08-18-ui-visual-refactor`: flavor is `neutral | clay` and accent is `clay` only. `data-accent` is still written. Catppuccin (`latte` / `mocha`) is not a CCR flavor.
 
 ### 2. Signatures
 
 - Theme bootstrap: `ccr-ui/src/utils/themeBootstrap.ts`
 - Global theme tokens: `ccr-ui/src/styles/tokens.css`
 - Home/dashboard material tokens: `ccr-ui/src/styles/home.css`
-- Value domains (narrowed by `07-28-color-system-rebuild`):
-  - `FlavorMode = 'neutral' | 'clay' | 'catppuccin'`; resolved flavor = `'neutral' | 'clay' | 'latte' | 'mocha'`
-  - `AccentMode = 'clay' | 'sage' | 'sky' | 'mauve'`
+- Value domains (narrowed by `08-18-ui-visual-refactor`):
+  - `FlavorMode = 'neutral' | 'clay'`; `ResolvedFlavor = FlavorMode`
+  - `AccentMode = 'clay'`
   - `DEFAULT_FLAVOR = 'neutral'`, `DEFAULT_ACCENT = 'clay'`
-  - `catppuccin` resolves by resolved theme: light → `latte`, dark → `mocha`
+  - `data-resolved-flavor` equals `data-flavor`
 - Visual preference storage keys:
   - `ccr-theme`
   - `ccr-flavor`
@@ -38,36 +38,39 @@
 
 ### 3. Contracts
 
-- Do not replace the default flavor unless the task explicitly asks for a default theme migration (precedent: `07-28-color-system-rebuild` declared it in its PRD).
+- Do not replace the default flavor unless the task explicitly asks for a default theme migration (precedent: `07-28-color-system-rebuild` and `08-18-ui-visual-refactor`).
 - Flavor blocks must remap existing semantic tokens instead of adding a second component language.
-- Keep `data-theme`, `data-flavor`, and `data-accent` independent. A visual polish change must not collapse flavor into theme or accent. Flavor blocks must not set `--color-accent-primary` / `--color-border-accent` (guarded by a `not.toMatch` smoke assertion for mocha).
+- Keep `data-theme`, `data-flavor`, and `data-accent` independent. A visual polish change must not collapse flavor into theme or accent. Flavor blocks must not set `--color-accent-primary` / `--color-border-accent`.
 - Token geometry axioms (locked by `theme-contrast-contract.smoke.test.ts`):
   - Dark: elevation steps lighten monotonically (`bg-base < bg-elevated < bg-surface < bg-overlay`); light: desktop dimmed, card lightest.
   - All surface tokens and all text tokens (incl. every `--color-stage-*`) resolve to 100% opacity.
   - WCAG contrast vs `bg-surface`: text-primary ≥ 12:1, secondary ≥ 7:1, muted ≥ 4.5:1; accent vs accent-contrast ≥ 3.5:1.
-- Flavor-specific exceptions belong in scoped selectors such as `[data-resolved-flavor="mocha"]` or `html:root[data-resolved-flavor="mocha"]`.
+- Contrast combos are 4: light/dark × neutral/clay. Do not add latte/mocha combos. Do not lower the thresholds.
+- Flavor-specific exceptions belong in scoped selectors such as `[data-flavor="clay"]` or `html:root[data-flavor="clay"]`.
 - If a later scoped override must beat an earlier flavor block in the CSS cascade, use a selector with deliberately higher specificity and lock that block in smoke tests. Text matching alone is not enough.
-- The two Catppuccin blocks are `[data-resolved-flavor='latte']` (single block, palette + semantic remap) and `html:root[data-resolved-flavor='mocha']` (high-specificity full remap). There is no shared multi-flavor Catppuccin remap block; frappe/macchiato palettes no longer exist.
+- Retired Catppuccin selectors (`[data-resolved-flavor='latte']`, `html:root[data-resolved-flavor='mocha']`) and multi-accent blocks (`sage` / `sky` / `mauve`) must not return.
+- OpenCode TUI theme string `catppuccin-mocha` is not a CCR flavor. Do not delete or rewrite it as part of flavor cleanup.
 - When adding a controlled font exception, narrow the test exception to the exact override block. Do not skip the whole `tokens.css` file.
 - Visual automation that preloads theme preferences must write `ccr-theme`, `ccr-flavor`, and `ccr-accent`, then assert the rendered `data-theme`, `data-flavor`, `data-resolved-flavor`, and `data-accent` values before trusting computed styles.
 
 ### 4. Validation & Error Matrix
 
 - Changed theme token semantics without targeted theme smoke tests -> not accepted.
-- Mocha/material override present in source but lower specificity than the latte block -> rendered CSS may stay wrong even though text tests pass.
+- Flavor override present in source but lower specificity than an earlier block -> rendered CSS may stay wrong even though text tests pass.
 - New mono/display stack outside a documented scoped exception -> `apple-glass-surface-contract.smoke.test.ts` should fail.
 - Changed theme/flavor/accent persistence semantics -> `theme-bootstrap.smoke.test.ts` and `app-settings.smoke.test.ts` must cover it.
 - Visual verification uses a bundle-shaped preference key instead of `ccr-theme` / `ccr-flavor` / `ccr-accent` -> the page silently falls back to default and the evidence is invalid.
 - Lowering a contrast threshold in `theme-contrast-contract.smoke.test.ts` to make a palette pass -> not accepted; adjust token values instead (thresholds are the contract).
 - Flavor block reintroducing alpha-bearing text/surface tokens (e.g. stage tokens < 100% opacity) -> contrast-contract smoke fails.
+- Reintroducing a mocha/latte block "because an old smoke expected it" -> not accepted; the mocha override must not exist.
 
 ### 5. Good/Base/Bad Cases
 
-- Good: keep the mocha semantic remap inside `html:root[data-resolved-flavor="mocha"]` and assert the exact block in smoke tests.
-- Good: in Playwright, preload `localStorage.setItem('ccr-theme', 'dark')`, `localStorage.setItem('ccr-flavor', 'catppuccin')`, and `localStorage.setItem('ccr-accent', 'sky')`, then assert the document dataset before recording screenshots.
-- Good: strip only the Mocha override block before scanning for otherwise-forbidden legacy mono stacks.
-- Base: keep latte block structure untouched when the task only targets mocha.
-- Bad: preload a custom JSON blob such as `ccr-ui-shell-preferences-v1` and report dark/mocha visual evidence without checking the rendered dataset.
+- Good: keep clay remaps inside `[data-flavor="clay"]` / `[data-theme="dark"][data-flavor="clay"]` and assert the remaining flavor set in smoke tests.
+- Good: in Playwright, preload `localStorage.setItem('ccr-theme', 'dark')`, `localStorage.setItem('ccr-flavor', 'clay')`, and `localStorage.setItem('ccr-accent', 'clay')`, then assert the document dataset before recording screenshots.
+- Good: assert that `html:root[data-resolved-flavor="mocha"]` is absent before scanning remaining flavor blocks.
+- Base: leave the four contrast combinations and their thresholds unchanged when a task only restyles a view.
+- Bad: preload `ccr-flavor=catppuccin` and `ccr-accent=sky`, then report visual evidence without checking that the dataset resolved to `neutral` / `clay`.
 - Bad: exclude all of `tokens.css` from a font-stack guard because one scoped exception exists.
 - Bad: change `data-theme` behavior to force a flavor directly instead of preserving `data-flavor`.
 - Bad: fix a failing contrast case by editing the expected threshold constant instead of the token value.
@@ -84,8 +87,8 @@
 #### Wrong
 
 ```css
-[data-resolved-flavor="mocha"] {
-  --color-bg-base: var(--ctp-crust);
+[data-flavor="clay"] {
+  --color-bg-base: #17120f;
 }
 ```
 
@@ -94,8 +97,8 @@ If an earlier selector with equal or higher specificity also sets `--color-bg-ba
 #### Correct
 
 ```css
-html:root[data-resolved-flavor="mocha"] {
-  --color-bg-base: var(--ctp-crust);
+html:root[data-theme="dark"][data-flavor="clay"] {
+  --color-bg-base: #17120f;
 }
 ```
 
@@ -108,24 +111,25 @@ Pair the override with a smoke assertion that extracts this exact block and chec
 ### 1. Scope / Trigger
 
 - Trigger: narrowing or renaming `FlavorMode` / `AccentMode` values, changing `DEFAULT_FLAVOR` / `DEFAULT_ACCENT`, or touching the `ccr-flavor` / `ccr-accent` read path.
-- Introduced by `07-28-color-system-rebuild` (7→3 flavors, 8→4 accents). The migration machinery is the contract that keeps old `localStorage` values safe.
+- Introduced by `07-28-color-system-rebuild` and narrowed again by `08-18-ui-visual-refactor` (flavor → `neutral|clay`, accent → `clay`). The migration machinery is the contract that keeps old `localStorage` values safe.
 
 ### 2. Signatures
 
 - `ccr-ui/src/utils/themeBootstrap.ts`: `FLAVOR_MIGRATION` / `ACCENT_MIGRATION` maps, `migrateFlavorValue` / `migrateAccentValue` (map → whitelist → fallback), `migratePersistedFlavor` / `migratePersistedAccent` (read + write-back only when changed; never seed a default into empty storage), `readStoredFlavor` / `readStoredAccent` (go through migration).
 - `ccr-ui/src/stores/shellPreferences.ts`: `initializeTheme` calls `migratePersisted*` before reading; `setFlavorPreference` / `setAccentPreference` normalize via `migrateFlavorValue` / `migrateAccentValue` before persisting.
-- `ccr-ui/index.html` first-paint IIFE: inline duplicate of the same migration maps + whitelist + catppuccin resolution (no import capability).
+- `ccr-ui/index.html` first-paint IIFE: inline duplicate of the same migration maps + whitelist (no import capability).
 - Migration tables (current):
-  - flavor: `paper|graphite → neutral`; `latte|frappe|macchiato|mocha → catppuccin`; unknown → `neutral`
-  - accent: `sand|amber|rose → clay`; `slate → sky`; unknown → `clay`
+  - flavor: `paper|graphite|catppuccin|latte|frappe|macchiato|mocha → neutral`; `neutral|clay` stay; unknown → `neutral`
+  - accent: `mauve|sage|sky|slate|sand|amber|rose → clay`; `clay` stays; unknown → `clay`
+  - Do not restore `slate → sky`.
 
 ### 3. Contracts
 
-- The migration map + whitelist + fallback + catppuccin resolution MUST be byte-equivalent in behavior between `themeBootstrap.ts` and the `index.html` IIFE. Changing one without the other splits first-paint from runtime resolution.
+- The migration map + whitelist + fallback MUST be byte-equivalent in behavior between `themeBootstrap.ts` and the `index.html` IIFE. Changing one without the other splits first-paint from runtime resolution.
 - Migration happens on read, never on render; unknown values fall back to the defaults (`neutral` / `clay`).
 - Write-back (`migratePersisted*`) only fires when the stored value differs from the migrated value, and never writes when the key is absent (no default seeding).
-- Old UI option values (e.g. a stale `mocha` button) must be safe at runtime: setters normalize before persisting, so `data-resolved-flavor` can only ever be `neutral|clay|latte|mocha`.
-- Rollback tolerance: an older app version reading new values (`neutral` / `catppuccin`) falls back to its own defaults — acceptable, no data loss.
+- Old UI option values (e.g. a stale `mocha` or `sky` button) must be safe at runtime: setters normalize before persisting, so `data-flavor` / `data-resolved-flavor` can only ever be `neutral|clay` and `data-accent` can only ever be `clay`.
+- Rollback tolerance: an older app version reading new values (`neutral` / `clay`) falls back to its own defaults — acceptable, no data loss. Users already written back to `neutral` / `clay` will not recover a retired option after a binary rollback.
 
 ### 4. Validation & Error Matrix
 
@@ -136,9 +140,10 @@ Pair the override with a smoke assertion that extracts this exact block and chec
 ### 5. Good/Base/Bad Cases
 
 - Good: `readStoredFlavor()` returns `migrateFlavorValue(stored)`; `migratePersistedFlavor()` writes back only on difference.
-- Good: IIFE test feeds `localStorage.setItem('ccr-flavor', 'macchiato')` + light scheme and asserts `data-resolved-flavor === 'latte'` before any CSS loads.
+- Good: IIFE test feeds `localStorage.setItem('ccr-flavor', 'macchiato')` + light scheme and asserts `data-flavor === 'neutral'` and `data-resolved-flavor === 'neutral'` before any CSS loads.
 - Base: `theme-bootstrap.smoke.test.ts` locks IIFE behavior by executing the extracted script against seeded storage (behavior lock, stronger than verbatim text lock).
-- Bad: adding a fifth flavor value to the TS union but forgetting the IIFE whitelist -> first-paint fallback loop.
+- Bad: adding a third flavor value to the TS union but forgetting the IIFE whitelist -> first-paint fallback loop.
+- Bad: mapping `slate → sky` after `sky` left the accent domain.
 
 ### 6. Tests Required
 
@@ -243,14 +248,14 @@ Prepend the user font and keep the single source of truth in `--font-sans-base`.
 - Budget: at most 1 `backdrop-filter` element on screen at once (floating only); never nest glass inside glass; never put glass inside a scrolling content area (scroll + blur repaints continuously).
 - Tier assignment is fixed by role, not by choice: `floating` = modal/command-palette/floating panel (≤1 on screen), `chrome` = sidebar/topbar (opaque), `inline` = sticky in-page toolbars (opaque).
 - Ordinary content cards/workspaces are **not** glass: they map to `--surface-card-*` / `--surface-workspace-*`, which must resolve to `blur: none` and 100% opacity. If a component needs "depth", use elevation (border + shadow), not transparency.
-- Every place a tier's `background`/`blur` is set must have a matching reset inside the `prefers-reduced-transparency: reduce` block, including inside flavor-scoped overrides (e.g. mocha) — a reduced-transparency block that resets the shared tokens but not the mocha-scoped ones still leaves mocha glass on screen.
+- Every place a tier's `background`/`blur` is set must have a matching reset inside the `prefers-reduced-transparency: reduce` block, including inside flavor-scoped overrides (`neutral` / `clay`) — a reduced-transparency block that resets the shared tokens but not the flavor-scoped ones still leaves glass on screen for that flavor.
 - Don't repoint legacy `--glass-*`/`--liquid-glass-*` tokens to the new material recipes just because it's tempting to unify — that pushes old call-sites (31 files, 75+ references at time of writing) over budget. Migrate call-sites to the tier classes/tokens explicitly instead, one component at a time.
 
 ### 4. Validation & Error Matrix
 
 - New `backdrop-filter` usage added outside the floating tier -> breaks the ≤1 budget; check for an existing floating surface on the same route first.
 - Glass applied to a scrollable list/table row -> forbidden regardless of tier; use opaque surface tokens.
-- `prefers-reduced-transparency` block updates the shared `--material-glass-*-bg` but a flavor override (e.g. `html:root[data-resolved-flavor='mocha']`) sets its own copy at higher specificity -> glass survives the reduced-transparency preference for that flavor; `apple-glass-surface-contract.smoke.test.ts` asserts the mocha-scoped reset explicitly, so extend that assertion pattern for any new flavor-scoped material override.
+- `prefers-reduced-transparency` block updates the shared `--material-glass-*-bg` but a flavor override (e.g. `html:root[data-flavor='clay']`) sets its own copy at higher specificity -> glass survives the reduced-transparency preference for that flavor; `apple-glass-surface-contract.smoke.test.ts` asserts the remaining flavor-scoped resets, so extend that assertion pattern for any new flavor-scoped material override.
 - A component still reads `--liquid-glass-*` / `--glass-blur-*` directly -> acceptable as-is (deprecated but stable); flag for migration in the relevant child task instead of patching the legacy token's recipe.
 - Re-adding `saturate()` to a glass blur recipe -> washed-out amplification of whatever bleeds through; forbidden by the floating-tier recipe contract.
 
@@ -260,6 +265,7 @@ Prepend the user font and keep the single source of truth in `--font-sans-base`.
 - Base: a component still reads legacy `--liquid-glass-bg`/`-border`/`-highlight`/`-shadow` directly (e.g. `ConfigCard.vue`) — fine to leave as-is outside a migration task's scope; the legacy tokens still resolve to sane, budget-safe values because they stay thin, not because they were repointed.
 - Bad: adding `backdrop-filter: var(--material-glass-chrome-blur)` to a table row or an infinite-scroll list item.
 - Bad: writing a new flavor override block that sets `--material-glass-floating-bg` without adding the matching flavor-scoped reset inside `@media (prefers-reduced-transparency: reduce)`.
+- Bad: deleting a mocha-scoped reduced-transparency reset without moving it onto the remaining `neutral` / `clay` (or global) selectors.
 - Bad: lowering the floating tier's bg opacity below 88% "for aesthetics" — translucency belongs to no content surface.
 
 ### 6. Tests Required

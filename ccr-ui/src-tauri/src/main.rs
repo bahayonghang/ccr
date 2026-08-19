@@ -1,12 +1,14 @@
 // Prevents additional console window on Windows in release builds
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod bridge;
 mod checkin_jobs;
 mod claude_observer;
 mod commands;
 mod desktop_shell;
 mod events;
 mod llmusage_adapter;
+mod log_sanitize;
 mod monitoring;
 mod platform;
 mod process;
@@ -51,9 +53,19 @@ where
             }
             Err(error) => {
                 if error.is_panic() {
-                    tracing::error!("[supervised] task '{name}' panicked: {error}");
+                    tracing::error!(
+                        task = name,
+                        error = %error,
+                        corr = ccr_core::current_log_correlation_id(),
+                        "supervised task panicked"
+                    );
                 } else {
-                    tracing::warn!("[supervised] task '{name}' join error: {error}");
+                    tracing::warn!(
+                        task = name,
+                        error = %error,
+                        corr = ccr_core::current_log_correlation_id(),
+                        "supervised task join error"
+                    );
                 }
                 if let Err(emit_err) = app.emit(
                     channels::APP_TASK_PANICKED,
@@ -282,6 +294,9 @@ fn main() {
             // 注册 shutdown notify，供退出时通知后台任务收尾。
             app.manage(shutdown_notify);
 
+            crate::bridge::start_monitoring_bridge(app.handle().clone());
+            crate::bridge::start_monitoring_flush_ticker(app.handle().clone());
+
             tracing::info!("[app] setup complete");
             Ok(())
         })
@@ -401,7 +416,8 @@ fn main() {
                 notify.notify_waiters();
             }
 
-            // 关闭数据库全局资源。
+            ccr_core::close_bridged_log_sender();
+            crate::bridge::flush_monitoring_on_exit(_app);
             ccr_db::database::shutdown();
             tracing::info!("[app] cleanup complete");
         }

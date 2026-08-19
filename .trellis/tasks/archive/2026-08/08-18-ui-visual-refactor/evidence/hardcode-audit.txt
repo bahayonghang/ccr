@@ -1,0 +1,32 @@
+Wave 6 hardcode audit 2026-08-18
+
+linear-gradient in ccr-ui/src: 0 files, 0 hits
+(none)
+
+phantom-token:
+(none)
+
+vue hex counts:
+ 20  ccr-ui/src/views/AppSettingsView.vue
+
+vue literal rgba? (excluding rgb(var(--)):
+  2  ccr-ui/src/components/UpdateModal.vue
+ 12  ccr-ui/src/views/CodexView.vue
+  5  ccr-ui/src/views/OpenCodeView.vue
+ 10  ccr-ui/src/views/PricingView.vue
+  3  ccr-ui/src/views/tray/components/TrayOverview.vue
+  1  ccr-ui/src/views/checkin/tabs/CheckinProvidersTab.vue
+  1  ccr-ui/src/components/claude/ClaudeProfileRow.vue
+  5  ccr-ui/src/components/claude-observer/BehaviorAnalysisTab.vue
+  2  ccr-ui/src/components/codex/CodexAccountCard.vue
+  1  ccr-ui/src/components/codex/ProfileCard.vue
+  5  ccr-ui/src/components/common/MultiSelectFloatingBar.vue
+  1  ccr-ui/src/components/configs/ProviderStatsModal.vue
+  1  ccr-ui/src/components/grok/GrokProfileCard.vue
+  1  ccr-ui/src/components/mcp/McpCreatePanel.vue
+  3  ccr-ui/src/components/mcp/McpImportPanel.vue
+  2  ccr-ui/src/components/profiles/ProfilesCommandPalette.vue
+  1  ccr-ui/src/components/profiles/ProfilesHeader.vue
+  2  ccr-ui/src/components/profiles/ProfilesQuickRail.vue
+  1  ccr-ui/src/components/profiles/ProfilesToolbar.vue
+  1  ccr-ui/src/components/provider-templates/ProviderTemplateSelector.vue

@@ -1,25 +1,21 @@
 <!-- Profiles 页面顶部标题区：标题/副标题 + （可选命令面板）/重载/导出/添加。
      平台差异通过 icon + backTo + labels + 可选 palette 注入；样式靠视图的 --cp-* 继承换肤。 -->
 <template>
-  <div class="cp-header">
-    <div class="cp-header__intro">
+  <PageHeader
+    class="cp-header"
+    :title="labels.title"
+    :description="labels.subtitle"
+  >
+    <template #leading>
       <div class="cp-header__icon">
         <SIcon
           :name="icon"
           size="w-5 h-5"
         />
       </div>
-      <div class="cp-header__text">
-        <h1 class="cp-header__title">
-          {{ labels.title }}
-        </h1>
-        <p class="cp-header__subtitle">
-          {{ labels.subtitle }}
-        </p>
-      </div>
-    </div>
+    </template>
 
-    <div class="cp-header__actions">
+    <template #actions>
       <RouterLink
         :to="backTo"
         class="cp-header__back"
@@ -139,12 +135,13 @@
         />
         <span>{{ labels.add }}</span>
       </button>
-    </div>
-  </div>
+    </template>
+  </PageHeader>
 </template>
 
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import PageHeader from '@/components/ui/PageHeader.vue'
 import SIcon from '@/components/ui/SIcon.vue'
 import { RouterLink } from 'vue-router'
 
@@ -277,18 +274,7 @@ const onMenuItem = (action: 'editSource' | 'export' | 'reload') => {
 
 <style scoped>
 .cp-header {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 4px 0 14px;
-}
-
-.cp-header__intro {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
+  padding: 0 0 4px;
 }
 
 .cp-header__icon {
@@ -303,31 +289,6 @@ const onMenuItem = (action: 'editSource' | 'export' | 'reload') => {
   background: var(--cp-icon-soft, var(--cp-accent-soft));
   border: 1px solid var(--cp-icon-line, var(--cp-accent-line));
   color: var(--cp-icon-color, var(--cp-accent));
-}
-
-.cp-header__text { min-width: 0; }
-
-.cp-header__title {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--cp-ink-0);
-  letter-spacing: -0.2px;
-  margin: 0;
-  line-height: 1.25;
-}
-
-.cp-header__subtitle {
-  margin: 2px 0 0;
-  font-size: 0.75rem;
-  color: var(--cp-ink-3);
-}
-
-.cp-header__actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  justify-content: flex-end;
 }
 
 .cp-header__back { display: inline-flex; }

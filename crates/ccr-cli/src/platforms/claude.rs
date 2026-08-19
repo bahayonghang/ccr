@@ -328,7 +328,11 @@ impl PlatformConfig for ClaudePlatform {
         self.update_current_config_in_profiles(name)?;
         base::update_registry_current_profile("claude", name)?;
 
-        tracing::info!("✅ 已应用 Claude profile: {}", name);
+        tracing::info!(
+            profile = name,
+            corr = ccr_core::current_log_correlation_id(),
+            "applied Claude profile"
+        );
         Ok(())
     }
 

@@ -413,15 +413,15 @@ json-format:
 
 [private]
 _json-format-windows:
-    @python scripts/check_json_format.py --write
+    @python scripts/quality/check_json_format.py --write
 
 [private]
 _json-format-linux:
-    @python3 scripts/check_json_format.py --write
+    @python3 scripts/quality/check_json_format.py --write
 
 [private]
 _json-format-macos:
-    @python3 scripts/check_json_format.py --write
+    @python3 scripts/quality/check_json_format.py --write
 
 # 🧾 检查人工维护的 JSON 配置格式
 json-format-check:
@@ -429,18 +429,18 @@ json-format-check:
 
 [private]
 _json-format-check-windows:
-    @python -m unittest scripts/test_check_json_format.py
-    @python scripts/check_json_format.py
+    @python -m unittest scripts.quality.test_check_json_format
+    @python scripts/quality/check_json_format.py
 
 [private]
 _json-format-check-linux:
-    @python3 -m unittest scripts/test_check_json_format.py
-    @python3 scripts/check_json_format.py
+    @python3 -m unittest scripts.quality.test_check_json_format
+    @python3 scripts/quality/check_json_format.py
 
 [private]
 _json-format-check-macos:
-    @python3 -m unittest scripts/test_check_json_format.py
-    @python3 scripts/check_json_format.py
+    @python3 -m unittest scripts.quality.test_check_json_format
+    @python3 scripts/quality/check_json_format.py
 
 # 🔍 检查代码格式 (不修改文件)
 fmt-check: json-format-check
@@ -461,13 +461,13 @@ lint-strict:
     @just info "🔥 运行严格 Clippy 检查"
     @just warn "模式: 所有警告视为错误 + 禁止 unwrap"
     @just info "📌 注意: 测试代码中的 unwrap 会产生警告"
-    python scripts/check-secret-writes.py
+    python scripts/quality/check_secret_writes.py
     cargo clippy --workspace --all-targets --all-features -- -D warnings -D clippy::unwrap_used
     @just success "严格 Clippy 检查通过"
 
 # 🔐 敏感文件持久化策略守卫
 secret-write-check:
-    python scripts/check-secret-writes.py
+    python scripts/quality/check_secret_writes.py
 
 # 🔧 完整代码检查 (格式化 + Clippy)
 lint: fmt clippy
@@ -730,7 +730,7 @@ docs-check:
 # 🤖 GitHub Copilot 工作区资产检查
 copilot-check:
     @just header "🤖 GitHub Copilot 工作区资产检查"
-    node scripts/check-copilot-assets.mjs
+    node scripts/quality/check-copilot-assets.mjs
     @just success "GitHub Copilot 工作区资产检查通过"
 
 # 🌐 前端完整检查 (类型检查 + Lint + 构建 + 文档构建)
@@ -979,41 +979,41 @@ version-check:
 [private]
 _version-sync-windows:
     @just info "🔧 同步版本号（以根 Cargo.toml 为主）"
-    @.\scripts\version-sync.ps1 -Verbose
+    @.\scripts\version\version-sync.ps1 -Verbose
     @just success "版本同步完成"
 
 [private]
 _version-sync-linux:
     @just info "🔧 同步版本号（以根 Cargo.toml 为主）"
-    bash scripts/version-sync.sh
+    bash scripts/version/version-sync.sh
     @just success "版本同步完成"
 
 [private]
 _version-sync-macos:
     @just info "🔧 同步版本号（以根 Cargo.toml 为主）"
-    bash scripts/version-sync.sh
+    bash scripts/version/version-sync.sh
     @just success "版本同步完成"
 
 [private]
 _version-check-windows:
     @just info "🔍 检查版本号一致性"
-    @.\scripts\version-sync.ps1 -Check -Verbose
-    @.\scripts\check-doc-drift.ps1 -Verbose
-    @.\scripts\check-dependency-drift.ps1 -Verbose
+    @.\scripts\version\version-sync.ps1 -Check -Verbose
+    @python scripts/drift/check_doc_drift.py --verbose
+    @python scripts/drift/check_dependency_drift.py --verbose
 
 [private]
 _version-check-linux:
     @just info "🔍 检查版本号一致性"
-    bash scripts/version-sync.sh --check --verbose
-    bash scripts/check-doc-drift.sh --verbose
-    bash scripts/check-dependency-drift.sh --verbose
+    bash scripts/version/version-sync.sh --check --verbose
+    python3 scripts/drift/check_doc_drift.py --verbose
+    python3 scripts/drift/check_dependency_drift.py --verbose
 
 [private]
 _version-check-macos:
     @just info "🔍 检查版本号一致性"
-    bash scripts/version-sync.sh --check --verbose
-    bash scripts/check-doc-drift.sh --verbose
-    bash scripts/check-dependency-drift.sh --verbose
+    bash scripts/version/version-sync.sh --check --verbose
+    python3 scripts/drift/check_doc_drift.py --verbose
+    python3 scripts/drift/check_dependency_drift.py --verbose
 
 # 🔐 Hosted workflow 触发器、路径过滤和 action pin 治理
 workflow-governance-check:
@@ -1021,18 +1021,18 @@ workflow-governance-check:
 
 [private]
 _workflow-governance-check-windows:
-    @python -m unittest scripts/test_check_workflow_governance.py
-    @python scripts/check_workflow_governance.py
+    @python -m unittest scripts.ci.test_check_workflow_governance
+    @python scripts/ci/check_workflow_governance.py
 
 [private]
 _workflow-governance-check-linux:
-    @python3 -m unittest scripts/test_check_workflow_governance.py
-    @python3 scripts/check_workflow_governance.py
+    @python3 -m unittest scripts.ci.test_check_workflow_governance
+    @python3 scripts/ci/check_workflow_governance.py
 
 [private]
 _workflow-governance-check-macos:
-    @python3 -m unittest scripts/test_check_workflow_governance.py
-    @python3 scripts/check_workflow_governance.py
+    @python3 -m unittest scripts.ci.test_check_workflow_governance
+    @python3 scripts/ci/check_workflow_governance.py
 
 # 🔐 Root/Tauri dependency drift、例外 metadata 和 MSRV 治理
 dependency-governance-check:
@@ -1040,18 +1040,18 @@ dependency-governance-check:
 
 [private]
 _dependency-governance-check-windows:
-    @python -m unittest scripts/test_check_dependency_drift.py
-    @.\scripts\check-dependency-drift.ps1 -Verbose
+    @python -m unittest scripts.drift.test_check_dependency_drift
+    @python scripts/drift/check_dependency_drift.py --verbose
 
 [private]
 _dependency-governance-check-linux:
-    @python3 -m unittest scripts/test_check_dependency_drift.py
-    @bash scripts/check-dependency-drift.sh --verbose
+    @python3 -m unittest scripts.drift.test_check_dependency_drift
+    @python3 scripts/drift/check_dependency_drift.py --verbose
 
 [private]
 _dependency-governance-check-macos:
-    @python3 -m unittest scripts/test_check_dependency_drift.py
-    @bash scripts/check-dependency-drift.sh --verbose
+    @python3 -m unittest scripts.drift.test_check_dependency_drift
+    @python3 scripts/drift/check_dependency_drift.py --verbose
 
 # 🔐 CI 配置、依赖例外与命令清单完整治理
 ci-governance-check: workflow-governance-check dependency-governance-check tauri-command-inventory-check
@@ -1063,15 +1063,15 @@ coverage-rust:
 
 [private]
 _coverage-rust-check-windows:
-    @python scripts/check_coverage_thresholds.py target/coverage-workspace.json --overall 70 --gateway 85 --gateway-pattern crates/ccr-core/src/core/process_gateway.rs
+    @python scripts/quality/check_coverage_thresholds.py target/coverage-workspace.json --overall 70 --gateway 85 --gateway-pattern crates/ccr-core/src/core/process_gateway.rs
 
 [private]
 _coverage-rust-check-linux:
-    @python3 scripts/check_coverage_thresholds.py target/coverage-workspace.json --overall 70 --gateway 85 --gateway-pattern crates/ccr-core/src/core/process_gateway.rs
+    @python3 scripts/quality/check_coverage_thresholds.py target/coverage-workspace.json --overall 70 --gateway 85 --gateway-pattern crates/ccr-core/src/core/process_gateway.rs
 
 [private]
 _coverage-rust-check-macos:
-    @python3 scripts/check_coverage_thresholds.py target/coverage-workspace.json --overall 70 --gateway 85 --gateway-pattern crates/ccr-core/src/core/process_gateway.rs
+    @python3 scripts/quality/check_coverage_thresholds.py target/coverage-workspace.json --overall 70 --gateway 85 --gateway-pattern crates/ccr-core/src/core/process_gateway.rs
 
 # 📊 Tauri backend 覆盖率：生成完整报告，安全 gateway ≥85%
 coverage-tauri:
@@ -1080,15 +1080,15 @@ coverage-tauri:
 
 [private]
 _coverage-tauri-check-windows:
-    @python scripts/check_coverage_thresholds.py ccr-ui/src-tauri/target/coverage-tauri.json --gateway 85 --gateway-pattern ccr-ui/src-tauri/src/process/gateway.rs
+    @python scripts/quality/check_coverage_thresholds.py ccr-ui/src-tauri/target/coverage-tauri.json --gateway 85 --gateway-pattern ccr-ui/src-tauri/src/process/gateway.rs
 
 [private]
 _coverage-tauri-check-linux:
-    @python3 scripts/check_coverage_thresholds.py ccr-ui/src-tauri/target/coverage-tauri.json --gateway 85 --gateway-pattern ccr-ui/src-tauri/src/process/gateway.rs
+    @python3 scripts/quality/check_coverage_thresholds.py ccr-ui/src-tauri/target/coverage-tauri.json --gateway 85 --gateway-pattern ccr-ui/src-tauri/src/process/gateway.rs
 
 [private]
 _coverage-tauri-check-macos:
-    @python3 scripts/check_coverage_thresholds.py ccr-ui/src-tauri/target/coverage-tauri.json --gateway 85 --gateway-pattern ccr-ui/src-tauri/src/process/gateway.rs
+    @python3 scripts/quality/check_coverage_thresholds.py ccr-ui/src-tauri/target/coverage-tauri.json --gateway 85 --gateway-pattern ccr-ui/src-tauri/src/process/gateway.rs
 
 # 🧪 运行脚本测试 (Bats + Pester)
 test-scripts:
@@ -1099,9 +1099,9 @@ _test-scripts-windows:
     @just header "🧪 运行脚本测试"
     @just info "📌 检查 Bats/Pester 是否安装"
     @# 检查 Pester
-    -pwsh -NoProfile -Command "if (Get-Module -ListAvailable Pester) { Write-Host 'Pester 已安装' -ForegroundColor Green; Invoke-Pester -Path 'scripts/version-sync.Tests.ps1' -PassThru } else { Write-Host 'Pester 未安装，请运行: Install-Module Pester -Force' -ForegroundColor Yellow }"
+    -pwsh -NoProfile -Command "if (Get-Module -ListAvailable Pester) { Write-Host 'Pester 已安装' -ForegroundColor Green; Invoke-Pester -Path 'scripts/version/version-sync.Tests.ps1' -PassThru } else { Write-Host 'Pester 未安装，请运行: Install-Module Pester -Force' -ForegroundColor Yellow }"
     @# 检查 Bats (如果安装了 Git Bash 或 WSL)
-    -bash -c "if command -v bats &>/dev/null; then echo 'Bats 已安装'; bats scripts/version-sync.bats; else echo 'Bats 未安装，请参考: https://github.com/bats-core/bats-core'; fi"
+    -bash -c "if command -v bats &>/dev/null; then echo 'Bats 已安装'; bats scripts/version/version-sync.bats; else echo 'Bats 未安装，请参考: https://github.com/bats-core/bats-core'; fi"
 
 [private]
 _test-scripts-linux:
@@ -1109,12 +1109,12 @@ _test-scripts-linux:
     @just info "📌 检查 Bats 是否安装"
     @if command -v bats &>/dev/null; then \
         echo "Bats 已安装，运行测试..."; \
-        bats scripts/version-sync.bats; \
+        bats scripts/version/version-sync.bats; \
     else \
         echo "Bats 未安装，请参考: https://github.com/bats-core/bats-core"; \
     fi
     @# 检查 Pester (如果有 pwsh)
-    -pwsh -NoProfile -Command "if (Get-Module -ListAvailable Pester) { Write-Host 'Pester 已安装' -ForegroundColor Green; Invoke-Pester -Path 'scripts/version-sync.Tests.ps1' -PassThru } else { Write-Host 'Pester 未安装 (可选)' -ForegroundColor Yellow }"
+    -pwsh -NoProfile -Command "if (Get-Module -ListAvailable Pester) { Write-Host 'Pester 已安装' -ForegroundColor Green; Invoke-Pester -Path 'scripts/version/version-sync.Tests.ps1' -PassThru } else { Write-Host 'Pester 未安装 (可选)' -ForegroundColor Yellow }"
 
 [private]
 _test-scripts-macos:
@@ -1122,7 +1122,7 @@ _test-scripts-macos:
     @just info "📌 检查 Bats 是否安装"
     @if command -v bats &>/dev/null; then \
         echo "Bats 已安装，运行测试..."; \
-        bats scripts/version-sync.bats; \
+        bats scripts/version/version-sync.bats; \
     else \
         echo "Bats 未安装，请运行: brew install bats-core"; \
     fi

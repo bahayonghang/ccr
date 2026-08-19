@@ -6,15 +6,15 @@
 
 ### 1. Scope / Trigger
 
-- Trigger: editing `scripts/check_json_format.py`, its inventory, or the
+- Trigger: editing `scripts/quality/check_json_format.py`, its inventory, or the
   `json-format` / `json-format-check` recipes.
 - The inventory covers human-authored package and application configuration,
   including Tauri capabilities and `tauri.conf.json`.
 
 ### 2. Signatures
 
-- Check: `python scripts/check_json_format.py` or `just json-format-check`.
-- Repair: `python scripts/check_json_format.py --write` or `just json-format`.
+- Check: `python scripts/quality/check_json_format.py` or `just json-format-check`.
+- Repair: `python scripts/quality/check_json_format.py --write` or `just json-format`.
 - Aggregate gate: `just fmt-check` depends on `json-format-check`.
 
 ### 3. Contracts
@@ -46,7 +46,7 @@
 
 - Unit tests cover noncanonical input without mutation, deterministic write,
   malformed/missing files, and excluded files.
-- Run `python -m unittest scripts/test_check_json_format.py`.
+- Run `python -m unittest scripts.quality.test_check_json_format`.
 - Run `just json-format-check` and `just fmt-check`.
 
 ### 7. Wrong vs Correct

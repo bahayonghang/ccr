@@ -26,8 +26,7 @@ ccr opencode
 | `Tab` | switch between available tabs |
 | `←` / `→` / `h` / `l` | paginate |
 | `↑` / `↓` / `j` / `k` | move selection |
-| `Enter` | apply and exit |
-| `Space` | apply and stay in TUI |
+| `Enter` / `Space` | apply the selected profile and stay in the TUI (result shown in the Focus panel) |
 | `q` / `Esc` | quit |
 
 ## Current Role
@@ -49,7 +48,7 @@ ccr opencode
 ccr
 # Tab to change platform
 # ↑↓ to select a profile
-# Enter to apply and exit
+# Enter/Space to apply and stay (press q or Esc to quit)
 
 ccr opencode
 # Press i on the OpenCode Auth tab to preview and confirm importing compatible saved Codex accounts

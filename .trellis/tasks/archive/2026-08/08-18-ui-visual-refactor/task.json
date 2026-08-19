@@ -1,0 +1,34 @@
+{
+  "id": "ui-visual-refactor",
+  "name": "ui-visual-refactor",
+  "title": "CCR UI 全站视觉与结构重构：去塑料感 · 编辑式收敛",
+  "description": "全部 51 个 *View.vue 的视觉与结构重构：清除拟物高光/饱和渐变/glow，退役 catppuccin 与多值 accent（存量安全迁移），修订 DESIGN.md 与操作台配方对齐，并重排 dashboard、平台工作台与设置页",
+  "status": "completed",
+  "dev_type": null,
+  "scope": "ui",
+  "package": "ccr-ui",
+  "priority": "P1",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-08-18",
+  "completedAt": "2026-08-18",
+  "branch": "feature/ui-visual-refactor",
+  "base_branch": "dev",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [
+    ".trellis/tasks/08-18-ui-visual-refactor/prd.md",
+    ".trellis/tasks/08-18-ui-visual-refactor/design.md",
+    ".trellis/tasks/08-18-ui-visual-refactor/implement.md",
+    ".trellis/tasks/08-18-ui-visual-refactor/views-inventory.md"
+  ],
+  "notes": "单任务+发版冻结。Wave 7 前不合入 main。规划补完 2026-08-18，待用户确认摘要后再 start。",
+  "meta": {
+    "viewCount": "51",
+    "planningCloseout": "2026-08-18"
+  }
+}

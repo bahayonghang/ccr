@@ -67,11 +67,20 @@ pub fn draw(f: &mut Frame, app: &mut App) {
         } else {
             app.current_codex_runtime_summary()
         };
+        // banner 的 model 来自当前生效 profile 的 ProfileConfig; auth 页签没有
+        // profiles 列表, 自然查不到, 只显示名字。
+        let current_model = app
+            .current_profiles()
+            .iter()
+            .find(|profile| profile.is_current)
+            .and_then(|profile| app.current_tab().profile_configs.get(profile.name.as_str()))
+            .and_then(|config| config.model.as_deref());
 
         render_codex_runtime_banner(
             f,
             runtime_chunks[0],
             runtime_summary,
+            current_model,
             mode == theme::ViewportMode::Compact,
         );
         runtime_chunks[1]
@@ -133,13 +142,33 @@ fn render_codex_runtime_banner(
     f: &mut Frame,
     area: Rect,
     summary: Option<&CodexRuntimeSummary>,
+    current_model: Option<&str>,
     compact: bool,
 ) {
-    let (mode_label, mode_style, profile_label, auth_label) = if let Some(summary) = summary {
+    let banner = Paragraph::new(codex_runtime_banner_lines(summary, current_model, compact))
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_set(symbols::border::ROUNDED)
+                .border_style(Style::default().fg(theme::codex()))
+                .title(crate::tui_text!(" Current runtime ", " 当前生效 "))
+                .title_style(theme::codex_style()),
+        )
+        .wrap(Wrap { trim: true });
+
+    f.render_widget(banner, area);
+}
+
+fn codex_runtime_banner_lines(
+    summary: Option<&CodexRuntimeSummary>,
+    current_model: Option<&str>,
+    compact: bool,
+) -> Vec<Line<'static>> {
+    let (mode_label, mode_style, chip_label, auth_label) = if let Some(summary) = summary {
         (
             codex_runtime_mode_label(summary.mode).to_string(),
             runtime_mode_style(summary.mode),
-            localize_codex_runtime_text(summary.profile_label()),
+            codex_current_chip(summary, current_model),
             localize_codex_runtime_text(summary.auth_label()),
         )
     } else {
@@ -151,51 +180,61 @@ fn render_codex_runtime_banner(
         )
     };
 
-    let lines = if compact {
-        vec![Line::from(vec![
+    if compact {
+        // Compact 只有一行内容: 留给 current chip (WS2 的常驻生效标识),
+        // mode 信息在 Standard/Wide 的「运行方式」行展示。
+        return vec![Line::from(codex_banner_chip_spans(&chip_label))];
+    }
+
+    let mut profile_auth_spans = codex_banner_chip_spans(&chip_label);
+    profile_auth_spans.extend([
+        Span::styled("  │  ", Style::default().fg(theme::border())),
+        Span::styled(
+            crate::tui_text!("Auth: ", "认证："),
+            theme::secondary_text_style(),
+        ),
+        // 中性状态不占 success 绿
+        Span::styled(auth_label, Style::default().fg(theme::subtext())),
+    ]);
+
+    vec![
+        Line::from(vec![
             Span::styled(
-                crate::tui_text!(" Active driver: ", " 当前驱动："),
+                crate::tui_text!(" How it runs: ", " 运行方式："),
                 theme::secondary_text_style(),
             ),
             Span::styled(mode_label, mode_style),
-        ])]
-    } else {
-        vec![
-            Line::from(vec![
-                Span::styled(
-                    crate::tui_text!(" Active driver: ", " 当前驱动："),
-                    theme::secondary_text_style(),
-                ),
-                Span::styled(mode_label, mode_style),
-            ]),
-            Line::from(vec![
-                Span::styled(
-                    crate::tui_text!(" Profile: ", " 配置："),
-                    theme::secondary_text_style(),
-                ),
-                Span::styled(profile_label, theme::primary_text_style()),
-                Span::styled("  │  ", Style::default().fg(theme::border())),
-                Span::styled(
-                    crate::tui_text!("Auth: ", "认证："),
-                    theme::secondary_text_style(),
-                ),
-                Span::styled(auth_label, Style::default().fg(theme::success())),
-            ]),
-        ]
+        ]),
+        Line::from(profile_auth_spans),
+    ]
+}
+
+/// banner 的常驻 current chip: 绑定 = profile 名 + model (查不到 model 只显示名字,
+/// 不留空占位), 未绑定 = 大白话说明。文案从 `CodexRuntimeSummary` 的类型化字段
+/// 在 TUI 侧组装, 不走 `localize_codex_runtime_text` 的字符串 replace 链。
+fn codex_current_chip(summary: &CodexRuntimeSummary, current_model: Option<&str>) -> String {
+    let Some(name) = summary.current_profile_name.as_deref() else {
+        return crate::tui_text!("Not bound · runtime auth only", "未绑定 · 仅运行时认证")
+            .to_string();
     };
 
-    let banner = Paragraph::new(lines)
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .border_set(symbols::border::ROUNDED)
-                .border_style(Style::default().fg(theme::codex()))
-                .title(crate::tui_text!(" Control plane ", " 当前控制面 "))
-                .title_style(theme::codex_style()),
-        )
-        .wrap(Wrap { trim: true });
+    match current_model
+        .map(str::trim)
+        .filter(|model| !model.is_empty())
+    {
+        Some(model) => format!("{name} · {model}"),
+        None => name.to_string(),
+    }
+}
 
-    f.render_widget(banner, area);
+fn codex_banner_chip_spans(chip_label: &str) -> Vec<Span<'static>> {
+    vec![
+        Span::styled(
+            crate::tui_text!(" Profile: ", " 配置："),
+            theme::secondary_text_style(),
+        ),
+        Span::styled(chip_label.to_string(), theme::primary_text_style()),
+    ]
 }
 
 fn runtime_mode_style(mode: ccr_cli::models::CodexRuntimeMode) -> Style {
@@ -222,15 +261,6 @@ fn wide_profile_workspace_layout(area: Rect) -> (Rect, Rect) {
         .constraints([Constraint::Percentage(46), Constraint::Percentage(54)])
         .split(area);
     (columns[0], columns[1])
-}
-
-fn profile_list_rail_layout(area: Rect) -> (Rect, Rect) {
-    // Selection 面板 3 行内容 + 上下边框 = 5; keys 行已并入全局 footer
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Min(8), Constraint::Length(5)])
-        .split(area);
-    (chunks[0], chunks[1])
 }
 
 fn profile_context_constraints(summary_height: u16, status_visible: bool) -> Vec<Constraint> {
@@ -332,11 +362,7 @@ fn profile_list_row(
     let selector = if is_selected { "▶ " } else { "  " };
     let current_marker = if profile.is_current { "●" } else { "○" };
     let desc = profile.description.as_deref().unwrap_or("").trim();
-    let current_tag = if profile.is_current { " ✓" } else { "" };
-    let name_raw = format!(
-        "{}{} {}{}",
-        selector, current_marker, profile.name, current_tag
-    );
+    let name_raw = format!("{}{} {}", selector, current_marker, profile.name);
     let name_cell = pad_text(&truncate_text(&name_raw, name_width), name_width);
 
     let name_style = if is_selected {
@@ -468,17 +494,23 @@ fn render_profile_workspace(f: &mut Frame, app: &mut App, area: Rect, mode: them
         theme::ViewportMode::Wide => {
             let (list_area, context_area) = wide_profile_workspace_layout(area);
 
-            render_profile_list_rail(f, app, list_area);
+            // Selection 面板已删除 (WS3), 整个 list rail 都留给列表面板。
+            render_profile_list_panel(f, app, list_area);
             render_profile_context_workspace(f, app, context_area, mode);
         }
     }
 }
 
-fn render_profile_list_rail(f: &mut Frame, app: &mut App, area: Rect) {
-    let (list_area, meta_area) = profile_list_rail_layout(area);
-
-    render_profile_list_panel(f, app, list_area);
-    render_profile_meta_panel(f, app, meta_area);
+// 图例并入列表面板下边框标题 (WS3: Wide 专属的 Selection 面板已删除)。
+// title_bottom 渲染在边框行, 不占 inner 高度, 分页计算不受影响。
+fn profile_list_legend_line() -> Line<'static> {
+    Line::from(Span::styled(
+        crate::tui_text!(
+            " Legend: ● current · ▶ selected · ○ available ",
+            " 图例：● 当前 · ▶ 已选择 · ○ 可用 "
+        ),
+        theme::secondary_text_style().remove_modifier(Modifier::BOLD),
+    ))
 }
 
 fn render_profile_list_panel(f: &mut Frame, app: &mut App, area: Rect) {
@@ -541,9 +573,12 @@ fn render_profile_list_panel(f: &mut Frame, app: &mut App, area: Rect) {
         .padding(Padding::horizontal(1));
 
     if profiles.is_empty() {
+        // 空态 / 错误态不带图例。
         render_empty_state(f, app, area, block);
         return;
     }
+
+    let block = block.title_bottom(profile_list_legend_line());
 
     let (name_width, desc_width) = column_widths(area.width);
 
@@ -562,29 +597,6 @@ fn render_profile_list_panel(f: &mut Frame, app: &mut App, area: Rect) {
 
     let list = List::new(items).block(block);
     f.render_widget(list, area);
-}
-
-fn render_profile_meta_panel(f: &mut Frame, app: &App, area: Rect) {
-    let block = Block::default()
-        .borders(Borders::ALL)
-        .border_set(symbols::border::ROUNDED)
-        .border_style(Style::default().fg(theme::border()))
-        .title(crate::tui_text!(" Selection ", " 选择 "))
-        .title_style(theme::secondary_text_emphasis_style())
-        .padding(Padding::horizontal(1));
-
-    let lines: Vec<Line> = profile_meta_strings(
-        app.current_profiles().len(),
-        app.current_page,
-        app.total_pages(),
-        app.selected_profile(),
-    )
-    .into_iter()
-    .map(Line::from)
-    .collect();
-
-    let paragraph = Paragraph::new(lines).block(block).wrap(Wrap { trim: true });
-    f.render_widget(paragraph, area);
 }
 
 fn render_profile_context_workspace(
@@ -635,11 +647,12 @@ fn render_profile_context_workspace(
         profile_name.as_str(),
         config,
         is_current,
+        app.last_applied.as_ref(),
     );
     let summary_height = summary.len() as u16 + 2;
 
     if mode == theme::ViewportMode::Wide {
-        let status_visible = profile_status_message(app, profile_name.as_str()).is_some();
+        let status_visible = profile_status_message(app).is_some();
         let chunks = Layout::default()
             .direction(Direction::Vertical)
             .constraints(profile_context_constraints(summary_height, status_visible))
@@ -648,7 +661,7 @@ fn render_profile_context_workspace(
         render_profile_summary_block(f, app, chunks[0], summary);
         render_profile_details(f, app, chunks[1], mode);
         if status_visible {
-            render_profile_status_strip(f, app, chunks[2], profile_name.as_str());
+            render_profile_status_strip(f, app, chunks[2]);
         }
     } else {
         let chunks = Layout::default()
@@ -694,6 +707,7 @@ fn render_profile_details(f: &mut Frame, app: &mut App, area: Rect, mode: theme:
     // 用量引擎状态只读传入详情行构造(未初始化 = 加载中);渲染循环零 I/O
     let usage_state = app.usage_app.as_ref().map(|engine| &engine.state);
     let compact = mode == theme::ViewportMode::Compact;
+    let expanded = app.profile_details_expanded;
     let lines = if platform == Platform::Codex {
         codex_profile_detail_lines(
             profile.name.as_str(),
@@ -701,6 +715,7 @@ fn render_profile_details(f: &mut Frame, app: &mut App, area: Rect, mode: theme:
             profile.is_current,
             usage_state,
             compact,
+            expanded,
         )
     } else if platform == Platform::Claude {
         claude_profile_detail_lines(
@@ -709,9 +724,16 @@ fn render_profile_details(f: &mut Frame, app: &mut App, area: Rect, mode: theme:
             profile.is_current,
             usage_state,
             compact,
+            expanded,
         )
     } else if platform == Platform::Grok {
-        grok_profile_detail_lines(profile.name.as_str(), config, profile.is_current, compact)
+        grok_profile_detail_lines(
+            profile.name.as_str(),
+            config,
+            profile.is_current,
+            compact,
+            expanded,
+        )
     } else {
         generic_profile_detail_lines(
             profile.name.as_str(),
@@ -719,6 +741,7 @@ fn render_profile_details(f: &mut Frame, app: &mut App, area: Rect, mode: theme:
             profile.is_current,
             platform,
             compact,
+            expanded,
         )
     };
 
@@ -772,8 +795,8 @@ fn render_profile_summary_block(
     f.render_widget(paragraph, area);
 }
 
-fn render_profile_status_strip(f: &mut Frame, app: &App, area: Rect, profile_name: &str) {
-    let Some(text) = profile_status_message(app, profile_name) else {
+fn render_profile_status_strip(f: &mut Frame, app: &App, area: Rect) {
+    let Some(text) = profile_status_message(app) else {
         return;
     };
     let block = Block::default()
@@ -782,7 +805,8 @@ fn render_profile_status_strip(f: &mut Frame, app: &App, area: Rect, profile_nam
         .title(crate::tui_text!(" Status ", " 状态 "))
         .title_style(theme::secondary_text_emphasis_style());
 
-    // 快捷键只保留底部全局 Keys footer 一处; strip 只反馈 apply 结果/toast
+    // 快捷键只保留底部全局 Keys footer 一处; strip 是纯 toast 通道,
+    // apply 常驻反馈在 Focus 面板, 避免两处重复同一句话
     let paragraph = Paragraph::new(text)
         .block(block)
         .alignment(Alignment::Left)
@@ -790,9 +814,8 @@ fn render_profile_status_strip(f: &mut Frame, app: &App, area: Rect, profile_nam
     f.render_widget(paragraph, area);
 }
 
-fn profile_status_message(app: &App, profile_name: &str) -> Option<String> {
-    last_apply_message(profile_name, app.last_applied.as_ref())
-        .or_else(|| app.toasts.active().map(|toast| toast.message.clone()))
+fn profile_status_message(app: &App) -> Option<String> {
+    app.toasts.active().map(|toast| toast.message.clone())
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -901,6 +924,7 @@ enum DetailTone {
     Success,
     Warning,
     StrongWarning,
+    Error,
     Cost,
     Accent { platform: Platform, strong: bool },
 }
@@ -911,6 +935,9 @@ struct DetailField {
     value: String,
     tone: DetailTone,
     emphasize_label: bool,
+    /// 显式「未设置」标记, 由 builder 在构造时赋值 (数据源为 None/空)。
+    /// 折叠判据只看这个标记; 渲染层不得从 value 字符串 (如 "-") 推断语义。
+    unset: bool,
 }
 
 impl DetailField {
@@ -920,6 +947,23 @@ impl DetailField {
             value,
             tone,
             emphasize_label: false,
+            unset: false,
+        }
+    }
+
+    /// 可选值字段: 数据源 None/空白时值为 "-"、tone 降为 Muted、unset 置位。
+    fn optional(key: DetailKey, value: Option<&str>, present: DetailTone) -> Self {
+        let trimmed = value.map(str::trim).filter(|value| !value.is_empty());
+        Self {
+            key,
+            value: trimmed.unwrap_or("-").to_string(),
+            tone: if trimmed.is_some() {
+                present
+            } else {
+                DetailTone::Muted
+            },
+            emphasize_label: false,
+            unset: trimmed.is_none(),
         }
     }
 
@@ -927,13 +971,71 @@ impl DetailField {
         self.emphasize_label = true;
         self
     }
+
+    fn with_unset(mut self, unset: bool) -> Self {
+        self.unset = unset;
+        self
+    }
 }
 
-fn optional_tone(value: &str, present: DetailTone) -> DetailTone {
-    if value == "-" {
-        DetailTone::Muted
-    } else {
-        present
+/// 四个详情构造器共用的组装路径: 穿插 section/空行, 并把连续的未设置字段
+/// 折叠成一行 muted 摘要 (expanded 时逐行渲染)。折叠判据是 builder 显式
+/// 设置的 `DetailField::unset` 标记, 渲染层不做任何字符串推断。
+struct DetailLines {
+    compact: bool,
+    expanded: bool,
+    lines: Vec<Line<'static>>,
+    pending_unset: usize,
+}
+
+impl DetailLines {
+    fn new(compact: bool, expanded: bool) -> Self {
+        Self {
+            compact,
+            expanded,
+            lines: Vec::new(),
+            pending_unset: 0,
+        }
+    }
+
+    fn field(&mut self, field: DetailField) {
+        if field.unset && !self.expanded {
+            self.pending_unset += 1;
+            return;
+        }
+        self.flush_unset();
+        self.lines.push(detail_line(field, self.compact));
+    }
+
+    fn section(&mut self, title: &str) {
+        self.flush_unset();
+        self.lines.push(section_line(title));
+    }
+
+    fn blank(&mut self) {
+        self.flush_unset();
+        self.lines.push(Line::from(""));
+    }
+
+    /// 追加已渲染好的行 (如 Usage 分组); 同样先结算未设置摘要。
+    fn extend_rendered(&mut self, lines: Vec<Line<'static>>) {
+        self.flush_unset();
+        self.lines.extend(lines);
+    }
+
+    fn flush_unset(&mut self) {
+        let count = std::mem::take(&mut self.pending_unset);
+        if count > 0 {
+            self.lines.push(Line::from(Span::styled(
+                crate::tui_format!("{} unset", "{} 项未设置", count),
+                theme::muted_style(),
+            )));
+        }
+    }
+
+    fn finish(mut self) -> Vec<Line<'static>> {
+        self.flush_unset();
+        self.lines
     }
 }
 
@@ -943,70 +1045,50 @@ fn generic_profile_detail_lines(
     _is_current: bool,
     platform: Platform,
     compact: bool,
+    expanded: bool,
 ) -> Vec<Line<'static>> {
-    let description = opt_text(config.description.as_deref());
-    let base_url = opt_text(config.base_url.as_deref());
-    let model = opt_text(config.model.as_deref());
-    let account = opt_text(config.account.as_deref());
-    vec![
-        section_line(" Overview "),
-        detail_line(
-            DetailField::new(
-                DetailKey::Description,
-                description.clone(),
-                optional_tone(&description, DetailTone::Primary),
-            ),
-            compact,
-        ),
-        Line::from(""),
-        section_line(" Runtime "),
-        detail_line(
-            DetailField::new(
-                DetailKey::BaseUrl,
-                base_url.clone(),
-                optional_tone(&base_url, DetailTone::Info),
-            )
-            .emphasized(),
-            compact,
-        ),
-        detail_line(
-            DetailField::new(
-                DetailKey::Model,
-                model.clone(),
-                optional_tone(
-                    &model,
-                    DetailTone::Accent {
-                        platform,
-                        strong: true,
-                    },
-                ),
-            )
-            .emphasized(),
-            compact,
-        ),
-        detail_line(
-            DetailField::new(
-                DetailKey::Account,
-                account.clone(),
-                optional_tone(&account, DetailTone::Info),
-            ),
-            compact,
-        ),
-        Line::from(""),
-        section_line(" Activity "),
-        detail_line(
-            DetailField::new(
-                DetailKey::SwitchCount,
-                config.usage_count().to_string(),
-                DetailTone::Primary,
-            ),
-            compact,
-        ),
-        detail_line(
-            DetailField::new(DetailKey::Tags, tags_text(config), DetailTone::Primary),
-            compact,
-        ),
-    ]
+    let mut details = DetailLines::new(compact, expanded);
+    details.section(" Overview ");
+    details.field(DetailField::optional(
+        DetailKey::Description,
+        config.description.as_deref(),
+        DetailTone::Primary,
+    ));
+    details.blank();
+    details.section(" Runtime ");
+    details.field(
+        DetailField::optional(
+            DetailKey::BaseUrl,
+            config.base_url.as_deref(),
+            DetailTone::Info,
+        )
+        .emphasized(),
+    );
+    details.field(
+        DetailField::optional(
+            DetailKey::Model,
+            config.model.as_deref(),
+            DetailTone::Accent {
+                platform,
+                strong: true,
+            },
+        )
+        .emphasized(),
+    );
+    details.field(DetailField::optional(
+        DetailKey::Account,
+        config.account.as_deref(),
+        DetailTone::Info,
+    ));
+    details.blank();
+    details.section(" Activity ");
+    details.field(DetailField::new(
+        DetailKey::SwitchCount,
+        config.usage_count().to_string(),
+        DetailTone::Primary,
+    ));
+    details.field(tags_field(config));
+    details.finish()
 }
 
 fn grok_profile_detail_lines(
@@ -1014,23 +1096,20 @@ fn grok_profile_detail_lines(
     config: &ProfileConfig,
     _is_current: bool,
     compact: bool,
+    expanded: bool,
 ) -> Vec<Line<'static>> {
-    let description = opt_text(config.description.as_deref());
     let base_url = config
         .base_url
         .as_deref()
         .map(GrokPlatform::safe_base_url_for_display);
-    let base_url = opt_text(base_url.as_deref());
-    let model = opt_text(config.model.as_deref());
     let api_backend = profile_platform_value(config, "api_backend")
         .unwrap_or_else(|| "responses (default)".to_string());
-    let context_window =
-        profile_platform_value(config, "context_window").unwrap_or_else(|| "-".to_string());
-    let backend_search = match config.platform_data.get("supports_backend_search") {
-        Some(serde_json::Value::Bool(value)) => bool_text(Some(*value)).to_string(),
-        None | Some(serde_json::Value::Null) => "-".to_string(),
-        Some(_) => crate::tui_text!("invalid", "无效").to_string(),
-    };
+    let (backend_search, backend_search_unset) =
+        match config.platform_data.get("supports_backend_search") {
+            Some(serde_json::Value::Bool(value)) => (bool_text(Some(*value)).to_string(), false),
+            None | Some(serde_json::Value::Null) => ("-".to_string(), true),
+            Some(_) => (crate::tui_text!("invalid", "无效").to_string(), false),
+        };
     let (auth_mode, auth_tone) = match GrokPlatform::profile_auth_mode(config) {
         Ok(GrokProfileAuthMode::InlineApiKey) => ("inline_api_key".to_string(), DetailTone::Info),
         Ok(GrokProfileAuthMode::EnvKey) => {
@@ -1050,84 +1129,65 @@ fn grok_profile_detail_lines(
         ),
     };
 
-    vec![
-        section_line(" Overview "),
-        detail_line(
-            DetailField::new(
-                DetailKey::Description,
-                description.clone(),
-                optional_tone(&description, DetailTone::Primary),
-            ),
-            compact,
-        ),
-        Line::from(""),
-        section_line(" Engine "),
-        detail_line(
-            DetailField::new(
-                DetailKey::BaseUrl,
-                base_url.clone(),
-                optional_tone(&base_url, DetailTone::Info),
-            )
+    let mut details = DetailLines::new(compact, expanded);
+    details.section(" Overview ");
+    details.field(DetailField::optional(
+        DetailKey::Description,
+        config.description.as_deref(),
+        DetailTone::Primary,
+    ));
+    details.blank();
+    details.section(" Engine ");
+    details.field(
+        DetailField::optional(DetailKey::BaseUrl, base_url.as_deref(), DetailTone::Info)
             .emphasized(),
-            compact,
-        ),
-        detail_line(
-            DetailField::new(
-                DetailKey::Model,
-                model.clone(),
-                optional_tone(
-                    &model,
-                    DetailTone::Accent {
-                        platform: Platform::Grok,
-                        strong: true,
-                    },
-                ),
-            )
-            .emphasized(),
-            compact,
-        ),
-        detail_line(grok_reasoning_effort_field(config), compact),
-        detail_line(
-            DetailField::new(DetailKey::ApiBackend, api_backend, DetailTone::Info),
-            compact,
-        ),
-        detail_line(
-            DetailField::new(
-                DetailKey::ContextWindow,
-                context_window.clone(),
-                optional_tone(&context_window, DetailTone::Info),
-            ),
-            compact,
-        ),
-        detail_line(
-            DetailField::new(
-                DetailKey::BackendSearch,
-                backend_search.clone(),
-                optional_tone(&backend_search, DetailTone::Info),
-            ),
-            compact,
-        ),
-        Line::from(""),
-        section_line(" Routing/Auth "),
-        detail_line(
-            DetailField::new(DetailKey::AuthMode, auth_mode, auth_tone).emphasized(),
-            compact,
-        ),
-        Line::from(""),
-        section_line(" Activity "),
-        detail_line(
-            DetailField::new(
-                DetailKey::SwitchCount,
-                config.usage_count().to_string(),
-                DetailTone::Primary,
-            ),
-            compact,
-        ),
-        detail_line(
-            DetailField::new(DetailKey::Tags, tags_text(config), DetailTone::Primary),
-            compact,
-        ),
-    ]
+    );
+    details.field(
+        DetailField::optional(
+            DetailKey::Model,
+            config.model.as_deref(),
+            DetailTone::Accent {
+                platform: Platform::Grok,
+                strong: true,
+            },
+        )
+        .emphasized(),
+    );
+    details.field(grok_reasoning_effort_field(config));
+    details.field(DetailField::new(
+        DetailKey::ApiBackend,
+        api_backend,
+        DetailTone::Info,
+    ));
+    details.field(DetailField::optional(
+        DetailKey::ContextWindow,
+        profile_platform_value(config, "context_window").as_deref(),
+        DetailTone::Info,
+    ));
+    details.field(
+        DetailField::new(
+            DetailKey::BackendSearch,
+            backend_search,
+            if backend_search_unset {
+                DetailTone::Muted
+            } else {
+                DetailTone::Info
+            },
+        )
+        .with_unset(backend_search_unset),
+    );
+    details.blank();
+    details.section(" Routing/Auth ");
+    details.field(DetailField::new(DetailKey::AuthMode, auth_mode, auth_tone).emphasized());
+    details.blank();
+    details.section(" Activity ");
+    details.field(DetailField::new(
+        DetailKey::SwitchCount,
+        config.usage_count().to_string(),
+        DetailTone::Primary,
+    ));
+    details.field(tags_field(config));
+    details.finish()
 }
 
 fn codex_profile_detail_lines(
@@ -1136,6 +1196,7 @@ fn codex_profile_detail_lines(
     _is_current: bool,
     usage: Option<&UsageLoadState>,
     compact: bool,
+    expanded: bool,
 ) -> Vec<Line<'static>> {
     let auth_mode = CodexPlatform::profile_auth_mode(config);
     let login_method =
@@ -1143,22 +1204,19 @@ fn codex_profile_detail_lines(
             OpenAiAuthMethod::Chatgpt => "chatgpt".to_string(),
             OpenAiAuthMethod::Api => "api".to_string(),
         });
-    let (token_state, token_tone) = match auth_mode.as_str() {
+    let login_method_unset = login_method.is_none();
+    let (token_state, token_tone, token_unset) = match auth_mode.as_str() {
         "openai_api_key" | "provider_env_key" => match configured_token_text(config) {
-            Some(token) => (token, DetailTone::Success),
+            Some(token) => (token, DetailTone::Success, false),
             None => (
                 crate::tui_text!("missing", "缺失").to_string(),
                 DetailTone::Warning,
+                false,
             ),
         },
-        _ => ("-".to_string(), DetailTone::Muted),
+        _ => ("-".to_string(), DetailTone::Muted, true),
     };
-    let description = opt_text(config.description.as_deref());
-    let provider_type = opt_text(config.provider_type.as_deref());
-    let provider = opt_text(config.provider.as_deref());
     let auth_source = CodexPlatform::profile_auth_source(config);
-    let env_key = opt_text(profile_platform_value(config, "env_key").as_deref());
-    let wire_api = opt_text(profile_platform_value(config, "wire_api").as_deref());
     let requires_openai = profile_platform_value(config, "requires_openai_auth")
         .as_deref()
         .and_then(|value| match value {
@@ -1166,171 +1224,128 @@ fn codex_profile_detail_lines(
             "false" => Some(false),
             _ => None,
         });
-    let requires_openai_text = bool_text(requires_openai).to_string();
-    let base_url = opt_text(config.base_url.as_deref());
-    let model = opt_text(config.model.as_deref());
-    let small_fast = opt_text(config.small_fast_model.as_deref());
-    let account = opt_text(config.account.as_deref());
 
-    let mut lines = vec![
-        section_line(" Overview "),
-        detail_line(
-            DetailField::new(
-                DetailKey::Description,
-                description.clone(),
-                optional_tone(&description, DetailTone::Primary),
-            ),
-            compact,
-        ),
-        Line::from(""),
-        section_line(" Engine "),
-        detail_line(
-            DetailField::new(
-                DetailKey::BaseUrl,
-                base_url.clone(),
-                optional_tone(&base_url, DetailTone::Info),
-            )
-            .emphasized(),
-            compact,
-        ),
-        detail_line(
-            DetailField::new(
-                DetailKey::Model,
-                model.clone(),
-                optional_tone(
-                    &model,
-                    DetailTone::Accent {
-                        platform: Platform::Codex,
-                        strong: true,
-                    },
-                ),
-            )
-            .emphasized(),
-            compact,
-        ),
-        detail_line(codex_reasoning_effort_field(config), compact),
-        detail_line(
-            DetailField::new(
-                DetailKey::SmallFast,
-                small_fast.clone(),
-                optional_tone(&small_fast, DetailTone::Info),
-            ),
-            compact,
-        ),
-        detail_line(
-            DetailField::new(
-                DetailKey::Account,
-                account.clone(),
-                optional_tone(&account, DetailTone::Info),
-            ),
-            compact,
-        ),
-        Line::from(""),
-        section_line(" Routing/Auth "),
-        detail_line(
-            DetailField::new(
-                DetailKey::ProviderType,
-                provider_type.clone(),
-                optional_tone(&provider_type, DetailTone::Info),
-            ),
-            compact,
-        ),
-        detail_line(
-            DetailField::new(
-                DetailKey::Provider,
-                provider.clone(),
-                optional_tone(
-                    &provider,
-                    DetailTone::Accent {
-                        platform: Platform::Codex,
-                        strong: false,
-                    },
-                ),
-            )
-            .emphasized(),
-            compact,
-        ),
-        detail_line(
-            DetailField::new(
-                DetailKey::AuthMode,
-                auth_mode.as_str().to_string(),
-                DetailTone::Info,
-            )
-            .emphasized(),
-            compact,
-        ),
-        detail_line(
-            DetailField::new(
-                DetailKey::AuthSource,
-                auth_source.clone(),
-                optional_tone(&auth_source, DetailTone::Info),
-            ),
-            compact,
-        ),
-        detail_line(
-            DetailField::new(DetailKey::Token, token_state, token_tone).emphasized(),
-            compact,
-        ),
-        detail_line(
-            DetailField::new(
-                DetailKey::OpenAiLogin,
-                login_method.unwrap_or_else(|| "-".to_string()),
-                DetailTone::Info,
-            ),
-            compact,
-        ),
-        detail_line(
-            DetailField::new(
-                DetailKey::EnvKey,
-                env_key.clone(),
-                optional_tone(&env_key, DetailTone::Info),
-            ),
-            compact,
-        ),
-        detail_line(
-            DetailField::new(
-                DetailKey::WireApi,
-                wire_api.clone(),
-                optional_tone(&wire_api, DetailTone::Info),
-            ),
-            compact,
-        ),
-        detail_line(
-            DetailField::new(
-                DetailKey::RequiresOpenAi,
-                requires_openai_text,
-                match requires_openai {
-                    Some(true) => DetailTone::Success,
-                    Some(false) => DetailTone::Warning,
-                    None => DetailTone::Muted,
-                },
-            ),
-            compact,
-        ),
-        Line::from(""),
-        section_line(" Activity "),
-        detail_line(
-            DetailField::new(
-                DetailKey::SwitchCount,
-                config.usage_count().to_string(),
-                DetailTone::Primary,
-            ),
-            compact,
-        ),
-        detail_line(
-            DetailField::new(DetailKey::Tags, tags_text(config), DetailTone::Primary),
-            compact,
-        ),
-    ];
-
-    lines.extend(usage_section_lines(
+    let mut details = DetailLines::new(compact, expanded);
+    details.section(" Overview ");
+    details.field(DetailField::optional(
+        DetailKey::Description,
+        config.description.as_deref(),
+        DetailTone::Primary,
+    ));
+    details.blank();
+    details.section(" Engine ");
+    details.field(
+        DetailField::optional(
+            DetailKey::BaseUrl,
+            config.base_url.as_deref(),
+            DetailTone::Info,
+        )
+        .emphasized(),
+    );
+    details.field(
+        DetailField::optional(
+            DetailKey::Model,
+            config.model.as_deref(),
+            DetailTone::Accent {
+                platform: Platform::Codex,
+                strong: true,
+            },
+        )
+        .emphasized(),
+    );
+    details.field(codex_reasoning_effort_field(config));
+    details.field(DetailField::optional(
+        DetailKey::SmallFast,
+        config.small_fast_model.as_deref(),
+        DetailTone::Info,
+    ));
+    details.field(DetailField::optional(
+        DetailKey::Account,
+        config.account.as_deref(),
+        DetailTone::Info,
+    ));
+    details.blank();
+    details.section(" Routing/Auth ");
+    details.field(DetailField::optional(
+        DetailKey::ProviderType,
+        config.provider_type.as_deref(),
+        DetailTone::Info,
+    ));
+    details.field(
+        DetailField::optional(
+            DetailKey::Provider,
+            config.provider.as_deref(),
+            DetailTone::Accent {
+                platform: Platform::Codex,
+                strong: false,
+            },
+        )
+        .emphasized(),
+    );
+    details.field(
+        DetailField::new(
+            DetailKey::AuthMode,
+            auth_mode.as_str().to_string(),
+            DetailTone::Info,
+        )
+        .emphasized(),
+    );
+    details.field(DetailField::new(
+        DetailKey::AuthSource,
+        auth_source,
+        DetailTone::Info,
+    ));
+    details.field(
+        DetailField::new(DetailKey::Token, token_state, token_tone)
+            .emphasized()
+            .with_unset(token_unset),
+    );
+    details.field(
+        DetailField::new(
+            DetailKey::OpenAiLogin,
+            login_method.unwrap_or_else(|| "-".to_string()),
+            DetailTone::Info,
+        )
+        .with_unset(login_method_unset),
+    );
+    details.field(DetailField::optional(
+        DetailKey::EnvKey,
+        profile_platform_value(config, "env_key").as_deref(),
+        DetailTone::Info,
+    ));
+    details.field(DetailField::optional(
+        DetailKey::WireApi,
+        profile_platform_value(config, "wire_api").as_deref(),
+        DetailTone::Info,
+    ));
+    details.field(
+        DetailField::new(
+            DetailKey::RequiresOpenAi,
+            bool_text(requires_openai).to_string(),
+            match requires_openai {
+                Some(true) => DetailTone::Success,
+                // false 是正常配置态而非异常, 用中性 muted; warning 黄只留给
+                // 真正异常 (如 token missing)。
+                Some(false) | None => DetailTone::Muted,
+            },
+        )
+        .with_unset(requires_openai.is_none()),
+    );
+    details.blank();
+    details.section(" Activity ");
+    details.field(DetailField::new(
+        DetailKey::SwitchCount,
+        config.usage_count().to_string(),
+        DetailTone::Primary,
+    ));
+    details.field(tags_field(config));
+    details.extend_rendered(usage_section_lines(
         SourceKind::Codex,
         config.provider.as_deref(),
         usage,
         compact,
     ));
-
-    lines
+    details.finish()
 }
 
 fn claude_profile_detail_lines(
@@ -1339,10 +1354,9 @@ fn claude_profile_detail_lines(
     _is_current: bool,
     usage: Option<&UsageLoadState>,
     compact: bool,
+    expanded: bool,
 ) -> Vec<Line<'static>> {
     let auth_mode = ccr_cli::platforms::ClaudePlatform::profile_auth_mode(config);
-    let provider_type = opt_text(config.provider_type.as_deref());
-    let provider = opt_text(config.provider.as_deref());
     let (token_state, token_tone) =
         if matches!(auth_mode, ccr_cli::models::ClaudeProfileAuthMode::ApiKey) {
             match configured_token_text(config) {
@@ -1358,137 +1372,111 @@ fn claude_profile_detail_lines(
                 DetailTone::Info,
             )
         };
-    let description = opt_text(config.description.as_deref());
-    let base_url = opt_text(config.base_url.as_deref());
-    let model = opt_text(config.model.as_deref());
-    let small_fast = opt_text(config.small_fast_model.as_deref());
-    let account = opt_text(config.account.as_deref());
     let auth_source = ccr_cli::platforms::ClaudePlatform::profile_auth_source(config);
 
-    let mut lines = vec![
-        section_line(" Overview "),
-        detail_line(
-            DetailField::new(
-                DetailKey::Description,
-                description.clone(),
-                optional_tone(&description, DetailTone::Primary),
-            ),
-            compact,
-        ),
-        Line::from(""),
-        section_line(" Engine "),
-        detail_line(
-            DetailField::new(
-                DetailKey::BaseUrl,
-                base_url.clone(),
-                optional_tone(&base_url, DetailTone::Info),
-            )
-            .emphasized(),
-            compact,
-        ),
-        detail_line(
-            DetailField::new(
-                DetailKey::Model,
-                model.clone(),
-                optional_tone(
-                    &model,
-                    DetailTone::Accent {
-                        platform: Platform::Claude,
-                        strong: true,
-                    },
-                ),
-            )
-            .emphasized(),
-            compact,
-        ),
-        detail_line(
-            DetailField::new(
-                DetailKey::SmallFast,
-                small_fast.clone(),
-                optional_tone(&small_fast, DetailTone::Info),
-            ),
-            compact,
-        ),
-        detail_line(
-            DetailField::new(
-                DetailKey::Account,
-                account.clone(),
-                optional_tone(&account, DetailTone::Info),
-            ),
-            compact,
-        ),
-        Line::from(""),
-        section_line(" Routing/Auth "),
-        detail_line(
-            DetailField::new(
-                DetailKey::AuthMode,
-                auth_mode.as_str().to_string(),
-                DetailTone::Info,
-            )
-            .emphasized(),
-            compact,
-        ),
-        detail_line(
-            DetailField::new(
-                DetailKey::AuthSource,
-                auth_source.clone(),
-                optional_tone(&auth_source, DetailTone::Info),
-            ),
-            compact,
-        ),
-        detail_line(
-            DetailField::new(DetailKey::Token, token_state, token_tone).emphasized(),
-            compact,
-        ),
-    ];
+    let mut details = DetailLines::new(compact, expanded);
+    details.section(" Overview ");
+    details.field(DetailField::optional(
+        DetailKey::Description,
+        config.description.as_deref(),
+        DetailTone::Primary,
+    ));
+    details.blank();
+    details.section(" Engine ");
+    details.field(
+        DetailField::optional(
+            DetailKey::BaseUrl,
+            config.base_url.as_deref(),
+            DetailTone::Info,
+        )
+        .emphasized(),
+    );
+    details.field(
+        DetailField::optional(
+            DetailKey::Model,
+            config.model.as_deref(),
+            DetailTone::Accent {
+                platform: Platform::Claude,
+                strong: true,
+            },
+        )
+        .emphasized(),
+    );
+    details.field(DetailField::optional(
+        DetailKey::SmallFast,
+        config.small_fast_model.as_deref(),
+        DetailTone::Info,
+    ));
+    details.field(DetailField::optional(
+        DetailKey::Account,
+        config.account.as_deref(),
+        DetailTone::Info,
+    ));
+    details.blank();
+    details.section(" Routing/Auth ");
+    details.field(
+        DetailField::new(
+            DetailKey::AuthMode,
+            auth_mode.as_str().to_string(),
+            DetailTone::Info,
+        )
+        .emphasized(),
+    );
+    details.field(DetailField::new(
+        DetailKey::AuthSource,
+        auth_source,
+        DetailTone::Info,
+    ));
+    details.field(DetailField::new(DetailKey::Token, token_state, token_tone).emphasized());
 
-    if provider_type != "-" {
-        lines.push(detail_line(
-            DetailField::new(DetailKey::ProviderType, provider_type, DetailTone::Info),
-            compact,
+    // provider_type / provider 未设置时保持既有行为: 整行省略, 不参与折叠计数
+    if let Some(provider_type) = config
+        .provider_type
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    {
+        details.field(DetailField::new(
+            DetailKey::ProviderType,
+            provider_type.to_string(),
+            DetailTone::Info,
         ));
     }
 
-    if provider != "-" {
-        lines.push(detail_line(
+    if let Some(provider) = config
+        .provider
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    {
+        details.field(
             DetailField::new(
                 DetailKey::Provider,
-                provider,
+                provider.to_string(),
                 DetailTone::Accent {
                     platform: Platform::Claude,
                     strong: false,
                 },
             )
             .emphasized(),
-            compact,
-        ));
+        );
     }
 
-    lines.extend([
-        Line::from(""),
-        section_line(" Activity "),
-        detail_line(
-            DetailField::new(
-                DetailKey::SwitchCount,
-                config.usage_count().to_string(),
-                DetailTone::Primary,
-            ),
-            compact,
-        ),
-        detail_line(
-            DetailField::new(DetailKey::Tags, tags_text(config), DetailTone::Primary),
-            compact,
-        ),
-    ]);
-
-    lines.extend(usage_section_lines(
+    details.blank();
+    details.section(" Activity ");
+    details.field(DetailField::new(
+        DetailKey::SwitchCount,
+        config.usage_count().to_string(),
+        DetailTone::Primary,
+    ));
+    details.field(tags_field(config));
+    details.extend_rendered(usage_section_lines(
         SourceKind::Claude,
         config.provider.as_deref(),
         usage,
         compact,
     ));
-
-    lines
+    details.finish()
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1762,6 +1750,7 @@ fn detail_tone_style(tone: DetailTone) -> Style {
         DetailTone::Success => theme::success_style(),
         DetailTone::Warning => theme::warning_style(),
         DetailTone::StrongWarning => theme::warning_style().add_modifier(Modifier::BOLD),
+        DetailTone::Error => theme::error_style(),
         DetailTone::Cost => theme::warning_style().add_modifier(Modifier::BOLD),
         DetailTone::Accent { platform, strong } => {
             let style = Style::default().fg(theme::accent_for(platform));
@@ -1811,14 +1800,6 @@ fn profile_summary_line(field: ProfileSummaryField) -> Line<'static> {
     ])
 }
 
-fn opt_text(value: Option<&str>) -> String {
-    value
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-        .unwrap_or("-")
-        .to_string()
-}
-
 fn bool_text(value: Option<bool>) -> &'static str {
     match value {
         Some(true) => crate::tui_text!("yes", "是"),
@@ -1836,6 +1817,11 @@ fn tags_text(config: &ProfileConfig) -> String {
         .unwrap_or_else(|| "-".to_string())
 }
 
+fn tags_field(config: &ProfileConfig) -> DetailField {
+    let unset = config.tags.as_ref().is_none_or(|tags| tags.is_empty());
+    DetailField::new(DetailKey::Tags, tags_text(config), DetailTone::Primary).with_unset(unset)
+}
+
 fn profile_platform_value(config: &ProfileConfig, key: &str) -> Option<String> {
     config.platform_data.get(key).and_then(|value| match value {
         serde_json::Value::String(text) if !text.trim().is_empty() => Some(text.trim().to_string()),
@@ -1846,10 +1832,10 @@ fn profile_platform_value(config: &ProfileConfig, key: &str) -> Option<String> {
 }
 
 fn codex_reasoning_effort_field(config: &ProfileConfig) -> DetailField {
-    let (value, tone) = match config.platform_data.get("model_reasoning_effort") {
-        None => ("-".to_string(), DetailTone::Muted),
+    let (value, tone, unset) = match config.platform_data.get("model_reasoning_effort") {
+        None => ("-".to_string(), DetailTone::Muted, true),
         Some(serde_json::Value::String(raw)) if raw.trim().is_empty() => {
-            ("-".to_string(), DetailTone::Muted)
+            ("-".to_string(), DetailTone::Muted, true)
         }
         Some(serde_json::Value::String(raw)) => {
             let normalized = raw.trim().to_ascii_lowercase();
@@ -1867,22 +1853,25 @@ fn codex_reasoning_effort_field(config: &ProfileConfig) -> DetailField {
                 "xhigh" => DetailTone::StrongWarning,
                 _ => DetailTone::Warning,
             };
-            (normalized, tone)
+            (normalized, tone, false)
         }
         Some(_) => (
             crate::tui_text!("invalid", "无效").to_string(),
             DetailTone::Warning,
+            false,
         ),
     };
 
-    DetailField::new(DetailKey::ReasoningEffort, value, tone).emphasized()
+    DetailField::new(DetailKey::ReasoningEffort, value, tone)
+        .emphasized()
+        .with_unset(unset)
 }
 
 fn grok_reasoning_effort_field(config: &ProfileConfig) -> DetailField {
-    let (value, tone) = match config.platform_data.get("reasoning_effort") {
-        None | Some(serde_json::Value::Null) => ("-".to_string(), DetailTone::Muted),
+    let (value, tone, unset) = match config.platform_data.get("reasoning_effort") {
+        None | Some(serde_json::Value::Null) => ("-".to_string(), DetailTone::Muted, true),
         Some(serde_json::Value::String(raw)) if raw.trim().is_empty() => {
-            ("-".to_string(), DetailTone::Muted)
+            ("-".to_string(), DetailTone::Muted, true)
         }
         Some(serde_json::Value::String(raw)) => {
             let trimmed = raw.trim();
@@ -1907,54 +1896,30 @@ fn grok_reasoning_effort_field(config: &ProfileConfig) -> DetailField {
                 "xhigh" | "max" => (normalized, DetailTone::StrongWarning),
                 _ => (trimmed.to_string(), DetailTone::Warning),
             };
-            (value, tone)
+            (value, tone, false)
         }
         Some(_) => (
             crate::tui_text!("invalid", "无效").to_string(),
             DetailTone::Warning,
+            false,
         ),
     };
 
-    DetailField::new(DetailKey::ReasoningEffort, value, tone).emphasized()
+    DetailField::new(DetailKey::ReasoningEffort, value, tone)
+        .emphasized()
+        .with_unset(unset)
 }
 
-fn profile_meta_strings(
-    total_profiles: usize,
-    current_page: usize,
-    total_pages: usize,
-    selected: Option<&crate::tui::app::ProfileItem>,
-) -> Vec<String> {
-    let selection = selected
-        .map(|profile| {
-            if profile.is_current {
-                crate::tui_format!("Selected: {} (current)", "已选择：{}（当前）", profile.name)
-            } else {
-                crate::tui_format!("Selected: {}", "已选择：{}", profile.name)
-            }
-        })
-        .unwrap_or_else(|| crate::tui_text!("Selected: -", "已选择：-").to_string());
-
-    vec![
-        selection,
-        crate::tui_format!(
-            "Profiles: {total_profiles} · Page: {}/{}",
-            "配置数：{total_profiles} · 页码：{}/{}",
-            current_page + 1,
-            total_pages.max(1)
-        ),
-        crate::tui_text!("Legend: ● current · ▶ selected", "图例：● 当前 · ▶ 已选择").to_string(),
-    ]
-}
-
-// Focus 块只保留 profile 身份与状态。详情参数在 Context 展示，apply/toast 反馈在
-// 按需出现的 Status strip 展示，避免同一信息占据两处首屏空间。
+// Focus 块承载 profile 身份、状态与最近一次 apply 反馈。详情参数在 Context 展示,
+// Wide 专属的 Status strip 只承载 toast, 不与 Focus 重复同一句反馈。
 fn profile_summary_fields(
     platform: Platform,
     name: &str,
     config: &ProfileConfig,
     is_current: bool,
+    last_applied: Option<&(String, String, bool, Option<String>)>,
 ) -> Vec<ProfileSummaryField> {
-    vec![
+    let mut fields = vec![
         ProfileSummaryField {
             label: crate::tui_text!("Name", "名称").to_string(),
             value: name.to_string(),
@@ -1987,7 +1952,22 @@ fn profile_summary_fields(
                 DetailTone::Info
             },
         },
-    ]
+    ];
+
+    if let Some(message) = last_apply_message(name, last_applied) {
+        let success = last_applied.is_some_and(|entry| entry.2);
+        fields.push(ProfileSummaryField {
+            label: crate::tui_text!("Last apply", "最近切换").to_string(),
+            value: message,
+            tone: if success {
+                DetailTone::Success
+            } else {
+                DetailTone::Error
+            },
+        });
+    }
+
+    fields
 }
 
 fn last_apply_message(
@@ -2000,11 +1980,11 @@ fn last_apply_message(
     }
 
     if *success {
-        Some(crate::tui_text!("Applied successfully", "应用成功").to_string())
+        Some(crate::tui_format!("Switched to {}", "已切换到 {}", name))
     } else {
         Some(crate::tui_format!(
-            "Apply failed{}",
-            "应用失败{}",
+            "Switch failed{}",
+            "切换失败{}",
             error
                 .as_ref()
                 .map(|err| format!(" ({err})"))
@@ -2212,19 +2192,23 @@ fn footer_hints_for_width(app: &App, width: u16) -> Vec<ShortcutHint<'static>> {
     let is_profile = matches!(app.current_tab().variant, TabVariant::Profile);
 
     if width < 90 {
+        // 紧凑页脚单行会被右侧裁剪: spec 强制保留的 PgUp/PgDn 与 Ctrl+L 排在前面,
+        // 新标注 (x 未设置 / o 解绑 / q 退出) 在宽度不足时最后降级, 但绝不留下错误描述
         let mut hints = vec![
             ShortcutHint::new("Tab", ""),
             ShortcutHint::new("↑↓", crate::tui_text!("select", "选择")),
             ShortcutHint::new("PgUp/PgDn", crate::tui_text!("details", "详情")),
-            ShortcutHint::new("Enter", crate::tui_text!("apply", "应用")),
+            ShortcutHint::new("Enter/Space", crate::tui_text!("apply", "应用")),
+            ShortcutHint::new("Ctrl+L", crate::tui_text!("lang", "语言")),
         ];
         if is_profile {
-            hints.push(ShortcutHint::new("o", ""));
+            hints.push(ShortcutHint::new("x", crate::tui_text!("unset", "未设置")));
+            hints.push(ShortcutHint::new(
+                "o",
+                crate::tui_text!("deactivate", "解绑"),
+            ));
         }
-        hints.extend([
-            ShortcutHint::new("Ctrl+L", crate::tui_text!("lang", "语言")),
-            ShortcutHint::new("q", crate::tui_text!("quit", "退出")),
-        ]);
+        hints.push(ShortcutHint::new("q", crate::tui_text!("quit", "退出")));
         return hints;
     }
 
@@ -2238,12 +2222,13 @@ fn footer_hints_for_width(app: &App, width: u16) -> Vec<ShortcutHint<'static>> {
     hints.extend([
         ShortcutHint::new("↑↓/jk", crate::tui_text!("select", "选择")),
         ShortcutHint::new("PgUp/PgDn", crate::tui_text!("details", "详情")),
-        ShortcutHint::new("Enter", crate::tui_text!("apply", "应用")),
+        ShortcutHint::new("Enter/Space", crate::tui_text!("apply", "应用")),
     ]);
     if is_profile {
+        hints.push(ShortcutHint::new("x", crate::tui_text!("unset", "未设置")));
         hints.push(ShortcutHint::new(
             "o",
-            crate::tui_text!("off", "退出 Profile"),
+            crate::tui_text!("deactivate", "解绑"),
         ));
     }
     hints.extend([
@@ -2360,6 +2345,7 @@ mod tests {
             list_area: Cell::new(None),
             detail_area: Cell::new(None),
             profile_detail_scroll: 0,
+            profile_details_expanded: false,
             task_executor: crate::tui::runtime::AsyncTaskExecutor::from_current_or_test(),
         }
     }
@@ -2469,13 +2455,8 @@ mod tests {
         let app = sample_profile_app(profile, ProfileConfig::new());
 
         assert!(footer_text(&app).contains("Tab/Shift+Tab switch"));
-        assert!(footer_text(&app).contains("o off"));
-        // 快捷键只保留 footer 一处, Selection 面板不再重复
-        assert!(
-            !profile_meta_strings(1, 0, 1, app.selected_profile())
-                .iter()
-                .any(|line| line.contains("Tab/Shift+Tab switch"))
-        );
+        assert!(footer_text(&app).contains("Enter/Space apply"));
+        assert!(footer_text(&app).contains("o deactivate"));
     }
 
     #[test]
@@ -2488,7 +2469,8 @@ mod tests {
         let mut app = sample_profile_app(profile, ProfileConfig::new());
         app.tabs[0].variant = TabVariant::ClaudeAuth;
 
-        assert!(!footer_text(&app).contains("o off"));
+        assert!(!footer_text(&app).contains("o deactivate"));
+        assert!(!footer_text(&app).contains("x unset"));
         assert!(!footer_text_for_width(&app, 80).contains(" o "));
     }
 
@@ -2563,14 +2545,6 @@ mod tests {
         assert!((10..=18).contains(&chinese));
         assert!(detail_label_width(true) <= 12);
         crate::tui::i18n::set_language(ccr_cli::managers::TuiLanguage::English);
-    }
-
-    #[test]
-    fn profile_list_rail_layout_keeps_full_selection_panel_visible() {
-        let (list_area, meta_area) = profile_list_rail_layout(Rect::new(0, 0, 58, 20));
-
-        assert_eq!(list_area.height, 15);
-        assert_eq!(meta_area.height, 5);
     }
 
     #[test]
@@ -2719,33 +2693,13 @@ mod tests {
     }
 
     #[test]
-    fn profile_meta_strings_show_selection_and_paging() {
-        let profile = crate::tui::app::ProfileItem {
-            name: "fovts".to_string(),
-            description: Some("公益".to_string()),
-            is_current: true,
-        };
-
-        let lines = profile_meta_strings(15, 1, 2, Some(&profile));
-
-        assert!(lines.iter().any(|line| line.contains("Selected: fovts")));
-        assert!(
-            lines
-                .iter()
-                .any(|line| line.contains("Profiles: 15 · Page: 2/2"))
-        );
-        assert!(lines.iter().any(|line| line.contains("Legend:")));
-        assert!(!lines.iter().any(|line| line.contains("Enter apply")));
-    }
-
-    #[test]
     fn profile_summary_fields_focus_on_identity_and_status() {
         let mut config = ProfileConfig::new();
         config.description = Some("fovts 公益".to_string());
         config.model = Some("gpt-5.4".to_string());
         config.base_url = Some("https://example.com/v1".to_string());
 
-        let fields = profile_summary_fields(Platform::Codex, "fovts", &config, true);
+        let fields = profile_summary_fields(Platform::Codex, "fovts", &config, true, None);
         let lines: Vec<String> = fields
             .clone()
             .into_iter()
@@ -2772,14 +2726,16 @@ mod tests {
         let mut config = ProfileConfig::new();
         config.enabled = Some(false);
 
-        let fields = profile_summary_fields(Platform::Codex, "fovts", &config, false);
+        let fields = profile_summary_fields(Platform::Codex, "fovts", &config, false, None);
 
         assert_eq!(fields.len(), 2);
         assert_eq!(fields[1].tone, DetailTone::Warning);
     }
 
     #[test]
-    fn profile_status_strip_surfaces_last_apply_feedback() {
+    fn profile_status_strip_ignores_last_apply_feedback() {
+        // apply 常驻反馈已迁到 Focus 面板; Status strip 退化为纯 toast 通道,
+        // 只有 last_applied 而没有活跃 toast 时 strip 保持隐藏
         let profile = ProfileItem {
             name: "fovts".to_string(),
             description: Some("fovts 公益".to_string()),
@@ -2790,14 +2746,76 @@ mod tests {
 
         let mut terminal = Terminal::new(TestBackend::new(72, 3)).unwrap();
         terminal
-            .draw(|frame| render_profile_status_strip(frame, &app, frame.area(), "fovts"))
+            .draw(|frame| render_profile_status_strip(frame, &app, frame.area()))
             .unwrap();
 
         let rendered = buffer_text(terminal.backend());
-        assert!(rendered.contains("Applied successfully"), "{rendered}");
+        assert!(!rendered.contains("Switched to fovts"), "{rendered}");
+        assert!(!rendered.contains("Status"), "{rendered}");
         // strip 不再重复快捷键列表
-        assert!(!rendered.contains("Enter apply"), "{rendered}");
+        assert!(!rendered.contains("Enter/Space apply"), "{rendered}");
         assert!(!rendered.contains("q quit"), "{rendered}");
+    }
+
+    #[test]
+    fn profile_summary_fields_surface_last_apply_feedback() {
+        let config = ProfileConfig::new();
+
+        let success: Option<(String, String, bool, Option<String>)> =
+            Some(("Codex Profile".to_string(), "fovts".to_string(), true, None));
+        let fields =
+            profile_summary_fields(Platform::Codex, "fovts", &config, true, success.as_ref());
+        assert_eq!(fields.len(), 3);
+        assert_eq!(fields[2].label, "Last apply");
+        assert!(fields[2].value.contains("Switched to fovts"));
+        assert_eq!(fields[2].tone, DetailTone::Success);
+
+        let failure: Option<(String, String, bool, Option<String>)> = Some((
+            "Codex Profile".to_string(),
+            "fovts".to_string(),
+            false,
+            Some("io error".to_string()),
+        ));
+        let fields =
+            profile_summary_fields(Platform::Codex, "fovts", &config, true, failure.as_ref());
+        assert_eq!(fields.len(), 3);
+        assert!(fields[2].value.contains("Switch failed (io error)"));
+        assert_eq!(fields[2].tone, DetailTone::Error);
+
+        // 其它 profile 的 apply 结果不得串到当前选中项
+        let fields =
+            profile_summary_fields(Platform::Codex, "other", &config, true, success.as_ref());
+        assert_eq!(fields.len(), 2);
+    }
+
+    #[test]
+    fn profile_focus_shows_last_apply_feedback_across_viewports() {
+        for (width, height) in [(80, 20), (100, 30), (140, 32)] {
+            let profile = ProfileItem {
+                name: "fovts".to_string(),
+                description: Some("fovts 公益".to_string()),
+                is_current: true,
+            };
+            let mut app = sample_profile_app(profile, ProfileConfig::new());
+            app.last_applied = Some(("Claude Code".to_string(), "fovts".to_string(), true, None));
+
+            let mut terminal = Terminal::new(TestBackend::new(width, height)).unwrap();
+            terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+
+            let rendered = buffer_text(terminal.backend());
+            assert!(
+                rendered.contains("Switched to fovts"),
+                "{width}x{height}: {rendered}"
+            );
+            if width == 140 {
+                // Wide 下反馈只出现在 Focus, 不在 Status strip 重复
+                assert_eq!(
+                    rendered.matches("Switched to fovts").count(),
+                    1,
+                    "{width}x{height}: {rendered}"
+                );
+            }
+        }
     }
 
     #[test]
@@ -2811,31 +2829,292 @@ mod tests {
 
         let mut terminal = Terminal::new(TestBackend::new(72, 3)).unwrap();
         terminal
-            .draw(|frame| render_profile_status_strip(frame, &app, frame.area(), "fovts"))
+            .draw(|frame| render_profile_status_strip(frame, &app, frame.area()))
             .unwrap();
 
         let rendered = buffer_text(terminal.backend());
         assert!(!rendered.contains("Status"), "{rendered}");
-        assert!(!rendered.contains("Enter apply"), "{rendered}");
+        assert!(!rendered.contains("Enter/Space apply"), "{rendered}");
         assert!(!rendered.contains("Tab/Shift+Tab"), "{rendered}");
     }
 
+    // ── Codex runtime banner (WS2) ──────────────────────────
+
+    fn codex_runtime_summary_fixture(
+        mode: ccr_cli::models::CodexRuntimeMode,
+        profile_name: Option<&str>,
+    ) -> CodexRuntimeSummary {
+        CodexRuntimeSummary {
+            mode,
+            current_profile_name: profile_name.map(str::to_string),
+            current_profile_provider: None,
+            current_profile_auth_mode: None,
+            current_profile_auth_source: None,
+            current_auth_name: None,
+            login_state: ccr_cli::models::LoginState::NotLoggedIn,
+            auth_state: ccr_cli::models::AuthState {
+                intent: ccr_cli::models::AuthIntent::NoAuth,
+                store: ccr_cli::models::CredentialStoreKind::Auto,
+                status: ccr_cli::models::AuthStateStatus::Missing,
+                reason: String::new(),
+            },
+        }
+    }
+
+    fn banner_lines_text(lines: &[Line<'_>]) -> String {
+        lines
+            .iter()
+            .map(plain_line_text)
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+
     #[test]
-    fn profile_meta_panel_render_shows_legend_when_rail_has_extra_height() {
+    fn codex_banner_unbound_chip_uses_plain_copy_in_both_languages() {
+        let summary =
+            codex_runtime_summary_fixture(ccr_cli::models::CodexRuntimeMode::RuntimeOnly, None);
+
+        crate::tui::i18n::set_language(ccr_cli::managers::TuiLanguage::English);
+        let text = banner_lines_text(&codex_runtime_banner_lines(Some(&summary), None, false));
+        assert!(text.contains("Not bound · runtime auth only"), "{text}");
+        assert!(text.contains("How it runs:"), "{text}");
+        assert!(!text.contains("未绑定"), "{text}");
+
+        crate::tui::i18n::set_language(ccr_cli::managers::TuiLanguage::SimplifiedChinese);
+        let text = banner_lines_text(&codex_runtime_banner_lines(Some(&summary), None, false));
+        assert!(text.contains("未绑定 · 仅运行时认证"), "{text}");
+        assert!(text.contains("运行方式："), "{text}");
+        assert!(!text.contains("Not bound"), "{text}");
+
+        crate::tui::i18n::set_language(ccr_cli::managers::TuiLanguage::English);
+    }
+
+    #[test]
+    fn codex_banner_bound_chip_shows_profile_name_and_model() {
+        let summary = codex_runtime_summary_fixture(
+            ccr_cli::models::CodexRuntimeMode::ProfileOnly,
+            Some("fovts"),
+        );
+
+        // 有 model: 名字 + model
+        let text = banner_lines_text(&codex_runtime_banner_lines(
+            Some(&summary),
+            Some("gpt-5.5"),
+            false,
+        ));
+        assert!(text.contains("fovts · gpt-5.5"), "{text}");
+
+        // model 为空/空白: 只显示名字, 不留空占位
+        for model in [None, Some(""), Some("   ")] {
+            let text = banner_lines_text(&codex_runtime_banner_lines(Some(&summary), model, false));
+            assert!(text.contains("Profile: fovts"), "{text}");
+            assert!(!text.contains("fovts ·"), "{text}");
+        }
+    }
+
+    #[test]
+    fn codex_banner_auth_value_uses_neutral_subtext_not_success() {
+        let summary =
+            codex_runtime_summary_fixture(ccr_cli::models::CodexRuntimeMode::RuntimeOnly, None);
+
+        let lines = codex_runtime_banner_lines(Some(&summary), None, false);
+        let auth_span = lines[1]
+            .spans
+            .last()
+            .expect("banner profile/auth line must have an auth value span");
+        assert_eq!(auth_span.style.fg, Some(theme::subtext()));
+        assert_ne!(auth_span.style.fg, Some(theme::success()));
+    }
+
+    #[test]
+    fn codex_banner_draw_drops_internal_jargon_across_viewports() {
+        let profile = ProfileItem {
+            name: "fovts".to_string(),
+            description: Some("fovts 公益".to_string()),
+            is_current: true,
+        };
+        let mut config = ProfileConfig::new();
+        config.model = Some("gpt-5.5".to_string());
+
+        for (width, height) in [(80, 20), (100, 30), (140, 32)] {
+            let mut app = sample_profile_app_for(Platform::Codex, profile.clone(), config.clone());
+            app.tabs[0].codex_runtime_summary = Some(codex_runtime_summary_fixture(
+                ccr_cli::models::CodexRuntimeMode::ProfileOnly,
+                Some("fovts"),
+            ));
+
+            let mut terminal = Terminal::new(TestBackend::new(width, height)).unwrap();
+            terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+
+            let rendered = buffer_text(terminal.backend());
+            // 常驻 current chip 三档视口都可见 (含 Compact)
+            assert!(
+                rendered.contains("fovts · gpt-5.5"),
+                "{width}x{height}: {rendered}"
+            );
+            assert!(
+                !rendered.contains("Control plane"),
+                "{width}x{height}: {rendered}"
+            );
+            assert!(
+                !rendered.contains("Active driver"),
+                "{width}x{height}: {rendered}"
+            );
+            assert!(
+                !rendered.contains("当前控制面"),
+                "{width}x{height}: {rendered}"
+            );
+            assert!(
+                !rendered.contains("当前驱动"),
+                "{width}x{height}: {rendered}"
+            );
+        }
+    }
+
+    #[test]
+    fn profile_list_marks_current_only_with_filled_dot_and_full_legend() {
+        let current = ProfileItem {
+            name: "cur".to_string(),
+            description: None,
+            is_current: true,
+        };
+        let other = ProfileItem {
+            name: "alt".to_string(),
+            description: None,
+            is_current: false,
+        };
+
+        let current_line = plain_line_text(&profile_list_row(&current, false, 40, 0));
+        let other_line = plain_line_text(&profile_list_row(&other, false, 40, 0));
+        assert!(current_line.contains('●'), "{current_line}");
+        assert!(!current_line.contains('✓'), "{current_line}");
+        assert!(other_line.contains('○'), "{other_line}");
+        assert!(!other_line.contains('✓'), "{other_line}");
+
+        for language in [
+            ccr_cli::managers::TuiLanguage::English,
+            ccr_cli::managers::TuiLanguage::SimplifiedChinese,
+        ] {
+            crate::tui::i18n::set_language(language);
+            let legend = plain_line_text(&profile_list_legend_line());
+            assert!(legend.contains('●'), "{legend}");
+            assert!(legend.contains('▶'), "{legend}");
+            assert!(legend.contains('○'), "{legend}");
+            assert!(!legend.contains('✓'), "{legend}");
+        }
+        crate::tui::i18n::set_language(ccr_cli::managers::TuiLanguage::English);
+    }
+
+    // ── WS3: Selection 面板删除, 图例并入列表面板下边框标题 ──────
+
+    #[test]
+    fn profile_list_panel_bottom_title_shows_full_legend() {
         let profile = ProfileItem {
             name: "2CAPI".to_string(),
             description: Some("2CAPI 公益".to_string()),
             is_current: false,
         };
-        let app = sample_profile_app(profile, ProfileConfig::new());
+        let mut app = sample_profile_app(profile, ProfileConfig::new());
         let mut terminal = Terminal::new(TestBackend::new(58, 7)).unwrap();
 
         terminal
-            .draw(|frame| render_profile_meta_panel(frame, &app, frame.area()))
+            .draw(|frame| render_profile_list_panel(frame, &mut app, frame.area()))
             .unwrap();
 
         let rendered = buffer_text(terminal.backend());
-        assert!(rendered.contains("Legend: ● current"), "{rendered}");
+        assert!(
+            rendered.contains("Legend: ● current · ▶ selected · ○ available"),
+            "{rendered}"
+        );
+    }
+
+    #[test]
+    fn profile_list_empty_state_omits_legend() {
+        let profile = ProfileItem {
+            name: "default".to_string(),
+            description: None,
+            is_current: false,
+        };
+        let mut app = sample_profile_app(profile, ProfileConfig::new());
+        app.tabs[0].profiles.clear();
+        app.tabs[0].profile_configs.clear();
+        app.selected_profile_name = None;
+
+        let mut terminal = Terminal::new(TestBackend::new(100, 30)).unwrap();
+        terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+
+        let rendered = buffer_text(terminal.backend());
+        assert!(!rendered.contains("Legend"), "{rendered}");
+        // 空态内容本身仍正常渲染
+        assert!(
+            rendered.contains("ccr claude profile create --help"),
+            "{rendered}"
+        );
+
+        crate::tui::i18n::set_language(ccr_cli::managers::TuiLanguage::SimplifiedChinese);
+        terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+        // CJK 宽字符在 buffer 里带间隔空格, 去空格后再比对
+        let rendered = buffer_text(terminal.backend()).replace(' ', "");
+        assert!(!rendered.contains("图例"), "{rendered}");
+        crate::tui::i18n::set_language(ccr_cli::managers::TuiLanguage::English);
+    }
+
+    #[test]
+    fn wide_profile_layout_drops_selection_panel_and_gives_list_full_rail() {
+        let profile = ProfileItem {
+            name: "fovts".to_string(),
+            description: Some("fovts 公益".to_string()),
+            is_current: true,
+        };
+        let mut app = sample_profile_app(profile, ProfileConfig::new());
+
+        let mut terminal = Terminal::new(TestBackend::new(140, 32)).unwrap();
+        terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+
+        let rendered = buffer_text(terminal.backend());
+        assert!(!rendered.contains("Selection"), "{rendered}");
+        assert_eq!(
+            rendered.matches("Legend: ● current").count(),
+            1,
+            "legend lives only in the list panel bottom title: {rendered}"
+        );
+
+        // 原 Selection 面板预留的 5 行已还给列表 (header 3 + footer 3)
+        let list_area = app.list_area.get().expect("list area should be cached");
+        assert_eq!(list_area.y, 3);
+        assert_eq!(list_area.height, 26);
+    }
+
+    #[test]
+    fn profile_list_legend_fits_all_viewport_tiers_without_clipping() {
+        for language in [
+            ccr_cli::managers::TuiLanguage::English,
+            ccr_cli::managers::TuiLanguage::SimplifiedChinese,
+        ] {
+            crate::tui::i18n::set_language(language);
+            let legend = plain_line_text(&profile_list_legend_line());
+            // CJK 宽字符在 buffer 里占两个 cell (次 cell 渲染为空格),
+            // 与 simplified_chinese_renders_across_all_viewport_modes 一样先去空格再比对。
+            let needle = legend.trim().replace(' ', "");
+
+            for (width, height) in [(80, 20), (100, 30), (140, 32)] {
+                let profile = ProfileItem {
+                    name: "main".to_string(),
+                    description: Some("主要配置".to_string()),
+                    is_current: true,
+                };
+                let mut app = sample_profile_app(profile, ProfileConfig::new());
+                let mut terminal = Terminal::new(TestBackend::new(width, height)).unwrap();
+                terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+
+                let rendered = buffer_text(terminal.backend()).replace(' ', "");
+                assert!(
+                    rendered.contains(&needle),
+                    "{language:?} {width}x{height} legend clipped: {rendered}"
+                );
+            }
+        }
+        crate::tui::i18n::set_language(ccr_cli::managers::TuiLanguage::English);
     }
 
     #[test]
@@ -2954,8 +3233,10 @@ mod tests {
             .platform_data
             .insert("reasoning_effort".to_string(), serde_json::json!("HIGH"));
 
-        let text =
-            detail_texts(&grok_profile_detail_lines("relay", &config, true, false)).join("\n");
+        let text = detail_texts(&grok_profile_detail_lines(
+            "relay", &config, true, false, true,
+        ))
+        .join("\n");
 
         assert!(text.contains("https://grok.example.com/v1"), "{text}");
         assert!(!text.contains("user:password"), "{text}");
@@ -3024,7 +3305,9 @@ mod tests {
         let mut config = ProfileConfig::new();
         config.auth_token = Some(ccr_core::Secret::new(plaintext));
 
-        let texts = detail_texts(&grok_profile_detail_lines("inline", &config, false, false));
+        let texts = detail_texts(&grok_profile_detail_lines(
+            "inline", &config, false, false, true,
+        ));
         let text = texts.join("\n");
 
         assert!(text.contains("inline_api_key"), "{text}");
@@ -3043,6 +3326,7 @@ mod tests {
             &ProfileConfig::new(),
             false,
             false,
+            true,
         ))
         .join("\n");
 
@@ -3067,7 +3351,7 @@ mod tests {
         config.auth_token = Some(ccr_core::Secret::new("sk-ant-test1234567890"));
 
         let texts = detail_texts(&claude_profile_detail_lines(
-            "api", &config, false, None, false,
+            "api", &config, false, None, false, true,
         ));
         assert!(
             token_line(&texts).contains("configured (sk-a...7890)"),
@@ -3084,7 +3368,7 @@ mod tests {
         config.auth_token = Some(ccr_core::Secret::new("shortkey12"));
 
         let texts = detail_texts(&claude_profile_detail_lines(
-            "api", &config, false, None, false,
+            "api", &config, false, None, false, true,
         ));
         assert!(
             token_line(&texts).contains("configured (**********)"),
@@ -3104,6 +3388,7 @@ mod tests {
             false,
             None,
             false,
+            true,
         ));
         assert!(
             token_line(&texts).trim_end().ends_with("missing"),
@@ -3120,6 +3405,7 @@ mod tests {
             false,
             None,
             false,
+            true,
         ));
         assert!(
             token_line(&texts).trim_end().ends_with("subscription"),
@@ -3136,6 +3422,7 @@ mod tests {
             false,
             None,
             false,
+            true,
         ));
         assert!(
             token_line(&texts).trim_end().ends_with("missing"),
@@ -3152,6 +3439,7 @@ mod tests {
             false,
             None,
             false,
+            true,
         ));
         assert!(token_line(&texts).trim_end().ends_with('-'), "{texts:?}");
     }
@@ -3170,6 +3458,7 @@ mod tests {
             false,
             None,
             false,
+            true,
         ));
 
         let routing_idx = texts
@@ -3227,6 +3516,7 @@ mod tests {
             true,
             None,
             false,
+            true,
         ))
         .join("\n");
         let codex_text = detail_texts(&codex_profile_detail_lines(
@@ -3235,6 +3525,7 @@ mod tests {
             true,
             None,
             false,
+            true,
         ))
         .join("\n");
 
@@ -3299,7 +3590,7 @@ mod tests {
             serde_json::json!("high"),
         );
 
-        let lines = codex_profile_detail_lines("work", &config, true, None, false);
+        let lines = codex_profile_detail_lines("work", &config, true, None, false, true);
         let texts = detail_texts(&lines);
         let model = texts
             .iter()
@@ -3383,14 +3674,268 @@ mod tests {
         let config = ProfileConfig::new();
 
         for lines in [
-            generic_profile_detail_lines("g", &config, false, Platform::Gemini, false),
-            claude_profile_detail_lines("c", &config, false, None, false),
-            codex_profile_detail_lines("x", &config, false, None, false),
+            generic_profile_detail_lines("g", &config, false, Platform::Gemini, false, true),
+            claude_profile_detail_lines("c", &config, false, None, false, true),
+            codex_profile_detail_lines("x", &config, false, None, false, true),
         ] {
             let text = detail_texts(&lines).join("\n");
             assert!(text.contains("switch_count"), "{text}");
             assert!(!text.contains("usage_count"), "{text}");
         }
+    }
+
+    // ── WS4: 未设置字段折叠 + 布尔中性化 ─────────────────────
+
+    fn assert_muted_summary_line(lines: &[Line<'static>], expected: &str) {
+        let summary = lines
+            .iter()
+            .find(|line| plain_line_text(line).trim() == expected)
+            .unwrap_or_else(|| {
+                panic!(
+                    "muted summary line {expected:?} missing:\n{}",
+                    detail_texts(lines).join("\n")
+                )
+            });
+        assert_eq!(summary.spans[0].style, theme::muted_style());
+    }
+
+    fn assert_no_label(lines: &[Line<'static>], label: &str) {
+        let texts = detail_texts(lines);
+        assert!(
+            !texts.iter().any(|text| text.starts_with(label)),
+            "label {label:?} must be collapsed away:\n{}",
+            texts.join("\n")
+        );
+    }
+
+    #[test]
+    fn generic_details_collapse_unset_fields_into_muted_summary() {
+        let config = ProfileConfig::new();
+
+        let collapsed =
+            generic_profile_detail_lines("g", &config, false, Platform::Gemini, false, false);
+        // Overview description → 1; Runtime base_url/model/account → 3; Activity tags → 1
+        assert_muted_summary_line(&collapsed, "1 unset");
+        assert_muted_summary_line(&collapsed, "3 unset");
+        for label in ["description", "base_url", "model", "account", "tags"] {
+            assert_no_label(&collapsed, label);
+        }
+        // 已设置字段不受折叠影响
+        let texts = detail_texts(&collapsed);
+        assert!(
+            texts.iter().any(|text| text.starts_with("switch_count")),
+            "{texts:?}"
+        );
+
+        let expanded =
+            generic_profile_detail_lines("g", &config, false, Platform::Gemini, false, true);
+        let texts = detail_texts(&expanded);
+        for label in ["description", "base_url", "model", "account", "tags"] {
+            assert!(
+                texts.iter().any(|text| text.starts_with(label)),
+                "expanded view keeps {label:?}:\n{}",
+                texts.join("\n")
+            );
+        }
+        assert!(
+            !texts.iter().any(|text| text.trim().ends_with("unset")),
+            "expanded view renders no summary line:\n{}",
+            texts.join("\n")
+        );
+    }
+
+    #[test]
+    fn grok_details_collapse_unset_fields_into_muted_summary() {
+        let config = ProfileConfig::new();
+
+        let collapsed = grok_profile_detail_lines("g", &config, false, false, false);
+        // Engine: base_url/model/reasoning_effort → 3, context_window/backend_search → 2
+        assert_muted_summary_line(&collapsed, "3 unset");
+        assert_muted_summary_line(&collapsed, "2 unset");
+        for label in ["base_url", "model", "reasoning_effort", "context_window"] {
+            assert_no_label(&collapsed, label);
+        }
+        let texts = detail_texts(&collapsed);
+        assert!(
+            texts.iter().any(|text| text.starts_with("api_backend")),
+            "{texts:?}"
+        );
+        assert!(
+            texts.iter().any(|text| text.starts_with("auth_mode")),
+            "{texts:?}"
+        );
+
+        let expanded = grok_profile_detail_lines("g", &config, false, false, true);
+        let texts = detail_texts(&expanded);
+        for label in [
+            "base_url",
+            "model",
+            "reasoning_effort",
+            "context_window",
+            "backend_search",
+        ] {
+            assert!(
+                texts.iter().any(|text| text.starts_with(label)),
+                "expanded view keeps {label:?}:\n{}",
+                texts.join("\n")
+            );
+        }
+    }
+
+    #[test]
+    fn codex_details_collapse_unset_fields_into_muted_summary() {
+        let config = ProfileConfig::new();
+
+        let collapsed = codex_profile_detail_lines("c", &config, false, None, false, false);
+        // Engine 5 项 (base_url/model/reasoning/small_fast/account),
+        // Routing/Auth: provider_type/provider → 2, token/openai_login/env_key/wire_api/requires_openai → 5
+        assert_muted_summary_line(&collapsed, "5 unset");
+        assert_muted_summary_line(&collapsed, "2 unset");
+        for label in ["provider_type", "wire_api", "requires_openai", "small_fast"] {
+            assert_no_label(&collapsed, label);
+        }
+        let texts = detail_texts(&collapsed);
+        assert!(
+            texts.iter().any(|text| text.starts_with("auth_mode")),
+            "{texts:?}"
+        );
+
+        let expanded = codex_profile_detail_lines("c", &config, false, None, false, true);
+        let texts = detail_texts(&expanded);
+        for label in [
+            "provider_type",
+            "provider",
+            "wire_api",
+            "requires_openai",
+            "env_key",
+        ] {
+            assert!(
+                texts.iter().any(|text| text.starts_with(label)),
+                "expanded view keeps {label:?}:\n{}",
+                texts.join("\n")
+            );
+        }
+    }
+
+    #[test]
+    fn claude_details_collapse_unset_fields_into_muted_summary() {
+        let config = ProfileConfig::new();
+
+        let collapsed = claude_profile_detail_lines("c", &config, false, None, false, false);
+        // Engine: base_url/model/small_fast/account → 4
+        assert_muted_summary_line(&collapsed, "4 unset");
+        assert_muted_summary_line(&collapsed, "1 unset");
+        for label in ["base_url", "model", "small_fast", "account"] {
+            assert_no_label(&collapsed, label);
+        }
+        let texts = detail_texts(&collapsed);
+        assert!(
+            texts.iter().any(|text| text.starts_with("auth_mode")),
+            "{texts:?}"
+        );
+        assert!(
+            texts.iter().any(|text| text.starts_with("token")),
+            "{texts:?}"
+        );
+
+        let expanded = claude_profile_detail_lines("c", &config, false, None, false, true);
+        let texts = detail_texts(&expanded);
+        for label in ["base_url", "model", "small_fast", "account"] {
+            assert!(
+                texts.iter().any(|text| text.starts_with(label)),
+                "expanded view keeps {label:?}:\n{}",
+                texts.join("\n")
+            );
+        }
+    }
+
+    #[test]
+    fn collapsed_summary_line_is_bilingual() {
+        let config = ProfileConfig::new();
+        crate::tui::i18n::set_language(ccr_cli::managers::TuiLanguage::SimplifiedChinese);
+
+        let collapsed =
+            generic_profile_detail_lines("g", &config, false, Platform::Gemini, false, false);
+        assert_muted_summary_line(&collapsed, "3 项未设置");
+
+        crate::tui::i18n::set_language(ccr_cli::managers::TuiLanguage::English);
+    }
+
+    #[test]
+    fn codex_requires_openai_false_uses_neutral_muted_not_warning() {
+        let mut config = ProfileConfig::new();
+        config.platform_data.insert(
+            "requires_openai_auth".to_string(),
+            serde_json::json!("false"),
+        );
+
+        let lines = codex_profile_detail_lines("x", &config, false, None, false, true);
+        let line = lines
+            .iter()
+            .find(|line| plain_line_text(line).starts_with("requires_openai"))
+            .expect("requires_openai line present");
+        assert!(plain_line_text(line).contains("no"));
+        assert_eq!(line.spans[1].style, theme::muted_style());
+        assert_ne!(line.spans[1].style, theme::warning_style());
+
+        // Some(true) 保持 success 不变
+        config.platform_data.insert(
+            "requires_openai_auth".to_string(),
+            serde_json::json!("true"),
+        );
+        let lines = codex_profile_detail_lines("x", &config, false, None, false, true);
+        let line = lines
+            .iter()
+            .find(|line| plain_line_text(line).starts_with("requires_openai"))
+            .expect("requires_openai line present");
+        assert_eq!(line.spans[1].style, theme::success_style());
+    }
+
+    #[test]
+    fn profile_details_render_follows_app_expanded_flag() {
+        let profile = ProfileItem {
+            name: "sparse".to_string(),
+            description: None,
+            is_current: false,
+        };
+        let mut app = sample_profile_app_for(Platform::Grok, profile, ProfileConfig::new());
+        let mut terminal = Terminal::new(TestBackend::new(60, 20)).unwrap();
+
+        terminal
+            .draw(|frame| {
+                render_profile_details(frame, &mut app, frame.area(), ViewportMode::Standard)
+            })
+            .unwrap();
+        let collapsed = buffer_text(terminal.backend());
+        assert!(collapsed.contains("unset"), "{collapsed}");
+        assert!(!collapsed.contains("base_url"), "{collapsed}");
+
+        app.profile_details_expanded = true;
+        terminal
+            .draw(|frame| {
+                render_profile_details(frame, &mut app, frame.area(), ViewportMode::Standard)
+            })
+            .unwrap();
+        let expanded = buffer_text(terminal.backend());
+        assert!(expanded.contains("base_url"), "{expanded}");
+    }
+
+    #[test]
+    fn footer_hints_include_unset_toggle_on_profile_tabs() {
+        let profile = ProfileItem {
+            name: "default".to_string(),
+            description: None,
+            is_current: false,
+        };
+        let app = sample_profile_app(profile, ProfileConfig::new());
+
+        assert!(footer_text(&app).contains("x unset"));
+
+        // 紧凑分支: spec 强制保留的 PgUp/PgDn details 与 Ctrl+L language 不被挤掉
+        let compact = footer_text_for_width(&app, 80);
+        assert!(compact.contains("x unset"), "{compact}");
+        assert!(compact.contains("PgUp/PgDn"), "{compact}");
+        assert!(compact.contains("Ctrl+L"), "{compact}");
     }
 
     #[test]
@@ -3408,11 +3953,16 @@ mod tests {
 
         let rendered = buffer_text(terminal.backend());
         assert_eq!(
-            rendered.matches("Enter apply").count(),
+            rendered.matches("Enter/Space apply").count(),
             1,
             "shortcuts must only appear in the Keys footer: {rendered}"
         );
-        assert!(rendered.contains("Applied successfully"), "{rendered}");
+        // apply 常驻反馈只出现在 Focus 面板 (无活跃 toast 时 Status strip 不重复)
+        assert_eq!(
+            rendered.matches("Switched to fovts").count(),
+            1,
+            "{rendered}"
+        );
     }
 
     // ── Profile 详情 Usage 分组 ──────────────────────────────
@@ -3626,11 +4176,11 @@ mod tests {
 
         let cases = [
             (
-                claude_profile_detail_lines("c", &config, false, Some(&state), false),
+                claude_profile_detail_lines("c", &config, false, Some(&state), false, true),
                 "111",
             ),
             (
-                codex_profile_detail_lines("x", &config, false, Some(&state), false),
+                codex_profile_detail_lines("x", &config, false, Some(&state), false, true),
                 "222",
             ),
         ];
@@ -3686,6 +4236,7 @@ mod tests {
             false,
             Some(&engine.state),
             false,
+            true,
         ));
         assert!(
             texts
@@ -3699,6 +4250,7 @@ mod tests {
             false,
             Some(&engine.state),
             false,
+            true,
         ));
         assert!(
             texts

@@ -116,7 +116,7 @@ const panelClass = computed(() => (props.compact ? 'async-state-panel--compact' 
 
   background: var(--surface-card-bg);
   border: 1px solid var(--surface-card-border);
-  box-shadow: var(--surface-card-shadow), var(--glass-inner-glow);
+  box-shadow: var(--surface-card-shadow);
   backdrop-filter: var(--surface-card-blur);
 }
 

@@ -43,28 +43,28 @@
           </h2>
           <div class="mt-4 grid gap-4 md:grid-cols-2">
             <div>
-              <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('模型', 'model') }}</label>
+              <label class="mb-2 block text-xs font-semibold text-text-muted">{{ tt('模型', 'model') }}</label>
               <input
                 v-model="form.model"
                 class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 text-sm text-text-primary"
               >
             </div>
             <div>
-              <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('small_model', 'small_model') }}</label>
+              <label class="mb-2 block text-xs font-semibold text-text-muted">{{ tt('small_model', 'small_model') }}</label>
               <input
                 v-model="form.smallModel"
                 class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 text-sm text-text-primary"
               >
             </div>
             <div>
-              <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('default_agent', 'default_agent') }}</label>
+              <label class="mb-2 block text-xs font-semibold text-text-muted">{{ tt('default_agent', 'default_agent') }}</label>
               <input
                 v-model="form.defaultAgent"
                 class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 text-sm text-text-primary"
               >
             </div>
             <div>
-              <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('share', 'share') }}</label>
+              <label class="mb-2 block text-xs font-semibold text-text-muted">{{ tt('share', 'share') }}</label>
               <select
                 v-model="form.share"
                 class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 text-sm text-text-primary"
@@ -109,14 +109,14 @@
           </h2>
           <div class="mt-4 grid gap-4 md:grid-cols-3">
             <div>
-              <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('端口', 'port') }}</label>
+              <label class="mb-2 block text-xs font-semibold text-text-muted">{{ tt('端口', 'port') }}</label>
               <input
                 v-model="form.serverPort"
                 class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 text-sm text-text-primary"
               >
             </div>
             <div>
-              <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('主机名', 'hostname') }}</label>
+              <label class="mb-2 block text-xs font-semibold text-text-muted">{{ tt('主机名', 'hostname') }}</label>
               <input
                 v-model="form.serverHostname"
                 class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 text-sm text-text-primary"
@@ -133,7 +133,7 @@
 
           <div class="mt-4 grid gap-4 md:grid-cols-2">
             <div>
-              <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('tools JSON', 'tools JSON') }}</label>
+              <label class="mb-2 block text-xs font-semibold text-text-muted">{{ tt('tools JSON', 'tools JSON') }}</label>
               <textarea
                 v-model="form.toolsJson"
                 rows="8"
@@ -141,7 +141,7 @@
               />
             </div>
             <div>
-              <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('permission JSON', 'permission JSON') }}</label>
+              <label class="mb-2 block text-xs font-semibold text-text-muted">{{ tt('permission JSON', 'permission JSON') }}</label>
               <textarea
                 v-model="form.permissionJson"
                 rows="8"
@@ -160,7 +160,7 @@
           </h2>
           <div class="mt-4 grid gap-4 md:grid-cols-2">
             <div>
-              <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('主题', 'theme') }}</label>
+              <label class="mb-2 block text-xs font-semibold text-text-muted">{{ tt('主题', 'theme') }}</label>
               <select
                 v-model="form.theme"
                 class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 text-sm text-text-primary"
@@ -184,7 +184,7 @@
           </div>
 
           <div class="mt-4">
-            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('keybinds JSON', 'keybinds JSON') }}</label>
+            <label class="mb-2 block text-xs font-semibold text-text-muted">{{ tt('keybinds JSON', 'keybinds JSON') }}</label>
             <textarea
               v-model="form.keybindsJson"
               rows="10"

@@ -26,7 +26,7 @@ jobs:
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: python3 scripts/ci_surface_policy.py --surface root --base "$BASE_SHA" --head "$HEAD_SHA" >> "$GITHUB_OUTPUT"
+        run: python3 scripts/ci/ci_surface_policy.py --surface root --base "$BASE_SHA" --head "$HEAD_SHA" >> "$GITHUB_OUTPUT"
 
   workspace-quality:
     name: Root Workspace Validation
@@ -74,8 +74,14 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y pkg-config libwayland-dev
-          cargo install just --version 1.57.0 --locked
-          cargo install cargo-llvm-cov --version 0.8.7 --locked
+          bin_dir="${CARGO_HOME:-$HOME/.cargo}/bin"
+          mkdir -p "$bin_dir"
+          curl -L --fail --retry 5 --retry-all-errors --retry-delay 2 --max-time 60 -o just.tar.gz https://github.com/casey/just/releases/download/1.57.0/just-1.57.0-x86_64-unknown-linux-musl.tar.gz
+          echo "45b548094283cb9739af8f13273b8cddeee869f5b4ef2bb631b1f311cb566155  just.tar.gz" | sha256sum -c -
+          tar -xzf just.tar.gz -C "$bin_dir" just
+          curl -L --fail --retry 5 --retry-all-errors --retry-delay 2 --max-time 60 -o cargo-llvm-cov.tar.gz https://github.com/taiki-e/cargo-llvm-cov/releases/download/v0.8.7/cargo-llvm-cov-x86_64-unknown-linux-gnu.tar.gz
+          echo "9a75fe29538d3800b3da57f6f6efb64cba5c720a257bf0cb8b51f39d495a9168  cargo-llvm-cov.tar.gz" | sha256sum -c -
+          tar -xzf cargo-llvm-cov.tar.gz -C "$bin_dir"
       - name: Enforce coverage thresholds
         run: just coverage-rust
       - name: Upload Rust coverage

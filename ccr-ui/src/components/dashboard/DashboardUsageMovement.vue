@@ -13,55 +13,33 @@
         </p>
       </div>
 
-      <div
-        class="dashboard-usage__range"
-        role="group"
-        :aria-label="t('dashboard.usage.rangeLabel')"
-      >
-        <button
-          v-for="days in dayOptions"
-          :key="days"
-          type="button"
-          class="dashboard-usage-range-btn"
-          :data-active="activeDays === days ? 'true' : 'false'"
-          :aria-pressed="activeDays === days"
-          @click="$emit('change-days', days)"
-        >
-          {{ t(`dashboard.usage.range${days}`) }}
-        </button>
-      </div>
+      <PillToggleGroup
+        :options="rangeOptions"
+        :model-value="activeDays"
+        v-bind="{ ariaLabel: t('dashboard.usage.rangeLabel') }"
+        @update:model-value="emit('change-days', $event)"
+      />
     </header>
 
     <div class="dashboard-usage__body">
       <div class="dashboard-usage__summary">
-        <div
+        <StatTile
           v-for="item in summaryItems"
           :key="item.label"
-          class="dashboard-usage-summary"
-        >
-          <span class="dashboard-usage-summary__label">{{ item.label }}</span>
-          <strong class="dashboard-usage-summary__value">{{ item.value }}</strong>
-        </div>
+          :label="item.label"
+          :value="item.value"
+          tone="neutral"
+        />
       </div>
 
       <div class="dashboard-usage__chartArea">
-        <div
+        <PillToggleGroup
           class="dashboard-usage__metric"
-          role="group"
-          :aria-label="t('dashboard.usage.metricSelectLabel')"
-        >
-          <button
-            v-for="metric in metricOptions"
-            :key="metric"
-            type="button"
-            class="dashboard-usage-metric-btn"
-            :data-active="selectedMetric === metric ? 'true' : 'false'"
-            :aria-pressed="selectedMetric === metric"
-            @click="selectedMetric = metric"
-          >
-            {{ getMetricLabel(metric) }}
-          </button>
-        </div>
+          :options="metricToggleOptions"
+          :model-value="selectedMetric"
+          v-bind="{ ariaLabel: t('dashboard.usage.metricSelectLabel') }"
+          @update:model-value="selectedMetric = $event"
+        />
 
         <div
           v-if="hasSeries"
@@ -155,7 +133,9 @@
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { translateWithFallback } from '@/i18n/formatMessage'
+import PillToggleGroup from '@/components/ui/PillToggleGroup.vue'
 import SIcon from '@/components/ui/SIcon.vue'
+import StatTile from '@/components/ui/StatTile.vue'
 import type { HomeUsageOverviewResponse } from '@/types/usage'
 import type { DashboardUsageMetric } from '@/views/dashboard/dashboardPresentation'
 
@@ -166,7 +146,7 @@ const props = defineProps<{
   activeDays: number
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   'change-days': [days: number]
 }>()
 
@@ -214,6 +194,16 @@ const getMetricLabel = (metric: DashboardUsageMetric) => {
       return t('dashboard.usage.metricRequests')
   }
 }
+
+const rangeOptions = computed(() => dayOptions.map((days) => ({
+  value: days,
+  label: t(`dashboard.usage.range${days}`),
+})))
+
+const metricToggleOptions = computed(() => metricOptions.map((metric) => ({
+  value: metric,
+  label: getMetricLabel(metric),
+})))
 
 const isInitialLoading = computed(() => props.loading && !props.overview)
 
@@ -327,10 +317,9 @@ const lastUpdatedLabel = computed(() => (
   gap: 0.85rem;
   height: 100%;
   padding: var(--home-card-pad);
-  border: 1px solid var(--home-border-card);
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--home-card-radius);
-  background: var(--home-surface-card);
-  box-shadow: var(--home-elevation-raised);
+  background: var(--color-bg-surface);
 }
 
 .dashboard-usage__header {
@@ -349,66 +338,17 @@ const lastUpdatedLabel = computed(() => (
 .dashboard-usage__title {
   margin: 0;
   color: var(--color-text-primary);
-  font-family: var(--font-brand);
-  font-size: var(--home-text-section);
-  font-weight: 640;
-  letter-spacing: var(--home-tracking-display);
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0;
 }
 
 .dashboard-usage__description {
   margin: 0;
   color: var(--color-text-secondary);
-  font-size: var(--home-text-body);
-  line-height: var(--home-leading-body);
-}
-
-.dashboard-usage__range,
-.dashboard-usage__metric {
-  display: inline-flex;
-  gap: 0.2rem;
-  padding: 0.18rem;
-  border: 1px solid var(--home-border-hairline);
-  border-radius: 999px;
-  background: var(--home-surface-sunk);
-  box-shadow: var(--home-elevation-sunk);
-}
-
-.dashboard-usage-range-btn,
-.dashboard-usage-metric-btn {
-  border: 0;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  font-size: var(--home-text-meta);
-  font-weight: 800;
-  letter-spacing: var(--home-tracking-eyebrow);
-  padding: 0.3rem 0.68rem;
-  text-transform: uppercase;
-  transition:
-    background-color var(--home-motion-duration) var(--home-motion-ease),
-    color var(--home-motion-duration) var(--home-motion-ease);
-}
-
-.dashboard-usage-range-btn:hover,
-.dashboard-usage-metric-btn:hover {
-  color: var(--color-text-primary);
-}
-
-.dashboard-usage-range-btn:focus-visible,
-.dashboard-usage-metric-btn:focus-visible {
-  outline: 0;
-  box-shadow: var(--home-focus-ring);
-}
-
-.dashboard-usage-range-btn[data-active='true'] {
-  background: var(--color-accent-primary);
-  color: var(--color-text-inverted);
-}
-
-.dashboard-usage-metric-btn[data-active='true'] {
-  background: rgb(var(--color-accent-primary-rgb) / 14%);
-  color: var(--color-accent-primary);
+  font-size: 0.875rem;
+  line-height: 1.5;
 }
 
 .dashboard-usage__body {
@@ -420,37 +360,8 @@ const lastUpdatedLabel = computed(() => (
 .dashboard-usage__summary {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.55rem;
+  gap: 0.75rem 1rem;
   align-content: start;
-}
-
-.dashboard-usage-summary {
-  display: grid;
-  gap: 0.16rem;
-  min-width: 0;
-  padding: 0.68rem 0.76rem;
-  border: 1px solid var(--home-border-hairline);
-  border-radius: 10px;
-  background: rgb(var(--color-bg-surface-rgb) / 58%);
-}
-
-.dashboard-usage-summary__label {
-  color: var(--color-text-muted);
-  font-size: var(--home-text-meta);
-  font-weight: 800;
-  letter-spacing: var(--home-tracking-eyebrow);
-  text-transform: uppercase;
-}
-
-.dashboard-usage-summary__value {
-  overflow: hidden;
-  color: var(--color-text-primary);
-  font-family: var(--font-mono);
-  font-feature-settings: var(--home-mono-feature);
-  font-size: var(--home-text-mono-lg);
-  font-weight: 800;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .dashboard-usage__chartArea {
@@ -471,9 +382,9 @@ const lastUpdatedLabel = computed(() => (
   gap: 0.22rem;
   min-height: 10rem;
   padding: 1.5rem 0.75rem 0.5rem;
-  border: 1px solid var(--home-border-hairline);
-  border-radius: 10px;
-  background: rgb(var(--color-bg-surface-rgb) / 46%);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 8px;
+  background: var(--color-bg-elevated);
   overflow: hidden;
 }
 
@@ -490,10 +401,9 @@ const lastUpdatedLabel = computed(() => (
   align-items: baseline;
   gap: 0.45rem;
   color: var(--color-text-muted);
-  font-size: var(--home-text-meta);
-  font-weight: 800;
-  letter-spacing: var(--home-tracking-eyebrow);
-  text-transform: uppercase;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0;
   pointer-events: none;
 }
 
@@ -501,17 +411,15 @@ const lastUpdatedLabel = computed(() => (
   overflow: hidden;
   color: var(--color-text-disabled);
   font-weight: 400;
-  letter-spacing: 0;
   text-overflow: ellipsis;
-  text-transform: none;
   white-space: nowrap;
 }
 
 .dashboard-usage__chart-readout-value {
   color: var(--color-text-primary);
-  font-family: var(--font-mono);
-  font-feature-settings: var(--home-mono-feature);
-  font-size: var(--home-text-mono);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
 }
 
 .dashboard-usage__chart-grid {
@@ -545,29 +453,23 @@ const lastUpdatedLabel = computed(() => (
   flex: 1;
   min-width: 0.22rem;
   border: 0;
-  border-radius: 4px 4px 2px 2px;
-  background: linear-gradient(
-    180deg,
-    var(--color-accent-primary) 0%,
-    rgb(var(--color-accent-secondary-rgb) / 72%) 100%
-  );
+  border-radius: 2px 2px 0 0;
+  background: rgb(var(--color-text-muted-rgb) / 28%);
   cursor: pointer;
-  opacity: 0.72;
   padding: 0;
   transition:
-    opacity var(--home-motion-duration) var(--home-motion-ease),
-    transform var(--home-motion-duration) var(--home-motion-ease);
+    background-color var(--home-motion-duration) var(--home-motion-ease),
+    opacity var(--home-motion-duration) var(--home-motion-ease);
 }
 
 .dashboard-usage-bar:hover,
 .dashboard-usage-bar[data-active='true'] {
-  opacity: 1;
+  background: rgb(var(--color-text-secondary-rgb) / 42%);
 }
 
 .dashboard-usage-bar:focus-visible {
-  outline: 0;
-  box-shadow: 0 0 0 2px rgb(var(--color-accent-primary-rgb) / 56%);
-  opacity: 1;
+  outline: 2px solid var(--color-accent-primary);
+  outline-offset: 1px;
 }
 
 .dashboard-usage__empty {
@@ -576,8 +478,8 @@ const lastUpdatedLabel = computed(() => (
   gap: 0.75rem;
   min-height: 10rem;
   padding: 1rem;
-  border: 1px dashed var(--home-border-hairline);
-  border-radius: 10px;
+  border: 1px dashed var(--color-border-subtle);
+  border-radius: 8px;
 }
 
 .dashboard-usage__empty-icon {
@@ -585,23 +487,23 @@ const lastUpdatedLabel = computed(() => (
   place-items: center;
   width: 2.25rem;
   height: 2.25rem;
-  border-radius: 999px;
-  background: rgb(var(--color-bg-surface-rgb) / 70%);
+  border-radius: 8px;
+  background: var(--color-bg-elevated);
   color: var(--color-text-muted);
 }
 
 .dashboard-usage__empty h3 {
   margin: 0;
   color: var(--color-text-primary);
-  font-size: var(--home-text-body);
-  font-weight: 650;
+  font-size: 0.875rem;
+  font-weight: 600;
 }
 
 .dashboard-usage__empty p {
   margin: 0.15rem 0 0;
   color: var(--color-text-secondary);
-  font-size: var(--home-text-meta);
-  line-height: var(--home-leading-body);
+  font-size: 0.75rem;
+  line-height: 1.5;
 }
 
 .dashboard-usage__footer {
@@ -610,17 +512,15 @@ const lastUpdatedLabel = computed(() => (
   justify-content: space-between;
   gap: 1rem;
   padding-top: 0.4rem;
-  border-top: 1px solid var(--home-border-hairline);
+  border-top: 1px solid var(--color-border-subtle);
 }
 
 .dashboard-usage__last {
   color: var(--color-text-muted);
-  font-family: var(--font-mono);
-  font-feature-settings: var(--home-mono-feature);
-  font-size: var(--home-text-meta);
-  font-weight: 800;
-  letter-spacing: var(--home-tracking-eyebrow);
-  text-transform: uppercase;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  letter-spacing: 0;
 }
 
 .dashboard-usage__report-link {
@@ -628,21 +528,16 @@ const lastUpdatedLabel = computed(() => (
   align-items: center;
   gap: 0.35rem;
   color: var(--color-text-secondary);
-  font-size: var(--home-text-meta);
-  font-weight: 800;
-  letter-spacing: var(--home-tracking-eyebrow);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0;
   text-decoration: none;
-  text-transform: uppercase;
-  transition:
-    color var(--home-motion-duration) var(--home-motion-ease),
-    transform var(--home-motion-duration) var(--home-motion-ease);
 }
 
 .dashboard-usage__report-link:hover,
 .dashboard-usage__report-link:focus-visible {
-  color: var(--color-accent-primary);
+  color: var(--color-text-primary);
   outline: 0;
-  transform: translateX(2px);
 }
 
 @media (width <= 960px) {
@@ -663,8 +558,6 @@ const lastUpdatedLabel = computed(() => (
 
 @media (prefers-reduced-motion: reduce) {
   .dashboard-usage-bar,
-  .dashboard-usage-range-btn,
-  .dashboard-usage-metric-btn,
   .dashboard-usage__report-link {
     transition: none;
   }

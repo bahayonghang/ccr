@@ -4,41 +4,45 @@
   - 编辑流程走 CodexProfileEditorModal；键盘：/ 聚焦搜索；⌘K 命令面板；⌘/Ctrl+1-9 切换钉选 profile
 -->
 <template>
-  <div class="profiles-view codex-profiles-view">
-    <ModuleSubnav module="codex" />
+  <PageShell class="profiles-view codex-profiles-view">
+    <template #header>
+      <ProfilesHeader
+        icon="Folder"
+        back-to="/codex"
+        :labels="{
+          title: $t('codex.profiles.title'),
+          subtitle: $t('codex.profiles.subtitle'),
+          back: $t('codex.profiles.backToCodex'),
+          reload: $t('codex.profiles.reloadAction'),
+          export: $t('common.export'),
+          add: $t('codex.profiles.addProfile'),
+          source: $t('profilesRaw.edit'),
+          overflow: $t('codex.profiles.overflowMenu'),
+        }"
+        :palette="{
+          label: $t('codex.profiles.commandPaletteButton'),
+          shortcut: `${quickSwitch.modifier.value}K`,
+          title: $t('codex.profiles.commandPaletteShortcut'),
+        }"
+        :loading="loading || isRefreshing"
+        :exporting="exporting"
+        :palette-open="paletteOpen"
+        :source-disabled="!rawLocal"
+        :source-title="rawLocal ? undefined : $t('settingsRaw.unsupportedEnvironment')"
+        @add="handleAdd"
+        @export="handleExportProfiles"
+        @reload="refreshProfiles"
+        @open-palette="paletteOpen = true"
+        @edit-source="openRawEditor"
+      />
+    </template>
+
+    <template #subnav>
+      <ModuleSubnav module="codex" />
+    </template>
 
     <main class="cp-shell">
       <div class="cp-main">
-        <ProfilesHeader
-          icon="Folder"
-          back-to="/codex"
-          :labels="{
-            title: $t('codex.profiles.title'),
-            subtitle: $t('codex.profiles.subtitle'),
-            back: $t('codex.profiles.backToCodex'),
-            reload: $t('codex.profiles.reloadAction'),
-            export: $t('common.export'),
-            add: $t('codex.profiles.addProfile'),
-            source: $t('profilesRaw.edit'),
-            overflow: $t('codex.profiles.overflowMenu'),
-          }"
-          :palette="{
-            label: $t('codex.profiles.commandPaletteButton'),
-            shortcut: `${quickSwitch.modifier.value}K`,
-            title: $t('codex.profiles.commandPaletteShortcut'),
-          }"
-          :loading="loading || isRefreshing"
-          :exporting="exporting"
-          :palette-open="paletteOpen"
-          :source-disabled="!rawLocal"
-          :source-title="rawLocal ? undefined : $t('settingsRaw.unsupportedEnvironment')"
-          @add="handleAdd"
-          @export="handleExportProfiles"
-          @reload="refreshProfiles"
-          @open-palette="paletteOpen = true"
-          @edit-source="openRawEditor"
-        />
-
         <section
           v-if="canOff"
           class="codex-profiles-banner"
@@ -359,7 +363,7 @@
         <ProfileDiffRows :rows="confirmDiffRows" />
       </template>
     </ConfirmModal>
-  </div>
+  </PageShell>
 </template>
 
 <script setup lang="ts">
@@ -395,6 +399,7 @@ import ProfilesStatStrip, { type ProfilesStatStripHealth } from '@/components/pr
 import ProfilesToolbar, { type ProfilesViewMode } from '@/components/profiles/ProfilesToolbar.vue'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import ModuleSubnav from '@/components/ModuleSubnav.vue'
+import PageShell from '@/components/ui/PageShell.vue'
 import SIcon from '@/components/ui/SIcon.vue'
 import {
   useCodexProfilesFilter,

@@ -20,11 +20,9 @@ use ccr_config::CcsConfig;
 use ccr_config::PlatformConfigManager;
 use ccr_config::platforms::base;
 use ccr_core::Secret;
-use ccr_core::core::AtomicWriter;
 use ccr_core::core::error::{CcrError, Result};
 use ccr_core::core::logging::ColorOutput;
 use indexmap::IndexMap;
-use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use std::path::Path;
 use std::path::PathBuf;
@@ -33,6 +31,14 @@ const THIRD_PARTY_RUNTIME_PROVIDER_KEY: &str = "custom";
 const OPENAI_PROVIDER_KEY: &str = "openai";
 const OPENAI_DEFAULT_BASE_URL: &str = "https://api.openai.com/v1";
 const PROFILE_ENTRY_AUTH_STATE_FILE: &str = "profile_entry_auth_state.json";
+
+fn default_user_codex_dir() -> Option<PathBuf> {
+    std::env::var_os("USERPROFILE")
+        .or_else(|| std::env::var_os("HOME"))
+        .filter(|value| !value.is_empty())
+        .map(PathBuf::from)
+        .map(|home| home.join(".codex"))
+}
 const CODEX_EDITABLE_FIELDS: &[&str] = &[
     "description",
     "model",
@@ -80,12 +86,6 @@ struct SwitchSpec {
     disable_response_storage: Option<bool>,
     forced_login_method: Option<String>,
     credential_store_override: Option<CredentialStoreKind>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-struct ProfileEntryAuthState {
-    exists: bool,
-    content: Option<String>,
 }
 
 /// 💻 Codex Platform 实现
@@ -165,14 +165,49 @@ impl CodexPlatform {
 
     /// CCR third-party runtime leftovers that can suppress official Codex login.
     pub fn has_third_party_ccr_runtime(&self) -> Result<bool> {
-        let config = self.config_manager.load_config()?;
+        Self::dir_has_third_party_ccr_runtime(
+            self.config_manager
+                .config_path()
+                .parent()
+                .unwrap_or_else(|| Path::new(".")),
+        )
+    }
+
+    /// Whether `codex_dir/config.toml` still has a CCR third-party custom route.
+    pub fn dir_has_third_party_ccr_runtime(codex_dir: impl AsRef<Path>) -> Result<bool> {
+        let manager = CodexConfigManager::with_codex_dir(codex_dir)?;
+        if !manager.config_path().exists() {
+            return Ok(false);
+        }
+        let config = manager.load_config()?;
         Ok(Self::config_has_third_party_ccr_runtime(&config))
     }
 
+    /// Runtime directories that login-prep must inspect and clear.
+    ///
+    /// `CCR_CODEX_DIR` is an explicit override and stays the only target.
+    /// Inherited `CODEX_HOME` also prepares `~/.codex`, because official
+    /// `codex login` and Codex Desktop read that default home.
+    pub fn login_prep_codex_dirs() -> Result<Vec<PathBuf>> {
+        let resolved = CodexConfigManager::resolve_codex_dir()?;
+        let mut dirs = vec![resolved.clone()];
+        let ccr_override = std::env::var("CCR_CODEX_DIR")
+            .ok()
+            .is_some_and(|value| !value.trim().is_empty());
+        let redirected = std::env::var("CODEX_HOME")
+            .ok()
+            .is_some_and(|value| !value.trim().is_empty());
+        if !ccr_override
+            && redirected
+            && let Some(default_dir) = default_user_codex_dir()
+            && default_dir != resolved
+        {
+            dirs.push(default_dir);
+        }
+        Ok(dirs)
+    }
+
     fn config_has_third_party_ccr_runtime(config: &toml::Value) -> bool {
-        let Some(root) = config.as_table() else {
-            return false;
-        };
         let Some(provider) = Self::current_custom_provider(config) else {
             return false;
         };
@@ -185,11 +220,7 @@ impl CodexPlatform {
             return true;
         }
 
-        let forced_api = root
-            .get("forced_login_method")
-            .and_then(|value| value.as_str())
-            .is_some_and(|value| value.eq_ignore_ascii_case("api"));
-        forced_api && !Self::is_official_openai_custom_provider(&provider)
+        !Self::is_official_openai_custom_provider(&provider)
     }
 
     fn is_official_openai_custom_provider(provider: &toml::map::Map<String, toml::Value>) -> bool {
@@ -215,68 +246,24 @@ impl CodexPlatform {
             && !has_env_key
     }
 
-    fn auth_has_openai_api_key_without_tokens(
-        auth: &serde_json::Map<String, serde_json::Value>,
-    ) -> bool {
-        let has_key = auth
-            .get("OPENAI_API_KEY")
-            .and_then(|value| value.as_str())
-            .is_some_and(|value| !value.trim().is_empty());
-        if !has_key {
-            return false;
-        }
-        !Self::auth_has_oauth_tokens(auth)
-    }
-
-    fn auth_has_oauth_tokens(auth: &serde_json::Map<String, serde_json::Value>) -> bool {
-        auth.get("tokens")
-            .and_then(|value| value.as_object())
-            .is_some_and(|tokens| {
-                ["id_token", "access_token", "refresh_token"]
-                    .iter()
-                    .any(|key| {
-                        tokens
-                            .get(*key)
-                            .and_then(|value| value.as_str())
-                            .is_some_and(|value| !value.trim().is_empty())
-                    })
-            })
-    }
-
-    fn scrub_stale_openai_api_key(&self) -> Result<bool> {
-        let auth_path = self.config_manager.auth_path();
-        if !auth_path.exists() {
-            return Ok(false);
-        }
-        let mut auth = self.config_manager.load_auth()?;
-        if !Self::auth_has_openai_api_key_without_tokens(&auth) {
-            return Ok(false);
-        }
-        auth.remove("OPENAI_API_KEY");
-        if auth.is_empty() {
-            std::fs::remove_file(auth_path).map_err(|error| {
-                CcrError::ConfigError(format!(
-                    "删除 Codex auth.json 失败 {}: {error}",
-                    auth_path.display()
-                ))
-            })?;
-        } else {
-            let serialized = serde_json::to_string_pretty(&auth).map_err(|error| {
-                CcrError::ConfigError(format!("序列化 Codex auth.json 失败: {error}"))
-            })?;
-            AtomicWriter::new(auth_path)
-                .secret(true)
-                .write_string(&serialized)?;
-            crate::utils::ensure_private_permissions(auth_path);
-        }
-        Ok(true)
-    }
-
     /// 🏗️ 创建新的 Codex Platform 实例
     pub fn new() -> Result<Self> {
+        Self::for_codex_dir(CodexConfigManager::resolve_codex_dir()?)
+    }
+
+    /// 🏗️ 绑定到指定 Codex runtime 目录
+    pub fn for_codex_dir(codex_dir: impl AsRef<Path>) -> Result<Self> {
+        let codex_dir = codex_dir.as_ref().to_path_buf();
         let paths = PlatformPaths::new(Platform::Codex)?;
-        let config_manager = CodexConfigManager::with_default()?;
-        let runtime_service = CodexRuntimeService::new()?;
+        let config_manager = CodexConfigManager::with_codex_dir(&codex_dir)?;
+        let runtime_manager = CodexConfigManager::with_codex_dir(
+            config_manager
+                .config_path()
+                .parent()
+                .unwrap_or_else(|| Path::new(".")),
+        )?;
+        let runtime_service =
+            CodexRuntimeService::from_parts(paths.clone(), codex_dir, runtime_manager);
         Ok(Self {
             paths,
             config_manager,
@@ -1331,82 +1318,11 @@ impl CodexPlatform {
         Ok(())
     }
 
-    fn capture_profile_entry_auth_state(&self) -> Result<()> {
-        if self.has_profile_entry_auth_backup() {
-            return Ok(());
-        }
-
-        let auth_path = self.config_manager.auth_path();
-        let state = if auth_path.exists() {
-            let content = std::fs::read_to_string(auth_path).map_err(|error| {
-                CcrError::ConfigError(format!(
-                    "读取 Codex 入口 auth.json 失败 {}: {}",
-                    auth_path.display(),
-                    error
-                ))
-            })?;
-            ProfileEntryAuthState {
-                exists: true,
-                content: Some(content),
-            }
-        } else {
-            ProfileEntryAuthState {
-                exists: false,
-                content: None,
-            }
-        };
-
-        let serialized = serde_json::to_string_pretty(&state).map_err(|error| {
-            CcrError::ConfigError(format!("序列化 Codex 入口 auth 快照失败: {}", error))
-        })?;
-        let backup_path = self.profile_entry_auth_state_path();
-        AtomicWriter::new(&backup_path)
-            .secret(true)
-            .write_string(&serialized)?;
-        crate::utils::ensure_private_permissions(&backup_path);
-        Ok(())
-    }
-
-    fn restore_profile_entry_auth_state(&self) -> Result<bool> {
+    fn discard_profile_entry_auth_state(&self) -> Result<bool> {
         let backup_path = self.profile_entry_auth_state_path();
         if !backup_path.exists() {
             return Ok(false);
         }
-
-        let raw = std::fs::read_to_string(&backup_path).map_err(|error| {
-            CcrError::ConfigError(format!(
-                "读取 Codex 入口 auth 快照失败 {}: {}",
-                backup_path.display(),
-                error
-            ))
-        })?;
-        let state: ProfileEntryAuthState = serde_json::from_str(&raw).map_err(|error| {
-            CcrError::ConfigError(format!(
-                "解析 Codex 入口 auth 快照失败 {}: {}",
-                backup_path.display(),
-                error
-            ))
-        })?;
-
-        let auth_path = self.config_manager.auth_path();
-        if state.exists {
-            let content = state
-                .content
-                .ok_or_else(|| CcrError::ConfigError("Codex 入口 auth 快照缺少内容".into()))?;
-            AtomicWriter::new(auth_path)
-                .secret(true)
-                .write_string(&content)?;
-            crate::utils::ensure_private_permissions(auth_path);
-        } else if auth_path.exists() {
-            std::fs::remove_file(auth_path).map_err(|error| {
-                CcrError::ConfigError(format!(
-                    "删除 Codex auth.json 失败 {}: {}",
-                    auth_path.display(),
-                    error
-                ))
-            })?;
-        }
-
         std::fs::remove_file(&backup_path).map_err(|error| {
             CcrError::ConfigError(format!(
                 "清理 Codex 入口 auth 快照失败 {}: {}",
@@ -1417,11 +1333,7 @@ impl CodexPlatform {
         Ok(true)
     }
 
-    fn apply_runtime_route_without_auth(
-        &self,
-        route: &RouteSelection,
-        credential_store_override: Option<CredentialStoreKind>,
-    ) -> Result<()> {
+    fn clear_profile_runtime_state(&self) -> Result<()> {
         let mut config = self.config_manager.load_config()?;
         let root = Self::ensure_toml_table(&mut config)?;
 
@@ -1430,59 +1342,22 @@ impl CodexPlatform {
         root.remove("preferred_auth_method");
         root.remove("approval_policy");
         root.remove("sandbox_mode");
-        root.remove("model_reasoning_effort");
         root.remove("disable_response_storage");
         root.remove("forced_login_method");
         root.remove("sandbox_workspace_write");
 
-        if let Some(store) = credential_store_override {
-            root.insert(
-                "cli_auth_credentials_store".into(),
-                toml::Value::String(store.as_str().to_string()),
-            );
-        }
-
-        match route {
-            RouteSelection::Official { relay_base_url } => {
-                root.insert(
-                    "model_provider".into(),
-                    toml::Value::String(THIRD_PARTY_RUNTIME_PROVIDER_KEY.into()),
-                );
-
-                let providers = Self::ensure_providers_table_mut(root)?;
-                providers.remove(OPENAI_PROVIDER_KEY);
-
-                let mut provider_table = toml::map::Map::new();
-                provider_table.insert(
-                    "name".into(),
-                    toml::Value::String(OPENAI_PROVIDER_KEY.into()),
-                );
-                provider_table.insert(
-                    "base_url".into(),
-                    toml::Value::String(
-                        relay_base_url
-                            .clone()
-                            .unwrap_or_else(|| OPENAI_DEFAULT_BASE_URL.to_string()),
-                    ),
-                );
-                provider_table.insert("wire_api".into(), toml::Value::String("responses".into()));
-                provider_table.insert("requires_openai_auth".into(), toml::Value::Boolean(true));
-                providers.insert(
-                    THIRD_PARTY_RUNTIME_PROVIDER_KEY.to_string(),
-                    toml::Value::Table(provider_table),
-                );
-            }
-            RouteSelection::ThirdPartyCustom { .. } => {
-                return Err(CcrError::ValidationError(
-                    "Codex official runtime restore does not support third-party routes".into(),
-                ));
-            }
+        root.remove("model_provider");
+        if let Some(providers) = root
+            .get_mut("model_providers")
+            .and_then(toml::Value::as_table_mut)
+        {
+            providers.remove(THIRD_PARTY_RUNTIME_PROVIDER_KEY);
         }
 
         Self::cleanup_model_providers(root);
         self.runtime_service.commit_plan(CodexRuntimeCommitPlan {
             config: Some(config),
-            auth_cache: CodexAuthCacheAction::Preserve,
+            auth_cache: CodexAuthCacheAction::Delete,
         })
     }
 
@@ -1498,24 +1373,16 @@ impl CodexPlatform {
     }
 
     pub fn clear_active_profile_runtime(&self) -> Result<()> {
-        // 先记录指针/第三方形态；apply_runtime_route 会改写 config.toml。
         let had_pointer = self.has_raw_profile_pointer()?;
         let had_third_party = self.has_third_party_ccr_runtime()?;
         let had_snapshot = self.has_profile_entry_auth_backup();
 
-        self.apply_runtime_route_without_auth(
-            &RouteSelection::Official {
-                relay_base_url: None,
-            },
-            Some(CredentialStoreKind::File),
-        )?;
-
-        if had_snapshot {
-            self.restore_profile_entry_auth_state()?;
-        } else if had_pointer || had_third_party {
-            self.scrub_stale_openai_api_key()?;
+        if !had_pointer && !had_third_party && !had_snapshot {
+            return Ok(());
         }
 
+        self.clear_profile_runtime_state()?;
+        self.discard_profile_entry_auth_state()?;
         self.clear_current_profile_registry()?;
         Ok(())
     }
@@ -2393,8 +2260,6 @@ impl PlatformConfig for CodexPlatform {
 
         // 验证
         self.validate_profile(profile)?;
-        self.capture_profile_entry_auth_state()?;
-
         // 两路分发: Official / ThirdParty
         if Self::is_official_profile(profile) {
             self.apply_official_profile(profile)?;
@@ -2420,7 +2285,11 @@ impl PlatformConfig for CodexPlatform {
         );
         let _ = service.sync_current_auth_registry();
 
-        tracing::info!("✅ 已应用 Codex profile: {}", name);
+        tracing::info!(
+            profile = name,
+            corr = ccr_core::current_log_correlation_id(),
+            "applied Codex profile"
+        );
         Ok(())
     }
 
@@ -2784,15 +2653,12 @@ mod tests {
         platform.clear_active_profile_runtime().unwrap();
         let cleared = platform.config_manager.load_config().unwrap();
         let root = cleared.as_table().unwrap();
+        assert!(root.get("model_provider").is_none());
         assert!(root.get("model_catalog_json").is_none());
         assert!(root.get("preferred_auth_method").is_none());
         assert!(root.get("forced_login_method").is_none());
-        assert!(
-            CodexPlatform::current_custom_provider(&cleared)
-                .unwrap()
-                .get("experimental_bearer_token")
-                .is_none()
-        );
+        assert!(CodexPlatform::current_custom_provider(&cleared).is_none());
+        assert!(!env.codex_dir().join("auth.json").exists());
     }
 
     #[test]
@@ -2816,6 +2682,121 @@ mod tests {
         platform.clear_active_profile_runtime().unwrap();
 
         assert!(!env.codex_dir().join("auth.json").exists());
+    }
+
+    #[test]
+    fn clear_runtime_detects_custom_provider_without_bearer_or_forced_login() {
+        let env = TestCodexEnv::new();
+        std::fs::write(
+            env.codex_dir().join("config.toml"),
+            r#"
+model_provider = "custom"
+model_reasoning_effort = "xhigh"
+
+[model_providers.custom]
+name = "packycode"
+base_url = "https://api.example.com/v1"
+wire_api = "responses"
+requires_openai_auth = false
+env_key = "PACKYCODE_API_KEY"
+"#,
+        )
+        .unwrap();
+        std::fs::write(
+            env.codex_dir().join("auth.json"),
+            r#"{"PACKYCODE_API_KEY":"provider-secret"}"#,
+        )
+        .unwrap();
+        let platform = CodexPlatform::new().unwrap();
+
+        assert!(platform.has_third_party_ccr_runtime().unwrap());
+        platform.clear_active_profile_runtime().unwrap();
+
+        let config = platform.config_manager.load_config().unwrap();
+        let root = config.as_table().unwrap();
+        assert!(root.get("model_provider").is_none());
+        assert_eq!(
+            root.get("model_reasoning_effort")
+                .and_then(toml::Value::as_str),
+            Some("xhigh")
+        );
+        assert!(CodexPlatform::current_custom_provider(&config).is_none());
+        assert!(!env.codex_dir().join("auth.json").exists());
+    }
+
+    #[test]
+    fn login_prep_dirs_include_default_home_when_codex_home_redirects() {
+        let mut env = TestCodexEnv::new();
+        let home = env.home().to_path_buf();
+        env.set_env("HOME", home.as_os_str());
+        env.set_env("USERPROFILE", home.as_os_str());
+        env.remove_env("CCR_CODEX_DIR");
+        let sandbox = home.join("sandbox-codex");
+        std::fs::create_dir_all(&sandbox).unwrap();
+        env.set_env("CODEX_HOME", sandbox.as_os_str());
+
+        let dirs = CodexPlatform::login_prep_codex_dirs().unwrap();
+        assert_eq!(dirs, vec![sandbox, home.join(".codex")]);
+    }
+
+    #[test]
+    fn login_prep_dirs_stay_on_explicit_ccr_codex_dir() {
+        let mut env = TestCodexEnv::new();
+        let home = env.home().to_path_buf();
+        env.set_env("HOME", home.as_os_str());
+        env.set_env("USERPROFILE", home.as_os_str());
+        let sandbox = home.join("sandbox-codex");
+        env.set_env("CODEX_HOME", sandbox.as_os_str());
+
+        let dirs = CodexPlatform::login_prep_codex_dirs().unwrap();
+        assert_eq!(dirs, vec![env.codex_dir().to_path_buf()]);
+    }
+
+    #[test]
+    fn clear_runtime_scrubs_default_home_when_codex_home_is_redirected() {
+        let mut env = TestCodexEnv::new();
+        let home = env.home().to_path_buf();
+        env.set_env("HOME", home.as_os_str());
+        env.set_env("USERPROFILE", home.as_os_str());
+        env.remove_env("CCR_CODEX_DIR");
+        let sandbox = home.join("sandbox-codex");
+        std::fs::create_dir_all(&sandbox).unwrap();
+        env.set_env("CODEX_HOME", sandbox.as_os_str());
+
+        let default_dir = env.home().join(".codex");
+        std::fs::write(
+            default_dir.join("config.toml"),
+            r#"
+model_provider = "custom"
+model_reasoning_effort = "xhigh"
+
+[model_providers.custom]
+name = "relay-plus-team"
+base_url = "https://o10.top"
+wire_api = "responses"
+requires_openai_auth = true
+"#,
+        )
+        .unwrap();
+        std::fs::write(
+            default_dir.join("auth.json"),
+            r#"{"OPENAI_API_KEY":"sk-stale-default-home"}"#,
+        )
+        .unwrap();
+
+        assert!(CodexPlatform::dir_has_third_party_ccr_runtime(&default_dir).unwrap());
+        let platform = CodexPlatform::for_codex_dir(&default_dir).unwrap();
+        platform.clear_active_profile_runtime().unwrap();
+
+        assert!(!default_dir.join("auth.json").exists());
+        let config = platform.config_manager.load_config().unwrap();
+        let root = config.as_table().unwrap();
+        assert!(root.get("model_provider").is_none());
+        assert_eq!(
+            root.get("model_reasoning_effort")
+                .and_then(toml::Value::as_str),
+            Some("xhigh")
+        );
     }
 
     #[test]

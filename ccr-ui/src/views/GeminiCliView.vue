@@ -1,95 +1,62 @@
 <template>
-  <div class="gemini-view stage-page">
-    <div class="gemini-shell">
-      <section class="gemini-hero animate-slide-up">
-        <div class="gemini-hero__copy">
-          <div class="gemini-hero__eyebrow">
-            <span class="gemini-hero__pulse" />
-            <span>{{ t('gemini.overview.hero.eyebrow') }}</span>
-            <span class="gemini-hero__eyebrow-muted">{{ t('common.shell.tagline') }}</span>
-          </div>
-
-          <div class="gemini-title-row">
-            <div class="gemini-brand-mark">
+  <PageShell class="gemini-view">
+    <template #header>
+      <PageHeader
+        :title="t('gemini.overview.breadcrumb')"
+        :eyebrow="t('gemini.overview.hero.eyebrow')"
+        :description="t('gemini.overview.hero.description')"
+      >
+        <template #actions>
+          <RouterLink to="/antigravity/mcp">
+            <Button variant="primary">
               <SIcon
-                name="Sparkles"
-                size="w-7 h-7"
+                name="Server"
+                size="w-4 h-4"
+                class="mr-2"
               />
-            </div>
-            <div>
-              <h1 class="gemini-title">
-                {{ t('gemini.overview.breadcrumb') }}
-              </h1>
-              <p class="gemini-subtitle">
-                {{ t('gemini.overview.hero.subtitle') }}
-              </p>
-            </div>
-          </div>
-
-          <p class="gemini-description">
-            {{ t('gemini.overview.hero.description') }}
-          </p>
-
-          <div class="gemini-tag-row">
-            <span
-              v-for="tag in heroTags"
-              :key="tag.key"
-              class="gemini-tag"
-              :class="`gemini-tag--${tag.tone}`"
-            >
+              {{ t('gemini.overview.hero.primaryAction') }}
+            </Button>
+          </RouterLink>
+          <RouterLink to="/antigravity/slash-commands">
+            <Button variant="secondary">
               <SIcon
-                :name="tag.icon"
-                size="w-3.5 h-3.5"
+                name="Command"
+                size="w-4 h-4"
+                class="mr-2"
               />
-              {{ tag.label }}
-            </span>
-          </div>
+              {{ t('gemini.overview.hero.secondaryAction') }}
+            </Button>
+          </RouterLink>
+          <RouterLink to="/">
+            <Button variant="ghost">
+              <SIcon
+                name="Home"
+                size="w-4 h-4"
+                class="mr-2"
+              />
+              {{ t('common.backToHome') }}
+            </Button>
+          </RouterLink>
+        </template>
+      </PageHeader>
+    </template>
 
-          <div class="gemini-hero-actions">
-            <RouterLink to="/antigravity/mcp">
-              <Button
-                variant="primary"
-                size="md"
-                class="gemini-action-button gemini-action-button--primary"
-              >
-                <SIcon
-                  name="Server"
-                  size="w-4 h-4"
-                  class="mr-2"
-                />
-                {{ t('gemini.overview.hero.primaryAction') }}
-              </Button>
-            </RouterLink>
-            <RouterLink to="/antigravity/slash-commands">
-              <Button
-                variant="glass"
-                size="md"
-                class="gemini-action-button"
-              >
-                <SIcon
-                  name="Command"
-                  size="w-4 h-4"
-                  class="mr-2"
-                />
-                {{ t('gemini.overview.hero.secondaryAction') }}
-              </Button>
-            </RouterLink>
-            <RouterLink to="/">
-              <Button
-                variant="ghost"
-                size="md"
-                class="gemini-action-button"
-              >
-                <SIcon
-                  name="Home"
-                  size="w-4 h-4"
-                  class="mr-2"
-                />
-                {{ t('common.backToHome') }}
-              </Button>
-            </RouterLink>
-          </div>
-        </div>
+    <div class="gemini-tag-row">
+      <span
+        v-for="tag in heroTags"
+        :key="tag.key"
+        class="gemini-tag"
+        :class="`gemini-tag--${tag.tone}`"
+      >
+        <SIcon
+          :name="tag.icon"
+          size="w-3.5 h-3.5"
+        />
+        {{ tag.label }}
+      </span>
+    </div>
+
+    <section class="gemini-terminal">
 
         <Card
           variant="glass"
@@ -265,8 +232,7 @@
           </ul>
         </Card>
       </section>
-    </div>
-  </div>
+  </PageShell>
 </template>
 
 <script setup lang="ts">
@@ -276,6 +242,8 @@ import { useI18n } from 'vue-i18n'
 import SIcon from '@/components/ui/SIcon.vue'
 import Card from '@/components/ui/Card.vue'
 import Button from '@/components/ui/Button.vue'
+import PageHeader from '@/components/ui/PageHeader.vue'
+import PageShell from '@/components/ui/PageShell.vue'
 import PlatformUsageInsightPanel from '@/components/platform-usage/PlatformUsageInsightPanel.vue'
 import { usePlatformUsageInsight } from '@/composables/usePlatformUsageInsight'
 import {
@@ -504,47 +472,15 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .gemini-view {
-  @apply relative min-h-full overflow-hidden p-5 md:p-8 lg:p-10;
-
-  background:
-    radial-gradient(circle at 18% 12%, rgb(var(--color-info-rgb) / 8%) 0, transparent 28rem),
-    radial-gradient(circle at 82% 8%, rgb(var(--color-warning-rgb) / 7%) 0, transparent 24rem),
-    linear-gradient(145deg, rgb(var(--color-bg-base-rgb) / 96%), rgb(var(--color-bg-surface-rgb) / 90%));
+  background: var(--color-bg-elevated);
 }
 
-.gemini-shell {
-  @apply relative z-10 mx-auto max-w-7xl space-y-7;
-}
-
-.gemini-hero {
-  @apply grid gap-5 lg:grid-cols-[minmax(0,1.08fr)_minmax(22rem,0.92fr)] lg:items-stretch;
-}
-
-.gemini-hero__copy,
 .gemini-terminal-card,
 .gemini-module-card,
 .gemini-quick-card {
-  border: 1px solid var(--stage-border-soft);
-  background:
-    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 76%), rgb(var(--color-bg-surface-rgb) / 58%)),
-    var(--stage-surface-soft);
-  box-shadow:
-    0 24px 60px rgb(var(--color-bg-base-rgb) / 22%);
-}
-
-.gemini-hero__copy {
-  @apply relative overflow-hidden rounded-[2rem] p-6 md:p-8;
-}
-
-.gemini-hero__copy::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(115deg, rgb(var(--color-platform-gemini-rgb) / 18%), transparent 34%),
-    repeating-linear-gradient(90deg, transparent 0 4.5rem, rgb(var(--color-platform-gemini-rgb) / 5%) 4.5rem 4.55rem);
-  mask-image: linear-gradient(90deg, #000, transparent 82%);
-  pointer-events: none;
+  border: 1px solid var(--color-border-subtle);
+  background: var(--color-bg-surface);
+  box-shadow: none;
 }
 
 .gemini-hero__eyebrow,
@@ -648,11 +584,11 @@ onBeforeUnmount(() => {
 
   color: var(--color-text-inverted);
   border-color: rgb(var(--color-platform-gemini-rgb) / 22%);
-  background: linear-gradient(180deg, var(--platform-gemini), rgb(var(--color-platform-gemini-rgb) / 82%));
+  background: var(--platform-gemini);
 }
 
 .gemini-action-button--primary:hover:not(:disabled) {
-  background: linear-gradient(180deg, rgb(var(--color-platform-gemini-rgb) / 92%), var(--platform-gemini));
+  background: var(--platform-gemini);
 }
 
 .gemini-terminal-card {
@@ -845,7 +781,7 @@ onBeforeUnmount(() => {
 .gemini-module-card__orbit {
   @apply absolute inset-x-4 top-4 h-px origin-left scale-x-50 rounded-full opacity-50 transition-all duration-300;
 
-  background: linear-gradient(90deg, rgb(var(--module-rgb) / 72%), transparent);
+  background: rgb(var(--module-rgb) / 72%);
 }
 
 .gemini-module-card:hover .gemini-module-card__orbit {

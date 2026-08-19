@@ -72,11 +72,8 @@ defineEmits<{
 .scroll-to-top__button:hover {
   transform: translateY(-2px);
   border-color: rgb(var(--color-accent-secondary-rgb) / 36%);
-  background:
-    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 88%), rgb(var(--color-accent-secondary-rgb) / 14%));
-  box-shadow:
-    0 22px 38px rgb(6 8 18 / 26%),
-    0 0 0 1px rgb(var(--color-accent-secondary-rgb) / 12%);
+  background: var(--color-bg-elevated);
+  box-shadow: none;
 }
 
 .scroll-to-top__button:focus-visible {

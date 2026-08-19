@@ -4,6 +4,7 @@ import type { GrokProfileDto } from '@/types'
 import GrokProfileCard from '@/components/grok/GrokProfileCard.vue'
 import GrokProfileEditorModal from '@/components/grok/GrokProfileEditorModal.vue'
 import {
+  buildGrokCreateRequest,
   buildGrokPatch,
   createEmptyGrokForm,
   fillGrokForm,
@@ -70,6 +71,58 @@ const editorForm = (): GrokProfileEditorForm => ({
 
 const dirty = (...fields: GrokProfileDirtyField[]) => new Set(fields)
 
+describe('Grok profile create defaults', () => {
+  it('starts a new third-party profile with the product defaults', () => {
+    const form = createEmptyGrokForm()
+
+    expect(form).toMatchObject({
+      profileKind: 'third_party',
+      model: 'grok-4.6',
+      reasoningEffort: 'high',
+      credentialAction: 'replace_api_key',
+      apiBackend: 'responses',
+      contextWindow: '500000',
+      supportsBackendSearch: true,
+      tagsInput: 'work',
+      enabled: true,
+      apiKey: '',
+      envKey: '',
+    })
+
+    const request = buildGrokCreateRequest({
+      ...form,
+      name: 'demo',
+      baseUrl: 'https://api.example.com/v1',
+      apiKey: 'secret-api-key',
+    })
+
+    expect(request).toMatchObject({
+      name: 'demo',
+      profile_kind: 'third_party',
+      model: 'grok-4.6',
+      reasoning_effort: 'high',
+      credential_action: 'replace_api_key',
+      api_backend: 'responses',
+      context_window: 500000,
+      supports_backend_search: true,
+      tags: ['work'],
+      api_key: 'secret-api-key',
+    })
+  })
+
+  it('does not send a replace credential action when creating an official profile', () => {
+    const request = buildGrokCreateRequest({
+      ...createEmptyGrokForm(),
+      name: 'official',
+      profileKind: 'official',
+    })
+
+    expect(request.credential_action).toBe('preserve')
+    expect(request).not.toHaveProperty('api_key')
+    expect(request).not.toHaveProperty('env_key')
+  })
+})
+
 describe('Grok profile editor patch contract', () => {
   it('keeps display-safe base URLs out of every editable field and reasoning-only patch', () => {
     const form = editorForm()
@@ -113,6 +166,43 @@ describe('Grok profile editor patch contract', () => {
 describe('GrokProfileEditorModal smoke', () => {
   afterEach(() => {
     document.body.innerHTML = ''
+  })
+
+  it('renders the third-party create defaults in the editor', async () => {
+    const element = document.createElement('div')
+    document.body.appendChild(element)
+    const form = reactive(createEmptyGrokForm())
+    const app = createApp(defineComponent({
+      setup() {
+        return () => h(GrokProfileEditorModal, {
+          modelValue: true,
+          editingName: null,
+          saving: false,
+          form,
+          updateField: vi.fn(),
+        })
+      },
+    }))
+
+    app.mount(element)
+    await nextTick()
+
+    try {
+      const kinds = Array.from(element.querySelectorAll<HTMLButtonElement>('.grok-kind-control__button'))
+      expect(kinds.find(button => button.classList.contains('grok-kind-control__button--active'))?.textContent)
+        .toContain('third_party')
+      expect(element.querySelector<HTMLInputElement>('#grok-profile-model')?.value).toBe('grok-4.6')
+      expect(element.querySelector<HTMLSelectElement>('#grok-profile-reasoning')?.value).toBe('high')
+      expect(element.querySelector<HTMLSelectElement>('#grok-credential-action')?.value).toBe('replace_api_key')
+      expect(element.querySelector('#grok-profile-api-key')).not.toBeNull()
+      expect(element.querySelector<HTMLSelectElement>('#grok-profile-api-backend')?.value).toBe('responses')
+      expect(element.querySelector<HTMLInputElement>('#grok-profile-context-window')?.value).toBe('500000')
+      expect(element.querySelector<HTMLInputElement>('input[type="checkbox"]')?.checked).toBe(true)
+      expect(element.querySelector<HTMLInputElement>('#grok-profile-tags')?.value).toBe('work')
+    } finally {
+      app.unmount()
+      element.remove()
+    }
   })
 
   it('starts write-only fields blank and uses the display URL only as a placeholder', async () => {
@@ -210,6 +300,115 @@ describe('GrokProfileEditorModal smoke', () => {
       expect(element.querySelector('#grok-profile-provider')).toBeNull()
       expect(element.querySelector('#grok-profile-base-url')).toBeNull()
       expect(element.querySelector('#grok-credential-action')).toBeNull()
+    } finally {
+      app.unmount()
+      element.remove()
+    }
+  })
+
+  it('renders the shared pe-shell navigation, scroll root, and footer for third-party profiles', async () => {
+    const element = document.createElement('div')
+    document.body.appendChild(element)
+    const form = reactive(editorForm())
+    const app = createApp(defineComponent({
+      setup() {
+        return () => h(GrokProfileEditorModal, {
+          modelValue: true,
+          editingName: 'relay',
+          saving: false,
+          form,
+          updateField: vi.fn(),
+        })
+      },
+    }))
+
+    app.mount(element)
+    await nextTick()
+
+    try {
+      const shell = element.querySelector('.pe-shell')
+      expect(shell).not.toBeNull()
+      expect(shell?.className).toMatch(/max-h-\[calc\(90vh-9rem\)\]/)
+      expect(shell?.classList.contains('overflow-hidden')).toBe(true)
+      expect(element.querySelector('.pe-nav')).not.toBeNull()
+      expect(element.querySelector('.pe-scroll')).not.toBeNull()
+      expect(element.querySelector('.pe-footer')).not.toBeNull()
+      expect(Array.from(element.querySelectorAll('.pe-nav__item')).map(item => item.textContent))
+        .toContain('grok.profiles.editor.connection')
+    } finally {
+      app.unmount()
+      element.remove()
+    }
+  })
+
+  it('omits the connection nav item for official profiles', async () => {
+    const element = document.createElement('div')
+    document.body.appendChild(element)
+    const form = reactive(fillGrokForm(officialProfile))
+    const app = createApp(defineComponent({
+      setup() {
+        return () => h(GrokProfileEditorModal, {
+          modelValue: true,
+          editingName: 'official',
+          saving: false,
+          form,
+          updateField: vi.fn(),
+        })
+      },
+    }))
+
+    app.mount(element)
+    await nextTick()
+
+    try {
+      const navItems = Array.from(element.querySelectorAll('.pe-nav__item')).map(item => item.textContent)
+      expect(navItems).toContain('grok.profiles.editor.identity')
+      expect(navItems).toContain('grok.profiles.editor.runtime')
+      expect(navItems).toContain('grok.profiles.editor.status')
+      expect(navItems).not.toContain('grok.profiles.editor.connection')
+      expect(element.querySelector('#connection')).toBeNull()
+      expect(element.querySelector('.pe-scroll')).not.toBeNull()
+      expect(element.querySelector('.pe-footer')).not.toBeNull()
+    } finally {
+      app.unmount()
+      element.remove()
+    }
+  })
+
+  it('shows a jump control when save validation fails', async () => {
+    const element = document.createElement('div')
+    document.body.appendChild(element)
+    const form = reactive(createEmptyGrokForm())
+    form.profileKind = 'third_party'
+    const save = vi.fn()
+    const app = createApp(defineComponent({
+      setup() {
+        return () => h(GrokProfileEditorModal, {
+          modelValue: true,
+          editingName: null,
+          saving: false,
+          form,
+          updateField: vi.fn(),
+          onSave: save,
+        })
+      },
+    }))
+
+    app.mount(element)
+    await nextTick()
+
+    try {
+      const saveButton = Array.from(element.querySelectorAll('button'))
+        .find(button => button.textContent?.includes('grok.profiles.actions.save'))
+      expect(saveButton).toBeDefined()
+      saveButton?.click()
+      await nextTick()
+
+      expect(save).not.toHaveBeenCalled()
+      expect(element.querySelector('.pe-summary')).not.toBeNull()
+      expect(element.querySelector('.pe-summary__jump')).not.toBeNull()
+      expect(element.querySelector('.pe-summary__jump')?.textContent)
+        .toContain('grok.profiles.editor.validationJump')
     } finally {
       app.unmount()
       element.remove()

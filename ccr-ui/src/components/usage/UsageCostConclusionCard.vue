@@ -57,12 +57,9 @@ defineProps<{
   gap: 0.75rem;
   height: 100%;
   border-radius: 1.35rem;
-  border: 1px solid rgb(var(--color-border-default-rgb) / 14%);
+  border: 1px solid var(--color-border-subtle);
   padding: 1.05rem 1.15rem 1.1rem;
-  background:
-    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 92%), rgb(var(--color-bg-surface-rgb) / 76%)),
-    radial-gradient(circle at 86% 0%, rgb(var(--usage-metric-rgb) / 10%), transparent 52%);
-  box-shadow: var(--elevation-1);
+  background: var(--color-bg-surface);
 }
 
 .usage-cost-conclusion--rose {
@@ -82,12 +79,7 @@ defineProps<{
 }
 
 .usage-cost-conclusion::before {
-  content: '';
-  position: absolute;
-  inset: 0 auto 0 0;
-  z-index: var(--z-behind);
-  width: 3px;
-  background: linear-gradient(180deg, rgb(var(--usage-metric-rgb) / 82%), transparent);
+  display: none;
 }
 
 .usage-cost-conclusion__head {
@@ -127,9 +119,9 @@ defineProps<{
 .usage-cost-conclusion__value {
   min-width: 0;
   color: var(--color-text-primary);
-  font-size: clamp(2.1rem, 2.2vw + 1rem, 2.9rem);
-  font-weight: 770;
-  letter-spacing: -0.045em;
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: 0;
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }

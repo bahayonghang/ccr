@@ -83,18 +83,18 @@
           <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div class="min-w-0">
               <div class="mb-3 flex flex-wrap items-center gap-2">
-                <span class="rounded-full border border-amber-300/20 bg-amber-300/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-amber-200">
+                <span class="rounded-full border border-amber-300/20 bg-amber-300/10 px-3 py-1 text-xs font-semibold text-amber-200">
                   /{{ command.name }}
                 </span>
                 <span
                   v-if="command.agent"
-                  class="rounded-full bg-bg-base px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-text-secondary"
+                  class="rounded-full bg-bg-base px-3 py-1 text-xs font-semibold text-text-secondary"
                 >
                   {{ command.agent }}
                 </span>
                 <span
                   v-if="command.subtask"
-                  class="rounded-full bg-violet-300/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-violet-200"
+                  class="rounded-full bg-violet-300/10 px-3 py-1 text-xs font-semibold text-violet-200"
                 >
                   {{ tt('subtask', 'subtask') }}
                 </span>
@@ -141,7 +141,7 @@
       <div class="space-y-4">
         <div class="grid gap-4 md:grid-cols-2">
           <div>
-            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('command name *', 'command name *') }}</label>
+            <label class="mb-2 block text-xs font-semibold text-text-muted">{{ tt('command name *', 'command name *') }}</label>
             <input
               v-model="form.name"
               :disabled="Boolean(editingName)"
@@ -150,7 +150,7 @@
             >
           </div>
           <div>
-            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('agent', 'agent') }}</label>
+            <label class="mb-2 block text-xs font-semibold text-text-muted">{{ tt('agent', 'agent') }}</label>
             <input
               v-model="form.agent"
               class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 text-sm text-text-primary"
@@ -161,7 +161,7 @@
 
         <div class="grid gap-4 md:grid-cols-2">
           <div>
-            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('description *', 'description *') }}</label>
+            <label class="mb-2 block text-xs font-semibold text-text-muted">{{ tt('description *', 'description *') }}</label>
             <input
               v-model="form.description"
               class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 text-sm text-text-primary"
@@ -169,7 +169,7 @@
             >
           </div>
           <div>
-            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('model', 'model') }}</label>
+            <label class="mb-2 block text-xs font-semibold text-text-muted">{{ tt('model', 'model') }}</label>
             <input
               v-model="form.model"
               class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 text-sm text-text-primary"
@@ -187,7 +187,7 @@
         </label>
 
         <div>
-          <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('template', 'template') }}</label>
+          <label class="mb-2 block text-xs font-semibold text-text-muted">{{ tt('template', 'template') }}</label>
           <textarea
             v-model="form.template"
             rows="12"

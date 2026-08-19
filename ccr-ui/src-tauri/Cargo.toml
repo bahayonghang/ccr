@@ -3,7 +3,7 @@ members = ["command-macros"]
 
 [package]
 name = "ccr-desktop"
-version = "7.1.3"
+version = "7.1.5"
 description = "CCR Desktop - Tauri Application"
 authors = ["Geekyhang"]
 edition = "2024"
@@ -105,7 +105,7 @@ tempfile = "3.27.0"
 
 # Error handling
 thiserror = "2.0.18"
-lru = "0.18.0"
+lru = "0.18.2"
 notify = "8.2.0"
 
 # Lock-free 配置快照（供同步 tray/回调读取 AppState 偏好）

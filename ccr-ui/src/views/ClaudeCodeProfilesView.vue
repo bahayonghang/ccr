@@ -1,39 +1,43 @@
 <template>
-  <div class="profiles-view claude-profiles-view">
-    <ModuleSubnav module="claude-code" />
+  <PageShell class="profiles-view claude-profiles-view">
+    <template #header>
+      <ProfilesHeader
+        icon="Layers"
+        back-to="/claude-code"
+        :labels="{
+          title: $t('claudeProfiles.title'),
+          subtitle: $t('claudeProfiles.subtitle'),
+          back: $t('claudeProfiles.back'),
+          reload: $t('claudeProfiles.reloadAction'),
+          export: $t('common.export'),
+          add: $t('claudeProfiles.addProfile'),
+          source: $t('profilesRaw.edit'),
+          overflow: $t('claudeProfiles.overflowMenu'),
+        }"
+        :palette="{
+          label: $t('claudeProfiles.commandPaletteButton'),
+          shortcut: `${quickSwitch.modifier.value}K`,
+          title: $t('claudeProfiles.commandPaletteShortcut'),
+        }"
+        :loading="loading || isRefreshing"
+        :exporting="isExporting"
+        :palette-open="paletteOpen"
+        :source-disabled="!rawLocal"
+        :source-title="rawLocal ? undefined : $t('settingsRaw.unsupportedEnvironment')"
+        @add="openAddForm"
+        @export="handleExportProfiles"
+        @reload="refreshProfiles"
+        @open-palette="paletteOpen = true"
+        @edit-source="openRawEditor"
+      />
+    </template>
+
+    <template #subnav>
+      <ModuleSubnav module="claude-code" />
+    </template>
 
     <main class="cp-shell">
       <div class="cp-main">
-        <ProfilesHeader
-          icon="Layers"
-          back-to="/claude-code"
-          :labels="{
-            title: $t('claudeProfiles.title'),
-            subtitle: $t('claudeProfiles.subtitle'),
-            back: $t('claudeProfiles.back'),
-            reload: $t('claudeProfiles.reloadAction'),
-            export: $t('common.export'),
-            add: $t('claudeProfiles.addProfile'),
-            source: $t('profilesRaw.edit'),
-            overflow: $t('claudeProfiles.overflowMenu'),
-          }"
-          :palette="{
-            label: $t('claudeProfiles.commandPaletteButton'),
-            shortcut: `${quickSwitch.modifier.value}K`,
-            title: $t('claudeProfiles.commandPaletteShortcut'),
-          }"
-          :loading="loading || isRefreshing"
-          :exporting="isExporting"
-          :palette-open="paletteOpen"
-          :source-disabled="!rawLocal"
-          :source-title="rawLocal ? undefined : $t('settingsRaw.unsupportedEnvironment')"
-          @add="openAddForm"
-          @export="handleExportProfiles"
-          @reload="refreshProfiles"
-          @open-palette="paletteOpen = true"
-          @edit-source="openRawEditor"
-        />
-
         <section
           v-if="canOff"
           class="claude-profiles-banner"
@@ -348,7 +352,7 @@
         <ProfileDiffRows :rows="confirmDiffRows" />
       </template>
     </ConfirmModal>
-  </div>
+  </PageShell>
 </template>
 
 <script setup lang="ts">
@@ -383,6 +387,7 @@ import ProfilesStatStrip, { type ProfilesStatStripHealth } from '@/components/pr
 import ProfilesToolbar, { type ProfilesViewMode } from '@/components/profiles/ProfilesToolbar.vue'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import ModuleSubnav from '@/components/ModuleSubnav.vue'
+import PageShell from '@/components/ui/PageShell.vue'
 import SIcon from '@/components/ui/SIcon.vue'
 import type { ClaudeProfile } from '@/types'
 import type { ClaudeProfileEditorForm } from '@/types/claudeProfileEditor'

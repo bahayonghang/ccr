@@ -1,8 +1,11 @@
 <template>
-  <div class="checkin-account-dashboard">
-    <div class="dashboard-shell">
-      <section class="dashboard-header checkin-surface-card">
-        <div class="header-left">
+  <PageShell class="checkin-account-dashboard">
+    <template #header>
+      <PageHeader
+        :title="dashboard?.account.name || tt('账号 Dashboard', 'Account dashboard')"
+        :description="tt('签到账号 · Dashboard', 'Check-in account dashboard')"
+      >
+        <template #leading>
           <button
             type="button"
             class="icon-button"
@@ -15,45 +18,20 @@
               size="w-4 h-4"
             />
           </button>
-
-          <div class="header-copy">
-            <p class="header-eyebrow">
-              {{ tt('签到账号 · Dashboard', 'Check-in account dashboard') }}
-            </p>
-            <div class="header-title-row">
-              <h1>{{ dashboard?.account.name || tt('账号 Dashboard', 'Account dashboard') }}</h1>
-              <span class="provider-pill">
-                {{ dashboard?.account.provider_name || tt('未知提供商', 'Unknown provider') }}
-              </span>
-              <span
-                v-if="dashboard"
-                class="status-pill"
-                :class="accountEnabled ? 'status-on' : 'status-off'"
-              >
-                {{ accountEnabled ? tt('启用', 'Enabled') : tt('已禁用', 'Disabled') }}
-              </span>
-            </div>
-
-            <div class="header-meta">
-              <span class="meta-chip">
-                <SIcon
-                  name="CalendarDays"
-                  size="w-3.5 h-3.5"
-                />
-                {{ tt('最后签到：', 'Last check-in:') }} {{ dashboard?.streak.last_check_in_date || '-' }}
-              </span>
-              <span class="meta-chip">
-                <SIcon
-                  name="Wallet"
-                  size="w-3.5 h-3.5"
-                />
-                {{ tt('余额更新：', 'Balance updated:') }} {{ formatDateTime(dashboard?.account.last_balance_check_at) }}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div class="header-actions">
+        </template>
+        <template #status>
+          <span class="provider-pill">
+            {{ dashboard?.account.provider_name || tt('未知提供商', 'Unknown provider') }}
+          </span>
+          <span
+            v-if="dashboard"
+            class="status-pill"
+            :class="accountEnabled ? 'status-on' : 'status-off'"
+          >
+            {{ accountEnabled ? tt('启用', 'Enabled') : tt('已禁用', 'Disabled') }}
+          </span>
+        </template>
+        <template #actions>
           <button
             type="button"
             class="action-btn"
@@ -91,8 +69,27 @@
             />
             {{ tt('刷新', 'Refresh') }}
           </button>
-        </div>
-      </section>
+        </template>
+      </PageHeader>
+    </template>
+
+    <div class="dashboard-shell">
+      <div class="header-meta">
+        <span class="meta-chip">
+          <SIcon
+            name="CalendarDays"
+            size="w-3.5 h-3.5"
+          />
+          {{ tt('最后签到：', 'Last check-in:') }} {{ dashboard?.streak.last_check_in_date || '-' }}
+        </span>
+        <span class="meta-chip">
+          <SIcon
+            name="Wallet"
+            size="w-3.5 h-3.5"
+          />
+          {{ tt('余额更新：', 'Balance updated:') }} {{ formatDateTime(dashboard?.account.last_balance_check_at) }}
+        </span>
+      </div>
 
       <div
         v-if="error"
@@ -138,50 +135,18 @@
             </div>
 
             <div class="vertical-items">
-              <article class="vertical-stat">
-                <div class="vertical-icon success">
-                  <SIcon
-                    name="Wallet"
-                    size="w-4 h-4"
-                  />
-                </div>
-                <div class="vertical-copy">
-                  <span class="vertical-label">{{ tt('当前余额', 'Current balance') }}</span>
-                  <span class="vertical-value success">
-                    {{ formatCurrency(dashboard.account.latest_balance, dashboard.account.balance_currency) }}
-                  </span>
-                </div>
-              </article>
-
-              <article class="vertical-stat">
-                <div class="vertical-icon accent">
-                  <SIcon
-                    name="TrendingUp"
-                    size="w-4 h-4"
-                  />
-                </div>
-                <div class="vertical-copy">
-                  <span class="vertical-label">{{ tt('总额度', 'Total quota') }}</span>
-                  <span class="vertical-value accent">
-                    {{ formatCurrency(dashboard.account.total_quota, dashboard.account.balance_currency) }}
-                  </span>
-                </div>
-              </article>
-
-              <article class="vertical-stat">
-                <div class="vertical-icon warning">
-                  <SIcon
-                    name="History"
-                    size="w-4 h-4"
-                  />
-                </div>
-                <div class="vertical-copy">
-                  <span class="vertical-label">{{ tt('历史消耗', 'Usage to date') }}</span>
-                  <span class="vertical-value warning">
-                    {{ formatCurrency(dashboard.account.used_quota, dashboard.account.balance_currency) }}
-                  </span>
-                </div>
-              </article>
+              <StatTile
+                :label="tt('当前余额', 'Current balance')"
+                :value="formatCurrency(dashboard.account.latest_balance, dashboard.account.balance_currency)"
+              />
+              <StatTile
+                :label="tt('总额度', 'Total quota')"
+                :value="formatCurrency(dashboard.account.total_quota, dashboard.account.balance_currency)"
+              />
+              <StatTile
+                :label="tt('历史消耗', 'Usage to date')"
+                :value="formatCurrency(dashboard.account.used_quota, dashboard.account.balance_currency)"
+              />
             </div>
           </section>
 
@@ -202,50 +167,21 @@
             </div>
 
             <div class="vertical-items">
-              <article class="vertical-stat">
-                <div class="vertical-icon warning">
-                  <SIcon
-                    name="Flame"
-                    size="w-4 h-4"
-                  />
-                </div>
-                <div class="vertical-copy">
-                  <span class="vertical-label">{{ tt('当前连续', 'Current streak') }}</span>
-                  <span class="vertical-value warning">
-                    {{ dashboard.streak.current_streak }} <small>{{ tt('天', 'days') }}</small>
-                  </span>
-                </div>
-              </article>
-
-              <article class="vertical-stat">
-                <div class="vertical-icon accent">
-                  <SIcon
-                    name="Trophy"
-                    size="w-4 h-4"
-                  />
-                </div>
-                <div class="vertical-copy">
-                  <span class="vertical-label">{{ tt('最长连续', 'Longest streak') }}</span>
-                  <span class="vertical-value accent">
-                    {{ dashboard.streak.longest_streak }} <small>{{ tt('天', 'days') }}</small>
-                  </span>
-                </div>
-              </article>
-
-              <article class="vertical-stat">
-                <div class="vertical-icon success">
-                  <SIcon
-                    name="Calendar"
-                    size="w-4 h-4"
-                  />
-                </div>
-                <div class="vertical-copy">
-                  <span class="vertical-label">{{ tt('总签到天数', 'Total check-in days') }}</span>
-                  <span class="vertical-value success">
-                    {{ dashboard.streak.total_check_in_days }} <small>{{ tt('天', 'days') }}</small>
-                  </span>
-                </div>
-              </article>
+              <StatTile
+                :label="tt('当前连续', 'Current streak')"
+                :value="dashboard.streak.current_streak"
+                :hint="tt('天', 'days')"
+              />
+              <StatTile
+                :label="tt('最长连续', 'Longest streak')"
+                :value="dashboard.streak.longest_streak"
+                :hint="tt('天', 'days')"
+              />
+              <StatTile
+                :label="tt('总签到天数', 'Total check-in days')"
+                :value="dashboard.streak.total_check_in_days"
+                :hint="tt('天', 'days')"
+              />
             </div>
 
             <div class="checkin-progress">
@@ -314,16 +250,11 @@
             </div>
 
             <div class="trend-actions">
-              <button
-                v-for="option in trendOptions"
-                :key="option"
-                type="button"
-                class="trend-btn"
-                :class="{ active: trendDays === option }"
-                @click="trendDays = option"
-              >
-                {{ option }}
-              </button>
+              <PillToggleGroup
+                :options="trendToggleOptions"
+                :model-value="trendDays"
+                @update:model-value="trendDays = $event"
+              />
             </div>
           </div>
 
@@ -333,10 +264,14 @@
         </section>
       </div>
     </div>
-  </div>
+  </PageShell>
 </template>
 
 <script setup lang="ts">
+import PageHeader from '@/components/ui/PageHeader.vue'
+import PageShell from '@/components/ui/PageShell.vue'
+import PillToggleGroup from '@/components/ui/PillToggleGroup.vue'
+import StatTile from '@/components/ui/StatTile.vue'
 import SIcon from '@/components/ui/SIcon.vue'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -370,6 +305,12 @@ const calendarYear = ref(now.getFullYear())
 const calendarMonth = ref(now.getMonth() + 1)
 const trendDays = ref(30)
 const trendOptions = [7, 30, 90]
+const trendToggleOptions = computed(() =>
+  trendOptions.map((option) => ({
+    value: option,
+    label: String(option),
+  })),
+)
 
 const accountEnabled = computed(() => dashboard.value?.account.enabled ?? false)
 
@@ -535,11 +476,10 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 
 .header-eyebrow {
   margin: 0;
-  color: var(--text-muted);
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0;
 }
 
 .header-title-row {
@@ -551,8 +491,8 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 
 .header-title-row h1 {
   margin: 0;
-  color: var(--text-primary);
-  font-size: clamp(1.45rem, 1.75vw, 1.8rem);
+  color: var(--color-text-primary);
+  font-size: 1.5rem;
   font-weight: 700;
   letter-spacing: -0.02em;
 }
@@ -586,26 +526,26 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 .provider-pill {
   background: rgb(var(--color-accent-primary-rgb) / 10%);
   border: 1px solid rgb(var(--color-accent-primary-rgb) / 22%);
-  color: var(--accent-primary);
+  color: var(--color-accent-primary);
 }
 
 .status-pill.status-on {
   background: rgb(var(--color-success-rgb) / 12%);
   border: 1px solid rgb(var(--color-success-rgb) / 24%);
-  color: var(--accent-success);
+  color: var(--color-success);
 }
 
 .status-pill.status-off {
   background: rgb(var(--color-danger-rgb) / 12%);
   border: 1px solid rgb(var(--color-danger-rgb) / 22%);
-  color: var(--accent-danger);
+  color: var(--color-danger);
 }
 
 .meta-chip {
   padding: 0.45rem 0.75rem;
   background: rgb(var(--color-bg-elevated-rgb) / 54%);
   border: 1px solid rgb(var(--color-border-default-rgb) / 56%);
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .icon-button,
@@ -630,14 +570,14 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   height: 2.4rem;
   border-radius: 999px;
   background: rgb(var(--color-bg-elevated-rgb) / 48%);
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   cursor: pointer;
 }
 
 .icon-button:hover {
   transform: translateY(-1px);
   background: rgb(var(--color-bg-elevated-rgb) / 78%);
-  color: var(--text-primary);
+  color: var(--color-text-primary);
 }
 
 .header-actions {
@@ -655,7 +595,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   padding: 0.6rem 1rem;
   border-radius: 0.85rem;
   background: rgb(var(--color-bg-elevated-rgb) / 48%);
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
@@ -671,7 +611,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 
 .action-btn.primary {
   border-color: transparent;
-  background: var(--accent-primary);
+  background: var(--color-accent-primary);
   color: var(--color-accent-primary-contrast);
   box-shadow: 0 10px 22px rgb(var(--color-accent-primary-rgb) / 24%);
 }
@@ -696,7 +636,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   gap: 1rem;
   min-height: 6rem;
   padding: 1.05rem 1.35rem;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .state-card p {
@@ -705,12 +645,12 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 
 .state-error {
   justify-content: space-between;
-  color: var(--accent-danger);
+  color: var(--color-danger);
   border-color: rgb(var(--color-danger-rgb) / 34%);
 }
 
 .state-loading {
-  color: var(--text-primary);
+  color: var(--color-text-primary);
 }
 
 .ghost-link {
@@ -729,7 +669,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   width: 1.4rem;
   height: 1.4rem;
   border: 2px solid rgb(var(--color-border-default-rgb) / 55%);
-  border-top-color: var(--accent-primary);
+  border-top-color: var(--color-accent-primary);
   border-radius: 999px;
   animation: spin 0.8s linear infinite;
 }
@@ -774,17 +714,16 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 
 .card-overline {
   margin: 0;
-  color: var(--text-muted);
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0;
 }
 
 .card-copy h2,
 .trend-title-row h2 {
   margin: 0;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   font-size: 1rem;
   font-weight: 700;
 }
@@ -812,19 +751,19 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 .stats-icon.accent,
 .vertical-icon.accent {
   background: rgb(var(--color-accent-primary-rgb) / 12%);
-  color: var(--accent-primary);
+  color: var(--color-accent-primary);
 }
 
 .stats-icon.success,
 .vertical-icon.success {
   background: rgb(var(--color-success-rgb) / 12%);
-  color: var(--accent-success);
+  color: var(--color-success);
 }
 
 .stats-icon.warning,
 .vertical-icon.warning {
   background: rgb(var(--color-warning-rgb) / 14%);
-  color: var(--accent-warning);
+  color: var(--color-warning);
 }
 
 .vertical-items {
@@ -851,13 +790,13 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 }
 
 .vertical-label {
-  color: var(--text-muted);
+  color: var(--color-text-muted);
   font-size: 0.72rem;
   font-weight: 600;
 }
 
 .vertical-value {
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   font-size: 1.25rem;
   font-weight: 700;
   line-height: 1.1;
@@ -866,19 +805,19 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 }
 
 .vertical-value.success {
-  color: var(--accent-success);
+  color: var(--color-success);
 }
 
 .vertical-value.accent {
-  color: var(--accent-primary);
+  color: var(--color-accent-primary);
 }
 
 .vertical-value.warning {
-  color: var(--accent-warning);
+  color: var(--color-warning);
 }
 
 .vertical-value small {
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   font-size: 0.8rem;
   font-weight: 600;
 }
@@ -891,7 +830,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 
 .progress-info,
 .progress-days {
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   font-size: 0.74rem;
 }
 
@@ -903,7 +842,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 }
 
 .progress-percent {
-  color: var(--accent-primary);
+  color: var(--color-accent-primary);
   font-weight: 700;
   font-family: var(--font-mono);
 }
@@ -919,7 +858,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   width: 100%;
   height: 100%;
   transform-origin: left center;
-  background: var(--accent-primary);
+  background: var(--color-accent-primary);
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -953,7 +892,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   border: none;
   border-radius: 999px;
   background: transparent;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   font-size: 1rem;
   cursor: pointer;
 }
@@ -964,7 +903,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 
 .calendar-month {
   min-width: 6rem;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   font-size: 0.82rem;
   font-weight: 700;
   text-align: center;
@@ -991,7 +930,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 .trend-tag {
   background: rgb(var(--color-accent-primary-rgb) / 10%);
   border: 1px solid rgb(var(--color-accent-primary-rgb) / 22%);
-  color: var(--accent-primary);
+  color: var(--color-accent-primary);
 }
 
 .trend-actions {
@@ -1010,7 +949,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   border: none;
   border-radius: 999px;
   background: transparent;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   font-size: 0.74rem;
   font-weight: 700;
   cursor: pointer;
@@ -1018,7 +957,7 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 
 .trend-btn.active {
   background: rgb(var(--color-bg-elevated-rgb) / 92%);
-  color: var(--accent-primary);
+  color: var(--color-accent-primary);
   box-shadow: var(--shadow-sm);
 }
 

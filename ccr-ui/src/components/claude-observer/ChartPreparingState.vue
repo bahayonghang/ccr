@@ -40,9 +40,7 @@ const displayLabel = computed(() => props.label ?? t('claudeCode.observer.chart.
   gap: 0.75rem;
   border-radius: 1rem;
   border: 1px dashed rgb(var(--color-border-default-rgb) / 24%);
-  background:
-    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 42%), rgb(var(--color-bg-surface-rgb) / 22%)),
-    radial-gradient(circle at 50% 0%, rgb(var(--color-accent-primary-rgb) / 8%), transparent 44%);
+  background: var(--color-bg-surface);
   color: var(--color-text-muted);
   font-size: 0.85rem;
 }

@@ -1,0 +1,7 @@
+{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file": ".trellis/spec/ccr-core/backend/backend-guidelines.md", "reason": "logging init ownership"}
+{"file": ".trellis/spec/ccr-core/backend/test-fixtures.md", "reason": "TestLogEnv and CCR_LOG_LEVEL precedence"}
+{"file": ".trellis/spec/ccr-ui/frontend/dashboard-presentation-contracts.md", "reason": "frontend channel must not drive readiness"}
+{"file": ".trellis/tasks/08-17-logging-system-optimization/research/current-state.md", "reason": "inventory of both log pipelines"}
+{"file": ".trellis/tasks/08-17-logging-system-optimization/research/best-practices.md", "reason": "tracing Tauri OWASP mapping"}
+{"file": ".trellis/tasks/08-17-logging-system-optimization/research/codex-review-verification.md", "reason": "closed Codex P1 contracts"}

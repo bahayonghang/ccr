@@ -1,57 +1,39 @@
 <template>
-  <div
-    :class="themeClasses.container"
-    :style="themeStyles.container"
-  >
+  <div :class="themeClasses.container">
     <div :class="themeClasses.layout">
-      <ModuleSubnav :module="props.config.route.module" />
+      <ModuleSubnav
+        v-if="!hideChrome"
+        :module="props.config.route.module"
+      />
 
       <!-- 主内容区 -->
       <main class="min-w-0">
         <!-- Sticky Header: 标题 + 添加按钮 -->
-        <div class="glass-effect rounded-2xl p-6 mb-6 border border-border-default/25 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm">
-          <div class="flex items-center gap-4">
-            <div
-              class="p-3 rounded-xl border"
-              :style="{
-                background: 'color-mix(in srgb, var(--accent-primary) 15%, transparent)',
-                borderColor: 'color-mix(in srgb, var(--accent-primary) 30%, transparent)'
-              }"
-            >
+        <div
+          class="rounded-xl p-6 mb-6 border border-border-default/25 flex flex-col md:flex-row items-center justify-between gap-4 bg-bg-surface"
+          :class="{ 'md:justify-end p-0 mb-4 border-0 bg-transparent': hideChrome }"
+        >
+          <div
+            v-if="!hideChrome"
+            class="flex items-center gap-4"
+          >
+            <div class="p-3 rounded-xl border border-border-default bg-bg-elevated">
               <SIcon
                 name="Command"
                 size="w-6 h-6"
-                :style="{ color: 'var(--accent-primary)' }"
+                class="text-accent-primary"
               />
             </div>
             <div>
               <div class="flex items-center gap-3">
-                <h1
-                  class="text-2xl font-bold"
-                  :style="{
-                    background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    backgroundClip: 'text'
-                  }"
-                >
+                <h1 class="text-2xl font-bold text-text-primary">
                   {{ pageTitle }}
                 </h1>
-                <span
-                  class="px-2.5 py-0.5 rounded-full text-xs font-bold border"
-                  :style="{
-                    background: 'color-mix(in srgb, var(--accent-primary) 15%, transparent)',
-                    color: 'var(--accent-primary)',
-                    borderColor: 'color-mix(in srgb, var(--accent-primary) 30%, transparent)'
-                  }"
-                >
+                <span class="px-2.5 py-0.5 rounded-md text-xs font-medium border border-border-default bg-bg-elevated text-text-secondary">
                   {{ filteredCommands.length }}/{{ stats.total }}
                 </span>
               </div>
-              <p
-                class="text-sm mt-1"
-                :style="{ color: 'var(--text-secondary)' }"
-              >
+              <p class="text-sm mt-1 text-text-secondary">
                 {{ pageSubtitle }}
               </p>
             </div>
@@ -60,12 +42,7 @@
           <div class="flex items-center gap-3">
             <!-- 刷新按钮 -->
             <button
-              class="px-4 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 transition-transform hover:scale-105"
-              :style="{
-                background: 'var(--bg-tertiary)',
-                color: 'var(--text-primary)',
-                border: '1px solid var(--border-color)'
-              }"
+              class="px-4 py-2.5 rounded-xl font-medium text-sm flex items-center gap-2 border border-border-default bg-bg-elevated text-text-primary"
               :disabled="loading"
               @click="loadData"
             >
@@ -78,11 +55,7 @@
             </button>
             <!-- 添加按钮 -->
             <button
-              class="px-5 py-2.5 rounded-xl font-bold text-sm text-[color:var(--color-accent-primary-contrast)] flex items-center gap-2 transition-transform hover:scale-105 shadow-lg"
-              :style="{
-                background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))',
-                boxShadow: '0 0 20px var(--glow-primary)'
-              }"
+              class="px-5 py-2.5 rounded-lg font-medium text-sm text-[color:var(--color-accent-primary-contrast)] flex items-center gap-2 bg-accent-primary"
               @click="showAddModal = true"
             >
               <SIcon
@@ -95,13 +68,7 @@
         </div>
 
         <!-- Toolbar: 搜索 + 文件夹Tab + 排序 + 视图 + 过滤 -->
-        <div
-          class="rounded-2xl p-4 mb-6 border"
-          :style="{
-            background: 'var(--bg-secondary)',
-            borderColor: 'var(--border-color)'
-          }"
-        >
+        <div class="rounded-2xl p-4 mb-6 border border-border-subtle bg-bg-surface">
           <!-- 第一行: 搜索框 + 视图控制 -->
           <div class="flex items-center gap-3 flex-wrap">
             <!-- 搜索框 -->
@@ -109,33 +76,20 @@
               <SIcon
                 name="Search"
                 size="w-4 h-4"
-                class="absolute left-3 top-1/2 -translate-y-1/2"
-                :style="{ color: 'var(--text-muted)' }"
+                class="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
               />
               <input
                 v-model="searchQuery"
                 type="text"
                 :placeholder="t('common.search')"
-                class="w-full pl-10 pr-4 py-2 rounded-xl text-sm focus:outline-none focus:ring-2"
-                :style="{
-                  border: '1px solid var(--border-color)',
-                  background: 'var(--bg-primary)',
-                  color: 'var(--text-primary)',
-                  '--tw-ring-color': 'var(--accent-primary)'
-                }"
+                class="w-full pl-10 pr-4 py-2 rounded-xl text-sm border border-border-default bg-bg-base text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/25"
               >
             </div>
 
             <!-- 排序 -->
             <select
               v-model="viewStore.sortKey"
-              class="px-3 py-2 text-sm rounded-xl focus:outline-none focus:ring-2"
-              :style="{
-                border: '1px solid var(--border-color)',
-                background: 'var(--bg-primary)',
-                color: 'var(--text-primary)',
-                '--tw-ring-color': 'var(--accent-primary)'
-              }"
+              class="px-3 py-2 text-sm rounded-xl border border-border-default bg-bg-base text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/25"
             >
               <option value="name">
                 {{ t('slashCommands.viewControls.sortByName') }}
@@ -148,12 +102,7 @@
               </option>
             </select>
             <button
-              class="p-2 rounded-xl transition-colors"
-              :style="{
-                background: 'var(--bg-primary)',
-                border: '1px solid var(--border-color)',
-                color: 'var(--text-secondary)'
-              }"
+              class="p-2 rounded-xl border border-border-default bg-bg-base text-text-secondary"
               :title="viewStore.sortDir === 'asc' ? t('slashCommands.viewControls.sortAsc') : t('slashCommands.viewControls.sortDesc')"
               @click="viewStore.toggleSortDir()"
             >
@@ -166,16 +115,12 @@
             </button>
 
             <!-- 视图模式 -->
-            <div
-              class="flex rounded-xl overflow-hidden border"
-              :style="{ borderColor: 'var(--border-color)' }"
-            >
+            <div class="flex rounded-xl overflow-hidden border border-border-default">
               <button
                 class="p-2 transition-colors"
-                :style="{
-                  background: viewStore.viewMode === 'flat' ? 'var(--accent-primary)' : 'var(--bg-primary)',
-                  color: viewStore.viewMode === 'flat' ? '#fff' : 'var(--text-secondary)'
-                }"
+                :class="viewStore.viewMode === 'flat'
+                  ? 'bg-accent-primary text-[color:var(--color-accent-primary-contrast)]'
+                  : 'bg-bg-base text-text-secondary'"
                 :title="t('slashCommands.viewControls.flatView')"
                 @click="viewStore.setViewMode('flat')"
               >
@@ -186,10 +131,9 @@
               </button>
               <button
                 class="p-2 transition-colors"
-                :style="{
-                  background: viewStore.viewMode === 'tree' ? 'var(--accent-primary)' : 'var(--bg-primary)',
-                  color: viewStore.viewMode === 'tree' ? '#fff' : 'var(--text-secondary)'
-                }"
+                :class="viewStore.viewMode === 'tree'
+                  ? 'bg-accent-primary text-[color:var(--color-accent-primary-contrast)]'
+                  : 'bg-bg-base text-text-secondary'"
                 :title="t('slashCommands.viewControls.treeView')"
                 @click="viewStore.setViewMode('tree')"
               >
@@ -203,11 +147,9 @@
             <!-- 废弃过滤 -->
             <button
               class="flex items-center gap-1.5 px-3 py-2 text-sm rounded-xl transition-colors border"
-              :style="{
-                background: viewStore.showDeprecated ? 'var(--bg-primary)' : 'var(--accent-primary)',
-                color: viewStore.showDeprecated ? 'var(--text-secondary)' : '#fff',
-                borderColor: viewStore.showDeprecated ? 'var(--border-color)' : 'var(--accent-primary)'
-              }"
+              :class="viewStore.showDeprecated
+                ? 'bg-bg-base text-text-secondary border-border-default'
+                : 'bg-accent-primary text-[color:var(--color-accent-primary-contrast)] border-accent-primary'"
               @click="viewStore.toggleShowDeprecated()"
             >
               <SIcon
@@ -221,38 +163,23 @@
           <!-- 第二行: 文件夹 Tab 标签 -->
           <div
             v-if="folderOptions.length > 1"
-            class="flex items-center gap-2 mt-3 pt-3 flex-wrap"
-            :style="{ borderTop: '1px solid var(--border-color)' }"
+            class="flex items-center gap-2 mt-3 pt-3 flex-wrap border-t border-border-subtle"
           >
             <button
               v-for="folder in folderOptions"
               :key="folder.value"
-              class="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-full transition-colors"
-              :style="{
-                background: selectedFolder === folder.value
-                  ? 'color-mix(in srgb, var(--accent-primary) 15%, transparent)'
-                  : 'transparent',
-                color: selectedFolder === folder.value
-                  ? 'var(--accent-primary)'
-                  : 'var(--text-secondary)',
-                border: selectedFolder === folder.value
-                  ? '1px solid color-mix(in srgb, var(--accent-primary) 30%, transparent)'
-                  : '1px solid transparent',
-                fontWeight: selectedFolder === folder.value ? '600' : '400'
-              }"
+              class="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border transition-colors"
+              :class="selectedFolder === folder.value
+                ? 'border-accent-primary/30 bg-accent-primary/10 font-medium text-accent-primary'
+                : 'border-transparent font-normal text-text-secondary'"
               @click="selectedFolder = folder.value"
             >
               <span>{{ folder.label }}</span>
               <span
-                class="text-xs px-1.5 py-0.5 rounded-full"
-                :style="{
-                  background: selectedFolder === folder.value
-                    ? 'color-mix(in srgb, var(--accent-primary) 20%, transparent)'
-                    : 'var(--bg-tertiary)',
-                  color: selectedFolder === folder.value
-                    ? 'var(--accent-primary)'
-                    : 'var(--text-muted)'
-                }"
+                class="text-xs px-1.5 py-0.5 rounded-md"
+                :class="selectedFolder === folder.value
+                  ? 'bg-accent-primary/20 text-accent-primary'
+                  : 'bg-bg-elevated text-text-muted'"
               >{{ folder.count }}</span>
             </button>
           </div>
@@ -263,13 +190,7 @@
           v-if="loading"
           class="flex justify-center py-20"
         >
-          <div
-            class="w-10 h-10 rounded-full border-4 animate-spin"
-            :style="{
-              borderColor: 'color-mix(in srgb, var(--accent-primary) 30%, transparent)',
-              borderTopColor: 'var(--accent-primary)'
-            }"
-          />
+          <div class="w-10 h-10 rounded-full border-4 border-accent-primary/30 border-t-accent-primary animate-spin" />
         </div>
 
         <!-- 命令列表 -->
@@ -281,32 +202,21 @@
               class="mb-4"
             >
               <button
-                class="w-full flex items-center gap-2 px-4 py-2.5 rounded-xl transition-colors text-left border"
-                :style="{
-                  background: 'var(--bg-secondary)',
-                  borderColor: 'var(--border-color)'
-                }"
+                class="w-full flex items-center gap-2 px-4 py-2.5 rounded-xl transition-colors text-left border border-border-default bg-bg-surface"
                 @click="viewStore.toggleFolder(folder.name)"
               >
                 <SIcon
                   name="FolderTree"
                   size="w-4 h-4"
-                  :style="{ color: 'var(--accent-primary)' }"
+                  class="text-accent-primary"
                 />
-                <span
-                  class="font-medium"
-                  :style="{ color: 'var(--text-primary)' }"
-                >{{ folder.name }}</span>
-                <span
-                  class="text-sm"
-                  :style="{ color: 'var(--text-muted)' }"
-                >({{ folder.commands.length }})</span>
+                <span class="font-medium text-text-primary">{{ folder.name }}</span>
+                <span class="text-sm text-text-muted">({{ folder.commands.length }})</span>
                 <SIcon
                   name="ChevronDown"
                   size="w-3.5 h-3.5"
-                  class="ml-auto transition-transform"
+                  class="ml-auto text-text-muted transition-transform"
                   :class="viewStore.expandedFolders.includes(folder.name) ? 'rotate-180' : ''"
-                  :style="{ color: 'var(--text-muted)' }"
                 />
               </button>
               <div
@@ -372,6 +282,7 @@ import type { SlashCommand, SlashCommandRequest, PlatformConfig } from '@/types/
 // Props
 interface Props {
   config: PlatformConfig
+  hideChrome?: boolean
 }
 
 const props = defineProps<Props>()
@@ -494,19 +405,6 @@ const themeClasses = computed(() => {
     return {
       container: 'min-h-full transition-colors duration-300',
       layout: 'space-y-4'
-    }
-  }
-})
-
-const themeStyles = computed(() => {
-  if (props.config.theme === 'claude-code') {
-    return { container: {} }
-  } else {
-    return {
-      container: {
-        background: 'var(--bg-primary)',
-        padding: '20px'
-      }
     }
   }
 })

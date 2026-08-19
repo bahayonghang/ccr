@@ -1,0 +1,16 @@
+{"file": ".trellis/spec/ccr-ui/frontend/theme-token-contracts.md", "reason": "验收硬约束：迁移行为、对比度阈值、glass 预算、phantom token 审计"}
+{"file": "ccr-ui/DESIGN.md", "reason": "验收对照 Accent Scarcity、Product Type Rule、No Ghost Card、Don'ts；核对 Wave 0 是否已按 §0 修订"}
+{"file": ".trellis/tasks/08-18-ui-visual-refactor/design.md", "reason": "本任务配方与权威链：静止卡无 md 投影、字重 400-700、accent 机械化"}
+{"file": ".trellis/tasks/08-18-ui-visual-refactor/prd.md", "reason": "Acceptance Criteria 逐条核对"}
+{"file": ".trellis/tasks/08-18-ui-visual-refactor/views-inventory.md", "reason": "51 页勾销与原语适用列，防止漏页或强塞三件套"}
+{"file": ".trellis/tasks/08-18-ui-visual-refactor/research/visual-audit.md", "reason": "对账用复核附录：51 视图、180 rgb、41 hex、20 个超长 style"}
+{"file": "ccr-ui/AGENTS.md", "reason": "web preview 约定与 ui-check 命令"}
+{"file": ".trellis/spec/ccr-ui/frontend/dashboard-presentation-contracts.md", "reason": "Dashboard 数据语义未改"}
+{"file": ".trellis/spec/ccr-ui/frontend/profiles-page-contracts.md", "reason": "profiles 共享层边界"}
+{"file": ".trellis/spec/ccr-ui/frontend/grok-settings-contracts.md", "reason": "GrokSettings 改样式后契约仍成立"}
+{"file": ".trellis/spec/ccr-ui/frontend/environment-scoped-dashboard-contracts.md", "reason": "Wsl/Ssh 缓存与刷新"}
+{"file": ".trellis/spec/ccr-ui/frontend/raw-config-editor-contracts.md", "reason": "源文件编辑入口未被样式重构破坏"}
+{"file": ".trellis/spec/ccr-ui/frontend/confirm-interaction-contracts.md", "reason": "ConfirmModal 外壳迁移后 requestConfirm 门闩不变"}
+{"file": ".trellis/spec/ccr-ui/frontend/usage-chart-stability-contracts.md", "reason": "Usage 图稳定性"}
+{"file": ".trellis/spec/ccr-ui/frontend/checkin-ux-contracts.md", "reason": "Checkin UX 与 style lock"}
+{"file": ".trellis/spec/ccr-ui/frontend/monitoring-log-contracts.md", "reason": "Monitoring 日志呈现"}

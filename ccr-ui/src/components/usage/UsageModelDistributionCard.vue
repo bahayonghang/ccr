@@ -346,11 +346,12 @@ const formatSliceMeta = (slice: ModelDistributionSlice) =>
   display: block;
   height: 100%;
   border-radius: inherit;
+  background: var(--color-accent-primary);
 }
 
 @media (width >= 1180px) {
   .distribution-card--panel .distribution-card__body {
-    grid-template-columns: clamp(11.5rem, 20vw, 14rem) minmax(0, 1fr);
+    grid-template-columns: 1.5rem minmax(0, 1fr);
     align-items: start;
   }
 }

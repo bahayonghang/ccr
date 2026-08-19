@@ -2,6 +2,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import PageHeader from '@/components/ui/PageHeader.vue'
+import PageShell from '@/components/ui/PageShell.vue'
 import {
   refreshEnvironments,
   sshAddHost,
@@ -260,34 +262,33 @@ defineExpose({ sshListKeys, discoveredKeys })
 </script>
 
 <template>
-  <div class="space-y-6">
-    <div class="flex items-center justify-between gap-4">
-      <div>
-        <h1 class="text-xl font-bold text-text-primary">
-          {{ tt('SSH 远程管理', 'SSH Remote Management') }}
-        </h1>
-        <p class="text-sm text-text-muted">
-          {{ tt('添加主机并连接后执行配置读写和 CLI 检测', 'Add a host, connect, then run config read/write and CLI checks.') }}
-        </p>
-      </div>
-      <button
-        class="px-3 py-2 rounded-lg border border-border-default/15"
-        :disabled="loading"
-        @click="loadHosts"
+  <PageShell class="ssh-page">
+    <template #header>
+      <PageHeader
+        :title="tt('SSH 远程管理', 'SSH Remote Management')"
+        :description="tt('添加主机并连接后执行配置读写和 CLI 检测', 'Add a host, connect, then run config read/write and CLI checks.')"
       >
-        {{ tt('刷新主机', 'Refresh hosts') }}
-      </button>
-    </div>
+        <template #actions>
+          <button
+            class="px-3 py-2 rounded-lg border border-border-default/15"
+            :disabled="loading"
+            @click="loadHosts"
+          >
+            {{ tt('刷新主机', 'Refresh hosts') }}
+          </button>
+        </template>
+      </PageHeader>
+    </template>
 
     <div
       v-if="error"
-      class="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300"
+      class="rounded-lg border border-accent-danger/30 bg-accent-danger/10 p-3 text-sm text-accent-danger"
     >
       {{ error }}
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <section class="rounded-xl border border-border-default/15 glass-surface p-4 space-y-3">
+      <section class="rounded-xl border border-border-default/15 bg-bg-surface p-4 space-y-3">
         <h2 class="text-base font-semibold text-text-primary">
           {{ tt('新增 SSH 主机', 'Add SSH host') }}
         </h2>
@@ -331,14 +332,14 @@ defineExpose({ sshListKeys, discoveredKeys })
           >
         </div>
         <button
-          class="px-3 py-2 rounded-lg bg-sky-500/20 text-sky-300"
+          class="px-3 py-2 rounded-lg bg-accent-primary/10 text-accent-primary"
           @click="addHost"
         >
           {{ tt('添加主机', 'Add host') }}
         </button>
       </section>
 
-      <section class="rounded-xl border border-border-default/15 glass-surface p-4 space-y-3">
+      <section class="rounded-xl border border-border-default/15 bg-bg-surface p-4 space-y-3">
         <h2 class="text-base font-semibold text-text-primary">
           {{ tt('主机列表', 'Host list') }}
         </h2>
@@ -383,7 +384,7 @@ defineExpose({ sshListKeys, discoveredKeys })
             class="mt-2 text-xs"
           >
             <span
-              :class="testResults[buildEnvId(host)].success ? 'text-green-400' : 'text-red-400'"
+              :class="testResults[buildEnvId(host)].success ? 'text-accent-success' : 'text-accent-danger'"
             >
               {{ formatTestResult(testResults[buildEnvId(host)]) }}
             </span>
@@ -392,7 +393,7 @@ defineExpose({ sshListKeys, discoveredKeys })
       </section>
     </div>
 
-    <section class="rounded-xl border border-border-default/15 glass-surface p-4 space-y-3">
+    <section class="rounded-xl border border-border-default/15 bg-bg-surface p-4 space-y-3">
       <div class="flex items-center justify-between gap-3">
         <h2 class="text-base font-semibold text-text-primary">
           {{ tt('已连接主机', 'Connected host') }}
@@ -432,19 +433,19 @@ defineExpose({ sshListKeys, discoveredKeys })
         <span v-if="activeConnectionState.last_checked_at">{{ ` ${formatConnectionCheckedAt(activeConnectionState.last_checked_at)}` }}</span>
         <span
           v-if="activeConnectionState.last_error"
-          class="text-red-300"
+          class="text-accent-danger"
         >{{ ` ${formatConnectionError(activeConnectionState.last_error)}` }}</span>
       </div>
       <div
         v-if="pendingFingerprint"
-        class="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-200 space-y-2"
+        class="rounded-lg border border-accent-warning/30 bg-accent-warning/10 p-3 text-sm text-accent-warning space-y-2"
       >
         <div>{{ tt('检测到主机指纹需要确认：', 'Host fingerprint confirmation required:') }}</div>
         <div class="text-xs font-mono">
           {{ pendingFingerprint.key_type }} {{ pendingFingerprint.fingerprint }}
         </div>
         <button
-          class="px-2 py-1 rounded border border-amber-400/60 text-xs"
+          class="px-2 py-1 rounded border border-accent-warning/60 text-xs"
           @click="confirmFingerprintAndConnect"
         >
           {{ tt('确认并连接', 'Confirm and connect') }}
@@ -503,5 +504,5 @@ defineExpose({ sshListKeys, discoveredKeys })
         class="rounded-md border border-border-default/15 p-3 text-xs overflow-x-auto"
       >{{ cliStatusText }}</pre>
     </section>
-  </div>
+  </PageShell>
 </template>

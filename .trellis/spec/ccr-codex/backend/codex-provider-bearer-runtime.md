@@ -57,7 +57,7 @@
 - `cargo test -p ccr --test commands codex_ -- --test-threads=1`: binary switch/off and repair behavior, including no secret in stdout/stderr.
 - Tauri Codex/Unified MCP tests: named field projection does not duplicate `extra`; typed config round trips preserve unknown bearer/root fields.
 - `cd ccr-ui && bun run test:smoke -- tests/codex-profile-editor.smoke.test.ts tests/provider-templates.smoke.test.ts`: form round trip, derived defaults, cleanup on mode change, and template secret exclusion.
-- `python scripts/check-secret-writes.py`, `just tauri-bindings-check`, and final `just ci` must pass.
+- `python scripts/quality/check_secret_writes.py`, `just tauri-bindings-check`, and final `just ci` must pass.
 
 ### 7. Wrong vs Correct
 

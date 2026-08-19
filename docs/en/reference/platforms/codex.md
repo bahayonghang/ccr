@@ -18,7 +18,7 @@ ccr codex fix
 
 - `ccr codex auth ...`: save / switch / import / export official-auth accounts
 - `ccr codex profile ...`: write a CCR profile into `~/.codex/config.toml` and `~/.codex/auth.json`
-- `ccr codex profile off`: leave profile mode and restore the official-auth runtime
+- `ccr codex profile off`: leave profile mode, remove the CCR profile route and runtime `auth.json`, and prepare a clean official runtime for `codex login`
 
 ## Key paths
 
@@ -63,8 +63,13 @@ enabled = true
 When applied, CCR keeps the provider id fixed at `[model_providers.custom]` and derives
 `preferred_auth_method = "apikey"` plus `forced_login_method = "api"`. See the resulting runtime
 shape in [`codex-cli-config.toml`](https://raw.githubusercontent.com/bahayonghang/ccr/main/docs/examples/codex-cli-config.toml).
-Switching to another profile or running `ccr codex profile off` removes these root fields and
-`experimental_bearer_token`.
+Switching to another profile replaces these fields. Running `ccr codex profile off` removes the
+root `model_provider`, the CCR-managed `model_providers.custom` entry, other profile root fields,
+and runtime `auth.json`, while preserving `model_reasoning_effort` verbatim. When there is no
+profile pointer, legacy entry snapshot, or third-party runtime, the command leaves the existing
+official `auth.json` unchanged. If the process inherits `CODEX_HOME` and `CCR_CODEX_DIR` is
+unset, the command also clears the default `~/.codex` home so official `codex login` does not
+keep reading a leftover runtime `auth.json`.
 
 ::: warning Credential and sync boundary
 `~/.codex/config.toml` and CCR-created `~/.codex/backups/config.*.bak` files contain the bearer in
@@ -83,28 +88,34 @@ ccr codex profile switch future
 ccr codex fix
 ```
 
-`ccr codex fix` cleans up stale app-server processes and compares the registry pointer, `profiles.toml`, `config.toml`, `auth.json`, and the current process environment at invocation time. It reports `process_state`, `runtime_consistency`, and `provider_auth_validity` separately.
+`ccr codex fix` cleans up stale app-server processes and compares the registry pointer, `profiles.toml`, `config.toml`, `auth.json`, and the current process environment at invocation time. It reports `process_state`, `runtime_consistency`, and `provider_auth_validity` separately. The default path does not run upstream `codex doctor`.
 
 Process discovery explicitly loads command lines and owners and only handles Codex `app-server`
-processes owned by the current user. Cleanup identifies processes by `PID + start_time`, discovers
-replacement PIDs throughout the TERM grace window, and revalidates owner and argv before every
-signal. Output contains redacted summaries only. If a safe snapshot cannot be established, CCR
-reports `process_state = unavailable` instead of treating the unknown state as `clean`.
+processes owned by the current user. Cleanup identifies processes by `PID + start_time`. After TERM,
+it rediscovers matching targets every 300 ms and ends the grace loop as soon as the target set is
+empty. Identities that appear only in the settle snapshot go into `respawned` and do not receive a
+deadline KILL. Owner and argv are revalidated before every signal. Output contains redacted
+summaries only. If a safe snapshot cannot be established, CCR reports
+`process_state = unavailable` instead of treating the unknown state as `clean`.
 
-The bare command is diagnostic only. To replay the saved profile through the existing atomic apply path, opt in explicitly:
+The bare command is a local diagnosis only. It does not rewrite runtime files and does not run
+upstream doctor. To replay the saved profile through the existing atomic apply path, opt in
+explicitly:
 
 ```bash
 ccr codex fix --repair-runtime
 ccr codex fix --dry-run --repair-runtime
+ccr codex fix --doctor
 ```
 
-`--repair-runtime` does not change or rotate the saved secret. Combined with `--dry-run`, it neither terminates processes nor writes `config.toml` or `auth.json`.
+`--repair-runtime` does not change or rotate the saved secret. Combined with `--dry-run`, it neither terminates processes nor writes `config.toml` or `auth.json`. `--repair-runtime` does not imply `--doctor`.
 
-Process cleanup, runtime inspection/repair, and doctor are independent stages. When the runtime
-stage is unavailable, CCR still runs doctor when possible and exits with code `1`; an app-server
-that remains or unavailable process discovery takes precedence with exit code `2`.
+Process cleanup, runtime inspection/repair, and doctor are independent stages. Doctor runs only with
+`--doctor`. When the runtime stage is unavailable, CCR exits with code `1`; an app-server that
+remains or unavailable process discovery takes precedence with exit code `2`. Exit code `127` is
+used only when `--doctor` is passed and `codex` is missing from `PATH`.
 
-CCR's reconciliation adds no third-party credential probe. The command still runs upstream `codex doctor`, whose checks depend on the installed Codex version. Even when `runtime_consistency = match`, `provider_auth_validity` remains `not_checked`. If the provider still returns `INVALID_API_KEY`, verify or update the key saved in that profile instead of repeatedly cleaning app-server processes.
+CCR's reconciliation adds no third-party credential probe. Run `ccr codex fix --doctor` when you need upstream health checks; those checks depend on the installed Codex version. Even when `runtime_consistency = match`, `provider_auth_validity` remains `not_checked`. If the provider still returns `INVALID_API_KEY`, verify or update the key saved in that profile instead of repeatedly cleaning app-server processes.
 
 ## History sync note
 

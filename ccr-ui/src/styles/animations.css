@@ -119,30 +119,6 @@
         }
     }
 
-    /* 发光脉冲 - 用于重要元素 */
-    @keyframes pulse-glow {
-        0%,
-        100% {
-            box-shadow: 0 0 0 0 var(--color-accent-primary-glow);
-        }
-
-        50% {
-            box-shadow: var(--glow-primary);
-        }
-    }
-
-    /* 发光脉冲 opacity 版本 - GPU 友好，避免 box-shadow 动画 */
-    @keyframes pulse-glow-opacity {
-        0%,
-        100% {
-            opacity: 0;
-        }
-
-        50% {
-            opacity: 1;
-        }
-    }
-
     /* 旋转 - 用于加载指示器 */
     @keyframes spin {
         from {
@@ -354,20 +330,6 @@
     /* Neo-Terminal 特色动画类 */
     .animate-pulse-subtle {
         animation: pulse-subtle 2s var(--ease-in-out) infinite;
-    }
-
-    .animate-pulse-glow {
-        position: relative;
-    }
-
-    .animate-pulse-glow::after {
-        content: '';
-        position: absolute;
-        inset: 0;
-        border-radius: inherit;
-        box-shadow: var(--glow-primary);
-        animation: pulse-glow-opacity 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-        pointer-events: none;
     }
 
     .animate-spin {

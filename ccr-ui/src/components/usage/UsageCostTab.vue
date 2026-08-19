@@ -263,9 +263,7 @@ function tLabel(key: string, fallback: string) {
   align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
-  background:
-    linear-gradient(135deg, rgb(var(--color-bg-elevated-rgb) / 90%), rgb(var(--color-bg-surface-rgb) / 72%)),
-    radial-gradient(circle at 100% 0%, rgb(var(--color-warning-rgb) / 12%), transparent 40%);
+  background: var(--color-bg-surface);
 }
 
 .cost-tab__eyebrow {
@@ -309,7 +307,7 @@ function tLabel(key: string, fallback: string) {
 
 .cost-tab__anchor-value strong {
   color: var(--color-text-primary);
-  font-size: clamp(1.65rem, 2vw, 2.6rem);
+  font-size: 1.5rem;
   font-weight: 760;
   letter-spacing: -0.055em;
   font-variant-numeric: tabular-nums;
@@ -422,11 +420,7 @@ function tLabel(key: string, fallback: string) {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(
-    90deg,
-    rgb(var(--color-warning-rgb) / 82%),
-    rgb(var(--color-accent-secondary-rgb) / 74%)
-  );
+  background: var(--color-accent-primary);
 }
 
 .cost-tab__empty {

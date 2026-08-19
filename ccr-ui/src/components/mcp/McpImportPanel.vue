@@ -421,7 +421,7 @@ function handleImport() {
 }
 
 .import-btn--primary {
-  background: linear-gradient(180deg, rgb(var(--color-accent-primary-rgb) / 18%), rgb(var(--color-accent-secondary-rgb) / 10%));
+  background: rgb(var(--color-accent-primary-rgb) / 12%);
   border-color: rgb(var(--color-accent-primary-rgb) / 20%);
   color: var(--color-text-primary);
 

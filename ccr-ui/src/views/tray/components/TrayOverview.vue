@@ -55,20 +55,13 @@
         class="tray-overview__quota-card"
         :class="quotaToneClass(currentAccount.quota.hourly_percentage)"
       >
-        <div class="tray-overview__quota-head">
-          <div>
-            <p class="tray-overview__quota-label">
-              {{ t('codex.auth.hourlyQuota') }}
-            </p>
-            <p
-              v-if="currentAccount.quota.hourly_reset_time"
-              class="tray-overview__quota-note"
-            >
-              {{ t('codex.auth.tray.resetIn') }} {{ formatReset(currentAccount.quota.hourly_reset_time) }}
-            </p>
-          </div>
-          <strong class="tray-overview__quota-value">{{ currentAccount.quota.hourly_percentage }}%</strong>
-        </div>
+        <StatTile
+          :label="t('codex.auth.hourlyQuota')"
+          :value="`${currentAccount.quota.hourly_percentage}%`"
+          :hint="currentAccount.quota.hourly_reset_time
+            ? `${t('codex.auth.tray.resetIn')} ${formatReset(currentAccount.quota.hourly_reset_time)}`
+            : undefined"
+        />
         <div class="tray-overview__progress">
           <span
             class="tray-overview__progress-fill"
@@ -81,20 +74,13 @@
         class="tray-overview__quota-card"
         :class="quotaToneClass(currentAccount.quota.weekly_percentage)"
       >
-        <div class="tray-overview__quota-head">
-          <div>
-            <p class="tray-overview__quota-label">
-              {{ t('codex.auth.weeklyQuota') }}
-            </p>
-            <p
-              v-if="currentAccount.quota.weekly_reset_time"
-              class="tray-overview__quota-note"
-            >
-              {{ t('codex.auth.tray.resetIn') }} {{ formatResetDetailed(currentAccount.quota.weekly_reset_time) }}
-            </p>
-          </div>
-          <strong class="tray-overview__quota-value">{{ currentAccount.quota.weekly_percentage }}%</strong>
-        </div>
+        <StatTile
+          :label="t('codex.auth.weeklyQuota')"
+          :value="`${currentAccount.quota.weekly_percentage}%`"
+          :hint="currentAccount.quota.weekly_reset_time
+            ? `${t('codex.auth.tray.resetIn')} ${formatResetDetailed(currentAccount.quota.weekly_reset_time)}`
+            : undefined"
+        />
         <div class="tray-overview__progress">
           <span
             class="tray-overview__progress-fill"
@@ -195,6 +181,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import StatTile from '@/components/ui/StatTile.vue'
 import SIcon from '@/components/ui/SIcon.vue'
 import type { CodexTrayAccountRow, CodexTraySnapshot } from '@/types'
 
@@ -269,9 +256,9 @@ const formatResetDetailed = (timestamp: number) => {
 .tray-overview__hero,
 .tray-overview__quota-card,
 .tray-overview__quota-status {
-  border: 1px solid rgb(var(--color-border-default-rgb) / 42%);
-  border-radius: 22px;
-  background: linear-gradient(180deg, rgb(var(--color-bg-base-rgb) / 66%), rgb(var(--color-bg-base-rgb) / 48%));
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 12px;
+  background: var(--color-bg-surface);
 }
 
 .tray-overview__hero {
@@ -299,10 +286,8 @@ const formatResetDetailed = (timestamp: number) => {
   justify-content: center;
   flex-shrink: 0;
   border: 1px solid rgb(var(--color-accent-primary-rgb) / 18%);
-  border-radius: 16px;
-  background:
-    radial-gradient(circle at top, rgb(var(--color-accent-primary-rgb) / 16%), transparent 72%),
-    rgb(var(--color-bg-elevated-rgb) / 92%);
+  border-radius: 12px;
+  background: rgb(var(--color-accent-primary-rgb) / 10%);
   color: var(--color-accent-primary);
 }
 
@@ -310,8 +295,7 @@ const formatResetDetailed = (timestamp: number) => {
   color: var(--color-text-muted);
   font-size: 11px;
   line-height: 1.35;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
+  letter-spacing: 0;
 }
 
 .tray-overview__title-row {
@@ -397,7 +381,7 @@ const formatResetDetailed = (timestamp: number) => {
 }
 
 .tray-overview__quota-card--healthy .tray-overview__progress-fill {
-  background: linear-gradient(90deg, rgb(96 143 88 / 100%), rgb(151 182 105 / 100%));
+  background: var(--color-success);
 }
 
 .tray-overview__quota-card--warning {
@@ -405,7 +389,7 @@ const formatResetDetailed = (timestamp: number) => {
 }
 
 .tray-overview__quota-card--warning .tray-overview__progress-fill {
-  background: linear-gradient(90deg, rgb(202 140 58 / 100%), rgb(222 170 88 / 100%));
+  background: var(--color-warning);
 }
 
 .tray-overview__quota-card--critical {
@@ -413,7 +397,7 @@ const formatResetDetailed = (timestamp: number) => {
 }
 
 .tray-overview__quota-card--critical .tray-overview__progress-fill {
-  background: linear-gradient(90deg, rgb(193 103 73 / 100%), rgb(221 137 84 / 100%));
+  background: var(--color-danger);
 }
 
 .tray-overview__quota-head {
@@ -499,11 +483,9 @@ const formatResetDetailed = (timestamp: number) => {
 .tray-overview__action--primary {
   grid-column: 1 / -1;
   justify-content: space-between;
-  border-color: rgb(var(--color-accent-primary-rgb) / 22%);
-  background:
-    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 98%), rgb(var(--color-bg-surface-rgb) / 88%));
-  color: var(--color-text-primary);
-  box-shadow: 0 14px 30px rgb(var(--color-accent-primary-rgb) / 8%);
+  border-color: transparent;
+  background: var(--color-accent-primary);
+  color: var(--color-accent-primary-contrast);
 }
 
 .tray-overview__action:hover:not(:disabled),

@@ -265,4 +265,18 @@ describe('dashboard presentation', () => {
     expect(presentation.signalCounts).toMatchObject({ errors: 1, warnings: 1, total: 3 })
     expect(presentation.actions[0]?.id).toBe('open-monitoring')
   })
+
+  it('ignores frontend and runtime diagnostic channels in signal counts', () => {
+    const presentation = buildDashboardPresentation({
+      ...baseInput(),
+      logs: [
+        { ...createLog('error'), id: 'fe', channel: 'frontend' },
+        { ...createLog('error'), id: 'rt', channel: 'runtime' },
+        createLog('error'),
+      ],
+    })
+
+    expect(presentation.signalCounts).toMatchObject({ errors: 1, warnings: 0, total: 1 })
+    expect(presentation.actions[0]?.id).toBe('open-monitoring')
+  })
 })

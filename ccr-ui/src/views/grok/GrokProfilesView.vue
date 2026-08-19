@@ -1,35 +1,39 @@
 <template>
-  <div class="profiles-view grok-profiles-view">
-    <ModuleSubnav module="grok" />
+  <PageShell class="profiles-view grok-profiles-view">
+    <template #header>
+      <ProfilesHeader
+        icon="Folders"
+        back-to="/grok"
+        :labels="{
+          title: t('grok.profiles.title'),
+          subtitle: t('grok.profiles.subtitle'),
+          back: t('grok.profiles.back'),
+          reload: t('grok.profiles.actions.reload'),
+          export: t('grok.profiles.actions.exportSummary'),
+          add: t('grok.profiles.actions.add'),
+          overflow: t('grok.profiles.overflowMenu'),
+        }"
+        :palette="{
+          label: t('grok.profiles.commandPaletteButton'),
+          shortcut: `${quickSwitch.modifier.value}K`,
+          title: t('grok.profiles.commandPaletteShortcut'),
+        }"
+        :loading="loading || refreshing || localOnly"
+        :exporting="exporting"
+        :palette-open="paletteOpen"
+        @add="handleAdd"
+        @export="exportSummary"
+        @reload="refreshProfiles"
+        @open-palette="paletteOpen = true"
+      />
+    </template>
+
+    <template #subnav>
+      <ModuleSubnav module="grok" />
+    </template>
 
     <main class="cp-shell">
       <div class="cp-main">
-        <ProfilesHeader
-          icon="Folders"
-          back-to="/grok"
-          :labels="{
-            title: t('grok.profiles.title'),
-            subtitle: t('grok.profiles.subtitle'),
-            back: t('grok.profiles.back'),
-            reload: t('grok.profiles.actions.reload'),
-            export: t('grok.profiles.actions.exportSummary'),
-            add: t('grok.profiles.actions.add'),
-            overflow: t('grok.profiles.overflowMenu'),
-          }"
-          :palette="{
-            label: t('grok.profiles.commandPaletteButton'),
-            shortcut: `${quickSwitch.modifier.value}K`,
-            title: t('grok.profiles.commandPaletteShortcut'),
-          }"
-          :loading="loading || refreshing || localOnly"
-          :exporting="exporting"
-          :palette-open="paletteOpen"
-          @add="handleAdd"
-          @export="exportSummary"
-          @reload="refreshProfiles"
-          @open-palette="paletteOpen = true"
-        />
-
         <section
           v-if="localOnly"
           class="grok-profiles-banner grok-profiles-banner--warning"
@@ -384,7 +388,7 @@
         <ProfileDiffRows :rows="confirmDiffRows" />
       </template>
     </ConfirmModal>
-  </div>
+  </PageShell>
 </template>
 
 <script setup lang="ts">
@@ -397,6 +401,7 @@ import GrokProfileCard from '@/components/grok/GrokProfileCard.vue'
 import GrokProfileEditorModal from '@/components/grok/GrokProfileEditorModal.vue'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import ModuleSubnav from '@/components/ModuleSubnav.vue'
+import PageShell from '@/components/ui/PageShell.vue'
 import ProfileDiffRows from '@/components/profiles/ProfileDiffRows.vue'
 import ProfileListRow from '@/components/profiles/ProfileListRow.vue'
 import ProfilesCommandPalette, {

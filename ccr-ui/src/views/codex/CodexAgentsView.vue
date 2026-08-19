@@ -1,466 +1,460 @@
 <template>
-  <div class="min-h-full p-6 transition-colors duration-300">
-    <div class="mx-auto max-w-[1800px]">
-      <ModuleSubnav
-        module="codex"
-        class="mb-6"
-      />
-
-      <PageHeaderCard
+  <PageShell class="codex-agents-view">
+    <template #header>
+      <PageHeader
         :title="$t('codex.agents.pageTitle')"
-        icon="Bot"
-        :badge="String(filteredAgents.length)"
-        tone="primary"
-        class="mb-6"
+        :description="activeContext?.agentsDir ?? '~/.codex/agents/'"
       >
-        <template #meta>
-          <span class="rounded-full border border-accent-primary/25 bg-accent-primary/10 px-3 py-1 text-sm font-medium text-accent-primary">{{ contextLabel }}</span>
-          <span class="rounded-full border border-border-default/60 bg-bg-elevated px-3 py-1 text-sm text-text-secondary">{{ activeContext?.agentsDir ?? '~/.codex/agents/' }}</span>
+        <template #status>
+          <span class="codex-agent-context-chip">{{ contextLabel }}</span>
+          <span class="codex-agent-count-chip">{{ filteredAgents.length }}</span>
         </template>
         <template #actions>
-          <div class="flex flex-wrap justify-end gap-2">
-            <button
-              type="button"
-              class="codex-agent-secondary-button"
-              @click="handleRefresh"
-            >
-              <SIcon
-                name="RefreshCcw"
-                size="w-4 h-4"
-              /><span>{{ $t('common.refresh') }}</span>
-            </button>
-            <button
-              v-if="activePanel === 'installed'"
-              type="button"
-              class="codex-agent-secondary-button"
-              @click="handleChooseProject"
-            >
-              <SIcon
-                name="FolderSearch"
-                size="w-4 h-4"
-              /><span>{{ tt('选择项目', 'Choose Project') }}</span>
-            </button>
-            <button
-              v-if="activePanel === 'installed' && hasProjectShortcut && !isProjectMode"
-              type="button"
-              class="codex-agent-secondary-button"
-              @click="handleSwitchToSavedProject"
-            >
-              <SIcon
-                name="FolderGit2"
-                size="w-4 h-4"
-              /><span>{{ tt('打开上次项目', 'Open Last Project') }}</span>
-            </button>
-            <button
-              v-if="activePanel === 'installed' && isProjectMode"
-              type="button"
-              class="codex-agent-secondary-button"
-              @click="handleBackToGlobal"
-            >
-              <SIcon
-                name="ArrowLeftRight"
-                size="w-4 h-4"
-              /><span>{{ tt('返回全局', 'Back To Global') }}</span>
-            </button>
-            <button
-              v-if="activePanel === 'installed'"
-              type="button"
-              class="codex-agent-primary-button"
-              @click="openCreateModal"
-            >
-              <SIcon
-                name="Plus"
-                size="w-4 h-4"
-              /><span>{{ $t('codex.agents.addAgent') }}</span>
-            </button>
-          </div>
+          <button
+            type="button"
+            class="codex-agent-secondary-button"
+            @click="handleRefresh"
+          >
+            <SIcon
+              name="RefreshCcw"
+              size="w-4 h-4"
+            /><span>{{ $t('common.refresh') }}</span>
+          </button>
+          <button
+            v-if="activePanel === 'installed'"
+            type="button"
+            class="codex-agent-secondary-button"
+            @click="handleChooseProject"
+          >
+            <SIcon
+              name="FolderSearch"
+              size="w-4 h-4"
+            /><span>{{ tt('选择项目', 'Choose Project') }}</span>
+          </button>
+          <button
+            v-if="activePanel === 'installed' && hasProjectShortcut && !isProjectMode"
+            type="button"
+            class="codex-agent-secondary-button"
+            @click="handleSwitchToSavedProject"
+          >
+            <SIcon
+              name="FolderGit2"
+              size="w-4 h-4"
+            /><span>{{ tt('打开上次项目', 'Open Last Project') }}</span>
+          </button>
+          <button
+            v-if="activePanel === 'installed' && isProjectMode"
+            type="button"
+            class="codex-agent-secondary-button"
+            @click="handleBackToGlobal"
+          >
+            <SIcon
+              name="ArrowLeftRight"
+              size="w-4 h-4"
+            /><span>{{ tt('返回全局', 'Back To Global') }}</span>
+          </button>
+          <button
+            v-if="activePanel === 'installed'"
+            type="button"
+            class="codex-agent-primary-button"
+            @click="openCreateModal"
+          >
+            <SIcon
+              name="Plus"
+              size="w-4 h-4"
+            /><span>{{ $t('codex.agents.addAgent') }}</span>
+          </button>
         </template>
-        <div class="mb-4 flex flex-wrap gap-2">
-          <button
-            type="button"
-            class="rounded-2xl border px-4 py-2 text-sm font-medium transition-colors"
-            :class="activePanel === 'installed' ? 'border-accent-primary/40 bg-accent-primary/10 text-accent-primary' : 'border-border-default/60 bg-bg-elevated text-text-secondary hover:bg-bg-surface'"
-            @click="activePanel = 'installed'"
-          >
-            {{ tt('已安装', 'Installed') }}
-          </button>
-          <button
-            type="button"
-            class="rounded-2xl border px-4 py-2 text-sm font-medium transition-colors"
-            :class="activePanel === 'sources' ? 'border-accent-primary/40 bg-accent-primary/10 text-accent-primary' : 'border-border-default/60 bg-bg-elevated text-text-secondary hover:bg-bg-surface'"
-            @click="activePanel = 'sources'"
-          >
-            {{ tt('来源', 'Sources') }}
-          </button>
+      </PageHeader>
+    </template>
+
+    <template #subnav>
+      <ModuleSubnav module="codex" />
+    </template>
+    <div class="mb-4 flex flex-wrap gap-2">
+      <button
+        type="button"
+        class="rounded-2xl border px-4 py-2 text-sm font-medium transition-colors"
+        :class="activePanel === 'installed' ? 'border-accent-primary/40 bg-accent-primary/10 text-accent-primary' : 'border-border-default/60 bg-bg-elevated text-text-secondary hover:bg-bg-surface'"
+        @click="activePanel = 'installed'"
+      >
+        {{ tt('已安装', 'Installed') }}
+      </button>
+      <button
+        type="button"
+        class="rounded-2xl border px-4 py-2 text-sm font-medium transition-colors"
+        :class="activePanel === 'sources' ? 'border-accent-primary/40 bg-accent-primary/10 text-accent-primary' : 'border-border-default/60 bg-bg-elevated text-text-secondary hover:bg-bg-surface'"
+        @click="activePanel = 'sources'"
+      >
+        {{ tt('来源', 'Sources') }}
+      </button>
+    </div>
+
+    <div
+      v-if="activePanel === 'installed'"
+      class="grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(320px,1fr)]"
+    >
+      <div class="space-y-4">
+        <div class="grid gap-4 md:grid-cols-3">
+          <div class="codex-agent-summary-card">
+            <div class="codex-agent-summary-label">
+              {{ tt('当前作用域', 'Active Scope') }}
+            </div><div class="codex-agent-summary-value">
+              {{ activeContext?.mode === 'project' ? tt('项目', 'Project') : tt('全局', 'Global') }}
+            </div><div class="codex-agent-summary-note">
+              {{ tt('同一时间只会激活一个管理上下文。', 'Only one management context is active at a time.') }}
+            </div>
+          </div>
+          <div class="codex-agent-summary-card">
+            <div class="codex-agent-summary-label">
+              {{ tt('Agent 数量', 'Agents') }}
+            </div><div class="codex-agent-summary-value">
+              {{ agents.length }}
+            </div><div class="codex-agent-summary-note">
+              {{ tt(`${diagnostics.length} 条诊断`, `${diagnostics.length} diagnostics tracked`) }}
+            </div>
+          </div>
+          <div class="codex-agent-summary-card">
+            <div class="codex-agent-summary-label">
+              {{ tt('会话数量', 'Sessions') }}
+            </div><div class="codex-agent-summary-value">
+              {{ sessionsTotal ?? '—' }}
+            </div><div class="codex-agent-summary-note">
+              {{ tt('数据来自 Codex 总览页会话统计。', 'Inventory from Codex dashboard overview.') }}
+            </div>
+          </div>
         </div>
 
-        <div
-          v-if="activePanel === 'installed'"
-          class="grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(320px,1fr)]"
-        >
-          <div class="space-y-4">
-            <div class="grid gap-4 md:grid-cols-3">
-              <div class="codex-agent-summary-card">
-                <div class="codex-agent-summary-label">
-                  {{ tt('当前作用域', 'Active Scope') }}
-                </div><div class="codex-agent-summary-value">
-                  {{ activeContext?.mode === 'project' ? tt('项目', 'Project') : tt('全局', 'Global') }}
-                </div><div class="codex-agent-summary-note">
-                  {{ tt('同一时间只会激活一个管理上下文。', 'Only one management context is active at a time.') }}
-                </div>
-              </div>
-              <div class="codex-agent-summary-card">
-                <div class="codex-agent-summary-label">
-                  {{ tt('Agent 数量', 'Agents') }}
-                </div><div class="codex-agent-summary-value">
-                  {{ agents.length }}
-                </div><div class="codex-agent-summary-note">
-                  {{ tt(`${diagnostics.length} 条诊断`, `${diagnostics.length} diagnostics tracked`) }}
-                </div>
-              </div>
-              <div class="codex-agent-summary-card">
-                <div class="codex-agent-summary-label">
-                  {{ tt('会话数量', 'Sessions') }}
-                </div><div class="codex-agent-summary-value">
-                  {{ sessionsTotal ?? '—' }}
-                </div><div class="codex-agent-summary-note">
-                  {{ tt('数据来自 Codex 总览页会话统计。', 'Inventory from Codex dashboard overview.') }}
-                </div>
-              </div>
+        <div class="rounded-3xl border border-border-default/20 bg-bg-base p-5 shadow-xl shadow-black/10">
+          <div class="mb-4 flex flex-wrap items-center gap-3">
+            <div class="relative min-w-[260px] flex-1">
+              <SIcon
+                name="Search"
+                size="w-4 h-4"
+                class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
+              />
+              <input
+                v-model="searchQuery"
+                type="text"
+                :placeholder="$t('codex.agents.searchPlaceholder')"
+                class="w-full rounded-2xl border border-border-default/60 bg-bg-elevated py-3 pl-10 pr-4 text-sm text-text-primary"
+              >
             </div>
+            <div class="flex flex-wrap gap-2">
+              <button
+                type="button"
+                class="codex-agent-secondary-button"
+                :disabled="selectedAgents.length === 0"
+                @click="handleBulkValidate"
+              >
+                <SIcon
+                  name="ShieldCheck"
+                  size="w-4 h-4"
+                /><span>{{ tt('校验', 'Validate') }}</span>
+              </button>
+              <button
+                type="button"
+                class="codex-agent-secondary-button"
+                :disabled="selectedAgents.length === 0"
+                @click="handleExportSelected"
+              >
+                <SIcon
+                  name="Download"
+                  size="w-4 h-4"
+                /><span>{{ tt('导出', 'Export') }}</span>
+              </button>
+              <button
+                type="button"
+                class="codex-agent-secondary-button"
+                :disabled="!canCopySelection"
+                @click="openBulkCopyModal"
+              >
+                <SIcon
+                  name="Copy"
+                  size="w-4 h-4"
+                /><span>{{ tt('复制', 'Copy') }}</span>
+              </button>
+              <button
+                type="button"
+                class="codex-agent-secondary-button"
+                @click="triggerImport"
+              >
+                <SIcon
+                  name="Upload"
+                  size="w-4 h-4"
+                /><span>{{ tt('导入', 'Import') }}</span>
+              </button>
+              <button
+                type="button"
+                class="codex-agent-secondary-button"
+                :disabled="selectedAgents.length === 0"
+                @click="openBulkRenameModal"
+              >
+                <SIcon
+                  name="TextField"
+                  size="w-4 h-4"
+                /><span>{{ tt('重命名', 'Rename') }}</span>
+              </button>
+              <button
+                type="button"
+                class="codex-agent-danger-button"
+                :disabled="selectedAgents.length === 0"
+                @click="handleBulkDelete"
+              >
+                <SIcon
+                  name="Trash2"
+                  size="w-4 h-4"
+                /><span>{{ tt('删除', 'Delete') }}</span>
+              </button>
+            </div>
+          </div>
 
-            <div class="rounded-3xl border border-border-default/20 bg-bg-base p-5 shadow-xl shadow-black/10">
-              <div class="mb-4 flex flex-wrap items-center gap-3">
-                <div class="relative min-w-[260px] flex-1">
-                  <SIcon
-                    name="Search"
-                    size="w-4 h-4"
-                    class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
-                  />
-                  <input
-                    v-model="searchQuery"
-                    type="text"
-                    :placeholder="$t('codex.agents.searchPlaceholder')"
-                    class="w-full rounded-2xl border border-border-default/60 bg-bg-elevated py-3 pl-10 pr-4 text-sm text-text-primary"
-                  >
+          <div
+            v-if="loading"
+            class="py-20 text-center text-text-muted"
+          >
+            <div class="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-accent-primary/20 border-t-accent-primary" />{{ $t('common.loading') }}
+          </div>
+          <div
+            v-else-if="filteredAgents.length === 0"
+            class="rounded-3xl border border-dashed border-border-default/20 bg-bg-elevated px-6 py-16 text-center"
+          >
+            <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-bg-base">
+              <SIcon
+                name="Bot"
+                size="w-8 h-8"
+                class="text-text-muted"
+              />
+            </div>
+            <div class="text-lg font-semibold text-text-primary">
+              {{ searchQuery ? $t('codex.agents.noResults') : $t('codex.agents.emptyState') }}
+            </div>
+            <div class="mt-2 text-sm text-text-muted">
+              {{ searchQuery ? $t('codex.agents.noResultsHint') : $t('codex.agents.emptyHint') }}
+            </div>
+          </div>
+          <div
+            v-else
+            class="space-y-3"
+          >
+            <label class="mb-2 flex items-center gap-3 text-sm text-text-secondary"><input
+              :checked="allVisibleSelected"
+              type="checkbox"
+              class="h-4 w-4 rounded border-border-default/70 bg-transparent"
+              @change="toggleVisibleSelection(($event.target as HTMLInputElement).checked)"
+            ><span>{{ tt('选择当前可见 Agent', 'Select visible agents') }}</span></label>
+            <article
+              v-for="agent in filteredAgents"
+              :key="agent.path"
+              class="rounded-3xl border border-border-default/15 bg-bg-elevated p-4 transition-colors hover:border-accent-primary/30 hover:bg-bg-surface/75"
+            >
+              <div class="flex flex-wrap items-start gap-3">
+                <input
+                  :checked="selectedNames.includes(agent.name)"
+                  type="checkbox"
+                  class="mt-1 h-4 w-4 rounded border-border-default/70 bg-transparent"
+                  @change="toggleSelection(agent.name, ($event.target as HTMLInputElement).checked)"
+                >
+                <div class="min-w-0 flex-1">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <h3 class="text-base font-semibold text-text-primary">
+                      {{ agent.name }}
+                    </h3>
+                    <span class="rounded-full border border-border-default/60 bg-bg-base px-2.5 py-1 text-xs text-text-secondary">{{ agent.fileName }}</span>
+                    <span
+                      v-if="agent.parseError"
+                      class="rounded-full border border-amber-400/30 bg-amber-500/10 px-2.5 py-1 text-xs text-amber-100"
+                    >{{ tt('TOML 无效', 'Invalid TOML') }}</span>
+                    <span
+                      v-if="agent.model"
+                      class="rounded-full border border-sky-400/20 bg-sky-500/10 px-2.5 py-1 text-xs text-sky-100"
+                    >{{ agent.model }}</span>
+                  </div>
+                  <div class="mt-2 text-sm text-text-secondary">
+                    {{ agent.description || tt('暂无描述', 'No description') }}
+                  </div>
+                  <div class="mt-3 flex flex-wrap gap-2 text-xs text-text-muted">
+                    <span
+                      v-if="agent.nicknameCandidates?.length"
+                      class="rounded-full border border-border-default/50 px-2.5 py-1"
+                    >{{ tt(`${agent.nicknameCandidates.length} 个昵称`, `${agent.nicknameCandidates.length} nicknames`) }}</span>
+                    <span
+                      v-if="agent.sandboxMode"
+                      class="rounded-full border border-border-default/50 px-2.5 py-1"
+                    >{{ agent.sandboxMode }}</span>
+                    <span class="rounded-full border border-border-default/50 px-2.5 py-1">{{ agent.path }}</span>
+                  </div>
                 </div>
                 <div class="flex flex-wrap gap-2">
                   <button
                     type="button"
-                    class="codex-agent-secondary-button"
-                    :disabled="selectedAgents.length === 0"
-                    @click="handleBulkValidate"
+                    class="codex-agent-icon-button"
+                    :title="tt('编辑', 'Edit')"
+                    @click="openEditModal(agent)"
                   >
                     <SIcon
-                      name="ShieldCheck"
+                      name="Edit2"
                       size="w-4 h-4"
-                    /><span>{{ tt('校验', 'Validate') }}</span>
+                    />
                   </button>
                   <button
                     type="button"
-                    class="codex-agent-secondary-button"
-                    :disabled="selectedAgents.length === 0"
-                    @click="handleExportSelected"
+                    class="codex-agent-icon-button"
+                    :title="tt('重命名', 'Rename')"
+                    @click="openRenameModal(agent)"
                   >
                     <SIcon
-                      name="Download"
+                      name="PencilLine"
                       size="w-4 h-4"
-                    /><span>{{ tt('导出', 'Export') }}</span>
+                    />
                   </button>
                   <button
                     type="button"
-                    class="codex-agent-secondary-button"
-                    :disabled="!canCopySelection"
-                    @click="openBulkCopyModal"
+                    class="codex-agent-icon-button"
+                    :title="tt('复制', 'Copy')"
+                    :disabled="!alternateContextRequest"
+                    @click="openCopyModal(agent)"
                   >
                     <SIcon
                       name="Copy"
                       size="w-4 h-4"
-                    /><span>{{ tt('复制', 'Copy') }}</span>
+                    />
                   </button>
                   <button
                     type="button"
-                    class="codex-agent-secondary-button"
-                    @click="triggerImport"
+                    class="codex-agent-icon-button"
+                    :title="tt('校验', 'Validate')"
+                    @click="handleValidateAgent(agent)"
                   >
                     <SIcon
-                      name="Upload"
+                      name="ShieldCheck"
                       size="w-4 h-4"
-                    /><span>{{ tt('导入', 'Import') }}</span>
+                    />
                   </button>
                   <button
                     type="button"
-                    class="codex-agent-secondary-button"
-                    :disabled="selectedAgents.length === 0"
-                    @click="openBulkRenameModal"
+                    class="codex-agent-icon-button"
+                    :title="tt('导出', 'Export')"
+                    @click="exportAgent(agent)"
                   >
                     <SIcon
-                      name="TextField"
+                      name="Download"
                       size="w-4 h-4"
-                    /><span>{{ tt('重命名', 'Rename') }}</span>
+                    />
                   </button>
                   <button
                     type="button"
-                    class="codex-agent-danger-button"
-                    :disabled="selectedAgents.length === 0"
-                    @click="handleBulkDelete"
+                    class="codex-agent-icon-button danger"
+                    :title="tt('删除', 'Delete')"
+                    @click="handleDeleteAgent(agent)"
                   >
                     <SIcon
                       name="Trash2"
                       size="w-4 h-4"
-                    /><span>{{ tt('删除', 'Delete') }}</span>
+                    />
                   </button>
                 </div>
               </div>
+            </article>
+          </div>
+        </div>
+      </div>
 
-              <div
-                v-if="loading"
-                class="py-20 text-center text-text-muted"
-              >
-                <div class="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-accent-primary/20 border-t-accent-primary" />{{ $t('common.loading') }}
+      <div class="space-y-4">
+        <Card
+          variant="glass"
+          class="p-5"
+        >
+          <div class="mb-3 flex items-center gap-2 text-sm font-semibold text-text-primary">
+            <SIcon
+              name="FolderTree"
+              size="w-4 h-4"
+            />{{ tt('上下文控制', 'Context Control') }}
+          </div>
+          <div class="space-y-3 text-sm text-text-secondary">
+            <div>
+              <div class="font-medium text-text-primary">
+                {{ tt('当前', 'Current') }}
+              </div><div class="mt-1 break-all">
+                {{ activeContext?.agentsDir ?? '~/.codex/agents/' }}
               </div>
-              <div
-                v-else-if="filteredAgents.length === 0"
-                class="rounded-3xl border border-dashed border-border-default/20 bg-bg-elevated px-6 py-16 text-center"
-              >
-                <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-bg-base">
-                  <SIcon
-                    name="Bot"
-                    size="w-8 h-8"
-                    class="text-text-muted"
-                  />
-                </div>
-                <div class="text-lg font-semibold text-text-primary">
-                  {{ searchQuery ? $t('codex.agents.noResults') : $t('codex.agents.emptyState') }}
-                </div>
-                <div class="mt-2 text-sm text-text-muted">
-                  {{ searchQuery ? $t('codex.agents.noResultsHint') : $t('codex.agents.emptyHint') }}
-                </div>
-              </div>
-              <div
-                v-else
-                class="space-y-3"
-              >
-                <label class="mb-2 flex items-center gap-3 text-sm text-text-secondary"><input
-                  :checked="allVisibleSelected"
-                  type="checkbox"
-                  class="h-4 w-4 rounded border-border-default/70 bg-transparent"
-                  @change="toggleVisibleSelection(($event.target as HTMLInputElement).checked)"
-                ><span>{{ tt('选择当前可见 Agent', 'Select visible agents') }}</span></label>
-                <article
-                  v-for="agent in filteredAgents"
-                  :key="agent.path"
-                  class="rounded-3xl border border-border-default/15 bg-bg-elevated p-4 transition-colors hover:border-accent-primary/30 hover:bg-bg-surface/75"
-                >
-                  <div class="flex flex-wrap items-start gap-3">
-                    <input
-                      :checked="selectedNames.includes(agent.name)"
-                      type="checkbox"
-                      class="mt-1 h-4 w-4 rounded border-border-default/70 bg-transparent"
-                      @change="toggleSelection(agent.name, ($event.target as HTMLInputElement).checked)"
-                    >
-                    <div class="min-w-0 flex-1">
-                      <div class="flex flex-wrap items-center gap-2">
-                        <h3 class="text-base font-semibold text-text-primary">
-                          {{ agent.name }}
-                        </h3>
-                        <span class="rounded-full border border-border-default/60 bg-bg-base px-2.5 py-1 text-xs text-text-secondary">{{ agent.fileName }}</span>
-                        <span
-                          v-if="agent.parseError"
-                          class="rounded-full border border-amber-400/30 bg-amber-500/10 px-2.5 py-1 text-xs text-amber-100"
-                        >{{ tt('TOML 无效', 'Invalid TOML') }}</span>
-                        <span
-                          v-if="agent.model"
-                          class="rounded-full border border-sky-400/20 bg-sky-500/10 px-2.5 py-1 text-xs text-sky-100"
-                        >{{ agent.model }}</span>
-                      </div>
-                      <div class="mt-2 text-sm text-text-secondary">
-                        {{ agent.description || tt('暂无描述', 'No description') }}
-                      </div>
-                      <div class="mt-3 flex flex-wrap gap-2 text-xs text-text-muted">
-                        <span
-                          v-if="agent.nicknameCandidates?.length"
-                          class="rounded-full border border-border-default/50 px-2.5 py-1"
-                        >{{ tt(`${agent.nicknameCandidates.length} 个昵称`, `${agent.nicknameCandidates.length} nicknames`) }}</span>
-                        <span
-                          v-if="agent.sandboxMode"
-                          class="rounded-full border border-border-default/50 px-2.5 py-1"
-                        >{{ agent.sandboxMode }}</span>
-                        <span class="rounded-full border border-border-default/50 px-2.5 py-1">{{ agent.path }}</span>
-                      </div>
-                    </div>
-                    <div class="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        class="codex-agent-icon-button"
-                        :title="tt('编辑', 'Edit')"
-                        @click="openEditModal(agent)"
-                      >
-                        <SIcon
-                          name="Edit2"
-                          size="w-4 h-4"
-                        />
-                      </button>
-                      <button
-                        type="button"
-                        class="codex-agent-icon-button"
-                        :title="tt('重命名', 'Rename')"
-                        @click="openRenameModal(agent)"
-                      >
-                        <SIcon
-                          name="PencilLine"
-                          size="w-4 h-4"
-                        />
-                      </button>
-                      <button
-                        type="button"
-                        class="codex-agent-icon-button"
-                        :title="tt('复制', 'Copy')"
-                        :disabled="!alternateContextRequest"
-                        @click="openCopyModal(agent)"
-                      >
-                        <SIcon
-                          name="Copy"
-                          size="w-4 h-4"
-                        />
-                      </button>
-                      <button
-                        type="button"
-                        class="codex-agent-icon-button"
-                        :title="tt('校验', 'Validate')"
-                        @click="handleValidateAgent(agent)"
-                      >
-                        <SIcon
-                          name="ShieldCheck"
-                          size="w-4 h-4"
-                        />
-                      </button>
-                      <button
-                        type="button"
-                        class="codex-agent-icon-button"
-                        :title="tt('导出', 'Export')"
-                        @click="exportAgent(agent)"
-                      >
-                        <SIcon
-                          name="Download"
-                          size="w-4 h-4"
-                        />
-                      </button>
-                      <button
-                        type="button"
-                        class="codex-agent-icon-button danger"
-                        :title="tt('删除', 'Delete')"
-                        @click="handleDeleteAgent(agent)"
-                      >
-                        <SIcon
-                          name="Trash2"
-                          size="w-4 h-4"
-                        />
-                      </button>
-                    </div>
-                  </div>
-                </article>
+            </div>
+            <div v-if="lastProjectRoot">
+              <div class="font-medium text-text-primary">
+                {{ tt('上次项目', 'Last Project') }}
+              </div><div class="mt-1 break-all">
+                {{ lastProjectRoot }}
               </div>
             </div>
           </div>
-
-          <div class="space-y-4">
-            <Card
-              variant="glass"
-              class="p-5"
-            >
-              <div class="mb-3 flex items-center gap-2 text-sm font-semibold text-text-primary">
-                <SIcon
-                  name="FolderTree"
-                  size="w-4 h-4"
-                />{{ tt('上下文控制', 'Context Control') }}
-              </div>
-              <div class="space-y-3 text-sm text-text-secondary">
-                <div>
-                  <div class="font-medium text-text-primary">
-                    {{ tt('当前', 'Current') }}
-                  </div><div class="mt-1 break-all">
-                    {{ activeContext?.agentsDir ?? '~/.codex/agents/' }}
-                  </div>
-                </div>
-                <div v-if="lastProjectRoot">
-                  <div class="font-medium text-text-primary">
-                    {{ tt('上次项目', 'Last Project') }}
-                  </div><div class="mt-1 break-all">
-                    {{ lastProjectRoot }}
-                  </div>
-                </div>
-              </div>
-            </Card>
-            <Card
-              variant="glass"
-              class="p-5"
-            >
-              <div class="mb-3 flex items-center gap-2 text-sm font-semibold text-text-primary">
-                <SIcon
-                  name="Boxes"
-                  size="w-4 h-4"
-                />{{ tt('内置 Agent', 'Built-in Agents') }}
-              </div>
-              <div class="space-y-3">
-                <div
-                  v-for="builtIn in builtInCodexAgents"
-                  :key="builtIn.name"
-                  class="rounded-2xl border border-border-default/60 bg-bg-elevated px-3 py-3"
-                >
-                  <div class="flex items-center justify-between gap-3">
-                    <div class="font-medium text-text-primary">
-                      {{ builtIn.name }}
-                    </div><span class="rounded-full border border-border-default/50 px-2 py-0.5 text-[11px] text-text-muted">{{ tt('只读', 'Read-only') }}</span>
-                  </div>
-                  <div class="mt-1 text-sm text-text-secondary">
-                    {{ builtIn.description }}
-                  </div>
-                </div>
-              </div>
-            </Card>
-            <Card
-              variant="glass"
-              class="p-5"
-            >
-              <div class="mb-3 flex items-center gap-2 text-sm font-semibold text-text-primary">
-                <SIcon
-                  name="AlertTriangle"
-                  size="w-4 h-4"
-                />{{ tt('诊断', 'Diagnostics') }}
-              </div>
-              <div
-                v-if="diagnostics.length === 0"
-                class="text-sm text-text-secondary"
-              >
-                {{ tt('当前上下文没有诊断信息。', 'No context-level diagnostics.') }}
-              </div>
-              <div
-                v-else
-                class="space-y-3"
-              >
-                <div
-                  v-for="diagnostic in diagnostics"
-                  :key="`${diagnostic.path}:${diagnostic.message}`"
-                  class="rounded-2xl border border-amber-400/25 bg-amber-500/10 px-3 py-3 text-sm text-amber-100"
-                >
-                  <div class="font-medium">
-                    {{ diagnostic.fileName }}
-                  </div>
-                  <div class="mt-1 break-words text-xs">
-                    {{ diagnostic.message }}
-                  </div>
-                </div>
-              </div>
-            </Card>
+        </Card>
+        <Card
+          variant="glass"
+          class="p-5"
+        >
+          <div class="mb-3 flex items-center gap-2 text-sm font-semibold text-text-primary">
+            <SIcon
+              name="Boxes"
+              size="w-4 h-4"
+            />{{ tt('内置 Agent', 'Built-in Agents') }}
           </div>
-        </div>
-        <CodexAgentSourcesPanel
-          v-else
-          @refresh-installed="handleRefresh"
-        />
-      </PageHeaderCard>
+          <div class="space-y-3">
+            <div
+              v-for="builtIn in builtInCodexAgents"
+              :key="builtIn.name"
+              class="rounded-2xl border border-border-default/60 bg-bg-elevated px-3 py-3"
+            >
+              <div class="flex items-center justify-between gap-3">
+                <div class="font-medium text-text-primary">
+                  {{ builtIn.name }}
+                </div><span class="rounded-full border border-border-default/50 px-2 py-0.5 text-[11px] text-text-muted">{{ tt('只读', 'Read-only') }}</span>
+              </div>
+              <div class="mt-1 text-sm text-text-secondary">
+                {{ builtIn.description }}
+              </div>
+            </div>
+          </div>
+        </Card>
+        <Card
+          variant="glass"
+          class="p-5"
+        >
+          <div class="mb-3 flex items-center gap-2 text-sm font-semibold text-text-primary">
+            <SIcon
+              name="AlertTriangle"
+              size="w-4 h-4"
+            />{{ tt('诊断', 'Diagnostics') }}
+          </div>
+          <div
+            v-if="diagnostics.length === 0"
+            class="text-sm text-text-secondary"
+          >
+            {{ tt('当前上下文没有诊断信息。', 'No context-level diagnostics.') }}
+          </div>
+          <div
+            v-else
+            class="space-y-3"
+          >
+            <div
+              v-for="diagnostic in diagnostics"
+              :key="`${diagnostic.path}:${diagnostic.message}`"
+              class="rounded-2xl border border-amber-400/25 bg-amber-500/10 px-3 py-3 text-sm text-amber-100"
+            >
+              <div class="font-medium">
+                {{ diagnostic.fileName }}
+              </div>
+              <div class="mt-1 break-words text-xs">
+                {{ diagnostic.message }}
+              </div>
+            </div>
+          </div>
+        </Card>
+      </div>
     </div>
+    <CodexAgentSourcesPanel
+      v-else
+      @refresh-installed="handleRefresh"
+    />
 
     <input
       ref="fileInputRef"
@@ -581,7 +575,7 @@
         </button>
       </template>
     </BaseModal>
-  </div>
+  </PageShell>
 </template>
 
 <script setup lang="ts">
@@ -591,7 +585,8 @@ import { useI18n } from 'vue-i18n'
 import BaseModal from '@/components/common/BaseModal.vue'
 import Card from '@/components/ui/Card.vue'
 import ModuleSubnav from '@/components/ModuleSubnav.vue'
-import PageHeaderCard from '@/components/PageHeaderCard.vue'
+import PageHeader from '@/components/ui/PageHeader.vue'
+import PageShell from '@/components/ui/PageShell.vue'
 import SIcon from '@/components/ui/SIcon.vue'
 import CodexAgentEditorModal from '@/components/codex/CodexAgentEditorModal.vue'
 import CodexAgentSourcesPanel from '@/components/codex/CodexAgentSourcesPanel.vue'
@@ -1022,26 +1017,42 @@ function handleExportSelected() {
 </script>
 
 <style scoped>
+.codex-agent-context-chip,
+.codex-agent-count-chip {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--color-border-default);
+  border-radius: 0.5rem;
+  background: var(--color-bg-elevated);
+  padding: 0.25rem 0.75rem;
+  color: var(--color-text-secondary);
+  font-size: 0.8125rem;
+}
+
+.codex-agent-count-chip {
+  font-variant-numeric: tabular-nums;
+}
+
 .codex-agent-summary-card {
-  border: 1px solid rgb(var(--color-border-default-rgb) / 50%);
-  border-radius: 1.5rem;
-  background: rgb(var(--color-bg-surface-rgb) / 58%);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 0.75rem;
+  background: var(--color-bg-surface);
   padding: 1rem 1.125rem;
 }
 
 .codex-agent-summary-label {
   color: var(--color-text-muted);
   font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-weight: 500;
+  letter-spacing: 0;
 }
 
 .codex-agent-summary-value {
   margin-top: 0.4rem;
   color: var(--color-text-primary);
   font-size: 1.5rem;
-  font-weight: 700;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .codex-agent-summary-note {
@@ -1058,11 +1069,10 @@ function handleExportSelected() {
   align-items: center;
   gap: 0.5rem;
   min-height: 2.75rem;
-  border-radius: 0.9rem;
+  border-radius: 0.5rem;
   padding: 0.65rem 0.95rem;
   font-size: 0.875rem;
   transition:
-    transform 150ms ease,
     background-color 150ms ease,
     border-color 150ms ease,
     color 150ms ease;
@@ -1073,10 +1083,6 @@ function handleExportSelected() {
   color: var(--color-accent-primary-contrast);
 }
 
-.codex-agent-primary-button:hover {
-  transform: scale(1.02);
-}
-
 .codex-agent-secondary-button,
 .codex-agent-icon-button {
   border: 1px solid rgb(var(--color-border-default-rgb) / 65%);
@@ -1085,9 +1091,9 @@ function handleExportSelected() {
 }
 
 .codex-agent-danger-button {
-  border: 1px solid rgb(244 63 94 / 30%);
-  background: rgb(244 63 94 / 12%);
-  color: rgb(254 205 211);
+  border: 1px solid rgb(var(--color-danger-rgb) / 30%);
+  background: rgb(var(--color-danger-rgb) / 12%);
+  color: var(--color-danger);
 }
 
 .codex-agent-secondary-button:hover,
@@ -1097,7 +1103,7 @@ function handleExportSelected() {
 }
 
 .codex-agent-danger-button:hover {
-  background: rgb(244 63 94 / 20%);
+  background: rgb(var(--color-danger-rgb) / 20%);
 }
 
 .codex-agent-icon-button {
@@ -1107,9 +1113,9 @@ function handleExportSelected() {
 }
 
 .codex-agent-icon-button.danger:hover {
-  border-color: rgb(244 63 94 / 40%);
-  color: rgb(254 205 211);
-  background: rgb(244 63 94 / 14%);
+  border-color: rgb(var(--color-danger-rgb) / 40%);
+  color: var(--color-danger);
+  background: rgb(var(--color-danger-rgb) / 14%);
 }
 
 .codex-agent-secondary-button:disabled,
@@ -1118,7 +1124,6 @@ function handleExportSelected() {
 .codex-agent-danger-button:disabled {
   cursor: not-allowed;
   opacity: 0.45;
-  transform: none;
 }
 
 .codex-agent-input {

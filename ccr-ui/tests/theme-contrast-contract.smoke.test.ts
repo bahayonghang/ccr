@@ -6,8 +6,8 @@ import { beforeAll, describe, expect, it } from 'vitest'
  * 配色对比度守卫（配色系统重构 design.md §7 静态解析方案，不依赖 jsdom 的 CSS var 支持）。
  *
  * 方案：读 tokens.css 文本 → 按已知选择器清单抽取定义块 → 微型级联解析
- * （specificity + 源序；var() 递归；hex/rgb 归一）→ 对 6 组 theme × resolved-flavor
- * 组合（light/dark × neutral/clay + light-latte + dark-mocha）计算 WCAG 相对亮度对比度。
+ * （specificity + 源序；var() 递归；hex/rgb 归一）→ 对 4 组 theme × resolved-flavor
+ * 组合（light/dark × neutral/clay）计算 WCAG 相对亮度对比度。
  *
  * 阈值即契约：primary ≥12:1、secondary ≥7:1、muted ≥4.5:1（对 bg-surface）；
  * accent vs accent-contrast ≥3.5:1；border-default 混合后对 bg-surface ≥1.2:1。
@@ -23,8 +23,8 @@ interface CssBlock {
 interface ThemeCombo {
   name: string
   theme: 'light' | 'dark'
-  flavorAttr: 'neutral' | 'clay' | 'catppuccin'
-  resolved: 'neutral' | 'clay' | 'latte' | 'mocha'
+  flavorAttr: 'neutral' | 'clay'
+  resolved: 'neutral' | 'clay'
 }
 
 interface Rgba {
@@ -34,19 +34,17 @@ interface Rgba {
   a: number
 }
 
-type AccentMode = 'clay' | 'sage' | 'sky' | 'mauve'
+type AccentMode = 'clay'
 type Specificity = readonly [number, number, number]
 
-const ACCENTS: readonly AccentMode[] = ['clay', 'sage', 'sky', 'mauve']
+const ACCENTS: readonly AccentMode[] = ['clay']
 
-// 6 组有效组合：latte 只存在于 light、mocha 只存在于 dark（resolveFlavorMode 保证）。
+// 4 组有效组合：light/dark × neutral/clay。
 const COMBOS: readonly ThemeCombo[] = [
   { name: 'light + neutral', theme: 'light', flavorAttr: 'neutral', resolved: 'neutral' },
   { name: 'dark + neutral', theme: 'dark', flavorAttr: 'neutral', resolved: 'neutral' },
   { name: 'light + clay', theme: 'light', flavorAttr: 'clay', resolved: 'clay' },
   { name: 'dark + clay', theme: 'dark', flavorAttr: 'clay', resolved: 'clay' },
-  { name: 'light + latte', theme: 'light', flavorAttr: 'catppuccin', resolved: 'latte' },
-  { name: 'dark + mocha', theme: 'dark', flavorAttr: 'catppuccin', resolved: 'mocha' },
 ]
 
 // 已知选择器清单：root 伪类与 :where 链（历史 specificity 技巧）、html:root 前缀、data-* 属性轴，
@@ -389,7 +387,7 @@ describe('theme contrast contract', () => {
     }
   })
 
-  it.each(COMBOS)('$name：accent vs accent-contrast ≥ 3.5（4 个 accent 全量）', (combo) => {
+  it.each(COMBOS)('$name：accent vs accent-contrast ≥ 3.5（clay）', (combo) => {
     for (const accent of ACCENTS) {
       const tokens = resolveTokens(blocks, combo, accent)
       const primary = readToken(tokens, '--color-accent-primary')
@@ -427,7 +425,8 @@ describe('theme contrast contract', () => {
 
     expect(source).not.toMatch(/--stage-bg-(?:mesh|aurora|orb|grid|noise)/)
     expect(source).not.toMatch(/--color-premium-(?:pink|blue)/)
-    expect(source).not.toMatch(/data-resolved-flavor=["'](?:frappe|macchiato)["']/)
-    expect(source).not.toMatch(/\[data-flavor=["'](?:paper|graphite)["']\]/)
+    expect(source).not.toMatch(/data-resolved-flavor=["'](?:frappe|macchiato|latte|mocha)["']/)
+    expect(source).not.toMatch(/\[data-flavor=["'](?:paper|graphite|catppuccin)["']\]/)
+    expect(source).not.toMatch(/\[data-accent=["'](?:sage|sky|mauve|slate)["']\]/)
   })
 })

@@ -1,0 +1,4 @@
+{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file": ".trellis/spec/ccr-ui/frontend/api-facade-boundary.md", "reason": "logger is allowed facade exception"}
+{"file": ".trellis/tasks/08-17-logging-system-optimization/design.md", "reason": "redaction and IPC limits"}
+{"file": ".trellis/tasks/08-17-logging-system-optimization/research/codex-review-verification.md", "reason": "IPC hard limits"}

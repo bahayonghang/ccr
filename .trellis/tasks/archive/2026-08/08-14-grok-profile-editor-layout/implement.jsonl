@@ -1,0 +1,3 @@
+{"file": ".trellis/spec/ccr-ui/frontend/profiles-page-contracts.md", "reason": "Grok editor write-only patch, pe-* shell boundary, and Profiles smoke matrix"}
+{"file": ".trellis/spec/ccr-ui/frontend/theme-token-contracts.md", "reason": "Keep pe-*/--cp-* tokens; no new visual language; web preview verification"}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Reuse Claude/Codex editor shell instead of a Grok-only layout"}

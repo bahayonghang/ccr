@@ -138,7 +138,7 @@ const stackedSeries = computed(() => [
 const stackedOptions = computed(() => {
   const theme = buildChartTheme()
   // 颜色：cache 用陶色/沙色，input 用 info 蓝，output 用 success 绿
-  const colors = [theme.primary, theme.secondary, theme.tertiary, getComputedStyle(document.documentElement).getPropertyValue('--chart-color-1').trim() || '#5b8a62']
+  const colors = [theme.primary, theme.secondary, theme.tertiary, getComputedStyle(document.documentElement).getPropertyValue('--chart-color-1').trim() || 'var(--color-success)']
   return {
     chart: {
       type: 'bar' as const,
@@ -300,11 +300,7 @@ const formatPercent = (rate: number) => {
 .token-tab__note {
   border-radius: 0.95rem;
   border: 1px solid rgb(var(--color-warning-rgb) / 22%);
-  background: linear-gradient(
-    180deg,
-    rgb(var(--color-warning-rgb) / 8%),
-    rgb(var(--color-bg-elevated-rgb, 255 255 255) / 0%)
-  );
+  background: rgb(var(--color-warning-rgb) / 8%);
   padding: 0.85rem 1rem;
   display: grid;
   gap: 0.3rem;

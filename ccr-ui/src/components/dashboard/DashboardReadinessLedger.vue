@@ -5,51 +5,47 @@
     :data-status="readiness.status"
     :aria-label="t('dashboard.readiness.label')"
   >
-    <p class="dashboard-ledger__eyebrow">
-      <span
-        class="dashboard-ledger__status-dot"
-        aria-hidden="true"
-      />
-      {{ t(readiness.labelKey) }}
-    </p>
-    <h2 class="dashboard-ledger__title">
-      {{ t(readiness.titleKey) }}
-    </h2>
-    <p class="dashboard-ledger__description">
-      {{ t(readiness.descriptionKey) }}
-    </p>
-
-    <ul class="dashboard-ledger__reasons">
-      <li
-        v-for="reason in readiness.reasons"
-        :key="reason.key"
-        class="dashboard-ledger__reason"
-        :data-ok="reason.ok"
-      >
-        <SIcon
-          :name="reason.ok ? 'Check' : 'AlertTriangle'"
-          size="w-3.5 h-3.5"
-          class="dashboard-ledger__reason-icon"
+    <div class="dashboard-ledger__main">
+      <p class="dashboard-ledger__eyebrow">
+        <span
+          class="dashboard-ledger__status-dot"
+          aria-hidden="true"
         />
-        {{ stripTrailingPeriod(t(reason.key)) }}
-      </li>
-    </ul>
+        {{ t(readiness.labelKey) }}
+      </p>
+      <h2 class="dashboard-ledger__title">
+        {{ t(readiness.titleKey) }}
+      </h2>
+      <p class="dashboard-ledger__description">
+        {{ t(readiness.descriptionKey) }}
+      </p>
+
+      <ul class="dashboard-ledger__reasons">
+        <li
+          v-for="reason in readiness.reasons"
+          :key="reason.key"
+          class="dashboard-ledger__reason"
+          :data-ok="reason.ok"
+        >
+          <SIcon
+            :name="reason.ok ? 'Check' : 'AlertTriangle'"
+            size="w-3.5 h-3.5"
+            class="dashboard-ledger__reason-icon"
+          />
+          {{ stripTrailingPeriod(t(reason.key)) }}
+        </li>
+      </ul>
+    </div>
 
     <div class="dashboard-ledger__metrics">
-      <article
+      <StatTile
         v-for="metric in statusMetrics"
         :key="metric.id"
-        class="dashboard-ledger-metric"
-        :data-tone="metric.tone"
-      >
-        <span class="dashboard-ledger-metric__label">{{ t(metric.labelKey) }}</span>
-        <strong class="dashboard-ledger-metric__value">
-          {{ resolveValue(metric) }}
-        </strong>
-        <span class="dashboard-ledger-metric__hint">
-          {{ resolveHint(metric) }}
-        </span>
-      </article>
+        :label="t(metric.labelKey)"
+        :value="resolveValue(metric)"
+        :hint="resolveHint(metric)"
+        :tone="metric.tone"
+      />
     </div>
   </section>
 </template>
@@ -57,6 +53,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import SIcon from '@/components/ui/SIcon.vue'
+import StatTile from '@/components/ui/StatTile.vue'
 import type {
   DashboardReadiness,
   DashboardStatusMetric,
@@ -86,42 +83,39 @@ const stripTrailingPeriod = (text: string) => text.replace(/[。.]$/, '')
 
 <style scoped>
 .dashboard-ledger {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
+  display: grid;
+  grid-template-columns: minmax(16rem, 0.85fr) minmax(0, 1.4fr);
+  gap: 1rem 1.25rem;
+  align-items: start;
   height: 100%;
   padding: var(--home-card-pad);
-  border: 1px solid var(--home-border-card);
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--home-card-radius);
-  background: var(--home-surface-card);
-  box-shadow: var(--home-elevation-raised);
-  overflow: hidden;
+  background: var(--color-bg-surface);
 }
 
-.dashboard-ledger::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-top: 2px solid rgb(var(--color-accent-primary-rgb) / 32%);
-  pointer-events: none;
+.dashboard-ledger__main {
+  display: grid;
+  align-content: start;
+  gap: 0.45rem;
+  min-width: 0;
 }
 
 .dashboard-ledger__eyebrow {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.45rem;
   margin: 0;
   color: var(--color-text-muted);
-  font-size: var(--home-text-meta);
-  font-weight: 800;
-  letter-spacing: var(--home-tracking-eyebrow);
-  text-transform: uppercase;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.24;
+  letter-spacing: 0;
 }
 
 .dashboard-ledger__status-dot {
-  width: 0.48rem;
-  height: 0.48rem;
+  width: 0.45rem;
+  height: 0.45rem;
   border-radius: 999px;
   background: var(--color-text-muted);
 }
@@ -135,32 +129,31 @@ const stripTrailingPeriod = (text: string) => text.replace(/[。.]$/, '')
 }
 
 .dashboard-ledger[data-status='web-preview'] .dashboard-ledger__status-dot {
-  background: var(--color-accent-primary);
+  background: var(--color-info);
 }
 
 .dashboard-ledger__title {
   margin: 0;
   color: var(--color-text-primary);
-  font-family: var(--font-brand);
-  font-size: var(--home-text-section);
-  font-weight: 640;
-  letter-spacing: var(--home-tracking-display);
-  line-height: 1.2;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0;
 }
 
 .dashboard-ledger__description {
   margin: 0;
   color: var(--color-text-secondary);
-  font-size: var(--home-text-meta);
-  letter-spacing: var(--home-tracking-body);
-  line-height: var(--home-leading-body);
+  font-size: 0.8125rem;
+  letter-spacing: 0;
+  line-height: 1.5;
 }
 
 .dashboard-ledger__reasons {
   display: grid;
   align-content: start;
-  gap: 0.3rem;
-  margin: 0;
+  gap: 0.28rem;
+  margin: 0.15rem 0 0;
   padding: 0;
   list-style: none;
 }
@@ -170,7 +163,7 @@ const stripTrailingPeriod = (text: string) => text.replace(/[。.]$/, '')
   align-items: center;
   gap: 0.4rem;
   color: var(--color-text-secondary);
-  font-size: var(--home-text-meta);
+  font-size: 0.8125rem;
   line-height: 1.45;
 }
 
@@ -189,68 +182,23 @@ const stripTrailingPeriod = (text: string) => text.replace(/[。.]$/, '')
 
 .dashboard-ledger__metrics {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.5rem;
-  padding-top: 0.15rem;
-}
-
-.dashboard-ledger-metric {
-  display: grid;
-  gap: 0.16rem;
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  gap: 0.85rem 1rem;
+  align-content: start;
   min-width: 0;
-  padding: 0.68rem 0.72rem;
-  border: 1px solid var(--home-border-hairline);
-  border-radius: 10px;
-  background: rgb(var(--color-bg-surface-rgb) / 62%);
 }
 
-.dashboard-ledger-metric__label {
-  color: var(--color-text-muted);
-  font-size: var(--home-text-meta);
-  font-weight: 800;
-  letter-spacing: var(--home-tracking-eyebrow);
-  text-transform: uppercase;
-}
-
-.dashboard-ledger-metric__value {
-  overflow: hidden;
-  color: var(--color-text-primary);
-  font-family: var(--font-mono);
-  font-feature-settings: var(--home-mono-feature);
-  font-size: var(--home-text-mono-lg);
-  font-weight: 800;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.dashboard-ledger-metric__hint {
-  overflow: hidden;
-  color: var(--color-text-muted);
-  font-size: var(--home-text-meta);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.dashboard-ledger-metric[data-tone='success'] .dashboard-ledger-metric__value {
-  color: var(--color-success);
-}
-
-.dashboard-ledger-metric[data-tone='warning'] .dashboard-ledger-metric__value {
-  color: var(--color-warning);
-}
-
-.dashboard-ledger-metric[data-tone='danger'] .dashboard-ledger-metric__value {
-  color: var(--color-danger);
-}
-
-.dashboard-ledger-metric[data-tone='accent'] .dashboard-ledger-metric__value {
-  color: var(--color-accent-primary);
-}
-
-@media (width <= 640px) {
+/* 右侧指标栏大约要 ≥800px 才容得下五列不拆「Web 预览」/ 双百分数 */
+@media (width >= 1680px) {
   .dashboard-ledger__metrics {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+/* 与指标五列同一门槛：更窄时左右分栏会把第 5 项挤到下一行 */
+@media (width < 1680px) {
+  .dashboard-ledger {
     grid-template-columns: 1fr;
   }
 }
 </style>
-

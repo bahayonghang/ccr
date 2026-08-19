@@ -556,7 +556,12 @@ pub fn save_profiles_to_toml(
         },
     )?;
 
-    tracing::info!("✅ 已保存 {} profiles: {:?}", platform_name, profiles_path);
+    tracing::info!(
+        platform = platform_name,
+        path = ?profiles_path,
+        corr = ccr_core::current_log_correlation_id(),
+        "saved platform profiles"
+    );
     Ok(())
 }
 

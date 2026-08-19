@@ -19,7 +19,7 @@ impl Default for LogStorageConfig {
     fn default() -> Self {
         Self {
             retention_days: 14,
-            flush_threshold: 100,
+            flush_threshold: 20,
         }
     }
 }
@@ -216,6 +216,11 @@ mod tests {
             "tests",
             "test message",
         )
+    }
+
+    #[test]
+    fn default_flush_threshold_is_twenty() {
+        assert_eq!(LogStorageConfig::default().flush_threshold, 20);
     }
 
     #[tokio::test]

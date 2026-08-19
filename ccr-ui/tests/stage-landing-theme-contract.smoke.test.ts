@@ -21,15 +21,14 @@ describe('stage landing theme contract', () => {
     expect(source).not.toMatch(forbiddenStageUtilities)
   })
 
-  it('keeps the Claude Code terminal preview readable in both themes', async () => {
+  it('keeps the Claude Code console readable with semantic tokens', async () => {
     const claudeViewPath = '../src/views/ClaudeCodeView.vue'
     const absolutePath = fileURLToPath(new URL(claudeViewPath, import.meta.url))
     const source = await readFile(absolutePath, 'utf8')
-    const defaultTerminalRule = source.match(/^\.claude-terminal-card\s*\{[\s\S]*?^\}/m)?.[0] ?? ''
 
-    expect(source).toMatch(/--claude-terminal-command:\s*var\(--stage-text-primary\)/)
-    expect(source).toMatch(/:global\(\[data-theme='dark'\] \.claude-terminal-card\)/)
-    expect(source).toMatch(/:global\(\[data-theme='dark'\] \.claude-terminal-card::before\)/)
-    expect(defaultTerminalRule).not.toContain('rgb(10 12 16 / 92%)')
+    expect(source).toMatch(/class="claude-console"/)
+    expect(source).toMatch(/\.claude-console\s*\{[\s\S]*?color: var\(--color-text-primary\)/)
+    expect(source).not.toContain('claude-terminal-card')
+    expect(source).not.toContain('rgb(10 12 16 / 92%)')
   })
 })

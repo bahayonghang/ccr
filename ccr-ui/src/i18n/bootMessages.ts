@@ -523,28 +523,11 @@ const zhCNBootMessages = {
       flavor: {
         eyebrow: 'Flavor',
         title: '界面语调',
-        description: '选择整体底色族。Catppuccin 跟随明暗解析：浅色解析为 Latte，深色解析为 Mocha。',
+        description: '选择整体底色族：中性灰或暖陶纸面。',
         neutral: '中性',
         neutralDescription: '纯中性灰底色，对比扎实，不带冷暖倾向。',
         clay: '暖陶',
         clayDescription: '暖纸面底色，延续 Anthropic 编辑式基调。',
-        catppuccin: 'Catppuccin',
-        catppuccinDescription: '自适应 Catppuccin 底色族：浅色解析为 Latte，深色解析为 Mocha。',
-        resolvedLatte: 'Latte',
-        resolvedMocha: 'Mocha',
-      },
-      accent: {
-        eyebrow: 'Accent',
-        title: '强调色',
-        description: '改变主操作色，仅作用于强调元素与高亮。',
-        clay: '陶土',
-        clayDescription: '标志性暖橙强调色，用于主操作与高亮。',
-        sage: '鼠尾草',
-        sageDescription: '沉稳绿色强调，低噪自然。',
-        sky: '天蓝',
-        skyDescription: '清爽蓝色强调，偏冷的技术感。',
-        mauve: '玫紫',
-        mauveDescription: '柔和紫调强调，安静克制。',
       },
       typography: {
         eyebrow: 'Typography',
@@ -1145,32 +1128,12 @@ const enUSBootMessages = {
       flavor: {
         eyebrow: 'Flavor',
         title: 'Surface tone',
-        description:
-          'Pick the surface family. Catppuccin adapts to the resolved theme: light uses Latte and dark uses Mocha.',
+        description: 'Pick the surface family: neutral gray or warm clay paper.',
         neutral: 'Neutral',
         neutralDescription:
           'Pure neutral gray surfaces with solid contrast and no warm or cool tint.',
         clay: 'Clay',
         clayDescription: 'Warm paper surfaces in the Anthropic editorial tone.',
-        catppuccin: 'Catppuccin',
-        catppuccinDescription:
-          'Adaptive Catppuccin family; light resolves to Latte and dark resolves to Mocha.',
-        resolvedLatte: 'Latte',
-        resolvedMocha: 'Mocha',
-      },
-      accent: {
-        eyebrow: 'Accent',
-        title: 'Accent color',
-        description:
-          'Recolor primary actions and highlights only. Functional colors stay the same.',
-        clay: 'Clay',
-        clayDescription: 'Signature warm orange for primary actions.',
-        sage: 'Sage',
-        sageDescription: 'Calm green with an organic, low-noise feel.',
-        sky: 'Sky',
-        skyDescription: 'Clear blue for a cool, technical accent.',
-        mauve: 'Mauve',
-        mauveDescription: 'Soft violet with a quiet, refined presence.',
       },
       typography: {
         eyebrow: 'Typography',

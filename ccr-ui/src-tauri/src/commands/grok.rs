@@ -1650,6 +1650,32 @@ mod tests {
     }
 
     #[test]
+    fn ipc_f64_context_window_is_accepted_as_positive_integer() {
+        let mut profile = relay_profile();
+        let request = OpenJsonValueDto::try_from(json!({
+            "context_window": 500_000.0
+        }))
+        .unwrap();
+        // 模拟 Tauri 反序列化：数字只剩 f64，不再是 JSON 整数。
+        let request = match request {
+            OpenJsonValueDto::Object(mut object) => {
+                object.insert(
+                    "context_window".to_string(),
+                    OpenJsonValueDto::Number(500_000.0),
+                );
+                OpenJsonValueDto::Object(object)
+            }
+            other => other,
+        };
+        let object = request_object(request).unwrap();
+        apply_profile_patch(&mut profile, &object).unwrap();
+        assert_eq!(
+            profile.platform_data["context_window"].as_u64(),
+            Some(500_000)
+        );
+    }
+
+    #[test]
     fn rename_state_machine_preserves_recoverable_partial_states_without_error_details() {
         let apply_calls = Cell::new(0);
         let delete_calls = Cell::new(0);

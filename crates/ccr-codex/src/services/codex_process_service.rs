@@ -344,22 +344,29 @@ fn cleanup_with_backend<B: ProcessBackend>(
             }
         };
         record_new_processes(&mut report, &mut seen, &initial_identities, &current);
-    }
-
-    // Kill every target that exists at the deadline, including replacement PIDs.
-    for process in &current {
-        let attempt = backend.signal(process, CodexSignalStage::Kill);
-        if !record_signal_attempt(
-            &mut report,
-            &mut successful_signals,
-            process,
-            CodexSignalStage::Kill,
-            attempt,
-        ) {
-            return report;
+        // 匹配目标已空则结束宽限，不再继续 wait / discover。
+        if current.is_empty() {
+            break;
         }
     }
 
+    // 截止时仍匹配的身份（含宽限内出现的 replacement）发 KILL。
+    if !current.is_empty() {
+        for process in &current {
+            let attempt = backend.signal(process, CodexSignalStage::Kill);
+            if !record_signal_attempt(
+                &mut report,
+                &mut successful_signals,
+                process,
+                CodexSignalStage::Kill,
+                attempt,
+            ) {
+                return report;
+            }
+        }
+    }
+
+    // 本轮已对真实目标发过信号：始终 settle 后再拍最终快照。
     backend.wait(timing.respawn_settle);
     let final_discovery = match backend.discover() {
         Ok(discovery) => discovery,
@@ -698,28 +705,121 @@ mod tests {
     #[test]
     fn pid_reuse_is_tracked_by_start_time() {
         let initial = tracked(301, 1);
-        let reused = tracked(301, 2);
-        let respawned = tracked(301, 3);
+        let respawned = tracked(301, 2);
         let mut backend = FakeBackend::new(vec![
             Ok(vec![initial.clone()]),
             Ok(Vec::new()),
-            Ok(vec![reused.clone()]),
             Ok(vec![respawned.clone()]),
         ]);
 
         let report = cleanup_with_backend(&mut backend, false, test_timing());
 
-        assert_eq!(report.discovered_during_cleanup, vec![reused.display]);
+        // 空快照结束宽限：settle 才出现的新身份只记 respawned，不补发 deadline KILL。
+        assert!(report.discovered_during_cleanup.is_empty());
         assert_eq!(
             report.cleanup.terminated,
-            vec![(301, TerminationKind::Kill)]
+            vec![(301, TerminationKind::Term)]
         );
         assert_eq!(report.cleanup.respawned, vec![respawned.display]);
         assert_eq!(
             backend.signal_calls,
+            vec![(initial.identity, CodexSignalStage::Term)]
+        );
+    }
+
+    #[test]
+    fn empty_snapshot_ends_grace_without_further_waits() {
+        let process = tracked(701, 1);
+        let mut backend = FakeBackend::new(vec![
+            Ok(vec![process.clone()]),
+            Ok(Vec::new()),
+            Ok(Vec::new()),
+        ]);
+        let timing = CleanupTiming {
+            poll_interval: Duration::from_millis(7),
+            poll_rounds: 5,
+            respawn_settle: Duration::from_millis(11),
+        };
+
+        let report = cleanup_with_backend(&mut backend, false, timing);
+
+        assert_eq!(
+            report.cleanup.terminated,
+            vec![(701, TerminationKind::Term)]
+        );
+        assert!(report.cleanup.respawned.is_empty());
+        assert_eq!(
+            backend.waits,
+            vec![Duration::from_millis(7), Duration::from_millis(11)]
+        );
+        assert_eq!(backend.discovery_calls, 3);
+        assert_eq!(
+            backend.signal_calls,
+            vec![(process.identity, CodexSignalStage::Term)]
+        );
+    }
+
+    #[test]
+    fn settle_only_replacement_is_respawned_without_deadline_kill() {
+        let initial = tracked(901, 1);
+        let replacement = tracked(902, 1);
+        let mut backend = FakeBackend::new(vec![
+            Ok(vec![initial.clone()]),
+            Ok(Vec::new()),
+            Ok(vec![replacement.clone()]),
+        ]);
+
+        let report = cleanup_with_backend(&mut backend, false, test_timing());
+
+        assert!(report.discovered_during_cleanup.is_empty());
+        assert_eq!(
+            report.cleanup.terminated,
+            vec![(901, TerminationKind::Term)]
+        );
+        assert_eq!(report.cleanup.respawned, vec![replacement.display]);
+        assert_eq!(
+            backend.signal_calls,
+            vec![(initial.identity, CodexSignalStage::Term)]
+        );
+    }
+
+    #[test]
+    fn remaining_targets_use_full_poll_rounds_then_kill() {
+        let process = tracked(801, 1);
+        let mut backend = FakeBackend::new(vec![
+            Ok(vec![process.clone()]),
+            Ok(vec![process.clone()]),
+            Ok(vec![process.clone()]),
+            Ok(vec![process.clone()]),
+            Ok(Vec::new()),
+        ]);
+        let timing = CleanupTiming {
+            poll_interval: Duration::from_millis(3),
+            poll_rounds: 3,
+            respawn_settle: Duration::from_millis(5),
+        };
+
+        let report = cleanup_with_backend(&mut backend, false, timing);
+
+        assert_eq!(
+            report.cleanup.terminated,
+            vec![(801, TerminationKind::Kill)]
+        );
+        assert!(report.cleanup.respawned.is_empty());
+        assert_eq!(
+            backend.waits,
             vec![
-                (initial.identity, CodexSignalStage::Term),
-                (reused.identity, CodexSignalStage::Kill),
+                Duration::from_millis(3),
+                Duration::from_millis(3),
+                Duration::from_millis(3),
+                Duration::from_millis(5),
+            ]
+        );
+        assert_eq!(
+            backend.signal_calls,
+            vec![
+                (process.identity, CodexSignalStage::Term),
+                (process.identity, CodexSignalStage::Kill),
             ]
         );
     }

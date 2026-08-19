@@ -184,53 +184,18 @@ function handleCancel() {
 
 <style>
 .confirm-modal {
-  --confirm-shell-bg: linear-gradient(180deg, rgb(255 253 252 / 98%), rgb(247 244 255 / 94%));
-  --confirm-shell-border: rgb(var(--color-border-default-rgb) / 82%);
-  --confirm-shell-shadow: 0 28px 72px rgb(31 17 58 / 16%), 0 12px 28px rgb(31 17 58 / 10%);
-  --confirm-shell-highlight:
-    radial-gradient(circle at top center, rgb(var(--color-accent-primary-rgb) / 10%), transparent 42%),
-    radial-gradient(circle at bottom right, rgb(var(--color-warning-rgb) / 8%), transparent 36%);
+  --confirm-shell-bg: var(--surface-modal-bg);
+  --confirm-shell-border: var(--surface-modal-border);
+  --confirm-shell-shadow: var(--surface-modal-shadow);
   --confirm-text-primary: var(--color-text-primary);
   --confirm-text-secondary: var(--color-text-secondary);
-  --confirm-hairline: rgb(var(--color-border-default-rgb) / 58%);
-  --confirm-muted-bg: rgb(var(--color-bg-surface-rgb) / 72%);
-  --confirm-muted-hover: rgb(var(--color-bg-overlay-rgb) / 80%);
+  --confirm-hairline: var(--color-border-subtle);
+  --confirm-muted-bg: var(--color-bg-surface);
+  --confirm-muted-hover: var(--color-bg-overlay);
 
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
   background: var(--confirm-shell-bg) !important;
   border: 1px solid var(--confirm-shell-border) !important;
   box-shadow: var(--confirm-shell-shadow) !important;
-}
-
-:root[class~='dark'] .confirm-modal,
-[data-theme='dark'] .confirm-modal {
-  --confirm-shell-bg: linear-gradient(180deg, rgb(23 26 43 / 98%), rgb(16 18 31 / 96%));
-  --confirm-shell-border: rgb(78 84 115 / 78%);
-  --confirm-shell-shadow: 0 32px 84px rgb(0 0 0 / 58%), 0 18px 36px rgb(0 0 0 / 42%);
-  --confirm-shell-highlight:
-    radial-gradient(circle at top center, rgb(var(--color-accent-primary-rgb) / 16%), transparent 42%),
-    radial-gradient(circle at bottom right, rgb(var(--color-warning-rgb) / 12%), transparent 38%);
-  --confirm-text-primary: var(--color-text-primary);
-  --confirm-text-secondary: var(--color-text-secondary);
-  --confirm-hairline: rgb(78 84 115 / 74%);
-  --confirm-muted-bg: rgb(42 47 74 / 56%);
-  --confirm-muted-hover: rgb(53 60 92 / 72%);
-}
-
-.confirm-modal::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: var(--confirm-shell-highlight);
-  pointer-events: none;
-  z-index: 0;
-}
-
-.confirm-modal > * {
-  position: relative;
-  z-index: 1;
 }
 
 .confirm-modal__title {

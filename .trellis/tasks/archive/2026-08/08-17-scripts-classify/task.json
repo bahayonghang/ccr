@@ -1,0 +1,28 @@
+{
+  "id": "scripts-classify",
+  "name": "scripts-classify",
+  "title": "根 scripts 分类与调用对齐",
+  "description": "",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-08-17",
+  "completedAt": "2026-08-18",
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "description": "Classify root scripts/ by duty and update just/CI/spec callers without changing gate semantics."
+  }
+}

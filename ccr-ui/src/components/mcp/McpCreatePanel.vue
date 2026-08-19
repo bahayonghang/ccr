@@ -436,7 +436,7 @@ const claudeUserScopePath = '~/.claude.json'
 }
 
 .form-field__hint--warning {
-  color: rgb(var(--color-warning-rgb, 245 158 11) / 92%);
+  color: rgb(var(--color-warning-rgb) / 92%);
 }
 
 .form-field__input--mono {
@@ -561,7 +561,7 @@ const claudeUserScopePath = '~/.claude.json'
 }
 
 .detail-btn--primary {
-  background: linear-gradient(180deg, rgb(var(--color-accent-primary-rgb) / 18%), rgb(var(--color-accent-secondary-rgb) / 10%));
+  background: rgb(var(--color-accent-primary-rgb) / 12%);
   border-color: rgb(var(--color-accent-primary-rgb) / 20%);
   color: var(--color-text-primary);
 

@@ -1,397 +1,389 @@
 <template>
-  <div class="claude-auth-view">
-    <div class="claude-auth-view__shell">
-      <ModuleSubnav module="claude-code" />
-
-      <header class="claude-auth-view__header">
-        <div>
-          <p class="claude-auth-view__eyebrow">
-            {{ tt('Claude 官方订阅', 'Claude Official Subscription') }}
-          </p>
-          <h1 class="claude-auth-view__title">
-            {{ tt('官方账号管理', 'Official account management') }}
-          </h1>
-          <p class="claude-auth-view__subtitle">
-            {{ tt('保存、切换、删除 Claude Code 官方订阅账号快照；切换会更新', 'Save, switch, or delete Claude Code official subscription snapshots. Switching updates') }}
-            <code>{{ credentialsFile }}</code>{{ tt('，并只清理 CCR 托管的 Profile 设置。', ' and clears only CCR-managed profile settings.') }}
-          </p>
-        </div>
-
-        <div class="claude-auth-view__actions">
+  <PageShell class="claude-auth-view">
+    <template #header>
+      <PageHeader
+        :title="tt('官方账号管理', 'Official account management')"
+        :eyebrow="tt('Claude 官方订阅', 'Claude Official Subscription')"
+        :description="authHeaderDescription"
+      >
+        <template #actions>
           <RouterLink
             to="/claude-code"
-            class="claude-auth-view__ghost-button"
+            class="inline-flex"
           >
-            {{ tt('返回 Claude Code', 'Back to Claude Code') }}
+            <Button variant="secondary">
+              {{ tt('返回 Claude Code', 'Back to Claude Code') }}
+            </Button>
           </RouterLink>
-          <button
-            type="button"
-            class="claude-auth-view__ghost-button"
+          <Button
+            variant="secondary"
             :disabled="loading"
             @click="refreshAll"
           >
             {{ tt('刷新', 'Refresh') }}
-          </button>
-          <button
-            type="button"
-            class="claude-auth-view__primary-button"
+          </Button>
+          <Button
             :disabled="saving"
             @click="showSaveForm = true"
           >
             {{ tt('保存当前登录', 'Save current login') }}
-          </button>
-        </div>
-      </header>
+          </Button>
+        </template>
+      </PageHeader>
+    </template>
 
-      <div
-        v-if="authActionError"
-        class="claude-auth-view__banner claude-auth-view__banner--error"
-      >
-        {{ authActionError }}
-      </div>
+    <template #subnav>
+      <ModuleSubnav module="claude-code" />
+    </template>
 
-      <section class="claude-auth-view__stats">
-        <article class="claude-auth-view__stat-card">
-          <p class="claude-auth-view__stat-label">
-            {{ tt('登录状态', 'Login state') }}
-          </p>
-          <p class="claude-auth-view__stat-value">
-            {{ loginStateLabel }}
-          </p>
-        </article>
-        <article class="claude-auth-view__stat-card">
-          <p class="claude-auth-view__stat-label">
-            {{ tt('运行时模式', 'Runtime mode') }}
-          </p>
-          <p class="claude-auth-view__stat-value">
-            {{ runtimeModeLabel }}
-          </p>
-        </article>
-        <article class="claude-auth-view__stat-card">
-          <p class="claude-auth-view__stat-label">
-            {{ tt('当前 Profile', 'Current profile') }}
-          </p>
-          <p class="claude-auth-view__stat-value">
-            {{ currentProfileLabel }}
-          </p>
-        </article>
-        <article class="claude-auth-view__stat-card">
-          <p class="claude-auth-view__stat-label">
-            {{ tt('已保存账号', 'Saved accounts') }}
-          </p>
-          <p class="claude-auth-view__stat-value">
-            {{ accounts.length }}
-          </p>
-        </article>
-      </section>
+    <div
+      v-if="authActionError"
+      class="claude-auth-view__banner claude-auth-view__banner--error"
+    >
+      {{ authActionError }}
+    </div>
 
-      <section
-        v-if="runtimeSummary"
-        class="claude-auth-view__panel"
-        data-testid="claude-auth-diagnosis"
-      >
-        <div class="claude-auth-view__panel-header">
-          <div>
-            <h2 class="claude-auth-view__panel-title">
-              {{ tt('认证来源诊断', 'Auth source diagnosis') }}
-            </h2>
-            <p class="claude-auth-view__panel-subtitle">
-              {{ tt('范围限于当前 CCR 进程和已解析的用户级文件。', 'Scope is limited to this CCR process and the resolved user-level files.') }}
-            </p>
-          </div>
-          <div class="claude-auth-view__diagnosis-actions">
-            <button
-              v-if="canOff"
-              type="button"
-              class="claude-auth-view__ghost-button"
-              data-testid="claude-auth-profile-off"
-              :disabled="loading"
-              @click="handleOff"
-            >
-              {{ tt('退出 Profile', 'Exit profile') }}
-            </button>
-            <span
-              class="claude-auth-view__diagnosis-state"
-              :class="visibleSuppressors.length > 0 ? 'claude-auth-view__diagnosis-state--warning' : 'claude-auth-view__diagnosis-state--clear'"
-            >
-              {{ visibleSuppressors.length > 0 ? tt(`${visibleSuppressors.length} 个可见竞争来源`, `${visibleSuppressors.length} visible competing source(s)`) : tt('未发现可见竞争来源', 'No visible competing source') }}
-            </span>
-          </div>
-        </div>
-
-        <dl class="claude-auth-view__diagnosis-facts">
-          <div>
-            <dt>{{ tt('当前推定来源', 'Presumed source') }}</dt>
-            <dd data-testid="claude-auth-presumed-source">
-              {{ presumedSourceLabel }}
-            </dd>
-          </div>
-          <div>
-            <dt>{{ tt('置信度', 'Confidence') }}</dt>
-            <dd>{{ presumedConfidenceLabel }}</dd>
-          </div>
-          <div>
-            <dt>{{ tt('API Key 批准记录', 'API key response state') }}</dt>
-            <dd>
-              {{ authDiagnosis?.custom_api_key_responses_present ? tt('存在，仅作解释', 'Present, context only') : tt('未观察到', 'Not observed') }}
-            </dd>
-          </div>
-        </dl>
-
-        <div
-          v-if="visibleSuppressors.length > 0"
-          class="claude-auth-view__source-list"
-        >
-          <div
-            v-for="(source, index) in visibleSuppressors"
-            :key="`${source.kind}-${source.location}-${index}`"
-            class="claude-auth-view__source-row"
-          >
-            <div class="claude-auth-view__source-main">
-              <strong>{{ authSourceKindLabel(source.kind) }}</strong>
-              <span>{{ authSourceLocationLabel(source.location) }}</span>
-            </div>
-            <div class="claude-auth-view__source-meta">
-              <span>{{ authConfidenceLabel(source.confidence) }}</span>
-              <span>{{ authEvidenceLabel(source.evidence) }}</span>
-              <span>{{ authOwnershipLabel(source.ownership) }}</span>
-            </div>
-          </div>
-        </div>
-
-        <details class="claude-auth-view__scope-details">
-          <summary>
-            {{ tt(`${unobservableLabels.length} 个不可观测层`, `${unobservableLabels.length} unobservable layer(s)`) }}
-          </summary>
-          <ul>
-            <li
-              v-for="item in unobservableLabels"
-              :key="item"
-            >
-              {{ item }}
-            </li>
-          </ul>
-        </details>
-      </section>
-
-      <section
-        v-if="currentInfo"
-        class="claude-auth-view__panel"
-      >
-        <div class="claude-auth-view__panel-header">
-          <h2 class="claude-auth-view__panel-title">
-            {{ tt('当前运行时官方登录', 'Current runtime official login') }}
-          </h2>
-        </div>
-
-        <div class="claude-auth-view__detail-grid">
-          <div>
-            <p class="claude-auth-view__detail-label">
-              {{ tt('邮箱', 'Email') }}
-            </p>
-            <p class="claude-auth-view__detail-value">
-              {{ currentInfo.email || '-' }}
-            </p>
-          </div>
-          <div>
-            <p class="claude-auth-view__detail-label">
-              {{ tt('账号 UUID', 'Account UUID') }}
-            </p>
-            <p class="claude-auth-view__detail-value">
-              {{ currentInfo.account_uuid || '-' }}
-            </p>
-          </div>
-          <div>
-            <p class="claude-auth-view__detail-label">
-              {{ tt('订阅类型', 'Subscription type') }}
-            </p>
-            <p class="claude-auth-view__detail-value">
-              {{ currentInfo.subscription_type || '-' }}
-            </p>
-          </div>
-          <div>
-            <p class="claude-auth-view__detail-label">
-              {{ tt('计费类型', 'Billing type') }}
-            </p>
-            <p class="claude-auth-view__detail-value">
-              {{ currentInfo.billing_type || '-' }}
-            </p>
-          </div>
-          <div>
-            <p class="claude-auth-view__detail-label">
-              {{ tt('速率档位', 'Rate tier') }}
-            </p>
-            <p class="claude-auth-view__detail-value">
-              {{ currentInfo.rate_limit_tier || '-' }}
-            </p>
-          </div>
-          <div>
-            <p class="claude-auth-view__detail-label">
-              {{ tt('Access Token 到期', 'Access token expiry') }}
-            </p>
-            <p class="claude-auth-view__detail-value">
-              {{ currentInfo.expires_at ? formatDate(currentInfo.expires_at) : '-' }}
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <section class="claude-auth-view__panel">
-        <div class="claude-auth-view__panel-header">
-          <div>
-            <h2 class="claude-auth-view__panel-title">
-              {{ tt('已保存账号快照', 'Saved account snapshots') }}
-            </h2>
-            <p class="claude-auth-view__panel-subtitle">
-              {{ tt('每个快照都保存当前 `claudeAiOauth`，切换时不会改写', 'Each snapshot keeps the current `claudeAiOauth`, and switching will not rewrite') }}
-              <code>{{ claudeJsonFile }}</code>{{ tt('。', '.') }}
-            </p>
-          </div>
-        </div>
-
-        <div
-          v-if="loading"
-          class="claude-auth-view__empty"
-        >
-          {{ tt('正在加载账号信息…', 'Loading account details...') }}
-        </div>
-
-        <EmptyState
-          v-else-if="accounts.length === 0"
-          icon="User"
-          :title="tt('尚未保存任何官方账号快照。', 'No official account snapshots saved yet.')"
-          :action-text="tt('保存当前登录', 'Save current login')"
-          action-icon="Plus"
-          :on-action="() => { showSaveForm = true }"
-        />
-
-        <div
-          v-else
-          class="claude-auth-view__table-wrap"
-        >
-          <table class="claude-auth-view__table">
-            <thead>
-              <tr>
-                <th>{{ tt('名称', 'Name') }}</th>
-                <th>{{ tt('邮箱', 'Email') }}</th>
-                <th>{{ tt('订阅', 'Subscription') }}</th>
-                <th>{{ tt('到期', 'Expiry') }}</th>
-                <th>{{ tt('状态', 'State') }}</th>
-                <th>{{ tt('操作', 'Actions') }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="account in accounts"
-                :key="account.name"
-              >
-                <td>
-                  <div class="claude-auth-view__account-name">
-                    <span>{{ account.name }}</span>
-                    <span
-                      v-if="account.is_current"
-                      class="claude-auth-view__pill"
-                    >
-                      {{ tt('当前', 'Current') }}
-                    </span>
-                  </div>
-                  <p
-                    v-if="account.description"
-                    class="claude-auth-view__muted"
-                  >
-                    {{ account.description }}
-                  </p>
-                </td>
-                <td>{{ account.email || '-' }}</td>
-                <td>{{ account.subscription_type || '-' }}</td>
-                <td>
-                  {{ account.expires_at ? formatDate(account.expires_at) : '-' }}
-                </td>
-                <td>
-                  {{ account.is_current ? tt('当前生效', 'Active now') : account.is_logged_in ? tt('已登录', 'Logged in') : tt('已保存', 'Saved') }}
-                </td>
-                <td>
-                  <div class="claude-auth-view__row-actions">
-                    <button
-                      type="button"
-                      class="claude-auth-view__table-button"
-                      :disabled="busyName === account.name"
-                      @click="handleSwitch(account.name)"
-                    >
-                      {{ tt('切换', 'Switch') }}
-                    </button>
-                    <button
-                      type="button"
-                      class="claude-auth-view__table-button claude-auth-view__table-button--danger"
-                      :disabled="busyName === account.name"
-                      @click="handleDelete(account.name)"
-                    >
-                      {{ tt('删除', 'Delete') }}
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <BaseModal
-        v-model="showSaveForm"
-        :title="tt('保存当前官方登录', 'Save current official login')"
-        size="md"
-        surface="solid"
-      >
-        <p class="claude-auth-view__modal-subtitle">
-          {{ tt('当前必须已经通过 `claude login` 拿到官方登录，CCR 只负责保存快照和切换。', 'You must already have an official login from `claude login`. CCR only saves and switches snapshots.') }}
+    <section class="claude-auth-view__stats">
+      <article class="claude-auth-view__stat-card">
+        <p class="claude-auth-view__stat-label">
+          {{ tt('登录状态', 'Login state') }}
         </p>
+        <p class="claude-auth-view__stat-value">
+          {{ loginStateLabel }}
+        </p>
+      </article>
+      <article class="claude-auth-view__stat-card">
+        <p class="claude-auth-view__stat-label">
+          {{ tt('运行时模式', 'Runtime mode') }}
+        </p>
+        <p class="claude-auth-view__stat-value">
+          {{ runtimeModeLabel }}
+        </p>
+      </article>
+      <article class="claude-auth-view__stat-card">
+        <p class="claude-auth-view__stat-label">
+          {{ tt('当前 Profile', 'Current profile') }}
+        </p>
+        <p class="claude-auth-view__stat-value">
+          {{ currentProfileLabel }}
+        </p>
+      </article>
+      <article class="claude-auth-view__stat-card">
+        <p class="claude-auth-view__stat-label">
+          {{ tt('已保存账号', 'Saved accounts') }}
+        </p>
+        <p class="claude-auth-view__stat-value">
+          {{ accounts.length }}
+        </p>
+      </article>
+    </section>
 
-        <label class="claude-auth-view__field">
-          <span>{{ tt('账号名称', 'Account name') }}</span>
-          <input
-            v-model="saveForm.name"
-            type="text"
-            :placeholder="tt('例如 work / personal', 'e.g. work / personal')"
-          >
-        </label>
-
-        <label class="claude-auth-view__field">
-          <span>{{ tt('描述（可选）', 'Description (optional)') }}</span>
-          <input
-            v-model="saveForm.description"
-            type="text"
-            :placeholder="tt('例如 公司订阅 / 个人订阅', 'e.g. company plan / personal plan')"
-          >
-        </label>
-
-        <label class="claude-auth-view__checkbox">
-          <input
-            v-model="saveForm.force"
-            type="checkbox"
-          >
-          <span>{{ tt('覆盖同名账号', 'Overwrite same-name account') }}</span>
-        </label>
-
-        <template #footer>
+    <section
+      v-if="runtimeSummary"
+      class="claude-auth-view__panel"
+      data-testid="claude-auth-diagnosis"
+    >
+      <div class="claude-auth-view__panel-header">
+        <div>
+          <h2 class="claude-auth-view__panel-title">
+            {{ tt('认证来源诊断', 'Auth source diagnosis') }}
+          </h2>
+          <p class="claude-auth-view__panel-subtitle">
+            {{ tt('范围限于当前 CCR 进程和已解析的用户级文件。', 'Scope is limited to this CCR process and the resolved user-level files.') }}
+          </p>
+        </div>
+        <div class="claude-auth-view__diagnosis-actions">
           <button
+            v-if="canOff"
             type="button"
             class="claude-auth-view__ghost-button"
-            @click="showSaveForm = false"
+            data-testid="claude-auth-profile-off"
+            :disabled="loading"
+            @click="handleOff"
           >
-            {{ tt('取消', 'Cancel') }}
+            {{ tt('退出 Profile', 'Exit profile') }}
           </button>
-          <button
-            type="button"
-            class="claude-auth-view__primary-button"
-            :disabled="saving"
-            @click="handleSave"
+          <span
+            class="claude-auth-view__diagnosis-state"
+            :class="visibleSuppressors.length > 0 ? 'claude-auth-view__diagnosis-state--warning' : 'claude-auth-view__diagnosis-state--clear'"
           >
-            {{ saving ? tt('保存中…', 'Saving...') : tt('保存', 'Save') }}
-          </button>
-        </template>
-      </BaseModal>
-    </div>
-  </div>
+            {{ visibleSuppressors.length > 0 ? tt(`${visibleSuppressors.length} 个可见竞争来源`, `${visibleSuppressors.length} visible competing source(s)`) : tt('未发现可见竞争来源', 'No visible competing source') }}
+          </span>
+        </div>
+      </div>
+
+      <dl class="claude-auth-view__diagnosis-facts">
+        <div>
+          <dt>{{ tt('当前推定来源', 'Presumed source') }}</dt>
+          <dd data-testid="claude-auth-presumed-source">
+            {{ presumedSourceLabel }}
+          </dd>
+        </div>
+        <div>
+          <dt>{{ tt('置信度', 'Confidence') }}</dt>
+          <dd>{{ presumedConfidenceLabel }}</dd>
+        </div>
+        <div>
+          <dt>{{ tt('API Key 批准记录', 'API key response state') }}</dt>
+          <dd>
+            {{ authDiagnosis?.custom_api_key_responses_present ? tt('存在，仅作解释', 'Present, context only') : tt('未观察到', 'Not observed') }}
+          </dd>
+        </div>
+      </dl>
+
+      <div
+        v-if="visibleSuppressors.length > 0"
+        class="claude-auth-view__source-list"
+      >
+        <div
+          v-for="(source, index) in visibleSuppressors"
+          :key="`${source.kind}-${source.location}-${index}`"
+          class="claude-auth-view__source-row"
+        >
+          <div class="claude-auth-view__source-main">
+            <strong>{{ authSourceKindLabel(source.kind) }}</strong>
+            <span>{{ authSourceLocationLabel(source.location) }}</span>
+          </div>
+          <div class="claude-auth-view__source-meta">
+            <span>{{ authConfidenceLabel(source.confidence) }}</span>
+            <span>{{ authEvidenceLabel(source.evidence) }}</span>
+            <span>{{ authOwnershipLabel(source.ownership) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <details class="claude-auth-view__scope-details">
+        <summary>
+          {{ tt(`${unobservableLabels.length} 个不可观测层`, `${unobservableLabels.length} unobservable layer(s)`) }}
+        </summary>
+        <ul>
+          <li
+            v-for="item in unobservableLabels"
+            :key="item"
+          >
+            {{ item }}
+          </li>
+        </ul>
+      </details>
+    </section>
+
+    <section
+      v-if="currentInfo"
+      class="claude-auth-view__panel"
+    >
+      <div class="claude-auth-view__panel-header">
+        <h2 class="claude-auth-view__panel-title">
+          {{ tt('当前运行时官方登录', 'Current runtime official login') }}
+        </h2>
+      </div>
+
+      <div class="claude-auth-view__detail-grid">
+        <div>
+          <p class="claude-auth-view__detail-label">
+            {{ tt('邮箱', 'Email') }}
+          </p>
+          <p class="claude-auth-view__detail-value">
+            {{ currentInfo.email || '-' }}
+          </p>
+        </div>
+        <div>
+          <p class="claude-auth-view__detail-label">
+            {{ tt('账号 UUID', 'Account UUID') }}
+          </p>
+          <p class="claude-auth-view__detail-value">
+            {{ currentInfo.account_uuid || '-' }}
+          </p>
+        </div>
+        <div>
+          <p class="claude-auth-view__detail-label">
+            {{ tt('订阅类型', 'Subscription type') }}
+          </p>
+          <p class="claude-auth-view__detail-value">
+            {{ currentInfo.subscription_type || '-' }}
+          </p>
+        </div>
+        <div>
+          <p class="claude-auth-view__detail-label">
+            {{ tt('计费类型', 'Billing type') }}
+          </p>
+          <p class="claude-auth-view__detail-value">
+            {{ currentInfo.billing_type || '-' }}
+          </p>
+        </div>
+        <div>
+          <p class="claude-auth-view__detail-label">
+            {{ tt('速率档位', 'Rate tier') }}
+          </p>
+          <p class="claude-auth-view__detail-value">
+            {{ currentInfo.rate_limit_tier || '-' }}
+          </p>
+        </div>
+        <div>
+          <p class="claude-auth-view__detail-label">
+            {{ tt('Access Token 到期', 'Access token expiry') }}
+          </p>
+          <p class="claude-auth-view__detail-value">
+            {{ currentInfo.expires_at ? formatDate(currentInfo.expires_at) : '-' }}
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="claude-auth-view__panel">
+      <div class="claude-auth-view__panel-header">
+        <div>
+          <h2 class="claude-auth-view__panel-title">
+            {{ tt('已保存账号快照', 'Saved account snapshots') }}
+          </h2>
+          <p class="claude-auth-view__panel-subtitle">
+            {{ tt('每个快照都保存当前 `claudeAiOauth`，切换时不会改写', 'Each snapshot keeps the current `claudeAiOauth`, and switching will not rewrite') }}
+            <code>{{ claudeJsonFile }}</code>{{ tt('。', '.') }}
+          </p>
+        </div>
+      </div>
+
+      <div
+        v-if="loading"
+        class="claude-auth-view__empty"
+      >
+        {{ tt('正在加载账号信息…', 'Loading account details...') }}
+      </div>
+
+      <EmptyState
+        v-else-if="accounts.length === 0"
+        icon="User"
+        :title="tt('尚未保存任何官方账号快照。', 'No official account snapshots saved yet.')"
+        :action-text="tt('保存当前登录', 'Save current login')"
+        action-icon="Plus"
+        :on-action="() => { showSaveForm = true }"
+      />
+
+      <div
+        v-else
+        class="claude-auth-view__table-wrap"
+      >
+        <table class="claude-auth-view__table">
+          <thead>
+            <tr>
+              <th>{{ tt('名称', 'Name') }}</th>
+              <th>{{ tt('邮箱', 'Email') }}</th>
+              <th>{{ tt('订阅', 'Subscription') }}</th>
+              <th>{{ tt('到期', 'Expiry') }}</th>
+              <th>{{ tt('状态', 'State') }}</th>
+              <th>{{ tt('操作', 'Actions') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="account in accounts"
+              :key="account.name"
+            >
+              <td>
+                <div class="claude-auth-view__account-name">
+                  <span>{{ account.name }}</span>
+                  <span
+                    v-if="account.is_current"
+                    class="claude-auth-view__pill"
+                  >
+                    {{ tt('当前', 'Current') }}
+                  </span>
+                </div>
+                <p
+                  v-if="account.description"
+                  class="claude-auth-view__muted"
+                >
+                  {{ account.description }}
+                </p>
+              </td>
+              <td>{{ account.email || '-' }}</td>
+              <td>{{ account.subscription_type || '-' }}</td>
+              <td>
+                {{ account.expires_at ? formatDate(account.expires_at) : '-' }}
+              </td>
+              <td>
+                {{ account.is_current ? tt('当前生效', 'Active now') : account.is_logged_in ? tt('已登录', 'Logged in') : tt('已保存', 'Saved') }}
+              </td>
+              <td>
+                <div class="claude-auth-view__row-actions">
+                  <button
+                    type="button"
+                    class="claude-auth-view__table-button"
+                    :disabled="busyName === account.name"
+                    @click="handleSwitch(account.name)"
+                  >
+                    {{ tt('切换', 'Switch') }}
+                  </button>
+                  <button
+                    type="button"
+                    class="claude-auth-view__table-button claude-auth-view__table-button--danger"
+                    :disabled="busyName === account.name"
+                    @click="handleDelete(account.name)"
+                  >
+                    {{ tt('删除', 'Delete') }}
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <BaseModal
+      v-model="showSaveForm"
+      :title="tt('保存当前官方登录', 'Save current official login')"
+      size="md"
+      surface="solid"
+    >
+      <p class="claude-auth-view__modal-subtitle">
+        {{ tt('当前必须已经通过 `claude login` 拿到官方登录，CCR 只负责保存快照和切换。', 'You must already have an official login from `claude login`. CCR only saves and switches snapshots.') }}
+      </p>
+
+      <label class="claude-auth-view__field">
+        <span>{{ tt('账号名称', 'Account name') }}</span>
+        <input
+          v-model="saveForm.name"
+          type="text"
+          :placeholder="tt('例如 work / personal', 'e.g. work / personal')"
+        >
+      </label>
+
+      <label class="claude-auth-view__field">
+        <span>{{ tt('描述（可选）', 'Description (optional)') }}</span>
+        <input
+          v-model="saveForm.description"
+          type="text"
+          :placeholder="tt('例如 公司订阅 / 个人订阅', 'e.g. company plan / personal plan')"
+        >
+      </label>
+
+      <label class="claude-auth-view__checkbox">
+        <input
+          v-model="saveForm.force"
+          type="checkbox"
+        >
+        <span>{{ tt('覆盖同名账号', 'Overwrite same-name account') }}</span>
+      </label>
+
+      <template #footer>
+        <button
+          type="button"
+          class="claude-auth-view__ghost-button"
+          @click="showSaveForm = false"
+        >
+          {{ tt('取消', 'Cancel') }}
+        </button>
+        <button
+          type="button"
+          class="claude-auth-view__primary-button"
+          :disabled="saving"
+          @click="handleSave"
+        >
+          {{ saving ? tt('保存中…', 'Saving...') : tt('保存', 'Save') }}
+        </button>
+      </template>
+    </BaseModal>
+  </PageShell>
 </template>
 
 <script setup lang="ts">
@@ -399,7 +391,10 @@ import { computed, onActivated, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ModuleSubnav from '@/components/ModuleSubnav.vue'
 import BaseModal from '@/components/common/BaseModal.vue'
+import Button from '@/components/ui/Button.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
+import PageHeader from '@/components/ui/PageHeader.vue'
+import PageShell from '@/components/ui/PageShell.vue'
 import {
   deleteClaudeAuth,
   getClaudeAuthCurrent,
@@ -427,6 +422,12 @@ const isZh = computed(() => locale.value.startsWith('zh'))
 const tt = (zh: string, en: string) => (isZh.value ? zh : en)
 const credentialsFile = '~/.claude/.credentials.json'
 const claudeJsonFile = '~/.claude.json'
+const authHeaderDescription = computed(() =>
+  tt(
+    `保存、切换、删除 Claude Code 官方订阅账号快照；切换会更新 ${credentialsFile}，并只清理 CCR 托管的 Profile 设置。`,
+    `Save, switch, or delete Claude Code official subscription snapshots. Switching updates ${credentialsFile} and clears only CCR-managed profile settings.`,
+  ),
+)
 
 const loading = ref(false)
 const saving = ref(false)
@@ -754,20 +755,6 @@ onActivated(() => {
 </script>
 
 <style scoped>
-.claude-auth-view {
-  min-height: 100%;
-  padding: 1.5rem;
-}
-
-.claude-auth-view__shell {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-  max-width: 1440px;
-  margin: 0 auto;
-}
-
-.claude-auth-view__header,
 .claude-auth-view__actions,
 .claude-auth-view__panel-header,
 .claude-auth-view__row-actions,
@@ -777,28 +764,10 @@ onActivated(() => {
   gap: 0.75rem;
 }
 
-.claude-auth-view__header,
 .claude-auth-view__panel-header {
   justify-content: space-between;
 }
 
-.claude-auth-view__eyebrow {
-  color: var(--stage-text-quiet);
-  font-size: 0.75rem;
-  line-height: 1rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.claude-auth-view__title {
-  color: var(--stage-text-primary);
-  font-size: 1.875rem;
-  line-height: 2.25rem;
-  font-weight: 700;
-}
-
-.claude-auth-view__subtitle,
 .claude-auth-view__panel-subtitle,
 .claude-auth-view__muted,
 .claude-auth-view__detail-label {
@@ -864,9 +833,8 @@ onActivated(() => {
   color: var(--stage-text-quiet);
   font-size: 0.75rem;
   line-height: 1rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-weight: 600;
+  letter-spacing: 0;
 }
 
 .claude-auth-view__stat-value,
@@ -919,12 +887,12 @@ onActivated(() => {
 
 .claude-auth-view__diagnosis-state--warning {
   border-color: rgb(var(--color-warning-rgb) / 42%);
-  background: var(--color-warning-glow);
+  background: rgb(var(--color-warning-rgb) / 10%);
 }
 
 .claude-auth-view__diagnosis-state--clear {
   border-color: rgb(var(--color-success-rgb) / 42%);
-  background: var(--color-success-glow);
+  background: rgb(var(--color-success-rgb) / 10%);
 }
 
 .claude-auth-view__diagnosis-facts {
@@ -1067,11 +1035,10 @@ onActivated(() => {
 
 .claude-auth-view__table th {
   color: var(--stage-text-quiet);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   line-height: 1rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-weight: 500;
+  letter-spacing: 0;
 }
 
 .claude-auth-view__table td {

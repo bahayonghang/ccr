@@ -1056,3 +1056,229 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 89: Grok 编辑器滚动与 IPC 整数
+
+**Date**: 2026-08-14
+**Task**: Grok 编辑器滚动与 IPC 整数
+**Branch**: `dev`
+
+### Summary
+
+对齐 Grok Profile 编辑器限高 pe-shell，修复第三方长表单无法滚动；IPC 把整值 f64 还原为整数，context_window=500000 可通过校验。
+
+### Main Changes
+
+- Grok 编辑器改为限高 pe-shell + 唯一 pe-scroll，页脚固定
+- IPC json_number_from_f64 还原无损整数，Grok context_window 接受整值 float
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `4b44c637` | (see git log) |
+| `466cc409` | (see git log) |
+
+### Testing
+
+- [OK] grok-profile-editor smoke 与 1280/1440 视觉核对
+- [OK] cargo test wire/grok f64；ccr-cli validates_credential
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 重启 Tauri 后端后保存 context_window=500000 做现场确认
+
+
+## Session 90: 日志系统安全与可观测优化
+
+**Date**: 2026-08-17
+**Task**: 日志系统安全与可观测优化
+**Branch**: `dev`
+
+### Summary
+
+加固 crates 与 ccr-ui 日志写出边界，接通 Desktop Monitoring 桥，just ci 通过后提交。
+
+### Main Changes
+
+- ccr-core 识别层、日切权限、有界桥接队列
+- 前端 logger 与 append_frontend_logs 硬限额脱敏
+- runtime 频道、2s flush、Dashboard 排除诊断频道
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `756f896a` | (see git log) |
+
+### Testing
+
+- [OK] just ci
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 无；任务已归档
+
+
+## Session 91: 优化 ccr codex fix 执行速度
+
+**Date**: 2026-08-17
+**Task**: 优化 ccr codex fix 执行速度
+**Branch**: `dev`
+
+### Summary
+
+默认 ccr codex fix 不再调用上游 doctor；宽限早停；--doctor 用 ManagedProcess 回收进程树。干净路径本地阶段约 20–30 ms。
+
+### Main Changes
+
+- 默认跳过 doctor，新增 --doctor；127 仅在 --doctor 且 PATH 缺失时出现
+- 进程宽限在目标已空时结束；settle 新身份记为 respawned
+- doctor 走 ManagedProcess terminate_tree；非 JSON 不再二次启动
+- 同步双语文档与 codex-app-server-cleanup 规范
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `6d119fbf` | (see git log) |
+| `94a669d8` | (see git log) |
+
+### Testing
+
+- [OK] cargo test -p ccr-codex codex_process_service / runtime_diagnostic
+- [OK] cargo test -p ccr-cli --lib fix / --lib codex_fix
+- [OK] cargo test -p ccr --test commands codex_fix / help
+- [OK] just lint-strict; just fmt-check; just docs-check
+- [OK] 手工 5 次 cargo run --dry-run 中位数 737 ms（含 debug 启动），doctor skipped
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 无
+
+
+## Session 92: TUI Profile 界面设计优化(操作安全闭环+信息层级+界面减负)
+
+**Date**: 2026-08-17
+**Task**: TUI Profile 界面设计优化(操作安全闭环+信息层级+界面减负)
+**Branch**: `dev`
+
+### Summary
+
+完成 tui-profile-ux 任务全部 6 个 WS:Enter/Space 应用并停留(删除 ApplyAndQuit),Focus 常驻切换反馈,页脚标注同步;Codex banner 改 current chip 并去内部术语;删除 Wide Selection 面板,图例入列表 title_bottom;详情未设置字段显式 unset 折叠(x 展开),requires_openai=false 中性化;docs/CHANGELOG/spec 同步。另修复 codex_fix 预存 clippy 告警。238+195 测试全绿,lint-strict/fmt/docs audit 通过。AC12 手动实机验证待用户核对。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `d1ed6511` | (see git log) |
+| `87f2ddc0` | (see git log) |
+| `529273ae` | (see git log) |
+| `edfbe20e` | (see git log) |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 93: 根 scripts 分类与调用对齐
+
+**Date**: 2026-08-18
+**Task**: 根 scripts 分类与调用对齐
+**Branch**: `dev`
+
+### Summary
+
+将根 scripts 按职责拆成 version/drift/ci/quality，文档漂移收成单一 Python，并更新 just、CI 与 spec 调用。
+
+### Main Changes
+
+- 根 scripts 按职责分类并改齐调用路径
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `27aa9530` | (see git log) |
+
+### Testing
+
+- [OK] python unittest 28; just json-format-check secret-write-check version-check workflow-governance-check dependency-governance-check
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 94: UI 视觉重构与审计依赖修复
+
+**Date**: 2026-08-18
+**Task**: UI 视觉重构与审计依赖修复
+**Branch**: `feature/ui-visual-refactor`
+
+### Summary
+
+完成 08-18-ui-visual-refactor：全站 Editorial Control Room 收敛、cargo audit 依赖升级、Tauri 桥接 dead_code 修复。just ui-check 通过。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `98b08252` | (see git log) |
+| `941ba9ca` | (see git log) |
+| `5ce63c7d` | (see git log) |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 95: Overview 铺满工作区与指标徽章
+
+**Date**: 2026-08-18
+**Task**: Overview 铺满工作区与指标徽章
+**Branch**: `dev`
+
+### Summary
+
+去掉 Overview 与 PageShell 的居中空底，就绪条和用量摘要数字加上 tone 徽章。
+
+### Main Changes
+
+- 删除 Dashboard 1440 与 PageShell 1480 居中上限
+- StatTile 增加可选 tone 浅壳，数字保持主文本色
+- 就绪条透传 metric.tone；用量摘要用 neutral
+- 1680 以下就绪条改为上下排列，避免徽章断行
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `dbb8e973` | (see git log) |
+
+### Testing
+
+- [OK] bun type-check / lint
+- [OK] ui-primitives + dashboard-view + dashboard-presentation smoke
+- [OK] web preview 1440/1920 dark/light 与 Claude Code 1920
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 桌面端用真实本机/用量数据再看一遍徽章 tone

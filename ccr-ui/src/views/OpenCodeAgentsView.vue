@@ -45,7 +45,7 @@
             <div class="flex items-center justify-between gap-3">
               <strong class="text-sm text-text-primary">{{ item.name }}</strong>
               <span
-                class="rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em]"
+                class="rounded-full px-3 py-1 text-xs font-semibold"
                 :class="item.mode === 'primary' ? 'bg-violet-300/10 text-violet-200' : 'bg-cyan-300/10 text-cyan-200'"
               >
                 {{ item.mode }}
@@ -89,18 +89,18 @@
           <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div class="min-w-0">
               <div class="mb-3 flex flex-wrap items-center gap-2">
-                <span class="rounded-full border border-violet-300/20 bg-violet-300/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-violet-200">
+                <span class="rounded-full border border-violet-300/20 bg-violet-300/10 px-3 py-1 text-xs font-semibold text-violet-200">
                   {{ agent.name }}
                 </span>
-                <span class="rounded-full bg-bg-base px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-text-secondary">
+                <span class="rounded-full bg-bg-base px-3 py-1 text-xs font-semibold text-text-secondary">
                   {{ agent.mode || 'all' }}
                 </span>
-                <span class="rounded-full bg-bg-base px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-text-secondary">
+                <span class="rounded-full bg-bg-base px-3 py-1 text-xs font-semibold text-text-secondary">
                   {{ agent.scope }}
                 </span>
                 <span
                   v-if="agent.hidden"
-                  class="rounded-full bg-amber-300/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-amber-200"
+                  class="rounded-full bg-amber-300/10 px-3 py-1 text-xs font-semibold text-amber-200"
                 >
                   {{ tt('隐藏', 'hidden') }}
                 </span>
@@ -115,19 +115,19 @@
 
               <div class="mt-4 grid gap-3 md:grid-cols-3">
                 <div class="rounded-2xl border border-border-default/55 bg-bg-base p-3">
-                  <span class="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('模型', 'model') }}</span>
+                  <span class="text-[11px] font-semibold text-text-muted">{{ tt('模型', 'model') }}</span>
                   <p class="mt-2 text-sm text-text-primary">
                     {{ agent.model || tt('继承', 'inherit') }}
                   </p>
                 </div>
                 <div class="rounded-2xl border border-border-default/55 bg-bg-base p-3">
-                  <span class="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('步数', 'steps') }}</span>
+                  <span class="text-[11px] font-semibold text-text-muted">{{ tt('步数', 'steps') }}</span>
                   <p class="mt-2 text-sm text-text-primary">
                     {{ agent.steps ?? tt('不限', 'unlimited') }}
                   </p>
                 </div>
                 <div class="rounded-2xl border border-border-default/55 bg-bg-base p-3">
-                  <span class="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('路径', 'path') }}</span>
+                  <span class="text-[11px] font-semibold text-text-muted">{{ tt('路径', 'path') }}</span>
                   <p class="mt-2 break-all font-mono text-xs text-text-primary">
                     {{ agent.path }}
                   </p>
@@ -170,7 +170,7 @@
       <div class="space-y-4">
         <div class="grid gap-4 md:grid-cols-2">
           <div>
-            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('name *', 'name *') }}</label>
+            <label class="mb-2 block text-xs font-semibold text-text-muted">{{ tt('name *', 'name *') }}</label>
             <input
               v-model="form.name"
               :disabled="Boolean(editingName)"
@@ -179,7 +179,7 @@
             >
           </div>
           <div>
-            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('mode', 'mode') }}</label>
+            <label class="mb-2 block text-xs font-semibold text-text-muted">{{ tt('mode', 'mode') }}</label>
             <select
               v-model="form.mode"
               class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 text-sm text-text-primary"
@@ -198,7 +198,7 @@
         </div>
 
         <div>
-          <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('description *', 'description *') }}</label>
+          <label class="mb-2 block text-xs font-semibold text-text-muted">{{ tt('description *', 'description *') }}</label>
           <input
             v-model="form.description"
             class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 text-sm text-text-primary"
@@ -208,7 +208,7 @@
 
         <div class="grid gap-4 md:grid-cols-4">
           <div class="md:col-span-2">
-            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('模型', 'model') }}</label>
+            <label class="mb-2 block text-xs font-semibold text-text-muted">{{ tt('模型', 'model') }}</label>
             <input
               v-model="form.model"
               class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 text-sm text-text-primary"
@@ -216,7 +216,7 @@
             >
           </div>
           <div>
-            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('temperature', 'temperature') }}</label>
+            <label class="mb-2 block text-xs font-semibold text-text-muted">{{ tt('temperature', 'temperature') }}</label>
             <input
               v-model="form.temperature"
               class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 text-sm text-text-primary"
@@ -224,7 +224,7 @@
             >
           </div>
           <div>
-            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('steps', 'steps') }}</label>
+            <label class="mb-2 block text-xs font-semibold text-text-muted">{{ tt('steps', 'steps') }}</label>
             <input
               v-model="form.steps"
               class="w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 text-sm text-text-primary"
@@ -251,7 +251,7 @@
         </div>
 
         <div>
-          <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('permission JSON', 'permission JSON') }}</label>
+          <label class="mb-2 block text-xs font-semibold text-text-muted">{{ tt('permission JSON', 'permission JSON') }}</label>
           <textarea
             v-model="form.permissionJson"
             rows="6"
@@ -260,7 +260,7 @@
         </div>
 
         <div>
-          <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{{ tt('body prompt', 'body prompt') }}</label>
+          <label class="mb-2 block text-xs font-semibold text-text-muted">{{ tt('body prompt', 'body prompt') }}</label>
           <textarea
             v-model="form.body"
             rows="12"

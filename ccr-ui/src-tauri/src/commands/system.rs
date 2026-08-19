@@ -13,6 +13,7 @@ use tokio::sync::Semaphore;
 use tokio::time::Duration;
 use ts_rs::TS;
 
+use crate::commands::wire::json_number_from_f64;
 use crate::monitoring::{
     event_to_monitoring_entry, frontend_log_entry, record_monitoring_entry, should_persist,
 };
@@ -113,9 +114,7 @@ impl From<JsonValueDto> for serde_json::Value {
         match value {
             JsonValueDto::Null => Self::Null,
             JsonValueDto::Bool(value) => Self::Bool(value),
-            JsonValueDto::Number(value) => serde_json::Number::from_f64(value)
-                .map(Self::Number)
-                .unwrap_or(Self::Null),
+            JsonValueDto::Number(value) => json_number_from_f64(value),
             JsonValueDto::String(value) => Self::String(value),
             JsonValueDto::Array(values) => {
                 Self::Array(values.into_iter().map(Self::from).collect())
@@ -195,6 +194,8 @@ pub struct FrontendLogInputDto {
     #[ts(optional)]
     pub timestamp: Option<String>,
     #[ts(optional)]
+    pub correlation_id: Option<String>,
+    #[ts(optional)]
     pub fields: Option<JsonValueDto>,
 }
 
@@ -205,6 +206,7 @@ impl From<FrontendLogInputDto> for FrontendLogInput {
             message: value.message,
             source: value.source,
             timestamp: value.timestamp,
+            correlation_id: value.correlation_id,
             fields: value.fields.map(serde_json::Value::from),
         }
     }
@@ -507,8 +509,10 @@ pub async fn append_frontend_logs(
     app_handle: tauri::AppHandle,
     entries: Vec<FrontendLogInputDto>,
 ) -> Result<(), String> {
-    for input in entries {
-        let entry = frontend_log_entry(input.into());
+    for input in crate::log_sanitize::take_frontend_log_batch(
+        entries.into_iter().map(FrontendLogInput::from).collect(),
+    ) {
+        let entry = frontend_log_entry(input);
         let persist = should_persist(entry.level, &entry.event_type);
         record_monitoring_entry(&app_handle, entry, persist).await;
     }

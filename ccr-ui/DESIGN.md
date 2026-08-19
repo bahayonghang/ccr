@@ -23,28 +23,28 @@ colors:
 typography:
   headline:
     fontFamily: "MapleBright, SF Pro Display, SF Pro Text, PingFang SC, Microsoft YaHei UI, Microsoft YaHei, sans-serif"
-    fontSize: "2rem"
-    fontWeight: 560
-    lineHeight: 1.12
-    letterSpacing: "-0.028em"
+    fontSize: "1.5rem"
+    fontWeight: 600
+    lineHeight: 1.2
+    letterSpacing: "-0.01em"
   title:
     fontFamily: "MapleBright, SF Pro Text, PingFang SC, Microsoft YaHei UI, Microsoft YaHei, sans-serif"
-    fontSize: "1.3125rem"
-    fontWeight: 560
-    lineHeight: 1.24
-    letterSpacing: "-0.016em"
+    fontSize: "1.0625rem"
+    fontWeight: 600
+    lineHeight: 1.3
+    letterSpacing: "0"
   body:
     fontFamily: "MapleBright, SF Pro Text, PingFang SC, Microsoft YaHei UI, Microsoft YaHei, sans-serif"
     fontSize: "1rem"
     fontWeight: 400
     lineHeight: 1.56
-    letterSpacing: "-0.016em"
+    letterSpacing: "0"
   label:
     fontFamily: "MapleBright, SF Pro Text, PingFang SC, Microsoft YaHei UI, Microsoft YaHei, sans-serif"
     fontSize: "0.8125rem"
-    fontWeight: 560
+    fontWeight: 500
     lineHeight: 1.24
-    letterSpacing: "0.018em"
+    letterSpacing: "0"
 rounded:
   sm: "6px"
   md: "8px"
@@ -68,13 +68,13 @@ components:
   button-secondary:
     backgroundColor: "{colors.neutral-elevated}"
     textColor: "{colors.ink-primary}"
-    rounded: "{rounded.pill}"
+    rounded: "{rounded.md}"
     padding: "0.625rem 1rem"
     height: "44px"
   input-default:
     backgroundColor: "{colors.neutral-elevated}"
     textColor: "{colors.ink-primary}"
-    rounded: "{rounded.xl}"
+    rounded: "{rounded.md}"
     padding: "0.625rem 1rem"
     height: "44px"
   card-elevated:
@@ -146,10 +146,10 @@ The palette is a restrained editorial system: neutral shell layers carry most of
 
 ### Hierarchy
 
-- **Headline** (560, 2rem, 1.12): Page and panel-level titles. Keep it compact and task-oriented.
-- **Title** (560, 1.3125rem, 1.24): Section titles, card titles, dialog headings, and dense dashboard blocks.
-- **Body** (400, 1rem, 1.56): Prose, descriptions, hints, and operational explanations. Cap long prose at 65 to 75ch.
-- **Label** (560, 0.8125rem, 0.018em): Form labels, small controls, metadata, and table labels. Uppercase is allowed only for short system labels.
+- **PageTitle** (600, 1.5rem, 1.2, tracking -0.01em): Page titles. Use a fixed rem size.
+- **SectionTitle** (600, 1.0625rem, 1.3): Section titles, card titles, dialog headings, and dense dashboard blocks.
+- **Body** (400, 1rem, 1.56, tracking 0): Prose, descriptions, hints, and operational explanations. Cap long prose at 65 to 75ch.
+- **Label** (500, 0.8125rem, 1.24, tracking 0): Form labels, small controls, metadata, and table labels. Uppercase is allowed only for short Latin system labels.
 
 ### Named Rules
 
@@ -163,10 +163,10 @@ CCR UI uses a hybrid of tonal layering, subtle borders, and a small shadow vocab
 
 ### Shadow Vocabulary
 
-- **Subtle Rest** (`--shadow-sm`): Low card and field separation.
-- **Structural Card** (`--shadow-md` / `--elevation-2`): Dense panels and interactive workbench cards.
+- **Subtle Rest** (`--shadow-sm`): Optional hover or field separation. Resting cards use no shadow, or only this step.
+- **Structural Overlay** (`--shadow-md` / `--elevation-2`): Sticky bars and interactive overlays. Do not use this on resting cards.
 - **Modal Depth** (`--shadow-lg` and modal surface tokens): Overlays and dialogs that must separate from the workspace.
-- **Semantic Glow** (`--glow-primary`, `--glow-success`, `--glow-warning`, `--glow-danger`, `--glow-info`): Feedback around active or stateful elements. Use briefly and intentionally.
+- **Semantic Glow** (`--glow-primary`, `--glow-success`, `--glow-warning`, `--glow-danger`, `--glow-info`): Focus rings only. Do not use decorative glow.
 
 ### Named Rules
 
@@ -178,10 +178,10 @@ CCR UI uses a hybrid of tonal layering, subtle borders, and a small shadow vocab
 
 ### Buttons
 
-- **Shape:** Pill buttons for primary product actions, with a minimum 44px height.
-- **Primary:** Clay gradient over the accent range with inverted text. Use only for the next meaningful command.
+- **Shape:** Pill buttons for primary product actions, with a minimum 44px height. Secondary buttons use 8px to 10px corners.
+- **Primary:** Solid `--color-accent-primary` fill with inverted text. Do not use a gradient. Use only for the next meaningful command.
 - **Hover / Focus:** Hover lifts by less than 1px. Focus uses a visible clay ring. Loading disables click behavior and sets `aria-busy`.
-- **Secondary / Ghost / Outline:** Secondary uses neutral elevated surfaces. Ghost is quiet text-first action. Outline is for low-emphasis actions and filters.
+- **Secondary / Ghost / Outline:** Secondary uses neutral elevated surfaces and 8px to 10px corners. Ghost is quiet text-first action. Outline is for low-emphasis actions and filters.
 
 ### Chips
 
@@ -192,13 +192,13 @@ CCR UI uses a hybrid of tonal layering, subtle borders, and a small shadow vocab
 
 - **Corner Style:** Standard cards use 12px to 16px. Avoid 20px plus card radii unless the component is already a major shell panel.
 - **Background:** Use workspace, card, modal, and status surface tokens. Do not nest card-looking surfaces inside other card-looking surfaces.
-- **Shadow Strategy:** Resting cards use low elevation. Interactive cards may lift by 1px to 2px with a subtle border shift.
+- **Shadow Strategy:** Resting cards use no shadow, or only `--shadow-sm`. Interactive cards may lift by 1px to 2px with a subtle border shift.
 - **Internal Padding:** Dense cards usually use 1rem to 1.5rem. Large dashboard panels may use 2rem.
 
 ### Inputs / Fields
 
-- **Style:** Rounded 16px fields with neutral surface backgrounds, clear borders, and 44px minimum height.
-- **Focus:** Clay border and visible focus ring. Do not rely on glow alone.
+- **Style:** Rounded 8px to 10px fields with neutral surface backgrounds, clear borders, and 44px minimum height.
+- **Focus:** Clay border and visible focus ring. Do not use decorative glow.
 - **Error / Disabled:** Error uses danger color plus `aria-invalid`. Disabled controls reduce opacity while preserving label readability.
 
 ### Navigation

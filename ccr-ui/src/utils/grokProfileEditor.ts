@@ -64,17 +64,17 @@ const optionalPositiveInteger = (value: string): number | undefined => {
 export const createEmptyGrokForm = (): GrokProfileEditorForm => ({
   name: '',
   description: '',
-  profileKind: 'official',
+  profileKind: 'third_party',
   baseUrl: '',
-  model: '',
+  model: 'grok-4.6',
   provider: '',
   enabled: true,
-  tagsInput: '',
-  apiBackend: '',
-  contextWindow: '',
-  supportsBackendSearch: false,
-  reasoningEffort: '',
-  credentialAction: 'preserve',
+  tagsInput: 'work',
+  apiBackend: 'responses',
+  contextWindow: '500000',
+  supportsBackendSearch: true,
+  reasoningEffort: 'high',
+  credentialAction: 'replace_api_key',
   apiKey: '',
   envKey: '',
 })
@@ -129,7 +129,11 @@ export const buildGrokCreateRequest = (
     request.supports_backend_search = form.supportsBackendSearch
   }
   if (form.reasoningEffort) request.reasoning_effort = form.reasoningEffort
-  addCredentialFields(request, form)
+  if (form.profileKind === 'official') {
+    request.credential_action = 'preserve'
+  } else {
+    addCredentialFields(request, form)
+  }
   return request
 }
 

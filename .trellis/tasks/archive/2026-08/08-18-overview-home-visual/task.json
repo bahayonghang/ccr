@@ -1,0 +1,28 @@
+{
+  "id": "overview-home-visual",
+  "name": "overview-home-visual",
+  "title": "Overview 首页黑边与数字徽章优化",
+  "description": "",
+  "status": "completed",
+  "dev_type": null,
+  "scope": "ui",
+  "package": null,
+  "priority": "P2",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-08-18",
+  "completedAt": "2026-08-18",
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "description": "Fix Overview gutters, add metric badges, polish dashboard visual hierarchy"
+  }
+}

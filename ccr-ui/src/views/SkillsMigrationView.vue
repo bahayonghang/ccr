@@ -1,16 +1,23 @@
 <template>
-  <div class="skills-migration-view">
-    <div class="skills-migration-view__shell">
-      <section class="skills-migration-view__hero">
-        <div class="skills-migration-view__badge">
-          {{ tt('Skills 迁移', 'Skills migration') }}
-        </div>
-        <h1 class="skills-migration-view__title">
-          {{ tt('Skills 已从 CCR UI 下线', 'Skills has been removed from CCR UI') }}
-        </h1>
-        <p class="skills-migration-view__lead">
-          {{ tt('CCR UI 现在只保留 CLI 配置管理主线，不再内置 skills 安装、市场和来源管理。', 'CCR UI now only keeps the CLI configuration management path and no longer embeds skills installation, marketplace, or source management.') }}
-        </p>
+  <PageShell class="skills-migration-view">
+    <template #header>
+      <PageHeader
+        :title="tt('Skills 已从 CCR UI 下线', 'Skills has been removed from CCR UI')"
+        :description="tt('CCR UI 现在只保留 CLI 配置管理主线，不再内置 skills 安装、市场和来源管理。', 'CCR UI now only keeps the CLI configuration management path and no longer embeds skills installation, marketplace, or source management.')"
+      >
+        <template #status>
+          <span
+            class="skills-migration-view__status-pill"
+            :class="statusPillClass"
+            data-testid="skills-migration-status"
+          >
+            {{ statusPillLabel }}
+          </span>
+        </template>
+      </PageHeader>
+    </template>
+
+    <section class="skills-migration-view__hero">
         <p class="skills-migration-view__copy">
           {{ tt('之后请改用独立应用', 'Use the standalone app instead') }}
           <a
@@ -22,20 +29,9 @@
           {{ tt('处理 skills。', 'to handle skills.') }}
         </p>
 
-        <div
-          class="skills-migration-view__status"
-          data-testid="skills-migration-status"
-        >
-          <span
-            class="skills-migration-view__status-pill"
-            :class="statusPillClass"
-          >
-            {{ statusPillLabel }}
-          </span>
-          <p class="skills-migration-view__status-copy">
-            {{ statusSummary }}
-          </p>
-        </div>
+        <p class="skills-migration-view__status-copy">
+          {{ statusSummary }}
+        </p>
 
         <div class="skills-migration-view__actions">
           <button
@@ -135,14 +131,15 @@
           </p>
         </article>
       </section>
-    </div>
-  </div>
+  </PageShell>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
+import PageHeader from '@/components/ui/PageHeader.vue'
+import PageShell from '@/components/ui/PageShell.vue'
 import skillportBadgeUrl from '@/assets/skillport-badge.svg'
 import {
   detectSkillportApp,
@@ -296,63 +293,43 @@ onMounted(() => {
 
 <style scoped>
 .skills-migration-view {
-  @apply min-h-full px-4 py-6 sm:px-6;
-}
-
-.skills-migration-view__shell {
-  @apply mx-auto flex max-w-5xl flex-col gap-6;
+  min-width: 0;
 }
 
 .skills-migration-view__hero {
-  @apply rounded-2xl border border-border-default/60 bg-bg-base p-8;
-}
-
-.skills-migration-view__badge {
-  @apply inline-flex items-center rounded-full border border-accent-primary/20 bg-accent-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-accent-primary;
-}
-
-.skills-migration-view__title {
-  @apply mt-4 text-3xl font-semibold tracking-[-0.04em] text-text-primary;
-}
-
-.skills-migration-view__lead {
-  @apply mt-4 max-w-3xl text-base leading-7 text-text-primary;
+  @apply rounded-xl border border-border-default/60 bg-bg-surface p-6;
 }
 
 .skills-migration-view__copy {
-  @apply mt-3 max-w-3xl text-sm leading-7 text-text-secondary;
+  @apply max-w-3xl text-sm leading-7 text-text-secondary;
 }
 
 .skills-migration-view__link {
   @apply font-semibold text-accent-primary hover:underline;
 }
 
-.skills-migration-view__status {
-  @apply mt-6 flex flex-col gap-3 rounded-xl border border-border-default/50 bg-bg-elevated p-4;
-}
-
 .skills-migration-view__status-pill {
-  @apply inline-flex w-fit items-center rounded-full px-3 py-1 text-xs font-semibold tracking-[0.12em];
+  @apply inline-flex w-fit items-center rounded-full border px-3 py-1 text-xs font-semibold;
 }
 
 .skills-migration-view__status-pill--pending {
-  @apply border border-border-default/60 bg-bg-surface text-text-primary;
+  @apply border-border-default/60 bg-bg-surface text-text-primary;
 }
 
 .skills-migration-view__status-pill--ready {
-  @apply border border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300;
+  @apply border-accent-success/20 bg-accent-success/10 text-accent-success;
 }
 
 .skills-migration-view__status-pill--empty {
-  @apply border border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300;
+  @apply border-accent-warning/20 bg-accent-warning/10 text-accent-warning;
 }
 
 .skills-migration-view__status-pill--unsupported {
-  @apply border border-border-default/50 bg-bg-base text-text-secondary;
+  @apply border-border-default/50 bg-bg-base text-text-secondary;
 }
 
 .skills-migration-view__status-copy {
-  @apply text-sm leading-7 text-text-secondary;
+  @apply mt-4 text-sm leading-7 text-text-secondary;
 }
 
 .skills-migration-view__actions {
@@ -386,7 +363,7 @@ onMounted(() => {
 }
 
 .skills-migration-view__error {
-  @apply mt-4 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm leading-6 text-rose-700 dark:text-rose-200;
+  @apply mt-4 rounded-xl border border-accent-danger/20 bg-accent-danger/10 px-4 py-3 text-sm leading-6 text-accent-danger;
 }
 
 .skills-migration-view__helper-links {

@@ -81,14 +81,6 @@ export default {
           strong: 'rgb(var(--color-border-strong-rgb) / <alpha-value>)',
           interactive: 'rgb(var(--color-border-interactive-rgb) / <alpha-value>)',
         },
-        premium: {
-          pink: 'var(--color-premium-pink)',
-          blue: 'var(--color-premium-blue)',
-        },
-      },
-      backgroundImage: {
-        'premium-gradient':
-          'linear-gradient(135deg, var(--color-premium-pink) 0%, var(--color-premium-blue) 100%)',
       },
       spacing: {
         px: '1px',
@@ -166,7 +158,7 @@ export default {
         '-webkit-backdrop-filter': 'var(--surface-card-blur)',
         'backdrop-filter': 'var(--surface-card-blur)',
         border: '1px solid var(--surface-card-border)',
-        'box-shadow': 'var(--surface-card-shadow), var(--glass-inner-glow)',
+        'box-shadow': 'var(--surface-card-shadow)',
       }
 
       const surfaceModal = {
@@ -174,7 +166,7 @@ export default {
         '-webkit-backdrop-filter': 'var(--surface-modal-blur)',
         'backdrop-filter': 'var(--surface-modal-blur)',
         border: '1px solid var(--surface-modal-border)',
-        'box-shadow': 'var(--surface-modal-shadow), var(--glass-inner-glow)',
+        'box-shadow': 'var(--surface-modal-shadow)',
       }
 
       const surfaceStatus = {

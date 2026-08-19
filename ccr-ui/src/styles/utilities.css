@@ -87,17 +87,10 @@
 
     /* ========== 配置卡片样式 ========== */
     .config-card-active {
-        background: linear-gradient(135deg,
-                rgb(var(--color-accent-primary-rgb), 0.12),
-                rgb(var(--color-accent-secondary-rgb), 0.08),
-                rgb(var(--color-accent-secondary-rgb), 0.06));
-        border: 2px solid rgb(var(--color-accent-primary-rgb), 0.4);
+        background: rgb(var(--color-accent-primary-rgb) / 10%);
+        border: 1px solid rgb(var(--color-accent-primary-rgb) / 24%);
         border-radius: var(--radius-2xl);
-        box-shadow:
-            0 8px 32px rgb(var(--color-accent-primary-rgb), 0.2),
-            var(--glass-inner-glow),
-            0 0 40px rgb(var(--color-accent-primary-rgb), 0.1);
-        backdrop-filter: var(--glass-blur-xl);
+        box-shadow: none;
     }
 
     /* ========== 渐变边框效果 ========== */
@@ -111,52 +104,38 @@
         content: '';
         position: absolute;
         inset: 0;
-        padding: 1px;
         border-radius: inherit;
-        background: var(--gradient-border);
-        mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-        mask-composite: exclude;
+        border: 1px solid var(--color-border-subtle);
         pointer-events: none;
-        opacity: 0.5;
-        transition: opacity var(--duration-fast) var(--ease-out);
     }
 
     .gradient-border:hover::before {
         opacity: 1;
     }
 
-    /* ========== 发光效果 ========== */
-    .glow-primary {
+    /* ========== Focus ring ========== */
+    .glow-primary:focus-visible {
         box-shadow: var(--glow-primary);
     }
 
-    .glow-secondary {
+    .glow-secondary:focus-visible {
         box-shadow: var(--glow-secondary);
     }
 
-    .glow-success {
+    .glow-success:focus-visible {
         box-shadow: var(--glow-success);
     }
 
-    .glow-warning {
+    .glow-warning:focus-visible {
         box-shadow: var(--glow-warning);
     }
 
-    .glow-danger {
+    .glow-danger:focus-visible {
         box-shadow: var(--glow-danger);
     }
 
-    .glow-info {
+    .glow-info:focus-visible {
         box-shadow: var(--glow-info);
-    }
-
-    /* 悬停时添加发光 */
-    .hover-glow-primary:hover {
-        box-shadow: var(--glow-primary);
-    }
-
-    .hover-glow-secondary:hover {
-        box-shadow: var(--glow-secondary);
     }
 
     /* ========== 卡片样式 ========== */
@@ -210,29 +189,19 @@
     }
 
     .nav-item-active {
-        background: linear-gradient(90deg,
-                rgb(var(--color-accent-primary-rgb), 0.1) 0%,
-                transparent 100%);
-        color: var(--color-accent-primary);
-        border-left: 3px solid var(--color-accent-primary);
-        padding-left: calc(var(--space-4) - 3px);
+        background: rgb(var(--color-accent-primary-rgb) / 10%);
+        color: var(--color-text-primary);
+        border: 1px solid rgb(var(--color-accent-primary-rgb) / 24%);
     }
 
     .nav-item-active:hover {
-        background: linear-gradient(90deg,
-                rgb(var(--color-accent-primary-rgb), 0.15) 0%,
-                transparent 100%);
+        background: rgb(var(--color-accent-primary-rgb) / 12%);
     }
 
-    /* 导航项激活状态 - 发光效果 */
     .nav-item-active-glow {
-        background: linear-gradient(135deg,
-                rgb(var(--color-accent-primary-rgb), 0.95),
-                rgb(var(--color-accent-secondary-rgb), 0.95));
-        border: 2px solid rgb(var(--color-accent-primary-rgb), 0.8);
-        box-shadow:
-            0 4px 20px rgb(var(--color-accent-secondary-rgb), 0.5),
-            0 0 30px rgb(var(--color-accent-secondary-rgb), 0.3);
+        background: rgb(var(--color-accent-primary-rgb) / 10%);
+        border: 1px solid rgb(var(--color-accent-primary-rgb) / 24%);
+        box-shadow: none;
     }
 
     /* 导航项非激活状态 */
@@ -285,7 +254,6 @@
 
     .btn-primary:hover:not(:disabled) {
         background: var(--color-accent-primary-hover);
-        box-shadow: var(--glow-primary);
     }
 
     /* 次要按钮 */
@@ -308,7 +276,6 @@
 
     .btn-danger:hover:not(:disabled) {
         background: var(--color-danger-hover);
-        box-shadow: var(--glow-danger);
     }
 
     /* 成功按钮 */
@@ -319,7 +286,6 @@
 
     .btn-success:hover:not(:disabled) {
         background: var(--color-success-hover);
-        box-shadow: var(--glow-success);
     }
 
     /* 幽灵按钮 */
@@ -595,78 +561,6 @@
         border-width: 0;
     }
 
-    /* ========== 渐变文字效果 ========== */
-
-    /* 品牌渐变 - 克制强调 */
-    .text-gradient-brand {
-        background: linear-gradient(135deg, var(--color-accent-primary) 0%, var(--color-accent-secondary) 100%);
-        background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-
-    /* 品牌渐变 - 柔和强调 */
-    .text-gradient-cyan,
-    .text-gradient-pink {
-        background: linear-gradient(135deg, #F472B6 0%, #EC4899 100%);
-        background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-
-    /* 品牌渐变 - 冷调强调 */
-    .text-gradient-purple {
-        background: linear-gradient(135deg, #A78BFA 0%, #C084FC 100%);
-        background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-
-    /* 绿色渐变 - 成功/健康 */
-    .text-gradient-green {
-        background: linear-gradient(135deg, #34D399 0%, #6EE7B7 100%);
-        background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-
-    /* 橙色渐变 - 警告/活力 */
-    .text-gradient-orange {
-        background: linear-gradient(135deg, #FBBF24 0%, #FB7185 100%);
-        background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-
-    /* 彩虹渐变 - 仅保留给特殊强调场景 */
-    .text-gradient-rainbow {
-        background: linear-gradient(90deg, #F472B6, #A78BFA, #C084FC, #34D399, #FBBF24);
-        background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-
-    /* ========== 文字发光效果 ========== */
-
-    .text-glow-primary {
-        text-shadow: 0 0 20px rgb(var(--color-accent-primary-rgb) / 50%),
-                     0 0 40px rgb(var(--color-accent-primary-rgb) / 30%);
-    }
-
-    .text-glow-secondary {
-        text-shadow: 0 0 20px rgb(var(--color-accent-secondary-rgb) / 50%),
-                     0 0 40px rgb(var(--color-accent-secondary-rgb) / 30%);
-    }
-
-    .text-glow-success {
-        text-shadow: 0 0 20px rgb(var(--color-success-rgb) / 50%),
-                     0 0 40px rgb(var(--color-success-rgb) / 30%);
-    }
-
-    .text-glow-warning {
-        text-shadow: 0 0 20px rgb(var(--color-warning-rgb) / 50%),
-                     0 0 40px rgb(var(--color-warning-rgb) / 30%);
-    }
-
-    .text-glow-danger {
-        text-shadow: 0 0 20px rgb(var(--color-danger-rgb) / 50%),
-                     0 0 40px rgb(var(--color-danger-rgb) / 30%);
-    }
-
     /* ========== 数字统计样式 ========== */
 
     /* 大数字展示 - 用于统计卡片 */
@@ -721,22 +615,6 @@
 
     /* ========== 标签样式增强 ========== */
 
-    /* 发光标签 */
-    .tag-glow {
-        position: relative;
-        overflow: hidden;
-    }
-
-    .tag-glow::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        background: inherit;
-        filter: blur(8px);
-        opacity: 0.5;
-        z-index: -1;
-    }
-
     /* 渐变边框标签 */
     .tag-gradient-border {
         position: relative;
@@ -748,11 +626,8 @@
         content: '';
         position: absolute;
         inset: 0;
-        padding: 1px;
         border-radius: inherit;
-        background: linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary));
-        mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-        mask-composite: exclude;
+        border: 1px solid var(--color-border-subtle);
         pointer-events: none;
     }
 
@@ -774,7 +649,7 @@
         content: '';
         flex: 1;
         height: 1px;
-        background: linear-gradient(90deg, var(--color-border-subtle), transparent);
+        background: var(--color-border-subtle);
     }
 
     /* 带图标的模块标题 */
@@ -850,14 +725,6 @@
         transform: scale(1.02);
     }
 
-    .hover-glow {
-        transition: box-shadow var(--duration-fast) var(--ease-out);
-    }
-
-    .hover-glow:hover {
-        box-shadow: var(--glow-primary);
-    }
-
     /* ========== 动画入场效果 ========== */
 
     .animate-fade-in {
@@ -893,8 +760,7 @@
     .nav-item,
     .btn,
     .hover-lift,
-    .hover-scale,
-    .hover-glow {
+    .hover-scale {
         transition: opacity var(--duration-fast) var(--ease-out) !important;
     }
 

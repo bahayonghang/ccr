@@ -16,14 +16,11 @@
             <span />
             <span />
           </span>
-          <div class="codex-tray-panel__header-copy">
-            <p class="codex-tray-panel__eyebrow">
-              {{ desktopProductLabel }}
-            </p>
-            <h1 class="codex-tray-panel__title">
-              {{ trayTitle }}
-            </h1>
-          </div>
+          <PageHeader
+            class="codex-tray-panel__header-copy"
+            :title="trayTitle"
+            :eyebrow="desktopProductLabel"
+          />
         </div>
         <button
           type="button"
@@ -93,6 +90,7 @@
 </template>
 
 <script setup lang="ts">
+import PageHeader from '@/components/ui/PageHeader.vue'
 import SIcon from '@/components/ui/SIcon.vue'
 import { computed } from 'vue'
 import { useCodexTrayPanel } from '@/composables/useCodexTrayPanel'
@@ -136,10 +134,7 @@ const snapshotStatusLabel = computed(() =>
 .codex-tray-panel {
   min-height: 100vh;
   padding: 14px;
-  background:
-    radial-gradient(circle at 14% 0%, rgb(var(--color-accent-primary-rgb) / 10%), transparent 28%),
-    radial-gradient(circle at 100% 100%, rgb(var(--color-accent-primary-rgb) / 6%), transparent 22%),
-    rgb(var(--color-bg-base-rgb) / 100%);
+  background: var(--color-bg-base);
 }
 
 .codex-tray-panel__shell {
@@ -148,12 +143,9 @@ const snapshotStatusLabel = computed(() =>
   flex-direction: column;
   gap: 16px;
   overflow: hidden;
-  border: 1px solid rgb(var(--color-border-default-rgb) / 44%);
-  border-radius: 28px;
-  background:
-    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 97%), rgb(var(--color-bg-surface-rgb) / 92%));
-  box-shadow:
-    0 30px 68px rgb(32 28 24 / 18%);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 12px;
+  background: var(--color-bg-surface);
   padding: 16px;
 }
 
@@ -193,28 +185,11 @@ const snapshotStatusLabel = computed(() =>
   width: 4px;
   height: 4px;
   border-radius: 999px;
-  background: rgb(var(--color-text-muted-rgb, 148 163 184) / 88%);
+  background: rgb(var(--color-text-muted-rgb) / 88%);
 }
 
 .codex-tray-panel__header-copy {
   min-width: 0;
-}
-
-.codex-tray-panel__eyebrow {
-  color: var(--color-text-muted);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-}
-
-.codex-tray-panel__title {
-  color: var(--color-text-primary);
-  margin-top: 2px;
-  font-size: 1.42rem;
-  font-weight: 700;
-  letter-spacing: -0.05em;
-  line-height: 1.05;
 }
 
 .codex-tray-panel__icon-button {
@@ -247,7 +222,7 @@ const snapshotStatusLabel = computed(() =>
   align-items: flex-start;
   gap: 10px;
   border: 1px solid rgb(var(--color-border-default-rgb) / 42%);
-  border-radius: 20px;
+  border-radius: 12px;
   background: rgb(var(--color-bg-base-rgb) / 52%);
   padding: 13px 14px;
   color: var(--color-text-secondary);

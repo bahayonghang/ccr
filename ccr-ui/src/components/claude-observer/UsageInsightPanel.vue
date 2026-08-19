@@ -542,11 +542,7 @@ const formatRoi = (roi: number | null) => {
 
 .usage-insight-panel__hero-card--accent {
   border-color: rgb(var(--color-accent-primary-rgb) / 22%);
-  background: linear-gradient(
-    160deg,
-    rgb(var(--color-accent-primary-rgb) / 8%),
-    var(--surface-card-bg) 65%
-  );
+  background: rgb(var(--color-accent-primary-rgb) / 8%);
 }
 
 .usage-insight-panel__hero-label {
@@ -598,12 +594,8 @@ const formatRoi = (roi: number | null) => {
 .usage-insight-panel__tab--active {
   color: var(--color-text-primary);
   border-color: rgb(var(--color-accent-primary-rgb) / 18%);
-  background: linear-gradient(
-    180deg,
-    rgb(var(--color-bg-elevated-rgb) / 92%),
-    rgb(var(--color-bg-surface-rgb) / 84%)
-  );
-  box-shadow: 0 6px 18px rgb(var(--color-accent-primary-rgb) / 6%);
+  background: var(--color-bg-surface);
+  box-shadow: none;
 }
 
 .usage-insight-panel__tab-content {

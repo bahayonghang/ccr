@@ -22,29 +22,6 @@
     @mouseleave="handleMouseLeave"
   >
     <div
-      v-if="props.pattern"
-      class="absolute inset-0 ui-card-pattern pointer-events-none"
-      :style="{ backgroundImage: backgroundPattern }"
-    />
-
-    <div
-      v-if="showGlow"
-      class="absolute inset-0 opacity-0 pointer-events-none transition-opacity duration-500 group-hover:opacity-100"
-      :style="glowStyle"
-    />
-
-    <div
-      v-if="props.gradientBorder"
-      class="absolute inset-0 ui-card-inherit-radius pointer-events-none overflow-hidden"
-    >
-      <div
-        class="absolute inset-0 ui-card-inherit-radius opacity-0 transition-opacity duration-300"
-        :class="{ 'opacity-100': isInteractive }"
-        :style="gradientBorderStyle"
-      />
-    </div>
-
-    <div
       class="relative z-10 h-full"
       :class="[paddingClasses, props.bodyClass]"
     >
@@ -55,7 +32,6 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { CSSProperties } from 'vue'
 
 type CardVariant = 'default' | 'base' | 'elevated' | 'glass' | 'outline'
 type PaddingSize = 'none' | 'sm' | 'md' | 'lg'
@@ -73,15 +49,15 @@ interface Props {
   density?: DensityKind
   hover?: boolean
   interactive?: boolean
-  /** @deprecated 发光装饰层与「深色工作台」扁平语言冲突；默认关闭，勿在新代码使用。 */
+  /** @deprecated 发光装饰层已移除；保留 props 以免存量调用方断裂。 */
   glow?: boolean
-  /** @deprecated glow 的旧别名；默认关闭，勿在新代码使用。 */
+  /** @deprecated glow 的旧别名。 */
   glowEffect?: boolean
-  /** @deprecated 仅配合已废弃的 glow 生效；勿在新代码使用。 */
+  /** @deprecated 仅配合已废弃的 glow；无效果。 */
   glowColor?: GlowColor
-  /** @deprecated 渐变描边与扁平语言冲突；默认关闭，勿在新代码使用。 */
+  /** @deprecated 渐变描边已移除。 */
   gradientBorder?: boolean
-  /** @deprecated 圆点纹理装饰层；默认关闭，勿在新代码使用。 */
+  /** @deprecated 圆点纹理已移除。 */
   pattern?: boolean
   padding?: PaddingSize
   disabled?: boolean
@@ -105,9 +81,9 @@ const variantBySurface: Record<SurfaceKind, Exclude<CardVariant, 'default'>> = {
 }
 
 const elevationByVariant: Record<Exclude<CardVariant, 'default'>, ElevationLevel> = {
-  base: 1,
-  elevated: 3,
-  glass: 2,
+  base: 0,
+  elevated: 0,
+  glass: 0,
   outline: 0,
 }
 
@@ -143,7 +119,6 @@ const resolvedSurface = computed<SurfaceKind>(() => props.surface ?? surfaceByVa
 const resolvedElevation = computed<ElevationLevel>(() => props.elevation ?? elevationByVariant[normalizedVariant.value])
 const resolvedMotion = computed<MotionKind>(() => props.motion ?? (isInteractive.value ? 'standard' : 'subtle'))
 const resolvedDensity = computed<DensityKind>(() => props.density ?? 'default')
-const showGlow = computed(() => props.glow || props.glowEffect)
 
 const paddingClasses = computed(() => {
   const map: Record<PaddingSize, string> = {
@@ -155,30 +130,6 @@ const paddingClasses = computed(() => {
   const fallbackPadding: PaddingSize = resolvedDensity.value === 'compact' ? 'sm' : 'md'
   return map[props.padding ?? fallbackPadding]
 })
-
-const glowColors: Record<GlowColor, string> = {
-  primary: 'rgb(var(--color-accent-primary-rgb) / 0.18)',
-  secondary: 'rgb(var(--color-accent-secondary-rgb) / 0.18)',
-  success: 'rgb(var(--color-success-rgb) / 0.18)',
-  warning: 'rgb(var(--color-warning-rgb) / 0.18)',
-  danger: 'rgb(var(--color-danger-rgb) / 0.18)',
-}
-
-const glowStyle = computed<CSSProperties>(() => ({
-  background: `radial-gradient(circle at center, ${glowColors[props.glowColor]} 0%, transparent 70%)`,
-  mixBlendMode: 'overlay' as const,
-  filter: 'blur(10px)',
-}))
-
-const gradientBorderStyle = computed(() => ({
-  background: 'linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary))',
-  padding: '1px',
-  WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-  WebkitMaskComposite: 'xor',
-  maskComposite: 'exclude',
-}))
-
-const backgroundPattern = `url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%239C92AC' fill-opacity='0.2' fill-rule='evenodd'%3E%3Ccircle cx='3' cy='3' r='1'/%3E%3C/g%3E%3C/svg%3E")`
 
 const handleClick = (event: MouseEvent) => {
   if (props.disabled) return
@@ -198,6 +149,7 @@ const handleMouseLeave = (event: MouseEvent) => {
 
 <style scoped>
 .ui-card {
+  border-radius: var(--radius-2xl);
   transition-property: transform, box-shadow, border-color, background-color, opacity;
   transition-duration: var(--ui-card-duration, var(--motion-standard-duration));
   transition-timing-function: var(--ui-card-ease, var(--motion-standard-ease));
@@ -208,49 +160,34 @@ const handleMouseLeave = (event: MouseEvent) => {
 }
 
 .ui-card--base {
-  @apply rounded-lg border shadow-sm;
-
   background: var(--color-bg-elevated);
-  box-shadow:
-    var(--ui-card-shadow, var(--shadow-sm)),
-    var(--inner-glow);
+  border: 1px solid var(--color-border-subtle);
+  box-shadow: none;
 }
 
 .ui-card--elevated {
-  @apply rounded-lg;
-
-  background: var(--surface-card-bg);
-  border: 1px solid var(--surface-card-border);
-  backdrop-filter: var(--surface-card-blur);
-  box-shadow:
-    var(--ui-card-shadow, var(--surface-card-shadow)),
-    var(--glass-inner-glow);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-subtle);
+  box-shadow: none;
 }
 
 .ui-card--glass {
-  @apply rounded-lg;
-
-  background: var(--surface-workspace-bg);
-  border: 1px solid var(--surface-workspace-border);
-  backdrop-filter: var(--surface-workspace-blur);
-  box-shadow:
-    var(--ui-card-shadow, var(--surface-workspace-shadow)),
-    var(--glass-inner-glow);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-subtle);
+  box-shadow: none;
 }
 
 .ui-card--outline {
-  @apply rounded-lg bg-transparent;
-
-  border: 1px solid var(--surface-status-border);
-  backdrop-filter: var(--surface-status-blur);
-  box-shadow: var(--ui-card-shadow, none);
+  background: transparent;
+  border: 1px solid var(--color-border-subtle);
+  box-shadow: none;
 }
 
 .ui-card--surface-modal.ui-card--elevated,
 .ui-card--surface-modal.ui-card--glass {
   background: var(--surface-modal-bg);
   border-color: var(--surface-modal-border);
-  backdrop-filter: var(--surface-modal-blur);
+  box-shadow: var(--surface-modal-shadow);
 }
 
 .ui-card--interactive {
@@ -259,35 +196,25 @@ const handleMouseLeave = (event: MouseEvent) => {
 
 .ui-card--interactive:hover {
   transform: translateY(var(--ui-card-hover-translate, -1px));
-  box-shadow:
-    var(--ui-card-hover-shadow, var(--ui-card-shadow, var(--surface-card-shadow))),
-    0 0 0 1px rgb(var(--color-accent-primary-rgb) / 8%);
-  border-color: rgb(var(--color-accent-primary-rgb) / 18%);
+  border-color: var(--color-border-strong);
+  box-shadow: var(--ui-card-hover-shadow, var(--shadow-sm));
 }
 
 .ui-card--elevation-0 {
-  --ui-card-shadow: var(--elevation-0);
-  --ui-card-hover-shadow: var(--elevation-0);
+  --ui-card-shadow: none;
+  --ui-card-hover-shadow: var(--shadow-sm);
 }
 
 .ui-card--elevation-1 {
   --ui-card-shadow: var(--elevation-1);
-  --ui-card-hover-shadow: var(--elevation-2);
+  --ui-card-hover-shadow: var(--shadow-sm);
 }
 
-.ui-card--elevation-2 {
-  --ui-card-shadow: var(--elevation-2);
-  --ui-card-hover-shadow: var(--elevation-3);
-}
-
-.ui-card--elevation-3 {
-  --ui-card-shadow: var(--elevation-3);
-  --ui-card-hover-shadow: var(--elevation-4);
-}
-
+.ui-card--elevation-2,
+.ui-card--elevation-3,
 .ui-card--elevation-4 {
-  --ui-card-shadow: var(--elevation-4);
-  --ui-card-hover-shadow: var(--shadow-2xl);
+  --ui-card-shadow: var(--shadow-sm);
+  --ui-card-hover-shadow: var(--shadow-sm);
 }
 
 .ui-card--motion-none {
@@ -307,14 +234,6 @@ const handleMouseLeave = (event: MouseEvent) => {
   --ui-card-hover-translate: -1px;
 }
 
-.ui-card-pattern {
-  opacity: 0.08;
-}
-
-.ui-card-inherit-radius {
-  border-radius: inherit;
-}
-
 .ui-card:focus-visible {
   outline: 2px solid var(--color-accent-primary);
   outline-offset: 2px;
@@ -331,4 +250,3 @@ const handleMouseLeave = (event: MouseEvent) => {
   }
 }
 </style>
-

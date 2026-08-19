@@ -1,62 +1,40 @@
 <template>
-  <div class="budget-view">
-    <div class="budget-shell glass-effect">
-      <div class="budget-shell__header">
-        <div class="budget-shell__intro">
-          <div class="budget-shell__title-row">
-            <div class="budget-shell__icon text-accent-primary">
-              <svg
-                class="budget-shell__icon-svg"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-            </div>
-            <div>
-              <h1 class="budget-title text-text-primary">
-                {{ tt('预算管理', 'Budget Management') }}
-              </h1>
-              <p class="budget-subtitle text-text-secondary">
-                {{ tt('管理成本预算限制和警告阈值', 'Manage spending limits and warning thresholds') }}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <button
-          :disabled="loading"
-          class="budget-primary-button"
-          @click="loadData"
-        >
-          <svg
-            class="budget-primary-button__icon"
-            :class="{ 'animate-spin': loading }"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+  <PageShell class="budget-view">
+    <template #header>
+      <PageHeader
+        :title="tt('预算管理', 'Budget Management')"
+        :description="tt('管理成本预算限制和警告阈值', 'Manage spending limits and warning thresholds')"
+      >
+        <template #actions>
+          <button
+            type="button"
+            :disabled="loading"
+            class="budget-primary-button"
+            @click="loadData"
           >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-            />
-          </svg>
-          <span>{{ tt('刷新', 'Refresh') }}</span>
-        </button>
-      </div>
-    </div>
+            <svg
+              class="budget-primary-button__icon"
+              :class="{ 'animate-spin': loading }"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
+            </svg>
+            <span>{{ tt('刷新', 'Refresh') }}</span>
+          </button>
+        </template>
+      </PageHeader>
+    </template>
 
     <div
       v-if="loading"
-      class="budget-shell budget-shell--loading glass-effect"
+      class="budget-shell budget-shell--loading"
       aria-live="polite"
     >
       <div class="budget-loading">
@@ -99,50 +77,38 @@
       v-if="!loading && !error && budgetStatus"
       class="budget-content"
     >
-      <section class="budget-shell glass-effect">
+      <section class="budget-shell">
         <div class="budget-section-header">
           <div>
-            <h2 class="budget-section-title text-text-primary">
+            <h2 class="budget-section-title">
               {{ tt('预算状态', 'Budget status') }}
             </h2>
-            <p class="budget-section-copy text-text-secondary">
+            <p class="budget-section-copy">
               {{ tt('当前预算开关与各周期成本总览', 'Current budget switch plus period cost overview') }}
             </p>
           </div>
 
           <span
             class="budget-status-pill"
-            :class="budgetStatus.enabled ? 'border-accent-success/30 bg-accent-success/10 text-accent-success' : 'border-border-default bg-bg-surface text-text-secondary'"
+            :class="budgetStatus.enabled ? 'budget-status-pill--on' : 'budget-status-pill--off'"
           >
             {{ budgetStatus.enabled ? tt('已启用', 'Enabled') : tt('已禁用', 'Disabled') }}
           </span>
         </div>
 
         <div class="budget-overview-grid">
-          <div class="budget-overview-card">
-            <p class="budget-overview-card__label text-text-secondary">
-              {{ tt('今日成本', 'Today cost') }}
-            </p>
-            <p class="budget-overview-card__value text-text-primary">
-              ${{ budgetStatus.current_costs.today.toFixed(4) }}
-            </p>
-          </div>
-          <div class="budget-overview-card">
-            <p class="budget-overview-card__label text-text-secondary">
-              {{ tt('本周成本', 'This week cost') }}
-            </p>
-            <p class="budget-overview-card__value text-text-primary">
-              ${{ budgetStatus.current_costs.this_week.toFixed(4) }}
-            </p>
-          </div>
-          <div class="budget-overview-card">
-            <p class="budget-overview-card__label text-text-secondary">
-              {{ tt('本月成本', 'This month cost') }}
-            </p>
-            <p class="budget-overview-card__value text-text-primary">
-              ${{ budgetStatus.current_costs.this_month.toFixed(4) }}
-            </p>
-          </div>
+          <StatTile
+            :label="tt('今日成本', 'Today cost')"
+            :value="`$${budgetStatus.current_costs.today.toFixed(4)}`"
+          />
+          <StatTile
+            :label="tt('本周成本', 'This week cost')"
+            :value="`$${budgetStatus.current_costs.this_week.toFixed(4)}`"
+          />
+          <StatTile
+            :label="tt('本月成本', 'This month cost')"
+            :value="`$${budgetStatus.current_costs.this_month.toFixed(4)}`"
+          />
         </div>
 
         <div class="budget-limits">
@@ -184,13 +150,13 @@
         </div>
       </section>
 
-      <section class="budget-shell glass-effect">
+      <section class="budget-shell">
         <div class="budget-section-header budget-section-header--compact">
           <div>
-            <h2 class="budget-section-title text-text-primary">
+            <h2 class="budget-section-title">
               {{ tt('配置预算', 'Configure budget') }}
             </h2>
-            <p class="budget-section-copy text-text-secondary">
+            <p class="budget-section-copy">
               {{ tt('调整预算开关、上限以及告警阈值', 'Adjust the budget switch, hard limits, and warning threshold') }}
             </p>
           </div>
@@ -315,12 +281,15 @@
         </form>
       </section>
     </div>
-  </div>
+  </PageShell>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import PageHeader from '@/components/ui/PageHeader.vue'
+import PageShell from '@/components/ui/PageShell.vue'
+import StatTile from '@/components/ui/StatTile.vue'
 import { getBudgetStatus, setBudget, resetBudget } from '@/api'
 import { useUIStore } from '@/stores/ui'
 import type { BudgetStatus, SetBudgetRequest } from '@/types'
@@ -455,9 +424,7 @@ onMounted(() => {
 }
 
 .budget-view {
-  min-height: 100%;
-  gap: 1.5rem;
-  padding: 1rem;
+  min-width: 0;
 }
 
 .budget-content,
@@ -467,10 +434,10 @@ onMounted(() => {
 }
 
 .budget-shell {
-  border: 1px solid var(--color-border-default);
-  border-radius: 1.5rem;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 0.75rem;
   padding: 1.25rem;
-  box-shadow: var(--shadow-small);
+  background: var(--color-bg-surface);
 }
 
 .budget-shell__header,
@@ -509,14 +476,7 @@ onMounted(() => {
 }
 
 .budget-shell__icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.75rem;
-  height: 2.75rem;
-  border: 1px solid rgb(var(--color-accent-primary-rgb), 0.2);
-  border-radius: 1rem;
-  background: linear-gradient(135deg, rgb(139 92 246 / 20%), rgb(217 70 239 / 20%));
+  display: none;
 }
 
 .budget-shell__icon-svg,
@@ -553,16 +513,14 @@ onMounted(() => {
 
 .budget-primary-button {
   gap: 0.5rem;
-  background: linear-gradient(90deg, rgb(139 92 246), rgb(147 51 234));
-  color: white;
+  background: var(--color-accent-primary);
+  color: var(--color-accent-primary-contrast);
   font-size: 0.875rem;
   font-weight: 600;
-  box-shadow: 0 16px 30px rgb(139 92 246 / 25%);
 }
 
 .budget-primary-button:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 18px 34px rgb(139 92 246 / 35%);
+  background: var(--color-accent-primary-hover);
 }
 
 .budget-primary-button--wide {
@@ -570,16 +528,16 @@ onMounted(() => {
 }
 
 .budget-secondary-button {
-  border: 1px solid var(--border-border-default, var(--border-color));
-  background: var(--bg-surface);
-  color: var(--text-secondary);
+  border: 1px solid var(--color-border-subtle);
+  background: var(--color-bg-surface);
+  color: var(--color-text-secondary);
   padding-inline: 1.5rem;
   font-weight: 500;
 }
 
 .budget-secondary-button:hover:not(:disabled) {
-  background: var(--bg-elevated);
-  color: var(--text-primary);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
 }
 
 .budget-primary-button:disabled,
@@ -604,17 +562,17 @@ onMounted(() => {
 .budget-loading__spinner {
   width: 3rem;
   height: 3rem;
-  border: 4px solid rgb(var(--color-accent-primary-rgb), 0.15);
-  border-top-color: var(--accent-primary);
+  border: 4px solid rgb(var(--color-accent-primary-rgb) / 15%);
+  border-top-color: var(--color-accent-primary);
   border-radius: 9999px;
 }
 
 .budget-error {
-  border: 1px solid rgb(239 68 68 / 30%);
-  border-radius: 1rem;
-  background: rgb(239 68 68 / 10%);
+  border: 1px solid rgb(var(--color-danger-rgb) / 30%);
+  border-radius: 0.75rem;
+  background: rgb(var(--color-danger-rgb) / 10%);
   padding: 1rem;
-  color: rgb(254 226 226);
+  color: var(--color-danger);
 }
 
 .budget-error__layout {
@@ -628,19 +586,19 @@ onMounted(() => {
   height: 1.25rem;
   margin-top: 0.125rem;
   flex: none;
-  color: rgb(252 165 165);
+  color: var(--color-danger);
 }
 
 .budget-error__title {
   font-size: 0.875rem;
   font-weight: 600;
-  color: rgb(254 202 202);
+  color: var(--color-danger);
 }
 
 .budget-error__message {
   margin-top: 0.25rem;
   font-size: 0.875rem;
-  color: rgb(254 226 226 / 90%);
+  color: var(--color-text-secondary);
 }
 
 .budget-section-header {
@@ -671,11 +629,22 @@ onMounted(() => {
   display: inline-flex;
   align-items: center;
   min-height: 36px;
-  border-width: 1px;
+  border: 1px solid var(--color-border-subtle);
   border-radius: 9999px;
   padding: 0.25rem 0.75rem;
   font-size: 0.875rem;
   font-weight: 500;
+}
+
+.budget-status-pill--on {
+  border-color: rgb(var(--color-success-rgb) / 30%);
+  background: rgb(var(--color-success-rgb) / 10%);
+  color: var(--color-success);
+}
+
+.budget-status-pill--off {
+  background: var(--color-bg-surface);
+  color: var(--color-text-secondary);
 }
 
 .budget-overview-grid,
@@ -733,20 +702,16 @@ onMounted(() => {
 }
 
 .budget-warning-card {
-  border: 1px solid rgb(239 68 68 / 25%);
-  border-radius: 1rem;
-  background: rgb(239 68 68 / 10%);
+  border: 1px solid rgb(var(--color-danger-rgb) / 25%);
+  border-radius: 0.75rem;
+  background: rgb(var(--color-danger-rgb) / 10%);
   padding: 1rem;
 }
 
 .budget-warning-card__text {
   font-size: 0.875rem;
   line-height: 1.75;
-  color: rgb(254 226 226 / 90%);
-}
-
-.budget-warning-card__period {
-  color: rgb(254 226 226);
+  color: var(--color-danger);
 }
 
 .budget-toggle-card {
@@ -779,21 +744,19 @@ onMounted(() => {
   width: 100%;
   margin-top: 0.5rem;
   padding: 0.625rem 1rem;
-  border: 1px solid var(--border-border-default, var(--border-color));
-  border-radius: 0.75rem;
-  background: var(--bg-surface);
-  color: var(--text-primary);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 0.625rem;
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
 }
 
 .budget-input::placeholder {
-  color: var(--text-muted);
+  color: var(--color-text-muted);
 }
 
 .budget-input:focus {
-  outline: none;
-  border-color: var(--accent-primary);
-  box-shadow: 0 0 0 2px rgb(var(--color-accent-primary-rgb), 0.2);
+  outline: 2px solid var(--color-accent-primary);
+  outline-offset: 2px;
 }
 
 .budget-form-actions {
@@ -802,16 +765,8 @@ onMounted(() => {
 }
 
 @media (width >= 640px) {
-  .budget-view {
-    padding: 1.5rem;
-  }
-
   .budget-shell {
     padding: 1.5rem;
-  }
-
-  .budget-title {
-    font-size: 1.875rem;
   }
 
   .budget-shell__header,

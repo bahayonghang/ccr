@@ -446,15 +446,14 @@ kill -9 <PID>
 - **Gemini CLI**: `~/.gemini/settings.json`
 
 ### CCR UI 相关
-- **日志**: `~/.ccr/logs/` 或 `./ccr-ui/logs/`
-- **后端日志**: `ccr-ui/logs/backend-console.log`
+- **日志**: `~/.ccr/logs/ccr.log.YYYY-MM-DD`（UTC 日切）
 - **前端构建产物**: `ccr-ui/dist/`
 - **Tauri 配置**: `ccr-ui/src-tauri/tauri.conf.json`
 
 ## FAQ
 
 ### Q: ccr-ui 如何与后端通信？
-A: Vue 前端使用 Axios 发送 REST API 请求到 Axum 后端（端口 38081）。所有状态通过 Pinia stores 在客户端管理。
+A: 桌面端 Vue 通过 Tauri IPC 调用 `src-tauri` 命令。状态由 Pinia stores 管理。
 
 ### Q: 可以自定义前后端端口吗？
 A: 可以！

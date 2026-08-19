@@ -110,6 +110,16 @@ Truncate and pad cell text by terminal display width via `unicode-width`, never 
 
 Keyboard shortcut hints live only in the global Keys footer. Panels and status strips carry state (selection, apply/toast feedback), not key legends — do not reintroduce per-panel shortcut lines.
 
+### Keybindings must not rely on bare modifier combos
+
+TUI keybindings must not depend on the terminal reporting bare modifier
+combinations (e.g. Shift+Enter). `runtime.rs::setup_terminal` does not push
+keyboard-enhancement flags, so on Unix terminals without the kitty keyboard
+protocol such a combo arrives as the unmodified key and is indistinguishable
+from it. When a modifier binding is needed, a Unix escape-sequence path must
+exist too — `Shift+Tab`'s `BackTab` (Unix) + `Tab` with the `SHIFT` modifier
+(Windows) dual path in `app.rs` is the reference implementation.
+
 ### Per-tab profile selection
 
 Each profile tab owns its selection snapshot (`PlatformTab::saved_selection`); `selected_index` / `current_page` / `selected_profile_name` on `App` are the working copy for the active tab only (`page_size` stays global). On tab switch, `save_active_tab_selection` stores the leaving tab's snapshot and `restore_active_tab_selection` loads the entering tab's — restoring a saved snapshot via `align_selection_by_name` (name-first), or focusing the enabled (`is_current`) profile via `focus_current_profile` on first visit.
@@ -305,9 +315,11 @@ Provider usage lives inside the Claude/Codex profile detail panel, powered by an
   Missing or blank values render `-`; known values are normalized to lowercase;
   unknown strings remain visible with warning tone; non-strings render a
   localized invalid marker. The TUI does not invent Codex's effective default.
-- Focus is the sole name/current/enabled summary. Detail groups do not repeat
-  those fields. Wide profile layout is list 46% / detail 54%, and the 3-row
-  Status strip exists only while apply/toast feedback is visible.
+- Focus is the sole name/current/enabled summary and also carries the
+  last-apply result ("Switched to X" on success, error detail on failure) as a
+  persistent field. Detail groups do not repeat those fields. Wide profile
+  layout is list 46% / detail 54%, and the 3-row Status strip is toast-only
+  (apply results no longer repeat there).
 - Detail label widths are derived from localized display width and clamped per
   viewport. Token values pass through existing masking before they become a
   `DetailField`.
@@ -402,8 +414,9 @@ Use `tracing::warn!` for recoverable loading failures and diagnostics. Do not pr
 - Details never render an inline token, including a masked token or any token
   length signal. URL and auth semantics must call the Grok helpers above rather
   than being reimplemented in the TUI.
-- Enter uses the existing profile apply path, toast reporting, reload, current
-  marker, and per-tab selection behavior without a Grok-only mutation path.
+- Enter/Space use the existing profile apply path (apply and stay; quit via
+  `q` / `Esc`), toast reporting, reload, current marker, and per-tab selection
+  behavior without a Grok-only mutation path.
 
 ### 4. Validation & Error Matrix
 

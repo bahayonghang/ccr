@@ -13,20 +13,20 @@
 
 ### 2. Signatures
 
-- `isCoreSignal(entry: MonitoringEntry): boolean` — `entry.channel !== 'frontend'` (`dashboardPresentation.ts`).
+- `isCoreSignal(entry: MonitoringEntry): boolean` — `entry.channel` is not in `{frontend, runtime}` (`dashboardPresentation.ts`).
 - `countSignals(logs: MonitoringEntry[]): DashboardSignalCounts` — filters through `isCoreSignal` before computing `errors`/`warnings`/`total`.
-- `channel: 'frontend'` is set exclusively by `normalizeLoggerEntry` in `ccr-ui/src/composables/useMonitoringFeed.ts` — i.e. any entry that reached the feed via `logger.warn()`/`logger.error()` calls in Vue code, as opposed to a real backend/Tauri-emitted event (`checkin`, `usage`, `environment`, `sync`, `task`, `app`, `system`, ...).
+- `channel: 'frontend'` comes from `normalizeLoggerEntry`. `channel: 'runtime'` comes from the Tauri tracing bridge. Neither drives readiness. Domain events stay `checkin`, `usage`, `environment`, `sync`, `task`, `app`, `system`.
 
 ### 3. Contracts
 
-- `signalCounts` (and therefore the readiness "attention" branch, the signals status tile's tone, and the `open-monitoring` action) must only be driven by non-`frontend`-channel entries.
-- `DashboardSignalStream.vue` (the actual event list) must keep rendering **all** entries including `channel: 'frontend'` ones — the gate is only on the aggregate counts that drive blocking/tile/action UI, not on visibility of the underlying event.
-- Genuine backend/checkin/sync-channel errors are **not** exempt from driving all three surfaces — the gate is specifically about frontend UI retry/log noise, not about suppressing real errors.
+- `signalCounts` (and therefore the readiness "attention" branch, the signals status tile's tone, and the `open-monitoring` action) must only be driven by non-diagnostic channels.
+- `DashboardSignalStream.vue` must keep rendering **all** entries including `frontend` and `runtime`.
+- Genuine backend/checkin/sync-channel errors still drive all three surfaces.
 
 ### 4. Validation & Error Matrix
 
-- New frontend `logger.error(...)` call added in a view -> will appear in the event stream but must not, by itself, flip readiness/tile/action. If it does, check whether the new count path bypassed `countSignals`/`isCoreSignal`.
-- A new "core" signal source is added (new `channel` value from a real backend event) -> no change needed here, it's counted correctly by default since only `'frontend'` is excluded.
+- New frontend `logger.error(...)` or bridged `runtime` warn/error -> event stream only; must not flip readiness/tile/action.
+- A new core channel from a domain backend event is counted unless added to `DIAGNOSTIC_CHANNELS`.
 
 ### 5. Good/Base/Bad Cases
 
@@ -134,3 +134,30 @@ const countSignals = (logs: MonitoringEntry[]): DashboardSignalCounts => {
 
 - Good: `DashboardNextActions.vue` renders its 3-step onboarding list inline, reusing `.dashboard-action`-adjacent styling at the card's own scale.
 - Bad: `<EmptyState v-if="showOnboarding" .../>` inside a `dashboard-grid__actions` slot — forces the card (and, via `align-items: stretch`, its sibling) to at least 300px+ regardless of the grid's actual space budget.
+
+---
+
+## Scenario: Status-metric `tone` drives the StatTile shell only
+
+### 1. Scope / Trigger
+
+- Trigger: changing `StatTile.vue` badge rendering, wiring `tone` in `DashboardReadinessLedger.vue` / `DashboardUsageMovement.vue`, or changing `buildStatusMetrics()` tone assignment.
+- Introduced by `08-18-overview-home-visual`: `DashboardStatusMetric.tone` was already computed, but the ledger dropped it and usage summary tiles stayed bare.
+
+### 2. Signatures
+
+- `DashboardStatusMetric.tone: DashboardTone` (`neutral | success | warning | danger | accent`) — assigned in `buildStatusMetrics()`.
+- `StatTile` optional `tone?: 'neutral' | 'success' | 'warning' | 'danger' | 'accent'` — the union lives on the primitive. Do not import `DashboardTone` into `StatTile`.
+- Ledger: `:tone="metric.tone"`. Usage summary tiles: `:tone="'neutral'"`.
+
+### 3. Contracts
+
+- `tone` drives only the value's square badge shell (`.stat-tile__value--badge` + `data-tone`): 10% fill, 18% border, optional 6px tone dot. Digits stay `--color-text-primary` + `tabular-nums`.
+- Omit `tone` → bare tile (label + value + hint), no shell, no `data-tone`. Other StatTile call sites stay bare unless they already pass `tone`.
+- Do not change `countSignals`, `buildReadiness`, `isFirstRun`, or `buildStatusMetrics()` tone assignment on this visual path.
+- Do not wrap StatTile in `ui-card`. Do not paint digits with semantic or accent ink. Do not use a solid accent fill on the number or the whole tile.
+
+### 4. Tests Required
+
+- `ccr-ui/tests/ui-primitives.smoke.test.ts` — bare tile without `tone`; `tone: 'success'` has `data-tone`, the badge class, no `ui-card`, and source still contains `tabular-nums`.
+- `ccr-ui/tests/dashboard-presentation.smoke.test.ts` — existing judgment expectations stay green.

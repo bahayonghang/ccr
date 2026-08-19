@@ -1,13 +1,5 @@
 <template>
   <header class="usage-dashboard-toolbar">
-    <div class="usage-dashboard-toolbar__copy">
-      <p class="usage-dashboard-toolbar__eyebrow">
-        {{ $t('usage.dashboard.toolbar.eyebrow') }}
-      </p>
-      <h1>{{ $t('usage.title') }}</h1>
-      <p>{{ $t('usage.subtitle') }}</p>
-    </div>
-
     <div
       v-if="!runtimeUnavailable"
       class="usage-dashboard-toolbar__actions"
@@ -34,18 +26,11 @@
 
       <div class="usage-dashboard-toolbar__field usage-dashboard-toolbar__field--segmented">
         <span>{{ $t('usage.dashboard.toolbar.window') }}</span>
-        <div class="usage-dashboard-toolbar__segments">
-          <button
-            v-for="option in rangeOptions"
-            :key="option.value"
-            type="button"
-            class="usage-dashboard-toolbar__segment"
-            :class="{ 'usage-dashboard-toolbar__segment--active': selectedRange === option.value }"
-            @click="emitRange(option.value)"
-          >
-            {{ $t(option.key) }}
-          </button>
-        </div>
+        <PillToggleGroup
+          :options="rangeToggleOptions"
+          :model-value="selectedRange"
+          @update:model-value="emitRange"
+        />
       </div>
 
       <a
@@ -115,6 +100,7 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Button from '@/components/ui/Button.vue'
+import PillToggleGroup from '@/components/ui/PillToggleGroup.vue'
 import SIcon from '@/components/ui/SIcon.vue'
 import type { UsageRangePreset } from '@/views/usage/dateWindow'
 import type { DashboardMetaItem } from '@/views/usage/usageOverviewInsights'
@@ -168,6 +154,12 @@ const rangeOptions: Array<{ value: UsageRangePreset; key: string }> = [
   { value: 'last_30d', key: 'usage.dashboard.range.last30' },
   { value: 'all_time', key: 'usage.dashboard.range.allTime' },
 ]
+const rangeToggleOptions = computed(() =>
+  rangeOptions.map((option) => ({
+    value: option.value,
+    label: t(option.key),
+  })),
+)
 const platformOptions = computed(() => USAGE_SOURCE_DEFINITIONS.map((source) => {
   const key = `usage.platforms.${source.id}`
   const translated = t(key)
@@ -194,43 +186,8 @@ const emitRange = (value: UsageRangePreset) => {
 .usage-dashboard-toolbar {
   display: flex;
   align-items: flex-end;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 1rem;
-  border-radius: 1.45rem;
-  border: 1px solid rgb(var(--color-border-default-rgb) / 13%);
-  background:
-    linear-gradient(135deg, rgb(var(--color-bg-elevated-rgb) / 88%), rgb(var(--color-bg-surface-rgb) / 70%)),
-    radial-gradient(circle at 12% 0%, rgb(var(--color-accent-primary-rgb) / 8%), transparent 38%);
-  padding: 1rem 1.08rem;
-  box-shadow: var(--elevation-1);
-}
-
-.usage-dashboard-toolbar__copy {
-  display: grid;
-  gap: 0.22rem;
-  max-width: 46rem;
-}
-
-.usage-dashboard-toolbar__eyebrow {
-  color: var(--color-text-muted);
-  font-size: 0.68rem;
-  font-weight: 760;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.usage-dashboard-toolbar h1 {
-  color: var(--color-text-primary);
-  font-size: clamp(1.35rem, 1vw + 1rem, 1.92rem);
-  font-weight: 760;
-  letter-spacing: -0.035em;
-  line-height: 1.05;
-}
-
-.usage-dashboard-toolbar p:not(.usage-dashboard-toolbar__eyebrow) {
-  color: var(--color-text-secondary);
-  font-size: 0.88rem;
-  line-height: 1.45;
 }
 
 .usage-dashboard-toolbar__actions {
@@ -248,10 +205,9 @@ const emitRange = (value: UsageRangePreset) => {
 
 .usage-dashboard-toolbar__field > span {
   color: var(--color-text-muted);
-  font-size: 0.64rem;
-  font-weight: 750;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0;
 }
 
 .usage-dashboard-toolbar__select {

@@ -66,7 +66,12 @@ impl CodexConfigManager {
     ///
     /// 支持 `CCR_CODEX_DIR` / `CODEX_HOME` 环境变量覆盖
     pub fn with_default() -> Result<Self> {
-        let codex_dir = Self::resolve_codex_dir()?;
+        Self::with_codex_dir(Self::resolve_codex_dir()?)
+    }
+
+    /// 🏠 使用指定 Codex 目录创建管理器
+    pub fn with_codex_dir(codex_dir: impl AsRef<Path>) -> Result<Self> {
+        let codex_dir = codex_dir.as_ref().to_path_buf();
         let lock_manager = LockManager::with_default_path()?;
 
         tracing::debug!("Codex 配置目录: {:?}", codex_dir);
@@ -80,7 +85,7 @@ impl CodexConfigManager {
     }
 
     /// 📁 解析 Codex 配置目录
-    fn resolve_codex_dir() -> Result<PathBuf> {
+    pub fn resolve_codex_dir() -> Result<PathBuf> {
         if let Some(custom) = std::env::var("CCR_CODEX_DIR")
             .ok()
             .filter(|value| !value.trim().is_empty())

@@ -18,7 +18,7 @@ default-members = ["crates/ccr"]
 resolver = "3"
 
 [workspace.package]
-version = "7.1.3"
+version = "7.1.5"
 
 [workspace.dependencies]
 # Async runtime
@@ -38,7 +38,7 @@ tokio = { version = "1.52.3", features = [
 clap = { version = "4.6.1", features = ["cargo", "derive"] }
 
 # Error handling
-anyhow = "1.0.102"
+anyhow = "1.0.104"
 thiserror = "2.0.18"
 
 # HTTP client
