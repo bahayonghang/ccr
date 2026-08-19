@@ -23,6 +23,7 @@
 - `needs_login_prep` is the only `can_off` source for UI. Frontends must not inspect home files.
 - Claude: true when registry/`profiles.toml` pointer is set, or `settings.json` has any `CCR_MANAGED_KEYS`. Clear those keys. Keep user `ANTHROPIC_API_KEY`. Report it in `remaining_suppressors`.
 - Codex: true when raw pointer, legacy entry auth snapshot, or CCR third-party runtime exists. A non-official `model_providers.custom` shape counts as third-party runtime even without a bearer or `forced_login_method`. New profile switches do not persist an entry auth snapshot. Off removes the root `model_provider`, the CCR-managed `model_providers.custom` entry, and other CCR profile fields, but preserves `model_reasoning_effort` verbatim, deletes runtime `auth.json`, then discards any legacy entry auth snapshot. Official API-key `auth.json` without pointer, snapshot, or third-party runtime stays unchanged.
+- Codex login-prep inspects the resolved Codex dir (`CCR_CODEX_DIR` / `CODEX_HOME` / `~/.codex`). `CCR_CODEX_DIR` is an explicit override and stays the only target. When `CODEX_HOME` redirects away from the default home and `CCR_CODEX_DIR` is unset, off also inspects and clears `%USERPROFILE%\.codex` or `$HOME/.codex`. Official `codex login` and Codex Desktop read that default home. CLI JSON may list `runtime_dirs` and `removed_auth_json` as paths only.
 - Grok: true when `inspect_activation_state` is not `Inactive`. Off removes `[model.custom]` and `[models].default`, restores the entry `models.default_reasoning_effort`, and preserves unrelated TOML. When entry state is missing, off performs the same bounded route cleanup but leaves `models.default_reasoning_effort` unchanged. Direct profile deletion still fails closed until off completes.
 - Backup dir is `$CCR_ROOT/backups/profile-off/` (fallback `~/.ccr`). Snapshots use `AtomicWriter.secret(true)`. Unix backup dir mode is `0o700`. Codex snapshots include `profiles.toml`, registry, `config.toml`, and `auth.json`.
 - `ConfigFileHandler::save` writes `profiles.toml` with `secret: true`.
@@ -46,7 +47,7 @@
 ### 6. Tests Required
 
 - `cargo test -p ccr-cli profile_off -- --test-threads=1`: leftover env, Grok missing-state cleanup, backup under `CCR_ROOT`.
-- `cargo test -p ccr --test commands -- {claude,codex,grok}_profile -- --test-threads=1`: switch/off, Codex route and auth deletion, inactive official key kept.
+- `cargo test -p ccr --test commands -- {claude,codex,grok}_profile -- --test-threads=1`: switch/off, Codex route and auth deletion, inactive official key kept, inherited `CODEX_HOME` still deletes default-home `auth.json`.
 - `cargo test -p ccr-tui -- --test-threads=1`: Profile tab shows `o`; Auth tab does not.
 - UI smoke: banner visibility and confirm cancel does not invoke off.
 
