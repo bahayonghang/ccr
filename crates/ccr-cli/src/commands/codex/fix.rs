@@ -1124,7 +1124,7 @@ mod tests {
         let (bin, args) = hanging_doctor_command(&parent_pid, &child_pid);
         let arg_refs: Vec<&str> = args.iter().map(String::as_str).collect();
         let timeout = if cfg!(windows) {
-            Duration::from_secs(12)
+            Duration::from_secs(20)
         } else {
             Duration::from_secs(2)
         };
@@ -1210,22 +1210,28 @@ mod tests {
         parent_pid: &std::path::Path,
         child_pid: &std::path::Path,
     ) -> (PathBuf, Vec<String>) {
+        let dir = parent_pid.parent().expect("pid file parent");
+        let script_path = dir.join("hanging-doctor.ps1");
         let script = format!(
-            "$ErrorActionPreference='Stop'; \
-             [IO.File]::WriteAllText('{}', [string]$PID); \
-             $child=Start-Process -FilePath 'cmd.exe' -ArgumentList '/C','ping -n 30 127.0.0.1 >NUL' -PassThru; \
-             [IO.File]::WriteAllText('{}', [string]$child.Id); \
-             Start-Sleep -Seconds 30",
-            parent_pid.to_string_lossy().replace('\'', "''"),
-            child_pid.to_string_lossy().replace('\'', "''"),
+            "$ErrorActionPreference = 'Stop'\n\
+             [IO.File]::WriteAllText({parent}, [string]$PID)\n\
+             $child = Start-Process -FilePath $env:ComSpec -ArgumentList '/C','ping -n 30 127.0.0.1 >NUL' -PassThru -WindowStyle Hidden\n\
+             if (-not $child -or $child.Id -le 0) {{ throw 'failed to start grandchild' }}\n\
+             [IO.File]::WriteAllText({child}, [string]$child.Id)\n\
+             Start-Sleep -Seconds 30\n",
+            parent = ps_single_quote(parent_pid),
+            child = ps_single_quote(child_pid),
         );
+        std::fs::write(&script_path, script).expect("write hanging doctor");
         (
             PathBuf::from("powershell.exe"),
             vec![
                 "-NoProfile".to_string(),
                 "-NonInteractive".to_string(),
-                "-Command".to_string(),
-                script,
+                "-ExecutionPolicy".to_string(),
+                "Bypass".to_string(),
+                "-File".to_string(),
+                script_path.to_string_lossy().into_owned(),
             ],
         )
     }
@@ -1255,6 +1261,11 @@ mod tests {
     #[cfg(windows)]
     fn cmd_quote(path: &std::path::Path) -> String {
         format!("\"{}\"", path.display())
+    }
+
+    #[cfg(windows)]
+    fn ps_single_quote(path: &std::path::Path) -> String {
+        format!("'{}'", path.display().to_string().replace('\'', "''"))
     }
 
     #[cfg(unix)]
