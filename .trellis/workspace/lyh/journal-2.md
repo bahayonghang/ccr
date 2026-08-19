@@ -1282,3 +1282,28 @@
 ### Next Steps
 
 - 桌面端用真实本机/用量数据再看一遍徽章 tone
+
+
+## Session 96: Codex Auth 周限展示改为 7d
+
+**Date**: 2026-08-19
+**Task**: Codex Auth 周限展示改为 7d
+**Branch**: `dev`
+
+### Summary
+
+Codex Auth TUI 的 quota 面板把周限文案改为 7d limit，同时保留 5h 路径。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b59299641f6b3827bc8cf23d2d9604a1c7ba16a3` | (see git log) |
+
+### Testing
+
+- [OK] cargo test -p ccr-tui -- --test-threads=1
+
+### Status
+
+[OK] **Completed**
