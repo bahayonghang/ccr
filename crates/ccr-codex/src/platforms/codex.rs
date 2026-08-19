@@ -31,6 +31,14 @@ const THIRD_PARTY_RUNTIME_PROVIDER_KEY: &str = "custom";
 const OPENAI_PROVIDER_KEY: &str = "openai";
 const OPENAI_DEFAULT_BASE_URL: &str = "https://api.openai.com/v1";
 const PROFILE_ENTRY_AUTH_STATE_FILE: &str = "profile_entry_auth_state.json";
+
+fn default_user_codex_dir() -> Option<PathBuf> {
+    std::env::var_os("USERPROFILE")
+        .or_else(|| std::env::var_os("HOME"))
+        .filter(|value| !value.is_empty())
+        .map(PathBuf::from)
+        .map(|home| home.join(".codex"))
+}
 const CODEX_EDITABLE_FIELDS: &[&str] = &[
     "description",
     "model",
@@ -157,8 +165,46 @@ impl CodexPlatform {
 
     /// CCR third-party runtime leftovers that can suppress official Codex login.
     pub fn has_third_party_ccr_runtime(&self) -> Result<bool> {
-        let config = self.config_manager.load_config()?;
+        Self::dir_has_third_party_ccr_runtime(
+            self.config_manager
+                .config_path()
+                .parent()
+                .unwrap_or_else(|| Path::new(".")),
+        )
+    }
+
+    /// Whether `codex_dir/config.toml` still has a CCR third-party custom route.
+    pub fn dir_has_third_party_ccr_runtime(codex_dir: impl AsRef<Path>) -> Result<bool> {
+        let manager = CodexConfigManager::with_codex_dir(codex_dir)?;
+        if !manager.config_path().exists() {
+            return Ok(false);
+        }
+        let config = manager.load_config()?;
         Ok(Self::config_has_third_party_ccr_runtime(&config))
+    }
+
+    /// Runtime directories that login-prep must inspect and clear.
+    ///
+    /// `CCR_CODEX_DIR` is an explicit override and stays the only target.
+    /// Inherited `CODEX_HOME` also prepares `~/.codex`, because official
+    /// `codex login` and Codex Desktop read that default home.
+    pub fn login_prep_codex_dirs() -> Result<Vec<PathBuf>> {
+        let resolved = CodexConfigManager::resolve_codex_dir()?;
+        let mut dirs = vec![resolved.clone()];
+        let ccr_override = std::env::var("CCR_CODEX_DIR")
+            .ok()
+            .is_some_and(|value| !value.trim().is_empty());
+        let redirected = std::env::var("CODEX_HOME")
+            .ok()
+            .is_some_and(|value| !value.trim().is_empty());
+        if !ccr_override
+            && redirected
+            && let Some(default_dir) = default_user_codex_dir()
+            && default_dir != resolved
+        {
+            dirs.push(default_dir);
+        }
+        Ok(dirs)
     }
 
     fn config_has_third_party_ccr_runtime(config: &toml::Value) -> bool {
@@ -202,9 +248,22 @@ impl CodexPlatform {
 
     /// 🏗️ 创建新的 Codex Platform 实例
     pub fn new() -> Result<Self> {
+        Self::for_codex_dir(CodexConfigManager::resolve_codex_dir()?)
+    }
+
+    /// 🏗️ 绑定到指定 Codex runtime 目录
+    pub fn for_codex_dir(codex_dir: impl AsRef<Path>) -> Result<Self> {
+        let codex_dir = codex_dir.as_ref().to_path_buf();
         let paths = PlatformPaths::new(Platform::Codex)?;
-        let config_manager = CodexConfigManager::with_default()?;
-        let runtime_service = CodexRuntimeService::new()?;
+        let config_manager = CodexConfigManager::with_codex_dir(&codex_dir)?;
+        let runtime_manager = CodexConfigManager::with_codex_dir(
+            config_manager
+                .config_path()
+                .parent()
+                .unwrap_or_else(|| Path::new(".")),
+        )?;
+        let runtime_service =
+            CodexRuntimeService::from_parts(paths.clone(), codex_dir, runtime_manager);
         Ok(Self {
             paths,
             config_manager,
@@ -2663,6 +2722,81 @@ env_key = "PACKYCODE_API_KEY"
         );
         assert!(CodexPlatform::current_custom_provider(&config).is_none());
         assert!(!env.codex_dir().join("auth.json").exists());
+    }
+
+    #[test]
+    fn login_prep_dirs_include_default_home_when_codex_home_redirects() {
+        let mut env = TestCodexEnv::new();
+        let home = env.home().to_path_buf();
+        env.set_env("HOME", home.as_os_str());
+        env.set_env("USERPROFILE", home.as_os_str());
+        env.remove_env("CCR_CODEX_DIR");
+        let sandbox = home.join("sandbox-codex");
+        std::fs::create_dir_all(&sandbox).unwrap();
+        env.set_env("CODEX_HOME", sandbox.as_os_str());
+
+        let dirs = CodexPlatform::login_prep_codex_dirs().unwrap();
+        assert_eq!(dirs, vec![sandbox, home.join(".codex")]);
+    }
+
+    #[test]
+    fn login_prep_dirs_stay_on_explicit_ccr_codex_dir() {
+        let mut env = TestCodexEnv::new();
+        let home = env.home().to_path_buf();
+        env.set_env("HOME", home.as_os_str());
+        env.set_env("USERPROFILE", home.as_os_str());
+        let sandbox = home.join("sandbox-codex");
+        env.set_env("CODEX_HOME", sandbox.as_os_str());
+
+        let dirs = CodexPlatform::login_prep_codex_dirs().unwrap();
+        assert_eq!(dirs, vec![env.codex_dir().to_path_buf()]);
+    }
+
+    #[test]
+    fn clear_runtime_scrubs_default_home_when_codex_home_is_redirected() {
+        let mut env = TestCodexEnv::new();
+        let home = env.home().to_path_buf();
+        env.set_env("HOME", home.as_os_str());
+        env.set_env("USERPROFILE", home.as_os_str());
+        env.remove_env("CCR_CODEX_DIR");
+        let sandbox = home.join("sandbox-codex");
+        std::fs::create_dir_all(&sandbox).unwrap();
+        env.set_env("CODEX_HOME", sandbox.as_os_str());
+
+        let default_dir = env.home().join(".codex");
+        std::fs::write(
+            default_dir.join("config.toml"),
+            r#"
+model_provider = "custom"
+model_reasoning_effort = "xhigh"
+
+[model_providers.custom]
+name = "relay-plus-team"
+base_url = "https://o10.top"
+wire_api = "responses"
+requires_openai_auth = true
+"#,
+        )
+        .unwrap();
+        std::fs::write(
+            default_dir.join("auth.json"),
+            r#"{"OPENAI_API_KEY":"sk-stale-default-home"}"#,
+        )
+        .unwrap();
+
+        assert!(CodexPlatform::dir_has_third_party_ccr_runtime(&default_dir).unwrap());
+        let platform = CodexPlatform::for_codex_dir(&default_dir).unwrap();
+        platform.clear_active_profile_runtime().unwrap();
+
+        assert!(!default_dir.join("auth.json").exists());
+        let config = platform.config_manager.load_config().unwrap();
+        let root = config.as_table().unwrap();
+        assert!(root.get("model_provider").is_none());
+        assert_eq!(
+            root.get("model_reasoning_effort")
+                .and_then(toml::Value::as_str),
+            Some("xhigh")
+        );
     }
 
     #[test]
