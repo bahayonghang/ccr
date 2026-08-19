@@ -66,7 +66,9 @@ enabled = true
 切换到其他 profile 会替换上述字段。执行 `ccr codex profile off` 会删除根级
 `model_provider`、CCR 管理的 `model_providers.custom`、其他 profile 根字段和运行期
 `auth.json`，但会原样保留 `model_reasoning_effort`。没有 profile 指针、旧版入口快照或
-第三方 runtime 时，命令保持现有 official `auth.json` 不变。
+第三方 runtime 时，命令保持现有 official `auth.json` 不变。若进程继承了 `CODEX_HOME` 且未设置
+`CCR_CODEX_DIR`，命令还会清理默认的 `~/.codex`，避免只清沙箱、留下官方 login 仍会读到的
+运行期 `auth.json`。
 
 ::: warning 凭据与同步边界
 `~/.codex/config.toml` 和 CCR 创建的 `~/.codex/backups/config.*.bak` 会包含明文 bearer，

@@ -67,7 +67,9 @@ Switching to another profile replaces these fields. Running `ccr codex profile o
 root `model_provider`, the CCR-managed `model_providers.custom` entry, other profile root fields,
 and runtime `auth.json`, while preserving `model_reasoning_effort` verbatim. When there is no
 profile pointer, legacy entry snapshot, or third-party runtime, the command leaves the existing
-official `auth.json` unchanged.
+official `auth.json` unchanged. If the process inherits `CODEX_HOME` and `CCR_CODEX_DIR` is
+unset, the command also clears the default `~/.codex` home so official `codex login` does not
+keep reading a leftover runtime `auth.json`.
 
 ::: warning Credential and sync boundary
 `~/.codex/config.toml` and CCR-created `~/.codex/backups/config.*.bak` files contain the bearer in
