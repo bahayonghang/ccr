@@ -156,7 +156,7 @@ mod tests {
 
         let path = temp.path().join(daily_log_file_name(&utc_log_date()));
         assert!(path.exists());
-        let mode = fs::metadata(&path).unwrap().permissions().mode() & 0o777;
+        let mode = std::fs::metadata(&path).unwrap().permissions().mode() & 0o777;
         assert_eq!(mode, 0o600);
     }
 
@@ -167,10 +167,10 @@ mod tests {
 
         let temp = tempfile::tempdir().unwrap();
         let path = temp.path().join("ccr.log.2026-08-18");
-        fs::write(&path, b"x").unwrap();
-        fs::set_permissions(&path, fs::Permissions::from_mode(0o644)).unwrap();
+        std::fs::write(&path, b"x").unwrap();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o644)).unwrap();
         set_owner_only_file(&path).unwrap();
-        let mode = fs::metadata(&path).unwrap().permissions().mode() & 0o777;
+        let mode = std::fs::metadata(&path).unwrap().permissions().mode() & 0o777;
         assert_eq!(mode, 0o600);
     }
 }
