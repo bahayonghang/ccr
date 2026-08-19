@@ -1015,7 +1015,7 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
                         .unwrap_or_default();
                     content.push(Line::from(vec![
                         Span::styled(
-                            crate::tui_text!("  Weekly limit: ", "  周限额："),
+                            crate::tui_text!("  7d limit: ", "  7d限额："),
                             Style::default().fg(theme::text()),
                         ),
                         Span::styled(w_bar, Style::default().fg(w_color)),
@@ -2176,6 +2176,7 @@ mod tests {
         assert!(compact.contains("Usage&Quota"), "{rendered}");
         assert!(compact.contains("Quotascope:selectedaccount"), "{rendered}");
         assert!(compact.contains("Reset:"), "{rendered}");
+        assert!(compact.contains("7dlimit:"), "{rendered}");
         assert!(compact.contains("Attribution:globalfallback"), "{rendered}");
         assert!(compact.contains("Note:CCR"), "{rendered}");
     }
