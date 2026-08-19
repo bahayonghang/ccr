@@ -16,6 +16,8 @@ pub struct ProfileOffResult {
     pub runtime_mode: &'static str,
     pub auth_outcome: Option<ClaudeAuthActionOutcome>,
     pub warnings: Vec<String>,
+    pub runtime_dirs: Vec<PathBuf>,
+    pub removed_auth_paths: Vec<PathBuf>,
 }
 
 impl ProfileOffResult {
@@ -36,6 +38,8 @@ impl ProfileOffResult {
             runtime_mode: "official_auth",
             auth_outcome,
             warnings,
+            runtime_dirs: Vec::new(),
+            removed_auth_paths: Vec::new(),
         }
     }
 
@@ -47,6 +51,8 @@ impl ProfileOffResult {
             runtime_mode: "grok_native",
             auth_outcome: None,
             warnings: Vec::new(),
+            runtime_dirs: Vec::new(),
+            removed_auth_paths: Vec::new(),
         }
     }
 }
@@ -262,17 +268,32 @@ fn claude_profile_off() -> Result<ProfileOffResult> {
     ))
 }
 
+fn codex_runtime_dirs_need_login_prep(dirs: &[PathBuf]) -> Result<bool> {
+    for dir in dirs {
+        if ccr_codex::CodexPlatform::dir_has_third_party_ccr_runtime(dir)? {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
 fn codex_needs_login_prep() -> Result<bool> {
     let codex_platform = ccr_codex::CodexPlatform::new()?;
-    Ok(codex_platform.has_raw_profile_pointer()?
-        || codex_platform.has_profile_entry_auth_backup()
-        || codex_platform.has_third_party_ccr_runtime()?)
+    if codex_platform.has_raw_profile_pointer()? || codex_platform.has_profile_entry_auth_backup() {
+        return Ok(true);
+    }
+    codex_runtime_dirs_need_login_prep(&ccr_codex::CodexPlatform::login_prep_codex_dirs()?)
 }
 
 fn codex_profile_off() -> Result<ProfileOffResult> {
-    let codex_platform = ccr_codex::CodexPlatform::new()?;
     let previous_profile = platform_previous_profile_hint("codex")?;
-    let changed = codex_needs_login_prep()?;
+    let runtime_dirs = ccr_codex::CodexPlatform::login_prep_codex_dirs()?;
+    let changed = {
+        let platform = ccr_codex::CodexPlatform::new()?;
+        platform.has_raw_profile_pointer()?
+            || platform.has_profile_entry_auth_backup()
+            || codex_runtime_dirs_need_login_prep(&runtime_dirs)?
+    };
 
     if !changed {
         return Ok(ProfileOffResult::official(
@@ -283,28 +304,43 @@ fn codex_profile_off() -> Result<ProfileOffResult> {
         ));
     }
 
-    // 写盘前快照 CCR 指针与 Codex runtime（含 auth.json），失败时 Drop 回滚。
+    // 写盘前快照 CCR 指针与全部 login-prep runtime（含 ~/.codex/auth.json），失败时 Drop 回滚。
     let codex_config_manager = ConfigManager::for_platform("codex")?;
-    let runtime_manager = ccr_codex::CodexConfigManager::with_default()
-        .map_err(|error| CcrError::ConfigError(format!("初始化 Codex 运行时配置失败: {error}")))?;
     let platform_manager = PlatformConfigManager::with_default()?;
     let mut backup = ProfileOffBackup::new("codex")?;
     backup.snapshot(codex_config_manager.config_path())?;
     backup.snapshot(platform_manager.config_path())?;
-    backup.snapshot(runtime_manager.config_path())?;
-    backup.snapshot(runtime_manager.auth_path())?;
+    for dir in &runtime_dirs {
+        let manager = ccr_codex::CodexConfigManager::with_codex_dir(dir).map_err(|error| {
+            CcrError::ConfigError(format!("初始化 Codex 运行时配置失败: {error}"))
+        })?;
+        backup.snapshot(manager.config_path())?;
+        backup.snapshot(manager.auth_path())?;
+    }
 
-    codex_platform.clear_active_profile_runtime()?;
+    let mut removed_auth_paths = Vec::new();
+    for dir in &runtime_dirs {
+        let auth_path = dir.join("auth.json");
+        let auth_existed = auth_path.exists();
+        ccr_codex::CodexPlatform::for_codex_dir(dir)?.clear_active_profile_runtime()?;
+        if auth_existed && !auth_path.exists() {
+            removed_auth_paths.push(auth_path);
+        }
+    }
     clear_profiles_file_pointer("codex")?;
 
     backup.commit();
 
-    Ok(ProfileOffResult::official(
-        Platform::Codex,
+    Ok(ProfileOffResult {
+        platform: Platform::Codex,
         previous_profile,
-        true,
-        None,
-    ))
+        changed: true,
+        runtime_mode: "official_auth",
+        auth_outcome: None,
+        warnings: Vec::new(),
+        runtime_dirs,
+        removed_auth_paths,
+    })
 }
 
 fn grok_needs_login_prep() -> Result<bool> {
@@ -593,5 +629,57 @@ mod tests {
         let restored = std::fs::read_to_string(&original).unwrap();
         assert_eq!(restored, r#"{"OPENAI_API_KEY":"sk-restore-me"}"#);
         assert!(backup_dir.exists());
+    }
+
+    #[test]
+    fn codex_profile_off_clears_default_home_when_codex_home_redirects() {
+        let mut home = TestHome::new_with_home_env();
+        home.remove_env("CCR_CODEX_DIR");
+        let sandbox = home.home().join("sandbox-codex");
+        std::fs::create_dir_all(&sandbox).unwrap();
+        home.set_env("CODEX_HOME", sandbox.as_os_str());
+
+        let default_dir = home.home().join(".codex");
+        std::fs::create_dir_all(&default_dir).unwrap();
+        std::fs::write(
+            default_dir.join("config.toml"),
+            r#"
+model_provider = "custom"
+model_reasoning_effort = "xhigh"
+
+[model_providers.custom]
+name = "relay-plus-team"
+base_url = "https://o10.top"
+wire_api = "responses"
+requires_openai_auth = true
+"#,
+        )
+        .unwrap();
+        std::fs::write(
+            default_dir.join("auth.json"),
+            r#"{"OPENAI_API_KEY":"sk-stale-default-home"}"#,
+        )
+        .unwrap();
+
+        assert!(needs_login_prep(Platform::Codex).unwrap());
+        let result = profile_off_for_platform(Platform::Codex).unwrap();
+        assert!(result.changed);
+        assert!(!default_dir.join("auth.json").exists());
+        assert!(
+            result
+                .removed_auth_paths
+                .iter()
+                .any(|path| path == &default_dir.join("auth.json"))
+        );
+        let config: toml::Value =
+            toml::from_str(&std::fs::read_to_string(default_dir.join("config.toml")).unwrap())
+                .unwrap();
+        assert!(config.get("model_provider").is_none());
+        assert_eq!(
+            config
+                .get("model_reasoning_effort")
+                .and_then(toml::Value::as_str),
+            Some("xhigh")
+        );
     }
 }

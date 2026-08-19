@@ -53,6 +53,13 @@ impl CodexProfileFixture {
         command
     }
 
+    fn command_with_redirected_codex_home(&self, sandbox: &PathBuf) -> Command {
+        let mut command = self.command();
+        command.env_remove("CCR_CODEX_DIR");
+        command.env("CODEX_HOME", sandbox);
+        command
+    }
+
     fn run_output(&self, args: &[&str]) -> Output {
         self.command().args(args).output().unwrap()
     }
@@ -541,6 +548,56 @@ fn codex_profile_off_scrubs_api_key_without_snapshot_when_pointer_exists() {
     .load()
     .unwrap();
     assert_eq!(profiles.current_config, "");
+}
+
+#[test]
+fn codex_profile_off_clears_default_home_auth_when_codex_home_redirects() {
+    let fixture = CodexProfileFixture::new();
+    fixture.write_unified_codex_profile(None);
+    fixture.save_codex_profiles("");
+
+    let sandbox = fixture.home.join("sandbox-codex");
+    fs::create_dir_all(&sandbox).unwrap();
+    fs::write(
+        fixture.codex_dir.join("config.toml"),
+        r#"
+model_provider = "custom"
+model_reasoning_effort = "xhigh"
+
+[model_providers.custom]
+name = "relay-plus-team"
+base_url = "https://o10.top"
+wire_api = "responses"
+requires_openai_auth = true
+"#,
+    )
+    .unwrap();
+    fs::write(
+        fixture.codex_dir.join("auth.json"),
+        r#"{"OPENAI_API_KEY":"sk-stale-default-home"}"#,
+    )
+    .unwrap();
+
+    let off = fixture
+        .command_with_redirected_codex_home(&sandbox)
+        .args(["codex", "profile", "off", "--json"])
+        .output()
+        .unwrap();
+    assert!(off.status.success(), "{:?}", off.status);
+    let json: Value = serde_json::from_str(&String::from_utf8_lossy(&off.stdout)).unwrap();
+    assert_eq!(json["changed"], true);
+    assert!(
+        json["removed_auth_json"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|value| {
+                value
+                    .as_str()
+                    .is_some_and(|path| path.ends_with("auth.json"))
+            })
+    );
+    assert!(!fixture.codex_dir.join("auth.json").exists());
 }
 
 #[test]
