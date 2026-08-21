@@ -15,6 +15,8 @@
 BIN := "ccr"
 CLI_CRATE_PATH := "crates/ccr"
 OUTPUTS_DIR := "outputs"
+# 与 .github/workflows/ci.yml security-audit 任务保持同一版本
+CARGO_AUDIT_VERSION := "0.22.2"
 
 # 🧭 跨平台 Shell 配置
 # Windows 使用 PowerShell with UTF-8 encoding; -NoProfile 避免交互式配置污染 CI 输出
@@ -474,12 +476,53 @@ lint: fmt clippy
     @just header "代码质量检查"
     @just success "代码质量检查全部通过"
 
-# 🔒 安全审计 (cargo audit) - 若未安装则失败
+# 🔒 安全审计 (cargo audit) - 二进制缺失时安装 GitHub CI 同版本
 audit:
     @just header "🔒 运行安全审计"
-    @just info "📌 使用 cargo-audit (需要安装: cargo install cargo-audit)"
+    @just _ensure-cargo-audit-{{os()}}
     cargo audit
     @just success "安全审计步骤完成"
+
+[private]
+_ensure-cargo-audit-windows:
+    #!pwsh.exe
+    $ErrorActionPreference = 'Stop'
+    if (-not (Get-Command cargo-audit -ErrorAction SilentlyContinue)) {
+        Write-Host "cargo-audit 未安装或二进制缺失，正在安装 {{CARGO_AUDIT_VERSION}}"
+        if (Get-Command cargo-binstall -ErrorAction SilentlyContinue) {
+            cargo binstall cargo-audit --version {{CARGO_AUDIT_VERSION}} --no-confirm --force
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        } else {
+            cargo install cargo-audit --version {{CARGO_AUDIT_VERSION}} --locked --force
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        }
+    }
+
+[private]
+_ensure-cargo-audit-linux:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if ! command -v cargo-audit >/dev/null 2>&1; then
+      printf 'cargo-audit 未安装或二进制缺失，正在安装 %s\n' "{{CARGO_AUDIT_VERSION}}"
+      if command -v cargo-binstall >/dev/null 2>&1; then
+        cargo binstall cargo-audit --version {{CARGO_AUDIT_VERSION}} --no-confirm --force
+      else
+        cargo install cargo-audit --version {{CARGO_AUDIT_VERSION}} --locked --force
+      fi
+    fi
+
+[private]
+_ensure-cargo-audit-macos:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if ! command -v cargo-audit >/dev/null 2>&1; then
+      printf 'cargo-audit 未安装或二进制缺失，正在安装 %s\n' "{{CARGO_AUDIT_VERSION}}"
+      if command -v cargo-binstall >/dev/null 2>&1; then
+        cargo binstall cargo-audit --version {{CARGO_AUDIT_VERSION}} --no-confirm --force
+      else
+        cargo install cargo-audit --version {{CARGO_AUDIT_VERSION}} --locked --force
+      fi
+    fi
 
 # ═══════════════════════════════════════════════════════════
 # 🚀 开发工作流命令
