@@ -11,7 +11,7 @@ const DEFAULT_TAB_ORDER: [TuiTabId; 6] = [
     TuiTabId::GrokProfile,
     TuiTabId::CodexAuth,
     TuiTabId::ClaudeAuth,
-    TuiTabId::OpencodeAuth,
+    TuiTabId::GrokAuth,
 ];
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -117,6 +117,11 @@ pub enum TuiTabId {
     Usage,
     CodexAuth,
     ClaudeAuth,
+    GrokAuth,
+    /// Deprecated: OpenCode Auth tab 已下线。
+    /// 仅为解析旧版 `tui.toml` 保留;`load()` 会过滤该项并记录 warn,
+    /// 不得因它出现而丢弃用户的自定义排序。
+    #[doc(hidden)]
     OpencodeAuth,
 }
 
@@ -129,6 +134,7 @@ impl TuiTabId {
             TuiTabId::Usage => "usage",
             TuiTabId::CodexAuth => "codex_auth",
             TuiTabId::ClaudeAuth => "claude_auth",
+            TuiTabId::GrokAuth => "grok_auth",
             TuiTabId::OpencodeAuth => "opencode_auth",
         }
     }
@@ -201,6 +207,15 @@ impl TuiConfigManager {
                 self.config_path.display()
             );
             config.tab_order.retain(|tab_id| *tab_id != TuiTabId::Usage);
+        }
+        if config.tab_order.contains(&TuiTabId::OpencodeAuth) {
+            tracing::warn!(
+                "TUI config {} contains deprecated `opencode_auth` tab; ignoring it",
+                self.config_path.display()
+            );
+            config
+                .tab_order
+                .retain(|tab_id| *tab_id != TuiTabId::OpencodeAuth);
         }
 
         let missing = DEFAULT_TAB_ORDER
@@ -340,10 +355,11 @@ mod tests {
                 TuiTabId::GrokProfile,
                 TuiTabId::CodexAuth,
                 TuiTabId::ClaudeAuth,
-                TuiTabId::OpencodeAuth,
+                TuiTabId::GrokAuth,
             ]
         );
         assert!(!order.contains(&TuiTabId::Usage));
+        assert!(!order.contains(&TuiTabId::OpencodeAuth));
     }
 
     #[test]
@@ -373,8 +389,8 @@ mod tests {
                 TuiTabId::CodexProfile,
                 TuiTabId::CodexAuth,
                 TuiTabId::ClaudeAuth,
-                TuiTabId::OpencodeAuth,
                 TuiTabId::GrokProfile,
+                TuiTabId::GrokAuth,
             ]
         );
     }
@@ -466,7 +482,7 @@ tab_order = [
                 TuiTabId::GrokProfile,
                 TuiTabId::CodexAuth,
                 TuiTabId::ClaudeAuth,
-                TuiTabId::OpencodeAuth,
+                TuiTabId::GrokAuth,
             ],
         };
 
@@ -523,8 +539,8 @@ tab_order = [
                 TuiTabId::CodexProfile,
                 TuiTabId::ClaudeProfile,
                 TuiTabId::CodexAuth,
-                TuiTabId::OpencodeAuth,
                 TuiTabId::GrokProfile,
+                TuiTabId::GrokAuth,
             ]
         );
     }
@@ -575,7 +591,7 @@ tab_order = [
                 TuiTabId::ClaudeProfile,
                 TuiTabId::GrokProfile,
                 TuiTabId::CodexAuth,
-                TuiTabId::OpencodeAuth,
+                TuiTabId::GrokAuth,
             ]
         );
     }

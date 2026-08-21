@@ -1272,9 +1272,6 @@ fn draw_help_bar(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
         Some(Overlay::Confirm { .. }) => {
             crate::tui_text!("y confirm delete | n/Esc cancel", "y 确认删除 | n/Esc 取消")
         }
-        Some(Overlay::ImportCodexConfirm { .. }) => {
-            crate::tui_text!("y confirm | n/Esc cancel", "y 确认 | n/Esc 取消")
-        }
         Some(Overlay::Input { .. }) => {
             crate::tui_text!("Enter confirm | Esc cancel", "Enter 确认 | Esc 取消")
         }
@@ -1283,8 +1280,8 @@ fn draw_help_bar(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
             "Enter 保存 | Ctrl+F 强制覆盖 | Esc 取消"
         ),
         None => crate::tui_text!(
-            "↑/k up | ↓/j down | Enter switch | s save current | n rename | d delete | r refresh | R repair | b quota | Ctrl+L language | q quit",
-            "↑/k 上移 | ↓/j 下移 | Enter 切换 | s 保存当前 | n 重命名 | d 删除 | r 刷新 | R 修复 | b 配额 | Ctrl+L 语言 | q 退出"
+            "↑/k up | ↓/j down | Enter switch | s save current | n rename | d delete | o auth off | r refresh | R repair | b quota | Ctrl+L language | q quit",
+            "↑/k 上移 | ↓/j 下移 | Enter 切换 | s 保存当前 | n 重命名 | d 删除 | o 登出 | r 刷新 | R 修复 | b 配额 | Ctrl+L 语言 | q 退出"
         ),
     };
 

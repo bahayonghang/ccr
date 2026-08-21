@@ -641,10 +641,6 @@ fn draw_footer_strip(f: &mut Frame, area: Rect, app: &ClaudeAuthApp) {
             ShortcutHint::new("y", crate::tui_text!("confirm delete", "确认删除")),
             ShortcutHint::new("n/Esc", crate::tui_text!("cancel", "取消")),
         ],
-        Some(Overlay::ImportCodexConfirm { .. }) => vec![
-            ShortcutHint::new("y", crate::tui_text!("confirm", "确认")),
-            ShortcutHint::new("n/Esc", crate::tui_text!("cancel", "取消")),
-        ],
         Some(Overlay::Input { .. }) => vec![
             ShortcutHint::new("", crate::tui_text!("enter account name", "输入账号名")),
             ShortcutHint::new("Enter", crate::tui_text!("save", "保存")),
@@ -662,6 +658,7 @@ fn draw_footer_strip(f: &mut Frame, area: Rect, app: &ClaudeAuthApp) {
             ShortcutHint::new("Enter", crate::tui_text!("switch", "切换")),
             ShortcutHint::new("s", crate::tui_text!("save", "保存")),
             ShortcutHint::new("d", crate::tui_text!("delete", "删除")),
+            ShortcutHint::new("o", crate::tui_text!("auth off", "登出")),
             ShortcutHint::new("r", crate::tui_text!("refresh", "刷新")),
             ShortcutHint::new("Ctrl+L", crate::tui_text!("language", "语言")),
             ShortcutHint::new("q", crate::tui_text!("quit", "退出")),

@@ -6,7 +6,7 @@ use crate::tui::overlay::Overlay;
 use crate::tui::pagination::{
     DEFAULT_PAGE_SIZE, index_in_page, page_for_index, page_slice, total_pages,
 };
-use ccr_cli::application::profile_off_for_platform;
+use ccr_cli::application::{auth_off_for_platform, profile_off_for_platform};
 use ccr_cli::models::{
     CodexAccountQuota, CodexAuthItem, CodexAuthRegistry, CodexRuntimeSummary, LoginState, Platform,
 };
@@ -985,6 +985,34 @@ impl CodexAuthApp {
                                 e
                             )));
                         }
+                    }
+                }
+            }
+            KeyCode::Char('o') | KeyCode::Char('O') => {
+                match auth_off_for_platform(Platform::Codex) {
+                    Ok(result) => {
+                        if result.changed {
+                            self.toasts.push(Toast::success(crate::tui_text!(
+                                "Logged out of the official Codex session",
+                                "已登出 Codex 官方会话"
+                            )));
+                        } else {
+                            self.toasts.push(Toast::info(crate::tui_text!(
+                                "No official Codex session file to remove",
+                                "没有可删除的 Codex 官方会话文件"
+                            )));
+                        }
+                        for warning in result.warnings {
+                            self.toasts.push(Toast::warning(warning));
+                        }
+                        let _ = self.reload_accounts();
+                    }
+                    Err(err) => {
+                        self.toasts.push(Toast::error(crate::tui_format!(
+                            "Codex auth off failed: {}",
+                            "Codex auth off 失败：{}",
+                            err
+                        )));
                     }
                 }
             }

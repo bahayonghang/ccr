@@ -11,9 +11,6 @@ pub mod codex_session_service;
 pub mod codex_session_trash_service;
 pub mod codex_usage_service;
 pub mod openai_quota_core;
-pub mod opencode_auth_service;
-pub mod opencode_quota_service;
-pub mod opencode_usage_service;
 
 pub use codex_auth_crypto::ExportCrypto;
 pub use codex_auth_service::{AuthReadSnapshot, CodexAuthService};
@@ -43,9 +40,4 @@ pub use codex_session_trash_service::{
 };
 pub use codex_usage_service::{
     CodexRollingUsage, CodexUsageRecord, CodexUsageService, CodexUsageStats,
-};
-pub use opencode_auth_service::OpenCodeAuthService;
-pub use opencode_quota_service::OpenCodeQuotaService;
-pub use opencode_usage_service::{
-    OpenCodeRollingUsage, OpenCodeUsageRecord, OpenCodeUsageService, OpenCodeUsageStats,
 };

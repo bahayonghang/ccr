@@ -675,3 +675,40 @@ fn codex_profile_crud_commands_support_vscode_surface() {
     assert!(delete_output.status.success(), "{:?}", delete_output.status);
     assert_eq!(delete_json["name"], "team");
 }
+
+#[test]
+fn codex_auth_off_deletes_auth_json_and_keeps_profile_pointer() {
+    let fixture = CodexProfileFixture::new();
+    fixture.write_unified_codex_profile(Some("team"));
+    fs::write(
+        fixture.codex_dir.join("config.toml"),
+        "cli_auth_credentials_store = \"file\"\nmodel_provider = \"custom\"\n",
+    )
+    .unwrap();
+    fs::write(
+        fixture.codex_dir.join("auth.json"),
+        r#"{"OPENAI_API_KEY":"sk-runtime-secret"}"#,
+    )
+    .unwrap();
+
+    let (output, json) = fixture.run_json(&["codex", "auth", "off", "--json"]);
+    assert!(output.status.success(), "{:?}", output.status);
+    assert_eq!(json["ok"], true);
+    assert_eq!(json["changed"], true);
+    assert_eq!(json["path"], "file");
+    assert_eq!(json["profile_pointer"], "team");
+    assert!(!String::from_utf8_lossy(&output.stdout).contains("sk-runtime-secret"));
+    assert!(!fixture.codex_dir.join("auth.json").exists());
+
+    let unified = PlatformConfigManager::new(fixture.root.join("config.toml"))
+        .load()
+        .unwrap();
+    assert_eq!(
+        unified
+            .get_platform("codex")
+            .unwrap()
+            .current_profile
+            .as_deref(),
+        Some("team")
+    );
+}

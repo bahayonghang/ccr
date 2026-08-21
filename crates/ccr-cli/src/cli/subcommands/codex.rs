@@ -406,6 +406,17 @@ pub enum CodexAuthAction {
         json: bool,
     },
 
+    /// 登出当前官方运行时登录
+    ///
+    /// 文件存储删除运行期 auth.json；keyring/auto 调用 `codex logout`
+    /// 示例: ccr codex auth off
+    ///       ccr codex auth off --json
+    Off {
+        /// 以 JSON 格式输出
+        #[arg(long)]
+        json: bool,
+    },
+
     /// 导出所有账号到 JSON 文件
     ///
     /// 将所有已保存的账号导出为 JSON 格式，默认保存到 Downloads 目录

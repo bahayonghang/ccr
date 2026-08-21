@@ -13,10 +13,35 @@ pub enum GrokAction {
     /// Show Grok command help
     Help,
 
+    /// Manage Grok official session login
+    Auth {
+        #[command(subcommand)]
+        action: Option<GrokAuthAction>,
+    },
+
     /// Manage Grok runtime profiles
     Profile {
         #[command(subcommand)]
         action: Box<GrokProfileAction>,
+    },
+}
+
+#[derive(Subcommand)]
+#[command(disable_help_subcommand = true)]
+pub enum GrokAuthAction {
+    /// Show Grok Auth command help
+    Help,
+
+    /// Show whether a Grok official session file exists
+    Current {
+        #[arg(long)]
+        json: bool,
+    },
+
+    /// Log out the current official Grok runtime session
+    Off {
+        #[arg(long)]
+        json: bool,
     },
 }
 

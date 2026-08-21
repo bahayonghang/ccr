@@ -24,8 +24,6 @@ SENSITIVE_MODULES = (
     "crates/ccr-codex/src/platforms/codex.rs",
     "crates/ccr-codex/src/services/codex_oauth_token_service.rs",
     "crates/ccr-codex/src/services/codex_quota_service.rs",
-    "crates/ccr-codex/src/services/opencode_auth_service.rs",
-    "crates/ccr-codex/src/services/opencode_quota_service.rs",
 )
 DIRECT_ASYNC_WRITE = re.compile(r"(?:tokio::fs|async_fs)::write\s*\(")
 ATOMIC_WRITE = re.compile(
