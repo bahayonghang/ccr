@@ -1307,3 +1307,28 @@ Codex Auth TUI 的 quota 面板把周限文案改为 7d limit，同时保留 5h 
 ### Status
 
 [OK] **Completed**
+
+
+## Session 97: Claude Codex Grok auth off
+
+**Date**: 2026-08-21
+**Task**: Claude Codex Grok auth off
+**Branch**: `dev`
+
+### Summary
+
+落地 ccr claude/codex/grok auth off（file/native 混合登出），删除 ccr opencode 命令组与 Auth TUI，并接入 TUI、ccr-ui、VS Code 包装与文档。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b4f5e462` | (see git log) |
+| `dc71784b` | (see git log) |
+| `66eb0b8e` | (see git log) |
+| `8cf64419` | (see git log) |
+| `feab8669` | (see git log) |
+
+### Status
+
+[OK] **Completed**

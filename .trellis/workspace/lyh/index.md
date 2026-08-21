@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 96
-- **Last Active**: 2026-08-19
+- **Total Sessions**: 97
+- **Last Active**: 2026-08-21
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~1309 | Active |
+| `journal-2.md` | ~1334 | Active |
 | `journal-1.md` | ~1987 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 97 | 2026-08-21 | Claude Codex Grok auth off | `b4f5e462`, `dc71784b`, `66eb0b8e`, `8cf64419`, `feab8669` | `dev` |
 | 96 | 2026-08-19 | Codex Auth 周限展示改为 7d | `b59299641f6b3827bc8cf23d2d9604a1c7ba16a3` | `dev` |
 | 95 | 2026-08-18 | Overview 铺满工作区与指标徽章 | `dbb8e973` | `dev` |
 | 94 | 2026-08-18 | UI 视觉重构与审计依赖修复 | `98b08252`, `941ba9ca`, `5ce63c7d` | `feature/ui-visual-refactor` |
