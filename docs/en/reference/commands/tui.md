@@ -15,8 +15,8 @@ Additional behavior:
 # In the Codex path, no action also enters TUI mode
 ccr codex
 
-# In the OpenCode path, no action opens the OpenCode Auth tab
-ccr opencode
+# In the Grok Auth path, no nested action opens the Grok Auth tab
+ccr grok auth
 ```
 
 ## Keyboard Controls
@@ -32,7 +32,7 @@ ccr opencode
 ## Current Role
 
 - best for profile browsing and switching inside a terminal
-- best for fast movement between Claude, Codex, and OpenCode-related tabs
+- best for fast movement between Claude, Codex, and Grok tabs
 - not a replacement for the exact command-line surface
 
 ## Implementation Facts
@@ -40,7 +40,7 @@ ccr opencode
 - the default build enables the `tui` feature
 - entry detection lives in `Cli::is_tui_mode()`
 - no-subcommand behavior lives in `CommandDispatcher::handle_no_subcommand()`
-- the OpenCode Auth tab supports `i` to preview and confirm importing compatible saved Codex accounts
+- the Grok Auth tab shows official session status and supports `o` to log out the official runtime
 
 ## Example
 
@@ -50,13 +50,13 @@ ccr
 # ↑↓ to select a profile
 # Enter/Space to apply and stay (press q or Esc to quit)
 
-ccr opencode
-# Press i on the OpenCode Auth tab to preview and confirm importing compatible saved Codex accounts
+ccr grok auth
+# Press o on the Grok Auth tab to log out the current official runtime
 ```
 
 ## See Also
 
-- [`opencode`](./opencode.md)
+- [`grok`](./grok.md)
 - [`list`](./list.md)
 - [`switch`](./switch.md)
 - [`current`](./current.md)

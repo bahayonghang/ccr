@@ -1,6 +1,16 @@
 # `grok` - Grok Build Profile Runtime
 
-`ccr grok` manages model and third-party provider profiles for Grok Build. CCR manages `[model.custom]`, `[models].default`, and `[models].default_reasoning_effort` in `~/.grok/config.toml`. It never reads or writes `auth.json` or `mcp_credentials.json`.
+`ccr grok` manages Grok Build model profiles and official session logout. CCR manages `[model.custom]`, `[models].default`, and `[models].default_reasoning_effort` in `~/.grok/config.toml`. `auth off` may check that `$GROK_HOME/auth.json` exists, back up that file, and delete that file. The default path is `~/.grok/auth.json`. CCR does not parse the token. CCR does not read, write, back up, or validate `mcp_credentials.json`.
+
+## Official Auth
+
+| Command | Purpose |
+|---|---|
+| `ccr grok auth` | open the Grok Auth tab when a TUI launcher is present; otherwise print help |
+| `ccr grok auth current` | report whether an official session file exists; supports `--json`; does not print the token |
+| `ccr grok auth off` | log out the current official runtime; supports `--json` |
+
+`auth off` is independent from `profile off`. The command does not change the profile pointer, and it does not delete `[model.custom]`. The command deletes `auth.json` only. The command does not change `mcp_credentials.json`. CCR has no Grok account snapshot. After logout, run official `grok login`, or fall back to the user's own `XAI_API_KEY`.
 
 ## Commands
 
@@ -56,6 +66,7 @@ For third-party profiles, CCR writes `[model.custom].reasoning_effort`, derives 
 - `api_key` is Grok Build's direct credential field. `--api-key` stores plaintext in CCR profiles, rotating backups, and Grok `config.toml`, while command output omits it. The old `--auth-token` spelling remains a compatibility alias.
 - `env_key` remains available for an environment variable name; do not put an API key value in it.
 - Official profiles reject `api_key`, `auth_token`, and `env_key`. Grok owns its login session and `XAI_API_KEY`.
+- `auth off` deletes `auth.json` only. The command does not change `mcp_credentials.json`. Profile commands still do not read or write `auth.json`.
 - Displayed URLs omit userinfo, query, and fragment components.
 
 ## Examples

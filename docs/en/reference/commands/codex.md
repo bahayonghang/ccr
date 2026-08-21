@@ -12,6 +12,7 @@
 ```bash
 ccr codex auth current
 ccr codex auth list
+ccr codex auth off
 ccr codex profile list
 ccr codex profile switch <name>
 ccr codex profile current
@@ -22,8 +23,10 @@ ccr codex profile off
 
 | Command family | Purpose |
 |---|---|
-| `ccr codex auth ...` | save, switch, export, and import official auth accounts |
+| `ccr codex auth ...` | save, switch, export, and import official auth accounts, or log out the current official runtime |
 | `ccr codex profile ...` | apply a CCR profile into the Codex runtime or clear its route and runtime credentials |
+
+`ccr codex auth off` logs out the current official runtime. The command is independent from `profile off`. The command does not change the profile pointer or the `config.toml` route. In profile mode, CCR still clears runtime `auth.json` for a file store, or CCR runs `codex logout` for keyring and auto. `--json` may report a remaining `profile_pointer`. That pointer is a warning, not a failure. Run `profile switch` again to write the key back.
 
 ## Current `profile` surface
 

@@ -20,8 +20,7 @@ ccr <command> --help
 | [`current`](./current) | Claude/Codex runtime 总览 |
 | [`claude`](./claude) | Claude official auth 与 profile runtime |
 | [`codex`](./codex) | Codex auth、profile、quota 与历史同步 |
-| [`grok`](./grok) | Grok Build 模型与第三方 provider profiles |
-| [`opencode`](./opencode) | OpenCode auth 兼容与 Codex 导入 |
+| [`grok`](./grok) | Grok Build 模型、第三方 provider profiles 与官方会话登出 |
 | [`platform`](./platform) | 平台注册表；当前稳定操作以 `list` 为主 |
 | [`switch`](./switch) | 旧 profile 切换入口及迁移说明 |
 

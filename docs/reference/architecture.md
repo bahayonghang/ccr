@@ -52,7 +52,7 @@ flowchart LR
 
 ## CLI 与 TUI
 
-`crates/ccr/src/main.rs` 组装 launcher。命令定义和分发位于 `crates/ccr-cli/src/cli/`，命令处理器位于 `crates/ccr-cli/src/commands/`。无子命令时可以进入 TUI；`ccr claude`、`ccr codex` 和 `ccr opencode` 也有对应的交互入口。
+`crates/ccr/src/main.rs` 组装 launcher。命令定义和分发位于 `crates/ccr-cli/src/cli/`，命令处理器位于 `crates/ccr-cli/src/commands/`。无子命令时可以进入 TUI；`ccr claude`、`ccr codex` 和 `ccr grok auth` 也有对应的交互入口。
 
 TUI 渲染由 `ccr-tui` 持有，不应进入 `ccr-cli`。CLI 领域逻辑优先调用配置、Codex、同步、skills 和 store crate，而不是复制底层实现。
 

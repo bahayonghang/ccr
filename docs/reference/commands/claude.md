@@ -22,8 +22,11 @@ ccr help claude profile
 | `ccr claude auth switch <name>` | 切换官方账号 |
 | `ccr claude auth delete <name>` | 删除账号；`--force` 跳过确认 |
 | `ccr claude auth current` | 显示当前官方登录；支持 `--json` |
+| `ccr claude auth off` | 登出当前官方运行时登录；支持 `--json` |
 
 `save` 支持 `--description <text>` 和 `--force`。Auth snapshot 不等同于 API token profile。
+
+`auth off` 登出当前官方运行时登录，与 `profile off` 独立。该命令不删除 CCR 已保存账号快照，不修改 profile 指针，也不调用 `profile off`。Windows / Linux 删除 `.credentials.json`；macOS 调用官方 `claude auth logout`。已保存账号仍可用 `auth switch` 恢复。
 
 ## Profile Runtime
 

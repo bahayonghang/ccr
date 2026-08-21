@@ -59,7 +59,6 @@ const zhTheme = {
               { text: 'platform', link: '/reference/commands/platform' },
               { text: 'claude', link: '/reference/commands/claude' },
               { text: 'codex', link: '/reference/commands/codex' },
-              { text: 'opencode', link: '/reference/commands/opencode' },
               { text: 'init', link: '/reference/commands/init' }
             ]
           },
@@ -235,7 +234,6 @@ const enTheme = {
               { text: 'platform', link: '/en/reference/commands/platform' },
               { text: 'claude', link: '/en/reference/commands/claude' },
               { text: 'codex', link: '/en/reference/commands/codex' },
-              { text: 'opencode', link: '/en/reference/commands/opencode' },
               { text: 'init', link: '/en/reference/commands/init' }
             ]
           },
