@@ -85,8 +85,11 @@
   `UnsafeMissingEntryState` from raw registry/profile intent, runtime equality,
   and entry-state presence. It is read-only, has no pointer reconciliation or
   other side effects, and never exposes credential values.
-- `auth.json` and `mcp_credentials.json` are never read, written, backed up, or
-  validated. Grok owns session authentication.
+- `mcp_credentials.json` is never read, written, backed up, or validated.
+- `auth.json` is existence-read, secret-backed-up, and deleted only by
+  `auth_off_for_platform(Grok)` / `ccr grok auth off`. Other Grok profile
+  operations still must not read, write, backup, or validate `auth.json`.
+  Grok owns session authentication.
 - Errors and logs never contain tokens, complete credential-bearing TOML
   parser errors, or unsafe base URLs. CLI/TUI URL display uses the shared safe
   helper; inline tokens are not rendered, even masked.
