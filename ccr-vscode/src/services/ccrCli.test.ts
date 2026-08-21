@@ -6,6 +6,7 @@ import {
   buildClaudeProfileSwitchArgs,
   buildCodexProfileOffArgs,
   buildCodexProfileSwitchArgs,
+  buildPlatformAuthOffArgs,
   buildPlatformProfileCreateArgs,
   buildPlatformProfileDeleteArgs,
   buildPlatformProfileDisableArgs,
@@ -101,6 +102,21 @@ describe("ccrCli arg builders", () => {
     assert.deepEqual(
       buildPlatformProfileOffArgs("claude"),
       ["claude", "profile", "off", "--json"],
+    );
+  });
+
+  it("builds platform-scoped auth off args", () => {
+    assert.deepEqual(
+      buildPlatformAuthOffArgs("claude"),
+      ["claude", "auth", "off", "--json"],
+    );
+    assert.deepEqual(
+      buildPlatformAuthOffArgs("codex"),
+      ["codex", "auth", "off", "--json"],
+    );
+    assert.deepEqual(
+      buildPlatformAuthOffArgs("grok"),
+      ["grok", "auth", "off", "--json"],
     );
   });
 

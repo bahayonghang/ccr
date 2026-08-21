@@ -18,6 +18,7 @@ import {
   buildPlatformProfileDeleteArgs,
   buildPlatformProfileDisableArgs,
   buildPlatformProfileEnableArgs,
+  buildPlatformAuthOffArgs,
   buildPlatformProfileOffArgs,
   buildPlatformProfileSetFieldArgs,
   buildPlatformProfileSwitchArgs,
@@ -26,6 +27,7 @@ import {
   buildCodexProfileOffArgs,
   buildCodexProfileSwitchArgs,
   type CodexAuthUpdateData,
+  type PlatformAuthOffData,
   type PlatformProfileMutationData,
   type ProfileFieldValue,
 } from "./ccrCliArgs";
@@ -89,7 +91,7 @@ export interface CliJsonResult<T> extends CliResult {
   data?: T;
 }
 
-export type { CodexAuthUpdateData, PlatformProfileMutationData, ProfileFieldValue };
+export type { CodexAuthUpdateData, PlatformAuthOffData, PlatformProfileMutationData, ProfileFieldValue };
 
 function execFileCommand(
   command: string,
@@ -189,6 +191,11 @@ export async function execProfileSwitch(platformName: string, profileName: strin
 /** Execute `ccr <platform> profile off --json` */
 export async function execProfileOff(platformName: string): Promise<CliJsonResult<PlatformProfileMutationData>> {
   return execCcrJson(buildPlatformProfileOffArgs(platformName));
+}
+
+/** Execute `ccr <platform> auth off --json` */
+export async function execAuthOff(platformName: string): Promise<CliJsonResult<PlatformAuthOffData>> {
+  return execCcrJson(buildPlatformAuthOffArgs(platformName));
 }
 
 /** Execute `ccr codex auth switch <name>` — switch active Codex auth account */

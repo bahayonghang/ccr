@@ -16,6 +16,14 @@ export interface CodexAuthUpdateData {
   message: string;
 }
 
+export interface PlatformAuthOffData {
+  ok: boolean;
+  changed: boolean;
+  path: "file" | "native_logout";
+  profile_pointer?: string;
+  warnings?: string[];
+}
+
 export type ProfileFieldValue = string | number | boolean | string[] | undefined;
 
 type ProfileScopedAction = "create" | "set-field" | "enable" | "disable" | "delete" | "switch" | "off";
@@ -105,6 +113,10 @@ export function buildPlatformProfileSwitchArgs(platformName: string, profileName
 
 export function buildPlatformProfileOffArgs(platformName: string): string[] {
   return buildPlatformScopedProfileArgs(platformName, "off", ["--json"]);
+}
+
+export function buildPlatformAuthOffArgs(platformName: string): string[] {
+  return [platformName, "auth", "off", "--json"];
 }
 
 export function buildClaudeProfileSwitchArgs(profileName: string): string[] {
