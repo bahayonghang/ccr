@@ -1,0 +1,12 @@
+{"file": ".trellis/spec/ccr-config/backend/backend-guidelines.md", "reason": "确认 TuiTabId::GrokAuth 已加入默认顺序，OpencodeAuth 按 Usage 过滤而非让旧 toml 整文件失败"}
+{"file": ".trellis/spec/ccr-cli/backend/auth-off.md", "reason": "对照 file/native changed、D10 删 backup、can_auth_off 与 spawn 规则"}
+{"file": ".trellis/spec/ccr-cli/backend/profile-off-login-prep.md", "reason": "确认 auth off 未调用 profile off，也未改变 profile 指针规则"}
+{"file": ".trellis/spec/ccr-cli/backend/claude-auth-runtime.md", "reason": "确认未删用户 ANTHROPIC_API_KEY，macOS 未写 Keychain，输出无密钥"}
+{"file": ".trellis/spec/ccr-cli/backend/grok-profile-runtime.md", "reason": "确认未写 mcp_credentials.json 与 config.toml；auth.json 允许存在性读取、备份、删除"}
+{"file": ".trellis/spec/ccr-ui/frontend/confirm-interaction-contracts.md", "reason": "Claude/Codex warning、Grok danger；取消不执行、无原生 confirm"}
+{"file": ".trellis/spec/ccr-ui/frontend/api-facade-boundary.md", "reason": "绑定由 generate 产生；domain 包装存在"}
+{"file": ".trellis/spec/ccr-vscode/frontend/extension-surface-contracts.md", "reason": "无新贡献命令；Grok 仍非 profile 可写平台"}
+{"file": ".trellis/tasks/08-20-claude-codex-grok-auth-off/prd.md", "reason": "对照 AC1–AC13"}
+{"file": ".trellis/tasks/08-20-claude-codex-grok-auth-off/design.md", "reason": "对照写核、spawn、OpenCode 删除清单"}
+{"file": ".trellis/tasks/08-20-claude-codex-grok-auth-off/research/opencode-auth-surface.md", "reason": "确认 ccr opencode CLI/TUI 已删且 /opencode UI 仍在"}
+{"file": ".trellis/tasks/08-20-claude-codex-grok-auth-off/research/review-disposition.md", "reason": "核对 TPR 修订是否落入实现：can_auth_off、D9 分级、D10 删 backup、show_version、check_secret_writes"}
