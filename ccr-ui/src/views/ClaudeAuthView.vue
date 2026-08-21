@@ -94,6 +94,16 @@
         </div>
         <div class="claude-auth-view__diagnosis-actions">
           <button
+            v-if="canAuthOff"
+            type="button"
+            class="claude-auth-view__ghost-button"
+            data-testid="claude-auth-off"
+            :disabled="loading"
+            @click="handleAuthOff"
+          >
+            {{ t('auth.off') }}
+          </button>
+          <button
             v-if="canOff"
             type="button"
             class="claude-auth-view__ghost-button"
@@ -402,7 +412,7 @@ import {
   saveClaudeAuth,
   switchClaudeAuth,
 } from '@/api'
-import { claudeProfileOff, listClaudeProfiles } from '@/api/domains/claude'
+import { claudeAuthOff, claudeProfileOff, listClaudeProfiles } from '@/api/domains/claude'
 import type {
   ClaudeAuthAccountItem,
   ClaudeAuthCurrentInfo,
@@ -416,7 +426,7 @@ import { useUIStore } from '@/stores/ui'
 
 defineOptions({ name: 'ClaudeAuthView' })
 
-const { locale } = useI18n()
+const { locale, t } = useI18n()
 const uiStore = useUIStore()
 const isZh = computed(() => locale.value.startsWith('zh'))
 const tt = (zh: string, en: string) => (isZh.value ? zh : en)
@@ -440,6 +450,7 @@ const currentInfo = ref<ClaudeAuthCurrentInfo | null>(null)
 const runtimeSummary = ref<ClaudeRuntimeSummary | null>(null)
 const loginState = ref<ClaudeLoginState>({ type: 'NotLoggedIn' })
 const canOff = ref(false)
+const canAuthOff = ref(false)
 
 const authDiagnosis = computed(() => runtimeSummary.value?.auth_diagnosis ?? null)
 const visibleSuppressors = computed(() =>
@@ -600,6 +611,7 @@ const refreshAll = async () => {
     loginState.value = accountsData.login_state || currentData.login_state
     currentInfo.value = currentData.info || null
     canOff.value = profilesData.can_off === true
+    canAuthOff.value = accountsData.can_auth_off === true || currentData.can_auth_off === true
   } catch (error) {
     logger.error('Failed to load Claude auth data:', error)
     authActionError.value = extractErrorMessage(error)
@@ -638,6 +650,39 @@ const handleSave = async () => {
     uiStore.showError(authActionError.value)
   } finally {
     saving.value = false
+  }
+}
+
+const handleAuthOff = async () => {
+  if (!canAuthOff.value) return
+  const confirmed = await uiStore.requestConfirm({
+    title: t('auth.confirmOffTitle'),
+    message: t('auth.confirmOffClaude'),
+    confirmText: t('auth.off'),
+    cancelText: t('common.cancel'),
+    type: 'warning',
+  })
+  if (!confirmed) return
+
+  try {
+    loading.value = true
+    authActionError.value = null
+    const result = await claudeAuthOff()
+    if (result.changed) {
+      uiStore.showSuccess(t('auth.offSuccess'))
+    } else {
+      uiStore.showSuccess(t('auth.offUnchanged'))
+    }
+    for (const warning of result.warnings) {
+      uiStore.showWarning(warning, 6000)
+    }
+    await refreshAll()
+  } catch (error) {
+    logger.error('Failed to log out Claude official session:', error)
+    authActionError.value = extractErrorMessage(error)
+    uiStore.showError(authActionError.value || t('auth.offFailed'))
+  } finally {
+    loading.value = false
   }
 }
 

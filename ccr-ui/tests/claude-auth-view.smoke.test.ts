@@ -12,6 +12,7 @@ const apiMocks = vi.hoisted(() => ({
   switchClaudeAuth: vi.fn(),
   listClaudeProfiles: vi.fn(),
   claudeProfileOff: vi.fn(),
+  claudeAuthOff: vi.fn(),
 }))
 
 const uiMocks = vi.hoisted(() => ({
@@ -29,6 +30,7 @@ vi.mock('@/api/domains/claude', async (importOriginal) => {
     ...actual,
     listClaudeProfiles: apiMocks.listClaudeProfiles,
     claudeProfileOff: apiMocks.claudeProfileOff,
+    claudeAuthOff: apiMocks.claudeAuthOff,
   }
 })
 
@@ -149,6 +151,7 @@ beforeEach(() => {
     login_state: runtimeSummary.login_state,
     runtime_summary: runtimeSummary,
     current_profile_auth_mode: null,
+    can_auth_off: true,
   })
   apiMocks.getClaudeAuthCurrent.mockResolvedValue({
     logged_in: true,
@@ -162,6 +165,7 @@ beforeEach(() => {
     },
     runtime_summary: runtimeSummary,
     login_state: runtimeSummary.login_state,
+    can_auth_off: true,
   })
   apiMocks.switchClaudeAuth.mockResolvedValue({
     success: true,
@@ -176,6 +180,12 @@ beforeEach(() => {
     profiles: [],
     current_profile: null,
     can_off: true,
+  })
+  apiMocks.claudeAuthOff.mockResolvedValue({
+    ok: true,
+    changed: true,
+    path: 'file',
+    warnings: [],
   })
   apiMocks.claudeProfileOff.mockResolvedValue({
     ok: true,
@@ -244,6 +254,33 @@ describe('ClaudeAuthView diagnosis', () => {
 
     try {
       expect(el.querySelector('[data-testid="claude-auth-profile-off"]')).not.toBeNull()
+    } finally {
+      unmount()
+    }
+  })
+
+  it('shows the auth off button when the backend reports can_auth_off', async () => {
+    const { el, unmount } = await mountView()
+
+    try {
+      expect(el.querySelector('[data-testid="claude-auth-off"]')).not.toBeNull()
+    } finally {
+      unmount()
+    }
+  })
+
+  it('does not write when the auth off confirmation is cancelled', async () => {
+    uiMocks.requestConfirm.mockResolvedValue(false)
+    const { el, unmount } = await mountView()
+
+    try {
+      el.querySelector<HTMLButtonElement>('[data-testid="claude-auth-off"]')?.click()
+      await vi.waitFor(() => {
+        expect(uiMocks.requestConfirm).toHaveBeenCalledWith(
+          expect.objectContaining({ type: 'warning' }),
+        )
+      })
+      expect(apiMocks.claudeAuthOff).not.toHaveBeenCalled()
     } finally {
       unmount()
     }

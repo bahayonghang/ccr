@@ -29,6 +29,7 @@ const moduleSubnavMap: Record<string, ModuleSubnavItem[]> = {
   ],
   grok: [
     { label: 'Home', labelKey: 'nav.home', href: '/grok', icon: 'Home' },
+    { label: 'Auth', labelKey: 'nav.auth', href: '/grok/auth', icon: 'KeyRound' },
     { label: 'Profiles', labelKey: 'nav.profiles', href: '/grok/profiles', icon: 'Folders' },
     { label: 'Settings', labelKey: 'common.settings', href: '/grok/settings', icon: 'SlidersHorizontal' },
   ],

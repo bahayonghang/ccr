@@ -98,6 +98,33 @@
 
     <main class="codex-auth-view__main">
       <section
+        v-if="canAuthOff"
+        class="codex-auth-view__off-banner"
+        data-testid="codex-auth-off"
+      >
+        <div>
+          <strong>{{ $t('auth.off') }}</strong>
+          <p>{{ $t('auth.offDescription') }}</p>
+        </div>
+        <Button
+          variant="secondary"
+          surface="status"
+          density="compact"
+          motion="subtle"
+          :disabled="loading"
+          @click="handleAuthOff"
+        >
+          <template #leading>
+            <SIcon
+              name="LogOut"
+              size="w-4 h-4"
+            />
+          </template>
+          {{ $t('auth.off') }}
+        </Button>
+      </section>
+
+      <section
         v-if="canOff"
         class="codex-auth-view__off-banner"
         data-testid="codex-auth-profile-off"
@@ -394,7 +421,7 @@ import {
   deleteCodexAuth,
   getCodexAllQuotas,
 } from '@/api'
-import { codexProfileOff } from '@/api/domains/codex'
+import { codexAuthOff, codexProfileOff } from '@/api/domains/codex'
 import {
   filterAndSortCodexAccounts,
   getLoginStateIcon,
@@ -435,6 +462,7 @@ const loginState = ref<LoginState>({ type: 'NotLoggedIn' })
 const currentInfo = ref<CodexAuthCurrentInfo | null>(null)
 const currentProfile = ref<CodexProfile | null>(null)
 const canOff = ref(false)
+const canAuthOff = ref(false)
 const authActionError = ref<string | null>(null)
 const quotaMap = ref<Map<string, CodexAccountQuota>>(new Map())
 
@@ -611,6 +639,37 @@ const loadCurrentProfile = async () => {
   }
 }
 
+const handleAuthOff = async () => {
+  if (!canAuthOff.value) return
+  const confirmed = await uiStore.requestConfirm({
+    title: t('auth.confirmOffTitle'),
+    message: t('auth.confirmOffCodex'),
+    confirmText: t('auth.off'),
+    cancelText: t('common.cancel'),
+    type: 'warning',
+  })
+  if (!confirmed) return
+
+  try {
+    loading.value = true
+    const result = await codexAuthOff()
+    if (result.changed) {
+      uiStore.showSuccess(t('auth.offSuccess'))
+    } else {
+      uiStore.showSuccess(t('auth.offUnchanged'))
+    }
+    for (const warning of result.warnings) {
+      uiStore.showWarning(warning, 6000)
+    }
+    await Promise.all([loadCurrentProfile(), loadAccounts(), loadCurrentInfo()])
+  } catch (error) {
+    logger.error('Failed to log out Codex official session:', error)
+    uiStore.showError(extractErrorMessage(error) || t('auth.offFailed'))
+  } finally {
+    loading.value = false
+  }
+}
+
 const handleOff = async () => {
   if (!canOff.value) return
   const confirmed = await uiStore.requestConfirm({
@@ -642,6 +701,9 @@ const loadAccounts = async () => {
     const data = await listCodexAuthAccounts()
     accounts.value = data.accounts || []
     loginState.value = data.login_state
+    if (data.can_auth_off === true) {
+      canAuthOff.value = true
+    }
   } catch (error) {
     logger.error('Failed to load codex auth accounts:', error)
     uiStore.showError(extractErrorMessage(error) || t('codex.states.loadFailed'))
@@ -654,6 +716,7 @@ const loadCurrentInfo = async () => {
   try {
     const data = await getCodexAuthCurrent()
     currentInfo.value = data.logged_in && data.info ? data.info : null
+    canAuthOff.value = data.can_auth_off === true
   } catch (error) {
     logger.error('Failed to load current auth info:', error)
   }

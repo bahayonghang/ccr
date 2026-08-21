@@ -1,5 +1,7 @@
 export type { GrokActivationDto } from './generated/grok/GrokActivationDto'
+export type { GrokAuthCurrentResponse } from './generated/grok/GrokAuthCurrentResponse'
 export type { GrokAuthModeDto } from './generated/grok/GrokAuthModeDto'
+export type { GrokAuthOffResponse } from './generated/grok/GrokAuthOffResponse'
 export type { GrokCliSettingsDto } from './generated/grok/GrokCliSettingsDto'
 export type { GrokConfigLayerDto } from './generated/grok/GrokConfigLayerDto'
 export type { GrokConfigLayersResponse } from './generated/grok/GrokConfigLayersResponse'

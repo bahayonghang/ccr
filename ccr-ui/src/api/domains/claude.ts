@@ -614,6 +614,7 @@ export const claudeProfileOff = async (): Promise<ClaudeProfileOffResult> => {
 // ── Claude Auth ──
 
 export {
+  claudeAuthOff,
   deleteClaudeAuth,
   getClaudeAuthCurrent,
   listClaudeAuthAccounts,

@@ -2,14 +2,14 @@
 
 > Generated from `commands/handler_registry.rs`; do not edit manually.
 
-- Base commands: 330
-- Windows commands: 338
+- Base commands: 334
+- Windows commands: 342
 - Base modules: 37
 
-- Capability metadata: 330/330
-- Generated typed commands: 267/330 (80.91%)
+- Capability metadata: 334/334
+- Generated typed commands: 271/334 (81.14%)
 
-- Exact input/output type declarations: 267/267
+- Exact input/output type declarations: 271/271
 
 | Module | Title | Platform | Commands | Default risk | Schema |
 | --- | --- | --- | ---: | --- | --- |
@@ -19,12 +19,12 @@
 | `sync` | 同步 | base | 17 | `network_mutation` | `generated` |
 | `claude` | Claude Code | base | 28 | `secret_mutation` | `generated` |
 | `claude_profiles` | Claude Code Profiles | base | 10 | `secret_mutation` | `generated` |
-| `claude_auth` | Claude Auth | base | 5 | `secret_mutation` | `generated` |
+| `claude_auth` | Claude Auth | base | 6 | `secret_mutation` | `generated` |
 | `codex` | Codex | base | 44 | `secret_mutation` | `generated` |
-| `codex_auth` | Codex Auth | base | 17 | `secret_mutation` | `generated` |
+| `codex_auth` | Codex Auth | base | 18 | `secret_mutation` | `generated` |
 | `codex_model_providers` | Codex Model Providers | base | 3 | `secret_mutation` | `generated` |
 | `gemini` | Gemini | base | 11 | `secret_mutation` | `generated` |
-| `grok` | Grok Build | base | 13 | `secret_mutation` | `generated` |
+| `grok` | Grok Build | base | 15 | `secret_mutation` | `generated` |
 | `opencode` | OpenCode | base | 16 | `secret_mutation` | `generated` |
 | `checkin` | CheckIn | base | 25 | `network_mutation` | `legacy_json` |
 | `system_info` | 系统信息 | base | 2 | `read_only` | `generated` |

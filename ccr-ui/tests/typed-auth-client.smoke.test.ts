@@ -14,6 +14,7 @@ describe('generated auth clients', () => {
       'claude_save_auth',
       'claude_switch_auth',
       'claude_delete_auth',
+      'claude_auth_off',
     ])
     expect(source).not.toMatch(/<T\b|\bunknown\b|\bany\b/)
   })
@@ -24,6 +25,7 @@ describe('generated auth clients', () => {
     expect(invokeCommands(source)).toEqual([
       'codex_list_auth_accounts',
       'codex_get_auth_current',
+      'codex_auth_off',
       'codex_save_auth',
       'codex_switch_auth',
       'codex_delete_auth',

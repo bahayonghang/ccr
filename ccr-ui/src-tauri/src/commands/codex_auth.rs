@@ -3,6 +3,8 @@ use crate::desktop_shell;
 use crate::process::{ProcessDescriptor, ProcessGateway};
 use base64::Engine;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
+use crate::commands::settings_raw::ensure_local_env;
+use ccr_cli::application::{auth_off_for_platform, needs_auth_off};
 use ccr_codex::services::CodexModelProviderStoreService;
 use ccr_codex::{
     CodexAuthJson, CodexAuthService, CodexModelProviderApiKey, CodexModelProviderRecord,
@@ -239,6 +241,7 @@ impl From<ccr_codex::CurrentAuthInfo> for CodexAuthCurrentInfo {
 pub struct CodexAuthListResponse {
     pub accounts: Vec<CodexAuthAccountItem>,
     pub login_state: CodexLoginState,
+    pub can_auth_off: bool,
 }
 
 #[derive(Debug, Clone, Serialize, TS)]
@@ -249,6 +252,7 @@ pub struct CodexAuthCurrentResponse {
     #[ts(optional)]
     pub info: Option<CodexAuthCurrentInfo>,
     pub login_state: CodexLoginState,
+    pub can_auth_off: bool,
 }
 
 #[derive(Debug, Clone, Serialize, TS)]
@@ -256,6 +260,18 @@ pub struct CodexAuthCurrentResponse {
 pub struct CodexAuthActionResponse {
     pub success: bool,
     pub message: String,
+}
+
+#[derive(Debug, Clone, Serialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/codex_auth/")]
+pub struct CodexAuthOffResponse {
+    pub ok: bool,
+    pub changed: bool,
+    pub path: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub profile_pointer: Option<String>,
+    pub warnings: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, TS)]
@@ -1171,6 +1187,7 @@ pub async fn codex_list_auth_accounts() -> Result<CodexAuthListResponse, String>
         Ok(CodexAuthListResponse {
             accounts,
             login_state: snapshot.login_state.into(),
+            can_auth_off: needs_auth_off(Platform::Codex).unwrap_or(false),
         })
     })
     .await
@@ -1194,10 +1211,36 @@ pub async fn codex_get_auth_current() -> Result<CodexAuthCurrentResponse, String
             logged_in: info.is_some(),
             info,
             login_state: snapshot.login_state.into(),
+            can_auth_off: needs_auth_off(Platform::Codex).unwrap_or(false),
         })
     })
     .await
     .map_err(|e| format!("任务执行失败: {e}"))?
+}
+
+#[ccr_tauri_command_macros::command]
+pub async fn codex_auth_off(state: State<'_, AppState>) -> Result<CodexAuthOffResponse, String> {
+    if let Some(response) = ensure_local_env(state.inner()).await {
+        let env_type = response
+            .get("envType")
+            .or_else(|| response.get("env_type"))
+            .and_then(JsonValue::as_str)
+            .unwrap_or("unknown");
+        return Err(format!("unsupported_environment:{env_type}"));
+    }
+    tokio::task::spawn_blocking(|| {
+        let result = auth_off_for_platform(Platform::Codex)
+            .map_err(|error| format!("登出 Codex 官方会话失败: {error}"))?;
+        Ok(CodexAuthOffResponse {
+            ok: true,
+            changed: result.changed,
+            path: result.path.as_str().to_string(),
+            profile_pointer: result.profile_pointer,
+            warnings: result.warnings,
+        })
+    })
+    .await
+    .map_err(|error| format!("登出 Codex 官方会话后台任务失败: {error}"))?
 }
 
 /// 保存当前登录到命名账号

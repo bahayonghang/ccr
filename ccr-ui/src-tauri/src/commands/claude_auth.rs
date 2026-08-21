@@ -9,8 +9,15 @@ use ccr_cli::models::{
     ClaudeProfileAuthMode as ServiceProfileAuthMode, ClaudeRuntimeMode as ServiceRuntimeMode,
     ClaudeRuntimeSummary as ServiceRuntimeSummary,
 };
+use ccr_cli::application::{auth_off_for_platform, needs_auth_off};
+use ccr_cli::models::Platform;
 use ccr_cli::services::ClaudeAuthItem as ServiceAuthItem;
+use serde_json::Value;
 use ts_rs::TS;
+
+use crate::commands::settings_raw::ensure_local_env;
+use crate::state::AppState;
+use tauri::State;
 
 #[derive(Debug, Clone, Copy, Serialize, TS)]
 #[serde(rename_all = "snake_case")]
@@ -337,6 +344,7 @@ pub struct ClaudeAuthListResponse {
     pub login_state: ClaudeLoginState,
     pub runtime_summary: ClaudeRuntimeSummary,
     pub current_profile_auth_mode: Option<ClaudeProfileAuthMode>,
+    pub can_auth_off: bool,
 }
 
 #[derive(Debug, Clone, Serialize, TS)]
@@ -346,6 +354,7 @@ pub struct ClaudeAuthCurrentResponse {
     pub info: Option<ClaudeAuthCurrentInfo>,
     pub runtime_summary: ClaudeRuntimeSummary,
     pub login_state: ClaudeLoginState,
+    pub can_auth_off: bool,
 }
 
 #[derive(Debug, Clone, Serialize, TS)]
@@ -355,6 +364,18 @@ pub struct ClaudeAuthActionResponse {
     pub message: String,
     pub cleared_managed_sources: Vec<String>,
     pub remaining_suppressors: Vec<ClaudeAuthSourceObservation>,
+    pub warnings: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/claude_auth/")]
+pub struct ClaudeAuthOffResponse {
+    pub ok: bool,
+    pub changed: bool,
+    pub path: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub profile_pointer: Option<String>,
     pub warnings: Vec<String>,
 }
 
@@ -379,6 +400,7 @@ pub async fn claude_list_auth_accounts() -> Result<ClaudeAuthListResponse, Strin
             login_state: snapshot.login_state.into(),
             runtime_summary: runtime_summary.into(),
             current_profile_auth_mode,
+            can_auth_off: needs_auth_off(Platform::Claude).unwrap_or(false),
         })
     })
     .await
@@ -402,10 +424,40 @@ pub async fn claude_get_auth_current() -> Result<ClaudeAuthCurrentResponse, Stri
             info: current_info.map(Into::into),
             runtime_summary: runtime_summary.into(),
             login_state,
+            can_auth_off: needs_auth_off(Platform::Claude).unwrap_or(false),
         })
     })
     .await
     .map_err(|e| format!("任务执行失败: {e}"))?
+}
+
+#[ccr_tauri_command_macros::command]
+pub async fn claude_auth_off(state: State<'_, AppState>) -> Result<ClaudeAuthOffResponse, String> {
+    if let Some(response) = ensure_local_env(state.inner()).await {
+        return Err(unsupported_env_error(&response));
+    }
+    tokio::task::spawn_blocking(|| {
+        let result = auth_off_for_platform(Platform::Claude)
+            .map_err(|error| format!("登出 Claude 官方会话失败: {error}"))?;
+        Ok(ClaudeAuthOffResponse {
+            ok: true,
+            changed: result.changed,
+            path: result.path.as_str().to_string(),
+            profile_pointer: result.profile_pointer,
+            warnings: result.warnings,
+        })
+    })
+    .await
+    .map_err(|error| format!("登出 Claude 官方会话后台任务失败: {error}"))?
+}
+
+fn unsupported_env_error(response: &Value) -> String {
+    let env_type = response
+        .get("envType")
+        .or_else(|| response.get("env_type"))
+        .and_then(Value::as_str)
+        .unwrap_or("unknown");
+    format!("unsupported_environment:{env_type}")
 }
 
 #[ccr_tauri_command_macros::command]

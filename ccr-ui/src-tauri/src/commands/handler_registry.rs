@@ -575,6 +575,7 @@ define_command_registry! {
         super::claude::claude_save_auth => ["ClaudeAuthSaveRequest", "ClaudeAuthActionResponse", "export const saveClaudeAuth = (request: ClaudeAuthSaveRequest): Promise<ClaudeAuthActionResponse> =>\n  invoke('claude_save_auth', {\n    name: request.name,\n    description: request.description ?? null,\n    force: request.force ?? false,\n  })\n\n"],
         super::claude::claude_switch_auth => ["string", "ClaudeAuthActionResponse", "export const switchClaudeAuth = (name: string): Promise<ClaudeAuthActionResponse> =>\n  invoke('claude_switch_auth', { name })\n\n"],
         super::claude::claude_delete_auth => ["string", "ClaudeAuthActionResponse", "export const deleteClaudeAuth = (name: string): Promise<ClaudeAuthActionResponse> =>\n  invoke('claude_delete_auth', { name })\n"],
+        super::claude::claude_auth_off => ["void", "ClaudeAuthOffResponse", "export const claudeAuthOff = (): Promise<ClaudeAuthOffResponse> => invoke('claude_auth_off')\n"],
     ],
     codex: "Codex" [SecretMutation, Generated] => [
         super::codex::codex_list_profiles => ["void", "OpenJsonValueDto", "export const listCodexProfiles = (): Promise<OpenJsonValueDto> => invoke('codex_list_profiles')\n"],
@@ -625,6 +626,7 @@ define_command_registry! {
     codex_auth: "Codex Auth" [SecretMutation, Generated] => [
         super::codex::codex_list_auth_accounts => ["void", "CodexAuthListResponse", "export const listCodexAuthAccounts = (): Promise<CodexAuthListResponse> => invoke('codex_list_auth_accounts')\n"],
         super::codex::codex_get_auth_current => ["void", "CodexAuthCurrentResponse", "export const getCodexAuthCurrent = (): Promise<CodexAuthCurrentResponse> => invoke('codex_get_auth_current')\n"],
+        super::codex::codex_auth_off => ["void", "CodexAuthOffResponse", "export const codexAuthOff = (): Promise<CodexAuthOffResponse> => invoke('codex_auth_off')\n"],
         super::codex::codex_save_auth => ["CodexAuthSaveRequest", "CodexAuthActionResponse", "export const saveCodexAuth = (request: CodexAuthSaveRequest): Promise<CodexAuthActionResponse> =>\n  invoke('codex_save_auth', { name: request.name, description: request.description ?? null, force: request.force ?? false })\n"],
         super::codex::codex_switch_auth => ["string", "CodexAuthActionResponse", "export const switchCodexAuth = (name: string): Promise<CodexAuthActionResponse> => invoke('codex_switch_auth', { name })\n"],
         super::codex::codex_delete_auth => ["string", "CodexAuthActionResponse", "export const deleteCodexAuth = (name: string): Promise<CodexAuthActionResponse> => invoke('codex_delete_auth', { name })\n"],
@@ -667,6 +669,8 @@ define_command_registry! {
         super::grok::grok_delete_profile => ["{ name: string; force?: boolean }", "GrokProfileActionResponse", "export const deleteGrokProfile = (name: string, options?: { force?: boolean }): Promise<GrokProfileActionResponse> => invoke('grok_delete_profile', { name, force: options?.force })\n"],
         super::grok::grok_apply_profile => ["string", "GrokProfileActionResponse", "export const applyGrokProfile = (name: string): Promise<GrokProfileActionResponse> => invoke('grok_apply_profile', { name })\n"],
         super::grok::grok_profile_off => ["void", "GrokProfileActionResponse", "export const grokProfileOff = (): Promise<GrokProfileActionResponse> => invoke('grok_profile_off')\n"],
+        super::grok::grok_auth_current => ["void", "GrokAuthCurrentResponse", "export const grokAuthCurrent = (): Promise<GrokAuthCurrentResponse> => invoke('grok_auth_current')\n"],
+        super::grok::grok_auth_off => ["void", "GrokAuthOffResponse", "export const grokAuthOff = (): Promise<GrokAuthOffResponse> => invoke('grok_auth_off')\n"],
         super::grok::grok_get_settings => ["void", "GrokSettingsCommandResponse", "export const getGrokSettings = (): Promise<GrokSettingsCommandResponse> => invoke('grok_get_settings')\n"],
         super::grok::grok_update_settings => ["GrokSettingsPatchDto", "GrokSettingsUpdateResponse", "export const updateGrokSettings = (patch: GrokSettingsPatchDto): Promise<GrokSettingsUpdateResponse> => invoke('grok_update_settings', { patch })\n"],
         super::grok::grok_get_config_raw_text => ["void", "GrokRawConfigResponse", "export const getGrokConfigRaw = (): Promise<GrokRawConfigResponse> => invoke('grok_get_config_raw_text')\n"],
@@ -1269,7 +1273,8 @@ mod tests {
             "import { invoke } from '@/api/invokeRuntime'\n",
             "import type { ClaudeAuthActionResponse } from '@/types/generated/claude_auth/ClaudeAuthActionResponse'\n",
             "import type { ClaudeAuthCurrentResponse } from '@/types/generated/claude_auth/ClaudeAuthCurrentResponse'\n",
-            "import type { ClaudeAuthListResponse } from '@/types/generated/claude_auth/ClaudeAuthListResponse'\n\n",
+            "import type { ClaudeAuthListResponse } from '@/types/generated/claude_auth/ClaudeAuthListResponse'\n",
+            "import type { ClaudeAuthOffResponse } from '@/types/generated/claude_auth/ClaudeAuthOffResponse'\n\n",
             "export type ClaudeAuthSaveRequest = {\n",
             "  name: string\n",
             "  description?: string | null\n",
@@ -1288,6 +1293,7 @@ mod tests {
             "import type { CodexAuthActionResponse } from '@/types/generated/codex_auth/CodexAuthActionResponse'\n",
             "import type { CodexAuthCurrentResponse } from '@/types/generated/codex_auth/CodexAuthCurrentResponse'\n",
             "import type { CodexAuthListResponse } from '@/types/generated/codex_auth/CodexAuthListResponse'\n",
+            "import type { CodexAuthOffResponse } from '@/types/generated/codex_auth/CodexAuthOffResponse'\n",
             "import type { CodexAuthImportPayload } from '@/types/generated/codex_auth/CodexAuthImportPayload'\n",
             "import type { CodexAuthMutationResponse } from '@/types/generated/codex_auth/CodexAuthMutationResponse'\n",
             "import type { CodexAuthProcessResponse } from '@/types/generated/codex_auth/CodexAuthProcessResponse'\n",
@@ -1461,6 +1467,8 @@ mod tests {
             "/* Generated from commands/handler_registry.rs; do not edit. */\n\n",
             "import { invoke } from '@/api/invokeRuntime'\n",
             "import type { OpenJsonValueDto } from '@/types/generated/common/OpenJsonValueDto'\n",
+            "import type { GrokAuthCurrentResponse } from '@/types/generated/grok/GrokAuthCurrentResponse'\n",
+            "import type { GrokAuthOffResponse } from '@/types/generated/grok/GrokAuthOffResponse'\n",
             "import type { GrokConfigLayersResponse } from '@/types/generated/grok/GrokConfigLayersResponse'\n",
             "import type { GrokDashboardCommandResponse } from '@/types/generated/grok/GrokDashboardCommandResponse'\n",
             "import type { GrokProfileActionResponse } from '@/types/generated/grok/GrokProfileActionResponse'\n",
@@ -1722,10 +1730,10 @@ mod tests {
         assert_eq!(COMMAND_MODULES.len(), 37);
 
         #[cfg(target_os = "windows")]
-        assert_eq!(registered_command_count(), 338);
+        assert_eq!(registered_command_count(), 342);
 
         #[cfg(not(target_os = "windows"))]
-        assert_eq!(registered_command_count(), 330);
+        assert_eq!(registered_command_count(), 334);
     }
 
     #[test]
@@ -1760,7 +1768,7 @@ mod tests {
     #[test]
     fn command_capability_descriptors_are_complete_and_unique() {
         let descriptors = command_descriptors().collect::<Vec<_>>();
-        assert_eq!(descriptors.len(), 338);
+        assert_eq!(descriptors.len(), 342);
 
         let mut ids = HashSet::new();
         let mut paths = HashSet::new();
@@ -1789,10 +1797,10 @@ mod tests {
         }
 
         let manifest = command_manifest();
-        assert_eq!(manifest.base_command_count, 330);
-        assert_eq!(manifest.windows_command_count, 338);
-        assert_eq!(manifest.typed_command_count, 267);
-        assert_eq!(manifest.exact_wire_type_count, 267);
+        assert_eq!(manifest.base_command_count, 334);
+        assert_eq!(manifest.windows_command_count, 342);
+        assert_eq!(manifest.typed_command_count, 271);
+        assert_eq!(manifest.exact_wire_type_count, 271);
 
         let exact_contract_modules = descriptors
             .iter()
@@ -1828,7 +1836,7 @@ mod tests {
                 )
             })
             .collect::<Vec<_>>();
-        assert_eq!(exact_contract_modules.len(), 267);
+        assert_eq!(exact_contract_modules.len(), 271);
         assert!(
             exact_contract_modules
                 .iter()

@@ -2,6 +2,8 @@
 
 import { invoke } from '@/api/invokeRuntime'
 import type { OpenJsonValueDto } from '@/types/generated/common/OpenJsonValueDto'
+import type { GrokAuthCurrentResponse } from '@/types/generated/grok/GrokAuthCurrentResponse'
+import type { GrokAuthOffResponse } from '@/types/generated/grok/GrokAuthOffResponse'
 import type { GrokConfigLayersResponse } from '@/types/generated/grok/GrokConfigLayersResponse'
 import type { GrokDashboardCommandResponse } from '@/types/generated/grok/GrokDashboardCommandResponse'
 import type { GrokProfileActionResponse } from '@/types/generated/grok/GrokProfileActionResponse'
@@ -20,6 +22,8 @@ export const updateGrokProfile = (name: string, patch: OpenJsonValueDto): Promis
 export const deleteGrokProfile = (name: string, options?: { force?: boolean }): Promise<GrokProfileActionResponse> => invoke('grok_delete_profile', { name, force: options?.force })
 export const applyGrokProfile = (name: string): Promise<GrokProfileActionResponse> => invoke('grok_apply_profile', { name })
 export const grokProfileOff = (): Promise<GrokProfileActionResponse> => invoke('grok_profile_off')
+export const grokAuthCurrent = (): Promise<GrokAuthCurrentResponse> => invoke('grok_auth_current')
+export const grokAuthOff = (): Promise<GrokAuthOffResponse> => invoke('grok_auth_off')
 export const getGrokSettings = (): Promise<GrokSettingsCommandResponse> => invoke('grok_get_settings')
 export const updateGrokSettings = (patch: GrokSettingsPatchDto): Promise<GrokSettingsUpdateResponse> => invoke('grok_update_settings', { patch })
 export const getGrokConfigRaw = (): Promise<GrokRawConfigResponse> => invoke('grok_get_config_raw_text')
