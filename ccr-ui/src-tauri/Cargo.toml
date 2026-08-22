@@ -86,7 +86,7 @@ sha2 = "0.11.0"
 
 # Database (direct access for AppState)
 r2d2 = "0.8"
-rusqlite = { version = "0.39.0", features = ["bundled"] }
+rusqlite = { version = "0.40.2", features = ["bundled"] }
 
 # Async trait support
 async-trait = "0.1"
