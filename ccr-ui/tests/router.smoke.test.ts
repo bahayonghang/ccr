@@ -77,12 +77,17 @@ describe('router smoke', () => {
 
   it('registers the cached Grok home and both management child routes', () => {
     const homeRoute = router.getRoutes().find((route) => route.name === 'grok')
+    const authRoute = router.getRoutes().find((route) => route.name === 'grok-auth')
     const profilesRoute = router.getRoutes().find((route) => route.name === 'grok-profiles')
     const settingsRoute = router.getRoutes().find((route) => route.name === 'grok-settings')
 
     expect(homeRoute).toMatchObject({
       path: '/grok',
       meta: { cache: true, cacheKey: 'GrokView', depth: 1, group: 'grok' },
+    })
+    expect(authRoute).toMatchObject({
+      path: '/grok/auth',
+      meta: { depth: 2, group: 'grok' },
     })
     expect(profilesRoute).toMatchObject({
       path: '/grok/profiles',
@@ -100,11 +105,13 @@ describe('router smoke', () => {
       icon: 'Zap',
     }))
     expect(mainLayoutRouteTitleMap.grok).toBe('nav.grok')
+    expect(mainLayoutRouteTitleMap['grok-auth']).toBe('nav.auth')
     expect(mainLayoutRouteTitleMap['grok-profiles']).toBe('nav.profiles')
     expect(mainLayoutRouteTitleMap['grok-settings']).toBe('common.settings')
     expect(mainLayoutGroupTitleMap.grok).toBe('nav.grok')
     expect(getModuleSubnavItems('grok').map((item) => item.href)).toEqual([
       '/grok',
+      '/grok/auth',
       '/grok/profiles',
       '/grok/settings',
     ])

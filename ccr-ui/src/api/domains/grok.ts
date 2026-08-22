@@ -1,6 +1,8 @@
 import * as grokClient from '../generated/grok'
 import { toOpenJsonValue } from '../_shared'
 import type {
+  GrokAuthCurrentResponse,
+  GrokAuthOffResponse,
   GrokConfigLayersResponse,
   GrokDashboardCommandResponse,
   GrokProfileActionResponse,
@@ -92,6 +94,14 @@ export const applyGrokProfile = async (name: string): Promise<GrokProfileActionR
     ['applied', 'unsupported_environment'],
     'Grok profile apply',
   )
+)
+
+export const grokAuthCurrent = async (): Promise<GrokAuthCurrentResponse> => (
+  assertStatus(await grokClient.grokAuthCurrent(), ['ok', 'unsupported_environment'], 'Grok auth current')
+)
+
+export const grokAuthOff = async (): Promise<GrokAuthOffResponse> => (
+  assertStatus(await grokClient.grokAuthOff(), ['ok', 'unsupported_environment'], 'Grok auth off')
 )
 
 export const grokProfileOff = async (): Promise<GrokProfileActionResponse> => assertStatus(

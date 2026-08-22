@@ -1,0 +1,28 @@
+{
+  "id": "claude-codex-grok-auth-off",
+  "name": "claude-codex-grok-auth-off",
+  "title": "Claude/Codex/Grok auth off",
+  "description": "",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-08-20",
+  "completedAt": "2026-08-21",
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "description": "Claude/Codex/Grok auth off（混合 file/native logout）+ 删除 ccr opencode 命令组与 Auth TUI"
+  }
+}

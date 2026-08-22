@@ -7,6 +7,7 @@ import {
   formatTrendAxisLabel,
   formatTrendTooltipLabel,
   getTrendTickAmount,
+  parseUtcDate,
 } from '@/views/usage/usageChartOptions'
 import {
   buildUsageDiagnosticsSummary,
@@ -56,7 +57,10 @@ describe('usage chart and diagnostics helpers', () => {
     expect(getTrendTickAmount(0)).toBeUndefined()
     expect(getTrendTickAmount(8)).toBe(8)
     expect(getTrendTickAmount(20)).toBe(6)
+    expect(parseUtcDate('2026-07-22').getTime()).toBe(Date.UTC(2026, 6, 22))
     expect(formatTrendAxisLabel(Date.UTC(2026, 0, 5), 'day', 'en-US')).toBe('Jan 5')
+    expect(formatTrendAxisLabel(Date.UTC(2026, 6, 22), 'day', 'en-US')).toBe('Jul 22')
+    expect(formatTrendAxisLabel(Date.UTC(2026, 6, 22), 'day', 'zh-CN')).toBe('7月22日')
     expect(formatTrendTooltipLabel('2026-01-05', '2026-01-11', 'week', 'en-US')).toBe(
       'Jan 5 - Jan 11'
     )

@@ -1,6 +1,16 @@
 # `grok` - Grok Build Profile Runtime
 
-`ccr grok` 管理 Grok Build 的模型与第三方 provider profile。CCR 管理 `~/.grok/config.toml` 中的 `[model.custom]`、`[models].default` 和 `[models].default_reasoning_effort`，不会读取或写入 `auth.json`、`mcp_credentials.json`。
+`ccr grok` 管理 Grok Build 的模型与第三方 provider profile，并提供官方会话查询与登出。CCR 管理 `~/.grok/config.toml` 中的 `[model.custom]`、`[models].default` 和 `[models].default_reasoning_effort`。`auth off` 只对 `$GROK_HOME/auth.json`（未设置时为 `~/.grok/auth.json`）做存在性读取、备份和删除，不解析 token。CCR 仍不读取、写入、备份或校验 `mcp_credentials.json`。
+
+## Official Auth
+
+| 命令 | 说明 |
+|---|---|
+| `ccr grok auth` | 有 TUI launcher 时进入 Grok Auth 标签；否则打印帮助 |
+| `ccr grok auth current` | 报告官方会话是否存在；支持 `--json`；不输出 token |
+| `ccr grok auth off` | 登出当前官方运行时登录；支持 `--json` |
+
+`auth off` 与 `profile off` 独立。该命令不修改 profile 指针，也不删除 `[model.custom]`。该命令只删除 `auth.json`，不修改 `mcp_credentials.json`。CCR 无 Grok 账号快照，登出后需官方 `grok login`，或回退到用户自有 `XAI_API_KEY`。
 
 ## 命令
 
@@ -56,6 +66,7 @@ ccr grok profile current --json
 - `api_key` 是 Grok Build 的直接密钥字段；`--api-key` 会把密钥明文写入 CCR profiles、其轮换备份以及 Grok `config.toml`，但命令输出会省略该值。旧的 `--auth-token` 是兼容别名。
 - `env_key` 仍用于环境变量名，不能填写实际 API key。
 - 官方 profile 不接受 `api_key`、`auth_token` 或 `env_key`。Grok 自身的登录会话和 `XAI_API_KEY` 保持由 Grok 管理。
+- `auth off` 只删除 `auth.json`，不修改 `mcp_credentials.json`。profile 路径仍不读写 `auth.json`。
 - URL 输出会移除 userinfo、query 和 fragment。
 
 ## 示例

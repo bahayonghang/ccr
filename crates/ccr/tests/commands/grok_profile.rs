@@ -522,3 +522,42 @@ fn grok_profile_off_clears_managed_route_when_entry_state_is_missing() {
     assert_success(&again);
     assert_eq!(again_json["changed"], false);
 }
+
+#[test]
+fn grok_auth_off_deletes_auth_json_and_keeps_mcp_and_custom_model() {
+    let fixture = GrokProfileFixture::new();
+    fs::write(
+        fixture.grok_home.join("auth.json"),
+        r#"{"token":"grok-session-secret"}"#,
+    )
+    .unwrap();
+    fs::write(
+        fixture.grok_home.join("mcp_credentials.json"),
+        r#"{"mcp":"keep-me"}"#,
+    )
+    .unwrap();
+    let mcp_before = fs::read(fixture.grok_home.join("mcp_credentials.json")).unwrap();
+    assert_success(&fixture.create_inline("relay").0);
+    assert_success(&fixture.run_output(&["grok", "profile", "switch", "relay"]));
+    let config_before = fs::read_to_string(fixture.grok_home.join("config.toml")).unwrap();
+
+    let (output, json) = fixture.run_json(&["grok", "auth", "off", "--json"]);
+    assert_success(&output);
+    assert_eq!(json["ok"], true);
+    assert_eq!(json["changed"], true);
+    assert_eq!(json["path"], "file");
+    assert!(!String::from_utf8_lossy(&output.stdout).contains("grok-session-secret"));
+    assert!(!fixture.grok_home.join("auth.json").exists());
+    assert_eq!(
+        fs::read(fixture.grok_home.join("mcp_credentials.json")).unwrap(),
+        mcp_before
+    );
+    assert_eq!(
+        fs::read_to_string(fixture.grok_home.join("config.toml")).unwrap(),
+        config_before
+    );
+
+    let (current, current_json) = fixture.run_json(&["grok", "auth", "current", "--json"]);
+    assert_success(&current);
+    assert_eq!(current_json["logged_in"], false);
+}

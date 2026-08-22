@@ -12,6 +12,7 @@
 | [Grok Profile Runtime](./grok-profile-runtime.md) | Grok profile validation, runtime switching, restoration, CAS, and secret boundaries | Complete |
 | [Claude Auth Runtime Diagnosis](./claude-auth-runtime.md) | Claude Code auth-source priority, confidence, ownership, secret-free diagnosis, and action warnings | Complete |
 | [Profile Off Login-Prep](./profile-off-login-prep.md) | Shared Claude/Codex/Grok `profile off` login-prep cleanup, `needs_login_prep`, and backup/secret write rules | Complete |
+| [Auth Off Official Logout](./auth-off.md) | Shared Claude/Codex/Grok `auth off` official-runtime logout, `needs_auth_off`, file vs native spawn, and backup deletion | Complete |
 
 ## Pre-Development Checklist
 
@@ -21,3 +22,4 @@
 - Read [Grok Profile Runtime](./grok-profile-runtime.md) before changing Grok profile validation, runtime switching, restoration, deletion, or credential display.
 - Read [Claude Auth Runtime Diagnosis](./claude-auth-runtime.md) before changing Claude auth/profile switching, runtime summaries, doctor auth-source checks, or auth-source output in any client.
 - Read [Profile Off Login-Prep](./profile-off-login-prep.md) before changing `profile off`, `needs_login_prep`, TUI apply/auth-switch off, or Tauri `*_profile_off`.
+- Read [Auth Off Official Logout](./auth-off.md) before changing `auth off`, `needs_auth_off`, TUI Auth logout, or Tauri `*_auth_off`.

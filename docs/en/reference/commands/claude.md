@@ -22,8 +22,11 @@ Without a subcommand, TUI-enabled builds enter the Claude Auth tab. Calls withou
 | `ccr claude auth switch <name>` | switch official accounts |
 | `ccr claude auth delete <name>` | delete an account; `--force` skips confirmation |
 | `ccr claude auth current` | show the current official login; supports `--json` |
+| `ccr claude auth off` | log out the current official runtime; supports `--json` |
 
 `save` accepts `--description <text>` and `--force`. An auth snapshot is not an API-token profile.
+
+`auth off` logs out the current official runtime. The command is independent from `profile off`. The command does not delete saved CCR accounts, and it does not change the profile pointer. On Windows and Linux, CCR deletes `.credentials.json`. On macOS, CCR runs `claude auth logout`. Use `auth switch` to restore a saved account.
 
 ## Profile Runtime
 

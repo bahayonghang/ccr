@@ -1282,3 +1282,74 @@
 ### Next Steps
 
 - 桌面端用真实本机/用量数据再看一遍徽章 tone
+
+
+## Session 96: Codex Auth 周限展示改为 7d
+
+**Date**: 2026-08-19
+**Task**: Codex Auth 周限展示改为 7d
+**Branch**: `dev`
+
+### Summary
+
+Codex Auth TUI 的 quota 面板把周限文案改为 7d limit，同时保留 5h 路径。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b59299641f6b3827bc8cf23d2d9604a1c7ba16a3` | (see git log) |
+
+### Testing
+
+- [OK] cargo test -p ccr-tui -- --test-threads=1
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 97: Claude Codex Grok auth off
+
+**Date**: 2026-08-21
+**Task**: Claude Codex Grok auth off
+**Branch**: `dev`
+
+### Summary
+
+落地 ccr claude/codex/grok auth off（file/native 混合登出），删除 ccr opencode 命令组与 Auth TUI，并接入 TUI、ccr-ui、VS Code 包装与文档。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b4f5e462` | (see git log) |
+| `dc71784b` | (see git log) |
+| `66eb0b8e` | (see git log) |
+| `8cf64419` | (see git log) |
+| `feab8669` | (see git log) |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 98: Codex 首页趋势图横轴标签与图标优化
+
+**Date**: 2026-08-22
+**Task**: Codex 首页趋势图横轴标签与图标优化
+**Branch**: `dev`
+
+### Summary
+
+将平台首页趋势图从 category+trim 改为 datetime 轴，复用 formatTrendAxisLabel；优化 Codex 首页 KPI 与页头图标；写入横轴日期标签合同并归档 08-22-codex-home-chart-labels。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `fcf30d0a` | (see git log) |
+
+### Status
+
+[OK] **Completed**

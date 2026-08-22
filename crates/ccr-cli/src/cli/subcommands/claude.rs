@@ -75,6 +75,13 @@ pub enum ClaudeAuthAction {
         #[arg(long)]
         json: bool,
     },
+
+    /// 登出当前官方运行时登录
+    Off {
+        /// 以 JSON 格式输出
+        #[arg(long)]
+        json: bool,
+    },
 }
 
 /// Claude Profile 子命令

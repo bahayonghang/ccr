@@ -8,8 +8,8 @@ pub mod claude_auth;
 pub mod codex_auth;
 mod event;
 mod footer;
+pub mod grok_auth;
 pub mod i18n;
-pub mod opencode_auth;
 pub mod overlay;
 mod pagination;
 pub mod runtime;
@@ -141,51 +141,21 @@ fn print_exit_info(app: &App) {
         }
     }
 
-    // OpenCode auth action result
-    if let Some((action, name, success, error)) = &app.last_opencode_action {
+    if let Some((success, error)) = &app.last_grok_action {
         if *success {
-            if *action == CompletedAction::Import {
-                println!(
-                    "{}",
-                    crate::tui_format!(
-                        "Imported OpenCode accounts: {}",
-                        "已导入 OpenCode 账号：{} 个",
-                        name
-                    )
-                );
-            } else {
-                println!(
-                    "{}",
-                    crate::tui_format!(
-                        "{} OpenCode account: {}",
-                        "{} OpenCode 账号：{}",
-                        action.success_label(),
-                        name
-                    )
-                );
-            }
+            println!(
+                "{}",
+                crate::tui_text!("Grok official session logged out", "已登出 Grok 官方会话")
+            );
         } else if let Some(err) = error {
-            if *action == CompletedAction::Import {
-                eprintln!(
-                    "{}",
-                    crate::tui_format!(
-                        "Failed to import Codex accounts into OpenCode: {}",
-                        "Codex 账号导入 OpenCode 失败：{}",
-                        err
-                    )
-                );
-            } else {
-                eprintln!(
-                    "{}",
-                    crate::tui_format!(
-                        "Failed to {} OpenCode account {}: {}",
-                        "OpenCode 账号 {1} {0}失败：{2}",
-                        action.failure_label(),
-                        name,
-                        err
-                    )
-                );
-            }
+            eprintln!(
+                "{}",
+                crate::tui_format!(
+                    "Failed to log out Grok official session: {}",
+                    "登出 Grok 官方会话失败：{}",
+                    err
+                )
+            );
         }
     }
 }
@@ -225,9 +195,9 @@ pub fn run_tui_with_claude_auth() -> Result<()> {
     run_tui_with(App::with_claude_auth_tab)
 }
 
-/// Run the main TUI pre-selected to the OpenCode Auth tab.
-pub fn run_tui_with_opencode_auth() -> Result<()> {
-    run_tui_with(App::with_opencode_auth_tab)
+/// Run the main TUI pre-selected to the Grok Auth tab.
+pub fn run_tui_with_grok_auth() -> Result<()> {
+    run_tui_with(App::with_grok_auth_tab)
 }
 
 #[cfg(test)]

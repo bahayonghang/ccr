@@ -83,4 +83,4 @@ ccr --version
 - [update](./update) - 更新 CCR
 - [platform](./platform) - 管理平台
 - [codex](./codex) - 管理 Codex 多账号
-- [opencode](./opencode) - 管理 OpenCode 迁移入口
+- [grok](./grok) - 管理 Grok Build profile 与官方会话登出

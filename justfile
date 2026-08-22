@@ -15,6 +15,8 @@
 BIN := "ccr"
 CLI_CRATE_PATH := "crates/ccr"
 OUTPUTS_DIR := "outputs"
+# 与 .github/workflows/ci.yml security-audit 任务保持同一版本
+CARGO_AUDIT_VERSION := "0.22.2"
 
 # 🧭 跨平台 Shell 配置
 # Windows 使用 PowerShell with UTF-8 encoding; -NoProfile 避免交互式配置污染 CI 输出
@@ -401,10 +403,11 @@ bench:
 # ✨ 代码质量命令
 # ═══════════════════════════════════════════════════════════
 
-# ✨ 格式化 Rust 代码和人工维护的 JSON 配置
+# ✨ 格式化 Rust 代码和人工维护的 JSON 配置（含 Tauri 独立 workspace）
 fmt: json-format
     @just info "✨ 格式化代码和 JSON 配置"
     cargo fmt
+    cargo fmt --manifest-path ccr-ui/src-tauri/Cargo.toml
     @just success "代码格式化完成"
 
 # 🧾 格式化人工维护的 JSON 配置（显式排除 lock/generated/fixture/data）
@@ -442,11 +445,12 @@ _json-format-check-macos:
     @python3 -m unittest scripts.quality.test_check_json_format
     @python3 scripts/quality/check_json_format.py
 
-# 🔍 检查代码格式 (不修改文件)
+# 🔍 检查代码格式 (不修改文件，含 Tauri 独立 workspace)
 fmt-check: json-format-check
     @just info "🔍 检查代码格式"
     @just info "📌 模式: 仅验证，不修改文件"
     cargo fmt -- --check
+    cargo fmt --manifest-path ccr-ui/src-tauri/Cargo.toml -- --check
     @just success "代码格式符合规范"
 
 # 🚨 静态检查 (Clippy) - 警告视为错误
@@ -474,12 +478,53 @@ lint: fmt clippy
     @just header "代码质量检查"
     @just success "代码质量检查全部通过"
 
-# 🔒 安全审计 (cargo audit) - 若未安装则失败
+# 🔒 安全审计 (cargo audit) - 二进制缺失时安装 GitHub CI 同版本
 audit:
     @just header "🔒 运行安全审计"
-    @just info "📌 使用 cargo-audit (需要安装: cargo install cargo-audit)"
+    @just _ensure-cargo-audit-{{os()}}
     cargo audit
     @just success "安全审计步骤完成"
+
+[private]
+_ensure-cargo-audit-windows:
+    #!pwsh.exe
+    $ErrorActionPreference = 'Stop'
+    if (-not (Get-Command cargo-audit -ErrorAction SilentlyContinue)) {
+        Write-Host "cargo-audit 未安装或二进制缺失，正在安装 {{CARGO_AUDIT_VERSION}}"
+        if (Get-Command cargo-binstall -ErrorAction SilentlyContinue) {
+            cargo binstall cargo-audit --version {{CARGO_AUDIT_VERSION}} --no-confirm --force
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        } else {
+            cargo install cargo-audit --version {{CARGO_AUDIT_VERSION}} --locked --force
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        }
+    }
+
+[private]
+_ensure-cargo-audit-linux:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if ! command -v cargo-audit >/dev/null 2>&1; then
+      printf 'cargo-audit 未安装或二进制缺失，正在安装 %s\n' "{{CARGO_AUDIT_VERSION}}"
+      if command -v cargo-binstall >/dev/null 2>&1; then
+        cargo binstall cargo-audit --version {{CARGO_AUDIT_VERSION}} --no-confirm --force
+      else
+        cargo install cargo-audit --version {{CARGO_AUDIT_VERSION}} --locked --force
+      fi
+    fi
+
+[private]
+_ensure-cargo-audit-macos:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if ! command -v cargo-audit >/dev/null 2>&1; then
+      printf 'cargo-audit 未安装或二进制缺失，正在安装 %s\n' "{{CARGO_AUDIT_VERSION}}"
+      if command -v cargo-binstall >/dev/null 2>&1; then
+        cargo binstall cargo-audit --version {{CARGO_AUDIT_VERSION}} --no-confirm --force
+      else
+        cargo install cargo-audit --version {{CARGO_AUDIT_VERSION}} --locked --force
+      fi
+    fi
 
 # ═══════════════════════════════════════════════════════════
 # 🚀 开发工作流命令
@@ -509,6 +554,7 @@ _ci-timed-windows:
     chcp 65001 | Out-Null
     $steps = @(
         @{ Name = "version-sync";    Label = "Version Sync" },
+        @{ Name = "version-check";   Label = "Version Check" },
         @{ Name = "fmt";             Label = "Format" },
         @{ Name = "fmt-check";       Label = "Format Check" },
         @{ Name = "lint-strict";     Label = "Strict Clippy" },
@@ -574,8 +620,8 @@ _ci-timed-windows:
 _ci-timed-linux:
     #!/usr/bin/env bash
     set -uo pipefail
-    steps=("version-sync" "fmt" "fmt-check" "lint-strict" "check-workspace" "test" "release" "audit" "ci-governance-check" "tauri-bindings-check" "frontend-check" "vscode-ci")
-    labels=("Version Sync" "Format" "Format Check" "Strict Clippy" "Workspace Check" "Test" "Release Build" "Security Audit" "CI Governance" "TS Bindings Drift" "Frontend Check" "VSCode CI")
+    steps=("version-sync" "version-check" "fmt" "fmt-check" "lint-strict" "check-workspace" "test" "release" "audit" "ci-governance-check" "tauri-bindings-check" "frontend-check" "vscode-ci")
+    labels=("Version Sync" "Version Check" "Format" "Format Check" "Strict Clippy" "Workspace Check" "Test" "Release Build" "Security Audit" "CI Governance" "TS Bindings Drift" "Frontend Check" "VSCode CI")
     PAD=20
     times=()
     statuses=()
@@ -635,8 +681,8 @@ _ci-timed-linux:
 _ci-timed-macos:
     #!/usr/bin/env bash
     set -uo pipefail
-    steps=("version-sync" "fmt" "fmt-check" "lint-strict" "check-workspace" "test" "release" "audit" "ci-governance-check" "tauri-bindings-check" "frontend-check" "vscode-ci")
-    labels=("Version Sync" "Format" "Format Check" "Strict Clippy" "Workspace Check" "Test" "Release Build" "Security Audit" "CI Governance" "TS Bindings Drift" "Frontend Check" "VSCode CI")
+    steps=("version-sync" "version-check" "fmt" "fmt-check" "lint-strict" "check-workspace" "test" "release" "audit" "ci-governance-check" "tauri-bindings-check" "frontend-check" "vscode-ci")
+    labels=("Version Sync" "Version Check" "Format" "Format Check" "Strict Clippy" "Workspace Check" "Test" "Release Build" "Security Audit" "CI Governance" "TS Bindings Drift" "Frontend Check" "VSCode CI")
     PAD=20
     times=()
     statuses=()

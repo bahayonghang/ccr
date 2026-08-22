@@ -522,3 +522,34 @@ fn output_contains_secret(output: &Output, secret: &str) -> bool {
     String::from_utf8_lossy(&output.stdout).contains(secret)
         || String::from_utf8_lossy(&output.stderr).contains(secret)
 }
+
+#[cfg(not(target_os = "macos"))]
+#[test]
+fn claude_auth_off_deletes_credentials_and_keeps_onboarding() {
+    let fixture = ClaudeProfileFixture::new();
+    fs::write(
+        fixture.claude_dir.join(".credentials.json"),
+        r#"{"claudeAiOauth":{"accessToken":"secret-token"}}"#,
+    )
+    .unwrap();
+    let state_path = fixture.home.join(".claude.json");
+    fs::write(
+        &state_path,
+        r#"{"hasCompletedOnboarding":true,"oauthAccount":{"email":"keep@example.com"}}"#,
+    )
+    .unwrap();
+    let state_before = fs::read(&state_path).unwrap();
+
+    let (output, json) = fixture.run_json(&["claude", "auth", "off", "--json"]);
+    assert!(output.status.success(), "{:?}", output.status);
+    assert_eq!(json["ok"], true);
+    assert_eq!(json["changed"], true);
+    assert_eq!(json["path"], "file");
+    assert!(!output_contains_secret(&output, "secret-token"));
+    assert!(!fixture.claude_dir.join(".credentials.json").exists());
+    assert_eq!(fs::read(&state_path).unwrap(), state_before);
+
+    let (again, again_json) = fixture.run_json(&["claude", "auth", "off", "--json"]);
+    assert!(again.status.success(), "{:?}", again.status);
+    assert_eq!(again_json["changed"], false);
+}

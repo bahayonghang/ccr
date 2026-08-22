@@ -19,8 +19,8 @@ pub struct TuiLaunchers {
     pub main: fn() -> Result<(), CcrError>,
     /// Launcher for the Codex auth TUI (`ccr codex` with no action).
     pub codex_auth: fn() -> Result<(), CcrError>,
-    /// Launcher for the OpenCode auth TUI (`ccr opencode` with no action).
-    pub opencode_auth: fn() -> Result<(), CcrError>,
+    /// Launcher for the Grok auth TUI (`ccr grok auth` with no nested action).
+    pub grok_auth: fn() -> Result<(), CcrError>,
     /// Launcher for the Claude auth TUI (`ccr claude` with no action).
     pub claude_auth: fn() -> Result<(), CcrError>,
 }
@@ -160,10 +160,9 @@ impl CommandDispatcher {
             Some(Commands::Doctor(args)) => crate::commands::doctor_command(args.clone()).await,
 
             Some(Commands::Codex { action }) => Self::dispatch_codex(action, tui).await,
-            Some(Commands::OpenCode { action }) => Self::dispatch_opencode(action, tui).await,
 
             Some(Commands::Claude { action }) => Self::dispatch_claude(action, tui).await,
-            Some(Commands::Grok { action }) => Self::dispatch_grok(action).await,
+            Some(Commands::Grok { action }) => Self::dispatch_grok(action, tui).await,
 
             Some(Commands::Sessions(args)) => {
                 crate::commands::sessions_cmd::execute(args.clone()).await
@@ -576,6 +575,9 @@ impl CommandDispatcher {
                 CodexAuthAction::Current { json } => {
                     crate::commands::codex::auth::current_command(*json).await
                 }
+                CodexAuthAction::Off { json } => {
+                    crate::commands::codex::auth::off_command(*json).await
+                }
                 CodexAuthAction::Export { no_secrets } => {
                     crate::commands::codex::auth::export_command(*no_secrets).await
                 }
@@ -589,14 +591,34 @@ impl CommandDispatcher {
     /// Grok Build profile command dispatch.
     async fn dispatch_grok(
         action: &Option<crate::cli::subcommands::GrokAction>,
+        tui: Option<&TuiLaunchers>,
     ) -> Result<(), CcrError> {
-        use crate::cli::subcommands::{GrokAction, GrokProfileAction};
+        use crate::cli::subcommands::{GrokAction, GrokAuthAction, GrokProfileAction};
 
         match action {
             None | Some(GrokAction::Help) => {
                 help::print_subcommand_help("grok");
                 Ok(())
             }
+            Some(GrokAction::Auth { action }) => match action {
+                None => match tui {
+                    Some(launchers) => (launchers.grok_auth)(),
+                    None => {
+                        help::print_nested_subcommand_help(&["grok", "auth"]);
+                        Ok(())
+                    }
+                },
+                Some(GrokAuthAction::Help) => {
+                    help::print_nested_subcommand_help(&["grok", "auth"]);
+                    Ok(())
+                }
+                Some(GrokAuthAction::Current { json }) => {
+                    crate::commands::grok::auth::current_command(*json).await
+                }
+                Some(GrokAuthAction::Off { json }) => {
+                    crate::commands::grok::auth::off_command(*json).await
+                }
+            },
             Some(GrokAction::Profile { action }) => match action.as_ref() {
                 GrokProfileAction::Help => {
                     help::print_nested_subcommand_help(&["grok", "profile"]);
@@ -634,38 +656,6 @@ impl CommandDispatcher {
                 }
                 GrokProfileAction::Off(args) => {
                     crate::commands::grok::profile::off_command(args.json).await
-                }
-            },
-        }
-    }
-
-    /// OpenCode 命令分发
-    async fn dispatch_opencode(
-        action: &Option<crate::cli::subcommands::OpenCodeAction>,
-        tui: Option<&TuiLaunchers>,
-    ) -> Result<(), CcrError> {
-        use crate::cli::subcommands::{OpenCodeAction, OpenCodeAuthAction};
-
-        match action {
-            // 无子命令时启动 OpenCode Auth TUI（未注入启动器时打印帮助）
-            None => match tui {
-                Some(launchers) => (launchers.opencode_auth)(),
-                None => {
-                    help::print_subcommand_help("opencode");
-                    Ok(())
-                }
-            },
-            Some(OpenCodeAction::Help) => {
-                help::print_subcommand_help("opencode");
-                Ok(())
-            }
-            Some(OpenCodeAction::Auth { action }) => match action {
-                OpenCodeAuthAction::Help => {
-                    help::print_nested_subcommand_help(&["opencode", "auth"]);
-                    Ok(())
-                }
-                OpenCodeAuthAction::ImportCodex { dry_run, json } => {
-                    crate::commands::opencode::auth::import_codex_command(*dry_run, *json).await
                 }
             },
         }
@@ -754,6 +744,9 @@ impl CommandDispatcher {
                 ClaudeAuthAction::Current { json } => {
                     crate::commands::claude::auth::current::current_command(*json).await
                 }
+                ClaudeAuthAction::Off { json } => {
+                    crate::commands::claude::auth::off::off_command(*json).await
+                }
             },
         }
     }
@@ -798,15 +791,13 @@ impl CommandDispatcher {
         println!("  ccr --version         输出简短版本号（适合脚本和 CI）");
         println!("  ccr --help            查看任务导向总帮助");
         println!("  ccr help codex auth   查看 Codex Auth 帮助");
-        println!("  ccr help opencode auth 查看 OpenCode 导入帮助");
+        println!("  ccr help grok auth    查看 Grok Auth 帮助");
         println!();
 
         ColorOutput::info("核心任务:");
         println!("  平台切换: ccr platform list -> ccr platform switch <platform>");
         println!("  Codex 账号: ccr codex auth current -> ccr codex auth switch <name>");
-        println!(
-            "  OpenCode 导入: ccr opencode auth import-codex --dry-run -> ccr opencode auth import-codex"
-        );
+        println!("  官方登出: ccr claude auth off / ccr codex auth off / ccr grok auth off");
         println!();
 
         ColorOutput::info("详细版本说明: ccr version --help");

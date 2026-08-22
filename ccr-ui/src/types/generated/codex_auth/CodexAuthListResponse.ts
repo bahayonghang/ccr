@@ -2,4 +2,4 @@
 import type { CodexAuthAccountItem } from "./CodexAuthAccountItem";
 import type { CodexLoginState } from "./CodexLoginState";
 
-export type CodexAuthListResponse = { accounts: Array<CodexAuthAccountItem>, login_state: CodexLoginState, };
+export type CodexAuthListResponse = { accounts: Array<CodexAuthAccountItem>, login_state: CodexLoginState, can_auth_off: boolean, };

@@ -8,7 +8,7 @@ use crate::tui::pagination::{
 };
 use crate::tui::runtime::TuiApp;
 use crate::tui::toast::{Toast, ToastManager};
-use ccr_cli::application::profile_off_for_platform;
+use ccr_cli::application::{auth_off_for_platform, profile_off_for_platform};
 use ccr_cli::models::{
     ClaudeAuthActionOutcome, ClaudeAuthRegistry, ClaudeAuthSourceObservation,
     ClaudeCurrentAuthInfo, ClaudeLoginState, ClaudeRuntimeMode, ClaudeRuntimeSummary, Platform,
@@ -241,6 +241,31 @@ impl ClaudeAuthApp {
                         "No saved account is available to delete",
                         "没有可删除的已保存账号"
                     )));
+                }
+            }
+            KeyCode::Char('o') | KeyCode::Char('O') => {
+                match auth_off_for_platform(Platform::Claude) {
+                    Ok(result) => {
+                        if result.changed {
+                            self.toasts.push(Toast::success(crate::tui_text!(
+                                "Logged out of the official Claude session",
+                                "已登出 Claude 官方会话"
+                            )));
+                        } else {
+                            self.toasts.push(Toast::info(crate::tui_text!(
+                                "No official Claude session file to remove",
+                                "没有可删除的 Claude 官方会话文件"
+                            )));
+                        }
+                        self.reload_accounts()?;
+                    }
+                    Err(err) => {
+                        self.toasts.push(Toast::error(crate::tui_format!(
+                            "Claude auth off failed: {}",
+                            "Claude auth off 失败：{}",
+                            err
+                        )));
+                    }
                 }
             }
             KeyCode::Char('r') => {

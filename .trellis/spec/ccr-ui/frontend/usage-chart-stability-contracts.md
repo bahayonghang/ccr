@@ -116,6 +116,21 @@ import 'apexcharts/area'
 - 注意 store 有 `DASHBOARD_CACHE_TTL_MS = 30s` 快照缓存:30s 内切回同窗口不发 IPC,
   测窗口切换要区分 refetch 路径与缓存路径。
 
+## 7. 横轴日期标签
+
+平台首页趋势图（`PlatformUsageTrendChart`）与 Usage 仪表盘日趋势必须用 `xaxis.type: 'datetime'`，
+标签走 `formatTrendAxisLabel` + `parseUtcDate`（`YYYY-MM-DD` → UTC 午夜）。禁止：
+
+- category 轴 + `labels.trim: true` + ISO `YYYY-MM-DD` 字符串。ApexCharts 按全部
+  category 槽宽判断溢出，30 天窗口会把 `2026-07-22` 裁成 `2026-07...`，即使
+  `tickAmount` 只显示 6 个刻度。
+- 再写一套月日格式化。locale short 已由 `formatTrendAxisLabel` 覆盖（en-US `Jul 22`，
+  zh-CN `7月22日`）。
+
+`tests/platform-usage-trend-chart.smoke.test.ts` 锁 datetime、`trim: false`、
+`redrawOnParentResize: false`。`tests/usage-chart-diagnostics.smoke.test.ts` 锁
+`parseUtcDate` 与日标签文案。
+
 ## 已知偏差(接受现状,改动时顺手收敛)
 
 - ~~`UsageTokensTab.vue` / `UsageCostTab.vue` 局部 options 硬编码

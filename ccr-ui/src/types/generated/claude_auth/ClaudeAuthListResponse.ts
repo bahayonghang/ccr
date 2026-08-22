@@ -4,4 +4,4 @@ import type { ClaudeLoginState } from "./ClaudeLoginState";
 import type { ClaudeProfileAuthMode } from "./ClaudeProfileAuthMode";
 import type { ClaudeRuntimeSummary } from "./ClaudeRuntimeSummary";
 
-export type ClaudeAuthListResponse = { accounts: Array<ClaudeAuthAccountItem>, login_state: ClaudeLoginState, runtime_summary: ClaudeRuntimeSummary, current_profile_auth_mode: ClaudeProfileAuthMode | null, };
+export type ClaudeAuthListResponse = { accounts: Array<ClaudeAuthAccountItem>, login_state: ClaudeLoginState, runtime_summary: ClaudeRuntimeSummary, current_profile_auth_mode: ClaudeProfileAuthMode | null, can_auth_off: boolean, };

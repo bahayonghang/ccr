@@ -1,4 +1,15 @@
 export default {
+  auth: {
+    off: '登出官方会话',
+    offDescription: '清除本机官方运行时登录。已保存的 CCR 账号快照不会删除。',
+    confirmOffTitle: '登出官方会话',
+    confirmOffClaude: '登出当前 Claude 官方运行时登录？可用已保存快照通过 auth switch 恢复。',
+    confirmOffCodex: '登出当前 Codex 官方运行时登录？可用已保存快照通过 auth switch 恢复。',
+    confirmOffGrok: '删除本机 Grok 官方会话文件？CCR 没有账号快照，之后只能重新 grok login 或回退 XAI_API_KEY。',
+    offSuccess: '已登出官方运行时登录',
+    offUnchanged: '当前没有可清除的官方凭据文件',
+    offFailed: '登出官方会话失败',
+  },
   common: {
     language: {
       switchLanguage: '切换语言',
@@ -4654,6 +4665,13 @@ export default {
     overview: {
       title: 'Grok',
       subtitle: '集中查看 Grok Build 的本机 Profile 与运行时就绪状态。',
+    },
+    auth: {
+      title: '官方会话',
+      subtitle: '查看当前 Grok 官方登录并登出。CCR 不保存 Grok 账号快照。',
+      signedIn: '已登录',
+      signedOut: '未登录（可回退 XAI_API_KEY）',
+      sessionFile: '会话文件',
     },
     dashboard: {
       header: {

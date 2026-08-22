@@ -12,6 +12,7 @@
 ```bash
 ccr codex auth current
 ccr codex auth list
+ccr codex auth off
 ccr codex profile list
 ccr codex profile switch <name>
 ccr codex profile current
@@ -22,8 +23,10 @@ ccr codex profile off
 
 | 命令组 | 作用 |
 |---|---|
-| `ccr codex auth ...` | 保存、切换、导出、导入 official auth 账号 |
+| `ccr codex auth ...` | 保存、切换、导出、导入 official auth 账号，或登出当前官方运行时登录 |
 | `ccr codex profile ...` | 把某个 CCR profile 应用到 Codex runtime，或清理 profile 路由与运行期凭据 |
+
+`ccr codex auth off` 登出当前官方运行时登录，与 `profile off` 独立。该命令不修改 profile 指针和 `config.toml` 路由。即使当前处于第三方 profile，仍会清除运行期 `auth.json`（file store）或调用 `codex logout`（keyring / auto）。`--json` 可报告仍存在的 `profile_pointer`，提示需要再次 `profile switch` 写回 key。该提示不算失败。
 
 ## `profile` 当前支持面
 

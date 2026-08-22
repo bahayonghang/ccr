@@ -2,4 +2,4 @@
 import type { CodexAuthCurrentInfo } from "./CodexAuthCurrentInfo";
 import type { CodexLoginState } from "./CodexLoginState";
 
-export type CodexAuthCurrentResponse = { logged_in: boolean, info?: CodexAuthCurrentInfo, login_state: CodexLoginState, };
+export type CodexAuthCurrentResponse = { logged_in: boolean, info?: CodexAuthCurrentInfo, login_state: CodexLoginState, can_auth_off: boolean, };

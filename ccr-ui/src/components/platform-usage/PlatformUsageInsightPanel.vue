@@ -116,7 +116,7 @@
           <div class="platform-usage-panel__kpi-icon">
             <SIcon
               :name="card.icon"
-              size="w-4 h-4"
+              size="w-5 h-5"
             />
           </div>
           <div>
@@ -377,9 +377,19 @@ const generatedLabel = computed(() =>
 }
 
 .platform-usage-panel__kpi--cost {
+  --kpi-icon-rgb: var(--color-accent-primary-rgb);
+
   background:
     radial-gradient(circle at 12% 0%, rgb(var(--platform-usage-accent-rgb, var(--color-accent-primary-rgb)) / 12%), transparent 16rem),
     rgb(var(--color-bg-elevated-rgb) / 54%);
+}
+
+.platform-usage-panel__kpi--tokens {
+  --kpi-icon-rgb: var(--color-info-rgb);
+}
+
+.platform-usage-panel__kpi--requests {
+  --kpi-icon-rgb: var(--color-accent-secondary-rgb);
 }
 
 .platform-usage-panel__kpi--token-only {
@@ -392,8 +402,9 @@ const generatedLabel = computed(() =>
   width: 2.15rem;
   height: 2.15rem;
   border-radius: 0.85rem;
-  background: rgb(var(--platform-usage-accent-rgb, var(--color-accent-primary-rgb)) / 12%);
-  color: var(--color-text-primary);
+  border: 1px solid rgb(var(--kpi-icon-rgb, var(--color-accent-primary-rgb)) / 14%);
+  background: rgb(var(--kpi-icon-rgb, var(--color-accent-primary-rgb)) / 10%);
+  color: rgb(var(--kpi-icon-rgb, var(--color-accent-primary-rgb)));
 }
 
 .platform-usage-panel__kpi span,

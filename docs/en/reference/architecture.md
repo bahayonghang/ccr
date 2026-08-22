@@ -52,7 +52,7 @@ Entrypoints and adapters depend on shared domains and contracts. New domain beha
 
 ## CLI And TUI
 
-`crates/ccr/src/main.rs` assembles launchers. Command definitions and dispatch live under `crates/ccr-cli/src/cli/`; handlers live under `crates/ccr-cli/src/commands/`. No-subcommand execution can enter the TUI, and `ccr claude`, `ccr codex`, and `ccr opencode` expose focused interactive entrypoints.
+`crates/ccr/src/main.rs` assembles launchers. Command definitions and dispatch live under `crates/ccr-cli/src/cli/`; handlers live under `crates/ccr-cli/src/commands/`. No-subcommand execution can enter the TUI, and `ccr claude`, `ccr codex`, and `ccr grok auth` expose focused interactive entrypoints.
 
 `ccr-tui` owns terminal rendering. `ccr-cli` should call configuration, Codex, sync, skills, and store crates instead of duplicating their lower-level behavior.
 

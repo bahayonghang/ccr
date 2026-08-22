@@ -69,13 +69,13 @@ ccr sync all status
 ccr clean backups --days 30 --dry-run
 ```
 
-## 工作流 6：Codex 多账号与 OpenCode 迁移
+## 工作流 6：Codex 多账号
 
 ```bash
 ccr codex auth save work
 ccr codex auth list
 ccr codex auth switch work
-ccr opencode auth import-codex --dry-run
+ccr codex auth off
 ```
 
 ## 工作流 7：进入图形界面

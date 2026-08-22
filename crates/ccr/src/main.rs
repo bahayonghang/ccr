@@ -35,7 +35,7 @@ async fn main() {
     let tui_launchers = TuiLaunchers {
         main: ccr::tui::run_tui,
         codex_auth: ccr::tui::codex_auth::run_codex_auth_tui,
-        opencode_auth: ccr::tui::opencode_auth::run_opencode_auth_tui,
+        grok_auth: ccr::tui::grok_auth::run_grok_auth_tui,
         claude_auth: ccr::tui::claude_auth::run_claude_auth_tui,
     };
     #[cfg(feature = "tui")]

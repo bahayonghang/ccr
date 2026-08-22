@@ -715,6 +715,7 @@ export const deleteCodexSession = async (filePath: string): Promise<OpenJsonValu
 // ── Codex Auth 管理 ──
 
 export {
+  codexAuthOff,
   deleteCodexAuth,
   getCodexAuthCurrent,
   listCodexAuthAccounts,

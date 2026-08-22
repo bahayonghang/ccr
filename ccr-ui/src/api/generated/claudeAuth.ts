@@ -4,6 +4,7 @@ import { invoke } from '@/api/invokeRuntime'
 import type { ClaudeAuthActionResponse } from '@/types/generated/claude_auth/ClaudeAuthActionResponse'
 import type { ClaudeAuthCurrentResponse } from '@/types/generated/claude_auth/ClaudeAuthCurrentResponse'
 import type { ClaudeAuthListResponse } from '@/types/generated/claude_auth/ClaudeAuthListResponse'
+import type { ClaudeAuthOffResponse } from '@/types/generated/claude_auth/ClaudeAuthOffResponse'
 
 export type ClaudeAuthSaveRequest = {
   name: string
@@ -29,3 +30,4 @@ export const switchClaudeAuth = (name: string): Promise<ClaudeAuthActionResponse
 
 export const deleteClaudeAuth = (name: string): Promise<ClaudeAuthActionResponse> =>
   invoke('claude_delete_auth', { name })
+export const claudeAuthOff = (): Promise<ClaudeAuthOffResponse> => invoke('claude_auth_off')

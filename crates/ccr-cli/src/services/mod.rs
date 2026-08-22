@@ -13,6 +13,7 @@ pub mod backup_service;
 pub mod claude_auth_service;
 pub mod config_service;
 pub mod doctor_service;
+pub mod grok_auth_service;
 pub mod health_check;
 pub mod history_service;
 pub mod install_catalog;
@@ -41,13 +42,13 @@ pub use ccr_codex::{
     AuthReadSnapshot, CodexAuthService, CodexHistoryBackupPruneResult, CodexHistoryProviderBuckets,
     CodexHistorySyncOptions, CodexHistorySyncResult, CodexHistorySyncService,
     CodexHistorySyncStatus, CodexOAuthTokenService, CodexQuotaService, CodexRollingUsage,
-    CodexSessionTrashService, CodexUsageRecord, CodexUsageService, OpenCodeAuthService,
-    OpenCodeQuotaService, OpenCodeRollingUsage, OpenCodeUsageRecord, OpenCodeUsageService,
+    CodexSessionTrashService, CodexUsageRecord, CodexUsageService,
 };
 #[allow(unused_imports)]
 pub use claude_auth_service::{ClaudeAuthItem, ClaudeAuthService};
 #[allow(unused_imports)]
 pub use config_service::ConfigService;
+pub use grok_auth_service::{GrokAuthCurrent, GrokAuthService};
 #[allow(unused_imports)]
 pub use history_service::HistoryService;
 #[allow(unused_imports)]

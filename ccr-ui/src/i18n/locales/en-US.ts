@@ -1,4 +1,18 @@
 export default {
+  auth: {
+    off: 'Log out official session',
+    offDescription: 'Clear the local official runtime login. Saved CCR account snapshots stay.',
+    confirmOffTitle: 'Log out official session',
+    confirmOffClaude:
+      'Log out the current Claude official runtime session? You can restore it with a saved snapshot via auth switch.',
+    confirmOffCodex:
+      'Log out the current Codex official runtime session? You can restore it with a saved snapshot via auth switch.',
+    confirmOffGrok:
+      'Delete the local Grok official session file? CCR has no account snapshot; you must run grok login again or fall back to XAI_API_KEY.',
+    offSuccess: 'Logged out of the official runtime session',
+    offUnchanged: 'No official credential file to remove',
+    offFailed: 'Failed to log out the official session',
+  },
   common: {
     language: {
       switchLanguage: 'Switch Language',
@@ -4798,6 +4812,13 @@ export default {
     overview: {
       title: 'Grok',
       subtitle: 'Local profile and runtime readiness for Grok Build.',
+    },
+    auth: {
+      title: 'Official session',
+      subtitle: 'Inspect the current Grok official login and log it out. CCR does not save Grok account snapshots.',
+      signedIn: 'Signed in',
+      signedOut: 'Signed out (may fall back to XAI_API_KEY)',
+      sessionFile: 'Session file',
     },
     dashboard: {
       header: {

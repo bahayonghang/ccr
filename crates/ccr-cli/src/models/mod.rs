@@ -18,11 +18,6 @@ pub use ccr_codex::models::codex_auth::{
     CodexRuntimeSummary, CodexUsageActivation, CredentialStoreKind, CurrentAuthInfo, ImportMode,
     ImportResult, LoginState, OpenAiAuthMethod,
 };
-#[allow(unused_imports)]
-pub use ccr_codex::models::opencode_auth::{
-    CodexToOpenCodeMigrationItem, CodexToOpenCodeMigrationReport, CodexToOpenCodeMigrationStatus,
-    OpenCodeAuthItem, OpenCodeAuthRegistry, OpenCodeLoginState, OpenCodeReadSnapshot,
-};
 pub use ccr_config::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};
 #[allow(unused_imports)]
 pub use ccr_types::{

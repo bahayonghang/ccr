@@ -21,7 +21,6 @@ pub mod doctor_cmd;
 pub mod grok;
 pub mod lifecycle;
 pub mod migration;
-pub mod opencode;
 pub mod platform;
 pub mod profile;
 pub mod project;

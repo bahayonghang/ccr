@@ -20,7 +20,7 @@ use std::sync::Arc;
 
 use super::claude_auth::{ClaudeAuthActionRecord, ClaudeAuthApp};
 use super::codex_auth::CodexAuthApp;
-use super::opencode_auth::OpenCodeAuthApp;
+use super::grok_auth::GrokAuthApp;
 use super::pagination::{DEFAULT_PAGE_SIZE, page_for_index, page_slice, total_pages};
 use super::runtime::{AsyncTaskExecutor, TuiApp};
 use super::ui;
@@ -43,8 +43,8 @@ pub enum TabVariant {
     ClaudeAuth,
     /// Codex account/auth management
     CodexAuth,
-    /// OpenCode openai account/auth management
-    OpenCodeAuth,
+    /// Grok official session status and auth off
+    GrokAuth,
 }
 
 /// A tab representing one platform with its profiles loaded
@@ -79,9 +79,7 @@ impl PlatformTab {
                 crate::tui_text!("Claude Auth", "Claude 认证")
             }
             (_, TabVariant::CodexAuth) => crate::tui_text!("Codex Auth", "Codex 认证"),
-            (_, TabVariant::OpenCodeAuth) => {
-                crate::tui_text!("OpenCode Auth", "OpenCode 认证")
-            }
+            (_, TabVariant::GrokAuth) => crate::tui_text!("Grok Auth", "Grok 认证"),
             _ => self.label.as_str(),
         }
     }
@@ -91,10 +89,9 @@ impl PlatformTab {
             (Platform::Claude, TabVariant::Profile) => "Claude",
             (Platform::Codex, TabVariant::Profile) => "Codex",
             (Platform::Grok, TabVariant::Profile) => "Grok",
-            (_, TabVariant::ClaudeAuth | TabVariant::CodexAuth) => {
+            (_, TabVariant::ClaudeAuth | TabVariant::CodexAuth | TabVariant::GrokAuth) => {
                 crate::tui_text!("Auth", "认证")
             }
-            (_, TabVariant::OpenCodeAuth) => "Open",
             _ => self.display_label(),
         }
     }
@@ -180,7 +177,7 @@ fn tab_config_id(tab: &PlatformTab) -> Option<TuiTabId> {
         (Platform::Claude, TabVariant::Profile) => Some(TuiTabId::ClaudeProfile),
         (_, TabVariant::CodexAuth) => Some(TuiTabId::CodexAuth),
         (_, TabVariant::ClaudeAuth) => Some(TuiTabId::ClaudeAuth),
-        (_, TabVariant::OpenCodeAuth) => Some(TuiTabId::OpencodeAuth),
+        (_, TabVariant::GrokAuth) => Some(TuiTabId::GrokAuth),
         (_, TabVariant::Profile) => None,
     }
 }
@@ -244,12 +241,12 @@ pub struct App {
     pub codex_auth_error: Option<String>,
     /// Last codex auth action info (action_type, account_name, success, error)
     pub last_codex_action: Option<(CompletedAction, String, bool, Option<String>)>,
-    /// Embedded OpenCode Auth app (lazy initialized)
-    pub opencode_auth_app: Option<OpenCodeAuthApp>,
-    /// Last OpenCode Auth initialization error for placeholder rendering
-    pub opencode_auth_error: Option<String>,
-    /// Last opencode auth action info (action_type, account_name, success, error)
-    pub last_opencode_action: Option<(CompletedAction, String, bool, Option<String>)>,
+    /// Embedded Grok Auth app (lazy initialized)
+    pub grok_auth_app: Option<GrokAuthApp>,
+    /// Last Grok Auth initialization error for placeholder rendering
+    pub grok_auth_error: Option<String>,
+    /// Last Grok auth off result (success, error)
+    pub last_grok_action: Option<(bool, Option<String>)>,
     /// 用量数据引擎(懒初始化):后台加载 provider 用量,详情面板纯内存查找
     pub usage_app: Option<UsageApp>,
     /// 🖱️ Cached header (tab bar) area for mouse hit-testing
@@ -568,20 +565,6 @@ impl App {
                                 instance: Some(Arc::clone(&instance)),
                                 saved_selection: None,
                             });
-                            // OpenCode Auth tab (manual OpenCode openai switching)
-                            tabs.push(PlatformTab {
-                                platform,
-                                variant: TabVariant::OpenCodeAuth,
-                                label: "OpenCode Auth".to_string(),
-                                profiles: Vec::new(),
-                                profile_configs: IndexMap::new(),
-                                profile_load_error: None,
-                                current_profile_error: None,
-                                claude_runtime_summary: None,
-                                codex_runtime_summary: None,
-                                instance: Some(Arc::clone(&instance)),
-                                saved_selection: None,
-                            });
                             // Codex Profile tab (profile switching)
                             tabs.push(PlatformTab {
                                 platform,
@@ -598,6 +581,19 @@ impl App {
                             });
                         }
                         Platform::Grok => {
+                            tabs.push(PlatformTab {
+                                platform,
+                                variant: TabVariant::GrokAuth,
+                                label: "Grok Auth".to_string(),
+                                profiles: Vec::new(),
+                                profile_configs: IndexMap::new(),
+                                profile_load_error: None,
+                                current_profile_error: None,
+                                claude_runtime_summary: None,
+                                codex_runtime_summary: None,
+                                instance: Some(Arc::clone(&instance)),
+                                saved_selection: None,
+                            });
                             tabs.push(PlatformTab {
                                 platform,
                                 variant: TabVariant::Profile,
@@ -667,9 +663,9 @@ impl App {
             codex_auth_app: None,
             codex_auth_error: None,
             last_codex_action: None,
-            opencode_auth_app: None,
-            opencode_auth_error: None,
-            last_opencode_action: None,
+            grok_auth_app: None,
+            grok_auth_error: None,
+            last_grok_action: None,
             usage_app: None,
             header_area: Cell::new(None),
             list_area: Cell::new(None),
@@ -880,8 +876,8 @@ impl App {
             && let Some(app) = self.codex_auth_app.as_mut()
         {
             app.toasts.push(toast);
-        } else if self.is_opencode_auth_tab()
-            && let Some(app) = self.opencode_auth_app.as_mut()
+        } else if self.is_grok_auth_tab()
+            && let Some(app) = self.grok_auth_app.as_mut()
         {
             app.toasts.push(toast);
         } else {
@@ -1119,34 +1115,34 @@ impl App {
         self.codex_auth_app.as_mut()
     }
 
-    /// Ensure OpenCode Auth app is initialized before interaction/rendering
-    fn ensure_opencode_auth_app(&mut self) {
-        if self.opencode_auth_app.is_some() {
+    /// Ensure Grok Auth app is initialized before interaction/rendering
+    fn ensure_grok_auth_app(&mut self) {
+        if self.grok_auth_app.is_some() {
             return;
         }
 
-        match OpenCodeAuthApp::with_task_executor(self.task_executor.clone()) {
+        match GrokAuthApp::new() {
             Ok(app) => {
-                self.opencode_auth_app = Some(app);
-                self.opencode_auth_error = None;
+                self.grok_auth_app = Some(app);
+                self.grok_auth_error = None;
             }
             Err(e) => {
                 let err = e.to_string();
-                tracing::warn!("Failed to init OpenCodeAuthApp: {}", err);
-                self.opencode_auth_error = Some(err.clone());
+                tracing::warn!("Failed to init GrokAuthApp: {}", err);
+                self.grok_auth_error = Some(err.clone());
                 self.toasts.push(Toast::error(crate::tui_format!(
-                    "Failed to initialize OpenCode Auth: {}",
-                    "OpenCode 认证初始化失败：{}",
+                    "Failed to initialize Grok Auth: {}",
+                    "Grok 认证初始化失败：{}",
                     err
                 )));
             }
         }
     }
 
-    /// Get mutable OpenCode Auth app, initializing it on demand
-    fn opencode_auth_app_mut(&mut self) -> Option<&mut OpenCodeAuthApp> {
-        self.ensure_opencode_auth_app();
-        self.opencode_auth_app.as_mut()
+    /// Get mutable Grok Auth app, initializing it on demand
+    fn grok_auth_app_mut(&mut self) -> Option<&mut GrokAuthApp> {
+        self.ensure_grok_auth_app();
+        self.grok_auth_app.as_mut()
     }
 
     /// Check if the currently active tab is the Claude Auth variant
@@ -1159,9 +1155,9 @@ impl App {
         self.tabs[self.active_tab].variant == TabVariant::CodexAuth
     }
 
-    /// Check if the currently active tab is the OpenCode Auth variant
-    pub fn is_opencode_auth_tab(&self) -> bool {
-        self.tabs[self.active_tab].variant == TabVariant::OpenCodeAuth
+    /// Check if the currently active tab is the Grok Auth variant
+    pub fn is_grok_auth_tab(&self) -> bool {
+        self.tabs[self.active_tab].variant == TabVariant::GrokAuth
     }
 
     /// 确保用量数据引擎已就绪(懒初始化,构造无 I/O;数据由后台任务拉取)
@@ -1201,12 +1197,12 @@ impl App {
         self
     }
 
-    /// Pre-select OpenCode Auth tab (for `ccr opencode` entry)
-    pub fn with_opencode_auth_tab(mut self) -> Self {
+    /// Pre-select Grok Auth tab (for `ccr grok auth` entry)
+    pub fn with_grok_auth_tab(mut self) -> Self {
         if let Some(idx) = self
             .tabs
             .iter()
-            .position(|t| t.variant == TabVariant::OpenCodeAuth)
+            .position(|t| t.variant == TabVariant::GrokAuth)
         {
             self.remember_selected_profile();
             self.active_tab = idx;
@@ -1220,9 +1216,9 @@ impl App {
     fn notify_tab_activated(&mut self) {
         let is_claude_auth = self.is_claude_auth_tab();
         let is_codex_auth = self.is_codex_auth_tab();
-        let is_opencode_auth = self.is_opencode_auth_tab();
+        let is_grok_auth = self.is_grok_auth_tab();
 
-        if !is_claude_auth && !is_codex_auth && !is_opencode_auth {
+        if !is_claude_auth && !is_codex_auth && !is_grok_auth {
             // profile tab 的选中定位已由切 tab 时的 restore/focus 完成，无需再 sync;
             // 用量引擎的激活由 on_tick 的 profile 分支统一驱动(含启动首帧)
             return;
@@ -1242,8 +1238,8 @@ impl App {
             return;
         }
 
-        if is_opencode_auth && let Some(opencode_app) = self.opencode_auth_app_mut() {
-            opencode_app.on_activated();
+        if is_grok_auth && let Some(grok_app) = self.grok_auth_app_mut() {
+            grok_app.on_activated();
         }
     }
 
@@ -1265,10 +1261,10 @@ impl App {
         }
     }
 
-    /// Delegate mouse event to embedded OpenCodeAuthApp
-    fn delegate_mouse_to_opencode(&mut self, mouse: MouseEvent) -> Result<bool> {
-        if let Some(opencode_app) = self.opencode_auth_app_mut() {
-            opencode_app.handle_mouse(mouse)
+    /// Delegate mouse event to embedded GrokAuthApp
+    fn delegate_mouse_to_grok(&mut self, mouse: MouseEvent) -> Result<bool> {
+        if let Some(grok_app) = self.grok_auth_app_mut() {
+            grok_app.handle_mouse(mouse)
         } else {
             Ok(false)
         }
@@ -1363,11 +1359,11 @@ impl TuiApp for App {
                 }
             }
             Ok(false)
-        } else if self.is_opencode_auth_tab() {
-            if let Some(opencode_app) = self.opencode_auth_app_mut() {
-                let quit = opencode_app.handle_key(key)?;
+        } else if self.is_grok_auth_tab() {
+            if let Some(grok_app) = self.grok_auth_app_mut() {
+                let quit = grok_app.handle_key(key)?;
                 if quit {
-                    self.last_opencode_action = opencode_app.last_action.clone();
+                    self.last_grok_action = grok_app.last_off.clone();
                     return Ok(true);
                 }
             }
@@ -1407,8 +1403,8 @@ impl TuiApp for App {
                 if self.is_codex_auth_tab() {
                     return self.delegate_mouse_to_codex(mouse);
                 }
-                if self.is_opencode_auth_tab() {
-                    return self.delegate_mouse_to_opencode(mouse);
+                if self.is_grok_auth_tab() {
+                    return self.delegate_mouse_to_grok(mouse);
                 }
 
                 // Profile tabs (Claude / Codex Profile): 列表项点击
@@ -1428,8 +1424,8 @@ impl TuiApp for App {
                 if self.is_codex_auth_tab() {
                     return self.delegate_mouse_to_codex(mouse);
                 }
-                if self.is_opencode_auth_tab() {
-                    return self.delegate_mouse_to_opencode(mouse);
+                if self.is_grok_auth_tab() {
+                    return self.delegate_mouse_to_grok(mouse);
                 }
                 if let Some(area) = self.detail_area.get()
                     && point_in_rect(area, mouse.row, mouse.column)
@@ -1447,8 +1443,8 @@ impl TuiApp for App {
                 if self.is_codex_auth_tab() {
                     return self.delegate_mouse_to_codex(mouse);
                 }
-                if self.is_opencode_auth_tab() {
-                    return self.delegate_mouse_to_opencode(mouse);
+                if self.is_grok_auth_tab() {
+                    return self.delegate_mouse_to_grok(mouse);
                 }
                 if let Some(area) = self.detail_area.get()
                     && point_in_rect(area, mouse.row, mouse.column)
@@ -1468,8 +1464,8 @@ impl TuiApp for App {
             self.claude_auth_app.as_mut().is_some_and(|a| a.on_tick())
         } else if self.is_codex_auth_tab() {
             self.codex_auth_app.as_mut().is_some_and(|a| a.on_tick())
-        } else if self.is_opencode_auth_tab() {
-            self.opencode_auth_app.as_mut().is_some_and(|a| a.on_tick())
+        } else if self.is_grok_auth_tab() {
+            self.grok_auth_app.as_mut().is_some_and(|a| a.on_tick())
         } else {
             // Profile tab: 首次进入(含启动首帧)激活用量引擎,此后每 tick 泵
             // 后台任务消息;on_activated 仅在 Idle 态生效,不会重复拉取
@@ -1762,9 +1758,9 @@ mod tests {
             codex_auth_app: None,
             codex_auth_error: None,
             last_codex_action: None,
-            opencode_auth_app: None,
-            opencode_auth_error: None,
-            last_opencode_action: None,
+            grok_auth_app: None,
+            grok_auth_error: None,
+            last_grok_action: None,
             usage_app: None,
             header_area: Cell::new(None),
             list_area: Cell::new(None),
@@ -1796,7 +1792,7 @@ mod tests {
             empty_tab(Platform::Claude, TabVariant::ClaudeAuth, "Claude Auth"),
             empty_tab(Platform::Claude, TabVariant::Profile, "Claude Code"),
             empty_tab(Platform::Codex, TabVariant::CodexAuth, "Codex Auth"),
-            empty_tab(Platform::Codex, TabVariant::OpenCodeAuth, "OpenCode Auth"),
+            empty_tab(Platform::Grok, TabVariant::GrokAuth, "Grok Auth"),
             empty_tab(Platform::Codex, TabVariant::Profile, "Codex Profile"),
             empty_tab(Platform::Grok, TabVariant::Profile, "Grok Profile"),
         ]
@@ -1804,6 +1800,18 @@ mod tests {
 
     fn tab_order_ids(tabs: &[PlatformTab]) -> Vec<TuiTabId> {
         tabs.iter().filter_map(tab_config_id).collect()
+    }
+
+    #[test]
+    fn grok_auth_tab_has_stable_config_id_and_labels() {
+        let tab = empty_tab(Platform::Grok, TabVariant::GrokAuth, "Grok Auth");
+
+        assert_eq!(tab_config_id(&tab), Some(TuiTabId::GrokAuth));
+        i18n::set_language(TuiLanguage::English);
+        assert_eq!(tab.display_label(), "Grok Auth");
+        i18n::set_language(TuiLanguage::SimplifiedChinese);
+        assert_eq!(tab.display_label(), "Grok 认证");
+        i18n::set_language(TuiLanguage::English);
     }
 
     #[test]
@@ -1825,7 +1833,7 @@ mod tests {
             tabs: vec![
                 empty_tab(Platform::Claude, TabVariant::Profile, "Claude Code"),
                 empty_tab(Platform::Codex, TabVariant::Profile, "Codex Profile"),
-                empty_tab(Platform::Codex, TabVariant::Profile, "OpenCode Profile"),
+                empty_tab(Platform::Grok, TabVariant::Profile, "Grok Profile"),
             ],
             active_tab,
             selected_index: 0,
@@ -1840,9 +1848,9 @@ mod tests {
             codex_auth_app: None,
             codex_auth_error: None,
             last_codex_action: None,
-            opencode_auth_app: None,
-            opencode_auth_error: None,
-            last_opencode_action: None,
+            grok_auth_app: None,
+            grok_auth_error: None,
+            last_grok_action: None,
             usage_app: None,
             header_area: Cell::new(None),
             list_area: Cell::new(None),
@@ -1898,9 +1906,9 @@ mod tests {
             codex_auth_app: None,
             codex_auth_error: None,
             last_codex_action: None,
-            opencode_auth_app: None,
-            opencode_auth_error: None,
-            last_opencode_action: None,
+            grok_auth_app: None,
+            grok_auth_error: None,
+            last_grok_action: None,
             usage_app: None,
             header_area: Cell::new(None),
             list_area: Cell::new(None),
@@ -2090,7 +2098,7 @@ mod tests {
                 TuiTabId::GrokProfile,
                 TuiTabId::CodexAuth,
                 TuiTabId::ClaudeAuth,
-                TuiTabId::OpencodeAuth,
+                TuiTabId::GrokAuth,
             ]
         );
     }
@@ -2102,7 +2110,7 @@ mod tests {
             &[
                 TuiTabId::ClaudeAuth,
                 TuiTabId::CodexAuth,
-                TuiTabId::OpencodeAuth,
+                TuiTabId::GrokAuth,
                 TuiTabId::ClaudeProfile,
                 TuiTabId::CodexProfile,
                 TuiTabId::GrokProfile,
@@ -2114,7 +2122,7 @@ mod tests {
             vec![
                 TuiTabId::ClaudeAuth,
                 TuiTabId::CodexAuth,
-                TuiTabId::OpencodeAuth,
+                TuiTabId::GrokAuth,
                 TuiTabId::ClaudeProfile,
                 TuiTabId::CodexProfile,
                 TuiTabId::GrokProfile,
@@ -2142,9 +2150,9 @@ mod tests {
             codex_auth_app: None,
             codex_auth_error: None,
             last_codex_action: None,
-            opencode_auth_app: None,
-            opencode_auth_error: None,
-            last_opencode_action: None,
+            grok_auth_app: None,
+            grok_auth_error: None,
+            last_grok_action: None,
             usage_app: None,
             header_area: Cell::new(None),
             list_area: Cell::new(None),
@@ -2282,9 +2290,9 @@ mod tests {
             codex_auth_app: None,
             codex_auth_error: None,
             last_codex_action: None,
-            opencode_auth_app: None,
-            opencode_auth_error: None,
-            last_opencode_action: None,
+            grok_auth_app: None,
+            grok_auth_error: None,
+            last_grok_action: None,
             usage_app: None,
             header_area: Cell::new(None),
             list_area: Cell::new(None),
@@ -2344,9 +2352,9 @@ mod tests {
             codex_auth_app: None,
             codex_auth_error: None,
             last_codex_action: None,
-            opencode_auth_app: None,
-            opencode_auth_error: None,
-            last_opencode_action: None,
+            grok_auth_app: None,
+            grok_auth_error: None,
+            last_grok_action: None,
             usage_app: None,
             header_area: Cell::new(None),
             list_area: Cell::new(None),
@@ -2381,9 +2389,9 @@ mod tests {
             codex_auth_app: None,
             codex_auth_error: None,
             last_codex_action: None,
-            opencode_auth_app: None,
-            opencode_auth_error: None,
-            last_opencode_action: None,
+            grok_auth_app: None,
+            grok_auth_error: None,
+            last_grok_action: None,
             usage_app: None,
             header_area: Cell::new(None),
             list_area: Cell::new(None),
@@ -2399,7 +2407,7 @@ mod tests {
     }
 
     #[test]
-    fn with_opencode_auth_tab_selects_opencode_auth_variant() {
+    fn with_grok_auth_tab_selects_grok_auth_variant() {
         let app = App {
             tabs: vec![
                 PlatformTab {
@@ -2416,9 +2424,9 @@ mod tests {
                     saved_selection: None,
                 },
                 PlatformTab {
-                    platform: Platform::Codex,
-                    variant: TabVariant::OpenCodeAuth,
-                    label: "OpenCode Auth".to_string(),
+                    platform: Platform::Grok,
+                    variant: TabVariant::GrokAuth,
+                    label: "Grok Auth".to_string(),
                     profiles: Vec::new(),
                     profile_configs: IndexMap::<String, ProfileConfig>::new(),
                     profile_load_error: None,
@@ -2442,9 +2450,9 @@ mod tests {
             codex_auth_app: None,
             codex_auth_error: None,
             last_codex_action: None,
-            opencode_auth_app: None,
-            opencode_auth_error: None,
-            last_opencode_action: None,
+            grok_auth_app: None,
+            grok_auth_error: None,
+            last_grok_action: None,
             usage_app: None,
             header_area: Cell::new(None),
             list_area: Cell::new(None),
@@ -2453,10 +2461,10 @@ mod tests {
             profile_details_expanded: false,
             task_executor: AsyncTaskExecutor::from_current_or_test(),
         }
-        .with_opencode_auth_tab();
+        .with_grok_auth_tab();
 
         assert_eq!(app.active_tab, 1);
-        assert!(app.is_opencode_auth_tab());
+        assert!(app.is_grok_auth_tab());
     }
 
     struct FailingPlatform {

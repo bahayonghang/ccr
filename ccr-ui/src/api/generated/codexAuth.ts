@@ -4,6 +4,7 @@ import { invoke } from '@/api/invokeRuntime'
 import type { CodexAuthActionResponse } from '@/types/generated/codex_auth/CodexAuthActionResponse'
 import type { CodexAuthCurrentResponse } from '@/types/generated/codex_auth/CodexAuthCurrentResponse'
 import type { CodexAuthListResponse } from '@/types/generated/codex_auth/CodexAuthListResponse'
+import type { CodexAuthOffResponse } from '@/types/generated/codex_auth/CodexAuthOffResponse'
 import type { CodexAuthImportPayload } from '@/types/generated/codex_auth/CodexAuthImportPayload'
 import type { CodexAuthMutationResponse } from '@/types/generated/codex_auth/CodexAuthMutationResponse'
 import type { CodexAuthProcessResponse } from '@/types/generated/codex_auth/CodexAuthProcessResponse'
@@ -21,6 +22,7 @@ export type CodexAuthSaveRequest = { name: string; description?: string; force?:
 
 export const listCodexAuthAccounts = (): Promise<CodexAuthListResponse> => invoke('codex_list_auth_accounts')
 export const getCodexAuthCurrent = (): Promise<CodexAuthCurrentResponse> => invoke('codex_get_auth_current')
+export const codexAuthOff = (): Promise<CodexAuthOffResponse> => invoke('codex_auth_off')
 export const saveCodexAuth = (request: CodexAuthSaveRequest): Promise<CodexAuthActionResponse> =>
   invoke('codex_save_auth', { name: request.name, description: request.description ?? null, force: request.force ?? false })
 export const switchCodexAuth = (name: string): Promise<CodexAuthActionResponse> => invoke('codex_switch_auth', { name })

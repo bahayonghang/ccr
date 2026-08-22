@@ -3,4 +3,4 @@ import type { ClaudeAuthCurrentInfo } from "./ClaudeAuthCurrentInfo";
 import type { ClaudeLoginState } from "./ClaudeLoginState";
 import type { ClaudeRuntimeSummary } from "./ClaudeRuntimeSummary";
 
-export type ClaudeAuthCurrentResponse = { logged_in: boolean, info: ClaudeAuthCurrentInfo | null, runtime_summary: ClaudeRuntimeSummary, login_state: ClaudeLoginState, };
+export type ClaudeAuthCurrentResponse = { logged_in: boolean, info: ClaudeAuthCurrentInfo | null, runtime_summary: ClaudeRuntimeSummary, login_state: ClaudeLoginState, can_auth_off: boolean, };

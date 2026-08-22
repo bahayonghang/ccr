@@ -12,7 +12,6 @@ pub use managers::codex_config::{CachedCodexConfigManager, CodexConfigManager};
 pub use models::codex_auth::*;
 pub use models::codex_model_provider::*;
 pub use models::codex_runtime_diagnostic::*;
-pub use models::opencode_auth::*;
 pub use platforms::CodexPlatform;
 pub use services::{
     AuthReadSnapshot, CodexAppServer, CodexAppServerCleanup, CodexAppServerCleanupReport,
@@ -25,9 +24,7 @@ pub use services::{
     CodexSessionDetail, CodexSessionExport, CodexSessionMessage, CodexSessionRestoreSummary,
     CodexSessionService, CodexSessionSummary, CodexSessionTrashService, CodexSessionTrashSummary,
     CodexSignalFailure, CodexSignalStage, CodexTrashedSessionRecord, CodexUsageRecord,
-    CodexUsageService, CodexUsageStats, OAuthRepairOutcome, OpenCodeAuthService,
-    OpenCodeQuotaService, OpenCodeRollingUsage, OpenCodeUsageRecord, OpenCodeUsageService,
-    OpenCodeUsageStats, TerminationKind,
+    CodexUsageService, CodexUsageStats, OAuthRepairOutcome, TerminationKind,
 };
 
 #[cfg(test)]

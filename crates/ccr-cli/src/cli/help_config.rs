@@ -23,7 +23,7 @@ const SUBCOMMAND_HELP_TEMPLATE: &str = "\
 {all-args}{after-help}";
 
 const ROOT_LONG_ABOUT: &str = "\
-统一管理 Claude / Codex / OpenCode 等 AI CLI 的配置、平台和账号。
+统一管理 Claude / Codex / Grok 等 AI CLI 的配置、平台和账号。
 
 先看当前任务，再进入对应子命令。";
 
@@ -49,16 +49,16 @@ const ROOT_AFTER_LONG_HELP: &str = "\
     切换账号: ccr codex auth switch work
     确认结果: ccr codex auth current
 
-  把 Codex 订阅导入 OpenCode
-    先看: ccr opencode auth --help
-    先预览: ccr opencode auth import-codex --dry-run
-    执行导入: ccr opencode auth import-codex
-    查看结果: ccr opencode
+  登出官方运行时登录
+    先看: ccr claude auth off --help
+    Claude: ccr claude auth off
+    Codex: ccr codex auth off
+    Grok: ccr grok auth off
 
 更多入口:
   ccr help platform
   ccr help codex auth
-  ccr help opencode auth";
+  ccr help grok auth";
 
 const HELP_LONG_ABOUT: &str = "\
 查看任务导向帮助。
@@ -70,7 +70,7 @@ const HELP_AFTER_LONG_HELP: &str = "\
   ccr help
   ccr help platform
   ccr help codex auth
-  ccr help opencode auth";
+  ccr help grok auth";
 
 const PROJECT_LONG_ABOUT: &str = "\
 在当前工作目录中依次准备 Git 仓库、Trellis 工作流和 Agent 目录忽略规则。
@@ -172,36 +172,26 @@ const CODEX_AUTH_AFTER_LONG_HELP: &str = "\
   5. 再次确认切换结果
      ccr codex auth current
 
+  6. 登出官方运行时登录
+     ccr codex auth off
+
 边界:
   - 只有 cli_auth_credentials_store = file 时，CCR 才支持保存和切换多账号
   - API Key / Provider Key 模式无需 save / switch";
 
-const OPENCODE_LONG_ABOUT: &str = "\
-管理 OpenCode 的账号迁移入口。";
+const GROK_AUTH_LONG_ABOUT: &str = "\
+查看并登出 Grok 官方运行时登录。CCR 不保存 Grok 账号快照。";
 
-const OPENCODE_AFTER_LONG_HELP: &str = "\
-常用入口:
-  从 Codex 导入可兼容账号: ccr opencode auth --help
-  打开 OpenCode 账号界面: ccr opencode";
-
-const OPENCODE_AUTH_LONG_ABOUT: &str = "\
-从已保存的 Codex Auth 账号导入可兼容的 OpenCode 账号。";
-
-const OPENCODE_AUTH_AFTER_LONG_HELP: &str = "\
+const GROK_AUTH_AFTER_LONG_HELP: &str = "\
 常用任务:
-  1. 先预览可迁移账号
-     ccr opencode auth import-codex --dry-run
-
-  2. 确认无误后执行导入
-     ccr opencode auth import-codex
-
-  3. 打开 OpenCode 界面确认结果
-     ccr opencode
+  查看当前官方会话: ccr grok auth current
+  登出官方会话: ccr grok auth off
+  打开 Grok Auth 界面: ccr grok auth
 
 边界:
-  - 只迁移 ChatGPT OAuth 账号
-  - API key / provider 账号会跳过
-  - 不会覆盖现有 OpenCode 账号";
+  - 只删除 $GROK_HOME/auth.json
+  - 不读取或写入 mcp_credentials.json
+  - 不修改 profile 指针或 config.toml";
 
 const VERSION_LONG_ABOUT: &str = "\
 显示当前安装的 CCR 详细版本信息。";
@@ -265,7 +255,7 @@ pub fn build_cli_command() -> Command {
         .mut_subcommand("platform", configure_platform_command)
         .mut_subcommand("version", configure_version_command)
         .mut_subcommand("codex", configure_codex_command)
-        .mut_subcommand("opencode", configure_opencode_command)
+        .mut_subcommand("grok", configure_grok_command)
         .mut_subcommand("clean", configure_clean_command)
 }
 
@@ -320,15 +310,13 @@ fn configure_codex_auth_command(cmd: Command) -> Command {
         .after_long_help(CODEX_AUTH_AFTER_LONG_HELP)
 }
 
-fn configure_opencode_command(cmd: Command) -> Command {
+fn configure_grok_command(cmd: Command) -> Command {
     cmd.help_template(SUBCOMMAND_HELP_TEMPLATE)
-        .long_about(OPENCODE_LONG_ABOUT)
-        .after_long_help(OPENCODE_AFTER_LONG_HELP)
-        .mut_subcommand("auth", configure_opencode_auth_command)
+        .mut_subcommand("auth", configure_grok_auth_command)
 }
 
-fn configure_opencode_auth_command(cmd: Command) -> Command {
+fn configure_grok_auth_command(cmd: Command) -> Command {
     cmd.help_template(SUBCOMMAND_HELP_TEMPLATE)
-        .long_about(OPENCODE_AUTH_LONG_ABOUT)
-        .after_long_help(OPENCODE_AUTH_AFTER_LONG_HELP)
+        .long_about(GROK_AUTH_LONG_ABOUT)
+        .after_long_help(GROK_AUTH_AFTER_LONG_HELP)
 }

@@ -28,6 +28,7 @@ const apiMocks = vi.hoisted(() => ({
   codexSaveModelProvider: vi.fn(),
   codexDeleteModelProvider: vi.fn(),
   codexProfileOff: vi.fn(),
+  codexAuthOff: vi.fn(),
 }))
 
 const uiMocks = vi.hoisted(() => ({
@@ -35,6 +36,7 @@ const uiMocks = vi.hoisted(() => ({
   showError: vi.fn(),
   showSuccess: vi.fn(),
   showInfo: vi.fn(),
+  showWarning: vi.fn(),
 }))
 
 vi.mock('@/api', () => ({
@@ -46,6 +48,7 @@ vi.mock('@/api/domains/codex', async (importOriginal) => {
   return {
     ...actual,
     codexProfileOff: apiMocks.codexProfileOff,
+    codexAuthOff: apiMocks.codexAuthOff,
   }
 })
 
@@ -228,8 +231,15 @@ beforeEach(() => {
     runtime_mode: 'official_auth',
   })
 
+  apiMocks.codexAuthOff.mockResolvedValue({
+    ok: true,
+    changed: true,
+    path: 'file',
+    warnings: [],
+  })
   apiMocks.listCodexAuthAccounts.mockResolvedValue({
     login_state: { type: 'LoggedInSaved', account_name: 'qq_pro' },
+    can_auth_off: true,
     accounts: [
       {
         name: 'alpha-pro',
@@ -274,6 +284,7 @@ beforeEach(() => {
       plan_type: 'Pro',
       last_refresh: '2026-04-14T07:00:00Z',
     },
+    can_auth_off: true,
   })
 
   apiMocks.detectCodexProcess.mockResolvedValue({ has_running_process: false, pids: [] })
@@ -305,6 +316,32 @@ describe('CodexAuthView smoke', () => {
       expect(el.textContent).toContain('Logged in (qq_pro)')
       expect(el.textContent).not.toContain('{name}')
       expect(el.querySelectorAll('[data-testid="codex-account-card"]')).toHaveLength(3)
+    } finally {
+      unmount()
+    }
+  })
+
+  it('shows the auth off banner when the backend reports can_auth_off', async () => {
+    const { el, unmount } = await mountView()
+
+    try {
+      expect(el.querySelector('[data-testid="codex-auth-off"]')).not.toBeNull()
+    } finally {
+      unmount()
+    }
+  })
+
+  it('does not write when the auth off confirmation is cancelled', async () => {
+    uiMocks.requestConfirm.mockResolvedValue(false)
+    const { el, unmount } = await mountView()
+
+    try {
+      el.querySelector<HTMLButtonElement>('[data-testid="codex-auth-off"] button')?.click()
+      await flush()
+      expect(uiMocks.requestConfirm).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'warning' }),
+      )
+      expect(apiMocks.codexAuthOff).not.toHaveBeenCalled()
     } finally {
       unmount()
     }

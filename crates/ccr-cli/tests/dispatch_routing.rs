@@ -2,7 +2,7 @@
 //
 // 覆盖：
 // 1. 4 个 TUI 入口的注入路由：记录型启动器验证 `ccr` / `ccr codex` /
-//    `ccr opencode` / `ccr claude` 各自命中正确的启动器；
+//    `ccr grok auth` / `ccr claude` 各自命中正确的启动器；
 // 2. launchers = None 时的降级分支不 panic 且行为符合降级逻辑
 //    （tempdir + 环境变量隔离，不读写用户真实配置）；
 // 3. 纯输出分支（version / help）返回 Ok；
@@ -136,7 +136,7 @@ fn restore_env_var(key: &str, previous: Option<OsString>) {
 
 static MAIN_LAUNCHED: AtomicBool = AtomicBool::new(false);
 static CODEX_AUTH_LAUNCHED: AtomicBool = AtomicBool::new(false);
-static OPENCODE_AUTH_LAUNCHED: AtomicBool = AtomicBool::new(false);
+static GROK_AUTH_LAUNCHED: AtomicBool = AtomicBool::new(false);
 static CLAUDE_AUTH_LAUNCHED: AtomicBool = AtomicBool::new(false);
 
 fn record_main() -> Result<(), CcrError> {
@@ -149,8 +149,8 @@ fn record_codex_auth() -> Result<(), CcrError> {
     Ok(())
 }
 
-fn record_opencode_auth() -> Result<(), CcrError> {
-    OPENCODE_AUTH_LAUNCHED.store(true, Ordering::SeqCst);
+fn record_grok_auth() -> Result<(), CcrError> {
+    GROK_AUTH_LAUNCHED.store(true, Ordering::SeqCst);
     Ok(())
 }
 
@@ -163,7 +163,7 @@ fn recording_launchers() -> TuiLaunchers {
     TuiLaunchers {
         main: record_main,
         codex_auth: record_codex_auth,
-        opencode_auth: record_opencode_auth,
+        grok_auth: record_grok_auth,
         claude_auth: record_claude_auth,
     }
 }
@@ -172,7 +172,7 @@ fn reset_launch_flags() {
     for flag in [
         &MAIN_LAUNCHED,
         &CODEX_AUTH_LAUNCHED,
-        &OPENCODE_AUTH_LAUNCHED,
+        &GROK_AUTH_LAUNCHED,
         &CLAUDE_AUTH_LAUNCHED,
     ] {
         flag.store(false, Ordering::SeqCst);
@@ -183,7 +183,7 @@ fn launch_flags() -> [bool; 4] {
     [
         MAIN_LAUNCHED.load(Ordering::SeqCst),
         CODEX_AUTH_LAUNCHED.load(Ordering::SeqCst),
-        OPENCODE_AUTH_LAUNCHED.load(Ordering::SeqCst),
+        GROK_AUTH_LAUNCHED.load(Ordering::SeqCst),
         CLAUDE_AUTH_LAUNCHED.load(Ordering::SeqCst),
     ]
 }
@@ -204,11 +204,11 @@ fn parse(args: &[&str]) -> Cli {
 #[tokio::test(flavor = "multi_thread")]
 async fn tui_entries_route_to_injected_launchers() {
     let launchers = recording_launchers();
-    // (命令行, 期望命中的启动器下标: 0=main 1=codex 2=opencode 3=claude)
+    // (命令行, 期望命中的启动器下标: 0=main 1=codex 2=grok 3=claude)
     let cases: [(&[&str], usize); 4] = [
         (&["ccr"], 0),
         (&["ccr", "codex"], 1),
-        (&["ccr", "opencode"], 2),
+        (&["ccr", "grok", "auth"], 2),
         (&["ccr", "claude"], 3),
     ];
 
@@ -235,7 +235,7 @@ async fn shortcut_config_name_returns_legacy_error_without_launching_tui() {
     let launchers = TuiLaunchers {
         main: must_not_launch,
         codex_auth: must_not_launch,
-        opencode_auth: must_not_launch,
+        grok_auth: must_not_launch,
         claude_auth: must_not_launch,
     };
     let cli = parse(&["ccr", "team"]);
@@ -277,12 +277,11 @@ async fn codex_without_launchers_falls_back_to_auth_list() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn opencode_without_launchers_falls_back_to_help() {
-    // 降级逻辑：`ccr opencode`（无 action）在未注入启动器时打印 opencode 帮助，
-    // 纯输出，无需真实环境。
-    let cli = parse(&["ccr", "opencode"]);
+async fn grok_auth_without_launchers_falls_back_to_help() {
+    // 降级逻辑：`ccr grok auth`（无嵌套动作）在未注入启动器时打印 grok auth 帮助。
+    let cli = parse(&["ccr", "grok", "auth"]);
     let result = CommandDispatcher::dispatch(&cli, None).await;
-    assert!(result.is_ok(), "降级 opencode 帮助应返回 Ok: {result:?}");
+    assert!(result.is_ok(), "降级 grok auth 帮助应返回 Ok: {result:?}");
 }
 
 #[tokio::test(flavor = "multi_thread")]

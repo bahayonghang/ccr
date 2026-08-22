@@ -1,0 +1,17 @@
+{"file": ".trellis/spec/ccr-config/backend/backend-guidelines.md", "reason": "TuiTabId / tui.toml 属于 ccr-config managers，GrokAuth 与 OpencodeAuth deprecated 过滤写在这里"}
+{"file": ".trellis/spec/ccr-cli/backend/auth-off.md", "reason": "auth off 可执行契约：file/native、can_auth_off、成功后删除 backup"}
+{"file": ".trellis/spec/ccr-cli/backend/profile-off-login-prep.md", "reason": "auth off 必须与 profile off 并列且互不调用；对照 backup、密钥与 Codex runtime dir 规则"}
+{"file": ".trellis/spec/ccr-cli/backend/claude-auth-runtime.md", "reason": "Claude 凭据优先级、macOS Keychain unobservable、禁止删除用户非托管源"}
+{"file": ".trellis/spec/ccr-cli/backend/grok-profile-runtime.md", "reason": "Grok auth.json 仅允许 auth off 存在性读取、备份、删除；mcp_credentials.json 仍全禁"}
+{"file": ".trellis/spec/ccr-cli/backend/backend-guidelines.md", "reason": "CLI 输出、JSON 稳定字段、禁止打印密钥"}
+{"file": ".trellis/spec/ccr-cli/backend/test-fixtures.md", "reason": "集成测试会改 HOME / CLAUDE_CONFIG_DIR / CODEX_HOME / GROK_HOME"}
+{"file": ".trellis/spec/ccr-ui/frontend/confirm-interaction-contracts.md", "reason": "Claude/Codex warning、Grok danger；禁止原生 confirm"}
+{"file": ".trellis/spec/ccr-ui/frontend/api-facade-boundary.md", "reason": "Tauri 命令走 domain 门面，不手改 generated 绑定"}
+{"file": ".trellis/spec/ccr-tui/backend/backend-guidelines.md", "reason": "嵌入 Auth 页、页签替换、可恢复错误"}
+{"file": ".trellis/spec/ccr-vscode/frontend/extension-surface-contracts.md", "reason": "只加 CLI 包装，不新增贡献命令，不打开 Grok profile 写入口"}
+{"file": ".trellis/tasks/08-20-claude-codex-grok-auth-off/research/official-logout.md", "reason": "三家官方 logout 命令与凭据存储"}
+{"file": ".trellis/tasks/08-20-claude-codex-grok-auth-off/research/codebase-auth-off-gap.md", "reason": "现有 CLI/TUI/UI 缺口"}
+{"file": ".trellis/tasks/08-20-claude-codex-grok-auth-off/research/opencode-auth-surface.md", "reason": "OpenCode 命令组与 TUI 删除范围，保留 Tauri 配置页"}
+{"file": ".trellis/tasks/08-20-claude-codex-grok-auth-off/research/review-disposition.md", "reason": "规划审阅逐条处置，实施时按修订后的契约而不是旧 AC3/can_off"}
+{"file": ".trellis/tasks/08-20-claude-codex-grok-auth-off/design.md", "reason": "写核、spawn、表面与删除清单"}
+{"file": ".trellis/tasks/08-20-claude-codex-grok-auth-off/prd.md", "reason": "验收标准 AC1–AC13 与 D1–D10"}

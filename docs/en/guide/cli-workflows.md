@@ -54,13 +54,13 @@ ccr sync all status
 ccr clean backups --days 30 --dry-run
 ```
 
-## Workflow 6: Codex multi-account auth and OpenCode migration
+## Workflow 6: Codex multi-account auth
 
 ```bash
 ccr codex auth save work
 ccr codex auth list
 ccr codex auth switch work
-ccr opencode auth import-codex --dry-run
+ccr codex auth off
 ```
 
 ## Workflow 7: Move into the graphical surface

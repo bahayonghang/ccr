@@ -131,6 +131,12 @@ const routes: RouteRecordRaw[] = [
         meta: { cache: true, cacheKey: 'GrokView', depth: 1, group: 'grok' },
       },
       {
+        path: 'grok/auth',
+        name: 'grok-auth',
+        component: () => import('@/views/grok/GrokAuthView.vue'),
+        meta: { depth: 2, group: 'grok' },
+      },
+      {
         path: 'grok/profiles',
         name: 'grok-profiles',
         component: () => import('@/views/grok/GrokProfilesView.vue'),

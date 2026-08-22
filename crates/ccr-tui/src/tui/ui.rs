@@ -5,7 +5,7 @@ use super::app::{App, TabVariant};
 use super::claude_auth;
 use super::codex_auth;
 use super::footer::{ShortcutHint, shortcut_line};
-use super::opencode_auth;
+use super::grok_auth;
 use super::theme;
 use super::toast::ToastKind;
 use super::usage::app::UsageLoadState;
@@ -47,7 +47,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
 
     render_header(f, app, chunks[0]);
 
-    let content_area = if app.current_platform() == Platform::Codex && !app.is_opencode_auth_tab() {
+    let content_area = if app.current_platform() == Platform::Codex && !app.is_grok_auth_tab() {
         let runtime_chunks = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
@@ -116,18 +116,18 @@ pub fn draw(f: &mut Frame, app: &mut App) {
                 app.codex_auth_error.as_deref(),
             );
         }
-    } else if app.is_opencode_auth_tab() {
+    } else if app.is_grok_auth_tab() {
         app.header_area.set(Some(chunks[0]));
 
-        if let Some(ref mut opencode_app) = app.opencode_auth_app {
-            opencode_auth::ui::draw_embedded(f, opencode_app, content_area, chunks[2], mode);
+        if let Some(ref mut grok_app) = app.grok_auth_app {
+            grok_auth::ui::draw_embedded(f, grok_app, content_area, chunks[2], mode);
         } else {
-            opencode_auth::ui::draw_loading_placeholder(
+            grok_auth::ui::draw_loading_placeholder(
                 f,
                 content_area,
                 chunks[2],
                 mode,
-                app.opencode_auth_error.as_deref(),
+                app.grok_auth_error.as_deref(),
             );
         }
     } else {
@@ -2337,9 +2337,9 @@ mod tests {
             codex_auth_app: None,
             codex_auth_error: None,
             last_codex_action: None,
-            opencode_auth_app: None,
-            opencode_auth_error: None,
-            last_opencode_action: None,
+            grok_auth_app: None,
+            grok_auth_error: None,
+            last_grok_action: None,
             usage_app: None,
             header_area: Cell::new(None),
             list_area: Cell::new(None),

@@ -13,41 +13,45 @@
             :disabled="loading"
             @click="refresh(true)"
           >
-            <SIcon
-              name="RefreshCw"
-              size="w-4 h-4"
-              class="mr-2"
-              :class="{ 'animate-spin': loading }"
-            />
+            <template #leading>
+              <SIcon
+                name="RefreshCw"
+                size="w-4 h-4"
+                :class="{ 'animate-spin': loading }"
+              />
+            </template>
             {{ $t('codex.dashboard.header.refresh') }}
           </Button>
           <RouterLink :to="primaryAction.to">
             <Button :variant="primaryButtonVariant">
-              <SIcon
-                :name="primaryAction.icon"
-                size="w-4 h-4"
-                class="mr-2"
-              />
+              <template #leading>
+                <SIcon
+                  :name="primaryAction.icon"
+                  size="w-4 h-4"
+                />
+              </template>
               {{ primaryAction.title }}
             </Button>
           </RouterLink>
           <RouterLink to="/codex/auth">
             <Button variant="secondary">
-              <SIcon
-                name="KeyRound"
-                size="w-4 h-4"
-                class="mr-2"
-              />
+              <template #leading>
+                <SIcon
+                  name="KeyRound"
+                  size="w-4 h-4"
+                />
+              </template>
               {{ $t('codex.dashboard.header.authConfig') }}
             </Button>
           </RouterLink>
           <RouterLink to="/codex/profiles">
             <Button variant="secondary">
-              <SIcon
-                name="Folders"
-                size="w-4 h-4"
-                class="mr-2"
-              />
+              <template #leading>
+                <SIcon
+                  name="Folders"
+                  size="w-4 h-4"
+                />
+              </template>
               {{ $t('codex.dashboard.header.profileConfig') }}
             </Button>
           </RouterLink>
@@ -113,7 +117,7 @@
                 >
                   <SIcon
                     :name="item.icon"
-                    size="w-4 h-4"
+                    size="w-5 h-5"
                   />
                 </div>
                 <span class="codex-readiness-status">{{ item.statusLabel }}</span>
@@ -324,7 +328,7 @@
               >
                 <SIcon
                   :name="item.icon"
-                  size="w-4 h-4"
+                  size="w-5 h-5"
                 />
               </div>
               <div class="codex-manage-copy">

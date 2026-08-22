@@ -46,7 +46,7 @@ fn root_help_includes_guided_tasks() {
         );
     }
     assert!(stdout.contains("切换 Codex Auth"));
-    assert!(stdout.contains("把 Codex 订阅导入 OpenCode"));
+    assert!(stdout.contains("登出官方运行时登录"));
     assert!(stdout.contains("初始化当前项目"));
     assert!(stdout.contains("project"));
 }
@@ -238,12 +238,23 @@ fn bare_project_requires_an_explicit_action() {
 }
 
 #[test]
-fn opencode_auth_help_includes_preview_and_boundary() {
-    let stdout = run_help(&["opencode", "auth", "--help"]);
+fn grok_auth_help_includes_logout_boundary() {
+    let stdout = run_help(&["grok", "auth", "--help"]);
 
-    assert!(stdout.contains("import-codex --dry-run"));
-    assert!(stdout.contains("只迁移 ChatGPT OAuth 账号"));
-    assert!(stdout.contains("API key / provider 账号会跳过"));
+    assert!(stdout.contains("ccr grok auth off"));
+    assert!(stdout.contains("auth.json"));
+    assert!(
+        !stdout.contains("mcp_credentials.json")
+            || stdout.contains("不读取或写入 mcp_credentials.json")
+    );
+}
+
+#[test]
+fn version_subcommand_omits_opencode_entry() {
+    let stdout = run_help(&["version"]);
+
+    assert!(!stdout.contains("opencode"));
+    assert!(stdout.contains("ccr grok auth"));
 }
 
 #[test]

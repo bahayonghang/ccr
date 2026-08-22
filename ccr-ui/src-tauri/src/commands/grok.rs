@@ -7,7 +7,8 @@ use std::time::UNIX_EPOCH;
 
 use ccr::platforms::{GrokActivationState, GrokPlatform, GrokProfileAuthMode};
 use ccr::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};
-use ccr_cli::application::profile_off_for_platform;
+use ccr_cli::application::{auth_off_for_platform, needs_auth_off, profile_off_for_platform};
+use ccr_cli::services::GrokAuthService;
 use ccr_core::core::{
     BackupPolicy, VersionedWriteOutcome, WriteOptions, content_version_token,
     write_guarded_versioned,
@@ -160,6 +161,28 @@ pub enum GrokProfileActionResponse {
     Off {
         previous_profile: Option<String>,
         changed: bool,
+    },
+    UnsupportedEnvironment {
+        env_type: String,
+    },
+}
+
+#[derive(Debug, Clone, Serialize, TS)]
+#[serde(tag = "status", rename_all = "snake_case")]
+#[ts(export, export_to = "../../src/types/generated/grok/")]
+pub enum GrokAuthCurrentResponse {
+    Ok { logged_in: bool, can_auth_off: bool },
+    UnsupportedEnvironment { env_type: String },
+}
+
+#[derive(Debug, Clone, Serialize, TS)]
+#[serde(tag = "status", rename_all = "snake_case")]
+#[ts(export, export_to = "../../src/types/generated/grok/")]
+pub enum GrokAuthOffResponse {
+    Ok {
+        changed: bool,
+        path: String,
+        warnings: Vec<String>,
     },
     UnsupportedEnvironment {
         env_type: String,
@@ -1354,6 +1377,44 @@ pub async fn grok_profile_off(
 }
 
 #[ccr_tauri_command_macros::command]
+pub async fn grok_auth_current(
+    state: State<'_, AppState>,
+) -> Result<GrokAuthCurrentResponse, String> {
+    if let Some(env_type) = non_local_env(state.inner()).await {
+        return Ok(GrokAuthCurrentResponse::UnsupportedEnvironment { env_type });
+    }
+    tokio::task::spawn_blocking(|| {
+        let current = GrokAuthService::new()
+            .current()
+            .map_err(|error| format!("读取 Grok 官方会话失败: {error}"))?;
+        Ok(GrokAuthCurrentResponse::Ok {
+            logged_in: current.logged_in,
+            can_auth_off: needs_auth_off(Platform::Grok).unwrap_or(false),
+        })
+    })
+    .await
+    .map_err(|error| format!("读取 Grok 官方会话后台任务失败: {error}"))?
+}
+
+#[ccr_tauri_command_macros::command]
+pub async fn grok_auth_off(state: State<'_, AppState>) -> Result<GrokAuthOffResponse, String> {
+    if let Some(env_type) = non_local_env(state.inner()).await {
+        return Ok(GrokAuthOffResponse::UnsupportedEnvironment { env_type });
+    }
+    tokio::task::spawn_blocking(|| {
+        let result = auth_off_for_platform(Platform::Grok)
+            .map_err(|error| format!("登出 Grok 官方会话失败: {error}"))?;
+        Ok(GrokAuthOffResponse::Ok {
+            changed: result.changed,
+            path: result.path.as_str().to_string(),
+            warnings: result.warnings,
+        })
+    })
+    .await
+    .map_err(|error| format!("登出 Grok 官方会话后台任务失败: {error}"))?
+}
+
+#[ccr_tauri_command_macros::command]
 pub async fn grok_get_settings(
     state: State<'_, AppState>,
 ) -> Result<GrokSettingsCommandResponse, String> {
@@ -2126,7 +2187,7 @@ mod tests {
             .filter(|section| section.trim_start().starts_with("pub async fn grok_"))
             .collect::<Vec<_>>();
 
-        assert_eq!(command_sections.len(), 13);
+        assert_eq!(command_sections.len(), 15);
         for section in command_sections {
             let signature = section.lines().next().unwrap_or_default();
             assert!(
