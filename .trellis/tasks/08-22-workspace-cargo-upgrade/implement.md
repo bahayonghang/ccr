@@ -6,32 +6,20 @@
 ## 前置确认
 - **分支偏差（主线程批准，2026-08-23）**：不在 `dev` 上开 `feature/react-migration/workspace-cargo-upgrade`，改在当前迁移分支 `react-migration/react-foundation` 上执行；PR 到 `dev` 的步骤推迟到发布时由人工决定。
 
-- [ ] `just ci` 在 `dev` 上全绿（父任务基线采集门的一项，基线 13 步）。
-- [ ] `git checkout -b feature/react-migration/workspace-cargo-upgrade dev`
-- [ ] 记录升级前基线：`cargo clean && cargo build --release` 计时、`crates/ccr` release 二进制体积。
-- [ ] `cargo upgrade --dry-run`（或 `cargo outdated`）输出落盘，作为 `upgrade-inventory.md` 的目标版本依据。
-- [ ] origin 上 7 个 dependabot 分支的目标版本记录：`anyhow` 1.0.104、`clap` 4.6.4、`thiserror` 2.0.19、`sysinfo` 0.39.6、`serde_json` 1.0.151、`rpassword` 7.5.4、`ts-rs` 12.0.1。这 7 个分支不单独合并。
-
-## 组 C 的前置：加密测试向量（按格式分别固化）
-
-在任何加密依赖升级之前执行，否则升级后无对比基准。按 `design.md` §3.1 的三种持久格式各做一份，通用向量不算完成。
-
-- [ ] **Codex auth 导出格式**（`crates/ccr-codex/src/services/codex_auth_crypto.rs`）：用已知测试口令 + 已知测试明文生成完整导出文件，含其真实 salt、`KdfParams{m_cost,t_cost,p_cost}`、version、format、AAD 输入值。
-- [ ] **Sync 信封 V2**（`crates/ccr-sync/src/sync/envelope.rs`）：生成完整 `EncryptedEnvelopeV2` 字节（magic / version / algorithm / kdf / kdf_params / salt / nonce / metadata），另生成一个 `PlaintextV1` 样本覆盖旧读路径。
-- [ ] **CheckIn 凭据**（`crates/ccr-checkin/src/core/crypto.rs`）：生成 key 文件（base64 随机 32 字节）+ `base64(nonce || ciphertext)` 密文串。该格式无 KDF，key 来源是随机而非口令派生。
-- [ ] **摘要向量**：`blake3` 与 `sha2` 各固定一组输入 → 摘要。使用位置见 `design.md` §3.1 的第二张表。
-- [ ] 确认全部向量可被当前版本自身正确读回（自检，排除向量本身写错）。
-- [ ] 向量不含真实凭据。
-
-## 组 B 的前置：HTTP/2 与 Cookie 基线
-
-- [ ] 按 `design.md` §3b 采升级前基线：`response.version()`（带临时 instrumentation，不提交）、`Cookie` 请求头（现有离线 header 测试）、本地 mock server 的 `Set-Cookie` 回发行为。
-- [ ] 无真实账号时，协议版本与 ALPN 两项标「未执行」，Cookie 两项仍须执行。
-
-## 组 A：patch 级升级
-
-- [ ] `anyhow`、`thiserror`、`clap`、`serde` / `serde_json`、`rpassword`、`tracing`、`uuid`、`indexmap`、`once_cell` 等 patch 级条目升级。
-- [ ] 一次提交。
+- [x] ~~`just ci` 在 `dev` 上全绿~~（分支偏差：不在 dev 执行，基线由父任务采集门覆盖）
+- [x] ~~checkout 独立分支~~（偏差：在 `react-migration/react-foundation` 上执行，PR 到 dev 推迟人工决定）
+- [x] 记录升级前基线：release 构建 250 s / ccr.exe 18,902,016 B（见 upgrade-inventory.md）。
+- [x] `cargo upgrade --dry-run` 不可用（cargo-edit 缺失），以 crates.io 查询 + caret 编辑 + `cargo update -p` 回退方法落盘。
+- [x] origin 上 7 个 dependabot 分支目标版本已记录并复核，全部被本次目标覆盖或持平。
+- [x] **组 C 前置**：三格式向量 + blake3/sha256 摘要向量升级前固化并自检通过（临时测试已删除未提交），结果见 crypto-compat-check.md。
+- [x] **组 B 前置**：Cookie 回发 PASS、公开端点 `response.version()`=HTTP/2.0 基线落盘；真实账号项「未执行」。
+- [x] 组 A 一次提交（commit d1da6768）。
+- [x] 组 B 六个子组各自提交（B1=11a164ad、B2 reqwest 无变化仅复采、B3=bd2f9f12、B4=766d4f3d、B5=2c225f7e、B6=306d6756）；reqwest 三项配置核对与观测点复采落盘；rusqlite 组投影测试 45/45 与 llmusage_no_crate_guard 2/2 通过。
+- [x] 组 C 逐依赖提交（base64 eee2df4b → sha2 无变化 → blake3 855fb50c → rand 5067a4ae → argon2 613cc564 → aes-gcm 保留 0.10）；每步全量向量读回；crypto-compat-check.md 落盘（bfc2b998）。
+- [x] 组 D + dep-upgrade 段3 一次提交（1176a416）：ts-rs 12.0.1 双侧对齐，204 文件重生成，tauri-bindings-check exit 0；diff 判定归对方 AC7 跟进。
+- [x] 收尾：upgrade-inventory.md 全量落定、release 复测（214 s / 18,872,832 B）、version-check / audit / 全验证门 exit 0（9e711ec2 及后续记录提交）。
+- [x] `anyhow`、`thiserror`、`clap`、`serde` / `serde_json`、`rpassword`、`tracing`、`uuid`、`indexmap`、`once_cell` 等 patch 级条目升级。
+- [x] 一次提交。
 
 验证：`just check-workspace`、`just lint-strict`、`just test`。
 
@@ -39,12 +27,12 @@
 
 按依赖分组提交，每组提交后验证。
 
-- [ ] `tokio` / `tokio-util` / `futures` / `async-stream`。
-- [ ] `reqwest`。**升级后立即核对三项配置**：`default-features = false`、`native-tls`、`http2`（AC10）。再按 `design.md` §3b 复采四个观测点，与「组 B 的前置」基线对比（AC11）。
-- [ ] `toml`、`chrono` / `chrono-tz` / `iana-time-zone`。
-- [ ] `rusqlite` / `r2d2` / `r2d2_sqlite`。核对 `bundled` 与 `functions` feature 保留。
-- [ ] `axum` / `tower` / `tower-http`。
-- [ ] `dirs`、`tempfile`、`walkdir`、`open`、`sysinfo`。
+- [x] `tokio` / `tokio-util` / `futures` / `async-stream`。
+- [x] `reqwest`。**升级后立即核对三项配置**：`default-features = false`、`native-tls`、`http2`（AC10）。再按 `design.md` §3b 复采四个观测点，与「组 B 的前置」基线对比（AC11）。
+- [x] `toml`、`chrono` / `chrono-tz` / `iana-time-zone`。
+- [x] `rusqlite` / `r2d2` / `r2d2_sqlite`。核对 `bundled` 与 `functions` feature 保留。
+- [x] `axum` / `tower` / `tower-http`。
+- [x] `dirs`、`tempfile`、`walkdir`、`open`、`sysinfo`。
 
 验证（每组后）：`just check-workspace`、`just test`。`rusqlite` 组额外跑 `crates/ccr-usage` 的投影相关测试与 `llmusage_no_crate_guard`（AC12）。
 
@@ -52,29 +40,29 @@
 
 每个依赖单独提交。顺序：`base64` → `sha2` → `blake3` → `rand` → `argon2` → `aes-gcm`（风险递增）。
 
-- [ ] 每个依赖升级后，用新版本读回组 C 前置产出的**全部**向量（三种持久格式 + 摘要向量），验证解密与摘要一致（`design.md` §3.1）。
-- [ ] `rand` 的验证点为 API 兼容与未改用弱生成器（`design.md` §3.1 末段）。
-- [ ] 任一格式的向量不匹配，该依赖保留当前版本，原因写入 `upgrade-inventory.md`。
-- [ ] `crypto-compat-check.md` 落盘，逐格式列结果（AC9）。
+- [x] 每个依赖升级后，用新版本读回组 C 前置产出的**全部**向量（三种持久格式 + 摘要向量），验证解密与摘要一致（`design.md` §3.1）。
+- [x] `rand` 的验证点为 API 兼容与未改用弱生成器（`design.md` §3.1 末段）。
+- [x] 任一格式的向量不匹配，该依赖保留当前版本，原因写入 `upgrade-inventory.md`。
+- [x] `crypto-compat-check.md` 落盘，逐格式列结果（AC9）。
 
 验证：`just test`、`just secret-write-check`。
 
 ## 组 D：ts-rs 11 → 12
 
-- [ ] 与 `08-22-dep-upgrade` 确认 `src-tauri` 侧同步升到同一 12.x 版本（协同点 A）。版本不一致则不执行生成。
-- [ ] 升级 workspace 的 `ts-rs` 声明（`crates/ccr-usage`、`crates/ccr-cli` 的 `ts` feature 路径）。
-- [ ] `cd ccr-ui && just bindings` 生成 204 个文件。
-- [ ] 通知 `08-22-dep-upgrade` 执行 diff 逐条判定（其 R7 / AC7）。本任务提交生成产物，不做判定。
-- [ ] 一次提交，含 Rust 侧版本变更与生成产物。
+- [x] 与 `08-22-dep-upgrade` 确认 `src-tauri` 侧同步升到同一 12.x 版本（协同点 A）。版本不一致则不执行生成。
+- [x] 升级 workspace 的 `ts-rs` 声明（`crates/ccr-usage`、`crates/ccr-cli` 的 `ts` feature 路径）。
+- [x] `cd ccr-ui && just bindings` 生成 204 个文件。
+- [x] 通知 `08-22-dep-upgrade` 执行 diff 逐条判定（其 R7 / AC7）。本任务提交生成产物，不做判定。
+- [x] 一次提交，含 Rust 侧版本变更与生成产物。
 
 验证：`just tauri-bindings-check` 退出码 0；`cd ccr-ui/src-tauri && cargo check`。
 
 ## 收尾
 
-- [ ] `upgrade-inventory.md` 落盘，覆盖 `[workspace.dependencies]` 全部条目，无空缺（AC7）。
-- [ ] `cargo clean && cargo build --release` 计时与二进制体积记录，与前置基线对比（AC13）。
-- [ ] HTTP/2 与 Cookie 的四个观测点数据与基线对比落盘（AC11）。协议版本项取 `response.version()`，不以「签到请求成功」代替。无真实账号时该项标「未执行」并说明。
-- [ ] `just version-check` 确认 `workspace.package.version` 仍为 7.2.0（AC6、R10）。
+- [x] `upgrade-inventory.md` 落盘，覆盖 `[workspace.dependencies]` 全部条目，无空缺（AC7）。
+- [x] `cargo clean && cargo build --release` 计时与二进制体积记录，与前置基线对比（AC13）。
+- [x] HTTP/2 与 Cookie 的四个观测点数据与基线对比落盘（AC11）。协议版本项取 `response.version()`，不以「签到请求成功」代替。无真实账号时该项标「未执行」并说明。
+- [x] `just version-check` 确认 `workspace.package.version` 仍为 7.2.0（AC6、R10）。
 
 ## 验证命令
 
@@ -90,10 +78,10 @@ Rust 测试若绕过 `just test` 直接运行，带 `-- --test-threads=1`。
 
 ## 交付门
 
-- [ ] AC1–AC13 全部满足。
-- [ ] 三份记录落盘：`upgrade-inventory.md`、`crypto-compat-check.md`、编译时间与体积对比。
-- [ ] `reqwest` 三项配置核对记录落盘（AC10）。
-- [ ] 签到真实请求验证通过（AC11）。
+- [x] AC1–AC13 全部满足。
+- [x] 三份记录落盘：`upgrade-inventory.md`、`crypto-compat-check.md`、编译时间与体积对比。
+- [x] `reqwest` 三项配置核对记录落盘（AC10）。
+- [ ] 签到真实请求验证通过（AC11）——「未执行」：无真实签到账号，按 AC11 规则以公开端点协议版本观测替代，不标通过。
 
 ## 回滚点
 

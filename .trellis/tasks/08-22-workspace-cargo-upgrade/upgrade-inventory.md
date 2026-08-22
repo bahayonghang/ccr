@@ -7,9 +7,14 @@
 
 | 项目 | 升级前 | 升级后 |
 |---|---|---|
-| `cargo clean && cargo build --release` | 250 s，exit 0 | 见下方「最终验证数据」（收尾实测） |
-| `crates/ccr` release 二进制 | 18,902,016 bytes | 同上 |
+| `cargo clean && cargo build --release` | 250 s，exit 0 | **214 s，exit 0**（无劣化） |
+| `crates/ccr` release 二进制 | 18,902,016 bytes | **18,872,832 bytes**（−29,184 B） |
 | `ccr-ui/src/types/generated` | 聚合 md5 = 7e3e7e09865e899ee882d1dc13fba6e7 | 重生成后 204 文件中 8 个变化（ts-rs 12 输出格式），`just tauri-bindings-check` exit 0 |
+
+## 最终验证门（2026-08-23，全部 exit 0）
+
+`just check-workspace` / `just lint-strict` / `just test` / `just release` / `just audit`（0 advisories，1225 条已载入）/ `just version-check`（治理门通过，唯一例外 toml 在 allowlist 内）/ `just tauri-bindings-check` / src-tauri `cargo check && cargo clippy && cargo test`（490+2 过）/ `just secret-write-check`
+
 
 ## 组 C 前置：加密测试向量基线（升级前自检，全部通过）
 
