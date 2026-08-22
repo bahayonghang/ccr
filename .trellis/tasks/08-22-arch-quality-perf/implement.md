@@ -1,0 +1,146 @@
+# 执行计划：架构约定、质量门与性能基线
+
+> 父任务：`08-22-react-migration`（阶段 2，本任务先于 `08-22-design-system`）。
+> 分支：`feature/react-migration/arch-quality-perf`，PR 目标 `feature/react-migration`。
+>
+> **本任务是硬门**。规则若在阶段 5 之后才落地，七个视图子任务已产出的约 78,000 行需返工（父任务 `implement.md` §4 约束门）。
+
+## 前置确认
+
+- [ ] 父任务基座门已通过（`08-22-react-foundation` AC1–AC9 与 `08-22-dep-upgrade` AC1–AC10 全部满足）。
+- [ ] `08-22-react-foundation` 的 `path-mapping.md` 已落盘，作为目录分层规则的输入。
+- [ ] `git checkout -b feature/react-migration/arch-quality-perf feature/react-migration`
+
+## 批次 1：分布测量
+
+阈值取值的前置。无此批次则第 3 节的方法无输入。
+
+- [ ] 测量当前 185 个 `.vue` 与已迁移 `.tsx` 的行数分布，产出 P50 / P75 / P90 / P95 / max。
+- [ ] 测量圈复杂度、最大嵌套深度、最大参数个数分布（用 ESLint 规则以 warning 级别跑一遍取数据，不提交该配置）。
+- [ ] 测量组件内样式行数分布（139 个带局部样式的组件，24,434 行）。
+- [ ] 按 `design.md` §3.1 第 2 步排除将被统一层接管的 20 个文件（清单见 `platform-unify/implement.md` 批次 1），产出排除后的暂定分布。不做「统一后分布」的推算——总行数区间无法唯一推出文件行数分布（`design.md` §3.1 末段）。
+
+产物：`distribution.md`。
+
+## 批次 2：分层与边界规则
+
+- [ ] 装 `eslint-plugin-boundaries`（或按 `design.md` §11 的判据选定的等价物），按 `design.md` §1 的依赖图声明 element types 与 rules。
+- [ ] 门面边界规则用核心 `no-restricted-imports`，既有导入点列白名单。该规则只管**消费侧**。
+- [ ] 定义面不新造机制：确认既有 `ccr-ui/tests/api-facade-boundary.smoke.test.ts` 的 `freezes legacy direct invoke calls in tauri.ts` 用例保留（9 条允许命令集合），并在 `layering-contracts.md` 中写明该分工。
+- [ ] 循环依赖检查落为独立脚本，加入 `package.json` 的 `check:cycles`，纳入 `just frontend-check`。
+- [ ] 构造 4 个违规用例（`design.md` §2）：3 个 lint 夹具 + 1 个向 `tauri.ts` 加 `invoke()` 的临时改动（跑一次 smoke 确认变红后还原，不提交）（AC2）。
+- [ ] 构造 1 个循环用例，断言脚本报错（AC3）。
+- [ ] 夹具目录从正常 lint 范围排除。
+- [ ] 记录 `bun run lint:ci` 加规则前后的单次耗时。超过 2 倍则按 `design.md` §1 的兜底判据把开销最大的规则移入 CI 专用。
+
+验证：`bun run lint:ci` 退出码 0（AC1）；`bun run check:cycles` 退出码 0。
+
+## 批次 3：规模与复杂度规则（暂定阈值）
+
+- [ ] 按 `design.md` §3.1 第 3 步取五项**暂定阈值**。
+- [ ] 一轮反馈调整（超限文件数 >15% 上调一档，<3% 下调一档），只做一轮。
+- [ ] 五项规则以 error 级别加入 `eslint.config.js`。组件内样式行数用检查脚本（需同时读 `.tsx` 与 `.module.css`）。
+- [ ] `thresholds.md` 落盘，含暂定取值、依据与「最终值待阶段 4 冻结」的标注（AC4）。
+- [ ] 超限文件清单落盘，每项标注所属处理批次（归到七个视图子任务之一），无全局豁免（AC11）。
+
+验证：`bun run lint:ci` 退出码 0。超限文件在此时应报错——把它们加入各视图子任务的处理批次，不加 `eslint-disable`。
+
+### 批次 3b：阈值冻结（阶段 4 → 5 门，不在阶段 2 执行）
+
+本子批次在 `08-22-platform-unify` 批次 6 完成后执行（协同点 N）。
+
+- [ ] 用统一层的实际文件集合替换批次 1 中排除的 20 个文件条目，重算分布。
+- [ ] 按 `design.md` §3.2 重取 P90，写入 `thresholds.md` 的第二段。与暂定值不同时以本段为最终值。
+- [ ] 超限清单重出，新增超限项分配处理批次。
+- [ ] `eslint.config.js` 的阈值更新为最终值。
+
+验证：`bun run lint:ci` 退出码 0。
+
+## 批次 4：类型与 hooks 规则
+
+- [ ] `react-hooks/rules-of-hooks` 与 `react-hooks/exhaustive-deps` 设为 error（R3）。
+- [ ] `@typescript-eslint/no-unsafe-*` 系列启用（R4）。
+- [ ] `no-explicit-any: error` 保留。
+- [ ] `design.md` §6 的四条可 lint 的重渲染规则落为 error。
+
+验证：`bun run lint:ci` 退出码 0（AC1）。
+
+## 批次 5：覆盖率门
+
+- [ ] 阈值从 justfile 参数移入 `vitest.smoke.config.ts` 的 `coverage.thresholds`。
+- [ ] 按 `design.md` §4 复核 70% 取值，调整需给依据。
+- [ ] `frontend-coverage` 纳入 `just ci`（插在 `frontend-check` 之后）。
+- [ ] 不新增 `functions` / `branches` / `statements` 阈值（依据见 `design.md` §4 末段）。
+
+验证：`just frontend-coverage` 退出码 0（AC5）；`just ci` 的步骤数从 13 变 14，父任务 `implement.md` §2.1 与 `prd.md` AC3 需同步更新。
+
+## 批次 6：状态判定表
+
+- [ ] 按 `design.md` §5 的判据，10 个 store + 35 个 composable 共 45 项逐个归类。
+- [ ] `state-disposition.md` 落盘，无未判定项（AC6）。
+- [ ] 交付给 `08-22-state-logic-port`。
+
+## 批次 7：性能测量与基线
+
+- [ ] 按 `design.md` §7 写五个测量脚本，落在 `ccr-ui/scripts/perf/`。
+- [ ] 每个脚本连续跑 3 次，相对标准差不超过 15%。超过则改进方法后重测。
+- [ ] 采集 React 侧基线，`perf-baseline.md` 落盘（AC7）。
+- [ ] 与父任务基线采集门在 `dev` 上采集的数据对齐（同一测量方法，只依赖 DOM 与 `performance` API）。
+
+注意：场景 1、3、4 依赖的视图此时尚未迁移（阶段 5 才迁）。本批次的做法是先在 Vue 版本上跑通脚本并采数据，React 侧的对应数值在 `08-22-regression-release` 补测。脚本的框架无关性是前提。
+
+## 批次 8：预算与分割约定
+
+- [ ] 按 `design.md` §8 重设 `check-bundle-budget.mjs` 配置。
+- [ ] `motion` 与 `zod` 单列两行，记录实际增量与预留值（R9.1）。
+- [ ] 判定 `manualChunks` 是否新增三组，结论通知 `08-22-react-foundation` 或直接改 `vite.config.ts`。
+- [ ] `bundle-budget.md` 落盘（AC9）。
+- [ ] 按 `design.md` §9 产出 `code-splitting.md`（AC10）。
+
+验证：`bun run check:bundle-budget` 退出码 0。
+
+## 批次 9：契约文档与登记
+
+- [ ] `react-rerender-discipline.md` 与 `layering-contracts.md` 写入 `.trellis/spec/ccr-ui/frontend/`。
+- [ ] 登记到 `08-22-test-contract-rebuild` 的范围表，16 份变 18 份（AC12）。
+- [ ] 通知七个视图子任务：动手前需阅读 `react-rerender-discipline.md`（R8）。
+
+## 验证命令
+
+| 时机        | 命令                                                  |
+| ----------- | ----------------------------------------------------- |
+| 批次 2–4 后 | `bun run lint:ci`、`bun run check:cycles`             |
+| 批次 5 后   | `just frontend-coverage`                              |
+| 批次 8 后   | `bun run check:bundle-budget`                         |
+| 交付前      | `just frontend-check-quick`、`just frontend-coverage` |
+
+## 交付门（父任务约束门的一半）
+
+- [ ] AC1–AC12 全部满足。
+- [ ] 全部新增规则为 error 级别，无 warning 级别软约束（R2 末段）。
+- [ ] 无全局豁免。豁免逐文件登记（R12）。
+- [ ] 七份记录落盘：`distribution.md`、`thresholds.md`、`state-disposition.md`、`perf-baseline.md`、`bundle-budget.md`、`code-splitting.md`、超限文件清单。
+- [ ] 两份契约进 spec 目录并完成登记。
+- [ ] `just ci` 步骤数变更已同步到父任务文档。
+
+## 回滚点
+
+| 批次    | 回滚方式                                                           |
+| ------- | ------------------------------------------------------------------ |
+| 1、6、7 | 只产出文档与脚本，revert 无副作用                                  |
+| 2–5     | 每批次单独提交。规则回滚即回到无约束状态，不影响已写代码的可运行性 |
+| 8       | 预算配置回滚                                                       |
+
+规则一旦被七个视图子任务消费，回滚的代价是那些子任务的代码不再受约束，但代码本身仍可运行。因此回滚安全，代价在于返工风险回归。
+
+## 协同点
+
+| 编号 | 内容                                            | 对方                          | 时机      |
+| ---- | ----------------------------------------------- | ----------------------------- | --------- |
+| L    | 性能基线供最终对比                              | `08-22-regression-release`    | 批次 7 后 |
+| —    | `state-disposition.md` 是对方的直接输入         | `08-22-state-logic-port`      | 批次 6 后 |
+| —    | `react-rerender-discipline.md` 需在动手前被阅读 | 七个视图子任务                | 批次 9 后 |
+| —    | `manualChunks` 分组结论                         | `08-22-react-foundation`      | 批次 8    |
+| —    | 新增两份契约进范围表（使其从 16 份变 18 份）    | `08-22-test-contract-rebuild` | 批次 9    |
+| N    | 阈值冻结：对方批次 6 完成后本任务执行批次 3b    | `08-22-platform-unify`        | 批次 3b   |
+| —    | 组件内样式行数上限约束其产出                    | `08-22-design-system`         | 批次 3 后 |
