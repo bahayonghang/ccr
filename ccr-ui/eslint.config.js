@@ -1,14 +1,13 @@
 import js from '@eslint/js'
-import pluginVue from 'eslint-plugin-vue'
-import * as parserVue from 'vue-eslint-parser'
 import tseslint from 'typescript-eslint'
 import globals from 'globals'
-import vueI18n from '@intlify/eslint-plugin-vue-i18n'
+import react from 'eslint-plugin-react'
+import reactHooks from 'eslint-plugin-react-hooks'
 
 export default [
   {
     name: 'app/files-to-lint',
-    files: ['**/*.{ts,mts,tsx,vue,js,jsx}'],
+    files: ['**/*.{ts,mts,tsx,js,jsx}'],
   },
   {
     name: 'app/files-to-ignore',
@@ -24,30 +23,14 @@ export default [
       '**/src-tauri/gen/**',
       '**/.vite/**',
       '**/docs/**',
+      // 未迁移的 .vue 文件在 React 基座阶段退出检查管线，由各视图子任务改写后重新纳入
+      '**/*.vue',
       // ts-rs 生成的 TypeScript 绑定（漂移守卫走 just tauri-bindings-check，不走 lint）
       'src/types/generated/**',
     ],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
-  ...pluginVue.configs['flat/recommended'],
-  {
-    name: 'app/vue-parser',
-    files: ['**/*.vue'],
-    languageOptions: {
-      parser: parserVue,
-      parserOptions: {
-        ecmaVersion: 'latest',
-        extraFileExtensions: ['.vue'],
-        parser: tseslint.parser,
-        sourceType: 'module',
-      },
-      globals: {
-        ...globals.browser,
-        ...globals.node,
-      },
-    },
-  },
   {
     name: 'app/typescript-files',
     files: ['**/*.{ts,tsx,mts}'],
@@ -59,16 +42,25 @@ export default [
     },
   },
   {
+    // React 插件注册：具体规则集（含 hooks 规则）归 08-22-arch-quality-perf 落地，本阶段不启用新规则
+    name: 'app/react-plugins',
+    files: ['**/*.{tsx,jsx}'],
+    plugins: {
+      react,
+      'react-hooks': reactHooks,
+    },
+    languageOptions: {
+      parserOptions: {
+        ecmaFeatures: { jsx: true },
+      },
+    },
+    settings: {
+      react: { version: 'detect' },
+    },
+  },
+  {
     name: 'app/custom-rules',
     rules: {
-      // Vue rules
-      'vue/multi-word-component-names': 'off',
-      // v-html 仅允许在有 DOMPurify/escapeHtml 防护的渲染点使用，逐行 eslint-disable 豁免
-      'vue/no-v-html': 'error',
-      'vue/require-default-prop': 'off',
-      'vue/require-explicit-emits': 'error',
-      'vue/one-component-per-file': 'off',
-
       // TypeScript rules - 严格类型检查
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-unused-vars': [
@@ -105,29 +97,6 @@ export default [
     rules: {
       'no-console': 'off',
       '@typescript-eslint/no-require-imports': 'off',
-    },
-  },
-  {
-    // i18n 防回归（WS7.3）：模板硬编码文案锁死为 warn，记录债务但不阻断 CI；新增项应走 t()/tf()
-    name: 'app/i18n-no-raw-text',
-    files: ['**/*.vue'],
-    plugins: { '@intlify/vue-i18n': vueI18n },
-    settings: {
-      'vue-i18n': {
-        // 不配置 localeDir：locale 为 .ts 模块，插件无法静态解析以生成「建议 key」（会崩溃）；
-        // no-raw-text 仅需检测能力，不需要 key 建议。
-        messageSyntaxVersion: '^9.0.0',
-      },
-    },
-    rules: {
-      '@intlify/vue-i18n/no-raw-text': [
-        'warn',
-        {
-          // 忽略纯符号/数字/标点（如 ':' '*' '%' '·' '|'）——这些不是需要翻译的文案，
-          // 仅锁死真正的硬编码词句。
-          ignorePattern: '^[\\s\\d\\-–—:：*%·•|/\\\\()\\[\\]{}.,，。、；;!！?？#&+=<>"\'“”‘’~@]+$|^(?:\\$|v|ms|HTTP|STDIO|Esc|↑↓|↵|…|\\.?mcp\\.json|mcpServers|api_user|session|TOML|JSON|URL|ID:?|px|s|low|medium|high|xhigh)$',
-        },
-      ],
     },
   },
 ]

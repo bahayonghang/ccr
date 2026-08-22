@@ -1,7 +1,6 @@
 {
   "extends": [
-    "stylelint-config-standard",
-    "stylelint-config-recommended-vue"
+    "stylelint-config-standard"
   ],
   "rules": {
     "at-rule-no-unknown": [
@@ -24,20 +23,7 @@
   "overrides": [
     {
       "files": [
-        "*.vue",
-        "**/*.vue"
-      ],
-      "customSyntax": "postcss-html"
-    },
-    {
-      "files": [
-        "src/styles/checkin-shared.css",
-        "src/views/CheckinView.vue",
-        "src/views/checkin/**/*.vue",
-        "src/components/CheckinProgressModal.vue",
-        "src/components/MainLayout.vue",
-        "src/components/ui/Button.vue",
-        "src/components/ui/Card.vue"
+        "src/styles/checkin-shared.css"
       ],
       "rules": {
         "color-no-hex": true,

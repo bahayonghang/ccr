@@ -36,37 +36,39 @@
 
 ### 批次 3：类型检查与 lint
 
-- [ ] `tsconfig` 加 `"jsx": "react-jsx"`，`include` 去 `.vue`。
-- [ ] `package.json` 的 `type-check` 改 `tsc --noEmit`，移除 `vue-tsc`。
-- [ ] `eslint.config.js`（现 133 行）换 React 规则集，Vue 系 4 个插件移除，`.vue` 加入 ignore。
-- [ ] `.stylelintrc.json` 移除 `stylelint-config-recommended-vue`，`postcss.config.js` 移除 `postcss-html`。
-- [ ] 保留 `@typescript-eslint/no-explicit-any: error`。新增规则归 `08-22-arch-quality-perf`，本批次不加。
+- [x] `tsconfig` 加 `"jsx": "react-jsx"`，`include` 去 `.vue`（`src/vite-env.d.ts` 增设 `*.vue` ambient shim 兜住 legacy `.ts` 的 `.vue` 导入）。
+- [x] `package.json` 的 `type-check` 改 `tsc --noEmit`，`vue-tsc` 不在依赖（补装 `@types/react`/`@types/react-dom`，批次 1 遗留缺口）。
+- [x] `eslint.config.js` 换 React 规则集（plugin-react + plugin-react-hooks 仅注册，规则启用归 `08-22-arch-quality-perf`），Vue 系 4 插件移除，`**/*.vue` 加入 ignore。
+- [x] `.stylelintrc.json` 移除 `stylelint-config-recommended-vue` 与 postcss-html 接线；`lint:style` glob 收窄为 css。
+- [x] 保留 `@typescript-eslint/no-explicit-any: error`，未新增其他规则。
 
-验证：`bun run type-check`（AC3）、`bun run lint`（AC4）、`bun run lint:style` 退出码 0。
+- [x] 验证通过（2026-08-23）：`bun run type-check`、`bun run lint`、`bun run lint:style` 均 exit 0。
 
 ### 批次 4：测试环境
 
-- [ ] `vitest.smoke.config.ts` 按 `design.md` §5 改写，`vitest.shims.d.ts` 适配。
-- [ ] 写 1 个 React smoke 测试，断言最小页面渲染出 IPC 返回值（用 mock 的 `invoke`）。
-- [ ] StrictMode 下订阅数不翻倍的断言写入该测试或独立测试。mock 的 `listen` 必须**延迟 resolve**（`await` 一个可控 deferred 后再返回 unlisten），并覆盖「resolve 发生在卸载之后」的时序。同步 resolve 的 mock 会让 `08-22-state-logic-port` AC5 要防的泄漏形态无法暴露（其 `design.md` §7）。
+- [x] `vitest.smoke.config.ts` 按 `design.md` §5 改写（plugin-react + jsdom + cleanup setup）；`vitest.shims.d.ts` 删除（仅指向未安装包的三斜线引用，无引用方）。
+- [x] React smoke 测试：`tests/react-shell.smoke.test.tsx`（mock invoke → 断言 `check_version` 返回值渲染）。
+- [x] `tests/use-tauri-listen.smoke.test.tsx`：延迟 resolve 的 listen mock，覆盖「resolve 先于卸载」与「resolve 发生在卸载之后」两时序，断言 unlisten 恰好配对（TPR-05，供 `08-22-state-logic-port` AC5 参照）。
 
-验证：`bun run test:smoke`（AC5）退出码 0。
+- [x] 验证通过（2026-08-23）：`bun run test:smoke` exit 0，59 文件 / 293 用例全绿。
 
 ### 批次 5：资产复用验证与判定清单
 
-- [ ] `git diff --stat src/api src/types` 确认为空（AC6）。非空项登记为独立缺陷，不在本任务修改。
-- [ ] `src/utils` 31 个文件逐个判定，`utils-disposition.md` 落盘（AC7）。
-- [ ] `src-tauri` 下 `cargo check`（AC8）。
+- [x] `git diff --stat src/api src/types` 确认为空（AC6 ✅ 主线程复验 0 行）。
+- [x] `src/utils` 31 个文件逐个判定，`utils-disposition.md` 落盘（AC7）：原样复用 19 / 需接线 12（Tauri 运行时 8 + Vue 耦合 4：apexChartsCore、claude/codex/grokProfiles）。
+  - 勘误：prd Notes 的 11 项需接线预期经实测修正——errorHandler / runtimeState / fontPreferences 三项纯逻辑改判原样复用，apexChartsCore 补入需接线；claude/codex/grokProfiles 三项为 Vue 耦合（prd 清单本就含 vue 导入判定，映射表归 `08-22-views-profiles-config` 随共享层迁移重写）。详见 utils-disposition.md 偏差登记。
+- [x] `src-tauri` 下 `cargo check`（AC8）exit 0（36s）。
 
 ### 批次 6：路径映射表
 
-- [ ] 按 `design.md` §8 的格式产出 `path-mapping.md`，216 行，无空缺（AC9）。
-- [ ] 20 个移交 `08-22-platform-unify` 的文件标注收敛方式。
-- [ ] 表内每个新路径的归属子任务与父任务 `prd.md` 的 18 子任务范围表一致。
+- [x] 按 `design.md` §8 的格式产出 `path-mapping.md`，216 行（185 vue + 31 utils），脚本比对无空缺无重复（AC9）。
+- [x] 移交 `08-22-platform-unify` 的文件标注收敛方式：18 个（收敛为薄壳）+ 3 个 views/generic base 本体（统一层 base，协同点 G）。
+  - 勘误：「20 个移交文件」实为 18（文档算术误差，以 platform-unify 权威清单为准，行数分项和恰为 15,672；登记于 path-mapping.md 头部）。
+- [x] 表内每个新路径的归属子任务与父任务 `prd.md` 的 18 子任务范围表一致（脚本校验全部落在 18 个 slug 内）。
 
 ### 批次 7：zod 试点
 
-- [ ] 按 `design.md` §9 完成试点，结论落盘。
+- [x] 按 `design.md` §9 完成试点，`zod-pilot.md` 落盘：`src/schemas/versionInfo.ts` + `tests/zod-pilot.smoke.test.ts`（保留供 state-logic-port 参照）；编译期 Equal 断言通过；bundle 增量 gzip +15.6 KiB（zod 核心一次性成本）；结论：推广到新增 wrapper，不回填 57 个既有 wrapper。
 
 ## 验证命令
 
@@ -81,10 +83,10 @@
 
 ## 交付门
 
-- [ ] AC1–AC9 全部满足。
-- [ ] `utils-disposition.md`、`path-mapping.md`、插件选择测量数据、zod 试点结论四项落盘。
-- [ ] `package.json` 无 `vue-tsc` 与 4 个 Vue 系 ESLint 插件（AC3、AC4 的检查项）。
-- [ ] 与 `08-22-dep-upgrade` 共同满足父任务的基座门（父任务 `implement.md` §4）。
+- [x] AC1–AC9 全部满足（AC1/AC2 见批次 1 实测记录；AC3–AC9 见批次 3–6）。
+- [x] `utils-disposition.md`、`path-mapping.md`、插件选择测量数据（`plugin-selection.md`）、zod 试点结论（`zod-pilot.md`）四项落盘。
+- [x] `package.json` 无 `vue-tsc` 与 4 个 Vue 系 ESLint 插件。
+- [ ] 与 `08-22-dep-upgrade` 共同满足父任务的基座门（dep-upgrade 段 2–4 未完，门检查待其完成后执行）。
 
 ## 回滚点
 

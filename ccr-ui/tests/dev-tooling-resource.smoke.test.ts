@@ -54,11 +54,9 @@ describe('Vite development resource contracts', () => {
       readFileSync(path.join(root, 'scripts/dev-warm-targets.json'), 'utf8'),
     ) as { healthPath: string; clientFiles: string[] }
     const required = [
-      './src/main.ts',
-      './src/App.vue',
-      './src/router/index.ts',
-      './src/components/MainLayout.vue',
-      './src/views/DashboardView.vue',
+      './src/main.tsx',
+      './src/shell/App.tsx',
+      './src/shell/router.tsx',
     ]
 
     expect(manifest.healthPath).toBe('/')

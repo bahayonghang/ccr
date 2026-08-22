@@ -1,6 +1,6 @@
 import { fileURLToPath } from 'node:url'
 import { availableParallelism } from 'node:os'
-import vue from '@vitejs/plugin-vue'
+import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vitest/config'
 
 export const resolveSmokeMaxWorkers = (
@@ -22,7 +22,7 @@ export const resolveSmokeMaxWorkers = (
 }
 
 export default defineConfig({
-  plugins: [vue()],
+  plugins: [react()],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))
@@ -31,8 +31,8 @@ export default defineConfig({
   test: {
     name: 'smoke',
     environment: 'jsdom',
-    include: ['tests/**/*.smoke.test.ts'],
-    setupFiles: ['./tests/setup/localStorage.ts'],
+    include: ['tests/**/*.smoke.test.{ts,tsx}'],
+    setupFiles: ['./tests/setup/localStorage.ts', './tests/setup/react-cleanup.ts'],
     restoreMocks: true,
     clearMocks: true,
     fileParallelism: true,

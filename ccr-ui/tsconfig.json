@@ -12,7 +12,7 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
 
     /* Linting */
     "strict": true,
@@ -33,16 +33,11 @@
       "@/*": ["./src/*"]
     }
   },
-  "vueCompilerOptions": {
-    "strictTemplates": true
-  },
   "include": [
     "src/**/*.ts",
     "src/**/*.tsx",
-    "src/**/*.vue",
     "tests/**/*.ts",
-    "tests/**/*.mts",
-    "vitest.shims.d.ts"
+    "tests/**/*.mts"
   ],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
