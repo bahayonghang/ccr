@@ -1,10 +1,8 @@
 {
   "healthPath": "/",
   "clientFiles": [
-    "./src/main.ts",
-    "./src/App.vue",
-    "./src/components/MainLayout.vue",
-    "./src/router/index.ts",
-    "./src/views/DashboardView.vue"
+    "./src/main.tsx",
+    "./src/shell/App.tsx",
+    "./src/shell/router.tsx"
   ]
 }

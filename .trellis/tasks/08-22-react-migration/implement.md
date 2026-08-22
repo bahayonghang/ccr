@@ -254,6 +254,7 @@ dev  ─────────────────────────
 | 已合入 `dev` 后 | revert 迁移分支的 merge commit。`dev` 上迁移期间的独立提交不受影响                |
 
 阶段门 tag 命名：`react-migration/phase-<n>`，`n` 取 `1`、`2`、`3`、`4a`、`4`、`5`、`6`、`7`。
+- 执行偏差记录（2026-08-23）：§5/§11 的子分支命名 `feature/react-migration/<slug>` 与既有分支 `feature/react-migration` 是同一 ref 命名空间的冲突（git 无法同时持有 `refs/heads/feature/react-migration` 与其子路径）。实际采用 `react-migration/<slug>`（例：`react-migration/react-foundation`），PR 目标不变仍为 `feature/react-migration`。
 
 `08-22-workspace-cargo-upgrade` 的回滚独立于前端迁移。
 

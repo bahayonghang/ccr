@@ -5,8 +5,8 @@
 
 ## 前置确认
 
-- [ ] 父任务的基线采集门已通过（视觉、性能、测试三类基线已落盘）。基线未采集则本任务不启动。
-- [ ] `git checkout -b feature/react-migration/react-foundation feature/react-migration`
+- [x] 父任务的基线采集门已通过（视觉、性能、测试三类基线已落盘）。基线未采集则本任务不启动。
+- [x] `git checkout -b feature/react-migration/react-foundation feature/react-migration`（实际分支名 `react-migration/react-foundation`：`feature/react-migration/<slug>` 与既有分支 `feature/react-migration` 为冲突 ref，无法并存，见父任务 §11 偏差记录）。
 
 ## 提交批次
 
@@ -14,25 +14,25 @@
 
 ### 批次 1：入口与 Provider 装配
 
-- [ ] 建 `src/main.tsx`、`src/shell/App.tsx`、`src/shell/router.tsx`、`src/shell/queryClient.ts`。
-- [ ] 按 `design.md` §1 的顺序装配 Provider，开启 StrictMode。
-- [ ] `index.html` 的入口脚本改指 `main.tsx`。
-- [ ] 删除 `src/main.ts`。`src/App.vue` 暂留，由 `08-22-shell-port` 删除。
-- [ ] 最小页面内容：一个按钮调用 `src/api` 下的一个 wrapper 并显示返回值，一个带 `listen()` 订阅的示例组件。
+- [x] 建 `src/main.tsx`、`src/shell/App.tsx`、`src/shell/router.tsx`、`src/shell/queryClient.ts`。
+- [x] 按 `design.md` §1 的顺序装配 Provider，开启 StrictMode。
+- [x] `index.html` 的入口脚本改指 `main.tsx`。
+- [x] 删除 `src/main.ts`。`src/App.vue` 暂留，由 `08-22-shell-port` 删除。
+- [x] 最小页面内容：一个按钮调用 `src/api` 下的一个 wrapper 并显示返回值（`systemApi.getVersion`，即 `check_version`），一个带 `listen()` 订阅的示例组件（`shell/useTauriListen.ts`，dispose 取消协议防 StrictMode 双订阅）。
 
 验证（两个环境分开做）：
 
-- `bun run dev`（纯 Vite）打开页面，渲染成功、控制台无报错（AC1）。此环境无 Tauri 壳，`invoke()` 不可用。
-- `bun run tauri:dev`（桌面运行时）打开页面，按钮触发真实 IPC 并显示返回值（AC2）。`bun run dev` 不能用于本项。
+- [x] `bun run dev`（纯 Vite）打开页面，渲染成功（h1「CCR UI — React 基座」+ IPC 按钮 + 事件计数卡均渲染；仅 Tauri 运行时缺失的 `listen()` unhandled rejection，属 AC1 明示不计入项）（AC1 ✅ 2026-08-23 主线程浏览器实测）。
+- [x] `bun run tauri:dev`（桌面运行时）打开页面，按钮触发真实 IPC 并显示返回值（AC2 ✅ 2026-08-23 主线程经 WebView2 CDP 实测：`check_version` 返回 `{"current":"7.2.0","latest":null,"update_available":false}` 渲染于页面）。
 
 ### 批次 2：构建配置
 
-- [ ] `vite.config.ts` 按 `design.md` §3 逐项改写。
-- [ ] 测量 `@vitejs/plugin-react` 与 SWC 变体的冷启动与 HMR 耗时，二选一，数据落盘。
-- [ ] 确认 `dev-warm-targets.json` 的生成方式；无法确认则记录并保留现配置。
-- [ ] `optimizeDeps.include` 清单重写。
+- [x] `vite.config.ts` 按 `design.md` §3 逐项改写（vite 8/rolldown 下 manualChunks 需函数形态；alias 双入口 vue-i18n 删除；warmup/fs/port 保留）。
+- [x] 测量 `@vitejs/plugin-react` 与 SWC 变体的冷启动与 HMR 耗时，二选一，数据落盘（`plugin-selection.md`：中位数差异小于组内波动，维持 plugin-react，SWC 卸载）。
+- [x] 确认 `dev-warm-targets.json` 的生成方式（手写清单，无生成脚本，4 处消费/校验方已登记于 plugin-selection.md §dev-warm-targets）。
+- [x] `optimizeDeps.include` 清单重写（含 `react-dom/client` 子路径——缺它会在 noDiscovery 下以裸 CJS 直出导致 `createRoot` 具名导入失败，2026-08-23 修复）。
 
-验证：`bun run build` 成功；`bun run dev` 冷启动耗时记录。
+- [x] 验证：`bun run build` 成功（exit 0，182 modules，react-vendor 278.6 kB + index 167.2 kB）；`bun run dev` 冷启动耗时已记录于 `plugin-selection.md`（ready 中位数 4526ms / page 145ms / HMR 530ms）。
 
 ### 批次 3：类型检查与 lint
 

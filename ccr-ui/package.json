@@ -54,6 +54,7 @@
     "@codemirror/search": "^6.7.1",
     "@codemirror/state": "^6.7.1",
     "@codemirror/view": "^6.43.6",
+    "@hookform/resolvers": "5.9.1",
     "@iconify-json/solar": "^1.2.5",
     "@iconify/react": "6.0.2",
     "@tanstack/react-query": "5.101.4",
@@ -73,7 +74,7 @@
     "react-i18next": "17.0.12",
     "react-router": "8.3.0",
     "zod": "4.4.3",
-    "@hookform/resolvers": "5.9.1"
+    "zustand": "5.0.15"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
