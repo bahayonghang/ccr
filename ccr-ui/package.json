@@ -78,7 +78,7 @@
     "@vitest/coverage-v8": "^4.1.10",
     "@vue/eslint-config-typescript": "^14.7.0",
     "autoprefixer": "^10.5.0",
-    "eslint": "^9.39.4",
+    "eslint": "^10.8.1",
     "eslint-plugin-vue": "^10.6.2",
     "globals": "^16.5.0",
     "jsdom": "^26.1.0",
