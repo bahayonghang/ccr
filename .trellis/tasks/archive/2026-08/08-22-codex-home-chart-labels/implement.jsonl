@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/ccr-ui/frontend/usage-chart-stability-contracts.md", "reason": "Platform trend chart must keep ApexCharts options/series resize and animation discipline"}
+{"file": ".trellis/spec/ccr-ui/frontend/theme-token-contracts.md", "reason": "KPI and tone icon colors must use existing rgb tokens, no literal hex"}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Reuse formatTrendAxisLabel, getTrendTickAmount, parseUtcDate, UsageMetricCard icon treatment"}
+{"file": ".trellis/tasks/08-22-codex-home-chart-labels/research/label-truncation-mechanism.md", "reason": "Category trim plus 30-slot width is the axis ellipsis root cause"}

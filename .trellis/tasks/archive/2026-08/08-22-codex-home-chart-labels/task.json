@@ -1,0 +1,28 @@
+{
+  "id": "codex-home-chart-labels",
+  "name": "codex-home-chart-labels",
+  "title": "Codex 首页趋势图坐标标签与 KPI 图标优化",
+  "description": "",
+  "status": "completed",
+  "dev_type": null,
+  "scope": "ccr-ui",
+  "package": null,
+  "priority": "P2",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-08-22",
+  "completedAt": "2026-08-22",
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "description": "Fix truncated ApexCharts x-axis dates on Codex/Antigravity/OpenCode home usage charts and polish KPI icon contrast."
+  }
+}
