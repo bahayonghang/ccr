@@ -4,6 +4,7 @@
 > 分支：`feature/react-migration/workspace-cargo-upgrade`。**PR 目标为 `dev`，不经迁移分支**（父任务 `implement.md` §5 的例外条款）。合入 `dev` 后 rebase 到 `feature/react-migration`。
 
 ## 前置确认
+- **分支偏差（主线程批准，2026-08-23）**：不在 `dev` 上开 `feature/react-migration/workspace-cargo-upgrade`，改在当前迁移分支 `react-migration/react-foundation` 上执行；PR 到 `dev` 的步骤推迟到发布时由人工决定。
 
 - [ ] `just ci` 在 `dev` 上全绿（父任务基线采集门的一项，基线 13 步）。
 - [ ] `git checkout -b feature/react-migration/workspace-cargo-upgrade dev`
