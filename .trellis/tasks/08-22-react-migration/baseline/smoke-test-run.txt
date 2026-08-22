@@ -1,0 +1,133 @@
+[1m[36m
+╔═══════════════════════════════════════════════════════════════════════════════╗[0m[0m
+[1m[36m║                   i18n Translation Files Validation Test                     ║[0m[0m
+[1m[36m╚═══════════════════════════════════════════════════════════════════════════════╝[0m[0m
+[36m
+Test Configuration:[0m
+[36m  zh-CN file: D:\Documents\Code\Github\ccr\ccr-ui\src\i18n\locales\zh-CN.ts[0m
+[36m  en-US file: D:\Documents\Code\Github\ccr\ccr-ui\src\i18n\locales\en-US.ts[0m
+[36m  Required namespaces: common, nav, configs, mcp, agents, slashCommands, plugins[0m
+[36m  Max size difference: 35%[0m
+
+[36m================================================================================[0m
+[1m[36m  Test 1: File Existence Check[0m[0m
+[36m================================================================================[0m
+[32m✓[0m zh-CN.ts file exists
+[2m  Path: D:\Documents\Code\Github\ccr\ccr-ui\src\i18n\locales\zh-CN.ts[0m
+[32m✓[0m en-US.ts file exists
+[2m  Path: D:\Documents\Code\Github\ccr\ccr-ui\src\i18n\locales\en-US.ts[0m
+
+[36m================================================================================[0m
+[1m[36m  Test 2: File Size Comparison[0m[0m
+[36m================================================================================[0m
+[36m  zh-CN.ts: 204.76 KB[0m
+[36m  en-US.ts: 212.93 KB[0m
+[36m  Size difference: 8.17 KB (3.91%)[0m
+[32m✓[0m File sizes are reasonably similar
+[2m  Files are within acceptable size range[0m
+
+[36m================================================================================[0m
+[1m[36m  Test 3: Namespace Extraction and Validation[0m[0m
+[36m================================================================================[0m
+[36m  zh-CN namespaces (512): auth, common, language, shell, about, backend, environment, historyPanel, versionManager, updateModal, ccrControl, status, time, editor, variables, nav, user, checkin, actions, tabs, dialog, stats, result, progress, waf, detail, skipReasons, info, errors, hints, labels, accounts, columns, modal, fields, waf, cdk, help, errors, account_manager, account_list, token_config, history, status, records, providers, oauthWizard, oauthTypes, steps, summary, errors, dashboard, readiness, reasons, metrics, actions, platforms, metrics, usage, signals, claudeCode, hero, features, modules, profiles, auth, settings, mcpServers, slashCommands, agents, plugins, quickActions, tips, observer, tab, metric, chart, subscription, tokenDetail, behavior, empty, claudeProfiles, authTokenActions, sections, basic, connection, auth, status, actions, runtimeBanner, confirm, messages, groups, statStrip, toolbar, fields, inspector, issues, commandPalette, settingsRaw, profilesRaw, systemPrompts, files, platforms, claudeSettings, tabs, model, permissions, env, ui, sandbox, git, mcp, breadcrumb, presets, sync, manager, hero, actions, metrics, presetsDrawer, scopes, approvals, state, list, bulkDelete, confirm, messages, detail, form, import, errors, monitoring, levels, prompts, builtin, categories, agents, folders, search, validation, messages, form, models, breadcrumb, slashCommands, folders, search, form, breadcrumb, viewControls, plugins, form, breadcrumb, configs, breadcrumb, buttons, tabs, filters, sidebar, sort, provider, sortModes, form, addConfig, commands, catalog, status, converter, formatDescriptions, usageNotes, sync, breadcrumb, assets, passphrase, assetGroups, ccr, claude, codex, assetActions, assetStatus, output, webdav, account, features, supportedServices, messages, theme, language, settings, dock, summary, appearance, theme, flavor, typography, language, shell, diagnostics, errors, notifications, usage, platforms, actions, filters, timeRange, model, summaryCards, trends, states, emptyState, unsupported, cli_missing, db_missing, db_unreadable, schema_unsupported, missing_table, missing_column, waiting_for_llmusage, install, dialog, stage, duration, dashboard, range, importJobBanner, toolbar, tabs, cards, tokenStrip, sources, ops, states, ready, syncing, stale, degraded, needs_import, needs_session_index, empty, health, freshness, sourceStates, sourceStateHints, actions, alerts, age, cost, providers, chart, bucket, highlights, rankings, models, tokens, modes, projects, meta, table, logs, diagnostics, status, pricing, actions, boundary, fields, default, models, form, operations, empty, states, confirm, messages, stats, timeRange, actions, summaryCards, tokenDetails, sections, units, states, codex, overview, features, modules, mcp, agents, profiles, slashCommands, auth, settings, plugins, config, tips, capabilities, dashboard, header, statusLabels, readiness, auth, profiles, config, usage, usageFreshness, actionConsole, actions, login, createProfile, selectProfile, completeSettings, addMcp, openSessions, ready, refresh, management, auth, profiles, settings, mcp, agents, sessions, usage, empty, error, actions, states, mcp, types, placeholders, validation, messages, agents, sources, freshness, stats, status, confirm, messages, validation, form, messages, profiles, fields, actions, runtimeBanner, confirm, placeholders, authModes, authTokenHints, templateSelector, sections, sectionHints, tokenActions, providers, validation, messages, empty, groups, statStrip, toolbar, commandPalette, inspector, issues, status, settings, tabs, model, security, tools, ui, features, messages, slashCommands, folders, validation, messages, auth, off, profileGuard, status, loginState, fields, placeholders, validation, table, messages, tray, rename, filters, statusOptions, freshnessOptions, planOptions, sortOptions, plugins, folders, validation, messages, messages, gemini, overview, stats, hero, tags, terminal, modules, quick, mcp, validation, messages, agents, folders, validation, messages, slashCommands, folders, validation, messages, plugins, validation, messages, grok, overview, auth, dashboard, header, localOnly, readiness, installation, profiles, config, actions, install, createProfile, activateProfile, repairDrift, inspectUnsafe, openSettings, management, profiles, settings, commands, statusLabels, empty, error, profiles, actions, statStrip, toolbar, empty, groups, fields, profileKinds, authModes, credentialActions, editor, validation, confirm, messages, driftBanner, inactive, active, drifted, unsafe_missing_entry_state, renameRecovery, rename_apply_failed, rename_cleanup_failed, unsafeDelete, commandPalette, inspector, issues, missing, settings, localOnly, tabs, status, managed, conflict, model, sessionUi, cli, worktrees, fields, placeholders, helpers, options, themeOptions, worktreeOptions, customModels, source, footer, validation, messages, states, activation, activationWarning, authMode, version, placeholder, platformUsage, tabs, cards, metrics, rank, units, empty, platforms, codex, antigravity, opencode, usageStats, viewModes[0m
+[36m  en-US namespaces (512): auth, common, language, shell, about, backend, environment, historyPanel, versionManager, updateModal, ccrControl, status, time, editor, variables, nav, user, checkin, actions, tabs, dialog, stats, result, progress, waf, detail, skipReasons, info, errors, hints, labels, accounts, columns, modal, fields, waf, cdk, help, errors, account_manager, account_list, token_config, history, status, records, providers, oauthWizard, oauthTypes, steps, summary, errors, dashboard, readiness, reasons, metrics, actions, platforms, metrics, usage, signals, claudeCode, hero, features, modules, profiles, auth, settings, mcpServers, slashCommands, agents, plugins, quickActions, tips, observer, tab, metric, chart, subscription, tokenDetail, behavior, empty, claudeProfiles, authTokenActions, sections, basic, connection, auth, status, actions, runtimeBanner, confirm, messages, groups, statStrip, toolbar, fields, inspector, issues, commandPalette, settingsRaw, profilesRaw, systemPrompts, files, platforms, claudeSettings, tabs, model, permissions, env, ui, sandbox, git, mcp, breadcrumb, presets, sync, manager, hero, actions, metrics, presetsDrawer, scopes, approvals, state, list, bulkDelete, confirm, messages, detail, form, import, errors, monitoring, levels, prompts, builtin, categories, agents, folders, search, validation, messages, form, models, breadcrumb, slashCommands, folders, search, form, breadcrumb, viewControls, plugins, form, breadcrumb, configs, breadcrumb, buttons, tabs, filters, sidebar, sort, provider, sortModes, form, addConfig, commands, catalog, status, converter, formatDescriptions, usageNotes, sync, breadcrumb, assets, passphrase, assetGroups, ccr, claude, codex, assetActions, assetStatus, output, webdav, account, features, supportedServices, messages, errors, theme, language, settings, dock, summary, appearance, theme, flavor, typography, language, shell, diagnostics, notifications, usage, platforms, actions, filters, timeRange, model, summaryCards, trends, states, emptyState, unsupported, cli_missing, db_missing, db_unreadable, schema_unsupported, missing_table, missing_column, waiting_for_llmusage, install, dialog, stage, duration, dashboard, range, importJobBanner, toolbar, tabs, cards, tokenStrip, sources, ops, states, ready, syncing, stale, degraded, needs_import, needs_session_index, empty, health, freshness, sourceStates, sourceStateHints, actions, alerts, age, cost, providers, chart, bucket, highlights, rankings, models, tokens, modes, projects, meta, table, logs, diagnostics, status, pricing, actions, boundary, fields, default, models, form, operations, empty, states, confirm, messages, stats, timeRange, actions, summaryCards, tokenDetails, sections, units, states, codex, overview, features, modules, mcp, agents, profiles, slashCommands, auth, settings, plugins, config, tips, capabilities, dashboard, header, statusLabels, readiness, auth, profiles, config, usage, usageFreshness, actionConsole, actions, login, createProfile, selectProfile, completeSettings, addMcp, openSessions, ready, refresh, management, auth, profiles, settings, mcp, agents, sessions, usage, empty, error, actions, states, mcp, types, placeholders, validation, messages, agents, sources, freshness, stats, status, confirm, messages, validation, form, messages, profiles, fields, actions, runtimeBanner, confirm, placeholders, authModes, authTokenHints, templateSelector, sections, sectionHints, tokenActions, providers, validation, messages, empty, groups, statStrip, toolbar, commandPalette, inspector, issues, status, settings, tabs, model, security, tools, ui, features, messages, slashCommands, folders, validation, messages, auth, off, profileGuard, status, loginState, fields, placeholders, validation, table, messages, tray, rename, filters, statusOptions, freshnessOptions, planOptions, sortOptions, plugins, folders, validation, messages, messages, gemini, overview, stats, hero, tags, terminal, modules, quick, mcp, validation, messages, agents, folders, validation, messages, slashCommands, folders, validation, messages, plugins, validation, messages, grok, overview, auth, dashboard, header, localOnly, readiness, installation, profiles, config, actions, install, createProfile, activateProfile, repairDrift, inspectUnsafe, openSettings, management, profiles, settings, commands, statusLabels, empty, error, profiles, actions, statStrip, toolbar, empty, groups, fields, profileKinds, authModes, credentialActions, editor, validation, confirm, messages, driftBanner, inactive, active, drifted, unsafe_missing_entry_state, renameRecovery, rename_apply_failed, rename_cleanup_failed, unsafeDelete, commandPalette, inspector, issues, missing, settings, localOnly, tabs, status, managed, conflict, model, sessionUi, cli, worktrees, fields, placeholders, helpers, options, themeOptions, worktreeOptions, customModels, source, footer, validation, messages, states, activation, activationWarning, authMode, version, placeholder, platformUsage, tabs, cards, metrics, rank, units, empty, platforms, codex, antigravity, opencode, usageStats, viewModes[0m
+[32m✓[0m Namespace counts match
+[2m  Both files have 512 namespaces[0m
+[32m✓[0m All namespaces are consistent
+[2m  Perfect namespace alignment[0m
+
+[36m================================================================================[0m
+[1m[36m  Test 4: Required Namespaces Check[0m[0m
+[36m================================================================================[0m
+[36m  Required namespaces: common, nav, configs, mcp, agents, slashCommands, plugins[0m
+[32m✓[0m Required namespace: common
+[2m  Present in both files[0m
+[32m✓[0m Required namespace: nav
+[2m  Present in both files[0m
+[32m✓[0m Required namespace: configs
+[2m  Present in both files[0m
+[32m✓[0m Required namespace: mcp
+[2m  Present in both files[0m
+[32m✓[0m Required namespace: agents
+[2m  Present in both files[0m
+[32m✓[0m Required namespace: slashCommands
+[2m  Present in both files[0m
+[32m✓[0m Required namespace: plugins
+[2m  Present in both files[0m
+
+[36m================================================================================[0m
+[1m[36m  Test 5: Variable Placeholders Analysis[0m[0m
+[36m================================================================================[0m
+[36m  zh-CN placeholders (84): name, time, count, id, code, provider, reward, current, total, account...[0m
+[36m  en-US placeholders (84): name, time, count, id, code, provider, reward, current, total, account...[0m
+[36m  Placeholder overlap: 100.00%[0m
+[32m✓[0m Placeholder overlap is good
+[2m  100.00% overlap indicates consistent variable usage[0m
+
+[36m================================================================================[0m
+[1m[36m  Test 6: Syntax Validation[0m[0m
+[36m================================================================================[0m
+[32m✓[0m zh-CN has export default statement
+[2m  Found export default[0m
+[32m✓[0m en-US has export default statement
+[2m  Found export default[0m
+[32m✓[0m zh-CN has balanced braces
+[2m  891 opening, 891 closing[0m
+[32m✓[0m en-US has balanced braces
+[2m  891 opening, 891 closing[0m
+
+[36m================================================================================[0m
+[1m[36m  Test 7: Vue-i18n @ Literal Safety[0m[0m
+[36m================================================================================[0m
+[32m✓[0m zh-CN.ts has no unsafe bare @
+[2m  All @ usages are explicit literals or linked syntax[0m
+[32m✓[0m en-US.ts has no unsafe bare @
+[2m  All @ usages are explicit literals or linked syntax[0m
+
+[36m================================================================================[0m
+[1m[36m  Test 8: Vue-i18n Message Compiler Validation[0m[0m
+[36m================================================================================[0m
+[32m✓[0m zh-CN.ts messages compile with vue-i18n
+[2m  All locale strings passed the message compiler[0m
+[32m✓[0m en-US.ts messages compile with vue-i18n
+[2m  All locale strings passed the message compiler[0m
+
+[36m================================================================================[0m
+[1m[36m  Test 9: Placeholder Binding Validation[0m[0m
+[36m================================================================================[0m
+[32m✓[0m Simple i18n placeholder bindings are aligned
+[2m  Checked 601 source files[0m
+
+[36m================================================================================[0m
+[1m[36m  Test 10: Coverage Statistics[0m[0m
+[36m================================================================================[0m
+[36m
+  Translation Coverage:[0m
+[36m    zh-CN: 4179 keys, 5301 lines, 49 comments[0m
+[36m    en-US: 4191 keys, 5457 lines, 48 comments[0m
+[36m    Key difference: 12 (0.29%)[0m
+[32m✓[0m Translation key coverage is good
+[2m  Key counts are very close[0m
+
+[36m================================================================================[0m
+[1m[36m  Test Summary[0m[0m
+[36m================================================================================[0m
+[36m
+  Results:[0m
+    Total tests:    [1m23[0m
+[32m    Passed:         23[0m
+[36m    Pass rate:      100.00%[0m
+
+[36m────────────────────────────────────────────────────────────────────────────────[0m
+[32m
+✓ All tests passed! i18n files are valid and consistent.
+[0m
+
+ RUN  v4.1.10 D:/Documents/Code/Github/ccr/ccr-ui
+
+
+ Test Files  123 passed (123)
+      Tests  626 passed (626)
+   Start at  22:25:46
+   Duration  21.77s (transform 8.07s, setup 1.06s, import 10.90s, tests 11.31s, environment 41.65s)
+

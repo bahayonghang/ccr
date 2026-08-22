@@ -1,0 +1,5 @@
+[bundle-budget] UsageDashboardView: UsageDashboardView-DW7llTPR.js raw=93.40 KiB gzip=26.51 KiB
+[bundle-budget] index: index-CW4QTwV-.js raw=243.69 KiB gzip=45.41 KiB
+[bundle-budget] core.css: index-DZpKQsqh.css raw=123.13 KiB gzip=19.35 KiB
+[bundle-budget] shell-icons: solarShellIconSubset.ts raw=24.19 KiB gzip=7.73 KiB
+[bundle-budget] startup-font-css: (none) raw=0.00 KiB gzip=0.02 KiB

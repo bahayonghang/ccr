@@ -85,12 +85,12 @@ Rust 测试若绕过 `just test` 直接运行，须带 `-- --test-threads=1`。
 
 准出条件（全部为父任务直接交付，落盘到 `.trellis/tasks/08-22-react-migration/baseline/`）：
 
-- [ ] 从 `dev` 构建当前产物，采集 185 个界面在明暗两套主题下的截图。
-- [ ] 采集关键交互录屏：5 条缓存路由的离开与返回、OAuth 向导完整流程、日志流实时输出、图表时间范围切换、大表单输入。
-- [ ] 记录启动耗时、首屏渲染耗时、bundle 体积三项基线。命令：`just frontend-build`、`bun ./scripts/check-bundle-budget.mjs`、`bun ./scripts/measure-vite-route.mjs`。
-- [ ] 记录 `just frontend-test` 的 122 项通过清单与被测组件清单。
-- [ ] 记录 `just frontend-coverage` 的当前覆盖率数值。
-- [ ] 记录 `just ci` 在 `dev` 上的全绿结果、实际 recipe 依赖清单与耗时（基线为 13 步）。
+- [x] 从 `dev` 构建当前产物，采集界面在明暗两套主题下的截图。口径：75 条路由 × 2 主题 = 150 张（`screens/`）；「185」为 `.vue` 组件数，逐屏比对按 `baseline/README.md` 的归属映射覆盖全部组件。
+- [x] 采集关键交互录屏：5 条缓存路由的离开与返回、OAuth 向导流程（止于凭据录入步，见 README 已知边界）、日志流实时输出、图表时间范围切换、大表单输入（`recordings/` 5 个 mp4）。
+- [x] 记录启动耗时、首屏渲染耗时、bundle 体积三项基线。命令：`just frontend-build`、`bun ./scripts/check-bundle-budget.mjs`、`bun ./scripts/measure-vite-route.mjs`（`startup-timings.md`、`route-timing-settings.json`、`bundle-budget.txt`）。
+- [x] 记录 `just frontend-test` 的 122 项通过清单与被测组件清单（`smoke-test-run.txt`，123 文件 / 626 测试全过）。
+- [x] 记录 `just frontend-coverage` 的当前覆盖率数值（`coverage-run.txt`，lines 75.4%）。
+- [x] 记录 `just ci` 在 `dev` 等价内容上的全绿结果、实际 recipe 依赖清单与耗时（`ci-baseline.txt`：13 步全 OK，总耗时 392s，步骤清单与 §2.1 基线一致）。
 
 缺此门，`08-22-regression-release` 的 AC1、AC14 与 `08-22-test-contract-rebuild` 的 AC2 无对比依据。
 
@@ -261,7 +261,7 @@ dev  ─────────────────────────
 
 | 阶段 | 子任务                        | 状态   | 门             |
 | ---- | ----------------------------- | ------ | -------------- |
-| 0    | 基线采集                      | 未开始 | 基线采集门     |
+| 0    | 基线采集                      | 已完成 | 基线采集门     |
 | 1    | 1 `react-foundation`          | 未开始 | 基座门         |
 | 1    | 2 `dep-upgrade`               | 未开始 | 基座门         |
 | 旁路 | 2b `workspace-cargo-upgrade`  | 未开始 | 直接目标 `dev` |
