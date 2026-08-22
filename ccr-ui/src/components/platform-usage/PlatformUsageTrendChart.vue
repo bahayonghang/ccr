@@ -41,10 +41,21 @@
 
 <script setup lang="ts">
 import { computed, defineAsyncComponent } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { ApexOptions } from 'apexcharts'
 import type { DailyTrend } from '@/types/usage'
 import type { PlatformUsageMetric } from '@/types/platformUsageInsight'
-import { buildChartTheme } from '@/views/usage/usageChartOptions'
+import {
+  buildChartAnimations,
+  buildChartTheme,
+  formatTrendAxisLabel,
+  getTrendTickAmount,
+} from '@/views/usage/usageChartOptions'
+import {
+  buildPlatformUsageTrendSeries,
+  platformUsageTrendSeriesKey,
+  type PlatformUsageTrendSeries,
+} from '@/views/platform-usage/platformUsageTrendChart'
 import { formatCost, formatTokens } from '@/views/usage/usageSummaryCards'
 
 const props = defineProps<{
@@ -55,6 +66,8 @@ const props = defineProps<{
   metric: PlatformUsageMetric
   trends: DailyTrend[]
 }>()
+
+const { locale } = useI18n()
 
 const ApexChart = defineAsyncComponent({
   loader: () => import('@/utils/apexChartsCore'),
@@ -70,27 +83,13 @@ const theme = computed(() => buildChartTheme())
 
 const chartType = computed(() => (props.metric === 'tokens' ? 'bar' : props.metric === 'requests' ? 'line' : 'area'))
 
-const categories = computed(() => props.trends.map((trend) => trend.date))
+const tickAmount = computed(() => getTrendTickAmount(props.trends.length))
 
-const series = computed(() => {
-  if (props.metric === 'tokens') {
-    return [
-      { name: 'Input', data: props.trends.map((trend) => trend.input_tokens) },
-      { name: 'Output', data: props.trends.map((trend) => trend.output_tokens) },
-      { name: 'Cache read', data: props.trends.map((trend) => trend.cache_read_tokens) },
-      { name: 'Cache write', data: props.trends.map((trend) => trend.cache_creation_tokens) },
-    ]
-  }
-
-  if (props.metric === 'requests') {
-    return [
-      { name: 'Requests', data: props.trends.map((trend) => trend.request_count) },
-    ]
-  }
-
-  return [
-    { name: 'Cost', data: props.trends.map((trend) => trend.cost_usd) },
-  ]
+const series = computed<PlatformUsageTrendSeries[]>((previous) => {
+  const next = buildPlatformUsageTrendSeries(props.trends, props.metric)
+  return previous && platformUsageTrendSeriesKey(previous) === platformUsageTrendSeriesKey(next)
+    ? previous
+    : next
 })
 
 const fallbackValues = computed(() => {
@@ -109,17 +108,31 @@ const fallbackBars = computed(() => {
 
 const chartOptions = computed<ApexOptions>(() => {
   const chartTheme = theme.value
-  const isTokenChart = props.metric === 'tokens'
-  const isCostChart = props.metric === 'cost'
+  const axisLocale = locale.value
+  const metric = props.metric
+  const isTokenChart = metric === 'tokens'
+  const isCostChart = metric === 'cost'
+  const formatAxisValue = (value: number) => {
+    if (metric === 'cost') return formatCost(value)
+    if (metric === 'tokens') return formatTokens(value)
+    return Math.round(value).toLocaleString()
+  }
+  const formatAxisDate = (value: string, timestamp?: number) => {
+    const resolved = timestamp ?? Number(value)
+    if (!Number.isFinite(resolved)) return ''
+    return formatTrendAxisLabel(resolved, 'day', axisLocale)
+  }
 
   return {
     chart: {
-      id: `platform-usage-${props.metric}`,
+      id: `platform-usage-${metric}`,
       toolbar: { show: false },
-      animations: { enabled: !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches },
+      animations: buildChartAnimations(),
       fontFamily: 'var(--font-sans)',
       background: 'transparent',
       stacked: isTokenChart,
+      redrawOnParentResize: false,
+      redrawOnWindowResize: false,
     },
     colors: [
       chartTheme.primary,
@@ -140,7 +153,7 @@ const chartOptions = computed<ApexOptions>(() => {
     grid: {
       borderColor: chartTheme.grid,
       strokeDashArray: 3,
-      padding: { left: 8, right: 12 },
+      padding: { left: 8, right: 16, bottom: 4 },
     },
     legend: {
       show: isTokenChart,
@@ -160,19 +173,22 @@ const chartOptions = computed<ApexOptions>(() => {
     theme: { mode: chartTheme.mode },
     tooltip: {
       theme: chartTheme.mode,
+      x: {
+        formatter: (value: number) => formatAxisDate(String(value), value),
+      },
       y: {
-        formatter: (value: number) => {
-          if (props.metric === 'cost') return formatCost(value)
-          if (props.metric === 'tokens') return formatTokens(value)
-          return Math.round(value).toLocaleString()
-        },
+        formatter: (value: number) => formatAxisValue(value),
       },
     },
     xaxis: {
-      categories: categories.value,
+      type: 'datetime',
+      tickAmount: tickAmount.value,
       labels: {
         rotate: 0,
-        trim: true,
+        trim: false,
+        hideOverlappingLabels: true,
+        datetimeUTC: false,
+        formatter: formatAxisDate,
         style: {
           colors: chartTheme.textMuted,
           fontSize: '11px',
@@ -180,7 +196,6 @@ const chartOptions = computed<ApexOptions>(() => {
       },
       axisBorder: { show: false },
       axisTicks: { show: false },
-      tickAmount: categories.value.length > 16 ? 6 : undefined,
     },
     yaxis: {
       labels: {
@@ -188,11 +203,7 @@ const chartOptions = computed<ApexOptions>(() => {
           colors: chartTheme.textMuted,
           fontSize: '11px',
         },
-        formatter: (value: number) => {
-          if (props.metric === 'cost') return formatCost(value)
-          if (props.metric === 'tokens') return formatTokens(value)
-          return Math.round(value).toLocaleString()
-        },
+        formatter: (value: number) => formatAxisValue(value),
       },
     },
   }

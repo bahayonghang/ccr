@@ -59,3 +59,4 @@
 - Run the focused dashboard smoke tests from [Environment-Scoped Dashboard Contracts](./environment-scoped-dashboard-contracts.md) when changing Local-only dashboard refresh ordering or cache behavior.
 - Run the focused frontend/Tauri checks from [Grok Settings Contracts](./grok-settings-contracts.md) when changing Grok Settings typed or raw-source behavior.
 - Run `cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/apexcharts-style-contract.smoke.test.ts` and a production build when changing `apexChartsCore.ts`, ApexCharts versions, or chart style delivery. Confirm the complete CSS remains a lazy preload dependency and is not linked directly from `index.html`.
+- Run `cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/platform-usage-trend-chart.smoke.test.ts tests/usage-chart-diagnostics.smoke.test.ts` when changing platform homepage trend charts or `formatTrendAxisLabel` / `parseUtcDate`.

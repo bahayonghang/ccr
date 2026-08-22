@@ -81,7 +81,8 @@ export const usageTokenCategoryColors: Record<UsageTokenCategory, UsageTokenCate
   },
 }
 
-const parseUtcDate = (value: string) => {
+/** Parse a `YYYY-MM-DD` calendar date as UTC midnight. */
+export const parseUtcDate = (value: string) => {
   const [year, month, day] = value.split('-').map(Number)
   return new Date(Date.UTC(year, (month || 1) - 1, day || 1))
 }
