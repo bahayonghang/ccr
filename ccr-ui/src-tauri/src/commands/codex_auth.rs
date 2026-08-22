@@ -1,9 +1,9 @@
 use super::*;
+use crate::commands::settings_raw::ensure_local_env;
 use crate::desktop_shell;
 use crate::process::{ProcessDescriptor, ProcessGateway};
 use base64::Engine;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
-use crate::commands::settings_raw::ensure_local_env;
 use ccr_cli::application::{auth_off_for_platform, needs_auth_off};
 use ccr_codex::services::CodexModelProviderStoreService;
 use ccr_codex::{

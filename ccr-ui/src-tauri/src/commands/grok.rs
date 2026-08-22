@@ -171,13 +171,8 @@ pub enum GrokProfileActionResponse {
 #[serde(tag = "status", rename_all = "snake_case")]
 #[ts(export, export_to = "../../src/types/generated/grok/")]
 pub enum GrokAuthCurrentResponse {
-    Ok {
-        logged_in: bool,
-        can_auth_off: bool,
-    },
-    UnsupportedEnvironment {
-        env_type: String,
-    },
+    Ok { logged_in: bool, can_auth_off: bool },
+    UnsupportedEnvironment { env_type: String },
 }
 
 #[derive(Debug, Clone, Serialize, TS)]

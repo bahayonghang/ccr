@@ -1,4 +1,6 @@
 use super::*;
+use ccr_cli::application::{auth_off_for_platform, needs_auth_off};
+use ccr_cli::models::Platform;
 use ccr_cli::models::{
     ClaudeAuthConfidence as ServiceAuthConfidence, ClaudeAuthDiagnosis as ServiceAuthDiagnosis,
     ClaudeAuthEvidence as ServiceAuthEvidence, ClaudeAuthOwnership as ServiceAuthOwnership,
@@ -9,8 +11,6 @@ use ccr_cli::models::{
     ClaudeProfileAuthMode as ServiceProfileAuthMode, ClaudeRuntimeMode as ServiceRuntimeMode,
     ClaudeRuntimeSummary as ServiceRuntimeSummary,
 };
-use ccr_cli::application::{auth_off_for_platform, needs_auth_off};
-use ccr_cli::models::Platform;
 use ccr_cli::services::ClaudeAuthItem as ServiceAuthItem;
 use serde_json::Value;
 use ts_rs::TS;
