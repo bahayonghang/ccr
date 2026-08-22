@@ -328,6 +328,7 @@ dev  ─────────────────────────
 
 ## 10. `task.py start` 前的剩余动作
 
-- [ ] 19 个 `implement.jsonl` 与 19 个 `check.jsonl` 当前各 1 行 `_example` seed。按各任务真实的 spec / research 依赖整理，删除 seed，再跑 `python .trellis/scripts/plan_precheck.py`。
-- [ ] `plan_precheck.py` 不识别列表式需求写法（`- R1 …`），其 `requirements=0` 输出为脚本限制，不是需求缺失。复核时按 `prd.md` 的 Requirements 节人工确认。
+- [x] 19 个 `implement.jsonl` 与 19 个 `check.jsonl` 已按各任务真实的 spec / research 依赖整理，seed 已删除。校验以 `python .trellis/scripts/task.py validate <dir>` 逐目录执行，19 个任务全部通过（退出码 0）。
+      说明：计划中的 `plan_precheck.py` 在仓库与 git 历史中均不存在；其 jsonl 校验职能由 `task.py validate` 承担，需求计数限制（requirements=0）同样适用，按 `prd.md` Requirements 节人工确认。
+- [x] `plan_precheck.py` 缺失一事已在上一条内并处理：脚本不存在为文档与现实偏差，本地用 `task.py validate` 等价替代，不阻塞启动。
 - [ ] 工件评审通过后执行 `python ./.trellis/scripts/task.py start`。

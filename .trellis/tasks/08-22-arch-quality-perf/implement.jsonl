@@ -1,1 +1,2 @@
-{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file": ".trellis/spec/ccr-ui/frontend/index.md", "reason": "分层与质量门落点所涉契约清单"}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "规则设计时的复用思维参照"}

@@ -1,1 +1,3 @@
-{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file": ".trellis/spec/ccr/backend/dependency-governance.md", "reason": "workspace 共享依赖升级的治理规则"}
+{"file": ".trellis/spec/ccr/backend/typed-ipc-bindings.md", "reason": "ts-rs 11→12 与 204 个类型绑定重新生成的契约"}
+{"file": ".trellis/spec/ccr/backend/backend-guidelines.md", "reason": "Rust 侧通用约束"}

@@ -3,7 +3,7 @@
   "name": "react-migration",
   "title": "ccr-ui 前端框架迁移 Vue 3 → React 与依赖全量升级",
   "description": "将 ccr-ui 前端从 Vue 3 全量迁移到 React，同步将前端与 src-tauri 依赖升级到最新兼容版，并在 React 侧重建设计体系以降低样式修改成本",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": null,
   "scope": null,
   "package": null,

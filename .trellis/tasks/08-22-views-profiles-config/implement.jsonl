@@ -1,1 +1,4 @@
-{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file": ".trellis/spec/ccr-ui/frontend/profiles-page-contracts.md", "reason": "profiles 页面契约"}
+{"file": ".trellis/spec/ccr-ui/frontend/provider-template-contracts.md", "reason": "provider 模板契约"}
+{"file": ".trellis/spec/ccr-ui/frontend/raw-config-editor-contracts.md", "reason": "嵌入编辑器契约：批次 2 依赖编辑器桥接组件"}
+{"file": ".trellis/spec/ccr-ui/frontend/index.md", "reason": "视图域契约清单"}
