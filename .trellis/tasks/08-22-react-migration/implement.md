@@ -263,9 +263,9 @@ dev  ─────────────────────────
 | 阶段 | 子任务                        | 状态   | 门             |
 | ---- | ----------------------------- | ------ | -------------- |
 | 0    | 基线采集                      | 已完成 | 基线采集门     |
-| 1    | 1 `react-foundation`          | 未开始 | 基座门         |
-| 1    | 2 `dep-upgrade`               | 未开始 | 基座门         |
-| 旁路 | 2b `workspace-cargo-upgrade`  | 未开始 | 直接目标 `dev` |
+| 1    | 1 `react-foundation`          | 已完成 | 基座门 ✅ 2026-08-23 |
+| 1    | 2 `dep-upgrade`               | 已完成 | 基座门 ✅ 2026-08-23 |
+| 旁路 | 2b `workspace-cargo-upgrade`  | 已完成（PR→dev 延后，随迁移分支交付，偏差见其 implement.md） | 直接目标 `dev` |
 | 2    | 2c `arch-quality-perf`        | 未开始 | 约束门         |
 | 2    | 3 `design-system`             | 未开始 | 约束门         |
 | 3    | 4 `state-logic-port`          | 未开始 | 外壳门         |

@@ -5,21 +5,21 @@
 
 ## 前置确认
 
-- [ ] 父任务的基线采集门已通过，含 `just frontend-build` 的产物体积基线与 Tailwind 生成 CSS 体积基线。
-- [ ] `git checkout -b feature/react-migration/dep-upgrade feature/react-migration`
+- [x] 父任务的基线采集门已通过（`baseline/bundle-budget.txt`、`route-timing-settings.txt`、`ci-baseline.txt` 等已落盘）。
+- [x] 分支偏差（主线程批准，2026-08-23）：文档命名 `feature/react-migration/dep-upgrade` 与既有分支 `feature/react-migration` 为冲突 ref，无法创建；实际在 `react-migration/react-foundation` 上与 foundation 交织执行（父任务 §3「两者交织，连续执行」），PR-to-`feature/react-migration` 步骤随分支整体交付。
 
 ## 段 1：Vue → React 依赖替换 + vite 8
 
-- [ ] `bun outdated` 记录全部可升级项，作为「最新兼容版」的取值依据。
-- [ ] 移除 16 项 Vue 系依赖（`prd.md` 的替换表），装入 React 系等价物。
-- [ ] 新增 6 项：`@tanstack/react-query`、`react-hook-form`、`zod`、`@hookform/resolvers`、`motion`、`@uiw/react-codemirror`。
-- [ ] `vite` 7.3.5 → 8.2.2，按 `design.md` §6 逐项核对 breaking change，`vite8-migration-notes.md` 落盘。
-- [ ] 框架无关依赖升级到最新兼容版。
-- [ ] 确认 Vitest 对 vite 8 的支持；不兼容则同步升级。
-- [ ] `overrides` 第一次复核（`rollup`、`esbuild` 两项必查）。
-- [ ] `@uiw/react-codemirror` peer 核对，`codemirror-peer-check.md` 落盘。
-
+- [x] 可升级项记录：段 1 以 `bun outdated` + dependabot 分支起点执行（commit d11ef85c）；段 3 cargo-edit 缺失，以 crates.io 查询 + caret 编辑 + `cargo update -p` 回退，方法记录于 `08-22-workspace-cargo-upgrade/upgrade-inventory.md`。
+- [x] 移除 16 项 Vue 系依赖，装入 React 系等价物（d11ef85c；zustand@5.0.15 于 foundation 批次 1 补入）。
+- [x] 新增 6 项全部落位：`@tanstack/react-query`、`react-hook-form`、`zod`、`@hookform/resolvers`、`motion`、`@uiw/react-codemirror`。
+- [x] `vite` 7.3.5 → 8.2.2，breaking change 核对落盘 `vite8-migration-notes.md`（2026-08-23 补录：rolldown 下 manualChunks 需函数形态、configLoader native advisory 两项为实际发现）。
+- [x] 框架无关依赖升级到最新兼容版（d11ef85c + 后续批次微调）。
+- [x] Vitest 4.1.10 对 vite 8 可用（59 文件 / 293 用例全绿实证，无需升级）。
+- [x] `overrides` 第一次复核并入段 2 的全量 9 行判定（`overrides-review.md`，rollup/esbuild 在 rolldown 树中已不存在）。
+- [x] `@uiw/react-codemirror` peer 核对完成，`codemirror-peer-check.md` 落盘（协同点 B）。
 验证：`bun install --frozen-lockfile` 成功；`rg '"vue' package.json` 无匹配（AC1）；`bun run audit:dependencies` 无新增高危项。
+- [x] 验证通过（2026-08-23 主线程复验）：`bun install --frozen-lockfile` 成功；`rg '"vue' package.json` 无匹配（AC1）；`bun run audit:dependencies` 0 advisories。
 
 提交边界：本段单独提交。此时应用不可构建（入口仍是 `main.ts`），由 `08-22-react-foundation` 的批次 1 补上。
 
@@ -44,17 +44,17 @@
 - [x] `cargo upgrade --dry-run` 不可用（cargo-edit 缺失）；以 crates.io 查询 + caret 编辑 + `cargo update -p` 回退方法记录可升级项，清单见 `08-22-workspace-cargo-upgrade/upgrade-inventory.md` 段 3 表。
 - [x] dependabot 目标版本落地：`async-trait` 0.1.92（超出 0.1.91 起点，取最新）、`lru` 0.18.2（已最新）、`serde_json` 1.0.151、`sysinfo` 0.39.6、`ts-rs` 12.0.1。
 - [x] `ts-rs` 11 → 12.0.1，与 workspace 两侧同版本（协同点 A，2026-08-23 由 `08-22-workspace-cargo-upgrade` 在 react-migration/react-foundation 分支一并执行，commit 1176a416）。
-- [ ] **待跟进**：对 204 个文件的 diff 按 `design.md` §7 两类逐条判定，`ts-rs-diff-review.md` 落盘（AC7）。生成已完成：204 文件中 8 个变化，单一模式 `[key in string]?` → `[key in string]`（ts-rs 12 mapped-type 输出格式），`just tauri-bindings-check` exit 0。
-- [ ] **待跟进**：类型变化影响到的前端调用点逐个登记（8 个变化文件均涉及索引签名类型的消费点）。
+- [x] diff 逐条判定完成（2026-08-23，`ts-rs-diff-review.md`）：14 个变更文件全判定——8 项类型变化（mapped-type `?` 移除）在本仓 `noUncheckedIndexedAccess:false` 配置 + 消费方判空守卫下编译期与运行时均无影响，6 项纯格式差异；0 项需 view-subtask 跟进工单；`bun run type-check` exit 0（AC7 ✅）。
+- [x] 前端调用点登记：逐文件消费方核查已并入判定表（OpenJsonValueDto 六域 wrapper、logger、grokSettings、CapabilityReport 四处判空读取等），无需登记风险项。
 
-验证：`cd src-tauri && cargo check && cargo clippy && cargo test`（AC6）；`just tauri-bindings-check` 退出码 0；`just audit` 退出码 0（AC8）。
+- [x] 验证通过（2026-08-23）：src-tauri `cargo check` / `cargo clippy`（0 告警）/ `cargo test`（490+2 通过，--test-threads=1）全 exit 0（AC6）；`just tauri-bindings-check` exit 0；`just audit` exit 0、0 advisories（AC8）。
 
 提交边界：本段单独提交。生成产物与 Rust 侧版本变更同提交，便于一并 revert。
 
 ## 段 4：预算与收尾
 
-- [ ] `bun run check:bundle-budget`。通过则记录余量；不通过则按新框架重设基线并记录依据（AC10）。重设的具体额度与 `motion`、`zod` 的预留归 `08-22-arch-quality-perf` R9.1，本任务只提供测量数据。
-- [ ] `overrides-review.md` 落盘，9 行无空缺（AC9）。
+- [x] `bun run check:bundle-budget` 实测（2026-08-23 主线程）：exit 1，报「Missing UsageDashboardView chunk in dist/assets」——预算脚本仍断言 Vue 时代的路由 chunk 清单，React 基座尚无业务视图，属预期失败。按 AC10 的「重设并记录依据」路径处理：测量数据（`css-size.md` + 本次输出）已落盘，重设额度与 motion/zod 预留归 `08-22-arch-quality-perf` R9.1 / 批次 8。
+- [x] `overrides-review.md` 落盘，9 行全部有判定（2026-08-23 段 2 完成）。
 
 ## 验证命令
 
@@ -68,9 +68,9 @@
 
 ## 交付门
 
-- [ ] AC1–AC10 全部满足。
-- [ ] 五份记录落盘：`vite8-migration-notes.md`、`codemirror-peer-check.md`、`apply-verification.md`、`overrides-review.md`、`ts-rs-diff-review.md`。
-- [ ] 与 `08-22-react-foundation` 共同满足父任务的基座门。
+- [x] AC1–AC10 全部满足：AC1 ✅（无 vue 条目）；AC2 ✅（tailwindcss 4.3.3）；AC3 ✅（build exit 0 + css-size.md 对比）；AC4 ✅（lint:style exit 0）；AC5 ✅（apply-verification.md，偏差口径登记）；AC6 ✅（check/clippy/test 全过）；AC7 ✅（ts-rs-diff-review.md 14/14 判定）；AC8 ✅（just audit + audit:dependencies 均 0 advisories）；AC9 ✅（overrides-review.md 9 行）；AC10 ✅ 按「重设并记录依据」路径（实测失败原因 + 测量数据落盘，重设归 arch-quality-perf 批次 8）。
+- [x] 五份记录落盘：`vite8-migration-notes.md`、`codemirror-peer-check.md`、`apply-verification.md`、`overrides-review.md`、`ts-rs-diff-review.md`。
+- [x] 与 `08-22-react-foundation` 共同满足父任务的基座门（逐项核对见父任务 §4 基座门，2026-08-23 主线程执行，全部通过）。
 
 ## 回滚点
 

@@ -86,7 +86,7 @@
 - [x] AC1–AC9 全部满足（AC1/AC2 见批次 1 实测记录；AC3–AC9 见批次 3–6）。
 - [x] `utils-disposition.md`、`path-mapping.md`、插件选择测量数据（`plugin-selection.md`）、zod 试点结论（`zod-pilot.md`）四项落盘。
 - [x] `package.json` 无 `vue-tsc` 与 4 个 Vue 系 ESLint 插件。
-- [ ] 与 `08-22-dep-upgrade` 共同满足父任务的基座门（dep-upgrade 段 2–4 未完，门检查待其完成后执行）。
+- [x] 与 `08-22-dep-upgrade` 共同满足父任务的基座门（2026-08-23 主线程逐项核对通过：frontend-typecheck/lint/tauri-check exit 0，无 Vue 系依赖，codemirror peer 结论与 Tailwind v4 处理落盘）。
 
 ## 回滚点
 
