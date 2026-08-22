@@ -58,7 +58,7 @@ serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.150"
 toml = "1.1.2"
 # TypeScript 绑定生成（仅 ccr-usage 的 ts feature 与 ccr-ui/src-tauri 使用，CLI 默认依赖图不含）
-ts-rs = "11"
+ts-rs = "12"
 
 # Time
 chrono = { version = "0.4.44", features = ["serde"] }
