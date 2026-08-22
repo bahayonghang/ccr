@@ -38,7 +38,7 @@ tauri = { version = "=2.11.2", features = ["tray-icon"] }
 tauri-plugin-dialog = "2"
 
 # Serialization
-serde = { version = "1.0.228", features = ["derive"] }
+serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
 serde_yaml = "0.9"
 
@@ -46,7 +46,7 @@ serde_yaml = "0.9"
 ts-rs = { version = "12.0.1", features = ["no-serde-warnings"] }
 
 # Async runtime
-tokio = { version = "1.52.3", features = [
+tokio = { version = "1.53.1", features = [
     "rt-multi-thread",
     "io-util",
     "net",
@@ -56,7 +56,7 @@ tokio = { version = "1.52.3", features = [
     "process",
 ] }
 # 子进程取消信号（用于 llmusage sync 的 cancel 路径）
-tokio-util = { version = "0.7", features = ["rt"] }
+tokio-util = { version = "0.7.19", features = ["rt"] }
 
 # HTTP client
 # http2: AppState.http_client 与 ccr-checkin 共用该依赖，通过 ALPN 协商 HTTP/2（native-tls 已内置 alpn）
@@ -69,7 +69,7 @@ reqwest = { version = "0.13.4", default-features = false, features = [
 ] }
 
 # Logging
-tracing = "0.1.43"
+tracing = "0.1.44"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # System info
@@ -79,9 +79,9 @@ sysinfo = "0.39.6"
 aes-gcm = "0.10"
 
 # UUID
-uuid = { version = "1.23.2", features = ["serde", "v4"] }
-chrono = { version = "0.4.44", features = ["serde"] }
-base64 = "0.22.1"
+uuid = { version = "1.25.0", features = ["serde", "v4"] }
+chrono = { version = "0.4.45", features = ["serde"] }
+base64 = "0.23.1"
 sha2 = "0.11.0"
 
 # Database (direct access for AppState)
@@ -104,7 +104,7 @@ walkdir = "2.5"
 tempfile = "3.27.0"
 
 # Error handling
-thiserror = "2.0.18"
+thiserror = "2.0.20"
 lru = "0.18.2"
 notify = "8.2.0"
 
