@@ -3,7 +3,7 @@
 /**
  * 同步状态信息
  */
-export type SyncStatusInfo = { configured: boolean, enabled: boolean, webdav_url: string, username: string, remote_path: string, auto_sync: boolean,
+export type SyncStatusInfo = { configured: boolean, enabled: boolean, webdav_url: string, username: string, remote_path: string, auto_sync: boolean, 
 /**
  * 是否已保存密码（永不下发明文密码）
  */

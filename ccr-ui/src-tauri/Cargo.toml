@@ -39,11 +39,11 @@ tauri-plugin-dialog = "2"
 
 # Serialization
 serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.150"
+serde_json = "1.0.151"
 serde_yaml = "0.9"
 
 # TypeScript 绑定生成（usage V2 试点：DTO 单一来源，生成物入库 + 漂移守卫）
-ts-rs = { version = "11", features = ["no-serde-warnings"] }
+ts-rs = { version = "12.0.1", features = ["no-serde-warnings"] }
 
 # Async runtime
 tokio = { version = "1.52.3", features = [
@@ -73,7 +73,7 @@ tracing = "0.1.43"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # System info
-sysinfo = "0.39.3"
+sysinfo = "0.39.6"
 
 # Encryption (for checkin account credentials)
 aes-gcm = "0.10"
@@ -89,7 +89,7 @@ r2d2 = "0.8"
 rusqlite = { version = "0.40.2", features = ["bundled"] }
 
 # Async trait support
-async-trait = "0.1"
+async-trait = "0.1.92"
 
 # Home directory detection
 dirs = "6.0.0"

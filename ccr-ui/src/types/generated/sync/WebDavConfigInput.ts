@@ -3,7 +3,7 @@
 /**
  * 账号写入入参（前端 camelCase）
  */
-export type WebDavConfigInput = { webdavUrl: string, username: string,
+export type WebDavConfigInput = { webdavUrl: string, username: string, 
 /**
  * UI 表单明文入参：Secret 包裹，payload Debug/日志不泄露
  */

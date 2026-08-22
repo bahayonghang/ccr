@@ -5,4 +5,4 @@ import type { FeatureCapability } from "./FeatureCapability";
  * Tauri-facing capability payload: shared DB capabilities from `ccr_usage`
  * merged with desktop-only CLI detection.
  */
-export type CapabilityReport = { cli_available: boolean, cli_version: string | null, root_dir: string, db_path: string, db_exists: boolean, db_readable: boolean, schema_version: number | null, features: { [key in string]?: FeatureCapability }, };
+export type CapabilityReport = { cli_available: boolean, cli_version: string | null, root_dir: string, db_path: string, db_exists: boolean, db_readable: boolean, schema_version: number | null, features: { [key in string]: FeatureCapability }, };
