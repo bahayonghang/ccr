@@ -41,12 +41,11 @@
 提交边界：本段单独提交。
 
 ## 段 3：src-tauri Rust 依赖
-
-- [ ] `cargo upgrade --dry-run` 记录可升级项（`ccr-ui/src-tauri` 范围）。
-- [ ] 按 dependabot 分支的目标版本起步：`async-trait` 0.1.91、`lru` 0.18.1、`serde_json` 1.0.151、`sysinfo` 0.39.6、`ts-rs` 12.0.1。
-- [ ] `ts-rs` 11 → 12。与 `08-22-workspace-cargo-upgrade` 对齐版本号（协同点 A）。
-- [ ] 等对方执行 `cd ccr-ui && just bindings` 生成后，对 204 个文件的 diff 按 `design.md` §7 的两类逐条判定，`ts-rs-diff-review.md` 落盘（AC7）。
-- [ ] 类型变化影响到的前端调用点逐个登记。调用点修改不在本任务，登记给对应视图子任务。
+- [x] `cargo upgrade --dry-run` 不可用（cargo-edit 缺失）；以 crates.io 查询 + caret 编辑 + `cargo update -p` 回退方法记录可升级项，清单见 `08-22-workspace-cargo-upgrade/upgrade-inventory.md` 段 3 表。
+- [x] dependabot 目标版本落地：`async-trait` 0.1.92（超出 0.1.91 起点，取最新）、`lru` 0.18.2（已最新）、`serde_json` 1.0.151、`sysinfo` 0.39.6、`ts-rs` 12.0.1。
+- [x] `ts-rs` 11 → 12.0.1，与 workspace 两侧同版本（协同点 A，2026-08-23 由 `08-22-workspace-cargo-upgrade` 在 react-migration/react-foundation 分支一并执行，commit 1176a416）。
+- [ ] **待跟进**：对 204 个文件的 diff 按 `design.md` §7 两类逐条判定，`ts-rs-diff-review.md` 落盘（AC7）。生成已完成：204 文件中 8 个变化，单一模式 `[key in string]?` → `[key in string]`（ts-rs 12 mapped-type 输出格式），`just tauri-bindings-check` exit 0。
+- [ ] **待跟进**：类型变化影响到的前端调用点逐个登记（8 个变化文件均涉及索引签名类型的消费点）。
 
 验证：`cd src-tauri && cargo check && cargo clippy && cargo test`（AC6）；`just tauri-bindings-check` 退出码 0；`just audit` 退出码 0（AC8）。
 
