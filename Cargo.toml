@@ -22,7 +22,7 @@ version = "7.2.0"
 
 [workspace.dependencies]
 # Async runtime
-tokio = { version = "1.52.3", features = [
+tokio = { version = "1.53.1", features = [
     "fs",
     "io-util",
     "macros",
@@ -91,9 +91,9 @@ rpassword = "7.5.4"
 indexmap = { version = "2.14.0", features = ["serde"] }
 once_cell = "1.21.4"
 walkdir = "2.5"
-futures = "0.3.32"
-async-stream = "0.3"
-tokio-util = { version = "0.7", features = ["rt"] }
+futures = "0.3.34"
+async-stream = "0.3.6"
+tokio-util = { version = "0.7.19", features = ["rt"] }
 open = "5.4.0"
 
 # Web framework
