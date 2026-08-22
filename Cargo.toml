@@ -35,11 +35,11 @@ tokio = { version = "1.52.3", features = [
 ] }
 
 # CLI
-clap = { version = "4.6.1", features = ["cargo", "derive"] }
+clap = { version = "4.6.6", features = ["cargo", "derive"] }
 
 # Error handling
 anyhow = "1.0.104"
-thiserror = "2.0.18"
+thiserror = "2.0.20"
 
 # HTTP client
 # Note: default-features = false disables rustls + aws-lc-rs (needs cmake/C build).
@@ -54,8 +54,8 @@ reqwest = { version = "0.13.4", default-features = false, features = [
 ] }
 
 # Serialization
-serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.150"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
 toml = "1.1.2"
 # TypeScript 绑定生成（仅 ccr-usage 的 ts feature 与 ccr-ui/src-tauri 使用，CLI 默认依赖图不含）
 ts-rs = "11"
@@ -75,17 +75,17 @@ r2d2 = "0.8"
 r2d2_sqlite = "0.34.0"
 
 # Logging
-tracing = "0.1.43"
+tracing = "0.1.44"
 
 # Identity & Crypto
-uuid = { version = "1.23.2", features = ["serde", "v4"] }
+uuid = { version = "1.25.0", features = ["serde", "v4"] }
 aes-gcm = "0.10"
 argon2 = "0.5"
 rand = "0.10.1"
 sha2 = "0.11.0"
 base64 = "0.22.1"
 blake3 = "1.8.5"
-rpassword = "7.5.3"
+rpassword = "7.5.4"
 
 # Extra utilities
 indexmap = { version = "2.14.0", features = ["serde"] }
