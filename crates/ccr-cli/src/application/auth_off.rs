@@ -493,6 +493,8 @@ mod tests {
         dir.as_os_str().to_os_string()
     }
 
+    // 仅被下方 not(macos) 测试引用；macOS 上编译会产生 dead_code 错误
+    #[cfg(not(target_os = "macos"))]
     fn auth_off_dirs(home: &TestHome) -> PathBuf {
         home.root().join("backups").join("auth-off")
     }
