@@ -1332,3 +1332,24 @@ Codex Auth TUI 的 quota 面板把周限文案改为 7d limit，同时保留 5h 
 ### Status
 
 [OK] **Completed**
+
+
+## Session 98: Codex 首页趋势图横轴标签与图标优化
+
+**Date**: 2026-08-22
+**Task**: Codex 首页趋势图横轴标签与图标优化
+**Branch**: `dev`
+
+### Summary
+
+将平台首页趋势图从 category+trim 改为 datetime 轴，复用 formatTrendAxisLabel；优化 Codex 首页 KPI 与页头图标；写入横轴日期标签合同并归档 08-22-codex-home-chart-labels。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `fcf30d0a` | (see git log) |
+
+### Status
+
+[OK] **Completed**
