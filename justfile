@@ -403,10 +403,11 @@ bench:
 # ✨ 代码质量命令
 # ═══════════════════════════════════════════════════════════
 
-# ✨ 格式化 Rust 代码和人工维护的 JSON 配置
+# ✨ 格式化 Rust 代码和人工维护的 JSON 配置（含 Tauri 独立 workspace）
 fmt: json-format
     @just info "✨ 格式化代码和 JSON 配置"
     cargo fmt
+    cargo fmt --manifest-path ccr-ui/src-tauri/Cargo.toml
     @just success "代码格式化完成"
 
 # 🧾 格式化人工维护的 JSON 配置（显式排除 lock/generated/fixture/data）
@@ -444,11 +445,12 @@ _json-format-check-macos:
     @python3 -m unittest scripts.quality.test_check_json_format
     @python3 scripts/quality/check_json_format.py
 
-# 🔍 检查代码格式 (不修改文件)
+# 🔍 检查代码格式 (不修改文件，含 Tauri 独立 workspace)
 fmt-check: json-format-check
     @just info "🔍 检查代码格式"
     @just info "📌 模式: 仅验证，不修改文件"
     cargo fmt -- --check
+    cargo fmt --manifest-path ccr-ui/src-tauri/Cargo.toml -- --check
     @just success "代码格式符合规范"
 
 # 🚨 静态检查 (Clippy) - 警告视为错误
@@ -552,6 +554,7 @@ _ci-timed-windows:
     chcp 65001 | Out-Null
     $steps = @(
         @{ Name = "version-sync";    Label = "Version Sync" },
+        @{ Name = "version-check";   Label = "Version Check" },
         @{ Name = "fmt";             Label = "Format" },
         @{ Name = "fmt-check";       Label = "Format Check" },
         @{ Name = "lint-strict";     Label = "Strict Clippy" },
@@ -617,8 +620,8 @@ _ci-timed-windows:
 _ci-timed-linux:
     #!/usr/bin/env bash
     set -uo pipefail
-    steps=("version-sync" "fmt" "fmt-check" "lint-strict" "check-workspace" "test" "release" "audit" "ci-governance-check" "tauri-bindings-check" "frontend-check" "vscode-ci")
-    labels=("Version Sync" "Format" "Format Check" "Strict Clippy" "Workspace Check" "Test" "Release Build" "Security Audit" "CI Governance" "TS Bindings Drift" "Frontend Check" "VSCode CI")
+    steps=("version-sync" "version-check" "fmt" "fmt-check" "lint-strict" "check-workspace" "test" "release" "audit" "ci-governance-check" "tauri-bindings-check" "frontend-check" "vscode-ci")
+    labels=("Version Sync" "Version Check" "Format" "Format Check" "Strict Clippy" "Workspace Check" "Test" "Release Build" "Security Audit" "CI Governance" "TS Bindings Drift" "Frontend Check" "VSCode CI")
     PAD=20
     times=()
     statuses=()
@@ -678,8 +681,8 @@ _ci-timed-linux:
 _ci-timed-macos:
     #!/usr/bin/env bash
     set -uo pipefail
-    steps=("version-sync" "fmt" "fmt-check" "lint-strict" "check-workspace" "test" "release" "audit" "ci-governance-check" "tauri-bindings-check" "frontend-check" "vscode-ci")
-    labels=("Version Sync" "Format" "Format Check" "Strict Clippy" "Workspace Check" "Test" "Release Build" "Security Audit" "CI Governance" "TS Bindings Drift" "Frontend Check" "VSCode CI")
+    steps=("version-sync" "version-check" "fmt" "fmt-check" "lint-strict" "check-workspace" "test" "release" "audit" "ci-governance-check" "tauri-bindings-check" "frontend-check" "vscode-ci")
+    labels=("Version Sync" "Version Check" "Format" "Format Check" "Strict Clippy" "Workspace Check" "Test" "Release Build" "Security Audit" "CI Governance" "TS Bindings Drift" "Frontend Check" "VSCode CI")
     PAD=20
     times=()
     statuses=()

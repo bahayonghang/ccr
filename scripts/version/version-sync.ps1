@@ -14,13 +14,14 @@ param(
 # 新增目标：在此添加哈希表项，并检查 extract/update 函数是否支持该类型
 # 删除目标：从此表中移除即可
 $SYNC_TARGETS = @(
-    @{ Name = "ccr-types";      Path = "crates\ccr-types\Cargo.toml";             Type = "cargo" }
-    @{ Name = "ccr-db";         Path = "crates\ccr-db\Cargo.toml";                Type = "cargo" }
-    @{ Name = "frontend";       Path = "ccr-ui\package.json";                     Type = "json"  }
-    @{ Name = "tauri-cargo";    Path = "ccr-ui\src-tauri\Cargo.toml";             Type = "cargo" }
-    @{ Name = "tauri-conf";     Path = "ccr-ui\src-tauri\tauri.conf.json";        Type = "json"  }
-    @{ Name = "ui-component";   Path = "ccr-ui\src\components\MainLayout.vue";    Type = "vue"   }
-    @{ Name = "vscode";         Path = "ccr-vscode\package.json";                 Type = "json"  }
+    @{ Name = "ccr-types";      Path = "crates\ccr-types\Cargo.toml";             Type = "cargo"  }
+    @{ Name = "ccr-db";         Path = "crates\ccr-db\Cargo.toml";                Type = "cargo"  }
+    @{ Name = "frontend";       Path = "ccr-ui\package.json";                     Type = "json"   }
+    @{ Name = "tauri-cargo";    Path = "ccr-ui\src-tauri\Cargo.toml";             Type = "cargo"  }
+    @{ Name = "tauri-conf";     Path = "ccr-ui\src-tauri\tauri.conf.json";        Type = "json"   }
+    @{ Name = "ui-component";   Path = "ccr-ui\src\components\MainLayout.vue";    Type = "vue"    }
+    @{ Name = "ui-readme";      Path = "ccr-ui\README.md";                        Type = "readme" }
+    @{ Name = "vscode";         Path = "ccr-vscode\package.json";                 Type = "json"   }
 )
 # ═══════════════════════════════════════════════════════════
 
@@ -45,6 +46,7 @@ $FRONTEND_PKG = Join-Path $ROOT_DIR "ccr-ui\package.json"
 $TAURI_CARGO = Join-Path $ROOT_DIR "ccr-ui\src-tauri\Cargo.toml"
 $TAURI_CONF = Join-Path $ROOT_DIR "ccr-ui\src-tauri\tauri.conf.json"
 $COMPONENT_MAIN_LAYOUT = Join-Path $ROOT_DIR "ccr-ui\src\components\MainLayout.vue"
+$UI_README = Join-Path $ROOT_DIR "ccr-ui\README.md"
 $VSCODE_PKG = Join-Path $ROOT_DIR "ccr-vscode\package.json"
 
 # 检查文件是否存在
@@ -63,6 +65,7 @@ Test-RequiredFile $FRONTEND_PKG
 Test-RequiredFile $TAURI_CARGO
 Test-RequiredFile $TAURI_CONF
 Test-RequiredFile $COMPONENT_MAIN_LAYOUT
+Test-RequiredFile $UI_README
 Test-RequiredFile $VSCODE_PKG
 
 # 从 Cargo.toml 提取 [package] 区块中的 version
@@ -196,7 +199,34 @@ function Set-UiVersion {
         exit 1
     }
     $updated = $content -replace 'CCR UI v[0-9A-Za-z._-]+', "CCR UI v$NewVersion"
-    Set-Content -Path $Path -Value $updated -NoNewline
+    Set-Content -Path $Path -Value $updated -NoNewline -Encoding UTF8
+}
+
+# 提取/更新 ccr-ui/README.md 徽章版本（check_doc_drift.py 依赖 version-X.Y.Z 事实）
+function Get-ReadmeVersion {
+    param([string]$Path)
+
+    $content = Get-Content $Path -Raw
+    if ($content -match 'badge/version-([0-9]+(?:\.[0-9]+)+)') {
+        return $matches[1].Trim()
+    }
+    Write-Error "❌ 无法从 $Path 提取 version 徽章版本号"
+    exit 1
+}
+
+function Set-ReadmeVersion {
+    param(
+        [string]$Path,
+        [string]$NewVersion
+    )
+
+    $content = Get-Content $Path -Raw
+    if ($content -notmatch 'badge/version-[0-9]') {
+        Write-Error "❌ 在 $Path 中找不到 version 徽章标记"
+        exit 1
+    }
+    $updated = $content -replace 'badge/version-[0-9][0-9A-Za-z._]*', "badge/version-$NewVersion"
+    Set-Content -Path $Path -Value $updated -NoNewline -Encoding UTF8
 }
 
 # 提取版本号
@@ -207,6 +237,7 @@ $FRONTEND_VER = Get-JsonVersion $FRONTEND_PKG
 $TAURI_CARGO_VER = Get-CargoVersion $TAURI_CARGO $ROOT_VER
 $TAURI_CONF_VER = Get-JsonVersion $TAURI_CONF
 $UI_COMPONENT_VER = Get-UiVersion $COMPONENT_MAIN_LAYOUT
+$UI_README_VER = Get-ReadmeVersion $UI_README
 $VSCODE_VER = Get-JsonVersion $VSCODE_PKG
 
 if ($Verbose) {
@@ -217,6 +248,7 @@ if ($Verbose) {
     Write-Host "🖥️  Tauri Cargo 版本: $TAURI_CARGO_VER"
     Write-Host "🖥️  Tauri Conf 版本: $TAURI_CONF_VER"
     Write-Host "🖼️  MainLayout.vue (components) 版本: $UI_COMPONENT_VER"
+    Write-Host "📘 ccr-ui/README.md 徽章版本: $UI_README_VER"
     Write-Host "🔌 VSCode 扩展版本: $VSCODE_VER"
 }
 
@@ -228,6 +260,7 @@ if ($Check) {
         $ROOT_VER -eq $TAURI_CARGO_VER -and
         $ROOT_VER -eq $TAURI_CONF_VER -and
         $ROOT_VER -eq $UI_COMPONENT_VER -and
+        $ROOT_VER -eq $UI_README_VER -and
         $ROOT_VER -eq $VSCODE_VER) {
         Write-Host "✅ 版本一致性检查通过"
         exit 0
@@ -240,6 +273,7 @@ if ($Check) {
         Write-Host "  ccr-ui/src-tauri/Cargo.toml:   $TAURI_CARGO_VER"
         Write-Host "  ccr-ui/src-tauri/tauri.conf.json: $TAURI_CONF_VER"
         Write-Host "  ccr-ui/src/components/MainLayout.vue: $UI_COMPONENT_VER"
+        Write-Host "  ccr-ui/README.md:              $UI_README_VER"
         Write-Host "  ccr-vscode/package.json:       $VSCODE_VER"
         exit 1
     }
@@ -251,6 +285,7 @@ if ($ROOT_VER -eq $CCR_TYPES_VER -and
     $ROOT_VER -eq $TAURI_CARGO_VER -and
     $ROOT_VER -eq $TAURI_CONF_VER -and
     $ROOT_VER -eq $UI_COMPONENT_VER -and
+    $ROOT_VER -eq $UI_README_VER -and
     $ROOT_VER -eq $VSCODE_VER) {
     Write-Host "✅ 版本一致，无需同步"
     exit 0
@@ -291,6 +326,12 @@ if ($TAURI_CONF_VER -ne $ROOT_VER) {
 if ($UI_COMPONENT_VER -ne $ROOT_VER) {
     Write-Host "  - MainLayout (components): $UI_COMPONENT_VER -> $ROOT_VER"
     Set-UiVersion $COMPONENT_MAIN_LAYOUT $ROOT_VER
+}
+
+# 更新 ccr-ui/README.md 徽章
+if ($UI_README_VER -ne $ROOT_VER) {
+    Write-Host "  - ccr-ui/README.md 徽章: $UI_README_VER -> $ROOT_VER"
+    Set-ReadmeVersion $UI_README $ROOT_VER
 }
 
 # 更新 VSCode 扩展
