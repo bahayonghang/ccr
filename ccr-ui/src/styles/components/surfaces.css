@@ -1,0 +1,60 @@
+/* ============================================
+   Surface 组件类（原 tailwind.config.ts 内两处
+   plugin(({ addComponents })) 块的迁移产物）
+   ============================================
+   形态选择：普通 CSS 类（归入 components 层），不用 @utility。
+   理由：addComponents 产出的是组件类——固定多属性整体、不与变体
+   （hover:* 等）组合；且须保持「工具类可覆盖组件类」的层序语义。
+   glass-* / liquid-glass 为旧玻璃语言别名，@deprecated 勿在新代码使用；
+   存量随设计语言推广（WS6）逐批替换为对应 .surface-*。 */
+
+.surface-shell,
+.liquid-glass {
+  background: var(--surface-shell-bg);
+  /* stylelint-disable-next-line property-no-vendor-prefix */
+  -webkit-backdrop-filter: var(--surface-shell-blur);
+  backdrop-filter: var(--surface-shell-blur);
+  border: 1px solid var(--surface-shell-border);
+  box-shadow: var(--surface-shell-shadow), var(--liquid-glass-highlight);
+}
+
+.surface-workspace,
+.glass-effect,
+.glass-surface {
+  background: var(--surface-workspace-bg);
+  /* stylelint-disable-next-line property-no-vendor-prefix */
+  -webkit-backdrop-filter: var(--surface-workspace-blur);
+  backdrop-filter: var(--surface-workspace-blur);
+  border: 1px solid var(--surface-workspace-border);
+  box-shadow: var(--surface-workspace-shadow);
+}
+
+.surface-card,
+.glass-effect-strong,
+.glass-elevated {
+  background: var(--surface-card-bg);
+  /* stylelint-disable-next-line property-no-vendor-prefix */
+  -webkit-backdrop-filter: var(--surface-card-blur);
+  backdrop-filter: var(--surface-card-blur);
+  border: 1px solid var(--surface-card-border);
+  box-shadow: var(--surface-card-shadow);
+}
+
+.surface-modal,
+.glass-modal {
+  background: var(--surface-modal-bg);
+  /* stylelint-disable-next-line property-no-vendor-prefix */
+  -webkit-backdrop-filter: var(--surface-modal-blur);
+  backdrop-filter: var(--surface-modal-blur);
+  border: 1px solid var(--surface-modal-border);
+  box-shadow: var(--surface-modal-shadow);
+}
+
+.surface-status {
+  background: var(--surface-status-bg);
+  /* stylelint-disable-next-line property-no-vendor-prefix */
+  -webkit-backdrop-filter: var(--surface-status-blur);
+  backdrop-filter: var(--surface-status-blur);
+  border: 1px solid var(--surface-status-border);
+  box-shadow: var(--surface-status-shadow);
+}

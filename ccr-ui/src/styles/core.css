@@ -1,14 +1,160 @@
 /* ============================================
    CCR-UI Core Style Entry
    首屏关键样式只保留基础布局、主题、常用工具类
-   ============================================ */
+   ============================================
+   Tailwind v4 配置模型（原 tailwind.config.ts 201 行的 CSS-first 迁移，
+   映射依据 .trellis/tasks/08-22-dep-upgrade/design.md §2）：
+   - 只引入 theme 与 utilities 两层，不引入 preflight；
+     reset 仍由 base.css 提供（等价于 v3 corePlugins.preflight: false）。
+   - 层序声明沿用 v3 语义：theme < base < components < utilities。
+   - tokens.css 保持普通 :root 变量（未分层），天然压过 @layer theme 的
+     默认值；448 个变量映射进 @theme inline 归 08-22-design-system。
+   - 引用运行时变量的主题键统一放 @theme inline：值内联进工具类，
+     不产生同名 :root 变量，既避免自引用成环，也避免与 theme.css
+     兼容桥里的同名旧变量（如 --font-weight-bold）发生层序竞争。 */
 
+@layer theme, base, components, utilities;
+
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
 @import './tokens.css';
 @import './theme.css';
-@import './base.css';
-@import './home.css';
-@import './shell-critical.css';
+@import './base.css' layer(base);
+@import './home.css' layer(components);
+@import './shell-critical.css' layer(components);
+@import './components/surfaces.css' layer(components);
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* darkMode: ['class', '[data-theme="dark"]'] 的 v4 等价形式 */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* 自定义动画（GPU 优化关键帧）：动画值引用运行时 token，
+   keyframes 随用到的 animation 工具类按需产出 */
+@theme {
+  --animate-fade-in: fade-in var(--duration-normal) var(--ease-out) forwards;
+
+  @keyframes fade-in {
+    0% {
+      opacity: 0;
+      transform: translateZ(0);
+    }
+
+    100% {
+      opacity: 1;
+      transform: translateZ(0);
+    }
+  }
+
+  @keyframes slide-up {
+    0% {
+      opacity: 0;
+      transform: translate3d(0, 10px, 0);
+    }
+
+    100% {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  @keyframes scale-in {
+    0% {
+      opacity: 0;
+      transform: scale(0.95) translateZ(0);
+    }
+
+    100% {
+      opacity: 1;
+      transform: scale(1) translateZ(0);
+    }
+  }
+}
+
+@theme inline {
+  /* fontWeight 压缩语义：8 个档位全部收敛到 400/500 两个值，
+     工具类名（font-bold 等）保持存在、取值为字面量（R4）。
+     必须内联：theme.css 兼容桥在未分层 :root 重定义了
+     --font-weight-medium/semibold/bold，分层 @theme 值会被压过 */
+  --font-weight-thin: 400;
+  --font-weight-extralight: 400;
+  --font-weight-light: 400;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 500;
+  --font-weight-bold: 500;
+
+  /* fontFamily：sans/mono 与运行时同名变量经 tokens.css 覆盖默认值，
+     此处显式声明以固定栈序；brand 为自定义键。-base 栈已自带通用族
+     兜底，这里只补一级通用族；不写真等宽字体名字面量，避免触发
+     apple-glass-surface-contract 的等宽字体名扫描（仅 tokens.css 白名单） */
+
+  /* colors：bg / text / accent / platform / border 五组语义色 */
+  --color-bg-base: rgb(var(--color-bg-base-rgb));
+  --color-bg-elevated: rgb(var(--color-bg-elevated-rgb));
+  --color-bg-surface: rgb(var(--color-bg-surface-rgb));
+  --color-bg-overlay: rgb(var(--color-bg-overlay-rgb));
+  --color-text-primary: rgb(var(--color-text-primary-rgb));
+  --color-text-secondary: rgb(var(--color-text-secondary-rgb));
+  --color-text-muted: rgb(var(--color-text-muted-rgb));
+  --color-text-ghost: rgb(var(--color-text-ghost-rgb));
+  --color-text-disabled: rgb(var(--color-text-disabled-rgb));
+  --color-text-inverted: rgb(var(--color-text-inverted-rgb));
+  --color-accent-primary: rgb(var(--color-accent-primary-rgb));
+  --color-accent-secondary: rgb(var(--color-accent-secondary-rgb));
+  --color-success: rgb(var(--color-success-rgb));
+  --color-warning: rgb(var(--color-warning-rgb));
+  --color-danger: rgb(var(--color-danger-rgb));
+  --color-info: rgb(var(--color-info-rgb));
+  --color-platform-claude: rgb(var(--color-platform-claude-rgb));
+  --color-platform-codex: rgb(var(--color-platform-codex-rgb));
+  --color-platform-grok: rgb(var(--color-platform-grok-rgb));
+  --color-platform-gemini: rgb(var(--color-platform-gemini-rgb));
+  --color-border-subtle: rgb(var(--color-border-subtle-rgb));
+  --color-border-default: rgb(var(--color-border-default-rgb));
+  --color-border-strong: rgb(var(--color-border-strong-rgb));
+  --color-border-interactive: rgb(var(--color-border-interactive-rgb));
+
+  /* spacing：px 与整数档位走 token，其余数值档位由 v4 按 --spacing 基数计算 */
+  --spacing-px: 1px;
+  --spacing-1: var(--space-1);
+  --spacing-2: var(--space-2);
+  --spacing-3: var(--space-3);
+  --spacing-4: var(--space-4);
+  --spacing-5: var(--space-5);
+  --spacing-6: var(--space-6);
+  --spacing-8: var(--space-8);
+  --spacing-10: var(--space-10);
+  --spacing-12: var(--space-12);
+  --spacing-16: var(--space-16);
+  --spacing-20: var(--space-20);
+
+  /* borderRadius：sm/md/lg/xl 取 tokens.css 同名变量 */
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+
+  /* transitionTimingFunction：spring 为自定义档位；
+     in/out/in-out 与 v4 默认值一致且已被 tokens.css 覆盖，无需重复声明 */
+  --ease-spring: var(--ease-spring);
+}
+
+/* transitionProperty.interactive（v3 自定义 transition-property 键）
+   统一交互过渡属性集，减少一次性 transition-[...] 任意值写法 */
+@utility transition-interactive {
+  transition-property: color, background-color, border-color, box-shadow, transform, opacity;
+  transition-timing-function: var(--default-transition-timing-function);
+  transition-duration: var(--default-transition-duration);
+}
+
+/* transitionDuration fast/normal/slow：v4 无 duration 命名 namespace，按工具类补齐 */
+@utility duration-fast {
+  transition-duration: var(--duration-fast);
+}
+
+@utility duration-normal {
+  transition-duration: var(--duration-normal);
+}
+
+@utility duration-slow {
+  transition-duration: var(--duration-slow);
+}

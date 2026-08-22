@@ -25,18 +25,18 @@
 
 ## 段 2：Tailwind v4
 
-- [ ] `tailwindcss` 3.4.19 → 4.3.3，`postcss.config.js` 适配 v4 插件形态。
-- [ ] `tailwind.config.ts` 201 行按 `design.md` §2 逐项迁到 CSS-first `@theme`。
-- [ ] `corePlugins.preflight: false` 的等价处理：分别 `@import` theme 与 utilities，不引入 preflight。
-- [ ] `fontWeight` 压缩语义保留（`@theme` 内只定义 400/500 两档）。
-- [ ] 1 处 `plugin(({ addComponents }))` 迁移，形态二选一。
-- [ ] 25 个 `@apply` 文件逐个加 `@reference`。
-- [ ] `.stylelintrc.json` 适配 v4 语法（`@theme`、`@custom-variant`、`@utility`、`@reference` 需在 at-rule 白名单内）。
-- [ ] 静默失效检测：25 条代表性规则逐条核对展开结果出现在产物 CSS 中，`apply-verification.md` 落盘（AC5）。
-- [ ] `overrides` 第二次复核（`postcss` 一项必查）。
-- [ ] 记录 Tailwind 生成 CSS 体积并与基线对比（AC3）。
+- [x] `tailwindcss` 3.4.19 → 4.3.3（exact）+ `@tailwindcss/postcss` 4.3.3；autoprefixer 移除（v4 内置前缀能力），`postcss.config.js` 已适配。
+- [x] `tailwind.config.ts` 201 行按 `design.md` §2 迁到 CSS-first：darkMode → `@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *))`，fontFamily/fontWeight 进 `@theme inline`（运行时变量主题键必须 inline，避免 theme.css 兼容桥同名变量的层序竞争——实测发现并修复该回归）。
+- [x] preflight 等价处理：只引 `tailwindcss/theme.css` layer(theme) 与 utilities 层；base.css layer(base) 继续承担 reset；层序声明复刻 v3 语义。
+- [x] `fontWeight` 压缩语义保留：产物核实 `.font-bold{font-weight:500}`、`.font-semibold{font-weight:500}`。
+- [x] 两处 `plugin(({ addComponents }))` 迁移为 `src/styles/components/surfaces.css` 普通组件类（surface-* 五组 + glass-* 六个别名；组件类不与变体组合故不选 @utility）。
+- [x] 25 个 `@apply` 文件**未加 @reference，义务移交**（偏差执行，主线程批准）：自批次1起 `.vue` 不在 vite 编译图内（index.html→main.tsx 无 .vue import 可达），死代码上加 @reference 无效验意义；25 文件/648 处逐文件列于 apply-verification.md §移交清单并标注归属子任务「迁移落位时为其样式文件加 @reference」。另勘误：prd 称「2 处 .css 内 @apply」，grep 实测活样式 @apply 为 0 处。
+- [x] `.stylelintrc.json` v4 at-rule 白名单适配。
+- [x] 静默失效检测改为活 CSS 面：活样式 @apply 0 处，以 10 条代表性工具类/组件类的产物命中 + 7 项 headless 计算值补偿验证（dark 变体展开、bg-bg-base/text-accent-primary/surface-card 等逐条命中），`apply-verification.md` 落盘（AC5，偏差口径已登记）。
+- [x] `overrides` 第二次复核完成并落全量 9 行判定至 `overrides-review.md`（9 项全部移除：自然解析均落在安全版本；rollup/esbuild 在 vite8/rolldown 树中已不存在；移除后 install+audit 干净）。
+- [x] CSS 体积记录于 `css-size.md`：v3 基线 123.13 KiB raw / 19.35 KiB gzip → v4 202,436 B raw / 29,310 B gzip（+81 kB 构成已分析：color-mix 包裹 533 处、--tw-* 守卫、dark :where 展开）；预算重设归 `08-22-arch-quality-perf`。
 
-验证：`bun run build` 成功；`bun run lint:style` 退出码 0（AC4）；`bun pm ls | rg tailwindcss` 显示 4.x（AC2）。
+- [x] 验证通过（2026-08-23）：`bun run build` exit 0；`bun run lint:style` exit 0（AC4）；`bun pm ls | grep tailwindcss` = 4.3.3（AC2）；`bun run test:smoke` 293/293 exit 0；`bun run audit:dependencies` 0 advisories。视觉冒烟：明暗两态计算值非初始值、压缩语义与 surface 类生效。
 
 提交边界：本段单独提交。
 

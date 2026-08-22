@@ -9,10 +9,15 @@
         "ignoreAtRules": [
           "tailwind",
           "apply",
-          "variants",
-          "responsive",
-          "screen",
-          "layer"
+          "layer",
+          "theme",
+          "custom-variant",
+          "utility",
+          "reference",
+          "variant",
+          "config",
+          "plugin",
+          "source"
         ]
       }
     ],
