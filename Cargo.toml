@@ -80,7 +80,7 @@ tracing = "0.1.44"
 # Identity & Crypto
 uuid = { version = "1.25.0", features = ["serde", "v4"] }
 aes-gcm = "0.10"
-argon2 = "0.5"
+argon2 = "0.5.3"
 rand = "0.10.2"
 sha2 = "0.11.0"
 base64 = "0.23.1"
