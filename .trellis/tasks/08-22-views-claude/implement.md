@@ -11,8 +11,8 @@ Profiles 共享层（`08-22-views-profiles-config` 批次 1）：`ccr-ui/src/com
 ## 前置确认
 
 - [ ] 父任务统一层门已通过：`08-22-platform-unify` 的 config 契约定稳，本任务范围表已回填（其批次 8）。
-- [ ] 前置阅读完成（`design.md` §1 末段的五份文档）。
-- [ ] 前置阅读：`.trellis/spec/ccr-ui/frontend/react-rerender-discipline.md`（R8，动手前必读）。
+- [x] 前置阅读完成（`design.md` §1 末段的五份文档）。
+- [x] 前置阅读：`.trellis/spec/ccr-ui/frontend/react-rerender-discipline.md`（R8，动手前必读）。
 - [ ] `08-22-state-logic-port` 已通知 `claudeObserver` 的 Query key 与事件失效范围（其批次 7）。
 - [ ] `08-22-test-contract-rebuild` 已提供本域契约重写稿（`development-resource-contracts.md`）。
 - [ ] Auth 面判定结果已知，`ClaudeAuthView` 的归属确定。
@@ -22,12 +22,12 @@ Profiles 共享层（`08-22-views-profiles-config` 批次 1）：`ccr-ui/src/com
 
 ### 批次 1：统一层接入（config + 薄壳）
 
-- [ ] 填 `configs/settings.ts` 的 `claudeSettingsConfig`。
-- [ ] 填 `configs/profiles.ts` 的 `claudeProfilesConfig`。
-- [ ] `PluginsView` 收敛到 `generic/PlatformPluginsView` 的调用点。
-- [ ] 按 Auth 判定填 `configs/auth.ts` 或完整迁移 `ClaudeAuthView`。
-- [ ] 四个薄壳视图，各 ≤100 行。
-- [ ] `SlashCommandsView`（18 行）框架转换。
+- [x] 填 `configs/settings.ts` 的 `claudeSettingsConfig`。
+- [x] 填 `configs/profiles.ts` 的 `claudeProfilesConfig`。
+- [x] `PluginsView` 收敛到 `generic/PlatformPluginsView` 的调用点。
+- [x] 按 Auth 判定填 `configs/auth.ts` 或完整迁移 `ClaudeAuthView`。
+- [x] 四个薄壳视图，各 ≤100 行。
+- [x] `SlashCommandsView`（18 行）框架转换。
 
 验证：四个面的路由可达；差异矩阵中归属 `config.claude` 的项逐项在界面上确认（供 `platform-unify` AC6 的验证矩阵填格）。
 
@@ -35,33 +35,33 @@ Profiles 共享层（`08-22-views-profiles-config` 批次 1）：`ccr-ui/src/com
 
 本域主要风险，先做，留出验证时间。
 
-- [ ] 7 个文件迁移，数据读取走 `claudeObserverKeys` 的 Query hook。
-- [ ] 事件名不变（R5）。组件级订阅（若需要）在 `useEffect` 内，StrictMode 下不双订阅。
-- [ ] `TokenDetailTab` 的主题 token 耦合按 `token-classification.md` 核对。
-- [ ] 卸载后订阅解绑验证（AC6）。
+- [x] 7 个文件迁移，数据读取走 `claudeObserverKeys` 的 Query hook。
+- [x] 事件名不变（R5）。组件级订阅（若需要）在 `useEffect` 内，StrictMode 下不双订阅。
+- [x] `TokenDetailTab` 的主题 token 耦合按 `token-classification.md` 核对。
+- [x] 卸载后订阅解绑验证（AC6）。
 
 验证：观测数据刷新正常；`claude-observer-tabs` smoke 测试通过（AC9）。
 
 ### 批次 3：表单类视图
 
-- [ ] `HooksView`(920)：15 处 `v-model` → react-hook-form 非受控注册，动态数组用 `useFieldArray`，校验用 zod。
-- [ ] `StatuslineView`(230)：同上。
+- [x] `HooksView`(920)：15 处 `v-model` → react-hook-form 非受控注册，动态数组用 `useFieldArray`，校验用 zod。
+- [x] `StatuslineView`(230)：同上。
 
 验证：字段读写正确；输入延迟符合 `08-22-arch-quality-perf` 场景 1 的预期（本批次不测量，由 `regression-release` 统一测）。
 
 ### 批次 4：其余视图与域组件
 
-- [ ] `ClaudeCodeView`(745)、`OutputStylesView`(558)、`SkillsMigrationView`(392)。
-- [ ] `components/claude/`（3 文件 1,869 行）。
-- [ ] `OutputStylesView` 的样式 token 命名空间与 CCR 主题不交叉。
-- [ ] 依赖方向自检：本域文件不导入其他 `features/<平台>/`。
+- [x] `ClaudeCodeView`(745)、`OutputStylesView`(558)、`SkillsMigrationView`(392)。
+- [x] `components/claude/`（3 文件 1,869 行）。
+- [x] `OutputStylesView` 的样式 token 命名空间与 CCR 主题不交叉。
+- [x] 依赖方向自检：本域文件不导入其他 `features/<平台>/`。
 
 ### 批次 5：收口与登记
 
-- [ ] 本批次组件内 px 与 `rgba()` 归零，豁免逐条登记（AC4）。
-- [ ] `nextTick` 登记表落盘，本批次调用点全部有改写说明（AC7）。
-- [ ] `rg --files -g '*.vue'`（PRD AC1 的路径集合）无匹配。
-- [ ] `git diff --stat src/api src/types`（应为空，AC5）。
+- [x] 本批次组件内 px 与 `rgba()` 归零，豁免逐条登记（AC4）。
+- [x] `nextTick` 登记表落盘，本批次调用点全部有改写说明（AC7）。
+- [x] `rg --files -g '*.vue'`（PRD AC1 的路径集合）无匹配。
+- [x] `git diff --stat src/api src/types`（应为空，AC5）。
 
 ## 验证命令
 

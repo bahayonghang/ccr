@@ -1,7 +1,12 @@
 import type { IconName } from '@/config/icons'
-import type { MonitoringEntry } from '@/composables/useMonitoringFeed'
 import type { CliVersionEntry, SystemInfo } from '@/types'
 import type { HomeOverviewPlatformStats, HomeUsageOverviewResponse } from '@/types/usage'
+
+/** 看板信号条目：只消费 channel / level，避免展示层依赖 monitoring composable。 */
+export interface DashboardLogEntry {
+  channel: string
+  level: string
+}
 
 export type DashboardTone = 'neutral' | 'success' | 'warning' | 'danger' | 'accent'
 export type DashboardActionTone =
@@ -103,7 +108,7 @@ export interface DashboardPresentationInput {
   overview: HomeUsageOverviewResponse | null
   usageLoading: boolean
   usageError: string | null
-  logs: MonitoringEntry[]
+  logs: DashboardLogEntry[]
 }
 
 export interface DashboardPresentation {
@@ -271,9 +276,9 @@ const buildPlatformRows = (input: DashboardPresentationInput): DashboardPlatform
 // 前端 UI 日志与 tracing 桥接的 runtime 诊断只归入事件流展示，
 // 不参与阻塞叙事 / 红色 tile / 行动队列的驱动。
 const DIAGNOSTIC_CHANNELS = new Set(['frontend', 'runtime'])
-const isCoreSignal = (entry: MonitoringEntry) => !DIAGNOSTIC_CHANNELS.has(entry.channel)
+const isCoreSignal = (entry: DashboardLogEntry) => !DIAGNOSTIC_CHANNELS.has(entry.channel)
 
-const countSignals = (logs: MonitoringEntry[]): DashboardSignalCounts => {
+const countSignals = (logs: DashboardLogEntry[]): DashboardSignalCounts => {
   const coreLogs = logs.filter(isCoreSignal)
   const errors = coreLogs.filter((entry) => entry.level === 'error').length
   const warnings = coreLogs.filter((entry) => entry.level === 'warn').length

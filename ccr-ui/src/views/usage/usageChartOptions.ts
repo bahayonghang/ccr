@@ -1,5 +1,4 @@
-import { ref } from 'vue'
-import { readPrefersReducedMotion } from '@/utils/reducedMotion'
+import { REDUCED_MOTION_ATTRIBUTE, readPrefersReducedMotion } from '@/utils/reducedMotion'
 import type { UsageTrendBucket, TrendGranularity } from './usageDashboardPresentation'
 
 type DisplayUsageTrendBucket = UsageTrendBucket & { displayEndDate: string }
@@ -248,16 +247,19 @@ export const buildTrendTooltipHtml = ({
 // 这些片段既不含主题色也不含数据，跨渲染共享同一引用。ApexCharts 内部会深拷贝 options，
 // 因此冻结既能表达“静态骨架”的意图，又能拦截意外的原地修改。
 
-// 动画默认开启，仅在用户系统偏好 reduced-motion 时降级关闭（动效原则：核心动画需兼容降级）。
-// 模块级 ref + matchMedia change 监听：options 工厂在 computed 内读取该 ref，
-// 偏好切换时依赖追踪自动触发 options 重建，无需组件侧额外接线。
-// 读取点收敛（08-22-design-system 批次 7）：初始值经 reducedMotion.ts 单点读取，
-// 变化跟随由根 data-reduced-motion 属性承载（本模块属 08-22-views-usage 迁移范围，
-// 迁移时改订阅该模块的 applyReducedMotionToDocument 返回句柄）。
-const prefersReducedMotion = ref(readPrefersReducedMotion())
+// 动画默认开启，仅在用户系统偏好 reduced-motion 时降级关闭。
+// 读取点收敛到根 data-reduced-motion；无属性时回退 matchMedia 单点读取。
+const readReducedMotionFlag = () => {
+  if (typeof document !== 'undefined') {
+    const attr = document.documentElement.getAttribute(REDUCED_MOTION_ATTRIBUTE)
+    if (attr === 'true') return true
+    if (attr === 'false') return false
+  }
+  return readPrefersReducedMotion()
+}
 
 // 导出供 tab 组件局部 options 复用,统一 reduced-motion 降级口径
-export const buildChartAnimations = () => ({ enabled: !prefersReducedMotion.value })
+export const buildChartAnimations = () => ({ enabled: !readReducedMotionFlag() })
 
 const TREND_CHART_BASE = Object.freeze({
   background: 'transparent',

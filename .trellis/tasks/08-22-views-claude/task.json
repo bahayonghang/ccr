@@ -3,7 +3,7 @@
   "name": "views-claude",
   "title": "Claude Code 视图迁移",
   "description": "Claude Code 相关视图与组件约 11000 行迁移，含 claude-observer",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": null,
   "scope": null,
   "package": null,
