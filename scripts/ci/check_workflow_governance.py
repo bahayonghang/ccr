@@ -238,8 +238,11 @@ def main() -> int:
             failures.append(f"missing local recipe: {recipe[:-1]}")
     if "--overall 70 --gateway 85" not in justfile:
         failures.append("70% overall / 85% security-gateway coverage policy is missing")
-    if "--coverage.thresholds.lines=70" not in justfile:
-        failures.append("Vue 70% line-coverage policy is missing")
+    smoke_config = (REPO_ROOT / "ccr-ui" / "vitest.smoke.config.ts").read_text(
+        encoding="utf-8"
+    )
+    if "thresholds" not in smoke_config or "lines: 70" not in smoke_config:
+        failures.append("React 70% line-coverage policy is missing")
     if "--test-coverage-lines=70" not in (REPO_ROOT / "ccr-vscode" / "justfile").read_text(
         encoding="utf-8"
     ):

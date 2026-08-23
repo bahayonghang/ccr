@@ -165,6 +165,14 @@ class WorkflowGovernanceParserTests(unittest.TestCase):
                 {"main", "develop", "dev"},
             )
 
+    def test_react_smoke_coverage_threshold_is_seventy_percent(self) -> None:
+        smoke_config = (self.ROOT / "ccr-ui" / "vitest.smoke.config.ts").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("thresholds", smoke_config)
+        self.assertIn("lines: 70", smoke_config)
+
     def test_tauri_linux_gate_installs_pinned_bun_for_bindings(self) -> None:
         workflow = (
             self.ROOT / ".github" / "workflows" / "tauri-rust-ci.yml"
