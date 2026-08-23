@@ -37,6 +37,9 @@ export const usageKeys = {
     [...usageKeys.all, 'by-provider', platform ?? null, startDate ?? null, endDate ?? null] as const,
   heatmap: (platform?: string, days?: number) =>
     [...usageKeys.all, 'heatmap', platform ?? null, days ?? null] as const,
+  /** 平台用量洞察卡（usePlatformUsageInsight）：显式日期窗口 + 分页参数固定为 0/false。 */
+  insightDashboard: (platform?: string, startDate?: string, endDate?: string) =>
+    [...usageKeys.all, 'insight-dashboard', platform ?? null, startDate ?? null, endDate ?? null] as const,
   logs: (query: UsageLogsQueryKey) =>
     [...usageKeys.all, 'logs', query.platform ?? null, query.page ?? 1, query.model ?? null, query.cursor ?? null] as const,
   importJob: (jobId: string) => [...usageKeys.all, 'import-job', jobId] as const,

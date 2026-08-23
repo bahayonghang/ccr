@@ -14,25 +14,25 @@
 | `ccr-ui/src/composables/useClaudeProfilesInsights.ts:46` | `if (requiresBaseUrl(profile) && isBlank(profile.base_url)) missing.push('base_url')` | 本地临时（`missing` 函数内累积后返回），无需改写 | — |
 | `ccr-ui/src/composables/useClaudeProfilesInsights.ts:47` | `if (!hasAnyModel(profile)) missing.push('model')` | 本地临时（`missing` 函数内累积后返回），无需改写 | — |
 | `ccr-ui/src/composables/useClaudeProfilesInsights.ts:48` | `if (isBlank(profile.account)) missing.push('account')` | 本地临时（`missing` 函数内累积后返回），无需改写 | — |
-| `ccr-ui/src/composables/useCodexDashboard.ts:244` | `tasks.push(` | 待批次 5 判定 | — |
-| `ccr-ui/src/composables/useCodexDashboard.ts:260` | `tasks.push(` | 待批次 5 判定 | — |
-| `ccr-ui/src/composables/useCodexDashboard.ts:276` | `tasks.push(` | 待批次 5 判定 | — |
-| `ccr-ui/src/composables/useCodexDashboard.ts:427` | `actions.push({` | 待批次 5 判定 | — |
-| `ccr-ui/src/composables/useCodexDashboard.ts:437` | `actions.push({` | 待批次 5 判定 | — |
-| `ccr-ui/src/composables/useCodexDashboard.ts:445` | `actions.push({` | 待批次 5 判定 | — |
-| `ccr-ui/src/composables/useCodexDashboard.ts:455` | `actions.push({` | 待批次 5 判定 | — |
-| `ccr-ui/src/composables/useCodexDashboard.ts:465` | `actions.push({` | 待批次 5 判定 | — |
-| `ccr-ui/src/composables/useCodexDashboard.ts:475` | `actions.push({` | 待批次 5 判定 | — |
-| `ccr-ui/src/composables/useCodexDashboard.ts:485` | `actions.push({` | 待批次 5 判定 | — |
+| `ccr-ui/src/composables/useCodexDashboard.ts:244` | `tasks.push(` | 本地临时（`tasks` 函数内累积后 `Promise.allSettled`），无需改写；批次 5 迁移后为 refresh 回调内本地数组 | — |
+| `ccr-ui/src/composables/useCodexDashboard.ts:260` | `tasks.push(` | 本地临时（同上），无需改写 | — |
+| `ccr-ui/src/composables/useCodexDashboard.ts:276` | `tasks.push(` | 本地临时（同上），无需改写 | — |
+| `ccr-ui/src/composables/useCodexDashboard.ts:427` | `actions.push({` | 本地临时（`actions` computed 内累积后返回），无需改写；批次 5 迁移后为 useMemo 内本地数组 | — |
+| `ccr-ui/src/composables/useCodexDashboard.ts:437` | `actions.push({` | 本地临时（同上），无需改写 | — |
+| `ccr-ui/src/composables/useCodexDashboard.ts:445` | `actions.push({` | 本地临时（同上），无需改写 | — |
+| `ccr-ui/src/composables/useCodexDashboard.ts:455` | `actions.push({` | 本地临时（同上），无需改写 | — |
+| `ccr-ui/src/composables/useCodexDashboard.ts:465` | `actions.push({` | 本地临时（同上），无需改写 | — |
+| `ccr-ui/src/composables/useCodexDashboard.ts:475` | `actions.push({` | 本地临时（同上），无需改写 | — |
+| `ccr-ui/src/composables/useCodexDashboard.ts:485` | `actions.push({` | 本地临时（同上），无需改写 | — |
 | `ccr-ui/src/composables/useCodexOAuthFlow.ts:248` | `oauthUnlisteners.push(completed, timeout)` | 待批次 5 判定 | — |
 | `ccr-ui/src/composables/useCodexProfilesInsights.ts:50` | `if (requiresBaseUrl(profile) && isBlank(profile.base_url)) missing.push('base_url')` | 本地临时（`missing` 函数内累积后返回），无需改写 | — |
 | `ccr-ui/src/composables/useCodexProfilesInsights.ts:51` | `if (isBlank(profile.model)) missing.push('model')` | 本地临时（`missing` 函数内累积后返回），无需改写 | — |
-| `ccr-ui/src/composables/useGrokDashboard.ts:453` | `actions.push({` | 待批次 5 判定 | — |
-| `ccr-ui/src/composables/useGrokDashboard.ts:465` | `actions.push({` | 待批次 5 判定 | — |
-| `ccr-ui/src/composables/useGrokDashboard.ts:474` | `actions.push({` | 待批次 5 判定 | — |
-| `ccr-ui/src/composables/useGrokDashboard.ts:483` | `actions.push({` | 待批次 5 判定 | — |
-| `ccr-ui/src/composables/useGrokDashboard.ts:492` | `actions.push({` | 待批次 5 判定 | — |
-| `ccr-ui/src/composables/useGrokDashboard.ts:503` | `actions.push({` | 待批次 5 判定 | — |
+| `ccr-ui/src/composables/useGrokDashboard.ts:453` | `actions.push({` | 本地临时（`actions` computed 内累积后返回），无需改写；批次 5 迁移后为 useMemo 内本地数组 | — |
+| `ccr-ui/src/composables/useGrokDashboard.ts:465` | `actions.push({` | 本地临时（同上），无需改写 | — |
+| `ccr-ui/src/composables/useGrokDashboard.ts:474` | `actions.push({` | 本地临时（同上），无需改写 | — |
+| `ccr-ui/src/composables/useGrokDashboard.ts:483` | `actions.push({` | 本地临时（同上），无需改写 | — |
+| `ccr-ui/src/composables/useGrokDashboard.ts:492` | `actions.push({` | 本地临时（同上），无需改写 | — |
+| `ccr-ui/src/composables/useGrokDashboard.ts:503` | `actions.push({` | 本地临时（同上），无需改写 | — |
 | `ccr-ui/src/composables/useMcpManager.ts:29` | `const sortedItems = [...items].sort((a, b) => {` | 待批次 5 判定 | — |
 | `ccr-ui/src/composables/useMonitoringFeed.ts:248` | `nextEntries.splice(low, 0, entry)` | 待批次 5 判定 | — |
 | `ccr-ui/src/composables/useMonitoringFeed.ts:342` | `unlisteners.push(unMonitoring)` | 待批次 5 判定 | — |

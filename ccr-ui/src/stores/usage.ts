@@ -43,7 +43,7 @@ import {
   importUsageV2,
   startUsageImportJobV2,
 } from '@/api'
-import { usePolledData } from '@/composables/usePolledData'
+import { createPoller } from '@/utils/poller'
 import {
   buildDashboardCachePayload,
   buildDashboardFetchKey,
@@ -870,8 +870,8 @@ export const useUsageStore = defineStore('usage', () => {
     logsModelFilter.value = value
   }
 
-  /** 启动自动刷新 */
-  const coreAutoRefresh = usePolledData(
+  /** 启动自动刷新（React 之外运行，走框架无关轮询核心 utils/poller.ts） */
+  const coreAutoRefresh = createPoller(
     async () => {
       recordPerfMark('usage_auto_refresh_start')
       await fetchAll({
@@ -892,7 +892,7 @@ export const useUsageStore = defineStore('usage', () => {
 
   const heatmapAutoRefresh = LAZY_HEATMAP_LOAD
     ? null
-    : usePolledData(
+    : createPoller(
         async () => {
           await fetchHeatmap('auto-refresh-heatmap')
           return heatmap.value?.data ?? null

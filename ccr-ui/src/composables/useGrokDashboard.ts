@@ -1,16 +1,20 @@
-import { computed, ref } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { grokApi } from '@/api'
-import { getCurrentEnvironment } from '@/api/runtime/environment'
-import { getCliVersion } from '@/api/runtime/system'
+import { useCallback, useMemo } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import type { EnvironmentInfo } from '@/types/generated/environment/EnvironmentInfo'
 import type {
   CliVersionEntry,
   GrokActivationDto,
   GrokAuthModeDto,
-  GrokDashboardCommandResponse,
-  GrokDashboardOverview,
 } from '@/types'
+import {
+  GROK_OVERVIEW_STALE_TIME,
+  GROK_VERSION_STALE_TIME,
+  fetchGrokEnvironment,
+  fetchGrokOverview,
+  fetchGrokVersion,
+  grokKeys,
+  type GrokOverviewLoadResult,
+} from '@/features/grok/queries'
 import { getErrorMessage } from '@/utils/errorHandler'
 
 export type GrokDashboardTone = 'success' | 'warning' | 'danger' | 'neutral'
@@ -52,294 +56,169 @@ interface GrokActivationWarning {
   icon: string
 }
 
-type OverviewLoadResult =
-  | { status: 'ok'; data: GrokDashboardOverview }
-  | { status: 'unsupported_environment'; envType: string }
+// Grok 仪表盘的 React 迁移（08-22-state-logic-port 批次 5，服务端数据 → Query）。
+// 原模块级 TTL 缓存 / in-flight 去重由 Query 承担：overview staleTime 30s、
+// version 60s、environment 0（原每次 refresh 都拉取）。environment id 进入
+// overview/version 的 key，换环境落到新缓存条目（等价原 resetSharedCaches）。
+//
+// 签名变化（消费方均为待迁移 .vue 视图）：
+// - i18n 由 vue-i18n useI18n 改为参数传入 t；返回对象中的 Ref<T> 改为普通值；
+// - loadError/refreshError 由原命令式分支改为派生值：尚无 overview 数据时的错误
+//   记入 loadError，已有数据时的错误记入 refreshError（与原 setDashboardError 判定一致）。
 
-const OVERVIEW_TTL_MS = 30_000
-const VERSION_TTL_MS = 60_000
+type Translate = (key: string, params?: Record<string, unknown>) => string
+
+interface UseGrokDashboardOptions {
+  /** i18n translation function (original useI18n().t). */
+  t: Translate
+}
+
 const GROK_DOCS_URL = 'https://docs.x.ai/'
 
-let sharedOverview: GrokDashboardOverview | null = null
-let sharedVersionEntry: CliVersionEntry | null = null
-let sharedOverviewLoadedAt = 0
-let sharedVersionLoadedAt = 0
-let sharedLocalEnvironmentId: string | null = null
-let overviewInflight: Promise<OverviewLoadResult> | null = null
-let versionInflight: Promise<CliVersionEntry> | null = null
-let environmentInflight: Promise<EnvironmentInfo> | null = null
-
-const nowMs = () => Date.now()
-const isCacheFresh = (loadedAt: number, ttlMs: number) => (
-  loadedAt > 0 && nowMs() - loadedAt < ttlMs
-)
-
-const toOverview = (
-  response: Extract<GrokDashboardCommandResponse, { status: 'ok' }>,
-): GrokDashboardOverview => ({
-  activation: response.activation,
-  activation_name: response.activation_name,
-  current_profile: response.current_profile,
-  auth_mode: response.auth_mode,
-  profiles_total: response.profiles_total,
-  profiles_enabled: response.profiles_enabled,
-  config_exists: response.config_exists,
-  config_path_display: response.config_path_display,
-})
-
-const loadEnvironment = (): Promise<EnvironmentInfo> => {
-  if (environmentInflight) return environmentInflight
-
-  environmentInflight = getCurrentEnvironment().finally(() => {
-    environmentInflight = null
-  })
-  return environmentInflight
+const ACTIVATION_LABEL_KEYS: Record<GrokActivationDto, string> = {
+  inactive: 'grok.states.activation.inactive',
+  active: 'grok.states.activation.active',
+  drifted: 'grok.states.activation.drifted',
+  unsafe_missing_entry_state: 'grok.states.activation.unsafeMissingEntryState',
 }
 
-const loadOverview = (force = false): Promise<OverviewLoadResult> => {
-  if (overviewInflight) return overviewInflight
+const AUTH_MODE_LABEL_KEYS: Record<GrokAuthModeDto, string> = {
+  inline_api_key: 'grok.states.authMode.inlineApiKey',
+  env_key: 'grok.states.authMode.envKey',
+  session: 'grok.states.authMode.session',
+}
 
-  if (!force && sharedOverview && isCacheFresh(sharedOverviewLoadedAt, OVERVIEW_TTL_MS)) {
-    return Promise.resolve({ status: 'ok', data: sharedOverview })
+/** 原 applyVersionEntry 的纯函数化；entry 缺失时按是否在拉取区分 checking/error。 */
+const deriveVersionState = (
+  entry: CliVersionEntry | null | undefined,
+  fetching: boolean,
+  t: Translate,
+): { versionStatus: GrokVersionStatus; versionLabel: string } => {
+  if (!entry) {
+    return fetching
+      ? { versionStatus: 'loading', versionLabel: t('grok.states.version.checking') }
+      : { versionStatus: 'error', versionLabel: t('grok.states.version.error') }
   }
 
-  overviewInflight = grokApi.getGrokDashboardOverview()
-    .then((response): OverviewLoadResult => {
-      if (response.status === 'unsupported_environment') {
-        return { status: response.status, envType: response.env_type }
-      }
-
-      const data = toOverview(response)
-      sharedOverview = data
-      sharedOverviewLoadedAt = nowMs()
-      return { status: 'ok', data }
-    })
-    .finally(() => {
-      overviewInflight = null
-    })
-
-  return overviewInflight
-}
-
-const loadVersion = (force = false): Promise<CliVersionEntry> => {
-  if (versionInflight) return versionInflight
-
-  if (!force && sharedVersionEntry && isCacheFresh(sharedVersionLoadedAt, VERSION_TTL_MS)) {
-    return Promise.resolve(sharedVersionEntry)
+  if (entry.status === 'timeout') {
+    return { versionStatus: 'timeout', versionLabel: t('grok.states.version.timeout') }
   }
 
-  versionInflight = getCliVersion({
-    tool: 'grok',
-    timeoutMs: 1_500,
-    force,
-  })
-    .then((entry) => {
-      sharedVersionEntry = entry
-      sharedVersionLoadedAt = nowMs()
-      return entry
-    })
-    .finally(() => {
-      versionInflight = null
-    })
+  if (entry.status === 'error') {
+    return { versionStatus: 'error', versionLabel: t('grok.states.version.error') }
+  }
 
-  return versionInflight
-}
+  if (entry.status === 'not_installed' || !entry.installed) {
+    return { versionStatus: 'not_installed', versionLabel: t('grok.states.version.notInstalled') }
+  }
 
-const resetSharedCaches = () => {
-  sharedOverview = null
-  sharedVersionEntry = null
-  sharedOverviewLoadedAt = 0
-  sharedVersionLoadedAt = 0
-}
+  if (entry.status !== 'ok') {
+    return { versionStatus: 'error', versionLabel: t('grok.states.version.error') }
+  }
 
-export function useGrokDashboard() {
-  const { t } = useI18n()
-
-  const overview = ref<GrokDashboardOverview | null>(sharedOverview)
-  const environmentLoading = ref(false)
-  const overviewLoading = ref(false)
-  const versionLoading = ref(false)
-  const loadError = ref<string | null>(null)
-  const refreshError = ref<string | null>(null)
-  const localOnly = ref(false)
-  const localOnlyEnvType = ref<string | null>(null)
-  const versionStatus = ref<GrokVersionStatus>('loading')
-  const versionLabel = ref(t('grok.states.version.checking'))
-
-  const applyVersionEntry = (entry?: CliVersionEntry | null) => {
-    if (!entry) {
-      versionStatus.value = 'error'
-      versionLabel.value = t('grok.states.version.error')
-      return
-    }
-
-    if (entry.status === 'timeout') {
-      versionStatus.value = 'timeout'
-      versionLabel.value = t('grok.states.version.timeout')
-      return
-    }
-
-    if (entry.status === 'error') {
-      versionStatus.value = 'error'
-      versionLabel.value = t('grok.states.version.error')
-      return
-    }
-
-    if (entry.status === 'not_installed' || !entry.installed) {
-      versionStatus.value = 'not_installed'
-      versionLabel.value = t('grok.states.version.notInstalled')
-      return
-    }
-
-    if (entry.status !== 'ok') {
-      versionStatus.value = 'error'
-      versionLabel.value = t('grok.states.version.error')
-      return
-    }
-
-    versionStatus.value = 'ok'
-    versionLabel.value = entry.version
+  return {
+    versionStatus: 'ok',
+    versionLabel: entry.version
       ? entry.version.startsWith('v') ? entry.version : `v${entry.version}`
-      : t('grok.states.version.installed')
+      : t('grok.states.version.installed'),
   }
+}
 
-  const syncCachedState = () => {
-    overview.value = sharedOverview
-    if (sharedVersionEntry) applyVersionEntry(sharedVersionEntry)
-  }
-
-  const setDashboardError = (reason: unknown) => {
-    const message = getErrorMessage(reason)
-    if (overview.value || sharedOverview) {
-      refreshError.value = message
-    } else {
-      loadError.value = message
-    }
-  }
-
-  const refresh = async (force = false): Promise<void> => {
-    loadError.value = null
-    refreshError.value = null
-    environmentLoading.value = true
-
-    let environment: EnvironmentInfo
-    try {
-      environment = await loadEnvironment()
-    } catch (error) {
-      overview.value = null
-      loadError.value = getErrorMessage(error)
-      environmentLoading.value = false
-      return
-    }
-    environmentLoading.value = false
-
-    if (environment.env_type !== 'local') {
-      localOnly.value = true
-      localOnlyEnvType.value = environment.env_type
-      overview.value = null
-      return
-    }
-
-    localOnly.value = false
-    localOnlyEnvType.value = null
-
-    if (sharedLocalEnvironmentId && sharedLocalEnvironmentId !== environment.id) {
-      resetSharedCaches()
-    }
-    sharedLocalEnvironmentId = environment.id
-    syncCachedState()
-
-    const needsOverview = force
-      || !sharedOverview
-      || !isCacheFresh(sharedOverviewLoadedAt, OVERVIEW_TTL_MS)
-
-    if (needsOverview) {
-      overviewLoading.value = true
-      try {
-        const result = await loadOverview(force)
-        if (result.status === 'unsupported_environment') {
-          resetSharedCaches()
-          localOnly.value = true
-          localOnlyEnvType.value = result.envType
-          overview.value = null
-          return
-        }
-        overview.value = result.data
-      } catch (error) {
-        setDashboardError(error)
-      } finally {
-        overviewLoading.value = false
-      }
-    }
-
-    if (!overview.value) return
-
-    const needsVersion = force
-      || !sharedVersionEntry
-      || !isCacheFresh(sharedVersionLoadedAt, VERSION_TTL_MS)
-
-    if (needsVersion) {
-      versionLoading.value = true
-      try {
-        applyVersionEntry(await loadVersion(force))
-      } catch (error) {
-        if (sharedVersionEntry) {
-          applyVersionEntry(sharedVersionEntry)
-          refreshError.value = getErrorMessage(error)
-        } else {
-          applyVersionEntry(undefined)
-        }
-      } finally {
-        versionLoading.value = false
-      }
-    } else if (sharedVersionEntry) {
-      applyVersionEntry(sharedVersionEntry)
-    }
-  }
-
-  const loading = computed(() => (
-    environmentLoading.value || overviewLoading.value || versionLoading.value
-  ))
-
-  const initialLoading = computed(() => (
-    !localOnly.value
-    && !overview.value
-    && (environmentLoading.value || overviewLoading.value)
-  ))
-
-  const currentProfileLabel = computed(() => (
-    overview.value?.current_profile
-    || overview.value?.activation_name
-    || t('grok.states.notSet')
-  ))
-
-  const activationLabel = computed(() => {
-    const state = overview.value?.activation
-    const keys: Record<GrokActivationDto, string> = {
-      inactive: 'grok.states.activation.inactive',
-      active: 'grok.states.activation.active',
-      drifted: 'grok.states.activation.drifted',
-      unsafe_missing_entry_state: 'grok.states.activation.unsafeMissingEntryState',
-    }
-    return state ? t(keys[state]) : t('grok.states.unknown')
+export function useGrokDashboard({ t }: UseGrokDashboardOptions) {
+  const environmentQuery = useQuery({
+    queryKey: grokKeys.environment(),
+    queryFn: fetchGrokEnvironment,
+    staleTime: 0,
   })
 
-  const authModeLabel = computed(() => {
-    const mode = overview.value?.auth_mode
-    const keys: Record<GrokAuthModeDto, string> = {
-      inline_api_key: 'grok.states.authMode.inlineApiKey',
-      env_key: 'grok.states.authMode.envKey',
-      session: 'grok.states.authMode.session',
-    }
-    return mode ? t(keys[mode]) : t('grok.states.notSet')
+  const environment = (environmentQuery.data ?? null) as EnvironmentInfo | null
+  const environmentId = environment?.id ?? null
+
+  const overviewQuery = useQuery({
+    queryKey: grokKeys.overview(environmentId),
+    queryFn: fetchGrokOverview,
+    // 原 refresh 流程：仅 local 环境继续拉取 overview
+    enabled: environmentQuery.isSuccess && environment?.env_type === 'local',
+    staleTime: GROK_OVERVIEW_STALE_TIME,
   })
 
-  const activationWarning = computed<GrokActivationWarning | null>(() => {
-    const data = overview.value
-    if (!data) return null
-    const name = data.activation_name || t('grok.states.unknown')
+  const overviewResult = (overviewQuery.data ?? null) as GrokOverviewLoadResult | null
+  const overview = overviewResult?.status === 'ok' ? overviewResult.data : null
 
-    if (data.activation === 'drifted') {
+  const versionQuery = useQuery({
+    queryKey: grokKeys.version(environmentId),
+    queryFn: fetchGrokVersion,
+    // 原 refresh 流程：overview 就绪后才探测版本
+    enabled: overview !== null,
+    staleTime: GROK_VERSION_STALE_TIME,
+  })
+
+  // 原流程的 localOnly 判定：非 local 环境，或 overview 返回 unsupported_environment
+  const localOnly = useMemo(() => {
+    if (environment && environment.env_type !== 'local') return true
+    return overviewResult?.status === 'unsupported_environment'
+  }, [environment, overviewResult])
+
+  const localOnlyEnvType = useMemo(() => {
+    if (environment && environment.env_type !== 'local') return environment.env_type
+    if (overviewResult?.status === 'unsupported_environment') return overviewResult.envType
+    return null
+  }, [environment, overviewResult])
+
+  const loading = useMemo(
+    () => environmentQuery.isFetching || overviewQuery.isFetching || versionQuery.isFetching,
+    [environmentQuery.isFetching, overviewQuery.isFetching, versionQuery.isFetching]
+  )
+
+  const initialLoading = useMemo(
+    () => !localOnly && !overview && (environmentQuery.isFetching || overviewQuery.isFetching),
+    [environmentQuery.isFetching, localOnly, overview, overviewQuery.isFetching]
+  )
+
+  // 错误派生：environment 失败必为 loadError；overview/version 失败按是否有数据分流
+  const loadError = useMemo(() => {
+    if (environmentQuery.error) return getErrorMessage(environmentQuery.error)
+    if (!overview) {
+      if (overviewQuery.error) return getErrorMessage(overviewQuery.error)
+      if (versionQuery.error) return getErrorMessage(versionQuery.error)
+    }
+    return null
+  }, [environmentQuery.error, overview, overviewQuery.error, versionQuery.error])
+
+  const refreshError = useMemo(() => {
+    if (!overview) return null
+    if (overviewQuery.error) return getErrorMessage(overviewQuery.error)
+    // 版本失败但已有版本缓存：保留旧展示并记录刷新错误（原 catch 分支）
+    if (versionQuery.error && versionQuery.data) return getErrorMessage(versionQuery.error)
+    return null
+  }, [overview, overviewQuery.error, versionQuery.data, versionQuery.error])
+
+  const currentProfileLabel = useMemo(
+    () => overview?.current_profile
+      || overview?.activation_name
+      || t('grok.states.notSet'),
+    [overview, t]
+  )
+
+  const activationLabel = useMemo(
+    () => (overview?.activation
+      ? t(ACTIVATION_LABEL_KEYS[overview.activation])
+      : t('grok.states.unknown')),
+    [overview, t]
+  )
+
+  const authModeLabel = useMemo(
+    () => (overview?.auth_mode
+      ? t(AUTH_MODE_LABEL_KEYS[overview.auth_mode])
+      : t('grok.states.notSet')),
+    [overview, t]
+  )
+
+  const activationWarning = useMemo<GrokActivationWarning | null>(() => {
+    if (!overview) return null
+    const name = overview.activation_name || t('grok.states.unknown')
+
+    if (overview.activation === 'drifted') {
       return {
         label: t('grok.states.activationWarning.drifted', { name }),
         tone: 'warning',
@@ -347,7 +226,7 @@ export function useGrokDashboard() {
       }
     }
 
-    if (data.activation === 'unsafe_missing_entry_state') {
+    if (overview.activation === 'unsafe_missing_entry_state') {
       return {
         label: t('grok.states.activationWarning.unsafeMissingEntryState', { name }),
         tone: 'danger',
@@ -356,25 +235,30 @@ export function useGrokDashboard() {
     }
 
     return null
-  })
+  }, [overview, t])
 
-  const versionTone = computed<GrokDashboardTone>(() => {
-    if (versionStatus.value === 'ok') return 'success'
-    if (versionStatus.value === 'timeout' || versionStatus.value === 'loading') return 'warning'
+  const { versionStatus, versionLabel } = useMemo(
+    () => deriveVersionState(versionQuery.data, versionQuery.isFetching, t),
+    [t, versionQuery.data, versionQuery.isFetching]
+  )
+
+  const versionTone = useMemo<GrokDashboardTone>(() => {
+    if (versionStatus === 'ok') return 'success'
+    if (versionStatus === 'timeout' || versionStatus === 'loading') return 'warning'
     return 'danger'
-  })
+  }, [versionStatus])
 
-  const readinessItems = computed<GrokReadinessItem[]>(() => {
-    const data = overview.value
+  const readinessItems = useMemo<GrokReadinessItem[]>(() => {
+    const data = overview
     if (!data) return []
 
-    const installationDetail = versionStatus.value === 'loading'
+    const installationDetail = versionStatus === 'loading'
       ? t('grok.dashboard.readiness.installation.checking')
-      : versionStatus.value === 'ok'
+      : versionStatus === 'ok'
         ? t('grok.dashboard.readiness.installation.installed')
-        : versionStatus.value === 'not_installed'
+        : versionStatus === 'not_installed'
           ? t('grok.dashboard.readiness.installation.notInstalled')
-          : versionStatus.value === 'timeout'
+          : versionStatus === 'timeout'
             ? t('grok.dashboard.readiness.installation.timeout')
             : t('grok.dashboard.readiness.installation.error')
 
@@ -392,7 +276,7 @@ export function useGrokDashboard() {
         ? 'success'
         : 'warning'
 
-    const statusLabel = (tone: GrokDashboardTone) => {
+    const statusLabelFor = (tone: GrokDashboardTone) => {
       if (tone === 'success') return t('grok.dashboard.statusLabels.ready')
       if (tone === 'danger') return t('grok.dashboard.statusLabels.blocked')
       return t('grok.dashboard.statusLabels.attention')
@@ -402,12 +286,12 @@ export function useGrokDashboard() {
       {
         key: 'installation',
         title: t('grok.dashboard.readiness.installation.title'),
-        value: versionLabel.value,
+        value: versionLabel,
         detail: installationDetail,
-        statusLabel: versionStatus.value === 'loading'
+        statusLabel: versionStatus === 'loading'
           ? t('grok.dashboard.statusLabels.checking')
-          : statusLabel(versionTone.value),
-        tone: versionTone.value,
+          : statusLabelFor(versionTone),
+        tone: versionTone,
         icon: 'Package',
       },
       {
@@ -418,9 +302,9 @@ export function useGrokDashboard() {
           ? t('grok.dashboard.readiness.profiles.empty')
           : t('grok.dashboard.readiness.profiles.detail', {
               enabled: data.profiles_enabled,
-              current: currentProfileLabel.value,
+              current: currentProfileLabel,
             }),
-        statusLabel: statusLabel(profileTone),
+        statusLabel: statusLabelFor(profileTone),
         tone: profileTone,
         icon: 'Folders',
       },
@@ -433,23 +317,24 @@ export function useGrokDashboard() {
         detail: data.config_path_display
           ? t('grok.dashboard.readiness.config.path', {
               path: data.config_path_display,
-              state: activationLabel.value,
+              state: activationLabel,
             })
-          : t('grok.dashboard.readiness.config.noPath', { state: activationLabel.value }),
-        statusLabel: statusLabel(configTone),
+          : t('grok.dashboard.readiness.config.noPath', { state: activationLabel }),
+        statusLabel: statusLabelFor(configTone),
         tone: configTone,
         icon: 'SlidersHorizontal',
       },
     ]
-  })
+  }, [activationLabel, currentProfileLabel, overview, t, versionLabel, versionStatus, versionTone])
 
-  const nextActions = computed<GrokActionItem[]>(() => {
-    const data = overview.value
+  // actions 为 memo 内本地累积数组（mutation-rewrite.md 判定：本地临时，无需改写）
+  const nextActions = useMemo<GrokActionItem[]>(() => {
+    const data = overview
     if (!data) return []
 
     const actions: GrokActionItem[] = []
 
-    if (versionStatus.value === 'not_installed') {
+    if (versionStatus === 'not_installed') {
       actions.push({
         key: 'install',
         title: t('grok.dashboard.actions.install.title'),
@@ -511,10 +396,10 @@ export function useGrokDashboard() {
     }
 
     return actions.slice(0, 3)
-  })
+  }, [overview, t, versionStatus])
 
-  const primaryAction = computed<GrokActionItem>(() => (
-    nextActions.value[0] ?? {
+  const primaryAction = useMemo<GrokActionItem>(() => (
+    nextActions[0] ?? {
       key: 'open-settings',
       title: t('grok.dashboard.actions.openSettings.title'),
       description: t('grok.dashboard.actions.openSettings.description'),
@@ -522,10 +407,10 @@ export function useGrokDashboard() {
       icon: 'SlidersHorizontal',
       tone: 'neutral',
     }
-  ))
+  ), [nextActions, t])
 
-  const managementItems = computed<GrokManagementItem[]>(() => {
-    const data = overview.value
+  const managementItems = useMemo<GrokManagementItem[]>(() => {
+    const data = overview
     if (!data) return []
 
     return [
@@ -550,16 +435,26 @@ export function useGrokDashboard() {
         tone: data.config_exists ? 'success' : 'warning',
       },
     ]
-  })
+  }, [overview, t])
 
-  syncCachedState()
+  /** 原 refresh(force)：重拉环境 → 按需重拉 overview / version。enabled 门控保持
+   * 「非 local 不拉 overview、无 overview 不拉 version」的原流程；force 越过 TTL。 */
+  const refresh = useCallback(async (force = false): Promise<void> => {
+    await environmentQuery.refetch()
+    if (environment?.env_type !== 'local') return
+
+    const tasks: Array<Promise<unknown>> = []
+    if (force || overviewQuery.isStale) tasks.push(overviewQuery.refetch())
+    if (overview && (force || versionQuery.isStale)) tasks.push(versionQuery.refetch())
+    await Promise.allSettled(tasks)
+  }, [environment, environmentQuery, overview, overviewQuery, versionQuery])
 
   return {
     overview,
     loading,
     initialLoading,
-    overviewLoading,
-    versionLoading,
+    overviewLoading: overviewQuery.isFetching,
+    versionLoading: versionQuery.isFetching,
     loadError,
     refreshError,
     localOnly,

@@ -20,8 +20,8 @@
 | `useMainLayoutShell.ts:136` | watch(hasSidebar, (value) => { | 见批次 5 逐点登记 | 见批次 5 |
 | `useMainLayoutShell.ts:142` | watch([isMobileSidebar, isSidebarOpen], ([mobile, open]) => { | 见批次 5 逐点登记 | 见批次 5 |
 | `useMcpManager.ts:196` | watch(groupedServers, (groups) => { | 见批次 5 逐点登记 | 见批次 5 |
-| `usePlatformUsageInsight.ts:83` | watch( | 见批次 5 逐点登记 | 见批次 5 |
-| `usePolledData.ts:200` | watch(pauseWhen as WatchSource<boolean>, (paused) => { | 见批次 5 逐点登记 | 见批次 5 |
+| `usePlatformUsageInsight.ts:83` | `watch(() => [unref(platform), unref(days), unref(enabled)], ([, , isEnabled]) => { if (isEnabled) void refresh() })` | 无选项（非 immediate、默认 flush pre） | 批次 5：watch 目标即查询参数 → Query key（platform+日期窗口）/enabled 变化自动 refetch，无需 effect；onMounted 初始拉取由 Query 挂载拉取覆盖（`usePlatformUsageInsight.ts`） |
+| `usePolledData.ts:200` | `watch(pauseWhen as WatchSource<boolean>, (paused) => { paused ? stopTimer() : isActive && (doFetch(), startTimer()) })` | 无选项（非 immediate、默认 flush pre） | 批次 5：布尔 pauseWhen → hook effect 调用 `poller.onPauseChange(paused)`（分支逻辑逐行保留在核心）；函数源由核心每 tick 求值（`usePolledData.ts` + `utils/poller.ts`） |
 | `useProfilesQuickSwitch.ts:96` | watch( | 见批次 5 逐点登记 | 见批次 5 |
 
 选项（immediate/deep/flush）逐点判定在批次 5 各文件转换时补充至此表。
@@ -97,3 +97,20 @@ ccr-ui\src\composables\useUnifiedMcp.ts:136
 ccr-ui\src\composables\useUnifiedMcp.ts:145
 ccr-ui\src\composables\useUnifiedMcp.ts:151
 ```
+
+### 3.1 批次 5 已转换文件的 computed 登记（响应式来源 → useMemo 依赖）
+
+| 文件 | computed（原行） | 响应式来源 | React 形态 |
+| --- | --- | --- | --- |
+| `useCodexAgentSources.ts` | selectedSource（26） | sources、selectedSourceId | `useMemo([sources, selectedSourceId])` |
+| `useCodexAgents.ts` | currentContextRequest（71） | activeContext.mode、activeContext.projectRoot | `useMemo`（原始值依赖，避免对象身份抖动） |
+| `useCodexAgents.ts` | hasProjectShortcut / isProjectMode / contextLabel（82–84） | lastProjectRoot；activeContext.mode；activeContext.label | 各自 `useMemo` |
+| `useCodexAgents.ts` | activeMode（250，返回处内联） | activeContext.mode | `useMemo` |
+| `useCodexDashboard.ts` | loading（299）/ error（303） | 三查询 isFetching；overviewError/usageError | `useMemo`（error 为普通派生值） |
+| `useCodexDashboard.ts` | currentAccountLabel（305）/ currentProfileLabel（310） | overview.auth.current；overview.profiles.current_profile；t | `useMemo` |
+| `useCodexDashboard.ts` | usageTotalRequests（314）/ usageTotalTokens（318） | usageSummary.all_time | `useMemo` |
+| `useCodexDashboard.ts` | readinessItems/nextActions/primaryAction/compactInventory/managementLinks（324–627，排查清单外多行声明） | overview、usageSummary、isFetching 标志、versionStatus/versionLabel、t | 各自 `useMemo`；healthItems 为 readinessItems 别名 |
+| `useGrokDashboard.ts` | loading（300）/ initialLoading（304） | environment/overview/version 查询 isFetching、localOnly、overview | `useMemo` |
+| `useGrokDashboard.ts` | currentProfileLabel（310）/ activationLabel（316）/ authModeLabel（327） | overview.current_profile/activation_name/activation/auth_mode；t | `useMemo` |
+| `useGrokDashboard.ts` | activationWarning/versionTone/readinessItems/nextActions/primaryAction/managementItems（337–553，排查清单外多行声明） | overview、versionStatus/versionLabel/versionTone、currentProfileLabel、activationLabel、t | 各自 `useMemo` |
+| `usePlatformUsageInsight.ts` | dateWindow / resolvedLabels / presentation（38–40） | days；labels；dashboard 数据 + resolvedLabels + tone | 各自 `useMemo` |

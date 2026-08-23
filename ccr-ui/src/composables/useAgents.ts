@@ -1,10 +1,31 @@
-import { ref } from 'vue'
-import { listGeminiAgents, addGeminiAgent, updateGeminiAgent, deleteGeminiAgent, toggleGeminiAgent } from '@/api'
-import { listConfigs, getHistory } from '@/api'
-import { listAgents, getAgent as apiGetAgent, addAgent, updateAgent, deleteAgent, toggleAgent } from '@/api'
+import { useCallback, useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  listGeminiAgents,
+  addGeminiAgent as apiAddGeminiAgent,
+  updateGeminiAgent as apiUpdateGeminiAgent,
+  deleteGeminiAgent as apiDeleteGeminiAgent,
+  toggleGeminiAgent as apiToggleGeminiAgent,
+  listConfigs,
+  getHistory,
+  listAgents,
+  getAgent as apiGetAgent,
+  addAgent as apiAddAgent,
+  updateAgent as apiUpdateAgent,
+  deleteAgent as apiDeleteAgent,
+  toggleAgent as apiToggleAgent,
+} from '@/api'
 import { genericPlatformDescriptors } from '@/config/platformDescriptors'
+import { agentsKeys } from '@/features/agents/queries'
+import { getErrorMessage } from '@/utils/errorHandler'
 import { logger } from '@/utils/logger'
 import type { Agent, AgentRequest } from '@/types'
+
+// agents 域 hook 的 React 迁移（08-22-state-logic-port 批次 5，服务端数据 → Query）。
+// 原 loadAgents 的列表 + 系统信息辅助切片合并为单个 list 查询；CRUD 走
+// useMutation + invalidateQueries（原实现为顺序 await loadAgents()）。
+// 签名变化：返回对象中的 Ref<T> 改为普通值；loading 由 Query isPending 承载
+// （消费方均为待迁移 .vue 视图）。
 
 type GenericAgentModule = (typeof genericPlatformDescriptors)[keyof typeof genericPlatformDescriptors]['agents']['module']
 type ModuleType = GenericAgentModule | 'agents'
@@ -17,115 +38,135 @@ interface AgentApi {
     toggle: (name: string) => Promise<unknown>
 }
 
-function getErrorMessage(err: unknown): string {
-    return getErrorMessage(err)
-}
-
 const apiMap: Record<ModuleType, AgentApi> = {
     gemini: {
         list: listGeminiAgents,
-        add: addGeminiAgent,
-        update: updateGeminiAgent,
-        delete: deleteGeminiAgent,
-        toggle: toggleGeminiAgent
+        add: apiAddGeminiAgent,
+        update: apiUpdateGeminiAgent,
+        delete: apiDeleteGeminiAgent,
+        toggle: apiToggleGeminiAgent
     },
     agents: {
         list: listAgents,
-        add: addAgent,
-        update: updateAgent,
-        delete: deleteAgent,
-        toggle: toggleAgent
+        add: apiAddAgent,
+        update: apiUpdateAgent,
+        delete: apiDeleteAgent,
+        toggle: apiToggleAgent
     }
 }
 
+interface AgentsPageData {
+    agents: Agent[]
+    folders: string[]
+    currentConfig: string
+    totalConfigs: number
+    historyCount: number
+}
+
+/** 列表数据仅由显式 CRUD mutation 失效驱动；staleTime 0 保持挂载即拉取（原 loadAgents 行为）。 */
+const AGENTS_STALE_TIME = 0
+
 export function useAgents(module: ModuleType) {
     const api = apiMap[module]
+    const queryClient = useQueryClient()
+    const [currentAgent, setCurrentAgent] = useState<Agent | null>(null)
 
-    const agents = ref<Agent[]>([])
-    const currentAgent = ref<Agent | null>(null)
-    const folders = ref<string[]>([])
-    const loading = ref(true)
-    const currentConfig = ref('')
-    const totalConfigs = ref(0)
-    const historyCount = ref(0)
-
-    const loadAgents = async () => {
-        try {
-            loading.value = true
-            const data = await api.list()
-            agents.value = data.agents || []
-            folders.value = data.folders || []
-
-            // Load system info (optional, but kept for consistency with original views)
+    const query = useQuery({
+        queryKey: agentsKeys.list(module),
+        queryFn: async (): Promise<AgentsPageData> => {
             try {
-                const configData = await listConfigs()
-                currentConfig.value = configData.current_config
-                totalConfigs.value = configData.configs.length
-                const historyData = await getHistory()
-                historyCount.value = historyData.total
-            } catch (err) {
-                logger.error('Failed to load system info', err)
-            }
-        } catch (err) {
-            logger.error(`Failed to load ${module} agents: ${getErrorMessage(err)}`, err)
-            // alert(t(`${module}.agents.messages.loadFailed`)) // Let the view handle alerts
-        } finally {
-            loading.value = false
-        }
-    }
+                const data = await api.list()
 
-    const getAgent = async (name: string): Promise<Agent> => {
-        loading.value = true
-        try {
-            // For now, only Claude Code (agents module) has the getAgent API
-            if (module === 'agents') {
-                const fetchedAgent = await apiGetAgent(name)
-                if (!fetchedAgent) {
-                    throw new Error(`Agent '${name}' not found`)
+                // Load system info (optional, but kept for consistency with original views)
+                let currentConfig = ''
+                let totalConfigs = 0
+                let historyCount = 0
+                try {
+                    const configData = await listConfigs()
+                    currentConfig = configData.current_config
+                    totalConfigs = configData.configs.length
+                    const historyData = await getHistory()
+                    historyCount = historyData.total
+                } catch (err) {
+                    logger.error('Failed to load system info', err)
                 }
-                currentAgent.value = fetchedAgent
-                return fetchedAgent
+
+                return {
+                    agents: data.agents || [],
+                    folders: data.folders || [],
+                    currentConfig,
+                    totalConfigs,
+                    historyCount
+                }
+            } catch (err) {
+                logger.error(`Failed to load ${module} agents: ${getErrorMessage(err)}`, err)
+                throw err
             }
-            // For other platforms, find from loaded list
-            const agent = agents.value.find(a => a.name === name)
-            if (agent) {
-                currentAgent.value = agent
-                return agent
+        },
+        staleTime: AGENTS_STALE_TIME,
+    })
+
+    const invalidateList = useCallback(
+        () => queryClient.invalidateQueries({ queryKey: agentsKeys.list(module) }),
+        [queryClient, module]
+    )
+
+    const addMutation = useMutation({ mutationFn: (req: AgentRequest) => api.add(req) })
+    const updateMutation = useMutation({
+        mutationFn: ({ name, req }: { name: string, req: AgentRequest }) => api.update(name, req)
+    })
+    const deleteMutation = useMutation({ mutationFn: (name: string) => api.delete(name) })
+    const toggleMutation = useMutation({ mutationFn: (name: string) => api.toggle(name) })
+
+    const runMutation = useCallback(
+        (action: () => Promise<unknown>) => action().then(() => invalidateList()),
+        [invalidateList]
+    )
+
+    const loadAgents = useCallback(async () => {
+        await query.refetch()
+    }, [query])
+
+    const getAgent = useCallback(async (name: string): Promise<Agent> => {
+        // For now, only Claude Code (agents module) has the getAgent API
+        if (module === 'agents') {
+            const fetchedAgent = await apiGetAgent(name)
+            if (!fetchedAgent) {
+                throw new Error(`Agent '${name}' not found`)
             }
-            throw new Error(`Agent '${name}' not found`)
-        } finally {
-            loading.value = false
+            setCurrentAgent(fetchedAgent)
+            return fetchedAgent
         }
-    }
+        // For other platforms, find from loaded list
+        const agent = (query.data?.agents ?? []).find(a => a.name === name)
+        if (agent) {
+            setCurrentAgent(agent)
+            return agent
+        }
+        throw new Error(`Agent '${name}' not found`)
+    }, [module, query.data])
 
-    const addAgent = async (req: AgentRequest) => {
-        await api.add(req)
-        await loadAgents()
-    }
-
-    const updateAgent = async (name: string, req: AgentRequest) => {
-        await api.update(name, req)
-        await loadAgents()
-    }
-
-    const deleteAgent = async (name: string) => {
-        await api.delete(name)
-        await loadAgents()
-    }
-
-    const toggleAgent = async (name: string) => {
-        await api.toggle(name)
-        await loadAgents()
-    }
+    const addAgent = useCallback(async (req: AgentRequest) => {
+        await runMutation(() => addMutation.mutateAsync(req))
+    }, [addMutation, runMutation])
+    const updateAgent = useCallback(async (name: string, req: AgentRequest) => {
+        await runMutation(() => updateMutation.mutateAsync({ name, req }))
+    }, [runMutation, updateMutation])
+    const deleteAgent = useCallback(async (name: string) => {
+        await runMutation(() => deleteMutation.mutateAsync(name))
+    }, [deleteMutation, runMutation])
+    const toggleAgent = useCallback(async (name: string) => {
+        await runMutation(() => toggleMutation.mutateAsync(name))
+    }, [runMutation, toggleMutation])
 
     return {
-        agents,
+        agents: query.data?.agents ?? [],
         currentAgent,
-        folders,
-        loading,
-        currentConfig,
-        totalConfigs,
-        historyCount,
+        folders: query.data?.folders ?? [],
+        loading: query.isPending,
+        currentConfig: query.data?.currentConfig ?? '',
+        totalConfigs: query.data?.totalConfigs ?? 0,
+        historyCount: query.data?.historyCount ?? 0,
         loadAgents,
         getAgent,
         addAgent,

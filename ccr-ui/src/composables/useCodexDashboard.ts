@@ -1,14 +1,18 @@
-import { computed, ref } from 'vue'
-import { getErrorMessage } from '@/utils/errorHandler'
-import { useI18n } from 'vue-i18n'
+import { useCallback, useMemo, useRef } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import {
   getCodexDashboardOverview,
   getCodexDashboardUsageSummary,
-  type CodexDashboardOverview,
   type CodexDashboardUsageSummary,
 } from '@/api'
 import { getCliVersion } from '@/api/runtime/system'
 import type { CliVersionEntry } from '@/types'
+import {
+  CODEX_DASHBOARD_STALE_TIME,
+  CODEX_VERSION_STALE_TIME,
+  codexKeys,
+} from '@/features/codex/queries'
+import { getErrorMessage } from '@/utils/errorHandler'
 import { perfMark, perfMeasure } from '@/utils/perfTelemetry'
 
 export type CodexDashboardTone = 'success' | 'warning' | 'danger' | 'neutral'
@@ -53,27 +57,27 @@ export interface CodexDashboardInventoryItem {
   tone: CodexDashboardTone
 }
 
-const DASHBOARD_TTL_MS = 30_000
-const VERSION_TTL_MS = 60_000
+// Codex 仪表盘的 React 迁移（08-22-state-logic-port 批次 5，服务端数据 → Query）。
+// 原模块级共享 TTL 缓存 / in-flight 去重由 Query 缓存承担：
+// overview/usage staleTime 30s（原 DASHBOARD_TTL_MS）、version 60s（原 VERSION_TTL_MS）。
+//
+// 签名变化（消费方均为待迁移 .vue 视图）：
+// - i18n 由 vue-i18n useI18n 改为参数传入 t（与 shell/hooks 的既有形态一致）；
+// - 返回对象中的 Ref<T> 改为普通值（useMemo 派生）；
+// - refresh(force) 的 force 经 forceRef 透传给后端 IPC wrapper，非 force 时仅重拉
+//   已陈旧（isStale）的切片，等价原 TTL 检查后的按需加载；
+// - versionLabel/versionStatus 由 applyVersionEntry 改写为纯函数派生（useMemo），
+//   初值保持原字面量：status='loading'、label='...'。
 
-let sharedOverview: CodexDashboardOverview | null = null
-let sharedUsageSummary: CodexDashboardUsageSummary | null = null
-let sharedVersionEntry: CliVersionEntry | null = null
-let sharedOverviewLoadedAt = 0
-let sharedUsageLoadedAt = 0
-let sharedVersionLoadedAt = 0
-let overviewInflight: Promise<CodexDashboardOverview> | null = null
-let usageInflight: Promise<CodexDashboardUsageSummary> | null = null
-let versionInflight: Promise<CliVersionEntry> | null = null
+type Translate = (key: string, params?: Record<string, unknown>) => string
 
-const nowMs = () => Date.now()
-
-const isCacheFresh = (loadedAt: number, ttlMs: number) => (
-  loadedAt > 0 && nowMs() - loadedAt < ttlMs
-)
+interface UseCodexDashboardOptions {
+  /** i18n 翻译函数（原 useI18n().t）。 */
+  t: Translate
+}
 
 const measureAsync = async <T>(scope: string, action: () => Promise<T>): Promise<T> => {
-  const token = `${scope}:${nowMs()}:${Math.random().toString(16).slice(2)}`
+  const token = `${scope}:${Date.now()}:${Math.random().toString(16).slice(2)}`
   const startMark = `${token}:start`
   const endMark = `${token}:end`
 
@@ -86,34 +90,97 @@ const measureAsync = async <T>(scope: string, action: () => Promise<T>): Promise
   }
 }
 
-export function useCodexDashboard() {
-  const { t } = useI18n()
+const formatTokens = (tokens: number): string => {
+  if (tokens >= 1_000_000) return `${(tokens / 1_000_000).toFixed(1)}M`
+  if (tokens >= 1_000) return `${(tokens / 1_000).toFixed(1)}K`
+  return String(tokens)
+}
 
-  const overview = ref<CodexDashboardOverview | null>(sharedOverview)
-  const usageSummary = ref<CodexDashboardUsageSummary | null>(sharedUsageSummary)
-  const overviewLoading = ref(false)
-  const usageLoading = ref(false)
-  const versionLoading = ref(false)
-  const overviewError = ref<string | null>(null)
-  const usageError = ref<string | null>(null)
-  const versionLabel = ref('...')
-  const versionStatus = ref<'loading' | 'ok' | 'timeout' | 'error' | 'not_installed'>('loading')
-
-  const syncCachedState = () => {
-    overview.value = sharedOverview
-    usageSummary.value = sharedUsageSummary
-    if (sharedVersionEntry) {
-      applyVersionEntry(sharedVersionEntry)
-    }
+/** 原 applyVersionEntry 的纯函数化；entry 缺失时按是否在拉取区分 loading/error。 */
+const deriveVersionState = (
+  entry: CliVersionEntry | null | undefined,
+  fetching: boolean,
+  t: Translate,
+): { versionStatus: 'loading' | 'ok' | 'timeout' | 'error' | 'not_installed'; versionLabel: string } => {
+  if (!entry) {
+    return fetching
+      ? { versionStatus: 'loading', versionLabel: '...' }
+      : { versionStatus: 'error', versionLabel: t('codex.status.retryVersionCheck') }
   }
 
-  const formatTokens = (tokens: number): string => {
-    if (tokens >= 1_000_000) return `${(tokens / 1_000_000).toFixed(1)}M`
-    if (tokens >= 1_000) return `${(tokens / 1_000).toFixed(1)}K`
-    return String(tokens)
+  if (entry.status === 'timeout') {
+    return { versionStatus: 'timeout', versionLabel: t('codex.status.checkingVersion') }
   }
 
-  const formatDateTime = (value?: string | null): string => {
+  if (entry.status === 'error') {
+    return { versionStatus: 'error', versionLabel: t('codex.status.retryVersionCheck') }
+  }
+
+  if (entry.status === 'not_installed' || !entry.installed) {
+    return { versionStatus: 'not_installed', versionLabel: t('codex.status.notInstalled') }
+  }
+
+  return {
+    versionStatus: 'ok',
+    versionLabel: entry.version ? `v${entry.version}` : t('codex.status.installed'),
+  }
+}
+
+export function useCodexDashboard({ t }: UseCodexDashboardOptions) {
+
+  // force 透传：refetch 重跑 queryFn 时消费一次（原 loadOverview/loadUsageSummary/
+  // loadVersion 的 { force } 参数语义）
+  const overviewForceRef = useRef(false)
+  const usageForceRef = useRef(false)
+  const versionForceRef = useRef(false)
+
+  const overviewQuery = useQuery({
+    queryKey: codexKeys.dashboard.overview(),
+    queryFn: () => measureAsync('codex:overview-fetch', async () => {
+      const force = overviewForceRef.current
+      overviewForceRef.current = false
+      return getCodexDashboardOverview({ force })
+    }),
+    staleTime: CODEX_DASHBOARD_STALE_TIME,
+  })
+
+  const usageQuery = useQuery({
+    queryKey: codexKeys.dashboard.usageSummary(),
+    queryFn: () => measureAsync('codex:usage-summary-fetch', async () => {
+      const force = usageForceRef.current
+      usageForceRef.current = false
+      return getCodexDashboardUsageSummary({ force })
+    }),
+    staleTime: CODEX_DASHBOARD_STALE_TIME,
+  })
+
+  const versionQuery = useQuery({
+    queryKey: codexKeys.dashboard.version(),
+    queryFn: () => measureAsync('codex:version-fetch', () => {
+      const force = versionForceRef.current
+      versionForceRef.current = false
+      return getCliVersion({ tool: 'codex', timeoutMs: 1_500, force })
+    }),
+    staleTime: CODEX_VERSION_STALE_TIME,
+  })
+
+  const overview = overviewQuery.data ?? null
+  const usageSummary = usageQuery.data ?? null
+
+  const loading = useMemo(
+    () => overviewQuery.isFetching || usageQuery.isFetching || versionQuery.isFetching,
+    [overviewQuery.isFetching, usageQuery.isFetching, versionQuery.isFetching]
+  )
+
+  const overviewError = overviewQuery.error ? getErrorMessage(overviewQuery.error) : null
+  const usageError = usageQuery.error ? getErrorMessage(usageQuery.error) : null
+
+  const error = useMemo(
+    () => overviewError ?? usageError,
+    [overviewError, usageError]
+  )
+
+  const formatDateTime = useCallback((value?: string | null): string => {
     if (!value) return t('common.notAvailable')
 
     const date = new Date(value)
@@ -125,204 +192,37 @@ export function useCodexDashboard() {
       hour: '2-digit',
       minute: '2-digit',
     }).format(date)
-  }
+  }, [t])
 
-  const applyVersionEntry = (entry?: CliVersionEntry | null) => {
-    if (!entry) {
-      versionStatus.value = 'error'
-      versionLabel.value = t('codex.status.retryVersionCheck')
-      return
-    }
-
-    if (entry.status === 'timeout') {
-      versionStatus.value = 'timeout'
-      versionLabel.value = t('codex.status.checkingVersion')
-      return
-    }
-
-    if (entry.status === 'error') {
-      versionStatus.value = 'error'
-      versionLabel.value = t('codex.status.retryVersionCheck')
-      return
-    }
-
-    if (entry.status === 'not_installed' || !entry.installed) {
-      versionStatus.value = 'not_installed'
-      versionLabel.value = t('codex.status.notInstalled')
-      return
-    }
-
-    versionStatus.value = 'ok'
-    versionLabel.value = entry.version ? `v${entry.version}` : t('codex.status.installed')
-  }
-
-  const loadOverview = async (force = false) => {
-    if (!force && sharedOverview && isCacheFresh(sharedOverviewLoadedAt, DASHBOARD_TTL_MS)) {
-      return sharedOverview
-    }
-
-    if (!force && overviewInflight) {
-      return overviewInflight
-    }
-
-    overviewInflight = measureAsync('codex:overview-fetch', () => (
-      getCodexDashboardOverview({ force })
-    ))
-      .then((result) => {
-        sharedOverview = result
-        sharedOverviewLoadedAt = nowMs()
-        return result
-      })
-      .finally(() => {
-        overviewInflight = null
-      })
-
-    return overviewInflight
-  }
-
-  const loadUsageSummary = async (force = false) => {
-    if (!force && sharedUsageSummary && isCacheFresh(sharedUsageLoadedAt, DASHBOARD_TTL_MS)) {
-      return sharedUsageSummary
-    }
-
-    if (!force && usageInflight) {
-      return usageInflight
-    }
-
-    usageInflight = measureAsync('codex:usage-summary-fetch', () => (
-      getCodexDashboardUsageSummary({ force })
-    ))
-      .then((result) => {
-        sharedUsageSummary = result
-        sharedUsageLoadedAt = nowMs()
-        return result
-      })
-      .finally(() => {
-        usageInflight = null
-      })
-
-    return usageInflight
-  }
-
-  const loadVersion = async (force = false) => {
-    if (!force && sharedVersionEntry && isCacheFresh(sharedVersionLoadedAt, VERSION_TTL_MS)) {
-      return sharedVersionEntry
-    }
-
-    if (!force && versionInflight) {
-      return versionInflight
-    }
-
-    versionInflight = measureAsync('codex:version-fetch', () => (
-      getCliVersion({
-        tool: 'codex',
-        timeoutMs: 1_500,
-        force,
-      })
-    ))
-      .then((entry) => {
-        sharedVersionEntry = entry
-        sharedVersionLoadedAt = nowMs()
-        return entry
-      })
-      .finally(() => {
-        versionInflight = null
-      })
-
-    return versionInflight
-  }
-
-  const refresh = async (force = false) => {
-    syncCachedState()
-    overviewError.value = null
-    usageError.value = null
-
-    const tasks: Array<Promise<void>> = []
-
-    if (force || !sharedOverview || !isCacheFresh(sharedOverviewLoadedAt, DASHBOARD_TTL_MS)) {
-      overviewLoading.value = true
-      tasks.push(
-        loadOverview(force)
-          .then((result) => {
-            overview.value = result
-          })
-          .catch((reason: unknown) => {
-            overviewError.value = getErrorMessage(reason)
-          })
-          .finally(() => {
-            overviewLoading.value = false
-          }),
-      )
-    }
-
-    if (force || !sharedUsageSummary || !isCacheFresh(sharedUsageLoadedAt, DASHBOARD_TTL_MS)) {
-      usageLoading.value = true
-      tasks.push(
-        loadUsageSummary(force)
-          .then((result) => {
-            usageSummary.value = result
-          })
-          .catch((reason: unknown) => {
-            usageError.value = getErrorMessage(reason)
-          })
-          .finally(() => {
-            usageLoading.value = false
-          }),
-      )
-    }
-
-    if (force || !sharedVersionEntry || !isCacheFresh(sharedVersionLoadedAt, VERSION_TTL_MS)) {
-      versionLoading.value = true
-      tasks.push(
-        loadVersion(force)
-          .then((entry) => {
-            applyVersionEntry(entry)
-          })
-          .catch(() => {
-            applyVersionEntry(undefined)
-          })
-          .finally(() => {
-            versionLoading.value = false
-          }),
-      )
-    } else if (sharedVersionEntry) {
-      applyVersionEntry(sharedVersionEntry)
-    }
-
-    if (tasks.length === 0) {
-      return
-    }
-
-    await Promise.allSettled(tasks)
-  }
-
-  const loading = computed(() => (
-    overviewLoading.value || usageLoading.value || versionLoading.value
-  ))
-
-  const error = computed(() => overviewError.value ?? usageError.value)
-
-  const currentAccountLabel = computed(() => {
-    const current = overview.value?.auth.current
+  const currentAccountLabel = useMemo(() => {
+    const current = overview?.auth.current
     return current?.name || current?.email || current?.account_id || t('codex.status.notSet')
-  })
+  }, [overview, t])
 
-  const currentProfileLabel = computed(() => {
-    return overview.value?.profiles.current_profile || t('codex.status.notSet')
-  })
+  const currentProfileLabel = useMemo(
+    () => overview?.profiles.current_profile || t('codex.status.notSet'),
+    [overview, t]
+  )
 
-  const usageTotalRequests = computed(() => {
-    return usageSummary.value?.all_time.total_requests ?? '—'
-  })
+  const usageTotalRequests = useMemo(
+    () => usageSummary?.all_time.total_requests ?? '—',
+    [usageSummary]
+  )
 
-  const usageTotalTokens = computed(() => {
-    const usage = usageSummary.value?.all_time
+  const usageTotalTokens = useMemo(() => {
+    const usage = usageSummary?.all_time
     if (!usage) return '—'
     return formatTokens(usage.total_input_tokens + usage.total_output_tokens)
-  })
+  }, [usageSummary])
 
-  const readinessItems = computed<CodexDashboardReadinessItem[]>(() => {
-    const data = overview.value
+  const { versionStatus, versionLabel } = useMemo(
+    () => deriveVersionState(versionQuery.data, versionQuery.isFetching, t),
+    [t, versionQuery.data, versionQuery.isFetching]
+  )
+
+  // 原 computed readinessItems：来源 overview/usageSummary/loading 标志 + i18n + 派生标签
+  const readinessItems = useMemo<CodexDashboardReadinessItem[]>(() => {
+    const data = overview
     if (!data) return []
 
     const authTone: CodexDashboardTone = !data.auth.logged_in
@@ -345,11 +245,13 @@ export function useCodexDashboard() {
       empty: 'neutral',
     }
 
+    const usageLoading = usageQuery.isFetching
+
     return [
       {
         key: 'auth',
         title: t('codex.dashboard.readiness.auth.title'),
-        value: currentAccountLabel.value,
+        value: currentAccountLabel,
         detail: data.auth.logged_in
           ? data.auth.current?.last_refresh
             ? t('codex.dashboard.readiness.auth.refreshed', { time: formatDateTime(data.auth.current.last_refresh) })
@@ -365,7 +267,7 @@ export function useCodexDashboard() {
       {
         key: 'profiles',
         title: t('codex.dashboard.readiness.profiles.title'),
-        value: currentProfileLabel.value,
+        value: currentProfileLabel,
         detail: t('codex.dashboard.readiness.profiles.detail', {
           total: data.profiles.total,
           enabled: data.profiles.enabled_total,
@@ -397,28 +299,29 @@ export function useCodexDashboard() {
       {
         key: 'usage',
         title: t('codex.dashboard.readiness.usage.title'),
-        value: usageSummary.value?.freshness_description || t('codex.dashboard.usage.loading'),
-        detail: usageSummary.value?.last_activity_at
-          ? t('codex.dashboard.readiness.usage.activity', { time: formatDateTime(usageSummary.value.last_activity_at) })
-          : usageLoading.value
+        value: usageSummary?.freshness_description || t('codex.dashboard.usage.loading'),
+        detail: usageSummary?.last_activity_at
+          ? t('codex.dashboard.readiness.usage.activity', { time: formatDateTime(usageSummary.last_activity_at) })
+          : usageLoading
             ? t('codex.dashboard.readiness.usage.loadingDetail')
             : t('codex.dashboard.readiness.usage.emptyDetail'),
-        statusLabel: usageSummary.value
-          ? t(`codex.dashboard.usageFreshness.${usageSummary.value.freshness}`)
-          : usageLoading.value
+        statusLabel: usageSummary
+          ? t(`codex.dashboard.usageFreshness.${usageSummary.freshness}`)
+          : usageLoading
             ? t('codex.dashboard.statusLabels.checking')
             : t('codex.dashboard.statusLabels.idle'),
-        tone: usageToneMap[usageSummary.value?.freshness ?? 'empty'],
+        tone: usageToneMap[usageSummary?.freshness ?? 'empty'],
         icon: 'BarChart3',
         to: '/usage',
       },
     ]
-  })
+  }, [currentAccountLabel, currentProfileLabel, formatDateTime, overview, t, usageQuery.isFetching, usageSummary])
 
   const healthItems = readinessItems
 
-  const nextActions = computed<CodexDashboardActionItem[]>(() => {
-    const data = overview.value
+  // 原 computed nextActions：actions 为 memo 内本地累积数组（mutation-rewrite.md 判定）
+  const nextActions = useMemo<CodexDashboardActionItem[]>(() => {
+    const data = overview
     if (!data) return []
 
     const actions: CodexDashboardActionItem[] = []
@@ -492,20 +395,20 @@ export function useCodexDashboard() {
     }
 
     return actions.slice(0, 3)
-  })
+  }, [overview, t])
 
-  const primaryAction = computed<CodexDashboardActionItem>(() => (
-    nextActions.value[0] ?? {
+  const primaryAction = useMemo<CodexDashboardActionItem>(() => (
+    nextActions[0] ?? {
       title: t('codex.dashboard.actions.refresh.title'),
       description: t('codex.dashboard.actions.refresh.description'),
       to: '/codex/auth',
       icon: 'RefreshCw',
       tone: 'neutral',
     }
-  ))
+  ), [nextActions, t])
 
-  const compactInventory = computed<CodexDashboardInventoryItem[]>(() => {
-    const data = overview.value
+  const compactInventory = useMemo<CodexDashboardInventoryItem[]>(() => {
+    const data = overview
     if (!data) return []
 
     return [
@@ -566,10 +469,10 @@ export function useCodexDashboard() {
         tone: data.inventory.sessions_total > 0 ? 'success' : 'neutral',
       },
     ]
-  })
+  }, [overview, t])
 
-  const managementLinks = computed<CodexDashboardLinkItem[]>(() => {
-    const data = overview.value
+  const managementLinks = useMemo<CodexDashboardLinkItem[]>(() => {
+    const data = overview
     if (!data) return []
 
     return [
@@ -624,17 +527,35 @@ export function useCodexDashboard() {
         tone: data.inventory.sessions_total > 0 ? 'success' : 'neutral',
       },
     ]
-  })
+  }, [overview, t])
 
-  syncCachedState()
+  const refresh = useCallback(async (force = false) => {
+    if (force) {
+      overviewForceRef.current = true
+      usageForceRef.current = true
+      versionForceRef.current = true
+    }
+
+    // 非 force 仅重拉已陈旧的切片（等价原 isCacheFresh 检查后的按需加载）
+    const tasks: Array<Promise<unknown>> = []
+    if (force || overviewQuery.isStale) tasks.push(overviewQuery.refetch())
+    if (force || usageQuery.isStale) tasks.push(usageQuery.refetch())
+    if (force || versionQuery.isStale) tasks.push(versionQuery.refetch())
+
+    if (tasks.length === 0) {
+      return
+    }
+
+    await Promise.allSettled(tasks)
+  }, [overviewQuery, usageQuery, versionQuery])
 
   return {
     overview,
     usageSummary,
     loading,
-    overviewLoading,
-    usageLoading,
-    versionLoading,
+    overviewLoading: overviewQuery.isFetching,
+    usageLoading: usageQuery.isFetching,
+    versionLoading: versionQuery.isFetching,
     error,
     overviewError,
     usageError,

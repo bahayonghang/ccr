@@ -179,3 +179,18 @@ Pinia 与 Zustand 在批次 4 前可并存（旧 store 未删除时），因此�
 | `ls src/composables` | — | 8 个纯变换 composable 已删除 |
 
 mutation-rewrite.md 已填：useClaudeProfilesInsights（46–48）、useCodexProfilesInsights（50–51）、useProfilesFilter（100/114/157）、useProfilesInsights（128–216 共 9 行），共 17 行——全部判定为本地临时累积或新数组上排序（immutable 安全），无需改写，新写法列记「—」。
+
+## 批次 5b-i 证据（服务端数据类 8 个 composable → Query/hooks）
+
+改动：新增 `src/utils/poller.ts`（框架无关 `createPoller` 轮询核心，自 usePolledData 逐行搬运）；usePolledData 改薄 hook 包裹；`src/stores/usage.ts` 两处调用点改用 createPoller（偏差 2 存活期兼容）。Query 化：useBackendHealth（`features/system/queries.ts` 新建 systemKeys，refetchInterval 自适应 30s/5min）、useAgents（`features/agents/queries.ts` + mutations）、useCodexAgentSources、useCodexAgents、useCodexDashboard、useGrokDashboard（`features/{codex,grok}/queries.ts`，staleTime 30s/60s 按原 TTL）、usePlatformUsageInsight（usageKeys.insightDashboard 新增）。4 处 computed→useMemo（useCodexAgents），watch(:83) 由 Query key/enabled 变化覆盖（classification §2 登记）。签名变化（Ref→普通值、t 参数化、pauseWhen 类型收窄）均已在各文件头注登记。
+
+| 命令 | 退出码 | 结果 |
+| --- | --- | --- |
+| `bun run type-check` | 0 | ✓ |
+| `bun run lint:ci` | 0 | ✓ |
+| `bun run test:smoke` | 0 | 67 文件 / 333 测试全绿 |
+| `just frontend-check-quick`（主线程复跑） | 0 | 全绿 |
+| `git diff --stat src/api` | — | 空 |
+| `grep -l "from 'vue'" <8 文件>` | — | 无匹配 |
+
+未决项登记：grok version queryFn 未透传 force（原实现即如此，仅越过前端 staleTime）；useCodexAgents.loadRuntimeSummary 复用 dashboard overview 缓存（原为绕 TTL 直连 IPC，头注已说明）；编排类多步命令保持 useCallback 编排非 mutation（useCodexAgentSources）。
