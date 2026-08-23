@@ -144,13 +144,25 @@ utilities/animations/chart-colors，deferred-decorations 含 backgrounds。
 
 ## 批次 3：原语层
 
-- [ ] 手写原语普查：按 `design.md` §6 的特征 `rg` 出 Dropdown / Tooltip / Popover / Tabs / Accordion / Combobox 的手写实现与调用点，`adhoc-primitives.md` 落盘。
-- [ ] 原语层落位到 `src/ui/`（父任务 `design.md` §2）。`src/components/ui/` 迁移后不再存在。
-- [ ] 接入 shadcn/ui，覆盖 9 类：Dialog、Popover、DropdownMenu、Tooltip、Tabs、Combobox、Select、Switch、Checkbox。
-- [ ] 每类原语写一个消费示例（AC4），放 `src/ui/__examples__` 或 smoke 测试内。
-- [ ] 16 个现有原语逐个核对现有用法后确认判定，`primitive-disposition.md` 落盘（AC6）。
-- [ ] 判定为「保留并改消费新 token」的原语改写完成。
-- [ ] 判定为「shadcn/ui 替换」的原语，其调用点改动由视图子任务执行，本批次只提供替换映射。
+- [x] 手写原语普查：按 `design.md` §6 的特征 `rg` 出 Dropdown / Tooltip / Popover / Tabs / Accordion / Combobox 的手写实现与调用点，`adhoc-primitives.md` 落盘（27 个手写实现：Dropdown 6、Popover 3、Tabs 11、Accordion 3、Combobox 2、Tooltip 2，含 §10 替换映射）。
+- [x] 原语层落位到 `src/ui/`（父任务 `design.md` §2）：9 类 Radix 原语（dialog/popover/dropdown-menu/tooltip/tabs/combobox/select/switch/checkbox）+ `cn.ts` + 桶导出。`src/components/ui/` 16 个 .vue 为死代码，随阶段 5 迁移消失。
+- [x] 接入 shadcn/ui，覆盖 9 类。依赖：@radix-ui/react-{dialog,popover,dropdown-menu,tooltip,select,switch,checkbox} + tailwind-merge；core.css 补 --radius-2xl/3xl/full 映射防 Tailwind 默认字面量绕过 token。
+- [x] 每类原语写一个消费示例（AC4）：`tests/ui-primitives.smoke.test.tsx` 9 个行为用例（Dialog Esc 关闭、Tabs 面板切换、Select 选项选择等）全绿。
+- [x] 16 个现有原语逐个核对现有用法后确认判定，`primitive-disposition.md` 落盘（AC6）：16 行无空缺，消费方计数经 grep 实测（SIcon 128、PageShell/PageHeader 44、Button 38 等）；三处对 §6 初判的修正已记录（Breadcrumb/NavItem/IconWrapper 实际 0 消费者）。
+- [x] 判定为「保留并改消费新 token」的原语改写完成——**偏差记录**：16 个原语均为 .vue 死代码，改写发生在各自 React 移植时（shell-port / views 阶段），不在本批次执行；`primitive-disposition.md` 即为查表依据。
+- [x] 判定为「shadcn/ui 替换」的原语，其调用点改动由视图子任务执行，本批次只提供替换映射（`adhoc-primitives.md` §10）。
+
+### 批次 3 证据
+
+| 命令 | 退出码 | 结果 |
+| --- | --- | --- |
+| `bun run type-check` | 0 | ✓ |
+| `bun run lint:ci` | 0 | eslint + stylelint + check:style-lines 全绿 |
+| `vitest run --config vitest.smoke.config.ts tests/ui-primitives.smoke.test.tsx` | 0 | 9/9 通过 |
+| `just frontend-check-quick` | 0 | 61 文件 / 303 测试全绿（新增 1 文件 9 用例） |
+| `src/ui/*.tsx` 硬编码扫描 | — | px 字面量 / rgba() / hex 均为 0（token 工具类承载） |
+
+注：直接 `bun x vitest run <file>` 不带 `--config vitest.smoke.config.ts` 会落入 node 环境导致 jsdom 全局缺失（MouseEvent/window undefined），属调用方式问题而非代码缺陷。
 
 验证：`bun run type-check`；9 类原语各有示例可渲染。
 
