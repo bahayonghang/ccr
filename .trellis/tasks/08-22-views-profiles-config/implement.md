@@ -39,8 +39,8 @@
 
 ## 批次 2：配置管理视图与弹层（阶段 5 起）
 
-- [ ] `ConfigsView`(520)、`EditConfigModal`(406)、`AddConfigModal`(342)、`ConfigCard`(331)、`components/configs/`（3 文件 654 行）。
-- [ ] `configs` 路由的缓存行为：数据走 Query，选中态、搜索词、表单草稿入 Zustand（草稿键为配置 id）。**补 `08-22-shell-port` AC11 的界面级表单草稿验证**——该项在外壳门时因视图未迁移而无法做，已由对方 AC11 单列并移交本批次。
+- [x] `ConfigsView`(520)、`EditConfigModal`(406)、`AddConfigModal`(342)、`ConfigCard`(331)、`components/configs/`（3 文件 654 行）。
+- [x] `configs` 路由的缓存行为：数据走 Query，选中态、搜索词、表单草稿入 Zustand（草稿键为配置 id）。**补 `08-22-shell-port` AC11 的界面级表单草稿验证**——该项在外壳门时因视图未迁移而无法做，已由对方 AC11 单列并移交本批次。
 - [ ] 弹层走 `08-22-design-system` 的单一 Dialog 底座（或其 `BaseModal` 适配器）。
 - [ ] 嵌入原始配置编辑器的部分等 `08-22-views-sync-tools` 交付桥接组件后再做（`design.md` §8）。该依赖需与对方协调时序。
 
@@ -48,31 +48,31 @@
 
 ## 批次 3：配置表单
 
-- [ ] `AppSettingsView`(1,399)：react-hook-form 非受控注册 + zod schema。该页是 `08-22-arch-quality-perf` 场景 1 的测量页之一。
+- [x] `AppSettingsView`(1,399)：react-hook-form 非受控注册 + zod schema。该页是 `08-22-arch-quality-perf` 场景 1 的测量页之一。
 - [ ] 超过行数上限，需拆分。拆分边界按设置分组（section）划分。
-- [ ] **字段清单落盘**（AC4）：每个字段的名称、类型、默认值、校验规则、读写验证结果。覆盖全部表单页，无空缺。
-- [ ] API key 与 auth token 字段掩码显示。
+- [x] **字段清单落盘**（AC4）：每个字段的名称、类型、默认值、校验规则、读写验证结果。覆盖全部表单页，无空缺。
+- [x] API key 与 auth token 字段掩码显示。
 
 验证：AC4 的字段清单逐项读写正确；AC5 的掩码与日志无明文（smoke 测试断言）。
 
 ## 批次 4：Provider 模板与转换
 
-- [ ] `ProviderTemplateSelector`(1,275)：超过行数上限，需拆分。
-- [ ] `ConverterView`(915)。核对是否与 `profileDiff` 共用渲染组件。
+- [x] `ProviderTemplateSelector`(1,275)：超过行数上限，需拆分。
+- [x] `ConverterView`(915)。核对是否与 `profileDiff` 共用渲染组件。
 - [ ] `provider-template-contracts.md` 的模板选择与应用行为验证（R5）。
 
 ## 批次 5：安全行为与契约验证
 
-- [ ] 配置切换前生成备份，备份文件可用于恢复（AC6）。
-- [ ] 配置写入原子性：确认前端只调现有 wrapper，无新增直写路径。中断写入的验证方法确定并执行（AC7、`design.md` §5 末段）。
-- [ ] 前端绕过路径排查：若存在，登记为独立缺陷，不在本任务修复。
-- [ ] `profileDiff` 的差异展示视觉与语义一致（R9）。
+- [x] 配置切换前生成备份，备份文件可用于恢复（AC6）。
+- [x] 配置写入原子性：确认前端只调现有 wrapper，无新增直写路径。中断写入的验证方法确定并执行（AC7、`design.md` §5 末段）。
+- [x] 前端绕过路径排查：若存在，登记为独立缺陷，不在本任务修复。
+- [x] `profileDiff` 的差异展示视觉与语义一致（R9）。
 - [ ] 三份契约的验证项全部通过（AC8）。`raw-config-editor-contracts.md` 只验本任务的调用路径，桥接实现侧由 `08-22-views-sync-tools` 验。
 
 ## 批次 6：收口
 
-- [ ] 本批次组件内 px 与 `rgba()` 归零，`0.75rem` 例外保留并在豁免登记中（AC9）。
-- [ ] `rg --files -g '*.vue' src/components/profiles src/components/provider-templates src/components/configs src/views/AppSettingsView.vue src/views/ConverterView.vue src/views/ConfigsView.vue src/components/EditConfigModal.vue src/components/AddConfigModal.vue src/components/ConfigCard.vue` 无匹配（AC1）。
+- [x] 本批次组件内 px 与 `rgba()` 归零，`0.75rem` 例外保留并在豁免登记中（AC9）。
+- [x] `rg --files -g '*.vue' src/components/profiles src/components/provider-templates src/components/configs src/views/AppSettingsView.vue src/views/ConverterView.vue src/views/ConfigsView.vue src/components/EditConfigModal.vue src/components/AddConfigModal.vue src/components/ConfigCard.vue` 无匹配（AC1）。
 - [ ] `src/api`、`src/config`、`src/configs` 的 diff 检查：范围限本任务分支的提交，排除 `08-22-platform-unify` 对 `src/config` / `src/configs` 的改动（AC10、`design.md` §10 末段）。
 
 ## 验证命令

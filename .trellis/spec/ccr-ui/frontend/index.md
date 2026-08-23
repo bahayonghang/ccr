@@ -25,6 +25,7 @@
 | [Grok Settings Contracts](./grok-settings-contracts.md)                   | Dirty-key typed patches, CAS/managed locks, Local-only gating, and Grok raw-source policy notices              | Complete |
 | [Layering Contracts](./layering-contracts.md)                             | Enforced dependency graph, component layering, facade consumer/definition-side division of labor              | Complete |
 | [React Rerender Discipline](./react-rerender-discipline.md)               | Four lint-enforced and three review-gate re-render constraints for view-layer React code                      | Complete |
+| [Platform Surface Contracts](./platform-surface-contracts.md)             | Two-layer descriptor + per-surface config; Base components without platform-name branches                     | Complete |
 
 ## Pre-Development Checklist
 
@@ -44,6 +45,7 @@
 - Read [Grok Settings Contracts](./grok-settings-contracts.md) before changing the Grok typed Settings form, its raw-source wrappers, or Grok configuration-layer notices.
 - Read [Layering Contracts](./layering-contracts.md) before adding or moving any module under `ccr-ui/src/**` (dependency direction, component layering, facade import rules).
 - Read [React Rerender Discipline](./react-rerender-discipline.md) before writing or reviewing view-layer React code under `ccr-ui/src/features/**` and `ccr-ui/src/views/**`.
+- Read [Platform Surface Contracts](./platform-surface-contracts.md) before adding a platform surface, a `features/platform` Base, or a `src/configs/{settings,profiles,commands,mcp,agents,plugins,auth}.ts` export.
 
 ## Quality Check
 

@@ -1,0 +1,30 @@
+.configs-page {
+  min-width: 0;
+}
+
+.configs-workspace {
+  display: flex;
+  min-height: 37.5rem;
+  height: fit-content;
+  flex-direction: column;
+  border-radius: 1rem;
+  border: var(--space-px) solid var(--color-border-default);
+  background: var(--color-bg-surface);
+  padding: 1.5rem;
+}
+
+.configs-search {
+  width: 100%;
+  border-radius: 0.75rem;
+  border: var(--space-px) solid var(--color-border-default);
+  background: var(--color-bg-elevated);
+  padding: 0.625rem 1rem 0.625rem 2.5rem;
+  font-size: 0.875rem;
+  color: var(--color-text-primary);
+  outline: none;
+}
+
+.configs-search:focus {
+  border-color: rgb(var(--color-accent-primary-rgb) / 50%);
+  box-shadow: 0 0 0 0.125rem rgb(var(--color-accent-primary-rgb) / 20%);
+}

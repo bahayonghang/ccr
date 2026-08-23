@@ -20,6 +20,7 @@ export const grokKeys = {
     [...grokKeys.all, 'overview', environmentId ?? null] as const,
   version: (environmentId: string | null) =>
     [...grokKeys.all, 'version', environmentId ?? null] as const,
+  profiles: () => [...grokKeys.all, 'profiles'] as const,
 }
 
 export const GROK_OVERVIEW_STALE_TIME = 30_000

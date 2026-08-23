@@ -1,4 +1,6 @@
 export { mcpKeys } from './queries'
+export { McpManagerView } from './McpManagerView'
+export { loadMcpManagerView, mcpRouteLoaders } from './routeLoaders'
 export { McpListPanel } from '@/features/platform/mcp/McpListPanel'
 export type { McpListPanelProps } from '@/features/platform/mcp/McpListPanel'
 export { McpDetailPanel } from '@/features/platform/mcp/McpDetailPanel'

@@ -9,3 +9,11 @@ export const loadBudgetView = () =>
 
 export const loadPricingView = () =>
   import('./pricing/PricingView').then((mod) => ({ Component: mod.PricingView }))
+
+/** usage 域懒加载表。key 对齐 routeCatalog id。 */
+export const usageRouteLoaders = {
+  dashboard: loadDashboardView,
+  usage: loadUsageDashboardView,
+  budget: loadBudgetView,
+  pricing: loadPricingView,
+} as const

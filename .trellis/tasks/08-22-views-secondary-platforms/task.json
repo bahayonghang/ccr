@@ -3,7 +3,7 @@
   "name": "views-secondary-platforms",
   "title": "Grok / Gemini / OpenCode / generic 视图迁移",
   "description": "Grok、Gemini CLI、OpenCode 与 generic 视图组件约 11669 行迁移",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": null,
   "scope": null,
   "package": null,

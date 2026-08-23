@@ -1,0 +1,63 @@
+.glass-filter-container {
+  background: var(--surface-status-bg);
+  backdrop-filter: var(--surface-status-blur);
+  border: var(--space-px) solid var(--surface-status-border);
+  box-shadow: var(--shadow-sm);
+}
+
+.filter-btn {
+  background: transparent;
+  color: var(--text-secondary);
+  border: var(--space-px) solid transparent;
+}
+
+.filter-btn:hover:not(.filter-btn-active) {
+  background: var(--glass-bg-medium);
+  color: var(--text-primary);
+}
+
+.filter-btn-active {
+  background: var(--color-accent-primary);
+  color: var(--color-accent-primary-contrast);
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.sort-select {
+  background: var(--surface-status-bg);
+  backdrop-filter: var(--surface-status-blur);
+  border: var(--space-px) solid var(--surface-status-border);
+  color: var(--text-primary);
+  min-width: 8.75rem;
+}
+
+.sort-select:hover,
+.sort-select:focus {
+  border-color: var(--color-accent-primary);
+}
+
+.sort-select:focus {
+  outline: none;
+  box-shadow: 0 0 0 0.1875rem rgb(var(--color-accent-primary-rgb) / 15%);
+}
+
+.stats-btn {
+  background: var(--glass-bg-light);
+  border: var(--space-px) solid var(--glass-border-light);
+  color: var(--text-secondary);
+}
+
+.stats-btn:hover {
+  background: var(--glass-bg-medium);
+  border-color: var(--color-accent-primary);
+  color: var(--color-accent-primary);
+}
+
+.add-btn {
+  background: var(--color-accent-primary);
+  box-shadow: none;
+}
+
+.add-btn:hover {
+  box-shadow: 0 0.375rem 1.5rem rgb(var(--color-accent-primary-rgb) / 40%);
+}

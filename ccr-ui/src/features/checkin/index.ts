@@ -1,6 +1,10 @@
 export { CheckinView } from './CheckinView'
 export { CheckinAccountDashboardView } from './CheckinAccountDashboardView'
-export { checkinRouteLoader, checkinAccountDashboardRouteLoader } from './routeLoaders'
+export {
+  checkinRouteLoader,
+  checkinAccountDashboardRouteLoader,
+  checkinRouteLoaders,
+} from './routeLoaders'
 export {
   BALANCE_REFRESH_CONCURRENCY,
   BALANCE_REFRESH_MIN_INTERVAL_MS,

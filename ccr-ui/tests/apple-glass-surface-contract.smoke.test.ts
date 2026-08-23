@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 
 const migratedViewPaths = [
-  '../src/components/MainLayout.vue',
+  '../src/shell/MainLayout.tsx',
   '../src/features/usage/dashboard/DashboardView.tsx',
   '../src/features/usage/UsageDashboardView.tsx',
   '../src/features/claude/ClaudeCodeView.tsx',
@@ -27,11 +27,11 @@ const styleLockedPaths = [
   '../src/features/checkin/styles/dashboard.css',
   '../src/features/checkin/styles/calendar.css',
   '../src/features/checkin/styles/trend.css',
-  '../src/components/MainLayout.vue',
+  '../src/shell/MainLayout.tsx',
   // WS6 批次④：收口到 BaseModal 的表单弹窗（扁平语言已锁定）。
-  '../src/components/AddConfigModal.vue',
-  '../src/components/EditConfigModal.vue',
-  '../src/components/CommandFormModal.vue',
+  '../src/features/configs/components/AddConfigModal.tsx',
+  '../src/features/configs/components/EditConfigModal.tsx',
+  '../src/features/commands/CommandFormModal.tsx',
 ]
 
 const forbiddenLegacyUtilities = /\btext-white(?:\/|\b)|\bbg-white\/|\bborder-white\//

@@ -15,15 +15,18 @@ vi.mock('@tauri-apps/api/event', () => ({
 }))
 
 describe('React 外壳启动', () => {
-  it('根路径渲染占位页面且无白屏', async () => {
+  it('根路径渲染仪表盘且无白屏', async () => {
     const router = createMemoryRouter(appRoutes, { initialEntries: ['/'] })
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-    render(
+    const { container } = render(
       <QueryClientProvider client={client}>
         <RouterProvider router={router} />
       </QueryClientProvider>,
     )
-    const placeholder = await screen.findByTestId('route-placeholder')
-    expect(placeholder.getAttribute('data-route-id')).toBe('dashboard')
+    expect(await screen.findByRole('link', { name: '跳到主要内容' })).toBeTruthy()
+    expect(container.querySelector('#main-content')).toBeTruthy()
+    expect(await screen.findByText('CCR 总览')).toBeTruthy()
+    expect(container.querySelector('.dashboard-view')).toBeTruthy()
+    expect(screen.queryByTestId('route-placeholder')).toBeNull()
   })
 })

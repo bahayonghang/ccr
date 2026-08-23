@@ -52,25 +52,20 @@ const collectVHtmlUsages = async (): Promise<VHtmlUsage[]> => {
 
 describe('v-html safety allowlist', () => {
   it('keeps every v-html usage tied to an audited sanitizer, escaped helper, or static i18n source', async () => {
-    await expect(collectVHtmlUsages()).resolves.toEqual([
-      {
-        file: 'src/views/CommandsView.vue',
-        binding: 'line.safeHtml',
-      },
-    ])
+    await expect(collectVHtmlUsages()).resolves.toEqual([])
   })
 
   it('keeps audited v-html sources behind explicit escaping or sanitization helpers', async () => {
-    const [ansiRenderer, claudeProfiles, installDialog, commandsView] = await Promise.all([
+    const [ansiRenderer, claudeProfiles, installDialog, commandsLedger] = await Promise.all([
       readFile('src/utils/ansiRenderer.ts', 'utf8'),
       readFile('src/utils/claudeProfiles.ts', 'utf8'),
       readFile('src/features/usage/components/LlmusageInstallDialog.tsx', 'utf8'),
-      readFile('src/views/CommandsView.vue', 'utf8'),
+      readFile('src/features/commands/LedgerLine.tsx', 'utf8'),
     ])
 
     expect(ansiRenderer).toMatch(/sanitizeTerminal/)
     expect(claudeProfiles).toMatch(/escapeHtml/)
     expect(installDialog).toMatch(/只渲染 i18n 文案，无用户输入/)
-    expect(commandsView).toMatch(/createAnsiRenderer/)
+    expect(commandsLedger).toMatch(/DOMPurify\.sanitize/)
   })
 })

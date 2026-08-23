@@ -1,6 +1,5 @@
-import { grokProfilesConfig } from '@/configs/profiles'
-import { BaseProfiles } from '@/features/platform'
+import { GrokProfilesPage } from './profiles/GrokProfilesPage'
 
 export function GrokProfilesView() {
-  return <BaseProfiles config={grokProfilesConfig} />
+  return <GrokProfilesPage />
 }

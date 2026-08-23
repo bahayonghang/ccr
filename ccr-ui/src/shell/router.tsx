@@ -1,10 +1,46 @@
-import { createBrowserRouter, redirect, type RouteObject } from 'react-router'
+import { createBrowserRouter, redirect, type LazyRouteFunction, type RouteObject } from 'react-router'
+import { checkinRouteLoaders } from '@/features/checkin/routeLoaders'
+import { claudeRouteLoaders } from '@/features/claude/routeLoaders'
+import { codexRouteLoaders } from '@/features/codex/routeLoaders'
+import { commandsRouteLoaders } from '@/features/commands/routeLoaders'
+import { configsRouteLoaders } from '@/features/configs/routeLoaders'
+import { geminiRouteLoaders } from '@/features/gemini/routeLoaders'
+import { grokRouteLoaders } from '@/features/grok/routeLoaders'
+import { mcpRouteLoaders } from '@/features/mcp/routeLoaders'
+import { monitoringRouteLoaders } from '@/features/monitoring/routeLoaders'
+import { opencodeRouteLoaders } from '@/features/opencode/routeLoaders'
+import { syncRouteLoaders } from '@/features/sync/routeLoaders'
+import { trayRouteLoaders } from '@/features/tray/routeLoaders'
+import { usageRouteLoaders } from '@/features/usage/routeLoaders'
 import { App } from './App'
 import { localeWarmupLoader } from './localeLoader'
 import { MainLayout } from './MainLayout'
 import { layoutChildCatalog, trayCatalog, type CatalogEntry } from './routeCatalog'
+
+type LazyLoader = LazyRouteFunction<RouteObject>
+
 const loadPlaceholder = () =>
   import('./placeholders/RoutePlaceholder').then((mod) => ({ Component: mod.RoutePlaceholder }))
+
+// 后写覆盖短别名：settings→configs，slash-commands→commands，agents→gemini。
+const lazyById: Record<string, LazyLoader> = {
+  ...claudeRouteLoaders,
+  ...codexRouteLoaders,
+  ...grokRouteLoaders,
+  ...geminiRouteLoaders,
+  ...opencodeRouteLoaders,
+  ...usageRouteLoaders,
+  ...configsRouteLoaders,
+  ...commandsRouteLoaders,
+  ...syncRouteLoaders,
+  ...monitoringRouteLoaders,
+  ...mcpRouteLoaders,
+  ...trayRouteLoaders,
+  ...checkinRouteLoaders,
+}
+
+const resolveLazy = (id: string | undefined): LazyLoader =>
+  (id ? lazyById[id] : undefined) ?? loadPlaceholder
 
 const toChildRoute = (entry: CatalogEntry): RouteObject => {
   if (entry.redirect) {
@@ -20,7 +56,7 @@ const toChildRoute = (entry: CatalogEntry): RouteObject => {
     path: entry.path,
     id: entry.id,
     handle: entry.handle,
-    lazy: loadPlaceholder,
+    lazy: resolveLazy(entry.id),
     loader: localeWarmupLoader,
   }
 }
@@ -50,7 +86,7 @@ export const appRoutes: RouteObject[] = [
         path: 'tray/codex',
         id: trayCatalog.id,
         handle: trayCatalog.handle,
-        lazy: loadPlaceholder,
+        lazy: resolveLazy(trayCatalog.id),
         ErrorBoundary: TrayErrorBoundary,
       },
       {

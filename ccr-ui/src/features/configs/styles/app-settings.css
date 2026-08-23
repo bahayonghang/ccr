@@ -1,0 +1,495 @@
+.app-settings-view {
+  @apply min-h-full;
+}
+
+.app-settings-shell {
+  @apply mx-auto flex max-w-[90rem] flex-col gap-5;
+}
+
+.app-settings-hero {
+  @apply flex flex-col gap-4 rounded-lg border px-5 py-5 lg:flex-row lg:items-center lg:justify-between;
+
+  background: var(--surface-card-bg);
+  border-color: var(--surface-card-border);
+  box-shadow: var(--shadow-sm);
+}
+
+.app-settings-hero__intro {
+  @apply flex items-start gap-4;
+}
+
+.app-settings-hero__icon {
+  @apply flex h-12 w-12 items-center justify-center rounded-lg border;
+
+  color: var(--color-accent-primary);
+  border-color: rgb(var(--color-accent-primary-rgb) / 24%);
+  background: rgb(var(--color-accent-primary-rgb) / 10%);
+}
+
+.app-settings-hero__eyebrow,
+.app-settings-card__eyebrow {
+  @apply text-[0.6875rem] font-semibold tracking-[0.08em];
+
+  color: var(--color-text-muted);
+}
+
+.app-settings-hero__title {
+  @apply text-[1.7rem] font-semibold tracking-[-0.03em] sm:text-[2rem];
+
+  color: var(--color-text-primary);
+}
+
+.app-settings-hero__description,
+.app-settings-card__description {
+  @apply max-w-[56ch] text-sm leading-6;
+
+  color: var(--color-text-secondary);
+}
+
+.app-settings-summary {
+  @apply flex flex-wrap items-center gap-2.5;
+}
+
+.app-settings-summary__pill {
+  @apply inline-flex items-center rounded-md border px-2.5 py-1.5 text-[0.6875rem] font-semibold;
+
+  border-color: var(--color-border-default);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-secondary);
+}
+
+.app-settings-summary__pill--mono {
+  @apply font-mono tracking-normal;
+}
+
+.app-settings-layout {
+  @apply grid min-w-0 grid-cols-1 gap-5 xl:grid-cols-[16.25rem_minmax(0,1fr)];
+}
+
+.app-settings-nav {
+  @apply xl:sticky xl:top-6 xl:self-start;
+}
+
+.app-settings-nav__inner {
+  @apply flex min-w-0 gap-2 overflow-x-auto pb-1 xl:flex-col xl:overflow-visible;
+}
+
+.app-settings-nav__button {
+  @apply flex min-h-16 min-w-[13.75rem] items-start gap-3 rounded-lg border px-3.5 py-3 text-left transition-[border-color,background-color,box-shadow,transform] duration-200 xl:min-w-0;
+
+  border-color: var(--color-border-default);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-secondary);
+}
+
+.app-settings-nav__button:hover {
+  transform: translateY(-0.0625rem);
+  border-color: var(--color-border-strong);
+  background: var(--color-bg-surface);
+}
+
+.app-settings-nav__button--active {
+  border-color: rgb(var(--color-accent-primary-rgb) / 24%);
+  background: rgb(var(--color-accent-primary-rgb) / 10%);
+  color: var(--color-text-primary);
+}
+
+.app-settings-nav__icon {
+  @apply mt-0.5 flex h-8 w-8 flex-none items-center justify-center rounded-md border;
+
+  border-color: var(--color-border-default);
+  background: var(--color-bg-surface);
+}
+
+.app-settings-nav__button--active .app-settings-nav__icon {
+  border-color: rgb(var(--color-accent-primary-rgb) / 24%);
+  background: rgb(var(--color-accent-primary-rgb) / 12%);
+  color: var(--color-text-primary);
+}
+
+.app-settings-nav__title,
+.app-settings-option__title,
+.app-settings-row__title,
+.app-settings-card__title {
+  @apply block text-sm font-semibold;
+
+  color: var(--color-text-primary);
+}
+
+.app-settings-nav__caption,
+.app-settings-option__caption {
+  @apply mt-1 block text-xs leading-5;
+
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.app-settings-content {
+  @apply flex min-w-0 flex-col gap-5;
+}
+
+.app-settings-content > section {
+  @apply flex min-w-0 flex-col gap-4;
+}
+
+.app-settings-card {
+  @apply min-w-0 rounded-lg border p-4 sm:p-5;
+
+  border-color: var(--color-border-default);
+  background: var(--surface-card-bg);
+}
+
+.app-settings-card__header {
+  @apply flex max-w-[72ch] flex-col gap-2 border-b border-border-default/40 pb-4;
+}
+
+.app-settings-card__header--follow {
+  @apply mt-6;
+}
+
+.app-settings-option-grid {
+  @apply mt-4 grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3;
+}
+
+.app-settings-option-grid--compact {
+  @apply xl:grid-cols-2;
+}
+
+.app-settings-option {
+  @apply flex min-h-28 min-w-0 flex-col justify-between rounded-lg border p-3.5 text-left transition-[border-color,background-color,box-shadow,transform] duration-200;
+
+  border-color: var(--color-border-default);
+  background: var(--color-bg-elevated);
+}
+
+.app-settings-option:hover {
+  transform: translateY(-0.0625rem);
+  border-color: var(--color-border-strong);
+  box-shadow: var(--shadow-sm);
+}
+
+.app-settings-option--active {
+  border-color: var(--color-accent-primary);
+  background: var(--color-bg-surface);
+  box-shadow: inset 0 0 0 var(--space-px) var(--color-accent-primary);
+}
+
+.app-settings-option__meta {
+  @apply flex min-w-0 items-start gap-3;
+}
+
+.app-settings-option__copy {
+  @apply min-w-0;
+}
+
+.app-settings-option__icon {
+  @apply flex h-9 w-9 flex-none items-center justify-center rounded-md border;
+
+  border-color: var(--color-border-default);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+}
+
+.app-settings-option__icon--plain {
+  @apply text-sm font-semibold tracking-normal;
+}
+
+.app-settings-option__status {
+  @apply inline-flex w-fit items-center rounded-md border px-2 py-1 text-[0.625rem] font-semibold;
+
+  border-color: var(--color-border-default);
+  background: var(--color-bg-surface);
+  color: var(--color-text-muted);
+}
+
+.app-settings-option__status--active,
+.app-settings-option--active .app-settings-option__status {
+  border-color: var(--color-border-accent);
+  background: rgb(var(--color-accent-primary-rgb) / 10%);
+  color: var(--color-accent-primary);
+}
+
+.app-settings-group {
+  @apply mt-4 flex min-w-0 flex-col overflow-hidden rounded-lg border;
+
+  border-color: var(--color-border-default);
+  background: var(--color-bg-base);
+}
+
+.app-settings-group__item {
+  @apply flex min-w-0 items-start gap-3 border-b px-3.5 py-3 text-left last:border-b-0;
+
+  border-color: var(--color-border-subtle);
+  color: var(--color-text-secondary);
+}
+
+.app-settings-group__item:hover {
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+}
+
+.app-settings-group__item--active {
+  background: rgb(var(--color-accent-primary-rgb) / 10%);
+  color: var(--color-text-primary);
+}
+
+.app-settings-group__icon {
+  @apply mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-md border;
+
+  border-color: var(--color-border-default);
+  background: var(--color-bg-elevated);
+}
+
+.app-settings-group__item--active .app-settings-group__icon {
+  border-color: rgb(var(--color-accent-primary-rgb) / 24%);
+  color: var(--color-text-primary);
+}
+
+.app-settings-group__copy {
+  @apply min-w-0;
+}
+
+.app-settings-group__title {
+  @apply block text-sm font-semibold;
+
+  color: var(--color-text-primary);
+}
+
+.app-settings-group__caption {
+  @apply mt-0.5 block text-xs leading-5;
+
+  color: var(--color-text-muted);
+}
+
+.app-settings-group__resolved {
+  @apply mt-3 text-xs font-semibold;
+
+  color: var(--color-text-muted);
+}
+
+.app-settings-flavor-grid {
+  @apply mt-4 grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2;
+}
+
+.app-settings-flavor-card {
+  @apply relative flex min-w-0 flex-col gap-3 rounded-lg border p-3.5 text-left transition-[border-color,background-color,box-shadow,transform] duration-200;
+
+  border-color: var(--color-border-default);
+  background: var(--color-bg-elevated);
+}
+
+.app-settings-flavor-card:hover {
+  transform: translateY(-0.0625rem);
+  border-color: var(--color-border-strong);
+  box-shadow: var(--shadow-sm);
+}
+
+.app-settings-flavor-card--active {
+  border-color: var(--color-accent-primary);
+  background: var(--color-bg-surface);
+  box-shadow: inset 0 0 0 var(--space-px) var(--color-accent-primary);
+}
+
+.app-settings-flavor-card__preview {
+  @apply flex h-20 items-center justify-center rounded-md border;
+
+  border-color: var(--color-border-subtle);
+  background: var(--fp-bg-base);
+}
+
+.fp-surface {
+  @apply flex items-center gap-2 rounded border px-3 py-2;
+
+  border-color: var(--color-border-subtle);
+  background: var(--fp-bg-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.fp-text {
+  @apply text-sm font-semibold;
+
+  color: var(--fp-text-primary);
+}
+
+.fp-muted {
+  @apply text-xs;
+
+  color: var(--fp-text-muted);
+}
+
+.fp-accent {
+  @apply h-3.5 w-6 rounded-sm;
+
+  background: var(--color-accent-primary);
+}
+
+.app-settings-flavor-card__copy {
+  @apply min-w-0;
+}
+
+.app-settings-flavor-card__footer {
+  @apply flex items-center gap-2;
+}
+
+.app-settings-flavor-card__dot {
+  @apply h-2 w-2 flex-none rounded-full;
+
+  background: var(--color-accent-primary);
+}
+
+.app-settings-stack {
+  @apply mt-5 flex min-w-0 flex-col gap-4;
+}
+
+.app-settings-row {
+  @apply flex min-w-0 flex-col gap-4 rounded-lg border px-4 py-4 lg:flex-row lg:items-center lg:justify-between;
+
+  border-color: var(--color-border-default);
+  background: var(--color-bg-elevated);
+}
+
+.app-settings-row--slider,
+.app-settings-row--font {
+  @apply items-stretch;
+}
+
+.app-settings-row__copy {
+  @apply max-w-[56ch];
+}
+
+.app-settings-row__description,
+.app-settings-callout {
+  @apply text-sm leading-6;
+
+  color: var(--color-text-secondary);
+}
+
+.app-settings-switch {
+  @apply relative inline-flex items-center gap-3 rounded-lg border px-3 py-2 text-xs font-semibold transition-[border-color,background-color,box-shadow] duration-200;
+
+  border-color: var(--color-border-default);
+  background: var(--color-bg-surface);
+  color: var(--color-text-muted);
+}
+
+.app-settings-switch--active {
+  border-color: var(--color-border-accent);
+  background: rgb(var(--color-accent-primary-rgb) / 10%);
+  color: var(--color-accent-primary);
+}
+
+.app-settings-switch__track {
+  @apply relative h-6 w-10 rounded-full;
+
+  background: var(--color-bg-overlay);
+}
+
+.app-settings-switch--active .app-settings-switch__track {
+  background: rgb(var(--color-accent-primary-rgb) / 30%);
+}
+
+.app-settings-switch__thumb {
+  @apply absolute left-3 top-1/2 h-5 w-5 rounded-full border transition-transform duration-200;
+
+  transform: translateY(-50%);
+  border-color: var(--color-border-strong);
+  background: var(--color-bg-surface);
+}
+
+.app-settings-switch--active .app-settings-switch__thumb {
+  transform: translate(1rem, -50%);
+  border-color: var(--color-border-accent);
+}
+
+.app-settings-switch__label {
+  @apply min-w-[4.75rem] text-left;
+}
+
+.app-settings-callout {
+  @apply flex items-start gap-2 rounded-lg border px-4 py-3;
+
+  border-color: var(--color-border-accent);
+  background: rgb(var(--color-accent-primary-rgb) / 8%);
+}
+
+.app-settings-slider {
+  @apply w-full max-w-[22.5rem] rounded-lg border px-4 py-3;
+
+  border-color: var(--color-border-default);
+  background: var(--color-bg-surface);
+}
+
+.app-settings-slider__control {
+  @apply w-full accent-accent-primary;
+}
+
+.app-settings-slider__meta {
+  @apply mt-2 flex items-center justify-between text-xs;
+
+  color: var(--color-text-muted);
+}
+
+.app-settings-slider__meta strong {
+  color: var(--color-text-primary);
+}
+
+.app-settings-font-control {
+  @apply flex w-full flex-col gap-2 lg:max-w-[22.5rem];
+}
+
+.app-settings-font-select,
+.app-settings-font-input {
+  @apply w-full rounded-lg border px-3 py-2 text-sm;
+
+  border-color: var(--color-border-default);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+}
+
+.app-settings-font-select:focus-visible,
+.app-settings-font-input:focus-visible {
+  outline: none;
+  border-color: var(--color-accent-primary);
+  box-shadow: 0 0 0 0.1875rem rgb(var(--color-accent-primary-rgb) / 18%);
+}
+
+.app-settings-font-preview {
+  @apply truncate rounded-lg border px-3 py-2 text-sm;
+
+  border-color: var(--color-border-subtle);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-secondary);
+}
+
+.app-settings-font-preview--mono {
+  @apply tracking-normal;
+}
+
+@media (width <= 1279px) {
+  .app-settings-nav {
+    @apply sticky top-0 z-20;
+  }
+
+  .app-settings-nav__inner {
+    @apply rounded-lg border p-2;
+
+    border-color: var(--surface-status-border);
+    background: var(--surface-status-bg);
+    backdrop-filter: var(--surface-status-blur);
+    box-shadow: var(--surface-status-shadow);
+  }
+
+  .app-settings-nav__button {
+    @apply min-h-16 min-w-[11.25rem];
+  }
+}
+
+@media (width <= 479px) {
+  .app-settings-nav__inner {
+    @apply grid grid-cols-2 overflow-visible;
+  }
+
+  .app-settings-nav__button {
+    @apply min-w-0;
+  }
+}

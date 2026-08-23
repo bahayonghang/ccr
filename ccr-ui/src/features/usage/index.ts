@@ -1,4 +1,10 @@
-export { loadBudgetView, loadDashboardView, loadPricingView, loadUsageDashboardView } from './routeLoaders'
+export {
+  loadBudgetView,
+  loadDashboardView,
+  loadPricingView,
+  loadUsageDashboardView,
+  usageRouteLoaders,
+} from './routeLoaders'
 export { DashboardView } from './dashboard/DashboardView'
 export { UsageDashboardView } from './UsageDashboardView'
 export { BudgetView } from './budget/BudgetView'

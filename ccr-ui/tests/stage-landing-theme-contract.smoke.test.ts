@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest'
 const landingViewPaths = [
   '../src/features/claude/ClaudeCodeView.tsx',
   '../src/features/codex/CodexView.tsx',
-  '../src/views/GeminiCliView.vue',
+  '../src/features/gemini/GeminiCliView.tsx',
 ]
 
 const forbiddenStageUtilities = /\btext-white(?:\/|\b)|\bbg-white\/|\bborder-white\//

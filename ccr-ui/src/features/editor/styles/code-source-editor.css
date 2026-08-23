@@ -1,0 +1,22 @@
+.code-source-editor {
+  overflow: hidden;
+  border: var(--space-px) solid var(--border-default);
+  border-radius: 0.375rem;
+  background: var(--bg-primary);
+}
+
+.code-source-editor__host {
+  min-height: 28rem;
+}
+
+.code-source-editor__error {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin: 0;
+  padding: 0.65rem 0.85rem;
+  border-top: var(--space-px) solid color-mix(in srgb, var(--color-danger) 35%, transparent);
+  color: var(--color-danger);
+  background: color-mix(in srgb, var(--color-danger) 8%, var(--bg-secondary));
+  font-size: 0.8125rem;
+}
