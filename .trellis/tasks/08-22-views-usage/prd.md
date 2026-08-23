@@ -40,17 +40,17 @@
 
 ## Acceptance Criteria
 
-- [ ] AC1 上表 27 个文件全部迁移，`rg --files -g '*.vue' src/components/usage src/components/dashboard src/components/platform-usage src/views/PricingView.vue src/views/BudgetView.vue src/views/DashboardView.vue src/views/UsageDashboardView.vue` 无匹配。
-- [ ] AC2 4 个视图的路由可达，页面渲染无报错。
+- [x] AC1 上表 27 个文件全部迁移，`rg --files -g '*.vue' src/components/usage src/components/dashboard src/components/platform-usage src/views/PricingView.vue src/views/BudgetView.vue src/views/DashboardView.vue src/views/UsageDashboardView.vue` 无匹配。
+- [ ] AC2 4 个视图的路由可达，页面渲染无报错。——`routeLoaders.ts` 已导出；未改 `router.tsx`/`routeCatalog.ts`。
 - [ ] AC3 核心操作路径手动验证通过并记录：看板加载、平台维度切换、时间范围切换、环境作用域切换、Token 明细展开、预算设置、定价查看、用量导入。
-- [ ] AC4 图表稳定性验证：连续切换时间范围 20 次、窗口缩放 20 次、明暗主题切换 20 次，无闪烁与尺寸抖动。
-- [ ] AC5 单个图表注入渲染错误后，页面其余部分仍可用。
-- [ ] AC6 `apexcharts-style-contract` 与 `chart-error-boundary` smoke 测试通过。
-- [ ] AC7 `usage-chart-stability-contracts.md`、`dashboard-presentation-contracts.md`、`environment-scoped-dashboard-contracts.md` 三份契约的验证项全部通过。
-- [ ] AC8 虚拟滚动长列表在 10,000 行数据下滚动流畅，无空白帧。
-- [ ] AC9 本批次组件内 px 字面量与 `rgba()` 数量为 0（登记豁免除外，图表内联样式可豁免并登记）。
-- [ ] AC10 `src/api` 与 `src/types/generated` 的 git diff 为空。
-- [ ] AC11 `bun run type-check` 与 `bun run lint` 退出码 0。
+- [ ] AC4 图表稳定性验证：连续切换时间范围 20 次、窗口缩放 20 次、明暗主题切换 20 次，无闪烁与尺寸抖动。——mock 断言已绿（构造一次 / updateOptions / 节流 resize / destroy）。
+- [x] AC5 单个图表注入渲染错误后，页面其余部分仍可用。——`tests/chart-error-boundary.smoke.test.tsx` 通过。
+- [x] AC6 `apexcharts-style-contract` 与 `chart-error-boundary` smoke 测试通过。
+- [ ] AC7 `usage-chart-stability-contracts.md`、`dashboard-presentation-contracts.md`、`environment-scoped-dashboard-contracts.md` 三份契约的验证项全部通过。——dashboard-presentation 与 chart-stability smoke 已绿；环境作用域看板契约仍由 grok-dashboard 测试覆盖，本域未改其实现。
+- [ ] AC8 虚拟滚动长列表在 10,000 行数据下滚动流畅，无空白帧。——`useVirtualList` 已落地并接到 Usage 日志表。
+- [ ] AC9 本批次组件内 px 字面量与 `rgba()` 数量为 0（登记豁免除外，图表内联样式可豁免并登记）。——CSS 已把 Vue scoped `px` 转为 rem；未逐条人工点检。
+- [x] AC10 `src/api` 与 `src/types/generated` 的 git diff 为空。
+- [ ] AC11 `bun run type-check` 与 `bun run lint` 退出码 0。——`src/features/usage` eslint 0；全仓 `tsc` 被并行 checkin 文件 `ProgressHero` 缺失挡住；全仓 lint 仍有 checkin/codex 既有错误。
 
 ## 前置与后续
 

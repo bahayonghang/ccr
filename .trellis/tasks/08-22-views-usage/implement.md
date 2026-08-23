@@ -21,19 +21,19 @@
 
 先做。PRD Notes：建议先重写契约为可执行断言，再改实现。
 
-- [ ] 按 `design.md` §3.2 的四条把 `usage-chart-stability-contracts.md` 的条目写成断言：数据更新不重构造、主题切换走 `updateOptions`、resize 有节流、卸载调 `destroy()`。
-- [ ] 断言以 mock ApexCharts 构造与 update 方法的方式实现，不依赖真实渲染。
-- [ ] 断言先失败（红），实现完成后转绿。
-- [ ] 与 `08-22-test-contract-rebuild` 提供的重写稿对齐，不产生两份断言。
+- [x] 按 `design.md` §3.2 的四条把 `usage-chart-stability-contracts.md` 的条目写成断言：数据更新不重构造、主题切换走 `updateOptions`、resize 有节流、卸载调 `destroy()`。
+- [x] 断言以 mock ApexCharts 构造与 update 方法的方式实现，不依赖真实渲染。
+- [x] 断言先失败（红），实现完成后转绿。
+- [x] 与 `08-22-test-contract-rebuild` 提供的重写稿对齐，不产生两份断言。
 
 ## 批次 1：图表桥接层
 
-- [ ] `vue3-apexcharts` → `react-apexcharts` 2.1.1 的桥接。
-- [ ] `apexChartsCore.ts` 的按需入口形态保留，全程 `await import()`。
-- [ ] `manualChunks` 的 `charts-vendor` 成员改写。确认 `react-apexcharts` 是否有 `/core` 子路径。
-- [ ] `options` 用 `useMemo`，`series` 保持稳定引用（`design.md` §3.2 末段）。
-- [ ] 每个图表包图表级 `ErrorBoundary`（R5）。
-- [ ] 主题切换时读 CSS 变量的方式确认并保留（`design.md` §3.4 末段）。
+- [x] `vue3-apexcharts` → `react-apexcharts` 2.1.1 的桥接。
+- [x] `apexChartsCore.ts` 的按需入口形态保留，全程 `await import()`。
+- [x] `manualChunks` 的 `charts-vendor` 成员改写。确认 `react-apexcharts` 是否有 `/core` 子路径。
+- [x] `options` 用 `useMemo`，`series` 保持稳定引用（`design.md` §3.2 末段）。
+- [x] 每个图表包图表级 `ErrorBoundary`（R5）。
+- [x] 主题切换时读 CSS 变量的方式确认并保留（`design.md` §3.4 末段）。
 
 验证：批次 0 的断言全绿；`bun run check:bundle-budget` 通过（core 未被复制多份）；`apexcharts-style-contract` 与 `chart-error-boundary` smoke 测试通过（AC6）。
 
@@ -41,22 +41,22 @@
 
 拆 2 个提交批次（PRD Notes）。
 
-- [ ] 2a：图表类组件。
-- [ ] 2b：表格、明细、导入类组件。
-- [ ] `usageTokenBreakdown.ts` 与 `UsageTokenBreakdownStrip`、`UsageTokensTab` 的主题 token 耦合按 `token-classification.md` 核对。
-- [ ] 虚拟滚动接线写成可复用的 hook 或组件（`design.md` §4），供 `08-22-views-codex` 复用。
-- [ ] 超过行数上限的文件拆分。
+- [x] 2a：图表类组件。
+- [x] 2b：表格、明细、导入类组件。
+- [x] `usageTokenBreakdown.ts` 与 `UsageTokenBreakdownStrip`、`UsageTokensTab` 的主题 token 耦合按 `token-classification.md` 核对。
+- [x] 虚拟滚动接线写成可复用的 hook 或组件（`design.md` §4），供 `08-22-views-codex` 复用。
+- [x] 超过行数上限的文件拆分。
 
 ## 批次 3：`components/dashboard/` 与 `components/platform-usage/`
 
-- [ ] `src/components/dashboard/`（5 文件 1,890 行）。
-- [ ] `src/components/platform-usage/`（3 文件 1,013 行）。
-- [ ] `Sparkline` 与 `StatTile` 消费点适配（R10）。`Sparkline` 是否消费 `chart-colors.css` 需确认。
+- [x] `src/components/dashboard/`（5 文件 1,890 行）。
+- [x] `src/components/platform-usage/`（3 文件 1,013 行）。
+- [x] `Sparkline` 与 `StatTile` 消费点适配（R10）。`Sparkline` 是否消费 `chart-colors.css` 需确认。
 
 ## 批次 4：4 个视图
 
-- [ ] `PricingView`(1,038)、`BudgetView`(797)、`DashboardView`(451)、`UsageDashboardView`(360)。
-- [ ] `usage` 路由的缓存行为：数据走 Query，时间范围与平台维度入 Zustand，切回保留（`design.md` §6 末段）。
+- [x] `PricingView`(1,038)、`BudgetView`(797)、`DashboardView`(451)、`UsageDashboardView`(360)。
+- [x] `usage` 路由的缓存行为：数据走 Query，时间范围与平台维度入 Zustand，切回保留（`design.md` §6 末段）。
 - [ ] 环境作用域过滤的实现位置确认并保留（`design.md` §5）。
 
 验证：4 个视图路由可达（AC2）；缓存行为在真实视图上验证（补 `08-22-shell-port` AC4 的界面级验证）。
@@ -71,8 +71,8 @@
 ## 批次 6：收口
 
 - [ ] 本批次组件内 px 与 `rgba()` 归零，图表内联样式可豁免并登记（AC9）。
-- [ ] `rg --files -g '*.vue' src/components/usage src/components/dashboard src/components/platform-usage src/views/PricingView.vue src/views/BudgetView.vue src/views/DashboardView.vue src/views/UsageDashboardView.vue` 无匹配（AC1）。
-- [ ] `git diff --stat src/api src/types/generated`（应为空，AC10）。
+- [x] `rg --files -g '*.vue' src/components/usage src/components/dashboard src/components/platform-usage src/views/PricingView.vue src/views/BudgetView.vue src/views/DashboardView.vue src/views/UsageDashboardView.vue` 无匹配（AC1）。
+- [x] `git diff --stat src/api src/types/generated`（应为空，AC10）。
 
 ## 验证命令
 

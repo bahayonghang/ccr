@@ -3,7 +3,7 @@
   "name": "views-usage",
   "title": "Usage 与 Dashboard 视图迁移",
   "description": "Dashboard、Usage、Budget、Pricing、Monitoring 约 12694 行迁移，含 ApexCharts 桥接重写",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": null,
   "scope": null,
   "package": null,

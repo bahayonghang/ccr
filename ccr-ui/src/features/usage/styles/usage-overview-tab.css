@@ -1,0 +1,411 @@
+/* migrated from UsageOverviewTab.vue; px converted to rem */
+.overview-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.overview-tab__hero {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1.72fr) minmax(19.5rem, 0.88fr);
+  align-items: start;
+}
+
+.overview-tab__trend,
+.overview-tab__distribution,
+.overview-tab__insights-strip,
+.overview-tab__rank-panel {
+  position: relative;
+  overflow: hidden;
+
+  /* 防止 ApexCharts 溢出 glass-panel 容器 */
+  min-width: 0;
+}
+
+.overview-tab__distribution,
+.overview-tab__insights-strip,
+.overview-tab__rank-panel {
+  display: grid;
+  gap: 0.8rem;
+  align-content: start;
+}
+
+.overview-tab__trend {
+  display: grid;
+  gap: 0.75rem;
+  align-content: start;
+  min-height: clamp(25rem, 47vh, 31rem);
+}
+
+.overview-tab__panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.8rem;
+  margin-bottom: 0.5rem;
+}
+
+.overview-tab__panel-head--strip {
+  margin-bottom: 0.1rem;
+}
+
+.overview-tab__trend-copy {
+  display: grid;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.overview-tab__eyebrow {
+  color: var(--color-text-muted);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.overview-tab__panel-title {
+  margin-top: 0.16rem;
+  color: var(--color-text-primary);
+  font-size: 1rem;
+  font-weight: 650;
+}
+
+.overview-tab__panel-subtitle {
+  margin-top: 0.18rem;
+  color: var(--color-text-secondary);
+  font-size: 0.77rem;
+  line-height: 1.5;
+}
+
+.overview-tab__trend-chip {
+  display: inline-flex;
+  min-height: 1.8rem;
+  align-items: center;
+  padding: 0 0.72rem;
+  border-radius: 624.9375rem;
+  border: 0.0625rem solid rgb(var(--color-accent-primary-rgb) / 18%);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.overview-tab__trend-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.overview-tab__trend-legend-item {
+  --overview-trend-rgb: var(--color-accent-primary-rgb);
+
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.42rem;
+  border-radius: 624.9375rem;
+  border: 0.0625rem solid rgb(var(--overview-trend-rgb) / 16%);
+  background: rgb(var(--overview-trend-rgb) / 9%);
+  padding: 0.36rem 0.68rem;
+  color: var(--color-text-secondary);
+  font-size: 0.72rem;
+}
+
+.overview-tab__trend-legend-item--primary {
+  --overview-trend-rgb: var(--color-accent-primary-rgb);
+}
+
+.overview-tab__trend-legend-item--secondary {
+  --overview-trend-rgb: var(--color-accent-secondary-rgb);
+}
+
+.overview-tab__trend-legend-item--tertiary {
+  --overview-trend-rgb: var(--color-info-rgb);
+}
+
+.overview-tab__trend-legend-dot {
+  width: 0.48rem;
+  height: 0.48rem;
+  flex-shrink: 0;
+  border-radius: 624.9375rem;
+  background: rgb(var(--overview-trend-rgb) / 88%);
+  box-shadow: 0 0 0 0.25rem rgb(var(--overview-trend-rgb) / 12%);
+}
+
+.overview-tab__trend-legend-label {
+  min-width: 0;
+  color: var(--color-text-secondary);
+}
+
+.overview-tab__trend-legend-value {
+  color: var(--color-text-primary);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.overview-tab__empty,
+.overview-tab__rank-empty {
+  display: flex;
+  min-height: 15rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1.35rem;
+  border: 0.0625rem dashed rgb(var(--color-accent-primary-rgb) / 16%);
+  background: rgb(var(--color-bg-elevated-rgb) / 36%);
+  color: var(--color-text-muted);
+}
+
+.overview-tab__trend-shell {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  height: clamp(20.5rem, 40vh, 25.5rem);
+  overflow: hidden;
+  border-radius: 1.3rem;
+  border: 0.0625rem solid rgb(var(--color-border-default-rgb) / 16%);
+  background: var(--color-bg-surface);
+}
+
+.overview-tab__chart {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
+.overview-tab__chart .apexcharts-canvas,
+.overview-tab__chart .apexcharts-inner,
+.overview-tab__chart .apexcharts-svg {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.overview-tab__chart svg {
+  height: 100% !important;
+  max-width: none;
+}
+
+.overview-tab__chart .apexcharts-legend {
+  display: none !important;
+}
+
+.overview-tab__empty--trend {
+  min-height: 100%;
+  width: 100%;
+}
+
+.overview-tab__insight-grid {
+  display: grid;
+  gap: 0.7rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.overview-tab__insight-tile {
+  --overview-insight-rgb: var(--color-accent-secondary-rgb);
+
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.8rem;
+  align-items: start;
+  min-width: 0;
+  border-radius: 1.15rem;
+  border: 0.0625rem solid rgb(var(--color-border-default-rgb) / 16%);
+  background: var(--color-bg-surface);
+  padding: 0.95rem 1rem;
+  transition:
+    border-color var(--motion-subtle-duration) var(--motion-subtle-ease),
+    transform var(--motion-subtle-duration) var(--motion-subtle-ease),
+    background-color var(--motion-subtle-duration) var(--motion-subtle-ease);
+}
+
+.overview-tab__insight-tile:hover {
+  transform: translateY(-0.0625rem);
+  border-color: rgb(var(--overview-insight-rgb) / 22%);
+}
+
+.overview-tab__insight-tile--rose {
+  --overview-insight-rgb: var(--color-accent-primary-rgb);
+}
+
+.overview-tab__insight-tile--sand {
+  --overview-insight-rgb: var(--color-accent-secondary-rgb);
+}
+
+.overview-tab__insight-tile--sky {
+  --overview-insight-rgb: var(--color-info-rgb);
+}
+
+.overview-tab__insight-tile--amber {
+  --overview-insight-rgb: var(--color-warning-rgb);
+}
+
+.overview-tab__insight-accent {
+  width: 0.45rem;
+  min-height: 3.35rem;
+  border-radius: 624.9375rem;
+  background: rgb(var(--overview-insight-rgb) / 82%);
+  box-shadow: 0 0 0 0.25rem rgb(var(--overview-insight-rgb) / 10%);
+}
+
+.overview-tab__insight-copy {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.overview-tab__insight-label {
+  color: var(--color-text-muted);
+  font-size: 0.67rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.overview-tab__insight-value {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--color-text-primary);
+  font-size: 0.97rem;
+  font-weight: 650;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.overview-tab__insight-detail {
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+}
+
+.overview-tab__rankings {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.overview-tab__rank-list {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.overview-tab__rank-item {
+  display: grid;
+  grid-template-columns: 2.25rem minmax(0, 1fr);
+  gap: 0.7rem;
+  align-items: start;
+}
+
+.overview-tab__rank-index {
+  display: inline-flex;
+  height: 2rem;
+  width: 2rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.9rem;
+  border: 0.0625rem solid rgb(var(--color-accent-primary-rgb) / 18%);
+  background: rgb(var(--color-accent-primary-rgb) / 10%);
+  color: var(--color-text-primary);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.overview-tab__rank-main {
+  min-width: 0;
+  display: grid;
+  gap: 0.35rem;
+  padding-top: 0.1rem;
+}
+
+.overview-tab__rank-row {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+}
+
+.overview-tab__rank-row--meta {
+  align-items: flex-start;
+}
+
+.overview-tab__rank-label {
+  overflow: hidden;
+  color: var(--color-text-primary);
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.overview-tab__rank-value,
+.overview-tab__rank-share {
+  flex-shrink: 0;
+  color: var(--color-text-primary);
+  font-size: 0.8rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.overview-tab__rank-detail {
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-size: 0.76rem;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.overview-tab__rank-bar {
+  height: 0.34rem;
+  overflow: hidden;
+  border-radius: 624.9375rem;
+  background: rgb(var(--color-border-default-rgb) / 18%);
+}
+
+.overview-tab__rank-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-accent-primary);
+}
+
+@media (width < 80rem) {
+  .overview-tab__hero,
+  .overview-tab__rankings {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .overview-tab__insight-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (width < 90rem) and (width >= 80rem) {
+  .overview-tab__hero {
+    grid-template-columns: minmax(0, 1.45fr) minmax(20rem, 0.92fr);
+  }
+}
+
+@media (width < 56.25rem) {
+  .overview-tab__insight-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .overview-tab__panel-head {
+    flex-direction: column;
+  }
+
+  .overview-tab__trend {
+    min-height: auto;
+  }
+
+  .overview-tab__trend-shell,
+  .overview-tab__empty--trend {
+    min-height: clamp(18rem, 52vh, 22rem);
+  }
+}

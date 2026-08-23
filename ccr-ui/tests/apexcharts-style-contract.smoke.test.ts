@@ -11,7 +11,7 @@ const APEXCHARTS_CORE_PATH = fileURLToPath(
   new URL('../src/utils/apexChartsCore.ts', import.meta.url)
 )
 const STYLESHEET_IMPORT = 'apexcharts/dist/apexcharts.css'
-const WRAPPER_IMPORT = 'vue3-apexcharts/core'
+const WRAPPER_IMPORT = 'react-apexcharts/core'
 const APEXCHARTS_STYLESHEET_PATH = createRequire(import.meta.url).resolve(STYLESHEET_IMPORT)
 const REQUIRED_REGISTRATIONS = [
   'apexcharts/area',
@@ -64,9 +64,9 @@ describe('ApexCharts stylesheet contract', () => {
 
     expect(
       wrapperImports.filter(
-        ({ binding, modulePath }) => binding === 'VueApexCharts' && modulePath === WRAPPER_IMPORT
+        ({ binding, modulePath }) => binding === 'ReactApexChart' && modulePath === WRAPPER_IMPORT
       ),
-      'apexChartsCore.ts must preserve the modular vue3-apexcharts/core wrapper import'
+      'apexChartsCore.ts must preserve the modular react-apexcharts/core wrapper import'
     ).toHaveLength(1)
 
     expect(

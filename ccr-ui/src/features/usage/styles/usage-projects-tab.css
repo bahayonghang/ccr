@@ -1,0 +1,151 @@
+/* migrated from UsageProjectsTab.vue; px converted to rem */
+.projects-tab {
+  display: grid;
+  gap: 1rem;
+  overflow: hidden;
+}
+
+.projects-tab__table-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.projects-tab__title {
+  color: var(--color-text-primary);
+  font-size: 1rem;
+  font-weight: 650;
+}
+
+.projects-tab__subtitle {
+  margin-top: 0.35rem;
+  color: var(--color-text-secondary);
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+
+.projects-tab__list {
+  display: grid;
+  gap: 0.7rem;
+  max-height: 38rem;
+  overflow: auto;
+  padding-right: 0.15rem;
+}
+
+.projects-tab__item {
+  display: grid;
+  grid-template-columns: 2.4rem minmax(0, 1fr);
+  gap: 0.78rem;
+  align-items: start;
+  border-radius: 1.18rem;
+  border: 0.0625rem solid rgb(var(--color-border-default-rgb) / 14%);
+  background: var(--color-bg-surface);
+  padding: 0.82rem 0.9rem;
+  transition:
+    border-color var(--motion-subtle-duration) var(--motion-subtle-ease),
+    transform var(--motion-subtle-duration) var(--motion-subtle-ease);
+}
+
+.projects-tab__item:hover {
+  transform: translateY(-0.0625rem);
+  border-color: rgb(var(--color-accent-primary-rgb) / 18%);
+}
+
+.projects-tab__rank-cell {
+  display: inline-flex;
+  width: 2rem;
+  height: 2rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.82rem;
+  background: rgb(var(--color-accent-primary-rgb) / 10%);
+  color: var(--color-text-primary);
+  font-size: 0.82rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.projects-tab__project-copy {
+  display: grid;
+  min-width: 0;
+  gap: 0.34rem;
+}
+
+.projects-tab__project-line {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.projects-tab__project-name {
+  overflow: hidden;
+  color: var(--color-text-primary);
+  font-size: 0.95rem;
+  font-weight: 680;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.projects-tab__project-cost {
+  flex-shrink: 0;
+  color: var(--color-text-primary);
+  font-size: 0.98rem;
+  font-weight: 720;
+  font-variant-numeric: tabular-nums;
+}
+
+.projects-tab__project-path {
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: 0.76rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.projects-tab__metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.8rem;
+  color: var(--color-text-secondary);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.projects-tab__progress {
+  height: 0.42rem;
+  overflow: hidden;
+  border-radius: 624.9375rem;
+  background: rgb(var(--color-border-default-rgb) / 18%);
+}
+
+.projects-tab__progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-accent-primary);
+}
+
+.projects-tab__empty {
+  display: flex;
+  min-height: 16rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1.2rem;
+  border: 0.0625rem dashed rgb(var(--color-accent-primary-rgb) / 16%);
+  color: var(--color-text-muted);
+}
+
+@media (width < 45rem) {
+  .projects-tab__item {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .projects-tab__project-line {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+}

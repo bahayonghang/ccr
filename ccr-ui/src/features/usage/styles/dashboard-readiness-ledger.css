@@ -1,0 +1,120 @@
+/* migrated from DashboardReadinessLedger.vue; px converted to rem */
+.dashboard-ledger {
+  display: grid;
+  grid-template-columns: minmax(16rem, 0.85fr) minmax(0, 1.4fr);
+  gap: 1rem 1.25rem;
+  align-items: start;
+  height: 100%;
+  padding: var(--home-card-pad);
+  border: 0.0625rem solid var(--color-border-subtle);
+  border-radius: var(--home-card-radius);
+  background: var(--color-bg-surface);
+}
+
+.dashboard-ledger__main {
+  display: grid;
+  align-content: start;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.dashboard-ledger__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.24;
+  letter-spacing: 0;
+}
+
+.dashboard-ledger__status-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 62.4375rem;
+  background: var(--color-text-muted);
+}
+
+.dashboard-ledger[data-status='ready'] .dashboard-ledger__status-dot {
+  background: var(--color-success);
+}
+
+.dashboard-ledger[data-status='attention'] .dashboard-ledger__status-dot {
+  background: var(--color-warning);
+}
+
+.dashboard-ledger[data-status='web-preview'] .dashboard-ledger__status-dot {
+  background: var(--color-info);
+}
+
+.dashboard-ledger__title {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0;
+}
+
+.dashboard-ledger__description {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.8125rem;
+  letter-spacing: 0;
+  line-height: 1.5;
+}
+
+.dashboard-ledger__reasons {
+  display: grid;
+  align-content: start;
+  gap: 0.28rem;
+  margin: 0.15rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dashboard-ledger__reason {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--color-text-secondary);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.dashboard-ledger__reason-icon {
+  flex-shrink: 0;
+  color: var(--color-text-disabled);
+}
+
+.dashboard-ledger__reason[data-ok='true'] .dashboard-ledger__reason-icon {
+  color: var(--color-success);
+}
+
+.dashboard-ledger__reason[data-ok='false'] .dashboard-ledger__reason-icon {
+  color: var(--color-warning);
+}
+
+.dashboard-ledger__metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  gap: 0.85rem 1rem;
+  align-content: start;
+  min-width: 0;
+}
+
+/* 右侧指标栏大约要 ≥50rem 才容得下五列不拆「Web 预览」/ 双百分数 */
+@media (width >= 105rem) {
+  .dashboard-ledger__metrics {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+/* 与指标五列同一门槛：更窄时左右分栏会把第 5 项挤到下一行 */
+@media (width < 105rem) {
+  .dashboard-ledger {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,262 @@
+/* migrated from UsageProvidersTab.vue; px converted to rem */
+.providers-tab {
+  display: grid;
+  gap: 1rem;
+}
+
+.providers-tab__hero,
+.providers-tab__workspace {
+  overflow: hidden;
+  border-radius: 1.6rem;
+  padding: 1rem;
+}
+
+.providers-tab__hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  background: var(--color-bg-surface);
+}
+
+.providers-tab__eyebrow {
+  color: var(--color-text-muted);
+  font-size: 0.66rem;
+  font-weight: 760;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.providers-tab h3 {
+  margin-top: 0.18rem;
+  color: var(--color-text-primary);
+  font-size: 1rem;
+  font-weight: 730;
+  letter-spacing: -0.02em;
+}
+
+.providers-tab__hero p:not(.providers-tab__eyebrow),
+.providers-tab__head p {
+  margin-top: 0.34rem;
+  max-width: 50rem;
+  color: var(--color-text-secondary);
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+
+.providers-tab__total {
+  display: grid;
+  min-width: 13rem;
+  gap: 0.16rem;
+  justify-items: end;
+}
+
+.providers-tab__total span,
+.providers-tab__total small,
+.providers-tab__head span {
+  color: var(--color-text-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.providers-tab__total strong {
+  color: var(--color-text-primary);
+  font-size: 2rem;
+  font-weight: 760;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.providers-tab__workspace {
+  display: grid;
+  gap: 1rem;
+}
+
+.providers-tab__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.providers-tab__head span {
+  flex: none;
+  border: 0.0625rem solid rgb(var(--color-border-default-rgb) / 13%);
+  border-radius: 62.4375rem;
+  padding: 0.26rem 0.55rem;
+}
+
+.providers-tab__summary-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.providers-tab__summary-card {
+  display: grid;
+  min-width: 0;
+  gap: 0.28rem;
+  border-radius: 1rem;
+  border: 0.0625rem solid rgb(var(--color-border-default-rgb) / 14%);
+  background: var(--color-bg-surface);
+  padding: 0.82rem 0.92rem;
+}
+
+.providers-tab__summary-card span {
+  color: var(--color-text-muted);
+  font-size: 0.66rem;
+  font-weight: 740;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.providers-tab__summary-card strong {
+  color: var(--color-text-primary);
+  font-size: 1.28rem;
+  font-weight: 720;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.providers-tab__summary-card small {
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-size: 0.76rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.providers-tab__table-shell {
+  max-height: 38rem;
+  overflow: auto;
+  border-radius: 1.15rem;
+  border: 0.0625rem solid rgb(var(--color-border-default-rgb) / 18%);
+  background: rgb(var(--color-bg-elevated-rgb) / 44%);
+}
+
+.providers-tab__table {
+  width: 100%;
+  min-width: 88rem;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.providers-tab__table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 0.85rem 1rem;
+  border-bottom: 0.0625rem solid rgb(var(--color-border-default-rgb) / 18%);
+  background: rgb(var(--color-bg-elevated-rgb) / 94%);
+  color: var(--color-text-muted);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.providers-tab__table tbody td {
+  padding: 0.92rem 1rem;
+  border-bottom: 0.0625rem solid rgb(var(--color-border-default-rgb) / 12%);
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.providers-tab__table tbody tr:hover {
+  background: rgb(var(--color-accent-primary-rgb) / 6%);
+}
+
+.providers-tab__table .is-right {
+  text-align: right;
+}
+
+.providers-tab__provider {
+  display: grid;
+  min-width: 0;
+  gap: 0.18rem;
+}
+
+.providers-tab__provider span {
+  overflow: hidden;
+  color: var(--color-text-primary);
+  font-weight: 680;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.providers-tab__provider small,
+.providers-tab__cost-cell small {
+  display: block;
+  margin-top: 0.12rem;
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
+.providers-tab__cost-cell strong {
+  color: var(--color-text-primary);
+  font-weight: 720;
+}
+
+.providers-tab__share-cell {
+  min-width: 8rem;
+}
+
+.providers-tab__share-cell > span:first-child {
+  display: block;
+  margin-bottom: 0.32rem;
+  color: var(--color-text-primary);
+  font-weight: 700;
+}
+
+.providers-tab__bar {
+  display: block;
+  overflow: hidden;
+  height: 0.34rem;
+  border-radius: 62.4375rem;
+  background: rgb(var(--color-border-default-rgb) / 18%);
+}
+
+.providers-tab__bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-accent-primary);
+}
+
+.providers-tab__empty {
+  display: grid;
+  min-height: 16rem;
+  place-items: center;
+  border-radius: 1.2rem;
+  border: 0.0625rem dashed rgb(var(--color-border-default-rgb) / 18%);
+  color: var(--color-text-muted);
+}
+
+.providers-tab__col--provider {
+  width: 22rem;
+}
+
+.providers-tab__col--requests,
+.providers-tab__col--tokens,
+.providers-tab__col--cost,
+.providers-tab__col--share {
+  width: 9rem;
+}
+
+@media (width < 61.25rem) {
+  .providers-tab__hero,
+  .providers-tab__head {
+    flex-direction: column;
+  }
+
+  .providers-tab__total {
+    justify-items: start;
+  }
+
+  .providers-tab__summary-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

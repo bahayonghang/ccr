@@ -1,5 +1,10 @@
 import { create } from 'zustand'
 import type { UsagePlatform } from '@/types/usage'
+import {
+  DEFAULT_USAGE_RANGE_PRESET,
+  getLocalDateRangeWindow,
+  type UsageRangePreset,
+} from '@/views/usage/dateWindow'
 
 // usage 视图偏好 store（08-22-state-logic-port 批次 4）。
 // 原 Pinia `stores/usage.ts`（991 行）的数据切片已迁 Query（本目录 queries.ts）；
@@ -13,17 +18,27 @@ export interface UsageTimeRange {
 
 interface UsageViewState {
   platform: UsagePlatform | undefined
+  rangePreset: UsageRangePreset
   timeRange: UsageTimeRange
   setPlatform: (platform: UsagePlatform | undefined) => void
+  setRangePreset: (preset: UsageRangePreset) => void
   setTimeRange: (range: UsageTimeRange) => void
   resetFilters: () => void
 }
 
 export const useUsageViewStore = create<UsageViewState>()((set) => ({
   platform: undefined,
+  rangePreset: DEFAULT_USAGE_RANGE_PRESET,
   timeRange: {},
 
   setPlatform: (platform) => set({ platform }),
+  setRangePreset: (rangePreset) =>
+    set({ rangePreset, timeRange: getLocalDateRangeWindow(rangePreset) }),
   setTimeRange: (timeRange) => set({ timeRange }),
-  resetFilters: () => set({ platform: undefined, timeRange: {} }),
+  resetFilters: () =>
+    set({
+      platform: undefined,
+      rangePreset: DEFAULT_USAGE_RANGE_PRESET,
+      timeRange: {},
+    }),
 }))
