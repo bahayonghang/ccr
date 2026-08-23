@@ -44,6 +44,13 @@ export type TauriGlobalEvent = (typeof TAURI_GLOBAL_EVENTS)[number]
 
 type EventListener = (payload: unknown) => void
 
+/** createEventBatcher 的返回契约（消费方按名引用，避免 ReturnType 耦合）。 */
+export interface EventBatcher<T> {
+  push: (item: T) => void
+  dispose: () => void
+  commit: () => void
+}
+
 /**
  * 高频事件缓冲：ref 累积 + 定时批量提交，避免逐条 setQueryData 逐条重渲染。
  * flush 的提交动作由调用方给出（setQueryData 拼接 / 追加语义归消费方）。
@@ -51,7 +58,7 @@ type EventListener = (payload: unknown) => void
 export function createEventBatcher<T>(
   flush: (batch: T[]) => void,
   intervalMs = HIGH_FREQUENCY_FLUSH_INTERVAL_MS,
-) {
+): EventBatcher<T> {
   let buffer: T[] = []
   let timer: ReturnType<typeof setInterval> | null = null
 

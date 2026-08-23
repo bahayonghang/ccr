@@ -1,18 +1,31 @@
-import { computed, reactive, ref, type Ref } from 'vue'
-import { useI18n } from 'vue-i18n'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useCallback, useMemo, useState } from 'react'
+import { useForm } from 'react-hook-form'
 import { codexDeleteModelProvider, codexListModelProviders, codexSaveModelProvider } from '@/api'
+import { codexKeys } from '@/features/codex/queries'
 import type { CodexModelProviderRecord } from '@/types'
 import type {
   ProviderTemplateDraftContext,
   ProviderTemplateSelection,
 } from '@/types/providerTemplates'
-import { createTf } from '@/utils/tf'
-// 过渡期接线（批次 4）：Pinia 已删，Zustand 单例经 getState() 提供同名 API；
-// 本文件在批次 5 转换为 React hook 时整体重写。
+import { createTf, type TranslateFunction } from '@/utils/tf'
+// 过渡期接线（批次 4）：Pinia 已删，Zustand 单例经 getState() 提供同名 API。
 import { useUIStore } from '@/shell/stores/ui'
-import { logger } from '@/utils/logger'
 import { extractErrorMessage } from '@/utils/errorHandler'
 import { mapTemplateToCodexProviderPatch } from '@/utils/providerTemplates'
+
+// Codex 模型提供商（Saved provider）CRUD 的 React 迁移（批次 5b-ii）。
+// - providers 列表 → Query（codexKeys.providers.list，staleTime Infinity：原实现每次
+//   显式 loadProviders 重拉，挂载拉取一次，无 TTL、无聚焦刷新）；
+// - providerForm（reactive）→ react-hook-form（单表单瞬态，state-disposition.md SPLIT 判定）；
+// - loadProviders → refetch；save/delete → useMutation + invalidate；
+// - selectedProviderTemplate / selectedProviderEndpoint → useState；
+// - codexTemplateDraft（computed）→ useMemo（来源：表单 watch 值）。
+//
+// 签名变化（消费方 CodexAuthView.vue 待迁移）：
+// - useI18n → t 参数传入（与 useCodexDashboard 同形态）；
+// - deps.activeManagerTab: Ref → setActiveManagerTab 回调；
+// - providerForm 返回 RHF watch 快照（普通对象）；表单方法经 providerFormApi 暴露。
 
 export interface CodexProviderForm {
   id: string
@@ -24,6 +37,16 @@ export interface CodexProviderForm {
   apiKey: string
 }
 
+const PROVIDER_FORM_DEFAULTS: CodexProviderForm = {
+  id: '',
+  name: '',
+  baseUrl: '',
+  websiteUrl: '',
+  apiKeyUrl: '',
+  apiKeyName: 'API Key',
+  apiKey: '',
+}
+
 type ConfirmDialogOptions = {
   title: string
   message: string
@@ -32,207 +55,229 @@ type ConfirmDialogOptions = {
   action: () => Promise<void>
 }
 
-/**
- * Codex 模型提供商（Saved provider）CRUD 子系统：列表加载、表单状态、模板套用，
- * 以及新建/更新/删除与更新时间格式化。删除复用主视图的共享 ConfirmModal，编辑时
- * 切回 providers 面板，故由主视图注入 openConfirmDialog 与 activeManagerTab。
- */
 export function useCodexProviders(deps: {
+  /** i18n 翻译函数（vue-i18n useI18n 的 React 侧等价入参） */
+  t: TranslateFunction
   /** 共享确认弹窗：删除提供商时复用主视图的 ConfirmModal */
   openConfirmDialog: (options: ConfirmDialogOptions) => void
-  /** 主视图当前 Tab；编辑提供商时切回 providers 面板 */
-  activeManagerTab: Ref<'accounts' | 'providers'>
+  /** 主视图当前 Tab 写入器；编辑提供商时切回 providers 面板 */
+  setActiveManagerTab: (tab: 'accounts' | 'providers') => void
 }) {
-  const { openConfirmDialog, activeManagerTab } = deps
+  const { t, openConfirmDialog, setActiveManagerTab } = deps
 
-  const { t } = useI18n()
   const tf = createTf(t)
   const uiStore = useUIStore.getState()
+  const queryClient = useQueryClient()
 
-  const providers = ref<CodexModelProviderRecord[]>([])
-  const providerError = ref<string | null>(null)
-  const providerLoading = ref(false)
-  const providerSaving = ref(false)
+  const form = useForm<CodexProviderForm>({ defaultValues: PROVIDER_FORM_DEFAULTS })
+  const providerForm = form.watch()
 
-  const providerForm = reactive<CodexProviderForm>({
-    id: '',
-    name: '',
-    baseUrl: '',
-    websiteUrl: '',
-    apiKeyUrl: '',
-    apiKeyName: 'API Key',
-    apiKey: '',
+  const [providerError, setProviderError] = useState<string | null>(null)
+  const [selectedProviderTemplate, setSelectedProviderTemplate] = useState<string | null>(null)
+  const [selectedProviderEndpoint, setSelectedProviderEndpoint] = useState('')
+
+  const providersQuery = useQuery({
+    queryKey: codexKeys.providers.list(),
+    staleTime: Infinity,
+    queryFn: codexListModelProviders,
   })
-  const selectedProviderTemplate = ref<string | null>(null)
-  const selectedProviderEndpoint = ref('')
 
-  const codexTemplateDraft = computed<ProviderTemplateDraftContext>(() => ({
-    platform: 'codex',
-    defaultName: providerForm.name || 'Codex provider',
-    name: providerForm.name,
-    websiteUrl: providerForm.websiteUrl,
-    apiKeyUrl: providerForm.apiKeyUrl,
-    category: 'third_party',
-    baseUrls: providerForm.baseUrl.trim() ? [providerForm.baseUrl.trim()] : [],
-    platformOverride: {
-      baseUrl: providerForm.baseUrl,
+  const providers: CodexModelProviderRecord[] = providersQuery.data?.providers ?? []
+  const providerLoading = providersQuery.isFetching
+
+  const { refetch: refetchProviders } = providersQuery
+
+  /** 写操作成功后重拉列表（原 await loadProviders 语义）。 */
+  const reloadProviders = useCallback(async () => {
+    await refetchProviders()
+  }, [refetchProviders])
+
+  const invalidateProviders = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: codexKeys.providers.all })
+  }, [queryClient])
+
+  const codexTemplateDraft = useMemo<ProviderTemplateDraftContext>(
+    () => ({
+      platform: 'codex',
+      defaultName: providerForm.name || 'Codex provider',
+      name: providerForm.name,
       websiteUrl: providerForm.websiteUrl,
       apiKeyUrl: providerForm.apiKeyUrl,
+      category: 'third_party',
+      baseUrls: providerForm.baseUrl.trim() ? [providerForm.baseUrl.trim()] : [],
+      platformOverride: {
+        baseUrl: providerForm.baseUrl,
+        websiteUrl: providerForm.websiteUrl,
+        apiKeyUrl: providerForm.apiKeyUrl,
+      },
+    }),
+    [providerForm]
+  )
+
+  const formatProviderUpdatedAt = useCallback(
+    (value?: string | null, detailed = false) => {
+      if (!value) return t('common.notAvailable')
+      const date = new Date(value)
+      if (Number.isNaN(date.getTime())) return value
+      return detailed
+        ? date.toLocaleString()
+        : new Intl.DateTimeFormat('zh-CN', {
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+          }).format(date)
     },
-  }))
+    [t]
+  )
 
-  const formatProviderUpdatedAt = (value?: string | null, detailed = false) => {
-    if (!value) return t('common.notAvailable')
-    const date = new Date(value)
-    if (Number.isNaN(date.getTime())) return value
-    return detailed
-      ? date.toLocaleString()
-      : new Intl.DateTimeFormat('zh-CN', {
-          month: '2-digit',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit',
-        }).format(date)
-  }
+  // 列表加载失败并入 providerError（原 loadProviders catch 分支的赋值点）。
+  const loadError = providersQuery.error
+    ? extractErrorMessage(providersQuery.error) ||
+      tf('codex.auth.providers.loadFailed', 'Failed to load saved providers.')
+    : null
 
-  const loadProviders = async () => {
-    try {
-      providerLoading.value = true
-      providerError.value = null
-      const data = await codexListModelProviders()
-      providers.value = data.providers || []
-    } catch (error) {
-      logger.error('Failed to load codex providers:', error)
-      providerError.value =
-        extractErrorMessage(error) ||
-        tf('codex.auth.providers.loadFailed', 'Failed to load saved providers.')
-    } finally {
-      providerLoading.value = false
-    }
-  }
+  const resetProviderForm = useCallback(() => {
+    form.reset(PROVIDER_FORM_DEFAULTS)
+    setProviderError(null)
+    setSelectedProviderTemplate(null)
+    setSelectedProviderEndpoint('')
+  }, [form])
 
-  const resetProviderForm = () => {
-    providerForm.id = ''
-    providerForm.name = ''
-    providerForm.baseUrl = ''
-    providerForm.websiteUrl = ''
-    providerForm.apiKeyUrl = ''
-    providerForm.apiKeyName = 'API Key'
-    providerForm.apiKey = ''
-    providerError.value = null
-    selectedProviderTemplate.value = null
-    selectedProviderEndpoint.value = ''
-  }
-
-  const editProvider = (provider: CodexModelProviderRecord) => {
-    providerForm.id = provider.id
-    providerForm.name = provider.name
-    providerForm.baseUrl = provider.base_url
-    providerForm.websiteUrl = provider.website_url || ''
-    providerForm.apiKeyUrl = provider.api_key_url || ''
-    providerForm.apiKeyName = provider.api_keys[0]?.name || 'API Key'
-    providerForm.apiKey = provider.api_keys[0]?.api_key || ''
-    selectedProviderTemplate.value = null
-    selectedProviderEndpoint.value = ''
-    activeManagerTab.value = 'providers'
-  }
-
-  const useManualProviderTemplate = () => {
-    selectedProviderTemplate.value = null
-    selectedProviderEndpoint.value = ''
-  }
-
-  const applyCodexProviderTemplate = (selection: ProviderTemplateSelection) => {
-    const patch = mapTemplateToCodexProviderPatch(selection.template, selection.endpoint)
-
-    selectedProviderTemplate.value = selection.template.id
-    selectedProviderEndpoint.value = selection.endpoint || ''
-    providerForm.name = patch.name || selection.template.name
-    providerForm.baseUrl = patch.baseUrl || ''
-    providerForm.websiteUrl = patch.websiteUrl || ''
-    providerForm.apiKeyUrl = patch.apiKeyUrl || ''
-    providerError.value = null
-  }
-
-  const handleSaveProvider = async () => {
-    providerError.value = null
-    if (!providerForm.name.trim()) {
-      providerError.value = tf(
-        'codex.auth.providers.validation.nameRequired',
-        'Provider name is required.'
-      )
-      return
-    }
-    if (!providerForm.baseUrl.trim()) {
-      providerError.value = tf(
-        'codex.auth.providers.validation.baseUrlRequired',
-        'Base URL is required.'
-      )
-      return
-    }
-
-    try {
-      providerSaving.value = true
-      await codexSaveModelProvider({
-        id: providerForm.id || undefined,
-        name: providerForm.name.trim(),
-        baseUrl: providerForm.baseUrl.trim(),
-        websiteUrl: providerForm.websiteUrl.trim() || undefined,
-        apiKeyUrl: providerForm.apiKeyUrl.trim() || undefined,
-        apiKeyName: providerForm.apiKeyName.trim() || undefined,
-        apiKey: providerForm.apiKey.trim() || undefined,
+  const editProvider = useCallback(
+    (provider: CodexModelProviderRecord) => {
+      form.reset({
+        id: provider.id,
+        name: provider.name,
+        baseUrl: provider.base_url,
+        websiteUrl: provider.website_url || '',
+        apiKeyUrl: provider.api_key_url || '',
+        apiKeyName: provider.api_keys[0]?.name || 'API Key',
+        apiKey: provider.api_keys[0]?.api_key || '',
       })
-      await loadProviders()
+      setSelectedProviderTemplate(null)
+      setSelectedProviderEndpoint('')
+      setActiveManagerTab('providers')
+    },
+    [form, setActiveManagerTab]
+  )
+
+  const useManualProviderTemplate = useCallback(() => {
+    setSelectedProviderTemplate(null)
+    setSelectedProviderEndpoint('')
+  }, [])
+
+  const applyCodexProviderTemplate = useCallback(
+    (selection: ProviderTemplateSelection) => {
+      const patch = mapTemplateToCodexProviderPatch(selection.template, selection.endpoint)
+
+      setSelectedProviderTemplate(selection.template.id)
+      setSelectedProviderEndpoint(selection.endpoint || '')
+      form.setValue('name', patch.name || selection.template.name)
+      form.setValue('baseUrl', patch.baseUrl || '')
+      form.setValue('websiteUrl', patch.websiteUrl || '')
+      form.setValue('apiKeyUrl', patch.apiKeyUrl || '')
+      setProviderError(null)
+    },
+    [form]
+  )
+
+  const saveMutation = useMutation({ mutationFn: codexSaveModelProvider })
+
+  const handleSaveProvider = useCallback(async () => {
+    setProviderError(null)
+    const values = form.getValues()
+    if (!values.name.trim()) {
+      setProviderError(
+        tf('codex.auth.providers.validation.nameRequired', 'Provider name is required.')
+      )
+      return
+    }
+    if (!values.baseUrl.trim()) {
+      setProviderError(
+        tf('codex.auth.providers.validation.baseUrlRequired', 'Base URL is required.')
+      )
+      return
+    }
+
+    try {
+      await saveMutation.mutateAsync({
+        id: values.id || undefined,
+        name: values.name.trim(),
+        baseUrl: values.baseUrl.trim(),
+        websiteUrl: values.websiteUrl.trim() || undefined,
+        apiKeyUrl: values.apiKeyUrl.trim() || undefined,
+        apiKeyName: values.apiKeyName.trim() || undefined,
+        apiKey: values.apiKey.trim() || undefined,
+      })
+      invalidateProviders()
+      await reloadProviders()
       resetProviderForm()
       uiStore.showSuccess(
         tf('codex.auth.providers.saveSuccess', 'Saved provider saved successfully.')
       )
     } catch (error) {
-      providerError.value =
+      setProviderError(
         extractErrorMessage(error) ||
-        tf('codex.auth.providers.saveFailed', 'Failed to save the saved provider.')
-    } finally {
-      providerSaving.value = false
+          tf('codex.auth.providers.saveFailed', 'Failed to save the saved provider.')
+      )
     }
-  }
+  }, [
+    form,
+    invalidateProviders,
+    reloadProviders,
+    resetProviderForm,
+    saveMutation,
+    tf,
+    uiStore,
+  ])
 
-  const requestDeleteProvider = (provider: CodexModelProviderRecord) => {
-    openConfirmDialog({
-      title: tf('codex.auth.providers.deleteTitle', 'Delete saved provider'),
-      message: tf(
-        'codex.auth.providers.deleteMessage',
-        'Delete saved provider "{name}"? Stored API keys under this saved provider will also be removed.',
-        { name: provider.name }
-      ),
-      confirmText: t('codex.actions.delete'),
-      type: 'danger',
-      action: async () => {
-        try {
-          await codexDeleteModelProvider(provider.id)
-          await loadProviders()
-          uiStore.showSuccess(
-            tf('codex.auth.providers.deleteSuccess', 'Saved provider deleted successfully.')
-          )
-        } catch (error) {
-          providerError.value =
-            extractErrorMessage(error) ||
-            tf('codex.auth.providers.deleteFailed', 'Failed to delete the saved provider.')
-        }
-      },
-    })
-  }
+  const deleteMutation = useMutation({ mutationFn: codexDeleteModelProvider })
+
+  const requestDeleteProvider = useCallback(
+    (provider: CodexModelProviderRecord) => {
+      openConfirmDialog({
+        title: tf('codex.auth.providers.deleteTitle', 'Delete saved provider'),
+        message: tf(
+          'codex.auth.providers.deleteMessage',
+          'Delete saved provider "{name}"? Stored API keys under this saved provider will also be removed.',
+          { name: provider.name }
+        ),
+        confirmText: t('codex.actions.delete'),
+        type: 'danger',
+        action: async () => {
+          try {
+            await deleteMutation.mutateAsync(provider.id)
+            invalidateProviders()
+            await reloadProviders()
+            uiStore.showSuccess(
+              tf('codex.auth.providers.deleteSuccess', 'Saved provider deleted successfully.')
+            )
+          } catch (error) {
+            setProviderError(
+              extractErrorMessage(error) ||
+                tf('codex.auth.providers.deleteFailed', 'Failed to delete the saved provider.')
+            )
+          }
+        },
+      })
+    },
+    [deleteMutation, invalidateProviders, openConfirmDialog, reloadProviders, t, tf, uiStore]
+  )
 
   return {
     providers,
-    providerError,
+    providerError: providerError ?? loadError,
     providerLoading,
-    providerSaving,
+    providerSaving: saveMutation.isPending,
     providerForm,
+    /** react-hook-form 方法集（register/setValue/reset），供迁移后的视图绑定表单 */
+    providerFormApi: form,
     selectedProviderTemplate,
     selectedProviderEndpoint,
     codexTemplateDraft,
     formatProviderUpdatedAt,
-    loadProviders,
+    loadProviders: reloadProviders,
     resetProviderForm,
     editProvider,
     useManualProviderTemplate,

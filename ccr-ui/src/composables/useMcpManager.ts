@@ -14,6 +14,10 @@ import { useUnifiedMcp } from '@/composables/useUnifiedMcp'
 import type { UnifiedMcpServer } from '@/types/unifiedMcp'
 import type { McpGroup, McpPanelMode } from '@/types/mcpManager'
 
+/**
+ * 过渡期适配（批次 5b-ii）：useUnifiedMcp 已转为 React hook（普通值返回），
+ * 本 composable 的 `.value` 读取点已同步改为直接属性访问；整体 React 重写归批次 5c。
+ */
 export function useMcpManager() {
   const mcp = useUnifiedMcp()
 
@@ -49,7 +53,7 @@ export function useMcpManager() {
   /** 按名称聚合: 同名 MCP 跨平台归为一组，保留完整 precedence stack */
   const allGroupedServers = computed<McpGroup[]>(() => {
     const map = new Map<string, UnifiedMcpServer[]>()
-    for (const server of mcp.servers.value) {
+    for (const server of mcp.servers) {
       const existing = map.get(server.name) ?? []
       map.set(server.name, [...existing, server])
     }
@@ -57,7 +61,7 @@ export function useMcpManager() {
   })
 
   const groupedServers = computed<McpGroup[]>(() => {
-    const filter = mcp.filterScope.value
+    const filter = mcp.filterScope
     if (filter === 'effective') {
       return allGroupedServers.value.filter(group =>
         group.items.some(item => item.effective !== false && !item.hidden_by),
@@ -138,7 +142,7 @@ export function useMcpManager() {
   function openCreate() {
     selectedKeys.value = new Set()
     panelMode.value = { type: 'create' }
-    const filter = mcp.filterScope.value
+    const filter = mcp.filterScope
     const scope = filter === 'local' || filter === 'project' || filter === 'user'
       ? filter
       : 'user'

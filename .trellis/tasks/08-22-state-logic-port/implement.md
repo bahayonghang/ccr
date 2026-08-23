@@ -194,3 +194,24 @@ mutation-rewrite.md 已填：useClaudeProfilesInsights（46–48）、useCodexPr
 | `grep -l "from 'vue'" <8 文件>` | — | 无匹配 |
 
 未决项登记：grok version queryFn 未透传 force（原实现即如此，仅越过前端 staleTime）；useCodexAgents.loadRuntimeSummary 复用 dashboard overview 缓存（原为绕 TTL 直连 IPC，头注已说明）；编排类多步命令保持 useCallback 编排非 mutation（useCodexAgentSources）。
+
+## 批次 5b-ii 证据（服务端数据/SPLIT 类 7 个 composable → Query/hooks）
+
+改动：新增 `src/features/monitoring/queries.ts`（monitoringKeys + 快照 fetcher，含 getRecentEvents 回退）与 `src/features/mcp/queries.ts`（mcpKeys：platformServers/plugins/unifiedList 三组）；`features/codex/queries.ts` 扩展 providers/tray 两组 key。Query 化：useMonitoringFeed（事件批量 setQueryData 接线，event-adjudication §2 落地）、useCodexProviders（providers Query + save/delete mutation + providerForm→react-hook-form）、useCodexTrayPanel（snapshot Query，force 经 forceRef 透传；`codex-tray:refresh` 组件级 listen 带取消协议，payload 全量快照→setQueryData）、usePlatformMcp/usePlatformPlugins/useUnifiedMcp（列表 Query staleTime Infinity + CRUD useMutation + 表单 react-hook-form/useState）、useCodexOAuthFlow（瞬态 useState，监听器 push 改取消协议 track）。下游适配：useMcpManager.ts 两处 `.value` 读取点改直接属性访问（批次 5c 整体重写前过渡，头注已登记）；`shell/eventBridge.ts` 补 `EventBatcher<T>` 具名类型导出。签名变化（消费方均为待迁移 .vue 视图）：Ref/computed → 普通值、t 参数化、activeManagerTab Ref→setter、OAuth 注入 Ref→setState 写入器、loadServers(platform?) 收窄为 loadServers()（唯一消费方从不传参），均已在各文件头注登记。
+
+| 命令 | 退出码 | 结果 |
+| --- | --- | --- |
+| `bun run type-check` | 0 | ✓ |
+| `bun run lint:ci` | 0 | ✓（仅存量 scripts/measure-distribution.mjs prefer-const warning） |
+| `bun run test:smoke` | 0 | 67 文件 / 333 测试全绿 |
+| `git diff --stat src/api` | — | 空 |
+| `grep -l "from 'vue'" <7 文件>` | — | 无匹配 |
+| dashboardPresentation 的 `MonitoringEntry` 类型导入 | — | 解析正常（type-check 通过佐证） |
+
+语义判定登记：
+- **useMonitoringFeed 共享缓存说明**：按 event-adjudication §2 以单一 queryKey（monitoringKeys.feed）承载 feed 缓存，事件写入走 createEventBatcher（250ms）批量 setQueryData；各消费者仍挂载独立实例（各自的监听器/batcher/logger 订阅与 start/pause/resume 生命周期），条目缓冲共享同一缓存——原 per-instance 缓冲的隔离性由共享缓存承担，maxEntries 取后 flush 实例值。去重键改为与当前缓存内容比对（与原 seenEntries 在 trim 后重建的行为等价）。token-stats 为替换语义，同用 batcher 合并渲染。
+- **useCodexOAuthFlow 编排保持 useCallback**：OAuth 命令均为多步编排（端口检查+启动+打开浏览器等），沿用批次 5b-i「编排类多步命令非 mutation」先例；监听回调经 latestDepsRef 读最新注入依赖，避免闭包陈旧值。
+- **useUnifiedMcp 加载失败 toast 移入 queryFn**：Query 去重保证单次拉取只弹一次（v5 无 query 级 onError）。
+- **codex-tray:refresh 登记**：event-adjudication §4 已有该事件归属行，无需新增。
+
+规则匹配备注：useMonitoringFeed 的局部 `isRecord` 守卫为原文件逐字保留（归一化逻辑语义不变更优先）；如需收口到共享守卫模块，随后续清理统一处理。

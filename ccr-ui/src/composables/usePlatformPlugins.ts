@@ -1,16 +1,26 @@
 /**
- * usePlatformPlugins - 通用平台插件管理 Composable
+ * usePlatformPlugins - 通用平台插件管理 Hook（React）
  *
  * 消除各平台 Plugins 视图中的重复代码（GeminiPluginsView）
  *
+ * React 迁移（08-22-state-logic-port 批次 5b-ii）：
+ * - 插件列表 → Query（mcpKeys.plugins，staleTime Infinity：原实现为挂载显式加载 +
+ *   写操作后显式重载，无 TTL）；CRUD/toggle → useMutation + refetch；
+ * - 表单（formData/configJson）→ react-hook-form + useState
+ *   （state-disposition.md SPLIT 判定）；加载失败 toast 在 queryFn 内触发一次。
+ *
+ * 签名变化（消费方 PlatformPluginsView.vue 待迁移）：useI18n → t 参数传入；
+ * Ref<T>/computed → 普通值；formData 返回 RHF watch 快照，方法集经 formApi 暴露。
+ *
  * @example
- * const { plugins, loading, loadPlugins, addPlugin, updatePlugin, deletePlugin, togglePlugin } = usePlatformPlugins('gemini')
+ * const { plugins, loading, loadPlugins, addPlugin, updatePlugin, deletePlugin, togglePlugin } =
+ *   usePlatformPlugins('gemini', { t })
  */
 
-import { ref, computed } from 'vue'
-import { useI18n } from 'vue-i18n'
-// 过渡期接线（批次 4）：Pinia 已删，Zustand 单例经 getState() 提供同名 API；
-// 本文件在批次 5 转换为 React hook 时整体重写。
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { useCallback, useMemo, useState } from 'react'
+import { useForm } from 'react-hook-form'
+// 过渡期接线（批次 4）：Pinia 已删，Zustand 单例经 getState() 提供同名 API。
 import { useUIStore } from '@/shell/stores/ui'
 import {
   listGeminiPlugins,
@@ -20,6 +30,8 @@ import {
   toggleGeminiPlugin,
 } from '@/api'
 import { genericPlatformDescriptors } from '@/config/platformDescriptors'
+import { mcpKeys } from '@/features/mcp/queries'
+import type { TranslateFunction } from '@/utils/tf'
 import type { Plugin as PluginType, PluginRequest } from '@/types'
 import { logger } from '@/utils/logger'
 
@@ -57,197 +69,239 @@ const platformConfigs: Record<PluginPlatformType, PlatformPluginConfig> = {
   },
 }
 
-// ============ Composable 主体 ============
+const PLUGIN_FORM_DEFAULTS: PluginRequest = {
+  id: '',
+  name: '',
+  version: '1.0.0',
+  enabled: true,
+  config: undefined,
+}
 
-export function usePlatformPlugins(platform: PluginPlatformType) {
-  const { t } = useI18n()
+// ============ Hook 主体 ============
+
+export function usePlatformPlugins(
+  platform: PluginPlatformType,
+  deps: { t: TranslateFunction }
+) {
+  const { t } = deps
+
+  // 获取平台配置（platform 为挂载期常量，配置直接查表，无响应性需求）
+  const config = platformConfigs[platform]
   const uiStore = useUIStore.getState()
 
-  // 获取平台配置
-  const config = computed(() => platformConfigs[platform])
+  // ============ 服务端数据 ============
 
-  // 响应式状态
-  const plugins = ref<PluginType[]>([])
-  const loading = ref(false)
-  const error = ref<string | null>(null)
-
-  // 表单状态
-  const showForm = ref(false)
-  const editingPlugin = ref<PluginType | null>(null)
-  const formData = ref<PluginRequest>({
-    id: '',
-    name: '',
-    version: '1.0.0',
-    enabled: true,
-    config: undefined,
+  const pluginsQuery = useQuery({
+    queryKey: mcpKeys.plugins(platform),
+    staleTime: Infinity,
+    queryFn: async () => {
+      try {
+        return await config.listApi()
+      } catch (err) {
+        logger.error(`Failed to load ${platform} plugins:`, err)
+        uiStore.showError(t(`${config.i18nPrefix}.messages.loadFailed`))
+        throw err
+      }
+    },
   })
-  const configJson = ref('')
+
+  const plugins = pluginsQuery.data ?? []
+  const loading = pluginsQuery.isFetching
+  const error = pluginsQuery.error
+    ? pluginsQuery.error instanceof Error
+      ? pluginsQuery.error.message
+      : 'Unknown error'
+    : null
+
+  const { refetch: refetchPlugins } = pluginsQuery
+
+  /** 重拉列表（原 await loadPlugins 语义）。 */
+  const reloadPlugins = useCallback(async () => {
+    await refetchPlugins()
+  }, [refetchPlugins])
+
+  // ============ 表单状态 ============
+
+  const form = useForm<PluginRequest>({ defaultValues: PLUGIN_FORM_DEFAULTS })
+  const formData = form.watch()
+
+  const [showForm, setShowForm] = useState(false)
+  const [editingPlugin, setEditingPlugin] = useState<PluginType | null>(null)
+  const [configJson, setConfigJson] = useState('')
 
   // ============ CRUD 操作 ============
 
-  /** 加载插件列表 */
-  async function loadPlugins(): Promise<void> {
-    loading.value = true
-    error.value = null
-    try {
-      plugins.value = await config.value.listApi()
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-      error.value = errorMessage
-      logger.error(`Failed to load ${platform} plugins:`, err)
-      uiStore.showError(t(`${config.value.i18nPrefix}.messages.loadFailed`))
-    } finally {
-      loading.value = false
+  const addMutation = useMutation({ mutationFn: config.addApi })
+  const updateMutation = useMutation({
+    mutationFn: ({ id, request }: { id: string; request: PluginRequest }) =>
+      config.updateApi(id, request),
+  })
+  const deleteMutation = useMutation({ mutationFn: config.deleteApi })
+  const toggleMutation = useMutation({ mutationFn: config.toggleApi })
+
+  /** 关闭表单 */
+  const closeForm = useCallback(() => {
+    setShowForm(false)
+    setEditingPlugin(null)
+  }, [])
+
+  /** 校验表单（原 validateForm）。 */
+  const validateForm = useCallback(() => {
+    const values = form.getValues()
+    if (!values.id || !values.name || !values.version) {
+      uiStore.showWarning(t(`${config.i18nPrefix}.validation.required`))
+      return false
     }
-  }
+    return true
+  }, [config.i18nPrefix, form, t, uiStore])
+
+  /** 由 configJson 构建请求（原 buildRequest：JSON 解析失败时提示并返回 null）。 */
+  const buildRequest = useCallback((): PluginRequest | null => {
+    let parsedConfig: Record<string, unknown> | undefined = undefined
+
+    if (configJson.trim()) {
+      try {
+        parsedConfig = JSON.parse(configJson) as Record<string, unknown>
+      } catch {
+        uiStore.showError(t(`${config.i18nPrefix}.validation.invalidJson`))
+        return null
+      }
+    }
+
+    return {
+      ...form.getValues(),
+      config: parsedConfig,
+    }
+  }, [config.i18nPrefix, configJson, form, t, uiStore])
 
   /** 添加插件 */
-  async function addPlugin(): Promise<boolean> {
+  const addPlugin = useCallback(async (): Promise<boolean> => {
     if (!validateForm()) return false
 
     const request = buildRequest()
     if (!request) return false
 
     try {
-      await config.value.addApi(request)
-      uiStore.showSuccess(t(`${config.value.i18nPrefix}.messages.addSuccess`))
-      await loadPlugins()
+      await addMutation.mutateAsync(request)
+      uiStore.showSuccess(t(`${config.i18nPrefix}.messages.addSuccess`))
+      await reloadPlugins()
       closeForm()
       return true
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-      uiStore.showError(
-        t(`${config.value.i18nPrefix}.messages.operationFailed`, { error: errorMessage })
-      )
+      uiStore.showError(t(`${config.i18nPrefix}.messages.operationFailed`, { error: errorMessage }))
       return false
     }
-  }
+  }, [
+    addMutation,
+    buildRequest,
+    closeForm,
+    config,
+    reloadPlugins,
+    t,
+    uiStore,
+    validateForm,
+  ])
 
   /** 更新插件 */
-  async function updatePlugin(): Promise<boolean> {
-    if (!editingPlugin.value || !validateForm()) return false
+  const updatePlugin = useCallback(async (): Promise<boolean> => {
+    if (!editingPlugin || !validateForm()) return false
 
     const request = buildRequest()
     if (!request) return false
 
     try {
-      await config.value.updateApi(editingPlugin.value.id, request)
-      uiStore.showSuccess(t(`${config.value.i18nPrefix}.messages.updateSuccess`))
-      await loadPlugins()
+      await updateMutation.mutateAsync({ id: editingPlugin.id, request })
+      uiStore.showSuccess(t(`${config.i18nPrefix}.messages.updateSuccess`))
+      await reloadPlugins()
       closeForm()
       return true
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-      uiStore.showError(
-        t(`${config.value.i18nPrefix}.messages.operationFailed`, { error: errorMessage })
-      )
+      uiStore.showError(t(`${config.i18nPrefix}.messages.operationFailed`, { error: errorMessage }))
       return false
     }
-  }
+  }, [
+    buildRequest,
+    closeForm,
+    config,
+    editingPlugin,
+    reloadPlugins,
+    t,
+    uiStore,
+    updateMutation,
+    validateForm,
+  ])
 
   /** 删除插件（纯执行器，确认决策上移到调用视图） */
-  async function deletePlugin(plugin: PluginType): Promise<boolean> {
-    try {
-      await config.value.deleteApi(plugin.id)
-      uiStore.showSuccess(t(`${config.value.i18nPrefix}.messages.deleteSuccess`))
-      await loadPlugins()
-      return true
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-      uiStore.showError(
-        t(`${config.value.i18nPrefix}.messages.deleteFailed`, { error: errorMessage })
-      )
-      return false
-    }
-  }
+  const deletePlugin = useCallback(
+    async (plugin: PluginType): Promise<boolean> => {
+      try {
+        await deleteMutation.mutateAsync(plugin.id)
+        uiStore.showSuccess(t(`${config.i18nPrefix}.messages.deleteSuccess`))
+        await reloadPlugins()
+        return true
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+        uiStore.showError(t(`${config.i18nPrefix}.messages.deleteFailed`, { error: errorMessage }))
+        return false
+      }
+    },
+    [config, deleteMutation, reloadPlugins, t, uiStore]
+  )
 
   /** 切换插件启用状态 */
-  async function togglePlugin(plugin: PluginType): Promise<boolean> {
-    try {
-      await config.value.toggleApi(plugin.id)
-      await loadPlugins()
-      return true
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-      uiStore.showError(
-        t(`${config.value.i18nPrefix}.messages.toggleFailed`, { error: errorMessage })
-      )
-      return false
-    }
-  }
+  const togglePlugin = useCallback(
+    async (plugin: PluginType): Promise<boolean> => {
+      try {
+        await toggleMutation.mutateAsync(plugin.id)
+        await reloadPlugins()
+        return true
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+        uiStore.showError(t(`${config.i18nPrefix}.messages.toggleFailed`, { error: errorMessage }))
+        return false
+      }
+    },
+    [config, reloadPlugins, t, uiStore, toggleMutation]
+  )
 
   // ============ 表单操作 ============
 
   /** 打开添加表单 */
-  function openAddForm(): void {
-    editingPlugin.value = null
-    formData.value = {
-      id: '',
-      name: '',
-      version: '1.0.0',
-      enabled: true,
-      config: undefined,
-    }
-    configJson.value = ''
-    showForm.value = true
-  }
+  const openAddForm = useCallback(() => {
+    setEditingPlugin(null)
+    form.reset(PLUGIN_FORM_DEFAULTS)
+    setConfigJson('')
+    setShowForm(true)
+  }, [form])
 
   /** 打开编辑表单 */
-  function openEditForm(plugin: PluginType): void {
-    editingPlugin.value = plugin
-    formData.value = {
-      id: plugin.id,
-      name: plugin.name,
-      version: plugin.version,
-      enabled: plugin.enabled,
-      config: plugin.config,
-    }
-    configJson.value = plugin.config ? JSON.stringify(plugin.config, null, 2) : ''
-    showForm.value = true
-  }
-
-  /** 关闭表单 */
-  function closeForm(): void {
-    showForm.value = false
-    editingPlugin.value = null
-  }
+  const openEditForm = useCallback(
+    (plugin: PluginType) => {
+      setEditingPlugin(plugin)
+      form.reset({
+        id: plugin.id,
+        name: plugin.name,
+        version: plugin.version,
+        enabled: plugin.enabled,
+        config: plugin.config,
+      })
+      setConfigJson(plugin.config ? JSON.stringify(plugin.config, null, 2) : '')
+      setShowForm(true)
+    },
+    [form]
+  )
 
   /** 提交表单（添加或更新） */
-  async function submitForm(): Promise<boolean> {
-    if (editingPlugin.value) {
-      return updatePlugin()
-    } else {
-      return addPlugin()
-    }
-  }
+  const submitForm = useCallback((): Promise<boolean> => {
+    return editingPlugin ? updatePlugin() : addPlugin()
+  }, [addPlugin, editingPlugin, updatePlugin])
 
-  // ============ 辅助方法 ============
-
-  function validateForm(): boolean {
-    if (!formData.value.id || !formData.value.name || !formData.value.version) {
-      uiStore.showWarning(t(`${config.value.i18nPrefix}.validation.required`))
-      return false
-    }
-    return true
-  }
-
-  function buildRequest(): PluginRequest | null {
-    let parsedConfig: Record<string, unknown> | undefined = undefined
-
-    if (configJson.value.trim()) {
-      try {
-        parsedConfig = JSON.parse(configJson.value) as Record<string, unknown>
-      } catch {
-        uiStore.showError(t(`${config.value.i18nPrefix}.validation.invalidJson`))
-        return null
-      }
-    }
-
-    return {
-      ...formData.value,
-      config: parsedConfig,
-    }
-  }
+  const moduleColor = config.color
+  const i18nPrefix = useMemo(() => config.i18nPrefix, [config])
+  const parentPath = config.parentPath
+  const sidebarModule = config.sidebarModule
 
   // ============ 返回值 ============
 
@@ -255,10 +309,10 @@ export function usePlatformPlugins(platform: PluginPlatformType) {
     // 平台配置
     config,
     platform,
-    moduleColor: computed(() => config.value.color),
-    i18nPrefix: computed(() => config.value.i18nPrefix),
-    parentPath: computed(() => config.value.parentPath),
-    sidebarModule: computed(() => config.value.sidebarModule),
+    moduleColor,
+    i18nPrefix,
+    parentPath,
+    sidebarModule,
 
     // 数据状态
     plugins,
@@ -269,10 +323,14 @@ export function usePlatformPlugins(platform: PluginPlatformType) {
     showForm,
     editingPlugin,
     formData,
+    /** react-hook-form 方法集（register/setValue/reset），供迁移后的视图绑定表单 */
+    formApi: form,
     configJson,
+    setConfigJson,
+    setShowForm,
 
     // CRUD 操作
-    loadPlugins,
+    loadPlugins: reloadPlugins,
     addPlugin,
     updatePlugin,
     deletePlugin,

@@ -1,9 +1,33 @@
-import { onMounted, onUnmounted, ref, shallowRef, type Ref } from 'vue'
-import type { UnknownRecord } from '@/types/common'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
-import { getMonitoringFeed, getRecentEvents, type MonitoringFeedQuery } from '@/api'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import type { UnknownRecord } from '@/types/common'
+import {
+  fetchMonitoringFeedSnapshot,
+  monitoringKeys,
+} from '@/features/monitoring/queries'
+import { createEventBatcher, type EventBatcher } from '@/shell/eventBridge'
 import { logger, type LoggerEntry, type LogLevel } from '@/utils/logger'
 import { isTauriRuntime } from '@/utils/tauriRuntime'
+
+// Monitoring feed 的 React 迁移（08-22-state-logic-port 批次 5b-ii）。
+// 原 per-instance shallowRef 缓冲改为 Query 缓存（monitoringKeys.feed），事件写入按
+// state-logic-port 批次 3 约定走「ref 累积 + 定时批量 setQueryData」：
+// - app:monitoring 条目与前端 logger 条目 → createEventBatcher（250ms，eventBridge 常量）
+//   批量提交；token-stats 为替换语义（保留最新值），同用 batcher 以合并渲染；
+// - 初始快照经 fetchMonitoringFeedSnapshot（getMonitoringFeed → 回退 getRecentEvents），
+//   失败时 query 进入 error → isConnected 置 false（原 loadInitialFeed 双失败语义）。
+//
+// 语义说明（相对 Vue 版的差异登记）：
+// - Query 缓存为共享存储：多个消费者（MonitoringView/DashboardView）挂载各自独立实例
+//   （各自的监听器、batcher、logger 订阅与 start/pause/resume 生命周期），但条目缓冲
+//   共享同一 queryKey —— maxEntries 取各实例传入值，后 flush 者生效；
+// - 去重键改为「与当前缓存内容比对」（原 seenEntries Set 在 trim 后同样重建，
+//   行为等价：仍在缓冲内的条目不重复进入，被裁剪的条目可重新进入）；
+// - isConnected 由快照 query 成败与原生监听安装结果共同派生（原单字段的两路赋值点
+//   一一对应）；监听回调内逐条的 isConnected.value = true 冗余赋值省去。
+//
+// 签名变化（消费方均为待迁移 .vue 视图）：Ref<T> → 普通值。
 
 export type MonitoringLevel = LogLevel
 
@@ -232,6 +256,9 @@ const insertEntryByTimestamp = (
     return [...entries, entry]
   }
 
+
+  // 二分插入到拷贝上（原 nextEntries.splice 就地写法已随不可变迁移改写，
+  // 见 mutation-rewrite.md 对应行）。
   const nextEntries = [...entries]
   let low = 0
   let high = nextEntries.length
@@ -249,152 +276,187 @@ const insertEntryByTimestamp = (
   return nextEntries
 }
 
+/** 批量合入：按键去重 + 按时间戳插入 + 裁剪（原 mergeEntries 的纯函数化）。 */
+function mergeBatch(prev: MonitoringEntry[] | undefined, batch: MonitoringEntry[], maxEntries: number): MonitoringEntry[] {
+  const base = prev ?? []
+  const existingKeys = new Set(base.map(buildEntryKey))
+  let merged = base
+
+  for (const entry of batch) {
+    const entryKey = buildEntryKey(entry)
+    if (existingKeys.has(entryKey)) {
+      continue
+    }
+    existingKeys.add(entryKey)
+    merged = insertEntryByTimestamp(merged, entry)
+  }
+
+  return trimEntries(merged, maxEntries)
+}
+
 export function useMonitoringFeed(options: MonitoringFeedOptions = {}) {
   const { initialCount = DEFAULT_INITIAL_COUNT, maxEntries = DEFAULT_MAX_ENTRIES } = options
+  const queryClient = useQueryClient()
 
-  const isConnected: Ref<boolean> = ref(true)
-  const logs = shallowRef<MonitoringEntry[]>([])
-  const tokenStats: Ref<MonitoringTokenStats | null> = ref(null)
+  const [isConnected, setIsConnected] = useState(true)
+  const [tokenStats, setTokenStats] = useState<MonitoringTokenStats | null>(null)
 
-  const seenEntries = new Set<string>()
-  const unlisteners: UnlistenFn[] = []
-  let unsubscribeLogger: (() => void) | null = null
-  let listening = false
+  const listeningRef = useRef(false)
+  const disposedRef = useRef(false)
+  const unlistenersRef = useRef<UnlistenFn[]>([])
+  const unsubscribeLoggerRef = useRef<(() => void) | null>(null)
+  const maxEntriesRef = useRef(maxEntries)
+  useEffect(() => {
+    maxEntriesRef.current = maxEntries
+  }, [maxEntries])
 
-  const mergeEntries = (entries: MonitoringEntry[]) => {
-    if (entries.length === 0) {
-      return
+  /** 高频事件批量提交器（懒建；stop 时 dispose 并置空）。 */
+  const entriesBatcherRef = useRef<EventBatcher<MonitoringEntry> | null>(null)
+  const statsBatcherRef = useRef<EventBatcher<MonitoringTokenStats> | null>(null)
+  const getEntriesBatcher = useCallback(() => {
+    if (!entriesBatcherRef.current) {
+      entriesBatcherRef.current = createEventBatcher<MonitoringEntry>((batch) => {
+        queryClient.setQueryData<MonitoringEntry[]>(monitoringKeys.feed(), (prev) =>
+          mergeBatch(prev, batch, maxEntriesRef.current)
+        )
+      })
     }
+    return entriesBatcherRef.current
+  }, [queryClient])
+  const getStatsBatcher = useCallback(() => {
+    if (!statsBatcherRef.current) {
+      statsBatcherRef.current = createEventBatcher<MonitoringTokenStats>((batch) => {
+        setTokenStats(batch[batch.length - 1])
+      })
+    }
+    return statsBatcherRef.current
+  }, [])
 
-    let merged = logs.value
-    for (const entry of entries) {
-      const entryKey = buildEntryKey(entry)
-      if (seenEntries.has(entryKey)) {
-        continue
+  const feedQuery = useQuery({
+    queryKey: monitoringKeys.feed(),
+    staleTime: Infinity,
+    queryFn: async () => {
+      const previous = queryClient.getQueryData<MonitoringEntry[]>(monitoringKeys.feed())
+      const rawEntries = await fetchMonitoringFeedSnapshot(initialCount)
+      const incoming = rawEntries
+        .map(normalizeMonitoringEntry)
+        .filter((entry): entry is MonitoringEntry => entry !== null)
+      return mergeBatch(previous, incoming, maxEntriesRef.current)
+    },
+  })
+
+  const { refetch: refetchFeed } = feedQuery
+
+  // isConnected 与快照成败联动（原 loadInitialFeed 成功/双失败的赋值点）。
+  useEffect(() => {
+    if (feedQuery.isError) {
+      setIsConnected(false)
+    } else if (feedQuery.isSuccess) {
+      setIsConnected(true)
+    }
+  }, [feedQuery.isError, feedQuery.isSuccess])
+
+  const track = useCallback((pending: Promise<UnlistenFn>) => {
+    void pending.then((unlisten) => {
+      if (disposedRef.current) {
+        unlisten()
+      } else {
+        unlistenersRef.current.push(unlisten)
       }
+    })
+  }, [])
 
-      seenEntries.add(entryKey)
-      merged = insertEntryByTimestamp(merged, entry)
-    }
-
-    const trimmed = trimEntries(merged, maxEntries)
-    logs.value = trimmed
-
-    if (trimmed !== merged) {
-      seenEntries.clear()
-      for (const entry of trimmed) {
-        seenEntries.add(buildEntryKey(entry))
-      }
-    }
-  }
-
-  const clearLogs = () => {
-    logs.value = []
-    seenEntries.clear()
-  }
-
-  const loadInitialFeed = async () => {
-    if (!isTauriRuntime()) {
-      return
-    }
-
-    const query: MonitoringFeedQuery = { count: initialCount }
-
-    try {
-      const entries = await getMonitoringFeed(query)
-      mergeEntries(
-        entries
-          .map(normalizeMonitoringEntry)
-          .filter((entry): entry is MonitoringEntry => entry !== null)
-      )
-      isConnected.value = true
-      return
-    } catch {
-      // Fall through to legacy event feed while backend migration is in progress.
-    }
-
-    try {
-      const entries = await getRecentEvents(initialCount)
-      mergeEntries(
-        entries
-          .map(normalizeMonitoringEntry)
-          .filter((entry): entry is MonitoringEntry => entry !== null)
-      )
-      isConnected.value = true
-    } catch {
-      isConnected.value = false
-    }
-  }
-
-  const setupNativeListeners = async () => {
+  const setupNativeListeners = useCallback(async () => {
     if (!isTauriRuntime()) {
       return
     }
 
     try {
-      const unMonitoring = await listen<unknown>(MONITORING_EVENT_NAME, (event) => {
+      const unMonitoring = listen<unknown>(MONITORING_EVENT_NAME, (event) => {
         const entry = normalizeMonitoringEntry(event.payload)
         if (entry) {
-          mergeEntries([entry])
-          isConnected.value = true
+          getEntriesBatcher().push(entry)
         }
       })
-      unlisteners.push(unMonitoring)
 
-      const unStats = await listen<MonitoringTokenStats>('token-stats', (event) => {
-        tokenStats.value = event.payload
+      const unStats = listen<MonitoringTokenStats>('token-stats', (event) => {
+        getStatsBatcher().push(event.payload)
       })
-      unlisteners.push(unStats)
 
-      isConnected.value = true
+      // 取消协议：cleanup 已跑过时迟到的 unlisten 立即调用（eventBridge 同款协议）。
+      track(unMonitoring)
+      track(unStats)
+
+      setIsConnected(true)
     } catch {
-      isConnected.value = false
+      setIsConnected(false)
     }
-  }
+  }, [getEntriesBatcher, getStatsBatcher, track])
 
-  onMounted(() => {
-    start()
-  })
 
-  onUnmounted(() => {
-    stop()
-  })
-
-  // start/stop 幂等：缓存视图（keep-alive）可通过 pause/resume 在 deactivated/activated
-  // 间断开/重连事件源，避免切走后仍在后台持续合并事件；重复调用 start 不会重复挂监听。
-  function start() {
-    if (listening) return
-    listening = true
-    mergeEntries(logger.getHistory().map(normalizeLoggerEntry))
-    unsubscribeLogger = logger.subscribe((entry) => {
-      mergeEntries([normalizeLoggerEntry(entry)])
-    })
-
-    void loadInitialFeed()
-    void setupNativeListeners()
-  }
-
-  function stop() {
-    if (!listening) return
-    listening = false
-    for (const unlisten of unlisteners) {
+  const stop = useCallback(() => {
+    if (!listeningRef.current) return
+    listeningRef.current = false
+    disposedRef.current = true
+    for (const unlisten of unlistenersRef.current) {
       void unlisten()
     }
-    unlisteners.length = 0
+    unlistenersRef.current = []
 
-    unsubscribeLogger?.()
-    unsubscribeLogger = null
-  }
+    unsubscribeLoggerRef.current?.()
+    unsubscribeLoggerRef.current = null
+
+    entriesBatcherRef.current?.dispose()
+    entriesBatcherRef.current = null
+    statsBatcherRef.current?.dispose()
+    statsBatcherRef.current = null
+  }, [])
+
+  const start = useCallback(() => {
+    if (listeningRef.current) return
+    listeningRef.current = true
+    disposedRef.current = false
+
+    // logger 历史直接合入缓存；新条目进批量缓冲（原 mergeEntries(getHistory()) + subscribe）。
+    queryClient.setQueryData<MonitoringEntry[]>(monitoringKeys.feed(), (prev) =>
+      mergeBatch(
+        prev,
+        logger.getHistory().map(normalizeLoggerEntry),
+        maxEntriesRef.current
+      )
+    )
+    unsubscribeLoggerRef.current = logger.subscribe((entry) => {
+      getEntriesBatcher().push(normalizeLoggerEntry(entry))
+    })
+
+    void refetchFeed()
+    void setupNativeListeners()
+  }, [getEntriesBatcher, queryClient, refetchFeed, setupNativeListeners])
+
+  // start/stop 幂等：缓存视图可通过 pause/resume 在后台页间断开/重连事件源，
+  // 避免切走后仍在后台持续合并事件；重复调用 start 不会重复挂监听。
+  useEffect(() => {
+    start()
+    return stop
+  }, [start, stop])
+
+  const clearLogs = useCallback(() => {
+    queryClient.setQueryData<MonitoringEntry[]>(monitoringKeys.feed(), [])
+  }, [queryClient])
+
+  const refresh = useCallback(() => {
+    return refetchFeed()
+  }, [refetchFeed])
 
   return {
     isConnected,
-    logs,
+    logs: feedQuery.data ?? [],
     tokenStats,
     clearLogs,
-    refresh: loadInitialFeed,
-    /** 暂停事件消费（缓存视图 onDeactivated 调用） */
+    refresh,
+    /** 暂停事件消费（缓存视图后台态调用） */
     pause: stop,
-    /** 恢复事件消费并重新拉取初始快照（缓存视图 onActivated 调用） */
+    /** 恢复事件消费并重新拉取初始快照（缓存视图回前台调用） */
     resume: start,
   }
 }

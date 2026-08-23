@@ -114,3 +114,21 @@ ccr-ui\src\composables\useUnifiedMcp.ts:151
 | `useGrokDashboard.ts` | currentProfileLabel（310）/ activationLabel（316）/ authModeLabel（327） | overview.current_profile/activation_name/activation/auth_mode；t | `useMemo` |
 | `useGrokDashboard.ts` | activationWarning/versionTone/readinessItems/nextActions/primaryAction/managementItems（337–553，排查清单外多行声明） | overview、versionStatus/versionLabel/versionTone、currentProfileLabel、activationLabel、t | 各自 `useMemo` |
 | `usePlatformUsageInsight.ts` | dateWindow / resolvedLabels / presentation（38–40） | days；labels；dashboard 数据 + resolvedLabels + tone | 各自 `useMemo` |
+
+### 3.2 批次 5b-ii 已转换文件的 computed 登记（响应式来源 → useMemo / 常量）
+
+| 文件 | computed（原行） | 响应式来源 | React 形态 |
+| --- | --- | --- | --- |
+| `useCodexProviders.ts` | codexTemplateDraft（69） | providerForm 表单值（name/baseUrl/websiteUrl/apiKeyUrl，RHF watch） | `useMemo([providerForm])` |
+| `useCodexTrayPanel.ts` | currentAccount（45）/ accounts（46）/ canManageAccounts（47） | snapshot（Query data） | 各自 `useMemo([snapshot])`；canOpenSwitchScreen 为 canManageAccounts 别名 |
+| `usePlatformMcp.ts` | config（149） | platformConfigs[platform]，platform 为挂载期常量 | 直接查表，无响应性需求 |
+| `usePlatformMcp.ts` | moduleColor/i18nPrefix/parentPath（348–350） | config 常量字段 | 普通常量 |
+| `usePlatformPlugins.ts` | config（65）；moduleColor 等（256–259） | 同上 | 同上 |
+| `useUnifiedMcp.ts` | filteredServers（90） | servers、filterPlatform/filterKeyword/filterProtocol/filterScope | `useMemo` |
+| `useUnifiedMcp.ts` | scopeCounts（127）/ platformCounts（138） | servers | `useMemo([servers])` |
+| `useUnifiedMcp.ts` | sourceDiagnostics（135） | diagnostics | 普通别名 |
+| `useUnifiedMcp.ts` | currentCapability（147） | capabilities、formData.platform | `useMemo` |
+| `useUnifiedMcp.ts` | hasActiveFilters（153） | filter* 四项 | `useMemo` |
+| `useMonitoringFeed.ts` / `useCodexOAuthFlow.ts` | —（0 处 computed） | — | — |
+
+§2 watch 寄存器补充：本批 7 个文件原实现 watch 计数为 **0**（复核），无新增选项映射行。

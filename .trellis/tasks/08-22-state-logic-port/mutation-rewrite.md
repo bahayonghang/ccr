@@ -24,7 +24,7 @@
 | `ccr-ui/src/composables/useCodexDashboard.ts:465` | `actions.push({` | 本地临时（同上），无需改写 | — |
 | `ccr-ui/src/composables/useCodexDashboard.ts:475` | `actions.push({` | 本地临时（同上），无需改写 | — |
 | `ccr-ui/src/composables/useCodexDashboard.ts:485` | `actions.push({` | 本地临时（同上），无需改写 | — |
-| `ccr-ui/src/composables/useCodexOAuthFlow.ts:248` | `oauthUnlisteners.push(completed, timeout)` | 待批次 5 判定 | — |
+| `ccr-ui/src/composables/useCodexOAuthFlow.ts:248` | `oauthUnlisteners.push(completed, timeout)` | 已改写（批次 5b-ii）：监听器数组累积改为取消协议——`disposed` 标记 + `track(pending)`（迟到的 unlisten 在 cleanup 后立即调用）；顺带修复原实现第二个 `listen` 失败时首个监听器不解绑的泄漏 | 取消协议 `trackOauthListener(completed)` / `trackOauthListener(timeout)` |
 | `ccr-ui/src/composables/useCodexProfilesInsights.ts:50` | `if (requiresBaseUrl(profile) && isBlank(profile.base_url)) missing.push('base_url')` | 本地临时（`missing` 函数内累积后返回），无需改写 | — |
 | `ccr-ui/src/composables/useCodexProfilesInsights.ts:51` | `if (isBlank(profile.model)) missing.push('model')` | 本地临时（`missing` 函数内累积后返回），无需改写 | — |
 | `ccr-ui/src/composables/useGrokDashboard.ts:453` | `actions.push({` | 本地临时（`actions` computed 内累积后返回），无需改写；批次 5 迁移后为 useMemo 内本地数组 | — |
@@ -34,9 +34,9 @@
 | `ccr-ui/src/composables/useGrokDashboard.ts:492` | `actions.push({` | 本地临时（同上），无需改写 | — |
 | `ccr-ui/src/composables/useGrokDashboard.ts:503` | `actions.push({` | 本地临时（同上），无需改写 | — |
 | `ccr-ui/src/composables/useMcpManager.ts:29` | `const sortedItems = [...items].sort((a, b) => {` | 待批次 5 判定 | — |
-| `ccr-ui/src/composables/useMonitoringFeed.ts:248` | `nextEntries.splice(low, 0, entry)` | 待批次 5 判定 | — |
-| `ccr-ui/src/composables/useMonitoringFeed.ts:342` | `unlisteners.push(unMonitoring)` | 待批次 5 判定 | — |
-| `ccr-ui/src/composables/useMonitoringFeed.ts:347` | `unlisteners.push(unStats)` | 待批次 5 判定 | — |
+| `ccr-ui/src/composables/useMonitoringFeed.ts:248` | `nextEntries.splice(low, 0, entry)` | 拷贝数组（`[...entries]`）上的插入后返回新引用，immutable 安全，无需改写；批次 5b-ii 迁移后该逻辑整体纯函数化为 `insertEntryByTimestamp` + `mergeBatch` | — |
+| `ccr-ui/src/composables/useMonitoringFeed.ts:342` | `unlisteners.push(unMonitoring)` | 已改写（批次 5b-ii）：改为取消协议 `track()` + ref 数组，cleanup 已跑过时迟到 unlisten 立即调用 | `track(unMonitoring)` |
+| `ccr-ui/src/composables/useMonitoringFeed.ts:347` | `unlisteners.push(unStats)` | 已改写（批次 5b-ii）：同上 | `track(unStats)` |
 | `ccr-ui/src/composables/useProfilesFilter.ts:100` | `return Array.from(set).sort()` | `Array.from` 产出的新数组上排序，immutable 安全，无需改写 | — |
 | `ccr-ui/src/composables/useProfilesFilter.ts:114` | `.sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }))` | `.map()` 产出的新数组上排序，immutable 安全，无需改写 | — |
 | `ccr-ui/src/composables/useProfilesFilter.ts:157` | `return sortFn ? [...list].sort(sortFn) : list` | 展开拷贝上排序，原列表不受影响，immutable 安全，无需改写 | — |

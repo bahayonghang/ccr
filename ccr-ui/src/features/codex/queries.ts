@@ -39,6 +39,14 @@ export const codexKeys = {
     catalog: (sourceId: string | null) =>
       [...codexKeys.agentSources.all, 'catalog', sourceId] as const,
   },
+  providers: {
+    all: ['codex', 'providers'] as const,
+    list: () => [...codexKeys.providers.all, 'list'] as const,
+  },
+  tray: {
+    all: ['codex', 'tray'] as const,
+    snapshot: () => [...codexKeys.tray.all, 'snapshot'] as const,
+  },
 }
 
 export const CODEX_DASHBOARD_STALE_TIME = 30_000

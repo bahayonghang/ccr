@@ -31,9 +31,9 @@
 
 | 事件 | 消费方 | 处理 | 状态 |
 | --- | --- | --- | --- |
-| `app-log` | logger → MonitoringView | `createEventBatcher` ref 累积 + 250ms 定时批量提交 | **待接线**：Monitor feed 的 Query 缓存随批次 5 `useMonitoringFeed` hook 建立，接线动作与拼接语义在该批次落地 |
-| `token-stats` | MonitoringView / Dashboard | 同上 | 同上 |
-| `app:monitoring` | 监控条目流 | 同上 | 同上 |
+| `app-log` | logger → MonitoringView | `createEventBatcher` ref 累积 + 250ms 定时批量提交 | **已接线**（批次 5b-ii）：`useMonitoringFeed` 建立 `monitoringKeys.feed` Query 缓存（staleTime Infinity），logger 订阅经 batcher 批量 `setQueryData`；拼接与去重语义见 `composables/useMonitoringFeed.ts` 头注 |
+| `token-stats` | MonitoringView / Dashboard | 同上 | **已接线**（批次 5b-ii）：同上，替换语义经 batcher 合并渲染 |
+| `app:monitoring` | 监控条目流 | 同上 | **已接线**（批次 5b-ii）：同上，初始快照 getMonitoringFeed→getRecentEvents 回退收口为 fetchMonitoringFeedSnapshot |
 
 间隔取值 250ms 为保守值，**待复核**：arch-quality-perf 场景 3（日志流）的 React 侧
 基线数据由 `08-22-regression-release` 步骤 7 补测，届时按「日志流无掉帧且批量提交
