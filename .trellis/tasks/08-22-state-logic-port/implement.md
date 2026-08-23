@@ -77,9 +77,9 @@
 
 ## 批次 6：测试
 
-- [ ] 每个 store 的每个 action 至少一个用例（AC8）。
-- [ ] 订阅泄漏测试：按 `design.md` §7 的三个用例写（AC5）。用例 1 立即 resolve；用例 2 Promise 在卸载后才 resolve，断言该 unlisten 仍被调用；用例 3 StrictMode 下挂载 → 卸载 → 再挂载 + 延迟 resolve。**只过用例 1 不构成 AC5 满足。**
-- [ ] Query hook 测试用 `QueryClientProvider` + mock `queryFn`。
+- [x] 每个 store 的每个 action 至少一个用例（AC8）。
+- [x] 订阅泄漏测试：按 `design.md` §7 的三个用例写（AC5）。用例 1 立即 resolve；用例 2 Promise 在卸载后才 resolve，断言该 unlisten 仍被调用；用例 3 StrictMode 下挂载 → 卸载 → 再挂载 + 延迟 resolve。**只过用例 1 不构成 AC5 满足。**
+- [x] Query hook 测试用 `QueryClientProvider` + mock `queryFn`。
 
 验证：`bun run test:smoke` 退出码 0。
 
@@ -237,3 +237,23 @@ mutation-rewrite.md 已填：useClaudeProfilesInsights（46–48）、useCodexPr
 | `rg "from 'vue'" src/composables src/stores` | — | src/composables 无匹配；src/stores 仅剩 usage.ts（偏差 2，归 views-usage，非本批范围） |
 
 mutation-rewrite.md 已填：useMcpManager.ts:29 判定为展开拷贝上排序（immutable 安全，无需改写）。
+
+## 批次 6 证据（测试：store action 全量转移 + 订阅泄漏三用例）
+
+改动：新增 `ccr-ui/tests/event-bridge-leak.smoke.test.tsx`（3 用例）与 `ccr-ui/tests/state-store-actions.smoke.test.ts`（54 用例）；扩展 `ccr-ui/tests/state-query-hooks.smoke.test.tsx`（+1 用例，批次 5b-ii 的 useCodexProviders mutation 成功路径）。`src/**` 零改动。
+
+**订阅泄漏（AC5，design.md §7 三用例）**——mock `@tauri-apps/api/event` listen 为可控 deferred，置 `__TAURI_INTERNALS__` 使 `listenSafe` 走 mock 路径：
+- 用例 1 立即 resolve：100 次挂载/卸载，断言 listen == unlisten == 100×13（12 事件 + snapshot-updated 双路失效）；
+- 用例 2 卸载先于 resolve：13 条挂起订阅在卸载后逐条 resolve，断言迟到 unlisten 全部补发（计数相等）；
+- 用例 3 StrictMode 挂载→清理→再挂载（StrictMode 必须置于 QueryClientProvider 外层，内层时 React 不做 effect 双调用，实测单次）：两轮共 26 条延迟订阅，第一轮 resolve 后立即补发解绑、第二轮卸载后补发，总数相等。
+
+**收紧验证**：临时把 `track()` 改为无条件 push（naive unlisten 数组实现），用例 2、3 失败、仅用例 1 通过（与 §7「只过用例 1 不构成 AC5」一致）；已还原，`git diff src/shell/eventBridge.ts` 为空。
+
+**store action 清单（AC8，每 action ≥1 用例）**：ui 11 action（showToast/removeToast/showSuccess/showError/showWarning/showInfo/requestConfirm 替换语义/resolveConfirmDialog/startLoading/stopLoading/clearToasts + duration>0 自动移除走 fake timers）；commandsView 6 action（含 restore 损坏 JSON 与未知字段收敛；`ccr-commands-view` 值字节比对）；usage 视图 3；configs 视图 4（clearFormDraft 缺失 id 保持引用不变）；profiles 快切 5 action 全覆盖（pin 上限 8 + onPinLimit、recordUse 上限 16 去重置顶、renamePinned 双列表跟随、cleanupStale null 跳过；`ccr:profiles:pinned/recent:<platform>` 值字节比对）；providerTemplates store 3（upsert/remove/reload，键 `ccr.providerTemplates.custom.v1`）；shellPreferences 16 action 全覆盖（initializeTheme/setTheme/toggleTheme/setFlavor 含旧值域迁移/setAccent/setUiFont/setCodeFont/setLocalePreference/updateSidebarWidth clamp 与 persist=false/commitSidebarWidth/resetLayout/hydrateRuntimePreferences 成功+失败+幂等/setConfirmBeforeExit/setCloseToTray/setOpenPanelOnTrayClick 经 syncRuntimePreferences 断言 shellSetPreferences 合并写/setPerfTelemetryPreference 写 `ccr-ui:perf`）。隔离方式：beforeEach 以 `getInitialState()` 复位各 zustand 单例，localStorage 用既有 MemoryStorage shim（每用例清空）。
+
+| 命令 | 退出码 | 结果 |
+| --- | --- | --- |
+| `bun run type-check` | 0 | ✓ |
+| `bun run lint:ci` | 0 | ✓（首跑报新测试 unsafe-any，已类型化 openConfirmDialog mock 后通过） |
+| `bun run test:smoke` | 0 | 69 文件 / 391 测试全绿（新增 58 用例） |
+| `git status`（src） | — | 仅 tests 三文件改动，src 无 diff |
