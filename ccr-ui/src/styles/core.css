@@ -11,7 +11,16 @@
      默认值；448 个变量映射进 @theme inline 归 08-22-design-system。
    - 引用运行时变量的主题键统一放 @theme inline：值内联进工具类，
      不产生同名 :root 变量，既避免自引用成环，也避免与 theme.css
-     兼容桥里的同名旧变量（如 --font-weight-bold）发生层序竞争。 */
+     兼容桥里的同名旧变量（如 --font-weight-bold）发生层序竞争。
+   - 两层结构（08-22-design-system design.md §1，批次 1 落位约定）：
+     第 1 层可切换语义变量（[data-theme]/[data-flavor]/[data-accent] 下取值不同）
+     物理上仍留在 tokens.css 的普通 :root 块中 —— 三个 smoke 契约
+     （theme-contrast-contract / apple-glass-surface-contract / theme-bootstrap）
+     直接解析 tokens.css 文本与选择器，批次 1 不移文件，批次 2 目录分层
+     时随契约重建（批次 8）落到 themes/；分类与目标落位见
+     .trellis/tasks/08-22-design-system/token-classification.md。
+     第 2 层为本文件 @theme inline 的命名空间映射，指向第 1 层运行时变量，
+     工具类因此随 data-theme 切换重解析，且不内联任何字面量可切换值。 */
 
 @layer theme, base, components, utilities;
 
@@ -112,6 +121,17 @@
   --color-border-default: rgb(var(--color-border-default-rgb));
   --color-border-strong: rgb(var(--color-border-strong-rgb));
   --color-border-interactive: rgb(var(--color-border-interactive-rgb));
+
+  /* 批次 1（08-22-design-system）补齐的工具类可达语义色：
+     - accent-danger / accent-info：theme.css 兼容桥别名，指向功能色（ConfirmModal、
+       ConfigList、ClaudeCodeView、CheckinProgressModal 等消费 bg/border/text/ring-accent-danger|info）
+     - accent-primary-hover：hover 交互档（EmptyState 消费 hover:bg-accent-primary-hover）
+     - border-accent：border-accent 语义（WslManagementView 消费 border-border-accent）
+     全部指向第 1 层运行时变量，不内联字面量；无新增 token 名（均已在 448 名集合内）。 */
+  --color-accent-danger: var(--color-danger);
+  --color-accent-info: var(--color-info);
+  --color-accent-primary-hover: var(--color-accent-primary-hover);
+  --color-border-accent: var(--color-border-accent);
 
   /* spacing：px 与整数档位走 token，其余数值档位由 v4 按 --spacing 基数计算 */
   --spacing-px: 1px;

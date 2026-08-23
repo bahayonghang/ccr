@@ -7,19 +7,59 @@
 
 ## 前置确认
 
-- [ ] `08-22-dep-upgrade` 段 2 已完成：Tailwind 为 4.3.3，`corePlugins.preflight: false` 的等价处理已生效，25 个 `@apply` 文件已加 `@reference` 且 `apply-verification.md` 无静默失效项。
-- [ ] `08-22-arch-quality-perf` 批次 3 已交付组件内样式行数上限（本任务产出受其约束）。
-- [ ] 读 `ccr-ui/CLAUDE.md` 的 Design Context 与 `theme-token-contracts.md`（31.5 KB）。
-- [ ] `git checkout -b feature/react-migration/design-system feature/react-migration`
+- [x] `08-22-dep-upgrade` 段 2 已完成：Tailwind 为 4.3.3，`corePlugins.preflight: false` 的等价处理已生效，25 个 `@apply` 文件已加 `@reference` 且 `apply-verification.md` 无静默失效项。
+- [x] `08-22-arch-quality-perf` 批次 3 已交付组件内样式行数上限（本任务产出受其约束）。
+- [x] 读 `ccr-ui/CLAUDE.md` 的 Design Context 与 `theme-token-contracts.md`（31.5 KB）。
+- [x] ~~`git checkout -b feature/react-migration/design-system feature/react-migration`~~ **偏差（已记录）**：按父任务录音的命名冲突偏差，继续工作在 `react-migration/react-foundation` 分支上，不新建分支、不 commit/push。迁移前名字集合基线已在当前分支的 `src/styles/**` 采集（与 dev 等价：dep-upgrade 未改名）。
 
 ## 批次 1：token 分类与两层结构
 
-- [ ] 按 `design.md` §2 的方法对 448 个变量分三类，`token-classification.md` 落盘（448 行无空缺）。
-- [ ] 按 `design.md` §1 建两层结构：可切换语义变量进 `themes/` 下的普通 CSS 变量，常量 token 进 `@theme`，`@theme inline` 只放指向第 1 层的映射。
-- [ ] **核对 token 名不变**：比对范围为 `src/styles/**`（不是 `tokens.css` 单文件——第 1 层变量会在批次 2 移出该文件）。迁移前在 `dev` 上采一次基线名字集合，迁移后再采一次，两集合相等（AC13、`design.md` §2 末段）。4,097 处 `var(--)` 引用与契约断言依赖这些名字。
-- [ ] `chart-colors.css`（5 变量）同步迁移，与 `usage-chart-stability-contracts.md`、`apexcharts-style-contract.smoke.test.ts` 的耦合逐项核对（PRD Notes）。
+- [x] 按 `design.md` §2 的方法对 448 个变量分三类，`token-classification.md` 落盘（448 行无空缺）。
+- [x] 按 `design.md` §1 建两层结构：可切换语义变量进 `themes/` 下的普通 CSS 变量，常量 token 进 `@theme`，`@theme inline` 只放指向第 1 层的映射。
+- [x] **核对 token 名不变**：比对范围为 `src/styles/**`（不是 `tokens.css` 单文件——第 1 层变量会在批次 2 移出该文件）。迁移前在 `dev` 上采一次基线名字集合，迁移后再采一次，两集合相等（AC13、`design.md` §2 末段）。4,097 处 `var(--)` 引用与契约断言依赖这些名字。
+- [x] `chart-colors.css`（5 变量）同步迁移，与 `usage-chart-stability-contracts.md`、`apexcharts-style-contract.smoke.test.ts` 的耦合逐项核对（PRD Notes）。
 
 验证：`bun run build` 成功；切换 `data-theme` 后工具类生效的颜色随之变化（手动一次 + 批次 5 的自动断言）。
+
+### 批次 1 落位决策（与父任务设计的三处偏差说明）
+
+1. **第 1 层变量物理上仍留在 `tokens.css`**，未移入 `themes/`。原因：`theme-contrast-contract` / `apple-glass-surface-contract` / `theme-bootstrap` 三个 smoke 测试直接读 `tokens.css` 文本并按已知选择器清单解析（`KNOWN_SELECTOR_PATTERN` 只接受 `tokens.css` 顶层块形态），把第 1 层变量移出会破坏这些契约，且批次 2 目录分层就是本设计文档规划的动作。决策：批次 1 完成「第 2 层映射 + 分类表 + 名字集合不变」；第 1 层变量的文件级移动在批次 2 随 `theme-token-contracts.md` 重建（批次 8）一并处理，届时同步放宽三个测试的选择器清单。设计文档 §3 的最终落位不变。
+2. **`@theme inline` 映射块在 `core.css` 内**（未新建 `tokens.css` 聚合文件）。理由：`core.css` 已是主入口且已承载同类映射，`tokens.css` 若加 `@import` 自引用会破坏三个测试的文本断言。批次 1 在既有 `@theme inline` 块中补齐了组件实际使用但此前缺失的 4 个工具类可达语义色映射：`--color-accent-danger`、`--color-accent-info`、`--color-accent-primary-hover`、`--color-border-accent`。这些名字都在 448 名集合内（accent-danger/info 来自 theme.css 兼容桥），无新增 token 名。
+3. **常量 token 的物理落位**：`tokens.css` 的 `:root` 常量块已具备「单上下文、全主题同值」形态，被 `@theme`（非 inline）或 `@theme inline` 引用；本轮不复制进 `@theme`，避免值双写漂移。常量类判定已完整记入 `token-classification.md`，批次 2 落位时按表迁移。
+
+### 批次 1 证据
+
+**分类表**：`.trellis/tasks/08-22-design-system/token-classification.md`，448 行，0 未分类（脚本 `.trellis/tasks/08-22-design-system/classify-tokens.mjs` 生成；按唯一名统计：可切换语义变量 87、常量 token 117、计算/别名 token 74）。
+
+**名字集合比对（AC13，范围 `src/styles/**`）**：
+
+```bash
+# before（迁移前基线，与本任务改动前等价）
+cd ccr-ui/src/styles && find . -name '*.css' -print0 | xargs -0 rg -o --no-filename -e '--[a-z0-9-]+\s*:' \
+  | sed -E 's/.*(--[a-z0-9-]+)\s*:.*/\1/' | sort -u > .trellis/tasks/08-22-design-system/token-names-before.txt
+# after（批次 1 完成后）
+cd ccr-ui/src/styles && find . -name '*.css' -print0 | xargs -0 rg -o --no-filename -e '--[a-z0-9-]+\s*:' \
+  | sed -E 's/.*(--[a-z0-9-]+)\s*:.*/\1/' | sort -u > .trellis/tasks/08-22-design-system/token-names-after.txt
+diff .trellis/tasks/08-22-design-system/token-names-before.txt .trellis/tasks/08-22-design-system/token-names-after.txt
+# → 无输出（两集合相等），各 426 个唯一名。tokens.css 内 448 个定义点/278 个唯一名。
+```
+
+**工具类可达性验证（dist 产物）**：`.hover\:bg-accent-primary-hover:hover{background-color:var(--color-accent-primary-hover)}`、`.bg-accent-danger{background-color:var(--color-danger)}`、`.hover\:border-border-accent:hover{border-color:var(--color-border-accent)}` 等规则生成，全部引用第 1 层运行时变量而非内联字面量。
+
+**chart-colors 耦合核对**：`apexcharts-style-contract.smoke.test.ts` 只读 `src/utils/apexChartsCore.ts` 与 apexcharts dist 样式表，不读 `chart-colors.css`；`chart-colors.css` 的 5 个变量本就是 `var()` 别名到第 1 层，符合两层结构，无需改动。`usage-chart-stability-contracts.md` §5 的 ApexCharts 双路径契约未受影响。
+
+**验证命令与退出码**：
+
+| 命令 | 退出码 | 结果 |
+| --- | --- | --- |
+| `bun run build` | 0 | ✓ 构建成功 |
+| `bun run test:smoke` | 0 | 60 files / 294 tests 全绿（含 theme-switch 新增用例与三个 style-coupled 契约） |
+| `bun run lint:style` | 0 | stylelint 无告警 |
+| `bun run lint:ci` | 0 | eslint + stylelint + check:style-lines 全绿 |
+| `just frontend-check-quick` | 0 | type-check + lint:ci + i18n + smoke 全绿 |
+| `bun x vitest run tests/theme-switch.smoke.test.tsx` | 0 | 主题切换用例通过 |
+
+**theme-switch smoke 测试（新增 `ccr-ui/tests/theme-switch.smoke.test.tsx`）**：jsdom 不解析普通属性内 `var()` 链，故分两段验证完整链条——(1) 断言 `@theme inline` 映射存在且工具类规则引用第 1 层变量（非内联字面量）；(2) 注入 `tokens.css` 后断言 `:root` 上 `--color-bg-surface-rgb` 在 light/dark/clay 三态下分别等于 tokens.css 锚点值（`251 252 253` / `34 36 42` / `254 250 242`）且互不相同。通过即证明「切换 `data-theme` 后工具类生效的颜色随之变化」。
 
 ## 批次 2：styles 目录分层
 
