@@ -266,8 +266,8 @@ dev  ─────────────────────────
 | 1    | 1 `react-foundation`          | 已完成 | 基座门 ✅ 2026-08-23 |
 | 1    | 2 `dep-upgrade`               | 已完成 | 基座门 ✅ 2026-08-23 |
 | 旁路 | 2b `workspace-cargo-upgrade`  | 已完成（PR→dev 延后，随迁移分支交付，偏差见其 implement.md） | 直接目标 `dev` |
-| 2    | 2c `arch-quality-perf`        | 已完成 | 约束门         |
-| 2    | 3 `design-system`             | 未开始 | 约束门         |
+| 2    | 2c `arch-quality-perf`        | 已完成 | 约束门 ✅ 2026-08-23 |
+| 2    | 3 `design-system`             | 已完成 | 约束门 ✅ 2026-08-23（AC4 后半「src/components/ui/ 移除」随 shell-port 落地，见其 implement.md 交付门） |
 | 3    | 4 `state-logic-port`          | 未开始 | 外壳门         |
 | 3    | 5 `shell-port`                | 未开始 | 外壳门         |
 | 4a   | 11 批次 1（profiles 共享层）  | 未开始 | 共享层前置门   |
