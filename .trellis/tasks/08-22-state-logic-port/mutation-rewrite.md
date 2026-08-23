@@ -33,7 +33,7 @@
 | `ccr-ui/src/composables/useGrokDashboard.ts:483` | `actions.push({` | 本地临时（同上），无需改写 | — |
 | `ccr-ui/src/composables/useGrokDashboard.ts:492` | `actions.push({` | 本地临时（同上），无需改写 | — |
 | `ccr-ui/src/composables/useGrokDashboard.ts:503` | `actions.push({` | 本地临时（同上），无需改写 | — |
-| `ccr-ui/src/composables/useMcpManager.ts:29` | `const sortedItems = [...items].sort((a, b) => {` | 待批次 5 判定 | — |
+| `ccr-ui/src/composables/useMcpManager.ts:29` | `const sortedItems = [...items].sort((a, b) => {` | 展开拷贝上排序，immutable 安全，无需改写；批次 5c 迁移后该逻辑保留为模块级纯函数 createGroup | — |
 | `ccr-ui/src/composables/useMonitoringFeed.ts:248` | `nextEntries.splice(low, 0, entry)` | 拷贝数组（`[...entries]`）上的插入后返回新引用，immutable 安全，无需改写；批次 5b-ii 迁移后该逻辑整体纯函数化为 `insertEntryByTimestamp` + `mergeBatch` | — |
 | `ccr-ui/src/composables/useMonitoringFeed.ts:342` | `unlisteners.push(unMonitoring)` | 已改写（批次 5b-ii）：改为取消协议 `track()` + ref 数组，cleanup 已跑过时迟到 unlisten 立即调用 | `track(unMonitoring)` |
 | `ccr-ui/src/composables/useMonitoringFeed.ts:347` | `unlisteners.push(unStats)` | 已改写（批次 5b-ii）：同上 | `track(unStats)` |

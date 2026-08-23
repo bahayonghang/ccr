@@ -19,10 +19,10 @@
 | `useMainLayoutShell.ts:132` | watch(routeFullPath, () => { | 见批次 5 逐点登记 | 见批次 5 |
 | `useMainLayoutShell.ts:136` | watch(hasSidebar, (value) => { | 见批次 5 逐点登记 | 见批次 5 |
 | `useMainLayoutShell.ts:142` | watch([isMobileSidebar, isSidebarOpen], ([mobile, open]) => { | 见批次 5 逐点登记 | 见批次 5 |
-| `useMcpManager.ts:196` | watch(groupedServers, (groups) => { | 见批次 5 逐点登记 | 见批次 5 |
+| `useMcpManager.ts:196` | watch(groupedServers, (groups) => { | 无选项（非 immediate、默认 flush pre） | 批次 5c：useEffect + prev 引用比对（仅 groupedServers 引用实际变化时触发，对齐非 immediate；首次执行跳过），panelMode.type / isMultiSelectMode 入依赖数组并以条件守卫行为（`useMcpManager.ts`） |
 | `usePlatformUsageInsight.ts:83` | `watch(() => [unref(platform), unref(days), unref(enabled)], ([, , isEnabled]) => { if (isEnabled) void refresh() })` | 无选项（非 immediate、默认 flush pre） | 批次 5：watch 目标即查询参数 → Query key（platform+日期窗口）/enabled 变化自动 refetch，无需 effect；onMounted 初始拉取由 Query 挂载拉取覆盖（`usePlatformUsageInsight.ts`） |
 | `usePolledData.ts:200` | `watch(pauseWhen as WatchSource<boolean>, (paused) => { paused ? stopTimer() : isActive && (doFetch(), startTimer()) })` | 无选项（非 immediate、默认 flush pre） | 批次 5：布尔 pauseWhen → hook effect 调用 `poller.onPauseChange(paused)`（分支逻辑逐行保留在核心）；函数源由核心每 tick 求值（`usePolledData.ts` + `utils/poller.ts`） |
-| `useProfilesQuickSwitch.ts:96` | watch( | 见批次 5 逐点登记 | 见批次 5 |
+| `useProfilesQuickSwitch.ts:96` | watch(() => options.getProfileNames(), cleanupStale, { immediate: true, flush: 'sync' }) | immediate: true + flush: 'sync' | 批次 5c：useEffect([getProfileNames])，immediate 由 effect 首次执行覆盖；flush sync 无等价物退化为渲染后 effect 时序，cleanupStale 幂等（无变化不写 state）故重跑无副作用（`features/profiles/stores.ts` cleanupStale + `useProfilesQuickSwitch.ts` effect） |
 
 选项（immediate/deep/flush）逐点判定在批次 5 各文件转换时补充至此表。
 
@@ -132,3 +132,15 @@ ccr-ui\src\composables\useUnifiedMcp.ts:151
 | `useMonitoringFeed.ts` / `useCodexOAuthFlow.ts` | —（0 处 computed） | — | — |
 
 §2 watch 寄存器补充：本批 7 个文件原实现 watch 计数为 **0**（复核），无新增选项映射行。
+
+### 3.3 批次 5c 已转换文件的 computed 登记（响应式来源 → useMemo / 普通值）
+
+| 文件 | computed（原行） | 响应式来源 | React 形态 |
+| --- | --- | --- | --- |
+| `useProfilesQuickSwitch.ts` | recentNotPinned（102） | recent、pinned | `useMemo([recent, pinned])` |
+| `useProfilesQuickSwitch.ts` | stableTargets（106） | pinned | `useMemo([pinned])` |
+| `useProfilesQuickSwitch.ts` | canPin（114） | pinned.length | 普通布尔直算 |
+| `useProviderTemplates.ts` | templates（19） | BUILT_IN_PROVIDER_TEMPLATES（静态）、customTemplates | `useMemo([customTemplates])` |
+| `useFuzzySearch.ts` | fuse（41）/ results（43，清单外紧邻行） | items；items、query、fuse | 各自 `useMemo`；keys/options 为静态配置经 ref 惰性读取不参与重建判定 |
+| `useAnimationVisibility.ts` | shouldAnimate（9） | isInViewport、isPageVisible、prefersReducedMotion | 布尔直算（无需 memo） |
+| `useMcpManager.ts` | allGroupedServers（117）/ groupedServers（131）/ activeGroup（160）/ effectiveSelectedKeys（176）/ selectedGroups（181，均为排查清单外多行声明或清单内相邻行） | mcp.servers；allGroupedServers + mcp.filterScope；panelMode + allGroupedServers + filteredGroups；selectedKeys + activeGroup + isMultiSelectMode；allGroupedServers + selectedKeys | 各自 `useMemo` |

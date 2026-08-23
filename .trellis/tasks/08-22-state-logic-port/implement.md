@@ -215,3 +215,25 @@ mutation-rewrite.md 已填：useClaudeProfilesInsights（46–48）、useCodexPr
 - **codex-tray:refresh 登记**：event-adjudication §4 已有该事件归属行，无需新增。
 
 规则匹配备注：useMonitoringFeed 的局部 `isRecord` 守卫为原文件逐字保留（归一化逻辑语义不变更优先）；如需收口到共享守卫模块，随后续清理统一处理。
+
+## 批次 5c 证据（最后 9 个共享/本地 composable → Zustand/React hooks）
+
+改动：新增 `src/features/profiles/stores.ts`（useProfilesQuickSwitchStore：pinned/recent 按平台 Record 承载，localStorage 逐平台键手动读写——沿用批次 4 偏差 1 先例不用 persist 中间件，键 `ccr:profiles:pinned:<platform>` / `ccr:profiles:recent:<platform>` 字节不变；模块加载扫描两族前缀全量水合）；`src/utils/accessibility.ts`（ariaUtils/focusUtils/useUniqueId 自 useAccessibility SPLIT 迁入，逐字搬运）；`src/shell/hooks/usePageTransition.ts`（vue-router beforeEach 守卫 → 调用方喂 PageRouteInfo{depth,group}、hook 内 prev 比对 + popstate→isBackRef，MainLayout 接线归 shell-port）。重写为 React hooks：useProfilesQuickSwitch（薄封装 store）、useProviderTemplates（同文件内置 useProviderTemplatesStore，read/write 工具持久化键不变）、useAccessibility（仅留 useFocusTrap/useEscapeKey DOM 生命周期 hooks）、useAnimationVisibility、useConfirmAction（reactive dialog → 不可变对象 state + pendingAction useRef）、useFuzzySearch（items 改普通数组参数，Fuse 仅随 items 重建，keys/options 经 ref 惰性读取）、useMcpManager（消费 React 版 useUnifiedMcp，5b-ii 两处过渡期适配随重写消失）。删除 `src/composables/usePageTransition.ts`。watch/computed 登记见 classification §2 两行补全与 §3.3 新节。
+
+语义判定登记：
+- **watch(useProfilesQuickSwitch:96)** `{ immediate: true, flush: 'sync' }` → useEffect：immediate 由首次执行覆盖，sync 无等价物退化为渲染后时序，cleanupStale 幂等故重跑无副作用。
+- **watch(useMcpManager:196)** 非 immediate → useEffect + prev 引用比对跳过首次执行（StrictMode 下二次执行同样被比对守卫拦截）。
+- **useMcpManager onMounted(refresh)** 由 Query 挂载自动拉取覆盖（mcpKeys.unifiedList；staleTime Infinity 为 5b-ii 既定行为，非本批改动）。
+- **useProviderTemplates / profiles store 持久化**：沿用偏差 1 先例（shellPreferences），存储键字节不变，未引入 zustand/persist。
+- **usePageTransition 首次执行**：prev 为 null 对应原 `!from.name` 分支 → 'page-fade'。
+- **待迁移 .vue 消费方未重接**（沿用批次 5a/5b 先例）：MainLayout.vue 仍引用已删除的 `@/composables/usePageTransition`，BaseModal.vue / UpdateModal.vue / ProfilesQuickRail.vue / ProviderTemplateSelector.vue / McpManagerView.vue / 三 Profiles 视图仍按旧 Ref 形态调用——均归对应视图/外壳子任务；tsc 不检查 .vue 故不阻断。
+
+| 命令 | 退出码 | 结果 |
+| --- | --- | --- |
+| `bun run type-check` | 0 | ✓ |
+| `bun run lint:ci` | 0 | ✓ |
+| `bun run test:smoke` | 0 | 67 文件 / 333 测试全绿 |
+| `git diff --stat src/api` | — | 空 |
+| `rg "from 'vue'" src/composables src/stores` | — | src/composables 无匹配；src/stores 仅剩 usage.ts（偏差 2，归 views-usage，非本批范围） |
+
+mutation-rewrite.md 已填：useMcpManager.ts:29 判定为展开拷贝上排序（immutable 安全，无需改写）。

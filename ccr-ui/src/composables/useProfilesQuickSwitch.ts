@@ -1,15 +1,24 @@
-// Profiles 快速切换状态：钉选数组（数字编号唯一来源，≤8）+ 最近使用列表（只展示不编号）。
-// 状态是 UI 偏好而非配置事实，按平台键持久化到 localStorage，不同步到后端。
-// 编号语义（P0）：数字编号 = 钉选数组顺序（1..n，n≤8），与搜索/筛选/排序/启停/Apply 完全解耦；
-// recordUse 只重排最近列表，绝不影响钉选编号。
-import { computed, ref, watch, type ComputedRef, type Ref } from 'vue'
+// Profiles 快速切换 React hook（08-22-state-logic-port 批次 5c）。
+// 状态承载已迁 `features/profiles/stores.ts`（Zustand 跨页共享，localStorage 按平台键
+// 逐 key 手动读写）；本文件是按平台取值的薄封装，导出名不变。
+//
+// 签名变化（消费方均为待迁移 .vue 视图 / ProfilesQuickRail / useProfilesHotkeys）：
+// - pinned/recent：Ref<string[]> → string[]（store 选择器直读，空平台回退共享空数组
+//   常量保证引用稳定）；recentNotPinned/stableTargets/modifier/canPin 由 computed 改为
+//   useMemo/普通值；
+// - 新增 setQuery 无——本 hook 无查询词；动作函数名与语义不变。
+//
+// watch(:96) 映射登记（classification §2）：原
+// `watch(() => options.getProfileNames(), cleanupStale, { immediate: true, flush: 'sync' })`
+// → useEffect([getProfileNames, storeCleanupStale])。immediate: true 由 effect 首次执行
+// 覆盖；flush: 'sync' 无等价物，退化为渲染后 effect 时序；cleanupStale 幂等（列表无变化
+// 不写 state），消费方每渲染重建 getter 引起的重跑无副作用。
+
+import { useCallback, useEffect, useMemo } from 'react'
 import { getClientPlatform } from '@/utils/windowChrome'
+import { PROFILES_PIN_CAP, useProfilesQuickSwitchStore } from '@/features/profiles/stores'
 
-/** 钉选上限：第 9 次钉选拒绝并提示，不挤掉既有钉选 */
-export const PROFILES_PIN_CAP = 8
-
-/** 最近列表持久化上限（展示时再与钉选合并截断） */
-const RECENT_CAP = 16
+export { PROFILES_PIN_CAP }
 
 export interface UseProfilesQuickSwitchOptions {
   /** 平台键，例如 'claude' / 'codex'，用于 localStorage 键后缀 */
@@ -25,18 +34,18 @@ export interface UseProfilesQuickSwitchOptions {
 
 export interface ProfilesQuickSwitch {
   /** 钉选数组（顺序 = 用户钉选操作顺序），数字编号的唯一来源 */
-  pinned: Ref<string[]>
+  pinned: string[]
   /** 最近使用列表（recordUse 时间倒序，含已钉选项） */
-  recent: Ref<string[]>
+  recent: string[]
   /** 最近列表中未钉选的部分：只展示，永不编号 */
-  recentNotPinned: ComputedRef<string[]>
+  recentNotPinned: string[]
   /** ⌘/Ctrl+数字键的稳定目标数组（= 钉选数组，最多 8 个） */
-  stableTargets: ComputedRef<string[]>
+  stableTargets: string[]
   /** 平台修饰键展示文案：macos → '⌘'，其余 → 'Ctrl' */
-  modifier: ComputedRef<'Ctrl' | '⌘'>
+  modifier: 'Ctrl' | '⌘'
   isPinned: (name: string) => boolean
   /** 是否还能继续钉选（未达上限） */
-  canPin: ComputedRef<boolean>
+  canPin: boolean
   /** 钉选；已达上限或已钉选时返回 false（达上限会触发 onPinLimit） */
   pin: (name: string) => boolean
   unpin: (name: string) => void
@@ -47,112 +56,71 @@ export interface ProfilesQuickSwitch {
   renamePinned: (oldName: string, newName: string) => void
 }
 
-const readNames = (key: string): string[] => {
-  try {
-    const raw = localStorage.getItem(key)
-    if (!raw) return []
-    const parsed: unknown = JSON.parse(raw)
-    if (!Array.isArray(parsed)) return []
-    return parsed.filter((item): item is string => typeof item === 'string' && item.length > 0)
-  } catch {
-    return []
-  }
-}
-
-const writeNames = (key: string, names: string[]) => {
-  try {
-    localStorage.setItem(key, JSON.stringify(names))
-  } catch {
-    // localStorage 不可用（隐私模式等）时降级为纯内存状态
-  }
-}
+const EMPTY_NAMES: string[] = []
 
 export function useProfilesQuickSwitch(options: UseProfilesQuickSwitchOptions): ProfilesQuickSwitch {
-  const pinnedKey = `ccr:profiles:pinned:${options.platform}`
-  const recentKey = `ccr:profiles:recent:${options.platform}`
+  const { platform, getProfileNames, onPinLimit } = options
 
-  const pinned: Ref<string[]> = ref(readNames(pinnedKey).slice(0, PROFILES_PIN_CAP))
-  const recent: Ref<string[]> = ref(readNames(recentKey).slice(0, RECENT_CAP))
+  const pinned = useProfilesQuickSwitchStore((s) => s.pinnedByPlatform[platform] ?? EMPTY_NAMES)
+  const recent = useProfilesQuickSwitchStore((s) => s.recentByPlatform[platform] ?? EMPTY_NAMES)
+  const storePin = useProfilesQuickSwitchStore((s) => s.pin)
+  const storeUnpin = useProfilesQuickSwitchStore((s) => s.unpin)
+  const storeRecordUse = useProfilesQuickSwitchStore((s) => s.recordUse)
+  const storeRenamePinned = useProfilesQuickSwitchStore((s) => s.renamePinned)
+  const storeCleanupStale = useProfilesQuickSwitchStore((s) => s.cleanupStale)
 
-  const persistPinned = () => writeNames(pinnedKey, pinned.value)
-  const persistRecent = () => writeNames(recentKey, recent.value)
+  // 原 watch(useProfilesQuickSwitch.ts:96)，映射见文件头登记。
+  useEffect(() => {
+    storeCleanupStale(platform, getProfileNames())
+  }, [platform, getProfileNames, storeCleanupStale])
 
-  // stale 清理：列表加载/刷新后过滤已不存在的名称并回写；禁用不清理（仅视图置灰）
-  const cleanupStale = (profileNames: string[] | null) => {
-    if (profileNames === null) return
-    const valid = new Set(profileNames)
-    const nextPinned = pinned.value.filter(name => valid.has(name))
-    if (nextPinned.length !== pinned.value.length) {
-      pinned.value = nextPinned
-      persistPinned()
-    }
-    const nextRecent = recent.value.filter(name => valid.has(name))
-    if (nextRecent.length !== recent.value.length) {
-      recent.value = nextRecent
-      persistRecent()
-    }
-  }
-
-  watch(
-    () => options.getProfileNames(),
-    cleanupStale,
-    { immediate: true, flush: 'sync' },
+  // 原 computed(:102)：来源 recent、pinned
+  const recentNotPinned = useMemo(
+    () => recent.filter((name) => !pinned.includes(name)),
+    [recent, pinned],
   )
 
-  const recentNotPinned = computed(() =>
-    recent.value.filter(name => !pinned.value.includes(name)),
+  // 原 computed(:106)：来源 pinned
+  const stableTargets = useMemo(() => pinned.slice(0, PROFILES_PIN_CAP), [pinned])
+
+  // 平台修饰键为会话期常量（getClientPlatform 非响应式读取）
+  const modifier = useMemo<'Ctrl' | '⌘'>(
+    () => (getClientPlatform() === 'macos' ? '⌘' : 'Ctrl'),
+    [],
   )
 
-  const stableTargets = computed(() => pinned.value.slice(0, PROFILES_PIN_CAP))
+  const isPinned = useCallback((name: string) => pinned.includes(name), [pinned])
 
-  const modifier = computed<'Ctrl' | '⌘'>(() =>
-    getClientPlatform() === 'macos' ? '⌘' : 'Ctrl',
+  // 原 computed(:114)：来源 pinned.length
+  const canPin = pinned.length < PROFILES_PIN_CAP
+
+  const pin = useCallback(
+    (name: string) => storePin(platform, name, onPinLimit),
+    [storePin, platform, onPinLimit],
   )
 
-  const isPinned = (name: string) => pinned.value.includes(name)
+  const unpin = useCallback(
+    (name: string) => storeUnpin(platform, name),
+    [storeUnpin, platform],
+  )
 
-  const canPin = computed(() => pinned.value.length < PROFILES_PIN_CAP)
+  const togglePin = useCallback(
+    (name: string) => {
+      if (pinned.includes(name)) storeUnpin(platform, name)
+      else storePin(platform, name, onPinLimit)
+    },
+    [pinned, platform, onPinLimit, storePin, storeUnpin],
+  )
 
-  const pin = (name: string): boolean => {
-    if (!name || isPinned(name)) return false
-    if (!canPin.value) {
-      options.onPinLimit?.()
-      return false
-    }
-    pinned.value = [...pinned.value, name]
-    persistPinned()
-    return true
-  }
+  const recordUse = useCallback(
+    (name: string) => storeRecordUse(platform, name),
+    [storeRecordUse, platform],
+  )
 
-  const unpin = (name: string) => {
-    if (!isPinned(name)) return
-    pinned.value = pinned.value.filter(item => item !== name)
-    persistPinned()
-  }
-
-  const togglePin = (name: string) => {
-    if (isPinned(name)) unpin(name)
-    else pin(name)
-  }
-
-  const recordUse = (name: string) => {
-    if (!name) return
-    const next = [name, ...recent.value.filter(item => item !== name)]
-    recent.value = next.slice(0, RECENT_CAP)
-    persistRecent()
-  }
-
-  const renamePinned = (oldName: string, newName: string) => {
-    if (!oldName || !newName || oldName === newName) return
-    if (pinned.value.includes(oldName)) {
-      pinned.value = pinned.value.map(item => (item === oldName ? newName : item))
-      persistPinned()
-    }
-    if (recent.value.includes(oldName)) {
-      recent.value = recent.value.map(item => (item === oldName ? newName : item))
-      persistRecent()
-    }
-  }
+  const renamePinned = useCallback(
+    (oldName: string, newName: string) => storeRenamePinned(platform, oldName, newName),
+    [storeRenamePinned, platform],
+  )
 
   return {
     pinned,
