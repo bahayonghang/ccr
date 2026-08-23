@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form'
 import type { AgentDraft, AgentsConfig } from '@/configs/agents'
 import { NamedItemCard } from '@/features/platform/NamedItemCard'
 import { SurfacePage } from '@/features/platform/SurfacePage'
-import { defaultSurfaceT } from '@/features/platform/translate'
+import { useResolvedT } from '@/i18n'
 import { EmptyState } from '@/ui'
 import type { TranslateFunction } from '@/utils/tf'
 
@@ -13,7 +13,8 @@ interface BaseAgentsProps {
   t?: TranslateFunction
 }
 
-export function BaseAgents({ config, t = defaultSurfaceT }: BaseAgentsProps) {
+export function BaseAgents({ config, t: tProp }: BaseAgentsProps) {
+  const t = useResolvedT(tProp)
   const [showForm, setShowForm] = useState(false)
   const query = useQuery({
     queryKey: ['platform-agents', config.cacheKey],

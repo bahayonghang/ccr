@@ -8,7 +8,6 @@ import { logger } from '@/utils/logger'
 import { canSubmitAccountRename } from '../codexAuthAccounts'
 import { fieldInputClass, ghostBtnClass, primaryBtnClass } from '../ui-classes'
 import { useCodexLocale } from '../useCodexLocale'
-import { defaultSurfaceT as t } from '@/features/platform'
 
 interface RenameForm {
   oldName: string
@@ -29,7 +28,7 @@ export function RenameCodexAccountModal({
   onUpdateModelValue,
   onRenamed,
 }: RenameCodexAccountModalProps) {
-  const { tf } = useCodexLocale()
+  const { t, tf } = useCodexLocale()
   const form = useForm<RenameForm>({ defaultValues: { oldName: '', newName: '', force: false } })
   const values = form.watch()
   const canSubmit = canSubmitAccountRename(values.oldName, values.newName)

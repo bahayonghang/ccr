@@ -39,47 +39,47 @@
 
 按 `design.md` §6 的逐域表，一次性交付全部域的重写稿。
 
-- [ ] 与 `08-22-design-system` 协同重写 `theme-token-contracts.md`（31.5 KB）。保留 `0.75rem` 字号例外与三层主题模型语义（R8、R9）。
-- [ ] `grok-settings-contracts.md` 分割为 base 侧与 Grok 侧两部分（`08-22-views-secondary-platforms` §5）。
-- [ ] 三处已由子任务转为可执行断言的契约，本任务只重写文档不重复写断言：`usage-chart-stability-contracts.md`、`raw-config-editor-contracts.md`、`checkin-ux-contracts.md`。
-- [ ] 其余契约逐份重写。
-- [ ] 交付给对应视图子任务，供其动手前取用（协同点 D）。
+- [x] 与 `08-22-design-system` 协同重写 `theme-token-contracts.md`（31.5 KB）。保留 `0.75rem` 字号例外与三层主题模型语义（R8、R9）。
+- [x] `grok-settings-contracts.md` 分割为 base 侧与 Grok 侧两部分（`08-22-views-secondary-platforms` §5）。
+- [x] 三处已由子任务转为可执行断言的契约，本任务只重写文档不重复写断言：`usage-chart-stability-contracts.md`、`raw-config-editor-contracts.md`、`checkin-ux-contracts.md`。
+- [x] 其余契约逐份重写。
+- [x] 交付给对应视图子任务，供其动手前取用（协同点 D）。
 
 此时重写稿是「预期形态」——实现尚未完成。稿件在阶段 6 按实际实现回填修正。
 
 ## 批次 3：63 个挂载测试重写（阶段 6）
 
-- [ ] `@vue/test-utils` → `@testing-library/react` 16.3.2。
-- [ ] 断言从查 DOM 结构改为查可访问性角色与文本，语义保持等价。
-- [ ] 不扩大覆盖面。
-- [ ] 按视图域分组提交，与七个视图子任务的交付顺序对齐。
+- [x] `@vue/test-utils` → `@testing-library/react` 16.3.2。
+- [x] 断言从查 DOM 结构改为查可访问性角色与文本，语义保持等价。
+- [x] 不扩大覆盖面。
+- [x] 按视图域分组提交，与七个视图子任务的交付顺序对齐。
 
 CheckIn 域的 8 个测试例外：由 `08-22-views-checkin` 在其各批次内同步推进（其 `design.md` §8），本任务提供重写稿并回验，不重复实现。
 
 ## 批次 4：19 个源码文本断言重写（阶段 6）
 
-- [ ] 断言中的文件路径按 `path-mapping.md` 改为新路径。不靠搜索猜测。
-- [ ] SFC 模式（`<script setup>`、`scoped`）改为 React 形态（`.tsx`、`.module.css`）。
+- [x] 断言中的文件路径按 `path-mapping.md` 改为新路径。不靠搜索猜测。
+- [x] SFC 模式（`<script setup>`、`scoped`）改为 React 形态（`.tsx`、`.module.css`）。
 
 ## 批次 5：40 个其他测试（阶段 6）
 
-- [ ] 逐个判定：保留断言意图改写实现，或判定为已被批次 1 的最小测试集覆盖。
-- [ ] 判定记录落盘。
+- [x] 逐个判定：保留断言意图改写实现，或判定为已被批次 1 的最小测试集覆盖。
+- [x] 判定记录落盘。
 
 ## 批次 6：覆盖范围比对与对应表
 
-- [ ] 按 `design.md` §4 的两个维度计数，`coverage-comparison.md` 落盘（AC2）。无下降项。
-- [ ] 按 `design.md` §7 产出契约断言与测试的对应表（AC4）。无未映射断言。
-- [ ] 人工验证项标注归属子任务（`08-22-regression-release` 或对应视图子任务）。
+- [x] 按 `design.md` §4 的两个维度计数，`coverage-comparison.md` 落盘（AC2）。无下降项。
+- [x] 按 `design.md` §7 产出契约断言与测试的对应表（AC4）。无未映射断言。
+- [x] 人工验证项标注归属子任务（`08-22-regression-release` 或对应视图子任务）。
 
 ## 批次 7：契约收尾与索引
 
-- [ ] 契约总份数为 **19**（基线 16 + `arch-quality-perf` 2 + `platform-unify` 的 `platform-surface-contracts.md` 1）。不再有 18 / 19 的分支。
-- [ ] `index.md`（8.3 KB）更新，反映重写后的 19 份文档结构（AC8）。
-- [ ] `rg '\.vue|<script setup|scoped' .trellis/spec/ccr-ui/frontend/` 无匹配（AC3）。
-- [ ] 四份接口公示文档是否提升为长期契约，判定并记录（`design.md` §5 末段）。判定为提升则份数相应增加，`index.md` 同步。
-- [ ] `tests/artifacts/` 产物结构与 `bun run docs:audit` 校验可用（R7）。
-- [ ] 覆盖率阈值复核：122 个测试重写后阈值仍可达，结论给 `08-22-arch-quality-perf`（其 R5）。
+- [x] 契约总份数为 **19**（基线 16 + `arch-quality-perf` 2 + `platform-unify` 的 `platform-surface-contracts.md` 1）。不再有 18 / 19 的分支。
+- [x] `index.md`（8.3 KB）更新，反映重写后的 19 份文档结构（AC8）。
+- [x] `rg '\.vue|<script setup|scoped' .trellis/spec/ccr-ui/frontend/` 无匹配（AC3）。
+- [x] 四份接口公示文档是否提升为长期契约，判定并记录（`design.md` §5 末段）。判定为提升则份数相应增加，`index.md` 同步。
+- [x] `tests/artifacts/` 产物结构与 `bun run docs:audit` 校验可用（R7）。
+- [x] 覆盖率阈值复核：122 个测试重写后阈值仍可达，结论给 `08-22-arch-quality-perf`（其 R5）。
 
 ## 验证命令
 

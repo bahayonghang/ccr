@@ -56,7 +56,7 @@ Per-surface config: one module per surface, one export per platform. Config obje
 
 - Good: `ClaudeSettingsView` renders `<BaseSettings config={claudeSettingsConfig} />`.
 - Good: Codex MCP extra fields are `features.statsStrip` / `authInjection` / `toolScope`, not `if (cacheKey === 'mcp-codex')`.
-- Base: Slash commands remain on `slashCommands.ts` + `BaseSlashCommands.vue` until that view migrates.
+- Base: Slash commands use `slashCommands.ts` + `src/features/commands/BaseSlashCommands.tsx`.
 - Bad: `if (platform === 'codex')` inside `BaseSettings`.
 - Bad: adding `platform: 'grok'` to a config object so the base can switch.
 

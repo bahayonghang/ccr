@@ -1,4 +1,5 @@
 import { Outlet } from 'react-router'
+import { useAppT } from '@/i18n'
 import { getWindowChromeTopInset, shouldUseCustomTitlebar } from '@/utils/windowChrome'
 import { GlobalConfirmDialog } from './GlobalConfirmDialog'
 import { StageBackground } from './StageBackground'
@@ -8,6 +9,7 @@ import { useRouteHandle } from './routeHandle'
 import { useShellRuntime } from './useShellRuntime'
 
 export function App() {
+  useAppT()
   useShellRuntime()
   const handle = useRouteHandle()
   const showCustomTitlebar = shouldUseCustomTitlebar()

@@ -10,7 +10,7 @@
  *   （state-disposition.md SPLIT 判定：服务器数据 Query、表单瞬态 RHF）；
  * - 加载失败 toast 在 queryFn 内触发一次（Query 去重保证不重复弹）。
  *
- * 签名变化（消费方 PlatformMcpView.vue 待迁移）：useI18n → t 参数传入；
+ * 签名变化：t 参数传入；
  * Ref<T>/computed → 普通值；formData 返回 RHF watch 快照，方法集经 formApi 暴露。
  *
  * @example

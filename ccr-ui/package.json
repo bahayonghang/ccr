@@ -28,7 +28,7 @@
     "check:style-lines": "bun ./scripts/check-component-style-lines.mjs",
     "check:i18n": "bun ./scripts/check-i18n.mjs",
     "test": "bun run test:i18n && bun run test:smoke",
-    "test:i18n": "bun tests/i18n.test.cjs",
+    "test:i18n": "bun tests/i18n.test.cjs && bun ./scripts/detect-i18n-key-leak.mjs --self-test",
     "test:smoke": "vitest run --config vitest.smoke.config.ts",
     "clean": "rm -rf dist src-tauri/target node_modules/.vite",
     "clean:all": "rm -rf dist src-tauri/target node_modules",

@@ -64,7 +64,7 @@ async function collectSourceFiles(root: string): Promise<string[]> {
         return collectSourceFiles(fullPath)
       }
 
-      return /\.(?:vue|css|ts|html)$/.test(entry.name) ? [fullPath] : []
+      return /\.(?:tsx|css|ts|html)$/.test(entry.name) ? [fullPath] : []
     })
   )
 

@@ -8,7 +8,6 @@ import { extractErrorMessage } from '@/utils/errorHandler'
 import { logger } from '@/utils/logger'
 import { fieldInputClass, ghostBtnClass, primaryBtnClass } from '../ui-classes'
 import { useCodexLocale } from '../useCodexLocale'
-import { defaultSurfaceT as t } from '@/features/platform'
 
 interface SaveForm {
   name: string
@@ -31,7 +30,7 @@ export function SaveCodexSessionModal({
   onUpdateModelValue,
   onSaved,
 }: SaveCodexSessionModalProps) {
-  const { tf } = useCodexLocale()
+  const { t, tf } = useCodexLocale()
   const form = useForm<SaveForm>({ defaultValues: { name: '', description: '', force: false } })
   const [processWarning, setProcessWarning] = useState<string | null>(null)
   const values = form.watch()
@@ -44,7 +43,7 @@ export function SaveCodexSessionModal({
         setProcessWarning(info.has_running_process ? info.warning || t('codex.auth.processDetected', { pids: info.pids.join(', ') }) : null)
       })
       .catch(() => setProcessWarning(null))
-  }, [currentInfo, form, modelValue])
+  }, [currentInfo, form, modelValue, t])
 
   const handleClose = useCallback(() => {
     onUpdateModelValue(false)

@@ -1,7 +1,7 @@
 import { readdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
-const SOURCE_FILE_RE = /\.(ts|mts|tsx|vue)$/
+const SOURCE_FILE_RE = /\.(ts|mts|tsx)$/
 
 const stripTypeScriptComments = (source: string): string => {
   return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1')

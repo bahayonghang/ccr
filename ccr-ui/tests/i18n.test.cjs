@@ -30,7 +30,6 @@
 const fs = require('fs');
 const path = require('path');
 const ts = require('typescript');
-const { baseCompile } = require('@intlify/message-compiler');
 
 // ============================================================================
 // ANSI Color Codes for Pretty Terminal Output
@@ -318,41 +317,7 @@ function extractLocaleMessages(content, fileName) {
   return messages;
 }
 
-/**
- * Validate messages with the same compiler used by vue-i18n at runtime.
- */
-function findMessageCompilerIssues(content, fileName) {
-  const issues = [];
-  const messages = extractLocaleMessages(content, fileName);
-
-  for (const message of messages) {
-    const compileErrors = [];
-    try {
-      baseCompile(message.value, {
-        onError(error) {
-          compileErrors.push({
-            code: error.code,
-            message: error.message,
-          });
-        },
-      });
-    } catch (error) {
-      compileErrors.push({
-        code: error && typeof error === 'object' && 'code' in error ? error.code : 'unknown',
-        message: error instanceof Error ? error.message : String(error),
-      });
-    }
-
-    if (compileErrors.length > 0) {
-      issues.push({
-        ...message,
-        errors: compileErrors,
-      });
-    }
-  }
-
-  return issues;
-}
+const EXPECTED_LEAF_COUNT = 4164;
 
 /**
  * Calculate overlap percentage between two arrays
@@ -383,10 +348,10 @@ function decodeStringLiteral(raw, quote) {
 }
 
 /**
- * Whether an @ usage is explicitly safe in vue-i18n message strings
+ * Whether an @ usage is explicitly safe in i18n message strings
  */
 function isAllowedAtUsage(value, atIndex) {
-  // Explicit literal @ for vue-i18n: {'@'}
+  // Explicit literal @: {'@'}
   if (value.slice(atIndex - 2, atIndex + 3) === "{'@'}") {
     return true;
   }
@@ -484,7 +449,7 @@ function collectSourceFiles(dir, acc = []) {
       continue;
     }
 
-    if (/\.(ts|vue)$/.test(entry.name)) {
+    if (/\.(ts|tsx)$/.test(entry.name)) {
       acc.push(fullPath);
     }
   }
@@ -808,10 +773,10 @@ function testSyntax() {
 }
 
 /**
- * Test 7: Vue-i18n @ Literal Safety
+ * Test 7: i18n @ Literal Safety
  */
 function testAtLiteralSafety() {
-  printHeader('Test 7: Vue-i18n @ Literal Safety');
+  printHeader('Test 7: i18n @ Literal Safety');
 
   const localeFiles = [
     { name: 'zh-CN.ts', path: ZH_CN_FILE },
@@ -852,47 +817,41 @@ function testAtLiteralSafety() {
 }
 
 /**
- * Test 8: Vue-i18n Message Compiler Validation
+ * Test 8: Leaf key count (react-i18next runtime reuses the same catalogs)
  */
-function testMessageCompilerValidation() {
-  printHeader('Test 8: Vue-i18n Message Compiler Validation');
+function testLeafKeyCount() {
+  printHeader('Test 8: Leaf Key Count');
 
   const localeFiles = [
     { name: 'zh-CN.ts', path: ZH_CN_FILE },
     { name: 'en-US.ts', path: EN_US_FILE },
   ];
 
+  const counts = [];
   for (const localeFile of localeFiles) {
     const content = readFileSafe(localeFile.path);
     if (!content) {
-      printTest(`Read ${localeFile.name} for compiler validation`, false, 'Cannot read file content', true);
+      printTest(`Read ${localeFile.name} for leaf key count`, false, 'Cannot read file content', true);
       continue;
     }
 
-    const issues = findMessageCompilerIssues(content, localeFile.name);
+    const messages = extractLocaleMessages(content, localeFile.name);
+    counts.push(messages.length);
     printTest(
-      `${localeFile.name} messages compile with vue-i18n`,
-      issues.length === 0,
-      issues.length === 0
-        ? 'All locale strings passed the message compiler'
-        : `Found ${issues.length} invalid message(s)`,
+      `${localeFile.name} has ${EXPECTED_LEAF_COUNT} leaf keys`,
+      messages.length === EXPECTED_LEAF_COUNT,
+      `counted ${messages.length} string leaves`,
       true
     );
+  }
 
-    if (issues.length > 0) {
-      const maxPreview = 12;
-      issues.slice(0, maxPreview).forEach((issue) => {
-        const details = issue.errors
-          .map((compileError) => `${compileError.message} (code: ${compileError.code})`)
-          .join('; ');
-        console.log(error(
-          `    line ${issue.line}, key ${issue.key}: ${details} | ${JSON.stringify(issue.value)}`
-        ));
-      });
-      if (issues.length > maxPreview) {
-        console.log(error(`    ... and ${issues.length - maxPreview} more`));
-      }
-    }
+  if (counts.length === 2) {
+    printTest(
+      'zh-CN and en-US leaf key counts match',
+      counts[0] === counts[1],
+      `${counts[0]} vs ${counts[1]}`,
+      true
+    );
   }
 }
 
@@ -1008,7 +967,7 @@ function main() {
   testPlaceholders();
   testSyntax();
   testAtLiteralSafety();
-  testMessageCompilerValidation();
+  testLeafKeyCount();
   testPlaceholderBindings();
   testCoverageStats();
 

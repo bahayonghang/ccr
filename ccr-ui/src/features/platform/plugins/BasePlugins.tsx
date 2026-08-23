@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form'
 import type { PluginDraft, PluginsConfig } from '@/configs/plugins'
 import { NamedItemCard } from '@/features/platform/NamedItemCard'
 import { SurfacePage } from '@/features/platform/SurfacePage'
-import { defaultSurfaceT } from '@/features/platform/translate'
+import { useResolvedT } from '@/i18n'
 import { EmptyState } from '@/ui'
 import type { TranslateFunction } from '@/utils/tf'
 
@@ -13,7 +13,8 @@ interface BasePluginsProps {
   t?: TranslateFunction
 }
 
-export function BasePlugins({ config, t = defaultSurfaceT }: BasePluginsProps) {
+export function BasePlugins({ config, t: tProp }: BasePluginsProps) {
+  const t = useResolvedT(tProp)
   const [showForm, setShowForm] = useState(false)
   const query = useQuery({
     queryKey: ['platform-plugins', config.cacheKey],

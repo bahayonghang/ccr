@@ -1,0 +1,13 @@
+{
+  "missing": [
+    {
+      "key": "mcp.manager.scopes.*",
+      "reason": "mcp-format.ts 用 t(`mcp.manager.scopes.${scope}`) 动态拼接"
+    },
+    {
+      "key": "mcp.manager.approvals.*",
+      "reason": "mcp-format.ts 用 t(`mcp.manager.approvals.${state}`) 动态拼接"
+    }
+  ],
+  "unused": []
+}

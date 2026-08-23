@@ -48,7 +48,7 @@ describe('grok-view', () => {
   it('renders the Grok overview header', async () => {
     renderView(<GrokView />)
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'grok.overview.title' })).toBeTruthy()
+      expect(screen.getByRole('heading', { name: /Grok|grok\.overview\.title/ })).toBeTruthy()
     })
   })
 })

@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form'
 import type { CommandDraft, CommandsConfig } from '@/configs/commands'
 import { NamedItemCard } from '@/features/platform/NamedItemCard'
 import { SurfacePage } from '@/features/platform/SurfacePage'
-import { defaultSurfaceT } from '@/features/platform/translate'
+import { useResolvedT } from '@/i18n'
 import { EmptyState } from '@/ui'
 import type { TranslateFunction } from '@/utils/tf'
 
@@ -13,7 +13,8 @@ interface BaseCommandsProps {
   t?: TranslateFunction
 }
 
-export function BaseCommands({ config, t = defaultSurfaceT }: BaseCommandsProps) {
+export function BaseCommands({ config, t: tProp }: BaseCommandsProps) {
+  const t = useResolvedT(tProp)
   const [showForm, setShowForm] = useState(false)
   const query = useQuery({
     queryKey: ['platform-commands', config.cacheKey],

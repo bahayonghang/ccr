@@ -54,9 +54,8 @@ const walkSourceFiles = async (dir: string): Promise<string[]> => {
     const fullPath = join(dir, entry.name)
     if (entry.isDirectory()) {
       files.push(...(await walkSourceFiles(fullPath)))
-    } else if (/\.(ts|mts|tsx|vue)$/.test(entry.name)) {
+    } else if (/\.(ts|mts|tsx)$/.test(entry.name)) {
       // .tsx 必须纳入：迁移后组件是 React，漏掉则门面边界三用例对组件静默通过。
-      // .vue 保留给尚未迁完的视图文件。
       files.push(fullPath)
     }
   }

@@ -94,7 +94,7 @@ const EXPECTED_FLAT_PATHS = [
 ] as const
 
 describe('router smoke', () => {
-  it('keeps 75 route records matching the Vue table', () => {
+  it('keeps 75 route records matching the route inventory', () => {
     expect(EXPECTED_FLAT_PATHS).toHaveLength(75)
     expect(flat).toHaveLength(75)
     expect(flat.map((route) => route.path)).toEqual([...EXPECTED_FLAT_PATHS])

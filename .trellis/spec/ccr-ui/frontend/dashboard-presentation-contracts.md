@@ -1,6 +1,6 @@
 # Dashboard Presentation Contracts
 
-> Executable contracts for `ccr-ui/src/views/dashboard/dashboardPresentation.ts` and the five `DashboardView.vue` child components it feeds (`DashboardReadinessLedger`, `DashboardNextActions`, `DashboardUsageMovement`, `DashboardSignalStream`, `DashboardPlatformMatrix`).
+> Executable contracts for `ccr-ui/src/views/dashboard/dashboardPresentation.ts` and the five `DashboardView.tsx` child components it feeds (`DashboardReadinessLedger`, `DashboardNextActions`, `DashboardUsageMovement`, `DashboardSignalStream`, `DashboardPlatformMatrix`) under `ccr-ui/src/features/usage/dashboard/`.
 
 ---
 
@@ -9,7 +9,7 @@
 ### 1. Scope / Trigger
 
 - Trigger: changing `countSignals`, `buildReadiness`, or `buildActions` in `dashboardPresentation.ts`, or adding a new aggregate health/alert indicator anywhere on the Dashboard that's driven by `MonitoringEntry[]`.
-- Introduced by `07-07-ui-shell-home` to fix a screenshot-confirmed bug: a single frontend retry-log error (e.g. `logger.error('Failed to save Claude profile:', ...)` in `ClaudeCodeProfilesView.vue`) was simultaneously flipping the readiness card to "attention", turning the signals tile red, and injecting an "open monitoring" action — three amplifications of one piece of noise.
+- Introduced by `07-07-ui-shell-home` to fix a screenshot-confirmed bug: a single frontend retry-log error (e.g. `logger.error('Failed to save Claude profile:', ...)` in `ClaudeCodeProfilesView`) was simultaneously flipping the readiness card to "attention", turning the signals tile red, and injecting an "open monitoring" action — three amplifications of one piece of noise.
 
 ### 2. Signatures
 
@@ -20,7 +20,7 @@
 ### 3. Contracts
 
 - `signalCounts` (and therefore the readiness "attention" branch, the signals status tile's tone, and the `open-monitoring` action) must only be driven by non-diagnostic channels.
-- `DashboardSignalStream.vue` must keep rendering **all** entries including `frontend` and `runtime`.
+- `DashboardSignalStream` must keep rendering **all** entries including `frontend` and `runtime`.
 - Genuine backend/checkin/sync-channel errors still drive all three surfaces.
 
 ### 4. Validation & Error Matrix
@@ -65,13 +65,13 @@ const countSignals = (logs: MonitoringEntry[]): DashboardSignalCounts => {
 
 ### 1. Scope / Trigger
 
-- Trigger: adding, removing, or reordering a reason in `buildReadiness()`, or changing how `DashboardReadinessLedger.vue` renders the reason list.
+- Trigger: adding, removing, or reordering a reason in `buildReadiness()`, or changing how `DashboardReadinessLedger.tsx` renders the reason list.
 
 ### 2. Signatures
 
 - `DashboardReadinessReason = { key: string; ok: boolean }` (`dashboardPresentation.ts`).
 - `DashboardReadiness.reasons: DashboardReadinessReason[]` (renamed from the pre-`07-07-ui-shell-home` `reasonKeys: string[]`).
-- Consumed by `DashboardReadinessLedger.vue`: `reason.ok` picks `SIcon` name (`Check` vs `AlertTriangle`) and the icon's color class; `stripTrailingPeriod()` strips a trailing `。`/`.` from the translated string so rows read as a checklist, not sentences.
+- Consumed by `DashboardReadinessLedger.tsx`: `reason.ok` picks `SIcon` name (`Check` vs `AlertTriangle`) and the icon's color class; `stripTrailingPeriod()` strips a trailing `。`/`.` from the translated string so rows read as a checklist, not sentences.
 
 ### 3. Contracts
 
@@ -94,7 +94,7 @@ const countSignals = (logs: MonitoringEntry[]): DashboardSignalCounts => {
 
 ### 1. Scope / Trigger
 
-- Trigger: any "is this a fresh install / has the user configured anything yet" check on the Dashboard (currently `DashboardPresentation.isFirstRun`, consumed by `DashboardNextActions.vue`'s `showOnboarding` prop).
+- Trigger: any "is this a fresh install / has the user configured anything yet" check on the Dashboard (currently `DashboardPresentation.isFirstRun`, consumed by `DashboardNextActions.tsx`'s `showOnboarding` prop).
 
 ### 2. Signatures
 
@@ -102,14 +102,14 @@ const countSignals = (logs: MonitoringEntry[]): DashboardSignalCounts => {
 
 ### 3. Contracts
 
-- `installedCliCount` only counts `isRuntimeCli: true` platforms (`claude-code`, `codex`, `antigravity` per `DashboardView.vue`'s `platforms` computed) — `opencode` is `mode: 'managed', isRuntimeCli: false` and is **never** counted, regardless of how actively it's used. Do not use `installedCliCount === 0` alone as a "nothing configured" signal; a managed-only (OpenCode) user will always read as 0.
+- `installedCliCount` only counts `isRuntimeCli: true` platforms (`claude-code`, `codex`, `antigravity` per `DashboardView.tsx`'s `platforms` list) — `opencode` is `mode: 'managed', isRuntimeCli: false` and is **never** counted, regardless of how actively it's used. Do not use `installedCliCount === 0` alone as a "nothing configured" signal; a managed-only (OpenCode) user will always read as 0.
 - Pair any CLI-install-based "empty" check with a usage-based fallback (`overview.summary.total_requests === 0` or equivalent) so a user who has real activity through a managed platform isn't permanently misidentified as first-run.
 - Gate on both `cliVersionsLoaded` and `!usageLoading` before evaluating — otherwise the flag can flip `true` for one tick while usage is still in flight (even for a returning user with history), then flip back once the overview loads.
 - There is no dedicated "profile count" signal in `DashboardPresentationInput` today. If a future task adds one (e.g. via a new IPC call), prefer it over this heuristic and update this contract.
 
 ### 4. Validation & Error Matrix
 
-- New managed-mode platform added to `DashboardView.vue`'s `platforms` array -> re-check whether `isFirstRun`'s usage-fallback still covers it (it will, as long as that platform's activity flows into `overview.summary.total_requests`).
+- New managed-mode platform added to `DashboardView.tsx`'s `platforms` array -> re-check whether `isFirstRun`'s usage-fallback still covers it (it will, as long as that platform's activity flows into `overview.summary.total_requests`).
 - `isFirstRun` used to gate anything more disruptive than a card's onboarding content (e.g. a modal or redirect) -> reconsider; this is a soft heuristic, not a guaranteed "zero configuration" proof.
 
 ### 5. Good/Base/Bad Cases
@@ -119,7 +119,7 @@ const countSignals = (logs: MonitoringEntry[]): DashboardSignalCounts => {
 
 ---
 
-## Scenario: Compact card empty/onboarding states should not import `EmptyState.vue`
+## Scenario: Compact card empty/onboarding states should not import `EmptyState`
 
 ### 1. Scope / Trigger
 
@@ -127,13 +127,13 @@ const countSignals = (logs: MonitoringEntry[]): DashboardSignalCounts => {
 
 ### 2. Contracts
 
-- `ccr-ui/src/components/ui/EmptyState.vue` has `min-h-[300px]` and full-page/section-level padding (`p-12`) — designed for a whole view's empty state, not a card slot that shares height with a sibling action/readiness card.
-- For a card-scoped empty/onboarding state, replicate `EmptyState.vue`'s visual language inline (icon circle, title, description, optional numbered steps) sized to the card's existing padding/gap tokens (`--home-card-pad`, `--home-text-*`), rather than importing the component. See `DashboardNextActions.vue`'s `dashboard-actions__onboarding` block for the pattern.
+- `ccr-ui/src/ui/empty-state.tsx` has `min-h-[300px]` and full-page/section-level padding (`p-12`) — designed for a whole view's empty state, not a card slot that shares height with a sibling action/readiness card.
+- For a card-local empty/onboarding state, replicate `EmptyState`'s visual language inline (icon circle, title, description, optional numbered steps) sized to the card's existing padding/gap tokens (`--home-card-pad`, `--home-text-*`), rather than importing the component. See `DashboardNextActions.tsx`'s `ONBOARDING_STEPS` / `dashboard-actions__onboarding` block for the pattern.
 
 ### 3. Good/Base/Bad Cases
 
-- Good: `DashboardNextActions.vue` renders its 3-step onboarding list inline, reusing `.dashboard-action`-adjacent styling at the card's own scale.
-- Bad: `<EmptyState v-if="showOnboarding" .../>` inside a `dashboard-grid__actions` slot — forces the card (and, via `align-items: stretch`, its sibling) to at least 300px+ regardless of the grid's actual space budget.
+- Good: `DashboardNextActions.tsx` renders its 3-step onboarding list inline, reusing `.dashboard-action`-adjacent styling at the card's own scale.
+- Bad: `{showOnboarding ? <EmptyState .../> : null}` inside a `dashboard-grid__actions` slot — forces the card (and, via `align-items: stretch`, its sibling) to at least 300px+ regardless of the grid's actual space budget.
 
 ---
 
@@ -141,14 +141,14 @@ const countSignals = (logs: MonitoringEntry[]): DashboardSignalCounts => {
 
 ### 1. Scope / Trigger
 
-- Trigger: changing `StatTile.vue` badge rendering, wiring `tone` in `DashboardReadinessLedger.vue` / `DashboardUsageMovement.vue`, or changing `buildStatusMetrics()` tone assignment.
+- Trigger: changing `src/ui/stat-tile.tsx` badge rendering, wiring `tone` in `DashboardReadinessLedger.tsx` / `DashboardUsageMovement.tsx`, or changing `buildStatusMetrics()` tone assignment.
 - Introduced by `08-18-overview-home-visual`: `DashboardStatusMetric.tone` was already computed, but the ledger dropped it and usage summary tiles stayed bare.
 
 ### 2. Signatures
 
 - `DashboardStatusMetric.tone: DashboardTone` (`neutral | success | warning | danger | accent`) — assigned in `buildStatusMetrics()`.
 - `StatTile` optional `tone?: 'neutral' | 'success' | 'warning' | 'danger' | 'accent'` — the union lives on the primitive. Do not import `DashboardTone` into `StatTile`.
-- Ledger: `:tone="metric.tone"`. Usage summary tiles: `:tone="'neutral'"`.
+- Ledger: `tone={metric.tone}`. Usage summary tiles: `tone="neutral"`.
 
 ### 3. Contracts
 
@@ -159,5 +159,6 @@ const countSignals = (logs: MonitoringEntry[]): DashboardSignalCounts => {
 
 ### 4. Tests Required
 
-- `ccr-ui/tests/ui-primitives.smoke.test.ts` — bare tile without `tone`; `tone: 'success'` has `data-tone`, the badge class, no `ui-card`, and source still contains `tabular-nums`.
+- `ccr-ui/tests/ui-primitives.smoke.test.tsx` — bare tile without `tone`; `tone: 'success'` has `data-tone`, the badge class, no `ui-card`, and source still contains `tabular-nums`.
 - `ccr-ui/tests/dashboard-presentation.smoke.test.ts` — existing judgment expectations stay green.
+- `ccr-ui/tests/react-shell.smoke.test.tsx` — root route mounts `DashboardView` (`.dashboard-view`).

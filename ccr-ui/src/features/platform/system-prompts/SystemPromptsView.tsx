@@ -11,9 +11,8 @@ import {
 } from '@/api/domains/systemPrompts'
 import { surfaceNotify } from '@/configs/surfaceNotify'
 import { PlatformSubnav } from '@/features/platform/PlatformSubnav'
-import { defaultSurfaceT } from '@/features/platform/translate'
+import { useAppLocale, useResolvedT } from '@/i18n'
 import { AsyncStatePanel, PageHeader, PageShell, SIcon } from '@/ui'
-import { readStoredLocale } from '@/i18n'
 import type { TranslateFunction } from '@/utils/tf'
 import { PromptWorkspace } from './PromptWorkspace'
 import { systemPromptsConfigs, type SystemPromptsConfig } from './systemPromptsConfig'
@@ -29,7 +28,8 @@ interface SystemPromptsViewProps {
 
 const SIZE_WARN = 64 * 1024
 
-export function SystemPromptsView({ config, t = defaultSurfaceT }: SystemPromptsViewProps) {
+export function SystemPromptsView({ config, t: tProp }: SystemPromptsViewProps) {
+  const t = useResolvedT(tProp)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [creatingId, setCreatingId] = useState<string | null>(null)
@@ -46,7 +46,7 @@ export function SystemPromptsView({ config, t = defaultSurfaceT }: SystemPrompts
   const content = watch('content')
   const dirty = content !== baseline
   const busy = loading || saving || creatingId !== null
-  const locale = readStoredLocale()
+  const locale = useAppLocale()
 
   const formatTime = useCallback(
     (timestamp: number) =>

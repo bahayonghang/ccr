@@ -2,8 +2,8 @@
 
 > Claude Code / Codex / Grok Profiles 页面的共享骨架契约，以及平台 profile 表单的序列化契约。
 >
-> 适用范围：`ccr-ui/src/views/{ClaudeCodeProfilesView,CodexProfilesView,grok/GrokProfilesView}.vue`、
-> `ccr-ui/src/components/profiles/*`、`ccr-ui/src/components/{claude,codex,grok}/` 下的 profile 卡片与编辑器模态、
+> 适用范围：`ccr-ui/src/features/claude/ClaudeProfilesView.tsx`、`ccr-ui/src/features/codex/CodexProfilesView.tsx`、`ccr-ui/src/features/grok/GrokProfilesView.tsx`、
+> `ccr-ui/src/components/profiles/*`、`ccr-ui/src/features/{claude,codex,grok}/` 下的 profile 卡片与编辑器模态、
 > `ccr-ui/src/utils/{claudeProfiles,claudeProfileEditor,codexProfiles,codexProfileEditor,grokProfiles,grokProfileEditor}.ts`。
 
 ---

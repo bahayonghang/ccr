@@ -3,7 +3,7 @@ import type { UseFormReturn } from 'react-hook-form'
 import type { CodexModelProviderRecord } from '@/types'
 import type { ProviderTemplateDraftContext, ProviderTemplateSelection } from '@/types/providerTemplates'
 import { EmptyState, SIcon } from '@/ui'
-import { defaultSurfaceT as t } from '@/features/platform'
+import { useAppT } from '@/i18n'
 import type { CodexTf } from '../useCodexLocale'
 import { fieldInputClass, ghostBtnClass, panelCardClass, primaryBtnClass } from '../ui-classes'
 import { CodexProviderTemplatePicker } from './CodexProviderTemplatePicker'
@@ -45,6 +45,7 @@ const ProviderCard = memo(function ProviderCard({
   onEditProvider: (provider: CodexModelProviderRecord) => void
   onDeleteProvider: (provider: CodexModelProviderRecord) => void
 }) {
+  const t = useAppT()
   const handleUse = useCallback(() => onUseInApiForm(provider), [onUseInApiForm, provider])
   const handleEdit = useCallback(() => onEditProvider(provider), [onEditProvider, provider])
   const handleDelete = useCallback(() => onDeleteProvider(provider), [onDeleteProvider, provider])
@@ -97,6 +98,7 @@ export function CodexAuthProvidersTab({
   onEditProvider,
   onDeleteProvider,
 }: CodexAuthProvidersTabProps) {
+  const t = useAppT()
   const dirty = Boolean(providerForm.id || providerForm.name || providerForm.baseUrl || providerForm.apiKey)
   return (
     <div className="codex-auth-view__providers-grid">

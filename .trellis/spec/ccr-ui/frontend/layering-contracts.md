@@ -10,7 +10,7 @@
 
 - Trigger: adding, moving, or re-exporting a module under `ccr-ui/src/**`.
 - Applies to every `import`/`export` in `ccr-ui/src/**/*.{ts,tsx,mts}`.
-- Excluded by design: `src/types/generated/**` (ts-rs generated bindings, drift-checked by `just tauri-bindings-check`, not by lint), `**/*.vue` (unmigrated, exit the lint pipeline until phases 4–5), `tests/fixtures/**` (self-check fixtures, not part of normal lint).
+- Excluded by design: `src/types/generated/**` (ts-rs generated bindings, drift-checked by `just tauri-bindings-check`, not by lint), `tests/fixtures/**` (self-check fixtures, not part of normal lint).
 
 ### 2. Signatures
 
@@ -78,8 +78,8 @@ Primitive (`src/ui/`) → composite → domain component → page.
 
 ### 6. Legacy migration-period note
 
-- `legacy-feature` (`src/views` + `src/components`, the `.vue`-era code still being migrated) carries a permissive policy (any internal layer) until phases 4–5 complete. `.vue` files themselves are ignored entirely; the element type exists so TypeScript files in these directories do not trip the graph during the migration window.
-- The permissive policy is an intentional, time-boxed exception, not a gap: it is removed as each view subtask finishes and its files leave `legacy-feature`.
+- `legacy-feature` (`src/views` + `src/components`) carries a permissive policy (any internal layer) until remaining TS/TSX files in those trees move into `features/` or `ui/`. The element type exists so files still in these directories do not trip the graph during leftover moves.
+- The permissive policy is an intentional, time-boxed exception, not a gap: it is removed as each file leaves `legacy-feature`.
 
 ### 7. Exemptions
 
@@ -90,7 +90,7 @@ Primitive (`src/ui/`) → composite → domain component → page.
 ### 8. Good/Base/Bad Cases
 
 - Good: `src/features/claude/X.tsx` imports `@/stores` and `@/api`; `src/ui/Button.tsx` imports only `@/types` and `@/utils`.
-- Base: `src/shell/*` glue imports across all layers; `legacy-feature` files keep pre-migration imports until rewritten.
+- Base: `src/shell/*` glue imports across all layers; `legacy-feature` files keep prior imports until rewritten.
 - Bad: `src/ui/Button.tsx` imports `@/features/claude/...`; `src/features/claude/X.tsx` imports `src/features/codex/Y.tsx`; any module imports `src/api/tauri.ts` directly; a new `invoke('new_command')` added to `tauri.ts`.
 
 ### 9. Tests Required

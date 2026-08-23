@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form'
 import type { SettingsConfig, SettingsValues } from '@/configs/settings'
 import { SurfacePage } from '@/features/platform/SurfacePage'
 import { TabButton } from '@/features/platform/TabButton'
-import { defaultSurfaceT } from '@/features/platform/translate'
+import { useResolvedT } from '@/i18n'
 import {
   fieldsForTab,
   saveSettingsValues,
@@ -18,7 +18,8 @@ interface BaseSettingsProps {
   t?: TranslateFunction
 }
 
-export function BaseSettings({ config, t = defaultSurfaceT }: BaseSettingsProps) {
+export function BaseSettings({ config, t: tProp }: BaseSettingsProps) {
+  const t = useResolvedT(tProp)
   const [tab, setTab] = useState(config.tabs[0]?.id ?? 'model')
   const probeQuery = useQuery({
     queryKey: ['platform-settings-probe', config.cacheKey],

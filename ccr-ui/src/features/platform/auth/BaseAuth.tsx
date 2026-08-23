@@ -2,7 +2,7 @@ import { useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import type { AuthSessionConfig } from '@/configs/auth'
 import { SurfacePage } from '@/features/platform/SurfacePage'
-import { defaultSurfaceT } from '@/features/platform/translate'
+import { useResolvedT } from '@/i18n'
 import type { TranslateFunction } from '@/utils/tf'
 
 interface BaseAuthProps {
@@ -10,7 +10,8 @@ interface BaseAuthProps {
   t?: TranslateFunction
 }
 
-export function BaseAuth({ config, t = defaultSurfaceT }: BaseAuthProps) {
+export function BaseAuth({ config, t: tProp }: BaseAuthProps) {
+  const t = useResolvedT(tProp)
   const probeQuery = useQuery({
     queryKey: ['platform-auth-probe', config.cacheKey],
     queryFn: config.probe ?? (async () => 'ok' as const),

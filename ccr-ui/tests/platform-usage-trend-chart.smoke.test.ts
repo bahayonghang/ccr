@@ -10,7 +10,7 @@ import {
 } from '@/views/platform-usage/platformUsageTrendChart'
 import { getTrendTickAmount, parseUtcDate } from '@/views/usage/usageChartOptions'
 
-const CHART_VUE_PATH = fileURLToPath(
+const CHART_SOURCE_PATH = fileURLToPath(
   new URL('../src/features/usage/platform/PlatformUsageTrendChart.tsx', import.meta.url),
 )
 const CHART_HELPER_PATH = fileURLToPath(
@@ -59,17 +59,17 @@ describe('platform usage trend chart helpers', () => {
   })
 
   it('keeps the platform chart on a datetime axis without label trimming', async () => {
-    const vueSource = await readFile(CHART_VUE_PATH, 'utf8')
+    const chartSource = await readFile(CHART_SOURCE_PATH, 'utf8')
     const helperSource = await readFile(CHART_HELPER_PATH, 'utf8')
 
     expect(helperSource).not.toContain('trim: true')
-    expect(vueSource).not.toContain('trim: true')
-    expect(vueSource).toContain("type: 'datetime'")
-    expect(vueSource).toContain('trim: false')
-    expect(vueSource).toContain('redrawOnParentResize: false')
-    expect(vueSource).toContain('redrawOnWindowResize: false')
-    expect(vueSource).toContain('buildChartAnimations()')
-    expect(vueSource).toContain('formatTrendAxisLabel')
-    expect(vueSource).toContain('getTrendTickAmount')
+    expect(chartSource).not.toContain('trim: true')
+    expect(chartSource).toContain("type: 'datetime'")
+    expect(chartSource).toContain('trim: false')
+    expect(chartSource).toContain('redrawOnParentResize: false')
+    expect(chartSource).toContain('redrawOnWindowResize: false')
+    expect(chartSource).toContain('buildChartAnimations()')
+    expect(chartSource).toContain('formatTrendAxisLabel')
+    expect(chartSource).toContain('getTrendTickAmount')
   })
 })

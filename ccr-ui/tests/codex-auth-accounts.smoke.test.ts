@@ -39,7 +39,7 @@ describe('codex auth account helpers', () => {
     expect(getAccountNameValidationMessage('good_name-1')).toBeNull()
   })
 
-  it('detects token payload naming states without coupling to the Vue component', () => {
+  it('detects token payload naming states without coupling to the view host', () => {
     expect(detectImportPayloadNamingState('')).toBe('empty')
     expect(detectImportPayloadNamingState('{')).toBe('invalid')
     expect(detectImportPayloadNamingState(JSON.stringify({ OPENAI_API_KEY: 'sk-test' }))).toBe(
@@ -119,7 +119,7 @@ describe('codex auth account helpers', () => {
     expect(usesOpenAiAuthMode(null)).toBe(false)
   })
 
-  it('keeps login state presentation and rename eligibility outside the Vue component', () => {
+  it('keeps login state presentation and rename eligibility outside the view host', () => {
     expect(getLoginStateTone({ type: 'LoggedInSaved', account_name: 'alpha' })).toBe('success')
     expect(getLoginStateTone({ type: 'LoggedInUnsaved' })).toBe('warning')
     expect(getLoginStateTone({ type: 'ProviderKeyActive', env_key: 'OPENAI_API_KEY' })).toBe(

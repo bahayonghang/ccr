@@ -1,9 +1,11 @@
 import { render } from '@testing-library/react'
-import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeAll, describe, expect, it } from 'vitest'
 import type { CheckinFlowPhase, CheckinLogEntry } from '@/types/checkin'
 import { CheckinProgressModal } from '@/features/checkin/components/CheckinProgressModal'
+import { setLocale } from '@/i18n'
 
-beforeAll(() => {
+beforeAll(async () => {
+  await setLocale('zh-CN')
   class ResizeObserverStub {
     observe(): void {}
     unobserve(): void {}
@@ -54,17 +56,12 @@ const mountModal = (
     />,
   )
 
-beforeEach(() => {
-  localStorage.setItem('ccr-ui-locale', 'zh-CN')
-})
-
 afterEach(() => {
   localStorage.setItem('ccr-ui-locale', 'zh-CN')
 })
 
 describe('CheckinProgressModal smoke', () => {
   it('renders recovery state without close action', () => {
-    localStorage.setItem('ccr-ui-locale', 'zh-CN')
     const logs: CheckinLogEntry[] = [
       {
         accountId: 'acc-1',
@@ -91,7 +88,6 @@ describe('CheckinProgressModal smoke', () => {
   })
 
   it('renders finished state with final close action', () => {
-    localStorage.setItem('ccr-ui-locale', 'zh-CN')
     const logs: CheckinLogEntry[] = [
       {
         accountId: 'acc-1',
@@ -114,7 +110,6 @@ describe('CheckinProgressModal smoke', () => {
   })
 
   it('renders manual-WAF terminal state when waf_blocked failures remain', () => {
-    localStorage.setItem('ccr-ui-locale', 'zh-CN')
     const logs: CheckinLogEntry[] = [
       {
         accountId: 'acc-1',

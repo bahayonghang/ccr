@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { useState } from 'react'
 import { beforeAll, describe, expect, it } from 'vitest'
@@ -30,6 +31,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  StatTile,
   Switch,
   Tabs,
   TabsContent,
@@ -312,5 +314,24 @@ describe('ui-primitives（08-22-design-system 批次 3，AC4 消费示例）', (
     await waitFor(() => {
       expect(checkbox.getAttribute('data-state')).toBe('checked')
     })
+  })
+
+  it('StatTile：无 tone 时为裸砖，不带 data-tone', () => {
+    const { container } = render(<StatTile label="就绪" value="3" hint="项" />)
+    const value = container.querySelector('.stat-tile__value')
+    expect(value?.classList.contains('stat-tile__value--badge')).toBe(false)
+    expect(value?.hasAttribute('data-tone')).toBe(false)
+    expect(container.querySelector('.ui-card')).toBeNull()
+  })
+
+  it('StatTile：tone=success 只给数值徽章壳', async () => {
+    const { container } = render(<StatTile label="就绪" value="3" hint="项" tone="success" />)
+    const value = container.querySelector('.stat-tile__value')
+    expect(value?.classList.contains('stat-tile__value--badge')).toBe(true)
+    expect(value?.getAttribute('data-tone')).toBe('success')
+    expect(container.querySelector('.stat-tile__tone-dot')).toBeTruthy()
+    expect(container.querySelector('.ui-card')).toBeNull()
+    const css = await readFile('src/ui/primitives.css', 'utf8')
+    expect(css).toContain('tabular-nums')
   })
 })

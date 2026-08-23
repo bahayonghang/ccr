@@ -23,7 +23,7 @@ import { mapTemplateToCodexProviderPatch } from '@/utils/providerTemplates'
 // - codexTemplateDraft（computed）→ useMemo（来源：表单 watch 值）。
 //
 // 签名变化（消费方 CodexAuthView.vue 待迁移）：
-// - useI18n → t 参数传入（与 useCodexDashboard 同形态）；
+// - t 参数传入（与 useCodexDashboard 同形态）；
 // - deps.activeManagerTab: Ref → setActiveManagerTab 回调；
 // - providerForm 返回 RHF watch 快照（普通对象）；表单方法经 providerFormApi 暴露。
 
@@ -56,7 +56,7 @@ type ConfirmDialogOptions = {
 }
 
 export function useCodexProviders(deps: {
-  /** i18n 翻译函数（vue-i18n useI18n 的 React 侧等价入参） */
+  /** i18n 翻译函数 */
   t: TranslateFunction
   /** 共享确认弹窗：删除提供商时复用主视图的 ConfirmModal */
   openConfirmDialog: (options: ConfirmDialogOptions) => void

@@ -100,7 +100,7 @@ describe('reduced motion（08-22-design-system 批次 7 / AC8 前半）', () => 
       expect(animations).toContain(retained)
     }
 
-    // 删除集（进出场 / Vue 过渡 / spin 重复定义）
+    // 删除集（进出场 / 过渡 / spin 重复定义）
     for (const removed of [
       '@keyframes fade-in',
       '@keyframes fade-out',
@@ -151,7 +151,7 @@ describe('reduced motion（08-22-design-system 批次 7 / AC8 前半）', () => 
         readers.push(file)
       }
     }
-    // .vue 内的存量读取属阶段 5 迁移范围；ts/tsx 侧唯一读取点是本模块。
+    // ts/tsx 侧唯一读取点是本模块。
     expect(readers).toEqual([])
   })
 })

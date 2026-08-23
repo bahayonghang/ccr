@@ -4,7 +4,7 @@ import { Link, useNavigate, useParams } from 'react-router'
 import { deleteAgent, getAgent, toggleAgent, updateAgent } from '@/api'
 import { surfaceNotify } from '@/configs/surfaceNotify'
 import { PlatformSubnav } from '@/features/platform/PlatformSubnav'
-import { defaultSurfaceT } from '@/features/platform/translate'
+import { useAppT } from '@/i18n'
 import type { Agent, AgentRequest } from '@/types'
 import { PageHeader, PageShell, SIcon } from '@/ui'
 import { copyText } from '@/utils/clipboard'
@@ -23,7 +23,7 @@ const emptyForm = (): AgentEditForm => ({
 
 /** 跨平台 Agent 详情。当前路由 `/agents/:name` 仍走 Claude agents API。 */
 export function AgentDetailView() {
-  const t = defaultSurfaceT
+  const t = useAppT()
   const navigate = useNavigate()
   const params = useParams()
   const name = typeof params.name === 'string' ? params.name : ''

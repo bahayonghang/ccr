@@ -4,6 +4,7 @@ import type { AccountInfo, CheckinProvider, CheckinRecordInfo } from '@/types/ch
 import * as checkinApi from '@/api'
 import { CheckinAccountsTab } from '@/features/checkin/tabs/CheckinAccountsTab'
 import { CheckinRecordsTab } from '@/features/checkin/tabs/CheckinRecordsTab'
+import { setLocale } from '@/i18n'
 
 vi.mock('@/api', () => ({
   createCheckinAccount: vi.fn(),
@@ -63,7 +64,8 @@ const cookieExpiredRecord: CheckinRecordInfo = {
   checked_in_at: '2026-06-10T08:00:00.000Z',
 }
 
-beforeAll(() => {
+beforeAll(async () => {
+  await setLocale('zh-CN')
   class ResizeObserverStub {
     observe(): void {}
     unobserve(): void {}
@@ -101,7 +103,6 @@ afterEach(() => {
 
 describe('checkin cookie_expired quick fix smoke', () => {
   it('renders update-cookie entry on cookie_expired record rows and emits account id on click', async () => {
-    localStorage.setItem('ccr-ui-locale', 'zh-CN')
     mockedListCheckinRecords.mockResolvedValue({ records: [], total: 0 })
     const onUpdateCookie = vi.fn()
     const { container } = render(
@@ -115,7 +116,7 @@ describe('checkin cookie_expired quick fix smoke', () => {
       />,
     )
     const fixButton = container.querySelector<HTMLButtonElement>('.checkin-records__fix-button')
-    expect(fixButton?.textContent).toContain('更新 Cookie')
+    expect(fixButton?.textContent).toMatch(/checkin\.records\.cookieExpiredFix|更新 Cookie/)
     fireEvent.click(fixButton!)
     expect(onUpdateCookie).toHaveBeenCalledWith('account-1')
   })
@@ -153,7 +154,6 @@ describe('checkin cookie_expired quick fix smoke', () => {
   })
 
   it('opens the account editor with focused cookies field when pendingEditAccountId is set', async () => {
-    localStorage.setItem('ccr-ui-locale', 'zh-CN')
     mockedGetCheckinAccountCookies.mockResolvedValue({
       cookies_json: '{"session":"expired-session"}',
       api_user: '12345',

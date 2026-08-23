@@ -1,7 +1,7 @@
 import { memo, useCallback } from 'react'
 import type { CodexAccountQuota, CodexAuthAccountItem } from '@/types'
 import { SIcon, cn } from '@/ui'
-import { defaultSurfaceT as t } from '@/features/platform'
+import { useAppT } from '@/i18n'
 
 interface CodexAccountCardProps {
   account: CodexAuthAccountItem
@@ -82,6 +82,7 @@ const ActionButton = memo(function ActionButton({
 })
 
 function QuotaBlock({ quota, quotaLoading }: { quota?: CodexAccountQuota | null; quotaLoading?: boolean }) {
+  const t = useAppT()
   if (quotaLoading) {
     return (
       <div className="mb-3 space-y-3">
@@ -133,6 +134,7 @@ export const CodexAccountCard = memo(function CodexAccountCard({
   onExport,
   onRename,
 }: CodexAccountCardProps) {
+  const t = useAppT()
   const handleSwitch = useCallback(() => onSwitch(account.name), [account.name, onSwitch])
   const handleDelete = useCallback(() => onDelete(account.name), [account.name, onDelete])
   const handleRefresh = useCallback(() => onRefresh(account.name), [account.name, onRefresh])

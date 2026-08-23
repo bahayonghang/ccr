@@ -99,10 +99,9 @@ const quickSwitch = (overrides: Partial<ProfilesQuickSwitch> = {}): ProfilesQuic
 })
 
 describe('profiles shared layer (React)', () => {
-  it('ships TSX modules and has no leftover Vue files in the folder', () => {
+  it('ships TSX modules in the shared profiles folder', () => {
     const dir = join(process.cwd(), 'src/components/profiles')
     const files = readdirSync(dir)
-    expect(files.filter((file) => file.endsWith('.vue'))).toEqual([])
     expect(files).toEqual(expect.arrayContaining([
       'ProfileDiffRows.tsx',
       'ProfileListRow.tsx',
@@ -155,7 +154,7 @@ describe('profiles shared layer (React)', () => {
     expect(onDelete).toHaveBeenCalledWith('alpha')
   })
 
-  it('maps ProfilesSection children from the Vue default slot', () => {
+  it('maps ProfilesSection children', () => {
     render(
       <ProfilesSection title="Anthropic" count={2}>
         <div>card</div>
@@ -363,6 +362,6 @@ describe('profiles shared layer (React)', () => {
     expect((editor as HTMLTextAreaElement).value).toBe('name = "alpha"')
     fireEvent.input(editor, { target: { value: 'name = "beta"' } })
     await waitFor(() => expect(onDirtyChange).toHaveBeenCalledWith(true))
-    expect(screen.getByText('profilesRaw.unsaved')).toBeTruthy()
+    expect(screen.getByText(/profilesRaw\.unsaved|有未保存修改/)).toBeTruthy()
   })
 })

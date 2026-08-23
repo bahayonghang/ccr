@@ -41,7 +41,7 @@ describe('getErrorMessage', () => {
     expect(getErrorMessage(new TypeError(''), '未知错误')).toBe('TypeError')
   })
 
-  it('keeps global Vue error toasts from ending with an empty reason', () => {
+  it('keeps global error toasts from ending with an empty reason', () => {
     const toastMessage = `应用错误: ${getErrorMessage(new Error(''), '未知错误')}`
 
     expect(toastMessage).toBe('应用错误: 未知错误')

@@ -30,7 +30,7 @@ type UnlistenFn = () => void | Promise<void>
  *   latestDepsRef 读取最新 loginId 与注入依赖，避免闭包捕获陈旧值。
  *
  * 签名变化（消费方 AddCodexAccountModal.vue 待迁移）：
- * - useI18n → t 参数传入；
+ * - t 参数传入；
  * - ComputedRef/Ref 注入 → 普通值 + setState 写入器（共享弹窗态归调用方持有）。
  */
 export function useCodexOAuthFlow(deps: {

@@ -62,7 +62,7 @@ export interface CodexDashboardInventoryItem {
 // overview/usage staleTime 30s（原 DASHBOARD_TTL_MS）、version 60s（原 VERSION_TTL_MS）。
 //
 // 签名变化（消费方均为待迁移 .vue 视图）：
-// - i18n 由 vue-i18n useI18n 改为参数传入 t（与 shell/hooks 的既有形态一致）；
+// - i18n 由调用方传入 t（与 shell/hooks 的既有形态一致）；
 // - 返回对象中的 Ref<T> 改为普通值（useMemo 派生）；
 // - refresh(force) 的 force 经 forceRef 透传给后端 IPC wrapper，非 force 时仅重拉
 //   已陈旧（isStale）的切片，等价原 TTL 检查后的按需加载；
@@ -72,7 +72,7 @@ export interface CodexDashboardInventoryItem {
 type Translate = (key: string, params?: Record<string, unknown>) => string
 
 interface UseCodexDashboardOptions {
-  /** i18n 翻译函数（原 useI18n().t）。 */
+  /** i18n 翻译函数。 */
   t: Translate
 }
 

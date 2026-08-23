@@ -80,6 +80,8 @@ export default defineConfig({
       'react-dom',
       'react-dom/client',
       'react-router',
+      'i18next',
+      'react-i18next',
       '@tanstack/react-query',
       '@iconify/react',
       // 重量级依赖：避免 noDiscovery 下运行时逐个转译，大幅缩短 dev 首屏加载

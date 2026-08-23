@@ -5,7 +5,7 @@ import { BaseModal, type BaseModalHandle, type BaseModalProps } from '@/ui'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 
 // BaseModal 适配器行为测试（08-22-design-system 批次 4）。
-// 断言适配器语义与 BaseModal.vue 一致，且四项弹层行为委托 Radix：
+// 断言适配器语义与 BaseModal 一致，且四项弹层行为委托 Radix：
 // Esc / 遮罩点击（6px 拖拽阈值）/ 滚动锁定 / aria 接线 / 事件回调 / ref.close()。
 //
 // jsdom 桩：与 tests/ui-primitives.smoke.test.tsx 相同（ResizeObserver、PointerEvent）。

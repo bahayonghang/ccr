@@ -3,6 +3,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import type { AccountInfo, CheckinProvider } from '@/types/checkin'
 import * as checkinApi from '@/api'
 import { CheckinAccountsTab } from '@/features/checkin/tabs/CheckinAccountsTab'
+import { setLocale } from '@/i18n'
 
 vi.mock('@/api', () => ({
   createCheckinAccount: vi.fn(),
@@ -88,8 +89,8 @@ beforeAll(() => {
   }
 })
 
-const mountTab = (locale: 'en-US' | 'zh-CN' = 'en-US', accountList: AccountInfo[] = accounts) => {
-  localStorage.setItem('ccr-ui-locale', locale)
+const mountTab = async (locale: 'en-US' | 'zh-CN' = 'en-US', accountList: AccountInfo[] = accounts) => {
+  await setLocale(locale)
   return render(
     <CheckinAccountsTab
       providers={providers}
@@ -107,7 +108,9 @@ const openAccountEditor = async (editLabel = 'Edit') => {
   const editButton = await waitFor(() => {
     const found = Array.from(
       document.body.querySelectorAll<HTMLElement>('.checkin-accounts-tab__menu-item'),
-    ).find((button) => button.textContent?.includes(editLabel))
+    ).find((button) =>
+      Boolean(button.textContent && /Edit|编辑|checkin\.accounts\.edit/.test(button.textContent)),
+    )
     expect(found).toBeTruthy()
     return found!
   })
@@ -122,8 +125,8 @@ afterEach(() => {
 })
 
 describe('CheckinAccountsTab smoke', () => {
-  it('renders account actions in English with no-wrap single account button', () => {
-    const { container } = mountTab('en-US')
+  it('renders account actions in English with no-wrap single account button', async () => {
+    const { container } = await mountTab('en-US')
     expect(container.textContent).toContain('Account Management')
     expect(container.textContent).toContain('OAuth Login')
     expect(container.textContent).toContain('Check in')
@@ -132,15 +135,15 @@ describe('CheckinAccountsTab smoke', () => {
     expect(miniLabel?.textContent).toBe('Check in')
   })
 
-  it('renders account actions in Chinese', () => {
-    const { container } = mountTab('zh-CN')
+  it('renders account actions in Chinese', async () => {
+    const { container } = await mountTab('zh-CN')
     expect(container.textContent).toContain('签到账号')
     expect(container.textContent).toContain('OAuth 登录')
     expect(container.textContent).toContain('签到')
   })
 
   it('teleports the account action menu to body to avoid table clipping', async () => {
-    const { container } = mountTab('zh-CN')
+    const { container } = await mountTab('zh-CN')
     const trigger = container.querySelector<HTMLButtonElement>('.checkin-accounts-tab__menu-trigger')
     expect(trigger).not.toBeNull()
     fireEvent.pointerDown(trigger!, { button: 0, ctrlKey: false })
@@ -149,9 +152,9 @@ describe('CheckinAccountsTab smoke', () => {
       expect(menu).not.toBeNull()
       return menu!
     })
-    expect(teleportedMenu.textContent).toContain('刷新余额')
-    expect(teleportedMenu.textContent).toContain('编辑')
-    expect(teleportedMenu.textContent).toContain('删除')
+    expect(teleportedMenu.textContent).toMatch(/checkin\.actions\.refreshBalance|刷新余额/)
+    expect(teleportedMenu.textContent).toMatch(/checkin\.accounts\.edit|编辑/)
+    expect(teleportedMenu.textContent).toMatch(/checkin\.accounts\.delete|删除/)
     expect(container.querySelector('.checkin-accounts-tab__menu--floating')).toBeNull()
   })
 
@@ -160,7 +163,7 @@ describe('CheckinAccountsTab smoke', () => {
       cookies_json: '{"session":"abc123"}',
       api_user: '67890',
     })
-    mountTab()
+    await mountTab()
     await openAccountEditor()
     const apiUserInput = document.body.querySelector<HTMLInputElement>('input[placeholder="12345"]')
     const cookiesTextarea = document.body.querySelector<HTMLTextAreaElement>(
@@ -175,7 +178,7 @@ describe('CheckinAccountsTab smoke', () => {
       cookies_json: '{"session":"abc123"}',
       api_user: '67890',
     })
-    mountTab()
+    await mountTab()
     await openAccountEditor()
     expect(document.body.textContent).toContain('Required for session / cookies login. Prefer')
     expect(document.body.textContent).toContain('from Local Storage, or find')
@@ -192,7 +195,7 @@ describe('CheckinAccountsTab smoke', () => {
       cookies_json: '{"session":"abc123"}',
       api_user: '67890',
     })
-    mountTab('en-US', [{ ...accounts[0], enabled: false }])
+    await mountTab('en-US', [{ ...accounts[0], enabled: false }])
     await openAccountEditor()
     const enabledCheckbox = document.body.querySelector<HTMLInputElement>('#account-enabled')
     expect(enabledCheckbox?.checked).toBe(false)
@@ -215,7 +218,7 @@ describe('CheckinAccountsTab smoke', () => {
       cookies_json: '{"session":"abc123"}',
       api_user: '67890',
     })
-    mountTab()
+    await mountTab()
     await openAccountEditor()
     expect(document.body.querySelector('.checkin-accounts-tab__modal-body')).not.toBeNull()
     expect(document.body.querySelector('.checkin-accounts-tab__form-section--identity')).not.toBeNull()
@@ -234,7 +237,7 @@ describe('CheckinAccountsTab smoke', () => {
       cookies_json: fullCookiesJson,
       api_user: '67890',
     })
-    mountTab()
+    await mountTab()
     await openAccountEditor()
     const cookiesTextarea = document.body.querySelector<HTMLTextAreaElement>(
       '.checkin-accounts-tab__control--textarea.checkin-accounts-tab__control--mono',

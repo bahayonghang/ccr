@@ -62,14 +62,14 @@ interface GrokActivationWarning {
 // overview/version 的 key，换环境落到新缓存条目（等价原 resetSharedCaches）。
 //
 // 签名变化（消费方均为待迁移 .vue 视图）：
-// - i18n 由 vue-i18n useI18n 改为参数传入 t；返回对象中的 Ref<T> 改为普通值；
+// - i18n 由调用方传入 t；返回对象中的 Ref<T> 改为普通值；
 // - loadError/refreshError 由原命令式分支改为派生值：尚无 overview 数据时的错误
 //   记入 loadError，已有数据时的错误记入 refreshError（与原 setDashboardError 判定一致）。
 
 type Translate = (key: string, params?: Record<string, unknown>) => string
 
 interface UseGrokDashboardOptions {
-  /** i18n translation function (original useI18n().t). */
+  /** i18n translation function. */
   t: Translate
 }
 

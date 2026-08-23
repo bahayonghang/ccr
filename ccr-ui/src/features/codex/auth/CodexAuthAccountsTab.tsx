@@ -5,7 +5,7 @@ import { EmptyState, SIcon } from '@/ui'
 import type { AccountPlanFilter, AccountSort, AccountStatusFilter } from '../codexAuthAccounts'
 import { ghostBtnClass, panelCardClass } from '../ui-classes'
 import { CodexAccountCard } from './CodexAccountCard'
-import { defaultSurfaceT as t } from '@/features/platform'
+import { useAppT } from '@/i18n'
 import type { CodexTf } from '../useCodexLocale'
 
 interface FilterOption<T extends string> {
@@ -109,6 +109,7 @@ export function CodexAuthAccountsTab({
   onExport,
   onRename,
 }: CodexAuthAccountsTabProps) {
+  const t = useAppT()
   const searchForm = useForm({ defaultValues: { q: searchQuery } })
   const handleSearch = searchForm.register('q', {
     onChange: (event: ChangeEvent<HTMLInputElement>) => onSearchQueryChange(event.target.value),

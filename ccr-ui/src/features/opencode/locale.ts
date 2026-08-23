@@ -1,13 +1,12 @@
-import { useCallback, useMemo } from 'react'
-import { defaultSurfaceT } from '@/features/platform'
-import { readStoredLocale } from '@/i18n'
+import { useMemo } from 'react'
+import { useAppLocale, useAppT, useAppTt } from '@/i18n'
 import { createTf } from '@/utils/tf'
 
 export function useOpenCodeLocale() {
-  const locale = readStoredLocale()
+  const locale = useAppLocale()
   const isZh = locale.startsWith('zh')
-  const t = defaultSurfaceT
+  const t = useAppT()
   const tf = useMemo(() => createTf(t), [t])
-  const tt = useCallback((zh: string, en: string) => (isZh ? zh : en), [isZh])
+  const tt = useAppTt()
   return { locale, isZh, t, tf, tt }
 }

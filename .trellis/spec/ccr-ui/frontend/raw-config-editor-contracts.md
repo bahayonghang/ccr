@@ -18,7 +18,7 @@
 - Read result: `{ status: 'ok', content, token, path, exists } | { status: 'unsupported_environment', envType }`.
 - Save result: `{ status: 'saved', token } | { status: 'conflict' } | { status: 'invalid', kind, message, line?, column? } | unsupported`.
 - Profile save result additionally supports `{ status: 'saved', token, profiles_count } | { status: 'activation_conflict', current }`.
-- Shared editor: `CodeSourceEditor(modelValue, language: 'json' | 'toml' | 'markdown', readonly?, errorMarker?)`.
+- Shared editor: `CodeSourceEditor(value, language: 'json' | 'toml' | 'markdown', readOnly?, errorMarker?)`.
 - Production CSP integration: `EditorView.cspNonce.of(pageNonce)`, where `pageNonce` comes from the current document's `style[nonce]` or `script[nonce]`.
 
 ### 3. Contracts

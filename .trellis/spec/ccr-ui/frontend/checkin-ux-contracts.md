@@ -8,8 +8,8 @@
 
 ### 1. Scope / Trigger
 
-- Trigger: changing batch balance refresh, the per-key queue, or refresh throttling in `ccr-ui/src/views/checkin/composables/`.
-- Applies to `balanceRefreshQueue.ts` and `useCheckinState.ts` (`refreshAllBalances` / `refreshAccountBalance`).
+- Trigger: changing batch balance refresh, the per-key queue, or refresh throttling in `ccr-ui/src/features/checkin/`.
+- Applies to `lib/balanceRefreshQueue.ts` and `hooks/useCheckinState.ts` (`refreshAllBalances` / `refreshAccountBalance`).
 
 ### 2. Signatures
 
@@ -65,7 +65,7 @@ await runPerKeySequential(
 ### 1. Scope / Trigger
 
 - Trigger: changing how the frontend waits for check-in job completion, including the WAF recovery retry path.
-- Applies to `ccr-ui/src/views/checkin/composables/checkinWafRecovery.ts` (`waitForCheckinJobResult`) and `checkinJobRuntime.ts`.
+- Applies to `ccr-ui/src/features/checkin/lib/waitForCheckinJob.ts` (`waitForCheckinJobResult`) and `lib/checkinWafRecovery.ts` / `lib/checkinJob.ts`.
 
 ### 2. Signatures
 
@@ -86,7 +86,7 @@ await runPerKeySequential(
 
 ### 6. Tests Required
 
-- `cd ccr-ui && bun run test:smoke -- tests/checkin-waf-event-wait.smoke.test.ts tests/checkin-state.smoke.test.ts tests/checkin-progress-modal.smoke.test.ts`
+- `cd ccr-ui && bun run test:smoke -- tests/checkin-waf-event-wait.smoke.test.ts tests/checkin-state.smoke.test.ts tests/checkin-progress-modal.smoke.test.tsx`
 
 ### 7. Wrong vs Correct
 
@@ -116,7 +116,7 @@ settle(await getCheckinJobStatus(jobId)); // 一次对账，覆盖事件先于�
 ### 1. Scope / Trigger
 
 - Trigger: changing check-in result panels, summaries, record status rendering, or error surfacing in checkin views.
-- Applies to `CheckinView.vue`, `CheckinRecordsTab.vue`, `useCheckinState.ts`, and the `checkin.*` i18n namespace (`zh-CN` + `en-US`).
+- Applies to `CheckinView.tsx`, `CheckinRecordsTab.tsx`, `useCheckinState.ts`, and the `checkin.*` i18n namespace (`zh-CN` + `en-US`).
 
 ### 2. Signatures
 
@@ -140,6 +140,6 @@ settle(await getCheckinJobStatus(jobId)); // 一次对账，覆盖事件先于�
 
 ### 6. Tests Required
 
-- `cd ccr-ui && bun run test:smoke -- tests/checkin-cookie-fix.smoke.test.ts tests/checkin-accounts-tab.smoke.test.ts`
+- `cd ccr-ui && bun run test:smoke -- tests/checkin-cookie-fix.smoke.test.tsx tests/checkin-accounts-tab.smoke.test.tsx`
 - `cd ccr-ui && bun run test:i18n`
-- `rg -n "alert\(" ccr-ui/src/views/checkin ccr-ui/src/views/CheckinView.vue` must return nothing.
+- `rg -n "alert\(" ccr-ui/src/features/checkin` must return nothing.

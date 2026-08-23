@@ -69,7 +69,7 @@ const summary = (overrides: Partial<UsageSummary> = {}): UsageSummary => ({
 })
 
 describe('usage overview insight helpers', () => {
-  it('builds selected labels and archive meta without depending on Vue computed state', () => {
+  it('builds selected labels and archive meta without depending on view-local derived state', () => {
     expect(buildSelectedPlatformLabel('', translate)).toBe('All Platforms')
     expect(buildSelectedPlatformLabel('codex', translate)).toBe('Codex')
     expect(buildSelectedPlatformLabel('custom', translate)).toBe('custom')

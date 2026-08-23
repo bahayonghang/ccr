@@ -12,8 +12,7 @@ export type TranslateFunction = (
  *
  * 返回 `tf(key, fallback, values?)`：命中 key 且无残留占位符时取译文，
  * 否则回退到 `fallback`。收口此前在多个组件里重复定义的局部 `tf` 包装。
- * React 侧的 t 来源由 `08-22-i18n-port` 定形（useTranslator）；过渡期可传
- * `i18n.global.t`。
+ * React 侧的 t 来源为 `useAppT()` / `translate`（i18next）。
  */
 export function createTf(t: TranslateFunction) {
   return (key: string, fallback: string, values: TranslateValues = {}) =>

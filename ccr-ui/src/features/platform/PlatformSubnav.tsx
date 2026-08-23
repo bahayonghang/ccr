@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { NavLink, useLocation } from 'react-router'
 import { getCurrentEnvironment } from '@/api'
 import { getModuleSubnavItems } from '@/config/moduleSubnav'
-import { defaultSurfaceT } from '@/features/platform/translate'
+import { useAppT } from '@/i18n'
 import { SIcon } from '@/ui'
 
 interface PlatformSubnavProps {
@@ -11,6 +11,7 @@ interface PlatformSubnavProps {
 
 /** 功能面子导航。供 SystemPrompts / AgentDetail 与各薄壳复用，不分支平台名。 */
 export function PlatformSubnav({ module }: PlatformSubnavProps) {
+  const t = useAppT()
   const location = useLocation()
   const items = getModuleSubnavItems(module)
   const [isLocalEnvironment, setIsLocalEnvironment] = useState(false)
@@ -42,13 +43,13 @@ export function PlatformSubnav({ module }: PlatformSubnavProps) {
   return (
     <nav className="module-subnav" aria-label="Module navigation">
       {items.map((item) => {
-        const label = item.labelKey ? defaultSurfaceT(item.labelKey) : item.label
+        const label = item.labelKey ? t(item.labelKey) : item.label
         if (item.localOnly && !isLocalEnvironment) {
           return (
             <span
               key={item.href}
               className="module-subnav__item module-subnav__item--disabled"
-              title={defaultSurfaceT('settingsRaw.unsupportedEnvironment')}
+              title={t('settingsRaw.unsupportedEnvironment')}
               aria-disabled="true"
             >
               <SIcon name={item.icon} size="w-4 h-4" />

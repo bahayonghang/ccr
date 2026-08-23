@@ -2,7 +2,7 @@ import { useCallback, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import type { ProfilesConfig } from '@/configs/profiles'
 import { SurfacePage } from '@/features/platform/SurfacePage'
-import { defaultSurfaceT } from '@/features/platform/translate'
+import { useResolvedT } from '@/i18n'
 import { makeProfileRowDescriptor } from '@/features/platform/profiles/profiles-model'
 import {
   ProfileListRow,
@@ -19,7 +19,8 @@ interface BaseProfilesProps {
 
 const noop = (): void => {}
 
-export function BaseProfiles({ config, t = defaultSurfaceT }: BaseProfilesProps) {
+export function BaseProfiles({ config, t: tProp }: BaseProfilesProps) {
+  const t = useResolvedT(tProp)
   const probeQuery = useQuery({
     queryKey: ['platform-profiles-probe', config.cacheKey],
     queryFn: config.probe ?? (async () => 'ok' as const),

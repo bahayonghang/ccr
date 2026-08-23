@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form'
 import type { McpConfig, McpDraft } from '@/configs/mcp'
 import { NamedItemCard } from '@/features/platform/NamedItemCard'
 import { SurfacePage } from '@/features/platform/SurfacePage'
-import { defaultSurfaceT } from '@/features/platform/translate'
+import { useResolvedT } from '@/i18n'
 import { EmptyState } from '@/ui'
 import type { TranslateFunction } from '@/utils/tf'
 
@@ -15,7 +15,8 @@ interface BaseMcpProps {
 
 const emptyDraft: McpDraft = { name: '', command: '', url: '' }
 
-export function BaseMcp({ config, t = defaultSurfaceT }: BaseMcpProps) {
+export function BaseMcp({ config, t: tProp }: BaseMcpProps) {
+  const t = useResolvedT(tProp)
   const [showForm, setShowForm] = useState(false)
   const [transport, setTransport] = useState<'stdio' | 'http'>('stdio')
   const query = useQuery({

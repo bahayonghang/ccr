@@ -62,7 +62,6 @@ describe('Vite development resource contracts', () => {
     expect(manifest.healthPath).toBe('/')
     expect(new Set(manifest.clientFiles).size).toBe(manifest.clientFiles.length)
     expect(manifest.clientFiles).toEqual(expect.arrayContaining(required))
-    expect(manifest.clientFiles).not.toContain('./src/views/AppSettingsView.vue')
     for (const target of manifest.clientFiles) {
       expect(existsSync(path.resolve(root, target))).toBe(true)
     }

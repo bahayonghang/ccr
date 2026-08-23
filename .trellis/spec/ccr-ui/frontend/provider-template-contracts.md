@@ -9,7 +9,7 @@
 ### 1. Scope / Trigger
 
 - Trigger: adding or changing provider template data, custom template persistence, template selectors, or template-to-form mappers for Claude Code, Codex, or OpenCode.
-- Applies to `ccr-ui/src/types/providerTemplates.ts`, `ccr-ui/src/configs/providerTemplates.ts`, `ccr-ui/src/utils/providerTemplates.ts`, `ccr-ui/src/composables/useProviderTemplates.ts`, `ccr-ui/src/components/provider-templates/ProviderTemplateSelector.vue`, and the platform views that consume them.
+- Applies to `ccr-ui/src/types/providerTemplates.ts`, `ccr-ui/src/configs/providerTemplates.ts`, `ccr-ui/src/utils/providerTemplates.ts`, `ccr-ui/src/composables/useProviderTemplates.ts`, `ccr-ui/src/features/configs/hooks/useProviderTemplates.ts`, `ccr-ui/src/features/configs/provider-templates/ProviderTemplateSelector.tsx`, and the platform views that consume them.
 
 ### 2. Signatures
 
@@ -67,17 +67,13 @@
 
 ### 6. Tests Required
 
-- `cd ccr-ui && bun run test:smoke -- tests/provider-templates.smoke.test.ts`
-  - Assert search indexes name, aliases, hosts, model names, and platform override fields.
-  - Assert platform filtering respects `platforms.<platform>`.
-  - Assert Claude template patches include non-secret runtime fields and no credential fields.
+- `cd ccr-ui && bun run test:smoke -- tests/provider-template-selector.smoke.test.tsx tests/state-store-actions.smoke.test.ts`
+  - Assert the selector opens and exposes a manual row.
   - Assert custom template persistence strips sensitive fields across all platform overrides.
-  - Assert invalid override JSON does not persist.
 - `cd ccr-ui && bun run test:smoke -- tests/providers-catalog.smoke.test.ts` when changing the catalog JSON, its projection, or builtin provider lookups.
   - Assert schemaVersion mismatch raises an explicit error.
   - Assert projected templates and their mapper patches contain no secret fields.
   - Assert `BuiltinProvider` mirror fields stay consistent with the catalog `checkin` block.
-- `cd ccr-ui && bun run test:smoke -- tests/codex-auth-view.smoke.test.ts` when adding or changing Codex account-form template entry points.
   - Assert the API key add flow can apply a Codex provider template.
   - Assert template application does not prefill or overwrite the API key.
 - `cd ccr-ui && bun run test:smoke -- tests/codex-profile-editor.smoke.test.ts` when adding or changing the Codex Profile editor template entry point.
