@@ -7,6 +7,7 @@
 
 - [ ] 父任务统一层门已通过（本域范围不受影响，无需回填）。
 - [ ] 前置阅读完成，另加 `usage-chart-stability-contracts.md`（7.1 KB）、`dashboard-presentation-contracts.md`（10.9 KB）、`environment-scoped-dashboard-contracts.md`（5.0 KB）。
+- [ ] 前置阅读：`.trellis/spec/ccr-ui/frontend/react-rerender-discipline.md`（R8，动手前必读）。
 - [ ] `08-22-design-system` 已迁移 `chart-colors.css`（5 变量），耦合项已核对。
 - [ ] `08-22-state-logic-port` 已提供 `usageKeys` 与 `homeUsageKeys` 的 Query hook，且 `usageDashboardPayload.ts` 与 `usageImportNormalization.ts` 已移入 `utils/`。
 - [ ] `08-22-dep-upgrade` 已确定 `apexcharts` 核心版本。

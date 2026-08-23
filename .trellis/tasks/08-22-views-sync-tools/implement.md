@@ -16,6 +16,7 @@
 - [ ] `08-22-dep-upgrade` 的 `codemirror-peer-check.md` 已落盘，`@codemirror/state` 无重复实例（协同点 B）。
 - [ ] `08-22-shell-port` 批次 0 的 tray 独立 HTML 入口结论已知。
 - [ ] 前置阅读完成，另加 `raw-config-editor-contracts.md`（7.4 KB）、`sync-security-contracts.md`（4.2 KB）、`monitoring-log-contracts.md`（1.1 KB）。
+- [ ] 前置阅读：`.trellis/spec/ccr-ui/frontend/react-rerender-discipline.md`（R8，动手前必读）。
 - [ ] `08-22-test-contract-rebuild` 已提供三份契约的重写稿。
 
 ## 批次 3 前半：`components/mcp/` 迁移与接口公示（阶段 4a）

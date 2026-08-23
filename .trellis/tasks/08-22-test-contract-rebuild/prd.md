@@ -41,6 +41,16 @@
 | `confirm-interaction-contracts.md` | 3.6 KB | `08-22-shell-port` |
 | `monitoring-log-contracts.md` | 1.1 KB | `08-22-views-sync-tools` |
 
+### 新增契约登记（基线 16 → 18 → 19）
+
+子任务新增并登记进本任务范围的 3 份契约。前两份已落盘（2026-08-23），纳入本任务的重写范围；第三份尚未落盘，保持预登记。
+
+| 文档（路径） | 新增子任务 | 状态 |
+|---|---|---|
+| `.trellis/spec/ccr-ui/frontend/layering-contracts.md` | `08-22-arch-quality-perf` | 已落盘（2026-08-23） |
+| `.trellis/spec/ccr-ui/frontend/react-rerender-discipline.md` | `08-22-arch-quality-perf` | 已落盘（2026-08-23） |
+| `platform-surface-contracts.md` | `08-22-platform-unify` | 预登记（未落盘，路径待其批次落地后确认） |
+
 ## Requirements
 
 - R1 122 个 smoke 测试全部重写并通过。

@@ -7,6 +7,7 @@
 
 - [ ] 父任务统一层门已通过：`08-22-platform-unify` 的 config 契约定稳，本任务范围表已回填（其批次 8）。
 - [ ] 前置阅读完成（`design.md` §1 末段的五份文档）。
+- [ ] 前置阅读：`.trellis/spec/ccr-ui/frontend/react-rerender-discipline.md`（R8，动手前必读）。
 - [ ] `08-22-state-logic-port` 已通知 `claudeObserver` 的 Query key 与事件失效范围（其批次 7）。
 - [ ] `08-22-test-contract-rebuild` 已提供本域契约重写稿（`development-resource-contracts.md`）。
 - [ ] Auth 面判定结果已知，`ClaudeAuthView` 的归属确定。

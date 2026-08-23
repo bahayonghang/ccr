@@ -9,6 +9,7 @@
 
 - [ ] 父任务统一层门已通过（本域范围不受影响，无需回填）。
 - [ ] 前置阅读完成（`08-22-views-claude/design.md` §1 末段的五份文档）。
+- [ ] 前置阅读：`.trellis/spec/ccr-ui/frontend/react-rerender-discipline.md`（R8，动手前必读）。
 - [ ] `08-22-test-contract-rebuild` 已提供 `checkin-ux-contracts.md` 重写稿与 8 个 smoke 测试的重写稿。
 - [ ] `08-22-design-system` 已落位 `checkin-shared.css`（1,136 字节）。
 - [ ] `git checkout -b feature/react-migration/views-checkin feature/react-migration`

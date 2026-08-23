@@ -8,6 +8,7 @@
 - [ ] 父任务统一层门已通过，本任务范围表已回填。
 - [ ] `views/generic` 五个文件的归属边界已与 `08-22-platform-unify` 批次 5 对齐（协同点 G）：三个给对方，`AgentDetailView`(481) 与 `SystemPromptsView`(655) 留本任务。
 - [ ] 前置阅读完成（`08-22-views-claude/design.md` §1 末段的五份文档）。
+- [ ] 前置阅读：`.trellis/spec/ccr-ui/frontend/react-rerender-discipline.md`（R8，动手前必读）。
 - [ ] `08-22-test-contract-rebuild` 已提供 `grok-settings-contracts.md` 的重写稿，且已按 `design.md` §5 分割为 base 侧与 Grok 侧两部分。
 - [ ] Auth 面判定结果已知，`grok/GrokAuthView` 的归属确定。
 - [ ] `git checkout -b feature/react-migration/views-secondary-platforms feature/react-migration`

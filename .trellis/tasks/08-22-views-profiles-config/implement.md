@@ -17,6 +17,7 @@
 - [ ] 父任务统一层门已通过。本域范围行数不变，无需回填。
 - [ ] 另读 `provider-template-contracts.md`（8.9 KB）、`raw-config-editor-contracts.md`（7.4 KB）。
 - [ ] 前置阅读完成（`08-22-views-claude/design.md` §1 末段的五份文档）。
+- [ ] 前置阅读：`.trellis/spec/ccr-ui/frontend/react-rerender-discipline.md`（R8，动手前必读）。
 - [ ] `08-22-state-logic-port` 已提供 `configsKeys` 的 Query hook 与表单草稿的 Zustand 键（配置 id）。
 
 ## 批次 1：`components/profiles/` 迁移与接口定稳（阶段 4a，最高优先级）

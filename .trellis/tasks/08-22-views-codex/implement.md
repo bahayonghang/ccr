@@ -7,6 +7,7 @@
 
 - [ ] 父任务统一层门已通过，本任务范围表已回填。
 - [ ] 前置阅读完成（`08-22-views-claude/design.md` §1 末段的五份文档）。
+- [ ] 前置阅读：`.trellis/spec/ccr-ui/frontend/react-rerender-discipline.md`（R8，动手前必读）。
 - [ ] Codex auth off 契约文档已定位，断言项清单已抽出。
 - [ ] Auth 面判定结果已知，`CodexAuthView` 与 `codex-auth-shared.css` 的归属确定。
 - [ ] `08-22-test-contract-rebuild` 已提供本域契约重写稿。

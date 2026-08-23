@@ -351,9 +351,27 @@ Vue 基线对照：index 243.69 / 45.41，core.css 123.13 / 19.35（`baseline/bu
 
 ## 批次 9：契约文档与登记
 
-- [ ] `react-rerender-discipline.md` 与 `layering-contracts.md` 写入 `.trellis/spec/ccr-ui/frontend/`。
-- [ ] 登记到 `08-22-test-contract-rebuild` 的范围表，16 份变 18 份（AC12）。
-- [ ] 通知七个视图子任务：动手前需阅读 `react-rerender-discipline.md`（R8）。
+- [x] `react-rerender-discipline.md` 与 `layering-contracts.md` 写入 `.trellis/spec/ccr-ui/frontend/`。
+- [x] 登记到 `08-22-test-contract-rebuild` 的范围表，16 份变 18 份（AC12）。
+- [x] 通知七个视图子任务：动手前需阅读 `react-rerender-discipline.md`（R8）。
+
+### 批次 9 验证证据（2026-08-23，分支 `react-migration/react-foundation`，未提交）
+
+**两份契约落盘（`.trellis/spec/ccr-ui/frontend/`，house format，英文标题 + 英文正文）**：
+
+- `layering-contracts.md`：目标依赖图与禁止边（ui 导入 features/api/store、feature 跨域直连、任何反向依赖）；enforcement map 单源化——`boundaries/dependencies`（error）消费 `boundaryElements` / `boundaryPolicies` 具名导出；门面消费侧 `no-restricted-imports`（patterns `['**/api/tauri', '**/api/tauri.*']`）+ 唯一白名单 `app/facade-coverage-test-whitelist`；定义侧冻结 = 既有 smoke 用例 `freezes legacy direct invoke calls in tauri.ts`（9 命令 allowlist），分工写明（lint 无法冻结定义侧，`src/api/index.ts` 有 `export * from './tauri'`）；循环 `check:cycles` + `--self-check`；边界自检 `check:arch-boundaries`（4 夹具）；组件分层（ui-primitive props/children 硬约束）；legacy-feature 迁移期许可策略（阶段 4–5 完成后移除）；逐文件豁免机制（thresholds.md §3 + 配置内联注释，无全局豁免、源文件无 eslint-disable）；`api-facade-boundary.md` 作兄弟契约交叉引用，不重复其内容。
+- `react-rerender-discipline.md`：design.md §6 七条全收——4 条 lint 强制（规则 ID 与作用域逐条：受控 input 禁令 `no-restricted-syntax`、`react/jsx-no-bind`、裸 store 订阅 `no-restricted-syntax`、`react/no-array-index-key`）+ 3 条 review 门（Context 按变更频率拆分、memo/useCallback 仅跨 memo 边界或昂贵计算、日志流/图表 ref + 批量提交）+ 指针（`perf-baseline.md` 的 353 v-model 落点、`thresholds.md` 规模上限、阶段 7 复测计划）。
+- `index.md` 追加两条：Guidelines Index 表两行 + Pre-Development Checklist 两行（该文件本就索引契约清单，需同步；`08-22-test-contract-rebuild` AC8 的 19 份计数由此维持）。
+
+**登记（AC12）**：`08-22-test-contract-rebuild/prd.md` 在基线 16 份表后追加「新增契约登记」块（基线 16 → 18 → 19）：`layering-contracts.md`、`react-rerender-discipline.md` 状态 **已落盘（2026-08-23）**、owner `08-22-arch-quality-perf`；`platform-surface-contracts.md` 保持 **预登记（未落盘）**。
+
+**七个视图子任务通知（R8）**：`08-22-views-{claude,codex,secondary-platforms,checkin,usage,profiles-config,sync-tools}/implement.md` 的「前置确认 / 批次 2 起的前置 / 其余批次的前置」各追加一行 `- [ ] 前置阅读：\`.trellis/spec/ccr-ui/frontend/react-rerender-discipline.md\`（R8，动手前必读）。`，与各文件既有 checkbox 列表风格一致。
+
+**Definition-of-done 命令与退出码**：
+
+| 命令 | 退出码 | 结果 |
+| --- | --- | --- |
+| `cd ccr-ui && bun run lint:ci` | 0 | 本批次仅文档改动（spec/任务目录），无代码变更，lint 与前批次一致全绿 |
 
 ## 验证命令
 
@@ -366,12 +384,31 @@ Vue 基线对照：index 243.69 / 45.41，core.css 123.13 / 19.35（`baseline/bu
 
 ## 交付门（父任务约束门的一半）
 
-- [ ] AC1–AC12 全部满足。
-- [ ] 全部新增规则为 error 级别，无 warning 级别软约束（R2 末段）。
-- [ ] 无全局豁免。豁免逐文件登记（R12）。
-- [ ] 七份记录落盘：`distribution.md`、`thresholds.md`、`state-disposition.md`、`perf-baseline.md`、`bundle-budget.md`、`code-splitting.md`、超限文件清单。
-- [ ] 两份契约进 spec 目录并完成登记。
-- [ ] `just ci` 步骤数变更已同步到父任务文档。
+- [x] AC1–AC12 全部满足。
+- [x] 全部新增规则为 error 级别，无 warning 级别软约束（R2 末段）。
+- [x] 无全局豁免。豁免逐文件登记（R12）。
+- [x] 七份记录落盘：`distribution.md`、`thresholds.md`（含 §3 超限文件清单 49 项）、`state-disposition.md`、`perf-baseline.md`、`bundle-budget.md`、`code-splitting.md`。
+- [x] 两份契约进 spec 目录并完成登记。
+- [x] `just ci` 步骤数变更已同步到父任务文档。
+
+### 交付门证据摘要（2026-08-23，分支 `react-migration/react-foundation`，未提交）
+
+AC1–AC12 逐条证据（一行指针）。全部 AC 可在阶段 2 完成（prd 设计即如此）；AC4 的最终值冻结与 AC7 的 React 侧数值按设计推迟到阶段 4→5 门 / `08-22-regression-release`，已记录为后续门，不构成未满足项。
+
+| AC | 证据指针 |
+| --- | --- |
+| AC1 `lint:ci` 退出码 0、新规则全 error | 批次 2/3/4 证据块：`bun run lint:ci` 各次退出码 0；`boundaries/dependencies`、`no-restricted-imports`、四项阈值、hooks、rerender、`no-unsafe-*` 全部 error 级 |
+| AC2 四类违规各构造用例并报错 | 批次 2 证据块：`check:arch-boundaries` 4 夹具 PASS（跨层/跨域/反向依赖 boundaries/dependencies + 门面绕过 no-restricted-imports）；用例 4（定义面）红→绿记录于「AC2 用例 4」小节 |
+| AC3 循环依赖检查 + 循环用例报错 | 批次 2 证据块：`check:cycles` 217 文件无循环退出码 0；`check-cycles.mjs --self-check` 恰好检出 1 个 2 节点循环（cycle-a ↔ cycle-b） |
+| AC4 五项阈值暂定值与依据落盘 | `thresholds.md` §1–§2：P90 推导 + 反馈轮计数；最终值按 design §3.2 待批次 3b（阶段 4→5 门）冻结，同文件 §6 预留第二段 |
+| AC5 覆盖率门在配置内且入 `just ci` | 批次 5 证据块：`vitest.smoke.config.ts` `coverage.thresholds.lines=70`、`just ci` 13→14 步、红证（临时 78 阈值 FAIL）、`just frontend-coverage` 退出码 0 |
+| AC6 状态三分类判定表落盘 | 批次 6 证据块 + `state-disposition.md`：10 store + 35 composable = 45 项全判定，零空单元格 |
+| AC7 五项性能基线落盘、脚本可重复 | 批次 7 证据块 + `perf-baseline.md`：5 个框架无关脚本，主指标 RSD ≤ 15%（迭代记录于各场景）；React 侧数值推迟 `08-22-regression-release` 步骤 7（§8 推迟表） |
+| AC8 React 重渲染纪律契约文档落盘 | 批次 9：`.trellis/spec/ccr-ui/frontend/react-rerender-discipline.md`（七条：4 lint 强制 + 3 review 门） |
+| AC9 bundle 预算与对比基准落盘 | 批次 8 证据块 + `bundle-budget.md`：7 主条目 + motion/zod 2 预留行，`check:bundle-budget` 退出码 0，红证（预算收紧 FAIL） |
+| AC10 代码分割与 CSS 分层等价方案落盘 | 批次 8 证据块 + `code-splitting.md`：懒加载边界约定、三层 CSS 语义、`query-vendor` manualChunks 判定与 before/after |
+| AC11 超限清单落盘、含批次归属、无全局豁免 | `thresholds.md` §3：49 项（17 注册豁免 + 32 归迁移批次），零未分配；配置逐文件覆盖块 + 内联注释，源文件无 `eslint-disable` |
+| AC12 新增契约登记到 rebuild 范围表 | 批次 9：`08-22-test-contract-rebuild/prd.md` 追加「新增契约登记」块，两份已落盘（2026-08-23），`platform-surface-contracts.md` 预登记 |
 
 ## 回滚点
 
