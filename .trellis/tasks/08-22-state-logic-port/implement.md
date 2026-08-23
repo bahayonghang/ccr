@@ -38,12 +38,12 @@
 
 ## 批次 3：Event 桥接层
 
-- [ ] 按 `design.md` §3 建 `shell/eventBridge.ts`，全局事件名清单集中可见。
-- [ ] **取消协议落地**：`listen()` 返回 `Promise<UnlistenFn>`，按 `design.md` §3 的 `disposed` + `track()` 写法实现；cleanup 已跑过时迟到的 unlisten 立即调用。
-- [ ] 逐事件判定 `setQueryData` 与 `invalidateQueries`，判定记录落盘。
-- [ ] 高频事件（`app-log`、`token-stats`）走 ref 累积 + 定时批量提交。间隔取值待 `08-22-arch-quality-perf` 场景 3 数据；数据未到则先设一个保守值并标注待复核。
-- [ ] cleanup 中完整解绑，StrictMode 下不双订阅。
-- [ ] 产出前端事件 inventory 的**全局部分**：事件名、所有者、生命周期、对应 Rust `emit` 位置。交 `08-22-test-contract-rebuild` 合并（协同点 M）。局部事件（CheckIn 的 WAF 等待）由 `08-22-views-checkin` 登记，本任务不代登记。
+- [x] 按 `design.md` §3 建 `shell/eventBridge.ts`，全局事件名清单 `TAURI_GLOBAL_EVENTS` 集中可见（12 项）。
+- [x] **取消协议落地**：`disposed` + `track()` 写法照 design.md §3 实现；cleanup 已跑过时迟到的 unlisten 立即调用。泄漏断言三用例在批次 6 交付（`tests/event-bridge-leak.smoke.test.tsx`）。
+- [x] 逐事件判定 `setQueryData` 与 `invalidateQueries`：12 个全局事件全部判定为 `invalidateQueries`（payload 均不含完整切片），记录落盘 `event-adjudication.md` §1。
+- [x] 高频事件（`app-log`、`token-stats`、`app:monitoring`）：`createEventBatcher` 原语（ref 累积 + 定时批量提交）已交付；间隔 250ms 保守值并标注待复核（场景 3 React 侧数据由 regression-release 步骤 7 补测）。Monitor feed Query 缓存的接线随批次 5 `useMonitoringFeed` 落地（`event-adjudication.md` §2）。
+- [x] cleanup 中完整解绑；非 Tauri 环境走 noop 桩保持协议形状。StrictMode 不双订阅由泄漏用例 3 断言（批次 6）。
+- [x] 前端事件 inventory 全局部分落盘（`event-adjudication.md` §4：桥接常驻 12 + 高频 3 + 组件级 17 项归属登记，Rust emit 位置标注）。交 `08-22-test-contract-rebuild` 合并（协同点 M）。
 
 验证：`bun run test:smoke` 中的订阅泄漏测试（批次 6 交付）。
 
@@ -138,3 +138,14 @@ Pinia 与 Zustand 在批次 4 前可并存（旧 store 未删除时），因此�
 | `vitest run --config vitest.smoke.config.ts tests/state-query-hooks.smoke.test.tsx` | 0 | 4/4 通过 |
 | `bun run test:smoke` | 0 | 67 文件 / 333 测试全绿 |
 | `git diff --stat src/api` | — | 空 |
+
+
+## 批次 3 证据（补记）
+
+改动：新增 `src/shell/eventBridge.ts`（桥接 + 取消协议 + `createEventBatcher`）与 `event-adjudication.md`。
+
+| 命令 | 退出码 | 结果 |
+| --- | --- | --- |
+| `bun run type-check` | 0 | ✓ |
+| `bun run lint:ci` | 0 | ✓ |
+| `rg -c "listen\(" src/shell/eventBridge.ts` | — | 12 处 track（全部经取消协议） |
