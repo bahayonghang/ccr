@@ -22,45 +22,45 @@ Profiles 共享层（`08-22-views-profiles-config` 批次 1）：`ccr-ui/src/com
 
 ### 批次 1：统一层接入（config + 薄壳）
 
-- [ ] 填 `codexSettingsConfig`（原 33 处 `v-model` 的字段全部落在 config 或 base）。
-- [ ] 填 `codexProfilesConfig`。
-- [ ] `CodexMcpView` → `generic/PlatformMcpView` 调用点。
-- [ ] `codex/CodexAgentsView` → `generic/AgentsView` 调用点。
-- [ ] 按 Auth 判定填 `configs/auth.ts` 或将 `CodexAuthView` 留在批次 2。
-- [ ] 薄壳视图各 ≤100 行。
-- [ ] `CodexSlashCommandsView`(229) 迁移，核对超出另两平台薄壳的 202 行：可下沉的下沉到 `BaseSlashCommands`，属 Codex 差异的进 config。
+- [x] 填 `codexSettingsConfig`（原 33 处 `v-model` 的字段全部落在 config 或 base）。
+- [x] 填 `codexProfilesConfig`。
+- [x] `CodexMcpView` → `generic/PlatformMcpView` 调用点。
+- [x] `codex/CodexAgentsView` → `generic/AgentsView` 调用点。
+- [x] 按 Auth 判定填 `configs/auth.ts` 或将 `CodexAuthView` 留在批次 2。
+- [x] 薄壳视图各 ≤100 行。
+- [x] `CodexSlashCommandsView`(229) 迁移，核对超出另两平台薄壳的 202 行：可下沉的下沉到 `BaseSlashCommands`，属 Codex 差异的进 config。
 
 验证：五个面路由可达；归属 `config.codex` 的差异项逐项界面确认。
 
 ### 批次 2：`views/codex/` 目录
 
-- [ ] `AddCodexAccountModal`(1,179) 按 `design.md` §3 拆为按向导步骤划分的多个组件，共享单个 form context。
-- [ ] 凭据字段掩码显示，日志经 `logRedact.ts`，无明文。
-- [ ] OAuth 回调等待机制确认并迁移，超时与取消分支逐个保留。
-- [ ] `views/codex/` 其余文件（扣除已移交的 `CodexAgentsView`）。
-- [ ] 按 Auth 判定，`CodexAuthView`(958) 若留在本域则在本批次迁移。
-- [ ] `codex-auth-shared.css` 按 `design.md` §5 逐个选择器落位，落位清单落盘（AC5）。
+- [x] `AddCodexAccountModal`(1,179) 按 `design.md` §3 拆为按向导步骤划分的多个组件，共享单个 form context。
+- [x] 凭据字段掩码显示，日志经 `logRedact.ts`，无明文。
+- [x] OAuth 回调等待机制确认并迁移，超时与取消分支逐个保留。
+- [x] `views/codex/` 其余文件（扣除已移交的 `CodexAgentsView`）。
+- [x] 按 Auth 判定，`CodexAuthView`(958) 若留在本域则在本批次迁移。
+- [x] `codex-auth-shared.css` 按 `design.md` §5 逐个选择器落位，落位清单落盘（AC5）。
 
 验证：账号添加向导逐步走通；Codex auth off 行为验证（AC6）；`bun run test:smoke`。
 
 ### 批次 3：7 个根级视图
 
-- [ ] `CodexSessionsView`(883)：长列表按需接 `@tanstack/react-virtual`，形态复用 `08-22-views-usage` 的接线。
-- [ ] `CodexView`(880)。
-- [ ] 超过行数上限的文件拆分，不改对外接口。
+- [x] `CodexSessionsView`(883)：长列表按需接 `@tanstack/react-virtual`，形态复用 `08-22-views-usage` 的接线。
+- [x] `CodexView`(880)。
+- [x] 超过行数上限的文件拆分，不改对外接口。
 
 ### 批次 4：`components/codex/`（5 文件 3,201 行）
 
-- [ ] 5 个文件迁移，均值 640 行/文件，超限项拆分。
-- [ ] 依赖方向自检：不导入其他 `features/<平台>/`。
+- [x] 5 个文件迁移，均值 640 行/文件，超限项拆分。
+- [x] 依赖方向自检：不导入其他 `features/<平台>/`。
 
 ### 批次 5：收口与登记
 
-- [ ] 本批次组件内 px 与 `rgba()` 归零，豁免逐条登记（AC4）。
-- [ ] `nextTick` 登记表落盘（AC8）。
-- [ ] `rg --files -g '*.vue' src/views/codex src/views/Codex* src/components/codex` 无匹配（AC1）。
-- [ ] `git diff --stat src/api src/types`（应为空，AC7）。
-- [ ] `src/utils/codexProfileEditor.ts`、`codexProfiles.ts`、`codexHelpers.ts` 的 git diff 为空。非空则登记为独立缺陷。
+- [x] 本批次组件内 px 与 `rgba()` 归零，豁免逐条登记（AC4）。
+- [x] `nextTick` 登记表落盘（AC8）。
+- [x] `rg --files -g '*.vue' src/views/codex src/views/Codex* src/components/codex` 无匹配（AC1）。
+- [x] `git diff --stat src/api src/types`（应为空，AC7）。
+- [x] `src/utils/codexProfileEditor.ts`、`codexProfiles.ts`、`codexHelpers.ts` 的 git diff 为空。非空则登记为独立缺陷。
 
 ## 验证命令
 

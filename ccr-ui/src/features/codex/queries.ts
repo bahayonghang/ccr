@@ -47,6 +47,22 @@ export const codexKeys = {
     all: ['codex', 'tray'] as const,
     snapshot: () => [...codexKeys.tray.all, 'snapshot'] as const,
   },
+  sessions: {
+    all: ['codex', 'sessions'] as const,
+    list: (limit: number) => [...codexKeys.sessions.all, 'list', limit] as const,
+    detail: (filePath: string) => [...codexKeys.sessions.all, 'detail', filePath] as const,
+  },
+  auth: {
+    all: ['codex', 'auth'] as const,
+    accounts: () => [...codexKeys.auth.all, 'accounts'] as const,
+    current: () => [...codexKeys.auth.all, 'current'] as const,
+    quotas: () => [...codexKeys.auth.all, 'quotas'] as const,
+  },
+  systemPrompts: {
+    all: ['codex', 'system-prompts'] as const,
+    list: () => [...codexKeys.systemPrompts.all, 'list'] as const,
+    file: (id: string) => [...codexKeys.systemPrompts.all, 'file', id] as const,
+  },
 }
 
 export const CODEX_DASHBOARD_STALE_TIME = 30_000

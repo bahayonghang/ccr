@@ -3,7 +3,7 @@
   "name": "views-codex",
   "title": "Codex 视图迁移",
   "description": "Codex 相关视图与组件约 13226 行迁移，含 Auth 与 Sessions",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": null,
   "scope": null,
   "package": null,

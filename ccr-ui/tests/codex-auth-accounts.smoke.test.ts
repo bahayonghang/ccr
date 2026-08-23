@@ -12,7 +12,7 @@ import {
   normalizeAccountNameInput,
   resolveAccountPlanType,
   usesOpenAiAuthMode,
-} from '@/views/codex/codexAuthAccounts'
+} from '@/features/codex/codexAuthAccounts'
 
 const account = (
   overrides: Partial<CodexAuthAccountItem> & { name: string }
@@ -129,7 +129,7 @@ describe('codex auth account helpers', () => {
     expect(getLoginStateIcon({ type: 'Unknown', raw_type: 'mystery', raw: {} })).toBe(
       'AlertTriangle'
     )
-    expect(getLoginStateIconClass({ type: 'ApiKeyActive' })).toContain('text-blue-500')
+    expect(getLoginStateIconClass({ type: 'ApiKeyActive' })).toContain('text-accent-primary')
 
     expect(canSubmitAccountRename('old', ' new_name ')).toBe(true)
     expect(canSubmitAccountRename('same', 'same')).toBe(false)
