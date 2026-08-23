@@ -245,9 +245,15 @@
 
 ## 批次 6：状态判定表
 
-- [ ] 按 `design.md` §5 的判据，10 个 store + 35 个 composable 共 45 项逐个归类。
-- [ ] `state-disposition.md` 落盘，无未判定项（AC6）。
-- [ ] 交付给 `08-22-state-logic-port`。
+- [x] 按 `design.md` §5 的判据，10 个 store + 35 个 composable 共 45 项逐个归类（实测 10+35=45，与计划一致）。
+- [x] `state-disposition.md` 落盘，无未判定项（AC6）。
+- [x] 交付给 `08-22-state-logic-port`（本文件 + `state-logic-port/implement.md` 前置确认输入指针）。
+
+### 批次 6 验证证据（2026-08-23，分支 `react-migration/react-foundation`，未提交）
+
+- `state-disposition.md`：45 项全判定，零空单元格。类别计数：服务端数据 21（5 store + 16 composable）、跨页面共享 5（3 store + 2 composable）、组件本地 9（0 store + 9 composable）、纯变换 10（2 store + 8 composable）。12 项跨承载 SPLIT（usage / configs / claudeObserver + 9 个 composable）。
+- 计数实测：`wc -l` 确认 `src/stores/` 10 文件、`src/composables/` 35 文件，与计划 10/35 一致，无偏差。
+- 偏差记录：父任务 `design.md` §4 称「10 个 Pinia setup store」实为 8 setup + 2 Options-API（`configs.ts`、`commandsView.ts`）；`ref`/`computed` 计数低估（实测 ref=61+shallowRef=9、computed=14；`watch`=0、`reactive`=0 两断言成立）。`useStream.ts` 无任何消费方（死代码），归类为组件本地并建议删除。详见 `state-disposition.md` §2。
 
 ## 批次 7：性能测量与基线
 

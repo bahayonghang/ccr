@@ -5,6 +5,7 @@
 
 ## 前置确认
 
+- 输入：`.trellis/tasks/08-22-arch-quality-perf/state-disposition.md`（45 项判定表）。
 - [ ] 父任务约束门已通过（`08-22-arch-quality-perf` AC1–AC12 与 `08-22-design-system` AC1–AC11）。
 - [ ] `08-22-arch-quality-perf` 的 `state-disposition.md` 已落盘，45 项（10 store + 35 composable）全部归类。本任务按该表执行，不重新决策归属。
 - [ ] `react-rerender-discipline.md` 已阅读。
