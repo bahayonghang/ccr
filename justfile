@@ -780,8 +780,20 @@ copilot-check:
     @just success "GitHub Copilot 工作区资产检查通过"
 
 # 🌐 前端完整检查 (类型检查 + Lint + 构建 + 文档构建)
-frontend-check: frontend-typecheck frontend-lint frontend-test frontend-build docs-check
+frontend-check: frontend-typecheck frontend-lint frontend-check-cycles frontend-check-arch-boundaries frontend-test frontend-build docs-check
     @just success "前端检查全部通过"
+
+# 🔄 前端循环依赖检查（08-22-arch-quality-perf：独立脚本，只在 CI / frontend-check 中跑）
+frontend-check-cycles:
+    @just header "🔄 前端循环依赖检查"
+    cd ccr-ui && bun install --frozen-lockfile && bun run check:cycles
+    @just success "前端循环依赖检查通过"
+
+# 🧱 前端架构边界规则自检（08-22-arch-quality-perf：夹具定向 lint，AC2）
+frontend-check-arch-boundaries:
+    @just header "🧱 前端架构边界规则自检"
+    cd ccr-ui && bun install --frozen-lockfile && bun run check:arch-boundaries
+    @just success "前端架构边界规则自检通过"
 
 # 🌐 前端快速检查 (类型检查 + Lint，不含构建和文档)
 frontend-check-quick: frontend-typecheck frontend-lint frontend-test

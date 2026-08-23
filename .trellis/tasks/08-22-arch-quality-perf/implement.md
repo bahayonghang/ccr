@@ -7,33 +7,75 @@
 
 ## 前置确认
 
-- [ ] 父任务基座门已通过（`08-22-react-foundation` AC1–AC9 与 `08-22-dep-upgrade` AC1–AC10 全部满足）。
-- [ ] `08-22-react-foundation` 的 `path-mapping.md` 已落盘，作为目录分层规则的输入。
-- [ ] `git checkout -b feature/react-migration/arch-quality-perf feature/react-migration`
+- [x] 父任务基座门已通过（`08-22-react-foundation` AC1–AC9 与 `08-22-dep-upgrade` AC1–AC10 全部满足）。
+- [x] `08-22-react-foundation` 的 `path-mapping.md` 已落盘，作为目录分层规则的输入。
+- [x] `git checkout -b feature/react-migration/arch-quality-perf feature/react-migration`
 
 ## 批次 1：分布测量
 
 阈值取值的前置。无此批次则第 3 节的方法无输入。
 
-- [ ] 测量当前 185 个 `.vue` 与已迁移 `.tsx` 的行数分布，产出 P50 / P75 / P90 / P95 / max。
-- [ ] 测量圈复杂度、最大嵌套深度、最大参数个数分布（用 ESLint 规则以 warning 级别跑一遍取数据，不提交该配置）。
-- [ ] 测量组件内样式行数分布（139 个带局部样式的组件，24,434 行）。
-- [ ] 按 `design.md` §3.1 第 2 步排除将被统一层接管的 20 个文件（清单见 `platform-unify/implement.md` 批次 1），产出排除后的暂定分布。不做「统一后分布」的推算——总行数区间无法唯一推出文件行数分布（`design.md` §3.1 末段）。
+- [x] 测量当前 185 个 `.vue` 与已迁移 `.tsx` 的行数分布，产出 P50 / P75 / P90 / P95 / max。
+- [x] 测量圈复杂度、最大嵌套深度、最大参数个数分布（用 ESLint 规则以 warning 级别跑一遍取数据，不提交该配置）。
+- [x] 测量组件内样式行数分布（139 个带局部样式的组件，24,434 行）。
+- [x] 按 `design.md` §3.1 第 2 步排除将被统一层接管的 20 个文件（清单见 `platform-unify/implement.md` 批次 1），产出排除后的暂定分布。不做「统一后分布」的推算——总行数区间无法唯一推出文件行数分布（`design.md` §3.1 末段）。
 
-产物：`distribution.md`。
+产物：`distribution.md`。（已提交 1f602bde，测量脚本 `ccr-ui/scripts/measure-distribution.mjs` 可复测）
 
 ## 批次 2：分层与边界规则
 
-- [ ] 装 `eslint-plugin-boundaries`（或按 `design.md` §11 的判据选定的等价物），按 `design.md` §1 的依赖图声明 element types 与 rules。
-- [ ] 门面边界规则用核心 `no-restricted-imports`，既有导入点列白名单。该规则只管**消费侧**。
-- [ ] 定义面不新造机制：确认既有 `ccr-ui/tests/api-facade-boundary.smoke.test.ts` 的 `freezes legacy direct invoke calls in tauri.ts` 用例保留（9 条允许命令集合），并在 `layering-contracts.md` 中写明该分工。
-- [ ] 循环依赖检查落为独立脚本，加入 `package.json` 的 `check:cycles`，纳入 `just frontend-check`。
-- [ ] 构造 4 个违规用例（`design.md` §2）：3 个 lint 夹具 + 1 个向 `tauri.ts` 加 `invoke()` 的临时改动（跑一次 smoke 确认变红后还原，不提交）（AC2）。
-- [ ] 构造 1 个循环用例，断言脚本报错（AC3）。
-- [ ] 夹具目录从正常 lint 范围排除。
-- [ ] 记录 `bun run lint:ci` 加规则前后的单次耗时。超过 2 倍则按 `design.md` §1 的兜底判据把开销最大的规则移入 CI 专用。
+- [x] 装 `eslint-plugin-boundaries`（或按 `design.md` §11 的判据选定的等价物），按 `design.md` §1 的依赖图声明 element types 与 rules。
+- [x] 门面边界规则用核心 `no-restricted-imports`，既有导入点列白名单。该规则只管**消费侧**。
+- [x] 定义面不新造机制：确认既有 `ccr-ui/tests/api-facade-boundary.smoke.test.ts` 的 `freezes legacy direct invoke calls in tauri.ts` 用例保留（9 条允许命令集合），并在 `layering-contracts.md` 中写明该分工。
+- [x] 循环依赖检查落为独立脚本，加入 `package.json` 的 `check:cycles`，纳入 `just frontend-check`。
+- [x] 构造 4 个违规用例（`design.md` §2）：3 个 lint 夹具 + 1 个向 `tauri.ts` 加 `invoke()` 的临时改动（跑一次 smoke 确认变红后还原，不提交）（AC2）。
+- [x] 构造 1 个循环用例，断言脚本报错（AC3）。
+- [x] 夹具目录从正常 lint 范围排除。
+- [x] 记录 `bun run lint:ci` 加规则前后的单次耗时。超过 2 倍则按 `design.md` §1 的兜底判据把开销最大的规则移入 CI 专用。
 
 验证：`bun run lint:ci` 退出码 0（AC1）；`bun run check:cycles` 退出码 0。
+
+### 批次 2 验证证据（2026-08-23，分支 `react-migration/react-foundation`，未提交）
+
+**规则形态与修复**：
+
+- `eslint.config.js`：`boundaryElements`（`ui-primitive` / `shell` / `feature`+domain capture / `legacy-feature` / `store` / `composable` / `api` / `utils` / `types` / `shared`）+ `boundaryPolicies` 具名导出；`app/arch-boundaries` 块以 `boundaries/dependencies: error` 强制分层；`no-restricted-imports` 冻结 `src/api/tauri.ts` 消费侧；`tests/api-facade-coverage.smoke.test.ts` 白名单。
+- 修复 `shared → shell` 目标遗漏：`src/main.tsx` 导入 `./shell/*` 曾命中 `boundaries/dependencies`（shell/shared 粘合层应可依赖一切内部层），在 shared/shell 放行策略的 anyOf 中加入 `'shell'`。仅此一处策略放宽，其余禁令未动。
+- `check-arch-boundaries.mjs`：自检临时配置 `.eslint.arch-selfcheck.mjs` 补齐 `import/resolver.typescript`（`alwaysTryTypes: true, project: './tsconfig.json'`，与主配置一致）——extensionless 相对导入此前无法解析导致 3 个夹具静默通过；夹具根 `reverse-dep.ts` 以 `mode:'file'` 单文件映射为 `utils` 元素（配合 `boundaries/legacy-warnings: false` 抑制弃用告警）。
+- `reverse-dep.ts` 夹具导入路径修正：`'../../stores/fixtureStore'`（不存在）→ `'./store'`（夹具 store `tests/fixtures/arch-violations/store/index.ts`）。
+- `check-cycles.mjs`：dpdm 4.3.0 的 `parseDependencyTree` 返回 `DependencyTree` 而非 `OutputResult`（无 `.circulars` 字段），循环清单改用 `parseCircular(tree, skipDynamicImports=true)`（等价 CLI `--skip-dynamic-imports circular` 语义）。
+- `tsconfig.json`：`exclude` 加入 `tests/fixtures/arch-violations`——夹具故意违反依赖方向且类型上不成立（互递归函数隐式 any、store 导出名不匹配），只供定向自检，不让 `tsc --noEmit`（`tests/**/*.ts` 的 include 会扫到）拦截常规 `frontend-check-quick`。
+
+**Definition-of-done 命令与退出码**：
+
+| 命令 | 退出码 | 结果 |
+| --- | --- | --- |
+| `cd ccr-ui && bun run lint:ci` | 0 | eslint + stylelint 全绿 |
+| `cd ccr-ui && bun run check:arch-boundaries` | 0 | 4 个夹具全部 PASS（跨层/跨域/反向依赖 boundaries/dependencies + 门面绕过 no-restricted-imports） |
+| `cd ccr-ui && bun run check:cycles` | 0 | 217 个文件，无循环依赖 |
+| `cd ccr-ui && bun ./scripts/check-cycles.mjs --self-check` | 0 | 恰好检出 1 个 2 节点循环（cycle-a <-> cycle-b） |
+| `just frontend-check-quick` | 0 | 类型 + lint + smoke 全绿 |
+
+**AC2 用例 4（定义面冻结，红→绿）**：
+
+- 临时改动：向 `src/api/tauri.ts` 追加 `export const fixtureNewFacadeCommand = async <T = UnknownRecord>(): Promise<T> => { return invoke('some_new_command_for_fixture') }`。
+- 红跑：`bun run test:smoke` 中 `tests/api-facade-boundary.smoke.test.ts > API facade boundary > freezes legacy direct invoke calls in tauri.ts` **FAIL**（`AssertionError: expected [ 'update_config', …(9) ] to deeply equal [ 'update_config', …(8) ]`，received 新增 `"some_new_command_for_fixture"`，断言位于 `tests/api-facade-boundary.smoke.test.ts:104`）。全量 smoke 退出码 1。
+- `git checkout -- ccr-ui/src/api/tauri.ts` 还原后复跑该文件：4 tests 全通过，退出码 0。`git diff ccr-ui/src/api/tauri.ts` 为空。
+
+**lint 耗时（design.md §1 兜底判据，`time bunx eslint . --quiet` 3 次均值）**：
+
+| 配置 | 3 次耗时 | 均值 |
+| --- | --- | --- |
+| 当前配置（含 arch-boundaries + no-restricted-imports） | 4294 / 4167 / 4413 ms | ≈ 4,291 ms |
+| HEAD 配置（不含两项，`git stash push -- ccr-ui/eslint.config.js` 临时切换） | 3116 / 2979 / 3004 ms | ≈ 3,033 ms |
+
+比值 ≈ 1.41×，**未超过 2× 阈值**，无需将任一规则移出 `lint` 移入 CI 专用。耗时增量主要来自 `boundaries/dependencies` 的模块解析。
+
+**环境与脚本注册**：
+
+- `ccr-ui/package.json` 新增 `check:cycles`、`check:arch-boundaries`（置于 `check:bundle-budget` 之后）。
+- 根 `justfile`：`frontend-check` 依赖链加入 `frontend-check-cycles`、`frontend-check-arch-boundaries`（独立 recipe，`cd ccr-ui && bun run …`，Windows pwsh 下可跑；`just --list` 可见、`just -n frontend-check` 可展开）。注意：`just --fmt --check` 在改动前即因历史漂移失败，本任务未触碰既有格式问题。
+- `ccr-ui/.gitignore` 追加 `.eslint.arch-selfcheck.mjs`（脚本 finally 已清理，git status 无残留）。
 
 ## 批次 3：规模与复杂度规则（暂定阈值）
 

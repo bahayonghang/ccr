@@ -3,7 +3,7 @@
   "name": "arch-quality-perf",
   "title": "架构约定、质量门与性能基线",
   "description": "定稳分层与依赖方向、落地文件规模与复杂度 lint 约束、建立覆盖率门与性能预算、写入 React 重渲染纪律，供 7 个视图子任务继承",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": null,
   "scope": null,
   "package": null,

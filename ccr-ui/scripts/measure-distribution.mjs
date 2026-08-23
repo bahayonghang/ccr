@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* eslint-disable no-console -- 测量脚本，与 check-bundle-budget.mjs 同一豁免模式 */
 // 批次1 分布测量（08-22-arch-quality-perf）
 // 统计 src/**/*.{ts,tsx}（排除 src/types/generated）与历史 .vue 的：
 // 行数、圈复杂度、最大嵌套深度、最大参数个数。

@@ -76,3 +76,6 @@ tests/artifacts
 .plannings/
 target/
 output/
+
+# 14) 架构边界自检临时配置（check-arch-boundaries.mjs 运行时生成，finally 清理）
+.eslint.arch-selfcheck.mjs

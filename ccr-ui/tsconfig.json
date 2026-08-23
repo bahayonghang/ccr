@@ -39,5 +39,10 @@
     "tests/**/*.ts",
     "tests/**/*.mts"
   ],
+  "exclude": [
+    // 架构边界违规夹具（tests/fixtures/arch-violations）故意违反依赖方向、类型上不成立，
+    // 只供 check:arch-boundaries / check:cycles --self-check 定向自检，不进常规 tsc
+    "tests/fixtures/arch-violations"
+  ],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
