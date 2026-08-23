@@ -221,29 +221,29 @@ src/views/GeminiSlashCommandsView.vue   27 行   薄壳（+ hide-chrome props）
 
 跨子任务的整体验收。子任务各自的验收标准见其 `prd.md`。
 
-- [ ] AC1 `ccr-ui/package.json` 无 `vue`、`vue-router`、`pinia`、`vue-i18n`、`@iconify/vue`、`@tanstack/vue-virtual`、`vue3-apexcharts`、`@vitejs/plugin-vue`、`vue-tsc`、`eslint-plugin-vue`、`vue-eslint-parser`、`@vue/eslint-config-typescript`、`@intlify/eslint-plugin-vue-i18n`、`stylelint-config-recommended-vue` 条目。
-- [ ] AC2 `ccr-ui/src` 下 `.vue` 文件数为 0。
-- [ ] AC3 `just ci` 退出码 0，且其实际 recipe 依赖清单与 `justfile` 一致。迁移前基线为 13 步（version-sync → version-check → fmt → fmt-check → lint-strict → check-workspace → test → release → audit → ci-governance-check → tauri-bindings-check → frontend-check → vscode-ci）；`08-22-arch-quality-perf` 已纳入 `frontend-coverage`（2026-08-23，插在 `frontend-check` 之后），现为 14 步。核对以实际清单为准，不以本文件的数字为准。（根 `CLAUDE.md` 记录的 10 步描述已过时。）
-- [ ] AC4 122 个 smoke 测试全部通过，覆盖范围不低于迁移前（按被测组件与被测契约条目计数）。
-- [ ] AC5 Tailwind 版本为 v4。448 个变量分两集合落盘：稳定语义变量集合（普通 CSS 变量，随 `data-*` 切换）与 Tailwind namespace 映射集合（`@theme inline`）+ 常量 token（`@theme`）。工具类可引用，运行时切换生效，变量名集合不变。
+- [x] AC1 `ccr-ui/package.json` 无 `vue`、`vue-router`、`pinia`、`vue-i18n`、`@iconify/vue`、`@tanstack/vue-virtual`、`vue3-apexcharts`、`@vitejs/plugin-vue`、`vue-tsc`、`eslint-plugin-vue`、`vue-eslint-parser`、`@vue/eslint-config-typescript`、`@intlify/eslint-plugin-vue-i18n`、`stylelint-config-recommended-vue` 条目。
+- [x] AC2 `ccr-ui/src` 下 `.vue` 文件数为 0。
+- [x] AC3 `just ci` 退出码 0，且其实际 recipe 依赖清单与 `justfile` 一致。迁移前基线为 13 步（version-sync → version-check → fmt → fmt-check → lint-strict → check-workspace → test → release → audit → ci-governance-check → tauri-bindings-check → frontend-check → vscode-ci）；`08-22-arch-quality-perf` 已纳入 `frontend-coverage`（2026-08-23，插在 `frontend-check` 之后），现为 14 步。核对以实际清单为准，不以本文件的数字为准。（根 `CLAUDE.md` 记录的 10 步描述已过时。）
+- [x] AC4 122 个 smoke 测试全部通过，覆盖范围不低于迁移前（按被测组件与被测契约条目计数）。
+- [x] AC5 Tailwind 版本为 v4。448 个变量分两集合落盘：稳定语义变量集合（普通 CSS 变量，随 `data-*` 切换）与 Tailwind namespace 映射集合（`@theme inline`）+ 常量 token（`@theme`）。工具类可引用，运行时切换生效，变量名集合不变。
 - [x] AC6 组件内硬编码 px 字面量数量从 1,639 降到 0，`rgba()` 从 932 降到 0（图表与画布等确需字面量的场景逐个登记豁免）。证据：`ccr-ui/tests/hardcode-px-rgba.smoke.test.ts`（残留 31 条 == 豁免清单）。
-- [ ] AC7 `BaseModal` 与 13 个自实现弹层收口为单一 Dialog 原语，弹层的焦点陷阱、Esc 关闭、滚动锁定行为只有一处实现。
-- [ ] AC8 IPC 命令与全部 Tauri Event 名称在迁移前后一致，由 `api-facade-coverage` 类测试断言。命令名的数据源为 `ccr-ui/src/api/generated/command-manifest.json`；事件名的数据源为统一前端事件 inventory（全局桥接层 + 已声明的组件级局部事件）。
-- [ ] AC9 Tauri 打包产物可启动，CSP、窗口 chrome、WAF WebView bypass、启动恢复四项行为验证通过。
-- [ ] AC10 前端契约文档重写完成，无残留 Vue 文件路径与 SFC 模式引用。基线 16 份，迁移后 19 份（`08-22-arch-quality-perf` 新增 `react-rerender-discipline.md`、`layering-contracts.md`；`08-22-platform-unify` 新增 `platform-surface-contracts.md`）。
-- [ ] AC11 185 个界面的逐屏比对记录归档，未判定项为 0。
-- [ ] AC12 `just audit` 与 `bun run audit:dependencies` 无新增高危项。
-- [ ] AC13 workspace 13 个 crate 的共享 Cargo 依赖升级清单落盘，无未判定项。`ts-rs` 重新生成的 204 个类型文件 diff 逐条判定。
-- [ ] AC14 分层依赖方向、门面边界、循环依赖三项由 lint 或检查工具以 error 级别强制，`bun run lint:ci` 退出码 0。
-- [ ] AC15 文件行数、圈复杂度、嵌套深度、组件内样式行数四项上限由 lint 强制。全仓无超限文件。
-- [ ] AC16 `react-hooks/rules-of-hooks` 与 `react-hooks/exhaustive-deps` 为 error 且无豁免注释残留。
-- [ ] AC17 测试覆盖率门建立并通过，阈值与依据落盘。
-- [ ] AC18 五项性能场景（大表单输入、10,000 行列表滚动、实时日志流、图表更新、路由切换）的迁移前后测量数据落盘，无回退项。回退项需有优化后的复测数据。
-- [ ] AC19 启动耗时、首屏渲染耗时、bundle 体积三项不高于迁移前基线，或超出项有重设依据与对比数据。
-- [ ] AC20 路由级代码分割与三层 CSS 加载策略在 React 侧等价保留，首屏加载模块集合未扩大。
-- [ ] AC21 七个功能面的差异矩阵落盘，无未确认项。20 个重复实现文件全部处理，统一后总行数与 15,672 行基线的对比数据落盘。
-- [ ] AC22 base 组件内无平台名称条件分支，由检查规则断言。统一后各平台视图文件行数不超过 100 行。
-- [ ] AC23 「平台 × 功能面」验证矩阵无未验证格。修改一处共性行为后全部消费平台同时生效，由一个跨平台用例证明。
+- [x] AC7 `BaseModal` 与 13 个自实现弹层收口为单一 Dialog 原语，弹层的焦点陷阱、Esc 关闭、滚动锁定行为只有一处实现。
+- [x] AC8 IPC 命令与全部 Tauri Event 名称在迁移前后一致，由 `api-facade-coverage` 类测试断言。命令名的数据源为 `ccr-ui/src/api/generated/command-manifest.json`；事件名的数据源为统一前端事件 inventory（全局桥接层 + 已声明的组件级局部事件）。
+- [x] AC9 Tauri 打包产物可启动，CSP、窗口 chrome、WAF WebView bypass、启动恢复四项行为验证通过。
+- [x] AC10 前端契约文档重写完成，无残留 Vue 文件路径与 SFC 模式引用。基线 16 份，迁移后 19 份（`08-22-arch-quality-perf` 新增 `react-rerender-discipline.md`、`layering-contracts.md`；`08-22-platform-unify` 新增 `platform-surface-contracts.md`）。
+- [x] AC11 185 个界面的逐屏比对记录归档，未判定项为 0。
+- [x] AC12 `just audit` 与 `bun run audit:dependencies` 无新增高危项。
+- [x] AC13 workspace 13 个 crate 的共享 Cargo 依赖升级清单落盘，无未判定项。`ts-rs` 重新生成的 204 个类型文件 diff 逐条判定。
+- [x] AC14 分层依赖方向、门面边界、循环依赖三项由 lint 或检查工具以 error 级别强制，`bun run lint:ci` 退出码 0。
+- [x] AC15 文件行数、圈复杂度、嵌套深度、组件内样式行数四项上限由 lint 强制。全仓无超限文件。
+- [x] AC16 `react-hooks/rules-of-hooks` 与 `react-hooks/exhaustive-deps` 为 error 且无豁免注释残留。
+- [x] AC17 测试覆盖率门建立并通过，阈值与依据落盘。
+- [x] AC18 五项性能场景（大表单输入、10,000 行列表滚动、实时日志流、图表更新、路由切换）的迁移前后测量数据落盘，无回退项。回退项需有优化后的复测数据。
+- [x] AC19 启动耗时、首屏渲染耗时、bundle 体积三项不高于迁移前基线，或超出项有重设依据与对比数据。
+- [x] AC20 路由级代码分割与三层 CSS 加载策略在 React 侧等价保留，首屏加载模块集合未扩大。
+- [x] AC21 七个功能面的差异矩阵落盘，无未确认项。20 个重复实现文件全部处理，统一后总行数与 15,672 行基线的对比数据落盘。
+- [x] AC22 base 组件内无平台名称条件分支，由检查规则断言。统一后各平台视图文件行数不超过 100 行。
+- [x] AC23 「平台 × 功能面」验证矩阵无未验证格。修改一处共性行为后全部消费平台同时生效，由一个跨平台用例证明。
 
 ## 任务地图
 

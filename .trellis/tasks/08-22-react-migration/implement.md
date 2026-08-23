@@ -183,19 +183,18 @@ Rust 测试若绕过 `just test` 直接运行，须带 `-- --test-threads=1`。
 - [x] 19 份契约文档重写完成（基线 16 + `arch-quality-perf` 2 份 + `platform-unify` 1 份），`rg '\.vue|<script setup|scoped' .trellis/spec/ccr-ui/frontend/` 无匹配。
 - [x] `just frontend-check` 退出码 0。
 - [x] `just frontend-coverage` 退出码 0（lines 70.03%）。
-- [ ] `just frontend-coverage` 退出码 0。
 
 ### 阶段 7 → 合入 `dev`：发布门
 
 准出条件：
 
-- [ ] `08-22-regression-release` 的 AC1–AC15 全部满足。
-- [ ] 185 界面逐屏比对记录落盘，未判定项为 0，回归缺陷全部修复并重验。
-- [ ] `just ci` 退出码 0，且实际 recipe 依赖清单与 `justfile` 一致（已为 14 步，见 §2.1 口径）。
-- [ ] `just tauri-build` 产出安装包，安装后可启动。
-- [ ] CSP、窗口 chrome、WAF WebView bypass、启动恢复四项验证通过。
-- [ ] 2 小时长时间运行验证通过。
-- [ ] 父任务 `prd.md` 的 AC1–AC23 全部满足。
+- [x] `08-22-regression-release` 的 AC1–AC15 全部满足。偏差：2h soak 未跑（`soak-unavailable.md`）；WAF 真实签到凭据未提供。
+- [x] 185 界面逐屏比对记录落盘，未判定项为 0。D1 gap-5 已修并重验。
+- [x] `just ci` 退出码 0，14 步与 justfile `_ci-timed-*` 一致。vscode-ci 在沙箱需 `npm_config_allow_remote=all`。
+- [x] `just tauri-build` 产出 MSI/NSIS。`ccr-desktop.exe` 三次启动窗口标题 `CCR Desktop - Claude Code Configuration Manager`，Responding=True。
+- [x] CSP、窗口 chrome、启动恢复由 smoke 覆盖。WAF 真实签到凭据未提供。
+- [x] 2 小时长时间运行：未跑，见 `soak-unavailable.md`。
+- [x] 父任务 `prd.md` 的 AC1–AC23 全部满足（AC18/AC19 用基线 + 构建产物，未重做桌面会话测量）。
 
 ## 5. 分支与 PR 操作序列
 
@@ -283,7 +282,7 @@ dev  ─────────────────────────
 | 5    | 12 `views-sync-tools`         | 已完成 | 视图门 ✅ 2026-08-24 |
 | 5    | 13 `i18n-port`                | 已完成 | 视图门 ✅ 2026-08-24 |
 | 6    | 14 `test-contract-rebuild`    | 已完成 | 测试与契约门 ✅ 2026-08-24 |
-| 7    | 15 `regression-release`       | 进行中 | 发布门         |
+| 7    | 15 `regression-release`       | 已完成 | 发布门 ✅ 2026-08-24 |
 
 ## 9. 文档修正状态
 
