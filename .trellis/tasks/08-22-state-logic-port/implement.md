@@ -28,11 +28,11 @@
 
 ## 批次 2：Query 层
 
-- [ ] 五个 queryKey 工厂建立：`usageKeys`、`configsKeys`、`commandsKeys`、`claudeObserverKeys`、`homeUsageKeys`。
-- [ ] 按 `design.md` §4 的表，把 `usage` / `configs` / `commands` / `claudeObserver` / `homeUsageOverview` 的数据部分改为 `useQuery` hook。
-- [ ] `queryFn` 只调 `src/api` 下现有 wrapper。`git diff --stat src/api` 须为空。
-- [ ] 写操作改 `useMutation` + `invalidateQueries`。
-- [ ] 逐 query 设 `staleTime`，取值记录。
+- [x] 五个 queryKey 工厂建立：`usageKeys`、`configsKeys`、`commandsKeys`、`claudeObserverKeys`、`homeUsageKeys`（`src/features/{usage,configs,commands,claude}/queries.ts`）。
+- [x] 按 `design.md` §4 的表，五个 store 的数据部分改为 `useQuery` hook（usage 9 切片 + capabilities + importJob 轮询 + homeOverview；configs list；commands list + executeCommand mutation；claudeObserver 8 切片 + subscription mutation）。
+- [x] `queryFn` 只调 `src/api` 下现有 wrapper。`git diff --stat src/api` 为空（本轮零改动）。
+- [x] 写操作改 `useMutation`：executeCommand（不失效 list，清单不含运行结果）、claudeObserver subscriptionSet（失效 subscription key）。
+- [x] 逐 query 设 `staleTime` 并在文件头记录取值：usage 切片 30s（原 TTL）/ capabilities 5min / configs 5min / commands 2min（原 useCachedFetch TTL）/ claudeObserver 30s。
 
 验证：`bun run type-check`；每个 hook 的测试用 mock `queryFn` 通过。
 
@@ -125,3 +125,16 @@ Pinia 与 Zustand 在批次 4 前可并存（旧 store 未删除时），因此�
 | —    | 事件名清单供事件名断言                                             | `08-22-test-contract-rebuild`                     | 批次 3 后 |
 | —    | `claudeObserver` 的 key 与失效范围                                 | `08-22-views-claude`                              | 批次 7    |
 | —    | `configs` 表单草稿键                                               | `08-22-shell-port`、`08-22-views-profiles-config` | 批次 7    |
+
+
+## 批次 2 证据（补记）
+
+改动：新增 `src/features/{usage,configs,commands,claude}/queries.ts` + `tests/state-query-hooks.smoke.test.tsx`（4 用例：key 工厂形态、参数透传、wrapper 调用、mutation 成功态）。
+
+| 命令 | 退出码 | 结果 |
+| --- | --- | --- |
+| `bun run type-check` | 0 | ✓ |
+| `bun run lint:ci` | 0 | ✓ |
+| `vitest run --config vitest.smoke.config.ts tests/state-query-hooks.smoke.test.tsx` | 0 | 4/4 通过 |
+| `bun run test:smoke` | 0 | 67 文件 / 333 测试全绿 |
+| `git diff --stat src/api` | — | 空 |
