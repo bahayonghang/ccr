@@ -156,7 +156,7 @@ export function MainLayout() {
                   transition={{ duration: 0.18 }}
                 >
                   {navigation.state === 'loading' ? (
-                    <div className="flex min-h-[200px] items-center justify-center">
+                    <div className="flex min-h-[12.5rem] items-center justify-center">
                       <div className="loading-spinner h-8 w-8 border-accent-primary/30 border-t-accent-primary" />
                     </div>
                   ) : (

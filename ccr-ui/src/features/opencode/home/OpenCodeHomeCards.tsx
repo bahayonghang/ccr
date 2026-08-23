@@ -57,7 +57,7 @@ export const ActionLink = memo(function ActionLink({
 }) {
   return (
     <Link to={href} className="flex flex-col rounded-2xl border border-border-default/55 bg-bg-base px-3 py-2">
-      <span className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">{label}</span>
+      <span className="text-[0.6875rem] font-semibold uppercase tracking-wide text-text-muted">{label}</span>
       <strong className="text-sm text-text-primary">{detail}</strong>
     </Link>
   )

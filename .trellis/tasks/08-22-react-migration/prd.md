@@ -226,7 +226,7 @@ src/views/GeminiSlashCommandsView.vue   27 行   薄壳（+ hide-chrome props）
 - [ ] AC3 `just ci` 退出码 0，且其实际 recipe 依赖清单与 `justfile` 一致。迁移前基线为 13 步（version-sync → version-check → fmt → fmt-check → lint-strict → check-workspace → test → release → audit → ci-governance-check → tauri-bindings-check → frontend-check → vscode-ci）；`08-22-arch-quality-perf` 已纳入 `frontend-coverage`（2026-08-23，插在 `frontend-check` 之后），现为 14 步。核对以实际清单为准，不以本文件的数字为准。（根 `CLAUDE.md` 记录的 10 步描述已过时。）
 - [ ] AC4 122 个 smoke 测试全部通过，覆盖范围不低于迁移前（按被测组件与被测契约条目计数）。
 - [ ] AC5 Tailwind 版本为 v4。448 个变量分两集合落盘：稳定语义变量集合（普通 CSS 变量，随 `data-*` 切换）与 Tailwind namespace 映射集合（`@theme inline`）+ 常量 token（`@theme`）。工具类可引用，运行时切换生效，变量名集合不变。
-- [ ] AC6 组件内硬编码 px 字面量数量从 1,639 降到 0，`rgba()` 从 932 降到 0（图表与画布等确需字面量的场景逐个登记豁免）。
+- [x] AC6 组件内硬编码 px 字面量数量从 1,639 降到 0，`rgba()` 从 932 降到 0（图表与画布等确需字面量的场景逐个登记豁免）。证据：`ccr-ui/tests/hardcode-px-rgba.smoke.test.ts`（残留 31 条 == 豁免清单）。
 - [ ] AC7 `BaseModal` 与 13 个自实现弹层收口为单一 Dialog 原语，弹层的焦点陷阱、Esc 关闭、滚动锁定行为只有一处实现。
 - [ ] AC8 IPC 命令与全部 Tauri Event 名称在迁移前后一致，由 `api-facade-coverage` 类测试断言。命令名的数据源为 `ccr-ui/src/api/generated/command-manifest.json`；事件名的数据源为统一前端事件 inventory（全局桥接层 + 已声明的组件级局部事件）。
 - [ ] AC9 Tauri 打包产物可启动，CSP、窗口 chrome、WAF WebView bypass、启动恢复四项行为验证通过。

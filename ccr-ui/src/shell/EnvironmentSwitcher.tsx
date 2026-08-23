@@ -95,7 +95,7 @@ export function EnvironmentSwitcher() {
           size="w-3.5 h-3.5"
           className={envColor(currentEnv?.env_type || 'local')}
         />
-        <span className="max-w-[120px] truncate">
+        <span className="max-w-[7.5rem] truncate">
           {currentEnv?.name || t('common.environment.local')}
         </span>
         <SIcon name="ChevronDown" size="w-3 h-3" className={isOpen ? 'rotate-180' : undefined} />
@@ -111,7 +111,7 @@ export function EnvironmentSwitcher() {
             transition={{ duration: 0.15 }}
           >
             <div className="flex items-center justify-between border-b border-border-default/50 px-3 py-2">
-              <span className="text-[10px] font-bold tracking-wider text-text-muted uppercase">
+              <span className="text-[0.625rem] font-bold tracking-wider text-text-muted uppercase">
                 {t('common.environment.title')}
               </span>
               <button
@@ -150,7 +150,7 @@ export function EnvironmentSwitcher() {
                   />
                   <div className="min-w-0 flex-1">
                     <div className="truncate font-medium">{env.name}</div>
-                    <div className="truncate text-[10px] text-text-muted">{env.description}</div>
+                    <div className="truncate text-[0.625rem] text-text-muted">{env.description}</div>
                   </div>
                 </button>
               ))}

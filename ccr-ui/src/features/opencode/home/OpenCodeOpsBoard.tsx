@@ -30,7 +30,7 @@ export function OpenCodeOpsBoard({
   themeLabel,
 }: OpenCodeOpsBoardProps) {
   return (
-    <div className="mb-4 grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_340px]">
+    <div className="mb-4 grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_21.25rem]">
       <section className="rounded-[1.75rem] border border-border-default/55 bg-bg-base p-4">
         <div className="mt-2 flex flex-wrap gap-2">
           <PathChip label="config" value={configPath} />
@@ -46,7 +46,7 @@ export function OpenCodeOpsBoard({
         </div>
       </section>
       <aside className="rounded-[1.75rem] border border-border-default/55 bg-bg-base p-4">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">{nextLabel}</p>
+        <p className="text-[0.6875rem] font-semibold uppercase tracking-wide text-text-muted">{nextLabel}</p>
         <p className="mb-3 text-sm text-text-secondary">{statusLabel}</p>
         <div className="flex flex-col gap-2">
           <ActionLink href="/opencode/providers" label="Provider matrix" detail={`${providerCount} configured`} />

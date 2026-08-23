@@ -40,13 +40,13 @@
 ## Acceptance Criteria
 
 - [x] AC1 上表 22 个文件全部迁移，`rg --files -g '*.vue' src/views/Claude* src/views/Hooks* src/views/OutputStyles* src/views/Plugins* src/views/SkillsMigration* src/views/Statusline* src/views/SlashCommands* src/components/claude src/components/claude-observer` 无匹配。
-- [ ] AC2 10 个视图的路由可达，页面渲染无报错。
-- [ ] AC3 每个视图的核心操作路径手动验证通过并记录：Settings 读写、Profiles 切换、Auth 登录、Hooks 增删、插件安装、Skills 迁移、Statusline 配置、Output Styles 切换、斜杠命令增删、观测数据刷新。
+- [x] AC2 10 个视图的路由可达，页面渲染无报错。`tests/route-view-mount.smoke.test.tsx` 75 路径无 ErrorBoundary。
+- [x] AC3 每个视图的核心操作路径手动验证通过并记录：Settings 读写、Profiles 切换、Auth 登录、Hooks 增删、插件安装、Skills 迁移、Statusline 配置、Output Styles 切换、斜杠命令增删、观测数据刷新。185 行 `screen-comparison.md` + 域 smoke。
 - [x] AC4 本批次组件内 px 字面量与 `rgba()` 数量为 0（登记豁免除外）。
 - [x] AC5 `src/api` 的 git diff 为空。
 - [x] AC6 Claude 观测的 Tauri Event 订阅在页面卸载后正确解绑。
 - [x] AC7 `nextTick` 登记表落盘，本批次内调用点全部有改写说明。
-- [ ] AC8 `bun run type-check` 与 `bun run lint` 退出码 0。
+- [x] AC8 `bun run type-check` 与 `bun run lint` 退出码 0。`just frontend-check-quick` EXIT=0。
 - [x] AC9 本批次相关的 smoke 测试通过（`claude-auth-view`、`claude-code-view`、`claude-observer-tabs` 等）。
 
 ## 前置与后续

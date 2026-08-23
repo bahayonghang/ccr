@@ -206,7 +206,7 @@ const materializePath = (path: string): string => {
 
 const isHydrateSpinner = (node: Element): boolean => {
   const parent = node.parentElement
-  return Boolean(parent?.className.includes('min-h-[200px]'))
+  return Boolean(parent?.className.includes('min-h-[12.5rem]'))
 }
 
 const BOUNDARY_TEXT = ['页面渲染失败', '托盘面板渲染失败']

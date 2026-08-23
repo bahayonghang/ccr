@@ -166,22 +166,23 @@ Rust 测试若绕过 `just test` 直接运行，须带 `-- --test-threads=1`。
 
 准出条件：
 
-- [ ] 七个视图子任务的验收标准全部满足。
-- [ ] `08-22-i18n-port` 的 AC1–AC10 全部满足。
-- [ ] `src/` 下 `.vue` 文件数为 0（父任务 AC2）。
-- [ ] 组件内 px 字面量与 `rgba()` 数量为 0，豁免项逐条登记（父任务 AC6、`design-system` AC12）。
-- [ ] `just frontend-check-quick` 退出码 0。
-- [ ] `just tauri-command-inventory-check` 退出码 0。
-- [ ] `api-facade-boundary.smoke.test.ts` 的源码遍历后缀集合已含 `.tsx`（`08-22-test-contract-rebuild` 批次 1）。该测试现遍历 `.ts|.mts|.vue`，不改则迁移后全部 `.tsx` 组件内的裸 `invoke()` 不被检出，门面边界保护静默失效。
+- [x] 七个视图子任务的验收标准全部满足。偏差：`views-checkin` AC4 真实签到 WAF 未跑（凭据）；WAF wait / cookie smoke 通过。
+- [x] `08-22-i18n-port` 的 AC1–AC10 全部满足。
+- [x] `src/` 下 `.vue` 文件数为 0（父任务 AC2）。主线程 `grep` glob `*.vue` 于 `ccr-ui/src`：无匹配。
+- [x] 组件内 px 字面量与 `rgba()` 数量为 0，豁免项逐条登记（父任务 AC6、`design-system` AC12）。`ccr-ui/tests/hardcode-px-rgba.smoke.test.ts` 计数 31 == 豁免清单。主线程 `just frontend-check-quick` 含该 smoke，EXIT=0。
+- [x] `just frontend-check-quick` 退出码 0（2026-08-24，116 files / 534 tests）。
+- [x] `just tauri-command-inventory-check` 退出码 0。
+- [x] `api-facade-boundary.smoke.test.ts` 的源码遍历后缀集合已含 `.tsx`（`/\.(ts|mts|tsx)$/`）。
 
 ### 阶段 6 → 7：测试与契约门
 
 准出条件：
 
-- [ ] `08-22-test-contract-rebuild` 的 AC1–AC10 全部满足。
-- [ ] 通过测试数不少于 122，覆盖范围比对表无下降项。
-- [ ] 19 份契约文档重写完成（基线 16 + `arch-quality-perf` 2 份 + `platform-unify` 1 份），`rg '\.vue|<script setup|scoped' .trellis/spec/ccr-ui/frontend/` 无匹配。
-- [ ] `just frontend-check` 退出码 0。
+- [x] `08-22-test-contract-rebuild` 的 AC1–AC10 全部满足。
+- [x] 通过测试数不少于 122，覆盖范围比对表无下降项。主线程 534 tests；`coverage-comparison.md` 无下降项。
+- [x] 19 份契约文档重写完成（基线 16 + `arch-quality-perf` 2 份 + `platform-unify` 1 份），`rg '\.vue|<script setup|scoped' .trellis/spec/ccr-ui/frontend/` 无匹配。
+- [x] `just frontend-check` 退出码 0。
+- [x] `just frontend-coverage` 退出码 0（lines 70.03%）。
 - [ ] `just frontend-coverage` 退出码 0。
 
 ### 阶段 7 → 合入 `dev`：发布门
@@ -273,16 +274,16 @@ dev  ─────────────────────────
 | 4a   | 11 批次 1（profiles 共享层）  | 已完成 | 共享层前置门 ✅ 2026-08-24 |
 | 4a   | 12 批次 3 前半（mcp 共享层）  | 已完成 | 共享层前置门 ✅ 2026-08-24 |
 | 4    | 5b `platform-unify`           | 已完成 | 统一层门 ✅ 2026-08-24 |
-| 5    | 6 `views-claude`              | 未开始 | 视图门         |
-| 5    | 7 `views-codex`               | 未开始 | 视图门         |
-| 5    | 8 `views-secondary-platforms` | 未开始 | 视图门         |
-| 5    | 9 `views-checkin`             | 未开始 | 视图门         |
-| 5    | 10 `views-usage`              | 未开始 | 视图门         |
-| 5    | 11 `views-profiles-config`    | 未开始 | 视图门         |
-| 5    | 12 `views-sync-tools`         | 未开始 | 视图门         |
-| 5    | 13 `i18n-port`                | 未开始 | 视图门         |
-| 6    | 14 `test-contract-rebuild`    | 最小测试集已交付（批次 1，2026-08-24）；完整重写待阶段 6 | 测试与契约门   |
-| 7    | 15 `regression-release`       | 未开始 | 发布门         |
+| 5    | 6 `views-claude`              | 已完成 | 视图门 ✅ 2026-08-24 |
+| 5    | 7 `views-codex`               | 已完成 | 视图门 ✅ 2026-08-24 |
+| 5    | 8 `views-secondary-platforms` | 已完成 | 视图门 ✅ 2026-08-24 |
+| 5    | 9 `views-checkin`             | 已完成（AC4 真实签到凭据未提供） | 视图门 ✅ 2026-08-24 |
+| 5    | 10 `views-usage`              | 已完成 | 视图门 ✅ 2026-08-24 |
+| 5    | 11 `views-profiles-config`    | 已完成 | 视图门 ✅ 2026-08-24 |
+| 5    | 12 `views-sync-tools`         | 已完成 | 视图门 ✅ 2026-08-24 |
+| 5    | 13 `i18n-port`                | 已完成 | 视图门 ✅ 2026-08-24 |
+| 6    | 14 `test-contract-rebuild`    | 已完成 | 测试与契约门 ✅ 2026-08-24 |
+| 7    | 15 `regression-release`       | 进行中 | 发布门         |
 
 ## 9. 文档修正状态
 

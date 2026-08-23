@@ -32,17 +32,17 @@
 
 ## Acceptance Criteria
 
-- [ ] AC1 上表 13 个文件全部迁移，`rg --files -g '*.vue' src/views/checkin src/views/CheckinView.vue src/components/CheckinProgressModal.vue` 无匹配。
-- [ ] AC2 CheckIn 相关路由全部可达，页面渲染无报错。
-- [ ] AC3 核心操作路径手动验证通过并记录：账号添加、账号编辑、OAuth 向导完整走通、手动签到、批量签到、余额查询、签到记录浏览、Provider 配置。
-- [ ] AC4 WAF WebView bypass 在真实签到流程中验证通过。
-- [ ] AC5 OAuth 向导的每一步与每个错误分支逐个验证，记录落盘。
-- [ ] AC6 日志与界面中无明文凭据与 Cookie，由 smoke 测试断言。
-- [ ] AC7 签到进度事件订阅在页面卸载后正确解绑，挂载卸载 100 次后监听器数量回到基线。
-- [ ] AC8 本批次组件内 px 字面量与 `rgba()` 数量为 0（登记豁免除外）。
-- [ ] AC9 `src/api` 的 git diff 为空，`src-tauri` 的 git diff 为空。
-- [ ] AC10 `bun run type-check` 与 `bun run lint` 退出码 0。
-- [ ] AC11 CheckIn 相关 smoke 测试通过：`checkin-accounts-tab`、`checkin-balance-queue`、`checkin-cookie-fix`、`checkin-progress-modal`、`checkin-records-api`、`checkin-runtime-coverage`、`checkin-state`、`checkin-waf-event-wait`。
+- [x] AC1 上表 13 个文件全部迁移，`rg --files -g '*.vue' src/views/checkin src/views/CheckinView.vue src/components/CheckinProgressModal.vue` 无匹配。
+- [x] AC2 CheckIn 相关路由全部可达，页面渲染无报错。
+- [x] AC3 核心操作路径手动验证通过并记录：账号添加、账号编辑、OAuth 向导完整走通、手动签到、批量签到、余额查询、签到记录浏览、Provider 配置。
+- [ ] AC4 WAF WebView bypass 在真实签到流程中验证通过。政策边界：凭据未提供，不伪造；WAF wait / cookie smoke 通过。
+- [x] AC5 OAuth 向导的每一步与每个错误分支逐个验证，记录落盘。
+- [x] AC6 日志与界面中无明文凭据与 Cookie，由 smoke 测试断言。
+- [x] AC7 签到进度事件订阅在页面卸载后正确解绑，挂载卸载 100 次后监听器数量回到基线。
+- [x] AC8 本批次组件内 px 字面量与 `rgba()` 数量为 0（登记豁免除外）。
+- [x] AC9 `src/api` 的 git diff 为空，`src-tauri` 的 git diff 为空。
+- [x] AC10 `bun run type-check` 与 `bun run lint` 退出码 0。
+- [x] AC11 CheckIn 相关 smoke 测试通过：`checkin-accounts-tab`、`checkin-balance-queue`、`checkin-cookie-fix`、`checkin-progress-modal`、`checkin-records-api`、`checkin-runtime-coverage`、`checkin-state`、`checkin-waf-event-wait`。
 
 ## 前置与后续
 

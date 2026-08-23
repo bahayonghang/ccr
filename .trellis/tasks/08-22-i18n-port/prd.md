@@ -37,16 +37,16 @@
 
 ## Acceptance Criteria
 
-- [ ] AC1 `rg 'vue-i18n' ccr-ui/package.json ccr-ui/src` 无匹配。
-- [ ] AC2 `zh-CN.ts` 与 `en-US.ts` 的 git diff 为空，或改动项逐条有登记说明。
-- [ ] AC3 `bun run check:i18n` 退出码 0。
-- [ ] AC4 `bun run test:i18n` 退出码 0，两个 locale 的叶子 key 集合一致，均为 4,164 个。
-- [ ] AC5 全仓无残留的 `$t(` / `useI18n()` 等 vue-i18n 调用形式。
-- [ ] AC6 在应用内切换中英文，全部 75 条路由的页面文案正确切换，无 key 原文泄漏（形如 `views.foo.bar` 的字符串出现在界面上）。
-- [ ] AC7 刷新页面后语言偏好保留。
-- [ ] AC8 启动期文案（`bootMessages`）在 i18n 初始化前正确显示。
-- [ ] AC9 未使用 key 与缺失 key 的静态检查可运行并通过。
-- [ ] AC10 `bun run type-check` 与 `bun run lint` 退出码 0。
+- [x] AC1 `rg 'vue-i18n' ccr-ui/package.json ccr-ui/src` 无匹配。
+- [x] AC2 `zh-CN.ts` 与 `en-US.ts` 的 git diff 为空，或改动项逐条有登记说明。路径 B：`interpolation.prefix='{'`。
+- [x] AC3 `bun run check:i18n` 退出码 0。
+- [x] AC4 `bun run test:i18n` 退出码 0，两个 locale 的叶子 key 集合一致，均为 4,164 个。
+- [x] AC5 全仓无残留的 `$t(` / `useI18n()` 等 vue-i18n 调用形式。
+- [x] AC6 在应用内切换中英文，全部 75 条路由的页面文案正确切换，无 key 原文泄漏（形如 `views.foo.bar` 的字符串出现在界面上）。`tests/route-view-mount.smoke.test.tsx` 75×zh-CN+en-US，叶子集合判定。
+- [x] AC7 刷新页面后语言偏好保留。`tests/i18n-runtime.smoke.test.ts` `setLocale` + `LOCALE_STORAGE_KEY`。
+- [x] AC8 启动期文案（`bootMessages`）在 i18n 初始化前正确显示。`i18n-runtime` 插值用例。
+- [x] AC9 未使用 key 与缺失 key 的静态检查可运行并通过。`check:i18n` EXIT=0（缺失/未使用为警告不阻断）。
+- [x] AC10 `bun run type-check` 与 `bun run lint` 退出码 0。`just frontend-check-quick` EXIT=0。
 
 ## 前置与后续
 

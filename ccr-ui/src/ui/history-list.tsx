@@ -64,7 +64,7 @@ export function HistoryList({
   })
 
   return (
-    <div className="flex h-[600px] flex-col">
+    <div className="flex h-[37.5rem] flex-col">
       <div className="mb-4 flex flex-shrink-0 items-center justify-between">
         <div>
           <h2 className="text-xl font-bold text-text-primary">{title}</h2>
@@ -149,7 +149,7 @@ function HistoryCard({ entry, color }: { entry: HistoryEntry; color: string }) {
               </div>
             </div>
             <span
-              className="rounded px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase"
+              className="rounded px-2 py-0.5 text-[0.625rem] font-bold tracking-wider uppercase"
               style={{ color }}
             >
               {entry.operation}
@@ -183,7 +183,7 @@ function HistoryCard({ entry, color }: { entry: HistoryEntry; color: string }) {
               ))}
             </div>
           ) : null}
-          <div className="mt-2 border-t border-border-default/10 pt-2 font-mono text-[10px] text-text-muted">
+          <div className="mt-2 border-t border-border-default/10 pt-2 font-mono text-[0.625rem] text-text-muted">
             {entry.id}
           </div>
         </div>

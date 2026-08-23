@@ -19,7 +19,7 @@ export function MainLayoutNav({ t, onNavigate }: MainLayoutNavProps) {
       {mainLayoutNavSections.map((section) => (
         <div key={section.id}>
           {section.titleKey ? (
-            <div className="mb-2 flex items-center gap-2 px-3 text-[10px] font-semibold tracking-[0.16em] text-text-muted">
+            <div className="mb-2 flex items-center gap-2 px-3 text-[0.625rem] font-semibold tracking-[0.16em] text-text-muted">
               {t(section.titleKey)}
               <div className="h-px flex-1 bg-border-default/70" />
             </div>

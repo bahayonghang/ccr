@@ -53,20 +53,20 @@
 
 ## Acceptance Criteria
 
-- [ ] AC1 上表 26 个文件全部迁移，对应目录下 `rg --files -g '*.vue'` 无匹配。
-- [ ] AC2 全部视图的路由可达，页面渲染无报错，tray 独立窗口可打开。
-- [ ] AC3 核心操作路径手动验证通过并记录：命令增删改、斜杠命令管理、跨平台 MCP 读写、MCP 预设应用、MCP 同步、WebDAV 同步上传与下载、原始配置编辑与保存、日志实时查看与过滤、SSH 环境管理、WSL 环境管理（Windows）、tray 操作。
-- [ ] AC4 CodeMirror 编辑器验证：JSON 与 Markdown 语法高亮、lint 错误提示、搜索替换、撤销重做、快捷键，逐项记录。`@codemirror/state` 无重复实例，由构建产物核对确认。
-- [ ] AC4.1 `raw-config-editor-contracts.md` 断言的可表达性逐条记录。无法通过 `@uiw` API 表达的项数落盘；超过 3 条时给出换自建 hook 的判定与执行结果。
-- [ ] AC5 日志面板注入含 ANSI 转义与 HTML 标签的内容后，渲染结果无脚本执行，由 smoke 测试断言。
-- [ ] AC6 日志面板与导出文件中无明文凭据，由 smoke 测试断言。
-- [ ] AC7 `app-log` 事件订阅在页面卸载后解绑，连续运行 30 分钟内存占用无持续增长。
-- [ ] AC8 WebDAV 凭据在界面显示为掩码，同步前生成备份。
-- [ ] AC9 WSL 管理入口在非 Windows 平台不可见。
-- [ ] AC10 三份契约（`raw-config-editor-contracts.md`、`sync-security-contracts.md`、`monitoring-log-contracts.md`）的验证项全部通过。
-- [ ] AC11 本批次组件内 px 字面量与 `rgba()` 数量为 0（登记豁免除外，CodeMirror 主题内联样式可豁免并登记）。
-- [ ] AC12 `src/api` 的 git diff 为空。
-- [ ] AC13 `bun run type-check` 与 `bun run lint` 退出码 0。
+- [x] AC1 上表 26 个文件全部迁移，对应目录下 `rg --files -g '*.vue'` 无匹配。
+- [x] AC2 全部视图的路由可达，页面渲染无报错，tray 独立窗口可打开。
+- [x] AC3 核心操作路径手动验证通过并记录：命令增删改、斜杠命令管理、跨平台 MCP 读写、MCP 预设应用、MCP 同步、WebDAV 同步上传与下载、原始配置编辑与保存、日志实时查看与过滤、SSH 环境管理、WSL 环境管理（Windows）、tray 操作。
+- [x] AC4 CodeMirror 编辑器验证：JSON 与 Markdown 语法高亮、lint 错误提示、搜索替换、撤销重做、快捷键，逐项记录。`@codemirror/state` 无重复实例，由构建产物核对确认。
+- [x] AC4.1 `raw-config-editor-contracts.md` 断言的可表达性逐条记录。无法通过 `@uiw` API 表达的项数落盘；超过 3 条时给出换自建 hook 的判定与执行结果。
+- [x] AC5 日志面板注入含 ANSI 转义与 HTML 标签的内容后，渲染结果无脚本执行，由 smoke 测试断言。
+- [x] AC6 日志面板与导出文件中无明文凭据，由 smoke 测试断言。
+- [x] AC7 `app-log` 事件订阅在页面卸载后解绑，连续运行 30 分钟内存占用无持续增长。
+- [x] AC8 WebDAV 凭据在界面显示为掩码，同步前生成备份。
+- [x] AC9 WSL 管理入口在非 Windows 平台不可见。
+- [x] AC10 三份契约（`raw-config-editor-contracts.md`、`sync-security-contracts.md`、`monitoring-log-contracts.md`）的验证项全部通过。
+- [x] AC11 本批次组件内 px 字面量与 `rgba()` 数量为 0（登记豁免除外，CodeMirror 主题内联样式可豁免并登记）。
+- [x] AC12 `src/api` 的 git diff 为空。
+- [x] AC13 `bun run type-check` 与 `bun run lint` 退出码 0。
 
 ## 前置与后续
 

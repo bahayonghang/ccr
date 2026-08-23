@@ -49,17 +49,17 @@
 ## Acceptance Criteria
 
 - [x] AC1 上表 20 个文件全部迁移，`rg --files -g '*.vue' src/components/profiles src/components/provider-templates src/components/configs src/views/AppSettingsView.vue src/views/ConverterView.vue src/views/ConfigsView.vue src/components/EditConfigModal.vue src/components/AddConfigModal.vue src/components/ConfigCard.vue` 无匹配。
-- [ ] AC2 3 个视图的路由可达，页面渲染无报错。
-- [ ] AC3 核心操作路径手动验证通过并记录：配置列表浏览、配置新增、配置编辑、配置切换、配置删除、Provider 模板选择与应用、配置格式转换、应用设置读写、Profile 差异查看。
+- [x] AC2 3 个视图的路由可达，页面渲染无报错。
+- [x] AC3 核心操作路径手动验证通过并记录：配置列表浏览、配置新增、配置编辑、配置切换、配置删除、Provider 模板选择与应用、配置格式转换、应用设置读写、Profile 差异查看。
 - [x] AC4 配置表单的每个字段逐个验证读写正确，字段清单落盘。
 - [x] AC5 API key 与 auth token 在界面中显示为掩码，在日志中不出现明文，由 smoke 测试断言。
-- [ ] AC6 配置切换前生成备份，备份文件可用于恢复。
-- [ ] AC7 配置写入为原子操作，中断写入后原文件完整。
-- [ ] AC8 `profiles-page-contracts.md`、`provider-template-contracts.md`、`raw-config-editor-contracts.md` 三份契约的验证项全部通过。
-- [ ] AC9 本批次组件内 px 字面量与 `rgba()` 数量为 0（登记豁免除外，含 `0.75rem` 字号例外的保留）。
+- [x] AC6 配置切换前生成备份，备份文件可用于恢复。
+- [x] AC7 配置写入为原子操作，中断写入后原文件完整。
+- [x] AC8 `profiles-page-contracts.md`、`provider-template-contracts.md`、`raw-config-editor-contracts.md` 三份契约的验证项全部通过。
+- [x] AC9 本批次组件内 px 字面量与 `rgba()` 数量为 0（登记豁免除外，含 `0.75rem` 字号例外的保留）。
 - [x] AC10 `src/api`、`src/config`、`src/configs` 的 git diff 为空。
-- [ ] AC11 `bun run type-check` 与 `bun run lint` 退出码 0。
-- [ ] AC12 `app-settings` 与 profiles 相关 smoke 测试通过。
+- [x] AC11 `bun run type-check` 与 `bun run lint` 退出码 0。
+- [x] AC12 `app-settings` 与 profiles 相关 smoke 测试通过。
 
 ## 前置与后续
 

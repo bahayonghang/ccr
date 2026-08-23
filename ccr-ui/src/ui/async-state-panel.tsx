@@ -70,7 +70,7 @@ export function AsyncStatePanel({
           </div>
           <h3 className="mt-4 text-lg font-semibold text-text-primary">{title}</h3>
           {description ? (
-            <p className="mt-2 max-w-[520px] text-center text-sm text-text-secondary">
+            <p className="mt-2 max-w-[32.5rem] text-center text-sm text-text-secondary">
               {description}
             </p>
           ) : null}

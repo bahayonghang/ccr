@@ -46,7 +46,7 @@ export function OpenCodeInspector({
     <section className={['rounded-2xl border border-border-subtle bg-bg-surface p-5'].join(' ')}>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">
+          <p className="text-[0.6875rem] font-semibold uppercase tracking-wide text-text-muted">
             {tt('精简巡检', 'Compact inspector')}
           </p>
           <h2 className="text-lg font-semibold text-text-primary">{tt('运行态情报', 'Runtime intelligence')}</h2>
@@ -148,7 +148,7 @@ const InspectorTabButton = memo(function InspectorTabButton({
 function DiscoveryCard({ label, value, detail }: { label: string; value: string; detail: string }) {
   return (
     <div className="rounded-2xl border border-border-default/50 bg-bg-base p-3">
-      <span className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">{label}</span>
+      <span className="text-[0.6875rem] font-semibold uppercase tracking-wide text-text-muted">{label}</span>
       <strong className="mt-1 block text-lg text-text-primary">{value}</strong>
       <p className="mt-1 text-sm text-text-secondary">{detail}</p>
     </div>

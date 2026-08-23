@@ -244,7 +244,7 @@ export function OpenCodeProvidersView() {
         </button>
       }
     >
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="space-y-4">
           {loading ? (
             <div className="rounded-2xl border border-border-subtle p-8 text-center text-sm text-text-muted">{tt('加载中', 'Loading')}</div>

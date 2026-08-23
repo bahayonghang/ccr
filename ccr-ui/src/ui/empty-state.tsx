@@ -26,7 +26,7 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        'empty-state flex min-h-[300px] flex-col items-center justify-center p-12 text-center',
+        'empty-state flex min-h-[18.75rem] flex-col items-center justify-center p-12 text-center',
         className,
       )}
       role="status"
@@ -40,7 +40,7 @@ export function EmptyState({
       </div>
       <h3 className="mb-2 text-xl font-semibold text-text-primary">{title}</h3>
       {description ? (
-        <p className="mb-4 max-w-[480px] text-base text-text-secondary">{description}</p>
+        <p className="mb-4 max-w-[30rem] text-base text-text-secondary">{description}</p>
       ) : null}
       {actionText && onAction ? (
         <button
@@ -48,7 +48,7 @@ export function EmptyState({
           className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-accent-primary/15 bg-accent-primary px-5 py-2.5 text-base font-medium text-text-inverted transition-[background-color,transform] duration-200 ease-out hover:-translate-y-px hover:bg-accent-primary-hover active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/30"
           onClick={onAction}
         >
-          {actionIcon ? <SIcon name={actionIcon} size="w-[18px] h-[18px]" /> : null}
+          {actionIcon ? <SIcon name={actionIcon} size="w-[1.125rem] h-[1.125rem]" /> : null}
           {actionText}
         </button>
       ) : null}

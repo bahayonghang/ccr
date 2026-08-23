@@ -40,7 +40,7 @@ export function MainLayoutSidebar({
       id="primary-navigation-panel"
       className={`sidebar-glass layout-sidebar flex flex-col ${isResizing ? 'is-resizing select-none' : ''} ${
         isMobile
-          ? 'layout-layer-modal fixed inset-y-0 left-0 w-[min(86vw,320px)] max-w-[320px] border-r border-border-default/20 shadow-2xl'
+          ? 'layout-layer-modal fixed inset-y-0 left-0 w-[min(86vw,20rem)] max-w-80 border-r border-border-default/20 shadow-2xl'
           : 'layout-layer-dropdown relative flex-shrink-0'
       } ${isMobile && !isOpen ? 'pointer-events-none -translate-x-full' : 'translate-x-0'}`}
       style={style}
@@ -59,12 +59,12 @@ export function MainLayoutSidebar({
           <div className="absolute inset-y-0 right-1/2 w-px bg-border-default/70" />
         </button>
       )}
-      <div className="flex h-[84px] shrink-0 items-center justify-between border-b border-border-default/45 px-4 pt-6">
+      <div className="flex h-[5.25rem] shrink-0 items-center justify-between border-b border-border-default/45 px-4 pt-6">
         <div className="flex items-center gap-3">
           <img src="/icons/icon.svg" alt="CCR UI" className="h-10 w-10 rounded-[0.9rem] object-cover" />
           <div className="min-w-0">
             <h1 className="font-brand truncate text-[1.08rem] font-medium tracking-[-0.045em]">{APP_NAME}</h1>
-            <p className="mt-1 text-[10px] font-semibold tracking-[0.18em] text-text-muted">
+            <p className="mt-1 text-[0.625rem] font-semibold tracking-[0.18em] text-text-muted">
               {t('common.shell.tagline')}
             </p>
           </div>
@@ -123,7 +123,7 @@ export function MainLayoutTopbar({
   showEnvironment,
 }: TopbarProps) {
   return (
-    <div className="topbar-glass layout-layer-sticky sticky top-0 flex min-h-[78px] shrink-0 items-center justify-between border-b border-border-default/40 px-4 pt-5 sm:px-6 sm:pt-6">
+    <div className="topbar-glass layout-layer-sticky sticky top-0 flex min-h-[4.875rem] shrink-0 items-center justify-between border-b border-border-default/40 px-4 pt-5 sm:px-6 sm:pt-6">
       <div className="flex min-w-0 items-center gap-3 text-sm text-text-secondary">
         {hasSidebar && isMobile ? (
           <button

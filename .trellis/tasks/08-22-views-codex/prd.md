@@ -36,16 +36,16 @@
 
 ## Acceptance Criteria
 
-- [ ] AC1 上表 18 个文件全部迁移，`rg --files -g '*.vue' src/views/codex src/views/Codex* src/components/codex` 无匹配。
-- [ ] AC2 7 个根级视图与 `views/codex/` 下视图的路由可达，页面渲染无报错。
-- [ ] AC3 每个视图的核心操作路径手动验证通过并记录：Profiles 增删改切换、MCP 服务器管理、Agents 管理、斜杠命令增删、Auth 登录与 auth off、Sessions 浏览、Settings 读写、账号添加向导。
-- [ ] AC4 本批次组件内 px 字面量与 `rgba()` 数量为 0（登记豁免除外）。
-- [ ] AC5 `codex-auth-shared.css` 的 14.8 KB 样式全部落位，无遗留未归类规则。
-- [ ] AC6 Codex auth off 行为验证通过。
-- [ ] AC7 `src/api` 的 git diff 为空。
-- [ ] AC8 `nextTick` 登记表落盘，本批次内调用点全部有改写说明。
-- [ ] AC9 `bun run type-check` 与 `bun run lint` 退出码 0。
-- [ ] AC10 本批次相关的 smoke 测试通过。
+- [x] AC1 上表 18 个文件全部迁移，`rg --files -g '*.vue' src/views/codex src/views/Codex* src/components/codex` 无匹配。
+- [x] AC2 7 个根级视图与 `views/codex/` 下视图的路由可达，页面渲染无报错。
+- [x] AC3 每个视图的核心操作路径手动验证通过并记录：Profiles 增删改切换、MCP 服务器管理、Agents 管理、斜杠命令增删、Auth 登录与 auth off、Sessions 浏览、Settings 读写、账号添加向导。
+- [x] AC4 本批次组件内 px 字面量与 `rgba()` 数量为 0（登记豁免除外）。
+- [x] AC5 `codex-auth-shared.css` 的 14.8 KB 样式全部落位，无遗留未归类规则。
+- [x] AC6 Codex auth off 行为验证通过。
+- [x] AC7 `src/api` 的 git diff 为空。
+- [x] AC8 `nextTick` 登记表落盘，本批次内调用点全部有改写说明。
+- [x] AC9 `bun run type-check` 与 `bun run lint` 退出码 0。
+- [x] AC10 本批次相关的 smoke 测试通过。
 
 ## 前置与后续
 

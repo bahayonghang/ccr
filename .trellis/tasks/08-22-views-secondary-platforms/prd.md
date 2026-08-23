@@ -39,16 +39,16 @@
 
 ## Acceptance Criteria
 
-- [ ] AC1 上表 20 个文件全部迁移，`rg --files -g '*.vue' src/views/grok src/views/generic src/views/Gemini* src/views/OpenCode* src/components/grok src/components/opencode` 无匹配。
-- [ ] AC2 全部视图的路由可达，页面渲染无报错。
-- [ ] AC3 每个平台的核心操作路径手动验证通过并记录：Grok Profiles 切换与 Settings 读写、Gemini Settings / MCP / Agents / 斜杠命令 / 插件、OpenCode Settings / Keybindings / Themes / Providers / MCP / Agents / Commands / Plugins。
-- [ ] AC4 本批次组件内 px 字面量与 `rgba()` 数量为 0（登记豁免除外）。
-- [ ] AC5 `grok-settings-contracts.md` 定义的行为验证通过。
-- [ ] AC6 OpenCode Themes 的 token 命名空间与 CCR 主题 token 无交叉，由 smoke 测试断言。
-- [ ] AC7 `views/generic` 的复用点清单落盘，迁移后各消费方均正常工作。
-- [ ] AC8 `src/api` 的 git diff 为空。
-- [ ] AC9 `bun run type-check` 与 `bun run lint` 退出码 0。
-- [ ] AC10 本批次相关的 smoke 测试通过。
+- [x] AC1 上表 20 个文件全部迁移，`rg --files -g '*.vue' src/views/grok src/views/generic src/views/Gemini* src/views/OpenCode* src/components/grok src/components/opencode` 无匹配。
+- [x] AC2 全部视图的路由可达，页面渲染无报错。
+- [x] AC3 每个平台的核心操作路径手动验证通过并记录：Grok Profiles 切换与 Settings 读写、Gemini Settings / MCP / Agents / 斜杠命令 / 插件、OpenCode Settings / Keybindings / Themes / Providers / MCP / Agents / Commands / Plugins。
+- [x] AC4 本批次组件内 px 字面量与 `rgba()` 数量为 0（登记豁免除外）。
+- [x] AC5 `grok-settings-contracts.md` 定义的行为验证通过。
+- [x] AC6 OpenCode Themes 的 token 命名空间与 CCR 主题 token 无交叉，由 smoke 测试断言。
+- [x] AC7 `views/generic` 的复用点清单落盘，迁移后各消费方均正常工作。
+- [x] AC8 `src/api` 的 git diff 为空。
+- [x] AC9 `bun run type-check` 与 `bun run lint` 退出码 0。
+- [x] AC10 本批次相关的 smoke 测试通过。
 
 ## 前置与后续
 

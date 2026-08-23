@@ -47,15 +47,15 @@ export const OpenCodeProviderCard = memo(function OpenCodeProviderCard({
           <h2 className="text-lg font-semibold text-text-primary">{provider.name || provider.id}</h2>
           <div className="mt-3 grid gap-3 md:grid-cols-3">
             <div className="rounded-2xl border border-border-default/55 bg-bg-base p-3">
-              <span className="text-[11px] font-semibold text-text-muted">{tt('API key', 'API key')}</span>
+              <span className="text-[0.6875rem] font-semibold text-text-muted">{tt('API key', 'API key')}</span>
               <p className="mt-2 text-sm text-text-primary">{maskSecret(provider.options?.apiKey)}</p>
             </div>
             <div className="rounded-2xl border border-border-default/55 bg-bg-base p-3">
-              <span className="text-[11px] font-semibold text-text-muted">{tt('baseURL', 'baseURL')}</span>
+              <span className="text-[0.6875rem] font-semibold text-text-muted">{tt('baseURL', 'baseURL')}</span>
               <p className="mt-2 break-all text-sm text-text-primary">{provider.options?.baseURL || 'default'}</p>
             </div>
             <div className="rounded-2xl border border-border-default/55 bg-bg-base p-3">
-              <span className="text-[11px] font-semibold text-text-muted">{tt('models', 'models')}</span>
+              <span className="text-[0.6875rem] font-semibold text-text-muted">{tt('models', 'models')}</span>
               <p className="mt-2 text-sm text-text-primary">{modelCount}</p>
             </div>
           </div>
