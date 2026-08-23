@@ -11,7 +11,7 @@ import {
 import { getTrendTickAmount, parseUtcDate } from '@/views/usage/usageChartOptions'
 
 const CHART_VUE_PATH = fileURLToPath(
-  new URL('../src/components/platform-usage/PlatformUsageTrendChart.vue', import.meta.url),
+  new URL('../src/features/usage/platform/PlatformUsageTrendChart.tsx', import.meta.url),
 )
 const CHART_HELPER_PATH = fileURLToPath(
   new URL('../src/views/platform-usage/platformUsageTrendChart.ts', import.meta.url),
