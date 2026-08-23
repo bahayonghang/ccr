@@ -10,7 +10,9 @@ import {
 } from '@/api'
 import type { CodexAuthMutationResponse } from '@/types'
 import { useTf } from '@/composables/useTf'
-import { useUIStore } from '@/stores/ui'
+// 过渡期接线（批次 4）：Pinia 已删，Zustand 单例经 getState() 提供同名 API；
+// 本文件在批次 5 转换为 React hook 时整体重写。
+import { useUIStore } from '@/shell/stores/ui'
 import { extractErrorMessage } from '@/utils/errorHandler'
 import { isTauriRuntime } from '@/utils/tauriRuntime'
 import { logger } from '@/utils/logger'
@@ -44,7 +46,7 @@ export function useCodexOAuthFlow(deps: {
   } = deps
 
   const tf = useTf()
-  const uiStore = useUIStore()
+  const uiStore = useUIStore.getState()
 
   const oauthLoginId = ref('')
   const oauthAuthUrl = ref('')

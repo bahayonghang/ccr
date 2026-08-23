@@ -18,7 +18,7 @@ import {
   normalizePaginatedLogs,
   parseEnvFlag,
   type UsageDashboardPayload,
-} from '@/stores/usageDashboardPayload'
+} from '@/utils/usageDashboardPayload'
 import {
   makeArchiveDiagnostics,
   makeFeatureCapability,

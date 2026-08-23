@@ -9,7 +9,9 @@
 
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useUIStore } from '@/stores/ui'
+// 过渡期接线（批次 4）：Pinia 已删，Zustand 单例经 getState() 提供同名 API；
+// 本文件在批次 5 转换为 React hook 时整体重写。
+import { useUIStore } from '@/shell/stores/ui'
 import {
   listGeminiPlugins,
   addGeminiPlugin,
@@ -59,7 +61,7 @@ const platformConfigs: Record<PluginPlatformType, PlatformPluginConfig> = {
 
 export function usePlatformPlugins(platform: PluginPlatformType) {
   const { t } = useI18n()
-  const uiStore = useUIStore()
+  const uiStore = useUIStore.getState()
 
   // 获取平台配置
   const config = computed(() => platformConfigs[platform])

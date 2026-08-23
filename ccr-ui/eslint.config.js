@@ -391,8 +391,8 @@ export default [
   { files: ['src/composables/useProfilesInsights.ts'], rules: { 'max-depth': 'off' } },
   // src/stores/homeUsageOverview.ts：complexity 23，store 归属 state-logic-port
   { files: ['src/stores/homeUsageOverview.ts'], rules: { complexity: 'off' } },
-  // src/stores/usageDashboardPayload.ts：max-params 4，store 归属 state-logic-port
-  { files: ['src/stores/usageDashboardPayload.ts'], rules: { 'max-params': 'off' } },
+  // src/utils/usageDashboardPayload.ts：max-params 4，纯变换迁入 utils（08-22-state-logic-port 批次 4，路径更新）
+  { files: ['src/utils/usageDashboardPayload.ts'], rules: { 'max-params': 'off' } },
   // ── 归 08-22-views-usage（Usage / Dashboard / platform-usage 视图子任务）───────────────
   // src/views/dashboard/dashboardPresentation.ts：max-lines 663、complexity 27、max-params 5，dashboard 展示层归属 views-usage
   { files: ['src/views/dashboard/dashboardPresentation.ts'], rules: { 'max-lines': 'off', complexity: 'off', 'max-params': 'off' } },

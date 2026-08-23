@@ -9,7 +9,7 @@ import {
   normalizeImportResponse,
   normalizeUserVisibleImportJob,
   toUserVisibleImportResult,
-} from '@/stores/usageImportNormalization'
+} from '@/utils/usageImportNormalization'
 
 const result = (overrides: Partial<UsageImportResult> = {}): UsageImportResult => ({
   platform: 'codex',

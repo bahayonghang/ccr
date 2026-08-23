@@ -3,7 +3,9 @@ import { useI18n } from 'vue-i18n'
 import { addBuiltinProvider as apiAddBuiltinProvider, queryCheckinBalance } from '@/api'
 import { logger } from '@/utils/logger'
 import { getErrorMessage } from '@/types/api'
-import { useUIStore } from '@/stores/ui'
+// 过渡期接线（批次 4）：Pinia 已删，Zustand 单例经 getState() 提供同名 API；
+// 批次 5 / views-checkin 转换时整体重写。
+import { useUIStore } from '@/shell/stores/ui'
 import type {
   BalanceSnapshot,
   CheckinProvider,
@@ -42,7 +44,7 @@ export {
  */
 export function useCheckinState() {
   const { t, locale } = useI18n()
-  const uiStore = useUIStore()
+  const uiStore = useUIStore.getState()
 
   // ═══════════════════════════════════════════════════════════
   // 状态

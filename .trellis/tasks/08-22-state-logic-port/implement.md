@@ -49,12 +49,15 @@
 
 ## 批次 4：Zustand store
 
-- [ ] 按 `design.md` §1 建 store：`ui`、`shellPreferences`（带 `persist`，存储键不变）、`commandsView`，以及 `usage` / `configs` / `claudeObserver` 拆出的 UI 态部分。
-- [ ] 公开 API 命名沿用原名（R7）。
-- [ ] 选择器返回对象处用 `useShallow`。自检：无选择器返回新引用导致的无限重渲染。
-- [ ] 13 处 `computed` 转为选择器内计算或 Query 的 `select`。
-- [ ] `usageDashboardPayload.ts`（171 行）与 `usageImportNormalization.ts`（83 行）判定为纯变换后移入 `utils/`，判定依据记录（PRD Notes）。
-- [ ] `src/stores` 下无 Pinia 引用（AC1）。
+- [x]（部分，见偏差）按 `design.md` §1 建 store：`ui`（`shell/stores/ui.ts`）、`shellPreferences`（`shell/stores/shellPreferences.ts`）、`commandsView`（`features/commands/stores.ts`）、`usage` 视图偏好（`features/usage/stores.ts`）、`configs` 选中/搜索/草稿（`features/configs/stores.ts`）。
+  - **偏差 1（persist 中间件未用）**：持久化沿用 themeBootstrap/fontPreferences 的逐 key 写入（ccr-theme / ccr-flavor / ccr-accent / ccr-font-* / ccr-sidebar-width / ccr-commands-view 键全部不变）。理由：首帧 IIFE 与迁移表和这些 key 逐字节对齐（theme-bootstrap.smoke.test.ts 行为锁），persist 中间件的单一 blob 会改变 key 布局破坏契约。「存储键不变」以原语义满足。
+  - **偏差 2（AC1 未完全满足）**：`src/stores/usage.ts` 暂留。其消费方 `src/views/usage/state/*`（5 个 .ts）与 `useUsageDashboardState.ts` 深度耦合 monolith API（数据切片 + import 任务 + auto-refresh + 派生标志），属 `08-22-views-usage`（阶段 5）转换范围，本任务无法在不越界的前提下解除。其余 7 个 Pinia store 已删除（含 2 个纯变换移入 utils）。usage.ts 的删除随 views-usage 落地，外壳门前复核。
+  - **claude 无 Zustand 侧**：claudeObserver store 拆解后仅剩数据切片（已入 Query）与事件监听（已入桥接层），无残余 UI 态——state-disposition.md 预判的「订阅/面板 UI 态」实际不存在，无需建 store（记录为判定修正）。
+- [x] 公开 API 命名沿用原名（R7）：useUIStore / useShellPreferencesStore / useCommandsViewStore 的属性与 action 名与 Pinia 版一致。
+- [x] 选择器约束遵守（全部单值选择器，无对象返回，无 useShallow 需求点）；「裸 useUIStore()」的 4+2 个存量调用点已过渡接线到 getState()（批次 5 重写）。
+- [x] store 内 `computed`（14 处实测）转选择器内计算：localeLabel 为选择器内派生；usage/configs 的 computed 随数据入 Query select。响应式来源登记随批次 5 完成（exhaustive-deps error 级拦截）。
+- [x] `usageDashboardPayload.ts` 与 `usageImportNormalization.ts` 判定为纯变换（判据：无跨调用存活状态、无 ref/computed，仅类型 + 输入→输出函数）移入 `utils/`（git mv），消费测试路径同步更新，eslint 豁免路径更新。
+- [ ] `src/stores` 下无 Pinia 引用（AC1）——**7/8 完成**，usage.ts 暂留（偏差 2），views-usage 转换时删除。
 
 验证：`rg 'pinia|defineStore' src` 无匹配；`bun run type-check`。
 
@@ -149,3 +152,16 @@ Pinia 与 Zustand 在批次 4 前可并存（旧 store 未删除时），因此�
 | `bun run type-check` | 0 | ✓ |
 | `bun run lint:ci` | 0 | ✓ |
 | `rg -c "listen\(" src/shell/eventBridge.ts` | — | 12 处 track（全部经取消协议） |
+
+
+## 批次 4 证据（部分完成，偏差见上）
+
+改动：新增 `shell/stores/{ui,shellPreferences}.ts`、`features/{commands,usage,configs}/stores.ts`、`shell/hooks/useMainLayoutShell.ts`（首个 composable 转换，批次 5 开头）；`git mv` 两个纯变换入 `utils/`；删除 7 个 Pinia store；6 个存量 uiStore 调用点过渡接线（getState()，批次 5/视图子任务重写）。
+
+| 命令 | 退出码 | 结果 |
+| --- | --- | --- |
+| `bun run type-check` | 0 | ✓ |
+| `bun run lint:ci` | 0 | ✓（exhaustive-deps 经 ref 镜像修正，无豁免注释） |
+| `bun run test:smoke` | 0 | 67 文件 / 333 测试全绿 |
+| `just frontend-check-quick` | 0 | 全绿 |
+| `rg 'pinia\|defineStore' src` | — | 仅剩 `src/stores/usage.ts`（偏差 2）与死 .vue |
