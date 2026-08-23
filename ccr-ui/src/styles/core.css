@@ -149,7 +149,7 @@
 
   /* borderRadius：sm/md/lg/xl 取 tokens.css 同名变量。
      2xl/3xl/full 一并映射：不映射时 Tailwind 默认值（1rem/1.5rem/无限大
-     字面量）会绕过 tokens.css 的 12px/16px/9999px，原语圆角将不消费 token。 */
+     字面量）会绕过 tokens.css 的 12/16/9999 像素档，原语圆角将不消费 token。 */
   --radius-sm: var(--radius-sm);
   --radius-md: var(--radius-md);
   --radius-lg: var(--radius-lg);

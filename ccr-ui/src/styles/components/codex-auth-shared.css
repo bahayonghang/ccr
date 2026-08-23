@@ -85,7 +85,7 @@
 
 .codex-auth-view__save-intro,
 .codex-auth-view__composer-card {
-  border: 1px solid var(--stage-border-soft);
+  border: var(--space-px) solid var(--stage-border-soft);
   border-radius: 1.25rem;
   background: var(--color-bg-surface);
   padding: 1.1rem 1.15rem;
@@ -107,7 +107,7 @@
 .codex-auth-view__save-kicker-dot {
   width: 0.45rem;
   height: 0.45rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-full);
   background: var(--color-platform-codex);
   box-shadow: 0 0 0 0.2rem rgb(var(--color-platform-codex-rgb) / 10%);
 }
@@ -143,8 +143,8 @@
   align-items: center;
   gap: 0.35rem;
   min-height: 2rem;
-  border-radius: 9999px;
-  border: 1px solid rgb(var(--color-accent-primary-rgb) / 16%);
+  border-radius: var(--radius-full);
+  border: var(--space-px) solid rgb(var(--color-accent-primary-rgb) / 16%);
   background: rgb(var(--color-accent-primary-rgb) / 10%);
   padding: 0.28rem 0.72rem;
   color: var(--color-accent-primary);
@@ -172,7 +172,7 @@
   min-height: 100%;
   padding: 0.95rem 1rem;
   border-radius: 1rem;
-  border: 1px solid var(--stage-border-soft);
+  border: var(--space-px) solid var(--stage-border-soft);
   background: var(--stage-surface-soft);
 }
 
@@ -262,8 +262,8 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  border: 1px solid var(--stage-border-soft);
-  border-radius: 9999px;
+  border: var(--space-px) solid var(--stage-border-soft);
+  border-radius: var(--radius-full);
   background: var(--stage-surface-soft);
   color: var(--stage-text-secondary);
   padding: 0.625rem 0.95rem;
@@ -276,7 +276,7 @@
 }
 
 .codex-auth-view__segment-count {
-  border-radius: 9999px;
+  border-radius: var(--radius-full);
   background: rgb(var(--color-bg-overlay-rgb) / 65%);
   padding: 0.1rem 0.45rem;
   font-size: 0.75rem;
@@ -301,7 +301,7 @@
 
 .codex-auth-view__field-code,
 .codex-auth-view__textarea {
-  border: 1px solid var(--stage-border-soft);
+  border: var(--space-px) solid var(--stage-border-soft);
   border-radius: 0.75rem;
   padding: 0.75rem 0.9rem;
   color: var(--stage-text-primary);
@@ -344,7 +344,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  border: 1px solid rgb(var(--color-danger-rgb) / 20%);
+  border: var(--space-px) solid rgb(var(--color-danger-rgb) / 20%);
   border-radius: 0.375rem;
   background: rgb(var(--color-danger-rgb) / 10%);
   padding: 0.125rem 0.5rem;
@@ -374,7 +374,7 @@
 .codex-auth-view__guard-error,
 .codex-auth-view__inline-error {
   margin-top: 0.75rem;
-  border: 1px solid rgb(var(--color-danger-rgb) / 20%);
+  border: var(--space-px) solid rgb(var(--color-danger-rgb) / 20%);
   border-radius: 0.75rem;
   background: rgb(var(--color-danger-rgb) / 10%);
   padding: 0.75rem 0.9rem;
@@ -384,7 +384,7 @@
 }
 
 .codex-auth-view__inline-note {
-  border: 1px solid rgb(var(--color-accent-primary-rgb) / 20%);
+  border: var(--space-px) solid rgb(var(--color-accent-primary-rgb) / 20%);
   border-radius: 0.75rem;
   background: rgb(var(--color-accent-primary-rgb) / 10%);
   padding: 0.75rem 0.9rem;
@@ -397,8 +397,8 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  border: 1px solid var(--stage-border-soft);
-  border-radius: 9999px;
+  border: var(--space-px) solid var(--stage-border-soft);
+  border-radius: var(--radius-full);
   background: var(--stage-surface-soft);
   padding: 0.75rem 1rem;
   color: var(--stage-text-secondary);
@@ -421,8 +421,8 @@
 
 .codex-auth-view__filter-pill,
 .codex-auth-view__filter-select {
-  border: 1px solid var(--stage-border-soft);
-  border-radius: 9999px;
+  border: var(--space-px) solid var(--stage-border-soft);
+  border-radius: var(--radius-full);
   background: var(--stage-surface-soft);
   color: var(--stage-text-secondary);
   font-size: 0.75rem;
@@ -482,7 +482,7 @@
 .codex-auth-view__provider-card,
 .codex-auth-view__preset,
 .codex-auth-view__warning-panel {
-  border: 1px solid var(--stage-border-soft);
+  border: var(--space-px) solid var(--stage-border-soft);
   border-radius: 1rem;
   background: var(--stage-surface-soft);
   padding: 1rem;
@@ -509,7 +509,7 @@
 .codex-auth-view__provider-badge {
   display: inline-flex;
   align-items: center;
-  border-radius: 9999px;
+  border-radius: var(--radius-full);
   padding: 0.2rem 0.55rem;
   background: rgb(var(--color-accent-primary-rgb) / 10%);
   color: var(--color-accent-primary);
@@ -529,7 +529,7 @@
 .codex-auth-view__provider-footer {
   margin-top: 0.9rem;
   padding-top: 0.9rem;
-  border-top: 1px solid var(--stage-border-soft);
+  border-top: var(--space-px) solid var(--stage-border-soft);
 }
 
 .codex-auth-view__preset {

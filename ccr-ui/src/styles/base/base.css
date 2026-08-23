@@ -114,8 +114,8 @@
   input:focus-visible,
   textarea:focus-visible,
   select:focus-visible {
-    outline: 2px solid rgb(var(--color-accent-primary-rgb) / 50%);
-    outline-offset: 2px;
+    outline: var(--space-0-5) solid rgb(var(--color-accent-primary-rgb) / 50%);
+    outline-offset: var(--space-0-5);
   }
 
   /* 表格重置 */
@@ -143,8 +143,8 @@
 
   /* ========== 滚动条样式 ========== */
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: var(--space-2);
+    height: var(--space-2);
   }
 
   ::-webkit-scrollbar-track {
@@ -170,8 +170,8 @@
 
   /* ========== 焦点可见性 ========== */
   :focus-visible {
-    outline: 2px solid var(--color-accent-primary);
-    outline-offset: 2px;
+    outline: var(--space-0-5) solid var(--color-accent-primary);
+    outline-offset: var(--space-0-5);
     border-radius: var(--radius-sm);
   }
 
@@ -218,7 +218,7 @@
   .glass-card {
     background: var(--surface-card-bg);
     backdrop-filter: var(--surface-card-blur);
-    border: 1px solid var(--surface-card-border);
+    border: var(--space-px) solid var(--surface-card-border);
     box-shadow: var(--surface-card-shadow);
     border-radius: var(--radius-xl);
     overflow: hidden;

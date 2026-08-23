@@ -12,7 +12,7 @@
     /* ========== Dashboard Workspace Utilities ========== */
     .glass-panel {
         background: var(--surface-card-bg);
-        border: 1px solid var(--surface-card-border);
+        border: var(--space-px) solid var(--surface-card-border);
         box-shadow: var(--surface-card-shadow);
         backdrop-filter: var(--surface-card-blur);
         transition:
@@ -34,7 +34,7 @@
        普通内容卡片禁止使用这三个类，一律走不透明 surface-card/workspace 语义。 */
     .glass-floating {
         background: var(--material-glass-floating-bg);
-        border: 1px solid var(--material-glass-floating-border);
+        border: var(--space-px) solid var(--material-glass-floating-border);
         box-shadow: var(--material-glass-floating-highlight), var(--material-glass-floating-shadow);
         backdrop-filter: var(--material-glass-floating-blur);
         /* stylelint-disable-next-line property-no-vendor-prefix */
@@ -44,7 +44,7 @@
 
     .glass-chrome {
         background: var(--material-glass-chrome-bg);
-        border: 1px solid var(--material-glass-chrome-border);
+        border: var(--space-px) solid var(--material-glass-chrome-border);
         box-shadow: var(--material-glass-chrome-highlight), var(--material-glass-chrome-shadow);
         backdrop-filter: var(--material-glass-chrome-blur);
         /* stylelint-disable-next-line property-no-vendor-prefix */
@@ -54,7 +54,7 @@
 
     .glass-inline {
         background: var(--material-glass-inline-bg);
-        border: 1px solid var(--material-glass-inline-border);
+        border: var(--space-px) solid var(--material-glass-inline-border);
         box-shadow: var(--material-glass-inline-highlight), var(--material-glass-inline-shadow);
         backdrop-filter: var(--material-glass-inline-blur);
         /* stylelint-disable-next-line property-no-vendor-prefix */
@@ -67,7 +67,7 @@
         border-radius: var(--radius-lg);
         font-size: var(--text-xs);
         background: var(--color-bg-elevated);
-        border: 1px solid var(--color-border-default);
+        border: var(--space-px) solid var(--color-border-default);
         color: var(--color-text-primary);
         transition:
             border-color var(--duration-fast) var(--ease-out),
@@ -81,14 +81,14 @@
     }
 
     .toolbar-select:focus-visible {
-        outline: 2px solid rgb(var(--color-accent-primary-rgb) / 50%);
-        outline-offset: 2px;
+        outline: var(--space-0-5) solid rgb(var(--color-accent-primary-rgb) / 50%);
+        outline-offset: var(--space-0-5);
     }
 
     /* ========== 配置卡片样式 ========== */
     .config-card-active {
         background: rgb(var(--color-accent-primary-rgb) / 10%);
-        border: 1px solid rgb(var(--color-accent-primary-rgb) / 24%);
+        border: var(--space-px) solid rgb(var(--color-accent-primary-rgb) / 24%);
         border-radius: var(--radius-2xl);
         box-shadow: none;
     }
@@ -105,7 +105,7 @@
         position: absolute;
         inset: 0;
         border-radius: inherit;
-        border: 1px solid var(--color-border-subtle);
+        border: var(--space-px) solid var(--color-border-subtle);
         pointer-events: none;
     }
 
@@ -141,7 +141,7 @@
     /* ========== 卡片样式 ========== */
     .neo-card {
         background: var(--color-bg-elevated);
-        border: 1px solid var(--color-border-subtle);
+        border: var(--space-px) solid var(--color-border-subtle);
         border-radius: var(--radius-xl);
         padding: var(--space-6);
         transition:
@@ -191,7 +191,7 @@
     .nav-item-active {
         background: rgb(var(--color-accent-primary-rgb) / 10%);
         color: var(--color-text-primary);
-        border: 1px solid rgb(var(--color-accent-primary-rgb) / 24%);
+        border: var(--space-px) solid rgb(var(--color-accent-primary-rgb) / 24%);
     }
 
     .nav-item-active:hover {
@@ -200,14 +200,14 @@
 
     .nav-item-active-glow {
         background: rgb(var(--color-accent-primary-rgb) / 10%);
-        border: 1px solid rgb(var(--color-accent-primary-rgb) / 24%);
+        border: var(--space-px) solid rgb(var(--color-accent-primary-rgb) / 24%);
         box-shadow: none;
     }
 
     /* 导航项非激活状态 */
     .nav-item-inactive {
         background: var(--glass-bg-light);
-        border: 1px solid rgb(var(--color-accent-primary-rgb), 0.2);
+        border: var(--space-px) solid rgb(var(--color-accent-primary-rgb), 0.2);
         box-shadow: 0 2px 8px rgb(0 0 0 / 10%);
     }
 
@@ -260,7 +260,7 @@
     .btn-secondary {
         background: var(--color-bg-surface);
         color: var(--color-text-primary);
-        border: 1px solid var(--color-border-default);
+        border: var(--space-px) solid var(--color-border-default);
     }
 
     .btn-secondary:hover:not(:disabled) {
@@ -304,7 +304,7 @@
         width: 100%;
         padding: var(--space-2-5) var(--space-4);
         background: var(--color-bg-surface);
-        border: 1px solid var(--color-border-default);
+        border: var(--space-px) solid var(--color-border-default);
         border-radius: var(--radius-lg);
         color: var(--color-text-primary);
         font-size: var(--text-base);
@@ -381,8 +381,8 @@
 
     /* ========== 状态指示器 ========== */
     .status-dot {
-        width: 8px;
-        height: 8px;
+        width: var(--space-2);
+        height: var(--space-2);
         border-radius: var(--radius-full);
         flex-shrink: 0;
     }
@@ -484,7 +484,7 @@
     .neo-table td {
         padding: var(--space-3) var(--space-4);
         text-align: left;
-        border-bottom: 1px solid var(--color-border-subtle);
+        border-bottom: var(--space-px) solid var(--color-border-subtle);
     }
 
     .neo-table th {
@@ -516,8 +516,8 @@
     }
 
     .empty-state-icon {
-        width: 64px;
-        height: 64px;
+        width: var(--space-16);
+        height: var(--space-16);
         margin-bottom: var(--space-4);
         opacity: 0.5;
     }
@@ -627,7 +627,7 @@
         position: absolute;
         inset: 0;
         border-radius: inherit;
-        border: 1px solid var(--color-border-subtle);
+        border: var(--space-px) solid var(--color-border-subtle);
         pointer-events: none;
     }
 
@@ -663,8 +663,8 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 48px;
-        height: 48px;
+        width: var(--space-12);
+        height: var(--space-12);
         border-radius: var(--radius-xl);
         background: rgb(var(--color-accent-primary-rgb) / 10%);
         color: var(--color-accent-primary);
@@ -688,7 +688,7 @@
         padding: var(--space-0-5) var(--space-2);
         border-radius: var(--radius-md);
         background: var(--color-bg-surface);
-        border: 1px solid var(--color-border-subtle);
+        border: var(--space-px) solid var(--color-border-subtle);
         font-family: var(--font-mono);
         font-size: 0.875em;
         color: var(--color-accent-primary);
@@ -698,7 +698,7 @@
         padding: var(--space-4);
         border-radius: var(--radius-lg);
         background: var(--color-bg-surface);
-        border: 1px solid var(--color-border-subtle);
+        border: var(--space-px) solid var(--color-border-subtle);
         font-family: var(--font-mono);
         font-size: var(--text-sm);
         color: var(--color-text-primary);

@@ -217,10 +217,29 @@ utilities/animations/chart-colors，deferred-decorations 含 backgrounds。
 
 ## 批次 6：CSS 侧硬编码收口
 
-- [ ] `.css` 内 290 处 px 与 102 处 hex 映射到 token。
-- [ ] `hardcode-mapping.md` 落盘：常见字面量到 token 名的查表映射，供七个视图子任务使用。
-- [ ] `hardcode-exemptions.md` 落盘：图表与画布等确需字面量的场景逐条登记。
-- [ ] `0.75rem` 字号例外保留并在映射表中标注。
+- [x] `.css` 内 px 与 hex 映射到 token。**实测口径修正**：原估 290 px / 102 hex 含 token 定义值与注释标注。注释剥离后的真实消费侧为 px 155 处、hex 0 处（hex 全部在 tokens.css/chart-colors.css 定义源头）。本批次映射 78 处 px（77 处脚本映射 + 1 处 dashed 边框补映射），残留 76 处全部登记豁免；数值严格相等映射（根字号 16px 下 rem 换算精确），零视觉变化。
+- [x] `hardcode-mapping.md` 落盘：字面量 → token 查表（间距/圆角/颜色 triplet/阴影/字号），供七个视图子任务使用。含 `0.75rem` 字号例外标注。
+- [x] `hardcode-exemptions.md` 落盘：残留逐条登记，10 类（A token 定义源头 76 px + 91 hex + 68 字面量 rgb；B–J 消费侧 76 处），消费侧小计核对一致。
+- [x] `0.75rem` 字号例外保留并在映射表中标注（hardcode-mapping.md「字号」节 + 豁免 §E 的 14px/7px 密集行族）。
+
+### 批次 6 落位决策
+
+1. **token 定义源头不算硬编码**：tokens.css 的 76 px / 91 hex / 68 字面量 rgb 是 token 体系自身的定义值（映射目标是它自己），登记为文件级豁免（§A）而非改写。
+2. **只做数值精确映射**：规则表见 `hardcode-transform.py`（一次性脚本，记录 JSON 同目录）。不新增任何 CSS 变量名（AC13 名字集合不变的持续约束），全部映射指向既有 `--space-*` / `--radius-*`。
+3. **tokens.css 的 34 处 `/* Npx */` 注释标注删除 + 3 处含 px 的说明注释改写为「N 像素」**：使 AC1 的 `rg` 计数只反映真实值（152 = 76 定义 + 76 豁免，与豁免登记逐条对账）。
+4. **AC2 消费侧归零**：字面量 `rgb()/rgba()` 消费侧仅剩 1 处遗留阴影（utilities.css:211，与 `--shadow-sm` 不等值，移交 shell-port 迁移时重判，§I）；其余 68 处在定义源头。
+
+### 批次 6 证据
+
+改动：9 个 css 文件（映射 + 注释清理），`git diff --stat` 80 insertions / 112 deletions；交付物 `hardcode-mapping.md`、`hardcode-exemptions.md`、`hardcode-transform.py` + `hardcode-transform-records.json`（77 条映射 + 69 行豁免原始记录）。
+
+| 命令 | 退出码 | 结果 |
+| --- | --- | --- |
+| `rg -o '[0-9]+px' -g '*.css' src/styles \| wc -l` | — | 152（收口前 268；= §A 76 + §B–J 76，登记数与残留数相等） |
+| 消费侧字面量 rgb/rgba 计数（脚本，注释剥离） | — | 1（§I 遗留阴影）；其余 68 在 tokens.css 定义层 |
+| `bun run lint:style` | 0 | ✓（stylelint --fix 消除注释删除后的空行违规） |
+| `bun run build` | 0 | ✓ |
+| `bun run test:smoke` | 0 | 64 文件 / 323 测试全绿（含三个 tokens.css 解析契约与 theme-switch，注释清理未破坏选择器断言） |
 
 `.tsx` 内的 2,591 处（1,639 px + 932 rgba + 20 hex）不在本批次，随各视图迁移收口。该部分归 AC12，由父任务视图门核对，不是本任务交付门的准出条件。本任务只保证 `src/styles/**` 侧归零与映射表可用（AC1、AC2）。
 

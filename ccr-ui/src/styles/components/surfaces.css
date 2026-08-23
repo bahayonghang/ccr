@@ -14,7 +14,7 @@
   /* stylelint-disable-next-line property-no-vendor-prefix */
   -webkit-backdrop-filter: var(--surface-shell-blur);
   backdrop-filter: var(--surface-shell-blur);
-  border: 1px solid var(--surface-shell-border);
+  border: var(--space-px) solid var(--surface-shell-border);
   box-shadow: var(--surface-shell-shadow), var(--liquid-glass-highlight);
 }
 
@@ -25,7 +25,7 @@
   /* stylelint-disable-next-line property-no-vendor-prefix */
   -webkit-backdrop-filter: var(--surface-workspace-blur);
   backdrop-filter: var(--surface-workspace-blur);
-  border: 1px solid var(--surface-workspace-border);
+  border: var(--space-px) solid var(--surface-workspace-border);
   box-shadow: var(--surface-workspace-shadow);
 }
 
@@ -36,7 +36,7 @@
   /* stylelint-disable-next-line property-no-vendor-prefix */
   -webkit-backdrop-filter: var(--surface-card-blur);
   backdrop-filter: var(--surface-card-blur);
-  border: 1px solid var(--surface-card-border);
+  border: var(--space-px) solid var(--surface-card-border);
   box-shadow: var(--surface-card-shadow);
 }
 
@@ -46,7 +46,7 @@
   /* stylelint-disable-next-line property-no-vendor-prefix */
   -webkit-backdrop-filter: var(--surface-modal-blur);
   backdrop-filter: var(--surface-modal-blur);
-  border: 1px solid var(--surface-modal-border);
+  border: var(--space-px) solid var(--surface-modal-border);
   box-shadow: var(--surface-modal-shadow);
 }
 
@@ -55,6 +55,6 @@
   /* stylelint-disable-next-line property-no-vendor-prefix */
   -webkit-backdrop-filter: var(--surface-status-blur);
   backdrop-filter: var(--surface-status-blur);
-  border: 1px solid var(--surface-status-border);
+  border: var(--space-px) solid var(--surface-status-border);
   box-shadow: var(--surface-status-shadow);
 }

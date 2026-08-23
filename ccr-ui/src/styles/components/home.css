@@ -27,9 +27,9 @@
   --home-section-gap-tight: 0.75rem;
   --home-card-pad: 1rem;
   --home-card-pad-tight: 0.75rem;
-  --home-card-radius: 12px;
+  --home-card-radius: var(--radius-2xl);
   --home-divider-inset: 4rem;
-  --home-divider-anchor-width: 32px;
+  --home-divider-anchor-width: var(--space-8);
 
   /* === Elevation 三档 === */
   --home-elevation-base: 0 1px 0 rgb(var(--color-border-default-rgb) / 8%);

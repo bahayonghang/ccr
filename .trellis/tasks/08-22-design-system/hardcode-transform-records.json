@@ -1,0 +1,813 @@
+{
+  "mapped": [
+    {
+      "file": "src/styles/base/base.css",
+      "line": 117,
+      "before": "outline: 2px solid rgb(var(--color-accent-primary-rgb) / 50%);",
+      "after": "outline: var(--space-0-5) solid rgb(var(--color-accent-primary-rgb) / 50%);"
+    },
+    {
+      "file": "src/styles/base/base.css",
+      "line": 118,
+      "before": "outline-offset: 2px;",
+      "after": "outline-offset: var(--space-0-5);"
+    },
+    {
+      "file": "src/styles/base/base.css",
+      "line": 146,
+      "before": "width: 8px;",
+      "after": "width: var(--space-2);"
+    },
+    {
+      "file": "src/styles/base/base.css",
+      "line": 147,
+      "before": "height: 8px;",
+      "after": "height: var(--space-2);"
+    },
+    {
+      "file": "src/styles/base/base.css",
+      "line": 173,
+      "before": "outline: 2px solid var(--color-accent-primary);",
+      "after": "outline: var(--space-0-5) solid var(--color-accent-primary);"
+    },
+    {
+      "file": "src/styles/base/base.css",
+      "line": 174,
+      "before": "outline-offset: 2px;",
+      "after": "outline-offset: var(--space-0-5);"
+    },
+    {
+      "file": "src/styles/base/base.css",
+      "line": 221,
+      "before": "border: 1px solid var(--surface-card-border);",
+      "after": "border: var(--space-px) solid var(--surface-card-border);"
+    },
+    {
+      "file": "src/styles/components/checkin-shared.css",
+      "line": 11,
+      "before": "border: 1px solid var(--color-border-default);",
+      "after": "border: var(--space-px) solid var(--color-border-default);"
+    },
+    {
+      "file": "src/styles/components/codex-auth-shared.css",
+      "line": 88,
+      "before": "border: 1px solid var(--stage-border-soft);",
+      "after": "border: var(--space-px) solid var(--stage-border-soft);"
+    },
+    {
+      "file": "src/styles/components/codex-auth-shared.css",
+      "line": 110,
+      "before": "border-radius: 9999px;",
+      "after": "border-radius: var(--radius-full);"
+    },
+    {
+      "file": "src/styles/components/codex-auth-shared.css",
+      "line": 146,
+      "before": "border-radius: 9999px;",
+      "after": "border-radius: var(--radius-full);"
+    },
+    {
+      "file": "src/styles/components/codex-auth-shared.css",
+      "line": 147,
+      "before": "border: 1px solid rgb(var(--color-accent-primary-rgb) / 16%);",
+      "after": "border: var(--space-px) solid rgb(var(--color-accent-primary-rgb) / 16%);"
+    },
+    {
+      "file": "src/styles/components/codex-auth-shared.css",
+      "line": 175,
+      "before": "border: 1px solid var(--stage-border-soft);",
+      "after": "border: var(--space-px) solid var(--stage-border-soft);"
+    },
+    {
+      "file": "src/styles/components/codex-auth-shared.css",
+      "line": 265,
+      "before": "border: 1px solid var(--stage-border-soft);",
+      "after": "border: var(--space-px) solid var(--stage-border-soft);"
+    },
+    {
+      "file": "src/styles/components/codex-auth-shared.css",
+      "line": 266,
+      "before": "border-radius: 9999px;",
+      "after": "border-radius: var(--radius-full);"
+    },
+    {
+      "file": "src/styles/components/codex-auth-shared.css",
+      "line": 279,
+      "before": "border-radius: 9999px;",
+      "after": "border-radius: var(--radius-full);"
+    },
+    {
+      "file": "src/styles/components/codex-auth-shared.css",
+      "line": 304,
+      "before": "border: 1px solid var(--stage-border-soft);",
+      "after": "border: var(--space-px) solid var(--stage-border-soft);"
+    },
+    {
+      "file": "src/styles/components/codex-auth-shared.css",
+      "line": 347,
+      "before": "border: 1px solid rgb(var(--color-danger-rgb) / 20%);",
+      "after": "border: var(--space-px) solid rgb(var(--color-danger-rgb) / 20%);"
+    },
+    {
+      "file": "src/styles/components/codex-auth-shared.css",
+      "line": 377,
+      "before": "border: 1px solid rgb(var(--color-danger-rgb) / 20%);",
+      "after": "border: var(--space-px) solid rgb(var(--color-danger-rgb) / 20%);"
+    },
+    {
+      "file": "src/styles/components/codex-auth-shared.css",
+      "line": 387,
+      "before": "border: 1px solid rgb(var(--color-accent-primary-rgb) / 20%);",
+      "after": "border: var(--space-px) solid rgb(var(--color-accent-primary-rgb) / 20%);"
+    },
+    {
+      "file": "src/styles/components/codex-auth-shared.css",
+      "line": 400,
+      "before": "border: 1px solid var(--stage-border-soft);",
+      "after": "border: var(--space-px) solid var(--stage-border-soft);"
+    },
+    {
+      "file": "src/styles/components/codex-auth-shared.css",
+      "line": 401,
+      "before": "border-radius: 9999px;",
+      "after": "border-radius: var(--radius-full);"
+    },
+    {
+      "file": "src/styles/components/codex-auth-shared.css",
+      "line": 424,
+      "before": "border: 1px solid var(--stage-border-soft);",
+      "after": "border: var(--space-px) solid var(--stage-border-soft);"
+    },
+    {
+      "file": "src/styles/components/codex-auth-shared.css",
+      "line": 425,
+      "before": "border-radius: 9999px;",
+      "after": "border-radius: var(--radius-full);"
+    },
+    {
+      "file": "src/styles/components/codex-auth-shared.css",
+      "line": 485,
+      "before": "border: 1px solid var(--stage-border-soft);",
+      "after": "border: var(--space-px) solid var(--stage-border-soft);"
+    },
+    {
+      "file": "src/styles/components/codex-auth-shared.css",
+      "line": 512,
+      "before": "border-radius: 9999px;",
+      "after": "border-radius: var(--radius-full);"
+    },
+    {
+      "file": "src/styles/components/codex-auth-shared.css",
+      "line": 532,
+      "before": "border-top: 1px solid var(--stage-border-soft);",
+      "after": "border-top: var(--space-px) solid var(--stage-border-soft);"
+    },
+    {
+      "file": "src/styles/components/home.css",
+      "line": 30,
+      "before": "--home-card-radius: 12px;",
+      "after": "--home-card-radius: var(--radius-2xl);"
+    },
+    {
+      "file": "src/styles/components/home.css",
+      "line": 32,
+      "before": "--home-divider-anchor-width: 32px;",
+      "after": "--home-divider-anchor-width: var(--space-8);"
+    },
+    {
+      "file": "src/styles/components/profiles-page.css",
+      "line": 49,
+      "before": "gap: 16px;",
+      "after": "gap: var(--space-4);"
+    },
+    {
+      "file": "src/styles/components/profiles-page.css",
+      "line": 62,
+      "before": "gap: 10px;",
+      "after": "gap: var(--space-2-5);"
+    },
+    {
+      "file": "src/styles/components/profiles-page.css",
+      "line": 68,
+      "before": "gap: 6px;",
+      "after": "gap: var(--space-1-5);"
+    },
+    {
+      "file": "src/styles/components/profiles-page.css",
+      "line": 77,
+      "before": "gap: 12px;",
+      "after": "gap: var(--space-3);"
+    },
+    {
+      "file": "src/styles/components/profiles-page.css",
+      "line": 90,
+      "before": "outline: 2px solid var(--cp-accent);",
+      "after": "outline: var(--space-0-5) solid var(--cp-accent);"
+    },
+    {
+      "file": "src/styles/components/profiles-page.css",
+      "line": 91,
+      "before": "outline-offset: 2px;",
+      "after": "outline-offset: var(--space-0-5);"
+    },
+    {
+      "file": "src/styles/components/profiles-page.css",
+      "line": 100,
+      "before": "gap: 8px;",
+      "after": "gap: var(--space-2);"
+    },
+    {
+      "file": "src/styles/components/profiles-page.css",
+      "line": 101,
+      "before": "padding: 48px 16px;",
+      "after": "padding: var(--space-12) var(--space-4);"
+    },
+    {
+      "file": "src/styles/components/profiles-page.css",
+      "line": 102,
+      "before": "border-radius: 12px;",
+      "after": "border-radius: var(--radius-2xl);"
+    },
+    {
+      "file": "src/styles/components/profiles-page.css",
+      "line": 135,
+      "before": "gap: 6px;",
+      "after": "gap: var(--space-1-5);"
+    },
+    {
+      "file": "src/styles/components/profiles-page.css",
+      "line": 136,
+      "before": "margin-top: 4px;",
+      "after": "margin-top: var(--space-1);"
+    },
+    {
+      "file": "src/styles/components/profiles-page.css",
+      "line": 138,
+      "before": "border-radius: 8px;",
+      "after": "border-radius: var(--radius-lg);"
+    },
+    {
+      "file": "src/styles/components/profiles-page.css",
+      "line": 139,
+      "before": "border: 1px solid var(--cp-line-2);",
+      "after": "border: var(--space-px) solid var(--cp-line-2);"
+    },
+    {
+      "file": "src/styles/components/profiles-page.css",
+      "line": 166,
+      "before": "width: 32px;",
+      "after": "width: var(--space-8);"
+    },
+    {
+      "file": "src/styles/components/profiles-page.css",
+      "line": 167,
+      "before": "height: 32px;",
+      "after": "height: var(--space-8);"
+    },
+    {
+      "file": "src/styles/components/profiles-page.css",
+      "line": 168,
+      "before": "border-radius: 999px;",
+      "after": "border-radius: var(--radius-full);"
+    },
+    {
+      "file": "src/styles/components/profiles-page.css",
+      "line": 169,
+      "before": "border: 2px solid var(--cp-line-2);",
+      "after": "border: var(--space-0-5) solid var(--cp-line-2);"
+    },
+    {
+      "file": "src/styles/components/profiles-page.css",
+      "line": 204,
+      "before": "padding: 16px;",
+      "after": "padding: var(--space-4);"
+    },
+    {
+      "file": "src/styles/components/surfaces.css",
+      "line": 17,
+      "before": "border: 1px solid var(--surface-shell-border);",
+      "after": "border: var(--space-px) solid var(--surface-shell-border);"
+    },
+    {
+      "file": "src/styles/components/surfaces.css",
+      "line": 28,
+      "before": "border: 1px solid var(--surface-workspace-border);",
+      "after": "border: var(--space-px) solid var(--surface-workspace-border);"
+    },
+    {
+      "file": "src/styles/components/surfaces.css",
+      "line": 39,
+      "before": "border: 1px solid var(--surface-card-border);",
+      "after": "border: var(--space-px) solid var(--surface-card-border);"
+    },
+    {
+      "file": "src/styles/components/surfaces.css",
+      "line": 49,
+      "before": "border: 1px solid var(--surface-modal-border);",
+      "after": "border: var(--space-px) solid var(--surface-modal-border);"
+    },
+    {
+      "file": "src/styles/components/surfaces.css",
+      "line": 58,
+      "before": "border: 1px solid var(--surface-status-border);",
+      "after": "border: var(--space-px) solid var(--surface-status-border);"
+    },
+    {
+      "file": "src/styles/utilities/utilities.css",
+      "line": 15,
+      "before": "border: 1px solid var(--surface-card-border);",
+      "after": "border: var(--space-px) solid var(--surface-card-border);"
+    },
+    {
+      "file": "src/styles/utilities/utilities.css",
+      "line": 37,
+      "before": "border: 1px solid var(--material-glass-floating-border);",
+      "after": "border: var(--space-px) solid var(--material-glass-floating-border);"
+    },
+    {
+      "file": "src/styles/utilities/utilities.css",
+      "line": 47,
+      "before": "border: 1px solid var(--material-glass-chrome-border);",
+      "after": "border: var(--space-px) solid var(--material-glass-chrome-border);"
+    },
+    {
+      "file": "src/styles/utilities/utilities.css",
+      "line": 57,
+      "before": "border: 1px solid var(--material-glass-inline-border);",
+      "after": "border: var(--space-px) solid var(--material-glass-inline-border);"
+    },
+    {
+      "file": "src/styles/utilities/utilities.css",
+      "line": 70,
+      "before": "border: 1px solid var(--color-border-default);",
+      "after": "border: var(--space-px) solid var(--color-border-default);"
+    },
+    {
+      "file": "src/styles/utilities/utilities.css",
+      "line": 84,
+      "before": "outline: 2px solid rgb(var(--color-accent-primary-rgb) / 50%);",
+      "after": "outline: var(--space-0-5) solid rgb(var(--color-accent-primary-rgb) / 50%);"
+    },
+    {
+      "file": "src/styles/utilities/utilities.css",
+      "line": 85,
+      "before": "outline-offset: 2px;",
+      "after": "outline-offset: var(--space-0-5);"
+    },
+    {
+      "file": "src/styles/utilities/utilities.css",
+      "line": 91,
+      "before": "border: 1px solid rgb(var(--color-accent-primary-rgb) / 24%);",
+      "after": "border: var(--space-px) solid rgb(var(--color-accent-primary-rgb) / 24%);"
+    },
+    {
+      "file": "src/styles/utilities/utilities.css",
+      "line": 108,
+      "before": "border: 1px solid var(--color-border-subtle);",
+      "after": "border: var(--space-px) solid var(--color-border-subtle);"
+    },
+    {
+      "file": "src/styles/utilities/utilities.css",
+      "line": 144,
+      "before": "border: 1px solid var(--color-border-subtle);",
+      "after": "border: var(--space-px) solid var(--color-border-subtle);"
+    },
+    {
+      "file": "src/styles/utilities/utilities.css",
+      "line": 194,
+      "before": "border: 1px solid rgb(var(--color-accent-primary-rgb) / 24%);",
+      "after": "border: var(--space-px) solid rgb(var(--color-accent-primary-rgb) / 24%);"
+    },
+    {
+      "file": "src/styles/utilities/utilities.css",
+      "line": 203,
+      "before": "border: 1px solid rgb(var(--color-accent-primary-rgb) / 24%);",
+      "after": "border: var(--space-px) solid rgb(var(--color-accent-primary-rgb) / 24%);"
+    },
+    {
+      "file": "src/styles/utilities/utilities.css",
+      "line": 210,
+      "before": "border: 1px solid rgb(var(--color-accent-primary-rgb), 0.2);",
+      "after": "border: var(--space-px) solid rgb(var(--color-accent-primary-rgb), 0.2);"
+    },
+    {
+      "file": "src/styles/utilities/utilities.css",
+      "line": 263,
+      "before": "border: 1px solid var(--color-border-default);",
+      "after": "border: var(--space-px) solid var(--color-border-default);"
+    },
+    {
+      "file": "src/styles/utilities/utilities.css",
+      "line": 307,
+      "before": "border: 1px solid var(--color-border-default);",
+      "after": "border: var(--space-px) solid var(--color-border-default);"
+    },
+    {
+      "file": "src/styles/utilities/utilities.css",
+      "line": 384,
+      "before": "width: 8px;",
+      "after": "width: var(--space-2);"
+    },
+    {
+      "file": "src/styles/utilities/utilities.css",
+      "line": 385,
+      "before": "height: 8px;",
+      "after": "height: var(--space-2);"
+    },
+    {
+      "file": "src/styles/utilities/utilities.css",
+      "line": 487,
+      "before": "border-bottom: 1px solid var(--color-border-subtle);",
+      "after": "border-bottom: var(--space-px) solid var(--color-border-subtle);"
+    },
+    {
+      "file": "src/styles/utilities/utilities.css",
+      "line": 519,
+      "before": "width: 64px;",
+      "after": "width: var(--space-16);"
+    },
+    {
+      "file": "src/styles/utilities/utilities.css",
+      "line": 520,
+      "before": "height: 64px;",
+      "after": "height: var(--space-16);"
+    },
+    {
+      "file": "src/styles/utilities/utilities.css",
+      "line": 630,
+      "before": "border: 1px solid var(--color-border-subtle);",
+      "after": "border: var(--space-px) solid var(--color-border-subtle);"
+    },
+    {
+      "file": "src/styles/utilities/utilities.css",
+      "line": 666,
+      "before": "width: 48px;",
+      "after": "width: var(--space-12);"
+    },
+    {
+      "file": "src/styles/utilities/utilities.css",
+      "line": 667,
+      "before": "height: 48px;",
+      "after": "height: var(--space-12);"
+    },
+    {
+      "file": "src/styles/utilities/utilities.css",
+      "line": 691,
+      "before": "border: 1px solid var(--color-border-subtle);",
+      "after": "border: var(--space-px) solid var(--color-border-subtle);"
+    },
+    {
+      "file": "src/styles/utilities/utilities.css",
+      "line": 701,
+      "before": "border: 1px solid var(--color-border-subtle);",
+      "after": "border: var(--space-px) solid var(--color-border-subtle);"
+    }
+  ],
+  "exempted": [
+    {
+      "file": "src/styles/animations.css",
+      "line": 34,
+      "text": "transform: translateY(10px);"
+    },
+    {
+      "file": "src/styles/animations.css",
+      "line": 47,
+      "text": "transform: translateY(-10px);"
+    },
+    {
+      "file": "src/styles/animations.css",
+      "line": 60,
+      "text": "transform: translateX(-10px);"
+    },
+    {
+      "file": "src/styles/animations.css",
+      "line": 73,
+      "text": "transform: translateX(10px);"
+    },
+    {
+      "file": "src/styles/animations.css",
+      "line": 160,
+      "text": "transform: translateX(-4px);"
+    },
+    {
+      "file": "src/styles/animations.css",
+      "line": 167,
+      "text": "transform: translateX(4px);"
+    },
+    {
+      "file": "src/styles/animations.css",
+      "line": 202,
+      "text": "transform: translateX(-8px);"
+    },
+    {
+      "file": "src/styles/animations.css",
+      "line": 215,
+      "text": "transform: translateY(12px) scale(0.98);"
+    },
+    {
+      "file": "src/styles/animations.css",
+      "line": 228,
+      "text": "transform: scale(0.95) translateY(-10px);"
+    },
+    {
+      "file": "src/styles/animations.css",
+      "line": 246,
+      "text": "transform: scale(0.95) translateY(-10px);"
+    },
+    {
+      "file": "src/styles/animations.css",
+      "line": 433,
+      "text": "transform: translateY(-2px);"
+    },
+    {
+      "file": "src/styles/animations.css",
+      "line": 457,
+      "text": "transform: translateY(10px);"
+    },
+    {
+      "file": "src/styles/animations.css",
+      "line": 462,
+      "text": "transform: translateY(-10px);"
+    },
+    {
+      "file": "src/styles/animations.css",
+      "line": 511,
+      "text": "transform: translateY(16px);"
+    },
+    {
+      "file": "src/styles/animations.css",
+      "line": 516,
+      "text": "transform: translateY(-8px);"
+    },
+    {
+      "file": "src/styles/animations.css",
+      "line": 532,
+      "text": "transform: translateY(-16px);"
+    },
+    {
+      "file": "src/styles/animations.css",
+      "line": 537,
+      "text": "transform: translateY(8px);"
+    },
+    {
+      "file": "src/styles/animations.css",
+      "line": 574,
+      "text": "transform: translateX(20px);"
+    },
+    {
+      "file": "src/styles/animations.css",
+      "line": 579,
+      "text": "transform: translateX(-20px);"
+    },
+    {
+      "file": "src/styles/backgrounds.css",
+      "line": 28,
+      "text": "transform: translateY(-20px) rotate(2deg);"
+    },
+    {
+      "file": "src/styles/base/base.css",
+      "line": 189,
+      "text": "width: 1px;"
+    },
+    {
+      "file": "src/styles/base/base.css",
+      "line": 190,
+      "text": "height: 1px;"
+    },
+    {
+      "file": "src/styles/base/base.css",
+      "line": 192,
+      "text": "margin: -1px;"
+    },
+    {
+      "file": "src/styles/components/codex-auth-shared.css",
+      "line": 572,
+      "text": "@media (width >= 768px) {"
+    },
+    {
+      "file": "src/styles/components/codex-auth-shared.css",
+      "line": 587,
+      "text": "@media (width >= 1280px) {"
+    },
+    {
+      "file": "src/styles/components/codex-auth-shared.css",
+      "line": 608,
+      "text": "@media (width <= 1100px) {"
+    },
+    {
+      "file": "src/styles/components/codex-auth-shared.css",
+      "line": 616,
+      "text": "@media (width >= 1101px) {"
+    },
+    {
+      "file": "src/styles/components/codex-auth-shared.css",
+      "line": 630,
+      "text": "@media (width <= 900px) {"
+    },
+    {
+      "file": "src/styles/components/home.css",
+      "line": 35,
+      "text": "--home-elevation-base: 0 1px 0 rgb(var(--color-border-default-rgb) / 8%);"
+    },
+    {
+      "file": "src/styles/components/home.css",
+      "line": 37,
+      "text": "--home-elevation-sunk: inset 0 1px 0 rgb(var(--color-border-default-rgb) / 6%);"
+    },
+    {
+      "file": "src/styles/components/home.css",
+      "line": 51,
+      "text": "--home-motion-lift: -1px;"
+    },
+    {
+      "file": "src/styles/components/home.css",
+      "line": 53,
+      "text": "0 0 0 2px var(--color-bg-base), 0 0 0 4px rgb(var(--color-accent-primary-rgb) / 56%);"
+    },
+    {
+      "file": "src/styles/components/home.css",
+      "line": 71,
+      "text": "--home-motion-lift: 0px;"
+    },
+    {
+      "file": "src/styles/components/profiles-page.css",
+      "line": 45,
+      "text": "max-width: 1680px;"
+    },
+    {
+      "file": "src/styles/components/profiles-page.css",
+      "line": 61,
+      "text": "grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));"
+    },
+    {
+      "file": "src/styles/components/profiles-page.css",
+      "line": 73,
+      "text": "grid-template-columns: 12px minmax(120px, 160px) minmax(0, 1.2fr) minmax(0, 1.5fr) minmax("
+    },
+    {
+      "file": "src/styles/components/profiles-page.css",
+      "line": 74,
+      "text": "80px,"
+    },
+    {
+      "file": "src/styles/components/profiles-page.css",
+      "line": 75,
+      "text": "110px"
+    },
+    {
+      "file": "src/styles/components/profiles-page.css",
+      "line": 76,
+      "text": ") minmax(80px, 120px) minmax(60px, 1fr) auto;"
+    },
+    {
+      "file": "src/styles/components/profiles-page.css",
+      "line": 78,
+      "text": "padding: 2px 14px 4px;"
+    },
+    {
+      "file": "src/styles/components/profiles-page.css",
+      "line": 103,
+      "text": "border: 1px dashed var(--cp-line-2);"
+    },
+    {
+      "file": "src/styles/components/profiles-page.css",
+      "line": 127,
+      "text": "max-width: 420px;"
+    },
+    {
+      "file": "src/styles/components/profiles-page.css",
+      "line": 137,
+      "text": "padding: 7px 14px;"
+    },
+    {
+      "file": "src/styles/components/profiles-page.css",
+      "line": 184,
+      "text": "@media (width >= 1280px) {"
+    },
+    {
+      "file": "src/styles/components/profiles-page.css",
+      "line": 186,
+      "text": "grid-template-columns: minmax(0, 1fr) 340px;"
+    },
+    {
+      "file": "src/styles/components/profiles-page.css",
+      "line": 190,
+      "text": "@media (width <= 1279px) {"
+    },
+    {
+      "file": "src/styles/components/profiles-page.css",
+      "line": 196,
+      "text": "@media (width <= 1024px) {"
+    },
+    {
+      "file": "src/styles/components/profiles-page.css",
+      "line": 202,
+      "text": "@media (width <= 720px) {"
+    },
+    {
+      "file": "src/styles/core.css",
+      "line": 59,
+      "text": "transform: translate3d(0, 10px, 0);"
+    },
+    {
+      "file": "src/styles/core.css",
+      "line": 137,
+      "text": "--spacing-px: 1px;"
+    },
+    {
+      "file": "src/styles/core.css",
+      "line": 152,
+      "text": "字面量）会绕过 tokens.css 的 12px/16px/9999px，原语圆角将不消费 token。 */"
+    },
+    {
+      "file": "src/styles/shell-critical.css",
+      "line": 7,
+      "text": "border: 3px solid;"
+    },
+    {
+      "file": "src/styles/utilities/utilities.css",
+      "line": 80,
+      "text": "box-shadow: 0 0 0 3px var(--color-accent-primary-glow);"
+    },
+    {
+      "file": "src/styles/utilities/utilities.css",
+      "line": 162,
+      "text": "transform: translateY(-2px);"
+    },
+    {
+      "file": "src/styles/utilities/utilities.css",
+      "line": 211,
+      "text": "box-shadow: 0 2px 8px rgb(0 0 0 / 10%);"
+    },
+    {
+      "file": "src/styles/utilities/utilities.css",
+      "line": 326,
+      "text": "box-shadow: 0 0 0 3px var(--color-accent-primary-glow);"
+    },
+    {
+      "file": "src/styles/utilities/utilities.css",
+      "line": 339,
+      "text": "box-shadow: 0 0 0 3px var(--color-danger-glow);"
+    },
+    {
+      "file": "src/styles/utilities/utilities.css",
+      "line": 392,
+      "text": "box-shadow: 0 0 8px var(--color-success-glow);"
+    },
+    {
+      "file": "src/styles/utilities/utilities.css",
+      "line": 401,
+      "text": "box-shadow: 0 0 8px var(--color-warning-glow);"
+    },
+    {
+      "file": "src/styles/utilities/utilities.css",
+      "line": 406,
+      "text": "box-shadow: 0 0 8px var(--color-danger-glow);"
+    },
+    {
+      "file": "src/styles/utilities/utilities.css",
+      "line": 411,
+      "text": "height: 1px;"
+    },
+    {
+      "file": "src/styles/utilities/utilities.css",
+      "line": 418,
+      "text": "width: 1px;"
+    },
+    {
+      "file": "src/styles/utilities/utilities.css",
+      "line": 534,
+      "text": "max-width: 300px;"
+    },
+    {
+      "file": "src/styles/utilities/utilities.css",
+      "line": 539,
+      "text": "border: 3px solid;"
+    },
+    {
+      "file": "src/styles/utilities/utilities.css",
+      "line": 554,
+      "text": "width: 1px;"
+    },
+    {
+      "file": "src/styles/utilities/utilities.css",
+      "line": 555,
+      "text": "height: 1px;"
+    },
+    {
+      "file": "src/styles/utilities/utilities.css",
+      "line": 557,
+      "text": "margin: -1px;"
+    },
+    {
+      "file": "src/styles/utilities/utilities.css",
+      "line": 651,
+      "text": "height: 1px;"
+    },
+    {
+      "file": "src/styles/utilities/utilities.css",
+      "line": 716,
+      "text": "transform: translateY(-4px);"
+    }
+  ]
+}
