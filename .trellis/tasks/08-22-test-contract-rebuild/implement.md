@@ -19,15 +19,21 @@
 
 `08-22-shell-port` 交付后 3 个工作日内可运行（AC5）。缩短约束 C2 的保护空窗，优先级高于完整重写。
 
-- [ ] **第一项，先做**：把 `tests/api-facade-boundary.smoke.test.ts` 的 `walkSourceFiles` 后缀集合从 `/\.(ts|mts|vue)$/` 扩到含 `.tsx`。不改则该文件的三个用例对全部 React 组件失效且静默通过（`design.md` §1.3）。同时核对 `INVOKE_ALLOWED_PATHS`——`src/utils/logger.ts` 若已按 `utils-disposition.md` 移入 `shell/`，同步改路径。
-- [ ] 保留该文件既有的 `freezes legacy direct invoke calls in tauri.ts` 用例（9 条允许命令集合）。它是门面**定义侧**的唯一强制手段，lint 规则只管消费侧。
-- [ ] `api-facade-coverage`：`src/api` 的 wrapper 集合覆盖全部命令名（AC6 的前半）。数据源为 `src/api/generated/command-manifest.json`，按 `platform` 字段分组：`base` 334 条全平台断言，`windows` 8 条只在 Windows 分支断言（`design.md` §1.1）。**不解析 `handler_registry.rs` 的宏**。
-- [ ] Tauri Event 名清单断言：数据源为合并后的前端事件 inventory（全局部分来自 `08-22-state-logic-port`，局部部分来自 `08-22-views-checkin`），与 Rust 侧 `emit` 一致（AC6 的后半、`design.md` §1.2、协同点 M）。
-- [ ] 在事件 inventory 文档中写明「新增局部事件须同时登记」，否则下一次新增会再次绕过断言。
-- [ ] 路由清单断言：75 条路径，数据源为 `08-22-shell-port` 的路由表。
-- [ ] 不含组件挂载断言（组件在阶段 5 才迁移）。
+- [x] **第一项，先做**：把 `tests/api-facade-boundary.smoke.test.ts` 的 `walkSourceFiles` 后缀集合从 `/\.(ts|mts|vue)$/` 扩到含 `.tsx`。不改则该文件的三个用例对全部 React 组件失效且静默通过（`design.md` §1.3）。同时核对 `INVOKE_ALLOWED_PATHS`——`src/utils/logger.ts` 若已按 `utils-disposition.md` 移入 `shell/`，同步改路径。
+- [x] 保留该文件既有的 `freezes legacy direct invoke calls in tauri.ts` 用例（9 条允许命令集合）。它是门面**定义侧**的唯一强制手段，lint 规则只管消费侧。
+- [x] `api-facade-coverage`：`src/api` 的 wrapper 集合覆盖全部命令名（AC6 的前半）。数据源为 `src/api/generated/command-manifest.json`，按 `platform` 字段分组：`base` 334 条全平台断言，`windows` 8 条只在 Windows 分支断言（`design.md` §1.1）。**不解析 `handler_registry.rs` 的宏**。
+- [x] Tauri Event 名清单断言：数据源为合并后的前端事件 inventory（全局部分来自 `08-22-state-logic-port`，局部部分来自 `08-22-views-checkin`），与 Rust 侧 `emit` 一致（AC6 的后半、`design.md` §1.2、协同点 M）。
+- [x] 在事件 inventory 文档中写明「新增局部事件须同时登记」，否则下一次新增会再次绕过断言。
+- [x] 路由清单断言：75 条路径，数据源为 `08-22-shell-port` 的路由表。
+- [x] 不含组件挂载断言（组件在阶段 5 才迁移）。
 
 验证：`bun run test:smoke` 中这些项通过；`just tauri-command-inventory-check` 退出码 0（Rust 侧的独立保护仍在）。
+
+批次 1 跟踪缺口（不断言为已修）：
+
+- `waf_deliver_cookie`：WebView 注入脚本调用，无 `src/api` wrapper；覆盖测试将其冻结为豁免。
+- `wsl_write_config`：Windows 命令，`runtime/wsl.ts` 无 wrapper；覆盖测试在 `win32` 上冻结为豁免。
+- AC6 后半为部分完成：全局集合已相等断言；CheckIn WAF 局部事件已登记为 `views-checkin` 所有、尚未完整迁移。
 
 ## 批次 2：契约重写稿（阶段 4 → 5 门前交付）
 

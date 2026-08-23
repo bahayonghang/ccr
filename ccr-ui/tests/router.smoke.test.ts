@@ -14,9 +14,94 @@ const flat = flattenCatalog()
 const byId = (id: string) => flat.find((route) => route.id === id)
 const byPath = (path: string) => flat.find((route) => route.path === path)
 
+/** 75 条路径门：顺序与 `flattenCatalog()` / shell-port `route-inventory.md` 对齐。 */
+const EXPECTED_FLAT_PATHS = [
+  '/tray/codex',
+  '/',
+  '/',
+  '/settings',
+  '/claude-code',
+  '/claude-code/settings',
+  '/claude-code/system-prompts',
+  '/claude-code/profiles',
+  '/claude-code/auth',
+  '/codex',
+  '/grok',
+  '/grok/auth',
+  '/grok/profiles',
+  '/grok/settings',
+  '/antigravity',
+  '/gemini-cli',
+  '/ccr-control',
+  '/commands/:client?',
+  '/converter',
+  '/sync',
+  '/configs',
+  '/stats',
+  '/budget',
+  '/pricing',
+  '/usage',
+  '/monitoring',
+  '/sessions',
+  '/mcp',
+  '/mcp/unified',
+  '/mcp-manager',
+  '/slash-commands',
+  '/agents',
+  '/agents/:name',
+  '/skills',
+  '/skills-manager',
+  '/skillport-manager',
+  '/skills/add',
+  '/skills/hub',
+  '/skills/:platform/:name',
+  '/market',
+  '/plugins',
+  '/hooks',
+  '/output-styles',
+  '/statusline',
+  '/checkin/manage/:accountId',
+  '/checkin',
+  '/codex/mcp',
+  '/codex/profiles',
+  '/codex/agents',
+  '/codex/sessions',
+  '/codex/slash-commands',
+  '/codex/auth',
+  '/codex/settings',
+  '/codex/system-prompts',
+  '/antigravity/slash-commands',
+  '/gemini-cli/slash-commands',
+  '/gemini-cli/mcp',
+  '/gemini-cli/agents',
+  '/gemini-cli/plugins',
+  '/antigravity/system-prompts',
+  '/gemini-cli/system-prompts',
+  '/opencode',
+  '/opencode/providers',
+  '/opencode/mcp',
+  '/opencode/agents',
+  '/opencode/commands',
+  '/opencode/skills',
+  '/opencode/plugins',
+  '/opencode/settings',
+  '/opencode/system-prompts',
+  '/wsl',
+  '/ssh',
+  '/antigravity/mcp',
+  '/antigravity/agents',
+  '/antigravity/plugins',
+] as const
+
 describe('router smoke', () => {
   it('keeps 75 route records matching the Vue table', () => {
+    expect(EXPECTED_FLAT_PATHS).toHaveLength(75)
     expect(flat).toHaveLength(75)
+    expect(flat.map((route) => route.path)).toEqual([...EXPECTED_FLAT_PATHS])
+    const recordKeys = flat.map(
+      (route) => `${route.path}::${route.id ?? ''}::${route.redirect ?? ''}`,
+    )
+    expect(new Set(recordKeys).size).toBe(75)
   })
 
   it('keeps handle keys inside the allowlist', () => {

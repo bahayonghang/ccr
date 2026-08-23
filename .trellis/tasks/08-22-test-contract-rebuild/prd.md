@@ -69,9 +69,10 @@
 - [ ] AC2 覆盖范围比对表落盘：迁移前后的被测组件数与被测契约条目数逐项对照，无下降项。
 - [ ] AC3 19 份契约文档重写完成，`rg '\.vue|<script setup|scoped' .trellis/spec/ccr-ui/frontend/` 无匹配。
 - [ ] AC4 契约断言与测试的对应表落盘，无未映射的断言。
-- [ ] AC5 最小测试集在 `08-22-shell-port` 完成后 3 个工作日内可运行，含全量 IPC 命令名断言（334 base / 342 含 Windows）。
+- [x] AC5 最小测试集在 `08-22-shell-port` 完成后 3 个工作日内可运行，含全量 IPC 命令名断言（334 base / 342 含 Windows）。
 - [ ] AC6 IPC 命令名与全部 Tauri Event 名的清单断言通过。命令名的数据源为 `ccr-ui/src/api/generated/command-manifest.json`（`base_command_count` 334 / `windows_command_count` 342，按 `platform` 字段分组断言；该文件是 Rust 测试 `command_inventory_document_matches_registry` 的生成产物之一，与 `handler_registry.rs` 的 `macro_rules!` / `commands::generate_handler()` 同步）。事件名的数据源为统一前端事件 inventory（全局桥接层 + 组件级局部事件，见 `design.md` §1.2）。
       注：先前工件写「141+ 命令」与「`generate_handler_common!` 注册表」，两处均不准确——实测命令数为 334 / 342，且仓库无 `generate_handler_common` 符号。
+      批次 1：命令名断言已落地。事件名断言覆盖全局集合相等 + inventory ⊆ Rust emit。CheckIn WAF 局部事件已登记为 `views-checkin` 所有、尚未完整迁移，故本条保持未勾。
 - [ ] AC7 `bun run docs:audit` 退出码 0。
 - [ ] AC8 `.trellis/spec/ccr-ui/frontend/index.md` 更新，反映重写后的 19 份文档结构。
 - [ ] AC9 `bun run test:i18n` 退出码 0。

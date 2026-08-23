@@ -130,12 +130,12 @@ Rust 测试若绕过 `just test` 直接运行，须带 `-- --test-threads=1`。
 
 准出条件：
 
-- [ ] `08-22-state-logic-port` 的 AC1–AC8 全部满足。其中 AC5 的订阅泄漏测试须含「延迟 resolve + StrictMode 挂载卸载」用例（该任务 `design.md` §7）。
-- [ ] `08-22-shell-port` 的 AC1–AC10 全部满足。AC4 的范围为 store 侧的六项状态读写；`configs` 表单草稿的界面级验证依赖阶段 5 的视图，已由该任务 AC11 单列并移交 `08-22-views-profiles-config` 批次 2。
-- [ ] 应用可在全部 75 条路由间导航，无白屏与控制台报错。
-- [ ] 5 条缓存路由的六项行为（数据、选中态、搜索词、筛选条件、表单草稿、滚动位置）在 store 侧验证通过。
-- [ ] `MasterDetailLayout` 与 `src/ui/` 原语的接口定稳并公示。接口在阶段 4a 之后变更会波及七个并行子任务。
-- [ ] `08-22-test-contract-rebuild` 的最小测试集开始交付（见 §6 协同点 C）。
+- [x] `08-22-state-logic-port` 的 AC1–AC8 全部满足。其中 AC5 的订阅泄漏测试须含「延迟 resolve + StrictMode 挂载卸载」用例（该任务 `design.md` §7）。AC1 偏差：`src/stores/usage.ts` 暂留，归 `08-22-views-usage`。
+- [x] `08-22-shell-port` 的 AC1–AC10 全部满足。AC4 的范围为 store 侧的六项状态读写；`configs` 表单草稿的界面级验证依赖阶段 5 的视图，已由该任务 AC11 单列并移交 `08-22-views-profiles-config` 批次 2。
+- [x] 应用可在全部 75 条路由间导航，无白屏与控制台报错（`flattenCatalog()` 75；占位页；`router.smoke.test.ts`）。
+- [x] 5 条缓存路由的六项行为（数据、选中态、搜索词、筛选条件、表单草稿、滚动位置）在 store 侧验证通过（`cache-route.smoke.test.ts` 6/6）。
+- [x] `MasterDetailLayout` 与 `src/ui/` 原语的接口定稳并公示。接口在阶段 4a 之后变更会波及七个并行子任务。
+- [x] `08-22-test-contract-rebuild` 的最小测试集开始交付（见 §6 协同点 C）。2026-08-24：批次 1 已可运行（`.tsx` 边界、`command-manifest` 覆盖、事件 inventory、75 路径）。
 
 ### 阶段 4a → 4：共享层前置门
 
@@ -281,7 +281,7 @@ dev  ─────────────────────────
 | 5    | 11 `views-profiles-config`    | 未开始 | 视图门         |
 | 5    | 12 `views-sync-tools`         | 未开始 | 视图门         |
 | 5    | 13 `i18n-port`                | 未开始 | 视图门         |
-| 6    | 14 `test-contract-rebuild`    | 未开始 | 测试与契约门   |
+| 6    | 14 `test-contract-rebuild`    | 最小测试集已交付（批次 1，2026-08-24）；完整重写待阶段 6 | 测试与契约门   |
 | 7    | 15 `regression-release`       | 未开始 | 发布门         |
 
 ## 9. 文档修正状态
