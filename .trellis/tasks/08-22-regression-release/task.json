@@ -3,7 +3,7 @@
   "name": "regression-release",
   "title": "全量回归与 Tauri 打包验证",
   "description": "185 个界面逐屏行为与视觉比对，Tauri 打包、CSP、WAF WebView bypass、窗口 chrome 验证，just ci 全绿",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": null,
   "scope": null,
   "package": null,

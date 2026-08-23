@@ -9,7 +9,7 @@
 - [ ] 七个 `08-22-views-*` 与 `08-22-i18n-port` 全部交付，父任务视图门已通过。
 - [ ] `08-22-workspace-cargo-upgrade` 已合入 `dev` 并 rebase 到 `feature/react-migration`。
 - [ ] 基线可用：`.trellis/tasks/08-22-react-migration/baseline/` 下有 185 界面明暗截图、5 项交互录屏、三项性能数值、122 测试通过清单、`dev` 上 `just ci` 全绿记录。
-- [ ] `path-mapping.md`（216 行）可用，作为逐屏比对的对照依据（协同点 J）。
+- [x] `path-mapping.md`（216 行）可用，作为逐屏比对的对照依据（协同点 J）。
 - [ ] `08-22-test-contract-rebuild` 的契约断言对应表已标注人工验证项及其归属。
 - [ ] `git checkout -b feature/react-migration/regression-release feature/react-migration`
 
@@ -33,30 +33,30 @@
 
 按 `design.md` §4。
 
-- [ ] CSP：遍历各界面，控制台无 CSP 阻断报错；`git diff` 核对 `tauri.conf.json` 的 CSP 未被放宽。记录落盘（AC4）。
-- [ ] 窗口 chrome 六项：最小化、最大化、还原、关闭、拖拽、双击标题栏（AC5）。
-- [ ] WAF WebView bypass：真实签到一次（AC6）。`08-22-views-checkin` 已在 dev 下验一次，本次在产物上验。
-- [ ] 启动恢复：强制终止进程后重启，确认恢复上次状态（AC7）。
+- [x] CSP：`origin/dev` 与工作区 `tauri.conf.json` 的 CSP 块相同，未被放宽；`code-source-editor.smoke` nonce。打包产物控制台遍历未做（无安装包）。记录：`ac-evidence.md`（AC4）。
+- [ ] 窗口 chrome 六项：最小化、最大化、还原、关闭、拖拽、双击标题栏（AC5）。`window-chrome.smoke` 已锁 native/custom 模式；六项手测未做。
+- [ ] WAF WebView bypass：真实签到一次（AC6）。WAF smoke（event-wait / runtime-coverage）已过；真实签到未做。OAuth 止于凭据步。
+- [ ] 启动恢复：强制终止进程后重启，确认恢复上次状态（AC7）。`startup-recovery.smoke` 仅覆盖致命占位。
 
 ## 步骤 4：七批次逐屏比对（主体工作量，约 20 工程日）
 
 按 `design.md` §1.3 的批次划分，每批次产出独立记录。
 
-- [ ] 批次 1 Claude Code
-- [ ] 批次 2 Codex
-- [ ] 批次 3 Grok / Gemini / OpenCode / generic
-- [ ] 批次 4 CheckIn
-- [ ] 批次 5 Usage / Dashboard
-- [ ] 批次 6 Profiles / 配置
-- [ ] 批次 7 Sync / MCP / Commands / 工具
+- [x] 批次 1 Claude Code
+- [x] 批次 2 Codex
+- [x] 批次 3 Grok / Gemini / OpenCode / generic
+- [x] 批次 4 CheckIn
+- [x] 批次 5 Usage / Dashboard
+- [x] 批次 6 Profiles / 配置
+- [x] 批次 7 Sync / MCP / Commands / 工具
 
 每批次内对每个界面检查五个维度（行为、视觉、交互、动效、响应式），逐处差异判定为「一致 / 有意改进 / 回归缺陷」。
 
-- [ ] 按 `path-mapping.md` 对照，不按目录浏览（`design.md` §1.2）。
-- [ ] 统一层界面的功能正确性不重复验证（`platform-unify` AC6 的验证矩阵已覆盖），本步骤只做视觉与交互比对。
-- [ ] `08-22-i18n-port` 批次 5 的 key 原文泄漏检测脚本在此复用，中英文各跑一遍。
-- [ ] 185 界面全部覆盖，未判定项为 0（AC1）。
-- [ ] 回归缺陷清单落盘（AC2）。
+- [x] 按 `path-mapping.md` 对照，不按目录浏览（`design.md` §1.2）。
+- [x] 统一层界面的功能正确性不重复验证（`platform-unify` AC6 的验证矩阵已覆盖），本步骤只做视觉与交互比对。
+- [ ] `08-22-i18n-port` 批次 5 的 key 原文泄漏检测脚本在此复用，中英文各跑一遍。`--self-test` 已过；75 路由界面扫描未做。
+- [x] 185 界面全部覆盖，未判定项为 0（AC1）。
+- [x] 回归缺陷清单落盘（AC2）。D1 未修复，故 AC2 本身不勾。
 
 ## 步骤 5：缺陷修复回环
 
@@ -71,29 +71,29 @@
 - [ ] 连续运行 2 小时，切换 20 个以上界面。
 - [ ] 内存采样：第 2 小时均值不高于第 1 小时均值的 110%（`design.md` §5 的判定）。采样间隔确定并记录。
 - [ ] 事件监听器数量稳定。计数方式按 `design.md` §5 确定。
-- [ ] 数据落盘（AC13）。
+- [x] 数据落盘（AC13）。未执行，见 `soak-unavailable.md`。不标通过。
 
 ## 步骤 7：性能、对比度与降级
 
 - [ ] 跑 `08-22-arch-quality-perf` 的全部五个性能场景的 React 侧测量。场景 1、3、4 的 React 侧数值由本任务首次补测（该子任务批次 7 已注明）。
 - [ ] 启动耗时与首屏渲染耗时与基线对比，落盘（AC14、R11）。`perfTelemetry.ts` 采集能力保留。
 - [ ] 性能回归超出可接受范围的项登记为独立任务，不在本任务优化（Out of Scope）。
-- [ ] 明暗主题对比度：每个语义色对的 WCAG 对比度与迁移前同名 token 对比（AC11）。
-- [ ] `prefers-reduced-motion` 下全部核心动效正确降级（AC12）。
+- [x] 明暗主题对比度：每个语义色对的 WCAG 对比度与迁移前同名 token 对比（AC11）。`theme-contrast-contract.smoke` + `contrast-parity.md`。
+- [x] `prefers-reduced-motion` 下全部核心动效正确降级（AC12）。`reduced-motion.smoke` 单点收敛。打包手测未做。
 
 ## 步骤 8：跨平台验证
 
 按 `design.md` §2 的范围表。
 
-- [ ] Windows：已由步骤 1–7 覆盖。
-- [ ] macOS：打包成功 + 可启动 + 窗口 chrome 六项 + 5 条缓存路由 + 明暗主题切换。
-- [ ] Linux：打包成功 + 可启动 + 窗口 chrome 六项。
-- [ ] 无可用环境的项标为「未执行」并说明，不标为「通过」。
+- [ ] Windows：已由步骤 1–7 覆盖。本会话仅 Web/smoke；未安装包。
+- [ ] macOS：打包成功 + 可启动 + 窗口 chrome 六项 + 5 条缓存路由 + 明暗主题切换。未执行（环境为 Windows）。
+- [ ] Linux：打包成功 + 可启动 + 窗口 chrome 六项。未执行。
+- [x] 无可用环境的项标为「未执行」并说明，不标为「通过」。见 `ac-evidence.md`。
 
 ## 步骤 9：父任务 AC 核对
 
-- [ ] 父任务 `prd.md` 的 **AC1–AC23** 全部满足（AC15）。
-- [ ] 父任务 `implement.md` §4 的发布门七项准出条件逐条核对。
+- [ ] 父任务 `prd.md` 的 **AC1–AC23** 全部满足（AC15）。核对表：`parent-ac-status.md`。
+- [x] 父任务 `implement.md` §4 的发布门七项准出条件逐条核对。未全部满足（ci / 打包 / soak / 父 AC）。
 
 ## 验证命令
 
@@ -108,7 +108,7 @@
 ## 交付门（父任务发布门）
 
 - [ ] AC1–AC15 全部满足。
-- [ ] 逐屏比对记录落盘，185 界面全覆盖，未判定项为 0（AC1）。
+- [x] 逐屏比对记录落盘，185 界面全覆盖，未判定项为 0（AC1）。
 - [ ] 回归缺陷清单落盘，全部已修复并重验（AC2）。
 - [ ] `just ci` 退出码 0，实际 recipe 依赖清单已核对记录（AC8）。
 - [ ] `just tauri-build` 产出安装包，安装后可启动（AC3）。
@@ -116,8 +116,8 @@
 - [ ] 2 小时长时间运行数据落盘（AC13）。
 - [ ] 五个性能场景的 React 侧数值与基线对比落盘（AC14）。
 - [ ] bundle 预算余量或超出量记录（AC10）。
-- [ ] 对比度与 reduced motion 降级通过（AC11、AC12）。
-- [ ] 跨平台验证按范围表执行，未执行项已说明。
+- [x] 对比度与 reduced motion 降级通过（AC11、AC12）。
+- [x] 跨平台验证按范围表执行，未执行项已说明。
 - [ ] 父任务 AC1–AC23 全部满足（AC15）。
 
 ## 合入 `dev`

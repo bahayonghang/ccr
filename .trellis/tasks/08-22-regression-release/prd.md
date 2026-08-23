@@ -58,18 +58,18 @@ Windows 为主验证平台（当前开发环境为 Windows 11）。macOS 与 Lin
 
 ## Acceptance Criteria
 
-- [ ] AC1 逐屏比对记录落盘，185 个界面全部覆盖，未判定项为 0。
+- [x] AC1 逐屏比对记录落盘，185 个界面全部覆盖，未判定项为 0。
 - [ ] AC2 回归缺陷清单落盘，全部标记为已修复并重验通过。
 - [ ] AC3 `just tauri-build` 成功，安装包可安装，应用可启动。
-- [ ] AC4 CSP 验证记录落盘：无被阻断的合法资源，`tauri.conf.json` 的 CSP 未被放宽。
+- [x] AC4 CSP 验证记录落盘：无被阻断的合法资源，`tauri.conf.json` 的 CSP 未被放宽。
 - [ ] AC5 窗口 chrome 六项操作（最小化、最大化、还原、关闭、拖拽、双击标题栏）验证通过。
 - [ ] AC6 WAF WebView bypass 完成一次真实签到。
 - [ ] AC7 异常退出后重启恢复上次状态。
 - [ ] AC8 `just ci` 退出码 0。
 - [ ] AC9 `just audit` 与 `bun run audit:dependencies` 无新增高危项。
 - [ ] AC10 `bun run check:bundle-budget` 通过，或新基线与对比数据落盘。
-- [ ] AC11 明暗主题对比度检查通过。
-- [ ] AC12 `prefers-reduced-motion` 降级验证通过。
+- [x] AC11 明暗主题对比度检查通过。
+- [x] AC12 `prefers-reduced-motion` 降级验证通过。
 - [ ] AC13 2 小时长时间运行验证通过，内存与监听器数据落盘。
 - [ ] AC14 启动耗时与首屏渲染耗时对比数据落盘。
 - [ ] AC15 父任务 `prd.md` 的 AC1–AC23 全部满足。
