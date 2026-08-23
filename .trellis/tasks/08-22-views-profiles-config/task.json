@@ -3,7 +3,7 @@
   "name": "views-profiles-config",
   "title": "Profiles 与配置视图迁移",
   "description": "profiles、provider-templates、Configs、AppSettings、Converter 约 8149 行迁移",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": null,
   "scope": null,
   "package": null,

@@ -6,6 +6,7 @@
 ## 外壳接口公示（08-22-shell-port 批次 6）
 
 共享接口：`.trellis/tasks/08-22-shell-port/shared-interfaces.md`。阶段 4a 之后不改 `MasterDetailLayout` 与 `src/ui/` 原语。
+Profiles 共享层（`08-22-views-profiles-config` 批次 1）：`ccr-ui/src/components/profiles/*.tsx`，接口见 `.trellis/tasks/08-22-views-profiles-config/profiles-shared-interfaces.md`。`ClaudeCodeProfilesView` 改接到这些 React 模块，不要再 import `.vue`。
 
 ## 前置确认
 

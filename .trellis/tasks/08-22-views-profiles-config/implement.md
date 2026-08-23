@@ -12,10 +12,10 @@
 
 ### 批次 1 的前置（阶段 3 外壳门通过后即可开工）
 
-- [ ] 父任务外壳门已通过（`08-22-shell-port` 与 `08-22-state-logic-port` 已交付）。
-- [ ] `08-22-design-system` 已迁移 `profiles-page.css`（28 变量），`0.75rem` 例外已在 `hardcode-exemptions.md` 中登记。
-- [ ] 通读 `profiles-page-contracts.md`（19.9 KB）。PRD Notes：不先通读会导致迁移后大量返工。
-- [ ] `git checkout -b feature/react-migration/views-profiles-config feature/react-migration`
+- [x] 父任务外壳门已通过（`08-22-shell-port` 与 `08-22-state-logic-port` 已交付）。
+- [x] `08-22-design-system` 已迁移 `profiles-page.css`（28 变量），`0.75rem` 例外已在 `hardcode-exemptions.md` 中登记。
+- [x] 通读 `profiles-page-contracts.md`（19.9 KB）。PRD Notes：不先通读会导致迁移后大量返工。
+- [ ] `git checkout -b feature/react-migration/views-profiles-config feature/react-migration`（批次 1 按派遣留在 `react-migration/react-foundation`，不另开此分支）
 
 ### 批次 2 起的前置
 
@@ -29,11 +29,11 @@
 
 必须在 `08-22-platform-unify` 批次 4 建 `BaseProfiles` 之前完成（协同点 F）。React base 组件无法复用未迁移的 Vue 组件，因此这是**框架迁移**而非仅接口定义。
 
-- [ ] 10 个文件（4,040 行）迁移。多数情况是把现有 Vue 接口如实映射到 React，不重新设计（Out of Scope：复用不改造）。
-- [ ] 按 `design.md` §3 公示接口：10 个文件各自的 props 列表与类型、slot → children / render props 映射、状态责任划分。
-- [ ] 公示文档落盘为 `profiles-shared-interfaces.md`，通知 `08-22-platform-unify` 与三个平台视图子任务。
-- [ ] 改造需求登记为独立缺陷，不在本批次做。
-- [ ] `0.75rem` 字号例外在此层保留。
+- [x] 10 个文件（4,040 行）迁移。多数情况是把现有 Vue 接口如实映射到 React，不重新设计（Out of Scope：复用不改造）。
+- [x] 按 `design.md` §3 公示接口：10 个文件各自的 props 列表与类型、slot → children / render props 映射、状态责任划分。
+- [x] 公示文档落盘为 `profiles-shared-interfaces.md`，通知 `08-22-platform-unify` 与三个平台视图子任务。
+- [x] 改造需求登记为独立缺陷，不在本批次做。
+- [x] `0.75rem` 字号例外在此层保留。
 
 验证：`bun run type-check` 退出码 0。该批次单独开 PR，先行合入迁移分支（父任务阶段 4a 门的准出项）。
 

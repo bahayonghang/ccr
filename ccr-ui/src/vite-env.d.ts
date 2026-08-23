@@ -23,34 +23,7 @@ declare module '*.vue' {
   import type { DefineComponent } from 'vue'
   const component: DefineComponent<Record<string, unknown>, Record<string, unknown>, unknown>
   export default component
-  // 过渡期具名类型导出：以下类型仍被未迁移的 utils / ui barrel 引用
-  // （profiles 描述符与 StatTile/PillToggle），形状逐字段镜像自对应 .vue 组件，
-  // 随组件迁移时删除。
-  export type ProfileRowDescriptor<P> = {
-    baseUrl: (profile: P) => string
-    model: (profile: P) => string
-    authMode: (profile: P) => string
-    editIcon: string
-    labels: { apply: string; edit: string; delete: string }
-  }
-  export type ProfilesInspectorDescriptor<P extends { name: string }> = {
-    editIcon: string
-    useInsights: (
-      profiles: P[],
-    ) => import('@/utils/profilesInsights').ProfilesInsightsResult<P, string, string>
-    activeFields: (profile: P) => ProfilesInspectorField[]
-    diffFields: readonly import('@/utils/profileDiff').ProfileDiffField<P>[]
-    authModeLabel: (mode: string) => string
-    isDeprecatedMode: (mode: string) => boolean
-    missingMessage: (missing: string[]) => string
-    runtimeSummary: (profile: P) => string
-    deprecatedMessage?: (profile: P) => string
-  }
-  export type ProfilesInspectorField = {
-    label: string
-    value: string
-    variant?: 'accent' | 'muted'
-  }
+  // 过渡期具名类型导出：StatTile/PillToggle 仍被未迁移的 ui barrel 引用。
   export type StatTileTone = 'neutral' | 'success' | 'warning' | 'danger' | 'accent'
   export type PillToggleOption<TValue extends string | number = string> = {
     value: TValue

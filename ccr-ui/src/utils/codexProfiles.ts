@@ -2,11 +2,11 @@
 // 与 utils/claudeProfiles.ts 对称，卡片 / 列表行 / 检查器 / 确认框全部引用这里的解析结果，
 // 避免同一份 fallback 与查表逻辑散落到多个组件。
 import type { CodexProfile } from '@/types'
-import type { ProfileRowDescriptor } from '@/components/profiles/ProfileListRow.vue'
 import type {
+  ProfileRowDescriptor,
   ProfilesInspectorDescriptor,
   ProfilesInspectorField,
-} from '@/components/profiles/ProfilesInspector.vue'
+} from '@/utils/profileDescriptors'
 import type { ProfileDiffField } from '@/utils/profileDiff'
 import { formatBaseUrlDisplay } from '@/utils/text'
 import { buildCodexProfilesInsights } from '@/utils/codexProfilesInsights'

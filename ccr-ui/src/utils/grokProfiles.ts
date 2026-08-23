@@ -1,9 +1,9 @@
 import type { GrokAuthModeDto, GrokProfileDto } from '@/types'
-import type { ProfileRowDescriptor } from '@/components/profiles/ProfileListRow.vue'
 import type {
+  ProfileRowDescriptor,
   ProfilesInspectorDescriptor,
   ProfilesInspectorField,
-} from '@/components/profiles/ProfilesInspector.vue'
+} from '@/utils/profileDescriptors'
 import {
   buildProfilesInsights,
   type ProfilesInsightsResult,

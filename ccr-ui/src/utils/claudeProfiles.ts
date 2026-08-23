@@ -1,9 +1,9 @@
 import type { ClaudeProfile } from '@/types'
-import type { ProfileRowDescriptor } from '@/components/profiles/ProfileListRow.vue'
 import type {
+  ProfileRowDescriptor,
   ProfilesInspectorDescriptor,
   ProfilesInspectorField,
-} from '@/components/profiles/ProfilesInspector.vue'
+} from '@/utils/profileDescriptors'
 import type { ProfileDiffField } from '@/utils/profileDiff'
 import { formatBaseUrlDisplay } from '@/utils/text'
 import { buildClaudeProfilesInsights } from '@/utils/claudeProfilesInsights'
