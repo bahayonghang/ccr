@@ -198,10 +198,22 @@ utilities/animations/chart-colors，deferred-decorations 含 backgrounds。
 
 ## 批次 5：主题配置域
 
-- [ ] 按 `design.md` §10 让 `FlavorMode` 与 `AccentMode` 值域可扩展：新增成员只需改类型联合 + 加一组第 1 层变量。
-- [ ] 加一个测试用的新 flavor 与新 accent，验证界面正确响应（AC7）。
-- [ ] `themeBootstrap` 的自定义 accent 输入所需的变量结构就位。接线归 `08-22-shell-port` R6。
-- [ ] 存储键 `ccr-theme` 等的旧值可正常解析，写一个断言。
+- [x] 按 `design.md` §10 让 `FlavorMode` 与 `AccentMode` 值域可扩展：新增成员只需改类型联合 + `FLAVOR_MODES`/`ACCENT_MODES` 加一项 + 第 1 层变量加一组定义。结构性保证由测试断言（见证据用例 3：三个 `data-*` 属性的写入点在 `src` 内只有 `themeBootstrap.ts`，组件侧无成员级代码依赖）。
+- [x] 加一个测试用的新 flavor 与新 accent，验证界面正确响应（AC7）：`tests/theme-domain-extension.smoke.test.tsx` 用例 1、2（注入测试值 `ink-test` / `sage-test` 的第 1 层定义块，断言属性切换后 `--color-bg-surface-rgb`、`--color-accent-primary` 重解析且工具类仍引用运行时变量）。测试内的联合 cast 模拟「联合已扩展、调用点照旧」。
+- [x] `themeBootstrap` 的自定义 accent 输入所需的变量结构就位：`applyCustomAccent` / `clearCustomAccent` / `CustomAccentDefinition` / `CUSTOM_ACCENT_VARIABLE_FAMILY`（8 变量族，与 `[data-accent='clay']` 块集合一致，明暗两块由单一主色推导 hover/active/glow/contrast/border）。接线归 `08-22-shell-port` R6。用例 4 断言整族写入、明暗分别生效、非法输入拒绝、清除后恢复。
+- [x] 存储键 `ccr-theme` 等的旧值可正常解析：既有 `tests/theme-bootstrap.smoke.test.ts` 已覆盖（`migrates legacy flavor/accent values`、`writes migrated values back`、first-paint IIFE 对齐与非法值回退共 9 个用例），本批次无新增改动，引为证据。
+
+### 批次 5 证据
+
+改动：`src/utils/themeBootstrap.ts`（+129 行至 470 行，max-lines 500 内）新增自定义 accent 原语；新增 `tests/theme-domain-extension.smoke.test.tsx`（4 用例）。
+
+| 命令 | 退出码 | 结果 |
+| --- | --- | --- |
+| `bun run type-check` | 0 | ✓ |
+| `bun run lint:ci` | 0 | ✓ |
+| `vitest run --config vitest.smoke.config.ts tests/theme-domain-extension.smoke.test.tsx` | 0 | 4/4 通过 |
+| `bun run test:smoke` | 0 | 64 文件 / 323 测试全绿（批次 4 为 63/319） |
+| `just frontend-check-quick` | 0 | 全绿 |
 
 ## 批次 6：CSS 侧硬编码收口
 

@@ -322,6 +322,136 @@ export const applyAccentToDocument = (accent: AccentMode): AccentMode => {
   return accent
 }
 
+// ---------------------------------------------------------------------------
+// 自定义 accent（08-22-design-system design.md §10）：接受颜色值而非枚举成员，
+// 运行时注入覆盖 [data-accent] 的第 1 层变量族。持久化与设置界面接线归
+// 08-22-shell-port（其 R6），本层只提供变量结构与写入/清除原语。
+// ---------------------------------------------------------------------------
+
+/** 自定义 accent 输入：明暗两套主题的主色，`#rrggbb` 十六进制。 */
+export interface CustomAccentDefinition {
+  light: string
+  dark?: string
+}
+
+/** data-accent 在自定义态下的值（运行时覆盖态，不入 AccentMode 持久化值域）。 */
+export const CUSTOM_ACCENT_MODE = 'custom'
+
+const CUSTOM_ACCENT_STYLE_ID = 'ccr-custom-accent'
+
+/** accent 覆盖必须整族写入的第 1 层变量（与 [data-accent='clay'] 块的集合一致）。 */
+export const CUSTOM_ACCENT_VARIABLE_FAMILY = [
+  '--color-accent-primary',
+  '--color-accent-primary-hover',
+  '--color-accent-primary-active',
+  '--color-accent-primary-rgb',
+  '--color-accent-primary-glow',
+  '--color-accent-primary-contrast',
+  '--color-accent-primary-contrast-rgb',
+  '--color-border-accent',
+] as const
+
+const HEX_COLOR_PATTERN = /^#([0-9a-f]{6})$/i
+
+interface Color {
+  r: number
+  g: number
+  b: number
+}
+
+const ACCENT_WHITE: Color = { r: 255, g: 248, b: 242 }
+const ACCENT_INK: Color = { r: 29, g: 18, b: 7 }
+const ACCENT_BLACK: Color = { r: 17, g: 18, b: 22 }
+
+const parseHexColor = (input: string): Color | null => {
+  const match = HEX_COLOR_PATTERN.exec(input.trim())
+  if (!match) return null
+
+  const hex = match[1]
+  return {
+    r: Number.parseInt(hex.slice(0, 2), 16),
+    g: Number.parseInt(hex.slice(2, 4), 16),
+    b: Number.parseInt(hex.slice(4, 6), 16),
+  }
+}
+
+const mixColor = (base: Color, target: Color, ratio: number): Color => ({
+  r: Math.round(base.r + (target.r - base.r) * ratio),
+  g: Math.round(base.g + (target.g - base.g) * ratio),
+  b: Math.round(base.b + (target.b - base.b) * ratio),
+})
+
+const toHex = ({ r, g, b }: Color): string =>
+  `#${[r, g, b].map((channel) => channel.toString(16).padStart(2, '0')).join('')}`
+
+const toTriplet = ({ r, g, b }: Color): string => `${r} ${g} ${b}`
+
+// WCAG 相对亮度；≥0.3 视为亮主色（clay 亮色 0.23、暗色 0.36 之间的分界），
+// 对比文字换深墨色，否则用暖白。推导值为运行时近似，非契约锚点。
+const relativeLuminance = ({ r, g, b }: Color): number => {
+  const channels = [r, g, b].map((channel) => {
+    const scaled = channel / 255
+    return scaled <= 0.03928 ? scaled / 12.92 : ((scaled + 0.055) / 1.055) ** 2.4
+  })
+  return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]
+}
+
+const buildCustomAccentRule = (selector: string, primary: Color, isDarkTheme: boolean): string => {
+  const hover = mixColor(primary, ACCENT_WHITE, 0.15)
+  const active = mixColor(primary, ACCENT_BLACK, 0.12)
+  const contrast = relativeLuminance(primary) >= 0.3 ? ACCENT_INK : ACCENT_WHITE
+  const alpha = { glow: isDarkTheme ? '16%' : '10%', border: isDarkTheme ? '24%' : '18%' }
+
+  return `${selector} {
+  --color-accent-primary: ${toHex(primary)};
+  --color-accent-primary-hover: ${toHex(hover)};
+  --color-accent-primary-active: ${toHex(active)};
+  --color-accent-primary-rgb: ${toTriplet(primary)};
+  --color-accent-primary-glow: rgb(${toTriplet(primary)} / ${alpha.glow});
+  --color-accent-primary-contrast: ${toHex(contrast)};
+  --color-accent-primary-contrast-rgb: ${toTriplet(contrast)};
+  --color-border-accent: rgb(${toTriplet(primary)} / ${alpha.border});
+}`
+}
+
+/**
+ * 注入自定义 accent：整族覆盖第 1 层 accent 变量并置 `data-accent='custom'`。
+ * 输入非法（非 `#rrggbb`）时不改 DOM 并返回 false。
+ */
+export const applyCustomAccent = (definition: CustomAccentDefinition): boolean => {
+  if (typeof document === 'undefined') return false
+
+  const light = parseHexColor(definition.light)
+  const dark = definition.dark === undefined ? light : parseHexColor(definition.dark)
+  if (!light || !dark) return false
+
+  const existing = document.getElementById(CUSTOM_ACCENT_STYLE_ID)
+  const style = existing ?? document.createElement('style')
+  style.id = CUSTOM_ACCENT_STYLE_ID
+  style.textContent = [
+    buildCustomAccentRule(`[data-accent='${CUSTOM_ACCENT_MODE}']`, light, false),
+    buildCustomAccentRule(
+      `[data-theme='dark'][data-accent='${CUSTOM_ACCENT_MODE}']`,
+      dark,
+      true,
+    ),
+  ].join('\n')
+  if (!existing) {
+    document.head.appendChild(style)
+  }
+
+  document.documentElement.setAttribute('data-accent', CUSTOM_ACCENT_MODE)
+  return true
+}
+
+/** 清除自定义 accent，恢复到指定枚举 accent（默认 clay）。 */
+export const clearCustomAccent = (fallback: AccentMode = DEFAULT_ACCENT): AccentMode => {
+  if (typeof document !== 'undefined') {
+    document.getElementById(CUSTOM_ACCENT_STYLE_ID)?.remove()
+  }
+  return applyAccentToDocument(fallback)
+}
+
 export const applyInitialTheme = (): ThemeMode => {
   const theme = readStoredTheme()
   const flavor = readStoredFlavor()
