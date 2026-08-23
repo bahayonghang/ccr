@@ -37,7 +37,8 @@
     "src/**/*.ts",
     "src/**/*.tsx",
     "tests/**/*.ts",
-    "tests/**/*.mts"
+    "tests/**/*.mts",
+    "tests/**/*.tsx"
   ],
   "exclude": [
     // 架构边界违规夹具（tests/fixtures/arch-violations）故意违反依赖方向、类型上不成立，

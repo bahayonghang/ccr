@@ -142,7 +142,8 @@ export default [
     },
   },
   {
-    // React 插件注册：具体规则集（含 hooks 规则）归 08-22-arch-quality-perf 落地，本阶段不启用新规则
+    // React 插件注册（08-22-arch-quality-perf 批次 4）：react 提供 JSX 解析与组件规则；
+    // react-hooks 提供 Hooks 规则（见 app/react-hooks-rules 块，error 级）。
     name: 'app/react-plugins',
     files: ['**/*.{tsx,jsx}'],
     plugins: {
@@ -156,6 +157,115 @@ export default [
     },
     settings: {
       react: { version: 'detect' },
+    },
+  },
+  {
+    // React Hooks 规则（08-22-arch-quality-perf 批次 4，R3）：对所有被 lint 的 TS/TSX 生效，error 级。
+    // rules-of-hooks：禁止条件 / 循环 / 嵌套中调用 hooks；exhaustive-deps：effect 依赖数组必须声明齐全。
+    // 注意：Vue 组合式函数（.ts，函数名 useXxx 且内部调用 useXxx）可能被误判，误报逐文件登记豁免（见批次 4 豁免块）。
+    name: 'app/react-hooks-rules',
+    files: ['**/*.{ts,tsx,mts}'],
+    plugins: { 'react-hooks': reactHooks },
+    rules: {
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'error',
+    },
+  },
+  {
+    // 重渲染纪律（design.md §6 可 lint 四项，08-22-arch-quality-perf 批次 4，契约见
+    // .trellis/spec/ccr-ui/frontend/react-rerender-discipline.md）：
+    // 3a. Zustand 订阅必须传 selector，禁止整 store 订阅。
+    //     当前 src/ 命中该模式的均为 legacy Pinia（Vue）store 调用（useXxxStore()），非 Zustand，
+    //     逐文件登记豁免并归 state-logic-port / 视图子任务（见批次 4 豁免块）。
+    name: 'app/rerender-store-subscription',
+    files: ['src/**/*.{ts,tsx,mts}'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'CallExpression[callee.name=/^use[A-Z]\\w*Store$/][arguments.length=0]',
+          message:
+            'Zustand 订阅必须传 selector，禁止整 store 订阅（react-rerender-discipline.md）',
+        },
+      ],
+    },
+  },
+  {
+    // 3b. 列表 key 不用数组索引（react/no-array-index-key），对全部 JSX 生效。
+    name: 'app/rerender-jsx-keys',
+    files: ['**/*.{tsx,jsx}'],
+    rules: {
+      'react/no-array-index-key': 'error',
+    },
+  },
+  {
+    // 3c / 3d. 视图层重渲染纪律，作用域 src/features/** 与 src/views/**（未来视图代码从第一天起遵守）。
+    //   3c. react/jsx-no-bind：memo 列表项不传内联函数。src/ui/（原语）与 src/shell/（外壳）在非列表场景
+    //       可合法接收内联处理器，不在本约束内（作用域决策见 react-rerender-discipline.md）。
+    //   3d. 表单输入受控禁令：<input value+onChange>（无 defaultValue）必须改用 react-hook-form
+    //       非受控注册（useForm/register）。src/ui/ 原语与 src/shell/ 可实现受控原语，不在本约束内。
+    name: 'app/rerender-views',
+    files: ['src/features/**/*.{tsx,jsx}', 'src/views/**/*.{tsx,jsx}'],
+    rules: {
+      'react/jsx-no-bind': 'error',
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            "JSXOpeningElement[name.name='input']:has(JSXAttribute[name.name='value']):has(JSXAttribute[name.name='onChange']):not(:has(JSXAttribute[name.name='defaultValue']))",
+          message:
+            '表单输入必须用 react-hook-form 非受控注册（useForm/register），禁止受控 value+onChange（react-rerender-discipline.md）',
+        },
+      ],
+    },
+  },
+
+  // ── 批次 4 逐文件登记豁免（08-22-arch-quality-perf，完整清单与处置见 implement.md 批次 4 证据块）────────
+  // 原则（prd R12、AC11）：无全局豁免、源文件不加 eslint-disable，只在配置中按「文件 × 规则」关闭，并注明处置。
+  // 类型安全 no-unsafe-* 系列（R4）：当前 src/ 全部 69 处已就地修复（类型收窄 / 显式标注 / 根因修复 vue-i18n
+  //   I18nComposer 别名），零剩余违规，无需豁免。
+  // React Hooks 规则（R3）与重渲染 3a（R8）：命中项均为 legacy Pinia（Vue）store 调用或 Vue 组合式函数，
+  //   非 Zustand / 非 React，逐文件豁免并归 state-logic-port / 视图子任务（重写为 React 后移除）。
+  // ── hooks 规则误报（R3）：Vue 组合式函数顶层调用被 rules-of-hooks 误判（非 React hooks，重写为 React 后不再存在）──
+  // src/composables/useBackendHealth.ts：模块顶层 usePolledData()（Vue composable 轮询器），rules-of-hooks 误判，归属 state-logic-port
+  { files: ['src/composables/useBackendHealth.ts'], rules: { 'react-hooks/rules-of-hooks': 'off' } },
+  // ── 重渲染 3a（裸 store 订阅禁令）：legacy Pinia（Vue）store 调用，非 Zustand，重写为 Zustand 时补 selector ──
+  // src/composables/useCodexOAuthFlow.ts：useUIStore()（Pinia），归属 state-logic-port
+  { files: ['src/composables/useCodexOAuthFlow.ts'], rules: { 'no-restricted-syntax': 'off' } },
+  // src/composables/useCodexProviders.ts：useUIStore()（Pinia），归属 state-logic-port
+  { files: ['src/composables/useCodexProviders.ts'], rules: { 'no-restricted-syntax': 'off' } },
+  // src/composables/useMainLayoutShell.ts：useShellPreferencesStore()（Pinia），归属 state-logic-port
+  { files: ['src/composables/useMainLayoutShell.ts'], rules: { 'no-restricted-syntax': 'off' } },
+  // src/composables/usePlatformMcp.ts：useUIStore()（Pinia），归属 state-logic-port
+  { files: ['src/composables/usePlatformMcp.ts'], rules: { 'no-restricted-syntax': 'off' } },
+  // src/composables/usePlatformPlugins.ts：useUIStore()（Pinia），归属 state-logic-port
+  { files: ['src/composables/usePlatformPlugins.ts'], rules: { 'no-restricted-syntax': 'off' } },
+  // src/composables/useUnifiedMcp.ts：useUIStore()（Pinia），归属 state-logic-port
+  { files: ['src/composables/useUnifiedMcp.ts'], rules: { 'no-restricted-syntax': 'off' } },
+  // src/views/checkin/composables/useCheckinState.ts：useUIStore()（Pinia），归属 views-checkin
+  { files: ['src/views/checkin/composables/useCheckinState.ts'], rules: { 'no-restricted-syntax': 'off' } },
+  // src/views/usage/useUsageDashboardState.ts：useUsageStore()（Pinia），归属 views-usage
+  { files: ['src/views/usage/useUsageDashboardState.ts'], rules: { 'no-restricted-syntax': 'off' } },
+
+  {
+    // 类型安全 no-unsafe-* 系列（08-22-arch-quality-perf 批次 4，R4，error 级）。
+    // 需类型感知（projectService）lint。tsconfig include 覆盖 src/** 与 tests/**，
+    // 作用域与之对齐；src/types/generated/** 与 **/*.vue 已在全局 ignore。
+    // 耗时：type-aware 单遍约 +3.5s（详见 implement.md 批次 4 证据块），低于 2× 预算（design.md §1），
+    // 故保留在常规 lint 内，无需拆分 lint:typecheck。
+    name: 'app/type-safe-rules',
+    files: ['src/**/*.{ts,tsx,mts}', 'tests/**/*.{ts,tsx,mts}'],
+    plugins: { '@typescript-eslint': tseslint.plugin },
+    languageOptions: {
+      parser: tseslint.parser,
+      parserOptions: { projectService: true },
+    },
+    rules: {
+      '@typescript-eslint/no-unsafe-assignment': 'error',
+      '@typescript-eslint/no-unsafe-member-access': 'error',
+      '@typescript-eslint/no-unsafe-call': 'error',
+      '@typescript-eslint/no-unsafe-return': 'error',
+      '@typescript-eslint/no-unsafe-argument': 'error',
     },
   },
   {

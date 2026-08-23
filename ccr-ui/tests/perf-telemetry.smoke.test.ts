@@ -192,7 +192,7 @@ describe('performance telemetry smoke', () => {
     expect(telemetry.samplePerfTelemetryRate(2)).toBe(true)
 
     telemetry.flushPerfTelemetry('manual')
-    const snapshot = loggerMocks.info.mock.calls.at(-1)?.[1]
+    const snapshot: unknown = loggerMocks.info.mock.calls.at(-1)?.[1]
     expect(snapshot).toMatchObject({
       env: 'tauri',
       reason: 'manual',

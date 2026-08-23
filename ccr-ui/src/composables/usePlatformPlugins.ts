@@ -230,11 +230,11 @@ export function usePlatformPlugins(platform: PluginPlatformType) {
   }
 
   function buildRequest(): PluginRequest | null {
-    let parsedConfig = undefined
+    let parsedConfig: Record<string, unknown> | undefined = undefined
 
     if (configJson.value.trim()) {
       try {
-        parsedConfig = JSON.parse(configJson.value)
+        parsedConfig = JSON.parse(configJson.value) as Record<string, unknown>
       } catch {
         uiStore.showError(t(`${config.value.i18nPrefix}.validation.invalidJson`))
         return null

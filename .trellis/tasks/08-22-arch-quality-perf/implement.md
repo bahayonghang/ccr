@@ -136,12 +136,75 @@
 
 ## 批次 4：类型与 hooks 规则
 
-- [ ] `react-hooks/rules-of-hooks` 与 `react-hooks/exhaustive-deps` 设为 error（R3）。
-- [ ] `@typescript-eslint/no-unsafe-*` 系列启用（R4）。
-- [ ] `no-explicit-any: error` 保留。
-- [ ] `design.md` §6 的四条可 lint 的重渲染规则落为 error。
+- [x] `react-hooks/rules-of-hooks` 与 `react-hooks/exhaustive-deps` 设为 error（R3）。
+- [x] `@typescript-eslint/no-unsafe-*` 系列启用（R4）。
+- [x] `no-explicit-any: error` 保留。
+- [x] `design.md` §6 的四条可 lint 的重渲染规则落为 error。
 
 验证：`bun run lint:ci` 退出码 0（AC1）。
+
+### 批次 4 验证证据（2026-08-23，分支 `react-migration/react-foundation`，未提交）
+
+**规则形态**：
+
+- `eslint.config.js` 新增五块，全部 error 级：
+  - `app/react-hooks-rules`（R3）：`react-hooks/rules-of-hooks` + `react-hooks/exhaustive-deps`，作用域 `**/*.{ts,tsx,mts}`（eslint-plugin-react-hooks 7.1.1，devDependency 已有，原配置只注册插件未启用规则）。
+  - `app/rerender-store-subscription`（design §6 3a）：`no-restricted-syntax` 匹配 `CallExpression[callee.name=/^use[A-Z]\w*Store$/][arguments.length=0]`，禁止整 store 订阅（必须传 selector）。
+  - `app/rerender-jsx-keys`（3b）：`react/no-array-index-key`，作用域 `**/*.{tsx,jsx}`。
+  - `app/rerender-views`（3c/3d）：`react/jsx-no-bind` + 受控 input 禁令（`JSXOpeningElement[name.name='input']:has(value):has(onChange):not(:has(defaultValue))`），作用域 `src/features/**` 与 `src/views/**` 的 `{tsx,jsx}`。src/ui/ 与 src/shell/ 在非列表场景可合法接收内联处理器/实现受控原语，不在本约束内（作用域决策记录在配置注释）。
+  - `app/type-safe-rules`（R4）：`no-unsafe-assignment` / `no-unsafe-member-access` / `no-unsafe-call` / `no-unsafe-return` / `no-unsafe-argument` 五项 error，作用域 `src/**/*.{ts,tsx,mts}` + `tests/**/*.{ts,tsx,mts}`，`parserOptions.projectService: true`（类型感知）。
+- `tsconfig.json`：`include` 追加 `tests/**/*.tsx`（react-shell 与 use-tauri-listen 两个 TSX smoke 测试此前未被 type-aware 项目服务覆盖，导致 projectService 报 "was not found"；追加后 `tsc --noEmit` 仍全绿）。
+
+**类型安全违规处置（R4，69 处全部就地修复，零未分配）**：
+
+基线：`eslint .` 定向 type-aware 配置（仅五项 no-unsafe-*）报 69 errors，分布 28 assignment / 23 call / 14 return / 4 member / 0 argument。
+
+| 处置 | 文件（数量） | 说明 |
+| --- | --- | --- |
+| 就地修复（根因） | `src/views/usage/state/useUsageMeta.ts`、`useUsageLogs.ts`、`useUsageCharts.ts`（57 处） | 根因是 `type I18nComposer = ReturnType<typeof useI18n>` 解析为 `any`（vue-i18n `Composer` 泛型默认 `Messages = Record<string, any>`）。改为 `Composer<Record<string, unknown>, Record<string, unknown>, Record<string, unknown>, string>` 后 t/locale 类型真实可用，57 处全部消失。附带 `useI18n` 导入改为 `type Composer` 纯类型导入（noUnusedLocals）。 |
+| 就地修复（类型收窄） | `src/api/_shared.ts`（1）、`src/api/domains/checkin.ts`（2）、`src/api/domains/codex.ts`（1） | `Object.getPrototypeOf` 的 lib 签名返回 any → 显式 `const prototype: unknown`；`Array.isArray(result) ? result : pickArray(...)` 推断为 any[] → 显式 `unknown[]` 标注。 |
+| 就地修复（JSON.parse / new Array） | `src/utils/providerTemplates.ts`（2）、`src/composables/usePlatformPlugins.ts`（2）、`src/stores/commandsView.ts`（1）、`src/views/checkin/composables/balanceRefreshQueue.ts`（1） | `JSON.parse` → `const parsed: unknown` + 断言到目标类型；`new Array(n)` → `new Array<PromiseSettledResult<T>>(n)`。 |
+| 就地修复（测试） | `tests/perf-telemetry.smoke.test.ts`（1）、`tests/api-facade-coverage.smoke.test.ts`（1） | mock calls 取值标注 `unknown`；`Object.entries` 的 `Function` 值经 `typeof === 'function'` 收窄后 `as (...args: unknown[]) => unknown` 再调用。 |
+
+**hooks 与 3a 裸 store 订阅豁免（9 个文件 × 规则，全部归迁移批次）**：
+
+当前 `src/` 无 Zustand 代码（`grep zustand src/` 零命中；已装依赖 5.0.15 但未使用）。命中的均为 legacy Pinia（Vue）store 调用与 Vue 组合式函数，逐文件登记豁免（配置内联注释含文件/规则/处置），归属 `08-22-state-logic-port`（8 个）与 views-checkin（1 个）：
+
+| 文件 | 规则 | 处置 |
+| --- | --- | --- |
+| `src/composables/useBackendHealth.ts` | rules-of-hooks（模块顶层 `usePolledData()`，Vue composable 误判） | state-logic-port |
+| `src/composables/useCodexOAuthFlow.ts`、`useCodexProviders.ts`、`useMainLayoutShell.ts`、`usePlatformMcp.ts`、`usePlatformPlugins.ts`、`useUnifiedMcp.ts` | no-restricted-syntax（裸 `useUIStore()` / `useShellPreferencesStore()`，Pinia） | state-logic-port |
+| `src/views/checkin/composables/useCheckinState.ts` | no-restricted-syntax（裸 `useUIStore()`） | views-checkin |
+| `src/views/usage/useUsageDashboardState.ts` | no-restricted-syntax（裸 `useUsageStore()`） | views-usage |
+
+重写为 Zustand（带 selector 订阅）或 TanStack Query 时移除豁免块。
+
+**lint 耗时（design.md §1 兜底判据，`time bunx eslint . --quiet` 3 次均值）**：
+
+| 配置 | 3 次耗时 | 均值 |
+| --- | --- | --- |
+| HEAD（批次 3 配置，临时 stash 切换） | 3608 / 3529 / 3526 ms | ≈ 3,554 ms |
+| 当前配置（含 hooks + rerender + type-safe） | 7692 / 7638 / 7689 ms | ≈ 7,673 ms |
+
+比值 ≈ 2.16×（相对批次 3 基线）。与批次 2 记录的升级前基线（≈ 3,033 ms）相比，批次 2→4 总增量 7,673 / 3,033 ≈ 2.53×；相对设计 §1 的 2× 预算（2 × 4.3 s 批次 2 记录基线 ≈ 8.6 s），当前 7.7 s **未超过**，type-aware 规则保留在 `lint` 内，**无需拆分 `lint:typecheck`**。type-aware 单遍增量约 +3.5 s（3.6 s → 7.7 s），主要来自 `projectService` 的类型信息构建与 `no-unsafe-*` 的类型检查。
+
+**合成违规证明（规则确实生效，`--no-ignore` 定向 lint）**：
+
+- 临时 `src/features/__scratch_hooks.tsx`：条件 `useEffect` + 缺失依赖 `enabled` + 数组索引 key + 内联 bind + 受控 `<input value onChange>` → 7 errors（rules-of-hooks / exhaustive-deps / no-array-index-key / jsx-no-bind ×3 / 受控 input 禁令），退出码 1。
+- 临时 `src/__scratch_typesafe.ts`：`any` 值赋值/成员访问/调用/返回/传参 → 8 errors（no-explicit-any + no-unsafe-assignment / member-access / call / return / argument），退出码 1。
+- 临时 `src/__scratch_store.ts`：`useTestStore()`（零参数）→ 2 errors（裸 store 订阅禁令），退出码 1。
+- 删除后 `git status` 无 scratch 残留。
+
+**Definition-of-done 命令与退出码**：
+
+| 命令 | 退出码 | 结果 |
+| --- | --- | --- |
+| `cd ccr-ui && bun run lint:ci` | 0 | eslint + stylelint + check:style-lines 全绿 |
+| `cd ccr-ui && bun run lint` | 0 | eslint（快路径）+ stylelint 全绿（1 个既有 prefer-const warning 不阻塞） |
+| `cd ccr-ui && bun run type-check` | 0 | tsconfig 含 tests/**/*.tsx 后 tsc --noEmit 全绿 |
+| `cd ccr-ui && bun run check:cycles` | 0 | 217 个文件无循环依赖 |
+| `cd ccr-ui && bun run check:arch-boundaries` | 0 | 4 个夹具全部 PASS |
+| `just frontend-check-quick`（仓库根） | 0 | 类型 + lint:ci + 59 文件 293 smoke 全绿 |
 
 ## 批次 5：覆盖率门
 

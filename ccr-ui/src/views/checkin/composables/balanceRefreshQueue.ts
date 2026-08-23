@@ -17,7 +17,7 @@ export const runPerKeySequential = async <T>(
   tasks: PerKeyTask<T>[],
   concurrency = BALANCE_REFRESH_CONCURRENCY
 ): Promise<PromiseSettledResult<T>[]> => {
-  const results: PromiseSettledResult<T>[] = new Array(tasks.length)
+  const results: PromiseSettledResult<T>[] = new Array<PromiseSettledResult<T>>(tasks.length)
 
   const queues = new Map<string, Array<{ index: number; run: () => Promise<T> }>>()
   for (const [index, task] of tasks.entries()) {

@@ -214,8 +214,9 @@ describe('API facade execution coverage', () => {
       for (const [exportName, value] of Object.entries(namespace)) {
         if (typeof value !== 'function') continue
         exercised.push(`${namespaceName}.${exportName}`)
+        const command = value as (...args: unknown[]) => unknown
         try {
-          await value(...argsFor(exportName))
+          await command(...argsFor(exportName))
         } catch {
           rejected.push(`${namespaceName}.${exportName}`)
         }

@@ -64,7 +64,7 @@ export function safeJson(value: unknown): string {
 export function parseJsonObject(input: string): Record<string, unknown> {
   const text = input.trim()
   if (!text) return {}
-  const parsed = JSON.parse(text)
+  const parsed: unknown = JSON.parse(text)
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
     throw new Error('JSON must be an object.')
   }
@@ -142,7 +142,7 @@ export function readCustomProviderTemplates(
   try {
     const raw = storage.getItem(CUSTOM_PROVIDER_TEMPLATES_STORAGE_KEY)
     if (!raw) return []
-    const parsed = JSON.parse(raw)
+    const parsed: unknown = JSON.parse(raw)
     if (!Array.isArray(parsed)) return []
 
     return parsed

@@ -61,8 +61,9 @@ export const useCommandsViewStore = defineStore('commandsView', {
       const saved = localStorage.getItem('ccr-commands-view')
       if (saved) {
         try {
-          const state = JSON.parse(saved)
-          this.$patch(state)
+          const state: unknown = JSON.parse(saved)
+          // 本地持久化的旧视图状态，形状未知；按 Partial 收敛后交给 Pinia 校验合并。
+          this.$patch(state as Partial<CommandsViewState>)
         } catch (e) {
           logger.error('Failed to restore commands view state:', e)
         }

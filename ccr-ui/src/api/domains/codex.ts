@@ -627,7 +627,7 @@ export const deleteCodexProfile = async (
 /** 获取 Codex Profile 详情（从列表过滤） */
 export const getCodexProfile = async (name: string): Promise<CodexProfile | null> => {
   const profiles = await listCodexProfiles()
-  const arr = Array.isArray(profiles) ? profiles : pickArray(profiles, 'profiles')
+  const arr: unknown[] = Array.isArray(profiles) ? profiles : pickArray(profiles, 'profiles')
   const found = arr.find((item) => {
     if (!isRecord(item)) {
       return false

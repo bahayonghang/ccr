@@ -56,7 +56,8 @@ function convertOpenJsonValue(
     return result
   }
   if (isRecord(value)) {
-    const prototype = Object.getPrototypeOf(value)
+    // Object.getPrototypeOf 的 lib 签名返回 any；此处只做身份比较，显式收窄为 unknown。
+    const prototype: unknown = Object.getPrototypeOf(value)
     if (prototype !== Object.prototype && prototype !== null) {
       throw new TypeError(`${label} must contain only plain JSON objects`)
     }

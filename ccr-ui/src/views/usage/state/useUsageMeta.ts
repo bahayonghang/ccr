@@ -1,12 +1,14 @@
 import { computed, type ComputedRef, type Ref } from 'vue'
-import { useI18n } from 'vue-i18n'
+import type { Composer } from 'vue-i18n'
 import { useUsageStore } from '@/stores/usage'
 import type { UsageFeatureCapability, UsageUnsupportedReason } from '@/types/usage'
 import { buildUsageOpsCockpit } from '../usageOpsCockpit'
 import { buildDashboardMetaItems, type DashboardMetaItem } from '../usageOverviewInsights'
 
 type UsageStore = ReturnType<typeof useUsageStore>
-type I18nComposer = ReturnType<typeof useI18n>
+// ReturnType<typeof useI18n> 解析为 any（vue-i18n Composer 泛型默认 Record<string, any>）；
+// 显式实例化 Composer，让 t/locale 的类型可用（no-unsafe-* 依赖真实类型）。
+type I18nComposer = Composer<Record<string, unknown>, Record<string, unknown>, Record<string, unknown>, string>
 type TranslateDashboardText = (
   key: string,
   values: Record<string, number | string> | undefined,
