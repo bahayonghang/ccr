@@ -3,6 +3,10 @@
 > 父任务：`08-22-react-migration`（阶段 5，与其余六个视图子任务及 `08-22-i18n-port` 并行）。
 > 分支：`feature/react-migration/views-claude`，PR 目标 `feature/react-migration`。
 
+## 外壳接口公示（08-22-shell-port 批次 6）
+
+共享接口：`.trellis/tasks/08-22-shell-port/shared-interfaces.md`。阶段 4a 之后不改 `MasterDetailLayout` 与 `src/ui/` 原语。
+
 ## 前置确认
 
 - [ ] 父任务统一层门已通过：`08-22-platform-unify` 的 config 契约定稳，本任务范围表已回填（其批次 8）。

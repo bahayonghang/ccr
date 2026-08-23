@@ -34,6 +34,61 @@ const persist = (state: CommandsViewState): void => {
   )
 }
 
+export type CommandStreamChannel = 'stdout' | 'stderr' | 'system'
+
+export interface CommandStreamLine {
+  channel: CommandStreamChannel
+  text: string
+  seq: number
+  jobId: string
+}
+
+/** 账本上限：与 CommandsView.vue `MAX_LEDGER_LINES` 对齐，超出丢弃最旧行。 */
+export const COMMANDS_STREAM_CAP = 2000
+
+interface CommandsStreamState {
+  activeClient: string
+  linesByClient: Record<string, CommandStreamLine[]>
+  setActiveClient: (client: string) => void
+  appendStreamLines: (input: { client?: string; lines: CommandStreamLine[] }) => void
+  clearStream: (client: string) => void
+}
+
+const truncateLines = (lines: CommandStreamLine[]): CommandStreamLine[] => {
+  if (lines.length <= COMMANDS_STREAM_CAP) return lines
+  return lines.slice(-COMMANDS_STREAM_CAP)
+}
+
+export const useCommandsStreamStore = create<CommandsStreamState>()((set, get) => ({
+  activeClient: 'ccr',
+  linesByClient: {},
+
+  setActiveClient: (activeClient) => set({ activeClient }),
+
+  appendStreamLines: (input) => {
+    const client = input.client ?? get().activeClient
+    if (input.lines.length === 0) return
+    set((state) => {
+      const current = state.linesByClient[client] ?? []
+      return {
+        linesByClient: {
+          ...state.linesByClient,
+          [client]: truncateLines([...current, ...input.lines]),
+        },
+      }
+    })
+  },
+
+  clearStream: (client) => {
+    set((state) => {
+      if (!(client in state.linesByClient)) return state
+      const linesByClient = { ...state.linesByClient }
+      delete linesByClient[client]
+      return { ...state, linesByClient }
+    })
+  },
+}))
+
 export const useCommandsViewStore = create<CommandsViewState>()((set, get) => ({
   sortKey: 'name',
   sortDir: 'asc',

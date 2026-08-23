@@ -5,6 +5,10 @@
 >
 > 本域测试密度全仓最高。测试重写与实现迁移同批次推进，不先迁实现后补测试。
 
+## 外壳接口公示（08-22-shell-port 批次 6）
+
+共享接口：`.trellis/tasks/08-22-shell-port/shared-interfaces.md`。阶段 4a 之后不改 `MasterDetailLayout` 与 `src/ui/` 原语。
+
 ## 前置确认
 
 - [ ] 父任务统一层门已通过（本域范围不受影响，无需回填）。

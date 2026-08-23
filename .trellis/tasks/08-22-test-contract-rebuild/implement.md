@@ -3,6 +3,10 @@
 > 父任务：`08-22-react-migration`。跨阶段 3–6：最小测试集在阶段 3 后即交付，契约重写稿在阶段 4 → 5 门前交付，完整重写在阶段 6。
 > 分支：`feature/react-migration/test-contract-rebuild`，PR 目标 `feature/react-migration`。
 
+## 外壳完成通知（协同点 C）
+
+`08-22-shell-port` 已交付 React 外壳与 75 条路由。请开始最小测试集（批次 1，3 个工作日内）。路由表入口：`ccr-ui/src/shell/router.tsx`。
+
 ## 前置确认
 
 - [ ] `08-22-react-foundation` 批次 4 已完成 `vitest.smoke.config.ts` 的 React 适配，且 `path-mapping.md` 已落盘。

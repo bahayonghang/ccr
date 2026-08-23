@@ -3,6 +3,11 @@
 > 父任务：`08-22-react-migration`。**批次 1 属阶段 4a（共享层前置），批次 2 起属阶段 5（七个视图子任务并行）。**
 > 分支：`feature/react-migration/views-profiles-config`，PR 目标 `feature/react-migration`。批次 1 单独开 PR 并先行合入，`08-22-platform-unify` 批次 4 依赖它。
 
+## 外壳接口公示（08-22-shell-port 批次 6）
+
+- 共享接口：`.trellis/tasks/08-22-shell-port/shared-interfaces.md`。阶段 4a 之后不改 `MasterDetailLayout` 与 `src/ui/` 原语接口。
+- **AC11**：`configs` 表单草稿的界面级验证（离开后返回草稿仍在）由本任务批次 2 执行。store 侧 `useConfigsViewStore.formDrafts` 已按配置 id 可读写（memory-only）。
+
 ## 前置确认
 
 ### 批次 1 的前置（阶段 3 外壳门通过后即可开工）

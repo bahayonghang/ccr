@@ -3,6 +3,10 @@
 > 父任务：`08-22-react-migration`。**批次 3 的前半（`components/mcp/`）属阶段 4a（共享层前置），其余批次属阶段 5（七个视图子任务并行）。**
 > 分支：`feature/react-migration/views-sync-tools`，PR 目标 `feature/react-migration`。批次 3 前半单独开 PR 并先行合入，`08-22-platform-unify` 批次 5 依赖它。
 
+## 外壳接口公示（08-22-shell-port 批次 6）
+
+共享接口：`.trellis/tasks/08-22-shell-port/shared-interfaces.md`。阶段 4a 之后不改 `MasterDetailLayout` 与 `src/ui/` 原语。
+
 ## 前置确认
 
 ### 批次 3 前半的前置（阶段 3 外壳门通过后即可开工）

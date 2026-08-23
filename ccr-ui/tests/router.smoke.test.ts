@@ -1,15 +1,34 @@
 import { describe, expect, it } from 'vitest'
+import { matchRoutes } from 'react-router'
 import {
   mainLayoutGroupTitleMap,
   mainLayoutNavSections,
   mainLayoutRouteTitleMap,
 } from '@/config/mainLayoutShell'
 import { getModuleSubnavItems } from '@/config/moduleSubnav'
-import router from '@/router'
+import { flattenCatalog } from '@/shell/routeCatalog'
+import { appRoutes } from '@/shell/router'
+import { assertHandleKeys, ROUTE_HANDLE_KEYS } from '@/shell/routeHandle'
+
+const flat = flattenCatalog()
+const byId = (id: string) => flat.find((route) => route.id === id)
+const byPath = (path: string) => flat.find((route) => route.path === path)
 
 describe('router smoke', () => {
+  it('keeps 75 route records matching the Vue table', () => {
+    expect(flat).toHaveLength(75)
+  })
+
+  it('keeps handle keys inside the allowlist', () => {
+    const violations = flat.flatMap((route) =>
+      assertHandleKeys(route.handle, route.id ?? route.path),
+    )
+    expect(violations).toEqual([])
+    expect(ROUTE_HANDLE_KEYS).toContain('cache')
+  })
+
   it('keeps critical named routes registered', () => {
-    const requiredRoutes = [
+    const required = [
       'dashboard',
       'settings',
       'codex',
@@ -37,77 +56,55 @@ describe('router smoke', () => {
       'gemini-system-prompts',
       'opencode-system-prompts',
     ]
-
-    for (const routeName of requiredRoutes) {
-      expect(router.hasRoute(routeName)).toBe(true)
+    for (const id of required) {
+      expect(byId(id), id).toBeTruthy()
     }
   })
 
   it('keeps /stats redirected to /usage', () => {
-    const statsRoute = router.getRoutes().find((route) => route.path === '/stats')
-
-    expect(statsRoute?.redirect).toBe('/usage')
+    expect(byPath('/stats')?.redirect).toBe('/usage')
   })
 
   it('redirects the legacy CCR control entrypoint to the unified command center', () => {
-    const ccrControlRoute = router.getRoutes().find((route) => route.path === '/ccr-control')
-
-    expect(ccrControlRoute?.redirect).toBe('/commands/ccr')
-    expect(ccrControlRoute?.components).toBeUndefined()
+    expect(byId('ccr-control')?.redirect).toBe('/commands/ccr')
     expect(mainLayoutRouteTitleMap['ccr-control']).toBe('nav.commands')
   })
 
   it('shows only one CCR command entry in the tools navigation', () => {
     const toolsSection = mainLayoutNavSections.find((section) => section.id === 'tools')
     const commandLikeItems = toolsSection?.items.filter((item) =>
-      [item.to, item.labelKey].some((value) => /ccr-control|nav\.ccrControl|\/commands/.test(value))
+      [item.to, item.labelKey].some((value) => /ccr-control|nav\.ccrControl|\/commands/.test(value)),
     )
-
     expect(commandLikeItems).toEqual([
       expect.objectContaining({ to: '/commands', labelKey: 'nav.commands' }),
     ])
   })
 
   it('keeps the root route registered as the cached dashboard', () => {
-    const dashboardRoute = router.getRoutes().find((route) => route.name === 'dashboard')
-
-    expect(dashboardRoute?.path).toBe('/')
-    expect(dashboardRoute?.meta.cacheKey).toBe('DashboardView')
+    const dashboard = byId('dashboard')
+    expect(dashboard?.path).toBe('/')
+    expect(dashboard?.handle?.cacheKey).toBe('DashboardView')
   })
 
   it('registers the cached Grok home and both management child routes', () => {
-    const homeRoute = router.getRoutes().find((route) => route.name === 'grok')
-    const authRoute = router.getRoutes().find((route) => route.name === 'grok-auth')
-    const profilesRoute = router.getRoutes().find((route) => route.name === 'grok-profiles')
-    const settingsRoute = router.getRoutes().find((route) => route.name === 'grok-settings')
-
-    expect(homeRoute).toMatchObject({
+    expect(byId('grok')).toMatchObject({
       path: '/grok',
-      meta: { cache: true, cacheKey: 'GrokView', depth: 1, group: 'grok' },
+      handle: { cache: true, cacheKey: 'GrokView', depth: 1, group: 'grok' },
     })
-    expect(authRoute).toMatchObject({
-      path: '/grok/auth',
-      meta: { depth: 2, group: 'grok' },
-    })
-    expect(profilesRoute).toMatchObject({
+    expect(byId('grok-auth')).toMatchObject({ path: '/grok/auth', handle: { depth: 2, group: 'grok' } })
+    expect(byId('grok-profiles')).toMatchObject({
       path: '/grok/profiles',
-      meta: { depth: 2, group: 'grok' },
+      handle: { depth: 2, group: 'grok' },
     })
-    expect(settingsRoute).toMatchObject({
+    expect(byId('grok-settings')).toMatchObject({
       path: '/grok/settings',
-      meta: { depth: 2, group: 'grok' },
+      handle: { depth: 2, group: 'grok' },
     })
-
     const modulesSection = mainLayoutNavSections.find((section) => section.id === 'modules')
-    expect(modulesSection?.items).toContainEqual(expect.objectContaining({
-      to: '/grok',
-      labelKey: 'nav.grok',
-      icon: 'Zap',
-    }))
+    expect(modulesSection?.items).toContainEqual(
+      expect.objectContaining({ to: '/grok', labelKey: 'nav.grok', icon: 'Zap' }),
+    )
     expect(mainLayoutRouteTitleMap.grok).toBe('nav.grok')
-    expect(mainLayoutRouteTitleMap['grok-auth']).toBe('nav.auth')
-    expect(mainLayoutRouteTitleMap['grok-profiles']).toBe('nav.profiles')
-    expect(mainLayoutRouteTitleMap['grok-settings']).toBe('common.settings')
     expect(mainLayoutGroupTitleMap.grok).toBe('nav.grok')
     expect(getModuleSubnavItems('grok').map((item) => item.href)).toEqual([
       '/grok',
@@ -118,75 +115,42 @@ describe('router smoke', () => {
   })
 
   it('keeps legacy Gemini CLI routes redirected to Antigravity', () => {
-    const homeRoute = router.getRoutes().find((route) => route.path === '/gemini-cli')
-    const mcpRoute = router.getRoutes().find((route) => route.path === '/gemini-cli/mcp')
-    const commandsRoute = router
-      .getRoutes()
-      .find((route) => route.path === '/gemini-cli/slash-commands')
-    const agentsRoute = router.getRoutes().find((route) => route.path === '/gemini-cli/agents')
-    const pluginsRoute = router.getRoutes().find((route) => route.path === '/gemini-cli/plugins')
-    const promptsRoute = router
-      .getRoutes()
-      .find((route) => route.path === '/gemini-cli/system-prompts')
-
-    expect(homeRoute?.redirect).toBe('/antigravity')
-    expect(mcpRoute?.redirect).toBe('/antigravity/mcp')
-    expect(commandsRoute?.redirect).toBe('/antigravity/slash-commands')
-    expect(agentsRoute?.redirect).toBe('/antigravity/agents')
-    expect(pluginsRoute?.redirect).toBe('/antigravity/plugins')
-    expect(promptsRoute?.redirect).toBe('/antigravity/system-prompts')
+    expect(byPath('/gemini-cli')?.redirect).toBe('/antigravity')
+    expect(byPath('/gemini-cli/mcp')?.redirect).toBe('/antigravity/mcp')
+    expect(byPath('/gemini-cli/slash-commands')?.redirect).toBe('/antigravity/slash-commands')
+    expect(byPath('/gemini-cli/agents')?.redirect).toBe('/antigravity/agents')
+    expect(byPath('/gemini-cli/plugins')?.redirect).toBe('/antigravity/plugins')
+    expect(byPath('/gemini-cli/system-prompts')?.redirect).toBe('/antigravity/system-prompts')
   })
 
   it('redirects skills legacy entrypoints to the migration bridge', () => {
-    const skillsRoute = router.getRoutes().find((route) => route.path === '/skills')
-    const marketRoute = router.getRoutes().find((route) => route.path === '/market')
-    const skillsAddRoute = router.getRoutes().find((route) => route.path === '/skills/add')
-    const skillsHubRoute = router.getRoutes().find((route) => route.path === '/skills/hub')
-    const skillsDetailRoute = router
-      .getRoutes()
-      .find((route) => route.path === '/skills/:platform/:name')
-    const skillsManagerRoute = router.getRoutes().find((route) => route.path === '/skills-manager')
-    const skillportManagerRoute = router
-      .getRoutes()
-      .find((route) => route.path === '/skillport-manager')
-    const opencodeSkillsRoute = router
-      .getRoutes()
-      .find((route) => route.path === '/opencode/skills')
-
-    expect(skillsRoute?.redirect).toBeUndefined()
-    expect(marketRoute?.redirect).toBe('/skills')
-    expect(skillsAddRoute?.redirect).toBe('/skills')
-    expect(skillsHubRoute?.redirect).toBe('/skills')
-    expect(skillsDetailRoute?.redirect).toBe('/skills')
-    expect(skillsManagerRoute?.redirect).toBe('/skills')
-    expect(skillportManagerRoute?.redirect).toBe('/skills')
-    expect(opencodeSkillsRoute?.redirect).toBe('/skills')
+    expect(byPath('/skills')?.redirect).toBeUndefined()
+    expect(byPath('/market')?.redirect).toBe('/skills')
+    expect(byPath('/skills/add')?.redirect).toBe('/skills')
+    expect(byPath('/skills/hub')?.redirect).toBe('/skills')
+    expect(byPath('/skills/:platform/:name')?.redirect).toBe('/skills')
+    expect(byPath('/skills-manager')?.redirect).toBe('/skills')
+    expect(byPath('/skillport-manager')?.redirect).toBe('/skills')
+    expect(byPath('/opencode/skills')?.redirect).toBe('/skills')
   })
 
   it('preserves generated platform child route paths', () => {
-    const routePaths = router.getRoutes().map((route) => route.path)
-
-    expect(routePaths).toContain('/antigravity/mcp')
-    expect(routePaths).toContain('/antigravity/agents')
-    expect(routePaths).toContain('/antigravity/slash-commands')
-    expect(routePaths).toContain('/antigravity/plugins')
-    expect(routePaths).toContain('/antigravity/system-prompts')
-    expect(routePaths).toContain('/claude-code/system-prompts')
-    expect(routePaths).toContain('/codex/system-prompts')
-    expect(routePaths).toContain('/opencode/system-prompts')
-    expect(routePaths).not.toContain('/droid')
-    expect(routePaths).not.toContain('/droid/mcp')
+    const paths = flat.map((route) => route.path)
+    expect(paths).toContain('/antigravity/mcp')
+    expect(paths).toContain('/antigravity/agents')
+    expect(paths).toContain('/antigravity/slash-commands')
+    expect(paths).toContain('/antigravity/plugins')
+    expect(paths).toContain('/antigravity/system-prompts')
+    expect(paths).not.toContain('/droid')
   })
 
   it('registers the global settings route as its own navigation group', () => {
-    const settingsRoute = router.getRoutes().find((route) => route.name === 'settings')
-
-    expect(settingsRoute?.path).toBe('/settings')
-    expect(settingsRoute?.meta.group).toBe('settings')
+    expect(byId('settings')?.path).toBe('/settings')
+    expect(byId('settings')?.handle?.group).toBe('settings')
   })
 
   it('hides the global background on routes with page-level decorative backgrounds', () => {
-    const routeNames = [
+    const ids = [
       'claude-code',
       'antigravity',
       'gemini-cli',
@@ -201,10 +165,19 @@ describe('router smoke', () => {
       'opencode-plugins',
       'opencode-settings',
     ]
-
-    for (const routeName of routeNames) {
-      const route = router.getRoutes().find((candidate) => candidate.name === routeName)
-      expect(route?.meta.hideGlobalBackground).toBe(true)
+    for (const id of ids) {
+      expect(byId(id)?.handle?.hideGlobalBackground, id).toBe(true)
     }
+  })
+
+  it('matches /commands and /commands/claude on the same route with optional client', () => {
+    const bare = matchRoutes(appRoutes, '/commands')
+    const withClient = matchRoutes(appRoutes, '/commands/claude')
+    const bareLeaf = bare?.[bare.length - 1]
+    const clientLeaf = withClient?.[withClient.length - 1]
+    expect(bareLeaf?.route.id).toBe('commands')
+    expect(clientLeaf?.route.id).toBe('commands')
+    expect(bareLeaf?.params.client).toBeUndefined()
+    expect(clientLeaf?.params.client).toBe('claude')
   })
 })

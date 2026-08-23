@@ -59,24 +59,30 @@ export function usePageTransition(current: PageRouteInfo): {
     return () => window.removeEventListener('popstate', onPopState)
   }, [])
 
+  const depth = current.depth
+  const group = current.group
+
   useEffect(() => {
     const prev = prevRef.current
+    const nextInfo = { depth, group }
 
     if (!prev) {
       setTransitionName('page-fade')
       isBackRef.current = false
+      prevRef.current = nextInfo
       return
     }
 
-    const toDepth = resolveDepth(current)
+    const toDepth = resolveDepth(nextInfo)
     const fromDepth = resolveDepth(prev)
-    const toGroup = resolveGroup(current)
+    const toGroup = resolveGroup(nextInfo)
     const fromGroup = resolveGroup(prev)
 
     // 顶层大页面统一使用轻量淡入淡出，避免复杂滑动动画拖慢切换
     if (toDepth === 1 && fromDepth === 1) {
       setTransitionName('page-fade')
       isBackRef.current = false
+      prevRef.current = nextInfo
       return
     }
 
@@ -104,7 +110,8 @@ export function usePageTransition(current: PageRouteInfo): {
     }
 
     isBackRef.current = false
-  }, [current])
+    prevRef.current = nextInfo
+  }, [depth, group])
 
   return { transitionName }
 }

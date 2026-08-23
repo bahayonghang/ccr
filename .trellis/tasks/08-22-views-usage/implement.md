@@ -3,6 +3,10 @@
 > 父任务：`08-22-react-migration`（阶段 5，七个视图子任务并行）。
 > 分支：`feature/react-migration/views-usage`，PR 目标 `feature/react-migration`。
 
+## 外壳接口公示（08-22-shell-port 批次 6）
+
+共享接口：`.trellis/tasks/08-22-shell-port/shared-interfaces.md`。阶段 4a 之后不改 `MasterDetailLayout` 与 `src/ui/` 原语。Sparkline / StatTile 消费点仍归本任务。
+
 ## 前置确认
 
 - [ ] 父任务统一层门已通过（本域范围不受影响，无需回填）。

@@ -6,6 +6,7 @@
 @import './animations.css';
 @import './utilities/utilities.css';
 @import './chart-colors.css';
+@import '../ui/primitives.css';
 
 /* Needed so Tailwind can place `@layer components` from utilities.css (used by `@apply`). */
 @tailwind components;

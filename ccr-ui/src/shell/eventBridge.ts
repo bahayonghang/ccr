@@ -2,7 +2,13 @@ import { useQueryClient } from '@tanstack/react-query'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import { useEffect } from 'react'
 import { claudeObserverKeys } from '@/features/claude/queries'
+import {
+  useCommandsStreamStore,
+  type CommandStreamChannel,
+  type CommandStreamLine,
+} from '@/features/commands/stores'
 import { homeUsageKeys, usageKeys } from '@/features/usage/queries'
+import type { CommandJobDelta } from '@/types/config'
 import { logger } from '@/utils/logger'
 import { isTauriRuntime } from '@/utils/tauriRuntime'
 
@@ -38,11 +44,43 @@ export const TAURI_GLOBAL_EVENTS = [
   'claude_observer:updated',
   'env:refresh-requested',
   'env:changed',
+  'commands:job-progress',
+  'commands:job-finished',
+  'commands:job-cancelled',
 ] as const
 
 export type TauriGlobalEvent = (typeof TAURI_GLOBAL_EVENTS)[number]
 
 type EventListener = (payload: unknown) => void
+
+const toStreamLines = (delta: CommandJobDelta): CommandStreamLine[] =>
+  delta.lines.map((text) => ({
+    channel: delta.channel as CommandStreamChannel,
+    text,
+    seq: delta.seq,
+    jobId: delta.job_id,
+  }))
+
+const appendCommandDelta = (payload: unknown): void => {
+  const delta = payload as CommandJobDelta
+  if (!Array.isArray(delta.lines)) return
+  useCommandsStreamStore.getState().appendStreamLines({ lines: toStreamLines(delta) })
+}
+
+const appendCommandFinished = (payload: unknown): void => {
+  const snapshot = payload as { job_id?: string }
+  if (typeof snapshot.job_id !== 'string') return
+  useCommandsStreamStore.getState().appendStreamLines({
+    lines: [
+      {
+        channel: 'system',
+        text: `job ${snapshot.job_id} finished`,
+        seq: Number.MAX_SAFE_INTEGER,
+        jobId: snapshot.job_id,
+      },
+    ],
+  })
+}
 
 /** createEventBatcher 的返回契约（消费方按名引用，避免 ReturnType 耦合）。 */
 export interface EventBatcher<T> {
@@ -144,6 +182,11 @@ export function useTauriEventBridge() {
     // —— 环境：全量失效（环境变更影响多数数据域）——
     track(listenSafe('env:refresh-requested', invalidate([])))
     track(listenSafe('env:changed', invalidate([])))
+
+    // —— 命令流：按 client 累积缓冲，视图卸载不清空（外壳门 AC4）——
+    track(listenSafe('commands:job-progress', appendCommandDelta))
+    track(listenSafe('commands:job-finished', appendCommandFinished))
+    track(listenSafe('commands:job-cancelled', appendCommandFinished))
 
     return () => {
       disposed = true

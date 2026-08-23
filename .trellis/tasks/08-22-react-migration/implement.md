@@ -269,7 +269,7 @@ dev  ─────────────────────────
 | 2    | 2c `arch-quality-perf`        | 已完成 | 约束门 ✅ 2026-08-23 |
 | 2    | 3 `design-system`             | 已完成 | 约束门 ✅ 2026-08-23（AC4 后半「src/components/ui/ 移除」随 shell-port 落地，见其 implement.md 交付门） |
 | 3    | 4 `state-logic-port`          | 已完成（AC1 偏差：`src/stores/usage.ts` 暂留，归 views-usage；外壳门复核） | 外壳门         |
-| 3    | 5 `shell-port`                | 未开始 | 外壳门         |
+| 3    | 5 `shell-port`                | 已完成（AC11 表单草稿界面级验证移交 views-profiles-config） | 外壳门         |
 | 4a   | 11 批次 1（profiles 共享层）  | 未开始 | 共享层前置门   |
 | 4a   | 12 批次 3 前半（mcp 共享层）  | 未开始 | 共享层前置门   |
 | 4    | 5b `platform-unify`           | 未开始 | 统一层门       |

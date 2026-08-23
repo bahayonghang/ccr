@@ -112,8 +112,9 @@ export function useMainLayoutShell({ hasSidebar, routeFullPath, t }: UseMainLayo
   // 依赖均为稳定引用（useCallback/[] 或 Zustand 模块级 action），effect 只执行一次；
   // Esc 判定读 ref 镜像取最新瞬态。
   useEffect(() => {
-    const mobileMediaQuery = window.matchMedia('(max-width: 1023px)')
-    handleViewportChange(mobileMediaQuery.matches)
+    const mobileMediaQuery =
+      typeof window.matchMedia === 'function' ? window.matchMedia('(max-width: 1023px)') : null
+    if (mobileMediaQuery) handleViewportChange(mobileMediaQuery.matches)
     const handleMobileMediaChange = (event: MediaQueryListEvent) =>
       handleViewportChange(event.matches)
     const handleEscapeKey = (event: KeyboardEvent) => {
@@ -121,7 +122,7 @@ export function useMainLayoutShell({ hasSidebar, routeFullPath, t }: UseMainLayo
         closeSidebar()
       }
     }
-    mobileMediaQuery.addEventListener('change', handleMobileMediaChange)
+    mobileMediaQuery?.addEventListener('change', handleMobileMediaChange)
     window.addEventListener('keydown', handleEscapeKey)
 
     setIsTauri(isTauriEnvironment())
@@ -131,7 +132,7 @@ export function useMainLayoutShell({ hasSidebar, routeFullPath, t }: UseMainLayo
       window.removeEventListener('mousemove', handleResize)
       window.removeEventListener('mouseup', stopResize)
       window.removeEventListener('keydown', handleEscapeKey)
-      mobileMediaQuery.removeEventListener('change', handleMobileMediaChange)
+      mobileMediaQuery?.removeEventListener('change', handleMobileMediaChange)
       document.body.style.cursor = ''
       document.body.style.userSelect = ''
       document.body.style.overflow = ''

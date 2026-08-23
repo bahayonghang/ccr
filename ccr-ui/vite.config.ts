@@ -33,6 +33,7 @@ export default defineConfig({
             // form-vendor / motion-vendor 未加入：react-hook-form 与 motion 当前无导入点，
             // 空分组不产出 chunk，待 state-logic-port / design-system 实际导入时再补。
             ['query-vendor', /[\\/]node_modules[\\/]@tanstack[\\/](react-query|query-core)[\\/]/],
+            ['motion-vendor', /[\\/]node_modules[\\/]motion[\\/]/],
             ['ui-vendor', /[\\/]node_modules[\\/]@iconify[\\/]react[\\/]/],
             // 图表库统一走 src/utils/apexChartsCore.ts 的按需入口，并全程 await import()；
             // 这里固定成单一 charts-vendor chunk，避免多个懒加载点各自复制一份 core。
