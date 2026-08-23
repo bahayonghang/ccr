@@ -168,10 +168,33 @@ utilities/animations/chart-colors，deferred-decorations 含 backgrounds。
 
 ## 批次 4：弹层收口
 
-- [ ] Dialog 作为唯一底座，四项行为（焦点陷阱、Esc、滚动锁定、层级）只有一处实现。
-- [ ] `BaseModal` API 适配器落地。若其复杂度超过直接改 33 个调用点，取消适配器并记录判定（`design.md` §7 末段）。
-- [ ] 13 个自实现 `fixed inset-0` 弹层的替换方案记录，交由各视图子任务执行。
-- [ ] smoke 测试断言四项行为只有一处实现（AC5）。
+- [x] Dialog 作为唯一底座，四项行为（焦点陷阱、Esc、滚动锁定、层级）只有一处实现。
+- [x] `BaseModal` API 适配器落地。**判定：适配器保留**（见下「批次 4 落位决策」）。
+- [x] 13 个自实现 `fixed inset-0` 弹层的替换方案记录，交由各视图子任务执行（`adhoc-primitives.md` §8 清单 + §10 替换映射，入口统一为 `src/ui/base-modal.tsx` 适配器）。
+- [x] smoke 测试断言四项行为只有一处实现（AC5）：`tests/overlay-single-implementation.smoke.test.ts` 3 用例。
+
+### 批次 4 落位决策与实现发现
+
+1. **适配器保留（design.md §7 末段的判定）**：适配器仅做 API 翻译（`modelValue`/`onUpdateModelValue`/`onClose`/`onOpened`/`header`/`footer`/`ref.close()` → Radix 受控形态）加一个拖拽阈值判定，不含四项弹层行为的任何实现，复杂度远低于改 33 个调用点，判定为保留。33 个 `.vue` 调用点在阶段 5 迁移时按文件头「Vue → React API 映射」查表转换。
+2. **Radix Dialog 1.1.23 的三个实测行为**（适配器与测试均按实测行为编写）：
+   - `DialogContent` 无 `onPointerUpOutside` prop（前一轮实现误用导致 type-check 失败）；
+   - `deferPointerDownOutside: true`：外部 pointerdown（button 0）的判定推迟到随后的 `click` 才派发 `onPointerDownOutside`，custom event 只携带原始 pointerdown——拖拽阈值所需的 pointerup 坐标由适配器在打开期间用 document 级监听自行记录；
+   - Content 不再输出 `aria-modal` 属性（dist 内无该字符串，modal 语义由 `role="dialog"` + Radix 焦点管理承载），测试按实际行为断言并在用例内注明核实结论。
+3. **负向用例的有效性**：拖拽超阈值 / `closeOnBackdrop=false` / `persistent` 三个负向用例都在正向用例（同序列关闭成功）证明路径可达之后执行，避免「事件未到达、断言空过」的假阴性。Radix 的 document 级 pointerdown 监听在 `setTimeout(0)` 后注册，测试用 `settleRadixOutsideDetection()`（让出一个宏任务）保证探测就绪。
+4. **复杂度上限（2c 的 max 16）触发拆分**：`BaseModal` 首版复杂度 23 超限，拆出 `ModalHeader` / `ModalBody` / `ModalFooterBar` / `ModalCloseButton` 子组件与 `isBackdropClick` 判定函数后通过。
+
+### 批次 4 证据
+
+改动：新增 `src/ui/base-modal.tsx`（适配器）、`tests/base-modal-adapter.smoke.test.tsx`（13 用例：Esc 三态、遮罩点击三态 + 阈值、滚动锁定锁定/解除、aria 接线、onOpened、ref.close()、header/footer 插槽映射、showClose）、`tests/overlay-single-implementation.smoke.test.ts`（3 用例：`src/ui` 无滚动锁定/Esc/焦点陷阱自实现、无 `onPointerUpOutside` 回归、层级 token 在 styles 层有定义）；`src/ui/index.ts` 补桶导出。临时探针文件（`probe-radix.smoke.test.tsx`、`probe-out.txt`）已删除。
+
+| 命令 | 退出码 | 结果 |
+| --- | --- | --- |
+| `bun run type-check` | 0 | ✓ |
+| `bun run lint:ci` | 0 | eslint（含复杂度 max 16）+ stylelint + check:style-lines 全绿 |
+| `vitest run --config vitest.smoke.config.ts tests/base-modal-adapter.smoke.test.tsx` | 0 | 13/13 通过 |
+| `vitest run --config vitest.smoke.config.ts tests/overlay-single-implementation.smoke.test.ts` | 0 | 3/3 通过 |
+| `bun run test:smoke` | 0 | 63 文件 / 319 测试全绿（批次 3 为 61/303，新增 2 文件 16 用例） |
+| `just frontend-check-quick` | 0 | type-check + lint:ci + i18n + smoke 全绿 |
 
 ## 批次 5：主题配置域
 

@@ -3,6 +3,7 @@
 // 样式约束：只消费 CCR token 命名空间（bg-* / text-* / border-* / shadow-* / z-* / radius）
 //   + Tailwind 工具类，禁止硬编码 px/hex/rgba 字面量。
 
+export * from './base-modal'
 export * from './checkbox'
 export * from './combobox'
 export * from './dialog'
