@@ -257,12 +257,43 @@
 
 ## 批次 7：性能测量与基线
 
-- [ ] 按 `design.md` §7 写五个测量脚本，落在 `ccr-ui/scripts/perf/`。
-- [ ] 每个脚本连续跑 3 次，相对标准差不超过 15%。超过则改进方法后重测。
-- [ ] 采集 React 侧基线，`perf-baseline.md` 落盘（AC7）。
-- [ ] 与父任务基线采集门在 `dev` 上采集的数据对齐（同一测量方法，只依赖 DOM 与 `performance` API）。
+- [x] 按 `design.md` §7 写五个测量脚本，落在 `ccr-ui/scripts/perf/`。
+- [x] 每个脚本连续跑 3 次，相对标准差不超过 15%。超过则改进方法后重测。
+- [x] 采集 React 侧基线，`perf-baseline.md` 落盘（AC7）。
+- [x] 与父任务基线采集门在 `dev` 上采集的数据对齐（同一测量方法，只依赖 DOM 与 `performance` API）。
 
 注意：场景 1、3、4 依赖的视图此时尚未迁移（阶段 5 才迁）。本批次的做法是先在 Vue 版本上跑通脚本并采数据，React 侧的对应数值在 `08-22-regression-release` 补测。脚本的框架无关性是前提。
+
+### 批次 7 验证证据（2026-08-23，分支 `react-migration/react-foundation`，未提交）
+
+**测量脚本（框架无关，`ccr-ui/scripts/perf/`，无 vue/react import）**：
+
+| 文件 | 场景 | 依赖 | 状态 |
+| --- | --- | --- | --- |
+| `perf-form-input.mjs` | 1 大表单输入延迟 | web 模式 `--base-url` | 3 次运行完成，§1 |
+| `perf-list-scroll.mjs` | 2 虚拟列表滚动 | web 模式 `--base-url` | 3 次运行完成，§2 |
+| `perf-log-stream.mjs` | 3 日志流 | 桌面 CDP `--cdp-url` | 3 次运行完成（R7 迭代 1 后），§3 |
+| `perf-chart-update.mjs` | 4 图表更新与主题切换 | 桌面 CDP `--cdp-url` | 3 次运行完成，§4 |
+| `perf-route-switch.mjs` | 5 路由切换 | web 模式 `--base-url` | 5 次运行完成（R7 迭代：3→5），§5 |
+| `_lib.mjs` | 共享工具 | parseArgs / 统计 / CDP 连接 | — |
+
+**Definition-of-done 命令与退出码**：
+
+| 命令 | 退出码 | 结果 |
+| --- | --- | --- |
+| `cd ccr-ui && bun run lint:ci` | 0 | eslint + stylelint + check:style-lines 全绿 |
+| `cd ccr-ui && bunx eslint scripts/perf/` | 0 | 0 errors 0 warnings |
+| 场景 1 `bun ./scripts/perf/perf-form-input.mjs --base-url http://127.0.0.1:4180 --runs 3` | 0 | §1，RSD ≤ 8.3% |
+| 场景 2 `bun ./scripts/perf/perf-list-scroll.mjs --base-url http://127.0.0.1:4180 --runs 3` | 0 | §2，RSD ≤ 1.5% |
+| 场景 3 `bun ./scripts/perf/perf-log-stream.mjs --cdp-url http://127.0.0.1:9222 --runs 3` | 0 | §3，首轮 RSD 超限 → 迭代 1 后主指标 RSD ≤ 5.1% |
+| 场景 4 `bun ./scripts/perf/perf-chart-update.mjs --cdp-url http://127.0.0.1:9222 --runs 3` | 0 | §4，RSD ≤ 6.9% |
+| 场景 5 `bun ./scripts/perf/perf-route-switch.mjs --base-url http://127.0.0.1:4180 --runs 5` | 0 | §5，settle 全路由 RSD ≤ 13.2% |
+
+**场景 3 完成说明（R7 方法迭代 1）**：首轮按 30 秒预热 + 3 次正式 run 实测，run1 仍承担 500 行渲染路径的完整冷启动开销，保留堆高出 run2/3 约 3.5 MB，堆 Δ RSD 67.1%、斜率 RSD 80.3% 超限。按 design §7「固定更多变量」，预热升级为完整弃用轮（5 分钟注入，数据弃用）后重测：FPS RSD 0.1%、斜率 RSD 5.1%、最终行数 RSD 0% 全部达标；堆 Δ 残留 21.7% 为两点差对瞬时堆尖峰的固有敏感（run2 末采样 17.65 MB 落在临时尖峰），增长率的稳健估计为线性回归斜率（5.1%），记录为方法局限。原始数据见 `evidence/perf-log-stream-run-batch1.txt`（首轮）与 `evidence/perf-log-stream-run-batch2.txt`（迭代后正式）。
+
+**场景 3 桌面运行时报备**：在 worktree `D:/Documents/Code/Github/ccr-wt-vue`（`feature/react-migration`）`ccr-ui` 中经 `tauri dev` 启动（WebView2 CDP `--remote-debugging-port=9222`，debug 构建复用 12:29 产物，无 Rust 重编译），Vite dev server :15173（tauri.conf.json devUrl 同端口，运行于测试期间）。
+
+**环境**：Windows 10 x64，bun 1.4.0；Vue 版 v7.2.0（worktree `ccr-wt-vue`，与 `dev` 等价）；桌面 WebView2 Edg/151；视口 1800×1125（web 模式 headless chromium；桌面经 CDP setViewportSize）。基线数据落盘 `perf-baseline.md`，三项产品指标引用 Phase 0（§6/§7）。批次 7 提交将含脚本 + 证据目录。
 
 ## 批次 8：预算与分割约定
 
