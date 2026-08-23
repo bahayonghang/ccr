@@ -301,14 +301,14 @@
   }
 }
 
-/* ========== 禁用动画（无障碍） ========== */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
+/* ========== 禁用动画（无障碍） ==========
+   单点收敛（批次 7）：挂 data-reduced-motion 属性（reducedMotion.ts 写入）。
+   @media 兜底仅保留在 shell-critical.css（首帧无 JS 的 critical 层）。 */
+[data-reduced-motion='true'] *,
+[data-reduced-motion='true'] *::before,
+[data-reduced-motion='true'] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
 }

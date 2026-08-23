@@ -65,9 +65,7 @@
   --home-border-hairline: rgb(var(--color-border-default-rgb) / 22%);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  :root {
-    --home-motion-duration: 0ms;
-    --home-motion-lift: 0px;
-  }
+[data-reduced-motion='true'] {
+  --home-motion-duration: 0ms;
+  --home-motion-lift: 0px;
 }

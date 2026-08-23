@@ -1,113 +1,16 @@
 /* ============================================
    CCR-UI Editorial Surface System
-   Animations - Keyframes & Animation Classes
+   Animations - 保留段（装饰 / 反馈 / 悬停）
    ============================================ */
 
-/* ========== 基础动画关键帧 ========== */
+/* 08-22-design-system 批次 7 逐段判定后的保留集（animation-disposition.md）：
+   进出场与布局位移类动画交由 motion（13.1.1）/ Radix data-state 过渡承载，
+   本文件只保留装饰性持续动画、一次性反馈动画与纯 :hover 过渡。
+   禁止同一元素同一属性由本文件与 motion 同时驱动。 */
 
-    /* 淡入 */
-    @keyframes fade-in {
-        from {
-            opacity: 0;
-        }
+    /* ========== 保留关键帧 ========== */
 
-        to {
-            opacity: 1;
-        }
-    }
-
-    /* 淡出 */
-    @keyframes fade-out {
-        from {
-            opacity: 1;
-        }
-
-        to {
-            opacity: 0;
-        }
-    }
-
-    /* 向上滑入 */
-    @keyframes slide-up {
-        from {
-            opacity: 0;
-            transform: translateY(10px);
-        }
-
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    /* 向下滑入 */
-    @keyframes slide-down {
-        from {
-            opacity: 0;
-            transform: translateY(-10px);
-        }
-
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    /* 从左滑入 */
-    @keyframes slide-in-left {
-        from {
-            opacity: 0;
-            transform: translateX(-10px);
-        }
-
-        to {
-            opacity: 1;
-            transform: translateX(0);
-        }
-    }
-
-    /* 从右滑入 */
-    @keyframes slide-in-right {
-        from {
-            opacity: 0;
-            transform: translateX(10px);
-        }
-
-        to {
-            opacity: 1;
-            transform: translateX(0);
-        }
-    }
-
-    /* 缩放入场 */
-    @keyframes scale-in {
-        from {
-            opacity: 0;
-            transform: scale(0.95);
-        }
-
-        to {
-            opacity: 1;
-            transform: scale(1);
-        }
-    }
-
-    /* 缩放出场 */
-    @keyframes scale-out {
-        from {
-            opacity: 1;
-            transform: scale(1);
-        }
-
-        to {
-            opacity: 0;
-            transform: scale(0.95);
-        }
-    }
-
-    /* ========== Neo-Terminal 特色动画 ========== */
-
-    /* 微妙脉冲 - 用于状态指示器 */
+    /* 微妙脉冲 - 用于状态指示器（装饰性持续） */
     @keyframes pulse-subtle {
         0%,
         100% {
@@ -119,18 +22,11 @@
         }
     }
 
-    /* 旋转 - 用于加载指示器 */
-    @keyframes spin {
-        from {
-            transform: rotate(0deg);
-        }
+    /* spin 不在此定义：加载指示器的 spin 关键帧由 utilities.css 的
+       .loading-spinner 就地持有（shell-critical.css 同），且 Tailwind v4
+       自带 animate-spin 默认工具类，此处重复定义会形成第三处实现。 */
 
-        to {
-            transform: rotate(360deg);
-        }
-    }
-
-    /* 弹跳 - 用于按钮点击 */
+    /* 弹跳 - 用于按钮点击反馈（一次性反馈） */
     @keyframes bounce-in {
         0% {
             transform: scale(0.9);
@@ -145,7 +41,7 @@
         }
     }
 
-    /* 摇晃 - 用于错误提示 */
+    /* 摇晃 - 用于错误提示反馈（一次性反馈） */
     @keyframes shake {
         0%,
         100% {
@@ -168,7 +64,7 @@
         }
     }
 
-    /* 渐变流动 - 用于品牌元素 */
+    /* 渐变流动 - 用于品牌元素（装饰性持续） */
     @keyframes gradient-shift {
         0% {
             background-position: 0% 50%;
@@ -183,7 +79,7 @@
         }
     }
 
-    /* 边框发光 - 用于选中状态 */
+    /* 边框发光 - 用于选中状态（装饰性持续） */
     @keyframes border-glow {
         0%,
         100% {
@@ -195,145 +91,10 @@
         }
     }
 
-    /* 侧边栏项目入场 */
-    @keyframes sidebar-item-enter {
-        from {
-            opacity: 0;
-            transform: translateX(-8px);
-        }
-
-        to {
-            opacity: 1;
-            transform: translateX(0);
-        }
-    }
-
-    /* 卡片入场 */
-    @keyframes card-enter {
-        from {
-            opacity: 0;
-            transform: translateY(12px) scale(0.98);
-        }
-
-        to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-        }
-    }
-
-    /* 模态框入场 */
-    @keyframes modal-enter {
-        from {
-            opacity: 0;
-            transform: scale(0.95) translateY(-10px);
-        }
-
-        to {
-            opacity: 1;
-            transform: scale(1) translateY(0);
-        }
-    }
-
-    /* 模态框出场 */
-    @keyframes modal-exit {
-        from {
-            opacity: 1;
-            transform: scale(1) translateY(0);
-        }
-
-        to {
-            opacity: 0;
-            transform: scale(0.95) translateY(-10px);
-        }
-    }
-
-    /* 遮罩层入场 */
-    @keyframes backdrop-enter {
-        from {
-            opacity: 0;
-        }
-
-        to {
-            opacity: 1;
-        }
-    }
-
-    /* ========== 品牌强化动画（旧装饰，谨慎使用） ========== */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     /* ========== 动画工具类 ========== */
 
-    /* 基础动画 */
-    .animate-fade-in {
-        animation: fade-in var(--duration-normal) var(--ease-out) forwards;
-    }
-
-    .animate-fade-out {
-        animation: fade-out var(--duration-normal) var(--ease-out) forwards;
-    }
-
-    .animate-slide-up {
-        animation: slide-up var(--duration-slow) var(--ease-out) forwards;
-    }
-
-    .animate-slide-down {
-        animation: slide-down var(--duration-slow) var(--ease-out) forwards;
-    }
-
-    .animate-slide-in-left {
-        animation: slide-in-left var(--duration-slow) var(--ease-out) forwards;
-    }
-
-    .animate-slide-in-right {
-        animation: slide-in-right var(--duration-slow) var(--ease-out) forwards;
-    }
-
-    .animate-scale-in {
-        animation: scale-in var(--duration-normal) var(--ease-out) forwards;
-    }
-
-    .animate-scale-out {
-        animation: scale-out var(--duration-normal) var(--ease-out) forwards;
-    }
-
-    /* GPU 提升提示 - 核心动画 */
-    .animate-fade-in,
-    .animate-fade-out {
-        will-change: opacity;
-    }
-
-    .animate-slide-up,
-    .animate-slide-down,
-    .animate-slide-in-left,
-    .animate-slide-in-right {
-        will-change: transform, opacity;
-    }
-
-    .animate-scale-in,
-    .animate-scale-out {
-        will-change: transform, opacity;
-    }
-
-    /* Neo-Terminal 特色动画类 */
     .animate-pulse-subtle {
         animation: pulse-subtle 2s var(--ease-in-out) infinite;
-    }
-
-    .animate-spin {
-        animation: spin 1s linear infinite;
     }
 
     .animate-bounce-in {
@@ -349,81 +110,13 @@
         animation: gradient-shift 3s var(--ease-in-out) infinite;
     }
 
-    .animate-sidebar-item-enter {
-        animation: sidebar-item-enter var(--duration-slow) var(--ease-out) forwards;
-    }
-
-    .animate-card-enter {
-        animation: card-enter var(--duration-slow) var(--ease-out) forwards;
-    }
-
-    .animate-modal-enter {
-        animation: modal-enter var(--duration-slow) var(--ease-out-back) forwards;
-    }
-
-    .animate-modal-exit {
-        animation: modal-exit var(--duration-normal) var(--ease-in) forwards;
-    }
-
-    .animate-backdrop-enter {
-        animation: backdrop-enter var(--duration-normal) var(--ease-out) forwards;
-    }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    /* 延迟工具类 */
-    .animate-delay-75 {
-        animation-delay: 75ms;
-    }
-
-    .animate-delay-100 {
-        animation-delay: 100ms;
-    }
-
-    .animate-delay-150 {
-        animation-delay: 150ms;
-    }
-
-    .animate-delay-200 {
-        animation-delay: 200ms;
-    }
-
-    .animate-delay-300 {
-        animation-delay: 300ms;
-    }
-
-    .animate-delay-500 {
-        animation-delay: 500ms;
-    }
-
-    /* 填充模式 */
-    .animate-fill-forwards {
-        animation-fill-mode: forwards;
-    }
-
-    .animate-fill-both {
-        animation-fill-mode: both;
-    }
-
     /* ========== GPU 加速 ========== */
     .gpu-accelerate {
         transform: translateZ(0);
         backface-visibility: hidden;
     }
 
-    /* 悬停时准备动画 */
+    /* 悬停时准备动画（纯 :hover 过渡，保留 CSS） */
     .hover-animate {
         transition: transform var(--duration-fast) var(--ease-out),
             box-shadow var(--duration-fast) var(--ease-out);
@@ -433,7 +126,7 @@
         transform: translateY(-2px);
     }
 
-    /* 导航悬停动画 */
+    /* 导航悬停动画（纯 :hover 过渡，保留 CSS） */
     .nav-hover-effect {
         transition: transform var(--duration-fast) var(--ease-out),
             color var(--duration-fast) var(--ease-out);
@@ -441,140 +134,4 @@
 
     .nav-hover-effect:hover {
         transform: scale(1.05);
-    }
-
-    /* ========== Vue Page Transitions ========== */
-
-    /* 页面切换动画 - 丝滑模式 (Silk Smooth) */
-    .page-enter-active,
-    .page-leave-active {
-        transition: opacity var(--duration-normal) var(--ease-out),
-            transform var(--duration-normal) var(--ease-out);
-    }
-
-    .page-enter-from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-
-    .page-leave-to {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-
-    /* 缩放淡入模式 (Scale Fade) - 可选替代方案 */
-    .scale-fade-enter-active,
-    .scale-fade-leave-active {
-        transition: opacity var(--duration-normal) var(--ease-out),
-            transform var(--duration-normal) var(--ease-out);
-    }
-
-    .scale-fade-enter-from {
-        opacity: 0;
-        transform: scale(0.98);
-    }
-
-    .scale-fade-leave-to {
-        opacity: 0;
-        transform: scale(1.02);
-    }
-
-    /* ========== 智能路由过渡动画系统 (Route-Aware Transitions) ========== */
-
-    /* 1. page-fade: 首次加载 / 深层链接 */
-    .page-fade-enter-active,
-    .page-fade-leave-active {
-        transition: opacity var(--duration-normal) var(--ease-out);
-    }
-
-    .page-fade-enter-from {
-        opacity: 0;
-    }
-
-    .page-fade-leave-to {
-        opacity: 0;
-    }
-
-    /* 2. page-slide-up: 向下导航（进入子页面） - 内容从下方升起 */
-    .page-slide-up-enter-active {
-        transition: opacity var(--duration-slow) var(--ease-out),
-            transform var(--duration-slow) var(--ease-out);
-    }
-
-    .page-slide-up-leave-active {
-        transition: opacity var(--duration-normal) var(--ease-in),
-            transform var(--duration-normal) var(--ease-in);
-    }
-
-    .page-slide-up-enter-from {
-        opacity: 0;
-        transform: translateY(16px);
-    }
-
-    .page-slide-up-leave-to {
-        opacity: 0;
-        transform: translateY(-8px);
-    }
-
-    /* 3. page-slide-down: 向上导航（返回上级） - 内容从上方落下 */
-    .page-slide-down-enter-active {
-        transition: opacity var(--duration-slow) var(--ease-out),
-            transform var(--duration-slow) var(--ease-out);
-    }
-
-    .page-slide-down-leave-active {
-        transition: opacity var(--duration-normal) var(--ease-in),
-            transform var(--duration-normal) var(--ease-in);
-    }
-
-    .page-slide-down-enter-from {
-        opacity: 0;
-        transform: translateY(-16px);
-    }
-
-    .page-slide-down-leave-to {
-        opacity: 0;
-        transform: translateY(8px);
-    }
-
-    /* 4. page-cross-fade: 不同组的同级切换（平台间跳转） - 微缩放交叉淡入 */
-    .page-cross-fade-enter-active {
-        transition: opacity var(--duration-slow) var(--ease-out),
-            transform var(--duration-slow) var(--ease-out);
-    }
-
-    .page-cross-fade-leave-active {
-        transition: opacity var(--duration-normal) var(--ease-in),
-            transform var(--duration-normal) var(--ease-in);
-    }
-
-    .page-cross-fade-enter-from {
-        opacity: 0;
-        transform: scale(0.97);
-    }
-
-    .page-cross-fade-leave-to {
-        opacity: 0;
-        transform: scale(1.02);
-    }
-
-    /* 5. page-slide-lateral: 同组内同级切换（如 codex/mcp → codex/profiles） - 水平滑动 */
-    .page-slide-lateral-enter-active {
-        transition: opacity var(--duration-slow) var(--ease-out),
-            transform var(--duration-slow) var(--ease-out);
-    }
-
-    .page-slide-lateral-leave-active {
-        transition: opacity var(--duration-normal) var(--ease-in),
-            transform var(--duration-normal) var(--ease-in);
-    }
-
-    .page-slide-lateral-enter-from {
-        opacity: 0;
-        transform: translateX(20px);
-    }
-
-    .page-slide-lateral-leave-to {
-        opacity: 0;
-        transform: translateX(-20px);
     }

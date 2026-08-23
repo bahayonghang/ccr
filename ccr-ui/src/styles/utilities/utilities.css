@@ -753,37 +753,24 @@
 
 /* 当用户偏好减少动画时，仅降级动画，不再一刀切关闭模糊。
  * 这样能保留玻璃拟态层次，同时避免把 motion 偏好误判成 transparency 偏好。 */
-@media (prefers-reduced-motion: reduce) {
-    /* 降级过渡动画：仅保留 opacity */
-    .neo-card,
-    .neo-card-interactive,
-    .nav-item,
-    .btn,
-    .hover-lift,
-    .hover-scale {
-        transition: opacity var(--duration-fast) var(--ease-out) !important;
-    }
 
-    /* 禁用入场动画 */
-    .animate-fade-in,
-    .animate-slide-up,
-    .animate-scale-in {
-        animation: none !important;
-        opacity: 1 !important;
-    }
+/* reduced motion 单点收敛：本层在首帧 JS 之后加载，直接挂
+   data-reduced-motion 属性（reducedMotion.ts 写入，批次 7），
+   不再散写 @media。进出场类动画已交 motion（其 reducedMotion="user"
+   自行降级），此处不再兜底 .animate-* 入场类。 */
+[data-reduced-motion='true'] .neo-card,
+[data-reduced-motion='true'] .neo-card-interactive,
+[data-reduced-motion='true'] .nav-item,
+[data-reduced-motion='true'] .btn,
+[data-reduced-motion='true'] .hover-lift,
+[data-reduced-motion='true'] .hover-scale {
+    transition: opacity var(--duration-fast) var(--ease-out) !important;
+}
 
-    /* 禁用悬停位移/缩放 */
-    .hover-lift:hover {
-        transform: none !important;
-    }
-
-    .hover-scale:hover {
-        transform: none !important;
-    }
-
-    .neo-card-interactive:hover {
-        transform: none !important;
-    }
+[data-reduced-motion='true'] .hover-lift:hover,
+[data-reduced-motion='true'] .hover-scale:hover,
+[data-reduced-motion='true'] .neo-card-interactive:hover {
+    transform: none !important;
 }
 
 /* 当用户明确要求减少透明度时，增加背景不透明度但保留模糊效果。

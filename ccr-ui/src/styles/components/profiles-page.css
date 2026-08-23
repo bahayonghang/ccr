@@ -205,13 +205,11 @@
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .profiles-view .cp-state__spinner,
-  .profiles-view .cp-spin {
-    animation: none;
-  }
+[data-reduced-motion='true'] .profiles-view .cp-state__spinner,
+[data-reduced-motion='true'] .profiles-view .cp-spin {
+  animation: none;
+}
 
-  .profiles-view .cp-state__btn {
-    transition: none;
-  }
+[data-reduced-motion='true'] .profiles-view .cp-state__btn {
+  transition: none;
 }

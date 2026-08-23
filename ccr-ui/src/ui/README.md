@@ -18,7 +18,7 @@
    - `shadow-{xs,sm,md,lg,xl,2xl}` → `--shadow-*`（@theme inline 已映射）
    - `z-{dropdown,popover,modal,modal-backdrop,tooltip,...}` → `--layer-*` 层级
    - `rounded-*` → `--radius-*`（@theme inline 已补齐 2xl/3xl/full）
-2. 进入动画用 `animate-fade-in` / `animate-scale-in`（keyframes 在 `core.css` @theme 内）。
+2. 进出场动画用 `motion`（13.1.1）或 Radix `data-[state=...]` CSS 过渡承载，不用 `.animate-*` 入场类（批次 7 判定后已删除，见 animation-disposition.md）；保留类仅装饰/反馈/悬停（`animate-pulse-subtle` 等）。
    退出动画由 Radix 的 `data-[state=closed]` 类承接；reduced-motion 降级沿用全局约定。
 3. 类名合并统一走 `cn.ts`（clsx + tailwind-merge）。
 

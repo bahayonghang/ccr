@@ -1,4 +1,5 @@
 import { ref, computed, onMounted, onUnmounted, type Ref } from 'vue'
+import { readPrefersReducedMotion } from '@/utils/reducedMotion'
 
 export function useAnimationVisibility(targetRef: Ref<HTMLElement | null>) {
   const isInViewport = ref(true)
@@ -10,14 +11,9 @@ export function useAnimationVisibility(targetRef: Ref<HTMLElement | null>) {
   )
 
   let intersectionObserver: IntersectionObserver | null = null
-  let motionMediaQuery: MediaQueryList | null = null
 
   function handleVisibilityChange() {
     isPageVisible.value = document.visibilityState === 'visible'
-  }
-
-  function handleMotionChange(e: MediaQueryListEvent) {
-    prefersReducedMotion.value = e.matches
   }
 
   onMounted(() => {
@@ -42,10 +38,9 @@ export function useAnimationVisibility(targetRef: Ref<HTMLElement | null>) {
     isPageVisible.value = document.visibilityState === 'visible'
     document.addEventListener('visibilitychange', handleVisibilityChange)
 
-    // matchMedia: 检测用户 prefers-reduced-motion 偏好
-    motionMediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
-    prefersReducedMotion.value = motionMediaQuery.matches
-    motionMediaQuery.addEventListener('change', handleMotionChange)
+    // prefers-reduced-motion 的读取点已收敛到 reducedMotion.ts（批次 7 单点）；
+    // 本组合式随 08-22-state-logic-port 迁移退役，reduced-motion 职责不再在此持有。
+    prefersReducedMotion.value = readPrefersReducedMotion()
   })
 
   onUnmounted(() => {
@@ -56,10 +51,6 @@ export function useAnimationVisibility(targetRef: Ref<HTMLElement | null>) {
 
     document.removeEventListener('visibilitychange', handleVisibilityChange)
 
-    if (motionMediaQuery) {
-      motionMediaQuery.removeEventListener('change', handleMotionChange)
-      motionMediaQuery = null
-    }
   })
 
   return { shouldAnimate, isInViewport, isPageVisible, prefersReducedMotion }

@@ -245,11 +245,27 @@ utilities/animations/chart-colors，deferred-decorations 含 backgrounds。
 
 ## 批次 7：动画与 reduced motion
 
-- [ ] `animations.css` 580 行按 `design.md` §8 逐段判定，`animation-disposition.md` 落盘（含起止行、选择器、动画类型、判定、理由）。
-- [ ] 逐段检查属性重叠，确认无同一元素同一属性由 CSS 与 motion 双驱动。
-- [ ] `src/styles/animations/` 空目录填充或删除。
-- [ ] 按 `design.md` §9 把 reduced motion 收敛到一处，`@media` 兜底的去留记录判定。
-- [ ] `prefers-reduced-motion` 下动效降级生效（AC8 的一半）。
+- [x] `animations.css` 580 行按 `design.md` §8 逐段判定，`animation-disposition.md` 落盘（18 段判定表：起止行、内容、动画类型、判定、替代承载、属性重叠核对）。判定已执行：进出场/布局位移类与 Vue Transition 专用类删除（580 → 138 行），装饰/反馈/悬停类保留。
+- [x] 逐段检查属性重叠：`motion` 13.1.1 在依赖中但 `src` 内零 import（当前时点无双驱动）；弹层进出场由批次 4 的 Radix `data-state` CSS 过渡单套承载；shell-port / 视图子任务引入 motion 时按判定表执行（表内逐段「替代承载」列 + §二核查记录）。
+- [x] `src/styles/animations/` 空目录已在批次 2 移除；保留段为单文件规模，不重建（disposition §四）。
+- [x] `design.md` §9 reduced motion 收敛到一处：新增 `src/utils/reducedMotion.ts`（唯一读 `matchMedia` 的模块，写根 `data-reduced-motion` 属性并跟随变化，`main.tsx` 启动接线）；`src/styles` 5 处 `@media (prefers-reduced-motion)` 全部改挂属性选择器；`@media` 兜底判定为**保留一处**（shell-critical.css，理由：首帧无 JS 时 critical 层 spinner 需降级）。存量读取点 `useAnimationVisibility.ts` 与 `usageChartOptions.ts` 已重定向到单点模块。
+- [x] `prefers-reduced-motion` 下动效降级生效（AC8 前半）：`tests/reduced-motion.smoke.test.tsx` 4 用例（属性同步与跟随/兜底唯一性/保留集一致/读取点唯一）。
+
+### 批次 7 证据
+
+改动：`animations.css` 重写为保留集；`shell-critical.css` / `base/base.css` / `utilities/utilities.css` / `components/home.css` / `components/profiles-page.css` 五处降级规则改属性门控；新增 `src/utils/reducedMotion.ts` + `main.tsx` 接线；`useAnimationVisibility.ts` / `usageChartOptions.ts` 读取点重定向；`src/ui/README.md` 进出场动画指引改为 motion；交付物 `animation-disposition.md`。
+
+| 命令 | 退出码 | 结果 |
+| --- | --- | --- |
+| `rg -c '@media \(prefers-reduced-motion' src/styles -g '*.css'` | — | 仅 shell-critical.css 1 处（兜底） |
+| `rg "from 'motion" src/` | — | 0 匹配（无双驱动时点） |
+| `bun run type-check` | 0 | ✓ |
+| `bun run lint:ci` | 0 | ✓（stylelint --fix 消除注释空行 2 处） |
+| `bun run build` | 0 | ✓ |
+| `bun run check:bundle-budget` | 0 | PASS（animations.css 缩减后仍满足） |
+| `vitest run --config vitest.smoke.config.ts tests/reduced-motion.smoke.test.tsx` | 0 | 4/4 通过 |
+| `bun run test:smoke` | 0 | 65 文件 / 327 测试全绿（批次 6 为 64/323） |
+| `just frontend-check-quick` | 0 | 全绿 |
 
 ## 批次 8：契约重写与验证
 

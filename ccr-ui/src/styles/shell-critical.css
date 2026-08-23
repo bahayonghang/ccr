@@ -10,6 +10,14 @@
   animation: spin 1s linear infinite;
 }
 
+/* reduced motion 单点收敛（reducedMotion.ts 驱动 data-reduced-motion 属性，
+   08-22-design-system 批次 7）。此处保留全 styles 层唯一一处 @media 兜底：
+   首帧 JS 尚未执行时 critical 层的加载指示器仍需降级。 */
+[data-reduced-motion='true'] .loading-spinner {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .loading-spinner {
     animation-duration: 0.01ms !important;
