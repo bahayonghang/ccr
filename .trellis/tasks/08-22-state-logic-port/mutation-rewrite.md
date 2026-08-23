@@ -11,9 +11,9 @@
 | `ccr-ui/src/stores/commandsView.ts:51` | `this.expandedFolders.push(folder)` | 待批次 5 判定 | — |
 | `ccr-ui/src/stores/ui.ts:38` | `toasts.value.splice(index, 1)` | 待批次 5 判定 | — |
 | `ccr-ui/src/stores/ui.ts:50` | `toasts.value.push(toast)` | 待批次 5 判定 | — |
-| `ccr-ui/src/composables/useClaudeProfilesInsights.ts:46` | `if (requiresBaseUrl(profile) && isBlank(profile.base_url)) missing.push('base_url')` | 待批次 5 判定 | — |
-| `ccr-ui/src/composables/useClaudeProfilesInsights.ts:47` | `if (!hasAnyModel(profile)) missing.push('model')` | 待批次 5 判定 | — |
-| `ccr-ui/src/composables/useClaudeProfilesInsights.ts:48` | `if (isBlank(profile.account)) missing.push('account')` | 待批次 5 判定 | — |
+| `ccr-ui/src/composables/useClaudeProfilesInsights.ts:46` | `if (requiresBaseUrl(profile) && isBlank(profile.base_url)) missing.push('base_url')` | 本地临时（`missing` 函数内累积后返回），无需改写 | — |
+| `ccr-ui/src/composables/useClaudeProfilesInsights.ts:47` | `if (!hasAnyModel(profile)) missing.push('model')` | 本地临时（`missing` 函数内累积后返回），无需改写 | — |
+| `ccr-ui/src/composables/useClaudeProfilesInsights.ts:48` | `if (isBlank(profile.account)) missing.push('account')` | 本地临时（`missing` 函数内累积后返回），无需改写 | — |
 | `ccr-ui/src/composables/useCodexDashboard.ts:244` | `tasks.push(` | 待批次 5 判定 | — |
 | `ccr-ui/src/composables/useCodexDashboard.ts:260` | `tasks.push(` | 待批次 5 判定 | — |
 | `ccr-ui/src/composables/useCodexDashboard.ts:276` | `tasks.push(` | 待批次 5 判定 | — |
@@ -25,8 +25,8 @@
 | `ccr-ui/src/composables/useCodexDashboard.ts:475` | `actions.push({` | 待批次 5 判定 | — |
 | `ccr-ui/src/composables/useCodexDashboard.ts:485` | `actions.push({` | 待批次 5 判定 | — |
 | `ccr-ui/src/composables/useCodexOAuthFlow.ts:248` | `oauthUnlisteners.push(completed, timeout)` | 待批次 5 判定 | — |
-| `ccr-ui/src/composables/useCodexProfilesInsights.ts:50` | `if (requiresBaseUrl(profile) && isBlank(profile.base_url)) missing.push('base_url')` | 待批次 5 判定 | — |
-| `ccr-ui/src/composables/useCodexProfilesInsights.ts:51` | `if (isBlank(profile.model)) missing.push('model')` | 待批次 5 判定 | — |
+| `ccr-ui/src/composables/useCodexProfilesInsights.ts:50` | `if (requiresBaseUrl(profile) && isBlank(profile.base_url)) missing.push('base_url')` | 本地临时（`missing` 函数内累积后返回），无需改写 | — |
+| `ccr-ui/src/composables/useCodexProfilesInsights.ts:51` | `if (isBlank(profile.model)) missing.push('model')` | 本地临时（`missing` 函数内累积后返回），无需改写 | — |
 | `ccr-ui/src/composables/useGrokDashboard.ts:453` | `actions.push({` | 待批次 5 判定 | — |
 | `ccr-ui/src/composables/useGrokDashboard.ts:465` | `actions.push({` | 待批次 5 判定 | — |
 | `ccr-ui/src/composables/useGrokDashboard.ts:474` | `actions.push({` | 待批次 5 判定 | — |
@@ -37,18 +37,18 @@
 | `ccr-ui/src/composables/useMonitoringFeed.ts:248` | `nextEntries.splice(low, 0, entry)` | 待批次 5 判定 | — |
 | `ccr-ui/src/composables/useMonitoringFeed.ts:342` | `unlisteners.push(unMonitoring)` | 待批次 5 判定 | — |
 | `ccr-ui/src/composables/useMonitoringFeed.ts:347` | `unlisteners.push(unStats)` | 待批次 5 判定 | — |
-| `ccr-ui/src/composables/useProfilesFilter.ts:100` | `return Array.from(set).sort()` | 待批次 5 判定 | — |
-| `ccr-ui/src/composables/useProfilesFilter.ts:114` | `.sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }))` | 待批次 5 判定 | — |
-| `ccr-ui/src/composables/useProfilesFilter.ts:157` | `return sortFn ? [...list].sort(sortFn) : list` | 待批次 5 判定 | — |
-| `ccr-ui/src/composables/useProfilesInsights.ts:128` | `.sort((a, b) => b.count - a.count || a.provider.localeCompare(b.provider))` | 待批次 5 判定 | — |
-| `ccr-ui/src/composables/useProfilesInsights.ts:165` | `.sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag))` | 待批次 5 判定 | — |
-| `ccr-ui/src/composables/useProfilesInsights.ts:177` | `.sort((a, b) => a.name.localeCompare(b.name))` | 待批次 5 判定 | — |
-| `ccr-ui/src/composables/useProfilesInsights.ts:187` | `if (missing.length > 0) issues.push({ profile, missing })` | 待批次 5 判定 | — |
-| `ccr-ui/src/composables/useProfilesInsights.ts:189` | `return issues.sort((a, b) => a.profile.name.localeCompare(b.profile.name))` | 待批次 5 判定 | — |
-| `ccr-ui/src/composables/useProfilesInsights.ts:204` | `if (arr) arr.push(profile)` | 待批次 5 判定 | — |
-| `ccr-ui/src/composables/useProfilesInsights.ts:210` | `result.push({` | 待批次 5 判定 | — |
-| `ccr-ui/src/composables/useProfilesInsights.ts:212` | `profiles: [...group].sort((a, b) => a.name.localeCompare(b.name)),` | 待批次 5 判定 | — |
-| `ccr-ui/src/composables/useProfilesInsights.ts:216` | `return result.sort(` | 待批次 5 判定 | — |
+| `ccr-ui/src/composables/useProfilesFilter.ts:100` | `return Array.from(set).sort()` | `Array.from` 产出的新数组上排序，immutable 安全，无需改写 | — |
+| `ccr-ui/src/composables/useProfilesFilter.ts:114` | `.sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }))` | `.map()` 产出的新数组上排序，immutable 安全，无需改写 | — |
+| `ccr-ui/src/composables/useProfilesFilter.ts:157` | `return sortFn ? [...list].sort(sortFn) : list` | 展开拷贝上排序，原列表不受影响，immutable 安全，无需改写 | — |
+| `ccr-ui/src/composables/useProfilesInsights.ts:128` | `.sort((a, b) => b.count - a.count || a.provider.localeCompare(b.provider))` | `.map()` 产出的新数组上排序，immutable 安全，无需改写 | — |
+| `ccr-ui/src/composables/useProfilesInsights.ts:165` | `.sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag))` | `.map()` 产出的新数组上排序，immutable 安全，无需改写 | — |
+| `ccr-ui/src/composables/useProfilesInsights.ts:177` | `.sort((a, b) => a.name.localeCompare(b.name))` | `.filter()` 产出的新数组上排序，immutable 安全，无需改写 | — |
+| `ccr-ui/src/composables/useProfilesInsights.ts:187` | `if (missing.length > 0) issues.push({ profile, missing })` | 本地临时（`issues` 函数内累积后返回），无需改写 | — |
+| `ccr-ui/src/composables/useProfilesInsights.ts:189` | `return issues.sort((a, b) => a.profile.name.localeCompare(b.profile.name))` | `issues` 为函数内本地数组，immutable 安全，无需改写 | — |
+| `ccr-ui/src/composables/useProfilesInsights.ts:204` | `if (arr) arr.push(profile)` | 本地临时（buckets Map 内的临时分组数组），无需改写 | — |
+| `ccr-ui/src/composables/useProfilesInsights.ts:210` | `result.push({` | 本地临时（`result` 函数内累积后返回），无需改写 | — |
+| `ccr-ui/src/composables/useProfilesInsights.ts:212` | `profiles: [...group].sort((a, b) => a.name.localeCompare(b.name)),` | 展开拷贝上排序，原分组不受影响，immutable 安全，无需改写 | — |
+| `ccr-ui/src/composables/useProfilesInsights.ts:216` | `return result.sort(` | `result` 为函数内本地数组，immutable 安全，无需改写 | — |
 | `ccr-ui/src/composables/useStream.ts:122` | `queuedLines.push(...parts)` | 待批次 5 判定 | — |
 | `ccr-ui/src/composables/useStream.ts:128` | `queuedLines.push(pendingBuffer)` | 待批次 5 判定 | — |
 | `ccr-ui/src/composables/useStream.ts:258` | `lines.value.push(line)` | 待批次 5 判定 | — |

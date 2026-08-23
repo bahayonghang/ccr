@@ -1,9 +1,11 @@
-// Claude Profiles 派生洞察：薄包装，注入 Claude 平台差异（双 auth 模式、多模型缺失判定）
-// 后委托平台无关核心 useProfilesInsights。公共 API 保持稳定，供 ProfilesInspector 复用。
-import type { Ref } from 'vue'
+// Claude Profiles 派生洞察（纯函数薄包装）：注入 Claude 平台差异（双 auth 模式、
+// 多模型缺失判定）后委托 utils/profilesInsights 核心。Ref 入参改为数组。
 import type { ClaudeProfile, ClaudeProfileAuthMode } from '@/types'
 import { resolveClaudePrimaryModel } from '@/utils/claudeProfileFields'
-import { useProfilesInsights, type ProfilesInsights } from './useProfilesInsights'
+import {
+  buildProfilesInsights,
+  type ProfilesInsightsResult,
+} from '@/utils/profilesInsights'
 
 export type {
   ProviderBreakdownItem,
@@ -11,11 +13,11 @@ export type {
   TagFrequencyItem,
   MissingFieldIssue,
   DuplicateRuntimeIssue,
-} from './useProfilesInsights'
+} from '@/utils/profilesInsights'
 
 export type ClaudeMissingField = 'base_url' | 'model' | 'account'
 
-export type ClaudeProfilesInsights = ProfilesInsights<
+export type ClaudeProfilesInsightsResult = ProfilesInsightsResult<
   ClaudeProfile,
   ClaudeProfileAuthMode,
   ClaudeMissingField
@@ -29,9 +31,7 @@ const isBlank = (value: string | null | undefined): boolean => !value || value.t
 const profileAuthMode = (profile: ClaudeProfile): ClaudeProfileAuthMode =>
   profile.auth_mode ?? 'subscription'
 
-/**
- * 是否配置了任意模型。Claude 多模型：主模型与四个映射全空才算缺失。
- */
+/** 是否配置了任意模型。Claude 多模型：主模型与四个映射全空才算缺失。 */
 const hasAnyModel = (profile: ClaudeProfile): boolean =>
   Boolean(resolveClaudePrimaryModel(profile, ''))
 
@@ -49,11 +49,16 @@ const missingFieldsOf = (profile: ClaudeProfile): ClaudeMissingField[] => {
   return missing
 }
 
-export function useClaudeProfilesInsights(profiles: Ref<ClaudeProfile[]>): ClaudeProfilesInsights {
-  return useProfilesInsights<ClaudeProfile, ClaudeProfileAuthMode, ClaudeMissingField>(profiles, {
-    authModes: ALL_AUTH_MODES,
-    authModeOf: profileAuthMode,
-    missingFieldsOf,
-    primaryRuntimeModel: (profile) => resolveClaudePrimaryModel(profile, ''),
-  })
+export function buildClaudeProfilesInsights(
+  profiles: ClaudeProfile[],
+): ClaudeProfilesInsightsResult {
+  return buildProfilesInsights<ClaudeProfile, ClaudeProfileAuthMode, ClaudeMissingField>(
+    profiles,
+    {
+      authModes: ALL_AUTH_MODES,
+      authModeOf: profileAuthMode,
+      missingFieldsOf,
+      primaryRuntimeModel: (profile) => resolveClaudePrimaryModel(profile, ''),
+    },
+  )
 }

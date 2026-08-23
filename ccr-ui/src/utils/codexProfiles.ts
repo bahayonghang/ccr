@@ -9,7 +9,7 @@ import type {
 } from '@/components/profiles/ProfilesInspector.vue'
 import type { ProfileDiffField } from '@/utils/profileDiff'
 import { formatBaseUrlDisplay } from '@/utils/text'
-import { useCodexProfilesInsights } from '@/composables/useCodexProfilesInsights'
+import { buildCodexProfilesInsights } from '@/utils/codexProfilesInsights'
 
 /** 字段缺失时的统一展示占位符（卡片/行/检查器共用） */
 export const CODEX_FIELD_PLACEHOLDER = '—'
@@ -137,7 +137,7 @@ export const createCodexInspectorDescriptor = (
   t: CodexTranslate
 ): ProfilesInspectorDescriptor<CodexProfile> => ({
   editIcon: 'Edit2',
-  useInsights: useCodexProfilesInsights,
+  useInsights: buildCodexProfilesInsights,
   activeFields: (profile) => codexInspectorFields(profile, t),
   diffFields: createCodexDiffFields(t),
   authModeLabel: (mode) => codexAuthModeLabel(t, mode),

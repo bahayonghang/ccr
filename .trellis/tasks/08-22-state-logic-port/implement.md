@@ -165,3 +165,17 @@ Pinia 与 Zustand 在批次 4 前可并存（旧 store 未删除时），因此�
 | `bun run test:smoke` | 0 | 67 文件 / 333 测试全绿 |
 | `just frontend-check-quick` | 0 | 全绿 |
 | `rg 'pinia\|defineStore' src` | — | 仅剩 `src/stores/usage.ts`（偏差 2）与死 .vue |
+
+## 批次 5a 证据（纯变换 composable → utils，部分完成）
+
+改动：新增 `src/utils/{profilesFilter,profilesInsights,tf}.ts` 纯变换核心与 `{claude,codex,grok}Profiles{Filter,Insights}.ts` 平台薄包装（8 个文件，此前已起草，本轮与 composable 逐一比对语义后收口）；重接消费方 `utils/claudeProfiles.ts`、`codexProfiles.ts`、`grokProfiles.ts`（useInsights 改为纯 builder，grok 移除 vue Ref 导入）、`vite-env.d.ts` 垫片类型（useInsights 入参 Ref→数组、返回 ProfilesInsightsResult）；过渡期 composable `useCodexProviders.ts`、`useCodexOAuthFlow.ts` 的 `useTf()` 重接为 `createTf(t)`（语义等价：同为 translateWithFallback(t, …)）；删除 8 个源 composable。语义比对结论：8 个草稿与其 composable 行为一致，无行为缺失；仅两处嵌套循环因 max-depth lint 展平（`(tags ?? []).filter(Boolean)`，守卫语义不变）。
+
+| 命令 | 退出码 | 结果 |
+| --- | --- | --- |
+| `bun run type-check` | 0 | ✓ |
+| `bun run lint:ci` | 0 | ✓（2 处 max-depth 经循环展平修正，无豁免注释） |
+| `bun run test:smoke` | 0 | 67 文件 / 333 测试全绿 |
+| `grep "from 'vue'" src/utils/*.ts` | — | 无匹配 |
+| `ls src/composables` | — | 8 个纯变换 composable 已删除 |
+
+mutation-rewrite.md 已填：useClaudeProfilesInsights（46–48）、useCodexProfilesInsights（50–51）、useProfilesFilter（100/114/157）、useProfilesInsights（128–216 共 9 行），共 17 行——全部判定为本地临时累积或新数组上排序（immutable 安全），无需改写，新写法列记「—」。

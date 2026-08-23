@@ -36,8 +36,8 @@ declare module '*.vue' {
   export type ProfilesInspectorDescriptor<P extends { name: string }> = {
     editIcon: string
     useInsights: (
-      profiles: import('vue').Ref<P[]>,
-    ) => import('@/composables/useProfilesInsights').ProfilesInsights<P, string, string>
+      profiles: P[],
+    ) => import('@/utils/profilesInsights').ProfilesInsightsResult<P, string, string>
     activeFields: (profile: P) => ProfilesInspectorField[]
     diffFields: readonly import('@/utils/profileDiff').ProfileDiffField<P>[]
     authModeLabel: (mode: string) => string

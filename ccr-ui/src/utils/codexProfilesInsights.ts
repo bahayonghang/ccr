@@ -1,8 +1,10 @@
-// Codex Profiles 派生洞察：薄包装，注入 Codex 平台差异（四 auth 模式、弃用模式、单模型缺失判定）
-// 后委托平台无关核心 useProfilesInsights。公共 API 保持稳定，供 ProfilesInspector 复用。
-import type { Ref } from 'vue'
+// Codex Profiles 派生洞察（纯函数薄包装）：注入 Codex 平台差异（四 auth 模式、
+// 弃用模式、单模型缺失判定）后委托 utils/profilesInsights 核心。Ref 入参改为数组。
 import type { CodexProfile, CodexProfileAuthMode } from '@/types'
-import { useProfilesInsights, type ProfilesInsights } from './useProfilesInsights'
+import {
+  buildProfilesInsights,
+  type ProfilesInsightsResult,
+} from '@/utils/profilesInsights'
 
 export type {
   ProviderBreakdownItem,
@@ -10,14 +12,14 @@ export type {
   TagFrequencyItem,
   MissingFieldIssue,
   DuplicateRuntimeIssue,
-} from './useProfilesInsights'
+} from '@/utils/profilesInsights'
 
-export type MissingField = 'base_url' | 'model'
+export type CodexMissingField = 'base_url' | 'model'
 
-export type CodexProfilesInsights = ProfilesInsights<
+export type CodexProfilesInsightsResult = ProfilesInsightsResult<
   CodexProfile,
   CodexProfileAuthMode,
-  MissingField
+  CodexMissingField
 >
 
 const ALL_AUTH_MODES: readonly CodexProfileAuthMode[] = [
@@ -45,8 +47,8 @@ const profileAuthMode = (profile: CodexProfile): CodexProfileAuthMode =>
 const requiresBaseUrl = (profile: CodexProfile): boolean =>
   profileAuthMode(profile) !== 'openai_chatgpt'
 
-const missingFieldsOf = (profile: CodexProfile): MissingField[] => {
-  const missing: MissingField[] = []
+const missingFieldsOf = (profile: CodexProfile): CodexMissingField[] => {
+  const missing: CodexMissingField[] = []
   if (requiresBaseUrl(profile) && isBlank(profile.base_url)) missing.push('base_url')
   if (isBlank(profile.model)) missing.push('model')
   return missing
@@ -54,12 +56,15 @@ const missingFieldsOf = (profile: CodexProfile): MissingField[] => {
 
 const primaryRuntimeModel = (profile: CodexProfile): string => profile.model?.trim() ?? ''
 
-export function useCodexProfilesInsights(profiles: Ref<CodexProfile[]>): CodexProfilesInsights {
-  return useProfilesInsights<CodexProfile, CodexProfileAuthMode, MissingField>(profiles, {
-    authModes: ALL_AUTH_MODES,
-    deprecatedAuthModes: DEPRECATED_AUTH_MODES,
-    authModeOf: profileAuthMode,
-    missingFieldsOf,
-    primaryRuntimeModel,
-  })
+export function buildCodexProfilesInsights(profiles: CodexProfile[]): CodexProfilesInsightsResult {
+  return buildProfilesInsights<CodexProfile, CodexProfileAuthMode, CodexMissingField>(
+    profiles,
+    {
+      authModes: ALL_AUTH_MODES,
+      deprecatedAuthModes: DEPRECATED_AUTH_MODES,
+      authModeOf: profileAuthMode,
+      missingFieldsOf,
+      primaryRuntimeModel,
+    },
+  )
 }

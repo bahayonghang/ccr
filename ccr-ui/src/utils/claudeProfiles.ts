@@ -6,7 +6,7 @@ import type {
 } from '@/components/profiles/ProfilesInspector.vue'
 import type { ProfileDiffField } from '@/utils/profileDiff'
 import { formatBaseUrlDisplay } from '@/utils/text'
-import { useClaudeProfilesInsights } from '@/composables/useClaudeProfilesInsights'
+import { buildClaudeProfilesInsights } from '@/utils/claudeProfilesInsights'
 import {
   CLAUDE_FIELD_PLACEHOLDER,
   resolveClaudeDisplayBaseUrl,
@@ -145,7 +145,7 @@ export const createClaudeInspectorDescriptor = (
   t: ClaudeTranslate
 ): ProfilesInspectorDescriptor<ClaudeProfile> => ({
   editIcon: 'Pencil',
-  useInsights: useClaudeProfilesInsights,
+  useInsights: buildClaudeProfilesInsights,
   activeFields: (profile) => claudeInspectorFields(profile, t),
   diffFields: createClaudeDiffFields(t),
   authModeLabel: (mode) => claudeAuthModeLabel(t, mode),

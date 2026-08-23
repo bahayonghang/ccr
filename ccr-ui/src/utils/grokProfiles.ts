@@ -1,11 +1,13 @@
-import type { Ref } from 'vue'
 import type { GrokAuthModeDto, GrokProfileDto } from '@/types'
 import type { ProfileRowDescriptor } from '@/components/profiles/ProfileListRow.vue'
 import type {
   ProfilesInspectorDescriptor,
   ProfilesInspectorField,
 } from '@/components/profiles/ProfilesInspector.vue'
-import { useProfilesInsights, type ProfilesInsights } from '@/composables/useProfilesInsights'
+import {
+  buildProfilesInsights,
+  type ProfilesInsightsResult,
+} from '@/utils/profilesInsights'
 import type { ProfileDiffField } from '@/utils/profileDiff'
 import { formatBaseUrlDisplay } from '@/utils/text'
 
@@ -17,7 +19,11 @@ type GrokTranslate = (
 ) => string
 
 type GrokMissingField = 'base_url' | 'model' | 'reasoning_effort'
-type GrokProfilesInsights = ProfilesInsights<GrokProfileDto, GrokAuthModeDto, GrokMissingField>
+type GrokProfilesInsightsResult = ProfilesInsightsResult<
+  GrokProfileDto,
+  GrokAuthModeDto,
+  GrokMissingField
+>
 
 export const grokAuthModeLabel = (t: GrokTranslate, mode?: GrokAuthModeDto | null) => (
   t(`grok.profiles.authModes.${mode ?? 'session'}`)
@@ -27,8 +33,10 @@ export const resolveGrokBaseUrl = (profile: GrokProfileDto, t: GrokTranslate) =>
   profile.base_url_display?.trim() || t('grok.profiles.officialBaseUrl')
 )
 
-const useGrokProfilesInsights = (profiles: Ref<GrokProfileDto[]>): GrokProfilesInsights => (
-  useProfilesInsights<GrokProfileDto, GrokAuthModeDto, GrokMissingField>(profiles, {
+const buildGrokProfilesInsights = (
+  profiles: GrokProfileDto[],
+): GrokProfilesInsightsResult =>
+  buildProfilesInsights<GrokProfileDto, GrokAuthModeDto, GrokMissingField>(profiles, {
     authModes: ['inline_api_key', 'env_key', 'session'],
     authModeOf: profile => profile.auth_mode,
     missingFieldsOf: (profile) => {
@@ -40,7 +48,6 @@ const useGrokProfilesInsights = (profiles: Ref<GrokProfileDto[]>): GrokProfilesI
     },
     primaryRuntimeModel: profile => profile.model?.trim() ?? '',
   })
-)
 
 export const createGrokDiffFields = (t: GrokTranslate): ProfileDiffField<GrokProfileDto>[] => [
   {
@@ -108,7 +115,7 @@ export const createGrokInspectorDescriptor = (
   t: GrokTranslate,
 ): ProfilesInspectorDescriptor<GrokProfileDto> => ({
   editIcon: 'Edit2',
-  useInsights: useGrokProfilesInsights,
+  useInsights: buildGrokProfilesInsights,
   activeFields: profile => inspectorFields(profile, t),
   diffFields: createGrokDiffFields(t),
   authModeLabel: mode => grokAuthModeLabel(t, mode as GrokAuthModeDto),
