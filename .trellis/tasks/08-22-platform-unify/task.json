@@ -3,7 +3,7 @@
   "name": "platform-unify",
   "title": "跨平台功能面统一",
   "description": "扩展仓库已有的 base 组件 + 平台 config + 薄壳模式，将 Settings / Profiles / Auth / MCP / Agents / Plugins / Commands 七个功能面的 15,672 行重复实现收敛为统一层",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": null,
   "scope": null,
   "package": null,

@@ -8,30 +8,21 @@
 
 ## Scope
 
-> **范围变更（跨平台统一决策后）**：以下文件移交子任务 `08-22-platform-unify` 的统一层，本任务改为提供 Grok / Gemini / OpenCode 三个平台的 config 与薄壳视图。
->
-> 平台重复实现 4,331 行：`grok/GrokSettingsView.vue`（1,245）、`grok/GrokProfilesView.vue`（1,078）、`OpenCodeAgentsView.vue`（442）、`OpenCodeMcpView.vue`（433）、`OpenCodeCommandsView.vue`（346）、`OpenCodeSettingsView.vue`（330）、`OpenCodePluginsView.vue`（296）、`grok/GrokAuthView.vue`（161）。
->
-> generic 层 1,499 行并入统一层：`generic/AgentsView.vue`（725）、`generic/PlatformMcpView.vue`（407）、`generic/PlatformPluginsView.vue`（367）。`generic/AgentDetailView.vue`（481）与 `generic/SystemPromptsView.vue`（655）留在本任务。
->
-> 本任务剩余约 5,839 行。精确切分由 `08-22-platform-unify` 的差异普查（R1）确定后回填本表。
+> **范围回填（`08-22-platform-unify` 普查后，2026-08-24）**：Grok Settings/Profiles/Auth、OpenCode Settings/MCP/Agents/Commands/Plugins、generic `AgentsView` / `PlatformMcpView` / `PlatformPluginsView` 已由统一层提供 config + React 薄壳。本任务改为删除对应 `.vue` 并接路由。`generic/AgentDetailView.vue`（481）与 `generic/SystemPromptsView.vue`（655）留在本任务（协同点 G）。`OpenCodeProvidersView.vue` 为单一实现，不进统一层。
 
-| 文件 / 目录 | 行数 |
-|---|---|
-| `src/views/grok/`（4 文件，含 `GrokSettingsView.vue` 1,245、`GrokProfilesView.vue` 1,078） | 3,443 |
-| `src/components/grok/`（2 文件） | 1,307 |
-| `src/views/generic/`（5 文件） | 2,635 |
-| `src/views/GeminiCliView.vue` | 929 |
-| `src/views/GeminiSlashCommandsView.vue` | 27 |
-| `src/views/OpenCodeView.vue` | 783 |
-| `src/views/OpenCodeProvidersView.vue` | 577 |
-| `src/views/OpenCodeAgentsView.vue` | 442 |
-| `src/views/OpenCodeMcpView.vue` | 433 |
-| `src/views/OpenCodeCommandsView.vue` | 346 |
-| `src/views/OpenCodeSettingsView.vue` | 330 |
-| `src/views/OpenCodePluginsView.vue` | 296 |
-| `src/components/opencode/`（1 文件） | 121 |
-| 合计 | 11,669 |
+| 文件 / 目录 | 行数 | 处置 |
+|---|---|---|
+| `src/views/grok/GrokView.vue` | 959 | 本任务 |
+| `src/components/grok/`（2 文件） | 1,307 | 本任务（Profile 编辑器） |
+| `src/views/generic/AgentDetailView.vue` | 481 | 本任务 |
+| `src/views/generic/SystemPromptsView.vue` | 655 | 本任务 |
+| `src/views/GeminiCliView.vue` | 929 | 本任务 |
+| `src/views/GeminiSlashCommandsView.vue` | 27 | 已是薄壳，改接到 React |
+| `src/views/OpenCodeView.vue` | 783 | 本任务 |
+| `src/views/OpenCodeProvidersView.vue` | 577 | 本任务（单一实现） |
+| `src/components/opencode/`（1 文件） | 121 | 本任务 |
+| Grok Settings/Profiles/Auth + OpenCode 五面 + generic 三面 | 5,830 | 统一层已提供薄壳，本任务只删 Vue + 接路由 |
+| 合计（仍迁实现） | 5,839 | |
 
 覆盖的功能面：Grok Profiles 与 Settings、Gemini CLI 的 Settings / MCP / Agents / 斜杠命令 / 插件、OpenCode 的 Settings / Keybindings / Themes / Providers / MCP / Agents / Commands / Plugins、`views/generic` 的跨平台通用视图。
 

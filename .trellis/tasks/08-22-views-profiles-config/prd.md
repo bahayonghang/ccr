@@ -8,10 +8,11 @@
 
 ## Scope
 
-> **范围变更（跨平台统一决策后）**：本任务的文件不移交统一层，行数不变。两点协同约束：
+> **范围回填（`08-22-platform-unify` 普查后，2026-08-24）**：本任务文件仍不移交统一层，行数不变。协同约束：
 >
-> 1. `src/components/profiles/`（10 文件 4,040 行）是 `08-22-platform-unify` 的 Profiles 统一层的依赖。其接口需与统一层协同定稳，接口变更会同时波及 Claude / Codex / Grok 三个平台。
-> 2. `AppSettingsView.vue`（1,399）为应用级设置，不属跨平台功能面，明确排除在统一范围外（见 `08-22-platform-unify` 的「不在统一范围」）。
+> 1. `src/components/profiles/` 已是 React。统一层经 `features/platform/profiles/shared.ts` 再导出，不改造接口。
+> 2. `AppSettingsView.vue`（1,399）仍排除在统一范围外。
+> 3. `src/configs/{settings,profiles,commands,mcp,agents,plugins,auth}.ts` 由 `08-22-platform-unify` 所有；本任务 AC10 的 `src/configs` 冻结不含这些新模块。
 
 | 文件 / 目录 | 行数 |
 |---|---|

@@ -154,11 +154,11 @@ Rust 测试若绕过 `just test` 直接运行，须带 `-- --test-threads=1`。
 
 准出条件：
 
-- [ ] `08-22-platform-unify` 的 AC1（差异矩阵）落盘，七个功能面逐平台逐项确认。
-- [ ] 统一层接口契约文档 `platform-surface-contracts.md` 落盘并已登记到 `08-22-test-contract-rebuild` 的范围表（使其成为第 19 份）。
-- [ ] 五个受影响子任务（6、7、8、11、12）的 `prd.md` 范围表按差异普查结果回填。
-- [ ] `08-22-platform-unify` 的 AC2–AC11 全部满足。
-- [ ] `08-22-arch-quality-perf` 的规模阈值由暂定值冻结为最终值：按统一层落地后的实际文件行数分布重取 P90，超限清单重出（该任务 `design.md` §3 第二段）。
+- [x] `08-22-platform-unify` 的 AC1（差异矩阵）落盘，七个功能面逐平台逐项确认。
+- [x] 统一层接口契约文档 `platform-surface-contracts.md` 落盘并已登记到 `08-22-test-contract-rebuild` 的范围表（使其成为第 19 份）。
+- [x] 五个受影响子任务（6、7、8、11、12）的 `prd.md` 范围表按差异普查结果回填。
+- [x] `08-22-platform-unify` 的 AC2–AC11 全部满足。
+- [x] `08-22-arch-quality-perf` 的规模阈值由暂定值冻结为最终值：按统一层落地后的实际文件行数分布重取 P90，超限清单重出（该任务 `design.md` §3 第二段）。P90 lines → 400（2026-08-24）。
 
 差异普查（AC1）可在阶段 2 结束后即启动，不必等阶段 3 完成。但接口定稳必须在阶段 5 开始前完成。
 
@@ -272,7 +272,7 @@ dev  ─────────────────────────
 | 3    | 5 `shell-port`                | 已完成（AC11 表单草稿界面级验证移交 views-profiles-config） | 外壳门         |
 | 4a   | 11 批次 1（profiles 共享层）  | 已完成 | 共享层前置门 ✅ 2026-08-24 |
 | 4a   | 12 批次 3 前半（mcp 共享层）  | 已完成 | 共享层前置门 ✅ 2026-08-24 |
-| 4    | 5b `platform-unify`           | 未开始 | 统一层门       |
+| 4    | 5b `platform-unify`           | 已完成 | 统一层门 ✅ 2026-08-24 |
 | 5    | 6 `views-claude`              | 未开始 | 视图门         |
 | 5    | 7 `views-codex`               | 未开始 | 视图门         |
 | 5    | 8 `views-secondary-platforms` | 未开始 | 视图门         |

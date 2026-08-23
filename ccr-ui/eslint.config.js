@@ -219,6 +219,47 @@ export default [
       ],
     },
   },
+  {
+    // 统一层 base：禁止平台名条件分支（08-22-platform-unify AC4 / R3）。
+    // 本块覆盖 app/rerender-views 的 no-restricted-syntax，故必须同时保留受控 input 禁令。
+    name: 'app/platform-unify-no-platform-branch',
+    files: [
+      'src/features/platform/**/Base*.tsx',
+      'src/features/platform/**/*-model.ts',
+      'src/features/platform/settings/**/*.{ts,tsx}',
+      'src/features/platform/SurfacePage.tsx',
+      'src/features/platform/NamedItemCard.tsx',
+      'src/features/platform/TabButton.tsx',
+      'src/features/platform/translate.ts',
+    ],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            "JSXOpeningElement[name.name='input']:has(JSXAttribute[name.name='value']):has(JSXAttribute[name.name='onChange']):not(:has(JSXAttribute[name.name='defaultValue']))",
+          message:
+            '表单输入必须用 react-hook-form 非受控注册（useForm/register），禁止受控 value+onChange（react-rerender-discipline.md）',
+        },
+        {
+          selector:
+            'BinaryExpression[operator=/===|==|!==|!=/][right.value=/^(claude|codex|grok|opencode|gemini|antigravity|claude-code)$/]',
+          message:
+            'base 组件禁止平台名称条件分支，差异走 config/props（platform-surface-contracts.md）',
+        },
+        {
+          selector:
+            'BinaryExpression[operator=/===|==|!==|!=/][left.value=/^(claude|codex|grok|opencode|gemini|antigravity|claude-code)$/]',
+          message:
+            'base 组件禁止平台名称条件分支，差异走 config/props（platform-surface-contracts.md）',
+        },
+      ],
+    },
+  },
+  // src/features/platform/profiles/shared.ts：再导出 components/profiles 共享层。
+  // features/platform 不得跨域导入 legacy-feature；此文件是协同点 F 指定的再导出点
+  // （profiles-shared-interfaces.md §1）。归属 08-22-platform-unify。
+  { files: ['src/features/platform/profiles/shared.ts'], rules: { 'boundaries/dependencies': 'off' } },
 
   // ── 批次 4 逐文件登记豁免（08-22-arch-quality-perf，完整清单与处置见 implement.md 批次 4 证据块）────────
   // 原则（prd R12、AC11）：无全局豁免、源文件不加 eslint-disable，只在配置中按「文件 × 规则」关闭，并注明处置。
@@ -318,8 +359,8 @@ export default [
     name: 'app/threshold-rules',
     files: ['src/**/*.{ts,tsx,mts}'],
     rules: {
-      // 行数：暂定 P90=414 向上取整到 100 的倍数 → 500（物理行，与 distribution.md 测量口径一致）
-      'max-lines': ['error', { max: 500, skipBlankLines: false, skipComments: false }],
+      // 行数：阶段 4 冻结 P90=334 向上取整到 100 的倍数 → 400（见 archived thresholds.md §6）
+      'max-lines': ['error', { max: 400, skipBlankLines: false, skipComments: false }],
       // 圈复杂度：P90=16，反馈轮 6.0% 在 [3%,15%] 带内，保留
       complexity: ['error', { max: 16 }],
       // 嵌套深度：P90=3，反馈轮 0.9% < 3% → 下调一档至 2
@@ -378,7 +419,7 @@ export default [
   // src/composables/useUnifiedMcp.ts：max-lines 534、complexity 17，composable 归属 state-logic-port
   { files: ['src/composables/useUnifiedMcp.ts'], rules: { 'max-lines': 'off', complexity: 'off' } },
   // src/composables/useMonitoringFeed.ts：complexity 19，composable 归属 state-logic-port
-  { files: ['src/composables/useMonitoringFeed.ts'], rules: { complexity: 'off' } },
+  { files: ['src/composables/useMonitoringFeed.ts'], rules: { 'max-lines': 'off', complexity: 'off' } },
   // src/composables/useStream.ts：max-depth 4，composable 归属 state-logic-port
   { files: ['src/composables/useStream.ts'], rules: { 'max-depth': 'off' } },
   // src/composables/useAgents.ts：max-depth 3，composable 归属 state-logic-port
@@ -401,7 +442,7 @@ export default [
   // src/views/platform-usage/platformUsagePresentation.ts：complexity 18、max-params 5，platform-usage 展示层归属 views-usage
   { files: ['src/views/platform-usage/platformUsagePresentation.ts'], rules: { complexity: 'off', 'max-params': 'off' } },
   // src/views/usage/usageChartOptions.ts：max-params 4，usage 图表配置归属 views-usage
-  { files: ['src/views/usage/usageChartOptions.ts'], rules: { 'max-params': 'off' } },
+  { files: ['src/views/usage/usageChartOptions.ts'], rules: { 'max-lines': 'off', 'max-params': 'off' } },
   // src/views/usage/usageOverviewInsights.ts：max-params 4，usage 展示层归属 views-usage
   { files: ['src/views/usage/usageOverviewInsights.ts'], rules: { 'max-params': 'off' } },
   // src/views/usage/usageSummaryCards.ts：max-params 5，usage 展示层归属 views-usage
@@ -414,7 +455,7 @@ export default [
   // src/views/checkin/composables/checkinJobRuntime.ts：max-params 4、max-depth 3，checkin 视图内 composable 归属 views-checkin
   { files: ['src/views/checkin/composables/checkinJobRuntime.ts'], rules: { 'max-params': 'off', 'max-depth': 'off' } },
   // src/views/checkin/composables/checkinWafRecovery.ts：max-params 4、max-depth 4，checkin 视图内 composable 归属 views-checkin
-  { files: ['src/views/checkin/composables/checkinWafRecovery.ts'], rules: { 'max-params': 'off', 'max-depth': 'off' } },
+  { files: ['src/views/checkin/composables/checkinWafRecovery.ts'], rules: { 'max-lines': 'off', 'max-params': 'off', 'max-depth': 'off' } },
   // ── 归 08-22-views-profiles-config（Profiles / Provider 模板 / 配置视图子任务）──────────────
   // src/utils/claudeProfiles.ts：max-lines 521，profile 工具归属 views-profiles-config（其关联资产清单含 claudeProfiles.ts）
   { files: ['src/utils/claudeProfiles.ts'], rules: { 'max-lines': 'off' } },
@@ -439,6 +480,15 @@ export default [
   // ── 归 08-22-i18n-port（i18n 运行时迁移）───────────────────────────────────────────
   // src/i18n/formatMessage.ts：max-params 4，i18n 占位符插值工具，归属 i18n-port
   { files: ['src/i18n/formatMessage.ts'], rules: { 'max-params': 'off' } },
+  // ── 阶段 4 冻结 max-lines=400 后新超限（08-22-platform-unify 协同点 N）────────
+  // src/utils/themeBootstrap.ts：max-lines 471 > 400，主题启动，归属 shell-port / design-system
+  { files: ['src/utils/themeBootstrap.ts'], rules: { 'max-lines': 'off' } },
+  // src/composables/usePlatformMcp.ts：max-lines 455 > 400，legacy composable，归属视图子任务改写
+  { files: ['src/composables/usePlatformMcp.ts'], rules: { 'max-lines': 'off' } },
+  // src/utils/perfTelemetry.ts：max-lines 414 > 400，性能探针，归属 arch-quality-perf
+  { files: ['src/utils/perfTelemetry.ts'], rules: { 'max-lines': 'off' } },
+  // src/configs/providerPresets/claude.ts：max-lines 404 > 400，provider 预设数据表，归属 views-profiles-config
+  { files: ['src/configs/providerPresets/claude.ts'], rules: { 'max-lines': 'off' } },
 
   {
     // 门面覆盖断言测试是唯一允许直接导入 tauri.ts 的消费点（白名单逐文件登记，layering-contracts.md）

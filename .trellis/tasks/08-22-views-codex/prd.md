@@ -8,20 +8,18 @@
 
 ## Scope
 
-> **范围变更（跨平台统一决策后）**：以下 5 个文件、5,593 行移交子任务 `08-22-platform-unify` 的统一层，本任务改为提供 Codex 平台的 config 与薄壳视图：`CodexMcpView.vue`（1,301）、`CodexProfilesView.vue`（1,173）、`codex/CodexAgentsView.vue`（1,138）、`CodexSettingsView.vue`（1,023）、`CodexAuthView.vue`（958）。`CodexSlashCommandsView.vue`（229）按现有薄壳模式处理。本任务剩余约 7,633 行。精确切分由 `08-22-platform-unify` 的差异普查（R1）确定后回填本表。
+> **范围回填（`08-22-platform-unify` 普查后，2026-08-24）**：Settings / Profiles / MCP / Agents 已由统一层提供 config + React 薄壳。本任务改为删除对应 `.vue` 并把路由接到薄壳。Auth 判定为部分统一：session/auth-off 在 `BaseAuth`，`CodexAuthView.vue` 与 `AddCodexAccountModal.vue` 的 OAuth/配额/Provider 向导保留在本任务。`CodexSlashCommandsView.vue`（229）按现有薄壳模式接到 React。
 
-| 文件 / 目录 | 行数 |
-|---|---|
-| `src/views/codex/`（6 文件，含 `CodexAgentsView.vue` 1,138、`AddCodexAccountModal.vue` 1,179） | 3,578 |
-| `src/views/CodexMcpView.vue` | 1,301 |
-| `src/views/CodexProfilesView.vue` | 1,173 |
-| `src/views/CodexSettingsView.vue` | 1,023 |
-| `src/views/CodexAuthView.vue` | 958 |
-| `src/views/CodexSessionsView.vue` | 883 |
-| `src/views/CodexView.vue` | 880 |
-| `src/views/CodexSlashCommandsView.vue` | 229 |
-| `src/components/codex/`（5 文件） | 3,201 |
-| 合计 | 13,226 |
+| 文件 / 目录 | 行数 | 处置 |
+|---|---|---|
+| `src/views/codex/`（除 `CodexAgentsView.vue`：含 `AddCodexAccountModal.vue` 1,179） | 2,440 | 本任务（OAuth 向导等） |
+| `src/views/CodexAuthView.vue` | 958 | 本任务迁 React（OAuth 保留） |
+| `src/views/CodexSessionsView.vue` | 883 | 本任务 |
+| `src/views/CodexView.vue` | 880 | 本任务 |
+| `src/views/CodexSlashCommandsView.vue` | 229 | 薄壳接到 React |
+| `src/components/codex/`（5 文件） | 3,201 | 本任务 |
+| `CodexMcpView` / `CodexProfilesView` / `CodexAgentsView` / `CodexSettingsView` | 4,635 | 统一层已提供薄壳，本任务只删 Vue + 接路由 |
+| 合计（仍迁实现） | 8,591 | |
 
 覆盖的功能面：Profiles、MCP、Agents、斜杠命令、插件、Auth、Sessions、Settings。
 

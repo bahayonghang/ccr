@@ -8,12 +8,12 @@
 
 ## Scope
 
-> **范围变更（跨平台统一决策后）**：`CommandsView.vue`（1,744）移交子任务 `08-22-platform-unify` 的 Commands 统一层，本任务改为提供 Claude 平台的 config 与薄壳视图。`views/mcp/McpManagerView.vue`（523）为跨平台 MCP 统一管理器，本身即统一层，留在本任务。本任务剩余约 10,311 行。精确切分由 `08-22-platform-unify` 的差异普查（R1）确定后回填本表。
+> **范围回填（`08-22-platform-unify` 普查后，2026-08-24）**：`CommandsView.vue`（1,744）已由统一层提供 `claudeCommandsConfig` + `ClaudeCommandsView` 薄壳。本任务改为删除该 Vue 并接路由，不再迁 1:1 JSX。`McpManagerView.vue`（523）留在本任务；MCP 四面板已在 `features/platform/mcp/`，经 `features/mcp` 再导出。`BaseSlashCommands.vue` 仍由本任务迁 React。
 
 | 文件 / 目录 | 行数 |
 |---|---|
-| `src/views/CommandsView.vue` | 1,744 |
-| `src/components/mcp/`（4 文件） | 2,064 |
+| `src/views/CommandsView.vue` | 1,744（统一层薄壳已在；本任务删 Vue + 接路由） |
+| `src/features/mcp/` 再导出的面板（原 `components/mcp/`） | 已迁 React |
 | `src/components/sync/`（4 文件） | 1,554 |
 | `src/views/tray/`（3 文件） | 1,188 |
 | `src/views/SyncView.vue` | 1,032 |

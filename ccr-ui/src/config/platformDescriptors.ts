@@ -1,3 +1,68 @@
+/** 七个跨平台功能面。slash-commands 已统一，不在此列。 */
+export const PLATFORM_SURFACES = [
+  'settings',
+  'profiles',
+  'auth',
+  'mcp',
+  'agents',
+  'plugins',
+  'commands',
+] as const
+
+export type PlatformSurface = (typeof PLATFORM_SURFACES)[number]
+
+/**
+ * descriptor 层：声明该平台有哪些面，驱动导航与（未来）路由生成。
+ * 路径与 `routeCatalog` 现网 75 条记录对齐，本任务不改路径。
+ */
+export interface PlatformSurfaceDescriptor {
+  id: string
+  rootPath: string
+  surfaces: readonly PlatformSurface[]
+}
+
+export const platformSurfaceDescriptors = {
+  claude: {
+    id: 'claude',
+    rootPath: '/claude-code',
+    surfaces: ['settings', 'profiles', 'auth', 'mcp', 'agents', 'plugins', 'commands'],
+  },
+  codex: {
+    id: 'codex',
+    rootPath: '/codex',
+    surfaces: ['settings', 'profiles', 'auth', 'mcp', 'agents'],
+  },
+  grok: {
+    id: 'grok',
+    rootPath: '/grok',
+    surfaces: ['settings', 'profiles', 'auth'],
+  },
+  opencode: {
+    id: 'opencode',
+    rootPath: '/opencode',
+    surfaces: ['settings', 'mcp', 'agents', 'plugins', 'commands'],
+  },
+  gemini: {
+    id: 'gemini',
+    rootPath: '/antigravity',
+    surfaces: ['mcp', 'agents', 'plugins'],
+  },
+} as const satisfies Record<string, PlatformSurfaceDescriptor>
+
+export type PlatformSurfaceId = keyof typeof platformSurfaceDescriptors
+
+export const platformSurfaceDescriptorList: PlatformSurfaceDescriptor[] = Object.values(
+  platformSurfaceDescriptors,
+)
+
+export function platformHasSurface(
+  id: PlatformSurfaceId,
+  surface: PlatformSurface,
+): boolean {
+  const descriptor: PlatformSurfaceDescriptor = platformSurfaceDescriptors[id]
+  return descriptor.surfaces.includes(surface)
+}
+
 export interface GenericPlatformFeatureRoute {
   path: string
   name: string

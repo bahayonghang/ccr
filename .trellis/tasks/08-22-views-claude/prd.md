@@ -8,23 +8,21 @@
 
 ## Scope
 
-> **范围变更（跨平台统一决策后）**：以下 4 个文件、4,004 行移交子任务 `08-22-platform-unify` 的统一层，本任务改为提供 Claude 平台的 config 与薄壳视图：`ClaudeCodeSettingsView.vue`（1,325）、`ClaudeAuthView.vue`（1,179）、`ClaudeCodeProfilesView.vue`（1,074）、`PluginsView.vue`（426）。`SlashCommandsView.vue`（18）已是薄壳，无需处理。本任务剩余约 6,985 行。精确切分由 `08-22-platform-unify` 的差异普查（R1）确定后回填本表。
+> **范围回填（`08-22-platform-unify` 普查后，2026-08-24）**：Settings / Profiles / Plugins 已由统一层提供 config + React 薄壳（`features/claude/Claude{Settings,Profiles,Plugins}View.tsx`）。本任务改为删除对应 `.vue` 并把路由接到薄壳，不再迁 1:1 JSX。Auth 判定为部分统一：session/auth-off 在 `BaseAuth`，`ClaudeAuthView.vue`（1,179，OAuth 账号快照）保留在本任务。`SlashCommandsView.vue`（18）已是薄壳。
 
-| 文件 / 目录 | 行数 |
-|---|---|
-| `src/views/ClaudeCodeSettingsView.vue` | 1,325 |
-| `src/views/ClaudeAuthView.vue` | 1,179 |
-| `src/views/ClaudeCodeProfilesView.vue` | 1,074 |
-| `src/views/HooksView.vue` | 920 |
-| `src/views/ClaudeCodeView.vue` | 745 |
-| `src/views/OutputStylesView.vue` | 558 |
-| `src/views/PluginsView.vue` | 426 |
-| `src/views/SkillsMigrationView.vue` | 392 |
-| `src/views/StatuslineView.vue` | 230 |
-| `src/views/SlashCommandsView.vue` | 18 |
-| `src/components/claude/`（3 文件） | 1,869 |
-| `src/components/claude-observer/`（7 文件） | 2,253 |
-| 合计 | 10,989 |
+| 文件 / 目录 | 行数 | 处置 |
+|---|---|---|
+| `src/views/ClaudeAuthView.vue` | 1,179 | 本任务迁 React（OAuth 保留） |
+| `src/views/HooksView.vue` | 920 | 本任务 |
+| `src/views/ClaudeCodeView.vue` | 745 | 本任务 |
+| `src/views/OutputStylesView.vue` | 558 | 本任务 |
+| `src/views/SkillsMigrationView.vue` | 392 | 本任务 |
+| `src/views/StatuslineView.vue` | 230 | 本任务 |
+| `src/views/SlashCommandsView.vue` | 18 | 已是薄壳，改接到 React |
+| `src/components/claude/`（3 文件） | 1,869 | 本任务 |
+| `src/components/claude-observer/`（7 文件） | 2,253 | 本任务 |
+| `ClaudeCodeSettingsView.vue` / `ClaudeCodeProfilesView.vue` / `PluginsView.vue` | 2,825 | 统一层已提供薄壳，本任务只删 Vue + 接路由 |
+| 合计（仍迁实现） | 8,164 | |
 
 覆盖的功能面：MCP 服务器、Agents、斜杠命令、插件、Settings、Hooks、Auth、Output Styles、Statusline、Skills 迁移、Claude 观测。
 

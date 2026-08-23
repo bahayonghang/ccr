@@ -131,9 +131,32 @@
 
 ## 6. 最终值冻结（阶段 4 → 5 门，批次 3b，协同点 N）
 
-**最终值待阶段 4 冻结（批次 3b，协同点 N）**。届时：
+第二段数据：2026-08-24，`08-22-platform-unify` 落地后重测（`bun ./scripts/measure-distribution.mjs`）。全量活文件 359 个 `src/**/*.{ts,tsx}`（排除 `types/generated`）。排除 21 个统一层接管条目后的 live 集 344 个；P90 与全量一致。
 
-1. 用统一层（`08-22-platform-unify` 批次 6）的实际文件集合替换批次 1 排除的 21 个条目，重算分布（`scripts/measure-distribution.mjs` 已保留排除逻辑）。
-2. 重取 P90，按同样的取整规则与反馈轮规则得到最终值；与暂定值不同时以最终值为准。
-3. 超限清单重出；新增项分配处理批次。
-4. 本文追加第二段数据，`eslint.config.js` 阈值更新。
+| 指标 | 第二段 P90 | 取整 | 冻结值 | 暂定值 |
+| --- | --- | --- | --- | --- |
+| 单文件行数 | 334 | 向上到 100 的倍数 | **400** | 500 |
+| 圈复杂度 | 13 | 向上到整数 | **13**（eslint 暂保持 16：未做 13 的反馈轮超限计数） | 16 |
+| 最大嵌套深度 | 2 | 已是整数 | **2** | 2 |
+| 最大参数个数 | 3 | 已是整数 | **3** | 3 |
+| 组件内样式行数 | — | 仍无 `.module.css` | **412** | 412 |
+
+行数 400 的超限：25 / 359 = 7.0%，在 [3%, 15%] 带内，不定上调。`eslint.config.js` `max-lines` 已改为 400。
+
+### 6.1 行数 >400 清单（25 个）
+
+已有 max-lines 豁免（17 个，与 §3 注册/批次表重合）：`commandCapabilities.ts`、`en-US.ts`、`zh-CN.ts`、`bootMessages.ts`、`stores/usage.ts`、`api/domains/codex.ts`、`api/tauri.ts`、`useUnifiedMcp.ts`、`types/checkin.ts`、`dashboardPresentation.ts`、`api/domains/claude.ts`、`useCodexDashboard.ts`、`useCheckinState.ts`、`claudeProfiles.ts`、`usageOpsCockpit.ts`、`providerTemplates.ts`、`types/codex.ts`。`useGrokDashboard.ts` 亦已豁免。
+
+新增豁免（8 个，400 阈值新入）：
+
+| 文件 | 行数 | 归属 |
+| --- | --- | --- |
+| `src/views/usage/usageChartOptions.ts` | 495 | `08-22-views-usage` |
+| `src/utils/themeBootstrap.ts` | 471 | `08-22-shell-port` / `08-22-design-system` |
+| `src/composables/useMonitoringFeed.ts` | 463 | `08-22-state-logic-port` |
+| `src/composables/usePlatformMcp.ts` | 455 | 视图子任务改写 |
+| `src/views/checkin/composables/checkinWafRecovery.ts` | 427 | `08-22-views-checkin` |
+| `src/utils/perfTelemetry.ts` | 414 | `08-22-arch-quality-perf` |
+| `src/configs/providerPresets/claude.ts` | 404 | `08-22-views-profiles-config` |
+
+统一层新建文件均 ≤400，无新增超限。
