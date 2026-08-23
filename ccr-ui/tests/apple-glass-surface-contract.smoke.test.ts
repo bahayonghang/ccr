@@ -6,9 +6,10 @@ import { describe, expect, it } from 'vitest'
 
 const migratedViewPaths = [
   '../src/components/MainLayout.vue',
-  '../src/views/DashboardView.vue',
-  '../src/views/UsageDashboardView.vue',
-  '../src/views/CodexView.vue',
+  '../src/features/usage/dashboard/DashboardView.tsx',
+  '../src/features/usage/UsageDashboardView.tsx',
+  '../src/features/claude/ClaudeCodeView.tsx',
+  '../src/features/codex/CodexView.tsx',
 ]
 
 // 已完成设计语言迁移并锁定的表面（随 WS6 批次扩充，防止回退）。
@@ -17,19 +18,15 @@ const migratedViewPaths = [
 //      backdrop-filter blur / hex / `.dark ` 后代选择器由 stylelint overrides 精确锁定。
 const styleLockedPaths = [
   '../src/styles/components/checkin-shared.css',
-  '../src/views/CheckinView.vue',
-  '../src/views/checkin/CheckinAccountDashboardView.vue',
-  '../src/views/checkin/tabs/CheckinAccountsTab.vue',
-  '../src/views/checkin/tabs/CheckinImportExportTab.vue',
-  '../src/views/checkin/tabs/CheckinProvidersTab.vue',
-  '../src/views/checkin/tabs/CheckinRecordsTab.vue',
-  '../src/views/checkin/components/AccountActionsMenu.vue',
-  '../src/views/checkin/components/AccountDashboardCalendar.vue',
-  '../src/views/checkin/components/AccountDashboardTrend.vue',
-  '../src/views/checkin/components/AccountFormModal.vue',
-  '../src/views/checkin/components/AccountsTable.vue',
-  '../src/views/checkin/components/OAuthWizardModal.vue',
-  '../src/components/CheckinProgressModal.vue',
+  '../src/features/checkin/styles/accounts.css',
+  '../src/features/checkin/styles/form.css',
+  '../src/features/checkin/styles/providers.css',
+  '../src/features/checkin/styles/records.css',
+  '../src/features/checkin/styles/oauth.css',
+  '../src/features/checkin/styles/view.css',
+  '../src/features/checkin/styles/dashboard.css',
+  '../src/features/checkin/styles/calendar.css',
+  '../src/features/checkin/styles/trend.css',
   '../src/components/MainLayout.vue',
   // WS6 批次④：收口到 BaseModal 的表单弹窗（扁平语言已锁定）。
   '../src/components/AddConfigModal.vue',

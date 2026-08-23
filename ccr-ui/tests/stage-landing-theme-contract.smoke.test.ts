@@ -4,8 +4,8 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 
 const landingViewPaths = [
-  '../src/views/ClaudeCodeView.vue',
-  '../src/views/CodexView.vue',
+  '../src/features/claude/ClaudeCodeView.tsx',
+  '../src/features/codex/CodexView.tsx',
   '../src/views/GeminiCliView.vue',
 ]
 
@@ -22,12 +22,12 @@ describe('stage landing theme contract', () => {
   })
 
   it('keeps the Claude Code console readable with semantic tokens', async () => {
-    const claudeViewPath = '../src/views/ClaudeCodeView.vue'
+    const claudeViewPath = '../src/features/claude/ClaudeCodeView.tsx'
     const absolutePath = fileURLToPath(new URL(claudeViewPath, import.meta.url))
     const source = await readFile(absolutePath, 'utf8')
 
-    expect(source).toMatch(/class="claude-console"/)
-    expect(source).toMatch(/\.claude-console\s*\{[\s\S]*?color: var\(--color-text-primary\)/)
+    expect(source).toMatch(/className="[^"]*claude-console/)
+    expect(source).toMatch(/text-text-primary/)
     expect(source).not.toContain('claude-terminal-card')
     expect(source).not.toContain('rgb(10 12 16 / 92%)')
   })

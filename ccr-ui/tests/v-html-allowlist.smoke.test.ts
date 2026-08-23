@@ -54,18 +54,6 @@ describe('v-html safety allowlist', () => {
   it('keeps every v-html usage tied to an audited sanitizer, escaped helper, or static i18n source', async () => {
     await expect(collectVHtmlUsages()).resolves.toEqual([
       {
-        file: 'src/components/claude/ClaudeProfileRow.vue',
-        binding: 'highlightedDescription',
-      },
-      {
-        file: 'src/components/claude/ClaudeProfileRow.vue',
-        binding: 'highlightedName',
-      },
-      {
-        file: 'src/components/usage/LlmusageInstallDialog.vue',
-        binding: 'descriptionHtml',
-      },
-      {
         file: 'src/views/CommandsView.vue',
         binding: 'line.safeHtml',
       },
@@ -76,7 +64,7 @@ describe('v-html safety allowlist', () => {
     const [ansiRenderer, claudeProfiles, installDialog, commandsView] = await Promise.all([
       readFile('src/utils/ansiRenderer.ts', 'utf8'),
       readFile('src/utils/claudeProfiles.ts', 'utf8'),
-      readFile('src/components/usage/LlmusageInstallDialog.vue', 'utf8'),
+      readFile('src/features/usage/components/LlmusageInstallDialog.tsx', 'utf8'),
       readFile('src/views/CommandsView.vue', 'utf8'),
     ])
 
