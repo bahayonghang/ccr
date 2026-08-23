@@ -269,14 +269,23 @@ utilities/animations/chart-colors，deferred-decorations 含 backgrounds。
 
 ## 批次 8：契约重写与验证
 
-- [ ] `theme-token-contracts.md`（31.5 KB）重写。与 `08-22-test-contract-rebuild` 协同（PRD Notes：该文档不宜独立完成）。
-- [ ] 保留 `0.75rem` 字号例外的说明（R10、AC9）。
-- [ ] 保留三层主题模型语义说明。
-- [ ] `brand-asset-pipeline.md`（4.4 KB）同步核对，是否受本任务影响。
-- [ ] 明暗对比度检查：每个语义色对计算 WCAG 对比度，与迁移前同名 token 对比（AC8）。
-- [ ] token 单点生效验证用例（`design.md` §12），断言 3 个域同时变化（AC11）。
+- [x] `theme-token-contracts.md` 重写（345 行 → 约 330 行，结构保留 7 个场景 + 新增 2 个：Tailwind v4 两层结构、reduced motion 单点；`@theme`/`@theme inline` 契约、自定义 accent、值域扩展机制、批次 6 映射口径全部入档；guard 清单更新——`app-settings.smoke.test.ts` 已随 react-foundation 移除，不再列为 guard）。与 `08-22-test-contract-rebuild` 的协同在文档头注明（co-owned，测试套扩展归该任务）。**协同偏差记录**：PRD Notes 要求「不宜独立完成」，实际以现行 smoke 契约（theme-switch / theme-contrast / apple-glass / theme-bootstrap / theme-domain-extension）为锚先行重写，`08-22-test-contract-rebuild` 交付时复核——该任务的批次 1 需把本文件的 guard 清单纳入其范围表。
+- [x] 保留 `0.75rem` 字号例外的说明（R10、AC9）：Registered Scale Extensions 节原样保留并注明 React 侧延续。
+- [x] 保留三层主题模型语义说明：新增「Three-Layer Theme Model」节，三轴独立契约保留。
+- [x] `brand-asset-pipeline.md` 同步核对：**不受本任务影响**（内容为 SVG/PNG 图标生成管线，无 token/主题/CSS 表面，无 Vue 引用），零改动，结论记录于此。
+- [x] 明暗对比度检查（AC8）：`contrast-parity.py` 以批次 1 之前的 `98b08252:tokens.css` 为基准——77 个颜色 token 逐名取值 **0 差异**（批次 1–7 只移动不改值，证据成立）；四组合 × 四契约色对 WCAG 对比度全部达标（`contrast-parity.md` 落盘）。reduced motion 降级已在批次 7 交付（AC8 后半）。
+- [x] token 单点生效验证用例（AC11）：`tests/token-single-point.smoke.test.tsx` 2 用例——源码层 4 个域真实消费 `--color-bg-surface`；运行层单点翻转根变量后映射仍以 `var()` 路由（jsdom 限制下的完整链条证明，同 theme-switch 口径）。
 
-验证：`rg '\.vue|<script setup|scoped' .trellis/spec/ccr-ui/frontend/theme-token-contracts.md` 无匹配（AC9）；`bun run lint:style` 退出码 0（AC10）。
+### 批次 8 证据
+
+| 命令 | 退出码 | 结果 |
+| --- | --- | --- |
+| `rg '\.vue\|<script setup\|scoped' .trellis/spec/ccr-ui/frontend/theme-token-contracts.md` | 1（无匹配） | AC9 ✓ |
+| `python3 .trellis/tasks/08-22-design-system/contrast-parity.py` | 0 | 77 token 取值一致，四组合 WCAG 全达标 |
+| `bun run lint:style` | 0 | AC10 ✓ |
+| `vitest run --config vitest.smoke.config.ts tests/token-single-point.smoke.test.tsx` | 0 | 2/2 通过 |
+| `bun run test:smoke` | 0 | 66 文件 / 329 测试全绿（批次 7 为 65/327） |
+| `just frontend-check-quick` | 0 | 全绿 |
 
 ## 验证命令
 
@@ -289,13 +298,14 @@ utilities/animations/chart-colors，deferred-decorations 含 backgrounds。
 
 ## 交付门（父任务约束门的另一半）
 
-- [ ] AC1–AC11 与 AC13 全部满足。
-- [ ] **AC12 不在本门**：`.tsx` 侧的 px 与 `rgba()` 归零由七个视图子任务执行、父任务视图门核对。本任务的责任止于 `src/styles/**` 归零 + `hardcode-mapping.md` 可用。
-- [ ] 七份记录落盘：`token-classification.md`、`primitive-disposition.md`、`adhoc-primitives.md`、`hardcode-mapping.md`、`hardcode-exemptions.md`、`animation-disposition.md`、四个页面级样式文件的归属判定。
-- [ ] token 名集合迁移前后一致，比对范围 `src/styles/**`（批次 1 的核对项、AC13）。
-- [ ] 9 类 shadcn/ui 原语在 `src/ui/` 下可用，各有消费示例。
-- [ ] `theme-token-contracts.md` 重写完成。
-- [ ] 无 `Neko` / `anime` / `purple-tech` / `guofeng` 相关命名、色板或组件语义（R9）。
+- [x] AC1–AC11 与 AC13 全部满足（逐项证据见各批次；AC1/AC2 = 批次 6，AC3 = 批次 2，AC4 = 批次 3，AC5 = 批次 4，AC6 = 批次 3，AC7 = 批次 5，AC8 = 批次 7+8，AC9/AC10/AC11 = 批次 8，AC13 = 批次 1+2 名字集合比对）。
+  **AC4 半项移交（与 AC12 同理的显式偏差）**：AC4 前半（9 类原语在 `src/ui/` 可用 + 消费示例）本门已满足；后半「`src/components/ui/` 不再存在」依赖 16 个死 `.vue` 原语的 React 移植，该范围属 `08-22-shell-port`（父任务任务地图：shell-port 持有 `ui` 与外壳级组件）。批次 3 偏差记录与 `primitive-disposition.md` 判定表即为其迁移依据；目录随 shell-port 对应批次清空，父任务外壳门核对。
+- [x] **AC12 不在本门**：`.tsx` 侧的 px 与 `rgba()` 归零由七个视图子任务执行、父任务视图门核对。本任务的责任止于 `src/styles/**` 归零 + `hardcode-mapping.md` 可用。
+- [x] 七份记录落盘：`token-classification.md`、`primitive-disposition.md`、`adhoc-primitives.md`、`hardcode-mapping.md`、`hardcode-exemptions.md`、`animation-disposition.md`、四个页面级样式文件的归属判定（`page-styles-disposition.md`）。另附 `contrast-parity.md`、`token-names-before/after.txt`、`hardcode-transform*.py/json`。
+- [x] token 名集合迁移前后一致，比对范围 `src/styles/**`（批次 1、批次 2 两次比对，diff 无输出）。
+- [x] 9 类 shadcn/ui 原语在 `src/ui/` 下可用，各有消费示例（批次 3 行为用例 + 批次 4 BaseModal 适配器消费 Dialog）。
+- [x] `theme-token-contracts.md` 重写完成（批次 8）。
+- [x] 无 `Neko` / `anime` / `purple-tech` / `guofeng` 相关命名、色板或组件语义（R9）——`rg -i 'neko|anime|purple-tech|guofeng' src/styles src/ui` 无匹配。
 
 ## 回滚点
 
