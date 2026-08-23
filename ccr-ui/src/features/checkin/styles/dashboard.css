@@ -1,0 +1,127 @@
+.checkin-account-dashboard {
+  min-height: 100%;
+}
+
+.dashboard-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.dashboard-main-grid {
+  display: grid;
+  grid-template-columns: minmax(17rem, 0.9fr) minmax(17rem, 0.9fr) minmax(25rem, 1.4fr);
+  gap: 1.1rem;
+}
+
+.stats-card-vertical,
+.calendar-card,
+.trend-card {
+  padding: 1.25rem;
+}
+
+.provider-pill,
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--radius-full);
+  padding: 0.4rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.provider-pill {
+  background: rgb(var(--color-accent-primary-rgb) / 10%);
+  border: var(--space-px) solid rgb(var(--color-accent-primary-rgb) / 22%);
+  color: var(--color-accent-primary);
+}
+
+.status-on {
+  background: rgb(var(--color-success-rgb) / 12%);
+  color: var(--color-success);
+}
+
+.status-off {
+  background: rgb(var(--color-danger-rgb) / 12%);
+  color: var(--color-danger);
+}
+
+.icon-button,
+.action-btn,
+.nav-btn {
+  border: var(--space-px) solid rgb(var(--color-border-default-rgb) / 56%);
+}
+
+.icon-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: var(--radius-full);
+}
+
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.6rem;
+  padding: 0.6rem 1rem;
+  border-radius: 0.85rem;
+  font-weight: 600;
+}
+
+.action-btn.primary {
+  background: var(--color-accent-primary);
+  color: var(--color-accent-primary-contrast);
+  border-color: transparent;
+}
+
+.action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.state-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  min-height: 6rem;
+  padding: 1.05rem 1.35rem;
+}
+
+.calendar-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.nav-btn {
+  width: 1.85rem;
+  height: 1.85rem;
+  border-radius: var(--radius-full);
+}
+
+.trend-header,
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+@media (width <= 80rem) {
+  .dashboard-main-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .calendar-card {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (width <= 48rem) {
+  .dashboard-main-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -32,7 +32,7 @@ vi.mock('@/api', () => ({
 }))
 
 import { getCheckinJobStatus } from '@/api'
-import { waitForCheckinJobResult } from '@/views/checkin/composables/checkinWafRecovery'
+import { waitForCheckinJobResult } from '@/features/checkin'
 
 const mockedGetCheckinJobStatus = getCheckinJobStatus as ReturnType<typeof vi.fn>
 

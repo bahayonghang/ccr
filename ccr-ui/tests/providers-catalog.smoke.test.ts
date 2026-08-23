@@ -16,7 +16,7 @@ import {
 import {
   filterAvailableBuiltinProviders,
   resolveBuiltinProvider,
-} from '@/views/checkin/composables/builtinProviderLookup'
+} from '@/features/checkin/lib/builtinProviderLookup'
 import type {
   BuiltinProvider,
   CdkProviderConfig,

@@ -3,7 +3,7 @@ import {
   BALANCE_REFRESH_MIN_INTERVAL_MS,
   runPerKeySequential,
   shouldSkipBalanceRefresh,
-} from '@/views/checkin/composables/balanceRefreshQueue'
+} from '@/features/checkin'
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 

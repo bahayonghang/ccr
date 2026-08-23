@@ -3,7 +3,7 @@
   "name": "views-checkin",
   "title": "CheckIn 视图迁移",
   "description": "CheckIn 视图与组件约 8313 行迁移，含 OAuth 向导与 WAF 事件流",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": null,
   "scope": null,
   "package": null,

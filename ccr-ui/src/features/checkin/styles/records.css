@@ -1,0 +1,154 @@
+.checkin-records {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.checkin-records__title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.checkin-records__empty {
+  padding: 3rem 0;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.checkin-records__error {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1rem;
+  border: var(--space-px) solid rgb(var(--color-warning-rgb) / 30%);
+  border-radius: 0.5rem;
+  background: rgb(var(--color-warning-rgb) / 10%);
+  color: var(--color-warning);
+}
+
+.checkin-records__history {
+  overflow: hidden;
+  border: var(--space-px) solid rgb(var(--color-danger-rgb) / 30%);
+  border-radius: 0.5rem;
+  background: rgb(var(--color-danger-rgb) / 8%);
+}
+
+.checkin-records__history-summary {
+  display: flex;
+  justify-content: space-between;
+  cursor: pointer;
+  padding: 0.75rem 1rem;
+  font-weight: 500;
+  color: var(--color-danger);
+}
+
+.checkin-records__history-body {
+  padding: 0.5rem 1rem 1rem;
+}
+
+.checkin-records__history-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding-bottom: 0.75rem;
+}
+
+.checkin-records__history-input,
+.checkin-records__history-button {
+  border: var(--space-px) solid rgb(var(--color-danger-rgb) / 30%);
+  border-radius: 0.375rem;
+  background: rgb(var(--color-bg-surface-rgb) / 80%);
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  color: rgb(var(--color-danger-rgb) / 82%);
+}
+
+.checkin-records__table-shell {
+  overflow: hidden;
+  border-radius: 0.5rem;
+  background: var(--color-bg-surface);
+}
+
+.checkin-records__table {
+  min-width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.checkin-records__table-heading,
+.checkin-records__table-cell {
+  padding: 0.75rem 1.5rem;
+}
+
+.checkin-records__table-heading {
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.checkin-records__status-badge {
+  padding: 0.25rem 0.5rem;
+  font-weight: 500;
+}
+
+.checkin-records__status-badge--success {
+  background: rgb(var(--color-success-rgb) / 15%);
+  color: var(--color-success);
+}
+
+.checkin-records__status-badge--warning {
+  background: rgb(var(--color-warning-rgb) / 15%);
+  color: var(--color-warning);
+}
+
+.checkin-records__status-badge--danger {
+  background: rgb(var(--color-danger-rgb) / 15%);
+  color: var(--color-danger);
+}
+
+.checkin-records__status-badge--neutral {
+  background: var(--color-bg-overlay);
+  color: var(--text-secondary);
+}
+
+.checkin-records__fix-button {
+  color: var(--color-danger);
+}
+
+.checkin-records__detail-toggle {
+  color: var(--color-info);
+  font-size: 0.75rem;
+}
+
+.checkin-records__row-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.checkin-records__table-cell--muted {
+  color: var(--text-muted);
+}
+
+.checkin-records__table-cell--primary {
+  color: var(--text-primary);
+}
+
+.checkin-records__table-cell--success {
+  color: var(--color-success);
+}
+
+.checkin-records__table-heading--right,
+.checkin-records__table-cell--right {
+  text-align: right;
+}
+
+.checkin-records__history-item {
+  border: var(--space-px) solid rgb(var(--color-danger-rgb) / 30%);
+  border-radius: 0.375rem;
+  background: rgb(var(--color-bg-surface-rgb) / 70%);
+  padding: 0.75rem;
+}

@@ -9,7 +9,7 @@
 - 全局集合：本表 `eventBridge` + 生命周期 `常驻` 的事件名 = `TAURI_GLOBAL_EVENTS`（相等）。
 - 全表：前端 inventory 事件名 ⊆ Rust emit 名（`events.rs` `channels` 常量 + `.emit` / `.emit_to` 字面量 + `EVENT_*` 常量）。
 
-CheckIn WAF 局部事件尚未完整迁移。WAF 等待复用既有签到任务事件，**不新造 emit 名**。`src-tauri/src/commands/waf.rs` 无 `emit`。所有权归 `08-22-views-checkin`。
+CheckIn 局部事件由 `08-22-views-checkin` 登记。WAF 等待复用既有签到任务事件，**不新造 emit 名**。`src-tauri/src/commands/waf.rs` 无 `emit`。WAF WebView bypass 走既有 `openWafLogin` / `validateWafCookieForAccount` wrapper。`checkin:job-finished` / `checkin:job-timeout` 由 `waitForCheckinJob.ts` 组件级 `listen()` 一次性等待，取消协议为 `disposed` + 迟到 unlisten 立即调用。
 
 | 事件名 | 所有者 | 生命周期 | Rust emit 位置 |
 | --- | --- | --- | --- |
@@ -31,12 +31,12 @@ CheckIn WAF 局部事件尚未完整迁移。WAF 等待复用既有签到任务�
 | `app-log` | `useMonitoringFeed` | 常驻（批量） | `events.rs APP_LOG` |
 | `token-stats` | `useMonitoringFeed` | 常驻（批量） | `events.rs TOKEN_STATS` |
 | `app:monitoring` | `useMonitoringFeed` | 常驻（批量） | `events.rs MONITORING_ENTRY / monitoring.rs` |
-| `checkin:completed` | `views-checkin` | 组件级（未完整迁移） | `events.rs CHECKIN_COMPLETED` |
-| `checkin:failed` | `views-checkin` | 组件级（未完整迁移） | `events.rs CHECKIN_FAILED` |
-| `checkin:job-delta` | `views-checkin` | 组件级（未完整迁移） | `events.rs / commands/checkin.rs` |
-| `checkin:job-progress` | `views-checkin` | 组件级（未完整迁移） | `events.rs CHECKIN_JOB_PROGRESS` |
-| `checkin:job-finished` | `views-checkin` | 一次性（WAF 等待复用） | `events.rs / commands/checkin.rs` |
-| `checkin:job-timeout` | `views-checkin` | 一次性（WAF 等待复用） | `events.rs / commands/checkin.rs` |
+| `checkin:completed` | `src/features/checkin/lib/checkinJob.ts` | 组件级 | `events.rs CHECKIN_COMPLETED` |
+| `checkin:failed` | `src/features/checkin/lib/checkinJob.ts` | 组件级 | `events.rs CHECKIN_FAILED` |
+| `checkin:job-delta` | `src/features/checkin/lib/checkinJob.ts` | 组件级（任务进度） | `events.rs / commands/checkin.rs` |
+| `checkin:job-progress` | `src/features/checkin/lib/checkinJob.ts` | 组件级 | `events.rs CHECKIN_JOB_PROGRESS` |
+| `checkin:job-finished` | `src/features/checkin/lib/waitForCheckinJob.ts` | 一次性（WAF 等待复用） | `events.rs / commands/checkin.rs` |
+| `checkin:job-timeout` | `src/features/checkin/lib/waitForCheckinJob.ts` | 一次性（WAF 等待复用） | `events.rs / commands/checkin.rs` |
 | `sync:status` | `views-sync-tools` | 组件级（待并入） | `events.rs SYNC_STATUS` |
 | `task:progress` | `views-sync-tools` | 组件级（待并入） | `events.rs TASK_PROGRESS` |
 | `app:notification` | `views-sync-tools` | 组件级（待并入） | `events.rs NOTIFICATION` |

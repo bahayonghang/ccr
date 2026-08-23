@@ -4,7 +4,7 @@ import {
   applyRecoveryFailureToLogs,
   formatWafCookieRecoveryFailure,
   mergeRetryLogsIntoProgress,
-} from '@/views/checkin/composables/useCheckinState'
+} from '@/features/checkin'
 
 const baseLogs: CheckinLogEntry[] = [
   {
