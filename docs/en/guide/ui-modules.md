@@ -1,6 +1,6 @@
 # UI Module Map
 
-This page groups the pages currently exposed by `ccr-ui/src/router/index.ts` by user task. Redirects are not presented as separate features.
+This page groups the pages currently exposed by `ccr-ui/src/shell/routeCatalog.ts` by user task. Redirects are not presented as separate features.
 
 ## Platform Workspaces
 
