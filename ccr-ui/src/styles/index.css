@@ -4,5 +4,5 @@
    ============================================ */
 
 @import './core.css';
-@import './checkin-shared.css';
-@import './codex-auth-shared.css';
+@import './components/checkin-shared.css';
+@import './components/codex-auth-shared.css';

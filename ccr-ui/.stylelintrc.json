@@ -28,7 +28,7 @@
   "overrides": [
     {
       "files": [
-        "src/styles/checkin-shared.css"
+        "src/styles/components/checkin-shared.css"
       ],
       "rules": {
         "color-no-hex": true,

@@ -4,7 +4,7 @@
    ============================================ */
 
 @import './animations.css';
-@import './utilities.css';
+@import './utilities/utilities.css';
 @import './chart-colors.css';
 
 /* Needed so Tailwind can place `@layer components` from utilities.css (used by `@apply`). */

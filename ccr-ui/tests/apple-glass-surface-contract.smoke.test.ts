@@ -16,7 +16,7 @@ const migratedViewPaths = [
 // 注意：圆角收敛属于 WS6 批次④（全局），本批不锁 border-radius 字面量；
 //      backdrop-filter blur / hex / `.dark ` 后代选择器由 stylelint overrides 精确锁定。
 const styleLockedPaths = [
-  '../src/styles/checkin-shared.css',
+  '../src/styles/components/checkin-shared.css',
   '../src/views/CheckinView.vue',
   '../src/views/checkin/CheckinAccountDashboardView.vue',
   '../src/views/checkin/tabs/CheckinAccountsTab.vue',
@@ -180,7 +180,7 @@ describe('claude editorial surface contract', () => {
   })
 
   it('ships glass utility classes with paint containment and reduced-transparency fallback', async () => {
-    const source = await readFile('src/styles/utilities.css', 'utf8')
+    const source = await readFile('src/styles/utilities/utilities.css', 'utf8')
 
     for (const cls of ['glass-floating', 'glass-chrome', 'glass-inline']) {
       expect(source, `.${cls}`).toMatch(new RegExp(`\\.${cls} {`))

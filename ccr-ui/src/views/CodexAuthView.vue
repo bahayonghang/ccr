@@ -924,7 +924,7 @@ onActivated(() => {
 </script>
 
 <style scoped>
-/* codex-auth-view__* 结构样式已抽至全局共享层 src/styles/codex-auth-shared.css，
+/* codex-auth-view__* 结构样式已抽至全局共享层 src/styles/components/codex-auth-shared.css，
    供主视图、Accounts/Providers Tab 与各 Modal 共用，此处不再重复定义。 */
 
 .codex-auth-view__off-banner {

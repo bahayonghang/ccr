@@ -63,12 +63,84 @@ diff .trellis/tasks/08-22-design-system/token-names-before.txt .trellis/tasks/08
 
 ## 批次 2：styles 目录分层
 
-- [ ] 按 `design.md` §3 把 18 个文件落位到 `base/` / `themes/` / `components/` / `utilities/` 与根。
-- [ ] 四个页面级样式文件逐个判定归属：`codex-auth-shared.css`、`home.css`、`profiles-page.css`、`checkin-shared.css`。判定记录落盘。
-- [ ] 空目录填充或删除（AC3）。
-- [ ] 主入口的 `@import` 顺序确定，三层 CSS 加载语义（`shell-critical` / `deferred-decorations` / `deferred-interactive`）保留。
+- [x] 按 `design.md` §3 把 18 个文件落位到 `base/` / `themes/` / `components/` / `utilities/` 与根。
+- [x] 四个页面级样式文件逐个判定归属：`codex-auth-shared.css`、`home.css`、`profiles-page.css`、`checkin-shared.css`。判定记录落盘。
+- [x] 空目录填充或删除（AC3）。
+- [x] 主入口的 `@import` 顺序确定，三层 CSS 加载语义（`shell-critical` / `deferred-decorations` / `deferred-interactive`）保留。
 
 验证：`ls src/styles/{base,components,themes,utilities}` 无空目录（AC3）；首屏 CSS 只含 `shell-critical` 层（`08-22-arch-quality-perf` 的 `code-splitting.md` 约定）。
+
+### 批次 2 落位决策（一处偏差 + 一处顺带落地）
+
+1. **`themes/` 目录本批次移除（AC3）**。批次 1 落位决策 1 已记录：三个 smoke 契约
+   （`theme-contrast-contract` / `apple-glass-surface-contract` / `theme-bootstrap`）直接解析
+   `tokens.css` 文本与选择器（`KNOWN_SELECTOR_PATTERN` 只接受 tokens.css 顶层块形态），
+   `theme-switch.smoke.test.tsx` 亦断言 tokens.css 内 `--color-bg-surface-rgb` 锚点。
+   批次 2 保持 `tokens.css` 为第 1 层可切换变量的定义点，`themes/` 无内容故按 AC3 移除；
+   批次 8（`theme-token-contracts.md` 重建）随 `design.md` §1 的目标结构重建 `themes/`，
+   届时同步放宽三个 smoke 测试的选择器清单。设计文档 §3 的最终落位不变。
+   `animations/` 空目录同理移除，批次 7 判定后按需重建。
+2. **三层 CSS 加载的 React 落地顺带完成**。`code-splitting.md` §3.1 记录 React 侧
+   `deferred-*` 两层「尚无等价加载点，归 08-22-design-system」。批次 2 新增
+   `src/utils/deferredStyles.ts`（首帧后 `scheduleAfterPaint` 载 `deferred-interactive`，
+   空闲 `scheduleWhenIdle` 载 `deferred-decorations`，`<link data-style="deferred-*">` 幂等挂载），
+   `main.tsx` 调用；旧 Vue `main.ts` 的挂载形态等价。`fonts.css` 无导入点属现状（旧 Vue
+   经 `/fonts/...` URL 直载字体子集，不经该文件），未在本批次改动。
+
+### 批次 2 证据
+
+**落位表（old → new）**：完整表见 `page-styles-disposition.md` §1。摘要：
+`base.css`→`base/base.css`、`fonts.css`→`base/fonts.css`、`home.css`→`components/home.css`、
+`codex-auth-shared.css`→`components/codex-auth-shared.css`、
+`profiles-page.css`→`components/profiles-page.css`、`checkin-shared.css`→`components/checkin-shared.css`、
+`utilities.css`→`utilities/utilities.css`；`tokens.css` / `theme.css` / `chart-colors.css` /
+`core.css` / `index.css` / `shell-critical.css` / `deferred-*` / `backgrounds.css` /
+`animations.css` / `components/surfaces.css` 留根或原位（surfaces.css 原已在 `components/`）。
+全部 `git mv`，无文件改名、无变量改名、无值变更。
+
+**四个页面级文件判定（`page-styles-disposition.md` §2）**：`home.css`（单域局部 token）、
+`codex-auth-shared.css`（单域多组件共享，`code-splitting.md` 明示需留首屏）、
+`checkin-shared.css`（单域多组件共享）、`profiles-page.css`（多路由共享，三平台 profiles 共用）
+——按「被多路由共享的进 components/」标准，批次 2 全部落 `components/`；
+`features/<域>/.module.css` 归阶段 5 视图子任务（features/ 目录尚不存在，消费方均为死 .vue）。
+
+**空目录（AC3）**：`base/`、`components/`、`utilities/` 均有内容；`themes/`、`animations/`
+空目录已移除。`find src/styles -type d` 无空目录。
+
+**`@import` 顺序**：`index.css` 首屏链 = `core.css` → `components/checkin-shared.css` →
+`components/codex-auth-shared.css`；`core.css` 链 = theme(theme) → utilities(utilities) →
+tokens → theme → base/base(layer base) → components/home(layer components) →
+shell-critical(layer components) → components/surfaces(layer components)；
+`deferred-interactive.css` = animations → utilities/utilities → chart-colors（+ `@tailwind components`）。
+层序语义（theme < base < components < utilities）与 @layer 结构不变。
+
+**三层 CSS 加载（dist 产物核对）**：`dist/index.html` 只含一个
+`<link rel="stylesheet" href="/assets/index-*.css">`（首屏）；`deferred-interactive-*.css`（20.27 kB）
+与 `deferred-decorations-*.css`（1.61 kB）为独立产物，经 `deferredStyles.ts` 的 `?url` 惰性导入。
+首屏 index css 含 `.loading-spinner`（shell-critical）且不含 deferred 专属内容
+（glass-panel / gradient-shift / float-gentle 均 0 命中）；deferred-interactive 含
+utilities/animations/chart-colors，deferred-decorations 含 backgrounds。
+
+**名字集合比对（AC13）**：批次 2 后重跑
+`rg -o -- '--[a-z0-9-]+\s*:' src/styles --glob '*.css'` → 426 个唯一名，
+`diff` 对 `token-names-before.txt` **无输出**（移动不改名）。
+
+**测试/配置路径更新（仅路径，断言未动）**：`tests/apple-glass-surface-contract.smoke.test.ts`
+两处（`checkin-shared.css` → `components/checkin-shared.css`、`utilities.css` →
+`utilities/utilities.css`）；`.stylelintrc.json` 的 checkin-shared 覆盖路径；三个死 .vue
+的 `@/styles/profiles-page.css` → `@/styles/components/profiles-page.css`。
+`tokens.css` / `core.css` / `deferred-decorations.css` 路径未变，对应断言原样保留。
+
+**验证命令与退出码**：
+
+| 命令 | 退出码 | 结果 |
+| --- | --- | --- |
+| `bun run build` | 0 | ✓ 构建成功，deferred 两层独立产物 |
+| `bun run test:smoke` | 0 | 60 files / 294 tests 全绿（含三个 tokens.css 解析契约与 theme-switch） |
+| `bun run lint:style` | 0 | stylelint 无告警 |
+| `bun run lint:ci` | 0 | eslint + stylelint + check:style-lines 全绿 |
+| `bun run check:bundle-budget` | 0 | PASS，largest-lazy 为 deferred-decorations 0.07 KiB |
+| `just frontend-check-quick` | 0 | type-check + lint:ci + i18n + smoke 全绿 |
 
 ## 批次 3：原语层
 

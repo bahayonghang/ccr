@@ -394,7 +394,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onActivated, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import '@/styles/profiles-page.css'
+import '@/styles/components/profiles-page.css'
 import { grokApi } from '@/api'
 import { getCurrentEnvironment } from '@/api/runtime/environment'
 import GrokProfileCard from '@/components/grok/GrokProfileCard.vue'

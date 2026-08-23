@@ -28,8 +28,8 @@
 @import 'tailwindcss/utilities.css' layer(utilities);
 @import './tokens.css';
 @import './theme.css';
-@import './base.css' layer(base);
-@import './home.css' layer(components);
+@import './base/base.css' layer(base);
+@import './components/home.css' layer(components);
 @import './shell-critical.css' layer(components);
 @import './components/surfaces.css' layer(components);
 

@@ -358,7 +358,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import '@/styles/profiles-page.css'
+import '@/styles/components/profiles-page.css'
 import {
   addClaudeProfile,
   applyClaudeProfile,
