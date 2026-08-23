@@ -12,7 +12,7 @@ BeforeAll {
     New-Item -Path "$root/crates/ccr-types" -ItemType Directory -Force | Out-Null
     New-Item -Path "$root/crates/ccr-db" -ItemType Directory -Force | Out-Null
     New-Item -Path "$root/ccr-ui/src-tauri" -ItemType Directory -Force | Out-Null
-    New-Item -Path "$root/ccr-ui/src/components" -ItemType Directory -Force | Out-Null
+    New-Item -Path "$root/ccr-ui/src/config" -ItemType Directory -Force | Out-Null
     New-Item -Path "$root/ccr-vscode" -ItemType Directory -Force | Out-Null
     New-Item -Path "$root/scripts/version" -ItemType Directory -Force | Out-Null
 
@@ -63,10 +63,12 @@ edition = "2021"
 '@ | Set-Content -Path "$root/ccr-ui/src-tauri/tauri.conf.json" -Encoding UTF8
 
     @'
-<template>
-  <div class="footer">CCR UI v1.2.3</div>
-</template>
-'@ | Set-Content -Path "$root/ccr-ui/src/components/MainLayout.vue" -Encoding UTF8
+import packageJson from '../../package.json'
+
+export const APP_NAME = 'CCR UI'
+export const APP_VERSION = packageJson.version
+export const APP_VERSION_LABEL = `${APP_NAME} v${APP_VERSION}`
+'@ | Set-Content -Path "$root/ccr-ui/src/config/appMeta.ts" -Encoding UTF8
 
     @'
 {

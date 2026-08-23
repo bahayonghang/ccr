@@ -29,7 +29,7 @@ Keeps workspace crate and UI version labels aligned with the root
 - `ccr-ui/package.json`
 - `ccr-ui/src-tauri/Cargo.toml`
 - `ccr-ui/src-tauri/tauri.conf.json`
-- `ccr-ui/src/components/MainLayout.vue`
+- `ccr-ui/src/config/appMeta.ts`
 - `ccr-vscode/package.json`
 
 ```bash
