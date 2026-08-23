@@ -26,6 +26,13 @@ export default defineConfig({
         manualChunks: (id) => {
           const groups: Array<[string, RegExp]> = [
             ['react-vendor', /[\\/]node_modules[\\/](react|react-dom|react-router)[\\/]/],
+            // query-vendor：react-query 在 main.tsx/shell/queryClient.ts 被真实导入，
+            // 08-22-arch-quality-perf 批次 8 测量后加入。必须同时匹配 @tanstack/query-core：
+            // react-query 的查询引擎在独立的 query-core 包中，仅匹配 react-query 会把它留在 index。
+            // 加入后 index 从 167.15 kB 降至 142.80 kB，query-vendor 32.26 kB（原始 rolldown 实测）。
+            // form-vendor / motion-vendor 未加入：react-hook-form 与 motion 当前无导入点，
+            // 空分组不产出 chunk，待 state-logic-port / design-system 实际导入时再补。
+            ['query-vendor', /[\\/]node_modules[\\/]@tanstack[\\/](react-query|query-core)[\\/]/],
             ['ui-vendor', /[\\/]node_modules[\\/]@iconify[\\/]react[\\/]/],
             // 图表库统一走 src/utils/apexChartsCore.ts 的按需入口，并全程 await import()；
             // 这里固定成单一 charts-vendor chunk，避免多个懒加载点各自复制一份 core。

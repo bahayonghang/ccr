@@ -297,13 +297,57 @@
 
 ## 批次 8：预算与分割约定
 
-- [ ] 按 `design.md` §8 重设 `check-bundle-budget.mjs` 配置。
-- [ ] `motion` 与 `zod` 单列两行，记录实际增量与预留值（R9.1）。
-- [ ] 判定 `manualChunks` 是否新增三组，结论通知 `08-22-react-foundation` 或直接改 `vite.config.ts`。
-- [ ] `bundle-budget.md` 落盘（AC9）。
-- [ ] 按 `design.md` §9 产出 `code-splitting.md`（AC10）。
+- [x] 按 `design.md` §8 重设 `check-bundle-budget.mjs` 配置。
+- [x] `motion` 与 `zod` 单列两行，记录实际增量与预留值（R9.1）。
+- [x] 判定 `manualChunks` 是否新增三组，结论通知 `08-22-react-foundation` 或直接改 `vite.config.ts`。
+- [x] `bundle-budget.md` 落盘（AC9）。
+- [x] 按 `design.md` §9 产出 `code-splitting.md`（AC10）。
 
 验证：`bun run check:bundle-budget` 退出码 0。
+
+### 批次 8 验证证据（2026-08-23，分支 `react-migration/react-foundation`，未提交）
+
+**Definition-of-done 命令与退出码**：
+
+| 命令 | 退出码 | 结果 |
+| --- | --- | --- |
+| `cd ccr-ui && bun run build` | 0 | 产物见下表；vite 内部计时 22.66s（首次含 icons 预热），墙钟 17.5s / 15.6s（后续） |
+| `cd ccr-ui && bun run check:bundle-budget` | 0 | 重设配置后全绿，7 主条目 + 2 预留行全部 PASS |
+| 红证（预算收紧） | 1 | `index` 预算临时改 100/20 KiB → `FAIL index raw 139.46 KiB > 100.00 KiB`；还原后复跑退出码 0，`git diff` 无残留 |
+| `cd ccr-ui && bun run lint:ci` | 0 | eslint + stylelint + check:style-lines 全绿（脚本改写保持 lint-clean） |
+| `cd ccr-ui && bunx eslint scripts/check-bundle-budget.mjs --quiet` | 0 | 0 errors 0 warnings |
+
+**React 产物实测（改后，`dist/assets/`）**：
+
+| 项 | 文件 | raw | gzip |
+| --- | --- | --- | --- |
+| index | `index-BDp2vaQ7.js` | 139.46 KiB | 9.70 KiB |
+| react-vendor | `react-vendor-B4vv17UZ.js` | 264.51 KiB | 82.79 KiB |
+| query-vendor | `query-vendor-Eleq6aX-.js` | 31.51 KiB | 9.67 KiB |
+| core.css | `index-TGTJC2zp.css` | 197.78 KiB | 28.19 KiB |
+| shell-icons | `solarShellIconSubset.ts` | 24.19 KiB | 7.73 KiB |
+| startup-font-css | `(none)` | 0.00 KiB | 0.02 KiB |
+
+Vue 基线对照：index 243.69 / 45.41，core.css 123.13 / 19.35（`baseline/bundle-budget.txt`）。详见 `bundle-budget.md` §1–§2。
+
+**motion / zod（R9.1 专用行）**：
+
+- 实际增量 = 0：两者均未被应用代码导入（motion 零命中；zod 仅 `src/schemas/versionInfo.ts` 被测试引用，不在应用模块图）。构建产物 marker 检索确认：`AnimatePresence` / `framer-motion` / `motion-dom` / `ZodError` 在全部 `dist/assets/*.js` 中 0 命中。
+- 预留值（真实 rolldown 管线 + 临时 scratch 入口实测，测后即删，无源码改动）：motion 121.89 / 39.19 → 预留 128 / 44 KiB；zod 62.50 / 16.62 → 预留 64 / 20 KiB。zod 与 `zod-pilot.md` 的 +59,403 B / +16,008 B 交叉验证同源。推导方法完整记录于 `bundle-budget.md` §4。
+- 脚本防呆：包被导入但内联（无法归因）时强制 FAIL 要求更新预留行。
+
+**manualChunks 判定（design §8 第 3 步）**：
+
+- 现状：`@tanstack/react-query` 真实导入但不在任何分组，其引擎（`@tanstack/query-core` 独立包）内联进 index（167.15 kB）。
+- 判定：**新增 `query-vendor`（同时匹配 `react-query` 与 `query-core`）**；`form-vendor` / `motion-vendor` 暂不加入（无导入点则空分组零收益且会触发脚本失败项）。
+- 踩坑记录：仅匹配 `@tanstack/react-query` 的分组不生效（query-core 独立包），rolldown 会把它留在 index——正则必须同时匹配两者。
+- before/after：index 167,158 → 142,807 B（−24.4 kB），query-vendor 32,264 B 独立成 chunk；react-vendor 278,608 → 270,861 B（rolldown 重新平衡）；CSS 不受影响（202,528 B）。结论与测量记录于 `code-splitting.md` §4。
+
+**CSS 分层与 preflight（design §9）**：
+
+- preflight 未开启：`core.css:7-8` 注释 + 产物特征核对（`border-width:0` / `border-style:solid` 命中来自 `.sr-only` / `.border-0` 工具类与 `--tw-border-style`，非 preflight 块）。首屏 CSS 体积上升（123.13 → 197.78 KiB raw）主因是 Tailwind v4 自动内容扫描把未迁移 `.vue` 的 `@apply` 工具类产进首屏（`backdrop-blur-md` 仅 `.vue` 使用却在产物中），收敛归 `08-22-design-system`。详见 `code-splitting.md` §3。
+
+**阶段 2 快照**：6 个 `.js` chunk + 1 个 `.css`，0 处懒加载，index.html preload 4 个 `.js`。记录于 `code-splitting.md` §5。
 
 ## 批次 9：契约文档与登记
 
