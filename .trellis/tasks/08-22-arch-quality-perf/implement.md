@@ -79,13 +79,49 @@
 
 ## 批次 3：规模与复杂度规则（暂定阈值）
 
-- [ ] 按 `design.md` §3.1 第 3 步取五项**暂定阈值**。
-- [ ] 一轮反馈调整（超限文件数 >15% 上调一档，<3% 下调一档），只做一轮。
-- [ ] 五项规则以 error 级别加入 `eslint.config.js`。组件内样式行数用检查脚本（需同时读 `.tsx` 与 `.module.css`）。
-- [ ] `thresholds.md` 落盘，含暂定取值、依据与「最终值待阶段 4 冻结」的标注（AC4）。
-- [ ] 超限文件清单落盘，每项标注所属处理批次（归到七个视图子任务之一），无全局豁免（AC11）。
+- [x] 按 `design.md` §3.1 第 3 步取五项**暂定阈值**。
+- [x] 一轮反馈调整（超限文件数 >15% 上调一档，<3% 下调一档），只做一轮。
+- [x] 五项规则以 error 级别加入 `eslint.config.js`。组件内样式行数用检查脚本（需同时读 `.tsx` 与 `.module.css`）。
+- [x] `thresholds.md` 落盘，含暂定取值、依据与「最终值待阶段 4 冻结」的标注（AC4）。
+- [x] 超限文件清单落盘，每项标注所属处理批次（归到七个视图子任务之一），无全局豁免（AC11）。
 
 验证：`bun run lint:ci` 退出码 0。超限文件在此时应报错——把它们加入各视图子任务的处理批次，不加 `eslint-disable`。
+
+### 批次 3 验证证据（2026-08-23，分支 `react-migration/react-foundation`，未提交）
+
+**阈值取值与反馈轮（完整推导见 `thresholds.md`）**：
+
+- 暂定值按 P90（`distribution.md` 活文件集 217 个）：行数 414→500（向上取整到 100）、复杂度 16、深度 3、参数 4、组件样式 412。
+- 反馈轮（以最终规则形态定向 lint 217 个文件，只做一轮）：
+
+| 指标 | 超限 | 占比 | 判定 | 结果 |
+| --- | --- | --- | --- | --- |
+| 行数 500 | 19 | 8.8% | 在 [3%,15%] 带内 | 保留 |
+| 复杂度 16 | 13 | 6.0% | 在 [3%,15%] 带内 | 保留 |
+| 深度 3 | 2 | 0.9% | **< 3%** | **下调至 2** |
+| 参数 4 | 6 | 2.8% | **< 3%** | **下调至 3** |
+
+- 生效暂定阈值：`max-lines=500`、`complexity=16`、`max-depth=2`、`max-params=3`、组件样式 412 + JSX 比例约束。调整后占比均落回 [3%,15%] 带内（深度 6.0%、参数 8.8%）。两项下调与预期「不改动」不符，按真实计数执行 design.md §3.2 的反馈规则（记录在 `thresholds.md` §2）。
+
+**规则形态与豁免机制**：
+
+- `eslint.config.js` 新增 `app/threshold-rules` 块：四项 error 级规则，作用域 `src/**/*.{ts,tsx,mts}`（tests/、scripts/ 不在测量集；`src/types/generated/**` 与 `**/*.vue` 已在全局 ignore）。
+- 超限文件逐文件登记豁免：`app/threshold-rules` 之后 49 个「文件 × 规则」覆盖块，各带内联注释（文件、违规指标+实测值、处置）。无全局豁免、源文件无 `eslint-disable`（R12、AC11）。49 = 17 注册豁免（纯数据表/生成物/冻结门面）+ 32 归迁移批次（state-logic-port 12、views-usage 6、views-checkin 4、views-profiles-config 4、shell-port 4、views-secondary-platforms 1、i18n-port 1），无未分配项。
+- `ccr-ui/scripts/check-component-style-lines.mjs`：`.tsx` + `.module.css` 配对的样式行数检查（绝对上限 412 + 样式 ≤ JSX 比例约束），不查 `.vue`（已退出管线）。`package.json` 新增 `check:style-lines` 并追加进 `lint:ci`。
+
+**Definition-of-done 命令与退出码**：
+
+| 命令 | 退出码 | 结果 |
+| --- | --- | --- |
+| `cd ccr-ui && bun run lint:ci` | 0 | eslint + stylelint + check:style-lines 全绿 |
+| `cd ccr-ui && bun run check:style-lines` | 0 | 0 个 `.module.css`，零违规（基线，批次 3b 补测） |
+| `cd ccr-ui && bunx eslint src/stores/usage.ts` | 0 | 豁免生效：max-lines/complexity/max-depth 不报，其余规则正常应用 |
+| `just frontend-check-quick` | 0 | 类型 + lint + 59 文件 293 smoke 全绿 |
+
+**合成违规证明（规则确实生效）**：
+
+- 临时 `src/__scratch_proof.ts`（600 行 filler + 高复杂度 + 嵌套 + 6 参数函数），`bunx eslint src/__scratch_proof.ts` 报 6 个 error（max-lines 608、complexity 24、max-depth 3/4/5、max-params 6），退出码 1。删除后 `git status` 无残留。
+- `check:style-lines` 反向验证：临时 `src/__scratch__/Scratch.module.css`（452 行）+ `Scratch.tsx`，脚本报绝对上限与比例约束两项违规，退出码 1；删除后无残留。
 
 ### 批次 3b：阈值冻结（阶段 4 → 5 门，不在阶段 2 执行）
 
