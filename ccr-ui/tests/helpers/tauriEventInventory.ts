@@ -12,7 +12,7 @@ export interface FrontendEventRow {
 const TESTS_DIR = dirname(fileURLToPath(import.meta.url))
 export const FRONTEND_EVENT_INVENTORY_PATH = resolve(
   TESTS_DIR,
-  '../../../.trellis/tasks/08-22-test-contract-rebuild/frontend-event-inventory.md',
+  '../fixtures/frontend-event-inventory.md',
 )
 export const TAURI_SRC_ROOT = resolve(TESTS_DIR, '../../src-tauri/src')
 
