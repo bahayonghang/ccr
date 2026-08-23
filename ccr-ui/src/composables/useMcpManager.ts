@@ -91,7 +91,7 @@ export function useMcpManager() {
 
   // ============ Fuse.js 搜索 ============
 
-  const { query: searchQuery, results: filteredGroups } = useFuzzySearch<McpGroup>(
+  const { query: searchQuery, setQuery: setSearchQuery, results: filteredGroups } = useFuzzySearch<McpGroup>(
     groupedServers,
     [
       { name: 'name', weight: 2 },
@@ -238,6 +238,7 @@ export function useMcpManager() {
     editingServer: mcp.editingServer,
     isHttpMode: mcp.isHttpMode,
     formData: mcp.formData,
+    formApi: mcp.formApi,
     argInput: mcp.argInput,
     envKey: mcp.envKey,
     envValue: mcp.envValue,
@@ -253,6 +254,12 @@ export function useMcpManager() {
     removeEnvVar: mcp.removeEnvVar,
     addHeader: mcp.addHeader,
     removeHeader: mcp.removeHeader,
+    setIsHttpMode: mcp.setIsHttpMode,
+    setArgInput: mcp.setArgInput,
+    setEnvKey: mcp.setEnvKey,
+    setEnvValue: mcp.setEnvValue,
+    setHeaderKey: mcp.setHeaderKey,
+    setHeaderValue: mcp.setHeaderValue,
     toggleServer: mcp.toggleServer,
     supportsFeature: mcp.supportsFeature,
     PLATFORM_META: mcp.PLATFORM_META,
@@ -261,6 +268,7 @@ export function useMcpManager() {
     // Manager 新增
     panelMode,
     searchQuery,
+    setSearchQuery,
     selectedKeys,
     isMultiSelectMode,
     groupedServers,

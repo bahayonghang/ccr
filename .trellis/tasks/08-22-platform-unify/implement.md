@@ -10,7 +10,8 @@
 - [ ] 父任务约束门已通过（`08-22-arch-quality-perf` 与 `08-22-design-system` 的 AC 全满足）。
 - [ ] 批次 2 起需 `08-22-shell-port` 已交付（`shared-interfaces.md` 已公示）。
 - [ ] **批次 4 起需父任务阶段 4a 共享层前置门已通过**：`components/profiles/` 10 文件已迁为 React 且 `profiles-shared-interfaces.md` 已落盘（协同点 F）。
-- [ ] **批次 5 起需** `components/mcp/` 4 文件已迁为 React 且 `mcp-shared-interfaces.md` 已落盘（协同点 F2）。
+  - 通知（`08-22-views-profiles-config` 批次 1）：React 模块在 `ccr-ui/src/components/profiles/*.tsx`，接口见 `.trellis/tasks/08-22-views-profiles-config/profiles-shared-interfaces.md`。`BaseProfiles` 若落在 `features/platform`，需同域再导出或搬迁该共享层（该文档 §1 / §5.1）。
+- [x] **批次 5 起需** `components/mcp/` 4 文件已迁为 React 且 `mcp-shared-interfaces.md` 已落盘（协同点 F2）。2026-08-24：落点为 `ccr-ui/src/features/mcp/`（非 `components/mcp/`，Vue 已删）。接口：`.trellis/tasks/08-22-views-sync-tools/mcp-shared-interfaces.md`。
 - [ ] 读 `src/components/BaseSlashCommands.vue`（507 行）与 `src/configs/slashCommands.ts`（192 行）——参照实现。
 - [ ] `git checkout -b feature/react-migration/platform-unify feature/react-migration`
 
@@ -69,7 +70,7 @@
 
 每个面两步，先补齐后接入（R7 的顺序要求）。
 
-**前置**：`components/mcp/`（4 文件 2,064 行）已由 `08-22-views-sync-tools` 批次 3 前半迁为 React 且接口已公示（阶段 4a、协同点 F2）。
+**前置**：`components/mcp/`（4 文件 2,064 行）已由 `08-22-views-sync-tools` 批次 3 前半迁为 React 且接口已公示（阶段 4a、协同点 F2）。**已交付**：面板在 `ccr-ui/src/features/mcp/`，接口见对方 `mcp-shared-interfaces.md`。`t` 由父级注入；`McpCreatePanel` 必填 `formApi`。
 
 - [ ] `PlatformMcpView`：从差异矩阵推出缺失能力 → 补齐 → 接入 Codex 与 OpenCode 调用点。
 - [ ] `AgentsView`：同上。

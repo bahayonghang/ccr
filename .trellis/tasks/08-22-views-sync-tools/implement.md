@@ -27,9 +27,9 @@
 
 必须在 `08-22-platform-unify` 批次 5 收敛 `PlatformMcpView` 之前完成（协同点 F2）。React base 组件无法复用未迁移的 Vue 组件。
 
-- [ ] `components/mcp/`（4 文件 2,064 行）迁移，接口保持稳定，不改造（Out of Scope：复用不改造）。
-- [ ] 按 `design.md` §9 公示接口，`mcp-shared-interfaces.md` 落盘，通知 `08-22-platform-unify`。
-- [ ] 改造需求登记为独立缺陷，不在本批次做。
+- [x] `components/mcp/`（4 文件 2,064 行）迁移，接口保持稳定，不改造（Out of Scope：复用不改造）。React 落点 `ccr-ui/src/features/mcp/`（父任务按域聚合）；四个 `.vue` 已删。
+- [x] 按 `design.md` §9 公示接口，`mcp-shared-interfaces.md` 落盘，通知 `08-22-platform-unify`。
+- [x] 改造需求登记为独立缺陷，不在本批次做（见 `mcp-shared-interfaces.md` §4）。
 
 验证：`bun run type-check` 退出码 0。该批次单独开 PR，先行合入迁移分支（父任务阶段 4a 门的准出项）。
 

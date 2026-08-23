@@ -143,10 +143,10 @@ Rust 测试若绕过 `just test` 直接运行，须带 `-- --test-threads=1`。
 
 准出条件：
 
-- [ ] `08-22-views-profiles-config` 批次 1 完成：`components/profiles/` 10 文件迁为 React，`profiles-shared-interfaces.md` 落盘并已通知（协同点 F）。
-- [ ] `08-22-views-sync-tools` 批次 3 的前半完成：`components/mcp/` 4 文件迁为 React，`mcp-shared-interfaces.md` 落盘并已通知。
-- [ ] 两份接口公示文档中的 props、children / render props 映射、状态责任划分三项齐全。
-- [ ] `bun run type-check` 退出码 0。
+- [x] `08-22-views-profiles-config` 批次 1 完成：`components/profiles/` 10 文件迁为 React，`profiles-shared-interfaces.md` 落盘并已通知（协同点 F）。
+- [x] `08-22-views-sync-tools` 批次 3 的前半完成：`components/mcp/` 4 文件迁为 React，`mcp-shared-interfaces.md` 落盘并已通知。
+- [x] 两份接口公示文档中的 props、children / render props 映射、状态责任划分三项齐全。
+- [x] `bun run type-check` 退出码 0（`just frontend-check-quick` 2026-08-24，74 文件 / 424 测试）。
 
 范围界定：本阶段只迁移这两个共享层，**不改造其接口**（Out of Scope：复用不改造）。改造需求登记为独立缺陷。两个子任务的其余批次仍在阶段 5。
 
@@ -270,8 +270,8 @@ dev  ─────────────────────────
 | 2    | 3 `design-system`             | 已完成 | 约束门 ✅ 2026-08-23（AC4 后半「src/components/ui/ 移除」随 shell-port 落地，见其 implement.md 交付门） |
 | 3    | 4 `state-logic-port`          | 已完成（AC1 偏差：`src/stores/usage.ts` 暂留，归 views-usage；外壳门复核） | 外壳门         |
 | 3    | 5 `shell-port`                | 已完成（AC11 表单草稿界面级验证移交 views-profiles-config） | 外壳门         |
-| 4a   | 11 批次 1（profiles 共享层）  | 未开始 | 共享层前置门   |
-| 4a   | 12 批次 3 前半（mcp 共享层）  | 未开始 | 共享层前置门   |
+| 4a   | 11 批次 1（profiles 共享层）  | 已完成 | 共享层前置门 ✅ 2026-08-24 |
+| 4a   | 12 批次 3 前半（mcp 共享层）  | 已完成 | 共享层前置门 ✅ 2026-08-24 |
 | 4    | 5b `platform-unify`           | 未开始 | 统一层门       |
 | 5    | 6 `views-claude`              | 未开始 | 视图门         |
 | 5    | 7 `views-codex`               | 未开始 | 视图门         |
