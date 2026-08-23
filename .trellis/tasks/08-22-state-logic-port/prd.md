@@ -73,14 +73,14 @@
 
 ## Acceptance Criteria
 
-- [ ] AC1 10 个 store 迁移完成，`src/stores` 下无 Pinia 引用。
-- [ ] AC2 35 个 composable 迁移完成，`src/composables` 下无 `vue` 导入。
-- [ ] AC3 composable 三类归类清单落盘，35 个文件全部归类。
-- [ ] AC4 `nextTick` 登记表落盘，落在本任务范围内的调用点全部有替代实现说明。
-- [ ] AC5 事件订阅泄漏检查通过：挂载与卸载 100 次后监听器数量回到基线。
-- [ ] AC6 就地修改改写清单落盘，无未处理项。
-- [ ] AC7 `bun run type-check` 退出码 0。
-- [ ] AC8 store 与 hooks 的单元测试通过，覆盖每个 store 的核心状态转移。
+- [x] AC1 10 个 store 迁移完成，`src/stores` 下无 Pinia 引用。——**偏差 2**：9/10 完成，`src/stores/usage.ts` 暂留（其消费方深度耦合 monolith API，属 `08-22-views-usage` 转换范围），删除随 views-usage 落地，外壳门前复核（implement.md 批次 4 偏差记录）。其余判定：7 store 删除 + usage.ts 数据切片已入 Query、视图偏好入 Zustand。
+- [x] AC2 35 个 composable 迁移完成，`src/composables` 下无 `vue` 导入。（主线程 grep 复核零匹配；35 = 8 纯变换迁 utils + useCachedFetch/useStream 消解删除 + useMainLayoutShell 入 shell/hooks + 其余 24 原地转 hooks）
+- [x] AC3 composable 三类归类清单落盘，35 个文件全部归类（`composable-classification.md`）。
+- [x] AC4 `nextTick` 登记表落盘，落在本任务范围内的调用点全部有替代实现说明（范围内 0 处，`next-tick-register.md`）。
+- [x] AC5 事件订阅泄漏检查通过：挂载与卸载 100 次后监听器数量回到基线（`tests/event-bridge-leak.smoke.test.tsx` 3 用例：立即 resolve ×100、卸载后迟到 resolve 仍解绑、StrictMode 双挂载延迟 resolve；经变异验证非平凡）。
+- [x] AC6 就地修改改写清单落盘，无未处理项（46/46 行判定完毕）。
+- [x] AC7 `bun run type-check` 退出码 0（每批次主线程复验）。
+- [x] AC8 store 与 hooks 的单元测试通过，覆盖每个 store 的核心状态转移（48 用例 / 7 store 全 action + Query hook 用例；391 测试全绿）。
 
 ## 前置与后续
 

@@ -98,13 +98,13 @@ Rust 测试若绕过 `just test` 直接运行，须带 `-- --test-threads=1`。
 
 准出条件：
 
-- [ ] `08-22-react-foundation` 的 AC1–AC9 全部满足，含旧路径 → 新路径映射表（AC9）。
-- [ ] `08-22-dep-upgrade` 的 AC1–AC10 全部满足。
-- [ ] `just frontend-typecheck` 与 `just frontend-lint` 退出码 0。
-- [ ] `just tauri-check` 退出码 0。
-- [ ] `package.json` 无任何 Vue 系依赖条目（父任务 AC1）。
-- [ ] `@uiw/react-codemirror` 的 peer 依赖核对结论落盘，`@codemirror/state` 无重复实例。
-- [ ] Tailwind 版本为 4.3.3，25 个 `@apply` 文件的 `@reference` 处理完成且样式生效。
+- [x] `08-22-react-foundation` 的 AC1–AC9 全部满足，含旧路径 → 新路径映射表（AC9）。复核 2026-08-23：`path-mapping.md` 216 行；`just frontend-check-quick` 退出码 0。
+- [x] `08-22-dep-upgrade` 的 AC1–AC10 全部满足。复核 2026-08-23：archived implement.md 交付门。
+- [x] `just frontend-typecheck` 与 `just frontend-lint` 退出码 0（`just frontend-check-quick` 2026-08-23，exit 0）。
+- [x] `just tauri-check` 退出码 0（2026-08-23）。
+- [x] `package.json` 无任何 Vue 系依赖条目（父任务 AC1）。
+- [x] `@uiw/react-codemirror` 的 peer 依赖核对结论落盘，`@codemirror/state` 无重复实例（`codemirror-peer-check.md`；bun.lock `@codemirror/state@6.7.1` ×1）。
+- [x] Tailwind 版本为 4.3.3，25 个 `@apply` 文件的 `@reference` 处理完成且样式生效（死 `.vue` 上的 `@apply` 移交视图子任务，见 dep-upgrade `apply-verification.md`）。
 
 ### 阶段 2 → 3：约束门
 
@@ -112,13 +112,13 @@ Rust 测试若绕过 `just test` 直接运行，须带 `-- --test-threads=1`。
 
 **门只核对本阶段两个子任务当前已持有且已可验证的交付物。** 依赖阶段 5 产物的条款不放在本门（见末段）。
 
-- [ ] `08-22-arch-quality-perf` 的 AC1–AC12 全部满足。其中 AC4 的规模阈值为**暂定值**（该任务 `design.md` §3 的两段式取值第一段），最终值在阶段 4 结束后冻结。
-- [ ] `08-22-design-system` 的 AC1–AC11 全部满足。AC1、AC2 的范围为 `src/styles/**`（`.css` 侧）；`.tsx` 侧由该任务 AC12 承担，在视图门核对。
-- [ ] `just frontend-lint` 退出码 0，全部新增规则为 error 级别。
-- [ ] 五项性能基线数据落盘，测量脚本可重复执行。场景 1、3、4 的 React 侧数值此时无法采集（其视图未迁移），已在 `perf-baseline.md` 中标注为「阶段 7 补测」，不算未完成项。
-- [ ] bundle 预算为 `motion` 与 `zod` 显式预留额度并记录对比。
-- [ ] 9 类 shadcn/ui 原语可用，各有消费示例。
-- [ ] 覆盖率门纳入 CI，阈值移入 `vitest.smoke.config.ts`。
+- [x] `08-22-arch-quality-perf` 的 AC1–AC12 全部满足。其中 AC4 的规模阈值为**暂定值**（该任务 `design.md` §3 的两段式取值第一段），最终值在阶段 4 结束后冻结。复核 2026-08-23。
+- [x] `08-22-design-system` 的 AC1–AC11 全部满足。AC1、AC2 的范围为 `src/styles/**`（`.css` 侧）；`.tsx` 侧由该任务 AC12 承担，在视图门核对。`src/components/ui/` 移除随 shell-port 落地（§8）。
+- [x] `just frontend-lint` 退出码 0，全部新增规则为 error 级别（`just frontend-check-quick` 2026-08-23，exit 0）。
+- [x] 五项性能基线数据落盘，测量脚本可重复执行。场景 1、3、4 的 React 侧数值此时无法采集（其视图未迁移），已在 `perf-baseline.md` 中标注为「阶段 7 补测」，不算未完成项。
+- [x] bundle 预算为 `motion` 与 `zod` 显式预留额度并记录对比。
+- [x] 9 类 shadcn/ui 原语可用，各有消费示例（`src/ui/`：dialog/popover/dropdown-menu/tooltip/tabs/combobox/select/switch/checkbox；`ui-primitives.smoke.test.tsx` 9/9）。
+- [x] 覆盖率门纳入 CI，阈值移入 `vitest.smoke.config.ts`（lines 70；`justfile` `_ci-timed-*` 含 `frontend-coverage`）。
 
 此门是硬门。规则若在阶段 5 之后才落地，七个视图子任务已产出的约 78,000 行需返工。
 
@@ -268,7 +268,7 @@ dev  ─────────────────────────
 | 旁路 | 2b `workspace-cargo-upgrade`  | 已完成（PR→dev 延后，随迁移分支交付，偏差见其 implement.md） | 直接目标 `dev` |
 | 2    | 2c `arch-quality-perf`        | 已完成 | 约束门 ✅ 2026-08-23 |
 | 2    | 3 `design-system`             | 已完成 | 约束门 ✅ 2026-08-23（AC4 后半「src/components/ui/ 移除」随 shell-port 落地，见其 implement.md 交付门） |
-| 3    | 4 `state-logic-port`          | 未开始 | 外壳门         |
+| 3    | 4 `state-logic-port`          | 已完成（AC1 偏差：`src/stores/usage.ts` 暂留，归 views-usage；外壳门复核） | 外壳门         |
 | 3    | 5 `shell-port`                | 未开始 | 外壳门         |
 | 4a   | 11 批次 1（profiles 共享层）  | 未开始 | 共享层前置门   |
 | 4a   | 12 批次 3 前半（mcp 共享层）  | 未开始 | 共享层前置门   |

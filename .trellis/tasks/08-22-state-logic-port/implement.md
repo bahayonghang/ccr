@@ -11,10 +11,8 @@
 - [x] `react-rerender-discipline.md` 已阅读。
 - [x] `08-22-react-foundation` 的订阅写法参照与 `queryClient.ts` 已就位。
 - [x] ~~`git checkout -b feature/react-migration/state-logic-port`~~ **偏差（沿用既有先例）**：分支命名空间冲突（父任务 §7 执行偏差记录），继续工作在 `react-migration/react-foundation` 分支，不新建分支。
-- [ ] `08-22-arch-quality-perf` 的 `state-disposition.md` 已落盘，45 项（10 store + 35 composable）全部归类。本任务按该表执行，不重新决策归属。
-- [ ] `react-rerender-discipline.md` 已阅读。
-- [ ] `08-22-react-foundation` 的订阅写法参照与 `queryClient.ts` 已就位。
-- [ ] `git checkout -b feature/react-migration/state-logic-port feature/react-migration`
+- [x] `08-22-arch-quality-perf` 的 `state-disposition.md` 已落盘，45 项（10 store + 35 composable）全部归类。本任务按该表执行，不重新决策归属。
+- [x] `react-rerender-discipline.md` 已阅读。
 
 ## 批次 1：归类与排查
 
@@ -57,7 +55,7 @@
 - [x] 选择器约束遵守（全部单值选择器，无对象返回，无 useShallow 需求点）；「裸 useUIStore()」的 4+2 个存量调用点已过渡接线到 getState()（批次 5 重写）。
 - [x] store 内 `computed`（14 处实测）转选择器内计算：localeLabel 为选择器内派生；usage/configs 的 computed 随数据入 Query select。响应式来源登记随批次 5 完成（exhaustive-deps error 级拦截）。
 - [x] `usageDashboardPayload.ts` 与 `usageImportNormalization.ts` 判定为纯变换（判据：无跨调用存活状态、无 ref/computed，仅类型 + 输入→输出函数）移入 `utils/`（git mv），消费测试路径同步更新，eslint 豁免路径更新。
-- [ ] `src/stores` 下无 Pinia 引用（AC1）——**7/8 完成**，usage.ts 暂留（偏差 2），views-usage 转换时删除。
+- [x] `src/stores` 下无 Pinia 引用（AC1）——**7/8 完成**，usage.ts 暂留（偏差 2，vue+pinia 导入随该文件存续），删除归 views-usage；外壳门前复核。
 
 验证：`rg 'pinia|defineStore' src` 无匹配；`bun run type-check`。
 
@@ -65,13 +63,13 @@
 
 按批次 1 的三类分组推进，每类一批提交。
 
-- [ ] 纯逻辑类：原样复用或改签名。
-- [ ] 响应式状态类：`ref` → `useState`，`computed` → `useMemo`，`watch` → `useEffect`（按 `design.md` §6.3 的选项映射）。
-- [ ] 生命周期类：`onMounted` / `onUnmounted` → `useEffect` + cleanup，`listen()` 解绑时机逐个复核（R4）。
-- [ ] `provide` / `inject` 各 1 处 → React Context。
-- [ ] 就地修改逐点改为不可变写法，`mutation-rewrite.md` 填完（AC6）。
-- [ ] `nextTick` 逐点按 `design.md` §6.4 的替代表改写，`next-tick-register.md` 填完（AC4）。
-- [ ] `src/composables` 下无 `vue` 导入（AC2）。
+- [x] 纯逻辑类：原样复用或改签名。
+- [x] 响应式状态类：`ref` → `useState`，`computed` → `useMemo`（63 处登记于 classification §3），`watch` → `useEffect`（7 处逐点映射于 §2）。
+- [x] 生命周期类：`onMounted` / `onUnmounted` → `useEffect` + cleanup，`listen()` 解绑时机逐个复核（R4；取消协议统一承接）。
+- [x] ~~`provide` / `inject` 各 1 处 → React Context~~ **范围修正**：该对位于视图层（UsageDashboardView.vue provide / OpenCodeCommandsView.vue inject），不在 store/composable 范围，归 views-usage / views-secondary-platforms。
+- [x] 就地修改逐点改为不可变写法，`mutation-rewrite.md` 填完（AC6；46/46 行已判定）。
+- [x] `nextTick` 逐点按 `design.md` §6.4 的替代表改写，`next-tick-register.md` 填完（AC4；范围内 0 处）。
+- [x] `src/composables` 下无 `vue` 导入（AC2；主线程 `grep -rln "from 'vue'\|from 'pinia'\|defineStore" src/composables/` 零匹配复核）。
 
 验证：`rg "from 'vue'" src/composables src/stores` 无匹配；`bun run type-check`（AC7）；`bun run lint`（`exhaustive-deps` 为 error，拦截依赖遗漏）。
 
@@ -85,9 +83,9 @@
 
 ## 批次 7：接口对齐
 
-- [ ] `shellPreferences` 与 `themeBootstrap.ts`、`fontPreferences.ts` 的接口与 `08-22-shell-port` 对齐（PRD Notes）。后两者的接线归对方，本任务提供 store 侧接口。
-- [ ] `claudeObserver` 的 Query key 与事件失效范围通知 `08-22-views-claude`。
-- [ ] `configs` 的表单草稿键（配置 id）通知 `08-22-shell-port`（其 AC4 的表单草稿验证）与 `08-22-views-profiles-config`。
+- [x] `shellPreferences` 与 `themeBootstrap.ts`、`fontPreferences.ts` 的接口与 `08-22-shell-port` 对齐（`interface-alignment.md` §1：6 键两侧一致、水合来源与启动接线 5 条）。后两者的接线归对方。
+- [x] `claudeObserver` 的 Query key 与事件失效范围通知 `08-22-views-claude`（`interface-alignment.md` §2：9 组 key 工厂 + 失效范围 + 9 个导出 hook）。
+- [x] `configs` 的表单草稿键（配置 id）通知 `08-22-shell-port`（其 AC4 的表单草稿验证）与 `08-22-views-profiles-config`（`interface-alignment.md` §3：formDrafts Record<configId, unknown>、memory-only、set/clear API）。
 
 ## 验证命令
 
@@ -101,11 +99,11 @@
 
 ## 交付门（父任务外壳门的一半）
 
-- [ ] AC1–AC8 全部满足。
-- [ ] 四份记录落盘：`composable-classification.md`（35 行）、`mutation-rewrite.md`、`next-tick-register.md`、逐事件的 `setQueryData` / `invalidateQueries` 判定。
-- [ ] `usageDashboardPayload.ts` 与 `usageImportNormalization.ts` 的纯变换判定依据记录。
-- [ ] `src/api` git diff 为空。
-- [ ] 高频事件的批量提交间隔已按基线数据复核，或已标注待复核项。
+- [x] AC2–AC8 全部满足；AC1 含已登记偏差 2：`src/stores/usage.ts` 暂留（vue+pinia 导入随该文件存续），删除归 `08-22-views-usage`，外壳门前复核（父任务 §8 已注记）。
+- [x] 四份记录落盘：`composable-classification.md`（35 行）、`mutation-rewrite.md`（46/46 行判定）、`next-tick-register.md`、逐事件的 `setQueryData` / `invalidateQueries` 判定（`event-adjudication.md`）。
+- [x] `usageDashboardPayload.ts` 与 `usageImportNormalization.ts` 的纯变换判定依据记录（批次 4）。
+- [x] `src/api` git diff 为空（每批次主线程复验）。
+- [x] 高频事件的批量提交间隔已按基线数据复核，或已标注待复核项（250ms 保守值，event-adjudication.md §2 标注场景 3 React 侧由 regression-release 步骤 7 补测复核）。
 
 ## 回滚点
 
@@ -257,3 +255,29 @@ mutation-rewrite.md 已填：useMcpManager.ts:29 判定为展开拷贝上排序�
 | `bun run lint:ci` | 0 | ✓（首跑报新测试 unsafe-any，已类型化 openConfirmDialog mock 后通过） |
 | `bun run test:smoke` | 0 | 69 文件 / 391 测试全绿（新增 58 用例） |
 | `git status`（src） | — | 仅 tests 三文件改动，src 无 diff |
+
+## 批次 7 证据（接口对齐记录）
+
+改动：新增 `.trellis/tasks/08-22-state-logic-port/interface-alignment.md`（三节：§1 shellPreferences ↔ themeBootstrap/fontPreferences 键清单与启动接线、§2 claudeObserver key 工厂全集与事件失效范围、§3 configs 表单草稿键约定）。`src/**` 零改动；文档内全部 API 名经源码 grep 复核存在。
+
+协同点通知（2026-08-23）：
+
+| 编号 | 内容 | 对方 | 状态 |
+| --- | --- | --- | --- |
+| — | `shellPreferences` / `themeBootstrap` / `fontPreferences` 接口对齐（键清单 + 启动接线 5 条，见 interface-alignment.md §1） | `08-22-shell-port` | 已记录，2026-08-23 |
+| — | `claudeObserver` 的 Query key 与失效范围（9 组 key + 单事件整体失效 + 9 个导出 hook，见 §2） | `08-22-views-claude` | 已记录，2026-08-23 |
+| — | `configs` 表单草稿键约定（configId → unknown、memory-only、clear 引用不变语义，见 §3） | `08-22-shell-port`（AC4）、`08-22-views-profiles-config`（批次 2） | 已记录，2026-08-23 |
+
+对齐结论：三节均未发现 API 缺口或键名错位；唯一登记注意事项为 §1.4 的「不得改既有 localStorage 键」与 §3.3 的「草稿 memory-only，跨会话持久化须另行决策」。
+
+## 主线程验收（2026-08-23）
+
+| 命令 | 退出码 | 结果 |
+| --- | --- | --- |
+| `just frontend-check-quick` | 0 | type-check + lint:ci + 69 files / 391 tests |
+| `git diff --stat -- ccr-ui/src/api` | — | 空 |
+| `rg "from 'vue'" ccr-ui/src/composables` | — | 无匹配（AC2） |
+| `rg "from 'pinia'|defineStore" ccr-ui/src --glob "*.ts"` | — | 仅 `src/stores/usage.ts`（AC1 偏差 2） |
+| `event-bridge-leak.smoke.test.tsx` | 0 | 3/3（AC5） |
+| `state-store-actions.smoke.test.ts` | 0 | 54/54（AC8） |
+| `interface-alignment.md` | — | 已落盘 |

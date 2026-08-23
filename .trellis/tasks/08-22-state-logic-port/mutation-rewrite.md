@@ -6,11 +6,11 @@
 
 | 位置 | 原写法 | 判定 | 新写法 |
 | --- | --- | --- | --- |
-| `ccr-ui/src/stores/commands.ts:27` | `groups[category].push(cmd)` | 待批次 5 判定 | — |
-| `ccr-ui/src/stores/commandsView.ts:49` | `this.expandedFolders.splice(index, 1)` | 待批次 5 判定 | — |
-| `ccr-ui/src/stores/commandsView.ts:51` | `this.expandedFolders.push(folder)` | 待批次 5 判定 | — |
-| `ccr-ui/src/stores/ui.ts:38` | `toasts.value.splice(index, 1)` | 待批次 5 判定 | — |
-| `ccr-ui/src/stores/ui.ts:50` | `toasts.value.push(toast)` | 待批次 5 判定 | — |
+| `ccr-ui/src/stores/commands.ts:27` | `groups[category].push(cmd)` | 已处理（批次 4 删除）：store 已删除，`commandsByCategory` 分组派生归 CommandsView 消费侧 useMemo 重建（views-sync-tools），reduce 累积器为本地临时 | 无需改写 |
+| `ccr-ui/src/stores/commandsView.ts:49` | `this.expandedFolders.splice(index, 1)` | 已改写（批次 4）：迁入 `features/commands/stores.ts` | `toggleFolder`: `expandedFolders.filter((item) => item !== folder)` |
+| `ccr-ui/src/stores/commandsView.ts:51` | `this.expandedFolders.push(folder)` | 已改写（批次 4）：同上 | `toggleFolder`: `[...state.expandedFolders, folder]` |
+| `ccr-ui/src/stores/ui.ts:38` | `toasts.value.splice(index, 1)` | 已改写（批次 4）：迁入 `shell/stores/ui.ts` | `dismissToast`: `toasts.filter((toast) => toast.id !== id)` |
+| `ccr-ui/src/stores/ui.ts:50` | `toasts.value.push(toast)` | 已改写（批次 4）：同上 | `showToast`: `[...state.toasts, { id, message, type, duration }]` |
 | `ccr-ui/src/composables/useClaudeProfilesInsights.ts:46` | `if (requiresBaseUrl(profile) && isBlank(profile.base_url)) missing.push('base_url')` | 本地临时（`missing` 函数内累积后返回），无需改写 | — |
 | `ccr-ui/src/composables/useClaudeProfilesInsights.ts:47` | `if (!hasAnyModel(profile)) missing.push('model')` | 本地临时（`missing` 函数内累积后返回），无需改写 | — |
 | `ccr-ui/src/composables/useClaudeProfilesInsights.ts:48` | `if (isBlank(profile.account)) missing.push('account')` | 本地临时（`missing` 函数内累积后返回），无需改写 | — |
@@ -49,6 +49,6 @@
 | `ccr-ui/src/composables/useProfilesInsights.ts:210` | `result.push({` | 本地临时（`result` 函数内累积后返回），无需改写 | — |
 | `ccr-ui/src/composables/useProfilesInsights.ts:212` | `profiles: [...group].sort((a, b) => a.name.localeCompare(b.name)),` | 展开拷贝上排序，原分组不受影响，immutable 安全，无需改写 | — |
 | `ccr-ui/src/composables/useProfilesInsights.ts:216` | `return result.sort(` | `result` 为函数内本地数组，immutable 安全，无需改写 | — |
-| `ccr-ui/src/composables/useStream.ts:122` | `queuedLines.push(...parts)` | 待批次 5 判定 | — |
-| `ccr-ui/src/composables/useStream.ts:128` | `queuedLines.push(pendingBuffer)` | 待批次 5 判定 | — |
-| `ccr-ui/src/composables/useStream.ts:258` | `lines.value.push(line)` | 待批次 5 判定 | — |
+| `ccr-ui/src/composables/useStream.ts:122` | `queuedLines.push(...parts)` | 已消解（批次 5a 删除）：useStream 为死代码已删除，日志流语义由 `features/monitoring/queries.ts` 的 batcher 批量 `setQueryData`（新数组拼接）承接 | — |
+| `ccr-ui/src/composables/useStream.ts:128` | `queuedLines.push(pendingBuffer)` | 同上 | — |
+| `ccr-ui/src/composables/useStream.ts:258` | `lines.value.push(line)` | 同上 | — |
