@@ -18,14 +18,14 @@
 ```
 version-sync → version-check → fmt → fmt-check → lint-strict → check-workspace
 → test → release → audit → ci-governance-check → tauri-bindings-check
-→ frontend-check → vscode-ci
+→ frontend-check → frontend-coverage → vscode-ci
 ```
 
 **现状更正**：根 `CLAUDE.md` 记录的流水线为 10 步，缺 `version-check`、`ci-governance-check`、`tauri-bindings-check` 三步。以本节为准。父任务 `prd.md` 的 AC3 已按下方口径改写。
 
-**执行期变更**：`08-22-arch-quality-perf` 批次 5 把 `frontend-coverage` 纳入 `just ci`（插在 `frontend-check` 之后），落地后为 14 步。
+**执行期变更（已落地）**：`08-22-arch-quality-perf` 批次 5（2026-08-23）已把 `frontend-coverage` 纳入 `just ci`（插在 `frontend-check` 之后），现为 14 步。上方的序列即当前 `justfile` 的 `_ci-timed-*` 步骤清单。
 
-**口径**：13 步为迁移前基线，14 步为迁移后预期。判定权威是 `just ci` 的实际 recipe 依赖清单与退出码，不是本文件记录的数字。任何门只核对「实际清单与 `justfile` 一致 + 退出码 0」，步数仅作对照。父任务 `prd.md` AC3 与 §4 发布门按此口径表述。
+**口径**：13 步为迁移前基线，14 步为迁移后实际。判定权威是 `just ci` 的实际 recipe 依赖清单与退出码，不是本文件记录的数字。任何门只核对「实际清单与 `justfile` 一致 + 退出码 0」，步数仅作对照。父任务 `prd.md` AC3 与 §4 发布门按此口径表述。
 
 ### 2.2 分层验证命令
 
@@ -37,7 +37,7 @@ version-sync → version-check → fmt → fmt-check → lint-strict → check-w
 | 前端构建       | `just frontend-build`                                                      | `bun run build`                                                                            |
 | 前端快检       | `just frontend-check-quick`                                                | typecheck + lint + test，不含构建与文档                                                    |
 | 前端全检       | `just frontend-check`                                                      | 上述四项 + `docs-check`                                                                    |
-| 前端覆盖率     | `just frontend-coverage`                                                   | vitest `--coverage.thresholds.lines=70`                                                    |
+| 前端覆盖率     | `just frontend-coverage`                                                   | vitest `--coverage`，lines ≥70% 阈值在 `vitest.smoke.config.ts` 的 `coverage.thresholds`（2026-08-23 起） |
 | 前端依赖审计   | `just frontend-audit`                                                      | `bun run audit:dependencies`                                                               |
 | 文档           | `just docs-check`                                                          | `cd docs && bun run audit && bun run build` + `ccr-ui bun run docs:audit`                  |
 | ts-rs 绑定漂移 | `just tauri-bindings-check`                                                | `bun ./scripts/check-generated-bindings.mjs`，校验 204 个生成类型文件                      |
@@ -57,7 +57,7 @@ Rust 测试若绕过 `just test` 直接运行，须带 `-- --test-threads=1`。
 
 **IPC 命令清单有 Rust 侧保护。** `just tauri-command-inventory-check` 断言 handler registry 与命令清单文档一致，该保护独立于 122 个前端 smoke 测试，迁移期不失效。因此父任务约束 C2 的表述需收窄为：**命令清单**受保护，**前端到命令的接线**不受保护。
 
-**覆盖率门已存在。** `just frontend-coverage` 有 lines ≥70% 阈值，但两点缺陷：未纳入 `just ci`，且阈值写在 justfile 而非 `vitest.smoke.config.ts`。`08-22-arch-quality-perf` 的 R7.5 表述需修正为「门已存在于 justfile（lines ≥70%），需纳入 CI 并将阈值移入配置文件」，而非「无覆盖率阈值」。
+**覆盖率门已存在。** `just frontend-coverage` 有 lines ≥70% 阈值，但两点缺陷：未纳入 `just ci`，且阈值写在 justfile 而非 `vitest.smoke.config.ts`。`08-22-arch-quality-perf` 的 R7.5 表述需修正为「门已存在于 justfile（lines ≥70%），需纳入 CI 并将阈值移入配置文件」，而非「无覆盖率阈值」。**该两项缺陷已由 `08-22-arch-quality-perf` 批次 5 修复（2026-08-23）**：阈值移入 `vitest.smoke.config.ts` 的 `coverage.thresholds`（lines 70%，复核后保留），`frontend-coverage` 已纳入 `just ci`（见 §2.1）。
 
 ## 3. 阶段划分
 
@@ -190,7 +190,7 @@ Rust 测试若绕过 `just test` 直接运行，须带 `-- --test-threads=1`。
 
 - [ ] `08-22-regression-release` 的 AC1–AC15 全部满足。
 - [ ] 185 界面逐屏比对记录落盘，未判定项为 0，回归缺陷全部修复并重验。
-- [ ] `just ci` 退出码 0，且实际 recipe 依赖清单与 `justfile` 一致（迁移后预期 14 步，以实际清单为准，见 §2.1 口径）。
+- [ ] `just ci` 退出码 0，且实际 recipe 依赖清单与 `justfile` 一致（已为 14 步，见 §2.1 口径）。
 - [ ] `just tauri-build` 产出安装包，安装后可启动。
 - [ ] CSP、窗口 chrome、WAF WebView bypass、启动恢复四项验证通过。
 - [ ] 2 小时长时间运行验证通过。

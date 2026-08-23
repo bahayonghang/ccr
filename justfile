@@ -565,6 +565,7 @@ _ci-timed-windows:
         @{ Name = "ci-governance-check"; Label = "CI Governance" },
         @{ Name = "tauri-bindings-check"; Label = "TS Bindings Drift" },
         @{ Name = "frontend-check";  Label = "Frontend Check" },
+        @{ Name = "frontend-coverage"; Label = "Frontend Coverage" },
         @{ Name = "vscode-ci";       Label = "VSCode CI" }
     )
     $PAD = 20
@@ -620,8 +621,8 @@ _ci-timed-windows:
 _ci-timed-linux:
     #!/usr/bin/env bash
     set -uo pipefail
-    steps=("version-sync" "version-check" "fmt" "fmt-check" "lint-strict" "check-workspace" "test" "release" "audit" "ci-governance-check" "tauri-bindings-check" "frontend-check" "vscode-ci")
-    labels=("Version Sync" "Version Check" "Format" "Format Check" "Strict Clippy" "Workspace Check" "Test" "Release Build" "Security Audit" "CI Governance" "TS Bindings Drift" "Frontend Check" "VSCode CI")
+    steps=("version-sync" "version-check" "fmt" "fmt-check" "lint-strict" "check-workspace" "test" "release" "audit" "ci-governance-check" "tauri-bindings-check" "frontend-check" "frontend-coverage" "vscode-ci")
+    labels=("Version Sync" "Version Check" "Format" "Format Check" "Strict Clippy" "Workspace Check" "Test" "Release Build" "Security Audit" "CI Governance" "TS Bindings Drift" "Frontend Check" "Frontend Coverage" "VSCode CI")
     PAD=20
     times=()
     statuses=()
@@ -681,8 +682,8 @@ _ci-timed-linux:
 _ci-timed-macos:
     #!/usr/bin/env bash
     set -uo pipefail
-    steps=("version-sync" "version-check" "fmt" "fmt-check" "lint-strict" "check-workspace" "test" "release" "audit" "ci-governance-check" "tauri-bindings-check" "frontend-check" "vscode-ci")
-    labels=("Version Sync" "Version Check" "Format" "Format Check" "Strict Clippy" "Workspace Check" "Test" "Release Build" "Security Audit" "CI Governance" "TS Bindings Drift" "Frontend Check" "VSCode CI")
+    steps=("version-sync" "version-check" "fmt" "fmt-check" "lint-strict" "check-workspace" "test" "release" "audit" "ci-governance-check" "tauri-bindings-check" "frontend-check" "frontend-coverage" "vscode-ci")
+    labels=("Version Sync" "Version Check" "Format" "Format Check" "Strict Clippy" "Workspace Check" "Test" "Release Build" "Security Audit" "CI Governance" "TS Bindings Drift" "Frontend Check" "Frontend Coverage" "VSCode CI")
     PAD=20
     times=()
     statuses=()
@@ -799,9 +800,9 @@ frontend-check-arch-boundaries:
 frontend-check-quick: frontend-typecheck frontend-lint frontend-test
     @just success "前端快速检查通过"
 
-# 📊 Vue/Vitest 行覆盖率门禁（lines ≥70%）
+# 📊 Vitest 行覆盖率门禁（lines ≥70%，阈值在 ccr-ui/vitest.smoke.config.ts 的 coverage.thresholds，不再由 justfile 传参）
 frontend-coverage:
-    cd ccr-ui && bun run vitest -- run --config vitest.smoke.config.ts --coverage --coverage.thresholds.lines=70
+    cd ccr-ui && bun run vitest -- run --config vitest.smoke.config.ts --coverage
 
 # 🔐 前端依赖安全审计（与 hosted workflow 共用入口）
 frontend-audit:

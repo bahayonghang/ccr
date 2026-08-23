@@ -37,6 +37,15 @@ export default defineConfig({
     clearMocks: true,
     fileParallelism: true,
     maxWorkers: resolveSmokeMaxWorkers(),
-    testTimeout: 15_000
+    testTimeout: 15_000,
+    // 覆盖率门（08-22-arch-quality-perf 批次 5）：阈值从 justfile CLI 参数移入此处，
+    // 使 `bun run test:smoke --coverage` 直接生效。lines ≥70% 为 2026-08-23 复核后保留值
+    // （React 基座实测 lines 72.86%，迁移前基线 75.4%，接近 70% 故保留，未显著偏离）。
+    // design.md §4 禁止新增 functions/branches/statements 阈值，故仅设 lines。
+    coverage: {
+      thresholds: {
+        lines: 70
+      }
+    }
   }
 })

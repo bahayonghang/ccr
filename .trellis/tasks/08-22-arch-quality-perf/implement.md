@@ -208,12 +208,40 @@
 
 ## 批次 5：覆盖率门
 
-- [ ] 阈值从 justfile 参数移入 `vitest.smoke.config.ts` 的 `coverage.thresholds`。
-- [ ] 按 `design.md` §4 复核 70% 取值，调整需给依据。
-- [ ] `frontend-coverage` 纳入 `just ci`（插在 `frontend-check` 之后）。
-- [ ] 不新增 `functions` / `branches` / `statements` 阈值（依据见 `design.md` §4 末段）。
+- [x] 阈值从 justfile 参数移入 `vitest.smoke.config.ts` 的 `coverage.thresholds`。
+- [x] 按 `design.md` §4 复核 70% 取值，调整需给依据。
+- [x] `frontend-coverage` 纳入 `just ci`（插在 `frontend-check` 之后）。
+- [x] 不新增 `functions` / `branches` / `statements` 阈值（依据见 `design.md` §4 末段）。
 
 验证：`just frontend-coverage` 退出码 0（AC5）；`just ci` 的步骤数从 13 变 14，父任务 `implement.md` §2.1 与 `prd.md` AC3 需同步更新。
+
+### 批次 5 验证证据（2026-08-23，分支 `react-migration/react-foundation`，未提交）
+
+**阈值取值复核（design.md §4）**：
+
+- React 基座实测：`bun run test:smoke --coverage` → 59 文件 / 293 smoke 全过，All files **lines 72.86%**（Stmts 71.89 / Branch 57.7 / Funcs 73.03）。迁移前基线（`baseline/coverage-run.txt`）lines 75.4%。
+- 判定：实测 72.86% 距 70% 仅 2.86 个百分点，属「接近 70%」，按 design.md §4 保留 70%，不上调。迁移期覆盖率下降（75.4% → 72.86%）主要由未迁移的 `.vue` 视图与 checkin 域 composable 未进入 React 测试集所致，等价重建不扩大覆盖面（`08-22-test-contract-rebuild` Out of Scope），待阶段 5 视图迁移后自然回升。
+- 未新增 `functions` / `branches` / `statements` 阈值（design.md §4 末段禁止；122 个测试为等价重建，新增维度阈值会在不扩大覆盖的前提下变成阻塞项）。
+
+**改动形态**：
+
+- `ccr-ui/vitest.smoke.config.ts`：`test.coverage.thresholds = { lines: 70 }`，附复核依据注释。未配置 include/exclude——实测报告集与 CLI 传参时一致（`src/` 全量 + `scripts/*.mjs`），无需额外收敛。
+- 根 `justfile` `frontend-coverage`：删除 `--coverage.thresholds.lines=70` 参数，仅保留 `bun run vitest -- run --config vitest.smoke.config.ts --coverage`；阈值现在由配置文件直接生效。配方在阈值未达标时仍以非零退出码失败（见红证）。
+- 根 `justfile` 三处 `ci` 步骤序列（Windows PowerShell 数组 + `_ci-timed-linux` + `_ci-timed-macos` bash 数组）均在 `frontend-check` 后插入 `frontend-coverage`，13 步 → 14 步；`.github/workflows/frontend-ci.yml` 的 `just frontend-coverage` 调用不变，自动受益。
+
+**红→绿证明（阈值确实从配置生效）**：
+
+- 临时把 `vitest.smoke.config.ts` 阈值改为 `lines: 78`（高于实测 72.86）后跑 `bun run test:smoke --coverage`：**FAIL**，退出码 1，输出 `ERROR: Coverage for lines (72.86%) does not meet global threshold (78%)`。
+- 还原为 `lines: 70` 后复跑：通过，退出码 0，lines 72.86% 与改动前数值完全一致。`git diff` 确认仅三处预期改动（config + justfile）。
+
+**Definition-of-done 命令与退出码**：
+
+| 命令 | 退出码 | 结果 |
+| --- | --- | --- |
+| `cd ccr-ui && bun run test:smoke --coverage` | 0 | 59 文件 293 smoke 全过，lines 72.86% ≥ 70%（阈值由 config 强制执行） |
+| `just frontend-coverage`（仓库根） | 0 | 同样全过，配方无 CLI 阈值参数 |
+| `just --list` / `just -n ci` | 0 | `frontend-coverage` 在 ci 链 `frontend-check` 之后；Windows 数组 14 项，Linux/macOS 数组各 14 项 |
+| `just frontend-check-quick` | 0 | 类型 + lint:ci + i18n + 59 文件 293 smoke 全绿 |
 
 ## 批次 6：状态判定表
 

@@ -223,7 +223,7 @@ src/views/GeminiSlashCommandsView.vue   27 行   薄壳（+ hide-chrome props）
 
 - [ ] AC1 `ccr-ui/package.json` 无 `vue`、`vue-router`、`pinia`、`vue-i18n`、`@iconify/vue`、`@tanstack/vue-virtual`、`vue3-apexcharts`、`@vitejs/plugin-vue`、`vue-tsc`、`eslint-plugin-vue`、`vue-eslint-parser`、`@vue/eslint-config-typescript`、`@intlify/eslint-plugin-vue-i18n`、`stylelint-config-recommended-vue` 条目。
 - [ ] AC2 `ccr-ui/src` 下 `.vue` 文件数为 0。
-- [ ] AC3 `just ci` 退出码 0，且其实际 recipe 依赖清单与 `justfile` 一致。迁移前基线为 13 步（version-sync → version-check → fmt → fmt-check → lint-strict → check-workspace → test → release → audit → ci-governance-check → tauri-bindings-check → frontend-check → vscode-ci）；`08-22-arch-quality-perf` 纳入 `frontend-coverage` 后为 14 步。核对以实际清单为准，不以本文件的数字为准。（根 `CLAUDE.md` 记录的 10 步描述已过时。）
+- [ ] AC3 `just ci` 退出码 0，且其实际 recipe 依赖清单与 `justfile` 一致。迁移前基线为 13 步（version-sync → version-check → fmt → fmt-check → lint-strict → check-workspace → test → release → audit → ci-governance-check → tauri-bindings-check → frontend-check → vscode-ci）；`08-22-arch-quality-perf` 已纳入 `frontend-coverage`（2026-08-23，插在 `frontend-check` 之后），现为 14 步。核对以实际清单为准，不以本文件的数字为准。（根 `CLAUDE.md` 记录的 10 步描述已过时。）
 - [ ] AC4 122 个 smoke 测试全部通过，覆盖范围不低于迁移前（按被测组件与被测契约条目计数）。
 - [ ] AC5 Tailwind 版本为 v4。448 个变量分两集合落盘：稳定语义变量集合（普通 CSS 变量，随 `data-*` 切换）与 Tailwind namespace 映射集合（`@theme inline`）+ 常量 token（`@theme`）。工具类可引用，运行时切换生效，变量名集合不变。
 - [ ] AC6 组件内硬编码 px 字面量数量从 1,639 降到 0，`rgba()` 从 932 降到 0（图表与画布等确需字面量的场景逐个登记豁免）。
