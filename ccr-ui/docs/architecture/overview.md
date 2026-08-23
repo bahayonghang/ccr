@@ -5,23 +5,24 @@ This document describes stable ownership boundaries. Use the [code map](../../co
 ## Runtime Shape
 
 ```text
-Vue view or component
-  -> composable or Pinia store
+React view or component
+  -> hook or Zustand store
   -> domain API module
   -> Tauri invoke command
   -> Rust command/service
   -> CCR crate, local tool config, or external service
 ```
 
-The browser-only development mode exercises the Vue side of this flow. Calls that require Tauri may fail in a plain browser even when the frontend route is healthy.
+The browser-only development mode exercises the React side of this flow. Calls that require Tauri may fail in a plain browser even when the frontend route is healthy.
 
-## Vue Application
+## React Application
 
-- [`src/main.ts`](../../src/main.ts) bootstraps the application, router, global error handling, and startup behavior.
-- [`src/router/index.ts`](../../src/router/index.ts) owns route registration and lazy-loaded page boundaries.
-- `src/views/` owns route-level orchestration. Views compose domain components and should not duplicate the application shell.
-- `src/components/` owns reusable UI and domain component families. Shared primitives live under `components/ui/`, `components/common/`, and `components/layout/`.
-- `src/stores/` owns shared Pinia state; `src/composables/` owns reusable reactive workflows that do not require a global store.
+- [`src/main.tsx`](../../src/main.tsx) bootstraps the application, router, global error handling, and startup behavior.
+- [`src/shell/router.tsx`](../../src/shell/router.tsx) owns route registration and lazy-loaded page boundaries.
+- `src/shell/` owns the application chrome, layout, and shared shell Zustand stores.
+- `src/features/` owns route-level orchestration by domain. Feature views compose domain components and should not duplicate the application shell.
+- `src/ui/` owns shared UI primitives.
+- Zustand stores live under `src/shell/stores/` and feature-local `stores.ts` files. `src/composables/` owns reusable workflows that do not require a global store.
 - `src/config/`, `src/types/`, `src/utils/`, `src/i18n/`, and `src/styles/` own shared static configuration, contracts, helpers, localization, and design tokens.
 
 The main route families cover application settings; Claude Code; Codex; OpenCode; Antigravity and Gemini CLI integrations; configuration and sync; usage and monitoring; sessions; MCP; agents; skills; plugins and hooks; output styles and statusline; check-in; WSL; and SSH.

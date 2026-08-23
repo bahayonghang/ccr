@@ -73,6 +73,7 @@ export function useOpenCodeHome() {
     const results = await Promise.allSettled(entries.map(([, task]) => task))
     const nextErrors: Record<string, string> = {}
     const next = emptyState()
+    const asList = <T,>(value: unknown): T[] => (Array.isArray(value) ? (value as T[]) : [])
     results.forEach((result, index) => {
       const key = entries[index]?.[0]
       if (!key) return
@@ -82,13 +83,13 @@ export function useOpenCodeHome() {
       }
       if (key === 'config') next.config = result.value as OpenCodeConfig
       if (key === 'tui') next.tui = result.value as OpenCodeTuiConfig
-      if (key === 'providers') next.providers = result.value as OpenCodeProviderConfig[]
-      if (key === 'mcp') next.mcpServers = result.value as OpenCodeMcpServer[]
-      if (key === 'agents') next.agents = result.value as OpenCodeAgent[]
-      if (key === 'commands') next.commands = result.value as OpenCodeCommand[]
-      if (key === 'plugins') next.plugins = (result.value as string[]).map((name) => ({ name }))
-      if (key === 'localPlugins') next.localPlugins = result.value as OpenCodeLocalPluginFile[]
-      if (key === 'themes') next.themes = result.value as OpenCodeTheme[]
+      if (key === 'providers') next.providers = asList<OpenCodeProviderConfig>(result.value)
+      if (key === 'mcp') next.mcpServers = asList<OpenCodeMcpServer>(result.value)
+      if (key === 'agents') next.agents = asList<OpenCodeAgent>(result.value)
+      if (key === 'commands') next.commands = asList<OpenCodeCommand>(result.value)
+      if (key === 'plugins') next.plugins = asList<string>(result.value).map((name) => ({ name }))
+      if (key === 'localPlugins') next.localPlugins = asList<OpenCodeLocalPluginFile>(result.value)
+      if (key === 'themes') next.themes = asList<OpenCodeTheme>(result.value)
     })
     setData(next)
     setLoadErrors(nextErrors)

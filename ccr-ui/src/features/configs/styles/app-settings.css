@@ -1,3 +1,5 @@
+@reference '../../../styles/core.css';
+
 .app-settings-view {
   @apply min-h-full;
 }

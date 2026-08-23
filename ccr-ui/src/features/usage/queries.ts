@@ -152,7 +152,8 @@ export function useUsageImportJob(jobId: string | null) {
 export function useHomeUsageOverview(days?: number) {
   return useQuery({
     queryKey: homeUsageKeys.overview(days),
-    queryFn: () => getHomeUsageOverviewV2(days),
+    // TanStack Query 禁止 queryFn 返回 undefined；后端空响应按 null 处理。
+    queryFn: async () => (await getHomeUsageOverviewV2(days)) ?? null,
     staleTime: USAGE_STALE_TIME,
   })
 }

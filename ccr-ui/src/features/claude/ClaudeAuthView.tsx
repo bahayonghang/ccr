@@ -72,7 +72,7 @@ export function ClaudeAuthView() {
       ])
       setAccounts(accountsData.accounts || [])
       setRuntimeSummary(accountsData.runtime_summary || currentData.runtime_summary)
-      setLoginState(accountsData.login_state || currentData.login_state)
+      setLoginState(accountsData.login_state || currentData.login_state || { type: 'NotLoggedIn' })
       setCurrentInfo(currentData.info || null)
       setCanOff(profilesData.can_off === true)
       setCanAuthOff(accountsData.can_auth_off === true || currentData.can_auth_off === true)

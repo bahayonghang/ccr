@@ -56,8 +56,8 @@ export function OpenCodeProvidersView() {
     setLoading(true)
     try {
       const [providerList, config] = await Promise.all([listOpenCodeProviders(), getOpenCodeConfig()])
-      setProviders(providerList)
-      setConfigState(config)
+      setProviders(Array.isArray(providerList) ? providerList : [])
+      setConfigState(config && typeof config === 'object' ? config : {})
     } catch (error) {
       surfaceNotify.error(getErrorMessage(error))
     } finally {

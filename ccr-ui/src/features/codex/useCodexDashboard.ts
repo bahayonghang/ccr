@@ -92,18 +92,18 @@ export function useCodexDashboard(t: TranslateFunction) {
     staleTime: CODEX_VERSION_STALE_TIME,
   })
 
-  const overview = overviewQuery.data ?? null
-  const usageSummary = usageQuery.data ?? null
+  const overview = overviewQuery.data?.auth ? overviewQuery.data : null
+  const usageSummary = usageQuery.data?.all_time ? usageQuery.data : null
   const formatDateTime = useCallback(
     (value?: string | null) => formatDashboardDateTime(value, t),
     [t],
   )
   const currentAccountLabel = useMemo(() => {
-    const current = overview?.auth.current
+    const current = overview?.auth?.current
     return current?.name || current?.email || current?.account_id || t('codex.status.notSet')
   }, [overview, t])
   const currentProfileLabel = useMemo(
-    () => overview?.profiles.current_profile || t('codex.status.notSet'),
+    () => overview?.profiles?.current_profile || t('codex.status.notSet'),
     [overview, t],
   )
   const { versionStatus, versionLabel } = useMemo(
@@ -175,8 +175,8 @@ export function useCodexDashboard(t: TranslateFunction) {
     versionStatus,
     currentAccountLabel,
     currentProfileLabel,
-    usageTotalRequests: usageSummary?.all_time.total_requests ?? '—',
-    usageTotalTokens: usageSummary
+    usageTotalRequests: usageSummary?.all_time?.total_requests ?? '—',
+    usageTotalTokens: usageSummary?.all_time
       ? formatTokens(usageSummary.all_time.total_input_tokens + usageSummary.all_time.total_output_tokens)
       : '—',
     readinessItems,

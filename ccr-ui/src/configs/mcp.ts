@@ -90,7 +90,8 @@ export const geminiMcpConfig: McpConfig = {
   notify: surfaceNotify,
   list: async () => {
     const servers = await listGeminiMcpServers()
-    return servers.map((server) => ({
+    const rows = Array.isArray(servers) ? servers : []
+    return rows.map((server) => ({
       id: server.name,
       name: server.name,
       command: server.command,
@@ -157,7 +158,8 @@ export const codexMcpConfig: McpConfig = {
   notify: surfaceNotify,
   list: async () => {
     const payload = await listCodexMcpServers()
-    return payload.servers.map((server) => ({
+    const servers = Array.isArray(payload?.servers) ? payload.servers : []
+    return servers.map((server) => ({
       id: server.name,
       name: server.name,
       command: server.command ?? undefined,
@@ -221,7 +223,8 @@ export const opencodeMcpConfig: McpConfig = {
   notify: surfaceNotify,
   list: async () => {
     const servers = await listOpenCodeMcpServers()
-    return servers.map((server) => ({
+    const rows = Array.isArray(servers) ? servers : []
+    return rows.map((server) => ({
       id: server.id,
       name: server.id,
       command: Array.isArray(server.command) ? server.command[0] : undefined,

@@ -73,7 +73,8 @@ export function SshManagementView() {
     setLoading(true)
     setError('')
     try {
-      setHosts(await sshListHosts())
+      const next = await sshListHosts()
+      setHosts(Array.isArray(next) ? next : [])
     } catch (e: unknown) {
       setError(e?.toString?.() || tt('加载 SSH 主机失败', 'Failed to load SSH hosts'))
     } finally {

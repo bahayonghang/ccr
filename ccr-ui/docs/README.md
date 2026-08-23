@@ -1,6 +1,6 @@
 # CCR UI Engineering Documentation
 
-This directory is the maintained engineering reference for contributors working on the Vue and Tauri application. User-facing installation, command, and workflow documentation belongs in the repository-level [`docs/`](../../docs/) site.
+This directory is the maintained engineering reference for contributors working on the React and Tauri application. User-facing installation, command, and workflow documentation belongs in the repository-level [`docs/`](../../docs/) site.
 
 ## Current Documents
 
@@ -21,7 +21,7 @@ Do not add new `plans/`, `spark/`, `superpowers/`, or `artifacts/` directories b
 
 - Repository navigation: [`code_map.md`](../code_map.md)
 - Scoped contribution rules: [`AGENTS.md`](../AGENTS.md)
-- Routes and module registration: [`src/router/index.ts`](../src/router/index.ts)
+- Routes and module registration: [`src/shell/router.tsx`](../src/shell/router.tsx)
 - Frontend API boundary: [`src/api/index.ts`](../src/api/index.ts)
 - Tauri command registry: [`src-tauri/src/commands/handler_registry.rs`](../src-tauri/src/commands/handler_registry.rs)
 - Package scripts: [`package.json`](../package.json)

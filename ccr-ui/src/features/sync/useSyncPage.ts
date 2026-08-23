@@ -50,7 +50,8 @@ export function useSyncPage() {
   }, [])
 
   const fetchAssets = useCallback(async () => {
-    setAssets(await listSyncAssets())
+    const next = await listSyncAssets()
+    setAssets(Array.isArray(next) ? next : [])
   }, [])
 
   const refreshAll = useCallback(async () => {

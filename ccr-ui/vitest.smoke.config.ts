@@ -43,6 +43,15 @@ export default defineConfig({
     // （React 基座实测 lines 72.86%，迁移前基线 75.4%，接近 70% 故保留，未显著偏离）。
     // design.md §4 禁止新增 functions/branches/statements 阈值，故仅设 lines。
     coverage: {
+      // 只统计测试实际加载的源码；文案目录 / 资源 / 生成类型不进分母。
+      exclude: [
+        '**/*.css',
+        '**/*.d.ts',
+        '**/package.json',
+        'src/i18n/locales/**',
+        'src/assets/**',
+        'src/types/generated/**',
+      ],
       thresholds: {
         lines: 70
       }

@@ -1350,7 +1350,7 @@ _ensure-frontend-deps:
 
 _ensure-frontend-deps-linux:
     #!/usr/bin/env bash
-    if [ ! -d "node_modules" ] || [ ! -d "node_modules/vue-i18n" ]; then
+    if [ ! -d "node_modules" ] || [ ! -d "node_modules/react-i18next" ]; then
         echo "📦 检测到依赖缺失，正在安装前端依赖..."
         if command -v bun >/dev/null 2>&1; then
             bun install
@@ -1364,7 +1364,7 @@ _ensure-frontend-deps-linux:
 
 _ensure-frontend-deps-macos:
     #!/usr/bin/env bash
-    if [ ! -d "node_modules" ] || [ ! -d "node_modules/vue-i18n" ]; then
+    if [ ! -d "node_modules" ] || [ ! -d "node_modules/react-i18next" ]; then
         echo "📦 检测到依赖缺失，正在安装前端依赖..."
         bun install
         echo "✅ 前端依赖安装完成"
@@ -1373,7 +1373,7 @@ _ensure-frontend-deps-macos:
     fi
 
 _ensure-frontend-deps-windows:
-    @if (-not (Test-Path 'node_modules') -or -not (Test-Path 'node_modules/vue-i18n')) { Write-Output '📦 检测到依赖缺失，正在安装前端依赖...'; bun install; Write-Output '✅ 前端依赖安装完成' } else { Write-Output '✅ 前端依赖已就绪' }
+    @if (-not (Test-Path 'node_modules') -or -not (Test-Path 'node_modules/react-i18next')) { Write-Output '📦 检测到依赖缺失，正在安装前端依赖...'; bun install; Write-Output '✅ 前端依赖安装完成' } else { Write-Output '✅ 前端依赖已就绪' }
 
 _tauri-build-linux:
     @echo "🏗️  构建 Tauri 桌面应用（生产版本）..."

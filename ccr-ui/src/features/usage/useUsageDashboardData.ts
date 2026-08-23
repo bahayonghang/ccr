@@ -131,8 +131,9 @@ function dashboardFlags(input: {
   loading: boolean
   payload: ReturnType<typeof normalizeDashboardPayload> | null
 }) {
-  const dashboardCapability = input.capabilities?.features.overview ?? null
-  const syncCapability = input.capabilities?.features.sync_json_events ?? null
+  const features = input.capabilities?.features
+  const dashboardCapability = features?.overview ?? null
+  const syncCapability = features?.sync_json_events ?? null
   const dashboardUnsupported = isCapabilityUnsupported(dashboardCapability)
   const queryError = input.queryError ? getErrorMessage(input.queryError) : null
   const error = input.importError ?? queryError

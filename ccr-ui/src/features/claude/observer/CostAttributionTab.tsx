@@ -30,7 +30,7 @@ export function CostAttributionTab({
   const options = useMemo(() => dailyCostOptions(motion), [motion])
   const projectRows = useMemo(
     () =>
-      byProject.slice(0, 10).map((row) => ({
+      (Array.isArray(byProject) ? byProject : []).slice(0, 10).map((row) => ({
         key: row.key,
         label: shortenPath(row.key),
         title: row.key,
@@ -41,7 +41,7 @@ export function CostAttributionTab({
   )
   const modelRows = useMemo(
     () =>
-      byModel.slice(0, 10).map((row) => ({
+      (Array.isArray(byModel) ? byModel : []).slice(0, 10).map((row) => ({
         key: row.key,
         label: row.key,
         value: formatUsd(row.cost_usd),

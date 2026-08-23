@@ -80,7 +80,8 @@ export function McpSyncPanel({ onSynced }: McpSyncPanelProps) {
   const loadSourceServers = useCallback(async () => {
     try {
       setLoading(true)
-      setSourceServers(await listSourceMcpServers<McpServerInfo[]>())
+      const next = await listSourceMcpServers<McpServerInfo[]>()
+      setSourceServers(Array.isArray(next) ? next : [])
     } catch (err) {
       logger.error('Failed to load source MCP servers:', err)
     } finally {

@@ -68,7 +68,8 @@ export function McpPresetsPanel({ onInstalled }: McpPresetsPanelProps) {
   const loadPresets = useCallback(async () => {
     try {
       setLoading(true)
-      setPresets(await listMcpPresets<McpPreset[]>())
+      const next = await listMcpPresets<McpPreset[]>()
+      setPresets(Array.isArray(next) ? next : [])
     } catch (err) {
       logger.error('Failed to load MCP presets:', err)
     } finally {

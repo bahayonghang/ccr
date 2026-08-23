@@ -94,13 +94,13 @@ export function useCodexAuthPage(t: TranslateFunction, tf: CodexTf) {
         getCodexAllQuotas().catch(() => []),
       ])
       setAccounts(accountData.accounts || [])
-      setLoginState(accountData.login_state)
+      setLoginState(accountData.login_state ?? { type: 'NotLoggedIn' })
       setCanAuthOff(accountData.can_auth_off === true || current.can_auth_off === true)
       setCurrentInfo(current.logged_in && current.info ? current.info : null)
       setCanOff(profileData.can_off === true)
-      setCurrentProfile(profileData.profiles.find((profile) => profile.name === profileData.current_profile) || null)
+      setCurrentProfile(profileData.profiles?.find((profile) => profile.name === profileData.current_profile) || null)
       const map = new Map<string, CodexAccountQuota>()
-      for (const quota of quotas) map.set(quota.account_name, quota)
+      for (const quota of Array.isArray(quotas) ? quotas : []) map.set(quota.account_name, quota)
       setQuotaMap(map)
       await loadProviders()
     } catch (error) {

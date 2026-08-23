@@ -30,7 +30,8 @@ export function OutputStylesView() {
   const loadStyles = useCallback(async () => {
     setLoading(true)
     try {
-      setStyles(await listOutputStyles())
+      const next = await listOutputStyles()
+      setStyles(Array.isArray(next) ? next : [])
     } catch (error) {
       logger.error('Failed to load output styles:', error)
       surfaceNotify.error(t('common.loadFailed'))

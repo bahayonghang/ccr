@@ -135,12 +135,12 @@ export function CheckinAccountDashboardView() {
       className="checkin-account-dashboard"
       header={
         <DashboardHeader
-          title={dashboard?.account.name || tt('账号 Dashboard', 'Account dashboard')}
+          title={dashboard?.account?.name || tt('账号 Dashboard', 'Account dashboard')}
           description={tt('签到账号 · Dashboard', 'Check-in account dashboard')}
-          providerName={dashboard?.account.provider_name || tt('未知提供商', 'Unknown provider')}
-          enabled={dashboard?.account.enabled}
+          providerName={dashboard?.account?.provider_name || tt('未知提供商', 'Unknown provider')}
+          enabled={dashboard?.account?.enabled}
           loading={loading}
-          hasDashboard={Boolean(dashboard)}
+          hasDashboard={Boolean(dashboard?.account)}
           checkinLoading={checkinLoading}
           balanceLoading={balanceLoading}
           tt={tt}
@@ -160,7 +160,7 @@ export function CheckinAccountDashboardView() {
         </div>
       ) : null}
       {loading ? <div className="state-card checkin-surface-card">{tt('加载中...', 'Loading...')}</div> : null}
-      {dashboard && !loading ? (
+      {dashboard && dashboard.account && !loading ? (
         <DashboardBody
           dashboard={dashboard}
           tt={tt}

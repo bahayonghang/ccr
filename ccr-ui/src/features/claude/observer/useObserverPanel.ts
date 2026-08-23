@@ -49,6 +49,10 @@ function resolveState(input: {
   return 'ready' as const
 }
 
+function asList<T>(value: T[] | null | undefined): T[] {
+  return Array.isArray(value) ? value : []
+}
+
 export function useObserverPanel() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -132,13 +136,13 @@ export function useObserverPanel() {
     emptyDescription,
     tabs,
     hasRoi,
-    daily: dailyQuery.data,
-    byProject: projectQuery.data,
-    byModel: modelQuery.data,
+    daily: asList(dailyQuery.data),
+    byProject: asList(projectQuery.data),
+    byModel: asList(modelQuery.data),
     stats: cacheQuery.data,
-    heatmap: heatmapQuery.data,
-    topTools: toolsQuery.data,
-    sessions: sessionQuery.data,
+    heatmap: asList(heatmapQuery.data),
+    topTools: asList(toolsQuery.data),
+    sessions: asList(sessionQuery.data),
     selectTab,
     openDialog,
     closeDialog,

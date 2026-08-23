@@ -248,7 +248,7 @@ const getPlatformMetric = (
 const buildPlatformRows = (input: DashboardPresentationInput): DashboardPlatformRow[] => {
   return input.platforms.map((platform) => {
     const state = getPlatformState(platform, input.cliVersions, input.cliVersionsLoaded)
-    const stats = platform.usageKey ? input.overview?.by_platform[platform.usageKey] : undefined
+    const stats = platform.usageKey ? input.overview?.by_platform?.[platform.usageKey] : undefined
 
     return {
       ...platform,
@@ -295,7 +295,7 @@ const getUsageReasonKey = (input: DashboardPresentationInput) => {
   if (input.usageLoading) return 'dashboard.readiness.reasons.usageLoading'
   if (!input.overview) return 'dashboard.readiness.reasons.usageLoading'
   if (input.overview.empty_reason) return 'dashboard.readiness.reasons.usageEmpty'
-  if (input.overview.bootstrap.needs_session_index || input.overview.bootstrap.needs_usage_import || !input.overview.bootstrap.is_warm) {
+  if (input.overview.bootstrap?.needs_session_index || input.overview.bootstrap?.needs_usage_import || !input.overview.bootstrap?.is_warm) {
     return 'dashboard.readiness.reasons.usageWarmup'
   }
   return 'dashboard.readiness.reasons.usageReady'
@@ -347,8 +347,8 @@ const buildReadiness = (
     || signalCounts.errors > 0
     || missingRuntimeRows.length > 0
     || input.overview?.empty_reason
-    || input.overview?.bootstrap.needs_session_index
-    || input.overview?.bootstrap.needs_usage_import
+    || input.overview?.bootstrap?.needs_session_index
+    || input.overview?.bootstrap?.needs_usage_import
   ) {
     return {
       status: 'attention',
@@ -365,7 +365,7 @@ const buildReadiness = (
     || scanningRuntimeRows.length > 0
     || input.usageLoading
     || !input.overview
-    || input.overview.bootstrap.is_warm === false
+    || input.overview.bootstrap?.is_warm === false
   ) {
     return {
       status: 'warming',
@@ -452,8 +452,8 @@ const buildActions = (
     || input.usageLoading
     || !input.overview
     || input.overview.empty_reason
-    || input.overview.bootstrap.needs_session_index
-    || input.overview.bootstrap.needs_usage_import
+    || input.overview.bootstrap?.needs_session_index
+    || input.overview.bootstrap?.needs_usage_import
   ) {
     addUniqueAction(actions, {
       id: 'open-usage',
@@ -587,7 +587,7 @@ const buildStatusMetrics = (
         : {
             id: 'usage',
             labelKey: 'dashboard.metrics.usage',
-            value: formatCompact(input.overview.summary.total_requests),
+            value: formatCompact(input.overview.summary?.total_requests),
             hintKey: 'dashboard.readiness.reasons.usageReady',
             tone: 'accent',
           }
@@ -662,7 +662,7 @@ export const buildDashboardPresentation = (input: DashboardPresentationInput): D
       && input.cliVersionsLoaded
       && !input.usageLoading
       && installedCliCount === 0
-      && (!input.overview || input.overview.summary.total_requests === 0),
+      && (!input.overview || input.overview.summary?.total_requests === 0),
   }
 }
 

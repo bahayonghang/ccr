@@ -33,7 +33,8 @@ export function EnvironmentSwitcher() {
 
   const fetchList = async () => {
     try {
-      setEnvironments(await listEnvironments())
+      const next = await listEnvironments()
+      setEnvironments(Array.isArray(next) ? next : [])
     } catch (error) {
       logger.error('[EnvironmentSwitcher] Failed to list environments:', error)
     }

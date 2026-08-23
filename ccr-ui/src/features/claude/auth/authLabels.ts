@@ -84,7 +84,8 @@ export function formatAuthSource(source: ClaudeAuthSourceObservation): string {
   return `${authSourceKindLabel(source.kind)} · ${authSourceLocationLabel(source.location)}`
 }
 
-export function loginStateLabel(state: ClaudeLoginState): string {
+export function loginStateLabel(state: ClaudeLoginState | null | undefined): string {
+  if (!state) return tt('未登录', 'Not logged in')
   if (state.type === 'LoggedInSaved') {
     return tt(`已登录（已保存为 ${state.account_name}）`, `Logged in (saved as ${state.account_name})`)
   }

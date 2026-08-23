@@ -128,7 +128,7 @@ export function BudgetView() {
           <p>{error}</p>
         </div>
       ) : null}
-      {!loading && !error && budgetStatus ? (
+      {!loading && !error && budgetStatus?.current_costs ? (
         <div className="budget-content">
           <section className="budget-shell">
             <div className="budget-section-header">
