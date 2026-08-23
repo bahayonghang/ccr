@@ -5,8 +5,12 @@
 
 ## 前置确认
 
-- 输入：`.trellis/tasks/08-22-arch-quality-perf/state-disposition.md`（45 项判定表）。
-- [ ] 父任务约束门已通过（`08-22-arch-quality-perf` AC1–AC12 与 `08-22-design-system` AC1–AC11）。
+- 输入：`.trellis/tasks/08-22-arch-quality-perf/state-disposition.md`（45 项判定表，已随该任务归档至 `archive/2026-08/`）。
+- [x] 父任务约束门已通过（`08-22-arch-quality-perf` AC1–AC12 与 `08-22-design-system` AC1–AC11；`react-migration/phase-2` tag，2026-08-23）。
+- [x] `08-22-arch-quality-perf` 的 `state-disposition.md` 已落盘，45 项（10 store + 35 composable）全部归类。本任务按该表执行，不重新决策归属。
+- [x] `react-rerender-discipline.md` 已阅读。
+- [x] `08-22-react-foundation` 的订阅写法参照与 `queryClient.ts` 已就位。
+- [x] ~~`git checkout -b feature/react-migration/state-logic-port`~~ **偏差（沿用既有先例）**：分支命名空间冲突（父任务 §7 执行偏差记录），继续工作在 `react-migration/react-foundation` 分支，不新建分支。
 - [ ] `08-22-arch-quality-perf` 的 `state-disposition.md` 已落盘，45 项（10 store + 35 composable）全部归类。本任务按该表执行，不重新决策归属。
 - [ ] `react-rerender-discipline.md` 已阅读。
 - [ ] `08-22-react-foundation` 的订阅写法参照与 `queryClient.ts` 已就位。
@@ -16,11 +20,11 @@
 
 先测量再动手，避免边迁边发现语义差异。
 
-- [ ] 35 个 composable 按 `design.md` §5 的方法三类归类，`composable-classification.md` 落盘（AC3）。
-- [ ] 全仓 `rg` 就地修改形态（`.push(`、`.splice(`、`.sort(`、`[i] =`、`.field =`），筛出落在 store 与 composable 内的，`mutation-rewrite.md` 建表（AC6）。
-- [ ] 52 处 `nextTick` 中落在本任务范围的逐点登记原始意图，`next-tick-register.md` 建表（AC4）。
-- [ ] composable 内 `watch` 的数量与所用选项统计，按 `design.md` §6.3 的映射表逐点登记。
-- [ ] 13 处 `computed` 逐个列出其读到的响应式来源（R6）。
+- [x] 35 个 composable 按 `design.md` §5 的方法三类归类，`composable-classification.md` 落盘（AC3；与 state-disposition.md §4 一致 + 复核记录）。
+- [x] 全仓 `rg` 就地修改形态，`mutation-rewrite.md` 建表（AC6；46 处排查行，批次 5 逐行填判定与改写）。
+- [x] 52 处 `nextTick` 中落在本任务范围的逐点登记：**0 处**（全部在视图层），`next-tick-register.md` 落盘（AC4 的排查证据）。
+- [x] composable 内 `watch` 统计：7 处（5 文件），选项映射表建在 `composable-classification.md` §2，批次 5 补充逐点判定。
+- [x] `computed` 逐个列出：63 处（store 13 / composable 50），清单在 `composable-classification.md` §3；R6 的响应式来源登记随批次 4/5 转换时逐个完成（`exhaustive-deps` error 级 lint 拦截遗漏）。
 
 ## 批次 2：Query 层
 
