@@ -179,55 +179,71 @@ const isCodexDashboardOverview = (value: object): value is CodexDashboardOvervie
 const optionalString = (value: unknown): string | null | undefined =>
   typeof value === 'string' ? value : value == null ? (value as null | undefined) : String(value)
 
+function pickCodexDashboardAuth(value: unknown): CodexDashboardOverview['auth'] {
+  const auth = isRecord(value) ? recordOf(value) : {}
+  const currentAuth = isRecord(auth.current) ? recordOf(auth.current) : null
+  return {
+    logged_in: Boolean(auth.logged_in),
+    login_state: typeof auth.login_state === 'string' ? auth.login_state : undefined,
+    store: typeof auth.store === 'string' ? auth.store : undefined,
+    saved_accounts_total: Number(auth.saved_accounts_total) || 0,
+    current: currentAuth
+      ? {
+          name: optionalString(currentAuth.name),
+          account_id: typeof currentAuth.account_id === 'string' ? currentAuth.account_id : undefined,
+          email: typeof currentAuth.email === 'string' ? currentAuth.email : undefined,
+          plan_type: typeof currentAuth.plan_type === 'string' ? currentAuth.plan_type : undefined,
+          last_refresh: optionalString(currentAuth.last_refresh),
+        }
+      : null,
+  }
+}
+
+function pickCodexDashboardProfiles(value: unknown): CodexDashboardOverview['profiles'] {
+  const profiles = isRecord(value) ? recordOf(value) : {}
+  const currentProfile = isRecord(profiles.current) ? recordOf(profiles.current) : null
+  return {
+    current_profile: optionalString(profiles.current_profile),
+    total: Number(profiles.total) || 0,
+    enabled_total: Number(profiles.enabled_total) || 0,
+    disabled_total: Number(profiles.disabled_total) || 0,
+    current: currentProfile,
+  }
+}
+
+function pickCodexDashboardConfig(value: unknown): CodexDashboardOverview['config'] {
+  const config = isRecord(value) ? recordOf(value) : {}
+  return {
+    model: optionalString(config.model),
+    model_provider: optionalString(config.model_provider),
+    approval_policy: optionalString(config.approval_policy),
+    sandbox_mode: optionalString(config.sandbox_mode),
+    model_reasoning_effort: optionalString(config.model_reasoning_effort),
+    model_reasoning_summary: optionalString(config.model_reasoning_summary),
+    web_search: optionalString(config.web_search),
+    disable_response_storage:
+      typeof config.disable_response_storage === 'boolean' ? config.disable_response_storage : null,
+  }
+}
+
+function pickCodexDashboardInventory(value: unknown): CodexDashboardOverview['inventory'] {
+  const inventory = isRecord(value) ? recordOf(value) : {}
+  return {
+    mcp_servers_total: Number(inventory.mcp_servers_total) || 0,
+    agents_total: Number(inventory.agents_total) || 0,
+    sessions_total: Number(inventory.sessions_total) || 0,
+    config_profiles_total: Number(inventory.config_profiles_total) || 0,
+  }
+}
+
 /** 只留下仪表盘用到的字段，让 IPC 多余键在 parse 后可被回收。 */
 function pickCodexDashboardOverview(value: object): CodexDashboardOverview {
   const source = recordOf(value)
-  const auth = isRecord(source.auth) ? recordOf(source.auth) : {}
-  const currentAuth = isRecord(auth.current) ? recordOf(auth.current) : null
-  const profiles = isRecord(source.profiles) ? recordOf(source.profiles) : {}
-  const currentProfile = isRecord(profiles.current) ? recordOf(profiles.current) : null
-  const config = isRecord(source.config) ? recordOf(source.config) : {}
-  const inventory = isRecord(source.inventory) ? recordOf(source.inventory) : {}
   return {
-    auth: {
-      logged_in: Boolean(auth.logged_in),
-      login_state: typeof auth.login_state === 'string' ? auth.login_state : undefined,
-      store: typeof auth.store === 'string' ? auth.store : undefined,
-      saved_accounts_total: Number(auth.saved_accounts_total) || 0,
-      current: currentAuth
-        ? {
-            name: optionalString(currentAuth.name),
-            account_id: typeof currentAuth.account_id === 'string' ? currentAuth.account_id : undefined,
-            email: typeof currentAuth.email === 'string' ? currentAuth.email : undefined,
-            plan_type: typeof currentAuth.plan_type === 'string' ? currentAuth.plan_type : undefined,
-            last_refresh: optionalString(currentAuth.last_refresh),
-          }
-        : null,
-    },
-    profiles: {
-      current_profile: optionalString(profiles.current_profile),
-      total: Number(profiles.total) || 0,
-      enabled_total: Number(profiles.enabled_total) || 0,
-      disabled_total: Number(profiles.disabled_total) || 0,
-      current: currentProfile,
-    },
-    config: {
-      model: optionalString(config.model),
-      model_provider: optionalString(config.model_provider),
-      approval_policy: optionalString(config.approval_policy),
-      sandbox_mode: optionalString(config.sandbox_mode),
-      model_reasoning_effort: optionalString(config.model_reasoning_effort),
-      model_reasoning_summary: optionalString(config.model_reasoning_summary),
-      web_search: optionalString(config.web_search),
-      disable_response_storage:
-        typeof config.disable_response_storage === 'boolean' ? config.disable_response_storage : null,
-    },
-    inventory: {
-      mcp_servers_total: Number(inventory.mcp_servers_total) || 0,
-      agents_total: Number(inventory.agents_total) || 0,
-      sessions_total: Number(inventory.sessions_total) || 0,
-      config_profiles_total: Number(inventory.config_profiles_total) || 0,
-    },
+    auth: pickCodexDashboardAuth(source.auth),
+    profiles: pickCodexDashboardProfiles(source.profiles),
+    config: pickCodexDashboardConfig(source.config),
+    inventory: pickCodexDashboardInventory(source.inventory),
   }
 }
 
