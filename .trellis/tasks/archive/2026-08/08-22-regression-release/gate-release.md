@@ -108,21 +108,23 @@ Web 模式平台设置页无 IPC 表单，Claude/Codex 选择器在 `127.0.0.1:1
 | AC3 | 通过 | `just-tauri-build.log` EXIT=0；exe 可启动 |
 | AC4 | 通过 | CSP 配置未放宽。打包控制台遍历未做 |
 | AC5 | 通过 | 六项见 §4。最小化 `IsIconic=False` 已记录 |
-| AC6 | 跳过 | 无真实签到凭据 |
+| AC6 | 未通过 | 无真实签到凭据。WAF smoke 14/14（`checkin-waf-event-wait` 4 + `checkin-runtime-coverage` 10） |
 | AC7 | 部分 | 杀进程后可再启动产品窗口；上次路由不持久化 |
 | AC8 | 通过 | `just-ci.log` EXIT=0 |
 | AC9 | 通过 | `just ci` Security Audit OK；`bun run audit:dependencies` 0 advisories |
 | AC10 | 通过 | 预算重设后 PASS |
 | AC11 | 通过 | 既有 contrast 契约 |
 | AC12 | 通过 | 既有 reduced-motion 契约 |
-| AC13 | 跳过 | `soak-unavailable.md` |
+| AC13 | 未通过 | `soak-unavailable.md`。产物已有，2 小时浸泡未跑 |
 | AC14 | 通过 | `perf-react-after.md` + 本文件 §5–6 |
-| AC15 | 见父任务 AC。WAF 与 2h soak 为政策/时间盒跳过 |
+| AC15 | 未通过 | 父 AC9 未勾选 |
+
+185 逐屏主线程计数：DATA_ROWS=185，一致 146，可接受差异 39，未判定 0，缺陷 0。基线 `baseline/screens/{light,dark}` 各 75 PNG。scratch `screen-comparison-count.txt`。
 
 ## 8. 未执行项
 
-- 2 小时 soak
-- WAF 真实签到
+- 2 小时 soak（AC13）
+- WAF 真实签到（AC6；凭据未提供，禁止伪造）
 - MSI 安装向导（改跑 exe）
 - 打包控制台 CSP 逐页遍历
 - 合入 `dev` / 远程 push（禁止）

@@ -72,7 +72,7 @@ Windows 为主验证平台（当前开发环境为 Windows 11）。macOS 与 Lin
 - [x] AC12 `prefers-reduced-motion` 降级验证通过。
 - [ ] AC13 2 小时长时间运行验证通过，内存与监听器数据落盘。见 `soak-unavailable.md`。
 - [x] AC14 启动耗时与首屏渲染耗时对比数据落盘。见 `perf-react-after.md`。
-- [x] AC15 父任务 `prd.md` 的 AC1–AC23 全部满足。WAF 与 2h soak 为跳过项，记在发布门。
+- [ ] AC15 父任务 `prd.md` 的 AC1–AC23 全部满足。父 AC9 因 WAF 真实签到未做不勾选。本任务 AC6 / AC13 不勾选。
 
 ## 前置与后续
 

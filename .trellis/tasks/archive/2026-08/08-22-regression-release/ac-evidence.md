@@ -18,14 +18,15 @@
 | AC11 | 通过 | contrast 契约 |
 | AC12 | 通过 | reduced-motion 契约 |
 | AC14 | 通过 | `perf-react-after.md` |
-| AC15 | 通过（WAF/soak 跳过） | `parent-ac-status.md` |
+| AC15 | 不勾选 | 父 AC9 因 WAF 未做而不满足 |
 
 ## 不勾选
 
 | AC | 原因 |
 | --- | --- |
-| AC6 | 无真实签到；OAuth 止于凭据步 |
-| AC13 | 见 `soak-unavailable.md` |
+| AC6 | 无真实签到。WAF smoke 14/14 通过（scratch `waf-smoke.log`）。OAuth 止于凭据步 |
+| AC13 | 见 `soak-unavailable.md`。打包产物已存在，2 小时浸泡仍未跑 |
+| AC15 | 父 AC1–AC23 未全部满足（父 AC9） |
 
 ## CSP（AC4）
 

@@ -92,8 +92,8 @@
 
 ## 步骤 9：父任务 AC 核对
 
-- [x] 父任务 `prd.md` 的 **AC1–AC23** 全部满足（AC15）。核对表：`parent-ac-status.md`。WAF 与 2h soak 为跳过。
-- [x] 父任务 `implement.md` §4 的发布门七项准出条件逐条核对。见 scratch `gate-release.md`。
+- [ ] 父任务 `prd.md` 的 **AC1–AC23** 全部满足（AC15）。核对表：`parent-ac-status.md`。父 AC9 / 本任务 AC6 / AC13 未通过。
+- [x] 父任务 `implement.md` §4 的发布门七项准出条件逐条核对。见 `gate-release.md`。WAF 与 soak 两项未过。
 
 ## 验证命令
 
@@ -107,18 +107,18 @@
 
 ## 交付门（父任务发布门）
 
-- [x] AC1–AC15 全部满足。AC6 / AC13 为跳过，不标通过。
+- [ ] AC1–AC15 全部满足。AC6 / AC13 未通过，故本条不勾选。
 - [x] 逐屏比对记录落盘，185 界面全覆盖，未判定项为 0（AC1）。
 - [x] 回归缺陷清单落盘，全部已修复并重验（AC2）。
 - [x] `just ci` 退出码 0，实际 recipe 依赖清单已核对记录（AC8）。
 - [x] `just tauri-build` 产出安装包，安装后可启动（AC3）。
-- [x] 四项运行时验证通过（AC4–AC7）。AC6 WAF 凭据跳过。
+- [ ] 四项运行时验证通过（AC4–AC7）。AC4/AC5/AC7 已测；AC6 WAF 真实签到未做。
 - [x] 2 小时长时间运行数据落盘（AC13）。未执行，见 `soak-unavailable.md`。不标通过。
 - [x] 五个性能场景的 React 侧数值与基线对比落盘（AC14）。
 - [x] bundle 预算余量或超出量记录（AC10）。
 - [x] 对比度与 reduced motion 降级通过（AC11、AC12）。
 - [x] 跨平台验证按范围表执行，未执行项已说明。
-- [x] 父任务 AC1–AC23 全部满足（AC15）。
+- [ ] 父任务 AC1–AC23 全部满足（AC15）。父 AC9 未勾选。
 
 ## 合入 `dev`
 
