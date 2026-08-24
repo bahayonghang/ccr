@@ -1,30 +1,42 @@
 # 2 小时浸泡测量（AC13）
 
-> 任务：`08-22-regression-release` R10 / AC13。打包产物 `ccr-desktop.exe`。主线程命令：`pwsh -File soak-run.ps1`。墙钟 7203.41s。退出码 1（`SOAK_PASS=False`）。
+打包产物 `ccr-desktop.exe`。方法：每 60s SPA 切 29 条路由；采主机 WorkingSet；另起 bun tick 读 CDP `JSHeapUsedSize` / `JSEventListeners`（超时 25s）。
 
-原始 JSONL：scratch `soak-packaged.jsonl`（本目录副本 `soak-packaged-summary.json`）。
+判定：第 2 小时均值 ≤ 第 1 小时均值 × 1.10；唯一路由 ≥ 20。
 
-## 方法
+## 修复前（`914565c3` 之前，PID 75572，7203s）
 
-- 进程：PID 75572，`WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=9222`
-- 每 60s 采一次 `ccr-desktop` WorkingSet；另起 bun 进程经 CDP 做 SPA `pushState` 切路由并读 `Performance.getMetrics`（`JSHeapUsedSize` / `JSEventListeners`）。单次 tick 超时 25s，超时杀进程，浸泡继续。
-- 判定（design.md §5）：第 2 小时均值 ≤ 第 1 小时均值的 110%。监听器沿用同一比例。路由 ≥20。
+| 项 | 第 1 小时 | 第 2 小时 | 比值 |
+| --- | ---: | ---: | ---: |
+| WorkingSet 均值 | 85.35 MB | 80.90 MB | 0.948 |
+| JS 堆均值 | 1112 MB | 3699 MB | 3.327 |
+| JSEventListeners 均值 | 1064 | 4959 | 4.662 |
+| `/grok/settings` 监听器 | 4001 → 27306 → 48066 | — | — |
+| 唯一路由 | 29 | 29 | — |
+| 第 2 小时 CDP 有效样本 | — | 11 / 46 | 其余 tick 超时 |
 
-## 汇总
+`SOAK_PASS=False`。
 
-| 项 | 第 1 小时 | 第 2 小时 | 比值 | 判定 |
-| --- | ---: | ---: | ---: | --- |
-| 样本数 | 59 | 46 | — | 两小时均有样本 |
-| 其中含 CDP 堆/监听器 | 59 | 11 | — | 第 2 小时 3602–4215s 之后 35 次 tick 超时 |
-| WorkingSet 均值 | 85.35 MB | 80.90 MB | 0.948 | ≤1.10 |
-| JS 堆均值 | 1111.9 MB | 3699.2 MB | 3.327 | >1.10 |
-| JSEventListeners 均值 | 1063.8 | 4959.0 | 4.662 | >1.10 |
-| 唯一路由 | 29 | 29 | — | ≥20 |
+## 修复后（`914565c3`：图表 destroy、resize cancel、Query `gcTime` 120s、Grok/Gemini copy timer）
 
-第 2 小时 CDP 在 `/antigravity/mcp`（elapsed 4214s）之后连续超时。监听器第 2 小时均值被 `/grok/settings` 一次 48066 拉高；去掉该点后其余 10 个 CDP 样本约 390–1495。
+命令：`just tauri-build` EXIT=0（`just-tauri-build-leakfix.log`），再 `pwsh -File soak-run.ps1`。墙钟 7203.24s。PID 600。`SOAK_PASS=False`。
 
-JS 堆在第 2 小时仍有 CDP 的 11 个样本上从 3201 MB 升到 4203 MB。
+| 项 | 第 1 小时 | 第 2 小时 | 比值 |
+| --- | ---: | ---: | ---: |
+| 样本 | 59 | 46 | — |
+| 其中含 CDP | 59 | 11 | 第 2 小时后段 35 次 tick 超时 |
+| WorkingSet 均值 | 79.59 MB | 73.14 MB | 0.919 |
+| JS 堆均值 | 1095 MB | 3648 MB | 3.332 |
+| JSEventListeners 均值 | 3404 | 3865 | 1.135 |
+| `/grok/settings` 监听器 | 1891 → 167072 → 36016 | 末次 tick 超时 | — |
+| 唯一路由 | 29 | 29 | — |
+
+主机 WorkingSet 仍 ≤1.10。JS 堆比值仍约 3.33。监听器均值 1.135，略超 1.10；`/grok/settings` 单次仍出现五位数尖峰。第 2 小时 CDP 仍在 ~70 min `/antigravity/mcp` 后连续超时。
+
+新鲜进程上仅循环 `/settings` ↔ `/grok/settings` 三次：监听器约 324，堆约 8 MB。尖峰只在长循环、堆已很大时出现。
 
 ## 结论
 
-浸泡已执行满 2 小时，切换 29 条路由。主机 WorkingSet 第 2 小时低于第 1 小时。JS 堆与监听器不满足 110% 判定。AC13 不勾选。
+AC13 不勾选。修复降低了监听器均值比值（4.66 → 1.14），未改变 JS 堆小时比。
+
+原始样本：`soak-packaged.jsonl`（修复前）与 `soak-packaged-postfix.jsonl`（修复后）。
