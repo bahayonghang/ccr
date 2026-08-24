@@ -1,0 +1,11 @@
+{"type":"connected","url":"http://tauri.localhost/"}
+{"type":"sample","route":"/","how":"click","path":"/","jsHeapUsed":6291844,"jsEventListeners":332,"nodes":727,"soak":{"queries":2,"active":2,"mutations":0,"historyLength":2}}
+{"type":"sample","route":"/codex/settings","how":"push","path":"/codex/settings","jsHeapUsed":6450864,"jsEventListeners":327,"nodes":382,"soak":{"queries":4,"active":3,"mutations":0,"historyLength":3}}
+{"type":"dwell-start","on":"/codex/settings"}
+{"type":"dwell-end","path":"/codex/settings","jsHeapUsed":6455152,"jsEventListeners":327,"nodes":382,"soak":{"queries":4,"active":3,"mutations":0,"historyLength":3}}
+{"type":"sample","route":"/converter","how":"push","path":"/converter","jsHeapUsed":6619112,"jsEventListeners":331,"nodes":465,"soak":{"queries":4,"active":1,"mutations":0,"historyLength":4}}
+{"type":"dwell-start","on":"/converter"}
+{"type":"dwell-end","path":"/converter","jsHeapUsed":6607984,"jsEventListeners":331,"nodes":465,"soak":{"queries":3,"active":1,"mutations":0,"historyLength":4}}
+{"type":"sample","route":"/sync","how":"click","path":"/sync","jsHeapUsed":7114092,"jsEventListeners":339,"nodes":743,"soak":{"queries":3,"active":1,"mutations":0,"historyLength":5}}
+{"type":"dwell-start","on":"/sync"}
+{"type":"dwell-end","path":"/sync","jsHeapUsed":7095396,"jsEventListeners":339,"nodes":743,"soak":{"queries":1,"active":1,"mutations":0,"historyLength":5}}

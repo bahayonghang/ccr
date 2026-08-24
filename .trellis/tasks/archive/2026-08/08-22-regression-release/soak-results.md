@@ -73,3 +73,11 @@ postfix 每 60s 新建 Playwright `connectOverCDP`。对照 12 tick（`soak-cont
 主机 WorkingSet 与监听器 ≤1.10。JS 堆与渲染进程 WorkingSet 超过 1.10。`/grok/settings` 五位数尖峰消失。
 
 AC13 仍不勾选。详见 `soak-round2.md`。
+
+## 第 3 轮
+
+`/codex/mcp` 的 40 MB 跳变是上一页 60s 驻留后的采样点。访问 Codex 仪表盘后，Iconify API 回调与 `refresh` 身份循环在驻留期间往堆上堆对象。
+
+vite preview 3 周期（本轮修改后）：堆均值 8.16 → 10.20 → 11.12 MB，比值 1.09。`/codex/mcp` 相对 settings 约 +0.07 MB。详见 `soak-round3.md`。
+
+`just tauri-build` 之后 persist-raw-cdp 2 小时（墙钟 7206s，`soak-packaged-round3.jsonl`）：样本 117，CDP 全程有效。主机 WorkingSet 1.037、渲染进程 WorkingSet 1.006、监听器 1.073 通过。JS 堆均值 10.73 → 13.89 MB，比值 **1.295**，不通过。`/grok/settings` 监听器 321 / 341 / 341 / 380。末次堆 14.9 MB。AC13 不勾选。详见 `soak-round3.md`。
