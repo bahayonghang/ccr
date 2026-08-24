@@ -68,7 +68,7 @@
 
 ### WAF WebView bypass
 
-未执行真实签到。凭据未提供。OAuth 向导止于凭据步。按 `waiver-waf-ac6-ac9.md` 豁免，不标为真实签到已通过。
+未执行真实签到。凭据未提供。OAuth 向导止于凭据步。`waiver-waf-ac6-ac9.md` 只记录跳过，发布门本项不通过。
 
 ### 启动恢复
 
