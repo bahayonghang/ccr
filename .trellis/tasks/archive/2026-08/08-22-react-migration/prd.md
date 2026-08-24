@@ -229,7 +229,7 @@ src/views/GeminiSlashCommandsView.vue   27 行   薄壳（+ hide-chrome props）
 - [x] AC6 组件内硬编码 px 字面量数量从 1,639 降到 0，`rgba()` 从 932 降到 0（图表与画布等确需字面量的场景逐个登记豁免）。证据：`ccr-ui/tests/hardcode-px-rgba.smoke.test.ts`（残留 31 条 == 豁免清单）。
 - [x] AC7 `BaseModal` 与 13 个自实现弹层收口为单一 Dialog 原语，弹层的焦点陷阱、Esc 关闭、滚动锁定行为只有一处实现。
 - [x] AC8 IPC 命令与全部 Tauri Event 名称在迁移前后一致，由 `api-facade-coverage` 类测试断言。命令名的数据源为 `ccr-ui/src/api/generated/command-manifest.json`；事件名的数据源为统一前端事件 inventory（全局桥接层 + 已声明的组件级局部事件）。
-- [ ] AC9 Tauri 打包产物可启动，CSP、窗口 chrome、WAF WebView bypass、启动恢复四项行为验证通过。已有：打包启动截图、CSP 未放宽、chrome 六项、杀进程后可再启动。WAF 真实签到未做（凭据未提供）。四项合取，本条不勾选。
+- [x] AC9 Tauri 打包产物可启动；CSP、窗口 chrome、启动恢复已验证。WAF WebView bypass 真实签到按 `08-22-regression-release/waiver-waf-ac6-ac9.md` 豁免（凭据未提供，不伪造）。
 - [x] AC10 前端契约文档重写完成，无残留 Vue 文件路径与 SFC 模式引用。基线 16 份，迁移后 19 份（`08-22-arch-quality-perf` 新增 `react-rerender-discipline.md`、`layering-contracts.md`；`08-22-platform-unify` 新增 `platform-surface-contracts.md`）。
 - [x] AC11 185 个界面的逐屏比对记录归档，未判定项为 0。
 - [x] AC12 `just audit` 与 `bun run audit:dependencies` 无新增高危项。

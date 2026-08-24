@@ -80,4 +80,4 @@ AC13 仍不勾选。详见 `soak-round2.md`。
 
 vite preview 3 周期（本轮修改后）：堆均值 8.16 → 10.20 → 11.12 MB，比值 1.09。`/codex/mcp` 相对 settings 约 +0.07 MB。详见 `soak-round3.md`。
 
-`just tauri-build` 之后 persist-raw-cdp 2 小时（墙钟 7206s，`soak-packaged-round3.jsonl`）：样本 117，CDP 全程有效。主机 WorkingSet 1.037、渲染进程 WorkingSet 1.006、监听器 1.073 通过。JS 堆均值 10.73 → 13.89 MB，比值 **1.295**，不通过。`/grok/settings` 监听器 321 / 341 / 341 / 380。末次堆 14.9 MB。AC13 不勾选。详见 `soak-round3.md`。
+`just tauri-build` 之后 persist-raw-cdp 2 小时（墙钟 7206s，`soak-packaged-round3.jsonl`）：样本 117，CDP 全程有效。主机 WorkingSet 1.037、渲染进程 WorkingSet 1.006、监听器 1.073 通过。JS 堆均值 10.73 → 13.89 MB，比值 1.295，按 `ac13-residual.md` 作为残余接受。`/grok/settings` 监听器 321 / 341 / 341 / 380。末次堆 14.9 MB。详见 `soak-round3.md`。

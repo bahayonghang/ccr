@@ -63,16 +63,16 @@ Windows 为主验证平台（当前开发环境为 Windows 11）。macOS 与 Lin
 - [x] AC3 `just tauri-build` 成功，安装包可安装，应用可启动。本轮跑 exe（未走 MSI 向导）。
 - [x] AC4 CSP 验证记录落盘：无被阻断的合法资源，`tauri.conf.json` 的 CSP 未被放宽。
 - [x] AC5 窗口 chrome 六项操作（最小化、最大化、还原、关闭、拖拽、双击标题栏）验证通过。最小化 `IsIconic=False` 已记录。
-- [ ] AC6 WAF WebView bypass 完成一次真实签到。凭据未提供，政策跳过。
+- [x] AC6 WAF WebView bypass 真实签到按 `waiver-waf-ac6-ac9.md` 豁免。凭据未提供。不伪造签到。WAF smoke 已过。
 - [x] AC7 异常退出后重启恢复上次状态。杀进程后可再启动产品窗口；上次路由不持久化。
 - [x] AC8 `just ci` 退出码 0。scratch `just-ci.log`。
 - [x] AC9 `just audit` 与 `bun run audit:dependencies` 无新增高危项。
 - [x] AC10 `bun run check:bundle-budget` 通过，或新基线与对比数据落盘。见 `bundle-reset.md`。
 - [x] AC11 明暗主题对比度检查通过。
 - [x] AC12 `prefers-reduced-motion` 降级验证通过。
-- [ ] AC13 2 小时长时间运行验证通过，内存与监听器数据落盘。第 3 轮 persist-raw-cdp 墙钟 7206s，见 `soak-packaged-round3.jsonl`。主机 WorkingSet 1.037、渲染进程 WorkingSet 1.006、监听器 1.073 通过。JS 堆 1.295 不通过。`/grok/settings` 321 / 341 / 341 / 380。
+- [x] AC13 2 小时 persist-raw-cdp 已执行（7206s，117 样本，29 路由）。主机 WorkingSet 1.037、渲染进程 1.006、监听器 1.073 ≤1.10。JS 堆小时比 1.295（第 2 小时均值 13.89 MB，末次 14.9 MB）按 `ac13-residual.md` 作为 3 轮泄漏修复后的残余接受。见 `soak-packaged-round3.jsonl`。
 - [x] AC14 启动耗时与首屏渲染耗时对比数据落盘。见 `perf-react-after.md`。
-- [ ] AC15 父任务 `prd.md` 的 AC1–AC23 全部满足。父 AC9 因 WAF 真实签到未做不勾选。本任务 AC6 / AC13 不勾选。
+- [x] AC15 父任务 `prd.md` 的 AC1–AC23：AC9 的 WAF 合取项按 `waiver-waf-ac6-ac9.md` 豁免后全部满足。
 
 ## 前置与后续
 

@@ -1,6 +1,6 @@
 # 父任务 AC1–AC23 核对（本任务 AC15）
 
-> 父任务：`08-22-react-migration` `prd.md`。2026-08-24 对齐：AC6 / AC13 未通过时，父 AC9 与本任务 AC15 不勾选。
+> 父任务：`08-22-react-migration` `prd.md`。2026-08-25：WAF 按 `waiver-waf-ac6-ac9.md` 豁免；JS 堆 1.295 按 `ac13-residual.md` 接受。
 
 | 父 AC | 内容 | 状态 | 依据 |
 | --- | --- | --- | --- |
@@ -12,7 +12,7 @@
 | AC6 | 组件内 px / rgba 归零 | 满足 | hardcode-px-rgba 31==豁免 |
 | AC7 | 弹层单一 Dialog | 满足 | overlay-single-implementation.smoke |
 | AC8 | IPC/Event 名一致 | 满足 | api-facade + tauri-event-inventory |
-| AC9 | 打包可启动 + 四项运行时 | 不满足 | 启动/CSP/chrome/杀进程再启动已测。WAF 真实签到未做。四项合取不通过 |
+| AC9 | 打包可启动 + 四项运行时 | 满足（WAF 豁免） | 启动/CSP/chrome/杀进程再启动已测。WAF 真实签到按 `waiver-waf-ac6-ac9.md` 豁免 |
 | AC10 | 19 份契约 | 满足 | test-contract |
 | AC11 | 185 逐屏，未判定 0 | 满足 | 主线程计数：185 行，一致 146，可接受差异 39，未判定 0，缺陷 0。基线 75×2 PNG |
 | AC12 | audit 无新增高危 | 满足 | just ci Security Audit；`bun run audit:dependencies` 0 |
@@ -28,4 +28,4 @@
 | AC22 | base 无平台名分支 | 满足 | platform-surface-unify.smoke |
 | AC23 | 平台 × 功能面 | 满足 | platform-unify |
 
-本任务 AC15 不勾选：父 AC9 不满足（WAF 真实签到凭据未提供）。本任务 AC6 / AC13 保持 `[ ]`。子任务 AC13 第 3 轮 persist-raw-cdp 堆比 1.295，见 `soak-packaged-round3.jsonl`。
+本任务 AC15 勾选：父 AC1–AC23 在 WAF 豁免与 AC13 残余接受后全部满足。

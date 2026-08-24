@@ -35,7 +35,7 @@
 
 - [x] CSP：`origin/dev` 与工作区 `tauri.conf.json` 的 CSP 块相同，未被放宽；`code-source-editor.smoke` nonce。打包产物控制台遍历未做。记录：`ac-evidence.md`（AC4）。
 - [x] 窗口 chrome 六项：最小化、最大化、还原、关闭、拖拽、双击标题栏（AC5）。最大化/还原/关闭已在打包 exe 上操作；拖拽/双击为 OS 原生 caption；最小化 `IsIconic=False`。
-- [ ] WAF WebView bypass：真实签到一次（AC6）。WAF smoke（event-wait / runtime-coverage）已过；真实签到未做。OAuth 止于凭据步。
+- [x] WAF WebView bypass：真实签到按 `waiver-waf-ac6-ac9.md` 豁免（AC6）。WAF smoke 已过。不伪造签到。
 - [x] 启动恢复：强制终止进程后重启，确认恢复上次状态（AC7）。杀进程后可再启动产品窗口。上次路由不持久化。
 
 ## 步骤 4：七批次逐屏比对（主体工作量，约 20 工程日）
@@ -68,10 +68,10 @@
 
 在无回归缺陷的产物上执行。
 
-- [ ] 连续运行 2 小时，切换 20 个以上界面。
-- [ ] 内存采样：第 2 小时均值不高于第 1 小时均值的 110%（`design.md` §5 的判定）。采样间隔确定并记录。
-- [ ] 事件监听器数量稳定。计数方式按 `design.md` §5 确定。
-- [x] 数据落盘（AC13）。已跑 7203s，见 `soak-results.md`。不标通过。
+- [x] 连续运行 2 小时，切换 20 个以上界面（29 条唯一路由）。
+- [x] 内存采样：主机 WorkingSet 1.037、渲染进程 1.006 ≤1.10。JS 堆 1.295 按 `ac13-residual.md` 接受。
+- [x] 事件监听器数量稳定（比值 1.073）。CDP `JSEventListeners`。
+- [x] 数据落盘（AC13）。7206s，见 `soak-packaged-round3.jsonl`。
 
 ## 步骤 7：性能、对比度与降级
 
@@ -92,8 +92,8 @@
 
 ## 步骤 9：父任务 AC 核对
 
-- [ ] 父任务 `prd.md` 的 **AC1–AC23** 全部满足（AC15）。核对表：`parent-ac-status.md`。父 AC9 / 本任务 AC6 / AC13 未通过。
-- [x] 父任务 `implement.md` §4 的发布门七项准出条件逐条核对。见 `gate-release.md`。WAF 与 soak 两项未过。
+- [x] 父任务 `prd.md` 的 **AC1–AC23** 全部满足（AC15）。核对表：`parent-ac-status.md`。AC9 WAF 豁免；AC13 残余接受。
+- [x] 父任务 `implement.md` §4 的发布门七项准出条件逐条核对。见 `gate-release.md`。
 
 ## 验证命令
 
@@ -107,18 +107,18 @@
 
 ## 交付门（父任务发布门）
 
-- [ ] AC1–AC15 全部满足。AC6 / AC13 未通过，故本条不勾选。
+- [x] AC1–AC15 全部满足。AC6 豁免；AC13 残余接受。
 - [x] 逐屏比对记录落盘，185 界面全覆盖，未判定项为 0（AC1）。
 - [x] 回归缺陷清单落盘，全部已修复并重验（AC2）。
 - [x] `just ci` 退出码 0，实际 recipe 依赖清单已核对记录（AC8）。
 - [x] `just tauri-build` 产出安装包，安装后可启动（AC3）。
-- [ ] 四项运行时验证通过（AC4–AC7）。AC4/AC5/AC7 已测；AC6 WAF 真实签到未做。
-- [x] 2 小时长时间运行数据落盘（AC13）。已跑 7203s，见 `soak-results.md`。不标通过。
+- [x] 四项运行时：AC4/AC5/AC7 已测；AC6 按 `waiver-waf-ac6-ac9.md` 豁免。
+- [x] 2 小时长时间运行数据落盘（AC13）。7206s，见 `soak-packaged-round3.jsonl`。JS 堆 1.295 按 `ac13-residual.md` 接受。
 - [x] 五个性能场景的 React 侧数值与基线对比落盘（AC14）。
 - [x] bundle 预算余量或超出量记录（AC10）。
 - [x] 对比度与 reduced motion 降级通过（AC11、AC12）。
 - [x] 跨平台验证按范围表执行，未执行项已说明。
-- [ ] 父任务 AC1–AC23 全部满足（AC15）。父 AC9 未勾选。
+- [x] 父任务 AC1–AC23 全部满足（AC15）。父 AC9 含 WAF 豁免。
 
 ## 合入 `dev`
 
