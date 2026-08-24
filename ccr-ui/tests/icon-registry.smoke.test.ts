@@ -1,7 +1,12 @@
-import { getIcon } from '@iconify/vue'
+import { getIcon } from '@iconify/react'
+import { readFileSync } from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { iconMap } from '@/config/icons'
 import { registerAppIcons } from '@/config/iconRegistry'
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 
 const solarPrefix = 'solar:'
 
@@ -33,5 +38,13 @@ describe('icon registry smoke', () => {
     })
 
     expect(invalidCanvasIcons).toEqual([])
+  })
+
+  it('registers into @iconify/react before the React tree mounts', () => {
+    const registry = readFileSync(path.join(root, 'src/config/iconRegistry.ts'), 'utf8')
+    const main = readFileSync(path.join(root, 'src/main.tsx'), 'utf8')
+    expect(registry).toContain("from '@iconify/react'")
+    expect(registry).not.toContain("from '@iconify/vue'")
+    expect(main).toContain('registerShellIcons()')
   })
 })

@@ -18,3 +18,18 @@ export const queryClient = new QueryClient({
     },
   },
 })
+
+if (typeof window !== 'undefined') {
+  Object.defineProperty(window, '__CCR_SOAK_STATS', {
+    configurable: true,
+    value: () => {
+      const queries = queryClient.getQueryCache().getAll()
+      return {
+        queries: queries.length,
+        active: queries.filter((query) => query.getObserversCount() > 0).length,
+        mutations: queryClient.getMutationCache().getAll().length,
+        historyLength: window.history.length,
+      }
+    },
+  })
+}

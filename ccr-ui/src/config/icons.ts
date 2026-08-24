@@ -2,7 +2,7 @@
  * Icon Registry - Lucide name -> Solar Bold Duotone ID
  *
  * Single source of truth for all icons in the app.
- * Uses @iconify/vue with @iconify-json/solar for offline rendering.
+ * Uses @iconify/react with the local solar subset for offline rendering.
  */
 export const iconMap = {
   // Navigation & Layout

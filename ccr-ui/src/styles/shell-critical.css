@@ -24,3 +24,21 @@
     animation-iteration-count: 1 !important;
   }
 }
+
+@keyframes route-page-enter {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.route-page {
+  animation: route-page-enter 0.18s ease-out;
+}
+
+[data-reduced-motion='true'] .route-page {
+  animation: none;
+}

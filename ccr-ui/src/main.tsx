@@ -7,6 +7,7 @@ import i18n from './i18n'
 import { queryClient } from './shell/queryClient'
 import { router } from './shell/router'
 import '@/shell/stores/shellPreferences'
+import { registerDeferredIcons, registerShellIcons } from '@/config/iconRegistry'
 import { loadDeferredStyles } from './utils/deferredStyles'
 import { initPerfTelemetry } from './utils/perfTelemetry'
 import { applyReducedMotionToDocument } from './utils/reducedMotion'
@@ -20,6 +21,10 @@ if (!container) {
 }
 
 applyReducedMotionToDocument()
+registerShellIcons()
+void registerDeferredIcons().catch(() => {
+  /* 延迟图标注册失败时保持壳层子集，不让启动 Promise 成为未处理拒绝 */
+})
 loadDeferredStyles()
 initPerfTelemetry()
 installStartupErrorHandlers()

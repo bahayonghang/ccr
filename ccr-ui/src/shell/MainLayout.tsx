@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { AnimatePresence, motion, MotionConfig } from 'motion/react'
+import { MotionConfig } from 'motion/react'
 import { Outlet, useLocation, useNavigation } from 'react-router'
 import {
   mainLayoutGroupTitleMap,
@@ -7,10 +7,8 @@ import {
 } from '@/config/mainLayoutShell'
 import { translateWithFallback } from '@/i18n/formatMessage'
 import { useMainLayoutShell } from '@/shell/hooks/useMainLayoutShell'
-import { usePageTransition } from '@/shell/hooks/usePageTransition'
 import { useShellT } from '@/shell/i18n'
 import { restoreInnerScroll, saveInnerScroll } from '@/shell/innerScroll'
-import { PAGE_TRANSITION_VARIANTS } from '@/shell/pageTransition'
 import { useRouteHandle } from '@/shell/routeHandle'
 import { useShellPreferencesStore } from '@/shell/stores/shellPreferences'
 import { initPerfTelemetry, recordRouteTiming } from '@/utils/perfTelemetry'
@@ -34,7 +32,6 @@ export function MainLayout() {
   const location = useLocation()
   const navigation = useNavigation()
   const handle = useRouteHandle()
-  const { transitionName } = usePageTransition({ depth: handle.depth, group: handle.group })
   const theme = useShellPreferencesStore((state) => state.theme)
   const effectiveTheme = useShellPreferencesStore((state) => state.effectiveTheme)
   const flavor = useShellPreferencesStore((state) => state.flavor)
@@ -87,7 +84,6 @@ export function MainLayout() {
         })
       : t(`theme.${theme}`)
   const shouldUseThemeStage = Boolean(handle.hideGlobalBackground)
-  const variants = PAGE_TRANSITION_VARIANTS[transitionName]
 
   return (
     <MotionConfig reducedMotion="user">
@@ -147,23 +143,16 @@ export function MainLayout() {
           >
             <BackendStatusBanner />
             <ErrorBoundary>
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={location.pathname}
-                  initial={variants.initial}
-                  animate={variants.animate}
-                  exit={variants.exit}
-                  transition={{ duration: 0.18 }}
-                >
-                  {navigation.state === 'loading' ? (
-                    <div className="flex min-h-[12.5rem] items-center justify-center">
-                      <div className="loading-spinner h-8 w-8 border-accent-primary/30 border-t-accent-primary" />
-                    </div>
-                  ) : (
-                    <Outlet />
-                  )}
-                </motion.div>
-              </AnimatePresence>
+              {/* 全页 AnimatePresence 会在路由往返时保留已卸载树的 JS 快照。进出场只做 CSS enter。 */}
+              <div key={location.pathname} className="route-page">
+                {navigation.state === 'loading' ? (
+                  <div className="flex min-h-[12.5rem] items-center justify-center">
+                    <div className="loading-spinner h-8 w-8 border-accent-primary/30 border-t-accent-primary" />
+                  </div>
+                ) : (
+                  <Outlet />
+                )}
+              </div>
             </ErrorBoundary>
           </div>
           <ScrollToTopButton

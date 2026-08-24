@@ -1,10 +1,11 @@
-import { addCollection } from '@iconify/vue'
+import { addCollection } from '@iconify/react'
 import { solarShellIconSubset } from '@/config/solarShellIconSubset'
 
 let hasRegisteredShellIcons = false
 let deferredIconsPromise: Promise<void> | null = null
 
-// 首屏只注册壳层与首页必需图标，降低启动链路体积。
+// 写入 @iconify/react 的本地缓存（与 SIcon 同源）。原先注册进 Vue 包的缓存，
+// React Icon 仍走 API 加载，loader 回调在卸载时因闭包陈旧而不 abort。
 export const registerShellIcons = () => {
   if (hasRegisteredShellIcons) return
 
@@ -12,7 +13,6 @@ export const registerShellIcons = () => {
   hasRegisteredShellIcons = true
 }
 
-// 首帧之后再补齐完整子集，继续保持离线图标能力。
 export const registerDeferredIcons = (): Promise<void> => {
   if (deferredIconsPromise) {
     return deferredIconsPromise
