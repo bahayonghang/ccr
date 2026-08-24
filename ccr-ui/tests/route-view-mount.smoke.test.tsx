@@ -138,6 +138,10 @@ vi.mock('react-apexcharts', () => ({
   default: () => <div data-testid="mock-apex-chart" />,
 }))
 
+vi.mock('@/utils/apexChartsCore', () => ({
+  default: () => <div data-testid="mock-apex-chart" />,
+}))
+
 vi.mock('@uiw/react-codemirror', () => ({
   default: () => <textarea data-testid="mock-codemirror" />,
 }))

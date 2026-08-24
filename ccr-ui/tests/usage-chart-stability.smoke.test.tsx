@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createChartController } from '@/features/usage/charts/chartController'
-import { createThrottledResize } from '@/features/usage/charts/chartResize'
+import { createThrottledResize } from '@/utils/chartResize'
 
 describe('usage chart stability', () => {
   it('updates series without reconstructing the chart', async () => {
@@ -60,6 +60,20 @@ describe('usage chart stability', () => {
     expect(onResize).toHaveBeenCalledTimes(1)
     vi.advanceTimersByTime(150)
     expect(onResize.mock.calls.length).toBeLessThanOrEqual(2)
+    vi.useRealTimers()
+  })
+
+  it('cancels a pending resize timer so onResize does not run after cancel', () => {
+    vi.useFakeTimers()
+    const onResize = vi.fn()
+    const throttled = createThrottledResize(onResize, 150)
+    throttled()
+    const callsAfterStart = onResize.mock.calls.length
+    expect(callsAfterStart).toBeGreaterThanOrEqual(1)
+    throttled()
+    throttled.cancel()
+    vi.advanceTimersByTime(150)
+    expect(onResize).toHaveBeenCalledTimes(callsAfterStart)
     vi.useRealTimers()
   })
 })

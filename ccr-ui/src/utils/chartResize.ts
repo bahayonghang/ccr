@@ -1,20 +1,32 @@
 export const CHART_RESIZE_THROTTLE_MS = 150
 
+export type ThrottledResize = (() => void) & { cancel: () => void }
+
 /** 节流窗口缩放回调，避免连续 resize 触发图表重建。 */
 export function createThrottledResize(
   onResize: () => void,
   waitMs = CHART_RESIZE_THROTTLE_MS,
-): () => void {
+): ThrottledResize {
   let lastRun = 0
   let timer: ReturnType<typeof setTimeout> | null = null
+  let cancelled = false
 
-  return () => {
+  const cancel = () => {
+    cancelled = true
+    if (timer === null) return
+    clearTimeout(timer)
+    timer = null
+  }
+
+  const throttled: ThrottledResize = () => {
+    if (cancelled) return
     const now = Date.now()
     const remaining = waitMs - (now - lastRun)
 
     const run = () => {
       lastRun = Date.now()
       timer = null
+      if (cancelled) return
       onResize()
     }
 
@@ -30,4 +42,7 @@ export function createThrottledResize(
     if (timer) return
     timer = setTimeout(run, remaining)
   }
+
+  throttled.cancel = cancel
+  return throttled
 }

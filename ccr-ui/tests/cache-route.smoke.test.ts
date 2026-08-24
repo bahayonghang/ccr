@@ -27,6 +27,10 @@ describe('cache-route store R/W（AC4）', () => {
 
   it('dashboard 数据由 QueryClient 承担，无需额外视图 store', () => {
     expect(queryClient.getDefaultOptions().queries?.staleTime).toBe(30_000)
+    const gcTime = queryClient.getDefaultOptions().queries?.gcTime
+    expect(typeof gcTime).toBe('number')
+    expect(gcTime).toBeGreaterThan(0)
+    expect(gcTime).toBeLessThanOrEqual(120_000)
   })
 
   it('grok 选中态写入后可取回', () => {

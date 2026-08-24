@@ -40,6 +40,10 @@ vi.mock('react-apexcharts', () => ({
   default: () => <div data-testid="mock-apex-chart" />,
 }))
 
+vi.mock('@/utils/apexChartsCore', () => ({
+  default: () => <div data-testid="mock-apex-chart" />,
+}))
+
 import { ClaudeCodeView } from '@/features/claude/ClaudeCodeView'
 
 const renderView = (node: ReactNode) => {

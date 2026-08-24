@@ -26,6 +26,10 @@ vi.mock('react-apexcharts', () => ({
   default: () => <div data-testid="mock-apex-chart" />,
 }))
 
+vi.mock('@/utils/apexChartsCore', () => ({
+  default: () => <div data-testid="mock-apex-chart" />,
+}))
+
 vi.mock('@tauri-apps/api/core', () => ({
   invoke: vi.fn(async () => ({})),
 }))

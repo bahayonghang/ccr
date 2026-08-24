@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { surfaceNotify } from '@/configs/surfaceNotify'
 import { EmptyState, PageHeader, PageShell, SIcon, StatTile } from '@/ui'
@@ -31,6 +31,7 @@ export function GrokView() {
     refresh,
   } = dashboard
   const [copiedCommand, setCopiedCommand] = useState<string | null>(null)
+  const copyTimerRef = useRef<number | null>(null)
 
   const handleRefresh = useCallback(() => {
     void refresh(true)
@@ -46,13 +47,23 @@ export function GrokView() {
     }
   }, [refreshError])
 
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current === null) return
+      window.clearTimeout(copyTimerRef.current)
+      copyTimerRef.current = null
+    }
+  }, [])
+
   const copyCommand = useCallback(async (command: string) => {
     if (!(await copyText(command))) {
       surfaceNotify.error(t('grok.dashboard.commands.copyFailed'))
       return
     }
     setCopiedCommand(command)
-    window.setTimeout(() => {
+    if (copyTimerRef.current !== null) window.clearTimeout(copyTimerRef.current)
+    copyTimerRef.current = window.setTimeout(() => {
+      copyTimerRef.current = null
       setCopiedCommand((current) => (current === command ? null : current))
     }, 1600)
   }, [])

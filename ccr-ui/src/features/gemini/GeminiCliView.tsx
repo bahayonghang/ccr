@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { PageHeader, PageShell, SIcon } from '@/ui'
 import { copyText } from '@/utils/clipboard'
@@ -21,11 +21,22 @@ export function GeminiCliView() {
   const modules = useMemo(() => geminiModuleCards(), [])
   const quick = useMemo(() => geminiQuickCards(), [])
   const [copiedCommand, setCopiedCommand] = useState<string | null>(null)
+  const copyTimerRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current === null) return
+      window.clearTimeout(copyTimerRef.current)
+      copyTimerRef.current = null
+    }
+  }, [])
 
   const copyCommand = useCallback(async (command: string) => {
     if (!(await copyText(command))) return
     setCopiedCommand(command)
-    window.setTimeout(() => {
+    if (copyTimerRef.current !== null) window.clearTimeout(copyTimerRef.current)
+    copyTimerRef.current = window.setTimeout(() => {
+      copyTimerRef.current = null
       setCopiedCommand((current) => (current === command ? null : current))
     }, 1600)
   }, [])

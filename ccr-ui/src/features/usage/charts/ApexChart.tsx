@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useRef } from 'react'
 import type { ApexOptions } from 'apexcharts'
 import { ChartErrorBoundary } from './ChartErrorBoundary'
-import { createThrottledResize } from './chartResize'
+import { createThrottledResize } from '@/utils/chartResize'
 
 const ReactApexChart = lazy(() => import('@/utils/apexChartsCore'))
 
@@ -33,7 +33,16 @@ function ApexChartInner({
     })
     window.addEventListener('resize', handleResize)
     return () => {
+      handleResize.cancel()
       window.removeEventListener('resize', handleResize)
+      const chart = chartRef.current as { destroy?: () => void } | null
+      try {
+        chart?.destroy?.()
+      } catch {
+        // react-apexcharts 卸载路径可能已经 destroy
+      } finally {
+        chartRef.current = null
+      }
     }
   }, [])
 

@@ -40,6 +40,10 @@ vi.mock('react-apexcharts', () => ({
   default: () => <div data-testid="mock-apex-chart" />,
 }))
 
+vi.mock('@/utils/apexChartsCore', () => ({
+  default: () => <div data-testid="mock-apex-chart" />,
+}))
+
 import { UsageInsightPanel } from '@/features/claude/observer/UsageInsightPanel'
 
 const renderPanel = () => {

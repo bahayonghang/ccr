@@ -1,8 +1,16 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
+
+const clipboardMocks = vi.hoisted(() => ({
+  copyText: vi.fn().mockResolvedValue(true),
+}))
+
+vi.mock('@/utils/clipboard', () => ({
+  copyText: clipboardMocks.copyText,
+}))
 
 vi.mock('@/api', () => ({
   grokApi: {
@@ -50,5 +58,27 @@ describe('grok-view', () => {
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: /Grok|grok\.overview\.title/ })).toBeTruthy()
     })
+  })
+
+  it('clears the copy-command timer on unmount before 1600ms', async () => {
+    clipboardMocks.copyText.mockResolvedValue(true)
+    const setTimeoutSpy = vi.spyOn(window, 'setTimeout')
+    const clearTimeoutSpy = vi.spyOn(window, 'clearTimeout')
+
+    const view = renderView(<GrokView />)
+    const command = await screen.findByText('ccr grok profile list')
+    const copyButton = command.parentElement?.querySelector('button')
+    expect(copyButton).toBeTruthy()
+    fireEvent.click(copyButton as HTMLButtonElement)
+    await waitFor(() => {
+      expect(clipboardMocks.copyText).toHaveBeenCalled()
+      expect(setTimeoutSpy.mock.calls.some((call) => call[1] === 1600)).toBe(true)
+    })
+    const copyIndex = setTimeoutSpy.mock.calls.findIndex((call) => call[1] === 1600)
+    const copyTimerId = setTimeoutSpy.mock.results[copyIndex]?.value as ReturnType<typeof window.setTimeout>
+    view.unmount()
+    expect(clearTimeoutSpy).toHaveBeenCalledWith(copyTimerId)
+    setTimeoutSpy.mockRestore()
+    clearTimeoutSpy.mockRestore()
   })
 })

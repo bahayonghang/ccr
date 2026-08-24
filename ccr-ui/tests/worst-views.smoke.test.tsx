@@ -41,6 +41,10 @@ vi.mock('react-apexcharts', () => ({
   default: () => <div data-testid="mock-apex-chart" />,
 }))
 
+vi.mock('@/utils/apexChartsCore', () => ({
+  default: () => <div data-testid="mock-apex-chart" />,
+}))
+
 vi.mock('@/api/runtime/environment', () => ({
   getCurrentEnvironment: vi.fn().mockResolvedValue({ env_type: 'local', id: 'local' }),
   isTauriEnvironment: () => false,
