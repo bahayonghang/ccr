@@ -11,7 +11,7 @@
 //
 // 框架无关：只依赖 DOM + performance API + playwright CDP 驱动。
 // 运行：bun ./scripts/perf/perf-chart-update.mjs --cdp-url http://127.0.0.1:9222 --runs 3
-import { parseArgs, round, printJson, rsd, mean, percentiles, connectDesktopPage } from './_lib.mjs'
+import { parseArgs, round, printJson, rsd, mean, percentiles, connectDesktopPage, launchPage } from './_lib.mjs'
 
 // 桌面运行时经 CDP 连接，baseUrl 默认指向 tauri dev 的 devUrl（与 connectDesktopPage 配套）
 const DEFAULT_DESKTOP_BASE = 'http://127.0.0.1:15173'
@@ -126,14 +126,17 @@ const measureRun = async (page) => {
 const main = async () => {
   const args = parseArgs(process.argv.slice(2), { baseUrl: DEFAULT_DESKTOP_BASE })
   const warmup = args.runs > 1
-  const { browser, page } = await connectDesktopPage(args.cdpUrl)
+  const useWeb = process.argv.includes('--web')
+  const { browser, page } = useWeb
+    ? await launchPage()
+    : await connectDesktopPage(args.cdpUrl)
   const results = []
 
   try {
     await page.goto(args.baseUrl + '/usage', { waitUntil: 'domcontentloaded', timeout: 30000 })
     await page.waitForSelector('.apexcharts-canvas', { timeout: 20000 })
     await setupChartObserver(page)
-    await page.waitForTimeout(2500)
+    await page.waitForTimeout(4000)
 
     if (warmup) {
       await measureRun(page)

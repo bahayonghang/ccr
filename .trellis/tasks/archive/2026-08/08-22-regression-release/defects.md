@@ -8,7 +8,7 @@
 | --- | --- | --- | --- |
 | D1 | 构建 | 已修复 | `app-settings.css` 增加 `@reference`；主线程 `bun run build` 与 `just frontend-check` 均为 EXIT=0 |
 
-视觉比对 185 行无「缺陷」判定。AC2 要求清单项全部修复并重验，本清单仍有未修复项，AC2 不勾选。
+视觉比对 185 行无「缺陷」判定。D1 已修复并经 `bun run build`、`just frontend-check`、`just ci` 重验。AC2 勾选。
 
 ## D1 `gap-5` 导致生产构建失败
 

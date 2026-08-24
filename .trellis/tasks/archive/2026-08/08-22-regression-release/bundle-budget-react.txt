@@ -1,0 +1,9 @@
+$ bun ./scripts/check-bundle-budget.mjs
+[bundle-budget] index: index-5ttdN54c.js raw=230.48 KiB gzip=72.92 KiB
+[bundle-budget] react-vendor: react-vendor-BOcZQ-dY.js raw=265.24 KiB gzip=83.35 KiB
+[bundle-budget] query-vendor: query-vendor-DEgXC9yG.js raw=34.73 KiB gzip=10.18 KiB
+[bundle-budget] largest-lazy: logger-C06Iqv4e.js raw=143.32 KiB gzip=10.86 KiB
+[bundle-budget] core.css: index-D2Z9poxD.css raw=188.68 KiB gzip=27.88 KiB
+[bundle-budget] shell-icons: solarShellIconSubset.ts raw=24.19 KiB gzip=7.73 KiB
+[bundle-budget] startup-font-css: (none) raw=0.00 KiB gzip=0.02 KiB
+[bundle-budget] motion: motion-vendor-Do058HhP.js actual=118.38 KiB / 38.10 KiB reserved=128.00 KiB / 44.00 KiB锛堥鐣欏€?128 / 44 KiB锛歳olldown 瀹炴祴 motion/react + AnimatePresence 鍏稿瀷浣跨敤闈?121.89 raw / 39.19 gzip 鍙栨暣锛?[bundle-budget] zod: zod-BkJwUjWR.js actual=66.37 KiB / 17.93 KiB reserved=80.00 KiB / 24.00 KiB锛堝彂甯冮棬閲嶈 80 / 24 KiB锛氫骇鐗╀负 zod-*.js 涓撶敤 chunk锛堣鍥捐縼绉诲悗 react-hook-form/zod 宸插鍏ワ級锛屽疄娴嬬害 66 raw / 18 gzip锛屼綑閲忕害 20%锛?[bundle-budget] PASS all budgets satisfied

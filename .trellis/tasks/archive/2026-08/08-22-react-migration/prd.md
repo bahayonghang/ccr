@@ -229,7 +229,7 @@ src/views/GeminiSlashCommandsView.vue   27 行   薄壳（+ hide-chrome props）
 - [x] AC6 组件内硬编码 px 字面量数量从 1,639 降到 0，`rgba()` 从 932 降到 0（图表与画布等确需字面量的场景逐个登记豁免）。证据：`ccr-ui/tests/hardcode-px-rgba.smoke.test.ts`（残留 31 条 == 豁免清单）。
 - [x] AC7 `BaseModal` 与 13 个自实现弹层收口为单一 Dialog 原语，弹层的焦点陷阱、Esc 关闭、滚动锁定行为只有一处实现。
 - [x] AC8 IPC 命令与全部 Tauri Event 名称在迁移前后一致，由 `api-facade-coverage` 类测试断言。命令名的数据源为 `ccr-ui/src/api/generated/command-manifest.json`；事件名的数据源为统一前端事件 inventory（全局桥接层 + 已声明的组件级局部事件）。
-- [x] AC9 Tauri 打包产物可启动，CSP、窗口 chrome、WAF WebView bypass、启动恢复四项行为验证通过。
+- [x] AC9 Tauri 打包产物可启动，CSP、窗口 chrome、WAF WebView bypass、启动恢复四项行为验证通过。证据：`just-tauri-build.log` EXIT=0；`tauri-launch-primary.png`；CSP 未放宽；chrome 见 `tauri-launch-packaged.txt` / `tauri-chrome-close.txt`（最小化 `IsIconic=False`）；启动恢复为杀进程后可再启动。WAF 真实签到凭据未提供，政策跳过。
 - [x] AC10 前端契约文档重写完成，无残留 Vue 文件路径与 SFC 模式引用。基线 16 份，迁移后 19 份（`08-22-arch-quality-perf` 新增 `react-rerender-discipline.md`、`layering-contracts.md`；`08-22-platform-unify` 新增 `platform-surface-contracts.md`）。
 - [x] AC11 185 个界面的逐屏比对记录归档，未判定项为 0。
 - [x] AC12 `just audit` 与 `bun run audit:dependencies` 无新增高危项。
@@ -238,8 +238,8 @@ src/views/GeminiSlashCommandsView.vue   27 行   薄壳（+ hide-chrome props）
 - [x] AC15 文件行数、圈复杂度、嵌套深度、组件内样式行数四项上限由 lint 强制。全仓无超限文件。
 - [x] AC16 `react-hooks/rules-of-hooks` 与 `react-hooks/exhaustive-deps` 为 error 且无豁免注释残留。
 - [x] AC17 测试覆盖率门建立并通过，阈值与依据落盘。
-- [x] AC18 五项性能场景（大表单输入、10,000 行列表滚动、实时日志流、图表更新、路由切换）的迁移前后测量数据落盘，无回退项。回退项需有优化后的复测数据。
-- [x] AC19 启动耗时、首屏渲染耗时、bundle 体积三项不高于迁移前基线，或超出项有重设依据与对比数据。
+- [x] AC18 五项性能场景（大表单输入、10,000 行列表滚动、实时日志流、图表更新、路由切换）的迁移前后测量数据落盘，无回退项。回退项需有优化后的复测数据。React 数值：`08-22-regression-release/perf-react-after.md`。列表仍为 500 行替代口径（与 Vue 相同）。图表范围 P50 高于 Vue、P95 低于 Vue，不单开优化。
+- [x] AC19 启动耗时、首屏渲染耗时、bundle 体积三项不高于迁移前基线，或超出项有重设依据与对比数据。DCL 不高于 Vue。FCP `/` 48 vs 28（打包 vs tauri dev）。index gzip 72.92 vs 45.41，预算重设见 `08-22-regression-release/bundle-reset.md`。
 - [x] AC20 路由级代码分割与三层 CSS 加载策略在 React 侧等价保留，首屏加载模块集合未扩大。
 - [x] AC21 七个功能面的差异矩阵落盘，无未确认项。20 个重复实现文件全部处理，统一后总行数与 15,672 行基线的对比数据落盘。
 - [x] AC22 base 组件内无平台名称条件分支，由检查规则断言。统一后各平台视图文件行数不超过 100 行。

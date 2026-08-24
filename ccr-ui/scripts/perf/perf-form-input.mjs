@@ -8,7 +8,7 @@
 //
 // 框架无关：只依赖 DOM + performance API + playwright 驱动，无 vue/react import。
 // 运行：bun ./scripts/perf/perf-form-input.mjs --base-url http://127.0.0.1:4180 --runs 3
-import { parseArgs, percentiles, round, printJson, rsd, mean, launchPage } from './_lib.mjs'
+import { parseArgs, percentiles, round, printJson, rsd, mean, launchPage, connectDesktopPage } from './_lib.mjs'
 
 const CHARS = 200
 const TYPE_DELAY_MS = 8 // 每键间隔，保证大部分按键落在独立帧，样本量与帧率解耦
@@ -30,14 +30,16 @@ const PAGE_CONFIGS = [
   {
     name: 'ClaudeCodeSettingsView',
     route: '/claude-code/settings',
-    readySelector: '.claude-settings-view, #app > *',
-    inputSelector: 'input.claude-settings-control[placeholder="31999"]',
+    // React BaseSettings：默认 model 页，maxOutputTokens 对应 Vue 占位 31999 的输出上限字段
+    readySelector: '#platform-settings-form, #app > *',
+    inputSelector: 'input[name="maxOutputTokens"]',
   },
   {
     name: 'CodexSettingsView',
     route: '/codex/settings',
-    readySelector: '#app > *',
-    inputSelector: 'input.settings-input[placeholder^="gpt-5"]',
+    // React BaseSettings：默认 model 页，model 文本框对应 Vue placeholder^="gpt-5"
+    readySelector: '#platform-settings-form, #app > *',
+    inputSelector: 'input[name="model"]',
   },
 ]
 
@@ -84,7 +86,10 @@ const measurePage = async (page, config) => {
 const main = async () => {
   const args = parseArgs(process.argv.slice(2))
   const warmup = args.runs > 1
-  const { browser, page } = await launchPage()
+  const useCdp = process.argv.includes('--cdp')
+  const { browser, page } = useCdp
+    ? await connectDesktopPage(args.cdpUrl)
+    : await launchPage()
   const results = []
 
   try {
@@ -97,12 +102,24 @@ const main = async () => {
     for (let run = 1; run <= args.runs; run++) {
       const runResult = []
       for (const config of PAGE_CONFIGS) {
-        const row = await measurePage(page, { ...config, baseUrl: args.baseUrl })
-        runResult.push(row)
-        console.log(
-          `[perf-form-input] run${run} ${row.page} ${row.route} samples=${row.samples} ` +
-          `P50=${round(row.stats.P50, 2)}ms P95=${round(row.stats.P95, 2)}ms mean=${round(row.stats.mean, 2)}ms`,
-        )
+        try {
+          const row = await measurePage(page, { ...config, baseUrl: args.baseUrl })
+          runResult.push(row)
+          console.log(
+            `[perf-form-input] run${run} ${row.page} ${row.route} samples=${row.samples} ` +
+            `P50=${round(row.stats.P50, 2)}ms P95=${round(row.stats.P95, 2)}ms mean=${round(row.stats.mean, 2)}ms`,
+          )
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error)
+          console.log(`[perf-form-input] run${run} ${config.name} ${config.route} FAILED ${message}`)
+          runResult.push({
+            page: config.name,
+            route: config.route,
+            samples: 0,
+            stats: {},
+            error: message,
+          })
+        }
       }
       results.push(runResult)
     }
@@ -112,18 +129,26 @@ const main = async () => {
 
   const summary = PAGE_CONFIGS.map((config, i) => {
     const perRun = results.map((r) => r[i])
-    const p50s = perRun.map((r) => r.stats.P50)
-    const p95s = perRun.map((r) => r.stats.P95)
+    const ok = perRun.filter((r) => !r.error && Number.isFinite(r.stats?.P50))
+    const p50s = ok.map((r) => r.stats.P50)
+    const p95s = ok.map((r) => r.stats.P95)
     return {
       page: config.name,
       route: config.route,
-      runs: perRun.map((r) => ({ samples: r.samples, P50: round(r.stats.P50, 2), P95: round(r.stats.P95, 2) })),
-      aggregate: {
-        P50: round(mean(p50s), 2),
-        P95: round(mean(p95s), 2),
-        P50_RSD: round(rsd(p50s) * 100, 1),
-        P95_RSD: round(rsd(p95s) * 100, 1),
-      },
+      runs: perRun.map((r) => (
+        r.error
+          ? { samples: 0, error: r.error }
+          : { samples: r.samples, P50: round(r.stats.P50, 2), P95: round(r.stats.P95, 2) }
+      )),
+      aggregate: ok.length === 0
+        ? { error: 'no successful runs' }
+        : {
+            P50: round(mean(p50s), 2),
+            P95: round(mean(p95s), 2),
+            P50_RSD: round(rsd(p50s) * 100, 1),
+            P95_RSD: round(rsd(p95s) * 100, 1),
+            n: ok.length,
+          },
     }
   })
 

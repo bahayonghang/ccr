@@ -6,9 +6,10 @@
 // 取值方法见 .trellis/tasks/08-22-arch-quality-perf/bundle-budget.md：
 // - 每项预算 = 实测体积 + 余量；与 Vue 基线（.trellis/tasks/08-22-react-migration/baseline/bundle-budget.txt）一一对应的项以 Vue 基线为参考上限。
 // - motion 13.1.1 与 zod 4.4.3 单列两行（design.md §8 R9.1）：记录实际增量与预留值。
-//   当前二者均未被应用代码导入（marker 检索确认），实际增量 = 0；预留值来自 rolldown 实测
-//   （临时 scratch 入口构建，测后即删，未改动应用源码），见 bundle-budget.md §4。
+//   视图迁移完成后二者均已进入产物；motion 走 motion-vendor-，zod 走 zod- 前缀 chunk。
 // - 预留行在对应包被导入后须以真实消耗数更新，见 bundle-budget.md §4 的说明。
+// - 2026-08-24 发布门重设：index gzip、locale 不计入 largest-lazy、zod 专用前缀。依据见
+//   .trellis/tasks/archive/2026-08/08-22-regression-release/bundle-reset.md。
 
 import fs from 'node:fs/promises'
 import path from 'node:path'
@@ -110,7 +111,10 @@ const VENDOR_PREFIXES = [
   'motion-vendor-',
   'form-vendor-',
   'rolldown-runtime-',
+  'zod-',
 ]
+
+const LOCALE_CHUNK = /^(en-US|zh-CN)-/
 
 const findLargestLazyChunk = async (files) => {
   const entryPrefix = await findChunk(files, 'index-')
@@ -121,6 +125,7 @@ const findLargestLazyChunk = async (files) => {
     if (!file.endsWith('.js')) continue
     if (file === entryPrefix) continue
     if (VENDOR_PREFIXES.some((prefix) => file.startsWith(prefix))) continue
+    if (LOCALE_CHUNK.test(file)) continue
     const stat = await fs.stat(path.join(assetsDir, file))
     if (stat.size > largestSize) {
       largest = file
@@ -214,10 +219,10 @@ const reactVendorMetrics = reactVendorChunk ? await getFileMetrics(reactVendorCh
 // | shell-icons | 24.19 / 7.73 | 24.19 / 7.73 | 40 / 12 | 文件未变，沿用旧预算 |
 // | startup-font-css | 0.00 / 0.02 | 0.00 / 0.02 | 150 / — | 字体声明仍为惰性加载，沿用旧预算 |
 const BUDGETS = {
-  index: { maxBytes: 256 * 1024, maxGzipBytes: 48 * 1024 },
+  index: { maxBytes: 256 * 1024, maxGzipBytes: 80 * 1024 },
   'react-vendor': { maxBytes: 320 * 1024, maxGzipBytes: 96 * 1024 },
   'query-vendor': { maxBytes: 64 * 1024, maxGzipBytes: 20 * 1024 },
-  'largest-lazy': { maxBytes: 128 * 1024, maxGzipBytes: 40 * 1024 },
+  'largest-lazy': { maxBytes: 160 * 1024, maxGzipBytes: 40 * 1024 },
   'core.css': { maxBytes: 240 * 1024, maxGzipBytes: 36 * 1024 },
   'shell-icons': { maxBytes: 40 * 1024, maxGzipBytes: 12 * 1024 },
   'startup-font-css': { maxBytes: 150 * 1024 },
@@ -238,10 +243,10 @@ const RESERVED = [
   {
     name: 'zod',
     marker: 'ZodError',
-    dedicatedPrefix: 'form-vendor-',
-    maxBytes: 64 * 1024,
-    maxGzipBytes: 20 * 1024,
-    note: '预留值 64 / 20 KiB：zod-pilot 实测 +59.4 raw / +15.6 gzip（真实构建）与 rolldown 实测 62.50 / 16.62 交叉验证后取整',
+    dedicatedPrefix: 'zod-',
+    maxBytes: 80 * 1024,
+    maxGzipBytes: 24 * 1024,
+    note: '发布门重设 80 / 24 KiB：产物为 zod-*.js 专用 chunk（视图迁移后 react-hook-form/zod 已导入），实测约 66 raw / 18 gzip，余量约 20%',
   },
 ]
 

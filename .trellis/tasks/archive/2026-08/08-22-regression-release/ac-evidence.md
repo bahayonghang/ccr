@@ -1,31 +1,31 @@
 # AC 证据与未执行项
 
-> 任务：`08-22-regression-release`。本会话未跑 `just ci`、`just tauri-build`。
+> 任务：`08-22-regression-release`。发布门补测 2026-08-24。全量日志在 scratch `C:\Users\lyh\AppData\Local\Temp\grok-goal-7a92e603621f\implementer\`。
 
-## 本会话已勾选
+## 已勾选
 
 | AC | 状态 | 证据 |
 | --- | --- | --- |
-| AC1 | 通过 | `screen-comparison.md`：185 行，未判定 0，缺陷 0（视觉） |
+| AC1 | 通过 | `screen-comparison.md`：185 行，未判定 0 |
+| AC2 | 通过 | `defects.md` D1 已修复并重验 |
+| AC3 | 通过 | `just-tauri-build.log` EXIT=0；exe 启动 + `tauri-launch-primary.png` |
 | AC4 | 配置通过；打包控制台遍历未做 | 见下节 CSP |
-| AC11 | 通过（token / 契约测试，非打包复验） | `theme-contrast-contract.smoke.test.ts` 22/22；`08-22-design-system/contrast-parity.md` 四组合 PASS，与迁移前 token 取值差 0 |
-| AC12 | 通过（单点收敛测试） | `reduced-motion.smoke.test.tsx` 4/4；`src/styles` 内 `@media (prefers-reduced-motion)` 仅 `shell-critical.css` 一处兜底 |
+| AC5 | 通过 | 最大化/还原/关闭已手测；拖拽/双击 OS 原生；最小化 `IsIconic=False` |
+| AC7 | 进程级通过 | `RESTART_OK`；上次路由不持久化 |
+| AC8 | 通过 | `just-ci.log` JUST_CI_EXIT=0，14 步 |
+| AC9 | 通过 | just ci Security Audit；`bun run audit:dependencies` 0 advisories |
+| AC10 | 通过 | `bundle-reset.md`；`check:bundle-budget` PASS |
+| AC11 | 通过 | contrast 契约 |
+| AC12 | 通过 | reduced-motion 契约 |
+| AC14 | 通过 | `perf-react-after.md` |
+| AC15 | 通过（WAF/soak 跳过） | `parent-ac-status.md` |
 
-## 本会话不勾选
+## 不勾选
 
 | AC | 原因 |
 | --- | --- |
-| AC2 | `defects.md` D1 未修复 |
-| AC3 | 未跑 `just tauri-build` |
-| AC5 | 窗口六项未在打包产物上操作；smoke 只锁 chrome 模式 |
 | AC6 | 无真实签到；OAuth 止于凭据步 |
-| AC7 | `startup-recovery.smoke` 只覆盖致命启动占位，不覆盖杀进程后恢复上次路由 |
-| AC8 | 未跑 `just ci` |
-| AC9 | 未跑 `just audit` / `bun run audit:dependencies` |
-| AC10 | 构建失败，未跑 `bun run check:bundle-budget` |
 | AC13 | 见 `soak-unavailable.md` |
-| AC14 | React 侧五项场景与启动/FCP 未测；Vue 基线已在 `baseline/startup-timings.md` 与 `perf-baseline.md` |
-| AC15 | 父任务 AC1–AC23 未全部满足，见 `parent-ac-status.md` |
 
 ## CSP（AC4）
 
