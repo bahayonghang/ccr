@@ -1,4 +1,4 @@
-import { addCollection } from '@iconify/react'
+import { addCollection } from '@iconify/react/offline'
 import { solarShellIconSubset } from '@/config/solarShellIconSubset'
 
 let hasRegisteredShellIcons = false

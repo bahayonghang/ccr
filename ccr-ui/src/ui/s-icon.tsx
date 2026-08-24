@@ -1,4 +1,4 @@
-import { Icon } from '@iconify/react'
+import { Icon } from '@iconify/react/offline'
 import { iconMap } from '@/config/icons'
 import { cn } from './cn'
 

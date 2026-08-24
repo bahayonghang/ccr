@@ -176,6 +176,61 @@ const isCodexDashboardOverview = (value: object): value is CodexDashboardOvervie
     && isRecord(source.inventory)
 }
 
+const optionalString = (value: unknown): string | null | undefined =>
+  typeof value === 'string' ? value : value == null ? (value as null | undefined) : String(value)
+
+/** 只留下仪表盘用到的字段，让 IPC 多余键在 parse 后可被回收。 */
+function pickCodexDashboardOverview(value: object): CodexDashboardOverview {
+  const source = recordOf(value)
+  const auth = isRecord(source.auth) ? recordOf(source.auth) : {}
+  const currentAuth = isRecord(auth.current) ? recordOf(auth.current) : null
+  const profiles = isRecord(source.profiles) ? recordOf(source.profiles) : {}
+  const currentProfile = isRecord(profiles.current) ? recordOf(profiles.current) : null
+  const config = isRecord(source.config) ? recordOf(source.config) : {}
+  const inventory = isRecord(source.inventory) ? recordOf(source.inventory) : {}
+  return {
+    auth: {
+      logged_in: Boolean(auth.logged_in),
+      login_state: typeof auth.login_state === 'string' ? auth.login_state : undefined,
+      store: typeof auth.store === 'string' ? auth.store : undefined,
+      saved_accounts_total: Number(auth.saved_accounts_total) || 0,
+      current: currentAuth
+        ? {
+            name: optionalString(currentAuth.name),
+            account_id: typeof currentAuth.account_id === 'string' ? currentAuth.account_id : undefined,
+            email: typeof currentAuth.email === 'string' ? currentAuth.email : undefined,
+            plan_type: typeof currentAuth.plan_type === 'string' ? currentAuth.plan_type : undefined,
+            last_refresh: optionalString(currentAuth.last_refresh),
+          }
+        : null,
+    },
+    profiles: {
+      current_profile: optionalString(profiles.current_profile),
+      total: Number(profiles.total) || 0,
+      enabled_total: Number(profiles.enabled_total) || 0,
+      disabled_total: Number(profiles.disabled_total) || 0,
+      current: currentProfile,
+    },
+    config: {
+      model: optionalString(config.model),
+      model_provider: optionalString(config.model_provider),
+      approval_policy: optionalString(config.approval_policy),
+      sandbox_mode: optionalString(config.sandbox_mode),
+      model_reasoning_effort: optionalString(config.model_reasoning_effort),
+      model_reasoning_summary: optionalString(config.model_reasoning_summary),
+      web_search: optionalString(config.web_search),
+      disable_response_storage:
+        typeof config.disable_response_storage === 'boolean' ? config.disable_response_storage : null,
+    },
+    inventory: {
+      mcp_servers_total: Number(inventory.mcp_servers_total) || 0,
+      agents_total: Number(inventory.agents_total) || 0,
+      sessions_total: Number(inventory.sessions_total) || 0,
+      config_profiles_total: Number(inventory.config_profiles_total) || 0,
+    },
+  }
+}
+
 const isCodexDashboardUsageSummary = (
   value: object,
 ): value is CodexDashboardUsageSummary => {
@@ -832,7 +887,7 @@ export const getCodexDashboardOverview = async (
     'Codex dashboard overview',
   )
   if (!isCodexDashboardOverview(value)) throw new Error('Codex dashboard overview response is invalid')
-  return value
+  return pickCodexDashboardOverview(value)
 }
 
 /** 获取 Codex 仪表盘用量摘要 */
@@ -846,7 +901,33 @@ export const getCodexDashboardUsageSummary = async (
   if (!isCodexDashboardUsageSummary(value)) {
     throw new Error('Codex dashboard usage summary response is invalid')
   }
-  return value
+  const source = recordOf(value)
+  const section = (raw: unknown): CodexDashboardUsageSection => {
+    const row = isRecord(raw) ? recordOf(raw) : {}
+    return {
+      total_requests: Number(row.total_requests) || 0,
+      total_input_tokens: Number(row.total_input_tokens) || 0,
+      total_output_tokens: Number(row.total_output_tokens) || 0,
+    }
+  }
+  const top = isRecord(source.top_model) ? recordOf(source.top_model) : null
+  return {
+    last_activity_at: optionalString(source.last_activity_at),
+    freshness: source.freshness as CodexDashboardUsageSummary['freshness'],
+    freshness_description: String(source.freshness_description ?? ''),
+    five_hour: section(source.five_hour),
+    seven_day: section(source.seven_day),
+    all_time: section(source.all_time),
+    top_model: top
+      ? {
+          model: String(top.model ?? ''),
+          total_requests: Number(top.total_requests) || 0,
+          total_input_tokens: Number(top.total_input_tokens) || 0,
+          total_output_tokens: Number(top.total_output_tokens) || 0,
+          window_end: optionalString(top.window_end),
+        }
+      : null,
+  }
 }
 
 export interface CodexUsageCommandOptions {

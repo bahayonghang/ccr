@@ -36,16 +36,19 @@ export function useGrokHomeQueries() {
     staleTime: GROK_VERSION_STALE_TIME,
   })
 
+  const refetchEnvironment = environmentQuery.refetch
+  const refetchOverview = overviewQuery.refetch
+  const refetchVersion = versionQuery.refetch
+
   const refresh = useCallback(
     async (force = false) => {
-      await environmentQuery.refetch()
+      await refetchEnvironment()
       if (environment?.env_type !== 'local') return
-      const tasks: Array<Promise<unknown>> = []
-      if (force || overviewQuery.isStale) tasks.push(overviewQuery.refetch())
-      if (overview && (force || versionQuery.isStale)) tasks.push(versionQuery.refetch())
+      const tasks: Array<Promise<unknown>> = [refetchOverview()]
+      if (overview || force) tasks.push(refetchVersion())
       await Promise.allSettled(tasks)
     },
-    [environment, environmentQuery, overview, overviewQuery, versionQuery],
+    [environment?.env_type, overview, refetchEnvironment, refetchOverview, refetchVersion],
   )
 
   return {

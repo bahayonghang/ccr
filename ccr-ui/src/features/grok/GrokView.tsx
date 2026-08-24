@@ -38,10 +38,6 @@ export function GrokView() {
   }, [refresh])
 
   useEffect(() => {
-    void refresh(false)
-  }, [refresh])
-
-  useEffect(() => {
     if (refreshError) {
       surfaceNotify.error(`${t('grok.dashboard.error.refreshFailed')} ${refreshError}`)
     }

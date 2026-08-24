@@ -24,10 +24,19 @@ if (typeof window !== 'undefined') {
     configurable: true,
     value: () => {
       const queries = queryClient.getQueryCache().getAll()
+      let queryDataChars = 0
+      for (const query of queries) {
+        try {
+          queryDataChars += JSON.stringify(query.state.data ?? null).length
+        } catch {
+          queryDataChars += 0
+        }
+      }
       return {
         queries: queries.length,
         active: queries.filter((query) => query.getObserversCount() > 0).length,
         mutations: queryClient.getMutationCache().getAll().length,
+        queryDataChars,
         historyLength: window.history.length,
       }
     },

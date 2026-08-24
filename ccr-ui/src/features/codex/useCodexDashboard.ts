@@ -142,6 +142,10 @@ export function useCodexDashboard(t: TranslateFunction) {
     [nextActions, t],
   )
 
+  const refetchOverview = overviewQuery.refetch
+  const refetchUsage = usageQuery.refetch
+  const refetchVersion = versionQuery.refetch
+
   const refresh = useCallback(
     async (force = false) => {
       if (force) {
@@ -149,14 +153,9 @@ export function useCodexDashboard(t: TranslateFunction) {
         usageForceRef.current = true
         versionForceRef.current = true
       }
-      const tasks: Array<Promise<unknown>> = []
-      if (force || overviewQuery.isStale) tasks.push(overviewQuery.refetch())
-      if (force || usageQuery.isStale) tasks.push(usageQuery.refetch())
-      if (force || versionQuery.isStale) tasks.push(versionQuery.refetch())
-      if (tasks.length === 0) return
-      await Promise.allSettled(tasks)
+      await Promise.allSettled([refetchOverview(), refetchUsage(), refetchVersion()])
     },
-    [overviewQuery, usageQuery, versionQuery],
+    [refetchOverview, refetchUsage, refetchVersion],
   )
 
   return {

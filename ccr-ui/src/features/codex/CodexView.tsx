@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
 import { Link } from 'react-router'
 import { EmptyState, PageHeader, PageShell, SIcon, StatTile } from '@/ui'
 import { CodexSubnav } from './CodexSubnav'
@@ -35,10 +35,6 @@ export function CodexView() {
   const visibleNextActions = useMemo(() => nextActions.slice(0, 2), [nextActions])
   const handleRefresh = useCallback(() => {
     void refresh(true)
-  }, [refresh])
-
-  useEffect(() => {
-    void refresh(false)
   }, [refresh])
 
   const primaryClass = primaryAction.tone === 'danger' ? 'bg-accent-danger text-[color:var(--color-danger-contrast)]' : primaryBtnClass
