@@ -188,12 +188,12 @@ Rust 测试若绕过 `just test` 直接运行，须带 `-- --test-threads=1`。
 
 准出条件：
 
-- [ ] `08-22-regression-release` 的 AC1–AC15 全部满足。AC6 WAF 真实签到未做；AC13 2h soak 未跑（`soak-unavailable.md`）。
+- [ ] `08-22-regression-release` 的 AC1–AC15 全部满足。AC6 WAF 真实签到未做；AC13 persist-raw-cdp 已跑 7206s，JS 堆比 1.295，不勾选。
 - [x] 185 界面逐屏比对记录落盘，未判定项为 0。D1 gap-5 已修并重验。
 - [x] `just ci` 退出码 0，14 步与 justfile `_ci-timed-*` 一致。vscode-ci 在沙箱需 `npm_config_allow_remote=all`。全量 stdout：scratch `just-ci.log`（324409 字节，JUST_CI_EXIT=0，TOTAL 05:29.894）。
 - [x] `just tauri-build` 产出 MSI/NSIS。全量 stdout：scratch `just-tauri-build.log`（JUST_TAURI_BUILD_EXIT=0）。
 - [ ] CSP、窗口 chrome、WAF WebView bypass、启动恢复四项验证通过。CSP / chrome / 启动恢复已测。WAF 真实签到凭据未提供。
-- [x] 2 小时长时间运行：已跑 7203s，数据见 `08-22-regression-release/soak-results.md`。WorkingSet 比值 0.948；JS 堆与监听器超 110%。子任务 AC13 不勾选。
+- [x] 2 小时长时间运行：第 3 轮 persist-raw-cdp 墙钟 7206s，117 样本。主机 WorkingSet 1.037、渲染进程 1.006、监听器 1.073 通过。JS 堆 1.295 不通过。子任务 AC13 不勾选。见 `soak-packaged-round3.jsonl`。
 - [ ] 父任务 `prd.md` 的 AC1–AC23 全部满足。AC9 因 WAF 真实签到未做不勾选。AC18/AC19 补测见 `08-22-regression-release/perf-react-after.md` 与 `bundle-reset.md`。
 
 ## 5. 分支与 PR 操作序列

@@ -6,7 +6,7 @@
 | --- | --- | --- | --- |
 | AC1 | package.json 无 Vue 系依赖条目 | 满足 | `ccr-ui/package.json` |
 | AC2 | `ccr-ui/src` 下 `.vue` 为 0 | 满足 | glob 0 |
-| AC3 | `just ci` 退出码 0 | 满足 | scratch `just-ci.log` JUST_CI_EXIT=0，14 步 |
+| AC3 | `just ci` 退出码 0 | 满足 | 当前 HEAD 重跑：scratch `just-ci.log` 325047 字节，`JUST_CI_EXIT=0`，14 步，TOTAL 05:25.521 |
 | AC4 | smoke ≥122 | 满足 | 534 tests |
 | AC5 | Tailwind v4，448 token | 满足 | design-system + theme smokes |
 | AC6 | 组件内 px / rgba 归零 | 满足 | hardcode-px-rgba 31==豁免 |
@@ -28,4 +28,4 @@
 | AC22 | base 无平台名分支 | 满足 | platform-surface-unify.smoke |
 | AC23 | 平台 × 功能面 | 满足 | platform-unify |
 
-本任务 AC15 不勾选：父 AC9 不满足。本任务 AC6 / AC13 保持 `[ ]`。AC13 已测量，见 `soak-results.md`。
+本任务 AC15 不勾选：父 AC9 不满足（WAF 真实签到凭据未提供）。本任务 AC6 / AC13 保持 `[ ]`。子任务 AC13 第 3 轮 persist-raw-cdp 堆比 1.295，见 `soak-packaged-round3.jsonl`。

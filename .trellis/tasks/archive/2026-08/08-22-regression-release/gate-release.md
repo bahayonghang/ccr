@@ -5,7 +5,7 @@
 ## 1. `just ci`
 
 - 命令：`npm_config_allow_remote=all just ci`
-- 日志：本目录 `just-ci.log`（324409 字节，全量 stdout）
+- 日志：scratch `just-ci.log`（325047 字节，全量 stdout，当前 HEAD 重跑，含 complexity 拆分）
 - 退出码：`JUST_CI_EXIT=0`
 - 实际 14 步与 `justfile` `_ci-timed-windows` 一致：
 
@@ -25,7 +25,7 @@
 | Frontend Check | 02:31.732 | OK |
 | Frontend Coverage | 01:05.900 | OK |
 | VSCode CI | 00:17.069 | OK |
-| TOTAL | 05:29.894 | CI passed |
+| TOTAL | 05:25.521 | CI passed（2026-08-25 重跑） |
 
 沙箱内 vscode-ci 需要 `npm_config_allow_remote=all`（npmmirror tarball）。未改 lockfile。
 
