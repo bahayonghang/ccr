@@ -25,7 +25,7 @@
 | AC | 原因 |
 | --- | --- |
 | AC6 | 无真实签到。WAF smoke 14/14 通过（scratch `waf-smoke.log`）。OAuth 止于凭据步 |
-| AC13 | 见 `soak-unavailable.md`。打包产物已存在，2 小时浸泡仍未跑 |
+| AC13 | 已跑 7203s。WorkingSet 比值 0.948；JS 堆 3.327、监听器 4.662。见 `soak-results.md` |
 | AC15 | 父 AC1–AC23 未全部满足（父 AC9） |
 
 ## CSP（AC4）

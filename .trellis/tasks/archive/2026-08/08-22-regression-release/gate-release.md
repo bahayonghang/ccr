@@ -115,7 +115,7 @@ Web 模式平台设置页无 IPC 表单，Claude/Codex 选择器在 `127.0.0.1:1
 | AC10 | 通过 | 预算重设后 PASS |
 | AC11 | 通过 | 既有 contrast 契约 |
 | AC12 | 通过 | 既有 reduced-motion 契约 |
-| AC13 | 未通过 | `soak-unavailable.md`。产物已有，2 小时浸泡未跑 |
+| AC13 | 未通过 | 已跑 7203s。WorkingSet 0.948；JS 堆 3.327、监听器 4.662。见 `soak-results.md` |
 | AC14 | 通过 | `perf-react-after.md` + 本文件 §5–6 |
 | AC15 | 未通过 | 父 AC9 未勾选 |
 
@@ -123,7 +123,7 @@ Web 模式平台设置页无 IPC 表单，Claude/Codex 选择器在 `127.0.0.1:1
 
 ## 8. 未执行项
 
-- 2 小时 soak（AC13）
+- 2 小时 soak（AC13）：已跑，WorkingSet 通过，JS 堆与监听器未通过
 - WAF 真实签到（AC6；凭据未提供，禁止伪造）
 - MSI 安装向导（改跑 exe）
 - 打包控制台 CSP 逐页遍历

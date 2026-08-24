@@ -1,31 +1,16 @@
-# 2 小时长时间运行：未执行（AC13）
+# 2 小时长时间运行：已测量，未通过（AC13）
 
-> 任务：`08-22-regression-release`。对应 R10 / AC13 / implement.md 步骤 6。
+> 任务：`08-22-regression-release`。对应 R10 / AC13。完整记录见 `soak-results.md`。
 
 ## 结论
 
-未执行。不标为通过。AC13 保持 `[ ]`。
+已在打包 `ccr-desktop.exe` 上连续运行 7203s，切换 29 条路由。AC13 不勾选。
 
-## 当前条件（2026-08-24 发布门补测后）
-
-打包产物已存在：
-
-- `ccr-ui/src-tauri/target/release/ccr-desktop.exe`
-- MSI / NSIS 安装包
-- 主界面可启动（scratch `tauri-launch-primary.png`）
-
-`defects.md` D1 已修复。`just frontend-check` 与 `just ci` 退出码 0。不再以「无产物」为理由。
-
-## 未采集的数据
-
-| 项 | 状态 |
+| 项 | 结果 |
 | --- | --- |
-| 连续运行 2 小时 | 未执行 |
-| 切换 ≥20 个界面 | 未执行（路由切换性能脚本 29 条 ×5 不是本项 2 小时浸泡） |
-| 内存采样间隔 | 未按 design.md §5 做小时均值 |
-| 第 2 小时均值 / 第 1 小时均值 | 无数据 |
-| 事件监听器数量 | 未执行 |
+| 主机 WorkingSet 第2小时/第1小时 | 0.948（≤1.10） |
+| JS 堆第2小时/第1小时 | 3.327（>1.10；第2小时仅 11 个 CDP 样本） |
+| JSEventListeners 第2小时/第1小时 | 4.662（>1.10；含 `/grok/settings` 48066） |
+| 第2小时 3602s 之后 | 35 次 CDP tick 超时 25s，主机 WorkingSet 仍在采样 |
 
-本项需要 2 小时墙钟。本轮未启动该浸泡。
-
-相关但范围不同的已有证据：`event-bridge-leak.smoke.test.tsx`；日志流 5 分钟 ×3（`perf-react-after.md` 场景 3）。
+命令：`pwsh -NoProfile -File soak-run.ps1`。退出码 1。`SOAK_PASS=False`。

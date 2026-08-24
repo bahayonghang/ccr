@@ -28,4 +28,4 @@
 | AC22 | base 无平台名分支 | 满足 | platform-surface-unify.smoke |
 | AC23 | 平台 × 功能面 | 满足 | platform-unify |
 
-本任务 AC15 不勾选：父 AC9 不满足。本任务 AC6 / AC13 保持 `[ ]`。
+本任务 AC15 不勾选：父 AC9 不满足。本任务 AC6 / AC13 保持 `[ ]`。AC13 已测量，见 `soak-results.md`。

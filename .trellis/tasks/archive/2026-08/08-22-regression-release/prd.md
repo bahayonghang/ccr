@@ -70,7 +70,7 @@ Windows 为主验证平台（当前开发环境为 Windows 11）。macOS 与 Lin
 - [x] AC10 `bun run check:bundle-budget` 通过，或新基线与对比数据落盘。见 `bundle-reset.md`。
 - [x] AC11 明暗主题对比度检查通过。
 - [x] AC12 `prefers-reduced-motion` 降级验证通过。
-- [ ] AC13 2 小时长时间运行验证通过，内存与监听器数据落盘。见 `soak-unavailable.md`。
+- [ ] AC13 2 小时长时间运行验证通过，内存与监听器数据落盘。已跑 7203s，见 `soak-results.md`。WorkingSet 比值 0.948；JS 堆 3.327、监听器 4.662，不通过。
 - [x] AC14 启动耗时与首屏渲染耗时对比数据落盘。见 `perf-react-after.md`。
 - [ ] AC15 父任务 `prd.md` 的 AC1–AC23 全部满足。父 AC9 因 WAF 真实签到未做不勾选。本任务 AC6 / AC13 不勾选。
 
