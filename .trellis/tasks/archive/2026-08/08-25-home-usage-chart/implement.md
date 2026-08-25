@@ -21,7 +21,7 @@
 - [x] 12. 可访问性：容器 `role="img"` + `aria-label`；每根柱 `title`。
 - [x] 13. `prefers-reduced-motion` 分支关闭入场动画。
 - [x] 14. 新增文案的中英文键补齐。
-- [ ] 15. `just frontend-check-quick`。（type-check / lint / smoke 通过；唯一失败是 i18n leaf-count：期望 4166，zh/en 实计 4178。本任务新增 6 键，其余为并行子任务；不改 `check-i18n.mjs` / `i18n.test.cjs`。）
+- [x] 15. `just frontend-check-quick`。父任务集成后 i18n leaf-count 已对齐 4178，`QUICK_EXIT=0`（终端 381092）。
 - [x] 16. 视觉与交互验证（见下；Web 空态无法看到堆叠柱，AC1/AC9 的分层色留待桌面有数据）。
 
 ## 验证命令

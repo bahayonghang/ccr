@@ -17,8 +17,8 @@
 - [x] 8. `dashboard-next-actions.css` 版式重写。
 - [x] 9. 两块的空态与超长文本省略。
 - [x] 10. 新增文案的中英文键补齐。
-- [ ] 11. `just frontend-check-quick`。
-- [ ] 12. 视觉与交互验证（见下）。
+- [x] 11. `just frontend-check-quick`。父任务集成 `QUICK_EXIT=0`（终端 381092）。
+- [x] 12. 视觉与交互验证（见下）。父任务 XC3 四组合截图确认首条强调态与四列事件行。
 
 第 2 步先于第 3 步是有意的：先把既有语义锁进测试，再改版式，改坏了立即可见。
 
@@ -71,4 +71,3 @@ git checkout -- ccr-ui/src/features/usage/dashboard/DashboardNextActions.tsx ccr
 
 change list 必须包含测试文件（父任务 XC5）。
 提交前执行父任务 XC4 的三条检查，确认 `ccr-ui/src-tauri/Cargo.toml` 不在暂存区、不在提交中。
-</content>

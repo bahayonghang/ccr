@@ -46,17 +46,17 @@
 
 ## Acceptance Criteria
 
-- [ ] AC1（R1）：`design.md` §1 的前后差异表每行都有分类结论，无「待定」。
-- [ ] AC2（R2）：明暗三选项与底色族两选项在同一张卡内可见并可切换；选 `system` 时显示解析结果文案。
-- [ ] AC3（R3,R4）：两个字体下拉可用，自定义输入可展开，混排预览与回退提示可见；数据样例为 mono；`settings-font-ui` 与 `settings-font-code` 仍存在。
-- [ ] AC4（R5）：一致性测试存在并通过。人为把 `tokens.css` 的某个 `--color-bg-base` 改一位十六进制，该测试必须失败——此项在实施时验证一次后还原。
-- [ ] AC5（R5）：切换 flavor 后预览色条与页面实际表面色一致（亮暗各验一次）。
-- [ ] AC6（R6）：界面上不出现 `neutral` / `clay` 以外的 flavor 选项。
-- [ ] AC7（R7）：灰度模拟下仍能判断当前选中的主题与 flavor。
-- [ ] AC8（R8）：本子任务改动的 CSS 中无硬编码十六进制颜色与 px 圆角字面量。
-- [ ] AC9（R9）：change list 与提交包含测试文件改动。
-- [ ] AC10：`just frontend-check-quick` 通过；`app-settings-view.smoke.test.tsx` 与字体相关 smoke test 不回归。
-- [ ] AC11：中英文文案键完整。
+- [x] AC1（R1）：`design.md` §1 的前后差异表每行都有分类结论，无「待定」。
+- [x] AC2（R2）：明暗三选项与底色族两选项在同一张卡内可见并可切换；选 `system` 时显示解析结果文案。
+- [x] AC3（R3,R4）：两个字体下拉可用，自定义输入可展开，混排预览与回退提示可见；数据样例为 mono；`settings-font-ui` 与 `settings-font-code` 仍存在。
+- [x] AC4（R5）：一致性测试存在并通过。人为把 `tokens.css` 的某个 `--color-bg-base` 改一位十六进制，该测试必须失败——此项在实施时验证一次后还原。
+- [x] AC5（R5）：切换 flavor 后预览色条与页面实际表面色一致（亮暗各验一次）。
+- [x] AC6（R6）：界面上不出现 `neutral` / `clay` 以外的 flavor 选项。
+- [x] AC7（R7）：灰度模拟下仍能判断当前选中的主题与 flavor。
+- [x] AC8（R8）：本子任务改动的 CSS 中无硬编码十六进制颜色与 px 圆角字面量。
+- [x] AC9（R9）：change list 与提交包含测试文件改动。
+- [x] AC10：`just frontend-check-quick` 通过；`app-settings-view.smoke.test.tsx` 与字体相关 smoke test 不回归。
+- [x] AC11：中英文文案键完整。
 
 ## Out of Scope
 

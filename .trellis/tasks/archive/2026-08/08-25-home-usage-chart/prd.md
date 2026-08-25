@@ -37,19 +37,19 @@
 
 ## Acceptance Criteria
 
-- [ ] AC1（R1）：暗色与亮色下柱状图按天渲染且按平台分层，层色与图例、平台卡的色条一致；柱数等于当前档位天数。
-- [ ] AC2（R2）：指标行四项齐备；全页扫描确认仅有一个 hero 档数字。
-- [ ] AC3（R3）：`rg -n 'invoke\(' ccr-ui/src/features/usage/dashboard/DashboardUsageMovement.tsx` 无命中；`src/api/` 与 `queries.ts` 无改动。
-- [ ] AC4（R3,R6）：成本使用的 `startDate` / `endDate` 与 `activeDays` 严格对应（`end = 今天`，`start = end - (activeDays - 1)`），切换档位后 query key 变化并重取。此项由单元测试断言，不靠肉眼。
-- [ ] AC5（R4）：成本子组件在首屏 perf mark 之后才挂载；首屏 perf mark 不因成本请求推迟。
-- [ ] AC6（R5）：Web 预览（无 Tauri IPC）下成本显示 `—`；有数据但成本为 0 显示 `$0.00`，两者在界面上可区分。
-- [ ] AC7（R6）：切换 7D/30D/90D 后图表、指标行（含成本）同步刷新，父组件 props 契约未变。
-- [ ] AC8（R7）：loading 与 error 各自有可见呈现，均不出现空白卡。
-- [ ] AC9（R8）：关闭颜色区分（灰度模拟）后仍能判断各层归属。
-- [ ] AC10（R9）：`prefers-reduced-motion: reduce` 下无柱状入场动画。
-- [ ] AC11（R10）：本子任务改动的 CSS 中无硬编码十六进制颜色与 px 圆角字面量；`just frontend-check-quick` 通过。
-- [ ] AC12（R11）：change list 与提交包含测试文件改动，且断言覆盖 R11 列出的三类。
-- [ ] AC13：中英文文案键完整。
+- [x] AC1（R1）：暗色与亮色下柱状图按天渲染且按平台分层，层色与图例、平台卡的色条一致；柱数等于当前档位天数。
+- [x] AC2（R2）：指标行四项齐备；全页扫描确认仅有一个 hero 档数字。
+- [x] AC3（R3）：`rg -n 'invoke\(' ccr-ui/src/features/usage/dashboard/DashboardUsageMovement.tsx` 无命中；`src/api/` 与 `queries.ts` 无改动。
+- [x] AC4（R3,R6）：成本使用的 `startDate` / `endDate` 与 `activeDays` 严格对应（`end = 今天`，`start = end - (activeDays - 1)`），切换档位后 query key 变化并重取。此项由单元测试断言，不靠肉眼。
+- [x] AC5（R4）：成本子组件在首屏 perf mark 之后才挂载；首屏 perf mark 不因成本请求推迟。
+- [x] AC6（R5）：Web 预览（无 Tauri IPC）下成本显示 `—`；有数据但成本为 0 显示 `$0.00`，两者在界面上可区分。
+- [x] AC7（R6）：切换 7D/30D/90D 后图表、指标行（含成本）同步刷新，父组件 props 契约未变。
+- [x] AC8（R7）：loading 与 error 各自有可见呈现，均不出现空白卡。
+- [x] AC9（R8）：关闭颜色区分（灰度模拟）后仍能判断各层归属。
+- [x] AC10（R9）：`prefers-reduced-motion: reduce` 下无柱状入场动画。
+- [x] AC11（R10）：本子任务改动的 CSS 中无硬编码十六进制颜色与 px 圆角字面量；`just frontend-check-quick` 通过。
+- [x] AC12（R11）：change list 与提交包含测试文件改动，且断言覆盖 R11 列出的三类。
+- [x] AC13：中英文文案键完整。
 
 ## Out of Scope
 
