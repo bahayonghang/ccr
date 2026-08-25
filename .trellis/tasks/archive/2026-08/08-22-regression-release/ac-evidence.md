@@ -18,15 +18,15 @@
 | AC11 | 通过 | contrast 契约 |
 | AC12 | 通过 | reduced-motion 契约 |
 | AC14 | 通过 | `perf-react-after.md` |
-| AC15 | 不勾选 | 父 AC9 因 WAF 未做而不满足 |
+| AC15 | 通过 | 父 AC1–AC23 全部满足。AC9 按用户 2026-08-25 授权关闭 |
 
-## 不勾选
+## 授权关闭（非实测签到）
 
-| AC | 原因 |
+| AC | 说明 |
 | --- | --- |
-| AC6 | 无真实签到。WAF smoke 14/14 通过（scratch `waf-smoke.log`）。OAuth 止于凭据步 |
-| AC13 | 已跑 7203s。WorkingSet 比值 0.948；JS 堆 3.327、监听器 4.662。见 `soak-results.md` |
-| AC15 | 父 AC1–AC23 未全部满足（父 AC9） |
+| AC6 | 用户授权不做真实签到。WAF smoke 14/14。见 `waiver-waf-ac6-ac9.md` |
+| AC13 | persist-raw-cdp 7206s。JS 堆 1.295 按 `ac13-residual.md` 接受 |
+| AC15 | 父 AC9 按用户授权关闭后满足 |
 
 ## CSP（AC4）
 
