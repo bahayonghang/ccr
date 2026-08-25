@@ -12,7 +12,7 @@ CCR UI 是基于 **Tauri v2** 的原生桌面应用，为多个 AI CLI 工具提
 
 **核心组成**:
 1. **Tauri Backend** (`src-tauri/`) - Rust 原生后端，通过 `#[tauri::command]` IPC 提供 141+ 命令
-2. **Frontend** (`src/`) - Vue.js 3 单页应用（Anthropic-like 编辑式表面设计）
+2. **Frontend** (`src/`) - React 19 单页应用（Anthropic-like 编辑式表面设计）
 3. **ccr-db** (`../crates/ccr-db/`) - 独立 workspace crate，提供 SQLite 数据库、CheckIn、加密等服务
 
 **支持平台**:
@@ -55,15 +55,15 @@ ccr-ui/
 │   ├── Cargo.toml                 # Tauri 依赖
 │   └── tauri.conf.json            # Tauri 配置
 │
-├── src/                            # Vue.js 3 前端 (SPA)
+├── src/                            # React 19 前端 (SPA)
 │   ├── views/                      # 40+ 页面组件
 │   ├── components/                 # 20+ 可复用组件
-│   ├── composables/                # Vue Composables
-│   ├── stores/                     # Pinia 状态管理
+│   ├── composables/                # 共享 hooks
+│   ├── stores/                     # Zustand 状态管理
 │   ├── api/                        # Tauri invoke() 封装
 │   │   ├── tauri.ts                # 141+ invoke() 包装函数
 │   │   └── index.ts                # 统一导出
-│   ├── router/                     # Vue Router
+│   ├── router/                     # React Router
 │   ├── types/                      # TypeScript 类型
 │   └── styles/                     # 全局样式
 ├── package.json
@@ -155,17 +155,19 @@ CCR UI 的核心用户是 AI CLI 重度用户。典型使用场景不是偶发�
 | **核心库** | ccr (workspace) | 配置管理核心 |
 | **数据库服务** | ccr-db (workspace) | CheckIn、加密、用量导入 |
 
-### 前端技术栈 (TypeScript/Vue)
+### 前端技术栈 (TypeScript/React)
 
 | 类别 | 技术 | 版本 | 用途 |
 |------|------|------|------|
-| **框架** | Vue.js | 3.5.22 | UI 框架 |
-| **构建** | Vite | 7.1.11 | 构建工具 |
-| **路由** | Vue Router | 4.4 | 路由管理 |
-| **状态** | Pinia | 2.2.6 | 状态管理 |
-| **样式** | Tailwind CSS | 3.4.17 | CSS 框架 |
-| **IPC** | @tauri-apps/api | 2.x | Tauri invoke() 通信 |
-| **类型** | TypeScript | 5.7.3 | 类型安全 |
+| **框架** | React | 19.2.8 | UI 框架 |
+| **构建** | Vite | 8.2.2 | 构建工具 |
+| **路由** | React Router | 8.3.0 | 路由管理 |
+| **状态** | Zustand | 5.0.15 | 客户端状态 |
+| **查询** | TanStack React Query | 5.101.4 | 服务端状态 |
+| **组件** | Radix UI | 见 package.json `@radix-ui/*` | 无样式原语 |
+| **样式** | Tailwind CSS | 4.3.3 | CSS 框架 |
+| **IPC** | @tauri-apps/api | 2.11.0 | Tauri invoke() 通信 |
+| **类型** | TypeScript | 5.9.3 | 类型安全 |
 
 ---
 
@@ -280,9 +282,9 @@ cargo tauri build
 - 返回 `Result<T, String>` 格式
 - 命名: `snake_case` (如 `list_configs`, `switch_config`)
 
-### 前端 (TypeScript/Vue)
+### 前端 (TypeScript/React)
 
-- 组件: `<script setup lang="ts">` Composition API
+- 组件: React 函数组件（`.tsx`）
 - API 调用: 统一通过 `@/api` 导入
 - 样式: Tailwind CSS 优先
 - 注释: 中文注释

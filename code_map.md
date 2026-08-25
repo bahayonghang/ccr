@@ -5,7 +5,7 @@ Minimal navigation for this repository. Keep behavior rules in `AGENTS.md` / `CL
 ## Top-level areas
 
 - `crates/` — Rust workspace with the CLI/TUI entry point in `crates/ccr` and shared crates such as `ccr-core`, `ccr-config`, `ccr-codex`, `ccr-db`, and `ccr-types`.
-- `ccr-ui/` — Vue 3 + Tauri desktop UI (`src/`, `src-tauri/`, `tests/`).
+- `ccr-ui/` — React 19 + Tauri desktop UI (`src/`, `src-tauri/`, `tests/`).
 - `ccr-vscode/` — VS Code extension (`src/providers`, `src/services`, extension tests).
 - `docs/` — VitePress documentation site.
 - `scripts/` — version synchronization checks and repo automation.
