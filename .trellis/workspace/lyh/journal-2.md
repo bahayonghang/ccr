@@ -1353,3 +1353,46 @@ Codex Auth TUI 的 quota 面板把周限文案改为 7d limit，同时保留 5h 
 ### Status
 
 [OK] **Completed**
+
+
+## Session 99: React 首页 1b/1c 重设计
+
+**Date**: 2026-08-25
+**Task**: React 首页 1b/1c 重设计
+**Branch**: `dev`
+
+### Summary
+
+完成父任务 08-25-react-home-style-redesign 与六个子任务：首页落地设计稿 1b 运行时布局，1c 令牌写入 tokens.css。发布门 version-check/fmt-check/frontend-check 均为 0。XC3 四组合走查已写入 research/regression-walkthrough.md。Cargo.toml 未进入 a4d3e480..HEAD。
+
+### Main Changes
+
+- 六叶子产品提交后各自 archive
+- 父任务阶段4 XC1-XC6 与 Web 预览走查
+- 父任务 archive 457dd01d
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `0ebc75a0` | (see git log) |
+| `1147e6ac` | (see git log) |
+| `a6c22e40` | (see git log) |
+| `00e6704f` | (see git log) |
+| `8c71743a` | (see git log) |
+| `3d467d44` | (see git log) |
+
+### Testing
+
+- [OK] just version-check=0
+- [OK] just fmt-check=0
+- [OK] just frontend-check=0
+- [OK] XC3 32组合 overflowX=0 且 theme/flavor 对齐
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 无；父任务已归档
