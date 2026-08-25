@@ -1,0 +1,33 @@
+{
+  "id": "react-home-style-redesign",
+  "name": "react-home-style-redesign",
+  "title": "重新设计 React 首页与样式系统",
+  "description": "父任务：首页 IA 与全局令牌层重设计，持有需求集、任务地图与跨子任务验收",
+  "status": "completed",
+  "dev_type": "frontend",
+  "scope": "ccr-ui",
+  "package": "ccr-ui",
+  "priority": "P2",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-08-25",
+  "completedAt": "2026-08-25",
+  "branch": null,
+  "base_branch": "dev",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "08-25-design-token-consolidation",
+    "08-25-home-runtime-layout",
+    "08-25-home-usage-chart",
+    "08-25-home-side-rail",
+    "08-25-appearance-settings-refresh",
+    "08-25-arch-drift-docs"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}
