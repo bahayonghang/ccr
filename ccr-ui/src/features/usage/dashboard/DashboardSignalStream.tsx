@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router'
 import { PillToggleGroup, SIcon } from '@/ui'
+import type { IconName } from '@/config/icons'
 import { useUsageT } from '../translate'
 import type { DashboardSignalEntry } from './useDashboardSignals'
 import '../styles/dashboard-signal-stream.css'
@@ -18,6 +19,21 @@ const matchesFilter = (entry: DashboardSignalEntry, id: FilterId) => {
   if (id === 'all') return true
   if (id === 'warn') return entry.level === 'warn' || entry.level === 'error'
   return entry.level === 'error'
+}
+
+const levelVisual = (level: string): { icon: IconName; labelKey: string } => {
+  switch (level) {
+    case 'error':
+      return { icon: 'AlertCircle', labelKey: 'dashboard.signals.levelError' }
+    case 'warn':
+      return { icon: 'AlertTriangle', labelKey: 'dashboard.signals.levelWarn' }
+    case 'debug':
+      return { icon: 'Circle', labelKey: 'dashboard.signals.levelDebug' }
+    case 'info':
+      return { icon: 'Info', labelKey: 'dashboard.signals.levelInfo' }
+    default:
+      return { icon: 'Info', labelKey: 'dashboard.signals.levelInfo' }
+  }
 }
 
 export function DashboardSignalStream({
@@ -76,21 +92,30 @@ export function DashboardSignalStream({
       </header>
       {visibleEntries.length > 0 ? (
         <ol className="dashboard-signals__list">
-          {visibleEntries.map((entry) => (
-            <li key={entry.id} className="dashboard-signal" data-level={entry.level}>
-              <span className="dashboard-signal__time">{formatTime(entry.timestamp)}</span>
-              <span className="dashboard-signal__dot" aria-label={entry.level} />
-              <span className="dashboard-signal__channel">{entry.channel}</span>
-              <span className="dashboard-signal__message-group">
-                <p className="dashboard-signal__message" title={entry.message}>
-                  {entry.message}
-                </p>
-                {entry.count > 1 ? (
-                  <span className="dashboard-signal__count">×{entry.count}</span>
-                ) : null}
-              </span>
-            </li>
-          ))}
+          {visibleEntries.map((entry) => {
+            const visual = levelVisual(entry.level)
+            return (
+              <li key={entry.id} className="dashboard-signal" data-level={entry.level}>
+                <span className="dashboard-signal__time">{formatTime(entry.timestamp)}</span>
+                <span className="dashboard-signal__status">
+                  <span className="dashboard-signal__dot" aria-hidden="true" />
+                  <SIcon name={visual.icon} size="w-3.5 h-3.5" className="dashboard-signal__icon" />
+                  <span className="dashboard-signal__level">{t(visual.labelKey)}</span>
+                </span>
+                <span className="dashboard-signal__channel" title={entry.channel}>
+                  {entry.channel}
+                </span>
+                <span className="dashboard-signal__message-group">
+                  <p className="dashboard-signal__message" title={entry.message}>
+                    {entry.message}
+                  </p>
+                  {entry.count > 1 ? (
+                    <span className="dashboard-signal__count">×{entry.count}</span>
+                  ) : null}
+                </span>
+              </li>
+            )
+          })}
         </ol>
       ) : (
         <div className="dashboard-signals__empty">

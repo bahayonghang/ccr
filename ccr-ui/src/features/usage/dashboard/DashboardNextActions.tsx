@@ -122,7 +122,7 @@ export function DashboardNextActions({
             </li>
           ))}
         </ol>
-      ) : (
+      ) : actions.length > 0 ? (
         <div className="dashboard-actions__queue">
           {actions.map((action, index) => (
             <ActionRow
@@ -132,6 +132,11 @@ export function DashboardNextActions({
               t={t}
             />
           ))}
+        </div>
+      ) : (
+        <div className="dashboard-actions__empty">
+          <h3>{t('dashboard.actions.emptyTitle')}</h3>
+          <p>{t('dashboard.actions.emptyDescription')}</p>
         </div>
       )}
     </section>
