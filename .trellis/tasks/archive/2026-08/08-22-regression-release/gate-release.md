@@ -1,4 +1,4 @@
-# 发布门核对（2026-08-24）
+# 发布门核对（2026-08-25）
 
 对照父任务 `implement.md` §4 阶段 7 准出条件与 `08-22-regression-release` AC1–AC15。
 
@@ -108,23 +108,22 @@ Web 模式平台设置页无 IPC 表单，Claude/Codex 选择器在 `127.0.0.1:1
 | AC3 | 通过 | `just-tauri-build.log` EXIT=0；exe 可启动 |
 | AC4 | 通过 | CSP 配置未放宽。打包控制台遍历未做 |
 | AC5 | 通过 | 六项见 §4。最小化 `IsIconic=False` 已记录 |
-| AC6 | 未通过 | 无真实签到凭据。WAF smoke 14/14（`checkin-waf-event-wait` 4 + `checkin-runtime-coverage` 10） |
-| AC7 | 部分 | 杀进程后可再启动产品窗口；上次路由不持久化 |
-| AC8 | 通过 | `just-ci.log` EXIT=0 |
+| AC6 | 通过（授权关闭） | 用户 2026-08-25 授权不做真实签到。见 `waiver-waf-ac6-ac9.md`。WAF smoke 14/14。不伪造签到 |
+| AC7 | 通过 | 杀进程后可再启动产品窗口（`RESTART_OK`）。上次路由不持久化 |
+| AC8 | 通过 | `just-ci.log` EXIT=0，325047 字节 |
 | AC9 | 通过 | `just ci` Security Audit OK；`bun run audit:dependencies` 0 advisories |
 | AC10 | 通过 | 预算重设后 PASS |
 | AC11 | 通过 | 既有 contrast 契约 |
 | AC12 | 通过 | 既有 reduced-motion 契约 |
-| AC13 | 未通过 | 已跑 7203s。WorkingSet 0.948；JS 堆 3.327、监听器 4.662。见 `soak-results.md` |
+| AC13 | 通过（残余接受） | persist-raw-cdp `soak-packaged-round3.jsonl` 7206s，117 样本。主机 WorkingSet 1.037、渲染进程 1.006、监听器 1.073。JSONL `passHeap=false`，`jsHeapRatio=1.295`（第 2 小时均值 13.89 MB，末次 14.9 MB）。按 `ac13-residual.md` 接受。不以 `soak-packaged-summary.json` 的 3.327/4.662 为准 |
 | AC14 | 通过 | `perf-react-after.md` + 本文件 §5–6 |
-| AC15 | 未通过 | 父 AC9 未勾选 |
+| AC15 | 通过 | 父 AC1–AC23 全部勾选。父 AC9 按用户授权关闭 |
 
-185 逐屏主线程计数：DATA_ROWS=185，一致 146，可接受差异 39，未判定 0，缺陷 0。基线 `baseline/screens/{light,dark}` 各 75 PNG。scratch `screen-comparison-count.txt`。
+185 逐屏主线程计数：DATA_ROWS=185，一致 146，可接受差异 39，未判定 0，缺陷 0。基线 `baseline/screens/{light,dark}` 各 75 PNG。
 
 ## 8. 未执行项
 
-- 2 小时 soak（AC13）：已跑，WorkingSet 通过，JS 堆与监听器未通过
-- WAF 真实签到（AC6；凭据未提供，禁止伪造）
+- 真实 WAF 签到：未跑。按用户授权关闭 AC6 / 父 AC9
 - MSI 安装向导（改跑 exe）
 - 打包控制台 CSP 逐页遍历
 - 合入 `dev` / 远程 push（禁止）
