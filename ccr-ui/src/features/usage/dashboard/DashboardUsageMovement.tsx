@@ -1,10 +1,25 @@
-import { memo, useCallback, useMemo, useState } from 'react'
+import { memo, useCallback, useEffect, useMemo, useState, type CSSProperties, type KeyboardEvent } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router'
-import { translateWithFallback } from '@/i18n/formatMessage'
-import { PillToggleGroup, SIcon, StatTile } from '@/ui'
+import { createTf } from '@/utils/tf'
+import { scheduleWhenIdle } from '@/utils/scheduling'
+import { PillToggleGroup, SIcon } from '@/ui'
 import type { HomeUsageOverviewResponse } from '@/types/usage'
-import type { DashboardUsageMetric } from '@/views/dashboard/dashboardPresentation'
+import { homeUsageKeys } from '../queries'
 import { useUsageT } from '../translate'
+import {
+  compactLabel,
+  DashboardCostMetric,
+  deriveStackedUsageBars,
+  emptyDetailOf,
+  emptyTitleOf,
+  movementStateOf,
+  platformLabelKey,
+  type StackedUsageBar,
+  type StackedUsageChart,
+  type StackedUsageSegment,
+  type UsageStackPlatform,
+} from './DashboardCostMetric'
 import '../styles/dashboard-usage-movement.css'
 
 interface DashboardUsageMovementProps {
@@ -16,120 +31,319 @@ interface DashboardUsageMovementProps {
   className?: string
 }
 
-const DAY_OPTIONS = [7, 30, 90]
-const METRIC_OPTIONS: DashboardUsageMetric[] = ['sessions', 'requests', 'tokens']
-
-const metricLabelOf = (metric: DashboardUsageMetric, t: (key: string) => string) => {
-  if (metric === 'sessions') return t('dashboard.usage.metricSessions')
-  if (metric === 'tokens') return t('dashboard.usage.metricTokens')
-  return t('dashboard.usage.metricRequests')
+const DAY_OPTIONS = [7, 30, 90] as const
+const SKELETON_BAR_KEYS = ['sk1', 'sk2', 'sk3', 'sk4', 'sk5', 'sk6', 'sk7'] as const
+const formatAxisDate = (value: string) => {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
+  if (!match) return value
+  return `${Number(match[2])}/${Number(match[3])}`
+}
+const formatDateTime = (value: string | undefined, neverLabel: string) => {
+  if (!value) return neverLabel
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return neverLabel
+  return new Intl.DateTimeFormat(undefined, { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' }).format(date)
+}
+const barTitleOf = (dateLabel: string, bar: StackedUsageBar, labels: Record<UsageStackPlatform, string>) => {
+  if (bar.segments.length === 0) return `${dateLabel}: 0`
+  return `${dateLabel}: ${bar.segments.map((segment) => `${labels[segment.platform]} ${segment.requests}`).join(', ')}`
 }
 
-const emptyTitleOf = (error: string | null, loading: boolean, t: (key: string) => string) => {
-  if (error) return t('dashboard.usage.unavailableTitle')
-  if (loading) return t('dashboard.metrics.usagePreparing')
-  return t('dashboard.usage.emptyTitle')
-}
-
-const emptyDetailOf = (input: {
-  error: string | null
-  loading: boolean
-  emptyReasonDescription: string
-  t: (key: string) => string
-}) => {
-  if (input.error) return input.error
-  if (input.loading) return input.t('dashboard.usage.loadingDescription')
-  return input.emptyReasonDescription
-}
-
-const snapshotCopy = (input: {
-  error: string | null
-  emptyReason?: string
-  emptyReasonDescription: string
-  loading: boolean
-  t: (key: string) => string
-}) => {
-  if (input.error) return input.t('dashboard.usage.error')
-  if (input.emptyReason) return input.emptyReasonDescription
-  if (input.loading) return input.t('dashboard.metrics.usagePreparing')
-  return input.t('dashboard.usage.description')
-}
-
-const emptyReasonCopy = (reason: string | undefined, t: (key: string) => string) => {
-  if (reason === 'no_usage_logs') return t('usageStats.noUsageLogs')
-  if (reason === 'no_session_index') return t('usageStats.noSessionIndex')
-  if (reason === 'no_usage_and_sessions') return t('usageStats.noUsageAndSessions')
-  return t('dashboard.usage.emptyDescription')
-}
-
-function ChartReadout({
-  hoveredPoint,
-  peak,
-  metricLabel,
-  peakLabel,
-  hoverHint,
-}: {
-  hoveredPoint: { dateLabel: string; valueLabel: string } | null
-  peak: { dateLabel: string; valueLabel: string } | null
-  metricLabel: string
-  peakLabel: string
-  hoverHint: string
-}) {
-  let body = <span className="dashboard-usage__chart-readout-placeholder">{hoverHint}</span>
-  if (hoveredPoint) {
-    body = (
-      <>
-        <span className="dashboard-usage__chart-readout-date">{hoveredPoint.dateLabel}</span>
-        <span className="dashboard-usage__chart-readout-value">{hoveredPoint.valueLabel}</span>
-        <span className="dashboard-usage__chart-readout-metric">{metricLabel}</span>
-      </>
-    )
-  } else if (peak) {
-    body = (
-      <>
-        <span className="dashboard-usage__chart-readout-metric">{peakLabel}</span>
-        <span className="dashboard-usage__chart-readout-value">{peak.valueLabel}</span>
-        <span className="dashboard-usage__chart-readout-date">{peak.dateLabel}</span>
-      </>
-    )
+const handleRangeKeyDown = (
+  event: KeyboardEvent<HTMLDivElement>,
+  activeDays: number,
+  onChangeDays: (days: number) => void,
+) => {
+  const index = DAY_OPTIONS.indexOf(activeDays as (typeof DAY_OPTIONS)[number])
+  if (index < 0) return
+  if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+    const next = DAY_OPTIONS[index + 1]
+    if (next == null) return
+    event.preventDefault()
+    onChangeDays(next)
+    return
   }
-  return (
-    <span className="dashboard-usage__chart-readout" data-visible={hoveredPoint ? 'true' : 'false'} aria-live="polite">
-      {body}
-    </span>
-  )
+  if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+    const next = DAY_OPTIONS[index - 1]
+    if (next == null) return
+    event.preventDefault()
+    onChangeDays(next)
+  }
 }
 
-const UsageBar = memo(function UsageBar({
-  pointKey,
-  height,
-  title,
-  active,
-  onHover,
-}: {
-  pointKey: string
-  height: number
+const UsageStackBar = memo(function UsageStackBar(props: {
+  date: string
   title: string
-  active: boolean
-  onHover: (key: string | null) => void
+  heightPercent: number
+  segments: StackedUsageSegment[]
 }) {
-  const handleEnter = useCallback(() => onHover(pointKey), [onHover, pointKey])
-  const handleLeave = useCallback(() => onHover(null), [onHover])
-
   return (
-    <button
-      type="button"
-      className="dashboard-usage-bar"
-      data-active={active ? 'true' : 'false'}
-      style={{ height: `${height}%` }}
-      title={title}
-      aria-label={title}
-      onMouseEnter={handleEnter}
-      onFocus={handleEnter}
-      onBlur={handleLeave}
-    />
+    <div
+      className="dashboard-usage-stack"
+      data-date={props.date}
+      title={props.title}
+      style={{ '--stack-height': `${props.heightPercent}%` } as CSSProperties}
+    >
+      {props.segments.map((segment) => (
+        <span
+          key={segment.platform}
+          className="dashboard-usage-segment"
+          data-platform={segment.platform}
+          style={{ '--segment-height': `${segment.heightPercent}%` } as CSSProperties}
+        />
+      ))}
+    </div>
   )
 })
+
+function UsageMetricCell(props: { label: string; value: string; hero?: boolean; loading: boolean }) {
+  const valueClass = props.hero
+    ? 'dashboard-usage__metric-value dashboard-usage__metric-value--hero'
+    : 'dashboard-usage__metric-value'
+  return (
+    <div className={props.hero ? 'dashboard-usage__metric dashboard-usage__metric--hero' : 'dashboard-usage__metric'}>
+      <span className="dashboard-usage__metric-label">{props.label}</span>
+      {props.loading ? <span className="dashboard-usage__metric-skeleton" /> : (
+        <span className={valueClass} data-hero={props.hero ? 'true' : undefined} data-zero={props.value === '0' ? 'true' : 'false'}>
+          {props.value}
+        </span>
+      )}
+    </div>
+  )
+}
+
+function UsageStatusPanel(props: {
+  kind: 'error' | 'empty'
+  title: string
+  detail: string
+  retryLabel?: string
+  onRetry?: () => void
+}) {
+  const icon = props.kind === 'error' ? 'AlertTriangle' : 'BarChart3'
+  return (
+    <div className={props.kind === 'error' ? 'dashboard-usage__error' : 'dashboard-usage__empty'}>
+      <span className={props.kind === 'error' ? 'dashboard-usage__error-icon' : 'dashboard-usage__empty-icon'}>
+        <SIcon name={icon} size="w-5 h-5" />
+      </span>
+      <div>
+        <h3>{props.title}</h3>
+        <p>{props.detail}</p>
+        {props.onRetry ? (
+          <button type="button" className="dashboard-usage__retry" onClick={props.onRetry}>{props.retryLabel}</button>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
+function UsageChartPanel(props: { ariaLabel: string; bars: StackedUsageBar[]; labels: Record<UsageStackPlatform, string> }) {
+  return (
+    <div className="dashboard-usage__chart" role="img" aria-label={props.ariaLabel} data-dashboard-usage-bars>
+      <div className="dashboard-usage__grid" aria-hidden="true">
+        <span className="dashboard-usage__grid-line dashboard-usage__grid-line--high" />
+        <span className="dashboard-usage__grid-line dashboard-usage__grid-line--mid" />
+      </div>
+      {props.bars.map((bar) => (
+        <UsageStackBar
+          key={bar.date}
+          date={bar.date}
+          title={barTitleOf(formatAxisDate(bar.date), bar, props.labels)}
+          heightPercent={bar.heightPercent}
+          segments={bar.segments}
+        />
+      ))}
+    </div>
+  )
+}
+
+function UsageSkeleton() {
+  return (
+    <div className="dashboard-usage__chart" data-dashboard-usage-skeleton>
+      <div className="dashboard-usage__grid" aria-hidden="true">
+        <span className="dashboard-usage__grid-line dashboard-usage__grid-line--high" />
+        <span className="dashboard-usage__grid-line dashboard-usage__grid-line--mid" />
+      </div>
+      {SKELETON_BAR_KEYS.map((key) => (
+        <div key={key} className="dashboard-usage-stack dashboard-usage-stack--skeleton" />
+      ))}
+    </div>
+  )
+}
+
+function UsageCostCell(props: { label: string; days: number; ready: boolean }) {
+  return (
+    <div className="dashboard-usage__metric">
+      <span className="dashboard-usage__metric-label">{props.label}</span>
+      <span className="dashboard-usage__metric-value">
+        {props.ready ? <DashboardCostMetric days={props.days} /> : <span data-dashboard-cost-placeholder>—</span>}
+      </span>
+    </div>
+  )
+}
+
+function UsageMetricsRow(props: {
+  loading: boolean
+  showLegend: boolean
+  requests: string
+  tokens: string
+  sessions: string
+  costLabel: string
+  requestLabel: string
+  tokenLabel: string
+  sessionLabel: string
+  days: number
+  costReady: boolean
+  legend: UsageStackPlatform[]
+  labels: Record<UsageStackPlatform, string>
+}) {
+  return (
+    <div className="dashboard-usage__metrics">
+      <UsageMetricCell label={props.requestLabel} value={props.requests} hero loading={props.loading} />
+      <UsageMetricCell label={props.tokenLabel} value={props.tokens} loading={props.loading} />
+      <UsageCostCell label={props.costLabel} days={props.days} ready={props.costReady} />
+      <UsageMetricCell label={props.sessionLabel} value={props.sessions} loading={props.loading} />
+      {props.showLegend ? (
+        <div className="dashboard-usage__legend">
+          {props.legend.map((platform) => (
+            <span key={platform} className="dashboard-usage__legend-item">
+              <span className="dashboard-usage__legend-swatch" data-platform={platform} />
+              {props.labels[platform]}
+            </span>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+function UsageMainPanel(props: {
+  loading: boolean
+  error: string | null
+  chart: StackedUsageChart
+  title: string
+  detail: string
+  retryLabel: string
+  onRetry: () => void
+  ariaLabel: string
+  labels: Record<UsageStackPlatform, string>
+}) {
+  if (props.loading) return <UsageSkeleton />
+  if (props.error) {
+    return (
+      <UsageStatusPanel
+        kind="error"
+        title={props.title}
+        detail={props.detail}
+        retryLabel={props.retryLabel}
+        onRetry={props.onRetry}
+      />
+    )
+  }
+  if (props.chart.empty) return <UsageStatusPanel kind="empty" title={props.title} detail={props.detail} />
+  return <UsageChartPanel ariaLabel={props.ariaLabel} bars={props.chart.bars} labels={props.labels} />
+}
+
+function UsageFooter(props: { showChart: boolean; bars: StackedUsageBar[]; reportLabel: string }) {
+  return (
+    <footer className="dashboard-usage__footer">
+      {props.showChart ? (
+        <div className="dashboard-usage__axis" aria-hidden="true">
+          {props.bars.map((bar) => (
+            <span key={bar.date} className="dashboard-usage__tick">{formatAxisDate(bar.date)}</span>
+          ))}
+        </div>
+      ) : <span />}
+      <Link to="/usage" className="dashboard-usage__report-link">
+        {props.reportLabel}
+        <SIcon name="ArrowRight" size="w-4 h-4" />
+      </Link>
+    </footer>
+  )
+}
+
+type MovementViewProps = DashboardUsageMovementProps & {
+  t: (key: string) => string
+  tf: (key: string, fallback: string, values?: Record<string, string | number>) => string
+  costReady: boolean
+  chart: StackedUsageChart
+  dayOptions: Array<{ value: number; label: string }>
+  platformLabels: Record<UsageStackPlatform, string>
+  onRangeKeyDown: (event: KeyboardEvent<HTMLDivElement>) => void
+  onRetry: () => void
+}
+
+function UsageMovementView(props: MovementViewProps) {
+  const loading = Boolean(props.loading && !props.overview)
+  const showChart = Boolean(!loading && !props.error && !props.chart.empty)
+  const requests = compactLabel(props.error, props.overview?.summary.total_requests)
+  const title = emptyTitleOf(props.error, loading, props.t)
+  const detail = emptyDetailOf({
+    error: props.error,
+    loading,
+    reason: props.overview?.empty_reason ?? undefined,
+    t: props.t,
+  })
+  return (
+    <section
+      className={['dashboard-usage', props.className].filter(Boolean).join(' ')}
+      data-dashboard-usage-movement
+      data-count={showChart ? props.chart.bars.length : 0}
+      data-state={movementStateOf(props.error, loading, showChart)}
+    >
+      <header className="dashboard-usage__header">
+        <div className="dashboard-usage__lede">
+          <h2 className="dashboard-usage__title">{props.t('dashboard.usage.title')}</h2>
+          <p className="dashboard-usage__description">
+            {props.t('dashboard.usage.description')}
+            {' · '}
+            {props.tf('dashboard.usage.lastUpdated', 'Updated {time}', {
+              time: formatDateTime(props.overview?.last_updated, props.t('dashboard.usage.lastUpdatedNever')),
+            })}
+          </p>
+        </div>
+        <div className="dashboard-usage__range" onKeyDown={props.onRangeKeyDown}>
+          <PillToggleGroup
+            options={props.dayOptions}
+            value={props.activeDays}
+            onValueChange={props.onChangeDays}
+            ariaLabel={props.t('dashboard.usage.rangeLabel')}
+          />
+        </div>
+      </header>
+      <UsageMetricsRow
+        loading={loading}
+        showLegend={showChart}
+        requests={requests}
+        tokens={compactLabel(props.error, props.overview?.summary.total_tokens)}
+        sessions={compactLabel(props.error, props.overview?.summary.total_sessions)}
+        costLabel={props.t('dashboard.usage.metricCost')}
+        requestLabel={props.t('dashboard.usage.metricRequests')}
+        tokenLabel={props.t('dashboard.usage.metricTokens')}
+        sessionLabel={props.t('dashboard.usage.metricSessions')}
+        days={props.activeDays}
+        costReady={props.costReady}
+        legend={props.chart.legend}
+        labels={props.platformLabels}
+      />
+      <UsageMainPanel
+        loading={loading}
+        error={props.error}
+        chart={props.chart}
+        title={title}
+        detail={detail}
+        retryLabel={props.t('common.retry')}
+        onRetry={props.onRetry}
+        ariaLabel={props.tf('dashboard.usage.chartAria', '{days}-day window, {requests} requests, platforms: {platforms}', {
+          days: props.activeDays,
+          requests,
+          platforms: props.chart.legend.map((platform) => props.platformLabels[platform]).join(', '),
+        })}
+        labels={props.platformLabels}
+      />
+      <UsageFooter showChart={showChart} bars={props.chart.bars} reportLabel={props.t('dashboard.usage.fullReport')} />
+    </section>
+  )
+}
 
 export function DashboardUsageMovement({
   overview,
@@ -140,170 +354,46 @@ export function DashboardUsageMovement({
   className,
 }: DashboardUsageMovementProps) {
   const t = useUsageT()
-  const [selectedMetric, setSelectedMetric] = useState<DashboardUsageMetric>('requests')
-  const [hoveredKey, setHoveredKey] = useState<string | null>(null)
-
-  const formatCompact = (value?: number) => {
-    if (typeof value !== 'number') return '…'
-    return new Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 1 }).format(value)
-  }
-
-  const formatDateTime = (value?: string) => {
-    if (!value) return t('dashboard.usage.lastUpdatedNever')
-    const date = new Date(value)
-    if (Number.isNaN(date.getTime())) return t('dashboard.usage.lastUpdatedNever')
-    return new Intl.DateTimeFormat(undefined, {
-      month: 'short',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    }).format(date)
-  }
-
-  const formatDateLabel = (value: string) => {
-    const date = new Date(value)
-    if (Number.isNaN(date.getTime())) return value
-    return new Intl.DateTimeFormat(undefined, { month: 'short', day: '2-digit' }).format(date)
-  }
-
-  const isInitialLoading = loading && !overview
-  const emptyReason = overview?.empty_reason
-  const emptyReasonDescription = emptyReasonCopy(emptyReason ?? undefined, t)
-
-  const snapshotDescription = snapshotCopy({
-    error,
-    emptyReason: emptyReason ?? undefined,
-    emptyReasonDescription,
-    loading: isInitialLoading,
-    t,
-  })
-
-  const summaryItems = [
-    { label: t('dashboard.usage.metricSessions'), value: formatCompact(overview?.summary.total_sessions) },
-    { label: t('dashboard.usage.metricRequests'), value: formatCompact(overview?.summary.total_requests) },
-    { label: t('dashboard.usage.metricTokens'), value: formatCompact(overview?.summary.total_tokens) },
-    { label: t('dashboard.usage.metricPlatforms'), value: formatCompact(overview?.summary.platforms) },
-  ]
-
-  const chartPoints = useMemo(() => {
-    const series = overview?.series ?? []
-    const values = series.map((item) =>
-      item.claude[selectedMetric]
-      + item.codex[selectedMetric]
-      + item.antigravity[selectedMetric]
-      + (item.opencode?.[selectedMetric] ?? 0),
-    )
-    const max = Math.max(1, ...values)
-    return series.map((item, index) => {
-      const value = values[index] ?? 0
-      return {
-        key: item.date,
-        dateLabel: formatDateLabel(item.date),
-        value,
-        valueLabel: formatCompact(value),
-        height: Math.max(6, Math.round((value / max) * 100)),
-        title: `${formatDateLabel(item.date)} · ${formatCompact(value)} ${metricLabelOf(selectedMetric, t)}`,
-      }
-    })
-  }, [overview, selectedMetric, t])
-
-  const clearHover = useCallback(() => setHoveredKey(null), [])
-  const hoveredPoint = chartPoints.find((point) => point.key === hoveredKey) ?? null
-  const peakPoint = chartPoints.reduce<(typeof chartPoints)[number] | null>((best, point) => {
-    if (!best || point.value > best.value) return point
-    return best
-  }, null)
-  const peak = peakPoint && peakPoint.value > 0 ? peakPoint : null
-  const hasSeries = chartPoints.length > 0
-  const hasMeaningfulSeries = chartPoints.some((point) => point.value > 0)
+  const tf = useMemo(() => createTf(t), [t])
+  const queryClient = useQueryClient()
+  const [costReady, setCostReady] = useState(false)
+  const chart = useMemo(() => deriveStackedUsageBars(overview?.series ?? []), [overview])
+  useEffect(() => scheduleWhenIdle(() => setCostReady(true)), [])
+  const dayOptions = useMemo(
+    () => DAY_OPTIONS.map((days) => ({ value: days, label: t(`dashboard.usage.range${days}`) })),
+    [t],
+  )
+  const platformLabels = useMemo(() => ({
+    claude: t(platformLabelKey('claude')),
+    codex: t(platformLabelKey('codex')),
+    antigravity: t(platformLabelKey('antigravity')),
+    opencode: t(platformLabelKey('opencode')),
+  }), [t])
+  const onRangeKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLDivElement>) => handleRangeKeyDown(event, activeDays, onChangeDays),
+    [activeDays, onChangeDays],
+  )
+  const onRetry = useCallback(() => {
+    onChangeDays(activeDays)
+    void queryClient.invalidateQueries({ queryKey: homeUsageKeys.overview(activeDays) })
+  }, [activeDays, onChangeDays, queryClient])
 
   return (
-    <section
-      className={['dashboard-usage', className].filter(Boolean).join(' ')}
-      data-dashboard-usage-movement
-    >
-      <header className="dashboard-usage__header">
-        <div className="dashboard-usage__lede">
-          <h2 className="dashboard-usage__title">{t('dashboard.usage.title')}</h2>
-          <p className="dashboard-usage__description">{snapshotDescription}</p>
-        </div>
-        <PillToggleGroup
-          options={DAY_OPTIONS.map((days) => ({ value: days, label: t(`dashboard.usage.range${days}`) }))}
-          value={activeDays}
-          onValueChange={onChangeDays}
-          ariaLabel={t('dashboard.usage.rangeLabel')}
-        />
-      </header>
-      <div className="dashboard-usage__body">
-        <div className="dashboard-usage__summary">
-          {summaryItems.map((item) => (
-            <StatTile key={item.label} label={item.label} value={item.value} tone="neutral" />
-          ))}
-        </div>
-        <div className="dashboard-usage__chartArea">
-          <PillToggleGroup
-            className="dashboard-usage__metric"
-            options={METRIC_OPTIONS.map((metric) => ({ value: metric, label: metricLabelOf(metric, t) }))}
-            value={selectedMetric}
-            onValueChange={setSelectedMetric}
-            ariaLabel={t('dashboard.usage.metricSelectLabel')}
-          />
-          {hasSeries ? (
-            <div
-              className={['dashboard-usage__chart', !hasMeaningfulSeries ? 'dashboard-usage__chart--ghost' : '']
-                .filter(Boolean)
-                .join(' ')}
-              data-dashboard-usage-bars
-              onMouseLeave={clearHover}
-            >
-              <ChartReadout
-                hoveredPoint={hoveredPoint}
-                peak={peak}
-                metricLabel={metricLabelOf(selectedMetric, t)}
-                peakLabel={t('dashboard.usage.peakLabel')}
-                hoverHint={t('dashboard.usage.hoverHint')}
-              />
-              <div className="dashboard-usage__chart-grid" aria-hidden="true">
-                <span className="dashboard-usage__chart-grid-line dashboard-usage__chart-grid-line--top" />
-                <span className="dashboard-usage__chart-grid-line dashboard-usage__chart-grid-line--bottom" />
-              </div>
-              <div className="dashboard-usage__chart-bars">
-                {chartPoints.map((point) => (
-                  <UsageBar
-                    key={point.key}
-                    pointKey={point.key}
-                    height={point.height}
-                    title={point.title}
-                    active={hoveredKey === point.key}
-                    onHover={setHoveredKey}
-                  />
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="dashboard-usage__empty">
-              <span className="dashboard-usage__empty-icon">
-                <SIcon name="BarChart3" size="w-5 h-5" />
-              </span>
-              <div>
-                <h3>{emptyTitleOf(error, isInitialLoading, t)}</h3>
-                <p>{emptyDetailOf({ error, loading: isInitialLoading, emptyReasonDescription, t })}</p>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-      <footer className="dashboard-usage__footer">
-        <span className="dashboard-usage__last">
-          {translateWithFallback(t, 'dashboard.usage.lastUpdated', 'Updated {time}', {
-            time: formatDateTime(overview?.last_updated),
-          })}
-        </span>
-        <Link to="/usage" className="dashboard-usage__report-link">
-          {t('dashboard.usage.fullReport')}
-          <SIcon name="ArrowRight" size="w-4 h-4" />
-        </Link>
-      </footer>
-    </section>
+    <UsageMovementView
+      overview={overview}
+      loading={loading}
+      error={error}
+      activeDays={activeDays}
+      onChangeDays={onChangeDays}
+      className={className}
+      t={t}
+      tf={tf}
+      costReady={costReady}
+      chart={chart}
+      dayOptions={dayOptions}
+      platformLabels={platformLabels}
+      onRangeKeyDown={onRangeKeyDown}
+      onRetry={onRetry}
+    />
   )
 }
