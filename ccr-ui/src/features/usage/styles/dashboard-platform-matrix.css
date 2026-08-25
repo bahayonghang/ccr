@@ -1,87 +1,27 @@
-/* migrated from DashboardPlatformMatrix.vue; px converted to rem */
 .dashboard-platforms {
   display: grid;
-  gap: 0.85rem;
-}
-
-.dashboard-platforms__header {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-.dashboard-platforms__lede {
-  display: grid;
-  gap: 0.18rem;
+  flex: none;
+  gap: var(--space-3);
   min-width: 0;
-}
-
-.dashboard-platforms__eyebrow {
-  margin: 0;
-  color: var(--color-text-muted);
-  font-size: 0.8125rem;
-  font-weight: 500;
-  line-height: 1.24;
-  letter-spacing: 0;
-}
-
-.dashboard-platforms__title {
-  margin: 0;
-  color: var(--color-text-primary);
-  font-size: 1.0625rem;
-  font-weight: 600;
-  line-height: 1.3;
-  letter-spacing: 0;
-}
-
-.dashboard-platforms__description {
-  max-width: 54rem;
-  margin: 0;
-  color: var(--color-text-secondary);
-  font-size: 0.875rem;
-  line-height: 1.5;
-}
-
-.dashboard-platforms__count {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0.5rem;
-  padding: 0.3rem 0.65rem;
-  border: 0.0625rem solid var(--color-border-subtle);
-  border-radius: 0.5rem;
-  background: var(--color-bg-elevated);
-  white-space: nowrap;
-}
-
-.dashboard-platforms__count strong {
-  color: var(--color-text-primary);
-  font-size: 0.875rem;
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-}
-
-.dashboard-platforms__count span {
-  color: var(--color-text-muted);
-  font-size: 0.75rem;
-  font-weight: 500;
-  letter-spacing: 0;
 }
 
 .dashboard-platforms__matrix {
   display: grid;
-  gap: 0.4rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
 }
 
 .dashboard-platform {
-  display: grid;
-  grid-template-columns: auto auto minmax(9rem, 1.2fr) auto minmax(6rem, 0.6fr) minmax(12rem, 2fr) repeat(3, minmax(4.5rem, 0.55fr)) auto;
-  align-items: center;
-  gap: 0.65rem;
+  --dashboard-platform-accent: var(--color-text-disabled);
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
   min-width: 0;
-  padding: 0.65rem 0.85rem;
-  border: 0.0625rem solid var(--color-border-subtle);
-  border-radius: var(--home-card-radius);
+  padding: var(--space-4);
+  overflow: hidden;
+  border: var(--space-px) solid var(--color-border-subtle);
+  border-radius: var(--radius-2xl);
   background: var(--color-bg-surface);
   color: var(--color-text-primary);
   text-decoration: none;
@@ -96,77 +36,72 @@
 }
 
 .dashboard-platform:focus-visible {
-  outline: 0.125rem solid var(--color-accent-primary);
-  outline-offset: 0.125rem;
+  outline: var(--space-0-5) solid var(--color-accent-primary);
+  outline-offset: var(--space-0-5);
 }
 
-.dashboard-platform__mark {
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: 0.125rem;
-  background: var(--color-text-disabled);
+.dashboard-platform--claude-code {
+  --dashboard-platform-accent: var(--color-platform-claude);
 }
 
-.dashboard-platform--claude-code .dashboard-platform__mark {
-  background: var(--color-platform-claude);
+.dashboard-platform--codex {
+  --dashboard-platform-accent: var(--color-platform-codex);
 }
 
-.dashboard-platform--codex .dashboard-platform__mark {
-  background: var(--color-platform-codex);
+.dashboard-platform--antigravity {
+  --dashboard-platform-accent: var(--color-platform-gemini);
 }
 
-.dashboard-platform--antigravity .dashboard-platform__mark {
-  background: var(--color-platform-gemini);
+.dashboard-platform--opencode {
+  --dashboard-platform-accent: var(--color-platform-opencode);
 }
 
-.dashboard-platform--opencode .dashboard-platform__mark {
-  background: var(--color-info);
+.dashboard-platform__bar {
+  height: var(--space-1);
+  margin: calc(var(--space-4) * -1) calc(var(--space-4) * -1) 0;
+  background: var(--dashboard-platform-accent);
 }
 
-.dashboard-platform__icon {
-  display: grid;
-  place-items: center;
-  width: 1.6rem;
-  height: 1.6rem;
-  color: var(--color-text-secondary);
+.dashboard-platform__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-width: 0;
 }
 
 .dashboard-platform__identity {
   display: grid;
-  gap: 0.1rem;
+  gap: var(--space-0-5);
   min-width: 0;
 }
 
-.dashboard-platform__identity strong,
-.dashboard-platform__identity span,
-.dashboard-platform__role,
-.dashboard-platform__desc,
-.dashboard-platform__metric strong {
+.dashboard-platform__identity strong {
   overflow: hidden;
+  color: var(--color-text-primary);
+  font-size: var(--home-text-body);
+  font-weight: var(--font-semibold);
+  line-height: 1.3;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.dashboard-platform__identity strong {
-  color: var(--color-text-primary);
-  font-size: 0.875rem;
-  font-weight: 600;
-}
-
-.dashboard-platform__identity span,
-.dashboard-platform__role,
-.dashboard-platform__metric span {
+.dashboard-platform__version {
+  overflow: hidden;
   color: var(--color-text-muted);
-  font-size: 0.75rem;
-  font-weight: 500;
+  font-family: var(--font-mono);
+  font-size: var(--home-text-meta);
+  font-weight: var(--font-medium);
   letter-spacing: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .dashboard-platform__version-skeleton {
   display: inline-block;
-  width: 3rem;
-  height: 0.75rem;
-  border-radius: 0.25rem;
+  width: var(--space-12);
+  height: var(--home-text-meta);
+  border-radius: var(--radius-md);
   background: rgb(var(--color-border-default-rgb) / 22%);
   animation: dashboard-platform-skeleton-pulse 1.4s ease-in-out infinite;
 }
@@ -179,24 +114,24 @@
 
 .dashboard-platform__status {
   display: inline-flex;
+  flex-shrink: 0;
   align-items: center;
-  justify-self: start;
-  gap: 0.35rem;
-  padding: 0.16rem 0.45rem;
-  border: 0.0625rem solid var(--color-border-subtle);
-  border-radius: 0.375rem;
+  gap: var(--space-1);
+  padding: var(--space-0-5) var(--space-2);
+  border: var(--space-px) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
   background: var(--color-bg-elevated);
   color: var(--color-text-muted);
-  font-size: 0.75rem;
-  font-weight: 500;
+  font-size: var(--home-text-meta);
+  font-weight: var(--font-medium);
   letter-spacing: 0;
   white-space: nowrap;
 }
 
 .dashboard-platform__status-dot {
-  width: 0.4rem;
-  height: 0.4rem;
-  border-radius: 62.4375rem;
+  width: var(--space-1-5);
+  height: var(--space-1-5);
+  border-radius: var(--radius-full);
   background: var(--color-text-disabled);
 }
 
@@ -232,70 +167,123 @@
   background: var(--color-info);
 }
 
-.dashboard-platform__desc {
-  color: var(--color-text-secondary);
-  font-size: 0.75rem;
+.dashboard-platform__status[data-tracking='degraded'],
+.dashboard-platform__status[data-tracking='missing'] {
+  color: var(--color-warning);
+}
+
+.dashboard-platform__status[data-tracking='degraded'] .dashboard-platform__status-dot,
+.dashboard-platform__status[data-tracking='missing'] .dashboard-platform__status-dot {
+  background: var(--color-warning);
+}
+
+.dashboard-platform__spark {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-0-5);
+  height: var(--space-10);
+  min-height: var(--space-10);
+}
+
+.dashboard-platform__spark-bar {
+  flex: 1 1 0;
+  min-width: var(--space-px);
+  height: calc(var(--spark-ratio, 0) * 100%);
+  min-height: var(--space-0-5);
+  border-radius: var(--radius-md);
+  background: var(--color-border-default);
+}
+
+.dashboard-platform__spark-bar.is-peak {
+  background: var(--dashboard-platform-accent);
+}
+
+.dashboard-platform__spark--empty,
+.dashboard-platform__spark--idle {
+  align-items: center;
+  background: transparent;
+}
+
+.dashboard-platform__spark--empty::before {
+  flex: 1;
+  height: 0;
+  border-top: var(--space-px) dashed var(--color-border-default);
+  content: '';
+}
+
+.dashboard-platform__spark--idle {
+  border: var(--space-px) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  opacity: 0.45;
+}
+
+.dashboard-platform__rule {
+  height: var(--space-px);
+  background: var(--color-border-subtle);
+}
+
+.dashboard-platform__metrics {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-2);
+  min-width: 0;
 }
 
 .dashboard-platform__metric {
   display: grid;
-  gap: 0.1rem;
+  gap: var(--space-0-5);
   min-width: 0;
 }
 
-.dashboard-platform__metric strong {
-  color: var(--color-text-primary);
-  font-size: 0.8125rem;
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
+.dashboard-platform__metric--end {
+  text-align: right;
 }
 
-.dashboard-platform__cta {
+.dashboard-platform__metric span {
   color: var(--color-text-muted);
-  opacity: 0;
+  font-family: var(--font-mono);
+  font-size: var(--home-text-meta);
+  font-weight: var(--font-semibold);
+  letter-spacing: 0.14em;
 }
 
-.dashboard-platform:hover .dashboard-platform__cta,
-.dashboard-platform:focus-visible .dashboard-platform__cta {
+.dashboard-platform__metric strong {
+  overflow: hidden;
   color: var(--color-text-primary);
-  opacity: 1;
+  font-family: var(--font-mono);
+  font-size: var(--home-text-mono-lg);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--font-semibold);
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-@media (width <= 73.75rem) {
-  .dashboard-platform {
-    grid-template-columns: auto auto minmax(0, 1fr) auto;
-  }
+.dashboard-platform__missing {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-width: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--home-text-meta);
+}
 
-  .dashboard-platform__role,
-  .dashboard-platform__desc,
-  .dashboard-platform__metric {
-    display: none;
+.dashboard-platform__missing strong {
+  color: var(--color-text-primary);
+  font-weight: var(--font-semibold);
+}
+
+@media (width <= 1024px) {
+  .dashboard-platforms__matrix {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-@media (width <= 45rem) {
-  .dashboard-platforms__header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .dashboard-platform {
-    grid-template-columns: auto auto minmax(0, 1fr);
-  }
-
-  .dashboard-platform__status,
-  .dashboard-platform__cta {
-    grid-column: 3;
-  }
+[data-reduced-motion='true'] .dashboard-platform {
+  transition: none;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .dashboard-platform,
-  .dashboard-platform__cta {
-    transition: none;
-  }
-
-  .dashboard-platform__version-skeleton {
-    animation: none;
-  }
+[data-reduced-motion='true'] .dashboard-platform__version-skeleton {
+  animation: none;
 }

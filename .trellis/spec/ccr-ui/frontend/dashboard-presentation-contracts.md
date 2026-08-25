@@ -1,6 +1,6 @@
 # Dashboard Presentation Contracts
 
-> Executable contracts for `ccr-ui/src/views/dashboard/dashboardPresentation.ts` and the five `DashboardView.tsx` child components it feeds (`DashboardReadinessLedger`, `DashboardNextActions`, `DashboardUsageMovement`, `DashboardSignalStream`, `DashboardPlatformMatrix`) under `ccr-ui/src/features/usage/dashboard/`.
+> Executable contracts for `ccr-ui/src/views/dashboard/dashboardPresentation.ts` and the `DashboardView.tsx` children it feeds (`DashboardNextActions`, `DashboardUsageMovement`, `DashboardSignalStream`, `DashboardPlatformMatrix`) under `ccr-ui/src/features/usage/dashboard/`. Readiness copy, pill, and reason checklist render in `DashboardView` itself (`08-25-home-runtime-layout` removed `DashboardReadinessLedger`).
 
 ---
 
@@ -65,13 +65,13 @@ const countSignals = (logs: MonitoringEntry[]): DashboardSignalCounts => {
 
 ### 1. Scope / Trigger
 
-- Trigger: adding, removing, or reordering a reason in `buildReadiness()`, or changing how `DashboardReadinessLedger.tsx` renders the reason list.
+- Trigger: adding, removing, or reordering a reason in `buildReadiness()`, or changing how `DashboardView.tsx` renders the header reason checklist.
 
 ### 2. Signatures
 
 - `DashboardReadinessReason = { key: string; ok: boolean }` (`dashboardPresentation.ts`).
 - `DashboardReadiness.reasons: DashboardReadinessReason[]` (renamed from the pre-`07-07-ui-shell-home` `reasonKeys: string[]`).
-- Consumed by `DashboardReadinessLedger.tsx`: `reason.ok` picks `SIcon` name (`Check` vs `AlertTriangle`) and the icon's color class; `stripTrailingPeriod()` strips a trailing `。`/`.` from the translated string so rows read as a checklist, not sentences.
+- Consumed by `DashboardView.tsx` header checklist: `reason.ok` picks `SIcon` name (`Check` vs `AlertTriangle`) and the icon's color class; `stripTrailingPeriod()` strips a trailing `。`/`.` from the translated string so rows read as a checklist, not sentences.
 
 ### 3. Contracts
 
@@ -141,14 +141,14 @@ const countSignals = (logs: MonitoringEntry[]): DashboardSignalCounts => {
 
 ### 1. Scope / Trigger
 
-- Trigger: changing `src/ui/stat-tile.tsx` badge rendering, wiring `tone` in `DashboardReadinessLedger.tsx` / `DashboardUsageMovement.tsx`, or changing `buildStatusMetrics()` tone assignment.
+- Trigger: changing `src/ui/stat-tile.tsx` badge rendering, wiring `tone` in `DashboardUsageMovement.tsx`, or changing `buildStatusMetrics()` tone assignment. Home no longer consumes `statusMetrics` (`08-25-home-runtime-layout`); `buildDashboardPresentation` still produces the array.
 - Introduced by `08-18-overview-home-visual`: `DashboardStatusMetric.tone` was already computed, but the ledger dropped it and usage summary tiles stayed bare.
 
 ### 2. Signatures
 
 - `DashboardStatusMetric.tone: DashboardTone` (`neutral | success | warning | danger | accent`) — assigned in `buildStatusMetrics()`.
 - `StatTile` optional `tone?: 'neutral' | 'success' | 'warning' | 'danger' | 'accent'` — the union lives on the primitive. Do not import `DashboardTone` into `StatTile`.
-- Ledger: `tone={metric.tone}`. Usage summary tiles: `tone="neutral"`.
+- Home no longer wires `statusMetrics` into StatTile. Usage summary tiles: `tone="neutral"`.
 
 ### 3. Contracts
 
@@ -162,3 +162,28 @@ const countSignals = (logs: MonitoringEntry[]): DashboardSignalCounts => {
 - `ccr-ui/tests/ui-primitives.smoke.test.tsx` — bare tile without `tone`; `tone: 'success'` has `data-tone`, the badge class, no `ui-card`, and source still contains `tabular-nums`.
 - `ccr-ui/tests/dashboard-presentation.smoke.test.ts` — existing judgment expectations stay green.
 - `ccr-ui/tests/react-shell.smoke.test.tsx` — root route mounts `DashboardView` (`.dashboard-view`).
+
+---
+
+## Scenario: Platform sparkline and trackingHealth must not treat all-zero series as untracked
+
+### 1. Scope / Trigger
+
+- Trigger: adding fields to `DashboardPlatformRow`, changing `buildPlatformRows()`, or changing how `DashboardPlatformMatrix` decides the untracked placeholder.
+
+### 2. Signatures
+
+- `DashboardPlatformRow.sparkline?: number[]` — per-day `requests` from `overview.series`, mapped by `usageKey` (`gemini` → `antigravity`).
+- `DashboardPlatformRow.trackingHealth?: 'live' | 'degraded' | 'missing'` — from `overview.archive.source_health`, matching `source === usageKey` or the canonical source id (`gemini` also matches `antigravity`).
+
+### 3. Contracts
+
+- `overview == null` or empty `series` → omit `sparkline` (leave `undefined`). Do not invent a zero array.
+- Backend home series pads every homepage platform to the selected day count, including untracked ones. **All-zero `sparkline` is not an untracked signal.**
+- Untracked placeholder is `trackingHealth === 'missing'` only. `degraded` still shows data. Empty `source_health` leaves `trackingHealth` undefined and must not show the placeholder.
+- When `trackingHealth === 'missing'`, do not emit `sparkline` and do not surface `0` as requests/tokens.
+
+### 4. Tests Required
+
+- `ccr-ui/tests/dashboard-presentation.smoke.test.ts` — date-order sparkline; `gemini` → `antigravity`; `overview == null` / empty `series` → `undefined`; all-zero series with empty `source_health` is not missing.
+- `ccr-ui/tests/dashboard-platform-matrix.smoke.test.tsx` — `state: 'missing'` shows the placeholder; all-zero series does not.

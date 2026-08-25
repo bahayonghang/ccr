@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router'
 import { getCliVersions, getSystemInfo } from '@/api'
 import { getErrorMessage } from '@/utils/errorHandler'
 import { logger } from '@/utils/logger'
@@ -6,7 +7,7 @@ import { perfMark, shouldLogPerfTelemetry } from '@/utils/perfTelemetry'
 import { readPrefersReducedMotion } from '@/utils/reducedMotion'
 import { scheduleWhenIdle } from '@/utils/scheduling'
 import { isTauriRuntime } from '@/utils/tauriRuntime'
-import { PageHeader } from '@/ui'
+import { PageHeader, SIcon } from '@/ui'
 import type { CliVersionEntry, CliVersionsResponse, SystemInfo } from '@/types'
 import {
   buildDashboardPresentation,
@@ -17,7 +18,6 @@ import { useHomeUsageOverview } from '../queries'
 import { hydrateUsageLocale, useUsageT } from '../translate'
 import { DashboardNextActions } from './DashboardNextActions'
 import { DashboardPlatformMatrix } from './DashboardPlatformMatrix'
-import { DashboardReadinessLedger } from './DashboardReadinessLedger'
 import { DashboardSignalStream } from './DashboardSignalStream'
 import { DashboardUsageMovement } from './DashboardUsageMovement'
 import { useDashboardSignals } from './useDashboardSignals'
@@ -38,6 +38,8 @@ const CLI_PLATFORM_ALIASES: Record<string, string> = {
 
 const normalizeDashboardCliPlatform = (platform: string) =>
   CLI_PLATFORM_ALIASES[platform.trim().toLowerCase()] ?? null
+
+const stripTrailingPeriod = (text: string) => text.replace(/[。.]$/, '')
 
 export function DashboardView() {
   const t = useUsageT()
@@ -152,7 +154,7 @@ export function DashboardView() {
       desc: t('dashboard.platforms.opencodeDesc'),
       path: '/opencode',
       icon: 'TerminalSquare',
-      iconClass: 'text-accent-info',
+      iconClass: 'text-[color:var(--color-platform-opencode)]',
       platformKey: 'opencode',
       usageKey: 'opencode',
       role: t('dashboard.platforms.roleManaged'),
@@ -161,6 +163,12 @@ export function DashboardView() {
     },
   ], [t])
 
+  const overview = isNativeRuntime ? (overviewQuery.data ?? null) : null
+  const usageLoading = Boolean(isNativeRuntime && overviewQuery.isLoading)
+  const usageError = isNativeRuntime && overviewQuery.error
+    ? getErrorMessage(overviewQuery.error)
+    : null
+
   const dashboardPresentation = useMemo(() => buildDashboardPresentation({
     backendStatus,
     isNativeRuntime,
@@ -168,9 +176,9 @@ export function DashboardView() {
     cliVersions,
     cliVersionsLoaded,
     platforms,
-    overview: overviewQuery.data ?? null,
-    usageLoading: overviewQuery.isLoading,
-    usageError: overviewQuery.error ? getErrorMessage(overviewQuery.error) : null,
+    overview,
+    usageLoading,
+    usageError,
     logs,
   }), [
     backendStatus,
@@ -178,12 +186,15 @@ export function DashboardView() {
     cliVersionsLoaded,
     isNativeRuntime,
     logs,
-    overviewQuery.data,
-    overviewQuery.error,
-    overviewQuery.isLoading,
+    overview,
     platforms,
     systemInfo,
+    usageError,
+    usageLoading,
   ])
+
+  const issueCount = dashboardPresentation.readiness.reasons.filter((reason) => !reason.ok).length
+  const primaryAction = dashboardPresentation.actions[0]
 
   const scrollToReadiness = useCallback(() => {
     const target = document.querySelector('[data-dashboard-readiness]')
@@ -206,56 +217,82 @@ export function DashboardView() {
           <PageHeader
             title={t('dashboard.title')}
             eyebrow={t('dashboard.eyebrow')}
-            description={t('dashboard.description')}
+            description={t(dashboardPresentation.readiness.descriptionKey)}
             status={(
-              <button
-                type="button"
-                className="dashboard-header__badge"
-                data-status={dashboardPresentation.readiness.status}
-                aria-label={t('dashboard.readiness.label')}
-                onClick={scrollToReadiness}
-              >
-                <span className="dashboard-header__badge-dot" aria-hidden="true" />
-                {t(dashboardPresentation.readiness.labelKey)}
-              </button>
+              <div className="dashboard-header__readiness">
+                <h2 className="dashboard-header__readiness-title">
+                  {t(dashboardPresentation.readiness.titleKey)}
+                </h2>
+                <button
+                  type="button"
+                  className="dashboard-header__badge"
+                  data-status={dashboardPresentation.readiness.status}
+                  aria-label={t('dashboard.readiness.label')}
+                  onClick={scrollToReadiness}
+                >
+                  <span className="dashboard-header__badge-dot" aria-hidden="true" />
+                  {t(dashboardPresentation.readiness.labelKey)}
+                  {issueCount > 0 ? (
+                    <span className="dashboard-header__badge-count">{issueCount}</span>
+                  ) : null}
+                </button>
+              </div>
+            )}
+            actions={(
+              <>
+                {primaryAction ? (
+                  <Link to={primaryAction.path} className="dashboard-header__action">
+                    {t(primaryAction.titleKey)}
+                  </Link>
+                ) : null}
+                <Link to="/usage" className="dashboard-header__all">
+                  {t('usage.dashboard.allPlatforms')}
+                  <SIcon name="ArrowRight" size="w-4 h-4" />
+                </Link>
+              </>
             )}
           />
-        </section>
-        <section className="dashboard-grid dashboard-grid--status">
-          <DashboardReadinessLedger
-            className="dashboard-grid__readiness"
-            readiness={dashboardPresentation.readiness}
-            statusMetrics={dashboardPresentation.statusMetrics}
-          />
-        </section>
-        <section className="dashboard-grid dashboard-grid--actions">
-          <DashboardNextActions
-            className="dashboard-grid__actions"
-            actions={dashboardPresentation.actions}
-            showOnboarding={dashboardPresentation.isFirstRun}
-          />
-        </section>
-        <section className="dashboard-grid dashboard-grid--insight">
-          <DashboardUsageMovement
-            className="dashboard-grid__usage"
-            overview={overviewQuery.data ?? null}
-            loading={overviewQuery.isLoading}
-            error={overviewQuery.error ? getErrorMessage(overviewQuery.error) : null}
-            activeDays={activeDays}
-            onChangeDays={loadUsageOverview}
-          />
-          <DashboardSignalStream
-            className="dashboard-grid__signals"
-            entries={logs}
-            limit={6}
-          />
+          <ul className="dashboard-header__reasons" data-dashboard-readiness>
+            {dashboardPresentation.readiness.reasons.map((reason) => (
+              <li
+                key={reason.key}
+                className="dashboard-header__reason"
+                data-ok={reason.ok}
+              >
+                <SIcon
+                  name={reason.ok ? 'Check' : 'AlertTriangle'}
+                  size="w-3.5 h-3.5"
+                  className="dashboard-header__reason-icon"
+                />
+                {stripTrailingPeriod(t(reason.key))}
+              </li>
+            ))}
+          </ul>
         </section>
         <DashboardPlatformMatrix
-          className="dashboard-grid__entries"
           rows={dashboardPresentation.platformRows}
           installedCliCount={dashboardPresentation.installedCliCount}
           runtimeCliCount={dashboardPresentation.runtimeCliCount}
         />
+        <section className="dashboard-lower">
+          <DashboardUsageMovement
+            overview={overview}
+            loading={usageLoading}
+            error={usageError}
+            activeDays={activeDays}
+            onChangeDays={loadUsageOverview}
+          />
+          <div className="dashboard-rail">
+            <DashboardNextActions
+              actions={dashboardPresentation.actions}
+              showOnboarding={dashboardPresentation.isFirstRun}
+            />
+            <DashboardSignalStream
+              entries={logs}
+              limit={6}
+            />
+          </div>
+        </section>
       </div>
     </main>
   )

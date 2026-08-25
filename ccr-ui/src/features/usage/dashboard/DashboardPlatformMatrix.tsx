@@ -1,6 +1,5 @@
-import { memo } from 'react'
+import { memo, type CSSProperties } from 'react'
 import { Link } from 'react-router'
-import { SIcon } from '@/ui'
 import type {
   DashboardMetricValue,
   DashboardPlatformRow,
@@ -15,56 +14,138 @@ interface DashboardPlatformMatrixProps {
   className?: string
 }
 
-const PlatformRow = memo(function PlatformRow({
+const resolveMetric = (metric: DashboardMetricValue | undefined, t: (key: string) => string) => {
+  if (!metric) return '…'
+  return metric.valueKey ? t(metric.valueKey) : metric.value ?? '…'
+}
+
+const metricBySuffix = (platform: DashboardPlatformRow, suffix: string) =>
+  platform.metrics.find((metric) => metric.labelKey.endsWith(suffix))
+
+/** 用累计签名当 key，避免 sparkline 柱用数组下标。 */
+const sparkBarItems = (platformKey: string, values: number[]) => {
+  const items: Array<{ signature: string; value: number }> = []
+  let signature = platformKey
+  for (const value of values) {
+    signature = `${signature}|${value}`
+    items.push({ signature, value })
+  }
+  return items
+}
+
+const PlatformSparkline = memo(function PlatformSparkline({
+  values,
+  platformKey,
+  label,
+}: {
+  values: number[]
+  platformKey: string
+  label: string
+}) {
+  const peak = Math.max(0, ...values)
+
+  return (
+    <span
+      className="dashboard-platform__spark"
+      role="img"
+      aria-label={label}
+      data-testid={`dashboard-platform-spark-${platformKey}`}
+    >
+      {sparkBarItems(platformKey, values).map((bar) => {
+        const ratio = peak > 0 ? bar.value / peak : 0
+        const isPeak = peak > 0 && bar.value === peak
+        return (
+          <span
+            key={bar.signature}
+            className={
+              isPeak
+                ? 'dashboard-platform__spark-bar is-peak'
+                : 'dashboard-platform__spark-bar'
+            }
+            style={{ '--spark-ratio': String(ratio) } as CSSProperties}
+          />
+        )
+      })}
+    </span>
+  )
+})
+
+const PlatformCard = memo(function PlatformCard({
   platform,
   t,
 }: {
   platform: DashboardPlatformRow
   t: (key: string) => string
 }) {
-  const resolveMetric = (metric: DashboardMetricValue) =>
-    metric.valueKey ? t(metric.valueKey) : metric.value ?? '…'
   const version = platform.versionKey ? t(platform.versionKey) : platform.version ?? '…'
+  const isMissing = platform.trackingHealth === 'missing'
+  const requestMetric = metricBySuffix(platform, '.requests')
+  const tokenMetric = metricBySuffix(platform, '.tokens')
+  const statusLabel = isMissing ? t('dashboard.platforms.untracked') : t(platform.stateKey)
 
   return (
     <Link
       to={platform.path}
       className={`dashboard-platform dashboard-platform--${platform.platformKey}`}
+      data-state={platform.state}
+      data-tracking={platform.trackingHealth ?? 'unknown'}
+      data-testid={`dashboard-platform-${platform.platformKey}`}
     >
-      <span className="dashboard-platform__mark" aria-hidden="true" />
-      <span className="dashboard-platform__icon">
-        <SIcon name={platform.icon} size="w-4 h-4" />
-      </span>
-      <span className="dashboard-platform__identity">
-        <strong>{platform.title}</strong>
-        {platform.versionKey === 'dashboard.platforms.stateScanning' ? (
-          <span
-            className="dashboard-platform__version-skeleton"
-            role="status"
-            aria-label={t(platform.versionKey)}
-          />
-        ) : (
-          <span>{version}</span>
-        )}
-      </span>
-      <span className="dashboard-platform__status" data-state={platform.state}>
-        <span className="dashboard-platform__status-dot" aria-hidden="true" />
-        {t(platform.stateKey)}
-      </span>
-      <span className="dashboard-platform__role">{platform.role}</span>
-      <span className="dashboard-platform__desc">{platform.desc}</span>
-      {platform.metrics.map((metric) => (
-        <span
-          key={`${platform.platformKey}-${metric.labelKey}`}
-          className="dashboard-platform__metric"
-        >
-          <span>{t(metric.labelKey)}</span>
-          <strong>{resolveMetric(metric)}</strong>
+      <span className="dashboard-platform__bar" aria-hidden="true" />
+      <span className="dashboard-platform__head">
+        <span className="dashboard-platform__identity">
+          <strong>{platform.title}</strong>
+          {platform.versionKey === 'dashboard.platforms.stateScanning' ? (
+            <span
+              className="dashboard-platform__version-skeleton"
+              role="status"
+              aria-label={t(platform.versionKey)}
+            />
+          ) : (
+            <span className="dashboard-platform__version">{version}</span>
+          )}
         </span>
-      ))}
-      <span className="dashboard-platform__cta" aria-hidden="true">
-        <SIcon name="ArrowRight" size="w-4 h-4" />
+        <span
+          className="dashboard-platform__status"
+          data-state={isMissing ? 'attention' : platform.state}
+          data-tracking={platform.trackingHealth ?? 'unknown'}
+        >
+          <span className="dashboard-platform__status-dot" aria-hidden="true" />
+          {statusLabel}
+        </span>
       </span>
+      {isMissing ? (
+        <span
+          className="dashboard-platform__spark dashboard-platform__spark--empty"
+          data-testid={`dashboard-platform-placeholder-${platform.platformKey}`}
+        />
+      ) : platform.sparkline ? (
+        <PlatformSparkline
+          values={platform.sparkline}
+          platformKey={platform.platformKey}
+          label={t('dashboard.usage.title')}
+        />
+      ) : (
+        <span className="dashboard-platform__spark dashboard-platform__spark--idle" />
+      )}
+      <span className="dashboard-platform__rule" aria-hidden="true" />
+      {isMissing ? (
+        <span className="dashboard-platform__missing">
+          <span>{t('dashboard.platforms.untrackedHint')}</span>
+          <strong>{t('dashboard.platforms.configureAction')}</strong>
+        </span>
+      ) : (
+        <span className="dashboard-platform__metrics">
+          <span className="dashboard-platform__metric">
+            <span>{requestMetric ? t(requestMetric.labelKey) : t('dashboard.platforms.metrics.requests')}</span>
+            <strong>{resolveMetric(requestMetric, t)}</strong>
+          </span>
+          <span className="dashboard-platform__metric dashboard-platform__metric--end">
+            <span>{tokenMetric ? t(tokenMetric.labelKey) : t('dashboard.platforms.metrics.tokens')}</span>
+            <strong>{resolveMetric(tokenMetric, t)}</strong>
+          </span>
+        </span>
+      )}
     </Link>
   )
 })
@@ -82,20 +163,13 @@ export function DashboardPlatformMatrix({
       className={['dashboard-platforms', className].filter(Boolean).join(' ')}
       data-dashboard-platforms
     >
-      <header className="dashboard-platforms__header">
-        <div className="dashboard-platforms__lede">
-          <p className="dashboard-platforms__eyebrow">{t('dashboard.platforms.eyebrow')}</p>
-          <h2 className="dashboard-platforms__title">{t('dashboard.platforms.title')}</h2>
-          <p className="dashboard-platforms__description">{t('dashboard.platforms.description')}</p>
-        </div>
-        <span className="dashboard-platforms__count">
-          <strong>{installedCliCount}/{runtimeCliCount}</strong>
-          <span>{t('dashboard.platforms.detectedLabel')}</span>
-        </span>
-      </header>
+      <h2 className="sr-only">{t('dashboard.platforms.title')}</h2>
+      <p className="sr-only">
+        {installedCliCount}/{runtimeCliCount} {t('dashboard.platforms.detectedLabel')}
+      </p>
       <div className="dashboard-platforms__matrix">
         {rows.map((platform) => (
-          <PlatformRow key={platform.platformKey} platform={platform} t={t} />
+          <PlatformCard key={platform.platformKey} platform={platform} t={t} />
         ))}
       </div>
     </section>

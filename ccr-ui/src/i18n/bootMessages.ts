@@ -199,10 +199,12 @@ const zhCNBootMessages = {
       managedLabel: '应用内管理',
       notInstalled: '未安装',
       untracked: '未追踪',
+      untrackedHint: '用量未接入本地归档',
+      configureAction: '配置 →',
       metrics: {
         requests: '请求',
         sessions: '会话',
-        tokens: 'Token',
+        tokens: 'TOKEN',
       },
     },
     usage: {
@@ -790,10 +792,12 @@ const enUSBootMessages = {
       managedLabel: 'Managed in app',
       notInstalled: 'Not Installed',
       untracked: 'Untracked',
+      untrackedHint: 'Usage is not in the local archive',
+      configureAction: 'Configure →',
       metrics: {
-        requests: 'Req',
-        sessions: 'Sess',
-        tokens: 'Tok',
+        requests: 'REQUESTS',
+        sessions: 'SESSIONS',
+        tokens: 'TOKEN',
       },
     },
     usage: {

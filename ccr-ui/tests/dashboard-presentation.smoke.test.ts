@@ -6,7 +6,7 @@ import {
 import type { CliVersionEntry, SystemInfo } from '@/types'
 import type { MonitoringEntry } from '@/composables/useMonitoringFeed'
 import type { HomeUsageOverviewResponse } from '@/types/usage'
-import { makeArchiveDiagnostics } from './helpers/usageFixtures'
+import { makeArchiveDiagnostics, makeSourceHealth } from './helpers/usageFixtures'
 
 const platforms: DashboardPlatformSource[] = [
   {
@@ -278,5 +278,109 @@ describe('dashboard presentation', () => {
 
     expect(presentation.signalCounts).toMatchObject({ errors: 1, warnings: 0, total: 1 })
     expect(presentation.actions[0]?.id).toBe('open-monitoring')
+  })
+
+  it('derives sparkline requests in series date order and maps gemini to antigravity', () => {
+    const presentation = buildDashboardPresentation({
+      ...baseInput(),
+      overview: overview({
+        series: [
+          {
+            date: '2026-04-01',
+            claude: { sessions: 0, requests: 1, tokens: 0 },
+            codex: { sessions: 0, requests: 4, tokens: 0 },
+            antigravity: { sessions: 0, requests: 9, tokens: 0 },
+            opencode: { sessions: 0, requests: 2, tokens: 0 },
+          },
+          {
+            date: '2026-04-02',
+            claude: { sessions: 0, requests: 3, tokens: 0 },
+            codex: { sessions: 0, requests: 5, tokens: 0 },
+            antigravity: { sessions: 0, requests: 8, tokens: 0 },
+            opencode: { sessions: 0, requests: 0, tokens: 0 },
+          },
+        ],
+      }),
+    })
+
+    expect(presentation.platformRows.find((row) => row.usageKey === 'claude')?.sparkline).toEqual([1, 3])
+    expect(presentation.platformRows.find((row) => row.usageKey === 'codex')?.sparkline).toEqual([4, 5])
+    expect(presentation.platformRows.find((row) => row.usageKey === 'gemini')?.sparkline).toEqual([9, 8])
+    expect(presentation.platformRows.find((row) => row.usageKey === 'opencode')?.sparkline).toEqual([2, 0])
+  })
+
+  it('leaves sparkline undefined when overview is null or series is empty', () => {
+    const withoutOverview = buildDashboardPresentation({
+      ...baseInput(),
+      overview: null,
+    })
+    expect(withoutOverview.platformRows.every((row) => row.sparkline === undefined)).toBe(true)
+    expect(withoutOverview.platformRows.every((row) => row.trackingHealth === undefined)).toBe(true)
+
+    const emptySeries = buildDashboardPresentation({
+      ...baseInput(),
+      overview: overview({ series: [] }),
+    })
+    expect(emptySeries.platformRows.every((row) => row.sparkline === undefined)).toBe(true)
+  })
+
+  it('maps source_health onto trackingHealth and accepts gemini source aliases', () => {
+    const viaSourceId = buildDashboardPresentation({
+      ...baseInput(),
+      overview: overview({
+        archive: makeArchiveDiagnostics({
+          source_health: [makeSourceHealth({ source: 'antigravity', state: 'missing' })],
+        }),
+      }),
+    })
+    expect(viaSourceId.platformRows.find((row) => row.usageKey === 'gemini')?.trackingHealth).toBe(
+      'missing',
+    )
+    expect(viaSourceId.platformRows.find((row) => row.usageKey === 'gemini')?.sparkline).toBeUndefined()
+    expect(
+      viaSourceId.platformRows.find((row) => row.usageKey === 'gemini')?.metrics[0]?.valueKey,
+    ).toBe('dashboard.platforms.untracked')
+
+    const viaUsageKey = buildDashboardPresentation({
+      ...baseInput(),
+      overview: overview({
+        archive: makeArchiveDiagnostics({
+          source_health: [makeSourceHealth({ source: 'gemini', state: 'degraded' })],
+        }),
+      }),
+    })
+    expect(viaUsageKey.platformRows.find((row) => row.usageKey === 'gemini')?.trackingHealth).toBe(
+      'degraded',
+    )
+  })
+
+  it('does not treat an all-zero series as missing when source_health is empty', () => {
+    const zeroStats = { sessions: 0, requests: 0, tokens: 0 }
+    const presentation = buildDashboardPresentation({
+      ...baseInput(),
+      overview: overview({
+        by_platform: {
+          claude: zeroStats,
+          codex: zeroStats,
+          gemini: zeroStats,
+          opencode: zeroStats,
+        },
+        series: [
+          {
+            date: '2026-04-01',
+            claude: zeroStats,
+            codex: zeroStats,
+            antigravity: zeroStats,
+            opencode: zeroStats,
+          },
+        ],
+      }),
+    })
+
+    expect(presentation.platformRows.every((row) => row.trackingHealth === undefined)).toBe(true)
+    expect(presentation.platformRows.find((row) => row.usageKey === 'claude')?.sparkline).toEqual([0])
+    expect(presentation.platformRows.find((row) => row.usageKey === 'claude')?.metrics[0]?.value).toBe(
+      '0',
+    )
   })
 })

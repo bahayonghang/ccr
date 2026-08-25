@@ -8,6 +8,14 @@ interface MainLayoutNavProps {
   onNavigate?: () => void
 }
 
+const PLATFORM_NAV_SWATCH: Record<string, string> = {
+  '/claude-code': 'bg-platform-claude',
+  '/codex': 'bg-platform-codex',
+  '/grok': 'bg-platform-grok',
+  '/antigravity': 'bg-platform-gemini',
+  '/opencode': 'bg-[var(--color-platform-opencode)]',
+}
+
 export function MainLayoutNav({ t, onNavigate }: MainLayoutNavProps) {
   return (
     <nav
@@ -19,9 +27,9 @@ export function MainLayoutNav({ t, onNavigate }: MainLayoutNavProps) {
       {mainLayoutNavSections.map((section) => (
         <div key={section.id}>
           {section.titleKey ? (
-            <div className="mb-2 flex items-center gap-2 px-3 text-[0.625rem] font-semibold tracking-[0.16em] text-text-muted">
+            <div className="sidebar-nav__label">
               {t(section.titleKey)}
-              <div className="h-px flex-1 bg-border-default/70" />
+              <span className="sidebar-nav__label-rule" aria-hidden="true" />
             </div>
           ) : null}
           <div className={section.titleKey ? 'space-y-0.5' : 'space-y-1'}>
@@ -38,6 +46,12 @@ export function MainLayoutNav({ t, onNavigate }: MainLayoutNavProps) {
                   ].join(' ')
                 }
               >
+                {PLATFORM_NAV_SWATCH[item.to] ? (
+                  <span
+                    className={`sidebar-nav__swatch ${PLATFORM_NAV_SWATCH[item.to]}`}
+                    aria-hidden="true"
+                  />
+                ) : null}
                 <SIcon name={item.icon} size="w-4 h-4" className={item.iconClass} />
                 <span>{t(item.labelKey)}</span>
               </NavLink>

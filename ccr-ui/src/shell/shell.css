@@ -151,6 +151,32 @@
   backface-visibility: hidden;
 }
 
+.sidebar-nav__label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+  padding-inline: var(--space-3);
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--home-text-meta);
+  font-weight: var(--font-semibold);
+  letter-spacing: 0.16em;
+}
+
+.sidebar-nav__label-rule {
+  flex: 1;
+  height: var(--space-px);
+  background: rgb(var(--color-border-default-rgb) / 70%);
+}
+
+.sidebar-nav__swatch {
+  width: var(--space-1-5);
+  height: var(--space-1-5);
+  flex-shrink: 0;
+  border-radius: var(--radius-md);
+}
+
 .nav-item {
   position: relative;
   display: flex;

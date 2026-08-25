@@ -1,6 +1,11 @@
 import type { IconName } from '@/config/icons'
 import type { CliVersionEntry, SystemInfo } from '@/types'
-import type { HomeOverviewPlatformStats, HomeUsageOverviewResponse } from '@/types/usage'
+import type {
+  HomeOverviewPlatformStats,
+  HomeOverviewSeriesItem,
+  HomeUsageOverviewResponse,
+  UsageSourceHealthState,
+} from '@/types/usage'
 
 /** 看板信号条目：只消费 channel / level，避免展示层依赖 monitoring composable。 */
 export interface DashboardLogEntry {
@@ -49,12 +54,17 @@ export interface DashboardMetricValue {
   valueKey?: string
 }
 
+export type DashboardPlatformUsageKey = NonNullable<DashboardPlatformSource['usageKey']>
+export type DashboardTrackingHealth = UsageSourceHealthState
+
 export interface DashboardPlatformRow extends DashboardPlatformSource {
   state: DashboardPlatformState
   stateKey: string
   version?: string
   versionKey?: string
   metrics: DashboardMetricValue[]
+  sparkline?: number[]
+  trackingHealth?: DashboardTrackingHealth
 }
 
 export interface DashboardStatusMetric {
@@ -245,10 +255,61 @@ const getPlatformMetric = (
   return { value: formatCompact(stats[metric]) }
 }
 
+const USAGE_KEY_TO_SERIES_FIELD = {
+  claude: 'claude',
+  codex: 'codex',
+  gemini: 'antigravity',
+  opencode: 'opencode',
+} as const satisfies Record<DashboardPlatformUsageKey, keyof Omit<HomeOverviewSeriesItem, 'date'>>
+
+const USAGE_KEY_TO_SOURCE_ID: Record<DashboardPlatformUsageKey, string> = {
+  claude: 'claude',
+  codex: 'codex',
+  gemini: 'antigravity',
+  opencode: 'opencode',
+}
+
+const isPlatformUsageKey = (value: string | undefined): value is DashboardPlatformUsageKey =>
+  value === 'claude' || value === 'codex' || value === 'gemini' || value === 'opencode'
+
+const getPlatformStats = (
+  platform: DashboardPlatformSource,
+  overview: HomeUsageOverviewResponse | null,
+): HomeOverviewPlatformStats | undefined => {
+  if (!platform.usageKey || !overview?.by_platform) return undefined
+  const direct = overview.by_platform[platform.usageKey]
+  if (direct) return direct
+  if (!isPlatformUsageKey(platform.usageKey)) return undefined
+  return overview.by_platform[USAGE_KEY_TO_SOURCE_ID[platform.usageKey]]
+}
+
+const buildSparkline = (
+  usageKey: DashboardPlatformSource['usageKey'],
+  series: HomeOverviewSeriesItem[] | undefined,
+): number[] | undefined => {
+  if (!usageKey || !isPlatformUsageKey(usageKey) || !series?.length) return undefined
+  const field = USAGE_KEY_TO_SERIES_FIELD[usageKey]
+  return series.map((item) => item[field].requests)
+}
+
+const resolveTrackingHealth = (
+  usageKey: DashboardPlatformSource['usageKey'],
+  overview: HomeUsageOverviewResponse | null,
+): DashboardTrackingHealth | undefined => {
+  if (!usageKey || !isPlatformUsageKey(usageKey)) return undefined
+  const sourceHealth = overview?.archive.source_health
+  if (!sourceHealth?.length) return undefined
+  const sourceId = USAGE_KEY_TO_SOURCE_ID[usageKey]
+  const hit = sourceHealth.find((entry) => entry.source === sourceId || entry.source === usageKey)
+  return hit?.state
+}
+
 const buildPlatformRows = (input: DashboardPresentationInput): DashboardPlatformRow[] => {
   return input.platforms.map((platform) => {
     const state = getPlatformState(platform, input.cliVersions, input.cliVersionsLoaded)
-    const stats = platform.usageKey ? input.overview?.by_platform?.[platform.usageKey] : undefined
+    const trackingHealth = resolveTrackingHealth(platform.usageKey, input.overview)
+    // missing 平台即便 series 被补成全零，也不能把 0 当真实用量展示。
+    const stats = trackingHealth === 'missing' ? undefined : getPlatformStats(platform, input.overview)
 
     return {
       ...platform,
@@ -269,6 +330,12 @@ const buildPlatformRows = (input: DashboardPresentationInput): DashboardPlatform
           ...getPlatformMetric(stats, 'tokens'),
         },
       ],
+      // missing 时 series 仍可能是全零；不把零数组写进 sparkline，避免下游误当真实用量。
+      sparkline:
+        trackingHealth === 'missing'
+          ? undefined
+          : buildSparkline(platform.usageKey, input.overview?.series),
+      trackingHealth,
     }
   })
 }

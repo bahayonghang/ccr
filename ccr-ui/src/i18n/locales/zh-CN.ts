@@ -744,10 +744,12 @@ export default {
       managedLabel: '应用内管理',
       notInstalled: '未安装',
       untracked: '未追踪',
+      untrackedHint: '用量未接入本地归档',
+      configureAction: '配置 →',
       metrics: {
         requests: '请求',
         sessions: '会话',
-        tokens: 'Token',
+        tokens: 'TOKEN',
       },
     },
     usage: {

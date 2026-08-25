@@ -68,20 +68,6 @@ export const makeReadiness = (
   ...overrides,
 })
 
-export const makeSourceHealth = (
-  overrides: Partial<UsageSourceHealth> = {},
-): UsageSourceHealth => ({
-  source: 'claude',
-  state: 'live',
-  live_sources: 0,
-  missing_sources: 0,
-  deleted_sources: 0,
-  recent_completed_at: null,
-  history_completed_at: null,
-  freshness: makeFreshness(),
-  ...overrides,
-})
-
 export const makeArchiveDiagnostics = (
   overrides: Partial<UsageArchiveDiagnostics> = {},
 ): UsageArchiveDiagnostics => ({
@@ -95,6 +81,20 @@ export const makeArchiveDiagnostics = (
   source_health: [],
   freshness: makeFreshness(),
   readiness: makeReadiness(),
+  ...overrides,
+})
+
+export const makeSourceHealth = (
+  overrides: Partial<UsageSourceHealth> = {},
+): UsageSourceHealth => ({
+  source: 'codex',
+  state: 'live',
+  live_sources: 1,
+  missing_sources: 0,
+  deleted_sources: 0,
+  recent_completed_at: null,
+  history_completed_at: null,
+  freshness: makeFreshness(),
   ...overrides,
 })
 

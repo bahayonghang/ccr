@@ -762,10 +762,12 @@ export default {
       managedLabel: 'Managed in app',
       notInstalled: 'Not Installed',
       untracked: 'Untracked',
+      untrackedHint: 'Usage is not in the local archive',
+      configureAction: 'Configure →',
       metrics: {
-        requests: 'Req',
-        sessions: 'Sess',
-        tokens: 'Tok',
+        requests: 'REQUESTS',
+        sessions: 'SESSIONS',
+        tokens: 'TOKEN',
       },
     },
     usage: {
