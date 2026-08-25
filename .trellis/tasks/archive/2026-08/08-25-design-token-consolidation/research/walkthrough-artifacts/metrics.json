@@ -1,0 +1,850 @@
+[
+  {
+    "page": "Dashboard",
+    "path": "/",
+    "combo": "light×neutral",
+    "dataset": {
+      "theme": "light",
+      "flavor": "neutral",
+      "accent": "clay"
+    },
+    "tokens": {
+      "--color-border-subtle": "#d8d9db",
+      "--color-border-default": "#c9cacd",
+      "--color-border-strong": "#b1b2b5",
+      "--color-bg-elevated": "#f2f3f5",
+      "--color-bg-surface": "#fbfcfd",
+      "--radius-sm": "6px",
+      "--radius-lg": "8px",
+      "--radius-2xl": "12px",
+      "--radius-full": "9999px",
+      "--color-platform-opencode": "#735f52",
+      "--color-success-tint": "#e8eeea",
+      "--color-warning-tint": "#f3eee6"
+    },
+    "overflowX": 0,
+    "title": "CCR UI",
+    "screenshot": "light-neutral-dashboard.png"
+  },
+  {
+    "page": "Profiles",
+    "path": "/configs",
+    "combo": "light×neutral",
+    "dataset": {
+      "theme": "light",
+      "flavor": "neutral",
+      "accent": "clay"
+    },
+    "tokens": {
+      "--color-border-subtle": "#d8d9db",
+      "--color-border-default": "#c9cacd",
+      "--color-border-strong": "#b1b2b5",
+      "--color-bg-elevated": "#f2f3f5",
+      "--color-bg-surface": "#fbfcfd",
+      "--radius-sm": "6px",
+      "--radius-lg": "8px",
+      "--radius-2xl": "12px",
+      "--radius-full": "9999px",
+      "--color-platform-opencode": "#735f52",
+      "--color-success-tint": "#e8eeea",
+      "--color-warning-tint": "#f3eee6"
+    },
+    "overflowX": 0,
+    "title": "CCR UI"
+  },
+  {
+    "page": "MCP",
+    "path": "/mcp-manager",
+    "combo": "light×neutral",
+    "dataset": {
+      "theme": "light",
+      "flavor": "neutral",
+      "accent": "clay"
+    },
+    "tokens": {
+      "--color-border-subtle": "#d8d9db",
+      "--color-border-default": "#c9cacd",
+      "--color-border-strong": "#b1b2b5",
+      "--color-bg-elevated": "#f2f3f5",
+      "--color-bg-surface": "#fbfcfd",
+      "--radius-sm": "6px",
+      "--radius-lg": "8px",
+      "--radius-2xl": "12px",
+      "--radius-full": "9999px",
+      "--color-platform-opencode": "#735f52",
+      "--color-success-tint": "#e8eeea",
+      "--color-warning-tint": "#f3eee6"
+    },
+    "overflowX": 0,
+    "title": "CCR UI"
+  },
+  {
+    "page": "Commands",
+    "path": "/commands",
+    "combo": "light×neutral",
+    "dataset": {
+      "theme": "light",
+      "flavor": "neutral",
+      "accent": "clay"
+    },
+    "tokens": {
+      "--color-border-subtle": "#d8d9db",
+      "--color-border-default": "#c9cacd",
+      "--color-border-strong": "#b1b2b5",
+      "--color-bg-elevated": "#f2f3f5",
+      "--color-bg-surface": "#fbfcfd",
+      "--radius-sm": "6px",
+      "--radius-lg": "8px",
+      "--radius-2xl": "12px",
+      "--radius-full": "9999px",
+      "--color-platform-opencode": "#735f52",
+      "--color-success-tint": "#e8eeea",
+      "--color-warning-tint": "#f3eee6"
+    },
+    "overflowX": 0,
+    "title": "CCR UI"
+  },
+  {
+    "page": "Sync",
+    "path": "/sync",
+    "combo": "light×neutral",
+    "dataset": {
+      "theme": "light",
+      "flavor": "neutral",
+      "accent": "clay"
+    },
+    "tokens": {
+      "--color-border-subtle": "#d8d9db",
+      "--color-border-default": "#c9cacd",
+      "--color-border-strong": "#b1b2b5",
+      "--color-bg-elevated": "#f2f3f5",
+      "--color-bg-surface": "#fbfcfd",
+      "--radius-sm": "6px",
+      "--radius-lg": "8px",
+      "--radius-2xl": "12px",
+      "--radius-full": "9999px",
+      "--color-platform-opencode": "#735f52",
+      "--color-success-tint": "#e8eeea",
+      "--color-warning-tint": "#f3eee6"
+    },
+    "overflowX": 0,
+    "title": "CCR UI"
+  },
+  {
+    "page": "Check-ins",
+    "path": "/checkin",
+    "combo": "light×neutral",
+    "dataset": {
+      "theme": "light",
+      "flavor": "neutral",
+      "accent": "clay"
+    },
+    "tokens": {
+      "--color-border-subtle": "#d8d9db",
+      "--color-border-default": "#c9cacd",
+      "--color-border-strong": "#b1b2b5",
+      "--color-bg-elevated": "#f2f3f5",
+      "--color-bg-surface": "#fbfcfd",
+      "--radius-sm": "6px",
+      "--radius-lg": "8px",
+      "--radius-2xl": "12px",
+      "--radius-full": "9999px",
+      "--color-platform-opencode": "#735f52",
+      "--color-success-tint": "#e8eeea",
+      "--color-warning-tint": "#f3eee6"
+    },
+    "overflowX": 0,
+    "title": "CCR UI"
+  },
+  {
+    "page": "Usage",
+    "path": "/usage",
+    "combo": "light×neutral",
+    "dataset": {
+      "theme": "light",
+      "flavor": "neutral",
+      "accent": "clay"
+    },
+    "tokens": {
+      "--color-border-subtle": "#d8d9db",
+      "--color-border-default": "#c9cacd",
+      "--color-border-strong": "#b1b2b5",
+      "--color-bg-elevated": "#f2f3f5",
+      "--color-bg-surface": "#fbfcfd",
+      "--radius-sm": "6px",
+      "--radius-lg": "8px",
+      "--radius-2xl": "12px",
+      "--radius-full": "9999px",
+      "--color-platform-opencode": "#735f52",
+      "--color-success-tint": "#e8eeea",
+      "--color-warning-tint": "#f3eee6"
+    },
+    "overflowX": 0,
+    "title": "CCR UI"
+  },
+  {
+    "page": "Settings",
+    "path": "/settings",
+    "combo": "light×neutral",
+    "dataset": {
+      "theme": "light",
+      "flavor": "neutral",
+      "accent": "clay"
+    },
+    "tokens": {
+      "--color-border-subtle": "#d8d9db",
+      "--color-border-default": "#c9cacd",
+      "--color-border-strong": "#b1b2b5",
+      "--color-bg-elevated": "#f2f3f5",
+      "--color-bg-surface": "#fbfcfd",
+      "--radius-sm": "6px",
+      "--radius-lg": "8px",
+      "--radius-2xl": "12px",
+      "--radius-full": "9999px",
+      "--color-platform-opencode": "#735f52",
+      "--color-success-tint": "#e8eeea",
+      "--color-warning-tint": "#f3eee6"
+    },
+    "overflowX": 0,
+    "title": "CCR UI",
+    "screenshot": "light-neutral-settings.png"
+  },
+  {
+    "page": "Dashboard",
+    "path": "/",
+    "combo": "light×clay",
+    "dataset": {
+      "theme": "light",
+      "flavor": "clay",
+      "accent": "clay"
+    },
+    "tokens": {
+      "--color-border-subtle": "#e0d8cb",
+      "--color-border-default": "#d4cbbe",
+      "--color-border-strong": "#c1b7aa",
+      "--color-bg-elevated": "#f5eee1",
+      "--color-bg-surface": "#fefaf2",
+      "--radius-sm": "6px",
+      "--radius-lg": "8px",
+      "--radius-2xl": "12px",
+      "--radius-full": "9999px",
+      "--color-platform-opencode": "#735f52",
+      "--color-success-tint": "#eaede1",
+      "--color-warning-tint": "#f6ecdd"
+    },
+    "overflowX": 0,
+    "title": "CCR UI",
+    "screenshot": "light-clay-dashboard.png"
+  },
+  {
+    "page": "Profiles",
+    "path": "/configs",
+    "combo": "light×clay",
+    "dataset": {
+      "theme": "light",
+      "flavor": "clay",
+      "accent": "clay"
+    },
+    "tokens": {
+      "--color-border-subtle": "#e0d8cb",
+      "--color-border-default": "#d4cbbe",
+      "--color-border-strong": "#c1b7aa",
+      "--color-bg-elevated": "#f5eee1",
+      "--color-bg-surface": "#fefaf2",
+      "--radius-sm": "6px",
+      "--radius-lg": "8px",
+      "--radius-2xl": "12px",
+      "--radius-full": "9999px",
+      "--color-platform-opencode": "#735f52",
+      "--color-success-tint": "#eaede1",
+      "--color-warning-tint": "#f6ecdd"
+    },
+    "overflowX": 0,
+    "title": "CCR UI"
+  },
+  {
+    "page": "MCP",
+    "path": "/mcp-manager",
+    "combo": "light×clay",
+    "dataset": {
+      "theme": "light",
+      "flavor": "clay",
+      "accent": "clay"
+    },
+    "tokens": {
+      "--color-border-subtle": "#e0d8cb",
+      "--color-border-default": "#d4cbbe",
+      "--color-border-strong": "#c1b7aa",
+      "--color-bg-elevated": "#f5eee1",
+      "--color-bg-surface": "#fefaf2",
+      "--radius-sm": "6px",
+      "--radius-lg": "8px",
+      "--radius-2xl": "12px",
+      "--radius-full": "9999px",
+      "--color-platform-opencode": "#735f52",
+      "--color-success-tint": "#eaede1",
+      "--color-warning-tint": "#f6ecdd"
+    },
+    "overflowX": 0,
+    "title": "CCR UI"
+  },
+  {
+    "page": "Commands",
+    "path": "/commands",
+    "combo": "light×clay",
+    "dataset": {
+      "theme": "light",
+      "flavor": "clay",
+      "accent": "clay"
+    },
+    "tokens": {
+      "--color-border-subtle": "#e0d8cb",
+      "--color-border-default": "#d4cbbe",
+      "--color-border-strong": "#c1b7aa",
+      "--color-bg-elevated": "#f5eee1",
+      "--color-bg-surface": "#fefaf2",
+      "--radius-sm": "6px",
+      "--radius-lg": "8px",
+      "--radius-2xl": "12px",
+      "--radius-full": "9999px",
+      "--color-platform-opencode": "#735f52",
+      "--color-success-tint": "#eaede1",
+      "--color-warning-tint": "#f6ecdd"
+    },
+    "overflowX": 0,
+    "title": "CCR UI"
+  },
+  {
+    "page": "Sync",
+    "path": "/sync",
+    "combo": "light×clay",
+    "dataset": {
+      "theme": "light",
+      "flavor": "clay",
+      "accent": "clay"
+    },
+    "tokens": {
+      "--color-border-subtle": "#e0d8cb",
+      "--color-border-default": "#d4cbbe",
+      "--color-border-strong": "#c1b7aa",
+      "--color-bg-elevated": "#f5eee1",
+      "--color-bg-surface": "#fefaf2",
+      "--radius-sm": "6px",
+      "--radius-lg": "8px",
+      "--radius-2xl": "12px",
+      "--radius-full": "9999px",
+      "--color-platform-opencode": "#735f52",
+      "--color-success-tint": "#eaede1",
+      "--color-warning-tint": "#f6ecdd"
+    },
+    "overflowX": 0,
+    "title": "CCR UI"
+  },
+  {
+    "page": "Check-ins",
+    "path": "/checkin",
+    "combo": "light×clay",
+    "dataset": {
+      "theme": "light",
+      "flavor": "clay",
+      "accent": "clay"
+    },
+    "tokens": {
+      "--color-border-subtle": "#e0d8cb",
+      "--color-border-default": "#d4cbbe",
+      "--color-border-strong": "#c1b7aa",
+      "--color-bg-elevated": "#f5eee1",
+      "--color-bg-surface": "#fefaf2",
+      "--radius-sm": "6px",
+      "--radius-lg": "8px",
+      "--radius-2xl": "12px",
+      "--radius-full": "9999px",
+      "--color-platform-opencode": "#735f52",
+      "--color-success-tint": "#eaede1",
+      "--color-warning-tint": "#f6ecdd"
+    },
+    "overflowX": 0,
+    "title": "CCR UI"
+  },
+  {
+    "page": "Usage",
+    "path": "/usage",
+    "combo": "light×clay",
+    "dataset": {
+      "theme": "light",
+      "flavor": "clay",
+      "accent": "clay"
+    },
+    "tokens": {
+      "--color-border-subtle": "#e0d8cb",
+      "--color-border-default": "#d4cbbe",
+      "--color-border-strong": "#c1b7aa",
+      "--color-bg-elevated": "#f5eee1",
+      "--color-bg-surface": "#fefaf2",
+      "--radius-sm": "6px",
+      "--radius-lg": "8px",
+      "--radius-2xl": "12px",
+      "--radius-full": "9999px",
+      "--color-platform-opencode": "#735f52",
+      "--color-success-tint": "#eaede1",
+      "--color-warning-tint": "#f6ecdd"
+    },
+    "overflowX": 0,
+    "title": "CCR UI"
+  },
+  {
+    "page": "Settings",
+    "path": "/settings",
+    "combo": "light×clay",
+    "dataset": {
+      "theme": "light",
+      "flavor": "clay",
+      "accent": "clay"
+    },
+    "tokens": {
+      "--color-border-subtle": "#e0d8cb",
+      "--color-border-default": "#d4cbbe",
+      "--color-border-strong": "#c1b7aa",
+      "--color-bg-elevated": "#f5eee1",
+      "--color-bg-surface": "#fefaf2",
+      "--radius-sm": "6px",
+      "--radius-lg": "8px",
+      "--radius-2xl": "12px",
+      "--radius-full": "9999px",
+      "--color-platform-opencode": "#735f52",
+      "--color-success-tint": "#eaede1",
+      "--color-warning-tint": "#f6ecdd"
+    },
+    "overflowX": 0,
+    "title": "CCR UI",
+    "screenshot": "light-clay-settings.png"
+  },
+  {
+    "page": "Dashboard",
+    "path": "/",
+    "combo": "dark×neutral",
+    "dataset": {
+      "theme": "dark",
+      "flavor": "neutral",
+      "accent": "clay"
+    },
+    "tokens": {
+      "--color-border-subtle": "#37393d",
+      "--color-border-default": "#48494e",
+      "--color-border-strong": "#616368",
+      "--color-bg-elevated": "#1a1b1f",
+      "--color-bg-surface": "#22242a",
+      "--radius-sm": "6px",
+      "--radius-lg": "8px",
+      "--radius-2xl": "12px",
+      "--radius-full": "9999px",
+      "--color-platform-opencode": "#735f52",
+      "--color-success-tint": "#2d3435",
+      "--color-warning-tint": "#383432"
+    },
+    "overflowX": 0,
+    "title": "CCR UI",
+    "screenshot": "dark-neutral-dashboard.png"
+  },
+  {
+    "page": "Profiles",
+    "path": "/configs",
+    "combo": "dark×neutral",
+    "dataset": {
+      "theme": "dark",
+      "flavor": "neutral",
+      "accent": "clay"
+    },
+    "tokens": {
+      "--color-border-subtle": "#37393d",
+      "--color-border-default": "#48494e",
+      "--color-border-strong": "#616368",
+      "--color-bg-elevated": "#1a1b1f",
+      "--color-bg-surface": "#22242a",
+      "--radius-sm": "6px",
+      "--radius-lg": "8px",
+      "--radius-2xl": "12px",
+      "--radius-full": "9999px",
+      "--color-platform-opencode": "#735f52",
+      "--color-success-tint": "#2d3435",
+      "--color-warning-tint": "#383432"
+    },
+    "overflowX": 0,
+    "title": "CCR UI"
+  },
+  {
+    "page": "MCP",
+    "path": "/mcp-manager",
+    "combo": "dark×neutral",
+    "dataset": {
+      "theme": "dark",
+      "flavor": "neutral",
+      "accent": "clay"
+    },
+    "tokens": {
+      "--color-border-subtle": "#37393d",
+      "--color-border-default": "#48494e",
+      "--color-border-strong": "#616368",
+      "--color-bg-elevated": "#1a1b1f",
+      "--color-bg-surface": "#22242a",
+      "--radius-sm": "6px",
+      "--radius-lg": "8px",
+      "--radius-2xl": "12px",
+      "--radius-full": "9999px",
+      "--color-platform-opencode": "#735f52",
+      "--color-success-tint": "#2d3435",
+      "--color-warning-tint": "#383432"
+    },
+    "overflowX": 0,
+    "title": "CCR UI"
+  },
+  {
+    "page": "Commands",
+    "path": "/commands",
+    "combo": "dark×neutral",
+    "dataset": {
+      "theme": "dark",
+      "flavor": "neutral",
+      "accent": "clay"
+    },
+    "tokens": {
+      "--color-border-subtle": "#37393d",
+      "--color-border-default": "#48494e",
+      "--color-border-strong": "#616368",
+      "--color-bg-elevated": "#1a1b1f",
+      "--color-bg-surface": "#22242a",
+      "--radius-sm": "6px",
+      "--radius-lg": "8px",
+      "--radius-2xl": "12px",
+      "--radius-full": "9999px",
+      "--color-platform-opencode": "#735f52",
+      "--color-success-tint": "#2d3435",
+      "--color-warning-tint": "#383432"
+    },
+    "overflowX": 0,
+    "title": "CCR UI"
+  },
+  {
+    "page": "Sync",
+    "path": "/sync",
+    "combo": "dark×neutral",
+    "dataset": {
+      "theme": "dark",
+      "flavor": "neutral",
+      "accent": "clay"
+    },
+    "tokens": {
+      "--color-border-subtle": "#37393d",
+      "--color-border-default": "#48494e",
+      "--color-border-strong": "#616368",
+      "--color-bg-elevated": "#1a1b1f",
+      "--color-bg-surface": "#22242a",
+      "--radius-sm": "6px",
+      "--radius-lg": "8px",
+      "--radius-2xl": "12px",
+      "--radius-full": "9999px",
+      "--color-platform-opencode": "#735f52",
+      "--color-success-tint": "#2d3435",
+      "--color-warning-tint": "#383432"
+    },
+    "overflowX": 0,
+    "title": "CCR UI"
+  },
+  {
+    "page": "Check-ins",
+    "path": "/checkin",
+    "combo": "dark×neutral",
+    "dataset": {
+      "theme": "dark",
+      "flavor": "neutral",
+      "accent": "clay"
+    },
+    "tokens": {
+      "--color-border-subtle": "#37393d",
+      "--color-border-default": "#48494e",
+      "--color-border-strong": "#616368",
+      "--color-bg-elevated": "#1a1b1f",
+      "--color-bg-surface": "#22242a",
+      "--radius-sm": "6px",
+      "--radius-lg": "8px",
+      "--radius-2xl": "12px",
+      "--radius-full": "9999px",
+      "--color-platform-opencode": "#735f52",
+      "--color-success-tint": "#2d3435",
+      "--color-warning-tint": "#383432"
+    },
+    "overflowX": 0,
+    "title": "CCR UI"
+  },
+  {
+    "page": "Usage",
+    "path": "/usage",
+    "combo": "dark×neutral",
+    "dataset": {
+      "theme": "dark",
+      "flavor": "neutral",
+      "accent": "clay"
+    },
+    "tokens": {
+      "--color-border-subtle": "#37393d",
+      "--color-border-default": "#48494e",
+      "--color-border-strong": "#616368",
+      "--color-bg-elevated": "#1a1b1f",
+      "--color-bg-surface": "#22242a",
+      "--radius-sm": "6px",
+      "--radius-lg": "8px",
+      "--radius-2xl": "12px",
+      "--radius-full": "9999px",
+      "--color-platform-opencode": "#735f52",
+      "--color-success-tint": "#2d3435",
+      "--color-warning-tint": "#383432"
+    },
+    "overflowX": 0,
+    "title": "CCR UI"
+  },
+  {
+    "page": "Settings",
+    "path": "/settings",
+    "combo": "dark×neutral",
+    "dataset": {
+      "theme": "dark",
+      "flavor": "neutral",
+      "accent": "clay"
+    },
+    "tokens": {
+      "--color-border-subtle": "#37393d",
+      "--color-border-default": "#48494e",
+      "--color-border-strong": "#616368",
+      "--color-bg-elevated": "#1a1b1f",
+      "--color-bg-surface": "#22242a",
+      "--radius-sm": "6px",
+      "--radius-lg": "8px",
+      "--radius-2xl": "12px",
+      "--radius-full": "9999px",
+      "--color-platform-opencode": "#735f52",
+      "--color-success-tint": "#2d3435",
+      "--color-warning-tint": "#383432"
+    },
+    "overflowX": 0,
+    "title": "CCR UI",
+    "screenshot": "dark-neutral-settings.png"
+  },
+  {
+    "page": "Dashboard",
+    "path": "/",
+    "combo": "dark×clay",
+    "dataset": {
+      "theme": "dark",
+      "flavor": "clay",
+      "accent": "clay"
+    },
+    "tokens": {
+      "--color-border-subtle": "#322a25",
+      "--color-border-default": "#3a302a",
+      "--color-border-strong": "#4a3d35",
+      "--color-bg-elevated": "#221b18",
+      "--color-bg-surface": "#2a221e",
+      "--radius-sm": "6px",
+      "--radius-lg": "8px",
+      "--radius-2xl": "12px",
+      "--radius-full": "9999px",
+      "--color-platform-opencode": "#735f52",
+      "--color-success-tint": "#25332a",
+      "--color-warning-tint": "#3a2a20"
+    },
+    "overflowX": 0,
+    "title": "CCR UI",
+    "screenshot": "dark-clay-dashboard.png"
+  },
+  {
+    "page": "Profiles",
+    "path": "/configs",
+    "combo": "dark×clay",
+    "dataset": {
+      "theme": "dark",
+      "flavor": "clay",
+      "accent": "clay"
+    },
+    "tokens": {
+      "--color-border-subtle": "#322a25",
+      "--color-border-default": "#3a302a",
+      "--color-border-strong": "#4a3d35",
+      "--color-bg-elevated": "#221b18",
+      "--color-bg-surface": "#2a221e",
+      "--radius-sm": "6px",
+      "--radius-lg": "8px",
+      "--radius-2xl": "12px",
+      "--radius-full": "9999px",
+      "--color-platform-opencode": "#735f52",
+      "--color-success-tint": "#25332a",
+      "--color-warning-tint": "#3a2a20"
+    },
+    "overflowX": 0,
+    "title": "CCR UI"
+  },
+  {
+    "page": "MCP",
+    "path": "/mcp-manager",
+    "combo": "dark×clay",
+    "dataset": {
+      "theme": "dark",
+      "flavor": "clay",
+      "accent": "clay"
+    },
+    "tokens": {
+      "--color-border-subtle": "#322a25",
+      "--color-border-default": "#3a302a",
+      "--color-border-strong": "#4a3d35",
+      "--color-bg-elevated": "#221b18",
+      "--color-bg-surface": "#2a221e",
+      "--radius-sm": "6px",
+      "--radius-lg": "8px",
+      "--radius-2xl": "12px",
+      "--radius-full": "9999px",
+      "--color-platform-opencode": "#735f52",
+      "--color-success-tint": "#25332a",
+      "--color-warning-tint": "#3a2a20"
+    },
+    "overflowX": 0,
+    "title": "CCR UI"
+  },
+  {
+    "page": "Commands",
+    "path": "/commands",
+    "combo": "dark×clay",
+    "dataset": {
+      "theme": "dark",
+      "flavor": "clay",
+      "accent": "clay"
+    },
+    "tokens": {
+      "--color-border-subtle": "#322a25",
+      "--color-border-default": "#3a302a",
+      "--color-border-strong": "#4a3d35",
+      "--color-bg-elevated": "#221b18",
+      "--color-bg-surface": "#2a221e",
+      "--radius-sm": "6px",
+      "--radius-lg": "8px",
+      "--radius-2xl": "12px",
+      "--radius-full": "9999px",
+      "--color-platform-opencode": "#735f52",
+      "--color-success-tint": "#25332a",
+      "--color-warning-tint": "#3a2a20"
+    },
+    "overflowX": 0,
+    "title": "CCR UI"
+  },
+  {
+    "page": "Sync",
+    "path": "/sync",
+    "combo": "dark×clay",
+    "dataset": {
+      "theme": "dark",
+      "flavor": "clay",
+      "accent": "clay"
+    },
+    "tokens": {
+      "--color-border-subtle": "#322a25",
+      "--color-border-default": "#3a302a",
+      "--color-border-strong": "#4a3d35",
+      "--color-bg-elevated": "#221b18",
+      "--color-bg-surface": "#2a221e",
+      "--radius-sm": "6px",
+      "--radius-lg": "8px",
+      "--radius-2xl": "12px",
+      "--radius-full": "9999px",
+      "--color-platform-opencode": "#735f52",
+      "--color-success-tint": "#25332a",
+      "--color-warning-tint": "#3a2a20"
+    },
+    "overflowX": 0,
+    "title": "CCR UI"
+  },
+  {
+    "page": "Check-ins",
+    "path": "/checkin",
+    "combo": "dark×clay",
+    "dataset": {
+      "theme": "dark",
+      "flavor": "clay",
+      "accent": "clay"
+    },
+    "tokens": {
+      "--color-border-subtle": "#322a25",
+      "--color-border-default": "#3a302a",
+      "--color-border-strong": "#4a3d35",
+      "--color-bg-elevated": "#221b18",
+      "--color-bg-surface": "#2a221e",
+      "--radius-sm": "6px",
+      "--radius-lg": "8px",
+      "--radius-2xl": "12px",
+      "--radius-full": "9999px",
+      "--color-platform-opencode": "#735f52",
+      "--color-success-tint": "#25332a",
+      "--color-warning-tint": "#3a2a20"
+    },
+    "overflowX": 0,
+    "title": "CCR UI"
+  },
+  {
+    "page": "Usage",
+    "path": "/usage",
+    "combo": "dark×clay",
+    "dataset": {
+      "theme": "dark",
+      "flavor": "clay",
+      "accent": "clay"
+    },
+    "tokens": {
+      "--color-border-subtle": "#322a25",
+      "--color-border-default": "#3a302a",
+      "--color-border-strong": "#4a3d35",
+      "--color-bg-elevated": "#221b18",
+      "--color-bg-surface": "#2a221e",
+      "--radius-sm": "6px",
+      "--radius-lg": "8px",
+      "--radius-2xl": "12px",
+      "--radius-full": "9999px",
+      "--color-platform-opencode": "#735f52",
+      "--color-success-tint": "#25332a",
+      "--color-warning-tint": "#3a2a20"
+    },
+    "overflowX": 0,
+    "title": "CCR UI"
+  },
+  {
+    "page": "Settings",
+    "path": "/settings",
+    "combo": "dark×clay",
+    "dataset": {
+      "theme": "dark",
+      "flavor": "clay",
+      "accent": "clay"
+    },
+    "tokens": {
+      "--color-border-subtle": "#322a25",
+      "--color-border-default": "#3a302a",
+      "--color-border-strong": "#4a3d35",
+      "--color-bg-elevated": "#221b18",
+      "--color-bg-surface": "#2a221e",
+      "--radius-sm": "6px",
+      "--radius-lg": "8px",
+      "--radius-2xl": "12px",
+      "--radius-full": "9999px",
+      "--color-platform-opencode": "#735f52",
+      "--color-success-tint": "#25332a",
+      "--color-warning-tint": "#3a2a20"
+    },
+    "overflowX": 0,
+    "title": "CCR UI",
+    "screenshot": "dark-clay-settings.png"
+  },
+  {
+    "page": "Settings",
+    "path": "/settings",
+    "combo": "dark×clay custom-accent-spot",
+    "accentBefore": "#e8835b",
+    "accentAfter": "#3b82f6",
+    "followed": true
+  }
+]
