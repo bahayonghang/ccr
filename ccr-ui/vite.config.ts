@@ -52,7 +52,9 @@ export default defineConfig({
         },
       },
     },
-    chunkSizeWarningLimit: 500,
+    // ApexCharts 已拆成懒加载 charts-vendor（~513 kB），超过默认 500 kB 告警线。
+    // 本上限只覆盖该懒加载图表包，禁止用来掩盖膨胀的 index-*.js。
+    chunkSizeWarningLimit: 513,
   },
   server: {
     host: '127.0.0.1',

@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 const { getCurrentWindowSafe, loggerWarn } = vi.hoisted(() => ({
@@ -68,5 +69,12 @@ describe('native window appearance smoke', () => {
     await syncNativeWindowAppearance('dark')
 
     expect(getCurrentWindowSafe).not.toHaveBeenCalled()
+  })
+
+  it('keeps nativeWindowAppearance out of the shell runtime static graph', async () => {
+    const source = await readFile('src/shell/useShellRuntime.ts', 'utf8')
+
+    expect(source).not.toContain("from '@/utils/nativeWindowAppearance'")
+    expect(source).toContain("import('@/utils/nativeWindowAppearance')")
   })
 })

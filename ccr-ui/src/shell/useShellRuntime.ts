@@ -4,7 +4,6 @@ import { useTauriEventBridge } from '@/shell/eventBridge'
 import { hydrateShellLocale } from '@/shell/i18n'
 import { useShellPreferencesStore } from '@/shell/stores/shellPreferences'
 import { logger } from '@/utils/logger'
-import { syncNativeWindowAppearance } from '@/utils/nativeWindowAppearance'
 import {
   CODEX_TRAY_PANEL_WINDOW_LABEL,
   getCurrentWindowSafe,
@@ -25,7 +24,12 @@ export function useShellRuntime() {
   }, [hydrateRuntimePreferences])
 
   useEffect(() => {
-    void syncNativeWindowAppearance(effectiveTheme)
+    // 动态导入，避免 nativeWindowAppearance 进入同步图导致 INEFFECTIVE_DYNAMIC_IMPORT。
+    void import('@/utils/nativeWindowAppearance')
+      .then(({ syncNativeWindowAppearance }) => syncNativeWindowAppearance(effectiveTheme))
+      .catch(() => {
+        // 浏览器测试环境或非 Tauri 运行时允许静默降级。
+      })
   }, [effectiveTheme])
 
   useEffect(() => {
