@@ -91,11 +91,9 @@ export function AppearanceSection({
             {t('settings.appearance.theme.resolvedHint', { resolved: t(`theme.${effectiveTheme}`) })}
           </p>
         ) : null}
-        <div className="app-settings-card__header app-settings-card__header--follow">
-          <div>
-            <p className="app-settings-card__eyebrow">{t('settings.appearance.flavor.eyebrow')}</p>
-            <h2 className="app-settings-card__title">{t('settings.appearance.flavor.title')}</h2>
-          </div>
+        <div className="app-settings-card__split">
+          <p className="app-settings-card__eyebrow">{t('settings.appearance.flavor.eyebrow')}</p>
+          <h3 className="app-settings-card__subtitle">{t('settings.appearance.flavor.title')}</h3>
           <p className="app-settings-card__description">{t('settings.appearance.flavor.description')}</p>
         </div>
         <div className="app-settings-flavor-grid">
@@ -151,9 +149,6 @@ export function AppearanceSection({
                   onInput={handleUiFont}
                 />
               ) : null}
-              <p className="app-settings-font-preview" style={{ fontFamily: uiPreview }} aria-hidden="true">
-                {t('settings.appearance.typography.previewSampleUi')}
-              </p>
             </div>
           </div>
           <div className="app-settings-row app-settings-row--font">
@@ -181,10 +176,15 @@ export function AppearanceSection({
                   onInput={handleCodeFont}
                 />
               ) : null}
-              <p className="app-settings-font-preview app-settings-font-preview--mono" style={{ fontFamily: codePreview }} aria-hidden="true">
-                {t('settings.appearance.typography.previewSampleCode')}
-              </p>
             </div>
+          </div>
+          <div className="app-settings-type-preview" aria-hidden="true">
+            <p className="app-settings-type-preview__metrics app-settings-font-preview--mono" style={{ fontFamily: codePreview }}>
+              {t('settings.appearance.typography.previewSampleCode')}
+            </p>
+            <p className="app-settings-type-preview__copy" style={{ fontFamily: uiPreview }}>
+              {t('settings.appearance.typography.previewSampleUi')}
+            </p>
           </div>
           <div className="app-settings-callout">
             <SIcon name="Info" size="w-4 h-4" className="mt-0.5 text-accent-primary" />
