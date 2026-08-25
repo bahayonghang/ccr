@@ -21,13 +21,13 @@
   --color-scrim: rgb(25 27 32 / 32%);
   --color-scrim-rgb: 25 27 32;
 
-  /* --- 边框与分隔 --- */
-  --color-border-subtle: rgb(25 27 32 / 12%);
-  --color-border-subtle-rgb: 25 27 32;
-  --color-border-default: rgb(25 27 32 / 19%);
-  --color-border-default-rgb: 25 27 32;
-  --color-border-strong: rgb(25 27 32 / 30%);
-  --color-border-strong-rgb: 25 27 32;
+  /* --- 边框与分隔（实色：alpha 与 elevated 合成，见 token 治理任务） --- */
+  --color-border-subtle: #d8d9db;
+  --color-border-subtle-rgb: 216 217 219;
+  --color-border-default: #c9cacd;
+  --color-border-default-rgb: 201 202 205;
+  --color-border-strong: #b1b2b5;
+  --color-border-strong-rgb: 177 178 181;
   --color-border-accent: rgb(var(--color-accent-primary-rgb) / 18%);
   --color-border-interactive: var(--color-accent-primary);
   --color-border-interactive-rgb: var(--color-accent-primary-rgb);
@@ -91,6 +91,10 @@
   --color-info-hover: #8ea8c6;
   --color-info-rgb: 125 151 182;
   --color-info-glow: rgb(125 151 182 / 10%);
+  --color-success-tint: #e8eeea;
+  --color-warning-tint: #f3eee6;
+  --color-danger-tint: #f5eae9;
+  --color-info-tint: #ecf0f4;
 
   /* --- 扩展功能色 --- */
   --color-cyan: #8fa5bd;
@@ -109,6 +113,8 @@
   --color-platform-grok-rgb: 113 107 128;
   --color-platform-gemini: #7d97b6;
   --color-platform-gemini-rgb: 125 151 182;
+  --color-platform-opencode: #735f52;
+  --color-platform-opencode-rgb: 115 95 82;
 
   /* --- 全局状态语义 --- */
   --state-loading: var(--color-info);
@@ -147,13 +153,13 @@
   --color-scrim: rgb(0 0 0 / 56%);
   --color-scrim-rgb: 0 0 0;
 
-  /* --- 边框与分隔 (暗色 ≥14% / ≥22% / ≥34% 保证卡片边界可辨) --- */
-  --color-border-subtle: rgb(235 238 245 / 14%);
-  --color-border-subtle-rgb: 235 238 245;
-  --color-border-default: rgb(235 238 245 / 22%);
-  --color-border-default-rgb: 235 238 245;
-  --color-border-strong: rgb(235 238 245 / 34%);
-  --color-border-strong-rgb: 235 238 245;
+  /* --- 边框与分隔（实色：暗色旧 14/22/34% 与 elevated 合成） --- */
+  --color-border-subtle: #37393d;
+  --color-border-subtle-rgb: 55 57 61;
+  --color-border-default: #48494e;
+  --color-border-default-rgb: 72 73 78;
+  --color-border-strong: #616368;
+  --color-border-strong-rgb: 97 99 104;
   --color-border-accent: rgb(var(--color-accent-primary-rgb) / 24%);
 
   /* --- 文字层级（实心高对比） --- */
@@ -215,6 +221,10 @@
   --color-info-hover: #a7bdd4;
   --color-info-rgb: 152 175 201;
   --color-info-glow: rgb(152 175 201 / 16%);
+  --color-success-tint: #2d3435;
+  --color-warning-tint: #383432;
+  --color-danger-tint: #383033;
+  --color-info-tint: #30353d;
 
   /* stage 语义层由 :root 的 var() 引用自动跟随暗色令牌，无需覆盖。 */
 }
@@ -307,12 +317,12 @@
 /* ========== 圆角系统 ========== */
 :root:where(:root):where(:root):where(:root) {
   --radius-none: 0;
-  --radius-sm: 4px;
+  --radius-sm: 6px;
   --radius-md: 6px;
   --radius-lg: 8px;
-  --radius-xl: 10px;
+  --radius-xl: 12px;
   --radius-2xl: 12px;
-  --radius-3xl: 16px;
+  --radius-3xl: 12px;
   --radius-full: 9999px;
 }
 
@@ -545,12 +555,12 @@
   --color-bg-surface-rgb: 254 250 242;
   --color-bg-overlay: #e2d6c3;
   --color-bg-overlay-rgb: 226 214 195;
-  --color-border-subtle: rgb(70 53 41 / 12%);
-  --color-border-subtle-rgb: 70 53 41;
-  --color-border-default: rgb(70 53 41 / 19%);
-  --color-border-default-rgb: 70 53 41;
-  --color-border-strong: rgb(70 53 41 / 30%);
-  --color-border-strong-rgb: 70 53 41;
+  --color-border-subtle: #e0d8cb;
+  --color-border-subtle-rgb: 224 216 203;
+  --color-border-default: #d4cbbe;
+  --color-border-default-rgb: 212 203 190;
+  --color-border-strong: #c1b7aa;
+  --color-border-strong-rgb: 193 183 170;
   --color-text-primary: #31241c;
   --color-text-primary-rgb: 49 36 28;
   --color-text-secondary: #5f4d3f;
@@ -563,6 +573,10 @@
   --color-text-disabled-rgb: 180 160 143;
   --color-text-inverted: #fff8f0;
   --color-text-inverted-rgb: 255 248 240;
+  --color-success-tint: #eaede1;
+  --color-warning-tint: #f6ecdd;
+  --color-danger-tint: #f7e9df;
+  --color-info-tint: #efeeeb;
 }
 
 /* --- clay（暗）：暖墨 identity（base < elevated < surface < overlay 逐级提亮，border 提到 14/22/34） --- */
@@ -575,12 +589,12 @@
   --color-bg-surface-rgb: 42 34 30;
   --color-bg-overlay: #342b26;
   --color-bg-overlay-rgb: 52 43 38;
-  --color-border-subtle: rgb(243 234 223 / 14%);
-  --color-border-subtle-rgb: 243 234 223;
-  --color-border-default: rgb(243 234 223 / 22%);
-  --color-border-default-rgb: 243 234 223;
-  --color-border-strong: rgb(243 234 223 / 34%);
-  --color-border-strong-rgb: 243 234 223;
+  --color-border-subtle: #322a25;
+  --color-border-subtle-rgb: 50 42 37;
+  --color-border-default: #3a302a;
+  --color-border-default-rgb: 58 48 42;
+  --color-border-strong: #4a3d35;
+  --color-border-strong-rgb: 74 61 53;
   --color-text-primary: #f3eadf;
   --color-text-primary-rgb: 243 234 223;
   --color-text-secondary: #dacbbc;
@@ -593,6 +607,10 @@
   --color-text-disabled-rgb: 115 95 82;
   --color-text-inverted: #211915;
   --color-text-inverted-rgb: 33 25 21;
+  --color-success-tint: #25332a;
+  --color-warning-tint: #3a2a20;
+  --color-danger-tint: #2b1f1c;
+  --color-info-tint: #252d33;
 }
 
 /* ========== 无障碍：减少透明度（prefers-reduced-transparency） ========== */

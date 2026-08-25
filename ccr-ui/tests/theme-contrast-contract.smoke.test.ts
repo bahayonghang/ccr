@@ -358,7 +358,7 @@ describe('theme contrast contract', () => {
     }
   })
 
-  it.each(COMBOS)('$name：border-default 对 bg-surface 肉眼可辨且 alpha 达标', (combo) => {
+  it.each(COMBOS)('$name：border-default 对 bg-surface 肉眼可辨且为实色', (combo) => {
     const tokens = resolveTokens(blocks, combo, 'clay')
     const surface = readToken(tokens, '--color-bg-surface')
     const borderDefault = readToken(tokens, '--color-border-default')
@@ -368,22 +368,15 @@ describe('theme contrast contract', () => {
       1.2
     )
 
-    // PRD R1：暗色 border alpha ≥ 14/22/34%；亮色锚点 ≥ 12/19/30%。
-    const floors: Array<readonly [string, number]> =
-      combo.theme === 'dark'
-        ? [
-            ['--color-border-subtle', 0.14],
-            ['--color-border-default', 0.22],
-            ['--color-border-strong', 0.34],
-          ]
-        : [
-            ['--color-border-subtle', 0.12],
-            ['--color-border-default', 0.19],
-            ['--color-border-strong', 0.3],
-          ]
+    // 08-25-design-token-consolidation：边框由 alpha 改为实色；可见性仍由 ≥1.2:1 门槛守卫。
+    const solidBorders = [
+      '--color-border-subtle',
+      '--color-border-default',
+      '--color-border-strong',
+    ] as const
 
-    for (const [name, minAlpha] of floors) {
-      expect(readToken(tokens, name).a, name).toBeGreaterThanOrEqual(minAlpha)
+    for (const name of solidBorders) {
+      expect(readToken(tokens, name).a, name).toBe(1)
     }
   })
 

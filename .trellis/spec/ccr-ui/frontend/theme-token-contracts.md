@@ -23,7 +23,7 @@
 ### 1. Scope / Trigger
 
 - Trigger: changing `ccr-ui/src/styles/tokens.css`, the `@theme` / `@theme inline` blocks in `ccr-ui/src/styles/core.css`, or any token name.
-- Established by `08-22-design-system` batch 1–2. The 448-name set is frozen: the union of variable names across `src/styles/**` must equal the pre-migration set (no additions, no deletions) — `token-names-before.txt` / `token-names-after.txt` in the task directory are the recorded proof, and new names require a dedicated token-governance task.
+- Established by `08-22-design-system` batch 1–2. The original freeze was 448 **definition points** in `tokens.css` (426 unique names across `src/styles/**`). Governance task `08-25-design-token-consolidation` registered **+6** unique names (448 + 6 definition-point narrative; unique-name union 426 → 432): `--color-success-tint`, `--color-warning-tint`, `--color-danger-tint`, `--color-info-tint`, `--color-platform-opencode`, `--color-platform-opencode-rgb`. Proof: that task's `research/token-names-before.txt` / `token-names-after.txt`. Further additions still require a dedicated token-governance task.
 
 ### 2. Signatures
 
