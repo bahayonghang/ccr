@@ -1,0 +1,8 @@
+{"file": ".trellis/tasks/08-26-profile-design-language/prd.md", "reason": "父任务的需求集、修订决策与跨子任务验收标准（AC1-AC28）"}
+{"file": ".trellis/tasks/08-26-profile-design-language/design.md", "reason": "五个跨子任务契约、组件处置决策、测试落位表与视觉验收条件"}
+{"file": ".trellis/tasks/08-26-profile-design-language/research/design-source.md", "reason": "成品稿的结构、尺寸、平台元数据表与已记录的偏差"}
+{"file": ".trellis/spec/ccr-ui/frontend/profiles-page-contracts.md", "reason": "共享骨架顺序、Off 横幅位置、QuickSwitch 持久化、Codex 条件必填矩阵、Grok write-only patch 与状态信封"}
+{"file": ".trellis/spec/ccr-ui/frontend/platform-surface-contracts.md", "reason": "两层平台成本口径与 Base 文件禁平台名分支规则"}
+{"file": ".trellis/spec/ccr-ui/frontend/raw-config-editor-contracts.md", "reason": "raw-source capability 必须逐项满足的五项要求"}
+{"file": ".trellis/spec/ccr-ui/frontend/theme-token-contracts.md", "reason": "平台色新增名称的治理流程与冻结段登记要求"}
+{"file": ".trellis/spec/ccr-ui/frontend/layering-contracts.md", "reason": "configs / features / components 的依赖方向边界"}

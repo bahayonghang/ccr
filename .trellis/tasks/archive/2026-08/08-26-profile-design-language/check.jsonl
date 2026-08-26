@@ -1,0 +1,6 @@
+{"file": ".trellis/tasks/08-26-profile-design-language/prd.md", "reason": "逐条核对 AC1-AC28 的跨子任务验收标准"}
+{"file": ".trellis/tasks/08-26-profile-design-language/design.md", "reason": "核对五个契约的落地形态、组件处置结论与测试落位表"}
+{"file": ".trellis/spec/ccr-ui/frontend/profiles-page-contracts.md", "reason": "核对骨架顺序、Off 语义、Codex 与 Grok 契约在统一页面下仍成立"}
+{"file": ".trellis/spec/ccr-ui/frontend/raw-config-editor-contracts.md", "reason": "核对 source mode 的警告、冲突、激活冲突与全量刷新四项"}
+{"file": ".trellis/spec/ccr-ui/frontend/theme-token-contracts.md", "reason": "核对 token 名称增量已登记且主题测试通过"}
+{"file": ".trellis/spec/ccr-ui/frontend/platform-surface-contracts.md", "reason": "核对可扩展性口径与无平台名分支"}
