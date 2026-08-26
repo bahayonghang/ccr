@@ -1396,3 +1396,40 @@ Codex Auth TUI 的 quota 面板把周限文案改为 7d limit，同时保留 5h 
 ### Next Steps
 
 - 无；父任务已归档
+
+
+## Session 100: Usage 表格扫读与日柱窗口
+
+**Date**: 2026-08-27
+**Task**: Usage 表格扫读与日柱窗口
+**Branch**: `dev`
+
+### Summary
+
+Usage 子页从粘连文本改成操作员 ledger，并修好 Last 30 Days 日柱画出全年历史的问题。
+
+### Main Changes
+
+- UsageLedger 接上 Models/Projects/Providers 与 Tokens 日表；Overview/Cost 排行补回索引列。
+- Tokens/Cost 日柱接入 datetime 工厂；store 初态 last_30d 带本地 30 日窗口。
+- chart-stability 契约去掉 Tokens/Cost category 轴偏差。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `04536d90` | (see git log) |
+
+### Testing
+
+- [OK] ccr-ui vitest usage-tabs / usage-table-layout / usage-daily-bar-chart / state-store-actions / usage-chart-stability / platform-usage-trend-chart
+- [OK] bun run type-check
+- [OK] bun run lint:ci
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 桌面壳走查 AC10（web 预览无法加载用量）；未要求则不要 push。
