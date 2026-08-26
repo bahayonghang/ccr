@@ -41,6 +41,11 @@ venv/
 ehthumbs.db
 Thumbs.db
 
+# PowerShell module analysis cache. cargo test cwd is the crate root;
+# when tests redirect USERPROFILE without LOCALAPPDATA, pwsh writes
+# Microsoft/Windows/PowerShell/ModuleAnalysisCache as a relative path.
+**/Microsoft/Windows/PowerShell/
+
 # Editor / IDE files
 .vscode/
 .idea/
@@ -71,6 +76,9 @@ cmake-build-*/
 .opencode/
 .antigravitycli/
 .impeccable/
+.omp/
+.grok/
+.kimi-code/
 
 
 
