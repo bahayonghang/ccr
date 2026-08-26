@@ -1,0 +1,4 @@
+{"file": ".trellis/tasks/08-26-visual-type-profiles/prd.md", "reason": "页头变体、Off warning、kind 映射、走查 notes"}
+{"file": ".trellis/tasks/08-26-profile-visual-types/research/visual-language.md", "reason": "对照旗舰面"}
+{"file": ".trellis/spec/ccr-ui/frontend/profiles-page-contracts.md", "reason": "表格列数与骨架不得回退"}
+{"file": ".trellis/spec/ccr-ui/frontend/platform-surface-contracts.md", "reason": "无平台名分支"}

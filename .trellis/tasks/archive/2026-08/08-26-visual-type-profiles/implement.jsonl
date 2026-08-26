@@ -1,0 +1,7 @@
+{"file": ".trellis/tasks/08-26-profile-visual-types/research/visual-language.md", "reason": "页头层级、Off warning、字段类型、chip-static"}
+{"file": ".trellis/tasks/08-26-profile-visual-types/design.md", "reason": "fieldSlots kind 与表格不渲染 slots[3]"}
+{"file": ".trellis/tasks/08-26-visual-type-profiles/prd.md", "reason": "本子任务 AC"}
+{"file": ".trellis/spec/ccr-ui/frontend/profiles-page-contracts.md", "reason": "骨架顺序、Off 横幅、表格列"}
+{"file": ".trellis/spec/ccr-ui/frontend/platform-surface-contracts.md", "reason": "无平台名分支"}
+{"file": ".trellis/spec/ccr-ui/frontend/theme-token-contracts.md", "reason": "label 字号下限 0.75rem"}
+{"file": ".trellis/spec/ccr-ui/frontend/confirm-interaction-contracts.md", "reason": "Off 确认 type=warning"}
