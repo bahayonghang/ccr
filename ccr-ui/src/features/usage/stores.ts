@@ -29,7 +29,9 @@ interface UsageViewState {
 export const useUsageViewStore = create<UsageViewState>()((set) => ({
   platform: undefined,
   rangePreset: DEFAULT_USAGE_RANGE_PRESET,
-  timeRange: {},
+  // 必须与 rangePreset 同步：空 timeRange 会让 dashboard 查询不带起止，
+  // 标签显示「近 30 天」实际却画出全部历史日柱。
+  timeRange: getLocalDateRangeWindow(DEFAULT_USAGE_RANGE_PRESET),
 
   setPlatform: (platform) => set({ platform }),
   setRangePreset: (rangePreset) =>
@@ -39,6 +41,6 @@ export const useUsageViewStore = create<UsageViewState>()((set) => ({
     set({
       platform: undefined,
       rangePreset: DEFAULT_USAGE_RANGE_PRESET,
-      timeRange: {},
+      timeRange: getLocalDateRangeWindow(DEFAULT_USAGE_RANGE_PRESET),
     }),
 }))

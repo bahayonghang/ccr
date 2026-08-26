@@ -1,0 +1,35 @@
+{
+  "id": "usage-table-styles",
+  "name": "usage-table-styles",
+  "title": "Usage 子页表格样式优化",
+  "description": "Fix Usage sub-tab table/ranking markup so operator columns (name, requests, tokens, cost, share, pricing) scan instead of concatenating or clipping into a 2rem grid track.",
+  "status": "in_progress",
+  "dev_type": "frontend",
+  "scope": "ccr-ui",
+  "package": "ccr-ui",
+  "priority": "P2",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-08-26",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [
+    "ccr-ui/src/features/usage/components/UsageTableTabs.tsx",
+    "ccr-ui/src/features/usage/components/UsageOverviewTab.tsx",
+    "ccr-ui/src/features/usage/components/UsageCostTab.tsx",
+    "ccr-ui/src/features/usage/components/UsageTokensTab.tsx",
+    "ccr-ui/src/features/usage/styles/usage-models-tab.css",
+    "ccr-ui/src/features/usage/styles/usage-overview-tab.css"
+  ],
+  "notes": "Planning complete pending user approval of the 2026-08-26 summary. Do not task.py start until then.",
+  "meta": {
+    "package": "ccr-ui"
+  }
+}

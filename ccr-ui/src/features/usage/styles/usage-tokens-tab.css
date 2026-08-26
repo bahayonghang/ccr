@@ -1,20 +1,21 @@
 /* migrated from UsageTokensTab.vue; px converted to rem */
 .tokens-tab {
   display: grid;
+  min-width: 0;
   gap: 1rem;
 }
 
 .tokens-tab__chart-card,
 .tokens-tab__table-card {
   display: grid;
+  min-width: 0;
   gap: 1rem;
   overflow: hidden;
   border-radius: 1.6rem;
   padding: 1rem;
 }
 
-.tokens-tab__chart-head,
-.tokens-tab__table-head {
+.tokens-tab__chart-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -71,114 +72,6 @@
   color: var(--color-text-primary);
 }
 
-.tokens-tab__totals {
-  display: grid;
-  gap: 0.62rem;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-}
-
-.tokens-tab__total {
-  display: grid;
-  gap: 0.26rem;
-  min-width: 0;
-  border: 0.0625rem solid rgb(var(--color-border-default-rgb) / 13%);
-  border-radius: 1rem;
-  background: rgb(var(--color-bg-elevated-rgb) / 38%);
-  padding: 0.72rem 0.8rem;
-}
-
-.tokens-tab__total span:not(.tokens-tab__swatch) {
-  overflow: hidden;
-  color: var(--color-text-muted);
-  font-size: 0.68rem;
-  font-weight: 740;
-  text-overflow: ellipsis;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.tokens-tab__total strong {
-  color: var(--color-text-primary);
-  font-size: 1rem;
-  font-weight: 720;
-  font-variant-numeric: tabular-nums;
-}
-
-.tokens-tab__swatch {
-  width: 1.35rem;
-  height: 0.18rem;
-  border-radius: 62.4375rem;
-}
-
-.tokens-tab__table-head span {
-  flex: none;
-  border: 0.0625rem solid rgb(var(--color-border-default-rgb) / 13%);
-  border-radius: 62.4375rem;
-  padding: 0.26rem 0.55rem;
-  color: var(--color-text-muted);
-  font-size: 0.68rem;
-  font-weight: 690;
-}
-
-.tokens-tab__table-shell {
-  max-height: 34rem;
-  overflow: auto;
-  border: 0.0625rem solid rgb(var(--color-border-default-rgb) / 18%);
-  border-radius: 1.15rem;
-  background: rgb(var(--color-bg-elevated-rgb) / 42%);
-}
-
-.tokens-tab__table {
-  min-width: 62rem;
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-}
-
-.tokens-tab__table thead th {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  padding: 0.78rem 0.9rem;
-  border-bottom: 0.0625rem solid rgb(var(--color-border-default-rgb) / 18%);
-  background: rgb(var(--color-bg-elevated-rgb) / 94%);
-  color: var(--color-text-muted);
-  font-size: 0.72rem;
-  font-weight: 730;
-  letter-spacing: 0.08em;
-  text-align: left;
-  text-transform: uppercase;
-}
-
-.tokens-tab__table tbody td {
-  padding: 0.82rem 0.9rem;
-  border-bottom: 0.0625rem solid rgb(var(--color-border-default-rgb) / 11%);
-  color: var(--color-text-secondary);
-  font-size: 0.84rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.tokens-tab__table tbody tr:hover {
-  background: rgb(var(--color-accent-primary-rgb) / 5%);
-}
-
-.tokens-tab__table .is-right {
-  text-align: right;
-}
-
-.tokens-tab__total-cell {
-  color: var(--color-text-primary);
-  font-weight: 720;
-}
-
-.tokens-tab__col {
-  width: 9rem;
-}
-
-.tokens-tab__col--date {
-  width: 10rem;
-}
-
 .tokens-tab__empty {
   display: grid;
   min-height: 18rem;
@@ -190,8 +83,7 @@
 }
 
 @media (width < 61.25rem) {
-  .tokens-tab__chart-head,
-  .tokens-tab__table-head {
+  .tokens-tab__chart-head {
     flex-direction: column;
   }
 
@@ -201,9 +93,5 @@
 
   .tokens-tab__mode-button {
     flex: 1;
-  }
-
-  .tokens-tab__totals {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

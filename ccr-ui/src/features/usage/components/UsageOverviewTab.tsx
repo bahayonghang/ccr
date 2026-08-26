@@ -88,12 +88,19 @@ export function UsageOverviewTab() {
             <h3 className="overview-tab__panel-title">{panel.title}</h3>
             {panel.items.length > 0 ? (
               <ol className="overview-tab__rank-list">
-                {panel.items.map((item) => (
+                {panel.items.map((item, index) => (
                   <li key={item.id} className="overview-tab__rank-item">
+                    <span className="overview-tab__rank-index">{index + 1}</span>
                     <div className="overview-tab__rank-main">
-                      <span className="overview-tab__rank-label" title={item.title}>{item.label}</span>
-                      <strong className="overview-tab__rank-value">{item.value}</strong>
-                      <span className="overview-tab__rank-share">{formatShare(item.share)}</span>
+                      <div className="overview-tab__rank-row">
+                        <span className="overview-tab__rank-label" title={item.title}>{item.label}</span>
+                        <strong className="overview-tab__rank-value">{item.value}</strong>
+                        <span className="overview-tab__rank-share">{formatShare(item.share)}</span>
+                      </div>
+                      <span className="overview-tab__rank-detail">{item.detail}</span>
+                      <div className="overview-tab__rank-bar">
+                        <span style={{ width: `${Math.round(item.share * 100)}%` }} />
+                      </div>
                     </div>
                   </li>
                 ))}

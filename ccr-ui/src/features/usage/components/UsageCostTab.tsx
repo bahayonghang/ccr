@@ -1,5 +1,11 @@
-import { useMemo } from 'react'
-import { buildChartAnimations, buildChartTheme } from '@/views/usage/usageChartOptions'
+import { useMemo, useRef } from 'react'
+import { buildChartTheme, getTrendTickAmount } from '@/views/usage/usageChartOptions'
+import {
+  buildDailyBarChartOptions,
+  stabilizeDailyBarSeries,
+  toDailyBarPoints,
+  type DailyBarSeries,
+} from '@/views/usage/usageDailyBarChart'
 import { usageSourceFallbackLabel } from '@/views/usage/usageSources'
 import { ApexChart } from '../charts/ApexChart'
 import { useUsageDashboardContext } from '../UsageDashboardContext'
@@ -9,42 +15,36 @@ import '../styles/usage-cost-tab.css'
 export function UsageCostTab() {
   const ctx = useUsageDashboardContext()
   const t = useUsageT()
-  const theme = buildChartTheme()
+  const theme = ctx.chartTheme ?? buildChartTheme()
+  const locale = ctx.locale || 'zh-CN'
   const totalCost = ctx.summary?.total_cost_usd ?? 0
   const totalRequests = ctx.summary?.total_requests ?? 0
   const hasTrendRows = ctx.trends.length > 0
+  const previousSeries = useRef<DailyBarSeries[] | undefined>(undefined)
 
-  const chartSeries = useMemo(() => [{
-    name: t('usage.dashboard.table.cost'),
-    data: ctx.trends.map((item) => item.cost_usd),
-  }], [ctx.trends, t])
+  const chartSeries = useMemo(() => {
+    const next: DailyBarSeries[] = [{
+      name: t('usage.dashboard.table.cost'),
+      data: toDailyBarPoints(ctx.trends, (item) => item.cost_usd),
+    }]
+    const stable = stabilizeDailyBarSeries(previousSeries.current, next)
+    previousSeries.current = stable
+    return stable
+  }, [ctx.trends, t])
 
-  const chartOptions = useMemo(() => ({
-    chart: {
-      background: 'transparent',
-      fontFamily: 'inherit',
-      toolbar: { show: false },
-      animations: buildChartAnimations(),
-      redrawOnParentResize: false,
-      redrawOnWindowResize: false,
-    },
-    theme: { mode: theme.mode },
-    colors: [theme.primary],
-    dataLabels: { enabled: false },
-    grid: { borderColor: theme.grid, strokeDashArray: 4 },
-    xaxis: {
-      categories: ctx.trends.map((item) => item.date),
-      labels: { style: { colors: theme.textMuted } },
-      axisBorder: { show: false },
-      axisTicks: { show: false },
-    },
-    yaxis: {
-      labels: {
-        style: { colors: theme.textMuted },
-        formatter: (value: number) => ctx.formatCost(value),
-      },
-    },
-  }), [ctx, theme])
+  const chartOptions = useMemo(
+    () =>
+      buildDailyBarChartOptions({
+        theme,
+        locale,
+        granularity: 'day',
+        tickAmount: getTrendTickAmount(ctx.trends.length),
+        stacked: false,
+        palette: 'cost',
+        formatY: ctx.formatCost,
+      }),
+    [ctx.formatCost, ctx.trends.length, locale, theme],
+  )
 
   const sourceRankings = [...ctx.sourceStats]
     .filter((item) => item.total_cost > 0 || item.total_tokens > 0)
@@ -74,16 +74,29 @@ export function UsageCostTab() {
       <section className="cost-tab__rankings">
         <article className="cost-tab__ranking-card glass-panel">
           <h3>{t('usage.dashboard.cost.sourceTitle')}</h3>
-          <ol className="cost-tab__ranking-list">
-            {sourceRankings.map((item) => (
-              <li key={item.source} className="cost-tab__ranking-item">
-                <div className="cost-tab__ranking-main">
-                  <strong>{usageSourceFallbackLabel(item.source)}</strong>
-                  <b>{ctx.formatCost(item.total_cost)}</b>
-                </div>
-              </li>
-            ))}
-          </ol>
+          {sourceRankings.length > 0 ? (
+            <ol className="cost-tab__ranking-list">
+              {sourceRankings.map((item, index) => (
+                <li key={item.source} className="cost-tab__ranking-item">
+                  <span className="cost-tab__rank">{index + 1}</span>
+                  <div className="cost-tab__ranking-main">
+                    <div className="cost-tab__ranking-row">
+                      <strong>{usageSourceFallbackLabel(item.source)}</strong>
+                      <b>{ctx.formatCost(item.total_cost)}</b>
+                      <small>{`${Math.round(item.share_cost * 100)}%`}</small>
+                    </div>
+                    <div className="cost-tab__bar">
+                      <span style={{ width: `${Math.round(item.share_cost * 100)}%` }} />
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <div className="cost-tab__empty cost-tab__empty--compact">
+              {t('usage.dashboard.table.noData')}
+            </div>
+          )}
         </article>
       </section>
     </section>

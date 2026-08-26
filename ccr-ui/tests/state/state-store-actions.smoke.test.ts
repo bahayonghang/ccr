@@ -22,6 +22,10 @@ import { CUSTOM_PROVIDER_TEMPLATES_STORAGE_KEY } from '@/utils/providerTemplates
 import { useUIStore } from '@/shell/stores/ui'
 import { useCommandsViewStore } from '@/features/commands/stores'
 import { useUsageViewStore } from '@/features/usage/stores'
+import {
+  DEFAULT_USAGE_RANGE_PRESET,
+  getLocalDateRangeWindow,
+} from '@/views/usage/dateWindow'
 import { useConfigsViewStore } from '@/features/configs/stores'
 import { PROFILES_PIN_CAP, useProfilesQuickSwitchStore } from '@/features/profiles/stores'
 import { useProviderTemplatesStore } from '@/composables/useProviderTemplates'
@@ -230,12 +234,20 @@ describe('usage 视图偏好 store（features/usage/stores.ts）', () => {
     expect(s().timeRange).toEqual({ start: '2026-01-01', end: '2026-01-31' })
   })
 
-  it('resetFilters：回到无筛选初态', () => {
+  it('初态 last_30d 带本地 30 日窗口，查询不会落成 all-time', () => {
+    expect(s().rangePreset).toBe(DEFAULT_USAGE_RANGE_PRESET)
+    expect(s().timeRange).toEqual(getLocalDateRangeWindow(DEFAULT_USAGE_RANGE_PRESET))
+    expect(s().timeRange.start).toBeDefined()
+    expect(s().timeRange.end).toBeDefined()
+  })
+
+  it('resetFilters：回到默认 30 日窗口', () => {
     s().setPlatform('claude')
     s().setTimeRange({ start: 'x' })
     s().resetFilters()
     expect(s().platform).toBeUndefined()
-    expect(s().timeRange).toEqual({})
+    expect(s().rangePreset).toBe(DEFAULT_USAGE_RANGE_PRESET)
+    expect(s().timeRange).toEqual(getLocalDateRangeWindow(DEFAULT_USAGE_RANGE_PRESET))
   })
 })
 

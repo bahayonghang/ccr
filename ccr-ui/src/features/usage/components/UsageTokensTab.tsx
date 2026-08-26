@@ -1,13 +1,21 @@
-import { memo, useCallback, useMemo, useState } from 'react'
+import { memo, useCallback, useMemo, useRef, useState } from 'react'
 import {
   getUsageTokenRowChartTotal,
   toUsageTokenBreakdownRows,
   type UsageTokenBreakdownMode,
 } from '@/views/usage/usageTokenBreakdown'
-import { buildChartAnimations, buildChartTheme } from '@/views/usage/usageChartOptions'
+import { buildChartTheme, getTrendTickAmount } from '@/views/usage/usageChartOptions'
+import {
+  buildDailyBarChartOptions,
+  stabilizeDailyBarSeries,
+  toDailyBarPoints,
+  type DailyBarSeries,
+} from '@/views/usage/usageDailyBarChart'
 import { ApexChart } from '../charts/ApexChart'
 import { useUsageDashboardContext } from '../UsageDashboardContext'
 import { useUsageT } from '../translate'
+import { UsageLedger } from './UsageLedger'
+import { tokenLedgerColumns, tokenLedgerRows } from './usageLedgerRows'
 import '../styles/usage-tokens-tab.css'
 
 const MODES: UsageTokenBreakdownMode[] = ['breakdown', 'total']
@@ -16,47 +24,54 @@ export function UsageTokensTab() {
   const ctx = useUsageDashboardContext()
   const t = useUsageT()
   const [activeMode, setActiveMode] = useState<UsageTokenBreakdownMode>('breakdown')
-  const theme = buildChartTheme()
+  const theme = ctx.chartTheme ?? buildChartTheme()
+  const locale = ctx.locale || 'zh-CN'
+  const stacked = activeMode === 'breakdown'
   const rows = useMemo(() => toUsageTokenBreakdownRows(ctx.trends), [ctx.trends])
   const hasRows = rows.length > 0
+  const previousSeries = useRef<DailyBarSeries[] | undefined>(undefined)
 
   const chartSeries = useMemo(() => {
-    if (activeMode === 'total') {
-      return [{
-        name: t('usage.dashboard.tokens.totalSeries'),
-        data: rows.map((row) => getUsageTokenRowChartTotal(row)),
-      }]
-    }
-    return [
-      { name: t('usage.dashboard.chart.input'), data: rows.map((row) => row.inputTokens) },
-      { name: t('usage.dashboard.chart.output'), data: rows.map((row) => row.assistantOutputTokens) },
-      { name: t('usage.dashboard.chart.cacheRead'), data: rows.map((row) => row.cacheReadTokens) },
-    ]
-  }, [activeMode, rows, t])
+    const next: DailyBarSeries[] = stacked
+      ? [
+          { name: t('usage.dashboard.chart.input'), data: toDailyBarPoints(rows, (row) => row.inputTokens) },
+          {
+            name: t('usage.dashboard.chart.output'),
+            data: toDailyBarPoints(rows, (row) => row.assistantOutputTokens),
+          },
+          {
+            name: t('usage.dashboard.chart.cacheRead'),
+            data: toDailyBarPoints(rows, (row) => row.cacheReadTokens),
+          },
+        ]
+      : [{
+          name: t('usage.dashboard.tokens.totalSeries'),
+          data: toDailyBarPoints(rows, getUsageTokenRowChartTotal),
+        }]
+    const stable = stabilizeDailyBarSeries(previousSeries.current, next)
+    previousSeries.current = stable
+    return stable
+  }, [rows, stacked, t])
 
-  const chartOptions = useMemo(() => ({
-    chart: {
-      background: 'transparent',
-      stacked: activeMode === 'breakdown',
-      toolbar: { show: false },
-      animations: buildChartAnimations(),
-      redrawOnParentResize: false,
-      redrawOnWindowResize: false,
-    },
-    theme: { mode: theme.mode },
-    colors: [theme.inputToken, theme.outputToken, theme.cacheReadToken],
-    dataLabels: { enabled: false },
-    xaxis: {
-      categories: rows.map((row) => row.date),
-      labels: { style: { colors: theme.textMuted } },
-    },
-    yaxis: {
-      labels: {
-        style: { colors: theme.textMuted },
-        formatter: (value: number) => ctx.formatTokens(value),
-      },
-    },
-  }), [activeMode, ctx, rows, theme])
+  const chartOptions = useMemo(
+    () =>
+      buildDailyBarChartOptions({
+        theme,
+        locale,
+        granularity: 'day',
+        tickAmount: getTrendTickAmount(rows.length),
+        stacked,
+        palette: 'tokens',
+        formatY: ctx.formatTokens,
+      }),
+    [ctx.formatTokens, locale, rows.length, stacked, theme],
+  )
+
+  const ledgerColumns = useMemo(() => tokenLedgerColumns(t), [t])
+  const ledgerRows = useMemo(
+    () => tokenLedgerRows(rows, ctx.formatTokens),
+    [ctx.formatTokens, rows],
+  )
 
   return (
     <section className="tokens-tab">
@@ -84,6 +99,11 @@ export function UsageTokensTab() {
           <div className="tokens-tab__empty">{t('usage.dashboard.table.noData')}</div>
         )}
       </article>
+      {hasRows ? (
+        <article className="tokens-tab__table-card glass-panel">
+          <UsageLedger columns={ledgerColumns} maxHeight="34rem" rows={ledgerRows} />
+        </article>
+      ) : null}
     </section>
   )
 }

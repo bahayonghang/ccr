@@ -6,6 +6,8 @@
  */
 import type {
   ModelStat,
+  ProjectStat,
+  ProviderBreakdown,
   SessionIndexJobSnapshot,
   UsageArchiveDiagnostics,
   UsageFeatureCapability,
@@ -40,6 +42,30 @@ export const makeModelStat = (overrides: Partial<ModelStat> = {}): ModelStat => 
   pricing_status: 'priced',
   pricing_source: null,
   pricing_rate: null,
+  ...overrides,
+})
+
+export const makeProjectStat = (overrides: Partial<ProjectStat> = {}): ProjectStat => ({
+  project_path: '/repo',
+  request_count: 0,
+  total_tokens: 0,
+  total_cost: 0,
+  ...overrides,
+})
+
+export const makeProviderBreakdown = (
+  overrides: Partial<ProviderBreakdown> = {},
+): ProviderBreakdown => ({
+  provider: 'openai',
+  request_count: 0,
+  input_tokens: 0,
+  cache_read_tokens: 0,
+  cache_creation_tokens: 0,
+  output_tokens: 0,
+  reasoning_output_tokens: 0,
+  total_tokens: 0,
+  cost_with_cache_usd: 0,
+  cost_without_cache_usd: 0,
   ...overrides,
 })
 

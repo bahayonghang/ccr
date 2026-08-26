@@ -1,0 +1,153 @@
+/* Operator ledger for Usage Models / Projects / Providers / Tokens daily. */
+.usage-ledger {
+  width: 100%;
+  min-width: 0;
+  max-height: var(--usage-ledger-max-height, 38rem);
+  overflow: auto;
+  border-radius: 1.15rem;
+  border: 0.0625rem solid rgb(var(--color-border-default-rgb) / 18%);
+  background: var(--color-bg-elevated);
+}
+
+.usage-ledger__row {
+  display: grid;
+  grid-template-columns: var(--usage-ledger-cols);
+  min-width: 60rem;
+}
+
+.usage-ledger__header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  border-bottom: 0.0625rem solid rgb(var(--color-border-default-rgb) / 18%);
+  background: var(--color-bg-elevated);
+}
+
+.usage-ledger__head {
+  padding: 0.85rem 1rem;
+  color: var(--color-text-muted);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.usage-ledger__head--end {
+  text-align: right;
+}
+
+.usage-ledger__row--item {
+  border-bottom: 0.0625rem solid rgb(var(--color-border-default-rgb) / 12%);
+  transition: background-color var(--motion-subtle-duration) var(--motion-subtle-ease);
+}
+
+.usage-ledger__row--item:hover {
+  background: rgb(var(--color-accent-primary-rgb) / 6%);
+}
+
+.usage-ledger__cell {
+  min-width: 0;
+  overflow: hidden;
+  padding: 0.92rem 1rem;
+  color: var(--color-text-secondary);
+  font-size: 0.88rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.usage-ledger__cell--start {
+  display: grid;
+  gap: 0.18rem;
+}
+
+.usage-ledger__cell--end {
+  text-align: right;
+}
+
+.usage-ledger__primary {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-text-primary);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.usage-ledger__cell--end .usage-ledger__primary {
+  font-weight: 500;
+}
+
+.usage-ledger__secondary {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: 0.76rem;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.usage-ledger__cell--share {
+  display: grid;
+  gap: 0.32rem;
+  justify-items: end;
+}
+
+.usage-ledger__share-text {
+  color: var(--color-text-primary);
+  font-weight: 700;
+}
+
+.usage-ledger__bar {
+  display: block;
+  width: 100%;
+  max-width: 8rem;
+  overflow: hidden;
+  height: 0.34rem;
+  border-radius: 62.4375rem;
+  background: rgb(var(--color-border-default-rgb) / 18%);
+}
+
+.usage-ledger__bar-fill {
+  display: block;
+  width: var(--usage-ledger-share, 0%);
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-accent-primary);
+}
+
+.usage-ledger__status {
+  --usage-status-rgb: var(--color-success-rgb);
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 4.8rem;
+  border-radius: 62.4375rem;
+  padding: 0.2rem 0.55rem;
+  border: 0.0625rem solid rgb(var(--usage-status-rgb) / 16%);
+  background: rgb(var(--usage-status-rgb) / 10%);
+  color: var(--color-text-primary);
+  font-size: 0.74rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.usage-ledger__status--static {
+  --usage-status-rgb: var(--color-accent-secondary-rgb);
+}
+
+.usage-ledger__status--snapshot {
+  --usage-status-rgb: var(--color-info-rgb);
+}
+
+.usage-ledger__status--mixed,
+.usage-ledger__status--legacy_alias {
+  --usage-status-rgb: var(--color-warning-rgb);
+}
+
+.usage-ledger__status--unpriced {
+  --usage-status-rgb: var(--color-border-default-rgb);
+
+  color: var(--color-text-secondary);
+}

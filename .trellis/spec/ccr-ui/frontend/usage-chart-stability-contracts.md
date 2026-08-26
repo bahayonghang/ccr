@@ -30,8 +30,9 @@ Consequences:
 
 ## 2. options build discipline
 
-- All usage chart options go through `src/views/usage/usageChartOptions.ts` factories
-  (`buildTrendChartOptions` / `buildDistributionPieOptions`) or the same shape:
+- All usage chart options go through `src/views/usage/usageChartOptions.ts`
+  factories (`buildTrendChartOptions` / `buildDistributionPieOptions`) or the same
+  shape in `src/views/usage/usageDailyBarChart.ts` (`buildDailyBarChartOptions`):
   **static skeleton as module-level `Object.freeze` constants**; the factory only
   injects theme colors, locale, and axis scalars.
 - Options memo dependencies may only be: theme, locale, axis shape
@@ -46,10 +47,8 @@ Consequences:
   ```
 
   ApexCharts defaults `redrawOnParentResize: true`. A keep-mounted tab that is
-  hidden and shown again still fires parentResize → full rebuild. TREND/PIE frozen
-  bases already include the flags; **local options inside tab hosts
-  (`UsageTokensTab` / `UsageCostTab` bar charts) are the easy miss.** Check each
-  new chart.
+  hidden and shown again still fires parentResize → full rebuild. TREND/PIE/daily-bar
+  frozen bases already include the flags. Check each new chart.
 - Animations go through `buildChartAnimations()` (exported; on by default,
   `prefers-reduced-motion` degrades). Do not add hardcoded
   `animations: { enabled: false }`.
@@ -152,8 +151,16 @@ daily trend must use `xaxis.type: 'datetime'`. Labels go through
 - A second month/day formatter. Locale short form is already covered by
   `formatTrendAxisLabel` (en-US `Jul 22`, zh-CN `7月22日`).
 
+Usage Tokens / Cost daily bar charts (`UsageTokensTab` / `UsageCostTab`) use the
+same datetime axis through `src/views/usage/usageDailyBarChart.ts`
+(`buildDailyBarChartOptions` + `toDailyBarPoints`). Options depend on theme,
+locale, `tickAmount` / granularity, and stacked shape — not the trend row array
+identity. Series points are `{ x: UTC midnight, y }` with join-key identity
+stabilization.
+
 `tests/usage/platform-usage-trend-chart.smoke.test.ts` freezes datetime, `trim: false`,
-and `redrawOnParentResize: false`. `tests/usage/usage-chart-diagnostics.smoke.test.ts`
+and `redrawOnParentResize: false`. `tests/usage/usage-daily-bar-chart.smoke.test.ts`
+freezes the Tokens/Cost hosts onto that factory. `tests/usage/usage-chart-diagnostics.smoke.test.ts`
 freezes `parseUtcDate` and the daily label copy.
 `tests/usage/usage-chart-stability.smoke.test.tsx` freezes the chart controller mount
 path.
@@ -163,6 +170,5 @@ path.
 - `UsageTokensTab` / `UsageCostTab` local options that hardcoded
   `animations: { enabled: false }` — already folded (07-07-ui-consistency-sweep
   R2-6); both go through exported `buildChartAnimations()`.
-- Cost tab options that depend directly on `ctx.trends` (data refresh fires
-  `updateOptions` on an off-screen cached chart; the user does not see it). Fold
-  those options into the factory in the same change.
+- Cost / Tokens tab options that depended on `ctx.trends` or ISO `categories`
+  — folded into `buildDailyBarChartOptions` (08-26-usage-table-styles).

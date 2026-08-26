@@ -268,6 +268,7 @@ export function useUsageDashboard() {
     costSummaryCard,
     otherSummaryCards,
     cacheCreationTokens,
+    chartTheme,
     trendOptions,
     trendSeries,
     pieOptions,

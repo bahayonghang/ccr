@@ -1,0 +1,6 @@
+{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file": ".trellis/spec/ccr-ui/frontend/layering-contracts.md", "reason": "Reject UsageLedger in src/ui or feature reverse imports"}
+{"file": ".trellis/spec/ccr-ui/frontend/react-rerender-discipline.md", "reason": "Reject unmemoized ledger rows and inline handlers on rows"}
+{"file": ".trellis/spec/ccr-ui/frontend/theme-token-contracts.md", "reason": "Reject new token names and glass inside scrolling table body"}
+{"file": ".trellis/spec/ccr-ui/frontend/usage-chart-stability-contracts.md", "reason": "Reject Tokens tab chart options identity regressions"}
+{"file": ".trellis/tasks/08-26-usage-table-styles/research/table-markup-mismatch.md", "reason": "Check smashed-text and 2.25rem ranking defects are gone"}

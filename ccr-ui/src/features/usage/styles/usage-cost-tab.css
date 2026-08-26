@@ -133,6 +133,8 @@
 }
 
 .cost-tab__ranking-row strong {
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   color: var(--color-text-primary);
   font-size: 0.9rem;
@@ -141,7 +143,8 @@
   white-space: nowrap;
 }
 
-.cost-tab__ranking-row b {
+.cost-tab__ranking-row b,
+.cost-tab__ranking-row > small {
   flex: none;
   color: var(--color-text-primary);
   font-size: 0.84rem;

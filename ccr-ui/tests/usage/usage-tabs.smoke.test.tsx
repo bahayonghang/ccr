@@ -21,6 +21,7 @@ import { UsageModelsTab, UsageProjectsTab, UsageProvidersTab } from '@/features/
 import { UsageTokenBreakdownStrip } from '@/features/usage/components/UsageTokenBreakdownStrip'
 import { UsageTokensTab } from '@/features/usage/components/UsageTokensTab'
 import type { UsageDashboardController } from '@/features/usage/useUsageDashboard'
+import { makeModelStat, makeProjectStat, makeProviderBreakdown } from '../helpers/usageFixtures'
 
 vi.mock('react-apexcharts', () => ({
   default: () => <div data-testid="mock-apex-chart" />,
@@ -80,9 +81,9 @@ const usage = {
   formatTokens: (value: number) => String(value),
   selectedPlatform: 'claude',
   updateSelectedPlatform: () => undefined,
-  modelStats: [{ model: 'gpt', total_tokens: 1, total_cost: 1, cost_with_cache: 1 }],
-  projectStats: [{ project_path: '/p', total_tokens: 1, total_cost: 1 }],
-  providerStats: [{ provider: 'openai', total_tokens: 1, total_cost: 1 }],
+  modelStats: [makeModelStat({ model: 'gpt', total_tokens: 1, total_cost: 1, cost_with_cache: 1, request_count: 1, pricing_status: 'priced' })],
+  projectStats: [makeProjectStat({ project_path: '/p', total_tokens: 1, total_cost: 1, request_count: 1 })],
+  providerStats: [makeProviderBreakdown({ provider: 'openai', total_tokens: 1, cost_with_cache_usd: 1, request_count: 1 })],
   pieOptions: {},
   pieSeries: [1],
   pieColors: ['#fff'],
@@ -136,6 +137,25 @@ describe('usage dashboard tabs', () => {
     wrap(<UsageCostConclusionCard card={card}>child</UsageCostConclusionCard>)
     wrap(<UsageTokenBreakdownStrip summary={summary} cacheCreationTokens={1} />)
     expect(document.body.textContent).toBeTruthy()
+  })
+
+  it('renders operator table headers for models projects and providers', () => {
+    const models = wrap(<UsageModelsTab />)
+    expect(models.getAllByRole('columnheader')).toHaveLength(6)
+    expect(models.getAllByRole('columnheader').map((node) => node.textContent).join(' '))
+      .toMatch(/model|Model|模型|usage\.dashboard\.table\.model/)
+    models.unmount()
+
+    const projects = wrap(<UsageProjectsTab />)
+    expect(projects.getAllByRole('columnheader')).toHaveLength(5)
+    expect(projects.getAllByRole('columnheader').map((node) => node.textContent).join(' '))
+      .toMatch(/project|Project|项目|usage\.dashboard\.table\.project/)
+    projects.unmount()
+
+    const providers = wrap(<UsageProvidersTab />)
+    expect(providers.getAllByRole('columnheader')).toHaveLength(5)
+    expect(providers.getAllByRole('columnheader').map((node) => node.textContent).join(' '))
+      .toMatch(/provider|Provider|usage\.dashboard\.table\.provider/)
   })
 
   it('renders tray overview and mcp side panels', () => {
