@@ -1,0 +1,32 @@
+{
+  "id": "profile-visual-types",
+  "name": "profile-visual-types",
+  "title": "全局按钮/标签/URL 视觉类型",
+  "description": "把动作按钮、字段标签、URL 与枚举 chip 抽成 src/ui 原语，先在 Profile 列表落地再迁到操作页",
+  "status": "completed",
+  "dev_type": "frontend",
+  "scope": "ccr-ui",
+  "package": null,
+  "priority": "P2",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-08-26",
+  "completedAt": "2026-08-26",
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "08-26-visual-type-primitives",
+    "08-26-visual-type-profiles",
+    "08-26-visual-type-rollout"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "description": "全局抽取按钮/标签/URL 原语，Profile 旗舰面 + 操作页迁移"
+  }
+}

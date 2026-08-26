@@ -1,0 +1,6 @@
+{"file": ".trellis/tasks/08-26-profile-visual-types/research/visual-language.md", "reason": "对照变体、static cursor、URL 非链接、主次层级"}
+{"file": ".trellis/tasks/08-26-profile-visual-types/prd.md", "reason": "跨子任务 AC1–AC12"}
+{"file": ".trellis/spec/ccr-ui/frontend/layering-contracts.md", "reason": "新原语不得导入 features/api/store"}
+{"file": ".trellis/spec/ccr-ui/frontend/theme-token-contracts.md", "reason": "无新 token 名；无硬编码 hex"}
+{"file": ".trellis/spec/ccr-ui/frontend/profiles-page-contracts.md", "reason": "Off 横幅位置与表格列数不得被检查时放宽"}
+{"file": ".trellis/spec/ccr-ui/frontend/platform-surface-contracts.md", "reason": "无平台名分支"}
