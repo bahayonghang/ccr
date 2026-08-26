@@ -1,0 +1,5 @@
+{"file": ".trellis/tasks/08-26-profile-visual-types/research/visual-language.md", "reason": "变体映射与明确不抽清单"}
+{"file": ".trellis/tasks/08-26-profile-visual-types/design.md", "reason": "Link 用 buttonClass、禁止加第八变体"}
+{"file": ".trellis/tasks/08-26-visual-type-rollout/prd.md", "reason": "封闭迁移清单"}
+{"file": ".trellis/spec/ccr-ui/frontend/layering-contracts.md", "reason": "features 可消费 ui-primitive"}
+{"file": ".trellis/spec/ccr-ui/frontend/platform-surface-contracts.md", "reason": "Base* 无平台名分支仍成立"}

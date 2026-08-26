@@ -1,0 +1,4 @@
+{"file": ".trellis/tasks/08-26-visual-type-rollout/prd.md", "reason": "ui-classes 不再导出按钮 class；Link 保持 Link"}
+{"file": ".trellis/tasks/08-26-profile-visual-types/research/visual-language.md", "reason": "不迁 FilterChip/QuickRail/titlebar"}
+{"file": ".trellis/spec/ccr-ui/frontend/layering-contracts.md", "reason": "调用点不得反向依赖"}
+{"file": ".trellis/spec/ccr-ui/frontend/platform-surface-contracts.md", "reason": "Base 组件迁移后仍无平台名分支"}
