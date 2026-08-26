@@ -104,17 +104,37 @@
   --color-gray: #857367;
   --color-gray-rgb: 133 115 103;
 
-  /* --- 平台专属色（仅用于识别，不作为全局品牌轴） --- */
+  /* --- 平台专属色（仅用于识别，不作为全局品牌轴；四角色：dot / surface / border / text） --- */
   --color-platform-claude: #d97757;
   --color-platform-claude-rgb: 217 119 87;
-  --color-platform-codex: #5b8a62;
-  --color-platform-codex-rgb: 91 138 98;
-  --color-platform-grok: #716b80;
-  --color-platform-grok-rgb: 113 107 128;
+  --color-platform-claude-surface: #f7ece9;
+  --color-platform-claude-border: #f0d1c8;
+  --color-platform-claude-text: #a15840;
+  --color-platform-codex: #7cab82;
+  --color-platform-codex-rgb: 124 171 130;
+  --color-platform-codex-surface: #ecf2ee;
+  --color-platform-codex-border: #d2e2d6;
+  --color-platform-codex-text: #547458;
+  --color-platform-grok: #a79bc4;
+  --color-platform-grok-rgb: 167 155 196;
+  --color-platform-grok-surface: #f1f0f6;
+  --color-platform-grok-border: #e0ddeb;
+  --color-platform-grok-text: #726985;
   --color-platform-gemini: #7d97b6;
   --color-platform-gemini-rgb: 125 151 182;
+  --color-platform-gemini-surface: #ecf0f4;
+  --color-platform-gemini-border: #d3dce6;
+  --color-platform-gemini-text: #5b6e85;
   --color-platform-opencode: #735f52;
   --color-platform-opencode-rgb: 115 95 82;
+  --color-platform-opencode-surface: #ebe9e8;
+  --color-platform-opencode-border: #cfcac6;
+  --color-platform-opencode-text: #735f52;
+  --color-platform-antigravity: #98afc9;
+  --color-platform-antigravity-rgb: 152 175 201;
+  --color-platform-antigravity-surface: #eff3f7;
+  --color-platform-antigravity-border: #dbe3ec;
+  --color-platform-antigravity-text: #617081;
 
   /* --- 全局状态语义 --- */
   --state-loading: var(--color-info);
@@ -225,6 +245,38 @@
   --color-warning-tint: #383432;
   --color-danger-tint: #383033;
   --color-info-tint: #30353d;
+
+  /* --- 平台专属色（暗色四角色；dot 与明色同一识别色） --- */
+  --color-platform-claude: #d97757;
+  --color-platform-claude-rgb: 217 119 87;
+  --color-platform-claude-surface: #33231b;
+  --color-platform-claude-border: #6b4028;
+  --color-platform-claude-text: #e8835b;
+  --color-platform-codex: #7cab82;
+  --color-platform-codex-rgb: 124 171 130;
+  --color-platform-codex-surface: #1f2a22;
+  --color-platform-codex-border: #3c5442;
+  --color-platform-codex-text: #93bf98;
+  --color-platform-grok: #a79bc4;
+  --color-platform-grok-rgb: 167 155 196;
+  --color-platform-grok-surface: #2b2637;
+  --color-platform-grok-border: #4b4463;
+  --color-platform-grok-text: #b3a8cc;
+  --color-platform-gemini: #7d97b6;
+  --color-platform-gemini-rgb: 125 151 182;
+  --color-platform-gemini-surface: #363d49;
+  --color-platform-gemini-border: #465262;
+  --color-platform-gemini-text: #93a9c2;
+  --color-platform-opencode: #735f52;
+  --color-platform-opencode-rgb: 115 95 82;
+  --color-platform-opencode-surface: #2a221d;
+  --color-platform-opencode-border: #4a3d35;
+  --color-platform-opencode-text: #c4b3a3;
+  --color-platform-antigravity: #98afc9;
+  --color-platform-antigravity-rgb: 152 175 201;
+  --color-platform-antigravity-surface: #212c38;
+  --color-platform-antigravity-border: #3d4d5e;
+  --color-platform-antigravity-text: #a8c0d8;
 
   /* stage 语义层由 :root 的 var() 引用自动跟随暗色令牌，无需覆盖。 */
 }

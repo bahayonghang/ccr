@@ -23,7 +23,8 @@
 ### 1. Scope / Trigger
 
 - Trigger: changing `ccr-ui/src/styles/tokens.css`, the `@theme` / `@theme inline` blocks in `ccr-ui/src/styles/core.css`, or any token name.
-- Established by `08-22-design-system` batch 1–2. The original freeze was 448 **definition points** in `tokens.css` (426 unique names across `src/styles/**`). Governance task `08-25-design-token-consolidation` registered **+6** unique names (448 + 6 definition-point narrative; unique-name union 426 → 432): `--color-success-tint`, `--color-warning-tint`, `--color-danger-tint`, `--color-info-tint`, `--color-platform-opencode`, `--color-platform-opencode-rgb`. Proof: that task's `research/token-names-before.txt` / `token-names-after.txt`. Further additions still require a dedicated token-governance task.
+- Established by `08-22-design-system` batch 1–2. The original freeze was 448 **definition points** in `tokens.css` (426 unique names across `src/styles/**`). Governance task `08-25-design-token-consolidation` registered **+6** unique names (448 + 6 definition-point narrative; unique-name union 426 → 432): `--color-success-tint`, `--color-warning-tint`, `--color-danger-tint`, `--color-info-tint`, `--color-platform-opencode`, `--color-platform-opencode-rgb`. Proof: that task's `research/token-names-before.txt` / `token-names-after.txt`.
+- Governance task `08-26-profile-registry-tokens` registered **+20** unique names (unique-name union 432 → 452). The 20 names are layer-1 only (`tokens.css` `:root` and `[data-theme='dark']`; not `@theme` / `@theme inline`, no bridge): six platforms × `--color-platform-{key}-surface` / `-border` / `-text` (18) plus `--color-platform-antigravity` and `--color-platform-antigravity-rgb`. Keys: `claude`, `codex`, `grok`, `gemini`, `opencode`, `antigravity`. This child task is the dedicated token-governance registration for these names. Further additions still require a dedicated token-governance task.
 
 ### 2. Signatures
 
