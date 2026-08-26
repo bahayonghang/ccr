@@ -2,7 +2,6 @@ export {
   ProfileCardGrid,
   ProfileDiffRows,
   ProfileEditorModal,
-  ProfileListRow,
   ProfileTable,
   ProfilesCommandPalette,
   ProfilesEmptyState,
@@ -18,7 +17,6 @@ export {
   ProfilesToolbar,
 } from '@/components/profiles'
 export type {
-  ProfileListRowProps,
   ProfilesCommandPaletteAction,
   ProfilesHeaderProps,
   ProfilesStatStripProps,

@@ -466,7 +466,7 @@ export default [
   // src/configs/providersCatalog.ts：complexity 20，provider 站点目录消费链归属 views-profiles-config
   { files: ['src/configs/providersCatalog.ts'], rules: { complexity: 'off' } },
   // ── 归 08-22-views-secondary-platforms（Grok 视图子任务）──────────────────────────────
-  // src/utils/grokProfileEditor.ts：complexity 20，Grok profile 编辑器工具，消费方为 GrokProfilesView/GrokProfileEditorModal → views-secondary-platforms
+  // src/utils/grokProfileEditor.ts：complexity 20，Grok profile 编辑器工具，消费方为 grokProfileEditorAdapter → views-secondary-platforms
   { files: ['src/utils/grokProfileEditor.ts'], rules: { complexity: 'off' } },
   // ── 归 08-22-shell-port（应用外壳 / 路由 / 通用工具）──────────────────────────────────
   // src/router/index.ts：max-lines 594，75 条路由表在 shell-port 迁移路由时改写（其 Scope 明确含 src/router/index.ts）

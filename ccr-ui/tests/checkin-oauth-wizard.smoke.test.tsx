@@ -1,6 +1,8 @@
 import { render } from '@testing-library/react'
 import { useForm } from 'react-hook-form'
 import { describe, expect, it, vi } from 'vitest'
+import { ProfileCardGrid } from '@/components/profiles'
+import { claudeProfilePresentation } from '@/configs/profilePresentation'
 import { AccountDashboardCalendar } from '@/features/checkin/components/AccountDashboardCalendar'
 import { AccountDashboardTrend } from '@/features/checkin/components/AccountDashboardTrend'
 import { CheckinResultPanel } from '@/features/checkin/components/CheckinResultPanel'
@@ -8,7 +10,6 @@ import { CheckinImportExportTab } from '@/features/checkin/tabs/CheckinImportExp
 import { CheckinProvidersTab } from '@/features/checkin/tabs/CheckinProvidersTab'
 import { CommandList } from '@/features/commands/CommandList'
 import { Titlebar } from '@/shell/Titlebar'
-import { GrokProfileCard } from '@/features/grok/profiles/GrokProfileCard'
 import { OAuthWizardBody } from '@/features/checkin/components/OAuthWizardBody'
 import { OAuthWizardModal } from '@/features/checkin/components/OAuthWizardModal'
 import {
@@ -19,6 +20,7 @@ import {
 } from '@/features/checkin/lib/oauthWizardReducer'
 import { extractApiUserFromCredentials, parseCookies } from '@/features/checkin/lib/parseCredentials'
 import type { BuiltinProvider } from '@/types/checkin'
+import { claudeDisplayRecords } from './fixtures/profiles'
 
 vi.mock('@tauri-apps/api/core', () => ({
   invoke: vi.fn(async () => ({})),
@@ -170,30 +172,13 @@ describe('check-in oauth wizard and import/export', () => {
     )
     render(<CheckinProvidersTab providers={[]} builtinProviders={[provider]} />)
     render(
-      <GrokProfileCard
-        profile={{
-          name: 'p1',
-          description: null,
-          provider: 'xai',
-          profile_kind: 'third_party',
-          base_url_display: 'https://api.x.ai',
-          has_base_url: true,
-          model: 'grok-2',
-          api_backend: null,
-          context_window: null,
-          supports_backend_search: null,
-          reasoning_effort: 'low',
-          auth_mode: 'inline_api_key',
-          env_key: null,
-          has_inline_credential: true,
-          enabled: true,
-          tags: [],
-        } as never}
-        isCurrent
-        onApply={() => undefined}
+      <ProfileCardGrid
+        records={claudeDisplayRecords.slice(0, 1)}
+        presentation={claudeProfilePresentation}
+        inspectorOpen={false}
+        onSelect={() => undefined}
         onEdit={() => undefined}
-        onDelete={() => undefined}
-        onToggle={() => undefined}
+        onApply={() => undefined}
       />,
     )
     render(

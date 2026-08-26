@@ -2,12 +2,6 @@ export { ProfileDiffRows, type ProfileDiffRowsProps } from './ProfileDiffRows'
 export { ProfileCardGrid, type ProfileCardGridProps } from './ProfileCardGrid'
 export { ProfileTable, type ProfileTableProps } from './ProfileTable'
 export {
-  ProfileListRow,
-  type ProfileListRowProps,
-  type ProfileRowDescriptor,
-  type ProfileRowProfile,
-} from './ProfileListRow'
-export {
   ProfilesCommandPalette,
   type ProfilesCommandPaletteAction,
   type ProfilesCommandPaletteDescriptor,

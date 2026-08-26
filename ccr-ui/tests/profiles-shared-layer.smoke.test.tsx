@@ -5,8 +5,8 @@ import type { ReactElement } from 'react'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 import {
+  ProfileCardGrid,
   ProfileDiffRows,
-  ProfileListRow,
   ProfilesCommandPalette,
   ProfilesHeader,
   ProfilesInspector,
@@ -20,6 +20,8 @@ import type { ProfilesQuickSwitch } from '@/composables/useProfilesQuickSwitch'
 import type { ProfilesInspectorDescriptor } from '@/utils/profileDescriptors'
 import type { ProfileDiffRow } from '@/utils/profileDiff'
 import type { ProfilesInsightsResult } from '@/utils/profilesInsights'
+import { claudeProfilePresentation } from '@/configs/profilePresentation'
+import { claudeDisplayRecords } from './fixtures/profiles'
 
 beforeAll(() => {
   class ResizeObserverStub {
@@ -51,14 +53,6 @@ const sample: SampleProfile = {
   enabled: true,
   tags: ['fast', 'prod'],
   model: 'sonnet',
-}
-
-const rowDescriptor = {
-  baseUrl: () => 'https://api.example.com/v1',
-  model: (profile: SampleProfile) => profile.model ?? '—',
-  authMode: () => 'api_key',
-  editIcon: 'Pencil',
-  labels: { apply: 'Apply', edit: 'Edit', delete: 'Delete' },
 }
 
 const emptyInsights = (): ProfilesInsightsResult<SampleProfile, string, string> => ({
@@ -104,7 +98,7 @@ describe('profiles shared layer (React)', () => {
     const files = readdirSync(dir)
     expect(files).toEqual(expect.arrayContaining([
       'ProfileDiffRows.tsx',
-      'ProfileListRow.tsx',
+      'ProfileCardGrid.tsx',
       'ProfilesCommandPalette.tsx',
       'ProfilesHeader.tsx',
       'ProfilesInspector.tsx',
@@ -130,28 +124,24 @@ describe('profiles shared layer (React)', () => {
     expect(screen.getByText('b')).toBeTruthy()
   })
 
-  it('maps ProfileListRow descriptor fields and action callbacks', () => {
+  it('maps ProfileCardGrid records and action callbacks', () => {
     const onApply = vi.fn()
     const onEdit = vi.fn()
-    const onDelete = vi.fn()
+    const onSelect = vi.fn()
     render(
-      <ProfileListRow
-        profile={sample}
-        descriptor={rowDescriptor}
-        isCurrent={false}
-        onApply={onApply}
+      <ProfileCardGrid
+        records={claudeDisplayRecords.slice(0, 1)}
+        presentation={claudeProfilePresentation}
+        inspectorOpen={false}
+        onSelect={onSelect}
         onEdit={onEdit}
-        onDelete={onDelete}
+        onApply={onApply}
       />,
     )
-    expect(screen.getByText('alpha')).toBeTruthy()
-    expect(screen.getByText('#fast')).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Apply' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
-    expect(onApply).toHaveBeenCalledWith('alpha')
-    expect(onEdit).toHaveBeenCalledWith('alpha')
-    expect(onDelete).toHaveBeenCalledWith('alpha')
+    expect(screen.getByTestId('profiles-card-grid')).toBeTruthy()
+    expect(screen.getAllByText('claude-current').length).toBeGreaterThan(0)
+    fireEvent.click(screen.getByRole('button', { name: /profilesSurface.edit|编辑|Edit/ }))
+    expect(onEdit).toHaveBeenCalledWith('claude-current')
   })
 
   it('maps ProfilesSection children', () => {

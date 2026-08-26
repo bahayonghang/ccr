@@ -1,6 +1,5 @@
 export { BaseSettings } from './settings/BaseSettings'
 export { visibleSettingsFields, saveSettingsValues, settingsDefaultValues } from './settings-model'
-export { BaseProfiles } from './profiles/BaseProfiles'
 export { ProfilesSurface } from './profiles/ProfilesSurface'
 export { BaseCommands } from './commands/BaseCommands'
 export { BaseMcp } from './mcp/BaseMcp'

@@ -71,120 +71,6 @@
   color: var(--cp-accent, var(--color-accent-primary));
 }
 
-/* --- ProfileListRow --- */
-.cp-row {
-  display: grid;
-  grid-template-columns: 12px minmax(120px, 160px) minmax(0, 1.2fr) minmax(0, 1.5fr) minmax(80px, 110px) minmax(80px, 120px) minmax(60px, 1fr) auto;
-  gap: 12px;
-  align-items: center;
-  padding: 9px 14px;
-
-  /* 背景/边框由 surface-status 工具类提供 */
-  font-size: 0.75rem;
-  color: var(--cp-ink-1);
-}
-
-.cp-row--active { border-left: 2px solid var(--cp-accent); }
-.cp-row--off { opacity: 0.55; }
-
-.cp-row__dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-  background: var(--cp-ink-4);
-}
-
-.cp-row__dot--good { background: var(--cp-good); }
-
-.cp-row__name {
-  font-family: var(--cp-mono);
-  color: var(--cp-ink-0);
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.cp-row__label {
-  color: var(--cp-ink-2);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.cp-row__url {
-  font-family: var(--cp-mono);
-  color: var(--cp-ink-2);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.cp-row__model {
-  font-family: var(--cp-mono);
-  color: var(--cp-accent);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.cp-row__meta { color: var(--cp-ink-3); }
-
-.cp-row__tags {
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-  min-width: 0;
-}
-
-.cp-row__actions {
-  display: flex;
-  gap: 4px;
-}
-
-.cp-tag {
-  padding: 1px 6px;
-  border-radius: 4px;
-  background: var(--cp-bg-3);
-  color: var(--cp-ink-1);
-  border: 1px solid var(--cp-line-2);
-  font-family: var(--cp-mono);
-  font-size: 0.75rem;
-  white-space: nowrap;
-}
-
-.cp-icon-btn {
-  width: 24px;
-  height: 24px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 5px;
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--cp-ink-3);
-  cursor: pointer;
-  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
-}
-
-.cp-icon-btn:hover:not(:disabled) {
-  background: var(--cp-bg-3);
-  border-color: var(--cp-line-2);
-  color: var(--cp-ink-0);
-}
-
-.cp-icon-btn--accent:hover:not(:disabled) { color: var(--cp-accent); }
-.cp-icon-btn--danger:hover:not(:disabled) { color: var(--cp-danger); }
-
-.cp-icon-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .cp-icon-btn { transition: none; }
-}
-
 /* --- ProfilesHeader --- */
 .cp-header {
   padding: 0 0 4px;
@@ -1778,7 +1664,7 @@
   }
 }
 
-/* --- list-surface: page shell / cards / table (keep live cp-row / cp-header classes above) --- */
+/* --- list-surface: page shell / cards / table (keep live cp-header classes above) --- */
 .cp-surface {
   display: flex;
   flex-direction: column;
