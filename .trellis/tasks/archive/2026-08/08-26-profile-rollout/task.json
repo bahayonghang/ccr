@@ -1,0 +1,28 @@
+{
+  "id": "profile-rollout",
+  "name": "profile-rollout",
+  "title": "三平台接线与遗留组件退役",
+  "description": "",
+  "status": "completed",
+  "dev_type": "frontend",
+  "scope": "ccr-ui",
+  "package": null,
+  "priority": "P2",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-08-26",
+  "completedAt": "2026-08-26",
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "08-26-profile-design-language",
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "description": "三平台接线到统一实现，退役 Grok 旧路径与零消费遗留组件，完成整体验收"
+  }
+}

@@ -1,0 +1,6 @@
+{"file": ".trellis/tasks/08-26-profile-design-language/prd.md", "reason": "逐条核对父任务 AC1-AC28"}
+{"file": ".trellis/tasks/08-26-profile-design-language/design.md", "reason": "核对删除清单未越界、已接入组件未被删除、走查条件已执行"}
+{"file": ".trellis/spec/ccr-ui/frontend/profiles-page-contracts.md", "reason": "核对 Grok 全部状态分支与共享骨架契约在统一页面下仍成立"}
+{"file": ".trellis/spec/ccr-ui/frontend/platform-surface-contracts.md", "reason": "核对三平台接线、75 路径未变、无平台名分支"}
+{"file": ".trellis/spec/ccr-ui/frontend/raw-config-editor-contracts.md", "reason": "核对 Claude 与 Codex 的 source mode 四项成立"}
+{"file": ".trellis/spec/ccr-ui/frontend/layering-contracts.md", "reason": "核对删除后的分层与导出面无悬空引用"}
