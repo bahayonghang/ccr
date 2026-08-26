@@ -5311,4 +5311,48 @@ export default {
     bootstrapImported: '自动导入 {count} 条 usage 记录',
     bootstrapIndexed: '自动索引 {count} 个 Sessions',
   },
+
+  profilePresentation: {
+    name: {
+      claude: 'Claude Code',
+      codex: 'Codex',
+      grok: 'Grok',
+      antigravity: 'Antigravity',
+    },
+    configPath: {
+      claude: '~/.ccr/claude/profiles.toml · 与 CCR Core 保持同步',
+      codex: '~/.codex/profiles.toml · CCR Unified 模式',
+      grok: '~/.ccr/grok/profiles.toml · 管理运行时与激活状态',
+      antigravity: '~/.ccr/antigravity/profiles.toml',
+    },
+    fields: {
+      baseUrl: 'Base URL',
+      model: '模型',
+      authMode: '认证',
+      provider: '供应商',
+      wireApi: 'WIRE API',
+      reasoningEffort: 'REASONING',
+      region: '区域',
+    },
+    auth: {
+      subscription: '订阅',
+      api_key: 'API Key',
+      openai_chatgpt: 'ChatGPT',
+      openai_api_key: 'OpenAI API Key',
+      provider_env_key: '环境变量',
+      provider_bearer_token: 'Bearer Token',
+      no_auth: '无认证',
+      official: '官方',
+      inline_api_key: '内联 API Key',
+      env_key: '环境变量',
+      session: '会话',
+    },
+    badges: {
+      official: '官方',
+      third_party: '第三方',
+      auth_source: '凭据来源',
+      openai_login_chatgpt: 'ChatGPT 登录',
+      openai_login_api: 'API 登录',
+    },
+  },
 }

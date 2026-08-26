@@ -5467,4 +5467,48 @@ export default {
     bootstrapImported: 'Auto-imported {count} usage records',
     bootstrapIndexed: 'Auto-indexed {count} sessions',
   },
+
+  profilePresentation: {
+    name: {
+      claude: 'Claude Code',
+      codex: 'Codex',
+      grok: 'Grok',
+      antigravity: 'Antigravity',
+    },
+    configPath: {
+      claude: '~/.ccr/claude/profiles.toml · kept in sync with CCR Core',
+      codex: '~/.codex/profiles.toml · CCR Unified mode',
+      grok: '~/.ccr/grok/profiles.toml · manages runtime and activation',
+      antigravity: '~/.ccr/antigravity/profiles.toml',
+    },
+    fields: {
+      baseUrl: 'Base URL',
+      model: 'Model',
+      authMode: 'Auth',
+      provider: 'Provider',
+      wireApi: 'WIRE API',
+      reasoningEffort: 'REASONING',
+      region: 'Region',
+    },
+    auth: {
+      subscription: 'Subscription',
+      api_key: 'API Key',
+      openai_chatgpt: 'ChatGPT',
+      openai_api_key: 'OpenAI API Key',
+      provider_env_key: 'Environment key',
+      provider_bearer_token: 'Bearer token',
+      no_auth: 'No auth',
+      official: 'Official',
+      inline_api_key: 'Inline API key',
+      env_key: 'Environment key',
+      session: 'Session',
+    },
+    badges: {
+      official: 'Official',
+      third_party: 'Third party',
+      auth_source: 'Credential source',
+      openai_login_chatgpt: 'ChatGPT login',
+      openai_login_api: 'API login',
+    },
+  },
 }
