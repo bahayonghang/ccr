@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { opencodeCapabilityCards } from '@/config/opencodeMeta'
-import { PageHeader, PageShell, SIcon, StatTile } from '@/ui'
+import { PageHeader, PageShell, SIcon, StatTile, buttonClass } from '@/ui'
 import { CapabilityCard } from './home/OpenCodeHomeCards'
 import { OpenCodeInspector } from './home/OpenCodeInspector'
 import { OpenCodeOpsBoard } from './home/OpenCodeOpsBoard'
 import { OpenCodeUsageStrip } from './home/OpenCodeUsageStrip'
 import { useOpenCodeHome } from './home/useOpenCodeHome'
 import { useOpenCodeLocale } from './locale'
-import { ghostBtnClass } from './ui-classes'
 
 type InspectorTab = 'runtime' | 'tools' | 'topology' | 'discovery' | 'themes'
 
@@ -104,7 +103,7 @@ export function OpenCodeView() {
             'Bring providers, MCP, agents, commands, plugins, and runtime config into one dense surface that is actionable on first load.',
           )}
           actions={
-            <button type="button" className={ghostBtnClass} disabled={loading} onClick={handleRefresh}>
+            <button type="button" className={buttonClass({ variant: 'ghost' })} disabled={loading} onClick={handleRefresh}>
               <SIcon name="RefreshCw" size="w-4 h-4" className={loading ? 'animate-spin' : undefined} />
               <span>{loading ? tt('加载中', 'Loading') : tt('刷新', 'Refresh')}</span>
             </button>

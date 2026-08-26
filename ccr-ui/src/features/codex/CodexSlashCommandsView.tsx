@@ -1,8 +1,8 @@
 import { memo, useMemo } from 'react'
 import { Link } from 'react-router'
-import { PageHeader, PageShell, SIcon } from '@/ui'
+import { PageHeader, PageShell, SIcon, buttonClass } from '@/ui'
 import { CodexSubnav } from './CodexSubnav'
-import { panelCardClass, primaryBtnClass, secondaryBtnClass } from './ui-classes'
+import { panelCardClass } from './ui-classes'
 import { useCodexLocale } from './useCodexLocale'
 
 interface ShortcutItem {
@@ -78,11 +78,11 @@ export function CodexSlashCommandsView() {
           )}
           actions={
             <div className="flex flex-wrap gap-2">
-              <Link to="/codex/sessions" className={primaryBtnClass}>
+              <Link to="/codex/sessions" className={buttonClass({ variant: 'primary' })}>
                 <SIcon name="MessagesSquare" size="w-4 h-4" />
                 <span>{tt('打开 Sessions', 'Open Sessions')}</span>
               </Link>
-              <Link to="/codex/agents" className={secondaryBtnClass}>
+              <Link to="/codex/agents" className={buttonClass({ variant: 'secondary' })}>
                 <SIcon name="Bot" size="w-4 h-4" />
                 <span>{tt('管理 Agents', 'Manage Agents')}</span>
               </Link>

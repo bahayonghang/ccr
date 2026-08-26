@@ -2,11 +2,11 @@ import { useCallback, useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { detectCodexProcess, saveCodexAuth } from '@/api'
 import { surfaceNotify } from '@/configs/surfaceNotify'
-import { BaseModal, SIcon } from '@/ui'
+import { BaseModal, SIcon, buttonClass } from '@/ui'
 import type { CodexAuthCurrentInfo } from '@/types'
 import { extractErrorMessage } from '@/utils/errorHandler'
 import { logger } from '@/utils/logger'
-import { fieldInputClass, ghostBtnClass, primaryBtnClass } from '../ui-classes'
+import { fieldInputClass } from '../ui-classes'
 import { useCodexLocale } from '../useCodexLocale'
 
 interface SaveForm {
@@ -107,8 +107,8 @@ export function SaveCodexSessionModal({
           <span>{t('codex.auth.forceOverwrite')}</span>
         </label>
         <div className="flex justify-end gap-3">
-          <button type="button" className={ghostBtnClass} onClick={handleClose}>{t('codex.actions.cancel')}</button>
-          <button type="submit" className={primaryBtnClass} disabled={form.formState.isSubmitting || !values.name.trim()}>
+          <button type="button" className={buttonClass({ variant: 'ghost' })} onClick={handleClose}>{t('codex.actions.cancel')}</button>
+          <button type="submit" className={buttonClass({ variant: 'primary' })} disabled={form.formState.isSubmitting || !values.name.trim()}>
             <SIcon name="Save" size="w-4 h-4" />
             {form.formState.isSubmitting ? t('codex.states.saving') : t('codex.actions.save')}
           </button>

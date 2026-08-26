@@ -11,6 +11,7 @@ import {
   settingsDefaultValues,
 } from '@/features/platform/settings-model'
 import { SettingsFieldControl } from '@/features/platform/settings/SettingsFieldControl'
+import { Button } from '@/ui'
 import type { TranslateFunction } from '@/utils/tf'
 
 interface BaseSettingsProps {
@@ -93,9 +94,9 @@ export function BaseSettings({ config, t: tProp }: BaseSettingsProps) {
       title={t(config.titleKey)}
       description={t(config.subtitleKey)}
       actions={
-        <button type="submit" form="platform-settings-form" className="rounded-lg bg-accent-primary px-4 py-2 text-sm text-[color:var(--color-accent-primary-contrast)]">
+        <Button type="submit" form="platform-settings-form" variant="primary" className="rounded-lg text-sm">
           {t(`${config.i18nPrefix}.save`)}
-        </button>
+        </Button>
       }
     >
       <div className="mb-4 flex flex-wrap gap-2">

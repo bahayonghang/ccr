@@ -14,27 +14,14 @@
   align-items: center;
   gap: 0.5rem;
   border-radius: 999px;
-  border: var(--space-px) solid rgb(var(--color-border-default-rgb) / 42%);
   padding: 0.5rem 1rem;
   font-size: 0.875rem;
   font-weight: 600;
 }
 
-.sync-hero-button--ghost,
 .sync-back-link {
   background: rgb(var(--color-bg-elevated-rgb) / 72%);
   color: var(--color-text-secondary);
-}
-
-.sync-hero-button--primary {
-  background: var(--color-text-primary);
-  color: var(--color-bg-base);
-}
-
-.sync-hero-button--warning {
-  border-color: rgb(var(--color-warning-rgb) / 30%);
-  background: rgb(var(--color-warning-rgb) / 13%);
-  color: var(--accent-warning);
 }
 
 .sync-scope-strip,

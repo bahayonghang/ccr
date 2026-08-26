@@ -13,12 +13,12 @@ import {
 import { surfaceNotify } from '@/configs/surfaceNotify'
 import { copyText } from '@/utils/clipboard'
 import { getErrorMessage } from '@/utils/errorHandler'
-import { PageHeader, PageShell, PillToggleGroup, SIcon } from '@/ui'
+import { PageHeader, PageShell, PillToggleGroup, SIcon, buttonClass } from '@/ui'
 import { CodexSubnav } from './CodexSubnav'
 import { SessionDetailPanel } from './sessions/SessionDetailPanel'
 import { SessionListPanel } from './sessions/SessionListPanel'
 import { DETAIL_LIMIT, EXPORT_LIMIT, SESSION_LIMIT, formatTokenCount } from './sessions/session-format'
-import { panelCardClass, primaryBtnClass, secondaryBtnClass } from './ui-classes'
+import { panelCardClass } from './ui-classes'
 import { codexKeys } from './queries'
 import { useCodexLocale } from './useCodexLocale'
 import type { CodexSessionSummary } from '@/types'
@@ -178,11 +178,11 @@ export function CodexSessionsView() {
           }
           actions={
             <div className="flex flex-wrap gap-2">
-              <Link to="/codex" className={secondaryBtnClass}>
+              <Link to="/codex" className={buttonClass({ variant: 'secondary' })}>
                 <SIcon name="ArrowLeft" size="w-4 h-4" />
                 <span>{tt('返回 Codex', 'Back to Codex')}</span>
               </Link>
-              <button type="button" className={primaryBtnClass} disabled={listQuery.isFetching} onClick={handleRefresh}>
+              <button type="button" className={buttonClass({ variant: 'primary' })} disabled={listQuery.isFetching} onClick={handleRefresh}>
                 <SIcon name="RefreshCw" size="w-4 h-4" className={listQuery.isFetching ? 'animate-spin' : undefined} />
                 {tt('刷新列表', 'Refresh list')}
               </button>

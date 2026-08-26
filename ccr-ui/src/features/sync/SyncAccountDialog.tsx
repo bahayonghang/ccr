@@ -10,7 +10,7 @@ import {
 import type { SyncStatusView } from '@/types/syncSelection'
 import { getErrorMessage } from '@/utils/errorHandler'
 import { logger } from '@/utils/logger'
-import { BaseModal, Checkbox, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SIcon, Switch } from '@/ui'
+import { BaseModal, Checkbox, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SIcon, Switch, buttonClass } from '@/ui'
 import { useSyncT } from './locale'
 
 interface FormState {
@@ -150,7 +150,7 @@ export function SyncAccountDialog({ open, mode, initial, onOpenChange, onSaved }
           </button>
           <span className="flex-1" />
           <button type="button" className="rounded-lg border border-border-default px-4 py-2 text-sm" disabled={saving} onClick={close}>{t('sync.account.cancelBtn')}</button>
-          <button type="button" className="rounded-lg bg-accent-primary px-4 py-2 text-sm text-[color:var(--color-accent-primary-contrast)]" disabled={saving || !canSubmit} onClick={handleSave}>
+          <button type="button" className={buttonClass({ variant: 'primary', className: 'rounded-lg text-sm' })} disabled={saving || !canSubmit} onClick={handleSave}>
             {saving ? t('sync.account.saving') : t('sync.account.saveBtn')}
           </button>
         </div>

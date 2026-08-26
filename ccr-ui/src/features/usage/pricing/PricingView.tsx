@@ -1,7 +1,7 @@
 import { memo, useCallback, useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { getPricingList, removePricing, resetPricing, setPricing } from '@/api'
-import { PageHeader, PageShell } from '@/ui'
+import { PageHeader, PageShell, buttonClass } from '@/ui'
 import type { ModelPricing, SetPricingRequest } from '@/types'
 import { logger } from '@/utils/logger'
 import { hydrateUsageLocale, useUsageT } from '../translate'
@@ -136,7 +136,7 @@ export function PricingView() {
           description={t('pricing.subtitle')}
           status={<span className="pricing-badge">{t('pricing.legacyBadge')}</span>}
           actions={(
-            <button type="button" disabled={loading} className="pricing-button pricing-button--primary" onClick={loadData}>
+            <button type="button" disabled={loading} className={buttonClass({ variant: 'primary', className: 'pricing-button' })} onClick={loadData}>
               {t('pricing.actions.refresh')}
             </button>
           )}
@@ -150,7 +150,7 @@ export function PricingView() {
           <section className="pricing-card pricing-card--models">
             <div className="pricing-section-heading">
               <h2>{t('pricing.models.title')}</h2>
-              <button type="button" className="pricing-button pricing-button--primary" onClick={showAdd}>
+              <button type="button" className={buttonClass({ variant: 'primary', className: 'pricing-button' })} onClick={showAdd}>
                 {t('pricing.actions.add')}
               </button>
             </div>
@@ -183,7 +183,7 @@ export function PricingView() {
                   <input className="pricing-input" type="number" step="0.000001" min="0" {...register('output_price', { valueAsNumber: true })} />
                 </label>
                 <div className="pricing-form__actions">
-                  <button type="submit" disabled={saving} className="pricing-button pricing-button--primary">
+                  <button type="submit" disabled={saving} className={buttonClass({ variant: 'primary', className: 'pricing-button' })}>
                     {saving ? t('pricing.actions.saving') : t('pricing.actions.save')}
                   </button>
                   <button type="button" className="pricing-button pricing-button--secondary" onClick={hideForm}>

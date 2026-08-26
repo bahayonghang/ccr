@@ -3,9 +3,9 @@ import { useForm } from 'react-hook-form'
 import { getCurrentEnvironment } from '@/api'
 import { createSystemPrompt, getSystemPrompt, listSystemPrompts, saveSystemPrompt, type SystemPromptFile } from '@/api/domains/systemPrompts'
 import { surfaceNotify } from '@/configs/surfaceNotify'
-import { AsyncStatePanel, PageHeader, PageShell, SIcon } from '@/ui'
+import { AsyncStatePanel, PageHeader, PageShell, SIcon, buttonClass } from '@/ui'
 import { CodexSubnav } from './CodexSubnav'
-import { fieldInputClass, ghostBtnClass, panelCardClass, primaryBtnClass } from './ui-classes'
+import { fieldInputClass, panelCardClass } from './ui-classes'
 import { useCodexLocale } from './useCodexLocale'
 
 export function CodexSystemPromptsView() {
@@ -153,7 +153,7 @@ export function CodexSystemPromptsView() {
                   <strong>{t(selected.labelKey)}</strong>
                   <code className="ml-2 text-xs text-text-muted">{selected.path}</code>
                 </div>
-                <button type="button" className={primaryBtnClass} disabled={!dirty} onClick={handleSave}>
+                <button type="button" className={buttonClass({ variant: 'primary' })} disabled={!dirty} onClick={handleSave}>
                   {t('systemPrompts.save')}
                 </button>
               </div>
@@ -185,12 +185,12 @@ function PromptFileRow({
   const handleCreate = useCallback(() => onCreate(file), [file, onCreate])
   return (
     <article className={active ? 'rounded-xl border border-accent-primary/30 bg-bg-elevated p-3' : 'rounded-xl border border-border-default/15 p-3'}>
-      <button type="button" className={`${ghostBtnClass} w-full justify-start`} disabled={!file.exists} onClick={handleSelect}>
+      <button type="button" className={buttonClass({ variant: 'ghost', className: 'w-full justify-start' })} disabled={!file.exists} onClick={handleSelect}>
         <SIcon name={file.exists ? 'FileCheck2' : 'FileQuestion'} size="w-4 h-4" />
         <span>{t(file.labelKey)}</span>
       </button>
       {file.exists ? null : (
-        <button type="button" className={`${ghostBtnClass} mt-2`} onClick={handleCreate}>
+        <button type="button" className={buttonClass({ variant: 'ghost', className: 'mt-2' })} onClick={handleCreate}>
           <SIcon name="FilePlus2" size="w-4 h-4" />
           {t('systemPrompts.create')}
         </button>

@@ -2,9 +2,9 @@ import { memo, useCallback } from 'react'
 import type { UseFormRegister } from 'react-hook-form'
 import type { CodexModelProviderRecord } from '@/types'
 import type { ProviderTemplateSelection } from '@/types/providerTemplates'
-import { SIcon } from '@/ui'
+import { SIcon, buttonClass } from '@/ui'
 import type { CodexTf } from '../useCodexLocale'
-import { fieldInputClass, ghostBtnClass, primaryBtnClass } from '../ui-classes'
+import { fieldInputClass } from '../ui-classes'
 import type { AddAccountFormValues } from './addAccountForm'
 import { CodexProviderTemplatePicker } from './CodexProviderTemplatePicker'
 
@@ -30,7 +30,7 @@ const PresetRow = memo(function PresetRow({
 }) {
   const handleClick = useCallback(() => onApply(provider), [onApply, provider])
   return (
-    <button type="button" className={ghostBtnClass} onClick={handleClick}>
+    <button type="button" className={buttonClass({ variant: 'ghost' })} onClick={handleClick}>
       <span>{provider.name}</span>
       <span className="codex-auth-view__preset-meta">{provider.api_keys.length}</span>
     </button>
@@ -89,7 +89,7 @@ export function AddAccountApiStep({
           <input type="checkbox" {...register('switchAfterAdd')} />
           <span>{tf('codex.auth.api.switchAfter', 'Switch to the new API account immediately')}</span>
         </label>
-        <button type="button" className={primaryBtnClass} disabled={apiKeyBusy || !canSubmit} onClick={onSave}>
+        <button type="button" className={buttonClass({ variant: 'primary' })} disabled={apiKeyBusy || !canSubmit} onClick={onSave}>
           <SIcon name="KeyRound" size="w-4 h-4" />
           {tf('codex.auth.api.action', 'Save API account')}
         </button>

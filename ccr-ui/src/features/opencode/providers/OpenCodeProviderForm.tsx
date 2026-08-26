@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import type { UseFormReturn } from 'react-hook-form'
-import { BaseModal } from '@/ui'
-import { fieldInputClass, ghostBtnClass, primaryBtnClass } from '../ui-classes'
+import { BaseModal, buttonClass } from '@/ui'
+import { fieldInputClass } from '../ui-classes'
 import { useOpenCodeLocale } from '../locale'
 import { OpenCodeTemplatePicker } from './OpenCodeTemplatePicker'
 import type { OpenCodeProviderFormValues } from './providerForm'
@@ -99,10 +99,10 @@ export function OpenCodeProviderForm({
           <textarea rows={5} className={`${fieldInputClass} mt-2 font-mono`} {...register('rootExtraJson')} />
         </label>
         <div className="flex justify-end gap-3 border-t border-border-default/55 pt-4">
-          <button type="button" className={ghostBtnClass} onClick={onClose}>
+          <button type="button" className={buttonClass({ variant: 'ghost' })} onClick={onClose}>
             {tt('取消', 'Cancel')}
           </button>
-          <button type="button" className={primaryBtnClass} disabled={saving} onClick={onSave}>
+          <button type="button" className={buttonClass({ variant: 'primary' })} disabled={saving} onClick={onSave}>
             {tt('保存', 'Save')}
           </button>
         </div>

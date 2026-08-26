@@ -15,7 +15,7 @@ import type {
   WafCookieStatus,
 } from '@/types/checkin'
 import { logger } from '@/utils/logger'
-import { BaseModal, SIcon } from '@/ui'
+import { BaseModal, SIcon, buttonClass } from '@/ui'
 import {
   filterAvailableBuiltinProviders,
   resolveBuiltinProvider,
@@ -78,7 +78,7 @@ const BuiltinCard = memo(function BuiltinCard({
             <p>{provider.domain}</p>
           </div>
         </div>
-        <button type="button" className="checkin-providers__primary-button" onClick={handleAdd}>
+        <button type="button" className={buttonClass({ variant: 'primary', className: 'checkin-providers__primary-button' })} onClick={handleAdd}>
           {addLabel}
         </button>
       </div>
@@ -233,7 +233,7 @@ export function CheckinProvidersTab({
       <div>
         <div className="checkin-providers__section-header">
           <h2 className="checkin-providers__section-title">{t('checkin.providers.addedTitle')}</h2>
-          <button type="button" className="checkin-providers__primary-button" onClick={openCreate}>
+          <button type="button" className={buttonClass({ variant: 'primary', className: 'checkin-providers__primary-button' })} onClick={openCreate}>
             {t('checkin.providers.customAdd')}
           </button>
         </div>
@@ -280,7 +280,7 @@ export function CheckinProvidersTab({
             <button type="button" onClick={closeModal}>
               {t('common.cancel')}
             </button>
-            <button type="submit" className="checkin-providers__primary-button">
+            <button type="submit" className={buttonClass({ variant: 'primary', className: 'checkin-providers__primary-button' })}>
               {t('common.save')}
             </button>
           </div>

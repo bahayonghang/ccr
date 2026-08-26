@@ -1,8 +1,7 @@
 import { memo, useCallback } from 'react'
 import type { OpenCodeProviderConfig } from '@/types'
-import { SIcon } from '@/ui'
+import { SIcon, buttonClass } from '@/ui'
 import { maskSecret } from '@/utils/opencode'
-import { dangerBtnClass, secondaryBtnClass } from '../ui-classes'
 import { useOpenCodeLocale } from '../locale'
 
 interface OpenCodeProviderCardProps {
@@ -61,15 +60,15 @@ export const OpenCodeProviderCard = memo(function OpenCodeProviderCard({
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button type="button" className={secondaryBtnClass} onClick={handleToggle}>
+          <button type="button" className={buttonClass({ variant: 'secondary' })} onClick={handleToggle}>
             <SIcon name={enabled ? 'PauseCircle' : 'PlayCircle'} size="w-4 h-4" />
             {enabled ? tt('停用', 'Disable') : tt('启用', 'Enable')}
           </button>
-          <button type="button" className={secondaryBtnClass} onClick={handleEdit}>
+          <button type="button" className={buttonClass({ variant: 'secondary' })} onClick={handleEdit}>
             <SIcon name="Pencil" size="w-4 h-4" />
             {tt('编辑', 'Edit')}
           </button>
-          <button type="button" className={dangerBtnClass} onClick={handleRemove}>
+          <button type="button" className={buttonClass({ variant: 'danger' })} onClick={handleRemove}>
             <SIcon name="Trash2" size="w-4 h-4" />
             {tt('删除', 'Delete')}
           </button>

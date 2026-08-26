@@ -1,6 +1,6 @@
 import { memo, useCallback, useMemo, useState } from 'react'
 import { Link } from 'react-router'
-import { SIcon } from '@/ui'
+import { SIcon, buttonClass } from '@/ui'
 import type {
   PlatformUsageInsightPresentation,
   PlatformUsageInsightSpec,
@@ -54,7 +54,7 @@ export function PlatformUsageInsightPanel({
             <SIcon name="RefreshCw" size="w-4 h-4" className={loading ? 'animate-spin' : undefined} />
             {spec.retryLabel}
           </button>
-          <Link className="platform-usage-panel__button platform-usage-panel__button--primary" to={spec.primaryActionTo}>
+          <Link className={buttonClass({ variant: 'primary', className: 'platform-usage-panel__button' })} to={spec.primaryActionTo}>
             {spec.primaryActionLabel}
             <SIcon name="ArrowUpRight" size="w-4 h-4" />
           </Link>

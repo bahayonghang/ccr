@@ -160,11 +160,6 @@
   cursor: not-allowed;
 }
 
-.oauth-wizard__button--primary {
-  background: var(--color-accent-primary);
-  color: var(--color-accent-primary-contrast);
-}
-
 .oauth-wizard__button--secondary {
   border: var(--space-px) solid var(--color-border-default);
   color: var(--text-muted);

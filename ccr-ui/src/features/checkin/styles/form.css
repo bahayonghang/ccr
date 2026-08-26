@@ -277,8 +277,6 @@
 
 .checkin-accounts-tab__form-button--primary {
   min-width: 9.5rem;
-  color: var(--color-accent-primary-contrast);
-  background: var(--color-accent-primary);
 }
 
 @media (width <= 56.25rem) {

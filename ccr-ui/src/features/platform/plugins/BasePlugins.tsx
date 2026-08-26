@@ -5,7 +5,7 @@ import type { PluginDraft, PluginsConfig } from '@/configs/plugins'
 import { NamedItemCard } from '@/features/platform/NamedItemCard'
 import { SurfacePage } from '@/features/platform/SurfacePage'
 import { useResolvedT } from '@/i18n'
-import { EmptyState } from '@/ui'
+import { EmptyState, Button } from '@/ui'
 import type { TranslateFunction } from '@/utils/tf'
 
 interface BasePluginsProps {
@@ -72,9 +72,9 @@ export function BasePlugins({ config, t: tProp }: BasePluginsProps) {
       title={t(config.titleKey)}
       description={t(config.subtitleKey)}
       actions={
-        <button type="button" className="rounded-lg bg-accent-primary px-4 py-2 text-sm text-[color:var(--color-accent-primary-contrast)]" onClick={openForm}>
+        <Button type="button" variant="primary" className="rounded-lg text-sm" onClick={openForm}>
           {t(`${config.i18nPrefix}.addPlugin`)}
-        </button>
+        </Button>
       }
     >
       {items.length === 0 ? (
@@ -104,12 +104,12 @@ export function BasePlugins({ config, t: tProp }: BasePluginsProps) {
             <textarea className="rounded-xl border border-border-default bg-bg-base px-3 py-2 font-mono text-xs" {...form.register('configJson')} />
           ) : null}
           <div className="flex gap-2">
-            <button type="submit" className="rounded-lg bg-accent-primary px-4 py-2 text-sm text-[color:var(--color-accent-primary-contrast)]">
+            <Button type="submit" variant="primary" className="rounded-lg text-sm">
               {t('common.save')}
-            </button>
-            <button type="button" className="rounded-lg border border-border-default px-4 py-2 text-sm" onClick={closeForm}>
+            </Button>
+            <Button type="button" variant="ghost" className="rounded-lg text-sm" onClick={closeForm}>
               {t('common.cancel')}
-            </button>
+            </Button>
           </div>
         </form>
       ) : null}

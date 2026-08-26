@@ -8,7 +8,7 @@ import {
 import { getErrorMessage } from '@/types/api'
 import type { AccountInfo, BuiltinProvider, CheckinProvider } from '@/types/checkin'
 import { logger } from '@/utils/logger'
-import { BaseModal, SIcon } from '@/ui'
+import { BaseModal, SIcon, buttonClass } from '@/ui'
 import type { TranslateFunction } from '@/utils/tf'
 import { sessionToCookiesJson } from '../lib/accountCookies'
 import {
@@ -235,7 +235,7 @@ export const AccountFormModal = forwardRef<AccountFormModalHandle, AccountFormMo
             <button
               type="submit"
               form="checkin-account-form"
-              className="checkin-accounts-tab__form-button checkin-accounts-tab__form-button--primary"
+              className={buttonClass({ variant: 'primary', className: 'checkin-accounts-tab__form-button checkin-accounts-tab__form-button--primary' })}
             >
               {editingAccount
                 ? t('checkin.accounts.modal.saveChanges')

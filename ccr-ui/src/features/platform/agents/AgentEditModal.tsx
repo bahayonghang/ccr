@@ -1,6 +1,6 @@
 import { memo, useCallback } from 'react'
 import { useForm } from 'react-hook-form'
-import { BaseModal, SIcon } from '@/ui'
+import { BaseModal, SIcon, buttonClass } from '@/ui'
 import type { TranslateFunction } from '@/utils/tf'
 import { defaultAgentModelOptions } from './agentModels'
 
@@ -77,12 +77,12 @@ export const AgentEditModal = memo(function AgentEditModal({
       onClose={onClose}
       footer={
         <div className="flex w-full gap-3">
-          <button type="button" className="flex-1 rounded-xl border border-border-default bg-bg-elevated px-4 py-3 text-text-secondary" onClick={onClose}>
+          <button type="button" className={buttonClass({ variant: 'ghost', className: 'flex-1 rounded-xl px-4 py-3' })} onClick={onClose}>
             {t('common.cancel')}
           </button>
           <button
             type="button"
-            className="flex-1 rounded-lg bg-accent-secondary px-4 py-3 text-[color:var(--color-accent-primary-contrast)] disabled:opacity-50"
+            className={buttonClass({ variant: 'primary', className: 'flex-1 rounded-lg px-4 py-3' })}
             disabled={saving}
             onClick={onSave}
           >
@@ -120,7 +120,7 @@ export const AgentEditModal = memo(function AgentEditModal({
               placeholder={t('agents.toolPlaceholder')}
               {...register('toolDraft')}
             />
-            <button type="button" className="rounded-lg bg-accent-secondary px-6 py-3 text-[color:var(--color-accent-primary-contrast)]" onClick={addTool}>
+            <button type="button" className={buttonClass({ variant: 'secondary', className: 'rounded-lg px-6 py-3' })} onClick={addTool}>
               {t('agents.addTool')}
             </button>
           </div>

@@ -2,10 +2,10 @@ import { memo, useCallback } from 'react'
 import type { UseFormReturn } from 'react-hook-form'
 import type { CodexModelProviderRecord } from '@/types'
 import type { ProviderTemplateDraftContext, ProviderTemplateSelection } from '@/types/providerTemplates'
-import { EmptyState, SIcon } from '@/ui'
+import { EmptyState, SIcon, buttonClass } from '@/ui'
 import { useAppT } from '@/i18n'
 import type { CodexTf } from '../useCodexLocale'
-import { fieldInputClass, ghostBtnClass, panelCardClass, primaryBtnClass } from '../ui-classes'
+import { fieldInputClass, panelCardClass } from '../ui-classes'
 import { CodexProviderTemplatePicker } from './CodexProviderTemplatePicker'
 import type { CodexProviderForm } from './useCodexProviders'
 
@@ -68,11 +68,11 @@ const ProviderCard = memo(function ProviderCard({
       <div className="codex-auth-view__provider-footer">
         <span>{tf('codex.auth.providers.updatedAt', 'Updated')} {formatProviderUpdatedAt(provider.updated_at, true)}</span>
         <div className="codex-auth-view__provider-actions-inline">
-          <button type="button" className={ghostBtnClass} onClick={handleUse}>
+          <button type="button" className={buttonClass({ variant: 'ghost' })} onClick={handleUse}>
             {tf('codex.auth.providers.actions.useInApiForm', 'Use in API form')}
           </button>
-          <button type="button" className={ghostBtnClass} onClick={handleEdit}>{tf('common.edit', 'Edit')}</button>
-          <button type="button" className={ghostBtnClass} onClick={handleDelete}>{t('codex.actions.delete')}</button>
+          <button type="button" className={buttonClass({ variant: 'ghost' })} onClick={handleEdit}>{tf('common.edit', 'Edit')}</button>
+          <button type="button" className={buttonClass({ variant: 'ghost' })} onClick={handleDelete}>{t('codex.actions.delete')}</button>
         </div>
       </div>
     </article>
@@ -114,7 +114,7 @@ export function CodexAuthProvidersTab({
             </div>
           </div>
           {dirty ? (
-            <button type="button" className={ghostBtnClass} onClick={onResetForm}>
+            <button type="button" className={buttonClass({ variant: 'ghost' })} onClick={onResetForm}>
               {tf('codex.auth.providers.resetForm', 'Reset form')}
             </button>
           ) : null}
@@ -155,7 +155,7 @@ export function CodexAuthProvidersTab({
         </div>
         {providerError ? <div className="codex-auth-view__inline-error">{providerError}</div> : null}
         <div className="codex-auth-view__provider-actions">
-          <button type="button" className={primaryBtnClass} disabled={providerSaving || !providerForm.name.trim() || !providerForm.baseUrl.trim()} onClick={onSaveProvider}>
+          <button type="button" className={buttonClass({ variant: 'primary' })} disabled={providerSaving || !providerForm.name.trim() || !providerForm.baseUrl.trim()} onClick={onSaveProvider}>
             <SIcon name={providerForm.id ? 'Save' : 'Plus'} size="w-4 h-4" />
             {providerForm.id ? tf('codex.auth.providers.actions.update', 'Update provider') : tf('codex.auth.providers.actions.create', 'Save provider')}
           </button>
@@ -173,7 +173,7 @@ export function CodexAuthProvidersTab({
               </p>
             </div>
           </div>
-          <button type="button" className={ghostBtnClass} disabled={providerLoading} onClick={onLoadProviders}>
+          <button type="button" className={buttonClass({ variant: 'ghost' })} disabled={providerLoading} onClick={onLoadProviders}>
             <SIcon name="RefreshCw" size="w-4 h-4" className={providerLoading ? 'animate-spin' : undefined} />
             {t('codex.auth.refresh')}
           </button>

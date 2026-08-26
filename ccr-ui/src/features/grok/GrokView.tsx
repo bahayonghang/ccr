@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { surfaceNotify } from '@/configs/surfaceNotify'
-import { EmptyState, PageHeader, PageShell, SIcon, StatTile } from '@/ui'
+import { EmptyState, PageHeader, PageShell, SIcon, StatTile, buttonClass } from '@/ui'
 import { copyText } from '@/utils/clipboard'
 import { GrokSubnav } from './GrokSubnav'
 import { ActionRow, CommandRow, ManageRow, ReadinessCard } from './home/GrokHomeCards'
 import { GROK_HOME_COMMANDS } from './home/grokHomeModel'
 import { t } from './locale'
-import { dangerBtnClass, ghostBtnClass, primaryBtnClass } from './ui-classes'
 import { useGrokHome } from './useGrokHome'
 
 export function GrokView() {
@@ -64,7 +63,9 @@ export function GrokView() {
     }, 1600)
   }, [])
 
-  const primaryClass = primaryAction.tone === 'danger' ? dangerBtnClass : primaryBtnClass
+  const primaryClass = buttonClass({
+    variant: primaryAction.tone === 'danger' ? 'danger' : 'primary',
+  })
   const primaryInner = (
     <>
       <SIcon name={primaryAction.icon} size="w-4 h-4" />
@@ -105,7 +106,7 @@ export function GrokView() {
           description={t('grok.overview.subtitle')}
           actions={
             <div className="flex flex-wrap gap-2">
-              <button type="button" className={ghostBtnClass} disabled={loading} onClick={handleRefresh}>
+              <button type="button" className={buttonClass({ variant: 'ghost' })} disabled={loading} onClick={handleRefresh}>
                 <SIcon name="RefreshCw" size="w-4 h-4" className={loading ? 'animate-spin' : undefined} />
                 {t('grok.dashboard.header.refresh')}
               </button>

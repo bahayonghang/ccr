@@ -96,7 +96,6 @@
   align-items: center;
   justify-content: center;
   gap: 0.42rem;
-  border: 0.0625rem solid transparent;
   border-radius: 624.9375rem;
   padding: 0 0.82rem;
   font-size: 0.82rem;
@@ -109,19 +108,13 @@
     opacity var(--motion-subtle-duration) var(--motion-subtle-ease);
 }
 
+.pricing-button:not(.ui-btn) {
+  border: 0.0625rem solid transparent;
+}
+
 .pricing-button:disabled {
   cursor: not-allowed;
   opacity: 0.55;
-}
-
-.pricing-button--primary {
-  border-color: rgb(var(--color-accent-primary-rgb) / 22%);
-  background: rgb(var(--color-accent-primary-rgb) / 14%);
-  color: var(--color-text-primary);
-}
-
-.pricing-button--primary:hover:not(:disabled) {
-  background: rgb(var(--color-accent-primary-rgb) / 19%);
 }
 
 .pricing-button--secondary {

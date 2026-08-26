@@ -1,7 +1,7 @@
 import type { CodexDashboardUsageSummary } from '@/api'
-import { EmptyState } from '@/ui'
+import { EmptyState, buttonClass } from '@/ui'
 import type { CodexDashboardActionItem, CodexDashboardInventoryItem } from '../dashboard-model'
-import { ghostBtnClass, panelCardClass } from '../ui-classes'
+import { panelCardClass } from '../ui-classes'
 import { ManageRow, NextActionRow } from './CodexHomeCards'
 import type { TranslateFunction } from '@/utils/tf'
 
@@ -71,7 +71,7 @@ export function ActionConsole({ t, error, overviewMissing, visibleNextActions, o
             <p className="font-semibold">{t('codex.dashboard.error.title')}</p>
             <p className="mt-1 break-words">{error}</p>
           </div>
-          <button type="button" className={ghostBtnClass} onClick={onRefresh}>{t('codex.dashboard.header.refresh')}</button>
+          <button type="button" className={buttonClass({ variant: 'ghost' })} onClick={onRefresh}>{t('codex.dashboard.header.refresh')}</button>
         </div>
       ) : null}
       {visibleNextActions.length > 0 ? (

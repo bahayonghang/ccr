@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router'
-import { PageHeader, PageShell, SIcon } from '@/ui'
-import { ghostBtnClass } from './ui-classes'
+import { PageHeader, PageShell, SIcon, buttonClass } from '@/ui'
 
 interface OpenCodePageShellProps {
   title: string
@@ -34,7 +33,7 @@ export function OpenCodePageShell({
       header={
         <div className="flex flex-col gap-4" data-tone={tone}>
           <Link to={backTo} className="inline-flex w-fit">
-            <span className={ghostBtnClass}>
+            <span className={buttonClass({ variant: 'ghost' })}>
               <SIcon name="ChevronLeft" size="w-4 h-4" />
               {backLabel}
             </span>

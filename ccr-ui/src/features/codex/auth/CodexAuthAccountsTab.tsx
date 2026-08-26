@@ -1,9 +1,9 @@
 import { memo, useCallback, type ChangeEvent } from 'react'
 import { useForm } from 'react-hook-form'
 import type { CodexAccountQuota, CodexAuthAccountItem, CodexAuthCurrentInfo } from '@/types'
-import { EmptyState, SIcon } from '@/ui'
+import { EmptyState, SIcon, buttonClass } from '@/ui'
 import type { AccountPlanFilter, AccountSort, AccountStatusFilter } from '../codexAuthAccounts'
-import { ghostBtnClass, panelCardClass } from '../ui-classes'
+import { panelCardClass } from '../ui-classes'
 import { CodexAccountCard } from './CodexAccountCard'
 import { useAppT } from '@/i18n'
 import type { CodexTf } from '../useCodexLocale'
@@ -196,7 +196,7 @@ export function CodexAuthAccountsTab({
           <div className="codex-auth-view__filters-footer">
             <p className="codex-auth-view__filters-summary">{filtersResultsCount}</p>
             {hasActiveFilters ? (
-              <button type="button" className={ghostBtnClass} onClick={onClearFilters}>{t('common.clearFilters')}</button>
+              <button type="button" className={buttonClass({ variant: 'ghost' })} onClick={onClearFilters}>{t('common.clearFilters')}</button>
             ) : null}
           </div>
         </section>

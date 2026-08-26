@@ -1,6 +1,5 @@
-import { SIcon } from '@/ui'
+import { SIcon, buttonClass } from '@/ui'
 import type { CodexTf } from '../useCodexLocale'
-import { primaryBtnClass } from '../ui-classes'
 
 interface AddAccountLocalStepProps {
   tf: CodexTf
@@ -24,7 +23,7 @@ export function AddAccountLocalStep({ tf, localImportBusy, canSubmit, onImport }
       <p className="codex-auth-view__section-copy">
         {tf('codex.auth.localImport.note', 'Use this when Codex is already logged in on this machine and you want CCR to snapshot that session.')}
       </p>
-      <button type="button" className={primaryBtnClass} disabled={localImportBusy || !canSubmit} onClick={onImport}>
+      <button type="button" className={buttonClass({ variant: 'primary' })} disabled={localImportBusy || !canSubmit} onClick={onImport}>
         <SIcon name="FolderDown" size="w-4 h-4" />
         {tf('codex.auth.localImport.action', 'Import local runtime account')}
       </button>

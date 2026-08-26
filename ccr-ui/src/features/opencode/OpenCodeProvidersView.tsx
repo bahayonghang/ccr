@@ -25,8 +25,7 @@ import { OpenCodeProviderCard } from './providers/OpenCodeProviderCard'
 import { OpenCodeProviderForm } from './providers/OpenCodeProviderForm'
 import { OpenCodeTemplatePicker } from './providers/OpenCodeTemplatePicker'
 import { emptyProviderForm, type OpenCodeProviderFormValues } from './providers/providerForm'
-import { primaryBtnClass } from './ui-classes'
-import { SIcon } from '@/ui'
+import { SIcon, buttonClass } from '@/ui'
 
 const managedRootKeys = new Set(['id', 'name', 'npm', 'options', 'models'])
 
@@ -238,7 +237,7 @@ export function OpenCodeProvidersView() {
       tone="lime"
       badge="provider"
       actions={
-        <button type="button" className={primaryBtnClass} onClick={openCreate}>
+        <button type="button" className={buttonClass({ variant: 'primary' })} onClick={openCreate}>
           <SIcon name="Plus" size="w-4 h-4" />
           {tt('添加 Provider', 'Add provider')}
         </button>

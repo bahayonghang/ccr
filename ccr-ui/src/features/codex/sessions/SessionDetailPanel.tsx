@@ -1,6 +1,6 @@
-import { EmptyState, SIcon, Spinner } from '@/ui'
+import { EmptyState, SIcon, Spinner, buttonClass } from '@/ui'
 import type { CodexSessionDetailResponse, CodexSessionSummary } from '@/types'
-import { dangerBtnClass, ghostBtnClass, panelCardClass } from '../ui-classes'
+import { panelCardClass } from '../ui-classes'
 import { formatSessionAbsolute } from './session-format'
 
 interface SessionDetailPanelProps {
@@ -42,16 +42,16 @@ export function SessionDetailPanel({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button type="button" className={ghostBtnClass} disabled={!selectedSession || actionLoading} onClick={onCopyPath}>
+          <button type="button" className={buttonClass({ variant: 'ghost' })} disabled={!selectedSession || actionLoading} onClick={onCopyPath}>
             <SIcon name="Copy" size="w-4 h-4" />{tt('复制路径', 'Copy path')}
           </button>
-          <button type="button" className={ghostBtnClass} disabled={!selectedSession || actionLoading} onClick={onExport}>
+          <button type="button" className={buttonClass({ variant: 'ghost' })} disabled={!selectedSession || actionLoading} onClick={onExport}>
             <SIcon name="Download" size="w-4 h-4" />{tt('导出', 'Export')}
           </button>
-          <button type="button" className={ghostBtnClass} disabled={!selectedSession || actionLoading} onClick={onClone}>
+          <button type="button" className={buttonClass({ variant: 'ghost' })} disabled={!selectedSession || actionLoading} onClick={onClone}>
             <SIcon name="CopyPlus" size="w-4 h-4" />{tt('克隆', 'Clone')}
           </button>
-          <button type="button" className={dangerBtnClass} disabled={!selectedSession || actionLoading} onClick={onDelete}>
+          <button type="button" className={buttonClass({ variant: 'danger' })} disabled={!selectedSession || actionLoading} onClick={onDelete}>
             <SIcon name="Trash2" size="w-4 h-4" />{tt('删除', 'Delete')}
           </button>
         </div>

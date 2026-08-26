@@ -1,6 +1,5 @@
-import { SIcon } from '@/ui'
+import { SIcon, buttonClass } from '@/ui'
 import type { TranslateFunction } from '@/utils/tf'
-import { ghostBtnClass } from '../ui-classes'
 
 interface AuthOffBannersProps {
   t: TranslateFunction
@@ -20,7 +19,7 @@ export function AuthOffBanners({ t, canAuthOff, canOff, loading, onAuthOff, onPr
             <strong>{t('auth.off')}</strong>
             <p className="text-sm text-text-muted">{t('auth.offDescription')}</p>
           </div>
-          <button type="button" className={ghostBtnClass} disabled={loading} onClick={onAuthOff}>
+          <button type="button" className={buttonClass({ variant: 'ghost' })} disabled={loading} onClick={onAuthOff}>
             <SIcon name="LogOut" size="w-4 h-4" />{t('auth.off')}
           </button>
         </section>
@@ -31,7 +30,7 @@ export function AuthOffBanners({ t, canAuthOff, canOff, loading, onAuthOff, onPr
             <strong>{t('codex.auth.off.title')}</strong>
             <p className="text-sm text-text-muted">{t('codex.auth.off.description')}</p>
           </div>
-          <button type="button" className={ghostBtnClass} disabled={loading} onClick={onProfileOff}>
+          <button type="button" className={buttonClass({ variant: 'ghost' })} disabled={loading} onClick={onProfileOff}>
             <SIcon name="Power" size="w-4 h-4" />{t('codex.auth.off.action')}
           </button>
         </section>

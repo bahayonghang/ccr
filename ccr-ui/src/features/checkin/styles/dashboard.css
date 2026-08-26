@@ -47,8 +47,8 @@
 }
 
 .icon-button,
-.action-btn,
-.nav-btn {
+.nav-btn,
+.action-btn:not(.ui-btn) {
   border: var(--space-px) solid rgb(var(--color-border-default-rgb) / 56%);
 }
 
@@ -68,12 +68,6 @@
   padding: 0.6rem 1rem;
   border-radius: 0.85rem;
   font-weight: 600;
-}
-
-.action-btn.primary {
-  background: var(--color-accent-primary);
-  color: var(--color-accent-primary-contrast);
-  border-color: transparent;
 }
 
 .action-btn:disabled {

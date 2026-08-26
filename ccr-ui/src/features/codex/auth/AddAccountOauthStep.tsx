@@ -1,7 +1,6 @@
 import { useCallback, type ChangeEvent } from 'react'
 import type { CodexTf } from '../useCodexLocale'
-import { SIcon } from '@/ui'
-import { ghostBtnClass, primaryBtnClass, secondaryBtnClass } from '../ui-classes'
+import { SIcon, buttonClass } from '@/ui'
 
 interface AddAccountOauthStepProps {
   tf: CodexTf
@@ -57,7 +56,7 @@ export function AddAccountOauthStep({
             <p className="font-medium text-text-primary">{tf('codex.auth.oauth.portBusyTitle', 'Port 1455 is occupied')}</p>
             <p className="mt-1 text-sm text-text-muted">{tf('codex.auth.oauth.portBusyHint', 'Release the callback port before starting OAuth, otherwise the browser redirect cannot be captured.')}</p>
           </div>
-          <button type="button" className={secondaryBtnClass} disabled={oauthBusy} onClick={onReleasePort}>
+          <button type="button" className={buttonClass({ variant: 'secondary' })} disabled={oauthBusy} onClick={onReleasePort}>
             {tf('codex.auth.oauth.releasePort', 'Release port')}
           </button>
         </div>
@@ -72,17 +71,17 @@ export function AddAccountOauthStep({
       ) : null}
       <div className="codex-auth-view__oauth-grid">
         <div className="codex-auth-view__oauth-actions">
-          <button type="button" className={primaryBtnClass} disabled={oauthBusy || (oauthPortBusy && !oauthPending) || Boolean(nameError)} onClick={onStart}>
+          <button type="button" className={buttonClass({ variant: 'primary' })} disabled={oauthBusy || (oauthPortBusy && !oauthPending) || Boolean(nameError)} onClick={onStart}>
             <SIcon name={oauthPending ? 'ExternalLink' : 'PlayCircle'} size="w-4 h-4" />
             {oauthPending ? tf('codex.auth.oauth.openBrowser', 'Open browser again') : tf('codex.auth.oauth.start', 'Start OAuth authorization')}
           </button>
           {oauthPending ? (
-            <button type="button" className={secondaryBtnClass} disabled={oauthBusy} onClick={onFinalize}>
+            <button type="button" className={buttonClass({ variant: 'secondary' })} disabled={oauthBusy} onClick={onFinalize}>
               {tf('codex.auth.oauth.finish', 'Finish login')}
             </button>
           ) : null}
           {oauthPending ? (
-            <button type="button" className={ghostBtnClass} disabled={oauthBusy} onClick={onCancel}>
+            <button type="button" className={buttonClass({ variant: 'ghost' })} disabled={oauthBusy} onClick={onCancel}>
               {tf('codex.auth.oauth.cancel', 'Cancel OAuth')}
             </button>
           ) : null}
@@ -102,7 +101,7 @@ export function AddAccountOauthStep({
           />
         </label>
         <div className="codex-auth-view__oauth-actions">
-          <button type="button" className={secondaryBtnClass} disabled={!oauthPending || oauthBusy || !oauthCallbackUrl.trim()} onClick={onSubmitCallback}>
+          <button type="button" className={buttonClass({ variant: 'secondary' })} disabled={!oauthPending || oauthBusy || !oauthCallbackUrl.trim()} onClick={onSubmitCallback}>
             {tf('codex.auth.oauth.submitCallback', 'Submit callback URL')}
           </button>
         </div>

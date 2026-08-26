@@ -4,7 +4,7 @@ import { installMcpPreset, listMcpPresets } from '@/api'
 import type { McpPreset } from '@/types/api'
 import type { SyncResult } from '@/types/sync'
 import { logger } from '@/utils/logger'
-import { BaseModal, SIcon, cn } from '@/ui'
+import { BaseModal, SIcon, cn, buttonClass } from '@/ui'
 import { useMcpT } from './locale'
 import { mcpNotify } from './notify'
 
@@ -160,8 +160,8 @@ export function McpPresetsPanel({ onInstalled }: McpPresetsPanelProps) {
 
       <BaseModal modelValue={Boolean(selected)} title={selected?.name ?? t('mcp.presets.install')} size="md" surface="solid" onUpdateModelValue={handleOpenChange} onClose={closeModal} footer={
         <div className="flex w-full gap-3">
-          <button type="button" className="flex-1 rounded-xl border border-border-default bg-bg-elevated px-4 py-2 text-text-secondary" onClick={closeModal}>{t('common.cancel')}</button>
-          <button type="button" className="flex-1 rounded-xl bg-accent-secondary px-4 py-2 text-[color:var(--color-accent-primary-contrast)] disabled:opacity-60" disabled={installing || platforms.length === 0} onClick={handleConfirm}>
+          <button type="button" className={buttonClass({ variant: 'ghost', className: 'flex-1 rounded-xl px-4 py-2' })} onClick={closeModal}>{t('common.cancel')}</button>
+          <button type="button" className={buttonClass({ variant: 'primary', className: 'flex-1 rounded-xl px-4 py-2' })} disabled={installing || platforms.length === 0} onClick={handleConfirm}>
             {installing ? t('mcp.presets.installing') : t('mcp.presets.confirmInstall')}
           </button>
         </div>

@@ -3,7 +3,7 @@ import { Link } from 'react-router'
 import { detectSkillportApp, isTauriEnvironment, openSkillportApp, type SkillportAppStatus } from '@/api/domains/system'
 import skillportBadgeUrl from '@/assets/skillport-badge.svg'
 import { tt } from '@/features/claude/locale'
-import { PageHeader, PageShell } from '@/ui'
+import { PageHeader, PageShell, buttonClass } from '@/ui'
 import { logger } from '@/utils/logger'
 
 const SKILLPORT_REPO = 'https://github.com/bahayonghang/skills-manage-windows'
@@ -93,8 +93,7 @@ export function SkillsMigrationView() {
   }, [appStatus.installed])
 
   const meta = statusMeta(isDetecting, appStatus)
-  const primaryClass =
-    'inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-accent-primary px-5 py-3 text-sm font-semibold text-[color:var(--color-accent-primary-contrast)] hover:bg-accent-primary/90 disabled:cursor-not-allowed disabled:opacity-70'
+  const primaryClass = buttonClass({ variant: 'primary', className: 'inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-semibold' })
   const secondaryClass =
     'inline-flex min-h-11 items-center justify-center rounded-2xl border border-border-default/60 bg-bg-base px-5 py-3 text-sm font-semibold text-text-primary hover:bg-bg-surface/70 disabled:cursor-not-allowed disabled:opacity-70'
 
@@ -130,7 +129,7 @@ export function SkillsMigrationView() {
         <p className="mt-4 text-sm leading-7 text-text-secondary">{meta.summary}</p>
         <div className="mt-6 flex flex-wrap gap-3">
           {isDetecting ? (
-            <button type="button" className={`${primaryClass} bg-accent-primary/70`} data-testid="skills-migration-primary" disabled>
+            <button type="button" className={buttonClass({ variant: 'primary', className: 'inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-semibold opacity-70' })} data-testid="skills-migration-primary" disabled>
               {tt('检测 skillport…', 'Detecting skillport...')}
             </button>
           ) : appStatus.installed ? (

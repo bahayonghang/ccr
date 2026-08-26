@@ -2,7 +2,7 @@ import { useCallback } from 'react'
 import type { UseFormReturn } from 'react-hook-form'
 import type { BuiltinProvider } from '@/types/checkin'
 import type { TranslateFunction } from '@/utils/tf'
-import { SIcon } from '@/ui'
+import { SIcon, buttonClass } from '@/ui'
 import type { OAuthType, OAuthWizardState } from '../lib/oauthWizardReducer'
 
 interface OAuthFormValues {
@@ -279,7 +279,7 @@ function OAuthLinkStep({
         <p>{t('checkin.oauthWizard.openInBrowserHint')}</p>
         <div className="oauth-wizard__url-row">
           <input value={authorizeUrl} readOnly className="oauth-wizard__url-input" />
-          <button type="button" className="oauth-wizard__button oauth-wizard__button--primary" onClick={onCopyUrl}>
+          <button type="button" className={buttonClass({ variant: 'primary', className: 'oauth-wizard__button oauth-wizard__button--primary' })} onClick={onCopyUrl}>
             {copied ? t('checkin.oauthWizard.copied') : t('checkin.oauthWizard.copy')}
           </button>
         </div>

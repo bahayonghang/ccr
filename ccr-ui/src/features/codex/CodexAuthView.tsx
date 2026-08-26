@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { Link } from 'react-router'
-import { ConfirmModal, PageHeader, PageShell, SIcon } from '@/ui'
+import { ConfirmModal, PageHeader, PageShell, SIcon, buttonClass } from '@/ui'
 import { CodexSubnav } from './CodexSubnav'
 import { AuthOffBanners } from './auth/AuthOffBanners'
 import { AuthWorkspace } from './auth/AuthWorkspace'
@@ -10,7 +10,7 @@ import { SaveCodexSessionModal } from './auth/SaveCodexSessionModal'
 import { useCodexAuthPage, type ManagerTab } from './auth/useCodexAuthPage'
 import { loginStateText } from './auth/loginStateText'
 import { getLoginStateIcon, getLoginStateIconClass } from './codexAuthAccounts'
-import { panelCardClass, primaryBtnClass, secondaryBtnClass } from './ui-classes'
+import { panelCardClass } from './ui-classes'
 import { useCodexLocale } from './useCodexLocale'
 
 export function CodexAuthView() {
@@ -32,14 +32,14 @@ export function CodexAuthView() {
           }
           actions={
             <div className="flex flex-wrap gap-2">
-              <Link to="/codex" className={secondaryBtnClass}><SIcon name="ArrowLeft" size="w-4 h-4" />{t('codex.auth.backToCodex')}</Link>
-              <button type="button" className={secondaryBtnClass} disabled={page.loading} onClick={page.loadAll}>
+              <Link to="/codex" className={buttonClass({ variant: 'secondary' })}><SIcon name="ArrowLeft" size="w-4 h-4" />{t('codex.auth.backToCodex')}</Link>
+              <button type="button" className={buttonClass({ variant: 'secondary' })} disabled={page.loading} onClick={page.loadAll}>
                 <SIcon name="RefreshCw" size="w-4 h-4" className={page.loading ? 'animate-spin' : undefined} />{t('codex.auth.refresh')}
               </button>
-              <button type="button" className={secondaryBtnClass} disabled={!page.canSave} onClick={page.handleSave}>
+              <button type="button" className={buttonClass({ variant: 'secondary' })} disabled={!page.canSave} onClick={page.handleSave}>
                 <SIcon name="Save" size="w-4 h-4" />{tf('codex.auth.actions.saveCurrent', 'Save current session')}
               </button>
-              <button type="button" className={primaryBtnClass} onClick={page.openAddAccount}>
+              <button type="button" className={buttonClass({ variant: 'primary' })} onClick={page.openAddAccount}>
                 <SIcon name="Plus" size="w-4 h-4" />{tf('codex.auth.actions.addAccount', 'Add account')}
               </button>
             </div>

@@ -1,7 +1,6 @@
 import type { UseFormRegister } from 'react-hook-form'
-import { SIcon } from '@/ui'
+import { SIcon, buttonClass } from '@/ui'
 import type { CodexTf } from '../useCodexLocale'
-import { primaryBtnClass } from '../ui-classes'
 import type { AddAccountFormValues } from './addAccountForm'
 
 interface AddAccountTokenStepProps {
@@ -48,7 +47,7 @@ export function AddAccountTokenStep({
         </label>
       </div>
       <div className="codex-auth-view__provider-actions">
-        <button type="button" className={primaryBtnClass} disabled={importBusy || !canSubmit} onClick={onImport}>
+        <button type="button" className={buttonClass({ variant: 'primary' })} disabled={importBusy || !canSubmit} onClick={onImport}>
           <SIcon name="Download" size="w-4 h-4" />
           {tf('codex.auth.import.action', 'Import payload')}
         </button>

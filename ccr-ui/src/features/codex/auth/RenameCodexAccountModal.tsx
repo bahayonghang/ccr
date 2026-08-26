@@ -2,11 +2,11 @@ import { useCallback, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { renameCodexAuth } from '@/api'
 import { surfaceNotify } from '@/configs/surfaceNotify'
-import { BaseModal, SIcon } from '@/ui'
+import { BaseModal, SIcon, buttonClass } from '@/ui'
 import { extractErrorMessage } from '@/utils/errorHandler'
 import { logger } from '@/utils/logger'
 import { canSubmitAccountRename } from '../codexAuthAccounts'
-import { fieldInputClass, ghostBtnClass, primaryBtnClass } from '../ui-classes'
+import { fieldInputClass } from '../ui-classes'
 import { useCodexLocale } from '../useCodexLocale'
 
 interface RenameForm {
@@ -76,8 +76,8 @@ export function RenameCodexAccountModal({
           {tf('codex.auth.rename.forceLabel', '覆盖同名账号 (force)')}
         </label>
         <div className="flex items-center justify-end gap-2">
-          <button type="button" className={ghostBtnClass} onClick={handleClose}>{t('common.cancel')}</button>
-          <button type="submit" className={primaryBtnClass} disabled={!canSubmit || form.formState.isSubmitting}>
+          <button type="button" className={buttonClass({ variant: 'ghost' })} onClick={handleClose}>{t('common.cancel')}</button>
+          <button type="submit" className={buttonClass({ variant: 'primary' })} disabled={!canSubmit || form.formState.isSubmitting}>
             <SIcon name="Pencil" size="w-4 h-4" />
             {tf('codex.auth.rename.confirm', '重命名')}
           </button>

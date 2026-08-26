@@ -1,10 +1,10 @@
 import { useCallback, useMemo } from 'react'
 import { Link } from 'react-router'
-import { EmptyState, PageHeader, PageShell, SIcon, StatTile } from '@/ui'
+import { EmptyState, PageHeader, PageShell, SIcon, StatTile, buttonClass } from '@/ui'
 import { CodexSubnav } from './CodexSubnav'
 import { ReadinessCard } from './home/CodexHomeCards'
 import { ActionConsole, ManagePanel, UsageStrip } from './home/CodexHomePanels'
-import { ghostBtnClass, panelCardClass, primaryBtnClass, secondaryBtnClass } from './ui-classes'
+import { panelCardClass } from './ui-classes'
 import { useCodexDashboard } from './useCodexDashboard'
 import { useCodexLocale } from './useCodexLocale'
 
@@ -37,7 +37,9 @@ export function CodexView() {
     void refresh(true)
   }, [refresh])
 
-  const primaryClass = primaryAction.tone === 'danger' ? 'bg-accent-danger text-[color:var(--color-danger-contrast)]' : primaryBtnClass
+  const primaryClass = buttonClass({
+    variant: primaryAction.tone === 'danger' ? 'danger' : 'primary',
+  })
 
   return (
     <PageShell
@@ -49,7 +51,7 @@ export function CodexView() {
           description={t('codex.dashboard.header.subtitle')}
           actions={
             <div className="flex flex-wrap gap-2">
-              <button type="button" className={ghostBtnClass} disabled={loading} onClick={handleRefresh}>
+              <button type="button" className={buttonClass({ variant: 'ghost' })} disabled={loading} onClick={handleRefresh}>
                 <SIcon name="RefreshCw" size="w-4 h-4" className={loading ? 'animate-spin' : undefined} />
                 {t('codex.dashboard.header.refresh')}
               </button>
@@ -59,11 +61,11 @@ export function CodexView() {
                   {primaryAction.title}
                 </span>
               </Link>
-              <Link to="/codex/auth" className={secondaryBtnClass}>
+              <Link to="/codex/auth" className={buttonClass({ variant: 'secondary' })}>
                 <SIcon name="KeyRound" size="w-4 h-4" />
                 {t('codex.dashboard.header.authConfig')}
               </Link>
-              <Link to="/codex/profiles" className={secondaryBtnClass}>
+              <Link to="/codex/profiles" className={buttonClass({ variant: 'secondary' })}>
                 <SIcon name="Folders" size="w-4 h-4" />
                 {t('codex.dashboard.header.profileConfig')}
               </Link>

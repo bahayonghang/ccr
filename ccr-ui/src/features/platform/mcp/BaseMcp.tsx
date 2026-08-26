@@ -5,7 +5,7 @@ import type { McpConfig, McpDraft } from '@/configs/mcp'
 import { NamedItemCard } from '@/features/platform/NamedItemCard'
 import { SurfacePage } from '@/features/platform/SurfacePage'
 import { useResolvedT } from '@/i18n'
-import { EmptyState } from '@/ui'
+import { EmptyState, Button } from '@/ui'
 import type { TranslateFunction } from '@/utils/tf'
 
 interface BaseMcpProps {
@@ -83,14 +83,14 @@ export function BaseMcp({ config, t: tProp }: BaseMcpProps) {
       actions={
         <div className="flex gap-2">
           {config.features.stdioCreate ? (
-            <button type="button" className="rounded-lg border border-border-default px-3 py-2 text-sm" onClick={openStdio}>
+            <Button type="button" variant="ghost" className="rounded-lg px-3 py-2 text-sm" onClick={openStdio}>
               {t(`${config.i18nPrefix}.newStdio`)}
-            </button>
+            </Button>
           ) : null}
           {config.features.httpCreate ? (
-            <button type="button" className="rounded-lg border border-border-default px-3 py-2 text-sm" onClick={openHttp}>
+            <Button type="button" variant="ghost" className="rounded-lg px-3 py-2 text-sm" onClick={openHttp}>
               {t(`${config.i18nPrefix}.newHttp`)}
-            </button>
+            </Button>
           ) : null}
         </div>
       }
@@ -132,12 +132,12 @@ export function BaseMcp({ config, t: tProp }: BaseMcpProps) {
             <input className="rounded-xl border border-border-default bg-bg-base px-3 py-2" placeholder="bearerTokenEnv" {...form.register('bearerTokenEnv')} />
           ) : null}
           <div className="flex gap-2">
-            <button type="submit" className="rounded-lg bg-accent-primary px-4 py-2 text-sm text-[color:var(--color-accent-primary-contrast)]">
+            <Button type="submit" variant="primary" className="rounded-lg text-sm">
               {t('common.save')}
-            </button>
-            <button type="button" className="rounded-lg border border-border-default px-4 py-2 text-sm" onClick={closeForm}>
+            </Button>
+            <Button type="button" variant="ghost" className="rounded-lg text-sm" onClick={closeForm}>
               {t('common.cancel')}
-            </button>
+            </Button>
           </div>
         </form>
       ) : null}

@@ -53,11 +53,6 @@
   color: var(--color-accent-primary);
 }
 
-.add-btn {
-  background: var(--color-accent-primary);
-  box-shadow: none;
-}
-
 .add-btn:hover {
   box-shadow: 0 0.375rem 1.5rem rgb(var(--color-accent-primary-rgb) / 40%);
 }

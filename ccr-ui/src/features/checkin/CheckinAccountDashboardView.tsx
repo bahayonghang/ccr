@@ -4,7 +4,7 @@ import { checkinAccount, getCheckinAccountDashboard, queryCheckinBalance } from 
 import { getErrorMessage } from '@/types/api'
 import type { BalanceSnapshot, CheckinAccountDashboardResponse } from '@/types/checkin'
 import { extractStringParam } from '@/types/router'
-import { PageHeader, PageShell, PillToggleGroup, SIcon, StatTile } from '@/ui'
+import { PageHeader, PageShell, PillToggleGroup, SIcon, StatTile, buttonClass } from '@/ui'
 import { AccountDashboardCalendar } from './components/AccountDashboardCalendar'
 import { AccountDashboardTrend } from './components/AccountDashboardTrend'
 import { checkinNotify } from './lib/checkinNotify'
@@ -227,13 +227,13 @@ function DashboardHeader({
       }
       actions={
         <>
-          <button type="button" className="action-btn" disabled={loading || !hasDashboard || checkinLoading} onClick={onCheckin}>
+          <button type="button" className={buttonClass({ variant: 'ghost', className: 'action-btn' })} disabled={loading || !hasDashboard || checkinLoading} onClick={onCheckin}>
             {tt('签到', 'Check in')}
           </button>
-          <button type="button" className="action-btn" disabled={loading || !hasDashboard || balanceLoading} onClick={onBalance}>
+          <button type="button" className={buttonClass({ variant: 'ghost', className: 'action-btn' })} disabled={loading || !hasDashboard || balanceLoading} onClick={onBalance}>
             {tt('刷新余额', 'Refresh balance')}
           </button>
-          <button type="button" className="action-btn primary" disabled={loading} onClick={onRefresh}>
+          <button type="button" className={buttonClass({ variant: 'primary', className: 'action-btn' })} disabled={loading} onClick={onRefresh}>
             {tt('刷新', 'Refresh')}
           </button>
         </>

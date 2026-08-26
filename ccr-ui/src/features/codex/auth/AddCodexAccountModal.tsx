@@ -7,7 +7,7 @@ import {
   codexOAuthLoginCancel,
 } from '@/api'
 import { surfaceNotify } from '@/configs/surfaceNotify'
-import { BaseModal, SIcon } from '@/ui'
+import { BaseModal, SIcon, buttonClass } from '@/ui'
 import type { CodexAuthMutationResponse, CodexModelProviderRecord } from '@/types'
 import type { ProviderTemplateSelection } from '@/types/providerTemplates'
 import { extractErrorMessage } from '@/utils/errorHandler'
@@ -20,7 +20,6 @@ import {
   normalizeAccountNameInput,
 } from '../codexAuthAccounts'
 import { preferredNameErrorText } from './naming'
-import { ghostBtnClass } from '../ui-classes'
 import { useCodexLocale } from '../useCodexLocale'
 import { AddAccountApiStep } from './AddAccountApiStep'
 import { AddAccountLocalStep } from './AddAccountLocalStep'
@@ -126,7 +125,7 @@ export function AddCodexAccountModal({
           <h2 id={titleId} className="text-xl font-bold text-text-primary">{tf('codex.auth.actions.addAccount', 'Add account')}</h2>
           <p className="mt-1 text-sm text-text-muted">{tf('codex.auth.addAccountDescription', 'Store one or more Codex credentials and switch them from CCR.')}</p>
         </div>
-        <button type="button" className={ghostBtnClass} onClick={closeModal}>
+        <button type="button" className={buttonClass({ variant: 'ghost' })} onClick={closeModal}>
           <SIcon name="X" size="w-5 h-5" />
         </button>
       </div>

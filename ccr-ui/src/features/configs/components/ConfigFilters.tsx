@@ -1,5 +1,5 @@
 import { memo, useCallback, useMemo } from 'react'
-import { SIcon } from '@/ui'
+import { SIcon, buttonClass } from '@/ui'
 import { t } from '../locale'
 import type { ConfigFilter, ConfigSort } from '../types'
 import { FilterChip } from './FilterChip'
@@ -107,7 +107,7 @@ export const ConfigFilters = memo(function ConfigFilters({
         </button>
         <button
           type="button"
-          className="add-btn flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold text-[color:var(--color-accent-primary-contrast)] transition-[background-color,transform] duration-200 hover:scale-105"
+          className={buttonClass({ variant: 'primary', className: 'add-btn flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition-[background-color,transform] duration-200 hover:scale-105' })}
           onClick={onAddConfig}
         >
           <SIcon name="PlusCircle" size="w-4 h-4" />

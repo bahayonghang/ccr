@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form'
 import { createCheckinAccount, getOAuthAuthorizeUrl } from '@/api'
 import type { BuiltinProvider } from '@/types/checkin'
 import { copyText } from '@/utils/clipboard'
-import { BaseModal } from '@/ui'
+import { BaseModal, buttonClass } from '@/ui'
 import { useCheckinT } from '../hooks/useCheckinT'
 import {
   initialOAuthWizardState,
@@ -285,14 +285,14 @@ function OAuthWizardFooter({
           <button
             type="button"
             disabled={!canStep0}
-            className="oauth-wizard__button oauth-wizard__button--primary"
+            className={buttonClass({ variant: 'primary', className: 'oauth-wizard__button oauth-wizard__button--primary' })}
             onClick={onStep0}
           >
             {t('checkin.actions.oauthLogin')}
           </button>
         ) : null}
         {step === 1 && hasUrl ? (
-          <button type="button" className="oauth-wizard__button oauth-wizard__button--primary" onClick={onStep1}>
+          <button type="button" className={buttonClass({ variant: 'primary', className: 'oauth-wizard__button oauth-wizard__button--primary' })} onClick={onStep1}>
             {t('common.next')}
           </button>
         ) : null}
@@ -300,7 +300,7 @@ function OAuthWizardFooter({
           <button
             type="button"
             disabled={!hasCredentials}
-            className="oauth-wizard__button oauth-wizard__button--primary"
+            className={buttonClass({ variant: 'primary', className: 'oauth-wizard__button oauth-wizard__button--primary' })}
             onClick={onStep2}
           >
             {t('common.next')}

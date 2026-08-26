@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import { Link } from 'react-router'
 import type { SyncAssetInfo } from '@/types/syncSelection'
-import { AsyncStatePanel, PageHeader, PageShell, SIcon } from '@/ui'
+import { AsyncStatePanel, PageHeader, PageShell, SIcon, buttonClass } from '@/ui'
 import { SyncAssetCard } from './SyncAssetCard'
 import { SyncInfoSidebar } from './SyncInfoSidebar'
 import { SyncOperationOutputPanel } from './SyncOperationOutputPanel'
@@ -51,16 +51,16 @@ export function SyncView() {
           status={<span className="sync-badge">{page.t('sync.assets.badge')}</span>}
           actions={
             <>
-              <button type="button" className="sync-hero-button sync-hero-button--ghost" disabled={page.loading || page.refreshingAssets} onClick={handleRefresh}>
+              <button type="button" className={buttonClass({ variant: 'ghost', className: 'sync-hero-button' })} disabled={page.loading || page.refreshingAssets} onClick={handleRefresh}>
                 <SIcon name="RefreshCw" size="w-4 h-4" className={page.refreshingAssets ? 'animate-spin' : ''} />
                 <span>{page.t('sync.assets.refresh')}</span>
               </button>
-              <button type="button" className="sync-hero-button sync-hero-button--primary" disabled={page.globalOperating || page.assets.length === 0} onClick={handleSyncAll}>
+              <button type="button" className={buttonClass({ variant: 'primary', className: 'sync-hero-button' })} disabled={page.globalOperating || page.assets.length === 0} onClick={handleSyncAll}>
                 <SIcon name="Sparkles" size="w-4 h-4" />
                 <span>{page.globalOperating ? page.t('sync.assets.syncingAll') : page.t('sync.assets.syncAll')}</span>
               </button>
               {page.forceRetryAll ? (
-                <button type="button" className="sync-hero-button sync-hero-button--warning" disabled={page.globalOperating || page.assets.length === 0} onClick={handleForceAll}>
+                <button type="button" className={buttonClass({ variant: 'warning', className: 'sync-hero-button' })} disabled={page.globalOperating || page.assets.length === 0} onClick={handleForceAll}>
                   <SIcon name="Shield" size="w-4 h-4" />
                   <span>{page.t('sync.assets.forceRetryAll')}</span>
                 </button>
