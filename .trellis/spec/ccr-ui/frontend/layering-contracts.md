@@ -89,9 +89,9 @@ Primitive (`src/ui/`) → composite → domain component → page.
 
 ### 8. Good/Base/Bad Cases
 
-- Good: `src/features/claude/X.tsx` imports `@/stores` and `@/api`; `src/ui/Button.tsx` imports only `@/types` and `@/utils`.
+- Good: `src/features/claude/X.tsx` imports `@/stores` and `@/api`; `src/ui/button.tsx` imports only `@/types` and `@/utils`.
 - Base: `src/shell/*` glue imports across all layers; `legacy-feature` files keep prior imports until rewritten.
-- Bad: `src/ui/Button.tsx` imports `@/features/claude/...`; `src/features/claude/X.tsx` imports `src/features/codex/Y.tsx`; any module imports `src/api/tauri.ts` directly; a new `invoke('new_command')` added to `tauri.ts`.
+- Bad: `src/ui/button.tsx` imports `@/features/claude/...`; `src/features/claude/X.tsx` imports `src/features/codex/Y.tsx`; any module imports `src/api/tauri.ts` directly; a new `invoke('new_command')` added to `tauri.ts`.
 
 ### 9. Tests Required
 

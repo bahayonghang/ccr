@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { BaseModal } from './base-modal'
+import { Button, type ButtonVariant } from './button'
 import { SIcon } from './s-icon'
 
 export type ConfirmModalType = 'danger' | 'info' | 'warning'
@@ -39,12 +40,10 @@ const ICON_COLOR: Record<ConfirmModalType, string> = {
   info: 'text-accent-info',
 }
 
-const CONFIRM_BUTTON: Record<ConfirmModalType, string> = {
-  danger:
-    'bg-accent-danger text-[color:var(--color-danger-contrast)] hover:bg-accent-danger/90 focus:ring-accent-danger/30',
-  warning:
-    'bg-accent-warning text-[color:var(--color-warning-contrast)] hover:bg-accent-warning/90 focus:ring-accent-warning/30',
-  info: 'bg-accent-primary text-[color:var(--color-accent-primary-contrast)] hover:bg-accent-primary/90 focus:ring-accent-primary/30',
+const CONFIRM_VARIANT: Record<ConfirmModalType, ButtonVariant> = {
+  danger: 'danger',
+  warning: 'warning',
+  info: 'primary',
 }
 
 export function ConfirmModal({
@@ -92,20 +91,22 @@ export function ConfirmModal({
       )}
       footer={
         <div className="confirm-modal__footer flex w-full gap-3">
-          <button
-            type="button"
-            className="confirm-modal__button confirm-modal__button--cancel flex-1 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-accent-primary/30"
+          <Button
+            variant="ghost"
+            size="sm"
+            className="confirm-modal__button confirm-modal__button--cancel flex-1"
             onClick={handleCancel}
           >
             {cancelText || '取消'}
-          </button>
-          <button
-            type="button"
-            className={`confirm-modal__button flex-1 rounded-xl px-4 py-2.5 text-sm font-medium shadow-sm focus:outline-none focus:ring-2 transition-colors duration-150 ${CONFIRM_BUTTON[type]}`}
+          </Button>
+          <Button
+            variant={CONFIRM_VARIANT[type]}
+            size="sm"
+            className="confirm-modal__button flex-1 shadow-sm"
             onClick={handleConfirm}
           >
             {confirmText || '确认'}
-          </button>
+          </Button>
         </div>
       }
     >
