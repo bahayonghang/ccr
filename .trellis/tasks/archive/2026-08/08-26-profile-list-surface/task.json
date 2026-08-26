@@ -1,0 +1,28 @@
+{
+  "id": "profile-list-surface",
+  "name": "profile-list-surface",
+  "title": "Profile 列表页壳、统计条与筛选双视图",
+  "description": "",
+  "status": "completed",
+  "dev_type": "frontend",
+  "scope": "ccr-ui",
+  "package": null,
+  "priority": "P2",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-08-26",
+  "completedAt": "2026-08-26",
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "08-26-profile-design-language",
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "description": "实现统一 Profile 列表页壳、四卡统计条、筛选栏与卡片/表格双视图"
+  }
+}
